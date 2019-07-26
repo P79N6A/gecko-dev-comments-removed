@@ -53,13 +53,6 @@ if (!this.debug) {
   };
 }
 
-const INT32_MAX   = 2147483647;
-const UINT8_SIZE  = 1;
-const UINT16_SIZE = 2;
-const UINT32_SIZE = 4;
-
-const PDU_HEX_OCTET_SIZE = 4;
-
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
 
@@ -3976,7 +3969,7 @@ let RIL = {
     Buf.newParcel(REQUEST_STK_SEND_ENVELOPE_WITH_STATUS, options);
 
     Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
-                           - 2 * UINT32_SIZE)); 
+                           - 2 * Buf.UINT32_SIZE)); 
     let messageStringLength = Buf.readUint32(); 
     let smscLength = GsmPDUHelper.readHexOctet(); 
     let tpduLength = (messageStringLength / 2) - (smscLength + 1); 
@@ -4009,7 +4002,7 @@ let RIL = {
     if (smscLength) {
       GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ADDRESS);
       GsmPDUHelper.writeHexOctet(smscLength);
-      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * smscLength);
+      Buf.copyIncomingToOutgoing(Buf.PDU_HEX_OCTET_SIZE * smscLength);
     }
 
     
@@ -4019,7 +4012,7 @@ let RIL = {
       GsmPDUHelper.writeHexOctet(0x81);
     }
     GsmPDUHelper.writeHexOctet(tpduLength);
-    Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * tpduLength);
+    Buf.copyIncomingToOutgoing(Buf.PDU_HEX_OCTET_SIZE * tpduLength);
 
     
     Buf.writeStringDelimiter(0);
@@ -4068,7 +4061,7 @@ let RIL = {
       GsmPDUHelper.writeHexOctet(responsePduLen);
     }
     
-    Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * responsePduLen);
+    Buf.copyIncomingToOutgoing(Buf.PDU_HEX_OCTET_SIZE * responsePduLen);
     
     Buf.writeStringDelimiter(0);
 
@@ -4085,19 +4078,19 @@ let RIL = {
     Buf.writeUint32(EFSMS_STATUS_FREE);
 
     Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
-                           - 2 * UINT32_SIZE)); 
+                           - 2 * Buf.UINT32_SIZE)); 
     let messageStringLength = Buf.readUint32(); 
     let smscLength = GsmPDUHelper.readHexOctet(); 
     let pduLength = (messageStringLength / 2) - (smscLength + 1); 
 
     
     if (smscLength > 0) {
-      Buf.seekIncoming(smscLength * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(smscLength * Buf.PDU_HEX_OCTET_SIZE);
     }
     
     Buf.writeUint32(2 * pduLength); 
     if (pduLength) {
-      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * pduLength);
+      Buf.copyIncomingToOutgoing(Buf.PDU_HEX_OCTET_SIZE * pduLength);
     }
     
     Buf.writeStringDelimiter(0);
@@ -4110,9 +4103,9 @@ let RIL = {
     
     if (smscLength) {
       Buf.seekIncoming(-1 * (Buf.getCurrentParcelSize() - Buf.getReadAvailable()
-                             - 2 * UINT32_SIZE 
-                             - 2 * PDU_HEX_OCTET_SIZE)); 
-      Buf.copyIncomingToOutgoing(PDU_HEX_OCTET_SIZE * smscLength);
+                             - 2 * Buf.UINT32_SIZE 
+                             - 2 * Buf.PDU_HEX_OCTET_SIZE)); 
+      Buf.copyIncomingToOutgoing(Buf.PDU_HEX_OCTET_SIZE * smscLength);
     }
     
     Buf.writeStringDelimiter(0);
@@ -6583,7 +6576,7 @@ let GsmPDUHelper = {
       }
     }
 
-    Buf.seekIncoming((numOctets - i) * PDU_HEX_OCTET_SIZE);
+    Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
     return ret;
   },
 
@@ -6695,7 +6688,7 @@ let GsmPDUHelper = {
         }
 
         
-        Buf.seekIncoming((numOctets - i) * PDU_HEX_OCTET_SIZE);
+        Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
         break;
       case 0x81: 
       case 0x82:
@@ -6749,14 +6742,14 @@ let GsmPDUHelper = {
             }
             
             
-            Buf.seekIncoming(-1 * (count + 1) * PDU_HEX_OCTET_SIZE);
+            Buf.seekIncoming(-1 * (count + 1) * Buf.PDU_HEX_OCTET_SIZE);
             str += this.read8BitUnpackedToString(count + 1 - gotUCS2);
             i += count - gotUCS2;
           }
         }
 
         
-        Buf.seekIncoming((numOctets - len - headerLen) * PDU_HEX_OCTET_SIZE);
+        Buf.seekIncoming((numOctets - len - headerLen) * Buf.PDU_HEX_OCTET_SIZE);
         break;
     }
     return str;
@@ -7026,7 +7019,7 @@ let GsmPDUHelper = {
     let number = this.readNumberWithLength();
 
     
-    Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+    Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
     Buf.readStringDelimiter(length);
 
     let contact = null;
@@ -7088,7 +7081,7 @@ let GsmPDUHelper = {
       numOctets--;
       return this.readICCUCS2String(temp, numOctets);
     } else {
-      Buf.seekIncoming(-1 * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(-1 * Buf.PDU_HEX_OCTET_SIZE);
       return this.read8BitUnpackedToString(numOctets);
     }
   },
@@ -7192,9 +7185,9 @@ let GsmPDUHelper = {
       }
 
       number = this.readDiallingNumber(numLen);
-      Buf.seekIncoming((ADN_MAX_BCD_NUMBER_BYTES - numLen) * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming((ADN_MAX_BCD_NUMBER_BYTES - numLen) * Buf.PDU_HEX_OCTET_SIZE);
     } else {
-      Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * Buf.PDU_HEX_OCTET_SIZE);
     }
 
     return number;
@@ -9860,7 +9853,7 @@ let StkProactiveCmdHelper = {
       if (DEBUG) {
         debug("Unknown comprehension tag " + tag.toString(16));
       }
-      Buf.seekIncoming(length * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(length * Buf.PDU_HEX_OCTET_SIZE);
       return null;
     }
     return method.call(this, length);
@@ -10826,7 +10819,7 @@ let ICCIOHelper = {
     
 
     
-    Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+    Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
 
     
     options.fileSize = (GsmPDUHelper.readHexOctet() << 8) |
@@ -10851,7 +10844,7 @@ let ICCIOHelper = {
     
     
     Buf.seekIncoming(((RESPONSE_DATA_STRUCTURE - RESPONSE_DATA_FILE_TYPE - 1) *
-        PDU_HEX_OCTET_SIZE));
+        Buf.PDU_HEX_OCTET_SIZE));
 
     
     let efType = GsmPDUHelper.readHexOctet();
@@ -10865,7 +10858,7 @@ let ICCIOHelper = {
       options.recordSize = GsmPDUHelper.readHexOctet();
       options.totalRecords = options.fileSize / options.recordSize;
     } else {
-      Buf.seekIncoming(1 * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(1 * Buf.PDU_HEX_OCTET_SIZE);
     }
 
     Buf.readStringDelimiter(strLen);
@@ -11258,7 +11251,7 @@ let ICCRecordHelper = {
         let tag = GsmPDUHelper.readHexOctet();
         if (tag == 0xff) {
           readLen++;
-          Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+          Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
           break;
         }
 
@@ -11402,7 +11395,7 @@ let ICCRecordHelper = {
         email = GsmPDUHelper.read8BitUnpackedToString(octetLen - 2);
 
         
-        Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE); 
+        Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE); 
       }
 
       Buf.readStringDelimiter(strLen);
@@ -11480,17 +11473,17 @@ let ICCRecordHelper = {
       this._anrRecordSize = options.recordSize;
 
       
-      Buf.seekIncoming(1 * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(1 * Buf.PDU_HEX_OCTET_SIZE);
 
       number = GsmPDUHelper.readNumberWithLength();
 
       
-      Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
 
       
       if (fileType == ICC_USIM_TYPE2_TAG) {
         
-        Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+        Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
       }
 
       Buf.readStringDelimiter(strLen);
@@ -11587,7 +11580,7 @@ let ICCRecordHelper = {
       }
 
       
-      Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(strLen);
 
       if (DEBUG) debug("SPDI: " + JSON.stringify(RIL.iccInfoPrivate.SPDI));
@@ -11763,7 +11756,7 @@ let ICCRecordHelper = {
         }
         opl.push(oplElement);
       } else {
-        Buf.seekIncoming(5 * PDU_HEX_OCTET_SIZE);
+        Buf.seekIncoming(5 * Buf.PDU_HEX_OCTET_SIZE);
       }
       Buf.readStringDelimiter(strLen);
 
@@ -11797,7 +11790,7 @@ let ICCRecordHelper = {
         if (tlvTag == 0xFF) {
           
           readLen++;
-          Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+          Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
           break;
         }
 
@@ -11814,7 +11807,7 @@ let ICCRecordHelper = {
             pnnElement.shortName = GsmPDUHelper.readNetworkName(tlvLen);
             break;
           default:
-            Buf.seekIncoming(tlvLen * PDU_HEX_OCTET_SIZE);
+            Buf.seekIncoming(tlvLen * Buf.PDU_HEX_OCTET_SIZE);
             break;
         }
 
@@ -11872,7 +11865,7 @@ let ICCRecordHelper = {
         }
         return;
       } else {
-        Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+        Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
       }
 
       Buf.readStringDelimiter(strLen);
@@ -12925,7 +12918,7 @@ let RuimRecordHelper = {
       cdmaHomeNetworkId.push(((GsmPDUHelper.readHexOctet() & 0xff) << 8) | tempOctet);
 
       
-      Buf.seekIncoming(PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(Buf.PDU_HEX_OCTET_SIZE);
 
       Buf.readStringDelimiter(strLen);
       if (options.p1 < options.totalRecords) {
@@ -12982,7 +12975,7 @@ let RuimRecordHelper = {
       let displayCondition = GsmPDUHelper.readHexOctet();
       let codingScheme = GsmPDUHelper.readHexOctet();
       
-      Buf.seekIncoming(PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming(Buf.PDU_HEX_OCTET_SIZE);
       let readLen = 3;
 
       
@@ -13018,7 +13011,7 @@ let RuimRecordHelper = {
               ", Display condition: " + displayCondition);
       }
       RIL.iccInfoPrivate.spnDisplayCondition = displayCondition;
-      Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+      Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(strLen);
     }
 
