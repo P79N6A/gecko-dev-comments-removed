@@ -991,16 +991,20 @@ int64_t nsDocLoader::GetMaxTotalProgress()
 NS_IMETHODIMP nsDocLoader::OnProgress(nsIRequest *aRequest, nsISupports* ctxt, 
                                       uint64_t aProgress, uint64_t aProgressMax)
 {
-  nsRequestInfo *info;
   int64_t progressDelta = 0;
 
   
   
   
-  info = GetRequestInfo(aRequest);
-  if (info) {
+  if (nsRequestInfo* info = GetRequestInfo(aRequest)) {
     
-    if (!info->mUploading && (int64_t(0) == info->mCurrentProgress) && (int64_t(0) == info->mMaxProgress)) {
+    
+    int64_t oldCurrentProgress = info->mCurrentProgress;
+    progressDelta = int64_t(aProgress) - oldCurrentProgress;
+    info->mCurrentProgress = int64_t(aProgress);
+
+    
+    if (!info->mUploading && (int64_t(0) == oldCurrentProgress) && (int64_t(0) == info->mMaxProgress)) {
       
       
       
@@ -1048,10 +1052,7 @@ NS_IMETHODIMP nsDocLoader::OnProgress(nsIRequest *aRequest, nsISupports* ctxt,
     }
 
     
-    progressDelta = int64_t(aProgress) - info->mCurrentProgress;
     mCurrentSelfProgress += progressDelta;
-
-    info->mCurrentProgress = int64_t(aProgress);
   }
   
   
