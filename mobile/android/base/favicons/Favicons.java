@@ -239,7 +239,7 @@ public class Favicons {
         
         
         String targetURL;
-        Tab theTab = Tabs.getInstance().getTabForUrl(pageURL);
+        Tab theTab = Tabs.getInstance().getFirstTabForUrl(pageURL);
         if (theTab != null) {
             targetURL = theTab.getFaviconURL();
             if (targetURL != null) {

@@ -163,7 +163,7 @@ public class Tabs implements GeckoEventListener {
         return count;
     }
 
-    public synchronized int isOpen(String url) {
+    public int isOpen(String url) {
         for (Tab tab : mOrder) {
             if (tab.getURL().equals(url)) {
                 return tab.getId();
@@ -648,29 +648,41 @@ public class Tabs implements GeckoEventListener {
 
 
 
+    public Tab getFirstTabForUrl(String url) {
+        return getFirstTabForUrlHelper(url, null);
+    }
+
+    
 
 
-    public int getTabIdForUrl(String url, boolean isPrivate) {
+
+
+
+
+
+    public Tab getFirstTabForUrl(String url, boolean isPrivate) {
+        return getFirstTabForUrlHelper(url, isPrivate);
+    }
+
+    private Tab getFirstTabForUrlHelper(String url, Boolean isPrivate) {
+        if (url == null) {
+            return null;
+        }
+
         for (Tab tab : mOrder) {
+            if (isPrivate != null && isPrivate != tab.isPrivate()) {
+                continue;
+            }
             String tabUrl = tab.getURL();
             if (AboutPages.isAboutReader(tabUrl)) {
                 tabUrl = ReaderModeUtils.getUrlFromAboutReader(tabUrl);
             }
-            if (TextUtils.equals(tabUrl, url) && isPrivate == tab.isPrivate()) {
-                return tab.getId();
+            if (url.equals(tabUrl)) {
+                return tab;
             }
         }
 
-        return -1;
-    }
-
-    public int getTabIdForUrl(String url) {
-        return getTabIdForUrl(url, Tabs.getInstance().getSelectedTab().isPrivate());
-    }
-
-    public synchronized Tab getTabForUrl(String url) {
-        int tabId = getTabIdForUrl(url);
-        return getTab(tabId);
+        return null;
     }
 
     
