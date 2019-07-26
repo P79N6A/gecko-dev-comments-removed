@@ -1796,6 +1796,9 @@ pref("layout.css.filters.enabled", false);
 pref("layout.css.flexbox.enabled", true);
 
 
+pref("layout.css.sticky.enabled", false);
+
+
 pref("layout.css.image-orientation.enabled", true);
 
 

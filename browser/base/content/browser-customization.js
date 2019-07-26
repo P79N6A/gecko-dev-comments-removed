@@ -83,7 +83,6 @@ let CustomizationHandler = {
       URLBarSetURI();
       XULBrowserWindow.asyncUpdateUI();
       BookmarkingUI.updateStarState();
-      SocialMark.updateMarkState();
     }
 
     

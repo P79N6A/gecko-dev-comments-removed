@@ -6,7 +6,7 @@
 let SocialUI,
     SocialChatBar,
     SocialFlyout,
-    SocialMark,
+    SocialMarks,
     SocialShare,
     SocialMenu,
     SocialToolbar,
@@ -27,12 +27,23 @@ XPCOMUtils.defineLazyGetter(this, "OpenGraphBuilder", function() {
   return tmp.OpenGraphBuilder;
 });
 
+XPCOMUtils.defineLazyGetter(this, "DynamicResizeWatcher", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/Social.jsm", tmp);
+  return tmp.DynamicResizeWatcher;
+});
+
+XPCOMUtils.defineLazyGetter(this, "sizeSocialPanelToContent", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/Social.jsm", tmp);
+  return tmp.sizeSocialPanelToContent;
+});
+
 SocialUI = {
   
   init: function SocialUI_init() {
     Services.obs.addObserver(this, "social:ambient-notification-changed", false);
     Services.obs.addObserver(this, "social:profile-changed", false);
-    Services.obs.addObserver(this, "social:page-mark-config", false);
     Services.obs.addObserver(this, "social:frameworker-error", false);
     Services.obs.addObserver(this, "social:provider-set", false);
     Services.obs.addObserver(this, "social:providers-changed", false);
@@ -46,6 +57,10 @@ SocialUI = {
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
+    window.addEventListener("aftercustomization", function() {
+      if (SocialUI.enabled)
+        SocialMarks.populateContextMenu(SocialMarks);
+    }, false);
 
     if (!Social.initialized) {
       Social.init();
@@ -61,7 +76,6 @@ SocialUI = {
   uninit: function SocialUI_uninit() {
     Services.obs.removeObserver(this, "social:ambient-notification-changed");
     Services.obs.removeObserver(this, "social:profile-changed");
-    Services.obs.removeObserver(this, "social:page-mark-config");
     Services.obs.removeObserver(this, "social:frameworker-error");
     Services.obs.removeObserver(this, "social:provider-set");
     Services.obs.removeObserver(this, "social:providers-changed");
@@ -85,15 +99,19 @@ SocialUI = {
     try {
       switch (topic) {
         case "social:provider-installed":
+          SocialMarks.setPosition(data);
           SocialStatus.setPosition(data);
           break;
         case "social:provider-uninstalled":
+          SocialMarks.removePosition(data);
           SocialStatus.removePosition(data);
           break;
         case "social:provider-enabled":
+          SocialMarks.populateToolbarPalette();
           SocialStatus.populateToolbarPalette();
           break;
         case "social:provider-disabled":
+          SocialMarks.removeProvider(data);
           SocialStatus.removeProvider(data);
           break;
         case "social:provider-reload":
@@ -116,9 +134,9 @@ SocialUI = {
           SocialChatBar.update();
           SocialShare.update();
           SocialSidebar.update();
-          SocialMark.update();
           SocialToolbar.update();
           SocialStatus.populateToolbarPalette();
+          SocialMarks.populateToolbarPalette();
           SocialMenu.populate();
           break;
         case "social:providers-changed":
@@ -128,6 +146,7 @@ SocialUI = {
           SocialToolbar.populateProviderMenus();
           SocialShare.populateProviderMenu();
           SocialStatus.populateToolbarPalette();
+          SocialMarks.populateToolbarPalette();
           break;
 
         
@@ -141,13 +160,8 @@ SocialUI = {
         case "social:profile-changed":
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateProvider();
-            SocialMark.update();
+            SocialMarks.update();
             SocialChatBar.update();
-          }
-          break;
-        case "social:page-mark-config":
-          if (this._matchesCurrentProvider(data)) {
-            SocialMark.updateMarkState();
           }
           break;
         case "social:frameworker-error":
@@ -373,6 +387,14 @@ SocialUI = {
     return !!Social.provider;
   },
 
+  
+  
+  updateState: function() {
+    if (!this.enabled)
+      return;
+    SocialMarks.update();
+    SocialShare.update();
+  }
 }
 
 SocialChatBar = {
@@ -410,63 +432,6 @@ SocialChatBar = {
   },
   focus: function SocialChatBar_focus() {
     this.chatbar.focus();
-  }
-}
-
-function sizeSocialPanelToContent(panel, iframe) {
-  
-  let doc = iframe.contentDocument;
-  if (!doc || !doc.body) {
-    return;
-  }
-  
-  
-  let body = doc.body;
-  let bodyId = body.getAttribute("contentid");
-  if (bodyId) {
-    body = doc.getElementById(bodyId) || doc.body;
-  }
-  
-  let cs = doc.defaultView.getComputedStyle(body);
-  let computedHeight = parseInt(cs.marginTop) + body.offsetHeight + parseInt(cs.marginBottom);
-  let height = Math.max(computedHeight, PANEL_MIN_HEIGHT);
-  let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
-  let width = Math.max(computedWidth, PANEL_MIN_WIDTH);
-  iframe.style.width = width + "px";
-  iframe.style.height = height + "px";
-  
-  if (panel.state == "open")
-    panel.adjustArrowPosition();
-}
-
-function DynamicResizeWatcher() {
-  this._mutationObserver = null;
-}
-
-DynamicResizeWatcher.prototype = {
-  start: function DynamicResizeWatcher_start(panel, iframe) {
-    this.stop(); 
-    let doc = iframe.contentDocument;
-    this._mutationObserver = new iframe.contentWindow.MutationObserver(function(mutations) {
-      sizeSocialPanelToContent(panel, iframe);
-    });
-    
-    let config = {attributes: true, characterData: true, childList: true, subtree: true};
-    this._mutationObserver.observe(doc, config);
-    
-    
-    sizeSocialPanelToContent(panel, iframe);
-  },
-  stop: function DynamicResizeWatcher_stop() {
-    if (this._mutationObserver) {
-      try {
-        this._mutationObserver.disconnect();
-      } catch (ex) {
-        
-        
-      }
-      this._mutationObserver = null;
-    }
   }
 }
 
@@ -775,7 +740,7 @@ SocialShare = {
     }
     this.currentShare = pageData;
 
-    let shareEndpoint = this._generateShareEndpointURL(provider.shareURL, pageData);
+    let shareEndpoint = OpenGraphBuilder.generateEndpointURL(provider.shareURL, pageData);
 
     this._dynamicResizer = new DynamicResizeWatcher();
     
@@ -818,119 +783,6 @@ SocialShare = {
     let anchor = document.getAnonymousElementByAttribute(this.shareButton, "class", "toolbarbutton-icon");
     this.panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
     Social.setErrorListener(iframe, this.setErrorMessage.bind(this));
-  },
-
-  _generateShareEndpointURL: function(shareURL, pageData) {
-    
-    
-    
-    
-    let [shareEndpoint, queryString] = shareURL.split("?");
-    let query = {};
-    if (queryString) {
-      queryString.split('&').forEach(function (val) {
-        let [name, value] = val.split('=');
-        let p = /%\{(.+)\}/.exec(value);
-        if (!p) {
-          
-          query[name] = value;
-        } else if (pageData[p[1]]) {
-          query[name] = pageData[p[1]];
-        } else if (p[1] == "body") {
-          
-          let body = "";
-          if (pageData.title)
-            body += pageData.title + "\n\n";
-          if (pageData.description)
-            body += pageData.description + "\n\n";
-          if (pageData.text)
-            body += pageData.text + "\n\n";
-          body += pageData.url;
-          query["body"] = body;
-        }
-      });
-    }
-    var str = [];
-    for (let p in query)
-       str.push(p + "=" + encodeURIComponent(query[p]));
-    if (str.length)
-      shareEndpoint = shareEndpoint + "?" + str.join("&");
-    return shareEndpoint;
-  }
-};
-
-SocialMark = {
-  get button() {
-    return document.getElementById("social-mark-button");
-  },
-
-  canMarkPage: function SSB_canMarkPage(aURI) {
-    
-    return aURI && (aURI.schemeIs('http') || aURI.schemeIs('https'));
-  },
-
-  
-  update: function SSB_updateButtonState() {
-    let markButton = this.button;
-    
-    markButton.hidden = !SocialUI.enabled || Social.provider.pageMarkInfo == null;
-    markButton.disabled = markButton.hidden || !this.canMarkPage(gBrowser.currentURI);
-
-    
-    
-    let cmd = document.getElementById("Social:TogglePageMark");
-    cmd.setAttribute("disabled", markButton.disabled ? "true" : "false");
-  },
-
-  togglePageMark: function(aCallback) {
-    if (this.button.disabled)
-      return;
-    this.toggleURIMark(gBrowser.currentURI, aCallback)
-  },
-
-  toggleURIMark: function(aURI, aCallback) {
-    let update = function(marked) {
-      this._updateMarkState(marked);
-      if (aCallback)
-        aCallback(marked);
-    }.bind(this);
-    Social.isURIMarked(aURI, function(marked) {
-      if (marked) {
-        Social.unmarkURI(aURI, update);
-      } else {
-        Social.markURI(aURI, update);
-      }
-    });
-  },
-
-  updateMarkState: function SSB_updateMarkState() {
-    this.update();
-    if (!this.button.hidden)
-      Social.isURIMarked(gBrowser.currentURI, this._updateMarkState.bind(this));
-  },
-
-  _updateMarkState: function(currentPageMarked) {
-    
-    let markButton = this.button;
-    let pageMarkInfo = SocialUI.enabled ? Social.provider.pageMarkInfo : null;
-
-    
-    if (!markButton || markButton.hidden || !pageMarkInfo)
-      return;
-
-    let imageURL;
-    if (!markButton.disabled && currentPageMarked) {
-      markButton.setAttribute("marked", "true");
-      markButton.setAttribute("label", pageMarkInfo.messages.markedLabel);
-      markButton.setAttribute("tooltiptext", pageMarkInfo.messages.markedTooltip);
-      imageURL = pageMarkInfo.images.marked;
-    } else {
-      markButton.removeAttribute("marked");
-      markButton.setAttribute("label", pageMarkInfo.messages.unmarkedLabel);
-      markButton.setAttribute("tooltiptext", pageMarkInfo.messages.unmarkedTooltip);
-      imageURL = pageMarkInfo.images.unmarked;
-    }
-    markButton.style.listStyleImage = "url(" + imageURL + ")";
   }
 };
 
@@ -1019,13 +871,11 @@ SocialToolbar = {
       parent.removeChild(frame);
     }
 
-    let tbi = document.getElementById("social-toolbar-item");
+    let tbi = document.getElementById("social-provider-button");
     if (tbi) {
       
-      let next = SocialMark.button.previousSibling;
-      while (next != this.button) {
-        tbi.removeChild(next);
-        next = SocialMark.button.previousSibling;
+      while (tbi.nextSibling) {
+        tbi.parentNode.removeChild(tbi.nextSibling);
       }
     }
   },
@@ -1181,7 +1031,7 @@ SocialToolbar = {
       toolbarButton.setAttribute("aria-label", ariaLabel);
     }
     let socialToolbarItem = document.getElementById("social-toolbar-item");
-    socialToolbarItem.insertBefore(toolbarButtons, SocialMark.button);
+    socialToolbarItem.appendChild(toolbarButtons);
 
     for (let frame of createdFrames) {
       if (frame.socialErrorListener)
@@ -1533,7 +1383,7 @@ ToolbarHelper.prototype = {
     for (let provider of Social.providers) {
       let id = this.idFromOrgin(provider.origin);
       if (this._getExistingButton(id))
-        return;
+        continue;
       let button = this._createButton(provider);
       if (button && persistedById.hasOwnProperty(id)) {
         let parent = persistedById[id];
@@ -1765,6 +1615,132 @@ SocialStatus = {
     sizeSocialPanelToContent(panel, aNotificationFrame);
   },
 
+};
+
+
+
+
+
+
+
+SocialMarks = {
+  update: function() {
+    
+    let currentButtons = document.querySelectorAll('toolbarbutton[type="socialmark"]');
+    for (let elt of currentButtons)
+      elt.update();
+  },
+
+  getProviders: function() {
+    
+    
+    
+    
+    let tbh = this._toolbarHelper;
+    return [p for (p of Social.providers) if (p.markURL &&
+                                              document.getElementById(tbh.idFromOrgin(p.origin)))];
+  },
+
+  populateContextMenu: function() {
+    
+    let providers = this.getProviders();
+
+    
+    let menus = [m for (m of document.getElementsByClassName("context-socialmarks"))];
+    [m.parentNode.removeChild(m) for (m of menus)];
+
+    let contextMenus = [
+      {
+        type: "link",
+        id: "context-marklinkMenu",
+        label: "social.marklink.label"
+      },
+      {
+        type: "page",
+        id: "context-markpageMenu",
+        label: "social.markpage.label"
+      }
+    ];
+    for (let cfg of contextMenus) {
+      this._populateContextPopup(cfg, providers);
+    }
+  },
+
+  MENU_LIMIT: 3, 
+  _populateContextPopup: function(menuInfo, providers) {
+    let menu = document.getElementById(menuInfo.id);
+    let popup = menu.firstChild;
+    for (let provider of providers) {
+      
+      
+      
+      let mi = document.createElement("menuitem");
+      mi.setAttribute("oncommand", "gContextMenu.markLink(this.getAttribute('origin'));");
+      mi.setAttribute("origin", provider.origin);
+      mi.setAttribute("image", provider.iconURL);
+      if (providers.length <= this.MENU_LIMIT) {
+        
+        mi.setAttribute("class", "menuitem-iconic context-socialmarks context-mark"+menuInfo.type);
+        let menuLabel = gNavigatorBundle.getFormattedString(menuInfo.label, [provider.name]);
+        mi.setAttribute("label", menuLabel);
+        menu.parentNode.insertBefore(mi, menu);
+      } else {
+        mi.setAttribute("class", "menuitem-iconic context-socialmarks");
+        mi.setAttribute("label", provider.name);
+        popup.appendChild(mi);
+      }
+    }
+  },
+
+  populateToolbarPalette: function() {
+    this._toolbarHelper.populatePalette();
+    this.populateContextMenu();
+  },
+
+  setPosition: function(origin) {
+    
+    
+    let manifest = Social.getManifestByOrigin(origin);
+    if (!manifest.markURL)
+      return;
+    let tbh = this._toolbarHelper;
+    tbh.setPersistentPosition(tbh.idFromOrgin(origin));
+  },
+
+  removePosition: function(origin) {
+    let tbh = this._toolbarHelper;
+    tbh.removePersistence(tbh.idFromOrgin(origin));
+  },
+
+  removeProvider: function(origin) {
+    this._toolbarHelper.removeProviderButton(origin);
+  },
+
+  get _toolbarHelper() {
+    delete this._toolbarHelper;
+    this._toolbarHelper = new ToolbarHelper("social-mark-button", this._createButton.bind(this));
+    return this._toolbarHelper;
+  },
+
+  _createButton: function(provider) {
+    if (!provider.markURL)
+      return null;
+    let palette = document.getElementById("navigator-toolbox").palette;
+    let button = document.createElement("toolbarbutton");
+    button.setAttribute("type", "socialmark");
+    button.setAttribute("class", "toolbarbutton-1 social-mark-button");
+    button.style.listStyleImage = "url(" + provider.iconURL + ")";
+    button.setAttribute("origin", provider.origin);
+    button.setAttribute("id", this._toolbarHelper.idFromOrgin(provider.origin));
+    palette.appendChild(button);
+    return button
+  },
+
+  markLink: function(aOrigin, aUrl) {
+    
+    let id = this._toolbarHelper.idFromOrgin(aOrigin);
+    document.getElementById(id).markLink(aUrl);
+  }
 };
 
 })();

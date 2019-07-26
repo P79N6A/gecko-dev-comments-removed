@@ -3651,10 +3651,7 @@ var XULBrowserWindow = {
 
         
         BookmarkingUI.updateStarState();
-        if (SocialUI.enabled) {
-          SocialMark.updateMarkState();
-          SocialShare.update();
-        }
+        SocialUI.updateState();
       }
 
       
