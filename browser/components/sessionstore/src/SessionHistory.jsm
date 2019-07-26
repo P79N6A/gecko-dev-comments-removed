@@ -112,21 +112,6 @@ let SessionHistoryInternal = {
 
 
 
-  isDynamic: function (shEntry) {
-    
-    
-    
-    
-    return shEntry.parent && shEntry.isDynamicallyAdded();
-  },
-
-  
-
-
-
-
-
-
 
 
   serializeEntry: function (shEntry, isPinned) {
@@ -198,7 +183,7 @@ let SessionHistoryInternal = {
       for (let i = 0; i < shEntry.childCount; i++) {
         let child = shEntry.GetChildAt(i);
 
-        if (child && !this.isDynamic(child)) {
+        if (child) {
           
           
           if (child.URI.schemeIs("wyciwyg")) {
