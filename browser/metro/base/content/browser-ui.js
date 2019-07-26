@@ -110,7 +110,6 @@ var BrowserUI = {
     FlyoutPanelsUI.init();
     PageThumbs.init();
     SettingsCharm.init();
-    NavButtonSlider.init();
 
     
     BrowserUI._adjustDOMforViewState();
