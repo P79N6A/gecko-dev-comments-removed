@@ -2127,18 +2127,32 @@ NetworkDetailsView.prototype = {
       
       
       
-      if (/\bjson/.test(mimeType)) {
-        let jsonpRegex = /^[a-zA-Z0-9_$]+\(|\)$/g; 
+      
+      
+      let jsonMimeType, jsonObject, jsonObjectParseError;
+      try {
+        
+        
+        jsonMimeType = /\bjson/.test(mimeType);
+        jsonObject = JSON.parse(aString);
+      } catch (e) {
+        jsonObjectParseError = e;
+      }
+      if (jsonMimeType || jsonObject) {
+        
+        let jsonpRegex = /^[a-zA-Z0-9_$]+\(|\)$/g;
         let sanitizedJSON = aString.replace(jsonpRegex, "");
         let callbackPadding = aString.match(jsonpRegex);
 
         
         
         
-        try {
-          var jsonObject = JSON.parse(sanitizedJSON);
-        } catch (e) {
-          var parsingError = e;
+        if (sanitizedJSON != aString) {
+          try {
+            jsonObject = JSON.parse(sanitizedJSON);
+          } catch (e) {
+            jsonObjectParseError = e;
+          }
         }
 
         
@@ -2157,8 +2171,8 @@ NetworkDetailsView.prototype = {
         else {
           $("#response-content-textarea-box").hidden = false;
           let infoHeader = $("#response-content-info-header");
-          infoHeader.setAttribute("value", parsingError);
-          infoHeader.setAttribute("tooltiptext", parsingError);
+          infoHeader.setAttribute("value", jsonObjectParseError);
+          infoHeader.setAttribute("tooltiptext", jsonObjectParseError);
           infoHeader.hidden = false;
           return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
             aEditor.setMode(Editor.modes.js);
