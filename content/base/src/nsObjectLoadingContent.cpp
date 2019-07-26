@@ -3347,7 +3347,7 @@ nsObjectLoadingContent::TeardownProtoChain()
 
   
   
-  bool removed = false;
+  DebugOnly<bool> removed = false;
   while (obj) {
     if (!::JS_GetPrototype(cx, obj, &proto)) {
       return;
