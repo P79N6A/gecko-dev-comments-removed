@@ -260,6 +260,12 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
     }
 
     void updateFromTab(Tab tab, EnumSet<UpdateFlags> flags) {
+        
+        
+        if (!isAttachedToWindow()) {
+            return;
+        }
+
         if (flags.contains(UpdateFlags.TITLE)) {
             updateTitle(tab);
         }
