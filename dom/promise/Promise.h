@@ -80,13 +80,15 @@ public:
   
   
   
+  
   template <typename T>
-  void MaybeResolve(T& aArg) {
+  void MaybeResolve(const T& aArg) {
     MaybeSomething(aArg, &Promise::MaybeResolve);
   }
 
+  
   template <typename T>
-  void MaybeReject(T& aArg) {
+  void MaybeReject(const T& aArg) {
     MaybeSomething(aArg, &Promise::MaybeReject);
   }
 

@@ -30,6 +30,11 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException);
 bool
 ThrowExceptionObject(JSContext* aCx, nsIException* aException);
 
+
+
+already_AddRefed<Exception>
+CreateException(JSContext* aCx, nsresult aRv, const char* aMessage = nullptr);
+
 already_AddRefed<nsIStackFrame>
 GetCurrentJSStack();
 

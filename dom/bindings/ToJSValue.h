@@ -54,6 +54,14 @@ ToJSValue(JSContext* aCx,
   return true;
 }
 
+
+
+
+
+
+
+
+#if 0
 inline bool
 ToJSValue(JSContext* aCx,
           uint32_t aArgument,
@@ -65,6 +73,7 @@ ToJSValue(JSContext* aCx,
   aValue.setNumber(aArgument);
   return true;
 }
+#endif
 
 inline bool
 ToJSValue(JSContext* aCx,
@@ -211,6 +220,13 @@ ToJSValue(JSContext* aCx, JS::Handle<JS::Value> aArgument,
   aValue.set(aArgument);
   return MaybeWrapValue(aCx, aValue);
 }
+
+
+
+bool
+ToJSValue(JSContext* aCx,
+          nsresult aArgument,
+          JS::MutableHandle<JS::Value> aValue);
 
 
 template <typename T>

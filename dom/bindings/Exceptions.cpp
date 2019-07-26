@@ -131,28 +131,7 @@ Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
     }
   }
 
-  nsRefPtr<Exception> finalException;
-
-  
-  switch (NS_ERROR_GET_MODULE(aRv)) {
-  case NS_ERROR_MODULE_DOM:
-  case NS_ERROR_MODULE_SVG:
-  case NS_ERROR_MODULE_DOM_XPATH:
-  case NS_ERROR_MODULE_DOM_INDEXEDDB:
-  case NS_ERROR_MODULE_DOM_FILEHANDLE:
-    finalException = DOMException::Create(aRv);
-    break;
-
-  default:
-      break;
-  }
-
-  
-  if (!finalException) {
-    
-    finalException = new Exception(nsCString(aMessage), aRv,
-                                   EmptyCString(), nullptr, nullptr);
-  }
+  nsRefPtr<Exception> finalException = CreateException(aCx, aRv, aMessage);
 
   MOZ_ASSERT(finalException);
   if (!ThrowExceptionObject(aCx, finalException)) {
@@ -162,6 +141,29 @@ Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
   }
 
   return false;
+}
+
+already_AddRefed<Exception>
+CreateException(JSContext* aCx, nsresult aRv, const char* aMessage)
+{
+  
+  switch (NS_ERROR_GET_MODULE(aRv)) {
+  case NS_ERROR_MODULE_DOM:
+  case NS_ERROR_MODULE_SVG:
+  case NS_ERROR_MODULE_DOM_XPATH:
+  case NS_ERROR_MODULE_DOM_INDEXEDDB:
+  case NS_ERROR_MODULE_DOM_FILEHANDLE:
+    return DOMException::Create(aRv);
+  default:
+    break;
+  }
+
+  
+  
+  nsRefPtr<Exception> exception =
+    new Exception(nsCString(aMessage), aRv,
+                  EmptyCString(), nullptr, nullptr);
+  return exception.forget();
 }
 
 already_AddRefed<nsIStackFrame>

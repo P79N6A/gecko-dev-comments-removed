@@ -5,6 +5,8 @@
 
 
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/Exceptions.h"
 #include "nsAString.h"
 #include "nsContentUtils.h"
 #include "nsStringBuffer.h"
@@ -48,6 +50,15 @@ ISupportsToJSValue(JSContext* aCx,
 }
 
 } 
+
+bool
+ToJSValue(JSContext* aCx,
+          nsresult aArgument,
+          JS::MutableHandle<JS::Value> aValue)
+{
+  nsRefPtr<Exception> exception = CreateException(aCx, aArgument);
+  return ToJSValue(aCx, exception, aValue);
+}
 
 } 
 } 
