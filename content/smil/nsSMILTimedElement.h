@@ -55,7 +55,7 @@ public:
   {
     return mAnimationElement ?
         mAnimationElement->GetTargetElementContent() :
-        nsnull;
+        nullptr;
   }
 
   
@@ -259,7 +259,7 @@ public:
 
   bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
                  nsAttrValue& aResult, Element* aContextNode,
-                 nsresult* aParseResult = nsnull);
+                 nsresult* aParseResult = nullptr);
 
   
 

@@ -196,11 +196,11 @@ public:
                              nsRenderingContext&    aTextRunConstructionContext,
                              nscoord                aX,
                              nscoord                aY,
-                             nsBidiPositionResolve* aPosResolve = nsnull,
+                             nsBidiPositionResolve* aPosResolve = nullptr,
                              PRInt32                aPosResolveCount = 0)
   {
     return ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
-                                          aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nsnull);
+                                          aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nullptr);
   }
   
   static nscoord MeasureTextWidth(const PRUnichar*     aText,
@@ -212,7 +212,7 @@ public:
     nscoord length;
     nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext,
                                                  aRenderingContext, aRenderingContext,
-                                                 MODE_MEASURE, 0, 0, nsnull, 0, &length);
+                                                 MODE_MEASURE, 0, 0, nullptr, 0, &length);
     return NS_SUCCEEDED(rv) ? length : 0;
   }
 

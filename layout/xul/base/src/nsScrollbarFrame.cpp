@@ -140,7 +140,7 @@ nsIScrollbarMediator*
 nsScrollbarFrame::GetScrollbarMediator()
 {
   if (!mScrollbarMediator)
-    return nsnull;
+    return nullptr;
   nsIFrame* f = mScrollbarMediator->GetPrimaryFrame();
 
   

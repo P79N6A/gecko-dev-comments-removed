@@ -241,7 +241,7 @@ public:
 
 
 
-  nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nsnull,
+  nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nullptr,
                         bool aEnableDragDrop = true,
                         bool aResetVisibility = true);
 
@@ -251,7 +251,7 @@ public:
 
 
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
-                                 nsWidgetInitData *aWidgetInitData = nsnull,
+                                 nsWidgetInitData *aWidgetInitData = nullptr,
                                  bool aEnableDragDrop = true,
                                  bool aResetVisibility = true);
 
@@ -263,7 +263,7 @@ public:
 
 
   nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
-                                nsIWidget* aParentWidget = nsnull,
+                                nsIWidget* aParentWidget = nullptr,
                                 bool aEnableDragDrop = true,
                                 bool aResetVisibility = true);
 
@@ -306,7 +306,7 @@ public:
   
 
 
-  bool HasWidget() const { return mWindow != nsnull; }
+  bool HasWidget() const { return mWindow != nullptr; }
 
   
 
@@ -382,7 +382,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIView, NS_IVIEW_IID)
 class nsWeakView
 {
 public:
-  nsWeakView(nsIView* aView) : mPrev(nsnull), mView(aView)
+  nsWeakView(nsIView* aView) : mPrev(nullptr), mView(aView)
   {
     if (mView) {
       mView->SetDeletionObserver(this);
@@ -395,7 +395,7 @@ public:
       NS_ASSERTION(mView->mDeletionObserver == this,
                    "nsWeakViews deleted in wrong order!");
       
-      mView->SetDeletionObserver(nsnull);
+      mView->SetDeletionObserver(nullptr);
       
       mView->SetDeletionObserver(mPrev);
     }
@@ -412,7 +412,7 @@ public:
     if (mPrev) {
       mPrev->Clear();
     }
-    mView = nsnull;
+    mView = nullptr;
   }
 private:
   static void* operator new(size_t) CPP_THROW_NEW { return 0; }

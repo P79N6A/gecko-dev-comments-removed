@@ -43,7 +43,7 @@ public:
                      mozilla::dom::NOT_FROM_PARSER : aFromParser),
                      
                      
-      mCreatorParser(nsnull)
+      mCreatorParser(nullptr)
   {
   }
 
@@ -138,8 +138,8 @@ public:
   void LoseParserInsertedness()
   {
     mFrozen = false;
-    mUri = nsnull;
-    mCreatorParser = nsnull;
+    mUri = nullptr;
+    mCreatorParser = nullptr;
     mParserCreated = mozilla::dom::NOT_FROM_PARSER;
     bool async = false;
     nsCOMPtr<nsIDOMHTMLScriptElement> htmlScript = do_QueryInterface(this);

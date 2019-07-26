@@ -148,7 +148,7 @@ ParseClockComponent(const char*& aStart,
 
   
   size_t len = aStart - begin;
-  bool isExp = (PL_strnpbrk(begin, "eE", len) != nsnull);
+  bool isExp = (PL_strnpbrk(begin, "eE", len) != nullptr);
   if (isExp)
     return false;
 
@@ -161,7 +161,7 @@ ParseClockComponent(const char*& aStart,
 
   
   
-  aIsReal = (PL_strnchr(begin, '.', len) != nsnull);
+  aIsReal = (PL_strnchr(begin, '.', len) != nullptr);
   aCouldBeMin = (value < 60.0 && (len == 2));
   aCouldBeSec = (value < 60.0 ||
       (value == 60.0 && begin[0] == '5')); 

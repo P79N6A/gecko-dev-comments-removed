@@ -1273,13 +1273,6 @@ JSObject::makeDenseArraySlow(JSContext *cx, HandleObject obj)
 
 
 
-    if (obj->compartment()->needsBarrier())
-        obj->prepareElementRangeForOverwrite(0, arrayInitialized);
-
-    
-
-
-
 
     js::Shape *oldShape = obj->lastProperty();
 
@@ -1289,6 +1282,18 @@ JSObject::makeDenseArraySlow(JSContext *cx, HandleObject obj)
                                                oldShape->getObjectParent(), kind);
     if (!shape)
         return false;
+
+    
+
+
+
+
+
+
+
+    if (obj->compartment()->needsBarrier())
+        obj->prepareElementRangeForOverwrite(0, arrayInitialized);
+
     obj->shape_ = shape;
 
     

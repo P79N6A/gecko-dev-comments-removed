@@ -256,7 +256,7 @@ public:
 
 
   size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nsnull)
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nullptr)
   {
     return mallocSizeOf(this) + this->SizeOfExcludingThis(sizeOfEntryExcludingThis,
                                                           mallocSizeOf, userArg);
@@ -275,7 +275,7 @@ public:
 
 
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nsnull) const
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nullptr) const
   {
     if (!IsInitialized()) {
       return 0;
@@ -345,11 +345,11 @@ public:
   typedef typename
     nsBaseHashtable<KeyClass,DataType,UserDataType>::EnumReadFunction EnumReadFunction;
 
-  nsBaseHashtableMT() : mLock(nsnull) { }
+  nsBaseHashtableMT() : mLock(nullptr) { }
   ~nsBaseHashtableMT();
 
   void Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
-  bool IsInitialized() const { return mLock != nsnull; }
+  bool IsInitialized() const { return mLock != nullptr; }
   PRUint32 Count() const;
   bool Get(KeyType aKey, UserDataType* pData) const;
   void Put(KeyType aKey, UserDataType aData);

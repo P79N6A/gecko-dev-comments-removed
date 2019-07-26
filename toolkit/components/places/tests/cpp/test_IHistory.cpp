@@ -176,8 +176,8 @@ test_unvisited_does_not_notify_part2()
   do_check_success(rv);
 
   
-  testURI = nsnull;
-  testLink = nsnull;
+  testURI = nullptr;
+  testLink = nullptr;
 
   
   run_next_test();

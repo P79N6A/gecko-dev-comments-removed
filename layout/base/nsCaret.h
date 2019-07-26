@@ -80,7 +80,7 @@ class nsCaret : public nsISelectionListener
 
     virtual nsIFrame* GetGeometry(nsISelection* aSelection,
                                   nsRect* aRect,
-                                  nscoord* aBidiIndicatorSize = nsnull);
+                                  nscoord* aBidiIndicatorSize = nullptr);
 
     
 
@@ -106,7 +106,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame*     GetCaretFrame(PRInt32 *aOffset = nsnull);
+    nsIFrame*     GetCaretFrame(PRInt32 *aOffset = nullptr);
 
     
 

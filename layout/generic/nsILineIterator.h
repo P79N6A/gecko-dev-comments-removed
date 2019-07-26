@@ -106,7 +106,7 @@ public:
 class nsAutoLineIterator
 {
 public:
-  nsAutoLineIterator() : mRawPtr(nsnull) { }
+  nsAutoLineIterator() : mRawPtr(nullptr) { }
   nsAutoLineIterator(nsILineIterator *i) : mRawPtr(i) { }
 
   ~nsAutoLineIterator() {

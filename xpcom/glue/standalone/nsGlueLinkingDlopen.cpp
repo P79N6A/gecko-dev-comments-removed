@@ -230,7 +230,7 @@ XPCOMGlueLoad(const char *xpcomFile, GetFrozenFunctionsFunc *func)
     
     
 
-    void *libHandle = nsnull;
+    void *libHandle = nullptr;
 
     if (xpcomFile[0] != '.' || xpcomFile[1] != '\0') {
         libHandle = dlopen(xpcomFile, RTLD_GLOBAL | RTLD_LAZY);
@@ -278,7 +278,7 @@ XPCOMGlueUnload()
         _valloc = __libc_valloc;
 #endif
         dlclose(sXULLibHandle);
-        sXULLibHandle = nsnull;
+        sXULLibHandle = nullptr;
     }
 }
 

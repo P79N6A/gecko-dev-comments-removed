@@ -517,14 +517,14 @@ void DocumentViewerImpl::PrepareToStartLoad()
   
   if (mPrintEngine) {
     mPrintEngine->Destroy();
-    mPrintEngine = nsnull;
+    mPrintEngine = nullptr;
 #ifdef NS_PRINT_PREVIEW
     SetIsPrintPreview(false);
 #endif
   }
 
 #ifdef DEBUG
-  mDebugFile = nsnull;
+  mDebugFile = nullptr;
 #endif
 
 #endif 
@@ -562,7 +562,7 @@ NS_INTERFACE_MAP_END
 DocumentViewerImpl::~DocumentViewerImpl()
 {
   if (mDocument) {
-    Close(nsnull);
+    Close(nullptr);
     mDocument->Destroy();
   }
 
@@ -571,7 +571,7 @@ DocumentViewerImpl::~DocumentViewerImpl()
   if (mPresShell || mPresContext) {
     
     
-    mSHEntry = nsnull;
+    mSHEntry = nullptr;
 
     Destroy();
   }
@@ -663,7 +663,7 @@ DocumentViewerImpl::GetContainer(nsISupports** aResult)
 {
    NS_ENSURE_ARG_POINTER(aResult);
 
-   *aResult = nsnull;
+   *aResult = nullptr;
    nsCOMPtr<nsISupports> container = do_QueryReferent(mContainer);
    container.swap(*aResult);
    return NS_OK;
@@ -673,7 +673,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::Init(nsIWidget* aParentWidget,
                          const nsIntRect& aBounds)
 {
-  return InitInternal(aParentWidget, nsnull, aBounds, true);
+  return InitInternal(aParentWidget, nullptr, aBounds, true);
 }
 
 nsresult
@@ -858,7 +858,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
 
       nsresult rv = mPresContext->Init(mDeviceContext); 
       if (NS_FAILED(rv)) {
-        mPresContext = nsnull;
+        mPresContext = nullptr;
         return rv;
       }
 
@@ -991,8 +991,6 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   if(window &&
      (NS_SUCCEEDED(aStatus) || aStatus == NS_ERROR_PARSED_DATA_CACHED)) {
-    if (mDocument)
-      mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent event(true, NS_LOAD);
     event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
@@ -1008,11 +1006,22 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
 
     docShell->GetRestoringDocument(&restoring);
     if (!restoring) {
+      MOZ_ASSERT(mDocument->IsXUL() || 
+                 mDocument->GetReadyStateEnum() ==
+                   nsIDocument::READYSTATE_INTERACTIVE ||
+                 
+                 
+                 (mDocument->GetReadyStateEnum() ==
+                    nsIDocument::READYSTATE_UNINITIALIZED &&
+                  NS_IsAboutBlank(mDocument->GetDocumentURI())),
+                 "Bad readystate");
+      mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
+
       nsRefPtr<nsDOMNavigationTiming> timing(mDocument->GetNavigationTiming());
       if (timing) {
         timing->NotifyLoadEventStart();
       }
-      nsEventDispatcher::Dispatch(window, mPresContext, &event, nsnull,
+      nsEventDispatcher::Dispatch(window, mPresContext, &event, nullptr,
                                   &status);
       if (timing) {
         timing->NotifyLoadEventEnd();
@@ -1033,7 +1042,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
       bool isInUnload;
       if (docShell && NS_SUCCEEDED(docShell->GetIsInUnload(&isInUnload)) &&
           !isInUnload) {
-        mDocument->OnPageShow(restoring, nsnull);
+        mDocument->OnPageShow(restoring, nullptr);
       }
     }
   }
@@ -1057,8 +1066,8 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
     mPrintIsPending        = false;
     mPrintDocIsFullyLoaded = true;
     Print(mCachedPrintSettings, mCachedPrintWebProgressListner);
-    mCachedPrintSettings           = nsnull;
-    mCachedPrintWebProgressListner = nsnull;
+    mCachedPrintSettings           = nullptr;
+    mCachedPrintWebProgressListner = nullptr;
   }
 #endif
 
@@ -1111,8 +1120,8 @@ DocumentViewerImpl::PermitUnload(bool aCallerClosesWindow, bool *aPermitUnload)
     nsAutoPopupStatePusher popupStatePusher(openAbused, true);
 
     mInPermitUnload = true;
-    nsEventDispatcher::DispatchDOMEvent(window, nsnull, event, mPresContext,
-                                        nsnull);
+    nsEventDispatcher::DispatchDOMEvent(window, nullptr, event, mPresContext,
+                                        nullptr);
     mInPermitUnload = false;
   }
 
@@ -1155,7 +1164,7 @@ DocumentViewerImpl::PermitUnload(bool aCallerClosesWindow, bool *aPermitUnload)
 
       nsAutoSyncOperation sync(mDocument);
       rv = prompt->ConfirmEx(title, message, buttonFlags,
-                             leaveLabel, stayLabel, nsnull, nsnull,
+                             leaveLabel, stayLabel, nullptr, nullptr,
                              &dummy, &buttonPressed);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1229,7 +1238,7 @@ DocumentViewerImpl::PageHide(bool aIsUnload)
     return NS_ERROR_NULL_POINTER;
   }
 
-  mDocument->OnPageHide(!aIsUnload, nsnull);
+  mDocument->OnPageHide(!aIsUnload, nullptr);
 
   
   NS_ENSURE_STATE(mDocument);
@@ -1264,7 +1273,7 @@ DocumentViewerImpl::PageHide(bool aIsUnload)
     
     nsAutoPopupStatePusher popupStatePusher(openAbused, true);
 
-    nsEventDispatcher::Dispatch(window, mPresContext, &event, nsnull, &status);
+    nsEventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
   }
 
 #ifdef MOZ_XUL
@@ -1295,7 +1304,7 @@ AttachContainerRecurse(nsIDocShell* aShell)
     nsCOMPtr<nsIPresShell> presShell;
     viewer->GetPresShell(getter_AddRefs(presShell));
     if (presShell) {
-      presShell->SetForwardingContainer(nsnull);
+      presShell->SetForwardingContainer(nullptr);
     }
   }
 
@@ -1326,7 +1335,7 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
   mHidden = false;
 
   if (mPresShell)
-    mPresShell->SetForwardingContainer(nsnull);
+    mPresShell->SetForwardingContainer(nullptr);
 
   
   
@@ -1416,7 +1425,7 @@ DocumentViewerImpl::Close(nsISHEntry *aSHEntry)
 #endif
     {
       
-      mDocument->SetScriptGlobalObject(nsnull);
+      mDocument->SetScriptGlobalObject(nullptr);
 
       if (!mSHEntry && mDocument)
         mDocument->RemovedFromDocShell();
@@ -1441,13 +1450,13 @@ DetachContainerRecurse(nsIDocShell *aShell)
   if (viewer) {
     nsIDocument* doc = viewer->GetDocument();
     if (doc) {
-      doc->SetContainer(nsnull);
+      doc->SetContainer(nullptr);
     }
     nsRefPtr<nsPresContext> pc;
     viewer->GetPresContext(getter_AddRefs(pc));
     if (pc) {
-      pc->SetContainer(nsnull);
-      pc->SetLinkHandler(nsnull);
+      pc->SetContainer(nullptr);
+      pc->SetLinkHandler(nullptr);
     }
     nsCOMPtr<nsIPresShell> presShell;
     viewer->GetPresShell(getter_AddRefs(presShell));
@@ -1553,7 +1562,7 @@ DocumentViewerImpl::Destroy()
     
     
     nsCOMPtr<nsISHEntry> shEntry = mSHEntry; 
-    mSHEntry = nsnull;
+    mSHEntry = nullptr;
 
     if (savePresentation) {
       shEntry->SetContentViewer(this);
@@ -1570,11 +1579,11 @@ DocumentViewerImpl::Destroy()
     
 
     if (mDocument) {
-      mDocument->SetContainer(nsnull);
+      mDocument->SetContainer(nullptr);
     }
     if (mPresContext) {
-      mPresContext->SetLinkHandler(nsnull);
-      mPresContext->SetContainer(nsnull);
+      mPresContext->SetLinkHandler(nullptr);
+      mPresContext->SetContainer(nullptr);
     }
     if (mPresShell)
       mPresShell->SetForwardingContainer(mContainer);
@@ -1595,7 +1604,7 @@ DocumentViewerImpl::Destroy()
 
   if (mDocument) {
     mDocument->Destroy();
-    mDocument = nsnull;
+    mDocument = nullptr;
   }
 
   
@@ -1614,17 +1623,17 @@ DocumentViewerImpl::Destroy()
 #endif
 
     mPrintEngine->Destroy();
-    mPrintEngine = nsnull;
+    mPrintEngine = nullptr;
   }
 #endif
 
   
   if (mPreviousViewer) {
     mPreviousViewer->Destroy();
-    mPreviousViewer = nsnull;
+    mPreviousViewer = nullptr;
   }
 
-  mDeviceContext = nsnull;
+  mDeviceContext = nullptr;
 
   if (mPresShell) {
     DestroyPresShell();
@@ -1634,9 +1643,9 @@ DocumentViewerImpl::Destroy()
     DestroyPresContext();
   }
 
-  mWindow = nsnull;
-  mViewManager = nsnull;
-  mContainer = nsnull;
+  mWindow = nullptr;
+  mViewManager = nullptr;
+  mContainer = nullptr;
 
   return NS_OK;
 }
@@ -1712,7 +1721,7 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
 
   if (mDocument != aDocument) {
     if (mDocument->IsStaticDocument()) {
-      mDocument->SetScriptGlobalObject(nsnull);
+      mDocument->SetScriptGlobalObject(nullptr);
       mDocument->Destroy();
     }
     
@@ -1722,7 +1731,7 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
     
     nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(container);
     if (window) {
-      window->SetNewDocument(aDocument, nsnull, aForceReuseInnerWindow);
+      window->SetNewDocument(aDocument, nullptr, aForceReuseInnerWindow);
     }
 
     
@@ -1753,8 +1762,8 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
   if (mPresContext) {
     DestroyPresContext();
 
-    mWindow = nsnull;
-    InitInternal(mParentWidget, nsnull, mBounds, true, true, false);
+    mWindow = nullptr;
+    InitInternal(mParentWidget, nullptr, mBounds, true, true, false);
   }
 
   return rv;
@@ -1833,7 +1842,7 @@ DocumentViewerImpl::SetPreviousViewer(nsIContentViewer* aViewer)
     nsCOMPtr<nsIContentViewer> prevViewer;
     aViewer->GetPreviousViewer(getter_AddRefs(prevViewer));
     if (prevViewer) {
-      aViewer->SetPreviousViewer(nsnull);
+      aViewer->SetPreviousViewer(nullptr);
       aViewer->Destroy();
       return SetPreviousViewer(prevViewer);
     }
@@ -1908,7 +1917,7 @@ DocumentViewerImpl::Show(void)
     
     
     nsCOMPtr<nsIContentViewer> prevViewer(mPreviousViewer);
-    mPreviousViewer = nsnull;
+    mPreviousViewer = nullptr;
     prevViewer->Destroy();
 
     
@@ -1969,7 +1978,7 @@ DocumentViewerImpl::Show(void)
 
     rv = mPresContext->Init(mDeviceContext);
     if (NS_FAILED(rv)) {
-      mPresContext = nsnull;
+      mPresContext = nullptr;
       return rv;
     }
 
@@ -2027,7 +2036,7 @@ DocumentViewerImpl::Hide(void)
   
   if (mPreviousViewer) {
     mPreviousViewer->Destroy();
-    mPreviousViewer = nsnull;
+    mPreviousViewer = nullptr;
   }
 
   if (mIsSticky) {
@@ -2048,15 +2057,15 @@ DocumentViewerImpl::Hide(void)
 
   DestroyPresContext();
 
-  mViewManager   = nsnull;
-  mWindow        = nsnull;
-  mDeviceContext = nsnull;
-  mParentWidget  = nsnull;
+  mViewManager   = nullptr;
+  mWindow        = nullptr;
+  mDeviceContext = nullptr;
+  mParentWidget  = nullptr;
 
   nsCOMPtr<nsIBaseWindow> base_win(do_QueryReferent(mContainer));
 
   if (base_win && !mAttachedToParent) {
-    base_win->SetParentWidget(nsnull);
+    base_win->SetParentWidget(nullptr);
   }
 
   return NS_OK;
@@ -2129,7 +2138,7 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   NS_ASSERTION(SameCOMIdentity(debugDocContainer, debugDocShell),
                "Unexpected containers");
 #endif
-  nsCSSStyleSheet* sheet = nsnull;
+  nsCSSStyleSheet* sheet = nullptr;
   if (nsContentUtils::IsInChromeDocshell(aDocument)) {
     sheet = nsLayoutStylesheetCache::UserChromeSheet();
   }
@@ -2167,7 +2176,7 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
         char *newStr = str;
         char *token;
         while ( (token = nsCRT::strtok(newStr, ", ", &newStr)) ) {
-          NS_NewURI(getter_AddRefs(uri), nsDependentCString(token), nsnull,
+          NS_NewURI(getter_AddRefs(uri), nsDependentCString(token), nullptr,
                     baseURI);
           if (!uri) continue;
 
@@ -2205,7 +2214,7 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   nsCSSStyleSheet* quirkSheet;
   if (!nsLayoutStylesheetCache::UASheet() ||
       !(quirkSheet = nsLayoutStylesheetCache::QuirkSheet()) ||
-      !(quirkClone = quirkSheet->Clone(nsnull, nsnull, nsnull, nsnull)) ||
+      !(quirkClone = quirkSheet->Clone(nullptr, nullptr, nullptr, nullptr)) ||
       !sheet) {
     delete styleSet;
     return NS_ERROR_OUT_OF_MEMORY;
@@ -2236,7 +2245,7 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
 NS_IMETHODIMP
 DocumentViewerImpl::ClearHistoryEntry()
 {
-  mSHEntry = nsnull;
+  mSHEntry = nullptr;
   return NS_OK;
 }
 
@@ -2289,7 +2298,7 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
       initDataPtr = &initData;
       initData.mWindowType = eWindowType_invisible;
     } else {
-      initDataPtr = nsnull;
+      initDataPtr = nullptr;
     }
 
     if (shouldAttach) {
@@ -2336,7 +2345,7 @@ DocumentViewerImpl::DetachFromTopLevelWidget()
 nsIView*
 DocumentViewerImpl::FindContainerView()
 {
-  nsIView* containerView = nsnull;
+  nsIView* containerView = nullptr;
 
   if (mContainer) {
     nsCOMPtr<nsIDocShellTreeItem> docShellItem = do_QueryReferent(mContainer);
@@ -2344,7 +2353,7 @@ DocumentViewerImpl::FindContainerView()
     if (pwin) {
       nsCOMPtr<nsIContent> containerElement = do_QueryInterface(pwin->GetFrameElementInternal());
       if (!containerElement) {
-        return nsnull;
+        return nullptr;
       }
       nsCOMPtr<nsIPresShell> parentPresShell;
       if (docShellItem) {
@@ -2412,9 +2421,9 @@ DocumentViewerImpl::CreateDeviceContext(nsIView* aContainerView)
   
   
   
-  nsIWidget* widget = nsnull;
+  nsIWidget* widget = nullptr;
   if (aContainerView) {
-    widget = aContainerView->GetNearestWidget(nsnull);
+    widget = aContainerView->GetNearestWidget(nullptr);
   }
   if (!widget) {
     widget = mParentWidget;
@@ -2499,7 +2508,7 @@ NS_IMETHODIMP DocumentViewerImpl::SelectAll()
 
 NS_IMETHODIMP DocumentViewerImpl::CopySelection()
 {
-  nsCopySupport::FireClipboardEvent(NS_COPY, mPresShell, nsnull);
+  nsCopySupport::FireClipboardEvent(NS_COPY, mPresShell, nullptr);
   return NS_OK;
 }
 
@@ -2609,7 +2618,7 @@ DocumentViewerImpl::Print(bool              aSilent,
   nsCOMPtr<nsIPrintOptions> printOptions = do_GetService(sPrintOptionsContractID, &rv);
   if (NS_SUCCEEDED(rv)) {
     
-    if (printSettings == nsnull) {
+    if (printSettings == nullptr) {
       printOptions->CreatePrintSettings(getter_AddRefs(printSettings));
     }
     NS_ASSERTION(printSettings, "You can't PrintPreview without a PrintSettings!");
@@ -2619,7 +2628,7 @@ DocumentViewerImpl::Print(bool              aSilent,
 #endif
 
 
-  return Print(printSettings, nsnull);
+  return Print(printSettings, nullptr);
 #else
   return NS_ERROR_FAILURE;
 #endif
@@ -2834,7 +2843,7 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
 
   
   nsPresContext* pc = GetPresContext();
-  if (pc && aMinFontSize != mPresContext->MinFontSize(nsnull)) {
+  if (pc && aMinFontSize != mPresContext->MinFontSize(nullptr)) {
     pc->SetMinFontSize(aMinFontSize);
   }
 
@@ -2850,7 +2859,7 @@ DocumentViewerImpl::GetMinFontSize(PRInt32* aMinFontSize)
 {
   NS_ENSURE_ARG_POINTER(aMinFontSize);
   nsPresContext* pc = GetPresContext();
-  *aMinFontSize = pc ? pc->MinFontSize(nsnull) : 0;
+  *aMinFontSize = pc ? pc->MinFontSize(nullptr) : 0;
   return NS_OK;
 }
 
@@ -3300,7 +3309,7 @@ DocumentViewerImpl::GetPopupNode(nsIDOMNode** aNode)
 {
   NS_ENSURE_ARG_POINTER(aNode);
 
-  *aNode = nsnull;
+  *aNode = nullptr;
 
   
   nsIDocument* document = GetDocument();
@@ -3342,7 +3351,7 @@ DocumentViewerImpl::GetPopupLinkNode(nsIDOMNode** aNode)
   NS_ENSURE_ARG_POINTER(aNode);
 
   
-  *aNode = nsnull;
+  *aNode = nullptr;
 
   
   nsCOMPtr<nsIDOMNode> node;
@@ -3379,7 +3388,7 @@ DocumentViewerImpl::GetPopupImageNode(nsIImageLoadingContent** aNode)
   NS_ENSURE_ARG_POINTER(aNode);
 
   
-  *aNode = nsnull;
+  *aNode = nullptr;
 
   
   nsCOMPtr<nsIDOMNode> node;
@@ -3482,7 +3491,7 @@ NS_IMPL_ISUPPORTS1(nsDocViewerFocusListener,
                    nsIDOMEventListener)
 
 nsDocViewerFocusListener::nsDocViewerFocusListener()
-:mDocViewer(nsnull)
+:mDocViewer(nullptr)
 {
 }
 
@@ -3612,12 +3621,12 @@ DocumentViewerImpl::Print(nsIPrintSettings*       aPrintSettings,
 #ifdef DEBUG
                                   mDebugFile
 #else
-                                  nsnull
+                                  nullptr
 #endif
                                   );
     if (NS_FAILED(rv)) {
       mPrintEngine->Destroy();
-      mPrintEngine = nsnull;
+      mPrintEngine = nullptr;
       return rv;
     }
   }
@@ -3679,12 +3688,12 @@ DocumentViewerImpl::PrintPreview(nsIPrintSettings* aPrintSettings,
 #ifdef DEBUG
                                   mDebugFile
 #else
-                                  nsnull
+                                  nullptr
 #endif
                                   );
     if (NS_FAILED(rv)) {
       mPrintEngine->Destroy();
-      mPrintEngine = nsnull;
+      mPrintEngine = nullptr;
       return rv;
     }
   }
@@ -3722,7 +3731,7 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
 
   
   
-  nsIFrame* seqFrame  = nsnull;
+  nsIFrame* seqFrame  = nullptr;
   PRInt32   pageCount = 0;
   if (NS_FAILED(mPrintEngine->GetSeqFrameAndCountPages(seqFrame, pageCount))) {
     return NS_ERROR_FAILURE;
@@ -3732,8 +3741,8 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
   nsPoint pt = sf->GetScrollPosition();
 
   PRInt32    pageNum = 1;
-  nsIFrame * fndPageFrame  = nsnull;
-  nsIFrame * currentPage   = nsnull;
+  nsIFrame * fndPageFrame  = nullptr;
+  nsIFrame * currentPage   = nullptr;
 
   
   if (aType == nsIWebBrowserPrint::PRINTPREVIEW_END) {
@@ -3744,7 +3753,7 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
   
   
   nsIFrame* pageFrame = seqFrame->GetFirstPrincipalChild();
-  while (pageFrame != nsnull) {
+  while (pageFrame != nullptr) {
     nsRect pageRect = pageFrame->GetRect();
     if (pageRect.Contains(pageRect.x, pt.y)) {
       currentPage = pageFrame;
@@ -3832,7 +3841,7 @@ DocumentViewerImpl::GetCurrentPrintSettings(nsIPrintSettings * *aCurrentPrintSet
 {
   NS_ENSURE_ARG_POINTER(aCurrentPrintSettings);
 
-  *aCurrentPrintSettings = nsnull;
+  *aCurrentPrintSettings = nullptr;
   NS_ENSURE_TRUE(mPrintEngine, NS_ERROR_FAILURE);
 
   return mPrintEngine->GetCurrentPrintSettings(aCurrentPrintSettings);
@@ -3844,7 +3853,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::GetCurrentChildDOMWindow(nsIDOMWindow * *aCurrentChildDOMWindow)
 {
   NS_ENSURE_ARG_POINTER(aCurrentChildDOMWindow);
-  *aCurrentChildDOMWindow = nsnull;
+  *aCurrentChildDOMWindow = nullptr;
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -4062,7 +4071,7 @@ DocumentViewerImpl::DispatchEventToWindowTree(nsIDocument* aDoc,
   for (PRInt32 i = 0; i < targets.Count(); ++i) {
     nsIDocument* d = targets[i];
     nsContentUtils::DispatchTrustedEvent(d, d->GetWindow(),
-                                         aEvent, false, false, nsnull);
+                                         aEvent, false, false, nullptr);
   }
 }
 
@@ -4128,10 +4137,10 @@ DocumentViewerImpl::SetIsPrintPreview(bool aIsPrintPreview)
     if (mPresShell) {
       DestroyPresShell();
     }
-    mWindow = nsnull;
-    mViewManager = nsnull;
-    mPresContext = nsnull;
-    mPresShell = nsnull;
+    mWindow = nullptr;
+    mViewManager = nullptr;
+    mPresContext = nullptr;
+    mPresShell = nullptr;
   }
 }
 
@@ -4163,7 +4172,7 @@ DocumentViewerImpl::ReturnToGalleyPresentation()
 
   mPrintEngine->TurnScriptingOn(true);
   mPrintEngine->Destroy();
-  mPrintEngine = nsnull;
+  mPrintEngine = nullptr;
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
   ResetFocusState(docShell);
@@ -4222,7 +4231,7 @@ DocumentViewerImpl::OnDonePrinting()
       mPrintEngine->DestroyPrintingData();
     } else {
       mPrintEngine->Destroy();
-      mPrintEngine = nsnull;
+      mPrintEngine = nullptr;
     }
 
     
@@ -4234,9 +4243,9 @@ DocumentViewerImpl::OnDonePrinting()
         win->Close();
     } else if (mClosingWhilePrinting) {
       if (mDocument) {
-        mDocument->SetScriptGlobalObject(nsnull);
+        mDocument->SetScriptGlobalObject(nullptr);
         mDocument->Destroy();
-        mDocument = nsnull;
+        mDocument = nullptr;
       }
       mClosingWhilePrinting = false;
     }
@@ -4258,8 +4267,8 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(bool aPageMode, nsIPrintSettings* 
     DestroyPresContext();
   }
 
-  mViewManager  = nsnull;
-  mWindow       = nsnull;
+  mViewManager  = nullptr;
+  mWindow       = nullptr;
 
   NS_ENSURE_STATE(mDocument);
   if (aPageMode)
@@ -4272,7 +4281,7 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(bool aPageMode, nsIPrintSettings* 
     nsresult rv = mPresContext->Init(mDeviceContext);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  InitInternal(mParentWidget, nsnull, mBounds, true, false);
+  InitInternal(mParentWidget, nullptr, mBounds, true, false);
 
   Show();
   return NS_OK;
@@ -4306,15 +4315,15 @@ DocumentViewerImpl::DestroyPresShell()
 
   nsAutoScriptBlocker scriptBlocker;
   mPresShell->Destroy();
-  mPresShell = nsnull;
+  mPresShell = nullptr;
 }
 
 void
 DocumentViewerImpl::DestroyPresContext()
 {
-  mPresContext->SetContainer(nsnull);
-  mPresContext->SetLinkHandler(nsnull);
-  mPresContext = nsnull;
+  mPresContext->SetContainer(nullptr);
+  mPresContext->SetLinkHandler(nullptr);
+  mPresContext = nullptr;
 }
 
 bool
@@ -4338,7 +4347,7 @@ DocumentViewerImpl::SetPrintPreviewPresentation(nsIViewManager* aViewManager,
     DestroyPresShell();
   }
 
-  mWindow = nsnull;
+  mWindow = nullptr;
   mViewManager = aViewManager;
   mPresContext = aPresContext;
   mPresShell = aPresShell;

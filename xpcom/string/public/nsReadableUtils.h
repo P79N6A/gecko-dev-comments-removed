@@ -89,7 +89,7 @@ char* ToNewCString( const nsACString& aSource );
 
 
 
-char* ToNewUTF8String( const nsAString& aSource, PRUint32 *aUTF8Count = nsnull );
+char* ToNewUTF8String( const nsAString& aSource, PRUint32 *aUTF8Count = nullptr );
 
 
   
@@ -135,7 +135,7 @@ PRUnichar* ToNewUnicode( const nsACString& aSource );
 
 
 
-PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, PRUint32 *aUTF16Count = nsnull );
+PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, PRUint32 *aUTF16Count = nullptr );
 
   
 

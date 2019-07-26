@@ -104,7 +104,7 @@ GfxInfo::GetData()
     bool error = waiting_for_glxtest_process_failed || exited_with_error_code || received_signal;
 
     nsCString textureFromPixmap; 
-    nsCString *stringToFill = nsnull;
+    nsCString *stringToFill = nullptr;
     char *bufptr = buf;
     if (!error) {
         while(true) {
@@ -113,7 +113,7 @@ GfxInfo::GetData()
                 break;
             if (stringToFill) {
                 stringToFill->Assign(line);
-                stringToFill = nsnull;
+                stringToFill = nullptr;
             }
             else if(!strcmp(line, "VENDOR"))
                 stringToFill = &mVendor;
@@ -200,7 +200,7 @@ GfxInfo::GetData()
 
     
     
-    const char *whereToReadVersionNumbers = nsnull;
+    const char *whereToReadVersionNumbers = nullptr;
     const char *Mesa_in_version_string = strstr(mVersion.get(), "Mesa");
     if (Mesa_in_version_string) {
         mIsMesa = true;
@@ -366,12 +366,6 @@ GfxInfo::GetD2DEnabled(bool *aEnabled)
 
 NS_IMETHODIMP
 GfxInfo::GetDWriteEnabled(bool *aEnabled)
-{
-  return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-GfxInfo::GetAzureEnabled(bool *aEnabled)
 {
   return NS_ERROR_FAILURE;
 }

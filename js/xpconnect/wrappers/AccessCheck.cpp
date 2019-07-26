@@ -182,7 +182,7 @@ IsFrameId(JSContext *cx, JSObject *obj, jsid id)
         return false;
     }
 
-    return domwin != nsnull;
+    return domwin != nullptr;
 }
 
 static bool
@@ -243,9 +243,9 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
         return false;
     }
 
-    JSScript *script = nsnull;
+    JSScript *script = nullptr;
     if (!fp) {
-        if (!JS_DescribeScriptedCaller(cx, &script, nsnull)) {
+        if (!JS_DescribeScriptedCaller(cx, &script, nullptr)) {
             
             
             return true;

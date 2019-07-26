@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8; -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsInProcessTabChildGlobal.h"
 #include "nsContentUtils.h"
@@ -38,7 +38,7 @@ bool SendSyncMessageToParent(void* aCallbackData,
   }
   if (tabChild->mChromeMessageManager) {
     nsRefPtr<nsFrameMessageManager> mm = tabChild->mChromeMessageManager;
-    mm->ReceiveMessage(owner, aMessage, true, aJSON, nsnull, aJSONRetVal);
+    mm->ReceiveMessage(owner, aMessage, true, aJSON, nullptr, aJSONRetVal);
   }
   return true;
 }
@@ -56,7 +56,7 @@ public:
     if (mTabChild->mChromeMessageManager) {
       nsRefPtr<nsFrameMessageManager> mm = mTabChild->mChromeMessageManager;
       mm->ReceiveMessage(mTabChild->mOwner, mMessage, false,
-                         mJSON, nsnull, nsnull);
+                         mJSON, nullptr, nullptr);
     }
     return NS_OK;
   }
@@ -85,8 +85,8 @@ nsInProcessTabChildGlobal::nsInProcessTabChildGlobal(nsIDocShell* aShell,
   mDelayedDisconnect(false), mOwner(aOwner), mChromeMessageManager(aChrome)
 {
 
-  
-  
+  // If owner corresponds to an <iframe mozbrowser>, we'll have to tweak our
+  // PreHandleEvent implementation.
   nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(mOwner);
   bool isBrowser = false;
   if (browserFrame) {
@@ -112,13 +112,13 @@ nsInProcessTabChildGlobal::Init()
   mMessageManager = new nsFrameMessageManager(false,
                                               SendSyncMessageToParent,
                                               SendAsyncMessageToParent,
-                                              nsnull,
+                                              nullptr,
                                               this,
-                                              nsnull,
+                                              nullptr,
                                               mCx);
 
-  
-  
+  // Set the location information for the new global, so that tools like
+  // about:memory may use that information.
   JSObject *global;
   nsIURI* docURI = mOwner->OwnerDoc()->GetDocumentURI();
   if (mGlobal && NS_SUCCEEDED(mGlobal->GetJSObject(&global)) && docURI) {
@@ -158,7 +158,7 @@ NS_IMPL_RELEASE_INHERITED(nsInProcessTabChildGlobal, nsDOMEventTargetHelper)
 NS_IMETHODIMP
 nsInProcessTabChildGlobal::GetContent(nsIDOMWindow** aContent)
 {
-  *aContent = nsnull;
+  *aContent = nullptr;
   nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
   window.swap(*aContent);
   return NS_OK;
@@ -195,8 +195,8 @@ nsInProcessTabChildGlobal::PrivateNoteIntentionalCrash()
 void
 nsInProcessTabChildGlobal::Disconnect()
 {
-  
-  
+  // Let the frame scripts know the child is being closed. We do any other
+  // cleanup after the event has been fired. See DelayedDisconnect
   nsContentUtils::AddScriptRunner(
      NS_NewRunnableMethod(this, &nsInProcessTabChildGlobal::DelayedDisconnect)
   );
@@ -205,12 +205,12 @@ nsInProcessTabChildGlobal::Disconnect()
 void
 nsInProcessTabChildGlobal::DelayedDisconnect()
 {
-  
-  mOwner = nsnull;
+  // Don't let the event escape
+  mOwner = nullptr;
 
-  
+  // Fire the "unload" event
   nsCOMPtr<nsIDOMEvent> event;
-  NS_NewDOMEvent(getter_AddRefs(event), nsnull, nsnull);
+  NS_NewDOMEvent(getter_AddRefs(event), nullptr, nullptr);
   if (event) {
     event->InitEvent(NS_LITERAL_STRING("unload"), false, false);
     event->SetTrusted(true);
@@ -219,17 +219,17 @@ nsInProcessTabChildGlobal::DelayedDisconnect()
     nsDOMEventTargetHelper::DispatchEvent(event, &dummy);
   }
 
-  
+  // Continue with the Disconnect cleanup
   nsCOMPtr<nsIDOMWindow> win = do_GetInterface(mDocShell);
   nsCOMPtr<nsPIDOMWindow> pwin = do_QueryInterface(win);
   if (pwin) {
     pwin->SetChromeEventHandler(pwin->GetChromeEventHandler());
   }
-  mDocShell = nsnull;
-  mChromeMessageManager = nsnull;
+  mDocShell = nullptr;
+  mChromeMessageManager = nullptr;
   if (mMessageManager) {
     static_cast<nsFrameMessageManager*>(mMessageManager.get())->Disconnect();
-    mMessageManager = nsnull;
+    mMessageManager = nullptr;
   }
   if (mListenerManager) {
     mListenerManager->Disconnect();

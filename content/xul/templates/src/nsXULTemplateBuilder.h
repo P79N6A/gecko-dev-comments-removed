@@ -120,7 +120,7 @@ public:
     void RunnableLoadAndRebuild() {
       Uninit(false);  
 
-      nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nsnull;
+      nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nullptr;
       if (doc) {
         bool shouldDelay;
         LoadDataSources(doc, &shouldDelay);
@@ -132,8 +132,8 @@ public:
 
     
     
-    void UninitFalse() { Uninit(false); mRoot = nsnull; }
-    void UninitTrue() { Uninit(true); mRoot = nsnull; }
+    void UninitFalse() { Uninit(false); mRoot = nullptr; }
+    void UninitTrue() { Uninit(true); mRoot = nullptr; }
 
     
 

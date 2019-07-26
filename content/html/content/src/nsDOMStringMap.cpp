@@ -21,7 +21,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMStringMap)
   if (tmp->mElement) {
     
     tmp->mElement->ClearDataset();
-    tmp->mElement = nsnull;
+    tmp->mElement = nullptr;
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 

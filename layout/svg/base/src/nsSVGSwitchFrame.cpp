@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Keep in (case-insensitive) order:
+
+
+
+
+
 #include "gfxMatrix.h"
 #include "gfxRect.h"
 #include "nsSVGEffects.h"
@@ -32,11 +32,11 @@ public:
                   nsIFrame*        aPrevInFlow);
 #endif
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgSwitchFrame
-   */
+  
+
+
+
+
   virtual nsIAtom* GetType() const;
 
 #ifdef DEBUG
@@ -50,7 +50,7 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  // nsISVGChildFrame interface:
+  
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext, const nsIntRect *aDirtyRect);
   NS_IMETHODIMP_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHODIMP_(nsRect) GetCoveredRegion();
@@ -62,8 +62,8 @@ private:
   nsIFrame *GetActiveChildFrame();
 };
 
-//----------------------------------------------------------------------
-// Implementation
+
+
 
 nsIFrame*
 NS_NewSVGSwitchFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -84,7 +84,7 @@ nsSVGSwitchFrame::Init(nsIContent* aContent,
 
   return nsSVGSwitchFrameBase::Init(aContent, aParent, aPrevInFlow);
 }
-#endif /* DEBUG */
+#endif 
 
 nsIAtom *
 nsSVGSwitchFrame::GetType() const
@@ -141,7 +141,7 @@ nsSVGSwitchFrame::GetFrameForPoint(const nsPoint &aPoint)
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 NS_IMETHODIMP_(nsRect)
@@ -172,18 +172,18 @@ nsSVGSwitchFrame::ReflowSVG()
     return;
   }
 
-  // If the NS_FRAME_FIRST_REFLOW bit has been removed from our parent frame,
-  // then our outer-<svg> has previously had its initial reflow. In that case
-  // we need to make sure that that bit has been removed from ourself _before_
-  // recursing over our children to ensure that they know too. Otherwise, we
-  // need to remove it _after_ recursing over our children so that they know
-  // the initial reflow is currently underway.
+  
+  
+  
+  
+  
+  
 
   bool outerSVGHasHadFirstReflow =
     (GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) == 0;
 
   if (outerSVGHasHadFirstReflow) {
-    mState &= ~NS_FRAME_FIRST_REFLOW; // tell our children
+    mState &= ~NS_FRAME_FIRST_REFLOW; 
   }
 
   nsOverflowAreas overflowRects;
@@ -196,38 +196,38 @@ nsSVGSwitchFrame::ReflowSVG()
                         "Check for this explicitly in the |if|, then");
       svgChild->ReflowSVG();
 
-      // We build up our child frame overflows here instead of using
-      // nsLayoutUtils::UnionChildOverflow since SVG frame's all use the same
-      // frame list, and we're iterating over that list now anyway.
+      
+      
+      
       ConsiderChildOverflow(overflowRects, child);
     }
   }
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
-    // Make sure we have our filter property (if any) before calling
-    // FinishAndStoreOverflow (subsequent filter changes are handled off
-    // nsChangeHint_UpdateEffects):
+    
+    
+    
     nsSVGEffects::UpdateEffects(this);
   }
 
-  // We only invalidate if we are dirty, if our outer-<svg> has already had its
-  // initial reflow (since if it hasn't, its entire area will be invalidated
-  // when it gets that initial reflow), and if our parent is not dirty (since
-  // if it is, then it will invalidate its entire new area, which will include
-  // our new area).
+  
+  
+  
+  
+  
   bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
     !(GetParent()->GetStateBits() &
        (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
 
   FinishAndStoreOverflow(overflowRects, mRect.Size());
 
-  // Remove state bits after FinishAndStoreOverflow so that it doesn't
-  // invalidate on first reflow:
+  
+  
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
 
   if (invalidate) {
-    // XXXSDL Let FinishAndStoreOverflow do this.
+    
     nsSVGUtils::InvalidateBounds(this, true);
   }
 }
@@ -267,5 +267,5 @@ nsSVGSwitchFrame::GetActiveChildFrame()
       }
     }
   }
-  return nsnull;
+  return nullptr;
 }

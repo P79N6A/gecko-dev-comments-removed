@@ -121,7 +121,7 @@ nsIScriptGlobalObject* GetGlobalObject(nsIChannel* aChannel)
                    "channel!");
     }
     if (!globalOwner) {
-        return nsnull;
+        return nullptr;
     }
 
     
@@ -318,7 +318,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
             }
         }
 
-        stack->Pop(nsnull);
+        stack->Pop(nullptr);
     } else {
         
         
@@ -639,7 +639,7 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
     nsCOMPtr<nsILoadGroup> loadGroup;
     mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     if (loadGroup) {
-        nsresult rv = loadGroup->AddRequest(this, nsnull);
+        nsresult rv = loadGroup->AddRequest(this, nullptr);
         if (NS_FAILED(rv)) {
             mIsActive = false;
             CleanupStrongRefs();
@@ -704,7 +704,7 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
     nsresult rv = NS_DispatchToCurrentThread(ev);
 
     if (NS_FAILED(rv)) {
-        loadGroup->RemoveRequest(this, nsnull, rv);
+        loadGroup->RemoveRequest(this, nullptr, rv);
         mIsActive = false;
         CleanupStrongRefs();
     }
@@ -739,7 +739,7 @@ nsJSChannel::EvaluateScript()
     nsCOMPtr<nsILoadGroup> loadGroup;
     mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     if (loadGroup) {
-        loadGroup->RemoveRequest(this, nsnull, mStatus);
+        loadGroup->RemoveRequest(this, nullptr, mStatus);
     }
 
     
@@ -810,7 +810,7 @@ nsJSChannel::EvaluateScript()
         
         mIsActive = true;
         if (loadGroup) {
-            mStatus = loadGroup->AddRequest(this, nsnull);
+            mStatus = loadGroup->AddRequest(this, nullptr);
 
             
             
@@ -837,12 +837,12 @@ nsJSChannel::NotifyListener()
 void
 nsJSChannel::CleanupStrongRefs()
 {
-    mListener = nsnull;
-    mContext = nsnull;
-    mOriginalInnerWindow = nsnull;
+    mListener = nullptr;
+    mContext = nullptr;
+    mOriginalInnerWindow = nullptr;
     if (mDocumentOnloadBlockedOn) {
         mDocumentOnloadBlockedOn->UnblockOnload(false);
-        mDocumentOnloadBlockedOn = nsnull;
+        mDocumentOnloadBlockedOn = nullptr;
     }
 }
 
@@ -927,9 +927,9 @@ nsJSChannel::SetLoadGroup(nsILoadGroup* aLoadGroup)
                 
                 
                 
-                aLoadGroup->AddRequest(mStreamChannel, nsnull);
+                aLoadGroup->AddRequest(mStreamChannel, nullptr);
                 if (curLoadGroup) {
-                    curLoadGroup->RemoveRequest(mStreamChannel, nsnull,
+                    curLoadGroup->RemoveRequest(mStreamChannel, nullptr,
                                                 NS_BINDING_RETARGETED);
                 }
             }
@@ -1066,7 +1066,7 @@ nsJSChannel::OnStopRequest(nsIRequest* aRequest,
     nsCOMPtr<nsILoadGroup> loadGroup;
     mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     if (loadGroup) {
-        loadGroup->RemoveRequest(this, nsnull, mStatus);
+        loadGroup->RemoveRequest(this, nullptr, mStatus);
     }
 
     mIsActive = false;
@@ -1274,7 +1274,7 @@ NS_INTERFACE_MAP_BEGIN(nsJSURI)
       
       
       
-      *aInstancePtr = nsnull;
+      *aInstancePtr = nullptr;
       return NS_NOINTERFACE;
   }
   else
@@ -1306,7 +1306,7 @@ nsJSURI::Write(nsIObjectOutputStream* aStream)
     nsresult rv = nsSimpleURI::Write(aStream);
     if (NS_FAILED(rv)) return rv;
 
-    rv = aStream->WriteBoolean(mBaseURI != nsnull);
+    rv = aStream->WriteBoolean(mBaseURI != nullptr);
     if (NS_FAILED(rv)) return rv;
 
     if (mBaseURI) {
@@ -1326,7 +1326,7 @@ nsJSURI::StartClone(nsSimpleURI::RefHandlingEnum )
       
       nsresult rv = mBaseURI->Clone(getter_AddRefs(baseClone));
       if (NS_FAILED(rv)) {
-        return nsnull;
+        return nullptr;
       }
     }
 

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsDOMKeyboardEvent.h"
 #include "nsDOMClassInfoID.h"
@@ -9,7 +9,7 @@
 nsDOMKeyboardEvent::nsDOMKeyboardEvent(nsPresContext* aPresContext,
                                        nsKeyEvent* aEvent)
   : nsDOMUIEvent(aPresContext, aEvent ? aEvent :
-                 new nsKeyEvent(false, 0, nsnull))
+                 new nsKeyEvent(false, 0, nullptr))
 {
   NS_ASSERTION(mEvent->eventStructType == NS_KEY_EVENT, "event type mismatch");
 
@@ -26,7 +26,7 @@ nsDOMKeyboardEvent::~nsDOMKeyboardEvent()
 {
   if (mEventIsInternal) {
     delete static_cast<nsKeyEvent*>(mEvent);
-    mEvent = nsnull;
+    mEvent = nullptr;
   }
 }
 
@@ -121,7 +121,7 @@ nsDOMKeyboardEvent::GetKeyCode(PRUint32* aKeyCode)
   return NS_OK;
 }
 
-
+/* virtual */
 nsresult
 nsDOMKeyboardEvent::Which(PRUint32* aWhich)
 {
@@ -132,8 +132,8 @@ nsDOMKeyboardEvent::Which(PRUint32* aWhich)
     case NS_KEY_DOWN:
       return GetKeyCode(aWhich);
     case NS_KEY_PRESS:
-      
-      
+      //Special case for 4xp bug 62878.  Try to make value of which
+      //more closely mirror the values that 4.x gave for RETURN and BACKSPACE
       {
         PRUint32 keyCode = ((nsKeyEvent*)mEvent)->keyCode;
         if (keyCode == NS_VK_RETURN || keyCode == NS_VK_BACK) {

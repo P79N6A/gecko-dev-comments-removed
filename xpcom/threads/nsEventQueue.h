@@ -36,7 +36,7 @@ public:
 
   
   bool HasPendingEvent() {
-    return GetEvent(false, nsnull);
+    return GetEvent(false, nullptr);
   }
 
   

@@ -158,7 +158,7 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
 
   
   if (mLoadGroup)
-    mLoadGroup->AddRequest(this, nsnull);
+    mLoadGroup->AddRequest(this, nullptr);
 
   
   bool haveLoadContext = false;
@@ -370,11 +370,11 @@ FTPChannelChild::DoOnStopRequest(const nsresult& statusCode)
     mIsPending = false;
     AutoEventEnqueuer ensureSerialDispatch(mEventQ);
     (void)mListener->OnStopRequest(this, mListenerContext, statusCode);
-    mListener = nsnull;
-    mListenerContext = nsnull;
+    mListener = nullptr;
+    mListenerContext = nullptr;
 
     if (mLoadGroup)
-      mLoadGroup->RemoveRequest(this, nsnull, statusCode);
+      mLoadGroup->RemoveRequest(this, nullptr, statusCode);
   }
 
   
@@ -410,7 +410,7 @@ FTPChannelChild::DoFailedAsyncOpen(const nsresult& statusCode)
   mStatus = statusCode;
 
   if (mLoadGroup)
-    mLoadGroup->RemoveRequest(this, nsnull, statusCode);
+    mLoadGroup->RemoveRequest(this, nullptr, statusCode);
 
   if (mListener) {
     mListener->OnStartRequest(this, mListenerContext);
@@ -420,8 +420,8 @@ FTPChannelChild::DoFailedAsyncOpen(const nsresult& statusCode)
     mIsPending = false;
   }
 
-  mListener = nsnull;
-  mListenerContext = nsnull;
+  mListener = nullptr;
+  mListenerContext = nullptr;
 
   if (mIPCOpen)
     Send__delete__(this);
@@ -548,7 +548,7 @@ FTPChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
 
   
   if (mLoadGroup)
-    mLoadGroup->AddRequest(this, nsnull);
+    mLoadGroup->AddRequest(this, nullptr);
 
   
   

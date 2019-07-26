@@ -632,7 +632,7 @@ public:
   nsDecoderStateMachine::State GetDecodeState() { return mDecoderStateMachine->GetState(); }
 
   
-  void ReleaseStateMachine() { mDecoderStateMachine = nsnull; }
+  void ReleaseStateMachine() { mDecoderStateMachine = nullptr; }
 
    
    

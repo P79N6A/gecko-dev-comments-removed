@@ -254,7 +254,7 @@ BRFrame::CreateAccessible()
 {
   nsAccessibilityService* accService = nsIPresShell::AccService();
   if (!accService) {
-    return nsnull;
+    return nullptr;
   }
   nsIContent *parent = mContent->GetParent();
   if (parent &&
@@ -262,7 +262,7 @@ BRFrame::CreateAccessible()
       parent->GetChildCount() == 1) {
     
     
-    return nsnull;
+    return nullptr;
   }
   return accService->CreateHTMLBRAccessible(mContent,
                                             PresContext()->PresShell());

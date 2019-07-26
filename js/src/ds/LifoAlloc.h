@@ -148,6 +148,7 @@ class LifoAlloc
 
     BumpChunk   *first;
     BumpChunk   *latest;
+    BumpChunk   *last;
     size_t      markCount;
     size_t      defaultChunkSize_;
 
@@ -165,9 +166,18 @@ class LifoAlloc
 
     void reset(size_t defaultChunkSize) {
         JS_ASSERT(RoundUpPow2(defaultChunkSize) == defaultChunkSize);
-        first = latest = NULL;
+        first = latest = last = NULL;
         defaultChunkSize_ = defaultChunkSize;
         markCount = 0;
+    }
+
+    void append(BumpChunk *start, BumpChunk *end) {
+        JS_ASSERT(start && end);
+        if (last)
+            last->setNext(start);
+        else
+            first = latest = start;
+        last = end;
     }
 
     bool ensureUnusedApproximateSlow(size_t n);
@@ -182,15 +192,18 @@ class LifoAlloc
         other->reset(defaultChunkSize_);
     }
 
+    
+    void transferFrom(LifoAlloc *other);
+
+    
+    void transferUnusedFrom(LifoAlloc *other);
+
     ~LifoAlloc() { freeAll(); }
 
     size_t defaultChunkSize() const { return defaultChunkSize_; }
 
     
     void freeAll();
-
-    
-    void freeUnused();
 
     JS_ALWAYS_INLINE
     void *alloc(size_t n) {

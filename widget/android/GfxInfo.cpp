@@ -43,12 +43,6 @@ GfxInfo::GetDWriteEnabled(bool *aEnabled)
   return NS_ERROR_FAILURE;
 }
 
-nsresult
-GfxInfo::GetAzureEnabled(bool *aEnabled)
-{
-  return NS_ERROR_FAILURE;
-}
-
 
 NS_IMETHODIMP
 GfxInfo::GetDWriteVersion(nsAString & aDwriteVersion)
@@ -80,7 +74,7 @@ GfxInfo::EnsureInitializedFromGfxInfoData()
     
     
     
-    nsCString *stringToFill = nsnull;
+    nsCString *stringToFill = nullptr;
     char *bufptr = gfxInfoData.BeginWriting();
 
     while(true) {
@@ -89,7 +83,7 @@ GfxInfo::EnsureInitializedFromGfxInfoData()
         break;
       if (stringToFill) {
         stringToFill->Assign(line);
-        stringToFill = nsnull;
+        stringToFill = nullptr;
       } else if(!strcmp(line, "VENDOR")) {
         stringToFill = &mVendor;
       } else if(!strcmp(line, "RENDERER")) {

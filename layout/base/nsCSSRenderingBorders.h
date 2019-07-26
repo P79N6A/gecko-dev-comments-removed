@@ -236,7 +236,7 @@ static inline void S(const char *s) {
   fprintf (stderr, "%s", s);
 }
 
-static inline void SN(const char *s = nsnull) {
+static inline void SN(const char *s = nullptr) {
   if (s)
     fprintf (stderr, "%s", s);
   fprintf (stderr, "\n");
@@ -266,7 +266,7 @@ static inline void S(const gfxSize& s) {}
 static inline void S(const gfxRect& r) {}
 static inline void S(const gfxFloat f) {}
 static inline void S(const char *s) {}
-static inline void SN(const char *s = nsnull) {}
+static inline void SN(const char *s = nullptr) {}
 static inline void SF(const char *fmt, ...) {}
 static inline void SX(gfxContext *ctx) {}
 #endif

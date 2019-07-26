@@ -60,41 +60,7 @@ LifoAlloc::freeAll()
         first = first->next();
         BumpChunk::delete_(victim);
     }
-    first = latest = NULL;
-}
-
-void
-LifoAlloc::freeUnused()
-{
-    
-    if (markCount || !first)
-        return; 
-
-    JS_ASSERT(first && latest);
-
-    
-    if (!latest->used()) {
-        BumpChunk *lastUsed = NULL;
-        for (BumpChunk *it = first; it != latest; it = it->next()) {
-            if (it->used())
-                lastUsed = it;
-        }
-        if (!lastUsed) {
-            freeAll();
-            return;
-        }
-        latest = lastUsed;
-    }
-
-    
-    BumpChunk *it = latest->next();
-    while (it) {
-        BumpChunk *victim = it;
-        it = it->next();
-        BumpChunk::delete_(victim);
-    }
-
-    latest->setNext(NULL);
+    first = latest = last = NULL;
 }
 
 LifoAlloc::BumpChunk *
@@ -131,13 +97,50 @@ LifoAlloc::getOrCreateChunk(size_t n)
     if (!newChunk)
         return NULL;
     if (!first) {
-        latest = first = newChunk;
+        latest = first = last = newChunk;
     } else {
         JS_ASSERT(latest && !latest->next());
         latest->setNext(newChunk);
-        latest = newChunk;
+        latest = last = newChunk;
     }
     return newChunk;
+}
+
+void
+LifoAlloc::transferFrom(LifoAlloc *other)
+{
+    JS_ASSERT(!markCount);
+    JS_ASSERT(latest == first);
+    JS_ASSERT(!other->markCount);
+
+    if (!other->first)
+        return;
+
+    append(other->first, other->last);
+    other->first = other->last = other->latest = NULL;
+}
+
+void
+LifoAlloc::transferUnusedFrom(LifoAlloc *other)
+{
+    JS_ASSERT(!markCount);
+    JS_ASSERT(latest == first);
+
+    if (other->markCount || !other->first)
+        return;
+
+    
+
+
+
+
+
+
+    if (other->latest->next()) {
+        append(other->latest->next(), other->last);
+        other->latest->setNext(NULL);
+        other->last = other->latest;
+    }
 }
 
 bool

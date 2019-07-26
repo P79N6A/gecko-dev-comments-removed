@@ -574,40 +574,6 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
   return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
 }
 
-bool
-nsSliderFrame::GetEventPoint(nsGUIEvent* aEvent, nsPoint &aPoint) {
-  nsIntPoint refPoint;
-  nsresult rv;
-  if (aEvent->eventStructType == NS_TOUCH_EVENT) {
-    rv = GetTouchPoint(static_cast<nsTouchEvent*>(aEvent), refPoint);
-    if (NS_FAILED(rv))
-       return false;
-  } else {
-    refPoint = aEvent->refPoint;
-  }
-  aPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, refPoint, this);
-  return true;
-}
-
-bool
-nsSliderFrame::GetTouchPoint(nsTouchEvent* aEvent, nsIntPoint &aPoint)
-{
-  NS_ENSURE_TRUE(aEvent, false);
-  
-  
-  if (aEvent->touches.Length() != 1) {
-    return false;
-  }
-
-  nsIDOMTouch *touch = aEvent->touches.SafeElementAt(0);
-  if (!touch) {
-    return false;
-  }
-  nsDOMTouch* domtouch = static_cast<nsDOMTouch*>(touch);
-  aPoint = domtouch->mRefPoint;
-  return true;
-}
-
 
 
 
@@ -646,7 +612,7 @@ nsSliderFrame::GetScrollbar()
    nsIFrame* scrollbar;
    nsScrollbarButtonFrame::GetParentWithTag(nsGkAtoms::scrollbar, this, scrollbar);
 
-   if (scrollbar == nsnull)
+   if (scrollbar == nullptr)
        return this;
 
    return scrollbar->IsBoxFrame() ? scrollbar : this;
@@ -974,7 +940,7 @@ nsSliderFrame::DragThumb(bool aGrabMouseEvents)
     }
   }
 
-  nsIPresShell::SetCapturingContent(aGrabMouseEvents ? GetContent() : nsnull,
+  nsIPresShell::SetCapturingContent(aGrabMouseEvents ? GetContent() : nullptr,
                                     aGrabMouseEvents ? CAPTURE_IGNOREALLOWED : 0);
 }
 
@@ -1079,8 +1045,8 @@ nsSliderFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   if (mMediator) {
-    mMediator->SetSlider(nsnull);
-    mMediator = nsnull;
+    mMediator->SetSlider(nullptr);
+    mMediator = nullptr;
   }
   StopRepeat();
 

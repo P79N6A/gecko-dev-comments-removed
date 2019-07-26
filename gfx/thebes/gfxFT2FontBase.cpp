@@ -158,7 +158,7 @@ gfxFT2FontBase::GetFontTable(PRUint32 aTag)
     
     
     return mFontEntry->ShareFontTableAndGetBlob(aTag,
-                                                haveTable ? &buffer : nsnull);
+                                                haveTable ? &buffer : nullptr);
 }
 
 PRUint32

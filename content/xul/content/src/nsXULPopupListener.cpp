@@ -53,7 +53,7 @@ using namespace mozilla;
 #endif
 
 nsXULPopupListener::nsXULPopupListener(nsIDOMElement *aElement, bool aIsContext)
-  : mElement(aElement), mPopupContent(nsnull), mIsContext(aIsContext)
+  : mElement(aElement), mPopupContent(nullptr), mIsContext(aIsContext)
 {
 }
 
@@ -167,7 +167,7 @@ nsXULPopupListener::HandleEvent(nsIDOMEvent* aEvent)
   
   nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
   if (!mIsContext) {
-    nsIAtom *tag = targetContent ? targetContent->Tag() : nsnull;
+    nsIAtom *tag = targetContent ? targetContent->Tag() : nullptr;
     if (tag == nsGkAtoms::menu || tag == nsGkAtoms::menuitem)
       return NS_OK;
   }
@@ -276,7 +276,7 @@ nsXULPopupListener::ClosePopup()
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
       pm->HidePopup(mPopupContent, false, true, true);
-    mPopupContent = nsnull;  
+    mPopupContent = nullptr;  
   }
 } 
 
@@ -292,7 +292,7 @@ GetImmediateChild(nsIContent* aContent, nsIAtom *aTag)
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 

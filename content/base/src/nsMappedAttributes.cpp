@@ -1,12 +1,12 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * A unique per-element set of attributes that is used as an
+ * nsIStyleRule; used to implement presentational attributes.
+ */
 
 #include "nsMappedAttributes.h"
 #include "nsHTMLStyleSheet.h"
@@ -55,7 +55,7 @@ nsMappedAttributes::Clone(bool aWillAddAttr)
 {
   PRUint32 extra = aWillAddAttr ? 1 : 0;
 
-  
+  // This will call the overridden operator new
   return new (mAttrCount + extra) nsMappedAttributes(*this);
 }
 
@@ -63,7 +63,7 @@ void* nsMappedAttributes::operator new(size_t aSize, PRUint32 aAttrCount) CPP_TH
 {
   NS_ASSERTION(aAttrCount > 0, "zero-attribute nsMappedAttributes requested");
 
-  
+  // aSize will include the mAttrs buffer so subtract that.
   void* newAttrs = ::operator new(aSize - sizeof(void*[1]) +
                                   aAttrCount * sizeof(InternalAttr));
 
@@ -119,7 +119,7 @@ nsMappedAttributes::GetAttr(nsIAtom* aAttrName) const
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 const nsAttrValue*
@@ -131,7 +131,7 @@ nsMappedAttributes::GetAttr(const nsAString& aAttrName) const
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 bool
@@ -177,10 +177,10 @@ nsMappedAttributes::SetStyleSheet(nsHTMLStyleSheet* aSheet)
   if (mSheet) {
     mSheet->DropMappedAttributes(this);
   }
-  mSheet = aSheet;  
+  mSheet = aSheet;  // not ref counted
 }
 
- void
+/* virtual */ void
 nsMappedAttributes::MapRuleInfoInto(nsRuleData* aRuleData)
 {
   if (mRuleMapper) {
@@ -189,7 +189,7 @@ nsMappedAttributes::MapRuleInfoInto(nsRuleData* aRuleData)
 }
 
 #ifdef DEBUG
- void
+/* virtual */ void
 nsMappedAttributes::List(FILE* out, PRInt32 aIndent) const
 {
   nsAutoString buffer;
@@ -237,7 +237,7 @@ nsMappedAttributes::GetExistingAttrNameFromQName(const nsAString& aName) const
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 PRInt32

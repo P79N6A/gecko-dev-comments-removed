@@ -109,7 +109,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
                                      mFindBackwards? upStr.get(): dnStr.get());
         windowSupportsData->GetData(getter_AddRefs(searchWindowSupports));
         
-        *outDidFind = searchWindowSupports == nsnull;
+        *outDidFind = searchWindowSupports == nullptr;
         if (*outDidFind)
             return NS_OK;
     }
@@ -193,7 +193,7 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(bool *outDidFind)
 
     
     
-    docShellEnumerator = nsnull;
+    docShellEnumerator = nullptr;
     rv = rootDocShell->GetDocShellEnumerator(nsIDocShellTreeItem::typeAll,
             enumDirection, getter_AddRefs(docShellEnumerator));    
     if (NS_FAILED(rv)) return rv;
@@ -373,7 +373,7 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
   
   
   
-  nsITextControlFrame *tcFrame = nsnull;
+  nsITextControlFrame *tcFrame = nullptr;
   for ( ; content; content = content->GetParent()) {
     if (!IsInNativeAnonymousSubtree(content)) {
       nsIFrame* f = content->GetPrimaryFrame();
@@ -401,7 +401,7 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
       }
       else  {
         nsCOMPtr<nsIDOMElement> result;
-        fm->MoveFocus(aWindow, nsnull, nsIFocusManager::MOVEFOCUS_CARET,
+        fm->MoveFocus(aWindow, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
                       nsIFocusManager::FLAG_NOSCROLL,
                       getter_AddRefs(result));
       }
@@ -787,7 +787,7 @@ void
 nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow, 
                                     nsISelection** aSel)
 {
-    *aSel = nsnull;
+    *aSel = nullptr;
 
     nsCOMPtr<nsIDOMDocument> domDoc;    
     aWindow->GetDocument(getter_AddRefs(domDoc));
@@ -801,7 +801,7 @@ nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow,
     
     nsPresContext *presContext = presShell->GetPresContext();
 
-    nsIFrame *frame = nsnull;
+    nsIFrame *frame = nullptr;
     nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
     if (fm) {
       nsCOMPtr<nsIDOMElement> focusedElement;
@@ -810,7 +810,7 @@ nsWebBrowserFind::GetFrameSelection(nsIDOMWindow* aWindow,
       if (focusedContent) {
         frame = focusedContent->GetPrimaryFrame();
         if (frame && frame->PresContext() != presContext)
-          frame = nsnull;
+          frame = nullptr;
       }
     }
 
@@ -880,7 +880,7 @@ nsIDocShell *
 nsWebBrowserFind::GetDocShellFromWindow(nsIDOMWindow *inWindow)
 {
     nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(inWindow));
-    if (!window) return nsnull;
+    if (!window) return nullptr;
 
     return window->GetDocShell();
 }

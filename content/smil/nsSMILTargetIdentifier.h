@@ -26,7 +26,7 @@
 struct nsSMILTargetIdentifier
 {
   nsSMILTargetIdentifier()
-    : mElement(nsnull), mAttributeName(nsnull),
+    : mElement(nullptr), mAttributeName(nullptr),
       mAttributeNamespaceID(kNameSpaceID_Unknown), mIsCSS(false) {}
 
   inline bool Equals(const nsSMILTargetIdentifier& aOther) const
@@ -58,7 +58,7 @@ class nsSMILWeakTargetIdentifier
 public:
   
   nsSMILWeakTargetIdentifier()
-    : mElement(nsnull), mAttributeName(nsnull), mIsCSS(false) {}
+    : mElement(nullptr), mAttributeName(nullptr), mIsCSS(false) {}
 
   
   nsSMILWeakTargetIdentifier&

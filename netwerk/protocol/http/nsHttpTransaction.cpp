@@ -57,9 +57,9 @@ LogHeaders(const char *lines)
 {
     nsCAutoString buf;
     char *p;
-    while ((p = PL_strstr(lines, "\r\n")) != nsnull) {
+    while ((p = PL_strstr(lines, "\r\n")) != nullptr) {
         buf.Assign(lines, p - lines);
-        if (PL_strcasestr(buf.get(), "authorization: ") != nsnull) {
+        if (PL_strcasestr(buf.get(), "authorization: ") != nullptr) {
             char *p = PL_strchr(PL_strchr(buf.get(), ' ')+1, ' ');
             while (*++p) *p = '*';
         }
@@ -75,14 +75,14 @@ LogHeaders(const char *lines)
 
 nsHttpTransaction::nsHttpTransaction()
     : mRequestSize(0)
-    , mConnection(nsnull)
-    , mConnInfo(nsnull)
-    , mRequestHead(nsnull)
-    , mResponseHead(nsnull)
+    , mConnection(nullptr)
+    , mConnInfo(nullptr)
+    , mRequestHead(nullptr)
+    , mResponseHead(nullptr)
     , mContentLength(-1)
     , mContentRead(0)
     , mInvalidResponseBytesRead(0)
-    , mChunkedDecoder(nsnull)
+    , mChunkedDecoder(nullptr)
     , mStatus(NS_OK)
     , mPriority(0)
     , mRestartCount(0)
@@ -106,7 +106,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mPreserveStream(false)
     , mReportedStart(false)
     , mReportedResponseHeader(false)
-    , mForTakeResponseHead(nsnull)
+    , mForTakeResponseHead(nullptr)
     , mResponseHeadTaken(false)
 {
     LOG(("Creating nsHttpTransaction @%x\n", this));
@@ -195,7 +195,7 @@ nsHttpTransaction::Init(PRUint8 caps,
     } else {
         
         activityDistributorActive = false;
-        mActivityDistributor = nsnull;
+        mActivityDistributor = nullptr;
     }
 
     
@@ -335,7 +335,7 @@ nsHttpTransaction::TakeResponseHead()
     nsHttpResponseHead *head;
     if (mForTakeResponseHead) {
         head = mForTakeResponseHead;
-        mForTakeResponseHead = nsnull;
+        mForTakeResponseHead = nullptr;
         return head;
     }
     
@@ -343,11 +343,11 @@ nsHttpTransaction::TakeResponseHead()
     
     if (!mHaveAllHeaders) {
         NS_WARNING("response headers not available or incomplete");
-        return nsnull;
+        return nullptr;
     }
 
     head = mResponseHead;
-    mResponseHead = nsnull;
+    mResponseHead = nullptr;
     return head;
 }
 
@@ -540,7 +540,7 @@ nsHttpTransaction::ReadSegments(nsAHttpSegmentReader *reader,
 
     nsresult rv = mRequestStream->ReadSegments(ReadRequestSegment, this, count, countRead);
 
-    mReader = nsnull;
+    mReader = nullptr;
 
     
     
@@ -615,7 +615,7 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
 
     nsresult rv = mPipeOut->WriteSegments(WritePipeSegment, this, count, countWritten);
 
-    mWriter = nsnull;
+    mWriter = nullptr;
 
     
     
@@ -704,7 +704,7 @@ nsHttpTransaction::Close(nsresult reason)
             if (mPipelinePosition) {
                 gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                     mConnInfo, nsHttpConnectionMgr::RedCanceledPipeline,
-                    nsnull, 0);
+                    nullptr, 0);
             }
             if (NS_SUCCEEDED(Restart()))
                 return;
@@ -715,7 +715,7 @@ nsHttpTransaction::Close(nsresult reason)
             
 
             gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
-                mConnInfo, nsHttpConnectionMgr::RedCorruptedContent, nsnull, 0);
+                mConnInfo, nsHttpConnectionMgr::RedCorruptedContent, nullptr, 0);
             if (NS_SUCCEEDED(RestartInProgress()))
                 return;
         }
@@ -729,13 +729,13 @@ nsHttpTransaction::Close(nsresult reason)
             
             gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                 mConnInfo, nsHttpConnectionMgr::BadInsufficientFraming,
-                nsnull, mClassification);
+                nullptr, mClassification);
         }
         else if (mPipelinePosition) {
             
             gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                 mConnInfo, nsHttpConnectionMgr::GoodCompletedOK,
-                nsnull, mPipelinePosition);
+                nullptr, mPipelinePosition);
         }
 
         
@@ -774,12 +774,12 @@ nsHttpTransaction::Close(nsresult reason)
     mClosed = true;
 
     
-    mRequestStream = nsnull;
+    mRequestStream = nullptr;
     mReqHeaderBuf.Truncate();
     mLineBuf.Truncate();
     if (mChunkedDecoder) {
         delete mChunkedDecoder;
-        mChunkedDecoder = nsnull;
+        mChunkedDecoder = nullptr;
     }
 
     
@@ -853,7 +853,7 @@ nsHttpTransaction::RestartInProgress()
         
         
         mForTakeResponseHead = mResponseHead;
-        mResponseHead = nsnull;
+        mResponseHead = nullptr;
     }
 
     if (mResponseHead) {
@@ -863,7 +863,7 @@ nsHttpTransaction::RestartInProgress()
     mContentRead = 0;
     mContentLength = -1;
     delete mChunkedDecoder;
-    mChunkedDecoder = nsnull;
+    mChunkedDecoder = nullptr;
     mHaveStatusLine = false;
     mHaveAllHeaders = false;
     mHttpResponseMatched = false;
@@ -919,7 +919,7 @@ nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
     static const PRUint32 HTTP2HeaderLen = sizeof(HTTP2Header) - 1;
     
     if (aAllowPartialMatch && (len < HTTPHeaderLen))
-        return (PL_strncasecmp(buf, HTTPHeader, len) == 0) ? buf : nsnull;
+        return (PL_strncasecmp(buf, HTTPHeader, len) == 0) ? buf : nullptr;
 
     
     if (!mLineBuf.IsEmpty()) {
@@ -1010,7 +1010,7 @@ nsHttpTransaction::ParseLineSegment(char *segment, PRUint32 len)
             if (NS_FAILED(rv)) {
                 gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                     mConnInfo, nsHttpConnectionMgr::RedCorruptedContent,
-                    nsnull, 0);
+                    nullptr, 0);
                 return rv;
             }
         }
@@ -1120,7 +1120,7 @@ nsHttpTransaction::ParseHead(char *buf,
     
 
     NS_ABORT_IF_FALSE (mHttpResponseMatched, "inconsistent");
-    while ((eol = static_cast<char *>(memchr(buf, '\n', count - *countRead))) != nsnull) {
+    while ((eol = static_cast<char *>(memchr(buf, '\n', count - *countRead))) != nullptr) {
         
         len = eol - buf + 1;
 
@@ -1217,7 +1217,7 @@ nsHttpTransaction::HandleContentStart()
         if (mInvalidResponseBytesRead)
             gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
                 mConnInfo, nsHttpConnectionMgr::BadInsufficientFraming,
-                nsnull, mClassification);
+                nullptr, mClassification);
 
         if (mNoContent)
             mContentLength = 0;
@@ -1466,7 +1466,7 @@ nsHttpTransaction::CancelPipeline(PRUint32 reason)
     gHttpHandler->ConnMgr()->PipelineFeedbackInfo(
         mConnInfo,
         static_cast<nsHttpConnectionMgr::PipelineFeedbackInfoType>(reason),
-        nsnull, mClassification);
+        nullptr, mClassification);
 
     mConnection->CancelPipeline(NS_ERROR_ABORT);
 

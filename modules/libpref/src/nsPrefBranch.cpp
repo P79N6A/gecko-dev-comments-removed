@@ -49,7 +49,7 @@ GetContentChild()
     }
     return cpc;
   }
-  return nsnull;
+  return nullptr;
 }
 
 
@@ -486,7 +486,7 @@ NS_IMETHODIMP nsPrefBranch::GetChildList(const char *aStartingAt, PRUint32 *aCou
   NS_ENSURE_ARG_POINTER(aCount);
   NS_ENSURE_ARG_POINTER(aChildArray);
 
-  *aChildArray = nsnull;
+  *aChildArray = nullptr;
   *aCount = 0;
 
   if (!gHashTable.ops)
@@ -657,7 +657,7 @@ void nsPrefBranch::freeObserverList(void)
   
   
   mFreeingObserverList = true;
-  mObservers.Enumerate(&FreeObserverFunc, nsnull);
+  mObservers.Enumerate(&FreeObserverFunc, nullptr);
   mFreeingObserverList = false;
 }
 

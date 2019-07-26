@@ -145,7 +145,7 @@ nsPrintingPromptService::ShowPageSetup(nsIDOMWindow *parent, nsIPrintSettings *p
       return rv;
 
     block->SetInt(0, 0);
-    return DoDialog(parent, block, nsnull, printSettings, kPageSetupDialogURL);
+    return DoDialog(parent, block, nullptr, printSettings, kPageSetupDialogURL);
 }
 
 
@@ -241,8 +241,8 @@ nsPrintingPromptService::OnStateChange(nsIWebProgress *aWebProgress, nsIRequest 
     if (mPrintProgress) {
       mPrintProgress->CloseProgressDialog(true);
     }
-    mPrintProgress       = nsnull;
-    mWebProgressListener = nsnull;
+    mPrintProgress       = nullptr;
+    mWebProgressListener = nullptr;
   }
   return NS_OK;
 }

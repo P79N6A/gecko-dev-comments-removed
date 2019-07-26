@@ -28,7 +28,7 @@ public:
     
     
 
-    bool IsComplete(nsresult *status = nsnull);
+    bool IsComplete(nsresult *status = nullptr);
     void   Complete(nsresult status);
 
 private:

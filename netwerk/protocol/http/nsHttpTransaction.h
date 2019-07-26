@@ -81,7 +81,7 @@ public:
 
     
     nsHttpConnectionInfo  *ConnectionInfo() { return mConnInfo; }
-    nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nsnull; }
+    nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nullptr; }
     nsISupports           *SecurityInfo()   { return mSecurityInfo; }
 
     nsIInterfaceRequestor *Callbacks()      { return mCallbacks; } 

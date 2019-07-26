@@ -552,7 +552,7 @@ class nsTXPIDLString_CharT : public nsTString_CharT
         
       const char_type* get() const
         {
-          return (mFlags & F_VOIDED) ? nsnull : mData;
+          return (mFlags & F_VOIDED) ? nullptr : mData;
         }
 
         
@@ -595,7 +595,7 @@ class NS_STACK_CLASS nsTGetterCopies_CharT
       typedef CharT char_type;
 
       nsTGetterCopies_CharT(nsTSubstring_CharT& str)
-        : mString(str), mData(nsnull) {}
+        : mString(str), mData(nullptr) {}
 
       ~nsTGetterCopies_CharT()
         {

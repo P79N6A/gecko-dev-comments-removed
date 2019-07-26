@@ -139,15 +139,6 @@ private:
   nsresult CurrentPositionChanged(nsPresContext* aPresContext,
                                   bool aImmediateRedraw);
 
-  
-  
-  bool GetEventPoint(nsGUIEvent *aEvent, nsPoint &aPoint);
-
-  
-  
-  
-  bool GetTouchPoint(nsTouchEvent *aEvent, nsIntPoint &aPoint);
-
   void DragThumb(bool aGrabMouseEvents);
   void AddListener();
   void RemoveListener();

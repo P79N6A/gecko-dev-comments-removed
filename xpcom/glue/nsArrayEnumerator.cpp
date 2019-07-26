@@ -64,7 +64,7 @@ nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
         return NS_ERROR_NULL_POINTER;
 
     if (!mValueArray) {
-        *aResult = nsnull;
+        *aResult = nullptr;
         return NS_OK;
     }
 
@@ -82,7 +82,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
                       nsIArray* array)
 {
     nsSimpleArrayEnumerator* enumer = new nsSimpleArrayEnumerator(array);
-    if (enumer == nsnull)
+    if (enumer == nullptr)
         return NS_ERROR_OUT_OF_MEMORY;
 
     NS_ADDREF(*result = enumer);
@@ -180,7 +180,7 @@ nsCOMArrayEnumerator::operator new (size_t size, const nsCOMArray_base& aArray)
     
     nsCOMArrayEnumerator * result =
         static_cast<nsCOMArrayEnumerator*>(::operator new(size));
-    NS_ENSURE_TRUE(result, nsnull);
+    NS_ENSURE_TRUE(result, nullptr);
 
     
     

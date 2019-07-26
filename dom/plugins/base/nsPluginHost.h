@@ -130,8 +130,8 @@ public:
   NewPluginURLStream(const nsString& aURL, 
                      nsNPAPIPluginInstance *aInstance, 
                      nsNPAPIPluginStreamListener *aListener,
-                     nsIInputStream *aPostStream = nsnull,
-                     const char *aHeadersData = nsnull, 
+                     nsIInputStream *aPostStream = nullptr,
+                     const char *aHeadersData = nullptr, 
                      PRUint32 aHeadersDataLen = 0);
 
   nsresult
@@ -337,7 +337,7 @@ public:
   }
 
   PluginDestructionGuard(NPP npp)
-    : mInstance(npp ? static_cast<nsNPAPIPluginInstance*>(npp->ndata) : nsnull)
+    : mInstance(npp ? static_cast<nsNPAPIPluginInstance*>(npp->ndata) : nullptr)
   {
     Init();
   }

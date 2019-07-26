@@ -1,23 +1,23 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=2 sw=2 et tw=78:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDOMScriptObjectFactory.h"
 #include "xpcexception.h"
@@ -37,7 +37,7 @@
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
-nsIExceptionProvider* gExceptionProvider = nsnull;
+nsIExceptionProvider* gExceptionProvider = nullptr;
 
 nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
 {
@@ -62,7 +62,7 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
   NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
   provider.swap(gExceptionProvider);
 
-  // And pre-create the javascript language.
+  
   NS_CreateJSRuntime(getter_AddRefs(mJSRuntime));
 }
 
@@ -86,20 +86,20 @@ NS_IMETHODIMP_(nsISupports *)
 nsDOMScriptObjectFactory::GetExternalClassInfoInstance(const nsAString& aName)
 {
   nsScriptNameSpaceManager *nameSpaceManager = nsJSRuntime::GetNameSpaceManager();
-  NS_ENSURE_TRUE(nameSpaceManager, nsnull);
+  NS_ENSURE_TRUE(nameSpaceManager, nullptr);
 
   const nsGlobalNameStruct *globalStruct = nameSpaceManager->LookupName(aName);
   if (globalStruct) {
     if (globalStruct->mType == nsGlobalNameStruct::eTypeExternalClassInfoCreator) {
       nsresult rv;
       nsCOMPtr<nsIDOMCIExtension> creator(do_CreateInstance(globalStruct->mCID, &rv));
-      NS_ENSURE_SUCCESS(rv, nsnull);
+      NS_ENSURE_SUCCESS(rv, nullptr);
 
       rv = creator->RegisterDOMCI(NS_ConvertUTF16toUTF8(aName).get(), this);
-      NS_ENSURE_SUCCESS(rv, nsnull);
+      NS_ENSURE_SUCCESS(rv, nullptr);
 
       globalStruct = nameSpaceManager->LookupName(aName);
-      NS_ENSURE_TRUE(globalStruct, nsnull);
+      NS_ENSURE_TRUE(globalStruct, nullptr);
 
       NS_ASSERTION(globalStruct->mType == nsGlobalNameStruct::eTypeExternalClassInfo,
                    "The classinfo data for this class didn't get registered.");
@@ -108,7 +108,7 @@ nsDOMScriptObjectFactory::GetExternalClassInfoInstance(const nsAString& aName)
       return nsDOMClassInfo::GetClassInfoInstance(globalStruct->mData);
     }
   }
-  return nsnull;
+  return nullptr;
 }
 
 NS_IMETHODIMP
@@ -118,8 +118,8 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
 {
   if (!nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
 #ifdef MOZ_XUL
-    // Flush the XUL cache since it holds JS roots, and we're about to
-    // start the final GC.
+    
+    
     nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
 
     if (cache)
@@ -175,7 +175,7 @@ nsDOMScriptObjectFactory::RegisterDOMClassInfo(const char *aName,
 }
 
 
-// Factories
+
 nsresult
 NS_GetJSRuntime(nsIScriptRuntime** aLanguage)
 {

@@ -1,14 +1,14 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
+/*
+ * A base class which implements nsIStyleSheetLinkingElement and can
+ * be subclassed by various content nodes that want to load
+ * stylesheets (<style>, <link>, processing instructions, etc).
+ */
 
 #include "nsStyleLinkElement.h"
 
@@ -35,7 +35,7 @@ nsStyleLinkElement::nsStyleLinkElement()
 
 nsStyleLinkElement::~nsStyleLinkElement()
 {
-  nsStyleLinkElement::SetStyleSheet(nsnull);
+  nsStyleLinkElement::SetStyleSheet(nullptr);
 }
 
 NS_IMETHODIMP 
@@ -43,7 +43,7 @@ nsStyleLinkElement::SetStyleSheet(nsIStyleSheet* aStyleSheet)
 {
   nsRefPtr<nsCSSStyleSheet> cssSheet = do_QueryObject(mStyleSheet);
   if (cssSheet) {
-    cssSheet->SetOwningNode(nsnull);
+    cssSheet->SetOwningNode(nullptr);
   }
 
   mStyleSheet = aStyleSheet;
@@ -81,14 +81,14 @@ NS_IMETHODIMP
 nsStyleLinkElement::GetSheet(nsIDOMStyleSheet** aSheet)
 {
   NS_ENSURE_ARG_POINTER(aSheet);
-  *aSheet = nsnull;
+  *aSheet = nullptr;
 
   if (mStyleSheet) {
     CallQueryInterface(mStyleSheet, aSheet);
   }
 
-  
-  
+  // Always return NS_OK to avoid throwing JS exceptions if mStyleSheet 
+  // is not a nsIDOMStyleSheet
   return NS_OK;
 }
 
@@ -103,18 +103,18 @@ nsStyleLinkElement::SetEnableUpdates(bool aEnableUpdates)
 NS_IMETHODIMP
 nsStyleLinkElement::GetCharset(nsAString& aCharset)
 {
-  
+  // descendants have to implement this themselves
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
- void
+/* virtual */ void
 nsStyleLinkElement::OverrideBaseURI(nsIURI* aNewBaseURI)
 {
   NS_NOTREACHED("Base URI can't be overriden in this implementation "
                 "of nsIStyleSheetLinkingElement.");
 }
 
- void
+/* virtual */ void
 nsStyleLinkElement::SetLineNumber(PRUint32 aLineNumber)
 {
   mLineNumber = aLineNumber;
@@ -177,7 +177,7 @@ nsStyleLinkElement::UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
                                      bool* aWillNotify,
                                      bool* aIsAlternate)
 {
-  return DoUpdateStyleSheet(nsnull, aObserver, aWillNotify, aIsAlternate,
+  return DoUpdateStyleSheet(nullptr, aObserver, aWillNotify, aIsAlternate,
                             false);
 }
 
@@ -186,7 +186,7 @@ nsStyleLinkElement::UpdateStyleSheetInternal(nsIDocument *aOldDocument,
                                              bool aForceUpdate)
 {
   bool notify, alternate;
-  return DoUpdateStyleSheet(aOldDocument, nsnull, &notify, &alternate,
+  return DoUpdateStyleSheet(aOldDocument, nullptr, &notify, &alternate,
                             aForceUpdate);
 }
 
@@ -200,14 +200,14 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
   *aWillNotify = false;
 
   if (mStyleSheet && aOldDocument) {
-    
-    
-    
-    
+    // We're removing the link element from the document, unload the
+    // stylesheet.  We want to do this even if updates are disabled, since
+    // otherwise a sheet with a stale linking element pointer will be hanging
+    // around -- not good!
     aOldDocument->BeginUpdate(UPDATE_STYLE);
     aOldDocument->RemoveStyleSheet(mStyleSheet);
     aOldDocument->EndUpdate(UPDATE_STYLE);
-    nsStyleLinkElement::SetStyleSheet(nsnull);
+    nsStyleLinkElement::SetStyleSheet(nullptr);
   }
 
   if (mDontLoadStyle || !mUpdatesEnabled) {
@@ -234,7 +234,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
       bool equal;
       nsresult rv = oldURI->Equals(uri, &equal);
       if (NS_SUCCEEDED(rv) && equal) {
-        return NS_OK; 
+        return NS_OK; // We already loaded this stylesheet
       }
     }
   }
@@ -243,11 +243,11 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     doc->BeginUpdate(UPDATE_STYLE);
     doc->RemoveStyleSheet(mStyleSheet);
     doc->EndUpdate(UPDATE_STYLE);
-    nsStyleLinkElement::SetStyleSheet(nsnull);
+    nsStyleLinkElement::SetStyleSheet(nullptr);
   }
 
   if (!uri && !isInline) {
-    return NS_OK; 
+    return NS_OK; // If href is empty and this is not inline style then just bail
   }
 
   nsAutoString title, type, media;
@@ -265,13 +265,13 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     nsAutoString text;
     nsContentUtils::GetNodeTextContent(thisContent, false, text);
 
-    
+    // Parse the style sheet.
     rv = doc->CSSLoader()->
       LoadInlineStyle(thisContent, text, mLineNumber, title, media,
                       aObserver, &doneLoading, &isAlternate);
   }
   else {
-    
+    // XXXbz clone the URI here to work around content policies modifying URIs.
     nsCOMPtr<nsIURI> clonedURI;
     uri->Clone(getter_AddRefs(clonedURI));
     NS_ENSURE_TRUE(clonedURI, NS_ERROR_OUT_OF_MEMORY);
@@ -279,9 +279,9 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
       LoadStyleLink(thisContent, clonedURI, title, media, isAlternate, aObserver,
                     &isAlternate);
     if (NS_FAILED(rv)) {
-      
-      
-      
+      // Don't propagate LoadStyleLink() errors further than this, since some
+      // consumers (e.g. nsXMLContentSink) will completely abort on innocuous
+      // things like a stylesheet load being blocked by the security system.
       doneLoading = true;
       isAlternate = false;
       rv = NS_OK;

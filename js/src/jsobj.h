@@ -1118,6 +1118,13 @@ js_GetClassObject(JSContext *cx, js::HandleObject obj, JSProtoKey key,
 
 
 
+extern JSProtoKey
+js_IdentifyClassPrototype(JSObject *obj);
+
+
+
+
+
 bool
 js_FindClassObject(JSContext *cx, js::HandleObject start, JSProtoKey protoKey,
                    js::MutableHandleValue vp, js::Class *clasp = NULL);

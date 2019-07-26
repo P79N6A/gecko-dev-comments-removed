@@ -392,8 +392,14 @@ struct JSRuntime : js::RuntimeFriendFields
     js::StackSpace stackSpace;
 
     
-    static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
+    static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 4 * 1024;
     js::LifoAlloc tempLifoAlloc;
+
+    
+
+
+
+    js::LifoAlloc freeLifoAlloc;
 
   private:
     

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -12,7 +12,7 @@
 #include "nsIFrame.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGAttrTearoffTable.h"
-#include "nsContentUtils.h" // NS_ENSURE_FINITE
+#include "nsContentUtils.h" 
 #include "nsSMILValue.h"
 #include "nsSMILFloatType.h"
 
@@ -55,8 +55,8 @@ NS_INTERFACE_MAP_END
 
 static nsIAtom** const unitMap[] =
 {
-  nsnull, /* SVG_LENGTHTYPE_UNKNOWN */
-  nsnull, /* SVG_LENGTHTYPE_NUMBER */
+  nullptr, 
+  nullptr, 
   &nsGkAtoms::percentage,
   &nsGkAtoms::em,
   &nsGkAtoms::ex,
@@ -75,7 +75,7 @@ static nsSVGAttrTearoffTable<nsSVGLength2, nsIDOMSVGLength>
 static nsSVGAttrTearoffTable<nsSVGLength2, nsIDOMSVGLength>
   sAnimSVGLengthTearoffTable;
 
-/* Helper functions */
+
 
 static bool
 IsValidUnitType(PRUint16 unit)
@@ -309,17 +309,17 @@ nsSVGLength2::ConvertToSpecifiedUnits(PRUint16 unitType,
   if (mIsBaseSet && mSpecifiedUnitType == PRUint8(unitType))
     return NS_OK;
 
-  // Even though we're not changing the visual effect this length will have
-  // on the document, we still need to send out notifications in case we have
-  // mutation listeners, since the actual string value of the attribute will
-  // change.
+  
+  
+  
+  
   nsAttrValue emptyOrOldValue = aSVGElement->WillChangeLength(mAttrEnum);
 
   float valueInUserUnits =
     mBaseVal / GetUnitScaleFactor(aSVGElement, mSpecifiedUnitType);
   mSpecifiedUnitType = PRUint8(unitType);
-  // Setting aDoSetAttr to false here will ensure we don't call
-  // Will/DidChangeAngle a second time (and dispatch duplicate notifications).
+  
+  
   SetBaseValue(valueInUserUnits, aSVGElement, false);
 
   aSVGElement->DidChangeLength(mAttrEnum, emptyOrOldValue);
@@ -396,7 +396,7 @@ nsSVGLength2::DOMAnimVal::~DOMAnimVal()
   sAnimSVGLengthTearoffTable.RemoveTearoff(mVal);
 }
 
-/* Implementation */
+
 
 nsresult
 nsSVGLength2::SetBaseValueString(const nsAString &aValueAsString,
@@ -506,7 +506,7 @@ nsSVGLength2::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGLength2::SMILLength::ValueFromString(const nsAString& aStr,
-                                 const nsISMILAnimationElement* /*aSrcElement*/,
+                                 const nsISMILAnimationElement* ,
                                  nsSMILValue& aValue,
                                  bool& aPreventCachingOfSandwich) const
 {

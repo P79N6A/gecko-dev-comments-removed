@@ -107,9 +107,10 @@ NS_IMETHODIMP nsSVGPatternElement::GetPatternContentUnits(nsIDOMSVGAnimatedEnume
 
 NS_IMETHODIMP nsSVGPatternElement::GetPatternTransform(nsIDOMSVGAnimatedTransformList * *aPatternTransform)
 {
-  *aPatternTransform =
-    DOMSVGAnimatedTransformList::GetDOMWrapper(GetAnimatedTransformList(), this)
-    .get();
+  
+  
+  *aPatternTransform = DOMSVGAnimatedTransformList::GetDOMWrapper(
+                         GetAnimatedTransformList(DO_ALLOCATE), this).get();
   return NS_OK;
 }
 
@@ -173,9 +174,9 @@ nsSVGPatternElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 SVGAnimatedTransformList*
-nsSVGPatternElement::GetAnimatedTransformList()
+nsSVGPatternElement::GetAnimatedTransformList(PRUint32 aFlags)
 {
-  if (!mPatternTransform) {
+  if (!mPatternTransform && (aFlags & DO_ALLOCATE)) {
     mPatternTransform = new SVGAnimatedTransformList();
   }
   return mPatternTransform;

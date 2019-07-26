@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsDOMMouseScrollEvent.h"
 #include "nsDOMClassInfoID.h"
@@ -9,7 +9,7 @@
 nsDOMMouseScrollEvent::nsDOMMouseScrollEvent(nsPresContext* aPresContext,
                                              nsInputEvent* aEvent)
   : nsDOMMouseEvent(aPresContext, aEvent ? aEvent :
-                                  new nsMouseScrollEvent(false, 0, nsnull))
+                                  new nsMouseScrollEvent(false, 0, nullptr))
 {
   if (aEvent) {
     mEventIsInternal = false;
@@ -38,7 +38,7 @@ nsDOMMouseScrollEvent::~nsDOMMouseScrollEvent()
         delete mEvent;
         break;
     }
-    mEvent = nsnull;
+    mEvent = nullptr;
   }
 }
 

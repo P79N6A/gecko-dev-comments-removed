@@ -57,7 +57,7 @@ public:
       mDBType(DATABASE_DISK)
     , mInPrivateBrowsing(false)
 #ifdef DOWNLOAD_SCANNER
-    , mScanner(nsnull)
+    , mScanner(nullptr)
 #endif
   {
   }

@@ -224,7 +224,7 @@ nsDeviceContext::nsDeviceContext()
       mAppUnitsPerDevPixel(-1), mAppUnitsPerDevNotScaledPixel(-1),
       mAppUnitsPerPhysicalInch(-1),
       mPixelScale(1.0f), mPrintingScale(1.0f),
-      mFontCache(nsnull)
+      mFontCache(nullptr)
 {
 }
 
@@ -468,7 +468,7 @@ nsDeviceContext::InitForPrinting(nsIDeviceContextSpec *aDevice)
     if (NS_FAILED(rv))
         return NS_ERROR_FAILURE;
 
-    Init(nsnull);
+    Init(nullptr);
 
     CalcPrintingSize();
 

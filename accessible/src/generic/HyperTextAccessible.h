@@ -10,7 +10,6 @@
 #include "nsIAccessibleHyperText.h"
 #include "nsIAccessibleEditableText.h"
 
-#include "AccCollector.h"
 #include "AccessibleWrap.h"
 
 #include "nsFrameSelection.h"
@@ -179,7 +178,7 @@ public:
 
 
   bool GetCharAt(PRInt32 aOffset, EGetTextType aShift, nsAString& aChar,
-                 PRInt32* aStartOffset = nsnull, PRInt32* aEndOffset = nsnull);
+                 PRInt32* aStartOffset = nullptr, PRInt32* aEndOffset = nullptr);
 
   
 
@@ -225,7 +224,7 @@ public:
   nsIntRect GetTextBounds(PRInt32 aStartOffset, PRInt32 aEndOffset)
   {
     nsIntRect bounds;
-    GetPosAndText(aStartOffset, aEndOffset, nsnull, nsnull, &bounds);
+    GetPosAndText(aStartOffset, aEndOffset, nullptr, nullptr, &bounds);
     return bounds;
   }
 
@@ -322,11 +321,11 @@ protected:
 
 
   nsIFrame* GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
-                          nsAString *aText = nsnull,
-                          nsIFrame **aEndFrame = nsnull,
-                          nsIntRect *aBoundsRect = nsnull,
-                          Accessible** aStartAcc = nsnull,
-                          Accessible** aEndAcc = nsnull);
+                          nsAString *aText = nullptr,
+                          nsIFrame **aEndFrame = nullptr,
+                          nsIntRect *aBoundsRect = nullptr,
+                          Accessible** aStartAcc = nullptr,
+                          Accessible** aEndAcc = nullptr);
 
   nsIntRect GetBoundsForString(nsIFrame *aFrame, PRUint32 aStartRenderedOffset, PRUint32 aEndRenderedOffset);
 
@@ -401,7 +400,7 @@ inline HyperTextAccessible*
 Accessible::AsHyperText()
 {
   return mFlags & eHyperTextAccessible ?
-    static_cast<HyperTextAccessible*>(this) : nsnull;
+    static_cast<HyperTextAccessible*>(this) : nullptr;
 }
 
 #endif

@@ -147,7 +147,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
   if (mStyleRuleRefreshTime.IsNull() ||
       mStyleRuleRefreshTime != aRefreshTime) {
     mStyleRuleRefreshTime = aRefreshTime;
-    mStyleRule = nsnull;
+    mStyleRule = nullptr;
     
     mNeedsRefreshes = false;
 
@@ -330,7 +330,7 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
 {
   if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementData)) {
     
-    return nsnull;
+    return nullptr;
   }
 
   nsIAtom *propName;
@@ -344,7 +344,7 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
     NS_ASSERTION(!aCreateIfNeeded,
                  "should never try to create transitions for pseudo "
                  "other than :before or :after");
-    return nsnull;
+    return nullptr;
   }
   ElementAnimations *ea = static_cast<ElementAnimations*>(
                              aElement->GetProperty(propName));
@@ -353,14 +353,14 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
     ea = new ElementAnimations(aElement, propName, this);
     if (!ea) {
       NS_WARNING("out of memory");
-      return nsnull;
+      return nullptr;
     }
     nsresult rv = aElement->SetProperty(propName, ea,
-                                        ElementAnimationsPropertyDtor, nsnull);
+                                        ElementAnimationsPropertyDtor, nullptr);
     if (NS_FAILED(rv)) {
       NS_WARNING("SetProperty failed");
       delete ea;
-      return nsnull;
+      return nullptr;
     }
 
     AddElementData(ea);
@@ -446,7 +446,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     if (!ea &&
         disp->mAnimations.Length() == 1 &&
         disp->mAnimations[0].GetName().IsEmpty()) {
-      return nsnull;
+      return nullptr;
     }
 
     
@@ -457,14 +457,14 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
       if (ea) {
         ea->Destroy();
       }
-      return nsnull;
+      return nullptr;
     }
 
     TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
 
     if (ea) {
       
-      ea->mStyleRule = nsnull;
+      ea->mStyleRule = nullptr;
       ea->mStyleRuleRefreshTime = TimeStamp();
 
       
@@ -490,7 +490,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
-          const ElementAnimation *oldAnim = nsnull;
+          const ElementAnimation *oldAnim = nullptr;
           for (PRUint32 oldIdx = ea->mAnimations.Length(); oldIdx-- != 0; ) {
             const ElementAnimation *a = &ea->mAnimations[oldIdx];
             if (a->mName == newAnim->mName) {
@@ -741,7 +741,7 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       AnimationProperty &propData = *aDest.mProperties.AppendElement();
       propData.mProperty = prop;
 
-      KeyframeData *fromKeyframe = nsnull;
+      KeyframeData *fromKeyframe = nullptr;
       nsRefPtr<nsStyleContext> fromContext;
       bool interpolated = true;
       for (PRUint32 wpIdx = 0, wpEnd = keyframesWithProperty.Length();
@@ -764,7 +764,7 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
             
             interpolated = interpolated &&
               BuildSegment(propData.mSegments, prop, aSrc,
-                           0.0f, aStyleContext, nsnull,
+                           0.0f, aStyleContext, nullptr,
                            toKeyframe.mKey, toContext);
           }
         }
@@ -847,7 +847,7 @@ nsAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
   ElementAnimations *ea =
     GetElementAnimations(aElement, aPseudoType, false);
   if (!ea) {
-    return nsnull;
+    return nullptr;
   }
 
   NS_WARN_IF_FALSE(ea->mStyleRuleRefreshTime ==
@@ -863,7 +863,7 @@ nsAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
       ea->PostRestyleForAnimation(mPresContext);
     }
 
-    return nsnull;
+    return nullptr;
   }
 
   return ea->mStyleRule;

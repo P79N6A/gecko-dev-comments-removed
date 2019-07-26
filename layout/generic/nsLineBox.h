@@ -48,16 +48,16 @@ public:
 #ifdef NS_BUILD_REFCNT_LOGGING
   nsFloatCacheList();
 #else
-  nsFloatCacheList() : mHead(nsnull) { }
+  nsFloatCacheList() : mHead(nullptr) { }
 #endif
   ~nsFloatCacheList();
 
   bool IsEmpty() const {
-    return nsnull == mHead;
+    return nullptr == mHead;
   }
 
   bool NotEmpty() const {
-    return nsnull != mHead;
+    return nullptr != mHead;
   }
 
   nsFloatCache* Head() const {
@@ -98,13 +98,13 @@ public:
   nsFloatCacheFreeList();
   ~nsFloatCacheFreeList();
 #else
-  nsFloatCacheFreeList() : mTail(nsnull) { }
+  nsFloatCacheFreeList() : mTail(nullptr) { }
   ~nsFloatCacheFreeList() { }
 #endif
 
   
   bool IsEmpty() const {
-    return nsnull == mHead;
+    return nullptr == mHead;
   }
 
   nsFloatCache* Head() const {
@@ -116,7 +116,7 @@ public:
   }
   
   bool NotEmpty() const {
-    return nsnull != mHead;
+    return nullptr != mHead;
   }
 
   void DeleteAll();
@@ -1638,21 +1638,21 @@ public:
 private:
   nsLineBox* PrevLine() {
     if (0 == mIndex) {
-      return nsnull;
+      return nullptr;
     }
     return mLines[--mIndex];
   }
 
   nsLineBox* NextLine() {
     if (mIndex >= mNumLines - 1) {
-      return nsnull;
+      return nullptr;
     }
     return mLines[++mIndex];
   }
 
   nsLineBox* LineAt(PRInt32 aIndex) {
     if ((aIndex < 0) || (aIndex >= mNumLines)) {
-      return nsnull;
+      return nullptr;
     }
     return mLines[aIndex];
   }

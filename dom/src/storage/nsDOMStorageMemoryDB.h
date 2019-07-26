@@ -44,7 +44,7 @@ public:
 
 
   nsresult
-  Init(nsDOMStoragePersistentDB* aPreloadDB = nsnull);
+  Init(nsDOMStoragePersistentDB* aPreloadDB = nullptr);
 
   
 

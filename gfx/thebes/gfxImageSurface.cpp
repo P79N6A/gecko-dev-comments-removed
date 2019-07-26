@@ -88,7 +88,7 @@ TryAllocAlignedBytes(size_t aSize)
     return moz_posix_memalign(&ptr,
                               1 << gfxAlphaRecovery::GoodAlignmentLog2(),
                               aSize) ?
-             nsnull : ptr;
+             nullptr : ptr;
 #else
     
     return moz_malloc(aSize);
@@ -96,7 +96,7 @@ TryAllocAlignedBytes(size_t aSize)
 }
 
 gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format, bool aClear) :
-    mSize(size), mOwnsData(false), mData(nsnull), mFormat(format)
+    mSize(size), mOwnsData(false), mData(nullptr), mFormat(format)
 {
     mStride = ComputeStride();
 

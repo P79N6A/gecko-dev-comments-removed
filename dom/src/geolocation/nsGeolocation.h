@@ -107,6 +107,8 @@ public:
 
   nsresult Init();
 
+  void HandleMozsettingChanged(const PRUnichar* aData);
+
   
   void AddLocator(nsGeolocation* locator);
   void RemoveLocator(nsGeolocation* locator);
@@ -165,7 +167,7 @@ public:
 
   nsGeolocation();
 
-  nsresult Init(nsIDOMWindow* contentDom=nsnull);
+  nsresult Init(nsIDOMWindow* contentDom=nullptr);
 
   
   void Update(nsIDOMGeoPosition* aPosition);

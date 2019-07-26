@@ -62,7 +62,7 @@ public:
   {
     
     
-    return PL_DHashStringKey(nsnull, aKey);
+    return PL_DHashStringKey(nullptr, aKey);
   }
 
   enum { ALLOW_MEMMOVE = true };

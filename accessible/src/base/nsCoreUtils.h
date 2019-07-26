@@ -124,7 +124,7 @@ public:
 
    static bool IsAncestorOf(nsINode *aPossibleAncestorNode,
                               nsINode *aPossibleDescendantNode,
-                              nsINode *aRootNode = nsnull);
+                              nsINode *aRootNode = nullptr);
 
   
 
@@ -325,7 +325,7 @@ public:
   NS_DECL_NSIDOMDOMSTRINGLIST
 
   bool Add(const nsAString& aName) {
-    return mNames.AppendElement(aName) != nsnull;
+    return mNames.AppendElement(aName) != nullptr;
   }
 
 private:

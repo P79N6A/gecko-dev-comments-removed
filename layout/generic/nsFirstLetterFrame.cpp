@@ -192,7 +192,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     
     
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, availSize);
-    nsLineLayout ll(aPresContext, nsnull, &aReflowState, nsnull);
+    nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr);
 
     
     
@@ -239,7 +239,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   
   kid->SetRect(nsRect(bp.left, bp.top, aMetrics.width, aMetrics.height));
   kid->FinishAndStoreOverflow(&aMetrics);
-  kid->DidReflow(aPresContext, nsnull, NS_FRAME_REFLOW_FINISHED);
+  kid->DidReflow(aPresContext, nullptr, NS_FRAME_REFLOW_FINISHED);
 
   aMetrics.width += lr;
   aMetrics.height += tb;
@@ -314,7 +314,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
                "can only call this on floating first letter frames");
   NS_PRECONDITION(aContinuation, "bad args");
 
-  *aContinuation = nsnull;
+  *aContinuation = nullptr;
   nsresult rv = NS_OK;
 
   nsIPresShell* presShell = aPresContext->PresShell();
@@ -359,7 +359,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 
   
   nsFirstLetterFrame* prevInFlow = (nsFirstLetterFrame*)GetPrevInFlow();
-  if (nsnull != prevInFlow) {
+  if (nullptr != prevInFlow) {
     overflowFrames = prevInFlow->StealOverflowFrames();
     if (overflowFrames) {
       NS_ASSERTION(mFrames.IsEmpty(), "bad overflow list");
@@ -368,7 +368,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
       
       nsContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
                                               prevInFlow, this);
-      mFrames.InsertFrames(this, nsnull, *overflowFrames);
+      mFrames.InsertFrames(this, nullptr, *overflowFrames);
     }
   }
 
@@ -376,7 +376,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
   overflowFrames = StealOverflowFrames();
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-    mFrames.AppendFrames(nsnull, *overflowFrames);
+    mFrames.AppendFrames(nullptr, *overflowFrames);
   }
 
   

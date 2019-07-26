@@ -142,7 +142,7 @@ public:
   
   static nsNSSActivityState *getActivityState()
   {
-    return singleton ? &singleton->mActivityState : nsnull;
+    return singleton ? &singleton->mActivityState : nullptr;
   }
   
 private:

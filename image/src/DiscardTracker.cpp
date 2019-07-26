@@ -218,7 +218,7 @@ DiscardTracker::EnableTimer()
   
   
   return sTimer->InitWithFuncCallback(TimerCallback,
-                                      nsnull,
+                                      nullptr,
                                       sMinDiscardTimeoutMs / 2,
                                       nsITimer::TYPE_REPEATING_SLACK);
 }

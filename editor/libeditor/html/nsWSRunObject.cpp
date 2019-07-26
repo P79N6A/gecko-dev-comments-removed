@@ -52,8 +52,8 @@ mNode(aNode)
 ,mLastNBSPNode()
 ,mLastNBSPOffset(0)
 ,mNodeArray()
-,mStartRun(nsnull)
-,mEndRun(nsnull)
+,mStartRun(nullptr)
+,mEndRun(nullptr)
 ,mHTMLEditor(aEd)
 {
   GetWSNodes();
@@ -604,7 +604,7 @@ nsWSRunObject::AdjustWhitespace()
 already_AddRefed<nsIDOMNode>
 nsWSRunObject::GetWSBoundingParent()
 {
-  NS_ENSURE_TRUE(mNode, nsnull);
+  NS_ENSURE_TRUE(mNode, nullptr);
   nsCOMPtr<nsIDOMNode> wsBoundingParent = mNode;
   while (!IsBlockNode(wsBoundingParent))
   {
@@ -1100,7 +1100,7 @@ nsWSRunObject::GetPreviousWSNode(nsIDOMNode *aStartNode,
     if (temp == aBlockParent)
     {
       
-      *aPriorNode = nsnull;
+      *aPriorNode = nullptr;
       return NS_OK;
     }
     
@@ -1208,7 +1208,7 @@ nsWSRunObject::GetNextWSNode(nsIDOMNode *aStartNode,
     {
       
       
-      *aNextNode = nsnull;
+      *aNextNode = nullptr;
       return NS_OK;
     }
     
@@ -1350,7 +1350,7 @@ nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
         if (!point.mTextNode->IsNodeOfType(nsINode::eDATA_NODE)) {
           
           
-          point.mTextNode = nsnull;
+          point.mTextNode = nullptr;
         }
         point.mOffset = wsStartOffset;
         res = ConvertToNBSP(point, eOutsideUserSelectAll);
@@ -1399,7 +1399,7 @@ nsWSRunObject::PrepareToSplitAcrossBlocksPriv()
       if (!point.mTextNode->IsNodeOfType(nsINode::eDATA_NODE)) {
         
         
-        point.mTextNode = nsnull;
+        point.mTextNode = nullptr;
       }
       point.mOffset = wsStartOffset;
       res = ConvertToNBSP(point);
@@ -1556,7 +1556,7 @@ nsWSRunObject::GetCharAfter(const WSPoint &aPoint)
   MOZ_ASSERT(aPoint.mTextNode);
   
   WSPoint outPoint;
-  outPoint.mTextNode = nsnull;
+  outPoint.mTextNode = nullptr;
   outPoint.mOffset = 0;
   outPoint.mChar = 0;
 
@@ -1580,7 +1580,7 @@ nsWSRunObject::GetCharAfter(const WSPoint &aPoint)
     if (!outPoint.mTextNode->IsNodeOfType(nsINode::eDATA_NODE)) {
       
       
-      outPoint.mTextNode = nsnull;
+      outPoint.mTextNode = nullptr;
     }
     outPoint.mOffset = 0;
     outPoint.mChar = GetCharAt(outPoint.mTextNode, 0);
@@ -1594,7 +1594,7 @@ nsWSRunObject::GetCharBefore(const WSPoint &aPoint)
   MOZ_ASSERT(aPoint.mTextNode);
   
   WSPoint outPoint;
-  outPoint.mTextNode = nsnull;
+  outPoint.mTextNode = nullptr;
   outPoint.mOffset = 0;
   outPoint.mChar = 0;
   
@@ -1742,7 +1742,7 @@ nsWSRunObject::GetAsciiWSBounds(PRInt16 aDir, nsIDOMNode *aNode, PRInt32 aOffset
 void
 nsWSRunObject::FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, bool after)
 {
-  *outRun = nsnull;
+  *outRun = nullptr;
   
   MOZ_ASSERT(aNode && outRun);
     
@@ -1759,7 +1759,7 @@ nsWSRunObject::FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, 
       }
       else 
       {
-        *outRun = nsnull;
+        *outRun = nullptr;
       }
       return;
     }
@@ -1786,7 +1786,7 @@ nsWSRunObject::FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, 
     {
       if (after)
       {
-        *outRun = nsnull;
+        *outRun = nullptr;
       }
       else 
       {

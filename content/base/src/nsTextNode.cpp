@@ -1,11 +1,11 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
+/*
+ * Implementation of DOM Core's nsIDOMText node.
+ */
 
 #include "nsTextNode.h"
 #include "nsContentUtils.h"
@@ -19,9 +19,9 @@
 
 using namespace mozilla::dom;
 
-
-
-
+/**
+ * class used to implement attr() generated content
+ */
 class nsAttributeTextNode : public nsTextNode,
                             public nsStubMutationObserver
 {
@@ -32,7 +32,7 @@ public:
                       PRInt32 aNameSpaceID,
                       nsIAtom* aAttrName) :
     nsTextNode(aNodeInfo),
-    mGrandparent(nsnull),
+    mGrandparent(nullptr),
     mNameSpaceID(aNameSpaceID),
     mAttrName(aAttrName)
   {
@@ -67,21 +67,21 @@ public:
     return it;
   }
 
-  
+  // Public method for the event to run
   void UpdateText() {
     UpdateText(true);
   }
 
 private:
-  
+  // Update our text to our parent's current attr value
   void UpdateText(bool aNotify);
 
-  
-  
-  
-  
+  // This doesn't need to be a strong pointer because it's only non-null
+  // while we're bound to the document tree, and it points to an ancestor
+  // so the ancestor must be bound to the document tree the whole time
+  // and can't be deleted.
   nsIContent* mGrandparent;
-  
+  // What attribute we're showing
   PRInt32 mNameSpaceID;
   nsCOMPtr<nsIAtom> mAttrName;
 };
@@ -92,7 +92,7 @@ NS_NewTextNode(nsIContent** aInstancePtrResult,
 {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeInfoManager");
 
-  *aInstancePtrResult = nsnull;
+  *aInstancePtrResult = nullptr;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
   if (!ni) {
@@ -125,7 +125,7 @@ NS_IMPL_RELEASE_INHERITED(nsTextNode, nsGenericDOMDataNode)
 
 DOMCI_NODE_DATA(Text, nsTextNode)
 
-
+// QueryInterface implementation for nsTextNode
 NS_INTERFACE_TABLE_HEAD(nsTextNode)
   NS_NODE_INTERFACE_TABLE3(nsTextNode, nsIDOMNode, nsIDOMText,
                            nsIDOMCharacterData)
@@ -213,7 +213,7 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
   NS_PRECONDITION(aAttrName, "Must have an attr name");
   NS_PRECONDITION(aNameSpaceID != kNameSpaceID_Unknown, "Must know namespace");
   
-  *aResult = nsnull;
+  *aResult = nullptr;
 
   nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
   if (!ni) {
@@ -251,8 +251,8 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   mGrandparent = aParent->GetParent();
   mGrandparent->AddMutationObserver(this);
 
-  
-  
+  // Note that there is no need to notify here, since we have no
+  // frame yet at this point.
   UpdateText(false);
 
   return NS_OK;
@@ -261,13 +261,13 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  
+  // UnbindFromTree can be called anytime so we have to be safe.
   if (mGrandparent) {
-    
-    
-    
+    // aNullParent might not be true here, but we want to remove the
+    // mutation observer anyway since we only need it while we're
+    // in the document.
     mGrandparent->RemoveMutationObserver(this);
-    mGrandparent = nsnull;
+    mGrandparent = nullptr;
   }
   nsTextNode::UnbindFromTree(aDeep, aNullParent);
 }
@@ -281,9 +281,9 @@ nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
 {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
       aElement == mGrandparent) {
-    
-    
-    
+    // Since UpdateText notifies, do it when it's safe to run script.  Note
+    // that if we get unbound while the event is up that's ok -- we'll just
+    // have no grandparent when it fires, and will do nothing.
     void (nsAttributeTextNode::*update)() = &nsAttributeTextNode::UpdateText;
     nsCOMPtr<nsIRunnable> ev = NS_NewRunnableMethod(this, update);
     nsContentUtils::AddScriptRunner(ev);
@@ -294,7 +294,7 @@ void
 nsAttributeTextNode::NodeWillBeDestroyed(const nsINode* aNode)
 {
   NS_ASSERTION(aNode == static_cast<nsINode*>(mGrandparent), "Wrong node!");
-  mGrandparent = nsnull;
+  mGrandparent = nullptr;
 }
 
 void

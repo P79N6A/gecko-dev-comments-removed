@@ -63,7 +63,7 @@ public:
   {
     if (PRUint32(aIndex) >= PRUint32(Count())) 
     {
-      return nsnull;
+      return nullptr;
     }
     
     return mImpl->mArray[aIndex];
@@ -238,7 +238,7 @@ public:
     
     if (PRUint32(aIndex) >= PRUint32(Count())) 
     {
-      return nsnull;
+      return nullptr;
     }
     return FastElementAt(aIndex);
   }

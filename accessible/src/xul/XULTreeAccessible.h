@@ -183,7 +183,7 @@ public:
 
 
   virtual Accessible* GetCellAccessible(nsITreeColumn* aColumn)
-    { return nsnull; }
+    { return nullptr; }
 
   
 
@@ -196,7 +196,7 @@ protected:
   
   virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
   virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                         nsresult *aError = nsnull) const;
+                                         nsresult *aError = nullptr) const;
 
   
 
@@ -268,7 +268,7 @@ protected:
 
   
   virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                         nsresult *aError = nsnull) const;
+                                         nsresult *aError = nullptr) const;
 };
 
 } 
@@ -281,7 +281,7 @@ inline mozilla::a11y::XULTreeAccessible*
 Accessible::AsXULTree()
 {
   return IsXULTree() ?
-    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nsnull;
+    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nullptr;
 }
 
 #endif

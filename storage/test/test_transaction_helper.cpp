@@ -159,7 +159,7 @@ test_null_database_connection()
 {
   
   
-  mozStorageTransaction transaction(nsnull, false);
+  mozStorageTransaction transaction(nullptr, false);
 
   do_check_false(transaction.HasTransaction());
   do_check_true(NS_SUCCEEDED(transaction.Commit()));

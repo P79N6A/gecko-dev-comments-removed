@@ -103,17 +103,17 @@ public:
     mCanHandle(true), mForceContentDispatch(false),
     mRelatedTargetIsInAnon(false), mOriginalTargetIsInAnon(aIsInAnon),
     mWantsWillHandleEvent(false), mMayHaveListenerManager(true),
-    mParentTarget(nsnull), mEventTargetAtParent(nsnull) {}
+    mParentTarget(nullptr), mEventTargetAtParent(nullptr) {}
 
   void Reset() {
     mItemFlags = 0;
-    mItemData = nsnull;
+    mItemData = nullptr;
     mCanHandle = true;
     mForceContentDispatch = false;
     mWantsWillHandleEvent = false;
     mMayHaveListenerManager = true;
-    mParentTarget = nsnull;
-    mEventTargetAtParent = nsnull;
+    mParentTarget = nullptr;
+    mEventTargetAtParent = nullptr;
   }
 
   
@@ -212,10 +212,10 @@ public:
   static nsresult Dispatch(nsISupports* aTarget,
                            nsPresContext* aPresContext,
                            nsEvent* aEvent,
-                           nsIDOMEvent* aDOMEvent = nsnull,
-                           nsEventStatus* aEventStatus = nsnull,
-                           nsDispatchingCallback* aCallback = nsnull,
-                           nsCOMArray<nsIDOMEventTarget>* aTargets = nsnull);
+                           nsIDOMEvent* aDOMEvent = nullptr,
+                           nsEventStatus* aEventStatus = nullptr,
+                           nsDispatchingCallback* aCallback = nullptr,
+                           nsCOMArray<nsIDOMEventTarget>* aTargets = nullptr);
 
   
 

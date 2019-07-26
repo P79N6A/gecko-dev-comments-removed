@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsDOMEventTargetHelper_h_
 #define nsDOMEventTargetHelper_h_
@@ -31,7 +31,7 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   nsIDOMEventListener* GetInner() { return mListener; }
-  void Disconnect() { mListener = nsnull; }
+  void Disconnect() { mListener = nullptr; }
 protected:
   nsCOMPtr<nsIDOMEventListener> mListener;
 };
@@ -40,14 +40,14 @@ class nsDOMEventTargetHelper : public nsIDOMEventTarget,
                                public nsWrapperCache
 {
 public:
-  nsDOMEventTargetHelper() : mOwner(nsnull), mHasOrHasHadOwner(false) {}
+  nsDOMEventTargetHelper() : mOwner(nullptr), mHasOrHasHadOwner(false) {}
   virtual ~nsDOMEventTargetHelper();
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMEventTargetHelper)
 
   NS_DECL_NSIDOMEVENTTARGET
   void AddEventListener(const nsAString& aType,
-                        nsIDOMEventListener* aCallback, 
+                        nsIDOMEventListener* aCallback, // XXX nullable
                         bool aCapture, Nullable<bool>& aWantsUntrusted,
                         mozilla::ErrorResult& aRv)
   {
@@ -74,7 +74,7 @@ public:
       CallQueryInterface(mOwner, aParentObject);
     }
     else {
-      *aParentObject = nsnull;
+      *aParentObject = nullptr;
     }
   }
 
@@ -87,9 +87,9 @@ public:
       nsCOMPtr<nsIDOMEventTarget> target_qi =
         do_QueryInterface(aSupports);
 
-      
-      
-      
+      // If this assertion fires the QI implementation for the object in
+      // question doesn't use the nsIDOMEventTarget pointer as the
+      // nsISupports pointer. That must be fixed, or we'll crash...
       NS_ASSERTION(target_qi == target, "Uh, fix QI!");
     }
 #endif
@@ -97,7 +97,7 @@ public:
     return static_cast<nsDOMEventTargetHelper*>(target);
   }
 
-  void Init(JSContext* aCx = nsnull);
+  void Init(JSContext* aCx = nullptr);
 
   bool HasListenersFor(const nsAString& aType)
   {
@@ -131,8 +131,8 @@ public:
 protected:
   nsRefPtr<nsEventListenerManager> mListenerManager;
 private:
-  
-  nsPIDOMWindow*             mOwner; 
+  // These may be null (native callers or xpcshell).
+  nsPIDOMWindow*             mOwner; // Inner window.
   bool                       mHasOrHasHadOwner;
 };
 
@@ -194,11 +194,11 @@ private:
     xpc_TryUnmarkWrappedGrayObject(tmp->mOn##_event##Listener->GetInner());   \
   }
 
-
-
-
-
-
+/* Use this macro to declare functions that forward the behavior of this
+ * interface to another object.
+ * This macro doesn't forward PreHandleEvent because sometimes subclasses
+ * want to override it.
+ */
 #define NS_FORWARD_NSIDOMEVENTTARGET_NOPREHANDLEEVENT(_to) \
   NS_IMETHOD AddEventListener(const nsAString & type, nsIDOMEventListener *listener, bool useCapture, bool wantsUntrusted, PRUint8 _argc) { \
     return _to AddEventListener(type, listener, useCapture, wantsUntrusted, _argc); \
@@ -240,4 +240,4 @@ private:
     return _to GetJSContextForEventHandlers(); \
   } 
 
-#endif 
+#endif // nsDOMEventTargetHelper_h_

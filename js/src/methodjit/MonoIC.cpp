@@ -576,7 +576,7 @@ class CallCompiler : public BaseCompiler
         
         
         
-        masm.loadPtr(Address(t0, JSScript::offsetOfJITInfo()), t0);
+        masm.loadPtr(Address(t0, JSScript::offsetOfMJITInfo()), t0);
         Jump hasNoJitInfo = masm.branchPtr(Assembler::Equal, t0, ImmPtr(NULL));
         size_t offset = JSScript::JITScriptSet::jitHandleOffset(callingNew,
                                                                 f.cx->compartment->needsBarrier());

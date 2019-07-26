@@ -100,7 +100,7 @@ private:
                                               nsIProtocolHandler* hdlr);
 
     
-    NS_HIDDEN_(void) PrefsChanged(nsIPrefBranch *prefs, const char *pref = nsnull);
+    NS_HIDDEN_(void) PrefsChanged(nsIPrefBranch *prefs, const char *pref = nullptr);
     NS_HIDDEN_(void) GetPrefBranch(nsIPrefBranch **);
     NS_HIDDEN_(void) ParsePortList(nsIPrefBranch *prefBranch, const char *pref, bool remove);
 

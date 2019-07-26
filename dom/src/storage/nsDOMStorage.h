@@ -349,7 +349,7 @@ public:
   
   
   static bool
-  CanUseStorage(DOMStorageBase* aStorage = nsnull);
+  CanUseStorage(DOMStorageBase* aStorage = nullptr);
 
   
   
@@ -505,7 +505,7 @@ class nsDOMStorageEvent : public nsDOMEvent,
 {
 public:
   nsDOMStorageEvent()
-    : nsDOMEvent(nsnull, nsnull)
+    : nsDOMEvent(nullptr, nullptr)
   {
   }
 

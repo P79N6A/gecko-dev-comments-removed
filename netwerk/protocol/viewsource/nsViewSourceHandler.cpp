@@ -46,7 +46,7 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
                             nsIURI *aBaseURI,
                             nsIURI **aResult)
 {
-    *aResult = nsnull;
+    *aResult = nullptr;
 
     
     

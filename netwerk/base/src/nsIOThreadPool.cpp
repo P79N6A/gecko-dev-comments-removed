@@ -15,7 +15,7 @@
 
 
 
-static PRLogModuleInfo *gIOThreadPoolLog = nsnull;
+static PRLogModuleInfo *gIOThreadPoolLog = nullptr;
 #endif
 #define LOG(args) PR_LOG(gIOThreadPoolLog, PR_LOG_DEBUG, args)
 

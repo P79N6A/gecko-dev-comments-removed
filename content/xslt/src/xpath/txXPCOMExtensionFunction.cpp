@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsAutoPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -30,7 +30,7 @@ public:
 
     void ClearContext()
     {
-        mContext = nsnull;
+        mContext = nullptr;
     }
 
 private:
@@ -170,17 +170,17 @@ LookupFunction(const char *aContractID, nsIAtom* aName, nsIID &aIID,
         do_GetService(NS_INTERFACEINFOMANAGER_SERVICE_CONTRACTID);
     NS_ENSURE_TRUE(iim, NS_ERROR_FAILURE);
 
-    nsIID** iidArray = nsnull;
+    nsIID** iidArray = nullptr;
     PRUint32 iidCount = 0;
     rv = classInfo->GetInterfaces(&iidCount, &iidArray);
     NS_ENSURE_SUCCESS(rv, rv);
 
     txInterfacesArrayHolder holder(iidArray, iidCount);
 
-    // Remove any minus signs and uppercase the following letter (so
-    // foo-bar becomes fooBar). Note that if there are any names that already
-    // have uppercase letters they might cause false matches (both fooBar and
-    // foo-bar matching fooBar).
+    
+    
+    
+    
     const PRUnichar *name = aName->GetUTF16String();
     nsCAutoString methodName;
     PRUnichar letter;
@@ -209,9 +209,9 @@ LookupFunction(const char *aContractID, nsIAtom* aName, nsIID &aIID,
         rv = info->GetMethodInfoForName(methodName.get(), &methodIndex,
                                         &methodInfo);
         if (NS_SUCCEEDED(rv)) {
-            // Exclude notxpcom and hidden. Also check that we have at least a
-            // return value (the xpidl compiler ensures that that return value
-            // is the last argument).
+            
+            
+            
             PRUint8 paramCount = methodInfo->GetParamCount();
             if (methodInfo->IsNotXPCOM() || methodInfo->IsHidden() ||
                 paramCount == 0 ||
@@ -228,7 +228,7 @@ LookupFunction(const char *aContractID, nsIAtom* aName, nsIID &aIID,
     return NS_ERROR_XPATH_UNKNOWN_FUNCTION;
 }
 
-/* static */
+
 nsresult
 TX_ResolveFunctionCallXPCOM(const nsCString &aContractID, PRInt32 aNamespaceID,
                             nsIAtom* aName, nsISupports *aState,
@@ -282,10 +282,10 @@ txXPCOMExtensionFunctionCall::GetParamType(const nsXPTParamInfo &aParam,
                 return eOBJECT;
             }
         }
-        // FALLTHROUGH
+        
         default:
         {
-            // XXX Error!
+            
             return eUNKNOWN;
         }
     }
@@ -378,11 +378,11 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
     PRUint32 paramStart = 0;
     if (type == eCONTEXT) {
         if (paramInfo.IsOut()) {
-            // We don't support out values.
+            
             return NS_ERROR_FAILURE;
         }
 
-        // Create context wrapper.
+        
         context = new txFunctionEvaluationContext(aContext, mState);
         if (!context) {
             return NS_ERROR_OUT_OF_MEMORY;
@@ -393,14 +393,14 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
         invokeParam.SetValNeedsCleanup();
         NS_ADDREF((txIFunctionEvaluationContext*&)invokeParam.val.p = context);
 
-        // Skip first argument, since it's the context.
+        
         paramStart = 1;
     }
     else {
-        context = nsnull;
+        context = nullptr;
     }
 
-    // XXX varargs
+    
     if (!requireParams(inArgs - paramStart, inArgs - paramStart, aContext)) {
         return NS_ERROR_FAILURE;
     }
@@ -417,7 +417,7 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
 
         nsXPTCVariant &invokeParam = invokeParams[i];
         if (paramInfo.IsOut()) {
-            // We don't support out values.
+            
             return NS_ERROR_FAILURE;
         }
 
@@ -491,7 +491,7 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
             case eCONTEXT:
             case eUNKNOWN:
             {
-                // We only support passing the context as the *first* argument.
+                
                 return NS_ERROR_FAILURE;
             }
         }
@@ -523,8 +523,8 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
 
     rv = NS_InvokeByIndex(mHelper, mMethodIndex, paramCount, invokeParams);
 
-    // In case someone is holding on to the txFunctionEvaluationContext which
-    // could thus stay alive longer than this function.
+    
+    
     if (context) {
         context->ClearContext();
     }
@@ -570,7 +570,7 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
         }
         default:
         {
-            // Huh?
+            
             return NS_ERROR_FAILURE;
         }
     }
@@ -579,16 +579,16 @@ txXPCOMExtensionFunctionCall::evaluate(txIEvalContext* aContext,
 Expr::ResultType
 txXPCOMExtensionFunctionCall::getReturnType()
 {
-    // It doesn't really matter what we return here, but it might
-    // be a good idea to try to keep this as unoptimizable as possible
+    
+    
     return ANY_RESULT;
 }
 
 bool
 txXPCOMExtensionFunctionCall::isSensitiveTo(ContextSensitivity aContext)
 {
-    // It doesn't really matter what we return here, but it might
-    // be a good idea to try to keep this as unoptimizable as possible
+    
+    
     return true;
 }
 

@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
 
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_net_HttpBaseChannel_h
 #define mozilla_net_HttpBaseChannel_h
@@ -34,13 +34,13 @@
 namespace mozilla {
 namespace net {
 
-/*
- * This class is a partial implementation of nsIHttpChannel.  It contains code
- * shared by nsHttpChannel and HttpChannelChild. 
- * - Note that this class has nothing to do with nsBaseChannel, which is an
- *   earlier effort at a base class for channels that somehow never made it all
- *   the way to the HTTP channel.
- */
+
+
+
+
+
+
+
 class HttpBaseChannel : public nsHashPropertyBag
                       , public nsIEncodedChannel
                       , public nsIHttpChannel
@@ -62,7 +62,7 @@ public:
 
   virtual nsresult Init(nsIURI *aURI, PRUint8 aCaps, nsProxyInfo *aProxyInfo);
 
-  // nsIRequest
+  
   NS_IMETHOD GetName(nsACString& aName);
   NS_IMETHOD IsPending(bool *aIsPending);
   NS_IMETHOD GetStatus(nsresult *aStatus);
@@ -71,7 +71,7 @@ public:
   NS_IMETHOD GetLoadFlags(nsLoadFlags *aLoadFlags);
   NS_IMETHOD SetLoadFlags(nsLoadFlags aLoadFlags);
 
-  // nsIChannel
+  
   NS_IMETHOD GetOriginalURI(nsIURI **aOriginalURI);
   NS_IMETHOD SetOriginalURI(nsIURI *aOriginalURI);
   NS_IMETHOD GetURI(nsIURI **aURI);
@@ -90,12 +90,12 @@ public:
   NS_IMETHOD SetContentLength(PRInt32 aContentLength);
   NS_IMETHOD Open(nsIInputStream **aResult);
 
-  // nsIEncodedChannel
+  
   NS_IMETHOD GetApplyConversion(bool *value);
   NS_IMETHOD SetApplyConversion(bool value);
   NS_IMETHOD GetContentEncodings(nsIUTF8StringEnumerator** aEncodings);
 
-  // HttpBaseChannel::nsIHttpChannel
+  
   NS_IMETHOD GetRequestMethod(nsACString& aMethod);
   NS_IMETHOD SetRequestMethod(const nsACString& aMethod);
   NS_IMETHOD GetReferrer(nsIURI **referrer);
@@ -118,7 +118,7 @@ public:
   NS_IMETHOD GetResponseStatusText(nsACString& aValue);
   NS_IMETHOD GetRequestSucceeded(bool *aValue);
 
-  // nsIHttpChannelInternal
+  
   NS_IMETHOD GetDocumentURI(nsIURI **aDocumentURI);
   NS_IMETHOD SetDocumentURI(nsIURI *aDocumentURI);
   NS_IMETHOD GetRequestVersion(PRUint32 *major, PRUint32 *minor);
@@ -139,16 +139,16 @@ public:
   
   inline void CleanRedirectCacheChainIfNecessary()
   {
-      mRedirectedCachekeys = nsnull;
+      mRedirectedCachekeys = nullptr;
   }
   NS_IMETHOD HTTPUpgrade(const nsACString & aProtocolName,
                          nsIHttpUpgradeListener *aListener); 
 
-  // nsISupportsPriority
+  
   NS_IMETHOD GetPriority(PRInt32 *value);
   NS_IMETHOD AdjustPriority(PRInt32 delta);
 
-  // nsIResumableChannel
+  
   NS_IMETHOD GetEntityID(nsACString& aEntityID);
 
   class nsContentEncodings : public nsIUTF8StringEnumerator
@@ -163,13 +163,13 @@ public:
     private:
         nsresult PrepareForNext(void);
         
-        // We do not own the buffer.  The channel owns it.
-        const char* mEncodingHeader;
-        const char* mCurStart;  // points to start of current header
-        const char* mCurEnd;  // points to end of current header
         
-        // Hold a ref to our channel so that it can't go away and take the
-        // header with it.
+        const char* mEncodingHeader;
+        const char* mCurStart;  
+        const char* mCurEnd;  
+        
+        
+        
         nsCOMPtr<nsIHttpChannel> mChannel;
         
         bool mReady;
@@ -181,14 +181,14 @@ public:
     const PRNetAddr& GetSelfAddr() { return mSelfAddr; }
     const PRNetAddr& GetPeerAddr() { return mPeerAddr; }
 
-public: /* Necko internal use only... */
+public: 
 
   bool ShouldRewriteRedirectToGET(PRUint32 httpStatus, nsHttpAtom method);
   bool IsSafeMethod(nsHttpAtom method);
 
 protected:
 
-  // Handle notifying listener, removing from loadgroup if request failed.
+  
   void     DoNotifyListener();
   virtual void DoNotifyListenerCleanup() = 0;
 
@@ -199,7 +199,7 @@ protected:
                                            nsIChannel *,
                                            bool preserveMethod);
 
-  // Helper function to simplify getting notification callbacks.
+  
   template <class T>
   void GetCallback(nsCOMPtr<T> &aResult)
   {
@@ -225,7 +225,7 @@ protected:
   nsAutoPtr<nsHttpResponseHead>     mResponseHead;
   nsRefPtr<nsHttpConnectionInfo>    mConnectionInfo;
 
-  nsCString                         mSpec; // ASCII encoded URL spec
+  nsCString                         mSpec; 
   nsCString                         mContentTypeHint;
   nsCString                         mContentCharsetHint;
   nsCString                         mUserSetCookieHeader;
@@ -233,11 +233,11 @@ protected:
   PRNetAddr                         mSelfAddr;
   PRNetAddr                         mPeerAddr;
 
-  // HTTP Upgrade Data
+  
   nsCString                        mUpgradeProtocol;
   nsCOMPtr<nsIHttpUpgradeListener> mUpgradeProtocolCallback;
 
-  // Resumable channel specific data
+  
   nsCString                         mEntityID;
   PRUint64                          mStartPos;
 
@@ -260,47 +260,47 @@ protected:
   PRUint32                          mLoadedFromApplicationCache : 1;
   PRUint32                          mChannelIsForDownload       : 1;
   PRUint32                          mTracingEnabled             : 1;
-  // True if timing collection is enabled
+  
   PRUint32                          mTimingEnabled              : 1;
   PRUint32                          mAllowSpdy                  : 1;
   PRUint32                          mPrivateBrowsing            : 1;
 
-  // Current suspension depth for this channel object
+  
   PRUint32                          mSuspendCount;
 
   nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
 };
 
-// Share some code while working around C++'s absurd inability to handle casting
-// of member functions between base/derived types.
-// - We want to store member function pointer to call at resume time, but one
-//   such function--HandleAsyncAbort--we want to share between the
-//   nsHttpChannel/HttpChannelChild.  Can't define it in base class, because
-//   then we'd have to cast member function ptr between base/derived class
-//   types.  Sigh...
+
+
+
+
+
+
+
 template <class T>
 class HttpAsyncAborter
 {
 public:
   HttpAsyncAborter(T *derived) : mThis(derived), mCallOnResume(0) {}
 
-  // Aborts channel: calls OnStart/Stop with provided status, removes channel
-  // from loadGroup.
+  
+  
   nsresult AsyncAbort(nsresult status);
 
-  // Does most the actual work.
+  
   void HandleAsyncAbort();
 
-  // AsyncCall calls a member function asynchronously (via an event).
-  // retval isn't refcounted and is set only when event was successfully
-  // posted, the event is returned for the purpose of cancelling when needed
+  
+  
+  
   nsresult AsyncCall(void (T::*funcPtr)(),
-                     nsRunnableMethod<T> **retval = nsnull);
+                     nsRunnableMethod<T> **retval = nullptr);
 private:
   T *mThis;
 
 protected:
-  // Function to be called at resume time
+  
   void (T::* mCallOnResume)(void);
 };
 
@@ -312,12 +312,12 @@ nsresult HttpAsyncAborter<T>::AsyncAbort(nsresult status)
   mThis->mStatus = status;
   mThis->mIsPending = false;
 
-  // if this fails?  Callers ignore our return value anyway....
+  
   return AsyncCall(&T::HandleAsyncAbort);
 }
 
-// Each subclass needs to define its own version of this (which just calls this
-// base version), else we wind up casting base/derived member function ptrs
+
+
 template <class T>
 inline void HttpAsyncAborter<T>::HandleAsyncAbort()
 {
@@ -332,9 +332,9 @@ inline void HttpAsyncAborter<T>::HandleAsyncAbort()
 
   mThis->DoNotifyListener();
 
-  // finally remove ourselves from the load group.
+  
   if (mThis->mLoadGroup)
-    mThis->mLoadGroup->RemoveRequest(mThis, nsnull, mThis->mStatus);
+    mThis->mLoadGroup->RemoveRequest(mThis, nullptr, mThis->mStatus);
 }
 
 template <class T>
@@ -352,7 +352,7 @@ nsresult HttpAsyncAborter<T>::AsyncCall(void (T::*funcPtr)(),
   return rv;
 }
 
-} // namespace net
-} // namespace mozilla
+} 
+} 
 
-#endif // mozilla_net_HttpBaseChannel_h
+#endif 

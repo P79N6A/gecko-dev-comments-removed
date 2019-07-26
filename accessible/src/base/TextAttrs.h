@@ -30,7 +30,7 @@ public:
 
 
   TextAttrsMgr(HyperTextAccessible* aHyperTextAcc) :
-    mOffsetAcc(nsnull),  mHyperTextAcc(aHyperTextAcc),
+    mOffsetAcc(nullptr),  mHyperTextAcc(aHyperTextAcc),
     mOffsetAccIdx(-1), mIncludeDefAttrs(true) { }
 
   
@@ -64,8 +64,8 @@ public:
 
 
   void GetAttributes(nsIPersistentProperties* aAttributes,
-                     PRInt32* aStartHTOffset = nsnull,
-                     PRInt32* aEndHTOffset = nsnull);
+                     PRInt32* aStartHTOffset = nullptr,
+                     PRInt32* aEndHTOffset = nullptr);
 
 protected:
   

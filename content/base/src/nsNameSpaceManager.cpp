@@ -1,12 +1,12 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * A class for managing namespace IDs and mapping back and forth
+ * between namespace IDs and namespace URIs.
+ */
 
 #include "nscore.h"
 #include "nsINameSpaceManager.h"
@@ -102,7 +102,7 @@ private:
   nsTArray< nsAutoPtr<nsString> > mURIArray;
 };
 
-static NameSpaceManagerImpl* sNameSpaceManager = nsnull;
+static NameSpaceManagerImpl* sNameSpaceManager = nullptr;
 
 NS_IMPL_ISUPPORTS1(NameSpaceManagerImpl, nsINameSpaceManager)
 
@@ -115,7 +115,7 @@ nsresult NameSpaceManagerImpl::Init()
   rv = AddNameSpace(NS_LITERAL_STRING(uri), id); \
   NS_ENSURE_SUCCESS(rv, rv)
 
-  
+  // Need to be ordered according to ID.
   REGISTER_NAMESPACE(kXMLNSNameSpaceURI, kNameSpaceID_XMLNS);
   REGISTER_NAMESPACE(kXMLNameSpaceURI, kNameSpaceID_XML);
   REGISTER_NAMESPACE(kXHTMLNameSpaceURI, kNameSpaceID_XHTML);
@@ -138,14 +138,14 @@ NameSpaceManagerImpl::RegisterNameSpace(const nsAString& aURI,
                                         PRInt32& aNameSpaceID)
 {
   if (aURI.IsEmpty()) {
-    aNameSpaceID = kNameSpaceID_None; 
+    aNameSpaceID = kNameSpaceID_None; // xmlns="", see bug 75700 for details
 
     return NS_OK;
   }
 
   nsresult rv = NS_OK;
   if (!mURIToIDTable.Get(&aURI, &aNameSpaceID)) {
-    aNameSpaceID = mURIArray.Length() + 1; 
+    aNameSpaceID = mURIArray.Length() + 1; // id is index + 1
 
     rv = AddNameSpace(aURI, aNameSpaceID);
     if (NS_FAILED(rv)) {
@@ -163,7 +163,7 @@ NameSpaceManagerImpl::GetNameSpaceURI(PRInt32 aNameSpaceID, nsAString& aURI)
 {
   NS_PRECONDITION(aNameSpaceID >= 0, "Bogus namespace ID");
   
-  PRInt32 index = aNameSpaceID - 1; 
+  PRInt32 index = aNameSpaceID - 1; // id is index + 1
   if (index < 0 || index >= PRInt32(mURIArray.Length())) {
     aURI.Truncate();
 
@@ -179,7 +179,7 @@ PRInt32
 NameSpaceManagerImpl::GetNameSpaceID(const nsAString& aURI)
 {
   if (aURI.IsEmpty()) {
-    return kNameSpaceID_None; 
+    return kNameSpaceID_None; // xmlns="", see bug 75700 for details
   }
 
   PRInt32 nameSpaceID;
@@ -243,7 +243,7 @@ nsresult NameSpaceManagerImpl::AddNameSpace(const nsAString& aURI,
                                             const PRInt32 aNameSpaceID)
 {
   if (aNameSpaceID < 0) {
-    
+    // We've wrapped...  Can't do anything else here; just bail.
     return NS_ERROR_OUT_OF_MEMORY;
   }
   

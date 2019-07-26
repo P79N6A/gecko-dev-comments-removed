@@ -29,9 +29,9 @@ using namespace mozilla;
 
 
 static bool gInitialized = false;
-static nsIURLParser *gNoAuthURLParser = nsnull;
-static nsIURLParser *gAuthURLParser = nsnull;
-static nsIURLParser *gStdURLParser = nsnull;
+static nsIURLParser *gNoAuthURLParser = nullptr;
+static nsIURLParser *gAuthURLParser = nullptr;
+static nsIURLParser *gStdURLParser = nullptr;
 
 static void
 InitGlobals()
@@ -164,7 +164,7 @@ net_ParseFileURL(const nsACString &inURL,
     const char *url = flatURL.get();
     
     PRUint32 schemeBeg, schemeEnd;
-    rv = net_ExtractURLScheme(flatURL, &schemeBeg, &schemeEnd, nsnull);
+    rv = net_ExtractURLScheme(flatURL, &schemeBeg, &schemeEnd, nullptr);
     if (NS_FAILED(rv)) return rv;
 
     if (strncmp(url + schemeBeg, "file", schemeEnd - schemeBeg) != 0) {
@@ -180,16 +180,16 @@ net_ParseFileURL(const nsACString &inURL,
 
     
     rv = parser->ParseURL(url, flatURL.Length(),
-                          nsnull, nsnull, 
-                          nsnull, nsnull, 
+                          nullptr, nullptr, 
+                          nullptr, nullptr, 
                           &pathPos, &pathLen);
     if (NS_FAILED(rv)) return rv;
 
     
     rv = parser->ParsePath(url + pathPos, pathLen,
                            &filepathPos, &filepathLen,
-                           nsnull, nsnull,  
-                           nsnull, nsnull); 
+                           nullptr, nullptr,  
+                           nullptr, nullptr); 
     if (NS_FAILED(rv)) return rv;
 
     filepathPos += pathPos;
@@ -558,7 +558,7 @@ net_FilterURIString(const char *str, nsACString& result)
     
     
     bool found_colon = false;
-    const char *first = nsnull;
+    const char *first = nullptr;
     while (*p) {
         switch (*p) {
             case '\t': 
@@ -601,7 +601,7 @@ net_FilterURIString(const char *str, nsACString& result)
 
         
         
-        if (!*p && first != nsnull && !found_colon) {
+        if (!*p && first != nullptr && !found_colon) {
             
             
             p = first;

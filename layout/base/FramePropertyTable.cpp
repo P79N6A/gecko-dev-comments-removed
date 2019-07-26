@@ -37,7 +37,7 @@ FramePropertyTable::Set(nsIFrame* aFrame, const FramePropertyDescriptor* aProper
 
     
     PropertyValue current = entry->mProp;
-    entry->mProp.mProperty = nsnull;
+    entry->mProp.mProperty = nullptr;
     MOZ_STATIC_ASSERT(sizeof(nsTArray<PropertyValue>) <= sizeof(void *),
                       "Property array must fit entirely within entry->mProp.mValue");
     new (&entry->mProp.mValue) nsTArray<PropertyValue>(4);
@@ -75,7 +75,7 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
   }
   Entry* entry = mLastEntry;
   if (!entry)
-    return nsnull;
+    return nullptr;
 
   if (entry->mProp.mProperty == aProperty) {
     if (aFoundResult) {
@@ -85,14 +85,14 @@ FramePropertyTable::Get(const nsIFrame* aFrame,
   }
   if (!entry->mProp.IsArray()) {
     
-    return nsnull;
+    return nullptr;
   }
 
   nsTArray<PropertyValue>* array = entry->mProp.ToArray();
   nsTArray<PropertyValue>::index_type index =
     array->IndexOf(aProperty, 0, PropertyComparator());
   if (index == nsTArray<PropertyValue>::NoIndex)
-    return nsnull;
+    return nullptr;
 
   if (aFoundResult) {
     *aFoundResult = true;
@@ -118,13 +118,13 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
   }
   Entry* entry = mLastEntry;
   if (!entry)
-    return nsnull;
+    return nullptr;
 
   if (entry->mProp.mProperty == aProperty) {
     
     void* value = entry->mProp.mValue;
     mEntries.RawRemoveEntry(entry);
-    mLastEntry = nsnull;
+    mLastEntry = nullptr;
     if (aFoundResult) {
       *aFoundResult = true;
     }
@@ -132,7 +132,7 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
   }
   if (!entry->mProp.IsArray()) {
     
-    return nsnull;
+    return nullptr;
   }
 
   nsTArray<PropertyValue>* array = entry->mProp.ToArray();
@@ -140,7 +140,7 @@ FramePropertyTable::Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aPro
     array->IndexOf(aProperty, 0, PropertyComparator());
   if (index == nsTArray<PropertyValue>::NoIndex) {
     
-    return nsnull;
+    return nullptr;
   }
 
   if (aFoundResult) {
@@ -203,8 +203,8 @@ FramePropertyTable::DeleteAllFor(nsIFrame* aFrame)
   if (mLastFrame == aFrame) {
     
     
-    mLastFrame = nsnull;
-    mLastEntry = nsnull;
+    mLastFrame = nullptr;
+    mLastEntry = nullptr;
   }
 
   DeleteAllForEntry(entry);
@@ -221,10 +221,10 @@ FramePropertyTable::DeleteEnumerator(Entry* aEntry, void* aArg)
 void
 FramePropertyTable::DeleteAll()
 {
-  mLastFrame = nsnull;
-  mLastEntry = nsnull;
+  mLastFrame = nullptr;
+  mLastEntry = nullptr;
 
-  mEntries.EnumerateEntries(DeleteEnumerator, nsnull);
+  mEntries.EnumerateEntries(DeleteEnumerator, nullptr);
 }
 
 size_t

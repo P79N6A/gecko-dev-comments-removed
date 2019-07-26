@@ -122,8 +122,8 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform = nsnull,
-                                gfxMatrix *aFromParentTransform = nsnull) const;
+  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform = nullptr,
+                                gfxMatrix *aFromParentTransform = nullptr) const;
 
   
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,

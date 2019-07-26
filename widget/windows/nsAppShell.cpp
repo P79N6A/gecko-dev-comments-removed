@@ -234,7 +234,7 @@ nsAppShell::Run(void)
   mozilla::widget::StopAudioSession();
 
   
-  sLoadedModules = nsnull;
+  sLoadedModules = nullptr;
 
   return rv;
 }
@@ -268,7 +268,7 @@ nsAppShell::DoProcessMoreGeckoEvents()
   
   
   if (mEventloopNestingLevel < 2) {
-    OnDispatchedEvent(nsnull);
+    OnDispatchedEvent(nullptr);
     mNativeCallbackPending = false;
   } else {
     mNativeCallbackPending = true;

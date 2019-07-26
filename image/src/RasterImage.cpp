@@ -129,7 +129,7 @@ DiscardingEnabled()
   if (!inited) {
     inited = true;
 
-    enabled = (PR_GetEnv("MOZ_DISABLE_IMAGE_DISCARD") == nsnull);
+    enabled = (PR_GetEnv("MOZ_DISABLE_IMAGE_DISCARD") == nullptr);
   }
 
   return enabled;
@@ -138,7 +138,7 @@ DiscardingEnabled()
 namespace mozilla {
 namespace image {
 
- nsRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
+ StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
 
 #ifndef DEBUG
 NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
@@ -153,11 +153,11 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   Image(aStatusTracker), 
   mSize(0,0),
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
-  mAnim(nsnull),
+  mAnim(nullptr),
   mLoopCount(-1),
-  mObserver(nsnull),
+  mObserver(nullptr),
   mLockCount(0),
-  mDecoder(nsnull),
+  mDecoder(nullptr),
   mDecodeRequest(this),
   mBytesDecoded(0),
   mDecodeCount(0),
@@ -289,11 +289,11 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
   NS_ASSERTION(aTime <= TimeStamp::Now(),
                "Given time appears to be in the future");
 
-  imgFrame* nextFrame = nsnull;
+  imgFrame* nextFrame = nullptr;
   PRUint32 currentFrameIndex = mAnim->currentAnimationFrameIndex;
   PRUint32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
   PRUint32 timeout = 0;
-  mImageContainer = nsnull;
+  mImageContainer = nullptr;
 
   
   
@@ -322,7 +322,7 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
       
       
       if (mAnim->compositingFrame && mAnim->lastCompositedFrameIndex == -1) {
-        mAnim->compositingFrame = nsnull;
+        mAnim->compositingFrame = nullptr;
       }
 
       nextFrameIndex = 0;
@@ -440,7 +440,7 @@ RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
       mFramesNotified++;
     #endif
 
-    observer->FrameChanged(nsnull, this, &dirtyRect);
+    observer->FrameChanged(nullptr, this, &dirtyRect);
   }
 }
 
@@ -474,7 +474,7 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
   
   
   
-  img->Init(nsnull, "", "", INIT_FLAG_NONE);
+  img->Init(nullptr, "", "", INIT_FLAG_NONE);
   img->SetSize(aRegion.width, aRegion.height);
   img->mDecoded = true; 
   img->mHasBeenDecoded = true;
@@ -506,7 +506,7 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
                         0 : GetCurrentImgFrameIndex();
   imgFrame *frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
-    *_retval = nsnull;
+    *_retval = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -589,18 +589,18 @@ RasterImage::GetImgFrameNoDecode(PRUint32 framenum)
 {
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
-    return mFrames.SafeElementAt(0, nsnull);
+    return mFrames.SafeElementAt(0, nullptr);
   }
   if (mAnim->lastCompositedFrameIndex == PRInt32(framenum))
     return mAnim->compositingFrame;
-  return mFrames.SafeElementAt(framenum, nsnull);
+  return mFrames.SafeElementAt(framenum, nullptr);
 }
 
 imgFrame*
 RasterImage::GetImgFrame(PRUint32 framenum)
 {
   nsresult rv = WantDecodedFrames();
-  CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nsnull);
+  CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nullptr);
   return GetImgFrameNoDecode(framenum);
 }
 
@@ -612,7 +612,7 @@ RasterImage::GetDrawableImgFrame(PRUint32 framenum)
   
   
   if (frame && frame->GetCompositingFailed())
-    return nsnull;
+    return nullptr;
   return frame;
 }
 
@@ -797,7 +797,7 @@ RasterImage::CopyFrame(PRUint32 aWhichFrame,
                         0 : GetCurrentImgFrameIndex();
   imgFrame *frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
-    *_retval = nsnull;
+    *_retval = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -873,7 +873,7 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
                           0 : GetCurrentImgFrameIndex();
   imgFrame *frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
-    *_retval = nsnull;
+    *_retval = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -928,7 +928,7 @@ RasterImage::GetImageContainer(ImageContainer **_retval)
 
   NS_ASSERTION(image->GetFormat() == cairoFormat, "Wrong format");
   static_cast<CairoImage*>(image.get())->SetData(cairoData);
-  mImageContainer->SetCurrentImage(image);
+  mImageContainer->SetCurrentImageInTransaction(image);
 
   *_retval = mImageContainer;
   NS_ADDREF(*_retval);
@@ -958,7 +958,7 @@ SizeOfDecodedWithComputedFallbackIfHeap(
 {
   size_t n = 0;
   for (PRUint32 i = 0; i < aFrames.Length(); ++i) {
-    imgFrame* frame = aFrames.SafeElementAt(i, nsnull);
+    imgFrame* frame = aFrames.SafeElementAt(i, nullptr);
     NS_ABORT_IF_FALSE(frame, "Null frame in frame array!");
     n += frame->SizeOfExcludingThisWithComputedFallbackIfHeap(aLocation, aMallocSizeOf);
   }
@@ -991,7 +991,7 @@ RasterImage::DeleteImgFrame(PRUint32 framenum)
   NS_ABORT_IF_FALSE(framenum < mFrames.Length(), "Deleting invalid frame!");
 
   delete mFrames[framenum];
-  mFrames[framenum] = nsnull;
+  mFrames[framenum] = nullptr;
 }
 
 nsresult
@@ -1189,8 +1189,8 @@ RasterImage::EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
 {
   return EnsureFrame(aFramenum, aX, aY, aWidth, aHeight, aFormat,
                       0, imageData, imageLength,
-                      nsnull,
-                      nsnull);
+                      nullptr,
+                      nullptr);
 }
 
 void
@@ -1397,7 +1397,7 @@ RasterImage::ResetAnimation()
 
   mAnim->lastCompositedFrameIndex = -1;
   mAnim->currentAnimationFrameIndex = 0;
-  mImageContainer = nsnull;
+  mImageContainer = nullptr;
 
   
   
@@ -1405,7 +1405,7 @@ RasterImage::ResetAnimation()
   
   nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
   if (mAnimating && observer)
-    observer->FrameChanged(nsnull, this, &(mAnim->firstFrameRefreshArea));
+    observer->FrameChanged(nullptr, this, &(mAnim->firstFrameRefreshArea));
 
   if (ShouldAnimate()) {
     StartAnimation();
@@ -1453,8 +1453,14 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
 
   
   
+  if (mDecoded) {
+    return NS_OK;
+  }
+
   
-  if (mBytesDecoded == 0) {
+  
+  
+  if (mMultipart && mBytesDecoded == 0) {
     
     if (mAnimating) {
       StopAnimation();
@@ -1463,7 +1469,7 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
     mAnimationFinished = false;
     if (mAnim) {
       delete mAnim;
-      mAnim = nsnull;
+      mAnim = nullptr;
     }
     
     int old_frame_count = mFrames.Length();
@@ -1757,7 +1763,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
     nsresult rv = mAnim->compositingFrame->Init(0, 0, mSize.width, mSize.height,
                                                 gfxASurface::ImageFormatARGB32);
     if (NS_FAILED(rv)) {
-      mAnim->compositingFrame = nsnull;
+      mAnim->compositingFrame = nullptr;
       return rv;
     }
     needToBlankComposite = true;
@@ -1821,7 +1827,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
   
           
           if (nextFrameDisposalMethod != kDisposeRestorePrevious)
-            mAnim->compositingPrevFrame = nsnull;
+            mAnim->compositingPrevFrame = nullptr;
         } else {
           ClearFrame(mAnim->compositingFrame);
         }
@@ -1868,7 +1874,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
       nsresult rv = mAnim->compositingPrevFrame->Init(0, 0, mSize.width, mSize.height,
                                                       gfxASurface::ImageFormatARGB32);
       if (NS_FAILED(rv)) {
-        mAnim->compositingPrevFrame = nsnull;
+        mAnim->compositingPrevFrame = nullptr;
         return rv;
       }
     }
@@ -2151,7 +2157,7 @@ RasterImage::GetKeys(PRUint32 *count, char ***keys)
 {
   if (!mProperties) {
     *count = 0;
-    *keys = nsnull;
+    *keys = nullptr;
     return NS_OK;
   }
   return mProperties->GetKeys(count, keys);
@@ -2184,7 +2190,7 @@ RasterImage::Discard(bool force)
   
   nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
   if (observer)
-    observer->OnDiscard(nsnull);
+    observer->OnDiscard(nullptr);
 
   if (force)
     DiscardTracker::Remove(&mDiscardTrackerNode);
@@ -2319,7 +2325,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   
   nsRefPtr<Decoder> decoder = mDecoder;
-  mDecoder = nsnull;
+  mDecoder = nullptr;
 
   mInDecoder = true;
   decoder->Finish();
@@ -2636,7 +2642,7 @@ RasterImage::Draw(gfxContext *aContext,
 nsIFrame*
 RasterImage::GetRootLayoutFrame()
 {
-  return nsnull;
+  return nullptr;
 }
 
 

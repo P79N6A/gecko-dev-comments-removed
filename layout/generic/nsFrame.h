@@ -551,7 +551,7 @@ public:
   
   static PRInt32 GetLineNumber(nsIFrame *aFrame,
                                bool aLockScroll,
-                               nsIFrame** aContainingBlock = nsnull);
+                               nsIFrame** aContainingBlock = nullptr);
 
   
 
@@ -619,7 +619,7 @@ protected:
   nsBoxLayoutMetrics* BoxMetrics() const;
 
   
-  void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nsnull);
+  void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nullptr);
 
 private:
   nsresult BoxReflow(nsBoxLayoutState& aState,

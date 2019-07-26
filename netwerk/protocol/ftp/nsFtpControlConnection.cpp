@@ -101,7 +101,7 @@ nsFtpControlConnection::Connect(nsIProxyInfo* proxyInfo,
     if (NS_FAILED(rv))
         return rv;
 
-    rv = sts->CreateTransport(nsnull, 0, mHost, mPort, proxyInfo,
+    rv = sts->CreateTransport(nullptr, 0, mHost, mPort, proxyInfo,
                               getter_AddRefs(mSocket)); 
     if (NS_FAILED(rv))
         return rv;
@@ -140,7 +140,7 @@ nsFtpControlConnection::WaitData(nsFtpControlConnectionListener *listener)
     
     
     if (!listener) {
-        mListener = nsnull;
+        mListener = nullptr;
         return NS_OK;
     }
 
@@ -162,9 +162,9 @@ nsFtpControlConnection::Disconnect(nsresult status)
         
         mSocket->Close(status);
         mSocket = 0;
-        mSocketInput->AsyncWait(nsnull, 0, 0, nsnull);  
-        mSocketInput = nsnull;
-        mSocketOutput = nsnull;
+        mSocketInput->AsyncWait(nullptr, 0, 0, nullptr);  
+        mSocketInput = nullptr;
+        mSocketOutput = nullptr;
     }
 
     return NS_OK;

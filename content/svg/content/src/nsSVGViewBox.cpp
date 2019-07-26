@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsSVGViewBox.h"
 #include "nsSVGUtils.h"
@@ -15,7 +15,7 @@
 #define NUM_VIEWBOX_COMPONENTS 4
 using namespace mozilla;
 
-/* Implementation of nsSVGViewBoxRect methods */
+
 
 bool
 nsSVGViewBoxRect::operator==(const nsSVGViewBoxRect& aOther) const
@@ -29,7 +29,7 @@ nsSVGViewBoxRect::operator==(const nsSVGViewBoxRect& aOther) const
     height == aOther.height;
 }
 
-/* Cycle collection macros for nsSVGViewBox */
+
 
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION(nsSVGViewBox::DOMBaseVal, mSVGElement)
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION(nsSVGViewBox::DOMAnimVal, mSVGElement)
@@ -64,13 +64,13 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGViewBox::DOMAnimatedRect)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimatedRect)
 NS_INTERFACE_MAP_END
 
-/* Implementation of nsSVGViewBox methods */
+
 
 void
 nsSVGViewBox::Init()
 {
   mBaseVal = nsSVGViewBoxRect();
-  mAnimVal = nsnull;
+  mAnimVal = nullptr;
   mHasBaseVal = false;
 }
 
@@ -79,7 +79,7 @@ nsSVGViewBox::SetAnimValue(float aX, float aY, float aWidth, float aHeight,
                            nsSVGElement *aSVGElement)
 {
   if (!mAnimVal) {
-    // it's okay if allocation fails - and no point in reporting that
+    
     mAnimVal = new nsSVGViewBoxRect(aX, aY, aWidth, aHeight);
   } else {
     nsSVGViewBoxRect rect(aX, aY, aWidth, aHeight);
@@ -122,19 +122,19 @@ ToSVGViewBoxRect(const nsAString& aStr, nsSVGViewBoxRect *aViewBox)
     NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
     const char *token = utf8Token.get();
     if (*token == '\0') {
-      return NS_ERROR_DOM_SYNTAX_ERR; // empty string (e.g. two commas in a row)
+      return NS_ERROR_DOM_SYNTAX_ERR; 
     }
 
     char *end;
     vals[i] = float(PR_strtod(token, &end));
     if (*end != '\0' || !NS_finite(vals[i])) {
-      return NS_ERROR_DOM_SYNTAX_ERR; // parse error
+      return NS_ERROR_DOM_SYNTAX_ERR; 
     }
   }
 
-  if (i != NUM_VIEWBOX_COMPONENTS ||              // Too few values.
-      tokenizer.hasMoreTokens() ||                // Too many values.
-      tokenizer.lastTokenEndedWithSeparator()) {  // Trailing comma.
+  if (i != NUM_VIEWBOX_COMPONENTS ||              
+      tokenizer.hasMoreTokens() ||                
+      tokenizer.lastTokenEndedWithSeparator()) {  
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
@@ -159,9 +159,9 @@ nsSVGViewBox::SetBaseValueString(const nsAString& aValue,
     if (mAnimVal) {
       aSVGElement->AnimationNeedsResample();
     }
-    // We don't need to call Will/DidChange* here - we're only called by
-    // nsSVGElement::ParseAttribute under nsGenericElement::SetAttr,
-    // which takes care of notifying.
+    
+    
+    
   }
   return res;
 }
@@ -257,7 +257,7 @@ nsSVGViewBox::ToSMILAttr(nsSVGElement *aSVGElement)
 nsresult
 nsSVGViewBox::SMILViewBox
             ::ValueFromString(const nsAString& aStr,
-                              const nsISMILAnimationElement* /*aSrcElement*/,
+                              const nsISMILAnimationElement* ,
                               nsSMILValue& aValue,
                               bool& aPreventCachingOfSandwich) const
 {
@@ -286,7 +286,7 @@ void
 nsSVGViewBox::SMILViewBox::ClearAnimValue()
 {
   if (mVal->mAnimVal) {
-    mVal->mAnimVal = nsnull;
+    mVal->mAnimVal = nullptr;
     mSVGElement->DidAnimateViewBox();
   }
 }

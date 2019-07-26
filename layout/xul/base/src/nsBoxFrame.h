@@ -149,7 +149,7 @@ public:
 
   virtual ~nsBoxFrame();
   
-  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, bool aIsRoot = false, nsBoxLayout* aLayoutManager = nsnull);
+  nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, bool aIsRoot = false, nsBoxLayout* aLayoutManager = nullptr);
 
   
   
@@ -209,6 +209,13 @@ protected:
     nscoord mAscent;
 
     nsCOMPtr<nsBoxLayout> mLayoutManager;
+
+    
+    
+    bool GetEventPoint(nsGUIEvent *aEvent, nsPoint &aPoint);
+    
+    
+    bool GetEventPoint(nsGUIEvent *aEvent, nsIntPoint &aPoint);
 
 protected:
     nsresult RegUnregAccessKey(bool aDoReg);

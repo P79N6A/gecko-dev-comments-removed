@@ -316,6 +316,8 @@ def getTypes(descriptor):
     Get all argument and return types for all members of the descriptor
     """
     members = [m for m in descriptor.interface.members]
+    if descriptor.interface.ctor():
+        members.append(descriptor.interface.ctor())
     signatures = [s for m in members if m.isMethod() for s in m.signatures()]
     types = []
     for s in signatures:
@@ -474,6 +476,8 @@ def UnionConversions(descriptors):
                     unionConversions[name] = CGUnionConversionStruct(type, d)
 
         members = [m for m in d.interface.members]
+        if d.interface.ctor():
+            members.append(d.interface.ctor())
         signatures = [s for m in members if m.isMethod() for s in m.signatures()]
         for s in signatures:
             assert len(s) == 2
@@ -2230,6 +2234,9 @@ class CGArgumentConverter(CGThing):
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
         self.argument = argument
+        if argument.variadic:
+            raise TypeError("We don't support variadic arguments yet " +
+                            str(argument.location))
         
         
         replacer = {
@@ -2340,7 +2347,8 @@ if (%s.IsNull()) {
             type.inner, descriptorProvider,
             {
                 'result' :  "%s[i]" % result,
-                'successCode': ("if (!JS_SetElement(cx, returnArray, i, &tmp)) {\n"
+                'successCode': ("if (!JS_DefineElement(cx, returnArray, i, tmp,\n"
+                                "                      NULL, NULL, JSPROP_ENUMERATE)) {\n"
                                 "  return false;\n"
                                 "}"),
                 'jsvalRef': "tmp",
@@ -3042,6 +3050,7 @@ class FakeArgument():
     def __init__(self, type):
         self.type = type
         self.optional = False
+        self.variadic = False
 
 class CGSetterCall(CGGetterSetterCall):
     """
@@ -4041,14 +4050,13 @@ class CGDictionary(CGThing):
     def __init__(self, dictionary, descriptorProvider):
         self.dictionary = dictionary;
         self.workers = descriptorProvider.workers
-        if dictionary.parent:
-            parentCGThing = CGDictionary(dictionary.parent, descriptorProvider)
-            self.generatable = parentCGThing.generatable
-            if not self.generatable:
-                
-                return
-        else:
+        if all(CGDictionary(d, descriptorProvider).generatable for
+               d in CGDictionary.getDictionaryDependencies(dictionary)):
             self.generatable = True
+        else:
+            self.generatable = False
+            
+            return
         
         
         
@@ -4239,6 +4247,17 @@ class CGDictionary(CGThing):
     def makeIdName(name):
         return name + "_id"
 
+    @staticmethod
+    def getDictionaryDependencies(dictionary):
+        deps = set();
+        if dictionary.parent:
+            deps.add(dictionary.parent)
+        for member in dictionary.members:
+            if member.type.isDictionary():
+                deps.add(member.type.unroll().inner)
+        return deps
+
+
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         CGAbstractMethod.__init__(self, None, 'Register', 'void',
@@ -4348,10 +4367,18 @@ class CGBindingRoot(CGThing):
         
         
         
+        
         reSortedDictionaries = []
+        dictionaries = set(dictionaries)
         while len(dictionaries) != 0:
-            toMove = [d for d in dictionaries if d.parent not in dictionaries]
-            dictionaries = [d for d in dictionaries if d.parent in dictionaries]
+            
+            
+            toMove = [d for d in dictionaries if
+                      len(CGDictionary.getDictionaryDependencies(d) &
+                          dictionaries) == 0]
+            if len(toMove) == 0:
+                raise TypeError("Loop in dictionary dependency graph")
+            dictionaries = dictionaries - set(toMove)
             reSortedDictionaries.extend(toMove)
 
         dictionaries = reSortedDictionaries

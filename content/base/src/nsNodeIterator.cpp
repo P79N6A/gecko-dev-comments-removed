@@ -1,12 +1,12 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * Implementation of DOM Traversal's nsIDOMNodeIterator
+ */
 
 #include "nsNodeIterator.h"
 
@@ -20,9 +20,9 @@
 #include "nsContentUtils.h"
 #include "nsCOMPtr.h"
 
-
-
-
+/*
+ * NodePointer implementation
+ */
 nsNodeIterator::NodePointer::NodePointer(nsINode *aNode,
                                          bool aBeforeNode) :
     mNode(aNode),
@@ -72,17 +72,17 @@ void nsNodeIterator::NodePointer::AdjustAfterRemoval(nsINode *aRoot,
                                                      nsIContent *aChild,
                                                      nsIContent *aPreviousSibling)
 {
-    
+    // If mNode is null or the root there is nothing to do.
     if (!mNode || mNode == aRoot)
         return;
 
-    
+    // check if ancestor was removed
     if (!nsContentUtils::ContentIsDescendantOf(mNode, aChild))
         return;
 
     if (mBeforeNode) {
 
-        
+        // Try the next sibling
         nsINode *nextSibling = aPreviousSibling ? aPreviousSibling->GetNextSibling()
                                                 : aContainer->GetFirstChild();
 
@@ -91,11 +91,11 @@ void nsNodeIterator::NodePointer::AdjustAfterRemoval(nsINode *aRoot,
             return;
         }
 
-        
+        // Next try siblings of ancestors
         if (MoveForward(aRoot, aContainer))
             return;
 
-        
+        // No suitable node was found so try going backwards
         mBeforeNode = false;
     }
 
@@ -131,9 +131,9 @@ void nsNodeIterator::NodePointer::MoveBackward(nsINode *aParent, nsINode *aNode)
     }
 }
 
-
-
-
+/*
+ * Factories, constructors and destructors
+ */
 
 nsNodeIterator::nsNodeIterator(nsINode *aRoot,
                                PRUint32 aWhatToShow,
@@ -147,14 +147,14 @@ nsNodeIterator::nsNodeIterator(nsINode *aRoot,
 
 nsNodeIterator::~nsNodeIterator()
 {
-    
+    /* destructor code */
     if (!mDetached && mRoot)
         mRoot->RemoveMutationObserver(this);
 }
 
-
-
-
+/*
+ * nsISupports and cycle collection stuff
+ */
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsNodeIterator)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsNodeIterator)
@@ -170,7 +170,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 DOMCI_DATA(NodeIterator, nsNodeIterator)
 
-
+// QueryInterface implementation for nsNodeIterator
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNodeIterator)
     NS_INTERFACE_MAP_ENTRY(nsIDOMNodeIterator)
     NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
@@ -181,25 +181,25 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsNodeIterator)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsNodeIterator)
 
-
+/* readonly attribute nsIDOMNode root; */
 NS_IMETHODIMP nsNodeIterator::GetRoot(nsIDOMNode * *aRoot)
 {
     if (mRoot)
         return CallQueryInterface(mRoot, aRoot);
 
-    *aRoot = nsnull;
+    *aRoot = nullptr;
 
     return NS_OK;
 }
 
-
+/* readonly attribute unsigned long whatToShow; */
 NS_IMETHODIMP nsNodeIterator::GetWhatToShow(PRUint32 *aWhatToShow)
 {
     *aWhatToShow = mWhatToShow;
     return NS_OK;
 }
 
-
+/* readonly attribute nsIDOMNodeFilter filter; */
 NS_IMETHODIMP nsNodeIterator::GetFilter(nsIDOMNodeFilter **aFilter)
 {
     NS_ENSURE_ARG_POINTER(aFilter);
@@ -209,20 +209,20 @@ NS_IMETHODIMP nsNodeIterator::GetFilter(nsIDOMNodeFilter **aFilter)
     return NS_OK;
 }
 
-
+/* readonly attribute boolean expandEntityReferences; */
 NS_IMETHODIMP nsNodeIterator::GetExpandEntityReferences(bool *aExpandEntityReferences)
 {
     *aExpandEntityReferences = false;
     return NS_OK;
 }
 
-
+/* nsIDOMNode nextNode ()  raises (DOMException); */
 NS_IMETHODIMP nsNodeIterator::NextNode(nsIDOMNode **_retval)
 {
     return NextOrPrevNode(&NodePointer::MoveToNext, _retval);
 }
 
-
+/* nsIDOMNode previousNode ()  raises (DOMException); */
 NS_IMETHODIMP nsNodeIterator::PreviousNode(nsIDOMNode **_retval)
 {
     return NextOrPrevNode(&NodePointer::MoveToPrevious, _retval);
@@ -235,7 +235,7 @@ nsNodeIterator::NextOrPrevNode(NodePointer::MoveToMethodType aMove,
     nsresult rv;
     PRInt16 filtered;
 
-    *_retval = nsnull;
+    *_retval = nullptr;
 
     if (mDetached || mInAcceptNode)
         return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -265,7 +265,7 @@ nsNodeIterator::NextOrPrevNode(NodePointer::MoveToMethodType aMove,
     return NS_OK;
 }
 
-
+/* void detach (); */
 NS_IMETHODIMP nsNodeIterator::Detach(void)
 {
     if (!mDetached) {
@@ -279,26 +279,26 @@ NS_IMETHODIMP nsNodeIterator::Detach(void)
     return NS_OK;
 }
 
-
+/* readonly attribute nsIDOMNode referenceNode; */
 NS_IMETHODIMP nsNodeIterator::GetReferenceNode(nsIDOMNode * *aRefNode)
 {
     if (mPointer.mNode)
         return CallQueryInterface(mPointer.mNode, aRefNode);
 
-    *aRefNode = nsnull;
+    *aRefNode = nullptr;
     return NS_OK;
 }
 
-
+/* readonly attribute boolean pointerBeforeReferenceNode; */
 NS_IMETHODIMP nsNodeIterator::GetPointerBeforeReferenceNode(bool *aBeforeNode)
 {
     *aBeforeNode = mPointer.mBeforeNode;
     return NS_OK;
 }
 
-
-
-
+/*
+ * nsIMutationObserver interface
+ */
 
 void nsNodeIterator::ContentRemoved(nsIDocument *aDocument,
                                     nsIContent *aContainer,

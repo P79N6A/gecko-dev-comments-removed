@@ -71,7 +71,7 @@ nsThreadManager::Init()
 
   nsresult rv = mMainThread->InitCurrentThread();
   if (NS_FAILED(rv)) {
-    mMainThread = nsnull;
+    mMainThread = nullptr;
     return rv;
   }
 
@@ -142,15 +142,15 @@ nsThreadManager::Shutdown()
   
   
   
-  mMainThread->SetObserver(nsnull);
+  mMainThread->SetObserver(nullptr);
   mMainThread->ClearObservers();
 
   
-  mMainThread = nsnull;
-  mLock = nsnull;
+  mMainThread = nullptr;
+  mLock = nullptr;
 
   
-  PR_SetThreadPrivate(mCurThreadIndex, nsnull);
+  PR_SetThreadPrivate(mCurThreadIndex, nullptr);
 }
 
 void
@@ -175,7 +175,7 @@ nsThreadManager::UnregisterCurrentThread(nsThread *thread)
 
   mThreadsByPRThread.Remove(thread->GetPRThread());
 
-  PR_SetThreadPrivate(mCurThreadIndex, nsnull);
+  PR_SetThreadPrivate(mCurThreadIndex, nullptr);
   
 }
 
@@ -188,13 +188,13 @@ nsThreadManager::GetCurrentThread()
     return static_cast<nsThread *>(data);
 
   if (!mInitialized) {
-    return nsnull;
+    return nullptr;
   }
 
   
   nsRefPtr<nsThread> thread = new nsThread(nsThread::NOT_MAIN_THREAD, 0);
   if (!thread || NS_FAILED(thread->InitCurrentThread()))
-    return nsnull;
+    return nullptr;
 
   return thread.get();  
 }

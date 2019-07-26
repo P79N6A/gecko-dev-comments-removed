@@ -2161,6 +2161,7 @@ Tab.prototype = {
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("MozScrolledAreaChanged", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
+    this.browser.addEventListener("PluginNotFound", this, true);
     this.browser.addEventListener("pageshow", this, true);
 
     Services.obs.addObserver(this, "before-first-paint", false);
@@ -2253,6 +2254,7 @@ Tab.prototype = {
     this.browser.removeEventListener("DOMWillOpenModalDialog", this, true);
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
+    this.browser.removeEventListener("PluginNotFound", this, true);
     this.browser.removeEventListener("MozScrolledAreaChanged", this, true);
 
     Services.obs.removeObserver(this, "before-first-paint");
@@ -2798,6 +2800,21 @@ Tab.prototype = {
 
           NativeWindow.doorhanger.hide("ask-to-play-plugins", tab.id);
         }, true);
+        break;
+      }
+
+      case "PluginNotFound": {
+        let plugin = aEvent.target;
+        plugin.clientTop; 
+
+        
+        
+        let learnMoreLink = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "unsupportedLearnMoreLink");
+        if (learnMoreLink) {
+          let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
+          learnMoreUrl += "why-cant-firefox-mobile-play-flash-on-my-device";
+          learnMoreLink.href = learnMoreUrl;
+        }
         break;
       }
 
@@ -3460,6 +3477,10 @@ var BrowserEventHandler = {
   _doTapHighlight: function _doTapHighlight(aElement) {
     this._cancelTapHighlight();
     this._highlightTimeout = setTimeout(function(self) {
+      
+      if (!aElement.ownerDocument.defaultView)
+        return;
+
       DOMUtils.setContentState(aElement, kStateActive);
       self._highlightElement = aElement;
     }, kTapHighlightDelay, this);
@@ -3474,13 +3495,19 @@ var BrowserEventHandler = {
     if (!this._highlightElement)
       return;
 
+    let ownerDocument = this._highlightElement.ownerDocument;
+    this._highlightElement = null;
+
+    
+    if (!ownerDocument.defaultView)
+      return;
+
     
     
-    if (this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
-      DOMUtils.setContentState(this._highlightElement.ownerDocument.documentElement, kStateActive);
+    if (ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
+      DOMUtils.setContentState(ownerDocument.documentElement, kStateActive);
 
     DOMUtils.setContentState(BrowserApp.selectedBrowser.contentWindow.document.documentElement, kStateActive);
-    this._highlightElement = null;
   },
 
   _updateLastPosition: function(x, y, dx, dy) {

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -14,9 +14,9 @@
 #include "nsEventDispatcher.h"
 #include "nsHTMLSelectElement.h"
 
-
-
-
+/**
+ * The implementation of &lt;optgroup&gt;
+ */
 class nsHTMLOptGroupElement : public nsGenericHTMLElement,
                               public nsIDOMHTMLOptGroupElement
 {
@@ -24,27 +24,27 @@ public:
   nsHTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLOptGroupElement();
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMNode
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  
+  // nsIDOMElement
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  
+  // nsIDOMHTMLElement
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
-  
+  // nsIDOMHTMLOptGroupElement
   NS_DECL_NSIDOMHTMLOPTGROUPELEMENT
 
-  
+  // nsINode
   virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                                  bool aNotify);
   virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
 
-  
+  // nsIContent
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
   virtual nsEventStates IntrinsicState() const;
@@ -63,10 +63,10 @@ public:
   }
 protected:
 
-  
-
-
-
+  /**
+   * Get the select content element that contains this option
+   * @param aSelectElement the select element [OUT]
+   */
   nsIContent* GetSelect();
 };
 
@@ -77,7 +77,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(OptGroup)
 nsHTMLOptGroupElement::nsHTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
-  
+  // We start off enabled
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
 
@@ -92,7 +92,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLOptGroupElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLOptGroupElement, nsHTMLOptGroupElement)
 
-
+// QueryInterface implementation for nsHTMLOptGroupElement
 NS_INTERFACE_TABLE_HEAD(nsHTMLOptGroupElement)
   NS_HTML_CONTENT_INTERFACE_TABLE1(nsHTMLOptGroupElement,
                                    nsIDOMHTMLOptGroupElement)
@@ -112,8 +112,8 @@ nsresult
 nsHTMLOptGroupElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
-  
-  
+  // Do not process any DOM events if the element is disabled
+  // XXXsmaug This is not the right thing to do. But what is?
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
     return NS_OK;
   }
@@ -143,7 +143,7 @@ nsHTMLOptGroupElement::GetSelect()
     }
   }
   
-  return nsnull;
+  return nullptr;
 }
 
 nsresult
@@ -162,7 +162,7 @@ nsHTMLOptGroupElement::InsertChildAt(nsIContent* aKid,
 void
 nsHTMLOptGroupElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
-  nsSafeOptionListMutation safeMutation(GetSelect(), this, nsnull, aIndex,
+  nsSafeOptionListMutation safeMutation(GetSelect(), this, nullptr, aIndex,
                                         aNotify);
   nsGenericHTMLElement::RemoveChildAt(aIndex, aNotify);
 }
@@ -172,12 +172,12 @@ nsHTMLOptGroupElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                     const nsAttrValue* aValue, bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled) {
-    
-    
+    // All our children <option> have their :disabled state depending on our
+    // disabled attribute. We should make sure their state is updated.
     for (nsIContent* child = nsINode::GetFirstChild(); child;
          child = child->GetNextSibling()) {
       if (child->IsHTML(nsGkAtoms::option)) {
-        
+        // No need to call |IsElement()| because it's an HTML element.
         child->AsElement()->UpdateState(true);
       }
     }

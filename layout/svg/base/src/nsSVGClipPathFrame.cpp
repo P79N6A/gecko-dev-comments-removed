@@ -49,7 +49,7 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
 
   gfxContext *gfx = aContext->ThebesContext();
 
-  nsISVGChildFrame *singleClipPathChild = nsnull;
+  nsISVGChildFrame *singleClipPathChild = nullptr;
 
   if (IsTrivial(&singleClipPathChild)) {
     
@@ -62,7 +62,7 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
     } else {
       singleClipPathChild->NotifySVGChanged(
                              nsISVGChildFrame::TRANSFORM_CHANGED);
-      singleClipPathChild->PaintSVG(aContext, nsnull);
+      singleClipPathChild->PaintSVG(aContext, nullptr);
     }
     gfx->Clip();
     gfx->NewPath();
@@ -76,7 +76,7 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
 
   
   nsSVGClipPathFrame *clipPathFrame =
-    nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nsnull);
+    nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nullptr);
   bool referencedClipIsTrivial;
   if (clipPathFrame) {
     referencedClipIsTrivial = clipPathFrame->IsTrivial();
@@ -114,7 +114,7 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
         }
       }
 
-      SVGFrame->PaintSVG(aContext, nsnull);
+      SVGFrame->PaintSVG(aContext, nullptr);
 
       if (clipPathFrame) {
         if (!isTrivial) {
@@ -177,7 +177,7 @@ nsSVGClipPathFrame::ClipHitTest(nsIFrame* aParent,
   }
 
   nsSVGClipPathFrame *clipPathFrame =
-    nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nsnull);
+    nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nullptr);
   if (clipPathFrame && !clipPathFrame->ClipHitTest(aParent, aMatrix, aPoint))
     return false;
 
@@ -201,14 +201,14 @@ bool
 nsSVGClipPathFrame::IsTrivial(nsISVGChildFrame **aSingleChild)
 {
   
-  if (nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nsnull))
+  if (nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nullptr))
     return false;
 
   if (aSingleChild) {
-    *aSingleChild = nsnull;
+    *aSingleChild = nullptr;
   }
 
-  nsISVGChildFrame *foundChild = nsnull;
+  nsISVGChildFrame *foundChild = nullptr;
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
@@ -220,7 +220,7 @@ nsSVGClipPathFrame::IsTrivial(nsISVGChildFrame **aSingleChild)
         return false;
 
       
-      if (nsSVGEffects::GetEffectProperties(kid).GetClipPathFrame(nsnull))
+      if (nsSVGEffects::GetEffectProperties(kid).GetClipPathFrame(nullptr))
         return false;
 
       foundChild = svgChild;

@@ -49,7 +49,7 @@ static nsStaticCaseInsensitiveNameTable* gFontDescTable;
 
  nsCSSProperty *
   nsCSSProps::gShorthandsContainingTable[eCSSProperty_COUNT_no_shorthands];
- nsCSSProperty* nsCSSProps::gShorthandsContainingPool = nsnull;
+ nsCSSProperty* nsCSSProps::gShorthandsContainingPool = nullptr;
 
 static const char* const kCSSRawFontDescs[] = {
 #define CSS_FONT_DESC(name_, method_) #name_,
@@ -267,7 +267,7 @@ nsCSSProps::BuildShorthandsContainingTable()
   
   
   NS_QuickSort(&subpropCounts, ArrayLength(subpropCounts),
-               sizeof(subpropCounts[0]), SortPropertyAndCount, nsnull);
+               sizeof(subpropCounts[0]), SortPropertyAndCount, nullptr);
 
   
   for (const PropertyAndCount *shorthandAndCount = subpropCounts,
@@ -352,13 +352,13 @@ nsCSSProps::ReleaseTable(void)
 {
   if (0 == --gTableRefCount) {
     delete gPropertyTable;
-    gPropertyTable = nsnull;
+    gPropertyTable = nullptr;
 
     delete gFontDescTable;
-    gFontDescTable = nsnull;
+    gFontDescTable = nullptr;
 
     delete [] gShorthandsContainingPool;
-    gShorthandsContainingPool = nsnull;
+    gShorthandsContainingPool = nullptr;
   }
 }
 
@@ -1652,7 +1652,7 @@ nsCSSProps::LookupPropertyValue(nsCSSProperty aProp, PRInt32 aValue)
   NS_ABORT_IF_FALSE(aProp >= 0 && aProp < eCSSProperty_COUNT,
                     "property out of range");
 
-  const PRInt32* kwtable = nsnull;
+  const PRInt32* kwtable = nullptr;
   if (aProp < eCSSProperty_COUNT_no_shorthands)
     kwtable = kKeywordTableTable[aProp];
 

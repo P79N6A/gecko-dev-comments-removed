@@ -70,7 +70,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMFileReader,
                                                 FileIOObject)
-  tmp->mResultArrayBuffer = nsnull;
+  tmp->mResultArrayBuffer = nullptr;
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFile)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPrincipal)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(load)
@@ -108,9 +108,9 @@ nsDOMFileReader::RootResultArrayBuffer()
 
 
 nsDOMFileReader::nsDOMFileReader()
-  : mFileData(nsnull),
+  : mFileData(nullptr),
     mDataLen(0), mDataFormat(FILE_AS_BINARY),
-    mResultArrayBuffer(nsnull)     
+    mResultArrayBuffer(nullptr)     
 {
   nsLayoutStatics::AddRef();
   SetDOMStringToNull(mResult);
@@ -222,20 +222,20 @@ nsDOMFileReader::ReadAsArrayBuffer(nsIDOMBlob* aFile, JSContext* aCx)
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsBinaryString(nsIDOMBlob* aFile)
 {
-  return ReadFileContent(nsnull, aFile, EmptyString(), FILE_AS_BINARY);
+  return ReadFileContent(nullptr, aFile, EmptyString(), FILE_AS_BINARY);
 }
 
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsText(nsIDOMBlob* aFile,
                             const nsAString &aCharset)
 {
-  return ReadFileContent(nsnull, aFile, aCharset, FILE_AS_TEXT);
+  return ReadFileContent(nullptr, aFile, aCharset, FILE_AS_TEXT);
 }
 
 NS_IMETHODIMP
 nsDOMFileReader::ReadAsDataURL(nsIDOMBlob* aFile)
 {
-  return ReadFileContent(nsnull, aFile, EmptyString(), FILE_AS_DATAURL);
+  return ReadFileContent(nullptr, aFile, EmptyString(), FILE_AS_DATAURL);
 }
 
 NS_IMETHODIMP
@@ -249,15 +249,15 @@ nsDOMFileReader::DoAbort(nsAString& aEvent)
 {
   
   SetDOMStringToNull(mResult);
-  mResultArrayBuffer = nsnull;
+  mResultArrayBuffer = nullptr;
     
   
   if (mChannel) {
     
     mChannel->Cancel(NS_ERROR_FAILURE);
-    mChannel = nsnull;
+    mChannel = nullptr;
   }
-  mFile = nsnull;
+  mFile = nullptr;
 
   
   FreeFileData();
@@ -301,7 +301,7 @@ nsDOMFileReader::DoOnDataAvailable(nsIRequest *aRequest,
     NS_ASSERTION(mResult.Length() == aOffset,
                  "unexpected mResult length");
     PRUint32 oldLen = mResult.Length();
-    PRUnichar *buf = nsnull;
+    PRUnichar *buf = nullptr;
     mResult.GetMutableData(&buf, oldLen + aCount, fallible_t());
     NS_ENSURE_TRUE(buf, NS_ERROR_OUT_OF_MEMORY);
 
@@ -381,7 +381,7 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
 
   
   Abort();
-  mError = nsnull;
+  mError = nullptr;
   SetDOMStringToNull(mResult);
   mTransferred = 0;
   mTotal = 0;
@@ -411,7 +411,7 @@ nsDOMFileReader::ReadFileContent(JSContext* aCx,
   mTotal = mozilla::dom::kUnknownSize;
   mFile->GetSize(&mTotal);
 
-  rv = mChannel->AsyncOpen(this, nsnull);
+  rv = mChannel->AsyncOpen(this, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -486,7 +486,7 @@ nsDOMFileReader::GetAsDataURL(nsIDOMBlob *aFile,
     }
 
     
-    char *base64 = PL_Base64Encode(aFileData + totalRead, numEncode, nsnull);
+    char *base64 = PL_Base64Encode(aFileData + totalRead, numEncode, nullptr);
     AppendASCIItoUTF16(nsDependentCString(base64), aResult);
     PR_Free(base64);
 

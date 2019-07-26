@@ -81,7 +81,7 @@ public:
 
 
 
-  virtual const nsIContent* GetTargetNode() const { return nsnull; }
+  virtual const nsIContent* GetTargetNode() const { return nullptr; }
 
   
 

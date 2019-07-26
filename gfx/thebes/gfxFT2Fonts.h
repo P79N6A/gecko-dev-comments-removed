@@ -53,7 +53,7 @@ public:
         CharGlyphMapEntryType *entry = mCharGlyphCache.PutEntry(ch);
 
         if (!entry)
-            return nsnull;
+            return nullptr;
 
         if (entry->mData.glyphIndex == 0xffffffffU) {
             

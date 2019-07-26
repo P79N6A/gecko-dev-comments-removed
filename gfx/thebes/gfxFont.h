@@ -199,7 +199,7 @@ class gfxFontEntry {
 public:
     NS_INLINE_DECL_REFCOUNTING(gfxFontEntry)
 
-    gfxFontEntry(const nsAString& aName, gfxFontFamily *aFamily = nsnull,
+    gfxFontEntry(const nsAString& aName, gfxFontFamily *aFamily = nullptr,
                  bool aIsStandardFace = false) : 
         mName(aName), mItalic(false), mFixedPitch(false),
         mIsProxy(false), mIsValid(true), 
@@ -213,8 +213,8 @@ public:
         mCheckedForGraphiteTables(false),
 #endif
         mHasCmapTable(false),
-        mUVSOffset(0), mUVSData(nsnull),
-        mUserFontData(nsnull),
+        mUVSOffset(0), mUVSData(nullptr),
+        mUserFontData(nullptr),
         mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
         mFamily(aFamily)
     { }
@@ -371,15 +371,15 @@ protected:
         mCheckedForGraphiteTables(false),
 #endif
         mHasCmapTable(false),
-        mUVSOffset(0), mUVSData(nsnull),
-        mUserFontData(nsnull),
+        mUVSOffset(0), mUVSData(nullptr),
+        mUserFontData(nullptr),
         mLanguageOverride(NO_FONT_LANGUAGE_OVERRIDE),
-        mFamily(nsnull)
+        mFamily(nullptr)
     { }
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold) {
         NS_NOTREACHED("oops, somebody didn't override CreateFontInstance");
-        return nsnull;
+        return nullptr;
     }
 
 #ifdef MOZ_GRAPHITE
@@ -446,7 +446,7 @@ private:
         FontTableHashEntry(FontTableHashEntry& toCopy)
             : KeyClass(toCopy), mBlob(toCopy.mBlob)
         {
-            toCopy.mBlob = nsnull;
+            toCopy.mBlob = nullptr;
         }
 
         ~FontTableHashEntry() { Clear(); }
@@ -535,7 +535,7 @@ public:
         while (i) {
              gfxFontEntry *fe = mAvailableFonts[--i];
              if (fe) {
-                 fe->SetFamily(nsnull);
+                 fe->SetFamily(nullptr);
              }
         }
     }
@@ -809,7 +809,7 @@ public:
     }
 
     void FlushShapedWordCaches() {
-        mFonts.EnumerateEntries(ClearCachedWordsForFont, nsnull);
+        mFonts.EnumerateEntries(ClearCachedWordsForFont, nullptr);
     }
 
     void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
@@ -844,7 +844,7 @@ protected:
 
         
         
-        HashEntry(KeyTypePointer aStr) : mFont(nsnull) { }
+        HashEntry(KeyTypePointer aStr) : mFont(nullptr) { }
         HashEntry(const HashEntry& toCopy) : mFont(toCopy.mFont) { }
         ~HashEntry() { }
 
@@ -1013,11 +1013,11 @@ public:
 
     bool IsGlyphKnown(PRUint32 aGlyphID) const {
         return mContainedGlyphWidths.Get(aGlyphID) != INVALID_WIDTH ||
-            mTightGlyphExtents.GetEntry(aGlyphID) != nsnull;
+            mTightGlyphExtents.GetEntry(aGlyphID) != nullptr;
     }
 
     bool IsGlyphKnownWithTightExtents(PRUint32 aGlyphID) const {
-        return mTightGlyphExtents.GetEntry(aGlyphID) != nsnull;
+        return mTightGlyphExtents.GetEntry(aGlyphID) != nullptr;
     }
 
     
@@ -1207,7 +1207,7 @@ protected:
 
     gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
             AntialiasOption anAAOption = kAntialiasDefault,
-            cairo_scaled_font_t *aScaledFont = nsnull);
+            cairo_scaled_font_t *aScaledFont = nullptr);
 
 public:
     virtual ~gfxFont();
@@ -1250,7 +1250,7 @@ public:
 
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption) {
         
-        return nsnull;
+        return nullptr;
     }
 
     virtual gfxFloat GetAdjustedSize() {
@@ -1317,7 +1317,7 @@ public:
 
     
     virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
-      GetGlyphRenderingOptions() { return nsnull; }
+      GetGlyphRenderingOptions() { return nullptr; }
 
     gfxFloat SynthesizeSpaceWidth(PRUint32 aCh);
 
@@ -1547,7 +1547,8 @@ public:
         FONT_TYPE_GDI,
         FONT_TYPE_FT2,
         FONT_TYPE_MAC,
-        FONT_TYPE_OS2
+        FONT_TYPE_OS2,
+        FONT_TYPE_CAIRO
     } FontType;
 
     virtual FontType GetType() const = 0;
@@ -1759,7 +1760,7 @@ public:
             aLength * (sizeof(CompressedGlyph) + sizeof(PRUint8));
         void *storage = moz_malloc(size);
         if (!storage) {
-            return nsnull;
+            return nullptr;
         }
 
         
@@ -1789,7 +1790,7 @@ public:
             aLength * (sizeof(CompressedGlyph) + sizeof(PRUnichar));
         void *storage = moz_malloc(size);
         if (!storage) {
-            return nsnull;
+            return nullptr;
         }
 
         return new (storage) gfxShapedWord(aText, aLength, aRunScript,
@@ -2097,7 +2098,7 @@ public:
     }
 
     void SetIsLowSurrogate(PRUint32 aIndex) {
-        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nsnull);
+        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
         mCharacterGlyphs[aIndex].SetIsLowSurrogate();
     }
 
@@ -2108,7 +2109,7 @@ public:
     }
 
     bool HasDetailedGlyphs() const {
-        return mDetailedGlyphs != nsnull;
+        return mDetailedGlyphs != nullptr;
     }
 
     
@@ -2221,7 +2222,7 @@ private:
             PRUint32 detailIndex = mDetails.Length();
             DetailedGlyph *details = mDetails.AppendElements(aCount);
             if (!details) {
-                return nsnull;
+                return nullptr;
             }
             
             
@@ -2230,12 +2231,12 @@ private:
             if (mOffsetToIndex.Length() == 0 ||
                 aOffset > mOffsetToIndex[mOffsetToIndex.Length() - 1].mOffset) {
                 if (!mOffsetToIndex.AppendElement(DGRec(aOffset, detailIndex))) {
-                    return nsnull;
+                    return nullptr;
                 }
             } else {
                 if (!mOffsetToIndex.InsertElementSorted(DGRec(aOffset, detailIndex),
                                                         CompareRecordOffsets())) {
-                    return nsnull;
+                    return nullptr;
                 }
             }
             return details;
@@ -2779,7 +2780,7 @@ public:
         g->SetIsNewline();
     }
     void SetIsLowSurrogate(PRUint32 aIndex) {
-        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nsnull);
+        SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
         mCharacterGlyphs[aIndex].SetIsLowSurrogate();
     }
 
@@ -2799,14 +2800,14 @@ public:
     
     
     DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
-        NS_ASSERTION(mDetailedGlyphs != nsnull &&
+        NS_ASSERTION(mDetailedGlyphs != nullptr &&
                      !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
                      mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
                      "invalid use of GetDetailedGlyphs; check the caller!");
         return mDetailedGlyphs->Get(aCharIndex);
     }
 
-    bool HasDetailedGlyphs() { return mDetailedGlyphs != nsnull; }
+    bool HasDetailedGlyphs() { return mDetailedGlyphs != nullptr; }
     PRUint32 CountMissingGlyphs();
     const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
         *aNumGlyphRuns = mGlyphRuns.Length();
@@ -2968,7 +2969,7 @@ class THEBES_API gfxFontGroup : public gfxTextRunFactory {
 public:
     static void Shutdown(); 
 
-    gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nsnull);
+    gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nullptr);
 
     virtual ~gfxFontGroup();
 
@@ -3034,7 +3035,7 @@ public:
                             PRUint32 aFlags)
     {
         gfxTextRunFactory::Parameters params = {
-            aRefContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+            aRefContext, nullptr, nullptr, nullptr, 0, aAppUnitsPerDevUnit
         };
         return MakeTextRun(aString, aLength, &params, aFlags);
     }

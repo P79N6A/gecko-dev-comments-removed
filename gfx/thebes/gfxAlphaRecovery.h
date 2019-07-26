@@ -38,7 +38,7 @@ public:
 
     static bool RecoverAlpha (gfxImageSurface *blackSurface,
                                 const gfxImageSurface *whiteSurface,
-                                Analysis *analysis = nsnull);
+                                Analysis *analysis = nullptr);
 
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
     

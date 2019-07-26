@@ -486,7 +486,7 @@ public:
   nsIContent* GetFocusedNode()
   {
     if (IsOuterWindow()) {
-      return mInnerWindow ? mInnerWindow->mFocusedNode.get() : nsnull;
+      return mInnerWindow ? mInnerWindow->mFocusedNode.get() : nullptr;
     }
     return mFocusedNode;
   }
@@ -614,7 +614,7 @@ protected:
   void SetChromeEventHandlerInternal(nsIDOMEventTarget* aChromeEventHandler) {
     mChromeEventHandler = aChromeEventHandler;
     
-    mParentTarget = nsnull;
+    mParentTarget = nullptr;
   }
 
   virtual void UpdateParentTarget() = 0;
@@ -735,7 +735,7 @@ protected:
 
 private:
   
-  static void* operator new(size_t ) CPP_THROW_NEW { return nsnull; }
+  static void* operator new(size_t ) CPP_THROW_NEW { return nullptr; }
   static void operator delete(void* ) {}
 };
 

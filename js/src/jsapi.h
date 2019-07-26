@@ -3183,7 +3183,7 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
 
 
-    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 13];
+    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 12];
 
   protected:
     js::AutoCompartment *getAutoCompartment() {
@@ -3286,6 +3286,12 @@ JS_EnumerateResolvedStandardClasses(JSContext *cx, JSObject *obj,
 extern JS_PUBLIC_API(JSBool)
 JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
+
+extern JS_PUBLIC_API(JSBool)
+JS_GetClassPrototype(JSContext *cx, JSProtoKey key, JSObject **objp);
+
+extern JS_PUBLIC_API(JSProtoKey)
+JS_IdentifyClassPrototype(JSContext *cx, JSObject *obj);
 
 
 

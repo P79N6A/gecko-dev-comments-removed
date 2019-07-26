@@ -57,7 +57,7 @@ public:
 
 
   virtual bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
-                         nsAttrValue& aResult, nsresult* aParseResult = nsnull);
+                         nsAttrValue& aResult, nsresult* aParseResult = nullptr);
 
   
 

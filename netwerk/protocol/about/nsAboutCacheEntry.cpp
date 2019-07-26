@@ -353,7 +353,7 @@ nsAboutCacheEntry::WriteCacheEntryDescription(nsIOutputStream *outputStream,
     
     
     descriptor->VisitMetaData(this);
-    mBuffer = nsnull;
+    mBuffer = nullptr;
 
     buffer.AppendLiteral("</table>\n");
     outputStream->Write(buffer.get(), buffer.Length(), &n);

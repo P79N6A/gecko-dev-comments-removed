@@ -133,7 +133,7 @@ GetFirstMpathChild(nsIContent* aElem)
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 void
@@ -250,7 +250,7 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
   mPath = path.ToFlattenedPath(gfxMatrix());
   bool ok = path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
   if (!ok || !mPathVertices.Length()) {
-    mPath = nsnull;
+    mPath = nullptr;
   }
 }
 
@@ -262,7 +262,7 @@ SVGMotionSMILAnimationFunction::
   NS_ABORT_IF_FALSE(mIsPathStale, "rebuilding path when it isn't stale");
 
   
-  mPath = nsnull;
+  mPath = nullptr;
   mPathVertices.Clear();
   mPathSourceType = ePathSourceType_None;
 
@@ -437,7 +437,7 @@ SVGMotionSMILAnimationFunction::SetRotate(const nsAString& aRotate,
     
     nsSVGAngle svgAngle;
     svgAngle.Init();
-    nsresult rv = svgAngle.SetBaseValueString(aRotate, nsnull, false);
+    nsresult rv = svgAngle.SetBaseValueString(aRotate, nullptr, false);
     if (NS_FAILED(rv)) { 
       mRotateAngle = 0.0f; 
       

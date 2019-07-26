@@ -142,7 +142,7 @@ protected:
     
     
     if (mList) {
-      mList->ItemAt(mListIndex) = nsnull;
+      mList->ItemAt(mListIndex) = nullptr;
     }
   }
 

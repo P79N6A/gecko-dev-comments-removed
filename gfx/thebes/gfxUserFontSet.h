@@ -88,7 +88,7 @@ public:
         for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aOldFontEntry) {
-                aOldFontEntry->SetFamily(nsnull);
+                aOldFontEntry->SetFamily(nullptr);
                 
                 
                 mAvailableFonts[i] = aNewFontEntry;
@@ -104,7 +104,7 @@ public:
         for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aFontEntry) {
-                aFontEntry->SetFamily(nsnull);
+                aFontEntry->SetFamily(nullptr);
                 mAvailableFonts.RemoveElementAt(i);
                 break;
             }
@@ -120,7 +120,7 @@ public:
         while (i--) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe) {
-                fe->SetFamily(nsnull);
+                fe->SetFamily(nullptr);
             }
         }
         mAvailableFonts.Clear();
@@ -185,7 +185,7 @@ public:
                               PRUint32 aItalicStyle,
                               const nsTArray<gfxFontFeature>& aFeatureSettings,
                               const nsString& aLanguageOverride,
-                              gfxSparseBitSet *aUnicodeRanges = nsnull);
+                              gfxSparseBitSet *aUnicodeRanges = nullptr);
 
     
     void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
@@ -193,7 +193,7 @@ public:
     
     bool HasFamily(const nsAString& aFamilyName) const
     {
-        return GetFamily(aFamilyName) != nsnull;
+        return GetFamily(aFamilyName) != nullptr;
     }
 
     

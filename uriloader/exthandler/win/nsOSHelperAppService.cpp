@@ -33,7 +33,7 @@ static nsresult GetExtensionFromWindowsMimeDatabase(const nsACString& aMimeType,
 
 nsOSHelperAppService::nsOSHelperAppService() : 
   nsExternalHelperAppService()
-  , mAppAssoc(nsnull)
+  , mAppAssoc(nullptr)
 {
   CoInitialize(NULL);
   CoCreateInstance(CLSID_ApplicationAssociationRegistration, NULL, CLSCTX_INPROC,
@@ -44,7 +44,7 @@ nsOSHelperAppService::~nsOSHelperAppService()
 {
   if (mAppAssoc)
     mAppAssoc->Release();
-  mAppAssoc = nsnull;
+  mAppAssoc = nullptr;
   CoUninitialize();
 }
 
@@ -120,7 +120,7 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   {
     
     if (mAppAssoc) {
-      PRUnichar * pResult = nsnull;
+      PRUnichar * pResult = nullptr;
       NS_ConvertASCIItoUTF16 scheme(aProtocolScheme);
       
       HRESULT hr = mAppAssoc->QueryCurrentDefault(scheme.get(),
@@ -162,7 +162,7 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
 
   
   if (mAppAssoc) {
-    PRUnichar * pResult = nsnull;
+    PRUnichar * pResult = nullptr;
     
     HRESULT hr = mAppAssoc->QueryCurrentDefault(buf.get(),
                                                 AT_URLPROTOCOL, AL_EFFECTIVE,
@@ -388,7 +388,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
   
   
   aDefaultDescription = aAppInfo;
-  *aDefaultApplication = nsnull;
+  *aDefaultApplication = nullptr;
 
   if (aAppInfo.IsEmpty())
     return NS_ERROR_FAILURE;
@@ -475,7 +475,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
   if (!lf)
     return NS_ERROR_FILE_NOT_FOUND;
 
-  nsILocalFileWin* lfw = nsnull;
+  nsILocalFileWin* lfw = nullptr;
   CallQueryInterface(lf, &lfw);
 
   if (lfw) {
@@ -491,7 +491,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
 already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFlatString& aFileExt, const char *aTypeHint)
 {
   if (aFileExt.IsEmpty())
-    return nsnull;
+    return nullptr;
 
   
   
@@ -505,13 +505,13 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   nsCOMPtr<nsIWindowsRegKey> regKey = 
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
   if (!regKey) 
-    return nsnull; 
+    return nullptr; 
 
   nsresult rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
                              fileExtToUse,
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_FAILED(rv))
-    return nsnull; 
+    return nullptr; 
 
   nsCAutoString typeToUse;
   if (aTypeHint && *aTypeHint) {
@@ -521,7 +521,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
     nsAutoString temp;
     if (NS_FAILED(regKey->ReadStringValue(NS_LITERAL_STRING("Content Type"),
                   temp)) || temp.IsEmpty()) {
-      return nsnull; 
+      return nullptr; 
     }
     
     LossyAppendUTF16toASCII(temp, typeToUse);
@@ -529,7 +529,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
   nsMIMEInfoWin* mimeInfo = new nsMIMEInfoWin(typeToUse);
   if (!mimeInfo)
-    return nsnull; 
+    return nullptr; 
 
   NS_ADDREF(mimeInfo);
 
@@ -545,7 +545,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
     
     
     nsString assocType(fileExtToUse);
-    PRUnichar * pResult = nsnull;
+    PRUnichar * pResult = nullptr;
     HRESULT hr = mAppAssoc->QueryCurrentDefault(assocType.get(),
                                                 AT_FILEEXTENSION, AL_EFFECTIVE,
                                                 &pResult);
@@ -570,7 +570,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
   if (!found) {
     NS_IF_RELEASE(mimeInfo); 
-    return nsnull;
+    return nullptr;
   }
 
   
@@ -580,7 +580,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   if (NS_FAILED(GetDefaultAppInfo(appInfo, defaultDescription,
                                   getter_AddRefs(defaultApplication)))) {
     NS_IF_RELEASE(mimeInfo);
-    return nsnull;
+    return nullptr;
   }
 
   mimeInfo->SetDefaultDescription(defaultDescription);
@@ -619,7 +619,7 @@ already_AddRefed<nsIMIMEInfo> nsOSHelperAppService::GetMIMEInfoFromOS(const nsAC
     }
   }
   
-  nsMIMEInfoWin* mi = nsnull;
+  nsMIMEInfoWin* mi = nullptr;
   if (!fileExtension.IsEmpty())
     mi = GetByExtension(fileExtension, flatType.get()).get();
   LOG(("Extension lookup on '%s' found: 0x%p\n", fileExtension.get(), mi));

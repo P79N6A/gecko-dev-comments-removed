@@ -35,7 +35,7 @@
 
 
 
-PRLogModuleInfo* gFTPDirListConvLog = nsnull;
+PRLogModuleInfo* gFTPDirListConvLog = nullptr;
 
 #endif 
 
@@ -185,7 +185,7 @@ nsFTPDirListingConv::OnStopRequest(nsIRequest* request, nsISupports *ctxt,
 
 
 nsFTPDirListingConv::nsFTPDirListingConv() {
-    mFinalListener      = nsnull;
+    mFinalListener      = nullptr;
     mSentHeading        = false;
 }
 
@@ -200,7 +200,7 @@ nsFTPDirListingConv::Init() {
     
     
     
-    if (nsnull == gFTPDirListConvLog) {
+    if (nullptr == gFTPDirListConvLog) {
         gFTPDirListConvLog = PR_NewLogModule("nsFTPDirListingConv");
     }
 #endif 
@@ -356,7 +356,7 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
 nsresult
 NS_NewFTPDirListingConv(nsFTPDirListingConv** aFTPDirListingConv)
 {
-    NS_PRECONDITION(aFTPDirListingConv != nsnull, "null ptr");
+    NS_PRECONDITION(aFTPDirListingConv != nullptr, "null ptr");
     if (! aFTPDirListingConv)
         return NS_ERROR_NULL_POINTER;
 

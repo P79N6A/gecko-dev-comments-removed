@@ -46,7 +46,7 @@ public:
 
 
 
-  Interface* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
+  Interface* GetWeak(KeyType aKey, bool* aFound = nullptr) const;
 };
 
 
@@ -104,7 +104,7 @@ nsInterfaceHashtable<KeyClass,Interface>::Get
   
   
   if (pInterface)
-    *pInterface = nsnull;
+    *pInterface = nullptr;
 
   return false;
 }
@@ -139,7 +139,7 @@ nsInterfaceHashtable<KeyClass,Interface>::GetWeak
   
   if (aFound)
     *aFound = false;
-  return nsnull;
+  return nullptr;
 }
 
 
@@ -172,7 +172,7 @@ nsInterfaceHashtableMT<KeyClass,Interface>::Get
   
   
   if (pInterface)
-    *pInterface = nsnull;
+    *pInterface = nullptr;
 
   PR_Unlock(this->mLock);
 

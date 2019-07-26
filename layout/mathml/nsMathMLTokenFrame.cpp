@@ -186,7 +186,7 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
        childFrame = childFrame->GetNextSibling()) {
     nsHTMLReflowMetrics childSize;
     GetReflowAndBoundingMetricsFor(childFrame, childSize,
-                                   childSize.mBoundingMetrics, nsnull);
+                                   childSize.mBoundingMetrics, nullptr);
     
     mBoundingMetrics += childSize.mBoundingMetrics;
   }
@@ -212,7 +212,7 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
 
       
       dy = childSize.height == 0 ? 0 : aDesiredSize.ascent - childSize.ascent;
-      FinishReflowChild(childFrame, PresContext(), nsnull, childSize, dx, dy, 0);
+      FinishReflowChild(childFrame, PresContext(), nullptr, childSize, dx, dy, 0);
       dx += childSize.width;
     }
   }

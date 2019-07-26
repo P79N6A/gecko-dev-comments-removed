@@ -62,14 +62,14 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*       aPresContext,
   NS_PRECONDITION(aPresContext, "no pres context");
   NS_PRECONDITION(aRenderingContext, "no rendering context");
   NS_PRECONDITION(aFrame, "no frame");
-  parentReflowState = nsnull;
+  parentReflowState = nullptr;
   availableWidth = aAvailableSpace.width;
   availableHeight = aAvailableSpace.height;
-  mFloatManager = nsnull;
-  mLineLayout = nsnull;
+  mFloatManager = nullptr;
+  mLineLayout = nullptr;
   memset(&mFlags, 0, sizeof(mFlags));
-  mDiscoveredClearance = nsnull;
-  mPercentHeightObserver = nsnull;
+  mDiscoveredClearance = nullptr;
+  mPercentHeightObserver = nullptr;
 
   if (aFlags & DUMMY_PARENT_REFLOW_STATE) {
     mFlags.mDummyParentReflowState = true;
@@ -164,7 +164,7 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
   if (frame->IsFrameOfType(nsIFrame::eLineParticipant))
     mLineLayout = aParentReflowState.mLineLayout;
   else
-    mLineLayout = nsnull;
+    mLineLayout = nullptr;
 
   
   
@@ -176,10 +176,10 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
   mFlags.mIsColumnBalancing = false;
   mFlags.mDummyParentReflowState = false;
 
-  mDiscoveredClearance = nsnull;
+  mDiscoveredClearance = nullptr;
   mPercentHeightObserver = (aParentReflowState.mPercentHeightObserver && 
                             aParentReflowState.mPercentHeightObserver->NeedsToObserve(*this)) 
-                           ? aParentReflowState.mPercentHeightObserver : nsnull;
+                           ? aParentReflowState.mPercentHeightObserver : nullptr;
 
   if (aInit) {
     Init(aPresContext, aContainingBlockWidth, aContainingBlockHeight);
@@ -359,7 +359,7 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
 void nsHTMLReflowState::InitCBReflowState()
 {
   if (!parentReflowState) {
-    mCBReflowState = nsnull;
+    mCBReflowState = nullptr;
     return;
   }
 
@@ -534,12 +534,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     (mStylePosition->HeightDependsOnContainer() &&
      
      mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) ||
-    (mStylePosition->MinHeightDependsOnContainer() &&
-     
-     mStylePosition->mMinHeight.GetUnit() != eStyleUnit_Auto) ||
-    (mStylePosition->MaxHeightDependsOnContainer() &&
-     
-     mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_Auto) ||
+    mStylePosition->MinHeightDependsOnContainer() ||
+    mStylePosition->MaxHeightDependsOnContainer() ||
     mStylePosition->OffsetHasPercent(NS_SIDE_TOP) ||
     mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
     frame->IsBoxFrame();
@@ -841,7 +837,7 @@ nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
       
     }
   } else {
-    state = nsnull;
+    state = nullptr;
   }
   
   if (state) {
@@ -1257,7 +1253,7 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
   nsIFrame*     placeholderFrame;
 
   placeholderFrame = aPresContext->PresShell()->GetPlaceholderFrameFor(frame);
-  NS_ASSERTION(nsnull != placeholderFrame, "no placeholder frame");
+  NS_ASSERTION(nullptr != placeholderFrame, "no placeholder frame");
 
   
   
@@ -1585,8 +1581,8 @@ GetVerticalMarginBorderPadding(const nsHTMLReflowState* aReflowState)
 static nscoord
 CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
 {
-  nsHTMLReflowState* firstAncestorRS = nsnull; 
-  nsHTMLReflowState* secondAncestorRS = nsnull; 
+  nsHTMLReflowState* firstAncestorRS = nullptr; 
+  nsHTMLReflowState* secondAncestorRS = nullptr; 
   
   
   
@@ -1755,7 +1751,7 @@ static bool BlinkIsAllowed(void)
   if (!sPrefIsLoaded) {
     
     Preferences::RegisterCallback(PrefsChanged, "browser.blink_allowed");
-    PrefsChanged(nsnull, nsnull);
+    PrefsChanged(nullptr, nullptr);
     sPrefIsLoaded = true;
   }
   return sBlinkIsAllowed;
@@ -1801,7 +1797,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
   
   
-  if (nsnull == parentReflowState) {
+  if (nullptr == parentReflowState) {
     
     InitOffsets(aContainingBlockWidth, aFrameType, aBorder, aPadding);
     
@@ -1825,7 +1821,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
   } else {
     
     const nsHTMLReflowState* cbrs = mCBReflowState;
-    NS_ASSERTION(nsnull != cbrs, "no containing block");
+    NS_ASSERTION(nullptr != cbrs, "no containing block");
 
     
     
@@ -1868,7 +1864,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
             NS_FRAME_REPLACED_CONTAINS_BLOCK(
                 NS_CSS_FRAME_TYPE_INLINE) == mFrameType) {
           
-          NS_ASSERTION(nsnull != cbrs, "no containing block");
+          NS_ASSERTION(nullptr != cbrs, "no containing block");
           
           if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode()) {
             if (!IS_TABLE_CELL(fType)) {
@@ -2258,7 +2254,7 @@ nsHTMLReflowState::CalculateBlockSideMargins(nscoord aAvailWidth,
 static nscoord
 GetNormalLineHeight(nsFontMetrics* aFontMetrics)
 {
-  NS_PRECONDITION(nsnull != aFontMetrics, "no font metrics");
+  NS_PRECONDITION(nullptr != aFontMetrics, "no font metrics");
 
   nscoord normalLineHeight;
 

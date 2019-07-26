@@ -53,7 +53,7 @@ nsGridRowLayout::GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox)
 {
   
   
-  *aParentBox = nsnull;
+  *aParentBox = nullptr;
   
   
   aBox = nsGrid::GetScrollBox(aBox);
@@ -71,7 +71,7 @@ nsGridRowLayout::GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox)
     }
   }
 
-  return nsnull;
+  return nullptr;
 }
 
 
@@ -79,13 +79,13 @@ nsGrid*
 nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aRequestor)
 {
 
-   if (aRequestor == nsnull)
+   if (aRequestor == nullptr)
    {
       nsIBox* parentBox; 
       nsIGridPart* parent = GetParentGridPart(aBox, &parentBox);
       if (parent)
          return parent->GetGrid(parentBox, aIndex, this);
-      return nsnull;
+      return nullptr;
    }
 
    PRInt32 index = -1;
@@ -116,7 +116,7 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
    
    if (index == -1) {
      *aIndex = -1;
-     return nsnull;
+     return nullptr;
    }
 
    (*aIndex) += index;
@@ -126,7 +126,7 @@ nsGridRowLayout::GetGrid(nsIBox* aBox, PRInt32* aIndex, nsGridRowLayout* aReques
    if (parent)
      return parent->GetGrid(parentBox, aIndex, this);
 
-   return nsnull;
+   return nullptr;
 }
 
 nsMargin
@@ -134,7 +134,7 @@ nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
 {
   
   nsMargin margin(0,0,0,0);
-  nsIBox* parent = nsnull;
+  nsIBox* parent = nullptr;
   nsIGridPart* part = GetParentGridPart(aBox, &parent);
   if (part && parent) {
     
@@ -151,7 +151,7 @@ nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
     margin = part->GetTotalMargin(parent, aIsHorizontal);
 
     
-    if (child == aBox || next == nsnull) {
+    if (child == aBox || next == nullptr) {
 
        
        
@@ -165,7 +165,7 @@ nsGridRowLayout::GetTotalMargin(nsIBox* aBox, bool aIsHorizontal)
 
        
        
-       if (next != nsnull)
+       if (next != nullptr)
        {
           if (aIsHorizontal)
               margin.bottom = 0;

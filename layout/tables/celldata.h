@@ -277,7 +277,7 @@ inline nsTableCellFrame* CellData::GetCellFrame() const
   if (SPAN != (SPAN & mBits)) {
     return mOrigCell;
   }
-  return nsnull;
+  return nullptr;
 }
 
 inline void CellData::Init(nsTableCellFrame* aCellFrame)
@@ -287,7 +287,7 @@ inline void CellData::Init(nsTableCellFrame* aCellFrame)
 
 inline bool CellData::IsOrig() const
 {
-  return ((nsnull != mOrigCell) && (SPAN != (SPAN & mBits)));
+  return ((nullptr != mOrigCell) && (SPAN != (SPAN & mBits)));
 }
 
 inline bool CellData::IsDead() const

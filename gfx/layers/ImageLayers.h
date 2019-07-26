@@ -434,7 +434,7 @@ public:
 
 
   already_AddRefed<gfxASurface> LockCurrentAsSurface(gfxIntSize* aSizeResult,
-                                                     Image** aCurrentImage = nsnull);
+                                                     Image** aCurrentImage = nullptr);
 
   
 
@@ -608,9 +608,9 @@ public:
 
   void Unlock() { 
     if (mContainer) {
-      mImage = nsnull;
+      mImage = nullptr;
       mContainer->UnlockCurrentImage();
-      mContainer = nsnull;
+      mContainer = nullptr;
     }
   }
 
@@ -687,8 +687,8 @@ public:
     
     
     mEffectiveTransform =
-        SnapTransform(GetLocalTransform(), snap, nsnull)*
-        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+        SnapTransform(GetLocalTransform(), snap, nullptr)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
@@ -1002,7 +1002,7 @@ public:
   virtual already_AddRefed<gfxASurface> GetAsSurface()
   {
     
-    return nsnull;
+    return nullptr;
   }
 
   void* GetNativeBuffer()

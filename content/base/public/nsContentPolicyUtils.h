@@ -183,8 +183,8 @@ NS_CheckContentLoadPolicy(PRUint32          contentType,
                           const nsACString &mimeType,
                           nsISupports      *extra,
                           PRInt16          *decision,
-                          nsIContentPolicy *policyService = nsnull,
-                          nsIScriptSecurityManager* aSecMan = nsnull)
+                          nsIContentPolicy *policyService = nullptr,
+                          nsIScriptSecurityManager* aSecMan = nullptr)
 {
     CHECK_PRINCIPAL;
     if (policyService) {
@@ -210,8 +210,8 @@ NS_CheckContentProcessPolicy(PRUint32          contentType,
                              const nsACString &mimeType,
                              nsISupports      *extra,
                              PRInt16          *decision,
-                             nsIContentPolicy *policyService = nsnull,
-                             nsIScriptSecurityManager* aSecMan = nsnull)
+                             nsIContentPolicy *policyService = nullptr,
+                             nsIScriptSecurityManager* aSecMan = nullptr)
 {
     CHECK_PRINCIPAL;
     if (policyService) {
@@ -250,7 +250,7 @@ inline nsIDocShell*
 NS_CP_GetDocShellFromContext(nsISupports *aContext)
 {
     if (!aContext) {
-        return nsnull;
+        return nullptr;
     }
 
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aContext);
@@ -278,7 +278,7 @@ NS_CP_GetDocShellFromContext(nsISupports *aContext)
     }
 
     if (!window) {
-        return nsnull;
+        return nullptr;
     }
 
     return window->GetDocShell();

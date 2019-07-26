@@ -324,10 +324,10 @@ public:
 
   static PRInt32 ComparePoints(nsINode* aParent1, PRInt32 aOffset1,
                                nsINode* aParent2, PRInt32 aOffset2,
-                               bool* aDisconnected = nsnull);
+                               bool* aDisconnected = nullptr);
   static PRInt32 ComparePoints(nsIDOMNode* aParent1, PRInt32 aOffset1,
                                nsIDOMNode* aParent2, PRInt32 aOffset2,
-                               bool* aDisconnected = nsnull);
+                               bool* aDisconnected = nullptr);
 
   
 
@@ -548,7 +548,7 @@ public:
 
 
   static bool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
-                          nsACString& aCharset, bool *bigEndian = nsnull);
+                          nsACString& aCharset, bool *bigEndian = nullptr);
 
   static nsresult GuessCharset(const char *aData, PRUint32 aDataLen,
                                nsACString &aCharset);
@@ -566,7 +566,7 @@ public:
 
   static nsresult CheckQName(const nsAString& aQualifiedName,
                              bool aNamespaceAware = true,
-                             const PRUnichar** aColon = nsnull);
+                             const PRUnichar** aColon = nullptr);
 
   static nsresult SplitQName(const nsIContent* aNamespaceResolver,
                              const nsAFlatString& aQName,
@@ -649,7 +649,7 @@ public:
                              nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
                              nsIPrincipal* aLoadingPrincipal,
-                             PRInt16* aImageBlockingStatus = nsnull);
+                             PRInt16* aImageBlockingStatus = nullptr);
   
 
 
@@ -683,7 +683,7 @@ public:
 
 
 
-  static already_AddRefed<imgIContainer> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nsnull);
+  static already_AddRefed<imgIContainer> GetImageFromContent(nsIImageLoadingContent* aContent, imgIRequest **aRequest = nullptr);
 
   
 
@@ -801,9 +801,9 @@ public:
                                   nsIDocument* aDocument,
                                   PropertiesFile aFile,
                                   const char *aMessageName,
-                                  const PRUnichar **aParams = nsnull,
+                                  const PRUnichar **aParams = nullptr,
                                   PRUint32 aParamsLength = 0,
-                                  nsIURI* aURI = nsnull,
+                                  nsIURI* aURI = nullptr,
                                   const nsAFlatString& aSourceLine
                                     = EmptyString(),
                                   PRUint32 aLineNumber = 0,
@@ -936,7 +936,7 @@ public:
                                        const nsAString& aEventName,
                                        bool aCanBubble,
                                        bool aCancelable,
-                                       bool *aDefaultAction = nsnull);
+                                       bool *aDefaultAction = nullptr);
                                        
   
 
@@ -956,7 +956,7 @@ public:
                                          const nsAString& aEventName,
                                          bool aCanBubble,
                                          bool aCancelable,
-                                         bool *aDefaultAction = nsnull);
+                                         bool *aDefaultAction = nullptr);
 
   
 
@@ -978,7 +978,7 @@ public:
                                       const nsAString& aEventName,
                                       bool aCanBubble,
                                       bool aCancelable,
-                                      bool *aDefaultAction = nsnull);
+                                      bool *aDefaultAction = nullptr);
 
   
 
@@ -1344,7 +1344,7 @@ public:
                                           PRUint32 aContentPolicyType,
                                           nsISupports* aContext,
                                           const nsACString& aMimeGuess = EmptyCString(),
-                                          nsISupports* aExtra = nsnull);
+                                          nsISupports* aExtra = nullptr);
 
   
 
@@ -1677,8 +1677,8 @@ public:
 
   static nsresult DispatchXULCommand(nsIContent* aTarget,
                                      bool aTrusted,
-                                     nsIDOMEvent* aSourceEvent = nsnull,
-                                     nsIPresShell* aShell = nsnull,
+                                     nsIDOMEvent* aSourceEvent = nullptr,
+                                     nsIPresShell* aShell = nullptr,
                                      bool aCtrl = false,
                                      bool aAlt = false,
                                      bool aShift = false,
@@ -1707,10 +1707,10 @@ public:
                              nsISupports *native, const nsIID* aIID, jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
+                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
+    return WrapNative(cx, scope, native, nullptr, aIID, vp, aHolder,
                       aAllowWrapping);
   }
 
@@ -1719,10 +1719,10 @@ public:
                              nsISupports *native, jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
+                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
+    return WrapNative(cx, scope, native, nullptr, nullptr, vp, aHolder,
                       aAllowWrapping);
   }
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
@@ -1730,10 +1730,10 @@ public:
                              jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
+                             nsIXPConnectJSObjectHolder** aHolder = nullptr,
                              bool aAllowWrapping = false)
   {
-    return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
+    return WrapNative(cx, scope, native, cache, nullptr, vp, aHolder,
                       aAllowWrapping);
   }
 
@@ -1793,7 +1793,7 @@ public:
 
 
   static already_AddRefed<mozilla::layers::LayerManager>
-  LayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nsnull);
+  LayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
 
   
 
@@ -1810,7 +1810,7 @@ public:
 
 
   static already_AddRefed<mozilla::layers::LayerManager>
-  PersistentLayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nsnull);
+  PersistentLayerManagerForDocument(nsIDocument *aDoc, bool *aAllowRetaining = nullptr);
 
   
 
@@ -1913,7 +1913,7 @@ public:
 
   static already_AddRefed<nsIDocumentLoaderFactory>
   FindInternalContentViewer(const char* aType,
-                            ContentViewerType* aLoaderType = nsnull);
+                            ContentViewerType* aLoaderType = nullptr);
 
   
 
@@ -2091,7 +2091,7 @@ private:
                                 bool aCanBubble,
                                 bool aCancelable,
                                 bool aTrusted,
-                                bool *aDefaultAction = nsnull);
+                                bool *aDefaultAction = nullptr);
 
   static void InitializeModifierStrings();
 
@@ -2269,7 +2269,7 @@ public:
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
     foundInterface = static_cast<_interface *>(_allocator);                   \
     if (!foundInterface) {                                                    \
-      *aInstancePtr = nsnull;                                                 \
+      *aInstancePtr = nullptr;                                                 \
       return NS_ERROR_OUT_OF_MEMORY;                                          \
     }                                                                         \
   } else
@@ -2313,10 +2313,10 @@ public:
 #define NS_CONTENT_DELETE_LIST_MEMBER(type_, ptr_, member_)                   \
   {                                                                           \
     type_ *cur = (ptr_)->member_;                                             \
-    (ptr_)->member_ = nsnull;                                                 \
+    (ptr_)->member_ = nullptr;                                                 \
     while (cur) {                                                             \
       type_ *next = cur->member_;                                             \
-      cur->member_ = nsnull;                                                  \
+      cur->member_ = nullptr;                                                  \
       delete cur;                                                             \
       cur = next;                                                             \
     }                                                                         \
@@ -2330,7 +2330,7 @@ public:
   nsresult GetParameter(const char* aParameterName, nsAString& aResult);
   nsresult GetType(nsAString& aResult)
   {
-    return GetParameter(nsnull, aResult);
+    return GetParameter(nullptr, aResult);
   }
 
 private:

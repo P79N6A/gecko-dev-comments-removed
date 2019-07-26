@@ -1,11 +1,11 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
+/*
+ * A class for handing out nodeinfos and ensuring sharing of them as needed.
+ */
 
 #include "nsNodeInfoManager.h"
 #include "nsNodeInfo.h"
@@ -27,7 +27,7 @@
 using namespace mozilla;
 
 #ifdef MOZ_LOGGING
-
+// so we can get logging even in release builds
 #define FORCE_PR_LOG 1
 #endif
 #include "prlog.h"
@@ -45,9 +45,9 @@ nsNodeInfoManager::GetNodeInfoInnerHashValue(const void *key)
     reinterpret_cast<const nsINodeInfo::nsNodeInfoInner *>(key);
 
   if (node->mName) {
-    
-    
-    
+    // Ideally, we'd return node->mName->hash() here.  But that doesn't work at
+    // the moment because node->mName->hash() is not the same as
+    // HashString(*(node->mNameString)).  See bug 732815.
     return HashString(nsDependentAtomString(node->mName));
   }
   return HashString(*(node->mNameString));
@@ -85,13 +85,13 @@ nsNodeInfoManager::NodeInfoInnerKeyCompare(const void *key1, const void *key2)
 
 
 nsNodeInfoManager::nsNodeInfoManager()
-  : mDocument(nsnull),
+  : mDocument(nullptr),
     mNonDocumentNodeInfos(0),
-    mPrincipal(nsnull),
-    mTextNodeInfo(nsnull),
-    mCommentNodeInfo(nsnull),
-    mDocumentNodeInfo(nsnull),
-    mBindingManager(nsnull)
+    mPrincipal(nullptr),
+    mTextNodeInfo(nullptr),
+    mCommentNodeInfo(nullptr),
+    mDocumentNodeInfo(nullptr),
+    mBindingManager(nullptr)
 {
   nsLayoutStatics::AddRef();
 
@@ -106,7 +106,7 @@ nsNodeInfoManager::nsNodeInfoManager()
 
   mNodeInfoHash = PL_NewHashTable(32, GetNodeInfoInnerHashValue,
                                   NodeInfoInnerKeyCompare,
-                                  PL_CompareValues, nsnull, nsnull);
+                                  PL_CompareValues, nullptr, nullptr);
 }
 
 
@@ -115,7 +115,7 @@ nsNodeInfoManager::~nsNodeInfoManager()
   if (mNodeInfoHash)
     PL_HashTableDestroy(mNodeInfoHash);
 
-  
+  // Note: mPrincipal may be null here if we never got inited correctly
   NS_IF_RELEASE(mPrincipal);
 
   NS_IF_RELEASE(mBindingManager);
@@ -182,11 +182,11 @@ nsNodeInfoManager::Init(nsIDocument *aDocument)
   return NS_OK;
 }
 
-
+// static
 PRIntn
 nsNodeInfoManager::DropNodeInfoDocument(PLHashEntry *he, PRIntn hashIndex, void *arg)
 {
-  static_cast<nsINodeInfo*>(he->value)->mDocument = nsnull;
+  static_cast<nsINodeInfo*>(he->value)->mDocument = nullptr;
   return HT_ENUMERATE_NEXT;
 }
 
@@ -197,18 +197,18 @@ nsNodeInfoManager::DropDocumentReference()
     mBindingManager->DropDocumentReference();
   }
 
-  
-  PL_HashTableEnumerateEntries(mNodeInfoHash, DropNodeInfoDocument, nsnull);
+  // This is probably not needed anymore.
+  PL_HashTableEnumerateEntries(mNodeInfoHash, DropNodeInfoDocument, nullptr);
 
   NS_ASSERTION(!mNonDocumentNodeInfos, "Shouldn't have non-document nodeinfos!");
-  mDocument = nsnull;
+  mDocument = nullptr;
 }
 
 
 already_AddRefed<nsINodeInfo>
 nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
                                PRInt32 aNamespaceID, PRUint16 aNodeType,
-                               nsIAtom* aExtraName )
+                               nsIAtom* aExtraName /* = nullptr */)
 {
   CHECK_VALID_NODEINFO(aNodeType, aName, aNamespaceID, aExtraName);
 
@@ -228,20 +228,20 @@ nsNodeInfoManager::GetNodeInfo(nsIAtom *aName, nsIAtom *aPrefix,
   nsRefPtr<nsNodeInfo> newNodeInfo =
     nsNodeInfo::Create(aName, aPrefix, aNamespaceID, aNodeType, aExtraName,
                        this);
-  NS_ENSURE_TRUE(newNodeInfo, nsnull);
+  NS_ENSURE_TRUE(newNodeInfo, nullptr);
   
   PLHashEntry *he;
   he = PL_HashTableAdd(mNodeInfoHash, &newNodeInfo->mInner, newNodeInfo);
-  NS_ENSURE_TRUE(he, nsnull);
+  NS_ENSURE_TRUE(he, nullptr);
 
-  
-  
+  // Have to do the swap thing, because already_AddRefed<nsNodeInfo>
+  // doesn't cast to already_AddRefed<nsINodeInfo>
   ++mNonDocumentNodeInfos;
   if (mNonDocumentNodeInfos == 1) {
     NS_IF_ADDREF(mDocument);
   }
 
-  nsNodeInfo *nodeInfo = nsnull;
+  nsNodeInfo *nodeInfo = nullptr;
   newNodeInfo.swap(nodeInfo);
 
   return nodeInfo;
@@ -256,7 +256,7 @@ nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
 #ifdef DEBUG
   {
     nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aName);
-    CHECK_VALID_NODEINFO(aNodeType, nameAtom, aNamespaceID, nsnull);
+    CHECK_VALID_NODEINFO(aNodeType, nameAtom, aNamespaceID, nullptr);
   }
 #endif
 
@@ -277,7 +277,7 @@ nsNodeInfoManager::GetNodeInfo(const nsAString& aName, nsIAtom *aPrefix,
   NS_ENSURE_TRUE(nameAtom, NS_ERROR_OUT_OF_MEMORY);
 
   nsRefPtr<nsNodeInfo> newNodeInfo =
-      nsNodeInfo::Create(nameAtom, aPrefix, aNamespaceID, aNodeType, nsnull,
+      nsNodeInfo::Create(nameAtom, aPrefix, aNamespaceID, aNodeType, nullptr,
                          this);
   NS_ENSURE_TRUE(newNodeInfo, NS_ERROR_OUT_OF_MEMORY);
 
@@ -317,9 +317,9 @@ already_AddRefed<nsINodeInfo>
 nsNodeInfoManager::GetTextNodeInfo()
 {
   if (!mTextNodeInfo) {
-    mTextNodeInfo = GetNodeInfo(nsGkAtoms::textTagName, nsnull,
+    mTextNodeInfo = GetNodeInfo(nsGkAtoms::textTagName, nullptr,
                                 kNameSpaceID_None,
-                                nsIDOMNode::TEXT_NODE, nsnull).get();
+                                nsIDOMNode::TEXT_NODE, nullptr).get();
   }
   else {
     NS_ADDREF(mTextNodeInfo);
@@ -332,9 +332,9 @@ already_AddRefed<nsINodeInfo>
 nsNodeInfoManager::GetCommentNodeInfo()
 {
   if (!mCommentNodeInfo) {
-    mCommentNodeInfo = GetNodeInfo(nsGkAtoms::commentTagName, nsnull,
+    mCommentNodeInfo = GetNodeInfo(nsGkAtoms::commentTagName, nullptr,
                                    kNameSpaceID_None,
-                                   nsIDOMNode::COMMENT_NODE, nsnull).get();
+                                   nsIDOMNode::COMMENT_NODE, nullptr).get();
   }
   else {
     NS_ADDREF(mCommentNodeInfo);
@@ -348,12 +348,12 @@ nsNodeInfoManager::GetDocumentNodeInfo()
 {
   if (!mDocumentNodeInfo) {
     NS_ASSERTION(mDocument, "Should have mDocument!");
-    mDocumentNodeInfo = GetNodeInfo(nsGkAtoms::documentNodeName, nsnull,
+    mDocumentNodeInfo = GetNodeInfo(nsGkAtoms::documentNodeName, nullptr,
                                     kNameSpaceID_None,
-                                    nsIDOMNode::DOCUMENT_NODE, nsnull).get();
+                                    nsIDOMNode::DOCUMENT_NODE, nullptr).get();
     --mNonDocumentNodeInfos;
     if (!mNonDocumentNodeInfos) {
-      mDocument->Release(); 
+      mDocument->Release(); // Don't set mDocument to null!
     }
   }
   else {
@@ -382,22 +382,22 @@ nsNodeInfoManager::RemoveNodeInfo(nsNodeInfo *aNodeInfo)
   NS_PRECONDITION(aNodeInfo, "Trying to remove null nodeinfo from manager!");
 
   if (aNodeInfo == mDocumentNodeInfo) {
-    mDocumentNodeInfo = nsnull;
-    mDocument = nsnull;
+    mDocumentNodeInfo = nullptr;
+    mDocument = nullptr;
   } else {
     if (--mNonDocumentNodeInfos == 0) {
       if (mDocument) {
-        
-        
+        // Note, whoever calls this method should keep NodeInfoManager alive,
+        // even if mDocument gets deleted.
         mDocument->Release();
       }
     }
-    
+    // Drop weak reference if needed
     if (aNodeInfo == mTextNodeInfo) {
-      mTextNodeInfo = nsnull;
+      mTextNodeInfo = nullptr;
     }
     else if (aNodeInfo == mCommentNodeInfo) {
-      mCommentNodeInfo = nsnull;
+      mCommentNodeInfo = nullptr;
     }
   }
 

@@ -1,11 +1,11 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
+/*
+ * A service that provides methods for synchronously loading a DOM in various ways.
+ */
 
 #include "nsSyncLoadService.h"
 #include "nsCOMPtr.h"
@@ -25,9 +25,9 @@
 #include "nsStreamUtils.h"
 #include "nsCrossSiteListenerProxy.h"
 
-
-
-
+/**
+ * This class manages loading a single XML document
+ */
 
 class nsSyncLoader : public nsIStreamListener,
                      public nsIChannelEventSink,
@@ -130,7 +130,7 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
                            nsIDOMDocument **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
-    *aResult = nsnull;
+    *aResult = nullptr;
     nsresult rv = NS_OK;
 
     nsCOMPtr<nsIURI> loaderUri;
@@ -149,26 +149,26 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
         }
     }
 
-    
-    
-    
+    // Hook us up to listen to redirects and the like.
+    // Do this before setting up the cross-site proxy since
+    // that installs its own proxies.
     mChannel->SetNotificationCallbacks(this);
 
-    
+    // Get the loadgroup of the channel
     nsCOMPtr<nsILoadGroup> loadGroup;
     rv = aChannel->GetLoadGroup(getter_AddRefs(loadGroup));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
+    // Create document
     nsCOMPtr<nsIDocument> document;
     rv = NS_NewXMLDocument(getter_AddRefs(document));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
+    // Start the document load. Do this before we attach the load listener
+    // since we reset the document which drops all observers.
     nsCOMPtr<nsIStreamListener> listener;
     rv = document->StartDocumentLoad(kLoadAsData, mChannel, 
-                                     loadGroup, nsnull, 
+                                     loadGroup, nullptr, 
                                      getter_AddRefs(listener),
                                      true);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -199,9 +199,9 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
             rv = NS_ERROR_FAILURE;
         }
     }
-    mChannel = nsnull;
+    mChannel = nullptr;
 
-    
+    // check that the load succeeded
     NS_ENSURE_SUCCESS(rv, rv);
 
     NS_ENSURE_TRUE(document->GetRootElement(), NS_ERROR_FAILURE);
@@ -216,11 +216,11 @@ nsSyncLoader::PushAsyncStream(nsIStreamListener* aListener)
 
     mAsyncLoadStatus = NS_OK;
 
-    
-    nsresult rv = mChannel->AsyncOpen(this, nsnull);
+    // Start reading from the channel
+    nsresult rv = mChannel->AsyncOpen(this, nullptr);
 
     if (NS_SUCCEEDED(rv)) {
-        
+        // process events until we're finished.
         mLoading = true;
         nsIThread *thread = NS_GetCurrentThread();
         while (mLoading && NS_SUCCEEDED(rv)) {
@@ -231,12 +231,12 @@ nsSyncLoader::PushAsyncStream(nsIStreamListener* aListener)
         }
     }
 
-    mListener = nsnull;
+    mListener = nullptr;
 
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
+    // Note that if AsyncOpen failed that's ok -- the only caller of
+    // this method nulls out mChannel immediately after we return.
 
     return mAsyncLoadStatus;
 }
@@ -298,14 +298,14 @@ nsSyncLoader::GetInterface(const nsIID & aIID,
     return QueryInterface(aIID, aResult);
 }
 
-
+/* static */
 nsresult
 nsSyncLoadService::LoadDocument(nsIURI *aURI, nsIPrincipal *aLoaderPrincipal,
                                 nsILoadGroup *aLoadGroup, bool aForceToXML,
                                 nsIDOMDocument** aResult)
 {
     nsCOMPtr<nsIChannel> channel;
-    nsresult rv = NS_NewChannel(getter_AddRefs(channel), aURI, nsnull,
+    nsresult rv = NS_NewChannel(getter_AddRefs(channel), aURI, nullptr,
                                 aLoadGroup);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -325,13 +325,13 @@ nsSyncLoadService::LoadDocument(nsIURI *aURI, nsIPrincipal *aLoaderPrincipal,
 
 }
 
-
+/* static */
 nsresult
 nsSyncLoadService::PushSyncStreamToListener(nsIInputStream* aIn,
                                             nsIStreamListener* aListener,
                                             nsIChannel* aChannel)
 {
-    
+    // Set up buffering stream
     nsresult rv;
     nsCOMPtr<nsIInputStream> bufferedStream;
     if (!NS_InputStreamIsBuffered(aIn)) {
@@ -349,8 +349,8 @@ nsSyncLoadService::PushSyncStreamToListener(nsIInputStream* aIn,
         aIn = bufferedStream;
     }
 
-    
-    rv = aListener->OnStartRequest(aChannel, nsnull);
+    // Load
+    rv = aListener->OnStartRequest(aChannel, nullptr);
     if (NS_SUCCEEDED(rv)) {
         PRUint32 sourceOffset = 0;
         while (1) {
@@ -358,13 +358,13 @@ nsSyncLoadService::PushSyncStreamToListener(nsIInputStream* aIn,
             rv = aIn->Available(&readCount);
             if (NS_FAILED(rv) || !readCount) {
                 if (rv == NS_BASE_STREAM_CLOSED) {
-                    
+                    // End of file, but not an error
                     rv = NS_OK;
                 }
                 break;
             }
 
-            rv = aListener->OnDataAvailable(aChannel, nsnull, aIn,
+            rv = aListener->OnDataAvailable(aChannel, nullptr, aIn,
                                             sourceOffset, readCount);
             if (NS_FAILED(rv)) {
                 break;
@@ -375,7 +375,7 @@ nsSyncLoadService::PushSyncStreamToListener(nsIInputStream* aIn,
     if (NS_FAILED(rv)) {
         aChannel->Cancel(rv);
     }
-    aListener->OnStopRequest(aChannel, nsnull, rv);
+    aListener->OnStopRequest(aChannel, nullptr, rv);
 
     return rv;
 }

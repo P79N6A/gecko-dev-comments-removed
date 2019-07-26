@@ -616,7 +616,7 @@ BOOL SymGetModuleInfoEspecial64(HANDLE aProcess, DWORD64 aAddr, PIMAGEHLP_MODULE
 
 
     aModuleInfo->SizeOfStruct = NS_IMAGEHLP_MODULE64_SIZE;
-    if (nsnull != aLineInfo) {
+    if (nullptr != aLineInfo) {
         aLineInfo->SizeOfStruct = sizeof(IMAGEHLP_LINE64);
     }
 
@@ -655,7 +655,7 @@ BOOL SymGetModuleInfoEspecial64(HANDLE aProcess, DWORD64 aAddr, PIMAGEHLP_MODULE
 
 
 
-    if (FALSE != retval && nsnull != aLineInfo) {
+    if (FALSE != retval && nullptr != aLineInfo) {
         DWORD displacement = 0;
         BOOL lineRes = FALSE;
         lineRes = SymGetLineFromAddr64(aProcess, aAddr, &displacement, aLineInfo);

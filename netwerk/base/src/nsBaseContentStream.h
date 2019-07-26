@@ -50,7 +50,7 @@ public:
   bool IsClosed() { return NS_FAILED(mStatus); }
 
   
-  bool HasPendingCallback() { return mCallback != nsnull; }
+  bool HasPendingCallback() { return mCallback != nullptr; }
 
   
   nsIEventTarget *CallbackTarget() { return mCallbackTarget; }

@@ -102,7 +102,7 @@ private:
   
   void CompleteResume();
   nsresult AsyncCall(void (FTPChannelChild::*funcPtr)(),
-                     nsRunnableMethod<FTPChannelChild> **retval = nsnull);
+                     nsRunnableMethod<FTPChannelChild> **retval = nullptr);
 
   nsCOMPtr<nsIInputStream> mUploadStream;
 

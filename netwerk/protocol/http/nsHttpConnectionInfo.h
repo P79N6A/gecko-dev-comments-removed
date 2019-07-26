@@ -79,9 +79,9 @@ public:
     
     nsHttpConnectionInfo* Clone() const;
 
-    const char *ProxyHost() const { return mProxyInfo ? mProxyInfo->Host().get() : nsnull; }
+    const char *ProxyHost() const { return mProxyInfo ? mProxyInfo->Host().get() : nullptr; }
     PRInt32     ProxyPort() const { return mProxyInfo ? mProxyInfo->Port() : -1; }
-    const char *ProxyType() const { return mProxyInfo ? mProxyInfo->Type() : nsnull; }
+    const char *ProxyType() const { return mProxyInfo ? mProxyInfo->Type() : nullptr; }
 
     
     

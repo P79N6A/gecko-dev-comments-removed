@@ -129,7 +129,7 @@ public:
     
     
     static void      ReleaseObject_Locked(nsISupports *    object,
-                                          nsIEventTarget * target = nsnull);
+                                          nsIEventTarget * target = nullptr);
 
     static nsresult DispatchToCacheIOThread(nsIRunnable* event);
 

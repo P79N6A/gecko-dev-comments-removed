@@ -79,7 +79,7 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     if (!launched) {
         
         parent->mShutdown = true;
-        return nsnull;
+        return nullptr;
     }
     parent->Open(parent->mSubprocess->GetChannel(),
                  parent->mSubprocess->GetChildProcessHandle());
@@ -90,7 +90,7 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     
     if (!CrashReporterParent::CreateCrashReporter(parent.get())) {
         parent->mShutdown = true;
-        return nsnull;
+        return nullptr;
     }
 #endif
 
@@ -132,7 +132,7 @@ PluginModuleParent::~PluginModuleParent()
 
     if (mSubprocess) {
         mSubprocess->Delete();
-        mSubprocess = nsnull;
+        mSubprocess = nullptr;
     }
 
 #ifdef MOZ_CRASHREPORTER_INJECTOR
@@ -385,7 +385,7 @@ PluginModuleParent::AllocPPluginIdentifier(const nsCString& aString,
 
     if (!npident) {
         NS_WARNING("Failed to get identifier!");
-        return nsnull;
+        return nullptr;
     }
 
     PluginIdentifierParent* ident = new PluginIdentifierParent(npident, false);
@@ -423,7 +423,7 @@ void
 PluginModuleParent::SetPluginFuncs(NPPluginFuncs* aFuncs)
 {
     aFuncs->version = (NP_VERSION_MAJOR << 8) | NP_VERSION_MINOR;
-    aFuncs->javaClass = nsnull;
+    aFuncs->javaClass = nullptr;
 
     
     aFuncs->newp = NULL;
@@ -475,7 +475,7 @@ PluginModuleParent::NPP_Destroy(NPP instance,
         return NPERR_NO_ERROR;
 
     NPError retval = parentInstance->Destroy();
-    instance->pdata = nsnull;
+    instance->pdata = nullptr;
 
     unused << PluginInstanceParent::Call__delete__(parentInstance);
     return retval;
@@ -634,7 +634,7 @@ PluginModuleParent::NPP_URLRedirectNotify(NPP instance, const char* url,
 bool
 PluginModuleParent::AnswerNPN_UserAgent(nsCString* userAgent)
 {
-    *userAgent = NullableString(mNPNIface->uagent(nsnull));
+    *userAgent = NullableString(mNPNIface->uagent(nullptr));
     return true;
 }
 
@@ -656,7 +656,7 @@ PluginModuleParent::GetIdentifierForNPIdentifier(NPP npp, NPIdentifier aIdentifi
         NPUTF8* chars =
             mozilla::plugins::parent::_utf8fromidentifier(aIdentifier);
         if (!chars) {
-            return nsnull;
+            return nullptr;
         }
         string.Adopt(chars);
         temporary = !NPStringIdentifierIsPermanent(npp, aIdentifier);
@@ -668,7 +668,7 @@ PluginModuleParent::GetIdentifierForNPIdentifier(NPP npp, NPIdentifier aIdentifi
 
     ident = new PluginIdentifierParent(aIdentifier, temporary);
     if (!SendPPluginIdentifierConstructor(ident, string, intval, temporary))
-        return nsnull;
+        return nullptr;
 
     if (!temporary) {
         mIdentifiers.Put(aIdentifier, ident);
@@ -957,7 +957,7 @@ PluginModuleParent::NPP_New(NPMIMEType pluginType, NPP instance,
                                         nsDependentCString(pluginType), mode,
                                         names, values, error)) {
         
-        instance->pdata = nsnull;
+        instance->pdata = nullptr;
         
         
         
@@ -1029,7 +1029,7 @@ PluginModuleParent::AnswerNPN_GetValue_WithBoolReturn(const NPNVariable& aVariab
                                                       bool* aBoolVal)
 {
     NPBool boolVal = false;
-    *aError = mozilla::plugins::parent::_getvalue(nsnull, aVariable, &boolVal);
+    *aError = mozilla::plugins::parent::_getvalue(nullptr, aVariable, &boolVal);
     *aBoolVal = boolVal ? true : false;
     return true;
 }
@@ -1145,7 +1145,7 @@ PluginModuleParent::AllocPCrashReporter(mozilla::dom::NativeThreadId* id,
 #ifdef MOZ_CRASHREPORTER
     return new CrashReporterParent();
 #else
-    return nsnull;
+    return nullptr;
 #endif
 }
 

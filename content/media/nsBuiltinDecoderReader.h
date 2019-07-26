@@ -245,7 +245,7 @@ template <class T>
 class MediaQueueDeallocator : public nsDequeFunctor {
   virtual void* operator() (void* anObject) {
     delete static_cast<T*>(anObject);
-    return nsnull;
+    return nullptr;
   }
 };
 
@@ -458,14 +458,14 @@ public:
     virtual void* operator()(void* anObject) {
       const VideoData* v = static_cast<const VideoData*>(anObject);
       if (!v->mImage) {
-        return nsnull;
+        return nullptr;
       }
       NS_ASSERTION(v->mImage->GetFormat() == mozilla::layers::Image::PLANAR_YCBCR,
                    "Wrong format?");
       mozilla::layers::PlanarYCbCrImage* vi = static_cast<mozilla::layers::PlanarYCbCrImage*>(v->mImage.get());
 
       mResult += vi->GetDataSize();
-      return nsnull;
+      return nullptr;
     }
 
     PRInt64 mResult;
@@ -484,7 +484,7 @@ public:
     virtual void* operator()(void* anObject) {
       const AudioData* audioData = static_cast<const AudioData*>(anObject);
       mResult += audioData->mFrames * audioData->mChannels * sizeof(AudioDataValue);
-      return nsnull;
+      return nullptr;
     }
 
     PRInt64 mResult;

@@ -30,7 +30,7 @@ using namespace mozilla;
 
 
 nsAutoSelectionReset::nsAutoSelectionReset(Selection* aSel, nsEditor* aEd)
-  : mSel(nsnull), mEd(nsnull)
+  : mSel(nullptr), mEd(nullptr)
 { 
   if (!aSel || !aEd) return;    
   if (aEd->ArePreservingSelection()) return;   
@@ -65,7 +65,7 @@ nsAutoSelectionReset::Abort()
 
 
 nsDOMIterator::nsDOMIterator() :
-mIter(nsnull)
+mIter(nullptr)
 {
 }
     

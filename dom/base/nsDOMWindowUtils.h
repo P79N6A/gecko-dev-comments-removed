@@ -29,7 +29,7 @@ protected:
   
   
   
-  nsIWidget* GetWidget(nsPoint* aOffset = nsnull);
+  nsIWidget* GetWidget(nsPoint* aOffset = nullptr);
   nsIWidget* GetWidgetForElement(nsIDOMElement* aElement);
 
   nsIPresShell* GetPresShell();

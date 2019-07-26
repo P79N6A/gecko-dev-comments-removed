@@ -24,7 +24,7 @@
 nsresult
 FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
-    *aResult = nsnull;
+    *aResult = nullptr;
 
     nsRefPtr<txAExprResult> exprRes;
     nsresult rv = expr->evaluate(aContext, getter_AddRefs(exprRes));
@@ -36,7 +36,7 @@ FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
     nsRefPtr<txNodeSet> nodes =
         static_cast<txNodeSet*>(static_cast<txAExprResult*>(exprRes));
     
-    exprRes = nsnull;
+    exprRes = nullptr;
 
     nsRefPtr<txNodeSet> nonShared;
     rv = aContext->recycler()->getNonSharedNodeSet(nodes,

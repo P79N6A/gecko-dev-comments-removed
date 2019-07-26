@@ -15,7 +15,7 @@
 
 
 
-gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nsnull;
+gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nullptr;
 
 gfxOS2Platform::gfxOS2Platform()
 {
@@ -39,7 +39,7 @@ gfxOS2Platform::~gfxOS2Platform()
     printf("gfxOS2Platform::~gfxOS2Platform()\n");
 #endif
     gfxFontconfigUtils::Shutdown();
-    sFontconfigUtils = nsnull;
+    sFontconfigUtils = nullptr;
 
     
     cairo_os2_fini();
@@ -56,7 +56,7 @@ gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
     printf("gfxOS2Platform::CreateOffscreenSurface(%d/%d, %d)\n",
            aSize.width, aSize.height, aImageFormat);
 #endif
-    gfxASurface *newSurface = nsnull;
+    gfxASurface *newSurface = nullptr;
 
     
     
@@ -67,7 +67,7 @@ gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
     } else if (contentType == gfxASurface::CONTENT_ALPHA) {
         newSurface = new gfxImageSurface(aSize, OptimalFormatForContent(contentType));
     } else {
-        return nsnull;
+        return nullptr;
     }
 
     NS_IF_ADDREF(newSurface);
@@ -145,7 +145,7 @@ gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
 
     
     if (mCodepointsWithNoFonts.test(aCh)) {
-        return nsnull;
+        return nullptr;
     }
 
     
@@ -184,5 +184,5 @@ gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
 
     
     mCodepointsWithNoFonts.set(aCh);
-    return nsnull;
+    return nullptr;
 }

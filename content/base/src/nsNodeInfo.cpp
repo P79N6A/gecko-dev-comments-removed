@@ -1,13 +1,13 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
+/*
+ * Class that represents a prefix/namespace/localName triple; a single
+ * nodeinfo is shared by all elements in a document that have that
+ * prefix, namespace, and localName.
+ */
 
 #include "mozilla/Util.h"
 
@@ -36,10 +36,10 @@ static const size_t kNodeInfoPoolSizes[] = {
 
 static const PRInt32 kNodeInfoPoolInitialSize = sizeof(nsNodeInfo) * 64;
 
+// static
+nsFixedSizeAllocator* nsNodeInfo::sNodeInfoPool = nullptr;
 
-nsFixedSizeAllocator* nsNodeInfo::sNodeInfoPool = nsnull;
-
-
+// static
 nsNodeInfo*
 nsNodeInfo::Create(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
                    PRUint16 aNodeType, nsIAtom *aExtraName,
@@ -48,23 +48,23 @@ nsNodeInfo::Create(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
   if (!sNodeInfoPool) {
     sNodeInfoPool = new nsFixedSizeAllocator();
     if (!sNodeInfoPool)
-      return nsnull;
+      return nullptr;
 
     nsresult rv = sNodeInfoPool->Init("NodeInfo Pool", kNodeInfoPoolSizes,
                                       1, kNodeInfoPoolInitialSize);
     if (NS_FAILED(rv)) {
       delete sNodeInfoPool;
-      sNodeInfoPool = nsnull;
-      return nsnull;
+      sNodeInfoPool = nullptr;
+      return nullptr;
     }
   }
 
-  
+  // Create a new one
   void* place = sNodeInfoPool->Alloc(sizeof(nsNodeInfo));
   return place ?
     new (place) nsNodeInfo(aName, aPrefix, aNamespaceID, aNodeType, aExtraName,
                            aOwnerManager) :
-    nsnull;
+    nullptr;
 }
 
 nsNodeInfo::~nsNodeInfo()
@@ -85,7 +85,7 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
   CHECK_VALID_NODEINFO(aNodeType, aName, aNamespaceID, aExtraName);
   NS_ABORT_IF_FALSE(aOwnerManager, "Invalid aOwnerManager");
 
-  
+  // Initialize mInner
   NS_ADDREF(mInner.mName = aName);
   NS_IF_ADDREF(mInner.mPrefix = aPrefix);
   mInner.mNamespaceID = aNamespaceID;
@@ -95,10 +95,10 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
 
   mDocument = aOwnerManager->GetDocument();
 
-  
+  // Now compute our cached members.
 
-  
-  
+  // Qualified name.  If we have no prefix, use ToString on
+  // mInner.mName so that we get to share its buffer.
   if (aPrefix) {
     mQualifiedName = nsDependentAtomString(mInner.mPrefix) +
                      NS_LITERAL_STRING(":") +
@@ -110,7 +110,7 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
   switch (aNodeType) {
     case nsIDOMNode::ELEMENT_NODE:
     case nsIDOMNode::ATTRIBUTE_NODE:
-      
+      // Correct the case for HTML
       if (aNodeType == nsIDOMNode::ELEMENT_NODE &&
           aNamespaceID == kNameSpaceID_XHTML && GetDocument() &&
           GetDocument()->IsHTML()) {
@@ -140,7 +140,7 @@ nsNodeInfo::nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
 }
 
 
-
+// nsISupports
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsNodeInfo)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_0(nsNodeInfo)
@@ -187,7 +187,7 @@ NS_INTERFACE_TABLE_HEAD(nsNodeInfo)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsNodeInfo)
 NS_INTERFACE_MAP_END
 
-
+// nsINodeInfo
 
 nsresult
 nsNodeInfo::GetNamespaceURI(nsAString& aNameSpaceURI) const
@@ -214,13 +214,13 @@ nsNodeInfo::NamespaceEquals(const nsAString& aNamespaceURI) const
   return nsINodeInfo::NamespaceEquals(nsid);
 }
 
-
+// static
 void
 nsNodeInfo::ClearCache()
 {
-  
+  // Clear our cache.
   delete sNodeInfoPool;
-  sNodeInfoPool = nsnull;
+  sNodeInfoPool = nullptr;
 }
 
 void
@@ -229,9 +229,9 @@ nsNodeInfo::LastRelease()
   nsRefPtr<nsNodeInfoManager> kungFuDeathGrip = mOwnerManager;
   this->~nsNodeInfo();
 
-  
-  
-  
+  // The refcount balancing and destructor re-entrancy protection
+  // code in Release() sets mRefCnt to 1 so we have to set it to 0
+  // here to prevent leaks
   mRefCnt = 0;
 
   NS_ASSERTION(sNodeInfoPool, "No NodeInfoPool when deleting NodeInfo!!!");

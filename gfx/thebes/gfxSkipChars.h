@@ -112,7 +112,7 @@ public:
             NS_ASSERTION(!aSkipCharsBuilder->mRunSkipped, "out of sync");
             
             mCharCount = aSkipCharsBuilder->mRunCharCount;
-            mList = nsnull;
+            mList = nullptr;
             mListLength = 0;
         } else {
             aSkipCharsBuilder->FlushRun();
@@ -134,7 +134,7 @@ public:
   
     void SetAllKeep(PRUint32 aLength) {
         mCharCount = aLength;
-        mList = nsnull;
+        mList = nullptr;
         mListLength = 0;
     }
   
@@ -217,12 +217,12 @@ public:
     
 
 
-    gfxSkipCharsIterator() : mSkipChars(nsnull) {}
+    gfxSkipCharsIterator() : mSkipChars(nullptr) {}
 
     
 
   
-    bool IsInitialized() { return mSkipChars != nsnull; }
+    bool IsInitialized() { return mSkipChars != nullptr; }
 
     
 
@@ -258,7 +258,7 @@ public:
 
 
 
-    bool IsOriginalCharSkipped(PRInt32* aRunLength = nsnull) const;
+    bool IsOriginalCharSkipped(PRInt32* aRunLength = nullptr) const;
     
     void AdvanceOriginal(PRInt32 aDelta) {
         SetOffsets(mOriginalStringOffset + aDelta, true);

@@ -29,7 +29,7 @@ nsXBLPrototypeResources::~nsXBLPrototypeResources()
 {
   MOZ_COUNT_DTOR(nsXBLPrototypeResources);
   if (mLoader) {
-    mLoader->mResources = nsnull;
+    mLoader->mResources = nullptr;
     NS_RELEASE(mLoader);
   }
 }
@@ -78,7 +78,7 @@ nsXBLPrototypeResources::FlushSkinSheets()
   
   
   
-  mRuleProcessor = nsnull;
+  mRuleProcessor = nullptr;
 
   sheet_array_type oldSheets(mStyleSheetList);
   mStyleSheetList.Clear();

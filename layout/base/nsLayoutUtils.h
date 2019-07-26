@@ -175,7 +175,7 @@ public:
 
   static PRInt32 CompareTreePosition(nsIContent* aContent1,
                                      nsIContent* aContent2,
-                                     const nsIContent* aCommonAncestor = nsnull)
+                                     const nsIContent* aCommonAncestor = nullptr)
   {
     return DoCompareTreePosition(aContent1, aContent2, -1, 1, aCommonAncestor);
   }
@@ -190,7 +190,7 @@ public:
                                        nsIContent* aContent2,
                                        PRInt32 aIf1Ancestor,
                                        PRInt32 aIf2Ancestor,
-                                       const nsIContent* aCommonAncestor = nsnull);
+                                       const nsIContent* aCommonAncestor = nullptr);
 
   
 
@@ -213,7 +213,7 @@ public:
 
   static PRInt32 CompareTreePosition(nsIFrame* aFrame1,
                                      nsIFrame* aFrame2,
-                                     nsIFrame* aCommonAncestor = nsnull)
+                                     nsIFrame* aCommonAncestor = nullptr)
   {
     return DoCompareTreePosition(aFrame1, aFrame2, -1, 1, aCommonAncestor);
   }
@@ -228,7 +228,7 @@ public:
                                        nsIFrame* aFrame2,
                                        PRInt32 aIf1Ancestor,
                                        PRInt32 aIf2Ancestor,
-                                       nsIFrame* aCommonAncestor = nsnull);
+                                       nsIFrame* aCommonAncestor = nullptr);
 
   
 
@@ -262,7 +262,7 @@ public:
 
 
   static nsIFrame* GetCrossDocParentFrame(const nsIFrame* aFrame,
-                                          nsPoint* aCrossDocOffset = nsnull);
+                                          nsPoint* aCrossDocOffset = nullptr);
 
   
 
@@ -272,7 +272,7 @@ public:
 
 
   static bool IsProperAncestorFrame(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
-                                      nsIFrame* aCommonAncestor = nsnull);
+                                      nsIFrame* aCommonAncestor = nullptr);
 
   
 
@@ -281,7 +281,7 @@ public:
 
 
   static bool IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
-                                              nsIFrame* aCommonAncestor = nsnull);
+                                              nsIFrame* aCommonAncestor = nullptr);
 
   
 
@@ -294,7 +294,7 @@ public:
 
 
   static bool IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
-                                        nsIFrame* aCommonAncestor = nsnull);
+                                        nsIFrame* aCommonAncestor = nullptr);
 
   
 
@@ -308,7 +308,7 @@ public:
 
   static nsIFrame* GetActiveScrolledRootFor(nsDisplayItem* aItem,
                                             nsDisplayListBuilder* aBuilder,
-                                            bool* aShouldFixToViewport = nsnull);
+                                            bool* aShouldFixToViewport = nullptr);
 
   
 
@@ -1200,7 +1200,7 @@ public:
                                           const nsPoint&       aDest,
                                           const nsRect*        aDirty,
                                           PRUint32             aImageFlags,
-                                          const nsRect*        aSourceArea = nsnull);
+                                          const nsRect*        aSourceArea = nullptr);
 
   
 
@@ -1223,7 +1223,7 @@ public:
                                   const nsRect&        aDest,
                                   const nsRect&        aDirty,
                                   PRUint32             aImageFlags,
-                                  const nsRect*        aSourceArea = nsnull);
+                                  const nsRect*        aSourceArea = nullptr);
 
   
 
@@ -1705,7 +1705,7 @@ namespace mozilla {
           mPresContext->mInflationDisabledForShrinkWrap = true;
         } else {
           
-          mPresContext = nsnull;
+          mPresContext = nullptr;
         }
       }
 

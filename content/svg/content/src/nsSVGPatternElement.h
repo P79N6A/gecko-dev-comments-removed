@@ -68,7 +68,8 @@ public:
   
   virtual bool HasValidDimensions() const;
 
-  virtual mozilla::SVGAnimatedTransformList* GetAnimatedTransformList();
+  virtual mozilla::SVGAnimatedTransformList*
+    GetAnimatedTransformList(PRUint32 aFlags = 0);
   virtual nsIAtom* GetTransformListAttrName() const {
     return nsGkAtoms::patternTransform;
   }

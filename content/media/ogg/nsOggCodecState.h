@@ -40,7 +40,7 @@ class OggPacketDeallocator : public nsDequeFunctor {
     ogg_packet* p = static_cast<ogg_packet*>(aPacket);
     delete [] p->packet;
     delete p;
-    return nsnull;
+    return nullptr;
   }
 };
 

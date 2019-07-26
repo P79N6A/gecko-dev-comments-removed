@@ -35,7 +35,7 @@ SVGPathSegListSMILType::Destroy(nsSMILValue& aValue) const
 {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGPathDataAndOwner*>(aValue.mU.mPtr);
-  aValue.mU.mPtr = nsnull;
+  aValue.mU.mPtr = nullptr;
   aValue.mType = &nsSMILNullType::sSingleton;
 }
 
@@ -252,7 +252,7 @@ AddWeightedPathSegLists(double aCoeff1, const SVGPathDataAndOwner& aList1,
 
   SVGPathDataAndOwner::const_iterator iter1, end1;
   if (aList1.IsIdentity()) {
-    iter1 = end1 = nsnull; 
+    iter1 = end1 = nullptr; 
   } else {
     iter1 = aList1.begin();
     end1 = aList1.end();

@@ -46,7 +46,7 @@ public:
     NS_DECL_NSIOBSERVER
 
     bool IsCached(nsIURI* aURI) {
-        return GetPrototype(aURI) != nsnull;
+        return GetPrototype(aURI) != nullptr;
     }
     void AbortCaching();
 

@@ -127,7 +127,7 @@ nsCertOverrideService::Init()
     observerService->AddObserver(this, "profile-before-change", true);
     observerService->AddObserver(this, "profile-do-change", true);
     
-    Observe(nsnull, "profile-do-change", nsnull);
+    Observe(nullptr, "profile-do-change", nullptr);
   }
 
   return NS_OK;
@@ -166,7 +166,7 @@ nsCertOverrideService::Observe(nsISupports     *,
     if (NS_SUCCEEDED(rv)) {
       mSettingsFile->AppendNative(NS_LITERAL_CSTRING(kCertOverrideFileName));
     } else {
-      mSettingsFile = nsnull;
+      mSettingsFile = nullptr;
     }
     Read();
 
@@ -187,7 +187,7 @@ RemoveTemporariesCallback(nsCertOverrideEntry *aEntry,
                           void *aArg)
 {
   if (aEntry && aEntry->mSettings.mIsTemporary) {
-    aEntry->mSettings.mCert = nsnull;
+    aEntry->mSettings.mCert = nullptr;
     return PL_DHASH_REMOVE;
   }
 
@@ -199,7 +199,7 @@ nsCertOverrideService::RemoveAllTemporaryOverrides()
 {
   {
     ReentrantMonitorAutoEnter lock(monitor);
-    mSettingsTable.EnumerateEntries(RemoveTemporariesCallback, nsnull);
+    mSettingsTable.EnumerateEntries(RemoveTemporariesCallback, nullptr);
     
   }
 }
@@ -281,7 +281,7 @@ nsCertOverrideService::Read()
     host.Truncate(portIndex);
     
     AddEntryToList(host, port, 
-                   nsnull, 
+                   nullptr, 
                    false, 
                    algo_string, fingerprint, bits, db_key);
   }
@@ -428,9 +428,9 @@ GetCertFingerprintByDottedOidString(CERTCertificate* nsscert,
                                     nsCString &fp)
 {
   SECItem oid;
-  oid.data = nsnull;
+  oid.data = nullptr;
   oid.len = 0;
-  SECStatus srv = SEC_StringToOID(nsnull, &oid, 
+  SECStatus srv = SEC_StringToOID(nullptr, &oid, 
                     dottedOid.get(), dottedOid.Length());
   if (srv != SECSuccess)
     return NS_ERROR_FAILURE;
@@ -527,7 +527,7 @@ nsCertOverrideService::RememberValidityOverride(const nsACString & aHostName, PR
   {
     ReentrantMonitorAutoEnter lock(monitor);
     AddEntryToList(aHostName, aPort,
-                   aTemporary ? aCert : nsnull,
+                   aTemporary ? aCert : nullptr,
                      
                    aTemporary, 
                    mDottedOidForStoringNewHashes, fpStr, 

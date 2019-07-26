@@ -77,7 +77,7 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
     , mIsKeyboardSelect(aIsKeyboardSelect)
     , mVisual(aVisual)
     , mResultContent()
-    , mResultFrame(nsnull)
+    , mResultFrame(nullptr)
     , mContentOffset(0)
     , mAttachForward(false)
   {
@@ -694,9 +694,11 @@ private:
   
   PRInt32 mBatching;
     
-  nsIContent *mLimiter;     
-  nsIContent *mAncestorLimiter; 
-                                
+  
+  nsCOMPtr<nsIContent> mLimiter;
+  
+  nsCOMPtr<nsIContent> mAncestorLimiter;
+
   nsIPresShell *mShell;
 
   PRInt16 mSelectionChangeReason; 

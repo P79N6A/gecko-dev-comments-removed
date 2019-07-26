@@ -216,10 +216,10 @@ public:
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
-  { return nsnull; }
+  { return nullptr; }
 
   virtual ShadowLayerManager* AsShadowManager()
-  { return nsnull; }
+  { return nullptr; }
 
   
 
@@ -362,12 +362,12 @@ public:
 
 
 
-  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nsnull; }
+  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nullptr; }
   
 
 
 
-  virtual already_AddRefed<RefLayer> CreateRefLayer() { return nsnull; }
+  virtual already_AddRefed<RefLayer> CreateRefLayer() { return nullptr; }
 
 
   
@@ -638,7 +638,7 @@ public:
 
   void SetClipRect(const nsIntRect* aRect)
   {
-    mUseClipRect = aRect != nsnull;
+    mUseClipRect = aRect != nullptr;
     if (aRect) {
       mClipRect = *aRect;
     }
@@ -727,14 +727,14 @@ public:
 
   
   float GetOpacity() { return mOpacity; }
-  const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nsnull; }
+  const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   PRUint32 GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
   Layer* GetPrevSibling() { return mPrevSibling; }
-  virtual Layer* GetFirstChild() { return nsnull; }
-  virtual Layer* GetLastChild() { return nsnull; }
+  virtual Layer* GetFirstChild() { return nullptr; }
+  virtual Layer* GetLastChild() { return nullptr; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
   gfxPoint GetFixedPositionAnchor() { return mAnchor; }
@@ -816,31 +816,31 @@ public:
 
 
 
-  virtual ThebesLayer* AsThebesLayer() { return nsnull; }
+  virtual ThebesLayer* AsThebesLayer() { return nullptr; }
 
   
 
 
 
-  virtual ContainerLayer* AsContainerLayer() { return nsnull; }
+  virtual ContainerLayer* AsContainerLayer() { return nullptr; }
 
    
 
 
 
-  virtual RefLayer* AsRefLayer() { return nsnull; }
+  virtual RefLayer* AsRefLayer() { return nullptr; }
 
   
 
 
 
-  virtual ShadowLayer* AsShadowLayer() { return nsnull; }
+  virtual ShadowLayer* AsShadowLayer() { return nullptr; }
 
   
 
 
 
-  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
+  virtual ShadowableLayer* AsShadowableLayer() { return nullptr; }
 
   
   
@@ -942,11 +942,11 @@ public:
 protected:
   Layer(LayerManager* aManager, void* aImplData) :
     mManager(aManager),
-    mParent(nsnull),
-    mNextSibling(nsnull),
-    mPrevSibling(nsnull),
+    mParent(nullptr),
+    mNextSibling(nullptr),
+    mPrevSibling(nullptr),
     mImplData(aImplData),
-    mMaskLayer(nsnull),
+    mMaskLayer(nullptr),
     mOpacity(1.0),
     mContentFlags(0),
     mUseClipRect(false),
@@ -1055,7 +1055,7 @@ public:
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
     gfxMatrix residual;
     mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0),
-        mAllowResidualTranslation ? &residual : nsnull);
+        mAllowResidualTranslation ? &residual : nullptr);
     
     
     
@@ -1204,8 +1204,8 @@ protected:
 
   ContainerLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
-      mFirstChild(nsnull),
-      mLastChild(nsnull),
+      mFirstChild(nullptr),
+      mLastChild(nullptr),
       mUseIntermediateSurface(false),
       mSupportsComponentAlphaChildren(false),
       mMayHaveReadbackChild(false)
@@ -1259,7 +1259,7 @@ public:
   {
     
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
@@ -1288,8 +1288,8 @@ class THEBES_API CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mSurface(nsnull), mGLContext(nsnull)
-      , mDrawTarget(nsnull), mGLBufferIsPremultiplied(false)
+      : mSurface(nullptr), mGLContext(nullptr)
+      , mDrawTarget(nullptr), mGLBufferIsPremultiplied(false)
     { }
 
     
@@ -1349,15 +1349,15 @@ public:
     
     mEffectiveTransform =
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
-                      nsnull)*
-        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+                      nullptr)*
+        SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
-      mCallback(nsnull), mCallbackData(nsnull), mFilter(gfxPattern::FILTER_GOOD),
+      mCallback(nullptr), mCallbackData(nullptr), mFilter(gfxPattern::FILTER_GOOD),
       mDirty(false) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
@@ -1444,8 +1444,8 @@ public:
     MOZ_ASSERT(aLayer == mFirstChild && mFirstChild == mLastChild);
     MOZ_ASSERT(aLayer->GetParent() == this);
 
-    mFirstChild = mLastChild = nsnull;
-    aLayer->SetParent(nsnull);
+    mFirstChild = mLastChild = nullptr;
+    aLayer->SetParent(nullptr);
   }
 
   

@@ -844,7 +844,7 @@ gfxFontUtils::MapCharToGlyph(const PRUint8 *aBuf, PRUint32 aBufLength,
     PRUint32 offset;
     bool     symbol;
     PRUint32 format = FindPreferredSubtable(aBuf, aBufLength, &offset,
-                                            nsnull, &symbol);
+                                            nullptr, &symbol);
 
     switch (format) {
     case 4:
@@ -1629,7 +1629,7 @@ const gfxFontUtils::MacFontNameCharsetMapping gfxFontUtils::gMacFontNameCharsets
 const char* gfxFontUtils::gISOFontNameCharsets[] = 
 {
      "us-ascii"   ,
-     nsnull       , 
+     nullptr       , 
      "ISO-8859-1"
 };
 
@@ -1638,13 +1638,13 @@ const char* gfxFontUtils::gMSFontNameCharsets[] =
           ""          ,
       ""          ,
         "Shift_JIS" ,
-             nsnull      ,
+             nullptr      ,
             "Big5"      ,
-         nsnull      ,
+         nullptr      ,
            "x-johab"   ,
-                              nsnull      ,
-                              nsnull      ,
-                              nsnull      ,
+                              nullptr      ,
+                              nullptr      ,
+                              nullptr      ,
      ""
 };
 
@@ -1666,7 +1666,7 @@ gfxFontUtils::GetCharsetForFontName(PRUint16 aPlatform, PRUint16 aScript, PRUint
     case PLATFORM_ID_MAC:
         {
             PRUint32 lo = 0, hi = ARRAY_SIZE(gMacFontNameCharsets);
-            MacFontNameCharsetMapping searchValue = { aScript, aLanguage, nsnull };
+            MacFontNameCharsetMapping searchValue = { aScript, aLanguage, nullptr };
             for (PRUint32 i = 0; i < 2; ++i) {
                 
                 while (lo < hi) {
@@ -1704,7 +1704,7 @@ gfxFontUtils::GetCharsetForFontName(PRUint16 aPlatform, PRUint16 aScript, PRUint
         break;
     }
 
-    return nsnull;
+    return nullptr;
 }
 
 

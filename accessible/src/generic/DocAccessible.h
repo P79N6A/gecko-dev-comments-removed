@@ -10,8 +10,8 @@
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessiblePivot.h"
 
+#include "AccEvent.h"
 #include "HyperTextAccessibleWrap.h"
-#include "nsEventShell.h"
 
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -155,7 +155,7 @@ public:
 
 
   DocAccessible* ParentDocument() const
-    { return mParent ? mParent->Document() : nsnull; }
+    { return mParent ? mParent->Document() : nullptr; }
 
   
 
@@ -167,7 +167,7 @@ public:
 
 
   DocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
-    { return mChildDocuments.SafeElementAt(aIndex, nsnull); }
+    { return mChildDocuments.SafeElementAt(aIndex, nullptr); }
 
   
 
@@ -190,17 +190,7 @@ public:
   
 
 
-  void MaybeNotifyOfValueChange(Accessible* aAccessible)
-  {
-    mozilla::a11y::role role = aAccessible->Role();
-    if (role == mozilla::a11y::roles::ENTRY ||
-        role == mozilla::a11y::roles::COMBOBOX) {
-      nsRefPtr<AccEvent> valueChangeEvent =
-        new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aAccessible,
-                     eAutoDetect, AccEvent::eRemoveDupes);
-      FireDelayedAccessibleEvent(valueChangeEvent);
-    }
-  }
+  void MaybeNotifyOfValueChange(Accessible* aAccessible);
 
   
 
@@ -272,7 +262,7 @@ public:
 
   Accessible* GetContainerAccessible(nsINode* aNode)
   {
-    return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
+    return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nullptr;
   }
 
   
@@ -283,7 +273,7 @@ public:
 
 
   bool IsDependentID(const nsAString& aID) const
-    { return mDependentIDsHash.Get(aID, nsnull); }
+    { return mDependentIDsHash.Get(aID, nullptr); }
 
   
 
@@ -387,7 +377,7 @@ protected:
 
 
   void AddDependentIDsFor(Accessible* aRelProvider,
-                          nsIAtom* aRelAttr = nsnull);
+                          nsIAtom* aRelAttr = nullptr);
 
   
 
@@ -398,7 +388,7 @@ protected:
 
 
   void RemoveDependentIDsFor(Accessible* aRelProvider,
-                             nsIAtom* aRelAttr = nsnull);
+                             nsIAtom* aRelAttr = nullptr);
 
   
 
@@ -603,7 +593,7 @@ inline DocAccessible*
 Accessible::AsDoc()
 {
   return mFlags & eDocAccessible ?
-    static_cast<DocAccessible*>(this) : nsnull;
+    static_cast<DocAccessible*>(this) : nullptr;
 }
 
 #endif

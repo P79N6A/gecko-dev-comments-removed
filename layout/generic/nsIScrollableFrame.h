@@ -128,7 +128,7 @@ public:
 
 
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nsnull) = 0;
+                        const nsRect* aRange = nullptr) = 0;
   
 
 
@@ -152,7 +152,7 @@ public:
 
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
-                        nsIntPoint* aOverflow = nsnull, nsIAtom *aOrigin = nsnull) = 0;
+                        nsIntPoint* aOverflow = nullptr, nsIAtom *aOrigin = nullptr) = 0;
   
 
 

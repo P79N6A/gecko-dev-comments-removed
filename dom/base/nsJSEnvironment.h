@@ -168,7 +168,7 @@ public:
   static void ShrinkGCBuffersNow();
   
   
-  static void CycleCollectNow(nsICycleCollectorListener *aListener = nsnull,
+  static void CycleCollectNow(nsICycleCollectorListener *aListener = nullptr,
                               PRInt32 aExtraForgetSkippableCalls = 0,
                               bool aForced = true);
 
@@ -192,7 +192,7 @@ public:
     
     
     JSObject* global = JS_GetGlobalObject(mContext);
-    return global ? mGlobalObjectRef.get() : nsnull;
+    return global ? mGlobalObjectRef.get() : nullptr;
   }
 protected:
   nsresult InitializeExternalClasses();
@@ -253,7 +253,7 @@ protected:
       : mContext(aContext),
         mTerminations(aContext->mTerminations)
     {
-      aContext->mTerminations = nsnull;
+      aContext->mTerminations = nullptr;
     }
     ~TerminationFuncHolder()
     {

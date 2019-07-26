@@ -154,7 +154,7 @@ public:
   
   
   virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix) {}
-  virtual const gfxMatrix* GetAnimateMotionTransform() const { return nsnull; }
+  virtual const gfxMatrix* GetAnimateMotionTransform() const { return nullptr; }
 
   bool IsStringAnimatable(PRUint8 aAttrEnum) {
     return GetStringInfo().mStringInfo[aAttrEnum].mIsAnimatable;
@@ -222,6 +222,16 @@ public:
   void DidAnimateTransformList();
   void DidAnimateString(PRUint8 aAttrEnum);
 
+  enum {
+    
+
+
+
+
+
+    DO_ALLOCATE = 0x1
+  };
+
   nsSVGLength2* GetAnimatedLength(const nsIAtom *aAttrName);
   void GetAnimatedLengthValues(float *aFirst, ...);
   void GetAnimatedNumberValues(float *aFirst, ...);
@@ -231,19 +241,30 @@ public:
   void GetAnimatedLengthListValues(SVGUserUnitList *aFirst, ...);
   SVGAnimatedLengthList* GetAnimatedLengthList(PRUint8 aAttrEnum);
   virtual SVGAnimatedPointList* GetAnimatedPointList() {
-    return nsnull;
+    return nullptr;
   }
   virtual SVGAnimatedPathSegList* GetAnimPathSegList() {
     
     
     
     
-    return nsnull;
+    return nullptr;
   }
   
-  
-  virtual SVGAnimatedTransformList* GetAnimatedTransformList() {
-    return nsnull;
+
+
+
+
+
+
+
+
+
+
+
+  virtual SVGAnimatedTransformList* GetAnimatedTransformList(
+                                                        PRUint32 aFlags = 0) {
+    return nullptr;
   }
 
   virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName);
@@ -256,13 +277,13 @@ public:
   void SetStringBaseValue(PRUint8 aAttrEnum, const nsAString& aValue);
 
   virtual nsIAtom* GetPointListAttrName() const {
-    return nsnull;
+    return nullptr;
   }
   virtual nsIAtom* GetPathDataAttrName() const {
-    return nsnull;
+    return nullptr;
   }
   virtual nsIAtom* GetTransformListAttrName() const {
-    return nsnull;
+    return nullptr;
   }
 
 protected:

@@ -51,6 +51,16 @@ using mozilla::ipc::GeckoChildProcessHost;
 static const int kMagicAndroidSystemPropFd = 5;
 #endif
 
+static const bool kLowRightsSubprocesses =
+  
+  
+#ifdef MOZ_WIDGET_GONK
+  true
+#else
+  false
+#endif
+  ;
+
 static bool
 ShouldHaveDirectoryService()
 {
@@ -414,6 +424,9 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
   base::environment_map newEnvVars;
+  base::ChildPrivileges privs = kLowRightsSubprocesses ?
+                                base::UNPRIVILEGED :
+                                base::SAME_PRIVILEGES_AS_PARENT;
   
   
   
@@ -579,7 +592,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
   base::LaunchApp(childArgv, mFileMap,
 #if defined(OS_LINUX) || defined(OS_MACOSX)
-                  newEnvVars,
+                  newEnvVars, privs,
 #endif
                   false, &process, arch);
 

@@ -647,7 +647,7 @@ aria::GetRoleMap(nsINode* aNode)
       !content->GetAttr(kNameSpaceID_None, nsGkAtoms::role, roles) ||
       roles.IsEmpty()) {
     
-    return nsnull;
+    return nullptr;
   }
 
   nsWhitespaceTokenizer tokenizer(roles);

@@ -95,8 +95,8 @@ private:
 
 
   DOMSVGAnimatedNumberList(nsSVGElement *aElement, PRUint8 aAttrEnum)
-    : mBaseVal(nsnull)
-    , mAnimVal(nsnull)
+    : mBaseVal(nullptr)
+    , mAnimVal(nullptr)
     , mElement(aElement)
     , mAttrEnum(aAttrEnum)
   {}

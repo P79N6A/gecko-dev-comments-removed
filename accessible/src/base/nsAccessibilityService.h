@@ -171,12 +171,6 @@ public:
   
 
 
-
-  void PresShellDestroyed(nsIPresShell* aPresShell);
-
-  
-
-
   virtual void PresShellActivated(nsIPresShell* aPresShell);
 
   
@@ -203,7 +197,7 @@ public:
 
 
   Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
-                                    bool* aIsSubtreeHidden = nsnull);
+                                    bool* aIsSubtreeHidden = nullptr);
 
 private:
   
