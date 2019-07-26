@@ -19,6 +19,8 @@ namespace mozilla {
 
 class ActiveLayerTracker {
 public:
+  static void Shutdown();
+
   
 
 
@@ -40,7 +42,19 @@ public:
 
 
 
+
+
+  static void NotifyInlineStyleRuleModified(nsIFrame* aFrame, nsCSSProperty aProperty);
+  
+
+
+
   static bool IsStyleAnimated(nsIFrame* aFrame, nsCSSProperty aProperty);
+
+  
+
+
+
 
   
 
@@ -51,8 +65,6 @@ public:
 
 
   static bool IsContentActive(nsIFrame* aFrame);
-
-  static void Shutdown();
 };
 
 }
