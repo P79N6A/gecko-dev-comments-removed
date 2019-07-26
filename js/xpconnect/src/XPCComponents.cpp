@@ -2727,6 +2727,18 @@ nsXPCComponents_Utils::Import(const nsACString& registryLocation,
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::IsModuleLoaded(const nsACString& registryLocation, bool *retval)
+{
+    nsCOMPtr<xpcIJSModuleLoader> moduleloader =
+        do_GetService(MOZJSCOMPONENTLOADER_CONTRACTID);
+    if (!moduleloader)
+        return NS_ERROR_FAILURE;
+    return moduleloader->IsModuleLoaded(registryLocation, retval);
+}
+
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::Unload(const nsACString & registryLocation)
 {
     nsCOMPtr<xpcIJSModuleLoader> moduleloader =
