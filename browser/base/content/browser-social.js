@@ -673,12 +673,19 @@ var SocialToolbar = {
     
     let profile = Social.provider.profile || {};
     let userPortrait = profile.portrait || "chrome://global/skin/icons/information-32.png";
-    document.getElementById("socialBroadcaster_userPortrait").setAttribute("src", userPortrait);
 
-    let loggedInStatusBroadcaster = document.getElementById("socialBroadcaster_loggedInStatus");
-    let notLoggedInString = loggedInStatusBroadcaster.getAttribute("notLoggedInLabel");
-    let loggedInStatusValue = profile.userName ? profile.userName : notLoggedInString;
-    loggedInStatusBroadcaster.setAttribute("value", loggedInStatusValue);
+    let userDetailsBroadcaster = document.getElementById("socialBroadcaster_userDetails");
+    let loggedInStatusValue = profile.userName ?
+                              profile.userName :
+                              userDetailsBroadcaster.getAttribute("notLoggedInLabel");;
+
+    
+    
+    userDetailsBroadcaster.setAttribute("src", userPortrait);
+    userDetailsBroadcaster.setAttribute("image", userPortrait);
+
+    userDetailsBroadcaster.setAttribute("value", loggedInStatusValue);
+    userDetailsBroadcaster.setAttribute("label", loggedInStatusValue);
   },
 
   updateButton: function SocialToolbar_updateButton() {
