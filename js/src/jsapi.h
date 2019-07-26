@@ -1846,6 +1846,7 @@ typedef JSBool
 
 
 
+
 typedef JSBool
 (* JSNewResolveOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
                    JSMutableHandleObject objp);
@@ -2760,6 +2761,8 @@ ToBoolean(const Value &v)
         return v.toBoolean();
     if (v.isInt32())
         return v.toInt32() != 0;
+    if (v.isObject())
+        return true;
     if (v.isNullOrUndefined())
         return false;
     if (v.isDouble()) {
@@ -4084,9 +4087,7 @@ struct JSClass {
 #define JSCLASS_IS_DOMJSCLASS           (1<<4)  /* objects are DOM */
 #define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  /* Correctly implements GC read
                                                    and write barriers */
-#define JSCLASS_EMULATES_UNDEFINED      (1<<6)  
-
-
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 #define JSCLASS_USERBIT1                (1<<7)  /* Reserved for embeddings. */
 
 
@@ -4229,6 +4230,7 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 
 #define JSRESOLVE_QUALIFIED     0x01    /* resolve a qualified property id */
 #define JSRESOLVE_ASSIGNING     0x02    /* resolve on the left of assignment */
+#define JSRESOLVE_DETECTING     0x04    /* 'if (o.p)...' or '(o.p) ?...:...' */
 
 
 

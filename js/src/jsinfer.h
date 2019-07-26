@@ -403,10 +403,7 @@ enum {
     OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00800000,
 
     
-    OBJECT_FLAG_EMULATES_UNDEFINED    = 0x01000000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x01ff0000,
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
 
     
 
@@ -909,8 +906,6 @@ struct TypeObject : gc::Cell
 
     
     TypeObjectFlags flags;
-
-    static inline size_t offsetOfFlags() { return offsetof(TypeObject, flags); }
 
     
 

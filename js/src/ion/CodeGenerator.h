@@ -21,7 +21,6 @@
 namespace js {
 namespace ion {
 
-class OutOfLineTestObject;
 class OutOfLineNewArray;
 class OutOfLineNewObject;
 class CheckOverRecursedFailure;
@@ -61,8 +60,6 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitValueToInt32(LValueToInt32 *lir);
     bool visitValueToDouble(LValueToDouble *lir);
     bool visitInt32ToDouble(LInt32ToDouble *lir);
-    void emitOOLTestObject(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch);
-    bool visitTestOAndBranch(LTestOAndBranch *lir);
     bool visitTestVAndBranch(LTestVAndBranch *lir);
     bool visitPolyInlineDispatch(LPolyInlineDispatch *lir);
     bool visitIntToString(LIntToString *lir);
@@ -109,7 +106,6 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitStringLength(LStringLength *lir);
     bool visitInitializedLength(LInitializedLength *lir);
     bool visitSetInitializedLength(LSetInitializedLength *lir);
-    bool visitNotO(LNotO *ins);
     bool visitNotV(LNotV *ins);
     bool visitBoundsCheck(LBoundsCheck *lir);
     bool visitBoundsCheckRange(LBoundsCheckRange *lir);
@@ -128,10 +124,8 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitBinaryV(LBinaryV *lir);
     bool visitCompareS(LCompareS *lir);
     bool visitCompareV(LCompareV *lir);
-    bool visitIsNullOrLikeUndefined(LIsNullOrLikeUndefined *lir);
-    bool visitIsNullOrLikeUndefinedAndBranch(LIsNullOrLikeUndefinedAndBranch *lir);
-    bool visitEmulatesUndefined(LEmulatesUndefined *lir);
-    bool visitEmulatesUndefinedAndBranch(LEmulatesUndefinedAndBranch *lir);
+    bool visitIsNullOrUndefined(LIsNullOrUndefined *lir);
+    bool visitIsNullOrUndefinedAndBranch(LIsNullOrUndefinedAndBranch *lir);
     bool visitConcat(LConcat *lir);
     bool visitCharCodeAt(LCharCodeAt *lir);
     bool visitFromCharCode(LFromCharCode *lir);
@@ -231,26 +225,10 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool generateBranchV(const ValueOperand &value, Label *ifTrue, Label *ifFalse, FloatRegister fr);
 
     IonScriptCounts *maybeCreateScriptCounts();
-
-    
-    
-    
-    
-    
-    void testValueTruthy(const ValueOperand &value,
-                         const LDefinition *scratch1, const LDefinition *scratch2,
-                         FloatRegister fr,
-                         Label *ifTruthy, Label *ifFalsy,
-                         OutOfLineTestObject *ool);
-
-    
-    
-    
-    void testObjectTruthy(Register objreg, Label *ifTruthy, Label *ifFalsy, Register scratch,
-                          OutOfLineTestObject *ool);
 };
 
 } 
 } 
 
 #endif 
+

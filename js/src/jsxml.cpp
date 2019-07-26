@@ -88,6 +88,7 @@ pointer_match(const T *a, const T *b)
 
 
 
+
 const char js_AttributeName_str[] = "AttributeName";
 const char js_localName_str[]     = "localName";
 const char js_xml_parent_str[]    = "parent";
@@ -1855,6 +1856,10 @@ ToXML(JSContext *cx, jsval v)
         }
 
         clasp = obj->getClass();
+        if (clasp->flags & JSCLASS_DOCUMENT_OBSERVER) {
+            JS_ASSERT(0);
+        }
+
         if (clasp != &StringClass &&
             clasp != &NumberClass &&
             clasp != &BooleanClass) {
@@ -1933,6 +1938,10 @@ ToXMLList(JSContext *cx, jsval v)
         }
 
         clasp = obj->getClass();
+        if (clasp->flags & JSCLASS_DOCUMENT_OBSERVER) {
+            JS_ASSERT(0);
+        }
+
         if (clasp != &StringClass &&
             clasp != &NumberClass &&
             clasp != &BooleanClass) {
@@ -7122,7 +7131,8 @@ XML(JSContext *cx, unsigned argc, Value *vp)
     if (IsConstructing(vp) && !JSVAL_IS_PRIMITIVE(v)) {
         vobj = JSVAL_TO_OBJECT(v);
         clasp = vobj->getClass();
-        if (clasp == &XMLClass) {
+        if (clasp == &XMLClass ||
+            (clasp->flags & JSCLASS_DOCUMENT_OBSERVER)) {
             copy = DeepCopy(cx, xml, NULL, 0);
             if (!copy)
                 return JS_FALSE;

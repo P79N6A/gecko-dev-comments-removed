@@ -272,6 +272,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
     void PopRegsInMaskIgnore(RegisterSet set, RegisterSet ignore);
 
+    void branchTestValueTruthy(const ValueOperand &value, Label *ifTrue, FloatRegister fr);
+
     void branchIfFunctionHasNoScript(Register fun, Label *label) {
         
         
