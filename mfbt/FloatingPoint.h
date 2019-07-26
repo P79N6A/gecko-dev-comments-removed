@@ -191,6 +191,19 @@ UnspecifiedNaN()
   return SpecificNaN(0, 0xfffffffffffffULL);
 }
 
+
+
+
+
+
+static inline bool
+DoublesAreIdentical(double d1, double d2)
+{
+  if (IsNaN(d1))
+    return IsNaN(d2);
+  return BitwiseCast<uint64_t>(d1) == BitwiseCast<uint64_t>(d2);
+}
+
 } 
 
 #endif  
