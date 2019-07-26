@@ -8,9 +8,10 @@
 #include "nsIWindowDataSource.h"
 #include "nsIObserver.h"
 
+#include "nsHashKeys.h"
 #include "nsIRDFService.h"
 #include "nsIRDFContainer.h"
-#include "nsHashtable.h"
+#include "nsInterfaceHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 
 
@@ -41,7 +42,7 @@ class nsWindowDataSource : public nsIRDFDataSource,
  private:
 
     
-    nsSupportsHashtable mWindowResources;
+    nsInterfaceHashtable<nsPtrHashKey<nsIXULWindow>, nsIRDFResource> mWindowResources;
 
     static uint32_t windowCount;
     static uint32_t gRefCnt;
