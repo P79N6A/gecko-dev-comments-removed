@@ -1603,7 +1603,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
         }
       }
 
-      mCurrentLine.AssignLiteral("");
+      mCurrentLine.Truncate();
       if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
         if ((outputLineBreak || !spacesOnly) && 
             !stringpart.EqualsLiteral("-- ") &&
