@@ -1,0 +1,16 @@
+
+
+
+
+
+
+
+
+
+
+
+function f() { "use strict"; return this;};
+function foo() { return f();}
+if (foo()!==undefined){
+    throw "'this' had incorrect value!";
+}

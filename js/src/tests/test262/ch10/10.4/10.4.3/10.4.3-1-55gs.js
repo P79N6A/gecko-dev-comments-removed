@@ -1,0 +1,15 @@
+
+
+
+
+
+
+
+
+
+
+
+var o = { get foo() { "use strict"; return this; } }
+if (o.foo!==o) {
+    throw "'this' had incorrect value!";
+}

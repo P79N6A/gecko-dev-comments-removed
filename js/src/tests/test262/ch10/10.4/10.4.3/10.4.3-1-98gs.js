@@ -1,0 +1,16 @@
+
+
+
+
+
+
+
+
+
+
+
+var o = {};
+function f() { return this===o;};
+if (! ((function () {"use strict"; return f.bind(o)();})())){
+    throw "'this' had incorrect value!";
+}

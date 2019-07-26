@@ -1,0 +1,21 @@
+
+
+
+
+
+
+
+
+
+
+    
+function testcase() {
+var f1 = function () {
+    return ((function () {
+        "use strict";
+        return typeof this;
+    })()==="undefined") && (this===fnGlobalObject());
+}
+return f1();
+}
+runTestCase(testcase);

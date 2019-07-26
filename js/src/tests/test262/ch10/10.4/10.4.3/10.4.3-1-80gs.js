@@ -1,0 +1,15 @@
+
+
+
+
+
+
+
+
+
+
+
+function f() { "use strict"; return this;};
+if (f.bind(fnGlobalObject())() !== fnGlobalObject()){
+    throw "'this' had incorrect value!";
+}
