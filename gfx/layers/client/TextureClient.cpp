@@ -251,11 +251,20 @@ TextureClient::GetIPDLActor()
 
 #ifdef MOZ_WIDGET_GONK
 static bool
-DisableGralloc(SurfaceFormat aFormat)
+DisableGralloc(SurfaceFormat aFormat, const gfx::IntSize& aSizeHint)
 {
   if (aFormat == gfx::SurfaceFormat::A8) {
     return true;
   }
+
+#if ANDROID_VERSION <= 15
+  
+  
+  
+  if (aSizeHint.width < 64 || aSizeHint.height < 32) {
+    return true;
+  }
+#endif
 
   return false;
 }
@@ -325,7 +334,7 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-  if (!DisableGralloc(aFormat)) {
+  if (!DisableGralloc(aFormat, aSizeHint)) {
     
     
     int32_t maxTextureSize = aAllocator->GetMaxTextureSize();
