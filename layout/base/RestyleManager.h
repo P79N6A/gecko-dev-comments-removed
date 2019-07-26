@@ -275,7 +275,8 @@ public:
                   nsIFrame* aFrame,
                   nsStyleChangeList* aChangeList,
                   nsChangeHint aHintsHandledByAncestors,
-                  RestyleTracker& aRestyleTracker);
+                  RestyleTracker& aRestyleTracker,
+                  nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement);
 
   
   ElementRestyler(const ElementRestyler& aParentRestyler,
@@ -302,7 +303,6 @@ public:
 
 
   void Restyle(nsRestyleHint aRestyleHint,
-               nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
                TreeMatchContext &aTreeMatchContext);
 
   
@@ -354,6 +354,7 @@ private:
   const DesiredA11yNotifications mDesiredA11yNotifications;
   DesiredA11yNotifications mKidsDesiredA11yNotifications;
   A11yNotificationType mOurA11yNotification;
+  nsTArray<nsIContent*>& mVisibleKidsOfHiddenElement;
 };
 
 } 
