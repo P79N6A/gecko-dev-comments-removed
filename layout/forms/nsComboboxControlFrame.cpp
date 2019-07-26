@@ -648,7 +648,8 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
 
   
   
-  bool b = dropdownSize.height <= below || below >= above;
+  
+  bool b = dropdownSize.height <= below || dropdownSize.height > above;
   nsPoint dropdownPosition(0, b ? GetRect().height : -dropdownSize.height);
   if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
     
