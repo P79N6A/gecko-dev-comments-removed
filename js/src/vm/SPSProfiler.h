@@ -134,7 +134,7 @@ class SPSProfiler
     uint32_t             *size_;
     uint32_t             max_;
     bool                 slowAssertions;
-    bool                 enabled_;
+    uint32_t             enabled_;
 
     const char *allocProfileString(JSContext *cx, RawScript script,
                                    RawFunction function);
@@ -174,10 +174,6 @@ class SPSProfiler
             stack_[*size_ - 1].setPC(pc);
         }
     }
-
-    
-    void enterNative(const char *string, void *sp);
-    void exitNative() { pop(); }
 
 #ifdef JS_METHODJIT
     struct ICInfo
@@ -258,6 +254,10 @@ class SPSProfiler
     
     size_t stringsCount() { return strings.count(); }
     void stringsReset() { strings.clear(); }
+
+    uint32_t *addressOfEnabled() {
+        return &enabled_;
+    }
 };
 
 

@@ -500,6 +500,14 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     uint32_t flags = 0;
 
     
+    
+    
+    if (cx->runtime->spsProfiler.enabled()) {
+        IonSpew(IonSpew_BaselineBailouts, "      Setting SPS flag on frame!");
+        flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+    }
+
+    
     JSObject *scopeChain = NULL;
     if (iter.bailoutKind() == Bailout_ArgumentCheck) {
         
@@ -639,7 +647,6 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
     
     if (!iter.moreFrames()) {
-
         
         
         
@@ -742,6 +749,9 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
                 JS_ASSERT(numUnsynced == 0);
                 opReturnAddr = baselineScript->prologueEntryAddr();
                 IonSpew(IonSpew_BaselineBailouts, "      Resuming into prologue.");
+
+                
+                blFrame->unsetPushedSPSFrame();
             } else {
                 opReturnAddr = nativeCodeForPC;
             }

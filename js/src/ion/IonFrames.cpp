@@ -466,6 +466,10 @@ HandleException(ResumeFromException *rfe)
             if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME)
                 return;
 
+            
+            RawScript script = iter.script();
+            Probes::exitScript(cx, script, script->function(), NULL);
+
             if (cx->compartment->debugMode() && !calledDebugEpilogue) {
                 
                 

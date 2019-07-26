@@ -16,6 +16,8 @@
 #include "vm/SPSProfiler.h"
 #include "vm/StringBuffer.h"
 
+#include "ion/BaselineJIT.h"
+
 using namespace js;
 
 using mozilla::DebugOnly;
@@ -66,6 +68,15 @@ SPSProfiler::enable(bool enabled)
 
 
     ReleaseAllJITCode(rt->defaultFreeOp());
+
+#ifdef JS_ION
+    
+
+
+
+
+    ion::ToggleBaselineSPS(rt, enabled);
+#endif
 }
 
 
@@ -149,24 +160,6 @@ SPSProfiler::exit(JSContext *cx, RawScript script, RawFunction maybeFun)
         stack_[*size_].setPC(NULL);
     }
 #endif
-}
-
-void
-SPSProfiler::enterNative(const char *string, void *sp)
-{
-    
-    volatile ProfileEntry *stack = stack_;
-    volatile uint32_t *size = size_;
-    uint32_t current = *size;
-
-    JS_ASSERT(enabled());
-    if (current < max_) {
-        stack[current].setLabel(string);
-        stack[current].setStackAddress(sp);
-        stack[current].setScript(NULL);
-        stack[current].setLine(0);
-    }
-    *size = current + 1;
 }
 
 void

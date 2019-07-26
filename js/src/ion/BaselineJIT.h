@@ -108,6 +108,12 @@ struct BaselineScript
     
     uint32_t prologueOffset_;
 
+    
+#ifdef DEBUG
+    mozilla::DebugOnly<bool> spsOn_;
+#endif
+    uint32_t spsPushToggleOffset_;
+
   public:
     enum Flag {
         
@@ -136,9 +142,10 @@ struct BaselineScript
 
   public:
     
-    BaselineScript(uint32_t prologueOffset);
+    BaselineScript(uint32_t prologueOffset, uint32_t spsPushToggleOffset);
 
-    static BaselineScript *New(JSContext *cx, uint32_t prologueOffset, size_t icEntries,
+    static BaselineScript *New(JSContext *cx, uint32_t prologueOffset,
+                               uint32_t spsPushToggleOffset, size_t icEntries,
                                size_t pcMappingIndexEntries, size_t pcMappingSize);
     static void Trace(JSTracer *trc, BaselineScript *script);
     static void Destroy(FreeOp *fop, BaselineScript *script);
@@ -235,6 +242,8 @@ struct BaselineScript
     
     void toggleDebugTraps(RawScript script, jsbytecode *pc);
 
+    void toggleSPS(bool enable);
+
     static size_t offsetOfFlags() {
         return offsetof(BaselineScript, flags_);
     }
@@ -260,6 +269,9 @@ FinishDiscardBaselineScript(FreeOp *fop, RawScript script);
 void
 SizeOfBaselineData(JSScript *script, JSMallocSizeOfFun mallocSizeOf, size_t *data,
                    size_t *fallbackStubs);
+
+void
+ToggleBaselineSPS(JSRuntime *runtime, bool enable);
 
 struct BaselineBailoutInfo
 {
