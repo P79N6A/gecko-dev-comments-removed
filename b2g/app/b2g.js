@@ -554,6 +554,7 @@ pref("dom.disable_window_showModalDialog", true);
 
 
 pref("dom.experimental_forms", true);
+pref("dom.forms.number", true);
 
 
 pref("gfx.gralloc.enabled", false);
@@ -778,3 +779,6 @@ pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
 
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
+
+
+pref("dom.telephony.enabled", true);
