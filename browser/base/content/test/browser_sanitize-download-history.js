@@ -108,7 +108,7 @@ function test()
   db.executeSimpleSQL("DELETE FROM moz_downloads");
 
   
-  let win = Services.ww.getWindowByName("Sanatize", null);
+  let win = Services.ww.getWindowByName("Sanitize", null);
   if (win && (win instanceof Ci.nsIDOMWindow))
     win.close();
 
