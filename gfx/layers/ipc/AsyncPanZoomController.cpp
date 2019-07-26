@@ -199,6 +199,20 @@ static float gMinSkateSpeed = 1.0f;
 
 
 
+
+
+
+static bool gUsePaintDuration = true;
+
+
+
+
+
+static float gVelocityBias = 1.0f;
+
+
+
+
 static const TimeDuration ZOOM_TO_DURATION = TimeDuration::FromSeconds(0.25);
 
 
@@ -385,6 +399,8 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddIntVarCache(&gPanRepaintInterval, "apz.pan_repaint_interval", gPanRepaintInterval);
   Preferences::AddIntVarCache(&gFlingRepaintInterval, "apz.fling_repaint_interval", gFlingRepaintInterval);
   Preferences::AddFloatVarCache(&gMinSkateSpeed, "apz.min_skate_speed", gMinSkateSpeed);
+  Preferences::AddBoolVarCache(&gUsePaintDuration, "apz.use_paint_duration", gUsePaintDuration);
+  Preferences::AddFloatVarCache(&gVelocityBias, "apz.velocity_bias", gVelocityBias);
   Preferences::AddIntVarCache(&gContentResponseTimeout, "apz.content_response_timeout", gContentResponseTimeout);
   Preferences::AddIntVarCache(&gNumPaintDurationSamples, "apz.num_paint_duration_samples", gNumPaintDurationSamples);
   Preferences::AddFloatVarCache(&gTouchStartTolerance, "apz.touch_start_tolerance", gTouchStartTolerance);
@@ -1282,7 +1298,11 @@ EnlargeDisplayPortAlongAxis(float* aOutOffset, float* aOutLength,
   *aOutLength = newLength;
 
   
-  *aOutOffset += (aVelocity * aEstimatedPaintDurationMillis);
+  
+  
+  
+  double paintFactor = (gUsePaintDuration ? aEstimatedPaintDurationMillis : 50.0);
+  *aOutOffset += (aVelocity * aEstimatedPaintDurationMillis * gVelocityBias);
 }
 
 
