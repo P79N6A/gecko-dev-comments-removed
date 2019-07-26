@@ -1372,12 +1372,18 @@ public:
   
 
 
-  bool HasAllStateBits(nsFrameState aBits) { return (mState & aBits) == aBits; }
+  bool HasAllStateBits(nsFrameState aBits) const
+  {
+    return (mState & aBits) == aBits;
+  }
   
   
 
 
-  bool HasAnyStateBits(nsFrameState aBits) { return mState & aBits; }
+  bool HasAnyStateBits(nsFrameState aBits) const
+  {
+    return mState & aBits;
+  }
 
   
 
