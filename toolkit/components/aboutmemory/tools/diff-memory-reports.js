@@ -299,9 +299,6 @@ function matches(aA, aB)
 
 
 
-
-
-
 let kUsageMsg =
 "Usage:\n\
 \n\
