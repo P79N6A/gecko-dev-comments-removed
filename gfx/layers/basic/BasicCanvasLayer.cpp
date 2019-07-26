@@ -416,8 +416,6 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
     if (handle) {
       mGLContext->MakeCurrent();
       mGLContext->UpdateSharedHandle(flags, handle);
-      
-      Painted();
       FireDidTransactionCallback();
       BasicManager()->PaintedCanvas(BasicManager()->Hold(this),
                                     mNeedsYFlip,
