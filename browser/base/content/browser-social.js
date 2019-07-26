@@ -407,16 +407,7 @@ function sizeSocialPanelToContent(panel, iframe) {
   let height = Math.max(computedHeight, PANEL_MIN_HEIGHT);
   let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
   let width = Math.max(computedWidth, PANEL_MIN_WIDTH);
-  let wDiff = width - iframe.getBoundingClientRect().width;
-  
-  
-  
-  if (wDiff !== 0 && panel.getAttribute("side") == "right") {
-    let box = panel.boxObject;
-    panel.moveTo(box.screenX - wDiff, box.screenY);
-  }
-  iframe.style.height = height + "px";
-  iframe.style.width = width + "px";
+  panel.sizeTo(width, height);
 }
 
 function DynamicResizeWatcher() {
@@ -564,13 +555,7 @@ SocialFlyout = {
     sizeSocialPanelToContent(panel, iframe);
     let anchor = document.getElementById("social-sidebar-browser");
     if (panel.state == "open") {
-      
-      
-      
-      
-      let yAdjust = yOffset - this.yOffset;
-      let box = panel.boxObject;
-      panel.moveTo(box.screenX, box.screenY + yAdjust);
+      panel.moveToAnchor(anchor, "start_before", 0, yOffset, false);
     } else {
       panel.openPopup(anchor, "start_before", 0, yOffset, false, false);
       
@@ -578,7 +563,6 @@ SocialFlyout = {
       panel.firstChild.clientTop;
       Social.setErrorListener(iframe, this.setFlyoutErrorMessage.bind(this))
     }
-    this.yOffset = yOffset;
   }
 }
 
