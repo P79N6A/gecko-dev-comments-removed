@@ -51,8 +51,11 @@ class WorkerThreadState
     uint32_t numPaused;
 
     enum CondVar {
-        MAIN,
-        WORKER
+        
+        CONSUMER,
+
+        
+        PRODUCER
     };
 
     
@@ -88,7 +91,6 @@ class WorkerThreadState
 # endif
 
     void wait(CondVar which, uint32_t timeoutMillis = 0);
-    void notify(CondVar which);
     void notifyAll(CondVar which);
 
     bool canStartAsmJSCompile();
@@ -137,10 +139,8 @@ class WorkerThreadState
 # endif
 
     
-    PRCondVar *mainWakeup;
-
-    
-    PRCondVar *helperWakeup;
+    PRCondVar *consumerWakeup;
+    PRCondVar *producerWakeup;
 
     
 
@@ -334,6 +334,23 @@ class AutoPauseWorkersForGC
   public:
     AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~AutoPauseWorkersForGC();
+};
+
+
+
+
+
+
+class AutoPauseCurrentWorkerThread
+{
+#ifdef JS_WORKER_THREADS
+    ExclusiveContext *cx;
+#endif
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  public:
+    AutoPauseCurrentWorkerThread(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoPauseCurrentWorkerThread();
 };
 
 

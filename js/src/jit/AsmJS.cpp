@@ -5015,13 +5015,14 @@ static AsmJSParallelTask *
 GetFinishedCompilation(ModuleCompiler &m, ParallelGroupState &group)
 {
     AutoLockWorkerThreadState lock(*m.cx()->workerThreadState());
+    AutoPauseCurrentWorkerThread maybePause(m.cx());
 
     while (!group.state.asmJSWorkerFailed()) {
         if (!group.state.asmJSFinishedList.empty()) {
             group.outstandingJobs--;
             return group.state.asmJSFinishedList.popCopy();
         }
-        group.state.wait(WorkerThreadState::MAIN);
+        group.state.wait(WorkerThreadState::CONSUMER);
     }
 
     return NULL;
@@ -5139,10 +5140,12 @@ CancelOutstandingJobs(ModuleCompiler &m, ParallelGroupState &group)
     
     group.outstandingJobs -= group.state.harvestFailedAsmJSJobs();
 
+    AutoPauseCurrentWorkerThread maybePause(m.cx());
+
     
     JS_ASSERT(group.outstandingJobs >= 0);
     while (group.outstandingJobs > 0) {
-        group.state.wait(WorkerThreadState::MAIN);
+        group.state.wait(WorkerThreadState::CONSUMER);
 
         group.outstandingJobs -= group.state.harvestFailedAsmJSJobs();
         group.outstandingJobs -= group.state.asmJSFinishedList.length();
