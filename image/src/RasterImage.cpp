@@ -1207,6 +1207,7 @@ nsresult
 RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  mDecodingMonitor.AssertCurrentThreadIn();
 
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1583,10 +1584,8 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   if (!StoringSourceData() && mHasSize) {
-    {
-      rv = WriteToDecoder(aBuffer, aCount, DECODE_SYNC);
-      CONTAINER_ENSURE_SUCCESS(rv);
-    }
+    rv = WriteToDecoder(aBuffer, aCount, DECODE_SYNC);
+    CONTAINER_ENSURE_SUCCESS(rv);
 
     
     
@@ -2825,8 +2824,11 @@ RasterImage::DoError()
   }
 
   
+  
+  ReentrantMonitorAutoEnter lock(mDecodingMonitor);
+
+  
   if (mDecoder) {
-    ReentrantMonitorAutoEnter lock(mDecodingMonitor);
     FinishedSomeDecoding(eShutdownIntent_Error);
   }
 
