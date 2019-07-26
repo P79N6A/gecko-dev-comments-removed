@@ -497,6 +497,20 @@ CheckWrapperCacheCast<T, true>
 };
 #endif
 
+MOZ_ALWAYS_INLINE bool
+CouldBeDOMBinding(void*)
+{
+  return true;
+}
+
+MOZ_ALWAYS_INLINE bool
+CouldBeDOMBinding(nsWrapperCache* aCache)
+{
+  return aCache->IsDOMBinding();
+}
+
+
+
 
 
 
@@ -511,9 +525,12 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
       *vp = JS::ObjectValue(*obj);
       return true;
     }
-  }
+  } else {
+    
+    if (!CouldBeDOMBinding(value)) {
+      return false;
+    }
 
-  if (!obj) {
     bool triedToWrap;
     obj = value->WrapObject(cx, scope, &triedToWrap);
     if (!obj) {
@@ -552,8 +569,6 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
   *vp = JS::ObjectValue(*obj);
   return JS_WrapValue(cx, vp);
 }
-
-
 
 
 

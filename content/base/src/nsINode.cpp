@@ -2311,11 +2311,7 @@ nsINode::QuerySelectorAll(const nsAString& aSelector, ErrorResult& aResult)
 JSObject*
 nsINode::WrapObject(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
 {
-  
-  if (!IsDOMBinding()) {
-    *aTriedToWrap = false;
-    return nullptr;
-  }
+  MOZ_ASSERT(IsDOMBinding());
 
   
   
