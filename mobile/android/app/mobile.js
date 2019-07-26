@@ -396,9 +396,6 @@ pref("app.geo.reportdata", 0);
 
 
 
-pref("javascript.options.methodjit.chrome",  false);
-
-
 
 pref("javascript.options.gc_on_memory_pressure", false);
 
