@@ -123,9 +123,7 @@ TextTrack*
 HTMLTrackElement::Track()
 {
   if (!mTrack) {
-    
-    
-    mTrack = new TextTrack(OwnerDoc()->GetParentObject(), mMediaParent);
+    CreateTextTrack();
   }
 
   return mTrack;
@@ -145,8 +143,7 @@ HTMLTrackElement::CreateTextTrack()
     kind = TextTrackKind::Subtitles;
   }
 
-  mTrack = new TextTrack(OwnerDoc()->GetParentObject(), mMediaParent, kind,
-                         label, srcLang);
+  mTrack = new TextTrack(OwnerDoc()->GetParentObject(), kind, label, srcLang);
 
   if (mMediaParent) {
     mMediaParent->AddTextTrack(mTrack);
