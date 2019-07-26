@@ -132,7 +132,7 @@ typedef enum {
 
 
 struct PK11DefaultArrayEntryStr {
-    char *name;
+    const char *name;
     unsigned long flag;
     unsigned long mechanism; 
 

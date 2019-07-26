@@ -1576,6 +1576,18 @@ extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
 
 extern void BL_SetForkState(PRBool forked);
 
+#ifndef NSS_DISABLE_ECC
+
+
+
+extern SECStatus EC_FillParams(PLArenaPool *arena,
+                               const SECItem *encodedParams, ECParams *params);
+extern SECStatus EC_DecodeParams(const SECItem *encodedParams,
+                                 ECParams **ecparams);
+extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
+                               const ECParams *srcParams);
+#endif
+
 SEC_END_PROTOS
 
 #endif 

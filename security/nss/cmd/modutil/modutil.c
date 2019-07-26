@@ -832,6 +832,11 @@ main(int argc, char *argv[])
 		goto loser;
 	}
 
+	errcode = LoadMechanismList();
+	if (errcode != SUCCESS) {
+		goto loser;
+	}
+
 	
 	switch(command) {
 	case ADD_COMMAND:

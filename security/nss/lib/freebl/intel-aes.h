@@ -1,8 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Prototypes of the functions defined in the assembler file.  */
+
+
+
+
 void intel_aes_encrypt_init_128(const unsigned char *key, PRUint32 *expanded);
 void intel_aes_encrypt_init_192(const unsigned char *key, PRUint32 *expanded);
 void intel_aes_encrypt_init_256(const unsigned char *key, PRUint32 *expanded);
@@ -33,6 +33,12 @@ SECStatus intel_aes_decrypt_cbc_128(AESContext *cx, unsigned char *output,
 				    const unsigned char *input,
 				    unsigned int inputLen,
 				    unsigned int blocksize);
+SECStatus intel_aes_encrypt_ctr_128(CTRContext *cx, unsigned char *output,
+				    unsigned int *outputLen,
+				    unsigned int maxOutputLen,
+				    const unsigned char *input,
+				    unsigned int inputLen,
+				    unsigned int blocksize);
 SECStatus intel_aes_encrypt_ecb_192(AESContext *cx, unsigned char *output,
 				    unsigned int *outputLen,
 				    unsigned int maxOutputLen,
@@ -52,6 +58,12 @@ SECStatus intel_aes_encrypt_cbc_192(AESContext *cx, unsigned char *output,
 				    unsigned int inputLen,
 				    unsigned int blocksize);
 SECStatus intel_aes_decrypt_cbc_192(AESContext *cx, unsigned char *output,
+				    unsigned int *outputLen,
+				    unsigned int maxOutputLen,
+				    const unsigned char *input,
+				    unsigned int inputLen,
+				    unsigned int blocksize);
+SECStatus intel_aes_encrypt_ctr_192(CTRContext *cx, unsigned char *output,
 				    unsigned int *outputLen,
 				    unsigned int maxOutputLen,
 				    const unsigned char *input,
@@ -81,6 +93,12 @@ SECStatus intel_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
 				    const unsigned char *input,
 				    unsigned int inputLen,
 				    unsigned int blocksize);
+SECStatus intel_aes_encrypt_ctr_256(CTRContext *cx, unsigned char *output,
+				    unsigned int *outputLen,
+				    unsigned int maxOutputLen,
+				    const unsigned char *input,
+				    unsigned int inputLen,
+				    unsigned int blocksize);
 
 
 #define intel_aes_ecb_worker(encrypt, keysize) \
@@ -101,6 +119,11 @@ SECStatus intel_aes_decrypt_cbc_256(AESContext *cx, unsigned char *output,
    : ((keysize) == 16 ? intel_aes_decrypt_cbc_128 :	\
       (keysize) == 24 ? intel_aes_decrypt_cbc_192 :	\
       intel_aes_decrypt_cbc_256))
+
+#define intel_aes_ctr_worker(nr) \
+   ((nr) == 10 ? intel_aes_encrypt_ctr_128 :	\
+    (nr) == 12 ? intel_aes_encrypt_ctr_192 :	\
+    intel_aes_encrypt_ctr_256)
 
 
 #define intel_aes_init(encrypt, keysize) \

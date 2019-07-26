@@ -7,11 +7,7 @@
 
 
 #include "modutil.h"
-
 #include "pk11func.h"
-
-static PK11DefaultArrayEntry *pk11_DefaultArray = NULL;
-static int pk11_DefaultArraySize = 0;
 
 
 
@@ -110,32 +106,9 @@ ChkFipsMode(char *arg)
 
 typedef struct {
     const char *name;
-    const unsigned long mask;
+    unsigned long mask;
 } MaskString;
 
-static const MaskString mechanismStrings[] = {
-    {"RSA", PUBLIC_MECH_RSA_FLAG},
-    {"DSA", PUBLIC_MECH_DSA_FLAG},
-    {"RC2", PUBLIC_MECH_RC2_FLAG},
-    {"RC4", PUBLIC_MECH_RC4_FLAG},
-    {"RC5", PUBLIC_MECH_RC5_FLAG},
-    {"DES", PUBLIC_MECH_DES_FLAG},
-    {"DH", PUBLIC_MECH_DH_FLAG},
-    {"FORTEZZA", PUBLIC_MECH_FORTEZZA_FLAG},
-    {"SHA1", PUBLIC_MECH_SHA1_FLAG},
-    {"MD5", PUBLIC_MECH_MD5_FLAG},
-    {"MD2", PUBLIC_MECH_MD2_FLAG},
-    {"SSL", PUBLIC_MECH_SSL_FLAG},
-    {"TLS", PUBLIC_MECH_TLS_FLAG},
-    {"AES", PUBLIC_MECH_AES_FLAG},
-    {"CAMELLIA", PUBLIC_MECH_CAMELLIA_FLAG},
-    {"SHA256", PUBLIC_MECH_SHA256_FLAG},
-    {"SHA512", PUBLIC_MECH_SHA512_FLAG},
-    {"RANDOM", PUBLIC_MECH_RANDOM_FLAG},
-    {"FRIENDLY", PUBLIC_MECH_FRIENDLY_FLAG}
-};
-static const int numMechanismStrings =
-    sizeof(mechanismStrings) / sizeof(mechanismStrings[0]);
 
 static const MaskString cipherStrings[] = {
     {"FORTEZZA", PUBLIC_CIPHER_FORTEZZA_FLAG}
@@ -144,8 +117,66 @@ static const int numCipherStrings =
     sizeof(cipherStrings) / sizeof(cipherStrings[0]);
 
 
+static MaskString *mechanismStrings =  NULL;
+static int numMechanismStrings = 0;
+const static PK11DefaultArrayEntry *pk11_DefaultArray = NULL;
+static int pk11_DefaultArraySize = 0;
+
+
 
 #define MAX_STRING_LIST_LEN 240    /* or less */
+
+
+Error
+LoadMechanismList(void)
+{
+    int i;
+
+    if (pk11_DefaultArray == NULL) {
+        pk11_DefaultArray = PK11_GetDefaultArray(&pk11_DefaultArraySize);
+        if (pk11_DefaultArray == NULL) {
+            
+            return UNSPECIFIED_ERR;
+        }
+    }
+    if (mechanismStrings != NULL) {
+	return SUCCESS;
+    }
+
+    
+    mechanismStrings = PORT_NewArray(MaskString, pk11_DefaultArraySize);
+    if (mechanismStrings == NULL) {
+	return OUT_OF_MEM_ERR;
+    }
+    numMechanismStrings = pk11_DefaultArraySize;
+    for (i = 0; i < numMechanismStrings; i++) {
+	const char *name = pk11_DefaultArray[i].name;
+	unsigned long flag = pk11_DefaultArray[i].flag;
+	
+	switch (flag) {
+	case SECMOD_FORTEZZA_FLAG:
+	    name = "FORTEZZA";
+	    break;
+	case SECMOD_SHA1_FLAG:
+	    name = "SHA1";
+	    break;
+	case SECMOD_CAMELLIA_FLAG:
+	    name = "CAMELLIA";
+	    break;
+	case SECMOD_RANDOM_FLAG:
+	    name = "RANDOM";
+	    break;
+	case SECMOD_FRIENDLY_FLAG:
+	    name = "FRIENDLY";
+	    break;
+	default:
+	    break;
+	}
+	mechanismStrings[i].name = name;
+	mechanismStrings[i].mask = SECMOD_InternaltoPubMechFlags(flag);
+    }
+    return SUCCESS;
+}
 
 
 
@@ -816,14 +847,6 @@ SetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
     PRBool found = PR_FALSE;
     Error errcode = UNSPECIFIED_ERR;
 
-    if (pk11_DefaultArray == NULL) {
-	pk11_DefaultArray = PK11_GetDefaultArray(&pk11_DefaultArraySize);
-	if (pk11_DefaultArray == NULL) {
-	    
-	    goto loser;
-	}
-    }
-
     mechFlags =  SECMOD_PubMechFlagstoInternal(mechFlags);
 
     module = SECMOD_FindModule(moduleName);
@@ -893,15 +916,6 @@ UnsetDefaultModule(char *moduleName, char *slotName, char *mechanisms)
 	mechanismStrings, numMechanismStrings);
     PRBool found = PR_FALSE;
     Error rv;
-
-    if (pk11_DefaultArray == NULL) {
-	pk11_DefaultArray = PK11_GetDefaultArray(&pk11_DefaultArraySize);
-	if (pk11_DefaultArray == NULL) {
-	    
-	    rv = UNSPECIFIED_ERR;
-            goto loser;
-	}
-    }
 
     mechFlags =  SECMOD_PubMechFlagstoInternal(mechFlags);
 

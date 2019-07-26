@@ -35,19 +35,6 @@ RSA_HashCheckSign(SECOidTag hashOid, NSSLOWKEYPublicKey *key,
                   const unsigned char *sig, unsigned int sigLen,
                   const unsigned char *hash, unsigned int hashLen);
 
-#ifndef NSS_DISABLE_ECC
-
-
-
-extern SECStatus EC_FillParams(PLArenaPool *arena,
-                               const SECItem *encodedParams, ECParams *params);
-extern SECStatus EC_DecodeParams(const SECItem *encodedParams, 
-				ECParams **ecparams);
-extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
-              			const ECParams *srcParams);
-#endif
-
-
 
 
 

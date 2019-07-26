@@ -588,7 +588,7 @@ SECStatus PK11_WrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 
 
 
-SECItem* PK11_DEREncodePublicKey(SECKEYPublicKey *pubk);
+SECItem* PK11_DEREncodePublicKey(const SECKEYPublicKey *pubk);
 PK11SymKey* PK11_CopySymKeyForSigning(PK11SymKey *originalKey,
 	CK_MECHANISM_TYPE mech);
 SECKEYPrivateKeyList* PK11_ListPrivKeysInSlot(PK11SlotInfo *slot,
@@ -773,7 +773,7 @@ PK11_GetPBECryptoMechanism(SECAlgorithmID *algid,
 
 
 
-PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
+const PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
 SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
 				   const PK11DefaultArrayEntry *entry,
 				   PRBool add);
