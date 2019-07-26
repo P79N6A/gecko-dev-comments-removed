@@ -78,8 +78,6 @@ public:
   virtual ~AudioNode();
 
   
-  
-  
   virtual void DestroyMediaStream()
   {
     if (mStream) {
