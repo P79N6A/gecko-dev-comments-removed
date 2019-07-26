@@ -166,17 +166,22 @@ class AliasSet {
         None_             = 0,
         ObjectFields      = 1 << 0, 
         Element           = 1 << 1, 
-        Slot              = 1 << 2, 
-        TypedArrayElement = 1 << 3, 
+        DynamicSlot       = 1 << 2, 
+        FixedSlot         = 1 << 3, 
+        TypedArrayElement = 1 << 4, 
         Last              = TypedArrayElement,
         Any               = Last | (Last - 1),
+
+        NumCategories     = 5,
 
         
         Store_            = 1 << 31
     };
     AliasSet(uint32_t flags)
       : flags_(flags)
-    { }
+    {
+        JS_STATIC_ASSERT((1 << NumCategories) - 1 == Any);
+    }
 
   public:
     inline bool isNone() const {
@@ -209,8 +214,6 @@ class AliasSet {
         return AliasSet(flags | Store_);
     }
 };
-
-static const unsigned NUM_ALIAS_SETS = sizeof(AliasSet) * 8;
 
 
 class MDefinition : public MNode
@@ -452,6 +455,14 @@ class MDefinition : public MNode
     }
     bool isEffectful() const {
         return getAliasSet().isStore();
+    }
+    virtual bool mightAlias(MDefinition *store) {
+        
+        
+        
+        JS_ASSERT(!isEffectful() && store->isEffectful());
+        JS_ASSERT(getAliasSet().flags() & store->getAliasSet().flags());
+        return true;
     }
 };
 
@@ -4141,8 +4152,10 @@ class MLoadFixedSlot
     }
 
     AliasSet getAliasSet() const {
-        return AliasSet::Load(AliasSet::Slot);
+        return AliasSet::Load(AliasSet::FixedSlot);
     }
+
+    bool mightAlias(MDefinition *store);
 };
 
 class MStoreFixedSlot
@@ -4183,7 +4196,7 @@ class MStoreFixedSlot
     }
 
     AliasSet getAliasSet() const {
-        return AliasSet::Store(AliasSet::Slot);
+        return AliasSet::Store(AliasSet::FixedSlot);
     }
     bool needsBarrier() const {
         return needsBarrier_;
@@ -4344,8 +4357,11 @@ class MGetPropertyCache
     }
 
     AliasSet getAliasSet() const {
-        if (idempotent_)
-            return AliasSet::Load(AliasSet::ObjectFields | AliasSet::Slot);
+        if (idempotent_) {
+            return AliasSet::Load(AliasSet::ObjectFields |
+                                  AliasSet::FixedSlot |
+                                  AliasSet::DynamicSlot);
+        }
         return AliasSet::Store(AliasSet::Any);
     }
 
@@ -4716,8 +4732,9 @@ class MLoadSlot
     }
     AliasSet getAliasSet() const {
         JS_ASSERT(slots()->type() == MIRType_Slots);
-        return AliasSet::Load(AliasSet::Slot);
+        return AliasSet::Load(AliasSet::DynamicSlot);
     }
+    bool mightAlias(MDefinition *store);
 };
 
 
@@ -4797,7 +4814,7 @@ class MStoreSlot
         needsBarrier_ = true;
     }
     AliasSet getAliasSet() const {
-        return AliasSet::Store(AliasSet::Slot);
+        return AliasSet::Store(AliasSet::DynamicSlot);
     }
 };
 
