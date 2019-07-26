@@ -131,7 +131,9 @@ public:
 
 
 
-  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph, bool aHasCurrentData) {}
+
+
+  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph) {}
 
   
 
@@ -268,6 +270,8 @@ public:
     , mFinished(false)
     , mNotifiedFinished(false)
     , mNotifiedBlocked(false)
+    , mHasCurrentData(false)
+    , mNotifiedHasCurrentData(false)
     , mWrapper(aWrapper)
     , mMainThreadCurrentTime(0)
     , mMainThreadFinished(false)
@@ -421,6 +425,8 @@ public:
   bool IsFinishedOnGraphThread() { return mFinished; }
   void FinishOnGraphThread();
 
+  bool HasCurrentData() { return mHasCurrentData; }
+
 protected:
   virtual void AdvanceTimeVaryingValuesToCurrentTime(GraphTime aCurrentTime, GraphTime aBlockedTime)
   {
@@ -503,6 +509,17 @@ protected:
 
 
   bool mNotifiedBlocked;
+  
+
+
+
+
+
+  bool mHasCurrentData;
+  
+
+
+  bool mNotifiedHasCurrentData;
 
   
   bool mHasBeenOrdered;

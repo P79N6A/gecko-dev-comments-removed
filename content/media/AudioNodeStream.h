@@ -48,6 +48,8 @@ public:
       mEngine(aEngine),
       mKind(aKind)
   {
+    
+    mHasCurrentData = true;
   }
   ~AudioNodeStream();
 
