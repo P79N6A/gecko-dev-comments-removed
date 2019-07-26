@@ -121,7 +121,7 @@ public:
 
 
 
-  void NotifyOwnerDocumentActivityChanged();
+  virtual void NotifyOwnerDocumentActivityChanged();
 
   
   
@@ -536,9 +536,15 @@ protected:
     bool mValue;
     bool mCanPlay;
     HTMLMediaElement* mOuter;
-
-    nsCOMPtr<nsIDOMMozWakeLock> mWakeLock;
   };
+
+  
+
+
+
+  virtual void WakeLockCreate();
+  virtual void WakeLockRelease();
+  nsCOMPtr<nsIDOMMozWakeLock> mWakeLock;
 
   
 
