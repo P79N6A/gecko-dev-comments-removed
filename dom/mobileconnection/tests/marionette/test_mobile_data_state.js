@@ -2,122 +2,171 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
+MARIONETTE_HEAD_JS = "mobile_header.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
-
-
-
-let ifr = document.createElement("iframe");
-let mobileConnection;
-ifr.onload = function() {
-  mobileConnection = ifr.contentWindow.navigator.mozMobileConnections[0];
-
-  
-  verifyInitialState();
-};
-document.body.appendChild(ifr);
-
-function verifyInitialState() {
-  log("Verifying initial state.");
-  ok(mobileConnection instanceof MozMobileConnection,
-      "mobileConnection is instanceof " + mobileConnection.constructor);
-  
-  
-  log("Starting mobileConnection.data.state is: '"
-      + mobileConnection.data.state + "'.");
-  if (mobileConnection.data.state != "registered") {
-    changeDataStateAndVerify("home", "registered", testUnregistered);
-  } else {
-    testUnregistered();
-  }
+function setEmulatorDataState(state) {
+  emulatorHelper.sendCommand("gsm data " + state);
 }
 
-function changeDataStateAndVerify(dataState, expected, nextFunction) {
-  let gotCallback = false;
-
-  
-  log("Changing emulator data state to '" + dataState
-      + "' and waiting for 'ondatachange' event.");
-
-  
+function waitForDataChangeEvent(callback) {
   mobileConnection.addEventListener("datachange", function ondatachange() {
     mobileConnection.removeEventListener("datachange", ondatachange);
-    log("Received 'ondatachange' event.");
-    log("mobileConnection.data.state is now '"
-        + mobileConnection.data.state + "'.");
-    is(mobileConnection.data.state, expected, "data.state");
-    waitFor(nextFunction, function() {
-      return(gotCallback);
+
+    if (callback && typeof callback === "function") {
+      callback();
+    }
+  });
+}
+
+
+taskHelper.push(function testInitialDataInfo() {
+  log("Test initial data connection info");
+
+  let data = mobileConnection.data;
+  
+  
+  is(data.connected, false, "check data.connected");
+  is(data.state, "registered", "check data.state");
+  is(data.emergencyCallsOnly, false, "check data.emergencyCallsOnly");
+  is(data.roaming, false, "check data.roaming");
+  
+  is(data.signalStrength, -99, "check data.signalStrength");
+  is(data.relSignalStrength, 44, "check data.relSignalStrength");
+
+  let cell = data.cell;
+  ok(data.cell, "location available");
+  
+  
+  is(cell.gsmLocationAreaCode, 65535, "check data.cell.gsmLocationAreaCode");
+  is(cell.gsmCellId, 268435455, "check data.cell.gsmCellId");
+  is(cell.cdmaBaseStationId, -1, "check data.cell.cdmaBaseStationId");
+  is(cell.cdmaBaseStationLatitude, -2147483648,
+     "check data.cell.cdmaBaseStationLatitude");
+  is(cell.cdmaBaseStationLongitude, -2147483648,
+     "check data.cell.cdmaBaseStationLongitude");
+  is(cell.cdmaSystemId, -1, "check data.cell.cdmaSystemId");
+  is(cell.cdmaNetworkId, -1, "check data.cell.cdmaNetworkId");
+
+  taskHelper.runNext();
+});
+
+
+taskHelper.push(function testDataStateUpdate() {
+  
+  function doTestDataState(state, expect, callback) {
+    log("Test data info with state='" + state + "'");
+
+    waitForDataChangeEvent(function() {
+      let data = mobileConnection.data;
+      is(data.state, expect.state, "check data.state");
+      is(data.connected, expect.connected, "check data.connected");
+      is(data.emergencyCallsOnly, expect.emergencyCallsOnly,
+         "check data.emergencyCallsOnly");
+      is(data.roaming, expect.roaming, "check data.roaming");
+      is(data.signalStrength, expect.signalStrength,
+         "check data.signalStrength");
+      is(data.relSignalStrength, expect.relSignalStrength,
+         "check data.relSignalStrength");
+
+      let cell = data.cell;
+      if (!expect.cell) {
+        ok(!cell, "check data.cell");
+      } else {
+        is(cell.gsmLocationAreaCode, expect.cell.gsmLocationAreaCode,
+           "check data.cell.gsmLocationAreaCode");
+        is(cell.gsmCellId, expect.cell.gsmCellId, "check data.cell.gsmCellId");
+        is(cell.cdmaBaseStationId, -1, "check data.cell.cdmaBaseStationId");
+        is(cell.cdmaBaseStationLatitude, -2147483648,
+           "check data.cell.cdmaBaseStationLatitude");
+        is(cell.cdmaBaseStationLongitude, -2147483648,
+           "check data.cell.cdmaBaseStationLongitude");
+        is(cell.cdmaSystemId, -1, "check data.cell.cdmaSystemId");
+        is(cell.cdmaNetworkId, -1, "check data.cell.cdmaNetworkId");
+      }
+
+      if (callback && typeof callback === "function") {
+        callback();
+      }
     });
-  });
+
+    setEmulatorDataState(state);
+  }
+
+  let testData = [
+    
+    {state: "unregistered",
+     expect: {
+      state: "notSearching",
+      connected: false,
+      emergencyCallsOnly: true,
+      roaming: false,
+      signalStrength: null,
+      relSignalStrength: null,
+      cell: null
+    }},
+    
+    {state: "searching",
+     expect: {
+      state: "searching",
+      connected: false,
+      emergencyCallsOnly: true,
+      roaming: false,
+      signalStrength: null,
+      relSignalStrength: null,
+      cell: null
+    }},
+    
+    {state: "denied",
+     expect: {
+      state: "denied",
+      connected: false,
+      emergencyCallsOnly: true,
+      roaming: false,
+      signalStrength: null,
+      relSignalStrength: null,
+      cell: null
+    }},
+    
+    
+    
+    
+    {state: "roaming",
+     expect: {
+      state: "registered",
+      connected: false,
+      emergencyCallsOnly: false,
+      roaming: false,
+      signalStrength: -99,
+      relSignalStrength: 44,
+      cell: {
+        gsmLocationAreaCode: 65535,
+        gsmCellId: 268435455
+    }}},
+    
+    {state: "home",
+     expect: {
+      state: "registered",
+      connected: false,
+      emergencyCallsOnly: false,
+      roaming: false,
+      signalStrength: -99,
+      relSignalStrength: 44,
+      cell: {
+        gsmLocationAreaCode: 65535,
+        gsmCellId: 268435455
+    }}}
+  ];
 
   
-  gotCallback = false;
-  runEmulatorCmd("gsm data " + dataState, function(result) {
-    is(result[0], "OK");
-    log("Emulator callback complete.");
-    gotCallback = true;
-  });
-}
+  (function do_call() {
+    let next = testData.shift();
+    if (!next) {
+      taskHelper.runNext();
+      return;
+    }
+    doTestDataState(next.state, next.expect, do_call);
+  })();
+});
 
-function testUnregistered() {
-  log("Test 1: Unregistered.");
-  
-  
-  changeDataStateAndVerify("unregistered", "notSearching", testRoaming);
-}
 
-function testRoaming() {
-  log("Test 2: Roaming.");
-  
-  
-  changeDataStateAndVerify("roaming", "registered", testOff);
-}
-
-function testOff() {
-  log("Test 3: Off.");
-  
-  
-  changeDataStateAndVerify("off", "notSearching", testSearching);
-}
-
-function testSearching() {
-  log("Test 4: Searching.");
-  
-  
-  changeDataStateAndVerify("searching", "searching", testDenied);
-}
-
-function testDenied() {
-  log("Test 5: Denied.");
-  
-  
-  changeDataStateAndVerify("denied", "denied", testOn);
-}
-
-function testOn() {
-  log("Test 6: On.");
-  
-  
-  changeDataStateAndVerify("on", "registered", testOffAgain);
-}
-
-function testOffAgain() {
-  log("Test 7: Off again.");
-  
-  
-  changeDataStateAndVerify("off", "notSearching", testHome);
-}
-
-function testHome() {
-  log("Test 8: Home.");
-  
-  
-  changeDataStateAndVerify("home", "registered", cleanUp);
-}
-
-function cleanUp() {
-  mobileConnection.ondatachange = null;
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+taskHelper.runNext();
