@@ -302,6 +302,18 @@ ICStub::trace(JSTracer *trc)
         MarkShape(trc, &propStub->holderShape(), "baseline-getpropnativeproto-stub-holdershape");
         break;
       }
+      case ICStub::GetProp_CallListBaseNative: {
+        ICGetProp_CallListBaseNative *propStub = toGetProp_CallListBaseNative();
+        MarkShape(trc, &propStub->shape(), "baseline-getproplistbasenative-stub-shape");
+        if (propStub->expandoShape()) {
+            MarkShape(trc, &propStub->expandoShape(),
+                      "baseline-getproplistbasenative-stub-expandoshape");
+        }
+        MarkObject(trc, &propStub->holder(), "baseline-getproplistbasenative-stub-holder");
+        MarkShape(trc, &propStub->holderShape(), "baseline-getproplistbasenative-stub-holdershape");
+        MarkObject(trc, &propStub->getter(), "baseline-getproplistbasenative-stub-getter");
+        break;
+      }
       case ICStub::GetProp_CallScripted: {
         ICGetProp_CallScripted *callStub = toGetProp_CallScripted();
         MarkShape(trc, &callStub->shape(), "baseline-getpropcallscripted-stub-shape");
@@ -595,8 +607,8 @@ ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, La
     
     JS_ASSERT(kind == ICStub::Call_Scripted      || kind == ICStub::Call_AnyScripted     ||
               kind == ICStub::Call_Native        || kind == ICStub::GetProp_CallScripted ||
-              kind == ICStub::GetProp_CallNative || kind == ICStub::SetProp_CallScripted ||
-              kind == ICStub::SetProp_CallNative);
+              kind == ICStub::GetProp_CallNative || kind == ICStub::GetProp_CallListBaseNative ||
+              kind == ICStub::SetProp_CallScripted || kind == ICStub::SetProp_CallNative);
 
     
     
@@ -2996,57 +3008,171 @@ static void GetFixedOrDynamicSlotOffset(HandleObject obj, uint32_t slot,
                        : obj->dynamicSlotIndex(slot) * sizeof(Value);
 }
 
+static bool
+IsCacheableListBase(JSObject *obj)
+{
+    if (!obj->isProxy())
+        return false;
+
+    BaseProxyHandler *handler = GetProxyHandler(obj);
+
+    if (handler->family() != GetListBaseHandlerFamily())
+        return false;
+
+    if (obj->numFixedSlots() <= GetListBaseExpandoSlot())
+        return false;
+
+    return true;
+}
+
+static JSObject *
+GetListBaseProto(JSObject *obj)
+{
+    JS_ASSERT(IsCacheableListBase(obj));
+    return obj->getTaggedProto().toObjectOrNull();
+}
+
+static void
+GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, Register object,
+                       Address checkProxyHandlerAddr,
+                       Address checkExpandoShapeAddr,
+                       Register scratch,
+                       GeneralRegisterSet &listBaseRegSet,
+                       Label *checkFailed)
+{
+    
+    
+    
+    
+    Address handlerAddr(object, JSObject::getFixedSlotOffset(JSSLOT_PROXY_HANDLER));
+    Address expandoAddr(object, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
+
+    
+    masm.loadPtr(checkProxyHandlerAddr, scratch);
+    masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, scratch, checkFailed);
+
+    
+    
+    ValueOperand tempVal = listBaseRegSet.takeAnyValue();
+    masm.pushValue(tempVal);
+
+    Label failListBaseCheck;
+    Label listBaseOk;
+
+    masm.loadValue(expandoAddr, tempVal);
+
+    
+    
+    masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
+
+    
+    
+    
+    masm.loadPtr(checkExpandoShapeAddr, scratch);
+    masm.branchPtr(Assembler::Equal, scratch, ImmWord((void*)NULL), &failListBaseCheck);
+
+    
+    
+    masm.branchTestObject(Assembler::NotEqual, tempVal, &failListBaseCheck);
+    Register objReg = masm.extractObject(tempVal, tempVal.scratchReg());
+    masm.branchTestObjShape(Assembler::Equal, objReg, scratch, &listBaseOk);
+
+    
+    masm.bind(&failListBaseCheck);
+    masm.popValue(tempVal);
+    masm.jump(checkFailed);
+
+    
+    masm.bind(&listBaseOk);
+    masm.popValue(tempVal);
+}
+
 
 
 
 static bool
 EffectlesslyLookupProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                           MutableHandleObject holder, MutableHandleShape shape)
+                           MutableHandleObject holder, MutableHandleShape shape,
+                           bool *checkListBase=NULL)
 {
-    if (obj->hasIdempotentProtoChain()) {
-        if (!JSObject::lookupProperty(cx, obj, name, holder, shape))
+    shape.set(NULL);
+    holder.set(NULL);
+
+    bool isListBase = false;
+    if (checkListBase)
+        *checkListBase = false;
+
+    
+    RootedObject checkObj(cx, obj);
+    if (checkListBase && IsCacheableListBase(obj)) {
+        *checkListBase = isListBase = true;
+        if (obj->hasUncacheableProto())
+            return true;
+
+        
+        
+        Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
+
+        JS_ASSERT_IF(expandoVal.isObject(),
+                     expandoVal.toObject().isNative() && !expandoVal.toObject().getProto());
+
+        if (expandoVal.isObject() && expandoVal.toObject().nativeContains(cx, name))
+            return true;
+
+        checkObj = GetListBaseProto(obj);
+    }
+
+    if (!isListBase && !obj->isNative())
+        return true;
+
+    if (checkObj->hasIdempotentProtoChain()) {
+        if (!JSObject::lookupProperty(cx, checkObj, name, holder, shape))
             return false;
-    } else if (obj->isNative()) {
-        shape.set(obj->nativeLookup(cx, NameToId(name)));
+    } else if (checkObj->isNative()) {
+        shape.set(checkObj->nativeLookup(cx, NameToId(name)));
         if (shape)
-            holder.set(obj);
-    } else {
-        shape.set(NULL);
-        holder.set(NULL);
+            holder.set(checkObj);
     }
     return true;
 }
 
 static bool
-IsCacheableProtoChain(JSObject *obj, JSObject *holder)
+IsCacheableProtoChain(JSObject *obj, JSObject *holder, bool isListBase=false)
 {
-    JS_ASSERT(obj->isNative());
+    JS_ASSERT_IF(isListBase, IsCacheableListBase(obj));
+    JS_ASSERT_IF(!isListBase, obj->isNative());
 
     
     
     if (obj->hasUncacheableProto())
         return false;
 
-    while (obj != holder) {
+    JSObject *cur = obj;
+    while (cur != holder) {
         
         
         
-        JSObject *proto = obj->getProto();
+        JSObject *proto;
+        if (isListBase && cur == obj)
+            proto = cur->getTaggedProto().toObjectOrNull();
+        else
+            proto = cur->getProto();
+
         if (!proto || !proto->isNative())
             return false;
 
         if (proto->hasUncacheableProto())
             return false;
 
-        obj = proto;
+        cur = proto;
     }
     return true;
 }
 
 static bool
-IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, Shape *shape)
+IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, Shape *shape, bool isListBase=false)
 {
-    if (!shape || !IsCacheableProtoChain(obj, holder))
+    if (!shape || !IsCacheableProtoChain(obj, holder, isListBase))
         return false;
 
     if (!shape->hasSlot() || !shape->hasDefaultGetter())
@@ -3056,7 +3182,8 @@ IsCacheableGetPropReadSlot(JSObject *obj, JSObject *holder, Shape *shape)
 }
 
 static bool
-IsCacheableGetPropCall(JSObject *obj, JSObject *holder, Shape *shape, bool *isScripted)
+IsCacheableGetPropCall(JSObject *obj, JSObject *holder, Shape *shape, bool *isScripted,
+                       bool isListBase=false)
 {
     JS_ASSERT(isScripted);
 
@@ -3064,7 +3191,7 @@ IsCacheableGetPropCall(JSObject *obj, JSObject *holder, Shape *shape, bool *isSc
     if (obj == holder)
         return false;
 
-    if (!shape || !IsCacheableProtoChain(obj, holder))
+    if (!shape || !IsCacheableProtoChain(obj, holder, isListBase))
         return false;
 
     if (shape->hasSlot() || shape->hasDefaultGetter())
@@ -4766,16 +4893,18 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         return true;
 
     RootedObject obj(cx, &val.toObject());
-    if (!obj->isNative())
-        return true;
 
+    bool isListBase;
     RootedShape shape(cx);
     RootedObject holder(cx);
-    if (!EffectlesslyLookupProperty(cx, obj, name, &holder, &shape))
+    if (!EffectlesslyLookupProperty(cx, obj, name, &holder, &shape, &isListBase))
         return false;
 
+    if (!isListBase && !obj->isNative())
+        return true;
+
     ICStub *monitorStub = stub->fallbackMonitorStub()->firstMonitorStub();
-    if (IsCacheableGetPropReadSlot(obj, holder, shape)) {
+    if (!isListBase && IsCacheableGetPropReadSlot(obj, holder, shape)) {
         bool isFixedSlot;
         uint32_t offset;
         GetFixedOrDynamicSlotOffset(holder, shape->slot(), &isFixedSlot, &offset);
@@ -4783,7 +4912,8 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         ICStub::Kind kind = (obj == holder) ? ICStub::GetProp_Native
                                             : ICStub::GetProp_NativePrototype;
 
-        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(Native %s) stub",
+        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(%s %s%s) stub",
+                    isListBase ? "ListBase" : "Native",
                     (obj == holder) ? "direct" : "prototype");
         ICGetPropNativeCompiler compiler(cx, kind, monitorStub, obj, holder, isFixedSlot, offset);
         ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
@@ -4796,10 +4926,10 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
     }
 
     bool isScripted = false;
-    bool cacheableCall = IsCacheableGetPropCall(obj, holder, shape, &isScripted);
+    bool cacheableCall = IsCacheableGetPropCall(obj, holder, shape, &isScripted, isListBase);
 
     
-    if (cacheableCall && isScripted) {
+    if (cacheableCall && isScripted && !isListBase) {
         RootedFunction callee(cx, shape->getterObject()->toFunction());
         JS_ASSERT(obj != holder);
         JS_ASSERT(callee->hasScript());
@@ -4824,15 +4954,25 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         JS_ASSERT(obj != holder);
         JS_ASSERT(callee->isNative());
 
-        IonSpew(IonSpew_BaselineIC, "  Generating GetProp(NativeObj/NativeGetter %p) stub",
-                    callee->native());
+        ICStub *newStub = NULL;
+        if (isListBase) {
+            IonSpew(IonSpew_BaselineIC, "  Generating GetProp(ListBaseObj/NativeGetter %p) stub",
+                        callee->native());
 
-        ICGetProp_CallNative::Compiler compiler(cx, monitorStub, obj, holder, callee,
-                                                pc - script->code);
-        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+            ICGetProp_CallListBaseNative::Compiler compiler(cx, monitorStub, obj, holder, callee,
+                                                            pc - script->code);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+
+        } else {
+            IonSpew(IonSpew_BaselineIC, "  Generating GetProp(NativeObj/NativeGetter %p) stub",
+                        callee->native());
+
+            ICGetProp_CallNative::Compiler compiler(cx, monitorStub, obj, holder, callee,
+                                                    pc - script->code);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+        }
         if (!newStub)
             return false;
-
         stub->addNewStub(newStub);
         *attached = true;
         return true;
@@ -5317,6 +5457,98 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
 
         
         masm.load32(Address(BaselineStubReg, ICGetProp_CallNative::offsetOfPCOffset()), pcIdx);
+        masm.spsUpdatePCIdx(&cx->runtime->spsProfiler, pcIdx, scratch);
+
+        masm.bind(&skipProfilerUpdate);
+        regs.add(scratch);
+        regs.add(pcIdx);
+    }
+    if (!callVM(DoCallNativeGetterInfo, masm))
+        return false;
+    leaveStubFrame(masm);
+
+    
+    EmitEnterTypeMonitorIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICGetProp_CallListBaseNative::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    GeneralRegisterSet regs(availableGeneralRegs(1));
+    Register scratch;
+    if (regs.has(BaselineTailCallReg)) {
+        regs.take(BaselineTailCallReg);
+        scratch = regs.takeAny();
+        regs.add(BaselineTailCallReg);
+    } else {
+        scratch = regs.takeAny();
+    }
+
+    
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+
+    
+    Register objReg = masm.extractObject(R0, ExtractTemp0);
+
+    
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfShape()), scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
+
+    
+    {
+        GeneralRegisterSet listBaseRegSet(GeneralRegisterSet::All());
+        listBaseRegSet.take(BaselineStubReg);
+        listBaseRegSet.take(objReg);
+        listBaseRegSet.take(scratch);
+        GenerateListBaseChecks(
+                cx, masm, objReg,
+                Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfProxyHandler()),
+                Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfExpandoShape()),
+                scratch,
+                listBaseRegSet,
+                &failure);
+    }
+
+    Register holderReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfHolder()),
+                 holderReg);
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfHolderShape()),
+                 scratch);
+    masm.branchTestObjShape(Assembler::NotEqual, holderReg, scratch, &failure);
+    regs.add(holderReg);
+
+    
+    enterStubFrame(masm, scratch);
+
+    
+    Register callee = regs.takeAny();
+    masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfGetter()), callee);
+
+    
+    masm.push(objReg);
+    masm.push(callee);
+
+    
+    regs.add(R0);
+
+    
+    {
+        Label skipProfilerUpdate;
+        Register scratch = regs.takeAny();
+        Register pcIdx = regs.takeAny();
+
+        
+        guardProfilingEnabled(masm, scratch, &skipProfilerUpdate);
+
+        
+        masm.load32(Address(BaselineStubReg, ICGetProp_CallListBaseNative::offsetOfPCOffset()),
+                    pcIdx);
         masm.spsUpdatePCIdx(&cx->runtime->spsProfiler, pcIdx, scratch);
 
         masm.bind(&skipProfilerUpdate);
