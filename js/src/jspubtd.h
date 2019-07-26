@@ -255,6 +255,19 @@ enum ThingRootKind
     THING_ROOT_LIMIT
 };
 
+
+
+
+
+
+enum StackKind
+{
+    StackForSystemCode,      
+    StackForTrustedScript,   
+    StackForUntrustedScript, 
+    StackKindCount
+};
+
 template <typename T>
 struct RootKind;
 
@@ -380,7 +393,7 @@ struct PerThreadDataFriendFields
 #endif
 
     
-    uintptr_t nativeStackLimit;
+    uintptr_t nativeStackLimit[StackKindCount];
 
     static const size_t RuntimeMainThreadOffset = offsetof(RuntimeDummy, mainThread);
 

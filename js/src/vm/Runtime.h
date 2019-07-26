@@ -666,6 +666,8 @@ class AutoPauseWorkersForGC;
 struct SelfHostedClass;
 class ThreadDataIter;
 
+void RecomputeStackLimit(JSRuntime *rt, StackKind kind);
+
 } 
 
 struct JSRuntime : public JS::shadow::Runtime,
@@ -933,7 +935,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     uintptr_t           nativeStackBase;
 
     
-    size_t              nativeStackQuota;
+    size_t              nativeStackQuota[js::StackKindCount];
 
     
     JSContextCallback   cxCallback;
@@ -1462,7 +1464,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     void resetIonStackLimit() {
         AutoLockForOperationCallback lock(this);
-        mainThread.setIonStackLimit(mainThread.nativeStackLimit);
+        mainThread.setIonStackLimit(mainThread.nativeStackLimit[js::StackForUntrustedScript]);
     }
 
     
