@@ -3687,13 +3687,15 @@ nsSVGTextFrame2::ReflowSVG()
     nsSVGEffects::UpdateEffects(this);
   }
 
-  nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
-  nsOverflowAreas overflowAreas(overflow, overflow);
-  FinishAndStoreOverflow(overflowAreas, mRect.Size());
-
+  
+  
   
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
+
+  nsRect overflow = nsRect(nsPoint(0,0), mRect.Size());
+  nsOverflowAreas overflowAreas(overflow, overflow);
+  FinishAndStoreOverflow(overflowAreas, mRect.Size());
 
   
   
@@ -3729,9 +3731,22 @@ nsSVGTextFrame2::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 {
   NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
 
+  SVGBBox bbox;
+  nsIFrame* kid = GetFirstPrincipalChild();
+  if (kid && NS_SUBTREE_DIRTY(kid)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    return bbox;
+  }
+
   UpdateGlyphPositioning();
 
-  SVGBBox bbox;
   nsPresContext* presContext = PresContext();
 
   TextRenderedRunIterator it(this);
