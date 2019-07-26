@@ -111,6 +111,14 @@ ISurfaceAllocator() {}
 
   virtual void DestroySharedSurface(SurfaceDescriptor* aSurface);
 
+  
+  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
+                                                  uint32_t aFormat,
+                                                  uint32_t aUsage,
+                                                  MaybeMagicGrallocBufferHandle* aHandle)
+  {
+    return nullptr;
+  }
 protected:
   
   
@@ -121,14 +129,6 @@ protected:
                                               uint32_t aCaps,
                                               SurfaceDescriptor* aBuffer);
 
-  
-  virtual PGrallocBufferChild* AllocGrallocBuffer(const gfxIntSize& aSize,
-                                                  uint32_t aFormat,
-                                                  uint32_t aUsage,
-                                                  MaybeMagicGrallocBufferHandle* aHandle)
-  {
-    return nullptr;
-  }
 
   ~ISurfaceAllocator() {}
 };

@@ -9,6 +9,8 @@
 #include <stdint.h>                     
 #include "nsDebug.h"                    
 #include "mozilla/layers/ImageBridgeChild.h"
+#include "mozilla/layers/GrallocTextureClient.h"
+#include "gfx2DGlue.h"
 
 #include <OMX_IVCommon.h>
 #include <ColorConverter.h>
@@ -43,7 +45,8 @@ struct GraphicBufferAutoUnlock {
 GrallocImage::GrallocImage()
   : PlanarYCbCrImage(nullptr),
     mBufferAllocated(false),
-    mGraphicBuffer(nullptr)
+    mGraphicBuffer(nullptr),
+    mTextureClient(nullptr)
 {
   mFormat = GRALLOC_PLANAR_YCBCR;
 }
@@ -271,6 +274,28 @@ GrallocImage::GetAsSurface()
   }
 
   return imageSurface.forget();
+}
+
+TextureClient*
+GrallocImage::GetTextureClient()
+{
+  if (!mTextureClient) {
+    const SurfaceDescriptor& sd = GetSurfaceDescriptor();
+    if (sd.type() != SurfaceDescriptor::TSurfaceDescriptorGralloc) {
+      return nullptr;
+    }
+    const SurfaceDescriptorGralloc& desc = sd.get_SurfaceDescriptorGralloc();
+    TextureFlags flags = desc.external() ? TEXTURE_DEALLOCATE_CLIENT
+                                         : TEXTURE_DEALLOCATE_HOST;
+    if (desc.isRBSwapped()) {
+      flags |= TEXTURE_RB_SWAPPED;
+    }
+    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(desc.bufferChild());
+    mTextureClient = new GrallocTextureClientOGL(actor,
+                                                 gfx::ToIntSize(mSize),
+                                                 flags);
+  }
+  return mTextureClient;
 }
 
 } 

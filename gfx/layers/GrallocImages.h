@@ -17,6 +17,8 @@
 namespace mozilla {
 namespace layers {
 
+class GrallocTextureClientOGL;
+
 
 
 
@@ -68,14 +70,15 @@ protected:
 
 
 
-class GrallocImage : public PlanarYCbCrImage {
+class GrallocImage : public PlanarYCbCrImage
+                   , public ISharedImage
+{
   typedef PlanarYCbCrImage::Data Data;
   static uint32_t sColorIdMap[];
-
 public:
   struct GrallocData {
-      nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
-      gfxIntSize mPicSize;
+    nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
+    gfxIntSize mPicSize;
   };
 
   GrallocImage();
@@ -123,9 +126,19 @@ public:
     return SurfaceDescriptor();
   }
 
+  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
+
+  virtual TextureClient* GetTextureClient() MOZ_OVERRIDE;
+
+  virtual uint8_t* GetBuffer()
+  {
+    return static_cast<uint8_t*>(GetNativeBuffer());
+  }
+
 private:
   bool mBufferAllocated;
   nsRefPtr<GraphicBufferLocked> mGraphicBuffer;
+  RefPtr<GrallocTextureClientOGL> mTextureClient;
 };
 
 } 

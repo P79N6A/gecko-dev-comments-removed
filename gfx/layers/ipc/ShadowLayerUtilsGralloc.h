@@ -89,10 +89,12 @@ public:
   
   void SetDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost);
 
-private:
-  GrallocBufferActor();
+  android::GraphicBuffer* GetGraphicBuffer();
 
   void InitFromHandle(const MagicGrallocBufferHandle& aHandle);
+
+private:
+  GrallocBufferActor();
 
   android::sp<GraphicBuffer> mGraphicBuffer;
 
