@@ -30,10 +30,9 @@ LIRGeneratorShared::visitConstant(MConstant *ins)
       default:
         
         
-        JS_NOT_REACHED("unexpected constant type");
+        JS_ASSERT(!"unexpected constant type");
         return false;
     }
-    return true;
 }
 
 bool
