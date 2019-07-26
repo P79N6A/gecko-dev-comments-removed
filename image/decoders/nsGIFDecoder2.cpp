@@ -558,7 +558,7 @@ static void ConvertColormap(uint32_t *aColormap, uint32_t aColors)
   
   for (; (NS_PTR_TO_UINT32(from) & 0x3) && c; --c) {
     from -= 3;
-    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
+    *--to = gfxPackedPixel(0xFF, from[0], from[1], from[2]);
   }
 
   
@@ -573,7 +573,7 @@ static void ConvertColormap(uint32_t *aColormap, uint32_t aColors)
   
   while (c--) {
     from -= 3;
-    *--to = GFX_PACKED_PIXEL(0xFF, from[0], from[1], from[2]);
+    *--to = gfxPackedPixel(0xFF, from[0], from[1], from[2]);
   }
 }
 

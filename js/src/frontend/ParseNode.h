@@ -59,6 +59,140 @@ class UpvarCookie
     }
 };
 
+#define FOR_EACH_PARSE_NODE_KIND(F) \
+    F(NOP) \
+    F(SEMI) \
+    F(COMMA) \
+    F(CONDITIONAL) \
+    F(COLON) \
+    F(OR) \
+    F(AND) \
+    F(BITOR) \
+    F(BITXOR) \
+    F(BITAND) \
+    F(POS) \
+    F(NEG) \
+    F(ADD) \
+    F(SUB) \
+    F(STAR) \
+    F(DIV) \
+    F(MOD) \
+    F(PREINCREMENT) \
+    F(POSTINCREMENT) \
+    F(PREDECREMENT) \
+    F(POSTDECREMENT) \
+    F(DOT) \
+    F(ELEM) \
+    F(ARRAY) \
+    F(STATEMENTLIST) \
+    F(XMLCURLYEXPR) \
+    F(OBJECT) \
+    F(CALL) \
+    F(NAME) \
+    F(INTRINSICNAME) \
+    F(NUMBER) \
+    F(STRING) \
+    F(REGEXP) \
+    F(TRUE) \
+    F(FALSE) \
+    F(NULL) \
+    F(THIS) \
+    F(FUNCTIONDECL) \
+    F(FUNCTIONEXPR) \
+    F(IF) \
+    F(ELSE) \
+    F(SWITCH) \
+    F(CASE) \
+    F(DEFAULT) \
+    F(WHILE) \
+    F(DOWHILE) \
+    F(FOR) \
+    F(BREAK) \
+    F(CONTINUE) \
+    F(IN) \
+    F(VAR) \
+    F(CONST) \
+    F(WITH) \
+    F(RETURN) \
+    F(NEW) \
+    F(DELETE) \
+    F(TRY) \
+    F(CATCH) \
+    F(CATCHLIST) \
+    F(FINALLY) \
+    F(THROW) \
+    F(INSTANCEOF) \
+    F(DEBUGGER) \
+    F(DEFXMLNS) \
+    F(XMLSTAGO) \
+    F(XMLETAGO) \
+    F(XMLPTAGC) \
+    F(XMLTAGC) \
+    F(XMLNAME) \
+    F(XMLATTR) \
+    F(XMLSPACE) \
+    F(XMLTEXT) \
+    F(XMLCOMMENT) \
+    F(XMLCDATA) \
+    F(XMLPI) \
+    F(XMLUNARY) \
+    F(AT) \
+    F(FUNCTIONNS) \
+    F(DBLCOLON) \
+    F(ANYNAME) \
+    F(DBLDOT) \
+    F(FILTER) \
+    F(XMLELEM) \
+    F(XMLLIST) \
+    F(YIELD) \
+    F(ARRAYCOMP) \
+    F(ARRAYPUSH) \
+    F(LEXICALSCOPE) \
+    F(LET) \
+    F(SEQ) \
+    F(FORIN) \
+    F(FORHEAD) \
+    F(ARGSBODY) \
+    F(SPREAD) \
+    \
+    /* Equality operators. */ \
+    F(STRICTEQ) \
+    F(EQ) \
+    F(STRICTNE) \
+    F(NE) \
+    \
+    /* Unary operators. */ \
+    F(TYPEOF) \
+    F(VOID) \
+    F(NOT) \
+    F(BITNOT) \
+    \
+    /* Relational operators (< <= > >=). */ \
+    F(LT) \
+    F(LE) \
+    F(GT) \
+    F(GE) \
+    \
+    /* Shift operators (<< >> >>>). */ \
+    F(LSH) \
+    F(RSH) \
+    F(URSH) \
+    \
+    /* Assignment operators (= += -= etc.). */ \
+    /* ParseNode::isAssignment assumes all these are consecutive. */ \
+    F(ASSIGN) \
+    F(ADDASSIGN) \
+    F(SUBASSIGN) \
+    F(BITORASSIGN) \
+    F(BITXORASSIGN) \
+    F(BITANDASSIGN) \
+    F(LSHASSIGN) \
+    F(RSHASSIGN) \
+    F(URSHASSIGN) \
+    F(MULASSIGN) \
+    F(DIVASSIGN) \
+    F(MODASSIGN)
+
 
 
 
@@ -70,146 +204,16 @@ class UpvarCookie
 
 
 enum ParseNodeKind {
-    PNK_NOP,
-    PNK_SEMI,
-    PNK_COMMA,
-    PNK_CONDITIONAL,
-    PNK_COLON,
-    PNK_OR,
-    PNK_AND,
-    PNK_BITOR,
-    PNK_BITXOR,
-    PNK_BITAND,
-    PNK_POS,
-    PNK_NEG,
-    PNK_ADD,
-    PNK_SUB,
-    PNK_STAR,
-    PNK_DIV,
-    PNK_MOD,
-    PNK_PREINCREMENT,
-    PNK_POSTINCREMENT,
-    PNK_PREDECREMENT,
-    PNK_POSTDECREMENT,
-    PNK_DOT,
-    PNK_LB,
-    PNK_RB,
-    PNK_STATEMENTLIST,
-    PNK_XMLCURLYEXPR,
-    PNK_RC,
-    PNK_LP,
-    PNK_RP,
-    PNK_NAME,
-    PNK_INTRINSICNAME,
-    PNK_NUMBER,
-    PNK_STRING,
-    PNK_REGEXP,
-    PNK_TRUE,
-    PNK_FALSE,
-    PNK_NULL,
-    PNK_THIS,
-    PNK_FUNCTION,
-    PNK_IF,
-    PNK_ELSE,
-    PNK_SWITCH,
-    PNK_CASE,
-    PNK_DEFAULT,
-    PNK_WHILE,
-    PNK_DOWHILE,
-    PNK_FOR,
-    PNK_BREAK,
-    PNK_CONTINUE,
-    PNK_IN,
-    PNK_VAR,
-    PNK_CONST,
-    PNK_WITH,
-    PNK_RETURN,
-    PNK_NEW,
-    PNK_DELETE,
-    PNK_TRY,
-    PNK_CATCH,
-    PNK_CATCHLIST,
-    PNK_FINALLY,
-    PNK_THROW,
-    PNK_INSTANCEOF,
-    PNK_DEBUGGER,
-    PNK_DEFXMLNS,
-    PNK_XMLSTAGO,
-    PNK_XMLETAGO,
-    PNK_XMLPTAGC,
-    PNK_XMLTAGC,
-    PNK_XMLNAME,
-    PNK_XMLATTR,
-    PNK_XMLSPACE,
-    PNK_XMLTEXT,
-    PNK_XMLCOMMENT,
-    PNK_XMLCDATA,
-    PNK_XMLPI,
-    PNK_XMLUNARY,
-    PNK_AT,
-    PNK_DBLCOLON,
-    PNK_ANYNAME,
-    PNK_DBLDOT,
-    PNK_FILTER,
-    PNK_XMLELEM,
-    PNK_XMLLIST,
-    PNK_YIELD,
-    PNK_ARRAYCOMP,
-    PNK_ARRAYPUSH,
-    PNK_LEXICALSCOPE,
-    PNK_LET,
-    PNK_SEQ,
-    PNK_FORIN,
-    PNK_FORHEAD,
-    PNK_ARGSBODY,
-    PNK_SPREAD,
-
-    
-
-
-
-
-    
-    PNK_STRICTEQ,
-    PNK_EQ,
-    PNK_STRICTNE,
-    PNK_NE,
-
-    
-    PNK_TYPEOF,
-    PNK_VOID,
-    PNK_NOT,
-    PNK_BITNOT,
-
-    
-    PNK_LT,
-    PNK_LE,
-    PNK_GT,
-    PNK_GE,
-
-    
-    PNK_LSH,
-    PNK_RSH,
-    PNK_URSH,
-
-    
-    PNK_ASSIGN,
+#define EMIT_ENUM(name) PNK_##name,
+    FOR_EACH_PARSE_NODE_KIND(EMIT_ENUM)
+#undef EMIT_ENUM
+    PNK_LIMIT, 
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
-    PNK_ADDASSIGN,
-    PNK_SUBASSIGN,
-    PNK_BITORASSIGN,
-    PNK_BITXORASSIGN,
-    PNK_BITANDASSIGN,
-    PNK_LSHASSIGN,
-    PNK_RSHASSIGN,
-    PNK_URSHASSIGN,
-    PNK_MULASSIGN,
-    PNK_DIVASSIGN,
-    PNK_MODASSIGN,
-    PNK_ASSIGNMENT_LAST = PNK_MODASSIGN,
-
-    PNK_LIMIT 
+    PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
 
 
 
@@ -812,9 +816,10 @@ struct ParseNode {
 
 
     bool isGeneratorExpr() const {
-        if (getKind() == PNK_LP) {
+        if (isKind(PNK_CALL)) {
             ParseNode *callee = this->pn_head;
-            if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
+            JS_ASSERT(!callee->isKind(PNK_FUNCTIONDECL));
+            if (callee->getKind() == PNK_FUNCTIONEXPR && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
                 return true;
         }
         return false;
@@ -824,7 +829,7 @@ struct ParseNode {
         JS_ASSERT(isGeneratorExpr());
         ParseNode *callee = this->pn_head;
         ParseNode *body = callee->pn_body;
-        JS_ASSERT(body->getKind() == PNK_LEXICALSCOPE);
+        JS_ASSERT(body->isKind(PNK_LEXICALSCOPE));
         return body->pn_expr;
     }
 #endif
@@ -879,26 +884,35 @@ struct ParseNode {
     inline bool isConstant();
 
     
-    inline BreakStatement &asBreakStatement();
-    inline ContinueStatement &asContinueStatement();
-#if JS_HAS_XML_SUPPORT
-    inline XMLProcessingInstruction &asXMLProcessingInstruction();
-#endif
-    inline ConditionalExpression &asConditionalExpression();
-    inline PropertyAccess &asPropertyAccess();
+    template <class NodeType>
+    inline NodeType &as() {
+        JS_ASSERT(NodeType::test(*this));
+        return *static_cast<NodeType *>(this);
+    }
+
+    template <class NodeType>
+    inline const NodeType &as() const {
+        JS_ASSERT(NodeType::test(*this));
+        return *static_cast<const NodeType *>(this);
+    }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump();
+    void dump(int indent);
 #endif
 };
 
 struct NullaryNode : public ParseNode {
     static inline NullaryNode *create(ParseNodeKind kind, Parser *parser) {
-        return (NullaryNode *)ParseNode::create(kind, PN_NULLARY, parser);
+        return (NullaryNode *) ParseNode::create(kind, PN_NULLARY, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_NULLARY);
     }
 
 #ifdef DEBUG
-    inline void dump();
+    void dump();
 #endif
 };
 
@@ -910,11 +924,15 @@ struct UnaryNode : public ParseNode {
     }
 
     static inline UnaryNode *create(ParseNodeKind kind, Parser *parser) {
-        return (UnaryNode *)ParseNode::create(kind, PN_UNARY, parser);
+        return (UnaryNode *) ParseNode::create(kind, PN_UNARY, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_UNARY);
     }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
@@ -934,11 +952,15 @@ struct BinaryNode : public ParseNode {
     }
 
     static inline BinaryNode *create(ParseNodeKind kind, Parser *parser) {
-        return (BinaryNode *)ParseNode::create(kind, PN_BINARY, parser);
+        return (BinaryNode *) ParseNode::create(kind, PN_BINARY, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_BINARY);
     }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
@@ -954,31 +976,43 @@ struct TernaryNode : public ParseNode {
     }
 
     static inline TernaryNode *create(ParseNodeKind kind, Parser *parser) {
-        return (TernaryNode *)ParseNode::create(kind, PN_TERNARY, parser);
+        return (TernaryNode *) ParseNode::create(kind, PN_TERNARY, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_TERNARY);
     }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
 struct ListNode : public ParseNode {
     static inline ListNode *create(ParseNodeKind kind, Parser *parser) {
-        return (ListNode *)ParseNode::create(kind, PN_LIST, parser);
+        return (ListNode *) ParseNode::create(kind, PN_LIST, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_LIST);
     }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
 struct FunctionNode : public ParseNode {
     static inline FunctionNode *create(ParseNodeKind kind, Parser *parser) {
-        return (FunctionNode *)ParseNode::create(kind, PN_FUNC, parser);
+        return (FunctionNode *) ParseNode::create(kind, PN_FUNC, parser);
+    }
+
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_FUNC);
     }
 
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
@@ -987,14 +1021,18 @@ struct NameNode : public ParseNode {
 
     inline void initCommon(ParseContext *pc);
 
+    static bool test(const ParseNode &node) {
+        return node.isArity(PN_NAME);
+    }
+
 #ifdef DEBUG
-    inline void dump(int indent);
+    void dump(int indent);
 #endif
 };
 
 struct LexicalScopeNode : public ParseNode {
     static inline LexicalScopeNode *create(ParseNodeKind kind, Parser *parser) {
-        return (LexicalScopeNode *)ParseNode::create(kind, PN_NAME, parser);
+        return (LexicalScopeNode *) ParseNode::create(kind, PN_NAME, parser);
     }
 };
 
@@ -1013,6 +1051,13 @@ class LoopControlStatement : public ParseNode {
     PropertyName *label() const {
         return pn_u.loopControl.label;
     }
+
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_BREAK) || node.isKind(PNK_CONTINUE);
+        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
+        return match;
+    }
 };
 
 class BreakStatement : public LoopControlStatement {
@@ -1020,32 +1065,28 @@ class BreakStatement : public LoopControlStatement {
     BreakStatement(PropertyName *label, const TokenPtr &begin, const TokenPtr &end)
       : LoopControlStatement(PNK_BREAK, label, begin, end)
     { }
-};
 
-inline BreakStatement &
-ParseNode::asBreakStatement()
-{
-    JS_ASSERT(isKind(PNK_BREAK));
-    JS_ASSERT(isOp(JSOP_NOP));
-    JS_ASSERT(pn_arity == PN_NULLARY);
-    return *static_cast<BreakStatement *>(this);
-}
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_BREAK);
+        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
+        return match;
+    }
+};
 
 class ContinueStatement : public LoopControlStatement {
   public:
     ContinueStatement(PropertyName *label, TokenPtr &begin, TokenPtr &end)
       : LoopControlStatement(PNK_CONTINUE, label, begin, end)
     { }
-};
 
-inline ContinueStatement &
-ParseNode::asContinueStatement()
-{
-    JS_ASSERT(isKind(PNK_CONTINUE));
-    JS_ASSERT(isOp(JSOP_NOP));
-    JS_ASSERT(pn_arity == PN_NULLARY);
-    return *static_cast<ContinueStatement *>(this);
-}
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_CONTINUE);
+        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
+        return match;
+    }
+};
 
 class DebuggerStatement : public ParseNode {
   public:
@@ -1064,6 +1105,13 @@ class XMLProcessingInstruction : public ParseNode {
         pn_u.xmlpi.data = data;
     }
 
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_XMLPI);
+        JS_ASSERT_IF(match, node.isArity(PN_NULLARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
+        return match;
+    }
+
     PropertyName *target() const {
         return pn_u.xmlpi.target;
     }
@@ -1072,15 +1120,6 @@ class XMLProcessingInstruction : public ParseNode {
         return pn_u.xmlpi.data;
     }
 };
-
-inline XMLProcessingInstruction &
-ParseNode::asXMLProcessingInstruction()
-{
-    JS_ASSERT(isKind(PNK_XMLPI));
-    JS_ASSERT(isOp(JSOP_NOP));
-    JS_ASSERT(pn_arity == PN_NULLARY);
-    return *static_cast<XMLProcessingInstruction *>(this);
-}
 #endif
 
 class ConditionalExpression : public ParseNode {
@@ -1108,16 +1147,14 @@ class ConditionalExpression : public ParseNode {
     ParseNode &elseExpression() const {
         return *pn_u.ternary.kid3;
     }
-};
 
-inline ConditionalExpression &
-ParseNode::asConditionalExpression()
-{
-    JS_ASSERT(isKind(PNK_CONDITIONAL));
-    JS_ASSERT(isOp(JSOP_NOP));
-    JS_ASSERT(pn_arity == PN_TERNARY);
-    return *static_cast<ConditionalExpression *>(this);
-}
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_CONDITIONAL);
+        JS_ASSERT_IF(match, node.isArity(PN_TERNARY));
+        JS_ASSERT_IF(match, node.isOp(JSOP_NOP));
+        return match;
+    }
+};
 
 class ThisLiteral : public ParseNode {
   public:
@@ -1140,7 +1177,7 @@ class XMLDoubleColonProperty : public ParseNode {
   public:
     XMLDoubleColonProperty(ParseNode *lhs, ParseNode *rhs,
                            const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         JS_ASSERT(rhs->isKind(PNK_DBLCOLON));
         pn_u.binary.left = lhs;
@@ -1179,7 +1216,7 @@ class XMLProperty : public ParseNode {
   public:
     XMLProperty(ParseNode *lhs, ParseNode *propertyId,
                 const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         pn_u.binary.left = lhs;
         pn_u.binary.right = propertyId;
@@ -1206,6 +1243,12 @@ class PropertyAccess : public ParseNode {
         pn_u.name.atom = name;
     }
 
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_DOT);
+        JS_ASSERT_IF(match, node.isArity(PN_NAME));
+        return match;
+    }
+
     ParseNode &expression() const {
         return *pn_u.name.expr;
     }
@@ -1215,19 +1258,11 @@ class PropertyAccess : public ParseNode {
     }
 };
 
-inline PropertyAccess &
-ParseNode::asPropertyAccess()
-{
-    JS_ASSERT(isKind(PNK_DOT));
-    JS_ASSERT(pn_arity == PN_NAME);
-    return *static_cast<PropertyAccess *>(this);
-}
-
 class PropertyByValue : public ParseNode {
   public:
     PropertyByValue(ParseNode *lhs, ParseNode *propExpr,
                     const TokenPtr &begin, const TokenPtr &end)
-      : ParseNode(PNK_LB, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
+      : ParseNode(PNK_ELEM, JSOP_GETELEM, PN_BINARY, TokenPos::make(begin, end))
     {
         pn_u.binary.left = lhs;
         pn_u.binary.right = propExpr;
@@ -1355,7 +1390,7 @@ struct Definition : public ParseNode
     static const char *kindString(Kind kind);
 
     Kind kind() {
-        if (getKind() == PNK_FUNCTION) {
+        if (getKind() == PNK_FUNCTIONDECL) {
             if (isOp(JSOP_GETARG))
                 return ARG;
             return VAR;

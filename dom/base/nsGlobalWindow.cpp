@@ -1546,11 +1546,11 @@ nsGlobalWindow::SetInitialPrincipalToSubject()
   nsCOMPtr<nsIPresShell> shell;
   GetDocShell()->GetPresShell(getter_AddRefs(shell));
 
-  if (shell && !shell->DidInitialReflow()) {
+  if (shell && !shell->DidInitialize()) {
     
     
     nsRect r = shell->GetPresContext()->GetVisibleArea();
-    shell->InitialReflow(r.width, r.height);
+    shell->Initialize(r.width, r.height);
   }
 }
 

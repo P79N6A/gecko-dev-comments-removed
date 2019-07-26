@@ -250,7 +250,7 @@ extern mozilla::ThreadLocal<JSRuntime *> TlsRuntime;
 
 
 template <typename T>
-struct RootKind<T *> { static ThingRootKind rootKind() { return T::rootKind(); }; };
+struct RootKind<T *> { static ThingRootKind rootKind() { return T::rootKind(); } };
 
 template <typename T>
 struct RootMethods<T *>
