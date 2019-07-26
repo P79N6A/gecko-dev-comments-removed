@@ -246,6 +246,7 @@ public:
 private:
   int32_t             mIndex;
   mozilla::Selection* mDomSelection;
+  SelectionType       mType;
 };
 
 

@@ -4680,7 +4680,7 @@ nsTextFrame::GetTextDecorations(
   const nsCompatibility compatMode = aPresContext->CompatibilityMode();
 
   bool useOverride = false;
-  nscolor overrideColor = nscolor(0);
+  nscolor overrideColor;
 
   
   
