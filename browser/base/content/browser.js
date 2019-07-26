@@ -6858,7 +6858,12 @@ let gRemoteTabsUI = {
 
 
 
-function switchToTabHavingURI(aURI, aOpenNew) {
+
+
+
+
+
+function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
   
   function switchIfURIInWindow(aWindow) {
     
@@ -6906,9 +6911,9 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   
   if (aOpenNew) {
     if (isBrowserWindow && isTabEmpty(gBrowser.selectedTab))
-      gBrowser.selectedBrowser.loadURI(aURI.spec);
+      openUILinkIn(aURI.spec, "current", aOpenParams);
     else
-      openUILinkIn(aURI.spec, "tab");
+      openUILinkIn(aURI.spec, "tab", aOpenParams);
   }
 
   return false;

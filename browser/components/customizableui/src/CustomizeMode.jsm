@@ -127,7 +127,9 @@ CustomizeMode.prototype = {
     
     
     if (this.browser.selectedBrowser.currentURI.spec != kAboutURI) {
-      this.window.switchToTabHavingURI(kAboutURI, true);
+      this.window.switchToTabHavingURI(kAboutURI, true, {
+        skipTabAnimation: true,
+      });
       return;
     }
 
