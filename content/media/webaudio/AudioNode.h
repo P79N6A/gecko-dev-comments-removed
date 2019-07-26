@@ -23,8 +23,6 @@ class ErrorResult;
 
 namespace dom {
 
-struct ThreeDPoint;
-
 
 
 
@@ -136,11 +134,6 @@ public:
 
 protected:
   static void Callback(AudioNode* aNode) {  }
-
-  
-  void SendDoubleParameterToStream(uint32_t aIndex, double aValue);
-  void SendInt32ParameterToStream(uint32_t aIndex, int32_t aValue);
-  void SendThreeDPointParameterToStream(uint32_t aIndex, const ThreeDPoint& aValue);
 
 private:
   nsRefPtr<AudioContext> mContext;
