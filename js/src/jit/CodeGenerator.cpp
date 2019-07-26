@@ -7368,6 +7368,22 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
 }
 
 bool
+CodeGenerator::visitGetDOMMember(LGetDOMMember *ins)
+{
+    
+    
+    
+    
+    
+    Register object = ToRegister(ins->object());
+    size_t slot = ins->mir()->domMemberSlotIndex();
+    ValueOperand result = GetValueOutput(ins);
+
+    masm.loadValue(Address(object, JSObject::getFixedSlotOffset(slot)), result);
+    return true;
+}
+
+bool
 CodeGenerator::visitSetDOMProperty(LSetDOMProperty *ins)
 {
     const Register JSContextReg = ToRegister(ins->getJSContextReg());

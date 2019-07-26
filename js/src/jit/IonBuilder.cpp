@@ -8417,7 +8417,14 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
 
     if (isDOM && testShouldDOMCall(objTypes, commonGetter, JSJitInfo::Getter)) {
         const JSJitInfo *jitinfo = commonGetter->jitInfo();
-        MGetDOMProperty *get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard);
+        MInstruction *get;
+        if (jitinfo->isInSlot) {
+            
+            
+            get = MGetDOMMember::New(alloc(), jitinfo, obj, guard);
+        } else {
+            get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard);
+        }
         current->add(get);
         current->push(get);
 
