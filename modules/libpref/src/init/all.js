@@ -970,6 +970,14 @@ pref("network.protocol-handler.external.afp", false);
 pref("network.protocol-handler.external.moz-icon", false);
 
 
+pref("network.protocol-handler.external.ttp", false);  
+pref("network.protocol-handler.external.ttps", false); 
+pref("network.protocol-handler.external.tps", false);  
+pref("network.protocol-handler.external.ps", false);   
+pref("network.protocol-handler.external.ile", false);  
+pref("network.protocol-handler.external.le", false);   
+
+
 
 
 
@@ -1035,7 +1043,16 @@ pref("network.http.request.max-start-delay", 10);
 
 
 pref("network.http.accept.default", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+
+
+
 pref("network.http.sendRefererHeader",      2); 
+
+pref("network.http.referer.spoofSource", false); 
+
+pref("network.http.referer.trimmingPolicy", 0); 
+
+pref("network.http.referer.XOriginPolicy", 0); 
 
 
 
