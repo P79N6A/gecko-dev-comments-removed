@@ -747,11 +747,17 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
     JS_AbortIfWrongThread(rt);
 
-    if (!isEnabled())
-        return;
+    StoreBuffer &sb = rt->gc.storeBuffer;
+    if (!isEnabled() || isEmpty()) {
+        
 
-    if (isEmpty())
+
+
+
+
+        sb.clear();
         return;
+    }
 
     rt->gc.stats.count(gcstats::STAT_MINOR_GC);
 
@@ -763,7 +769,6 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     MinorCollectionTracer trc(rt, this);
 
     
-    StoreBuffer &sb = rt->gc.storeBuffer;
     TIME_START(markValues);
     sb.markValues(&trc);
     TIME_END(markValues);
