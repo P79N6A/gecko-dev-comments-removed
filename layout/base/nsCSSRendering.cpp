@@ -2614,14 +2614,17 @@ nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
   
   bool drawBackgroundImage;
   bool drawBackgroundColor;
-
   nscolor bgColor = DetermineBackgroundColor(aPresContext,
                                              aBackgroundSC,
                                              aForFrame,
                                              drawBackgroundImage,
                                              drawBackgroundColor);
 
-  NS_ASSERTION(drawBackgroundColor, "Should not be trying to paint a background color if we don't have one");
+  NS_ASSERTION(drawBackgroundImage || drawBackgroundColor,
+               "Should not be trying to paint a background if we don't have one");
+  if (!drawBackgroundColor) {
+    return;
+  }
 
   
   gfxContext *ctx = aRenderingContext.ThebesContext();
