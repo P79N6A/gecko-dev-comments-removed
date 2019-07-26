@@ -1123,7 +1123,7 @@ TokenStream::getTokenInternal(Modifier modifier)
 
     
     
-    if (c1kind < OneChar_Max) {
+    if (c1kind <= OneChar_Max) {
         tp = newToken(-1);
         tp->type = TokenKind(c1kind);
         goto out;
