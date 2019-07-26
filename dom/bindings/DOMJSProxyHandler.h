@@ -61,7 +61,7 @@ public:
 protected:
   
   
-  bool AppendNamedPropertyIds(JSContext* cx, JSObject* proxy,
+  bool AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
                               nsTArray<nsString>& names,
                               JS::AutoIdVector& props);
 };
