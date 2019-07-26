@@ -247,7 +247,9 @@ GetDefaultStagefrightFlags(PluginHost *aPluginHost)
   char hardware[256] = "";
   aPluginHost->GetSystemInfoString("hardware", hardware, sizeof(hardware));
 
-  if (!strcmp("qcom", hardware)) {
+  if (!strcmp("qcom", hardware) ||
+      !strncmp("mt", hardware, 2)) {
+    
     
     
     
