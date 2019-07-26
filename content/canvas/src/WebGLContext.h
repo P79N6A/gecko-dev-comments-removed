@@ -1204,8 +1204,6 @@ protected:
     template <typename WebGLObjectType>
     JSObject* WebGLObjectAsJSObject(JSContext *cx, const WebGLObjectType *, ErrorResult& rv) const;
 
-    void ReattachTextureToAnyFramebufferToWorkAroundBugs(WebGLTexture *tex, GLint level);
-
 #ifdef XP_MACOSX
     
     
