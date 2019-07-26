@@ -945,6 +945,12 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
+  minDistanceBetweenPoints: LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS,
+
+  
+
+
+
   buildGraphImage: function() {
     let canvas = this._document.createElementNS(HTML_NS, "canvas");
     let ctx = canvas.getContext("2d");
@@ -1007,7 +1013,7 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       }
 
       let distance = distSquared(prevX, prevY, currX, currY);
-      if (distance > LINE_GRAPH_MIN_SQUARED_DISTANCE_BETWEEN_POINTS) {
+      if (distance > this.minDistanceBetweenPoints) {
         ctx.lineTo(currX, currY);
         prevX = currX;
         prevY = currY;
