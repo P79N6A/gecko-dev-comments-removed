@@ -123,6 +123,7 @@ public class UpdateService extends IntentService {
             
         } else if (UpdateServiceHelper.ACTION_DOWNLOAD_UPDATE.equals(intent.getAction())) {
             
+            mApplyImmediately = true;
             startUpdate(UpdateServiceHelper.FLAG_FORCE_DOWNLOAD);
         } else if (UpdateServiceHelper.ACTION_APPLY_UPDATE.equals(intent.getAction())) {
             applyUpdate(intent.getStringExtra(UpdateServiceHelper.EXTRA_PACKAGE_PATH_NAME));
