@@ -1262,8 +1262,16 @@ TabClient.prototype = {
   
 
 
-  reload: DebuggerClient.requester({
-    type: "reload"
+
+
+
+
+  reload: function(options = { force: false }) {
+    return this._reload(options);
+  },
+  _reload: DebuggerClient.requester({
+    type: "reload",
+    options: args(0)
   }, {
     telemetry: "RELOAD"
   }),

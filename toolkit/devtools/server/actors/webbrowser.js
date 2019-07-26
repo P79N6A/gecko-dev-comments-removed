@@ -828,10 +828,12 @@ TabActor.prototype = {
 
 
   onReload: function(aRequest) {
+    let force = aRequest && aRequest.options && aRequest.options.force;
     
     
     Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
-      this.window.location.reload();
+      this.webNavigation.reload(force ? Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE
+                                      : Ci.nsIWebNavigation.LOAD_FLAGS_NONE);
     }, "TabActor.prototype.onReload's delayed body"), 0);
     return {};
   },
