@@ -5,7 +5,8 @@
 package org.mozilla.gecko.sync.net;
 
 public interface SyncStorageRequestDelegate {
-  String credentials();
+  public AuthHeaderProvider getAuthHeaderProvider();
+
   String ifUnmodifiedSince();
 
   
