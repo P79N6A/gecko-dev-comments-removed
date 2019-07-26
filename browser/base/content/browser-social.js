@@ -353,7 +353,7 @@ SocialChatBar = {
   
   
   get isAvailable() {
-    return SocialUI.enabled && Social.haveLoggedInUser();
+    return SocialUI.enabled;
   },
   
   get hasChats() {
