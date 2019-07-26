@@ -26,18 +26,6 @@ class HTMLTemplateElement;
 class DocumentFragment : public FragmentOrElement,
                          public nsIDOMDocumentFragment
 {
-public:
-  using FragmentOrElement::GetFirstChild;
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE_TO_NSINODE
-
-  
-  
-
 private:
   void Init()
   {
@@ -51,6 +39,19 @@ private:
   }
 
 public:
+  using FragmentOrElement::GetFirstChild;
+  using nsINode::QuerySelector;
+  using nsINode::QuerySelectorAll;
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_FORWARD_NSIDOMNODE_TO_NSINODE
+
+  
+  NS_DECL_NSIDOMDOCUMENTFRAGMENT
+
   DocumentFragment(already_AddRefed<nsINodeInfo> aNodeInfo)
     : FragmentOrElement(aNodeInfo), mHost(nullptr)
   {
