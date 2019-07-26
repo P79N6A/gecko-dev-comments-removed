@@ -1894,7 +1894,18 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 	}
         rv = DER_SetUInteger(privKey->arena, &privKey->u.ec.version,
                           NSSLOWKEY_EC_PRIVATE_KEY_VERSION);
-	if (rv != SECSuccess) crv = CKR_HOST_MEMORY;
+	if (rv != SECSuccess) {
+	    crv = CKR_HOST_MEMORY;
+	    
+
+
+
+
+#if defined (__arm__) && !defined(__thumb__) && defined (__GNUC__)
+	    *crvp = CKR_HOST_MEMORY;
+	    break;
+#endif
+	}
 	break;
 #endif 
 
