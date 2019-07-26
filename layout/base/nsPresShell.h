@@ -701,8 +701,6 @@ protected:
 
   nscolor GetDefaultBackgroundColorToDraw();
 
-  DOMHighResTimeStamp GetPerformanceNow();
-
   
   static void sPaintSuppressionCallback(nsITimer* aTimer, void* aPresShell);
 
@@ -784,9 +782,6 @@ protected:
   
   
   nsCOMPtr<nsITimer>        mReflowContinueTimer;
-
-  
-  DOMHighResTimeStamp       mLastReflowStart;
 
   
   
