@@ -7,7 +7,10 @@
 #ifndef ion_arm_Architecture_arm_h
 #define ion_arm_Architecture_arm_h
 
+#include "mozilla/StandardInteger.h"
+
 #include <limits.h>
+
 
 #ifdef __ARM_PCS_VFP
 #define JS_CPU_ARM_HARDFP

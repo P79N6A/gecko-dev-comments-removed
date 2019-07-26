@@ -4,16 +4,18 @@
 
 
 
+#include "ion/arm/Assembler-arm.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
-#include "ion/arm/Assembler-arm.h"
-#include "ion/arm/MacroAssembler-arm.h"
-#include "gc/Marking.h"
-#include "jsutil.h"
-#include "assembler/jit/ExecutableAllocator.h"
 #include "jscompartment.h"
+#include "jsutil.h"
+
+#include "assembler/jit/ExecutableAllocator.h"
+#include "gc/Marking.h"
 #include "ion/IonCompartment.h"
+#include "ion/arm/MacroAssembler-arm.h"
 
 using namespace js;
 using namespace js::ion;
