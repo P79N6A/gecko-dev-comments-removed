@@ -343,6 +343,7 @@ public:
 
   virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
 
+#ifdef MOZ_DASH
   
 
 
@@ -353,6 +354,7 @@ public:
   {
     return Open(aStreamListener);
   }
+#endif
 
   
 
@@ -483,8 +485,10 @@ public:
 
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
+#ifdef MOZ_DASH
   virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
                                  MediaByteRange const & aByteRange);
+#endif
   virtual nsresult Close();
   virtual void     Suspend(bool aCloseImmediately);
   virtual void     Resume();
@@ -624,6 +628,7 @@ protected:
   
   MediaByteRange mByteRange;
 
+#ifdef MOZ_DASH
   
   bool mByteRangeDownloads;
 
@@ -632,13 +637,14 @@ protected:
 
   
   
-  bool mIsTransportSeekable;
-
-  
-  
   
   ReentrantMonitor mSeekOffsetMonitor;
   int64_t mSeekOffset;
+#endif
+
+  
+  
+  bool mIsTransportSeekable;
 };
 
 } 

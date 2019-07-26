@@ -60,11 +60,13 @@ ChannelMediaResource::ChannelMediaResource(MediaDecoder* aDecoder,
     mLock("ChannelMediaResource.mLock"),
     mIgnoreResume(false),
     mSeekingForMetadata(false),
+#ifdef MOZ_DASH
     mByteRangeDownloads(false),
     mByteRangeFirstOpen(true),
-    mIsTransportSeekable(true),
     mSeekOffsetMonitor("media.dashseekmonitor"),
-    mSeekOffset(-1)
+    mSeekOffset(-1),
+#endif
+    mIsTransportSeekable(true)
 {
 #ifdef PR_LOGGING
   if (!gMediaResourceLog) {
@@ -403,6 +405,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     mChannelStatistics->Stop();
   }
 
+#ifdef MOZ_DASH
   
   
   
@@ -410,6 +413,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     mDecoder->NotifyDownloadEnded(aStatus);
     return NS_OK;
   }
+#endif
 
   
   
@@ -474,6 +478,7 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
 
   closure->mResource->mDecoder->NotifyDataArrived(aFromSegment, aCount, closure->mResource->mOffset);
 
+#ifdef MOZ_DASH
   
   
   
@@ -483,6 +488,7 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
   if (closure->mResource->mByteRangeDownloads) {
     closure->mResource->mCacheStream.NotifyDataStarted(closure->mResource->mOffset);
   }
+#endif
 
   
   LOG("%p [ChannelMediaResource]: CopySegmentToCache at mOffset [%lld] add "
@@ -530,6 +536,7 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
   return NS_OK;
 }
 
+#ifdef MOZ_DASH
 
 
 
@@ -560,6 +567,7 @@ ChannelMediaResource::OpenByteRange(nsIStreamListener** aStreamListener,
 
   return OpenChannel(aStreamListener);
 }
+#endif
 
 nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
 {
@@ -778,12 +786,13 @@ nsresult ChannelMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 
   CMLOG("Seek requested for aOffset [%lld] for decoder [%p]",
         aOffset, mDecoder);
+#ifdef MOZ_DASH
   
   if (mByteRangeDownloads) {
     ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
     mSeekOffset = aOffset;
   }
-
+#endif
   return mCacheStream.Seek(aWhence, aOffset);
 }
 
@@ -990,6 +999,9 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
   CMLOG("CacheClientSeek requested for aOffset [%lld] for decoder [%p]",
         aOffset, mDecoder);
 
+#ifndef MOZ_DASH
+  CloseChannel();
+#else
   
   if (!mByteRangeDownloads) {
     CloseChannel();
@@ -1002,6 +1014,7 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
       CloseChannel();
     }
   }
+#endif
 
   if (aResume) {
     NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
@@ -1009,7 +1022,7 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
     --mSuspendCount;
   }
 
-  
+#ifdef MOZ_DASH  
   
   
   
@@ -1086,6 +1099,7 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
     mByteRange.mStart = mOffset = aOffset;
     return OpenByteRange(nullptr, mByteRange);
   }
+#endif
 
   mOffset = aOffset;
 

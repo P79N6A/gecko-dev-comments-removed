@@ -416,8 +416,10 @@ public:
   
   virtual bool DecodeAudioData() = 0;
 
+#ifdef MOZ_DASH
   
   virtual void PrepareToDecode() { }
+#endif
 
   
   

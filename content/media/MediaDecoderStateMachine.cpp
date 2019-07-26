@@ -812,7 +812,9 @@ void MediaDecoderStateMachine::DecodeLoop()
          !mStopDecodeThread &&
          (videoPlaying || audioPlaying))
   {
+#ifdef MOZ_DASH
     mReader->PrepareToDecode();
+#endif
 
     
     
