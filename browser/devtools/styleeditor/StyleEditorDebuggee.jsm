@@ -95,12 +95,17 @@ StyleEditorDebuggee.prototype = {
 
   clear: function() {
     this.baseURI = null;
+    this.clearStyleSheets();
+  },
 
+  
+
+
+  clearStyleSheets: function() {
     for (let stylesheet of this.styleSheets) {
       stylesheet.destroy();
     }
     this.styleSheets = [];
-
     this.emit("stylesheets-cleared");
   },
 
@@ -137,6 +142,9 @@ StyleEditorDebuggee.prototype = {
 
 
   _onDocumentLoad: function(type, request) {
+    if (this.styleSheets.length > 0) {
+      this.clearStyleSheets();
+    }
     let sheets = [];
     for (let form of request.styleSheets) {
       let sheet = this._addStyleSheet(form);
