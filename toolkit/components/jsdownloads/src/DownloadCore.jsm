@@ -338,8 +338,8 @@ Download.prototype = {
     
     
     if (this._finalized) {
-      return Promise.reject(new DownloadError(Cr.NS_ERROR_FAILURE,
-                                "Cannot start after finalization."));
+      return Promise.reject(new DownloadError({
+                                message: "Cannot start after finalization."}));
     }
 
     
@@ -410,10 +410,7 @@ Download.prototype = {
 
       
       if (yield DownloadIntegration.shouldBlockForParentalControls(this)) {
-        let error = new DownloadError(Cr.NS_ERROR_FAILURE, "Download blocked.");
-        error.becauseBlocked = true;
-        error.becauseBlockedByParentalControls = true;
-        throw error;
+        throw new DownloadError({ becauseBlockedByParentalControls: true });
       }
 
       try {
@@ -430,7 +427,7 @@ Download.prototype = {
         
         
         if (this._promiseCanceled) {
-          throw new DownloadError(Cr.NS_ERROR_FAILURE, "Download canceled.");
+          throw new DownloadError({ message: "Download canceled." });
         }
 
         
@@ -1163,7 +1160,11 @@ DownloadTarget.fromSerializable = function (aSerializable) {
 
 
 
-function DownloadError(aResult, aMessage, aInferCause)
+
+
+
+
+function DownloadError(aProperties)
 {
   const NS_ERROR_MODULE_BASE_OFFSET = 0x45;
   const NS_ERROR_MODULE_NETWORK = 6;
@@ -1171,18 +1172,39 @@ function DownloadError(aResult, aMessage, aInferCause)
 
   
   this.name = "DownloadError";
-  this.result = aResult || Cr.NS_ERROR_FAILURE;
-  if (aMessage) {
-    this.message = aMessage;
+  this.result = aProperties.result || Cr.NS_ERROR_FAILURE;
+  if (aProperties.message) {
+    this.message = aProperties.message;
+  } else if (aProperties.becauseBlocked ||
+             aProperties.becauseBlockedByParentalControls) {
+    this.message = "Download blocked.";
   } else {
     let exception = new Components.Exception("", this.result);
     this.message = exception.toString();
   }
-  if (aInferCause) {
-    let module = ((aResult & 0x7FFF0000) >> 16) - NS_ERROR_MODULE_BASE_OFFSET;
+  if (aProperties.inferCause) {
+    let module = ((this.result & 0x7FFF0000) >> 16) -
+                 NS_ERROR_MODULE_BASE_OFFSET;
     this.becauseSourceFailed = (module == NS_ERROR_MODULE_NETWORK);
     this.becauseTargetFailed = (module == NS_ERROR_MODULE_FILES);
   }
+  else {
+    if (aProperties.becauseSourceFailed) {
+      this.becauseSourceFailed = true;
+    }
+    if (aProperties.becauseTargetFailed) {
+      this.becauseTargetFailed = true;
+    }
+  }
+
+  if (aProperties.becauseBlockedByParentalControls) {
+    this.becauseBlocked = true;
+    this.becauseBlockedByParentalControls = true;
+  }
+  else if (aProperties.becauseBlocked) {
+    this.becauseBlocked = true;
+  }
+
   this.stack = new Error().stack;
 }
 
@@ -1420,7 +1442,7 @@ DownloadCopySaver.prototype = {
         
         
         
-        let error = new DownloadError(Cr.NS_ERROR_FAILURE, ex.toString());
+        let error = new DownloadError({ message: ex.toString() });
         error.becauseTargetFailed = true;
         throw error;
       }
@@ -1431,7 +1453,7 @@ DownloadCopySaver.prototype = {
         if (this._canceled) {
           
           
-          throw new DownloadError(Cr.NS_ERROR_FAILURE, "Saver canceled.");
+          throw new DownloadError({ message: "Saver canceled." });
         }
 
         
@@ -1453,8 +1475,8 @@ DownloadCopySaver.prototype = {
               } else {
                 
                 
-                deferSaveComplete.reject(new DownloadError(aStatus, null,
-                                                           true));
+                let properties = { result: aStatus, inferCause: true };
+                deferSaveComplete.reject(new DownloadError(properties));
               }
             },
           };
@@ -1805,7 +1827,8 @@ DownloadLegacySaver.prototype = {
     } else {
       
       
-      this.deferExecuted.reject(new DownloadError(aStatus, null, true));
+      let properties = { result: aStatus, inferCause: true };
+      this.deferExecuted.reject(new DownloadError(properties));
     }
   },
 
