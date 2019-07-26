@@ -15,6 +15,7 @@
 #include "nsDebug.h"     
 #include "nsAlgorithm.h"
 #include "mozilla/Likely.h"
+#include "mozilla/MemoryReporting.h"
 
 #ifdef PL_DHASHMETER
 # if defined MOZILLA_CLIENT && defined DEBUG_XXXbrendan
@@ -755,7 +756,7 @@ struct SizeOfEntryExcludingThisArg
 {
     size_t total;
     PLDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis;
-    nsMallocSizeOfFun mallocSizeOf;
+    MallocSizeOf mallocSizeOf;
     void *arg;      
 };
 
@@ -771,7 +772,7 @@ SizeOfEntryExcludingThisEnumerator(PLDHashTable *table, PLDHashEntryHdr *hdr,
 size_t
 PL_DHashTableSizeOfExcludingThis(const PLDHashTable *table,
                                  PLDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                                 nsMallocSizeOfFun mallocSizeOf,
+                                 MallocSizeOf mallocSizeOf,
                                  void *arg )
 {
     size_t n = 0;
@@ -788,7 +789,7 @@ PL_DHashTableSizeOfExcludingThis(const PLDHashTable *table,
 size_t
 PL_DHashTableSizeOfIncludingThis(const PLDHashTable *table,
                                  PLDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                                 nsMallocSizeOfFun mallocSizeOf,
+                                 MallocSizeOf mallocSizeOf,
                                  void *arg )
 {
     return mallocSizeOf(table) +

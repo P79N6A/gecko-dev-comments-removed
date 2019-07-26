@@ -2,6 +2,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "StackArena.h"
 
 namespace mozilla {
@@ -67,7 +68,7 @@ StackArena::~StackArena()
 } 
 
 size_t
-StackArena::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+StackArena::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   size_t n = 0;
   StackBlock *block = mBlocks;

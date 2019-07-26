@@ -7,6 +7,8 @@
 #ifndef nsStringBuffer_h__
 #define nsStringBuffer_h__
 
+#include "mozilla/MemoryReporting.h"
+
 template<class T> struct already_AddRefed;
 
 
@@ -143,12 +145,12 @@ class nsStringBuffer
 
 
 
-      size_t SizeOfIncludingThisMustBeUnshared(nsMallocSizeOfFun aMallocSizeOf) const;
+      size_t SizeOfIncludingThisMustBeUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
 
       
 
 
-      size_t SizeOfIncludingThisIfUnshared(nsMallocSizeOfFun aMallocSizeOf) const;
+      size_t SizeOfIncludingThisIfUnshared(mozilla::MallocSizeOf aMallocSizeOf) const;
 
       
 
@@ -159,7 +161,7 @@ class nsStringBuffer
 
 
 
-      size_t SizeOfIncludingThisEvenIfShared(nsMallocSizeOfFun aMallocSizeOf) const;
+      size_t SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSizeOf) const;
   };
 
 #endif 

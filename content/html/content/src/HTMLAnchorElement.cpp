@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
 #include "mozilla/dom/HTMLAnchorElementBinding.h"
 
@@ -413,7 +414,7 @@ HTMLAnchorElement::IntrinsicState() const
 }
 
 size_t
-HTMLAnchorElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+HTMLAnchorElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
          Link::SizeOfExcludingThis(aMallocSizeOf);

@@ -5,6 +5,7 @@
 
 
 #include "base/basictypes.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "nsLayoutUtils.h"
@@ -4877,7 +4878,7 @@ nsLayoutUtils::GetFontFacesForText(nsIFrame* aFrame,
 
 size_t
 nsLayoutUtils::SizeOfTextRunsForFrames(nsIFrame* aFrame,
-                                       nsMallocSizeOfFun aMallocSizeOf,
+                                       MallocSizeOf aMallocSizeOf,
                                        bool clear)
 {
   NS_PRECONDITION(aFrame, "NULL frame pointer");

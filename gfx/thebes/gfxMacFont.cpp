@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "gfxMacFont.h"
 #include "gfxCoreTextShaper.h"
 #include "gfxHarfBuzzShaper.h"
@@ -410,7 +411,7 @@ gfxMacFont::GetScaledFont(DrawTarget *aTarget)
 }
 
 void
-gfxMacFont::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxMacFont::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
                                 FontCacheSizes*   aSizes) const
 {
     gfxFont::SizeOfExcludingThis(aMallocSizeOf, aSizes);
@@ -419,7 +420,7 @@ gfxMacFont::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
 }
 
 void
-gfxMacFont::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxMacFont::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
                                 FontCacheSizes*   aSizes) const
 {
     aSizes->mFontInstances += aMallocSizeOf(this);

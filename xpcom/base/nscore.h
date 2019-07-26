@@ -32,12 +32,6 @@
 
 
 
-typedef size_t(*nsMallocSizeOfFun)(const void *p);
-
-
-
-
-
 
 
 

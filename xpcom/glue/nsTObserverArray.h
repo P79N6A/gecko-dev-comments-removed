@@ -6,6 +6,7 @@
 #ifndef nsTObserverArray_h___
 #define nsTObserverArray_h___
 
+#include "mozilla/MemoryReporting.h"
 #include "nsTArray.h"
 #include "nsCycleCollectionNoteChild.h"
 
@@ -243,7 +244,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
     
     
-    size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const {
+    size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
       return mArray.SizeOfExcludingThis(mallocSizeOf);
     }
 

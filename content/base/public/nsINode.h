@@ -17,6 +17,7 @@
 #include "nsPropertyTable.h"        
 #include "nsTObserverArray.h"       
 #include "nsWindowMemoryReporter.h" 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/EventTarget.h" 
 
 
@@ -299,7 +300,7 @@ public:
   
   
   
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 

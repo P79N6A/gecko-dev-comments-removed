@@ -7,6 +7,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "nsEffectiveTLDService.h"
@@ -121,7 +122,7 @@ nsEffectiveTLDService::~nsEffectiveTLDService()
 }
 
 size_t
-nsEffectiveTLDService::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+nsEffectiveTLDService::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 {
   size_t n = aMallocSizeOf(this);
   n += mHash.SizeOfExcludingThis(nullptr, aMallocSizeOf);

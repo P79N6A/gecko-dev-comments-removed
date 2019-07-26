@@ -8,6 +8,7 @@
 #define mozilla_places_History_h_
 
 #include "mozilla/IHistory.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Mutex.h"
 #include "mozIAsyncHistory.h"
 #include "nsIDownloadHistory.h"
@@ -82,7 +83,7 @@ public:
 
 
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
   
 
@@ -192,7 +193,7 @@ private:
 
 
   static size_t SizeOfEntryExcludingThis(KeyClass* aEntry,
-                                         nsMallocSizeOfFun aMallocSizeOf,
+                                         mozilla::MallocSizeOf aMallocSizeOf,
                                          void*);
 
   nsTHashtable<KeyClass> mObservers;

@@ -15,6 +15,7 @@
 #include "Layers.h"
 #include "FrameLayerBuilder.h"
 #include "nsDisplayList.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla::layers;
@@ -121,7 +122,7 @@ CommonAnimationManager::MediumFeaturesChanged(nsPresContext* aPresContext)
 }
 
  size_t
-CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+CommonAnimationManager::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   
   
@@ -134,7 +135,7 @@ CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) con
 }
 
  size_t
-CommonAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+CommonAnimationManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }

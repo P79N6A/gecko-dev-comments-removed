@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAreaElement.h"
 #include "mozilla/dom/HTMLAreaElementBinding.h"
 #include "base/compiler_specific.h"
@@ -232,7 +233,7 @@ HTMLAreaElement::IntrinsicState() const
 }
 
 size_t
-HTMLAreaElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+HTMLAreaElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return nsGenericHTMLElement::SizeOfExcludingThis(aMallocSizeOf) +
          Link::SizeOfExcludingThis(aMallocSizeOf);

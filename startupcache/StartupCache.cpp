@@ -7,6 +7,7 @@
 #include "prtypes.h"
 #include "pldhash.h"
 #include "nsXPCOMStrings.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/scache/StartupCache.h"
 
 #include "nsAutoPtr.h"
@@ -382,7 +383,7 @@ StartupCache::SizeOfMapping()
 }
 
 size_t
-StartupCache::HeapSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+StartupCache::HeapSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
     
     
@@ -392,7 +393,7 @@ StartupCache::HeapSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
 
  size_t
 StartupCache::SizeOfEntryExcludingThis(const nsACString& key, const nsAutoPtr<CacheEntry>& data,
-                                       nsMallocSizeOfFun mallocSizeOf, void *)
+                                       mozilla::MallocSizeOf mallocSizeOf, void *)
 {
     return data->SizeOfExcludingThis(mallocSizeOf);
 }

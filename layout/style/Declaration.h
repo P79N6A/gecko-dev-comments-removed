@@ -12,6 +12,7 @@
 #define mozilla_css_Declaration_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
 
 
 
@@ -227,7 +228,7 @@ public:
     return nsCSSProperty(mOrder.ElementAt(aValue));
   }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   nsAutoTArray<uint16_t, 8> mOrder;

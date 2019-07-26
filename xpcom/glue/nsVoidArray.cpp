@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include <stdlib.h>
 
 #include "nsVoidArray.h"
@@ -697,7 +698,7 @@ struct SizeOfElementIncludingThisData
 {
   size_t mSize;
   nsVoidArraySizeOfElementIncludingThisFunc mSizeOfElementIncludingThis;
-  nsMallocSizeOfFun mMallocSizeOf;
+  mozilla::MallocSizeOf mMallocSizeOf;
   void *mData;      
 };
 
@@ -712,7 +713,7 @@ SizeOfElementIncludingThisEnumerator(const void *aElement, void *aData)
 size_t
 nsVoidArray::SizeOfExcludingThis(
   nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-  nsMallocSizeOfFun aMallocSizeOf, void* aData) const
+  mozilla::MallocSizeOf aMallocSizeOf, void* aData) const
 {
   size_t n = 0;
   

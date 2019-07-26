@@ -9,6 +9,7 @@
 
 #include "nsDebug.h"
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/StandardInteger.h"
 
 
@@ -21,7 +22,7 @@ typedef bool (* nsVoidArrayEnumFuncConst)(const void* aElement, void *aData);
 
 
 typedef size_t (* nsVoidArraySizeOfElementIncludingThisFunc)(const void* aElement,
-                                                             nsMallocSizeOfFun aMallocSizeOf,
+                                                             mozilla::MallocSizeOf aMallocSizeOf,
                                                              void *aData);
 
 
@@ -111,7 +112,7 @@ public:
   
   size_t SizeOfExcludingThis(
            nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-           nsMallocSizeOfFun aMallocSizeOf, void* aData = NULL) const;
+           mozilla::MallocSizeOf aMallocSizeOf, void* aData = NULL) const;
 
 protected:
   bool GrowArrayBy(int32_t aGrowBy);

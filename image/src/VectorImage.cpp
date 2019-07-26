@@ -13,6 +13,7 @@
 #include "gfxUtils.h"
 #include "imgDecoderObserver.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIObserverService.h"
@@ -341,7 +342,7 @@ VectorImage::FrameRect(uint32_t aWhichFrame)
 }
 
 size_t
-VectorImage::HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const
+VectorImage::HeapSizeOfSourceWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   
   
@@ -350,7 +351,7 @@ VectorImage::HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeO
 }
 
 size_t
-VectorImage::HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const
+VectorImage::HeapSizeOfDecodedWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   
   return 0;

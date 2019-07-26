@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "gfxGDIFont.h"
 #include "gfxGDIShaper.h"
 #include "gfxUniscribeShaper.h"
@@ -551,7 +552,7 @@ gfxGDIFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
 }
 
 void
-gfxGDIFont::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxGDIFont::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                 FontCacheSizes*   aSizes) const
 {
     gfxFont::SizeOfExcludingThis(aMallocSizeOf, aSizes);
@@ -560,7 +561,7 @@ gfxGDIFont::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
 }
 
 void
-gfxGDIFont::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
+gfxGDIFont::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                 FontCacheSizes*   aSizes) const
 {
     aSizes->mFontInstances += aMallocSizeOf(this);

@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 
@@ -264,7 +265,7 @@ nsCOMArray_base::SetCount(int32_t aNewCount)
 size_t
 nsCOMArray_base::SizeOfExcludingThis(
                    nsBaseArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-                   nsMallocSizeOfFun aMallocSizeOf, void* aData) const
+                   mozilla::MallocSizeOf aMallocSizeOf, void* aData) const
 {
     size_t n = mArray.SizeOfExcludingThis(aMallocSizeOf);
 

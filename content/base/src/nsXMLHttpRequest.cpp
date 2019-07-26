@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "nsXMLHttpRequest.h"
@@ -534,7 +535,7 @@ nsXMLHttpRequest::DisconnectFromOwner()
 
 size_t
 nsXMLHttpRequest::SizeOfEventTargetIncludingThis(
-  nsMallocSizeOfFun aMallocSizeOf) const
+  MallocSizeOf aMallocSizeOf) const
 {
   size_t n = aMallocSizeOf(this);
   n += mResponseBody.SizeOfExcludingThisIfUnshared(aMallocSizeOf);

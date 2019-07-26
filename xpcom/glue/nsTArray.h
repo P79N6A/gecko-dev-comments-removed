@@ -9,6 +9,7 @@
 
 #include "nsTArrayForwardDeclare.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/Util.h"
 
@@ -829,7 +830,7 @@ public:
 
   
   
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const {
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     if (this->UsesAutoArrayBuffer() || Hdr() == EmptyHdr())
       return 0;
     return mallocSizeOf(this->Hdr());
@@ -837,7 +838,7 @@ public:
 
   
   
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const {
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
   }
 

@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "nsNullPrincipalURI.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
@@ -272,14 +273,14 @@ nsNullPrincipalURI::SchemeIs(const char *aScheme, bool *_schemeIs)
 
 
 size_t
-nsNullPrincipalURI::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsNullPrincipalURI::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   return mScheme.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
          mPath.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
 }
 
 size_t
-nsNullPrincipalURI::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+nsNullPrincipalURI::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 

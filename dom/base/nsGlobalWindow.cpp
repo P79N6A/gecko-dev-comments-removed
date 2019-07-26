@@ -8,6 +8,7 @@
 #include <algorithm>
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 
@@ -11224,7 +11225,7 @@ nsGlobalWindow::HasIndexedDBSupport()
 static size_t
 SizeOfEventTargetObjectsEntryExcludingThisFun(
   nsPtrHashKey<nsDOMEventTargetHelper> *aEntry,
-  nsMallocSizeOfFun aMallocSizeOf,
+  MallocSizeOf aMallocSizeOf,
   void *arg)
 {
   nsISupports *supports = aEntry->GetKey();

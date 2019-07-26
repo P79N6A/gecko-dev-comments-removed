@@ -13,6 +13,7 @@
 #define FragmentOrElement_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
 #include "nsAttrAndChildArray.h"          
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
@@ -298,7 +299,7 @@ public:
     void Traverse(nsCycleCollectionTraversalCallback &cb, bool aIsXUL);
     void Unlink(bool aIsXUL);
 
-    size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
     
 

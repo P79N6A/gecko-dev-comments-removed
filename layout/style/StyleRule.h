@@ -14,6 +14,7 @@
 #include "mozilla/Attributes.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/css/Rule.h"
 
 #include "nsString.h"
@@ -36,7 +37,7 @@ public:
   
   nsAtomList* Clone() const { return Clone(true); }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   nsCOMPtr<nsIAtom> mAtom;
   nsAtomList*       mNext;
@@ -59,7 +60,7 @@ public:
   
   nsPseudoClassList* Clone() const { return Clone(true); }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   union {
     
@@ -189,7 +190,7 @@ public:
     mPseudoType = static_cast<int16_t>(aType);
   }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   
   
@@ -247,7 +248,7 @@ struct nsCSSSelectorList {
 
   nsCSSSelectorList* Clone() const { return Clone(true); }
 
-  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   nsCSSSelector*     mSelectors;
   int32_t            mWeight;
@@ -365,7 +366,7 @@ public:
   virtual void List(FILE* out = stdout, int32_t aIndent = 0) const MOZ_OVERRIDE;
 #endif
 
-  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   ~StyleRule();

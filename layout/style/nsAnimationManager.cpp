@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "nsAnimationManager.h"
 #include "nsPresContext.h"
 #include "nsRuleProcessorData.h"
@@ -519,7 +520,7 @@ nsAnimationManager::RulesMatching(XULTreeRuleProcessorData* aData)
 #endif
 
  size_t
-nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsAnimationManager::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 {
   return CommonAnimationManager::SizeOfExcludingThis(aMallocSizeOf);
 
@@ -530,7 +531,7 @@ nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 }
 
  size_t
-nsAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+nsAnimationManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }

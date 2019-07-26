@@ -16,6 +16,7 @@
 
 
 
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Util.h"
 
 #include "mozilla/css/Loader.h"
@@ -2442,13 +2443,13 @@ Loader::UnlinkCachedSheets()
 
 struct SheetMemoryCounter {
   size_t size;
-  nsMallocSizeOfFun mallocSizeOf;
+  mozilla::MallocSizeOf mallocSizeOf;
 };
 
 static size_t
 CountSheetMemory(URIPrincipalAndCORSModeHashKey* ,
                  const nsRefPtr<nsCSSStyleSheet>& aSheet,
-                 nsMallocSizeOfFun aMallocSizeOf,
+                 mozilla::MallocSizeOf aMallocSizeOf,
                  void* )
 {
   
@@ -2462,7 +2463,7 @@ CountSheetMemory(URIPrincipalAndCORSModeHashKey* ,
 }
 
 size_t
-Loader::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+Loader::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
   size_t s = aMallocSizeOf(this);
 

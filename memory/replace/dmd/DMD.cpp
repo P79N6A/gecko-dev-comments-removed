@@ -34,6 +34,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Likely.h"
+#include "mozilla/MemoryReporting.h"
 
 
 
