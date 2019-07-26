@@ -468,7 +468,12 @@ var SelectionHandler = {
     let selectedText = this._getSelectedText();
     if (selectedText.length) {
       let req = Services.search.defaultEngine.getSubmission(selectedText);
-      BrowserApp.selectOrOpenTab(req.uri.spec);
+      let parent = BrowserApp.selectedTab;
+      let isPrivate = PrivateBrowsingUtils.isWindowPrivate(parent.browser.contentWindow);
+      
+      BrowserApp.addTab(req.uri.spec, {parentId: parent.id,
+                                       selected: true,
+                                       isPrivate: isPrivate});
     }
     this._closeSelection();
   },
