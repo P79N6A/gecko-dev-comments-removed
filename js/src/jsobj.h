@@ -1368,16 +1368,6 @@ GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id, MutableHa
 bool
 NewPropertyDescriptorObject(JSContext *cx, const PropertyDescriptor *desc, MutableHandleValue vp);
 
-extern JSBool
-GetMethod(JSContext *cx, HandleObject obj, HandleId id, unsigned getHow, MutableHandleValue vp);
-
-inline bool
-GetMethod(JSContext *cx, HandleObject obj, PropertyName *name, unsigned getHow, MutableHandleValue vp)
-{
-    Rooted<jsid> id(cx, NameToId(name));
-    return GetMethod(cx, obj, id, getHow, vp);
-}
-
 
 
 

@@ -205,10 +205,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
   if (!aValue.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
-
-  JSObject* obj = &aValue.toObject();
-
-  JS::Value val = aValue;
+  JS::Rooted<JSObject*> obj(cx, &aValue.toObject());
 
   
 
@@ -216,12 +213,13 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
 
 
 
-  JS::Value toJSON;
-  if (JS_GetMethod(cx, obj, "toJSON", NULL, &toJSON) &&
-      !JSVAL_IS_PRIMITIVE(toJSON) &&
-      JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(toJSON))) {
+  JS::Rooted<JS::Value> val(cx, aValue);
+  JS::Rooted<JS::Value> toJSON(cx);
+  if (JS_GetProperty(cx, obj, "toJSON", toJSON.address()) &&
+      toJSON.isObject() &&
+      JS_ObjectIsCallable(cx, &toJSON.toObject())) {
     
-    if (!JS_CallFunctionValue(cx, obj, toJSON, 0, NULL, &val)) {
+    if (!JS_CallFunctionValue(cx, obj, toJSON, 0, NULL, val.address())) {
       if (JS_IsExceptionPending(cx))
         
         return NS_OK;
@@ -232,7 +230,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
 
     
     
-    if (JSVAL_IS_PRIMITIVE(val))
+    if (val.isPrimitive())
       return NS_ERROR_INVALID_ARG;
   }
   
@@ -247,7 +245,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
     return NS_ERROR_INVALID_ARG;
 
   
-  if (!JS_Stringify(cx, &val, NULL, JSVAL_NULL, WriteCallback, writer))
+  if (!JS_Stringify(cx, val.address(), NULL, JSVAL_NULL, WriteCallback, writer))
     return NS_ERROR_FAILURE;
 
   return NS_OK;

@@ -312,7 +312,7 @@ GetCustomIterator(JSContext *cx, HandleObject obj, unsigned flags, MutableHandle
 
     
     HandlePropertyName name = cx->names().iteratorIntrinsic;
-    if (!GetMethod(cx, obj, name, 0, vp))
+    if (!JSObject::getProperty(cx, obj, obj, name, vp))
         return false;
 
     
@@ -1233,7 +1233,7 @@ js_IteratorMore(JSContext *cx, HandleObject iterobj, MutableHandleValue rval)
             return false;
     } else {
         
-        if (!GetMethod(cx, iterobj, cx->names().next, 0, rval))
+        if (!JSObject::getProperty(cx, iterobj, iterobj, cx->names().next, rval))
             return false;
         if (!Invoke(cx, ObjectValue(*iterobj), rval, 0, NULL, rval.address())) {
             

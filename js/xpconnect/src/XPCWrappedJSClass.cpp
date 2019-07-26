@@ -1254,13 +1254,16 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
                     }
                 }
             }
-        } else if (!JS_GetMethod(cx, obj, name, thisObj.address(), fval.address())) {
+        } else {
+            if (!JS_GetProperty(cx, obj, name, fval.address()))
+                goto pre_call_clean_up;
             
             
             
             
             
-            goto pre_call_clean_up;
+
+            thisObj = obj;
         }
     }
 
