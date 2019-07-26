@@ -43,8 +43,8 @@ PRIntervalTime nsAutodial::mDontRetryUntil = 0;
 
 nsAutodial::nsAutodial()
 :   mAutodialBehavior(AUTODIAL_DEFAULT),
-    mNumRASConnectionEntries(0),
-    mAutodialServiceDialingLocation(-1)
+    mAutodialServiceDialingLocation(-1),
+    mNumRASConnectionEntries(0)
 {
     
     

@@ -947,8 +947,6 @@ nsSocketTransportService::ProbeMaxCount()
         return;
     mProbedMaxCount = true;
 
-    int32_t startedMaxCount = gMaxCount;
-
     
     
     
