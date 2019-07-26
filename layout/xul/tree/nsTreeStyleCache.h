@@ -63,7 +63,7 @@ public:
   }
 };
 
-class nsTreeStyleCache 
+class nsTreeStyleCache
 {
 public:
   nsTreeStyleCache() :mTransitionTable(nullptr), mCache(nullptr), mNextState(0) {}
@@ -72,8 +72,8 @@ public:
   void Clear() { delete mTransitionTable; mTransitionTable = nullptr; delete mCache; mCache = nullptr; mNextState = 0; }
 
   nsStyleContext* GetStyleContext(nsICSSPseudoComparator* aComparator,
-                                  nsPresContext* aPresContext, 
-                                  nsIContent* aContent, 
+                                  nsPresContext* aPresContext,
+                                  nsIContent* aContent,
                                   nsStyleContext* aContext,
                                   nsIAtom* aPseudoElement,
                                   const AtomArray & aInputWord);
