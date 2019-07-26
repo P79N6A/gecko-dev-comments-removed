@@ -140,7 +140,8 @@ let CustomizableUIInternal = {
       "history-panelmenu",
       "fullscreen-button",
       "find-button",
-      "preferences-button"
+      "preferences-button",
+      "add-ons-button"
     ];
 
 #ifdef XP_WIN
@@ -156,7 +157,8 @@ let CustomizableUIInternal = {
     } catch (ex) { }
 
     if (isMetroCapable) {
-      panelPlacements.push("switch-to-metro-button");
+      
+      
     }
 #endif
 #endif
