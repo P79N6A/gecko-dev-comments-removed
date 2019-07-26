@@ -46,6 +46,8 @@ public:
                     NS_ASSERTION(mInStreamCount >= 0, "mInStreamCount has gone negative");
                 }
 
+    size_t     SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
+
     
     
     nsDiskCacheStreamIO() { NS_NOTREACHED("oops"); }
