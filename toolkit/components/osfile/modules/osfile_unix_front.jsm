@@ -343,7 +343,8 @@
      File.removeEmptyDir = function removeEmptyDir(path, options = {}) {
        let result = UnixFile.rmdir(path);
        if (result == -1) {
-         if (options.ignoreAbsent && ctypes.errno == Const.ENOENT) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.errno == Const.ENOENT) {
            return;
          }
          throw new File.Error("removeEmptyDir");
@@ -372,11 +373,13 @@
      File.makeDir = function makeDir(path, options = {}) {
        let omode = options.unixMode !== undefined ? options.unixMode : DEFAULT_UNIX_MODE_DIR;
        let result = UnixFile.mkdir(path, omode);
-       if (result != -1 ||
-           options.ignoreExisting && ctypes.errno == Const.EEXIST) {
-        return;
+       if (result == -1) {
+         if ((!("ignoreExisting" in options) || options.ignoreExisting) &&
+             ctypes.errno == Const.EEXIST) {
+           return;
+         }
+         throw new File.Error("makeDir");
        }
-       throw new File.Error("makeDir");
      };
 
      

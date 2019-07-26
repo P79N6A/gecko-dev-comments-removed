@@ -416,7 +416,7 @@
      File.removeEmptyDir = function removeEmptyDir(path, options = {}) {
        let result = WinFile.RemoveDirectory(path);
        if (!result) {
-         if (options.ignoreAbsent &&
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
              ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
            return;
          }
@@ -441,12 +441,13 @@
      File.makeDir = function makeDir(path, options = {}) {
        let security = options.winSecurity || null;
        let result = WinFile.CreateDirectory(path, security);
-       if (result ||
-           options.ignoreExisting &&
-           ctypes.winLastError == Const.ERROR_ALREADY_EXISTS) {
-        return;
+       if (!result) {
+         if ((!("ignoreExisting" in options) || options.ignoreExisting) &&
+             ctypes.winLastError == Const.ERROR_ALREADY_EXISTS) {
+           return;
+         }
+         throw new File.Error("makeDir");
        }
-       throw new File.Error("makeDir");
      };
 
      
