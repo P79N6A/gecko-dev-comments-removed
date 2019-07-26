@@ -151,6 +151,10 @@ public:
   void ShutdownThreads();
 
   
+
+
+  void Init();
+  
   
   
 

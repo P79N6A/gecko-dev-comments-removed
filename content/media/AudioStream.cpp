@@ -76,6 +76,15 @@ bool AudioStream::sCubebLatencyPrefSet;
   return GetCubebContextUnlocked();
 }
 
+ void AudioStream::InitPreferredSampleRate()
+{
+  StaticMutexAutoLock lock(sMutex);
+  if (sPreferredSampleRate != 0 ||
+      cubeb_get_preferred_sample_rate(GetCubebContextUnlocked(), &sPreferredSampleRate) != CUBEB_OK) {
+    sPreferredSampleRate = 44100;
+  }
+}
+
  cubeb* AudioStream::GetCubebContextUnlocked()
 {
   sMutex.AssertCurrentThreadOwns();
@@ -266,25 +275,8 @@ int64_t AudioStream::GetWritten()
 
  int AudioStream::PreferredSampleRate()
 {
-  const int fallbackSampleRate = 44100;
-  StaticMutexAutoLock lock(sMutex);
-  if (sPreferredSampleRate != 0) {
-    return sPreferredSampleRate;
-  }
-
-  cubeb* cubebContext = GetCubebContextUnlocked();
-  if (!cubebContext) {
-    sPreferredSampleRate = fallbackSampleRate;
-  }
-  
-  
-  
-  
-  if (cubeb_get_preferred_sample_rate(cubebContext,
-                                      &sPreferredSampleRate) != CUBEB_OK) {
-    sPreferredSampleRate = fallbackSampleRate;
-  }
-
+  MOZ_ASSERT(sPreferredSampleRate,
+             "sPreferredSampleRate has not been initialized!");
   return sPreferredSampleRate;
 }
 
