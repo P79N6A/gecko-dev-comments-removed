@@ -40,6 +40,16 @@ public:
         mDeliveringMessage = false;
     }
 
+    
+    
+    
+
+    enum OutputMode {
+        SuppressLog,
+        OutputToLog
+    };
+    virtual nsresult LogMessageWithMode(nsIConsoleMessage *message, OutputMode outputMode);
+
 private:
     ~nsConsoleService();
 
