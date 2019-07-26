@@ -240,26 +240,19 @@ let DebuggerView = {
     
     if (aTextContent.length >= SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
       this.editor.setMode(SourceEditor.MODES.TEXT);
-      return;
     }
-
-    if (aContentType) {
-      if (/javascript/.test(aContentType)) {
-        this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
-      } else {
-        this.editor.setMode(SourceEditor.MODES.HTML);
-      }
-    } else if (aTextContent.match(/^\s*</)) {
-      
-      
+    
+    else if (SourceUtils.isJavaScript(aUrl, aContentType)) {
+      this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+    }
+    
+    
+    else if (aTextContent.match(/^\s*</)) {
       this.editor.setMode(SourceEditor.MODES.HTML);
-    } else {
-      
-      if (/\.jsm?$/.test(SourceUtils.trimUrlQuery(aUrl))) {
-        this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
-      } else {
-        this.editor.setMode(SourceEditor.MODES.TEXT);
-      }
+    }
+    
+    else {
+      this.editor.setMode(SourceEditor.MODES.TEXT);
     }
   },
 

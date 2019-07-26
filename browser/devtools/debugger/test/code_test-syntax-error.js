@@ -1,0 +1,6 @@
+
+
+
+function pineapple() {
+  syntax error
+}
