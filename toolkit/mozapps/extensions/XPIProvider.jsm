@@ -94,11 +94,8 @@ const KEY_APP_SYSTEM_LOCAL            = "app-system-local";
 const KEY_APP_SYSTEM_SHARE            = "app-system-share";
 const KEY_APP_SYSTEM_USER             = "app-system-user";
 
-const UNKNOWN_XPCOM_ABI               = "unknownABI";
 const XPI_PERMISSION                  = "install";
 
-const PREFIX_ITEM_URI                 = "urn:mozilla:item:";
-const RDFURI_ITEM_ROOT                = "urn:mozilla:item:root"
 const RDFURI_INSTALL_MANIFEST_ROOT    = "urn:mozilla:install-manifest";
 const PREFIX_NS_EM                    = "http://www.mozilla.org/2004/em-rdf#";
 
@@ -158,6 +155,14 @@ const TYPES = {
   multipackage: 32,
   dictionary: 64
 };
+
+
+
+const XPI_STARTING = "XPIStarting";
+
+const XPI_BEFORE_UI_STARTUP = "BeforeFinalUIStartup";
+
+const XPI_AFTER_UI_STARTUP = "AfterFinalUIStartup";
 
 const COMPATIBLE_BY_DEFAULT_TYPES = {
   extension: true,
@@ -1538,6 +1543,8 @@ var XPIProvider = {
   inactiveAddonIDs: [],
   
   unpackedAddons: 0,
+  
+  runPhase: XPI_STARTING,
 
   
 
@@ -1674,6 +1681,7 @@ var XPIProvider = {
 
   startup: function XPI_startup(aAppChanged, aOldAppVersion, aOldPlatformVersion) {
     LOG("startup");
+    this.runPhase = XPI_STARTING;
     this.installs = [];
     this.installLocations = [];
     this.installLocationsByName = {};
@@ -1848,9 +1856,19 @@ var XPIProvider = {
       }
     }, "quit-application-granted", false);
 
+    
+    Services.obs.addObserver({
+      observe: function uiStartupObserver(aSubject, aTopic, aData) {
+        AddonManagerPrivate.recordTimestamp("XPI_finalUIStartup");
+        XPIProvider.runPhase = XPI_AFTER_UI_STARTUP;
+        Services.obs.removeObserver(this, "final-ui-startup");
+      }
+    }, "final-ui-startup", false);
+
     AddonManagerPrivate.recordTimestamp("XPI_startup_end");
 
     this.extensionsActive = true;
+    this.runPhase = XPI_BEFORE_UI_STARTUP;
   },
 
   
@@ -1935,7 +1953,7 @@ var XPIProvider = {
       var variant = Cc["@mozilla.org/variant;1"].
                     createInstance(Ci.nsIWritableVariant);
       variant.setFromVariant(this.inactiveAddonIDs);
-  
+
       
       var features = "chrome,centerscreen,dialog,titlebar,modal";
       var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
@@ -1979,7 +1997,7 @@ var XPIProvider = {
       Services.appinfo.annotateCrashReport("Add-ons", data);
     }
     catch (e) { }
-    
+
     const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].getService(Ci.nsITelemetryPing);
     TelemetryPing.setAddOns(data);
   },
@@ -3145,7 +3163,10 @@ var XPIProvider = {
 
     
     
-    let updateDatabase = aAppChanged;
+    let updateReasons = [];
+    if (aAppChanged) {
+      updateReasons.push("appChanged");
+    }
 
     
     
@@ -3160,7 +3181,10 @@ var XPIProvider = {
     
     
     let manifests = {};
-    updateDatabase = this.processPendingFileChanges(manifests) || updateDatabase;
+    let updated = this.processPendingFileChanges(manifests);
+    if (updated) {
+      updateReasons.push("pendingFileChanges");
+    }
 
     
     
@@ -3168,33 +3192,41 @@ var XPIProvider = {
     let hasPendingChanges = Prefs.getBoolPref(PREF_PENDING_OPERATIONS);
 
     
-    updateDatabase = updateDatabase || DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0);
+    if (DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0)) {
+      updateReasons.push("schemaChanged");
+    }
 
     
     if (aAppChanged !== false &&
         Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
-      updateDatabase = this.installDistributionAddons(manifests) || updateDatabase;
+    {
+      updated = this.installDistributionAddons(manifests);
+      if (updated) {
+        updateReasons.push("installDistributionAddons");
+      }
+    }
 
     
-    let telemetryCaptureTime = new Date();
+    let telemetryCaptureTime = Date.now();
     let state = this.getInstallLocationStates();
     let telemetry = Services.telemetry;
-    telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(new Date() - telemetryCaptureTime);
+    telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(Date.now() - telemetryCaptureTime);
 
-    if (!updateDatabase) {
-      
-      let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
-      updateDatabase = cache != JSON.stringify(state);
+    
+    let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
+    if (cache != JSON.stringify(state)) {
+      updateReasons.push("directoryState");
     }
 
     
     
     
     let dbFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
-    if (!dbFile.exists())
-      updateDatabase = state.length > 0;
+    if (!dbFile.exists() && state.length > 0) {
+      updateReasons.push("needNewDatabase");
+    }
 
-    if (!updateDatabase) {
+    if (updateReasons.length == 0) {
       let bootstrapDescriptors = [this.bootstrappedAddons[b].descriptor
                                   for (b in this.bootstrappedAddons)];
 
@@ -3208,7 +3240,7 @@ var XPIProvider = {
 
       if (bootstrapDescriptors.length > 0) {
         WARN("Bootstrap state is invalid (missing add-ons: " + bootstrapDescriptors.toSource() + ")");
-        updateDatabase = true;
+        updateReasons.push("missingBootstrapAddon");
       }
     }
 
@@ -3217,7 +3249,11 @@ var XPIProvider = {
       let extensionListChanged = false;
       
       
-      if (updateDatabase || hasPendingChanges) {
+      if (hasPendingChanges) {
+        updateReasons.push("hasPendingChanges");
+      }
+      if (updateReasons.length > 0) {
+        AddonManagerPrivate.recordSimpleMeasure("XPIDB_startup_load_reasons", updateReasons);
         XPIDatabase.syncLoadDB(false);
         try {
           extensionListChanged = this.processFileChanges(state, manifests,

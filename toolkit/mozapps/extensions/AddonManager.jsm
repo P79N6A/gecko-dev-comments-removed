@@ -2131,6 +2131,15 @@ this.AddonManagerPrivate = {
 
   getSimpleMeasures: function AMP_getSimpleMeasures() {
     return this._simpleMeasures;
+  },
+
+  
+  
+  simpleTimer: function(aName) {
+    let startTime = Date.now();
+    return {
+      done: () => AddonManagerPrivate.recordSimpleMeasure(aName, Date.now() - startTime)
+    };
   }
 };
 
