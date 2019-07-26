@@ -3,39 +3,46 @@
 
 
 
-#ifndef __NS_SVGSWITCHELEMENT_H__
-#define __NS_SVGSWITCHELEMENT_H__
+#ifndef mozilla_dom_SVGSwitchElement_h
+#define mozilla_dom_SVGSwitchElement_h
 
 #include "nsIDOMSVGSwitchElement.h"
 #include "SVGGraphicsElement.h"
 
-typedef mozilla::dom::SVGGraphicsElement nsSVGSwitchElementBase;
+nsresult NS_NewSVGSwitchElement(nsIContent **aResult,
+                                already_AddRefed<nsINodeInfo> aNodeInfo);
 
-class nsSVGSwitchElement : public nsSVGSwitchElementBase,
-                           public nsIDOMSVGSwitchElement
+namespace mozilla {
+namespace dom {
+
+typedef SVGGraphicsElement SVGSwitchElementBase;
+
+class SVGSwitchElement MOZ_FINAL : public SVGSwitchElementBase,
+                                   public nsIDOMSVGSwitchElement
 {
   friend class nsSVGSwitchFrame;
 protected:
-  friend nsresult NS_NewSVGSwitchElement(nsIContent **aResult,
-                                         already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsSVGSwitchElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  friend nsresult (::NS_NewSVGSwitchElement(nsIContent **aResult,
+                                            already_AddRefed<nsINodeInfo> aNodeInfo));
+  SVGSwitchElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap) MOZ_OVERRIDE;
 
 public:
   nsIContent * GetActiveChild() const
   { return mActiveChild; }
   void MaybeInvalidate();
-    
+
   
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsSVGSwitchElement,
-                                           nsSVGSwitchElementBase)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGSwitchElement,
+                                           SVGSwitchElementBase)
   NS_DECL_NSIDOMSVGSWITCHELEMENT
 
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
-  NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSwitchElementBase::)
+  NS_FORWARD_NSIDOMSVGELEMENT(SVGSwitchElementBase::)
 
   
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
@@ -58,5 +65,8 @@ private:
   
   nsCOMPtr<nsIContent> mActiveChild;
 };
+
+} 
+} 
 
 #endif 
