@@ -637,11 +637,6 @@ struct IonBlockCounts
     
     char *code_;
 
-    
-    
-    uint32_t instructionBytes_;
-    uint32_t spillBytes_;
-
   public:
 
     bool init(uint32_t id, uint32_t offset, uint32_t numSuccessors) {
@@ -701,22 +696,6 @@ struct IonBlockCounts
 
     const char *code() const {
         return code_;
-    }
-
-    void setInstructionBytes(uint32_t bytes) {
-        instructionBytes_ = bytes;
-    }
-
-    uint32_t instructionBytes() const {
-        return instructionBytes_;
-    }
-
-    void setSpillBytes(uint32_t bytes) {
-        spillBytes_ = bytes;
-    }
-
-    uint32_t spillBytes() const {
-        return spillBytes_;
     }
 };
 
