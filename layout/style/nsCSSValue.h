@@ -209,8 +209,15 @@ enum nsCSSUnit {
   eCSSUnit_Integer      = 70,     
   eCSSUnit_Enumerated   = 71,     
 
-  eCSSUnit_EnumColor    = 80,     
-  eCSSUnit_RGBAColor    = 81,     
+  eCSSUnit_EnumColor           = 80,   
+  eCSSUnit_RGBColor            = 81,   
+  eCSSUnit_RGBAColor           = 82,   
+  eCSSUnit_HexColor            = 83,   
+  eCSSUnit_ShortHexColor       = 84,   
+  eCSSUnit_PercentageRGBColor  = 85,   
+  eCSSUnit_PercentageRGBAColor = 86,   
+  eCSSUnit_HSLColor            = 87,   
+  eCSSUnit_HSLAColor           = 88,   
 
   eCSSUnit_Percent      = 90,     
   eCSSUnit_Number       = 91,     
@@ -267,6 +274,7 @@ struct nsCSSValuePairList;
 struct nsCSSValuePairList_heap;
 struct nsCSSValueTriplet;
 struct nsCSSValueTriplet_heap;
+class nsCSSValueFloatColor;
 
 class nsCSSValue {
 public:
@@ -349,6 +357,35 @@ public:
   bool      UnitHasArrayValue() const
     { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool IsIntegerColorUnit() const { return IsIntegerColorUnit(mUnit); }
+  bool IsFloatColorUnit() const { return IsFloatColorUnit(mUnit); }
+  bool IsNumericColorUnit() const { return IsNumericColorUnit(mUnit); }
+  static bool IsIntegerColorUnit(nsCSSUnit aUnit)
+  { return eCSSUnit_RGBColor <= aUnit && aUnit <= eCSSUnit_ShortHexColor; }
+  static bool IsFloatColorUnit(nsCSSUnit aUnit)
+  { return eCSSUnit_PercentageRGBColor <= aUnit &&
+           aUnit <= eCSSUnit_HSLAColor; }
+  static bool IsNumericColorUnit(nsCSSUnit aUnit)
+  { return IsIntegerColorUnit(aUnit) || IsFloatColorUnit(aUnit); }
+
   int32_t GetIntValue() const
   {
     NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Integer ||
@@ -402,12 +439,7 @@ public:
     return GetBufferValue(mValue.mString);
   }
 
-  nscolor GetColorValue() const
-  {
-    NS_ABORT_IF_FALSE((mUnit == eCSSUnit_RGBAColor), "not a color value");
-    return mValue.mColor;
-  }
-
+  nscolor GetColorValue() const;
   bool IsNonTransparentColor() const;
 
   Array* GetArrayValue() const
@@ -503,6 +535,11 @@ public:
   void SetFloatValue(float aValue, nsCSSUnit aUnit);
   void SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
   void SetColorValue(nscolor aValue);
+  void SetIntegerColorValue(nscolor aValue, nsCSSUnit aUnit);
+  void SetFloatColorValue(float aComponent1,
+                          float aComponent2,
+                          float aComponent3,
+                          float aAlpha, nsCSSUnit aUnit);
   void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
   void SetURLValue(mozilla::css::URLValue* aURI);
   void SetImageValue(mozilla::css::ImageValue* aImage);
@@ -573,6 +610,7 @@ protected:
     nsCSSValueSharedList* mSharedList;
     nsCSSValuePairList_heap* mPairList;
     nsCSSValuePairList* mPairListDependent;
+    nsCSSValueFloatColor* mFloatColor;
   } mValue;
 };
 
@@ -1283,6 +1321,44 @@ struct nsCSSValueTokenStream {
 private:
   nsCSSValueTokenStream(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
   nsCSSValueTokenStream& operator=(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
+};
+
+class nsCSSValueFloatColor {
+public:
+  nsCSSValueFloatColor(float aComponent1, float aComponent2, float aComponent3,
+                       float aAlpha)
+    : mComponent1(aComponent1)
+    , mComponent2(aComponent2)
+    , mComponent3(aComponent3)
+    , mAlpha(aAlpha)
+  {
+    MOZ_COUNT_CTOR(nsCSSValueFloatColor);
+  }
+
+  ~nsCSSValueFloatColor()
+  {
+    MOZ_COUNT_DTOR(nsCSSValueFloatColor);
+  }
+
+  bool operator==(nsCSSValueFloatColor& aOther) const;
+
+  nscolor GetColorValue(nsCSSUnit aUnit) const;
+  bool IsNonTransparentColor() const;
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+  NS_INLINE_DECL_REFCOUNTING(nsCSSValueFloatColor)
+
+private:
+  
+  float mComponent1;  
+  float mComponent2;  
+  float mComponent3;  
+  float mAlpha;       
+
+  nsCSSValueFloatColor(const nsCSSValueFloatColor& aOther) MOZ_DELETE;
+  nsCSSValueFloatColor& operator=(const nsCSSValueFloatColor& aOther)
+                                                                   MOZ_DELETE;
 };
 
 struct nsCSSCornerSizes {
