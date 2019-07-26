@@ -919,8 +919,9 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
   
   
 
-  uint32_t reason;
+  SSLVersionRange range = socketInfo->GetTLSVersionRange();
 
+  uint32_t reason;
   switch (err)
   {
     case SSL_ERROR_BAD_MAC_ALERT: reason = 1; break;
@@ -949,8 +950,12 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
       
       
+      
+      
+      
     conditional:
-      if (socketInfo->GetHasCleartextPhase()) {
+      if (range.max <= SSL_LIBRARY_VERSION_TLS_1_0 ||
+          socketInfo->GetHasCleartextPhase()) {
         return false;
       }
       break;
@@ -961,7 +966,6 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
   Telemetry::ID pre;
   Telemetry::ID post;
-  SSLVersionRange range = socketInfo->GetTLSVersionRange();
   switch (range.max) {
     case SSL_LIBRARY_VERSION_TLS_1_2:
       pre = Telemetry::SSL_TLS12_INTOLERANCE_REASON_PRE;
