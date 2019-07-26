@@ -87,8 +87,7 @@ public:
                        nsHTMLReflowMetrics* aMetrics,
                        bool& aPushedFrame);
 
-  nsresult AddBulletFrame(nsIFrame* aFrame,
-                          const nsHTMLReflowMetrics& aMetrics);
+  void AddBulletFrame(nsIFrame* aFrame, const nsHTMLReflowMetrics& aMetrics);
 
   void RemoveBulletFrame(nsIFrame* aFrame) {
     PushFrame(aFrame);
@@ -504,7 +503,10 @@ protected:
 #endif
   PLArenaPool mArena; 
 
-  nsresult NewPerFrameData(PerFrameData** aResult);
+  
+
+
+  PerFrameData* NewPerFrameData();
 
   
 
