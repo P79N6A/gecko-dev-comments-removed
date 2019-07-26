@@ -128,8 +128,11 @@ class js::ThreadPoolMainWorker : public ThreadPoolBaseWorker
     bool getSlice(uint16_t *sliceId);
 
   public:
+    bool isActive;
+
     ThreadPoolMainWorker(ThreadPool *pool)
-      : ThreadPoolBaseWorker(0, pool)
+      : ThreadPoolBaseWorker(0, pool),
+        isActive(false)
     { }
 
     
@@ -402,6 +405,12 @@ ThreadPool::workStealing() const
 }
 
 bool
+ThreadPool::isMainThreadActive() const
+{
+    return mainWorker_ && mainWorker_->isActive;
+}
+
+bool
 ThreadPool::lazyStartWorkers(JSContext *cx)
 {
     
@@ -554,7 +563,9 @@ ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices)
     }
 
     
+    mainWorker_->isActive = true;
     mainWorker_->executeJob();
+    mainWorker_->isActive = false;
 
     
     

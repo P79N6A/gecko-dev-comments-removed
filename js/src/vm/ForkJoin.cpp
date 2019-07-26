@@ -1505,7 +1505,10 @@ ForkJoinShared::check(ForkJoinSlice &slice)
     if (abort_)
         return false;
 
-    if (slice.isMainThread()) {
+    
+    
+    
+    if (slice.isMainThread() || !threadPool_->isMainThreadActive()) {
         JS_ASSERT(!cx_->runtime()->gcIsNeeded);
 
         if (cx_->runtime()->interrupt) {

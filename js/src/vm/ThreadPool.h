@@ -132,6 +132,9 @@ class ThreadPool : public Monitor
     
     bool workStealing() const;
 
+    
+    bool isMainThreadActive() const;
+
 #ifdef DEBUG
     
     uint16_t stolenSlices() { return stolenSlices_; }
