@@ -787,6 +787,21 @@ function getUpdateTestDir() {
 }
 
 
+
+
+
+
+
+function getUpdatingDir() {
+  let updatingDir = getApplyDirFile(null, true);
+
+  if (IS_MACOSX) {
+    updatingDir = updatingDir.parent.parent;
+  }
+  updatingDir.append("updating");
+  return updatingDir;
+}
+
 #ifdef XP_WIN
 XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash",
                             function test_gInstallDirPathHash() {
@@ -1095,6 +1110,9 @@ function runUpdate(aExpectedExitValue, aExpectedStatus, aCallback) {
   do_check_eq(process.exitValue, aExpectedExitValue);
   logTestInfo("testing update status against expected status");
   do_check_eq(status, aExpectedStatus);
+
+  logTestInfo("testing updating directory doesn't exist");
+  do_check_false(getUpdatingDir().exists());
 
   if (aCallback !== null) {
     if (typeof(aCallback) == typeof(Function)) {
@@ -1612,6 +1630,9 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
     if (aCheckSvcLog) {
       checkServiceLogs(svcOriginalLog);
     }
+
+    logTestInfo("testing updating directory doesn't exist");
+    do_check_false(getUpdatingDir().exists());
 
     checkUpdateFinished();
   }
