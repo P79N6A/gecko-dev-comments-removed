@@ -485,11 +485,15 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     MOZ_ASSERT(script->hasBaselineScript());
 
     
+    bool catchingException = excInfo && excInfo->catchingException();
+
+    
+    
     
     
     uint32_t exprStackSlots;
-    if (excInfo)
-        exprStackSlots = excInfo->numExprSlots;
+    if (catchingException)
+        exprStackSlots = excInfo->numExprSlots();
     else
         exprStackSlots = iter.numAllocations() - (script->nfixed() + CountArgSlots(script, fun));
 
@@ -680,8 +684,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    jsbytecode *pc = excInfo ? excInfo->resumePC : script->offsetToPC(iter.pcOffset());
-    bool resumeAfter = excInfo ? false : iter.resumeAfter();
+    jsbytecode *pc = catchingException ? excInfo->resumePC() : script->offsetToPC(iter.pcOffset());
+    bool resumeAfter = catchingException ? false : iter.resumeAfter();
 
     JSOp op = JSOp(*pc);
 
@@ -774,16 +778,30 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     for (uint32_t i = pushedSlots; i < exprStackSlots; i++) {
         Value v;
 
-        
-        
-        
         if (!iter.moreFrames() && i == exprStackSlots - 1 &&
             cx->runtime()->hasIonReturnOverride())
         {
+            
+            
+            
             JS_ASSERT(invalidate);
             iter.skip();
             IonSpew(IonSpew_BaselineBailouts, "      [Return Override]");
             v = cx->runtime()->takeIonReturnOverride();
+        } else if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
+            
+            
+            
+            
+            
+            
+            
+            
+            MOZ_ASSERT(cx->compartment()->debugMode());
+            if (iter.moreFrames())
+                v = iter.read();
+            else
+                v = MagicValue(JS_OPTIMIZED_OUT);
         } else {
             v = iter.read();
         }
@@ -856,7 +874,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    if (!iter.moreFrames() || excInfo) {
+    if (!iter.moreFrames() || catchingException) {
         
         *callPC = nullptr;
 
@@ -1320,8 +1338,21 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
             iter.script()->filename(), iter.script()->lineno(), (void *) iter.ionScript(),
             (int) prevFrameType);
 
-    if (excInfo)
-        IonSpew(IonSpew_BaselineBailouts, "Resuming in catch or finally block");
+    bool catchingException;
+    bool propagatingExceptionForDebugMode;
+    if (excInfo) {
+        catchingException = excInfo->catchingException();
+        propagatingExceptionForDebugMode = excInfo->propagatingIonExceptionForDebugMode();
+
+        if (catchingException)
+            IonSpew(IonSpew_BaselineBailouts, "Resuming in catch or finally block");
+
+        if (propagatingExceptionForDebugMode)
+            IonSpew(IonSpew_BaselineBailouts, "Resuming in-place for debug mode");
+    } else {
+        catchingException = false;
+        propagatingExceptionForDebugMode = false;
+    }
 
     IonSpew(IonSpew_BaselineBailouts, "  Reading from snapshot offset %u size %u",
             iter.snapshotOffset(), iter.ionScript()->snapshotsListSize());
@@ -1376,13 +1407,17 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 
         
         
-        bool handleException = (excInfo && excInfo->frameNo == frameNo);
+        bool handleException = (catchingException && excInfo->frameNo() == frameNo);
+
+        
+        
+        bool passExcInfo = handleException || propagatingExceptionForDebugMode;
 
         jsbytecode *callPC = nullptr;
         RootedFunction nextCallee(cx, nullptr);
         if (!InitFromBailout(cx, caller, callerPC, fun, scr, iter.ionScript(),
                              snapIter, invalidate, builder, startFrameFormals,
-                             &nextCallee, &callPC, handleException ? excInfo : nullptr))
+                             &nextCallee, &callPC, passExcInfo ? excInfo : nullptr))
         {
             return BAILOUT_RETURN_FATAL_ERROR;
         }
@@ -1608,6 +1643,10 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
         if (!HandleBaselineInfoBailout(cx, outerScript, innerScript))
             return false;
         break;
+      case Bailout_IonExceptionDebugMode:
+        
+        
+        return false;
       default:
         MOZ_ASSUME_UNREACHABLE("Unknown bailout kind!");
     }
