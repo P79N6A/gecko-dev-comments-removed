@@ -178,6 +178,12 @@ public:
     uint32_t Get32BitsOfPseudoRandom();
 
     
+    void OnOpeningRequest(nsIHttpChannel *chan)
+    {
+        NotifyObservers(chan, NS_HTTP_ON_OPENING_REQUEST_TOPIC);
+    }
+
+    
     void OnModifyRequest(nsIHttpChannel *chan)
     {
         NotifyObservers(chan, NS_HTTP_ON_MODIFY_REQUEST_TOPIC);

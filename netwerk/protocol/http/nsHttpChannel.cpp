@@ -4294,6 +4294,11 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
 
     AddCookiesToRequest();
 
+    
+    if (!(mLoadFlags & LOAD_REPLACE)) {
+        gHttpHandler->OnOpeningRequest(this);
+    }
+
     mIsPending = true;
     mWasOpened = true;
 
