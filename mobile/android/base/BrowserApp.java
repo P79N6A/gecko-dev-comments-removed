@@ -9,6 +9,7 @@ import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
+import org.mozilla.gecko.util.FloatUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -26,6 +27,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.nfc.NdefMessage;
@@ -129,6 +131,9 @@ abstract public class BrowserApp extends GeckoApp
 
     
     private boolean mToolbarPinned = false;
+
+    
+    private int mToolbarHeight = 0;
 
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
@@ -600,14 +605,30 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
-        
-        
-        GeckoAppShell.sendEventToGecko(
-            GeckoEvent.createBroadcastEvent("Viewport:FixedMarginsChanged",
-                "{ \"top\" : " + aHeight + ", \"right\" : 0, \"bottom\" : 0, \"left\" : 0 }"));
+        if (aHeight != mToolbarHeight) {
+            mToolbarHeight = aHeight;
+
+            
+            
+            
+            GeckoAppShell.sendEventToGecko(
+                GeckoEvent.createBroadcastEvent("Viewport:FixedMarginsChanged",
+                    "{ \"top\" : " + aHeight + ", \"right\" : 0, \"bottom\" : 0, \"left\" : 0 }"));
+        }
 
         if (mLayerView != null) {
             mLayerView.getLayerClient().setFixedLayerMargins(0, aVisibleHeight, 0, 0);
+
+            
+            
+            
+            
+            PointF velocityVector = mLayerView.getPanZoomController().getVelocityVector();
+            if ((aVisibleHeight == 0 || aVisibleHeight == aHeight) &&
+                FloatUtils.fuzzyEquals(velocityVector.x, 0.0f) &&
+                FloatUtils.fuzzyEquals(velocityVector.y, 0.0f)) {
+                mLayerView.getLayerClient().forceRedraw();
+            }
         }
     }
 
