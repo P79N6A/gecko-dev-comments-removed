@@ -212,7 +212,7 @@ obj_toSource(JSContext *cx, unsigned argc, Value *vp)
                 continue;
 
             
-            RootedString valstr(cx, js_ValueToSource(cx, val[j]));
+            RootedString valstr(cx, ValueToSource(cx, val[j]));
             if (!valstr)
                 return false;
             const jschar *vchars = valstr->getChars(cx);

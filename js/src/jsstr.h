@@ -149,14 +149,13 @@ ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 
 } 
 
-
-
-
-
-extern JS_FRIEND_API(JSString *)
-js_ValueToSource(JSContext *cx, const js::Value &v);
-
 namespace js {
+
+
+
+
+extern JSString *
+ValueToSource(JSContext *cx, const js::Value &v);
 
 
 
