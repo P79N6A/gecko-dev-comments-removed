@@ -66,7 +66,7 @@ class StaticScopeIter
 
     
     bool hasDynamicScopeObject() const;
-    RawShape scopeShape() const;
+    Shape *scopeShape() const;
 
     enum Type { BLOCK, FUNCTION, NAMED_LAMBDA };
     Type type() const;
@@ -99,7 +99,7 @@ struct ScopeCoordinate
 
 
 
-extern RawShape
+extern Shape *
 ScopeCoordinateToStaticScopeShape(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
@@ -347,7 +347,7 @@ class StaticBlockObject : public BlockObject
     void initPrevBlockChainFromParser(StaticBlockObject *prev);
     void resetPrevBlockChainFromParser();
 
-    static RawShape addVar(JSContext *cx, Handle<StaticBlockObject*> block, HandleId id,
+    static Shape *addVar(JSContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                            int index, bool *redeclared);
 };
 

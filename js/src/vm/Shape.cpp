@@ -41,7 +41,7 @@ using mozilla::DebugOnly;
 using mozilla::PodZero;
 
 bool
-ShapeTable::init(JSRuntime *rt, RawShape lastProp)
+ShapeTable::init(JSRuntime *rt, Shape *lastProp)
 {
     
 
@@ -96,7 +96,7 @@ Shape::makeOwnBaseShape(JSContext *cx)
 }
 
 void
-Shape::handoffTableTo(RawShape shape)
+Shape::handoffTableTo(Shape *shape)
 {
     JS_ASSERT(inDictionary() && shape->inDictionary());
 
@@ -275,7 +275,7 @@ ShapeTable::grow(JSContext *cx)
     return true;
 }
 
-RawShape
+Shape *
 Shape::getChildBinding(JSContext *cx, const StackShape &child)
 {
     JS_ASSERT(!inDictionary());
@@ -288,7 +288,7 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
     return cx->propertyTree().getChild(cx, this, nfixed, child);
 }
 
- RawShape
+ Shape *
 Shape::replaceLastProperty(JSContext *cx, const StackBaseShape &base,
                            TaggedProto proto, HandleShape shape)
 {
@@ -320,7 +320,7 @@ Shape::replaceLastProperty(JSContext *cx, const StackBaseShape &base,
 
 
 
- RawShape
+ Shape *
 JSObject::getChildProperty(JSContext *cx, HandleObject obj, HandleShape parent, StackShape &child)
 {
     
@@ -395,7 +395,7 @@ js::ObjectImpl::toDictionaryMode(JSContext *cx)
     while (shape) {
         JS_ASSERT(!shape->inDictionary());
 
-        RawShape dprop = js_NewGCShape(cx);
+        Shape *dprop = js_NewGCShape(cx);
         if (!dprop) {
             js_ReportOutOfMemory(cx);
             return false;
@@ -450,7 +450,7 @@ NormalizeGetterAndSetter(JSObject *obj,
     return true;
 }
 
- RawShape
+ Shape *
 JSObject::addProperty(JSContext *cx, HandleObject obj, HandleId id,
                       PropertyOp getter, StrictPropertyOp setter,
                       uint32_t slot, unsigned attrs,
@@ -473,7 +473,7 @@ JSObject::addProperty(JSContext *cx, HandleObject obj, HandleId id,
                                spp, allowDictionary);
 }
 
- RawShape
+ Shape *
 JSObject::addPropertyInternal(JSContext *cx, HandleObject obj, HandleId id,
                               PropertyOp getter, StrictPropertyOp setter,
                               uint32_t slot, unsigned attrs,
@@ -540,7 +540,7 @@ JSObject::addPropertyInternal(JSContext *cx, HandleObject obj, HandleId id,
 
         if (table) {
             
-            SHAPE_STORE_PRESERVING_COLLISION(spp, static_cast<RawShape>(shape));
+            SHAPE_STORE_PRESERVING_COLLISION(spp, static_cast<Shape *>(shape));
             ++table->entryCount;
 
             
@@ -580,7 +580,7 @@ CheckCanChangeAttrs(JSContext *cx, JSObject *obj, Shape *shape, unsigned *attrsp
     return true;
 }
 
- RawShape
+ Shape *
 JSObject::putProperty(JSContext *cx, HandleObject obj, HandleId id,
                       PropertyOp getter, StrictPropertyOp setter,
                       uint32_t slot, unsigned attrs,
@@ -712,7 +712,7 @@ JSObject::putProperty(JSContext *cx, HandleObject obj, HandleId id,
         
         StackShape child(nbase, id, slot, obj->numFixedSlots(), attrs, flags, shortid);
         RootedShape parent(cx, shape->parent);
-        RawShape newShape = JSObject::getChildProperty(cx, obj, parent, child);
+        Shape *newShape = JSObject::getChildProperty(cx, obj, parent, child);
 
         if (!newShape) {
             obj->checkShapeConsistency();
@@ -739,7 +739,7 @@ JSObject::putProperty(JSContext *cx, HandleObject obj, HandleId id,
     return shape;
 }
 
- RawShape
+ Shape *
 JSObject::changeProperty(JSContext *cx, HandleObject obj, HandleShape shape, unsigned attrs,
                          unsigned mask, PropertyOp getter, StrictPropertyOp setter)
 {
@@ -773,7 +773,7 @@ JSObject::changeProperty(JSContext *cx, HandleObject obj, HandleShape shape, uns
 
 
     RootedId propid(cx, shape->propid());
-    RawShape newShape = putProperty(cx, obj, propid, getter, setter, shape->maybeSlot(),
+    Shape *newShape = putProperty(cx, obj, propid, getter, setter, shape->maybeSlot(),
                                     attrs, shape->flags, shape->maybeShortid());
 
     obj->checkShapeConsistency();
@@ -860,7 +860,7 @@ JSObject::removeProperty(JSContext *cx, jsid id_)
 
 
 
-            RawShape aprop = self->lastProperty();
+            Shape *aprop = self->lastProperty();
             for (int n = 50; --n >= 0 && aprop->parent; aprop = aprop->parent)
                 JS_ASSERT_IF(aprop != shape, self->nativeContains(cx, aprop));
 #endif
@@ -868,7 +868,7 @@ JSObject::removeProperty(JSContext *cx, jsid id_)
 
         {
             
-            RawShape oldLastProp = self->lastProperty();
+            Shape *oldLastProp = self->lastProperty();
             shape->removeFromDictionary(self);
 
             
@@ -1016,7 +1016,7 @@ JSObject::setParent(JSContext *cx, HandleObject obj, HandleObject parent)
         return true;
     }
 
-    RawShape newShape = Shape::setObjectParent(cx, parent, obj->getTaggedProto(), obj->shape_);
+    Shape *newShape = Shape::setObjectParent(cx, parent, obj->getTaggedProto(), obj->shape_);
     if (!newShape)
         return false;
 
@@ -1024,7 +1024,7 @@ JSObject::setParent(JSContext *cx, HandleObject obj, HandleObject parent)
     return true;
 }
 
- RawShape
+ Shape *
 Shape::setObjectParent(JSContext *cx, JSObject *parent, TaggedProto proto, Shape *last)
 {
     if (last->getObjectParent() == parent)
@@ -1095,7 +1095,7 @@ js::ObjectImpl::setFlag(JSContext *cx,  uint32_t flag_,
         return true;
     }
 
-    RawShape newShape =
+    Shape *newShape =
         Shape::setObjectFlag(cx, flag, self->getTaggedProto(), self->lastProperty());
     if (!newShape)
         return false;
@@ -1122,7 +1122,7 @@ js::ObjectImpl::clearFlag(JSContext *cx,  uint32_t flag)
     return true;
 }
 
- RawShape
+ Shape *
 Shape::setObjectFlag(JSContext *cx, BaseShape::Flag flag, TaggedProto proto, Shape *last)
 {
     if (last->getObjectFlags() & flag)
@@ -1273,7 +1273,7 @@ EmptyShape::getInitialShape(JSContext *cx, Class *clasp, TaggedProto proto, JSOb
     if (!nbase)
         return NULL;
 
-    RawShape shape = cx->propertyTree().newShape(cx);
+    Shape *shape = cx->propertyTree().newShape(cx);
     if (!shape)
         return NULL;
     new (shape) EmptyShape(nbase, nfixed);
@@ -1330,7 +1330,7 @@ EmptyShape::insertInitialShape(JSContext *cx, HandleShape shape, HandleObject pr
 
     
 #ifdef DEBUG
-    RawShape nshape = shape;
+    Shape *nshape = shape;
     while (!nshape->isEmptyShape())
         nshape = nshape->previous();
     JS_ASSERT(nshape == entry.shape);
@@ -1381,7 +1381,7 @@ JSCompartment::sweepInitialShapeTable()
     if (initialShapes.initialized()) {
         for (InitialShapeSet::Enum e(initialShapes); !e.empty(); e.popFront()) {
             const InitialShapeEntry &entry = e.front();
-            RawShape shape = entry.shape;
+            Shape *shape = entry.shape;
             JSObject *proto = entry.proto.raw();
             if (IsShapeAboutToBeFinalized(&shape) || (entry.proto.isObject() && IsObjectAboutToBeFinalized(&proto))) {
                 e.removeFront();

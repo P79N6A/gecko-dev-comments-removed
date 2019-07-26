@@ -59,7 +59,7 @@ class StringObject : public JSObject
 
 
 
-    RawShape assignInitialShape(JSContext *cx);
+    Shape *assignInitialShape(JSContext *cx);
 };
 
 } 

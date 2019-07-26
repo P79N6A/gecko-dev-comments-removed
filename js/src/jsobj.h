@@ -40,7 +40,7 @@ class CallObject;
 struct GCMarker;
 struct NativeIterator;
 class Nursery;
-ForwardDeclare(Shape);
+class Shape;
 struct StackShape;
 
 namespace mjit { class Compiler; }
@@ -295,7 +295,7 @@ class JSObject : public js::ObjectImpl
     static bool setLastProperty(JSContext *cx, JS::HandleObject obj, js::HandleShape shape);
 
     
-    inline void setLastPropertyInfallible(js::RawShape shape);
+    inline void setLastPropertyInfallible(js::Shape *shape);
 
     
 
@@ -731,7 +731,7 @@ class JSObject : public js::ObjectImpl
                     js::MutableHandleValue vp);
 
   private:
-    static js::RawShape getChildProperty(JSContext *cx, JS::HandleObject obj,
+    static js::Shape *getChildProperty(JSContext *cx, JS::HandleObject obj,
                                          js::HandleShape parent, js::StackShape &child);
 
   protected:
@@ -742,7 +742,7 @@ class JSObject : public js::ObjectImpl
 
 
 
-    static js::RawShape addPropertyInternal(JSContext *cx,
+    static js::Shape *addPropertyInternal(JSContext *cx,
                                             JS::HandleObject obj, JS::HandleId id,
                                             JSPropertyOp getter, JSStrictPropertyOp setter,
                                             uint32_t slot, unsigned attrs,
@@ -759,20 +759,20 @@ class JSObject : public js::ObjectImpl
 
   public:
     
-    static js::RawShape addProperty(JSContext *cx, JS::HandleObject, JS::HandleId id,
+    static js::Shape *addProperty(JSContext *cx, JS::HandleObject, JS::HandleId id,
                                     JSPropertyOp getter, JSStrictPropertyOp setter,
                                     uint32_t slot, unsigned attrs, unsigned flags,
                                     int shortid, bool allowDictionary = true);
 
     
-    js::RawShape addDataProperty(JSContext *cx, jsid id_, uint32_t slot, unsigned attrs) {
+    js::Shape *addDataProperty(JSContext *cx, jsid id_, uint32_t slot, unsigned attrs) {
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         JS::RootedObject self(cx, this);
         JS::RootedId id(cx, id_);
         return addProperty(cx, self, id, NULL, NULL, slot, attrs, 0, 0);
     }
 
-    js::RawShape addDataProperty(JSContext *cx, js::HandlePropertyName name, uint32_t slot, unsigned attrs) {
+    js::Shape *addDataProperty(JSContext *cx, js::HandlePropertyName name, uint32_t slot, unsigned attrs) {
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         JS::RootedObject self(cx, this);
         JS::RootedId id(cx, NameToId(name));
@@ -780,11 +780,11 @@ class JSObject : public js::ObjectImpl
     }
 
     
-    static js::RawShape putProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+    static js::Shape *putProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                                     JSPropertyOp getter, JSStrictPropertyOp setter,
                                     uint32_t slot, unsigned attrs,
                                     unsigned flags, int shortid);
-    static js::RawShape putProperty(JSContext *cx, JS::HandleObject obj,
+    static js::Shape *putProperty(JSContext *cx, JS::HandleObject obj,
                                     js::PropertyName *name,
                                     JSPropertyOp getter, JSStrictPropertyOp setter,
                                     uint32_t slot, unsigned attrs,
@@ -795,7 +795,7 @@ class JSObject : public js::ObjectImpl
     }
 
     
-    static js::RawShape changeProperty(JSContext *cx, js::HandleObject obj,
+    static js::Shape *changeProperty(JSContext *cx, js::HandleObject obj,
                                        js::HandleShape shape, unsigned attrs, unsigned mask,
                                        JSPropertyOp getter, JSStrictPropertyOp setter);
 
@@ -1156,7 +1156,7 @@ js_FindClassObject(JSContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp
 
 
 
-extern js::RawShape
+extern js::Shape *
 js_AddNativeProperty(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                      JSPropertyOp getter, JSStrictPropertyOp setter, uint32_t slot,
                      unsigned attrs, unsigned flags, int shortid);

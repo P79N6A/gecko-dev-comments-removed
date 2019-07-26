@@ -88,7 +88,7 @@ extern bool
 CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *canonicalized);
 
 
-extern RawShape
+extern Shape *
 GetDenseArrayShape(JSContext *cx, HandleObject globalObj);
 
 extern JSBool
