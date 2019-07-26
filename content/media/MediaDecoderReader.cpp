@@ -63,11 +63,9 @@ public:
 };
 
 MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder)
-  : mAudioCompactor(mAudioQueue)
-  , mDecoder(aDecoder)
-  , mIgnoreAudioOutputFormat(false)
-  , mAudioDiscontinuity(false)
-  , mVideoDiscontinuity(false)
+  : mAudioCompactor(mAudioQueue),
+    mDecoder(aDecoder),
+    mIgnoreAudioOutputFormat(false)
 {
   MOZ_COUNT_CTOR(MediaDecoderReader);
 }
@@ -98,9 +96,6 @@ nsresult MediaDecoderReader::ResetDecode()
 
   VideoQueue().Reset();
   AudioQueue().Reset();
-
-  mAudioDiscontinuity = true;
-  mVideoDiscontinuity = true;
 
   return res;
 }
@@ -178,6 +173,169 @@ VideoData* MediaDecoderReader::FindStartTime(int64_t& aOutStartTime)
   return videoData;
 }
 
+nsresult MediaDecoderReader::DecodeToTarget(int64_t aTarget)
+{
+  DECODER_LOG(PR_LOG_DEBUG, ("MediaDecoderReader::DecodeToTarget(%lld) Begin", aTarget));
+
+  
+  if (HasVideo()) {
+    
+    
+    
+    bool eof = false;
+    nsAutoPtr<VideoData> video;
+    while (HasVideo() && !eof) {
+      while (VideoQueue().GetSize() == 0 && !eof) {
+        bool skip = false;
+        eof = !DecodeVideoFrame(skip, 0);
+        {
+          ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
+          if (mDecoder->IsShutdown()) {
+            return NS_ERROR_FAILURE;
+          }
+        }
+      }
+      if (eof) {
+        
+        if (video) {
+          DECODER_LOG(PR_LOG_DEBUG,
+            ("MediaDecoderReader::DecodeToTarget(%lld) repushing video frame [%lld, %lld] at EOF",
+            aTarget, video->mTime, video->GetEndTime()));
+          VideoQueue().PushFront(video.forget());
+        }
+        VideoQueue().Finish();
+        break;
+      }
+      video = VideoQueue().PeekFront();
+      
+      
+      if (video && video->GetEndTime() <= aTarget) {
+        DECODER_LOG(PR_LOG_DEBUG,
+                    ("MediaDecoderReader::DecodeToTarget(%lld) pop video frame [%lld, %lld]",
+                     aTarget, video->mTime, video->GetEndTime()));
+        VideoQueue().PopFront();
+      } else {
+        
+        if (aTarget >= video->mTime && video->GetEndTime() >= aTarget) {
+          
+          
+          
+          VideoQueue().PopFront();
+          VideoData* temp = VideoData::ShallowCopyUpdateTimestamp(video, aTarget);
+          video = temp;
+          VideoQueue().PushFront(video);
+        }
+        DECODER_LOG(PR_LOG_DEBUG,
+                    ("MediaDecoderReader::DecodeToTarget(%lld) found target video frame [%lld,%lld]",
+                     aTarget, video->mTime, video->GetEndTime()));
+
+        video.forget();
+        break;
+      }
+    }
+    {
+      ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
+      if (mDecoder->IsShutdown()) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+#ifdef PR_LOGGING
+    const VideoData* front =  VideoQueue().PeekFront();
+    DECODER_LOG(PR_LOG_DEBUG, ("First video frame after decode is %lld",
+                front ? front->mTime : -1));
+#endif
+  }
+
+  if (HasAudio()) {
+    
+    bool eof = false;
+    while (HasAudio() && !eof) {
+      while (!eof && AudioQueue().GetSize() == 0) {
+        eof = !DecodeAudioData();
+        {
+          ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
+          if (mDecoder->IsShutdown()) {
+            return NS_ERROR_FAILURE;
+          }
+        }
+      }
+      const AudioData* audio = AudioQueue().PeekFront();
+      if (!audio || eof) {
+        AudioQueue().Finish();
+        break;
+      }
+      CheckedInt64 startFrame = UsecsToFrames(audio->mTime, mInfo.mAudio.mRate);
+      CheckedInt64 targetFrame = UsecsToFrames(aTarget, mInfo.mAudio.mRate);
+      if (!startFrame.isValid() || !targetFrame.isValid()) {
+        return NS_ERROR_FAILURE;
+      }
+      if (startFrame.value() + audio->mFrames <= targetFrame.value()) {
+        
+        
+        delete AudioQueue().PopFront();
+        audio = nullptr;
+        continue;
+      }
+      if (startFrame.value() > targetFrame.value()) {
+        
+        
+        
+        
+        
+        
+        
+        NS_WARNING("Audio not synced after seek, maybe a poorly muxed file?");
+        break;
+      }
+
+      
+      
+      
+      NS_ASSERTION(targetFrame.value() >= startFrame.value(),
+                   "Target must at or be after data start.");
+      NS_ASSERTION(targetFrame.value() < startFrame.value() + audio->mFrames,
+                   "Data must end after target.");
+
+      int64_t framesToPrune = targetFrame.value() - startFrame.value();
+      if (framesToPrune > audio->mFrames) {
+        
+        
+        NS_WARNING("Can't prune more frames that we have!");
+        break;
+      }
+      uint32_t frames = audio->mFrames - static_cast<uint32_t>(framesToPrune);
+      uint32_t channels = audio->mChannels;
+      nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[frames * channels]);
+      memcpy(audioData.get(),
+             audio->mAudioData.get() + (framesToPrune * channels),
+             frames * channels * sizeof(AudioDataValue));
+      CheckedInt64 duration = FramesToUsecs(frames, mInfo.mAudio.mRate);
+      if (!duration.isValid()) {
+        return NS_ERROR_FAILURE;
+      }
+      nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
+                                              aTarget,
+                                              duration.value(),
+                                              frames,
+                                              audioData.forget(),
+                                              channels));
+      delete AudioQueue().PopFront();
+      AudioQueue().PushFront(data.forget());
+      break;
+    }
+  }
+
+#ifdef PR_LOGGING
+  const VideoData* v = VideoQueue().PeekFront();
+  const AudioData* a = AudioQueue().PeekFront();
+  DECODER_LOG(PR_LOG_DEBUG,
+              ("MediaDecoderReader::DecodeToTarget(%lld) finished v=%lld a=%lld",
+              aTarget, v ? v->mTime : -1, a ? a->mTime : -1));
+#endif
+
+  return NS_OK;
+}
+
 nsresult
 MediaDecoderReader::GetBuffered(mozilla::dom::TimeRanges* aBuffered,
                                 int64_t aStartTime)
@@ -190,175 +348,6 @@ MediaDecoderReader::GetBuffered(mozilla::dom::TimeRanges* aBuffered,
   }
   GetEstimatedBufferedTimeRanges(stream, durationUs, aBuffered);
   return NS_OK;
-}
-
-class RequestVideoWithSkipTask : public nsRunnable {
-public:
-  RequestVideoWithSkipTask(MediaDecoderReader* aReader,
-                           int64_t aTimeThreshold)
-    : mReader(aReader)
-    , mTimeThreshold(aTimeThreshold)
-  {
-  }
-  NS_METHOD Run() {
-    bool skip = true;
-    mReader->RequestVideoData(skip, mTimeThreshold);
-    return NS_OK;
-  }
-private:
-  nsRefPtr<MediaDecoderReader> mReader;
-  int64_t mTimeThreshold;
-};
-
-void
-MediaDecoderReader::RequestVideoData(bool aSkipToNextKeyframe,
-                                     int64_t aTimeThreshold)
-{
-  bool skip = aSkipToNextKeyframe;
-  while (VideoQueue().GetSize() == 0 &&
-         !VideoQueue().IsFinished()) {
-    if (!DecodeVideoFrame(skip, aTimeThreshold)) {
-      VideoQueue().Finish();
-    } else if (skip) {
-      
-      
-      
-      
-      RefPtr<nsIRunnable> task(new RequestVideoWithSkipTask(this, aTimeThreshold));
-      mTaskQueue->Dispatch(task);
-      return;
-    }
-  }
-  if (VideoQueue().GetSize() > 0) {
-    VideoData* v = VideoQueue().PopFront();
-    if (v && mVideoDiscontinuity) {
-      v->mDiscontinuity = true;
-      mVideoDiscontinuity = false;
-    }
-    GetCallback()->OnVideoDecoded(v);
-  } else if (VideoQueue().IsFinished()) {
-    GetCallback()->OnVideoEOS();
-  }
-}
-
-void
-MediaDecoderReader::RequestAudioData()
-{
-  while (AudioQueue().GetSize() == 0 &&
-         !AudioQueue().IsFinished()) {
-    if (!DecodeAudioData()) {
-      AudioQueue().Finish();
-    }
-  }
-  if (AudioQueue().GetSize() > 0) {
-    AudioData* a = AudioQueue().PopFront();
-    if (mAudioDiscontinuity) {
-      a->mDiscontinuity = true;
-      mAudioDiscontinuity = false;
-    }
-    GetCallback()->OnAudioDecoded(a);
-    return;
-  } else if (AudioQueue().IsFinished()) {
-    GetCallback()->OnAudioEOS();
-    return;
-  }
-}
-
-void
-MediaDecoderReader::SetCallback(RequestSampleCallback* aCallback)
-{
-  mSampleDecodedCallback = aCallback;
-}
-
-void
-MediaDecoderReader::SetTaskQueue(MediaTaskQueue* aTaskQueue)
-{
-  mTaskQueue = aTaskQueue;
-}
-
-void
-MediaDecoderReader::BreakCycles()
-{
-  if (mSampleDecodedCallback) {
-    mSampleDecodedCallback->BreakCycles();
-    mSampleDecodedCallback = nullptr;
-  }
-}
-
-void
-MediaDecoderReader::Shutdown()
-{
-  ReleaseMediaResources();
-}
-
-AudioDecodeRendezvous::AudioDecodeRendezvous()
-  : mMonitor("AudioDecodeRendezvous")
-  , mHaveResult(false)
-{
-}
-
-AudioDecodeRendezvous::~AudioDecodeRendezvous()
-{
-}
-
-void
-AudioDecodeRendezvous::OnAudioDecoded(AudioData* aSample)
-{
-  MonitorAutoLock mon(mMonitor);
-  mSample = aSample;
-  mStatus = NS_OK;
-  mHaveResult = true;
-  mon.NotifyAll();
-}
-
-void
-AudioDecodeRendezvous::OnAudioEOS()
-{
-  MonitorAutoLock mon(mMonitor);
-  mSample = nullptr;
-  mStatus = NS_OK;
-  mHaveResult = true;
-  mon.NotifyAll();
-}
-
-void
-AudioDecodeRendezvous::OnDecodeError()
-{
-  MonitorAutoLock mon(mMonitor);
-  mSample = nullptr;
-  mStatus = NS_ERROR_FAILURE;
-  mHaveResult = true;
-  mon.NotifyAll();
-}
-
-void
-AudioDecodeRendezvous::Reset()
-{
-  MonitorAutoLock mon(mMonitor);
-  mHaveResult = false;
-  mStatus = NS_OK;
-  mSample = nullptr;
-}
-
-nsresult
-AudioDecodeRendezvous::Await(nsAutoPtr<AudioData>& aSample)
-{
-  MonitorAutoLock mon(mMonitor);
-  while (!mHaveResult) {
-    mon.Wait();
-  }
-  mHaveResult = false;
-  aSample = mSample;
-  return mStatus;
-}
-
-void
-AudioDecodeRendezvous::Cancel()
-{
-  MonitorAutoLock mon(mMonitor);
-  mStatus = NS_ERROR_ABORT;
-  mHaveResult = true;
-  mon.NotifyAll();
 }
 
 } 
