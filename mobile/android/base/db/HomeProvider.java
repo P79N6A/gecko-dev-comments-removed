@@ -25,7 +25,7 @@ public class HomeProvider extends SQLiteBridgeContentProvider {
     private static final String LOGTAG = "GeckoHomeProvider";
 
     
-    private static int DB_VERSION = 1;
+    private static int DB_VERSION = 2;
     private static String DB_FILENAME = "home.sqlite";
 
     private static final String TABLE_ITEMS = "items";
