@@ -7,7 +7,7 @@
 #define GFX_CanvasLayerComposite_H
 
 
-#include "LayerManagerComposite.h"
+#include "mozilla/layers/LayerManagerComposite.h"
 #include "gfxASurface.h"
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
 #include "mozilla/X11Util.h"
@@ -20,14 +20,12 @@ namespace layers {
 
 class ImageHost;
 
-
-
-
-class CanvasLayerComposite : public ShadowCanvasLayer,
+class CanvasLayerComposite : public CanvasLayer,
                              public LayerComposite
 {
 public:
   CanvasLayerComposite(LayerManagerComposite* aManager);
+
   virtual ~CanvasLayerComposite();
 
   
@@ -38,14 +36,6 @@ public:
 
   virtual LayerRenderState GetRenderState() MOZ_OVERRIDE;
 
-  
-  virtual void Swap(const SurfaceDescriptor& aNewFront,
-                    bool needYFlip,
-                    SurfaceDescriptor* aNewBack) MOZ_OVERRIDE
-  {
-    NS_ERROR("Should never be called");
-  }
-
   virtual void SetCompositableHost(CompositableHost* aHost) MOZ_OVERRIDE;
 
   virtual void Disconnect() MOZ_OVERRIDE
@@ -53,7 +43,6 @@ public:
     Destroy();
   }
 
-  
   virtual Layer* GetLayer() MOZ_OVERRIDE;
   virtual void RenderLayer(const nsIntPoint& aOffset,
                            const nsIntRect& aClipRect) MOZ_OVERRIDE;
@@ -63,6 +52,8 @@ public:
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE;
 
   virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
+
+  void SetBounds(nsIntRect aBounds) { mBounds = aBounds; }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return "CanvasLayerComposite"; }
