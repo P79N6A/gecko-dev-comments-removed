@@ -172,9 +172,9 @@ let gUpdater = {
       site.node.style.opacity = 0;
 
       
-      setTimeout(function () {
-        gTransformation.showSite(site, function () batch.pop());
-      }, 0);
+      
+      window.getComputedStyle(site.node).opacity;
+      gTransformation.showSite(site, function () batch.pop());
     });
 
     batch.close();
