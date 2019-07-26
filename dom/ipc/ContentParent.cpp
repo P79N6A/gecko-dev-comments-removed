@@ -899,10 +899,11 @@ void
 ContentParent::OnChannelError()
 {
     nsRefPtr<ContentParent> content(this);
-    PContentParent::OnChannelError();
 #ifdef MOZ_NUWA_PROCESS
+    
     PreallocatedProcessManager::MaybeForgetSpare(this);
 #endif
+    PContentParent::OnChannelError();
 }
 
 void
