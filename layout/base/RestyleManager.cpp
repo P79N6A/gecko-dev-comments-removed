@@ -34,6 +34,7 @@
 #include "nsIDOMMutationEvent.h"
 #include "nsContentUtils.h"
 #include "nsIFrameInlines.h"
+#include "ActiveLayerTracker.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -224,7 +225,8 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       
       
       needInvalidatingPaint = true;
-      aFrame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
+
+      ActiveLayerTracker::NotifyRestyle(aFrame, eCSSProperty_opacity);
       if (nsSVGIntegrationUtils::UsingEffectsForFrame(aFrame)) {
         
         
@@ -233,7 +235,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     }
     if ((aChange & nsChangeHint_UpdateTransformLayer) &&
         aFrame->IsTransformed()) {
-      aFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+      ActiveLayerTracker::NotifyRestyle(aFrame, eCSSProperty_transform);
       
       
       
@@ -247,7 +249,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       nsIFrame* childFrame =
         GetFrameForChildrenOnlyTransformHint(aFrame)->GetFirstPrincipalChild();
       for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
-        childFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+        ActiveLayerTracker::NotifyRestyle(childFrame, eCSSProperty_transform);
       }
     }
     aFrame->SchedulePaint(needInvalidatingPaint ?

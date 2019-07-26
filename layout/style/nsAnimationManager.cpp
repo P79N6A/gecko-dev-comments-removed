@@ -16,6 +16,7 @@
 #include "nsLayoutUtils.h"
 #include "nsIFrame.h"
 #include "nsIDocument.h"
+#include "ActiveLayerTracker.h"
 #include <math.h>
 
 using namespace mozilla;
@@ -416,10 +417,10 @@ ElementAnimations::CanPerformOnCompositorThread(CanAnimateFlags aFlags) const
   
   
   if (hasOpacity) {
-    frame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
+    ActiveLayerTracker::NotifyAnimated(frame, eCSSProperty_opacity);
   }
   if (hasTransform) {
-    frame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+    ActiveLayerTracker::NotifyAnimated(frame, eCSSProperty_transform);
   }
   return true;
 }

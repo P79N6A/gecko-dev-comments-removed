@@ -2186,30 +2186,6 @@ public:
 
 
 
-  void MarkLayersActive(nsChangeHint aHint);
-  
-
-
-  bool AreLayersMarkedActive();
-  
-
-
-
-
-
-
-  bool AreLayersMarkedActive(nsChangeHint aChangeHint);
-
-  
-
-
-
-
-
-
-
-
-
 
   virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0);
 
