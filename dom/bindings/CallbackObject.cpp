@@ -44,7 +44,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
+CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
                                      ErrorResult& aRv,
                                      ExceptionHandling aExceptionHandling,
                                      JSCompartment* aCompartment)
@@ -64,7 +64,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
 
   
-  JSObject* realCallback = js::UncheckedUnwrap(aCallback->CallbackPreserveColor());
+  JSObject* realCallback = js::UncheckedUnwrap(aCallback);
   JSContext* cx = nullptr;
   nsIGlobalObject* globalObject = nullptr;
 
@@ -110,15 +110,15 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
   
   
-  
-  mRootedCallable.construct(cx, aCallback->Callback());
+  JS::ExposeObjectToActiveJS(aCallback);
+  mRootedCallable.construct(cx, aCallback);
 
   if (mIsMainThread) {
     
     
     
     bool allowed = nsContentUtils::GetSecurityManager()->
-      ScriptAllowed(js::GetGlobalForObjectCrossCompartment(realCallback));
+      ScriptAllowed(js::GetGlobalForObjectCrossCompartment(js::UncheckedUnwrap(aCallback)));
 
     if (!allowed) {
       return;
@@ -130,7 +130,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
   
   
-  mAc.construct(cx, mRootedCallable.ref());
+  mAc.construct(cx, aCallback);
 
   
   mCx = cx;
