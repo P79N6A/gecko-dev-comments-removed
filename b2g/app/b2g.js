@@ -402,7 +402,7 @@ pref("services.push.enabled", true);
 
 pref("services.push.connection.enabled", true);
 
-pref("services.push.serverURL", "");
+pref("services.push.serverURL", "wss://push.services.mozilla.com/");
 pref("services.push.userAgentID", "");
 
 
