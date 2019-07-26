@@ -273,11 +273,19 @@ function ensureMobileConnection(aAdditionalPermissions, aServiceId) {
 
 
 
-function waitForManagerEvent(aEventName) {
+
+
+
+function waitForManagerEvent(aEventName, aServiceId) {
   let deferred = Promise.defer();
 
-  mobileConnection.addEventListener(aEventName, function onevent(aEvent) {
-    mobileConnection.removeEventListener(aEventName, onevent);
+  let mobileConn = mobileConnection;
+  if (aServiceId !== undefined) {
+    mobileConn = navigator.mozMobileConnections[aServiceId];
+  }
+
+  mobileConn.addEventListener(aEventName, function onevent(aEvent) {
+    mobileConn.removeEventListener(aEventName, onevent);
 
     ok(true, "MobileConnection event '" + aEventName + "' got.");
     deferred.resolve(aEvent);
@@ -386,22 +394,29 @@ function selectNetworkAutomaticallyAndWait() {
 
 
 
-function setDataEnabledAndWait(aEnabled) {
+
+
+
+function setDataEnabledAndWait(aEnabled, aServiceId) {
   let deferred = Promise.defer();
 
   let promises = [];
-  promises.push(waitForManagerEvent("datachange"));
+  promises.push(waitForManagerEvent("datachange", aServiceId));
   promises.push(setDataEnabled(aEnabled));
   Promise.all(promises).then(function keepWaiting() {
+    let mobileConn = mobileConnection;
+    if (aServiceId !== undefined) {
+      mobileConn = navigator.mozMobileConnections[aServiceId];
+    }
     
     
-    let connected = mobileConnection.data.connected;
+    let connected = mobileConn.data.connected;
     if (connected == aEnabled) {
       deferred.resolve();
       return;
     }
 
-    return waitForManagerEvent("datachange").then(keepWaiting);
+    return waitForManagerEvent("datachange", aServiceId).then(keepWaiting);
   });
 
   return deferred.promise;
@@ -419,9 +434,12 @@ function setDataEnabledAndWait(aEnabled) {
 
 
 
-function setEmulatorVoiceDataStateAndWait(aWhich, aState) {
+
+
+
+function setEmulatorVoiceDataStateAndWait(aWhich, aState, aServiceId) {
   let promises = [];
-  promises.push(waitForManagerEvent(aWhich + "change"));
+  promises.push(waitForManagerEvent(aWhich + "change", aServiceId));
 
   let cmd = "gsm " + aWhich + " " + aState;
   promises.push(runEmulatorCmdSafe(cmd));
@@ -438,17 +456,26 @@ function setEmulatorVoiceDataStateAndWait(aWhich, aState) {
 
 
 
-function setEmulatorRoamingAndWait(aRoaming) {
-  function doSetAndWait(aWhich, aRoaming) {
+
+
+
+function setEmulatorRoamingAndWait(aRoaming, aServiceId) {
+  function doSetAndWait(aWhich, aRoaming, aServiceId) {
     let state = (aRoaming ? "roaming" : "home");
-    return setEmulatorVoiceDataStateAndWait(aWhich, state)
-      .then(() => is(mobileConnection[aWhich].roaming, aRoaming,
-                     aWhich + ".roaming"));
+    return setEmulatorVoiceDataStateAndWait(aWhich, state, aServiceId)
+      .then(() => {
+        let mobileConn = mobileConnection;
+        if (aServiceId !== undefined) {
+          mobileConn = navigator.mozMobileConnections[aServiceId];
+        }
+        is(mobileConn[aWhich].roaming, aRoaming,
+                     aWhich + ".roaming")
+      });
   }
 
   
-  return doSetAndWait("voice", aRoaming)
-    .then(() => doSetAndWait("data", aRoaming));
+  return doSetAndWait("voice", aRoaming, aServiceId)
+    .then(() => doSetAndWait("data", aRoaming, aServiceId));
 }
 
 
@@ -586,6 +613,23 @@ function getNetworkManager() {
   return _networkManager;
 }
 
+let _numOfRadioInterfaces;
+
+
+
+
+function getNumOfRadioInterfaces() {
+  if (!_numOfRadioInterfaces) {
+    try {
+      _numOfRadioInterfaces = SpecialPowers.getIntPref("ril.numRadioInterfaces");
+    } catch (ex) {
+      _numOfRadioInterfaces = 1;  
+    }
+  }
+
+  return _numOfRadioInterfaces;
+}
+
 
 
 
@@ -638,4 +682,32 @@ function startTestCommon(aTestCaseMain, aAdditionalPermissions, aServiceId) {
     return ensureMobileConnection(aAdditionalPermissions, aServiceId)
       .then(aTestCaseMain);
   });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function startDSDSTestCommon(aTestCaseMain, aAdditionalPermissions, aServiceId) {
+    if (getNumOfRadioInterfaces() > 1) {
+      startTestBase(function() {
+        return ensureMobileConnection(aAdditionalPermissions, aServiceId)
+          .then(aTestCaseMain);
+      });
+    } else {
+      log("Skipping DSDS tests on single SIM device.")
+      ok(true);  
+      cleanUp();
+    }
 }
