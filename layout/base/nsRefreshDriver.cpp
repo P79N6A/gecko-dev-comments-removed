@@ -1058,6 +1058,8 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     return;
   }
 
+  profiler_tracing("Paint", "RD", TRACING_INTERVAL_START);
+
   
 
 
@@ -1072,6 +1074,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
       
       if (!mPresContext || !mPresContext->GetPresShell()) {
         StopTimer();
+        profiler_tracing("Paint", "RD", TRACING_INTERVAL_END);
         return;
       }
     }
@@ -1089,6 +1092,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
       
       mFrameRequestCallbackDocs.Clear();
 
+      profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_START);
       int64_t eventTime = aNowEpoch / PR_USEC_PER_MSEC;
       for (uint32_t i = 0; i < frameRequestCallbacks.Length(); ++i) {
         const DocumentFrameCallbacks& docCallbacks = frameRequestCallbacks[i];
@@ -1115,6 +1119,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
           }
         }
       }
+      profiler_tracing("Paint", "Scripts", TRACING_INTERVAL_END);
 
       
       if (mPresContext && mPresContext->GetPresShell()) {
@@ -1213,6 +1218,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
   for (uint32_t i = 0; i < mPostRefreshObservers.Length(); ++i) {
     mPostRefreshObservers[i]->DidRefresh();
   }
+  profiler_tracing("Paint", "RD", TRACING_INTERVAL_END);
 }
 
  PLDHashOperator
