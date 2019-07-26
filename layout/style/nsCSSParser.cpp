@@ -830,6 +830,11 @@ protected:
 
   
   
+  
+  bool mInSupportsCondition : 1;
+
+  
+  
   bool mInFailingSupportsRule : 1;
 
   
@@ -906,6 +911,7 @@ CSSParserImpl::CSSParserImpl()
     mViewportUnitsEnabled(true),
     mHTMLMediaMode(false),
     mParsingCompoundProperty(false),
+    mInSupportsCondition(false),
     mInFailingSupportsRule(false),
     mSuppressErrors(false),
     mNextFree(nullptr)
@@ -3340,6 +3346,8 @@ CSSParserImpl::ParseSupportsRule(RuleAppendFunc aAppendFunc, void* aProcessData)
 bool
 CSSParserImpl::ParseSupportsCondition(bool& aConditionMet)
 {
+  mInSupportsCondition = true;
+
   if (!GetToken(true)) {
     REPORT_UNEXPECTED_EOF(PESupportsConditionStartEOF2);
     return false;
@@ -3353,18 +3361,23 @@ CSSParserImpl::ParseSupportsCondition(bool& aConditionMet)
       mToken.mType == eCSSToken_Function ||
       mToken.mType == eCSSToken_URL ||
       mToken.mType == eCSSToken_Bad_URL) {
-    return ParseSupportsConditionInParens(aConditionMet) &&
-           ParseSupportsConditionTerms(aConditionMet) &&
-           !mScanner->SeenBadToken();
+    bool result = ParseSupportsConditionInParens(aConditionMet) &&
+                  ParseSupportsConditionTerms(aConditionMet) &&
+                  !mScanner->SeenBadToken();
+    mInSupportsCondition = false;
+    return result;
   }
 
   if (mToken.mType == eCSSToken_Ident &&
       mToken.mIdent.LowerCaseEqualsLiteral("not")) {
-    return ParseSupportsConditionNegation(aConditionMet) &&
-           !mScanner->SeenBadToken();
+    bool result = ParseSupportsConditionNegation(aConditionMet) &&
+                  !mScanner->SeenBadToken();
+    mInSupportsCondition = false;
+    return result;
   }
 
   REPORT_UNEXPECTED_TOKEN(PESupportsConditionExpectedStart);
+  mInSupportsCondition = false;
   return false;
 }
 
