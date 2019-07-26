@@ -46,7 +46,7 @@ static WebGLenum InternalFormatForFormatAndType(WebGLenum format, WebGLenum type
 void
 WebGLContext::ActiveTexture(WebGLenum texture)
 {
-    if (!IsContextStable())
+    if (!IsContextStable()) 
         return;
 
     if (texture < LOCAL_GL_TEXTURE0 ||
@@ -4194,6 +4194,15 @@ WebGLContext::CompileShader(WebGLShader *shader)
 
         int compileOptions = SH_ATTRIBUTES_UNIFORMS |
                              SH_ENFORCE_PACKING_RESTRICTIONS;
+
+        
+#ifndef XP_WIN 
+#ifndef XP_MACOSX 
+                  
+        compileOptions |= SH_CLAMP_INDIRECT_ARRAY_BOUNDS;
+#endif
+#endif
+
         if (useShaderSourceTranslation) {
             compileOptions |= SH_OBJECT_CODE
                             | SH_MAP_LONG_VARIABLE_NAMES;
