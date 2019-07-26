@@ -49,6 +49,39 @@ XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
 
 
 
+function shouldPrompt(aPerm, aAction) {
+  return ((aAction == Ci.nsIPermissionManager.PROMPT_ACTION) ||
+          (aAction == Ci.nsIPermissionManager.UNKNOWN_ACTION &&
+           PROMPT_FOR_UNKNOWN.indexOf(aPerm) >= 0));
+}
+
+
+
+
+
+
+
+
+function buildDefaultChoices(aTypesInfo) {
+  let choices;
+  for (let type of aTypesInfo) {
+    if (type.options.length > 0) {
+      if (!choices) {
+        choices = {};
+      }
+      choices[type.access] = type.options[0];
+    }
+  }
+  return choices;
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -62,9 +95,7 @@ function rememberPermission(aTypesInfo, aPrincipal, aSession)
   {
     let type =
       permissionManager.testExactPermissionFromPrincipal(aPrincipal, aPerm);
-    if (type == Ci.nsIPermissionManager.PROMPT_ACTION ||
-        (type == Ci.nsIPermissionManager.UNKNOWN_ACTION &&
-        PROMPT_FOR_UNKNOWN.indexOf(aPerm) >= 0)) {
+    if (shouldPrompt(aPerm, type)) {
       debug("add " + aPerm + " to permission manager with ALLOW_ACTION");
       if (!aSession) {
         permissionManager.addFromPrincipal(aPrincipal,
@@ -104,22 +135,23 @@ ContentPermissionPrompt.prototype = {
       type.action =
         Services.perms.testExactPermissionFromPrincipal(request.principal,
                                                         type.access);
-      if (type.action == Ci.nsIPermissionManager.UNKNOWN_ACTION &&
-          PROMPT_FOR_UNKNOWN.indexOf(type.access) >= 0) {
+      if (shouldPrompt(type.access, type.action)) {
         type.action = Ci.nsIPermissionManager.PROMPT_ACTION;
       }
     });
 
     
+    
     let checkAllowPermission = function(type) {
-      if (type.action == Ci.nsIPermissionManager.ALLOW_ACTION) {
+      if (type.action == Ci.nsIPermissionManager.ALLOW_ACTION &&
+          type.options.length <= 1) {
         return true;
       }
       return false;
     }
     if (typesInfo.every(checkAllowPermission)) {
       debug("all permission requests are allowed");
-      request.allow();
+      request.allow(buildDefaultChoices(typesInfo));
       return true;
     }
 
@@ -185,7 +217,8 @@ ContentPermissionPrompt.prototype = {
       }
       return !type.deny;
     }
-    if (typesInfo.filter(notDenyAppPrincipal).length === 0) {
+    
+    if (!typesInfo.every(notDenyAppPrincipal)) {
       request.cancel();
       return true;
     }
@@ -206,11 +239,6 @@ ContentPermissionPrompt.prototype = {
 
   _id: 0,
   prompt: function(request) {
-    if (secMan.isSystemPrincipal(request.principal)) {
-      request.allow();
-      return;
-    }
-
     
     let typesInfo = [];
     let perms = request.types.QueryInterface(Ci.nsIArray);
@@ -234,6 +262,12 @@ ContentPermissionPrompt.prototype = {
       typesInfo.push(tmp);
     }
 
+    if (secMan.isSystemPrincipal(request.principal)) {
+      request.allow(buildDefaultChoices(typesInfo));
+      return;
+    }
+
+
     if (typesInfo.length == 0) {
       request.cancel();
       return;
@@ -255,10 +289,8 @@ ContentPermissionPrompt.prototype = {
     }
 
     
-    typesInfo.forEach(function(aType, aIndex) {
-      if (aType.action != Ci.nsIPermissionManager.PROMPT_ACTION || aType.deny) {
-        typesInfo.splice(aIndex);
-      }
+    typesInfo = typesInfo.filter(function(type) {
+      return !type.deny && (type.action == Ci.nsIPermissionManager.PROMPT_ACTION || type.options.length > 0) ;
     });
 
     let frame = request.element;
@@ -366,6 +398,9 @@ ContentPermissionPrompt.prototype = {
                     principal.appStatus == Ci.nsIPrincipal.APP_STATUS_CERTIFIED)
                     ? true
                     : request.remember;
+    let isGranted = typesInfo.every(function(type) {
+      return type.action == Ci.nsIPermissionManager.ALLOW_ACTION;
+    });
     let permissions = {};
     for (let i in typesInfo) {
       debug("prompt " + typesInfo[i].permission);
@@ -378,7 +413,8 @@ ContentPermissionPrompt.prototype = {
       id: requestId,
       origin: principal.origin,
       isApp: isApp,
-      remember: remember
+      remember: remember,
+      isGranted: isGranted,
     };
 
     if (isApp) {
