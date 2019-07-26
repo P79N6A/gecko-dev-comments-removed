@@ -357,6 +357,14 @@ class Range : public TempObject {
     
     
     
+    void extendUInt32ToInt32Min() {
+        JS_ASSERT(isUpperInfinite());
+        lower_ = JSVAL_INT_MIN;
+    }
+
+    
+    
+    
     
     
     
