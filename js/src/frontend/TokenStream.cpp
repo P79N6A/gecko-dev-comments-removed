@@ -987,18 +987,15 @@ enum FirstCharKind {
     OneChar_Min = 0,
     OneChar_Max = TOK_LIMIT - 1,
 
-    Other = TOK_LIMIT,
+    Space = TOK_LIMIT,
     Ident,
-    Dot,
-    Equals,
-    String,
     Dec,
-    Plus,
-    BasePrefix,
-    Space,
+    String,
     EOL,
+    BasePrefix,
+    Other,
 
-    LastCharKind = EOL
+    LastCharKind = Other
 };
 
 
@@ -1025,9 +1022,9 @@ static const uint8_t firstCharKinds[] = {
      EOL,   Space,   Space,     EOL, _______, _______, _______, _______, _______, _______,
  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
  _______, _______,   Space, _______,  String, _______,   Ident, _______, _______,  String,
-  TOK_LP,  TOK_RP, _______,    Plus, T_COMMA,_______,     Dot, _______, BasePrefix,  Dec,
+  TOK_LP,  TOK_RP, _______, _______, T_COMMA,_______,  _______, _______,BasePrefix,  Dec,
      Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,    Dec,  T_COLON,TOK_SEMI,
- _______,  Equals, _______,TOK_HOOK, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
+ _______, _______, _______,TOK_HOOK, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,  TOK_LB, _______,  TOK_RB, _______,   Ident, _______,   Ident,   Ident,   Ident,
@@ -1102,13 +1099,20 @@ TokenStream::getTokenInternal()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
     c1kind = FirstCharKind(firstCharKinds[c]);
-
-    
-
-
-    if (c1kind == Space)
-        goto retry;
 
     
 
@@ -1118,6 +1122,12 @@ TokenStream::getTokenInternal()
         tt = (TokenKind)c1kind;
         goto out;
     }
+
+    
+
+
+    if (c1kind == Space)
+        goto retry;
 
     
 
@@ -1178,36 +1188,63 @@ TokenStream::getTokenInternal()
         goto out;
     }
 
-    if (c1kind == Dot) {
+    
+
+
+    if (c1kind == Dec) {
         tp = newToken(-1);
-        c = getCharIgnoreEOL();
-        if (JS7_ISDEC(c)) {
-            numStart = userbuf.addressOfNextRawChar() - 2;
-            decimalPoint = HasDecimal;
-            hasExp = false;
-            goto decimal_dot;
-        }
+        numStart = userbuf.addressOfNextRawChar() - 1;
+
+      decimal:
+        decimalPoint = NoDecimal;
+        hasExp = false;
+        while (JS7_ISDEC(c))
+            c = getCharIgnoreEOL();
+
         if (c == '.') {
-            qc = getCharIgnoreEOL();
-            if (qc == '.') {
-                tt = TOK_TRIPLEDOT;
-                goto out;
+            decimalPoint = HasDecimal;
+          decimal_dot:
+            do {
+                c = getCharIgnoreEOL();
+            } while (JS7_ISDEC(c));
+        }
+        if (c == 'e' || c == 'E') {
+            hasExp = true;
+            c = getCharIgnoreEOL();
+            if (c == '+' || c == '-')
+                c = getCharIgnoreEOL();
+            if (!JS7_ISDEC(c)) {
+                ungetCharIgnoreEOL(c);
+                reportError(JSMSG_MISSING_EXPONENT);
+                goto error;
             }
-            ungetCharIgnoreEOL(qc);
+            do {
+                c = getCharIgnoreEOL();
+            } while (JS7_ISDEC(c));
         }
         ungetCharIgnoreEOL(c);
-        tt = TOK_DOT;
-        goto out;
-    }
 
-    if (c1kind == Equals) {
-        tp = newToken(-1);
-        if (matchChar('='))
-            tt = matchChar('=') ? TOK_STRICTEQ : TOK_EQ;
-        else if (matchChar('>'))
-            tt = TOK_ARROW;
-        else
-            tt = TOK_ASSIGN;
+        if (c != EOF && IsIdentifierStart(c)) {
+            reportError(JSMSG_IDSTART_AFTER_NUMBER);
+            goto error;
+        }
+
+        
+
+
+
+
+        double dval;
+        const jschar *dummy;
+        if (!((decimalPoint == HasDecimal) || hasExp)) {
+            if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), 10, &dummy, &dval))
+                goto error;
+        } else {
+            if (!js_strtod(cx, numStart, userbuf.addressOfNextRawChar(), &dummy, &dval))
+                goto error;
+        }
+        tp->setNumber(dval, decimalPoint);
+        tt = TOK_NUMBER;
         goto out;
     }
 
@@ -1318,70 +1355,13 @@ TokenStream::getTokenInternal()
     
 
 
-    if (c1kind == Dec) {
-        tp = newToken(-1);
-        numStart = userbuf.addressOfNextRawChar() - 1;
-
-      decimal:
-        decimalPoint = NoDecimal;
-        hasExp = false;
-        while (JS7_ISDEC(c))
-            c = getCharIgnoreEOL();
-
-        if (c == '.') {
-            decimalPoint = HasDecimal;
-          decimal_dot:
-            do {
-                c = getCharIgnoreEOL();
-            } while (JS7_ISDEC(c));
-        }
-        if (c == 'e' || c == 'E') {
-            hasExp = true;
-            c = getCharIgnoreEOL();
-            if (c == '+' || c == '-')
-                c = getCharIgnoreEOL();
-            if (!JS7_ISDEC(c)) {
-                ungetCharIgnoreEOL(c);
-                reportError(JSMSG_MISSING_EXPONENT);
-                goto error;
-            }
-            do {
-                c = getCharIgnoreEOL();
-            } while (JS7_ISDEC(c));
-        }
-        ungetCharIgnoreEOL(c);
-
-        if (c != EOF && IsIdentifierStart(c)) {
-            reportError(JSMSG_IDSTART_AFTER_NUMBER);
-            goto error;
-        }
-
+    if (c1kind == EOL) {
         
-
-
-
-
-        double dval;
-        const jschar *dummy;
-        if (!((decimalPoint == HasDecimal) || hasExp)) {
-            if (!GetPrefixInteger(cx, numStart, userbuf.addressOfNextRawChar(), 10, &dummy, &dval))
-                goto error;
-        } else {
-            if (!js_strtod(cx, numStart, userbuf.addressOfNextRawChar(), &dummy, &dval))
-                goto error;
-        }
-        tp->setNumber(dval, decimalPoint);
-        tt = TOK_NUMBER;
-        goto out;
-    }
-
-    if (c1kind == Plus) {
-        tp = newToken(-1);
-        if (matchChar('+'))
-            tt = TOK_INC;
-        else
-            tt = matchChar('=') ? TOK_ADDASSIGN : TOK_PLUS;
-        goto out;
+        if (c == '\r' && userbuf.hasRawChars())
+            userbuf.matchRawChar('\n');
+        updateLineInfoForEOL();
+        updateFlagsForEOL();
+        goto retry;
     }
 
     
@@ -1468,21 +1448,45 @@ TokenStream::getTokenInternal()
     
 
 
-    if (c1kind == EOL) {
-        
-        if (c == '\r' && userbuf.hasRawChars())
-            userbuf.matchRawChar('\n');
-        updateLineInfoForEOL();
-        updateFlagsForEOL();
-        goto retry;
-    }
-
-    
-
-
     JS_ASSERT(c1kind == Other);
     tp = newToken(-1);
     switch (c) {
+      case '.':
+        c = getCharIgnoreEOL();
+        if (JS7_ISDEC(c)) {
+            numStart = userbuf.addressOfNextRawChar() - 2;
+            decimalPoint = HasDecimal;
+            hasExp = false;
+            goto decimal_dot;
+        }
+        if (c == '.') {
+            qc = getCharIgnoreEOL();
+            if (qc == '.') {
+                tt = TOK_TRIPLEDOT;
+                goto out;
+            }
+            ungetCharIgnoreEOL(qc);
+        }
+        ungetCharIgnoreEOL(c);
+        tt = TOK_DOT;
+        break;
+
+      case '=':
+        if (matchChar('='))
+            tt = matchChar('=') ? TOK_STRICTEQ : TOK_EQ;
+        else if (matchChar('>'))
+            tt = TOK_ARROW;
+        else
+            tt = TOK_ASSIGN;
+        break;
+
+      case '+':
+        if (matchChar('+'))
+            tt = TOK_INC;
+        else
+            tt = matchChar('=') ? TOK_ADDASSIGN : TOK_PLUS;
+        break;
+
       case '\\':
         hadUnicodeEscape = matchUnicodeEscapeIdStart(&qc);
         if (hadUnicodeEscape) {
