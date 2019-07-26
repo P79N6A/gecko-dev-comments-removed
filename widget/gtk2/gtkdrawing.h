@@ -116,8 +116,6 @@ typedef enum {
   
   MOZ_GTK_ENTRY,
   
-  MOZ_GTK_ENTRY_CARET,
-  
   MOZ_GTK_DROPDOWN,
   
   MOZ_GTK_DROPDOWN_ARROW,

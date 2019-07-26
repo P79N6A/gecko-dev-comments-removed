@@ -32,7 +32,6 @@
 #include "nsXULPopupManager.h"
 #include "nsMenuPopupFrame.h"
 #include "nsTextFragment.h"
-#include "nsThemeConstants.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Selection.h"
@@ -526,26 +525,6 @@ void nsCaret::PaintCaret(nsDisplayListBuilder *aBuilder,
     return;
   }
   nscolor foregroundColor = aForFrame->GetCaretColorAt(contentOffset);
-
-  
-  
-  
-  
-  nsPresContext* presContext = aForFrame->PresContext();
-
-  if (GetHookRect().IsEmpty() && presContext) {
-    nsITheme *theme = presContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(presContext, aForFrame, NS_THEME_TEXTFIELD_CARET)) {
-      nscolor fieldText;
-      nsresult rv = LookAndFeel::GetColor(LookAndFeel::eColorID__moz_fieldtext,
-                                          &fieldText);
-      if (NS_SUCCEEDED(rv) && fieldText == foregroundColor) {
-        theme->DrawWidgetBackground(aCtx, aForFrame, NS_THEME_TEXTFIELD_CARET,
-                                    drawCaretRect, drawCaretRect);
-        return;
-      }
-    }
-  }
 
   aCtx->SetColor(foregroundColor);
   aCtx->FillRect(drawCaretRect);
