@@ -25,52 +25,54 @@ function test() {
 }
 
 function runTest(win, some) {
+  let lh = new LayoutHelpers(win);
+
   some.style.top = win.innerHeight + 'px';
   some.style.left = win.innerWidth + 'px';
   
   
 
   win.scroll(win.innerWidth / 2, win.innerHeight + 2);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some);
+  lh.scrollIntoViewIfNeeded(some);
   is(win.scrollY, Math.floor(win.innerHeight / 2) + 1,
      'Element completely hidden above should appear centered.');
 
   win.scroll(win.innerWidth / 2, win.innerHeight + 1);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some);
+  lh.scrollIntoViewIfNeeded(some);
   is(win.scrollY, win.innerHeight,
      'Element partially visible above should appear above.');
 
   win.scroll(win.innerWidth / 2, 0);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some);
+  lh.scrollIntoViewIfNeeded(some);
   is(win.scrollY, Math.floor(win.innerHeight / 2) + 1,
      'Element completely hidden below should appear centered.');
 
   win.scroll(win.innerWidth / 2, 1);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some);
+  lh.scrollIntoViewIfNeeded(some);
   is(win.scrollY, 2,
      'Element partially visible below should appear below.');
 
 
   win.scroll(win.innerWidth / 2, win.innerHeight + 2);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some, false);
+  lh.scrollIntoViewIfNeeded(some, false);
   is(win.scrollY, win.innerHeight,
      'Element completely hidden above should appear above ' +
      'if parameter is false.');
 
   win.scroll(win.innerWidth / 2, win.innerHeight + 1);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some, false);
+  lh.scrollIntoViewIfNeeded(some, false);
   is(win.scrollY, win.innerHeight,
      'Element partially visible above should appear above ' +
      'if parameter is false.');
 
   win.scroll(win.innerWidth / 2, 0);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some, false);
+  lh.scrollIntoViewIfNeeded(some, false);
   is(win.scrollY, 2,
      'Element completely hidden below should appear below ' +
      'if parameter is false.');
 
   win.scroll(win.innerWidth / 2, 1);  
-  LayoutHelpers.scrollIntoViewIfNeeded(some, false);
+  lh.scrollIntoViewIfNeeded(some, false);
   is(win.scrollY, 2,
      'Element partially visible below should appear below ' +
      'if parameter is false.');
@@ -86,7 +88,7 @@ function runTest(win, some) {
 
   fwin.addEventListener('load', function frameLoad() {
     let some = fwin.document.getElementById('some');
-    LayoutHelpers.scrollIntoViewIfNeeded(some);
+    lh.scrollIntoViewIfNeeded(some);
     is(win.scrollX, Math.floor(win.innerWidth / 2) + 20,
        'Scrolling from an iframe should center the iframe vertically.');
     is(win.scrollY, Math.floor(win.innerHeight / 2) + 20,
