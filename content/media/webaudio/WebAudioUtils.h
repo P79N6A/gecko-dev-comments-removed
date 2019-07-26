@@ -40,6 +40,23 @@ struct WebAudioUtils {
   static void ConvertAudioParamToTicks(AudioParamTimeline& aParam,
                                        AudioNodeStream* aSource,
                                        AudioNodeStream* aDest);
+
+  
+
+
+
+  static float ConvertLinearToDecibels(float aLinearValue, float aMinDecibels)
+  {
+    return aLinearValue ? 20.0f * std::log10(aLinearValue) : aMinDecibels;
+  }
+
+  
+
+
+  static float ConvertDecibelToLinear(float aDecibel)
+  {
+    return std::pow(10.0f, 0.05f * aDecibel);
+  }
 };
 
 }
