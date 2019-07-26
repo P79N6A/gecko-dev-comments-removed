@@ -15,6 +15,7 @@
 #ifdef XP_WIN
 #include "mozilla/TimeStamp_windows.h"
 #endif
+#include "mozilla/TypedEnum.h"
 
 #include <stdint.h>
 
@@ -130,6 +131,43 @@ struct EnumSerializer {
       return false;
     }
     *aResult = paramType(value);
+    return true;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+template <typename E,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) smallestLegal,
+          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) highBound>
+struct TypedEnumSerializer {
+  typedef E paramType;
+  typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) intParamType;
+
+  static bool IsLegalValue(const paramType &aValue) {
+    return smallestLegal <= intParamType(aValue) && intParamType(aValue) < highBound;
+  }
+
+  static void Write(Message* aMsg, const paramType& aValue) {
+    MOZ_ASSERT(IsLegalValue(aValue));
+    WriteParam(aMsg, int32_t(intParamType(aValue)));
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+    int32_t value;
+    if(!ReadParam(aMsg, aIter, &value) ||
+       !IsLegalValue(intParamType(value))) {
+      return false;
+    }
+    *aResult = intParamType(value);
     return true;
   }
 };
