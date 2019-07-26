@@ -9,7 +9,6 @@
 
 #include "ion/shared/IonFrames-shared.h"
 
-
 namespace js {
 namespace ion {
 

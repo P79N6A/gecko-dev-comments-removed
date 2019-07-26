@@ -4,10 +4,11 @@
 
 
 
+#include "ion/arm/MacroAssembler-arm.h"
+
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
-#include "ion/arm/MacroAssembler-arm.h"
 #include "ion/BaselineFrame.h"
 #include "ion/MoveEmitter.h"
 
