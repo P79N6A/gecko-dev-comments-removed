@@ -502,6 +502,13 @@ bool OmxDecoder::IsWaitingMediaResources()
   return false;
 }
 
+static bool isInEmulator()
+{
+  char propQemu[PROPERTY_VALUE_MAX];
+  property_get("ro.kernel.qemu", propQemu, "");
+  return !strncmp(propQemu, "1", 1);
+}
+
 bool OmxDecoder::AllocateMediaResources()
 {
   
@@ -526,9 +533,7 @@ bool OmxDecoder::AllocateMediaResources()
     
     int flags = kHardwareCodecsOnly;
 
-    char propQemu[PROPERTY_VALUE_MAX];
-    property_get("ro.kernel.qemu", propQemu, "");
-    if (!strncmp(propQemu, "1", 1)) {
+    if (isInEmulator()) {
       
       flags = 0;
     }
@@ -968,6 +973,16 @@ nsresult OmxDecoder::Play()
 
 void OmxDecoder::Pause()
 {
+  
+
+
+
+
+
+  if (isInEmulator()) {
+    return;
+  }
+
   if (mVideoPaused || mAudioPaused) {
     return;
   }
