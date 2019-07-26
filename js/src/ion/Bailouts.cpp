@@ -424,7 +424,12 @@ ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
         
         
         jsbytecode *pc = activation->bailout()->bailoutPc();
-        if (js_CodeSpec[*pc].format & JOF_TYPESET) {
+
+        
+        
+        bool isResumeAfter = GetNextPc(pc) == cx->regs().pc;
+
+        if ((js_CodeSpec[*pc].format & JOF_TYPESET) && isResumeAfter) {
             JS_ASSERT(retval == BAILOUT_RETURN_OK);
             return BAILOUT_RETURN_MONITOR;
         }
