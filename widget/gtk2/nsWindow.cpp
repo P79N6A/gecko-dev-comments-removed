@@ -357,7 +357,6 @@ nsWindow::nsWindow()
     mContainer           = nullptr;
     mGdkWindow           = nullptr;
     mShell               = nullptr;
-    mWindowGroup         = nullptr;
     mHasMappedToplevel   = false;
     mIsFullyObscured     = false;
     mRetryPointerGrab    = false;
@@ -670,11 +669,6 @@ nsWindow::Destroy(void)
     }
 #endif 
   
-    if (mWindowGroup) {
-        g_object_unref(mWindowGroup);
-        mWindowGroup = nullptr;
-    }
-
     
     
     mThebesSurface = nullptr;
@@ -834,20 +828,6 @@ nsWindow::ReparentNativeWidget(nsIWidget* aNewParent)
           GTK_WINDOW(gtk_widget_get_toplevel(newContainer));
       gtk_window_set_transient_for(GTK_WINDOW(mShell), topLevelParent);
       mTransientParent = topLevelParent;
-      if (mWindowGroup) {
-          g_object_unref(mWindowGroup);
-          mWindowGroup = NULL;
-      }
-      if (gtk_window_get_group(mTransientParent)) {
-          gtk_window_group_add_window(gtk_window_get_group(mTransientParent),
-                                      GTK_WINDOW(mShell));
-          mWindowGroup = gtk_window_get_group(mTransientParent);
-          g_object_ref(mWindowGroup);
-      }
-      else if (gtk_window_get_group(GTK_WINDOW(mShell))) {
-          gtk_window_group_remove_window(gtk_window_get_group(GTK_WINDOW(mShell)),
-                                         GTK_WINDOW(mShell));
-      }
     }
 
     ReparentNativeWidgetInternal(aNewParent, newContainer, newParentWindow,
@@ -3368,8 +3348,6 @@ nsWindow::Create(nsIWidget        *aParent,
          aInitData->mWindowType == eWindowType_invisible) ?
         nullptr : aParent;
 
-    NS_ASSERTION(!mWindowGroup, "already have window group (leaking it)");
-
 #ifdef ACCESSIBILITY
     
     a11y::PreInit();
@@ -3452,18 +3430,6 @@ nsWindow::Create(nsIWidget        *aParent,
             gtk_window_set_transient_for(GTK_WINDOW(mShell),
                                          topLevelParent);
             mTransientParent = topLevelParent;
-            
-            if (parentGdkWindow) {
-                if (parentnsWindow->mWindowGroup) {
-                    gtk_window_group_add_window(parentnsWindow->mWindowGroup,
-                                                GTK_WINDOW(mShell));
-                    
-                    mWindowGroup = parentnsWindow->mWindowGroup;
-                    g_object_ref(mWindowGroup);
-                    LOG(("adding window %p to group %p\n",
-                         (void *)mShell, (void *)mWindowGroup));
-                }
-            }
         }
         else if (mWindowType == eWindowType_popup) {
             
@@ -3551,13 +3517,6 @@ nsWindow::Create(nsIWidget        *aParent,
                 gtk_window_set_transient_for(GTK_WINDOW(mShell),
                                             topLevelParent);
                 mTransientParent = topLevelParent;
-
-                GtkWindowGroup *groupParent = gtk_window_get_group(topLevelParent);
-                if (groupParent) {
-                    gtk_window_group_add_window(groupParent, GTK_WINDOW(mShell));
-                    mWindowGroup = groupParent;
-                    g_object_ref(mWindowGroup);
-                }
             }
         }
         else { 
@@ -3567,12 +3526,9 @@ nsWindow::Create(nsIWidget        *aParent,
                                    gdk_get_program_class());
 
             
-            mWindowGroup = gtk_window_group_new();
-
-            
-            LOG(("adding window %p to new group %p\n",
-                 (void *)mShell, (void *)mWindowGroup));
-            gtk_window_group_add_window(mWindowGroup, GTK_WINDOW(mShell));
+            GtkWindowGroup *group = gtk_window_group_new();
+            gtk_window_group_add_window(group, GTK_WINDOW(mShell));
+            g_object_unref(group);
         }
 
         
