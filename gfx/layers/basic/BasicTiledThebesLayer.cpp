@@ -250,15 +250,18 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   
   if (gfxPlatform::UseProgressiveTilePainting() &&
       mTiledBuffer.GetResolution() == resolution) {
+    
+    nsIntRegion staleRegion = mTiledBuffer.GetValidRegion();
+    staleRegion.And(staleRegion, regionToPaint);
+    if (!staleRegion.IsEmpty() && !staleRegion.Contains(regionToPaint)) {
+      regionToPaint.Sub(regionToPaint, staleRegion);
+    }
+
     nsIntRegionRectIterator it(regionToPaint);
     const nsIntRect* rect = it.Next();
     if (!rect)
       return;
 
-    
-    
-    
-    
     
     
     
