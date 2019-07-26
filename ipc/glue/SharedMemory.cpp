@@ -4,7 +4,6 @@
 
 
 
-
 #include <math.h>
 
 #include "nsString.h"
@@ -17,23 +16,29 @@ namespace ipc {
 
 static Atomic<size_t> gShmemAllocated;
 static Atomic<size_t> gShmemMapped;
-static size_t GetShmemAllocated() { return gShmemAllocated; }
-static size_t GetShmemMapped() { return gShmemMapped; }
 
-NS_THREADSAFE_MEMORY_REPORTER_IMPLEMENT(ShmemAllocated,
-  "shmem-allocated",
-  KIND_OTHER,
-  UNITS_BYTES,
-  GetShmemAllocated,
-  "Memory shared with other processes that is accessible (but not "
-  "necessarily mapped).")
+class ShmemAllocatedReporter MOZ_FINAL : public MemoryReporterBase
+{
+public:
+  ShmemAllocatedReporter()
+    : MemoryReporterBase("shmem-allocated", KIND_OTHER, UNITS_BYTES,
+"Memory shared with other processes that is accessible (but not necessarily "
+"mapped).")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE { return gShmemAllocated; }
+};
 
-NS_THREADSAFE_MEMORY_REPORTER_IMPLEMENT(ShmemMapped,
-  "shmem-mapped",
-  KIND_OTHER,
-  UNITS_BYTES,
-  GetShmemMapped,
-  "Memory shared with other processes that is mapped into the address space.")
+class ShmemMappedReporter MOZ_FINAL : public MemoryReporterBase
+{
+public:
+  ShmemMappedReporter()
+    : MemoryReporterBase("shmem-mapped", KIND_OTHER, UNITS_BYTES,
+"Memory shared with other processes that is mapped into the address space.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE { return gShmemMapped; }
+};
 
 SharedMemory::SharedMemory()
   : mAllocSize(0)
@@ -41,8 +46,8 @@ SharedMemory::SharedMemory()
 {
   static Atomic<uint32_t> registered;
   if (registered.compareExchange(0, 1)) {
-    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(ShmemAllocated));
-    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(ShmemMapped));
+    NS_RegisterMemoryReporter(new ShmemAllocatedReporter());
+    NS_RegisterMemoryReporter(new ShmemMappedReporter());
   }
 }
 
