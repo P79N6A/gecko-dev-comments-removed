@@ -58,6 +58,13 @@ struct ImageValue;
 
 
 
+
+
+
+
+
+
+
 class nsCheapString : public nsString {
 public:
   nsCheapString(nsStringBuffer* aBuf)
