@@ -3786,6 +3786,9 @@ GetObjectScope(JSObject *obj)
     return EnsureCompartmentPrivate(obj)->scope;
 }
 
+
+XPCWrappedNativeScope* MaybeGetObjectScope(JSObject *obj);
+
 extern bool gDebugMode;
 extern bool gDesiredDebugMode;
 
