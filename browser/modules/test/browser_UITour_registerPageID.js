@@ -56,7 +56,7 @@ let tests = [
       ["savedID1", { lastSeen: Date.now() }],
       ["savedID2", { lastSeen: Date.now() }],
       
-      ["savedID3", { lastSeen: Date.now() - 3 * 7 * 24 * 60 * 60 * 1000 }],
+      ["savedID3", { lastSeen: Date.now() - 9 * 7 * 24 * 60 * 60 * 1000 }],
     ]);
     Services.prefs.setCharPref("browser.uitour.seenPageIDs",
                                data);
