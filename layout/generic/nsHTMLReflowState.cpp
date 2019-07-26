@@ -432,14 +432,12 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
-
-    
-    
-    
-    
-    bool dirty = !mFlags.mDummyParentReflowState &&
-                 nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
-
+    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this) &&
+                 
+                 
+                 
+                 
+                 !mFlags.mDummyParentReflowState;
 
     if (dirty || (!frame->GetParent() && isHResize)) {
       
