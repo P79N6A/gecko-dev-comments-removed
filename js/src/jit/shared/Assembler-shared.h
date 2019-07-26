@@ -356,12 +356,8 @@ class Label : public LabelBase
     { }
     ~Label()
     {
-#ifdef DEBUG
-        
-        
-        if (MaybeGetIonContext() && !OffThreadIonCompilationEnabled(GetIonContext()->runtime))
-            JS_ASSERT_IF(!GetIonContext()->runtime->hadOutOfMemory, !used());
-#endif
+        if (MaybeGetIonContext())
+            JS_ASSERT_IF(!GetIonContext()->runtime->hadOutOfMemory(), !used());
     }
 };
 
