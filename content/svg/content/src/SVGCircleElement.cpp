@@ -9,8 +9,6 @@
 #include "mozilla/dom/SVGAnimatedLength.h"
 #include "mozilla/dom/SVGCircleElementBinding.h"
 
-DOMCI_NODE_DATA(SVGCircleElement, mozilla::dom::SVGCircleElement)
-
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Circle)
 
 namespace mozilla {
@@ -32,15 +30,9 @@ nsSVGElement::LengthInfo SVGCircleElement::sLengthInfo[3] =
 
 
 
-NS_IMPL_ADDREF_INHERITED(SVGCircleElement,SVGCircleElementBase)
-NS_IMPL_RELEASE_INHERITED(SVGCircleElement,SVGCircleElementBase)
-
-NS_INTERFACE_TABLE_HEAD(SVGCircleElement)
-  NS_NODE_INTERFACE_TABLE4(SVGCircleElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement,
-                           nsIDOMSVGCircleElement)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGCircleElement)
-NS_INTERFACE_MAP_END_INHERITING(SVGCircleElementBase)
+NS_IMPL_ISUPPORTS_INHERITED3(SVGCircleElement, SVGCircleElementBase,
+                             nsIDOMNode, nsIDOMElement,
+                             nsIDOMSVGElement)
 
 
 
@@ -58,38 +50,16 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGCircleElement)
 
 
 
-
-
-NS_IMETHODIMP SVGCircleElement::GetCx(nsIDOMSVGAnimatedLength * *aCx)
-{
-  *aCx = Cx().get();
-  return NS_OK;
-}
-
 already_AddRefed<SVGAnimatedLength>
 SVGCircleElement::Cx()
 {
   return mLengthAttributes[ATTR_CX].ToDOMAnimatedLength(this);
 }
 
-
-NS_IMETHODIMP SVGCircleElement::GetCy(nsIDOMSVGAnimatedLength * *aCy)
-{
-  *aCy = Cy().get();
-  return NS_OK;
-}
-
 already_AddRefed<SVGAnimatedLength>
 SVGCircleElement::Cy()
 {
   return mLengthAttributes[ATTR_CY].ToDOMAnimatedLength(this);
-}
-
-
-NS_IMETHODIMP SVGCircleElement::GetR(nsIDOMSVGAnimatedLength * *aR)
-{
-  *aR = R().get();
-  return NS_OK;
 }
 
 already_AddRefed<SVGAnimatedLength>
