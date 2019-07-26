@@ -3,8 +3,14 @@
 
 
 
-
 "use strict";
+
+
+const { getInnerId } = require('sdk/window/utils');
+
+const { gDevToolsExtensions: {
+  getContentGlobals
+} } = Cu.import("resource://gre/modules/devtools/DevToolsExtensions.jsm", {});
 
 let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
       "Uint32Array", "Int8Array", "Int16Array", "Int32Array", "Float32Array",
@@ -622,6 +628,7 @@ ThreadActor.prototype = {
   globalManager: {
     findGlobals: function () {
       this.globalDebugObject = this._addDebuggees(this.global);
+      getContentGlobals({ 'inner-window-id': getInnerId(this.global) }).forEach(this.addDebuggee.bind(this));
     },
 
     
@@ -632,11 +639,19 @@ ThreadActor.prototype = {
 
 
     onNewGlobal: function (aGlobal) {
+      let metadata = {};
+      try {
+        metadata = Cu.getSandboxMetadata(aGlobal.unsafeDereference());
+      }
+      catch (e) {}
+
       
       
-      if (aGlobal.hostAnnotations &&
+      if ((metadata['inner-window-id'] &&
+          metadata['inner-window-id'] == getInnerId(this.global)) ||
+          (aGlobal.hostAnnotations &&
           aGlobal.hostAnnotations.type == "document" &&
-          aGlobal.hostAnnotations.element === this.global) {
+          aGlobal.hostAnnotations.element === this.global)) {
         this.addDebuggee(aGlobal);
         
         this.conn.send({
