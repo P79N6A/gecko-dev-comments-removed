@@ -52,7 +52,8 @@ let loaderGlobals = {
     lazyGetter: XPCOMUtils.defineLazyGetter.bind(XPCOMUtils),
     lazyImporter: XPCOMUtils.defineLazyModuleGetter.bind(XPCOMUtils),
     lazyServiceGetter: XPCOMUtils.defineLazyServiceGetter.bind(XPCOMUtils)
-  }
+  },
+  reportError: Cu.reportError,
 };
 
 
