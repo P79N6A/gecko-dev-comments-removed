@@ -577,6 +577,15 @@ function getMajorMimeType(mimetype) {
   }
 }
 
+function removeNodeAndSource(n) {
+  n.remove();
+  
+  n.src = "";
+  while (n.firstChild) {
+    n.removeChild(n.firstChild);
+  }
+}
+
 
 
 
@@ -700,12 +709,12 @@ function MediaTestManager() {
 function mediaTestCleanup() {
     var V = document.getElementsByTagName("video");
     for (i=0; i<V.length; i++) {
-      V[i].parentNode.removeChild(V[i]);
+      removeNodeAndSource(V[i]);
       V[i] = null;
     }
     var A = document.getElementsByTagName("audio");
     for (i=0; i<A.length; i++) {
-      A[i].parentNode.removeChild(A[i]);
+      removeNodeAndSource(A[i]);
       A[i] = null;
     }
     SpecialPowers.forceGC();
