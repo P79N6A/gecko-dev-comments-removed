@@ -308,18 +308,18 @@ RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
 
 
 
-struct JS_FRIEND_API(AutoMaybeTouchDeadCompartments)
+struct JS_FRIEND_API(AutoMaybeTouchDeadZones)
 {
     
-    AutoMaybeTouchDeadCompartments(JSContext *cx);
-    AutoMaybeTouchDeadCompartments(JSObject *obj);
-    ~AutoMaybeTouchDeadCompartments();
+    AutoMaybeTouchDeadZones(JSContext *cx);
+    AutoMaybeTouchDeadZones(JSObject *obj);
+    ~AutoMaybeTouchDeadZones();
 
   private:
     JSRuntime *runtime;
     unsigned markCount;
     bool inIncremental;
-    bool manipulatingDeadCompartments;
+    bool manipulatingDeadZones;
 };
 
 } 

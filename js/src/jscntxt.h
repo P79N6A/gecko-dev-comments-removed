@@ -884,7 +884,7 @@ struct JSRuntime : js::RuntimeFriendFields,
 
 
 
-    bool                gcManipulatingDeadCompartments;
+    bool                gcManipulatingDeadZones;
 
     
 
@@ -894,7 +894,7 @@ struct JSRuntime : js::RuntimeFriendFields,
 
 
 
-    unsigned            gcObjectsMarkedInDeadCompartments;
+    unsigned            gcObjectsMarkedInDeadZones;
 
     bool                gcPoke;
 

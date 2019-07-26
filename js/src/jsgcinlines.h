@@ -27,24 +27,24 @@ class Shape;
 
 
 
-struct AutoMarkInDeadCompartment
+struct AutoMarkInDeadZone
 {
-    AutoMarkInDeadCompartment(JSCompartment *comp)
-      : compartment(comp),
-        scheduled(comp->scheduledForDestruction)
+    AutoMarkInDeadZone(JS::Zone *zone)
+      : zone(zone),
+        scheduled(zone->scheduledForDestruction)
     {
-        if (comp->rt->gcManipulatingDeadCompartments && comp->scheduledForDestruction) {
-            comp->rt->gcObjectsMarkedInDeadCompartments++;
-            comp->scheduledForDestruction = false;
+        if (zone->rt->gcManipulatingDeadZones && zone->scheduledForDestruction) {
+            zone->rt->gcObjectsMarkedInDeadZones++;
+            zone->scheduledForDestruction = false;
         }
     }
 
-    ~AutoMarkInDeadCompartment() {
-        compartment->scheduledForDestruction = scheduled;
+    ~AutoMarkInDeadZone() {
+        zone->scheduledForDestruction = scheduled;
     }
 
   private:
-    JSCompartment *compartment;
+    JS::Zone *zone;
     bool scheduled;
 };
 
