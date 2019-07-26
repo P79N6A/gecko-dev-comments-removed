@@ -89,7 +89,14 @@ extern bool stack_key_initialized;
 # define PROFILE_DEFAULT_ENTRY 100000
 #endif
 
-#ifdef ANDROID
+#if defined(PLATFORM_LIKELY_MEMORY_CONSTRAINED)
+
+
+
+
+
+# define PROFILE_DEFAULT_INTERVAL 10
+#elif defined(ANDROID)
 
 
 
