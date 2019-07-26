@@ -1226,7 +1226,7 @@ nsMenuFrame::CreateMenuCommandEvent(nsGUIEvent *aEvent, bool aFlipChecked)
   
   
   
-  bool isTrusted = aEvent ? NS_IS_TRUSTED_EVENT(aEvent) :
+  bool isTrusted = aEvent ? aEvent->mFlags.mIsTrusted :
                               nsContentUtils::IsCallerChrome();
 
   bool shift = false, control = false, alt = false, meta = false;

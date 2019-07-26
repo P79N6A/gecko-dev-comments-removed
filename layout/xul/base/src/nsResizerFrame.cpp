@@ -545,6 +545,5 @@ nsResizerFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent *aEvent)
 {
   
   nsContentUtils::DispatchXULCommand(mContent,
-                                     aEvent ?
-                                       NS_IS_TRUSTED_EVENT(aEvent) : false);
+                                     aEvent && aEvent->mFlags.mIsTrusted);
 }
