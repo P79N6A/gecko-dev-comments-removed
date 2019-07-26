@@ -60,7 +60,7 @@ ReverbConvolver::ReverbConvolver(const float* impulseResponseData, size_t impuls
     , m_minFFTSize(MinFFTSize) 
     , m_maxFFTSize(maxFFTSize) 
     , m_backgroundThread("ConvolverWorker")
-    , m_backgroundThreadMonitor("ConvolverMonitor")
+    , m_backgroundThreadCondition(&m_backgroundThreadLock)
     , m_useBackgroundThreads(useBackgroundThreads)
     , m_wantsToExit(false)
     , m_moreInputBuffered(false)
@@ -138,9 +138,9 @@ ReverbConvolver::~ReverbConvolver()
 
         
         {
-            MonitorAutoLock locker(m_backgroundThreadMonitor);
+            AutoLock locker(m_backgroundThreadLock);
             m_moreInputBuffered = true;
-            locker.Notify();
+            m_backgroundThreadCondition.Signal();
         }
 
         m_backgroundThread.Stop();
@@ -153,9 +153,9 @@ void ReverbConvolver::backgroundThreadEntry()
         
         m_moreInputBuffered = false;
         {
-            MonitorAutoLock locker(m_backgroundThreadMonitor);
+            AutoLock locker(m_backgroundThreadLock);
             while (!m_moreInputBuffered && !m_wantsToExit)
-                locker.Wait();
+                m_backgroundThreadCondition.Wait();
         }
 
         
@@ -209,9 +209,11 @@ void ReverbConvolver::process(const float* sourceChannelData, size_t sourceChann
     
     
     
-    MonitorAutoLock locker(m_backgroundThreadMonitor);
-    m_moreInputBuffered = true;
-    locker.Notify();
+    if (m_backgroundThreadLock.Try()) {
+        m_moreInputBuffered = true;
+        m_backgroundThreadCondition.Signal();
+        m_backgroundThreadLock.Release();
+    }
 }
 
 void ReverbConvolver::reset()
