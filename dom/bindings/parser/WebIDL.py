@@ -2944,16 +2944,8 @@ class IDLArgument(IDLObjectWithIdentifier):
         elif self.type.isAny():
             assert (self.defaultValue is None or
                     isinstance(self.defaultValue, IDLNullValue))
-            if (self.optional and not self.variadic and
-                not self.dictionaryMember and not self.defaultValue):
-                raise WebIDLError("Arguments of type 'any' are always optional "
-                                  "and shouldn't have the 'optional' keyword "
-                                  "unless they're being given a default value "
-                                  "of 'null'",
-                                  [self.location])
             
-            self.optional = True
-            if not self.defaultValue and not self.variadic:
+            if self.optional and not self.defaultValue and not self.variadic:
                 
                 
                 self.defaultValue = IDLUndefinedValue(self.location)
