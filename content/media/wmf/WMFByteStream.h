@@ -15,13 +15,12 @@
 #include "nsAutoPtr.h"
 #include "mozilla/RefPtr.h"
 
-class nsIThreadPool;
-
 namespace mozilla {
 
 class MediaResource;
 class ReadRequest;
 class WMFSourceReaderCallback;
+class SharedThreadPool;
 
 
 
@@ -123,7 +122,7 @@ private:
 
   
   
-  nsCOMPtr<nsIThreadPool> mThreadPool;
+  RefPtr<SharedThreadPool> mThreadPool;
 
   
   

@@ -19,6 +19,7 @@
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
 #include "mozilla/DebugOnly.h"
+#include "SharedThreadPool.h"
 #include <algorithm>
 #include <cassert>
 
@@ -30,75 +31,6 @@ PRLogModuleInfo* gWMFByteStreamLog = nullptr;
 #else
 #define WMF_BS_LOG(...)
 #endif
-
-
-static const uint32_t NumWMFIoThreads = 4;
-
-
-
-
-class ThreadPoolListener MOZ_FINAL : public nsIThreadPoolListener {
-public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSITHREADPOOLLISTENER
-};
-
-NS_IMPL_ISUPPORTS1(ThreadPoolListener, nsIThreadPoolListener)
-
-NS_IMETHODIMP
-ThreadPoolListener::OnThreadCreated()
-{
-  HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-  if (FAILED(hr)) {
-    NS_WARNING("Failed to initialize MSCOM on WMFByteStream thread.");
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-ThreadPoolListener::OnThreadShuttingDown()
-{
-  CoUninitialize();
-  return NS_OK;
-}
-
-
-
-static nsIThreadPool* sThreadPool = nullptr;
-
-
-
-static int32_t sThreadPoolRefCnt = 0;
-
-class ReleaseWMFByteStreamResourcesEvent MOZ_FINAL : public nsRunnable {
-public:
-  ReleaseWMFByteStreamResourcesEvent(already_AddRefed<MediaResource> aResource)
-    : mResource(aResource) {}
-  virtual ~ReleaseWMFByteStreamResourcesEvent() {}
-  NS_IMETHOD Run() {
-    NS_ASSERTION(NS_IsMainThread(), "Must be on main thread.");
-    
-    
-    
-    
-    mResource = nullptr;
-    NS_ASSERTION(sThreadPoolRefCnt > 0, "sThreadPoolRefCnt Should be non-negative");
-    sThreadPoolRefCnt--;
-    if (sThreadPoolRefCnt == 0) {
-      NS_ASSERTION(sThreadPool != nullptr, "Should have thread pool ref if sThreadPoolRefCnt==0.");
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIThreadPool> pool = sThreadPool;
-      NS_IF_RELEASE(sThreadPool);
-      pool->Shutdown();
-    }
-    return NS_OK;
-  }
-  nsRefPtr<MediaResource> mResource;
-};
 
 WMFByteStream::WMFByteStream(MediaResource* aResource,
                              WMFSourceReaderCallback* aSourceReaderCallback)
@@ -123,12 +55,6 @@ WMFByteStream::WMFByteStream(MediaResource* aResource,
 WMFByteStream::~WMFByteStream()
 {
   MOZ_COUNT_DTOR(WMFByteStream);
-  
-  
-  
-  nsCOMPtr<nsIRunnable> event =
-    new ReleaseWMFByteStreamResourcesEvent(mResource.forget());
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   WMF_BS_LOG("[%p] WMFByteStream DTOR", this);
 }
 
@@ -137,39 +63,8 @@ WMFByteStream::Init()
 {
   NS_ASSERTION(NS_IsMainThread(), "Must be on main thread.");
 
-  if (!sThreadPool) {
-    nsresult rv;
-    nsCOMPtr<nsIThreadPool> pool = do_CreateInstance(NS_THREADPOOL_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    sThreadPool = pool;
-    NS_ADDREF(sThreadPool);
-
-    rv = sThreadPool->SetName(NS_LITERAL_CSTRING("WMFByteStream Async Read Pool"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    
-    
-    
-    
-    
-    
-    
-    rv = sThreadPool->SetThreadLimit(NumWMFIoThreads);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = sThreadPool->SetIdleThreadLimit(NumWMFIoThreads);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIThreadPoolListener> listener = new ThreadPoolListener();
-    rv = sThreadPool->SetListener(listener);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  sThreadPoolRefCnt++;
-
-  
-  
-  mThreadPool = sThreadPool;
+  mThreadPool = SharedThreadPool::Get(NS_LITERAL_CSTRING("WMFByteStream IO"));
+  NS_ENSURE_TRUE(mThreadPool, NS_ERROR_FAILURE);
 
   NS_ConvertUTF8toUTF16 contentTypeUTF16(mResource->GetContentType());
   if (!contentTypeUTF16.IsEmpty()) {
