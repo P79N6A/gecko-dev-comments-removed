@@ -1186,33 +1186,6 @@ var gBrowserInit = {
       WindowsPrefSync.init();
     }
 
-#ifdef XP_WIN
-    if (window.matchMedia("-moz-os-version: windows-win8") &&
-        window.matchMedia("-moz-windows-default-theme")) {
-      let windows8WindowFrameColor = Cu.import("resource:///modules/Windows8WindowFrameColor.jsm", {}).Windows8WindowFrameColor;
-      let windowFrameColor = windows8WindowFrameColor.get();
-
-      
-      
-      let brightnessThreshold = 125;
-      let colorThreshold = 500;
-      let bY = windowFrameColor[0] * .299 +
-               windowFrameColor[1] * .587 +
-               windowFrameColor[2] * .114;
-      let fY = 0; 
-      let brightnessDifference = Math.abs(bY - fY);
-      
-      let colorDifference = windowFrameColor[0] + windowFrameColor[1] + windowFrameColor[2];
-
-      
-      
-      
-      if (brightnessDifference < brightnessThreshold && colorDifference < colorThreshold) {
-        document.documentElement.setAttribute("darkwindowframe", "true");
-      }
-    }
-#endif
-
     SessionStore.promiseInitialized.then(() => {
       
       if (window.closed) {

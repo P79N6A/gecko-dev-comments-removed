@@ -10,6 +10,7 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 const kMainKey = "Software\\Microsoft\\Internet Explorer\\Main";
+const kRegMultiSz = 7;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -20,8 +21,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "WindowsRegistry",
-                                  "resource:///modules/WindowsRegistry.jsm");
 
 
 
@@ -130,6 +129,45 @@ function hostIsIPAddress(aHost) {
 
 
 
+
+
+
+
+
+
+
+
+
+function readRegKey(aRoot, aPath, aKey) {
+  let registry = Cc["@mozilla.org/windows-registry-key;1"].
+                 createInstance(Ci.nsIWindowsRegKey);
+  try {
+    registry.open(aRoot, aPath, Ci.nsIWindowsRegKey.ACCESS_READ);
+    if (registry.hasValue(aKey)) {
+      let type = registry.getValueType(aKey);
+      switch (type) {
+        case kRegMultiSz:
+          
+          let str = registry.readStringValue(aKey);
+          return [v for each (v in str.split("\0")) if (v)];
+        case Ci.nsIWindowsRegKey.TYPE_STRING:
+          return registry.readStringValue(aKey);
+        case Ci.nsIWindowsRegKey.TYPE_INT:
+          return registry.readIntValue(aKey);
+        default:
+          throw new Error("Unsupported registry value.");
+      }
+    }
+  } catch (ex) {
+  } finally {
+    registry.close();
+  }
+  return undefined;
+};
+
+
+
+
 function Bookmarks() {
 }
 
@@ -154,9 +192,9 @@ Bookmarks.prototype = {
       
       
       
-      let folderName = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                                  "Software\\Microsoft\\Internet Explorer\\Toolbar",
-                                                  "LinksFolderName");
+      let folderName = readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                                  "Software\\Microsoft\\Internet Explorer\\Toolbar",
+                                  "LinksFolderName");
       this.__toolbarFolderName = folderName || "Links";
     }
     return this.__toolbarFolderName;
@@ -567,8 +605,8 @@ Settings.prototype = {
 
 
   _set: function S__set(aPath, aKey, aPref, aTransformFn) {
-    let value = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                           aPath, aKey);
+    let value = readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                           aPath, aKey);
     
     if (value === undefined)
       return;
@@ -613,10 +651,10 @@ IEProfileMigrator.prototype.getResources = function IE_getResources() {
 
 Object.defineProperty(IEProfileMigrator.prototype, "sourceHomePageURL", {
   get: function IE_get_sourceHomePageURL() {
-    let defaultStartPage = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
-                                                      kMainKey, "Default_Page_URL");
-    let startPage = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                               kMainKey, "Start Page");
+    let defaultStartPage = readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
+                                      kMainKey, "Default_Page_URL");
+    let startPage = readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                               kMainKey, "Start Page");
     
     
     
@@ -626,8 +664,8 @@ Object.defineProperty(IEProfileMigrator.prototype, "sourceHomePageURL", {
     
     
     
-    let secondaryPages = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                                    kMainKey, "Secondary Start Pages");
+    let secondaryPages = readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                                    kMainKey, "Secondary Start Pages");
     if (secondaryPages) {
       if (homepage)
         secondaryPages.unshift(homepage);
