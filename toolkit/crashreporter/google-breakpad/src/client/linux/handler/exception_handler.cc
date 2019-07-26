@@ -339,7 +339,7 @@ void ExceptionHandler::SignalHandler(int sig, siginfo_t* info, void* uc) {
 
   pthread_mutex_unlock(&handler_stack_mutex_);
 
-  if (info->si_pid) {
+  if (info->si_code <= 0) {
     
     
     
