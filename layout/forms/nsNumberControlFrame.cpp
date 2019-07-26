@@ -637,42 +637,13 @@ nsNumberControlFrame::GetValueOfAnonTextControl(nsAString& aValue)
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   ICUUtils::LanguageTagIterForContent langTagIter(mContent);
   double value = ICUUtils::ParseNumber(aValue, langTagIter);
   if (NS_finite(value) &&
-      value != HTMLInputElement::StringToDecimal(aValue).toDouble()) {
+      !HTMLInputElement::StringToDecimal(aValue).isFinite()) {
     aValue.Truncate();
     aValue.AppendFloat(value);
   }
-  
-  
 #endif
 }
 
