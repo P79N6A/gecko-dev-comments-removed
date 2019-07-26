@@ -23,6 +23,9 @@ const TOPIC_INTERFACE_UNREGISTERED = "network-interface-unregistered";
 const NET_TYPE_WIFI = Ci.nsINetworkInterface.NETWORK_TYPE_WIFI;
 const NET_TYPE_MOBILE = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE;
 
+
+const MAX_CACHED_TRAFFIC = 500 * 1000 * 1000; 
+
 XPCOMUtils.defineLazyServiceGetter(this, "gIDBManager",
                                    "@mozilla.org/dom/indexeddb/manager;1",
                                    "nsIIndexedDatabaseManager");
@@ -34,6 +37,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
 XPCOMUtils.defineLazyServiceGetter(this, "networkManager",
                                    "@mozilla.org/network/manager;1",
                                    "nsINetworkManager");
+
+XPCOMUtils.defineLazyServiceGetter(this, "appsService",
+                                   "@mozilla.org/AppsService;1",
+                                   "nsIAppsService");
 
 let myGlobal = this;
 
@@ -73,6 +80,10 @@ this.NetworkStatsService = {
     
     this.timer.initWithCallback(this, this._db.sampleRate,
                                 Ci.nsITimer.TYPE_REPEATING_PRECISE);
+
+    
+    this.cachedAppStats = Object.create(null);
+    this.cachedAppStatsDate = new Date();
 
     this.updateQueue = [];
     this.isQueueRunning = false;
@@ -170,9 +181,32 @@ this.NetworkStatsService = {
   getStats: function getStats(mm, msg) {
     this.updateAllStats(function onStatsUpdated(aResult, aMessage) {
 
-      let options = msg.data;
+      let data = msg.data;
+
+      let options = { appId:          0,
+                      connectionType: data.connectionType,
+                      start:          data.start,
+                      end:            data.end };
+
+      let manifestURL = data.manifestURL;
+      if (manifestURL) {
+        let appId = appsService.getAppLocalIdByManifestURL(manifestURL);
+        if (DEBUG) {
+          debug("get appId: " + appId + " from manifestURL: " + manifestURL);
+        }
+
+        if (!appId) {
+          mm.sendAsyncMessage("NetworkStats:Get:Return",
+                              { id: msg.id, error: "Invalid manifestURL", result: null });
+          return;
+        }
+
+        options.appId = appId;
+        options.manifestURL = manifestURL;
+      }
+
       if (DEBUG) {
-        debug("getstats for: - " + options.connectionType + " -");
+        debug("getStats for options: " + JSON.stringify(options));
       }
 
       if (!options.connectionType || options.connectionType.length == 0) {
@@ -207,6 +241,9 @@ this.NetworkStatsService = {
   },
 
   updateAllStats: function updateAllStats(callback) {
+    
+    this.updateCachedAppStats();
+
     let elements = [];
     let lastElement;
 
@@ -356,10 +393,11 @@ this.NetworkStatsService = {
       return;
     }
 
-    let stats = { connectionType: this._connectionTypes[connType].name,
+    let stats = { appId:          0,
+                  connectionType: this._connectionTypes[connType].name,
                   date:           date,
-                  rxBytes:        txBytes,
-                  txBytes:        rxBytes};
+                  rxBytes:        rxBytes,
+                  txBytes:        txBytes };
 
     if (DEBUG) {
       debug("Update stats for " + stats.connectionType + ": rx=" + stats.rxBytes +
@@ -375,6 +413,130 @@ this.NetworkStatsService = {
         callback(true, "OK");
       }
     });
+  },
+
+  
+
+
+  saveAppStats: function saveAppStats(aAppId, aConnectionType, aTimeStamp, aRxBytes, aTxBytes, aCallback) {
+    if (DEBUG) {
+      debug("saveAppStats: " + aAppId + " " + aConnectionType + " " +
+            aTimeStamp + " " + aRxBytes + " " + aTxBytes);
+    }
+
+    
+    if (!aAppId) {
+      return;
+    }
+
+    let stats = { appId: aAppId,
+                  connectionType: this._connectionTypes[aConnectionType].name,
+                  date: new Date(aTimeStamp),
+                  rxBytes: aRxBytes,
+                  txBytes: aTxBytes };
+
+    
+    
+    let key = stats.appId + stats.connectionType;
+
+    
+    
+    
+    let diff = (this._db.normalizeDate(stats.date) -
+                this._db.normalizeDate(this.cachedAppStatsDate)) /
+               this._db.sampleRate;
+    if (diff != 0) {
+      this.updateCachedAppStats(function onUpdated(success, message) {
+        this.cachedAppStatsDate = stats.date;
+        this.cachedAppStats[key] = stats;
+
+        if (!aCallback) {
+          return;
+        }
+
+        if (!success) {
+          aCallback.notify(false, message);
+          return;
+        }
+
+        aCallback.notify(true, "ok");
+      }.bind(this));
+
+      return;
+    }
+
+    
+    
+    let appStats = this.cachedAppStats[key];
+    if (!appStats) {
+      this.cachedAppStats[key] = stats;
+      return;
+    }
+
+    
+    appStats.rxBytes += stats.rxBytes;
+    appStats.txBytes += stats.txBytes;
+
+    
+    
+    
+    if (appStats.rxBytes > MAX_CACHED_TRAFFIC ||
+        appStats.txBytes > MAX_CACHED_TRAFFIC) {
+      this._db.saveStats(appStats,
+        function (error, result) {
+          if (DEBUG) {
+            debug("Application stats inserted in indexedDB");
+          }
+        }
+      );
+      delete this.cachedAppStats[key];
+    }
+  },
+
+  updateCachedAppStats: function updateCachedAppStats(callback) {
+    if (DEBUG) {
+      debug("updateCachedAppStats: " + this.cachedAppStatsDate);
+    }
+
+    let stats = Object.keys(this.cachedAppStats);
+    if (stats.length == 0) {
+      
+      return;
+    }
+
+    let index = 0;
+    this._db.saveStats(this.cachedAppStats[stats[index]],
+      function onSavedStats(error, result) {
+        if (DEBUG) {
+          debug("Application stats inserted in indexedDB");
+        }
+
+        
+        if (index == stats.length - 1) {
+          this.cachedAppStats = Object.create(null);
+
+          if (!callback) {
+            return;
+          }
+
+          if (error) {
+            callback(false, error);
+            return;
+          }
+
+          callback(true, "ok");
+          return;
+        }
+
+        
+        index += 1;
+        this._db.saveStats(this.cachedAppStats[stats[index]],
+                           onSavedStats.bind(this, error, result));
+      }.bind(this));
+  },
+
+  get maxCachedTraffic () {
+    return MAX_CACHED_TRAFFIC;
   },
 
   logAllRecords: function logAllRecords() {
