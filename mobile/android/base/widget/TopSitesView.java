@@ -620,6 +620,11 @@ public class TopSitesView extends GridView {
                 String url = data.getStringExtra(AwesomeBar.URL_KEY);
 
                 
+                if (TextUtils.isEmpty(url)) {
+                    return;
+                }
+
+                
                 
                 if (data.getBooleanExtra(AwesomeBar.USER_ENTERED_KEY, false)) {
                     
