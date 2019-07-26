@@ -337,10 +337,10 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   
   
   
+  
   if (aLayer->AsContainerLayer() &&
       aLayer->AsContainerLayer()->GetFrameMetrics().IsScrollable() &&
       aLayer != aTransformedSubtreeRoot) {
-    AlignFixedAndStickyLayers(aLayer, aLayer, aLayer->GetTransform(), LayerMargin(0, 0, 0, 0));
     return;
   }
 
