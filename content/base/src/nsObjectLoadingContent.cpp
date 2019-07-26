@@ -854,8 +854,10 @@ nsObjectLoadingContent::OnStopRequest(nsIRequest *aRequest,
   mChannel = nullptr;
 
   if (mFinalListener) {
-    mFinalListener->OnStopRequest(aRequest, aContext, aStatusCode);
+    
+    nsCOMPtr<nsIStreamListener> listenerGrip(mFinalListener);
     mFinalListener = nullptr;
+    listenerGrip->OnStopRequest(aRequest, aContext, aStatusCode);
   }
 
   
@@ -877,8 +879,10 @@ nsObjectLoadingContent::OnDataAvailable(nsIRequest *aRequest,
   }
 
   if (mFinalListener) {
-    return mFinalListener->OnDataAvailable(aRequest, aContext, aInputStream,
-                                           aOffset, aCount);
+    
+    nsCOMPtr<nsIStreamListener> listenerGrip(mFinalListener);
+    return listenerGrip->OnDataAvailable(aRequest, aContext, aInputStream,
+                                         aOffset, aCount);
   }
 
   
@@ -1678,10 +1682,10 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   
+
   
   
-  mIsLoading = false;
-  
+  nsCOMPtr<nsIStreamListener> finalListener;
   switch (mType) {
     case eType_Image:
       if (!mChannel) {
@@ -1691,14 +1695,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         rv = NS_ERROR_UNEXPECTED;
         break;
       }
-      rv = LoadImageWithChannel(mChannel, getter_AddRefs(mFinalListener));
-      if (mFinalListener) {
-        
-        
-        mSrcStreamLoading = true;
-        rv = mFinalListener->OnStartRequest(mChannel, nullptr);
-        mSrcStreamLoading = false;
-      }
+      rv = LoadImageWithChannel(mChannel, getter_AddRefs(finalListener));
+      
     break;
     case eType_Plugin:
     {
@@ -1725,18 +1723,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         }
         
         rv = pluginHost->NewEmbeddedPluginStreamListener(mURI, this, nullptr,
-                                                         getter_AddRefs(mFinalListener));
-        if (NS_SUCCEEDED(rv)) {
-          
-          
-
-          mSrcStreamLoading = true;
-          rv = mFinalListener->OnStartRequest(mChannel, nullptr);
-          mSrcStreamLoading = false;
-          if (NS_SUCCEEDED(rv)) {
-            NotifyContentObjectWrapper();
-          }
-        }
+                                                         getter_AddRefs(finalListener));
+        
       } else {
         rv = AsyncStartPluginInstance();
       }
@@ -1792,14 +1780,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         break;
       }
       rv = uriLoader->OpenChannel(mChannel, nsIURILoader::DONT_RETARGET, req,
-                                  getter_AddRefs(mFinalListener));
-      if (NS_SUCCEEDED(rv)) {
-        
-        
-        mSrcStreamLoading = true;
-        rv = mFinalListener->OnStartRequest(mChannel, nullptr);
-        mSrcStreamLoading = false;
-      }
+                                  getter_AddRefs(finalListener));
+      
     }
     break;
     case eType_Loading:
@@ -1814,6 +1796,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     break;
   };
 
+  
+  
+  
   if (NS_FAILED(rv)) {
     
     LOG(("OBJLC [%p]: Loading failed, switching to fallback", this));
@@ -1828,7 +1813,6 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
     if (mChannel) {
       
-      
       CloseChannel();
     }
 
@@ -1839,7 +1823,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   
   NotifyStateChanged(oldType, oldState, false, aNotify);
-
+  
   if (mType == eType_Null && !mContentType.IsEmpty() &&
       mFallbackType != eFallbackAlternate) {
     
@@ -1848,8 +1832,31 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     FirePluginError(mFallbackType);
   }
 
+  
+  
+  
+
+  
+  
+  if (!mIsLoading) {
+    LOG(("OBJLC [%p]: Re-entered before dispatching to final listener", this));
+  } else if (finalListener) {
+    NS_ASSERTION(mType != eType_Null && mType != eType_Loading,
+                 "We should not have a final listener with a non-loaded type");
+    
+    
+    mSrcStreamLoading = true;
+    
+    
+    mIsLoading = false;
+    mFinalListener = finalListener;
+    finalListener->OnStartRequest(mChannel, nullptr);
+    mSrcStreamLoading = false;
+  }
+
   return NS_OK;
 }
+
 
 nsresult
 nsObjectLoadingContent::CloseChannel()
@@ -1858,16 +1865,15 @@ nsObjectLoadingContent::CloseChannel()
     LOG(("OBJLC [%p]: Closing channel\n", this));
     
     
-    
-    
-    mChannel->Cancel(NS_BINDING_ABORTED);
-    if (mFinalListener) {
-      
-      
-      mFinalListener->OnStopRequest(mChannel, nullptr, NS_BINDING_ABORTED);
-      mFinalListener = nullptr;
-    }
+    nsCOMPtr<nsIChannel> channelGrip(mChannel);
+    nsCOMPtr<nsIStreamListener> listenerGrip(mFinalListener);
     mChannel = nullptr;
+    mFinalListener = nullptr;
+    channelGrip->Cancel(NS_BINDING_ABORTED);
+    if (listenerGrip) {
+      
+      listenerGrip->OnStopRequest(channelGrip, nullptr, NS_BINDING_ABORTED);
+    }
   }
   return NS_OK;
 }
@@ -1973,7 +1979,11 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
   }
 
   if (aResetState) {
-    CloseChannel();
+    if (mType != eType_Plugin) {
+      
+      
+      CloseChannel();
+    }
     mChannelLoaded = false;
     mType = eType_Loading;
     mURI = mOriginalURI = mBaseURI = nullptr;
