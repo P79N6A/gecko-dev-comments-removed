@@ -183,15 +183,22 @@ let TabStateInternal = {
       }
 
       
-      this._copyFromPersistentCache(tab, tabData);
-
-      
       
       
       if (this._pendingCollections.get(browser) == promise) {
         TabStateCache.set(tab, tabData);
         this._pendingCollections.delete(browser);
       }
+
+      
+      
+      
+      
+      
+      
+      
+      tabData = Utils.copy(tabData);
+      this._copyFromPersistentCache(tab, tabData);
 
       throw new Task.Result(tabData);
     }.bind(this));
@@ -219,7 +226,16 @@ let TabStateInternal = {
       throw new TypeError("Expecting a tab");
     }
     if (TabStateCache.has(tab)) {
-      return TabStateCache.get(tab);
+      
+      
+      
+      
+      
+      
+      
+      let tabData = Utils.copy(TabStateCache.get(tab));
+      this._copyFromPersistentCache(tab, tabData);
+      return tabData;
     }
 
     let tabData = this._collectSyncUncached(tab);
@@ -227,6 +243,16 @@ let TabStateInternal = {
     if (this._tabCachingAllowed(tab)) {
       TabStateCache.set(tab, tabData);
     }
+
+    
+    
+    
+    
+    
+    
+    
+    tabData = Utils.copy(tabData);
+    this._copyFromPersistentCache(tab, tabData);
 
     
     
@@ -262,7 +288,13 @@ let TabStateInternal = {
 
 
   clone: function (tab) {
-    return this._collectSyncUncached(tab, {includePrivateData: true});
+    let options = {includePrivateData: true};
+    let tabData = this._collectSyncUncached(tab, options);
+
+    
+    this._copyFromPersistentCache(tab, tabData, options);
+
+    return tabData;
   },
 
   
@@ -304,9 +336,6 @@ let TabStateInternal = {
     if ("index" in history) {
       tabData.index = history.index;
     }
-
-    
-    this._copyFromPersistentCache(tab, tabData, options);
 
     return tabData;
   },
