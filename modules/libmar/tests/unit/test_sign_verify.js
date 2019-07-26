@@ -31,7 +31,44 @@ function run_test() {
     }
     args.push("-s", inMAR.path, outMAR.path);
 
-    do_print('Running sign operation: ' + signmarBin.path);
+    process.init(signmarBin);
+    try {
+      process.run(true, args, args.length);
+    } catch(e) {
+      
+      process.exitValue = -1;
+    }
+
+    
+    if (wantSuccess) {
+      do_check_eq(process.exitValue, 0);
+    } else {
+      do_check_neq(process.exitValue, 0);
+    }
+  }
+
+
+  
+
+
+
+
+
+
+
+  function extractMARSignature(inMAR, sigIndex, extractedSig, wantSuccess) {
+    
+    let process = Cc["@mozilla.org/process/util;1"].
+                  createInstance(Ci.nsIProcess);
+    let signmarBin = do_get_file("signmar" + BIN_SUFFIX);
+
+    
+    do_check_true(signmarBin.exists());
+    do_check_true(signmarBin.isExecutable());
+
+    
+    let args = ["-n" + sigIndex, "-X", inMAR.path, extractedSig.path];
+
     process.init(signmarBin);
     try {
       process.run(true, args, args.length);
@@ -97,7 +134,6 @@ function run_test() {
       args.push("-v", signedMAR.path);
     }
 
-    do_print('Running verify operation: ' + signmarBin.path);
     process.init(signmarBin);
     try {
       
@@ -133,9 +169,7 @@ function run_test() {
 
     
     let args = ["-r", signedMAR.path, outMAR.path];
-    do_print('=----- -r ' + signedMAR.path + ' ' + outMAR.path + '\n\n\n');
 
-    do_print('Running sign operation: ' + signmarBin.path);
     process.init(signmarBin);
     try {
       process.run(true, args, args.length);
@@ -309,6 +343,46 @@ function run_test() {
       compareBinaryData(outMARData, originalMARData);
     },
     
+    test_extract_sig_single: function() {
+      let inMAR = do_get_file("data/signed_pib_mar.mar");
+      let extractedSig = do_get_file("extracted_signature", true);
+      if (extractedSig.exists()) {
+        extractedSig.remove(false);
+      }
+      extractMARSignature(inMAR, 0, extractedSig, wantSuccess);
+      do_check_true(extractedSig.exists());
+
+      let referenceSig = do_get_file("data/signed_pib_mar.signature.0"); +
+      compareBinaryData(extractedSig, referenceSig);
+    },
+    
+    
+    test_extract_sig_multi: function() {
+      for (let i = 0; i < 3; i++) {
+        let inMAR = do_get_file("data/multiple_signed_pib_mar.mar");
+        let extractedSig = do_get_file("extracted_signature", true);
+        if (extractedSig.exists()) {
+          extractedSig.remove(false);
+        }
+        extractMARSignature(inMAR, i, extractedSig, wantSuccess);
+        do_check_true(extractedSig.exists());
+
+        let referenceSig = do_get_file("data/multiple_signed_pib_mar.sig." + i); +
+        compareBinaryData(extractedSig, referenceSig);
+      }
+    },
+    
+    test_extract_sig_out_of_range: function() {
+      let inMAR = do_get_file("data/signed_pib_mar.mar");
+      let extractedSig = do_get_file("extracted_signature", true);
+      if (extractedSig.exists()) {
+        extractedSig.remove(false);
+      }
+      const outOfBoundsIndex = 5;
+      extractMARSignature(inMAR, outOfBoundsIndex, extractedSig, wantFailure);
+      do_check_false(extractedSig.exists());
+    },
+    
     test_bad_path_sign_fails: function() {
       let inMAR = do_get_file("data/does_not_exist_.mar", true);
       let outMAR = do_get_file("signed_out.mar", true);
@@ -329,6 +403,17 @@ function run_test() {
       do_check_false(noMAR.exists());
       let outMAR = do_get_file("out.mar", true);
       stripMARSignature(noMAR, outMAR, wantFailure);
+    },
+    
+    test_extract_bad_path: function() {
+      let noMAR = do_get_file("data/does_not_exist.mar", true);
+      let extractedSig = do_get_file("extracted_signature", true);
+      do_check_false(noMAR.exists());
+      if (extractedSig.exists()) {
+        extractedSig.remove(false);
+      }
+      extractMARSignature(noMAR, 0, extractedSig, wantFailure);
+      do_check_false(extractedSig.exists());
     },
     
     cleanup_per_test: function() {
