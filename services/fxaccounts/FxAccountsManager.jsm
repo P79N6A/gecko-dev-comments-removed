@@ -253,7 +253,7 @@ this.FxAccountsManager = {
       
       if (this._activeSession && !this._activeSession.verified &&
           !Services.io.offline) {
-        return this.verificationStatus(this._activeSession);
+        this.verificationStatus(this._activeSession);
       }
 
       log.debug("Account " + JSON.stringify(this._user));
@@ -271,10 +271,9 @@ this.FxAccountsManager = {
         this._activeSession = user;
         
         
-        
         if (!user.verified && !Services.io.offline) {
           log.debug("Unverified account");
-          return this.verificationStatus(user);
+          this.verificationStatus(user);
         }
 
         log.debug("Account " + JSON.stringify(this._user));
@@ -315,44 +314,35 @@ this.FxAccountsManager = {
   verificationStatus: function() {
     log.debug("verificationStatus");
     if (!this._activeSession || !this._activeSession.sessionToken) {
-      return this._error(ERROR_NO_TOKEN_SESSION);
+      this._error(ERROR_NO_TOKEN_SESSION);
     }
 
     
     
     if (this._activeSession.verified) {
       log.debug("Account already verified");
-      return Promise.resolve(this._user);
+      return;
     }
 
     if (Services.io.offline) {
-      return this._error(ERROR_OFFLINE);
+      this._error(ERROR_OFFLINE);
     }
 
     let client = this._getFxAccountsClient();
-    return client.recoveryEmailStatus(this._activeSession.sessionToken).then(
+    client.recoveryEmailStatus(this._activeSession.sessionToken).then(
       data => {
         let error = this._getError(data);
         if (error) {
-          return this._error(error, data);
+          this._error(error, data);
         }
-
-        
-        
         
         if (this._activeSession.verified != data.verified) {
           this._activeSession.verified = data.verified;
-          return this._fxAccounts.setSignedInUser(this._activeSession).then(
-            () => {
-              log.debug(JSON.stringify(this._user));
-              return Promise.resolve(this._user);
-            }
-          );
+          this._fxAccounts.setSignedInUser(this._activeSession);
         }
         log.debug(JSON.stringify(this._user));
-        return Promise.resolve(this._user);
       },
-      reason => { return this._serverError(reason); }
+      reason => { this._serverError(reason); }
     );
   },
 
@@ -415,7 +405,7 @@ this.FxAccountsManager = {
 
         log.debug("No signed in user");
 
-        if (aOptions.silent) {
+        if (aOptions && aOptions.silent) {
           return Promise.resolve(null);
         }
 
