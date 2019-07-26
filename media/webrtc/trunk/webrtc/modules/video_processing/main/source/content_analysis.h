@@ -30,7 +30,7 @@ public:
     
     
     
-    WebRtc_Word32 Initialize(int width, int height);
+    int32_t Initialize(int width, int height);
 
     
     
@@ -41,7 +41,7 @@ public:
 
     
     
-    WebRtc_Word32 Release();
+    int32_t Release();
 
 private:
 
@@ -49,26 +49,26 @@ private:
     VideoContentMetrics* ContentMetrics();
 
     
-    typedef WebRtc_Word32 (VPMContentAnalysis::*TemporalDiffMetricFunc)();
+    typedef int32_t (VPMContentAnalysis::*TemporalDiffMetricFunc)();
     TemporalDiffMetricFunc TemporalDiffMetric;
-    WebRtc_Word32 TemporalDiffMetric_C();
+    int32_t TemporalDiffMetric_C();
 
     
-    WebRtc_Word32 ComputeMotionMetrics();
+    int32_t ComputeMotionMetrics();
 
     
     
-    typedef WebRtc_Word32 (VPMContentAnalysis::*ComputeSpatialMetricsFunc)();
+    typedef int32_t (VPMContentAnalysis::*ComputeSpatialMetricsFunc)();
     ComputeSpatialMetricsFunc ComputeSpatialMetrics;
-    WebRtc_Word32 ComputeSpatialMetrics_C();
+    int32_t ComputeSpatialMetrics_C();
 
 #if defined(WEBRTC_ARCH_X86_FAMILY)
-    WebRtc_Word32 ComputeSpatialMetrics_SSE2();
-    WebRtc_Word32 TemporalDiffMetric_SSE2();
+    int32_t ComputeSpatialMetrics_SSE2();
+    int32_t TemporalDiffMetric_SSE2();
 #endif
 
-    const WebRtc_UWord8*       _origFrame;
-    WebRtc_UWord8*             _prevFrame;
+    const uint8_t*       _origFrame;
+    uint8_t*             _prevFrame;
     int                        _width;
     int                        _height;
     int                        _skipNum;

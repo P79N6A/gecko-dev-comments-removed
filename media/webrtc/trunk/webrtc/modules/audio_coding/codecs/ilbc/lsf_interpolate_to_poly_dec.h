@@ -26,12 +26,12 @@
 
 
 void WebRtcIlbcfix_LspInterpolate2PolyDec(
-    WebRtc_Word16 *a,   
-    WebRtc_Word16 *lsf1,  
-    WebRtc_Word16 *lsf2,  
-    WebRtc_Word16 coef,  
+    int16_t *a,   
+    int16_t *lsf1,  
+    int16_t *lsf2,  
+    int16_t coef,  
 
-    WebRtc_Word16 length  
+    int16_t length  
                                           );
 
 #endif

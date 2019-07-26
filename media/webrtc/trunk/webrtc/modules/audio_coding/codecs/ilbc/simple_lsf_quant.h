@@ -26,12 +26,12 @@
 
 
 void WebRtcIlbcfix_SimpleLsfQ(
-    WebRtc_Word16 *lsfdeq, 
+    int16_t *lsfdeq, 
 
-    WebRtc_Word16 *index, 
-    WebRtc_Word16 *lsf, 
+    int16_t *index, 
+    int16_t *lsf, 
 
-    WebRtc_Word16 lpc_n 
+    int16_t lpc_n 
                               );
 
 #endif

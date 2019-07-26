@@ -26,15 +26,15 @@
 
 
 void WebRtcIlbcfix_LsfInterpolate2PloyEnc(
-    WebRtc_Word16 *a,  
-    WebRtc_Word16 *lsf1, 
-    WebRtc_Word16 *lsf2, 
-    WebRtc_Word16 coef, 
+    int16_t *a,  
+    int16_t *lsf1, 
+    int16_t *lsf2, 
+    int16_t coef, 
 
-    WebRtc_Word16 length 
+    int16_t length 
                                           ) {
   
-  WebRtc_Word16 lsftmp[LPC_FILTERORDER];
+  int16_t lsftmp[LPC_FILTERORDER];
 
   
   WebRtcIlbcfix_Interpolate(lsftmp, lsf1, lsf2, coef, length);

@@ -24,106 +24,104 @@ namespace webrtc {
 class RTPSenderAudio: public DTMFqueue
 {
 public:
-    RTPSenderAudio(const WebRtc_Word32 id, RtpRtcpClock* clock,
+    RTPSenderAudio(const int32_t id, Clock* clock,
                    RTPSenderInterface* rtpSender);
     virtual ~RTPSenderAudio();
 
-    WebRtc_Word32 RegisterAudioPayload(
+    int32_t RegisterAudioPayload(
         const char payloadName[RTP_PAYLOAD_NAME_SIZE],
-        const WebRtc_Word8 payloadType,
-        const WebRtc_UWord32 frequency,
-        const WebRtc_UWord8 channels,
-        const WebRtc_UWord32 rate,
+        const int8_t payloadType,
+        const uint32_t frequency,
+        const uint8_t channels,
+        const uint32_t rate,
         ModuleRTPUtility::Payload*& payload);
 
-    WebRtc_Word32 SendAudio(const FrameType frameType,
-                            const WebRtc_Word8 payloadType,
-                            const WebRtc_UWord32 captureTimeStamp,
-                            const WebRtc_UWord8* payloadData,
-                            const WebRtc_UWord32 payloadSize,
-                            const RTPFragmentationHeader* fragmentation);
+    int32_t SendAudio(const FrameType frameType,
+                      const int8_t payloadType,
+                      const uint32_t captureTimeStamp,
+                      const uint8_t* payloadData,
+                      const uint32_t payloadSize,
+                      const RTPFragmentationHeader* fragmentation);
 
     
-    WebRtc_Word32 SetAudioPacketSize(const WebRtc_UWord16 packetSizeSamples);
-
-    
-    
-    WebRtc_Word32 SetAudioLevelIndicationStatus(const bool enable,
-                                              const WebRtc_UWord8 ID);
-
-    
-    WebRtc_Word32 AudioLevelIndicationStatus(bool& enable,
-                                           WebRtc_UWord8& ID) const;
+    int32_t SetAudioPacketSize(const uint16_t packetSizeSamples);
 
     
     
-    WebRtc_Word32 SetAudioLevel(const WebRtc_UWord8 level_dBov);
+    int32_t SetAudioLevelIndicationStatus(const bool enable, const uint8_t ID);
 
     
-      WebRtc_Word32 SendTelephoneEvent(const WebRtc_UWord8 key,
-                                   const WebRtc_UWord16 time_ms,
-                                   const WebRtc_UWord8 level);
+    int32_t AudioLevelIndicationStatus(bool& enable, uint8_t& ID) const;
 
-    bool SendTelephoneEventActive(WebRtc_Word8& telephoneEvent) const;
+    
+    
+    int32_t SetAudioLevel(const uint8_t level_dBov);
 
-    void SetAudioFrequency(const WebRtc_UWord32 f);
+    
+      int32_t SendTelephoneEvent(const uint8_t key,
+                                 const uint16_t time_ms,
+                                 const uint8_t level);
+
+    bool SendTelephoneEventActive(int8_t& telephoneEvent) const;
+
+    void SetAudioFrequency(const uint32_t f);
 
     int AudioFrequency() const;
 
     
-    WebRtc_Word32 SetRED(const WebRtc_Word8 payloadType);
+    int32_t SetRED(const int8_t payloadType);
 
     
-    WebRtc_Word32 RED(WebRtc_Word8& payloadType) const;
+    int32_t RED(int8_t& payloadType) const;
 
-    WebRtc_Word32 RegisterAudioCallback(RtpAudioFeedback* messagesCallback);
+    int32_t RegisterAudioCallback(RtpAudioFeedback* messagesCallback);
 
 protected:
-    WebRtc_Word32 SendTelephoneEventPacket(const bool ended,
-                                         const WebRtc_UWord32 dtmfTimeStamp,
-                                         const WebRtc_UWord16 duration,
-                                         const bool markerBit); 
+    int32_t SendTelephoneEventPacket(const bool ended,
+                                     const uint32_t dtmfTimeStamp,
+                                     const uint16_t duration,
+                                     const bool markerBit); 
 
     bool MarkerBit(const FrameType frameType,
-                   const WebRtc_Word8 payloadType);
+                   const int8_t payloadType);
 
 private:
-    WebRtc_Word32             _id;
-    RtpRtcpClock&             _clock;
-    RTPSenderInterface*     _rtpSender;
-    CriticalSectionWrapper* _audioFeedbackCritsect;
-    RtpAudioFeedback*   _audioFeedback;
+    int32_t             _id;
+    Clock*                    _clock;
+    RTPSenderInterface*       _rtpSender;
+    CriticalSectionWrapper*   _audioFeedbackCritsect;
+    RtpAudioFeedback*         _audioFeedback;
 
     CriticalSectionWrapper*   _sendAudioCritsect;
 
-    WebRtc_UWord32            _frequency;
-    WebRtc_UWord16            _packetSizeSamples;
+    uint32_t            _frequency;
+    uint16_t            _packetSizeSamples;
 
     
     bool              _dtmfEventIsOn;
     bool              _dtmfEventFirstPacketSent;
-    WebRtc_Word8      _dtmfPayloadType;
-    WebRtc_UWord32    _dtmfTimestamp;
-    WebRtc_UWord8     _dtmfKey;
-    WebRtc_UWord32    _dtmfLengthSamples;
-    WebRtc_UWord8     _dtmfLevel;
-    WebRtc_Word64     _dtmfTimeLastSent;
-    WebRtc_UWord32    _dtmfTimestampLastSent;
+    int8_t      _dtmfPayloadType;
+    uint32_t    _dtmfTimestamp;
+    uint8_t     _dtmfKey;
+    uint32_t    _dtmfLengthSamples;
+    uint8_t     _dtmfLevel;
+    int64_t     _dtmfTimeLastSent;
+    uint32_t    _dtmfTimestampLastSent;
 
-    WebRtc_Word8      _REDPayloadType;
+    int8_t      _REDPayloadType;
 
     
     bool              _inbandVADactive;
-    WebRtc_Word8      _cngNBPayloadType;
-    WebRtc_Word8      _cngWBPayloadType;
-    WebRtc_Word8      _cngSWBPayloadType;
-    WebRtc_Word8      _cngFBPayloadType;
-    WebRtc_Word8      _lastPayloadType;
+    int8_t      _cngNBPayloadType;
+    int8_t      _cngWBPayloadType;
+    int8_t      _cngSWBPayloadType;
+    int8_t      _cngFBPayloadType;
+    int8_t      _lastPayloadType;
 
     
     bool            _includeAudioLevelIndication;
-    WebRtc_UWord8     _audioLevelIndicationID;
-    WebRtc_UWord8     _audioLevel_dBov;
+    uint8_t     _audioLevelIndicationID;
+    uint8_t     _audioLevel_dBov;
 };
 } 
 

@@ -23,11 +23,11 @@
 
 
 void WebRtcIlbcfix_SortSq(
-    WebRtc_Word16 *xq,   
-    WebRtc_Word16 *index,  
-    WebRtc_Word16 x,   
-    const WebRtc_Word16 *cb, 
-    WebRtc_Word16 cb_size  
+    int16_t *xq,   
+    int16_t *index,  
+    int16_t x,   
+    const int16_t *cb, 
+    int16_t cb_size  
                           ){
   int i;
 
@@ -40,7 +40,7 @@ void WebRtcIlbcfix_SortSq(
       i++;
     }
 
-    if (x > WEBRTC_SPL_RSHIFT_W32(( (WebRtc_Word32)cb[i] + cb[i - 1] + 1),1)) {
+    if (x > WEBRTC_SPL_RSHIFT_W32(( (int32_t)cb[i] + cb[i - 1] + 1),1)) {
       *index = i;
       *xq = cb[i];
     } else {

@@ -16,14 +16,14 @@
 #include "thread_wrapper.h"
 
 namespace webrtc {
-AudioDeviceIPhone::AudioDeviceIPhone(const WebRtc_Word32 id)
+AudioDeviceIPhone::AudioDeviceIPhone(const int32_t id)
     :
     _ptrAudioBuffer(NULL),
     _critSect(*CriticalSectionWrapper::CreateCriticalSection()),
     _captureWorkerThread(NULL),
     _captureWorkerThreadId(0),
     _id(id),
-    _auRemoteIO(NULL),
+    _auVoiceProcessing(NULL),
     _initialized(false),
     _isShutDown(false),
     _recording(false),
@@ -86,7 +86,7 @@ void AudioDeviceIPhone::AttachAudioBuffer(AudioDeviceBuffer* audioBuffer) {
     _ptrAudioBuffer->SetPlayoutChannels(N_PLAY_CHANNELS);
 }
 
-WebRtc_Word32 AudioDeviceIPhone::ActiveAudioLayer(
+int32_t AudioDeviceIPhone::ActiveAudioLayer(
     AudioDeviceModule::AudioLayer& audioLayer) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
@@ -94,7 +94,7 @@ WebRtc_Word32 AudioDeviceIPhone::ActiveAudioLayer(
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::Init() {
+int32_t AudioDeviceIPhone::Init() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -120,24 +120,13 @@ WebRtc_Word32 AudioDeviceIPhone::Init() {
 
         unsigned int threadID(0);
         bool res = _captureWorkerThread->Start(threadID);
-        _captureWorkerThreadId = static_cast<WebRtc_UWord32>(threadID);
+        _captureWorkerThreadId = static_cast<uint32_t>(threadID);
         WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice,
                      _id, "CaptureWorkerThread started (res=%d)", res);
     } else {
         WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice,
                      _id, "Thread already created");
     }
-
-    
-    Float64 sampleRate(16000.0);
-    OSStatus result = AudioSessionSetProperty(
-        kAudioSessionProperty_PreferredHardwareSampleRate,
-        sizeof(sampleRate), &sampleRate);
-    if (0 != result) {
-        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                     "Could not set preferred sample rate (result=%d)", result);
-    }
-
     _playWarning = 0;
     _playError = 0;
     _recWarning = 0;
@@ -148,7 +137,7 @@ WebRtc_Word32 AudioDeviceIPhone::Init() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::Terminate() {
+int32_t AudioDeviceIPhone::Terminate() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -186,7 +175,7 @@ bool AudioDeviceIPhone::Initialized() const {
     return (_initialized);
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SpeakerIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::SpeakerIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -195,7 +184,7 @@ WebRtc_Word32 AudioDeviceIPhone::SpeakerIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::InitSpeaker() {
+int32_t AudioDeviceIPhone::InitSpeaker() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -225,7 +214,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitSpeaker() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::MicrophoneIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -249,7 +238,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::InitMicrophone() {
+int32_t AudioDeviceIPhone::InitMicrophone() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -292,7 +281,7 @@ bool AudioDeviceIPhone::MicrophoneIsInitialized() const {
     return _micIsInitialized;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SpeakerVolumeIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::SpeakerVolumeIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -301,7 +290,7 @@ WebRtc_Word32 AudioDeviceIPhone::SpeakerVolumeIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetSpeakerVolume(WebRtc_UWord32 volume) {
+int32_t AudioDeviceIPhone::SetSpeakerVolume(uint32_t volume) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetSpeakerVolume(volume=%u)", volume);
 
@@ -310,7 +299,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetSpeakerVolume(WebRtc_UWord32 volume) {
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SpeakerVolume(WebRtc_UWord32& volume) const {
+int32_t AudioDeviceIPhone::SpeakerVolume(uint32_t& volume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -319,9 +308,9 @@ WebRtc_Word32 AudioDeviceIPhone::SpeakerVolume(WebRtc_UWord32& volume) const {
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::SetWaveOutVolume(WebRtc_UWord16 volumeLeft,
-                                        WebRtc_UWord16 volumeRight) {
+int32_t
+    AudioDeviceIPhone::SetWaveOutVolume(uint16_t volumeLeft,
+                                        uint16_t volumeRight) {
     WEBRTC_TRACE(
         kTraceModuleCall,
         kTraceAudioDevice,
@@ -335,9 +324,9 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32
-AudioDeviceIPhone::WaveOutVolume(WebRtc_UWord16& ,
-                                 WebRtc_UWord16& ) const {
+int32_t
+AudioDeviceIPhone::WaveOutVolume(uint16_t& ,
+                                 uint16_t& ) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -346,8 +335,8 @@ AudioDeviceIPhone::WaveOutVolume(WebRtc_UWord16& ,
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::MaxSpeakerVolume(WebRtc_UWord32& maxVolume) const {
+int32_t
+    AudioDeviceIPhone::MaxSpeakerVolume(uint32_t& maxVolume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -356,8 +345,8 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MinSpeakerVolume(
-    WebRtc_UWord32& minVolume) const {
+int32_t AudioDeviceIPhone::MinSpeakerVolume(
+    uint32_t& minVolume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -366,8 +355,8 @@ WebRtc_Word32 AudioDeviceIPhone::MinSpeakerVolume(
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::SpeakerVolumeStepSize(WebRtc_UWord16& stepSize) const {
+int32_t
+    AudioDeviceIPhone::SpeakerVolumeStepSize(uint16_t& stepSize) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -376,7 +365,7 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SpeakerMuteIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::SpeakerMuteIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -385,7 +374,7 @@ WebRtc_Word32 AudioDeviceIPhone::SpeakerMuteIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetSpeakerMute(bool enable) {
+int32_t AudioDeviceIPhone::SetSpeakerMute(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -394,7 +383,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetSpeakerMute(bool enable) {
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SpeakerMute(bool& enabled) const {
+int32_t AudioDeviceIPhone::SpeakerMute(bool& enabled) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -403,7 +392,7 @@ WebRtc_Word32 AudioDeviceIPhone::SpeakerMute(bool& enabled) const {
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneMuteIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::MicrophoneMuteIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -412,7 +401,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneMuteIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneMute(bool enable) {
+int32_t AudioDeviceIPhone::SetMicrophoneMute(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -421,7 +410,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneMute(bool enable) {
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneMute(bool& enabled) const {
+int32_t AudioDeviceIPhone::MicrophoneMute(bool& enabled) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -430,7 +419,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneMute(bool& enabled) const {
     return -1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneBoostIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::MicrophoneBoostIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -439,7 +428,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneBoostIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneBoost(bool enable) {
+int32_t AudioDeviceIPhone::SetMicrophoneBoost(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetMicrophoneBoost(enable=%u)", enable);
 
@@ -458,7 +447,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneBoost(bool enable) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneBoost(bool& enabled) const {
+int32_t AudioDeviceIPhone::MicrophoneBoost(bool& enabled) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
     if (!_micIsInitialized) {
@@ -472,7 +461,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneBoost(bool& enabled) const {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StereoRecordingIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::StereoRecordingIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -481,7 +470,7 @@ WebRtc_Word32 AudioDeviceIPhone::StereoRecordingIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetStereoRecording(bool enable) {
+int32_t AudioDeviceIPhone::SetStereoRecording(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetStereoRecording(enable=%u)", enable);
 
@@ -493,7 +482,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetStereoRecording(bool enable) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StereoRecording(bool& enabled) const {
+int32_t AudioDeviceIPhone::StereoRecording(bool& enabled) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -501,7 +490,7 @@ WebRtc_Word32 AudioDeviceIPhone::StereoRecording(bool& enabled) const {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StereoPlayoutIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::StereoPlayoutIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -510,7 +499,7 @@ WebRtc_Word32 AudioDeviceIPhone::StereoPlayoutIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetStereoPlayout(bool enable) {
+int32_t AudioDeviceIPhone::SetStereoPlayout(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetStereoPlayout(enable=%u)", enable);
 
@@ -522,7 +511,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetStereoPlayout(bool enable) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StereoPlayout(bool& enabled) const {
+int32_t AudioDeviceIPhone::StereoPlayout(bool& enabled) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -530,7 +519,7 @@ WebRtc_Word32 AudioDeviceIPhone::StereoPlayout(bool& enabled) const {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetAGC(bool enable) {
+int32_t AudioDeviceIPhone::SetAGC(bool enable) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetAGC(enable=%d)", enable);
 
@@ -546,7 +535,7 @@ bool AudioDeviceIPhone::AGC() const {
     return _AGC;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::MicrophoneVolumeIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::MicrophoneVolumeIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -555,7 +544,7 @@ WebRtc_Word32 AudioDeviceIPhone::MicrophoneVolumeIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneVolume(WebRtc_UWord32 volume) {
+int32_t AudioDeviceIPhone::SetMicrophoneVolume(uint32_t volume) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetMicrophoneVolume(volume=%u)", volume);
 
@@ -564,8 +553,8 @@ WebRtc_Word32 AudioDeviceIPhone::SetMicrophoneVolume(WebRtc_UWord32 volume) {
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::MicrophoneVolume(WebRtc_UWord32& volume) const {
+int32_t
+    AudioDeviceIPhone::MicrophoneVolume(uint32_t& volume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -574,8 +563,8 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::MaxMicrophoneVolume(WebRtc_UWord32& maxVolume) const {
+int32_t
+    AudioDeviceIPhone::MaxMicrophoneVolume(uint32_t& maxVolume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -584,8 +573,8 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::MinMicrophoneVolume(WebRtc_UWord32& minVolume) const {
+int32_t
+    AudioDeviceIPhone::MinMicrophoneVolume(uint32_t& minVolume) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -594,9 +583,9 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32
+int32_t
     AudioDeviceIPhone::MicrophoneVolumeStepSize(
-                                            WebRtc_UWord16& stepSize) const {
+                                            uint16_t& stepSize) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
@@ -605,14 +594,14 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word16 AudioDeviceIPhone::PlayoutDevices() {
+int16_t AudioDeviceIPhone::PlayoutDevices() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "%s", __FUNCTION__);
 
-    return (WebRtc_Word16)1;
+    return (int16_t)1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetPlayoutDevice(WebRtc_UWord16 index) {
+int32_t AudioDeviceIPhone::SetPlayoutDevice(uint16_t index) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetPlayoutDevice(index=%u)", index);
 
@@ -632,15 +621,15 @@ WebRtc_Word32 AudioDeviceIPhone::SetPlayoutDevice(WebRtc_UWord16 index) {
     return 0;
 }
 
-WebRtc_Word32
+int32_t
     AudioDeviceIPhone::SetPlayoutDevice(AudioDeviceModule::WindowsDeviceType) {
     WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
                  "WindowsDeviceType not supported");
     return -1;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::PlayoutDeviceName(WebRtc_UWord16 index,
+int32_t
+    AudioDeviceIPhone::PlayoutDeviceName(uint16_t index,
                                          char name[kAdmMaxDeviceNameSize],
                                          char guid[kAdmMaxGuidSize]) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
@@ -658,8 +647,8 @@ WebRtc_Word32
     return 0;
 }
 
-WebRtc_Word32
-    AudioDeviceIPhone::RecordingDeviceName(WebRtc_UWord16 index,
+int32_t
+    AudioDeviceIPhone::RecordingDeviceName(uint16_t index,
                                            char name[kAdmMaxDeviceNameSize],
                                            char guid[kAdmMaxGuidSize]) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
@@ -677,13 +666,13 @@ WebRtc_Word32
     return 0;
 }
 
-WebRtc_Word16 AudioDeviceIPhone::RecordingDevices() {
+int16_t AudioDeviceIPhone::RecordingDevices() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
-    return (WebRtc_Word16)1;
+    return (int16_t)1;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::SetRecordingDevice(WebRtc_UWord16 index) {
+int32_t AudioDeviceIPhone::SetRecordingDevice(uint16_t index) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetRecordingDevice(index=%u)", index);
 
@@ -704,7 +693,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetRecordingDevice(WebRtc_UWord16 index) {
     return 0;
 }
 
-WebRtc_Word32
+int32_t
     AudioDeviceIPhone::SetRecordingDevice(
                                         AudioDeviceModule::WindowsDeviceType) {
     WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -720,7 +709,7 @@ WebRtc_Word32
 
 
 
-WebRtc_Word32 AudioDeviceIPhone::SetLoudspeakerStatus(bool enable) {
+int32_t AudioDeviceIPhone::SetLoudspeakerStatus(bool enable) {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetLoudspeakerStatus(enable=%d)", enable);
 
@@ -739,7 +728,7 @@ WebRtc_Word32 AudioDeviceIPhone::SetLoudspeakerStatus(bool enable) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::GetLoudspeakerStatus(bool &enabled) const {
+int32_t AudioDeviceIPhone::GetLoudspeakerStatus(bool &enabled) const {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetLoudspeakerStatus(enabled=?)");
 
@@ -760,13 +749,13 @@ WebRtc_Word32 AudioDeviceIPhone::GetLoudspeakerStatus(bool &enabled) const {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::PlayoutIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::PlayoutIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     available = false;
 
     
-    WebRtc_Word32 res = InitPlayout();
+    int32_t res = InitPlayout();
 
     
     StopPlayout();
@@ -778,13 +767,13 @@ WebRtc_Word32 AudioDeviceIPhone::PlayoutIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::RecordingIsAvailable(bool& available) {
+int32_t AudioDeviceIPhone::RecordingIsAvailable(bool& available) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     available = false;
 
     
-    WebRtc_Word32 res = InitRecording();
+    int32_t res = InitRecording();
 
     
     StopRecording();
@@ -796,7 +785,7 @@ WebRtc_Word32 AudioDeviceIPhone::RecordingIsAvailable(bool& available) {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::InitPlayout() {
+int32_t AudioDeviceIPhone::InitPlayout() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -852,7 +841,7 @@ bool AudioDeviceIPhone::PlayoutIsInitialized() const {
     return (_playIsInitialized);
 }
 
-WebRtc_Word32 AudioDeviceIPhone::InitRecording() {
+int32_t AudioDeviceIPhone::InitRecording() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -910,7 +899,7 @@ bool AudioDeviceIPhone::RecordingIsInitialized() const {
     return (_recIsInitialized);
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StartRecording() {
+int32_t AudioDeviceIPhone::StartRecording() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -943,11 +932,11 @@ WebRtc_Word32 AudioDeviceIPhone::StartRecording() {
     if (!_playing) {
         
         WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
-                     "  Starting AU Remote IO");
-        OSStatus result = AudioOutputUnitStart(_auRemoteIO);
+                     "  Starting Audio Unit");
+        OSStatus result = AudioOutputUnitStart(_auVoiceProcessing);
         if (0 != result) {
             WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                         "  Error starting AU Remote IO (result=%d)", result);
+                         "  Error starting Audio Unit (result=%d)", result);
             return -1;
         }
     }
@@ -957,7 +946,7 @@ WebRtc_Word32 AudioDeviceIPhone::StartRecording() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StopRecording() {
+int32_t AudioDeviceIPhone::StopRecording() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -986,7 +975,7 @@ bool AudioDeviceIPhone::Recording() const {
     return (_recording);
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StartPlayout() {
+int32_t AudioDeviceIPhone::StartPlayout() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     
@@ -1018,11 +1007,11 @@ WebRtc_Word32 AudioDeviceIPhone::StartPlayout() {
     if (!_recording) {
         
         WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
-                     "  Starting AU Remote IO");
-        OSStatus result = AudioOutputUnitStart(_auRemoteIO);
+                     "  Starting Audio Unit");
+        OSStatus result = AudioOutputUnitStart(_auVoiceProcessing);
         if (0 != result) {
             WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                         "  Error starting AU Remote IO (result=%d)", result);
+                         "  Error starting Audio Unit (result=%d)", result);
             return -1;
         }
     }
@@ -1032,7 +1021,7 @@ WebRtc_Word32 AudioDeviceIPhone::StartPlayout() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::StopPlayout() {
+int32_t AudioDeviceIPhone::StopPlayout() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -1069,7 +1058,7 @@ bool AudioDeviceIPhone::Playing() const {
 
 
 
-WebRtc_Word32 AudioDeviceIPhone::ResetAudioDevice() {
+int32_t AudioDeviceIPhone::ResetAudioDevice() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     CriticalSectionScoped lock(&_critSect);
@@ -1111,20 +1100,20 @@ WebRtc_Word32 AudioDeviceIPhone::ResetAudioDevice() {
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::PlayoutDelay(WebRtc_UWord16& delayMS) const {
+int32_t AudioDeviceIPhone::PlayoutDelay(uint16_t& delayMS) const {
     delayMS = _playoutDelay;
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::RecordingDelay(WebRtc_UWord16& delayMS) const {
+int32_t AudioDeviceIPhone::RecordingDelay(uint16_t& delayMS) const {
     delayMS = _recordingDelay;
     return 0;
 }
 
-WebRtc_Word32
+int32_t
     AudioDeviceIPhone::SetPlayoutBuffer(
                                     const AudioDeviceModule::BufferType type,
-                                    WebRtc_UWord16 sizeMS) {
+                                    uint16_t sizeMS) {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id,
                  "AudioDeviceIPhone::SetPlayoutBuffer(type=%u, sizeMS=%u)",
                  type, sizeMS);
@@ -1134,9 +1123,9 @@ WebRtc_Word32
     return -1;
 }
 
-WebRtc_Word32
+int32_t
     AudioDeviceIPhone::PlayoutBuffer(AudioDeviceModule::BufferType& type,
-                                     WebRtc_UWord16& sizeMS) const {
+                                     uint16_t& sizeMS) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     type = AudioDeviceModule::kAdaptiveBufferSize;
@@ -1146,7 +1135,7 @@ WebRtc_Word32
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::CPULoad(WebRtc_UWord16& ) const {
+int32_t AudioDeviceIPhone::CPULoad(uint16_t& ) const {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
@@ -1190,13 +1179,13 @@ void AudioDeviceIPhone::ClearRecordingError() {
 
 
 
-WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
+int32_t AudioDeviceIPhone::InitPlayOrRecord() {
     WEBRTC_TRACE(kTraceModuleCall, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     OSStatus result = -1;
 
     
-    if (NULL != _auRemoteIO) {
+    if (NULL != _auVoiceProcessing) {
         
         
         WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
@@ -1210,7 +1199,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     AudioComponent comp;
 
     desc.componentType = kAudioUnitType_Output;
-    desc.componentSubType = kAudioUnitSubType_RemoteIO;
+    desc.componentSubType = kAudioUnitSubType_VoiceProcessingIO;
     desc.componentManufacturer = kAudioUnitManufacturer_Apple;
     desc.componentFlags = 0;
     desc.componentFlagsMask = 0;
@@ -1218,21 +1207,36 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     comp = AudioComponentFindNext(NULL, &desc);
     if (NULL == comp) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-                     "  Could not find audio component for AU Remote IO");
+                     "  Could not find audio component for Audio Unit");
         return -1;
     }
 
-    result = AudioComponentInstanceNew(comp, &_auRemoteIO);
+    result = AudioComponentInstanceNew(comp, &_auVoiceProcessing);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-                     "  Could not create AU Remote IO instance (result=%d)",
+                     "  Could not create Audio Unit instance (result=%d)",
                      result);
         return -1;
     }
 
     
+    Float64 sampleRate(16000.0);
+    result = AudioSessionSetProperty(
+                         kAudioSessionProperty_PreferredHardwareSampleRate,
+                         sizeof(sampleRate), &sampleRate);
+    if (0 != result) {
+        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
+                     "Could not set preferred sample rate (result=%d)", result);
+    }
+
+    uint32_t voiceChat = kAudioSessionMode_VoiceChat;
+    AudioSessionSetProperty(kAudioSessionProperty_Mode,
+                            sizeof(voiceChat), &voiceChat);
+
+    
     
 
+    
     
     
 
@@ -1243,7 +1247,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     
 
     UInt32 enableIO = 1;
-    result = AudioUnitSetProperty(_auRemoteIO,
+    result = AudioUnitSetProperty(_auVoiceProcessing,
                                   kAudioOutputUnitProperty_EnableIO,
                                   kAudioUnitScope_Input,
                                   1,  
@@ -1254,7 +1258,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
                      "  Could not enable IO on input (result=%d)", result);
     }
 
-    result = AudioUnitSetProperty(_auRemoteIO,
+    result = AudioUnitSetProperty(_auVoiceProcessing,
                                   kAudioOutputUnitProperty_EnableIO,
                                   kAudioUnitScope_Output,
                                   0,   
@@ -1268,7 +1272,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     
     UInt32 flag = 0;
     result = AudioUnitSetProperty(
-        _auRemoteIO, kAudioUnitProperty_ShouldAllocateBuffer,
+        _auVoiceProcessing, kAudioUnitProperty_ShouldAllocateBuffer,
         kAudioUnitScope_Output,  1, &flag, sizeof(flag));
     if (0 != result) {
         WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
@@ -1278,26 +1282,51 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     }
 
     
-    result = AudioUnitInitialize(_auRemoteIO);
+    AURenderCallbackStruct auCbS;
+    memset(&auCbS, 0, sizeof(auCbS));
+    auCbS.inputProc = RecordProcess;
+    auCbS.inputProcRefCon = this;
+    result = AudioUnitSetProperty(_auVoiceProcessing,
+                                  kAudioOutputUnitProperty_SetInputCallback,
+                                  kAudioUnitScope_Global, 1,
+                                  &auCbS, sizeof(auCbS));
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-                     "  Could not init AU Remote IO (result=%d)", result);
+            "  Could not set record callback for Audio Unit (result=%d)",
+            result);
+    }
+
+    
+    memset(&auCbS, 0, sizeof(auCbS));
+    auCbS.inputProc = PlayoutProcess;
+    auCbS.inputProcRefCon = this;
+    result = AudioUnitSetProperty(_auVoiceProcessing,
+                                  kAudioUnitProperty_SetRenderCallback,
+                                  kAudioUnitScope_Global, 0,
+                                  &auCbS, sizeof(auCbS));
+    if (0 != result) {
+        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
+            "  Could not set play callback for Audio Unit (result=%d)",
+            result);
     }
 
     
     AudioStreamBasicDescription playoutDesc;
     UInt32 size = sizeof(playoutDesc);
-    result = AudioUnitGetProperty(_auRemoteIO, kAudioUnitProperty_StreamFormat,
+    result = AudioUnitGetProperty(_auVoiceProcessing,
+                                  kAudioUnitProperty_StreamFormat,
                                   kAudioUnitScope_Output, 0, &playoutDesc,
                                   &size);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not get stream format AU Remote IO out/0 (result=%d)",
+            "  Could not get stream format Audio Unit out/0 (result=%d)",
             result);
     }
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                 "  AU Remote IO playout opened in sampling rate %f",
+                 "  Audio Unit playout opened in sampling rate %f",
                  playoutDesc.mSampleRate);
+
+    playoutDesc.mSampleRate = sampleRate;
 
     
     
@@ -1313,7 +1342,7 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     } else {
         _adbSampFreq = 0;
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  AU Remote IO out/0 opened in unknown sampling rate (%f)",
+            "  Audio Unit out/0 opened in unknown sampling rate (%f)",
             playoutDesc.mSampleRate);
         
     }
@@ -1341,37 +1370,32 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     playoutDesc.mBytesPerFrame = 2;
     playoutDesc.mChannelsPerFrame = 1;
     playoutDesc.mBitsPerChannel = 16;
-    result = AudioUnitSetProperty(_auRemoteIO, kAudioUnitProperty_StreamFormat,
+    result = AudioUnitSetProperty(_auVoiceProcessing,
+                                  kAudioUnitProperty_StreamFormat,
                                   kAudioUnitScope_Input, 0, &playoutDesc, size);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not set stream format AU Remote IO in/0 (result=%d)",
+            "  Could not set stream format Audio Unit in/0 (result=%d)",
             result);
     }
 
     
     AudioStreamBasicDescription recordingDesc;
     size = sizeof(recordingDesc);
-    result = AudioUnitGetProperty(_auRemoteIO, kAudioUnitProperty_StreamFormat,
+    result = AudioUnitGetProperty(_auVoiceProcessing,
+                                  kAudioUnitProperty_StreamFormat,
                                   kAudioUnitScope_Input, 1, &recordingDesc,
                                   &size);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not get stream format AU Remote IO in/1 (result=%d)",
+            "  Could not get stream format Audio Unit in/1 (result=%d)",
             result);
     }
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                 "  AU Remote IO recording opened in sampling rate %f",
+                 "  Audio Unit recording opened in sampling rate %f",
                  recordingDesc.mSampleRate);
 
-    if (static_cast<int>(playoutDesc.mSampleRate)
-        != static_cast<int>(recordingDesc.mSampleRate)) {
-        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  AU Remote IO recording and playout opened " \
-                     "in different sampling rates");
-        
-        
-    }
+    recordingDesc.mSampleRate = sampleRate;
 
     
     recordingDesc.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger
@@ -1383,80 +1407,57 @@ WebRtc_Word32 AudioDeviceIPhone::InitPlayOrRecord() {
     recordingDesc.mBytesPerFrame = 2;
     recordingDesc.mChannelsPerFrame = 1;
     recordingDesc.mBitsPerChannel = 16;
-    result = AudioUnitSetProperty(_auRemoteIO, kAudioUnitProperty_StreamFormat,
+    result = AudioUnitSetProperty(_auVoiceProcessing,
+                                  kAudioUnitProperty_StreamFormat,
                                   kAudioUnitScope_Output, 1, &recordingDesc,
                                   size);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not set stream format AU Remote IO out/1 (result=%d)",
+            "  Could not set stream format Audio Unit out/1 (result=%d)",
             result);
     }
 
     
-    AURenderCallbackStruct auCbS;
-    memset(&auCbS, 0, sizeof(auCbS));
-    auCbS.inputProc = RecordProcess;
-    auCbS.inputProcRefCon = this;
-    result = AudioUnitSetProperty(_auRemoteIO,
-        kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 1,
-        &auCbS, sizeof(auCbS));
+    result = AudioUnitInitialize(_auVoiceProcessing);
     if (0 != result) {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not set record callback for AU Remote IO (result=%d)",
-            result);
+                     "  Could not init Audio Unit (result=%d)", result);
     }
 
     
-    memset(&auCbS, 0, sizeof(auCbS));
-    auCbS.inputProc = PlayoutProcess;
-    auCbS.inputProcRefCon = this;
-    result = AudioUnitSetProperty(_auRemoteIO,
-        kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0,
-        &auCbS, sizeof(auCbS));
-    if (0 != result) {
-        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-            "  Could not set play callback for AU Remote IO (result=%d)",
-            result);
-    }
-
-    
-    Float64 sampleRate(0.0);
-    size = sizeof(sampleRate);
+    Float64 hardwareSampleRate = 0.0;
+    size = sizeof(hardwareSampleRate);
     result = AudioSessionGetProperty(
-        kAudioSessionProperty_CurrentHardwareSampleRate, &size, &sampleRate);
+        kAudioSessionProperty_CurrentHardwareSampleRate, &size,
+        &hardwareSampleRate);
     if (0 != result) {
         WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
             "  Could not get current HW sample rate (result=%d)", result);
     }
     WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
                  "  Current HW sample rate is %f, ADB sample rate is %d",
-             sampleRate, _adbSampFreq);
+             hardwareSampleRate, _adbSampFreq);
 
     return 0;
 }
 
-WebRtc_Word32 AudioDeviceIPhone::ShutdownPlayOrRecord() {
+int32_t AudioDeviceIPhone::ShutdownPlayOrRecord() {
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "%s", __FUNCTION__);
 
     
     OSStatus result = -1;
-    if (NULL != _auRemoteIO) {
-        result = AudioOutputUnitStop(_auRemoteIO);
+    if (NULL != _auVoiceProcessing) {
+        result = AudioOutputUnitStop(_auVoiceProcessing);
         if (0 != result) {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                "  Error stopping AU Remote IO (result=%d)", result);
+                "  Error stopping Audio Unit (result=%d)", result);
         }
-        result = AudioUnitUninitialize(_auRemoteIO);
+        result = AudioComponentInstanceDispose(_auVoiceProcessing);
         if (0 != result) {
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                "  Error uninitializing AU Remote IO (result=%d)", result);
+                "  Error disposing Audio Unit (result=%d)", result);
         }
-        result = AudioComponentInstanceDispose(_auRemoteIO);
-        if (0 != result) {
-            WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                "  Error disposing AU Remote IO (result=%d)", result);
-        }
-        _auRemoteIO = NULL;
+        _auVoiceProcessing = NULL;
     }
 
     return 0;
@@ -1486,13 +1487,13 @@ OSStatus
     AudioDeviceIPhone::RecordProcessImpl(
                                     AudioUnitRenderActionFlags *ioActionFlags,
                                     const AudioTimeStamp *inTimeStamp,
-                                    WebRtc_UWord32 inBusNumber,
-                                    WebRtc_UWord32 inNumberFrames) {
+                                    uint32_t inBusNumber,
+                                    uint32_t inNumberFrames) {
     
     
     
     
-    WebRtc_Word16* dataTmp = new WebRtc_Word16[inNumberFrames];
+    int16_t* dataTmp = new int16_t[inNumberFrames];
     memset(dataTmp, 0, 2*inNumberFrames);
 
     AudioBufferList abList;
@@ -1502,7 +1503,8 @@ OSStatus
     abList.mBuffers[0].mNumberChannels = 1;
 
     
-    OSStatus res = AudioUnitRender(_auRemoteIO, ioActionFlags, inTimeStamp,
+    OSStatus res = AudioUnitRender(_auVoiceProcessing,
+                                   ioActionFlags, inTimeStamp,
                                    inBusNumber, inNumberFrames, &abList);
     if (res != 0) {
         WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
@@ -1526,8 +1528,8 @@ OSStatus
 
         const unsigned int noSamp10ms = _adbSampFreq / 100;
         unsigned int dataPos = 0;
-        WebRtc_UWord16 bufPos = 0;
-        WebRtc_Word16 insertPos = -1;
+        uint16_t bufPos = 0;
+        int16_t insertPos = -1;
         unsigned int nCopy = 0;  
 
         while (dataPos < inNumberFrames) {
@@ -1542,13 +1544,13 @@ OSStatus
                 if ((_recordingLength[bufPos] > 0)
                     && (_recordingLength[bufPos] < noSamp10ms)) {
                     
-                    insertPos = static_cast<WebRtc_Word16>(bufPos);
+                    insertPos = static_cast<int16_t>(bufPos);
                     
                     bufPos = N_REC_BUFFERS;
                 } else if ((-1 == insertPos)
                            && (0 == _recordingLength[bufPos])) {
                     
-                    insertPos = static_cast<WebRtc_Word16>(bufPos);
+                    insertPos = static_cast<int16_t>(bufPos);
                 }
                 ++bufPos;
             }
@@ -1562,7 +1564,7 @@ OSStatus
                 nCopy = (dataToCopy < roomInBuffer ? dataToCopy : roomInBuffer);
 
                 memcpy(&_recordingBuffer[insertPos][currentRecLen],
-                       &dataTmp[dataPos], nCopy*sizeof(WebRtc_Word16));
+                       &dataTmp[dataPos], nCopy*sizeof(int16_t));
                 if (0 == currentRecLen) {
                     _recordingSeqNumber[insertPos] = _recordingCurrentSeq;
                     ++_recordingCurrentSeq;
@@ -1604,13 +1606,13 @@ OSStatus
 }
 
 OSStatus
-    AudioDeviceIPhone::PlayoutProcessImpl(WebRtc_UWord32 inNumberFrames,
+    AudioDeviceIPhone::PlayoutProcessImpl(uint32_t inNumberFrames,
                                           AudioBufferList *ioData) {
     
 
 
-    WebRtc_Word16* data =
-        static_cast<WebRtc_Word16*>(ioData->mBuffers[0].mData);
+    int16_t* data =
+        static_cast<int16_t*>(ioData->mBuffers[0].mData);
     unsigned int dataSizeBytes = ioData->mBuffers[0].mDataByteSize;
     unsigned int dataSize = dataSizeBytes/2;  
         if (dataSize != inNumberFrames) {  
@@ -1631,7 +1633,7 @@ OSStatus
     if (_playing) {
         unsigned int noSamp10ms = _adbSampFreq / 100;
         
-        WebRtc_Word16* dataTmp = new WebRtc_Word16[noSamp10ms];
+        int16_t* dataTmp = new int16_t[noSamp10ms];
         memset(dataTmp, 0, 2*noSamp10ms);
         unsigned int dataPos = 0;
         int noSamplesOut = 0;
@@ -1671,7 +1673,7 @@ OSStatus
             
             noSamplesOut =
                 _ptrAudioBuffer->GetPlayoutData(
-                    reinterpret_cast<WebRtc_Word8*>(dataTmp));
+                    reinterpret_cast<int8_t*>(dataTmp));
             
             if (noSamp10ms != (unsigned int)noSamplesOut) {
                 
@@ -1740,7 +1742,7 @@ void AudioDeviceIPhone::UpdatePlayoutDelay() {
         
         Float64 f64(0);
         size = sizeof(f64);
-        result = AudioUnitGetProperty(_auRemoteIO,
+        result = AudioUnitGetProperty(_auVoiceProcessing,
             kAudioUnitProperty_Latency, kAudioUnitScope_Global, 0, &f64, &size);
         if (0 != result) {
             WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -1790,7 +1792,8 @@ void AudioDeviceIPhone::UpdateRecordingDelay() {
         
         Float64 f64(0);
         size = sizeof(f64);
-        result = AudioUnitGetProperty(_auRemoteIO, kAudioUnitProperty_Latency,
+        result = AudioUnitGetProperty(_auVoiceProcessing,
+                                      kAudioUnitProperty_Latency,
                                       kAudioUnitScope_Global, 0, &f64, &size);
         if (0 != result) {
             WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -1809,7 +1812,7 @@ void AudioDeviceIPhone::UpdateRecordingDelay() {
 
     
     
-    const WebRtc_UWord32 noSamp10ms = _adbSampFreq / 100;
+    const uint32_t noSamp10ms = _adbSampFreq / 100;
     if (_recordingBufferTotalSize > noSamp10ms) {
         _recordingDelay +=
             (_recordingBufferTotalSize - noSamp10ms) / (_adbSampFreq / 1000);
@@ -1853,7 +1856,7 @@ bool AudioDeviceIPhone::CaptureWorkerThread() {
 
                 
                 _ptrAudioBuffer->SetRecordedBuffer(
-                    reinterpret_cast<WebRtc_Word8*>(
+                    reinterpret_cast<int8_t*>(
                         _recordingBuffer[lowestSeqBufPos]),
                         _recordingLength[lowestSeqBufPos]);
 

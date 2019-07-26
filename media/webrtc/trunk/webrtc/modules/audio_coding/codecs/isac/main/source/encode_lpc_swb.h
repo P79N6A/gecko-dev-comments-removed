@@ -40,9 +40,9 @@
 
 
 
-WebRtc_Word16 WebRtcIsac_RemoveLarMean(
+int16_t WebRtcIsac_RemoveLarMean(
     double*     lar,
-    WebRtc_Word16 bandwidth);
+    int16_t bandwidth);
 
 
 
@@ -60,10 +60,10 @@ WebRtc_Word16 WebRtcIsac_RemoveLarMean(
 
 
 
-WebRtc_Word16 WebRtcIsac_DecorrelateIntraVec(
+int16_t WebRtcIsac_DecorrelateIntraVec(
     const double* inLAR,
     double*       out,
-    WebRtc_Word16   bandwidth);
+    int16_t   bandwidth);
 
 
 
@@ -83,10 +83,10 @@ WebRtc_Word16 WebRtcIsac_DecorrelateIntraVec(
 
 
 
-WebRtc_Word16 WebRtcIsac_DecorrelateInterVec(
+int16_t WebRtcIsac_DecorrelateInterVec(
     const double* data,
     double*       out,
-    WebRtc_Word16   bandwidth);
+    int16_t   bandwidth);
 
 
 
@@ -106,7 +106,7 @@ WebRtc_Word16 WebRtcIsac_DecorrelateInterVec(
 double WebRtcIsac_QuantizeUncorrLar(
     double*     data,
     int*        idx,
-    WebRtc_Word16 bandwidth);
+    int16_t bandwidth);
 
 
 
@@ -122,10 +122,10 @@ double WebRtcIsac_QuantizeUncorrLar(
 
 
 
-WebRtc_Word16 WebRtcIsac_CorrelateIntraVec(
+int16_t WebRtcIsac_CorrelateIntraVec(
     const double* data,
     double*       out,
-    WebRtc_Word16   bandwidth);
+    int16_t   bandwidth);
 
 
 
@@ -141,10 +141,10 @@ WebRtc_Word16 WebRtcIsac_CorrelateIntraVec(
 
 
 
-WebRtc_Word16 WebRtcIsac_CorrelateInterVec(
+int16_t WebRtcIsac_CorrelateInterVec(
     const double* data,
     double*       out,
-    WebRtc_Word16   bandwidth);
+    int16_t   bandwidth);
 
 
 
@@ -160,9 +160,9 @@ WebRtc_Word16 WebRtcIsac_CorrelateInterVec(
 
 
 
-WebRtc_Word16 WebRtcIsac_AddLarMean(
+int16_t WebRtcIsac_AddLarMean(
     double*     data,
-    WebRtc_Word16 bandwidth);
+    int16_t bandwidth);
 
 
 
@@ -178,10 +178,10 @@ WebRtc_Word16 WebRtcIsac_AddLarMean(
 
 
 
-WebRtc_Word16 WebRtcIsac_DequantizeLpcParam(
+int16_t WebRtcIsac_DequantizeLpcParam(
     const int*  idx,
     double*     out,
-    WebRtc_Word16 bandwidth);
+    int16_t bandwidth);
 
 
 
@@ -195,7 +195,7 @@ WebRtc_Word16 WebRtcIsac_DequantizeLpcParam(
 
 
 
-WebRtc_Word16 WebRtcIsac_ToLogDomainRemoveMean(
+int16_t WebRtcIsac_ToLogDomainRemoveMean(
     double* lpGains);
 
 
@@ -211,7 +211,7 @@ WebRtc_Word16 WebRtcIsac_ToLogDomainRemoveMean(
 
 
 
-WebRtc_Word16 WebRtcIsac_DecorrelateLPGain(
+int16_t WebRtcIsac_DecorrelateLPGain(
     const double* data,
     double*       out);
 
@@ -244,7 +244,7 @@ double WebRtcIsac_QuantizeLpcGain(
 
 
 
-WebRtc_Word16 WebRtcIsac_DequantizeLpcGain(
+int16_t WebRtcIsac_DequantizeLpcGain(
     const int* idx,
     double*    lpGains);
 
@@ -260,7 +260,7 @@ WebRtc_Word16 WebRtcIsac_DequantizeLpcGain(
 
 
 
-WebRtc_Word16 WebRtcIsac_CorrelateLpcGain(
+int16_t WebRtcIsac_CorrelateLpcGain(
     const double* data,
     double*       out);
 
@@ -276,7 +276,7 @@ WebRtc_Word16 WebRtcIsac_CorrelateLpcGain(
 
 
 
-WebRtc_Word16 WebRtcIsac_AddMeanToLinearDomain(
+int16_t WebRtcIsac_AddMeanToLinearDomain(
     double* lpcGains);
 
 

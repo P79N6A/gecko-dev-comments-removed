@@ -26,19 +26,19 @@
 
 
 void WebRtcIlbcfix_SimpleInterpolateLsf(
-    WebRtc_Word16 *syntdenum, 
+    int16_t *syntdenum, 
 
 
-    WebRtc_Word16 *weightdenum, 
+    int16_t *weightdenum, 
 
 
-    WebRtc_Word16 *lsf,  
-    WebRtc_Word16 *lsfdeq,  
-    WebRtc_Word16 *lsfold,  
+    int16_t *lsf,  
+    int16_t *lsfdeq,  
+    int16_t *lsfold,  
 
-    WebRtc_Word16 *lsfdeqold, 
+    int16_t *lsfdeqold, 
 
-    WebRtc_Word16 length,  
+    int16_t length,  
     iLBC_Enc_Inst_t *iLBCenc_inst
     
                                         );

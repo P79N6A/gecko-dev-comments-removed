@@ -23,18 +23,18 @@
 
 
 void WebRtcIlbcfix_HpOutput(
-    WebRtc_Word16 *signal,     
-    WebRtc_Word16 *ba,      
+    int16_t *signal,     
+    int16_t *ba,      
 
 
-    WebRtc_Word16 *y,      
+    int16_t *y,      
 
-    WebRtc_Word16 *x,      
-    WebRtc_Word16 len)      
+    int16_t *x,      
+    int16_t len)      
 {
   int i;
-  WebRtc_Word32 tmpW32;
-  WebRtc_Word32 tmpW32b;
+  int32_t tmpW32;
+  int32_t tmpW32b;
 
   for (i=0; i<len; i++) {
 
@@ -62,10 +62,10 @@ void WebRtcIlbcfix_HpOutput(
     tmpW32b = tmpW32 + 1024;
 
     
-    tmpW32b = WEBRTC_SPL_SAT((WebRtc_Word32)67108863, tmpW32b, (WebRtc_Word32)-67108864);
+    tmpW32b = WEBRTC_SPL_SAT((int32_t)67108863, tmpW32b, (int32_t)-67108864);
 
     
-    signal[i] = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmpW32b, 11);
+    signal[i] = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmpW32b, 11);
 
     
     y[2] = y[0];
@@ -80,8 +80,8 @@ void WebRtcIlbcfix_HpOutput(
       tmpW32 = WEBRTC_SPL_LSHIFT_W32(tmpW32, 3);
     }
 
-    y[0] = (WebRtc_Word16)(tmpW32 >> 16);
-    y[1] = (WebRtc_Word16)((tmpW32 - WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)y[0], 16))>>1);
+    y[0] = (int16_t)(tmpW32 >> 16);
+    y[1] = (int16_t)((tmpW32 - WEBRTC_SPL_LSHIFT_W32((int32_t)y[0], 16))>>1);
 
   }
 

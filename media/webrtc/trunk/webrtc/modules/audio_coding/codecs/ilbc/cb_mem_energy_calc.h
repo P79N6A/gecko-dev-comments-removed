@@ -20,14 +20,14 @@
 #define WEBRTC_MODULES_AUDIO_CODING_CODECS_ILBC_MAIN_SOURCE_CB_MEM_ENERGY_CALC_H_
 
 void WebRtcIlbcfix_CbMemEnergyCalc(
-    WebRtc_Word32 energy,   
-    WebRtc_Word16 range,   
-    WebRtc_Word16 *ppi,   
-    WebRtc_Word16 *ppo,   
-    WebRtc_Word16 *energyW16,  
-    WebRtc_Word16 *energyShifts, 
-    WebRtc_Word16 scale,   
-    WebRtc_Word16 base_size  
+    int32_t energy,   
+    int16_t range,   
+    int16_t *ppi,   
+    int16_t *ppo,   
+    int16_t *energyW16,  
+    int16_t *energyShifts, 
+    int16_t scale,   
+    int16_t base_size  
                                    );
 
 #endif

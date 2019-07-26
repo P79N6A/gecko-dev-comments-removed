@@ -200,10 +200,10 @@ class VideoProcessorImpl : public VideoProcessor {
   EncodedImageCallback* encode_callback_;
   DecodedImageCallback* decode_callback_;
   
-  WebRtc_UWord8* source_buffer_;
+  uint8_t* source_buffer_;
   
   
-  WebRtc_UWord8* last_successful_frame_buffer_;
+  uint8_t* last_successful_frame_buffer_;
   webrtc::I420VideoFrame source_frame_;
   
   bool first_key_frame_has_been_excluded_;
@@ -231,10 +231,9 @@ class VideoProcessorImpl : public VideoProcessor {
       explicit VideoProcessorEncodeCompleteCallback(VideoProcessorImpl* vp)
         : video_processor_(vp) {
     }
-    WebRtc_Word32 Encoded(
-        webrtc::EncodedImage& encoded_image,
-        const webrtc::CodecSpecificInfo* codec_specific_info = NULL,
-        const webrtc::RTPFragmentationHeader* fragmentation = NULL);
+    int32_t Encoded(webrtc::EncodedImage& encoded_image,
+                    const webrtc::CodecSpecificInfo* codec_specific_info = NULL,
+                    const webrtc::RTPFragmentationHeader* fragmentation = NULL);
 
    private:
     VideoProcessorImpl* video_processor_;
@@ -247,7 +246,7 @@ class VideoProcessorImpl : public VideoProcessor {
       explicit VideoProcessorDecodeCompleteCallback(VideoProcessorImpl* vp)
       : video_processor_(vp) {
     }
-    WebRtc_Word32 Decoded(webrtc::I420VideoFrame& image);
+    int32_t Decoded(webrtc::I420VideoFrame& image);
 
    private:
     VideoProcessorImpl* video_processor_;

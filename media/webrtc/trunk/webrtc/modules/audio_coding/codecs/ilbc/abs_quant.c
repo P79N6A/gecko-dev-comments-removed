@@ -32,16 +32,16 @@ void WebRtcIlbcfix_AbsQuant(
     iLBC_bits *iLBC_encbits, 
 
 
-    WebRtc_Word16 *in,     
-    WebRtc_Word16 *weightDenum   
+    int16_t *in,     
+    int16_t *weightDenum   
                             ) {
-  WebRtc_Word16 *syntOut;
-  WebRtc_Word16 quantLen[2];
+  int16_t *syntOut;
+  int16_t quantLen[2];
 
   
-  WebRtc_Word16 syntOutBuf[LPC_FILTERORDER+STATE_SHORT_LEN_30MS];
-  WebRtc_Word16 in_weightedVec[STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
-  WebRtc_Word16 *in_weighted = &in_weightedVec[LPC_FILTERORDER];
+  int16_t syntOutBuf[LPC_FILTERORDER+STATE_SHORT_LEN_30MS];
+  int16_t in_weightedVec[STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
+  int16_t *in_weighted = &in_weightedVec[LPC_FILTERORDER];
 
   
   WebRtcSpl_MemSetW16(syntOutBuf, 0, LPC_FILTERORDER+STATE_SHORT_LEN_30MS);

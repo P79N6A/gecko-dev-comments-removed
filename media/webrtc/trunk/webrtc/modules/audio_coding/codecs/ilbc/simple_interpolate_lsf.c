@@ -26,27 +26,27 @@
 
 
 void WebRtcIlbcfix_SimpleInterpolateLsf(
-    WebRtc_Word16 *syntdenum, 
+    int16_t *syntdenum, 
 
 
-    WebRtc_Word16 *weightdenum, 
+    int16_t *weightdenum, 
 
 
-    WebRtc_Word16 *lsf,  
-    WebRtc_Word16 *lsfdeq,  
-    WebRtc_Word16 *lsfold,  
+    int16_t *lsf,  
+    int16_t *lsfdeq,  
+    int16_t *lsfold,  
 
-    WebRtc_Word16 *lsfdeqold, 
+    int16_t *lsfdeqold, 
 
-    WebRtc_Word16 length,  
+    int16_t length,  
     iLBC_Enc_Inst_t *iLBCenc_inst
     
                                         ) {
   int i, pos, lp_length;
 
-  WebRtc_Word16 *lsf2, *lsfdeq2;
+  int16_t *lsf2, *lsfdeq2;
   
-  WebRtc_Word16 lp[LPC_FILTERORDER + 1];
+  int16_t lp[LPC_FILTERORDER + 1];
 
   lsf2 = lsf + length;
   lsfdeq2 = lsfdeq + length;
@@ -67,8 +67,8 @@ void WebRtcIlbcfix_SimpleInterpolateLsf(
                                          WebRtcIlbcfix_kLsfWeight30ms[0],
                                          length);
     WebRtcIlbcfix_BwExpand(weightdenum, lp,
-                           (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpWeightDenum,
-                           (WebRtc_Word16)lp_length);
+                           (int16_t*)WebRtcIlbcfix_kLpcChirpWeightDenum,
+                           (int16_t)lp_length);
 
     
 
@@ -87,8 +87,8 @@ void WebRtcIlbcfix_SimpleInterpolateLsf(
                                            WebRtcIlbcfix_kLsfWeight30ms[i],
                                            length);
       WebRtcIlbcfix_BwExpand(weightdenum + pos, lp,
-                             (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpWeightDenum,
-                             (WebRtc_Word16)lp_length);
+                             (int16_t*)WebRtcIlbcfix_kLpcChirpWeightDenum,
+                             (int16_t)lp_length);
 
       pos += lp_length;
     }
@@ -113,8 +113,8 @@ void WebRtcIlbcfix_SimpleInterpolateLsf(
                                            WebRtcIlbcfix_kLsfWeight20ms[i],
                                            length);
       WebRtcIlbcfix_BwExpand(weightdenum+pos, lp,
-                             (WebRtc_Word16*)WebRtcIlbcfix_kLpcChirpWeightDenum,
-                             (WebRtc_Word16)lp_length);
+                             (int16_t*)WebRtcIlbcfix_kLpcChirpWeightDenum,
+                             (int16_t)lp_length);
 
       pos += lp_length;
     }

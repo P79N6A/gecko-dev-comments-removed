@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_MyCorr(
-    WebRtc_Word32 *corr,  
-    WebRtc_Word16 *seq1,  
-    WebRtc_Word16 dim1,  
-    const WebRtc_Word16 *seq2, 
-    WebRtc_Word16 dim2   
+    int32_t *corr,  
+    int16_t *seq1,  
+    int16_t dim1,  
+    const int16_t *seq2, 
+    int16_t dim2   
                           );
 
 #endif

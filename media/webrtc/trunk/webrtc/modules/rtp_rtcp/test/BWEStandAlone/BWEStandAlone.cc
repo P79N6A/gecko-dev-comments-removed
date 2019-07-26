@@ -32,36 +32,36 @@ public:
     myTransportCB (RtpRtcp *rtpMod) : _rtpMod(rtpMod) {};
 protected:
     
-    virtual void IncomingRTPPacket(const WebRtc_Word8* incomingRtpPacket,
-        const WebRtc_Word32 rtpPacketLength,
-        const WebRtc_Word8* fromIP,
-        const WebRtc_UWord16 fromPort);
+    virtual void IncomingRTPPacket(const int8_t* incomingRtpPacket,
+        const int32_t rtpPacketLength,
+        const int8_t* fromIP,
+        const uint16_t fromPort);
 
-    virtual void IncomingRTCPPacket(const WebRtc_Word8* incomingRtcpPacket,
-        const WebRtc_Word32 rtcpPacketLength,
-        const WebRtc_Word8* fromIP,
-        const WebRtc_UWord16 fromPort);
+    virtual void IncomingRTCPPacket(const int8_t* incomingRtcpPacket,
+        const int32_t rtcpPacketLength,
+        const int8_t* fromIP,
+        const uint16_t fromPort);
 
 private:
     RtpRtcp *_rtpMod;
 };
 
-void myTransportCB::IncomingRTPPacket(const WebRtc_Word8* incomingRtpPacket,
-                                      const WebRtc_Word32 rtpPacketLength,
-                                      const WebRtc_Word8* fromIP,
-                                      const WebRtc_UWord16 fromPort)
+void myTransportCB::IncomingRTPPacket(const int8_t* incomingRtpPacket,
+                                      const int32_t rtpPacketLength,
+                                      const int8_t* fromIP,
+                                      const uint16_t fromPort)
 {
     printf("Receiving RTP from IP %s, port %u\n", fromIP, fromPort);
-    _rtpMod->IncomingPacket((WebRtc_UWord8 *) incomingRtpPacket, static_cast<WebRtc_UWord16>(rtpPacketLength));
+    _rtpMod->IncomingPacket((uint8_t *) incomingRtpPacket, static_cast<uint16_t>(rtpPacketLength));
 }
 
-void myTransportCB::IncomingRTCPPacket(const WebRtc_Word8* incomingRtcpPacket,
-                                       const WebRtc_Word32 rtcpPacketLength,
-                                       const WebRtc_Word8* fromIP,
-                                       const WebRtc_UWord16 fromPort)
+void myTransportCB::IncomingRTCPPacket(const int8_t* incomingRtcpPacket,
+                                       const int32_t rtcpPacketLength,
+                                       const int8_t* fromIP,
+                                       const uint16_t fromPort)
 {
     printf("Receiving RTCP from IP %s, port %u\n", fromIP, fromPort);
-    _rtpMod->IncomingPacket((WebRtc_UWord8 *) incomingRtcpPacket, static_cast<WebRtc_UWord16>(rtcpPacketLength));
+    _rtpMod->IncomingPacket((uint8_t *) incomingRtcpPacket, static_cast<uint16_t>(rtcpPacketLength));
 }
 
 
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 {
     bool isSender = false;
     bool isReceiver = false;
-    WebRtc_UWord16 port;
+    uint16_t port;
     std::string ip;
     TestSenderReceiver *sendrec = new TestSenderReceiver();
     TestLoadGenerator *gen;
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 
     if (isSender)
     {
-        const WebRtc_UWord32 startRateKbps = 1000;
+        const uint32_t startRateKbps = 1000;
         
         gen = new CBRFixFRGenerator(sendrec, startRateKbps, 90000, 30, 0.2);
         

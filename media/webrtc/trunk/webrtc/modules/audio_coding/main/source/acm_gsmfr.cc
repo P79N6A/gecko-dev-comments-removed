@@ -26,7 +26,7 @@ namespace webrtc {
 
 #ifndef WEBRTC_CODEC_GSMFR
 
-ACMGSMFR::ACMGSMFR(WebRtc_Word16 )
+ACMGSMFR::ACMGSMFR(int16_t )
     : encoder_inst_ptr_(NULL),
       decoder_inst_ptr_(NULL) {
   return;
@@ -36,40 +36,40 @@ ACMGSMFR::~ACMGSMFR() {
   return;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalEncode(
-    WebRtc_UWord8* ,
-    WebRtc_Word16* ) {
+int16_t ACMGSMFR::InternalEncode(
+    uint8_t* ,
+    int16_t* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMGSMFR::DecodeSafe(WebRtc_UWord8* ,
-                                   WebRtc_Word16 ,
-                                   WebRtc_Word16* ,
-                                   WebRtc_Word16* ,
-                                   WebRtc_Word8* ) {
+int16_t ACMGSMFR::DecodeSafe(uint8_t* ,
+                             int16_t ,
+                             int16_t* ,
+                             int16_t* ,
+                             int8_t* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMGSMFR::EnableDTX() {
+int16_t ACMGSMFR::EnableDTX() {
   return -1;
 }
 
-WebRtc_Word16 ACMGSMFR::DisableDTX() {
+int16_t ACMGSMFR::DisableDTX() {
   return -1;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalInitEncoder(
+int16_t ACMGSMFR::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalInitDecoder(
+int16_t ACMGSMFR::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-WebRtc_Word32 ACMGSMFR::CodecDef(WebRtcNetEQ_CodecDef& ,
-                                 const CodecInst& ) {
+int32_t ACMGSMFR::CodecDef(WebRtcNetEQ_CodecDef& ,
+                           const CodecInst& ) {
   return -1;
 }
 
@@ -77,7 +77,7 @@ ACMGenericCodec* ACMGSMFR::CreateInstance(void) {
   return NULL;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalCreateEncoder() {
+int16_t ACMGSMFR::InternalCreateEncoder() {
   return -1;
 }
 
@@ -85,7 +85,7 @@ void ACMGSMFR::DestructEncoderSafe() {
   return;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalCreateDecoder() {
+int16_t ACMGSMFR::InternalCreateDecoder() {
   return -1;
 }
 
@@ -99,7 +99,7 @@ void ACMGSMFR::InternalDestructEncoderInst(void* ) {
 
 #else     
 
-ACMGSMFR::ACMGSMFR(WebRtc_Word16 codec_id)
+ACMGSMFR::ACMGSMFR(int16_t codec_id)
     : encoder_inst_ptr_(NULL),
       decoder_inst_ptr_(NULL) {
   codec_id_ = codec_id;
@@ -119,27 +119,27 @@ ACMGSMFR::~ACMGSMFR() {
   return;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalEncode(WebRtc_UWord8* bitstream,
-                                       WebRtc_Word16* bitstream_len_byte) {
+int16_t ACMGSMFR::InternalEncode(uint8_t* bitstream,
+                                 int16_t* bitstream_len_byte) {
   *bitstream_len_byte = WebRtcGSMFR_Encode(encoder_inst_ptr_,
                                            &in_audio_[in_audio_ix_read_],
                                            frame_len_smpl_,
-                                           (WebRtc_Word16*)bitstream);
+                                           (int16_t*)bitstream);
   
   
   in_audio_ix_read_ += frame_len_smpl_;
   return *bitstream_len_byte;
 }
 
-WebRtc_Word16 ACMGSMFR::DecodeSafe(WebRtc_UWord8* ,
-                                   WebRtc_Word16 ,
-                                   WebRtc_Word16* ,
-                                   WebRtc_Word16* ,
-                                   WebRtc_Word8* ) {
+int16_t ACMGSMFR::DecodeSafe(uint8_t* ,
+                             int16_t ,
+                             int16_t* ,
+                             int16_t* ,
+                             int8_t* ) {
   return 0;
 }
 
-WebRtc_Word16 ACMGSMFR::EnableDTX() {
+int16_t ACMGSMFR::EnableDTX() {
   if (dtx_enabled_) {
     return 0;
   } else if (encoder_exist_) {
@@ -155,7 +155,7 @@ WebRtc_Word16 ACMGSMFR::EnableDTX() {
   }
 }
 
-WebRtc_Word16 ACMGSMFR::DisableDTX() {
+int16_t ACMGSMFR::DisableDTX() {
   if (!dtx_enabled_) {
     return 0;
   } else if (encoder_exist_) {
@@ -172,7 +172,7 @@ WebRtc_Word16 ACMGSMFR::DisableDTX() {
   }
 }
 
-WebRtc_Word16 ACMGSMFR::InternalInitEncoder(
+int16_t ACMGSMFR::InternalInitEncoder(
     WebRtcACMCodecParams* codec_params) {
   if (WebRtcGSMFR_EncoderInit(encoder_inst_ptr_,
                               ((codec_params->enable_dtx) ? 1 : 0)) < 0) {
@@ -182,7 +182,7 @@ WebRtc_Word16 ACMGSMFR::InternalInitEncoder(
   return 0;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalInitDecoder(
+int16_t ACMGSMFR::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   if (WebRtcGSMFR_DecoderInit(decoder_inst_ptr_) < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
@@ -192,8 +192,8 @@ WebRtc_Word16 ACMGSMFR::InternalInitDecoder(
   return 0;
 }
 
-WebRtc_Word32 ACMGSMFR::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                                 const CodecInst& codec_inst) {
+int32_t ACMGSMFR::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                           const CodecInst& codec_inst) {
   if (!decoder_initialized_) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "CodecDef: decoder is not initialized for GSMFR");
@@ -213,7 +213,7 @@ ACMGenericCodec* ACMGSMFR::CreateInstance(void) {
   return NULL;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalCreateEncoder() {
+int16_t ACMGSMFR::InternalCreateEncoder() {
   if (WebRtcGSMFR_CreateEnc(&encoder_inst_ptr_) < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "InternalCreateEncoder: cannot create instance for GSMFR "
@@ -232,7 +232,7 @@ void ACMGSMFR::DestructEncoderSafe() {
   encoder_initialized_ = false;
 }
 
-WebRtc_Word16 ACMGSMFR::InternalCreateDecoder() {
+int16_t ACMGSMFR::InternalCreateDecoder() {
   if (WebRtcGSMFR_CreateDec(&decoder_inst_ptr_) < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
                  "InternalCreateDecoder: cannot create instance for GSMFR "

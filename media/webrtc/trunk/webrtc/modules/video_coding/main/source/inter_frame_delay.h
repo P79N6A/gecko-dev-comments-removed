@@ -33,15 +33,15 @@ public:
     
     
     
-    bool CalculateDelay(WebRtc_UWord32 timestamp,
-                        WebRtc_Word64 *delay,
+    bool CalculateDelay(uint32_t timestamp,
+                        int64_t *delay,
                         int64_t currentWallClock);
 
     
     
     
     
-    WebRtc_UWord32 CurrentTimeStampDiffMs() const;
+    uint32_t CurrentTimeStampDiffMs() const;
 
 private:
     
@@ -49,16 +49,16 @@ private:
     
     
     
-    void CheckForWrapArounds(WebRtc_UWord32 timestamp);
+    void CheckForWrapArounds(uint32_t timestamp);
 
-    WebRtc_Word64         _zeroWallClock; 
-    WebRtc_Word32         _wrapArounds;   
+    int64_t         _zeroWallClock; 
+    int32_t         _wrapArounds;   
     
-    WebRtc_UWord32        _prevTimestamp;
+    uint32_t        _prevTimestamp;
     
-    WebRtc_Word64         _prevWallClock;
+    int64_t         _prevWallClock;
     
-    WebRtc_Word64         _dTS;
+    int64_t         _dTS;
 };
 
 } 

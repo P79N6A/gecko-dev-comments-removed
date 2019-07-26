@@ -20,7 +20,7 @@ const std::string kInputFilename = "temp_inputfile.tmp";
 const std::string kInputFileContents = "baz";
 
 
-const int kFrameLength = 1000;
+const size_t kFrameLength = 1000;
 
 class FrameReaderTest: public testing::Test {
  protected:
@@ -54,7 +54,7 @@ TEST_F(FrameReaderTest, InitSuccess) {
 }
 
 TEST_F(FrameReaderTest, ReadFrame) {
-  WebRtc_UWord8 buffer[3];
+  uint8_t buffer[3];
   bool result = frame_reader_->ReadFrame(buffer);
   ASSERT_FALSE(result);  
   ASSERT_EQ(kInputFileContents[0], buffer[0]);
@@ -63,7 +63,7 @@ TEST_F(FrameReaderTest, ReadFrame) {
 }
 
 TEST_F(FrameReaderTest, ReadFrameUninitialized) {
-  WebRtc_UWord8 buffer[3];
+  uint8_t buffer[3];
   FrameReaderImpl file_reader(kInputFilename, kFrameLength);
   ASSERT_FALSE(file_reader.ReadFrame(buffer));
 }

@@ -35,87 +35,87 @@
 
 #define RXX_BUFFER_LEN  10
 
-static const WebRtc_Word16 kMsecSpeechInner = 520;
-static const WebRtc_Word16 kMsecSpeechOuter = 340;
+static const int16_t kMsecSpeechInner = 520;
+static const int16_t kMsecSpeechOuter = 340;
 
-static const WebRtc_Word16 kNormalVadThreshold = 400;
+static const int16_t kNormalVadThreshold = 400;
 
-static const WebRtc_Word16 kAlphaShortTerm = 6; 
-static const WebRtc_Word16 kAlphaLongTerm = 10; 
+static const int16_t kAlphaShortTerm = 6; 
+static const int16_t kAlphaLongTerm = 10; 
 
 typedef struct
 {
     
-    WebRtc_UWord32      fs;                 
-    WebRtc_Word16       compressionGaindB;  
-    WebRtc_Word16       targetLevelDbfs;    
-    WebRtc_Word16       agcMode;            
-    WebRtc_UWord8       limiterEnable;      
+    uint32_t            fs;                 
+    int16_t             compressionGaindB;  
+    int16_t             targetLevelDbfs;    
+    int16_t             agcMode;            
+    uint8_t             limiterEnable;      
     WebRtcAgc_config_t  defaultConfig;
     WebRtcAgc_config_t  usedConfig;
 
     
-    WebRtc_Word16       initFlag;
-    WebRtc_Word16       lastError;
+    int16_t             initFlag;
+    int16_t             lastError;
 
     
     
-    WebRtc_Word32       analogTargetLevel;  
-    WebRtc_Word32       startUpperLimit;    
-    WebRtc_Word32       startLowerLimit;    
-    WebRtc_Word32       upperPrimaryLimit;  
-    WebRtc_Word32       lowerPrimaryLimit;  
-    WebRtc_Word32       upperSecondaryLimit;
-    WebRtc_Word32       lowerSecondaryLimit;
-    WebRtc_UWord16      targetIdx;          
+    int32_t             analogTargetLevel;  
+    int32_t             startUpperLimit;    
+    int32_t             startLowerLimit;    
+    int32_t             upperPrimaryLimit;  
+    int32_t             lowerPrimaryLimit;  
+    int32_t             upperSecondaryLimit;
+    int32_t             lowerSecondaryLimit;
+    uint16_t            targetIdx;          
 #ifdef MIC_LEVEL_FEEDBACK
-    WebRtc_UWord16      targetIdxOffset;    
+    uint16_t            targetIdxOffset;    
 #endif
-    WebRtc_Word16       analogTarget;       
+    int16_t             analogTarget;       
 
     
-    WebRtc_Word32       filterState[8];     
-    WebRtc_Word32       upperLimit;         
-    WebRtc_Word32       lowerLimit;         
-    WebRtc_Word32       Rxx160w32;          
-    WebRtc_Word32       Rxx16_LPw32;        
-    WebRtc_Word32       Rxx160_LPw32;       
-    WebRtc_Word32       Rxx16_LPw32Max;     
-    WebRtc_Word32       Rxx16_vectorw32[RXX_BUFFER_LEN];
-    WebRtc_Word32       Rxx16w32_array[2][5];
-    WebRtc_Word32       env[2][10];         
+    int32_t             filterState[8];     
+    int32_t             upperLimit;         
+    int32_t             lowerLimit;         
+    int32_t             Rxx160w32;          
+    int32_t             Rxx16_LPw32;        
+    int32_t             Rxx160_LPw32;       
+    int32_t             Rxx16_LPw32Max;     
+    int32_t             Rxx16_vectorw32[RXX_BUFFER_LEN];
+    int32_t             Rxx16w32_array[2][5];
+    int32_t             env[2][10];         
 
-    WebRtc_Word16       Rxx16pos;           
-    WebRtc_Word16       envSum;             
-    WebRtc_Word16       vadThreshold;       
-    WebRtc_Word16       inActive;           
-    WebRtc_Word16       msTooLow;           
-    WebRtc_Word16       msTooHigh;          
-    WebRtc_Word16       changeToSlowMode;   
-    WebRtc_Word16       firstCall;          
-    WebRtc_Word16       msZero;             
-    WebRtc_Word16       msecSpeechOuterChange;
-    WebRtc_Word16       msecSpeechInnerChange;
-    WebRtc_Word16       activeSpeech;       
-    WebRtc_Word16       muteGuardMs;        
-    WebRtc_Word16       inQueue;            
+    int16_t             Rxx16pos;           
+    int16_t             envSum;             
+    int16_t             vadThreshold;       
+    int16_t             inActive;           
+    int16_t             msTooLow;           
+    int16_t             msTooHigh;          
+    int16_t             changeToSlowMode;   
+    int16_t             firstCall;          
+    int16_t             msZero;             
+    int16_t             msecSpeechOuterChange;
+    int16_t             msecSpeechInnerChange;
+    int16_t             activeSpeech;       
+    int16_t             muteGuardMs;        
+    int16_t             inQueue;            
 
     
-    WebRtc_Word32       micRef;             
-    WebRtc_UWord16      gainTableIdx;       
-    WebRtc_Word32       micGainIdx;         
-    WebRtc_Word32       micVol;             
-    WebRtc_Word32       maxLevel;           
-    WebRtc_Word32       maxAnalog;          
-    WebRtc_Word32       maxInit;            
-    WebRtc_Word32       minLevel;           
-    WebRtc_Word32       minOutput;          
-    WebRtc_Word32       zeroCtrlMax;        
+    int32_t             micRef;             
+    uint16_t            gainTableIdx;       
+    int32_t             micGainIdx;         
+    int32_t             micVol;             
+    int32_t             maxLevel;           
+    int32_t             maxAnalog;          
+    int32_t             maxInit;            
+    int32_t             minLevel;           
+    int32_t             minOutput;          
+    int32_t             zeroCtrlMax;        
 
-    WebRtc_Word16       scale;              
+    int16_t             scale;              
 #ifdef MIC_LEVEL_FEEDBACK
-    WebRtc_Word16       numBlocksMicLvlSat;
-    WebRtc_UWord8 micLvlSat;
+    int16_t             numBlocksMicLvlSat;
+    uint8_t             micLvlSat;
 #endif
     
     AgcVad_t            vadMic;
@@ -124,10 +124,10 @@ typedef struct
 #ifdef AGC_DEBUG
     FILE*               fpt;
     FILE*               agcLog;
-    WebRtc_Word32       fcount;
+    int32_t             fcount;
 #endif
 
-    WebRtc_Word16       lowLevelSignal;
+    int16_t             lowLevelSignal;
 } Agc_t;
 
 #endif 

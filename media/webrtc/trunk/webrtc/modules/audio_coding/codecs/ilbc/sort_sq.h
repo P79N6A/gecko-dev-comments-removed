@@ -26,11 +26,11 @@
 
 
 void WebRtcIlbcfix_SortSq(
-    WebRtc_Word16 *xq,   
-    WebRtc_Word16 *index,  
-    WebRtc_Word16 x,   
-    const WebRtc_Word16 *cb, 
-    WebRtc_Word16 cb_size  
+    int16_t *xq,   
+    int16_t *index,  
+    int16_t x,   
+    const int16_t *cb, 
+    int16_t cb_size  
                            );
 
 #endif

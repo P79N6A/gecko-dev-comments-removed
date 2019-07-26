@@ -42,11 +42,11 @@
 
 
 
-int readframe(WebRtc_Word16 *data, FILE *inp, int length) {
+int readframe(int16_t *data, FILE *inp, int length) {
 	
 	short k, rlen, status = 0;
 		
-	rlen = fread(data, sizeof(WebRtc_Word16), length, inp);
+	rlen = fread(data, sizeof(int16_t), length, inp);
 	if (rlen < length) {
 		for (k = rlen; k < length; k++)
 			data[k] = 0;
@@ -57,10 +57,10 @@ int readframe(WebRtc_Word16 *data, FILE *inp, int length) {
 }
 
 typedef struct {
-	WebRtc_UWord32 send_time;            
-	WebRtc_UWord32 arrival_time;            
-	WebRtc_UWord32 sample_count;            
-	WebRtc_UWord16 rtp_number;
+	uint32_t send_time;            
+	uint32_t arrival_time;            
+	uint32_t sample_count;            
+	uint16_t rtp_number;
 } BottleNeckModel;
 
 void get_arrival_time(int current_framesamples,   
@@ -96,10 +96,10 @@ int main(int argc, char* argv[])
 
 
 	int i,j,errtype, plc=0;
-	WebRtc_Word16 CodingMode;
-	WebRtc_Word16 bottleneck;
+	int16_t CodingMode;
+	int16_t bottleneck;
 
-	WebRtc_Word16 framesize = 30;           
+	int16_t framesize = 30;           
     
 	
 	int cur_framesmpls, err;
@@ -109,13 +109,13 @@ int main(int argc, char* argv[])
 	double runtime;
 	double length_file;
 	
-	WebRtc_Word16 stream_len = 0;
-	WebRtc_Word16 declen;
+	int16_t stream_len = 0;
+	int16_t declen;
 	
-	WebRtc_Word16 shortdata[FRAMESAMPLES_10ms];
-	WebRtc_Word16 decoded[MAX_FRAMESAMPLES];
-	WebRtc_UWord16 streamdata[600];
-	WebRtc_Word16	speechType[1];
+	int16_t shortdata[FRAMESAMPLES_10ms];
+	int16_t decoded[MAX_FRAMESAMPLES];
+	uint16_t streamdata[600];
+	int16_t	speechType[1];
 	
 
 
@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
 		}
 
 		
-		fwrite(decoded, sizeof(WebRtc_Word16), declen, outp);
+		fwrite(decoded, sizeof(int16_t), declen, outp);
 		}
 
 		fprintf(stderr,"  \rframe = %d", framecnt);

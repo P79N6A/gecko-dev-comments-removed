@@ -8,21 +8,29 @@
 
 
 
+#include "webrtc/system_wrappers/interface/condition_variable_wrapper.h"
+
 #if defined(_WIN32)
 #include <windows.h>
-#include "condition_variable_win.h"
-#include "condition_variable_wrapper.h"
+#include "webrtc/system_wrappers/source/condition_variable_event_win.h"
+#include "webrtc/system_wrappers/source/condition_variable_native_win.h"
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
 #include <pthread.h>
-#include "condition_variable_posix.h"
-#include "condition_variable_wrapper.h"
+#include "webrtc/system_wrappers/source/condition_variable_posix.h"
 #endif
 
 namespace webrtc {
 
 ConditionVariableWrapper* ConditionVariableWrapper::CreateConditionVariable() {
 #if defined(_WIN32)
-  return new ConditionVariableWindows;
+  
+  ConditionVariableWrapper* ret_val = ConditionVariableNativeWin::Create();
+  if (!ret_val) {
+    
+    
+    ret_val = new ConditionVariableEventWin();
+  }
+  return ret_val;
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_MAC)
   return ConditionVariablePosix::Create();
 #else

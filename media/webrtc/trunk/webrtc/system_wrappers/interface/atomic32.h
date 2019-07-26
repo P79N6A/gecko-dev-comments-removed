@@ -29,20 +29,20 @@ namespace webrtc {
 
 class Atomic32 {
  public:
-  Atomic32(WebRtc_Word32 initial_value = 0);
+  Atomic32(int32_t initial_value = 0);
   ~Atomic32();
 
   
-  WebRtc_Word32 operator++();
-  WebRtc_Word32 operator--();
+  int32_t operator++();
+  int32_t operator--();
 
-  WebRtc_Word32 operator+=(WebRtc_Word32 value);
-  WebRtc_Word32 operator-=(WebRtc_Word32 value);
+  int32_t operator+=(int32_t value);
+  int32_t operator-=(int32_t value);
 
   
   
-  bool CompareExchange(WebRtc_Word32 new_value, WebRtc_Word32 compare_value);
-  WebRtc_Word32 Value() const;
+  bool CompareExchange(int32_t new_value, int32_t compare_value);
+  int32_t Value() const;
 
  private:
   
@@ -57,7 +57,7 @@ class Atomic32 {
 
   DISALLOW_COPY_AND_ASSIGN(Atomic32);
 
-  WebRtc_Word32 value_;
+  int32_t value_;
 };
 
 }  

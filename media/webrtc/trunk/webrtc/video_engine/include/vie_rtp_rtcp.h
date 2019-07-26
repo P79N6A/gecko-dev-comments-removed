@@ -22,7 +22,7 @@
 #ifndef WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_RTP_RTCP_H_
 #define WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_RTP_RTCP_H_
 
-#include "common_types.h"
+#include "webrtc/common_types.h"
 
 namespace webrtc {
 
@@ -135,6 +135,14 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
 
   
   
+  virtual int SetRtxSendPayloadType(const int video_channel,
+                                    const uint8_t payload_type) = 0;
+
+  virtual int SetRtxReceivePayloadType(const int video_channel,
+                                       const uint8_t payload_type) = 0;
+
+  
+  
   virtual int SetStartSequenceNumber(const int video_channel,
                                      unsigned short sequence_number) = 0;
 
@@ -200,6 +208,16 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
                                      const unsigned char payload_typeFEC) = 0;
 
   
+  
+  
+  virtual int SetSenderBufferingMode(int video_channel,
+                                     int target_delay_ms) = 0;
+  
+  
+  virtual int SetReceiverBufferingMode(int video_channel,
+                                       int target_delay_ms) = 0;
+
+  
   virtual int SetKeyFrameRequestMethod(
     const int video_channel, const ViEKeyFrameRequestMethod method) = 0;
 
@@ -228,8 +246,6 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
                                               bool enable,
                                               int id) = 0;
 
-  
-  
   
   
   

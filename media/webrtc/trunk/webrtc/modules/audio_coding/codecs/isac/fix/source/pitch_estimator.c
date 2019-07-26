@@ -24,24 +24,24 @@
 #include "system_wrappers/interface/compile_assert.h"
 
 
-static const WebRtc_Word16 kLogLagWinQ8[3] = {
+static const int16_t kLogLagWinQ8[3] = {
   -594, -256, -7
 };
 
 
-static const WebRtc_Word16 kACoefQ12[3] = {
+static const int16_t kACoefQ12[3] = {
   4096, -3072, 1024
 };
 
 
 
-static __inline WebRtc_Word32 Log2Q8( WebRtc_UWord32 x ) {
+static __inline int32_t Log2Q8( uint32_t x ) {
 
-  WebRtc_Word32 zeros, lg2;
-  WebRtc_Word16 frac;
+  int32_t zeros, lg2;
+  int16_t frac;
 
   zeros=WebRtcSpl_NormU32(x);
-  frac=(WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(((WebRtc_UWord32)(WEBRTC_SPL_LSHIFT_W32(x, zeros))&0x7FFFFFFF), 23);
+  frac=(int16_t)WEBRTC_SPL_RSHIFT_W32(((uint32_t)(WEBRTC_SPL_LSHIFT_W32(x, zeros))&0x7FFFFFFF), 23);
   
 
   lg2= (WEBRTC_SPL_LSHIFT_W32((31-zeros), 8)+frac);
@@ -49,27 +49,27 @@ static __inline WebRtc_Word32 Log2Q8( WebRtc_UWord32 x ) {
 
 }
 
-static __inline WebRtc_Word16 Exp2Q10(WebRtc_Word16 x) { 
+static __inline int16_t Exp2Q10(int16_t x) { 
 
-  WebRtc_Word16 tmp16_1, tmp16_2;
+  int16_t tmp16_1, tmp16_2;
 
-  tmp16_2=(WebRtc_Word16)(0x0400|(x&0x03FF));
-  tmp16_1=-(WebRtc_Word16)WEBRTC_SPL_RSHIFT_W16(x,10);
+  tmp16_2=(int16_t)(0x0400|(x&0x03FF));
+  tmp16_1=-(int16_t)WEBRTC_SPL_RSHIFT_W16(x,10);
   if(tmp16_1>0)
-    return (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W16(tmp16_2, tmp16_1);
+    return (int16_t) WEBRTC_SPL_RSHIFT_W16(tmp16_2, tmp16_1);
   else
-    return (WebRtc_Word16) WEBRTC_SPL_LSHIFT_W16(tmp16_2, -tmp16_1);
+    return (int16_t) WEBRTC_SPL_LSHIFT_W16(tmp16_2, -tmp16_1);
 
 }
 
 
 
 
-static __inline void Intrp1DQ8(WebRtc_Word32 *x, WebRtc_Word32 *fx, WebRtc_Word32 *y, WebRtc_Word32 *fy) {
+static __inline void Intrp1DQ8(int32_t *x, int32_t *fx, int32_t *y, int32_t *fy) {
 
-  WebRtc_Word16 sign1=1, sign2=1;
-  WebRtc_Word32 r32, q32, t32, nom32, den32;
-  WebRtc_Word16 t16, tmp16, tmp16_1;
+  int16_t sign1=1, sign2=1;
+  int32_t r32, q32, t32, nom32, den32;
+  int16_t t16, tmp16, tmp16_1;
 
   if ((fx[0]>0) && (fx[2]>0)) {
     r32=fx[1]-fx[2];
@@ -85,7 +85,7 @@ static __inline void Intrp1DQ8(WebRtc_Word32 *x, WebRtc_Word32 *fx, WebRtc_Word3
     
     t32=WebRtcSpl_DivResultInQ31(WEBRTC_SPL_MUL_32_16(nom32, sign1),WEBRTC_SPL_MUL_32_16(den32, sign2)); 
 
-    t16=(WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(t32, 23);  
+    t16=(int16_t)WEBRTC_SPL_RSHIFT_W32(t32, 23);  
     t16=t16*sign1*sign2;        
 
     *y = x[0]+t16;          
@@ -95,9 +95,9 @@ static __inline void Intrp1DQ8(WebRtc_Word32 *x, WebRtc_Word32 *fx, WebRtc_Word3
     
 
     
-    tmp16_1=(WebRtc_Word16)WEBRTC_SPL_MUL_16_16(t16,t16); 
+    tmp16_1=(int16_t)WEBRTC_SPL_MUL_16_16(t16,t16); 
     tmp16_1 = WEBRTC_SPL_RSHIFT_W16(tmp16_1,2);  
-    t16 = (WebRtc_Word16)WEBRTC_SPL_MUL_16_16(t16, 64);           
+    t16 = (int16_t)WEBRTC_SPL_MUL_16_16(t16, 64);           
     tmp16 = tmp16_1-t16;
     *fy = WEBRTC_SPL_MUL_16_32_RSFT15(tmp16, fx[0]); 
 
@@ -115,10 +115,10 @@ static __inline void Intrp1DQ8(WebRtc_Word32 *x, WebRtc_Word32 *fx, WebRtc_Word3
 }
 
 
-static void FindFour32(WebRtc_Word32 *in, WebRtc_Word16 length, WebRtc_Word16 *bestind)
+static void FindFour32(int32_t *in, int16_t length, int16_t *bestind)
 {
-  WebRtc_Word32 best[4]= {-100, -100, -100, -100};
-  WebRtc_Word16 k;
+  int32_t best[4]= {-100, -100, -100, -100};
+  int16_t k;
 
   for (k=0; k<length; k++) {
     if (in[k] > best[3]) {
@@ -159,35 +159,35 @@ static void FindFour32(WebRtc_Word32 *in, WebRtc_Word16 length, WebRtc_Word16 *b
 
 
 
-static void PCorr2Q32(const WebRtc_Word16 *in, WebRtc_Word32 *logcorQ8)
+static void PCorr2Q32(const int16_t *in, int32_t *logcorQ8)
 {
-  WebRtc_Word16 scaling,n,k;
-  WebRtc_Word32 ysum32,csum32, lys, lcs;
-  WebRtc_Word32 oneQ8;
+  int16_t scaling,n,k;
+  int32_t ysum32,csum32, lys, lcs;
+  int32_t oneQ8;
 
 
-  const WebRtc_Word16 *x, *inptr;
+  const int16_t *x, *inptr;
 
-  oneQ8 = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)1, 8);  
+  oneQ8 = WEBRTC_SPL_LSHIFT_W32((int32_t)1, 8);  
 
   x = in + PITCH_MAX_LAG/2 + 2;
-  scaling = WebRtcSpl_GetScalingSquare ((WebRtc_Word16 *) in, PITCH_CORR_LEN2, PITCH_CORR_LEN2);
+  scaling = WebRtcSpl_GetScalingSquare ((int16_t *) in, PITCH_CORR_LEN2, PITCH_CORR_LEN2);
   ysum32 = 1;
   csum32 = 0;
   x = in + PITCH_MAX_LAG/2 + 2;
   for (n = 0; n < PITCH_CORR_LEN2; n++) {
-    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (WebRtc_Word16) in[n],(WebRtc_Word16) in[n], scaling);  
-    csum32 += WEBRTC_SPL_MUL_16_16_RSFT((WebRtc_Word16) x[n],(WebRtc_Word16) in[n], scaling); 
+    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[n],(int16_t) in[n], scaling);  
+    csum32 += WEBRTC_SPL_MUL_16_16_RSFT((int16_t) x[n],(int16_t) in[n], scaling); 
   }
 
   logcorQ8 += PITCH_LAG_SPAN2 - 1;
 
-  lys=Log2Q8((WebRtc_UWord32) ysum32); 
+  lys=Log2Q8((uint32_t) ysum32); 
   lys=WEBRTC_SPL_RSHIFT_W32(lys, 1); 
 
   if (csum32>0) {
 
-    lcs=Log2Q8((WebRtc_UWord32) csum32);   
+    lcs=Log2Q8((uint32_t) csum32);   
 
     if (lcs>(lys + oneQ8) ){ 
       *logcorQ8 = lcs - lys;  
@@ -202,8 +202,8 @@ static void PCorr2Q32(const WebRtc_Word16 *in, WebRtc_Word32 *logcorQ8)
 
   for (k = 1; k < PITCH_LAG_SPAN2; k++) {
     inptr = &in[k];
-    ysum32 -= WEBRTC_SPL_MUL_16_16_RSFT( (WebRtc_Word16) in[k-1],(WebRtc_Word16) in[k-1], scaling);
-    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (WebRtc_Word16) in[PITCH_CORR_LEN2 + k - 1],(WebRtc_Word16) in[PITCH_CORR_LEN2 + k - 1], scaling);
+    ysum32 -= WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[k-1],(int16_t) in[k-1], scaling);
+    ysum32 += WEBRTC_SPL_MUL_16_16_RSFT( (int16_t) in[PITCH_CORR_LEN2 + k - 1],(int16_t) in[PITCH_CORR_LEN2 + k - 1], scaling);
 
 #ifdef WEBRTC_ARCH_ARM_NEON
     {
@@ -244,12 +244,12 @@ static void PCorr2Q32(const WebRtc_Word16 *in, WebRtc_Word32 *logcorQ8)
 
     logcorQ8--;
 
-    lys=Log2Q8((WebRtc_UWord32)ysum32); 
+    lys=Log2Q8((uint32_t)ysum32); 
     lys=WEBRTC_SPL_RSHIFT_W32(lys, 1); 
 
     if (csum32>0) {
 
-      lcs=Log2Q8((WebRtc_UWord32) csum32);   
+      lcs=Log2Q8((uint32_t) csum32);   
 
       if (lcs>(lys + oneQ8) ){ 
         *logcorQ8 = lcs - lys;  
@@ -265,34 +265,34 @@ static void PCorr2Q32(const WebRtc_Word16 *in, WebRtc_Word32 *logcorQ8)
 
 
 
-void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in, 
+void WebRtcIsacfix_InitialPitch(const int16_t *in, 
                                 PitchAnalysisStruct *State,
-                                WebRtc_Word16 *lagsQ7                   
+                                int16_t *lagsQ7                   
                                 )
 {
-  WebRtc_Word16 buf_dec16[PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2+2];
-  WebRtc_Word32 *crrvecQ8_1,*crrvecQ8_2;
-  WebRtc_Word32 cv1q[PITCH_LAG_SPAN2+2],cv2q[PITCH_LAG_SPAN2+2], peakvq[PITCH_LAG_SPAN2+2];
+  int16_t buf_dec16[PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2+2];
+  int32_t *crrvecQ8_1,*crrvecQ8_2;
+  int32_t cv1q[PITCH_LAG_SPAN2+2],cv2q[PITCH_LAG_SPAN2+2], peakvq[PITCH_LAG_SPAN2+2];
   int k;
-  WebRtc_Word16 peaks_indq;
-  WebRtc_Word16 peakiq[PITCH_LAG_SPAN2];
-  WebRtc_Word32 corr;
-  WebRtc_Word32 corr32, corr_max32, corr_max_o32;
-  WebRtc_Word16 npkq;
-  WebRtc_Word16 best4q[4]={0,0,0,0};
-  WebRtc_Word32 xq[3],yq[1],fyq[1];
-  WebRtc_Word32 *fxq;
-  WebRtc_Word32 best_lag1q, best_lag2q;
-  WebRtc_Word32 tmp32a,tmp32b,lag32,ratq;
-  WebRtc_Word16 start;
-  WebRtc_Word16 oldgQ12, tmp16a, tmp16b, gain_bias16,tmp16c, tmp16d, bias16;
-  WebRtc_Word32 tmp32c,tmp32d, tmp32e;
-  WebRtc_Word16 old_lagQ;
-  WebRtc_Word32 old_lagQ8;
-  WebRtc_Word32 lagsQ8[4];
+  int16_t peaks_indq;
+  int16_t peakiq[PITCH_LAG_SPAN2];
+  int32_t corr;
+  int32_t corr32, corr_max32, corr_max_o32;
+  int16_t npkq;
+  int16_t best4q[4]={0,0,0,0};
+  int32_t xq[3],yq[1],fyq[1];
+  int32_t *fxq;
+  int32_t best_lag1q, best_lag2q;
+  int32_t tmp32a,tmp32b,lag32,ratq;
+  int16_t start;
+  int16_t oldgQ12, tmp16a, tmp16b, gain_bias16,tmp16c, tmp16d, bias16;
+  int32_t tmp32c,tmp32d, tmp32e;
+  int16_t old_lagQ;
+  int32_t old_lagQ8;
+  int32_t lagsQ8[4];
 
   old_lagQ = State->PFstr_wght.oldlagQ7; 
-  old_lagQ8= WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)old_lagQ,1); 
+  old_lagQ8= WEBRTC_SPL_LSHIFT_W32((int32_t)old_lagQ,1); 
 
   oldgQ12= State->PFstr_wght.oldgainQ12;
 
@@ -301,7 +301,7 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
 
 
   
-  memcpy(buf_dec16, State->dec_buffer16, WEBRTC_SPL_MUL_16_16(sizeof(WebRtc_Word16), (PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2-PITCH_FRAME_LEN/2+2)));
+  memcpy(buf_dec16, State->dec_buffer16, WEBRTC_SPL_MUL_16_16(sizeof(int16_t), (PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2-PITCH_FRAME_LEN/2+2)));
 
   
   WebRtcIsacfix_DecimateAllpass32(in, State->decimator_state32, PITCH_FRAME_LEN,
@@ -309,7 +309,7 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
 
   
   start= PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2-PITCH_FRAME_LEN/2+2;
-  WebRtcSpl_FilterARFastQ12(&buf_dec16[start],&buf_dec16[start],(WebRtc_Word16*)kACoefQ12,3, PITCH_FRAME_LEN/2);
+  WebRtcSpl_FilterARFastQ12(&buf_dec16[start],&buf_dec16[start],(int16_t*)kACoefQ12,3, PITCH_FRAME_LEN/2);
 
   
   for (k = 0; k < (PITCH_CORR_LEN2+PITCH_CORR_STEP2+PITCH_MAX_LAG/2-PITCH_FRAME_LEN/2+2); k++)
@@ -322,25 +322,25 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
 
 
   
-  tmp32a = Log2Q8((WebRtc_UWord32) old_lagQ8) - 2304; 
+  tmp32a = Log2Q8((uint32_t) old_lagQ8) - 2304; 
   tmp32b = WEBRTC_SPL_MUL_16_16_RSFT(oldgQ12,oldgQ12, 10); 
-  gain_bias16 = (WebRtc_Word16) tmp32b;  
+  gain_bias16 = (int16_t) tmp32b;  
   if (gain_bias16 > 3276) gain_bias16 = 3276; 
 
 
   for (k = 0; k < PITCH_LAG_SPAN2; k++)
   {
     if (crrvecQ8_1[k]>0) {
-      tmp32b = Log2Q8((WebRtc_UWord32) (k + (PITCH_MIN_LAG/2-2)));
-      tmp16a = (WebRtc_Word16) (tmp32b - tmp32a); 
+      tmp32b = Log2Q8((uint32_t) (k + (PITCH_MIN_LAG/2-2)));
+      tmp16a = (int16_t) (tmp32b - tmp32a); 
       tmp32c = WEBRTC_SPL_MUL_16_16_RSFT(tmp16a,tmp16a, 6); 
-      tmp16b = (WebRtc_Word16) tmp32c; 
+      tmp16b = (int16_t) tmp32c; 
       tmp32d = WEBRTC_SPL_MUL_16_16_RSFT(tmp16b, 177 , 8); 
-      tmp16c = (WebRtc_Word16) tmp32d; 
-      tmp16d = Exp2Q10((WebRtc_Word16) -tmp16c); 
+      tmp16c = (int16_t) tmp32d; 
+      tmp16d = Exp2Q10((int16_t) -tmp16c); 
       tmp32c = WEBRTC_SPL_MUL_16_16_RSFT(gain_bias16,tmp16d,13); 
-      bias16 = (WebRtc_Word16) (1024 + tmp32c); 
-      tmp32b = Log2Q8((WebRtc_UWord32) bias16) - 2560; 
+      bias16 = (int16_t) (1024 + tmp32c); 
+      tmp32b = Log2Q8((uint32_t) bias16) - 2560; 
       crrvecQ8_1[k] += tmp32b ; 
     }
   }
@@ -402,7 +402,7 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
   corr_max32=0;
   best_lag1q =0;
   if (peaks_indq > 0) {
-    FindFour32(peakvq, (WebRtc_Word16) peaks_indq, best4q);
+    FindFour32(peakvq, (int16_t) peaks_indq, best4q);
     npkq = WEBRTC_SPL_MIN(peaks_indq, 4);
 
     for (k=0;k<npkq;k++) {
@@ -413,10 +413,10 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
       xq[0] = WEBRTC_SPL_LSHIFT_W32(xq[0], 8);
       Intrp1DQ8(xq, fxq, yq, fyq);
 
-      tmp32a= Log2Q8((WebRtc_UWord32) *yq) - 2048; 
+      tmp32a= Log2Q8((uint32_t) *yq) - 2048; 
       
       
-      tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((WebRtc_Word16) tmp32a, -42, 8);
+      tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32a, -42, 8);
       tmp32c= tmp32b + 256;
       *fyq += tmp32c;
       if (*fyq > corr_max32) {
@@ -440,12 +440,12 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
   for (k = 1; k <= PITCH_LAG_SPAN2; k++)
   {
     tmp32a = WEBRTC_SPL_LSHIFT_W32(k, 7); 
-    tmp32b = (WebRtc_Word32) (WEBRTC_SPL_LSHIFT_W32(tmp32a, 1)) - ratq; 
-    tmp32c = WEBRTC_SPL_MUL_16_16_RSFT((WebRtc_Word16) tmp32b, (WebRtc_Word16) tmp32b, 8); 
+    tmp32b = (int32_t) (WEBRTC_SPL_LSHIFT_W32(tmp32a, 1)) - ratq; 
+    tmp32c = WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32b, (int16_t) tmp32b, 8); 
 
-    tmp32b = (WebRtc_Word32) tmp32c + (WebRtc_Word32)  WEBRTC_SPL_RSHIFT_W32(ratq, 1); 
-    tmp32c = Log2Q8((WebRtc_UWord32) tmp32a) - 2048; 
-    tmp32d = Log2Q8((WebRtc_UWord32) tmp32b) - 2048; 
+    tmp32b = (int32_t) tmp32c + (int32_t)  WEBRTC_SPL_RSHIFT_W32(ratq, 1); 
+    tmp32c = Log2Q8((uint32_t) tmp32a) - 2048; 
+    tmp32d = Log2Q8((uint32_t) tmp32b) - 2048; 
     tmp32e =  tmp32c -tmp32d;
 
     cv2q[k] += WEBRTC_SPL_RSHIFT_W32(tmp32e, 1);
@@ -474,7 +474,7 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
   best_lag2q =0;
   if (peaks_indq > 0) {
 
-    FindFour32(peakvq, (WebRtc_Word16) peaks_indq, best4q);
+    FindFour32(peakvq, (int16_t) peaks_indq, best4q);
     npkq = WEBRTC_SPL_MIN(peaks_indq, 4);
     for (k=0;k<npkq;k++) {
 
@@ -487,8 +487,8 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
 
       
       
-      tmp32a= Log2Q8((WebRtc_UWord32) *yq) - 2048; 
-      tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((WebRtc_Word16) tmp32a, -82, 8);
+      tmp32a= Log2Q8((uint32_t) *yq) - 2048; 
+      tmp32b= WEBRTC_SPL_MUL_16_16_RSFT((int16_t) tmp32a, -82, 8);
       tmp32c= tmp32b + 256;
       *fyq += tmp32c;
       if (*fyq > corr_max32) {
@@ -506,24 +506,24 @@ void WebRtcIsacfix_InitialPitch(const WebRtc_Word16 *in,
     lagsQ8[3] = lagsQ8[0];
   }
 
-  lagsQ7[0]=(WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(lagsQ8[0], 1);
-  lagsQ7[1]=(WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(lagsQ8[1], 1);
-  lagsQ7[2]=(WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(lagsQ8[2], 1);
-  lagsQ7[3]=(WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(lagsQ8[3], 1);
+  lagsQ7[0]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[0], 1);
+  lagsQ7[1]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[1], 1);
+  lagsQ7[2]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[2], 1);
+  lagsQ7[3]=(int16_t) WEBRTC_SPL_RSHIFT_W32(lagsQ8[3], 1);
 
 
 }
 
 
 
-void WebRtcIsacfix_PitchAnalysis(const WebRtc_Word16 *inn,               
-                                 WebRtc_Word16 *outQ0,                  
+void WebRtcIsacfix_PitchAnalysis(const int16_t *inn,               
+                                 int16_t *outQ0,                  
                                  PitchAnalysisStruct *State,
-                                 WebRtc_Word16 *PitchLags_Q7,
-                                 WebRtc_Word16 *PitchGains_Q12)
+                                 int16_t *PitchLags_Q7,
+                                 int16_t *PitchGains_Q12)
 {
-  WebRtc_Word16 inbufQ0[PITCH_FRAME_LEN + QLOOKAHEAD];
-  WebRtc_Word16 k;
+  int16_t inbufQ0[PITCH_FRAME_LEN + QLOOKAHEAD];
+  int16_t k;
 
   
   WebRtcIsacfix_InitialPitch(inn, State,  PitchLags_Q7);
@@ -537,7 +537,7 @@ void WebRtcIsacfix_PitchAnalysis(const WebRtc_Word16 *inn,
     inbufQ0[k] = State->inbuf[k];
   }
   for (k = 0; k < PITCH_FRAME_LEN; k++) {
-    inbufQ0[k+QLOOKAHEAD] = (WebRtc_Word16) inn[k];
+    inbufQ0[k+QLOOKAHEAD] = (int16_t) inn[k];
   }
 
   

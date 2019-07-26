@@ -10,6 +10,20 @@
 
 #include "after_streaming_fixture.h"
 
+namespace {
+
+void ExpectVolumeNear(int expected, int actual) {
+  
+  
+  
+  const int kMaxVolumeError = 10;
+  EXPECT_NEAR(expected, actual, kMaxVolumeError);
+  EXPECT_GE(actual, 0);
+  EXPECT_LE(actual, 255);
+}
+
+}  
+
 class VolumeTest : public AfterStreamingFixture {
 };
 
@@ -33,20 +47,20 @@ TEST_F(VolumeTest, SetVolumeBeforePlayoutWorks) {
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(200));
   unsigned int volume;
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
-  EXPECT_EQ(200u, volume);
+  ExpectVolumeNear(200u, volume);
 
   PausePlaying();
   ResumePlaying();
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
   
-  EXPECT_EQ(200u, volume);
+  ExpectVolumeNear(200u, volume);
 
   PausePlaying();
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(100));
   ResumePlaying();
   
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
-  EXPECT_EQ(100u, volume);
+  ExpectVolumeNear(100u, volume);
 
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(original_volume));
 }
@@ -60,20 +74,20 @@ TEST_F(VolumeTest, ManualSetVolumeWorks) {
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(0));
   unsigned int volume;
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
-  EXPECT_EQ(0u, volume);
+  ExpectVolumeNear(0u, volume);
   Sleep(1000);
 
   TEST_LOG("Setting speaker volume to 100 out of 255.\n");
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(100));
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
-  EXPECT_EQ(100u, volume);
+  ExpectVolumeNear(100u, volume);
   Sleep(1000);
 
   
   
   EXPECT_EQ(0, voe_volume_control_->SetSpeakerVolume(255));
   EXPECT_EQ(0, voe_volume_control_->GetSpeakerVolume(volume));
-  EXPECT_EQ(255u, volume);
+  ExpectVolumeNear(255u, volume);
 
   TEST_LOG("Setting speaker volume to the original %d out of 255.\n",
       original_volume);

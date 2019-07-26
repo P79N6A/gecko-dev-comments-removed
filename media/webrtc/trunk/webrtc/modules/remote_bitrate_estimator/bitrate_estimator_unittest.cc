@@ -8,51 +8,44 @@
 
 
 
-
-
-
-
 #include <gtest/gtest.h>
 
-#include "typedefs.h"
-#include "bitrate_estimator.h"
+#include "webrtc/modules/remote_bitrate_estimator/bitrate_estimator.h"
 
 namespace {
 
 using webrtc::BitRateStats;
 
-class BitRateStatsTest : public ::testing::Test
-{
-protected:
-    BitRateStatsTest() {};
-    BitRateStats bitRate;
+class BitRateStatsTest : public ::testing::Test {
+ protected:
+  BitRateStatsTest() {};
+  BitRateStats stats_;
 };
 
-TEST_F(BitRateStatsTest, TestStrictMode)
-{
-    WebRtc_Word64 nowMs = 0;
-    
-    EXPECT_EQ(0u, bitRate.BitRate(nowMs));
-    bitRate.Update(1500, nowMs);
-    
-    EXPECT_EQ(24000u, bitRate.BitRate(nowMs));
-    bitRate.Init();
-    
-    EXPECT_EQ(0u, bitRate.BitRate(nowMs));
-    for (int i = 0; i < 100000; ++i)
-    {
-        if (nowMs % 10 == 0)
-            bitRate.Update(1500, nowMs);
-        
-        
-        if (nowMs > 0 && nowMs % 500 == 0)
-            EXPECT_NEAR(1200000u, bitRate.BitRate(nowMs), 24000u);
-        nowMs += 1;
+TEST_F(BitRateStatsTest, TestStrictMode) {
+  int64_t now_ms = 0;
+  
+  EXPECT_EQ(0u, stats_.BitRate(now_ms));
+  stats_.Update(1500, now_ms);
+  
+  EXPECT_EQ(24000u, stats_.BitRate(now_ms));
+  stats_.Init();
+  
+  EXPECT_EQ(0u, stats_.BitRate(now_ms));
+  for (int i = 0; i < 100000; ++i) {
+    if (now_ms % 10 == 0) {
+      stats_.Update(1500, now_ms);
     }
-    nowMs += 500;
     
     
-    EXPECT_EQ(0u, bitRate.BitRate(nowMs));
+    if (now_ms > 0 && now_ms % 500 == 0) {
+      EXPECT_NEAR(1200000u, stats_.BitRate(now_ms), 24000u);
+    }
+    now_ms += 1;
+  }
+  now_ms += 500;
+  
+  
+  EXPECT_EQ(0u, stats_.BitRate(now_ms));
 }
-
-}
+}  

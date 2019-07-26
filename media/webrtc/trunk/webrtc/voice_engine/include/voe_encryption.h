@@ -53,24 +53,6 @@ public:
     
     virtual int DeRegisterExternalEncryption(int channel) = 0;
 
-    
-    virtual int EnableSRTPSend(int channel, CipherTypes cipherType,
-        int cipherKeyLength, AuthenticationTypes authType, int authKeyLength,
-        int authTagLength, SecurityLevels level, const unsigned char key[30],
-        bool useForRTCP = false) = 0;
-
-    
-    virtual int DisableSRTPSend(int channel) = 0;
-
-    
-    virtual int EnableSRTPReceive(int channel, CipherTypes cipherType,
-        int cipherKeyLength, AuthenticationTypes authType, int authKeyLength,
-        int authTagLength, SecurityLevels level, const unsigned char key[30],
-        bool useForRTCP = false) = 0;
-
-    
-    virtual int DisableSRTPReceive(int channel) = 0;
-
 protected:
     VoEEncryption() {}
     virtual ~VoEEncryption() {}

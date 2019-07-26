@@ -23,7 +23,7 @@ namespace webrtc {
 TEST(TestDecodingState, Sanity) {
   VCMDecodingState dec_state;
   dec_state.Reset();
-  EXPECT_TRUE(dec_state.init());
+  EXPECT_TRUE(dec_state.in_initial_state());
   EXPECT_TRUE(dec_state.full_sync());
 }
 
@@ -31,7 +31,9 @@ TEST(TestDecodingState, FrameContinuity) {
   VCMDecodingState dec_state;
   
   VCMFrameBuffer frame;
+  VCMFrameBuffer frame_key;
   frame.SetState(kStateEmpty);
+  frame_key.SetState(kStateEmpty);
   VCMPacket* packet = new VCMPacket();
   packet->isFirstPacket = 1;
   packet->timestamp = 1;
@@ -42,9 +44,13 @@ TEST(TestDecodingState, FrameContinuity) {
   frame.InsertPacket(*packet, 0, false, 0);
   
   dec_state.Reset();
-  EXPECT_TRUE(dec_state.ContinuousFrame(&frame));
+  EXPECT_FALSE(dec_state.ContinuousFrame(&frame));
+  packet->frameType = kVideoFrameKey;
+  frame_key.InsertPacket(*packet, 0, false, 0);
+  EXPECT_TRUE(dec_state.ContinuousFrame(&frame_key));
   dec_state.SetState(&frame);
   frame.Reset();
+  packet->frameType = kVideoFrameDelta;
   
   packet->codecSpecificHeader.codecHeader.VP8.pictureId = 0x0002;
   frame.InsertPacket(*packet, 0, false, 0);
@@ -458,5 +464,4 @@ TEST(TestDecodingState, OldInput) {
 
   delete packet;
 }
-
 }  

@@ -18,7 +18,7 @@ using ::webrtc::DataLog;
 
 const char* kDataLogFileName = "table_1.txt";
 
-void PerformLogging(std::string table_name) {
+void PerformLogging(const std::string& table_name) {
   
   ASSERT_EQ(0, DataLog::AddTable(table_name));
   ASSERT_EQ(0, DataLog::AddColumn(table_name, "test", 1));

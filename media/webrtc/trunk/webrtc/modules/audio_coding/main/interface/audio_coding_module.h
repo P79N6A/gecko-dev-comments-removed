@@ -31,12 +31,12 @@ class AudioPacketizationCallback {
  public:
   virtual ~AudioPacketizationCallback() {}
 
-  virtual WebRtc_Word32 SendData(
+  virtual int32_t SendData(
       FrameType frame_type,
-      WebRtc_UWord8 payload_type,
-      WebRtc_UWord32 timestamp,
-      const WebRtc_UWord8* payload_data,
-      WebRtc_UWord16 payload_len_bytes,
+      uint8_t payload_type,
+      uint32_t timestamp,
+      const uint8_t* payload_data,
+      uint16_t payload_len_bytes,
       const RTPFragmentationHeader* fragmentation) = 0;
 };
 
@@ -45,8 +45,8 @@ class AudioCodingFeedback {
  public:
   virtual ~AudioCodingFeedback() {}
 
-  virtual WebRtc_Word32 IncomingDtmf(const WebRtc_UWord8 digit_dtmf,
-                                     const bool end) = 0;
+  virtual int32_t IncomingDtmf(const uint8_t digit_dtmf,
+                               const bool end) = 0;
 };
 
 
@@ -54,7 +54,7 @@ class ACMVADCallback {
  public:
   virtual ~ACMVADCallback() {}
 
-  virtual WebRtc_Word32 InFrameType(WebRtc_Word16 frameType) = 0;
+  virtual int32_t InFrameType(int16_t frameType) = 0;
 };
 
 
@@ -62,12 +62,12 @@ class ACMVQMonCallback {
  public:
   virtual ~ACMVQMonCallback() {}
 
-  virtual WebRtc_Word32 NetEqStatistics(
-      const WebRtc_Word32 id, 
-      const WebRtc_UWord16 MIUsValid, 
-      const WebRtc_UWord16 MIUsReplaced, 
-      const WebRtc_UWord8 eventFlags, 
-      const WebRtc_UWord16 delayMS) = 0; 
+  virtual int32_t NetEqStatistics(
+      const int32_t id, 
+      const uint16_t MIUsValid, 
+      const uint16_t MIUsReplaced, 
+      const uint8_t eventFlags, 
+      const uint16_t delayMS) = 0; 
 };
 
 class AudioCodingModule: public Module {
@@ -79,7 +79,7 @@ class AudioCodingModule: public Module {
   
   
   
-  static AudioCodingModule* Create(const WebRtc_Word32 id);
+  static AudioCodingModule* Create(const int32_t id);
 
   static void Destroy(AudioCodingModule* module);
 
@@ -94,7 +94,7 @@ class AudioCodingModule: public Module {
   
   
   
-  static WebRtc_UWord8 NumberOfCodecs();
+  static uint8_t NumberOfCodecs();
 
   
   
@@ -111,29 +111,7 @@ class AudioCodingModule: public Module {
   
   
   
-  static WebRtc_Word32 Codec(const WebRtc_UWord8 list_id, CodecInst& codec);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static WebRtc_Word32 Codec(const char* payload_name, CodecInst& codec,
-                             int sampling_freq_hz, int channels);
+  static int32_t Codec(uint8_t list_id, CodecInst* codec);
 
   
   
@@ -151,7 +129,29 @@ class AudioCodingModule: public Module {
   
   
   
-  static WebRtc_Word32 Codec(const char* payload_name, int sampling_freq_hz,
+  
+  
+  
+  static int32_t Codec(const char* payload_name, CodecInst* codec,
+                       int sampling_freq_hz, int channels);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static int32_t Codec(const char* payload_name, int sampling_freq_hz,
                              int channels);
 
   
@@ -184,7 +184,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 InitializeSender() = 0;
+  virtual int32_t InitializeSender() = 0;
 
   
   
@@ -195,7 +195,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ResetEncoder() = 0;
+  virtual int32_t ResetEncoder() = 0;
 
   
   
@@ -224,7 +224,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 RegisterSendCodec(const CodecInst& send_codec) = 0;
+  virtual int32_t RegisterSendCodec(const CodecInst& send_codec) = 0;
 
   
   
@@ -264,7 +264,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SendCodec(CodecInst& current_send_codec) const = 0;
+  virtual int32_t SendCodec(CodecInst* current_send_codec) const = 0;
 
   
   
@@ -287,7 +287,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SendFrequency() const = 0;
+  virtual int32_t SendFrequency() const = 0;
 
   
   
@@ -297,23 +297,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SendBitrate() const = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual WebRtc_Word32 SetReceivedEstimatedBandwidth(
-      const WebRtc_Word32 bw) = 0;
+  virtual int32_t SendBitrate() const = 0;
 
   
   
@@ -328,10 +312,26 @@ class AudioCodingModule: public Module {
   
   
   
+  virtual int32_t SetReceivedEstimatedBandwidth(
+      const int32_t bw) = 0;
+
   
   
   
-  virtual WebRtc_Word32 RegisterTransportCallback(
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int32_t RegisterTransportCallback(
       AudioPacketizationCallback* transport) = 0;
 
   
@@ -352,7 +352,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 Add10MsData(const AudioFrame& audio_frame) = 0;
+  virtual int32_t Add10MsData(const AudioFrame& audio_frame) = 0;
 
   
   
@@ -380,7 +380,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetFECStatus(const bool enable_fec) = 0;
+  virtual int32_t SetFECStatus(const bool enable_fec) = 0;
 
   
   
@@ -422,7 +422,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetVAD(const bool enable_dtx = true,
+  virtual int32_t SetVAD(const bool enable_dtx = true,
                                const bool enable_vad = false,
                                const ACMVADMode vad_mode = VADNormal) = 0;
 
@@ -441,8 +441,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 VAD(bool& dtx_enabled, bool& vad_enabled,
-                            ACMVADMode& vad_mode) const = 0;
+  virtual int32_t VAD(bool* dtx_enabled, bool* vad_enabled,
+                            ACMVADMode* vad_mode) const = 0;
 
   
   
@@ -458,7 +458,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ReplaceInternalDTXWithWebRtc(
+  virtual int32_t ReplaceInternalDTXWithWebRtc(
       const bool use_webrtc_dtx = false) = 0;
 
   
@@ -475,8 +475,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 IsInternalDTXReplacedWithWebRtc(
-      bool& uses_webrtc_dtx) = 0;
+  virtual int32_t IsInternalDTXReplacedWithWebRtc(
+      bool* uses_webrtc_dtx) = 0;
 
   
   
@@ -492,7 +492,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 RegisterVADCallback(ACMVADCallback* vad_callback) = 0;
+  virtual int32_t RegisterVADCallback(ACMVADCallback* vad_callback) = 0;
 
   
   
@@ -511,7 +511,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 InitializeReceiver() = 0;
+  virtual int32_t InitializeReceiver() = 0;
 
   
   
@@ -522,7 +522,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ResetDecoder() = 0;
+  virtual int32_t ResetDecoder() = 0;
 
   
   
@@ -532,7 +532,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ReceiveFrequency() const = 0;
+  virtual int32_t ReceiveFrequency() const = 0;
 
   
   
@@ -541,7 +541,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 PlayoutFrequency() const = 0;
+  virtual int32_t PlayoutFrequency() const = 0;
 
   
   
@@ -557,7 +557,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 RegisterReceiveCodec(
+  virtual int32_t RegisterReceiveCodec(
       const CodecInst& receive_codec) = 0;
 
   
@@ -573,8 +573,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 UnregisterReceiveCodec(
-      const WebRtc_Word16 payload_type) = 0;
+  virtual int32_t UnregisterReceiveCodec(
+      const int16_t payload_type) = 0;
 
   
   
@@ -589,7 +589,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ReceiveCodec(CodecInst& curr_receive_codec) const = 0;
+  virtual int32_t ReceiveCodec(CodecInst* curr_receive_codec) const = 0;
 
   
   
@@ -605,8 +605,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 IncomingPacket(const WebRtc_UWord8* incoming_payload,
-                                       const WebRtc_Word32 payload_len_bytes,
+  virtual int32_t IncomingPacket(const uint8_t* incoming_payload,
+                                       const int32_t payload_len_bytes,
                                        const WebRtcRTPHeader& rtp_info) = 0;
 
   
@@ -633,10 +633,10 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 IncomingPayload(const WebRtc_UWord8* incoming_payload,
-                                        const WebRtc_Word32 payload_len_byte,
-                                        const WebRtc_UWord8 payload_type,
-                                        const WebRtc_UWord32 timestamp = 0) = 0;
+  virtual int32_t IncomingPayload(const uint8_t* incoming_payload,
+                                        const int32_t payload_len_byte,
+                                        const uint8_t payload_type,
+                                        const uint32_t timestamp = 0) = 0;
 
   
   
@@ -649,7 +649,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetMinimumPlayoutDelay(const WebRtc_Word32 time_ms) = 0;
+  virtual int32_t SetMinimumPlayoutDelay(const int32_t time_ms) = 0;
 
   
   
@@ -669,7 +669,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32
+  virtual int32_t
       RegisterIncomingMessagesCallback(
           AudioCodingFeedback* in_message_callback,
           const ACMCountries cpt = ACMDisableCountryDetection) = 0;
@@ -687,7 +687,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetDtmfPlayoutStatus(const bool enable) = 0;
+  virtual int32_t SetDtmfPlayoutStatus(const bool enable) = 0;
 
   
   
@@ -712,7 +712,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetBackgroundNoiseMode(
+  virtual int32_t SetBackgroundNoiseMode(
       const ACMBackgroundNoiseMode mode) = 0;
 
   
@@ -729,7 +729,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 BackgroundNoiseMode(ACMBackgroundNoiseMode& mode) = 0;
+  
+  virtual int32_t BackgroundNoiseMode(ACMBackgroundNoiseMode* mode) = 0;
 
   
   
@@ -745,7 +746,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 PlayoutTimestamp(WebRtc_UWord32& timestamp) = 0;
+  virtual int32_t PlayoutTimestamp(uint32_t* timestamp) = 0;
 
   
   
@@ -758,7 +759,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 DecoderEstimatedBandwidth() const = 0;
+  virtual int32_t DecoderEstimatedBandwidth() const = 0;
 
   
   
@@ -780,7 +781,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetPlayoutMode(const AudioPlayoutMode mode) = 0;
+  virtual int32_t SetPlayoutMode(const AudioPlayoutMode mode) = 0;
 
   
   
@@ -817,9 +818,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32
-      PlayoutData10Ms(const WebRtc_Word32 desired_freq_hz,
-                      AudioFrame &audio_frame) = 0;
+  virtual int32_t PlayoutData10Ms(int32_t desired_freq_hz,
+                                        AudioFrame* audio_frame) = 0;
 
   
   
@@ -840,7 +840,7 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word16 SetReceiveVADMode(const ACMVADMode mode) = 0;
+  virtual int16_t SetReceiveVADMode(const ACMVADMode mode) = 0;
 
   
   
@@ -873,8 +873,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetISACMaxRate(
-      const WebRtc_UWord32 max_rate_bps) = 0;
+  virtual int32_t SetISACMaxRate(
+      const uint32_t max_rate_bps) = 0;
 
   
   
@@ -891,8 +891,8 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 SetISACMaxPayloadSize(
-      const WebRtc_UWord16 max_payload_len_bytes) = 0;
+  virtual int32_t SetISACMaxPayloadSize(
+      const uint16_t max_payload_len_bytes) = 0;
 
   
   
@@ -918,9 +918,9 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 ConfigISACBandwidthEstimator(
-      const WebRtc_UWord8 init_frame_size_ms,
-      const WebRtc_UWord16 init_rate_bps,
+  virtual int32_t ConfigISACBandwidthEstimator(
+      const uint8_t init_frame_size_ms,
+      const uint16_t init_rate_bps,
       const bool enforce_frame_size = false) = 0;
 
   
@@ -938,8 +938,24 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual WebRtc_Word32 NetworkStatistics(
-      ACMNetworkStatistics& network_statistics) const = 0;
+  virtual int32_t NetworkStatistics(
+      ACMNetworkStatistics* network_statistics) const = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int SetInitialPlayoutDelay(int delay_ms) = 0;
 };
 
 }  

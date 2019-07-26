@@ -94,13 +94,6 @@ public:
     virtual int GetCPULoad(int& loadPercent) = 0;
 
     
-    
-    
-    
-    
-    virtual int GetSystemCPULoad(int& loadPercent) = 0;
-
-    
     virtual int ResetAudioDevice() = 0;
 
     

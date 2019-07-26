@@ -100,10 +100,10 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 Encode(WebRtc_UWord8* bitstream,
-                       WebRtc_Word16* bitstream_len_byte,
-                       WebRtc_UWord32* timestamp,
-                       WebRtcACMEncodingType* encoding_type);
+  int16_t Encode(uint8_t* bitstream,
+                 int16_t* bitstream_len_byte,
+                 uint32_t* timestamp,
+                 WebRtcACMEncodingType* encoding_type);
 
   
   
@@ -127,11 +127,11 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 Decode(WebRtc_UWord8* bitstream,
-                       WebRtc_Word16 bitstream_len_byte,
-                       WebRtc_Word16* audio,
-                       WebRtc_Word16* audio_samples,
-                       WebRtc_Word8* speech_type);
+  int16_t Decode(uint8_t* bitstream,
+                 int16_t bitstream_len_byte,
+                 int16_t* audio,
+                 int16_t* audio_samples,
+                 int8_t* speech_type);
 
   
   
@@ -149,8 +149,8 @@ class ACMGenericCodec {
   
   
   
-  virtual void SplitStereoPacket(WebRtc_UWord8* ,
-                                 WebRtc_Word32* ) {}
+  virtual void SplitStereoPacket(uint8_t* ,
+                                 int32_t* ) {}
 
   
   
@@ -184,7 +184,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 EncoderParams(WebRtcACMCodecParams *enc_params);
+  int16_t EncoderParams(WebRtcACMCodecParams *enc_params);
 
   
   
@@ -202,7 +202,7 @@ class ACMGenericCodec {
   
   
   bool DecoderParams(WebRtcACMCodecParams *dec_params,
-                     const WebRtc_UWord8 payload_type);
+                     const uint8_t payload_type);
 
   
   
@@ -220,43 +220,8 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 InitEncoder(WebRtcACMCodecParams* codec_params,
-                            bool force_initialization);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word16 InitDecoder(WebRtcACMCodecParams* codec_params,
-                            bool force_initialization);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word32 RegisterInNetEq(ACMNetEQ* neteq, const CodecInst& codec_inst);
+  int16_t InitEncoder(WebRtcACMCodecParams* codec_params,
+                      bool force_initialization);
 
   
   
@@ -275,12 +240,8 @@ class ACMGenericCodec {
   
   
   
-  
-  
-  WebRtc_Word32 Add10MsData(const WebRtc_UWord32 timestamp,
-                            const WebRtc_Word16* data,
-                            const WebRtc_UWord16 length,
-                            const WebRtc_UWord8 audio_channel);
+  int16_t InitDecoder(WebRtcACMCodecParams* codec_params,
+                      bool force_initialization);
 
   
   
@@ -292,7 +253,46 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_UWord32 NoMissedSamples() const;
+  
+  
+  
+  int32_t RegisterInNetEq(ACMNetEQ* neteq, const CodecInst& codec_inst);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int32_t Add10MsData(const uint32_t timestamp,
+                      const int16_t* data,
+                      const uint16_t length,
+                      const uint8_t audio_channel);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint32_t NoMissedSamples() const;
 
   
   
@@ -313,7 +313,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 SetBitRate(const WebRtc_Word32 bitrate_bps);
+  int16_t SetBitRate(const int32_t bitrate_bps);
 
   
   
@@ -342,7 +342,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 AudioBuffer(WebRtcACMAudioBuff& audio_buff);
+  int16_t AudioBuffer(WebRtcACMAudioBuff& audio_buff);
 
   
   
@@ -352,18 +352,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_UWord32 EarliestTimestamp() const;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word16 SetAudioBuffer(WebRtcACMAudioBuff& audio_buff);
+  uint32_t EarliestTimestamp() const;
 
   
   
@@ -374,27 +363,7 @@ class ACMGenericCodec {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word16 SetVAD(const bool enable_dtx = true,
-                       const bool enable_vad = false,
-                       const ACMVADMode mode = VADNormal);
+  int16_t SetAudioBuffer(WebRtcACMAudioBuff& audio_buff);
 
   
   
@@ -409,7 +378,23 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word32 ReplaceInternalDTX(const bool replace_internal_dtx);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int16_t SetVAD(const bool enable_dtx = true,
+                 const bool enable_vad = false,
+                 const ACMVADMode mode = VADNormal);
 
   
   
@@ -424,7 +409,22 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word32 IsInternalDTXReplaced(bool* internal_dtx_replaced);
+  int32_t ReplaceInternalDTX(const bool replace_internal_dtx);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  int32_t IsInternalDTXReplaced(bool* internal_dtx_replaced);
 
   
   
@@ -458,7 +458,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word32 GetEstimatedBandwidth();
+  int32_t GetEstimatedBandwidth();
 
   
   
@@ -472,7 +472,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word32 SetEstimatedBandwidth(WebRtc_Word32 estimated_bandwidth);
+  int32_t SetEstimatedBandwidth(int32_t estimated_bandwidth);
 
   
   
@@ -487,8 +487,8 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word32 GetRedPayload(WebRtc_UWord8* red_payload,
-                              WebRtc_Word16* payload_bytes);
+  int32_t GetRedPayload(uint8_t* red_payload,
+                        int16_t* payload_bytes);
 
   
   
@@ -500,7 +500,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 ResetEncoder();
+  int16_t ResetEncoder();
 
   
   
@@ -511,7 +511,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 ResetDecoder(WebRtc_Word16 payload_type);
+  int16_t ResetDecoder(int16_t payload_type);
 
   
   
@@ -539,7 +539,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 SamplesLeftToEncode();
+  int16_t SamplesLeftToEncode();
 
   
   
@@ -548,7 +548,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_UWord32 LastEncodedTimestamp() const;
+  uint32_t LastEncodedTimestamp() const;
 
   
   
@@ -557,7 +557,7 @@ class ACMGenericCodec {
   
   
   
-  void SetUniqueID(const WebRtc_UWord32 id);
+  void SetUniqueID(const uint32_t id);
 
   
   
@@ -594,7 +594,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 UpdateDecoderSampFreq(WebRtc_Word16 ) {
+  virtual int16_t UpdateDecoderSampFreq(int16_t ) {
     return 0;
   }
 
@@ -614,8 +614,8 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 UpdateEncoderSampFreq(
-      WebRtc_UWord16 samp_freq_hz);
+  virtual int16_t UpdateEncoderSampFreq(
+      uint16_t samp_freq_hz);
 
   
   
@@ -629,7 +629,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 EncoderSampFreq(WebRtc_UWord16& samp_freq_hz);
+  virtual int16_t EncoderSampFreq(uint16_t& samp_freq_hz);
 
   
   
@@ -655,9 +655,9 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word32 ConfigISACBandwidthEstimator(
-      const WebRtc_UWord8 init_frame_size_msec,
-      const WebRtc_UWord16 init_rate_bps,
+  virtual int32_t ConfigISACBandwidthEstimator(
+      const uint8_t init_frame_size_msec,
+      const uint16_t init_rate_bps,
       const bool enforce_frame_size);
 
   
@@ -675,8 +675,8 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word32 SetISACMaxPayloadSize(
-      const WebRtc_UWord16 max_payload_len_bytes);
+  virtual int32_t SetISACMaxPayloadSize(
+      const uint16_t max_payload_len_bytes);
 
   
   
@@ -693,7 +693,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word32 SetISACMaxRate(const WebRtc_UWord32 max_rate_bps);
+  virtual int32_t SetISACMaxRate(const uint32_t max_rate_bps);
 
   
   
@@ -705,7 +705,7 @@ class ACMGenericCodec {
   
   void SaveDecoderParam(const WebRtcACMCodecParams* codec_params);
 
-  WebRtc_Word32 FrameSize() {
+  int32_t FrameSize() {
     return frame_len_smpl_;
   }
 
@@ -734,10 +734,10 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 REDPayloadISAC(const WebRtc_Word32 isac_rate,
-                                       const WebRtc_Word16 isac_bw_estimate,
-                                       WebRtc_UWord8* payload,
-                                       WebRtc_Word16* payload_len_bytes);
+  virtual int16_t REDPayloadISAC(const int32_t isac_rate,
+                                 const int16_t isac_bw_estimate,
+                                 uint8_t* payload,
+                                 int16_t* payload_len_bytes);
 
   
   
@@ -771,33 +771,33 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 DecodeSafe(WebRtc_UWord8* bitstream,
-                                   WebRtc_Word16 bitstream_len_byte,
-                                   WebRtc_Word16* audio,
-                                   WebRtc_Word16* audio_samples,
-                                   WebRtc_Word8* speech_type) = 0;
+  virtual int16_t DecodeSafe(uint8_t* bitstream,
+                             int16_t bitstream_len_byte,
+                             int16_t* audio,
+                             int16_t* audio_samples,
+                             int8_t* speech_type) = 0;
 
   
   
   
   
-  virtual WebRtc_Word32 Add10MsDataSafe(const WebRtc_UWord32 timestamp,
-                                        const WebRtc_Word16* data,
-                                        const WebRtc_UWord16 length,
-                                        const WebRtc_UWord8 audio_channel);
+  virtual int32_t Add10MsDataSafe(const uint32_t timestamp,
+                                  const int16_t* data,
+                                  const uint16_t length,
+                                  const uint8_t audio_channel);
 
   
   
   
   
-  virtual WebRtc_Word32 CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                                 const CodecInst& codec_inst) = 0;
+  virtual int32_t CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                           const CodecInst& codec_inst) = 0;
 
   
   
   
   
-  WebRtc_Word16 EncoderParamsSafe(WebRtcACMCodecParams *enc_params);
+  int16_t EncoderParamsSafe(WebRtcACMCodecParams *enc_params);
 
   
   
@@ -814,33 +814,33 @@ class ACMGenericCodec {
   
   
   virtual bool DecoderParamsSafe(WebRtcACMCodecParams *dec_params,
-                                 const WebRtc_UWord8 payload_type);
+                                 const uint8_t payload_type);
 
   
   
   
   
-  WebRtc_Word16 ResetEncoderSafe();
+  int16_t ResetEncoderSafe();
 
   
   
   
   
-  WebRtc_Word16 InitEncoderSafe(WebRtcACMCodecParams *codec_params,
-                                bool force_initialization);
+  int16_t InitEncoderSafe(WebRtcACMCodecParams *codec_params,
+                          bool force_initialization);
 
   
   
   
   
-  WebRtc_Word16 InitDecoderSafe(WebRtcACMCodecParams *codec_params,
-                                bool force_initialization);
+  int16_t InitDecoderSafe(WebRtcACMCodecParams *codec_params,
+                          bool force_initialization);
 
   
   
   
   
-  WebRtc_Word16 ResetDecoderSafe(WebRtc_Word16 payload_type);
+  int16_t ResetDecoderSafe(int16_t payload_type);
 
   
   
@@ -860,57 +860,47 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 SetBitRateSafe(const WebRtc_Word32 bitrate_bps);
+  virtual int16_t SetBitRateSafe(const int32_t bitrate_bps);
 
   
   
   
   
-  virtual WebRtc_Word32 GetEstimatedBandwidthSafe();
+  virtual int32_t GetEstimatedBandwidthSafe();
 
   
   
   
   
-  virtual WebRtc_Word32 SetEstimatedBandwidthSafe(
-      WebRtc_Word32 estimated_bandwidth);
+  virtual int32_t SetEstimatedBandwidthSafe(
+      int32_t estimated_bandwidth);
 
   
   
   
   
-  virtual WebRtc_Word32 GetRedPayloadSafe(WebRtc_UWord8* red_payload,
-                                          WebRtc_Word16* payload_bytes);
+  virtual int32_t GetRedPayloadSafe(uint8_t* red_payload,
+                                    int16_t* payload_bytes);
 
   
   
   
   
-  WebRtc_Word16 SetVADSafe(const bool enable_dtx = true,
-                           const bool enable_vad = false,
-                           const ACMVADMode mode = VADNormal);
+  int16_t SetVADSafe(const bool enable_dtx = true,
+                     const bool enable_vad = false,
+                     const ACMVADMode mode = VADNormal);
 
   
   
   
   
-  virtual WebRtc_Word32 ReplaceInternalDTXSafe(const bool replace_internal_dtx);
+  virtual int32_t ReplaceInternalDTXSafe(const bool replace_internal_dtx);
 
   
   
   
   
-  virtual WebRtc_Word32 IsInternalDTXReplacedSafe(bool* internal_dtx_replaced);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word16 CreateEncoder();
+  virtual int32_t IsInternalDTXReplacedSafe(bool* internal_dtx_replaced);
 
   
   
@@ -920,7 +910,7 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 CreateDecoder();
+  int16_t CreateEncoder();
 
   
   
@@ -930,44 +920,7 @@ class ACMGenericCodec {
   
   
   
-  
-  
-  
-  
-  
-  WebRtc_Word16 EnableVAD(ACMVADMode mode);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  WebRtc_Word16 DisableVAD();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual WebRtc_Word16 EnableDTX();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  virtual WebRtc_Word16 DisableDTX();
+  int16_t CreateDecoder();
 
   
   
@@ -982,10 +935,39 @@ class ACMGenericCodec {
   
   
   
+  int16_t EnableVAD(ACMVADMode mode);
+
   
   
-  virtual WebRtc_Word16 InternalEncode(WebRtc_UWord8* bitstream,
-                                       WebRtc_Word16* bitstream_len_byte) = 0;
+  
+  
+  
+  
+  
+  
+  int16_t DisableVAD();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int16_t EnableDTX();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int16_t DisableDTX();
 
   
   
@@ -1002,11 +984,29 @@ class ACMGenericCodec {
   
   
   
+  virtual int16_t InternalEncode(uint8_t* bitstream,
+                                 int16_t* bitstream_len_byte) = 0;
+
   
   
   
   
-  virtual WebRtc_Word16 InternalInitEncoder(
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int16_t InternalInitEncoder(
       WebRtcACMCodecParams *codec_params) = 0;
 
   
@@ -1023,7 +1023,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 InternalInitDecoder(
+  virtual int16_t InternalInitDecoder(
       WebRtcACMCodecParams *codec_params) = 0;
 
   
@@ -1035,7 +1035,7 @@ class ACMGenericCodec {
   
   
   
-  void IncreaseNoMissedSamples(const WebRtc_Word16 num_samples);
+  void IncreaseNoMissedSamples(const int16_t num_samples);
 
   
   
@@ -1047,7 +1047,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 InternalCreateEncoder() = 0;
+  virtual int16_t InternalCreateEncoder() = 0;
 
   
   
@@ -1059,7 +1059,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 InternalCreateDecoder() = 0;
+  virtual int16_t InternalCreateDecoder() = 0;
 
   
   
@@ -1091,7 +1091,7 @@ class ACMGenericCodec {
   
   
   
-  virtual WebRtc_Word16 InternalResetEncoder();
+  virtual int16_t InternalResetEncoder();
 
   
   
@@ -1123,9 +1123,9 @@ class ACMGenericCodec {
   
   
   
-  WebRtc_Word16 ProcessFrameVADDTX(WebRtc_UWord8* bitstream,
-                                   WebRtc_Word16* bitstream_len_byte,
-                                   WebRtc_Word16* samples_processed);
+  int16_t ProcessFrameVADDTX(uint8_t* bitstream,
+                             int16_t* bitstream_len_byte,
+                             int16_t* samples_processed);
 
   
   
@@ -1148,7 +1148,7 @@ class ACMGenericCodec {
   
   
   
-  virtual void CurrentRate(WebRtc_Word32& ) {
+  virtual void CurrentRate(int32_t& ) {
     return;
   }
 
@@ -1156,30 +1156,30 @@ class ACMGenericCodec {
 
   
   
-  WebRtc_Word16 in_audio_ix_write_;
+  int16_t in_audio_ix_write_;
 
   
-  WebRtc_Word16 in_audio_ix_read_;
+  int16_t in_audio_ix_read_;
 
-  WebRtc_Word16 in_timestamp_ix_write_;
-
-  
-  
-  
-  
-  WebRtc_Word16* in_audio_;
-  WebRtc_UWord32* in_timestamp_;
-
-  WebRtc_Word16 frame_len_smpl_;
-  WebRtc_UWord16 num_channels_;
-
-  
-  WebRtc_Word16 codec_id_;
+  int16_t in_timestamp_ix_write_;
 
   
   
   
-  WebRtc_UWord32 num_missed_samples_;
+  
+  int16_t* in_audio_;
+  uint32_t* in_timestamp_;
+
+  int16_t frame_len_smpl_;
+  uint16_t num_channels_;
+
+  
+  int16_t codec_id_;
+
+  
+  
+  
+  uint32_t num_missed_samples_;
 
   
   bool encoder_exist_;
@@ -1195,10 +1195,10 @@ class ACMGenericCodec {
   WebRtcVadInst* ptr_vad_inst_;
   bool vad_enabled_;
   ACMVADMode vad_mode_;
-  WebRtc_Word16 vad_label_[MAX_FRAME_SIZE_10MSEC];
+  int16_t vad_label_[MAX_FRAME_SIZE_10MSEC];
   bool dtx_enabled_;
   WebRtcCngEncInst* ptr_dtx_inst_;
-  WebRtc_UWord8 num_lpc_params_;
+  uint8_t num_lpc_params_;
   bool sent_cn_previous_;
   bool is_master_;
   int16_t prev_frame_cng_;
@@ -1213,10 +1213,10 @@ class ACMGenericCodec {
   
   RWLockWrapper& codec_wrapper_lock_;
 
-  WebRtc_UWord32 last_encoded_timestamp_;
-  WebRtc_UWord32 last_timestamp_;
+  uint32_t last_encoded_timestamp_;
+  uint32_t last_timestamp_;
   bool is_audio_buff_fresh_;
-  WebRtc_UWord32 unique_id_;
+  uint32_t unique_id_;
 };
 
 }  

@@ -25,21 +25,21 @@
 
 
 void WebRtcIlbcfix_CbConstruct(
-    WebRtc_Word16 *decvector,  
-    WebRtc_Word16 *index,   
-    WebRtc_Word16 *gain_index,  
-    WebRtc_Word16 *mem,   
-    WebRtc_Word16 lMem,   
-    WebRtc_Word16 veclen   
+    int16_t *decvector,  
+    int16_t *index,   
+    int16_t *gain_index,  
+    int16_t *mem,   
+    int16_t lMem,   
+    int16_t veclen   
                                ){
   int j;
-  WebRtc_Word16 gain[CB_NSTAGES];
+  int16_t gain[CB_NSTAGES];
   
-  WebRtc_Word16 cbvec0[SUBL];
-  WebRtc_Word16 cbvec1[SUBL];
-  WebRtc_Word16 cbvec2[SUBL];
-  WebRtc_Word32 a32;
-  WebRtc_Word16 *gainPtr;
+  int16_t cbvec0[SUBL];
+  int16_t cbvec1[SUBL];
+  int16_t cbvec2[SUBL];
+  int32_t a32;
+  int16_t *gainPtr;
 
   
 
@@ -60,7 +60,7 @@ void WebRtcIlbcfix_CbConstruct(
     a32 += WEBRTC_SPL_MUL_16_16(*gainPtr++, cbvec1[j]);
     a32 += WEBRTC_SPL_MUL_16_16(*gainPtr, cbvec2[j]);
     gainPtr -= 2;
-    decvector[j] = (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(a32 + 8192, 14);
+    decvector[j] = (int16_t) WEBRTC_SPL_RSHIFT_W32(a32 + 8192, 14);
   }
 
   return;

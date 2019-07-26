@@ -27,16 +27,16 @@
 
 
 void WebRtcIlbcfix_Enhancer(
-    WebRtc_Word16 *odata,   
-    WebRtc_Word16 *idata,   
-    WebRtc_Word16 idatal,   
-    WebRtc_Word16 centerStartPos, 
-    WebRtc_Word16 *period,   
-    WebRtc_Word16 *plocs,   
-    WebRtc_Word16 periodl   
+    int16_t *odata,   
+    int16_t *idata,   
+    int16_t idatal,   
+    int16_t centerStartPos, 
+    int16_t *period,   
+    int16_t *plocs,   
+    int16_t periodl   
                             ){
   
-  WebRtc_Word16 surround[ENH_BLOCKL];
+  int16_t surround[ENH_BLOCKL];
 
   WebRtcSpl_MemSetW16(surround, 0, ENH_BLOCKL);
 

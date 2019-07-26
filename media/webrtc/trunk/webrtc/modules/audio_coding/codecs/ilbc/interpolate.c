@@ -24,14 +24,14 @@
 
 
 void WebRtcIlbcfix_Interpolate(
-    WebRtc_Word16 *out, 
-    WebRtc_Word16 *in1, 
-    WebRtc_Word16 *in2, 
-    WebRtc_Word16 coef, 
-    WebRtc_Word16 length)  
+    int16_t *out, 
+    int16_t *in1, 
+    int16_t *in2, 
+    int16_t coef, 
+    int16_t length)  
 {
   int i;
-  WebRtc_Word16 invcoef;
+  int16_t invcoef;
 
   
 
@@ -39,7 +39,7 @@ void WebRtcIlbcfix_Interpolate(
 
   invcoef = 16384 - coef; 
   for (i = 0; i < length; i++) {
-    out[i] = (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(
+    out[i] = (int16_t) WEBRTC_SPL_RSHIFT_W32(
         (WEBRTC_SPL_MUL_16_16(coef, in1[i]) + WEBRTC_SPL_MUL_16_16(invcoef, in2[i]))+8192,
         14);
   }

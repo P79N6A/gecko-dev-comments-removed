@@ -52,8 +52,8 @@ class ThreadWrapper {
   
   
   
-  static ThreadWrapper* CreateThread(ThreadRunFunction func = 0,
-                                     ThreadObj obj = 0,
+  static ThreadWrapper* CreateThread(ThreadRunFunction func,
+                                     ThreadObj obj,
                                      ThreadPriority prio = kNormalPriority,
                                      const char* thread_name = 0);
 

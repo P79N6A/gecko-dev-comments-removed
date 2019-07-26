@@ -28,10 +28,10 @@
 
 
 void WebRtcIlbcfix_NearestNeighbor(
-    WebRtc_Word16 *index, 
-    WebRtc_Word16 *array, 
-    WebRtc_Word16 value, 
-    WebRtc_Word16 arlength 
+    int16_t *index, 
+    int16_t *array, 
+    int16_t value, 
+    int16_t arlength 
                                    );
 
 #endif

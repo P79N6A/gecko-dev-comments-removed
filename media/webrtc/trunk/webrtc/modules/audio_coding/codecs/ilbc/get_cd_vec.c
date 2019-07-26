@@ -25,16 +25,16 @@
 
 
 void WebRtcIlbcfix_GetCbVec(
-    WebRtc_Word16 *cbvec,   
-    WebRtc_Word16 *mem,   
-    WebRtc_Word16 index,   
-    WebRtc_Word16 lMem,   
-    WebRtc_Word16 cbveclen   
+    int16_t *cbvec,   
+    int16_t *mem,   
+    int16_t index,   
+    int16_t lMem,   
+    int16_t cbveclen   
                             ){
-  WebRtc_Word16 k, base_size;
-  WebRtc_Word16 lag;
+  int16_t k, base_size;
+  int16_t lag;
   
-  WebRtc_Word16 tempbuff2[SUBL+5];
+  int16_t tempbuff2[SUBL+5];
 
   
 
@@ -58,7 +58,7 @@ void WebRtcIlbcfix_GetCbVec(
 
     
 
-    k=(WebRtc_Word16)WEBRTC_SPL_MUL_16_16(2, (index-(lMem-cbveclen+1)))+cbveclen;
+    k=(int16_t)WEBRTC_SPL_MUL_16_16(2, (index-(lMem-cbveclen+1)))+cbveclen;
 
     lag=WEBRTC_SPL_RSHIFT_W16(k, 1);
 
@@ -70,7 +70,7 @@ void WebRtcIlbcfix_GetCbVec(
 
   else {
 
-    WebRtc_Word16 memIndTest;
+    int16_t memIndTest;
 
     
 
@@ -86,7 +86,7 @@ void WebRtcIlbcfix_GetCbVec(
       
 
       WebRtcSpl_FilterMAFastQ12(
-          &mem[memIndTest+4], cbvec, (WebRtc_Word16*)WebRtcIlbcfix_kCbFiltersRev,
+          &mem[memIndTest+4], cbvec, (int16_t*)WebRtcIlbcfix_kCbFiltersRev,
           CB_FILTERLEN, cbveclen);
     }
 
@@ -99,8 +99,8 @@ void WebRtcIlbcfix_GetCbVec(
 
       
       WebRtcSpl_FilterMAFastQ12(
-          &mem[memIndTest+7], tempbuff2, (WebRtc_Word16*)WebRtcIlbcfix_kCbFiltersRev,
-          CB_FILTERLEN, (WebRtc_Word16)(cbveclen+5));
+          &mem[memIndTest+7], tempbuff2, (int16_t*)WebRtcIlbcfix_kCbFiltersRev,
+          CB_FILTERLEN, (int16_t)(cbveclen+5));
 
       
       lag = (cbveclen<<1)-20+index-base_size-lMem-1;

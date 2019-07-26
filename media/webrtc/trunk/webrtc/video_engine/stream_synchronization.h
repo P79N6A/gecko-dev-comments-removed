@@ -43,11 +43,16 @@ class StreamSynchronization {
   static bool ComputeRelativeDelay(const Measurements& audio_measurement,
                                    const Measurements& video_measurement,
                                    int* relative_delay_ms);
+  
+  
+  void SetTargetBufferingDelay(int target_delay_ms);
 
  private:
   ViESyncDelay* channel_delay_;
   int audio_channel_id_;
   int video_channel_id_;
+  int base_target_delay_ms_;
+  int avg_diff_ms_;
 };
 }  
 

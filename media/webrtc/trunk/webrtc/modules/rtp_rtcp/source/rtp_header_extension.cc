@@ -39,7 +39,14 @@ int32_t RtpHeaderExtensionMap::Register(const RTPExtensionType type,
   std::map<uint8_t, HeaderExtension*>::iterator it =
       extensionMap_.find(id);
   if (it != extensionMap_.end()) {
-    return -1;
+    if (it->second->type != type) {
+      
+      
+      return -1;
+    }
+    
+    
+    return 0;
   }
   extensionMap_[id] = new HeaderExtension(type);
   return 0;
@@ -52,9 +59,7 @@ int32_t RtpHeaderExtensionMap::Deregister(const RTPExtensionType type) {
   }
   std::map<uint8_t, HeaderExtension*>::iterator it =
       extensionMap_.find(id);
-  if (it == extensionMap_.end()) {
-    return -1;
-  }
+  assert(it != extensionMap_.end());
   delete it->second;
   extensionMap_.erase(it);
   return 0;

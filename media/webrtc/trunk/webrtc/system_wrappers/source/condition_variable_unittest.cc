@@ -50,7 +50,7 @@ class Baton {
   
   
   
-  bool Pass(WebRtc_UWord32 max_msecs) {
+  bool Pass(uint32_t max_msecs) {
     CriticalSectionScoped cs_giver(giver_sect_);
     CriticalSectionScoped cs(crit_sect_);
     SignalBatonAvailable();
@@ -62,7 +62,7 @@ class Baton {
   }
 
   
-  bool Grab(WebRtc_UWord32 max_msecs) {
+  bool Grab(uint32_t max_msecs) {
     CriticalSectionScoped cs(crit_sect_);
     return WaitUntilBatonOffered(max_msecs);
   }

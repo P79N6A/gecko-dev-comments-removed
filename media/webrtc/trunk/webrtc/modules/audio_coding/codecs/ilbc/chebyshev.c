@@ -26,57 +26,57 @@
 
 
 
-WebRtc_Word16 WebRtcIlbcfix_Chebyshev(
+int16_t WebRtcIlbcfix_Chebyshev(
     
-    WebRtc_Word16 x,  
-    WebRtc_Word16 *f  
+    int16_t x,  
+    int16_t *f  
                                       ) {
-  WebRtc_Word16 b1_high, b1_low; 
-  WebRtc_Word32 b2;
-  WebRtc_Word32 tmp1W32;
-  WebRtc_Word32 tmp2W32;
+  int16_t b1_high, b1_low; 
+  int32_t b2;
+  int32_t tmp1W32;
+  int32_t tmp2W32;
   int i;
 
-  b2 = (WebRtc_Word32)0x1000000; 
+  b2 = (int32_t)0x1000000; 
   
-  tmp1W32 = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)x, 10);
-  tmp1W32 += WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)f[1], 14);
+  tmp1W32 = WEBRTC_SPL_LSHIFT_W32((int32_t)x, 10);
+  tmp1W32 += WEBRTC_SPL_LSHIFT_W32((int32_t)f[1], 14);
 
   for (i = 2; i < 5; i++) {
     tmp2W32 = tmp1W32;
 
     
-    b1_high = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 16);
-    b1_low = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp1W32-WEBRTC_SPL_LSHIFT_W32(((WebRtc_Word32)b1_high),16), 1);
+    b1_high = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 16);
+    b1_low = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp1W32-WEBRTC_SPL_LSHIFT_W32(((int32_t)b1_high),16), 1);
 
     
     tmp1W32 = WEBRTC_SPL_LSHIFT_W32( (WEBRTC_SPL_MUL_16_16(b1_high, x) +
                                       WEBRTC_SPL_MUL_16_16_RSFT(b1_low, x, 15)), 2);
 
     tmp1W32 -= b2;
-    tmp1W32 += WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)f[i], 14);
+    tmp1W32 += WEBRTC_SPL_LSHIFT_W32((int32_t)f[i], 14);
 
     
     b2 = tmp2W32;
   }
 
   
-  b1_high = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 16);
-  b1_low = (WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp1W32-WEBRTC_SPL_LSHIFT_W32(((WebRtc_Word32)b1_high),16), 1);
+  b1_high = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 16);
+  b1_low = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp1W32-WEBRTC_SPL_LSHIFT_W32(((int32_t)b1_high),16), 1);
 
   
   tmp1W32 = WEBRTC_SPL_LSHIFT_W32(WEBRTC_SPL_MUL_16_16(b1_high, x), 1) +
       WEBRTC_SPL_LSHIFT_W32(WEBRTC_SPL_MUL_16_16_RSFT(b1_low, x, 15), 1);
 
   tmp1W32 -= b2;
-  tmp1W32 += WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)f[i], 13);
+  tmp1W32 += WEBRTC_SPL_LSHIFT_W32((int32_t)f[i], 13);
 
   
-  if (tmp1W32>((WebRtc_Word32)33553408)) {
+  if (tmp1W32>((int32_t)33553408)) {
     return(WEBRTC_SPL_WORD16_MAX);
-  } else if (tmp1W32<((WebRtc_Word32)-33554432)) {
+  } else if (tmp1W32<((int32_t)-33554432)) {
     return(WEBRTC_SPL_WORD16_MIN);
   } else {
-    return((WebRtc_Word16)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 10));
+    return((int16_t)WEBRTC_SPL_RSHIFT_W32(tmp1W32, 10));
   }
 }

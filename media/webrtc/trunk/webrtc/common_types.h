@@ -137,27 +137,6 @@ enum ProcessingTypes
 };
 
 
-enum CipherTypes
-{
-    kCipherNull               = 0,
-    kCipherAes128CounterMode  = 1
-};
-
-enum AuthenticationTypes
-{
-    kAuthNull       = 0,
-    kAuthHmacSha1   = 3
-};
-
-enum SecurityLevels
-{
-    kNoProtection                    = 0,
-    kEncryption                      = 1,
-    kAuthentication                  = 2,
-    kEncryptionAndAuthentication     = 3
-};
-
-
 
 
 class Encryption
@@ -342,13 +321,6 @@ typedef struct
     StatVal a_nlp;
 } EchoStatistics;
 
-enum TelephoneEventDetectionMethods
-{
-    kInBand = 0,
-    kOutOfBand = 1,
-    kInAndOutOfBand = 2
-};
-
 enum NsModes    
 {
     kNsUnchanged = 0,   
@@ -357,7 +329,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression     
+    kNsVeryHighSuppression,     
 };
 
 enum AgcModes                  
@@ -382,7 +354,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm                    
+    kEcAecm,                   
 };
 
 
@@ -434,19 +406,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3
-};
-
-enum NetEqBgnModes          
-{
-    
-    
-    kBgnOn = 0,
-    
-    kBgnFade = 1,
-    
-    
-    kBgnOff = 2
+    kNetEqOff = 3,
 };
 
 enum OnHoldModes            
@@ -460,7 +420,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2
+    kRfc3267FileStorage = 2,
 };
 
 
@@ -530,6 +490,7 @@ struct VideoCodecVP8
     bool                 errorConcealmentOn;
     bool                 automaticResizeOn;
     bool                 frameDroppingOn;
+    int                  keyFrameInterval;
 };
 
 
@@ -544,6 +505,7 @@ enum VideoCodecType
     kVideoCodecI420,
     kVideoCodecRED,
     kVideoCodecULPFEC,
+    kVideoCodecGeneric,
     kVideoCodecUnknown
 };
 
@@ -562,8 +524,20 @@ struct SimulcastStream
     unsigned short      height;
     unsigned char       numberOfTemporalLayers;
     unsigned int        maxBitrate;
+    unsigned int        targetBitrate;
+    unsigned int        minBitrate;
     unsigned int        qpMax; 
 };
+
+enum VideoCodecMode {
+  kRealtimeVideo,
+  kScreensharing
+};
+
+
+
+
+struct ExtraCodecOptions;
 
 
 struct VideoCodec
@@ -585,6 +559,9 @@ struct VideoCodec
     unsigned int        qpMax;
     unsigned char       numberOfSimulcastStreams;
     SimulcastStream     simulcastStream[kMaxSimulcastStreams];
+
+    VideoCodecMode      mode;
+    ExtraCodecOptions*  extra_options;
 };
 
 

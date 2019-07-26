@@ -29,23 +29,23 @@ void WebRtcIlbcfix_StateSearch(
     
     iLBC_bits *iLBC_encbits,
 
-    WebRtc_Word16 *residual,   
-    WebRtc_Word16 *syntDenum,  
-    WebRtc_Word16 *weightDenum  
+    int16_t *residual,   
+    int16_t *syntDenum,  
+    int16_t *weightDenum  
                                ) {
-  WebRtc_Word16 k, index;
-  WebRtc_Word16 maxVal;
-  WebRtc_Word16 scale, shift;
-  WebRtc_Word32 maxValsq;
-  WebRtc_Word16 scaleRes;
-  WebRtc_Word16 max;
+  int16_t k, index;
+  int16_t maxVal;
+  int16_t scale, shift;
+  int32_t maxValsq;
+  int16_t scaleRes;
+  int16_t max;
   int i;
   
-  WebRtc_Word16 numerator[1+LPC_FILTERORDER];
-  WebRtc_Word16 residualLongVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
-  WebRtc_Word16 sampleMa[2*STATE_SHORT_LEN_30MS];
-  WebRtc_Word16 *residualLong = &residualLongVec[LPC_FILTERORDER];
-  WebRtc_Word16 *sampleAr = residualLong;
+  int16_t numerator[1+LPC_FILTERORDER];
+  int16_t residualLongVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
+  int16_t sampleMa[2*STATE_SHORT_LEN_30MS];
+  int16_t *residualLong = &residualLongVec[LPC_FILTERORDER];
+  int16_t *sampleAr = residualLong;
 
   
   max = WebRtcSpl_MaxAbsValueW16(residual, iLBCenc_inst->state_short_len);
@@ -66,12 +66,12 @@ void WebRtcIlbcfix_StateSearch(
   WebRtcSpl_MemSetW16(residualLongVec, 0, LPC_FILTERORDER);
   WebRtcSpl_FilterMAFastQ12(
       residualLong, sampleMa,
-      numerator, LPC_FILTERORDER+1, (WebRtc_Word16)(iLBCenc_inst->state_short_len + LPC_FILTERORDER));
+      numerator, LPC_FILTERORDER+1, (int16_t)(iLBCenc_inst->state_short_len + LPC_FILTERORDER));
   WebRtcSpl_MemSetW16(&sampleMa[iLBCenc_inst->state_short_len + LPC_FILTERORDER], 0, iLBCenc_inst->state_short_len - LPC_FILTERORDER);
 
   WebRtcSpl_FilterARFastQ12(
       sampleMa, sampleAr,
-      syntDenum, LPC_FILTERORDER+1, (WebRtc_Word16)(2*iLBCenc_inst->state_short_len));
+      syntDenum, LPC_FILTERORDER+1, (int16_t)(2*iLBCenc_inst->state_short_len));
 
   for(k=0;k<iLBCenc_inst->state_short_len;k++){
     sampleAr[k] += sampleAr[k+iLBCenc_inst->state_short_len];
@@ -82,10 +82,10 @@ void WebRtcIlbcfix_StateSearch(
 
   
 
-  if ((((WebRtc_Word32)maxVal)<<scaleRes)<23170) {
-    maxValsq=((WebRtc_Word32)maxVal*maxVal)<<(2+2*scaleRes);
+  if ((((int32_t)maxVal)<<scaleRes)<23170) {
+    maxValsq=((int32_t)maxVal*maxVal)<<(2+2*scaleRes);
   } else {
-    maxValsq=(WebRtc_Word32)WEBRTC_SPL_WORD32_MAX;
+    maxValsq=(int32_t)WEBRTC_SPL_WORD32_MAX;
   }
 
   index=0;
@@ -110,7 +110,7 @@ void WebRtcIlbcfix_StateSearch(
 
   
   WebRtcSpl_ScaleVectorWithSat(sampleAr, sampleAr, scale,
-                              iLBCenc_inst->state_short_len, (WebRtc_Word16)(shift-scaleRes));
+                              iLBCenc_inst->state_short_len, (int16_t)(shift-scaleRes));
 
   
   WebRtcIlbcfix_AbsQuant(iLBCenc_inst, iLBC_encbits, sampleAr, weightDenum);

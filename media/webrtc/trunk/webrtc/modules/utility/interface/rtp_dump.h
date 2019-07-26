@@ -31,10 +31,10 @@ public:
 
     
     
-    virtual WebRtc_Word32 Start(const char* fileNameUTF8) = 0;
+    virtual int32_t Start(const char* fileNameUTF8) = 0;
 
     
-    virtual WebRtc_Word32 Stop() = 0;
+    virtual int32_t Stop() = 0;
 
     
     virtual bool IsActive() const = 0;
@@ -42,8 +42,8 @@ public:
     
     
     
-    virtual WebRtc_Word32 DumpPacket(const WebRtc_UWord8* packet,
-                                     WebRtc_UWord16 packetLength) = 0;
+    virtual int32_t DumpPacket(const uint8_t* packet,
+                               uint16_t packetLength) = 0;
 
 protected:
     virtual ~RtpDump();

@@ -19,16 +19,16 @@
 
 typedef struct
 {
-    WebRtc_UWord16 cycles; 
-    WebRtc_UWord16 max_seq; 
+    uint16_t cycles; 
+    uint16_t max_seq; 
 
-    WebRtc_UWord16 base_seq; 
-    WebRtc_UWord32 received; 
-    WebRtc_UWord32 rec_prior; 
-    WebRtc_UWord32 exp_prior; 
+    uint16_t base_seq; 
+    uint32_t received; 
+    uint32_t rec_prior; 
+    uint32_t exp_prior; 
 
-    WebRtc_UWord32 jitter; 
-    WebRtc_Word32 transit; 
+    uint32_t jitter; 
+    int32_t transit; 
 } WebRtcNetEQ_RTCP_t;
 
 
@@ -46,7 +46,7 @@ typedef struct
 
 
 
-int WebRtcNetEQ_RTCPInit(WebRtcNetEQ_RTCP_t *RTCP_inst, WebRtc_UWord16 uw16_seqNo);
+int WebRtcNetEQ_RTCPInit(WebRtcNetEQ_RTCP_t *RTCP_inst, uint16_t uw16_seqNo);
 
 
 
@@ -65,8 +65,8 @@ int WebRtcNetEQ_RTCPInit(WebRtcNetEQ_RTCP_t *RTCP_inst, WebRtc_UWord16 uw16_seqN
 
 
 
-int WebRtcNetEQ_RTCPUpdate(WebRtcNetEQ_RTCP_t *RTCP_inst, WebRtc_UWord16 uw16_seqNo,
-                           WebRtc_UWord32 uw32_timeStamp, WebRtc_UWord32 uw32_recTime);
+int WebRtcNetEQ_RTCPUpdate(WebRtcNetEQ_RTCP_t *RTCP_inst, uint16_t uw16_seqNo,
+                           uint32_t uw32_timeStamp, uint32_t uw32_recTime);
 
 
 
@@ -95,8 +95,8 @@ int WebRtcNetEQ_RTCPUpdate(WebRtcNetEQ_RTCP_t *RTCP_inst, WebRtc_UWord16 uw16_se
 
 
 int WebRtcNetEQ_RTCPGetStats(WebRtcNetEQ_RTCP_t *RTCP_inst,
-                             WebRtc_UWord16 *puw16_fraction_lost,
-                             WebRtc_UWord32 *puw32_cum_lost, WebRtc_UWord32 *puw32_ext_max,
-                             WebRtc_UWord32 *puw32_jitter, WebRtc_Word16 doNotReset);
+                             uint16_t *puw16_fraction_lost,
+                             uint32_t *puw32_cum_lost, uint32_t *puw32_ext_max,
+                             uint32_t *puw32_jitter, int16_t doNotReset);
 
 #endif

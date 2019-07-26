@@ -21,13 +21,13 @@
 #include "energy_inverse.h"
 
 void WebRtcIlbcfix_EnergyInverse(
-    WebRtc_Word16 *energy,    
+    int16_t *energy,    
 
     int noOfEnergies)  
 
 {
-  WebRtc_Word32 Nom=(WebRtc_Word32)0x1FFFFFFF;
-  WebRtc_Word16 *energyPtr;
+  int32_t Nom=(int32_t)0x1FFFFFFF;
+  int16_t *energyPtr;
   int i;
 
   
@@ -40,7 +40,7 @@ void WebRtcIlbcfix_EnergyInverse(
   
   energyPtr=energy;
   for (i=0; i<noOfEnergies; i++) {
-    (*energyPtr) = (WebRtc_Word16)WebRtcSpl_DivW32W16(Nom, (*energyPtr));
+    (*energyPtr) = (int16_t)WebRtcSpl_DivW32W16(Nom, (*energyPtr));
     energyPtr++;
   }
 }

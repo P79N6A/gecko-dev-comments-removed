@@ -28,11 +28,11 @@
 
 
 void WebRtcIlbcfix_FilteredCbVecs(
-    WebRtc_Word16 *cbvectors, 
-    WebRtc_Word16 *CBmem,  
+    int16_t *cbvectors, 
+    int16_t *CBmem,  
 
     int lMem,  
-    WebRtc_Word16 samples    
+    int16_t samples    
                                   );
 
 #endif

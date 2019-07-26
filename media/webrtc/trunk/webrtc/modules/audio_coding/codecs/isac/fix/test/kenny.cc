@@ -27,11 +27,11 @@
 #define FS           16000 /* sampling frequency (Hz) */
 
 
-int readframe(WebRtc_Word16 *data, FILE *inp, int length) {
+int readframe(int16_t *data, FILE *inp, int length) {
 
   short k, rlen, status = 0;
 
-  rlen = fread(data, sizeof(WebRtc_Word16), length, inp);
+  rlen = fread(data, sizeof(int16_t), length, inp);
   if (rlen < length) {
     for (k = rlen; k < length; k++)
       data[k] = 0;
@@ -43,10 +43,10 @@ int readframe(WebRtc_Word16 *data, FILE *inp, int length) {
 
 
 typedef struct {
-  WebRtc_UWord32 send_time;            
-  WebRtc_UWord32 arrival_time;         
-  WebRtc_UWord32 sample_count;         
-  WebRtc_UWord16 rtp_number;
+  uint32_t send_time;            
+  uint32_t arrival_time;         
+  uint32_t sample_count;         
+  uint16_t rtp_number;
 } BottleNeckModel;
 
 void get_arrival_time(int current_framesamples,   
@@ -99,25 +99,25 @@ int main(int argc, char* argv[])
   int endfile;
 
   int i, errtype, h = 0, k, packetLossPercent = 0;
-  WebRtc_Word16 CodingMode;
-  WebRtc_Word16 bottleneck;
-  WebRtc_Word16 framesize = 30;           
+  int16_t CodingMode;
+  int16_t bottleneck;
+  int16_t framesize = 30;           
   int cur_framesmpls, err = 0, lostPackets = 0;
 
   
   double starttime, runtime, length_file;
 
-  WebRtc_Word16 stream_len = 0;
-  WebRtc_Word16 framecnt, declen = 0;
-  WebRtc_Word16 shortdata[FRAMESAMPLES_10ms];
-  WebRtc_Word16 decoded[MAX_FRAMESAMPLES];
-  WebRtc_UWord16 streamdata[500];
-  WebRtc_Word16 speechType[1];
-  WebRtc_Word16 prevFrameSize = 1;
-  WebRtc_Word16 rateBPS = 0;
-  WebRtc_Word16 fixedFL = 0;
-  WebRtc_Word16 payloadSize = 0;
-  WebRtc_Word32 payloadRate = 0;
+  int16_t stream_len = 0;
+  int16_t framecnt, declen = 0;
+  int16_t shortdata[FRAMESAMPLES_10ms];
+  int16_t decoded[MAX_FRAMESAMPLES];
+  uint16_t streamdata[500];
+  int16_t speechType[1];
+  int16_t prevFrameSize = 1;
+  int16_t rateBPS = 0;
+  int16_t fixedFL = 0;
+  int16_t payloadSize = 0;
+  int32_t payloadRate = 0;
   int setControlBWE = 0;
   int readLoss;
   FILE  *plFile = NULL;
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 
   int totalbits =0;
   int totalsmpls =0;
-  WebRtc_Word16 testNum, testCE;
+  int16_t testNum, testCE;
 
   FILE *fp_gns = NULL;
   int gns = 0;
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
   char gns_file[100];
 
   int nbTest = 0;
-  WebRtc_Word16 lostFrame;
+  int16_t lostFrame;
   float scale = (float)0.7;
   
   ISACFIX_MainStruct *ISAC_main_inst = NULL;
@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
           exit(0);
         }
       }
-      bottleneck = (WebRtc_Word16)aux_var;
+      bottleneck = (int16_t)aux_var;
       
 
 
@@ -565,18 +565,18 @@ int main(int argc, char* argv[])
           
           stream_len = WebRtcIsacfix_Encode(ISAC_main_inst,
                                             shortdata,
-                                            (WebRtc_Word16*)streamdata);
+                                            (int16_t*)streamdata);
 
           
 
           if (stream_len>0) {
             if (testCE == 1) {
-              err = WebRtcIsacfix_ReadBwIndex((WebRtc_Word16*)streamdata, &bwe);
+              err = WebRtcIsacfix_ReadBwIndex((int16_t*)streamdata, &bwe);
               stream_len = WebRtcIsacfix_GetNewBitStream(
                   ISAC_main_inst,
                   bwe,
                   scale,
-                  (WebRtc_Word16*)streamdata);
+                  (int16_t*)streamdata);
             } else if (testCE == 2) {
               
             } else if (testCE == 3) {
@@ -637,7 +637,7 @@ int main(int argc, char* argv[])
             exit(0);
           }
         }
-        bottleneck = (WebRtc_Word16)aux_var;
+        bottleneck = (int16_t)aux_var;
         if (CodingMode == 1) {
           WebRtcIsacfix_Control(ISAC_main_inst, bottleneck, framesize);
         }
@@ -712,7 +712,7 @@ int main(int argc, char* argv[])
       }
 
       if( readLoss == 1 ) {
-        if( fread( &lostFrame, sizeof(WebRtc_Word16), 1, plFile ) != 1 ) {
+        if( fread( &lostFrame, sizeof(int16_t), 1, plFile ) != 1 ) {
           rewind( plFile );
         }
         lostFrame = !lostFrame;
@@ -740,7 +740,7 @@ int main(int argc, char* argv[])
         if (nbTest !=2 ) {
           short FL;
           
-          err = WebRtcIsacfix_ReadFrameLen((WebRtc_Word16*)streamdata, &FL);
+          err = WebRtcIsacfix_ReadFrameLen((int16_t*)streamdata, &FL);
           declen = WebRtcIsacfix_Decode( ISAC_main_inst, streamdata, stream_len,
                                          decoded, speechType );
           
@@ -768,7 +768,7 @@ int main(int argc, char* argv[])
       }
 
       
-      if (fwrite(decoded, sizeof(WebRtc_Word16),
+      if (fwrite(decoded, sizeof(int16_t),
                  declen, outp) != (size_t)declen) {
         return -1;
       }
@@ -811,7 +811,7 @@ int main(int argc, char* argv[])
   printf("\n\n_______________________________________________\n");
 
   
-  webrtc::test::PrintResult("time_per_10ms_frame", "", "isac",
+  webrtc::test::PrintResult("isac", "", "time_per_10ms_frame",
                             (runtime * 10000) / length_file, "us", false);
 
   fclose(inp);

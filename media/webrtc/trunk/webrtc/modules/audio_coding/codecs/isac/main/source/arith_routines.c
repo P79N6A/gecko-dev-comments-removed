@@ -18,7 +18,7 @@
 
 int WebRtcIsac_EncTerminate(Bitstr *streamdata) 
 {
-  WebRtc_UWord8 *stream_ptr;
+  uint8_t *stream_ptr;
 
 
   
@@ -37,7 +37,7 @@ int WebRtcIsac_EncTerminate(Bitstr *streamdata)
       stream_ptr = streamdata->stream + streamdata->stream_index;
     }
     
-    *stream_ptr++ = (WebRtc_UWord8) (streamdata->streamval >> 24);
+    *stream_ptr++ = (uint8_t) (streamdata->streamval >> 24);
   }
   else
   {
@@ -51,8 +51,8 @@ int WebRtcIsac_EncTerminate(Bitstr *streamdata)
       stream_ptr = streamdata->stream + streamdata->stream_index;
     }
     
-    *stream_ptr++ = (WebRtc_UWord8) (streamdata->streamval >> 24);
-    *stream_ptr++ = (WebRtc_UWord8) ((streamdata->streamval >> 16) & 0x00FF);
+    *stream_ptr++ = (uint8_t) (streamdata->streamval >> 24);
+    *stream_ptr++ = (uint8_t) ((streamdata->streamval >> 16) & 0x00FF);
   }
 
   

@@ -24,13 +24,13 @@
 
 
 void WebRtcIlbcfix_EnhUpsample(
-    WebRtc_Word32 *useq1, 
-    WebRtc_Word16 *seq1 
+    int32_t *useq1, 
+    int16_t *seq1 
                                 ){
   int j;
-  WebRtc_Word32 *pu1, *pu11;
-  WebRtc_Word16 *ps, *w16tmp;
-  const WebRtc_Word16 *pp;
+  int32_t *pu1, *pu11;
+  int16_t *ps, *w16tmp;
+  const int16_t *pp;
 
   
   pu1=useq1;

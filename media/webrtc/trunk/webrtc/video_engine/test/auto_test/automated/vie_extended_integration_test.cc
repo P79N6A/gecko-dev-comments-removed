@@ -8,54 +8,56 @@
 
 
 
-
-
-
-
 #include "gtest/gtest.h"
-#include "legacy_fixture.h"
-#include "vie_autotest.h"
+#include "webrtc/test/testsupport/gtest_disable.h"
+#include "webrtc/video_engine/test/auto_test/automated/legacy_fixture.h"
+#include "webrtc/video_engine/test/auto_test/interface/vie_autotest.h"
 
 namespace {
 
-class ViEExtendedIntegrationTest : public LegacyFixture {
+
+
+class DISABLED_ON_MAC(ViEExtendedIntegrationTest) : public LegacyFixture {
 };
 
-TEST_F(ViEExtendedIntegrationTest, RunsBaseTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest), RunsBaseTestWithoutErrors) {
   tests_->ViEBaseExtendedTest();
 }
 
 
-TEST_F(ViEExtendedIntegrationTest, DISABLED_RunsCaptureTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       DISABLED_RunsCaptureTestWithoutErrors) {
   tests_->ViECaptureExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsCodecTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsCodecTestWithoutErrors) {
   tests_->ViECodecExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsEncryptionTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsEncryptionTestWithoutErrors) {
   tests_->ViEEncryptionExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsFileTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsFileTestWithoutErrors) {
   tests_->ViEFileExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsImageProcessTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsImageProcessTestWithoutErrors) {
   tests_->ViEImageProcessExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsNetworkTestWithoutErrors) {
-  tests_->ViENetworkExtendedTest();
-}
-
-TEST_F(ViEExtendedIntegrationTest, RunsRenderTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsRenderTestWithoutErrors) {
   tests_->ViERenderExtendedTest();
 }
 
-TEST_F(ViEExtendedIntegrationTest, RunsRtpRtcpTestWithoutErrors) {
+TEST_F(DISABLED_ON_MAC(ViEExtendedIntegrationTest),
+       RunsRtpRtcpTestWithoutErrors) {
   tests_->ViERtpRtcpExtendedTest();
 }
 
-} 
+}  

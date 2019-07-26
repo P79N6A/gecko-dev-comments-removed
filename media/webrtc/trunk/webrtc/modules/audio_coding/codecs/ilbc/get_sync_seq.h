@@ -26,14 +26,14 @@
 
 
 void WebRtcIlbcfix_GetSyncSeq(
-    WebRtc_Word16 *idata,   
-    WebRtc_Word16 idatal,   
-    WebRtc_Word16 centerStartPos, 
-    WebRtc_Word16 *period,   
-    WebRtc_Word16 *plocs,   
-    WebRtc_Word16 periodl,   
-    WebRtc_Word16 hl,    
-    WebRtc_Word16 *surround  
+    int16_t *idata,   
+    int16_t idatal,   
+    int16_t centerStartPos, 
+    int16_t *period,   
+    int16_t *plocs,   
+    int16_t periodl,   
+    int16_t hl,    
+    int16_t *surround  
 
                               );
 

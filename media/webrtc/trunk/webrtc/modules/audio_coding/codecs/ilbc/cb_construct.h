@@ -26,12 +26,12 @@
 
 
 void WebRtcIlbcfix_CbConstruct(
-    WebRtc_Word16 *decvector,  
-    WebRtc_Word16 *index,   
-    WebRtc_Word16 *gain_index,  
-    WebRtc_Word16 *mem,   
-    WebRtc_Word16 lMem,   
-    WebRtc_Word16 veclen   
+    int16_t *decvector,  
+    int16_t *index,   
+    int16_t *gain_index,  
+    int16_t *mem,   
+    int16_t lMem,   
+    int16_t veclen   
                                );
 
 

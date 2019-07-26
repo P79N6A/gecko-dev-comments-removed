@@ -77,14 +77,14 @@ public:
     int ResetIfNeeded(int inFreq, int outFreq, ResamplerType type);
 
     
-    int Push(const WebRtc_Word16* samplesIn, int lengthIn, WebRtc_Word16* samplesOut,
+    int Push(const int16_t* samplesIn, int lengthIn, int16_t* samplesOut,
              int maxLen, int &outLen);
 
     
-    int Insert(WebRtc_Word16* samplesIn, int lengthIn);
+    int Insert(int16_t* samplesIn, int lengthIn);
 
     
-    int Pull(WebRtc_Word16* samplesOut, int desiredLen, int &outLen);
+    int Pull(int16_t* samplesOut, int desiredLen, int &outLen);
 
 private:
     
@@ -93,8 +93,8 @@ private:
     void* state3_;
 
     
-    WebRtc_Word16* in_buffer_;
-    WebRtc_Word16* out_buffer_;
+    int16_t* in_buffer_;
+    int16_t* out_buffer_;
     int in_buffer_size_;
     int out_buffer_size_;
     int in_buffer_size_max_;

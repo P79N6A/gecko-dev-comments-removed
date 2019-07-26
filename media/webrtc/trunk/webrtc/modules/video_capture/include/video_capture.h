@@ -17,7 +17,7 @@
 namespace webrtc {
 
 #if defined(WEBRTC_ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
-WebRtc_Word32 SetCaptureAndroidVM(void* javaVM, void* javaContext);
+int32_t SetCaptureAndroidVM(void* javaVM, void* javaContext);
 #endif
 
 class VideoCaptureModule: public RefCountedModule {
@@ -25,7 +25,7 @@ class VideoCaptureModule: public RefCountedModule {
   
   class DeviceInfo {
    public:
-    virtual WebRtc_UWord32 NumberOfDevices() = 0;
+    virtual uint32_t NumberOfDevices() = 0;
 
     
     
@@ -34,93 +34,91 @@ class VideoCaptureModule: public RefCountedModule {
     
     
     
-    virtual WebRtc_Word32 GetDeviceName(
-        WebRtc_UWord32 deviceNumber,
+    virtual int32_t GetDeviceName(
+        uint32_t deviceNumber,
         char* deviceNameUTF8,
-        WebRtc_UWord32 deviceNameLength,
+        uint32_t deviceNameLength,
         char* deviceUniqueIdUTF8,
-        WebRtc_UWord32 deviceUniqueIdUTF8Length,
+        uint32_t deviceUniqueIdUTF8Length,
         char* productUniqueIdUTF8 = 0,
-        WebRtc_UWord32 productUniqueIdUTF8Length = 0) = 0;
+        uint32_t productUniqueIdUTF8Length = 0) = 0;
 
 
     
-    virtual WebRtc_Word32 NumberOfCapabilities(
+    virtual int32_t NumberOfCapabilities(
         const char* deviceUniqueIdUTF8) = 0;
 
     
-    virtual WebRtc_Word32 GetCapability(
+    virtual int32_t GetCapability(
         const char* deviceUniqueIdUTF8,
-        const WebRtc_UWord32 deviceCapabilityNumber,
+        const uint32_t deviceCapabilityNumber,
         VideoCaptureCapability& capability) = 0;
 
     
     
-    virtual WebRtc_Word32 GetOrientation(
+    virtual int32_t GetOrientation(
         const char* deviceUniqueIdUTF8,
         VideoCaptureRotation& orientation) = 0;
 
     
     
     
-    virtual WebRtc_Word32 GetBestMatchedCapability(
+    virtual int32_t GetBestMatchedCapability(
         const char* deviceUniqueIdUTF8,
         const VideoCaptureCapability& requested,
         VideoCaptureCapability& resulting) = 0;
 
      
-    virtual WebRtc_Word32 DisplayCaptureSettingsDialogBox(
+    virtual int32_t DisplayCaptureSettingsDialogBox(
         const char* deviceUniqueIdUTF8,
         const char* dialogTitleUTF8,
         void* parentWindow,
-        WebRtc_UWord32 positionX,
-        WebRtc_UWord32 positionY) = 0;
+        uint32_t positionX,
+        uint32_t positionY) = 0;
 
     virtual ~DeviceInfo() {}
   };
 
   class VideoCaptureEncodeInterface {
    public:
-    virtual WebRtc_Word32 ConfigureEncoder(const VideoCodec& codec,
-                                           WebRtc_UWord32 maxPayloadSize) = 0;
+    virtual int32_t ConfigureEncoder(const VideoCodec& codec,
+                                     uint32_t maxPayloadSize) = 0;
     
     
     
-    virtual WebRtc_Word32 SetRates(WebRtc_Word32 newBitRate,
-                                   WebRtc_Word32 frameRate) = 0;
+    virtual int32_t SetRates(int32_t newBitRate, int32_t frameRate) = 0;
     
     
     
     
-    virtual WebRtc_Word32 SetChannelParameters(WebRtc_UWord32 packetLoss,
-                                               int rtt) = 0;
+    virtual int32_t SetChannelParameters(uint32_t packetLoss, int rtt) = 0;
 
     
-    virtual WebRtc_Word32 EncodeFrameType(const FrameType type) = 0;
+    virtual int32_t EncodeFrameType(const FrameType type) = 0;
   protected:
     virtual ~VideoCaptureEncodeInterface() {
     }
   };
 
   
-  virtual WebRtc_Word32 RegisterCaptureDataCallback(
+  virtual int32_t RegisterCaptureDataCallback(
       VideoCaptureDataCallback& dataCallback) = 0;
 
   
-  virtual WebRtc_Word32 DeRegisterCaptureDataCallback() = 0;
+  virtual int32_t DeRegisterCaptureDataCallback() = 0;
 
   
-  virtual WebRtc_Word32 RegisterCaptureCallback(
+  virtual int32_t RegisterCaptureCallback(
       VideoCaptureFeedBack& callBack) = 0;
 
   
-  virtual WebRtc_Word32 DeRegisterCaptureCallback() = 0;
+  virtual int32_t DeRegisterCaptureCallback() = 0;
 
   
-  virtual WebRtc_Word32 StartCapture(
+  virtual int32_t StartCapture(
       const VideoCaptureCapability& capability) = 0;
 
-  virtual WebRtc_Word32 StopCapture() = 0;
+  virtual int32_t StopCapture() = 0;
 
   
   virtual const char* CurrentDeviceName() const = 0;
@@ -129,26 +127,26 @@ class VideoCaptureModule: public RefCountedModule {
   virtual bool CaptureStarted() = 0;
 
   
-  virtual WebRtc_Word32 CaptureSettings(VideoCaptureCapability& settings) = 0;
+  virtual int32_t CaptureSettings(VideoCaptureCapability& settings) = 0;
 
-  virtual WebRtc_Word32 SetCaptureDelay(WebRtc_Word32 delayMS) = 0;
-
-  
-  virtual WebRtc_Word32 CaptureDelay() = 0;
+  virtual int32_t SetCaptureDelay(int32_t delayMS) = 0;
 
   
+  virtual int32_t CaptureDelay() = 0;
+
   
   
   
-  virtual WebRtc_Word32 SetCaptureRotation(VideoCaptureRotation rotation) = 0;
+  
+  virtual int32_t SetCaptureRotation(VideoCaptureRotation rotation) = 0;
 
   
   
   virtual VideoCaptureEncodeInterface* GetEncodeInterface(
       const VideoCodec& codec) = 0;
 
-  virtual WebRtc_Word32 EnableFrameRateCallback(const bool enable) = 0;
-  virtual WebRtc_Word32 EnableNoPictureAlarm(const bool enable) = 0;
+  virtual int32_t EnableFrameRateCallback(const bool enable) = 0;
+  virtual int32_t EnableNoPictureAlarm(const bool enable) = 0;
 
 protected:
   virtual ~VideoCaptureModule() {};

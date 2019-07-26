@@ -33,7 +33,7 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOE_VIDEO_SYNC_H
 #define WEBRTC_VOICE_ENGINE_VOE_VIDEO_SYNC_H
 
-#include "common_types.h"
+#include "webrtc/common_types.h"
 
 namespace webrtc {
 
@@ -55,14 +55,20 @@ public:
     virtual int Release() = 0;
 
     
-    virtual int GetPlayoutBufferSize(int& bufferMs) = 0;
+    virtual int GetPlayoutBufferSize(int& buffer_ms) = 0;
 
     
-    virtual int SetMinimumPlayoutDelay(int channel, int delayMs) = 0;
+    virtual int SetMinimumPlayoutDelay(int channel, int delay_ms) = 0;
 
     
     
-    virtual int GetDelayEstimate(int channel, int& delayMs) = 0;
+    virtual int SetInitialPlayoutDelay(int channel, int delay_ms) = 0;
+
+    
+    
+    virtual int GetDelayEstimate(int channel,
+                                 int* jitter_buffer_delay_ms,
+                                 int* playout_buffer_delay_ms) = 0;
 
     
     virtual int SetInitTimestamp(int channel, unsigned int timestamp) = 0;

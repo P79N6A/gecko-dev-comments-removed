@@ -13,8 +13,8 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_INTERNAL_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_INTERNAL_H_
 
-#include "modules/audio_processing/utility/delay_estimator.h"
-#include "typedefs.h"
+#include "webrtc/modules/audio_processing/utility/delay_estimator.h"
+#include "webrtc/typedefs.h"
 
 typedef union {
   float float_;
@@ -24,9 +24,19 @@ typedef union {
 typedef struct {
   
   SpectrumType* mean_far_spectrum;
-  SpectrumType* mean_near_spectrum;
   
   int far_spectrum_initialized;
+
+  int spectrum_size;
+
+  
+  BinaryDelayEstimatorFarend* binary_farend;
+} DelayEstimatorFarend;
+
+typedef struct {
+  
+  SpectrumType* mean_near_spectrum;
+  
   int near_spectrum_initialized;
 
   int spectrum_size;

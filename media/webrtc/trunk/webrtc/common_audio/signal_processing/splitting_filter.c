@@ -22,8 +22,8 @@ enum
 };
 
 
-static const WebRtc_UWord16 WebRtcSpl_kAllPassFilter1[3] = {6418, 36982, 57261};
-static const WebRtc_UWord16 WebRtcSpl_kAllPassFilter2[3] = {21333, 49062, 63010};
+static const uint16_t WebRtcSpl_kAllPassFilter1[3] = {6418, 36982, 57261};
+static const uint16_t WebRtcSpl_kAllPassFilter2[3] = {21333, 49062, 63010};
 
 
 
@@ -43,9 +43,9 @@ static const WebRtc_UWord16 WebRtcSpl_kAllPassFilter2[3] = {21333, 49062, 63010}
 
 
 
-void WebRtcSpl_AllPassQMF(WebRtc_Word32* in_data, const WebRtc_Word16 data_length,
-                          WebRtc_Word32* out_data, const WebRtc_UWord16* filter_coefficients,
-                          WebRtc_Word32* filter_state)
+void WebRtcSpl_AllPassQMF(int32_t* in_data, const int16_t data_length,
+                          int32_t* out_data, const uint16_t* filter_coefficients,
+                          int32_t* filter_state)
 {
     
     
@@ -63,8 +63,8 @@ void WebRtcSpl_AllPassQMF(WebRtc_Word32* in_data, const WebRtc_Word16 data_lengt
     
     
     
-    WebRtc_Word16 k;
-    WebRtc_Word32 diff;
+    int16_t k;
+    int32_t diff;
     
 
     
@@ -116,23 +116,23 @@ void WebRtcSpl_AllPassQMF(WebRtc_Word32* in_data, const WebRtc_Word16 data_lengt
     filter_state[5] = out_data[data_length - 1]; 
 }
 
-void WebRtcSpl_AnalysisQMF(const WebRtc_Word16* in_data, WebRtc_Word16* low_band,
-                           WebRtc_Word16* high_band, WebRtc_Word32* filter_state1,
-                           WebRtc_Word32* filter_state2)
+void WebRtcSpl_AnalysisQMF(const int16_t* in_data, int16_t* low_band,
+                           int16_t* high_band, int32_t* filter_state1,
+                           int32_t* filter_state2)
 {
-    WebRtc_Word16 i;
-    WebRtc_Word16 k;
-    WebRtc_Word32 tmp;
-    WebRtc_Word32 half_in1[kBandFrameLength];
-    WebRtc_Word32 half_in2[kBandFrameLength];
-    WebRtc_Word32 filter1[kBandFrameLength];
-    WebRtc_Word32 filter2[kBandFrameLength];
+    int16_t i;
+    int16_t k;
+    int32_t tmp;
+    int32_t half_in1[kBandFrameLength];
+    int32_t half_in2[kBandFrameLength];
+    int32_t filter1[kBandFrameLength];
+    int32_t filter2[kBandFrameLength];
 
     
     for (i = 0, k = 0; i < kBandFrameLength; i++, k += 2)
     {
-        half_in2[i] = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)in_data[k], 10);
-        half_in1[i] = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32)in_data[k + 1], 10);
+        half_in2[i] = WEBRTC_SPL_LSHIFT_W32((int32_t)in_data[k], 10);
+        half_in1[i] = WEBRTC_SPL_LSHIFT_W32((int32_t)in_data[k + 1], 10);
     }
 
     
@@ -155,25 +155,25 @@ void WebRtcSpl_AnalysisQMF(const WebRtc_Word16* in_data, WebRtc_Word16* low_band
     }
 }
 
-void WebRtcSpl_SynthesisQMF(const WebRtc_Word16* low_band, const WebRtc_Word16* high_band,
-                            WebRtc_Word16* out_data, WebRtc_Word32* filter_state1,
-                            WebRtc_Word32* filter_state2)
+void WebRtcSpl_SynthesisQMF(const int16_t* low_band, const int16_t* high_band,
+                            int16_t* out_data, int32_t* filter_state1,
+                            int32_t* filter_state2)
 {
-    WebRtc_Word32 tmp;
-    WebRtc_Word32 half_in1[kBandFrameLength];
-    WebRtc_Word32 half_in2[kBandFrameLength];
-    WebRtc_Word32 filter1[kBandFrameLength];
-    WebRtc_Word32 filter2[kBandFrameLength];
-    WebRtc_Word16 i;
-    WebRtc_Word16 k;
+    int32_t tmp;
+    int32_t half_in1[kBandFrameLength];
+    int32_t half_in2[kBandFrameLength];
+    int32_t filter1[kBandFrameLength];
+    int32_t filter2[kBandFrameLength];
+    int16_t i;
+    int16_t k;
 
     
     
     for (i = 0; i < kBandFrameLength; i++)
     {
-        tmp = (WebRtc_Word32)low_band[i] + (WebRtc_Word32)high_band[i];
+        tmp = (int32_t)low_band[i] + (int32_t)high_band[i];
         half_in1[i] = WEBRTC_SPL_LSHIFT_W32(tmp, 10);
-        tmp = (WebRtc_Word32)low_band[i] - (WebRtc_Word32)high_band[i];
+        tmp = (int32_t)low_band[i] - (int32_t)high_band[i];
         half_in2[i] = WEBRTC_SPL_LSHIFT_W32(tmp, 10);
     }
 

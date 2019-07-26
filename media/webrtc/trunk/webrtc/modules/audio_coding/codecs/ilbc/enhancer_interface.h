@@ -26,8 +26,8 @@
 
 
 int WebRtcIlbcfix_EnhancerInterface( 
-    WebRtc_Word16 *out,     
-    WebRtc_Word16 *in,      
+    int16_t *out,     
+    int16_t *in,      
     iLBC_Dec_Inst_t *iLBCdec_inst 
                                         );
 

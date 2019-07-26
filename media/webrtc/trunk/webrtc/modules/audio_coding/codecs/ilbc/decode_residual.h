@@ -30,8 +30,8 @@ void WebRtcIlbcfix_DecodeResidual(
     
     iLBC_bits *iLBC_encbits, 
 
-    WebRtc_Word16 *decresidual,  
-    WebRtc_Word16 *syntdenum   
+    int16_t *decresidual,  
+    int16_t *syntdenum   
 
                                   );
 

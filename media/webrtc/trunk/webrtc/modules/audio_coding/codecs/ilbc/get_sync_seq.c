@@ -26,31 +26,31 @@
 
 
 void WebRtcIlbcfix_GetSyncSeq(
-    WebRtc_Word16 *idata,   
-    WebRtc_Word16 idatal,   
-    WebRtc_Word16 centerStartPos, 
-    WebRtc_Word16 *period,   
-    WebRtc_Word16 *plocs,   
-    WebRtc_Word16 periodl,   
-    WebRtc_Word16 hl,    
-    WebRtc_Word16 *surround  
+    int16_t *idata,   
+    int16_t idatal,   
+    int16_t centerStartPos, 
+    int16_t *period,   
+    int16_t *plocs,   
+    int16_t periodl,   
+    int16_t hl,    
+    int16_t *surround  
 
                               ){
-  WebRtc_Word16 i,centerEndPos,q;
+  int16_t i,centerEndPos,q;
   
-  WebRtc_Word16 lagBlock[2*ENH_HL+1];
-  WebRtc_Word16 blockStartPos[2*ENH_HL+1]; 
-  WebRtc_Word16 plocs2[ENH_PLOCSL];
+  int16_t lagBlock[2*ENH_HL+1];
+  int16_t blockStartPos[2*ENH_HL+1]; 
+  int16_t plocs2[ENH_PLOCSL];
 
   centerEndPos=centerStartPos+ENH_BLOCKL-1;
 
   
 
   WebRtcIlbcfix_NearestNeighbor(lagBlock+hl,plocs,
-                                (WebRtc_Word16)WEBRTC_SPL_MUL_16_16(2, (centerStartPos+centerEndPos)),
+                                (int16_t)WEBRTC_SPL_MUL_16_16(2, (centerStartPos+centerEndPos)),
                                 periodl);
 
-  blockStartPos[hl]=(WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, centerStartPos);
+  blockStartPos[hl]=(int16_t)WEBRTC_SPL_MUL_16_16(4, centerStartPos);
 
   
 
@@ -59,10 +59,10 @@ void WebRtcIlbcfix_GetSyncSeq(
     blockStartPos[q]=blockStartPos[q+1]-period[lagBlock[q+1]];
 
     WebRtcIlbcfix_NearestNeighbor(lagBlock+q, plocs,
-                                  (WebRtc_Word16)(blockStartPos[q] + (WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, ENH_BLOCKL_HALF)-period[lagBlock[q+1]]),
+                                  (int16_t)(blockStartPos[q] + (int16_t)WEBRTC_SPL_MUL_16_16(4, ENH_BLOCKL_HALF)-period[lagBlock[q+1]]),
                                   periodl);
 
-    if((blockStartPos[q]-(WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, ENH_OVERHANG))>=0) {
+    if((blockStartPos[q]-(int16_t)WEBRTC_SPL_MUL_16_16(4, ENH_OVERHANG))>=0) {
 
       
 
@@ -85,14 +85,14 @@ void WebRtcIlbcfix_GetSyncSeq(
   for(q=hl+1;q<=WEBRTC_SPL_MUL_16_16(2, hl);q++) {
 
     WebRtcIlbcfix_NearestNeighbor(lagBlock+q,plocs2,
-                                  (WebRtc_Word16)(blockStartPos[q-1]+
-                                                  (WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, ENH_BLOCKL_HALF)),periodl);
+                                  (int16_t)(blockStartPos[q-1]+
+                                                  (int16_t)WEBRTC_SPL_MUL_16_16(4, ENH_BLOCKL_HALF)),periodl);
 
     blockStartPos[q]=blockStartPos[q-1]+period[lagBlock[q]];
 
-    if( (blockStartPos[q]+(WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, (ENH_BLOCKL+ENH_OVERHANG)))
+    if( (blockStartPos[q]+(int16_t)WEBRTC_SPL_MUL_16_16(4, (ENH_BLOCKL+ENH_OVERHANG)))
         <
-        (WebRtc_Word16)WEBRTC_SPL_MUL_16_16(4, idatal)) {
+        (int16_t)WEBRTC_SPL_MUL_16_16(4, idatal)) {
 
       
 

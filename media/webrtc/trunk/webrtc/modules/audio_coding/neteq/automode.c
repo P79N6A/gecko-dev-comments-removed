@@ -30,15 +30,15 @@ extern FILE *delay_fid2;
 
 
 int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
-                                    WebRtc_UWord16 seqNumber, WebRtc_UWord32 timeStamp,
-                                    WebRtc_Word32 fsHz, int mdCodec, int streamingMode)
+                                    uint16_t seqNumber, uint32_t timeStamp,
+                                    int32_t fsHz, int mdCodec, int streamingMode)
 {
-    WebRtc_UWord32 timeIat; 
+    uint32_t timeIat; 
     int i;
-    WebRtc_Word32 tempsum = 0; 
-    WebRtc_Word32 tempvar; 
+    int32_t tempsum = 0; 
+    int32_t tempvar; 
     int retval = 0; 
-    WebRtc_Word16 packetLenSamp; 
+    int16_t packetLenSamp; 
 
     
     
@@ -63,7 +63,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
     else
     {
         
-        packetLenSamp = (WebRtc_Word16) WebRtcSpl_DivU32U16(timeStamp - inst->lastTimeStamp,
+        packetLenSamp = (int16_t) WebRtcSpl_DivU32U16(timeStamp - inst->lastTimeStamp,
             seqNumber - inst->lastSeqNo);
     }
 
@@ -81,7 +81,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
 
 
-            WebRtc_Word16 timeIatQ8 = (WebRtc_Word16) WebRtcSpl_DivW32W16(
+            int16_t timeIatQ8 = (int16_t) WebRtcSpl_DivW32W16(
                 WEBRTC_SPL_LSHIFT_W32(inst->packetIatCountSamp, 8), packetLenSamp);
 
             
@@ -105,7 +105,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
             }
 
             
-            if (inst->maxCSumUpdateTimer > (WebRtc_UWord32) WEBRTC_SPL_MUL_32_16(fsHz,
+            if (inst->maxCSumUpdateTimer > (uint32_t) WEBRTC_SPL_MUL_32_16(fsHz,
                 MAX_STREAMING_PEAK_PERIOD))
             {
                 inst->maxCSumIatQ8 -= 4; 
@@ -120,12 +120,12 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
 
             timeIat -= WEBRTC_SPL_MIN(timeIat,
-                (WebRtc_UWord32) (seqNumber - inst->lastSeqNo - 1));
+                (uint32_t) (seqNumber - inst->lastSeqNo - 1));
         }
         else if (seqNumber < inst->lastSeqNo)
         {
             
-            timeIat += (WebRtc_UWord32) (inst->lastSeqNo + 1 - seqNumber);
+            timeIat += (uint32_t) (inst->lastSeqNo + 1 - seqNumber);
         }
 
         
@@ -134,7 +134,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
         
         for (i = 0; i <= MAX_IAT; i++)
         {
-            WebRtc_Word32 tempHi, tempLo; 
+            int32_t tempHi, tempLo; 
 
             
 
@@ -148,7 +148,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
 
             tempHi = WEBRTC_SPL_MUL_16_16(inst->iatProbFact,
-                (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(inst->iatProb[i], 16));
+                (int16_t) WEBRTC_SPL_RSHIFT_W32(inst->iatProb[i], 16));
             tempHi = WEBRTC_SPL_LSHIFT_W32(tempHi, 1); 
 
             
@@ -157,7 +157,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
             tempLo = inst->iatProb[i] & 0x0000FFFF; 
             tempLo = WEBRTC_SPL_MUL_16_U16(inst->iatProbFact,
-                (WebRtc_UWord16) tempLo);
+                (uint16_t) tempLo);
             tempLo = WEBRTC_SPL_RSHIFT_W32(tempLo, 15);
 
             
@@ -212,11 +212,11 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
         }
 
         
-        tempvar = (WebRtc_Word32) WebRtcNetEQ_CalcOptimalBufLvl(inst, fsHz, mdCodec, timeIat,
+        tempvar = (int32_t) WebRtcNetEQ_CalcOptimalBufLvl(inst, fsHz, mdCodec, timeIat,
             streamingMode);
         if (tempvar > 0)
         {
-            inst->optBufLevel = (WebRtc_UWord16) tempvar;
+            inst->optBufLevel = tempvar;
 
             if (streamingMode != 0)
             {
@@ -238,7 +238,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
             maxBufLen = WEBRTC_SPL_LSHIFT_W32(maxBufLen, 8); 
 
             
-            inst->optBufLevel = (WebRtc_UWord16) WEBRTC_SPL_MIN( inst->optBufLevel,
+            inst->optBufLevel = WEBRTC_SPL_MIN( inst->optBufLevel,
                 (maxBufLen >> 1) + (maxBufLen >> 2) ); 
         }
         else
@@ -254,8 +254,8 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 
     
     timeIat = WEBRTC_SPL_UDIV(
-        WEBRTC_SPL_UMUL_32_16(inst->packetIatCountSamp, (WebRtc_Word16) 1000),
-        (WebRtc_UWord32) fsHz);
+        WEBRTC_SPL_UMUL_32_16(inst->packetIatCountSamp, (int16_t) 1000),
+        (uint32_t) fsHz);
 
     
     if (timeIat > 2000)
@@ -291,16 +291,16 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
 }
 
 
-WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 fsHz,
-                                            int mdCodec, WebRtc_UWord32 timeIatPkts,
-                                            int streamingMode)
+int16_t WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, int32_t fsHz,
+                                      int mdCodec, uint32_t timeIatPkts,
+                                      int streamingMode)
 {
 
-    WebRtc_Word32 sum1 = 1 << 30; 
-    WebRtc_Word16 B;
-    WebRtc_UWord16 Bopt;
+    int32_t sum1 = 1 << 30; 
+    int16_t B;
+    uint16_t Bopt;
     int i;
-    WebRtc_Word32 betaInv; 
+    int32_t betaInv; 
 
 #ifdef NETEQ_DELAY_LOGGING
     
@@ -362,7 +362,7 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 
 
 
-        WebRtc_Word32 sum2 = sum1; 
+        int32_t sum2 = sum1; 
 
         while ((sum2 <= betaInv + inst->iatProb[Bopt]) && (Bopt > 0))
         {
@@ -426,8 +426,8 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 
 
 
-    if (timeIatPkts > (WebRtc_UWord32) (Bopt + inst->peakThresholdPkt + (mdCodec != 0))
-        || timeIatPkts > (WebRtc_UWord32) WEBRTC_SPL_LSHIFT_U16(Bopt, 1))
+    if (timeIatPkts > (uint32_t) (Bopt + inst->peakThresholdPkt + (mdCodec != 0))
+        || timeIatPkts > (uint32_t) WEBRTC_SPL_LSHIFT_U16(Bopt, 1))
     {
         
 
@@ -440,7 +440,7 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
         }
         else if (inst->peakIatCountSamp
             <=
-            (WebRtc_UWord32) WEBRTC_SPL_MUL_32_16(fsHz, MAX_PEAK_PERIOD))
+            (uint32_t) WEBRTC_SPL_MUL_32_16(fsHz, MAX_PEAK_PERIOD))
         {
             
 
@@ -450,7 +450,7 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
             
             inst->peakHeightPkt[inst->peakIndex]
                 =
-                (WebRtc_Word16) WEBRTC_SPL_MIN(timeIatPkts, WEBRTC_SPL_WORD16_MAX);
+                (int16_t) WEBRTC_SPL_MIN(timeIatPkts, WEBRTC_SPL_WORD16_MAX);
 
             
             inst->peakIndex = (inst->peakIndex + 1) & PEAK_INDEX_MASK;
@@ -472,7 +472,7 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
             inst->peakModeDisabled >>= 1; 
 
         }
-        else if (inst->peakIatCountSamp > (WebRtc_UWord32) WEBRTC_SPL_MUL_32_16(fsHz,
+        else if (inst->peakIatCountSamp > (uint32_t) WEBRTC_SPL_MUL_32_16(fsHz,
             WEBRTC_SPL_LSHIFT_W16(MAX_PEAK_PERIOD, 1)))
         {
             
@@ -535,11 +535,11 @@ WebRtc_Word16 WebRtcNetEQ_CalcOptimalBufLvl(AutomodeInst_t *inst, WebRtc_Word32 
 }
 
 
-int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst,
-                                  int sampPerCall, WebRtc_Word16 fsMult)
+int WebRtcNetEQ_BufferLevelFilter(int32_t curSizeMs8, AutomodeInst_t *inst,
+                                  int sampPerCall, int16_t fsMult)
 {
 
-    WebRtc_Word16 curSizeFrames;
+    int16_t curSizeFrames;
 
     
     
@@ -558,7 +558,7 @@ int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst
 
 
 
-        curSizeFrames = (WebRtc_Word16) WebRtcSpl_DivW32W16(
+        curSizeFrames = (int16_t) WebRtcSpl_DivW32W16(
             WEBRTC_SPL_MUL_32_16(curSizeMs8, fsMult), inst->packetSpeechLenSamp);
     }
     else
@@ -575,9 +575,8 @@ int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst
 
 
 
-        inst->buffLevelFilt = (WebRtc_UWord16) (WEBRTC_SPL_RSHIFT_W32(
-            WEBRTC_SPL_MUL_16_U16(inst->levelFiltFact, inst->buffLevelFilt), 8)
-            + WEBRTC_SPL_MUL_16_16(256 - inst->levelFiltFact, curSizeFrames));
+        inst->buffLevelFilt = ((inst->levelFiltFact * inst->buffLevelFilt) >> 8) +
+            (256 - inst->levelFiltFact) * curSizeFrames;
     }
 
     
@@ -589,7 +588,7 @@ int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst
 
 
 
-        inst->buffLevelFilt = (WebRtc_UWord16) WEBRTC_SPL_MAX( inst->buffLevelFilt -
+        inst->buffLevelFilt = WEBRTC_SPL_MAX( inst->buffLevelFilt -
             WebRtcSpl_DivW32W16(
                 WEBRTC_SPL_LSHIFT_W32(inst->sampleMemory, 8), 
                 inst->packetSpeechLenSamp ), 
@@ -614,8 +613,8 @@ int WebRtcNetEQ_BufferLevelFilter(WebRtc_Word32 curSizeMs8, AutomodeInst_t *inst
 }
 
 
-int WebRtcNetEQ_SetPacketSpeechLen(AutomodeInst_t *inst, WebRtc_Word16 newLenSamp,
-                                   WebRtc_Word32 fsHz)
+int WebRtcNetEQ_SetPacketSpeechLen(AutomodeInst_t *inst, int16_t newLenSamp,
+                                   int32_t fsHz)
 {
 
     
@@ -636,9 +635,9 @@ int WebRtcNetEQ_SetPacketSpeechLen(AutomodeInst_t *inst, WebRtc_Word16 newLenSam
 
 
 
-    inst->peakThresholdPkt = (WebRtc_UWord16) WebRtcSpl_DivW32W16ResW16(
+    inst->peakThresholdPkt = (uint16_t) WebRtcSpl_DivW32W16ResW16(
         WEBRTC_SPL_MUL_16_16_RSFT(PEAK_HEIGHT,
-            (WebRtc_Word16) WEBRTC_SPL_RSHIFT_W32(fsHz, 6), 2), inst->packetSpeechLenSamp);
+            (int16_t) WEBRTC_SPL_RSHIFT_W32(fsHz, 6), 2), inst->packetSpeechLenSamp);
 
     return 0;
 }
@@ -648,7 +647,7 @@ int WebRtcNetEQ_ResetAutomode(AutomodeInst_t *inst, int maxBufLenPackets)
 {
 
     int i;
-    WebRtc_UWord16 tempprob = 0x4002; 
+    uint16_t tempprob = 0x4002; 
 
     
     if (maxBufLenPackets <= 1)
@@ -691,7 +690,7 @@ int WebRtcNetEQ_ResetAutomode(AutomodeInst_t *inst, int maxBufLenPackets)
         
         tempprob = WEBRTC_SPL_RSHIFT_U16(tempprob, 1);
         
-        inst->iatProb[i] = WEBRTC_SPL_LSHIFT_W32((WebRtc_Word32) tempprob, 16);
+        inst->iatProb[i] = WEBRTC_SPL_LSHIFT_W32((int32_t) tempprob, 16);
     }
 
     

@@ -25,24 +25,24 @@ public:
     
     
     
-    virtual void PlayNotification(const WebRtc_Word32 id,
-                                  const WebRtc_UWord32 durationMs) = 0;
+    virtual void PlayNotification(const int32_t id,
+                                  const uint32_t durationMs) = 0;
 
     
     
     
-    virtual void RecordNotification(const WebRtc_Word32 id,
-                                    const WebRtc_UWord32 durationMs) = 0;
+    virtual void RecordNotification(const int32_t id,
+                                    const uint32_t durationMs) = 0;
 
     
     
     
-    virtual void PlayFileEnded(const WebRtc_Word32 id) = 0;
+    virtual void PlayFileEnded(const int32_t id) = 0;
 
     
     
     
-    virtual void RecordFileEnded(const WebRtc_Word32 id) = 0;
+    virtual void RecordFileEnded(const int32_t id) = 0;
 
 protected:
     FileCallback() {}

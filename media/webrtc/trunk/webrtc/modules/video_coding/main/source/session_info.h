@@ -29,12 +29,14 @@ class VCMSessionInfo {
   
   
   int BuildHardNackList(int* seq_num_list,
-                        int seq_num_list_length);
+                        int seq_num_list_length,
+                        int nack_seq_nums_index);
 
   
   
   int BuildSoftNackList(int* seq_num_list,
                         int seq_num_list_length,
+                        int nack_seq_nums_index,
                         int rtt_ms);
   void Reset();
   int InsertPacket(const VCMPacket& packet,
@@ -57,6 +59,7 @@ class VCMSessionInfo {
   
   int MakeDecodable();
   int SessionLength() const;
+  bool HaveFirstPacket() const;
   bool HaveLastPacket() const;
   bool session_nack() const;
   webrtc::FrameType FrameType() const { return frame_type_; }
@@ -99,8 +102,6 @@ class VCMSessionInfo {
   PacketIterator FindPartitionEnd(PacketIterator it) const;
   static bool InSequence(const PacketIterator& it,
                          const PacketIterator& prev_it);
-  static int PacketsMissing(const PacketIterator& packet_it,
-                            const PacketIterator& prev_packet_it);
   int InsertBuffer(uint8_t* frame_buffer,
                    PacketIterator packetIterator);
   void ShiftSubsequentPackets(PacketIterator it, int steps_to_shift);
@@ -114,14 +115,6 @@ class VCMSessionInfo {
   
   
   void UpdateDecodableSession(int rtt_ms);
-
-  
-  
-  
-  
-  int ClearOutEmptyPacketSequenceNumbers(int* seq_num_list,
-                                         int seq_num_list_length,
-                                         int index) const;
 
   
   bool session_nack_;

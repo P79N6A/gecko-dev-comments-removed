@@ -163,18 +163,11 @@ int ViEAutoTestAndroid::RunAutotest(int testSelection, int subTestSelection,
           break;
 
         case 8: 
-          vieAutoTest.ViENetworkExtendedTest();
-          break;
-
-        case 9: 
           vieAutoTest.ViERenderExtendedTest();
           break;
 
-        case 10: 
+        case 9: 
           vieAutoTest.ViERtpRtcpExtendedTest();
-          break;
-
-        case 11:
           break;
 
         default:

@@ -108,6 +108,7 @@ ACMOpus::ACMOpus(int16_t codec_id)
       bitrate_(20000),  
       channels_(1) {  
   codec_id_ = codec_id;
+
   
   has_internal_dtx_ = false;
 
@@ -269,7 +270,7 @@ void ACMOpus::DestructDecoderSafe() {
 
 void ACMOpus::InternalDestructEncoderInst(void* ptr_inst) {
   if (ptr_inst != NULL) {
-    WebRtcOpus_EncoderFree((OpusEncInst*) ptr_inst);
+    WebRtcOpus_EncoderFree(reinterpret_cast<OpusEncInst*>(ptr_inst));
   }
   return;
 }

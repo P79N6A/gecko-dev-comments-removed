@@ -52,7 +52,7 @@ public:
     
     
     virtual void Process(const int channel, const ProcessingTypes type,
-                         WebRtc_Word16 audio10ms[], const int length,
+                         int16_t audio10ms[], const int length,
                          const int samplingFreq, const bool isStereo) = 0;
 
 protected:
@@ -93,7 +93,7 @@ public:
     
     
     virtual int ExternalRecordingInsertData(
-        const WebRtc_Word16 speechData10ms[], int lengthSamples,
+        const int16_t speechData10ms[], int lengthSamples,
         int samplingFreqHz, int current_delay_ms) = 0;
 
     
@@ -102,7 +102,7 @@ public:
     
     
     virtual int ExternalPlayoutGetData(
-        WebRtc_Word16 speechData10ms[], int samplingFreqHz,
+        int16_t speechData10ms[], int samplingFreqHz,
         int current_delay_ms, int& lengthSamples) = 0;
 
     

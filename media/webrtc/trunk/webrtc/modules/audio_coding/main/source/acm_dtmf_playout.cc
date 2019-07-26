@@ -21,7 +21,7 @@ namespace webrtc {
 #ifndef WEBRTC_CODEC_AVT
 
 ACMDTMFPlayout::ACMDTMFPlayout(
-    WebRtc_Word16 ) {
+    int16_t ) {
   return;
 }
 
@@ -29,33 +29,33 @@ ACMDTMFPlayout::~ACMDTMFPlayout() {
   return;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalEncode(
-    WebRtc_UWord8* ,
-    WebRtc_Word16* ) {
+int16_t ACMDTMFPlayout::InternalEncode(
+    uint8_t* ,
+    int16_t* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::DecodeSafe(
-    WebRtc_UWord8* ,
-    WebRtc_Word16 ,
-    WebRtc_Word16* ,
-    WebRtc_Word16* ,
-    WebRtc_Word8* ) {
+int16_t ACMDTMFPlayout::DecodeSafe(
+    uint8_t* ,
+    int16_t ,
+    int16_t* ,
+    int16_t* ,
+    int8_t* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalInitEncoder(
+int16_t ACMDTMFPlayout::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalInitDecoder(
+int16_t ACMDTMFPlayout::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   return -1;
 }
 
-WebRtc_Word32 ACMDTMFPlayout::CodecDef(WebRtcNetEQ_CodecDef& ,
-                                       const CodecInst& ) {
+int32_t ACMDTMFPlayout::CodecDef(WebRtcNetEQ_CodecDef& ,
+                                 const CodecInst& ) {
   return -1;
 }
 
@@ -63,11 +63,11 @@ ACMGenericCodec* ACMDTMFPlayout::CreateInstance(void) {
   return NULL;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalCreateEncoder() {
+int16_t ACMDTMFPlayout::InternalCreateEncoder() {
   return -1;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalCreateDecoder() {
+int16_t ACMDTMFPlayout::InternalCreateDecoder() {
   return -1;
 }
 
@@ -85,7 +85,7 @@ void ACMDTMFPlayout::DestructDecoderSafe() {
 
 #else     
 
-ACMDTMFPlayout::ACMDTMFPlayout(WebRtc_Word16 codec_id) {
+ACMDTMFPlayout::ACMDTMFPlayout(int16_t codec_id) {
   codec_id_ = codec_id;
 }
 
@@ -93,37 +93,37 @@ ACMDTMFPlayout::~ACMDTMFPlayout() {
   return;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalEncode(
-    WebRtc_UWord8* ,
-    WebRtc_Word16* ) {
+int16_t ACMDTMFPlayout::InternalEncode(
+    uint8_t* ,
+    int16_t* ) {
   return 0;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::DecodeSafe(
-    WebRtc_UWord8* ,
-    WebRtc_Word16 ,
-    WebRtc_Word16* ,
-    WebRtc_Word16* ,
-    WebRtc_Word8* ) {
+int16_t ACMDTMFPlayout::DecodeSafe(
+    uint8_t* ,
+    int16_t ,
+    int16_t* ,
+    int16_t* ,
+    int8_t* ) {
   return 0;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalInitEncoder(
+int16_t ACMDTMFPlayout::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   
   
   return 0;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalInitDecoder(
+int16_t ACMDTMFPlayout::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   
   
   return 0;
 }
 
-WebRtc_Word32 ACMDTMFPlayout::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                                       const CodecInst& codec_inst) {
+int32_t ACMDTMFPlayout::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                                 const CodecInst& codec_inst) {
   
   
   
@@ -137,12 +137,12 @@ ACMGenericCodec* ACMDTMFPlayout::CreateInstance(void) {
   return NULL;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalCreateEncoder() {
+int16_t ACMDTMFPlayout::InternalCreateEncoder() {
   
   return 0;
 }
 
-WebRtc_Word16 ACMDTMFPlayout::InternalCreateDecoder() {
+int16_t ACMDTMFPlayout::InternalCreateDecoder() {
   
   return 0;
 }

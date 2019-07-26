@@ -19,16 +19,16 @@ extern "C" {
 #include "webrtc/typedefs.h"
 
 
-extern const WebRtc_Word16 kCosTab1[FRAMESAMPLES/2];
+extern const int16_t kCosTab1[FRAMESAMPLES/2];
 
 
-extern const WebRtc_Word16 kSinTab1[FRAMESAMPLES/2];
+extern const int16_t kSinTab1[FRAMESAMPLES/2];
 
 
-extern const WebRtc_Word16 kCosTab2[FRAMESAMPLES/4];
+extern const int16_t kCosTab2[FRAMESAMPLES/4];
 
 
-extern const WebRtc_Word16 kSinTab2[FRAMESAMPLES/4];
+extern const int16_t kSinTab2[FRAMESAMPLES/4];
 
 #ifdef __cplusplus
 } 

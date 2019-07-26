@@ -24,23 +24,23 @@
 
 
 void WebRtcIlbcfix_StateConstruct(
-    WebRtc_Word16 idxForMax,   
+    int16_t idxForMax,   
 
-    WebRtc_Word16 *idxVec,   
-    WebRtc_Word16 *syntDenum,  
-    WebRtc_Word16 *Out_fix,  
-    WebRtc_Word16 len    
+    int16_t *idxVec,   
+    int16_t *syntDenum,  
+    int16_t *Out_fix,  
+    int16_t len    
                                   ) {
   int k;
-  WebRtc_Word16 maxVal;
-  WebRtc_Word16 *tmp1, *tmp2, *tmp3;
+  int16_t maxVal;
+  int16_t *tmp1, *tmp2, *tmp3;
   
-  WebRtc_Word16 numerator[1+LPC_FILTERORDER];
-  WebRtc_Word16 sampleValVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
-  WebRtc_Word16 sampleMaVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
-  WebRtc_Word16 *sampleVal = &sampleValVec[LPC_FILTERORDER];
-  WebRtc_Word16 *sampleMa = &sampleMaVec[LPC_FILTERORDER];
-  WebRtc_Word16 *sampleAr = &sampleValVec[LPC_FILTERORDER];
+  int16_t numerator[1+LPC_FILTERORDER];
+  int16_t sampleValVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
+  int16_t sampleMaVec[2*STATE_SHORT_LEN_30MS+LPC_FILTERORDER];
+  int16_t *sampleVal = &sampleValVec[LPC_FILTERORDER];
+  int16_t *sampleMa = &sampleMaVec[LPC_FILTERORDER];
+  int16_t *sampleAr = &sampleValVec[LPC_FILTERORDER];
 
   
 
@@ -60,7 +60,7 @@ void WebRtcIlbcfix_StateConstruct(
     for(k=0; k<len; k++){
       
 
-      (*tmp1) = (WebRtc_Word16) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(WebRtc_Word32)2097152) >> 22);
+      (*tmp1) = (int16_t) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(int32_t)2097152) >> 22);
       tmp1++;
       tmp2--;
     }
@@ -68,7 +68,7 @@ void WebRtcIlbcfix_StateConstruct(
     for(k=0; k<len; k++){
       
 
-      (*tmp1) = (WebRtc_Word16) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(WebRtc_Word32)262144) >> 19);
+      (*tmp1) = (int16_t) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(int32_t)262144) >> 19);
       tmp1++;
       tmp2--;
     }
@@ -76,7 +76,7 @@ void WebRtcIlbcfix_StateConstruct(
     for(k=0; k<len; k++){
       
 
-      (*tmp1) = (WebRtc_Word16) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(WebRtc_Word32)65536) >> 17);
+      (*tmp1) = (int16_t) ((WEBRTC_SPL_MUL_16_16(maxVal,WebRtcIlbcfix_kStateSq3[(*tmp2)])+(int32_t)65536) >> 17);
       tmp1++;
       tmp2--;
     }
@@ -93,11 +93,11 @@ void WebRtcIlbcfix_StateConstruct(
   
   WebRtcSpl_FilterMAFastQ12(
       sampleVal, sampleMa,
-      numerator, LPC_FILTERORDER+1, (WebRtc_Word16)(len + LPC_FILTERORDER));
+      numerator, LPC_FILTERORDER+1, (int16_t)(len + LPC_FILTERORDER));
   WebRtcSpl_MemSetW16(&sampleMa[len + LPC_FILTERORDER], 0, (len - LPC_FILTERORDER));
   WebRtcSpl_FilterARFastQ12(
       sampleMa, sampleAr,
-      syntDenum, LPC_FILTERORDER+1, (WebRtc_Word16)(2*len));
+      syntDenum, LPC_FILTERORDER+1, (int16_t)(2*len));
 
   tmp1 = &sampleAr[len-1];
   tmp2 = &sampleAr[2*len-1];

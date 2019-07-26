@@ -61,7 +61,7 @@ int WebRtcNsx_Free(NsxHandle* nsxInst);
 
 
 
-int WebRtcNsx_Init(NsxHandle* nsxInst, WebRtc_UWord32 fs);
+int WebRtcNsx_Init(NsxHandle* nsxInst, uint32_t fs);
 
 
 

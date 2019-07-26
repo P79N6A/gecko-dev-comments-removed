@@ -18,7 +18,7 @@
 
 namespace webrtc {
 
-ACMRED::ACMRED(WebRtc_Word16 codec_id) {
+ACMRED::ACMRED(int16_t codec_id) {
   codec_id_ = codec_id;
 }
 
@@ -26,37 +26,37 @@ ACMRED::~ACMRED() {
   return;
 }
 
-WebRtc_Word16 ACMRED::InternalEncode(WebRtc_UWord8* ,
-                                     WebRtc_Word16* ) {
+int16_t ACMRED::InternalEncode(uint8_t* ,
+                               int16_t* ) {
   
   
   return 0;
 }
 
-WebRtc_Word16 ACMRED::DecodeSafe(WebRtc_UWord8* ,
-                                 WebRtc_Word16 ,
-                                 WebRtc_Word16* ,
-                                 WebRtc_Word16* ,
-                                 WebRtc_Word8* ) {
+int16_t ACMRED::DecodeSafe(uint8_t* ,
+                           int16_t ,
+                           int16_t* ,
+                           int16_t* ,
+                           int8_t* ) {
   return 0;
 }
 
-WebRtc_Word16 ACMRED::InternalInitEncoder(
+int16_t ACMRED::InternalInitEncoder(
     WebRtcACMCodecParams* ) {
   
   
   return 0;
 }
 
-WebRtc_Word16 ACMRED::InternalInitDecoder(
+int16_t ACMRED::InternalInitDecoder(
     WebRtcACMCodecParams* ) {
   
   
   return 0;
 }
 
-WebRtc_Word32 ACMRED::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
-                               const CodecInst& codec_inst) {
+int32_t ACMRED::CodecDef(WebRtcNetEQ_CodecDef& codec_def,
+                         const CodecInst& codec_inst) {
   if (!decoder_initialized_) {
     
     
@@ -76,12 +76,12 @@ ACMGenericCodec* ACMRED::CreateInstance(void) {
   return NULL;
 }
 
-WebRtc_Word16 ACMRED::InternalCreateEncoder() {
+int16_t ACMRED::InternalCreateEncoder() {
   
   return 0;
 }
 
-WebRtc_Word16 ACMRED::InternalCreateDecoder() {
+int16_t ACMRED::InternalCreateDecoder() {
   
   return 0;
 }

@@ -21,29 +21,29 @@ namespace videocapturemodule
 class DeviceInfoLinux: public DeviceInfoImpl
 {
 public:
-    DeviceInfoLinux(const WebRtc_Word32 id);
+    DeviceInfoLinux(const int32_t id);
     virtual ~DeviceInfoLinux();
-    virtual WebRtc_UWord32 NumberOfDevices();
-    virtual WebRtc_Word32 GetDeviceName(
-        WebRtc_UWord32 deviceNumber,
+    virtual uint32_t NumberOfDevices();
+    virtual int32_t GetDeviceName(
+        uint32_t deviceNumber,
         char* deviceNameUTF8,
-        WebRtc_UWord32 deviceNameLength,
+        uint32_t deviceNameLength,
         char* deviceUniqueIdUTF8,
-        WebRtc_UWord32 deviceUniqueIdUTF8Length,
+        uint32_t deviceUniqueIdUTF8Length,
         char* productUniqueIdUTF8=0,
-        WebRtc_UWord32 productUniqueIdUTF8Length=0);
+        uint32_t productUniqueIdUTF8Length=0);
     
 
 
-    virtual WebRtc_Word32 CreateCapabilityMap (const char* deviceUniqueIdUTF8);
-    virtual WebRtc_Word32 DisplayCaptureSettingsDialogBox(
+    virtual int32_t CreateCapabilityMap (const char* deviceUniqueIdUTF8);
+    virtual int32_t DisplayCaptureSettingsDialogBox(
         const char* ,
         const char* ,
         void* ,
-        WebRtc_UWord32 ,
-        WebRtc_UWord32 ) { return -1;}
-    WebRtc_Word32 FillCapabilityMap(int fd);
-    WebRtc_Word32 Init();
+        uint32_t ,
+        uint32_t ) { return -1;}
+    int32_t FillCapabilityMap(int fd);
+    int32_t Init();
 private:
 
     bool IsDeviceNameMatches(const char* name, const char* deviceUniqueIdUTF8);

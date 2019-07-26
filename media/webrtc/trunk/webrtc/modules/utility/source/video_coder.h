@@ -20,43 +20,42 @@ namespace webrtc {
 class VideoCoder : public VCMPacketizationCallback, public VCMReceiveCallback
 {
 public:
-    VideoCoder(WebRtc_UWord32 instanceID);
+    VideoCoder(uint32_t instanceID);
     ~VideoCoder();
 
-    WebRtc_Word32 ResetDecoder();
+    int32_t ResetDecoder();
 
-    WebRtc_Word32 SetEncodeCodec(VideoCodec& videoCodecInst,
-                                 WebRtc_UWord32 numberOfCores,
-                                 WebRtc_UWord32 maxPayloadSize);
+    int32_t SetEncodeCodec(VideoCodec& videoCodecInst,
+                           uint32_t numberOfCores,
+                           uint32_t maxPayloadSize);
 
 
     
     
-    WebRtc_Word32 SetDecodeCodec(VideoCodec& videoCodecInst,
-                                 WebRtc_Word32 numberOfCores);
+    int32_t SetDecodeCodec(VideoCodec& videoCodecInst, int32_t numberOfCores);
 
-    WebRtc_Word32 Decode(I420VideoFrame& decodedVideo,
-                         const EncodedVideoData& encodedData);
+    int32_t Decode(I420VideoFrame& decodedVideo,
+                   const EncodedVideoData& encodedData);
 
-    WebRtc_Word32 Encode(const I420VideoFrame& videoFrame,
-                         EncodedVideoData& videoEncodedData);
+    int32_t Encode(const I420VideoFrame& videoFrame,
+                   EncodedVideoData& videoEncodedData);
 
-    WebRtc_Word8 DefaultPayloadType(const char* plName);
+    int8_t DefaultPayloadType(const char* plName);
 
 private:
     
     
-    WebRtc_Word32 FrameToRender(I420VideoFrame& videoFrame);
+    int32_t FrameToRender(I420VideoFrame& videoFrame);
 
     
     
-    WebRtc_Word32 SendData(
+    int32_t SendData(
         FrameType ,
-        WebRtc_UWord8 ,
-        WebRtc_UWord32 ,
+        uint8_t ,
+        uint32_t ,
         int64_t capture_time_ms,
-        const WebRtc_UWord8* payloadData,
-        WebRtc_UWord32 payloadSize,
+        const uint8_t* payloadData,
+        uint32_t payloadSize,
         const RTPFragmentationHeader& ,
         const RTPVideoHeader* rtpTypeHdr);
 

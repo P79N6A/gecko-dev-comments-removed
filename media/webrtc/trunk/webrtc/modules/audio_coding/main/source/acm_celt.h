@@ -33,14 +33,12 @@ class ACMCELT : public ACMGenericCodec {
   int16_t InternalInitDecoder(WebRtcACMCodecParams *codec_params);
 
  protected:
-  WebRtc_Word16 DecodeSafe(
+  int16_t DecodeSafe(
       uint8_t* ,
       int16_t ,
       int16_t* ,
       int16_t* ,
-      
-      
-      WebRtc_Word8* );
+      int8_t* );
 
   int32_t CodecDef(WebRtcNetEQ_CodecDef& codec_def,
                    const CodecInst& codec_inst);

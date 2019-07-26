@@ -17,14 +17,14 @@
 
 void WebRtcIsac_EncHistMulti(Bitstr *streamdata, 
                              const int *data,  
-                             const WebRtc_UWord16 **cdf, 
+                             const uint16_t **cdf, 
                              const int N)   
 {
-  WebRtc_UWord32 W_lower, W_upper;
-  WebRtc_UWord32 W_upper_LSB, W_upper_MSB;
-  WebRtc_UWord8 *stream_ptr;
-  WebRtc_UWord8 *stream_ptr_carry;
-  WebRtc_UWord32 cdf_lo, cdf_hi;
+  uint32_t W_lower, W_upper;
+  uint32_t W_upper_LSB, W_upper_MSB;
+  uint8_t *stream_ptr;
+  uint8_t *stream_ptr_carry;
+  uint32_t cdf_lo, cdf_hi;
   int k;
 
 
@@ -35,8 +35,8 @@ void WebRtcIsac_EncHistMulti(Bitstr *streamdata,
   for (k=N; k>0; k--)
   {
     
-    cdf_lo = (WebRtc_UWord32) *(*cdf + *data);
-    cdf_hi = (WebRtc_UWord32) *(*cdf++ + *data++ + 1);
+    cdf_lo = (uint32_t) *(*cdf + *data);
+    cdf_hi = (uint32_t) *(*cdf++ + *data++ + 1);
 
     
     W_upper_LSB = W_upper & 0x0000FFFF;
@@ -64,7 +64,7 @@ void WebRtcIsac_EncHistMulti(Bitstr *streamdata,
     while ( !(W_upper & 0xFF000000) )      
     {
       W_upper <<= 8;
-      *stream_ptr++ = (WebRtc_UWord8) (streamdata->streamval >> 24);
+      *stream_ptr++ = (uint8_t) (streamdata->streamval >> 24);
       streamdata->streamval <<= 8;
     }
   }
@@ -84,16 +84,16 @@ void WebRtcIsac_EncHistMulti(Bitstr *streamdata,
 
 int WebRtcIsac_DecHistBisectMulti(int *data,     
                                   Bitstr *streamdata,   
-                                  const WebRtc_UWord16 **cdf,  
-                                  const WebRtc_UWord16 *cdf_size, 
+                                  const uint16_t **cdf,  
+                                  const uint16_t *cdf_size, 
                                   const int N)    
 {
-  WebRtc_UWord32    W_lower, W_upper;
-  WebRtc_UWord32    W_tmp;
-  WebRtc_UWord32    W_upper_LSB, W_upper_MSB;
-  WebRtc_UWord32    streamval;
-  const   WebRtc_UWord8 *stream_ptr;
-  const   WebRtc_UWord16 *cdf_ptr;
+  uint32_t    W_lower, W_upper;
+  uint32_t    W_tmp;
+  uint32_t    W_upper_LSB, W_upper_MSB;
+  uint32_t    streamval;
+  const   uint8_t *stream_ptr;
+  const   uint16_t *cdf_ptr;
   int     size_tmp;
   int     k;
 
@@ -192,16 +192,16 @@ int WebRtcIsac_DecHistBisectMulti(int *data,
 
 int WebRtcIsac_DecHistOneStepMulti(int *data,        
                                    Bitstr *streamdata,      
-                                   const WebRtc_UWord16 **cdf,   
-                                   const WebRtc_UWord16 *init_index, 
+                                   const uint16_t **cdf,   
+                                   const uint16_t *init_index, 
                                    const int N)     
 {
-  WebRtc_UWord32    W_lower, W_upper;
-  WebRtc_UWord32    W_tmp;
-  WebRtc_UWord32    W_upper_LSB, W_upper_MSB;
-  WebRtc_UWord32    streamval;
-  const   WebRtc_UWord8 *stream_ptr;
-  const   WebRtc_UWord16 *cdf_ptr;
+  uint32_t    W_lower, W_upper;
+  uint32_t    W_tmp;
+  uint32_t    W_upper_LSB, W_upper_MSB;
+  uint32_t    streamval;
+  const   uint8_t *stream_ptr;
+  const   uint16_t *cdf_ptr;
   int     k;
 
 

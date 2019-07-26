@@ -28,10 +28,10 @@
 typedef struct dtmf_tone_inst_t_
 {
 
-    WebRtc_Word16 reinit; 
+    int16_t reinit; 
 
-    WebRtc_Word16 oldOutputLow[2]; 
-    WebRtc_Word16 oldOutputHigh[2]; 
+    int16_t oldOutputLow[2]; 
+    int16_t oldOutputHigh[2]; 
 
     int lastDtmfSample; 
 
@@ -59,12 +59,12 @@ typedef struct dtmf_tone_inst_t_
 
 
 
-WebRtc_Word16 WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst,
-                WebRtc_Word16 value,
-                WebRtc_Word16 volume,
-                WebRtc_Word16 *signal,
-                WebRtc_UWord16 sampFreq,
-                WebRtc_Word16 frameLen
+int16_t WebRtcNetEQ_DTMFGenerate(dtmf_tone_inst_t *DTMFdecInst,
+                int16_t value,
+                int16_t volume,
+                int16_t *signal,
+                uint16_t sampFreq,
+                int16_t frameLen
 );
 
 #endif 

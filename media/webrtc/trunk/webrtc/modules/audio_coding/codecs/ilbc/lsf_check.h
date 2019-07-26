@@ -26,7 +26,7 @@
 
 
 int WebRtcIlbcfix_LsfCheck(
-    WebRtc_Word16 *lsf, 
+    int16_t *lsf, 
     int dim, 
     int NoAn); 
 

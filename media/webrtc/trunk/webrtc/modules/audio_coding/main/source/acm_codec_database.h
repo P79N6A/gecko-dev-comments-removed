@@ -242,12 +242,6 @@ class ACMCodecDB {
   
   
   
-  
-  
-  
-  
-  static int CodecNumber(const CodecInst* codec_inst, int* mirror_id,
-                         char* err_message, int max_message_len_byte);
   static int CodecNumber(const CodecInst* codec_inst, int* mirror_id);
   static int CodecId(const CodecInst* codec_inst);
   static int CodecId(const char* payload_name, int frequency, int channels);

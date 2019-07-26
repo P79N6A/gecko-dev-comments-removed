@@ -11,7 +11,7 @@
 #ifndef WEBRTC_MODULES_AUDIO_PROCESSING_AEC_INCLUDE_ECHO_CANCELLATION_H_
 #define WEBRTC_MODULES_AUDIO_PROCESSING_AEC_INCLUDE_ECHO_CANCELLATION_H_
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 
 #define AEC_UNSPECIFIED_ERROR           12000
@@ -35,18 +35,18 @@ enum {
 };
 
 typedef struct {
-    WebRtc_Word16 nlpMode;        
-    WebRtc_Word16 skewMode;       
-    WebRtc_Word16 metricsMode;    
-    int delay_logging;            
+    int16_t nlpMode;        
+    int16_t skewMode;       
+    int16_t metricsMode;    
+    int delay_logging;      
     
 } AecConfig;
 
 typedef struct {
-    WebRtc_Word16 instant;
-    WebRtc_Word16 average;
-    WebRtc_Word16 max;
-    WebRtc_Word16 min;
+  int instant;
+  int average;
+  int max;
+  int min;
 } AecLevel;
 
 typedef struct {
@@ -55,6 +55,8 @@ typedef struct {
     AecLevel erle;
     AecLevel aNlp;
 } AecMetrics;
+
+struct AecCore;
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +76,7 @@ extern "C" {
 
 
 
-WebRtc_Word32 WebRtcAec_Create(void **aecInst);
+int32_t WebRtcAec_Create(void **aecInst);
 
 
 
@@ -88,7 +90,7 @@ WebRtc_Word32 WebRtcAec_Create(void **aecInst);
 
 
 
-WebRtc_Word32 WebRtcAec_Free(void *aecInst);
+int32_t WebRtcAec_Free(void *aecInst);
 
 
 
@@ -104,9 +106,7 @@ WebRtc_Word32 WebRtcAec_Free(void *aecInst);
 
 
 
-WebRtc_Word32 WebRtcAec_Init(void *aecInst,
-                             WebRtc_Word32 sampFreq,
-                             WebRtc_Word32 scSampFreq);
+int32_t WebRtcAec_Init(void *aecInst, int32_t sampFreq, int32_t scSampFreq);
 
 
 
@@ -123,9 +123,9 @@ WebRtc_Word32 WebRtcAec_Init(void *aecInst,
 
 
 
-WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst,
-                                     const WebRtc_Word16 *farend,
-                                     WebRtc_Word16 nrOfSamples);
+int32_t WebRtcAec_BufferFarend(void *aecInst,
+                               const int16_t *farend,
+                               int16_t nrOfSamples);
 
 
 
@@ -153,14 +153,14 @@ WebRtc_Word32 WebRtcAec_BufferFarend(void *aecInst,
 
 
 
-WebRtc_Word32 WebRtcAec_Process(void *aecInst,
-                                const WebRtc_Word16 *nearend,
-                                const WebRtc_Word16 *nearendH,
-                                WebRtc_Word16 *out,
-                                WebRtc_Word16 *outH,
-                                WebRtc_Word16 nrOfSamples,
-                                WebRtc_Word16 msInSndCardBuf,
-                                WebRtc_Word32 skew);
+int32_t WebRtcAec_Process(void *aecInst,
+                          const int16_t *nearend,
+                          const int16_t *nearendH,
+                          int16_t *out,
+                          int16_t *outH,
+                          int16_t nrOfSamples,
+                          int16_t msInSndCardBuf,
+                          int32_t skew);
 
 
 
@@ -176,7 +176,7 @@ WebRtc_Word32 WebRtcAec_Process(void *aecInst,
 
 
 
-WebRtc_Word32 WebRtcAec_set_config(void *aecInst, AecConfig config);
+int WebRtcAec_set_config(void* handle, AecConfig config);
 
 
 
@@ -192,7 +192,7 @@ WebRtc_Word32 WebRtcAec_set_config(void *aecInst, AecConfig config);
 
 
 
-WebRtc_Word32 WebRtcAec_get_config(void *aecInst, AecConfig *config);
+int WebRtcAec_get_echo_status(void* handle, int* status);
 
 
 
@@ -208,23 +208,7 @@ WebRtc_Word32 WebRtcAec_get_config(void *aecInst, AecConfig *config);
 
 
 
-WebRtc_Word32 WebRtcAec_get_echo_status(void *aecInst, WebRtc_Word16 *status);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-WebRtc_Word32 WebRtcAec_GetMetrics(void *aecInst, AecMetrics *metrics);
+int WebRtcAec_GetMetrics(void* handle, AecMetrics* metrics);
 
 
 
@@ -254,7 +238,17 @@ int WebRtcAec_GetDelayMetrics(void* handle, int* median, int* std);
 
 
 
-WebRtc_Word32 WebRtcAec_get_error_code(void *aecInst);
+int32_t WebRtcAec_get_error_code(void *aecInst);
+
+
+
+
+
+
+
+
+
+struct AecCore* WebRtcAec_aec_core(void* handle);
 
 #ifdef __cplusplus
 }

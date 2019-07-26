@@ -36,7 +36,7 @@ public:
 
 
 
-    WebRtc_Word32 SetFileName(const char* fileName);
+    int32_t SetFileName(const char* fileName);
 
 
 
@@ -46,7 +46,7 @@ public:
 
 
 
-    WebRtc_Word32 Encode(const I420VideoFrame& inputImage);
+    int32_t Encode(const I420VideoFrame& inputImage);
 
 private:
 
