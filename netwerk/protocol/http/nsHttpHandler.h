@@ -437,6 +437,7 @@ private:
 
     
     bool           mSafeHintEnabled;
+    bool           mParentalControlEnabled;
 
     
     uint32_t           mTelemetryEnabled : 1;
