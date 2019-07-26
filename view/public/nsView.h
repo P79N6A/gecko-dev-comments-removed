@@ -300,6 +300,13 @@ public:
 
 
 
+  bool InAlternatePaint() { return mInAlternatePaint; }
+
+  
+
+
+
+
   void AttachWidgetEventHandler(nsIWidget* aWidget);
   
 
