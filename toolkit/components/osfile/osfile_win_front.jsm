@@ -255,9 +255,7 @@
 
 
 
-     File.open = function Win_open(path, mode, options) {
-       options = options || noOptions;
-       mode = mode || noOptions;
+     File.open = function Win_open(path, mode = noOptions, options = noOptions) {
        let share = options.winShare || DEFAULT_SHARE;
        let security = options.winSecurity || null;
        let flags = options.winFlags || DEFAULT_FLAGS;
@@ -349,8 +347,7 @@
 
 
 
-     File.removeEmptyDir = function removeEmptyDir(path, options) {
-       options = options || noOptions;
+     File.removeEmptyDir = function removeEmptyDir(path, options = noOptions) {
        let result = WinFile.RemoveDirectory(path);
        if (!result) {
          if (options.ignoreAbsent &&
@@ -375,8 +372,7 @@
 
 
 
-     File.makeDir = function makeDir(path, options) {
-       options = options || noOptions;
+     File.makeDir = function makeDir(path, options = noOptions) {
        let security = options.winSecurity || null;
        let result = WinFile.CreateDirectory(path, security);
        if (result ||
@@ -410,8 +406,7 @@
 
 
 
-     File.copy = function copy(sourcePath, destPath, options) {
-       options = options || noOptions;
+     File.copy = function copy(sourcePath, destPath, options = noOptions) {
        throw_on_zero("copy",
          WinFile.CopyFile(sourcePath, destPath, options.noOverwrite || false)
        );
@@ -443,8 +438,7 @@
 
 
 
-     File.move = function move(sourcePath, destPath, options) {
-       options = options || noOptions;
+     File.move = function move(sourcePath, destPath, options = noOptions) {
        let flags = 0;
        if (!options.noCopy) {
          flags = Const.MOVEFILE_COPY_ALLOWED;
