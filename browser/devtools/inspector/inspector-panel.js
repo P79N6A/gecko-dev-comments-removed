@@ -168,7 +168,7 @@ InspectorPanel.prototype = {
     
     return walker.getRootNode().then(aRootNode => {
       rootNode = aRootNode;
-      return walker.querySelector(aRootNode, this.selectionCssSelector);
+      return walker.querySelector(rootNode, this.selectionCssSelector);
     }).then(front => {
       if (front) {
         return front;
@@ -727,6 +727,15 @@ InspectorPanel.prototype = {
       
       this.walker.removeNode(this.selection.nodeFront);
     }
+  },
+
+  
+
+
+
+  immediateLayoutChange: function Inspector_immediateLayoutChange()
+  {
+    this.emit("layout-change");
   },
 
   

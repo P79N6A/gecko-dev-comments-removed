@@ -19,7 +19,7 @@ this.LayoutHelpers = LayoutHelpers = function(aTopLevelWindow) {
   this._topDocShell = aTopLevelWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                      .getInterface(Ci.nsIWebNavigation)
                                      .QueryInterface(Ci.nsIDocShell);
-}
+};
 
 LayoutHelpers.prototype = {
 
@@ -367,17 +367,27 @@ LayoutHelpers.prototype = {
   
 
 
+
+
+
+
+
   getFrameElement: function LH_getFrameElement(win) {
     if (this.isTopLevelWindow(win)) {
       return null;
     }
 
+    
     let docShell = win.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsIWebNavigation)
                    .QueryInterface(Ci.nsIDocShell);
 
     if (docShell.isBrowserOrApp) {
+      
+      
       let parentDocShell = docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
+      
+      
       let parentDoc = parentDocShell.contentViewer.DOMDocument;
       let allIframes = parentDoc.querySelectorAll("iframe");
       for (let f of allIframes) {
@@ -385,6 +395,7 @@ LayoutHelpers.prototype = {
           return f;
         }
       }
+
       return null;
     } else {
       return win.frameElement;
