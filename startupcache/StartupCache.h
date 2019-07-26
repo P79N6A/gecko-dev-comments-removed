@@ -18,53 +18,53 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsIMemoryReporter;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 namespace mozilla {
 namespace scache {
@@ -177,8 +177,8 @@ private:
   nsTHashtable<nsISupportsHashKey> mWriteObjectMap;
 #endif
 
-  nsIMemoryReporter* mMappingMemoryReporter;
-  nsIMemoryReporter* mDataMemoryReporter;
+  nsCOMPtr<nsIMemoryReporter> mMappingReporter;
+  nsCOMPtr<nsIMemoryReporter> mDataReporter;
 };
 
 
