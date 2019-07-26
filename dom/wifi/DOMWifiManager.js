@@ -69,6 +69,10 @@ DOMWifiManager.prototype = {
     
     this._hasPrivileges = perm == Ci.nsIPermissionManager.ALLOW_ACTION;
 
+    if (!this._hasPrivileges) {
+      return null;
+    }
+
     
     this._currentNetwork = null;
     this._connectionStatus = "disconnected";
