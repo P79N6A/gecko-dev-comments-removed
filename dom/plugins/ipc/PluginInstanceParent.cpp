@@ -599,19 +599,23 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
     }
 #endif
 
+    if (mFrontSurface) {
+        
+        
+        
 #ifdef MOZ_X11
-    if (mFrontSurface &&
-        mFrontSurface->GetType() == gfxASurface::SurfaceTypeXlib) {
-        
-        
-        
-        mFrontSurface->Finish();
-        
-        
-        
-        FinishX(DefaultXDisplay());
-    }
+        if (mFrontSurface->GetType() == gfxASurface::SurfaceTypeXlib) {
+            
+            
+            
+            mFrontSurface->Finish();
+            FinishX(DefaultXDisplay());
+        } else 
 #endif
+        {
+            mFrontSurface->Flush();
+        }
+    }
 
     if (mFrontSurface && gfxSharedImageSurface::IsSharedImage(mFrontSurface))
         *prevSurface = static_cast<gfxSharedImageSurface*>(mFrontSurface.get())->GetShmem();
