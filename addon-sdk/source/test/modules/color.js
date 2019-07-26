@@ -1,0 +1,7 @@
+
+
+
+
+define({
+  type: 'color'
+});

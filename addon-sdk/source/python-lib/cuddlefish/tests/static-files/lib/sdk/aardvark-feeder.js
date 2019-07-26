@@ -1,0 +1,7 @@
+
+
+
+
+module.metadata = {
+  "stability": "stable"
+};

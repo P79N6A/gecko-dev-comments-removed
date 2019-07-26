@@ -1,0 +1,234 @@
+
+
+
+
+import os.path
+import shutil
+import zipfile
+from StringIO import StringIO
+import simplejson as json
+import unittest
+import cuddlefish
+from cuddlefish import packaging, manifest
+
+def up(path, generations=1):
+    for i in range(generations):
+        path = os.path.dirname(path)
+    return path
+
+ROOT = up(os.path.abspath(__file__), 4)
+def get_linker_files_dir(name):
+    return os.path.join(up(os.path.abspath(__file__)), "linker-files", name)
+
+class Basic(unittest.TestCase):
+    def get_pkg(self, name):
+        d = get_linker_files_dir(name)
+        return packaging.get_config_in_dir(d)
+
+    def test_deps(self):
+        target_cfg = self.get_pkg("one")
+        pkg_cfg = packaging.build_config(ROOT, target_cfg)
+        deps = packaging.get_deps_for_targets(pkg_cfg, ["one"])
+        self.failUnlessEqual(deps, ["one"])
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "one"])
+
+    def test_manifest(self):
+        target_cfg = self.get_pkg("one")
+        pkg_cfg = packaging.build_config(ROOT, target_cfg)
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "one"])
+        
+        
+        m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
+        m = m.get_harness_options_manifest()
+
+        def assertReqIs(modname, reqname, path):
+            reqs = m["one/lib/%s.js" % modname]["requirements"]
+            self.failUnlessEqual(reqs[reqname]["path"], path)
+        assertReqIs("main", "panel", "addon-sdk/lib/sdk/panel.js")
+        assertReqIs("main", "two.js", "one/lib/two.js")
+        assertReqIs("main", "./two", "one/lib/two.js")
+        assertReqIs("main", "sdk/tabs.js", "addon-sdk/lib/sdk/tabs.js")
+        assertReqIs("main", "./subdir/three", "one/lib/subdir/three.js")
+        assertReqIs("two", "main", "one/lib/main.js")
+        assertReqIs("subdir/three", "../main", "one/lib/main.js")
+
+        target_cfg.dependencies = []
+        
+        
+        self.assertRaises(manifest.ModuleNotFoundError,
+                          manifest.build_manifest,
+                          target_cfg, pkg_cfg, deps, scan_tests=False)
+
+    def test_main_in_deps(self):
+        target_cfg = self.get_pkg("three")
+        package_path = [get_linker_files_dir("three-deps")]
+        pkg_cfg = packaging.build_config(ROOT, target_cfg,
+                                         packagepath=package_path)
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "three"])
+        m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
+        m = m.get_harness_options_manifest()
+        def assertReqIs(modname, reqname, path):
+            reqs = m["three/lib/%s.js" % modname]["requirements"]
+            self.failUnlessEqual(reqs[reqname]["path"], path)
+        assertReqIs("main", "three-a", "three-a/lib/main.js")
+        assertReqIs("main", "three-b", "three-b/lib/main.js")
+        assertReqIs("main", "three-c", "three-c/lib/main.js")
+
+    def test_relative_main_in_top(self):
+        target_cfg = self.get_pkg("five")
+        package_path = []
+        pkg_cfg = packaging.build_config(ROOT, target_cfg,
+                                         packagepath=package_path)
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "five"])
+        
+        m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
+        m = m.get_harness_options_manifest()
+        reqs = m["five/lib/main.js"]["requirements"]
+        self.failUnlessEqual(reqs, {});
+
+    def test_unreachable_relative_main_in_top(self):
+        target_cfg = self.get_pkg("six")
+        package_path = []
+        pkg_cfg = packaging.build_config(ROOT, target_cfg,
+                                         packagepath=package_path)
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "six"])
+        self.assertRaises(manifest.UnreachablePrefixError,
+                          manifest.build_manifest,
+                          target_cfg, pkg_cfg, deps, scan_tests=False)
+
+    def test_unreachable_in_deps(self):
+        target_cfg = self.get_pkg("four")
+        package_path = [get_linker_files_dir("four-deps")]
+        pkg_cfg = packaging.build_config(ROOT, target_cfg,
+                                         packagepath=package_path)
+        deps = packaging.get_deps_for_targets(pkg_cfg,
+                                              [target_cfg.name, "addon-sdk"])
+        self.failUnlessEqual(deps, ["addon-sdk", "four"])
+        self.assertRaises(manifest.UnreachablePrefixError,
+                          manifest.build_manifest,
+                          target_cfg, pkg_cfg, deps, scan_tests=False)
+
+class Contents(unittest.TestCase):
+
+    def run_in_subdir(self, dirname, f, *args, **kwargs):
+        top = os.path.abspath(os.getcwd())
+        basedir = os.path.abspath(os.path.join(".test_tmp",self.id(),dirname))
+        if os.path.isdir(basedir):
+            assert basedir.startswith(top)
+            shutil.rmtree(basedir)
+        os.makedirs(basedir)
+        try:
+            os.chdir(basedir)
+            return f(basedir, *args, **kwargs)
+        finally:
+            os.chdir(top)
+
+    def assertIn(self, what, inside_what):
+        self.failUnless(what in inside_what, inside_what)
+
+    def test_jetpackID(self):
+        
+        seven = get_linker_files_dir("seven")
+        def _test(basedir):
+            stdout = StringIO()
+            shutil.copytree(seven, "seven")
+            os.chdir("seven")
+            try:
+                
+                cuddlefish.run(["xpi", "--no-strip-xpi"],
+                               stdout=stdout)
+            except SystemExit, e:
+                self.failUnlessEqual(e.args[0], 0)
+            zf = zipfile.ZipFile("seven.xpi", "r")
+            hopts = json.loads(zf.read("harness-options.json"))
+            self.failUnlessEqual(hopts["jetpackID"], "jid7@jetpack")
+        self.run_in_subdir("x", _test)
+
+    def test_jetpackID_suffix(self):
+        
+        one = get_linker_files_dir("one")
+        def _test(basedir):
+            stdout = StringIO()
+            shutil.copytree(one, "one")
+            os.chdir("one")
+            try:
+                
+                cuddlefish.run(["xpi", "--no-strip-xpi"],
+                               stdout=stdout)
+            except SystemExit, e:
+                self.failUnlessEqual(e.args[0], 0)
+            zf = zipfile.ZipFile("one.xpi", "r")
+            hopts = json.loads(zf.read("harness-options.json"))
+            self.failUnlessEqual(hopts["jetpackID"], "jid1@jetpack")
+        self.run_in_subdir("x", _test)
+
+    def test_strip_default(self):
+        seven = get_linker_files_dir("seven")
+        
+        
+        def _test(basedir):
+            stdout = StringIO()
+            shutil.copytree(seven, "seven")
+            os.chdir("seven")
+            try:
+                
+                cuddlefish.run(["xpi"], 
+                               stdout=stdout)
+            except SystemExit, e:
+                self.failUnlessEqual(e.args[0], 0)
+            zf = zipfile.ZipFile("seven.xpi", "r")
+            names = zf.namelist()
+            
+            
+            self.assertIn("resources/addon-sdk/lib/sdk/loader/cuddlefish.js", names)
+            
+            
+            
+            
+            testfiles = [fn for fn in names if "seven/tests" in fn]
+            self.failUnlessEqual([], testfiles)
+            
+            
+            
+            self.assertIn("resources/seven/data/text.data",
+                          names)
+            self.failIf("seven/lib/unused.js"
+                        in names, names)
+        self.run_in_subdir("x", _test)
+
+    def test_no_strip(self):
+        seven = get_linker_files_dir("seven")
+        def _test(basedir):
+            stdout = StringIO()
+            shutil.copytree(seven, "seven")
+            os.chdir("seven")
+            try:
+                
+                cuddlefish.run(["xpi", "--no-strip-xpi"],
+                               stdout=stdout)
+            except SystemExit, e:
+                self.failUnlessEqual(e.args[0], 0)
+            zf = zipfile.ZipFile("seven.xpi", "r")
+            names = zf.namelist()
+            self.assertIn("resources/addon-sdk/lib/sdk/loader/cuddlefish.js", names)
+            testfiles = [fn for fn in names if "seven/tests" in fn]
+            self.failUnlessEqual([], testfiles)
+            self.assertIn("resources/seven/data/text.data",
+                          names)
+            self.failUnless("resources/seven/lib/unused.js"
+                            in names, names)
+        self.run_in_subdir("x", _test)
+
+
+if __name__ == '__main__':
+    unittest.main()

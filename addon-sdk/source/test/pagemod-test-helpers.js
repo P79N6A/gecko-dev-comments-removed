@@ -1,0 +1,68 @@
+
+
+
+
+"use strict";
+
+const {Cc,Ci} = require("chrome");
+const timer = require("sdk/timers");
+const xulApp = require("sdk/system/xul-app");
+const { Loader } = require("sdk/test/loader");
+
+
+
+
+
+exports.testPageMod = function testPageMod(test, testURL, pageModOptions,
+                                           testCallback, timeout) {
+  if (!xulApp.versionInRange(xulApp.platformVersion, "1.9.3a3", "*") &&
+      !xulApp.versionInRange(xulApp.platformVersion, "1.9.2.7", "1.9.2.*")) {
+    test.pass("Note: not testing PageMod, as it doesn't work on this platform version");
+    return null;
+  }
+
+  var wm = Cc['@mozilla.org/appshell/window-mediator;1']
+           .getService(Ci.nsIWindowMediator);
+  var browserWindow = wm.getMostRecentWindow("navigator:browser");
+  if (!browserWindow) {
+    test.pass("page-mod tests: could not find the browser window, so " +
+              "will not run. Use -a firefox to run the pagemod tests.")
+    return null;
+  }
+
+  if (timeout !== undefined)
+    test.waitUntilDone(timeout);
+  else
+    test.waitUntilDone();
+
+  let loader = Loader(module);
+  let pageMod = loader.require("sdk/page-mod");
+
+  var pageMods = [new pageMod.PageMod(opts) for each(opts in pageModOptions)];
+
+  var tabBrowser = browserWindow.gBrowser;
+  var newTab = tabBrowser.addTab(testURL);
+  tabBrowser.selectedTab = newTab;
+  var b = tabBrowser.getBrowserForTab(newTab);
+
+  function onPageLoad() {
+    b.removeEventListener("load", onPageLoad, true);
+    
+    
+    
+    
+    timer.setTimeout(testCallback, 0,
+      b.contentWindow.wrappedJSObject, 
+      function done() {
+        pageMods.forEach(function(mod) mod.destroy());
+        
+        tabBrowser.removeTab(newTab);
+        loader.unload();
+        test.done();
+      }
+    );
+  }
+  b.addEventListener("load", onPageLoad, true);
+
+  return pageMods;
+}
