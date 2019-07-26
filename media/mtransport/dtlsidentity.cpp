@@ -53,7 +53,8 @@ TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
   }
 
   PK11RSAGenParams rsaparams;
-  rsaparams.keySizeInBits = 2048; 
+  rsaparams.keySizeInBits = 1024; 
+                                  
   rsaparams.pe = 65537; 
 
   ScopedSECKEYPrivateKey private_key;
