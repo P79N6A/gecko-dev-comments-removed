@@ -713,40 +713,24 @@ DocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
 nsresult
 DocAccessible::AddEventListeners()
 {
-  
-  
-
-  NS_ENSURE_TRUE(mPresShell, NS_ERROR_FAILURE);
-
   nsCOMPtr<nsISupports> container = mDocumentNode->GetContainer();
   nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(do_QueryInterface(container));
-  NS_ENSURE_TRUE(docShellTreeItem, NS_ERROR_FAILURE);
 
   
   
   int32_t itemType;
   docShellTreeItem->GetItemType(&itemType);
-
-  bool isContent = (itemType == nsIDocShellTreeItem::typeContent);
-
-  if (isContent) {
-    
+  if (itemType == nsIDocShellTreeItem::typeContent) {
     nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
-    if (commandManager) {
+    if (commandManager)
       commandManager->AddCommandObserver(this, "obs_documentCreated");
-    }
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
-  docShellTreeItem->GetRootTreeItem(getter_AddRefs(rootTreeItem));
-  if (rootTreeItem) {
-    a11y::RootAccessible* rootAccessible = RootAccessible();
-    NS_ENSURE_TRUE(rootAccessible, NS_ERROR_FAILURE);
-    nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
-    if (caretAccessible) {
-      caretAccessible->AddDocSelectionListener(mPresShell);
-    }
-  }
+  a11y::RootAccessible* rootAccessible = RootAccessible();
+  NS_ENSURE_TRUE(rootAccessible, NS_ERROR_FAILURE);
+  nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
+  if (caretAccessible)
+    caretAccessible->AddDocSelectionListener(mPresShell);
 
   
   mDocumentNode->AddObserver(this);
@@ -1374,9 +1358,6 @@ DocAccessible::BindToDocument(Accessible* aAccessible,
 
   
   mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
-
-  
-  aAccessible->Init();
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
   if (aAccessible->IsElement())

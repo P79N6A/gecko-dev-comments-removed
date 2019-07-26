@@ -151,9 +151,6 @@ public:
   NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
 
   
-  virtual void Init();
-
-  
   virtual TableCellAccessible* AsTableCell() { return this; }
   virtual void Shutdown();
   virtual ENameValueFlag Name(nsString& aName);

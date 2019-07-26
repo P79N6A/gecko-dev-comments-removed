@@ -151,7 +151,7 @@ RootAccessible::NativeState()
   return state;
 }
 
-const char* const docEvents[] = {
+const char* const kEventTypes[] = {
 #ifdef DEBUG_DRAGDROPSTART
   
   
@@ -161,7 +161,6 @@ const char* const docEvents[] = {
   "select",
   
   "ValueChange",
-  
   "AlertActive",
   "TreeRowCountChanged",
   "TreeInvalidated",
@@ -190,8 +189,8 @@ RootAccessible::AddEventListeners()
   nsCOMPtr<nsIDOMEventTarget> nstarget(do_QueryInterface(mDocumentNode));
 
   if (nstarget) {
-    for (const char* const* e = docEvents,
-                   * const* e_end = ArrayEnd(docEvents);
+    for (const char* const* e = kEventTypes,
+                   * const* e_end = ArrayEnd(kEventTypes);
          e < e_end; ++e) {
       nsresult rv = nstarget->AddEventListener(NS_ConvertASCIItoUTF16(*e),
                                                this, true, true, 2);
@@ -211,8 +210,8 @@ RootAccessible::RemoveEventListeners()
 {
   nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mDocumentNode));
   if (target) { 
-    for (const char* const* e = docEvents,
-                   * const* e_end = ArrayEnd(docEvents);
+    for (const char* const* e = kEventTypes,
+                   * const* e_end = ArrayEnd(kEventTypes);
          e < e_end; ++e) {
       nsresult rv = target->RemoveEventListener(NS_ConvertASCIItoUTF16(*e), this, true);
       NS_ENSURE_SUCCESS(rv, rv);

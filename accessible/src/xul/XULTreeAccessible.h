@@ -233,7 +233,6 @@ public:
                                            XULTreeItemAccessibleBase)
 
   
-  virtual void Init();
   virtual void Shutdown();
 
   
