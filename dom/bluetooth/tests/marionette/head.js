@@ -153,6 +153,81 @@ function ensureBluetoothManager(aPermissions) {
 
 
 
+
+
+
+
+
+
+function waitForManagerEvent(aEventName) {
+  let deferred = Promise.defer();
+
+  bluetoothManager.addEventListener(aEventName, function onevent(aEvent) {
+    bluetoothManager.removeEventListener(aEventName, onevent);
+
+    ok(true, "BluetoothManager event '" + aEventName + "' got.");
+    deferred.resolve(aEvent);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function setBluetoothEnabledAndWait(aEnabled) {
+  return setBluetoothEnabled(aEnabled)
+    .then(waitForManagerEvent.bind(null, aEnabled ? "enabled" : "disabled"));
+}
+
+
+
+
+
+
+
+
+
+
+function getDefaultAdapter() {
+  let deferred = Promise.defer();
+
+  let request = bluetoothManager.getDefaultAdapter();
+  request.onsuccess = function(aEvent) {
+    let adapter = aEvent.target.result;
+    if (!(adapter instanceof BluetoothAdapter)) {
+      ok(false, "no BluetoothAdapter ready yet.");
+      deferred.reject(null);
+      return;
+    }
+
+    ok(true, "BluetoothAdapter got.");
+    
+    
+    
+    
+    
+    window.setTimeout(function() {
+      deferred.resolve(adapter);
+    }, 3000);
+  };
+  request.onerror = function(aEvent) {
+    ok(false, "Failed to get default adapter.");
+    deferred.reject(aEvent.target.error);
+  };
+
+  return deferred.promise;
+}
+
+
+
 function cleanUp() {
   SpecialPowers.flushPermissions(function() {
     
@@ -169,4 +244,37 @@ function startBluetoothTestBase(aPermissions, aTestCaseMain) {
       ok(false, "Unhandled rejected promise.");
       cleanUp();
     });
+}
+
+function startBluetoothTest(aReenable, aTestCaseMain) {
+  startBluetoothTestBase(["settings-read", "settings-write"], function() {
+    let origEnabled, needEnable;
+
+    return getBluetoothEnabled()
+      .then(function(aEnabled) {
+        origEnabled = aEnabled;
+        needEnable = !aEnabled;
+        log("Original 'bluetooth.enabled' is " + origEnabled);
+
+        if (aEnabled && aReenable) {
+          log("  Disable 'bluetooth.enabled' ...");
+          needEnable = true;
+          return setBluetoothEnabledAndWait(false);
+        }
+      })
+      .then(function() {
+        if (needEnable) {
+          log("  Enable 'bluetooth.enabled' ...");
+          return setBluetoothEnabledAndWait(true)
+            .then(waitForManagerEvent.bind(null, "adapteradded"));
+        }
+      })
+      .then(getDefaultAdapter)
+      .then(aTestCaseMain)
+      .then(function() {
+        if (!origEnabled) {
+          return setBluetoothEnabledAndWait(false);
+        }
+      });
+  });
 }
