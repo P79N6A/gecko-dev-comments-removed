@@ -5,13 +5,17 @@
 
 
 #include "mozilla/CycleCollectedJSRuntime.h"
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/DOMJSClass.h"
 #include "jsfriendapi.h"
+#include "jsprf.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsLayoutStatics.h"
 #include "xpcpublic.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 inline bool
 AddToCCKind(JSGCTraceKind kind)
@@ -263,10 +267,147 @@ NoteJSHolder(void *holder, nsScriptObjectTracer *&tracer, void *arg)
   return PL_DHASH_NEXT;
 }
 
+NS_METHOD
+JSGCThingParticipant::TraverseImpl(JSGCThingParticipant* that, void* p,
+                                   nsCycleCollectionTraversalCallback& cb)
+{
+  CycleCollectedJSRuntime* runtime = reinterpret_cast<CycleCollectedJSRuntime*>
+    (reinterpret_cast<char*>(that) -
+     offsetof(CycleCollectedJSRuntime, mGCThingCycleCollectorGlobal));
+
+  runtime->TraverseGCThing(CycleCollectedJSRuntime::TRAVERSE_FULL,
+                           p, js::GCThingTraceKind(p), cb);
+  return NS_OK;
+}
+
+
+
+static const CCParticipantVTable<JSGCThingParticipant>::Type
+sGCThingCycleCollectorGlobal =
+{
+  NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSGCThingParticipant)
+};
+
+NS_METHOD
+JSZoneParticipant::TraverseImpl(JSZoneParticipant* that, void* p,
+                                nsCycleCollectionTraversalCallback& cb)
+{
+  CycleCollectedJSRuntime* runtime = reinterpret_cast<CycleCollectedJSRuntime*>
+    (reinterpret_cast<char*>(that) -
+     offsetof(CycleCollectedJSRuntime, mJSZoneCycleCollectorGlobal));
+
+  MOZ_ASSERT(!cb.WantAllTraces());
+  JS::Zone* zone = static_cast<JS::Zone*>(p);
+
+  runtime->TraverseZone(zone, cb);
+  return NS_OK;
+}
+
+struct TraversalTracer : public JSTracer
+{
+  TraversalTracer(nsCycleCollectionTraversalCallback& aCb) : mCb(aCb)
+  {
+  }
+  nsCycleCollectionTraversalCallback& mCb;
+};
+
+static void
+NoteJSChild(JSTracer* aTrc, void* aThing, JSGCTraceKind aTraceKind)
+{
+  TraversalTracer* tracer = static_cast<TraversalTracer*>(aTrc);
+
+  
+  if (!xpc_IsGrayGCThing(aThing) && !tracer->mCb.WantAllTraces()) {
+    return;
+  }
+
+  
+
+
+
+
+
+
+
+if (AddToCCKind(aTraceKind)) {
+    if (MOZ_UNLIKELY(tracer->mCb.WantDebugInfo())) {
+      
+      if (tracer->debugPrinter) {
+        char buffer[200];
+        tracer->debugPrinter(aTrc, buffer, sizeof(buffer));
+        tracer->mCb.NoteNextEdgeName(buffer);
+      } else if (tracer->debugPrintIndex != (size_t)-1) {
+        char buffer[200];
+        JS_snprintf(buffer, sizeof(buffer), "%s[%lu]",
+                    static_cast<const char *>(tracer->debugPrintArg),
+                    tracer->debugPrintIndex);
+        tracer->mCb.NoteNextEdgeName(buffer);
+      } else {
+        tracer->mCb.NoteNextEdgeName(static_cast<const char*>(tracer->debugPrintArg));
+      }
+    }
+    tracer->mCb.NoteJSChild(aThing);
+  } else if (aTraceKind == JSTRACE_SHAPE) {
+    JS_TraceShapeCycleCollectorChildren(aTrc, aThing);
+  } else if (aTraceKind != JSTRACE_STRING) {
+    JS_TraceChildren(aTrc, aThing, aTraceKind);
+  }
+}
+
+static void
+NoteJSChildTracerShim(JSTracer* aTrc, void** aThingp, JSGCTraceKind aTraceKind)
+{
+  NoteJSChild(aTrc, *aThingp, aTraceKind);
+}
+
+static void
+NoteJSChildGrayWrapperShim(void* aData, void* aThing)
+{
+  TraversalTracer* trc = static_cast<TraversalTracer*>(aData);
+  NoteJSChild(trc, aThing, js::GCThingTraceKind(aThing));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const CCParticipantVTable<JSZoneParticipant>::Type
+sJSZoneCycleCollectorGlobal = {
+  NS_IMPL_CYCLE_COLLECTION_NATIVE_VTABLE(JSZoneParticipant)
+};
+
+
+nsCycleCollectionParticipant*
+xpc_JSZoneParticipant()
+{
+  return sJSZoneCycleCollectorGlobal.GetParticipant();
+}
+
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(uint32_t aMaxbytes,
                                                  JSUseHelperThreads aUseHelperThreads,
                                                  bool aExpectUnrootedGlobals)
-  : mJSRuntime(nullptr)
+  : mGCThingCycleCollectorGlobal(sGCThingCycleCollectorGlobal),
+    mJSZoneCycleCollectorGlobal(sJSZoneCycleCollectorGlobal),
+    mJSRuntime(nullptr)
 #ifdef DEBUG
   , mObjectToUnlink(nullptr)
   , mExpectUnrootedGlobals(aExpectUnrootedGlobals)
@@ -300,6 +441,183 @@ CycleCollectedJSRuntime::MaybeTraceGlobals(JSTracer* aTracer) const
       JS_CallObjectTracer(aTracer, &global, "Global Object");
     }
   }
+}
+
+void
+CycleCollectedJSRuntime::DescribeGCThing(bool aIsMarked, void* aThing,
+                                         JSGCTraceKind aTraceKind,
+                                         nsCycleCollectionTraversalCallback& aCb) const
+{
+  if (!aCb.WantDebugInfo()) {
+    aCb.DescribeGCedNode(aIsMarked, "JS Object");
+    return;
+  }
+
+  char name[72];
+  if (aTraceKind == JSTRACE_OBJECT) {
+    JSObject* obj = static_cast<JSObject*>(aThing);
+    js::Class* clasp = js::GetObjectClass(obj);
+
+    
+    if (DescribeCustomObjects(obj, clasp, name)) {
+      
+    } else if (clasp == &js::FunctionClass) {
+      JSFunction* fun = JS_GetObjectFunction(obj);
+      JSString* str = JS_GetFunctionDisplayId(fun);
+      if (str) {
+        NS_ConvertUTF16toUTF8 fname(JS_GetInternedStringChars(str));
+        JS_snprintf(name, sizeof(name),
+                    "JS Object (Function - %s)", fname.get());
+      } else {
+        JS_snprintf(name, sizeof(name), "JS Object (Function)");
+      }
+    } else {
+      JS_snprintf(name, sizeof(name), "JS Object (%s)",
+                  clasp->name);
+    }
+  } else {
+    static const char trace_types[][11] = {
+      "Object",
+      "String",
+      "Script",
+      "LazyScript",
+      "IonCode",
+      "Shape",
+      "BaseShape",
+      "TypeObject",
+    };
+    JS_STATIC_ASSERT(NS_ARRAY_LENGTH(trace_types) == JSTRACE_LAST + 1);
+    JS_snprintf(name, sizeof(name), "JS %s", trace_types[aTraceKind]);
+  }
+
+  
+  aCb.DescribeGCedNode(aIsMarked, name);
+}
+
+void
+CycleCollectedJSRuntime::NoteGCThingJSChildren(void* aThing,
+                                               JSGCTraceKind aTraceKind,
+                                               nsCycleCollectionTraversalCallback& aCb) const
+{
+  MOZ_ASSERT(mJSRuntime);
+  TraversalTracer trc(aCb);
+  JS_TracerInit(&trc, mJSRuntime, NoteJSChildTracerShim);
+  trc.eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
+  JS_TraceChildren(&trc, aThing, aTraceKind);
+}
+
+void
+CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(js::Class* aClasp, JSObject* aObj,
+                                                  nsCycleCollectionTraversalCallback& aCb) const
+{
+  MOZ_ASSERT(aClasp);
+  MOZ_ASSERT(aClasp == js::GetObjectClass(aObj));
+
+  if (NoteCustomGCThingXPCOMChildren(aClasp, aObj, aCb)) {
+    
+    return;
+  }
+  
+  
+  else if (aClasp->flags & JSCLASS_HAS_PRIVATE &&
+           aClasp->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(aCb, "js::GetObjectPrivate(obj)");
+    aCb.NoteXPCOMChild(static_cast<nsISupports*>(js::GetObjectPrivate(aObj)));
+  } else {
+    const DOMClass* domClass = GetDOMClass(aObj);
+    if (domClass) {
+      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(aCb, "UnwrapDOMObject(obj)");
+      if (domClass->mDOMObjectIsISupports) {
+        aCb.NoteXPCOMChild(UnwrapDOMObject<nsISupports>(aObj));
+      } else if (domClass->mParticipant) {
+        aCb.NoteNativeChild(UnwrapDOMObject<void>(aObj),
+                            domClass->mParticipant);
+      }
+    }
+  }
+}
+
+void
+CycleCollectedJSRuntime::TraverseGCThing(TraverseSelect aTs, void* aThing,
+                                         JSGCTraceKind aTraceKind,
+                                         nsCycleCollectionTraversalCallback& aCb)
+{
+  MOZ_ASSERT(aTraceKind == js::GCThingTraceKind(aThing));
+  bool isMarkedGray = xpc_IsGrayGCThing(aThing);
+
+  if (aTs == TRAVERSE_FULL) {
+    DescribeGCThing(!isMarkedGray, aThing, aTraceKind, aCb);
+  }
+
+  
+  
+  
+  
+  if (!isMarkedGray && !aCb.WantAllTraces()) {
+    return;
+  }
+
+  if (aTs == TRAVERSE_FULL) {
+    NoteGCThingJSChildren(aThing, aTraceKind, aCb);
+  }
+
+  if (aTraceKind == JSTRACE_OBJECT) {
+    JSObject* obj = static_cast<JSObject*>(aThing);
+    NoteGCThingXPCOMChildren(js::GetObjectClass(obj), obj, aCb);
+  }
+}
+
+struct TraverseObjectShimClosure {
+  nsCycleCollectionTraversalCallback& cb;
+  CycleCollectedJSRuntime* self;
+};
+
+void
+CycleCollectedJSRuntime::TraverseZone(JS::Zone* aZone,
+                                      nsCycleCollectionTraversalCallback& aCb)
+{
+  
+
+
+
+
+
+
+
+
+
+  aCb.DescribeGCedNode(false, "JS Zone");
+
+  
+
+
+
+
+
+
+
+  TraversalTracer trc(aCb);
+  JS_TracerInit(&trc, mJSRuntime, NoteJSChildTracerShim);
+  trc.eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
+  js::VisitGrayWrapperTargets(aZone, NoteJSChildGrayWrapperShim, &trc);
+
+  
+
+
+
+  TraverseObjectShimClosure closure = { aCb, this };
+  js::IterateGrayObjects(aZone, TraverseObjectShim, &closure);
+}
+
+ void
+CycleCollectedJSRuntime::TraverseObjectShim(void* aData, void* aThing)
+{
+  TraverseObjectShimClosure* closure =
+      static_cast<TraverseObjectShimClosure*>(aData);
+
+  MOZ_ASSERT(js::GCThingTraceKind(aThing) == JSTRACE_OBJECT);
+  closure->self->TraverseGCThing(CycleCollectedJSRuntime::TRAVERSE_CPP, aThing,
+                                 JSTRACE_OBJECT, closure->cb);
 }
 
 
@@ -394,6 +712,18 @@ nsCycleCollectionParticipant*
 CycleCollectedJSRuntime::JSContextParticipant()
 {
   return JSContext_cycleCollectorGlobal.GetParticipant();
+}
+
+nsCycleCollectionParticipant*
+CycleCollectedJSRuntime::GCThingParticipant() const
+{
+    return mGCThingCycleCollectorGlobal.GetParticipant();
+}
+
+nsCycleCollectionParticipant*
+CycleCollectedJSRuntime::ZoneParticipant() const
+{
+    return mJSZoneCycleCollectorGlobal.GetParticipant();
 }
 
 bool

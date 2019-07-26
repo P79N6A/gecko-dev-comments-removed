@@ -506,7 +506,7 @@ public:
     virtual void NotifyLeaveCycleCollectionThread(); 
     virtual void NotifyEnterMainThread(); 
     virtual nsresult BeginCycleCollection(nsCycleCollectionNoteRootCallback &cb); 
-    virtual nsCycleCollectionParticipant *GetParticipant();
+    virtual nsCycleCollectionParticipant *GetParticipant(); 
     virtual bool UsefulToMergeZones();
     virtual void FixWeakMappingGrayBits(); 
     virtual bool NeedCollect(); 
@@ -619,7 +619,6 @@ public:
 
 
 
-
 class XPCJSContextStack;
 class XPCIncrementalReleaseRunnable;
 class XPCJSRuntime : public mozilla::CycleCollectedJSRuntime
@@ -680,6 +679,13 @@ public:
     XPCLock* GetMapLock() const {return mMapLock;}
 
     JSBool OnJSContextNew(JSContext* cx);
+
+    virtual bool
+    DescribeCustomObjects(JSObject* aObject, js::Class* aClasp,
+                          char (&aName)[72]) const;
+    virtual bool
+    NoteCustomGCThingXPCOMChildren(js::Class* aClasp, JSObject* aObj,
+                                   nsCycleCollectionTraversalCallback& aCb) const;
 
     bool DeferredRelease(nsISupports* obj);
 
