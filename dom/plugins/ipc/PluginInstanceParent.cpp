@@ -42,10 +42,10 @@
 #include "mozilla/plugins/PluginSurfaceParent.h"
 
 
-extern const PRUnichar* kOOPPPluginFocusEventId;
+extern const wchar_t* kOOPPPluginFocusEventId;
 UINT gOOPPPluginFocusEvent =
     RegisterWindowMessage(kOOPPPluginFocusEventId);
-extern const PRUnichar* kFlashFullscreenClass;
+extern const wchar_t* kFlashFullscreenClass;
 #elif defined(MOZ_WIDGET_GTK)
 #include <gdk/gdk.h>
 #elif defined(XP_MACOSX)
@@ -1213,7 +1213,7 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
               
               
               
-              PRUnichar szClass[26];
+              wchar_t szClass[26];
               HWND hwnd = GetForegroundWindow();
               if (hwnd && hwnd != mPluginHWND &&
                   GetClassNameW(hwnd, szClass,
@@ -1801,7 +1801,7 @@ PluginInstanceParent::RecvReleaseDXGISharedSurface(const DXGISharedSurfaceHandle
 
 
 
-static const PRUnichar kPluginInstanceParentProperty[] =
+static const wchar_t kPluginInstanceParentProperty[] =
                          L"PluginInstanceParentProperty";
 
 
