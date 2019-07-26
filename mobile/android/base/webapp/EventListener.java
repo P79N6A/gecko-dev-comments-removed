@@ -32,6 +32,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.util.Log;
 
 public class EventListener implements NativeEventListener  {
@@ -143,8 +144,8 @@ public class EventListener implements NativeEventListener  {
 
         
         
-        String manifestUrl = null;
-        String filePath = null;
+        String manifestUrl;
+        String filePath;
 
         try {
             filePath = message.getString("filePath");
@@ -156,43 +157,48 @@ public class EventListener implements NativeEventListener  {
             return;
         }
 
-        
-        
-        final InstallListener receiver = new InstallListener(manifestUrl, messageData);
+        final File file = new File(filePath);
 
-        
-        IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
-        filter.addDataScheme("package");
-        context.registerReceiver(receiver, filter);
-
-        File file = new File(filePath);
         if (!file.exists()) {
             Log.wtf(LOGTAG, "APK file doesn't exist at path " + filePath);
             callback.sendError("APK file doesn't exist at path " + filePath);
             return;
         }
 
+        
+        
+        final InstallListener receiver = new InstallListener(manifestUrl, messageData, file);
+
+        
+        IntentFilter filter = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        filter.addDataScheme("package");
+
+        
+        
+        
+        
+        
+        
+        
+
+        context.registerReceiver(receiver, filter);
+
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
 
         
         ActivityHandlerHelper.startIntentForActivity(context, intent, new ActivityResultHandler() {
+            
+            
+            
             @Override
             public void onActivityResult(int resultCode, Intent data) {
-                
-                
-                if (resultCode == Activity.RESULT_CANCELED) {
-                    try {
-                        context.unregisterReceiver(receiver);
-                        receiver.cleanup();
-                    } catch (java.lang.IllegalArgumentException e) {
-                        
-                        
-                        
-                        
-                        Log.e(LOGTAG, "error unregistering install receiver: ", e);
-                    }
+                if (!receiver.isReceived()) {
                     callback.sendError("APK installation cancelled by user");
+                    context.unregisterReceiver(receiver);
+                }
+                if (file.delete()) {
+                    Log.i(LOGTAG, "Downloaded APK file deleted");
                 }
             }
         });
