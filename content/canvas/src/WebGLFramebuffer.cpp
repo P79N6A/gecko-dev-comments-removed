@@ -163,6 +163,7 @@ WebGLFramebuffer::FramebufferRenderbuffer(WebGLenum target,
                              WebGLenum rbtarget,
                              WebGLRenderbuffer *wrb)
 {
+    MOZ_ASSERT(mContext->mBoundFramebuffer == this);
     if (!mContext->ValidateObjectAllowNull("framebufferRenderbuffer: renderbuffer", wrb))
     {
         return;
@@ -223,6 +224,7 @@ WebGLFramebuffer::FramebufferTexture2D(WebGLenum target,
                           WebGLTexture *wtex,
                           WebGLint level)
 {
+    MOZ_ASSERT(mContext->mBoundFramebuffer == this);
     if (!mContext->ValidateObjectAllowNull("framebufferTexture2D: texture",
                                            wtex))
     {
@@ -383,6 +385,7 @@ WebGLFramebuffer::DetachRenderbuffer(const WebGLRenderbuffer *rb) {
 bool
 WebGLFramebuffer::CheckAndInitializeRenderbuffers()
 {
+    MOZ_ASSERT(mContext->mBoundFramebuffer == this);
     
     
     if (HasDepthStencilConflict())
