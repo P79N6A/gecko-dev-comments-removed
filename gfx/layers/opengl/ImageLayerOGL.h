@@ -19,7 +19,7 @@ namespace layers {
 
 class CairoImage;
 class PlanarYCbCrImage;
-class ShmemYCbCrImage;
+class BlobYCbCrSurface;
 
 
 

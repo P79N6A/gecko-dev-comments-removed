@@ -6,7 +6,6 @@
 #include "gfxSharedImageSurface.h"
 
 #include "ImageContainer.h" 
-#include "mozilla/layers/ShmemYCbCrImage.h"
 #include "ipc/AutoOpenSurface.h"
 #include "ImageLayerOGL.h"
 #include "gfxImageSurface.h"
