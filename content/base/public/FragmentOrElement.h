@@ -31,7 +31,6 @@ class nsIControllers;
 class nsICSSDeclaration;
 class nsIDocument;
 class nsDOMStringMap;
-class nsIDOMNamedNodeMap;
 class nsIHTMLCollection;
 class nsINodeInfo;
 class nsIURI;

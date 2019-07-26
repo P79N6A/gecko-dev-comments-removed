@@ -61,8 +61,8 @@
 #include "nsIDOMEventTarget.h"          
 #include "nsIDOMHTMLElement.h"          
 #include "nsIDOMKeyEvent.h"             
+#include "nsIDOMMozNamedAttrMap.h"      
 #include "nsIDOMMouseEvent.h"           
-#include "nsIDOMNamedNodeMap.h"         
 #include "nsIDOMNode.h"                 
 #include "nsIDOMNodeList.h"             
 #include "nsIDOMRange.h"                
@@ -2198,9 +2198,9 @@ nsEditor::CloneAttributes(nsIDOMNode *aDestNode, nsIDOMNode *aSourceNode)
   nsCOMPtr<nsIDOMElement> sourceElement = do_QueryInterface(aSourceNode);
   NS_ENSURE_TRUE(destElement && sourceElement, NS_ERROR_NO_INTERFACE);
 
-  nsCOMPtr<nsIDOMNamedNodeMap> sourceAttributes;
+  nsCOMPtr<nsIDOMMozNamedAttrMap> sourceAttributes;
   sourceElement->GetAttributes(getter_AddRefs(sourceAttributes));
-  nsCOMPtr<nsIDOMNamedNodeMap> destAttributes;
+  nsCOMPtr<nsIDOMMozNamedAttrMap> destAttributes;
   destElement->GetAttributes(getter_AddRefs(destAttributes));
   NS_ENSURE_TRUE(sourceAttributes && destAttributes, NS_ERROR_FAILURE);
 
@@ -2225,26 +2225,20 @@ nsEditor::CloneAttributes(nsIDOMNode *aDestNode, nsIDOMNode *aSourceNode)
 
   uint32_t sourceCount;
   sourceAttributes->GetLength(&sourceCount);
-  uint32_t i, destCount;
+  uint32_t destCount;
   destAttributes->GetLength(&destCount);
-  nsCOMPtr<nsIDOMNode> attrNode;
+  nsCOMPtr<nsIDOMAttr> attr;
 
   
-  for (i = 0; i < destCount; i++)
-  {
+  for (uint32_t i = 0; i < destCount; i++) {
     
-    if( NS_SUCCEEDED(destAttributes->Item(0, getter_AddRefs(attrNode))) && attrNode)
-    {
-      nsCOMPtr<nsIDOMAttr> destAttribute = do_QueryInterface(attrNode);
-      if (destAttribute)
-      {
-        nsAutoString str;
-        if (NS_SUCCEEDED(destAttribute->GetName(str)))
-        {
-          if (destInBody)
-            RemoveAttribute(destElement, str);
-          else
-            destElement->RemoveAttribute(str);
+    if (NS_SUCCEEDED(destAttributes->Item(0, getter_AddRefs(attr))) && attr) {
+      nsString str;
+      if (NS_SUCCEEDED(attr->GetName(str))) {
+        if (destInBody) {
+          RemoveAttribute(destElement, str);
+        } else {
+          destElement->RemoveAttribute(str);
         }
       }
     }
@@ -2253,38 +2247,29 @@ nsEditor::CloneAttributes(nsIDOMNode *aDestNode, nsIDOMNode *aSourceNode)
   nsresult result = NS_OK;
 
   
-  for (i = 0; i < sourceCount; i++)
+  for (uint32_t i = 0; i < sourceCount; i++)
   {
-    if( NS_SUCCEEDED(sourceAttributes->Item(i, getter_AddRefs(attrNode))) && attrNode)
-    {
-      nsCOMPtr<nsIDOMAttr> sourceAttribute = do_QueryInterface(attrNode);
-      if (sourceAttribute)
-      {
-        nsAutoString sourceAttrName;
-        if (NS_SUCCEEDED(sourceAttribute->GetName(sourceAttrName)))
-        {
-          nsAutoString sourceAttrValue;
-          
+    if (NS_SUCCEEDED(sourceAttributes->Item(i, getter_AddRefs(attr))) && attr) {
+      nsString sourceAttrName;
+      if (NS_SUCCEEDED(attr->GetName(sourceAttrName))) {
+        nsString sourceAttrValue;
+        
 
 
-
-          if (NS_SUCCEEDED(sourceAttribute->GetValue(sourceAttrValue)))
-          {
-            if (destInBody) {
-              result = SetAttributeOrEquivalent(destElement, sourceAttrName, sourceAttrValue, false);
-            }
-            else {
-              
-              
-              result = SetAttributeOrEquivalent(destElement, sourceAttrName, sourceAttrValue, true);
-            }
+        if (NS_SUCCEEDED(attr->GetValue(sourceAttrValue))) {
+          if (destInBody) {
+            result = SetAttributeOrEquivalent(destElement, sourceAttrName, sourceAttrValue, false);
           } else {
             
-#if DEBUG_cmanske
-            printf("Attribute in sourceAttribute has empty value in nsEditor::CloneAttributes()\n");
-#endif
+            
+            result = SetAttributeOrEquivalent(destElement, sourceAttrName, sourceAttrValue, true);
           }
-        }        
+        } else {
+          
+#if DEBUG_cmanske
+          printf("Attribute in sourceAttribute has empty value in nsEditor::CloneAttributes()\n");
+#endif
+        }
       }
     }
   }

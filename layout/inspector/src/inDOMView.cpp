@@ -18,7 +18,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMAttr.h"
-#include "nsIDOMNamedNodeMap.h"
+#include "nsIDOMMozNamedAttrMap.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsBindingManager.h"
 #include "nsINameSpaceManager.h"
@@ -684,7 +684,7 @@ inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
       return;
     }
     
-    nsCOMPtr<nsIDOMNamedNodeMap> attrs;
+    nsCOMPtr<nsIDOMMozNamedAttrMap> attrs;
     content->GetAttributes(getter_AddRefs(attrs));
     uint32_t attrCount;
     attrs->GetLength(&attrCount);
@@ -1179,41 +1179,36 @@ inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
 {
   NS_ENSURE_ARG(aNode);
   
-  
-  nsCOMPtr<nsIDOMAttr> attr = do_QueryInterface(aNode);
-  if (!attr) {
-    
-    if (mWhatToShow & nsIDOMNodeFilter::SHOW_ATTRIBUTE) {
-      nsCOMPtr<nsIDOMNamedNodeMap> attrs;
-      aNode->GetAttributes(getter_AddRefs(attrs));
-      if (attrs) {
-        AppendAttrsToArray(attrs, aResult);
-      }
+  if (mWhatToShow & nsIDOMNodeFilter::SHOW_ATTRIBUTE) {
+    nsCOMPtr<nsIDOMMozNamedAttrMap> attrs;
+    aNode->GetAttributes(getter_AddRefs(attrs));
+    if (attrs) {
+      AppendAttrsToArray(attrs, aResult);
     }
+  }
 
-    if (mWhatToShow & nsIDOMNodeFilter::SHOW_ELEMENT) {
-      nsCOMPtr<nsIDOMNodeList> kids;
+  if (mWhatToShow & nsIDOMNodeFilter::SHOW_ELEMENT) {
+    nsCOMPtr<nsIDOMNodeList> kids;
+    if (!mDOMUtils) {
+      mDOMUtils = do_GetService("@mozilla.org/inspector/dom-utils;1");
       if (!mDOMUtils) {
-        mDOMUtils = do_GetService("@mozilla.org/inspector/dom-utils;1");
-        if (!mDOMUtils) {
-          return NS_ERROR_FAILURE;
-        }
-      }
-
-      mDOMUtils->GetChildrenForNode(aNode, mShowAnonymous,
-                                    getter_AddRefs(kids));
-
-      if (kids) {
-        AppendKidsToArray(kids, aResult);
+        return NS_ERROR_FAILURE;
       }
     }
 
-    if (mShowSubDocuments) {
-      nsCOMPtr<nsIDOMNode> domdoc =
-        do_QueryInterface(inLayoutUtils::GetSubDocumentFor(aNode));
-      if (domdoc) {
-        aResult.AppendObject(domdoc);
-      }
+    mDOMUtils->GetChildrenForNode(aNode, mShowAnonymous,
+                                  getter_AddRefs(kids));
+
+    if (kids) {
+      AppendKidsToArray(kids, aResult);
+    }
+  }
+
+  if (mShowSubDocuments) {
+    nsCOMPtr<nsIDOMNode> domdoc =
+      do_QueryInterface(inLayoutUtils::GetSubDocumentFor(aNode));
+    if (domdoc) {
+      aResult.AppendObject(domdoc);
     }
   }
 
@@ -1278,15 +1273,15 @@ inDOMView::AppendKidsToArray(nsIDOMNodeList* aKids,
 }
 
 nsresult
-inDOMView::AppendAttrsToArray(nsIDOMNamedNodeMap* aKids,
+inDOMView::AppendAttrsToArray(nsIDOMMozNamedAttrMap* aAttributes,
                               nsCOMArray<nsIDOMNode>& aArray)
 {
   uint32_t l = 0;
-  aKids->GetLength(&l);
-  nsCOMPtr<nsIDOMNode> kid;
+  aAttributes->GetLength(&l);
+  nsCOMPtr<nsIDOMAttr> attribute;
   for (uint32_t i = 0; i < l; ++i) {
-    aKids->Item(i, getter_AddRefs(kid));
-    aArray.AppendObject(kid);
+    aAttributes->Item(i, getter_AddRefs(attribute));
+    aArray.AppendObject(attribute);
   }
   return NS_OK;
 }
