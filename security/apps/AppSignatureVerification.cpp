@@ -10,8 +10,10 @@
 
 #include "nsNSSCertificateDB.h"
 
+#include "insanity/pkix.h"
 #include "mozilla/RefPtr.h"
 #include "CryptoTask.h"
+#include "AppTrustDomain.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsHashKeys.h"
@@ -26,11 +28,14 @@
 #include "ScopedNSSTypes.h"
 
 #include "base64.h"
+#include "certdb.h"
 #include "secmime.h"
 #include "plstr.h"
 #include "prlog.h"
 
+using namespace insanity::pkix;
 using namespace mozilla;
+using namespace mozilla::psm;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
@@ -517,31 +522,109 @@ ParseMF(const char* filebuf, nsIZipReader * zip,
   return NS_OK;
 }
 
+nsresult
+VerifySignature(AppTrustedRoot trustedRoot,
+                const SECItem& buffer, const SECItem& detachedDigest,
+         insanity::pkix::ScopedCERTCertList& builtChain)
+{
+  insanity::pkix::ScopedPtr<NSSCMSMessage, NSS_CMSMessage_Destroy>
+    cmsMsg(NSS_CMSMessage_CreateFromDER(const_cast<SECItem*>(&buffer), nullptr,
+                                        nullptr, nullptr, nullptr, nullptr,
+                                        nullptr));
+  if (!cmsMsg) {
+    return NS_ERROR_CMS_VERIFY_ERROR_PROCESSING;
+  }
 
-void
-ContentCallback(void *arg, const char *buf, unsigned long len)
-{
-}
-PK11SymKey *
-GetDecryptKeyCallback(void *, SECAlgorithmID *)
-{
-  return nullptr;
-}
-PRBool
-DecryptionAllowedCallback(SECAlgorithmID *algid, PK11SymKey *bulkkey)
-{
-  return false;
-}
-void *
-GetPasswordKeyCallback(void *arg, void *handle)
-{
-  return nullptr;
+  if (!NSS_CMSMessage_IsSigned(cmsMsg.get())) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("CMS message isn't signed"));
+    return NS_ERROR_CMS_VERIFY_NOT_SIGNED;
+  }
+
+  NSSCMSContentInfo* cinfo = NSS_CMSMessage_ContentLevel(cmsMsg.get(), 0);
+  if (!cinfo) {
+    return NS_ERROR_CMS_VERIFY_NO_CONTENT_INFO;
+  }
+
+  
+  NSSCMSSignedData* signedData =
+    reinterpret_cast<NSSCMSSignedData*>(NSS_CMSContentInfo_GetContent(cinfo));
+  if (!signedData) {
+    return NS_ERROR_CMS_VERIFY_NO_CONTENT_INFO;
+  }
+
+  
+  if (NSS_CMSSignedData_SetDigestValue(signedData, SEC_OID_SHA1,
+                                       const_cast<SECItem*>(&detachedDigest))) {
+    return NS_ERROR_CMS_VERIFY_BAD_DIGEST;
+  }
+
+  
+  
+  insanity::pkix::ScopedCERTCertList certs(CERT_NewCertList());
+  if (!certs) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  if (signedData->rawCerts) {
+    for (size_t i = 0; signedData->rawCerts[i]; ++i) {
+      insanity::pkix::ScopedCERTCertificate
+        cert(CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                     signedData->rawCerts[i], nullptr, false,
+                                     true));
+      
+      if (cert) {
+        if (CERT_AddCertToListTail(certs.get(), cert.get()) == SECSuccess) {
+          cert.release(); 
+        } else {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+      }
+    }
+  }
+
+  
+  int numSigners = NSS_CMSSignedData_SignerInfoCount(signedData);
+  if (NS_WARN_IF(numSigners != 1)) {
+    return NS_ERROR_CMS_VERIFY_ERROR_PROCESSING;
+  }
+  
+  NSSCMSSignerInfo* signer = NSS_CMSSignedData_GetSignerInfo(signedData, 0);
+  if (NS_WARN_IF(!signer)) {
+    return NS_ERROR_CMS_VERIFY_ERROR_PROCESSING;
+  }
+  
+  CERTCertificate* signerCert =
+    NSS_CMSSignerInfo_GetSigningCertificate(signer, CERT_GetDefaultCertDB());
+  if (!signerCert) {
+    return NS_ERROR_CMS_VERIFY_ERROR_PROCESSING;
+  }
+
+  
+  AppTrustDomain trustDomain(nullptr); 
+  if (trustDomain.SetTrustedRoot(trustedRoot) != SECSuccess) {
+    return MapSECStatus(SECFailure);
+  }
+  if (BuildCertChain(trustDomain, signerCert, PR_Now(), MustBeEndEntity,
+                     KU_DIGITAL_SIGNATURE, SEC_OID_EXT_KEY_USAGE_CODE_SIGN,
+                     builtChain) != SECSuccess) {
+    return MapSECStatus(SECFailure);
+  }
+
+  
+  SECOidData* contentTypeOidData =
+    SECOID_FindOID(&signedData->contentInfo.contentType);
+  if (!contentTypeOidData) {
+    return NS_ERROR_CMS_VERIFY_ERROR_PROCESSING;
+  }
+
+  return MapSECStatus(NSS_CMSSignerInfo_Verify(signer,
+                         const_cast<SECItem*>(&detachedDigest),
+                         &contentTypeOidData->oid));
 }
 
 NS_IMETHODIMP
-OpenSignedJARFile(nsIFile * aJarFile,
-                   nsIZipReader ** aZipReader,
-                   nsIX509Cert3 ** aSignerCert)
+OpenSignedAppFile(AppTrustedRoot aTrustedRoot, nsIFile* aJarFile,
+                   nsIZipReader** aZipReader,
+                   nsIX509Cert3** aSignerCert)
 {
   NS_ENSURE_ARG_POINTER(aJarFile);
 
@@ -571,20 +654,6 @@ OpenSignedJARFile(nsIFile * aJarFile,
     return NS_ERROR_SIGNED_JAR_NOT_SIGNED;
   }
 
-  sigBuffer.type = siBuffer;
-  ScopedSEC_PKCS7ContentInfo p7_info(SEC_PKCS7DecodeItem(&sigBuffer,
-                                        ContentCallback, nullptr,
-                                        GetPasswordKeyCallback, nullptr,
-                                        GetDecryptKeyCallback, nullptr,
-                                        DecryptionAllowedCallback));
-  if (!p7_info) {
-    PRErrorCode error = PR_GetError();
-    const char * errorName = PR_ErrorToName(error);
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Failed to decode PKCS#7 item: %s",
-           errorName));
-    return PRErrorCode_to_nsresult(error);
-  }
-
   
   nsAutoCString sfFilename;
   ScopedAutoSECItem sfBuffer;
@@ -595,15 +664,11 @@ OpenSignedJARFile(nsIFile * aJarFile,
     return NS_ERROR_SIGNED_JAR_MANIFEST_INVALID;
   }
 
-  
-  if (!SEC_PKCS7VerifyDetachedSignatureAtTime(p7_info, certUsageObjectSigner,
-                                              &sfCalculatedDigest.get(),
-                                              HASH_AlgSHA1, false, PR_Now())) {
-    PRErrorCode error = PR_GetError();
-    const char * errorName = PR_ErrorToName(error);
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Failed to verify detached signature: %s",
-           errorName));
-    rv = PRErrorCode_to_nsresult(error);
+  sigBuffer.type = siBuffer;
+  insanity::pkix::ScopedCERTCertList builtChain;
+  rv = VerifySignature(aTrustedRoot, sigBuffer, sfCalculatedDigest.get(),
+                       builtChain);
+  if (NS_FAILED(rv)) {
     return rv;
   }
 
@@ -717,33 +782,32 @@ OpenSignedJARFile(nsIFile * aJarFile,
   
   
   if (aSignerCert) {
-    CERTCertificate *rawSignerCert
-      = p7_info->content.signedData->signerInfos[0]->cert;
-    NS_ENSURE_TRUE(rawSignerCert, NS_ERROR_UNEXPECTED);
-
-    nsCOMPtr<nsIX509Cert3> signerCert = nsNSSCertificate::Create(rawSignerCert);
+    MOZ_ASSERT(CERT_LIST_HEAD(builtChain));
+    nsCOMPtr<nsIX509Cert3> signerCert =
+      nsNSSCertificate::Create(CERT_LIST_HEAD(builtChain)->cert);
     NS_ENSURE_TRUE(signerCert, NS_ERROR_OUT_OF_MEMORY);
-
     signerCert.forget(aSignerCert);
   }
 
   return NS_OK;
 }
 
-class OpenSignedJARFileTask MOZ_FINAL : public CryptoTask
+class OpenSignedAppFileTask MOZ_FINAL : public CryptoTask
 {
 public:
-  OpenSignedJARFileTask(nsIFile * aJarFile,
-                        nsIOpenSignedJARFileCallback * aCallback)
-    : mJarFile(aJarFile)
-    , mCallback(new nsMainThreadPtrHolder<nsIOpenSignedJARFileCallback>(aCallback))
+  OpenSignedAppFileTask(AppTrustedRoot aTrustedRoot, nsIFile* aJarFile,
+                        nsIOpenSignedAppFileCallback* aCallback)
+    : mTrustedRoot(aTrustedRoot)
+    , mJarFile(aJarFile)
+    , mCallback(new nsMainThreadPtrHolder<nsIOpenSignedAppFileCallback>(aCallback))
   {
   }
 
 private:
   virtual nsresult CalculateResult() MOZ_OVERRIDE
   {
-    return OpenSignedJARFile(mJarFile, getter_AddRefs(mZipReader),
+    return OpenSignedAppFile(mTrustedRoot, mJarFile,
+                             getter_AddRefs(mZipReader),
                              getter_AddRefs(mSignerCert));
   }
 
@@ -753,11 +817,12 @@ private:
 
   virtual void CallCallback(nsresult rv)
   {
-    (void) mCallback->OpenSignedJARFileFinished(rv, mZipReader, mSignerCert);
+    (void) mCallback->OpenSignedAppFileFinished(rv, mZipReader, mSignerCert);
   }
 
+  const AppTrustedRoot mTrustedRoot;
   const nsCOMPtr<nsIFile> mJarFile;
-  nsMainThreadPtrHandle<nsIOpenSignedJARFileCallback> mCallback;
+  nsMainThreadPtrHandle<nsIOpenSignedAppFileCallback> mCallback;
   nsCOMPtr<nsIZipReader> mZipReader; 
   nsCOMPtr<nsIX509Cert3> mSignerCert; 
 };
@@ -765,12 +830,14 @@ private:
 } 
 
 NS_IMETHODIMP
-nsNSSCertificateDB::OpenSignedJARFileAsync(
-  nsIFile * aJarFile, nsIOpenSignedJARFileCallback * aCallback)
+nsNSSCertificateDB::OpenSignedAppFileAsync(
+  AppTrustedRoot aTrustedRoot, nsIFile* aJarFile,
+  nsIOpenSignedAppFileCallback* aCallback)
 {
   NS_ENSURE_ARG_POINTER(aJarFile);
   NS_ENSURE_ARG_POINTER(aCallback);
-  RefPtr<OpenSignedJARFileTask> task(new OpenSignedJARFileTask(aJarFile,
+  RefPtr<OpenSignedAppFileTask> task(new OpenSignedAppFileTask(aTrustedRoot,
+                                                               aJarFile,
                                                                aCallback));
   return task->Dispatch("SignedJAR");
 }

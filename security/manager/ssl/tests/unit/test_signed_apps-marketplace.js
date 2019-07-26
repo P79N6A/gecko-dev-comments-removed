@@ -10,28 +10,9 @@ function run_test() {
   run_next_test();
 }
 
-
-
-
-
-
-
-
-
-
-
-const NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER = 0x80000000 
-				        + (    (0x45 + 21) << 16)
-				        + (-(-0x2000 + 13)      );
-
 function check_open_result(name, expectedRv) {
-  if (expectedRv == Cr.NS_OK && !isB2G) {
-    
-    expectedRv = NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER;
-  }
-
-  return function openSignedJARFileCallback(rv, aZipReader, aSignerCert) {
-    do_print("openSignedJARFileCallback called for " + name);
+  return function openSignedAppFileCallback(rv, aZipReader, aSignerCert) {
+    do_print("openSignedAppFileCallback called for " + name);
     do_check_eq(rv, expectedRv);
     do_check_eq(aZipReader != null,  Components.isSuccessCode(expectedRv));
     do_check_eq(aSignerCert != null, Components.isSuccessCode(expectedRv));
@@ -46,15 +27,17 @@ function original_app_path(test_name) {
 
 
 add_test(function () {
-  certdb.openSignedJARFileAsync(
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppMarketplaceProdPublicRoot,
     original_app_path("test-privileged-app-test-1.0"),
     check_open_result("test-privileged-app-test-1.0",
-                      NS_ERROR_SEC_ERROR_UNKNOWN_ISSUER));
+                      getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER)));
 });
 
 
 add_test(function () {
-  certdb.openSignedJARFileAsync(
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppMarketplaceProdPublicRoot,
     original_app_path("privileged-app-test-1.0"),
     check_open_result("privileged-app-test-1.0", Cr.NS_OK));
 });
