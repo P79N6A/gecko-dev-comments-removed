@@ -136,6 +136,8 @@ const kXLinkNamespace = "http://www.w3.org/1999/xlink";
 const kDefaultCSSViewportWidth = 980;
 const kDefaultCSSViewportHeight = 480;
 
+const kViewportRemeasureThrottle = 500;
+
 function dump(a) {
   Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
 }
@@ -242,6 +244,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "FormHistory:Init", false);
     Services.obs.addObserver(this, "ToggleProfiling", false);
     Services.obs.addObserver(this, "gather-telemetry", false);
+    Services.obs.addObserver(this, "keyword-search", false);
 
     Services.obs.addObserver(this, "sessionstore-state-purge-complete", false);
 
@@ -687,10 +690,12 @@ var BrowserApp = {
     let referrerURI = "referrerURI" in aParams ? aParams.referrerURI : null;
     let charset = "charset" in aParams ? aParams.charset : null;
 
-    if ("showProgress" in aParams) {
+    if ("showProgress" in aParams || "userSearch" in aParams) {
       let tab = this.getTabForBrowser(aBrowser);
-      if (tab)
-        tab.showProgress = aParams.showProgress;
+      if (tab) {
+        if ("showProgress" in aParams) tab.showProgress = aParams.showProgress;
+        if ("userSearch" in aParams) tab.userSearch = aParams.userSearch;
+      }
     }
 
     try {
@@ -1199,6 +1204,7 @@ var BrowserApp = {
         if (data.engine) {
           let engine = Services.search.getEngineByName(data.engine);
           if (engine) {
+            params.userSearch = url;
             let submission = engine.getSubmission(url);
             url = submission.uri.spec;
             params.postData = submission.postData;
@@ -1222,6 +1228,11 @@ var BrowserApp = {
 
       case "Tab:Closed":
         this._handleTabClosed(this.getTabForId(parseInt(aData)));
+        break;
+
+      case "keyword-search":
+        
+        this.selectedTab.userSearch = aData;
         break;
 
       case "Browser:Quit":
@@ -2307,7 +2318,8 @@ function Tab(aURL, aParams) {
   this.userScrollPos = { x: 0, y: 0 };
   this.viewportExcludesHorizontalMargins = true;
   this.viewportExcludesVerticalMargins = true;
-  this.updatingViewportForPageSizeChange = false;
+  this.viewportMeasureCallback = null;
+  this.lastPageSizeAfterViewportChange = { width: 0, height: 0 };
   this.contentDocumentIsDisplayed = true;
   this.pluginDoorhangerTimeout = null;
   this.shouldShowPluginDoorhanger = true;
@@ -2446,6 +2458,9 @@ Tab.prototype = {
 
       
       this.showProgress = "showProgress" in aParams ? aParams.showProgress : true;
+
+      
+      this.userSearch = "userSearch" in aParams ? aParams.userSearch : "";
 
       try {
         this.browser.loadURIWithFlags(aURL, flags, referrerURI, charset, postData);
@@ -2943,30 +2958,48 @@ Tab.prototype = {
     return viewport;
   },
 
-  sendViewportUpdate: function(aPageSizeUpdate) {
+  sendViewportUpdate: function(aPageSizeUpdate, aAfterViewportSizeChange) {
     let viewport = this.getViewport();
     let displayPort = getBridge().getDisplayPort(aPageSizeUpdate, BrowserApp.isBrowserContentDocumentDisplayed(), this.id, viewport);
     if (displayPort != null)
       this.setDisplayPort(displayPort);
 
-    
-    
-    
-    
-    
-    
-    
-    if (!this.updatingViewportForPageSizeChange && aPageSizeUpdate) {
-      this.updatingViewportForPageSizeChange = true;
+    if (aAfterViewportSizeChange) {
+      
+      
+      this.lastPageSizeAfterViewportChange =
+        { width: viewport.pageRight - viewport.pageLeft,
+          height: viewport.pageBottom - viewport.pageTop };
+    } else if (aPageSizeUpdate &&
+               (gViewportMargins.top > 0 || gViewportMargins.right > 0
+                  || gViewportMargins.bottom > 0 || gViewportMargins.left > 0)) {
+      
+      
+      
+      
+      
+      
+      
       if (((Math.round(viewport.pageBottom - viewport.pageTop)
               <= gScreenHeight + gViewportMargins.top + gViewportMargins.bottom)
              != this.viewportExcludesVerticalMargins) ||
           ((Math.round(viewport.pageRight - viewport.pageLeft)
               <= gScreenWidth + gViewportMargins.left + gViewportMargins.right)
              != this.viewportExcludesHorizontalMargins)) {
-        this.updateViewportSize(gScreenWidth);
+        if (!this.viewportMeasureCallback) {
+          this.viewportMeasureCallback = setTimeout(function() {
+            this.viewportMeasureCallback = null;
+
+            let viewport = this.getViewport();
+            if (Math.abs((viewport.pageRight - viewport.pageLeft)
+                           - this.lastPageSizeAfterViewportChange.width) >= 0.5 ||
+                Math.abs((viewport.pageBottom - viewport.pageTop)
+                           - this.lastPageSizeAfterViewportChange.height) >= 0.5) {
+              this.updateViewportSize(gScreenWidth);
+            }
+          }.bind(this), kViewportRemeasureThrottle);
+        }
       }
-      this.updatingViewportForPageSizeChange = false;
     }
   },
 
@@ -3286,12 +3319,16 @@ Tab.prototype = {
       type: "Content:LocationChange",
       tabID: this.id,
       uri: fixedURI.spec,
+      userSearch: this.userSearch || "",
       documentURI: documentURI,
       contentType: (contentType ? contentType : ""),
       sameDocument: sameDocument
     };
 
     sendMessageToJava(message);
+
+    
+    this.userSearch = "";
 
     if (!sameDocument) {
       
@@ -3413,6 +3450,11 @@ Tab.prototype = {
     
     
 
+    if (this.viewportMeasureCallback) {
+      clearTimeout(this.viewportMeasureCallback);
+      this.viewportMeasureCallback = null;
+    }
+
     let browser = this.browser;
     if (!browser)
       return;
@@ -3473,19 +3515,19 @@ Tab.prototype = {
       
       let [pageWidth, pageHeight] = this.getPageSize(this.browser.contentDocument, viewportW, viewportH);
 
-      minScale = screenW / pageWidth;
-
       
       
       
-      if (pageWidth * this._zoom > gScreenWidth - 1) {
+      if (pageWidth * this._zoom > gScreenWidth - 0.5) {
         screenW = gScreenWidth;
         this.viewportExcludesHorizontalMargins = false;
       }
-      if (pageHeight * this._zoom > gScreenHeight - 1) {
+      if (pageHeight * this._zoom > gScreenHeight - 0.5) {
         screenH = gScreenHeight;
         this.viewportExcludesVerticalMargins = false;
       }
+
+      minScale = screenW / pageWidth;
     }
     minScale = this.clampZoom(minScale);
     viewportH = Math.max(viewportH, screenH / minScale);
@@ -3512,7 +3554,7 @@ Tab.prototype = {
     let zoom = (aInitialLoad && metadata.defaultZoom) ? metadata.defaultZoom : this.clampZoom(this._zoom * zoomScale);
     this.setResolution(zoom, false);
     this.setScrollClampingSize(zoom);
-    this.sendViewportUpdate();
+    this.sendViewportUpdate(false, true);
   },
 
   sendViewportMetadata: function sendViewportMetadata() {
@@ -6026,7 +6068,7 @@ var WebappsUI = {
     let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
 
-    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name)) {
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name + "\n" + aData.app.origin)) {
       
       let profilePath = sendMessageToJava({
         type: "WebApps:PreInstall",
