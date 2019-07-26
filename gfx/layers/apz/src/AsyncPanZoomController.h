@@ -298,6 +298,12 @@ public:
 
 
 
+  void TakeOverFling(ScreenPoint aVelocity);
+
+  
+
+
+
 
 
 
@@ -494,6 +500,14 @@ protected:
 
 
   void DispatchRepaintRequest(const FrameMetrics& aFrameMetrics);
+
+  
+
+
+
+
+
+  bool DoFling(const TimeDuration& aDelta);
 
   
 
@@ -763,20 +777,6 @@ private:
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
-
-
-  
-
-
-
-public:
-  
-
-
-
-  void TakeOverFling(ScreenPoint aVelocity);
-
-private:
   friend class FlingAnimation;
 
 
