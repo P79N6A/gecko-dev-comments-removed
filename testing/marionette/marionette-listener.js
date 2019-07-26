@@ -48,6 +48,9 @@ let importedScripts = null;
 let sandbox;
 
 
+let onunload;
+
+
 let asyncTestRunning = false;
 let asyncTestCommandId;
 let asyncTestTimeoutId;
@@ -290,13 +293,6 @@ function resetValues() {
 
 
 
-function errUnload() {
-  sendError("unload was called", 17, null);
-}
-
-
-
-
 
 
 
@@ -328,7 +324,7 @@ function createExecuteContentSandbox(aWindow, timeout) {
   });
 
   sandbox.asyncComplete = function sandbox_asyncComplete(value, status) {
-    curWindow.removeEventListener("unload", errUnload, false);
+    curWindow.removeEventListener("unload", onunload, false);
 
     
     for (let i = 0; i <= asyncTestTimeoutId; i++) {
@@ -378,14 +374,14 @@ function createExecuteContentSandbox(aWindow, timeout) {
 
 
 function executeScript(msg, directInject) {
-  let asyncTestCommandId = msg.json.command_id;
+  asyncTestCommandId = msg.json.command_id;
   let script = msg.json.value;
 
   if (msg.json.newSandbox || !sandbox) {
     sandbox = createExecuteContentSandbox(curWindow,
                                           msg.json.timeout);
     if (!sandbox) {
-      sendError("Could not create sandbox!", asyncTestCommandId);
+      sendError("Could not create sandbox!", 500, null, asyncTestCommandId);
       return;
     }
   }
@@ -480,15 +476,19 @@ function executeJSScript(msg) {
 
 
 function executeWithCallback(msg, useFinish) {
-  curWindow.addEventListener("unload", errUnload, false);
   let script = msg.json.value;
-  let asyncTestCommandId = msg.json.command_id;
+  asyncTestCommandId = msg.json.command_id;
+
+  onunload = function() {
+    sendError("unload was called", 17, null, asyncTestCommandId);
+  };
+  curWindow.addEventListener("unload", onunload, false);
 
   if (msg.json.newSandbox || !sandbox) {
     sandbox = createExecuteContentSandbox(curWindow,
                                           msg.json.timeout);
     if (!sandbox) {
-      sendError("Could not create sandbox!");
+      sendError("Could not create sandbox!", 17, null, asyncTestCommandId);
       return;
     }
   }
@@ -500,12 +500,12 @@ function executeWithCallback(msg, useFinish) {
   
   
   asyncTestTimeoutId = curWindow.setTimeout(function() {
-    sandbox.asyncComplete('timed out', 28);
+    sandbox.asyncComplete('timed out', 28, null, asyncTestCommandId);
   }, msg.json.timeout);
 
   originalOnError = curWindow.onerror;
   curWindow.onerror = function errHandler(errMsg, url, line) {
-    sandbox.asyncComplete(errMsg, 17);
+    sandbox.asyncComplete(errMsg, 17, null, asyncTestCommandId);
     curWindow.onerror = originalOnError;
   };
 
@@ -543,7 +543,8 @@ function executeWithCallback(msg, useFinish) {
     Cu.evalInSandbox(scriptSrc, sandbox, "1.8");
   } catch (e) {
     
-    sandbox.asyncComplete(e.name + ': ' + e.message, 17);
+    sandbox.asyncComplete(e.name + ': ' + e.message, 17,
+                          e.stack, asyncTestCommandId);
   }
 }
 
@@ -1494,7 +1495,7 @@ function emulatorCmdResult(msg) {
     cb(message.result);
   }
   catch(e) {
-    sendError(e.message, e.code, e.stack);
+    sendError(e.message, e.code, e.stack, -1);
     return;
   }
 }
@@ -1529,7 +1530,7 @@ function screenShot(msg) {
       node = elementManager.getKnownElement(msg.json.element, curWindow)
     }
     catch (e) {
-      sendResponse(e.message, e.code, e.stack);
+      sendResponse(e.message, e.code, e.stack, msg.json.command_id);
       return;
     }
   }
@@ -1598,7 +1599,7 @@ function screenShot(msg) {
 
   
   
-  sendResponse({value:canvas.toDataURL("image/png","")});
+  sendResponse({value:canvas.toDataURL("image/png","")}, msg.json.command_id);
 }
 
 
