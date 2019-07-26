@@ -132,7 +132,93 @@ public final class HtmlAttributes implements Attributes {
     }
 
     
+
+
+
+
+    public String getValue(AttributeName name) {
+        int index = getIndex(name);
+        if (index == -1) {
+            return null;
+        } else {
+            return getValueNoBoundsCheck(index);
+        }
+    }
+
+    public int getLength() {
+        return length;
+    }
+
     
+
+
+
+
+    public @Local String getLocalNameNoBoundsCheck(int index) {
+        
+        return names[index].getLocal(mode);
+    }
+
+    
+
+
+
+
+    public @NsUri String getURINoBoundsCheck(int index) {
+        
+        return names[index].getUri(mode);
+    }
+
+    
+
+
+
+
+    public @Prefix String getPrefixNoBoundsCheck(int index) {
+        
+        return names[index].getPrefix(mode);
+    }
+
+    
+
+
+
+
+    public String getValueNoBoundsCheck(int index) {
+        
+        return values[index];
+    }
+
+    
+
+
+
+
+    public AttributeName getAttributeNameNoBoundsCheck(int index) {
+        
+        return names[index];
+    }
+
+    
+    
+    
+
+
+
+
+    public @QName String getQNameNoBoundsCheck(int index) {
+        return names[index].getQName(mode);
+    }
+
+    
+
+
+
+
+    public @IdType String getTypeNoBoundsCheck(int index) {
+        return (names[index] == AttributeName.ID) ? "ID" : "CDATA";
+    }
+
     public int getIndex(String qName) {
         for (int i = 0; i < length; i++) {
             if (names[i].getQName(mode).equals(qName)) {
@@ -188,12 +274,6 @@ public final class HtmlAttributes implements Attributes {
         }
     }
     
-    
-    
-    public int getLength() {
-        return length;
-    }
-
     public @Local String getLocalName(int index) {
         if (index < length && index >= 0) {
             return names[index].getLocal(mode);
@@ -201,8 +281,6 @@ public final class HtmlAttributes implements Attributes {
             return null;
         }
     }
-
-    
     
     public @QName String getQName(int index) {
         if (index < length && index >= 0) {
@@ -220,8 +298,6 @@ public final class HtmlAttributes implements Attributes {
         }
     }
 
-    
-    
     public AttributeName getAttributeName(int index) {
         if (index < length && index >= 0) {
             return names[index];
@@ -253,22 +329,6 @@ public final class HtmlAttributes implements Attributes {
             return null;
         }
     }
-
-    
-
-
-
-
-    public String getValue(AttributeName name) {
-        int index = getIndex(name);
-        if (index == -1) {
-            return null;
-        } else {
-            return getValue(index);
-        }
-    }
-    
-    
 
     public String getId() {
         return idValue;
@@ -518,9 +578,9 @@ public final class HtmlAttributes implements Attributes {
     public void merge(HtmlAttributes attributes) throws SAXException {
         int len = attributes.getLength();
         for (int i = 0; i < len; i++) {
-            AttributeName name = attributes.getAttributeName(i);
+            AttributeName name = attributes.getAttributeNameNoBoundsCheck(i);
             if (!contains(name)) {
-                addAttribute(name, attributes.getValue(i), XmlViolationPolicy.ALLOW);
+                addAttribute(name, attributes.getValueNoBoundsCheck(i), XmlViolationPolicy.ALLOW);
             }
         }
     }

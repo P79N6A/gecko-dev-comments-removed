@@ -23,6 +23,7 @@
 #ifndef jArray_h_
 #define jArray_h_
 
+#include "mozilla/NullPtr.h"
 #include "nsDebug.h"
 
 template<class T, class L>
@@ -99,11 +100,24 @@ class autoJArray {
       arr = other.arr;
       length = other.length;
     }
-    void operator=(L zero) {
+#if defined(__clang__)
+    
+    typedef decltype(nullptr) jArray_nullptr_t;
+#elif defined(MOZ_HAVE_CXX11_NULLPTR)
+    
+    typedef std::nullptr_t jArray_nullptr_t;
+#elif defined(__GNUC__)
+    typedef void* jArray_nullptr_t;
+#elif defined(_WIN64)
+    typedef uint64_t jArray_nullptr_t;
+#else
+    typedef uint32_t jArray_nullptr_t;
+#endif
+    void operator=(jArray_nullptr_t zero) {
       
-      NS_ASSERTION(!zero, "Non-zero integer assigned to jArray.");
+      
       delete[] arr;
-      arr = 0;
+      arr = nullptr;
       length = 0;
     }
 };
