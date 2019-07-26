@@ -1,0 +1,33 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _UI_POWER_MANAGER_H
+#define _UI_POWER_MANAGER_H
+
+
+namespace android {
+
+enum {
+    POWER_MANAGER_OTHER_EVENT = 0,
+    POWER_MANAGER_BUTTON_EVENT = 1,
+    POWER_MANAGER_TOUCH_EVENT = 2,
+
+    POWER_MANAGER_LAST_EVENT = POWER_MANAGER_TOUCH_EVENT, 
+};
+
+} 
+
+#endif 
