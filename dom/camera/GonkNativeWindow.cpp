@@ -263,6 +263,7 @@ int GonkNativeWindow::dequeueBuffer(android_native_buffer_t** buffer)
 
         int found = -1;
         int dequeuedCount = 0;
+        int renderingCount = 0;
         bool tryAgain = true;
 
         CNW_LOGD("dequeueBuffer: E");
@@ -274,10 +275,14 @@ int GonkNativeWindow::dequeueBuffer(android_native_buffer_t** buffer)
             
             found = INVALID_BUFFER_SLOT;
             dequeuedCount = 0;
+            renderingCount = 0;
             for (int i = 0; i < mBufferCount; i++) {
                 const int state = mSlots[i].mBufferState;
                 if (state == BufferSlot::DEQUEUED) {
                     dequeuedCount++;
+                }
+                else if (state == BufferSlot::RENDERING) {
+                    renderingCount++;
                 }
                 else if (state == BufferSlot::FREE) {
                     
@@ -289,6 +294,22 @@ int GonkNativeWindow::dequeueBuffer(android_native_buffer_t** buffer)
                         mSlots[i].mFrameNumber < mSlots[found].mFrameNumber) {
                         found = i;
                     }
+                }
+            }
+
+            
+            
+            
+            if (renderingCount > 0) {
+                
+                
+                const int avail = mBufferCount - (dequeuedCount + 1);
+                if (avail < MIN_UNDEQUEUED_BUFFERS) {
+                    CNW_LOGE("dequeueBuffer: MIN_UNDEQUEUED_BUFFERS=%d exceeded "
+                            "(dequeued=%d)",
+                            MIN_UNDEQUEUED_BUFFERS,
+                            dequeuedCount);
+                    return -EBUSY;
                 }
             }
 
