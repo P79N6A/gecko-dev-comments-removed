@@ -944,8 +944,21 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
   }
 
   if (mFill != aOther.mFill ||
-      mStroke != aOther.mStroke) {
+      mStroke != aOther.mStroke ||
+      mFillOpacity != aOther.mFillOpacity ||
+      mStrokeOpacity != aOther.mStrokeOpacity) {
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    if (HasStroke() != aOther.HasStroke() ||
+        (!HasStroke() && HasFill() != aOther.HasFill())) {
+      
+      
+      
+      
+      
+      
+      NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+      NS_UpdateHint(hint, nsChangeHint_NeedDirtyReflow); 
+    }
     if (PaintURIChanged(mFill, aOther.mFill) ||
         PaintURIChanged(mStroke, aOther.mStroke)) {
       NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
@@ -975,8 +988,6 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
   }
 
   if ( mStrokeDashoffset      != aOther.mStrokeDashoffset      ||
-       mFillOpacity           != aOther.mFillOpacity           ||
-       mStrokeOpacity         != aOther.mStrokeOpacity         ||
        mClipRule              != aOther.mClipRule              ||
        mColorInterpolation    != aOther.mColorInterpolation    ||
        mColorInterpolationFilters != aOther.mColorInterpolationFilters ||

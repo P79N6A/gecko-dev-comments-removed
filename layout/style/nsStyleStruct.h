@@ -2387,6 +2387,22 @@ struct nsStyleSVG {
   bool HasMarker() const {
     return mMarkerStart || mMarkerMid || mMarkerEnd;
   }
+
+  
+
+
+
+  bool HasStroke() const {
+    return mStroke.mType != eStyleSVGPaintType_None && mStrokeOpacity > 0;
+  }
+
+  
+
+
+
+  bool HasFill() const {
+    return mFill.mType != eStyleSVGPaintType_None && mFillOpacity > 0;
+  }
 };
 
 struct nsStyleFilter {
