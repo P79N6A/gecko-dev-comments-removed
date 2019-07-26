@@ -106,7 +106,7 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
   NS_ENSURE_ARG(aHostURI);
   NS_ENSURE_ARG_POINTER(aCookieString);
 
-  *aCookieString = NULL;
+  *aCookieString = nullptr;
 
   
   bool isForeign = true;

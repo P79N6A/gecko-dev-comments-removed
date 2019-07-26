@@ -660,7 +660,7 @@ NS_IMPL_ISUPPORTS5(nsCookieService,
                    nsISupportsWeakReference)
 
 nsCookieService::nsCookieService()
- : mDBState(NULL)
+ : mDBState(nullptr)
  , mCookieBehavior(BEHAVIOR_ACCEPT)
  , mThirdPartySession(false)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
@@ -792,7 +792,7 @@ nsCookieService::TryInitDB(bool aRecreateDB)
   if (aRecreateDB) {
     nsCOMPtr<nsIFile> backupFile;
     mDefaultDBState->cookieFile->Clone(getter_AddRefs(backupFile));
-    rv = backupFile->MoveToNative(NULL,
+    rv = backupFile->MoveToNative(nullptr,
       NS_LITERAL_CSTRING(COOKIES_FILE ".bak"));
     NS_ENSURE_SUCCESS(rv, RESULT_FAILURE);
   }
@@ -1237,8 +1237,8 @@ void
 nsCookieService::CloseDBStates()
 {
   
-  mPrivateDBState = NULL;
-  mDBState = NULL;
+  mPrivateDBState = nullptr;
+  mDBState = nullptr;
 
   
   if (!mDefaultDBState)
@@ -1260,7 +1260,7 @@ nsCookieService::CloseDBStates()
 
   CleanupDefaultDBConnection();
 
-  mDefaultDBState = NULL;
+  mDefaultDBState = nullptr;
 }
 
 
@@ -1287,17 +1287,17 @@ nsCookieService::CleanupDefaultDBConnection()
   
   
   
-  mDefaultDBState->dbConn = NULL;
-  mDefaultDBState->syncConn = NULL;
+  mDefaultDBState->dbConn = nullptr;
+  mDefaultDBState->syncConn = nullptr;
 
   
   
   
-  mDefaultDBState->readListener = NULL;
-  mDefaultDBState->insertListener = NULL;
-  mDefaultDBState->updateListener = NULL;
-  mDefaultDBState->removeListener = NULL;
-  mDefaultDBState->closeListener = NULL;
+  mDefaultDBState->readListener = nullptr;
+  mDefaultDBState->insertListener = nullptr;
+  mDefaultDBState->updateListener = nullptr;
+  mDefaultDBState->removeListener = nullptr;
+  mDefaultDBState->closeListener = nullptr;
 }
 
 void
@@ -1324,7 +1324,7 @@ nsCookieService::HandleDBClosed(DBState* aDBState)
     
     nsCOMPtr<nsIFile> backupFile;
     aDBState->cookieFile->Clone(getter_AddRefs(backupFile));
-    nsresult rv = backupFile->MoveToNative(NULL,
+    nsresult rv = backupFile->MoveToNative(nullptr,
       NS_LITERAL_CSTRING(COOKIES_FILE ".bak-rebuild"));
 
     COOKIE_LOGSTRING(PR_LOG_WARNING,
@@ -1577,7 +1577,8 @@ nsCookieService::SetCookieString(nsIURI     *aHostURI,
                                  const char *aCookieHeader,
                                  nsIChannel *aChannel)
 {
-  return SetCookieStringCommon(aHostURI, aCookieHeader, NULL, aChannel, false);
+  return SetCookieStringCommon(aHostURI, aCookieHeader, nullptr, aChannel,
+                               false);
 }
 
 NS_IMETHODIMP
@@ -2130,7 +2131,7 @@ nsCookieService::AsyncReadComplete()
     if (mDefaultDBState->readSet.GetEntry(tuple.key))
       continue;
 
-    AddCookieToList(tuple.key, tuple.cookie, mDefaultDBState, NULL, false);
+    AddCookieToList(tuple.key, tuple.cookie, mDefaultDBState, nullptr, false);
   }
 
   mDefaultDBState->stmtReadDomain = nullptr;
@@ -2257,7 +2258,7 @@ nsCookieService::EnsureReadDomain(const nsCookieKey &aKey)
   
   
   for (uint32_t i = 0; i < array.Length(); ++i) {
-    AddCookieToList(aKey, array[i], mDefaultDBState, NULL, false);
+    AddCookieToList(aKey, array[i], mDefaultDBState, nullptr, false);
   }
 
   
@@ -2346,7 +2347,7 @@ nsCookieService::EnsureReadComplete()
   
   for (uint32_t i = 0; i < array.Length(); ++i) {
     CookieDomainTuple& tuple = array[i];
-    AddCookieToList(tuple.key, tuple.cookie, mDefaultDBState, NULL,
+    AddCookieToList(tuple.key, tuple.cookie, mDefaultDBState, nullptr,
       false);
   }
 
@@ -2506,7 +2507,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
     }
     else {
       AddInternal(key, newCookie, currentTimeInUsec,
-                  NULL, NULL, true);
+                  nullptr, nullptr, true);
     }
   }
 
@@ -2975,7 +2976,7 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
 
   
   
-  AddCookieToList(aKey, aCookie, mDBState, NULL);
+  AddCookieToList(aKey, aCookie, mDBState, nullptr);
   COOKIE_LOGSUCCESS(SET_COOKIE, aHostURI, aCookieHeader, aCookie, foundCookie);
 
   
@@ -3816,7 +3817,7 @@ nsCookieService::FindStaleCookie(nsCookieEntry *aEntry,
                                  int64_t aCurrentTime,
                                  nsListIter &aIter)
 {
-  aIter.entry = NULL;
+  aIter.entry = nullptr;
 
   int64_t oldestTime = 0;
   const nsCookieEntry::ArrayType &cookies = aEntry->GetCookies();
