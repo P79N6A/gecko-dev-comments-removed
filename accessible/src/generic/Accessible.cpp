@@ -630,6 +630,9 @@ Accessible::VisibilityState()
     if (view && view->GetVisibility() == nsViewVisibility_kHide)
       return states::INVISIBLE;
 
+    if (nsLayoutUtils::IsPopup(curFrame))
+      return 0;
+
     
     
     nsIFrame* parentFrame = curFrame->GetParent();
