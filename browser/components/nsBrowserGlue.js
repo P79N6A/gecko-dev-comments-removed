@@ -638,6 +638,9 @@ BrowserGlue.prototype = {
     
     
     this._setPrefToSaveSession();
+
+    
+    
     try {
       let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
                          .getService(Ci.nsIAppStartup);
