@@ -1755,8 +1755,10 @@ Breakpoints.prototype = {
       
       
       if (aBreakpointClient.requestedLocation) {
-        DebuggerView.editor.removeBreakpoint(aBreakpointClient.requestedLocation.line - 1);
-        DebuggerView.editor.addBreakpoint(aBreakpointClient.location.line - 1);
+        DebuggerView.editor.moveBreakpoint(
+          aBreakpointClient.requestedLocation.line - 1,
+          aBreakpointClient.location.line - 1
+        );
       }
       
       window.emit(EVENTS.BREAKPOINT_SHOWN);
