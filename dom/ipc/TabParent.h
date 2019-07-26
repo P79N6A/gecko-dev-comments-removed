@@ -22,6 +22,7 @@
 #include "nsISecureBrowserUI.h"
 #include "nsITabParent.h"
 #include "nsWeakReference.h"
+#include "Units.h"
 
 struct gfxMatrix;
 struct JSContext;
@@ -321,7 +322,7 @@ private:
     
     
     
-    nsIntPoint mChildProcessOffsetAtTouchStart;
+    LayoutDeviceIntPoint mChildProcessOffsetAtTouchStart;
     
     
     bool mMarkedDestroying;
