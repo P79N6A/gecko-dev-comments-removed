@@ -160,9 +160,16 @@ ComparePolicy::adjustInputs(MInstruction *def)
         JS_ASSERT(def->getOperand(1)->type() == MIRType_Boolean);
 
         
-        if (def->getOperand(0)->type() == MIRType_Boolean)
-            specialization_ = MIRType_Int32;
-        return true;
+        
+        
+        if (def->getOperand(0)->type() != MIRType_Boolean)
+            return true;
+
+        
+        
+        
+        
+        specialization_ = MIRType_Int32;
     }
 
     for (size_t i = 0; i < 2; i++) {
