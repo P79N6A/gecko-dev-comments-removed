@@ -241,13 +241,13 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
 
   
   SVGPathData path;
-  nsSVGPathDataParserToInternal pathParser(&path);
+  nsSVGPathDataParser pathParser(pathSpec, &path);
 
   
   
   
   
-  pathParser.Parse(pathSpec);
+  pathParser.Parse();
   if (!path.Length()) {
     return;
   }

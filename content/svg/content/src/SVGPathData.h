@@ -20,7 +20,7 @@
 
 class gfxContext;
 class gfxPath;
-class nsSVGPathDataParserToInternal; 
+class nsSVGPathDataParser; 
 
 struct gfxMatrix;
 struct nsSVGMark;
@@ -78,7 +78,7 @@ class SVGPathData
   friend class SVGAnimatedPathSegList;
   friend class DOMSVGPathSegList;
   friend class DOMSVGPathSeg;
-  friend class ::nsSVGPathDataParserToInternal;
+  friend class ::nsSVGPathDataParser;
   
   
 

@@ -17,9 +17,6 @@
 
 
 
-
-class nsIAtom;
-
 namespace mozilla {
 
 class nsSVGTransform;
@@ -27,36 +24,33 @@ class nsSVGTransform;
 class SVGTransformListParser : public nsSVGDataParser
 {
 public:
+  SVGTransformListParser(const nsAString& aValue)
+    : nsSVGDataParser(aValue) {}
+  
+  bool Parse();
+
   const nsTArray<nsSVGTransform>& GetTransformList() const {
     return mTransforms;
   }
 
 private:
-  nsTArray<nsSVGTransform> mTransforms;
-
   
-  virtual nsresult Match() MOZ_OVERRIDE;
+  bool ParseArguments(float *aResult,
+                      uint32_t aMaxCount,
+                      uint32_t *aParsedCount);
 
-  nsresult MatchNumberArguments(float *aResult,
-                                uint32_t aMaxNum,
-                                uint32_t *aParsedNum);
+  bool ParseTransforms();
 
-  nsresult MatchTransformList();
+  bool ParseTransform();
 
-  nsresult GetTransformToken(nsIAtom** aKeyatom, bool aAdvancePos);
-  nsresult MatchTransforms();
+  bool ParseTranslate();
+  bool ParseScale();
+  bool ParseRotate();
+  bool ParseSkewX();
+  bool ParseSkewY();
+  bool ParseMatrix();
 
-  nsresult MatchTransform();
-
-  bool IsTokenTransformStarter();
-
-  nsresult MatchTranslate();
-
-  nsresult MatchScale();
-  nsresult MatchRotate();
-  nsresult MatchSkewX();
-  nsresult MatchSkewY();
-  nsresult MatchMatrix();
+  FallibleTArray<nsSVGTransform> mTransforms;
 };
 
 } 

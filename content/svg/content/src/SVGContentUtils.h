@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "gfxMatrix.h"
+#include "mozilla/RangedPtr.h"
 
 class nsIContent;
 class nsIDocument;
@@ -132,7 +133,14 @@ public:
                       float aViewboxWidth, float aViewboxHeight,
                       const SVGPreserveAspectRatio &aPreserveAspectRatio);
 
+  static mozilla::RangedPtr<const PRUnichar>
+  GetStartRangedPtr(const nsAString& aString);
+
+  static mozilla::RangedPtr<const PRUnichar>
+  GetEndRangedPtr(const nsAString& aString);
+
   
+
 
 
 
@@ -140,8 +148,9 @@ public:
 
   template<class floatType>
   static bool
-  ParseNumber(const nsAString& aString, floatType& aValue,
-              nsAString& aLeftOver);
+  ParseNumber(mozilla::RangedPtr<const PRUnichar>& aIter,
+              const mozilla::RangedPtr<const PRUnichar>& aEnd,
+              floatType& aValue);
 
   
 
