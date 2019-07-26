@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/Sqlite.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
 
+Cu.import("resource://services-common/async.js");
+
 function sleep(ms) {
   let deferred = Promise.defer();
 
@@ -45,9 +47,11 @@ function getDummyDatabase(name, extraOptions={}) {
   };
 
   let c = yield getConnection(name, extraOptions);
+  c._initialStatementCount = 0;
 
   for (let [k, v] in Iterator(TABLES)) {
     yield c.execute("CREATE TABLE " + k + "(" + v + ")");
+    c._initialStatementCount++;
   }
 
   throw new Task.Result(c);
@@ -467,6 +471,59 @@ add_task(function test_idle_shrink_reset_on_operation() {
   do_check_eq(count, 1);
   do_check_eq(shrinkPromises.length, 1);
   yield shrinkPromises[0];
+
+  yield c.close();
+});
+
+add_task(function test_in_progress_counts() {
+  let c = yield getDummyDatabase("in_progress_counts");
+  do_check_eq(c._statementCounter, c._initialStatementCount);
+  do_check_eq(c.inProgress(), 0);
+  yield c.executeCached("INSERT INTO dirs (path) VALUES ('foo')");
+  do_check_eq(c._statementCounter, c._initialStatementCount + 1);
+  do_check_eq(c.inProgress(), 0);
+
+  let expectOne;
+  let expectTwo;
+
+  
+  let inner = Async.makeSpinningCallback();
+  let outer = Async.makeSpinningCallback();
+
+  
+  
+  
+  
+  
+
+  yield c.executeCached("SELECT * from dirs", null, function onRow() {
+    
+    
+    expectOne = c.inProgress();
+
+    
+    
+    let p = c.executeCached("SELECT 10, path from dirs");
+    expectTwo = c.inProgress();
+
+    
+    p.then(function onInner() {
+      inner();
+    });
+  }).then(function onOuter() {
+    
+    inner.wait();
+    outer();
+  });
+
+  
+  
+  outer.wait();
+
+  do_check_eq(expectOne, 1);
+  do_check_eq(expectTwo, 2);
+  do_check_eq(c._statementCounter, c._initialStatementCount + 3);
+  do_check_eq(c.inProgress(), 0);
 
   yield c.close();
 });

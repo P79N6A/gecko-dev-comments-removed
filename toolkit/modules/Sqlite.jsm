@@ -199,8 +199,17 @@ function OpenedConnection(connection, basename, number, options) {
   this._cachedStatements = new Map();
   this._anonymousStatements = new Map();
   this._anonymousCounter = 0;
+
+  
+  
+  this._pendingStatements = new Map();
+
+  
+  
   this._inProgressStatements = new Map();
-  this._inProgressCounter = 0;
+
+  
+  this._statementCounter = 0;
 
   this._inProgressTransaction = null;
 
@@ -316,13 +325,75 @@ OpenedConnection.prototype = Object.freeze({
     return deferred.promise;
   },
 
+  
+
+
+
+
+  _recordStatementCompleted: function (statement, index) {
+    this._log.debug("Stmt #" + index + " finished.");
+    this._pendingStatements.delete(index);
+
+    let now = this._inProgressStatements.get(statement) - 1;
+    if (now == 0) {
+      this._inProgressStatements.delete(statement);
+    } else {
+      this._inProgressStatements.set(statement, now);
+    }
+  },
+
+  
+
+
+
+
+  _recordStatementBeginning: function (statement, pending, index) {
+    this._log.info("Recording statement beginning: " + statement);
+    this._pendingStatements.set(index, pending);
+    if (!this._inProgressStatements.has(statement)) {
+      this._inProgressStatements.set(statement, 1);
+      this._log.info("Only one: " + statement);
+      return;
+    }
+    let now = this._inProgressStatements.get(statement) + 1;
+    this._inProgressStatements.set(statement, now);
+    this._log.info("More: " + statement + ", " + now);
+  },
+
+  
+
+
+
+
+
+
+
+  inProgress: function (statement) {
+    if (statement) {
+      if (this._inProgressStatements.has(statement)) {
+        return this._inProgressStatements.get(statement);
+      }
+      return 0;
+    }
+
+    let out = 0;
+    for (let v of this._inProgressStatements.values()) {
+      out += v;
+    }
+    return out;
+  },
+
   _finalize: function (deferred) {
     this._log.debug("Finalizing connection.");
     
-    for (let [k, statement] of this._inProgressStatements) {
+    for (let [k, statement] of this._pendingStatements) {
       statement.cancel();
     }
+    this._pendingStatements.clear();
+
+    
     this._inProgressStatements.clear();
+    this._statementCounter = 0;
 
     
     for (let [k, statement] of this._anonymousStatements) {
@@ -682,7 +753,7 @@ OpenedConnection.prototype = Object.freeze({
                       "object. Got: " + params);
     }
 
-    let index = this._inProgressCounter++;
+    let index = this._statementCounter++;
 
     let deferred = Promise.defer();
     let userCancelled = false;
@@ -733,8 +804,7 @@ OpenedConnection.prototype = Object.freeze({
       },
 
       handleCompletion: function (reason) {
-        self._log.debug("Stmt #" + index + " finished");
-        self._inProgressStatements.delete(index);
+        self._recordStatementCompleted(statement, index);
 
         switch (reason) {
           case Ci.mozIStorageStatementCallback.REASON_FINISHED:
@@ -769,8 +839,7 @@ OpenedConnection.prototype = Object.freeze({
       },
     });
 
-    this._inProgressStatements.set(index, pending);
-
+    this._recordStatementBeginning(statement, pending, index);
     return deferred.promise;
   },
 
