@@ -105,11 +105,6 @@ function testReadBackup() {
   is(ssDataRead, gSSData, "SessionFile.read read sessionstore.js correctly.");
 
   
-  ssDataRead = SessionFile.syncRead();
-  is(ssDataRead, gSSData,
-    "SessionFile.syncRead read sessionstore.js correctly.");
-
-  
   yield OS.File.remove(path);
   ssExists = yield OS.File.exists(path);
   ok(!ssExists, "sessionstore.js should be removed now.");
@@ -118,11 +113,6 @@ function testReadBackup() {
   ssDataRead = yield SessionFile.read();
   is(ssDataRead, gSSBakData,
     "SessionFile.read read sessionstore.bak correctly.");
-
-  
-  ssDataRead = SessionFile.syncRead();
-  is(ssDataRead, gSSBakData,
-    "SessionFile.syncRead read sessionstore.bak correctly.");
 
   nextTest(testBackupUnchanged);
 }

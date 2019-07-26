@@ -48,6 +48,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
 
 const STATE_RUNNING_STR = "running";
 
+
+const BROWSER_STARTUP_RESUME_SESSION = 3;
+
 function debug(aMsg) {
   aMsg = ("SessionStartup: " + aMsg).replace(/\S{80}/g, "$&\n");
   Services.console.logStringMessage(aMsg);
@@ -138,7 +141,7 @@ SessionStartup.prototype = {
 
       let doResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
       let doResumeSession = doResumeSessionOnce ||
-            Services.prefs.getIntPref("browser.startup.page") == 3;
+            Services.prefs.getIntPref("browser.startup.page") == BROWSER_STARTUP_RESUME_SESSION;
 
       
       if (!doResumeSessionOnce)
@@ -240,6 +243,18 @@ SessionStartup.prototype = {
 
 
 
+
+
+
+  isAutomaticRestoreEnabled: function () {
+    return Services.prefs.getBoolPref("browser.sessionstore.resume_session_once") ||
+           Services.prefs.getIntPref("browser.startup.page") == BROWSER_STARTUP_RESUME_SESSION;
+  },
+
+  
+
+
+
   _willRestore: function () {
     return this._sessionType == Ci.nsISessionStartup.RECOVER_SESSION ||
            this._sessionType == Ci.nsISessionStartup.RESUME_SESSION;
@@ -279,16 +294,8 @@ SessionStartup.prototype = {
   
   
   _ensureInitialized: function sss__ensureInitialized() {
-    try {
-      if (this._initialized) {
-        
-        return;
-      }
-      let contents = SessionFile.syncRead();
-      this._onSessionFileRead(contents);
-    } catch(ex) {
-      debug("ensureInitialized: could not read session " + ex + ", " + ex.stack);
-      throw ex;
+    if (!this._initialized) {
+      throw new Error("Session Store is not initialized.");
     }
   },
 

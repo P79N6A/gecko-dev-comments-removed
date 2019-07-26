@@ -38,16 +38,10 @@ Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
   "resource://gre/modules/TelemetryStopwatch.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-  "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-  "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
   "@mozilla.org/base/telemetry;1", "nsITelemetry");
-XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
-  "resource://gre/modules/Deprecated.jsm");
 
 this.SessionFile = {
   
@@ -55,15 +49,6 @@ this.SessionFile = {
 
   read: function () {
     return SessionFileInternal.read();
-  },
-  
-
-
-  syncRead: function () {
-    Deprecated.warning(
-      "syncRead is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=532150")
-    return SessionFileInternal.syncRead();
   },
   
 
@@ -160,60 +145,6 @@ let SessionFileInternal = {
 
 
   _isClosed: false,
-
-  
-
-
-
-
-
-  readAuxSync: function (aPath) {
-    let text;
-    try {
-      let file = new FileUtils.File(aPath);
-      let chan = NetUtil.newChannel(file);
-      let stream = chan.open();
-      text = NetUtil.readInputStreamToString(stream, stream.available(),
-        {charset: "utf-8"});
-    } catch (e if e.result == Components.results.NS_ERROR_FILE_NOT_FOUND) {
-      
-    } catch (ex) {
-      
-      Cu.reportError(ex);
-    } finally {
-      return text;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  syncRead: function () {
-    
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
-    
-    let text = this.readAuxSync(this.path);
-    if (typeof text === "undefined") {
-      
-      text = this.readAuxSync(this.backupPath);
-    }
-    
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_SYNC_READ_FILE_MS");
-    text = text || "";
-
-    
-    
-    SessionWorker.post("setInitialState", [text]);
-    return text;
-  },
 
   read: function () {
     return SessionWorker.post("read").then(msg => {

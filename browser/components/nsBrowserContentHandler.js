@@ -549,7 +549,7 @@ nsBrowserContentHandler.prototype = {
     }
 
     var overridePage = "";
-    var haveUpdateSession = false;
+    var willRestoreSession = false;
     try {
       
       
@@ -570,9 +570,13 @@ nsBrowserContentHandler.prototype = {
           case OVERRIDE_NEW_MSTONE:
             
             
+            
+            
+            
             var ss = Components.classes["@mozilla.org/browser/sessionstartup;1"]
                                .getService(Components.interfaces.nsISessionStartup);
-            haveUpdateSession = ss.doRestore();
+            willRestoreSession = ss.isAutomaticRestoreEnabled();
+
             overridePage = Services.urlFormatter.formatURLPref("startup.homepage_override_url");
             if (prefb.prefHasUserValue("app.update.postupdate"))
               overridePage = getPostUpdateOverridePage(overridePage);
@@ -600,7 +604,7 @@ nsBrowserContentHandler.prototype = {
       startPage = "";
 
     
-    if (overridePage && startPage && !haveUpdateSession)
+    if (overridePage && startPage && !willRestoreSession)
       return overridePage + "|" + startPage;
 
     return overridePage || startPage || "about:blank";

@@ -77,30 +77,6 @@ let Agent = {
 
 
 
-
-
-
-  setInitialState: function (aState) {
-    
-    
-    
-    if (this.hasWrittenLoadStateOnce) {
-      throw new Error("writeLoadStateOnceAfterStartup() must only be called once.");
-    }
-
-    
-    
-    
-    
-    if (!this.initialState) {
-      this.initialState = aState;
-    }
-  },
-
-  
-
-
-
   read: function () {
     for (let path of [this.path, this.backupPath]) {
       try {

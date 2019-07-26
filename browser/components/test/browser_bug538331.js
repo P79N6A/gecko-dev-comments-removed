@@ -118,6 +118,10 @@ function test()
 {
   waitForExplicitFinish();
 
+  
+  
+  Services.prefs.clearUserPref('browser.startup.page');
+
   if (gPrefService.prefHasUserValue(PREF_MSTONE)) {
     gOriginalMStone = gPrefService.getCharPref(PREF_MSTONE);
   }
