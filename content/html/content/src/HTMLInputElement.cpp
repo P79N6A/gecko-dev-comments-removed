@@ -3395,26 +3395,25 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
         aVisitor.mEvent->message == NS_BLUR_CONTENT) {
+      if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
+        
+        
+        nsNumberControlFrame* numberControlFrame =
+          do_QueryFrame(GetPrimaryFrame());
+        if (numberControlFrame) {
+          
+          numberControlFrame->HandleFocusEvent(aVisitor.mEvent);
+        }
+      }
       nsIFrame* frame = GetPrimaryFrame();
-      if (frame) {
-        if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
-          
-          
-          nsNumberControlFrame* numberControlFrame =
-            do_QueryFrame(GetPrimaryFrame());
-          if (numberControlFrame) {
-            numberControlFrame->HandleFocusEvent(aVisitor.mEvent);
-          }
-        }
-        if (frame->IsThemed()) {
-          
-          
-          
-          
-          
-          
-          frame->InvalidateFrame();
-        }
+      if (frame && frame->IsThemed()) {
+        
+        
+        
+        
+        
+        
+        frame->InvalidateFrame();
       }
     } else if (aVisitor.mEvent->message == NS_KEY_UP) {
       WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
@@ -3453,8 +3452,11 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
         numberControlFrame->HandlingInputEvent(true);
         nsAutoString value;
         textControl->GetValue(value);
+        nsWeakFrame weakNumberControlFrame(numberControlFrame);
         SetValueInternal(value, false, true);
-        numberControlFrame->HandlingInputEvent(false);
+        if (weakNumberControlFrame.IsAlive()) {
+          numberControlFrame->HandlingInputEvent(false);
+        }
       }
       else if (aVisitor.mEvent->message == NS_FORM_CHANGE) {
         
