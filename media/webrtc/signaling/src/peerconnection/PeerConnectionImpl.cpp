@@ -1303,39 +1303,18 @@ PeerConnectionImpl::GetStats(MediaStreamTrack *aSelector, bool internalStats) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  
-
   std::vector<RefPtr<MediaPipeline>> pipelines;
-  TrackID trackId = aSelector ? aSelector->GetTrackID() : 0;
-
-  for (int i = 0, len = mMedia->LocalStreamsLength(); i < len; i++) {
-    PushBackSelect(pipelines, mMedia->GetLocalStream(i)->GetPipelines(), trackId);
-  }
-  for (int i = 0, len = mMedia->RemoteStreamsLength(); i < len; i++) {
-    PushBackSelect(pipelines, mMedia->GetRemoteStream(i)->GetPipelines(), trackId);
-  }
-
-  
-  
   std::vector<RefPtr<NrIceMediaStream> > streams;
-  RefPtr<NrIceCtx> iceCtx(mMedia->ice_ctx());
-  for (auto p = pipelines.begin(); p != pipelines.end(); ++p) {
-    size_t level = p->get()->level();
-    
-    
-    RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(level-1));
-    if (temp.get()) {
-      streams.push_back(temp);
-    } else {
-       CSFLogError(logTag, "Failed to get NrIceMediaStream for level %u "
-                           "in %s:  %s",
-                           uint32_t(level), __FUNCTION__, mHandle.c_str());
-       MOZ_CRASH();
-    }
-  }
-
+  RefPtr<NrIceCtx> iceCtx;
   DOMHighResTimeStamp now;
-  nsresult rv = GetTimeSinceEpoch(&now);
+  nsAutoPtr<RTCStatsReportInternal> report;
+
+  nsresult rv = BuildStatsQuery_m(aSelector,
+                                  pipelines,
+                                  iceCtx,
+                                  streams,
+                                  now,
+                                  report);
   NS_ENSURE_SUCCESS(rv, rv);
 
   RUN_ON_THREAD(mSTSThread,
@@ -1347,7 +1326,8 @@ PeerConnectionImpl::GetStats(MediaStreamTrack *aSelector, bool internalStats) {
                                pipelines,
                                iceCtx,
                                streams,
-                               now),
+                               now,
+                               report),
                 NS_DISPATCH_NORMAL);
 #endif
   return NS_OK;
@@ -1966,6 +1946,54 @@ PeerConnectionImpl::IceGatheringStateChange_m(PCImplIceGatheringState aState)
 
 #ifdef MOZILLA_INTERNAL_API
 nsresult
+PeerConnectionImpl::BuildStatsQuery_m(
+    mozilla::dom::MediaStreamTrack *aSelector,
+    std::vector<mozilla::RefPtr<mozilla::MediaPipeline>> &pipelines,
+    mozilla::RefPtr<NrIceCtx> &iceCtx,
+    std::vector<mozilla::RefPtr<NrIceMediaStream>> &streams,
+    DOMHighResTimeStamp &now,
+    nsAutoPtr<mozilla::dom::RTCStatsReportInternal> &report) {
+
+  
+  report = new RTCStatsReportInternalConstruct(
+      NS_ConvertASCIItoUTF16(mName.c_str()),
+      now);
+
+  
+  TrackID trackId = aSelector ? aSelector->GetTrackID() : 0;
+
+  for (int i = 0, len = mMedia->LocalStreamsLength(); i < len; i++) {
+    PushBackSelect(pipelines, mMedia->GetLocalStream(i)->GetPipelines(), trackId);
+  }
+  for (int i = 0, len = mMedia->RemoteStreamsLength(); i < len; i++) {
+    PushBackSelect(pipelines, mMedia->GetRemoteStream(i)->GetPipelines(), trackId);
+  }
+
+  iceCtx = mMedia->ice_ctx();
+
+  
+  
+  for (auto p = pipelines.begin(); p != pipelines.end(); ++p) {
+    size_t level = p->get()->level();
+    
+    
+    RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(level-1));
+    if (temp.get()) {
+      streams.push_back(temp);
+    } else {
+       CSFLogError(logTag, "Failed to get NrIceMediaStream for level %u "
+                           "in %s:  %s",
+                           uint32_t(level), __FUNCTION__, mHandle.c_str());
+       MOZ_CRASH();
+    }
+  }
+
+  nsresult rv = GetTimeSinceEpoch(&now);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+nsresult
 PeerConnectionImpl::GetStatsImpl_s(
     bool internalStats,
     const std::vector<RefPtr<MediaPipeline>>& pipelines,
@@ -2191,15 +2219,10 @@ void PeerConnectionImpl::GetStats_s(
     const std::vector<RefPtr<MediaPipeline>>& pipelines,
     const RefPtr<NrIceCtx>& iceCtx,
     const std::vector<RefPtr<NrIceMediaStream>>& streams,
-    DOMHighResTimeStamp now) {
+    DOMHighResTimeStamp now,
+    nsAutoPtr<RTCStatsReportInternal> report) {
 
   ASSERT_ON_THREAD(iceCtx->thread());
-
-  
-  nsAutoPtr<RTCStatsReportInternal> report(
-      new RTCStatsReportInternalConstruct(
-          NS_ConvertASCIItoUTF16(pcName.c_str()),
-          now));
 
   nsresult rv = GetStatsImpl_s(internalStats,
                                pipelines,
