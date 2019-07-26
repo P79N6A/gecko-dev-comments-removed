@@ -436,6 +436,9 @@ pref("browser.ui.touch.bottom", 16);
 pref("browser.ui.touch.weight.visited", 120); 
 
 
+pref("browser.ui.show-margins-threshold", 20);
+
+
 pref("plugin.disable", false);
 pref("dom.ipc.plugins.enabled", false);
 
