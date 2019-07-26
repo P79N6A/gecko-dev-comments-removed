@@ -18,7 +18,7 @@ namespace {
 class ImageData
 {
   static JSClass sClass;
-  static JSPropertySpec sProperties[];
+  static const JSPropertySpec sProperties[];
 
   enum SLOT {
     SLOT_width = 0,
@@ -139,7 +139,7 @@ JSClass ImageData::sClass = {
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, Finalize
 };
 
-JSPropertySpec ImageData::sProperties[] = {
+const JSPropertySpec ImageData::sProperties[] = {
   
   
   
