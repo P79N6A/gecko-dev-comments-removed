@@ -307,12 +307,10 @@ pref("image.onload.decode.limit", 24);
 
 
 
-#ifdef MOZ_WIDGET_GONK
 
 pref("dom.w3c_touch_events.enabled", 1);
 pref("dom.w3c_touch_events.safetyX", 0); 
 pref("dom.w3c_touch_events.safetyY", 120); 
-#endif
 
 #ifdef MOZ_SAFE_BROWSING
 

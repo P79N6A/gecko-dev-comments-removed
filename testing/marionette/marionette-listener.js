@@ -40,6 +40,7 @@ let curFrame = content;
 let previousFrame = null;
 let elementManager = new ElementManager([]);
 let importedScripts = null;
+let inputSource = null;
 
 
 
@@ -189,6 +190,12 @@ function newSession(msg) {
   resetValues();
   if (isB2G) {
     readyStateTimer.initWithCallback(waitForReady, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+    
+    
+    
+    
+    
+    inputSource = Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH;
   }
 }
  
@@ -664,7 +671,7 @@ function emitTouchEvent(type, touch) {
 
 
     let domWindowUtils = curFrame.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
-    domWindowUtils.sendTouchEvent(type, [touch.identifier], [touch.screenX], [touch.screenY], [touch.radiusX], [touch.radiusY], [touch.rotationAngle], [touch.force], 1, 0);
+    domWindowUtils.sendTouchEvent(type, [touch.identifier], [touch.clientX], [touch.clientY], [touch.radiusX], [touch.radiusY], [touch.rotationAngle], [touch.force], 1, 0);
   }
 }
 
@@ -675,7 +682,7 @@ function emitTouchEvent(type, touch) {
 
 
 
-function emitMouseEvent(doc, type, elClientX, elClientY, detail, button) {
+function emitMouseEvent(doc, type, elClientX, elClientY, clickCount, button) {
   if (!wasInterrupted()) {
     let loggingInfo = "emitting Mouse event of type " + type + " at coordinates (" + elClientX + ", " + elClientY + ") relative to the viewport";
     dumpLog(loggingInfo);
@@ -686,11 +693,9 @@ function emitMouseEvent(doc, type, elClientX, elClientY, detail, button) {
 
 
 
-    detail = detail || 1;
-    button = button || 0;
     let win = doc.defaultView;
-    
-    utils.synthesizeMouseAtPoint(elClientX, elClientY, {type: type, button: button, clickCount: detail}, win);
+    let domUtils = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
+    domUtils.sendMouseEvent(type, elClientX, elClientY, button || 0, clickCount || 1, 0, false, 0, inputSource);
   }
 }
 
@@ -1029,7 +1034,7 @@ function emitMultiEvents(type, touch, touches) {
   
   let changedTouches = doc.createTouchList(touch);
   
-  let event = curFrame.document.createEvent('TouchEvent');
+  let event = doc.createEvent('TouchEvent');
   event.initTouchEvent(type,
                        true,
                        true,
