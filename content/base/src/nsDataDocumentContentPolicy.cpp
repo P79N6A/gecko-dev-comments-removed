@@ -30,6 +30,9 @@ HasFlags(nsIURI* aURI, uint32_t aURIFlags)
   return NS_SUCCEEDED(rv) && hasFlags;
 }
 
+
+
+
 NS_IMETHODIMP
 nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
                                         nsIURI *aContentLocation,
@@ -122,6 +125,10 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
       aContentType == nsIContentPolicy::TYPE_SCRIPT) {
     *aDecision = nsIContentPolicy::REJECT_TYPE;
   }
+
+  
+  
+  
 
   return NS_OK;
 }
