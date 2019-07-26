@@ -538,8 +538,8 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
     &prefs->mDefaultCursiveFont,
     &prefs->mDefaultFantasyFont
   };
-  MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(fontTypes) == eDefaultFont_COUNT,
-                    "FontTypes array count is not correct");
+  static_assert(NS_ARRAY_LENGTH(fontTypes) == eDefaultFont_COUNT,
+                "FontTypes array count is not correct");
 
   
   

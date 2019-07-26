@@ -237,9 +237,9 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   
 
 
-  MOZ_STATIC_ASSERT(TYPE_DATAREQUEST == TYPE_XMLHTTPREQUEST,
-                    "TYPE_DATAREQUEST is not a synonym for "
-                    "TYPE_XMLHTTPREQUEST");
+  static_assert(TYPE_DATAREQUEST == TYPE_XMLHTTPREQUEST,
+                "TYPE_DATAREQUEST is not a synonym for "
+                "TYPE_XMLHTTPREQUEST");
 
   switch (aContentType) {
     

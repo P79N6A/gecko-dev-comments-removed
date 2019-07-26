@@ -574,8 +574,8 @@ class nsCOMPtr MOZ_FINAL
           
         {
           
-          MOZ_STATIC_ASSERT((mozilla::IsBaseOf<T, U>::value),
-                            "U is not a subclass of T");
+          static_assert(mozilla::IsBaseOf<T, U>::value,
+                        "U is not a subclass of T");
           NSCAP_LOG_ASSIGNMENT(this, static_cast<T*>(aSmartPtr.mRawPtr));
           NSCAP_ASSERT_NO_QUERY_NEEDED();
         }
@@ -664,8 +664,8 @@ class nsCOMPtr MOZ_FINAL
           
         {
           
-          MOZ_STATIC_ASSERT((mozilla::IsBaseOf<T, U>::value),
-                            "U is not a subclass of T");
+          static_assert(mozilla::IsBaseOf<T, U>::value,
+                        "U is not a subclass of T");
           assign_assuming_AddRef(static_cast<T*>(rhs.mRawPtr));
           NSCAP_ASSERT_NO_QUERY_NEEDED();
           return *this;

@@ -32,12 +32,12 @@ const nsTArrayHeader* nsTArray_base<Alloc, Copy>::GetAutoArrayBufferUnsafe(size_
   
   
 
-  MOZ_STATIC_ASSERT(sizeof(void*) != 4 ||
-                    (MOZ_ALIGNOF(mozilla::AlignedElem<8>) == 8 &&
-                     sizeof(nsAutoTArray<mozilla::AlignedElem<8>, 1>) ==
-                       sizeof(void*) + sizeof(nsTArrayHeader) +
-                       4 + sizeof(mozilla::AlignedElem<8>)),
-                    "auto array padding wasn't what we expected");
+  static_assert(sizeof(void*) != 4 ||
+                (MOZ_ALIGNOF(mozilla::AlignedElem<8>) == 8 &&
+                 sizeof(nsAutoTArray<mozilla::AlignedElem<8>, 1>) ==
+                   sizeof(void*) + sizeof(nsTArrayHeader) +
+                   4 + sizeof(mozilla::AlignedElem<8>)),
+                "auto array padding wasn't what we expected");
 
   
   NS_ABORT_IF_FALSE(elemAlign <= 4 || elemAlign == 8, "unsupported alignment.");
@@ -83,8 +83,8 @@ bool nsTArray_base<Alloc, Copy>::UsesAutoArrayBuffer() const {
   
   
 
-  MOZ_STATIC_ASSERT(sizeof(nsTArrayHeader) > 4,
-                    "see comment above");
+  static_assert(sizeof(nsTArrayHeader) > 4,
+                "see comment above");
 
 #ifdef DEBUG
   ptrdiff_t diff = reinterpret_cast<const char*>(GetAutoArrayBuffer(8)) -

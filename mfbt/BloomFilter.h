@@ -106,7 +106,7 @@ class BloomFilter
 
   public:
     BloomFilter() {
-        MOZ_STATIC_ASSERT(KeySize <= keyShift, "KeySize too big");
+        static_assert(KeySize <= keyShift, "KeySize too big");
 
         
         

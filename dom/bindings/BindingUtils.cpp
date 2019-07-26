@@ -1985,13 +1985,13 @@ ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
       
       
       char index[21];
-      MOZ_STATIC_ASSERT(sizeof(size_t) <= 8, "index array too small");
+      static_assert(sizeof(size_t) <= 8, "index array too small");
       PR_snprintf(index, sizeof(index), "%d", i);
       
       
       
       char badChar[6];
-      MOZ_STATIC_ASSERT(sizeof(jschar) <= 2, "badChar array too small");
+      static_assert(sizeof(jschar) <= 2, "badChar array too small");
       PR_snprintf(badChar, sizeof(badChar), "%d", chars[i]);
       ThrowErrorMessage(cx, MSG_INVALID_BYTESTRING, index, badChar);
       return false;

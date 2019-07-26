@@ -67,8 +67,8 @@ using mozilla::Preferences;
 
 #define MAX_WORKERS_PER_DOMAIN 10
 
-MOZ_STATIC_ASSERT(MAX_WORKERS_PER_DOMAIN >= 1,
-                  "We should allow at least one worker per domain.");
+static_assert(MAX_WORKERS_PER_DOMAIN >= 1,
+              "We should allow at least one worker per domain.");
 
 
 
@@ -156,8 +156,8 @@ const char* gStringChars[] = {
   
 };
 
-MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(gStringChars) == ID_COUNT,
-                  "gStringChars should have the right length.");
+static_assert(NS_ARRAY_LENGTH(gStringChars) == ID_COUNT,
+              "gStringChars should have the right length.");
 
 class LiteralRebindingCString : public nsDependentCString
 {

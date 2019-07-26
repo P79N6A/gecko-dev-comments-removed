@@ -4,7 +4,7 @@
 
 
 #ifndef DEBUG
-MOZ_STATIC_ASSERT(false, "This should not be compiled in !DEBUG");
+static_assert(false, "This should not be compiled in !DEBUG");
 #endif 
 
 #include "nsAutoLayoutPhase.h"

@@ -128,8 +128,8 @@ template<typename T>
 void CheckUintOverflow()
 {
   
-  MOZ_STATIC_ASSERT(sizeof(T) < sizeof(uint32_t), "This test is only for integer types \
-                    smaller than uint32_t");
+  static_assert(sizeof(T) < sizeof(uint32_t), "This test is only for integer types \
+                smaller than uint32_t");
 
   const size_t numElems = 64; 
                               

@@ -74,8 +74,8 @@ class ConvolutionFilter1D {
     
     
     
-    MOZ_STATIC_ASSERT(sizeof(Fixed) == 2,
-                      "fixed type should fit in float mantissa");
+    static_assert(sizeof(Fixed) == 2,
+                  "fixed type should fit in float mantissa");
     float raw = static_cast<float>(x);
     return ldexpf(raw, -kShiftBits);
   }

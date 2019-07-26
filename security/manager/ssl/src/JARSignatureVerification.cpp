@@ -92,7 +92,7 @@ FindAndLoadOneEntry(nsIZipReader * zip,
   
   
   static const uint32_t MAX_LENGTH = 1024 * 1024;
-  MOZ_STATIC_ASSERT(MAX_LENGTH < UINT32_MAX, "MAX_LENGTH < UINT32_MAX");
+  static_assert(MAX_LENGTH < UINT32_MAX, "MAX_LENGTH < UINT32_MAX");
   NS_ENSURE_TRUE(len64 < MAX_LENGTH, NS_ERROR_FILE_CORRUPTED);
   NS_ENSURE_TRUE(len64 < UINT32_MAX, NS_ERROR_FILE_CORRUPTED); 
   SECITEM_AllocItem(buf, static_cast<uint32_t>(len64 + 1));

@@ -706,8 +706,8 @@ struct IntrinsicBase
     typedef T ValueType;
     typedef PrimitiveIntrinsics<sizeof(T)> Primitives;
     typedef typename Primitives::Type PrimType;
-    MOZ_STATIC_ASSERT(sizeof(PrimType) == sizeof(T),
-                      "Selection of PrimitiveIntrinsics was wrong");
+    static_assert(sizeof(PrimType) == sizeof(T),
+                  "Selection of PrimitiveIntrinsics was wrong");
     typedef CastHelper<PrimType, T> Cast;
 };
 
@@ -898,10 +898,10 @@ class Atomic : public detail::AtomicBase<T, Order>
 {
     
     
-    MOZ_STATIC_ASSERT(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
-                      "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
+    static_assert(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
+                  "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
     
-    MOZ_STATIC_ASSERT(IsIntegral<T>::value, "can only have integral atomic variables");
+    static_assert(IsIntegral<T>::value, "can only have integral atomic variables");
 
     typedef typename detail::AtomicBase<T, Order> Base;
 
