@@ -11,10 +11,7 @@
 #define nsFlexContainerFrame_h___
 
 #include "nsContainerFrame.h"
-
-namespace mozilla {
-template <class T> class LinkedList;
-}
+#include "nsTArrayForwardDeclare.h"
 
 nsIFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
                                    nsStyleContext* aContext);
@@ -106,12 +103,10 @@ protected:
   void SanityCheckAnonymousFlexItems() const;
 #endif 
 
-  
-  
-  FlexItem* GenerateFlexItemForChild(nsPresContext* aPresContext,
-                                     nsIFrame* aChildFrame,
-                                     const nsHTMLReflowState& aParentReflowState,
-                                     const FlexboxAxisTracker& aAxisTracker);
+  FlexItem GenerateFlexItemForChild(nsPresContext* aPresContext,
+                                    nsIFrame* aChildFrame,
+                                    const nsHTMLReflowState& aParentReflowState,
+                                    const FlexboxAxisTracker& aAxisTracker);
 
   
   
@@ -121,17 +116,13 @@ protected:
                                            const nsHTMLReflowState& aParentReflowState,
                                            const FlexboxAxisTracker& aAxisTracker);
 
-  
-  
-  
-  
   nsresult GenerateFlexLines(nsPresContext* aPresContext,
                              const nsHTMLReflowState& aReflowState,
                              nscoord aContentBoxMainSize,
                              nscoord aAvailableHeightForContent,
                              const nsTArray<StrutInfo>& aStruts,
                              const FlexboxAxisTracker& aAxisTracker,
-                             mozilla::LinkedList<FlexLine>& aLines);
+                             nsTArray<FlexLine>& aLines);
 
   nscoord GetMainSizeFromReflowState(const nsHTMLReflowState& aReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
