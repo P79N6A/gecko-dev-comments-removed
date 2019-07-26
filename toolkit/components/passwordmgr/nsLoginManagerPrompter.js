@@ -9,6 +9,7 @@ const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 
@@ -245,13 +246,15 @@ LoginManagerPrompter.prototype = {
 
     
     get _inPrivateBrowsing() {
-      
-      try {
-        var pbs = Cc["@mozilla.org/privatebrowsing;1"].
-                  getService(Ci.nsIPrivateBrowsingService);
-        return pbs.privateBrowsingEnabled;
-      } catch (e) {
-        return false;
+      if (this._window) {
+        return PrivateBrowsingUtils.isWindowPrivate(this._window);
+      } else {
+        
+        
+        
+        
+        
+        return true;
       }
     },
 
