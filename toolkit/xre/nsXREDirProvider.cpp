@@ -848,6 +848,19 @@ nsXREDirProvider::DoShutdown()
       obsSvc->NotifyObservers(nullptr, "profile-change-teardown", kShutdownPersist);
 
       
+      
+
+      nsCOMPtr<nsIJSRuntimeService> rtsvc
+        (do_GetService("@mozilla.org/js/xpc/RuntimeService;1"));
+      if (rtsvc)
+      {
+        JSRuntime *rt = nullptr;
+        rtsvc->GetRuntime(&rt);
+        if (rt)
+          ::JS_GC(rt);
+      }
+
+      
       obsSvc->NotifyObservers(nullptr, "profile-before-change", kShutdownPersist);
     }
     mProfileNotified = false;
