@@ -542,27 +542,9 @@ class IonBuilder : public MIRGenerator
                                             TypeDescrSet elemTypeReprs,
                                             int32_t elemSize);
 
-    enum BoundsChecking { DoBoundsCheck, SkipBoundsCheck };
-
     
-    
-    
-    
-    
-    void addTypedArrayLengthAndData(MDefinition *obj,
-                                    BoundsChecking checking,
-                                    MDefinition **index,
-                                    MInstruction **length, MInstruction **elements);
-
-    
-    
-    
-    MInstruction *addTypedArrayLength(MDefinition *obj) {
-        MInstruction *length;
-        addTypedArrayLengthAndData(obj, SkipBoundsCheck, nullptr, &length, nullptr);
-        return length;
-    }
-
+    MInstruction *getTypedArrayLength(MDefinition *obj);
+    MInstruction *getTypedArrayElements(MDefinition *obj);
 
     MDefinition *getCallee();
 

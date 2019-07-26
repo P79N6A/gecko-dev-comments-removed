@@ -58,9 +58,8 @@
 function TypedObjectGet(descr, typedObj, offset) {
   assert(IsObject(descr) && ObjectIsTypeDescr(descr),
          "get() called with bad type descr");
-
-  if (!TypedObjectIsAttached(typedObj))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
+  assert(TypedObjectIsAttached(typedObj),
+         "get() called with unattached typedObj");
 
   switch (DESCR_KIND(descr)) {
   case JS_TYPEREPR_SCALAR_KIND:
@@ -187,8 +186,7 @@ function TypedObjectGetX4(descr, typedObj, offset) {
 
 
 function TypedObjectSet(descr, typedObj, offset, fromValue) {
-  if (!TypedObjectIsAttached(typedObj))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
+  assert(TypedObjectIsAttached(typedObj), "set() called with unattached typedObj");
 
   
   

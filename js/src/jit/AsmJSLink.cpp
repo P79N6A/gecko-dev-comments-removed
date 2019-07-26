@@ -327,25 +327,24 @@ ValidateConstant(JSContext *cx, AsmJSModule::Global &global, HandleValue globalV
 static bool
 LinkModuleToHeap(JSContext *cx, AsmJSModule &module, Handle<ArrayBufferObject*> heap)
 {
-    uint32_t heapLength = heap->byteLength();
-    if (!IsValidAsmJSHeapLength(heapLength)) {
+    if (!IsValidAsmJSHeapLength(heap->byteLength())) {
         ScopedJSFreePtr<char> msg(
             JS_smprintf("ArrayBuffer byteLength 0x%x is not a valid heap length. The next "
                         "valid length is 0x%x",
-                        heapLength,
-                        RoundUpToNextValidAsmJSHeapLength(heapLength)));
+                        heap->byteLength(),
+                        RoundUpToNextValidAsmJSHeapLength(heap->byteLength())));
         return LinkFail(cx, msg.get());
     }
 
     
     
     JS_ASSERT((module.minHeapLength() - 1) <= INT32_MAX);
-    if (heapLength < module.minHeapLength()) {
+    if (heap->byteLength() < module.minHeapLength()) {
         ScopedJSFreePtr<char> msg(
             JS_smprintf("ArrayBuffer byteLength of 0x%x is less than 0x%x (which is the"
                         "largest constant heap access offset rounded up to the next valid "
                         "heap size).",
-                        heapLength,
+                        heap->byteLength(),
                         module.minHeapLength()));
         return LinkFail(cx, msg.get());
     }
@@ -465,6 +464,15 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     
+    if (module.maybeHeapBufferObject() && module.maybeHeapBufferObject()->isNeutered()) {
+        js_ReportOverRecursed(cx);
+        return false;
+    }
+
+    
+    
+    
+    
     
     
     
@@ -490,15 +498,6 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
                 return false;
             break;
         }
-    }
-
-    
-    
-    
-    
-    if (module.maybeHeapBufferObject() && module.maybeHeapBufferObject()->isNeutered()) {
-        js_ReportOverRecursed(cx);
-        return false;
     }
 
     {
