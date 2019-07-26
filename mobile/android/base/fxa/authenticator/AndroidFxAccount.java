@@ -380,17 +380,21 @@ public class AndroidFxAccount {
     getSyncPrefs().edit().clear().commit();
   }
 
-  public boolean isSyncingEnabled() {
-    
-    final int result = ContentResolver.getIsSyncable(account, BrowserContract.AUTHORITY);
-    if (result > 0) {
-      return true;
-    } else if (result == 0) {
-      return false;
-    } else {
-      
-      throw new IllegalStateException("Sync enabled state unknown.");
+  
+
+
+
+
+
+
+
+
+  public boolean isSyncing() {
+    boolean isSyncEnabled = true;
+    for (String authority : new String[] { BrowserContract.AUTHORITY }) {
+      isSyncEnabled &= ContentResolver.getSyncAutomatically(account, authority);
     }
+    return isSyncEnabled;
   }
 
   public void enableSyncing() {

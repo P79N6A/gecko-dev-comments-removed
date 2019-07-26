@@ -51,6 +51,8 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   protected Preference needsPasswordPreference;
   protected Preference needsUpgradePreference;
   protected Preference needsVerificationPreference;
+  protected Preference needsMasterSyncAutomaticallyEnabledPreference;
+  protected Preference needsAccountEnabledPreference;
 
   protected PreferenceCategory syncCategory;
 
@@ -87,6 +89,8 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     needsPasswordPreference = ensureFindPreference("needs_credentials");
     needsUpgradePreference = ensureFindPreference("needs_upgrade");
     needsVerificationPreference = ensureFindPreference("needs_verification");
+    needsMasterSyncAutomaticallyEnabledPreference = ensureFindPreference("needs_master_sync_automatically_enabled");
+    needsAccountEnabledPreference = ensureFindPreference("needs_account_enabled");
 
     syncCategory = (PreferenceCategory) ensureFindPreference("sync_category");
 
@@ -103,6 +107,7 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
 
     needsPasswordPreference.setOnPreferenceClickListener(this);
     needsVerificationPreference.setOnPreferenceClickListener(this);
+    needsAccountEnabledPreference.setOnPreferenceClickListener(this);
 
     bookmarksPreference.setOnPreferenceClickListener(this);
     historyPreference.setOnPreferenceClickListener(this);
@@ -143,6 +148,13 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
       return true;
     }
 
+    if (preference == needsAccountEnabledPreference) {
+      fxAccount.enableSyncing();
+      refresh();
+
+      return true;
+    }
+
     if (preference == bookmarksPreference ||
         preference == historyPreference ||
         preference == passwordsPreference ||
@@ -171,7 +183,10 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
     final Preference[] errorPreferences = new Preference[] {
         this.needsPasswordPreference,
         this.needsUpgradePreference,
-        this.needsVerificationPreference };
+        this.needsVerificationPreference,
+        this.needsMasterSyncAutomaticallyEnabledPreference,
+        this.needsAccountEnabledPreference,
+    };
     for (Preference errorPreference : errorPreferences) {
       final boolean currentlyShown = null != findPreference(errorPreference.getKey());
       final boolean shouldBeShown = errorPreference == errorPreferenceToShow;
@@ -201,6 +216,18 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
   protected void showNeedsVerification() {
     syncCategory.setTitle(R.string.fxaccount_status_sync);
     showOnlyOneErrorPreference(needsVerificationPreference);
+    setCheckboxesEnabled(false);
+  }
+
+  protected void showNeedsMasterSyncAutomaticallyEnabled() {
+    syncCategory.setTitle(R.string.fxaccount_status_sync);
+    showOnlyOneErrorPreference(needsMasterSyncAutomaticallyEnabledPreference);
+    setCheckboxesEnabled(false);
+  }
+
+  protected void showNeedsAccountEnabled() {
+    syncCategory.setTitle(R.string.fxaccount_status_sync);
+    showOnlyOneErrorPreference(needsAccountEnabledPreference);
     setCheckboxesEnabled(false);
   }
 
@@ -245,23 +272,49 @@ public class FxAccountStatusFragment extends PreferenceFragment implements OnPre
 
     emailPreference.setTitle(fxAccount.getEmail());
 
-    
-    State state = fxAccount.getState();
-    switch (state.getNeededAction()) {
-    case NeedsUpgrade:
-      showNeedsUpgrade();
-      break;
-    case NeedsPassword:
-      showNeedsPassword();
-      break;
-    case NeedsVerification:
-      showNeedsVerification();
-      break;
-    default:
-      showConnected();
-    }
+    try {
+      
+      
+      
+      
 
-    updateSelectedEngines();
+      
+      
+      final boolean isSyncing = fxAccount.isSyncing();
+      if (!isSyncing) {
+        showNeedsAccountEnabled();
+        return;
+      }
+
+      
+      State state = fxAccount.getState();
+      switch (state.getNeededAction()) {
+      case NeedsUpgrade:
+        showNeedsUpgrade();
+        break;
+      case NeedsPassword:
+        showNeedsPassword();
+        break;
+      case NeedsVerification:
+        showNeedsVerification();
+        break;
+      default:
+        showConnected();
+      }
+
+      
+      
+      
+      
+      final boolean masterSyncAutomatically = ContentResolver.getMasterSyncAutomatically();
+      if (!masterSyncAutomatically) {
+        showNeedsMasterSyncAutomaticallyEnabled();
+        return;
+      }
+    } finally {
+      
+      updateSelectedEngines();
+    }
   }
 
   
