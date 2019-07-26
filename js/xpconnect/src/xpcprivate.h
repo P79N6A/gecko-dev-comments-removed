@@ -507,9 +507,6 @@ public:
         return mDefaultSecurityManager;
     }
 
-    uint16_t GetDefaultSecurityManagerFlags() const
-        {return mDefaultSecurityManagerFlags;}
-
     
     
     
@@ -571,7 +568,6 @@ private:
 
     XPCJSRuntime*            mRuntime;
     nsIXPCSecurityManager*   mDefaultSecurityManager;
-    uint16_t                 mDefaultSecurityManagerFlags;
     JSBool                   mShuttingDown;
 
     
