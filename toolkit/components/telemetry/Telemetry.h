@@ -175,6 +175,20 @@ void RecordChromeHang(uint32_t duration,
                       ProcessedStack &aStack);
 #endif
 
+class ThreadHangStats;
+
+
+
+
+
+
+
+
+
+
+
+void RecordThreadHangStats(ThreadHangStats& aStats);
+
 
 
 
