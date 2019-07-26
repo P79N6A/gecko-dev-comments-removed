@@ -8,7 +8,6 @@
 #ifndef nsChangeHint_h___
 #define nsChangeHint_h___
 
-#include "prtypes.h"
 #include "nsDebug.h"
 
 

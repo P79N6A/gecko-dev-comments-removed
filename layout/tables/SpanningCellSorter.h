@@ -8,7 +8,6 @@
 
 
 
-#include "prtypes.h"
 #include "pldhash.h"
 #include "nsDebug.h"
 #include "StackArena.h"
