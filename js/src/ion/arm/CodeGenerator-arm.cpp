@@ -641,37 +641,9 @@ CodeGeneratorARM::visitDivPowTwoI(LDivPowTwoI *ins)
 }
 
 bool
-CodeGeneratorARM::visitModI(LModI *ins)
+CodeGeneratorARM::modICommon(MMod *mir, Register lhs, Register rhs, Register output,
+                             LSnapshot *snapshot, Label &done)
 {
-    
-    Register lhs = ToRegister(ins->lhs());
-    Register rhs = ToRegister(ins->rhs());
-    Register callTemp = ToRegister(ins->getTemp(2));
-    MMod *mir = ins->mir();
-    Label done;
-    
-    JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
-    masm.ma_mov(lhs, callTemp);
-
-    
-    
-    if (mir->canBeNegativeDividend()) {
-        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
-        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-        if (mir->isTruncated()) {
-            
-            Label skip;
-            masm.ma_b(&skip, Assembler::NotEqual);
-            masm.ma_mov(Imm32(0), r1);
-            masm.ma_b(&done);
-            masm.bind(&skip);
-        } else {
-            JS_ASSERT(mir->fallible());
-            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-                return false;
-        }
-    }
-
     
     
     
@@ -691,25 +663,101 @@ CodeGeneratorARM::visitModI(LModI *ins)
         
         Label skip;
         masm.ma_b(&skip, Assembler::NotEqual);
-        masm.ma_mov(Imm32(0), r1);
+        masm.ma_mov(Imm32(0), output);
         masm.ma_b(&done);
         masm.bind(&skip);
     } else {
         JS_ASSERT(mir->fallible());
-        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+        if (!bailoutIf(Assembler::Equal, snapshot))
             return false;
     }
-    masm.setupAlignedABICall(2);
-    masm.passABIArg(lhs);
-    masm.passABIArg(rhs);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
+
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitModI(LModI *ins)
+{
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+    Register output = ToRegister(ins->output());
+    Register callTemp = ToRegister(ins->getTemp(0));
+    MMod *mir = ins->mir();
+
     
+    masm.ma_mov(lhs, callTemp);
+
+    Label done;
+    if (!modICommon(mir, lhs, rhs, output, ins->snapshot(), done))
+        return false;
+
+    masm.ma_smod(lhs, rhs, output);
+
     
-    masm.ma_cmp(r1, Imm32(0));
     if (mir->isTruncated()) {
         
     } else {
         JS_ASSERT(mir->fallible());
+        
+        masm.ma_cmp(output, Imm32(0));
+        masm.ma_b(&done, Assembler::NotEqual);
+        masm.ma_cmp(callTemp, Imm32(0));
+        if (!bailoutIf(Assembler::Signed, ins->snapshot()))
+            return false;
+    }
+
+    masm.bind(&done);
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitSoftModI(LSoftModI *ins)
+{
+    
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+    Register output = ToRegister(ins->output());
+    Register callTemp = ToRegister(ins->getTemp(2));
+    MMod *mir = ins->mir();
+    Label done;
+    
+    JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
+    masm.ma_mov(lhs, callTemp);
+
+    
+    
+    if (mir->canBeNegativeDividend()) {
+        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+        if (mir->isTruncated()) {
+            
+            Label skip;
+            masm.ma_b(&skip, Assembler::NotEqual);
+            masm.ma_mov(Imm32(0), output);
+            masm.ma_b(&done);
+            masm.bind(&skip);
+        } else {
+            JS_ASSERT(mir->fallible());
+            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+                return false;
+        }
+    }
+
+    if (!modICommon(mir, lhs, rhs, output, ins->snapshot(), done))
+        return false;
+
+    masm.setupAlignedABICall(2);
+    masm.passABIArg(lhs);
+    masm.passABIArg(rhs);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
+
+    
+    if (mir->isTruncated()) {
+        
+    } else {
+        JS_ASSERT(mir->fallible());
+        
+        masm.ma_cmp(r1, Imm32(0));
         masm.ma_b(&done, Assembler::NotEqual);
         masm.ma_cmp(callTemp, Imm32(0));
         if (!bailoutIf(Assembler::Signed, ins->snapshot()))
