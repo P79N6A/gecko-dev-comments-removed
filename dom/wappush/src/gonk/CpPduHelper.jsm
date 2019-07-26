@@ -11,6 +11,9 @@ Cu.import("resource://gre/modules/WspPduHelper.jsm", WSP);
 let WBXML = {};
 Cu.import("resource://gre/modules/WbxmlPduHelper.jsm", WBXML);
 
+Cu.import("resource://services-crypto/utils.js");
+Cu.import("resource://services-common/utils.js");
+
 
 let DEBUG = WBXML.DEBUG_ALL | false;
 
@@ -80,6 +83,128 @@ this.PduHelper = {
     }
     return msg;
 
+  }
+};
+
+
+
+
+
+
+const AUTH_SEC_TYPE = (function () {
+  let names = {};
+  function add(name, number) {
+    names[number] = name;
+  }
+
+  add("NETWPIN",      0);
+  add("USERPIN",      1);
+  add("USERNETWPIN",  2);
+  add("USERPINMAC",   3);
+
+  return names;
+})();
+
+this.Authenticator = {
+  
+
+
+
+
+
+
+
+  formatImsi: function formatImsi(imsi) {
+    let parityByte = ((imsi.length & 1) ? 9 : 1);
+
+    
+    
+    let i = 0;
+    for (i = 15 - imsi.length; i > 0; i--) {
+      imsi += "F";
+    }
+
+    
+    let imsiValue = [];
+    imsiValue.push(parityByte);
+    for (i = 0; i < imsi.length; i++) {
+      imsiValue.push(parseInt(imsi.substr(i, 1), 10));
+    }
+
+    
+    let imsiEncoded = "";
+    for (i = 0; i < imsiValue.length; i += 2) {
+      imsiEncoded += String.fromCharCode(imsiValue[i] | (imsiValue[i+1] << 4));
+    }
+
+    return imsiEncoded;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  isValid: function isValid(wbxml, key, mac) {
+    let hasher = CryptoUtils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1,
+                                            CryptoUtils.makeHMACKey(key));
+    hasher.update(wbxml, wbxml.length);
+    let result = CommonUtils.bytesAsHex(hasher.finish(false)).toUpperCase();
+    return mac == result;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  check: function check_hmac(wbxml, sec, mac, getNetworkPin) {
+    
+    if (sec == null || !mac) {
+      return null;
+    }
+
+    let authInfo = {
+      pass: false,
+      checked: false,
+      sec: AUTH_SEC_TYPE[sec],
+      mac: mac.toUpperCase(),
+      dataLength: wbxml.length,
+      data: wbxml
+    };
+
+    switch (authInfo.sec) {
+      case "NETWPIN":
+        let key = getNetworkPin();
+        authInfo.pass = this.isValid(wbxml, key, authInfo.mac);
+        authInfo.checked = true;
+        return authInfo;
+
+      case "USERPIN":
+      case "USERPINMAC":
+        
+        return authInfo;
+
+      case "USERNETWPIN":
+      default:
+        return null;
+    }
   }
 };
 
@@ -347,4 +472,6 @@ if (DEBUG) {
 this.EXPORTED_SYMBOLS = [
   
   "PduHelper",
+  
+  "Authenticator",
 ];
