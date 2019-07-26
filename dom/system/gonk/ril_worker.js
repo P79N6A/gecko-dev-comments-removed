@@ -925,7 +925,7 @@ let RIL = {
     Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 1 : 2);
     Buf.writeString(options.pin);
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -943,7 +943,7 @@ let RIL = {
     Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 1 : 2);
     Buf.writeString(options.pin);
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -1007,7 +1007,7 @@ let RIL = {
     Buf.writeString(options.pin);
     Buf.writeString(options.newPin);
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -1028,7 +1028,7 @@ let RIL = {
     Buf.writeString(options.pin);
     Buf.writeString(options.newPin);
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -1048,7 +1048,7 @@ let RIL = {
      Buf.writeString(options.puk);
      Buf.writeString(options.newPin);
      if (!RILQUIRKS_V5_LEGACY) {
-       Buf.writeString(options.aid ? options.aid : this.aid);
+       Buf.writeString(options.aid || this.aid);
      }
      Buf.sendParcel();
    },
@@ -1069,7 +1069,7 @@ let RIL = {
      Buf.writeString(options.puk);
      Buf.writeString(options.newPin);
      if (!RILQUIRKS_V5_LEGACY) {
-       Buf.writeString(options.aid ? options.aid : this.aid);
+       Buf.writeString(options.aid || this.aid);
      }
      Buf.sendParcel();
    },
@@ -1123,7 +1123,7 @@ let RIL = {
     Buf.writeString(options.password);
     Buf.writeString(options.serviceClass.toString());
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -1170,7 +1170,7 @@ let RIL = {
     Buf.writeString(options.password);
     Buf.writeString(options.serviceClass.toString());
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
   },
@@ -1205,32 +1205,12 @@ let RIL = {
     Buf.writeUint32(options.p1);
     Buf.writeUint32(options.p2);
     Buf.writeUint32(options.p3);
-    Buf.writeString(options.data);
-    Buf.writeString(options.pin2 ? options.pin2 : null);
+    Buf.writeString(options.data || null);
+    Buf.writeString(options.pin2 || null);
     if (!RILQUIRKS_V5_LEGACY) {
-      Buf.writeString(options.aid ? options.aid : this.aid);
+      Buf.writeString(options.aid || this.aid);
     }
     Buf.sendParcel();
-  },
-
-  
-
-
-  fetchICCRecords: function fetchICCRecords() {
-    this.getICCID();
-    this.getIMSI();
-    this.getMSISDN();
-    this.getAD();
-    this.getSST();
-    this.getMBDN();
-  },
-
-  
-
-
-  _handleICCInfoChange: function _handleICCInfoChange() {
-    this.iccInfo.rilMessageType = "iccinfochange";
-    this.sendDOMMessage(this.iccInfo);
   },
 
   
@@ -1324,38 +1304,6 @@ let RIL = {
 
 
 
-  getICCPhase: function getICCPhase() {
-    function callback() {
-      let length = Buf.readUint32();
-
-      let phase = GsmPDUHelper.readHexOctet();
-      
-      
-      if (phase >= ICC_PHASE_2_PROFILE_DOWNLOAD_REQUIRED) {
-        this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
-      }
-
-      Buf.readStringDelimiter(length);
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_PHASE,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_GSM,
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-
 
 
   getIMSI: function getIMSI(aid) {
@@ -1365,245 +1313,8 @@ let RIL = {
     }
     let token = Buf.newParcel(REQUEST_GET_IMSI);
     Buf.writeUint32(1);
-    Buf.writeString(aid ? aid : this.aid);
+    Buf.writeString(aid || this.aid);
     Buf.sendParcel();
-  },
-
-  
-
-
-  getICCID: function getICCID() {
-    function callback() {
-      let length = Buf.readUint32();
-      this.iccInfo.iccid = GsmPDUHelper.readSwappedNibbleBcdString(length / 2);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) debug("ICCID: " + this.iccInfo.iccid);
-      if (this.iccInfo.iccid) {
-        this._handleICCInfoChange();
-      }
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_ICCID,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_ICCID),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-  getMSISDN: function getMSISDN() {
-    function callback(options) {
-      let parseCallback = function parseCallback(msisdn) {
-        if (this.iccInfo.msisdn === msisdn.number) {
-          return;
-        }
-        this.iccInfo.msisdn = msisdn.number;
-        if (DEBUG) debug("MSISDN: " + this.iccInfo.msisdn);
-        this._handleICCInfoChange();
-      }
-      this.parseDiallingNumber(options, parseCallback);
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_MSISDN,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_MSISDN),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-  getAD: function getAD() {
-    function callback() {
-      let length = Buf.readUint32();
-      
-      let len = length / 2;
-      this.iccInfo.ad = GsmPDUHelper.readHexOctetArray(len);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) {
-        let str = "";
-        for (let i = 0; i < this.iccInfo.ad.length; i++) {
-          str += this.iccInfo.ad[i] + ", ";
-        }
-        debug("AD: " + str);
-      }
-
-      if (this.iccInfo.imsi) {
-        
-        this.iccInfo.mcc = parseInt(this.iccInfo.imsi.substr(0,3));
-        
-        this.iccInfo.mnc = parseInt(this.iccInfo.imsi.substr(3, this.iccInfo.ad[3]));
-        if (DEBUG) debug("MCC: " + this.iccInfo.mcc + " MNC: " + this.iccInfo.mnc);
-        this._handleICCInfoChange();
-      }
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_AD,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_AD),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-  getSPN: function getSPN() {
-    function callback() {
-      let length = Buf.readUint32();
-      
-      
-      let len = (length / 2) - 1;
-      let spnDisplayCondition = GsmPDUHelper.readHexOctet();
-      let spn = GsmPDUHelper.readAlphaIdentifier(len);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) {
-        debug("SPN: spn = " + spn +
-              ", spnDisplayCondition = " + spnDisplayCondition);
-      }
-
-      this.iccInfoPrivate.SPN = {
-        spn : spn,
-        spnDisplayCondition : spnDisplayCondition,
-      };
-      this.iccInfo.spn = spn;
-      this.updateDisplayCondition();
-      this._handleICCInfoChange();
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_SPN,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_SPN),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-
-
-  getPLMNSelector: function getPLMNSelector() {
-    function callback() {
-      if (DEBUG) debug("PLMN Selector: Process PLMN Selector");
-
-      let length = Buf.readUint32();
-      this.iccInfoPrivate.PLMN = this.readPLMNEntries(length/3);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) debug("PLMN Selector: " + JSON.stringify(this.iccInfoPrivate.PLMN));
-
-      if (this.updateDisplayCondition()) {
-        this._handleICCInfoChange();
-      }
-    }
-
-    
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_PLMNsel,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_PLMNsel),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-
-
-
-  getSPDI: function getSPDI() {
-    function callback() {
-      let length = Buf.readUint32();
-      let readLen = 0;
-      let endLoop = false;
-      this.iccInfoPrivate.SPDI = null;
-      while ((readLen < length / 2) && !endLoop) {
-        let tlvTag = GsmPDUHelper.readHexOctet();
-        let tlvLen = GsmPDUHelper.readHexOctet();
-        readLen += 2; 
-        switch (tlvTag) {
-        case SPDI_TAG_SPDI:
-          
-          continue;
-        case SPDI_TAG_PLMN_LIST:
-          
-          this.iccInfoPrivate.SPDI = this.readPLMNEntries(tlvLen / 3);
-          readLen += tlvLen;
-          endLoop = true;
-          break;
-        default:
-          
-          
-          endLoop = true;
-          break;
-        }
-      }
-
-      
-      Buf.seekIncoming((length / 2 - readLen) * PDU_HEX_OCTET_SIZE);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) debug("SPDI: " + JSON.stringify(this.iccInfoPrivate.SPDI));
-      if (this.updateDisplayCondition()) {
-        this._handleICCInfoChange();
-      }
-    }
-
-    
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_SPDI,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_SPDI),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
   },
 
   
@@ -1748,618 +1459,6 @@ let RIL = {
 
 
 
-  getOPL: function getOPL() {
-    let opl = [];
-    function callback(options) {
-      let len = Buf.readUint32();
-      
-      
-      
-      
-      
-      
-      
-      let mccMnc = [GsmPDUHelper.readHexOctet(),
-                    GsmPDUHelper.readHexOctet(),
-                    GsmPDUHelper.readHexOctet()];
-      if (mccMnc[0] != 0xFF || mccMnc[1] != 0xFF || mccMnc[2] != 0xFF) {
-        let oplElement = {};
-        let semiOctets = [];
-        for (let i = 0; i < mccMnc.length; i++) {
-          semiOctets.push((mccMnc[i] & 0xf0) >> 4);
-          semiOctets.push(mccMnc[i] & 0x0f);
-        }
-        let reformat = [semiOctets[1], semiOctets[0], semiOctets[3],
-                        semiOctets[5], semiOctets[4], semiOctets[2]];
-        let buf = "";
-        for (let i = 0; i < reformat.length; i++) {
-          if (reformat[i] != 0xF) {
-            buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
-          }
-          if (i === 2) {
-            
-            oplElement.mcc = parseInt(buf);
-            buf = "";
-          } else if (i === 5) {
-            
-            oplElement.mnc = parseInt(buf);
-          }
-        }
-        
-        oplElement.lacTacStart =
-          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
-        oplElement.lacTacEnd =
-          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
-        
-        oplElement.pnnRecordId = GsmPDUHelper.readHexOctet();
-        if (DEBUG) {
-          debug("OPL: [" + (opl.length + 1) + "]: " + JSON.stringify(oplElement));
-        }
-        opl.push(oplElement);
-      }
-      Buf.readStringDelimiter(len);
-      if (options.p1 < options.totalRecords) {
-        options.p1++;
-        this.iccIO(options);
-      } else {
-        this.iccInfoPrivate.OPL = opl;
-      }
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_OPL,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_OPL),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-
-
-
-  getPNN: function getPNN() {
-    let pnn = [];
-    function callback(options) {
-      let pnnElement = this.iccInfoPrivate.PNN = {};
-      let len = Buf.readUint32();
-      let readLen = 0;
-      while (len > readLen) {
-        let tlvTag = GsmPDUHelper.readHexOctet();
-        readLen = readLen + 2; 
-        if (tlvTag == 0xFF) {
-          
-          continue;
-        }
-        let tlvLen = GsmPDUHelper.readHexOctet();
-        let name;
-        switch (tlvTag) {
-        case PNN_IEI_FULL_NETWORK_NAME:
-          pnnElement.fullName = GsmPDUHelper.readNetworkName(tlvLen);
-          break;
-        case PNN_IEI_SHORT_NETWORK_NAME:
-          pnnElement.shortName = GsmPDUHelper.readNetworkName(tlvLen);
-          break;
-        default:
-          Buf.seekIncoming(PDU_HEX_OCTET_SIZE * tlvLen);
-        }
-        readLen += (tlvLen * 2 + 2);
-      }
-      if (DEBUG) {
-        debug("PNN: [" + (pnn.length + 1) + "]: " + JSON.stringify(pnnElement));
-      }
-      Buf.readStringDelimiter(len);
-      pnn.push(pnnElement);
-
-      if (options.p1 < options.totalRecords) {
-        options.p1++;
-        this.iccIO(options);
-      } else {
-        this.iccInfoPrivate.PNN = pnn;
-      }
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_PNN,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_PNN),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-  getSST: function getSST() {
-    function callback() {
-      let length = Buf.readUint32();
-      
-      let len = length / 2;
-      this.iccInfo.sst = GsmPDUHelper.readHexOctetArray(len);
-      Buf.readStringDelimiter(length);
-
-      if (DEBUG) {
-        let str = "";
-        for (let i = 0; i < this.iccInfo.sst.length; i++) {
-          str += this.iccInfo.sst[i] + ", ";
-        }
-        debug("SST: " + str);
-      }
-
-      
-      if (this.isICCServiceAvailable("SPN")) {
-        if (DEBUG) debug("SPN: SPN is available");
-        this.getSPN();
-      } else {
-        if (DEBUG) debug("SPN: SPN service is not available");
-      }
-
-      if (this.isICCServiceAvailable("SPDI")) {
-        if (DEBUG) debug("SPDI: SPDI available.");
-        this.getSPDI();
-      } else {
-        if (DEBUG) debug("SPDI: SPDI service is not available");
-      }
-
-      if (this.isICCServiceAvailable("PNN")) {
-        if (DEBUG) debug("PNN: PNN is available");
-        this.getPNN();
-      } else {
-        if (DEBUG) debug("PNN: PNN is not available");
-      }
-
-      if (this.isICCServiceAvailable("OPL")) {
-        if (DEBUG) debug("OPL: OPL is available");
-        this.getOPL();
-      } else {
-        if (DEBUG) debug("OPL: OPL is not available");
-      }
-
-      if (this.isICCServiceAvailable("CBMI")) {
-        this.getCBMI();
-      } else {
-        this.cellBroadcastConfigs.CBMI = null;
-      }
-      if (this.isICCServiceAvailable("CBMIR")) {
-        this.getCBMIR();
-      } else {
-        this.cellBroadcastConfigs.CBMIR = null;
-      }
-      this._mergeAllCellBroadcastConfigs();
-    }
-
-    
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_SST,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_SST),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-    });
-  },
-
-  
-
-
-
-
-  getCBMI: function getCBMI() {
-    function callback() {
-      let strLength = Buf.readUint32();
-
-      
-      
-      let numIds = strLength / 4, list = null;
-      if (numIds) {
-        list = [];
-        for (let i = 0, id; i < numIds; i++) {
-          id = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
-          
-          if (id != 0xFFFF) {
-            list.push(id);
-            list.push(id + 1);
-          }
-        }
-      }
-      if (DEBUG) {
-        debug("CBMI: " + JSON.stringify(list));
-      }
-
-      Buf.readStringDelimiter(strLength);
-
-      this.cellBroadcastConfigs.CBMI = list;
-      this._mergeAllCellBroadcastConfigs();
-    }
-
-    function onerror() {
-      this.cellBroadcastConfigs.CBMI = null;
-      this._mergeAllCellBroadcastConfigs();
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_CBMI,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_CBMI),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-      onerror:   onerror
-    });
-  },
-
-  
-
-
-
-
-  getCBMIR: function getCBMIR() {
-    function callback() {
-      let strLength = Buf.readUint32();
-
-      
-      
-      let numIds = strLength / 8, list = null;
-      if (numIds) {
-        list = [];
-        for (let i = 0, from, to; i < numIds; i++) {
-          
-          
-          
-          from = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
-          to = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
-          
-          if ((from != 0xFFFF) && (to != 0xFFFF)) {
-            list.push(from);
-            list.push(to + 1);
-          }
-        }
-      }
-      if (DEBUG) {
-        debug("CBMIR: " + JSON.stringify(list));
-      }
-
-      Buf.readStringDelimiter(strLength);
-
-      this.cellBroadcastConfigs.CBMIR = list;
-      this._mergeAllCellBroadcastConfigs();
-    }
-
-    function onerror() {
-      this.cellBroadcastConfigs.CBMIR = null;
-      this._mergeAllCellBroadcastConfigs();
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_CBMIR,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_CBMIR),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_TRANSPARENT,
-      callback:  callback,
-      onerror:   onerror
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  parseDiallingNumber: function parseDiallingNumber(options,
-                                                    addCallback,
-                                                    finishCallback) {
-    let ffLen; 
-    let length = Buf.readUint32();
-
-    let alphaLen = options.recordSize - MSISDN_FOOTER_SIZE_BYTES;
-    let alphaId = GsmPDUHelper.readAlphaIdentifier(alphaLen);
-
-    let numLen = GsmPDUHelper.readHexOctet();
-    if (numLen != 0xff) {
-      if (numLen > MSISDN_MAX_NUMBER_SIZE_BYTES) {
-        debug("invalid length of BCD number/SSC contents - " + numLen);
-        return;
-      }
-
-      if (addCallback) {
-        addCallback.call(this, {alphaId: alphaId,
-                                number: GsmPDUHelper.readDiallingNumber(numLen)});
-      }
-
-      ffLen = length / 2 - alphaLen - numLen - 1; 
-    } else {
-      ffLen = MSISDN_FOOTER_SIZE_BYTES - 1; 
-    }
-
-    
-    for (let i = 0; i < ffLen; i++) {
-      GsmPDUHelper.readHexOctet();
-    }
-    
-    Buf.readStringDelimiter(length);
-    
-    if (options.loadAll &&
-        options.p1 < options.totalRecords) {
-      options.p1++;
-      this.iccIO(options);
-    } else {
-      if (finishCallback) {
-        finishCallback.call(this);
-      }
-    }
-  },
-  
-  
-
-
-
-
-
-  getFDN: function getFDN(options) {
-    function callback(options) {
-      function add(contact) {
-        this.iccInfo.fdn.push(contact);
-      };
-      function finish() {
-        if (DEBUG) {
-          for (let i = 0; i < this.iccInfo.fdn.length; i++) {
-            debug("FDN[" + i + "] alphaId = " + this.iccInfo.fdn[i].alphaId +
-                                " number = " + this.iccInfo.fdn[i].number);
-          }
-        }
-        delete options.callback;
-        delete options.onerror;
-        options.rilMessageType = "icccontacts";
-        options.contacts = this.iccInfo.fdn;
-        this.sendDOMMessage(options);
-      };
-      this.parseDiallingNumber(options, add, finish);
-    }
-
-    this.iccInfo.fdn = [];
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_FDN,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_FDN),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-      loadAll:   true,
-      requestId: options.requestId
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  getADN: function getADN(options) {
-    function callback(options) {
-      function add(contact) {
-        this.iccInfo.adn.push(contact);
-      };
-
-      function finish() {
-        if (DEBUG) {
-          for (let i = 0; i < this.iccInfo.adn.length; i++) {
-            debug("ADN[" + i + "] alphaId = " + this.iccInfo.adn[i].alphaId +
-                                " number  = " + this.iccInfo.adn[i].number);
-          }
-        }
-        
-        
-        
-        
-        delete options.callback;
-        delete options.onerror;
-        options.rilMessageType = "icccontacts";
-        options.contacts = this.iccInfo.adn;
-        this.sendDOMMessage(options);
-      };
-      this.parseDiallingNumber(options, add, finish);
-    }
-
-    function error(options) {
-      delete options.callback;
-      delete options.onerror;
-      options.rilMessageType = "icccontacts";
-      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-      this.sendDOMMessage(options);
-    }
-
-    this.iccInfo.adn = [];
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    options.fileId,
-      pathId:    this._getPathIdForICCRecord(options.fileId),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-      onerror:   error,
-      loadAll:   true,
-      requestId: options.requestId,
-    });
-  },
-
-   
-
-
-
-
-  getMBDN: function getMBDN() {
-    function callback(options) {
-      let parseCallback = function parseCallback(contact) {
-        if (DEBUG) {
-          debug("MBDN, alphaId="+contact.alphaId+" number="+contact.number);
-        }
-        if (this.iccInfo.mbdn != contact.number) {
-          this.iccInfo.mbdn = contact.number;
-          contact.rilMessageType = "iccmbdn";
-          this.sendDOMMessage(contact);
-        }
-      };
-
-      this.parseDiallingNumber(options, parseCallback);
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_MBDN,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_MBDN),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-    });
-  },
-
-  decodeSimTlvs: function decodeSimTlvs(tlvsLen) {
-    let index = 0;
-    let tlvs = [];
-    while (index < tlvsLen) {
-      let simTlv = {
-        tag : GsmPDUHelper.readHexOctet(),
-        length : GsmPDUHelper.readHexOctet(),
-      };
-      simTlv.value = GsmPDUHelper.readHexOctetArray(simTlv.length)
-      tlvs.push(simTlv);
-      index += simTlv.length + 2 ;
-    }
-    return tlvs;
-  },
-
-  _searchForIccUsimTag: function _searchForIccUsimTag(tlvs, tag) {
-    for (let i = 0; i < tlvs.length; i++) {
-      if (tlvs[i].tag == tag) {
-        return tlvs[i];
-      }
-    }
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-  readPLMNEntries: function readPLMNEntries(length) {
-    let plmnList = [];
-    
-    debug("readPLMNEntries: PLMN entries length = " + length);
-    let index = 0;
-    while (index < length) {
-      
-      
-      try {
-        let plmn = [GsmPDUHelper.readHexOctet(),
-                    GsmPDUHelper.readHexOctet(),
-                    GsmPDUHelper.readHexOctet()];
-        if (DEBUG) debug("readPLMNEntries: Reading PLMN entry: [" + index +
-                         "]: '" + plmn + "'");
-        if (plmn[0] != 0xFF &&
-            plmn[1] != 0xFF &&
-            plmn[2] != 0xFF) {
-          let semiOctets = [];
-          for (let idx = 0; idx < plmn.length; idx++) {
-            semiOctets.push((plmn[idx] & 0xF0) >> 4);
-            semiOctets.push(plmn[idx] & 0x0F);
-          }
-
-          
-          
-          
-          
-          
-          
-          let reformat = [semiOctets[1], semiOctets[0], semiOctets[3],
-                          semiOctets[5], semiOctets[4], semiOctets[2]];
-          let buf = "";
-          let plmnEntry = {};
-          for (let i = 0; i < reformat.length; i++) {
-            if (reformat[i] != 0xF) {
-              buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
-            }
-            if (i === 2) {
-              
-              plmnEntry.mcc = parseInt(buf);
-              buf = "";
-            } else if (i === 5) {
-              
-              plmnEntry.mnc = parseInt(buf);
-            }
-          }
-          if (DEBUG) debug("readPLMNEntries: PLMN = " + plmnEntry.mcc + ", " + plmnEntry.mnc);
-          plmnList.push(plmnEntry);
-        }
-      } catch (e) {
-        if (DEBUG) debug("readPLMNEntries: PLMN entry " + index + " is invalid.");
-        break;
-      }
-      index ++;
-    }
-    return plmnList;
-  },
-
-  
-
-
-
-
-
   getICCContacts: function getICCContacts(options) {
     if (!this.appType) {
       options.rilMessageType = "icccontacts";
@@ -2373,63 +1472,17 @@ let RIL = {
         switch (this.appType) {
           case CARD_APPTYPE_SIM:
             options.fileId = ICC_EF_ADN;
-            this.getADN(options);
+            ICCRecordHelper.getADN(options);
             break;
           case CARD_APPTYPE_USIM:
-            this.getPBR(options);
+            ICCRecordHelper.getPBR(options);
             break;
         }
         break;
       case "FDN":
-        this.getFDN(options);
+        ICCRecordHelper.getFDN(options);
         break;
     }
-  },
-
-  
-
-
-
-
-
-  getPBR: function getPBR(options) {
-    function callback(options) {
-      let bufLen = Buf.readUint32();
-
-      let tag = GsmPDUHelper.readHexOctet();
-      let length = GsmPDUHelper.readHexOctet();
-      let value = this.decodeSimTlvs(length);
-
-      let adn = this._searchForIccUsimTag(value, ICC_USIM_EFADN_TAG);
-      let adnEfid = (adn.value[0] << 8) | adn.value[1];
-      this.getADN({fileId: adnEfid,
-                   requestId: options.requestId});
-
-      Buf.readStringDelimiter(bufLen);
-    }
-
-    function error(options) {
-      delete options.callback;
-      delete options.onerror;
-      options.rilMessageType = "icccontacts";
-      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-      this.sendDOMMessage(options);
-    }
-
-    this.iccIO({
-      command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_PBR,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_PBR),
-      p1:        0, 
-      p2:        0, 
-      p3:        GET_RESPONSE_EF_SIZE_BYTES,
-      data:      null,
-      pin2:      null,
-      type:      EF_TYPE_LINEAR_FIXED,
-      callback:  callback,
-      onerror:   error,
-      requestId: options.requestId,
-    });
   },
 
   
@@ -3851,88 +2904,17 @@ let RIL = {
       
       
       if (this.appType == CARD_APPTYPE_SIM) {
-        this.getICCPhase();
+        ICCRecordHelper.getICCPhase();
       } else {
         this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
       }
-      this.fetchICCRecords();
+      ICCRecordHelper.fetchICCRecords();
       this.reportStkServiceIsRunning();
     }
 
     this.cardState = newCardState;
     this.sendDOMMessage({rilMessageType: "cardstatechange",
                          cardState: this.cardState});
-  },
-
-  
-
-
-
-
-
-
-
-  _getPathIdForICCRecord: function _getPathIdForICCRecord(fileId) {
-    let index = this.iccStatus.gsmUmtsSubscriptionAppIndex;
-    if (index == -1) {
-      return null;
-    }
-    let app = this.iccStatus.apps[index];
-    if (!app) {
-      return null;
-    }
-
-    
-    
-    switch (fileId) {
-      case ICC_EF_ICCID:
-        return EF_PATH_MF_SIM;
-      case ICC_EF_ADN:
-        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
-      case ICC_EF_PBR:
-        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK;
-    }
-
-    switch (app.app_type) {
-      case CARD_APPTYPE_SIM:
-        switch (fileId) {
-          case ICC_EF_FDN:
-          case ICC_EF_MSISDN:
-            return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
-
-          case ICC_EF_AD:
-          case ICC_EF_MBDN:
-          case ICC_EF_PLMNsel:
-          case ICC_EF_SPN:
-          case ICC_EF_SPDI:
-          case ICC_EF_SST:
-          case ICC_EF_CBMI:
-          case ICC_EF_CBMIR:
-            return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
-        }
-      case CARD_APPTYPE_USIM:
-        switch (fileId) {
-          case ICC_EF_AD:
-          case ICC_EF_FDN:
-          case ICC_EF_MBDN:
-          case ICC_EF_UST:
-          case ICC_EF_MSISDN:
-          case ICC_EF_SPN:
-          case ICC_EF_SPDI:
-          case ICC_EF_CBMI:
-          case ICC_EF_CBMIR:
-          case ICC_EF_OPL:
-          case ICC_EF_PNN:
-            return EF_PATH_MF_SIM + EF_PATH_ADF_USIM;
-
-          default:
-            
-	    
-	    
-            return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK;
-        }
-    }
-    return null;
   },
 
    
@@ -3945,117 +2927,6 @@ let RIL = {
     }
     options.retryCount = length ? Buf.readUint32List()[0] : -1;
     this.sendDOMMessage(options);
-  },
-
-  
-
-
-  _processICCIOGetResponse: function _processICCIOGetResponse(options) {
-    let length = Buf.readUint32();
-
-    
-
-    
-    Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
-
-    
-    let fileSize = (GsmPDUHelper.readHexOctet() << 8) |
-                    GsmPDUHelper.readHexOctet();
-
-    
-    let fileId = (GsmPDUHelper.readHexOctet() << 8) |
-                  GsmPDUHelper.readHexOctet();
-    if (fileId != options.fileId) {
-      if (DEBUG) {
-        debug("Expected file ID " + options.fileId + " but read " + fileId);
-      }
-      return;
-    }
-
-    
-    let fileType = GsmPDUHelper.readHexOctet();
-    if (fileType != TYPE_EF) {
-      if (DEBUG) {
-        debug("Unexpected file type " + fileType);
-      }
-      return;
-    }
-
-    
-    
-    
-    
-    Buf.seekIncoming(((RESPONSE_DATA_STRUCTURE - RESPONSE_DATA_FILE_TYPE - 1) *
-        PDU_HEX_OCTET_SIZE));
-
-    
-    let efType = GsmPDUHelper.readHexOctet();
-    if (efType != options.type) {
-      if (DEBUG) {
-        debug("Expected EF type " + options.type + " but read " + efType);
-      }
-      return;
-    }
-
-    
-    options.recordSize = GsmPDUHelper.readHexOctet();
-    options.totalRecords = fileSize / options.recordSize;
-
-    Buf.readStringDelimiter(length);
-
-    switch (options.type) {
-      case EF_TYPE_LINEAR_FIXED:
-        
-        options.command = ICC_COMMAND_READ_RECORD;
-        options.p1 = 1; 
-        options.p2 = READ_RECORD_ABSOLUTE_MODE;
-        options.p3 = options.recordSize;
-        this.iccIO(options);
-        break;
-      case EF_TYPE_TRANSPARENT:
-        
-        options.command = ICC_COMMAND_READ_BINARY;
-        options.p3 = fileSize;
-        this.iccIO(options);
-        break;
-    }
-  },
-
-  
-
-
-  _processICCIOReadRecord: function _processICCIOReadRecord(options) {
-    if (options.callback) {
-      options.callback.call(this, options);
-    }
-  },
-
-  
-
-
-  _processICCIOReadBinary: function _processICCIOReadBinary(options) {
-    if (options.callback) {
-      options.callback.call(this);
-    }
-  },
-
-  
-
-
-  _processICCIO: function _processICCIO(options) {
-    switch (options.command) {
-      case ICC_COMMAND_GET_RESPONSE:
-        this._processICCIOGetResponse(options);
-        break;
-
-      case ICC_COMMAND_READ_RECORD:
-        this._processICCIOReadRecord(options);
-        break;
-
-      case ICC_COMMAND_READ_BINARY:
-        this._processICCIOReadBinary(options);
-        break;
-    } 
   },
 
   
@@ -4275,7 +3146,7 @@ let RIL = {
         }
       }
       if (this.updateDisplayCondition()) {
-        this._handleICCInfoChange();
+        ICCRecordHelper.handleICCInfoChange();
       }
       this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
     }
@@ -5763,7 +4634,7 @@ RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
     }
     return;
   }
-  this._processICCIO(options);
+  ICCIOHelper.processICCIO(options);
 };
 RIL[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
@@ -7179,6 +6050,42 @@ let GsmPDUHelper = {
 
 
 
+  readAlphaIdDiallingNumber: function readAlphaIdDiallingNumber(options) {
+    let contact = null;
+    let ffLen; 
+    let length = Buf.readUint32();
+
+    let alphaLen = options.recordSize - MSISDN_FOOTER_SIZE_BYTES;
+    let alphaId = this.readAlphaIdentifier(alphaLen);
+
+    let numLen = this.readHexOctet();
+    if (numLen != 0xff) {
+      
+      if (numLen > MSISDN_MAX_NUMBER_SIZE_BYTES + 1) {
+        throw new Error("invalid length of BCD number/SSC contents - " + numLen);
+      }
+
+      contact = {alphaId: alphaId,
+                 number: this.readDiallingNumber(numLen)};
+
+      ffLen = length / 2 - alphaLen - numLen - 1; 
+    } else {
+      ffLen = MSISDN_FOOTER_SIZE_BYTES - 1; 
+    }
+
+    
+    Buf.seekIncoming(ffLen * PDU_HEX_OCTET_SIZE);
+    Buf.readStringDelimiter(length);
+
+    return contact;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -8280,7 +7187,7 @@ let StkCommandParamsFactory = {
           if (DEBUG) {
             debug("Refresh, list = " + list);
           }
-          RIL.fetchICCRecords();
+          ICCRecordHelper.fetchICCRecords();
         }
         break;
     }
@@ -9344,6 +8251,1020 @@ let BerTlvHelper = {
     };
     return berTlv;
   }
+};
+
+
+
+
+let ICCFileHelper = {
+  
+
+
+
+  getCommonEFPath: function getCommonEFPath(fileId) {
+    switch (fileId) {
+      case ICC_EF_ICCID:
+        return EF_PATH_MF_SIM;
+      case ICC_EF_ADN:
+        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
+      case ICC_EF_PBR:
+        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK;
+    }
+    return null;
+  },
+
+  
+
+
+  getSimEFPath: function getSimEFPath(fileId) {
+    switch (fileId) {
+      case ICC_EF_FDN:
+      case ICC_EF_MSISDN:
+        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
+      case ICC_EF_AD:
+      case ICC_EF_MBDN:
+      case ICC_EF_PLMNsel:
+      case ICC_EF_SPN:
+      case ICC_EF_SPDI:
+      case ICC_EF_SST:
+      case ICC_EF_PHASE:
+      case ICC_EF_CBMI:
+      case ICC_EF_CBMIR:
+      case ICC_EF_OPL:
+      case ICC_EF_PNN:
+        return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
+      default:
+        return null
+    }
+  },
+
+  
+
+
+  getUSimEFPath: function getUSimEFPath(fileId) {
+    switch (fileId) {
+      case ICC_EF_AD:
+      case ICC_EF_FDN:
+      case ICC_EF_MBDN:
+      case ICC_EF_UST:
+      case ICC_EF_MSISDN:
+      case ICC_EF_SPN:
+      case ICC_EF_SPDI:
+      case ICC_EF_CBMI:
+      case ICC_EF_CBMIR:
+      case ICC_EF_OPL:
+      case ICC_EF_PNN:
+        return EF_PATH_MF_SIM + EF_PATH_ADF_USIM;
+      default:
+        
+        
+        
+        return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  getEFPath: function getEFPath(fileId) {
+    
+    let index = RIL.iccStatus.gsmUmtsSubscriptionAppIndex;
+    if (index == -1) {
+      return null;
+    }
+    let app = RIL.iccStatus.apps[index];
+    if (!app) {
+      return null;
+    }
+
+    let path = this.getCommonEFPath(fileId);
+    if (path) {
+      return path;
+    }
+
+    switch (app.app_type) {
+      case CARD_APPTYPE_SIM:
+        return this.getSimEFPath(fileId);
+      case CARD_APPTYPE_USIM:
+        return this.getUSimEFPath(fileId);
+      default:
+        return null;
+    }
+  },
+};
+
+
+
+
+let ICCIOHelper = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  loadLinearFixedEF: function loadLinearFixedEF(options) {
+    options.type = EF_TYPE_LINEAR_FIXED;
+    let cb = options.callback;
+    options.callback = function callback(options) {
+      options.callback = cb;
+      options.command = ICC_COMMAND_READ_RECORD;
+      options.p1 = options.recordNumber || 1; 
+      options.p2 = READ_RECORD_ABSOLUTE_MODE;
+      options.p3 = options.recordSize;
+      RIL.iccIO(options);
+    }.bind(this);
+    this.getResponse(options);
+  },
+
+  
+
+
+  loadNextRecord: function loadNextRecord(options) {
+    options.p1++;
+    RIL.iccIO(options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  loadTransparentEF: function loadTransparentEF(options) {
+    options.type = EF_TYPE_TRANSPARENT;
+    let cb = options.callback;
+    options.callback = function callback(options) {
+      options.callback = cb;
+      options.command = ICC_COMMAND_READ_BINARY;
+      options.p3 = options.fileSize;
+      RIL.iccIO(options);
+    }.bind(this);
+    this.getResponse(options);
+  },
+
+  
+
+
+
+
+
+  getResponse: function getResponse(options) {
+    options.command = ICC_COMMAND_GET_RESPONSE;
+    options.pathId = ICCFileHelper.getEFPath(options.fileId);
+    if (!options.pathId) {
+      
+    }
+    options.p1 = 0; 
+    options.p2 = 0; 
+    options.p3 = GET_RESPONSE_EF_SIZE_BYTES;
+    RIL.iccIO(options);
+  },
+
+  
+
+
+  processICCIO: function processICCIO(options) {
+    let func = this[options.command];
+    func.call(this, options);
+  },
+
+  
+
+
+  processICCIOGetResponse: function processICCIOGetResponse(options) {
+    let length = Buf.readUint32();
+
+    
+
+    
+    Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
+
+    
+    options.fileSize = (GsmPDUHelper.readHexOctet() << 8) |
+                        GsmPDUHelper.readHexOctet();
+
+    
+    let fileId = (GsmPDUHelper.readHexOctet() << 8) |
+                  GsmPDUHelper.readHexOctet();
+    if (fileId != options.fileId) {
+      if (DEBUG) {
+        debug("Expected file ID " + options.fileId + " but read " + fileId);
+      }
+      return;
+    }
+
+    
+    let fileType = GsmPDUHelper.readHexOctet();
+    if (fileType != TYPE_EF) {
+      if (DEBUG) {
+        debug("Unexpected file type " + fileType);
+      }
+      return;
+    }
+
+    
+    
+    
+    
+    Buf.seekIncoming(((RESPONSE_DATA_STRUCTURE - RESPONSE_DATA_FILE_TYPE - 1) *
+        PDU_HEX_OCTET_SIZE));
+
+    
+    let efType = GsmPDUHelper.readHexOctet();
+    if (efType != options.type) {
+      if (DEBUG) {
+        debug("Expected EF type " + options.type + " but read " + efType);
+      }
+      return;
+    }
+
+    
+    options.recordSize = GsmPDUHelper.readHexOctet();
+    options.totalRecords = options.fileSize / options.recordSize;
+
+    Buf.readStringDelimiter(length);
+
+    if (options.callback) {
+      options.callback(options);
+    }
+  },
+
+  
+
+
+  processICCIOReadRecord: function processICCIOReadRecord(options) {
+    if (options.callback) {
+      options.callback(options);
+    }
+  },
+
+  
+
+
+  processICCIOReadBinary: function processICCIOReadBinary(options) {
+    if (options.callback) {
+      options.callback(options);
+    }
+  },
+};
+ICCIOHelper[ICC_COMMAND_SEEK] = null;
+ICCIOHelper[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
+  this.processICCIOReadBinary(options);
+};
+ICCIOHelper[ICC_COMMAND_READ_RECORD] = function ICC_COMMAND_READ_RECORD(options) {
+  this.processICCIOReadRecord(options);
+};
+ICCIOHelper[ICC_COMMAND_GET_RESPONSE] = function ICC_COMMAND_GET_RESPONSE(options) {
+  this.processICCIOGetResponse(options);
+};
+ICCIOHelper[ICC_COMMAND_UPDATE_BINARY] = null;
+ICCIOHelper[ICC_COMMAND_UPDATE_RECORD] = null;
+
+
+
+
+let ICCRecordHelper = {
+  
+
+
+  fetchICCRecords: function fetchICCRecords() {
+    this.getICCID();
+    RIL.getIMSI();
+    this.getMSISDN();
+    this.getAD();
+    this.getSST();
+    this.getMBDN();
+  },
+
+  
+
+
+
+  getICCPhase: function getICCPhase() {
+    function callback() {
+      let length = Buf.readUint32();
+
+      let phase = GsmPDUHelper.readHexOctet();
+      
+      
+      if (phase >= ICC_PHASE_2_PROFILE_DOWNLOAD_REQUIRED) {
+        RIL.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+      }
+
+      Buf.readStringDelimiter(length);
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_PHASE,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+  getICCID: function getICCID() {
+    function callback() {
+      let length = Buf.readUint32();
+      RIL.iccInfo.iccid = GsmPDUHelper.readSwappedNibbleBcdString(length / 2);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) debug("ICCID: " + RIL.iccInfo.iccid);
+      if (RIL.iccInfo.iccid) {
+        this.handleICCInfoChange();
+      }
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_ICCID,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+  getMSISDN: function getMSISDN() {
+    function callback(options) {
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      if (!contact || RIL.iccInfo.msisdn === contact.number) {
+        return;
+      }
+      RIL.iccInfo.msisdn = contact.number;
+      if (DEBUG) debug("MSISDN: " + RIL.iccInfo.msisdn);
+      this.handleICCInfoChange();
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_MSISDN,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+  getAD: function getAD() {
+    function callback() {
+      let length = Buf.readUint32();
+      
+      let len = length / 2;
+      RIL.iccInfo.ad = GsmPDUHelper.readHexOctetArray(len);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) {
+        let str = "";
+        for (let i = 0; i < RIL.iccInfo.ad.length; i++) {
+          str += RIL.iccInfo.ad[i] + ", ";
+        }
+        debug("AD: " + str);
+      }
+
+      if (RIL.iccInfo.imsi) {
+        
+        RIL.iccInfo.mcc = parseInt(RIL.iccInfo.imsi.substr(0,3));
+        
+        RIL.iccInfo.mnc = parseInt(RIL.iccInfo.imsi.substr(3, RIL.iccInfo.ad[3]));
+        if (DEBUG) debug("MCC: " + RIL.iccInfo.mcc + " MNC: " + RIL.iccInfo.mnc);
+        this.handleICCInfoChange();
+      }
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_AD,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+  getSPN: function getSPN() {
+    function callback() {
+      let length = Buf.readUint32();
+      
+      
+      let len = (length / 2) - 1;
+      let spnDisplayCondition = GsmPDUHelper.readHexOctet();
+      let spn = GsmPDUHelper.readAlphaIdentifier(len);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) {
+        debug("SPN: spn = " + spn +
+              ", spnDisplayCondition = " + spnDisplayCondition);
+      }
+
+      RIL.iccInfoPrivate.SPN = {
+        spn : spn,
+        spnDisplayCondition : spnDisplayCondition,
+      };
+      RIL.iccInfo.spn = spn;
+      RIL.updateDisplayCondition();
+      this.handleICCInfoChange();
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_SPN,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+  getSST: function getSST() {
+    function callback() {
+      let length = Buf.readUint32();
+      
+      let len = length / 2;
+      RIL.iccInfo.sst = GsmPDUHelper.readHexOctetArray(len);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) {
+        let str = "";
+        for (let i = 0; i < RIL.iccInfo.sst.length; i++) {
+          str += RIL.iccInfo.sst[i] + ", ";
+        }
+        debug("SST: " + str);
+      }
+
+      
+      if (RIL.isICCServiceAvailable("SPN")) {
+        if (DEBUG) debug("SPN: SPN is available");
+        this.getSPN();
+      } else {
+        if (DEBUG) debug("SPN: SPN service is not available");
+      }
+
+      if (RIL.isICCServiceAvailable("SPDI")) {
+        if (DEBUG) debug("SPDI: SPDI available.");
+        this.getSPDI();
+      } else {
+        if (DEBUG) debug("SPDI: SPDI service is not available");
+      }
+
+      if (RIL.isICCServiceAvailable("PNN")) {
+        if (DEBUG) debug("PNN: PNN is available");
+        this.getPNN();
+      } else {
+        if (DEBUG) debug("PNN: PNN is not available");
+      }
+
+      if (RIL.isICCServiceAvailable("OPL")) {
+        if (DEBUG) debug("OPL: OPL is available");
+        this.getOPL();
+      } else {
+        if (DEBUG) debug("OPL: OPL is not available");
+      }
+
+      if (RIL.isICCServiceAvailable("CBMI")) {
+        this.getCBMI();
+      } else {
+        RIL.cellBroadcastConfigs.CBMI = null;
+      }
+      if (RIL.isICCServiceAvailable("CBMIR")) {
+        this.getCBMIR();
+      } else {
+        RIL.cellBroadcastConfigs.CBMIR = null;
+      }
+      RIL._mergeAllCellBroadcastConfigs();
+    }
+
+    
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_SST,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+
+  getFDN: function getFDN(options) {
+    function callback(options) {
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      if (contact) {
+        RIL.iccInfo.fdn.push(contact);
+      }
+
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        if (DEBUG) {
+          for (let i = 0; i < RIL.iccInfo.fdn.length; i++) {
+            debug("FDN[" + i + "] alphaId = " + RIL.iccInfo.fdn[i].alphaId +
+                                " number  = " + RIL.iccInfo.fdn[i].number);
+          }
+        }
+        
+        
+        
+        delete options.callback;
+        delete options.onerror;
+        options.rilMessageType = "icccontacts";
+        options.contacts = RIL.iccInfo.fdn;
+        RIL.sendDOMMessage(options);
+      }
+    }
+
+    RIL.iccInfo.fdn = [];
+    options.fileId = ICC_EF_FDN;
+    options.callback = callback.bind(this);
+    ICCIOHelper.loadLinearFixedEF(options);
+  },
+
+  
+
+
+
+
+
+
+
+  getADN: function getADN(options) {
+    function callback(options) {
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      if (contact) {
+        RIL.iccInfo.adn.push(contact);
+      }
+
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        if (DEBUG) {
+          for (let i = 0; i < RIL.iccInfo.adn.length; i++) {
+            debug("ADN[" + i + "] " + JSON.stringify(RIL.iccInfo.adn[i]));
+          }
+        }
+        
+        
+        
+        delete options.callback;
+        delete options.onerror;
+        options.rilMessageType = "icccontacts";
+        options.contacts = RIL.iccInfo.adn;
+        RIL.sendDOMMessage(options);
+      }
+    }
+
+    function error(options) {
+      delete options.callback;
+      delete options.onerror;
+      options.rilMessageType = "icccontacts";
+      RIL.sendDOMMessage(options);
+    }
+
+    RIL.iccInfo.adn = [];
+    options.callback = callback.bind(this);
+    options.onerror = error.bind(this);
+    ICCIOHelper.loadLinearFixedEF(options);
+  },
+
+  
+
+
+
+
+  getMBDN: function getMBDN() {
+    function callback(options) {
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      if (!contact || RIL.iccInfo.mbdn === contact.number){
+        return;
+      }
+      RIL.iccInfo.mbdn = contact.number;
+      if (DEBUG) {
+        debug("MBDN, alphaId="+contact.alphaId+" number="+contact.number);
+      }
+      contact.rilMessageType = "iccmbdn";
+      RIL.sendDOMMessage(contact);
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_MBDN,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+
+  getPBR: function getPBR(options) {
+    function callback(options) {
+      let bufLen = Buf.readUint32();
+
+      let tag = GsmPDUHelper.readHexOctet();
+      let length = GsmPDUHelper.readHexOctet();
+      let value = this.decodeSimTlvs(length);
+
+      let adn = this.searchForIccUsimTag(value, ICC_USIM_EFADN_TAG);
+      options.fileId = (adn.value[0] << 8) | adn.value[1];
+      Buf.readStringDelimiter(bufLen);
+
+      this.getADN(options);
+    }
+
+    function error(options) {
+      delete options.callback;
+      delete options.onerror;
+      options.rilMessageType = "icccontacts";
+      RIL.sendDOMMessage(options);
+    }
+
+    options.fileId = ICC_EF_PBR;
+    options.callback = callback.bind(this);
+    options.onerror = error.bind(this);
+    ICCIOHelper.loadLinearFixedEF(options);
+  },
+
+  
+
+
+
+
+  getPLMNSelector: function getPLMNSelector() {
+    function callback() {
+      if (DEBUG) debug("PLMN Selector: Process PLMN Selector");
+
+      let length = Buf.readUint32();
+      RIL.iccInfoPrivate.PLMN = this.readPLMNEntries(length/3);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) debug("PLMN Selector: " + JSON.stringify(RIL.iccInfoPrivate.PLMN));
+
+      if (RIL.updateDisplayCondition()) {
+        this.handleICCInfoChange();
+      }
+    }
+
+    
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_PLMNsel,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+
+  getSPDI: function getSPDI() {
+    function callback() {
+      let length = Buf.readUint32();
+      let readLen = 0;
+      let endLoop = false;
+      RIL.iccInfoPrivate.SPDI = null;
+      while ((readLen < length / 2) && !endLoop) {
+        let tlvTag = GsmPDUHelper.readHexOctet();
+        let tlvLen = GsmPDUHelper.readHexOctet();
+        readLen += 2; 
+        switch (tlvTag) {
+        case SPDI_TAG_SPDI:
+          
+          continue;
+        case SPDI_TAG_PLMN_LIST:
+          
+          RIL.iccInfoPrivate.SPDI = this.readPLMNEntries(tlvLen / 3);
+          readLen += tlvLen;
+          endLoop = true;
+          break;
+        default:
+          
+          
+          endLoop = true;
+          break;
+        }
+      }
+
+      
+      Buf.seekIncoming((length / 2 - readLen) * PDU_HEX_OCTET_SIZE);
+      Buf.readStringDelimiter(length);
+
+      if (DEBUG) debug("SPDI: " + JSON.stringify(RIL.iccInfoPrivate.SPDI));
+      if (RIL.updateDisplayCondition()) {
+        this.handleICCInfoChange();
+      }
+    }
+
+    
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_SPDI,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+  getCBMI: function getCBMI() {
+    function callback() {
+      let strLength = Buf.readUint32();
+
+      
+      
+      let numIds = strLength / 4, list = null;
+      if (numIds) {
+        list = [];
+        for (let i = 0, id; i < numIds; i++) {
+          id = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          
+          if (id != 0xFFFF) {
+            list.push(id);
+            list.push(id + 1);
+          }
+        }
+      }
+      if (DEBUG) {
+        debug("CBMI: " + JSON.stringify(list));
+      }
+
+      Buf.readStringDelimiter(strLength);
+
+      RIL.cellBroadcastConfigs.CBMI = list;
+      RIL._mergeAllCellBroadcastConfigs();
+    }
+
+    function onerror() {
+      RIL.cellBroadcastConfigs.CBMI = null;
+      RIL._mergeAllCellBroadcastConfigs();
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_CBMI,
+                                   callback: callback.bind(this),
+                                   onerror: onerror.bind(this)});
+  },
+
+  
+
+
+
+
+  getCBMIR: function getCBMIR() {
+    function callback() {
+      let strLength = Buf.readUint32();
+
+      
+      
+      let numIds = strLength / 8, list = null;
+      if (numIds) {
+        list = [];
+        for (let i = 0, from, to; i < numIds; i++) {
+          
+          
+          
+          from = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          to = GsmPDUHelper.readHexOctet() << 8 | GsmPDUHelper.readHexOctet();
+          
+          if ((from != 0xFFFF) && (to != 0xFFFF)) {
+            list.push(from);
+            list.push(to + 1);
+          }
+        }
+      }
+      if (DEBUG) {
+        debug("CBMIR: " + JSON.stringify(list));
+      }
+
+      Buf.readStringDelimiter(strLength);
+
+      RIL.cellBroadcastConfigs.CBMIR = list;
+      RIL._mergeAllCellBroadcastConfigs();
+    }
+
+    function onerror() {
+      RIL.cellBroadcastConfigs.CBMIR = null;
+      RIL._mergeAllCellBroadcastConfigs();
+    }
+
+    ICCIOHelper.loadTransparentEF({fileId: ICC_EF_CBMIR,
+                                   callback: callback.bind(this),
+                                   onerror: onerror.bind(this)});
+  },
+
+  
+
+
+
+
+
+  getOPL: function getOPL() {
+    let opl = [];
+    function callback(options) {
+      let len = Buf.readUint32();
+      
+      
+      
+      
+      
+      
+      
+      let mccMnc = [GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet()];
+      if (mccMnc[0] != 0xFF || mccMnc[1] != 0xFF || mccMnc[2] != 0xFF) {
+        let oplElement = {};
+        let semiOctets = [];
+        for (let i = 0; i < mccMnc.length; i++) {
+          semiOctets.push((mccMnc[i] & 0xf0) >> 4);
+          semiOctets.push(mccMnc[i] & 0x0f);
+        }
+        let reformat = [semiOctets[1], semiOctets[0], semiOctets[3],
+                        semiOctets[5], semiOctets[4], semiOctets[2]];
+        let buf = "";
+        for (let i = 0; i < reformat.length; i++) {
+          if (reformat[i] != 0xF) {
+            buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
+          }
+          if (i === 2) {
+            
+            oplElement.mcc = parseInt(buf);
+            buf = "";
+          } else if (i === 5) {
+            
+            oplElement.mnc = parseInt(buf);
+          }
+        }
+        
+        oplElement.lacTacStart =
+          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+        oplElement.lacTacEnd =
+          (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+        
+        oplElement.pnnRecordId = GsmPDUHelper.readHexOctet();
+        if (DEBUG) {
+          debug("OPL: [" + (opl.length + 1) + "]: " + JSON.stringify(oplElement));
+        }
+        opl.push(oplElement);
+      }
+      Buf.readStringDelimiter(len);
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        RIL.iccInfoPrivate.OPL = opl;
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_OPL,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+
+  getPNN: function getPNN() {
+    let pnn = [];
+    function callback(options) {
+      let pnnElement = RIL.iccInfoPrivate.PNN = {};
+      let len = Buf.readUint32();
+      let readLen = 0;
+      while (len > readLen) {
+        let tlvTag = GsmPDUHelper.readHexOctet();
+        readLen = readLen + 2; 
+        if (tlvTag == 0xFF) {
+          
+          continue;
+        }
+        let tlvLen = GsmPDUHelper.readHexOctet();
+        let name;
+        switch (tlvTag) {
+        case PNN_IEI_FULL_NETWORK_NAME:
+          pnnElement.fullName = GsmPDUHelper.readNetworkName(tlvLen);
+          break;
+        case PNN_IEI_SHORT_NETWORK_NAME:
+          pnnElement.shortName = GsmPDUHelper.readNetworkName(tlvLen);
+          break;
+        default:
+          Buf.seekIncoming(PDU_HEX_OCTET_SIZE * tlvLen);
+        }
+        readLen += (tlvLen * 2 + 2);
+      }
+      if (DEBUG) {
+        debug("PNN: [" + (pnn.length + 1) + "]: " + JSON.stringify(pnnElement));
+      }
+      Buf.readStringDelimiter(len);
+      pnn.push(pnnElement);
+
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        RIL.iccInfoPrivate.PNN = pnn;
+      }
+    }
+
+    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_PNN,
+                                   callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+
+
+
+
+  readPLMNEntries: function readPLMNEntries(length) {
+    let plmnList = [];
+    
+    debug("readPLMNEntries: PLMN entries length = " + length);
+    let index = 0;
+    while (index < length) {
+      
+      
+      try {
+        let plmn = [GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet(),
+                    GsmPDUHelper.readHexOctet()];
+        if (DEBUG) debug("readPLMNEntries: Reading PLMN entry: [" + index +
+                         "]: '" + plmn + "'");
+        if (plmn[0] != 0xFF &&
+            plmn[1] != 0xFF &&
+            plmn[2] != 0xFF) {
+          let semiOctets = [];
+          for (let idx = 0; idx < plmn.length; idx++) {
+            semiOctets.push((plmn[idx] & 0xF0) >> 4);
+            semiOctets.push(plmn[idx] & 0x0F);
+          }
+
+          
+          
+          
+          
+          
+          
+          let reformat = [semiOctets[1], semiOctets[0], semiOctets[3],
+                          semiOctets[5], semiOctets[4], semiOctets[2]];
+          let buf = "";
+          let plmnEntry = {};
+          for (let i = 0; i < reformat.length; i++) {
+            if (reformat[i] != 0xF) {
+              buf += GsmPDUHelper.semiOctetToBcdChar(reformat[i]);
+            }
+            if (i === 2) {
+              
+              plmnEntry.mcc = parseInt(buf);
+              buf = "";
+            } else if (i === 5) {
+              
+              plmnEntry.mnc = parseInt(buf);
+            }
+          }
+          if (DEBUG) debug("readPLMNEntries: PLMN = " + plmnEntry.mcc + ", " + plmnEntry.mnc);
+          plmnList.push(plmnEntry);
+        }
+      } catch (e) {
+        if (DEBUG) debug("readPLMNEntries: PLMN entry " + index + " is invalid.");
+        break;
+      }
+      index ++;
+    }
+    return plmnList;
+  },
+
+  
+
+
+  handleICCInfoChange: function handleICCInfoChange() {
+    RIL.iccInfo.rilMessageType = "iccinfochange";
+    RIL.sendDOMMessage(RIL.iccInfo);
+  },
+
+  decodeSimTlvs: function decodeSimTlvs(tlvsLen) {
+    let index = 0;
+    let tlvs = [];
+    while (index < tlvsLen) {
+      let simTlv = {
+        tag : GsmPDUHelper.readHexOctet(),
+        length : GsmPDUHelper.readHexOctet(),
+      };
+      simTlv.value = GsmPDUHelper.readHexOctetArray(simTlv.length)
+      tlvs.push(simTlv);
+      index += simTlv.length + 2 ;
+    }
+    return tlvs;
+  },
+
+  searchForIccUsimTag: function searchForIccUsimTag(tlvs, tag) {
+    for (let i = 0; i < tlvs.length; i++) {
+      if (tlvs[i].tag == tag) {
+        return tlvs[i];
+      }
+    }
+    return null;
+  },
 };
 
 
