@@ -105,6 +105,17 @@ public:
   
   nsRenderingContext* rendContext;
 
+  const nsMargin& ComputedPhysicalMargin() const { return mComputedMargin; }
+  const nsMargin& ComputedPhysicalBorderPadding() const { return mComputedBorderPadding; }
+  const nsMargin& ComputedPhysicalPadding() const { return mComputedPadding; }
+
+  
+  
+  nsMargin& ComputedPhysicalMargin() { return mComputedMargin; }
+  nsMargin& ComputedPhysicalBorderPadding() { return mComputedBorderPadding; }
+  nsMargin& ComputedPhysicalPadding() { return mComputedPadding; }
+
+protected:
   
   nsMargin         mComputedMargin;
 
@@ -114,6 +125,7 @@ public:
   
   nsMargin         mComputedPadding;
 
+public:
   
   nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext)
     : frame(aFrame)
@@ -236,22 +248,6 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
 
   
   
-  
-  
-  nscoord              availableWidth;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  nscoord              availableHeight;
-
-  
-  
   nsCSSFrameType   mFrameType;
 
   
@@ -264,7 +260,48 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   
   nscoord mBlockDelta;
 
+  
+  
+  
+  
+  
+  nscoord AvailableWidth() const { return mAvailableWidth; }
+  nscoord AvailableHeight() const { return mAvailableHeight; }
+  nscoord ComputedWidth() const { return mComputedWidth; }
+  nscoord ComputedHeight() const { return mComputedHeight; }
+  nscoord ComputedMinWidth() const { return mComputedMinWidth; }
+  nscoord ComputedMaxWidth() const { return mComputedMaxWidth; }
+  nscoord ComputedMinHeight() const { return mComputedMinHeight; }
+  nscoord ComputedMaxHeight() const { return mComputedMaxHeight; }
+  const nsMargin& ComputedPhysicalOffsets() const { return mComputedOffsets; }
+
+  nscoord& AvailableWidth() { return mAvailableWidth; }
+  nscoord& AvailableHeight() { return mAvailableHeight; }
+  nscoord& ComputedWidth() { return mComputedWidth; }
+  nscoord& ComputedHeight() { return mComputedHeight; }
+  nscoord& ComputedMinWidth() { return mComputedMinWidth; }
+  nscoord& ComputedMaxWidth() { return mComputedMaxWidth; }
+  nscoord& ComputedMinHeight() { return mComputedMinHeight; }
+  nscoord& ComputedMaxHeight() { return mComputedMaxHeight; }
+  nsMargin& ComputedPhysicalOffsets() { return mComputedOffsets; }
+
 private:
+  
+  
+  
+  
+  nscoord              mAvailableWidth;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord              mAvailableHeight;
+
   
   
   
@@ -290,7 +327,6 @@ private:
   
   nscoord          mComputedHeight;
 
-public:
   
   
   nsMargin         mComputedOffsets;
@@ -301,6 +337,7 @@ public:
   nscoord          mComputedMinWidth, mComputedMaxWidth;
   nscoord          mComputedMinHeight, mComputedMaxHeight;
 
+public:
   
   const nsStyleDisplay*    mStyleDisplay;
   const nsStyleVisibility* mStyleVisibility;
@@ -518,11 +555,9 @@ public:
             (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
   }
 
-  nscoord ComputedWidth() const { return mComputedWidth; }
   
   void SetComputedWidth(nscoord aComputedWidth);
 
-  nscoord ComputedHeight() const { return mComputedHeight; }
   
   void SetComputedHeight(nscoord aComputedHeight);
 
