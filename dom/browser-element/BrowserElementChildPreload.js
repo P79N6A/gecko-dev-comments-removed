@@ -641,8 +641,18 @@ BrowserElementChild.prototype = {
 
   _recvSetVisible: function(data) {
     debug("Received setVisible message: (" + data.json.visible + ")");
+    if (this._forcedVisible == data.json.visible) {
+      return;
+    }
+
     this._forcedVisible = data.json.visible;
     this._updateDocShellVisibility();
+
+    
+    
+    var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+    os.notifyObservers( null, 'process-priority:reset-now',
+                        null);
   },
 
   _recvVisible: function(data) {
