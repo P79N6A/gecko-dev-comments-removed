@@ -45,6 +45,48 @@ function defineLazyRegExp(obj, name, pattern) {
   });
 }
 
+function RangedValue(name, min, max) {
+  this.name = name;
+  this.min = min;
+  this.max = max;
+}
+RangedValue.prototype = {
+  name: null,
+  min: null,
+  max: null,
+
+  
+
+
+
+
+
+
+
+  decode: function decode(data) {
+    let value = WSP.Octet.decode(data);
+    if ((value >= this.min) && (value <= this.max)) {
+      return value;
+    }
+
+    throw new WSP.CodeError(this.name + ": invalid value " + value);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if ((value < this.min) || (value > this.max)) {
+      throw new WSP.CodeError(this.name + ": invalid value " + value);
+    }
+
+    WSP.Octet.encode(data, value);
+  },
+};
+
 
 
 
@@ -343,8 +385,7 @@ this.MmsHeader = {
 
 
 
-this.ContentClassValue = {
-  
+this.CancelStatusValue = new RangedValue("Cancel-status-value", 128, 129);
 
 
 
@@ -352,29 +393,7 @@ this.ContentClassValue = {
 
 
 
-  decode: function decode(data) {
-    let value = WSP.Octet.decode(data);
-    if ((value >= 128) && (value <= 135)) {
-      return value;
-    }
-
-    throw new WSP.CodeError("Content-class-value: invalid class " + value);
-  },
-
-  
-
-
-
-
-
-  encode: function encode(data, value) {
-    if ((value < 128) || (value > 135)) {
-      throw new WSP.CodeError("Content-class-value: invalid class " + value);
-    }
-
-    WSP.Octet.encode(data, value);
-  },
-};
+this.ContentClassValue = new RangedValue("Content-class-value", 128, 135);
 
 
 
@@ -969,40 +988,7 @@ this.MessageClassValue = {
 
 
 
-this.MessageTypeValue = {
-  
-
-
-
-
-
-
-
-  decode: function decode(data) {
-    let type = WSP.Octet.decode(data);
-    if ((type >= 128) && (type <= 151)) {
-      return type;
-    }
-
-    throw new WSP.CodeError("Message-type-value: invalid type " + type);
-  },
-
-  
-
-
-
-
-
-
-
-  encode: function encode(data, type) {
-    if ((type < 128) || (type > 151)) {
-      throw new WSP.CodeError("Message-type-value: invalid type " + type);
-    }
-
-    WSP.Octet.encode(data, type);
-  },
-};
+this.MessageTypeValue = new RangedValue("Message-type-value", 128, 151);
 
 
 
@@ -1075,40 +1061,7 @@ this.MmFlagsValue = {
 
 
 
-this.MmStateValue = {
-  
-
-
-
-
-
-
-
-  decode: function decode(data) {
-    let state = WSP.Octet.decode(data);
-    if ((state >= 128) && (state <= 132)) {
-      return state;
-    }
-
-    throw new WSP.CodeError("MM-state-value: invalid state " + state);
-  },
-
-  
-
-
-
-
-
-
-
-  encode: function encode(data, state) {
-    if ((state < 128) || (state > 132)) {
-      throw new WSP.CodeError("MM-state-value: invalid state " + state);
-    }
-
-    WSP.Octet.encode(data, state);
-  },
-};
+this.MmStateValue = new RangedValue("MM-state-value", 128, 132);
 
 
 
@@ -1118,38 +1071,14 @@ this.MmStateValue = {
 
 
 
-this.PriorityValue = {
-  
+this.PriorityValue = new RangedValue("Priority-value", 128, 130);
 
 
 
 
 
 
-
-  decode: function decode(data) {
-    let priority = WSP.Octet.decode(data);
-    if ((priority >= 128) && (priority <= 130)) {
-      return priority;
-    }
-
-    throw new WSP.CodeError("Priority-value: invalid priority " + priority);
-  },
-
-  
-
-
-
-
-
-  encode: function encode(data, priority) {
-    if ((priority < 128) || (priority > 130)) {
-      throw new WSP.CodeError("Priority-value: invalid priority " + priority);
-    }
-
-    WSP.Octet.encode(data, priority);
-  },
-};
+this.ReadStatusValue = new RangedValue("Read-status-value", 128, 129);
 
 
 
@@ -1179,38 +1108,7 @@ this.RecommendedRetrievalModeValue = {
 
 
 
-this.ReplyChargingValue = {
-  
-
-
-
-
-
-
-
-  decode: function decode(data) {
-    let value = WSP.Octet.decode(data);
-    if ((value >= 128) && (value <= 131)) {
-      return value;
-    }
-
-    throw new WSP.CodeError("Reply-charging-value: invalid value " + value);
-  },
-
-  
-
-
-
-
-
-  encode: function encode(data, value) {
-    if ((value < 128) || (value > 131)) {
-      throw new WSP.CodeError("Reply-charging-value: invalid value " + value);
-    }
-
-    WSP.Octet.encode(data, value);
-  },
-};
+this.ReplyChargingValue = new RangedValue("Reply-charging-value", 128, 131);
 
 
 
@@ -1304,6 +1202,7 @@ this.RetrieveStatusValue = {
 
 
 
+this.SenderVisibilityValue = new RangedValue("Sender-visibility-value", 128, 129);
 
 
 
@@ -1313,40 +1212,13 @@ this.RetrieveStatusValue = {
 
 
 
-this.StatusValue = {
-  
 
 
 
 
 
 
-
-  decode: function decode(data) {
-    let status = WSP.Octet.decode(data);
-    if ((status >= 128) && (status <= 135)) {
-      return status;
-    }
-
-    throw new WSP.CodeError("Status-value: invalid status " + status);
-  },
-
-  
-
-
-
-
-
-
-
-  encode: function encode(data, value) {
-    if ((value < 128) || (value > 135)) {
-      throw new WSP.CodeError("Status-value: invalid status " + value);
-    }
-
-    WSP.Octet.encode(data, value);
-  },
-};
+this.StatusValue = new RangedValue("Status-value", 128, 135);
 
 this.PduHelper = {
   
@@ -1671,14 +1543,14 @@ const MMS_HEADER_FIELDS = (function () {
   add("x-mms-report-allowed",                    0x11, BooleanValue);
   add("x-mms-response-status",                   0x12, RetrieveStatusValue);
   add("x-mms-response-text",                     0x13, ResponseText);
-  add("x-mms-sender-visibility",                 0x14, BooleanValue);
+  add("x-mms-sender-visibility",                 0x14, SenderVisibilityValue);
   add("x-mms-status",                            0x15, StatusValue);
   add("subject",                                 0x16, EncodedStringValue);
   add("to",                                      0x17, Address);
   add("x-mms-transaction-id",                    0x18, WSP.TextString);
   add("x-mms-retrieve-status",                   0x19, RetrieveStatusValue);
   add("x-mms-retrieve-text",                     0x1A, EncodedStringValue);
-  add("x-mms-read-status",                       0x1B, BooleanValue);
+  add("x-mms-read-status",                       0x1B, ReadStatusValue);
   add("x-mms-reply-charging",                    0x1C, ReplyChargingValue);
   add("x-mms-reply-charging-deadline",           0x1D, ExpiryValue);
   add("x-mms-reply-charging-id",                 0x1E, WSP.TextString);
@@ -1714,7 +1586,7 @@ const MMS_HEADER_FIELDS = (function () {
   add("x-mms-adaptation-allowed",                0x3C, BooleanValue);
   add("x-mms-replace-id",                        0x3D, WSP.TextString);
   add("x-mms-cancel-id",                         0x3E, WSP.TextString);
-  add("x-mms-cancel-status",                     0x3F, BooleanValue);
+  add("x-mms-cancel-status",                     0x3F, CancelStatusValue);
 
   return names;
 })();
@@ -1759,6 +1631,7 @@ this.EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   "Address",
   "HeaderField",
   "MmsHeader",
+  "CancelStatusValue",
   "ContentClassValue",
   "ContentLocationValue",
   "ElementDescriptorValue",
@@ -1773,10 +1646,12 @@ this.EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   "MmFlagsValue",
   "MmStateValue",
   "PriorityValue",
+  "ReadStatusValue",
   "RecommendedRetrievalModeValue",
   "ReplyChargingValue",
   "ResponseText",
   "RetrieveStatusValue",
+  "SenderVisibilityValue",
   "StatusValue",
 
   
