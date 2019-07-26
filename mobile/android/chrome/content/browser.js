@@ -2131,6 +2131,10 @@ var UserAgent = {
 
   getUserAgentForUriAndTab: function ua_getUserAgentForUriAndTab(aUri, aTab, defaultUA) {
     
+    if (aTab.desktopMode)
+      return this.DESKTOP_UA;
+
+    
     if (aUri.schemeIs("http") || aUri.schemeIs("https")) {
       if (this.YOUTUBE_DOMAIN.test(aUri.host)) {
         
@@ -2138,10 +2142,6 @@ var UserAgent = {
           return defaultUA.replace("Android;", "Android; Mobile;");
       }
     }
-
-    
-    if (aTab.desktopMode)
-      return this.DESKTOP_UA;
 
     return defaultUA;
   },
