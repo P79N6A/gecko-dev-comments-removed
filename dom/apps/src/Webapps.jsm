@@ -2381,7 +2381,7 @@ this.DOMApplicationRegistry = {
                 
                 
                 
-                if (app.installState === "installed") {
+                if (app.installState !== "pending") {
                   app.downloadAvailable = false;
                 }
                 if (typeof e == 'object') {
