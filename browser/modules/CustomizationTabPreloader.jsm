@@ -115,7 +115,7 @@ HiddenBrowser.prototype = {
 
     
     let mm = aTab.linkedBrowser.messageManager;
-    let scripts = win.messageManager.getDelayedFrameScripts();
+    let scripts = win.getGroupMessageManager("browsers").getDelayedFrameScripts();
     Array.forEach(scripts, ([script, runGlobal]) => mm.loadFrameScript(script, true, runGlobal));
 
     
