@@ -9,8 +9,10 @@ import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.util.ThreadUtils;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -52,15 +54,56 @@ public class UninstallListener extends BroadcastReceiver {
         ArrayList<String> installedPackages = allocator.getInstalledPackageNames();
 
         if (installedPackages.contains(packageName)) {
-            JSONObject message = new JSONObject();
-            JSONArray packageNames = new JSONArray();
-            try {
-                packageNames.put(packageName);
-                message.put("apkPackageNames", packageNames);
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Webapps:AutoUninstall", message.toString()));
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "JSON EXCEPTION " + e);
+            doUninstall(context, packageName);
+        }
+    }
+
+    private static void doUninstall(Context context, String packageName) {
+        ArrayList<String> uninstalledPackages = new ArrayList<String>();
+        uninstalledPackages.add(packageName);
+        doUninstall(context, uninstalledPackages);
+    }
+
+    private static void doUninstall(Context context, ArrayList<String> packageNames) {
+        Allocator allocator = Allocator.getInstance(context);
+        JSONObject message = new JSONObject();
+        JSONArray jsonPackages = new JSONArray();
+
+        for (String packageName : packageNames) {
+            
+            
+            jsonPackages.put(packageName);
+
+            int index = allocator.getIndexForApp(packageName);
+
+            
+            if (index == -1)
+                continue;
+
+            
+            String targetProcessName = context.getPackageName();
+            targetProcessName = targetProcessName + ":" + targetProcessName + ".Webapp" + index;
+
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+            if (procs != null) {
+                for (ActivityManager.RunningAppProcessInfo proc : procs) {
+                    if (proc.processName.equals(targetProcessName)) {
+                        android.os.Process.killProcess(proc.pid);
+                        break;
+                    }
+                }
             }
+
+            
+            GeckoProfile.removeProfile(context, "webapp" + index);
+        }
+
+        try {
+            message.put("apkPackageNames", jsonPackages);
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Webapps:AutoUninstall", message.toString()));
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "Error sending uninstall packages to Gecko", e);
         }
     }
 
@@ -76,7 +119,6 @@ public class UninstallListener extends BroadcastReceiver {
         Set<String> allInstalledPackages = new HashSet<String>();
 
         for (ApplicationInfo packageInfo : packages) {
-            
             allInstalledPackages.add(packageInfo.packageName);
         }
 
@@ -87,17 +129,7 @@ public class UninstallListener extends BroadcastReceiver {
         }
 
         if (uninstalledPackages.size() > 0) {
-            JSONObject message = new JSONObject();
-            JSONArray packageNames = new JSONArray();
-            try {
-                for (String packageName : uninstalledPackages) {
-                    packageNames.put(packageName);
-                }
-                message.put("apkPackageNames", packageNames);
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Webapps:AutoUninstall", message.toString()));
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "JSON EXCEPTION " + e);
-            }
+            doUninstall(context, uninstalledPackages);
         }
     }
 
