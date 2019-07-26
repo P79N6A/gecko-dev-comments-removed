@@ -407,12 +407,14 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
         pn = fn->pn_body;
     }
 
+#ifdef JS_ION
     
 
 
 
     if (fn->pn_funbox->useAsm && !CompileAsmJS(cx, parser.tokenStream, fn, script))
         return false;
+#endif
 
     if (!SetSourceMap(cx, parser.tokenStream, ss, script))
         return false;

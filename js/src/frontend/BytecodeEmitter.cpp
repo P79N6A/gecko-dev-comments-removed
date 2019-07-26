@@ -4392,12 +4392,14 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         script->bindings = funbox->bindings;
 
+#ifdef JS_ION
         
         
         
         
         if (funbox->useAsm && !CompileAsmJS(cx, *bce->tokenStream(), pn, script))
             return false;
+#endif
 
         BytecodeEmitter bce2(bce, bce->parser, funbox, script, bce->evalCaller,
                              bce->hasGlobalScope, pn->pn_pos.begin.lineno, bce->selfHostingMode);
