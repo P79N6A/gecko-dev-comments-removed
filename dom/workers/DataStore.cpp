@@ -678,8 +678,12 @@ WorkerDataStore::Sync(JSContext* aCx,
 
   
   
-  nsRefPtr<WorkerDataStoreCursor> workerCursor = new WorkerDataStoreCursor();
+  
+  nsRefPtr<WorkerDataStoreCursor> workerCursor =
+    new WorkerDataStoreCursor(this);
 
+  
+  
   nsRefPtr<DataStoreSyncStoreRunnable> runnable =
     new DataStoreSyncStoreRunnable(workerPrivate,
                                    mBackingStore,
