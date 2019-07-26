@@ -28,6 +28,7 @@ import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.View;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -297,13 +298,20 @@ public class HomePager extends ViewPager {
         setAdapter(null);
 
         
-        adapter.update(panelConfigs);
+        final List<PanelConfig> enabledPanels = new ArrayList<PanelConfig>();
+
+        for (PanelConfig panelConfig : panelConfigs) {
+            if (!panelConfig.isDisabled()) {
+                enabledPanels.add(panelConfig);
+            }
+        }
 
         
+        adapter.update(enabledPanels);
+
         
-        final int count = (panelConfigs != null ? panelConfigs.size() : 0);
+        final int count = enabledPanels.size();
         mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
-
         
         
         setAdapter(adapter);
@@ -316,7 +324,7 @@ public class HomePager extends ViewPager {
             mInitialPanelId = null;
         } else {
             for (int i = 0; i < count; i++) {
-                final PanelConfig panelConfig = panelConfigs.get(i);
+                final PanelConfig panelConfig = enabledPanels.get(i);
                 if (panelConfig.isDefault()) {
                     setCurrentItem(i, false);
                     break;
