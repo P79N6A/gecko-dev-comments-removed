@@ -8,6 +8,9 @@ pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.html");
 pref("browser.chromeURL", "chrome://browser/content/");
 
 
+pref("toolkit.defaultChromeFeatures", "chrome,dialog=no,close,resizable,scrollbars,extrachrome");
+
+
 pref("browser.viewport.scaleRatio", -1);
 
 
@@ -81,7 +84,16 @@ pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
-pref("layers.force-tiles", false);
+pref("layers.enable-tiles", false);
+
+
+
+
+#ifdef MOZ_WIDGET_COCOA
+pref("layers.progressive-paint", false);
+#else
+pref("layers.progressive-paint", false);
+#endif
 
 
 pref("browser.download.useDownloadDir", true);
@@ -439,6 +451,11 @@ pref("dom.mozNetworkStats.enabled", true);
 pref("dom.webapps.firstRunWithSIM", true);
 #endif
 
+#ifdef MOZ_B2G_RIL
+
+pref("dom.mozApps.single_variant_sourcedir", "/persist/svoperapps");
+#endif
+
 
 pref("dom.mozSettings.enabled", true);
 pref("dom.navigator-property.disable.mozSettings", false);
@@ -736,6 +753,9 @@ pref("font.size.inflation.disabledInMasterProcess", true);
 
 pref("memory.free_dirty_pages", true);
 
+
+pref("memory.system_memory_reporter", true);
+
 pref("layout.imagevisibility.enabled", true);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);
@@ -838,3 +858,18 @@ pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
 
 
 pref("media.webspeech.synth.enabled", true);
+
+
+pref("dom.mozDownloads.enabled", true);
+
+
+pref("osfile.reset_worker_delay", 5000);
+
+
+pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
+
+
+
+
+
+pref("apz.asyncscroll.throttle", 40);

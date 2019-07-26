@@ -12,7 +12,6 @@ Cu.import('resource://gre/modules/ActivitiesService.jsm');
 Cu.import('resource://gre/modules/PermissionPromptHelper.jsm');
 Cu.import('resource://gre/modules/ObjectWrapper.jsm');
 Cu.import('resource://gre/modules/NotificationDB.jsm');
-Cu.import('resource://gre/modules/accessibility/AccessFu.jsm');
 Cu.import('resource://gre/modules/Payment.jsm');
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import('resource://gre/modules/UserAgentOverrides.jsm');
@@ -25,6 +24,7 @@ Cu.import('resource://gre/modules/NetworkStatsService.jsm');
 
 Cu.import('resource://gre/modules/SignInToWebsite.jsm');
 SignInToWebsiteController.init();
+Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
 
 XPCOMUtils.defineLazyServiceGetter(Services, 'env',
                                    '@mozilla.org/process/environment;1',
@@ -308,7 +308,6 @@ var shell = {
 
     CustomEventManager.init();
     WebappsHelper.init();
-    AccessFu.attach(window);
     UserAgentOverrides.init();
     IndexedDBPromptHelper.init();
     CaptivePortalLoginHelper.init();
@@ -613,6 +612,8 @@ var shell = {
     DOMApplicationRegistry.allAppsLaunchable = true;
 
     this.sendEvent(window, 'ContentStart');
+
+    Services.obs.notifyObservers(null, 'content-start', null);
 
 #ifdef MOZ_WIDGET_GONK
     Cu.import('resource://gre/modules/OperatorApps.jsm');
@@ -1062,13 +1063,14 @@ let RemoteDebugger = {
         if ("nsIProfiler" in Ci) {
           DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/profiler.js");
         }
-        DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/styleeditor.js");
+        DebuggerServer.registerModule("devtools/server/actors/inspector");
+        DebuggerServer.registerModule("devtools/server/actors/styleeditor");
+        DebuggerServer.registerModule("devtools/server/actors/stylesheets");
         DebuggerServer.enableWebappsContentActor = true;
       }
       DebuggerServer.addActors('chrome://browser/content/dbg-browser-actors.js');
       DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/webapps.js");
       DebuggerServer.registerModule("devtools/server/actors/device");
-      DebuggerServer.registerModule("devtools/server/actors/inspector")
 
 #ifdef MOZ_WIDGET_GONK
       DebuggerServer.onConnectionChange = function(what) {
@@ -1267,7 +1269,6 @@ window.addEventListener('ContentStart', function update_onContentStart() {
   
   
   
-  
   let gRecordingActiveProcesses = {};
 
   let recordingHandler = function(aSubject, aTopic, aData) {
@@ -1275,57 +1276,87 @@ window.addEventListener('ContentStart', function update_onContentStart() {
     let processId = (props.hasKey('childID')) ? props.get('childID')
                                               : 'main';
     if (processId && !gRecordingActiveProcesses.hasOwnProperty(processId)) {
-      gRecordingActiveProcesses[processId] = {count: 0,
-                                              requestURL: props.get('requestURL'),
-                                              isApp: props.get('isApp'),
-                                              audioCount: 0,
-                                              videoCount: 0 };
+      gRecordingActiveProcesses[processId] = {};
     }
 
-    let currentActive = gRecordingActiveProcesses[processId];
-    let wasActive = (currentActive['count'] > 0);
-    let wasAudioActive = (currentActive['audioCount'] > 0);
-    let wasVideoActive = (currentActive['videoCount'] > 0);
+    let commandHandler = function (requestURL, command) {
+      let currentProcess = gRecordingActiveProcesses[processId];
+      let currentActive = currentProcess[requestURL];
+      let wasActive = (currentActive['count'] > 0);
+      let wasAudioActive = (currentActive['audioCount'] > 0);
+      let wasVideoActive = (currentActive['videoCount'] > 0);
+
+      switch (command.type) {
+        case 'starting':
+          currentActive['count']++;
+          currentActive['audioCount'] += (command.isAudio) ? 1 : 0;
+          currentActive['videoCount'] += (command.isVideo) ? 1 : 0;
+          break;
+        case 'shutdown':
+          currentActive['count']--;
+          currentActive['audioCount'] -= (command.isAudio) ? 1 : 0;
+          currentActive['videoCount'] -= (command.isVideo) ? 1 : 0;
+          break;
+        case 'content-shutdown':
+          currentActive['count'] = 0;
+          currentActive['audioCount'] = 0;
+          currentActive['videoCount'] = 0;
+          break;
+      }
+
+      if (currentActive['count'] > 0) {
+        currentProcess[requestURL] = currentActive;
+      } else {
+        delete currentProcess[requestURL];
+      }
+
+      
+      let isActive = (currentActive['count'] > 0);
+      let isAudioActive = (currentActive['audioCount'] > 0);
+      let isVideoActive = (currentActive['videoCount'] > 0);
+      if ((isActive != wasActive) ||
+          (isAudioActive != wasAudioActive) ||
+          (isVideoActive != wasVideoActive)) {
+        shell.sendChromeEvent({
+          type: 'recording-status',
+          active: isActive,
+          requestURL: requestURL,
+          isApp: currentActive['isApp'],
+          isAudio: isAudioActive,
+          isVideo: isVideoActive
+        });
+      }
+    };
 
     switch (aData) {
       case 'starting':
-        currentActive['count']++;
-        currentActive['audioCount'] += (props.get('isAudio')) ? 1 : 0;
-        currentActive['videoCount'] += (props.get('isVideo')) ? 1 : 0;
-        break;
       case 'shutdown':
-        currentActive['count']--;
-        currentActive['audioCount'] -= (props.get('isAudio')) ? 1 : 0;
-        currentActive['videoCount'] -= (props.get('isVideo')) ? 1 : 0;
+        
+        let requestURL = props.get('requestURL');
+        if (requestURL &&
+            !gRecordingActiveProcesses[processId].hasOwnProperty(requestURL)) {
+          gRecordingActiveProcesses[processId][requestURL] = {isApp: props.get('isApp'),
+                                                              count: 0,
+                                                              audioCount: 0,
+                                                              videoCount: 0};
+        }
+        commandHandler(requestURL, { type: aData,
+                                     isAudio: props.get('isAudio'),
+                                     isVideo: props.get('isVideo')});
         break;
       case 'content-shutdown':
-        currentActive['count'] = 0;
-        currentActive['audioCount'] = 0;
-        currentActive['videoCount'] = 0;
+        
+        Object.keys(gRecordingActiveProcesses[processId]).forEach(function(requestURL) {
+          commandHandler(requestURL, { type: aData,
+                                       isAudio: true,
+                                       isVideo: true});
+        });
         break;
-    }
-
-    if (currentActive['count'] > 0) {
-      gRecordingActiveProcesses[processId] = currentActive;
-    } else {
-      delete gRecordingActiveProcesses[processId];
     }
 
     
-    let isActive = (currentActive['count'] > 0);
-    let isAudioActive = (currentActive['audioCount'] > 0);
-    let isVideoActive = (currentActive['videoCount'] > 0);
-    if ((isActive != wasActive) ||
-        (isAudioActive != wasAudioActive) ||
-        (isVideoActive != wasVideoActive)) {
-      shell.sendChromeEvent({
-        type: 'recording-status',
-        active: isActive,
-        requestURL: currentActive['requestURL'],
-        isApp: currentActive['isApp'],
-        isAudio: isAudioActive,
-        isVideo: isVideoActive
-      });
+    if (Object.keys(gRecordingActiveProcesses[processId]).length == 0) {
+      delete gRecordingActiveProcesses[processId];
     }
   };
   Services.obs.addObserver(recordingHandler, 'recording-device-events', false);

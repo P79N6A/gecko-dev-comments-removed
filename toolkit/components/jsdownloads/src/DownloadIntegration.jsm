@@ -25,6 +25,8 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
+                                  "resource://gre/modules/DeferredTask.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
@@ -1089,6 +1091,7 @@ this.DownloadAutoSaveView = function (aList, aStore)
   this._list = aList;
   this._store = aStore;
   this._downloadsMap = new Map();
+  this._writer = new DeferredTask(() => this._store.save(), kSaveDelayMs);
 }
 
 this.DownloadAutoSaveView.prototype = {
@@ -1131,43 +1134,7 @@ this.DownloadAutoSaveView.prototype = {
   
 
 
-
-
-  _shouldSave: false,
-
-  
-
-
-
-
-
-
-
-  _timer: null,
-
-  
-
-
-  _save: function ()
-  {
-    Task.spawn(function () {
-      
-      this._shouldSave = false;
-
-      
-      try {
-        yield this._store.save();
-      } catch (ex) {
-        Cu.reportError(ex);
-      }
-
-      
-      this._timer = null;
-      if (this._shouldSave) {
-        this.saveSoon();
-      }
-    }.bind(this)).then(null, Cu.reportError);
-  },
+  _writer: null,
 
   
 
@@ -1175,11 +1142,7 @@ this.DownloadAutoSaveView.prototype = {
 
   saveSoon: function ()
   {
-    this._shouldSave = true;
-    if (!this._timer) {
-      this._timer = new Timer(this._save.bind(this), kSaveDelayMs,
-                              Ci.nsITimer.TYPE_ONE_SHOT);
-    }
+    this._writer.arm();
   },
 
   

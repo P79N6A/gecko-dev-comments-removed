@@ -51,7 +51,6 @@ DOMRequestIpcHelper.prototype = {
 
 
 
-
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference,
                                          Ci.nsIObserver]),
 
@@ -86,16 +85,16 @@ DOMRequestIpcHelper.prototype = {
       
       
       if (this._listeners[name] != undefined) {
-        if (!!aMsg.strongRef == this._listeners[name]) {
+        if (!!aMsg.weakRef == this._listeners[name]) {
           return;
         } else {
           throw Cr.NS_ERROR_FAILURE;
         }
       }
 
-      aMsg.strongRef ? cpmm.addMessageListener(name, this)
-                     : cpmm.addWeakMessageListener(name, this);
-      this._listeners[name] = !!aMsg.strongRef;
+      aMsg.weakRef ? cpmm.addWeakMessageListener(name, this)
+                   : cpmm.addMessageListener(name, this);
+      this._listeners[name] = !!aMsg.weakRef;
     });
   },
 
@@ -117,8 +116,8 @@ DOMRequestIpcHelper.prototype = {
         return;
       }
 
-      this._listeners[aName] ? cpmm.removeMessageListener(aName, this)
-                             : cpmm.removeWeakMessageListener(aName, this);
+      this._listeners[aName] ? cpmm.removeWeakMessageListener(aName, this)
+                             : cpmm.removeMessageListener(aName, this);
       delete this._listeners[aName];
     });
   },
@@ -177,8 +176,8 @@ DOMRequestIpcHelper.prototype = {
 
     if (this._listeners) {
       Object.keys(this._listeners).forEach((aName) => {
-        this._listeners[aName] ? cpmm.removeMessageListener(aName, this)
-                               : cpmm.removeWeakMessageListener(aName, this);
+        this._listeners[aName] ? cpmm.removeWeakMessageListener(aName, this)
+                               : cpmm.removeMessageListener(aName, this);
         delete this._listeners[aName];
       });
     }
