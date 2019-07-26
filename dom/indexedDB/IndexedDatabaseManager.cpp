@@ -22,7 +22,6 @@
 #include "nsITimer.h"
 
 #include "mozilla/dom/file/FileService.h"
-#include "mozilla/dom/TabContext.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -195,6 +194,13 @@ GetOriginPatternString(uint32_t aAppId, MozBrowserPatternFlag aBrowserFlag,
 #endif
 
   _retval = aOrigin;
+}
+
+void
+GetOriginPatternString(uint32_t aAppId, nsAutoCString& _retval)
+{
+  return GetOriginPatternString(aAppId, IgnoreMozBrowser, EmptyCString(),
+                                _retval);
 }
 
 void
@@ -618,29 +624,33 @@ IndexedDatabaseManager::FireWindowOnError(nsPIDOMWindow* aOwner,
 
 
 bool
-IndexedDatabaseManager::TabContextMayAccessOrigin(const TabContext& aContext,
-                                                  const nsACString& aOrigin)
+IndexedDatabaseManager::OriginMatchesApp(const nsACString& aOrigin,
+                                         uint32_t aAppId)
 {
   NS_ASSERTION(!aOrigin.IsEmpty(), "Empty origin!");
+  NS_ASSERTION(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID,
+               "Bad appId!");
 
   nsAutoCString pattern;
-  GetOriginPatternString(aContext.OwnOrContainingAppId(),
-                         aContext.IsBrowserElement(),
-                         pattern);
-  if (PatternMatchesOrigin(pattern, aOrigin)) {
-    return true;
-  }
+  GetOriginPatternString(aAppId, pattern);
 
-  
-  
-  if (!aContext.IsBrowserElement()) {
-    GetOriginPatternString(aContext.OwnOrContainingAppId(),
-                            true,
-                           pattern);
-    return PatternMatchesOrigin(pattern, aOrigin);
-  }
+  return PatternMatchesOrigin(pattern, aOrigin);
+}
 
-  return false;
+
+bool
+IndexedDatabaseManager::OriginMatchesApp(const nsACString& aOrigin,
+                                         uint32_t aAppId,
+                                         bool aInMozBrowser)
+{
+  NS_ASSERTION(!aOrigin.IsEmpty(), "Empty origin!");
+  NS_ASSERTION(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID,
+               "Bad appId!");
+
+  nsAutoCString pattern;
+  GetOriginPatternString(aAppId, aInMozBrowser, pattern);
+
+  return PatternMatchesOrigin(pattern, aOrigin);
 }
 
 bool

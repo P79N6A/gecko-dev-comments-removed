@@ -665,12 +665,13 @@ protected:
     bool JustStartedNetworkLoad();
 
     enum FrameType {
-        eFrameTypeRegular,
-        eFrameTypeBrowser,
-        eFrameTypeApp
+        eFrameTypeRegular  = 0x0, 
+        eFrameTypeBrowser  = 0x1, 
+        eFrameTypeApp      = 0x2  
     };
 
     FrameType GetInheritedFrameType();
+    FrameType GetFrameType();
 
     
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
@@ -807,6 +808,7 @@ protected:
     bool                       mIsAppTab;
     bool                       mUseGlobalHistory;
     bool                       mInPrivateBrowsing;
+    bool                       mIsBrowserFrame;
 
     
     
@@ -843,18 +845,7 @@ protected:
 
     nsRefPtr<nsDOMNavigationTiming> mTiming;
 
-    
-    FrameType mFrameType;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    uint32_t mOwnOrContainingAppId;
+    uint32_t mAppId;
 
 private:
     nsCOMPtr<nsIAtom> mForcedCharset;

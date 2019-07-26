@@ -851,7 +851,7 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
   
   
   nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
-  if (docshell && docshell->GetIsInBrowserOrApp() &&
+  if (docshell && docshell->GetIsBelowContentBoundary() &&
       !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
                         nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                         nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {

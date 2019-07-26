@@ -11,7 +11,6 @@
 
 #include "mozilla/dom/PContentParent.h"
 #include "mozilla/dom/PMemoryReportRequestParent.h"
-#include "mozilla/dom/TabContext.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/Attributes.h"
@@ -77,7 +76,13 @@ public:
     
 
 
-    static TabParent* CreateBrowserOrApp(const TabContext& aContext);
+
+
+
+
+
+    static TabParent* CreateBrowser(mozIApplication* aApp,
+                                    bool aIsBrowserFrame);
 
     static void GetAll(nsTArray<ContentParent*>& aArray);
 
@@ -184,8 +189,9 @@ private:
                                           bool* aIsForBrowser) MOZ_OVERRIDE;
     virtual bool RecvGetXPCOMProcessAttributes(bool* aIsOffline) MOZ_OVERRIDE;
 
-    virtual PBrowserParent* AllocPBrowser(const IPCTabContext& aContext,
-                                          const uint32_t& aChromeFlags);
+    virtual PBrowserParent* AllocPBrowser(const uint32_t& aChromeFlags,
+                                          const bool& aIsBrowserElement,
+                                          const AppId& aApp);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PDeviceStorageRequestParent* AllocPDeviceStorageRequest(const DeviceStorageParams&);
