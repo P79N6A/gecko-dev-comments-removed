@@ -151,8 +151,6 @@ private:
   CGColorSpaceRef mColorSpace;
   CGContextRef mCg;
 
-  GLuint mIOSurfaceTexture;
-
   
 
 
