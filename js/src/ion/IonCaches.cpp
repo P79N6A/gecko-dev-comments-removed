@@ -516,6 +516,10 @@ IsPropertyAddInlineable(JSContext *cx, HandleObject obj, jsid id, uint32_t oldSl
         return false;
 
     
+    if (obj->getClass()->resolve != JS_ResolveStub)
+        return false;
+
+    
     
     
     for (JSObject *proto = obj->getProto(); proto; proto = proto->getProto()) {
@@ -527,6 +531,11 @@ IsPropertyAddInlineable(JSContext *cx, HandleObject obj, jsid id, uint32_t oldSl
         const Shape *protoShape = proto->nativeLookup(cx, id);
         if (protoShape && !protoShape->hasDefaultSetter())
             return false;
+
+        
+        
+        if (proto->getClass()->resolve != JS_ResolveStub)
+             return false;
     }
 
     
