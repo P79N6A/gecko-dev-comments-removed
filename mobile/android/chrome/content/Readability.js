@@ -723,6 +723,77 @@ Readability.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+  _getExcerpt: function(articleContent) {
+    let values = {};
+    let metaElements = this._doc.getElementsByTagName("meta");
+
+    
+    
+    let namePattern = /^\s*((twitter)\s*:\s*)?description\s*$/gi;
+
+    
+    let propertyPattern = /^\s*og\s*:\s*description\s*$/gi;
+
+    
+    for (let i = 0; i < metaElements.length; i++) {
+      let element = metaElements[i];
+      let elementName = element.getAttribute("name");
+      let elementProperty = element.getAttribute("property");
+
+      let name;
+      if (namePattern.test(elementName)) {
+        name = elementName;
+      } else if (propertyPattern.test(elementProperty)) {
+        name = elementProperty;
+      }
+
+      if (name) {
+        let content = element.getAttribute("content");
+        if (content) {
+          
+          
+          name = name.toLowerCase().replace(/\s/g, '');
+          values[name] = content.trim();
+        }
+      }
+    }
+
+    if ("description" in values) {
+      return values["description"];
+    }
+
+    if ("og:description" in values) {
+      
+      return values["og:description"];
+    }
+
+    if ("twitter:description" in values) {
+      
+      return values["twitter:description"];
+    }
+
+    
+    let paragraphs = articleContent.getElementsByTagName("p");
+    if (paragraphs.length > 0) {
+      return paragraphs[0].textContent;
+    }
+
+    return "";
+  },
+
+  
+
+
+
+
   _removeScripts: function(doc) {
     let scripts = doc.getElementsByTagName('script');
     for (let i = scripts.length - 1; i >= 0; i -= 1) {
@@ -1434,9 +1505,13 @@ Readability.prototype = {
     
     
 
+    let excerpt = this._getExcerpt(articleContent);
+
     return { title: articleTitle,
              byline: this._articleByline,
              dir: this._articleDir,
-             content: articleContent.innerHTML };
+             content: articleContent.innerHTML,
+             length: articleContent.textContent.length,
+             excerpt: excerpt };
   }
 };
