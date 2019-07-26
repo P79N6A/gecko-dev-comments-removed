@@ -3845,7 +3845,7 @@ for (uint32_t i = 0; i < length; ++i) {
         if not isMember and isCallbackReturnValue:
             
             declType = CGWrapper(declType, post="&")
-            declArgs = "retval"
+            declArgs = "aRetVal"
         elif not isMember and typeNeedsRooting(type):
             declType = CGTemplatedType("RootedDictionary", declType);
             declArgs = "cx"
@@ -9789,13 +9789,13 @@ class CGNativeMember(ClassMethod):
                 
                 return "nsString", None, None
             
-            return "void", "", "retval = ${declName};"
+            return "void", "", "aRetVal = ${declName};"
         if type.isByteString():
             if isMember:
                 
                 return "nsCString", None, None
             
-            return "void", "", "retval = ${declName};"
+            return "void", "", "aRetVal = ${declName};"
         if type.isEnum():
             enumName = type.unroll().inner.identifier.name
             if type.nullable():
@@ -9855,12 +9855,12 @@ class CGNativeMember(ClassMethod):
             
             if type.nullable():
                 returnCode = ("if (${declName}.IsNull()) {\n"
-                              "  retval.SetNull();\n"
+                              "  aRetVal.SetNull();\n"
                               "} else {\n"
-                              "  retval.SetValue().SwapElements(${declName}.Value());\n"
+                              "  aRetVal.SetValue().SwapElements(${declName}.Value());\n"
                               "}")
             else:
-                returnCode = "retval.SwapElements(${declName});"
+                returnCode = "aRetVal.SwapElements(${declName});"
             return "void", "", returnCode
         if type.isDate():
             result = CGGeneric("Date")
@@ -9892,9 +9892,9 @@ class CGNativeMember(ClassMethod):
         args = [self.getArg(arg) for arg in argList]
         
         if returnType.isDOMString():
-            args.append(Argument("nsString&", "retval"))
+            args.append(Argument("nsString&", "aRetVal"))
         elif returnType.isByteString():
-            args.append(Argument("nsCString&", "retval"))
+            args.append(Argument("nsCString&", "aRetVal"))
         elif returnType.isSequence():
             nullable = returnType.nullable()
             if nullable:
@@ -9904,7 +9904,7 @@ class CGNativeMember(ClassMethod):
             type = CGTemplatedType("nsTArray", CGGeneric(elementDecl))
             if nullable:
                 type = CGTemplatedType("Nullable", type)
-            args.append(Argument("%s&" % type.define(), "retval"))
+            args.append(Argument("%s&" % type.define(), "aRetVal"))
         elif returnType.isDictionary():
             nullable = returnType.nullable()
             if nullable:
@@ -9912,11 +9912,11 @@ class CGNativeMember(ClassMethod):
             dictType = CGGeneric(CGDictionary.makeDictionaryName(returnType.inner))
             if nullable:
                 dictType = CGTemplatedType("Nullable", dictType)
-            args.append(Argument("%s&" % dictType.define(), "retval"))
+            args.append(Argument("%s&" % dictType.define(), "aRetVal"))
         elif returnType.isUnion():
             args.append(Argument("%s&" %
                                  CGUnionStruct.unionTypeDecl(returnType, True),
-                                 "retval"))
+                                 "aRetVal"))
         
         if not 'infallible' in self.extendedAttrs:
             
@@ -11486,7 +11486,7 @@ class CGEventGetter(CGNativeMember):
         if (type.isPrimitive() and type.tag() in builtinNames) or type.isEnum() or type.isGeckoInterface():
             return "return " + memberName + ";"
         if type.isDOMString() or type.isByteString():
-            return "retval = " + memberName + ";";
+            return "aRetVal = " + memberName + ";";
         if type.isSpiderMonkeyInterface() or type.isObject():
             ret =  "if (%s) {\n" % memberName
             ret += "  JS::ExposeObjectToActiveJS(%s);\n" % memberName
@@ -11498,7 +11498,7 @@ class CGEventGetter(CGNativeMember):
             ret += "return " + memberName + ";"
             return ret;
         if type.isUnion():
-            return "retval = " + memberName + ";"
+            return "aRetVal = " + memberName + ";"
         raise TypeError("Event code generator does not support this type!")
 
     def declare(self, cgClass):
