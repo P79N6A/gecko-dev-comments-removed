@@ -908,6 +908,11 @@ function loadManifestFromRDF(aUri, aStream) {
     addon.userDisabled = !!LightweightThemeManager.currentTheme ||
                          addon.internalName != XPIProvider.selectedSkin;
   }
+  
+  
+  else if (addon.type == "experiment") {
+    addon.userDisabled = true;
+  }
   else {
     addon.userDisabled = false;
     addon.softDisabled = addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
@@ -2082,8 +2087,19 @@ var XPIProvider = {
 
 
   persistBootstrappedAddons: function XPI_persistBootstrappedAddons() {
+    
+    let filtered = {};
+    for (let id in this.bootstrappedAddons) {
+      let entry = this.bootstrappedAddons[id];
+      if (entry.type == "experiment") {
+        continue;
+      }
+
+      filtered[id] = entry;
+    }
+
     Services.prefs.setCharPref(PREF_BOOTSTRAP_ADDONS,
-                               JSON.stringify(this.bootstrappedAddons));
+                               JSON.stringify(filtered));
   },
 
   
@@ -4239,11 +4255,15 @@ var XPIProvider = {
     let appDisabledChanged = aAddon.appDisabled != appDisabled;
 
     
-    XPIDatabase.setAddonProperties(aAddon, {
-      userDisabled: aUserDisabled,
-      appDisabled: appDisabled,
-      softDisabled: aSoftDisabled
-    });
+    
+    
+    if (aAddon.type != "experiment") {
+      XPIDatabase.setAddonProperties(aAddon, {
+        userDisabled: aUserDisabled,
+        appDisabled: appDisabled,
+        softDisabled: aSoftDisabled
+      });
+    }
 
     if (appDisabledChanged) {
       AddonManagerPrivate.callAddonListeners("onPropertyChanged",
