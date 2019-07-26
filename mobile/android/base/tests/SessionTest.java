@@ -1,0 +1,404 @@
+package org.mozilla.gecko.tests;
+
+import org.mozilla.gecko.*;
+
+import java.io.IOException;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public abstract class SessionTest extends BaseTest {
+    private File mSessionDir;
+    protected Navigation mNavigation;
+
+    @Override
+    final protected int getTestType() {
+        return TEST_MOCHITEST;
+    }
+
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+
+        mNavigation = new Navigation(mDevice);
+    }
+
+    
+
+
+
+    protected abstract class SessionObject<T> {
+        private final int mIndex;
+        private final T[] mItems;
+
+        public SessionObject(int index, T... items) {
+            mIndex = index;
+            mItems = items;
+        }
+
+        public int getIndex() {
+            return mIndex;
+        }
+
+        public T[] getItems() {
+            return mItems;
+        }
+    }
+
+    protected class PageInfo {
+        private String url;
+        private String title;
+
+        public PageInfo(String key) {
+            if (key.startsWith("about:")) {
+                url = key;
+            } else {
+                url = getPage(key);
+            }
+            title = key;
+        }
+    }
+
+    protected class SessionTab extends SessionObject<PageInfo> {
+        public SessionTab(int index, PageInfo... items) {
+            super(index, items);
+        }
+    }
+
+    protected class Session extends SessionObject<SessionTab> {
+        public Session(int index, SessionTab... items) {
+            super(index, items);
+        }
+    }
+
+    
+
+
+    protected abstract class NavigationWalker<T> {
+        private final T[] mItems;
+        private final int mIndex;
+
+        public NavigationWalker(SessionObject<T> obj) {
+            mItems = obj.getItems();
+            mIndex = obj.getIndex();
+        }
+
+        
+
+
+
+
+
+
+
+        public void walk() {
+            onItem(mItems[mIndex], mIndex);
+            for (int i = mIndex + 1; i < mItems.length; i++) {
+                goForward();
+                onItem(mItems[i], i);
+            }
+            if (mIndex > 0) {
+                for (int i = mItems.length - 2; i >= 0; i--) {
+                    goBack();
+                    if (i < mIndex) {
+                        onItem(mItems[i], i);
+                    }
+                }
+            }
+        }
+
+        
+
+
+
+
+        public abstract void onItem(T item, int currentIndex);
+
+        
+
+
+        public void goBack() {}
+
+        
+
+
+        public void goForward() {}
+    }
+
+    
+
+
+
+
+    protected void loadSessionTabs(Session session) {
+        
+        verifyTabCount(1);
+        verifyUrl("about:home");
+
+        SessionTab[] tabs = session.getItems();
+        for (int i = 0; i < tabs.length; i++) {
+            final SessionTab tab = tabs[i];
+            final PageInfo[] pages = tab.getItems();
+
+            
+            
+            mAsserter.is(pages[0].url, "about:home", "first page in tab is about:home");
+
+            
+            
+            
+            if (i > 0) {
+                Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+                addTab();
+                pageShowExpecter.blockForEvent();
+                pageShowExpecter.unregisterListener();
+            }
+
+            for (int j = 1; j < pages.length; j++) {
+                Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+
+                loadUrl(pages[j].url);
+
+                pageShowExpecter.blockForEvent();
+                pageShowExpecter.unregisterListener();
+            }
+
+            final int index = tab.getIndex();
+            for (int j = pages.length - 1; j > index; j--) {
+                mNavigation.back();
+            }
+        }
+
+        selectTabAt(session.getIndex());
+    }
+
+    
+
+
+
+
+    protected void verifySessionTabs(Session session) {
+        verifyTabCount(session.getItems().length);
+
+        (new NavigationWalker<SessionTab>(session) {
+            boolean mFirstTabVisited;
+
+            @Override
+            public void onItem(SessionTab tab, int currentIndex) {
+                
+                if (mFirstTabVisited) {
+                    selectTabAt(currentIndex);
+                } else {
+                    mFirstTabVisited = true;
+                }
+
+                (new NavigationWalker<PageInfo>(tab) {
+                    @Override
+                    public void onItem(PageInfo page, int currentIndex) {
+                        if (page.url.equals("about:home")) {
+                            waitForText("Enter Search or Address");
+                            verifyUrl(page.url);
+                        } else {
+                            waitForText(page.title);
+                            verifyPageTitle(page.title);
+                        }
+                    }
+
+                    @Override
+                    public void goBack() {
+                        mNavigation.back();
+                    }
+
+                    @Override
+                    public void goForward() {
+                        mNavigation.forward();
+                    }
+                }).walk();
+            }
+        }).walk();
+    }
+
+    
+
+
+
+
+
+
+
+
+    protected String buildSessionJSON(Session session) {
+        final SessionTab[] sessionTabs = session.getItems();
+        String sessionString = null;
+
+        try {
+            final JSONArray tabs = new JSONArray();
+
+            for (int i = 0; i < sessionTabs.length; i++) {
+                final JSONObject tab = new JSONObject();
+                final JSONArray entries = new JSONArray();
+                final SessionTab sessionTab = sessionTabs[i];
+                final PageInfo[] pages = sessionTab.getItems();
+
+                for (int j = 0; j < pages.length; j++) {
+                    final PageInfo page = pages[j];
+                    final JSONObject entry = new JSONObject();
+                    entry.put("url", page.url);
+                    entry.put("title", page.title);
+                    entries.put(entry);
+                }
+
+                tab.put("entries", entries);
+                tab.put("index", sessionTab.getIndex() + 1);
+                tabs.put(tab);
+            }
+
+            JSONObject window = new JSONObject();
+            window.put("tabs", tabs);
+            window.put("selected", session.getIndex() + 1);
+            sessionString = new JSONObject().put("windows", new JSONArray().put(window)).toString();
+        } catch (JSONException e) {
+            mAsserter.ok(false, "JSON exception", getStackTraceString(e));
+        }
+
+        return sessionString;
+    }
+
+    
+
+
+    protected void verifySessionJSON(Session session, String sessionString) {
+        verifySessionJSON(session, sessionString, mAsserter);
+    }
+
+    
+
+
+
+
+
+
+    protected void verifySessionJSON(Session session, String sessionString, Assert asserter) {
+        final SessionTab[] sessionTabs = session.getItems();
+
+        try {
+            final JSONObject window = new JSONObject(sessionString).getJSONArray("windows").getJSONObject(0);
+            final JSONArray tabs = window.getJSONArray("tabs");
+            final int optSelected = window.optInt("selected", -1);
+
+            asserter.is(optSelected, session.getIndex() + 1, "selected tab matches");
+
+            for (int i = 0; i < tabs.length(); i++) {
+                final JSONObject tab = tabs.getJSONObject(i);
+                final int index = tab.getInt("index");
+                final JSONArray entries = tab.getJSONArray("entries");
+                final SessionTab sessionTab = sessionTabs[i];
+                final PageInfo[] pages = sessionTab.getItems();
+
+                asserter.is(index, sessionTab.getIndex() + 1, "selected page index matches");
+
+                for (int j = 0; j < entries.length(); j++) {
+                    final JSONObject entry = entries.getJSONObject(j);
+                    final String url = entry.getString("url");
+                    final String title = entry.optString("title");
+                    final PageInfo page = pages[j];
+
+                    asserter.is(url, page.url, "URL in JSON matches session URL");
+                    if (!page.url.startsWith("about:")) {
+                        asserter.is(title, page.title, "title in JSON matches session title");
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            asserter.ok(false, "JSON exception", getStackTraceString(e));
+        }
+    }
+
+    
+
+
+    public static class AssertException extends RuntimeException {
+        public AssertException(String msg) {
+            super(msg);
+        }
+    }
+
+    
+
+
+
+
+
+
+    public class NonFatalAsserter extends FennecMochitestAssert {
+        @Override
+        public void ok(boolean condition, String name, String diag) {
+            if (!condition) {
+                String details = (diag == null ? "" : " | " + diag);
+                throw new AssertException("Assertion failed: " + name + details);
+            }
+            mAsserter.ok(condition, name, diag);
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+    protected String getPage(String id) {
+        return getAbsoluteUrl("/robocop/robocop_dynamic.sjs?id=" + id);
+    }
+
+    protected String readProfileFile(String filename) {
+        try {
+            return readFile(new File(mProfile, filename));
+        } catch (IOException e) {
+            mAsserter.ok(false, "Error reading" + filename, getStackTraceString(e));
+        }
+        return null;
+    }
+
+    protected void writeProfileFile(String filename, String data) {
+        try {
+            writeFile(new File(mProfile, filename), data);
+        } catch (IOException e) {
+            mAsserter.ok(false, "Error writing to " + filename, getStackTraceString(e));
+        }
+    }
+
+    private String readFile(File target) throws IOException {
+        FileReader fr = new FileReader(target);
+        try {
+            StringBuffer sb = new StringBuffer();
+            char[] buf = new char[8192];
+            int read = fr.read(buf);
+            while (read >= 0) {
+                sb.append(buf, 0, read);
+                read = fr.read(buf);
+            }
+            return sb.toString();
+        } finally {
+            fr.close();
+        }
+    }
+
+    private void writeFile(File target, String data) throws IOException {
+        FileWriter writer = new FileWriter(target);
+        try {
+            writer.write(data);
+        } finally {
+            writer.close();
+        }
+    }
+}

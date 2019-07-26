@@ -25,14 +25,18 @@ import android.util.DisplayMetrics;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,6 +114,17 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
         String rootPath = FennecInstrumentationTestRunner.getFennecArguments().getString("deviceroot");
         String configFile = FennecNativeDriver.getFile(rootPath + "/robotium.config");
         HashMap config = FennecNativeDriver.convertTextToTable(configFile);
+        mLogFile = (String)config.get("logfile");
+        mBaseUrl = ((String)config.get("host")).replaceAll("(/$)", "");
+        mRawBaseUrl = ((String)config.get("rawhost")).replaceAll("(/$)", "");
+        
+        if (getTestType() == TEST_TALOS) {
+            mAsserter = new FennecTalosAssert();
+        } else {
+            mAsserter = new FennecMochitestAssert();
+        }
+        mAsserter.setLogFile(mLogFile);
+        mAsserter.setTestName(this.getClass().getName());
         
         Intent i = new Intent(Intent.ACTION_MAIN);
         mProfile = (String)config.get("profile");
@@ -124,17 +139,6 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
         
         setActivityIntent(i);
         mActivity = getActivity();
-        mLogFile = (String)config.get("logfile");
-        mBaseUrl = ((String)config.get("host")).replaceAll("(/$)", "");
-        mRawBaseUrl = ((String)config.get("rawhost")).replaceAll("(/$)", "");
-        
-        if (getTestType() == TEST_TALOS) {
-            mAsserter = new FennecTalosAssert();
-        } else {
-            mAsserter = new FennecMochitestAssert();
-        }
-        mAsserter.setLogFile(mLogFile);
-        mAsserter.setTestName(this.getClass().getName());
         
         mSolo = new Solo(getInstrumentation(), mActivity);
         mDriver = new FennecNativeDriver(mActivity, mSolo, rootPath);
@@ -548,7 +552,7 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
         imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0);
     }
 
-    public void addTab(String url) {
+    public void addTab() {
         mSolo.clickOnView(mSolo.getView("tabs"));
         
         boolean success = waitForCondition(new Condition() {
@@ -564,9 +568,90 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
         mAsserter.ok(success, "waiting for add tab view", "add tab view available");
         final View addTabView = mSolo.getView("add_tab");
         mSolo.clickOnView(mSolo.getView("add_tab"));
+    }
+
+    public void addTab(String url) {
+        addTab();
 
         
         inputAndLoadUrl(url);
+    }
+
+    
+
+
+
+
+    private final AdapterView<ListAdapter> getTabsList() {
+        Element tabs = mDriver.findElement(getActivity(), "tabs");
+        tabs.click();
+        Element listElem = mDriver.findElement(getActivity(), "normal_tabs");
+        int listId = listElem.getId();
+        return (AdapterView<ListAdapter>) getActivity().findViewById(listId);
+    }
+
+    
+
+
+
+
+    private View getTabViewAt(final int index) {
+        final View[] childView = { null };
+
+        final AdapterView<ListAdapter> view = getTabsList();
+
+        runOnUiThreadSync(new Runnable() {
+            @Override
+            public void run() {
+                view.setSelection(index);
+
+                
+                
+                
+                view.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        
+                        
+                        
+                        
+                        childView[0] = view.getChildAt(index - view.getFirstVisiblePosition());
+                    }
+                });
+            }
+        });
+
+        boolean result = waitForCondition(new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                return childView[0] != null;
+            }
+        }, MAX_WAIT_MS);
+
+        mAsserter.ok(result, "list item at index " + index + " exists", null);
+
+        return childView[0];
+    }
+
+    
+
+
+
+
+    public void selectTabAt(final int index) {
+        mSolo.clickOnView(getTabViewAt(index));
+    }
+
+    
+
+
+
+
+    public void closeTabAt(final int index) {
+        Element close = mDriver.findElement(getActivity(), "close");
+        View closeButton = getTabViewAt(index).findViewById(close.getId());
+
+        mSolo.clickOnView(closeButton);
     }
 
     public final void runOnUiThreadSync(Runnable runnable) {
@@ -751,5 +836,17 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
                 mActions.sendSpecialKey(Actions.SpecialKey.BACK);
             }
          }
+    }
+
+    
+
+
+
+
+
+    public static String getStackTraceString(Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 }
