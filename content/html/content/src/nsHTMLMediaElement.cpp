@@ -3291,7 +3291,7 @@ nsIContent* nsHTMLMediaElement::GetNextSource()
   nsresult rv = NS_OK;
   if (!mSourcePointer) {
     
-    mSourcePointer = new nsRange();
+    mSourcePointer = new nsRange(this);
 
     rv = mSourcePointer->SelectNodeContents(thisDomNode);
     if (NS_FAILED(rv)) return nullptr;

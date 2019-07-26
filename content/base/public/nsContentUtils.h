@@ -112,6 +112,7 @@ namespace layers {
 } 
 
 namespace dom {
+class DocumentFragment;
 class Element;
 } 
 
@@ -366,6 +367,7 @@ public:
 
   
   static bool CanCallerAccess(nsIDOMNode *aNode);
+  static bool CanCallerAccess(nsINode* aNode);
 
   
   
@@ -1084,6 +1086,10 @@ public:
                                            const nsAString& aFragment,
                                            bool aPreventScriptExecution,
                                            nsIDOMDocumentFragment** aReturn);
+  static already_AddRefed<mozilla::dom::DocumentFragment>
+  CreateContextualFragment(nsINode* aContextNode, const nsAString& aFragment,
+                           bool aPreventScriptExecution,
+                           mozilla::ErrorResult& aRv);
 
   
 
