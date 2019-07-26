@@ -1803,6 +1803,8 @@ public:
     }
 };
 
+extern const JSSecurityCallbacks NullSecurityCallbacks;
+
 } 
 
 #ifdef _MSC_VER
