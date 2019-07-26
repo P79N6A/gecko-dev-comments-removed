@@ -66,9 +66,9 @@ class XrayWrapper : public Base {
     virtual ~XrayWrapper();
 
     
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
+    virtual bool getPropertyDescriptor(JSContext *cx, JS::Handle<JSObject *> wrapper, JS::Handle<jsid> id,
                                        js::PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JS::Handle<JSObject *> wrapper, JS::Handle<jsid> id,
                                           js::PropertyDescriptor *desc,
                                           unsigned flags) MOZ_OVERRIDE;
     virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
@@ -113,10 +113,10 @@ public:
     {
     }
 
-    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
+    virtual bool getPropertyDescriptor(JSContext *cx, JS::Handle<JSObject *> proxy, JS::Handle<jsid> id,
                                        js::PropertyDescriptor *desc, unsigned flags) MOZ_OVERRIDE;
-    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
-                                          jsid id, js::PropertyDescriptor *desc,
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JS::Handle<JSObject *> proxy,
+                                          JS::Handle<jsid> id, js::PropertyDescriptor *desc,
                                           unsigned flags) MOZ_OVERRIDE;
 
     
