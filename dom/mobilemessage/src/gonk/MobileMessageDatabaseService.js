@@ -780,6 +780,11 @@ MobileMessageDatabaseService.prototype = {
           if (DEBUG) {
             debug("MMS: part[" + i + "]: " + JSON.stringify(part));
           }
+          
+          
+          if (!part) {
+            continue;
+          }
 
           let partHeaders = part["headers"];
           let partContent = part["content"];
