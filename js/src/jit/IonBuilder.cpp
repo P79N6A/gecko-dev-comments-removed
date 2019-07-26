@@ -6106,7 +6106,7 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::TemporaryTypeSet *observed
 {
     
     if (BytecodeIsPopped(pc))
-        needsBarrier = false;
+        return true;
 
     
     
