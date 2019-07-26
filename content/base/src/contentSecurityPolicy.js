@@ -31,6 +31,8 @@ const ERROR_FLAG = Ci.nsIScriptError.ERROR_FLAG;
 const INLINE_STYLE_VIOLATION_OBSERVER_SUBJECT = 'violated base restriction: Inline Stylesheets will not apply';
 const INLINE_SCRIPT_VIOLATION_OBSERVER_SUBJECT = 'violated base restriction: Inline Scripts will not execute';
 const EVAL_VIOLATION_OBSERVER_SUBJECT = 'violated base restriction: Code will not be created from strings';
+const SCRIPT_NONCE_VIOLATION_OBSERVER_SUBJECT = 'Inline Script had invalid nonce'
+const STYLE_NONCE_VIOLATION_OBSERVER_SUBJECT = 'Inline Style had invalid nonce'
 
 
 const CSP_CACHE_URI_CUTOFF_SIZE = 512;
@@ -189,6 +191,28 @@ ContentSecurityPolicy.prototype = {
     });
   },
 
+  getAllowsNonce: function(aNonce, aContentType, shouldReportViolation) {
+    if (!CSPPrefObserver.experimentalEnabled)
+      return false;
+
+    if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
+          aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
+      CSPdebug("Nonce check requested for an invalid content type (not script or style): " + aContentType);
+      return false;
+    }
+    let ct = ContentSecurityPolicy._MAPPINGS[aContentType];
+
+    
+    let policyAllowsNonce = [ policy.permits(null, ct, aNonce) for (policy of this._policies) ];
+
+    shouldReportViolation.value = policyAllowsNonce.some(function(a) { return !a; });
+
+    
+    return this._policies.every(function(policy, i) {
+      return policy._reportOnlyMode || policyAllowsNonce[i];
+    });
+  },
+
   
 
 
@@ -202,8 +226,12 @@ ContentSecurityPolicy.prototype = {
 
 
 
+
+
+
+
   logViolationDetails:
-  function(aViolationType, aSourceFile, aScriptSample, aLineNum, violatedPolicyIndex) {
+  function(aViolationType, aSourceFile, aScriptSample, aLineNum, aNonce) {
     for (let policyIndex=0; policyIndex < this._policies.length; policyIndex++) {
       let policy = this._policies[policyIndex];
 
@@ -235,6 +263,24 @@ ContentSecurityPolicy.prototype = {
           this._asyncReportViolation('self', null, violatedDirective, policyIndex,
                                     EVAL_VIOLATION_OBSERVER_SUBJECT,
                                     aSourceFile, aScriptSample, aLineNum);
+        }
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_NONCE_SCRIPT:
+        let scriptType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_SCRIPT];
+        if (!policy.permits(null, scriptType, aNonce)) {
+          var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                     SCRIPT_NONCE_VIOLATION_OBSERVER_SUBJECT,
+                                     aSourceFile, aScriptSample, aLineNum);
+        }
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_NONCE_STYLE:
+        let styleType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_STYLE];
+        if (!policy.permits(null, styleType, aNonce)) {
+          var violatedDirective = this._buildViolatedDirectiveString('STYLE_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                     STYLE_NONCE_VIOLATION_OBSERVER_SUBJECT,
+                                     aSourceFile, aScriptSample, aLineNum);
         }
         break;
       }
@@ -631,6 +677,14 @@ ContentSecurityPolicy.prototype = {
     
     
     
+    
+    var possiblePreloadNonceConflict =
+      (aContentType == cp.TYPE_SCRIPT || aContentType == cp.TYPE_STYLESHEET) &&
+      aContext instanceof Ci.nsIDOMHTMLDocument;
+
+    
+    
+    
     let policyAllowsLoadArray = [];
     for (let policyIndex=0; policyIndex < this._policies.length; policyIndex++) {
       let policy = this._policies[policyIndex];
@@ -661,15 +715,18 @@ ContentSecurityPolicy.prototype = {
 
       
       
-      var res = policy.permits(aContentLocation, cspContext)
-                ? cp.ACCEPT : cp.REJECT_SERVER;
+      let context = CSPPrefObserver.experimentalEnabled ? aContext : null;
+      var res = policy.permits(aContentLocation, cspContext, context) ?
+                cp.ACCEPT : cp.REJECT_SERVER;
       
       policyAllowsLoadArray.push(res == cp.ACCEPT || policy._reportOnlyMode);
 
       
 
       
-      if (res != Ci.nsIContentPolicy.ACCEPT) {
+      
+      
+      if (res != Ci.nsIContentPolicy.ACCEPT && !possiblePreloadNonceConflict) {
         CSPdebug("blocking request for " + aContentLocation.asciiSpec);
         try {
           let directive = "unknown directive",
@@ -704,7 +761,8 @@ ContentSecurityPolicy.prototype = {
     let ret = (policyAllowsLoadArray.some(function(a,b) { return !a; }) ?
                cp.REJECT_SERVER : cp.ACCEPT);
 
-    if (key) {
+    
+    if (key && !possiblePreloadNonceConflict) {
       this._cache[key] = ret;
     }
     return ret;

@@ -624,13 +624,31 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   NS_ENSURE_SUCCESS(rv, false);
 
   if (csp) {
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("New ScriptLoader i ****with CSP****"));
-    bool inlineOK = true;
-    bool reportViolations = false;
-    rv = csp->GetAllowsInlineScript(&reportViolations, &inlineOK);
+    PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("New ScriptLoader ****with CSP****"));
+
+    bool reportViolation = false;
+    bool allowInlineScript = true;
+    rv = csp->GetAllowsInlineScript(&reportViolation, &allowInlineScript);
     NS_ENSURE_SUCCESS(rv, false);
 
-    if (reportViolations) {
+    bool foundNonce = false;
+    nsAutoString nonce;
+    if (!allowInlineScript) {
+      foundNonce = scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
+      if (foundNonce) {
+        
+        
+        
+        
+        
+        
+        rv = csp->GetAllowsNonce(nonce, nsIContentPolicy::TYPE_SCRIPT,
+                                 &reportViolation, &allowInlineScript);
+        NS_ENSURE_SUCCESS(rv, false);
+      }
+    }
+
+    if (reportViolation) {
       
       nsIURI* uri = mDocument->GetDocumentURI();
       nsAutoCString asciiSpec;
@@ -641,17 +659,21 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       
       if (scriptText.Length() > 40) {
         scriptText.Truncate(40);
-        scriptText.Append(NS_LITERAL_STRING("..."));
+        scriptText.AppendLiteral("...");
       }
 
-      csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
-                               NS_ConvertUTF8toUTF16(asciiSpec),
-                               scriptText,
-                               aElement->GetScriptLineNumber());
+      
+      
+      unsigned short violationType = foundNonce ?
+        nsIContentSecurityPolicy::VIOLATION_TYPE_NONCE_SCRIPT :
+        nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT;
+      csp->LogViolationDetails(violationType, NS_ConvertUTF8toUTF16(asciiSpec),
+                               scriptText, aElement->GetScriptLineNumber(), nonce);
     }
 
-    if (!inlineOK) {
-      PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("CSP blocked inline scripts (2)"));
+    if (!allowInlineScript) {
+      NS_ASSERTION(reportViolation,
+          "CSP blocked inline script but is not reporting a violation");
       return false;
     }
   }

@@ -106,7 +106,24 @@ public:
 
 
 
-  static bool CSPAllowsInlineStyle(nsIPrincipal* aPrincipal,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool CSPAllowsInlineStyle(nsIContent* aContent,
+                                   nsIPrincipal* aPrincipal,
                                    nsIURI* aSourceURI,
                                    uint32_t aLineNumber,
                                    const nsSubstring& aStyleText,

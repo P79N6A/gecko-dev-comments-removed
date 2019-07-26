@@ -24,7 +24,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
 
 
 this.EXPORTED_SYMBOLS = ["CSPRep", "CSPSourceList", "CSPSource", "CSPHost",
-                         "CSPdebug", "CSPViolationReportListener", "CSPLocalizer"];
+                         "CSPdebug", "CSPViolationReportListener", "CSPLocalizer",
+                         "CSPPrefObserver"];
 
 var STRINGS_URI = "chrome://global/locale/security/csp.properties";
 
@@ -66,16 +67,27 @@ const R_EXTHOSTSRC = new RegExp ("^" + R_HOSTSRC.source + "\\/[:print:]+$", 'i')
 const R_KEYWORDSRC = new RegExp ("^('self'|'unsafe-inline'|'unsafe-eval')$", 'i');
 
 
+
+const R_NONCESRC = new RegExp ("^'nonce-([a-zA-Z0-9\+\/]+)'$", 'i');
+
+
 const R_SOURCEEXP  = new RegExp (R_SCHEMESRC.source + "|" +
                                    R_HOSTSRC.source + "|" +
-                                R_KEYWORDSRC.source,  'i');
+                                R_KEYWORDSRC.source + "|" +
+                                  R_NONCESRC.source,  'i');
 
 
-var gPrefObserver = {
+this.CSPPrefObserver = {
   get debugEnabled () {
     if (!this._branch)
       this._initialize();
     return this._debugEnabled;
+  },
+
+  get experimentalEnabled () {
+    if (!this._branch)
+      this._initialize();
+    return this._experimentalEnabled;
   },
 
   _initialize: function() {
@@ -84,6 +96,7 @@ var gPrefObserver = {
     this._branch = prefSvc.getBranch("security.csp.");
     this._branch.addObserver("", this, false);
     this._debugEnabled = this._branch.getBoolPref("debug");
+    this._experimentalEnabled = this._branch.getBoolPref("experimentalEnabled");
   },
 
   unregister: function() {
@@ -95,11 +108,13 @@ var gPrefObserver = {
     if (aTopic != "nsPref:changed") return;
     if (aData === "debug")
       this._debugEnabled = this._branch.getBoolPref("debug");
+    if (aData === "experimentalEnabled")
+      this._experimentalEnabled = this._branch.getBoolPref("experimentalEnabled");
   },
 };
 
 this.CSPdebug = function CSPdebug(aMsg) {
-  if (!gPrefObserver.debugEnabled) return;
+  if (!CSPPrefObserver.debugEnabled) return;
 
   aMsg = 'CSP debug: ' + aMsg + "\n";
   Components.classes["@mozilla.org/consoleservice;1"]
@@ -798,9 +813,23 @@ CSPRep.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
   permits:
-  function csp_permits(aURI, aContext) {
-    if (!aURI) return false;
+  function csp_permits(aURI, aDirective, aContext) {
+    
+    
+    
+    let checking_nonce = aContext instanceof Ci.nsIDOMHTMLElement ||
+                         typeof aContext === 'string';
+    if (!aURI && !checking_nonce) return false;
 
     
     if (aURI instanceof String && aURI.substring(0,6) === "about:")
@@ -811,13 +840,13 @@ CSPRep.prototype = {
     
     let DIRS = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
 
-    let contextIsSrcDir = false;
+    let directiveInPolicy = false;
     for (var i in DIRS) {
-      if (DIRS[i] === aContext) {
+      if (DIRS[i] === aDirective) {
         
-        contextIsSrcDir = true;
-        if (this._directives.hasOwnProperty(aContext)) {
-          return this._directives[aContext].permits(aURI);
+        directiveInPolicy = true;
+        if (this._directives.hasOwnProperty(aDirective)) {
+          return this._directives[aDirective].permits(aURI, aContext);
         }
         
         break;
@@ -825,15 +854,15 @@ CSPRep.prototype = {
     }
 
     
-    if (aContext === DIRS.FRAME_ANCESTORS)
+    if (aDirective === DIRS.FRAME_ANCESTORS)
       return true;
 
     
     
-    if (!contextIsSrcDir) {
+    if (!directiveInPolicy) {
       
       
-      CSPdebug("permits called with invalid load type: " + aContext);
+      CSPdebug("permits called with invalid load type: " + aDirective);
       return false;
     }
 
@@ -842,7 +871,7 @@ CSPRep.prototype = {
     
     
     if (this._directives.hasOwnProperty(DIRS.DEFAULT_SRC)) {
-      return this._directives[DIRS.DEFAULT_SRC].permits(aURI);
+      return this._directives[DIRS.DEFAULT_SRC].permits(aURI, aContext);
     }
 
     
@@ -1081,12 +1110,12 @@ CSPSourceList.prototype = {
 
 
   permits:
-  function cspsd_permits(aURI) {
+  function cspsd_permits(aURI, aContext) {
     if (this.isNone())    return false;
     if (this.isAll())     return true;
 
     for (var i in this._sources) {
-      if (this._sources[i].permits(aURI)) {
+      if (this._sources[i].permits(aURI, aContext)) {
         return true;
       }
     }
@@ -1102,6 +1131,7 @@ this.CSPSource = function CSPSource() {
   this._scheme = undefined;
   this._port = undefined;
   this._host = undefined;
+  this._nonce = undefined;
 
   
   this._permitAll = false;
@@ -1347,6 +1377,19 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
+  if (R_NONCESRC.test(aStr)) {
+    
+    
+    
+    
+    
+    if (!CSPPrefObserver.experimentalEnabled) return null;
+    var nonceSrcMatch = R_NONCESRC.exec(aStr);
+    sObj._nonce = nonceSrcMatch[1];
+    return sObj;
+  }
+
+  
   if (aStr.toUpperCase() === "'SELF'") {
     if (!self) {
       cspError(aCSPRep, CSPLocalizer.getStr("selfKeywordNoSelfData"));
@@ -1450,6 +1493,8 @@ CSPSource.prototype = {
       s = s + this._host;
     if (this.port)
       s = s + ":" + this.port;
+    if (this._nonce)
+      s = s + "'nonce-" + this._nonce + "'";
     return s;
   },
 
@@ -1465,6 +1510,7 @@ CSPSource.prototype = {
     aClone._scheme = this._scheme;
     aClone._port = this._port;
     aClone._host = this._host ? this._host.clone() : undefined;
+    aClone._nonce = this._nonce;
     aClone._isSelf = this._isSelf;
     aClone._CSPRep = this._CSPRep;
     return aClone;
@@ -1477,8 +1523,21 @@ CSPSource.prototype = {
 
 
 
+
+
   permits:
-  function(aSource) {
+  function(aSource, aContext) {
+    if (this._nonce && CSPPrefObserver.experimentalEnabled) {
+      if (aContext instanceof Ci.nsIDOMHTMLElement) {
+        return this._nonce === aContext.getAttribute('nonce');
+      } else if (typeof aContext === 'string') {
+        return this._nonce === aContext;
+      }
+    }
+    
+    
+    if (!CSPPrefObserver.experimentalEnabled && aContext) return false;
+
     if (!aSource) return false;
 
     if (!(aSource instanceof CSPSource))
