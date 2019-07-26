@@ -27,8 +27,7 @@ enum DataType {
     Type_Pointer,
     Type_Object,
     Type_Value,
-    Type_Handle,
-    Type_ParallelResult
+    Type_Handle
 };
 
 struct PopValues
@@ -220,10 +219,8 @@ struct VMFunction
         
         JS_ASSERT_IF(outParam != Type_Void && executionMode == SequentialExecution,
                      returnType == Type_Bool);
-        JS_ASSERT_IF(executionMode == ParallelExecution, returnType == Type_ParallelResult);
         JS_ASSERT(returnType == Type_Bool ||
-                  returnType == Type_Object ||
-                  returnType == Type_ParallelResult);
+                  returnType == Type_Object);
     }
 
     VMFunction(const VMFunction &o) {
@@ -280,7 +277,6 @@ template <> struct TypeToDataType<Handle<StaticBlockObject *> > { static const D
 template <> struct TypeToDataType<HandleScript> { static const DataType result = Type_Handle; };
 template <> struct TypeToDataType<HandleValue> { static const DataType result = Type_Handle; };
 template <> struct TypeToDataType<MutableHandleValue> { static const DataType result = Type_Handle; };
-template <> struct TypeToDataType<ParallelResult> { static const DataType result = Type_ParallelResult; };
 
 
 template <class T> struct TypeToArgProperties {

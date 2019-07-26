@@ -246,8 +246,8 @@ enum ParallelBailoutCause {
     ParallelBailoutOverRecursed,
     ParallelBailoutOutOfMemory,
     ParallelBailoutUnsupported,
+    ParallelBailoutUnsupportedVM,
     ParallelBailoutUnsupportedStringComparison,
-    ParallelBailoutUnsupportedSparseArray,
     ParallelBailoutRequestedGC,
     ParallelBailoutRequestedZoneGC,
 };
@@ -271,9 +271,13 @@ struct ParallelBailoutRecord {
     void init(JSContext *cx);
     void reset(JSContext *cx);
     void setCause(ParallelBailoutCause cause,
-                  JSScript *outermostScript,   
-                  JSScript *currentScript,     
-                  jsbytecode *currentPc);
+                  JSScript *outermostScript = nullptr,   
+                  JSScript *currentScript = nullptr,     
+                  jsbytecode *currentPc = nullptr);
+    void updateCause(ParallelBailoutCause cause,
+                     JSScript *outermostScript,
+                     JSScript *currentScript,
+                     jsbytecode *currentPc);
     void addTrace(JSScript *script,
                   jsbytecode *pc);
 };
@@ -314,6 +318,18 @@ class ForkJoinSlice : public ThreadSafeContext
     
     void requestGC(JS::gcreason::Reason reason);
     void requestZoneGC(JS::Zone *zone, JS::gcreason::Reason reason);
+
+    
+    
+    bool setPendingAbortFatal(ParallelBailoutCause cause);
+
+    
+    
+    bool reportError(ParallelBailoutCause cause, unsigned report) {
+        if (report & JSREPORT_ERROR)
+            return setPendingAbortFatal(cause);
+        return true;
+    }
 
     
     
