@@ -202,11 +202,22 @@ public class TabsTray extends TwoWayView
         
         private void updateSelectedPosition() {
             int selected = getPositionForTab(Tabs.getInstance().getSelectedTab());
-            for (int i=0; i < getCount(); i++)
-                 TabsTray.this.setItemChecked(i, (i == selected));
-
-            if (selected != -1)
+            if (selected != -1) {
                 TabsTray.this.setSelection(selected);
+            }
+
+            updateSelectedStyle(selected);
+        }
+
+        
+
+
+
+
+        private void updateSelectedStyle(int selected) {
+            for (int i = 0; i < getCount(); i++) {
+                TabsTray.this.setItemChecked(i, (i == selected));
+            }
         }
 
         public void clear() {
@@ -240,7 +251,9 @@ public class TabsTray extends TwoWayView
             if (tab.isPrivate() == mIsPrivate && mTabs != null) {
                 mTabs.remove(tab);
                 notifyDataSetChanged(); 
-                updateSelectedPosition();
+
+                int selected = getPositionForTab(Tabs.getInstance().getSelectedTab());
+                updateSelectedStyle(selected);
             }
         }
 
