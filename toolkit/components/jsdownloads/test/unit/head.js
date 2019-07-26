@@ -451,4 +451,6 @@ add_task(function test_common_initialize()
 
   
   DownloadIntegration.dontLoad = true;
+  
+  DownloadIntegration.dontCheckParentalControls = true;
 });

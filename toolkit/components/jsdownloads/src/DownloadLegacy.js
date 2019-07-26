@@ -83,6 +83,10 @@ DownloadLegacyTransfer.prototype = {
   onStateChange: function DLT_onStateChange(aWebProgress, aRequest, aStateFlags,
                                             aStatus)
   {
+    if (!Components.isSuccessCode(aStatus)) {
+      this._componentFailed = true;
+    }
+
     
     if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
@@ -113,6 +117,8 @@ DownloadLegacyTransfer.prototype = {
     
     
     if (!Components.isSuccessCode(aStatus)) {
+      this._componentFailed = true;
+
       
       this._deferDownload.promise.then(function DLT_OSC_onDownload(aDownload) {
         aDownload.saver.onTransferFinished(aRequest, aStatus);
@@ -160,12 +166,18 @@ DownloadLegacyTransfer.prototype = {
       saver: { type: "legacy" },
     }).then(function DLT_I_onDownload(aDownload) {
       
-      aDownload.saver.deferCanceled.promise
-                     .then(function () aCancelable.cancel(Cr.NS_ERROR_ABORT))
-                     .then(null, Cu.reportError);
+      aDownload.saver.deferCanceled.promise.then(() => {
+        
+        if (!this._componentFailed) {
+          aCancelable.cancel(Cr.NS_ERROR_ABORT);
+        }
+      }).then(null, Cu.reportError);
 
       
-      aDownload.start();
+      aDownload.start().then(null, function () {
+        
+        aDownload.saver.deferCanceled.resolve();
+      });
 
       
       this._deferDownload.resolve(aDownload);
@@ -189,6 +201,13 @@ DownloadLegacyTransfer.prototype = {
 
 
   _deferDownload: null,
+
+  
+
+
+
+
+  _componentFailed: false,
 };
 
 

@@ -129,7 +129,6 @@ add_task(function test_getUserDownloadsDirectory()
 
 
 
-
 add_task(function test_getTemporaryDownloadsDirectory()
 {
   let downloadDir = yield DownloadIntegration.getTemporaryDownloadsDirectory();

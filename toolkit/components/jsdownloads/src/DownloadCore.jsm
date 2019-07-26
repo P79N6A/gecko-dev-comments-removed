@@ -54,6 +54,8 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
+                                  "resource://gre/modules/DownloadIntegration.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
@@ -267,6 +269,14 @@ Download.prototype = {
       
       if (this._promiseCanceled) {
         yield this._promiseCanceled;
+      }
+
+      
+      if (yield DownloadIntegration.shouldBlockForParentalControls(this)) {
+        let error = new DownloadError(Cr.NS_ERROR_FAILURE, "Download blocked.");
+        error.becauseBlocked = true;
+        error.becauseBlockedByParentalControls = true;
+        throw error;
       }
 
       try {
@@ -541,6 +551,18 @@ DownloadError.prototype = {
 
 
   becauseTargetFailed: false,
+
+  
+
+
+
+  becauseBlocked: false,
+
+  
+
+
+
+  becauseBlockedByParentalControls: false,
 };
 
 

@@ -30,7 +30,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadStore",
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm")
+                                  "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -38,6 +40,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyServiceGetter(this, "env",
                                    "@mozilla.org/process/environment;1",
                                    "nsIEnvironment");
+XPCOMUtils.defineLazyGetter(this, "gParentalControlsService", function() {
+  if ("@mozilla.org/parental-controls-service;1" in Cc) {
+    return Cc["@mozilla.org/parental-controls-service;1"]
+      .createInstance(Ci.nsIParentalControlsService);
+  }
+  return null;
+});
+
 XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
   return Services.strings.
     createBundle("chrome://mozapps/locale/downloads/downloads.properties");
@@ -54,6 +64,8 @@ this.DownloadIntegration = {
   
   testMode: false,
   dontLoad: false,
+  dontCheckParentalControls: false,
+  shouldBlockInTest: false,
 
   
 
@@ -182,7 +194,6 @@ this.DownloadIntegration = {
             directory = Services.prefs.getComplexValue("browser.download.dir",
                                                        Ci.nsIFile);
             yield OS.File.makeDir(directory.path, { ignoreExisting: true });
-
           } catch(ex) {
             
             directory = yield this.getSystemDownloadsDirectory();
@@ -219,6 +230,34 @@ this.DownloadIntegration = {
 #endif
       throw new Task.Result(directory);
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+  shouldBlockForParentalControls: function DI_shouldBlockForParentalControls(aDownload) {
+    if (this.dontCheckParentalControls) {
+      return Promise.resolve(this.shouldBlockInTest);
+    }
+
+    let isEnabled = gParentalControlsService &&
+                    gParentalControlsService.parentalControlsEnabled;
+    let shouldBlock = isEnabled &&
+                      gParentalControlsService.blockFileDownloadsEnabled;
+
+    
+    if (isEnabled && gParentalControlsService.loggingEnabled) {
+      gParentalControlsService.log(gParentalControlsService.ePCLog_FileDownload,
+                                   shouldBlock, aDownload.source.uri, null);
+    }
+
+    return Promise.resolve(shouldBlock);
   },
 
   
