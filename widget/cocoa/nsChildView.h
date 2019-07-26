@@ -388,6 +388,7 @@ public:
   virtual bool            IsEnabled() const;
   NS_IMETHOD              SetFocus(bool aRaise);
   NS_IMETHOD              GetBounds(nsIntRect &aRect);
+  NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
 
   
   
