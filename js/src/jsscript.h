@@ -896,8 +896,9 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
-    size_t computedSizeOfData();
-    size_t sizeOfData(mozilla::MallocSizeOf mallocSizeOf);
+    size_t computedSizeOfData() const;
+    size_t sizeOfData(mozilla::MallocSizeOf mallocSizeOf) const;
+    size_t sizeOfTypeScript(mozilla::MallocSizeOf mallocSizeOf) const;
 
     uint32_t numNotes();  
 
