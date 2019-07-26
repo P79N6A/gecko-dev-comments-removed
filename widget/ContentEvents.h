@@ -250,6 +250,5 @@ public:
 
 typedef mozilla::InternalScriptErrorEvent nsScriptErrorEvent;
 typedef mozilla::InternalScrollPortEvent  nsScrollPortEvent;
-typedef mozilla::InternalScrollAreaEvent  nsScrollAreaEvent;
 
 #endif
