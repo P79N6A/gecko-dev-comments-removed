@@ -76,6 +76,7 @@ class LIRGeneratorShared : public MInstructionVisitor
     inline LAllocation useOrConstant(MDefinition *mir);
     
     
+    inline LAllocation useAny(MDefinition *mir);
     inline LAllocation useAnyOrConstant(MDefinition *mir);
     inline LAllocation useKeepaliveOrConstant(MDefinition *mir);
     inline LAllocation useRegisterOrConstant(MDefinition *mir);
