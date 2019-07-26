@@ -26,6 +26,7 @@ class nsIStyleSheet;
 class nsIAtom;
 class nsICSSPseudoComparator;
 class nsAttrValue;
+struct TreeMatchContext;
 
 
 
@@ -33,43 +34,11 @@ class nsAttrValue;
 
 
 class NS_STACK_CLASS AncestorFilter {
+  friend struct TreeMatchContext;
  public:
-  
-
-
-
-
-  void Init(mozilla::dom::Element *aElement);
-
   
   void PushAncestor(mozilla::dom::Element *aElement);
   void PopAncestor();
-
-  
-  class NS_STACK_CLASS AutoAncestorPusher {
-  public:
-    AutoAncestorPusher(bool aDoPush,
-                       AncestorFilter &aFilter,
-                       mozilla::dom::Element *aElement
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mPushed(aDoPush && aElement), mFilter(aFilter)
-    {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      if (mPushed) {
-        mFilter.PushAncestor(aElement);
-      }
-    }
-    ~AutoAncestorPusher() {
-      if (mPushed) {
-        mFilter.PopAncestor();
-      }
-    }
-
-  private:
-    bool mPushed;
-    AncestorFilter &mFilter;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-  };
 
   
 
@@ -165,9 +134,64 @@ struct NS_STACK_CLASS TreeMatchContext {
   }
 
   
+
+
+
+
+
+  void InitAncestors(mozilla::dom::Element *aElement);
+
+  void PushStyleScope(mozilla::dom::Element* aElement)
+  {
+    NS_PRECONDITION(aElement, "aElement must not be null");
+    if (aElement->IsScopedStyleRoot()) {
+      mStyleScopes.AppendElement(aElement);
+    }
+  }
+
+  void PopStyleScope(mozilla::dom::Element* aElement)
+  {
+    NS_PRECONDITION(aElement, "aElement must not be null");
+    if (mStyleScopes.SafeLastElement(nullptr) == aElement) {
+      mStyleScopes.TruncateLength(mStyleScopes.Length() - 1);
+    }
+  }
+ 
+  
   
   
   const bool mForStyling;
+
+  
+  class NS_STACK_CLASS AutoAncestorPusher {
+  public:
+    AutoAncestorPusher(bool aDoPush,
+                       TreeMatchContext &aTreeMatchContext,
+                       mozilla::dom::Element *aElement
+                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mPushed(aDoPush && aElement),
+        mTreeMatchContext(aTreeMatchContext),
+        mElement(aElement)
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+      if (mPushed) {
+        mTreeMatchContext.mAncestorFilter.PushAncestor(aElement);
+        mTreeMatchContext.PushStyleScope(aElement);
+      }
+    }
+    ~AutoAncestorPusher() {
+      if (mPushed) {
+        mTreeMatchContext.mAncestorFilter.PopAncestor();
+        mTreeMatchContext.PopStyleScope(mElement);
+      }
+    }
+
+  private:
+    bool mPushed;
+    TreeMatchContext& mTreeMatchContext;
+    mozilla::dom::Element* mElement;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  };
 
  private:
   
@@ -217,6 +241,10 @@ struct NS_STACK_CLASS TreeMatchContext {
     eNeverMatchVisited,
     eMatchVisitedDefault
   };
+
+  
+  
+  nsAutoTArray<mozilla::dom::Element*, 1> mStyleScopes;
 
   
   TreeMatchContext(bool aForStyling,

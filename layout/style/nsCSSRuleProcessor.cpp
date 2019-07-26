@@ -3263,12 +3263,12 @@ nsCSSRuleProcessor::SelectorListMatches(Element* aElement,
 
 
 void
-AncestorFilter::Init(Element *aElement)
+TreeMatchContext::InitAncestors(Element *aElement)
 {
-  MOZ_ASSERT(!mFilter);
-  MOZ_ASSERT(mHashes.IsEmpty());
+  MOZ_ASSERT(!mAncestorFilter.mFilter);
+  MOZ_ASSERT(mAncestorFilter.mHashes.IsEmpty());
 
-  mFilter = new Filter();
+  mAncestorFilter.mFilter = new AncestorFilter::Filter();
 
   if (MOZ_LIKELY(aElement)) {
     MOZ_ASSERT(aElement->IsInDoc(),
@@ -3289,7 +3289,8 @@ AncestorFilter::Init(Element *aElement)
 
     
     for (uint32_t i = ancestors.Length(); i-- != 0; ) {
-      PushAncestor(ancestors[i]);
+      mAncestorFilter.PushAncestor(ancestors[i]);
+      PushStyleScope(ancestors[i]);
     }
   }
 }
