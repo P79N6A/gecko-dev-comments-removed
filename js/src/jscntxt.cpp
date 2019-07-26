@@ -145,6 +145,8 @@ JSRuntime::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, JS::RuntimeSizes 
 void
 JSRuntime::triggerOperationCallback()
 {
+    AutoLockForOperationCallback lock(this);
+
     
 
 

@@ -486,35 +486,7 @@ class PerThreadData : public js::PerThreadDataFriendFields
     JSContext           *ionJSContext;
     uintptr_t            ionStackLimit;
 
-# ifdef JS_THREADSAFE
-    
-
-
-
-    PRLock *ionStackLimitLock_;
-
-    class IonStackLimitLock {
-        PerThreadData &data_;
-      public:
-        IonStackLimitLock(PerThreadData &data) : data_(data) {
-            JS_ASSERT(data_.ionStackLimitLock_);
-            PR_Lock(data_.ionStackLimitLock_);
-        }
-        ~IonStackLimitLock() {
-            JS_ASSERT(data_.ionStackLimitLock_);
-            PR_Unlock(data_.ionStackLimitLock_);
-        }
-    };
-#else
-    class IonStackLimitLock {
-      public:
-        IonStackLimitLock(PerThreadData &data) {}
-    };
-# endif
-    void setIonStackLimit(uintptr_t limit) {
-        IonStackLimitLock lock(*this);
-        ionStackLimit = limit;
-    }
+    inline void setIonStackLimit(uintptr_t limit);
 
     
 
@@ -535,31 +507,10 @@ class PerThreadData : public js::PerThreadDataFriendFields
     
     js::AsmJSActivation *asmJSActivationStack_;
 
-# ifdef JS_THREADSAFE
-    
-    PRLock *asmJSActivationStackLock_;
-# endif
-
   public:
     static unsigned offsetOfAsmJSActivationStackReadOnly() {
         return offsetof(PerThreadData, asmJSActivationStack_);
     }
-
-    class AsmJSActivationStackLock {
-# ifdef JS_THREADSAFE
-        PerThreadData &data_;
-      public:
-        AsmJSActivationStackLock(PerThreadData &data) : data_(data) {
-            PR_Lock(data_.asmJSActivationStackLock_);
-        }
-        ~AsmJSActivationStackLock() {
-            PR_Unlock(data_.asmJSActivationStackLock_);
-        }
-# else
-      public:
-        AsmJSActivationStackLock(PerThreadData &) {}
-# endif
-    };
 
     js::AsmJSActivation *asmJSActivationStackFromAnyThread() const {
         return asmJSActivationStack_;
@@ -579,8 +530,6 @@ class PerThreadData : public js::PerThreadDataFriendFields
     int32_t             suppressGC;
 
     PerThreadData(JSRuntime *runtime);
-    ~PerThreadData();
-    bool init();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
@@ -689,6 +638,55 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
     volatile int32_t    interrupt;
+
+#ifdef JS_THREADSAFE
+  private:
+    
+
+
+
+    PRLock *operationCallbackLock;
+#ifdef DEBUG
+    PRThread *operationCallbackOwner;
+#endif
+  public:
+#endif 
+
+    class AutoLockForOperationCallback {
+#ifdef JS_THREADSAFE
+        JSRuntime *rt;
+      public:
+        AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
+            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+            PR_Lock(rt->operationCallbackLock);
+#ifdef DEBUG
+            rt->operationCallbackOwner = PR_GetCurrentThread();
+#endif
+        }
+        ~AutoLockForOperationCallback() {
+            JS_ASSERT(rt->operationCallbackOwner == PR_GetCurrentThread());
+#ifdef DEBUG
+            rt->operationCallbackOwner = NULL;
+#endif
+            PR_Unlock(rt->operationCallbackLock);
+        }
+#else 
+      public:
+        AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
+            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        }
+#endif 
+
+        MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    };
+
+    bool currentThreadOwnsOperationCallbackLock() {
+#if defined(JS_THREADSAFE) && defined(DEBUG)
+        return operationCallbackOwner == PR_GetCurrentThread();
+#else
+        return true;
+#endif
+    }
 
     
     JSCompartment       *atomsCompartment;
@@ -1318,6 +1316,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     
     void resetIonStackLimit() {
+        AutoLockForOperationCallback lock(this);
         mainThread.setIonStackLimit(mainThread.nativeStackLimit);
     }
 
@@ -2034,6 +2033,13 @@ enum ErrorArgumentsType {
     ArgumentsAreUnicode,
     ArgumentsAreASCII
 };
+
+inline void
+PerThreadData::setIonStackLimit(uintptr_t limit)
+{
+    JS_ASSERT(runtime_->currentThreadOwnsOperationCallbackLock());
+    ionStackLimit = limit;
+}
 
 } 
 
