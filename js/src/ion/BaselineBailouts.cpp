@@ -1069,8 +1069,7 @@ HandleCachedShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScr
 
     
     
-    for (size_t i = 0; i < outerScript->ion->scriptEntries(); i++)
-        mjit::PurgeCaches(outerScript->ion->getScript(i));
+    
 
     IonSpew(IonSpew_BaselineBailouts, "Invalidating due to cached shape guard failure");
 
@@ -1178,8 +1177,6 @@ ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
             return false;
         break;
       case Bailout_CachedShapeGuard:
-        JS_NOT_REACHED("JM cached shapes and BL should never coexist! "
-                       "Remove this when Ion starts caching shapes from Baseline!");
         if (!HandleCachedShapeGuardFailure(cx, outerScript, innerScript))
             return false;
         break;
