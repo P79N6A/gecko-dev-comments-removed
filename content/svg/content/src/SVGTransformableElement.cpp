@@ -134,6 +134,16 @@ SVGTransformableElement::SetAnimateMotionTransform(const gfxMatrix* aMatrix)
   }
   mAnimateMotionTransform = aMatrix ? new gfxMatrix(*aMatrix) : nullptr;
   DidAnimateTransformList();
+  nsIFrame* frame = GetPrimaryFrame();
+  if (frame) {
+    
+    
+    
+    
+    
+    
+    frame->SchedulePaint();
+  }
 }
 
 nsSVGAnimatedTransformList*
