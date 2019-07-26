@@ -2357,6 +2357,10 @@ ArgumentsUseCanBeLazy(JSContext *cx, JSScript *script, MInstruction *ins, size_t
     }
 
     
+    if (ins->isGetArgumentsObjectArg() && index == 0)
+        return true;
+
+    
     if (ins->isCallGetProperty() && index == 0 && ins->toCallGetProperty()->name() == cx->names().length)
         return true;
 
