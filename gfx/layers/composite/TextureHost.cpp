@@ -644,7 +644,10 @@ TextureParent::CompositorRecycle()
   mozilla::unused << SendCompositorRecycle(handle);
 
   
-  mWaitForClientRecycle = mTextureHost;
+  
+  if (mTextureHost->GetFlags() & TEXTURE_RECYCLE) {
+    mWaitForClientRecycle = mTextureHost;
+  }
 }
 
 bool
