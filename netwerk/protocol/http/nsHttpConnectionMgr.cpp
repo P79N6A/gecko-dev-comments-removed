@@ -3069,14 +3069,6 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
 
         
         
-        const PRIntervalTime k5Sec = PR_SecondsToInterval(5);
-        if (k5Sec < gHttpHandler->IdleTimeout())
-            conn->SetIdleTimeout(k5Sec);
-        else
-            conn->SetIdleTimeout(gHttpHandler->IdleTimeout());
-
-        
-        
         
         conn->SetIsReusedAfter(950);
 
