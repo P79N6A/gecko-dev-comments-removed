@@ -701,6 +701,8 @@ xpc::SandboxCallableProxyHandler xpc::sandboxCallableProxyHandler;
 
 
 
+
+
 static JSObject*
 WrapCallable(JSContext *cx, JSObject *callable, JSObject *sandboxProtoProxy)
 {
@@ -1032,6 +1034,8 @@ nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative *wrapper, JSC
 
 
 
+
+
 nsresult
 GetPrincipalFromString(JSContext *cx, HandleString codebase, nsIPrincipal **principal)
 {
@@ -1059,6 +1063,8 @@ GetPrincipalFromString(JSContext *cx, HandleString codebase, nsIPrincipal **prin
 
 
 
+
+
 nsresult
 GetPrincipalOrSOP(JSContext *cx, HandleObject from, nsISupports **out)
 {
@@ -1083,6 +1089,8 @@ GetPrincipalOrSOP(JSContext *cx, HandleObject from, nsISupports **out)
 
     return NS_OK;
 }
+
+
 
 
 
@@ -1148,6 +1156,8 @@ GetExpandedPrincipal(JSContext *cx, HandleObject arrayObj, nsIExpandedPrincipal 
 }
 
 
+
+
 nsresult
 GetPropFromOptions(JSContext *cx, HandleObject from, const char *name, MutableHandleValue prop,
                    bool *found)
@@ -1160,6 +1170,8 @@ GetPropFromOptions(JSContext *cx, HandleObject from, const char *name, MutableHa
 
     return NS_OK;
 }
+
+
 
 
 nsresult
@@ -1182,6 +1194,8 @@ GetBoolPropFromOptions(JSContext *cx, HandleObject from, const char *name, bool 
     *prop = value.toBoolean();
     return NS_OK;
 }
+
+
 
 
 nsresult
@@ -1207,6 +1221,8 @@ GetObjPropFromOptions(JSContext *cx, HandleObject from, const char *name, JSObje
 }
 
 
+
+
 nsresult
 GetStringPropFromOptions(JSContext *cx, HandleObject from, const char *name, nsCString &prop)
 {
@@ -1225,6 +1241,8 @@ GetStringPropFromOptions(JSContext *cx, HandleObject from, const char *name, nsC
     prop.Adopt(tmp, strlen(tmp));
     return NS_OK;
 }
+
+
 
 
 nsresult
