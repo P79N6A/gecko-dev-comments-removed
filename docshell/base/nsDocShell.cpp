@@ -755,7 +755,6 @@ nsDocShell::nsDocShell():
     mIsAppTab(false),
     mUseGlobalHistory(false),
     mInPrivateBrowsing(false),
-    mDeviceSizeIsPageSize(false),
     mFiredUnloadEvent(false),
     mEODForCurrentDocument(false),
     mURIResultedInDocument(false),
@@ -898,7 +897,6 @@ NS_INTERFACE_MAP_BEGIN(nsDocShell)
     NS_INTERFACE_MAP_ENTRY(nsIScrollable)
     NS_INTERFACE_MAP_ENTRY(nsITextScroll)
     NS_INTERFACE_MAP_ENTRY(nsIDocCharset)
-    NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObjectOwner)
     NS_INTERFACE_MAP_ENTRY(nsIRefreshURI)
     NS_INTERFACE_MAP_ENTRY(nsIWebProgressListener)
     NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -3921,25 +3919,11 @@ nsDocShell::GetCurrentSHEntry(nsISHEntry** aEntry, bool* aOSHE)
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDocShell::SetDeviceSizeIsPageSize(bool aValue)
+nsIScriptGlobalObject*
+nsDocShell::GetScriptGlobalObject()
 {
-    if (mDeviceSizeIsPageSize != aValue) {
-      mDeviceSizeIsPageSize = aValue;
-      nsRefPtr<nsPresContext> presContext;
-      GetPresContext(getter_AddRefs(presContext));
-      if (presContext) {
-          presContext->MediaFeatureValuesChanged(presContext->eAlwaysRebuildStyle);
-      }
-    }
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetDeviceSizeIsPageSize(bool* aValue)
-{
-    *aValue = mDeviceSizeIsPageSize;
-    return NS_OK;
+    NS_ENSURE_SUCCESS(EnsureScriptEnvironment(), nullptr);
+    return mScriptGlobal;
 }
 
 void
@@ -4951,10 +4935,6 @@ nsDocShell::Create()
         gAddedPreferencesVarCache = true;
     }
 
-    mDeviceSizeIsPageSize =
-        Preferences::GetBool("docshell.device_size_is_page_size",
-                             mDeviceSizeIsPageSize);
-
     nsCOMPtr<nsIObserverService> serv = services::GetObserverService();
     if (serv) {
         const char* msg = mItemType == typeContent ?
@@ -5842,17 +5822,6 @@ nsDocShell::ScrollByPages(int32_t numPages)
     sf->ScrollBy(nsIntPoint(0, numPages), nsIScrollableFrame::PAGES,
                  nsIScrollableFrame::SMOOTH);
     return NS_OK;
-}
-
-
-
-
-
-nsIScriptGlobalObject*
-nsDocShell::GetScriptGlobalObject()
-{
-    NS_ENSURE_SUCCESS(EnsureScriptEnvironment(), nullptr);
-    return mScriptGlobal;
 }
 
 

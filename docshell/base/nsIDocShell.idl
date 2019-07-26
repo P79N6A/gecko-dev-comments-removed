@@ -34,6 +34,7 @@ interface nsIRequest;
 interface nsISHEntry;
 interface nsILayoutHistoryState;
 interface nsISecureBrowserUI;
+interface nsIScriptGlobalObject;
 interface nsIDOMStorage;
 interface nsIPrincipal;
 interface nsIWebBrowserPrint;
@@ -43,7 +44,7 @@ interface nsIReflowObserver;
 
 typedef unsigned long nsLoadFlags;
 
-[scriptable, builtinclass, uuid(77aca3ee-7417-4cd2-994e-9bd95ca1d98a)]
+[scriptable, builtinclass, uuid(5c9adf31-8e4a-4d8d-8daf-9999e6002697)]
 interface nsIDocShell : nsIDocShellTreeItem
 {
   /**
@@ -908,15 +909,8 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript, notxpcom] bool IsInvisible();
   [noscript, notxpcom] void SetInvisible(in bool aIsInvisibleDochsell);
 
-  /**
-   * If deviceSizeIsPageSize is set to true, device-width/height media queries
-   * will be calculated from the page size, not the device size.
-   *
-   * Used by the Responsive Design View and B2G Simulator.
-   *
-   * Default is False.
-   * Default value can be overriden with
-   * docshell.device_size_is_page_size pref.
-   */
-  [infallible] attribute boolean deviceSizeIsPageSize;
+/**
+ * Get the script global for the document in this docshell.
+*/
+  [noscript,notxpcom,nostdcall] nsIScriptGlobalObject GetScriptGlobalObject();
 };
