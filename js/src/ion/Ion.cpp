@@ -1198,6 +1198,28 @@ IonCompile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *o
     return abortReason;
 }
 
+static inline bool
+OffThreadCompilationEnabled(JSContext *cx)
+{
+    return js_IonOptions.parallelCompilation
+        && cx->runtime->useHelperThreads()
+        && cx->runtime->helperThreadCount() != 0;
+}
+
+static inline bool
+OffThreadCompilationAvailable(JSContext *cx)
+{
+    
+    
+    
+    
+    
+    
+    return OffThreadCompilationEnabled(cx)
+        && cx->runtime->gcIncrementalState == gc::NO_INCREMENTAL
+        && !cx->runtime->profilingScripts;
+}
+
 AbortReason
 SequentialCompileContext::compile(IonBuilder *builder, MIRGraph *graph,
                                   AutoDestroyAllocator &autoDestroy)
@@ -1215,15 +1237,7 @@ SequentialCompileContext::compile(IonBuilder *builder, MIRGraph *graph,
     builder->clearForBackEnd();
 
     
-    
-    
-    
-    
-    if (js_IonOptions.parallelCompilation &&
-        OffThreadCompilationAvailable(cx) &&
-        cx->runtime->gcIncrementalState == gc::NO_INCREMENTAL &&
-        !cx->runtime->profilingScripts)
-    {
+    if (OffThreadCompilationAvailable(cx)) {
         builder->script()->ion = ION_COMPILING_SCRIPT;
 
         if (!StartOffThreadIonCompile(cx, builder)) {
@@ -1332,27 +1346,47 @@ CheckScript(UnrootedScript script)
     return true;
 }
 
-static bool
-CheckScriptSize(UnrootedScript script)
+static MethodStatus
+CheckScriptSize(JSContext *cx, UnrootedScript script)
 {
     if (!js_IonOptions.limitScriptSize)
-        return true;
+        return Method_Compiled;
 
-    static const uint32_t MAX_SCRIPT_SIZE = 2000;
+    
+    
+    static const uint32_t MAX_MAIN_THREAD_SCRIPT_SIZE = 2000;
+    static const uint32_t MAX_OFF_THREAD_SCRIPT_SIZE = 20000;
     static const uint32_t MAX_LOCALS_AND_ARGS = 256;
 
-    if (script->length > MAX_SCRIPT_SIZE) {
+    if (script->length > MAX_OFF_THREAD_SCRIPT_SIZE) {
         IonSpew(IonSpew_Abort, "Script too large (%u bytes)", script->length);
-        return false;
+        return Method_CantCompile;
+    }
+
+    if (script->length > MAX_MAIN_THREAD_SCRIPT_SIZE) {
+        if (OffThreadCompilationEnabled(cx)) {
+            
+            
+            
+            
+            
+            if (!OffThreadCompilationAvailable(cx) && !cx->runtime->profilingScripts) {
+                IonSpew(IonSpew_Abort, "Script too large for main thread, skipping (%u bytes)", script->length);
+                return Method_Skipped;
+            }
+        } else {
+            IonSpew(IonSpew_Abort, "Script too large (%u bytes)", script->length);
+            return Method_CantCompile;
+        }
     }
 
     uint32_t numLocalsAndArgs = analyze::TotalSlots(script);
     if (numLocalsAndArgs > MAX_LOCALS_AND_ARGS) {
         IonSpew(IonSpew_Abort, "Too many locals and arguments (%u)", numLocalsAndArgs);
-        return false;
+        return Method_CantCompile;
     }
 
-    return true;
+    return Method_Compiled;
 }
 
 static MethodStatus
@@ -1366,9 +1400,15 @@ Compile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *osrP
         return Method_CantCompile;
     }
 
-    if (!CheckScript(script) || !CheckScriptSize(script)) {
+    if (!CheckScript(script)) {
         IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d", script->filename, script->lineno);
         return Method_CantCompile;
+    }
+
+    MethodStatus status = CheckScriptSize(cx, script);
+    if (status != Method_Compiled) {
+        IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d", script->filename, script->lineno);
+        return status;
     }
 
     if (script->ion) {

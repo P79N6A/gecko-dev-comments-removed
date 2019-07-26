@@ -120,10 +120,6 @@ StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder);
 void
 CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
 
-
-bool
-OffThreadCompilationAvailable(JSContext *cx);
-
 class AutoLockWorkerThreadState
 {
     JSRuntime *rt;
