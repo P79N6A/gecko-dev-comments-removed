@@ -1930,31 +1930,29 @@ TriggerOperationCallback(JSRuntime *rt, JS::gcreason::Reason reason)
     rt->triggerOperationCallback(JSRuntime::TriggerCallbackMainThread);
 }
 
-bool
+void
 js::TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason)
 {
     
     if (InParallelSection()) {
         ForkJoinSlice::Current()->requestGC(reason);
-        return true;
+        return;
     }
 
     
     if (rt->currentThreadOwnsOperationCallbackLock())
-        return false;
+        return;
 
     JS_ASSERT(CurrentThreadCanAccessRuntime(rt));
 
-    
-    if (rt->isHeapCollecting())
-        return true;
+    if (rt->isHeapBusy())
+        return;
 
     JS::PrepareForFullGC(rt);
     TriggerOperationCallback(rt, reason);
-    return true;
 }
 
-bool
+void
 js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 {
     
@@ -1963,37 +1961,35 @@ js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 
     if (InParallelSection()) {
         ForkJoinSlice::Current()->requestZoneGC(zone, reason);
-        return true;
+        return;
     }
 
     
     if (zone->usedByExclusiveThread)
-        return false;
+        return;
 
     JSRuntime *rt = zone->runtimeFromMainThread();
 
     
     if (rt->currentThreadOwnsOperationCallbackLock())
-        return false;
+        return;
 
-    
-    if (rt->isHeapCollecting())
-        return true;
+    if (rt->isHeapBusy())
+        return;
 
     if (rt->gcZeal() == ZealAllocValue) {
         TriggerGC(rt, reason);
-        return true;
+        return;
     }
 
     if (rt->isAtomsZone(zone)) {
         
         TriggerGC(rt, reason);
-        return true;
+        return;
     }
 
     PrepareZoneForGC(zone);
     TriggerOperationCallback(rt, reason);
-    return true;
 }
 
 void

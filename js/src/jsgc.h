@@ -687,11 +687,11 @@ extern void
 TraceRuntime(JSTracer *trc);
 
 
-extern bool
+extern void
 TriggerGC(JSRuntime *rt, JS::gcreason::Reason reason);
 
 
-extern bool
+extern void
 TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason);
 
 extern void
