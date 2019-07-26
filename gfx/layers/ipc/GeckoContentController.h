@@ -31,20 +31,20 @@ public:
 
 
 
-  virtual void HandleDoubleTap(const nsIntPoint& aPoint) = 0;
+  virtual void HandleDoubleTap(const CSSIntPoint& aPoint) = 0;
 
   
 
 
 
 
-  virtual void HandleSingleTap(const nsIntPoint& aPoint) = 0;
+  virtual void HandleSingleTap(const CSSIntPoint& aPoint) = 0;
 
   
 
 
 
-  virtual void HandleLongTap(const nsIntPoint& aPoint) = 0;
+  virtual void HandleLongTap(const CSSIntPoint& aPoint) = 0;
 
   
 

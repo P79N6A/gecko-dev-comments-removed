@@ -499,7 +499,7 @@ public:
                         aFrameMetrics));
   }
 
-  virtual void HandleDoubleTap(const nsIntPoint& aPoint) MOZ_OVERRIDE
+  virtual void HandleDoubleTap(const CSSIntPoint& aPoint) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       
@@ -516,7 +516,7 @@ public:
     }
   }
 
-  virtual void HandleSingleTap(const nsIntPoint& aPoint) MOZ_OVERRIDE
+  virtual void HandleSingleTap(const CSSIntPoint& aPoint) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       
@@ -533,7 +533,7 @@ public:
     }
   }
 
-  virtual void HandleLongTap(const nsIntPoint& aPoint) MOZ_OVERRIDE
+  virtual void HandleLongTap(const CSSIntPoint& aPoint) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       
