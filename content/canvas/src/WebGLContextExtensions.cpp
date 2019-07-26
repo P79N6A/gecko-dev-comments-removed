@@ -123,6 +123,7 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const
             break;
     }
 
+#if 0
     if (Preferences::GetBool("webgl.enable-draft-extensions", false) || IsWebGL2()) {
         switch (ext) {
             default:
@@ -130,6 +131,7 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const
                 break;
         }
     }
+#endif
 
     return false;
 }
