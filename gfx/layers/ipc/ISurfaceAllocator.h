@@ -14,7 +14,9 @@
 #include "mozilla/RefPtr.h"
 #include "nsIMemoryReporter.h"          
 #include "mozilla/Atomics.h"            
+#include "mozilla/layers/LayersMessages.h" 
 #include "LayersTypes.h"
+#include <vector>
 
 
 
@@ -106,6 +108,20 @@ public:
   virtual bool AllocUnsafeShmem(size_t aSize,
                                 mozilla::ipc::SharedMemory::SharedMemoryType aType,
                                 mozilla::ipc::Shmem* aShmem) = 0;
+
+  
+
+
+
+
+  bool AllocShmemSection(size_t aSize,
+                         mozilla::layers::ShmemSection* aShmemSection);
+
+  
+
+
+  void FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection);
+
   
 
 
@@ -158,7 +174,12 @@ protected:
                                               SurfaceDescriptor* aBuffer);
 
 
-  virtual ~ISurfaceAllocator() {}
+  virtual ~ISurfaceAllocator();
+
+  void ShrinkShmemSectionHeap();
+
+  
+  std::vector<mozilla::ipc::Shmem> mUsedShmems;
 
   friend class detail::RefCounted<ISurfaceAllocator, detail::AtomicRefCount>;
 };

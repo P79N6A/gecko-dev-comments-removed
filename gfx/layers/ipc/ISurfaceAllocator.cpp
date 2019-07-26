@@ -12,6 +12,7 @@
 #include "gfxPlatform.h"                
 #include "gfxSharedImageSurface.h"      
 #include "mozilla/Assertions.h"         
+#include "mozilla/Atomics.h"            
 #include "mozilla/ipc/SharedMemory.h"   
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "ShadowLayerUtils.h"
@@ -42,6 +43,14 @@ IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface)
 {
   return aSurface.type() != SurfaceDescriptor::T__None &&
          aSurface.type() != SurfaceDescriptor::Tnull_t;
+}
+
+ISurfaceAllocator::~ISurfaceAllocator()
+{
+  ShrinkShmemSectionHeap();
+
+  
+  MOZ_ASSERT(mUsedShmems.empty());
 }
 
 bool
@@ -176,6 +185,140 @@ ISurfaceAllocator::PlatformAllocSurfaceDescriptor(const gfx::IntSize&,
   return false;
 }
 #endif
+
+
+
+const uint32_t sShmemPageSize = 4096;
+const uint32_t sSupportedBlockSize = 4;
+
+enum AllocationStatus
+{
+  STATUS_ALLOCATED,
+  STATUS_FREED
+};
+
+struct ShmemSectionHeapHeader
+{
+  Atomic<uint32_t> mTotalBlocks;
+  Atomic<uint32_t> mAllocatedBlocks;
+};
+
+struct ShmemSectionHeapAllocation
+{
+  Atomic<uint32_t> mStatus;
+  uint32_t mSize;
+};
+
+bool
+ISurfaceAllocator::AllocShmemSection(size_t aSize, mozilla::layers::ShmemSection* aShmemSection)
+{
+  
+  
+  MOZ_ASSERT(aSize == sSupportedBlockSize);
+  MOZ_ASSERT(aShmemSection);
+
+  uint32_t allocationSize = (aSize + sizeof(ShmemSectionHeapAllocation));
+
+  for (size_t i = 0; i < mUsedShmems.size(); i++) {
+    ShmemSectionHeapHeader* header = mUsedShmems[i].get<ShmemSectionHeapHeader>();
+    if ((header->mAllocatedBlocks + 1) * allocationSize + sizeof(ShmemSectionHeapHeader) < sShmemPageSize) {
+      aShmemSection->shmem() = mUsedShmems[i];
+      MOZ_ASSERT(mUsedShmems[i].IsWritable());
+      break;
+    }
+  }
+
+  if (!aShmemSection->shmem().IsWritable()) {
+    ipc::Shmem tmp;
+    if (!AllocUnsafeShmem(sShmemPageSize, ipc::SharedMemory::TYPE_BASIC, &tmp)) {
+      return false;
+    }
+
+    ShmemSectionHeapHeader* header = tmp.get<ShmemSectionHeapHeader>();
+    header->mTotalBlocks = 0;
+    header->mAllocatedBlocks = 0;
+
+    mUsedShmems.push_back(tmp);
+    aShmemSection->shmem() = tmp;
+  }
+
+  MOZ_ASSERT(aShmemSection->shmem().IsWritable());
+
+  ShmemSectionHeapHeader* header = aShmemSection->shmem().get<ShmemSectionHeapHeader>();
+  uint8_t* heap = aShmemSection->shmem().get<uint8_t>() + sizeof(ShmemSectionHeapHeader);
+
+  ShmemSectionHeapAllocation* allocHeader = nullptr;
+
+  if (header->mTotalBlocks > header->mAllocatedBlocks) {
+    
+    for (size_t i = 0; i < header->mTotalBlocks; i++) {
+      allocHeader = reinterpret_cast<ShmemSectionHeapAllocation*>(heap);
+
+      if (allocHeader->mStatus == STATUS_FREED) {
+        break;
+      }
+      heap += allocationSize;
+    }
+    MOZ_ASSERT(allocHeader && allocHeader->mStatus == STATUS_FREED);
+    MOZ_ASSERT(allocHeader->mSize == sSupportedBlockSize);
+  } else {
+    heap += header->mTotalBlocks * allocationSize;
+
+    header->mTotalBlocks++;
+    allocHeader = reinterpret_cast<ShmemSectionHeapAllocation*>(heap);
+    allocHeader->mSize = aSize;
+  }
+
+  MOZ_ASSERT(allocHeader);
+  header->mAllocatedBlocks++;
+  allocHeader->mStatus = STATUS_ALLOCATED;
+
+  aShmemSection->size() = aSize;
+  aShmemSection->offset() = (heap + sizeof(ShmemSectionHeapAllocation)) - aShmemSection->shmem().get<uint8_t>();
+  ShrinkShmemSectionHeap();
+  return true;
+}
+
+void
+ISurfaceAllocator::FreeShmemSection(mozilla::layers::ShmemSection& aShmemSection)
+{
+  MOZ_ASSERT(aShmemSection.size() == sSupportedBlockSize);
+  MOZ_ASSERT(aShmemSection.offset() < sShmemPageSize - sSupportedBlockSize);
+
+  ShmemSectionHeapAllocation* allocHeader =
+    reinterpret_cast<ShmemSectionHeapAllocation*>(aShmemSection.shmem().get<char>() +
+                                                  aShmemSection.offset() -
+                                                  sizeof(ShmemSectionHeapAllocation));
+
+  MOZ_ASSERT(allocHeader->mSize == aShmemSection.size());
+
+  DebugOnly<bool> success = allocHeader->mStatus.compareExchange(STATUS_ALLOCATED, STATUS_FREED);
+  
+  MOZ_ASSERT(success);
+
+  ShmemSectionHeapHeader* header = aShmemSection.shmem().get<ShmemSectionHeapHeader>();
+  header->mAllocatedBlocks--;
+
+  ShrinkShmemSectionHeap();
+}
+
+void
+ISurfaceAllocator::ShrinkShmemSectionHeap()
+{
+  for (size_t i = 0; i < mUsedShmems.size(); i++) {
+    ShmemSectionHeapHeader* header = mUsedShmems[i].get<ShmemSectionHeapHeader>();
+    if (header->mAllocatedBlocks == 0) {
+      DeallocShmem(mUsedShmems[i]);
+
+      
+      
+      mUsedShmems[i] = mUsedShmems[mUsedShmems.size() - 1];
+      mUsedShmems.pop_back();
+      i--;
+      break;
+    }
+  }
+}
 
 } 
 } 
