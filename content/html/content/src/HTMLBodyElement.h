@@ -33,8 +33,8 @@ public:
   HTMLBodyElement*  mPart;  
 };
 
-class HTMLBodyElement : public nsGenericHTMLElement,
-                        public nsIDOMHTMLBodyElement
+class HTMLBodyElement MOZ_FINAL : public nsGenericHTMLElement,
+                                  public nsIDOMHTMLBodyElement
 {
 public:
   using Element::GetText;

@@ -103,9 +103,9 @@ private:
 
 
 
-class HTMLSelectElement : public nsGenericHTMLFormElement,
-                          public nsIDOMHTMLSelectElement,
-                          public nsIConstraintValidation
+class HTMLSelectElement MOZ_FINAL : public nsGenericHTMLFormElement,
+                                    public nsIDOMHTMLSelectElement,
+                                    public nsIConstraintValidation
 {
 public:
   using nsIConstraintValidation::GetValidationMessage;

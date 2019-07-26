@@ -26,8 +26,8 @@ using namespace mozilla::dom;
 
 
 
-class nsAttributeTextNode : public nsTextNode,
-                            public nsStubMutationObserver
+class nsAttributeTextNode MOZ_FINAL : public nsTextNode,
+                                      public nsStubMutationObserver
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
