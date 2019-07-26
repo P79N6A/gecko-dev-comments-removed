@@ -125,7 +125,7 @@ struct ImageValue : public URLValue {
 
   
 
-  nsRefPtrHashtable<nsISupportsHashKey, imgRequestProxy> mRequests; 
+  nsRefPtrHashtable<nsPtrHashKey<nsISupports>, imgRequestProxy> mRequests; 
 
   
   

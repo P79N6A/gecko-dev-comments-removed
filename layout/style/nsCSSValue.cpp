@@ -1721,14 +1721,22 @@ css::ImageValue::ImageValue(nsIURI* aURI, nsStringBuffer* aString,
                             nsIDocument* aDocument)
   : URLValue(aURI, aString, aReferrer, aOriginPrincipal)
 {
-  if (aDocument->GetOriginalDocument()) {
-    aDocument = aDocument->GetOriginalDocument();
+  
+  
+  
+  nsIDocument* loadingDoc = aDocument->GetOriginalDocument();
+  if (!loadingDoc) {
+    loadingDoc = aDocument;
   }
 
   mRequests.Init();
 
-  aDocument->StyleImageLoader()->LoadImage(aURI, aOriginPrincipal, aReferrer,
-                                           this);
+  loadingDoc->StyleImageLoader()->LoadImage(aURI, aOriginPrincipal, aReferrer,
+                                            this);
+
+  if (loadingDoc != aDocument) {
+    aDocument->StyleImageLoader()->MaybeRegisterCSSImage(this);
+  }
 }
 
 static PLDHashOperator
