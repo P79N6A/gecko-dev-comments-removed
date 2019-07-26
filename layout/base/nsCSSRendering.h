@@ -807,6 +807,27 @@ public:
   static nsMargin GetBlurRadiusMargin(nscoord aBlurRadius,
                                       int32_t aAppUnitsPerDevPixel);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static void BlurRectangle(gfxContext* aDestinationCtx,
                             const nsRect& aRect,
                             int32_t aAppUnitsPerDevPixel,

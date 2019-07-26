@@ -102,6 +102,23 @@ public:
 
     static gfxIntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static void BlurRectangle(gfxContext *aDestinationCtx,
                               const gfxRect& aRect,
                               gfxCornerSizes* aCornerRadii,
