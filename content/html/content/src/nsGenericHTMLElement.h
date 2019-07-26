@@ -81,6 +81,7 @@ public:
                          const nsAString& aValue);
 
   
+  virtual void Click();
   virtual int32_t TabIndexDefault()
   {
     return -1;
@@ -119,6 +120,11 @@ public:
   nsresult GetClassName(nsAString& aClassName);
   nsresult SetClassName(const nsAString& aClassName);
 
+  nsresult DOMClick()
+  {
+    Click();
+    return NS_OK;
+  }
   nsresult GetTabIndex(int32_t* aTabIndex)
   {
     *aTabIndex = TabIndex();
@@ -159,7 +165,6 @@ public:
   
   NS_IMETHOD Focus();
   NS_IMETHOD Blur();
-  NS_IMETHOD Click();
   NS_IMETHOD GetHidden(bool* aHidden);
   NS_IMETHOD SetHidden(bool aHidden);
   NS_IMETHOD GetSpellcheck(bool* aSpellcheck);
@@ -1401,7 +1406,6 @@ protected:
 
 
 
-
 #define NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(_to) \
   NS_IMETHOD GetId(nsAString& aId) { \
     return _to GetId(aId); \
@@ -1441,6 +1445,9 @@ protected:
   } \
   NS_IMETHOD SetHidden(bool aHidden) { \
     return _to SetHidden(aHidden); \
+  } \
+  NS_IMETHOD DOMClick() { \
+    return _to DOMClick(); \
   } \
   NS_IMETHOD GetTabIndex(int32_t* aTabIndex) { \
     return _to GetTabIndex(aTabIndex); \
