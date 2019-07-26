@@ -21,7 +21,6 @@
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
-#include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
@@ -30,7 +29,7 @@ class gfxImageSurface;
 class gfxReusableSurfaceWrapper;
 struct nsIntPoint;
 struct nsIntSize;
-
+struct nsIntRect;
 
 namespace mozilla {
 namespace ipc {

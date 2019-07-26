@@ -10,9 +10,10 @@
 #import <Carbon/Carbon.h>
 #endif
 
-#include "nsRect.h"
 #include "nsIWidget.h"
 #include "npapi.h"
+
+struct nsRect;
 
 
 
