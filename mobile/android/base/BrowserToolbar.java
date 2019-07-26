@@ -425,15 +425,86 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         return mInflater.inflate(R.layout.tabs_counter, null);
     }
 
+    private int prepareAwesomeBarAnimation() {
+        
+        mAwesomeBar.setSelected(true);
+
+        
+        
+        
+        MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
+        mAwesomeBarEntryRightMargin = entryParams.rightMargin;
+        entryParams.rightMargin = 0;
+        mAwesomeBarEntry.requestLayout();
+
+        
+        
+        MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
+        mAddressBarBgRightMargin = barParams.rightMargin;
+        barParams.rightMargin = 0;
+        mAddressBarBgCurveTowards = mAddressBarBg.getCurveTowards();
+        mAddressBarBg.setCurveTowards(BrowserToolbarBackground.CurveTowards.NONE);
+        mAddressBarBg.requestLayout();
+
+        
+        
+        int translation = mAwesomeBarEntryRightMargin;
+
+        if (mActionItemBar.getVisibility() == View.VISIBLE) {
+            
+            
+            MarginLayoutParams itemBarParams = (MarginLayoutParams) mActionItemBar.getLayoutParams();
+            translation = itemBarParams.rightMargin + mActionItemBar.getWidth() - entryParams.leftMargin;
+
+            
+            View awesomeBarParent = (View) mAwesomeBar.getParent();
+            mAwesomeBarParams = (LayoutParams) awesomeBarParent.getLayoutParams();
+            awesomeBarParent.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                                                              ViewGroup.LayoutParams.MATCH_PARENT));
+
+            
+            MarginLayoutParams rightEdgeParams = (MarginLayoutParams) mAwesomeBarRightEdge.getLayoutParams();
+            rightEdgeParams.rightMargin = itemBarParams.rightMargin + mActionItemBar.getWidth() - 100;
+            mAwesomeBarRightEdge.requestLayout();
+        }
+
+        
+        mAwesomeBarRightEdge.setVisibility(View.VISIBLE);
+
+        return translation;
+    }
+
     public void fromAwesomeBarSearch() {
         if (mActivity.hasTabsSideBar() || Build.VERSION.SDK_INT < 11) {
             return;
         }
 
+        AnimatorProxy proxy = null;
+
         
         
         
-        AnimatorProxy proxy = AnimatorProxy.create(mFavicon);
+        
+        
+        if (!mAwesomeBar.isSelected()) {
+            int translation = prepareAwesomeBarAnimation();
+
+            proxy = AnimatorProxy.create(mAwesomeBarRightEdge);
+            proxy.setTranslationX(translation);
+            proxy = AnimatorProxy.create(mTabs);
+            proxy.setTranslationX(translation);
+            proxy = AnimatorProxy.create(mTabsCount);
+            proxy.setTranslationX(translation);
+            proxy = AnimatorProxy.create(mMenu);
+            proxy.setTranslationX(translation);
+            proxy = AnimatorProxy.create(mActionItemBar);
+            proxy.setTranslationX(translation);
+        }
+
+        
+        
+        
+        proxy = AnimatorProxy.create(mFavicon);
         proxy.setAlpha(1);
         proxy = AnimatorProxy.create(mSiteSecurity);
         proxy.setAlpha(1);
@@ -489,7 +560,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 
                 
                 
-                if (mActionItemBar.getVisibility() == View.VISIBLE && mAwesomeBarParams != null)
+                if (mActionItemBar.getVisibility() == View.VISIBLE)
                     ((View) mAwesomeBar.getParent()).setLayoutParams(mAwesomeBarParams);
 
                 
@@ -526,47 +597,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
 
-        
-        mAwesomeBar.setSelected(true);
-
-        
-        
-        
-        MarginLayoutParams entryParams = (MarginLayoutParams) mAwesomeBarEntry.getLayoutParams();
-        mAwesomeBarEntryRightMargin = entryParams.rightMargin;
-        entryParams.rightMargin = 0;
-        mAwesomeBarEntry.requestLayout();
-
-        
-        
-        MarginLayoutParams barParams = (MarginLayoutParams) mAddressBarBg.getLayoutParams();
-        mAddressBarBgRightMargin = barParams.rightMargin;
-        barParams.rightMargin = 0;
-        mAddressBarBgCurveTowards = mAddressBarBg.getCurveTowards();
-        mAddressBarBg.setCurveTowards(BrowserToolbarBackground.CurveTowards.NONE);
-        mAddressBarBg.requestLayout();
-
-        
-        
-        int translation = mAwesomeBarEntryRightMargin;
+        int translation = prepareAwesomeBarAnimation();
 
         if (mActionItemBar.getVisibility() == View.VISIBLE) {
-            
-            
-            MarginLayoutParams itemBarParams = (MarginLayoutParams) mActionItemBar.getLayoutParams();
-            translation = itemBarParams.rightMargin + mActionItemBar.getWidth() - entryParams.leftMargin;
-
-            
-            View awesomeBarParent = (View) mAwesomeBar.getParent();
-            mAwesomeBarParams = (LayoutParams) awesomeBarParent.getLayoutParams();
-            awesomeBarParent.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                                                              ViewGroup.LayoutParams.MATCH_PARENT));
-
-            
-            MarginLayoutParams rightEdgeParams = (MarginLayoutParams) mAwesomeBarRightEdge.getLayoutParams();
-            rightEdgeParams.rightMargin = itemBarParams.rightMargin + mActionItemBar.getWidth() - 100;
-            mAwesomeBarRightEdge.requestLayout();
-
             contentAnimator.attach(mFavicon,
                                    PropertyAnimator.Property.ALPHA,
                                    0);
@@ -577,9 +610,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                                    PropertyAnimator.Property.ALPHA,
                                    0);
         }
-
-        
-        mAwesomeBarRightEdge.setVisibility(View.VISIBLE);
 
         
         contentAnimator.attach(mForward,
