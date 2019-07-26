@@ -302,8 +302,14 @@ gfxPlatform::gfxPlatform()
         XRE_GetProcessType() == GeckoProcessType_Default &&
         Preferences::GetBool("layers.prefer-memory-over-shmem", true);
 
+#ifdef XP_WIN
+    
     mLayersUseDeprecated =
-        Preferences::GetBool("layers.use-deprecated-textures", true);
+        Preferences::GetBool("layers.use-deprecated-textures", true)
+        && !Preferences::GetBool("layers.prefer-opengl", false);
+#else
+    mLayersUseDeprecated = false;
+#endif
 
     Preferences::AddBoolVarCache(&mDrawLayerBorders,
                                  "layers.draw-borders",
