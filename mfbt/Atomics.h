@@ -18,6 +18,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Compiler.h"
 #include "mozilla/TypeTraits.h"
 
 #include <stdint.h>
@@ -27,34 +28,16 @@
 
 
 
-#if defined(__clang__)
+#if defined(__clang__) || defined(__GNUC__)
    
 
 
 
 
 
-
-
-
-#  if !defined(__linux__) && !defined(__OpenBSD__) && \
-      (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)) && \
-      __has_include(<atomic>)
+#  if MOZ_USING_LIBSTDCXX && MOZ_LIBSTDCXX_VERSION_AT_LEAST(4, 7, 0)
 #    define MOZ_HAVE_CXX11_ATOMICS
-#  endif
-
-
-
-
-
-
-
-
-
-#elif defined(__GNUC__) && !defined(__ANDROID__)
-#  include "mozilla/Compiler.h"
-#  if (defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L) && \
-      MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
+#  elif MOZ_USING_LIBCXX
 #    define MOZ_HAVE_CXX11_ATOMICS
 #  endif
 #elif defined(_MSC_VER) && _MSC_VER >= 1700
