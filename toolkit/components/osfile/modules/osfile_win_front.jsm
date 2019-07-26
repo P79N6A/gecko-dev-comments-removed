@@ -472,7 +472,7 @@
        }
        
        if (ctypes.winLastError == Const.ERROR_ACCESS_DENIED &&
-           splitPath.absolute &&
+           splitPath.winDrive &&
            splitPath.components.length === 1 ) {
          return;
        }
