@@ -7,6 +7,8 @@ package org.mozilla.gecko;
 
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
 import org.mozilla.gecko.GeckoProfileDirectories.NoSuchProfileException;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.util.INIParser;
 import org.mozilla.gecko.util.INISection;
 
@@ -577,6 +579,11 @@ public final class GeckoProfile {
             
             
             profileSection.setProperty("Default", 1);
+
+            
+            
+            
+            Telemetry.startUISession(TelemetryContract.Session.FIRSTRUN);
         }
 
         parser.addSection(profileSection);

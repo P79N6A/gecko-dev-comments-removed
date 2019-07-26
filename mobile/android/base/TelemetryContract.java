@@ -113,6 +113,9 @@ public interface TelemetryContract {
 
         
         public static final String FRECENCY = "frecency.1";
+
+        
+        public static final String FIRSTRUN = "firstrun.1";
     }
 
     
