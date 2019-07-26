@@ -8,103 +8,13 @@
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 
-#include "nsPoint.h"
-#include "nsRect.h"
-#include "nsWeakPtr.h"
-#include "nsITransferable.h"
-
 #define NS_EVENT_TYPE_NULL                   0
 #define NS_EVENT_TYPE_ALL                  1 // Not a real event type
-
-class nsContentCommandEvent : public nsGUIEvent
-{
-public:
-  nsContentCommandEvent(bool aIsTrusted, uint32_t aMsg, nsIWidget *aWidget,
-                        bool aOnlyEnabledCheck = false) :
-    nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_CONTENT_COMMAND_EVENT),
-    mOnlyEnabledCheck(bool(aOnlyEnabledCheck)),
-    mSucceeded(false), mIsEnabled(false)
-  {
-  }
-
-  
-  nsCOMPtr<nsITransferable> mTransferable;                 
-
-  
-  
-  enum {
-    eCmdScrollUnit_Line,
-    eCmdScrollUnit_Page,
-    eCmdScrollUnit_Whole
-  };
-
-  struct ScrollInfo {
-    ScrollInfo() :
-      mAmount(0), mUnit(eCmdScrollUnit_Line), mIsHorizontal(false)
-    {
-    }
-
-    int32_t      mAmount;                                  
-    uint8_t      mUnit;                                    
-    bool mIsHorizontal;                            
-  } mScroll;
-
-  bool mOnlyEnabledCheck;                          
-
-  bool mSucceeded;                                 
-  bool mIsEnabled;                                 
-};
-
-
-
-
-
-
-
-class nsCommandEvent : public nsGUIEvent
-{
-public:
-  nsCommandEvent(bool isTrusted, nsIAtom* aEventType,
-                 nsIAtom* aCommand, nsIWidget* w)
-    : nsGUIEvent(isTrusted, NS_USER_DEFINED_EVENT, w, NS_COMMAND_EVENT)
-  {
-    userType = aEventType;
-    command = aCommand;
-  }
-
-  nsCOMPtr<nsIAtom> command;
-
-  
-  void AssignCommandEventData(const nsCommandEvent& aEvent, bool aCopyTargets)
-  {
-    AssignGUIEventData(aEvent, aCopyTargets);
-
-    
-  }
-};
-
-
-
-
-
-class nsPluginEvent : public nsGUIEvent
-{
-public:
-  nsPluginEvent(bool isTrusted, uint32_t msg, nsIWidget *w)
-    : nsGUIEvent(isTrusted, msg, w, NS_PLUGIN_EVENT),
-      retargetToFocusedDocument(false)
-  {
-  }
-
-  
-  
-  
-  bool retargetToFocusedDocument;
-};
 
 #define NS_IS_INPUT_EVENT(evnt) \
        (((evnt)->eventStructType == NS_INPUT_EVENT) || \

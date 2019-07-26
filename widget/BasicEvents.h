@@ -58,18 +58,18 @@ enum nsEventStructType
   NS_ANIMATION_EVENT,                
 
   
+  NS_COMMAND_EVENT,                  
+  NS_CONTENT_COMMAND_EVENT,          
+  NS_PLUGIN_EVENT,                   
+
+  
   NS_MUTATION_EVENT,                 
 
   
+  
+  
   NS_SVGZOOM_EVENT,                  
-  NS_SMIL_TIME_EVENT,                
-
-  
-  NS_COMMAND_EVENT,                  
-  NS_CONTENT_COMMAND_EVENT,          
-
-  
-  NS_PLUGIN_EVENT                    
+  NS_SMIL_TIME_EVENT                 
 };
 
 
