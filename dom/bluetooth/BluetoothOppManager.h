@@ -102,7 +102,7 @@ private:
   
 
 
-  enum mozilla::ipc::SocketConnectionStatus mSocketStatus;
+  mozilla::ipc::SocketConnectionStatus mPrevSocketStatus;
 
   
 
