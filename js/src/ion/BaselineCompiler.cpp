@@ -151,6 +151,10 @@ BaselineCompiler::compile()
                                            ImmWord(uintptr_t(-1)));
     }
 
+    
+    if (cx->zone()->needsBarrier())
+        baselineScript->toggleBarriers(true);
+
     return Method_Compiled;
 }
 

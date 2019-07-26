@@ -3501,6 +3501,8 @@ DoCallFallback(JSContext *cx, ICCall_Fallback *stub, uint32_t argc, Value *vp, M
     JSOp op = JSOp(*pc);
     FallbackICSpew(cx, stub, "Call(%s)", js_CodeName[op]);
 
+    JS_ASSERT(argc == GET_ARGC(pc));
+
     RootedValue callee(cx, vp[0]);
     RootedValue thisv(cx, vp[1]);
 
@@ -3704,6 +3706,8 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
     if (canUseTailCallReg)
         regs.add(BaselineTailCallReg);
 
+    Label failureLeaveStubFrame;
+
     if (isConstructing_) {
         
         masm.push(argcReg);
@@ -3727,18 +3731,21 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
         masm.loadPtr(Address(BaselineStackReg, STUB_FRAME_SAVED_STUB_OFFSET), BaselineStubReg);
 
         
-        BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
-        masm.storeValue(JSReturnOperand, thisSlot);
-        regs.add(JSReturnOperand);
-
+        
+        
         
         callee = regs.takeAny();
         masm.loadPtr(expectedCallee, callee);
         masm.loadPtr(Address(callee, offsetof(JSFunction, u.i.script_)), callee);
-        Register loadScratch = regs.takeAny();
-        masm.loadBaselineOrIonCode(callee, loadScratch, &failure);
-        regs.add(loadScratch);
+        Register loadScratch = ArgumentsRectifierReg;
+        masm.loadBaselineOrIonCode(callee, loadScratch, &failureLeaveStubFrame);
         regs.add(callee);
+
+        
+        BaseIndex thisSlot(BaselineStackReg, argcReg, TimesEight, STUB_FRAME_SIZE);
+        masm.storeValue(JSReturnOperand, thisSlot);
+        regs.add(JSReturnOperand);
+
         
         code = regs.takeAny();
         masm.loadPtr(Address(callee, IonCode::offsetOfCode()), code);
@@ -3803,6 +3810,12 @@ ICCall_Scripted::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     EmitEnterTypeMonitorIC(masm);
+
+    
+    masm.bind(&failureLeaveStubFrame);
+    EmitLeaveStubFrame(masm, false);
+    if (argcReg != R0.scratchReg())
+        masm.mov(argcReg, R0.scratchReg());
 
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
