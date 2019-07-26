@@ -278,7 +278,7 @@ private:
 
 
 
-class AsyncWriteIconToDisk : public nsIRunnable
+class AsyncEncodeAndWriteIcon : public nsIRunnable
 {
 public:
   const bool mURLShortcut;
@@ -286,19 +286,22 @@ public:
   NS_DECL_NSIRUNNABLE
 
   
-  AsyncWriteIconToDisk(const nsAString &aIconPath,
-                       const nsACString &aMimeTypeOfInputData,
-                       uint8_t *aData, 
-                       uint32_t aDataLen,
-                       const bool aURLShortcut);
-  virtual ~AsyncWriteIconToDisk();
+  AsyncEncodeAndWriteIcon(const nsAString &aIconPath,
+                          uint8_t *aData, uint32_t aDataLen, uint32_t aStride,
+                          uint32_t aWidth, uint32_t aHeight,
+                          const bool aURLShortcut);
+  virtual ~AsyncEncodeAndWriteIcon();
 
 private:
   nsAutoString mIconPath;
   nsAutoCString mMimeTypeOfInputData;
   nsAutoArrayPtr<uint8_t> mBuffer;
   uint32_t mBufferLength;
+  uint32_t mStride;
+  uint32_t mWidth;
+  uint32_t mHeight;
 };
+
 
 class AsyncDeleteIconFromDisk : public nsIRunnable
 {
