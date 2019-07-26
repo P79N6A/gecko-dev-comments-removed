@@ -47,7 +47,7 @@ ContactDB.prototype = {
 
 
         if (DEBUG) debug("create schema");
-        objectStore = db.createObjectStore(this.dbStoreName, {keyPath: "id"});
+        objectStore = db.createObjectStore(STORE_NAME, {keyPath: "id"});
 
         
         objectStore.createIndex("familyName", "properties.familyName", { multiEntry: true });
@@ -384,7 +384,7 @@ ContactDB.prototype = {
 
   saveContact: function saveContact(aContact, successCb, errorCb) {
     let contact = this.makeImport(aContact);
-    this.newTxn("readwrite", function (txn, store) {
+    this.newTxn("readwrite", STORE_NAME, function (txn, store) {
       if (DEBUG) debug("Going to update" + JSON.stringify(contact));
 
       
@@ -413,14 +413,14 @@ ContactDB.prototype = {
   },
 
   removeContact: function removeContact(aId, aSuccessCb, aErrorCb) {
-    this.newTxn("readwrite", function (txn, store) {
+    this.newTxn("readwrite", STORE_NAME, function (txn, store) {
       if (DEBUG) debug("Going to delete" + aId);
       store.delete(aId);
     }, aSuccessCb, aErrorCb);
   },
 
   clear: function clear(aSuccessCb, aErrorCb) {
-    this.newTxn("readwrite", function (txn, store) {
+    this.newTxn("readwrite", STORE_NAME, function (txn, store) {
       if (DEBUG) debug("Going to clear all!");
       store.clear();
     }, aSuccessCb, aErrorCb);
@@ -441,7 +441,7 @@ ContactDB.prototype = {
   find: function find(aSuccessCb, aFailureCb, aOptions) {
     if (DEBUG) debug("ContactDB:find val:" + aOptions.filterValue + " by: " + aOptions.filterBy + " op: " + aOptions.filterOp + "\n");
     let self = this;
-    this.newTxn("readonly", function (txn, store) {
+    this.newTxn("readonly", STORE_NAME, function (txn, store) {
       if (aOptions && (aOptions.filterOp == "equals" || aOptions.filterOp == "contains")) {
         self._findWithIndex(txn, store, aOptions);
       } else {
@@ -527,6 +527,6 @@ ContactDB.prototype = {
   },
 
   init: function init(aGlobal) {
-      this.initDBHelper(DB_NAME, DB_VERSION, STORE_NAME, aGlobal);
+      this.initDBHelper(DB_NAME, DB_VERSION, [STORE_NAME], aGlobal);
   }
 };

@@ -12,7 +12,7 @@ if (DEBUG) {
   debug = function (s) {}
 }
 
-const Cu = Components.utils; 
+const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -24,7 +24,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 this.IndexedDBHelper = function IndexedDBHelper() {}
 
 IndexedDBHelper.prototype = {
-  
+
   
   _db: null,
 
@@ -106,12 +106,14 @@ IndexedDBHelper.prototype = {
 
 
 
-  newTxn: function newTxn(txn_type, callback, successCb, failureCb) {
+
+
+  newTxn: function newTxn(txn_type, store_name, callback, successCb, failureCb) {
     this.ensureDB(function () {
       if (DEBUG) debug("Starting new transaction" + txn_type);
-      let txn = this._db.transaction(this.dbName, txn_type);
+      let txn = this._db.transaction(this.dbStoreNames, txn_type);
       if (DEBUG) debug("Retrieving object store", this.dbName);
-      let store = txn.objectStore(this.dbStoreName);
+      let store = txn.objectStore(store_name);
 
       txn.oncomplete = function (event) {
         if (DEBUG) debug("Transaction complete. Returning to callback.");
@@ -145,10 +147,10 @@ IndexedDBHelper.prototype = {
 
 
 
-  initDBHelper: function initDBHelper(aDBName, aDBVersion, aDBStoreName, aGlobal) {
+  initDBHelper: function initDBHelper(aDBName, aDBVersion, aDBStoreNames, aGlobal) {
     this.dbName = aDBName;
     this.dbVersion = aDBVersion;
-    this.dbStoreName = aDBStoreName;
+    this.dbStoreNames = aDBStoreNames;
     this.dbGlobal = aGlobal;
   }
 }
