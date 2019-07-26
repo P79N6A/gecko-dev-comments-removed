@@ -235,8 +235,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
-  mScaleRequest(this),
-  mInUpdateImageContainer(false)
+  mInUpdateImageContainer(false),
+  mScaleRequest(this)
 {
   
   mDiscardTrackerNode.img = this;
