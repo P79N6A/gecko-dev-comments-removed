@@ -186,8 +186,16 @@ nsPluginArray::Refresh(bool aReloadDocuments)
   
   
   bool pluginsNotChanged = false;
-  if(mPluginHost)
-    pluginsNotChanged = (NS_ERROR_PLUGINS_PLUGINSNOTCHANGED == mPluginHost->ReloadPlugins(aReloadDocuments));
+  uint32_t currentPluginCount = 0;
+  if(mPluginHost) {
+    res = GetLength(&currentPluginCount);
+    NS_ENSURE_SUCCESS(res, res);
+    nsresult reloadResult = mPluginHost->ReloadPlugins(aReloadDocuments);
+    
+    
+    pluginsNotChanged = (reloadResult == NS_ERROR_PLUGINS_PLUGINSNOTCHANGED &&
+                         currentPluginCount == mPluginCount);
+  }
 
   
   
