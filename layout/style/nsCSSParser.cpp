@@ -4704,6 +4704,11 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
       REPORT_UNEXPECTED_TOKEN(PEParseDeclarationDeclExpected);
       REPORT_UNEXPECTED(PEDeclSkipped);
       OUTPUT_ERROR();
+
+      if (eCSSToken_AtKeyword == tk->mType) {
+        SkipAtRule(checkForBraces);
+        return true;  
+      }
     }
     
     UngetToken();
