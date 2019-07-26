@@ -15,6 +15,12 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
+                                  "resource://gre/modules/devtools/dbg-server.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
+                                  "resource://gre/modules/devtools/dbg-client.jsm");
+
 XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
                                    "@mozilla.org/widget/clipboardhelper;1",
                                    "nsIClipboardHelper");
@@ -32,11 +38,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "AutocompletePopup",
                                   "resource:///modules/AutocompletePopup.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
-                                  "resource:///modules/WebConsoleUtils.jsm");
+                                  "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "l10n", function() {
-  return WebConsoleUtils.l10n;
-});
+const STRINGS_URI = "chrome://browser/locale/devtools/webconsole.properties";
+let l10n = new WebConsoleUtils.l10n(STRINGS_URI);
 
 
 
@@ -187,6 +192,8 @@ function WebConsoleFrame(aWebConsoleOwner, aPosition)
 
   this.jsterm = new JSTerm(this);
   this.jsterm.inputNode.focus();
+
+  this._initConnection();
 }
 
 WebConsoleFrame.prototype = {
@@ -196,6 +203,23 @@ WebConsoleFrame.prototype = {
 
 
   owner: null,
+
+  
+
+
+
+
+
+
+
+  proxy: null,
+
+  
+
+
+
+
+  _messageManagerInitComplete: false,
 
   
 
@@ -309,6 +333,21 @@ WebConsoleFrame.prototype = {
     };
 
     this.owner.sendMessageToContent("WebConsole:SetPreferences", message);
+  },
+
+  
+
+
+
+  _initConnection: function WCF__initConnection()
+  {
+    this.proxy = new WebConsoleConnectionProxy(this);
+    this.proxy.initServer();
+    this.proxy.connect(function() {
+      if (this._messageManagerInitComplete) {
+        this._onInitComplete();
+      }
+    }.bind(this));
   },
 
   
@@ -493,6 +532,19 @@ WebConsoleFrame.prototype = {
 
 
 
+  _onInitComplete: function WC__onInitComplete()
+  {
+    let id = WebConsoleUtils.supportsString(this.hudId);
+    Services.obs.notifyObservers(id, "web-console-created", null);
+  },
+
+  
+
+
+
+
+
+
   _onPositionConsoleCommand: function WCF__onPositionConsoleCommand(aEvent)
   {
     let position = aEvent.target.getAttribute("consolePosition");
@@ -620,16 +672,11 @@ WebConsoleFrame.prototype = {
         this.outputMessage(CATEGORY_WEBDEV, this.logConsoleAPIMessage,
                            [aMessage.json]);
         break;
-      case "WebConsole:PageError": {
-        let pageError = aMessage.json.pageError;
-        let category = Utils.categoryForScriptError(pageError);
-        this.outputMessage(category, this.reportPageError,
-                           [category, pageError]);
+      case "WebConsole:Initialized":
+        this._onMessageManagerInitComplete();
         break;
-      }
       case "WebConsole:CachedMessages":
         this._displayCachedConsoleMessages(aMessage.json.messages);
-        this.owner._onInitComplete();
         break;
       case "WebConsole:NetworkActivity":
         this.handleNetworkActivity(aMessage.json);
@@ -644,6 +691,20 @@ WebConsoleFrame.prototype = {
       case "JSTerm:NonNativeConsoleAPI":
         this.outputMessage(CATEGORY_JS, this.logWarningAboutReplacedAPI);
         break;
+    }
+  },
+
+  
+
+
+
+
+
+  _onMessageManagerInitComplete: function WCF__onMessageManagerInitComplete()
+  {
+    this._messageManagerInitComplete = true;
+    if (this.proxy.connected) {
+      this._onInitComplete();
     }
   },
 
@@ -1226,8 +1287,7 @@ WebConsoleFrame.prototype = {
     
     
     let severity = SEVERITY_ERROR;
-    if ((aScriptError.flags & aScriptError.warningFlag) ||
-        (aScriptError.flags & aScriptError.strictFlag)) {
+    if (aScriptError.warning || aScriptError.strict) {
       severity = SEVERITY_WARNING;
     }
 
@@ -1237,6 +1297,19 @@ WebConsoleFrame.prototype = {
                                       aScriptError.lineNumber, null, null,
                                       aScriptError.timeStamp);
     return node;
+  },
+
+  
+
+
+
+
+
+
+  handlePageError: function WCF_handlePageError(aPageError)
+  {
+    let category = Utils.categoryForScriptError(aPageError);
+    this.outputMessage(category, this.reportPageError, [category, aPageError]);
   },
 
   
@@ -2338,8 +2411,16 @@ WebConsoleFrame.prototype = {
 
 
 
-  destroy: function WCF_destroy()
+
+
+
+
+  destroy: function WCF_destroy(aOnDestroy)
   {
+    if (this.proxy) {
+      this.proxy.disconnect(aOnDestroy);
+    }
+
     if (this.jsterm) {
       this.jsterm.destroy();
     }
@@ -3533,6 +3614,158 @@ CommandController.prototype = {
         break;
     }
   }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+function WebConsoleConnectionProxy(aWebConsole)
+{
+  this.owner = aWebConsole;
+
+  this._onPageError = this._onPageError.bind(this);
+}
+
+WebConsoleConnectionProxy.prototype = {
+  
+
+
+
+
+
+  owner: null,
+
+  
+
+
+
+
+
+  client: null,
+
+  
+
+
+
+  connected: false,
+
+  
+
+
+
+
+
+  _consoleActor: null,
+
+  
+
+
+  initServer: function WCCP_initServer()
+  {
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
+  },
+
+  
+
+
+
+
+
+  connect: function WCCP_connect(aCallback)
+  {
+    let transport = DebuggerServer.connectPipe();
+    let client = this.client = new DebuggerClient(transport);
+
+    client.addListener("pageError", this._onPageError);
+
+    let listeners = ["PageError"];
+
+    client.connect(function(aType, aTraits) {
+      client.listTabs(function(aResponse) {
+        let tab = aResponse.tabs[aResponse.selected];
+        this._consoleActor = tab.consoleActor;
+        client.attachConsole(tab.consoleActor, listeners,
+                             this._onAttachConsole.bind(this, aCallback));
+      }.bind(this));
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _onAttachConsole:
+  function WCCP__onAttachConsole(aCallback, aResponse, aWebConsoleClient)
+  {
+    if (aResponse.error) {
+      Cu.reportError("attachConsole failed: " + aResponse.error + " " +
+                     aResponse.message);
+      return;
+    }
+
+    this.webConsoleClient = aWebConsoleClient;
+
+    this.connected = true;
+    aCallback && aCallback();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _onPageError: function WCCP__onPageError(aType, aPacket)
+  {
+    if (this.owner && aPacket.from == this._consoleActor) {
+      this.owner.handlePageError(aPacket.pageError);
+    }
+  },
+
+  
+
+
+
+
+
+  disconnect: function WCCP_disconnect(aOnDisconnect)
+  {
+    if (!this.client) {
+      aOnDisconnect && aOnDisconnect();
+      return;
+    }
+
+    this.client.removeListener("pageError", this._onPageError);
+    this.client.close(aOnDisconnect);
+
+    this.client = null;
+    this.webConsoleClient = null;
+    this.connected = false;
+  },
 };
 
 function gSequenceId()
