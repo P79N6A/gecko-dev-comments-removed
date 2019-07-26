@@ -24,6 +24,7 @@ from .data import (
     Exports,
     GeneratedEventWebIDLFile,
     GeneratedWebIDLFile,
+    InstallationTarget,
     IPDLFile,
     LocalInclude,
     PreprocessedTestWebIDLFile,
@@ -207,6 +208,10 @@ class TreeMetadataEmitter(LoggingMixin):
         for sandbox_var, klass in simple_lists:
             for name in sandbox.get(sandbox_var, []):
                 yield klass(sandbox, name)
+
+        if sandbox.get('FINAL_TARGET') or sandbox.get('XPI_NAME') or \
+                sandbox.get('DIST_SUBDIR'):
+            yield InstallationTarget(sandbox)
 
         
         
