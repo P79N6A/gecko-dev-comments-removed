@@ -49,12 +49,13 @@ protected:
   
   
   
+  
   nsTArray<nsRefPtr<nsMimeType> > mMimeTypes;
 
   
   
   
-  uint32_t mPluginMimeTypeCount;
+  nsTArray<nsRefPtr<nsMimeType> > mHiddenMimeTypes;
 };
 
 class nsMimeType MOZ_FINAL : public nsWrapperCache
