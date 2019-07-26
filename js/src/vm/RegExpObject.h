@@ -240,21 +240,18 @@ class RegExpGuard
 
 class RegExpCompartment
 {
-    enum Type { Normal = 0x0, Hack = 0x1 };
-
     struct Key {
         JSAtom *atom;
         uint16_t flag;
-        uint16_t type;
         Key() {}
-        Key(JSAtom *atom, RegExpFlag flag, Type type)
-          : atom(atom), flag(flag), type(type) {}
+        Key(JSAtom *atom, RegExpFlag flag)
+          : atom(atom), flag(flag) {}
         typedef Key Lookup;
         static HashNumber hash(const Lookup &l) {
-            return DefaultHasher<JSAtom *>::hash(l.atom) ^ (l.flag << 1) ^ l.type;
+            return DefaultHasher<JSAtom *>::hash(l.atom) ^ (l.flag << 1);
         }
         static bool match(Key l, Key r) {
-            return l.atom == r.atom && l.flag == r.flag && l.type == r.type;
+            return l.atom == r.atom && l.flag == r.flag;
         }
     };
 
@@ -273,9 +270,6 @@ class RegExpCompartment
     typedef HashSet<RegExpShared *, DefaultHasher<RegExpShared*>, RuntimeAllocPolicy> PendingSet;
     PendingSet inUse_;
 
-    bool get(JSContext *cx, JSAtom *key, JSAtom *source, RegExpFlag flags, Type type,
-             RegExpGuard *g);
-
   public:
     RegExpCompartment(JSRuntime *rt);
     ~RegExpCompartment();
@@ -288,27 +282,6 @@ class RegExpCompartment
 
     
     bool get(JSContext *cx, JSAtom *source, JSString *maybeOpt, RegExpGuard *g);
-
-    
-
-
-
-
-
-
-
-
-
-
-    bool getHack(JSContext *cx, JSAtom *source, JSAtom *hackedSource, RegExpFlag flags,
-                 RegExpGuard *g);
-
-    
-
-
-
-
-    bool lookupHack(JSAtom *source, RegExpFlag flags, JSContext *cx, RegExpGuard *g);
 
     size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf);
 };
