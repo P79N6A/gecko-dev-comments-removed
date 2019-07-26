@@ -164,6 +164,8 @@ public final class ANRReporter extends BroadcastReceiver
             }
         } catch (IOException e) {
             Log.w(LOGTAG, e);
+        } catch (ClassCastException e) {
+            Log.w(LOGTAG, e); 
         }
         
         File tracesFile = new File("/data/anr/traces.txt");
