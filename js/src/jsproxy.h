@@ -65,6 +65,10 @@ class JS_FRIEND_API(Wrapper);
 
 
 
+
+
+
+
 class JS_FRIEND_API(BaseProxyHandler)
 {
     const void *mFamily;
@@ -184,6 +188,10 @@ class JS_FRIEND_API(BaseProxyHandler)
 
 
 
+
+
+
+
 class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
 {
   public:
@@ -236,6 +244,12 @@ class JS_PUBLIC_API(DirectProxyHandler) : public BaseProxyHandler
                                  RegExpGuard *g) MOZ_OVERRIDE;
     virtual JSObject *weakmapKeyDelegate(JSObject *proxy);
 };
+
+
+
+
+
+
 
 
 class Proxy
