@@ -556,6 +556,8 @@ function ArrayKeys() {
     return CreateArrayIterator(this, ITEM_KIND_KEY);
 }
 
+#ifdef ENABLE_PARALLEL_JS
+
 
 
 
@@ -648,8 +650,6 @@ function ComputeAllSliceBounds(numItems, numSlices) {
   }
   return info;
 }
-
-#ifdef ENABLE_PARALLEL_JS
 
 
 
