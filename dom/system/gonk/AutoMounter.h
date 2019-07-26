@@ -7,6 +7,8 @@
 
 #include "mozilla/StandardInteger.h"
 
+class nsCString;
+
 namespace mozilla {
 namespace system {
 
@@ -24,7 +26,8 @@ namespace system {
 
 
 
-void InitAutoMounter();
+void
+InitAutoMounter();
 
 
 
@@ -32,14 +35,26 @@ void InitAutoMounter();
 
 
 
-void SetAutoMounterMode(int32_t aMode);
+void
+SetAutoMounterMode(int32_t aMode);
 
 
 
 
 
 
-void ShutdownAutoMounter();
+
+
+void
+SetAutoMounterSharingMode(const nsCString& aVolumeName, bool aAllowSharing);
+
+
+
+
+
+
+void
+ShutdownAutoMounter();
 
 } 
 } 
