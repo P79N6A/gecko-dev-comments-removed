@@ -19,7 +19,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsISHistoryListener.h"
 #include "nsIHistoryEntry.h"
-#include "nsIObserver.h"
+#include "nsTObserverArray.h"
 
 
 #include "prclist.h"
@@ -92,7 +92,7 @@ protected:
   int32_t mLength;
   int32_t mRequestedIndex;
   
-  nsWeakPtr mListener;
+  nsAutoTObserverArray<nsWeakPtr, 2> mListeners;
   
   nsIDocShell *  mRootDocShell;
 
