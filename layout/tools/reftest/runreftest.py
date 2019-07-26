@@ -87,7 +87,7 @@ class RefTest(object):
 
     
     
-    if special_powers and manifest.endswith('crashtests.list'):
+    if special_powers and (manifest.endswith('crashtests.list') or manifest.endswith('jstests.list')):
       addons.append(os.path.join(SCRIPT_DIRECTORY, 'specialpowers'))
 
     
