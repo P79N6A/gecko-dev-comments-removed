@@ -859,15 +859,6 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     }
   }
 
-  if (isNewToplevelWindow) {
-    
-    
-    nsCOMPtr<nsIObserverService> obsSvc =
-      mozilla::services::GetObserverService();
-    if (obsSvc)
-      obsSvc->NotifyObservers(*_retval, "toplevel-window-ready", nullptr);
-  }
-
   
   
   
@@ -934,6 +925,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     }
   }
 
+  nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
   if (uriToLoad && aNavigate) { 
     JSContextAutoPopper contextGuard;
 
@@ -949,7 +941,6 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       cx = contextGuard.get();
     }
 
-    nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
     newDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
     NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 
@@ -983,7 +974,18 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
         }
       }
     }
+  }
 
+  if (isNewToplevelWindow) {
+    
+    
+    nsCOMPtr<nsIObserverService> obsSvc =
+      mozilla::services::GetObserverService();
+    if (obsSvc)
+      obsSvc->NotifyObservers(*_retval, "toplevel-window-ready", nullptr);
+  }
+
+  if (uriToLoad && aNavigate) {
     newDocShell->LoadURI(uriToLoad,
                          loadInfo,
                          windowIsNew
