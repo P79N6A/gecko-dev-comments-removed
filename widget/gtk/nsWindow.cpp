@@ -4755,7 +4755,7 @@ nsWindow::CheckForRollup(gdouble aMouseX, gdouble aMouseY,
         bool rollup = true;
         if (aIsWheel) {
             rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
-            retVal = true;
+            retVal = rollupListener->ShouldConsumeOnMouseWheelEvent();
         }
         
         
