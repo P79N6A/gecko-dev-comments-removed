@@ -805,6 +805,11 @@ let RIL = {
     
 
 
+    this.cdmaSubscription = {};
+
+    
+
+
     this.aid = null;
 
     
@@ -3054,8 +3059,8 @@ let RIL = {
         baseStationLatitude = baseStationLongitude = null;
       }
       let cssIndicator = RIL.parseInt(state[7]);
-      let systemId = RIL.parseInt(state[8]);
-      let networkId = RIL.parseInt(state[9]);
+      RIL.cdmaSubscription.systemId = RIL.parseInt(state[8]);
+      RIL.cdmaSubscription.networkId = RIL.parseInt(state[9]);
       let roamingIndicator = RIL.parseInt(state[10]);
       let systemIsInPRL = RIL.parseInt(state[11]);
       let defaultRoamingIndicator = RIL.parseInt(state[12]);
@@ -10936,7 +10941,53 @@ let ICCUtilsHelper = {
     if (!iccSpn) {
       iccInfo.isDisplayNetworkNameRequired = true;
       iccInfo.isDisplaySpnRequired = false;
+    } else if (RIL._isCdma) {
+      
+      let cdmaHome = RIL.cdmaHome;
+      let sid = RIL.cdmaSubscription.systemId;
+      let nid = RIL.cdmaSubscription.networkId;
+
+      iccInfo.isDisplayNetworkNameRequired = false;
+
+      
+      
+      if (iccSpn.spnDisplayCondition == false) {
+        iccInfo.isDisplaySpnRequired = false;
+      } else {
+        
+        
+        if (!cdmaHome ||
+            !cdmaHome.systemId ||
+            cdmaHome.systemId.length == 0 ||
+            cdmaHome.systemId.length != cdmaHome.networkId.length ||
+            !sid || !nid) {
+          
+          
+          
+          iccInfo.isDisplaySpnRequired = true;
+        } else {
+          
+          
+          let inHomeArea = false;
+          for (let i = 0; i < cdmaHome.systemId.length; i++) {
+            let homeSid = cdmaHome.systemId[i],
+                homeNid = cdmaHome.networkId[i];
+            if (homeSid == 0 || homeNid == 0 
+               || homeSid != sid) {
+              continue;
+            }
+            
+            
+            if (homeNid == 65535 || homeNid == nid) {
+              inHomeArea = true;
+              break;
+            }
+          }
+          iccInfo.isDisplaySpnRequired = inHomeArea;
+        }
+      }
     } else {
+      
       let operatorMnc = RIL.operator.mnc;
       let operatorMcc = RIL.operator.mcc;
 
