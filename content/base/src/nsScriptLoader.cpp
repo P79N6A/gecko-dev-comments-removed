@@ -853,7 +853,7 @@ nsScriptLoader::AttemptAsyncScriptParse(nsScriptLoadRequest* aRequest)
   
   NS_ADDREF(runnable);
 
-  if (!JS::CompileOffThread(cx, global, options,
+  if (!JS::CompileOffThread(cx, options,
                             aRequest->mScriptText.get(), aRequest->mScriptText.Length(),
                             OffThreadScriptLoaderCallback,
                             static_cast<void*>(runnable))) {

@@ -300,7 +300,7 @@ CancelOffThreadParses(JSRuntime *runtime);
 
 bool
 StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &options,
-                          const jschar *chars, size_t length, HandleObject scopeChain,
+                          const jschar *chars, size_t length,
                           JS::OffThreadCompileCallback callback, void *callbackData);
 
 
@@ -392,11 +392,6 @@ struct ParseTask
     LifoAlloc alloc;
 
     
-    
-    
-    PersistentRootedObject scopeChain;
-
-    
     PersistentRootedObject exclusiveContextGlobal;
 
     
@@ -421,8 +416,8 @@ struct ParseTask
     Vector<frontend::CompileError *> errors;
     bool overRecursed;
 
-    ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal, JSContext *initCx,
-              const jschar *chars, size_t length, JSObject *scopeChain,
+    ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal,
+              JSContext *initCx, const jschar *chars, size_t length,
               JS::OffThreadCompileCallback callback, void *callbackData);
     bool init(JSContext *cx, const ReadOnlyCompileOptions &options);
 

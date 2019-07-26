@@ -3650,7 +3650,7 @@ CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options, size_t
 
 
 extern JS_PUBLIC_API(bool)
-CompileOffThread(JSContext *cx, HandleObject obj, const ReadOnlyCompileOptions &options,
+CompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options,
                  const jschar *chars, size_t length,
                  OffThreadCompileCallback callback, void *callbackData);
 
