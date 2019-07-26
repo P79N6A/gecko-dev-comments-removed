@@ -302,13 +302,7 @@ class ReviewboardToolsProvider(MachCommandBase):
             args = ['help']
 
         self._activate_virtualenv()
-        
-        
-        
-        commit = '416a728292dff3f279e5d695f48a29749b51b77a'
-        self.virtualenv_manager.install_pip_package(
-            'git+https://github.com/reviewboard/rbtools.git@%s#egg=RBTools' %
-            commit)
+        self.virtualenv_manager.install_pip_package('RBTools==0.6')
 
         from rbtools.commands.main import main
 
