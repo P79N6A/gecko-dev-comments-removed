@@ -509,7 +509,7 @@ add_test(function test_send_stk_terminal_profile() {
 
 
 
-add_test(function test_icc_get_card_lock_fdn() {
+add_test(function test_icc_get_card_lock_state_fdn() {
   let worker = newUint8Worker();
   let ril = worker.RIL;
   let buf = worker.Buf;
@@ -543,7 +543,7 @@ add_test(function test_icc_get_card_lock_fdn() {
     run_next_test();
   };
 
-  ril.iccGetCardLock({lockType: "fdn"});
+  ril.iccGetCardLockState({lockType: "fdn"});
 });
 
 
