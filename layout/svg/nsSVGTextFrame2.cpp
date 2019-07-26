@@ -4426,7 +4426,7 @@ nsSVGTextFrame2::DoGlyphPositioning()
   if (!ResolvePositions(deltas)) {
     
     
-    NS_NOTREACHED("unexpected result from ResolvePositions");
+    
     mPositions.Clear();
     return;
   }
