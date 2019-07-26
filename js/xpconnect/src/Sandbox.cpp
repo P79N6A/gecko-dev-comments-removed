@@ -197,7 +197,7 @@ SandboxImport(JSContext *cx, unsigned argc, Value *vp)
 }
 
 static bool
-CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
+SandboxCreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -222,7 +222,7 @@ CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-IsProxy(JSContext *cx, unsigned argc, jsval *vp)
+SandboxIsProxy(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 1) {
@@ -242,94 +242,6 @@ IsProxy(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-namespace xpc {
-
-bool
-ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleValue voptions,
-               MutableHandleValue rval)
-{
-    bool hasOptions = !voptions.isUndefined();
-    if (!vscope.isObject() || !vfunction.isObject() || (hasOptions && !voptions.isObject())) {
-        JS_ReportError(cx, "Invalid argument");
-        return false;
-    }
-
-    RootedObject funObj(cx, &vfunction.toObject());
-    RootedObject targetScope(cx, &vscope.toObject());
-    ExportOptions options(cx, hasOptions ? &voptions.toObject() : nullptr);
-    if (hasOptions && !options.Parse())
-        return false;
-
-    
-    
-    targetScope = CheckedUnwrap(targetScope);
-    if (!targetScope) {
-        JS_ReportError(cx, "Permission denied to export function into scope");
-        return false;
-    }
-
-    if (js::IsScriptedProxy(targetScope)) {
-        JS_ReportError(cx, "Defining property on proxy object is not allowed");
-        return false;
-    }
-
-    {
-        
-        
-        JSAutoCompartment ac(cx, targetScope);
-
-        
-        funObj = UncheckedUnwrap(funObj);
-        if (!JS_ObjectIsCallable(cx, funObj)) {
-            JS_ReportError(cx, "First argument must be a function");
-            return false;
-        }
-
-        RootedId id(cx, options.defineAs);
-        if (JSID_IS_VOID(id)) {
-            
-            
-            JSFunction *fun = JS_GetObjectFunction(funObj);
-            RootedString funName(cx, JS_GetFunctionId(fun));
-            if (!funName)
-                funName = JS_InternString(cx, "");
-
-            if (!JS_StringToId(cx, funName, &id))
-                return false;
-        }
-        MOZ_ASSERT(JSID_IS_STRING(id));
-
-        
-        
-        
-        if (!JS_WrapObject(cx, &funObj))
-            return false;
-
-        
-        
-        if (!NewFunctionForwarder(cx, id, funObj,  true, rval)) {
-            JS_ReportError(cx, "Exporting function failed");
-            return false;
-        }
-
-        
-        
-        
-        if (!JSID_IS_VOID(options.defineAs)) {
-            if (!JS_DefinePropertyById(cx, targetScope, id, rval, JSPROP_ENUMERATE,
-                                       JS_PropertyStub, JS_StrictPropertyStub)) {
-                return false;
-            }
-        }
-    }
-
-    
-    if (!JS_WrapValue(cx, rval))
-        return false;
-
-    return true;
-}
-
 
 
 
@@ -337,7 +249,7 @@ ExportFunction(JSContext *cx, HandleValue vfunction, HandleValue vscope, HandleV
 
 
 static bool
-ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
+SandboxExportFunction(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -348,93 +260,6 @@ ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
     RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
     return ExportFunction(cx, args[0], args[1], options, args.rval());
 }
-} 
-
-static bool
-GetFilenameAndLineNumber(JSContext *cx, nsACString &filename, unsigned &lineno)
-{
-    JS::AutoFilename scriptFilename;
-    if (JS::DescribeScriptedCaller(cx, &scriptFilename, &lineno)) {
-        if (const char *cfilename = scriptFilename.get()) {
-            filename.Assign(nsDependentCString(cfilename));
-            return true;
-        }
-    }
-    return false;
-}
-
-bool
-xpc::IsReflector(JSObject *obj)
-{
-    return IS_WN_REFLECTOR(obj) || dom::IsDOMObject(obj);
-}
-
-enum ForwarderCloneTags {
-    SCTAG_BASE = JS_SCTAG_USER_MIN,
-    SCTAG_REFLECTOR
-};
-
-static JSObject *
-CloneNonReflectorsRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t tag,
-                       uint32_t data, void *closure)
-{
-    MOZ_ASSERT(closure, "Null pointer!");
-    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
-    if (tag == SCTAG_REFLECTOR) {
-        MOZ_ASSERT(!data);
-
-        size_t idx;
-        if (JS_ReadBytes(reader, &idx, sizeof(size_t))) {
-            RootedObject reflector(cx, (*reflectors)[idx]);
-            MOZ_ASSERT(reflector, "No object pointer?");
-            MOZ_ASSERT(IsReflector(reflector), "Object pointer must be a reflector!");
-
-            if (!JS_WrapObject(cx, &reflector))
-                return nullptr;
-            MOZ_ASSERT(WrapperFactory::IsXrayWrapper(reflector) ||
-                       IsReflector(reflector));
-
-            return reflector;
-        }
-    }
-
-    JS_ReportError(cx, "CloneNonReflectorsRead error");
-    return nullptr;
-}
-
-static bool
-CloneNonReflectorsWrite(JSContext *cx, JSStructuredCloneWriter *writer,
-                        Handle<JSObject *> obj, void *closure)
-{
-    MOZ_ASSERT(closure, "Null pointer!");
-
-    
-    
-    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
-    if (IsReflector(obj)) {
-        if (!reflectors->append(obj))
-            return false;
-
-        size_t idx = reflectors->length()-1;
-        if (JS_WriteUint32Pair(writer, SCTAG_REFLECTOR, 0) &&
-            JS_WriteBytes(writer, &idx, sizeof(size_t))) {
-            return true;
-        }
-    }
-
-    JS_ReportError(cx, "CloneNonReflectorsWrite error");
-    return false;
-}
-
-static const JSStructuredCloneCallbacks gForwarderStructuredCloneCallbacks = {
-    CloneNonReflectorsRead,
-    CloneNonReflectorsWrite,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
-};
-
 
 
 
@@ -442,141 +267,7 @@ static const JSStructuredCloneCallbacks gForwarderStructuredCloneCallbacks = {
 
 
 static bool
-CloneNonReflectors(JSContext *cx, MutableHandleValue val)
-{
-    JSAutoStructuredCloneBuffer buffer;
-    AutoObjectVector rootedReflectors(cx);
-    {
-        
-        
-        Maybe<JSAutoCompartment> ac;
-        if (val.isObject()) {
-            ac.construct(cx, &val.toObject());
-        } else if (val.isString() && !JS_WrapValue(cx, val)) {
-            return false;
-        }
-
-        if (!buffer.write(cx, val,
-            &gForwarderStructuredCloneCallbacks,
-            &rootedReflectors))
-        {
-            return false;
-        }
-    }
-
-    
-    if (!buffer.read(cx, val,
-        &gForwarderStructuredCloneCallbacks,
-        &rootedReflectors))
-    {
-        return false;
-    }
-
-    return true;
-}
-
-namespace xpc {
-
-bool
-EvalInWindow(JSContext *cx, const nsAString &source, HandleObject scope, MutableHandleValue rval)
-{
-    
-    RootedObject targetScope(cx, CheckedUnwrap(scope));
-    if (!targetScope) {
-        JS_ReportError(cx, "Permission denied to eval in target scope");
-        return false;
-    }
-
-    
-    RootedObject inner(cx, CheckedUnwrap(targetScope,  false));
-    nsCOMPtr<nsIGlobalObject> global;
-    nsCOMPtr<nsPIDOMWindow> window;
-    if (!JS_IsGlobalObject(inner) ||
-        !(global = GetNativeForGlobal(inner)) ||
-        !(window = do_QueryInterface(global)))
-    {
-        JS_ReportError(cx, "Second argument must be a window");
-        return false;
-    }
-
-    nsCOMPtr<nsIScriptContext> context =
-        (static_cast<nsGlobalWindow*>(window.get()))->GetScriptContext();
-    if (!context) {
-        JS_ReportError(cx, "Script context needed");
-        return false;
-    }
-
-    nsCString filename;
-    unsigned lineNo;
-    if (!GetFilenameAndLineNumber(cx, filename, lineNo)) {
-        
-        filename.AssignLiteral("Unknown");
-        lineNo = 0;
-    }
-
-    RootedObject cxGlobal(cx, JS::CurrentGlobalOrNull(cx));
-    {
-        
-        
-        JSContext *wndCx = context->GetNativeContext();
-        AutoCxPusher pusher(wndCx);
-        JS::CompileOptions compileOptions(wndCx);
-        compileOptions.setFileAndLine(filename.get(), lineNo);
-
-        
-        
-        nsJSUtils::EvaluateOptions evaluateOptions;
-        evaluateOptions.setReportUncaught(false);
-
-        nsresult rv = nsJSUtils::EvaluateString(wndCx,
-                                                source,
-                                                targetScope,
-                                                compileOptions,
-                                                evaluateOptions,
-                                                rval);
-
-        if (NS_FAILED(rv)) {
-            
-            
-            
-            MOZ_ASSERT(!JS_IsExceptionPending(wndCx),
-                       "Exception should be delivered as return value.");
-            if (rval.isUndefined()) {
-                MOZ_ASSERT(rv == NS_ERROR_OUT_OF_MEMORY);
-                return false;
-            }
-
-            
-            
-            RootedValue exn(wndCx, rval);
-            
-            rval.set(UndefinedValue());
-
-            
-            JSAutoCompartment ac(wndCx, cxGlobal);
-            if (CloneNonReflectors(wndCx, &exn))
-                js::SetPendingExceptionCrossContext(cx, exn);
-
-            return false;
-        }
-    }
-
-    
-    if (!CloneNonReflectors(cx, rval)) {
-        rval.set(UndefinedValue());
-        return false;
-    }
-
-    return true;
-}
-
-
-
-
-
-
-static bool
-EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
+SandboxEvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -602,7 +293,7 @@ EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-CreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
+SandboxCreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 1) {
@@ -628,7 +319,7 @@ CreateObjectIn(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-CloneInto(JSContext *cx, unsigned argc, jsval *vp)
+SandboxCloneInto(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() < 2) {
@@ -639,8 +330,6 @@ CloneInto(JSContext *cx, unsigned argc, jsval *vp)
     RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
     return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
 }
-
-} 
 
 static bool
 sandbox_enumerate(JSContext *cx, HandleObject obj)
@@ -1116,7 +805,7 @@ xpc::GlobalProperties::Define(JSContext *cx, JS::HandleObject obj)
         return false;
 
     if (XMLHttpRequest &&
-        !JS_DefineFunction(cx, obj, "XMLHttpRequest", CreateXMLHttpRequest, 0, JSFUN_CONSTRUCTOR))
+        !JS_DefineFunction(cx, obj, "XMLHttpRequest", SandboxCreateXMLHttpRequest, 0, JSFUN_CONSTRUCTOR))
         return false;
 
     if (TextEncoder &&
@@ -1272,11 +961,11 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
             return NS_ERROR_XPC_UNEXPECTED;
 
         if (options.wantExportHelpers &&
-            (!JS_DefineFunction(cx, sandbox, "exportFunction", ExportFunction, 3, 0) ||
-             !JS_DefineFunction(cx, sandbox, "evalInWindow", EvalInWindow, 2, 0) ||
-             !JS_DefineFunction(cx, sandbox, "createObjectIn", CreateObjectIn, 2, 0) ||
-             !JS_DefineFunction(cx, sandbox, "cloneInto", CloneInto, 3, 0) ||
-             !JS_DefineFunction(cx, sandbox, "isProxy", IsProxy, 1, 0)))
+            (!JS_DefineFunction(cx, sandbox, "exportFunction", SandboxExportFunction, 3, 0) ||
+             !JS_DefineFunction(cx, sandbox, "evalInWindow", SandboxEvalInWindow, 2, 0) ||
+             !JS_DefineFunction(cx, sandbox, "createObjectIn", SandboxCreateObjectIn, 2, 0) ||
+             !JS_DefineFunction(cx, sandbox, "cloneInto", SandboxCloneInto, 3, 0) ||
+             !JS_DefineFunction(cx, sandbox, "isProxy", SandboxIsProxy, 1, 0)))
             return NS_ERROR_XPC_UNEXPECTED;
 
         if (!options.globalProperties.Define(cx, sandbox))
@@ -1912,84 +1601,6 @@ xpc::EvalInSandbox(JSContext *cx, HandleObject sandboxArg, const nsAString& sour
     
     rval.set(v);
     return NS_OK;
-}
-
-static bool
-NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    RootedValue v(cx, js::GetFunctionNativeReserved(&args.callee(), 0));
-    MOZ_ASSERT(v.isObject(), "weird function");
-
-    RootedObject obj(cx, JS_THIS_OBJECT(cx, vp));
-    if (!obj) {
-        return false;
-    }
-    return JS_CallFunctionValue(cx, obj, v, args, args.rval());
-}
-
-
-
-
-
-static bool
-CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    RootedValue v(cx, js::GetFunctionNativeReserved(&args.callee(), 0));
-    NS_ASSERTION(v.isObject(), "weird function");
-    RootedObject origFunObj(cx, UncheckedUnwrap(&v.toObject()));
-    {
-        JSAutoCompartment ac(cx, origFunObj);
-        
-        
-        for (unsigned i = 0; i < args.length(); i++) {
-            if (!CloneNonReflectors(cx, args[i])) {
-                return false;
-            }
-        }
-
-        
-        
-        RootedValue functionVal(cx, ObjectValue(*origFunObj));
-
-        if (!JS_CallFunctionValue(cx, JS::NullPtr(), functionVal, args, args.rval()))
-            return false;
-    }
-
-    
-    return JS_WrapValue(cx, args.rval());
-}
-
-bool
-xpc::NewFunctionForwarder(JSContext *cx, HandleId id, HandleObject callable, bool doclone,
-                          MutableHandleValue vp)
-{
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, doclone ? CloningFunctionForwarder :
-                                                                    NonCloningFunctionForwarder,
-                                                                    0,0, JS::CurrentGlobalOrNull(cx), id);
-
-    if (!fun)
-        return false;
-
-    JSObject *funobj = JS_GetFunctionObject(fun);
-    js::SetFunctionNativeReserved(funobj, 0, ObjectValue(*callable));
-    vp.setObject(*funobj);
-    return true;
-}
-
-bool
-xpc::NewFunctionForwarder(JSContext *cx, HandleObject callable, bool doclone,
-                          MutableHandleValue vp)
-{
-    RootedId emptyId(cx);
-    RootedValue emptyStringValue(cx, JS_GetEmptyStringValue(cx));
-    if (!JS_ValueToId(cx, emptyStringValue, &emptyId))
-        return false;
-
-    return NewFunctionForwarder(cx, emptyId, callable, doclone, vp);
 }
 
 nsresult
