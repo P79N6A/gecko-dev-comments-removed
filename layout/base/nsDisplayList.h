@@ -39,6 +39,7 @@ class nsDisplayLayerEventRegions;
 
 namespace mozilla {
 namespace layers {
+class Layer;
 class ImageLayer;
 class ImageContainer;
 } 
@@ -112,6 +113,7 @@ public:
   typedef mozilla::DisplayItemClip DisplayItemClip;
   typedef mozilla::DisplayListClipState DisplayListClipState;
   typedef nsIWidget::ThemeGeometry ThemeGeometry;
+  typedef mozilla::layers::Layer Layer;
 
   
 
@@ -481,6 +483,18 @@ public:
 
   const DisplayItemClip* AllocateDisplayItemClip(const DisplayItemClip& aOriginal);
 
+  
+
+
+
+
+
+
+  static void AddAnimationsAndTransitionsToLayer(Layer* aLayer,
+                                                 nsDisplayListBuilder* aBuilder,
+                                                 nsDisplayItem* aItem,
+                                                 nsIFrame* aFrame,
+                                                 nsCSSProperty aProperty);
   
 
 

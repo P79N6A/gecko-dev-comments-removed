@@ -314,7 +314,7 @@ ToTimingFunction(css::ComputedTimingFunction& aCTF)
 static void
 AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
                          ElementAnimation* ea, Layer* aLayer,
-                         AnimationData& aData)
+                         AnimationData& aData, bool aPending)
 {
   NS_ASSERTION(aLayer->AsContainerLayer(), "Should only animate ContainerLayer");
   nsStyleContext* styleContext = aFrame->StyleContext();
@@ -323,7 +323,8 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
   
   float scale = nsDeviceContext::AppUnitsPerCSSPixel();
 
-  Animation* animation = aLayer->AddAnimation();
+  Animation* animation = aPending ? aLayer->AddAnimationForNextTransaction()
+                                  : aLayer->AddAnimation();
 
   animation->startTime() = ea->mStartTime + ea->mDelay;
   animation->duration() = ea->mIterationDuration;
@@ -367,15 +368,31 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
   }
 }
 
-static void
-AddAnimationsAndTransitionsToLayer(Layer* aLayer, nsDisplayListBuilder* aBuilder,
-                                   nsDisplayItem* aItem, nsCSSProperty aProperty)
+ void
+nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
+                                                         nsDisplayListBuilder* aBuilder,
+                                                         nsDisplayItem* aItem,
+                                                         nsIFrame* aFrame,
+                                                         nsCSSProperty aProperty)
 {
-  aLayer->ClearAnimations();
+  
+  
+  
+  
+  MOZ_ASSERT(!aBuilder == !aItem,
+             "should only be called in two configurations, with both "
+             "aBuilder and aItem, or with neither");
+  MOZ_ASSERT(!aItem || aFrame == aItem->Frame(), "frame mismatch");
 
-  nsIFrame* frame = aItem->Frame();
+  bool pending = !aBuilder;
 
-  nsIContent* content = frame->GetContent();
+  if (pending) {
+    aLayer->ClearAnimationsForNextTransaction();
+  } else {
+    aLayer->ClearAnimations();
+  }
+
+  nsIContent* content = aFrame->GetContent();
   if (!content) {
     return;
   }
@@ -390,43 +407,54 @@ AddAnimationsAndTransitionsToLayer(Layer* aLayer, nsDisplayListBuilder* aBuilder
   }
 
   
-  if (!aItem->CanUseAsyncAnimations(aBuilder)) {
+  
+  
+  if (aItem && !aItem->CanUseAsyncAnimations(aBuilder)) {
     
     
     
-    frame->Properties().Set(nsIFrame::RefusedAsyncAnimation(),
+    aFrame->Properties().Set(nsIFrame::RefusedAsyncAnimation(),
                             reinterpret_cast<void*>(intptr_t(true)));
 
     
     
-    frame->SchedulePaint();
+    aFrame->SchedulePaint();
     return;
   }
 
   mozilla::TimeStamp currentTime =
-    frame->PresContext()->RefreshDriver()->MostRecentRefresh();
+    aFrame->PresContext()->RefreshDriver()->MostRecentRefresh();
   AnimationData data;
   if (aProperty == eCSSProperty_transform) {
-    nsRect bounds = nsDisplayTransform::GetFrameBoundsForTransform(frame);
+    nsRect bounds = nsDisplayTransform::GetFrameBoundsForTransform(aFrame);
     
     float scale = nsDeviceContext::AppUnitsPerCSSPixel();
     gfxPoint3D offsetToTransformOrigin =
-      nsDisplayTransform::GetDeltaToTransformOrigin(frame, scale, &bounds);
+      nsDisplayTransform::GetDeltaToTransformOrigin(aFrame, scale, &bounds);
     gfxPoint3D offsetToPerspectiveOrigin =
-      nsDisplayTransform::GetDeltaToPerspectiveOrigin(frame, scale);
+      nsDisplayTransform::GetDeltaToPerspectiveOrigin(aFrame, scale);
     nscoord perspective = 0.0;
-    nsStyleContext* parentStyleContext = frame->StyleContext()->GetParent();
+    nsStyleContext* parentStyleContext = aFrame->StyleContext()->GetParent();
     if (parentStyleContext) {
       const nsStyleDisplay* disp = parentStyleContext->StyleDisplay();
       if (disp && disp->mChildPerspective.GetUnit() == eStyleUnit_Coord) {
         perspective = disp->mChildPerspective.GetCoordValue();
       }
     }
-    nsPoint origin = aItem->ToReferenceFrame();
+    nsPoint origin;
+    if (aItem) {
+      origin = aItem->ToReferenceFrame();
+    } else {
+      
+      
+      nsIFrame* referenceFrame =
+        nsLayoutUtils::GetReferenceFrame(GetTransformRootFrame(aFrame));
+      origin = aFrame->GetOffsetToCrossDoc(referenceFrame);
+    }
 
     data = TransformData(origin, offsetToTransformOrigin,
                          offsetToPerspectiveOrigin, bounds, perspective,
-                         frame->PresContext()->AppUnitsPerDevPixel());
+                         aFrame->PresContext()->AppUnitsPerDevPixel());
   } else if (aProperty == eCSSProperty_opacity) {
     data = null_t();
   }
@@ -458,8 +486,8 @@ AddAnimationsAndTransitionsToLayer(Layer* aLayer, nsDisplayListBuilder* aBuilder
       segment.mToValue = pt->mEndValue;
       segment.mTimingFunction = pt->mTimingFunction;
 
-      AddAnimationsForProperty(frame, aProperty, &anim,
-                               aLayer, data);
+      AddAnimationsForProperty(aFrame, aProperty, &anim,
+                               aLayer, data, pending);
 
       pt->mIsRunningOnCompositor = true;
     }
@@ -473,8 +501,8 @@ AddAnimationsAndTransitionsToLayer(Layer* aLayer, nsDisplayListBuilder* aBuilder
             anim->IsRunningAt(currentTime))) {
         continue;
       }
-      AddAnimationsForProperty(frame, aProperty, anim,
-                               aLayer, data);
+      AddAnimationsForProperty(aFrame, aProperty, anim,
+                               aLayer, data, pending);
     }
     aLayer->SetAnimationGeneration(ea->mAnimationGeneration);
   }
@@ -3195,8 +3223,9 @@ nsDisplayOpacity::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
 
   container->SetOpacity(mFrame->StyleDisplay()->mOpacity);
-  AddAnimationsAndTransitionsToLayer(container, aBuilder,
-                                     this, eCSSProperty_opacity);
+  nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(container, aBuilder,
+                                                           this, mFrame,
+                                                           eCSSProperty_opacity);
   return container.forget();
 }
 
@@ -4662,8 +4691,9 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
     container->SetContentFlags(container->GetContentFlags() & ~Layer::CONTENT_PRESERVE_3D);
   }
 
-  AddAnimationsAndTransitionsToLayer(container, aBuilder,
-                                     this, eCSSProperty_transform);
+  nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(container, aBuilder,
+                                                           this, mFrame,
+                                                           eCSSProperty_transform);
   if (ShouldPrerenderTransformedContent(aBuilder, mFrame, false)) {
     container->SetUserData(nsIFrame::LayerIsPrerenderedDataKey(),
                            nullptr);
