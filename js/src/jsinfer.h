@@ -398,7 +398,8 @@ enum {
     OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00200000,
 
     
-    OBJECT_FLAG_EMULATES_UNDEFINED    = 0x00400000,
+
+
 
     
 
@@ -502,6 +503,9 @@ class TypeSet
     inline JSObject *getSingleObject(unsigned i) const;
     inline TypeObject *getTypeObject(unsigned i) const;
     inline bool getTypeOrSingleObject(JSContext *cx, unsigned i, TypeObject **obj) const;
+
+    
+    inline const Class *getObjectClass(unsigned i) const;
 
     void setOwnProperty(bool configurable) {
         flags |= TYPE_FLAG_OWN_PROPERTY;
@@ -676,6 +680,9 @@ class TemporaryTypeSet : public TypeSet
 
     
     bool maybeCallable();
+
+    
+    bool maybeEmulatesUndefined();
 
     
     JSObject *getSingleton();
