@@ -225,8 +225,7 @@ IDBKeyRange::DefineConstructors(JSContext* aCx,
   NS_ASSERTION(aObject, "Null pointer!");
 
   
-  return JS_DefineFunctions(aCx, aObject,
-                            const_cast<JSFunctionSpec*>(gKeyRangeConstructors));
+  return JS_DefineFunctions(aCx, aObject, gKeyRangeConstructors);
 }
 
 

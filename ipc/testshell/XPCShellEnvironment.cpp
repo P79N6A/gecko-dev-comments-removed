@@ -492,7 +492,7 @@ DumpHeap(JSContext *cx,
 
 #endif 
 
-JSFunctionSpec gGlobalFunctions[] =
+const JSFunctionSpec gGlobalFunctions[] =
 {
     JS_FS("print",           Print,          0,0),
     JS_FS("load",            Load,           1,0),
