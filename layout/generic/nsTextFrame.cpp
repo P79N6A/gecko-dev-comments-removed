@@ -148,6 +148,28 @@ NS_DECLARE_FRAME_PROPERTY(UninflatedTextRunProperty, nullptr)
 
 NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nullptr)
 
+class GlyphObserver : public gfxFont::GlyphChangeObserver {
+public:
+  GlyphObserver(gfxFont* aFont, nsTextFrame* aFrame)
+    : gfxFont::GlyphChangeObserver(aFont), mFrame(aFrame) {}
+  virtual void NotifyGlyphsChanged() MOZ_OVERRIDE;
+private:
+  nsTextFrame* mFrame;
+};
+
+static void DestroyGlyphObserverList(void* aPropertyValue)
+{
+  delete static_cast<nsTArray<nsAutoPtr<GlyphObserver> >*>(aPropertyValue);
+}
+
+
+
+
+
+
+
+NS_DECLARE_FRAME_PROPERTY(TextFrameGlyphObservers, DestroyGlyphObserverList);
+
 
 
 
@@ -506,6 +528,26 @@ UnhookTextRunFromFrames(gfxTextRun* aTextRun, nsTextFrame* aStartContinuation)
   }
 }
 
+void
+GlyphObserver::NotifyGlyphsChanged()
+{
+  nsIPresShell* shell = mFrame->PresContext()->PresShell();
+  for (nsIFrame* f = mFrame; f;
+       f = nsLayoutUtils::GetNextContinuationOrSpecialSibling(f)) {
+    if (f != mFrame && f->HasAnyStateBits(TEXT_IN_TEXTRUN_USER_DATA)) {
+      
+      break;
+    }
+    f->InvalidateFrame();
+    
+    
+    
+    
+    
+    shell->FrameNeedsReflow(f, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+  }
+}
+
 class FrameTextRunCache;
 
 static FrameTextRunCache *gTextRuns = nullptr;
@@ -772,6 +814,62 @@ IsAllNewlines(const nsTextFragment* aFrag)
   return true;
 }
 
+static void
+CreateObserverForAnimatedGlyphs(nsTextFrame* aFrame, const nsTArray<gfxFont*>& aFonts)
+{
+  if (!(aFrame->GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA)) {
+    
+    return;
+  }
+
+  nsTArray<nsAutoPtr<GlyphObserver> >* observers =
+    new nsTArray<nsAutoPtr<GlyphObserver> >();
+  for (uint32_t i = 0, count = aFonts.Length(); i < count; ++i) {
+    observers->AppendElement(new GlyphObserver(aFonts[i], aFrame));
+  }
+  aFrame->Properties().Set(TextFrameGlyphObservers(), observers);
+  
+  
+  
+  
+  
+  
+  
+  
+}
+
+static void
+CreateObserversForAnimatedGlyphs(gfxTextRun* aTextRun)
+{
+  if (!aTextRun->GetUserData()) {
+    return;
+  }
+  nsTArray<gfxFont*> fontsWithAnimatedGlyphs;
+  uint32_t numGlyphRuns;
+  const GlyphRun* glyphRuns = aTextRun->GetGlyphRuns(&numGlyphRuns);
+  for (uint32_t i = 0; i < numGlyphRuns; ++i) {
+    gfxFont* font = glyphRuns[i].mFont;
+    if (font->GlyphsMayChange() && !fontsWithAnimatedGlyphs.Contains(font)) {
+      fontsWithAnimatedGlyphs.AppendElement(font);
+    }
+  }
+  if (fontsWithAnimatedGlyphs.IsEmpty()) {
+    return;
+  }
+
+  if (aTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+    CreateObserverForAnimatedGlyphs(static_cast<nsTextFrame*>(
+      static_cast<nsIFrame*>(aTextRun->GetUserData())), fontsWithAnimatedGlyphs);
+  } else {
+    TextRunUserData* userData =
+      static_cast<TextRunUserData*>(aTextRun->GetUserData());
+    for (uint32_t i = 0; i < userData->mMappedFlowCount; ++i) {
+      CreateObserverForAnimatedGlyphs(userData->mMappedFlows[i].mStartFrame,
+                                      fontsWithAnimatedGlyphs);
+    }
+  }
+}
+
 
 
 
@@ -927,6 +1025,10 @@ public:
           static_cast<nsTransformedTextRun*>(mTextRun);
         transformedTextRun->FinishSettingProperties(mContext);
       }
+      
+      
+      
+      CreateObserversForAnimatedGlyphs(mTextRun);
     }
 
     gfxTextRun*  mTextRun;
