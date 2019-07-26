@@ -173,7 +173,7 @@ xpc_UnmarkSkippableJSHolders();
 
 
 
-NS_EXPORT_(void)
+void
 xpc_ActivateDebugMode();
 
 
@@ -259,8 +259,8 @@ private:
 namespace xpc {
 
 
-NS_EXPORT_(bool) Base64Encode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
-NS_EXPORT_(bool) Base64Decode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
+bool Base64Encode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
+bool Base64Decode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
 
 
 
@@ -427,15 +427,7 @@ WindowGlobalOrNull(JSObject *aObj);
 void
 SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 
-
-
-
-
-NS_EXPORT_(void)
-SystemErrorReporterExternal(JSContext *cx, const char *message,
-                            JSErrorReport *rep);
-
-NS_EXPORT_(void)
+void
 SimulateActivityCallback(bool aActive);
 
 void

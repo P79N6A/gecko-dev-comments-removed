@@ -27,7 +27,7 @@ class MOZ_STACK_CLASS AutoCxPusher
 public:
   AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
   
-  NS_EXPORT ~AutoCxPusher();
+  ~AutoCxPusher();
 
   nsIScriptContext* GetScriptContext() { return mScx; }
 
@@ -64,26 +64,18 @@ class MOZ_STACK_CLASS nsCxPusher
 {
 public:
   
-  
-  
-  
-  
-  
-  NS_EXPORT ~nsCxPusher();
-
-  
   bool Push(mozilla::dom::EventTarget *aCurrentTarget);
   
   
   bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
   
   
-  NS_EXPORT_(void) Push(JSContext *cx);
+  void Push(JSContext *cx);
   
   void PushNull();
 
   
-  NS_EXPORT_(void) Pop();
+  void Pop();
 
   nsIScriptContext* GetCurrentScriptContext() {
     return mPusher.empty() ? nullptr : mPusher.ref().GetScriptContext();
