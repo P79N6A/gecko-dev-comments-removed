@@ -92,39 +92,6 @@ Object.freeze(SessionFile);
 
 
 
-const TaskUtils = {
-  
-
-
-
-
-
-
-  captureErrors: function captureErrors(promise) {
-    return promise.then(
-      null,
-      function onError(reason) {
-        console.error("Uncaught asynchronous error", reason, "at", reason.stack);
-        throw reason;
-      }
-    );
-  },
-  
-
-
-
-
-
-
-
-
-
-
-  spawn: function spawn(gen) {
-    return this.captureErrors(Task.spawn(gen));
-  }
-};
-
 let SessionFileInternal = {
   
 
@@ -168,7 +135,7 @@ let SessionFileInternal = {
       isFinalWrite = this._isClosed = true;
     }
 
-    return this._latestWrite = TaskUtils.spawn(function task() {
+    return this._latestWrite = Task.spawn(function task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
