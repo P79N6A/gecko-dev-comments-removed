@@ -296,6 +296,7 @@ add_test(function test_getKeys() {
       do_check_eq(!!user.kB, false);
       
       do_check_eq(!!user.keyFetchToken, true);
+      do_check_eq(!!user.unwrapBKey, true);
 
       fxa.internal.getKeys().then(() => {
         fxa.getSignedInUser().then((user) => {
@@ -305,6 +306,7 @@ add_test(function test_getKeys() {
           do_check_eq(user.kA, expandHex("11"));
           do_check_eq(user.kB, expandHex("66"));
           do_check_eq(user.keyFetchToken, undefined);
+          do_check_eq(user.unwrapBKey, undefined);
           do_test_finished();
           run_next_test();
         });
