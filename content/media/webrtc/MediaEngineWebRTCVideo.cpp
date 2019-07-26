@@ -500,7 +500,7 @@ MediaEngineWebRTCVideoSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
   NS_ConvertUTF16toUTF8 path(*mSnapshotPath);
   if (vieFile->GetCaptureDeviceSnapshot(mCaptureIndex, path.get()) < 0) {
     delete mSnapshotPath;
-    mSnapshotPath = NULL;
+    mSnapshotPath = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -512,7 +512,7 @@ MediaEngineWebRTCVideoSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
   nsresult rv = NS_NewLocalFile(*mSnapshotPath, false, getter_AddRefs(file));
 
   delete mSnapshotPath;
-  mSnapshotPath = NULL;
+  mSnapshotPath = nullptr;
 
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -540,12 +540,12 @@ MediaEngineWebRTCVideoSource::Init()
   (void) mMinFps;
 
   LOG((__FUNCTION__));
-  if (mVideoEngine == NULL) {
+  if (mVideoEngine == nullptr) {
     return;
   }
 
   mViEBase = webrtc::ViEBase::GetInterface(mVideoEngine);
-  if (mViEBase == NULL) {
+  if (mViEBase == nullptr) {
     return;
   }
 
@@ -553,7 +553,7 @@ MediaEngineWebRTCVideoSource::Init()
   mViECapture = webrtc::ViECapture::GetInterface(mVideoEngine);
   mViERender = webrtc::ViERender::GetInterface(mVideoEngine);
 
-  if (mViECapture == NULL || mViERender == NULL) {
+  if (mViECapture == nullptr || mViERender == nullptr) {
     return;
   }
 

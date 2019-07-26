@@ -29,7 +29,7 @@ WMFSourceReaderCallback::QueryInterface(REFIID aIId, void **aInterface)
     return DoGetInterface(static_cast<WMFSourceReaderCallback*>(this), aInterface);
   }
 
-  *aInterface = NULL;
+  *aInterface = nullptr;
   return E_NOINTERFACE;
 }
 

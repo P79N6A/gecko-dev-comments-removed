@@ -145,7 +145,7 @@ MediaEngineDefaultVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
   }
 
   mTimer->Cancel();
-  mTimer = NULL;
+  mTimer = nullptr;
 
   aSource->EndTrack(aID);
   aSource->Finish();
@@ -398,7 +398,7 @@ MediaEngineDefaultAudioSource::Stop(SourceMediaStream *aSource, TrackID aID)
   }
 
   mTimer->Cancel();
-  mTimer = NULL;
+  mTimer = nullptr;
 
   aSource->EndTrack(aID);
   aSource->Finish();

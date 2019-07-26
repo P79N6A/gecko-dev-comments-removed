@@ -276,7 +276,7 @@ SVGFETurbulenceElement::Noise2(int aColorChannel, double aVec[2],
   ry0 = t - (int) t;
   ry1 = ry0 - 1.0f;
   
-  if (aStitchInfo != NULL) {
+  if (aStitchInfo != nullptr) {
     if (bx0 >= aStitchInfo->mWrapX)
       bx0 -= aStitchInfo->mWidth;
     if (bx1 >= aStitchInfo->mWrapX)
@@ -322,7 +322,7 @@ SVGFETurbulenceElement::Turbulence(int aColorChannel, double* aPoint,
                                    double aTileWidth, double aTileHeight)
 {
   StitchInfo stitch;
-  StitchInfo *stitchInfo = NULL; 
+  StitchInfo *stitchInfo = nullptr; 
   
   if (aDoStitching) {
     
@@ -363,7 +363,7 @@ SVGFETurbulenceElement::Turbulence(int aColorChannel, double* aPoint,
     vec[0] *= 2;
     vec[1] *= 2;
     ratio *= 2;
-    if (stitchInfo != NULL) {
+    if (stitchInfo != nullptr) {
       
       
       stitch.mWidth *= 2;

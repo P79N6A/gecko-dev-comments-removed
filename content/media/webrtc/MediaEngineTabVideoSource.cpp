@@ -49,7 +49,7 @@ MediaEngineTabVideoSource::StopRunnable::Run()
 
   if (mVideoSource->mTimer) {
     mVideoSource->mTimer->Cancel();
-    mVideoSource->mTimer = NULL;
+    mVideoSource->mTimer = nullptr;
   }
   return NS_OK;
 }
