@@ -48,13 +48,17 @@ public:
     mFrameType(UNKNOWN)
   {}
   enum FrameType {
-    I_FRAME,      
-    P_FRAME,      
-    B_FRAME,      
-    AUDIO_FRAME,  
-    AAC_CSD,      
-    AVC_CSD,      
-    UNKNOWN       
+    VP8_I_FRAME,      
+    VP8_P_FRAME,      
+    OPUS_AUDIO_FRAME, 
+    VORBIS_AUDIO_FRAME,
+    AVC_I_FRAME,
+    AVC_P_FRAME,
+    AVC_B_FRAME,
+    AVC_CSD,          
+    AAC_AUDIO_FRAME,
+    AAC_CSD,          
+    UNKNOWN           
   };
   nsresult SwapInFrameData(nsTArray<uint8_t>& aData)
   {
