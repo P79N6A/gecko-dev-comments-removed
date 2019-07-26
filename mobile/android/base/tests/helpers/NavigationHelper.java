@@ -88,9 +88,17 @@ final public class NavigationHelper {
     }
 
     public static void reload() {
-        
-        
-        
-        throw new UnsupportedOperationException("Not yet implemented.");
+        if (DeviceHelper.isTablet()) {
+            sToolbar.pressReloadButton(); 
+            return;
+        }
+
+        sToolbar.assertIsNotEditing();
+        WaitHelper.waitForPageLoad(new Runnable() {
+            @Override
+            public void run() {
+                sAppMenu.pressMenuItem(AppMenuComponent.MenuItem.RELOAD);
+            }
+        });
     }
 }
