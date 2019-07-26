@@ -163,8 +163,8 @@ let gSyncPane = {
           checkbox.checked = false;
         }
 
-        checkbox.disabled = !allowPasswordsEngine;
-        help.hidden = allowPasswordsEngine;
+        checkbox.disabled = !allowPasswordsEngine || enginesListDisabled;
+        help.hidden = allowPasswordsEngine || enginesListDisabled;
       });
     
     
