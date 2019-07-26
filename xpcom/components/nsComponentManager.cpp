@@ -15,6 +15,7 @@
 
 
 
+
 #include <stdlib.h>
 #include "nscore.h"
 #include "nsISupports.h"
@@ -279,22 +280,23 @@ CloneAndAppend(nsIFile* aBase, const nsACString& append)
 
 
 
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(ComponentManagerMallocSizeOf)
-
-static int64_t
-GetComponentManagerSize()
+class XPCOMComponentManagerReporter MOZ_FINAL : public MemoryReporterBase
 {
-  MOZ_ASSERT(nsComponentManagerImpl::gComponentManager);
-  return nsComponentManagerImpl::gComponentManager->SizeOfIncludingThis(
-           ComponentManagerMallocSizeOf);
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(ComponentManager,
-    "explicit/xpcom/component-manager",
-    KIND_HEAP,
-    nsIMemoryReporter::UNITS_BYTES,
-    GetComponentManagerSize,
-    "Memory used for the XPCOM component manager.")
+public:
+    XPCOMComponentManagerReporter()
+      : MemoryReporterBase("explicit/xpcom/component-manager",
+                           KIND_HEAP, UNITS_BYTES,
+                           "Memory used for the XPCOM component manager.")
+    {}
+private:
+    int64_t Amount() MOZ_OVERRIDE
+    {
+        return nsComponentManagerImpl::gComponentManager
+             ? nsComponentManagerImpl::gComponentManager->SizeOfIncludingThis(
+                 MallocSizeOf)
+             : 0;
+    }
+};
 
 nsresult
 nsComponentManagerImpl::Create(nsISupports* aOuter, REFNSIID aIID, void** aResult)
@@ -412,8 +414,8 @@ nsresult nsComponentManagerImpl::Init()
 
     nsCategoryManager::GetSingleton()->SuppressNotifications(false);
 
-    mReporter = new NS_MEMORY_REPORTER_NAME(ComponentManager);
-    (void)::NS_RegisterMemoryReporter(mReporter);
+    mReporter = new XPCOMComponentManagerReporter();
+    NS_RegisterMemoryReporter(mReporter);
 
     
     
@@ -798,7 +800,7 @@ nsresult nsComponentManagerImpl::Shutdown(void)
     
     PR_LOG(nsComponentManagerLog, PR_LOG_DEBUG, ("nsComponentManager: Beginning Shutdown."));
 
-    (void)::NS_UnregisterMemoryReporter(mReporter);
+    NS_UnregisterMemoryReporter(mReporter);
     mReporter = nullptr;
 
     
