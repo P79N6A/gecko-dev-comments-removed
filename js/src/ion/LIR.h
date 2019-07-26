@@ -429,9 +429,10 @@ class LDefinition
         
         
         TYPE,
-        PAYLOAD,
-#endif
+        PAYLOAD
+#else
         BOX         
+#endif
     };
 
     void set(uint32 index, Type type, Policy policy) {
