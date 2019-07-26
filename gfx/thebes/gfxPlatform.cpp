@@ -127,6 +127,7 @@ static int gCMSIntent = QCMS_INTENT_DEFAULT;
 static void ShutdownCMS();
 
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/SourceSurfaceCairo.h"
 using namespace mozilla::gfx;
 
 
@@ -651,34 +652,6 @@ gfxPlatform::ClearSourceSurfaceForSurface(gfxASurface *aSurface)
   aSurface->SetData(&kSourceSurface, nullptr, nullptr);
 }
 
-static TemporaryRef<DataSourceSurface>
-CopySurface(gfxASurface* aSurface)
-{
-  const nsIntSize size = aSurface->GetSize();
-  gfxImageFormat format = gfxPlatform::GetPlatform()->OptimalFormatForContent(aSurface->GetContentType());
-  RefPtr<DataSourceSurface> data =
-    Factory::CreateDataSourceSurface(ToIntSize(size),
-                                     ImageFormatToSurfaceFormat(format));
-  if (!data) {
-    return nullptr;
-  }
-
-  DataSourceSurface::MappedSurface map;
-  DebugOnly<bool> result = data->Map(DataSourceSurface::WRITE, &map);
-  MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
-
-  nsRefPtr<gfxImageSurface> image = new gfxImageSurface(map.mData, size, map.mStride, format);
-  nsRefPtr<gfxContext> ctx = new gfxContext(image);
-
-  ctx->SetSource(aSurface);
-  ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-  ctx->Paint();
-
-  data->Unmap();
-
-  return data;
-}
-
  TemporaryRef<SourceSurface>
 gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurface)
 {
@@ -687,9 +660,8 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   }
 
   if (!aTarget) {
-    if (gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget()) {
-      aTarget = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
-    } else {
+    aTarget = gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
+    if (!aTarget) {
       return nullptr;
     }
   }
@@ -715,6 +687,33 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
     format = SurfaceFormat::B8G8R8A8;
   }
 
+  if (aTarget->GetType() == BackendType::CAIRO) {
+    
+    
+    
+    
+    
+    
+    NativeSurface surf;
+    surf.mFormat = format;
+    surf.mType = NativeSurfaceType::CAIRO_SURFACE;
+    surf.mSurface = aSurface->CairoSurface();
+    surf.mSize = ToIntSize(aSurface->GetSize());
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return aTarget->CreateSourceSurfaceFromNativeSurface(surf);
+  }
+
   RefPtr<SourceSurface> srcBuffer;
 
 #ifdef XP_WIN
@@ -730,9 +729,42 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
       dt->Flush();
     }
     srcBuffer = aTarget->CreateSourceSurfaceFromNativeSurface(surf);
-  } else
+  }
 #endif
-  if (aSurface->CairoSurface() && aTarget->GetType() == BackendType::CAIRO) {
+  
+
+  if (!srcBuffer) {
+    
+    
+    RefPtr<DataSourceSurface> surf = GetWrappedDataSourceSurface(aSurface);
+    if (surf) {
+      srcBuffer = aTarget->OptimizeSourceSurface(surf);
+      if (srcBuffer == surf) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return srcBuffer.forget();
+      }
+    }
+  }
+
+  if (!srcBuffer) {
+    MOZ_ASSERT(aTarget->GetType() != BackendType::CAIRO,
+               "We already tried CreateSourceSurfaceFromNativeSurface with a "
+               "DrawTargetCairo above");
+    
+    
+    
+    
+    
     
     
     NativeSurface surf;
@@ -740,38 +772,26 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
     surf.mType = NativeSurfaceType::CAIRO_SURFACE;
     surf.mSurface = aSurface->CairoSurface();
     surf.mSize = ToIntSize(aSurface->GetSize());
-    srcBuffer = aTarget->CreateSourceSurfaceFromNativeSurface(surf);
-
+    RefPtr<DrawTarget> drawTarget =
+      Factory::CreateDrawTarget(BackendType::CAIRO, IntSize(1, 1), format);
+    srcBuffer = drawTarget->CreateSourceSurfaceFromNativeSurface(surf);
     if (srcBuffer) {
-      
-      
-      return srcBuffer.forget();
+      srcBuffer = aTarget->OptimizeSourceSurface(srcBuffer);
     }
   }
 
   if (!srcBuffer) {
-    nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
+    return nullptr;
+  }
 
-    RefPtr<DataSourceSurface> dataSurf;
-
-    if (imgSurface) {
-      dataSurf = GetWrappedDataSourceSurface(aSurface);
-    } else {
-      dataSurf = CopySurface(aSurface);
-    }
-
-    if (!dataSurf) {
-      return nullptr;
-    }
-
-    srcBuffer = aTarget->OptimizeSourceSurface(dataSurf);
-
-    if (imgSurface && srcBuffer == dataSurf) {
-      
-      
-      
-     return srcBuffer.forget();
-    }
+  if ((srcBuffer->GetType() == SurfaceType::CAIRO &&
+       static_cast<SourceSurfaceCairo*>(srcBuffer.get())->GetSurface() ==
+         aSurface->CairoSurface()) ||
+      (srcBuffer->GetType() == SurfaceType::CAIRO_IMAGE &&
+       static_cast<DataSourceSurfaceCairo*>(srcBuffer.get())->GetSurface() ==
+         aSurface->CairoSurface())) {
+    
+    return srcBuffer.forget();
   }
 
   
