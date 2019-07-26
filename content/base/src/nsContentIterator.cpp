@@ -992,9 +992,7 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
   
 
   
-  if (!oldParentStack.SetCapacity(mIndexes.Length() + 1)) {
-    return NS_ERROR_FAILURE;
-  }
+  oldParentStack.SetCapacity(mIndexes.Length() + 1);
 
   
   
