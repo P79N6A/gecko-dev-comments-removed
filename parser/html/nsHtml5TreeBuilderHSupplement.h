@@ -26,9 +26,9 @@
 
     void documentMode(nsHtml5DocumentMode m);
 
-    nsIContent** getDocumentFragmentForTemplate(nsIContent** aTemplate);
+    nsIContentHandle* getDocumentFragmentForTemplate(nsIContentHandle* aTemplate);
 
-    nsIContent** getFormPointerForContext(nsIContent** aContext);
+    nsIContentHandle* getFormPointerForContext(nsIContentHandle* aContext);
 
     
 
@@ -53,7 +53,7 @@
 
 
 
-    nsIContent** AllocateContentHandle();
+    nsIContentHandle* AllocateContentHandle();
     
     void accumulateCharactersForced(const char16_t* aBuf, int32_t aStart, int32_t aLength)
     {

@@ -5,6 +5,8 @@
 #ifndef nsAHtml5TreeBuilderState_h
 #define nsAHtml5TreeBuilderState_h
 
+#include "nsIContentHandle.h"
+
 
 
 
@@ -25,11 +27,11 @@ class nsAHtml5TreeBuilderState {
 
     virtual int32_t getTemplateModeStackLength() = 0;
 
-    virtual nsIContent** getFormPointer() = 0;
+    virtual nsIContentHandle* getFormPointer() = 0;
     
-    virtual nsIContent** getHeadPointer() = 0;
+    virtual nsIContentHandle* getHeadPointer() = 0;
 
-    virtual nsIContent** getDeepTreeSurrogateParent() = 0;
+    virtual nsIContentHandle* getDeepTreeSurrogateParent() = 0;
 
     virtual int32_t getMode() = 0;
 
