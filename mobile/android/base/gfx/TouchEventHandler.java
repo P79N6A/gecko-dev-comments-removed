@@ -10,11 +10,11 @@ import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 
 import android.content.Context;
-import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -49,14 +49,14 @@ import java.util.Queue;
 
 
 
-public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
+final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoTouchEventHandler";
 
     
     
     private final int EVENT_LISTENER_TIMEOUT = 200;
 
-    private final LayerView mView;
+    private final View mView;
     private final GestureDetector mGestureDetector;
     private final SimpleScaleGestureDetector mScaleGestureDetector;
     private final JavaPanZoomController mPanZoomController;
@@ -65,9 +65,6 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
     private final Queue<MotionEvent> mEventQueue;
     private final ListenerTimeoutProcessor mListenerTimeoutProcessor;
-
-    
-    private OnInterceptTouchListener mOnTouchListener;
 
     
     
@@ -124,11 +121,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
     private int mProcessingBalance;
 
-    TouchEventHandler(Context context, LayerView view, GeckoLayerClient layerClient) {
+    TouchEventHandler(Context context, View view, JavaPanZoomController panZoomController) {
         mView = view;
 
         mEventQueue = new LinkedList<MotionEvent>();
-        mPanZoomController = (JavaPanZoomController)layerClient.getPanZoomController();
+        mPanZoomController = panZoomController;
         mGestureDetector = new GestureDetector(context, mPanZoomController);
         mScaleGestureDetector = new SimpleScaleGestureDetector(mPanZoomController);
         mListenerTimeoutProcessor = new ListenerTimeoutProcessor();
@@ -139,34 +136,12 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         Tabs.registerOnTabsChangedListener(this);
     }
 
-    void destroy() {
+    public void destroy() {
         Tabs.unregisterOnTabsChangedListener(this);
     }
 
     
     public boolean handleEvent(MotionEvent event) {
-        
-        
-        if (mOnTouchListener == null) {
-            dispatchEvent(event);
-            return true;
-        }
-
-        if (mOnTouchListener.onInterceptTouchEvent(mView, event)) {
-            return true;
-        }
-
-        
-        if (isHoverEvent(event)) {
-            mOnTouchListener.onTouch(mView, event);
-            return true;
-        }
-
-        if (isScrollEvent(event)) {
-            dispatchEvent(event);
-            return true;
-        }
-
         if (isDownEvent(event)) {
             
             mHoldInQueue = mWaitForTouchListeners;
@@ -209,10 +184,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             mPanZoomController.preventedTouchFinished();
         }
 
-        
-        mOnTouchListener.onTouch(mView, event);
-
-        return true;
+        return false;
     }
 
     
@@ -240,16 +212,6 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         mWaitForTouchListeners = aValue;
     }
 
-    
-    public void setOnTouchListener(OnInterceptTouchListener onTouchListener) {
-        mOnTouchListener = onTouchListener;
-    }
-
-    private boolean isHoverEvent(MotionEvent event) {
-        int action = (event.getAction() & MotionEvent.ACTION_MASK);
-        return (action == MotionEvent.ACTION_HOVER_ENTER || action == MotionEvent.ACTION_HOVER_MOVE || action == MotionEvent.ACTION_HOVER_EXIT);
-    }
-
     private boolean isDownEvent(MotionEvent event) {
         int action = (event.getAction() & MotionEvent.ACTION_MASK);
         return (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN);
@@ -258,14 +220,6 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     private boolean touchFinished(MotionEvent event) {
         int action = (event.getAction() & MotionEvent.ACTION_MASK);
         return (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL);
-    }
-
-    private boolean isScrollEvent(MotionEvent event) {
-        if (Build.VERSION.SDK_INT <= 11) {
-            return false;
-        }
-        int action = (event.getAction() & MotionEvent.ACTION_MASK);
-        return (action == MotionEvent.ACTION_SCROLL);
     }
 
     
@@ -279,7 +233,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         if (mScaleGestureDetector.isInProgress()) {
             return;
         }
-        mPanZoomController.onTouchEvent(event);
+        mPanZoomController.handleEvent(event);
     }
 
     

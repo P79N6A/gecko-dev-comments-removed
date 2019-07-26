@@ -33,7 +33,7 @@ import java.util.Stack;
 
 
 
-public class SimpleScaleGestureDetector {
+class SimpleScaleGestureDetector {
     private static final String LOGTAG = "GeckoSimpleScaleGestureDetector";
 
     private SimpleScaleGestureListener mListener;
@@ -44,7 +44,7 @@ public class SimpleScaleGestureDetector {
     private LinkedList<PointerInfo> mPointerInfo;
 
     
-    public SimpleScaleGestureDetector(SimpleScaleGestureListener listener) {
+    SimpleScaleGestureDetector(SimpleScaleGestureListener listener) {
         mListener = listener;
         mPointerInfo = new LinkedList<PointerInfo>();
     }
