@@ -397,7 +397,7 @@ function TabWindow(win) {
   this.win = win;
   this.tabbrowser = win.gBrowser;
 
-  this.previews = [];
+  this.previews = new Map();
 
   for (let i = 0; i < this.tabEvents.length; i++)
     this.tabbrowser.tabContainer.addEventListener(this.tabEvents[i], this, false);
@@ -451,7 +451,7 @@ TabWindow.prototype = {
   newTab: function (tab) {
     let controller = new PreviewController(this, tab);
     
-    this.previews.splice(tab._tPos, 0, controller.preview);
+    this.previews.set(tab, controller.preview);
     AeroPeek.addPreview(controller.preview);
     
     
@@ -485,10 +485,7 @@ TabWindow.prototype = {
     preview.move(null);
     preview.controller.wrappedJSObject.destroy();
 
-    
-    
-    if (!this._destroying)
-      this.previews.splice(tab._tPos, 1);
+    this.previews.delete(tab);
     AeroPeek.removePreview(preview);
   },
 
@@ -501,26 +498,31 @@ TabWindow.prototype = {
     
     
     
-    this.previews.forEach(function (preview) {
+    for (let [tab, preview] of this.previews) {
       preview.move(null);
       preview.visible = enable;
-    });
+    }
     this.updateTabOrdering();
   },
 
   previewFromTab: function (tab) {
-    return this.previews[tab._tPos];
+    return this.previews.get(tab);
   },
 
   updateTabOrdering: function () {
+    let previews = this.previews;
+    let tabs = this.tabbrowser.tabs;
+
+    
+    
+    let inorder = [previews.get(t) for (t of tabs) if (previews.has(t))];
+
     
     
     
     
-    for (let i = this.previews.length - 1; i >= 0; i--) {
-      let p = this.previews[i];
-      let next = i == this.previews.length - 1 ? null : this.previews[i+1];
-      p.move(next);
+    for (let i = inorder.length - 1; i >= 0; i--) {
+      inorder[i].move(inorder[i + 1] || null);
     }
   },
 
@@ -540,11 +542,6 @@ TabWindow.prototype = {
         this.previewFromTab(tab).active = true;
         break;
       case "TabMove":
-        let oldPos = evt.detail;
-        let newPos = tab._tPos;
-        let preview = this.previews[oldPos];
-        this.previews.splice(oldPos, 1);
-        this.previews.splice(newPos, 0, preview);
         this.updateTabOrdering();
         break;
       case "tabviewshown":
@@ -564,8 +561,10 @@ TabWindow.prototype = {
     getFaviconAsImage(aIconURL, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
       let index = self.tabbrowser.browsers.indexOf(aBrowser);
       
-      if (index != -1)
-        self.previews[index].icon = img;
+      if (index != -1) {
+        let tab = self.tabbrowser.tabs[index];
+        self.previews.get(tab).icon = img;
+      }
     });
   }
 }
