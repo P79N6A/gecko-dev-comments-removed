@@ -121,7 +121,10 @@ RootActor.prototype = {
     storageInspectorReadOnly: true,
     
     conditionalBreakpoints: true,
-    bulk: true
+    bulk: true,
+    
+    
+    selectorEditable: true
   },
 
   

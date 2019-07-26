@@ -595,6 +595,18 @@ var StyleRuleActor = protocol.ActorClass({
   
   get marshallPool() this.pageStyle,
 
+  getDocument: function(sheet) {
+    let document;
+
+    if (sheet.ownerNode instanceof Ci.nsIDOMHTMLDocument) {
+      document = sheet.ownerNode;
+    } else {
+      document = sheet.ownerNode.ownerDocument;
+    }
+
+    return document;
+  },
+
   toString: function() "[StyleRuleActor for " + this.rawRule + "]",
 
   form: function(detail) {
@@ -677,11 +689,7 @@ var StyleRuleActor = protocol.ActorClass({
         parentStyleSheet = parentStyleSheet.ownerRule.parentStyleSheet;
       }
 
-      if (parentStyleSheet.ownerNode instanceof Ci.nsIDOMHTMLDocument) {
-        document = parentStyleSheet.ownerNode;
-      } else {
-        document = parentStyleSheet.ownerNode.ownerDocument;
-      }
+      document = this.getDocument(parentStyleSheet);
     }
 
     let tempElement = document.createElement("div");
@@ -700,7 +708,63 @@ var StyleRuleActor = protocol.ActorClass({
   }, {
     request: { modifications: Arg(0, "array:json") },
     response: { rule: RetVal("domstylerule") }
-  })
+  }),
+
+  
+
+
+
+
+
+
+
+
+  modifySelector: method(function(value) {
+    if (this.type === ELEMENT_STYLE) {
+      return false;
+    }
+
+    let rule = this.rawRule;
+    let parentStyleSheet = rule.parentStyleSheet;
+    let document = this.getDocument(parentStyleSheet);
+    
+    let [selector, pseudoProp] = value.split(/(:{1,2}.+$)/);
+    let selectorElement;
+
+    try {
+      selectorElement = document.querySelector(selector);
+    } catch (e) {
+      return false;
+    }
+
+    
+    
+    if (selectorElement && rule.selectorText !== value) {
+      let cssRules = parentStyleSheet.cssRules;
+
+      
+      let i = 0;
+      for (let cssRule of cssRules) {
+        if (rule === cssRule) {
+          parentStyleSheet.deleteRule(i);
+          break;
+        }
+
+        i++;
+      }
+
+      
+      let ruleText = rule.cssText.slice(rule.selectorText.length).trim();
+      parentStyleSheet.insertRule(value + " " + ruleText, i);
+
+      return true;
+    } else {
+      return false;
+    }
+  }, {
+    request: { selector: Arg(0, "string") },
+    response: { isModified: RetVal("boolean") },
+  }),
 });
 
 
