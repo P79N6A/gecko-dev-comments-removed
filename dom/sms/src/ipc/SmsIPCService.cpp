@@ -19,7 +19,7 @@ namespace sms {
 
 PSmsChild* gSmsChild;
 
-NS_IMPL_ISUPPORTS2(SmsIPCService, nsISmsService, nsISmsDatabaseService)
+NS_IMPL_ISUPPORTS2(SmsIPCService, nsISmsService, nsIMobileMessageDatabaseService)
 
 void
 SendRequest(const IPCSmsRequest& aRequest, nsISmsRequest* aRequestReply)
