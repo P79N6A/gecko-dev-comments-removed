@@ -232,6 +232,7 @@ class SizedTypeRepresentation : public TypeRepresentation {
     size_t alignment() const { return alignment_; }
 
     
+    
     void initInstance(const JSRuntime *rt, uint8_t *mem, size_t count);
 
     
