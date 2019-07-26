@@ -404,6 +404,20 @@ private:
 
   
   
+  bool NeedToDecodeAudio();
+
+  
+  void DecodeAudio();
+
+  
+  
+  bool NeedToDecodeVideo();
+
+  
+  void DecodeVideo();
+
+  
+  
   bool HasLowDecodedData(int64_t aAudioUsecs) const;
 
   
@@ -524,6 +538,12 @@ private:
   
   
   void StartDecoding();
+
+  
+  
+  
+  
+  void DecodeError();
 
   void StartWaitForResources();
 
@@ -876,12 +896,6 @@ private:
 
   
   bool mRealTime;
-
-  
-  
-  
-  bool mDidThrottleAudioDecoding;
-  bool mDidThrottleVideoDecoding;
 
   
   
