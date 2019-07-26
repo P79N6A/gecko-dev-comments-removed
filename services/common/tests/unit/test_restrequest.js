@@ -717,8 +717,14 @@ add_test(function test_timeout() {
     do_check_eq(error.result, Cr.NS_ERROR_NET_TIMEOUT);
     do_check_eq(this.status, this.ABORTED);
 
-    _("Closing connection.");
-    server_connection.close();
+    
+    
+    
+    if (server_connection) {
+      _("Closing connection.");
+      server_connection.close();
+    }
+
     _("Shutting down server.");
     server.stop(run_next_test);
   });
