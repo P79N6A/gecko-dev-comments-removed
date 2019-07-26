@@ -197,6 +197,9 @@ public:
 
     virtual int32_t KnownMemoryUsed() { return mBytesRecorded; }
 
+    virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+    virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
     
 
 

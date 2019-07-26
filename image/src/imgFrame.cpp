@@ -790,6 +790,9 @@ void imgFrame::SetCompositingFailed(bool val)
   mCompositingFailed = val;
 }
 
+
+
+
 size_t
 imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocation aLocation, nsMallocSizeOfFun aMallocSizeOf) const
 {
@@ -803,11 +806,11 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
   size_t n = 0;
 
   if (mPalettedImageData && aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) {
-    size_t usable = aMallocSizeOf(mPalettedImageData);
-    if (!usable) {
-      usable = GetImageDataLength() + PaletteDataLength();
+    size_t n2 = aMallocSizeOf(mPalettedImageData);
+    if (n2 == 0) {
+      n2 = GetImageDataLength() + PaletteDataLength();
     }
-    n += usable;
+    n += n2;
   }
 
   
@@ -822,7 +825,14 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxASurface::MemoryLocat
   } else
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
-    n += mImageSurface->KnownMemoryUsed();
+    size_t n2 = 0;
+    if (aLocation == gfxASurface::MEMORY_IN_PROCESS_HEAP) { 
+      n2 = mImageSurface->SizeOfIncludingThis(aMallocSizeOf);
+    }
+    if (n2 == 0) {  
+      n2 = mImageSurface->KnownMemoryUsed();
+    }
+    n += n2;
   }
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
