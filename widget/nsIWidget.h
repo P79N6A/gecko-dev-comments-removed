@@ -100,8 +100,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x7a4ece50, 0x5c52, 0x47c2, \
-  { 0x8c, 0x9e, 0x32, 0xd2, 0x5a, 0x27, 0x53, 0x34 } }
+{ 0x0a157edd, 0xd70b, 0x4242, \
+  { 0xad, 0xd5, 0xcb, 0xce, 0x4c, 0xf3, 0x4b, 0x47 } }
 
 
 
@@ -742,6 +742,14 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD SetModal(bool aModal) = 0;
+
+    
+
+
+
+
+
+    virtual uint32_t GetMaxTouchPoints() const = 0;
 
     
 
