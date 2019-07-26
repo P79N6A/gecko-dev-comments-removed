@@ -413,10 +413,7 @@ ImportRule::SetSheet(nsCSSStyleSheet* aSheet)
   aSheet->SetOwnerRule(this);
 
   
-  nsCOMPtr<nsIDOMMediaList> mediaList;
-  mChildSheet->GetMedia(getter_AddRefs(mediaList));
-  NS_ABORT_IF_FALSE(mediaList, "GetMedia returned null");
-  mMedia = static_cast<nsMediaList*>(mediaList.get());
+  mMedia = mChildSheet->Media();
 }
 
 NS_IMETHODIMP
