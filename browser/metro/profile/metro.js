@@ -43,8 +43,8 @@ pref("layers.componentalpha.enabled", false);
 
 
 pref("apz.touch_start_tolerance", "0.1"); 
-pref("apz.pan_repaint_interval", "50");   
-pref("apz.fling_repaint_interval", "50"); 
+pref("apz.pan_repaint_interval", 50);   
+pref("apz.fling_repaint_interval", 50); 
 pref("apz.fling_friction", "0.002");
 pref("apz.fling_stopped_threshold", "0.2");
 
