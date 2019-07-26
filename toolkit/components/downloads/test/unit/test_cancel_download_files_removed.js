@@ -92,8 +92,7 @@ function runNextTest()
                                    httpserver.identity.primaryPort +
                                    set.serverPath);
   let uriloader = Cc["@mozilla.org/uriloader;1"].getService(Ci.nsIURILoader);
-  uriloader.openURI(channel, Ci.nsIURILoader.IS_CONTENT_PREFERRED,
-                    new WindowContext());
+  uriloader.openURI(channel, true, new WindowContext());
 }
 
 

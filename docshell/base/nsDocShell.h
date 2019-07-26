@@ -812,7 +812,6 @@ protected:
     bool                       mAllowMedia;
     bool                       mAllowDNSPrefetch;
     bool                       mAllowWindowControl;
-    bool                       mAllowContentRetargeting;
     bool                       mCreatingDocument; 
     bool                       mUseErrorPages;
     bool                       mObserveErrorPages;
