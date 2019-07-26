@@ -537,10 +537,10 @@ TimeStamp::Shutdown()
 }
 
 TimeStamp
-TimeStamp::Now()
+TimeStamp::Now(bool aHighResolution)
 {
   
-  bool useQPC = sUseQPC;
+  bool useQPC = (aHighResolution && sUseQPC);
 
   
   ULONGLONG QPC = useQPC ? PerformanceCounter() : uint64_t(0);

@@ -212,7 +212,16 @@ public:
 
 
 
-  static TimeStamp Now();
+
+
+
+
+
+
+
+
+  static TimeStamp Now() { return Now(true); }
+  static TimeStamp NowLoRes() { return Now(false); }
   
 
 
@@ -297,6 +306,8 @@ private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;
 
   TimeStamp(TimeStampValue aValue) : mValue(aValue) {}
+
+  static TimeStamp Now(bool aHighResolution);
 
   
 
