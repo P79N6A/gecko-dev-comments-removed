@@ -120,6 +120,12 @@ public:
     DECODER_NO_PREMULTIPLY_ALPHA = 0x2,     
     DECODER_NO_COLORSPACE_CONVERSION = 0x4  
   };
+
+  enum DecodeStyle {
+      PROGRESSIVE, 
+      SEQUENTIAL 
+  };
+
   void SetDecodeFlags(uint32_t aFlags) { mDecodeFlags = aFlags; }
   uint32_t GetDecodeFlags() { return mDecodeFlags; }
 

@@ -82,8 +82,9 @@ METHODDEF(void) my_error_exit (j_common_ptr cinfo);
 #define MAX_JPEG_MARKER_LENGTH  (((uint32_t)1 << 16) - 1)
 
 
-nsJPEGDecoder::nsJPEGDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
+nsJPEGDecoder::nsJPEGDecoder(RasterImage& aImage, imgIDecoderObserver* aObserver, Decoder::DecodeStyle aDecodeStyle)
  : Decoder(aImage, aObserver)
+ , mDecodeStyle(aDecodeStyle)
 {
   mState = JPEG_HEADER;
   mReading = true;
@@ -367,7 +368,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
 
 
 
-    mInfo.buffered_image = jpeg_has_multiple_scans(&mInfo);
+    mInfo.buffered_image = mDecodeStyle == PROGRESSIVE && jpeg_has_multiple_scans(&mInfo);
 
     
     jpeg_calc_output_dimensions(&mInfo);
