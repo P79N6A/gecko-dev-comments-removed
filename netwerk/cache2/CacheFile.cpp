@@ -1690,18 +1690,18 @@ CacheFile::WriteMetadataIfNeededLocked(bool aFireAndForget)
     return;
   }
 
-  if (!aFireAndForget) {
-    
-    
-    CacheFileIOManager::UnscheduleMetadataWrite(this);
-  }
-
   if (NS_FAILED(mStatus))
     return;
 
   if (!IsDirty() || mOutput || mInputs.Length() || mChunks.Count() ||
       mWritingMetadata || mOpeningFile)
     return;
+
+  if (!aFireAndForget) {
+    
+    
+    CacheFileIOManager::UnscheduleMetadataWrite(this);
+  }
 
   LOG(("CacheFile::WriteMetadataIfNeededLocked() - Writing metadata [this=%p]",
        this));
