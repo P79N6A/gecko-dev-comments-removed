@@ -2327,16 +2327,45 @@ MStoreTypedArrayElementStatic::isOperandTruncated(size_t index) const
     return index == 1 && !isFloatArray();
 }
 
+bool
+MCompare::truncate()
+{
+    if (!isDoubleComparison())
+        return false;
+
+    
+    
+    if (!Range(lhs()).isInt32() || !Range(rhs()).isInt32())
+        return false;
+
+    compareType_ = Compare_Int32;
+    return true;
+}
+
+bool
+MCompare::isOperandTruncated(size_t index) const
+{
+    return compareType() == Compare_Int32;
+}
+
 
 
 static bool
 AllUsesTruncate(MInstruction *candidate)
 {
+    
+    
+    
+    bool needsConversion = !candidate->range() || !candidate->range()->isInt32();
+
     for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd(); use++) {
         if (!use->consumer()->isDefinition()) {
             
             
-            if (candidate->isUseRemoved())
+            
+            
+            
+            if (candidate->isUseRemoved() && needsConversion)
                 return false;
             continue;
         }
@@ -2348,9 +2377,40 @@ AllUsesTruncate(MInstruction *candidate)
     return true;
 }
 
+static bool
+CanTruncate(MInstruction *candidate)
+{
+    
+    
+    if (candidate->isCompare())
+        return true;
+
+    
+    
+    
+    
+    const Range *r = candidate->range();
+    bool canHaveRoundingErrors = !r || r->canHaveRoundingErrors();
+
+    
+    
+    if (candidate->isDiv() && candidate->toDiv()->specialization() == MIRType_Int32)
+        canHaveRoundingErrors = false;
+
+    if (canHaveRoundingErrors)
+        return false;
+
+    
+    return AllUsesTruncate(candidate);
+}
+
 static void
 RemoveTruncatesOnOutput(MInstruction *truncated)
 {
+    
+    if (truncated->isCompare())
+        return;
+
     JS_ASSERT(truncated->type() == MIRType_Int32);
     JS_ASSERT(Range(truncated).isInt32());
 
@@ -2370,12 +2430,19 @@ AdjustTruncatedInputs(TempAllocator &alloc, MInstruction *truncated)
     for (size_t i = 0, e = truncated->numOperands(); i < e; i++) {
         if (!truncated->isOperandTruncated(i))
             continue;
-        if (truncated->getOperand(i)->type() == MIRType_Int32)
+
+        MDefinition *input = truncated->getOperand(i);
+        if (input->type() == MIRType_Int32)
             continue;
 
-        MTruncateToInt32 *op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
-        block->insertBefore(truncated, op);
-        truncated->replaceOperand(i, op);
+        if (input->isToDouble() && input->getOperand(0)->type() == MIRType_Int32) {
+            JS_ASSERT(input->range()->isInt32());
+            truncated->replaceOperand(i, input->getOperand(0));
+        } else {
+            MTruncateToInt32 *op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
+            block->insertBefore(truncated, op);
+            truncated->replaceOperand(i, op);
+        }
     }
 
     if (truncated->isToDouble()) {
@@ -2421,23 +2488,7 @@ RangeAnalysis::truncate()
               default:;
             }
 
-            
-            
-            
-            
-            const Range *r = iter->range();
-            bool canHaveRoundingErrors = !r || r->canHaveRoundingErrors();
-
-            
-            
-            if (iter->isDiv() && iter->toDiv()->specialization() == MIRType_Int32)
-                canHaveRoundingErrors = false;
-
-            if (canHaveRoundingErrors)
-                continue;
-
-            
-            if (!AllUsesTruncate(*iter))
+            if (!CanTruncate(*iter))
                 continue;
 
             
