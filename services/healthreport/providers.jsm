@@ -1071,15 +1071,11 @@ PlacesProvider.prototype = Object.freeze({
   },
 });
 
-
-
-
-
-function SearchCountMeasurement() {
+function SearchCountMeasurement1() {
   Metrics.Measurement.call(this);
 }
 
-SearchCountMeasurement.prototype = Object.freeze({
+SearchCountMeasurement1.prototype = Object.freeze({
   __proto__: Metrics.Measurement.prototype,
 
   name: "counts",
@@ -1109,14 +1105,206 @@ SearchCountMeasurement.prototype = Object.freeze({
     "other.searchbar": DAILY_COUNTER_FIELD,
     "other.urlbar": DAILY_COUNTER_FIELD,
   },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+function SearchCountMeasurement2() {
+  this._fieldSpecs = null;
+  this._interestingEngines = null;   
+
+  Metrics.Measurement.call(this);
+}
+
+SearchCountMeasurement2.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "counts",
+  version: 2,
+
+  
+
+
+  getDefaultEngines: function () {
+    return Services.search.getDefaultEngines();
+  },
+
+  _initialize: function () {
+    
+    
+    
+    
+    
+    
+    this._fieldSpecs = {};
+    this._interestingEngines = {};
+
+    for (let source of this.SOURCES) {
+      this._fieldSpecs["other." + source] = DAILY_COUNTER_FIELD;
+    }
+
+    let engines = this.getDefaultEngines();
+    for (let engine of engines) {
+      let id = engine.identifier;
+      if (!id || (this.PROVIDERS.indexOf(id) == -1)) {
+        continue;
+      }
+
+      this._interestingEngines[engine.name] = id;
+      let fieldPrefix = id + ".";
+      for (let source of this.SOURCES) {
+        this._fieldSpecs[fieldPrefix + source] = DAILY_COUNTER_FIELD;
+      }
+    }
+  },
 
   
   
-  PARTNER_ENGINES: [
-    "amazon.com",
+  get fields() {
+    if (!this._fieldSpecs) {
+      this._initialize();
+    }
+    return this._fieldSpecs;
+  },
+
+  get interestingEngines() {
+    if (!this._fieldSpecs) {
+      this._initialize();
+    }
+    return this._interestingEngines;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  shouldIncludeField: function (name) {
+    return name.indexOf(".") != -1;
+  },
+
+  
+
+
+
+  fieldType: function (name) {
+    if (name in this.fields) {
+      return this.fields[name].type;
+    }
+
+    
+    return Metrics.Storage.FIELD_DAILY_COUNTER;
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PROVIDERS: [
+    "amazon-co-uk",
+    "amazon-de",
+    "amazon-en-GB",
+    "amazon-france",
+    "amazon-it",
+    "amazon-jp",
+    "amazondotcn",
+    "amazondotcom",
+    "amazondotcom-de",
+
+    "aol-en-GB",
+    "aol-web-search",
+
     "bing",
+
+    "eBay",
+    "eBay-de",
+    "eBay-en-GB",
+    "eBay-es",
+    "eBay-fi",
+    "eBay-france",
+    "eBay-hu",
+    "eBay-in",
+    "eBay-it",
+
     "google",
+    "google-jp",
+    "google-ku",
+    "google-maps-zh-TW",
+
+    "mailru",
+
+    "mercadolibre-ar",
+    "mercadolibre-cl",
+    "mercadolibre-mx",
+
+    "seznam-cz",
+
+    "twitter",
+    "twitter-de",
+    "twitter-ja",
+
     "yahoo",
+    "yahoo-NO",
+    "yahoo-answer-zh-TW",
+    "yahoo-ar",
+    "yahoo-bid-zh-TW",
+    "yahoo-br",
+    "yahoo-ch",
+    "yahoo-cl",
+    "yahoo-de",
+    "yahoo-en-GB",
+    "yahoo-es",
+    "yahoo-fi",
+    "yahoo-france",
+    "yahoo-fy-NL",
+    "yahoo-id",
+    "yahoo-in",
+    "yahoo-it",
+    "yahoo-jp",
+    "yahoo-jp-auctions",
+    "yahoo-mx",
+    "yahoo-sv-SE",
+    "yahoo-zh-TW",
+
+    "yandex",
+    "yandex-ru",
+    "yandex-slovari",
+    "yandex-tr",
+    "yandex.by",
+    "yandex.ru-be",
   ],
 
   SOURCES: [
@@ -1135,7 +1323,10 @@ this.SearchesProvider.prototype = Object.freeze({
   __proto__: Metrics.Provider.prototype,
 
   name: "org.mozilla.searches",
-  measurementTypes: [SearchCountMeasurement],
+  measurementTypes: [
+    SearchCountMeasurement1,
+    SearchCountMeasurement2,
+  ],
 
   
 
@@ -1151,19 +1342,16 @@ this.SearchesProvider.prototype = Object.freeze({
 
 
   recordSearch: function (engine, source) {
-    let m = this.getMeasurement("counts", 1);
+    let m = this.getMeasurement("counts", 2);
 
     if (m.SOURCES.indexOf(source) == -1) {
       throw new Error("Unknown source for search: " + source);
     }
 
-    let normalizedEngine = engine.toLowerCase();
-    if (m.PARTNER_ENGINES.indexOf(normalizedEngine) == -1) {
-      normalizedEngine = "other";
-    }
-
+    let id = m.interestingEngines[engine] || "other";
+    let field = id + "." + source;
     return this.enqueueStorageOperation(function recordSearch() {
-      return m.incrementDailyCounter(normalizedEngine + "." + source);
+      return m.incrementDailyCounter(field);
     });
   },
 });

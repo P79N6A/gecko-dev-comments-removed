@@ -331,12 +331,30 @@ Measurement.prototype = Object.freeze({
     return this.storage.deleteLastTextFromFieldID(this.fieldID(field));
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  shouldIncludeField: function (field) {
+    return field in this._fields;
+  },
+
   _serializeJSONSingular: function (data) {
     let result = {"_v": this.version};
 
     for (let [field, data] of data) {
       
-      if (!(field in this._fields)) {
+      if (!this.shouldIncludeField(field)) {
         continue;
       }
 
@@ -367,7 +385,7 @@ Measurement.prototype = Object.freeze({
     let result = {"_v": this.version};
 
     for (let [field, data] of data) {
-      if (!(field in this._fields)) {
+      if (!this.shouldIncludeField(field)) {
         continue;
       }
 
