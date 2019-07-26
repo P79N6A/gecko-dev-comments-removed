@@ -1450,6 +1450,13 @@ NativeKey::GetFollowingCharMessage(MSG& aCharMsg) const
     
     
     
+    if (removedMsg.message == nextKeyMsg.message && !removedMsg.wParam) {
+      return false;
+    }
+
+    
+    
+    
     if (!MayBeSameCharMessage(removedMsg, nextKeyMsg)) {
 #ifdef MOZ_CRASHREPORTER
       nsPrintfCString info("\nPeekMessage() removed unexpcted char message! "
