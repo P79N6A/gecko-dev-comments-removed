@@ -18,5 +18,5 @@ for (var [k, v] of map) {
     }
 }
 assertEq(log, 'ABCDEFGHIJKLMNOPQRST');
-assertEq(map.size(), 1);  
+assertEq(map.size, 1);  
 assertEq(map.get('T'), 19);

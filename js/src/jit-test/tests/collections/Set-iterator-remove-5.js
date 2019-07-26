@@ -18,5 +18,5 @@ for (var x of set) {
     }
 }
 assertEq(log, str);
-assertEq(set.size(), 1);  
+assertEq(set.size, 1);  
 assertEq(set.has('Z'), true);
