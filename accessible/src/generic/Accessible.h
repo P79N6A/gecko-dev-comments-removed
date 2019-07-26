@@ -13,9 +13,9 @@
 
 #include "nsIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
-#include "nsIAccessibleValue.h"
 #include "nsIAccessibleStates.h"
 #include "xpcAccessibleSelectable.h"
+#include "xpcAccessibleValue.h"
 
 #include "nsIContent.h"
 #include "nsString.h"
@@ -105,7 +105,7 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
 class Accessible : public nsIAccessible,
                    public nsIAccessibleHyperLink,
                    public xpcAccessibleSelectable,
-                   public nsIAccessibleValue
+                   public xpcAccessibleValue
 {
 public:
   Accessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -116,7 +116,6 @@ public:
 
   NS_DECL_NSIACCESSIBLE
   NS_DECL_NSIACCESSIBLEHYPERLINK
-  NS_DECL_NSIACCESSIBLEVALUE
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_IID)
 
   
@@ -691,6 +690,15 @@ public:
   
   
 
+  virtual double MaxValue() const;
+  virtual double MinValue() const;
+  virtual double CurValue() const;
+  virtual double Step() const;
+  virtual bool SetCurValue(double aValue);
+
+  
+  
+
   
 
 
@@ -916,9 +924,7 @@ protected:
 
 
 
-
-
-  nsresult GetAttrValue(nsIAtom *aAriaProperty, double *aValue);
+  double AttrNumericValue(nsIAtom* aARIAAttr) const;
 
   
 
