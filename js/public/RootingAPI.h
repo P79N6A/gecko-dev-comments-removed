@@ -408,10 +408,6 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleBase<T>
         ptr = handle.address();
     }
 
-    Handle(const Heap<T> &heapPtr) {
-        ptr = heapPtr.address();
-    }
-
     
 
 
