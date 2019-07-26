@@ -641,7 +641,7 @@ function HandleCreate(obj, ...path) {
   var handle = NewTypedHandle(this);
 
   if (obj !== undefined)
-    HandleMoveInternal(handle, obj, path)
+    HandleMoveInternal(handle, obj, path);
 
   return handle;
 }
@@ -736,9 +736,6 @@ function X4ToSource() {
 
 
 
-
-
-
 function ArrayShorthand(...dims) {
   if (!IsObject(this) || !ObjectIsTypeObject(this))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS,
@@ -754,6 +751,9 @@ function ArrayShorthand(...dims) {
     accum = new T.ArrayType(accum).dimension(dims[i]);
   return accum;
 }
+
+
+
 
 
 function TypeOfTypedDatum(obj) {
@@ -787,4 +787,601 @@ function ObjectIsAttached(obj) {
   assert(ObjectIsTypedDatum(obj),
          "ObjectIsAttached() invoked on invalid obj");
   return DATUM_OWNER(obj) != null;
+}
+
+
+
+
+
+function TypedObjectArrayTypeBuild(a,b,c) {
+  
+  
+
+  if (!IsObject(this) || !ObjectIsTypeObject(this))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "type object");
+  var kind = REPR_KIND(TYPE_TYPE_REPR(this));
+  switch (kind) {
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+    if (typeof a === "function") 
+      return BuildTypedSeqImpl(this, this.length, 1, a);
+    else if (typeof a === "number" && typeof b === "function")
+      return BuildTypedSeqImpl(this, this.length, a, b);
+    else if (typeof a === "number")
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "2", "function");
+    else
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "1", "function");
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    var len = a;
+    if (typeof b === "function")
+      return BuildTypedSeqImpl(this, len, 1, b);
+    else if (typeof b === "number" && typeof c === "function")
+      return BuildTypedSeqImpl(this, len, b, c);
+    else if (typeof b === "number")
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "3", "function");
+    else
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "2", "function");
+  default:
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "type object");
+  }
+}
+
+
+function TypedObjectArrayTypeFrom(a, b, c) {
+  
+
+  if (!IsObject(this) || !ObjectIsTypeObject(this))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "type object");
+
+  var untypedInput = !IsObject(a) || !ObjectIsTypedDatum(a);
+
+  
+  
+  
+  
+
+
+  if (untypedInput) {
+    var explicitDepth = (b === 1);
+    if (explicitDepth && IsCallable(c))
+      return MapUntypedSeqImpl(a, this, c);
+    else if (IsCallable(b))
+      return MapUntypedSeqImpl(a, this, b);
+    else
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "2", "function");
+  } else {
+    var explicitDepth = (typeof b === "number");
+    if (explicitDepth && IsCallable(c))
+      return MapTypedSeqImpl(a, b, this, c);
+    else if (IsCallable(b))
+      return MapTypedSeqImpl(a, 1, this, b);
+    else if (explicitDepth)
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "3", "function");
+    else
+      return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "2", "number");
+  }
+}
+
+
+function TypedArrayMap(a, b) {
+  if (!IsObject(this) || !ObjectIsTypedDatum(this))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+  var thisType = DATUM_TYPE_OBJ(this);
+  if (!TypeObjectIsArrayType(thisType))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+
+  
+  if (typeof a === "number" && typeof b === "function")
+    return MapTypedSeqImpl(this, a, thisType, b);
+  else if (typeof a === "function")
+    return MapTypedSeqImpl(this, 1, thisType, a);
+  else if (typeof a === "number")
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "3", "function");
+  else
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "2", "function");
+}
+
+
+function TypedArrayReduce(a, b) {
+  
+  if (!IsObject(this) || !ObjectIsTypedDatum(this))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+  var thisType = DATUM_TYPE_OBJ(this);
+  if (!TypeObjectIsArrayType(thisType))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+
+  if (a !== undefined && typeof a !== "function")
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "1", "function");
+
+  var outputType = thisType.elementType;
+  return ReduceTypedSeqImpl(this, outputType, a, b);
+}
+
+
+function TypedArrayScatter(a, b, c, d) {
+  
+  if (!IsObject(this) || !ObjectIsTypedDatum(this))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+  var thisType = DATUM_TYPE_OBJ(this);
+  if (!TypeObjectIsArrayType(thisType))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+
+  if (!IsObject(a) || !ObjectIsTypeObject(a) || !TypeObjectIsSizedArrayType(a))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "1", "sized array type");
+
+  if (d !== undefined && typeof d !== "function")
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "4", "function");
+
+  return ScatterTypedSeqImpl(this, a, b, c, d);
+}
+
+
+function TypedArrayFilter(func) {
+  
+  if (!IsObject(this) || !ObjectIsTypedDatum(this))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+  var thisType = DATUM_TYPE_OBJ(this);
+  if (!TypeObjectIsArrayType(thisType))
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+
+  if (typeof func !== "function")
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "1", "function");
+
+  return FilterTypedSeqImpl(this, func);
+}
+
+
+
+
+function TypedObjectArrayTypeBuildPar(a,b,c) {
+  return callFunction(TypedObjectArrayTypeBuild, this, a, b, c);
+}
+
+
+function TypedObjectArrayTypeFromPar(a,b,c) {
+  return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
+}
+
+
+function TypedArrayMapPar(a, b) {
+  return callFunction(TypedArrayMap, this, a, b);
+}
+
+
+function TypedArrayReducePar(a, b) {
+  return callFunction(TypedArrayReduce, this, a, b);
+}
+
+
+function TypedArrayScatterPar(a, b, c, d) {
+  return callFunction(TypedArrayScatter, this, a, b, c, d);
+}
+
+
+function TypedArrayFilterPar(func) {
+  return callFunction(TypedArrayFilter, this, func);
+}
+
+
+function NUM_BYTES(bits) {
+  return (bits + 7) >> 3;
+}
+function SET_BIT(data, index) {
+  var word = index >> 3;
+  var mask = 1 << (index & 0x7);
+  data[word] |= mask;
+}
+function GET_BIT(data, index) {
+  var word = index >> 3;
+  var mask = 1 << (index & 0x7);
+  return (data[word] & mask) != 0;
+}
+
+function TypeObjectIsArrayType(t) {
+  assert(IsObject(t) && ObjectIsTypeObject(t), "TypeObjectIsArrayType called on non-type-object");
+
+  var kind = REPR_KIND(TYPE_TYPE_REPR(t));
+  switch (kind) {
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+    return true;
+  case JS_TYPEREPR_SCALAR_KIND:
+  case JS_TYPEREPR_REFERENCE_KIND:
+  case JS_TYPEREPR_X4_KIND:
+  case JS_TYPEREPR_STRUCT_KIND:
+    return false;
+  default:
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, 1, "unknown kind of typed object");
+  }
+}
+
+function TypeObjectIsSizedArrayType(t) {
+  assert(IsObject(t) && ObjectIsTypeObject(t), "TypeObjectIsSizedArrayType called on non-type-object");
+
+  var kind = REPR_KIND(TYPE_TYPE_REPR(t));
+  switch (kind) {
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+    return true;
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+  case JS_TYPEREPR_SCALAR_KIND:
+  case JS_TYPEREPR_REFERENCE_KIND:
+  case JS_TYPEREPR_X4_KIND:
+  case JS_TYPEREPR_STRUCT_KIND:
+    return false;
+  default:
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, 1, "unknown kind of typed object");
+  }
+}
+
+function TypeObjectIsSimpleType(t) {
+  assert(IsObject(t) && ObjectIsTypeObject(t), "TypeObjectIsSimpleType called on non-type-object");
+
+  var kind = REPR_KIND(TYPE_TYPE_REPR(t));
+  switch (kind) {
+  case JS_TYPEREPR_SCALAR_KIND:
+  case JS_TYPEREPR_REFERENCE_KIND:
+  case JS_TYPEREPR_X4_KIND:
+    return true;
+  case JS_TYPEREPR_SIZED_ARRAY_KIND:
+  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
+  case JS_TYPEREPR_STRUCT_KIND:
+    return false;
+  default:
+    return ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, 1, "unknown kind of typed object");
+  }
+}
+
+
+function BuildTypedSeqImpl(arrayType, len, depth, func) {
+  assert(IsObject(arrayType) && ObjectIsTypeObject(arrayType), "Build called on non-type-object");
+
+  if (depth <= 0 || TO_INT32(depth) !== depth)
+    
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "depth", "positive int");
+
+  
+  
+  
+  
+  
+  var [iterationSpace, grainType, totalLength] =
+    ComputeIterationSpace(arrayType, depth, len);
+
+  
+  var result = arrayType.variable ? new arrayType(len) : new arrayType();
+
+  var indices = NewDenseArray(depth);
+  for (var i = 0; i < depth; i++) {
+    indices[i] = 0;
+  }
+
+  var handle = callFunction(HandleCreate, grainType);
+  var offset = 0;
+  for (i = 0; i < totalLength; i++) {
+    
+    AttachHandle(handle, result, offset);
+
+    
+    callFunction(std_Array_push, indices, handle);
+    var r = callFunction(std_Function_apply, func, void 0, indices);
+    callFunction(std_Array_pop, indices);
+
+    if (r !== undefined) {
+      
+      AttachHandle(handle, result, offset); 
+      HandleSet(handle, r);                 
+    }
+    
+    offset += REPR_SIZE(TYPE_TYPE_REPR(grainType));
+    IncrementIterationSpace(indices, iterationSpace);
+  }
+
+  return result;
+}
+
+function ComputeIterationSpace(arrayType, depth, len) {
+  assert(IsObject(arrayType) && ObjectIsTypeObject(arrayType), "ComputeIterationSpace called on non-type-object");
+  assert(TypeObjectIsArrayType(arrayType), "ComputeIterationSpace called on non-array-type");
+  assert(depth > 0, "ComputeIterationSpace called on non-positive depth");
+  var iterationSpace = NewDenseArray(depth);
+  iterationSpace[0] = len;
+  var totalLength = len;
+  var grainType = arrayType.elementType;
+
+  for (var i = 1; i < depth; i++) {
+    if (TypeObjectIsArrayType(grainType)) {
+      var grainLen = grainType.length;
+      iterationSpace[i] = grainLen;
+      totalLength *= grainLen;
+      grainType = grainType.elementType;
+    } else {
+      
+      ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+    }
+  }
+  return [iterationSpace, grainType, totalLength];
+}
+
+function IncrementIterationSpace(indices, iterationSpace) {
+  
+  
+  
+  
+  
+  
+
+  assert(indices.length === iterationSpace.length,
+         "indices dimension must equal iterationSpace dimension.");
+  var n = indices.length - 1;
+  while (true) {
+    indices[n] += 1;
+    if (indices[n] < iterationSpace[n])
+      return;
+
+    assert(indices[n] === iterationSpace[n],
+         "Components of indices must match those of iterationSpace.");
+    indices[n] = 0;
+    if (n == 0)
+      return;
+
+    n -= 1;
+  }
+}
+
+
+function MapUntypedSeqImpl(inArray, outputType, maybeFunc) {
+  assert(IsObject(outputType), "1. Map/From called on non-object outputType");
+  assert(ObjectIsTypeObject(outputType), "1. Map/From called on non-type-object outputType");
+  inArray = ToObject(inArray);
+  assert(TypeObjectIsArrayType(outputType), "Map/From called on non array-type outputType");
+
+  if (!IsCallable(maybeFunc))
+    ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, maybeFunc));
+  var func = maybeFunc;
+
+  
+  
+
+  var outLength = outputType.variable ? inArray.length : outputType.length;
+  var outGrainType = outputType.elementType;
+
+  
+  var result = outputType.variable ? new outputType(inArray.length) : new outputType();
+
+  var outHandle = callFunction(HandleCreate, outGrainType);
+  var outUnitSize = REPR_SIZE(TYPE_TYPE_REPR(outGrainType));
+
+  
+  
+
+  var offset = 0;
+  for (var i = 0; i < outLength; i++) {
+    
+
+    
+    AttachHandle(outHandle, result, offset);
+
+    if (i in inArray) { 
+
+      
+      var element = inArray[i];
+
+      
+      var r = func(element, i, inArray, outHandle);
+
+      if (r !== undefined) {
+        AttachHandle(outHandle, result, offset); 
+        HandleSet(outHandle, r); 
+      }
+    }
+
+    
+    offset += outUnitSize;
+  }
+
+  return result;
+}
+
+
+function MapTypedSeqImpl(inArray, depth, outputType, func) {
+  assert(IsObject(outputType) && ObjectIsTypeObject(outputType), "2. Map/From called on non-type-object outputType");
+  assert(IsObject(inArray) && ObjectIsTypedDatum(inArray), "Map/From called on non-object or untyped input array.");
+  assert(TypeObjectIsArrayType(outputType), "Map/From called on non array-type outputType");
+
+  if (depth <= 0 || TO_INT32(depth) !== depth)
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "depth", "positive int");
+
+  
+  var inputType = TypeOfTypedDatum(inArray);
+  var [inIterationSpace, inGrainType, _] =
+    ComputeIterationSpace(inputType, depth, inArray.length);
+  if (!IsObject(inGrainType) || !ObjectIsTypeObject(inGrainType))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, 1, "type object");
+  var [iterationSpace, outGrainType, totalLength] =
+    ComputeIterationSpace(outputType, depth, outputType.variable ? inArray.length : outputType.length);
+  for (var i = 0; i < depth; i++)
+    if (inIterationSpace[i] !== iterationSpace[i])
+      
+      ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+
+  
+  var result = outputType.variable ? new outputType(inArray.length) : new outputType();
+
+  var inHandle = callFunction(HandleCreate, inGrainType);
+  var outHandle = callFunction(HandleCreate, outGrainType);
+  var inUnitSize = REPR_SIZE(TYPE_TYPE_REPR(inGrainType));
+  var outUnitSize = REPR_SIZE(TYPE_TYPE_REPR(outGrainType));
+
+  var inGrainTypeIsSimple = TypeObjectIsSimpleType(inGrainType);
+
+  
+
+  function DoMapTypedSeqDepth1() {
+    var inOffset = 0;
+    var outOffset = 0;
+
+    for (var i = 0; i < totalLength; i++) {
+      
+
+      
+      AttachHandle(inHandle, inArray, inOffset);
+      AttachHandle(outHandle, result, outOffset);
+
+      
+      var element = (inGrainTypeIsSimple ? HandleGet(inHandle) : inHandle);
+
+      
+      var r = func(element, i, inArray, outHandle);
+
+      if (r !== undefined) {
+        AttachHandle(outHandle, result, outOffset); 
+        HandleSet(outHandle, r); 
+      }
+
+      
+      inOffset += inUnitSize;
+      outOffset += outUnitSize;
+    }
+
+    return result;
+  }
+
+  function DoMapTypedSeqDepthN() {
+    var indices = new Uint32Array(depth);
+
+    var inOffset = 0;
+    var outOffset = 0;
+    for (var i = 0; i < totalLength; i++) {
+      
+      AttachHandle(inHandle, inArray, inOffset);
+      AttachHandle(outHandle, result, outOffset);
+
+      
+      var element = (inGrainTypeIsSimple ? HandleGet(inHandle) : inHandle);
+
+      
+      var args = [element];
+      callFunction(std_Function_apply, std_Array_push, args, indices);
+      callFunction(std_Array_push, args, inArray, outHandle);
+      var r = callFunction(std_Function_apply, func, void 0, args);
+
+      if (r !== undefined) {
+        AttachHandle(outHandle, result, outOffset); 
+        HandleSet(outHandle, r);                    
+      }
+
+      
+      inOffset += inUnitSize;
+      outOffset += outUnitSize;
+      IncrementIterationSpace(indices, iterationSpace);
+    }
+
+    return result;
+  }
+
+  if  (depth == 1) {
+    return DoMapTypedSeqDepth1();
+  } else {
+    return DoMapTypedSeqDepthN();
+  }
+
+}
+
+function ReduceTypedSeqImpl(array, outputType, func, initial) {
+  assert(IsObject(array) && ObjectIsTypedDatum(array), "Reduce called on non-object or untyped input array.");
+  assert(IsObject(outputType) && ObjectIsTypeObject(outputType), "Reduce called on non-type-object outputType");
+
+  var start, value;
+
+  if (initial === undefined && array.length < 1)
+    
+    ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
+
+  
+  
+
+  if (TypeObjectIsSimpleType(outputType)) {
+    if (initial === undefined) {
+      start = 1;
+      value = array[0];
+    } else {
+      start = 0;
+      value = outputType(initial);
+    }
+
+    for (var i = start; i < array.length; i++)
+      value = outputType(func(value, array[i]));
+
+  } else {
+    if (initial === undefined) {
+      start = 1;
+      value = new outputType(array[0]);
+    } else {
+      start = 0;
+      value = initial;
+    }
+
+    for (var i = start; i < array.length; i++)
+      value = func(value, array[i]);
+  }
+
+  return value;
+}
+
+function ScatterTypedSeqImpl(array, outputType, indices, defaultValue, conflictFunc) {
+  assert(IsObject(array) && ObjectIsTypedDatum(array), "Scatter called on non-object or untyped input array.");
+  assert(IsObject(outputType) && ObjectIsTypeObject(outputType), "Scatter called on non-type-object outputType");
+  assert(TypeObjectIsSizedArrayType(outputType), "Scatter called on non-sized array type");
+  assert(conflictFunc === undefined || typeof conflictFunc === "function", "Scatter called with invalid conflictFunc");
+
+  var result = new outputType();
+  var bitvec = new Uint8Array(result.length);
+  var elemType = outputType.elementType;
+  var i, j;
+  if (defaultValue !== elemType(undefined)) {
+    for (i = 0; i < result.length; i++) {
+      result[i] = defaultValue;
+    }
+  }
+
+  for (i = 0; i < indices.length; i++) {
+    j = indices[i];
+    if (!GET_BIT(bitvec, j)) {
+      result[j] = array[i];
+      SET_BIT(bitvec, j);
+    } else if (conflictFunc === undefined) {
+      ThrowError(JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
+    } else {
+      result[j] = conflictFunc(result[j], elemType(array[i]));
+    }
+  }
+  return result;
+}
+
+function FilterTypedSeqImpl(array, func) {
+  assert(IsObject(array) && ObjectIsTypedDatum(array), "Filter called on non-object or untyped input array.");
+  assert(typeof func === "function", "Filter called with non-function predicate");
+
+  var arrayType = TypeOfTypedDatum(array);
+  if (!TypeObjectIsArrayType(arrayType))
+    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_ARGS, "this", "typed array");
+
+  var elementType = arrayType.elementType;
+  var flags = new Uint8Array(NUM_BYTES(array.length));
+  var handle = callFunction(HandleCreate, elementType);
+  var count = 0;
+  for (var i = 0; i < array.length; i++) {
+    HandleMove(handle, array, i);
+    if (func(HandleGet(handle), i, array)) {
+      SET_BIT(flags, i);
+      count++;
+    }
+  }
+
+  var resultType = (arrayType.variable ? arrayType : arrayType.unsized);
+  var result = new resultType(count);
+  for (var i = 0, j = 0; i < array.length; i++) {
+    if (GET_BIT(flags, i))
+      result[j++] = array[i];
+  }
+  return result;
 }
