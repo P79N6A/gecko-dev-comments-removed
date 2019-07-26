@@ -10,6 +10,7 @@
 #include "GLContext.h"
 #include "LayerManagerOGLProgram.h"
 #include "mozilla/layers/Effects.h"
+#include "nsTArray.h"
 
 #include "mozilla/TimeStamp.h"
 
@@ -328,7 +329,7 @@ private:
   nsAutoPtr<FPSState> mFPS;
   
   
-  GLuint mTextures[3];
+  nsTArray<GLuint> mTextures;
   static bool sDrawFPS;
   static bool sFrameCounter;
 };
