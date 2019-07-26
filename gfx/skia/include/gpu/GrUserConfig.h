@@ -64,6 +64,12 @@
 #define GR_TEXT_SCALAR_IS_FIXED     0
 #define GR_TEXT_SCALAR_IS_FLOAT     1
 
+
+
+
+
+#define GR_GL_PER_GL_FUNC_CALLBACK  1
+
 #endif
 
 
