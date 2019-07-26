@@ -1280,7 +1280,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         
         
         
-        script_ = callee_->getExistingScript();
+        script_ = callee_->existingScript();
 
         pc_ = script_->code + si_.pcOffset();
     }

@@ -240,7 +240,7 @@ class JSFunction : public JSObject
         return u.i.s.script_;
     }
 
-    inline JSScript *getExistingScript();
+    inline JSScript *existingScript();
 
     JSScript *nonLazyScript() const {
         JS_ASSERT(hasScript());
