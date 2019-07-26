@@ -525,8 +525,6 @@ NS_INTERFACE_MAP_END
 
 
 uint32_t CanvasRenderingContext2D::sNumLivingContexts = 0;
-uint8_t (*CanvasRenderingContext2D::sUnpremultiplyTable)[256] = nullptr;
-uint8_t (*CanvasRenderingContext2D::sPremultiplyTable)[256] = nullptr;
 DrawTarget* CanvasRenderingContext2D::sErrorTarget = nullptr;
 
 
@@ -551,10 +549,6 @@ CanvasRenderingContext2D::~CanvasRenderingContext2D()
   }
   sNumLivingContexts--;
   if (!sNumLivingContexts) {
-    delete[] sUnpremultiplyTable;
-    delete[] sPremultiplyTable;
-    sUnpremultiplyTable = nullptr;
-    sPremultiplyTable = nullptr;
     NS_IF_RELEASE(sErrorTarget);
   }
 }
@@ -3325,33 +3319,6 @@ CanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* elem,
 
 
 
-void
-CanvasRenderingContext2D::EnsureUnpremultiplyTable() {
-  if (sUnpremultiplyTable)
-    return;
-
-  
-  sUnpremultiplyTable = new uint8_t[256][256];
-
-  
-  
-  
-  
-  
-
-  
-  for (uint32_t c = 0; c <= 255; c++) {
-    sUnpremultiplyTable[0][c] = c;
-  }
-
-  for (int a = 1; a <= 255; a++) {
-    for (int c = 0; c <= 255; c++) {
-      sUnpremultiplyTable[a][c] = (uint8_t)((c * 255) / a);
-    }
-  }
-}
-
-
 already_AddRefed<ImageData>
 CanvasRenderingContext2D::GetImageData(JSContext* aCx, double aSx,
                                        double aSy, double aSw,
@@ -3485,9 +3452,6 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
   }
 
   
-  EnsureUnpremultiplyTable();
-
-  
   
   
   
@@ -3508,9 +3472,9 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
       uint8_t b = *src++;
 #endif
       
-      *dst++ = sUnpremultiplyTable[a][r];
-      *dst++ = sUnpremultiplyTable[a][g];
-      *dst++ = sUnpremultiplyTable[a][b];
+      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + r];
+      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + g];
+      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + b];
       *dst++ = a;
     }
     src += srcStride - (dstWriteRect.width * 4);
@@ -3519,25 +3483,6 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
 
   *aRetval = darray;
   return NS_OK;
-}
-
-void
-CanvasRenderingContext2D::EnsurePremultiplyTable() {
-  if (sPremultiplyTable)
-    return;
-
-  
-  sPremultiplyTable = new uint8_t[256][256];
-
-  
-  
-  
-
-  for (int a = 0; a <= 255; a++) {
-    for (int c = 0; c <= 255; c++) {
-      sPremultiplyTable[a][c] = (a * c + 254) / 255;
-    }
-  }
 }
 
 void
@@ -3662,9 +3607,6 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w
     return NS_ERROR_FAILURE;
   }
 
-  
-  EnsurePremultiplyTable();
-
   uint8_t *src = aData;
   uint8_t *dst = imgsurf->Data();
 
@@ -3677,15 +3619,15 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w
 
       
 #ifdef IS_LITTLE_ENDIAN
-      *dst++ = sPremultiplyTable[a][b];
-      *dst++ = sPremultiplyTable[a][g];
-      *dst++ = sPremultiplyTable[a][r];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + b];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + g];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + r];
       *dst++ = a;
 #else
       *dst++ = a;
-      *dst++ = sPremultiplyTable[a][r];
-      *dst++ = sPremultiplyTable[a][g];
-      *dst++ = sPremultiplyTable[a][b];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + r];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + g];
+      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + b];
 #endif
     }
   }
