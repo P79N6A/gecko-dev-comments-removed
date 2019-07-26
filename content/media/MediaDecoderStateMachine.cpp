@@ -961,8 +961,7 @@ static void
 StartAudioStreamPlaybackIfNeeded(AudioStream* aStream)
 {
   
-  if (!aStream->IsStarted() &&
-      static_cast<double>(aStream->GetWritten()) / aStream->GetRate() >=
+  if (static_cast<double>(aStream->GetWritten()) / aStream->GetRate() >=
       static_cast<double>(AUDIOSTREAM_MIN_WRITE_BEFORE_START_USECS) / USECS_PER_S) {
     aStream->Start();
   }
@@ -1128,9 +1127,7 @@ void MediaDecoderStateMachine::AudioLoop()
     {
       
       
-      if (!mAudioStream->IsStarted()) {
-        mAudioStream->Start();
-      }
+      mAudioStream->Start();
       
       
       bool seeking = false;

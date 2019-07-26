@@ -133,10 +133,7 @@ public:
   virtual void Drain() = 0;
 
   
-  virtual nsresult Start() = 0;
-
-  
-  virtual bool IsStarted() = 0;
+  virtual void Start() = 0;
 
   
   
