@@ -2795,24 +2795,24 @@ WatchdogMain(void *arg)
     while (gWatchdogThread) {
          int64_t now = PRMJ_Now();
          if (gWatchdogHasTimeout && !IsBefore(now, gWatchdogTimeout)) {
-            
+             
 
 
 
-            gWatchdogHasTimeout = false;
-            PR_Unlock(gWatchdogLock);
-            CancelExecution(rt);
-            PR_Lock(gWatchdogLock);
+             gWatchdogHasTimeout = false;
+             PR_Unlock(gWatchdogLock);
+             CancelExecution(rt);
+             PR_Lock(gWatchdogLock);
 
-            
-            PR_NotifyAllCondVar(gSleepWakeup);
+             
+             PR_NotifyAllCondVar(gSleepWakeup);
         } else {
-            int64_t sleepDuration = gWatchdogHasTimeout
-                                    ? gWatchdogTimeout - now
-                                    : PR_INTERVAL_NO_TIMEOUT;
-            mozilla::DebugOnly<PRStatus> status =
-                PR_WaitCondVar(gWatchdogWakeup, sleepDuration);
-            JS_ASSERT(status == PR_SUCCESS);
+             uint64_t sleepDuration = PR_INTERVAL_NO_TIMEOUT;
+             if (gWatchdogHasTimeout)
+                 sleepDuration = (gWatchdogTimeout - now) / PRMJ_USEC_PER_SEC * PR_TicksPerSecond();
+             mozilla::DebugOnly<PRStatus> status =
+               PR_WaitCondVar(gWatchdogWakeup, sleepDuration);
+             JS_ASSERT(status == PR_SUCCESS);
         }
     }
     PR_Unlock(gWatchdogLock);
