@@ -141,7 +141,7 @@ EmitEnterStubFrame(MacroAssembler &masm, Register)
 }
 
 inline void
-EmitLeaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon = false)
+EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 {
     
     
@@ -154,11 +154,7 @@ EmitLeaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon = false)
     } else {
         masm.mov(BaselineFrameReg, BaselineStackReg);
     }
-}
 
-inline void
-EmitLeaveStubFrameCommonTail(MacroAssembler &masm)
-{
     masm.pop(BaselineFrameReg);
     masm.pop(BaselineStubReg);
 
@@ -168,13 +164,6 @@ EmitLeaveStubFrameCommonTail(MacroAssembler &masm)
     
     
     masm.storePtr(BaselineTailCallReg, Address(BaselineStackReg, 0));
-}
-
-inline void
-EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
-{
-    EmitLeaveStubFrameHead(masm, calledIntoIon);
-    EmitLeaveStubFrameCommonTail(masm);
 }
 
 inline void

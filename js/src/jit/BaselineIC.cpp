@@ -671,20 +671,6 @@ ICStubCompiler::leaveStubFrame(MacroAssembler &masm, bool calledIntoIon)
 }
 
 void
-ICStubCompiler::leaveStubFrameHead(MacroAssembler &masm, bool calledIntoIon)
-{
-    JS_ASSERT(entersStubFrame_);
-    EmitLeaveStubFrameHead(masm, calledIntoIon);
-}
-
-void
-ICStubCompiler::leaveStubFrameCommonTail(MacroAssembler &masm)
-{
-    JS_ASSERT(entersStubFrame_);
-    EmitLeaveStubFrameCommonTail(masm);
-}
-
-void
 ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, Label *skip)
 {
     
@@ -6501,25 +6487,15 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
-    
-    
+    returnOffset_ = masm.currentOffset();
+
     
     
 #ifdef DEBUG
     entersStubFrame_ = true;
 #endif
 
-    Label leaveStubCommon;
-
-    returnFromStubOffset_ = masm.currentOffset();
-    leaveStubFrameHead(masm, false);
-    masm.jump(&leaveStubCommon);
-
-    returnFromIonOffset_ = masm.currentOffset();
-    leaveStubFrameHead(masm, true);
-
-    masm.bind(&leaveStubCommon);
-    leaveStubFrameCommonTail(masm);
+    leaveStubFrame(masm, true);
 
     
     
@@ -6534,16 +6510,9 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICGetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    JitCompartment *comp = cx->compartment()->jitCompartment();
-
-    CodeOffsetLabel fromIon(returnFromIonOffset_);
-    fromIon.fixup(&masm);
-    comp->initBaselineGetPropReturnFromIonAddr(code->raw() + fromIon.offset());
-
-    CodeOffsetLabel fromVM(returnFromStubOffset_);
-    fromVM.fixup(&masm);
-    comp->initBaselineGetPropReturnFromStubAddr(code->raw() + fromVM.offset());
-
+    CodeOffsetLabel offset(returnOffset_);
+    offset.fixup(&masm);
+    cx->compartment()->jitCompartment()->initBaselineGetPropReturnAddr(code->raw() + offset.offset());
     return true;
 }
 
@@ -7446,25 +7415,15 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
-    
-    
+    returnOffset_ = masm.currentOffset();
+
     
     
 #ifdef DEBUG
     entersStubFrame_ = true;
 #endif
 
-    Label leaveStubCommon;
-
-    returnFromStubOffset_ = masm.currentOffset();
-    leaveStubFrameHead(masm, false);
-    masm.jump(&leaveStubCommon);
-
-    returnFromIonOffset_ = masm.currentOffset();
-    leaveStubFrameHead(masm, true);
-
-    masm.bind(&leaveStubCommon);
-    leaveStubFrameCommonTail(masm);
+    leaveStubFrame(masm, true);
 
     
     EmitUnstowICValues(masm, 1);
@@ -7476,16 +7435,9 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICSetProp_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    JitCompartment *comp = cx->compartment()->jitCompartment();
-
-    CodeOffsetLabel fromIon(returnFromIonOffset_);
-    fromIon.fixup(&masm);
-    comp->initBaselineSetPropReturnFromIonAddr(code->raw() + fromIon.offset());
-
-    CodeOffsetLabel fromVM(returnFromStubOffset_);
-    fromVM.fixup(&masm);
-    comp->initBaselineSetPropReturnFromStubAddr(code->raw() + fromVM.offset());
-
+    CodeOffsetLabel offset(returnOffset_);
+    offset.fixup(&masm);
+    cx->compartment()->jitCompartment()->initBaselineSetPropReturnAddr(code->raw() + offset.offset());
     return true;
 }
 
@@ -8509,32 +8461,14 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     
     
     
-    Label leaveStubCommon;
-    returnFromStubOffset_ = masm.currentOffset();
+    returnOffset_ = masm.currentOffset();
 
     
     
     
     masm.loadValue(Address(BaselineStackReg, 3 * sizeof(size_t)), R1);
 
-    
-    leaveStubFrameHead(masm,  false);
-
-    
-    masm.jump(&leaveStubCommon);
-
-    
-    
-    returnFromIonOffset_ = masm.currentOffset();
-
-    masm.loadValue(Address(BaselineStackReg, 3 * sizeof(size_t)), R1);
-
-    
-    leaveStubFrameHead(masm,  true);
-
-    
-    masm.bind(&leaveStubCommon);
-    leaveStubFrameCommonTail(masm);
+    leaveStubFrame(masm, true);
 
     
     regs = availableGeneralRegs(2);
@@ -8569,16 +8503,9 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICCall_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
-    JitCompartment *comp = cx->compartment()->jitCompartment();
-
-    CodeOffsetLabel fromIon(returnFromIonOffset_);
-    fromIon.fixup(&masm);
-    comp->initBaselineCallReturnFromIonAddr(code->raw() + fromIon.offset());
-
-    CodeOffsetLabel fromVM(returnFromStubOffset_);
-    fromVM.fixup(&masm);
-    comp->initBaselineCallReturnFromStubAddr(code->raw() + fromVM.offset());
-
+    CodeOffsetLabel offset(returnOffset_);
+    offset.fixup(&masm);
+    cx->compartment()->jitCompartment()->initBaselineCallReturnAddr(code->raw() + offset.offset());
     return true;
 }
 
