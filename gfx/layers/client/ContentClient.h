@@ -7,7 +7,7 @@
 #define MOZILLA_GFX_CONTENTCLIENT_H
 
 #include <stdint.h>                     
-#include "ThebesLayerBuffer.h"          
+#include "RotatedBuffer.h"              
 #include "gfxTypes.h"
 #include "gfxPlatform.h"                
 #include "mozilla/Assertions.h"         
@@ -94,9 +94,9 @@ public:
 
 
   virtual void Clear() = 0;
-  virtual ThebesLayerBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
-                                                         ThebesLayerBuffer::ContentType aContentType,
-                                                         uint32_t aFlags) = 0;
+  virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+                                                            RotatedContentBuffer::ContentType aContentType,
+                                                            uint32_t aFlags) = 0;
 
   
   
@@ -131,26 +131,26 @@ public:
 
 
 class ContentClientBasic : public ContentClient
-                         , protected ThebesLayerBuffer
+                         , protected RotatedContentBuffer
 {
 public:
   ContentClientBasic(CompositableForwarder* aForwarder,
                      BasicLayerManager* aManager);
 
-  typedef ThebesLayerBuffer::PaintState PaintState;
-  typedef ThebesLayerBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
 
-  virtual void Clear() { ThebesLayerBuffer::Clear(); }
+  virtual void Clear() { RotatedContentBuffer::Clear(); }
   PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
                               uint32_t aFlags)
   {
-    return ThebesLayerBuffer::BeginPaint(aLayer, aContentType, aFlags);
+    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
   }
 
   void DrawTo(ThebesLayer* aLayer, gfxContext* aTarget, float aOpacity,
               gfxASurface* aMask, const gfxMatrix* aMaskTransform)
   {
-    ThebesLayerBuffer::DrawTo(aLayer, aTarget, aOpacity, aMask, aMaskTransform);
+    RotatedContentBuffer::DrawTo(aLayer, aTarget, aOpacity, aMask, aMaskTransform);
   }
 
   virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
@@ -183,28 +183,28 @@ private:
 
 
 class ContentClientRemoteBuffer : public ContentClientRemote
-                                , protected ThebesLayerBuffer
+                                , protected RotatedContentBuffer
 {
-  using ThebesLayerBuffer::BufferRect;
-  using ThebesLayerBuffer::BufferRotation;
+  using RotatedContentBuffer::BufferRect;
+  using RotatedContentBuffer::BufferRotation;
 public:
   ContentClientRemoteBuffer(CompositableForwarder* aForwarder)
     : ContentClientRemote(aForwarder)
-    , ThebesLayerBuffer(ContainsVisibleBounds)
+    , RotatedContentBuffer(ContainsVisibleBounds)
     , mDeprecatedTextureClient(nullptr)
     , mIsNewBuffer(false)
     , mFrontAndBackBufferDiffer(false)
     , mContentType(GFX_CONTENT_COLOR_ALPHA)
   {}
 
-  typedef ThebesLayerBuffer::PaintState PaintState;
-  typedef ThebesLayerBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
 
-  virtual void Clear() { ThebesLayerBuffer::Clear(); }
+  virtual void Clear() { RotatedContentBuffer::Clear(); }
   PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
                               uint32_t aFlags)
   {
-    return ThebesLayerBuffer::BeginPaint(aLayer, aContentType, aFlags);
+    return RotatedContentBuffer::BeginPaint(aLayer, aContentType, aFlags);
   }
 
   
@@ -227,11 +227,11 @@ public:
   
   virtual const nsIntRect& BufferRect() const
   {
-    return ThebesLayerBuffer::BufferRect();
+    return RotatedContentBuffer::BufferRect();
   }
   virtual const nsIntPoint& BufferRotation() const
   {
-    return ThebesLayerBuffer::BufferRotation();
+    return RotatedContentBuffer::BufferRotation();
   }
 
   virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
@@ -364,8 +364,8 @@ public:
     mTextureInfo.mCompositableType = BUFFER_CONTENT_INC;
   }
 
-  typedef ThebesLayerBuffer::PaintState PaintState;
-  typedef ThebesLayerBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
 
   virtual TextureInfo GetTextureInfo() const
   {
@@ -378,9 +378,9 @@ public:
     mHasBuffer = false;
     mHasBufferOnWhite = false;
   }
-  virtual ThebesLayerBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
-                                                         ThebesLayerBuffer::ContentType aContentType,
-                                                         uint32_t aFlags);
+  virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+                                                            RotatedContentBuffer::ContentType aContentType,
+                                                            uint32_t aFlags);
 
   virtual void Updated(const nsIntRegion& aRegionToDraw,
                        const nsIntRegion& aVisibleRegion,

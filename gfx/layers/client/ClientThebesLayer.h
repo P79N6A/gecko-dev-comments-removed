@@ -8,7 +8,7 @@
 
 #include "ClientLayerManager.h"         
 #include "Layers.h"                     
-#include "ThebesLayerBuffer.h"          
+#include "RotatedBuffer.h"              
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/ContentClient.h"  
@@ -30,8 +30,8 @@ class SpecificLayerAttributes;
 class ClientThebesLayer : public ThebesLayer, 
                           public ClientLayer {
 public:
-  typedef ThebesLayerBuffer::PaintState PaintState;
-  typedef ThebesLayerBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
 
   ClientThebesLayer(ClientLayerManager* aLayerManager) :
     ThebesLayer(aLayerManager,

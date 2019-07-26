@@ -3,8 +3,8 @@
 
 
 
-#ifndef THEBESLAYERBUFFER_H_
-#define THEBESLAYERBUFFER_H_
+#ifndef ROTATEDBUFFER_H_
+#define ROTATEDBUFFER_H_
 
 #include <stdint.h>                     
 #include "gfxASurface.h"                
@@ -140,7 +140,7 @@ protected:
 
 
 
-class ThebesLayerBuffer : public RotatedBuffer {
+class RotatedContentBuffer : public RotatedBuffer {
 public:
   typedef gfxContentType ContentType;
 
@@ -156,16 +156,16 @@ public:
     ContainsVisibleBounds
   };
 
-  ThebesLayerBuffer(BufferSizePolicy aBufferSizePolicy)
+  RotatedContentBuffer(BufferSizePolicy aBufferSizePolicy)
     : mBufferProvider(nullptr)
     , mBufferProviderOnWhite(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
-    MOZ_COUNT_CTOR(ThebesLayerBuffer);
+    MOZ_COUNT_CTOR(RotatedContentBuffer);
   }
-  virtual ~ThebesLayerBuffer()
+  virtual ~RotatedContentBuffer()
   {
-    MOZ_COUNT_DTOR(ThebesLayerBuffer);
+    MOZ_COUNT_DTOR(RotatedContentBuffer);
   }
 
   

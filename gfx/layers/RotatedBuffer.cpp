@@ -3,7 +3,7 @@
 
 
 
-#include "ThebesLayerBuffer.h"
+#include "RotatedBuffer.h"
 #include <sys/types.h>                  
 #include <algorithm>                    
 #include "BasicImplData.h"              
@@ -178,7 +178,7 @@ RotatedBuffer::DrawBufferWithRotation(gfx::DrawTarget *aTarget, ContextSource aS
 }
 
  bool
-ThebesLayerBuffer::IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion)
+RotatedContentBuffer::IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion)
 {
   
   
@@ -187,11 +187,11 @@ ThebesLayerBuffer::IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegi
 }
 
 void
-ThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
-                          gfxContext* aTarget,
-                          float aOpacity,
-                          gfxASurface* aMask,
-                          const gfxMatrix* aMaskTransform)
+RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
+                             gfxContext* aTarget,
+                             float aOpacity,
+                             gfxASurface* aMask,
+                             const gfxMatrix* aMaskTransform)
 {
   if (!EnsureBuffer()) {
     return;
@@ -236,7 +236,9 @@ ThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
 }
 
 already_AddRefed<gfxContext>
-ThebesLayerBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds, ContextSource aSource, nsIntPoint *aTopLeft)
+RotatedContentBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds,
+                                                  ContextSource aSource,
+                                                  nsIntPoint *aTopLeft)
 {
   if (!EnsureBuffer()) {
     return nullptr;
@@ -277,7 +279,7 @@ ThebesLayerBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds, Context
 }
 
 gfxContentType
-ThebesLayerBuffer::BufferContentType()
+RotatedContentBuffer::BufferContentType()
 {
   if (mBufferProvider) {
     return mBufferProvider->GetContentType();
@@ -297,7 +299,7 @@ ThebesLayerBuffer::BufferContentType()
 }
 
 bool
-ThebesLayerBuffer::BufferSizeOkFor(const nsIntSize& aSize)
+RotatedContentBuffer::BufferSizeOkFor(const nsIntSize& aSize)
 {
   return (aSize == mBufferRect.Size() ||
           (SizedToVisibleBounds != mBufferSizePolicy &&
@@ -305,7 +307,7 @@ ThebesLayerBuffer::BufferSizeOkFor(const nsIntSize& aSize)
 }
 
 bool
-ThebesLayerBuffer::EnsureBuffer()
+RotatedContentBuffer::EnsureBuffer()
 {
   if (!mDTBuffer && mBufferProvider) {
     mDTBuffer = mBufferProvider->LockDrawTarget();
@@ -316,7 +318,7 @@ ThebesLayerBuffer::EnsureBuffer()
 }
 
 bool
-ThebesLayerBuffer::EnsureBufferOnWhite()
+RotatedContentBuffer::EnsureBufferOnWhite()
 {
   if (!mDTBufferOnWhite && mBufferProviderOnWhite) {
     mDTBufferOnWhite = mBufferProviderOnWhite->LockDrawTarget();
@@ -327,13 +329,13 @@ ThebesLayerBuffer::EnsureBufferOnWhite()
 }
 
 bool
-ThebesLayerBuffer::HaveBuffer() const
+RotatedContentBuffer::HaveBuffer() const
 {
   return mDTBuffer || mBufferProvider;
 }
 
 bool
-ThebesLayerBuffer::HaveBufferOnWhite() const
+RotatedContentBuffer::HaveBufferOnWhite() const
 {
   return mDTBufferOnWhite || mBufferProviderOnWhite;
 }
@@ -375,9 +377,9 @@ ComputeBufferRect(const nsIntRect& aRequestedRect)
   return rect;
 }
 
-ThebesLayerBuffer::PaintState
-ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                              uint32_t aFlags)
+RotatedContentBuffer::PaintState
+RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
+                                 uint32_t aFlags)
 {
   PaintState result;
   

@@ -10,7 +10,7 @@
 #include <stdio.h>                      
 #include "mozilla-config.h"             
 #include "CompositableHost.h"           
-#include "ThebesLayerBuffer.h"          
+#include "RotatedBuffer.h"              
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/BasePoint.h"      
@@ -87,8 +87,8 @@ protected:
 class ContentHostBase : public ContentHost
 {
 public:
-  typedef ThebesLayerBuffer::ContentType ContentType;
-  typedef ThebesLayerBuffer::PaintState PaintState;
+  typedef RotatedContentBuffer::ContentType ContentType;
+  typedef RotatedContentBuffer::PaintState PaintState;
 
   ContentHostBase(const TextureInfo& aTextureInfo);
   ~ContentHostBase();

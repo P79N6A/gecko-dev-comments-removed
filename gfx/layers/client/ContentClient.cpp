@@ -75,7 +75,9 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
 
 ContentClientBasic::ContentClientBasic(CompositableForwarder* aForwarder,
                                        BasicLayerManager* aManager)
-: ContentClient(aForwarder), ThebesLayerBuffer(ContainsVisibleBounds), mManager(aManager)
+  : ContentClient(aForwarder)
+  , RotatedContentBuffer(ContainsVisibleBounds)
+  , mManager(aManager)
 {}
 
 void
@@ -603,16 +605,16 @@ FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
   ctx->Paint();
 }
 
-ThebesLayerBuffer::PaintState
+RotatedContentBuffer::PaintState
 ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
-                                           ThebesLayerBuffer::ContentType aContentType,
+                                           RotatedContentBuffer::ContentType aContentType,
                                            uint32_t aFlags)
 {
   mTextureInfo.mDeprecatedTextureHostFlags = 0;
   PaintState result;
   
   
-  bool canHaveRotation =  !(aFlags & ThebesLayerBuffer::PAINT_WILL_RESAMPLE);
+  bool canHaveRotation =  !(aFlags & RotatedContentBuffer::PAINT_WILL_RESAMPLE);
 
   nsIntRegion validRegion = aLayer->GetValidRegion();
 
@@ -629,7 +631,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
     
     canReuseBuffer = neededRegion.GetBounds().Size() <= mBufferRect.Size() &&
       mHasBuffer &&
-      (!(aFlags & ThebesLayerBuffer::PAINT_WILL_RESAMPLE) ||
+      (!(aFlags & RotatedContentBuffer::PAINT_WILL_RESAMPLE) ||
        !(mTextureInfo.mTextureFlags & TEXTURE_ALLOW_REPEAT));
 
     if (canReuseBuffer) {
@@ -655,7 +657,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
       }
     }
 
-    if ((aFlags & ThebesLayerBuffer::PAINT_WILL_RESAMPLE) &&
+    if ((aFlags & RotatedContentBuffer::PAINT_WILL_RESAMPLE) &&
         (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
          neededRegion.GetNumRects() > 1)) {
       
@@ -758,7 +760,7 @@ ContentClientIncremental::BeginPaintBuffer(ThebesLayer* aLayer,
     
     createdBuffer = true;
   }
-  NS_ASSERTION(!(aFlags & ThebesLayerBuffer::PAINT_WILL_RESAMPLE) ||
+  NS_ASSERTION(!(aFlags & RotatedContentBuffer::PAINT_WILL_RESAMPLE) ||
                destBufferRect == neededRegion.GetBounds(),
                "If we're resampling, we need to validate the entire buffer");
 
