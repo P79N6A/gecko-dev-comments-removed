@@ -1717,7 +1717,7 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDocument)
   if (nsGenericElement::CanSkip(tmp, aRemovingAllowed)) {
     nsEventListenerManager* elm = tmp->GetListenerManager(false);
     if (elm) {
-      elm->MarkForCC();
+      elm->UnmarkGrayJSListeners();
     }
     return true;
   }
@@ -3583,14 +3583,6 @@ nsDocument::GetStyleSheetAt(int32_t aIndex) const
 int32_t
 nsDocument::GetIndexOfStyleSheet(nsIStyleSheet* aSheet) const
 {
-  if (mAdditionalSheets[eUserSheet].IndexOf(aSheet) >= 0 ||
-      mAdditionalSheets[eAgentSheet].IndexOf(aSheet) >= 0 ) {
-    
-    
-    
-    return INT32_MAX;
-  }
-
   return mStyleSheets.IndexOf(aSheet);
 }
 
