@@ -1759,8 +1759,8 @@ enum vcvt_destFloatness {
     toFloat  = 0 << 18
 };
 enum vcvt_toZero {
-    toZero = 1 << 7,
-    toFPSCR = 0 << 7
+    toZero = 1 << 7, 
+    toFPSCR = 0 << 7 
 };
 enum vcvt_Signedness {
     toSigned   = 1 << 16,
@@ -1772,7 +1772,7 @@ enum vcvt_Signedness {
 
 
 void
-Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
+Assembler::as_vcvt(VFPRegister vd, VFPRegister vm, bool useFPSCR,
                    Condition c)
 {
     
@@ -1808,7 +1808,7 @@ Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
             } else {
                 opSign = toUnsigned;
             }
-            doToZero = toZero;
+            doToZero = useFPSCR ? toFPSCR : toZero;
         }
         writeVFPInst(sz, c | 0x02B80040 | VD(vd) | VM(vm) | destFloat | opSign | doToZero);
     }

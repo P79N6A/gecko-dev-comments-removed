@@ -1119,6 +1119,12 @@ MacroAssemblerARM::ma_vneg(FloatRegister src, FloatRegister dest)
 }
 
 void
+MacroAssemblerARM::ma_vabs(FloatRegister src, FloatRegister dest)
+{
+    as_vabs(dest, src);
+}
+
+void
 MacroAssemblerARM::ma_vimm(double value, FloatRegister dest)
 {
     union DoublePun {
@@ -2712,6 +2718,72 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     ma_rsb(output, Imm32(0), output, SetCond);
     
     ma_vneg(input, input);
+    
+    
+    
+    
+    ma_b(bail, Unsigned);
+
+    bind(&fin);
+}
+
+
+void
+MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail, FloatRegister tmp)
+{
+    Label handleZero;
+    Label handleNeg;
+    Label fin;
+    
+    
+    ma_vcmpz(input);
+    
+    
+    ma_vimm(0.5, ScratchFloatReg);
+    
+    ma_vabs(input, tmp);
+    
+    ma_vadd(ScratchFloatReg, tmp, tmp);
+    as_vmrs(pc);
+    ma_b(&handleZero, Assembler::Equal);
+    ma_b(&handleNeg, Assembler::Signed);
+    
+    ma_b(bail, Assembler::Overflow);
+
+    
+    
+    
+    
+    ma_vcvt_F64_U32(tmp, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_mov(output, output, SetCond);
+    ma_b(bail, Signed);
+    ma_b(&fin);
+
+    bind(&handleZero);
+    
+    
+    as_vxfer(output, InvalidReg, input, FloatToCore, Always, 1);
+    ma_cmp(output, Imm32(0));
+    ma_b(bail, NonZero);
+    ma_b(&fin);
+
+    bind(&handleNeg);
+    
+    ma_vcvt_F64_U32(tmp, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+
+    
+    
+    
+    ma_vcvt_U32_F64(ScratchFloatReg, ScratchFloatReg);
+    compareDouble(ScratchFloatReg, tmp);
+    ma_sub(output, Imm32(1), output, NoSetCond, Equal);
+    
+    
+    ma_rsb(output, Imm32(0), output, SetCond);
+
+    
     
     
     ma_b(bail, Unsigned);

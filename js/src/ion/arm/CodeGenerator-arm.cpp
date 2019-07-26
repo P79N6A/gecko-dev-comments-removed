@@ -912,37 +912,13 @@ CodeGeneratorARM::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
     Register output = ToRegister(lir->output());
-
-    Label belowZero, end, fail;
-    
-    masm.ma_vimm(0.5, ScratchFloatReg);
-    masm.ma_vadd(ScratchFloatReg, input, input);
-
+    FloatRegister tmp = ToFloatRegister(lir->temp());
+    Label bail;
     
     
-    
-
-    masm.ma_vcmpz(input);
-    masm.as_vmrs(pc);
-    masm.ma_b(&belowZero, Assembler::VFP_LessThanOrEqual);
-
-    
-    emitRoundDouble(input, output, &fail);
-    masm.jump(&end);
-
-    masm.bind(&fail);
-    if (!bailoutIf(Assembler::Always, lir->snapshot()))
+    masm.round(input, output, &bail, tmp);
+    if (!bailoutFrom(&bail, lir->snapshot()))
         return false;
-
-    
-    masm.bind(&belowZero);
-    masm.ma_vneg(input, input);
-    emitRoundDouble(input, output, &fail);
-    masm.ma_rsb(Imm32(0), output, SetCond); 
-    
-    if (!bailoutIf(Assembler::Equal, lir->snapshot()))
-        return false;
-    masm.bind(&end);
     return true;
 }
 

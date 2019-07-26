@@ -1502,7 +1502,7 @@ class Assembler
 
     
     
-    void as_vcvt(VFPRegister vd, VFPRegister vm,
+    void as_vcvt(VFPRegister vd, VFPRegister vm, bool useFPSCR = false,
                  Condition c = Always);
     
     void as_vcvtFixed(VFPRegister vd, bool isSigned, uint32 fixedPoint, bool toFixed, Condition c = Always);
