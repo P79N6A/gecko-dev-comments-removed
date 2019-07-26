@@ -440,6 +440,8 @@ XULMenupopupAccessible::
 
   
   mSelectControl = do_QueryInterface(mContent->GetParent());
+  if (!mSelectControl)
+    mFlags &= ~eSelectAccessible;
 }
 
 uint64_t

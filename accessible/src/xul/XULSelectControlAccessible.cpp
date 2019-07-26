@@ -31,6 +31,7 @@ XULSelectControlAccessible::
   XULSelectControlAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
+  mFlags |= eSelectAccessible;
   mSelectControl = do_QueryInterface(aContent);
 }
 
@@ -45,13 +46,6 @@ XULSelectControlAccessible::Shutdown()
 }
 
 
-
-
-bool
-XULSelectControlAccessible::IsSelect()
-{
-  return !!mSelectControl;
-}
 
 
 already_AddRefed<nsIArray>

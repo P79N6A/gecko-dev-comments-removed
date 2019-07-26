@@ -2731,20 +2731,6 @@ Accessible::AnchorURIAt(uint32_t aAnchorIndex)
 
 
 
-bool
-Accessible::IsSelect()
-{
-  
-  
-  
-  
-
-  return mRoleMapEntry &&
-    (mRoleMapEntry->attributeMap1 == aria::eARIAMultiSelectable ||
-     mRoleMapEntry->attributeMap2 == aria::eARIAMultiSelectable ||
-     mRoleMapEntry->attributeMap3 == aria::eARIAMultiSelectable);
-}
-
 already_AddRefed<nsIArray>
 Accessible::SelectedItems()
 {

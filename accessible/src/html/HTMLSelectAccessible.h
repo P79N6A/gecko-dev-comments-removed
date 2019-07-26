@@ -43,7 +43,6 @@ public:
   virtual uint64_t NativeState();
 
   
-  virtual bool IsSelect();
   virtual bool SelectAll();
   virtual bool UnselectAll();
 

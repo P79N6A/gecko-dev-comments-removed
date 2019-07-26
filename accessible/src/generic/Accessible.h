@@ -307,12 +307,7 @@ public:
   
 
 
-
-
-
-
-  void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
-    { mRoleMapEntry = aRoleMapEntry; }
+  void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
   
 
@@ -600,7 +595,7 @@ public:
 
 
 
-  virtual bool IsSelect();
+  bool IsSelect() const { return mFlags & eSelectAccessible; }
 
   
 
@@ -777,6 +772,7 @@ protected:
     eHasNumericValue = 1 << 6 
   };
 
+public: 
   
 
 
@@ -797,10 +793,13 @@ protected:
     eMenuPopupAccessible = 1 << 19,
     eProgressAccessible = 1 << 20,
     eRootAccessible = 1 << 21,
-    eTextLeafAccessible = 1 << 22,
-    eXULDeckAccessible = 1 << 23,
-    eXULTreeAccessible = 1 << 24
+    eSelectAccessible = 1 << 22,
+    eTextLeafAccessible = 1 << 23,
+    eXULDeckAccessible = 1 << 24,
+    eXULTreeAccessible = 1 << 25
   };
+
+protected:
 
   
   
