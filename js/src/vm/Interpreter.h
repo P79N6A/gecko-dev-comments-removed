@@ -319,8 +319,9 @@ extern bool
 HasInstance(JSContext *cx, HandleObject obj, HandleValue v, bool *bp);
 
 
+
 extern void
-UnwindScope(JSContext *cx, ScopeIter &si, uint32_t stackDepth);
+UnwindScope(JSContext *cx, ScopeIter &si, jsbytecode *pc);
 
 
 

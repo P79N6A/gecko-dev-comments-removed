@@ -512,7 +512,7 @@ HandleExceptionBaseline(JSContext *cx, const IonFrameIterator &frame, ResumeFrom
 
         
         if (cx->isExceptionPending())
-            UnwindScope(cx, si, tn->stackDepth);
+            UnwindScope(cx, si, script->main() + tn->start);
 
         
         rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;

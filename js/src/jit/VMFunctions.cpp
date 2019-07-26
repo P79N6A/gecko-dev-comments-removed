@@ -735,7 +735,7 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool ok)
 {
     
     ScopeIter si(frame, pc, cx);
-    UnwindScope(cx, si, 0);
+    UnwindScope(cx, si, frame->script()->main());
 
     
     
