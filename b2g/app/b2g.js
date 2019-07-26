@@ -856,3 +856,9 @@ pref("osfile.reset_worker_delay", 5000);
 
 
 pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
+
+
+
+
+
+pref("apz.asyncscroll.throttle", 40);
