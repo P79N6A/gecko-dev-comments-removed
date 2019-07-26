@@ -65,8 +65,8 @@ let devtoolsWidgetPanel = {
           }
         }
 
-        Services.obs.addObserver(this, 'remote-browser-frame-pending', false);
-        Services.obs.addObserver(this, 'in-process-browser-or-app-frame-shown', false);
+        Services.obs.addObserver(this, 'remote-browser-pending', false);
+        Services.obs.addObserver(this, 'inprocess-browser-shown', false);
         Services.obs.addObserver(this, 'message-manager-disconnect', false);
 
         let systemapp = document.querySelector('#systemapp');
@@ -91,8 +91,8 @@ let devtoolsWidgetPanel = {
       this.untrackApp(manifest);
     }
 
-    Services.obs.removeObserver(this, 'remote-browser-frame-pending');
-    Services.obs.removeObserver(this, 'in-process-browser-or-app-frame-shown');
+    Services.obs.removeObserver(this, 'remote-browser-pending');
+    Services.obs.removeObserver(this, 'inprocess-browser-shown');
     Services.obs.removeObserver(this, 'message-manager-disconnect');
 
     this._client.close();
@@ -150,11 +150,15 @@ let devtoolsWidgetPanel = {
     switch(topic) {
 
       
-      case 'remote-browser-frame-pending':
-      case 'in-process-browser-or-app-frame-shown':
+      case 'remote-browser-pending':
+      case 'inprocess-browser-shown':
         let frameLoader = subject;
         
         frameLoader.QueryInterface(Ci.nsIFrameLoader);
+        
+        if (!frameLoader.ownerIsBrowserOrAppFrame) {
+          return;
+        }
         manifestURL = frameLoader.ownerElement.appManifestURL;
         if (!manifestURL) 
           return;

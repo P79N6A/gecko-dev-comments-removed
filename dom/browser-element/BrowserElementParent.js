@@ -65,8 +65,8 @@ BrowserElementParentFactory.prototype = {
     
     this._bepMap = new WeakMap();
 
-    Services.obs.addObserver(this, 'remote-browser-frame-pending',  true);
-    Services.obs.addObserver(this, 'in-process-browser-or-app-frame-shown',  true);
+    Services.obs.addObserver(this, 'remote-browser-pending',  true);
+    Services.obs.addObserver(this, 'inprocess-browser-shown',  true);
   },
 
   _browserFramesPrefEnabled: function() {
@@ -79,6 +79,10 @@ BrowserElementParentFactory.prototype = {
   },
 
   _observeInProcessBrowserFrameShown: function(frameLoader) {
+    
+    if (!frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerIsBrowserOrAppFrame) {
+      return;
+    }
     debug("In-process browser frame shown " + frameLoader);
     this._createBrowserElementParent(frameLoader,
                                       false,
@@ -86,6 +90,10 @@ BrowserElementParentFactory.prototype = {
   },
 
   _observeRemoteBrowserFramePending: function(frameLoader) {
+    
+    if (!frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerIsBrowserOrAppFrame) {
+      return;
+    }
     debug("Remote browser frame shown " + frameLoader);
     this._createBrowserElementParent(frameLoader,
                                       true,
@@ -108,10 +116,10 @@ BrowserElementParentFactory.prototype = {
         this._init();
       }
       break;
-    case 'remote-browser-frame-pending':
+    case 'remote-browser-pending':
       this._observeRemoteBrowserFramePending(subject);
       break;
-    case 'in-process-browser-or-app-frame-shown':
+    case 'inprocess-browser-shown':
       this._observeInProcessBrowserFrameShown(subject);
       break;
     }
