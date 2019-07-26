@@ -3341,7 +3341,7 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
   return GetResultingTransformMatrixInternal(aFrame, aOrigin, aAppUnitsPerPixel,
                                              aBoundsOverride, aTransformOverride,
                                              aToMozOrigin, aToPerspectiveOrigin,
-                                             aChildPerspective, aOutAncestor, false);
+                                             aChildPerspective, aOutAncestor);
 }
 
 gfx3DMatrix
@@ -3353,8 +3353,7 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const nsIFrame* aFrame,
                                                         gfxPoint3D* aToMozOrigin,
                                                         gfxPoint3D* aToPerspectiveOrigin,
                                                         nscoord* aChildPerspective,
-                                                        nsIFrame** aOutAncestor,
-                                                        bool aRecursing)
+                                                        nsIFrame** aOutAncestor)
 {
   NS_PRECONDITION(aFrame || (aToMozOrigin && aBoundsOverride && aToPerspectiveOrigin &&
                              aTransformOverride && aChildPerspective),
@@ -3448,15 +3447,7 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const nsIFrame* aFrame,
   gfxPoint3D rounded(hasSVGTransforms ? newOrigin.x : NS_round(newOrigin.x), 
                      hasSVGTransforms ? newOrigin.y : NS_round(newOrigin.y), 
                      0);
-
   
-
-
-
-
-  if (!aRecursing) {
-    result.Translate(rounded);
-  }
   if (aFrame && aFrame->Preserves3D() && nsLayoutUtils::Are3DTransformsEnabled()) {
       
       NS_ASSERTION(aFrame->GetParent() &&
@@ -3467,7 +3458,7 @@ nsDisplayTransform::GetResultingTransformMatrixInternal(const nsIFrame* aFrame,
         GetResultingTransformMatrixInternal(aFrame->GetParent(),
                                             aOrigin - aFrame->GetPosition(),
                                             aAppUnitsPerPixel, nullptr, nullptr, nullptr,
-                                            nullptr, nullptr, aOutAncestor, true);
+                                            nullptr, nullptr, aOutAncestor);
       return nsLayoutUtils::ChangeMatrixBasis(rounded + toMozOrigin, result) * parent;
   }
 
@@ -3563,17 +3554,28 @@ const gfx3DMatrix&
 nsDisplayTransform::GetTransform(float aAppUnitsPerPixel)
 {
   if (mTransform.IsIdentity() || mCachedAppUnitsPerPixel != aAppUnitsPerPixel) {
+    gfxPoint3D newOrigin =
+      gfxPoint3D(NSAppUnitsToFloatPixels(mToReferenceFrame.x, aAppUnitsPerPixel),
+                 NSAppUnitsToFloatPixels(mToReferenceFrame.y, aAppUnitsPerPixel),
+                  0.0f);
     if (mTransformGetter) {
-      gfxPoint3D newOrigin =
-        gfxPoint3D(NSAppUnitsToFloatPixels(mToReferenceFrame.x, aAppUnitsPerPixel),
-                   NSAppUnitsToFloatPixels(mToReferenceFrame.y, aAppUnitsPerPixel),
-                    0.0f);
       mTransform = mTransformGetter(mFrame, aAppUnitsPerPixel);
       mTransform = nsLayoutUtils::ChangeMatrixBasis(newOrigin, mTransform);
     } else {
       mTransform =
         GetResultingTransformMatrix(mFrame, ToReferenceFrame(),
                                     aAppUnitsPerPixel);
+
+      
+
+
+
+
+      bool hasSVGTransforms = mFrame->IsSVGTransformed();
+      gfxPoint3D rounded(hasSVGTransforms ? newOrigin.x : NS_round(newOrigin.x), 
+                         hasSVGTransforms ? newOrigin.y : NS_round(newOrigin.y), 
+                         0);
+      mTransform.Translate(rounded);
       mCachedAppUnitsPerPixel = aAppUnitsPerPixel;
     }
   }
