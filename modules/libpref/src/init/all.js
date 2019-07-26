@@ -263,11 +263,7 @@ pref("media.tabstreaming.height", 240);
 pref("media.tabstreaming.time_per_frame", 40);
 
 
-#ifdef RELEASE_BUILD
 pref("media.webvtt.enabled", false);
-#else
-pref("media.webvtt.enabled", true);
-#endif
 
 
 pref("media.mediasource.enabled", false);
