@@ -1,9 +1,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-                                  "resource:///modules/loop/MozLoopService.jsm");
-
 function expiryTimePref() {
   return Services.prefs.getIntPref("loop.urlsExpiryTimeSeconds");
 }

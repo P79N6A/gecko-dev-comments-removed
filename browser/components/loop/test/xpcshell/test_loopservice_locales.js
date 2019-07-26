@@ -1,10 +1,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-                                  "resource:///modules/loop/MozLoopService.jsm");
-
-
 function test_locale() {
   
   Services.prefs.setCharPref("general.useragent.locale", "ab-CD");

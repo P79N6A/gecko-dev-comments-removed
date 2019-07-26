@@ -4,35 +4,31 @@
 
 
 
-add_test(function test_registration_handles_bogus_hawk_token() {
 
-  var wrongSizeToken = "jdkasjkasjdlaksj";
+add_test(function test_registration_returns_hawk_session_token() {
+
+  var fakeSessionToken = "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1750";
   Services.prefs.clearUserPref("loop.hawk-session-token");
 
   loopServer.registerPathHandler("/registration", (request, response) => {
     response.setStatusLine(null, 200, "OK");
-    response.setHeader("Hawk-Session-Token", wrongSizeToken, false);
+    response.setHeader("Hawk-Session-Token", fakeSessionToken, false);
     response.processAsync();
     response.finish();
   });
 
   MozLoopService.register().then(() => {
-    do_throw("should not succeed with a bogus token");
-  }, err => {
-
-    Assert.equal(err, "session-token-wrong-size", "Should cause an error to be" +
-      " called back if the session-token is not 64 characters long");
-
-    
-    var ex;
+    var hawkSessionPref;
     try {
-      Services.prefs.getCharPref("loop.hawk-session-token");
-    } catch (e) {
-      ex = e;
+      hawkSessionPref = Services.prefs.getCharPref("loop.hawk-session-token");
+    } catch (ex) {
     }
-    Assert.notEqual(ex, undefined, "Should not set a loop.hawk-session-token pref");
+    Assert.equal(hawkSessionPref, fakeSessionToken, "Should store" +
+      " Hawk-Session-Token header contents in loop.hawk-session-token pref");
 
     run_next_test();
+  }, err => {
+    do_throw("shouldn't error on a successful request");
   });
 });
 
@@ -49,5 +45,4 @@ function run_test()
   });
 
   run_next_test();
-
 }

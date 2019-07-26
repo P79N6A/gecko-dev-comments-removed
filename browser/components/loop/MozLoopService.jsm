@@ -18,6 +18,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
 
 XPCOMUtils.defineLazyModuleGetter(this, "Chat", "resource:///modules/Chat.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils",
+                                  "resource://services-common/utils.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
+                                  "resource://services-crypto/utils.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "HAWKAuthenticatedRESTRequest",
+                                  "resource://services-common/hawkrequest.js");
+
 
 
 
@@ -203,6 +212,13 @@ let MozLoopServiceInternal = {
   
 
 
+  urlExpiryTimeIsInFuture: function() {
+    return this.expiryTimeSeconds * 1000 > Date.now();
+  },
+
+  
+
+
 
 
   get doNotDisturb() {
@@ -247,6 +263,30 @@ let MozLoopServiceInternal = {
 
 
 
+  deriveHawkCredentials: function(tokenHex, context) {
+    const PREFIX_NAME = "identity.mozilla.com/picl/v1/";
+
+    let token = CommonUtils.hexToBytes(tokenHex);
+    let keyWord = CommonUtils.stringToBytes(PREFIX_NAME + context);
+
+    
+    
+    
+    let out = CryptoUtils.hkdf(token, undefined, keyWord, 2 * 32);
+
+    return {
+      algorithm: "sha256",
+      key: out.slice(32, 64),
+      id: CommonUtils.bytesAsHex(out.slice(0, 32))
+    };
+  },
+
+  
+
+
+
+
+
   onPushRegistered: function(err, pushUrl) {
     if (err) {
       this._registeredDeferred.reject(err);
@@ -254,22 +294,49 @@ let MozLoopServiceInternal = {
       return;
     }
 
-    this.loopXhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-      .createInstance(Ci.nsIXMLHttpRequest);
+    this.registerWithLoopServer(pushUrl);
+  },
 
-    this.loopXhr.open('POST', MozLoopServiceInternal.loopServerUri + "/registration",
-                          true);
-    this.loopXhr.setRequestHeader('Content-Type', 'application/json');
+  
 
-    this.loopXhr.channel.loadFlags = Ci.nsIChannel.INHIBIT_CACHING
-      | Ci.nsIChannel.LOAD_BYPASS_CACHE
-      | Ci.nsIChannel.LOAD_EXPLICIT_CREDENTIALS;
 
-    this.loopXhr.onreadystatechange = this.onLoopRegistered.bind(this);
 
-    this.loopXhr.sendAsBinary(JSON.stringify({
-      simple_push_url: pushUrl
-    }));
+
+
+  registerWithLoopServer: function(pushUrl, noRetry) {
+    let sessionToken;
+    try {
+      sessionToken = Services.prefs.getCharPref("loop.hawk-session-token");
+    } catch (x) {
+      
+    }
+
+    let credentials;
+    if (sessionToken) {
+      credentials = this.deriveHawkCredentials(sessionToken, "sessionToken");
+    }
+
+    let uri = Services.io.newURI(this.loopServerUri, null, null).resolve("/registration");
+    this.loopXhr = new HAWKAuthenticatedRESTRequest(uri, credentials);
+
+    this.loopXhr.dispatch('POST', { simple_push_url: pushUrl }, (error) => {
+      if (this.loopXhr.response.status == 401) {
+        if (this.urlExpiryTimeIsInFuture()) {
+          
+          Cu.reportError("Loop session token is invalid, all previously "
+                         + "generated urls will no longer work.");
+        }
+
+        
+        Services.prefs.clearUserPref("loop.hawk-session-token");
+        this.registerWithLoopServer(pushUrl, true);
+
+        return;
+      }
+
+      
+      this.onLoopRegistered(error);
+    });
   },
 
   
@@ -289,22 +356,19 @@ let MozLoopServiceInternal = {
   
 
 
-  onLoopRegistered: function() {
-    if (this.loopXhr.readyState != Ci.nsIXMLHttpRequest.DONE)
-      return;
-
-    let status = this.loopXhr.status;
+  onLoopRegistered: function(error) {
+    let status = this.loopXhr.response.status;
     if (status != 200) {
       
       Cu.reportError("Failed to register with the loop server. Code: " +
-        status + " Text: " + this.loopXhr.statusText);
+        status + " Text: " + this.loopXhr.response.statusText);
       this._registeredDeferred.reject(status);
       this._registeredDeferred = null;
       return;
     }
 
-    let sessionToken = this.loopXhr.getResponseHeader("Hawk-Session-Token");
-    if (sessionToken !== null) {
+    let sessionToken = this.loopXhr.response.headers["hawk-session-token"];
+    if (sessionToken) {
 
       
       if (sessionToken.length === 64) {
@@ -406,7 +470,7 @@ this.MozLoopService = {
 
   initialize: function() {
     
-    if ((MozLoopServiceInternal.expiryTimeSeconds * 1000) > Date.now()) {
+    if (MozLoopServiceInternal.urlExpiryTimeIsInFuture()) {
       this._startInitializeTimer();
     }
   },

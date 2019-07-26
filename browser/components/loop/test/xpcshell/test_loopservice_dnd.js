@@ -2,9 +2,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-                                  "resource:///modules/loop/MozLoopService.jsm");
-
 do_register_cleanup(function() {
   Services.prefs.clearUserPref("loop.do_not_disturb");
 });

@@ -1,12 +1,12 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-                                  "resource:///modules/loop/MozLoopService.jsm");
 
-var server;
 
-const kServerPushUrl = "http://localhost:3456";
+
+
+
+
 
 
 
@@ -56,44 +56,8 @@ add_test(function test_register_websocket_success_loop_server_fail() {
 
 
 
-add_test(function test_registration_returns_hawk_session_token() {
-
-  var fakeSessionToken = "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1750";
-  Services.prefs.clearUserPref("loop.hawk-session-token");
-
-  server.registerPathHandler("/registration", (request, response) => {
-    response.setStatusLine(null, 200, "OK");
-    response.setHeader("Hawk-Session-Token", fakeSessionToken, false);
-    response.processAsync();
-    response.finish();
-  });
-
-  MozLoopService.register().then(() => {
-    var hawkSessionPref;
-    try {
-      hawkSessionPref = Services.prefs.getCharPref("loop.hawk-session-token");
-    } catch (ex) {
-    }
-    Assert.equal(hawkSessionPref, fakeSessionToken, "Should store" +
-      " Hawk-Session-Token header contents in loop.hawk-session-token pref");
-
-    run_next_test();
-  }, err => {
-    do_throw("shouldn't error on a succesful request");
-  });
-});
-
-
-
-
-
-
-
-
-
-
 add_test(function test_register_success() {
-  server.registerPathHandler("/registration", (request, response) => {
+  loopServer.registerPathHandler("/registration", (request, response) => {
     response.setStatusLine(null, 200, "OK");
     response.processAsync();
     response.finish();
@@ -111,21 +75,15 @@ add_test(function test_register_success() {
 
 function run_test()
 {
-  server = new HttpServer();
-  server.start(-1);
+  setupFakeLoopServer();
 
   
   gMockWebSocketChannelFactory.register();
-  Services.prefs.setCharPref("services.push.serverURL", kServerPushUrl);
-
-  Services.prefs.setCharPref("loop.server", "http://localhost:" + server.identity.primaryPort);
 
   do_register_cleanup(function() {
     gMockWebSocketChannelFactory.unregister();
     Services.prefs.clearUserPref("loop.hawk-session-token");
-    server.stop(function() {});
   });
 
   run_next_test();
-
 }

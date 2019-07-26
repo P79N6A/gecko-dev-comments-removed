@@ -2,9 +2,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService",
-  "resource:///modules/loop/MozLoopService.jsm");
-
 var fakePrefName = "color";
 var fakePrefValue = "green";
 
