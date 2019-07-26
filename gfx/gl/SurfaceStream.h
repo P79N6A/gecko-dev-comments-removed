@@ -11,7 +11,6 @@
 #include "mozilla/Monitor.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/gfx/Point.h"
-#include "mozilla/GenericRefCounted.h"
 #include "SurfaceTypes.h"
 
 namespace mozilla {
@@ -25,7 +24,7 @@ class SharedSurface;
 class SurfaceFactory;
 
 
-class SurfaceStream : public GenericAtomicRefCounted
+class SurfaceStream
 {
 public:
     typedef enum {
@@ -51,8 +50,6 @@ public:
     const SurfaceStreamType mType;
 
     mozilla::gl::GLContext* GLContext() const { return mGLContext; }
-
-
 protected:
     
     
@@ -124,8 +121,6 @@ public:
 
     virtual SharedSurface* Resize(SurfaceFactory* factory, const gfx::IntSize& size);
 
-    virtual bool CopySurfaceToProducer(SharedSurface* src, SurfaceFactory* factory) { MOZ_ASSERT(0); return false; }
-
 protected:
     
     
@@ -194,7 +189,6 @@ protected:
 public:
     SurfaceStream_TripleBuffer(SurfaceStream* prevStream);
     virtual ~SurfaceStream_TripleBuffer();
-    virtual bool CopySurfaceToProducer(SharedSurface* src, SurfaceFactory* factory);
 
 private:
     
