@@ -4,55 +4,51 @@
 
 
 
-
-try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-                getService(Ci.nsINavHistoryService);
-}
-catch(ex) {
-  do_throw("Could not get the history service\n");
-}
+const NHQO = Ci.nsINavHistoryQueryOptions;
 
 
-try {
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-              getService(Ci.nsINavBookmarksService);
-}
-catch(ex) {
-  do_throw("Could not get the nav-bookmarks-service\n");
-}
 
 
-try {
-  var annosvc= Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
-} catch(ex) {
-  do_throw("Could not get annotation service\n");
+function promiseOnItemVisited() {
+  let defer = Promise.defer();
+  let bookmarksObserver = {
+    __proto__: NavBookmarkObserver.prototype,
+    onItemVisited: function BO_onItemVisited() {
+      PlacesUtils.bookmarks.removeObserver(this);
+      
+      do_execute_soon(defer.resolve);
+    }
+  };
+  PlacesUtils.bookmarks.addObserver(bookmarksObserver, false);
+  return defer.promise;
 }
 
 function run_test() {
-  do_test_pending();
+  run_next_test();
+}
 
-  var testRoot = bmsvc.createFolder(bmsvc.placesRoot,
-                                    "Result-sort functionality tests root",
-                                    bmsvc.DEFAULT_INDEX);
-  var uri1 = uri("http://foo.tld/a");
-  var uri2 = uri("http://foo.tld/b");
-  var id1 = bmsvc.insertBookmark(testRoot, uri1, bmsvc.DEFAULT_INDEX, "b");
-  var id2 = bmsvc.insertBookmark(testRoot, uri2, bmsvc.DEFAULT_INDEX, "a");
+add_task(function test() {
+  let testFolder = PlacesUtils.bookmarks.createFolder(
+    PlacesUtils.bookmarks.placesRoot,
+    "Result-sort functionality tests root",
+    PlacesUtils.bookmarks.DEFAULT_INDEX);
+
+  let uri1 = NetUtil.newURI("http://foo.tld/a");
+  let uri2 = NetUtil.newURI("http://foo.tld/b");
+
+  let id1 = PlacesUtils.bookmarks.insertBookmark(
+    testFolder, uri1, PlacesUtils.bookmarks.DEFAULT_INDEX, "b");
+  let id2 = PlacesUtils.bookmarks.insertBookmark(
+    testFolder, uri2, PlacesUtils.bookmarks.DEFAULT_INDEX, "a");
   
-  var id3 = bmsvc.insertBookmark(testRoot, uri1, bmsvc.DEFAULT_INDEX, "a");
+  let id3 = PlacesUtils.bookmarks.insertBookmark(
+    testFolder, uri1, PlacesUtils.bookmarks.DEFAULT_INDEX, "a");
 
   
-  var options = histsvc.getNewQueryOptions();
-  var query = histsvc.getNewQuery();
-  query.setFolders([testRoot], 1);
-  var result = histsvc.executeQuery(query, options);
-  var root = result.root;
-  root.containerOpen = true;
+  let result = PlacesUtils.getFolderContents(testFolder);
+  let root = result.root;
 
   do_check_eq(root.childCount, 3);
-
-  const NHQO = Ci.nsINavHistoryQueryOptions;
 
   function checkOrder(a, b, c) {
     do_check_eq(root.getChild(0).itemId, a);
@@ -61,39 +57,46 @@ function run_test() {
   }
 
   
+  do_print("Natural order");
   checkOrder(id1, id2, id3);
 
   
+  do_print("Sort by title asc");
   result.sortingMode = NHQO.SORT_BY_TITLE_ASCENDING;
   checkOrder(id3, id2, id1);
 
   
+  do_print("Sort by title desc");
   result.sortingMode = NHQO.SORT_BY_TITLE_DESCENDING;
   checkOrder(id1, id2, id3);
 
   
+  do_print("Sort by uri asc");
   result.sortingMode = NHQO.SORT_BY_URI_ASCENDING;
   checkOrder(id1, id3, id2);
 
   
-  bmsvc.changeBookmarkURI(id1, uri2);
+  do_print("Change bookmark uri liveupdate");
+  PlacesUtils.bookmarks.changeBookmarkURI(id1, uri2);
   checkOrder(id3, id1, id2);
-  bmsvc.changeBookmarkURI(id1, uri1);
+  PlacesUtils.bookmarks.changeBookmarkURI(id1, uri1);
   checkOrder(id1, id3, id2);
 
   
+  do_print("Sort by keyword asc");
   result.sortingMode = NHQO.SORT_BY_KEYWORD_ASCENDING;
   checkOrder(id3, id2, id1);  
-  bmsvc.setKeywordForBookmark(id1, "a");
-  bmsvc.setKeywordForBookmark(id2, "z");
+  PlacesUtils.bookmarks.setKeywordForBookmark(id1, "a");
+  PlacesUtils.bookmarks.setKeywordForBookmark(id2, "z");
   checkOrder(id3, id1, id2);
 
   
   
   
 
-  annosvc.setItemAnnotation(id1, "testAnno", "a", 0, 0);
-  annosvc.setItemAnnotation(id3, "testAnno", "b", 0, 0);
+  do_print("Sort by annotation desc");
+  PlacesUtils.annotations.setItemAnnotation(id1, "testAnno", "a", 0, 0);
+  PlacesUtils.annotations.setItemAnnotation(id3, "testAnno", "b", 0, 0);
   result.sortingAnnotation = "testAnno";
   result.sortingMode = NHQO.SORT_BY_ANNOTATION_DESCENDING;
 
@@ -104,22 +107,32 @@ function run_test() {
   
 
   
-  annosvc.setItemAnnotation(id1, "testAnno", "c", 0, 0);
+  do_print("Annotation liveupdate");
+  PlacesUtils.annotations.setItemAnnotation(id1, "testAnno", "c", 0, 0);
   checkOrder(id1, id3, id2);
 
   
-  addVisits({
-    uri: uri("http://foo.tld/b"),
-    transition: TRANSITION_TYPED
-  }, function () {
-    promiseAsyncUpdates().then(function () {
-      result.sortingMode = NHQO.SORT_BY_FRECENCY_DESCENDING;
-      checkOrder(id2, id3, id1);
-      result.sortingMode = NHQO.SORT_BY_FRECENCY_ASCENDING;
-      checkOrder(id1, id3, id2);
+  yield promiseAddVisits({ uri: uri2,
+                           transition: TRANSITION_TYPED});
+  
+  
+  
+  yield promiseOnItemVisited();
 
-      root.containerOpen = false;
-      do_test_finished();
-    });
-  });
-}
+  do_print("Sort by frecency desc");
+  result.sortingMode = NHQO.SORT_BY_FRECENCY_DESCENDING;
+  for (let i = 0; i < root.childCount; ++i) {
+    print(root.getChild(i).uri + " " + root.getChild(i).title);
+  }
+  
+  
+  checkOrder(id2, id3, id1);
+  do_print("Sort by frecency asc");
+  result.sortingMode = NHQO.SORT_BY_FRECENCY_ASCENDING;
+  for (let i = 0; i < root.childCount; ++i) {
+    print(root.getChild(i).uri + " " + root.getChild(i).title);
+  }
+  checkOrder(id1, id3, id2);
+
+  root.containerOpen = false;
+});

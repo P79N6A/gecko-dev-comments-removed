@@ -825,6 +825,26 @@ function do_compare_arrays(a1, a2, sorted)
 
 
 
+function NavBookmarkObserver() {}
+
+NavBookmarkObserver.prototype = {
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
+  onItemAdded: function () {},
+  onBeforeItemRemoved: function () {},
+  onItemRemoved: function () {},
+  onItemChanged: function () {},
+  onItemVisited: function () {},
+  onItemMoved: function () {},
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavBookmarkObserver,
+  ])
+};
+
+
+
+
+
 function NavHistoryObserver() {}
 
 NavHistoryObserver.prototype = {

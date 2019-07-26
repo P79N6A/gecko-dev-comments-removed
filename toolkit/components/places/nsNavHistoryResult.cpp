@@ -4002,6 +4002,18 @@ nsNavHistoryFolderResultNode::OnItemVisited(int64_t aItemId,
   nsresult rv = ReverseUpdateStats(mAccessCount - oldAccessCount);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(history, NS_OK);
+  nsRefPtr<nsNavHistoryResultNode> visitNode;
+  rv = history->VisitIdToResultNode(aVisitId, mOptions,
+                                    getter_AddRefs(visitNode));
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_STATE(visitNode);
+  node->mFrecency = visitNode->mFrecency;
+
   if (AreChildrenVisible()) {
     
     nsNavHistoryResult* result = GetResult();
@@ -4014,7 +4026,9 @@ nsNavHistoryFolderResultNode::OnItemVisited(int64_t aItemId,
   if (sortType == nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_ASCENDING ||
       sortType == nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING ||
       sortType == nsINavHistoryQueryOptions::SORT_BY_DATE_ASCENDING ||
-      sortType == nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING) {
+      sortType == nsINavHistoryQueryOptions::SORT_BY_DATE_DESCENDING ||
+      sortType == nsINavHistoryQueryOptions::SORT_BY_FRECENCY_ASCENDING ||
+      sortType == nsINavHistoryQueryOptions::SORT_BY_FRECENCY_DESCENDING) {
     int32_t childIndex = FindChild(node);
     NS_ASSERTION(childIndex >= 0, "Could not find child we just got a reference to");
     if (childIndex >= 0) {
