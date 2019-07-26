@@ -473,13 +473,7 @@ MmsMessage::GetSmil(nsAString& aSmil)
 NS_IMETHODIMP
 MmsMessage::GetAttachments(JSContext* aCx, JS::Value* aAttachments)
 {
-  
-  
   uint32_t length = mAttachments.Length();
-  if (length == 0) {
-    *aAttachments = JSVAL_NULL;
-    return NS_OK;
-  }
 
   JS::Rooted<JSObject*> attachments(aCx, JS_NewArrayObject(aCx, length, nullptr));
   NS_ENSURE_TRUE(attachments, NS_ERROR_OUT_OF_MEMORY);
