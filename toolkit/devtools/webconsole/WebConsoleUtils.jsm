@@ -15,22 +15,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
-                                  "resource://gre/modules/ConsoleAPIStorage.jsm");
-
-var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
-                        "PageErrorListener", "ConsoleAPIListener"];
-
-
-
-
-
-
-
-const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
-
-
-const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
+var EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider",
+                        "PageErrorListener"];
 
 const TYPES = { OBJECT: 0,
                 FUNCTION: 1,
@@ -227,12 +213,7 @@ var WebConsoleUtils = {
       case "error":
       case "number":
       case "regexp":
-        try {
-          output = aResult + "";
-        }
-        catch (ex) {
-          output = ex;
-        }
+        output = aResult.toString();
         break;
       case "null":
       case "undefined":
@@ -328,15 +309,8 @@ var WebConsoleUtils = {
   getResultType: function WCU_getResultType(aResult)
   {
     let type = aResult === null ? "null" : typeof aResult;
-    try {
-      if (type == "object" && aResult.constructor && aResult.constructor.name) {
-        type = aResult.constructor.name + "";
-      }
-    }
-    catch (ex) {
-      
-      
-      
+    if (type == "object" && aResult.constructor && aResult.constructor.name) {
+      type = aResult.constructor.name;
     }
 
     return type.toLowerCase();
@@ -468,43 +442,27 @@ var WebConsoleUtils = {
     if (typeof aObject != "object") {
       return false;
     }
-    let desc = this.getPropertyDescriptor(aObject, aProp);
-    return desc && desc.get && !this.isNativeFunction(desc.get);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  getPropertyDescriptor: function WCU_getPropertyDescriptor(aObject, aProp)
-  {
-    let desc = null;
+    let desc;
     while (aObject) {
       try {
         if (desc = Object.getOwnPropertyDescriptor(aObject, aProp)) {
           break;
         }
       }
-      catch (ex if (ex.name == "NS_ERROR_XPC_BAD_CONVERT_JS" ||
-                    ex.name == "NS_ERROR_XPC_BAD_OP_ON_WN_PROTO" ||
-                    ex.name == "TypeError")) {
+      catch (ex) {
         
-        
+        if (ex.name == "NS_ERROR_XPC_BAD_CONVERT_JS" ||
+            ex.name == "NS_ERROR_XPC_BAD_OP_ON_WN_PROTO") {
+          return false;
+        }
+        throw ex;
       }
-      try {
-        aObject = Object.getPrototypeOf(aObject);
-      }
-      catch (ex if (ex.name == "TypeError")) {
-        return desc;
-      }
+      aObject = Object.getPrototypeOf(aObject);
     }
-    return desc;
+    if (desc && desc.get && !this.isNativeFunction(desc.get)) {
+      return true;
+    }
+    return false;
   },
 
   
@@ -591,207 +549,35 @@ var WebConsoleUtils = {
       pairs.push(pair);
     }
 
-    pairs.sort(this.propertiesSort);
-
-    return pairs;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  propertiesSort: function WCU_propertiesSort(a, b)
-  {
-    
-    let aNumber = parseFloat(a.name);
-    let bNumber = parseFloat(b.name);
-
-    
-    if (!isNaN(aNumber) && isNaN(bNumber)) {
-      return -1;
-    }
-    else if (isNaN(aNumber) && !isNaN(bNumber)) {
-      return 1;
-    }
-    else if (!isNaN(aNumber) && !isNaN(bNumber)) {
-      return aNumber - bNumber;
-    }
-    
-    else if (a.name < b.name) {
-      return -1;
-    }
-    else if (a.name > b.name) {
-      return 1;
-    }
-    else {
-      return 0;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  inspectObject: function WCU_inspectObject(aObject, aObjectWrapper)
-  {
-    let properties = [];
-    let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
-    let deprecated = ["width", "height", "inputEncoding"];
-
-    for (let name in aObject) {
+    pairs.sort(function(a, b)
+    {
       
-      if (isDOMDocument && deprecated.indexOf(name) > -1) {
-        continue;
+      let aNumber = parseFloat(a.name);
+      let bNumber = parseFloat(b.name);
+
+      
+      if (!isNaN(aNumber) && isNaN(bNumber)) {
+        return -1;
       }
-
-      properties.push(this.inspectObjectProperty(aObject, name, aObjectWrapper));
-    }
-
-    return properties.sort(this.propertiesSort);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  inspectObjectProperty:
-  function WCU_inspectObjectProperty(aObject, aProperty, aObjectWrapper)
-  {
-    let descriptor = this.getPropertyDescriptor(aObject, aProperty) || {};
-
-    let result = { name: aProperty };
-    result.configurable = descriptor.configurable;
-    result.enumerable = descriptor.enumerable;
-    result.writable = descriptor.writable;
-    if (descriptor.value !== undefined) {
-      result.value = this.createValueGrip(descriptor.value, aObjectWrapper);
-    }
-    else if (descriptor.get) {
-      if (this.isNativeFunction(descriptor.get)) {
-        result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
+      else if (isNaN(aNumber) && !isNaN(bNumber)) {
+        return 1;
+      }
+      else if (!isNaN(aNumber) && !isNaN(bNumber)) {
+        return aNumber - bNumber;
+      }
+      
+      else if (a.name < b.name) {
+        return -1;
+      }
+      else if (a.name > b.name) {
+        return 1;
       }
       else {
-        result.get = this.createValueGrip(descriptor.get, aObjectWrapper);
-        result.set = this.createValueGrip(descriptor.set, aObjectWrapper);
+        return 0;
       }
-    }
+    });
 
-    
-    
-    if (result.value === undefined && result.get === undefined) {
-      result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  getObjectGrip: function WCU_getObjectGrip(aObject)
-  {
-    let className = null;
-    let type = typeof aObject;
-
-    let result = {
-      "type": type,
-      "className": this.getObjectClassName(aObject),
-      "displayString": this.formatResult(aObject),
-      "inspectable": this.isObjectInspectable(aObject),
-    };
-
-    if (type == "function") {
-      result.functionName = this.getFunctionName(aObject);
-      result.functionArguments = this.getFunctionArguments(aObject);
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  createValueGrip: function WCU_createValueGrip(aValue, aObjectWrapper)
-  {
-    let type = typeof(aValue);
-    switch (type) {
-      case "boolean":
-      case "string":
-      case "number":
-        return aValue;
-      case "object":
-      case "function":
-        if (aValue) {
-          return aObjectWrapper(aValue);
-        }
-      default:
-        if (aValue === null) {
-          return { type: "null" };
-        }
-
-        if (aValue === undefined) {
-          return { type: "undefined" };
-        }
-
-        Cu.reportError("Failed to provide a grip for value of " + type + ": " +
-                       aValue);
-        return null;
-    }
+    return pairs;
   },
 
   
@@ -851,159 +637,6 @@ var WebConsoleUtils = {
     catch (ex) {
       return false;
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  objectActorGripToString: function WCU_objectActorGripToString(aGrip, aFormatString)
-  {
-    
-    
-    
-    let type = typeof(aGrip);
-    if (aGrip && type == "object") {
-      return aGrip.displayString || aGrip.className || aGrip.type || type;
-    }
-    return type == "string" && aFormatString ?
-           this.formatResultString(aGrip) : aGrip + "";
-  },
-
-  
-
-
-
-
-
-
-
-  getFunctionName: function WCF_getFunctionName(aFunction)
-  {
-    let name = null;
-    if (aFunction.name) {
-      name = aFunction.name;
-    }
-    else {
-      let desc;
-      try {
-        desc = aFunction.getOwnPropertyDescriptor("displayName");
-      }
-      catch (ex) { }
-      if (desc && typeof desc.value == "string") {
-        name = desc.value;
-      }
-    }
-    if (!name) {
-      try {
-        let str = (aFunction.toString() || aFunction.toSource()) + "";
-        name = (str.match(REGEX_MATCH_FUNCTION_NAME) || [])[1];
-      }
-      catch (ex) { }
-    }
-    return name;
-  },
-
-  
-
-
-
-
-
-
-
-  getFunctionArguments: function WCF_getFunctionArguments(aFunction)
-  {
-    let args = [];
-    try {
-      let str = (aFunction.toString() || aFunction.toSource()) + "";
-      let argsString = (str.match(REGEX_MATCH_FUNCTION_ARGS) || [])[1];
-      if (argsString) {
-        args = argsString.split(/\s*,\s*/);
-      }
-    }
-    catch (ex) { }
-    return args;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getObjectClassName: function WCF_getObjectClassName(aObject)
-  {
-    if (aObject === null) {
-      return "null";
-    }
-    if (aObject === undefined) {
-      return "undefined";
-    }
-
-    let type = typeof aObject;
-    if (type != "object") {
-      return type;
-    }
-
-    let className;
-
-    try {
-      className = ((aObject + "").match(/^\[object (\S+)\]$/) || [])[1];
-      if (!className) {
-        className = ((aObject.constructor + "").match(/^\[object (\S+)\]$/) || [])[1];
-      }
-      if (!className && typeof aObject.constructor == "function") {
-        className = this.getFunctionName(aObject.constructor);
-      }
-    }
-    catch (ex) { }
-
-    return className;
-  },
-
-  
-
-
-
-
-
-
-
-  getPropertyPanelValue: function WCU_getPropertyPanelValue(aActor)
-  {
-    if (aActor.get) {
-      return "Getter";
-    }
-
-    let val = aActor.value;
-    if (typeof val == "string") {
-      return this.formatResultString(val);
-    }
-
-    if (typeof val != "object" || !val) {
-      return val;
-    }
-
-    if (val.type == "function" && val.functionName) {
-      return "function " + val.functionName + "(" +
-             val.functionArguments.join(", ") + ")";
-    }
-    if (val.type == "object" && val.className) {
-      return val.className;
-    }
-
-    return val.displayString || val.type;
   },
 };
 
@@ -1530,327 +1163,3 @@ PageErrorListener.prototype =
     this.listener = this.window = null;
   },
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ConsoleAPIListener(aWindow, aOwner)
-{
-  this.window = aWindow;
-  this.owner = aOwner;
-}
-
-ConsoleAPIListener.prototype =
-{
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
-
-  
-
-
-
-  window: null,
-
-  
-
-
-
-
-
-
-
-  owner: null,
-
-  
-
-
-  init: function CAL_init()
-  {
-    
-    
-    Services.obs.addObserver(this, "console-api-log-event", false);
-  },
-
-  
-
-
-
-
-
-
-
-
-  observe: function CAL_observe(aMessage, aTopic)
-  {
-    if (!this.owner || !this.window) {
-      return;
-    }
-
-    let apiMessage = aMessage.wrappedJSObject;
-    let msgWindow = WebConsoleUtils.getWindowByOuterId(apiMessage.ID,
-                                                       this.window);
-    if (!msgWindow || msgWindow.top != this.window) {
-      
-      return;
-    }
-
-    this.owner.onConsoleAPICall(apiMessage);
-  },
-
-  
-
-
-
-
-
-
-  getCachedMessages: function CAL_getCachedMessages()
-  {
-    let innerWindowId = WebConsoleUtils.getInnerWindowId(this.window);
-    let messages = ConsoleAPIStorage.getEvents(innerWindowId);
-    return messages;
-  },
-
-  
-
-
-  destroy: function CAL_destroy()
-  {
-    Services.obs.removeObserver(this, "console-api-log-event");
-    this.window = this.owner = null;
-  },
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function JSTermHelpers(aOwner)
-{
-  
-
-
-
-
-
-
-
-  aOwner.sandbox.$ = function JSTH_$(aSelector)
-  {
-    return aOwner.window.document.querySelector(aSelector);
-  };
-
-  
-
-
-
-
-
-
-
-  aOwner.sandbox.$$ = function JSTH_$$(aSelector)
-  {
-    return aOwner.window.document.querySelectorAll(aSelector);
-  };
-
-  
-
-
-
-
-
-
-
-
-  aOwner.sandbox.$x = function JSTH_$x(aXPath, aContext)
-  {
-    let nodes = [];
-    let doc = aOwner.window.document;
-    let aContext = aContext || doc;
-
-    try {
-      let results = doc.evaluate(aXPath, aContext, null,
-                                 Ci.nsIDOMXPathResult.ANY_TYPE, null);
-      let node;
-      while (node = results.iterateNext()) {
-        nodes.push(node);
-      }
-    }
-    catch (ex) {
-      aOwner.window.console.error(ex.message);
-    }
-
-    return nodes;
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-  Object.defineProperty(aOwner.sandbox, "$0", {
-    get: function() {
-      try {
-        return aOwner.chromeWindow().InspectorUI.selection;
-      }
-      catch (ex) {
-        aOwner.window.console.error(ex.message);
-      }
-    },
-    enumerable: true,
-    configurable: false
-  });
-
-  
-
-
-  aOwner.sandbox.clear = function JSTH_clear()
-  {
-    aOwner.helperResult = {
-      type: "clearOutput",
-    };
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.keys = function JSTH_keys(aObject)
-  {
-    return Object.keys(WebConsoleUtils.unwrap(aObject));
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.values = function JSTH_values(aObject)
-  {
-    let arrValues = [];
-    let obj = WebConsoleUtils.unwrap(aObject);
-
-    try {
-      for (let prop in obj) {
-        arrValues.push(obj[prop]);
-      }
-    }
-    catch (ex) {
-      aOwner.window.console.error(ex.message);
-    }
-
-    return arrValues;
-  };
-
-  
-
-
-  aOwner.sandbox.help = function JSTH_help()
-  {
-    aOwner.helperResult = { type: "help" };
-  };
-
-  
-
-
-
-
-
-  aOwner.sandbox.inspect = function JSTH_inspect(aObject)
-  {
-    let obj = WebConsoleUtils.unwrap(aObject);
-    if (!WebConsoleUtils.isObjectInspectable(obj)) {
-      return aObject;
-    }
-
-    aOwner.helperResult = {
-      type: "inspectObject",
-      input: aOwner.evalInput,
-      object: aOwner.createValueGrip(obj),
-    };
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.pprint = function JSTH_pprint(aObject)
-  {
-    if (aObject === null || aObject === undefined || aObject === true ||
-        aObject === false) {
-      aOwner.helperResult = {
-        type: "error",
-        message: "helperFuncUnsupportedTypeError",
-      };
-      return;
-    }
-
-    aOwner.helperResult = { rawOutput: true };
-
-    if (typeof aObject == "function") {
-      return aObject + "\n";
-    }
-
-    let output = [];
-    let getObjectGrip = WebConsoleUtils.getObjectGrip.bind(WebConsoleUtils);
-    let obj = WebConsoleUtils.unwrap(aObject);
-    let props = WebConsoleUtils.inspectObject(obj, getObjectGrip);
-    props.forEach(function(aProp) {
-      output.push(aProp.name + ": " +
-                  WebConsoleUtils.getPropertyPanelValue(aProp));
-    });
-
-    return "  " + output.join("\n  ");
-  };
-
-  
-
-
-
-
-
-
-  aOwner.sandbox.print = function JSTH_print(aString)
-  {
-    aOwner.helperResult = { rawOutput: true };
-    return String(aString);
-  };
-}
