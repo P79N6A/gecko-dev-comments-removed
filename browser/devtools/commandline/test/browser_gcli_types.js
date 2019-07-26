@@ -1,25 +1,25 @@
-/*
- * Copyright 2012, Mozilla Foundation and contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -31,11 +31,11 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var assert = require('test/assert');
+
 var types = require('gcli/types');
 
 function forEachType(options, typeSpec, callback) {
@@ -43,7 +43,7 @@ function forEachType(options, typeSpec, callback) {
     typeSpec.name = name;
     typeSpec.requisition = options.display.requisition;
 
-    // Provide some basic defaults to help selection/delegate/array work
+    
     if (name === 'selection') {
       typeSpec.data = [ 'a', 'b' ];
     }
@@ -70,7 +70,7 @@ exports.testDefault = function(options) {
   forEachType(options, {}, function(type) {
     var blank = type.getBlank().value;
 
-    // boolean and array types are exempt from needing undefined blank values
+    
     if (type.name === 'boolean') {
       assert.is(blank, false, 'blank boolean is false');
     }
@@ -90,9 +90,9 @@ exports.testDefault = function(options) {
 
 exports.testNullDefault = function(options) {
   forEachType(options, { defaultValue: null }, function(type) {
-    assert.is(type.stringify(null), '', 'stringify(null) for ' + type.name);
+    assert.is(type.stringify(null, null), '', 'stringify(null) for ' + type.name);
   });
 };
 
 
-// });
+
