@@ -114,13 +114,6 @@ if (this.Components) {
          let id = this._idgen++;
          this._map.set(id, {resource:resource, info:info});
          return id;
-       },
-       
-
-
-
-       listOpenedResources: function listOpenedResources() {
-         return [resource.info.path for ([id, resource] of this._map)];
        }
      };
 
@@ -201,16 +194,6 @@ if (this.Components) {
          return exports.OS.Shared.DEBUG;
        },
        
-       System_shutdown: function System_shutdown () {
-         
-         
-         return {
-           openedFiles: OpenedFiles.listOpenedResources(),
-           openedDirectoryIterators:
-             OpenedDirectoryIterators.listOpenedResources()
-         };
-       },
-       
        stat: function stat(path) {
          return exports.OS.File.Info.toMsg(
            exports.OS.File.stat(Type.path.fromMsg(path)));
@@ -239,13 +222,8 @@ if (this.Components) {
          return File.remove(Type.path.fromMsg(path));
        },
        open: function open(path, mode, options) {
-         let filePath = Type.path.fromMsg(path);
-         let file = File.open(filePath, mode, options);
-         return OpenedFiles.add(file, {
-           
-           
-           path: filePath
-         });
+         let file = File.open(Type.path.fromMsg(path), mode, options);
+         return OpenedFiles.add(file);
        },
        read: function read(path, bytes) {
          let data = File.read(Type.path.fromMsg(path), bytes);
@@ -264,13 +242,8 @@ if (this.Components) {
                                 );
        },
        new_DirectoryIterator: function new_DirectoryIterator(path, options) {
-         let directoryPath = Type.path.fromMsg(path);
-         let iterator = new File.DirectoryIterator(directoryPath, options);
-         return OpenedDirectoryIterators.add(iterator, {
-           
-           
-           path: directoryPath
-         });
+         let iterator = new File.DirectoryIterator(Type.path.fromMsg(path), options);
+         return OpenedDirectoryIterators.add(iterator);
        },
        
        File_prototype_close: function close(fd) {
