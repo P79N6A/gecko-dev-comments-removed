@@ -2250,9 +2250,13 @@ struct ReplaceData
         elembase = nullptr;
         repstr = string;
 
-        
         const jschar *chars = repstr->chars();
-        dollar = js_strchr_limit(chars, '$', chars + repstr->length());
+        if (const jschar *p = js_strchr_limit(chars, '$', chars + repstr->length())) {
+            dollarIndex = p - chars;
+            MOZ_ASSERT(dollarIndex < repstr->length());
+        } else {
+            dollarIndex = UINT32_MAX;
+        }
     }
 
     inline void setReplacementFunction(JSObject *func) {
@@ -2260,15 +2264,15 @@ struct ReplaceData
         lambda = func;
         elembase = nullptr;
         repstr = nullptr;
-        dollar = nullptr;
+        dollarIndex = UINT32_MAX;
     }
 
     RootedString       str;            
     StringRegExpGuard  g;              
     RootedObject       lambda;         
     RootedObject       elembase;       
-    Rooted<JSLinearString*> repstr; 
-    const jschar       *dollar;        
+    Rooted<JSLinearString*> repstr;    
+    uint32_t           dollarIndex;    
     int                leftIndex;      
     JSSubString        dollarStr;      
     bool               calledBack;     
@@ -2485,8 +2489,9 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
     JSLinearString *repstr = rdata.repstr;
     CheckedInt<uint32_t> replen = repstr->length();
-    if (rdata.dollar) {
-        const jschar *dp = rdata.dollar;
+    if (rdata.dollarIndex != UINT32_MAX) {
+        MOZ_ASSERT(rdata.dollarIndex < repstr->length());
+        const jschar *dp = repstr->chars() + rdata.dollarIndex;
         const jschar *ep = repstr->chars() + repstr->length();
         do {
             JSSubString sub;
@@ -2525,8 +2530,9 @@ DoReplace(RegExpStatics *res, ReplaceData &rdata)
     const jschar *bp = repstr->chars();
     const jschar *cp = bp;
 
-    if (rdata.dollar) {
-        const jschar *dp = rdata.dollar;
+    if (rdata.dollarIndex != UINT32_MAX) {
+        MOZ_ASSERT(rdata.dollarIndex < repstr->length());
+        const jschar *dp = bp + rdata.dollarIndex;
         const jschar *ep = bp + repstr->length();
         do {
             
@@ -2672,13 +2678,12 @@ BuildFlatReplacement(JSContext *cx, HandleString textstr, HandleString repstr,
 
 static inline bool
 BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *repstr,
-                       const jschar *firstDollar, const FlatMatch &fm, MutableHandleValue rval)
+                       uint32_t firstDollarIndex, const FlatMatch &fm, MutableHandleValue rval)
 {
     Rooted<JSLinearString*> textstr(cx, textstrArg->ensureLinear(cx));
     if (!textstr)
         return false;
 
-    JS_ASSERT(repstr->chars() <= firstDollar && firstDollar < repstr->chars() + repstr->length());
     size_t matchStart = fm.match();
     size_t matchLimit = matchStart + fm.patternLength();
 
@@ -2693,56 +2698,64 @@ BuildDollarReplacement(JSContext *cx, JSString *textstrArg, JSLinearString *reps
     if (!newReplaceChars.reserve(textstr->length() - fm.patternLength() + repstr->length()))
         return false;
 
+    JS_ASSERT(firstDollarIndex < repstr->length());
+    const jschar *firstDollar = repstr->chars() + firstDollarIndex;
+
     
     newReplaceChars.infallibleAppend(repstr->chars(), firstDollar);
 
     
-#define ENSURE(__cond) if (!(__cond)) return false;
+    const jschar *textchars = textstr->chars();
     const jschar *repstrLimit = repstr->chars() + repstr->length();
     for (const jschar *it = firstDollar; it < repstrLimit; ++it) {
         if (*it != '$' || it == repstrLimit - 1) {
-            ENSURE(newReplaceChars.append(*it));
+            if (!newReplaceChars.append(*it))
+                return false;
             continue;
         }
 
         switch (*(it + 1)) {
           case '$': 
-            ENSURE(newReplaceChars.append(*it));
+            if (!newReplaceChars.append(*it))
+                return false;
             break;
           case '&':
-            ENSURE(newReplaceChars.append(textstr->chars() + matchStart,
-                                          textstr->chars() + matchLimit));
+            if (!newReplaceChars.append(textchars + matchStart, textchars + matchLimit))
+                return false;
             break;
           case '`':
-            ENSURE(newReplaceChars.append(textstr->chars(), textstr->chars() + matchStart));
+            if (!newReplaceChars.append(textchars, textchars + matchStart))
+                return false;
             break;
           case '\'':
-            ENSURE(newReplaceChars.append(textstr->chars() + matchLimit,
-                                          textstr->chars() + textstr->length()));
+            if (!newReplaceChars.append(textchars + matchLimit, textchars + textstr->length()))
+                return false;
             break;
           default: 
-            ENSURE(newReplaceChars.append(*it));
+            if (!newReplaceChars.append(*it))
+                return false;
             continue;
         }
         ++it; 
     }
 
     RootedString leftSide(cx, js_NewDependentString(cx, textstr, 0, matchStart));
-    ENSURE(leftSide);
+    if (!leftSide)
+        return false;
 
     RootedString newReplace(cx, newReplaceChars.finishString());
-    ENSURE(newReplace);
+    if (!newReplace)
+        return false;
 
     JS_ASSERT(textstr->length() >= matchLimit);
     RootedString rightSide(cx, js_NewDependentString(cx, textstr, matchLimit,
-                                                        textstr->length() - matchLimit));
-    ENSURE(rightSide);
+                                                     textstr->length() - matchLimit));
+    if (!rightSide)
+        return false;
 
     RopeBuilder builder(cx);
-    ENSURE(builder.append(leftSide) &&
-           builder.append(newReplace) &&
-           builder.append(rightSide));
-#undef ENSURE
+    if (!builder.append(leftSide) || !builder.append(newReplace) || !builder.append(rightSide))
+        return false;
 
     rval.setString(builder.result());
     return true;
@@ -2950,7 +2963,7 @@ StrReplaceRegExp(JSContext *cx, ReplaceData &rdata, MutableHandleValue rval)
 
     
     if (rdata.repstr && rdata.repstr->length() == 0) {
-        JS_ASSERT(!rdata.lambda && !rdata.elembase && !rdata.dollar);
+        JS_ASSERT(!rdata.lambda && !rdata.elembase && rdata.dollarIndex == UINT32_MAX);
         return StrReplaceRegexpRemove(cx, rdata.str, re, rval);
     }
 
@@ -3030,8 +3043,8 @@ StrReplaceString(JSContext *cx, ReplaceData &rdata, const FlatMatch &fm, Mutable
 
 
 
-    if (rdata.dollar)
-        return BuildDollarReplacement(cx, rdata.str, rdata.repstr, rdata.dollar, fm, rval);
+    if (rdata.dollarIndex != UINT32_MAX)
+        return BuildDollarReplacement(cx, rdata.str, rdata.repstr, rdata.dollarIndex, fm, rval);
     return BuildFlatReplacement(cx, rdata.str, rdata.repstr, fm, rval);
 }
 
