@@ -26,7 +26,7 @@ void TranslatorESSL::translate(TIntermNode* root) {
     getArrayBoundsClamper().OutputClampingFunctionDefinition(sink);
 
     
-    TOutputESSL outputESSL(sink, getArrayIndexClampingStrategy(), getHashFunction(), getNameMap(), getSymbolTable());
+    TOutputESSL outputESSL(sink, getHashFunction(), getNameMap(), getSymbolTable());
     root->traverse(&outputESSL);
 }
 

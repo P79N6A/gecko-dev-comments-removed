@@ -7,8 +7,6 @@
 #ifndef COMPILER_PREPROCESSOR_PREPROCESSOR_H_
 #define COMPILER_PREPROCESSOR_PREPROCESSOR_H_
 
-#include <stddef.h>
-
 #include "pp_utils.h"
 
 namespace pp
@@ -34,7 +32,7 @@ class Preprocessor
     
     
     
-    bool init(size_t count, const char* const string[], const int length[]);
+    bool init(int count, const char* const string[], const int length[]);
     
     void predefineMacro(const char* name, int value);
 

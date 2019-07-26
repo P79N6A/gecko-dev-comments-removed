@@ -23,16 +23,7 @@
 
 
 
-#include "third_party/compiler/ArrayBoundsClamper.h"
-
-
-
-
-
-
-
-
-
+#include "compiler/ArrayBoundsClamper.h"
 
 const char* kIntClampBegin = "// BEGIN: Generated code for array bounds clamping\n\n";
 const char* kIntClampEnd = "// END: Generated code for array bounds clamping\n\n";
@@ -70,17 +61,17 @@ private:
 }  
 
 ArrayBoundsClamper::ArrayBoundsClamper()
-    : mClampingStrategy(SH_CLAMP_WITH_CLAMP_INTRINSIC)
-    , mArrayBoundsClampDefinitionNeeded(false)
+    : mArrayBoundsClampDefinitionNeeded(false)
 {
 }
 
-void ArrayBoundsClamper::SetClampingStrategy(ShArrayIndexClampingStrategy clampingStrategy)
+void ArrayBoundsClamper::OutputClampingFunctionDefinition(TInfoSinkBase& out) const
 {
-    ASSERT(clampingStrategy == SH_CLAMP_WITH_CLAMP_INTRINSIC ||
-           clampingStrategy == SH_CLAMP_WITH_USER_DEFINED_INT_CLAMP_FUNCTION);
-
-    mClampingStrategy = clampingStrategy;
+    if (!mArrayBoundsClampDefinitionNeeded)
+    {
+        return;
+    }
+    out << kIntClampBegin << kIntClampDefinition << kIntClampEnd;
 }
 
 void ArrayBoundsClamper::MarkIndirectArrayBoundsForClamping(TIntermNode* root)
@@ -95,15 +86,3 @@ void ArrayBoundsClamper::MarkIndirectArrayBoundsForClamping(TIntermNode* root)
     }
 }
 
-void ArrayBoundsClamper::OutputClampingFunctionDefinition(TInfoSinkBase& out) const
-{
-    if (!mArrayBoundsClampDefinitionNeeded)
-    {
-        return;
-    }
-    if (mClampingStrategy != SH_CLAMP_WITH_USER_DEFINED_INT_CLAMP_FUNCTION)
-    {
-        return;
-    }
-    out << kIntClampBegin << kIntClampDefinition << kIntClampEnd;
-}

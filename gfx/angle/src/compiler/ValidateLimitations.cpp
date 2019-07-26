@@ -421,7 +421,7 @@ bool ValidateLimitations::validateFunctionCall(TIntermAggregate* node)
         return true;
 
     
-    typedef std::vector<size_t> ParamIndex;
+    typedef std::vector<int> ParamIndex;
     ParamIndex pIndex;
     TIntermSequence& params = node->getSequence();
     for (TIntermSequence::size_type i = 0; i < params.size(); ++i) {

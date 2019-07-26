@@ -58,7 +58,6 @@ struct TParseContext {
     const TType* currentFunctionType;  
     bool functionReturnsValue;   
     bool checksPrecisionErrors;  
-    bool fragmentPrecisionHigh;  
     TString HashErrMsg;
     bool AfterEOF;
     TDiagnostics diagnostics;
@@ -135,7 +134,7 @@ struct TParseContext {
     bool structNestingErrorCheck(TSourceLoc line, const TType& fieldType);
 };
 
-int PaParseStrings(size_t count, const char* const string[], const int length[],
+int PaParseStrings(int count, const char* const string[], const int length[],
                    TParseContext* context);
 
 #endif 

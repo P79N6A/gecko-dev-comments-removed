@@ -23,8 +23,8 @@
 
 
 
-#ifndef THIRD_PARTY_COMPILER_ARRAY_BOUNDS_CLAMPER_H_
-#define THIRD_PARTY_COMPILER_ARRAY_BOUNDS_CLAMPER_H_
+#ifndef COMPILER_ARRAY_BOUNDS_CLAMPER_H_
+#define COMPILER_ARRAY_BOUNDS_CLAMPER_H_
 
 #include "GLSLANG/ShaderLang.h"
 
@@ -36,15 +36,11 @@ public:
     ArrayBoundsClamper();
 
     
-    
-    void SetClampingStrategy(ShArrayIndexClampingStrategy clampingStrategy);
+    void OutputClampingFunctionDefinition(TInfoSinkBase& out) const;
 
     
     
     void MarkIndirectArrayBoundsForClamping(TIntermNode* root);
-
-    
-    void OutputClampingFunctionDefinition(TInfoSinkBase& out) const;
 
     void Cleanup()
     {
@@ -54,8 +50,7 @@ public:
 private:
     bool GetArrayBoundsClampDefinitionNeeded() const { return mArrayBoundsClampDefinitionNeeded; }
     void SetArrayBoundsClampDefinitionNeeded() { mArrayBoundsClampDefinitionNeeded = true; }
-
-    ShArrayIndexClampingStrategy mClampingStrategy;
+    
     bool mArrayBoundsClampDefinitionNeeded;
 };
 

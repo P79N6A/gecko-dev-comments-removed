@@ -111,8 +111,6 @@ bool UnfoldShortCircuit::visitSelection(Visit visit, TIntermSelection *node)
 
         out << mOutputHLSL->typeString(node->getType()) << " s" << i << ";\n";
 
-        out << "{\n";
-
         mTemporaryIndex = i + 1;
         node->getCondition()->traverse(this);
         out << "if(";
@@ -136,8 +134,6 @@ bool UnfoldShortCircuit::visitSelection(Visit visit, TIntermSelection *node)
         node->getFalseBlock()->traverse(mOutputHLSL);
         out << ";\n"
                "}\n";
-
-        out << "}\n";
 
         mTemporaryIndex = i + 1;
     }

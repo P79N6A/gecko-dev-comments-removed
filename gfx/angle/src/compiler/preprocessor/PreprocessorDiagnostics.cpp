@@ -4,7 +4,7 @@
 
 
 
-#include "DiagnosticsBase.h"
+#include "Diagnostics.h"
 
 #include <cassert>
 
