@@ -527,7 +527,13 @@ var WebConsoleUtils = {
     
     
     if (result.value === undefined && result.get === undefined) {
-      result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
+      try {
+        result.value = this.createValueGrip(aObject[aProperty], aObjectWrapper);
+      }
+      catch (ex) {
+        
+        
+      }
     }
 
     return result;
@@ -1218,6 +1224,7 @@ return JSPropertyProvider;
 
 
 
+
 function PageErrorListener(aWindow, aListener)
 {
   this.window = aWindow;
@@ -1259,20 +1266,23 @@ PageErrorListener.prototype =
 
   observe: function PEL_observe(aScriptError)
   {
-    if (!this.window || !this.listener ||
-        !(aScriptError instanceof Ci.nsIScriptError) ||
-        !aScriptError.outerWindowID) {
+    if (!this.listener ||
+        !(aScriptError instanceof Ci.nsIScriptError)) {
       return;
     }
 
-    if (!this.isCategoryAllowed(aScriptError.category)) {
-      return;
-    }
+    if (this.window) {
+      if (!aScriptError.outerWindowID ||
+          !this.isCategoryAllowed(aScriptError.category)) {
+        return;
+      }
 
-    let errorWindow =
-      WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID, this.window);
-    if (!errorWindow || errorWindow.top != this.window) {
-      return;
+      let errorWindow =
+        WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID,
+                                           this.window);
+      if (!errorWindow || errorWindow.top != this.window) {
+        return;
+      }
     }
 
     this.listener.onPageError(aScriptError);
@@ -1314,20 +1324,21 @@ PageErrorListener.prototype =
 
   getCachedMessages: function PEL_getCachedMessages()
   {
-    let innerWindowId = WebConsoleUtils.getInnerWindowId(this.window);
+    let innerWindowId = this.window ?
+                        WebConsoleUtils.getInnerWindowId(this.window) : null;
     let result = [];
     let errors = {};
     Services.console.getMessageArray(errors, {});
 
     (errors.value || []).forEach(function(aError) {
       if (!(aError instanceof Ci.nsIScriptError) ||
-          aError.innerWindowID != innerWindowId ||
-          !this.isCategoryAllowed(aError.category)) {
+          (innerWindowId &&
+           (aError.innerWindowID != innerWindowId ||
+            !this.isCategoryAllowed(aError.category)))) {
         return;
       }
 
-      let remoteMessage = WebConsoleUtils.cloneObject(aError);
-      result.push(remoteMessage);
+      result.push(aError);
     }, this);
 
     return result;
@@ -1342,6 +1353,7 @@ PageErrorListener.prototype =
     this.listener = this.window = null;
   },
 };
+
 
 
 
@@ -1408,16 +1420,18 @@ ConsoleAPIListener.prototype =
 
   observe: function CAL_observe(aMessage, aTopic)
   {
-    if (!this.owner || !this.window) {
+    if (!this.owner) {
       return;
     }
 
     let apiMessage = aMessage.wrappedJSObject;
-    let msgWindow = WebConsoleUtils.getWindowByOuterId(apiMessage.ID,
-                                                       this.window);
-    if (!msgWindow || msgWindow.top != this.window) {
-      
-      return;
+    if (this.window) {
+      let msgWindow = WebConsoleUtils.getWindowByOuterId(apiMessage.ID,
+                                                         this.window);
+      if (!msgWindow || msgWindow.top != this.window) {
+        
+        return;
+      }
     }
 
     this.owner.onConsoleAPICall(apiMessage);
@@ -1432,9 +1446,9 @@ ConsoleAPIListener.prototype =
 
   getCachedMessages: function CAL_getCachedMessages()
   {
-    let innerWindowId = WebConsoleUtils.getInnerWindowId(this.window);
-    let messages = ConsoleAPIStorage.getEvents(innerWindowId);
-    return messages;
+    let innerWindowId = this.window ?
+                        WebConsoleUtils.getInnerWindowId(this.window) : null;
+    return ConsoleAPIStorage.getEvents(innerWindowId);
   },
 
   
@@ -1989,6 +2003,7 @@ NetworkResponseListener.prototype = {
 
 
 
+
 function NetworkMonitor(aWindow, aOwner)
 {
   this.window = aWindow;
@@ -2075,10 +2090,13 @@ NetworkMonitor.prototype = {
     }
 
     let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
-    
-    let win = NetworkHelper.getWindowForRequest(channel);
-    if (!win || win.top !== this.window) {
-      return;
+
+    if (this.window) {
+      
+      let win = NetworkHelper.getWindowForRequest(channel);
+      if (!win || win.top !== this.window) {
+        return;
+      }
     }
 
     let response = {
@@ -2217,14 +2235,23 @@ NetworkMonitor.prototype = {
   _onRequestHeader:
   function NM__onRequestHeader(aChannel, aTimestamp, aExtraStringData)
   {
+    let win = null;
+    try {
+      win = NetworkHelper.getWindowForRequest(aChannel);
+    }
+    catch (ex) {
+      
+    }
+
     
-    let win = NetworkHelper.getWindowForRequest(aChannel);
-    if (!win || win.top !== this.window) {
+    if (this.window && (!win || win.top !== this.window)) {
       return;
     }
 
     let httpActivity = this.createActivityObject(aChannel);
-    httpActivity.charset = win.document.characterSet; 
+
+    
+    httpActivity.charset = win ? win.document.characterSet : null;
 
     httpActivity.timings.REQUEST_HEADER = {
       first: aTimestamp,
@@ -2364,7 +2391,8 @@ NetworkMonitor.prototype = {
                    readPostTextFromRequest(aHttpActivity.channel,
                                            aHttpActivity.charset);
 
-    if (!sentBody && aHttpActivity.url == this.window.location.href) {
+    if (!sentBody && this.window &&
+        aHttpActivity.url == this.window.location.href) {
       
       
       

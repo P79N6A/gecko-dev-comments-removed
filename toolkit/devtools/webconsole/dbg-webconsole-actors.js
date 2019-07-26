@@ -50,10 +50,17 @@ XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
 
 
 
+
 function WebConsoleActor(aConnection, aTabActor)
 {
   this.conn = aConnection;
-  this._browser = aTabActor.browser;
+  if (aTabActor instanceof BrowserTabActor) {
+    this._browser = aTabActor.browser;
+  }
+  else {
+    this._window = Services.wm.getMostRecentWindow("navigator:browser");
+    this._isGlobalActor = true;
+  }
 
   this._objectActorsPool = new ActorPool(this.conn);
   this.conn.addActorPool(this._objectActorsPool);
@@ -71,7 +78,15 @@ WebConsoleActor.prototype =
 
 
 
+
   _browser: null,
+
+  
+
+
+
+
+  _isGlobalActor: false,
 
   
 
@@ -122,7 +137,9 @@ WebConsoleActor.prototype =
 
 
 
-  get window() this._browser.contentWindow,
+  get window() this._browser ? this._browser.contentWindow : this._window,
+
+  _window: null,
 
   
 
@@ -203,7 +220,7 @@ WebConsoleActor.prototype =
     this._objectActorsPool = null;
     this._networkEventActorsPool = null;
     this._sandboxLocation = this.sandbox = null;
-    this.conn = this._browser = null;
+    this.conn = this._browser = this._window = null;
   },
 
   
@@ -285,6 +302,7 @@ WebConsoleActor.prototype =
   onStartListeners: function WCA_onStartListeners(aRequest)
   {
     let startedListeners = [];
+    let window = !this._isGlobalActor ? this.window : null;
 
     while (aRequest.listeners.length > 0) {
       let listener = aRequest.listeners.shift();
@@ -292,7 +310,7 @@ WebConsoleActor.prototype =
         case "PageError":
           if (!this.pageErrorListener) {
             this.pageErrorListener =
-              new PageErrorListener(this.window, this);
+              new PageErrorListener(window, this);
             this.pageErrorListener.init();
           }
           startedListeners.push(listener);
@@ -300,7 +318,7 @@ WebConsoleActor.prototype =
         case "ConsoleAPI":
           if (!this.consoleAPIListener) {
             this.consoleAPIListener =
-              new ConsoleAPIListener(this.window, this);
+              new ConsoleAPIListener(window, this);
             this.consoleAPIListener.init();
           }
           startedListeners.push(listener);
@@ -308,12 +326,17 @@ WebConsoleActor.prototype =
         case "NetworkActivity":
           if (!this.networkMonitor) {
             this.networkMonitor =
-              new NetworkMonitor(this.window, this);
+              new NetworkMonitor(window, this);
             this.networkMonitor.init();
           }
           startedListeners.push(listener);
           break;
         case "FileActivity":
+          if (this._isGlobalActor) {
+            
+            
+            break;
+          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
               new ConsoleProgressListener(this._browser, this);
@@ -323,6 +346,9 @@ WebConsoleActor.prototype =
           startedListeners.push(listener);
           break;
         case "LocationChange":
+          if (this._isGlobalActor) {
+            break;
+          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
               new ConsoleProgressListener(this._browser, this);
@@ -520,7 +546,8 @@ WebConsoleActor.prototype =
   onClearMessagesCache: function WCA_onClearMessagesCache()
   {
     
-    let windowId = WebConsoleUtils.getInnerWindowId(this.window);
+    let windowId = !this._isGlobalActor ?
+                   WebConsoleUtils.getInnerWindowId(this.window) : null;
     ConsoleAPIStorage.clearEvents(windowId);
     return {};
   },

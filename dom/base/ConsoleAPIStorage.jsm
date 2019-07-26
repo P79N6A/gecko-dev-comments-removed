@@ -77,9 +77,25 @@ var ConsoleAPIStorage = {
 
 
 
+
+
   getEvents: function CS_getEvents(aId)
   {
-    return (_consoleStorage[aId] || []).slice(0);
+    if (aId != null) {
+      return (_consoleStorage[aId] || []).slice(0);
+    }
+
+    let ids = [];
+
+    for each (let events in _consoleStorage) {
+      ids.push(events);
+    }
+
+    let result = [].concat.apply([], ids);
+
+    return result.sort(function(a, b) {
+      return a.timeStamp - b.timeStamp;
+    });
   },
 
   
