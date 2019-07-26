@@ -266,6 +266,8 @@ PopupNotifications.prototype = {
 
 
 
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -589,9 +591,15 @@ PopupNotifications.prototype = {
   _showPanel: function PopupNotifications_showPanel(notificationsToShow, anchorElement) {
     this.panel.hidden = false;
 
-    notificationsToShow.forEach(function (n) {
-      this._fireCallback(n, NOTIFICATION_EVENT_SHOWING);
-    }, this);
+    notificationsToShow = notificationsToShow.filter(n => {
+      let dismiss = this._fireCallback(n, NOTIFICATION_EVENT_SHOWING);
+      if (dismiss)
+        n.dismissed = true;
+      return !dismiss;
+    });
+    if (!notificationsToShow.length)
+      return;
+
     this._refreshPanel(notificationsToShow);
 
     if (this.isPanelOpen && this._currentAnchorElement == anchorElement)
