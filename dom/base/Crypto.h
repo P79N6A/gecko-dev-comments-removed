@@ -25,9 +25,12 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMCRYPTO
+
+  static uint8_t*
+  GetRandomValues(uint32_t aLength);
 };
 
 } 
 } 
 
-#endif
+#endif 
