@@ -439,10 +439,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     
+    bool                        mScriptRequested : 1;
+
     
     
     
-    bool mSrcStreamLoading;
+    
+    
+    bool                        mSrcStreamLoading : 1;
 
 
     nsWeakFrame                 mPrintFrame;

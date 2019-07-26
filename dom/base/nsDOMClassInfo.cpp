@@ -9563,6 +9563,7 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 nsresult
 nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
                                                   JSObject *obj,
+                                                  JSContext *cx,
                                                   nsNPAPIPluginInstance **_result)
 {
   *_result = nullptr;
@@ -9573,22 +9574,11 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  nsresult rv = objlc->GetPluginInstance(_result);
-  if (NS_SUCCEEDED(rv) && *_result) {
-    return rv;
-  }
-
-  
-  
-  if (!nsContentUtils::IsSafeToRunScript() || !content->OwnerDoc()->IsActive()) {
-    return rv;
-  }
-
-  
-  
-  objlc->SyncStartPluginInstance();
-
-  return objlc->GetPluginInstance(_result);
+  bool callerIsContentJS = (!xpc::AccessCheck::callerIsChrome() &&
+                            !xpc::AccessCheck::callerIsXBL(cx) &&
+                            js::IsContextRunningJS(cx));
+  return objlc->ScriptRequestPluginInstance(callerIsContentJS,
+                                            _result);
 }
 
 class nsPluginProtoChainInstallRunner MOZ_FINAL : public nsIRunnable
@@ -9649,7 +9639,7 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   JSAutoCompartment ac(cx, obj);
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!pi) {
@@ -9855,7 +9845,7 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
                                jsval *argv, jsval *vp, bool *_retval)
 {
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -9922,7 +9912,7 @@ nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
   
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return nsElementSH::NewResolve(wrapper, cx, obj, id, flags, objp,
