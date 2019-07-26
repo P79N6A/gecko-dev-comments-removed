@@ -457,6 +457,10 @@ IsEligibleForInlinePropertyAdd(JSContext *cx, JSObject *obj, jsid propId, uint32
         return false;
 
     
+    if (obj->getClass()->resolve != JS_ResolveStub)
+        return false;
+
+    
     
     
     for (JSObject *proto = obj->getProto(); proto; proto = proto->getProto()) {
@@ -466,7 +470,17 @@ IsEligibleForInlinePropertyAdd(JSContext *cx, JSObject *obj, jsid propId, uint32
 
         
         const Shape *protoShape = proto->nativeLookup(cx, propId);
-        if (protoShape && !protoShape->hasDefaultSetter())
+        if (protoShape) {
+            
+            
+            
+            
+            return protoShape->hasDefaultSetter();
+        }
+
+        
+        
+        if (proto->getClass()->resolve != JS_ResolveStub)
             return false;
     }
 
