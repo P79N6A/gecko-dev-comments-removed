@@ -25,6 +25,7 @@
 #include "mozFlushType.h"               
 #include "mozISpellCheckingEngine.h"
 #include "mozInlineSpellChecker.h"      
+#include "mozilla/IMEStateManager.h"    
 #include "mozilla/Preferences.h"        
 #include "mozilla/Selection.h"          
 #include "mozilla/Services.h"           
@@ -75,7 +76,6 @@
 #include "nsIFrame.h"                   
 #include "nsIHTMLDocument.h"            
 #include "nsIInlineSpellChecker.h"      
-#include "nsIMEStateManager.h"          
 #include "nsNameSpaceManager.h"        
 #include "nsINode.h"                    
 #include "nsIObserverService.h"         
@@ -315,7 +315,7 @@ nsEditor::PostCreate()
     rv = GetPreferredIMEState(&newState);
     NS_ENSURE_SUCCESS(rv, NS_OK);
     nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
-    nsIMEStateManager::UpdateIMEState(newState, content);
+    IMEStateManager::UpdateIMEState(newState, content);
   }
   return NS_OK;
 }
@@ -496,7 +496,7 @@ nsEditor::SetFlags(uint32_t aFlags)
       
       
       nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
-      nsIMEStateManager::UpdateIMEState(newState, content);
+      IMEStateManager::UpdateIMEState(newState, content);
     }
   }
 
@@ -2017,9 +2017,9 @@ nsEditor::EnsureComposition(mozilla::WidgetGUIEvent* aEvent)
   }
   
   
-  mComposition = nsIMEStateManager::GetTextCompositionFor(aEvent);
+  mComposition = IMEStateManager::GetTextCompositionFor(aEvent);
   if (!mComposition) {
-    MOZ_CRASH("nsIMEStateManager doesn't return proper composition");
+    MOZ_CRASH("IMEStateManager doesn't return proper composition");
   }
   mComposition->StartHandlingComposition(this);
 }
@@ -2095,10 +2095,10 @@ nsEditor::ForceCompositionEnd()
     
     
     
-    return nsIMEStateManager::NotifyIME(NOTIFY_IME_OF_CURSOR_POS_CHANGED, pc);
+    return IMEStateManager::NotifyIME(NOTIFY_IME_OF_CURSOR_POS_CHANGED, pc);
   }
 
-  return nsIMEStateManager::NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, pc);
+  return IMEStateManager::NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, pc);
 }
 
 NS_IMETHODIMP

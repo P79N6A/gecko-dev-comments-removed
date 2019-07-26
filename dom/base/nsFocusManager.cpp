@@ -24,7 +24,6 @@
 #include "nsFrameTraversal.h"
 #include "nsEventDispatcher.h"
 #include "nsEventStateManager.h"
-#include "nsIMEStateManager.h"
 #include "nsIWebNavigation.h"
 #include "nsCaret.h"
 #include "nsIBaseWindow.h"
@@ -41,6 +40,7 @@
 
 #include "mozilla/ContentEvents.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/IMEStateManager.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -933,8 +933,8 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
 
   nsPresContext* focusedPresContext =
     presShell ? presShell->GetPresContext() : nullptr;
-  nsIMEStateManager::OnChangeFocus(focusedPresContext, nullptr,
-                                   GetFocusMoveActionCause(0));
+  IMEStateManager::OnChangeFocus(focusedPresContext, nullptr,
+                                 GetFocusMoveActionCause(0));
   if (presShell) {
     SetCaretVisible(presShell, false, nullptr);
   }
@@ -1529,8 +1529,8 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
 
   nsPresContext* focusedPresContext =
     mActiveWindow ? presShell->GetPresContext() : nullptr;
-  nsIMEStateManager::OnChangeFocus(focusedPresContext, nullptr,
-                                   GetFocusMoveActionCause(0));
+  IMEStateManager::OnChangeFocus(focusedPresContext, nullptr,
+                                 GetFocusMoveActionCause(0));
 
   
   
@@ -1750,8 +1750,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     
     
     if (doc && doc->HasFlag(NODE_IS_EDITABLE)) {
-      nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nullptr,
-                                       GetFocusMoveActionCause(aFlags));
+      IMEStateManager::OnChangeFocus(presShell->GetPresContext(), nullptr,
+                                     GetFocusMoveActionCause(aFlags));
     }
     if (doc)
       SendFocusOrBlurEvent(NS_FOCUS_CONTENT, presShell, doc,
@@ -1796,8 +1796,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
         }
       }
 
-      nsIMEStateManager::OnChangeFocus(presContext, aContent,
-                                       GetFocusMoveActionCause(aFlags));
+      IMEStateManager::OnChangeFocus(presContext, aContent,
+                                     GetFocusMoveActionCause(aFlags));
 
       
       
@@ -1810,8 +1810,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
                            aContent, aFlags & FOCUSMETHOD_MASK,
                            aWindowRaised, isRefocus);
     } else {
-      nsIMEStateManager::OnChangeFocus(presContext, nullptr,
-                                       GetFocusMoveActionCause(aFlags));
+      IMEStateManager::OnChangeFocus(presContext, nullptr,
+                                     GetFocusMoveActionCause(aFlags));
       if (!aWindowRaised) {
         aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
       }
@@ -1834,8 +1834,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     }
 
     nsPresContext* presContext = presShell->GetPresContext();
-    nsIMEStateManager::OnChangeFocus(presContext, nullptr,
-                                     GetFocusMoveActionCause(aFlags));
+    IMEStateManager::OnChangeFocus(presContext, nullptr,
+                                   GetFocusMoveActionCause(aFlags));
 
     if (!aWindowRaised)
       aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));

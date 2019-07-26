@@ -5,6 +5,7 @@
 
 
 #include "mozilla/Attributes.h"
+#include "mozilla/IMEStateManager.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MouseEvents.h"
@@ -17,7 +18,6 @@
 #include "nsCOMPtr.h"
 #include "nsEventStateManager.h"
 #include "nsFocusManager.h"
-#include "nsIMEStateManager.h"
 #include "nsContentEventHandler.h"
 #include "nsIContent.h"
 #include "nsINodeInfo.h"
@@ -3765,7 +3765,7 @@ nsEventStateManager::IsTargetCrossProcess(WidgetGUIEvent* aEvent)
 void
 nsEventStateManager::NotifyDestroyPresContext(nsPresContext* aPresContext)
 {
-  nsIMEStateManager::OnDestroyPresContext(aPresContext);
+  IMEStateManager::OnDestroyPresContext(aPresContext);
   if (mHoverContent) {
     
     
@@ -5176,7 +5176,7 @@ nsEventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent
     element->LeaveLink(element->GetPresContext());
   }
 
-  nsIMEStateManager::OnRemoveContent(mPresContext, aContent);
+  IMEStateManager::OnRemoveContent(mPresContext, aContent);
 
   
   

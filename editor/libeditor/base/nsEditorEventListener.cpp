@@ -4,6 +4,7 @@
 
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/IMEStateManager.h"    
 #include "mozilla/Preferences.h"        
 #include "mozilla/TextEvents.h"         
 #include "mozilla/dom/Element.h"        
@@ -38,7 +39,6 @@
 #include "nsIFocusManager.h"            
 #include "nsIFormControl.h"             
 #include "nsIHTMLEditor.h"              
-#include "nsIMEStateManager.h"          
 #include "nsINativeKeyBindings.h"       
 #include "nsINode.h"                    
 #include "nsIPlaintextEditor.h"         
@@ -570,7 +570,7 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
     nsPresContext* presContext =
       presShell ? presShell->GetPresContext() : nullptr;
     if (presContext && currentDoc) {
-      nsIMEStateManager::OnClickInEditor(presContext,
+      IMEStateManager::OnClickInEditor(presContext,
         currentDoc->HasFlag(NODE_IS_EDITABLE) ? nullptr : focusedContent,
         mouseEvent);
     }
@@ -954,7 +954,7 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIPresShell> ps = GetPresShell();
   NS_ENSURE_TRUE(ps, NS_OK);
   nsCOMPtr<nsIContent> focusedContent = mEditor->GetFocusedContentForIME();
-  nsIMEStateManager::OnFocusInEditor(ps->GetPresContext(), focusedContent);
+  IMEStateManager::OnFocusInEditor(ps->GetPresContext(), focusedContent);
 
   return NS_OK;
 }

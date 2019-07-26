@@ -20,9 +20,10 @@
 
 class nsDispatchingCallback;
 class nsIEditor;
-class nsIMEStateManager;
 
 namespace mozilla {
+
+class IMEStateManager;
 
 
 
@@ -32,7 +33,7 @@ namespace mozilla {
 
 class TextComposition MOZ_FINAL
 {
-  friend class ::nsIMEStateManager;
+  friend class IMEStateManager;
 
   NS_INLINE_DECL_REFCOUNTING(TextComposition)
 

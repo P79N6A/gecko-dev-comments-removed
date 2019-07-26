@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsIMEStateManager_h__
-#define nsIMEStateManager_h__
+#ifndef mozilla_IMEStateManager_h_
+#define mozilla_IMEStateManager_h_
 
 #include "mozilla/EventForwards.h"
 #include "nsIWidget.h"
@@ -18,23 +18,23 @@ class nsPresContext;
 class nsISelection;
 
 namespace mozilla {
+
 class IMEContentObserver;
 class TextCompositionArray;
 class TextComposition;
-} 
 
 
 
 
 
-class nsIMEStateManager
+
+
+class IMEStateManager
 {
-  friend class nsTextStateManager;
-protected:
-  typedef mozilla::widget::IMEMessage IMEMessage;
-  typedef mozilla::widget::IMEState IMEState;
-  typedef mozilla::widget::InputContext InputContext;
-  typedef mozilla::widget::InputContextAction InputContextAction;
+  typedef widget::IMEMessage IMEMessage;
+  typedef widget::IMEState IMEState;
+  typedef widget::InputContext InputContext;
+  typedef widget::InputContextAction InputContextAction;
 
 public:
   static void Shutdown();
@@ -92,14 +92,14 @@ public:
 
   static void DispatchCompositionEvent(nsINode* aEventTargetNode,
                                        nsPresContext* aPresContext,
-                                       mozilla::WidgetEvent* aEvent,
+                                       WidgetEvent* aEvent,
                                        nsEventStatus* aStatus,
                                        nsDispatchingCallback* aCallBack);
 
   
 
 
-  static already_AddRefed<mozilla::TextComposition>
+  static already_AddRefed<TextComposition>
     GetTextCompositionFor(nsIWidget* aWidget);
 
   
@@ -108,8 +108,8 @@ public:
 
 
 
-  static already_AddRefed<mozilla::TextComposition>
-    GetTextCompositionFor(mozilla::WidgetGUIEvent* aEvent);
+  static already_AddRefed<TextComposition>
+    GetTextCompositionFor(WidgetGUIEvent* aEvent);
 
   
 
@@ -146,13 +146,15 @@ protected:
   static bool           sInstalledMenuKeyboardListener;
   static bool           sIsTestingIME;
 
-  static mozilla::IMEContentObserver* sActiveIMEContentObserver;
+  static IMEContentObserver* sActiveIMEContentObserver;
 
   
   
   
   
-  static mozilla::TextCompositionArray* sTextCompositions;
+  static TextCompositionArray* sTextCompositions;
 };
+
+} 
 
 #endif 
