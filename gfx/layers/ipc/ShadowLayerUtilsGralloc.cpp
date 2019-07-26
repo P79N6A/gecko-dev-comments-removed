@@ -291,16 +291,6 @@ GrallocBufferActor::Create(const gfx::IntSize& aSize,
     return actor;
   }
 
-  
-  
-  
-  
-  if (aSize.width > 4096 || aSize.height > 4096) {
-    printf_stderr("GrallocBufferActor::Create -- requested gralloc buffer is too big. Killing child instead.");
-    delete actor;
-    return nullptr;
-  }
-
   sp<GraphicBuffer> buffer(new GraphicBuffer(aSize.width, aSize.height, format, usage));
   if (buffer->initCheck() != OK)
     return actor;
