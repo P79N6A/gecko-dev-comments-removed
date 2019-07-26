@@ -341,8 +341,13 @@ public class TabsTray extends LinearLayout
     }
 
     private class TabSwipeGestureListener implements View.OnTouchListener {
+        
+        
+        private static final float MIN_VELOCITY = 750;
+
         private int mSwipeThreshold;
         private int mMinFlingVelocity;
+
         private int mMaxFlingVelocity;
         private VelocityTracker mVelocityTracker;
 
@@ -369,7 +374,7 @@ public class TabsTray extends LinearLayout
 
             ViewConfiguration vc = ViewConfiguration.get(listView.getContext());
             mSwipeThreshold = vc.getScaledTouchSlop();
-            mMinFlingVelocity = vc.getScaledMinimumFlingVelocity();
+            mMinFlingVelocity = (int) (getContext().getResources().getDisplayMetrics().density * MIN_VELOCITY);
             mMaxFlingVelocity = vc.getScaledMaximumFlingVelocity();
         }
 
