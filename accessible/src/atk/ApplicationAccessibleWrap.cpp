@@ -435,16 +435,17 @@ mai_util_remove_key_event_listener (guint remove_listener)
 AtkObject*
 mai_util_get_root(void)
 {
-  if (nsAccessibilityService::IsShutdown()) {
-    
-    
-    if (gail_get_root)
-      return gail_get_root();
+  ApplicationAccessible* app = ApplicationAcc();
+  if (app)
+    return app->GetAtkObject();
 
-    return nullptr;
-  }
+  
+  
+  
+  if (gail_get_root)
+    return gail_get_root();
 
-  return ApplicationAcc()->GetAtkObject();
+  return nullptr;
 }
 
 G_CONST_RETURN gchar *
