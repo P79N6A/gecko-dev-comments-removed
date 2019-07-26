@@ -1382,12 +1382,9 @@ PauseScopedActor.prototype = {
 
 
 
-
-
-function SourceActor(aUrl, aThreadActor, aSourceContent=null) {
+function SourceActor(aUrl, aThreadActor) {
   this._threadActor = aThreadActor;
   this._url = aUrl;
-  this._sourceContent = aSourceContent;
 }
 
 SourceActor.prototype = {
@@ -1415,14 +1412,6 @@ SourceActor.prototype = {
 
 
   onSource: function SA_onSource(aRequest) {
-    if (this._sourceContent) {
-      return {
-        from: this.actorID,
-        source: this.threadActor.createValueGrip(
-          this._sourceContent, this.threadActor.threadLifetimePool)
-      };
-    }
-
     return fetch(this._url)
       .then(function(aSource) {
         return this.threadActor.createValueGrip(
@@ -2445,10 +2434,7 @@ ThreadSources.prototype = {
 
 
 
-
-
-
-  source: function TS_source(aURL, aSourceContent=null) {
+  source: function TS_source(aURL) {
     if (!this._allow(aURL)) {
       return null;
     }
@@ -2457,7 +2443,7 @@ ThreadSources.prototype = {
       return this._sourceActors[aURL];
     }
 
-    let actor = new SourceActor(aURL, this._thread, aSourceContent);
+    let actor = new SourceActor(aURL, this._thread);
     this._thread.threadLifetimePool.addActor(actor);
     this._sourceActors[aURL] = actor;
     try {
@@ -2479,8 +2465,7 @@ ThreadSources.prototype = {
     return this.sourceMap(aScript)
       .then((aSourceMap) => {
         return [
-          this.source(s, aSourceMap.sourceContentFor(s))
-          for (s of aSourceMap.sources)
+          this.source(s) for (s of aSourceMap.sources)
         ];
       }, (e) => {
         reportError(e);
