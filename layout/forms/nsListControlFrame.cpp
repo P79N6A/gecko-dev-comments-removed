@@ -2102,10 +2102,18 @@ nsListControlFrame::KeyDown(nsIDOMEvent* aKeyEvent)
   int32_t newIndex = kNothingSelected;
 
   bool isControlOrMeta = (keyEvent->IsControl() || keyEvent->IsMeta());
+  
+  if (isControlOrMeta && !GetMultiple() &&
+      (keyEvent->keyCode == NS_VK_PAGE_UP ||
+       keyEvent->keyCode == NS_VK_PAGE_DOWN)) {
+    return NS_OK;
+  }
   if (isControlOrMeta && (keyEvent->keyCode == NS_VK_UP ||
                           keyEvent->keyCode == NS_VK_LEFT ||
                           keyEvent->keyCode == NS_VK_DOWN ||
-                          keyEvent->keyCode == NS_VK_RIGHT)) {
+                          keyEvent->keyCode == NS_VK_RIGHT ||
+                          keyEvent->keyCode == NS_VK_HOME ||
+                          keyEvent->keyCode == NS_VK_END)) {
     
     isControlOrMeta = mControlSelectMode = GetMultiple();
   } else if (keyEvent->keyCode != NS_VK_SPACE) {
