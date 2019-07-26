@@ -938,7 +938,7 @@ class ReadOptions : public MediaSource::ReadOptions
 {
   
   
-  uint32_t sadface[4];
+  uint32_t sadface[16];
 };
 
 bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aSeekTimeUs,
