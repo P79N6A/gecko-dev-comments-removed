@@ -1528,6 +1528,10 @@ gfxPlatform::InitBackendPrefs(uint32_t aCanvasBitmask, BackendType aCanvasDefaul
     mContentBackend = GetContentBackendPref(mContentBackendBitmask);
     if (mContentBackend == BackendType::NONE) {
         mContentBackend = aContentDefault;
+        
+        
+        
+        mContentBackendBitmask |= BackendTypeBit(aContentDefault);
     }
 }
 
