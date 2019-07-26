@@ -24,6 +24,7 @@
 class gfxASurface;
 class gfxImageSurface;
 class nsIFrame;
+class nsSVGFilterFrame;
 class nsSVGFilterPaintCallback;
 
 namespace mozilla {
@@ -75,42 +76,19 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
   nsSVGFilterInstance(nsIFrame *aTargetFrame,
+                      nsSVGFilterFrame *aFilterFrame,
                       nsSVGFilterPaintCallback *aPaintCallback,
-                      const mozilla::dom::SVGFilterElement *aFilterElement,
-                      const gfxRect &aTargetBBox,
-                      const gfxRect& aFilterRegion,
-                      const nsIntSize& aFilterSpaceSize,
-                      const gfxMatrix &aFilterSpaceToDeviceSpaceTransform,
-                      const gfxMatrix &aFilterSpaceToFrameSpaceInCSSPxTransform,
-                      const nsIntRect& aTargetBounds,
-                      const nsIntRect& aPostFilterDirtyRect,
-                      const nsIntRect& aPreFilterDirtyRect,
-                      uint16_t aPrimitiveUnits,
-                      nsIFrame* aTransformRoot) :
-    mTargetFrame(aTargetFrame),
-    mPaintCallback(aPaintCallback),
-    mFilterElement(aFilterElement),
-    mTargetBBox(aTargetBBox),
-    mFilterSpaceToDeviceSpaceTransform(aFilterSpaceToDeviceSpaceTransform),
-    mFilterSpaceToFrameSpaceInCSSPxTransform(aFilterSpaceToFrameSpaceInCSSPxTransform),
-    mFilterRegion(aFilterRegion),
-    mFilterSpaceBounds(nsIntPoint(0, 0), aFilterSpaceSize),
-    mTargetBounds(aTargetBounds),
-    mPostFilterDirtyRect(aPostFilterDirtyRect),
-    mPreFilterDirtyRect(aPreFilterDirtyRect),
-    mPrimitiveUnits(aPrimitiveUnits),
-    mTransformRoot(aTransformRoot) {
-  }
+                      const nsRect *aPostFilterDirtyRect = nullptr,
+                      const nsRect *aPreFilterDirtyRect = nullptr,
+                      const nsRect *aOverridePreFilterVisualOverflowRect = nullptr,
+                      const gfxRect *aOverrideBBox = nullptr,
+                      nsIFrame* aTransformRoot = nullptr);
+
+  
+
+
+  bool IsInitialized() const { return mInitialized; }
 
   
 
@@ -209,9 +187,7 @@ public:
     return mFilterSpaceToFrameSpaceInCSSPxTransform;
   }
 
-  int32_t AppUnitsPerCSSPixel() const {
-    return mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
-  }
+  int32_t AppUnitsPerCSSPixel() const { return mAppUnitsPerCSSPx; }
 
 private:
   struct SourceInfo {
@@ -289,9 +265,28 @@ private:
   
 
 
+
+
+
+  nsIntRect FrameSpaceToFilterSpace(const nsRect* aRect) const;
+
+  
+
+
+
+
+  gfxMatrix GetUserSpaceToFrameSpaceInCSSPxTransform() const;
+
+  
+
+
   nsIFrame*               mTargetFrame;
 
   nsSVGFilterPaintCallback* mPaintCallback;
+
+  
+
+
   const mozilla::dom::SVGFilterElement* mFilterElement;
 
   
@@ -299,8 +294,20 @@ private:
 
   gfxRect                 mTargetBBox;
 
+  
+
+
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
+
+  
+
+
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
+  gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
+
+  
+
+
   gfxRect                 mFilterRegion;
   nsIntRect               mFilterSpaceBounds;
 
@@ -336,6 +343,8 @@ private:
   nsIFrame*               mTransformRoot;
   nsTArray<mozilla::RefPtr<SourceSurface>> mInputImages;
   nsTArray<FilterPrimitiveDescription> mPrimitiveDescriptions;
+  int32_t                 mAppUnitsPerCSSPx;
+  bool                    mInitialized;
 };
 
 #endif

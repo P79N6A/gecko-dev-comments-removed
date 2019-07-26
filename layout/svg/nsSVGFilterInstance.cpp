@@ -12,6 +12,7 @@
 #include "nsISVGChildFrame.h"
 #include "nsRenderingContext.h"
 #include "mozilla/dom/SVGFilterElement.h"
+#include "nsSVGFilterFrame.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGUtils.h"
 #include "SVGContentUtils.h"
@@ -21,6 +22,147 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
+
+nsSVGFilterInstance::nsSVGFilterInstance(nsIFrame *aTargetFrame,
+                                         nsSVGFilterFrame *aFilterFrame,
+                                         nsSVGFilterPaintCallback *aPaintCallback,
+                                         const nsRect *aPostFilterDirtyRect,
+                                         const nsRect *aPreFilterDirtyRect,
+                                         const nsRect *aPreFilterVisualOverflowRectOverride,
+                                         const gfxRect *aOverrideBBox,
+                                         nsIFrame* aTransformRoot) :
+  mTargetFrame(aTargetFrame),
+  mPaintCallback(aPaintCallback),
+  mTransformRoot(aTransformRoot),
+  mInitialized(false) {
+
+  mFilterElement =  aFilterFrame->GetFilterContent();
+
+  mPrimitiveUnits =
+    aFilterFrame->GetEnumValue(SVGFilterElement::PRIMITIVEUNITS);
+
+  mTargetBBox = aOverrideBBox ?
+    *aOverrideBBox : nsSVGUtils::GetBBox(mTargetFrame);
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsSVGLength2 XYWH[4];
+  NS_ABORT_IF_FALSE(sizeof(mFilterElement->mLengthAttributes) == sizeof(XYWH),
+                    "XYWH size incorrect");
+  memcpy(XYWH, mFilterElement->mLengthAttributes, 
+    sizeof(mFilterElement->mLengthAttributes));
+  XYWH[0] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_X);
+  XYWH[1] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_Y);
+  XYWH[2] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_WIDTH);
+  XYWH[3] = *aFilterFrame->GetLengthValue(SVGFilterElement::ATTR_HEIGHT);
+  uint16_t filterUnits =
+    aFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
+  
+  mFilterRegion = nsSVGUtils::GetRelativeRect(filterUnits,
+    XYWH, mTargetBBox, mTargetFrame);
+
+  if (mFilterRegion.Width() <= 0 || mFilterRegion.Height() <= 0) {
+    
+    
+    return;
+  }
+
+  
+  
+  
+  
+  
+
+  gfxIntSize filterRes;
+  const nsSVGIntegerPair* filterResAttrs =
+    aFilterFrame->GetIntegerPairValue(SVGFilterElement::FILTERRES);
+  if (filterResAttrs->IsExplicitlySet()) {
+    int32_t filterResX = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eFirst);
+    int32_t filterResY = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eSecond);
+    if (filterResX <= 0 || filterResY <= 0) {
+      
+      return;
+    }
+
+    mFilterRegion.Scale(filterResX, filterResY);
+    mFilterRegion.RoundOut();
+    mFilterRegion.Scale(1.0 / filterResX, 1.0 / filterResY);
+    
+    
+    bool overflow;
+    filterRes =
+      nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
+                                       &overflow);
+    
+    
+  } else {
+    
+    
+    gfxMatrix canvasTM =
+      nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
+    if (canvasTM.IsSingular()) {
+      
+      return;
+    }
+
+    gfxSize scale = canvasTM.ScaleFactors(true);
+    mFilterRegion.Scale(scale.width, scale.height);
+    mFilterRegion.RoundOut();
+    
+    
+    bool overflow;
+    filterRes = nsSVGUtils::ConvertToSurfaceSize(mFilterRegion.Size(),
+                                                 &overflow);
+    mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
+  }
+
+  mFilterSpaceBounds.SetRect(nsIntPoint(0, 0), filterRes);
+
+  
+
+  gfxMatrix filterToUserSpace(mFilterRegion.Width() / filterRes.width, 0.0f,
+                              0.0f, mFilterRegion.Height() / filterRes.height,
+                              mFilterRegion.X(), mFilterRegion.Y());
+
+  
+  if (mPaintCallback) {
+    mFilterSpaceToDeviceSpaceTransform = filterToUserSpace *
+              nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_PAINTING);
+  }
+
+  
+
+  mAppUnitsPerCSSPx = mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
+
+  mFilterSpaceToFrameSpaceInCSSPxTransform =
+    filterToUserSpace * GetUserSpaceToFrameSpaceInCSSPxTransform();
+  
+  mFrameSpaceInCSSPxToFilterSpaceTransform =
+    mFilterSpaceToFrameSpaceInCSSPxTransform;
+  mFrameSpaceInCSSPxToFilterSpaceTransform.Invert();
+
+  mPostFilterDirtyRect = FrameSpaceToFilterSpace(aPostFilterDirtyRect);
+  mPreFilterDirtyRect = FrameSpaceToFilterSpace(aPreFilterDirtyRect);
+  if (aPreFilterVisualOverflowRectOverride) {
+    mTargetBounds = 
+      FrameSpaceToFilterSpace(aPreFilterVisualOverflowRectOverride);
+  } else {
+    nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
+    mTargetBounds = FrameSpaceToFilterSpace(&preFilterVOR);
+  }
+
+  mInitialized = true;
+}
 
 float
 nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
@@ -592,4 +734,56 @@ nsSVGFilterInstance::ComputeSourceNeededRect(nsIntRect* aDirty)
   *aDirty = mSourceGraphic.mNeededBounds;
 
   return NS_OK;
+}
+
+nsIntRect
+nsSVGFilterInstance::FrameSpaceToFilterSpace(const nsRect* aRect) const
+{
+  nsIntRect rect = mFilterSpaceBounds;
+  if (aRect) {
+    if (aRect->IsEmpty()) {
+      return nsIntRect();
+    }
+    gfxRect rectInCSSPx =
+      nsLayoutUtils::RectToGfxRect(*aRect, mAppUnitsPerCSSPx);
+    gfxRect rectInFilterSpace =
+      mFrameSpaceInCSSPxToFilterSpaceTransform.TransformBounds(rectInCSSPx);
+    rectInFilterSpace.RoundOut();
+    nsIntRect intRect;
+    if (gfxUtils::GfxRectToIntRect(rectInFilterSpace, &intRect)) {
+      rect = intRect;
+    }
+  }
+  return rect;
+}
+
+gfxMatrix
+nsSVGFilterInstance::GetUserSpaceToFrameSpaceInCSSPxTransform() const
+{
+  gfxMatrix userToFrameSpaceInCSSPx;
+
+  if ((mTargetFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (mTargetFrame->GetType() == nsGkAtoms::svgInnerSVGFrame) {
+      userToFrameSpaceInCSSPx =
+        static_cast<nsSVGElement*>(mTargetFrame->GetContent())->
+          PrependLocalTransformsTo(gfxMatrix());
+    } else {
+      gfxPoint targetsUserSpaceOffset =
+        nsLayoutUtils::RectToGfxRect(mTargetFrame->GetRect(),
+                                     mAppUnitsPerCSSPx).TopLeft();
+      userToFrameSpaceInCSSPx.Translate(-targetsUserSpaceOffset);
+    }
+  }
+  
+  return userToFrameSpaceInCSSPx;
 }

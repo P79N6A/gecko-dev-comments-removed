@@ -117,7 +117,7 @@ private:
   
   
   class AutoFilterReferencer;
-  friend class nsAutoFilterInstance;
+  friend class nsSVGFilterInstance;
   nsSVGFilterFrame* GetReferencedFilter();
   nsSVGFilterFrame* GetReferencedFilterIfNotInUse();
 
