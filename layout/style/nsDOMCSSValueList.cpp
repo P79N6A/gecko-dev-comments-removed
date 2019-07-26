@@ -4,9 +4,10 @@
 
 
 
-#include "nsContentUtils.h"
 #include "nsDOMCSSValueList.h"
 #include "mozilla/dom/CSSValueListBinding.h"
+#include "nsAutoPtr.h"
+#include "nsContentUtils.h"
 
 using namespace mozilla;
 
