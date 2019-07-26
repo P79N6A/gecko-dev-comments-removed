@@ -56,6 +56,12 @@ public:
 
 protected:
   static JSString* obj_toString(JSContext* cx, const char* className);
+
+  
+  
+  bool AppendNamedPropertyIds(JSContext* cx, JSObject* proxy,
+                              nsTArray<nsString>& names,
+                              JS::AutoIdVector& props);
 };
 
 extern jsid s_length_id;
