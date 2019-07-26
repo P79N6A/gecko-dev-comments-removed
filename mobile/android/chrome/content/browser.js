@@ -179,6 +179,14 @@ function fuzzyEquals(a, b) {
   return (Math.abs(a - b) < 1e-6);
 }
 
+
+
+
+
+function convertFromPxToTwips(aSize) {
+  return (20.0 * 12.0 * (aSize/16.0));
+}
+
 #ifdef MOZ_CRASHREPORTER
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -2596,8 +2604,37 @@ Tab.prototype = {
     }
   },
 
+  
+
+
+  getFontSizeInTwipsFor: function(aElement) {
+    
+    let fontSizeStr = this.window.getComputedStyle(aElement)['fontSize'];
+    let fontSize = fontSizeStr.slice(0, -2);
+    
+    return convertFromPxToTwips(fontSize);
+  },
+
+  
+
+
+
+
+  getZoomToMinFontSize: function(aElement) {
+    let currentZoom = this._zoom;
+    let minFontSize = Services.prefs.getIntPref("browser.zoom.reflowZoom.minFontSizeTwips");
+    let curFontSize = this.getFontSizeInTwipsFor(aElement);
+    if (!fuzzyEquals(curFontSize*(currentZoom), minFontSize)) {
+      return 1.0 + minFontSize / curFontSize;
+    }
+
+    return 1.0;
+  },
+
   performReflowOnZoom: function(aViewport) {
-      let viewportWidth = gScreenWidth / aViewport.zoom;
+      let zoom = this._drawZoom ? this._drawZoom : aViewport.zoom;
+
+      let viewportWidth = gScreenWidth / zoom;
       let reflozTimeout = Services.prefs.getIntPref("browser.zoom.reflowZoom.reflowTimeout");
 
       if (gReflowPending) {
@@ -2960,7 +2997,21 @@ Tab.prototype = {
 
     
     
-    let isZooming = Math.abs(aViewport.zoom - this._zoom) >= 1e-6;
+    let isZooming = !fuzzyEquals(aViewport.zoom, this._zoom);
+    if (BrowserApp.selectedTab.reflozPinchSeen &&
+        isZooming && aViewport.zoom < 1.0) {
+      
+      
+      BrowserEventHandler.resetMaxLineBoxWidth();
+      BrowserApp.selectedTab.reflozPinchSeen = false;
+    } else if (BrowserApp.selectedTab.reflozPinchSeen &&
+               isZooming) {
+      
+      
+      BrowserApp.selectedTab.probablyNeedRefloz = false;
+      BrowserApp.selectedTab._mReflozPoint = null;
+    }
+
     if (isZooming &&
         BrowserEventHandler.mReflozPref &&
         BrowserApp.selectedTab._mReflozPoint &&
@@ -3859,10 +3910,15 @@ var BrowserEventHandler = {
   },
 
   resetMaxLineBoxWidth: function() {
-    let webNav = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation);
-    let docShell = webNav.QueryInterface(Ci.nsIDocShell);
-    let docViewer = docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
-    docViewer.changeMaxLineBoxWidth(0);
+    BrowserApp.selectedTab.probablyNeedRefloz = false;
+
+    if (gReflowPending) {
+      clearTimeout(gReflowPending);
+    }
+
+    let reflozTimeout = Services.prefs.getIntPref("browser.zoom.reflowZoom.reflowTimeout");
+    gReflowPending = setTimeout(doChangeMaxLineBoxWidth,
+                                reflozTimeout, 0);
   },
 
   updateReflozPref: function() {
@@ -4093,6 +4149,18 @@ var BrowserEventHandler = {
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
 
+    
+    if (BrowserEventHandler.mReflozPref &&
+       !BrowserApp.selectedTab._mReflozPoint) {
+     let data = JSON.parse(aData);
+     let zoomPointX = data.x;
+     let zoomPointY = data.y;
+
+     BrowserApp.selectedTab._mReflozPoint = { x: zoomPointX, y: zoomPointY,
+       range: BrowserApp.selectedBrowser.contentDocument.caretPositionFromPoint(zoomPointX, zoomPointY) };
+       BrowserApp.selectedTab.probablyNeedRefloz = true;
+    }
+
     let zoom = BrowserApp.selectedTab._zoom;
     let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
     if (!element) {
@@ -4127,9 +4195,21 @@ var BrowserEventHandler = {
 
     
     
-    if (this._isRectZoomedIn(bRect, viewport)) {
-      if (aCanZoomOut)
+    if (BrowserEventHandler.mReflozPref) {
+      let zoomFactor = BrowserApp.selectedTab.getZoomToMinFontSize(aElement);
+
+      bRect.width = zoomFactor == 1.0 ? bRect.width : gScreenWidth / zoomFactor;
+      bRect.height = zoomFactor == 1.0 ? bRect.height : bRect.height / zoomFactor;
+      if (zoomFactor == 1.0 || this._isRectZoomedIn(bRect, viewport)) {
+        if (aCanZoomOut) {
+          this._zoomOut();
+        }
+        return;
+      }
+    } else if (this._isRectZoomedIn(bRect, viewport)) {
+      if (aCanZoomOut) {
         this._zoomOut();
+      }
       return;
     }
 
