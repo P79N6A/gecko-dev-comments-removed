@@ -7295,20 +7295,17 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* lastRemoved = aFirstToNotRemove->GetPrevContinuation();
-  nsIFrame* parent = aFrame->GetParent();
-  nsBlockFrame* parentBlock = nsLayoutUtils::GetAsBlock(parent);
-  if (!parentBlock) {
+
+  
+  
+  
+  
+  
+  
+  aFrame->ClearTextRuns();
+  if (aFrame != lastRemoved) {
     
-    
-    
-    
-    
-    
-    aFrame->ClearTextRuns();
-    if (aFrame != lastRemoved) {
-      
-      static_cast<nsTextFrame*>(lastRemoved)->ClearTextRuns();
-    }
+    static_cast<nsTextFrame*>(lastRemoved)->ClearTextRuns();
   }
 
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
@@ -7317,6 +7314,8 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   aFrame->SetPrevInFlow(nullptr);
   lastRemoved->SetNextInFlow(nullptr);
 
+  nsIFrame* parent = aFrame->GetParent();
+  nsBlockFrame* parentBlock = nsLayoutUtils::GetAsBlock(parent);
   if (parentBlock) {
     
     
