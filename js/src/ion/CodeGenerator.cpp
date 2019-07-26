@@ -600,6 +600,11 @@ CodeGenerator::visitParameter(LParameter *lir)
 bool
 CodeGenerator::visitCallee(LCallee *lir)
 {
+    
+    Register callee = ToRegister(lir->output());
+    Address ptr(StackPointer, frameSize() + IonJSFrameLayout::offsetOfCalleeToken());
+
+    masm.loadPtr(ptr, callee);
     return true;
 }
 

@@ -526,10 +526,6 @@ class IonBuilder : public MIRGenerator
     
     
     MInstruction *lazyArguments_;
-
-    
-    
-    MCallee *callee_;
 };
 
 } 

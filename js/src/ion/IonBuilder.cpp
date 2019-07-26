@@ -42,8 +42,7 @@ IonBuilder::IonBuilder(JSContext *cx, TempAllocator *temp, MIRGraph *graph,
     inliningDepth(inliningDepth),
     failedBoundsCheck_(info->script()->failedBoundsCheck),
     failedShapeGuard_(info->script()->failedShapeGuard),
-    lazyArguments_(NULL),
-    callee_(NULL)
+    lazyArguments_(NULL)
 {
     script_.init(info->script());
     pc = info->startPC();
@@ -586,15 +585,6 @@ IonBuilder::initScopeChain()
 
     
     
-    JSFunction *fun = info().fun();
-    if (fun) {
-        JS_ASSERT(!callee_);
-        callee_ = MCallee::New();
-        current->add(callee_);
-    }
-
-    
-    
     if (!script()->analysis()->usesScopeChain())
         return true;
 
@@ -605,19 +595,22 @@ IonBuilder::initScopeChain()
     if (!script()->compileAndGo)
         return abort("non-CNG global scripts are not supported");
 
-    if (fun) {
-        scope = MFunctionEnvironment::New(callee_);
+    if (JSFunction *fun = info().fun()) {
+        MCallee *callee = MCallee::New();
+        current->add(callee);
+
+        scope = MFunctionEnvironment::New(callee);
         current->add(scope);
 
         
         if (fun->isHeavyweight()) {
             if (fun->isNamedLambda()) {
-                scope = createDeclEnvObject(callee_, scope);
+                scope = createDeclEnvObject(callee, scope);
                 if (!scope)
                     return false;
             }
 
-            scope = createCallObject(callee_, scope);
+            scope = createCallObject(callee, scope);
             if (!scope)
                 return false;
         }
@@ -1054,9 +1047,12 @@ IonBuilder::inspectOpcode(JSOp op)
         return jsop_this();
 
       case JSOP_CALLEE:
-        JS_ASSERT(callee_);
-        current->push(callee_);
+      {
+        MCallee *callee = MCallee::New();
+        current->add(callee);
+        current->push(callee);
         return true;
+      }
 
       case JSOP_GETPROP:
       case JSOP_CALLPROP:
