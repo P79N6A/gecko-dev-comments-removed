@@ -224,8 +224,10 @@ DynamicallyLinkModule(JSContext *cx, CallArgs args, AsmJSModule &module)
         
         
         JS_ASSERT((module.minHeapLength() - 1) <= INT32_MAX);
-        if (heap->byteLength() < module.minHeapLength())
-            return LinkFail(cx, "ArrayBuffer byteLength less than the largest source code heap length constraint.");
+        if (heap->byteLength() < module.minHeapLength()) {
+            return LinkFail(cx, JS_smprintf("ArrayBuffer byteLength of 0x%x is less than 0x%x (which is the largest constant heap access offset rounded up to the next valid heap size).",
+                                            heap->byteLength(), module.minHeapLength()));
+        }
 
         if (!ArrayBufferObject::prepareForAsmJS(cx, heap))
             return LinkFail(cx, "Unable to prepare ArrayBuffer for asm.js use");

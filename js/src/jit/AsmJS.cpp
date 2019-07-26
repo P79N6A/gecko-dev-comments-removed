@@ -960,7 +960,7 @@ js::RoundUpToNextValidAsmJSHeapLength(uint32_t length)
         return (length + 0x0003ffff) & ~0x0003ffff;
     if (length < 0x10000000u) 
         return (length + 0x000fffff) & ~0x000fffff;
-    if (length < 0x10000000u) 
+    if (length < 0x40000000u) 
         return (length + 0x003fffff) & ~0x003fffff;
     
     
