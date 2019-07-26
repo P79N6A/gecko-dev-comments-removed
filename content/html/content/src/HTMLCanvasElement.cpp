@@ -341,15 +341,15 @@ HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID,
 
 
 NS_IMETHODIMP
-HTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
-                             nsAString& aDataURL)
+HTMLCanvasElement::ToDataURL(const nsAString& aType, const JS::Value& aParams,
+                             JSContext* aCx, nsAString& aDataURL)
 {
   
   if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  return ToDataURLImpl(aType, aParams, aDataURL);
+  return ToDataURLImpl(aCx, aType, aParams, aDataURL);
 }
 
 
@@ -465,8 +465,9 @@ HTMLCanvasElement::ExtractData(const nsAString& aType,
 }
 
 nsresult
-HTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
-                                 nsIVariant* aEncoderOptions,
+HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
+                                 const nsAString& aMimeType,
+                                 const JS::Value& aEncoderOptions,
                                  nsAString& aDataURL)
 {
   bool fallbackToPNG = false;
@@ -487,16 +488,10 @@ HTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
 
   
   if (type.EqualsLiteral("image/jpeg")) {
-    uint16_t vartype;
-
-    if (aEncoderOptions &&
-        NS_SUCCEEDED(aEncoderOptions->GetDataType(&vartype)) &&
-        vartype <= nsIDataType::VTYPE_DOUBLE) {
-
-      double quality;
+    if (aEncoderOptions.isNumber()) {
+      double quality = aEncoderOptions.toNumber();
       
-      if (NS_SUCCEEDED(aEncoderOptions->GetAsDouble(&quality)) &&
-          quality >= 0.0 && quality <= 1.0) {
+      if (quality >= 0.0 && quality <= 1.0) {
         params.AppendLiteral("quality=");
         params.AppendInt(NS_lround(quality * 100.0));
       }
@@ -507,11 +502,13 @@ HTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
   
   
   bool usingCustomParseOptions = false;
-  if (params.Length() == 0) {
+  if (params.Length() == 0 && aEncoderOptions.isString()) {
     NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
-    nsAutoString paramString;
-    if (NS_SUCCEEDED(aEncoderOptions->GetAsAString(paramString)) &&
-        StringBeginsWith(paramString, mozParseOptions)) {
+    nsDependentJSString paramString;
+    if (!paramString.init(aCx, aEncoderOptions.toString())) {
+      return NS_ERROR_FAILURE;
+    }
+    if (StringBeginsWith(paramString, mozParseOptions)) {
       nsDependentSubstring parseOptions = Substring(paramString,
                                                     mozParseOptions.Length(),
                                                     paramString.Length() -
