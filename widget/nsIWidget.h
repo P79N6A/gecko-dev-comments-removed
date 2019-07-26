@@ -30,7 +30,6 @@ class   nsDeviceContext;
 struct  nsFont;
 class   nsIRollupListener;
 class   imgIContainer;
-class   gfxASurface;
 class   nsIContent;
 class   ViewWrapper;
 class   nsIWidgetListener;
@@ -1585,11 +1584,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual bool ShowsResizeIndicator(nsIntRect* aResizerRect) = 0;
-
-    
-
-
-    virtual gfxASurface *GetThebesSurface() = 0;
 
     
 

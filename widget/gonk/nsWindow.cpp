@@ -595,18 +595,6 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     return mLayerManager;
 }
 
-gfxASurface *
-nsWindow::GetThebesSurface()
-{
-    
-
-
-
-    
-    
-    return new gfxImageSurface(gfxIntSize(5,5), gfxImageFormat::RGB24);
-}
-
 void
 nsWindow::BringToTop()
 {

@@ -1015,19 +1015,6 @@ nsDeviceContext* nsBaseWidget::GetDeviceContext()
 
 
 
-gfxASurface *nsBaseWidget::GetThebesSurface()
-{
-  
-  
-  return nullptr;
-}
-
-
-
-
-
-
-
 void nsBaseWidget::OnDestroy()
 {
   

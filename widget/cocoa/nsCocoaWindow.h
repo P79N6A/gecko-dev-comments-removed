@@ -315,8 +315,6 @@ public:
 
     void DispatchSizeModeEvent();
 
-    virtual gfxASurface* GetThebesSurface();
-
     
     virtual bool DragEvent(unsigned int aMessage, Point aMouseGlobal, UInt16 aKeyModifiers);
 

@@ -3394,26 +3394,6 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
 
 
-
-gfxASurface *nsWindow::GetThebesSurface()
-{
-  if (mPaintDC)
-    return (new gfxWindowsSurface(mPaintDC));
-
-  uint32_t flags = gfxWindowsSurface::FLAG_TAKE_DC;
-  if (mTransparencyMode != eTransparencyOpaque) {
-      flags |= gfxWindowsSurface::FLAG_IS_TRANSPARENT;
-  }
-  return (new gfxWindowsSurface(mWnd, flags));
-}
-
-
-
-
-
-
-
-
  
 NS_IMETHODIMP
 nsWindow::OnDefaultButtonLoaded(const nsIntRect &aButtonRect)
