@@ -512,9 +512,6 @@ SetDefaultObjectForContext(JSContext *cx, JSObject *obj);
 JS_FRIEND_API(void)
 NotifyAnimationActivity(JSObject *obj);
 
-JS_FRIEND_API(bool)
-IsOriginalScriptFunction(JSFunction *fun);
-
 
 
 

@@ -1247,18 +1247,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         return enclosingScopeOrOriginalFunction_;
     }
 
-    
-
-
-
-
-
-
-
-
-
-    bool enclosingScriptsCompiledSuccessfully() const;
-
   private:
     bool makeTypes(JSContext *cx);
     bool makeAnalysis(JSContext *cx);

@@ -2102,30 +2102,6 @@ JSScript::uninlinedGlobal() const
     return global();
 }
 
-bool
-JSScript::enclosingScriptsCompiledSuccessfully() const
-{
-    
-
-
-
-
-
-
-    JSObject *enclosing = enclosingStaticScope();
-    while (enclosing) {
-        if (enclosing->is<JSFunction>()) {
-            JSFunction *fun = &enclosing->as<JSFunction>();
-            if (!fun->hasScript() || !fun->nonLazyScript())
-                return false;
-            enclosing = fun->nonLazyScript()->enclosingStaticScope();
-        } else {
-            enclosing = enclosing->as<StaticBlockObject>().enclosingStaticScope();
-        }
-    }
-    return true;
-}
-
 void
 js::CallNewScriptHook(JSContext *cx, HandleScript script, HandleFunction fun)
 {
