@@ -1033,13 +1033,6 @@ public:
   CreateAudioNodeExternalInputStream(AudioNodeEngine* aEngine,
                                      TrackRate aSampleRate = 0);
 
-  
-
-
-
-
-  int64_t GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
-
   bool IsNonRealtime() const;
   
 
@@ -1059,7 +1052,7 @@ public:
 
 protected:
   MediaStreamGraph()
-    : mGraphUpdatesSent(1)
+    : mNextGraphUpdateIndex(1)
   {
     MOZ_COUNT_CTOR(MediaStreamGraph);
   }
@@ -1074,7 +1067,7 @@ protected:
   
   
   
-  int64_t mGraphUpdatesSent;
+  int64_t mNextGraphUpdateIndex;
 };
 
 }
