@@ -16,7 +16,15 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "nsIMessageBroadcaster");
 
 
+const kPrefenceChangedObserverTopic     = "nsPref:changed";
 const kSysMsgListenerReadyObserverTopic = "system-message-listener-ready";
+const kXpcomShutdownObserverTopic       = "xpcom-shutdown";
+
+
+const kPrefKeyRilDebuggingEnabled = "ril.debugging.enabled";
+
+
+const kMsgNameChildProcessShutdown = "child-process-shutdown";
 
 let DEBUG;
 function debug(s) {
@@ -50,10 +58,13 @@ this.RilMessageManager = {
   ready: false,
 
   _init: function _init() {
-    Services.obs.addObserver(this, "xpcom-shutdown", false);
-    Services.obs.addObserver(this, kSysMsgListenerReadyObserverTopic, false);
+    this._updateDebugFlag();
 
-    ppmm.addMessageListener("child-process-shutdown", this);
+    Services.obs.addObserver(this, kPrefenceChangedObserverTopic, false);
+    Services.obs.addObserver(this, kSysMsgListenerReadyObserverTopic, false);
+    Services.obs.addObserver(this, kXpcomShutdownObserverTopic, false);
+
+    ppmm.addMessageListener(kMsgNameChildProcessShutdown, this);
 
     let callback = this._registerMessageTarget.bind(this);
     for (let topic in this.topicRegistrationNames) {
@@ -63,15 +74,22 @@ this.RilMessageManager = {
   },
 
   _shutdown: function _shutdown() {
-    Services.obs.removeObserver(this, "xpcom-shutdown");
+    if (!this.ready) {
+      Services.obs.removeObserver(this, kSysMsgListenerReadyObserverTopic);
+    }
+    Services.obs.removeObserver(this, kPrefenceChangedObserverTopic);
+    Services.obs.removeObserver(this, kXpcomShutdownObserverTopic);
 
     for (let name in this.callbacksByName) {
       ppmm.removeMessageListener(name, this);
     }
     this.callbacksByName = null;
 
-    ppmm.removeMessageListener("child-process-shutdown", this);
+    ppmm.removeMessageListener(kMsgNameChildProcessShutdown, this);
     ppmm = null;
+
+    this.targetsByTopic = null;
+    this.targetMessageQueue = null;
   },
 
   _registerMessageTarget: function _registerMessageTarget(topic, msg) {
@@ -150,9 +168,6 @@ this.RilMessageManager = {
   },
 
   _resendQueuedTargetMessage: function _resendQueuedTargetMessage() {
-    this.ready = true;
-
-    
     
     
     
@@ -164,13 +179,23 @@ this.RilMessageManager = {
     this.targetMessageQueue = null;
   },
 
+  _updateDebugFlag: function _updateDebugFlag() {
+    try {
+      DEBUG = RIL.DEBUG_RIL ||
+              Services.prefs.getBoolPref(kPrefKeyRilDebuggingEnabled);
+    } catch(e) {}
+  },
+
   
 
 
 
   receiveMessage: function receiveMessage(msg) {
-    if (DEBUG) debug("Received '" + msg.name + "' message from content process");
-    if (msg.name == "child-process-shutdown") {
+    if (DEBUG) {
+      debug("Received '" + msg.name + "' message from content process");
+    }
+
+    if (msg.name == kMsgNameChildProcessShutdown) {
       
       
       
@@ -202,10 +227,19 @@ this.RilMessageManager = {
   observe: function observe(subject, topic, data) {
     switch (topic) {
       case kSysMsgListenerReadyObserverTopic:
+        this.ready = true;
         Services.obs.removeObserver(this, kSysMsgListenerReadyObserverTopic);
+
         this._resendQueuedTargetMessage();
         break;
-      case "xpcom-shutdown":
+
+      case kPrefenceChangedObserverTopic:
+        if (data === kPrefKeyRilDebuggingEnabled) {
+          this._updateDebugFlag();
+        }
+        break;
+
+      case kXpcomShutdownObserverTopic:
         this._shutdown();
         break;
     }
@@ -258,7 +292,9 @@ this.RilMessageManager = {
     this.callbacksByName = remains;
   },
 
-  sendMobileConnectionMessage: function sendMobileConnectionMessage(name, clientId, data) {
+  sendMobileConnectionMessage: function sendMobileConnectionMessage(name,
+                                                                    clientId,
+                                                                    data) {
     this._sendTargetMessage("mobileconnection", name, {
       clientId: clientId,
       data: data
@@ -272,7 +308,8 @@ this.RilMessageManager = {
     });
   },
 
-  sendCellBroadcastMessage: function sendCellBroadcastMessage(name, clientId, data) {
+  sendCellBroadcastMessage: function sendCellBroadcastMessage(name, clientId,
+                                                              data) {
     this._sendTargetMessage("cellbroadcast", name, {
       clientId: clientId,
       data: data
