@@ -457,10 +457,17 @@ let CustomizableUIInternal = {
 
         
         
-        if (node.parentNode != container && !this.isWidgetRemovable(node)) {
+        if (provider == CustomizableUI.PROVIDER_API) {
+          let widgetInfo = gPalette.get(id);
+          if (!widgetInfo.removable && aArea != widgetInfo.defaultArea) {
+            placementsToRemove.add(id);
+            continue;
+          }
+        } else if (provider == CustomizableUI.PROVIDER_XUL &&
+                   node.parentNode != container && !this.isWidgetRemovable(node)) {
           placementsToRemove.add(id);
           continue;
-        }
+        } 
 
         if (inPrivateWindow && provider == CustomizableUI.PROVIDER_API) {
           let widget = gPalette.get(id);
@@ -1736,7 +1743,7 @@ let CustomizableUIInternal = {
       source: aSource || "addon",
       instances: new Map(),
       currentArea: null,
-      removable: false,
+      removable: true,
       overflows: true,
       defaultArea: null,
       shortcutId: null,
@@ -1778,6 +1785,11 @@ let CustomizableUIInternal = {
 
     if (aData.defaultArea && gAreas.has(aData.defaultArea)) {
       widget.defaultArea = aData.defaultArea;
+    } else if (!widget.removable) {
+      ERROR("Widget '" + widget.id + "' is not removable but does not specify " +
+            "a valid defaultArea. That's not possible; it must specify a " +
+            "valid defaultArea as well.");
+      return null;
     }
 
     if ("type" in aData && gSupportedWidgetTypes.has(aData.type)) {
@@ -2351,6 +2363,8 @@ this.CustomizableUI = {
     CustomizableUIInternal.endBatchUpdate(aForceDirty);
   },
   
+
+
 
 
 
