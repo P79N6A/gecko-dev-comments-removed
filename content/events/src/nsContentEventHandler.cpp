@@ -1071,7 +1071,6 @@ nsContentEventHandler::OnSelectionEvent(nsSelectionEvent* aEvent)
 
   
   nsRefPtr<nsRange> range = new nsRange(mRootContent);
-  NS_ENSURE_TRUE(range, NS_ERROR_OUT_OF_MEMORY);
   rv = SetRangeFromFlatTextOffset(range, aEvent->mOffset, aEvent->mLength,
                                   aEvent->mExpandToClusterBoundary);
   NS_ENSURE_SUCCESS(rv, rv);

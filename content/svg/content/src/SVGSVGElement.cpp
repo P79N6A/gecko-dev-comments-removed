@@ -744,7 +744,6 @@ SVGSVGElement::BindToTree(nsIDocument* aDocument,
         
         if (!mTimedDocumentRoot) {
           mTimedDocumentRoot = new nsSMILTimeContainer();
-          NS_ENSURE_TRUE(mTimedDocumentRoot, NS_ERROR_OUT_OF_MEMORY);
         }
       } else {
         
