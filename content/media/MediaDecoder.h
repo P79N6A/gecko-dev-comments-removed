@@ -608,7 +608,7 @@ public:
 
   
   virtual void SetMediaSeekable(bool aMediaSeekable) MOZ_OVERRIDE;
-  virtual void SetTransportSeekable(bool aTransportSeekable) MOZ_FINAL MOZ_OVERRIDE;
+
   
   
   virtual bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
@@ -1036,10 +1036,6 @@ protected:
 
   
   bool mInitialAudioCaptured;
-
-  
-  
-  bool mTransportSeekable;
 
   
   bool mMediaSeekable;

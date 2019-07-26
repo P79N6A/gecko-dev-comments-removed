@@ -329,6 +329,12 @@ AppleMP3Reader::HasVideo()
   return false;
 }
 
+bool
+AppleMP3Reader::IsMediaSeekable()
+{
+  
+  return true;
+}
 
 
 

@@ -212,17 +212,6 @@ public:
   
   
   
-  void SetTransportSeekable(bool aSeekable);
-
-  
-  
-  
-  
-  void SetMediaSeekable(bool aSeekable);
-
-  
-  
-  
   
   
   void UpdatePlaybackPosition(int64_t aTime);
@@ -288,16 +277,6 @@ public:
   int64_t GetEndMediaTime() const {
     AssertCurrentThreadInMonitor();
     return mEndTime;
-  }
-
-  bool IsTransportSeekable() {
-    AssertCurrentThreadInMonitor();
-    return mTransportSeekable;
-  }
-
-  bool IsMediaSeekable() {
-    AssertCurrentThreadInMonitor();
-    return mMediaSeekable;
   }
 
   
@@ -907,14 +886,6 @@ protected:
   
   
   bool mAudioCaptured;
-
-  
-  
-  bool mTransportSeekable;
-
-  
-  
-  bool mMediaSeekable;
 
   
   

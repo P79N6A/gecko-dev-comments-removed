@@ -120,12 +120,6 @@ BufferDecoder::SetMediaSeekable(bool aMediaSeekable)
   
 }
 
-void
-BufferDecoder::SetTransportSeekable(bool aTransportSeekable)
-{
-  
-}
-
 VideoFrameContainer*
 BufferDecoder::GetVideoFrameContainer()
 {

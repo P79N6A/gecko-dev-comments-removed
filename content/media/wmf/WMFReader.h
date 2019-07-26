@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #if !defined(WMFReader_h_)
 #define WMFReader_h_
 
@@ -22,8 +22,8 @@ namespace dom {
 class TimeRanges;
 }
 
-
-
+// Decoder backend for reading H.264/AAC in MP4/M4A, and MP3 files using
+// Windows Media Foundation.
 class WMFReader : public MediaDecoderReader
 {
 public:
@@ -47,6 +47,9 @@ public:
                 int64_t aStartTime,
                 int64_t aEndTime,
                 int64_t aCurrentTime) MOZ_OVERRIDE;
+
+  bool IsMediaSeekable() MOZ_OVERRIDE;
+  
 private:
 
   HRESULT CreateSourceReader();
@@ -67,7 +70,7 @@ private:
                               int64_t aOffsetBytes,
                               VideoData** aOutVideoData);
 
-  
+  // Attempt to initialize DXVA. Returns true on success.
   bool InitializeDXVA();  
 
   RefPtr<IMFSourceReader> mSourceReader;
@@ -75,8 +78,8 @@ private:
   RefPtr<WMFSourceReaderCallback> mSourceReaderCallback;
   nsAutoPtr<DXVA2Manager> mDXVA2Manager;
 
-  
-  
+  // Region inside the video frame that makes up the picture. Pixels outside
+  // of this region should not be rendered.
   nsIntRect mPictureRegion;
 
   uint32_t mAudioChannels;
@@ -87,29 +90,29 @@ private:
   uint32_t mVideoHeight;
   uint32_t mVideoStride;
 
-  
-  
+  // The offset, in audio frames, at which playback started since the
+  // last discontinuity.
   int64_t mAudioFrameOffset;
-  
-  
+  // The number of audio frames that we've played since the last
+  // discontinuity.
   int64_t mAudioFrameSum;
-  
-  
-  
+  // True if we need to re-initialize mAudioFrameOffset and mAudioFrameSum
+  // from the next audio packet we decode. This happens after a seek, since
+  // WMF doesn't mark a stream as having a discontinuity after a seek(0).
   bool mMustRecaptureAudioPosition;
 
   bool mHasAudio;
   bool mHasVideo;
   bool mUseHwAccel;
 
-  
-  
-  
+  // We can't call WMFDecoder::IsMP3Supported() on non-main threads, since it
+  // checks a pref, so we cache its value in mIsMP3Enabled and use that on
+  // the decode thread.
   const bool mIsMP3Enabled;
 
   bool mCOMInitialized;
 };
 
-} 
+} // namespace mozilla
 
 #endif

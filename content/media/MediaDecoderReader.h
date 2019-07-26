@@ -173,6 +173,10 @@ public:
 
   MediaInfo GetMediaInfo() { return mInfo; }
 
+  
+  
+  virtual bool IsMediaSeekable() = 0;
+  
 protected:
   virtual ~MediaDecoderReader();
 

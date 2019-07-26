@@ -607,9 +607,7 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
   if (duration) {
     
     mRealTime = false;
-    bool seekable = true;
     mDecoder->SetInfinite(false);
-    mDecoder->SetTransportSeekable(seekable);
     mDecoder->SetDuration(duration);
   } else {
     
@@ -624,7 +622,6 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
       mRealTime = true;
       bool seekable = false;
       mDecoder->SetInfinite(true);
-      mDecoder->SetTransportSeekable(seekable);
       mDecoder->SetMediaSeekable(seekable);
     }
   }

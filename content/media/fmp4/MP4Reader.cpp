@@ -243,16 +243,19 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mDecoder->SetMediaDuration(duration);
   }
-  
-  
-  if (!mDecoder->GetResource()->IsTransportSeekable() || !mDemuxer->CanSeek()) {
-    mDecoder->SetMediaSeekable(false);
-  }
 
   *aInfo = mInfo;
   *aTags = nullptr;
 
   return NS_OK;
+}
+
+bool
+MP4Reader::IsMediaSeekable()
+{
+  
+  
+  return mDecoder->GetResource()->IsTransportSeekable() && mDemuxer->CanSeek();
 }
 
 bool
