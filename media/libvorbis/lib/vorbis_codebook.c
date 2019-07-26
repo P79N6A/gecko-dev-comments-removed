@@ -367,6 +367,7 @@ long vorbis_book_decode(codebook *book, oggpack_buffer *b){
 }
 
 
+
 long vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
     int step=n/book->dim;
@@ -385,6 +386,7 @@ long vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
   }
   return(0);
 }
+
 
 long vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
@@ -431,6 +433,9 @@ long vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
   return(0);
 }
 
+
+
+
 long vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
     int i,j,entry;
@@ -440,15 +445,15 @@ long vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
       entry = decode_packed_entry_number(book,b);
       if(entry==-1)return(-1);
       t     = book->valuelist+entry*book->dim;
-      for (j=0;j<book->dim;)
+      for (j=0;i<n && j<book->dim;){
         a[i++]=t[j++];
+      }
     }
   }else{
     int i,j;
 
     for(i=0;i<n;){
-      for (j=0;j<book->dim;j++)
-        a[i++]=0.f;
+      a[i++]=0.f;
     }
   }
   return(0);
