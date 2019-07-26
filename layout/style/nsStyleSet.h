@@ -259,6 +259,8 @@ class nsStyleSet
   nsresult InsertStyleSheetBefore(sheetType aType, nsIStyleSheet *aNewSheet,
                                   nsIStyleSheet *aReferenceSheet);
 
+  nsresult DirtyRuleProcessors(sheetType aType);
+
   
   bool GetAuthorStyleDisabled();
   nsresult SetAuthorStyleDisabled(bool aStyleDisabled);
