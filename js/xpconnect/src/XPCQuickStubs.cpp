@@ -885,12 +885,4 @@ xpc_qsAssertContextOK(JSContext *cx)
     
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
 }
-
-void
-xpcObjectHelper::AssertGetClassInfoResult()
-{
-    MOZ_ASSERT(mXPCClassInfo ||
-               static_cast<nsINode*>(GetCanonical())->IsDOMBinding(),
-               "GetClassInfo() should only return null for new DOM bindings!");
-}
 #endif
