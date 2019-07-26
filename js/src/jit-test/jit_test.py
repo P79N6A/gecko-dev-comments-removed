@@ -79,7 +79,7 @@ def main(argv):
     if len(args) < 1:
         op.error('missing JS_SHELL argument')
     
-    test_args = args[:1]
+    test_args = args[1:]
 
     if jittests.stdio_might_be_broken():
         
