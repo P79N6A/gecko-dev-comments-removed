@@ -665,6 +665,8 @@ public:
     }
 
     XMLHttpRequest::StateData state;
+    
+    JS::AutoArrayRooter rooter(aCx, 1, &state.mResponse);
 
     state.mResponseTextResult = mResponseTextResult;
     state.mResponseText = mResponseText;
