@@ -1079,6 +1079,8 @@ already_AddRefed<layers::Image>
 RasterImage::GetCurrentImage()
 {
   if (!mDecoded) {
+    
+    
     RequestDecode();
     return nullptr;
   }
