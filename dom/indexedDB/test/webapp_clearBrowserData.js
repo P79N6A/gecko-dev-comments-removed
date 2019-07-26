@@ -1,151 +1,147 @@
 
 
 
+"use strict";
 
+const appDomain = "example.org";
+const manifestURL =
+  location.protocol + "//" + appDomain + "/manifest.webapp";
 
+function testSteps()
+{
+  const objectStoreName = "foo";
+  const testKey = 1;
+  const testValue = objectStoreName;
 
+  
+  
+  let remote_app, remote_browser;
+  if (window.location.href.indexOf("inproc_oop") != -1) {
+    remote_app = false;
+    remote_browser = true;
+  }
+  else if (window.location.href.indexOf("oop_inproc") != -1) {
+    remote_app = true;
+    remote_browser = false;
+  }
+  else if (window.location.href.indexOf("inproc_inproc") != -1) {
+    remote_app = false;
+    remote_browser = false;
+  }
+  else {
+    ok(false, "Bad test filename!");
+    return;
+  }
 
-    "use strict";
+  let request = indexedDB.open(window.location.pathname, 1);
+  request.onerror = errorHandler;
+  request.onupgradeneeded = grabEventAndContinueHandler;
+  request.onsuccess = unexpectedSuccessHandler;
+  let event = yield;
 
-    const appDomain = "example.org";
-    const manifestURL =
-      location.protocol + "//" + appDomain + "/manifest.webapp";
+  let db = event.target.result;
+  db.onerror = errorHandler;
+  db.onversionchange = function(event) {
+    event.target.close();
+  }
 
-    function testSteps()
-    {
-      const objectStoreName = "foo";
-      const testKey = 1;
-      const testValue = objectStoreName;
+  let objectStore = db.createObjectStore(objectStoreName);
+  objectStore.add(testValue, testKey);
 
-      
-      
-      let remote_app, remote_browser;
-      if (window.location.href.indexOf("inproc_oop") != -1) {
-        remote_app = false;
-        remote_browser = true;
-      }
-      else if (window.location.href.indexOf("oop_inproc") != -1) {
-        remote_app = true;
-        remote_browser = false;
-      }
-      else if (window.location.href.indexOf("inproc_inproc") != -1) {
-        remote_app = false;
-        remote_browser = false;
-      }
-      else {
-        ok(false, "Bad test filename!");
-        return;
-      }
+  request.onsuccess = grabEventAndContinueHandler;
+  event = yield;
 
-      let request = indexedDB.open(window.location.pathname, 1);
-      request.onerror = errorHandler;
-      request.onupgradeneeded = grabEventAndContinueHandler;
-      request.onsuccess = unexpectedSuccessHandler;
-      let event = yield;
+  
+  
+  
+  
+  
+  
+  let srcURL = location.protocol + "//" + appDomain +
+    location.pathname.substring(0, location.pathname.lastIndexOf('/')) +
+    "/webapp_clearBrowserData_appFrame.html?" +
+    "remote_browser=" + remote_browser + "&" +
+    "remote_app=" + remote_app;
 
-      let db = event.target.result;
-      db.onerror = errorHandler;
-      db.onversionchange = function(event) {
-        event.target.close();
-      }
-
-      let objectStore = db.createObjectStore(objectStoreName);
-      objectStore.add(testValue, testKey);
-
-      request.onsuccess = grabEventAndContinueHandler;
-      event = yield;
-
-      
-      
-      
-      
-      
-      
-      let srcURL = location.protocol + "//" + appDomain +
-        location.pathname.substring(0, location.pathname.lastIndexOf('/')) +
-        "/webapp_clearBrowserData_appFrame.html?" +
-        "remote_browser=" + remote_browser + "&" +
-        "remote_app=" + remote_app;
-
-      let iframe = document.createElement("iframe");
-      iframe.setAttribute("mozbrowser", "");
-      iframe.setAttribute("mozapp", manifestURL);
-      iframe.setAttribute("src", srcURL);
-      iframe.setAttribute("remote", remote_app);
-      iframe.addEventListener("mozbrowsershowmodalprompt", function(event) {
-        let message = JSON.parse(event.detail.message);
-        switch (message.type) {
-          case "info":
-          case "ok":
-            window[message.type].apply(window, message.args);
-            break;
-          case "done":
-            continueToNextStepSync();
-            break;
-          default:
-            throw "unknown message";
-        }
-      });
-
-      info("loading app frame");
-
-      document.body.appendChild(iframe);
-      yield;
-
-      request = indexedDB.open(window.location.pathname, 1);
-      request.onerror = errorHandler;
-      request.onupgradeneeded = unexpectedSuccessHandler;
-      request.onsuccess = grabEventAndContinueHandler;
-      event = yield;
-
-      db = event.target.result;
-      db.onerror = errorHandler;
-
-      objectStore =
-        db.transaction(objectStoreName).objectStore(objectStoreName);
-      objectStore.get(testKey).onsuccess = grabEventAndContinueHandler;
-      event = yield;
-
-      ok(testValue == event.target.result, "data still exists");
-
-      finishTest();
-      yield;
+  let iframe = document.createElement("iframe");
+  iframe.setAttribute("mozbrowser", "");
+  iframe.setAttribute("mozapp", manifestURL);
+  iframe.setAttribute("src", srcURL);
+  iframe.setAttribute("remote", remote_app);
+  iframe.addEventListener("mozbrowsershowmodalprompt", function(event) {
+    let message = JSON.parse(event.detail.message);
+    switch (message.type) {
+      case "info":
+      case "ok":
+        window[message.type].apply(window, message.args);
+        break;
+      case "done":
+        continueToNextStepSync();
+        break;
+      default:
+        throw "unknown message";
     }
+  });
 
-    function start()
-    {
-      if (!SpecialPowers.isMainProcess()) {
-        todo(false, "Test disabled in child processes, for now");
-        SimpleTest.finish();
-        return;
-      }
+  info("loading app frame");
 
-      SpecialPowers.addPermission("browser", true, document);
-      SpecialPowers.addPermission("browser", true, { manifestURL: manifestURL,
-                                                     isInBrowserElement: false });
-      SpecialPowers.addPermission("embed-apps", true, document);
+  document.body.appendChild(iframe);
+  yield;
 
-      let Webapps = {};
-      SpecialPowers.wrap(Components)
-                   .utils.import("resource://gre/modules/Webapps.jsm", Webapps);
-      let appRegistry = SpecialPowers.wrap(Webapps.DOMApplicationRegistry);
+  request = indexedDB.open(window.location.pathname, 1);
+  request.onerror = errorHandler;
+  request.onupgradeneeded = unexpectedSuccessHandler;
+  request.onsuccess = grabEventAndContinueHandler;
+  event = yield;
 
-      let originalAllAppsLaunchable = appRegistry.allAppsLaunchable;
-      appRegistry.allAppsLaunchable = true;
+  db = event.target.result;
+  db.onerror = errorHandler;
 
-      window.addEventListener("unload", function cleanup(event) {
-        if (event.target == document) {
-          window.removeEventListener("unload", cleanup, false);
+  objectStore =
+    db.transaction(objectStoreName).objectStore(objectStoreName);
+  objectStore.get(testKey).onsuccess = grabEventAndContinueHandler;
+  event = yield;
 
-          SpecialPowers.removePermission("browser", location.href);
-          SpecialPowers.removePermission("browser",
-                                         location.protocol + "//" + appDomain);
-          SpecialPowers.removePermission("embed-apps", location.href);
-          appRegistry.allAppsLaunchable = originalAllAppsLaunchable;
-        }
-      }, false);
+  ok(testValue == event.target.result, "data still exists");
 
-      SpecialPowers.pushPrefEnv({
-        "set": [["dom.mozBrowserFramesEnabled", true]]
-      }, runTest);
+  finishTest();
+  yield;
+}
+
+function start()
+{
+  if (!SpecialPowers.isMainProcess()) {
+    todo(false, "Test disabled in child processes, for now");
+    SimpleTest.finish();
+    return;
+  }
+
+  SpecialPowers.addPermission("browser", true, document);
+  SpecialPowers.addPermission("browser", true, { manifestURL: manifestURL,
+                                                 isInBrowserElement: false });
+  SpecialPowers.addPermission("embed-apps", true, document);
+
+  let Webapps = {};
+  SpecialPowers.wrap(Components)
+               .utils.import("resource://gre/modules/Webapps.jsm", Webapps);
+  let appRegistry = SpecialPowers.wrap(Webapps.DOMApplicationRegistry);
+
+  let originalAllAppsLaunchable = appRegistry.allAppsLaunchable;
+  appRegistry.allAppsLaunchable = true;
+
+  window.addEventListener("unload", function cleanup(event) {
+    if (event.target == document) {
+      window.removeEventListener("unload", cleanup, false);
+
+      SpecialPowers.removePermission("browser", location.href);
+      SpecialPowers.removePermission("browser",
+                                     location.protocol + "//" + appDomain);
+      SpecialPowers.removePermission("embed-apps", location.href);
+      appRegistry.allAppsLaunchable = originalAllAppsLaunchable;
     }
+  }, false);
+
+  SpecialPowers.pushPrefEnv({
+    "set": [["dom.mozBrowserFramesEnabled", true]]
+  }, runTest);
+}
