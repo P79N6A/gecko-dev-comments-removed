@@ -3021,6 +3021,13 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
     return GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER;
   }
 
+  
+
+
+
+
+  virtual nsIContent* GetPseudoElementContent(nsCSSPseudoElements::Type aType);
+
 protected:
   
   nsRect           mRect;

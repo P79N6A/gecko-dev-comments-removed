@@ -71,6 +71,8 @@ public:
 
   bool ShouldUseNativeStyle() const;
 
+  virtual nsIContent* GetPseudoElementContent(nsCSSPseudoElements::Type aType) MOZ_OVERRIDE;
+
 protected:
   
   void ReflowBarFrame(nsIFrame*                aBarFrame,
