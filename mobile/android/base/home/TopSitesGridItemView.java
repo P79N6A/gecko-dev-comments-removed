@@ -137,6 +137,39 @@ public class TopSitesGridItemView extends RelativeLayout {
 
 
 
+
+
+    public boolean updateState(final String title, final String url, final boolean pinned) {
+        boolean changed = false;
+        if (mUrl == null || !mUrl.equals(url)) {
+            mUrl = url;
+            changed = true;
+        }
+
+        if (mTitle == null || !mTitle.equals(title)) {
+            mTitle = title;
+            changed = true;
+        }
+
+        if (changed) {
+            updateTitleView();
+            setLoadId(Favicons.NOT_LOADING);
+        }
+
+        if (mIsPinned != pinned) {
+            mIsPinned = pinned;
+            mTitleView.setCompoundDrawablesWithIntrinsicBounds(pinned ? R.drawable.pin : 0, 0, 0, 0);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    
+
+
+
+
     public void displayThumbnail(int resId) {
         mThumbnailView.setScaleType(ScaleType.CENTER);
         mThumbnailView.setImageResource(resId);
@@ -162,6 +195,17 @@ public class TopSitesGridItemView extends RelativeLayout {
         mThumbnailView.setBackgroundDrawable(null);
     }
 
+    public void displayFavicon(Bitmap favicon, String faviconURL, int expectedLoadId) {
+        if (mLoadId != Favicons.NOT_LOADING &&
+            mLoadId != expectedLoadId) {
+            
+            return;
+        }
+
+        
+        displayFavicon(favicon, faviconURL);
+    }
+
     
 
 
@@ -169,6 +213,7 @@ public class TopSitesGridItemView extends RelativeLayout {
 
     public void displayFavicon(Bitmap favicon, String faviconURL) {
         if (mThumbnail != null) {
+            
             return;
         }
 
