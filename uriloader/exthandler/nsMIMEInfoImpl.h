@@ -99,14 +99,14 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-    virtual NS_HIDDEN_(nsresult) LaunchDefaultWithFile(nsIFile* aFile) = 0;
+    virtual nsresult LaunchDefaultWithFile(nsIFile* aFile) = 0;
 
     
 
 
 
 
-    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) = 0;
+    virtual nsresult LoadUriInternal(nsIURI *aURI) = 0;
 
     static already_AddRefed<nsIProcess> InitProcess(nsIFile* aApp,
                                                     nsresult* aResult);
@@ -120,9 +120,9 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-    static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp,
+    static nsresult LaunchWithIProcess(nsIFile* aApp,
                                                    const nsCString &aArg);
-    static NS_HIDDEN_(nsresult) LaunchWithIProcess(nsIFile* aApp,
+    static nsresult LaunchWithIProcess(nsIFile* aApp,
                                                    const nsString &aArg);
 
     
@@ -131,7 +131,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-    static NS_HIDDEN_(nsresult) GetLocalFileFromURI(nsIURI *aURI,
+    static nsresult GetLocalFileFromURI(nsIURI *aURI,
                                                     nsIFile **aFile);
 
     
@@ -181,13 +181,13 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
 
 
 
-    virtual NS_HIDDEN_(nsresult) LaunchDefaultWithFile(nsIFile* aFile);
+    virtual nsresult LaunchDefaultWithFile(nsIFile* aFile);
 
     
 
 
 
-    virtual NS_HIDDEN_(nsresult) LoadUriInternal(nsIURI *aURI) = 0;
+    virtual nsresult LoadUriInternal(nsIURI *aURI) = 0;
 
     nsCOMPtr<nsIFile>      mDefaultApplication; 
 };

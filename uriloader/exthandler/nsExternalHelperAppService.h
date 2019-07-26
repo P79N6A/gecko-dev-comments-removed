@@ -71,7 +71,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) Init();
+  nsresult Init();
  
   
 
@@ -109,7 +109,7 @@ public:
   virtual nsresult GetFileTokenForPath(const char16_t * platformAppPath,
                                        nsIFile ** aFile);
 
-  virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
+  virtual nsresult OSProtocolHandlerExists(const char *aScheme,
                                                        bool *aExists) = 0;
 
 protected:
@@ -121,7 +121,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) FillMIMEInfoForMimeTypeFromExtras(
+  nsresult FillMIMEInfoForMimeTypeFromExtras(
     const nsACString& aContentType, nsIMIMEInfo * aMIMEInfo);
   
 
@@ -131,7 +131,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) FillMIMEInfoForExtensionFromExtras(
+  nsresult FillMIMEInfoForExtensionFromExtras(
     const nsACString& aExtension, nsIMIMEInfo * aMIMEInfo);
 
   
@@ -140,7 +140,7 @@ protected:
 
 
 
-  NS_HIDDEN_(bool) GetTypeFromExtras(const nsACString& aExtension,
+  bool GetTypeFromExtras(const nsACString& aExtension,
                                        nsACString& aMIMEType);
 
 #ifdef PR_LOGGING

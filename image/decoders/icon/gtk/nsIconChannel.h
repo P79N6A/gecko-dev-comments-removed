@@ -34,7 +34,7 @@ class nsIconChannel MOZ_FINAL : public nsIChannel {
 
 
 
-    NS_HIDDEN_(nsresult) Init(nsIURI* aURI);
+    nsresult Init(nsIURI* aURI);
   private:
     
 

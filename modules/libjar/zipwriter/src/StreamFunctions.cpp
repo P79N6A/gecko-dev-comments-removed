@@ -11,7 +11,7 @@
 
 
 
-NS_HIDDEN_(nsresult) ZW_ReadData(nsIInputStream *aStream, char *aBuffer, uint32_t aCount)
+nsresult ZW_ReadData(nsIInputStream *aStream, char *aBuffer, uint32_t aCount)
 {
     while (aCount > 0) {
         uint32_t read;
@@ -31,7 +31,7 @@ NS_HIDDEN_(nsresult) ZW_ReadData(nsIInputStream *aStream, char *aBuffer, uint32_
 
 
 
-NS_HIDDEN_(nsresult) ZW_WriteData(nsIOutputStream *aStream, const char *aBuffer,
+nsresult ZW_WriteData(nsIOutputStream *aStream, const char *aBuffer,
                                   uint32_t aCount)
 {
     while (aCount > 0) {

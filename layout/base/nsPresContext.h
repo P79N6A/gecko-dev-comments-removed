@@ -160,16 +160,16 @@ public:
   
 
 
-  NS_HIDDEN_(nsresult) Init(nsDeviceContext* aDeviceContext);
+  nsresult Init(nsDeviceContext* aDeviceContext);
 
   
 
 
 
-  NS_HIDDEN_(void) SetShell(nsIPresShell* aShell);
+  void SetShell(nsIPresShell* aShell);
 
 
-  NS_HIDDEN_(nsPresContextType) Type() const { return mType; }
+  nsPresContextType Type() const { return mType; }
 
   
 
@@ -260,7 +260,7 @@ public:
   void MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
                                  nsChangeHint aChangeHint = nsChangeHint(0));
   void PostMediaFeatureValuesChangedEvent();
-  NS_HIDDEN_(void) HandleMediaFeatureValuesChangedEvent();
+  void HandleMediaFeatureValuesChangedEvent();
   void FlushPendingMediaFeatureValuesChanged() {
     if (mPendingMediaFeatureValuesChanged)
       MediaFeatureValuesChanged(eRebuildStyleIfNeeded);
@@ -281,14 +281,14 @@ public:
   
 
 
-  NS_HIDDEN_(void) CompatibilityModeChanged();
+  void CompatibilityModeChanged();
 
   
 
 
   uint16_t     ImageAnimationMode() const { return mImageAnimationMode; }
-  virtual NS_HIDDEN_(void) SetImageAnimationModeExternal(uint16_t aMode);
-  NS_HIDDEN_(void) SetImageAnimationModeInternal(uint16_t aMode);
+  virtual void SetImageAnimationModeExternal(uint16_t aMode);
+  void SetImageAnimationModeInternal(uint16_t aMode);
 #ifdef MOZILLA_INTERNAL_API
   void SetImageAnimationMode(uint16_t aMode)
   { SetImageAnimationModeInternal(aMode); }
@@ -350,7 +350,7 @@ public:
 
 
 
-  NS_HIDDEN_(const nsFont*) GetDefaultFont(uint8_t aFontID,
+  const nsFont* GetDefaultFont(uint8_t aFontID,
                                            nsIAtom *aLanguage) const;
 
   
@@ -413,7 +413,7 @@ public:
   bool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
   uint8_t GetFocusRingStyle() const { return mFocusRingStyle; }
 
-  NS_HIDDEN_(void) SetContainer(nsIDocShell* aContainer);
+  void SetContainer(nsIDocShell* aContainer);
 
   virtual nsISupports* GetContainerWeakExternal() const;
   nsISupports* GetContainerWeakInternal() const;
@@ -471,7 +471,7 @@ public:
 
 
 
-  NS_HIDDEN_(void) SetPaginatedScrolling(bool aResult);
+  void SetPaginatedScrolling(bool aResult);
 
   
 
@@ -710,7 +710,7 @@ public:
 
 
 
-  NS_HIDDEN_(void) SetBidiEnabled() const;
+  void SetBidiEnabled() const;
 
   
 
@@ -743,7 +743,7 @@ public:
   
 
 
-  NS_HIDDEN_(void) SetBidi(uint32_t aBidiOptions,
+  void SetBidi(uint32_t aBidiOptions,
                            bool aForceRestyle = false);
 
   
@@ -751,7 +751,7 @@ public:
 
 
 
-  NS_HIDDEN_(uint32_t) GetBidi() const;
+  uint32_t GetBidi() const;
 
   
 
@@ -763,41 +763,41 @@ public:
 
   bool IsRenderingOnlySelection() const { return mIsRenderingOnlySelection; }
 
-  NS_HIDDEN_(bool) IsTopLevelWindowInactive();
+  bool IsTopLevelWindowInactive();
 
   
 
 
-  NS_HIDDEN_(nsITheme*) GetTheme();
-
-  
-
-
-
-
-
-  NS_HIDDEN_(void) ThemeChanged();
+  nsITheme* GetTheme();
 
   
 
 
 
 
-  NS_HIDDEN_(void) UIResolutionChanged();
+
+  void ThemeChanged();
 
   
 
 
 
-  NS_HIDDEN_(void) NotifyUIResolutionChanged(nsIMessageBroadcaster* aManager);
+
+  void UIResolutionChanged();
 
   
 
 
-  NS_HIDDEN_(void) SysColorChanged();
+
+  void NotifyUIResolutionChanged(nsIMessageBroadcaster* aManager);
 
   
-  NS_HIDDEN_(void) SetPrintSettings(nsIPrintSettings *aPrintSettings);
+
+
+  void SysColorChanged();
+
+  
+  void SetPrintSettings(nsIPrintSettings *aPrintSettings);
 
   nsIPrintSettings* GetPrintSettings() { return mPrintSettings; }
 
@@ -808,10 +808,10 @@ public:
 
 
 
-  NS_HIDDEN_(bool) EnsureVisible();
+  bool EnsureVisible();
 
 #ifdef MOZ_REFLOW_PERF
-  NS_HIDDEN_(void) CountReflows(const char * aName,
+  void CountReflows(const char * aName,
                                 nsIFrame * aFrame);
 #endif
 
@@ -853,8 +853,8 @@ public:
 
   bool             SupressingResizeReflow() const { return mSupressResizeReflow; }
 
-  virtual NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetExternal();
-  NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetInternal();
+  virtual gfxUserFontSet* GetUserFontSetExternal();
+  gfxUserFontSet* GetUserFontSetInternal();
 #ifdef MOZILLA_INTERNAL_API
   gfxUserFontSet* GetUserFontSet() { return GetUserFontSetInternal(); }
 #else
@@ -1035,25 +1035,25 @@ public:
 
 protected:
   friend class nsRunnableMethod<nsPresContext>;
-  NS_HIDDEN_(void) ThemeChangedInternal();
-  NS_HIDDEN_(void) SysColorChangedInternal();
-  NS_HIDDEN_(void) UIResolutionChangedInternal();
+  void ThemeChangedInternal();
+  void SysColorChangedInternal();
+  void UIResolutionChangedInternal();
 
-  static NS_HIDDEN_(bool)
+  static bool
   UIResolutionChangedSubdocumentCallback(nsIDocument* aDocument, void* aData);
 
-  NS_HIDDEN_(void) SetImgAnimations(nsIContent *aParent, uint16_t aMode);
-  NS_HIDDEN_(void) SetSMILAnimations(nsIDocument *aDoc, uint16_t aNewMode,
+  void SetImgAnimations(nsIContent *aParent, uint16_t aMode);
+  void SetSMILAnimations(nsIDocument *aDoc, uint16_t aNewMode,
                                      uint16_t aOldMode);
-  NS_HIDDEN_(void) GetDocumentColorPreferences();
+  void GetDocumentColorPreferences();
 
-  NS_HIDDEN_(void) PreferenceChanged(const char* aPrefName);
-  static NS_HIDDEN_(void) PrefChangedCallback(const char*, void*);
+  void PreferenceChanged(const char* aPrefName);
+  static void PrefChangedCallback(const char*, void*);
 
-  NS_HIDDEN_(void) UpdateAfterPreferencesChanged();
-  static NS_HIDDEN_(void) PrefChangedUpdateTimerCallback(nsITimer *aTimer, void *aClosure);
+  void UpdateAfterPreferencesChanged();
+  static void PrefChangedUpdateTimerCallback(nsITimer *aTimer, void *aClosure);
 
-  NS_HIDDEN_(void) GetUserPreferences();
+  void GetUserPreferences();
 
   
   
@@ -1127,7 +1127,7 @@ protected:
     mLangGroupFontPrefs.mLangGroup = nullptr;
   }
 
-  NS_HIDDEN_(void) UpdateCharSet(const nsCString& aCharSet);
+  void UpdateCharSet(const nsCString& aCharSet);
 
 public:
   void DoChangeCharSet(const nsCString& aCharSet);

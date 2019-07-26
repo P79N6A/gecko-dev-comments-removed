@@ -266,7 +266,7 @@ protected:
 #ifdef DEBUG_LAYOUT
   nsresult SetDebug(nsBoxLayoutState& aState, nsIFrame* aList, bool aDebug);
 #endif
-  NS_HIDDEN_(nsresult) Notify(nsITimer* aTimer);
+  nsresult Notify(nsITimer* aTimer);
 
   bool mIsMenu; 
   bool mChecked;              

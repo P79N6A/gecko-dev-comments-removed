@@ -26,7 +26,7 @@ namespace storage {
 
 
 
-NS_HIDDEN_(int) registerCollations(sqlite3 *aDB, Service *aService);
+int registerCollations(sqlite3 *aDB, Service *aService);
 
 
 
@@ -51,7 +51,7 @@ NS_HIDDEN_(int) registerCollations(sqlite3 *aDB, Service *aService);
 
 
 
-NS_HIDDEN_(int) localeCollation8(void *aService,
+int localeCollation8(void *aService,
                                  int aLen1,
                                  const void *aStr1,
                                  int aLen2,
@@ -78,7 +78,7 @@ NS_HIDDEN_(int) localeCollation8(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationCaseSensitive8(void *aService,
+int localeCollationCaseSensitive8(void *aService,
                                               int aLen1,
                                               const void *aStr1,
                                               int aLen2,
@@ -105,7 +105,7 @@ NS_HIDDEN_(int) localeCollationCaseSensitive8(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationAccentSensitive8(void *aService,
+int localeCollationAccentSensitive8(void *aService,
                                                 int aLen1,
                                                 const void *aStr1,
                                                 int aLen2,
@@ -131,7 +131,7 @@ NS_HIDDEN_(int) localeCollationAccentSensitive8(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationCaseAccentSensitive8(void *aService,
+int localeCollationCaseAccentSensitive8(void *aService,
                                                     int aLen1,
                                                     const void *aStr1,
                                                     int aLen2,
@@ -157,7 +157,7 @@ NS_HIDDEN_(int) localeCollationCaseAccentSensitive8(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollation16(void *aService,
+int localeCollation16(void *aService,
                                   int aLen1,
                                   const void *aStr1,
                                   int aLen2,
@@ -184,7 +184,7 @@ NS_HIDDEN_(int) localeCollation16(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationCaseSensitive16(void *aService,
+int localeCollationCaseSensitive16(void *aService,
                                                int aLen1,
                                                const void *aStr1,
                                                int aLen2,
@@ -211,7 +211,7 @@ NS_HIDDEN_(int) localeCollationCaseSensitive16(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationAccentSensitive16(void *aService,
+int localeCollationAccentSensitive16(void *aService,
                                                  int aLen1,
                                                  const void *aStr1,
                                                  int aLen2,
@@ -237,7 +237,7 @@ NS_HIDDEN_(int) localeCollationAccentSensitive16(void *aService,
 
 
 
-NS_HIDDEN_(int) localeCollationCaseAccentSensitive16(void *aService,
+int localeCollationCaseAccentSensitive16(void *aService,
                                                      int aLen1,
                                                      const void *aStr1,
                                                      int aLen2,

@@ -119,7 +119,7 @@ static NS_DEFINE_CID(kXULControllersCID,  NS_XULCONTROLLERS_CID);
 
 
 
-inline NS_HIDDEN_(mozilla::Decimal)
+inline mozilla::Decimal
 NS_floorModulo(mozilla::Decimal x, mozilla::Decimal y)
 {
   return (x - y * (x / y).floor());

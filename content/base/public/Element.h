@@ -949,7 +949,7 @@ public:
 
 
 
-  NS_HIDDEN_(bool) GetBoolAttr(nsIAtom* aAttr) const
+  bool GetBoolAttr(nsIAtom* aAttr) const
   {
     return HasAttr(kNameSpaceID_None, aAttr);
   }
@@ -962,7 +962,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, bool aValue);
+  nsresult SetBoolAttr(nsIAtom* aAttr, bool aValue);
 
   
 

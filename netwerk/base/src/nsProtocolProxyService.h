@@ -38,7 +38,7 @@ public:
 
     nsProtocolProxyService() NS_HIDDEN;
 
-    NS_HIDDEN_(nsresult) Init();
+    nsresult Init();
 
 protected:
     friend class nsAsyncResolveRequest;
@@ -55,7 +55,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) PrefsChanged(nsIPrefBranch *prefs, const char *name);
+    void PrefsChanged(nsIPrefBranch *prefs, const char *name);
 
     
 
@@ -73,7 +73,7 @@ protected:
 
 
 
-    NS_HIDDEN_(const char *) ExtractProxyInfo(const char *proxy,
+    const char * ExtractProxyInfo(const char *proxy,
                                               uint32_t aResolveFlags,
                                               nsProxyInfo **result);
 
@@ -83,7 +83,7 @@ protected:
 
 
 
-    NS_HIDDEN_(nsresult) ConfigureFromPAC(const nsCString &pacURI, bool forceReload);
+    nsresult ConfigureFromPAC(const nsCString &pacURI, bool forceReload);
 
     
 
@@ -97,7 +97,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) ProcessPACString(const nsCString &pacString,
+    void ProcessPACString(const nsCString &pacString,
                                       uint32_t aResolveFlags,
                                       nsIProxyInfo **result);
 
@@ -110,20 +110,12 @@ protected:
 
 
 
-    NS_HIDDEN_(void) GetProxyKey(nsProxyInfo *pi, nsCString &result);
+    void GetProxyKey(nsProxyInfo *pi, nsCString &result);
 
     
 
 
-    NS_HIDDEN_(uint32_t) SecondsSinceSessionStart();
-
-    
-
-
-
-
-
-    NS_HIDDEN_(void) EnableProxy(nsProxyInfo *pi);
+    uint32_t SecondsSinceSessionStart();
 
     
 
@@ -131,7 +123,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) DisableProxy(nsProxyInfo *pi);
+    void EnableProxy(nsProxyInfo *pi);
 
     
 
@@ -139,9 +131,7 @@ protected:
 
 
 
-
-
-    NS_HIDDEN_(bool) IsProxyDisabled(nsProxyInfo *pi);
+    void DisableProxy(nsProxyInfo *pi);
 
     
 
@@ -151,10 +141,7 @@ protected:
 
 
 
-
-
-
-    NS_HIDDEN_(nsresult) GetProtocolInfo(nsIURI *uri, nsProtocolInfo *result);
+    bool IsProxyDisabled(nsProxyInfo *pi);
 
     
 
@@ -167,6 +154,9 @@ protected:
 
 
 
+    nsresult GetProtocolInfo(nsIURI *uri, nsProtocolInfo *result);
+
+    
 
 
 
@@ -177,7 +167,17 @@ protected:
 
 
 
-    NS_HIDDEN_(nsresult) NewProxyInfo_Internal(const char *type,
+
+
+
+
+
+
+
+
+
+
+    nsresult NewProxyInfo_Internal(const char *type,
                                                const nsACString &host,
                                                int32_t port,
                                                uint32_t flags,
@@ -204,7 +204,7 @@ protected:
 
 
 
-    NS_HIDDEN_(nsresult) Resolve_Internal(nsIURI *uri,
+    nsresult Resolve_Internal(nsIURI *uri,
                                           const nsProtocolInfo &info,
                                           uint32_t flags,
                                           bool *usePAC, 
@@ -221,7 +221,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) ApplyFilters(nsIURI *uri, const nsProtocolInfo &info,
+    void ApplyFilters(nsIURI *uri, const nsProtocolInfo &info,
                                   nsIProxyInfo **proxyInfo);
 
     
@@ -246,7 +246,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) PruneProxyInfo(const nsProtocolInfo &info,
+    void PruneProxyInfo(const nsProtocolInfo &info,
                                     nsIProxyInfo **proxyInfo);
 
     
@@ -255,7 +255,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) LoadHostFilters(const char *hostFilters);
+    void LoadHostFilters(const char *hostFilters);
 
     
 
@@ -267,7 +267,7 @@ protected:
 
 
 
-    NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, int32_t defaultPort);
+    bool CanUseProxy(nsIURI *uri, int32_t defaultPort);
 
     
 
@@ -275,7 +275,7 @@ protected:
 
 
 
-    NS_HIDDEN_(void) MaybeDisableDNSPrefetch(nsIProxyInfo *aProxy);
+    void MaybeDisableDNSPrefetch(nsIProxyInfo *aProxy);
 
 private:
     nsresult SetupPACThread();

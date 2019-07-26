@@ -191,7 +191,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) Destroy() = 0;
+  virtual void Destroy() = 0;
 
   bool IsDestroying() { return mIsDestroying; }
 
@@ -205,7 +205,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) MakeZombie() = 0;
+  virtual void MakeZombie() = 0;
 
   
 
@@ -327,8 +327,8 @@ public:
 
   
   
-  NS_HIDDEN_(void) SetAuthorStyleDisabled(bool aDisabled);
-  NS_HIDDEN_(bool) GetAuthorStyleDisabled() const;
+  void SetAuthorStyleDisabled(bool aDisabled);
+  bool GetAuthorStyleDisabled() const;
 
   
 
@@ -340,8 +340,8 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) ReconstructStyleDataExternal();
-  NS_HIDDEN_(void) ReconstructStyleDataInternal();
+  virtual void ReconstructStyleDataExternal();
+  void ReconstructStyleDataInternal();
 #ifdef MOZILLA_INTERNAL_API
   void ReconstructStyleData() { ReconstructStyleDataInternal(); }
 #else
@@ -356,7 +356,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) SetPreferenceStyleRules(bool aForceReflow) = 0;
+  virtual nsresult SetPreferenceStyleRules(bool aForceReflow) = 0;
 
   
 
@@ -373,10 +373,10 @@ public:
 
   
   
-  virtual NS_HIDDEN_(void) BeginObservingDocument() = 0;
+  virtual void BeginObservingDocument() = 0;
 
   
-  virtual NS_HIDDEN_(void) EndObservingDocument() = 0;
+  virtual void EndObservingDocument() = 0;
 
   
 
@@ -394,19 +394,19 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) Initialize(nscoord aWidth, nscoord aHeight) = 0;
+  virtual nsresult Initialize(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
 
 
-  virtual NS_HIDDEN_(nsresult) ResizeReflow(nscoord aWidth, nscoord aHeight) = 0;
+  virtual nsresult ResizeReflow(nscoord aWidth, nscoord aHeight) = 0;
   
 
 
 
 
-  virtual NS_HIDDEN_(nsresult) ResizeReflowOverride(nscoord aWidth, nscoord aHeight) = 0;
+  virtual nsresult ResizeReflowOverride(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
@@ -421,12 +421,12 @@ public:
   
 
 
-  virtual NS_HIDDEN_(void) LoadComplete() = 0;
+  virtual void LoadComplete() = 0;
 
   
 
 
-  virtual NS_HIDDEN_(nsIFrame*) GetRootFrameExternal() const;
+  virtual nsIFrame* GetRootFrameExternal() const;
   nsIFrame* GetRootFrame() const {
 #ifdef MOZILLA_INTERNAL_API
     return mFrameManager->GetRootFrame();
@@ -465,7 +465,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsIPageSequenceFrame*) GetPageSequenceFrame() const = 0;
+  virtual nsIPageSequenceFrame* GetPageSequenceFrame() const = 0;
 
   
 
@@ -474,13 +474,13 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsIFrame*) GetRealPrimaryFrameFor(nsIContent* aContent) const = 0;
+  virtual nsIFrame* GetRealPrimaryFrameFor(nsIContent* aContent) const = 0;
 
   
 
 
 
-  virtual NS_HIDDEN_(nsIFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame) const = 0;
+  virtual nsIFrame* GetPlaceholderFrameFor(nsIFrame* aFrame) const = 0;
 
   
 
@@ -495,7 +495,7 @@ public:
     eTreeChange, 
     eStyleChange 
   };
-  virtual NS_HIDDEN_(void) FrameNeedsReflow(nsIFrame *aFrame,
+  virtual void FrameNeedsReflow(nsIFrame *aFrame,
                                             IntrinsicDirty aIntrinsicDirty,
                                             nsFrameState aBitToAdd) = 0;
 
@@ -515,14 +515,14 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) FrameNeedsToContinueReflow(nsIFrame *aFrame) = 0;
+  virtual void FrameNeedsToContinueReflow(nsIFrame *aFrame) = 0;
 
-  virtual NS_HIDDEN_(void) CancelAllPendingReflows() = 0;
+  virtual void CancelAllPendingReflows() = 0;
 
   
 
 
-  virtual NS_HIDDEN_(nsresult) RecreateFramesFor(nsIContent* aContent) = 0;
+  virtual nsresult RecreateFramesFor(nsIContent* aContent) = 0;
 
   void PostRecreateFramesFor(mozilla::dom::Element* aElement);
   void RestyleForAnimation(mozilla::dom::Element* aElement,
@@ -538,7 +538,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(bool) IsSafeToFlush() const = 0;
+  virtual bool IsSafeToFlush() const = 0;
 
   
 
@@ -549,17 +549,17 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) FlushPendingNotifications(mozFlushType aType) = 0;
-  virtual NS_HIDDEN_(void) FlushPendingNotifications(mozilla::ChangesToFlush aType) = 0;
+  virtual void FlushPendingNotifications(mozFlushType aType) = 0;
+  virtual void FlushPendingNotifications(mozilla::ChangesToFlush aType) = 0;
 
   
 
 
 
-  virtual NS_HIDDEN_(nsresult) PostReflowCallback(nsIReflowCallback* aCallback) = 0;
-  virtual NS_HIDDEN_(void) CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual nsresult PostReflowCallback(nsIReflowCallback* aCallback) = 0;
+  virtual void CancelReflowCallback(nsIReflowCallback* aCallback) = 0;
 
-  virtual NS_HIDDEN_(void) ClearFrameRefs(nsIFrame* aFrame) = 0;
+  virtual void ClearFrameRefs(nsIFrame* aFrame) = 0;
 
   
 
@@ -576,7 +576,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) GoToAnchor(const nsAString& aAnchorName, bool aScroll) = 0;
+  virtual nsresult GoToAnchor(const nsAString& aAnchorName, bool aScroll) = 0;
 
   
 
@@ -586,7 +586,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) ScrollToAnchor() = 0;
+  virtual nsresult ScrollToAnchor() = 0;
 
   enum {
     SCROLL_TOP     = 0,
@@ -669,7 +669,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
+  virtual nsresult ScrollContentIntoView(nsIContent* aContent,
                                                      ScrollAxis  aVertical,
                                                      ScrollAxis  aHorizontal,
                                                      uint32_t    aFlags) = 0;
@@ -726,26 +726,26 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) SetIgnoreFrameDestruction(bool aIgnore) = 0;
+  virtual void SetIgnoreFrameDestruction(bool aIgnore) = 0;
 
   
 
 
 
 
-  virtual NS_HIDDEN_(void) NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
+  virtual void NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
 
   
 
 
-  virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() const = 0;
+  virtual already_AddRefed<nsCaret> GetCaret() const = 0;
 
   
 
 
 
 
-  virtual NS_HIDDEN_(void) MaybeInvalidateCaretPosition() = 0;
+  virtual void MaybeInvalidateCaretPosition() = 0;
 
   
 
@@ -781,7 +781,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) HandleEventWithTarget(
+  virtual nsresult HandleEventWithTarget(
                                  mozilla::WidgetEvent* aEvent,
                                  nsIFrame* aFrame,
                                  nsIContent* aContent,
@@ -791,7 +791,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) HandleDOMEventWithTarget(
+  virtual nsresult HandleDOMEventWithTarget(
                                  nsIContent* aTargetContent,
                                  mozilla::WidgetEvent* aEvent,
                                  nsEventStatus* aStatus) = 0;
@@ -800,26 +800,26 @@ public:
 
 
 
-  virtual NS_HIDDEN_(nsresult) HandleDOMEventWithTarget(nsIContent* aTargetContent,
+  virtual nsresult HandleDOMEventWithTarget(nsIContent* aTargetContent,
                                                         nsIDOMEvent* aEvent,
                                                         nsEventStatus* aStatus) = 0;
 
   
 
 
-  virtual NS_HIDDEN_(nsIFrame*) GetEventTargetFrame() = 0;
+  virtual nsIFrame* GetEventTargetFrame() = 0;
 
   
 
 
-  virtual NS_HIDDEN_(already_AddRefed<nsIContent>) GetEventTargetContent(
+  virtual already_AddRefed<nsIContent> GetEventTargetContent(
                                                      mozilla::WidgetEvent* aEvent) = 0;
 
   
 
 
 
-  virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState) = 0;
+  virtual nsresult CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState) = 0;
 
   
 
@@ -851,7 +851,7 @@ public:
   
 
 
-  virtual NS_HIDDEN_(void) UnsuppressPainting() = 0;
+  virtual void UnsuppressPainting() = 0;
 
   
 
@@ -915,15 +915,15 @@ public:
   virtual nsIFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame);
 
 #ifdef MOZ_REFLOW_PERF
-  virtual NS_HIDDEN_(void) DumpReflows() = 0;
-  virtual NS_HIDDEN_(void) CountReflows(const char * aName, nsIFrame * aFrame) = 0;
-  virtual NS_HIDDEN_(void) PaintCount(const char * aName,
+  virtual void DumpReflows() = 0;
+  virtual void CountReflows(const char * aName, nsIFrame * aFrame) = 0;
+  virtual void PaintCount(const char * aName,
                                       nsRenderingContext* aRenderingContext,
                                       nsPresContext * aPresContext,
                                       nsIFrame * aFrame,
                                       const nsPoint& aOffset,
                                       uint32_t aColor) = 0;
-  virtual NS_HIDDEN_(void) SetPaintFrameCount(bool aOn) = 0;
+  virtual void SetPaintFrameCount(bool aOn) = 0;
   virtual bool IsPaintingFrameCounts() = 0;
 #endif
 
@@ -1016,7 +1016,7 @@ public:
     RENDER_DOCUMENT_RELATIVE = 0x20,
     RENDER_DRAWWINDOW_NOT_FLUSHING = 0x40
   };
-  virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, uint32_t aFlags,
+  virtual nsresult RenderDocument(const nsRect& aRect, uint32_t aFlags,
                                               nscolor aBackgroundColor,
                                               gfxContext* aRenderedContext) = 0;
 
@@ -1087,7 +1087,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) DisableNonTestMouseEvents(bool aDisable) = 0;
+  virtual void DisableNonTestMouseEvents(bool aDisable) = 0;
 
   
 

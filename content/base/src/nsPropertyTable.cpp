@@ -45,12 +45,12 @@ public:
 
   
   
-  NS_HIDDEN_(bool) DeletePropertyFor(nsPropertyOwner aObject);
+  bool DeletePropertyFor(nsPropertyOwner aObject);
 
   
-  NS_HIDDEN_(void) Destroy();
+  void Destroy();
 
-  NS_HIDDEN_(bool) Equals(nsIAtom *aPropertyName)
+  bool Equals(nsIAtom *aPropertyName)
   {
     return mName == aPropertyName;
   }

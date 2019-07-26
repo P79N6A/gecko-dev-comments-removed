@@ -38,7 +38,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) OpenChannel(nsIChannel* channel,
+  nsresult OpenChannel(nsIChannel* channel,
                                    uint32_t aFlags,
                                    nsIInterfaceRequestor* aWindowContext,
                                    bool aChannelOpen,

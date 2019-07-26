@@ -20,7 +20,7 @@
 
 
 
-NS_HIDDEN_(nsresult)
+nsresult
 net_NewTransportEventSinkProxy(nsITransportEventSink **aResult,
                                nsITransportEventSink *aSink,
                                nsIEventTarget *aTarget,

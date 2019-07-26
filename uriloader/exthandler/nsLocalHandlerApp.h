@@ -42,7 +42,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) LaunchWithIProcess(const nsCString &aArg);
+  nsresult LaunchWithIProcess(const nsCString &aArg);
 };
 
 

@@ -68,7 +68,7 @@ protected:
 
   
   
-  NS_HIDDEN_(already_AddRefed<nsIPresShell>) GetPresShell();
+  already_AddRefed<nsIPresShell> GetPresShell();
 
   void ReleaseStrongMemberVariables();
 

@@ -192,7 +192,7 @@ private:
   
 
 
-  NS_HIDDEN_(void) StartObjectLoad(bool aNotify);
+  void StartObjectLoad(bool aNotify);
 
   nsIAtom *URIAttrName() const
   {

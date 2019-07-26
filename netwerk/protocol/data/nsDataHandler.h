@@ -27,7 +27,7 @@ public:
     
     
     
-    static NS_HIDDEN_(nsresult) ParseURI(nsCString& spec,
+    static nsresult ParseURI(nsCString& spec,
                                          nsCString& contentType,
                                          nsCString& contentCharset,
                                          bool&    isBase64,

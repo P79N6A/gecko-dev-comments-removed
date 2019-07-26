@@ -94,14 +94,14 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) ReparentStyleContext(nsIFrame* aFrame);
+  nsresult ReparentStyleContext(nsIFrame* aFrame);
 
   
 
 
 
 
-  NS_HIDDEN_(void)
+  void
     ComputeStyleChangeFor(nsIFrame* aFrame,
                           nsStyleChangeList* aChangeList,
                           nsChangeHint aMinChange,
@@ -112,7 +112,7 @@ public:
   
 
 
-  NS_HIDDEN_(void) DebugVerifyStyleTree(nsIFrame* aFrame);
+  void DebugVerifyStyleTree(nsIFrame* aFrame);
 #endif
 
   

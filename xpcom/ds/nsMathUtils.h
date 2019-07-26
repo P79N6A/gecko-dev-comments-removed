@@ -19,15 +19,15 @@
 
 
 
-inline NS_HIDDEN_(double) NS_round(double x)
+inline double NS_round(double x)
 {
     return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5);
 }
-inline NS_HIDDEN_(float) NS_roundf(float x)
+inline float NS_roundf(float x)
 {
     return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f);
 }
-inline NS_HIDDEN_(int32_t) NS_lround(double x)
+inline int32_t NS_lround(double x)
 {
     return x >= 0.0 ? int32_t(x + 0.5) : int32_t(x - 0.5);
 }
@@ -36,7 +36,7 @@ inline NS_HIDDEN_(int32_t) NS_lround(double x)
 
 
 #if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-inline NS_HIDDEN_(int32_t) NS_lroundup30(float x)
+inline int32_t NS_lroundup30(float x)
 {
     
     
@@ -68,7 +68,7 @@ inline NS_HIDDEN_(int32_t) NS_lroundup30(float x)
 }
 #endif 
 
-inline NS_HIDDEN_(int32_t) NS_lroundf(float x)
+inline int32_t NS_lroundf(float x)
 {
     return x >= 0.0f ? int32_t(x + 0.5f) : int32_t(x - 0.5f);
 }
@@ -78,7 +78,7 @@ inline NS_HIDDEN_(int32_t) NS_lroundf(float x)
 
 
 
-inline NS_HIDDEN_(double) NS_hypot(double x, double y)
+inline double NS_hypot(double x, double y)
 {
 #ifdef __GNUC__
     return __builtin_hypot(x, y);
@@ -93,7 +93,7 @@ inline NS_HIDDEN_(double) NS_hypot(double x, double y)
 
 
 
-inline NS_HIDDEN_(bool) NS_finite(double d)
+inline bool NS_finite(double d)
 {
 #ifdef WIN32
     
@@ -113,7 +113,7 @@ inline NS_HIDDEN_(bool) NS_finite(double d)
 
 
 
-inline NS_HIDDEN_(double) NS_floorModulo(double x, double y)
+inline double NS_floorModulo(double x, double y)
 {
   return (x - y * floor(x / y));
 }

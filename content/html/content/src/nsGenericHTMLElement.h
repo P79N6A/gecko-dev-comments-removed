@@ -825,7 +825,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsPresContext*) GetPresContext();
+  nsPresContext* GetPresContext();
 
   
   
@@ -851,7 +851,7 @@ public:
   
 
 
-  NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
+  nsresult GetEditor(nsIEditor** aEditor);
 
   
 
@@ -864,7 +864,7 @@ public:
 
 
 
-  NS_HIDDEN_(void) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult) const;
+  void GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult) const;
 
   
 
@@ -1033,7 +1033,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetAttrHelper(nsIAtom* aAttr, const nsAString& aValue);
+  nsresult SetAttrHelper(nsIAtom* aAttr, const nsAString& aValue);
 
   
 
@@ -1044,7 +1044,7 @@ protected:
 
 
 
-  NS_HIDDEN_(int32_t) GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
+  int32_t GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
 
   
 
@@ -1054,7 +1054,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetIntAttr(nsIAtom* aAttr, int32_t aValue);
+  nsresult SetIntAttr(nsIAtom* aAttr, int32_t aValue);
 
   
 
@@ -1111,7 +1111,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetURIListAttr(nsIAtom* aAttr, nsAString& aResult);
+  nsresult GetURIListAttr(nsIAtom* aAttr, nsAString& aResult);
 
   
 
@@ -1122,7 +1122,7 @@ protected:
 
 
 
-  NS_HIDDEN_(void) GetEnumAttr(nsIAtom* aAttr,
+  void GetEnumAttr(nsIAtom* aAttr,
                                const char* aDefault,
                                nsAString& aResult) const;
 
@@ -1137,7 +1137,7 @@ protected:
 
 
 
-  NS_HIDDEN_(void) GetEnumAttr(nsIAtom* aAttr,
+  void GetEnumAttr(nsIAtom* aAttr,
                                const char* aDefaultMissing,
                                const char* aDefaultInvalid,
                                nsAString& aResult) const;
@@ -1183,7 +1183,7 @@ protected:
 
 
 
-  NS_HIDDEN_(ContentEditableTristate) GetContentEditableValue() const
+  ContentEditableTristate GetContentEditableValue() const
   {
     static const nsIContent::AttrValuesArray values[] =
       { &nsGkAtoms::_false, &nsGkAtoms::_true, &nsGkAtoms::_empty, nullptr };

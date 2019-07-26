@@ -93,7 +93,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(nsresult) SetProperty(nsPropertyOwner     aObject,
+  nsresult SetProperty(nsPropertyOwner     aObject,
                                    nsIAtom            *aPropertyName,
                                    void               *aPropertyValue,
                                    NSPropertyDtorFunc  aDtor,
@@ -109,7 +109,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(nsresult) DeleteProperty(nsPropertyOwner aObject,
+  nsresult DeleteProperty(nsPropertyOwner aObject,
                                       nsIAtom    *aPropertyName);
 
   
@@ -128,7 +128,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(void) DeleteAllPropertiesFor(nsPropertyOwner aObject);
+  void DeleteAllPropertiesFor(nsPropertyOwner aObject);
 
   
 
@@ -137,7 +137,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(nsresult)
+  nsresult
     TransferOrDeleteAllPropertiesFor(nsPropertyOwner aObject,
                                      nsPropertyTable *aOtherTable);
 
@@ -146,7 +146,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(void) Enumerate(nsPropertyOwner aObject,
+  void Enumerate(nsPropertyOwner aObject,
                              NSPropertyFunc aCallback, void *aData);
 
   
@@ -154,13 +154,13 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(void) EnumerateAll(NSPropertyFunc aCallback, void *aData);
+  void EnumerateAll(NSPropertyFunc aCallback, void *aData);
 
   
 
 
 
-  NS_HIDDEN_(void) DeleteAllProperties();
+  void DeleteAllProperties();
 
   nsPropertyTable() : mPropertyList(nullptr) {}  
   ~nsPropertyTable() {
@@ -181,13 +181,13 @@ class nsPropertyTable
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
  private:
-  NS_HIDDEN_(void) DestroyPropertyList();
-  NS_HIDDEN_(PropertyList*) GetPropertyListFor(nsIAtom *aPropertyName) const;
-  NS_HIDDEN_(void*) GetPropertyInternal(nsPropertyOwner aObject,
+  void DestroyPropertyList();
+  PropertyList* GetPropertyListFor(nsIAtom *aPropertyName) const;
+  void* GetPropertyInternal(nsPropertyOwner aObject,
                                         nsIAtom    *aPropertyName,
                                         bool        aRemove,
                                         nsresult   *aStatus);
-  NS_HIDDEN_(nsresult) SetPropertyInternal(nsPropertyOwner     aObject,
+  nsresult SetPropertyInternal(nsPropertyOwner     aObject,
                                            nsIAtom            *aPropertyName,
                                            void               *aPropertyValue,
                                            NSPropertyDtorFunc  aDtor,
