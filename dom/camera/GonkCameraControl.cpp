@@ -30,7 +30,6 @@
 #include "mozilla/FileUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
-#include "mozilla/ipc/FileDescriptorUtils.h"
 #include "nsAlgorithm.h"
 #include <media/mediaplayer.h>
 #include "nsPrintfCString.h"
@@ -47,7 +46,6 @@
 using namespace mozilla;
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
-using namespace mozilla::ipc;
 using namespace android;
 
 #define RETURN_IF_NO_CAMERA_HW()                                          \
@@ -857,12 +855,6 @@ nsGonkCameraControl::StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescri
     return NS_ERROR_INVALID_ARG;
   }
 
-  
-  
-  
-  
-  nsRefPtr<CloseFileRunnable> closer =
-    new CloseFileRunnable(aFileDescriptor->mFileDescriptor);
   nsresult rv;
   int fd = aFileDescriptor->mFileDescriptor.PlatformHandle();
   if (aOptions) {
