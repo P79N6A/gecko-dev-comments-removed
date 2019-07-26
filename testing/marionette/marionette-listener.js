@@ -1469,6 +1469,9 @@ function switchToFrame(msg) {
     msg.json.element = null;
   }
   if ((msg.json.value == null) && (msg.json.element == null)) {
+    
+    sendSyncMessage("Marionette:switchedToFrame", { frameValue: null });
+
     curWindow = content;
     if(msg.json.focus == true) {
       curWindow.focus();
@@ -1530,6 +1533,11 @@ function switchToFrame(msg) {
   }
 
   sandbox = null;
+
+  
+  
+  let frameValue = elementManager.wrapValue(curWindow.wrappedJSObject)['ELEMENT'];
+  sendSyncMessage("Marionette:switchedToFrame", { frameValue: frameValue });
 
   if (curWindow.contentWindow == null) {
     
