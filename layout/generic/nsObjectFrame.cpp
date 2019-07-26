@@ -63,8 +63,6 @@
 #endif 
 #include "prlog.h"
 
-static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
-
 #ifdef XP_MACOSX
 #include "gfxQuartzNativeDrawing.h"
 #include "nsPluginUtilsOSX.h"
