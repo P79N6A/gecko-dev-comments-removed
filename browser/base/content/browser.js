@@ -260,15 +260,7 @@ function UpdateBackForwardCommands(aWebNavigation) {
       backBroadcaster.setAttribute("disabled", true);
   }
 
-  let canGoForward = aWebNavigation.canGoForward;
-  if (forwardDisabled) {
-    
-    
-    
-    CombinedBackForward.setForwardButtonOcclusion(!canGoForward);
-  }
-
-  if (forwardDisabled == canGoForward) {
+  if (forwardDisabled == aWebNavigation.canGoForward) {
     if (forwardDisabled)
       forwardBroadcaster.removeAttribute("disabled");
     else
@@ -920,7 +912,6 @@ var gBrowserInit = {
 
     
     CombinedStopReload.init();
-    CombinedBackForward.init();
     gPrivateBrowsingUI.init();
     TabsInTitlebar.init();
 
@@ -1267,7 +1258,6 @@ var gBrowserInit = {
     
 
     CombinedStopReload.uninit();
-    CombinedBackForward.uninit();
 
     gGestureSupport.init(false);
 
@@ -3799,7 +3789,6 @@ var XULBrowserWindow = {
   onUpdateCurrentBrowser: function XWB_onUpdateCurrentBrowser(aStateFlags, aStatus, aMessage, aTotalProgress) {
     if (FullZoom.updateBackgroundTabs)
       FullZoom.onLocationChange(gBrowser.currentURI, true);
-    CombinedBackForward.setForwardButtonOcclusion(!gBrowser.webProgress.canGoForward);
     var nsIWebProgressListener = Components.interfaces.nsIWebProgressListener;
     var loadingDone = aStateFlags & nsIWebProgressListener.STATE_STOP;
     
@@ -3873,43 +3862,6 @@ var LinkTargetDisplay = {
     XULBrowserWindow.updateStatusField();
   }
 };
-
-let CombinedBackForward = {
-  init: function() {
-    this.forwardButton = document.getElementById("forward-button");
-    
-    
-    if (gURLBar)
-      gURLBar.addEventListener("transitionend", this);
-    
-    
-    
-    if (this.forwardButton && this.forwardButton.hasAttribute("disabled")) {
-      this.setForwardButtonOcclusion(true);
-    }
-  },
-  uninit: function() {
-    if (gURLBar)
-      gURLBar.removeEventListener("transitionend", this);
-  },
-  handleEvent: function(aEvent) {
-    if (aEvent.type == "transitionend" &&
-        (aEvent.propertyName == "margin-left" || aEvent.propertyName == "margin-right") &&
-        this.forwardButton.hasAttribute("disabled")) {
-      this.setForwardButtonOcclusion(true);
-    }
-  },
-  setForwardButtonOcclusion: function(shouldBeOccluded) {
-    if (!this.forwardButton)
-      return;
-
-    let hasAttribute = this.forwardButton.hasAttribute("occluded-by-urlbar");
-    if (shouldBeOccluded && !hasAttribute)
-      this.forwardButton.setAttribute("occluded-by-urlbar", "true");
-    else if (!shouldBeOccluded && hasAttribute)
-      this.forwardButton.removeAttribute("occluded-by-urlbar");
-  }
-}
 
 var CombinedStopReload = {
   init: function () {
