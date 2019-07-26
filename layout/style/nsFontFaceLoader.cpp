@@ -413,6 +413,13 @@ static PLDHashOperator DetachFontEntries(const nsAString& aKey,
   return PL_DHASH_NEXT;
 }
 
+static PLDHashOperator RemoveIfEmpty(const nsAString& aKey,
+                                     nsRefPtr<gfxMixedFontFamily>& aFamily,
+                                     void* aUserArg)
+{
+  return aFamily->GetFontList().Length() ? PL_DHASH_NEXT : PL_DHASH_REMOVE;
+}
+
 bool
 nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 {
@@ -420,11 +427,9 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 
   
   
-  if (mLoaders.Count() > 0) {
-    modified = true; 
-                        
-  }
-  mLoaders.EnumerateEntries(DestroyIterator, nullptr);
+  
+  
+  
 
   nsTArray<FontFaceRuleRecord> oldRules;
   mRules.SwapElements(oldRules);
@@ -432,8 +437,9 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
   
+  
+  
   mFontFamilies.Enumerate(DetachFontEntries, nullptr);
-  mFontFamilies.Clear();
 
   for (uint32_t i = 0, i_end = aRules.Length(); i < i_end; ++i) {
     
@@ -443,8 +449,17 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   }
 
   
+  
+  mFontFamilies.Enumerate(RemoveIfEmpty, nullptr);
+
+  
+  
   if (oldRules.Length() > 0) {
     modified = true;
+    
+    
+    
+    
     
     size_t count = oldRules.Length();
     for (size_t i = 0; i < count; ++i) {
@@ -453,9 +468,10 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
         continue;
       }
       gfxProxyFontEntry *proxy = static_cast<gfxProxyFontEntry*>(fe);
-      if (proxy->mLoader != nullptr) {
-        proxy->mLoader->Cancel();
-        RemoveLoader(proxy->mLoader);
+      nsFontFaceLoader *loader = proxy->mLoader;
+      if (loader) {
+        loader->Cancel();
+        RemoveLoader(loader);
       }
     }
   }
@@ -515,7 +531,7 @@ nsUserFontSet::InsertRule(nsCSSFontFaceRule *aRule, uint8_t aSheetType,
   
 
   uint32_t weight = NS_STYLE_FONT_WEIGHT_NORMAL;
-  uint32_t stretch = NS_STYLE_FONT_STRETCH_NORMAL;
+  int32_t stretch = NS_STYLE_FONT_STRETCH_NORMAL;
   uint32_t italicStyle = NS_STYLE_FONT_STYLE_NORMAL;
   nsString languageOverride;
 
@@ -674,10 +690,13 @@ nsUserFontSet::ReplaceFontEntry(gfxMixedFontFamily *aFamily,
                                 gfxProxyFontEntry *aProxy,
                                 gfxFontEntry *aFontEntry)
 {
+  
+  
+  
+  
   for (uint32_t i = 0; i < mRules.Length(); ++i) {
     if (mRules[i].mFontEntry == aProxy) {
       mRules[i].mFontEntry = aFontEntry;
-      break;
     }
   }
   aFamily->ReplaceFontEntry(aProxy, aFontEntry);
