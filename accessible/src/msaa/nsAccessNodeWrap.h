@@ -15,9 +15,7 @@
 
 
 
-#ifdef _MSC_VER
 #pragma warning( disable : 4509 )
-#endif
 
 #include "nsCOMPtr.h"
 #include "nsIAccessible.h"
@@ -26,8 +24,8 @@
 #include "nsIDOMElement.h"
 #include "nsIContent.h"
 #include "nsAccessNode.h"
-#include "oleidl.h"
-#include "oleacc.h"
+#include "OLEIDL.H"
+#include "OLEACC.H"
 #include <winuser.h>
 #ifdef MOZ_CRASHREPORTER
 #include "nsICrashReporter.h"
@@ -36,25 +34,18 @@
 #include "nsRefPtrHashtable.h"
 
 #define A11Y_TRYBLOCK_BEGIN                                                    \
-  MOZ_SEH_TRY {
+  __try {
 
-#define A11Y_TRYBLOCK_END                                                             \
-  } MOZ_SEH_EXCEPT(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(),       \
-                                                          GetExceptionInformation())) \
-  { }                                                                                 \
+#define A11Y_TRYBLOCK_END                                                      \
+  } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(),      \
+                                                    GetExceptionInformation()))\
+  { }                                                                          \
   return E_FAIL;
 
 namespace mozilla {
 namespace a11y {
 
 class AccTextChangeEvent;
-
-#ifdef __GNUC__
-
-
-
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#endif
 
 class nsAccessNodeWrap : public nsAccessNode,
                          public nsIWinAccessNode,
@@ -77,6 +68,10 @@ public:
                                                  REFIID aIID,
                                                  void** aInstancePtr);
 
+
+    static void InitAccessibility();
+    static void ShutdownAccessibility();
+
     static int FilterA11yExceptions(unsigned int aCode, EXCEPTION_POINTERS *aExceptionInfo);
 
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT Msg,
@@ -86,12 +81,11 @@ public:
 
 protected:
 
-  
+    
 
 
 
-  static AccTextChangeEvent* gTextEvent;
-  friend void PlatformShutdown();
+    static AccTextChangeEvent* gTextEvent;
 };
 
 } 
