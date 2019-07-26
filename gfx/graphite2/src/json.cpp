@@ -29,7 +29,7 @@
 
 #if !defined GRAPHITE2_NTRACING
 
-#include <cstdio>
+#include <stdio.h>
 #include "inc/json.h"
 
 using namespace graphite2;

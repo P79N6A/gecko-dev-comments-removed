@@ -31,7 +31,7 @@
 #pragma once
 #include "inc/Main.h"
 #include <cassert>
-#include <cstdio>
+#include <stdio.h>
 
 namespace graphite2 {
 
