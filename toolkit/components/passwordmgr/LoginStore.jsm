@@ -267,31 +267,6 @@ LoginStore.prototype = {
     
     this.data.version = kDataVersion;
 
-    
-    
-    
-    
-    let originalDisabledHosts = this.data.disabledHosts;
-    if (originalDisabledHosts.some(hostItem => typeof hostItem != "string")) {
-
-      this.data.disabledHosts = [];
-
-      for (let hostItem of originalDisabledHosts) {
-        
-        if (typeof hostItem != "string") {
-          hostItem = hostItem.hostname;
-        }
-
-        
-        if (this.data.disabledHosts.indexOf(hostItem) == -1) {
-          this.data.disabledHosts.push(hostItem);
-        }
-      }
-
-      
-      this.saveSoon();
-    }
-
     this.dataReady = true;
   },
 
