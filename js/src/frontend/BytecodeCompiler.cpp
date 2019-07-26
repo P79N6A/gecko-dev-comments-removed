@@ -275,11 +275,12 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     fun->setArgCount(formals.length());
 
     
-    ParseNode *fn = FunctionNode::create(PNK_NAME, &parser);
+    ParseNode *fn = FunctionNode::create(PNK_FUNCTION, &parser);
     if (!fn)
         return false;
 
     fn->pn_body = NULL;
+    fn->pn_funbox = NULL;
     fn->pn_cookie.makeFree();
 
     ParseNode *argsbody = ListNode::create(PNK_ARGSBODY, &parser);
