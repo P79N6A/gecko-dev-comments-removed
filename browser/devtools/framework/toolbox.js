@@ -940,14 +940,18 @@ Toolbox.prototype = {
 
     this._telemetry.destroy();
 
-    
-    if (this._target) {
-      this._target.off("close", this.destroy);
-      outstanding.push(this._target.destroy());
-    }
-    this._target = null;
-
-    promise.all(outstanding).then(function() {
+    promise.all(outstanding).then(() => {
+      
+      
+      
+      
+      if (this._target) {
+        let target = this._target;
+        this._target = null;
+        target.off("close", this.destroy);
+        return target.destroy();
+      }
+    }).then(function() {
       this.emit("destroyed");
       
       

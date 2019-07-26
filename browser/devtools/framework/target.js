@@ -428,6 +428,10 @@ TabTarget.prototype = {
     
     this.emit("close");
 
+    if (this._inspector) {
+      this._inspector.destroy();
+    }
+
     
     
     this.off("thread-resumed", this._handleThreadState);
