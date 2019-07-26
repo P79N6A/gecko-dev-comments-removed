@@ -50,10 +50,6 @@ class Shape;
 class WatchpointMap;
 class NestedScopeObject;
 
-namespace analyze {
-    class ScriptAnalysis;
-}
-
 namespace frontend {
     class BytecodeEmitter;
 }
@@ -1142,6 +1138,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
     bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
+    inline bool ensureHasAnalyzedArgsUsage(JSContext *cx);
     bool needsArgsObj() const {
         JS_ASSERT(analyzedArgsUsage());
         return needsArgsObj_;
@@ -1317,19 +1314,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     
     inline bool ensureHasTypes(JSContext *cx);
 
-    
-
-
-
-    inline bool ensureRanAnalysis(JSContext *cx);
-
-    
-    inline bool ensureRanInference(JSContext *cx);
-
-    inline bool hasAnalysis();
-    inline void clearAnalysis();
-    inline js::analyze::ScriptAnalysis *analysis();
-
     inline js::GlobalObject &global() const;
     js::GlobalObject &uninlinedGlobal() const;
 
@@ -1342,7 +1326,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
   private:
     bool makeTypes(JSContext *cx);
-    bool makeAnalysis(JSContext *cx);
 
   public:
     uint32_t getUseCount() const {

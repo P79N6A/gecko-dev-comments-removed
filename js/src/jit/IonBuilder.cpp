@@ -124,6 +124,7 @@ IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp,
     argTypes(nullptr),
     typeArray(nullptr),
     typeArrayHint(0),
+    bytecodeTypeMap(nullptr),
     loopDepth_(loopDepth),
     callerResumePoint_(nullptr),
     callerBuilder_(nullptr),
@@ -145,7 +146,7 @@ IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp,
     script_ = info->script();
     pc = info->startPC();
 
-    JS_ASSERT(script()->hasBaselineScript());
+    JS_ASSERT(script()->hasBaselineScript() == (info->executionMode() != ArgumentsUsageAnalysis));
     JS_ASSERT(!!analysisContext == (info->executionMode() == DefinitePropertiesAnalysis));
 }
 
@@ -609,6 +610,17 @@ IonBuilder::init()
     if (!analysis().init(alloc(), gsn))
         return false;
 
+    
+    
+    if (script()->hasBaselineScript()) {
+        bytecodeTypeMap = script()->baselineScript()->bytecodeTypeMap();
+    } else {
+        bytecodeTypeMap = alloc_->lifoAlloc()->newArrayUninitialized<uint32_t>(script()->nTypeSets());
+        if (!bytecodeTypeMap)
+            return false;
+        types::FillBytecodeTypeMap(script(), bytecodeTypeMap);
+    }
+
     return true;
 }
 
@@ -987,7 +999,9 @@ IonBuilder::initScopeChain(MDefinition *callee)
         current->add(scope);
 
         
-        if (fun->isHeavyweight()) {
+        
+        
+        if (fun->isHeavyweight() && !info().executionModeIsAnalysis()) {
             if (fun->isNamedLambda()) {
                 scope = createDeclEnvObject(callee, scope);
                 if (!scope)
@@ -3573,7 +3587,12 @@ IonBuilder::jsop_try()
         return abort("Has try-finally");
 
     
-    JS_ASSERT(script()->uninlineable() && !isInlineBuilder());
+    JS_ASSERT(!isInlineBuilder());
+
+    
+    
+    if (info().executionMode() == ArgumentsUsageAnalysis)
+        return abort("Try-catch during arguments usage analysis");
 
     graph().setHasTryBlock();
 
@@ -4094,6 +4113,10 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 {
     
     if (target == nullptr)
+        return InliningDecision_DontInline;
+
+    
+    if (info().executionMode() == ArgumentsUsageAnalysis)
         return InliningDecision_DontInline;
 
     
@@ -5641,14 +5664,8 @@ IonBuilder::jsop_initprop(PropertyName *name)
 
     
     
-    switch (info().executionMode()) {
-      case SequentialExecution:
-      case DefinitePropertiesAnalysis:
-        break;
-      case ParallelExecution:
+    if (info().executionMode() == ParallelExecution)
         needsBarrier = false;
-        break;
-    }
 
     if (templateObject->isFixedSlot(shape->slot())) {
         MStoreFixedSlot *store = MStoreFixedSlot::New(alloc(), obj, shape->slot(), value);
@@ -6663,6 +6680,21 @@ IonBuilder::jsop_getelem()
 {
     MDefinition *index = current->pop();
     MDefinition *obj = current->pop();
+
+    
+    
+    if (info().executionModeIsAnalysis()) {
+        MInstruction *ins = MCallGetElement::New(alloc(), obj, index);
+
+        current->add(ins);
+        current->push(ins);
+
+        if (!resumeAfter(ins))
+            return false;
+
+        types::TemporaryTypeSet *types = bytecodeTypes(pc);
+        return pushTypeBarrier(ins, types, true);
+    }
 
     bool emitted = false;
 
@@ -8540,7 +8572,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
     
     
     
-    if (info().executionMode() == DefinitePropertiesAnalysis || types->empty()) {
+    if (info().executionModeIsAnalysis() || types->empty()) {
         MDefinition *obj = current->peek(-1);
         MCallGetProperty *call = MCallGetProperty::New(alloc(), obj, name, *pc == JSOP_CALLPROP);
         current->add(call);
@@ -8549,7 +8581,7 @@ IonBuilder::jsop_getprop(PropertyName *name)
         
         
         
-        if (info().executionMode() == DefinitePropertiesAnalysis) {
+        if (info().executionModeIsAnalysis()) {
             if (!getPropTryConstant(&emitted, name, types) || emitted)
                 return emitted;
         }
@@ -9016,7 +9048,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
 
     
     
-    if (info().executionMode() == DefinitePropertiesAnalysis) {
+    if (info().executionModeIsAnalysis()) {
         MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, script()->strict());
         current->add(ins);
         current->push(value);
@@ -9605,8 +9637,7 @@ IonBuilder::jsop_this()
     
     
     
-    
-    if (info().executionMode() == DefinitePropertiesAnalysis) {
+    if (info().executionModeIsAnalysis()) {
         current->pushSlot(info().thisSlot());
         return true;
     }
@@ -10007,7 +10038,7 @@ IonBuilder::addShapeGuard(MDefinition *obj, Shape *const shape, BailoutKind bail
 types::TemporaryTypeSet *
 IonBuilder::bytecodeTypes(jsbytecode *pc)
 {
-    return types::TypeScript::BytecodeTypes(script(), pc, &typeArrayHint, typeArray);
+    return types::TypeScript::BytecodeTypes(script(), pc, bytecodeTypeMap, &typeArrayHint, typeArray);
 }
 
 TypeDescrSetHash *
