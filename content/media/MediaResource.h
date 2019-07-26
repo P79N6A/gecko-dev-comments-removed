@@ -7,10 +7,11 @@
 #define MediaResource_h_
 
 #include "mozilla/Mutex.h"
-#ifdef MOZ_DASH
+#include "mozilla/XPCOM.h"
 #include "mozilla/ReentrantMonitor.h"
-#endif
 #include "nsIChannel.h"
+#include "nsIHttpChannel.h"
+#include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
@@ -18,7 +19,6 @@
 #include "MediaCache.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
-#include "nsThreadUtils.h"
 
 
 
@@ -31,9 +31,6 @@ static const uint32_t HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
 
 static const int64_t RELIABLE_DATA_THRESHOLD = 57 * 1460;
-
-class nsIHttpChannel;
-class nsIPrincipal;
 
 namespace mozilla {
 

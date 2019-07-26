@@ -4,9 +4,9 @@
 
 
 
+#include "mozilla/XPCOM.h"
 #include "FileBlockCache.h"
 #include "VideoUtils.h"
-#include "prio.h"
 #include <algorithm>
 
 namespace mozilla {

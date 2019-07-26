@@ -8,12 +8,13 @@
 
 #include "nsIDOMMediaStream.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIPrincipal.h"
 #include "nsWrapperCache.h"
-#include "StreamBuffer.h"
 #include "nsIDOMWindow.h"
+#include "StreamBuffer.h"
+#include "nsIRunnable.h"
 
 class nsXPCClassInfo;
-class nsIPrincipal;
 
 
 

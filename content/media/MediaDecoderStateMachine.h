@@ -81,16 +81,13 @@
 #include "MediaDecoder.h"
 #include "AudioAvailableEventManager.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "MediaDecoderReader.h"
-#include "MediaDecoderOwner.h"
-#include "MediaMetadataManager.h"
-
-class nsITimer;
+#include "nsITimer.h"
+#include "AudioSegment.h"
+#include "VideoSegment.h"
 
 namespace mozilla {
 
-class AudioSegment;
-class VideoSegment;
+class MediaDecoderReader;
 
 
 
