@@ -2,15 +2,11 @@
 
 
 
-.theme-dark .theme-body {
+.theme-dark .theme-sidebar {
   background-image: url(layout-background-grid.png);
 }
 
-.theme-light .theme-body {
-  background-image: url(layout-background-grid.png), radial-gradient(circle at 50% 70%, hsl(210,53%,45%) 0%, hsl(210,54%,33%) 100%);
-}
-
-.theme-body {
+.theme-sidebar {
   color: hsl(210,53%,45%) !important;
   box-sizing: border-box;
 }
