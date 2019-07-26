@@ -1925,11 +1925,9 @@ gsmsdp_set_setup_attribute(uint16_t level,
 
 
 
-
-
 static void
 gsmsdp_set_dtls_fingerprint_attribute (sdp_attr_e sdp_attr, uint16_t level, void *sdp_p,
-  char *hash_func,char *fingerprint)
+  char *hash_func, char *fingerprint)
 {
     uint16_t      a_instance = 0;
     sdp_result_e  result;
@@ -1944,9 +1942,44 @@ gsmsdp_set_dtls_fingerprint_attribute (sdp_attr_e sdp_attr, uint16_t level, void
         return;
     }
 
-    result = sdp_attr_set_dtls_fingerprint_attribute(sdp_p, level, 0, sdp_attr, a_instance, hash_and_fingerprint);
+    result = sdp_attr_set_dtls_fingerprint_attribute(sdp_p, level, 0, sdp_attr,
+        a_instance, hash_and_fingerprint);
     if (result != SDP_SUCCESS) {
         GSM_ERR_MSG("Failed to set dtls fingerprint attribute");
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+gsmsdp_set_identity_attribute (uint16_t level, void *sdp_p,
+  char *identity)
+{
+    uint16_t      a_instance = 0;
+    sdp_result_e  result;
+
+    result = sdp_add_new_attr(sdp_p, level, 0, SDP_ATTR_IDENTITY, &a_instance);
+    if (result != SDP_SUCCESS) {
+        GSM_ERR_MSG("Failed to add attribute");
+        return;
+    }
+
+    result = sdp_attr_set_simple_string(sdp_p, level, 0, SDP_ATTR_IDENTITY,
+        a_instance, identity);
+    if (result != SDP_SUCCESS) {
+        GSM_ERR_MSG("Failed to set identity attribute");
     }
 }
 
