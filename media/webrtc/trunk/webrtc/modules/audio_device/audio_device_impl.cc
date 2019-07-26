@@ -292,13 +292,13 @@ int32_t AudioDeviceModuleImpl::CreatePlatformSpecificObjects()
             WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "Android JNI Audio APIs will be utilized");
         }
     }
-
+#endif
     if (ptrAudioDevice != NULL)
     {
       
       ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
     }
-#endif
+
     
     
 #elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
