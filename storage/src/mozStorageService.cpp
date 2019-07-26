@@ -124,7 +124,7 @@ ReportConn(nsIHandleReportCallback *aHandleReport,
 
 NS_IMETHODIMP
 Service::CollectReports(nsIHandleReportCallback *aHandleReport,
-                        nsISupports *aData)
+                        nsISupports *aData, bool aAnonymize)
 {
   nsresult rv;
   size_t totalConnSize = 0;
@@ -143,6 +143,7 @@ Service::CollectReports(nsIHandleReportCallback *aHandleReport,
       }
 
       nsCString pathHead("explicit/storage/sqlite/");
+      
       pathHead.Append(conn->getFilename());
       pathHead.Append('/');
 

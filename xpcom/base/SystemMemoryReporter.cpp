@@ -136,8 +136,13 @@ public:
   REPORT_WITH_CLEANUP(_path, UNITS_BYTES, _amount, _desc, (void)0)
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData)
+                            nsISupports* aData, bool aAnonymize)
   {
+    
+    
+    if (aAnonymize)
+      return NS_OK;
+
     if (!Preferences::GetBool("memory.system_memory_reporter")) {
       return NS_OK;
     }

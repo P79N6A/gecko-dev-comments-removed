@@ -196,7 +196,14 @@ struct StatsClosure
     RuntimeStats *rtStats;
     ObjectPrivateVisitor *opv;
     SourceSet seenSources;
-    StatsClosure(RuntimeStats *rt, ObjectPrivateVisitor *v) : rtStats(rt), opv(v) {}
+    bool anonymize;
+
+    StatsClosure(RuntimeStats *rt, ObjectPrivateVisitor *v, bool anon)
+      : rtStats(rt),
+        opv(v),
+        anonymize(anon)
+    {}
+
     bool init() {
         return seenSources.init();
     }
@@ -287,9 +294,13 @@ GetCompartmentStats(JSCompartment *comp)
     return static_cast<CompartmentStats *>(comp->compartmentStats);
 }
 
+
+
+
+
 enum Granularity {
-    FineGrained,    
-    CoarseGrained   
+    FineGrained,
+    CoarseGrained
 };
 
 
@@ -336,7 +347,10 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
 
         zStats->stringInfo.add(info);
 
-        if (granularity == FineGrained) {
+        
+        
+        
+        if (granularity == FineGrained && !closure->anonymize) {
             ZoneStats::StringsHashMap::AddPtr p = zStats->allStrings->lookupForAdd(str);
             if (!p) {
                 
@@ -532,7 +546,8 @@ FindNotableScriptSources(JS::RuntimeSizes &runtime)
 }
 
 JS_PUBLIC_API(bool)
-JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv)
+JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv,
+                        bool anonymize)
 {
     if (!rtStats->compartmentStatsVector.reserve(rt->numCompartments))
         return false;
@@ -550,11 +565,14 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
                   DecommittedArenasChunkCallback);
 
     
-    StatsClosure closure(rtStats, opv);
+    StatsClosure closure(rtStats, opv, anonymize);
     if (!closure.init())
         return false;
-    IterateZonesCompartmentsArenasCells(rt, &closure, StatsZoneCallback, StatsCompartmentCallback,
-                                        StatsArenaCallback, StatsCellCallback<FineGrained>);
+    IterateZonesCompartmentsArenasCells(rt, &closure,
+                                        StatsZoneCallback,
+                                        StatsCompartmentCallback,
+                                        StatsArenaCallback,
+                                        StatsCellCallback<FineGrained>);
 
     
     rt->addSizeOfIncludingThis(rtStats->mallocSizeOf_, &rtStats->runtime);
@@ -675,7 +693,8 @@ AddSizeOfTab(JSRuntime *rt, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectP
         return false;
 
     
-    StatsClosure closure(&rtStats, opv);
+    
+    StatsClosure closure(&rtStats, opv,  false);
     if (!closure.init())
         return false;
     IterateZoneCompartmentsArenasCells(rt, zone, &closure, StatsZoneCallback,
