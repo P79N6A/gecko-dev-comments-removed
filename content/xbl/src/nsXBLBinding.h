@@ -6,6 +6,7 @@
 #ifndef nsXBLBinding_h_
 #define nsXBLBinding_h_
 
+#include "nsXBLService.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsINodeList.h"
@@ -57,6 +58,11 @@ public:
 
   nsIContent* GetBoundElement() { return mBoundElement; }
   void SetBoundElement(nsIContent *aElement);
+
+  void SetJSClass(nsXBLJSClass *aClass) {
+    MOZ_ASSERT(!mJSClass && aClass);
+    mJSClass = aClass;
+  }
 
   bool IsStyleBinding() const { return mIsStyleBinding; }
   void SetIsStyleBinding(bool aIsStyle) { mIsStyleBinding = aIsStyle; }
@@ -130,6 +136,9 @@ protected:
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 
   nsRefPtr<nsXBLBinding> mNextBinding; 
+  nsRefPtr<nsXBLJSClass> mJSClass; 
+                                   
+                                   
   
   nsIContent* mBoundElement; 
   

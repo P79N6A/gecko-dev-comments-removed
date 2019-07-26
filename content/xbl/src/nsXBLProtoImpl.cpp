@@ -77,6 +77,9 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   MOZ_ASSERT(targetClassObject);
 
   
+  aBinding->SetJSClass(static_cast<nsXBLJSClass*>(JS_GetClass(targetClassObject)));
+
+  
   if (!targetObjectIsNew)
     return NS_OK;
 
