@@ -897,7 +897,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
   ImageFormat format = img->GetFormat();
 #ifdef MOZ_WIDGET_GONK
-  if (format == GRALLOC_PLANAR_YCBCR) {
+  if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
     layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(img);
     layers::SurfaceDescriptor handle = nativeImage->GetSurfaceDescriptor();
     layers::SurfaceDescriptorGralloc grallocHandle = handle.get_SurfaceDescriptorGralloc();
@@ -913,7 +913,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     graphicBuffer->unlock();
   } else
 #endif
-  if (format == PLANAR_YCBCR) {
+  if (format == ImageFormat::PLANAR_YCBCR) {
     
     layers::PlanarYCbCrImage* yuv =
     const_cast<layers::PlanarYCbCrImage *>(
@@ -946,7 +946,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     MOZ_MTLOG(ML_DEBUG, "Sending a video frame");
     
     conduit->SendVideoFrame(y, length, width, height, mozilla::kVideoI420, 0);
-  } else if(format == CAIRO_SURFACE) {
+  } else if(format == ImageFormat::CAIRO_SURFACE) {
     layers::CairoImage* rgb =
     const_cast<layers::CairoImage *>(
           static_cast<const layers::CairoImage *>(img));
@@ -1199,9 +1199,9 @@ void MediaPipelineReceiveVideo::PipelineListener::RenderVideoFrame(
 
   
 #ifdef MOZ_WIDGET_GONK
-  ImageFormat format = GRALLOC_PLANAR_YCBCR;
+  ImageFormat format = ImageFormat::GRALLOC_PLANAR_YCBCR;
 #else
-  ImageFormat format = PLANAR_YCBCR;
+  ImageFormat format = ImageFormat::PLANAR_YCBCR;
 #endif
   nsRefPtr<layers::Image> image = image_container_->CreateImage(&format, 1);
 
@@ -1221,7 +1221,7 @@ void MediaPipelineReceiveVideo::PipelineListener::RenderVideoFrame(
   data.mPicX = 0;
   data.mPicY = 0;
   data.mPicSize = IntSize(width_, height_);
-  data.mStereoMode = STEREO_MODE_MONO;
+  data.mStereoMode = StereoMode::MONO;
 
   videoImage->SetData(data);
 
