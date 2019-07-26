@@ -31,6 +31,7 @@ Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/rest.js");
 Cu.import("resource://services-sync/stages/enginesync.js");
+Cu.import("resource://services-sync/stages/declined.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/userapi.js");
 Cu.import("resource://services-sync/util.js");
@@ -64,10 +65,6 @@ Sync11Service.prototype = {
   storageURL: null,
   metaURL: null,
   cryptoKeyURL: null,
-
-  get enabledEngineNames() {
-    return [e.name for each (e in this.engineManager.getEnabled())];
-  },
 
   get serverURL() Svc.Prefs.get("serverURL"),
   set serverURL(value) {
@@ -430,6 +427,12 @@ Sync11Service.prototype = {
       engines = pref.split(",");
     }
 
+    let declined = [];
+    pref = Svc.Prefs.get("declinedEngines");
+    if (pref) {
+      declined = pref.split(",");
+    }
+
     this.clientsEngine = new ClientEngine(this);
 
     for (let name of engines) {
@@ -448,12 +451,14 @@ Sync11Service.prototype = {
           continue;
         }
 
-        this.engineManager.register(ns[engineName], this);
+        this.engineManager.register(ns[engineName]);
       } catch (ex) {
         this._log.warn("Could not register engine " + name + ": " +
                        CommonUtils.exceptionStr(ex));
       }
     }
+
+    this.engineManager.setDeclined(declined);
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
@@ -1062,6 +1067,7 @@ Sync11Service.prototype = {
         newMeta = new WBORecord("meta", "global");
         newMeta.payload.syncID = this.syncID;
         newMeta.payload.storageVersion = STORAGE_VERSION;
+        newMeta.payload.declined = this.engineManager.getDeclined();
 
         newMeta.isNew = true;
 
@@ -1245,7 +1251,41 @@ Sync11Service.prototype = {
       
       
       let result = cb.wait();
+
+      
+      let meta = this.recordManager.get(this.metaURL);
+      if (!meta) {
+        this._log.warn("No meta/global; can't update declined state.");
+        return;
+      }
+
+      let declinedEngines = new DeclinedEngines(this);
+      let didChange = declinedEngines.updateDeclined(meta, this.engineManager);
+      if (!didChange) {
+        this._log.info("No change to declined engines. Not reuploading meta/global.");
+        return;
+      }
+
+      this.uploadMetaGlobal(meta);
     }))();
+  },
+
+  
+
+
+  uploadMetaGlobal: function (meta) {
+    this._log.debug("Uploading meta/global: " + JSON.stringify(meta));
+
+    
+    
+    
+    
+    let res = this.resource(this.metaURL);
+    let response = res.put(meta);
+    if (!response.success) {
+      throw response;
+    }
+    this.recordManager.set(this.metaURL, meta);
   },
 
   
@@ -1303,26 +1343,19 @@ Sync11Service.prototype = {
     let meta = new WBORecord("meta", "global");
     meta.payload.syncID = this.syncID;
     meta.payload.storageVersion = STORAGE_VERSION;
+    meta.payload.declined = this.engineManager.getDeclined();
     meta.isNew = true;
 
-    this._log.debug("New metadata record: " + JSON.stringify(meta.payload));
-    let res = this.resource(this.metaURL);
     
     
     
     
-    let resp = res.put(meta);
-    if (!resp.success) {
-      
-      
-      
-      throw resp;
-    }
-    this.recordManager.set(this.metaURL, meta);
+    this.uploadMetaGlobal(meta);
 
     
     let engines = [this.clientsEngine].concat(this.engineManager.getAll());
     let collections = [engine.name for each (engine in engines)];
+    
 
     
     

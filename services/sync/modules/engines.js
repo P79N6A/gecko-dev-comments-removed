@@ -445,9 +445,11 @@ this.EngineManager = function EngineManager(service) {
   this.service = service;
 
   this._engines = {};
+
+  
+  this._declined = new Set();
   this._log = Log.repository.getLogger("Sync.EngineManager");
-  this._log.level = Log.Level[Svc.Prefs.get(
-    "log.logger.service.engines", "Debug")];
+  this._log.level = Log.Level[Svc.Prefs.get("log.logger.service.engines", "Debug")];
 }
 EngineManager.prototype = {
   get: function (name) {
@@ -477,8 +479,67 @@ EngineManager.prototype = {
     return [engine for ([name, engine] in Iterator(this._engines))];
   },
 
+  
+
+
   getEnabled: function () {
     return this.getAll().filter(function(engine) engine.enabled);
+  },
+
+  get enabledEngineNames() {
+    return [e.name for each (e in this.getEnabled())];
+  },
+
+  persistDeclined: function () {
+    Svc.Prefs.set("declinedEngines", [...this._declined].join(","));
+  },
+
+  
+
+
+  getDeclined: function () {
+    return [...this._declined];
+  },
+
+  setDeclined: function (engines) {
+    this._declined = new Set(engines);
+    this.persistDeclined();
+  },
+
+  isDeclined: function (engineName) {
+    return this._declined.has(engineName);
+  },
+
+  
+
+
+  decline: function (engines) {
+    for (let e of engines) {
+      this._declined.add(e);
+    }
+    this.persistDeclined();
+  },
+
+  undecline: function (engines) {
+    for (let e of engines) {
+      this._declined.delete(e);
+    }
+    this.persistDeclined();
+  },
+
+  
+
+
+
+
+  declineDisabled: function () {
+    for (let e of this.getAll()) {
+      if (!e.enabled) {
+        this._log.debug("Declining disabled engine " + e.name);
+        this._declined.add(e.name);
+      }
+    }
+    this.persistDeclined();
   },
 
   
@@ -638,16 +699,16 @@ SyncEngine.prototype = {
   __proto__: Engine.prototype,
   _recordObj: CryptoWrapper,
   version: 1,
-  
+
   
   
   downloadLimit: null,
-  
+
   
   
   guidFetchBatchSize: DEFAULT_GUID_FETCH_BATCH_SIZE,
   mobileGUIDFetchBatchSize: DEFAULT_MOBILE_GUID_FETCH_BATCH_SIZE,
-  
+
   
   applyIncomingBatchSize: DEFAULT_STORE_BATCH_SIZE,
 
@@ -863,7 +924,7 @@ SyncEngine.prototype = {
     newitems.newer = this.lastSync;
     newitems.full  = true;
     newitems.limit = batchSize;
-    
+
     
     
     

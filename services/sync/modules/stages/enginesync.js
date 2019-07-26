@@ -71,11 +71,13 @@ EngineSynchronizer.prototype = {
       Svc.Prefs.set("lastPing", now);
     }
 
+    let engineManager = this.service.engineManager;
+
     
     let info = this.service._fetchInfo(infoURL);
 
     
-    for (let engine of [this.service.clientsEngine].concat(this.service.engineManager.getAll())) {
+    for (let engine of [this.service.clientsEngine].concat(engineManager.getAll())) {
       engine.lastModified = info.obj[engine.name] || 0;
     }
 
@@ -97,13 +99,13 @@ EngineSynchronizer.prototype = {
     
     switch (Svc.Prefs.get("firstSync")) {
       case "resetClient":
-        this.service.resetClient(this.service.enabledEngineNames);
+        this.service.resetClient(engineManager.enabledEngineNames);
         break;
       case "wipeClient":
-        this.service.wipeClient(this.service.enabledEngineNames);
+        this.service.wipeClient(engineManager.enabledEngineNames);
         break;
       case "wipeRemote":
-        this.service.wipeRemote(this.service.enabledEngineNames);
+        this.service.wipeRemote(engineManager.enabledEngineNames);
         break;
     }
 
@@ -142,7 +144,7 @@ EngineSynchronizer.prototype = {
     }
 
     try {
-      for each (let engine in this.service.engineManager.getEnabled()) {
+      for (let engine of engineManager.getEnabled()) {
         
         if (!(this._syncEngine(engine)) || this.service.status.enforceBackoff) {
           this._log.info("Aborting sync for failure in " + engine.name);
@@ -163,9 +165,14 @@ EngineSynchronizer.prototype = {
       
       let meta = this.service.recordManager.get(this.service.metaURL);
       if (meta.isNew || meta.changed) {
-        this.service.resource(this.service.metaURL).put(meta);
-        delete meta.isNew;
-        delete meta.changed;
+        this._log.info("meta/global changed locally: reuploading.");
+        try {
+          this.service.uploadMetaGlobal(meta);
+          delete meta.isNew;
+          delete meta.changed;
+        } catch (error) {
+          this._log.error("Unable to upload meta/global. Leaving marked as new.");
+        }
       }
 
       
@@ -205,17 +212,19 @@ EngineSynchronizer.prototype = {
     return true;
   },
 
-  _updateEnabledEngines: function _updateEnabledEngines() {
+  _updateEnabledFromMeta: function (meta, numClients, engineManager=this.service.engineManager) {
     this._log.info("Updating enabled engines: " +
-                   this.service.scheduler.numClients + " clients.");
-    let meta = this.service.recordManager.get(this.service.metaURL);
-    if (meta.isNew || !meta.payload.engines)
+                    numClients + " clients.");
+
+    if (meta.isNew || !meta.payload.engines) {
+      this._log.debug("meta/global isn't new, or is missing engines. Not updating enabled state.");
       return;
+    }
 
     
     
     
-    if ((this.service.scheduler.numClients <= 1) &&
+    if ((numClients <= 1) &&
         ([e for (e in meta.payload.engines) if (e != "clients")].length == 0)) {
       this._log.info("One client and no enabled engines: not touching local engine status.");
       return;
@@ -223,7 +232,11 @@ EngineSynchronizer.prototype = {
 
     this.service._ignorePrefObserver = true;
 
-    let enabled = this.service.enabledEngineNames;
+    let enabled = engineManager.enabledEngineNames;
+
+    let toDecline = new Set();
+    let toUndecline = new Set();
+
     for (let engineName in meta.payload.engines) {
       if (engineName == "clients") {
         
@@ -235,7 +248,7 @@ EngineSynchronizer.prototype = {
         enabled.splice(index, 1);
         continue;
       }
-      let engine = this.service.engineManager.get(engineName);
+      let engine = engineManager.get(engineName);
       if (!engine) {
         
         continue;
@@ -247,9 +260,17 @@ EngineSynchronizer.prototype = {
         this._log.trace("Wiping data for " + engineName + " engine.");
         engine.wipeServer();
         delete meta.payload.engines[engineName];
-        meta.changed = true;
+        meta.changed = true;             
+
+        
+        
+        
+        this._log.trace("Engine " + engineName + " was disabled locally. Marking as declined.");
+        toDecline.add(engineName);
       } else {
         
+        this._log.trace("Engine " + engineName + " was enabled. Marking as non-declined.");
+        toUndecline.add(engineName);
         this._log.trace(engineName + " engine was enabled remotely.");
         engine.enabled = true;
       }
@@ -257,18 +278,31 @@ EngineSynchronizer.prototype = {
 
     
     for each (let engineName in enabled) {
-      let engine = this.service.engineManager.get(engineName);
+      let engine = engineManager.get(engineName);
       if (Svc.Prefs.get("engineStatusChanged." + engine.prefName, false)) {
         this._log.trace("The " + engineName + " engine was enabled locally.");
+        toUndecline.add(engineName);
       } else {
         this._log.trace("The " + engineName + " engine was disabled remotely.");
+
+        
         engine.enabled = false;
       }
     }
+
+    this.service.engineManager.decline(toDecline);
+    this.service.engineManager.undecline(toUndecline);
 
     Svc.Prefs.resetBranch("engineStatusChanged.");
     this.service._ignorePrefObserver = false;
   },
 
+  _updateEnabledEngines: function () {
+    let meta = this.service.recordManager.get(this.service.metaURL);
+    let numClients = this.service.scheduler.numClients;
+    let engineManager = this.service.engineManager;
+
+    this._updateEnabledFromMeta(meta, numClients, engineManager);
+  },
 };
 Object.freeze(EngineSynchronizer.prototype);
