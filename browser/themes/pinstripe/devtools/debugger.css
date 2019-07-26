@@ -325,6 +325,20 @@
 
 
 
+#variables .devtools-searchinput {
+  min-height: 24px;
+}
+
+.variable[non-match],
+.property[non-match] {
+  border: none;
+  margin: 0;
+}
+
+
+
+
+
 .token-undefined {
   color: #bbb;
 }

@@ -29,6 +29,9 @@ function VariablesView(aParentNode) {
   this._parent = aParentNode;
   this._appendEmptyNotice();
 
+  this._onSearchboxInput = this._onSearchboxInput.bind(this);
+  this._onSearchboxKeyPress = this._onSearchboxKeyPress.bind(this);
+
   
   this._list = this.document.createElement("vbox");
   this._parent.appendChild(this._list);
@@ -61,7 +64,7 @@ VariablesView.prototype = {
 
   empty: function VV_empty(aTimeout = LAZY_EMPTY_DELAY) {
     
-    if (!this._store.size) {
+    if (!this._store.size()) {
       return;
     }
     
@@ -110,7 +113,7 @@ VariablesView.prototype = {
       this._parent.removeChild(prevList);
       this._parent.appendChild(currList);
 
-      if (!this._store.size) {
+      if (!this._store.size()) {
         this._appendEmptyNotice();
       }
     }.bind(this), aTimeout);
@@ -137,6 +140,97 @@ VariablesView.prototype = {
 
     for (let [_, scope] in this) {
       scope._nonEnumVisible = aFlag;
+    }
+  },
+
+  
+
+
+  enableSearch: function VV_enableSearch() {
+    
+    if (this._searchboxContainer) {
+      return;
+    }
+    let document = this.document;
+    let parent = this._parent;
+
+    let container = this._searchboxContainer = document.createElement("hbox");
+    container.className = "devtools-toolbar";
+
+    let searchbox = this._searchboxNode = document.createElement("textbox");
+    searchbox.className = "devtools-searchinput";
+    searchbox.setAttribute("placeholder", this._searchboxPlaceholder);
+    searchbox.setAttribute("type", "search");
+    searchbox.setAttribute("flex", "1");
+    searchbox.addEventListener("input", this._onSearchboxInput, false);
+    searchbox.addEventListener("keypress", this._onSearchboxKeyPress, false);
+
+    container.appendChild(searchbox);
+    parent.insertBefore(container, parent.firstChild);
+  },
+
+  
+
+
+  disableSearch: function VV_disableSearch() {
+    
+    if (!this._searchboxContainer) {
+      return;
+    }
+    this._parent.removeChild(this._searchboxContainer);
+    this._searchboxNode.addEventListener("input", this._onSearchboxInput, false);
+    this._searchboxNode.addEventListener("keypress", this._onSearchboxKeyPress, false);
+
+    this._searchboxContainer = null;
+    this._searchboxNode = null;
+  },
+
+  
+
+
+
+
+
+
+  performSearch: function VV_performSerch(aQuery) {
+    let lowerCaseQuery = aQuery.toLowerCase();
+
+    for (let [_, scope] in this) {
+      scope._performSearch(lowerCaseQuery);
+    }
+  },
+
+  
+
+
+
+  set searchPlaceholder(aValue) {
+    if (this._searchboxNode) {
+      this._searchboxNode.setAttribute("placeholder", aValue);
+    }
+    this._searchboxPlaceholder = aValue;
+  },
+
+  
+
+
+  _onSearchboxInput: function VV__onSearchboxInput() {
+    this.performSearch(this._searchboxNode.value);
+  },
+
+  
+
+
+  _onSearchboxKeyPress: function VV__onSearchboxKeyPress(e) {
+    switch(e.keyCode) {
+      case e.DOM_VK_RETURN:
+      case e.DOM_VK_ENTER:
+        this._onSearchboxInput();
+        return;
+      case e.DOM_VK_ESCAPE:
+        this._searchboxNode.value = "";
+        this._onSearchboxInput();
+        return;
     }
   },
 
@@ -205,8 +299,11 @@ VariablesView.prototype = {
   _emptyTimeout: null,
   _enumVisible: true,
   _nonEnumVisible: true,
-  _list: null,
   _parent: null,
+  _list: null,
+  _searchboxNode: null,
+  _searchboxContainer: null,
+  _searchboxPlaceholder: "",
   _emptyTextNode: null,
   _emptyTextValue: ""
 };
@@ -353,6 +450,7 @@ Scope.prototype = {
 
 
   toggle: function S_toggle() {
+    this._wasToggled = true;
     this.expanded ^= 1;
 
     if (this.ontoggle) {
@@ -387,6 +485,12 @@ Scope.prototype = {
 
 
   get expanded() this._isExpanded,
+
+  
+
+
+
+  get toggled() this._wasToggled,
 
   
 
@@ -535,6 +639,56 @@ Scope.prototype = {
 
 
 
+
+
+
+  _performSearch: function S__performSearch(aLowerCaseQuery) {
+    for (let [_, variable] in this) {
+      let currentObject = variable;
+      let lowerCaseName = variable._nameString.toLowerCase();
+      let lowerCaseValue = variable._valueString.toLowerCase();
+
+      
+      if (!lowerCaseName.contains(aLowerCaseQuery) &&
+          !lowerCaseValue.contains(aLowerCaseQuery)) {
+        variable.target.setAttribute("non-match", "");
+      }
+      
+      else {
+        variable.target.removeAttribute("non-match");
+
+        
+        
+        
+
+        if (variable.toggled) {
+          variable.expand(true);
+        }
+
+        
+        
+        
+
+        while ((variable = variable.ownerView) &&  
+               (variable instanceof Scope ||
+                variable instanceof Variable ||
+                variable instanceof Property)) {
+
+          
+          variable.target.removeAttribute("non-match");
+          variable.expand(true);
+        }
+      }
+
+      
+      currentObject._performSearch(aLowerCaseQuery);
+    }
+  },
+
+  
+
+
+
   get _variablesView() {
     let parentView = this.ownerView;
     let topView;
@@ -569,10 +723,11 @@ Scope.prototype = {
   _locked: false,
   _isShown: true,
   _isExpanded: false,
+  _wasToggled: false,
   _isArrowVisible: true,
   _store: null,
-  _idString: null,
-  _nameString: null,
+  _idString: "",
+  _nameString: "",
   _target: null,
   _arrow: null,
   _name: null,

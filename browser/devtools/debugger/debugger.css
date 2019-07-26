@@ -67,6 +67,15 @@
 
 
 
+.variable[non-match] > .title,
+.property[non-match] > .title {
+  display: none;
+}
+
+
+
+
+
 .devtools-toolbarbutton:not([label]) > .toolbarbutton-text {
   display: none;
 }
