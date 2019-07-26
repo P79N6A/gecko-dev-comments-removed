@@ -785,7 +785,7 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 
 
         for (size_t i = 0; i < rt->gc.blackRootTracers.length(); i++) {
-            const ExtraTracer &e = rt->gc.blackRootTracers[i];
+            const Callback<JSTraceDataOp> &e = rt->gc.blackRootTracers[i];
             (*e.op)(trc, e.data);
         }
 

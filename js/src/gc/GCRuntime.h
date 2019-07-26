@@ -85,6 +85,22 @@ struct ConservativeGCData
     }
 };
 
+template<typename F>
+struct Callback {
+    F op;
+    void *data;
+
+    Callback()
+      : op(nullptr), data(nullptr)
+    {}
+    Callback(F op, void *data)
+      : op(op), data(data)
+    {}
+};
+
+template<typename F>
+class CallbackVector : public Vector<Callback<F>, 4, SystemAllocPolicy> {};
+
 class GCRuntime
 {
   public:
@@ -398,10 +414,10 @@ class GCRuntime
     bool                  fullCompartmentChecks;
 
     JSGCCallback          gcCallback;
-    JS::GCSliceCallback   sliceCallback;
-    JSFinalizeCallback    finalizeCallback;
-
     void                  *gcCallbackData;
+
+    JS::GCSliceCallback   sliceCallback;
+    CallbackVector<JSFinalizeCallback> finalizeCallbacks;
 
     
 
@@ -421,9 +437,8 @@ class GCRuntime
 
 
 
-    typedef js::Vector<ExtraTracer, 4, js::SystemAllocPolicy> ExtraTracerVector;
-    ExtraTracerVector     blackRootTracers;
-    ExtraTracer           grayRootTracer;
+    CallbackVector<JSTraceDataOp> blackRootTracers;
+    Callback<JSTraceDataOp> grayRootTracer;
 
     
 
