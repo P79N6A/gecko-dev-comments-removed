@@ -496,6 +496,15 @@ NativeRegExpMacroAssembler::Backtrack()
     IonSpew(SPEW_PREFIX "Backtrack");
 
     
+    Label noInterrupt;
+    masm.branch32(Assembler::Equal,
+                  AbsoluteAddress(&runtime->interrupt), Imm32(0),
+                  &noInterrupt);
+    masm.movePtr(ImmWord(RegExpRunStatus_Error), temp0);
+    masm.jump(&exit_label_);
+    masm.bind(&noInterrupt);
+
+    
     PopBacktrack(temp0);
     masm.jump(temp0);
 }
