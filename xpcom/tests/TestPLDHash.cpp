@@ -19,6 +19,7 @@ static bool test_pldhash_Init_capacity_ok()
   
   
   
+  
   PLDHashTable t;
   bool ok = PL_DHashTableInit(&t, PL_DHashGetStubOps(), nullptr,
                               sizeof(PLDHashEntryStub), PL_DHASH_MAX_SIZE);
@@ -113,10 +114,7 @@ static const struct Test {
   DECL_TEST(test_pldhash_Init_capacity_ok),
   DECL_TEST(test_pldhash_Init_capacity_too_large),
   DECL_TEST(test_pldhash_Init_overflow),
-
-#ifndef MOZ_WIDGET_ANDROID
   DECL_TEST(test_pldhash_grow_to_max_capacity),
-#endif
   { nullptr, nullptr }
 };
 
