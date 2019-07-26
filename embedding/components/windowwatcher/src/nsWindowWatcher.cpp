@@ -899,16 +899,24 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   if (windowIsNew) {
     
+    bool isPrivateBrowsingWindow =
+      !!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW);
     
-    nsCOMPtr<nsIDocShellTreeItem> parentItem;
-    GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
-    nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(parentItem);
+    
+    if (!isPrivateBrowsingWindow) {
+      nsCOMPtr<nsIDocShellTreeItem> parentItem;
+      GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
+      nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(parentItem);
+      if (parentContext) {
+        isPrivateBrowsingWindow = parentContext->UsePrivateBrowsing();
+      }
+    }
 
     nsCOMPtr<nsIDocShellTreeItem> childRoot;
     newDocShellItem->GetRootTreeItem(getter_AddRefs(childRoot));
     nsCOMPtr<nsILoadContext> childContext = do_QueryInterface(childRoot);
-    if (parentContext && childContext) {
-      childContext->SetUsePrivateBrowsing(parentContext->UsePrivateBrowsing());
+    if (childContext) {
+      childContext->SetUsePrivateBrowsing(isPrivateBrowsingWindow);
     }
   }
 
@@ -1488,6 +1496,12 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
     if (NS_FAILED(rv)) {
       isChrome = false;
     }
+  }
+
+  
+  if (isChrome) {
+    chromeFlags |= WinHasOption(aFeatures, "private", 0, &presenceFlag) ?
+      nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW : 0;
   }
 
   nsCOMPtr<nsIPrefBranch> prefBranch;
