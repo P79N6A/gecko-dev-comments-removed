@@ -119,6 +119,13 @@ let gInBatch = false;
 
 
 let gBuildAreas = new Map();
+
+
+
+
+
+let gBuildWindows = new Map();
+
 let gNewElementCount = 0;
 let gWrapperCache = new WeakMap();
 let gListeners = new Set();
@@ -244,14 +251,11 @@ let CustomizableUIInternal = {
     let placements = gPlacements.get(area);
     this.buildArea(area, placements, aToolbar);
     aToolbar.setAttribute("currentset", placements.join(","));
-
-    
-    
-    this.registerBuildWindow(document.defaultView);
   },
 
   buildArea: function(aArea, aPlacements, aAreaNode) {
     let document = aAreaNode.ownerDocument;
+    let window = document.defaultView;
     let container = aAreaNode.customizationTarget;
 
     if (!container) {
@@ -259,16 +263,25 @@ let CustomizableUIInternal = {
                       + " to have a customizationTarget attribute.");
     }
 
+    this.beginBatchUpdate();
+
     let currentNode = container.firstChild;
     for (let id of aPlacements) {
       if (currentNode && currentNode.id == id) {
         this._addParentFlex(currentNode);
         this.setLocationAttributes(currentNode, container, aArea);
+
+        
+        
+        if (!currentNode.hasAttribute("removable")) {
+          currentNode.setAttribute("removable", false);
+        }
+
         currentNode = currentNode.nextSibling;
         continue;
       }
 
-      let [provider, node] = this.getWidgetNode(id, document, aAreaNode.toolbox);
+      let [provider, node] = this.getWidgetNode(id, window);
       if (!node) {
         LOG("Unknown widget: " + id);
         continue;
@@ -292,18 +305,30 @@ let CustomizableUIInternal = {
         
         
         
-        if (node.getAttribute("removable") == "true") {
-          if (palette) {
-            palette.appendChild(node);
+        
+        
+        
+        if (node.id) {
+          if (node.getAttribute("removable") == "true") {
+            if (palette) {
+              palette.appendChild(node);
+            } else {
+              container.removeChild(node);
+            }
           } else {
-            container.removeChild(node);
+            this.setLocationAttributes(currentNode, container, aArea);
+            node.setAttribute("removable", false);
+            LOG("Adding non-removable widget to placements of " + aArea + ": " +
+                node.id);
+            gPlacements.get(aArea).push(node.id);
+            gDirty = true;
           }
-        } else {
-          this.setLocationAttributes(currentNode, container, aArea);
         }
         node = previousSibling;
       }
     }
+
+    this.endBatchUpdate();
   },
 
   ensureButtonClosesPanel: function(aNode) {
@@ -334,32 +359,35 @@ let CustomizableUIInternal = {
     return CustomizableUI.PROVIDER_XUL;
   },
 
-  getWidgetNode: function(aWidgetId, aDocument, aToolbox) {
+  getWidgetNode: function(aWidgetId, aWindow) {
+    let document = aWindow.document;
+
     if (this.isSpecialWidget(aWidgetId)) {
       return [ CustomizableUI.PROVIDER_SPECIAL,
-               this.createSpecialWidget(aWidgetId, aDocument) ];
+               this.createSpecialWidget(aWidgetId, document) ];
     }
 
     let widget = gPalette.get(aWidgetId);
     if (widget) {
       
-      if (widget.instances.has(aDocument)) {
+      if (widget.instances.has(document)) {
         LOG("An instance of widget " + aWidgetId + " already exists in this "
             + "document. Reusing.");
         return [ CustomizableUI.PROVIDER_API,
-                 widget.instances.get(aDocument) ];
+                 widget.instances.get(document) ];
       }
 
       return [ CustomizableUI.PROVIDER_API,
-               this.buildWidget(aDocument, widget) ];
+               this.buildWidget(document, widget) ];
     }
 
     LOG("Searching for " + aWidgetId + " in toolbox.");
-    let node = this.findWidgetInToolbox(aWidgetId, aToolbox, aDocument);
+    let node = this.findWidgetInWindow(aWidgetId, aWindow);
     if (node) {
       return [ CustomizableUI.PROVIDER_XUL, node ];
     }
 
+    LOG("No node for " + aWidgetId + " found.");
     return [];
   },
 
@@ -402,10 +430,9 @@ let CustomizableUIInternal = {
     
     
     for (let areaNode of areaNodes) {
+      let window = areaNode.ownerDocument.defaultView;
       let container = areaNode.customizationTarget;
-      let [provider, widgetNode] = this.getWidgetNode(aWidgetId,
-                                                      container.ownerDocument,
-                                                      areaNode.toolbox);
+      let [provider, widgetNode] = this.getWidgetNode(aWidgetId, window);
 
       if (provider == CustomizableUI.PROVIDER_XUL &&
           aArea == CustomizableUI.AREA_PANEL) {
@@ -460,10 +487,9 @@ let CustomizableUIInternal = {
     let nextNodeId = placements[aNewPosition + 1];
 
     for (let areaNode of areaNodes) {
+      let window = areaNode.ownerDocument.defaultView;
       let container = areaNode.customizationTarget;
-      let [provider, widgetNode] = this.getWidgetNode(aWidgetId,
-                                                      container.ownerDocument,
-                                                      areaNode.toolbox);
+      let [provider, widgetNode] = this.getWidgetNode(aWidgetId, window);
       if (!widgetNode) {
         ERROR("Widget not found, unable to move");
         continue;
@@ -483,6 +509,16 @@ let CustomizableUIInternal = {
   },
 
   registerBuildArea: function(aArea, aNode) {
+    
+    
+    let window = aNode.ownerDocument.defaultView;
+    this.registerBuildWindow(window);
+
+    
+    if (aNode.toolbox) {
+      gBuildWindows.get(window).add(aNode.toolbox);
+    }
+
     if (!gBuildAreas.has(aArea)) {
       gBuildAreas.set(aArea, new Set());
     }
@@ -491,10 +527,15 @@ let CustomizableUIInternal = {
   },
 
   registerBuildWindow: function(aWindow) {
+    if (!gBuildWindows.has(aWindow)) {
+      gBuildWindows.set(aWindow, new Set());
+    }
+
     aWindow.addEventListener("unload", this, false);
   },
 
   unregisterBuildWindow: function(aWindow) {
+    gBuildWindows.delete(aWindow);
     let document = aWindow.document;
 
     for (let [, area] of gBuildAreas) {
@@ -561,30 +602,55 @@ let CustomizableUIInternal = {
     return node;
   },
 
-  findWidgetInToolbox: function(aId, aToolbox, aDocument) {
-    if (!aToolbox) {
-      return null;
+  findWidgetInWindow: function(aId, aWindow) {
+    if (!gBuildWindows.has(aWindow)) {
+      throw new Error("Build window not registered");
     }
 
+    let document = aWindow.document;
+
     
     
-    let node = aDocument.getElementById(aId);
+    let node = document.getElementById(aId);
     if (node) {
       let parent = node.parentNode;
-      while (parent && parent.localName != "toolbar")
+      while (parent && !(parent.customizationTarget ||
+                         parent.localName == "toolbarpaletteitem")) {
         parent = parent.parentNode;
+      }
 
-      if (parent &&
-          parent.toolbox == aToolbox &&
-          parent.customizationTarget == node.parentNode) {
+      if ((parent && parent.customizationTarget == node.parentNode &&
+           gBuildWindows.get(aWindow).has(parent.toolbox)) ||
+          (parent && parent.localName == "toolbarpaletteitem")) {
+        
+        
+        
+        if (!node.hasAttribute("removable")) {
+          
+          
+          node.setAttribute("removable", !parent.customizationTarget);
+        }
+
         return node;
       }
     }
 
-    if (aToolbox.palette) {
-      
-      
-      return aToolbox.palette.querySelector(idToSelector(aId));
+   let toolboxes = gBuildWindows.get(aWindow);
+    for (let toolbox of toolboxes) {
+      if (toolbox.palette) {
+        
+        
+        let node = toolbox.palette.querySelector(idToSelector(aId));
+        if (node) {
+          
+          
+          
+          if (!node.hasAttribute("removable")) {
+            node.setAttribute("removable", true);
+          }
+          return node;
+        }
+      }
     }
     return null;
   },
@@ -750,6 +816,11 @@ let CustomizableUIInternal = {
       return;
     }
 
+    
+    if (!this.canWidgetMoveToArea(aWidgetId, aArea)) {
+      return;
+    }
+
     if (oldPlacement) {
       this.removeWidgetFromArea(aWidgetId);
     }
@@ -783,6 +854,10 @@ let CustomizableUIInternal = {
   removeWidgetFromArea: function(aWidgetId) {
     let oldPlacement = this.getPlacementOfWidget(aWidgetId);
     if (!oldPlacement) {
+      return;
+    }
+
+    if (!this.isWidgetRemovable(aWidgetId)) {
       return;
     }
 
@@ -1354,6 +1429,39 @@ let CustomizableUIInternal = {
     }
   },
 
+  isWidgetRemovable: function(aWidgetId) {
+    let provider = this.getWidgetProvider(aWidgetId);
+    if (provider == CustomizableUI.PROVIDER_API) {
+      
+      return true;
+    }
+
+    if (provider == CustomizableUI.PROVIDER_XUL) {
+      if (gBuildWindows.size == 0) {
+        
+        
+        return true;
+      }
+
+      
+      let [window,] = [...gBuildWindows][0];
+      let [, node] = this.getWidgetNode(aWidgetId, window);
+      return node.getAttribute("removable") == "true";
+    }
+
+    
+    return true;
+  },
+
+  canWidgetMoveToArea: function(aWidgetId, aArea) {
+    let placement = this.getPlacementOfWidget(aWidgetId);
+    if (placement && placement.area != aArea &&
+        !this.isWidgetRemovable(aWidgetId)) {
+      return false;
+    }
+    return true;
+  },
+
   get inDefaultState() {
     for (let [areaId, defaultPlacements] of gDefaultPlacements) {
       let currentPlacements = gPlacements.get(areaId);
@@ -1464,6 +1572,12 @@ this.CustomizableUI = {
   },
   getPlacementOfWidget: function(aWidgetId) {
     return CustomizableUIInternal.getPlacementOfWidget(aWidgetId);
+  },
+  isWidgetRemovable: function(aWidgetId) {
+    return CustomizableUIInternal.isWidgetRemovable(aWidgetId);
+  },
+  canWidgetMoveToArea: function(aWidgetId, aArea) {
+    return CustomizableUIInternal.canWidgetMoveToArea(aWidgetId, aArea);
   },
   get inDefaultState() {
     return CustomizableUIInternal.inDefaultState;

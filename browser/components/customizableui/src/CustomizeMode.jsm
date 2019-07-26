@@ -555,7 +555,18 @@ CustomizeMode.prototype = {
 
     
     if (!targetArea || !originArea) {
-      gCurrentDragOverItem = null;
+      return;
+    }
+
+    
+    if (targetArea.id == kPaletteId &&
+       !CustomizableUI.isWidgetRemovable(draggedItemId)) {
+      return;
+    }
+
+    
+    if (targetArea.id != kPaletteId &&
+        !CustomizableUI.canWidgetMoveToArea(draggedItemId, targetArea.id)) {
       return;
     }
 
@@ -610,6 +621,10 @@ CustomizeMode.prototype = {
     
     if (targetArea.id == kPaletteId) {
       if (originArea.id !== kPaletteId) {
+        if (!CustomizableUI.isWidgetRemovable(draggedItemId)) {
+          return;
+        }
+
         let widget = this.unwrapToolbarItem(draggedWrapper);
         CustomizableUI.removeWidgetFromArea(draggedItemId);
         draggedWrapper = this.wrapToolbarItem(widget, "palette");
@@ -621,6 +636,10 @@ CustomizeMode.prototype = {
       } else {
         this.visiblePalette.insertBefore(draggedWrapper, targetNode);
       }
+      return;
+    }
+
+    if (!CustomizableUI.canWidgetMoveToArea(draggedItemId, targetArea.id)) {
       return;
     }
 
