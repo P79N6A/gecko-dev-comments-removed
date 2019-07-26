@@ -36,8 +36,8 @@ XPCOMUtils.defineLazyGetter(this, "gPostData", function () {
 
 
 this.SessionHistory = Object.freeze({
-  read: function (docShell, includePrivateData) {
-    return SessionHistoryInternal.read(docShell, includePrivateData);
+  collect: function (docShell, includePrivateData) {
+    return SessionHistoryInternal.collect(docShell, includePrivateData);
   }
 });
 
@@ -53,7 +53,7 @@ let SessionHistoryInternal = {
 
 
 
-  read: function (docShell, includePrivateData = false) {
+  collect: function (docShell, includePrivateData = false) {
     let data = {entries: []};
     let isPinned = docShell.isAppTab;
     let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
@@ -63,7 +63,7 @@ let SessionHistoryInternal = {
       try {
         for (let i = 0; i < history.count; i++) {
           let shEntry = history.getEntryAtIndex(i, false);
-          let entry = this._serializeEntry(shEntry, includePrivateData, isPinned);
+          let entry = this.serializeEntry(shEntry, includePrivateData, isPinned);
           data.entries.push(entry);
         }
       } catch (ex) {
@@ -109,7 +109,7 @@ let SessionHistoryInternal = {
 
 
 
-  _serializeEntry: function (shEntry, includePrivateData, isPinned) {
+  serializeEntry: function (shEntry, includePrivateData, isPinned) {
     let entry = { url: shEntry.URI.spec };
 
     
@@ -152,7 +152,7 @@ let SessionHistoryInternal = {
 
     
     try {
-      let postdata = this._serializePostData(shEntry, isPinned);
+      let postdata = this.serializePostData(shEntry, isPinned);
       if (postdata) {
         entry.postdata_b64 = postdata;
       }
@@ -163,7 +163,7 @@ let SessionHistoryInternal = {
 
     
     try {
-      let owner = this._serializeOwner(shEntry);
+      let owner = this.serializeOwner(shEntry);
       if (owner) {
         entry.owner_b64 = owner;
       }
@@ -197,7 +197,7 @@ let SessionHistoryInternal = {
             break;
           }
 
-          children.push(this._serializeEntry(child, includePrivateData, isPinned));
+          children.push(this.serializeEntry(child, includePrivateData, isPinned));
         }
       }
 
@@ -218,7 +218,7 @@ let SessionHistoryInternal = {
 
 
 
-  _serializePostData: function (shEntry, isPinned) {
+  serializePostData: function (shEntry, isPinned) {
     let isHttps = shEntry.URI.schemeIs("https");
     if (!shEntry.postData || !gPostData ||
         !PrivacyLevel.canSave({isHttps: isHttps, isPinned: isPinned})) {
@@ -250,7 +250,7 @@ let SessionHistoryInternal = {
 
 
 
-  _serializeOwner: function (shEntry) {
+  serializeOwner: function (shEntry) {
     if (!shEntry.owner) {
       return null;
     }
