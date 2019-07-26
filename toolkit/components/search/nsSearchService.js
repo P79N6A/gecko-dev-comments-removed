@@ -866,7 +866,9 @@ function ParamSubstitution(aParamValue, aSearchTerms, aEngine) {
 
 
 
-function EngineURL(aType, aMethod, aTemplate) {
+
+
+function EngineURL(aType, aMethod, aTemplate, aResultDomain) {
   if (!aType || !aMethod || !aTemplate)
     FAIL("missing type, method or template for EngineURL!");
 
@@ -897,6 +899,14 @@ function EngineURL(aType, aMethod, aTemplate) {
       break;
     default:
       FAIL("new EngineURL: template uses invalid scheme!", Cr.NS_ERROR_FAILURE);
+  }
+
+  
+  
+  this.resultDomain = aResultDomain || templateURI.host;
+  
+  if (this.resultDomain.startsWith("www.")) {
+    this.resultDomain = this.resultDomain.substr(4);
   }
 }
 EngineURL.prototype = {
@@ -1018,7 +1028,8 @@ EngineURL.prototype = {
   _serializeToJSON: function SRCH_EURL__serializeToJSON() {
     var json = {
       template: this.template,
-      rels: this.rels
+      rels: this.rels,
+      resultDomain: this.resultDomain
     };
 
     if (this.type != URLTYPE_SEARCH_HTML)
@@ -1049,6 +1060,8 @@ EngineURL.prototype = {
     url.setAttribute("template", this.template);
     if (this.rels.length)
       url.setAttribute("rel", this.rels.join(" "));
+    if (this.resultDomain)
+      url.setAttribute("resultDomain", this.resultDomain);
 
     for (var i = 0; i < this.params.length; ++i) {
       var param = aDoc.createElementNS(OPENSEARCH_NS_11, "Param");
@@ -1770,9 +1783,10 @@ Engine.prototype = {
     
     var method   = aElement.getAttribute("method") || "GET";
     var template = aElement.getAttribute("template");
+    var resultDomain = aElement.getAttribute("resultdomain");
 
     try {
-      var url = new EngineURL(type, method, template);
+      var url = new EngineURL(type, method, template, resultDomain);
     } catch (ex) {
       FAIL("_parseURL: failed to add " + template + " as a URL",
            Cr.NS_ERROR_FAILURE);
@@ -2271,7 +2285,8 @@ Engine.prototype = {
     for (let i = 0; i < aJson._urls.length; ++i) {
       let url = aJson._urls[i];
       let engineURL = new EngineURL(url.type || URLTYPE_SEARCH_HTML,
-                                    url.method || "GET", url.template);
+                                    url.method || "GET", url.template,
+                                    url.resultDomain);
       engineURL._initWithJSON(url, this);
       this._urls.push(engineURL);
     }
@@ -2717,6 +2732,25 @@ Engine.prototype = {
   
   supportsResponseType: function SRCH_ENG_supportsResponseType(type) {
     return (this._getURLOfType(type) != null);
+  },
+
+  
+  getResultDomain: function SRCH_ENG_getResultDomain(aResponseType) {
+#ifdef ANDROID
+    if (!aResponseType) {
+      aResponseType = this._defaultMobileResponseType;
+    }
+#endif
+    if (!aResponseType) {
+      aResponseType = URLTYPE_SEARCH_HTML;
+    }
+
+    LOG("getResultDomain: responseType: \"" + aResponseType + "\"");
+
+    let url = this._getURLOfType(aResponseType);
+    if (url)
+      return url.resultDomain;
+    return "";
   },
 
   
