@@ -27,7 +27,10 @@ const THUMBNAIL_DIRECTORY = "thumbnails";
 
 const THUMBNAIL_BG_COLOR = "#fff";
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", this);
+Cu.import("resource://gre/modules/osfile.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
@@ -54,6 +57,70 @@ XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
   converter.charset = 'utf8';
   return converter;
 });
+
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+
+
+
+
+const TaskUtils = {
+  
+
+
+
+
+
+
+  captureErrors: function captureErrors(promise) {
+    return promise.then(
+      null,
+      function onError(reason) {
+        Cu.reportError("Uncaught asynchronous error: " + reason + " at\n"
+          + reason.stack + "\n");
+        throw reason;
+      }
+    );
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  spawn: function spawn(gen) {
+    return this.captureErrors(Task.spawn(gen));
+  },
+  
+
+
+
+
+
+
+  readBlob: function readBlob(blob) {
+    let deferred = Promise.defer();
+    let reader = Cc["@mozilla.org/files/filereader;1"].createInstance(Ci.nsIDOMFileReader);
+    reader.onloadend = function onloadend() {
+      if (reader.readyState != Ci.nsIDOMFileReader.DONE) {
+        deferred.reject(reader.error);
+      } else {
+        deferred.resolve(reader.result);
+      }
+    };
+    reader.readAsArrayBuffer(blob);
+    return deferred.promise;
+  }
+};
+
+
+
 
 
 
@@ -134,6 +201,33 @@ this.PageThumbs = {
     }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
   },
 
+
+  
+
+
+
+
+
+
+  captureToBlob: function PageThumbs_captureToBlob(aWindow) {
+    if (!this._prefEnabled()) {
+      return null;
+    }
+
+    let canvas = this._createCanvas();
+    this.captureToCanvas(aWindow, canvas);
+
+    let deferred = Promise.defer();
+    let type = this.contentType;
+    
+    
+    
+    canvas.toBlob(function asBlob(blob) {
+      deferred.resolve(blob, type);
+    });
+    return deferred.promise;
+  },
+
   
 
 
@@ -177,35 +271,39 @@ this.PageThumbs = {
     let channel = aBrowser.docShell.currentDocumentChannel;
     let originalURL = channel.originalURI.spec;
 
-    this.capture(aBrowser.contentWindow, function (aInputStream) {
-      let telemetryStoreTime = new Date();
+    TaskUtils.spawn((function task() {
+      let isSuccess = true;
+      try {
+        let blob = yield this.captureToBlob(aBrowser.contentWindow);
+        let buffer = yield TaskUtils.readBlob(blob);
 
-      function finish(aSuccessful) {
-        if (aSuccessful) {
-          Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
-            .add(new Date() - telemetryStoreTime);
+        let telemetryStoreTime = new Date();
+        yield PageThumbsStorage.writeData(url, new Uint8Array(buffer));
 
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          if (url != originalURL)
-            PageThumbsStorage.copy(url, originalURL);
+        Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
+          .add(new Date() - telemetryStoreTime);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (url != originalURL) {
+          yield PageThumbsStorage.copy(url, originalURL);
         }
-
-        if (aCallback)
-          aCallback(aSuccessful);
+      } catch (_) {
+        isSuccess = false;
       }
-
-      PageThumbsStorage.write(url, aInputStream, finish);
-    });
+      if (aCallback) {
+        aCallback(isSuccess);
+      }
+    }).bind(this));
   },
 
   
@@ -314,55 +412,99 @@ this.PageThumbs = {
 };
 
 this.PageThumbsStorage = {
-  getDirectory: function Storage_getDirectory(aCreate = true) {
-    return FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY], aCreate);
+  
+  _path: null,
+  get path() {
+    if (!this._path) {
+      this._path = OS.Path.join(OS.Constants.Path.localProfileDir, THUMBNAIL_DIRECTORY);
+    }
+    return this._path;
+  },
+
+  ensurePath: function Storage_ensurePath() {
+    
+    
+    
+    
+    
+    return PageThumbsWorker.post("makeDir",
+      [this.path, {ignoreExisting: true}]).then(
+        null,
+        function onError(aReason) {
+          Components.utils.reportError("Could not create thumbnails directory" + aReason);
+        });
   },
 
   getLeafNameForURL: function Storage_getLeafNameForURL(aURL) {
+    if (typeof aURL != "string") {
+      throw new TypeError("Expecting a string");
+    }
     let hash = this._calculateMD5Hash(aURL);
     return hash + ".png";
   },
 
-  getFileForURL: function Storage_getFileForURL(aURL) {
-    let file = this.getDirectory();
-    file.append(this.getLeafNameForURL(aURL));
-    return file;
+  getFilePathForURL: function Storage_getFilePathForURL(aURL) {
+    return OS.Path.join(this.path, this.getLeafNameForURL(aURL));
   },
 
-  write: function Storage_write(aURL, aDataStream, aCallback) {
-    let file = this.getFileForURL(aURL);
-    let fos = FileUtils.openSafeFileOutputStream(file);
+  
 
-    NetUtil.asyncCopy(aDataStream, fos, function (aResult) {
-      FileUtils.closeSafeFileOutputStream(fos);
-      aCallback(Components.isSuccessCode(aResult));
-    });
+
+
+
+
+
+
+
+
+  writeData: function Storage_write(aURL, aData) {
+    let path = this.getFilePathForURL(aURL);
+    this.ensurePath();
+    let msg = [
+      path,
+      aData,
+      {
+        tmpPath: path + ".tmp",
+        bytes: aData.byteLength,
+        flush: false 
+      }];
+    return PageThumbsWorker.post("writeAtomic", msg,
+      msg 
+
+);
   },
+
+  
+
+
+
+
+
+
 
   copy: function Storage_copy(aSourceURL, aTargetURL) {
-    let sourceFile = this.getFileForURL(aSourceURL);
-    let targetFile = this.getFileForURL(aTargetURL);
-
-    try {
-      sourceFile.copyTo(targetFile.parent, targetFile.leafName);
-    } catch (e) {
-      
-    }
+    this.ensurePath();
+    let sourceFile = this.getFilePathForURL(aSourceURL);
+    let targetFile = this.getFilePathForURL(aTargetURL);
+    return PageThumbsWorker.post("copy", [sourceFile, targetFile]);
   },
+
+  
+
+
+
 
   remove: function Storage_remove(aURL) {
-    let file = this.getFileForURL(aURL);
-    PageThumbsWorker.postMessage({type: "removeFile", path: file.path});
+    return PageThumbsWorker.post("remove", [this.getFilePathForURL(aURL)]);
   },
 
+  
+
+
+
+
   wipe: function Storage_wipe() {
-    let dir = this.getDirectory(false);
-    dir.followLinks = false;
-    try {
-      dir.remove(true);
-    } catch (e) {
-      
-    }
+    return PageThumbsWorker.post("wipe", [this.path]);
   },
 
   _calculateMD5Hash: function Storage_calculateMD5Hash(aValue) {
@@ -424,17 +566,19 @@ let PageThumbsStorageMigrator = {
 
 
 
-  migrateToVersion3: function Migrator_migrateToVersion3() {
-    let local = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY], true);
-    let roaming = FileUtils.getDir("ProfD", [THUMBNAIL_DIRECTORY]);
 
-    if (!roaming.equals(local)) {
-      PageThumbsWorker.postMessage({
-        type: "moveOrDeleteAllThumbnails",
-        from: roaming.path,
-        to: local.path
-      });
-    }
+
+
+
+
+  migrateToVersion3: function Migrator_migrateToVersion3(
+    local = OS.Constants.Path.localProfileDir,
+    roaming = OS.Constants.Path.profileDir) {
+    PageThumbsWorker.post(
+      "moveOrDeleteAllThumbnails",
+      [OS.Path.join(roaming, THUMBNAIL_DIRECTORY),
+       OS.Path.join(local, THUMBNAIL_DIRECTORY)]
+    );
   }
 };
 
@@ -484,60 +628,46 @@ let PageThumbsExpiration = {
     }
   },
 
-  expireThumbnails: function Expiration_expireThumbnails(aURLsToKeep, aCallback) {
-    PageThumbsWorker.postMessage({
-      type: "expireFilesInDirectory",
-      minChunkSize: EXPIRATION_MIN_CHUNK_SIZE,
-      path: PageThumbsStorage.getDirectory().path,
-      filesToKeep: [PageThumbsStorage.getLeafNameForURL(url) for (url of aURLsToKeep)]
-    }, aCallback);
+  expireThumbnails: function Expiration_expireThumbnails(aURLsToKeep) {
+    let path = this.path;
+    let keep = [PageThumbsStorage.getLeafNameForURL(url) for (url of aURLsToKeep)];
+    let msg = [
+      PageThumbsStorage.path,
+      keep,
+      EXPIRATION_MIN_CHUNK_SIZE
+    ];
+
+    return PageThumbsWorker.post(
+      "expireFilesInDirectory",
+      msg
+    );
   }
 };
 
 
 
 
-let PageThumbsWorker = {
-  
 
-
-
-  _callbacks: [],
-
-  
-
-
-
-  get _worker() {
-    delete this._worker;
-    this._worker = new ChromeWorker("resource://gre/modules/PageThumbsWorker.js");
-    this._worker.addEventListener("message", this);
-    return this._worker;
-  },
-
-  
-
-
-
-
-
-
-
-
-  postMessage: function Worker_postMessage(message, callback) {
-    this._callbacks.push(callback);
-    this._worker.postMessage(message);
-  },
-
-  
-
-
-  handleEvent: function Worker_handleEvent(aEvent) {
-    let callback = this._callbacks.shift();
-    if (callback)
-      callback(aEvent.data);
-  }
-};
+let PageThumbsWorker = (function() {
+  let worker = new PromiseWorker("resource://gre/modules/PageThumbsWorker.js",
+    OS.Shared.LOG.bind("PageThumbs"));
+  return {
+    post: function post(...args) {
+      let promise = worker.post.apply(worker, args);
+      return promise.then(
+        null,
+        function onError(error) {
+          
+          if (error instanceof PromiseWorker.WorkerError) {
+            throw OS.File.Error.fromMsg(error.data);
+          } else {
+            throw error;
+          }
+        }
+      );
+    }
+  };
+})();
 
 let PageThumbsHistoryObserver = {
   onDeleteURI: function Thumbnails_onDeleteURI(aURI, aGUID) {

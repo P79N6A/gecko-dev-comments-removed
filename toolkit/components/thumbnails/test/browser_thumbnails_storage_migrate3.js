@@ -13,9 +13,6 @@ Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .loadSubScript("resource://gre/modules/PageThumbs.jsm", tmp);
 let {PageThumbsStorageMigrator} = tmp;
 
-XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
-  "resource://gre/modules/FileUtils.jsm");
-
 XPCOMUtils.defineLazyServiceGetter(this, "gDirSvc",
   "@mozilla.org/file/directory_service;1", "nsIProperties");
 
@@ -55,7 +52,7 @@ function runTests() {
   writeDummyFile(file, "no-overwrite-plz");
 
   
-  PageThumbsStorageMigrator.migrateToVersion3();
+  PageThumbsStorageMigrator.migrateToVersion3(localProfile.path);
   ok(true, "migration finished");
 
   
