@@ -120,9 +120,7 @@ DOMCI_CLASS(BeforeUnloadEvent)
 
 DOMCI_CLASS(SVGDocument)
 
-
 DOMCI_CLASS(TimeEvent)
-DOMCI_CLASS(SVGUnknownElement)
 
 
 DOMCI_CLASS(SVGAnimatedEnumeration)
