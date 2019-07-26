@@ -37,16 +37,6 @@ let (ios = Components.classes["@mozilla.org/network/io-service;1"]
 }
 
 
-if ("mozIAsyncHistory" in Components.interfaces) {
-  
-  
-  let (prefs = Components.classes["@mozilla.org/preferences-service;1"]
-               .getService(Components.interfaces.nsIPrefBranch)) {
-    prefs.setBoolPref("places.history.enabled", true);
-  };
-}
-
-
 let runningInParent = true;
 try {
   runningInParent = Components.classes["@mozilla.org/xre/runtime;1"].
