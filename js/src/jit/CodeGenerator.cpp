@@ -5972,6 +5972,19 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 
     
     
+    if (HasIonScript(script, executionMode)) {
+        JS_ASSERT(GetIonScript(script, executionMode)->isRecompiling());
+        
+        
+        if (!Invalidate(cx, script, SequentialExecution,
+                         false,  false))
+        {
+            return false;
+        }
+    }
+
+    
+    
     types::RecompileInfo recompileInfo;
     if (!types::FinishCompilation(cx, script, executionMode, constraints, &recompileInfo))
         return true;
@@ -6033,21 +6046,6 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     if (sps_.enabled())
         ionScript->setHasSPSInstrumentation();
-
-    
-    
-    if (HasIonScript(script, executionMode)) {
-        JS_ASSERT(GetIonScript(script, executionMode)->isRecompiling());
-        
-        
-        if (!Invalidate(cx, script, SequentialExecution,
-                         false,  false))
-        {
-            js_free(ionScript);
-            recompileInfo.compilerOutput(cx->zone()->types)->invalidate();
-            return false;
-        }
-    }
 
     SetIonScript(script, executionMode, ionScript);
 
