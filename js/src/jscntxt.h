@@ -897,7 +897,7 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                alwaysPreserveCode;
 
     
-    JSBool              hadOutOfMemory;
+    bool                hadOutOfMemory;
 
     
 
@@ -1349,7 +1349,7 @@ struct JSContext : js::ContextFriendFields,
     bool                hasVersionOverride;
 
     
-    JSBool              throwing;            
+    bool                throwing;            
     js::Value           exception;           
 
     
