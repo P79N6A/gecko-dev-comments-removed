@@ -791,6 +791,7 @@ var AlertsHelper = {
 
     if (!manifestUrl || !manifestUrl.length) {
       send(null, null);
+      return;
     }
 
     
