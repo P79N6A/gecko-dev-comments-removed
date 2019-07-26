@@ -2227,33 +2227,20 @@ SetPropertyIC::attachDOMProxyShadowed(JSContext *cx, IonScript *ion, HandleObjec
     return linkAndAttachStub(cx, masm, attacher, ion, "DOM proxy shadowed set");
 }
 
-bool
-SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
-                                HandleObject obj, HandleObject holder, HandleShape shape,
-                                void *returnAddr)
+static bool
+GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
+                   IonCache::StubAttacher &attacher, HandleObject obj,
+                   HandleObject holder, HandleShape shape, bool strict, Register object,
+                   ConstantOrRegister value, Label *failure, RegisterSet liveRegs,
+                   void *returnAddr)
 {
-    JS_ASSERT(obj->isNative());
-
-    MacroAssembler masm(cx);
-    RepatchStubAppender attacher(*this);
-
-    
-    
-    masm.setFramePushed(ion->frameSize());
-
-    Label failure;
-    masm.branchPtr(Assembler::NotEqual,
-                   Address(object(), JSObject::offsetOfShape()),
-                   ImmGCPtr(obj->lastProperty()),
-                   &failure);
-
     
     
     {
         RegisterSet regSet(RegisterSet::All());
-        regSet.take(AnyRegister(object()));
-        if (!value().constant())
-            regSet.maybeTake(value().reg());
+        regSet.take(AnyRegister(object));
+        if (!value.constant())
+            regSet.maybeTake(value.reg());
         Register scratchReg = regSet.takeGeneral();
         masm.push(scratchReg);
 
@@ -2262,7 +2249,7 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
 
         
         if (obj != holder)
-            GeneratePrototypeGuards(cx, ion, masm, obj, holder, object(), scratchReg, &protoFailure);
+            GeneratePrototypeGuards(cx, ion, masm, obj, holder, object, scratchReg, &protoFailure);
 
         masm.moveNurseryPtr(ImmMaybeNurseryPtr(holder), scratchReg);
         masm.branchPtr(Assembler::NotEqual,
@@ -2274,7 +2261,7 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
 
         masm.bind(&protoFailure);
         masm.pop(scratchReg);
-        masm.jump(&failure);
+        masm.jump(failure);
 
         masm.bind(&protoSuccess);
         masm.pop(scratchReg);
@@ -2283,12 +2270,12 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     
 
     
-    masm.PushRegsInMask(liveRegs_);
+    masm.PushRegsInMask(liveRegs);
 
     
     
     RegisterSet regSet(RegisterSet::All());
-    regSet.take(AnyRegister(object()));
+    regSet.take(AnyRegister(object));
 
     
     
@@ -2323,8 +2310,8 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
         
 
         
-        masm.Push(value());
-        masm.Push(TypedOrValueRegister(MIRType_Object, AnyRegister(object())));
+        masm.Push(value);
+        masm.Push(TypedOrValueRegister(MIRType_Object, AnyRegister(object)));
         masm.Push(ObjectValue(*target));
         masm.movePtr(StackPointer, argVpReg);
 
@@ -2359,13 +2346,13 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
         
 
         
-        if (value().constant())
-            masm.Push(value().value());
+        if (value.constant())
+            masm.Push(value.value());
         else
-            masm.Push(value().reg());
+            masm.Push(value.reg());
         masm.movePtr(StackPointer, argVpReg);
 
-        masm.move32(Imm32(strict() ? 1 : 0), argStrictReg);
+        masm.move32(Imm32(strict ? 1 : 0), argStrictReg);
 
         
         RootedId propId(cx);
@@ -2374,7 +2361,7 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
         masm.Push(propId, argIdReg);
         masm.movePtr(StackPointer, argIdReg);
 
-        masm.Push(object());
+        masm.Push(object);
         masm.movePtr(StackPointer, argObjReg);
 
         masm.loadJSContext(argJSContextReg);
@@ -2407,7 +2394,122 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     JS_ASSERT(masm.framePushed() == initialStack);
 
     
-    masm.PopRegsInMask(liveRegs_);
+    masm.PopRegsInMask(liveRegs);
+
+    return true;
+}
+
+bool
+IsCacheableDOMProxyUnshadowedSetterCall(JSContext *cx, HandleObject obj, HandlePropertyName name,
+                                        MutableHandleObject holder, MutableHandleShape shape,
+                                        bool *isSetter)
+{
+    JS_ASSERT(IsCacheableDOMProxy(obj));
+
+    *isSetter = false;
+
+    RootedObject checkObj(cx, obj->getTaggedProto().toObjectOrNull());
+    if (!checkObj)
+        return true;
+
+    if (!JSObject::lookupProperty(cx, obj, name, holder, shape))
+        return false;
+
+    if (!holder)
+        return true;
+
+    if (!IsCacheableSetPropCallNative(checkObj, holder, shape) &&
+        !IsCacheableSetPropCallPropertyOp(checkObj, holder, shape))
+    {
+        return true;
+    }
+
+    *isSetter = true;
+    return true;
+}
+
+bool
+SetPropertyIC::attachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, HandleObject obj,
+                                        void *returnAddr)
+{
+    JS_ASSERT(IsCacheableDOMProxy(obj));
+
+    Label failures;
+    MacroAssembler masm(cx);
+    RepatchStubAppender attacher(*this);
+
+    masm.setFramePushed(ion->frameSize());
+
+    
+    masm.branchPtr(Assembler::NotEqual,
+                   Address(object(), JSObject::offsetOfShape()),
+                   ImmGCPtr(obj->lastProperty()), &failures);
+
+    
+    GenerateDOMProxyChecks(cx, masm, obj, name(), object(), &failures);
+
+    RootedPropertyName propName(cx, name());
+    RootedObject holder(cx);
+    RootedShape shape(cx);
+    bool isSetter;
+    if (!IsCacheableDOMProxyUnshadowedSetterCall(cx, obj, propName, &holder,
+                                                 &shape, &isSetter))
+    {
+        return false;
+    }
+
+    if (isSetter) {
+        if (!GenerateCallSetter(cx, ion, masm, attacher, obj, holder, shape, strict(),
+                                object(), value(), &failures, liveRegs_, returnAddr))
+        {
+            return false;
+        }
+    } else {
+        
+        
+        RootedId propId(cx, AtomToId(name()));
+        if (!EmitCallProxySet(cx, masm, attacher, propId, liveRegs_, object(),
+                            value(), returnAddr, strict()))
+        {
+            return false;
+        }
+    }
+
+    
+    attacher.jumpRejoin(masm);
+
+    
+    masm.bind(&failures);
+    attacher.jumpNextStub(masm);
+
+    return linkAndAttachStub(cx, masm, attacher, ion, "DOM proxy unshadowed set");
+}
+
+bool
+SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
+                                HandleObject obj, HandleObject holder, HandleShape shape,
+                                void *returnAddr)
+{
+    JS_ASSERT(obj->isNative());
+
+    MacroAssembler masm(cx);
+    RepatchStubAppender attacher(*this);
+
+    
+    
+    masm.setFramePushed(ion->frameSize());
+
+    Label failure;
+    masm.branchPtr(Assembler::NotEqual,
+                   Address(object(), JSObject::offsetOfShape()),
+                   ImmGCPtr(obj->lastProperty()),
+                   &failure);
+
+    if (!GenerateCallSetter(cx, ion, masm, attacher, obj, holder, shape, strict(),
+                            object(), value(), &failure, liveRegs_, returnAddr))
+    {
+        return false;
+    }
 
     
     attacher.jumpRejoin(masm);
@@ -2612,6 +2714,13 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
                     return false;
                 if (shadows == Shadows) {
                     if (!cache.attachDOMProxyShadowed(cx, ion, obj, returnAddr))
+                        return false;
+                    addedSetterStub = true;
+                } else {
+                    JS_ASSERT(shadows == DoesntShadow || shadows == DoesntShadowUnique);
+                    if (shadows == DoesntShadowUnique)
+                        cache.reset();
+                    if (!cache.attachDOMProxyUnshadowed(cx, ion, obj, returnAddr))
                         return false;
                     addedSetterStub = true;
                 }
