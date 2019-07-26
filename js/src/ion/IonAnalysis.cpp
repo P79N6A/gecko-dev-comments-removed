@@ -4,6 +4,8 @@
 
 
 
+#include "jsanalyze.h"
+
 #include "ion/IonBuilder.h"
 #include "ion/MIRGraph.h"
 #include "ion/Ion.h"

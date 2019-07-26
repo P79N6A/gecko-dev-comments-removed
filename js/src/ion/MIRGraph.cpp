@@ -4,11 +4,14 @@
 
 
 
+#include "jsanalyze.h"
+
 #include "ion/Ion.h"
 #include "ion/IonSpewer.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
 #include "ion/IonBuilder.h"
+#include "jsinferinlines.h"
 #include "jsscriptinlines.h"
 
 using namespace js;
