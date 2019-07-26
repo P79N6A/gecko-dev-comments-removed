@@ -271,7 +271,6 @@ enum SrcNoteType {
 
 
 
-    SRC_DECL        = 6,        
     SRC_DESTRUCT    = 6,        
 
     SRC_PCDELTA     = 7,        
@@ -434,28 +433,6 @@ BytecodeEmitter::countFinalSourceNotes()
             cnt += JS_HOWMANY(diff, SN_XDELTA_MASK);
     }
     return cnt;
-}
-
-
-
-
-
-
-
-inline ptrdiff_t PackLetData(size_t offset, bool groupAssign)
-{
-    JS_ASSERT(offset <= (size_t(-1) >> 1));
-    return ptrdiff_t(offset << 1) | ptrdiff_t(groupAssign);
-}
-
-inline size_t LetDataToOffset(ptrdiff_t w)
-{
-    return size_t(w) >> 1;
-}
-
-inline bool LetDataToGroupAssign(ptrdiff_t w)
-{
-    return size_t(w) & 1;
 }
 
 } 

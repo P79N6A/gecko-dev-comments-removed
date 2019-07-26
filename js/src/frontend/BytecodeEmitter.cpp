@@ -3173,7 +3173,6 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
     ptrdiff_t off = -1, noteIndex = -1;
     ParseNode *next;
     for (ParseNode *pn2 = pn->pn_head; ; pn2 = next) {
-        bool first = pn2 == pn->pn_head;
         next = pn2->pn_next;
 
         ParseNode *pn3;
@@ -3334,14 +3333,6 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
         }
 
         JS_ASSERT_IF(pn2->isDefn(), pn3 == pn2->pn_expr);
-        if (first && NewSrcNote2(cx, bce, SRC_DECL,
-                                 (pn->isOp(JSOP_DEFCONST))
-                                 ? SRC_DECL_CONST
-                                 : (pn->isOp(JSOP_DEFVAR))
-                                 ? SRC_DECL_VAR
-                                 : SRC_DECL_LET) < 0) {
-            return false;
-        }
         if (!pn2->pn_cookie.isFree()) {
             if (!EmitVarOp(cx, pn2, op, bce))
                 return false;
@@ -4185,8 +4176,6 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
-
 MOZ_NEVER_INLINE static bool
 EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4221,10 +4210,6 @@ EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
     if (!letNotes.update(cx, bce, bce->offset()))
         return false;
 
-    ptrdiff_t declNote = NewSrcNote(cx, bce, SRC_DECL);
-    if (declNote < 0)
-        return false;
-
     ptrdiff_t bodyBegin = bce->offset();
     if (!EmitEnterBlock(cx, bce, letBody, JSOP_ENTERLET0))
         return false;
@@ -4244,13 +4229,7 @@ EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
     ptrdiff_t bodyEnd = bce->offset();
     JS_ASSERT(bodyEnd > bodyBegin);
 
-    if (!PopStatementBCE(cx, bce))
-        return false;
-
-    ptrdiff_t o = PackLetData((bodyEnd - bodyBegin) -
-                              (JSOP_ENTERLET0_LENGTH + JSOP_LEAVEBLOCK_LENGTH),
-                              letNotes.isGroupAssign());
-    return SetSrcNoteOffset(cx, bce, declNote, 0, o);
+    return PopStatementBCE(cx, bce);
 }
 #endif
 
@@ -4439,12 +4418,6 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
         return false;
 
     ptrdiff_t tmp2 = bce->offset();
-    if (forHead->pn_kid1 && NewSrcNote2(cx, bce, SRC_DECL,
-                                        (forHead->pn_kid1->isOp(JSOP_DEFVAR))
-                                        ? SRC_DECL_VAR
-                                        : SRC_DECL_LET) < 0) {
-        return false;
-    }
     if (Emit1(cx, bce, JSOP_POP) < 0)
         return false;
 
