@@ -9532,7 +9532,15 @@ nsCSSFrameConstructor::CreateNeededAnonFlexItems(
     
     
     
-    if (iter.item().IsWhitespace(aState)) {
+    
+    
+    
+    
+    
+    
+    
+    if (!aParentFrame->IsGeneratedContentFrame() &&
+        iter.item().IsWhitespace(aState)) {
       FCItemIterator afterWhitespaceIter(iter);
       bool hitEnd = afterWhitespaceIter.SkipWhitespace(aState);
       bool nextChildNeedsAnonFlexItem =
