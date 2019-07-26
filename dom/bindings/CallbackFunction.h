@@ -88,6 +88,16 @@ public:
   }
 
 protected:
+  explicit CallbackFunction(CallbackFunction* aCallbackFunction)
+    : mCallable(aCallbackFunction->mCallable)
+  {
+    
+    
+    
+    nsLayoutStatics::AddRef();
+    NS_HOLD_JS_OBJECTS(this, CallbackFunction);
+  }
+
   void DropCallback()
   {
     if (mCallable) {
