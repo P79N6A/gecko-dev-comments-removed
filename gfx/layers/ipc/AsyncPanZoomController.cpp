@@ -1284,7 +1284,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       aLayerMetrics.mCompositionBounds.height == mFrameMetrics.mCompositionBounds.height) {
     
     
-    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport)
+    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport.width)
       needContentRepaint = true;
     mFrameMetrics.mViewport = aLayerMetrics.mViewport;
   }
