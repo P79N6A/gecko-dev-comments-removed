@@ -1506,7 +1506,7 @@ Assembler::as_bx(Register r, Condition c)
 void
 Assembler::writePoolGuard(BufferOffset branch, Instruction *dest, BufferOffset afterPool)
 {
-    BOffImm off = branch.diffB<BOffImm>(afterPool);
+    BOffImm off = afterPool.diffB<BOffImm>(branch);
     *dest = InstBImm(off, Always);
 }
 
@@ -1722,7 +1722,7 @@ Assembler::as_vmov(VFPRegister vd, VFPRegister vsrc, Condition c)
 
 void
 Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c,
-                  Condition c)
+                    Condition c, int idx)
 {
     vfp_size sz = isSingle;
     if (vm.isDouble()) {
@@ -1732,8 +1732,16 @@ Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c
         
         
         
-        JS_ASSERT(vt2 != InvalidReg);
         sz = isDouble;
+        JS_ASSERT(idx == 0 || idx == 1);
+        
+        
+        if (vt2 == InvalidReg) {
+            JS_ASSERT(f2c == FloatToCore);
+        }
+        idx = idx << 21;
+    } else {
+        JS_ASSERT(idx == 0);
     }
     VFPXferSize xfersz = WordTransfer;
     uint32 (*encodeVFP)(VFPRegister) = VN;
@@ -1744,7 +1752,7 @@ Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c
     }
 
     writeVFPInst(sz, xfersz | f2c | c |
-                 RT(vt1) | maybeRN(vt2) | encodeVFP(vm));
+                 RT(vt1) | maybeRN(vt2) | encodeVFP(vm) | idx);
 }
 enum vcvt_destFloatness {
     toInteger = 1 << 18,
@@ -1765,7 +1773,7 @@ enum vcvt_Signedness {
 
 void
 Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
-                 Condition c)
+                   Condition c)
 {
     
     JS_ASSERT(!vd.equiv(vm));
@@ -1806,6 +1814,20 @@ Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
     }
 
 }
+
+void
+Assembler::as_vcvtFixed(VFPRegister vd, bool isSigned, uint32 fixedPoint, bool toFixed, Condition c)
+{
+    JS_ASSERT(vd.isFloat());
+    uint32 sx = 0x1;
+    vfp_size sf = vd.isDouble() ? isDouble : isSingle;
+    int32 imm5 = fixedPoint;
+    imm5 = (sx ? 32 : 16) - imm5;
+    JS_ASSERT(imm5 >= 0);
+    imm5 = imm5 >> 1 | (imm5 & 1) << 6;
+    writeVFPInst(sf, 0x02BA0040 | VD(vd) | toFixed << 18 | sx << 7 | (!isSigned) << 16 | imm5 | c);
+}
+
 
 void
 Assembler::as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,

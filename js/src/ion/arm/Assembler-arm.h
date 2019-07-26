@@ -1498,12 +1498,15 @@ class Assembler
     
 
     void as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c,
-                  Condition c = Always);
+                  Condition c = Always, int idx = 0);
 
     
     
     void as_vcvt(VFPRegister vd, VFPRegister vm,
                  Condition c = Always);
+    
+    void as_vcvtFixed(VFPRegister vd, bool isSigned, uint32 fixedPoint, bool toFixed, Condition c = Always);
+
     
     void as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c = Always ,

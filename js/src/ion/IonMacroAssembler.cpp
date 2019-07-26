@@ -322,10 +322,32 @@ template void MacroAssembler::loadFromTypedArray(int arrayType, const BaseIndex 
 void
 MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 {
-#ifdef JS_CPU_ARM
-    JS_NOT_REACHED("NYI clampDoubleToUint8");
-#else
     JS_ASSERT(input != ScratchFloatReg);
+#ifdef JS_CPU_ARM
+    Label notSplit;
+    ma_vimm(0.5, ScratchFloatReg);
+    ma_vadd(input, ScratchFloatReg, ScratchFloatReg);
+    
+    
+    as_vcvtFixed(ScratchFloatReg, false, 24, true);
+    
+    as_vxfer(output, InvalidReg, ScratchFloatReg, FloatToCore);
+    
+    
+    
+    ma_tst(output, Imm32(0x00ffffff));
+    
+    ma_lsr(Imm32(24), output, output);
+    
+    
+    ma_b(&notSplit, NonZero);
+    as_vxfer(ScratchRegister, InvalidReg, input, FloatToCore);
+    ma_cmp(ScratchRegister, Imm32(0));
+    
+    
+    ma_bic(Imm32(1), output, NoSetCond, Zero);
+    bind(&notSplit);
+#else
 
     Label positive, done;
 
