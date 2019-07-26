@@ -48,41 +48,61 @@ class nsHashKey;
 
 
 
-#define NS_EVENT                           1
-#define NS_GUI_EVENT                       2
-#define NS_SCROLLBAR_EVENT                 7
-#define NS_INPUT_EVENT                     8
-#define NS_KEY_EVENT                       9
-#define NS_MOUSE_EVENT                    10
-#define NS_SCRIPT_ERROR_EVENT             12
-#define NS_TEXT_EVENT                     13
-#define NS_COMPOSITION_EVENT              14
-#define NS_MOUSE_SCROLL_EVENT             16
-#define NS_SCROLLPORT_EVENT               18
-#define NS_MUTATION_EVENT                 19 // |nsMutationEvent| in content
-#define NS_FORM_EVENT                     21
-#define NS_FOCUS_EVENT                    22
-#define NS_POPUP_EVENT                    23
-#define NS_COMMAND_EVENT                  24
-#define NS_SCROLLAREA_EVENT               25
-#define NS_TRANSITION_EVENT               26
-#define NS_ANIMATION_EVENT                27
+enum nsEventStructType {
+  
+  NS_EVENT,                          
+  NS_GUI_EVENT,                      
+  NS_INPUT_EVENT,                    
 
-#define NS_UI_EVENT                       28
-#define NS_SVG_EVENT                      30
-#define NS_SVGZOOM_EVENT                  31
-#define NS_SMIL_TIME_EVENT                32
+  
+  NS_MOUSE_EVENT,                    
+  NS_POPUP_EVENT,                    
+  NS_MOUSE_SCROLL_EVENT,             
+  NS_DRAG_EVENT,                     
+  NS_WHEEL_EVENT,                    
 
-#define NS_QUERY_CONTENT_EVENT            33
+  
+  NS_GESTURENOTIFY_EVENT,            
+  NS_SIMPLE_GESTURE_EVENT,           
+  NS_TOUCH_EVENT,                    
 
-#define NS_DRAG_EVENT                     35
-#define NS_SIMPLE_GESTURE_EVENT           37
-#define NS_SELECTION_EVENT                38
-#define NS_CONTENT_COMMAND_EVENT          39
-#define NS_GESTURENOTIFY_EVENT            40
-#define NS_PLUGIN_EVENT                   43
-#define NS_TOUCH_EVENT                    44
-#define NS_WHEEL_EVENT                    45
+  
+  NS_KEY_EVENT,                      
+  NS_COMPOSITION_EVENT,              
+  NS_TEXT_EVENT,                     
+
+  
+  NS_QUERY_CONTENT_EVENT,            
+  NS_SELECTION_EVENT,                
+
+  
+  NS_SCROLLBAR_EVENT,                
+  NS_SCROLLPORT_EVENT,               
+  NS_SCROLLAREA_EVENT,               
+
+  
+  NS_UI_EVENT,                       
+  NS_SCRIPT_ERROR_EVENT,             
+  NS_MUTATION_EVENT,                 
+  NS_FORM_EVENT,                     
+  NS_FOCUS_EVENT,                    
+
+  
+  NS_SVG_EVENT,                      
+  NS_SVGZOOM_EVENT,                  
+  NS_SMIL_TIME_EVENT,                
+
+  
+  NS_TRANSITION_EVENT,               
+  NS_ANIMATION_EVENT,                
+
+  
+  NS_COMMAND_EVENT,                  
+  NS_CONTENT_COMMAND_EVENT,          
+
+  
+  NS_PLUGIN_EVENT                    
+};
 
 
 
@@ -496,7 +516,7 @@ enum nsWindowZ {
 class nsEvent
 {
 protected:
-  nsEvent(bool isTrusted, uint32_t msg, uint8_t structType)
+  nsEvent(bool isTrusted, uint32_t msg, nsEventStructType structType)
     : eventStructType(structType),
       message(msg),
       refPoint(0, 0),
@@ -538,7 +558,7 @@ public:
   }
 
   
-  uint8_t     eventStructType;
+  nsEventStructType eventStructType;
   
   uint32_t    message;
   
@@ -567,7 +587,8 @@ public:
 class nsGUIEvent : public nsEvent
 {
 protected:
-  nsGUIEvent(bool isTrusted, uint32_t msg, nsIWidget *w, uint8_t structType)
+  nsGUIEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
+             nsEventStructType structType)
     : nsEvent(isTrusted, msg, structType),
       widget(w), pluginEvent(nullptr)
   {
@@ -660,7 +681,7 @@ class nsInputEvent : public nsGUIEvent
 {
 protected:
   nsInputEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
-               uint8_t structType)
+               nsEventStructType structType)
     : nsGUIEvent(isTrusted, msg, w, structType),
       modifiers(0)
   {
@@ -777,7 +798,8 @@ public:
   {
   }
 
-  nsMouseEvent_base(bool isTrusted, uint32_t msg, nsIWidget *w, uint8_t type)
+  nsMouseEvent_base(bool isTrusted, uint32_t msg, nsIWidget *w,
+                    nsEventStructType type)
     : nsInputEvent(isTrusted, msg, w, type), button(0), buttons(0),
       pressure(0), inputSource(nsIDOMMouseEvent::MOZ_SOURCE_MOUSE) {}
 
@@ -822,7 +844,7 @@ public:
 
 protected:
   nsMouseEvent(bool isTrusted, uint32_t msg, nsIWidget *w,
-               uint8_t structType, reasonType aReason)
+               nsEventStructType structType, reasonType aReason)
     : nsMouseEvent_base(isTrusted, msg, w, structType),
       acceptActivation(false), ignoreRootScrollFrame(false),
       reason(aReason), context(eNormal), exit(eChild), clickCount(0)

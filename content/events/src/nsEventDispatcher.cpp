@@ -763,10 +763,10 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
     case NS_ANIMATION_EVENT:
       return NS_NewDOMAnimationEvent(aDOMEvent, aPresContext,
                                      static_cast<nsAnimationEvent*>(aEvent));
+    default:
+      
+      return NS_NewDOMEvent(aDOMEvent, aPresContext, aEvent);
     }
-
-    
-    return NS_NewDOMEvent(aDOMEvent, aPresContext, aEvent);
   }
 
   
