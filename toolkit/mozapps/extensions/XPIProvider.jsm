@@ -1638,6 +1638,49 @@ var Prefs = {
   }
 }
 
+
+
+
+function directoryStateDiffers(aState, aCache)
+{
+  
+  function addonsMismatch(aNew, aOld) {
+    for (let [id, val] of aNew) {
+      if (!id in aOld)
+        return true;
+      if (val.descriptor != aOld[id].descriptor ||
+          val.mtime != aOld[id].mtime)
+        return true;
+      delete aOld[id];
+    }
+    
+    for (let id in aOld)
+      return true;
+    return false;
+  }
+
+  if (!aCache)
+    return true;
+  try {
+    let old = JSON.parse(aCache);
+    if (aState.length != old.length)
+      return true;
+    for (let i = 0; i < aState.length; i++) {
+      
+      
+      if (aState[i].name != old[i].name)
+        return true;
+      if (addonsMismatch(aState[i].addons, old[i].addons))
+        return true;
+    }
+  }
+  catch (e) {
+    return true;
+  }
+  return false;
+}
+
+
 var XPIProvider = {
   
   installLocations: null,
@@ -3372,8 +3415,15 @@ var XPIProvider = {
 
     
     let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
+    
+    
     if (cache != JSON.stringify(state)) {
-      updateReasons.push("directoryState");
+      if (directoryStateDiffers(state, cache)) {
+        updateReasons.push("directoryState");
+      }
+      else {
+        AddonManagerPrivate.recordSimpleMeasure("XPIDB_startup_state_badCompare", 1);
+      }
     }
 
     
