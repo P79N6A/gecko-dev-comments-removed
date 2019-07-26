@@ -42,7 +42,10 @@ protected:
 
 
 
-template <typename Time, typename T>
+
+
+
+template <typename Time, typename T, uint32_t ReservedChanges>
 class TimeVarying : public TimeVaryingBase {
 public:
   TimeVarying(const T& aInitial) : mCurrent(aInitial) {}
@@ -214,7 +217,7 @@ private:
     Time mTime;
     T mValue;
   };
-  nsTArray<Entry> mChanges;
+  nsAutoTArray<Entry, ReservedChanges> mChanges;
   T mCurrent;
 };
 
