@@ -184,7 +184,7 @@ this.CurlUtils = {
 
     let contentType = this.findHeader(aData.headers, "content-type");
 
-    return (contentType && 
+    return (contentType &&
       contentType.toLowerCase().contains("multipart/form-data;"));
   },
 

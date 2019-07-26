@@ -191,7 +191,7 @@ let NetMonitorController = {
 
 
 
-  connect: function() {
+  connect: Task.async(function*() {
     if (this._connection) {
       return this._connection;
     }
@@ -207,11 +207,9 @@ let NetMonitorController = {
       this._startMonitoringTab(client, form, deferred.resolve);
     }
 
-    return deferred.promise.then((result) => {
-      window.emit(EVENTS.CONNECTED);
-      return result;
-    });
-  },
+    yield deferred.promise;
+    window.emit(EVENTS.CONNECTED);
+  }),
 
   
 

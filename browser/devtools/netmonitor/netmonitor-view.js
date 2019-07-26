@@ -528,6 +528,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   copyAsCurl: function() {
     let selected = this.selectedItem.attachment;
+
     Task.spawn(function*() {
       
       let data = {
@@ -595,8 +596,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     let selected = this.selectedItem.attachment;
 
     let data = {
-      method: selected.method,
       url: selected.url,
+      method: selected.method,
       httpVersion: selected.httpVersion,
     };
     if (selected.requestHeaders) {
@@ -1217,7 +1218,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  updateMenuView: function(aItem, aKey, aValue) {
+
+
+  updateMenuView: Task.async(function*(aItem, aKey, aValue) {
     let target = aItem.target || aItem;
 
     switch (aKey) {
@@ -1279,13 +1282,13 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         let { text, encoding } = aValue.content;
 
         if (mimeType.contains("image/")) {
-          gNetwork.getString(text).then(aString => {
-            let node = $(".requests-menu-icon", aItem.target);
-            node.src = "data:" + mimeType + ";" + encoding + "," + aString;
-            node.setAttribute("type", "thumbnail");
-            node.removeAttribute("hidden");
-            window.emit(EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED);
-          });
+          let responseBody = yield gNetwork.getString(text);
+          let node = $(".requests-menu-icon", aItem.target);
+          node.src = "data:" + mimeType + ";" + encoding + "," + responseBody;
+          node.setAttribute("type", "thumbnail");
+          node.removeAttribute("hidden");
+
+          window.emit(EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED);
         }
         break;
       }
@@ -1297,7 +1300,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         break;
       }
     }
-  },
+  }),
 
   
 
@@ -1596,7 +1599,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     let resendElement = $("#request-menu-context-resend");
     resendElement.hidden = !NetMonitorController.supportsCustomRequest ||
-                           !selectedItem || selectedItem.attachment.isCustom;
+      !selectedItem || selectedItem.attachment.isCustom;
 
     let copyUrlElement = $("#request-menu-context-copy-url");
     copyUrlElement.hidden = !selectedItem;
@@ -1777,17 +1780,17 @@ SidebarView.prototype = {
 
 
 
-  populate: function(aData) {
+  populate: Task.async(function*(aData) {
     let isCustom = aData.isCustom;
     let view = isCustom ?
       NetMonitorView.CustomRequest :
       NetMonitorView.NetworkDetails;
 
-    return view.populate(aData).then(() => {
-      $("#details-pane").selectedIndex = isCustom ? 0 : 1;
-      window.emit(EVENTS.SIDEBAR_POPULATED);
-    });
-  }
+    yield view.populate(aData);
+    $("#details-pane").selectedIndex = isCustom ? 0 : 1;
+
+    window.emit(EVENTS.SIDEBAR_POPULATED);
+  })
 }
 
 
@@ -1825,29 +1828,22 @@ CustomRequestView.prototype = {
 
 
 
-  populate: function(aData) {
+  populate: Task.async(function*(aData) {
     $("#custom-url-value").value = aData.url;
     $("#custom-method-value").value = aData.method;
-    $("#custom-headers-value").value =
-       writeHeaderText(aData.requestHeaders.headers);
+    this.updateCustomQuery(aData.url);
 
-    let view = this;
-    let postDataPromise = null;
-
+    if (aData.requestHeaders) {
+      let headers = aData.requestHeaders.headers;
+      $("#custom-headers-value").value = writeHeaderText(headers);
+    }
     if (aData.requestPostData) {
-      let body = aData.requestPostData.postData.text;
-
-      postDataPromise = gNetwork.getString(body).then(aString => {
-        $("#custom-postdata-value").value =  aString;
-      });
-    } else {
-      postDataPromise = promise.resolve();
+      let postData = aData.requestPostData.postData.text;
+      $("#custom-postdata-value").value = yield gNetwork.getString(postData);
     }
 
-    return postDataPromise
-      .then(() => view.updateCustomQuery(aData.url))
-      .then(() => window.emit(EVENTS.CUSTOMREQUESTVIEW_POPULATED));
-  },
+    window.emit(EVENTS.CUSTOMREQUESTVIEW_POPULATED);
+  }),
 
   
 
@@ -2123,20 +2119,14 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestHeaders: function(aHeadersResponse, aHeadersFromUploadStream) {
-    let outstanding = [];
-
+  _setRequestHeaders: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream) {
     if (aHeadersResponse && aHeadersResponse.headers.length) {
-      outstanding.push(
-        this._addHeaders(this._requestHeaders, aHeadersResponse));
+      yield this._addHeaders(this._requestHeaders, aHeadersResponse);
     }
     if (aHeadersFromUploadStream && aHeadersFromUploadStream.headers.length) {
-      outstanding.push(
-        this._addHeaders(this._requestHeadersFromUpload, aHeadersFromUploadStream));
+      yield this._addHeaders(this._requestHeadersFromUpload, aHeadersFromUploadStream);
     }
-
-    return promise.all(outstanding);
-  },
+  }),
 
   
 
@@ -2146,13 +2136,12 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setResponseHeaders: function(aResponse) {
+  _setResponseHeaders: Task.async(function*(aResponse) {
     if (aResponse && aResponse.headers.length) {
       aResponse.headers.sort((a, b) => a.name > b.name);
-      return this._addHeaders(this._responseHeaders, aResponse);
+      yield this._addHeaders(this._responseHeaders, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   
 
@@ -2164,18 +2153,20 @@ NetworkDetailsView.prototype = {
 
 
 
-  _addHeaders: function(aName, aResponse) {
+  _addHeaders: Task.async(function*(aName, aResponse) {
     let kb = aResponse.headersSize / 1024;
     let size = L10N.numberWithDecimals(kb, HEADERS_SIZE_DECIMALS);
     let text = L10N.getFormatStr("networkMenu.sizeKB", size);
+
     let headersScope = this._headers.addScope(aName + " (" + text + ")");
     headersScope.expanded = true;
 
-    return promise.all(aResponse.headers.map(header => {
+    for (let header of aResponse.headers) {
       let headerVar = headersScope.addItem(header.name, {}, true);
-      return gNetwork.getString(header.value).then(aString => headerVar.setGrip(aString));
-    }));
-  },
+      let headerValue = yield gNetwork.getString(header.value);
+      headerVar.setGrip(headerValue);
+    }
+  }),
 
   
 
@@ -2185,13 +2176,12 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestCookies: function(aResponse) {
+  _setRequestCookies: Task.async(function*(aResponse) {
     if (aResponse && aResponse.cookies.length) {
       aResponse.cookies.sort((a, b) => a.name > b.name);
-      return this._addCookies(this._requestCookies, aResponse);
+      yield this._addCookies(this._requestCookies, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   
 
@@ -2201,12 +2191,11 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setResponseCookies: function(aResponse) {
+  _setResponseCookies: Task.async(function*(aResponse) {
     if (aResponse && aResponse.cookies.length) {
-      return this._addCookies(this._responseCookies, aResponse);
+      yield this._addCookies(this._responseCookies, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   
 
@@ -2218,35 +2207,34 @@ NetworkDetailsView.prototype = {
 
 
 
-  _addCookies: function(aName, aResponse) {
+  _addCookies: Task.async(function*(aName, aResponse) {
     let cookiesScope = this._cookies.addScope(aName);
     cookiesScope.expanded = true;
 
-    return promise.all(aResponse.cookies.map(cookie => {
+    for (let cookie of aResponse.cookies) {
       let cookieVar = cookiesScope.addItem(cookie.name, {}, true);
-      return gNetwork.getString(cookie.value).then(aString => {
-        cookieVar.setGrip(aString);
+      let cookieValue = yield gNetwork.getString(cookie.value);
+      cookieVar.setGrip(cookieValue);
 
-        
-        
-        let cookieProps = Object.keys(cookie);
-        if (cookieProps.length == 2) {
-          return;
-        }
+      
+      
+      let cookieProps = Object.keys(cookie);
+      if (cookieProps.length == 2) {
+        return;
+      }
 
-        
-        
-        let rawObject = Object.create(null);
-        let otherProps = cookieProps.filter(e => e != "name" && e != "value");
-        for (let prop of otherProps) {
-          rawObject[prop] = cookie[prop];
-        }
-        cookieVar.populate(rawObject);
-        cookieVar.twisty = true;
-        cookieVar.expanded = true;
-      });
-    }));
-  },
+      
+      
+      let rawObject = Object.create(null);
+      let otherProps = cookieProps.filter(e => e != "name" && e != "value");
+      for (let prop of otherProps) {
+        rawObject[prop] = cookie[prop];
+      }
+      cookieVar.populate(rawObject);
+      cookieVar.twisty = true;
+      cookieVar.expanded = true;
+    }
+  }),
 
   
 
@@ -2273,59 +2261,58 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setRequestPostParams: function(aHeadersResponse, aHeadersFromUploadStream, aPostDataResponse) {
+  _setRequestPostParams: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream, aPostDataResponse) {
     if (!aHeadersResponse || !aHeadersFromUploadStream || !aPostDataResponse) {
-      return promise.resolve();
+      return;
     }
+
     let { headers: requestHeaders } = aHeadersResponse;
     let { headers: payloadHeaders } = aHeadersFromUploadStream;
     let allHeaders = [...payloadHeaders, ...requestHeaders];
 
-    let contentTypeHeader = allHeaders.filter(e => e.name.toLowerCase() == "content-type")[0];
+    let contentTypeHeader = allHeaders.find(e => e.name.toLowerCase() == "content-type");
     let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
     let postDataLongString = aPostDataResponse.postData.text;
 
-    return promise.all([
-      gNetwork.getString(postDataLongString),
-      gNetwork.getString(contentTypeLongString)
-    ])
-    .then(([aPostData, aContentType]) => {
-      
-      if (aContentType.contains("x-www-form-urlencoded")) {
-        for (let section of aPostData.split(/\r\n|\r|\n/)) {
-          
-          
-          if (payloadHeaders.every(header => !section.startsWith(header.name))) {
-            this._addParams(this._paramsFormData, section);
-          }
+    let postData = yield gNetwork.getString(postDataLongString);
+    let contentType = yield gNetwork.getString(contentTypeLongString);
+
+    
+    if (contentType.contains("x-www-form-urlencoded")) {
+      for (let section of postData.split(/\r\n|\r|\n/)) {
+        
+        
+        if (payloadHeaders.every(header => !section.startsWith(header.name))) {
+          this._addParams(this._paramsFormData, section);
         }
       }
+    }
+    
+    else {
       
-      else {
-        
-        
-        
-        $("#request-params-box").removeAttribute("flex");
-        let paramsScope = this._params.addScope(this._paramsPostPayload);
-        paramsScope.expanded = true;
-        paramsScope.locked = true;
+      
+      
+      $("#request-params-box").removeAttribute("flex");
+      let paramsScope = this._params.addScope(this._paramsPostPayload);
+      paramsScope.expanded = true;
+      paramsScope.locked = true;
 
-        $("#request-post-data-textarea-box").hidden = false;
-        return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
-          
-          
-          try {
-            JSON.parse(aPostData);
-            aEditor.setMode(Editor.modes.js);
-          } catch (e) {
-            aEditor.setMode(Editor.modes.text);
-          } finally {
-            aEditor.setText(aPostData);
-          }
-        });
+      $("#request-post-data-textarea-box").hidden = false;
+      let editor = yield NetMonitorView.editor("#request-post-data-textarea");
+      
+      
+      try {
+        JSON.parse(postData);
+        editor.setMode(Editor.modes.js);
+      } catch (e) {
+        editor.setMode(Editor.modes.text);
+      } finally {
+        editor.setText(postData);
       }
-    }).then(() => window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED));
-  },
+    }
+
+    window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED);
+  }),
 
   
 
@@ -2359,116 +2346,110 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setResponseBody: function(aUrl, aResponse) {
+  _setResponseBody: Task.async(function*(aUrl, aResponse) {
     if (!aResponse) {
-      return promise.resolve();
+      return;
     }
     let { mimeType, text, encoding } = aResponse.content;
+    let responseBody = yield gNetwork.getString(text);
 
-    return gNetwork.getString(text).then(aString => {
+    
+    
+    
+    
+    
+    
+    let jsonMimeType, jsonObject, jsonObjectParseError;
+    try {
+      jsonMimeType = /\bjson/.test(mimeType);
+      jsonObject = JSON.parse(responseBody);
+    } catch (e) {
+      jsonObjectParseError = e;
+    }
+    if (jsonMimeType || jsonObject) {
       
       
       
-      
-      
-      
-      let jsonMimeType, jsonObject, jsonObjectParseError;
-      try {
-        
-        
-        jsonMimeType = /\bjson/.test(mimeType);
-        jsonObject = JSON.parse(aString);
-      } catch (e) {
-        jsonObjectParseError = e;
-      }
-      if (jsonMimeType || jsonObject) {
-        
-        
-        
-        let jsonpRegex = /^\s*([\w$]+)\s*\(\s*([^]*)\s*\)\s*;?\s*$/;
-        let [_, callbackPadding, jsonpString] = aString.match(jsonpRegex) || [];
+      let jsonpRegex = /^\s*([\w$]+)\s*\(\s*([^]*)\s*\)\s*;?\s*$/;
+      let [_, callbackPadding, jsonpString] = responseBody.match(jsonpRegex) || [];
 
-        
-        
-        
-        if (callbackPadding && jsonpString) {
-          try {
-            jsonObject = JSON.parse(jsonpString);
-          } catch (e) {
-            jsonObjectParseError = e;
-          }
-        }
-
-        
-        if (jsonObject) {
-          $("#response-content-json-box").hidden = false;
-          let jsonScopeName = callbackPadding
-            ? L10N.getFormatStr("jsonpScopeName", callbackPadding)
-            : L10N.getStr("jsonScopeName");
-
-          return this._json.controller.setSingleVariable({
-            label: jsonScopeName,
-            rawObject: jsonObject,
-          }).expanded;
-        }
-        
-        else {
-          $("#response-content-textarea-box").hidden = false;
-          let infoHeader = $("#response-content-info-header");
-          infoHeader.setAttribute("value", jsonObjectParseError);
-          infoHeader.setAttribute("tooltiptext", jsonObjectParseError);
-          infoHeader.hidden = false;
-          return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
-            aEditor.setMode(Editor.modes.js);
-            aEditor.setText(aString);
-          });
+      
+      
+      
+      if (callbackPadding && jsonpString) {
+        try {
+          jsonObject = JSON.parse(jsonpString);
+        } catch (e) {
+          jsonObjectParseError = e;
         }
       }
+
       
-      else if (mimeType.contains("image/")) {
-        $("#response-content-image-box").setAttribute("align", "center");
-        $("#response-content-image-box").setAttribute("pack", "center");
-        $("#response-content-image-box").hidden = false;
-        $("#response-content-image").src =
-          "data:" + mimeType + ";" + encoding + "," + aString;
+      if (jsonObject) {
+        $("#response-content-json-box").hidden = false;
+        let jsonScopeName = callbackPadding
+          ? L10N.getFormatStr("jsonpScopeName", callbackPadding)
+          : L10N.getStr("jsonScopeName");
 
-        
-        
-        $("#response-content-image-name-value").setAttribute("value", nsIURL(aUrl).fileName);
-        $("#response-content-image-mime-value").setAttribute("value", mimeType);
-        $("#response-content-image-encoding-value").setAttribute("value", encoding);
-
-        
-        $("#response-content-image").onload = e => {
-          
-          
-          
-          let { width, height } = e.target.getBoundingClientRect();
-          let dimensions = (width - 2) + " x " + (height - 2);
-          $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
-        };
+        let jsonVar = { label: jsonScopeName, rawObject: jsonObject };
+        yield this._json.controller.setSingleVariable(jsonVar).expanded;
       }
       
       else {
         $("#response-content-textarea-box").hidden = false;
-        return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
-          aEditor.setMode(Editor.modes.text);
-          aEditor.setText(aString);
+        let infoHeader = $("#response-content-info-header");
+        infoHeader.setAttribute("value", jsonObjectParseError);
+        infoHeader.setAttribute("tooltiptext", jsonObjectParseError);
+        infoHeader.hidden = false;
 
-          
-          
-          if (aString.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-            for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
-              if (mimeType.contains(key)) {
-                aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
-                break;
-              }
-            }
-          }
-        });
+        let editor = yield NetMonitorView.editor("#response-content-textarea");
+        editor.setMode(Editor.modes.js);
+        editor.setText(responseBody);
       }
-    }).then(() => window.emit(EVENTS.RESPONSE_BODY_DISPLAYED));
-  },
+    }
+    
+    else if (mimeType.contains("image/")) {
+      $("#response-content-image-box").setAttribute("align", "center");
+      $("#response-content-image-box").setAttribute("pack", "center");
+      $("#response-content-image-box").hidden = false;
+      $("#response-content-image").src =
+        "data:" + mimeType + ";" + encoding + "," + responseBody;
+
+      
+      
+      $("#response-content-image-name-value").setAttribute("value", nsIURL(aUrl).fileName);
+      $("#response-content-image-mime-value").setAttribute("value", mimeType);
+      $("#response-content-image-encoding-value").setAttribute("value", encoding);
+
+      
+      $("#response-content-image").onload = e => {
+        
+        
+        
+        let { width, height } = e.target.getBoundingClientRect();
+        let dimensions = (width - 2) + " x " + (height - 2);
+        $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
+      };
+    }
+    
+    else {
+      $("#response-content-textarea-box").hidden = false;
+      let editor = yield NetMonitorView.editor("#response-content-textarea");
+      editor.setMode(Editor.modes.text);
+      editor.setText(responseBody);
+
+      
+      
+      if (responseBody.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+        let mapping = Object.keys(CONTENT_MIME_TYPE_MAPPINGS).find(key => mimeType.contains(key));
+        if (mapping) {
+          editor.setMode(CONTENT_MIME_TYPE_MAPPINGS[mapping]);
+        }
+      }
+    }
+
+    window.emit(EVENTS.RESPONSE_BODY_DISPLAYED);
+  }),
 
   
 
@@ -2547,21 +2528,20 @@ NetworkDetailsView.prototype = {
 
 
 
-  _setHtmlPreview: function(aResponse) {
+  _setHtmlPreview: Task.async(function*(aResponse) {
     if (!aResponse) {
       return promise.resolve();
     }
     let { text } = aResponse.content;
+    let responseBody = yield gNetwork.getString(text);
+
+    
     let iframe = $("#response-preview");
+    iframe.contentDocument.docShell.allowJavascript = false;
+    iframe.contentDocument.documentElement.innerHTML = responseBody;
 
-    return gNetwork.getString(text).then(aString => {
-      
-      iframe.contentDocument.docShell.allowJavascript = false;
-      iframe.contentDocument.documentElement.innerHTML = aString;
-
-      window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
-    });
-  },
+    window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
+  }),
 
   _dataSrc: null,
   _headers: null,
