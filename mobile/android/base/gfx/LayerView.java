@@ -65,19 +65,25 @@ public class LayerView extends FrameLayout {
 
     boolean shouldUseTextureView() {
         
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            Log.i(LOGTAG, "Not using TextureView: not on ICS+");
-            return false;
-        }
+        
+        
+        return false;
 
-        try {
-            
-            Method m = View.class.getMethod("isHardwareAccelerated", (Class[]) null);
-            return (Boolean) m.invoke(this);
-        } catch (Exception e) {
-            Log.i(LOGTAG, "Not using TextureView: caught exception checking for hw accel: " + e.toString());
-            return false;
-        }
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     public LayerView(Context context, AttributeSet attrs) {
