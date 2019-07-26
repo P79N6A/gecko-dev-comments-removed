@@ -24,6 +24,8 @@
 
 #include "OCSPCache.h"
 
+#include <limits>
+
 #include "NSSCertDBTrustDomain.h"
 #include "pk11pub.h"
 #include "secerr.h"
@@ -114,29 +116,33 @@ OCSPCache::~OCSPCache()
 }
 
 
-int32_t
+
+bool
 OCSPCache::FindInternal(const CERTCertificate* aCert,
                         const CERTCertificate* aIssuerCert,
+                         size_t& index,
                         const MutexAutoLock& )
 {
   if (mEntries.length() == 0) {
-    return -1;
+    return false;
   }
 
   SHA384Buffer idHash;
   SECStatus rv = CertIDHash(idHash, aCert, aIssuerCert);
   if (rv != SECSuccess) {
-    return -1;
+    return false;
   }
 
   
   
-  for (int32_t i = mEntries.length() - 1; i >= 0; i--) {
-    if (memcmp(mEntries[i]->mIDHash, idHash, SHA384_LENGTH) == 0) {
-      return i;
+  index = mEntries.length();
+  while (index > 0) {
+    --index;
+    if (memcmp(mEntries[index]->mIDHash, idHash, SHA384_LENGTH) == 0) {
+      return true;
     }
   }
-  return -1;
+  return false;
 }
 
 void
@@ -176,8 +182,8 @@ OCSPCache::Get(const CERTCertificate* aCert,
 
   MutexAutoLock lock(mMutex);
 
-  int32_t index = FindInternal(aCert, aIssuerCert, lock);
-  if (index < 0) {
+  size_t index;
+  if (!FindInternal(aCert, aIssuerCert, index, lock)) {
     LogWithCerts("OCSPCache::Get(%s, %s) not in cache", aCert, aIssuerCert);
     return false;
   }
@@ -200,9 +206,8 @@ OCSPCache::Put(const CERTCertificate* aCert,
 
   MutexAutoLock lock(mMutex);
 
-  int32_t index = FindInternal(aCert, aIssuerCert, lock);
-
-  if (index >= 0) {
+  size_t index;
+  if (FindInternal(aCert, aIssuerCert, index, lock)) {
     
     if (mEntries[index]->mErrorCode == SEC_ERROR_REVOKED_CERTIFICATE) {
       LogWithCerts("OCSPCache::Put(%s, %s) already in cache as revoked - "
