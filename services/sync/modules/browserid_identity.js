@@ -162,6 +162,19 @@ this.BrowserIDManager.prototype = {
     return Promise.resolve();
   },
 
+  offerSyncOptions: function () {
+    
+    
+    const url = "chrome://browser/content/sync/customize.xul";
+    const features = "centerscreen,chrome,modal,dialog,resizable=no";
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+
+    let data = {accepted: false};
+    win.openDialog(url, "_blank", features, data);
+
+    return data;
+  },
+
   initializeWithCurrentIdentity: function(isInitialSync=false) {
     
     
@@ -193,15 +206,7 @@ this.BrowserIDManager.prototype = {
         this._updateSignedInUser(accountData);
         this._log.info("Starting fetch for key bundle.");
         if (this.needsCustomization) {
-          
-          
-          const url = "chrome://browser/content/sync/customize.xul";
-          const features = "centerscreen,chrome,modal,dialog,resizable=no";
-          let win = Services.wm.getMostRecentWindow("navigator:browser");
-
-          let data = {accepted: false};
-          win.openDialog(url, "_blank", features, data);
-
+          let data = this.offerSyncOptions();
           if (data.accepted) {
             Services.prefs.clearUserPref(PREF_SYNC_SHOW_CUSTOMIZATION);
           } else {

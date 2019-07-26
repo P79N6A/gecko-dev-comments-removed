@@ -557,5 +557,6 @@ IdentityManager.prototype = {
 
   offerSyncOptions: function () {
     
+    return {accepted: true};
   },
 };
