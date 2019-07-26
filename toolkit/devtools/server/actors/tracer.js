@@ -535,7 +535,7 @@ function timeSinceTraceStarted({ startTime }) {
 
 
 function serializeCompletionValue(aType, { value }) {
-  if (typeof value[aType] === "undefined") {
+  if (!Object.hasOwnProperty.call(value, aType)) {
     return undefined;
   }
   return createValueGrip(value[aType], true);
