@@ -390,7 +390,8 @@ class FunctionExtended : public JSFunction
 
 extern JSFunction *
 CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
-                    gc::AllocKind kind = JSFunction::FinalizeKind);
+                    gc::AllocKind kind = JSFunction::FinalizeKind,
+                    NewObjectKind newKindArg = GenericObject);
 
 } 
 
@@ -418,7 +419,8 @@ XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope,
                        HandleScript enclosingScript, MutableHandleObject objp);
 
 extern JSObject *
-CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleFunction fun);
+CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleFunction fun,
+                         NewObjectKind newKind = GenericObject);
 
 
 
