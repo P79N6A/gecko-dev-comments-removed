@@ -63,9 +63,9 @@ public:
 
     
     nsresult SetExprResult(txAExprResult *aExprResult, uint16_t aResultType,
-                           nsINode* aContextNode);
-    nsresult GetExprResult(txAExprResult **aExprResult);
-    nsresult Clone(nsIXPathResult **aResult);
+                           nsINode* aContextNode) MOZ_OVERRIDE;
+    nsresult GetExprResult(txAExprResult **aExprResult) MOZ_OVERRIDE;
+    nsresult Clone(nsIXPathResult **aResult) MOZ_OVERRIDE;
     void RemoveObserver();
 private:
     static bool isSnapshot(uint16_t aResultType)

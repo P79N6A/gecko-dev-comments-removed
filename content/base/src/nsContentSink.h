@@ -13,6 +13,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "nsICSSLoaderObserver.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
@@ -86,7 +87,7 @@ class nsContentSink : public nsICSSLoaderObserver,
 
   
   NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
-                              nsresult aStatus);
+                              nsresult aStatus) MOZ_OVERRIDE;
 
   virtual nsresult ProcessMETATag(nsIContent* aContent);
 
