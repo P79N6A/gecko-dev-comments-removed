@@ -29,10 +29,6 @@
 #include "mozilla/TimeStamp.h"
 #include "nsMargin.h"
 
-#ifdef CAIRO_HAS_D2D_SURFACE
-#include "gfxD2DSurface.h"
-#endif
-
 #include "nsWinGesture.h"
 
 #include "WindowHook.h"
@@ -547,10 +543,6 @@ protected:
   HDC                   mCompositeDC; 
 
   nsIntRect             mLastPaintBounds;
-
-#ifdef CAIRO_HAS_D2D_SURFACE
-  nsRefPtr<gfxD2DSurface>    mD2DWindowSurface; 
-#endif
 
   
 #ifdef MOZ_XUL
