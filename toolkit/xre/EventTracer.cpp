@@ -55,6 +55,7 @@
 
 #include <stdio.h>
 
+#include "mozilla/Preferences.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/WidgetTraceEvent.h"
 #include "nsDebug.h"
@@ -81,6 +82,7 @@ bool sExit = false;
 
 struct TracerStartClosure {
   bool mLogTracing;
+  int32_t mThresholdInterval;
 };
 
 #ifdef MOZ_WIDGET_GONK
@@ -127,9 +129,10 @@ void TracerThread(void *arg)
   
   
   
-  PRIntervalTime threshold = PR_MillisecondsToInterval(20);
+  int32_t thresholdInterval = threadArgs->mThresholdInterval;
+  PRIntervalTime threshold = PR_MillisecondsToInterval(thresholdInterval);
   
-  PRIntervalTime interval = PR_MillisecondsToInterval(10);
+  PRIntervalTime interval = PR_MillisecondsToInterval(thresholdInterval / 2);
 
   sExit = false;
   FILE* log = nullptr;
@@ -225,6 +228,11 @@ bool InitEventTracing(bool aLog)
   
   TracerStartClosure* args = new TracerStartClosure();
   args->mLogTracing = aLog;
+
+  
+  int32_t thresholdInterval = 20;
+  Preferences::GetInt("devtools.eventlooplag.threshold", &thresholdInterval);
+  args->mThresholdInterval = thresholdInterval;
 
   
   
