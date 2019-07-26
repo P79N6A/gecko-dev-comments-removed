@@ -416,12 +416,23 @@ void MP3FrameParser::Parse(const char* aBuffer, uint32_t aLength, int64_t aOffse
       return;
     }
     MOZ_ASSERT(bytesRead >= mBufferLength, "Parse should leave original buffer");
+
     
     
     uint32_t adjust = bytesRead - mBufferLength;
-    aOffset += adjust;
-    aLength -= adjust;
     mBufferLength = 0;
+    if (adjust >= aLength) {
+      
+      
+      mOffset = streamOffset + bytesRead;
+      if (mOffset > mLength) {
+        mLength = mOffset;
+      }
+      return;
+    }
+    aOffset += adjust;
+    MOZ_ASSERT(aLength >= adjust);
+    aLength -= adjust;
   }
 
   uint32_t bytesRead = 0;
