@@ -12026,7 +12026,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   
   
   
-  if (css::CommonAnimationManager::ThrottlingEnabled() &&
+  if (nsLayoutUtils::AreAsyncAnimationsEnabled() &&
       mPendingRestyles.Count() > 0) {
     ++mAnimationGeneration;
     presContext->TransitionManager()->UpdateAllThrottledStyles();
