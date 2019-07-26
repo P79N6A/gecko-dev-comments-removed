@@ -715,6 +715,52 @@ for (let lst = 0; lst < PDU_NL_LOCKING_SHIFT_TABLES.length; lst++) {
 test_receiving_ucs2_alphabets(ucs2str);
 
 
+add_test(function test_sendSMS_UCS2_without_langIndex_langShiftIndex_defined() {
+  let worker = newWriteHexOctetAsUint8Worker();
+
+  worker.Buf.sendParcel = function () {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    do_check_eq(this.outgoingIndex, 57);
+
+    run_next_test();
+  };
+
+  worker.RIL.sendSMS({
+    number: "1",
+    segmentMaxSeq: 2,
+    fullBody: "Hello World!",
+    dcs: PDU_DCS_MSG_CODING_16BITS_ALPHABET,
+    segmentRef16Bit: false,
+    userDataHeaderLength: 5,
+    strict7BitEncoding: false,
+    requestStatusReport: true,
+    segments: [
+      {
+        body: "Hello ",
+        encodedBodyLength: 12,
+      }, {
+        body: "World!",
+        encodedBodyLength: 12,
+      }
+    ],
+  });
+});
+
+
 
 
 add_test(function test_GsmPDUHelper_readAddress() {
