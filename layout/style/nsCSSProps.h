@@ -192,6 +192,9 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 #define CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH     (1<<20)
 
 
+#define CSS_PROPERTY_CREATES_STACKING_CONTEXT     (1<<21)
+
+
 
 
 enum nsStyleAnimType {

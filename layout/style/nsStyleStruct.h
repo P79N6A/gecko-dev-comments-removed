@@ -1805,6 +1805,8 @@ struct nsStyleDisplay {
                                 
                                 
                                 
+                                
+                                
   nsAutoTArray<nsString, 1> mWillChange;
 
   uint8_t mTouchAction;         
