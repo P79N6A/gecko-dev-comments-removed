@@ -698,8 +698,14 @@ FxAccountsInternal.prototype = {
     
     
     
-    return this.whenVerified(data)
-      .then(() => this.getKeys());
+
+    
+    
+    
+    this.whenVerified(data).then(
+      () => this.getKeys(),
+      err => log.info("startVerifiedCheck promise was rejected: " + err)
+    );
   },
 
   whenVerified: function(data) {
