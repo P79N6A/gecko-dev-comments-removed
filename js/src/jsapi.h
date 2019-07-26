@@ -1770,8 +1770,23 @@ JS_GetClassObject(JSContext *cx, JSProtoKey key, JS::MutableHandle<JSObject*> ob
 extern JS_PUBLIC_API(bool)
 JS_GetClassPrototype(JSContext *cx, JSProtoKey key, JS::MutableHandle<JSObject*> objp);
 
+namespace JS {
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSProtoKey)
-JS_IdentifyClassPrototype(JSObject *obj);
+IdentifyStandardInstance(JSObject *obj);
+
+extern JS_PUBLIC_API(JSProtoKey)
+IdentifyStandardPrototype(JSObject *obj);
+
+extern JS_PUBLIC_API(JSProtoKey)
+IdentifyStandardInstanceOrPrototype(JSObject *obj);
+
+} 
 
 extern JS_PUBLIC_API(JSProtoKey)
 JS_IdToProtoKey(JSContext *cx, JS::HandleId id);

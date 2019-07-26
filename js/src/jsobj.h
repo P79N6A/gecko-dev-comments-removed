@@ -1332,13 +1332,6 @@ js_GetClassPrototype(js::ExclusiveContext *cx, JSProtoKey key,
 
 
 
-extern JSProtoKey
-js_IdentifyClassPrototype(JSObject *obj);
-
-
-
-
-
 
 
 bool

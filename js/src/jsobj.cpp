@@ -3254,27 +3254,40 @@ js_GetClassPrototype(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject p
     return true;
 }
 
-JSProtoKey
-js_IdentifyClassPrototype(JSObject *obj)
+static bool
+IsStandardPrototype(JSObject *obj, JSProtoKey key)
 {
-    
-    
-    
-    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
-    if (key == JSProto_Null)
-        return JSProto_Null;
-
-    
-    
-    
-    
     GlobalObject &global = obj->global();
     Value v = global.getPrototype(key);
-    if (v.isObject() && obj == &v.toObject())
-        return key;
+    return v.isObject() && obj == &v.toObject();
+}
 
+JSProtoKey
+JS::IdentifyStandardInstance(JSObject *obj)
+{
     
+    JS_ASSERT(!obj->is<CrossCompartmentWrapperObject>());
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
+    if (key != JSProto_Null && !IsStandardPrototype(obj, key))
+        return key;
     return JSProto_Null;
+}
+
+JSProtoKey
+JS::IdentifyStandardPrototype(JSObject *obj)
+{
+    
+    JS_ASSERT(!obj->is<CrossCompartmentWrapperObject>());
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(obj->getClass());
+    if (key != JSProto_Null && IsStandardPrototype(obj, key))
+        return key;
+    return JSProto_Null;
+}
+
+JSProtoKey
+JS::IdentifyStandardInstanceOrPrototype(JSObject *obj)
+{
+    return JSCLASS_CACHED_PROTO_KEY(obj->getClass());
 }
 
 bool
