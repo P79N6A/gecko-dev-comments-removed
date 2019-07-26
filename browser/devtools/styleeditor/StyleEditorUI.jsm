@@ -33,6 +33,7 @@ const console = require("resource://gre/modules/devtools/Console.jsm").console;
 
 const LOAD_ERROR = "error-load";
 const STYLE_EDITOR_TEMPLATE = "stylesheet";
+const PREF_MEDIA_SIDEBAR = "devtools.styleeditor.showMediaSidebar";
 
 
 
@@ -63,14 +64,17 @@ function StyleEditorUI(debuggee, target, panelDoc) {
   this.selectedEditor = null;
   this.savedLocations = {};
 
-  this._updateSourcesLabel = this._updateSourcesLabel.bind(this);
+  this._updateContextMenu = this._updateContextMenu.bind(this);
   this._onStyleSheetCreated = this._onStyleSheetCreated.bind(this);
   this._onNewDocument = this._onNewDocument.bind(this);
+  this._onMediaPrefChanged = this._onMediaPrefChanged.bind(this);
+  this._updateMediaList = this._updateMediaList.bind(this);
   this._clear = this._clear.bind(this);
   this._onError = this._onError.bind(this);
 
   this._prefObserver = new PrefObserver("devtools.styleeditor.");
   this._prefObserver.on(PREF_ORIG_SOURCES, this._onNewDocument);
+  this._prefObserver.on(PREF_MEDIA_SIDEBAR, this._onMediaPrefChanged);
 }
 
 StyleEditorUI.prototype = {
@@ -140,24 +144,34 @@ StyleEditorUI.prototype = {
 
     this._contextMenu = this._panelDoc.getElementById("sidebar-context");
     this._contextMenu.addEventListener("popupshowing",
-                                       this._updateSourcesLabel);
+                                       this._updateContextMenu);
 
     this._sourcesItem = this._panelDoc.getElementById("context-origsources");
     this._sourcesItem.addEventListener("command",
                                        this._toggleOrigSources);
+    this._mediaItem = this._panelDoc.getElementById("context-show-media");
+    this._mediaItem.addEventListener("command",
+                                     this._toggleMediaSidebar);
   },
 
   
 
 
 
-  _updateSourcesLabel: function() {
-    let string = "showOriginalSources";
+  _updateContextMenu: function() {
+    let sourceString = "showOriginalSources";
     if (Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
-      string = "showCSSSources";
+      sourceString = "showCSSSources";
     }
-    this._sourcesItem.setAttribute("label", _(string + ".label"));
-    this._sourcesItem.setAttribute("accesskey", _(string + ".accesskey"));
+    this._sourcesItem.setAttribute("label", _(sourceString + ".label"));
+    this._sourcesItem.setAttribute("accesskey", _(sourceString + ".accesskey"));
+
+    let mediaString = "showMediaSidebar"
+    if (Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR)) {
+      mediaString = "hideMediaSidebar";
+    }
+    this._mediaItem.setAttribute("label", _(mediaString + ".label"));
+    this._mediaItem.setAttribute("accesskey", _(mediaString + ".accesskey"));
   },
 
   
@@ -202,7 +216,7 @@ StyleEditorUI.prototype = {
       let {line, ch} = this.selectedEditor.sourceEditor.getCursor();
 
       this._styleSheetToSelect = {
-        href: href,
+        stylesheet: href,
         line: line,
         col: ch
       };
@@ -274,6 +288,7 @@ StyleEditorUI.prototype = {
       new StyleSheetEditor(styleSheet, this._window, file, isNew, this._walker);
 
     editor.on("property-change", this._summaryChange.bind(this, editor));
+    editor.on("media-rules-changed", this._updateMediaList.bind(this, editor));
     editor.on("linked-css-file", this._summaryChange.bind(this, editor));
     editor.on("linked-css-file-error", this._summaryChange.bind(this, editor));
     editor.on("error", this._onError);
@@ -352,6 +367,21 @@ StyleEditorUI.prototype = {
   
 
 
+  _toggleMediaSidebar: function() {
+    let isEnabled = Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR);
+    Services.prefs.setBoolPref(PREF_MEDIA_SIDEBAR, !isEnabled);
+  },
+
+  
+
+
+  _onMediaPrefChanged: function() {
+    this.editors.forEach(this._updateMediaList);
+  },
+
+  
+
+
 
 
 
@@ -401,6 +431,7 @@ StyleEditorUI.prototype = {
       onCreate: function(summary, details, data) {
         let editor = data.editor;
         editor.summary = summary;
+        editor.details = details;
 
         wire(summary, ".stylesheet-enabled", function onToggleDisabled(event) {
           event.stopPropagation();
@@ -442,7 +473,7 @@ StyleEditorUI.prototype = {
           }
 
           if (this._styleSheetToSelect
-              && this._styleSheetToSelect.href == editor.styleSheet.href) {
+              && this._styleSheetToSelect.stylesheet == editor.styleSheet.href) {
             yield this.switchToSelectedSheet();
           }
 
@@ -492,9 +523,11 @@ StyleEditorUI.prototype = {
 
   switchToSelectedSheet: function() {
     let sheet = this._styleSheetToSelect;
+    let isHref = sheet.stylesheet === null || typeof sheet.stylesheet == "string";
 
     for (let editor of this.editors) {
-      if (editor.styleSheet.href == sheet.href) {
+      if ((isHref && editor.styleSheet.href == sheet.stylesheet) ||
+          sheet.stylesheet == editor.styleSheet) {
         
         
         
@@ -554,6 +587,24 @@ StyleEditorUI.prototype = {
     return deferred.promise;
   },
 
+  getEditorDetails: function(editor) {
+    if (editor.details) {
+      return promise.resolve(editor.details);
+    }
+
+    let deferred = promise.defer();
+    let self = this;
+
+    this.on("editor-added", function onAdd(e, selected) {
+      if (selected == editor) {
+        self.off("editor-added", onAdd);
+        deferred.resolve(editor.details);
+      }
+    });
+
+    return deferred.promise;
+  },
+
   
 
 
@@ -576,12 +627,9 @@ StyleEditorUI.prototype = {
 
 
 
-
-
-
-  selectStyleSheet: function(href, line, col) {
+  selectStyleSheet: function(stylesheet, line, col) {
     this._styleSheetToSelect = {
-      href: href,
+      stylesheet: stylesheet,
       line: line,
       col: col,
     };
@@ -653,10 +701,66 @@ StyleEditorUI.prototype = {
       PluralForm.get(ruleCount, _("ruleCount.label")).replace("#1", ruleCount));
   },
 
+  
+
+
+
+
+
+
+
+  _updateMediaList: function(editor) {
+    this.getEditorDetails(editor).then((details) => {
+      let list = details.querySelector(".stylesheet-media-list");
+
+      while (list.firstChild) {
+        list.removeChild(list.firstChild);
+      }
+
+      let rules = editor.mediaRules;
+      let showSidebar = Services.prefs.getBoolPref(PREF_MEDIA_SIDEBAR);
+      let sidebar = details.querySelector(".stylesheet-sidebar");
+      sidebar.hidden = !showSidebar || !rules.length;
+
+      for (let rule of rules) {
+        let div = this._panelDoc.createElement("div");
+        div.className = "media-rule-label";
+        div.addEventListener("click", this._jumpToMediaRule.bind(this, rule));
+
+        let cond = this._panelDoc.createElement("div");
+        cond.textContent = rule.conditionText;
+        cond.className = "media-rule-condition"
+        if (!rule.matches) {
+          cond.classList.add("media-condition-unmatched");
+        }
+        div.appendChild(cond);
+
+        let line = this._panelDoc.createElement("div");
+        line.className = "media-rule-line theme-link";
+        line.textContent = ":" + rule.line;
+        div.appendChild(line);
+
+        list.appendChild(div);
+      }
+      this.emit("media-list-changed", editor);
+    });
+  },
+
+  
+
+
+
+
+
+  _jumpToMediaRule: function(rule) {
+    this.selectStyleSheet(rule.parentStyleSheet, rule.line - 1, rule.column - 1);
+  },
+
   destroy: function() {
     this._clearStyleSheetEditors();
 
     this._prefObserver.off(PREF_ORIG_SOURCES, this._onNewDocument);
+    this._prefObserver.off(PREF_MEDIA_SIDEBAR, this._onMediaPrefChanged);
     this._prefObserver.destroy();
   }
 }
