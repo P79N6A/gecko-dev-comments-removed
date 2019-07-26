@@ -4802,33 +4802,6 @@ update(AddonThreadActor.prototype, {
   
   actorPrefix: "addonThread",
 
-  onAttach: function(aRequest) {
-    if (!this.attached) {
-      Services.obs.addObserver(this, "chrome-document-global-created", false);
-      Services.obs.addObserver(this, "content-document-global-created", false);
-    }
-    return ThreadActor.prototype.onAttach.call(this, aRequest);
-  },
-
-  disconnect: function() {
-    if (this.attached) {
-      Services.obs.removeObserver(this, "content-document-global-created");
-      Services.obs.removeObserver(this, "chrome-document-global-created");
-    }
-    return ThreadActor.prototype.disconnect.call(this);
-  },
-
-  
-
-
-
-  observe: function(aSubject, aTopic, aData) {
-    let id = {};
-    if (mapURIToAddonID(aSubject.location, id) && id.value === this.addonID) {
-      this.dbg.addDebuggee(aSubject.defaultView);
-    }
-  },
-
   
 
 
@@ -4939,11 +4912,6 @@ update(AddonThreadActor.prototype, {
 
     return false;
   }
-});
-
-AddonThreadActor.prototype.requestTypes = Object.create(ThreadActor.prototype.requestTypes);
-update(AddonThreadActor.prototype.requestTypes, {
-  "attach": AddonThreadActor.prototype.onAttach
 });
 
 exports.AddonThreadActor = AddonThreadActor;
