@@ -26,6 +26,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -44,6 +45,15 @@ public class LastTabsPage extends HomeFragment {
 
     
     private ListView mList;
+
+    
+    private TextView mTitle;
+
+    
+    private View mRestoreButton;
+
+    
+    private View mEmptyView;
 
     
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
@@ -85,8 +95,8 @@ public class LastTabsPage extends HomeFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        final TextView title = (TextView) view.findViewById(R.id.title);
-        title.setText(R.string.home_last_tabs_title);
+        mTitle = (TextView) view.findViewById(R.id.title);
+        mTitle.setText(R.string.home_last_tabs_title);
 
         mList = (ListView) view.findViewById(R.id.list);
 
@@ -105,8 +115,8 @@ public class LastTabsPage extends HomeFragment {
 
         registerForContextMenu(mList);
 
-        final View openAllTabsButton = view.findViewById(R.id.open_all_tabs_button);
-        openAllTabsButton.setOnClickListener(new View.OnClickListener() {
+        mRestoreButton = view.findViewById(R.id.open_all_tabs_button);
+        mRestoreButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 openAllTabs();
@@ -118,6 +128,9 @@ public class LastTabsPage extends HomeFragment {
     public void onDestroyView() {
         super.onDestroyView();
         mList = null;
+        mTitle = null;
+        mEmptyView = null;
+        mRestoreButton = null;
     }
 
     @Override
@@ -131,6 +144,31 @@ public class LastTabsPage extends HomeFragment {
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
         loadIfVisible();
+    }
+
+    private void updateUiFromCursor(Cursor c) {
+        if (c != null && c.getCount() > 0) {
+            mTitle.setVisibility(View.VISIBLE);
+            mRestoreButton.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        
+        mTitle.setVisibility(View.GONE);
+        mRestoreButton.setVisibility(View.GONE);
+
+        if (mEmptyView == null) {
+            
+            mEmptyView = getActivity().findViewById(R.id.home_empty_view);
+
+            final ImageView emptyIcon = (ImageView) mEmptyView.findViewById(R.id.home_empty_image);
+            emptyIcon.setImageResource(R.drawable.icon_last_tabs_empty);
+
+            final TextView emptyText = (TextView) mEmptyView.findViewById(R.id.home_empty_text);
+            emptyText.setText(R.string.home_last_tabs_empty);
+
+            mList.setEmptyView(mEmptyView);
+        }
     }
 
     @Override
@@ -225,6 +263,7 @@ public class LastTabsPage extends HomeFragment {
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
             mAdapter.swapCursor(c);
+            updateUiFromCursor(c);
         }
 
         @Override
