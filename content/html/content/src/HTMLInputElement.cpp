@@ -102,6 +102,7 @@
 #include "nsIStringEnumerator.h"
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIController.h"
+#include "nsIMIMEInfo.h"
 
 
 #include "js/Date.h"
