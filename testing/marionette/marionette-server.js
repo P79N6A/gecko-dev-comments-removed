@@ -1702,6 +1702,22 @@ MarionetteServerConnection.prototype = {
 
 
 
+  submitElement: function MDA_submitElement(aRequest) {
+    let command_id = this.command_id = this.getCommandId();
+    if (this.context == "chrome") {
+      this.sendError("Command 'submitElement' is not available in chrome context", 500, null, this.command_id);
+    }
+    else {
+      this.sendAsync("submitElement", {id: aRequest.parameters.id}, command_id);
+    }
+  },
+
+  
+
+
+
+
+
 
   isElementEnabled: function MDA_isElementEnabled(aRequest) {
     let command_id = this.command_id = this.getCommandId();
@@ -2237,6 +2253,7 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getElementTagName": MarionetteServerConnection.prototype.getElementTagName,
   "isElementDisplayed": MarionetteServerConnection.prototype.isElementDisplayed,
   "getElementValueOfCssProperty": MarionetteServerConnection.prototype.getElementValueOfCssProperty,
+  "submitElement": MarionetteServerConnection.prototype.submitElement,
   "getElementSize": MarionetteServerConnection.prototype.getElementSize,
   "isElementEnabled": MarionetteServerConnection.prototype.isElementEnabled,
   "isElementSelected": MarionetteServerConnection.prototype.isElementSelected,
