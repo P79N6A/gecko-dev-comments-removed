@@ -50,6 +50,9 @@ let Type = OS.Shared.Type;
 Components.utils.import("resource://gre/modules/commonjs/promise/core.js", this);
 
 
+Components.utils.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
+
+
 
 
 if (!("profileDir" in OS.Constants.Path) || !("localProfileDir" in OS.Constants.Path)) {
@@ -69,6 +72,10 @@ if (!("profileDir" in OS.Constants.Path) || !("localProfileDir" in OS.Constants.
 
 
 
+
+
+
+
 let clone = function clone(object) {
   let result = {};
   for (let k in object) {
@@ -83,188 +90,23 @@ let clone = function clone(object) {
 const noOptions = {};
 
 
-
-
-
-
-
-let Queue = function Queue() {
-  
-  
-  
-  this._pushing = null;
-
-  
-  
-  
-  this._popping = null;
-
-  
-  this._popindex = 0;
-};
-Queue.prototype = {
-  
-
-
-  push: function push(x) {
-    if (!this._pushing) {
-      this._pushing = [];
-    }
-    this._pushing.push({ value: x });
-  },
-  
-
-
-
-
-  pop: function pop() {
-    if (!this._popping) {
-      if (!this._pushing) {
-        throw new Error("Queue is empty");
-      }
-      this._popping = this._pushing;
-      this._pushing = null;
-      this._popindex = 0;
-    }
-    let result = this._popping[this._popindex];
-    delete this._popping[this._popindex];
-    ++this._popindex;
-    if (this._popindex >= this._popping.length) {
-      this._popping = null;
-    }
-    return result.value;
-  }
-};
-
-
-
-
-
-
-
-
-
+let worker = new PromiseWorker(
+  "resource://gre/modules/osfile/osfile_async_worker.js",
+  DEBUG?LOG:null);
 let Scheduler = {
-  
-
-
-  get _worker() {
-    delete this._worker;
-    let worker = new ChromeWorker("osfile_async_worker.js");
-    let self = this;
-    Object.defineProperty(this, "_worker", {value:
-      worker
-    });
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    worker.onerror = function onerror(error) {
-      if (DEBUG) {
-        LOG("Received uncaught error from worker", JSON.stringify(error.message), error.message);
-      }
-      error.preventDefault();
-      let {deferred} = self._queue.pop();
-      deferred.reject(error);
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    worker.onmessage = function onmessage(msg) {
-      if (DEBUG) {
-        LOG("Received message from worker", JSON.stringify(msg.data));
-      }
-      let handler = self._queue.pop();
-      let deferred = handler.deferred;
-      let data = msg.data;
-      if (data.id != handler.id) {
-        throw new Error("Internal error: expecting msg " + handler.id + ", " +
-                        " got " + data.id + ": " + JSON.stringify(msg.data));
-      }
-      if ("ok" in data) {
-        deferred.resolve(data.ok);
-      } else if ("fail" in data) {
-        let error;
-        try {
-          error = OS.File.Error.fromMsg(data.fail);
-        } catch (x) {
-          LOG("Cannot decode OS.File.Error", data.fail, data.id);
-          deferred.reject(x);
-          return;
+  post: function post(...args) {
+    let promise = worker.post.apply(worker, args);
+    return promise.then(
+      null,
+      function onError(error) {
+        
+        if (error instanceof PromiseWorker.WorkerError) {
+          throw OS.File.Error.fromMsg(error.data);
+        } else {
+          throw error;
         }
-        deferred.reject(error);
-      } else {
-        throw new Error("Message does not respect protocol: " +
-          data.toSource());
       }
-    };
-    return worker;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _queue: new Queue(),
-
-  
-
-
-
-
-  _id: 0,
-
-  
-
-
-
-
-
-
-
-
-
-  post: function post(fun, array, closure) {
-    let deferred = Promise.defer();
-    let id = ++this._id;
-    let message = {fun: fun, args: array, id: id};
-    if (DEBUG) {
-      LOG("Posting message", JSON.stringify(message));
-    }
-    this._queue.push({deferred:deferred, closure: closure, id: id});
-    this._worker.postMessage(message);
-    if (DEBUG) {
-      LOG("Message posted");
-    }
-    return deferred.promise;
+    );
   }
 };
 
