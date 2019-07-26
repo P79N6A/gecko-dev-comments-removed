@@ -1000,6 +1000,10 @@ pref("network.http.rendering-critical-requests-prioritization", true);
 pref("network.http.fast-fallback-to-IPv4", true);
 
 
+
+pref("network.http.bypass-cachelock-threshold", 250);
+
+
 pref("network.http.spdy.enabled", true);
 pref("network.http.spdy.enabled.v2", true);
 pref("network.http.spdy.enabled.v3", true);

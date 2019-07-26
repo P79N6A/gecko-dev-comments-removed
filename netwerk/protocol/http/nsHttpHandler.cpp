@@ -188,6 +188,7 @@ nsHttpHandler::nsHttpHandler()
     , mSpdyPingThreshold(PR_SecondsToInterval(58))
     , mSpdyPingTimeout(PR_SecondsToInterval(8))
     , mConnectTimeout(90000)
+    , mBypassCacheLockThreshold(250.0)
     , mParallelSpeculativeConnectLimit(6)
     , mRequestTokenBucketEnabled(true)
     , mRequestTokenBucketMinParallelism(6)
@@ -1173,6 +1174,16 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         if (NS_SUCCEEDED(rv))
             
             mConnectTimeout = clamped(val, 1, 0xffff) * PR_MSEC_PER_SEC;
+    }
+
+    
+    
+    if (PREF_CHANGED(HTTP_PREF("bypass-cachelock-threshold"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("bypass-cachelock-threshold"), &val);
+        if (NS_SUCCEEDED(rv))
+            
+            mBypassCacheLockThreshold =
+                static_cast<double>(clamped(val, 0, 0x7ffffff));
     }
 
     

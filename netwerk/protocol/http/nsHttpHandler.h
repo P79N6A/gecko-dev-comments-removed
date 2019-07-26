@@ -106,6 +106,7 @@ public:
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CritialRequestPrioritization() { return mCritialRequestPrioritization; }
+    double         BypassCacheLockThreshold() { return mBypassCacheLockThreshold; }
 
     bool           UseRequestTokenBucket() { return mRequestTokenBucketEnabled; }
     uint16_t       RequestTokenBucketMinParallelism() { return mRequestTokenBucketMinParallelism; }
@@ -271,6 +272,13 @@ public:
             uint32_t appId,
             bool inBrowser,
             nsACString& sessionName);
+
+    
+    
+    mozilla::TimeStamp GetCacheSkippedUntil() { return mCacheSkippedUntil; }
+    void SetCacheSkippedUntil(mozilla::TimeStamp arg) { mCacheSkippedUntil = arg; }
+    void ClearCacheSkippedUntil() { mCacheSkippedUntil = mozilla::TimeStamp(); }
+
 private:
 
     
@@ -419,6 +427,10 @@ private:
 
     
     
+    double         mBypassCacheLockThreshold;
+
+    
+    
     uint32_t       mParallelSpeculativeConnectLimit;
 
     
@@ -431,6 +443,10 @@ private:
     
     
     bool           mCritialRequestPrioritization;
+
+    
+    
+    mozilla::TimeStamp                mCacheSkippedUntil;
 
 private:
     
