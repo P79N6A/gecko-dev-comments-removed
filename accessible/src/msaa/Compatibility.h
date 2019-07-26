@@ -51,7 +51,7 @@ private:
 
 
   static void Init();
-  friend class nsAccessNodeWrap;
+  friend void PlatformInit();
 
   
 

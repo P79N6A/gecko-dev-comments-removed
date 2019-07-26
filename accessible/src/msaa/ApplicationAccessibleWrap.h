@@ -41,9 +41,6 @@ public:
   virtual  HRESULT STDMETHODCALLTYPE get_toolkitVersion(
            BSTR *version);
 
-public:
-  static void PreCreate();
-  static void Unload();
 };
 
 } 
