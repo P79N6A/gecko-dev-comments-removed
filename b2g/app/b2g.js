@@ -11,6 +11,11 @@ pref("browser.chromeURL", "chrome://b2g/content/");
 
 #ifdef MOZ_MULET
 
+
+
+
+pref("browser.startup.homepage", "data:text/plain,browser.startup.homepage=chrome://b2g/content/shell.html");
+
 pref("startup.homepage_welcome_url", "");
 pref("browser.shell.checkDefaultBrowser", false);
 
