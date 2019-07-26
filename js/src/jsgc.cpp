@@ -2554,6 +2554,10 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
                 }
             }
         }
+
+        
+        if (c->debugScopes)
+            c->debugScopes->mark(trc);
     }
 
 #ifdef JS_METHODJIT
@@ -2563,7 +2567,6 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
 #endif
 
     rt->stackSpace.mark(trc);
-    rt->debugScopes->mark(trc);
 
 #ifdef JS_ION
     ion::MarkIonActivations(rt, trc);
@@ -3932,7 +3935,6 @@ BeginSweepingCompartmentGroup(JSRuntime *rt)
 
     
     WeakMapBase::sweepAll(&rt->gcMarker);
-    rt->debugScopes->sweep();
 
     
     for (GCCompartmentGroupIter c(rt); !c.done(); c.next())

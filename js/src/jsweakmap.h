@@ -93,6 +93,9 @@ class WeakMapBase {
     static bool saveWeakMapList(JSRuntime *rt, WeakMapVector &vector);
     static void restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector);
 
+    
+    static void removeWeakMapFromList(JSRuntime *rt, WeakMapBase *weakmap);
+
   protected:
     
     
