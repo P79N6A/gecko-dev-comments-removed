@@ -60,10 +60,6 @@ public:
   virtual TemporaryRef<SourceSurface> Snapshot();
   virtual IntSize GetSize();
 
-  virtual bool LockBits(uint8_t** aData, IntSize* aSize,
-                        int32_t* aStride, SurfaceFormat* aFormat);
-  virtual void ReleaseBits(uint8_t* aData);
-
   virtual void Flush();
   virtual void DrawSurface(SourceSurface *aSurface,
                            const Rect &aDest,
@@ -187,8 +183,6 @@ private:
   cairo_t* mContext;
   cairo_surface_t* mSurface;
   IntSize mSize;
-
-  uint8_t* mLockedBits;
 
   
   

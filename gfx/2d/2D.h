@@ -582,15 +582,6 @@ public:
 
 
 
-
-  virtual bool LockBits(uint8_t** aData, IntSize* aSize,
-                        int32_t* aStride, SurfaceFormat* aFormat) { return false; }
-  virtual void ReleaseBits(uint8_t* aData) {}
-
-  
-
-
-
   virtual void Flush() = 0;
 
   

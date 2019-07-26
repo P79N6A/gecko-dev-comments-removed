@@ -146,9 +146,6 @@ protected:
 
 
   nsIntPoint            mBufferRotation;
-  
-  
-  bool                  mDidSelfCopy;
 };
 
 
