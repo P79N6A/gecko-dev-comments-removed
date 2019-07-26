@@ -433,8 +433,12 @@ let gDevToolsBrowser = {
     }
 
     
+    let webIDEEnabled = Services.prefs.getBoolPref("devtools.webide.enabled");
+    toggleCmd("Tools:WebIDE", webIDEEnabled);
+
+    
     let appMgrEnabled = Services.prefs.getBoolPref("devtools.appmanager.enabled");
-    toggleCmd("Tools:DevAppMgr", appMgrEnabled);
+    toggleCmd("Tools:DevAppMgr", !webIDEEnabled && appMgrEnabled);
 
     
     let chromeEnabled = Services.prefs.getBoolPref("devtools.chrome.enabled");
@@ -522,16 +526,19 @@ let gDevToolsBrowser = {
 
 
   openAppManager: function(gBrowser) {
-    if (Services.prefs.getBoolPref("devtools.webide.enabled")) {
-      let win = Services.wm.getMostRecentWindow("devtools:webide");
-      if (win) {
-        win.focus();
-      } else {
-        let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
-        ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
-      }
+    gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+  },
+
+  
+
+
+  openWebIDE: function() {
+    let win = Services.wm.getMostRecentWindow("devtools:webide");
+    if (win) {
+      win.focus();
     } else {
-      gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+      let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
+      ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
     }
   },
 
