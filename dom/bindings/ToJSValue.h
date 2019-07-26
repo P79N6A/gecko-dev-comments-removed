@@ -209,7 +209,7 @@ ToJSValue(JSContext* aCx,
           const T& aArgument,
           JS::MutableHandle<JS::Value> aValue)
 {
-  return aArgument.ToObject(aCx, aValue);
+  return aArgument.ToObjectInternal(aCx, aValue);
 }
 
 
