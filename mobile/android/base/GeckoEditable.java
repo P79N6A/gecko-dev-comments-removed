@@ -460,7 +460,7 @@ final class GeckoEditable
 
     
 
-    void geckoActionReply() {
+    private void geckoActionReply() {
         if (DEBUG) {
             
             GeckoApp.assertOnGeckoThread();
@@ -501,7 +501,6 @@ final class GeckoEditable
         if (action.mShouldUpdate) {
             geckoUpdateGecko(false);
         }
-        mActionQueue.poll();
     }
 
     @Override
@@ -511,7 +510,17 @@ final class GeckoEditable
             GeckoApp.assertOnGeckoThread();
         }
         if (type == NOTIFY_IME_REPLY_EVENT) {
-            geckoActionReply();
+            try {
+                if (mFocused) {
+                    
+                    
+                    geckoActionReply();
+                }
+            } finally {
+                
+                
+                mActionQueue.poll();
+            }
             return;
         }
         geckoPostToUI(new Runnable() {
