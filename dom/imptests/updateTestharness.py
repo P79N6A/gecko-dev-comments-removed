@@ -3,6 +3,8 @@
 
 
 
+from __future__ import unicode_literals
+
 import subprocess
 
 repo = "https://dvcs.w3.org/hg/resources"
