@@ -40,6 +40,7 @@ SyncScheduler.prototype = {
     this.idleInterval         = Svc.Prefs.get("scheduler.idleInterval")         * 1000;
     this.activeInterval       = Svc.Prefs.get("scheduler.activeInterval")       * 1000;
     this.immediateInterval    = Svc.Prefs.get("scheduler.immediateInterval")    * 1000;
+    this.eolInterval          = Svc.Prefs.get("scheduler.eolInterval")          * 1000;
 
     
     this.idle = false;
@@ -238,11 +239,18 @@ SyncScheduler.prototype = {
   },
 
   adjustSyncInterval: function adjustSyncInterval() {
+    if (Status.eol) {
+      this._log.debug("Server status is EOL; using eolInterval.");
+      this.syncInterval = this.eolInterval;
+      return;
+    }
+
     if (this.numClients <= 1) {
       this._log.trace("Adjusting syncInterval to singleDeviceInterval.");
       this.syncInterval = this.singleDeviceInterval;
       return;
     }
+
     
     
     if (this.idle) {
@@ -474,6 +482,7 @@ this.ErrorHandler = function ErrorHandler(service) {
   this.init();
 }
 ErrorHandler.prototype = {
+  MINIMUM_ALERT_INTERVAL_MSEC: 604800000,   
 
   
 
@@ -767,12 +776,97 @@ ErrorHandler.prototype = {
             [Status.login, Status.sync].indexOf(LOGIN_FAILED_NETWORK_ERROR) == -1);
   },
 
+  get currentAlertMode() {
+    return Svc.Prefs.get("errorhandler.alert.mode");
+  },
+
+  set currentAlertMode(str) {
+    return Svc.Prefs.set("errorhandler.alert.mode", str);
+  },
+
+  get earliestNextAlert() {
+    return Svc.Prefs.get("errorhandler.alert.earliestNext", 0) * 1000;
+  },
+
+  set earliestNextAlert(msec) {
+    return Svc.Prefs.set("errorhandler.alert.earliestNext", msec / 1000);
+  },
+
+  clearServerAlerts: function () {
+    
+    Svc.Prefs.resetBranch("errorhandler.alert");
+  },
+
   
 
 
 
-  checkServerError: function checkServerError(resp) {
+
+
+
+
+
+  handleServerAlert: function (xwa) {
+    if (!xwa.code) {
+      this._log.warn("Got structured X-Weave-Alert, but no alert code.");
+      return;
+    }
+
+    switch (xwa.code) {
+      
+      
+      case "soft-eol":
+        
+
+      
+      
+      case "hard-eol":
+        
+        
+        if ((this.currentAlertMode != xwa.code) ||
+            (this.earliestNextAlert < Date.now())) {
+          Utils.nextTick(function() {
+            Svc.Obs.notify("weave:eol", xwa);
+          }, this);
+          this._log.error("X-Weave-Alert: " + xwa.code + ": " + xwa.message);
+          this.earliestNextAlert = Date.now() + this.MINIMUM_ALERT_INTERVAL_MSEC;
+          this.currentAlertMode = xwa.code;
+        }
+        break;
+      default:
+        this._log.debug("Got unexpected X-Weave-Alert code: " + xwa.code);
+    }
+  },
+
+  
+
+
+
+
+
+  checkServerError: function (resp) {
     switch (resp.status) {
+      case 200:
+      case 404:
+      case 513:
+        let xwa = resp.headers['x-weave-alert'];
+
+        
+        if (!xwa || !xwa.startsWith("{")) {
+          this.clearServerAlerts();
+          return;
+        }
+
+        try {
+          xwa = JSON.parse(xwa);
+        } catch (ex) {
+          this._log.warn("Malformed X-Weave-Alert from server: " + xwa);
+          return;
+        }
+
+        this.handleServerAlert(xwa);
+        break;
+
       case 400:
         if (resp == RESPONSE_OVER_QUOTA) {
           Status.sync = OVER_QUOTA;

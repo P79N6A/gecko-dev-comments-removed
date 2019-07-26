@@ -852,7 +852,7 @@ SyncServer.prototype = {
         
         if (req.method != "DELETE") {
           respond(405, "Method Not Allowed", "[]", {"Allow": "DELETE"});
-          return;
+          return undefined;
         }
 
         
@@ -860,7 +860,7 @@ SyncServer.prototype = {
 
         
         respond(200, "OK", JSON.stringify(timestamp));
-        return;
+        return undefined;
       }
 
       let match = this.storageRE.exec(rest);
@@ -875,11 +875,11 @@ SyncServer.prototype = {
           if (!coll) {
             if (wboID) {
               respond(404, "Not found", "Not found");
-              return;
+              return undefined;
             }
             
             respond(200, "OK", "[]");
-            return;
+            return undefined;
           }
           if (!wboID) {
             return coll.collectionHandler(req, resp);
@@ -887,7 +887,7 @@ SyncServer.prototype = {
           let wbo = coll.wbo(wboID);
           if (!wbo) {
             respond(404, "Not found", "Not found");
-            return;
+            return undefined;
           }
           return wbo.handler()(req, resp);
 
@@ -895,7 +895,7 @@ SyncServer.prototype = {
         case "DELETE":
           if (!coll) {
             respond(200, "OK", "{}");
-            return;
+            return undefined;
           }
           if (wboID) {
             let wbo = coll.wbo(wboID);
@@ -904,7 +904,7 @@ SyncServer.prototype = {
               this.callback.onItemDeleted(username, collection, wboID);
             }
             respond(200, "OK", "{}");
-            return;
+            return undefined;
           }
           coll.collectionHandler(req, resp);
 
@@ -935,7 +935,7 @@ SyncServer.prototype = {
           for (let i = 0; i < deleted.length; ++i) {
             this.callback.onItemDeleted(username, collection, deleted[i]);
           }
-          return;
+          return undefined;
         case "POST":
         case "PUT":
           if (!coll) {

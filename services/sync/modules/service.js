@@ -508,7 +508,8 @@ Sync11Service.prototype = {
   
 
 
-  _fetchInfo: function _fetchInfo(url) {
+
+  _fetchInfo: function (url) {
     let infoURL = url || this.infoURL;
 
     this._log.trace("In _fetchInfo: " + infoURL);
@@ -519,9 +520,11 @@ Sync11Service.prototype = {
       this.errorHandler.checkServerError(ex);
       throw ex;
     }
+
+    
+    this.errorHandler.checkServerError(info);
     if (!info.success) {
-      this.errorHandler.checkServerError(info);
-      throw "aborting sync, failed to get collections";
+      throw "Aborting sync: failed to get collections.";
     }
     return info;
   },
