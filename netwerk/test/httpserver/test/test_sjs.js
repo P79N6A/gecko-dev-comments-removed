@@ -6,10 +6,17 @@
 
 
 
-const BASE = "http://localhost:4444";
+var srv = createServer();
 
 var sjs = do_get_file("data/sjs/cgi.sjs");
-var srv;
+
+
+
+
+srv.start(-1);
+const PORT = srv.identity.primaryPort;
+
+const BASE = "http://localhost:" + PORT;
 var test;
 var tests = [];
 
@@ -230,8 +237,6 @@ tests.push(test);
 
 function run_test()
 {
-  srv = createServer();
-
   
   try
   {
@@ -242,13 +247,5 @@ function run_test()
   {
     isException(e, Cr.NS_ERROR_INVALID_ARG);
   }
-
-
-  
-  
-  
-  
-
-  srv.start(4444);
   runHttpTests(tests, testComplete(srv));
 }

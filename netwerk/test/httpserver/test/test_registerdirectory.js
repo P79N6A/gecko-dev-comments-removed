@@ -6,10 +6,9 @@
 
 
 
-const BASE = "http://localhost:4444";
-
-var tests = [];
-var test;
+XPCOMUtils.defineLazyGetter(this, "BASE", function() {
+  return "http://localhost:" + srv.identity.primaryPort;
+});
 
 
 function nocache(ch)
@@ -50,234 +49,190 @@ function checkFile(ch, cx, status, data)
               fileContents(actualFile));
 }
 
+XPCOMUtils.defineLazyGetter(this, "tests", function() {
+  return [
 
 
 
 
-
-test = new Test(BASE + "/test_registerdirectory.js",
+    new Test(BASE + "/test_registerdirectory.js",
                 nocache, notFound, null),
-tests.push(test);
 
 
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+           function(ch)
+           {
+             nocache(ch);
+             serverBasePath = testsDirectory.clone();
+             srv.registerDirectory("/", serverBasePath);
+           },
+           null,
+           checkFile),
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  serverBasePath = testsDirectory.clone();
-                  srv.registerDirectory("/", serverBasePath);
-                },
-                null,
-                checkFile);
-tests.push(test);
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              serverBasePath = null;
+              srv.registerDirectory("/", serverBasePath);
+            },
+            notFound,
+            null),
 
 
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  serverBasePath = null;
-                  srv.registerDirectory("/", serverBasePath);
-                },
-                notFound,
-                null);
-tests.push(test);
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerPathHandler("/test_registerdirectory.js",
+                                      override_test_registerdirectory);
+            },
+            checkOverride,
+            null),
 
 
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function init_registerDirectory6(ch)
+            {
+              nocache(ch);
+              srv.registerPathHandler("/test_registerdirectory.js", null);
+            },
+            notFound,
+            null),
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerPathHandler("/test_registerdirectory.js",
-                                          override_test_registerdirectory);
-                },
-                checkOverride,
-                null);
-tests.push(test);
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
 
+              
+              serverBasePath = testsDirectory.clone();
+              srv.registerDirectory("/", serverBasePath);
+            },
+            null,
+            checkFile),
 
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function init_registerDirectory6(ch)
-                {
-                  nocache(ch);
-                  srv.registerPathHandler("/test_registerdirectory.js", null);
-                },
-                notFound,
-                null);
-tests.push(test);
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerPathHandler("/test_registerdirectory.js",
+                                      override_test_registerdirectory);
+            },
+            checkOverride,
+            null),
 
 
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              serverBasePath = null;
+              srv.registerDirectory("/", serverBasePath);
+            },
+            checkOverride,
+            null),
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
 
-                  
-                  serverBasePath = testsDirectory.clone();
-                  srv.registerDirectory("/", serverBasePath);
-                },
-                null,
-                checkFile);
-tests.push(test);
 
 
+    new Test(BASE + "/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerPathHandler("/test_registerdirectory.js", null);
+            },
+            notFound,
+            null),
 
 
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerPathHandler("/test_registerdirectory.js",
-                                          override_test_registerdirectory);
-                },
-                checkOverride,
-                null);
-tests.push(test);
+    new Test(BASE + "/foo/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              serverBasePath = testsDirectory.clone();
+              srv.registerDirectory("/foo/", serverBasePath);
+            },
+            check200,
+            null),
 
 
 
 
+    new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
+            nocache,
+            notFound,
+            null),
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  serverBasePath = null;
-                  srv.registerDirectory("/", serverBasePath);
-                },
-                checkOverride,
-                null);
-tests.push(test);
 
 
+    new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerDirectory("/foo/test_registerdirectory.js/",
+                                    serverBasePath);
+            },
+            null,
+            checkFile),
 
 
 
 
-test = new Test(BASE + "/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerPathHandler("/test_registerdirectory.js", null);
-                },
-                notFound,
-                null);
-tests.push(test);
+    new Test(BASE + "/foo/test_registerdirectory.js",
+                nocache, null, checkFile),
 
 
 
 
+    new Test(BASE + "/foo/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerDirectory("/foo/", null);
+            },
+            notFound,
+            null),
 
 
-test = new Test(BASE + "/foo/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  serverBasePath = testsDirectory.clone();
-                  srv.registerDirectory("/foo/", serverBasePath);
-                },
-                check200,
-                null);
-tests.push(test);
 
 
+    new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
+                nocache, null, checkFile),
 
 
 
 
-test = new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
-                nocache,
-                notFound,
-                null);
-tests.push(test);
-
-
-
-
-
-
-test = new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerDirectory("/foo/test_registerdirectory.js/",
-                                        serverBasePath);
-                },
-                null,
-                checkFile);
-tests.push(test);
-
-
-
-
-
-
-test = new Test(BASE + "/foo/test_registerdirectory.js",
-                nocache, null, checkFile);
-tests.push(test);
-
-
-
-
-
-
-test = new Test(BASE + "/foo/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerDirectory("/foo/", null);
-                },
-                notFound,
-                null);
-tests.push(test);
-
-
-
-
-
-
-test = new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
-                nocache, null, checkFile);
-tests.push(test);
-
-
-
-
-
-
-test = new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
-                function(ch)
-                {
-                  nocache(ch);
-                  srv.registerDirectory("/foo/test_registerdirectory.js/", null);
-                },
-                notFound,
-                null);
-tests.push(test);
-
+    new Test(BASE + "/foo/test_registerdirectory.js/test_registerdirectory.js",
+            function(ch)
+            {
+              nocache(ch);
+              srv.registerDirectory("/foo/test_registerdirectory.js/", null);
+            },
+            notFound,
+            null)
+  ];
+});
 
 
 var srv;
@@ -289,7 +244,7 @@ function run_test()
   testsDirectory = do_get_cwd();
 
   srv = createServer();
-  srv.start(4444);
+  srv.start(-1);
 
   runHttpTests(tests, testComplete(srv));
 }
