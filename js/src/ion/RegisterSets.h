@@ -396,10 +396,12 @@ class TypedRegisterSet
 #endif
     }
     T getAny() const {
-        JS_ASSERT(!empty());
-        int ireg;
-        JS_FLOOR_LOG2(ireg, bits_);
-        return T::FromCode(ireg);
+        
+        
+        
+        
+        
+        return getFirst();
     }
     T getFirst() const {
         JS_ASSERT(!empty());
