@@ -151,8 +151,18 @@ public:
 
 
 
+
+
+
+
+  enum RemoveElementReason {
+    AttributeUpdated,
+    ElementRemoved
+  };
   nsresult RemoveElementFromTable(nsGenericHTMLFormElement* aElement,
-                                  const nsAString& aName);
+                                  const nsAString& aName,
+                                  RemoveElementReason aRemoveReason);
+
   
 
 
@@ -195,7 +205,8 @@ public:
 
 
   nsresult RemoveImageElementFromTable(mozilla::dom::HTMLImageElement* aElement,
-                                      const nsAString& aName);
+                                      const nsAString& aName,
+                                      RemoveElementReason aRemoveReason);
   
 
 
@@ -412,6 +423,9 @@ protected:
   
   void Clear();
 
+  
+  void AddToPastNamesMap(const nsAString& aName, nsISupports* aChild);
+
 public:
   
 
@@ -479,6 +493,11 @@ protected:
   
 
   nsInterfaceHashtable<nsStringHashKey,nsISupports> mImageNameLookupTable;
+
+  
+  
+
+  nsInterfaceHashtable<nsStringHashKey,nsISupports> mPastNameLookupTable;
 
   
 
