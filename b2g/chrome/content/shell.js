@@ -1342,3 +1342,56 @@ let SensorsListener = {
 
 SensorsListener.init();
 #endif
+
+
+
+Services.obs.addObserver(function resetProfile(subject, topic, data) {
+  Services.obs.removeObserver(resetProfile, topic);
+
+  
+  
+  Services.obs.addObserver(function clearProfile(subject, topic, data) {
+    Services.obs.removeObserver(clearProfile, topic);
+#ifdef MOZ_WIDGET_GONK
+    let json = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+    json.initWithPath('/system/b2g/webapps/webapps.json');
+    let toRemove = json.exists()
+      
+      ? ['/data/local', '/data/b2g/mozilla']
+      
+      
+      : ['/data/b2g/mozilla',
+         '/data/local/permissions.sqlite',
+         '/data/local/storage',
+         '/data/local/OfflineCache'];
+
+    toRemove.forEach(function(dir) {
+      try {
+        let file = Cc['@mozilla.org/file/local;1'].createInstance(Ci.nsIFile);
+        file.initWithPath(dir);
+        file.remove(true);
+      } catch(e) { dump(e); }
+    });
+#else
+    
+    let profile = Services.dirsvc.get('ProfD', Ci.nsIFile);
+
+    
+    
+    let whitelist = ['defaults', 'extensions', 'settings.json',
+                     'user.js', 'webapps'];
+    let enumerator = profile.directoryEntries;
+    while (enumerator.hasMoreElements()) {
+      let file = enumerator.getNext().QueryInterface(Ci.nsIFile);
+      if (whitelist.indexOf(file.leafName) == -1) {
+        file.remove(true);
+      }
+    }
+#endif
+  },
+  'profile-before-change2', false);
+
+  let appStartup = Cc['@mozilla.org/toolkit/app-startup;1']
+                     .getService(Ci.nsIAppStartup);
+  appStartup.quit(Ci.nsIAppStartup.eForceQuit);
+}, 'b2g-reset-profile', false);
