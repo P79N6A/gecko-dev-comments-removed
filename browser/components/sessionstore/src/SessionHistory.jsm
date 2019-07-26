@@ -112,13 +112,14 @@ let SessionHistoryInternal = {
     
     if (data.entries.length == 0) {
       let uri = webNavigation.currentURI.spec;
+      let body = webNavigation.document.body;
       
       
       
       
       
       
-      if (uri != "about:blank" || webNavigation.document.body.hasChildNodes()) {
+      if (uri != "about:blank" || (body && body.hasChildNodes())) {
         data.entries.push({ url: uri });
         data.index = 1;
       }
