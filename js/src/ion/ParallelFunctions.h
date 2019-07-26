@@ -59,9 +59,21 @@ ParallelResult GreaterThanOrEqualPar(ForkJoinSlice *slice, MutableHandleValue v1
 ParallelResult StringsEqualPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, bool *);
 ParallelResult StringsUnequalPar(ForkJoinSlice *slice, HandleString v1, HandleString v2, bool *);
 
+ParallelResult BitNotPar(ForkJoinSlice *slice, HandleValue in, int32_t *out);
+ParallelResult BitXorPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs, int32_t *out);
+ParallelResult BitOrPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs, int32_t *out);
+ParallelResult BitAndPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs, int32_t *out);
+ParallelResult BitLshPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs, int32_t *out);
+ParallelResult BitRshPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs, int32_t *out);
+
+ParallelResult UrshValuesPar(ForkJoinSlice *slice, HandleValue lhs, HandleValue rhs,
+                             MutableHandleValue out);
+
+
 ParallelResult InitRestParameterPar(ForkJoinSlice *slice, uint32_t length, Value *rest,
                                     HandleObject templateObj, HandleObject res,
                                     MutableHandleObject out);
+
 
 void AbortPar(ParallelBailoutCause cause, JSScript *outermostScript, JSScript *currentScript,
               jsbytecode *bytecode);
