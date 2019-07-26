@@ -364,6 +364,7 @@ BluetoothHfpManager::Reset()
   mDialingRequestProcessed = true;
 
   mConnectionState = BTHF_CONNECTION_STATE_DISCONNECTED;
+  mPrevConnectionState = BTHF_CONNECTION_STATE_DISCONNECTED;
   mAudioState = BTHF_AUDIO_STATE_DISCONNECTED;
 
   
@@ -519,6 +520,7 @@ BluetoothHfpManager::ProcessConnectionState(bthf_connection_state_t aState,
 {
   BT_LOGR("state %d", aState);
 
+  mPrevConnectionState = mConnectionState;
   mConnectionState = aState;
 
   if (aState == BTHF_CONNECTION_STATE_CONNECTED) {
@@ -753,8 +755,15 @@ BluetoothHfpManager::NotifyConnectionStateChanged(const nsAString& aType)
       OnConnect(EmptyString());
     } else if (mConnectionState == BTHF_CONNECTION_STATE_DISCONNECTED) {
       mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
-      OnDisconnect(EmptyString());
-
+      if (mPrevConnectionState == BTHF_CONNECTION_STATE_DISCONNECTED) {
+        
+        
+        
+        
+        OnConnect(NS_LITERAL_STRING("SocketConnectionError"));
+      } else {
+        OnDisconnect(EmptyString());
+      }
       Reset();
     }
   }
