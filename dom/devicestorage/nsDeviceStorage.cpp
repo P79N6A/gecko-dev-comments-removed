@@ -48,6 +48,7 @@
 #include "nsIPermissionManager.h"
 #include "nsIStringBundle.h"
 #include "nsIDocument.h"
+#include "nsPrintfCString.h"
 #include <algorithm>
 #include "private/pprio.h"
 #include "nsContentPermissionHelper.h"
@@ -194,7 +195,7 @@ public:
 #endif
   nsCOMPtr<nsIFile> apps;
   nsCOMPtr<nsIFile> crashes;
-  nsCOMPtr<nsIFile> temp;
+  nsCOMPtr<nsIFile> overrideRootDir;
 };
 
 static StaticRefPtr<GlobalDirs> sDirs;
@@ -678,13 +679,34 @@ InitDirs()
 
   if (mozilla::Preferences::GetBool("device.storage.testing", false)) {
     dirService->Get(NS_OS_TEMP_DIR, NS_GET_IID(nsIFile),
-                    getter_AddRefs(sDirs->temp));
-    if (sDirs->temp) {
-      sDirs->temp->AppendRelativeNativePath(
+                    getter_AddRefs(sDirs->overrideRootDir));
+    if (sDirs->overrideRootDir) {
+      sDirs->overrideRootDir->AppendRelativeNativePath(
         NS_LITERAL_CSTRING("device-storage-testing"));
-      sDirs->temp->Create(nsIFile::DIRECTORY_TYPE, 0777);
-      sDirs->temp->Normalize();
     }
+  } else {
+    
+    
+    
+    const nsAdoptingString& overrideRootDir =
+      mozilla::Preferences::GetString("device.storage.overrideRootDir");
+    if (overrideRootDir) {
+      NS_NewLocalFile(overrideRootDir, false,
+                      getter_AddRefs(sDirs->overrideRootDir));
+    }
+  }
+
+  if (sDirs->overrideRootDir) {
+    nsresult rv
+      = sDirs->overrideRootDir->Create(nsIFile::DIRECTORY_TYPE, 0777);
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+      nsString path;
+      sDirs->overrideRootDir->GetPath(path);
+      nsPrintfCString msg("DeviceStorage: Unable to create directory '%s'",
+                          NS_LossyConvertUTF16toASCII(path).get());
+      NS_WARNING(msg.get());
+    }
+    sDirs->overrideRootDir->Normalize();
   }
 }
 
@@ -715,6 +737,7 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
 {
   nsCOMPtr<nsIFile> f;
   *aFile = nullptr;
+  bool allowOverride = true;
 
   InitDirs();
 
@@ -761,6 +784,7 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
   
   else if (aStorageType.EqualsLiteral(DEVICESTORAGE_APPS)) {
     f = sDirs->apps;
+    allowOverride = false;
   }
 
    
@@ -775,6 +799,7 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
   
   else if (aStorageType.EqualsLiteral(DEVICESTORAGE_CRASHES)) {
     f = sDirs->crashes;
+    allowOverride = false;
   } else {
     
     return;
@@ -784,8 +809,9 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
   
   
   
-  if (sDirs->temp) {
-    f = sDirs->temp;
+  
+  if (allowOverride && sDirs->overrideRootDir) {
+    f = sDirs->overrideRootDir;
   }
 
   if (f) {
