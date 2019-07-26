@@ -123,6 +123,15 @@ public class HomeConfigInvalidator implements GeckoEventListener {
         return new PanelConfig(json);
     }
 
+     
+
+
+
+
+    public void installPanel(PanelConfig panelConfig) {
+        handlePanelInstall(panelConfig);
+    }
+
     
 
 
