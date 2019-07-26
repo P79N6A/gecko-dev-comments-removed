@@ -1308,6 +1308,9 @@ private:
     
     NodeHasRelevantHoverRules,
     
+    
+    ElementHasWeirdParserInsertionMode,
+    
     BooleanFlagCount
   };
 
@@ -1466,6 +1469,9 @@ protected:
   void ClearHasLockedStyleStates() { ClearBoolFlag(ElementHasLockedStyleStates); }
   bool HasLockedStyleStates() const
     { return GetBoolFlag(ElementHasLockedStyleStates); }
+  void SetHasWeirdParserInsertionMode() { SetBoolFlag(ElementHasWeirdParserInsertionMode); }
+  bool HasWeirdParserInsertionMode() const
+  { return GetBoolFlag(ElementHasWeirdParserInsertionMode); }
   bool HandlingClick() const { return GetBoolFlag(NodeHandlingClick); }
   void SetHandlingClick() { SetBoolFlag(NodeHandlingClick); }
   void ClearHandlingClick() { ClearBoolFlag(NodeHandlingClick); }
