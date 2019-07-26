@@ -261,6 +261,7 @@ pref("places.favicons.optimizeToDimension", 25);
 
 
 
+pref("browser.urlbar.trimURLs", true);
 pref("browser.urlbar.formatting.enabled", true);
 pref("browser.urlbar.clickSelectsAll", true);
 pref("browser.urlbar.doubleClickSelectsAll", true);

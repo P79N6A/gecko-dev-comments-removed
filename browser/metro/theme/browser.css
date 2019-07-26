@@ -308,6 +308,12 @@ documenttab[selected] .documenttab-selection {
   padding: 0 !important;
 }
 
+#urlbar-edit :invalid {
+  
+
+  box-shadow: none !important;
+}
+
 
 #tool-reload {
   list-style-image: url("chrome://browser/skin/images/reload.png");
