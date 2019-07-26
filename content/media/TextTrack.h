@@ -82,7 +82,8 @@ public:
     return mActiveCueList;
   }
 
-  void Update(double time);
+  
+  void Update(double aTime);
 
   void AddCue(TextTrackCue& aCue);
   void RemoveCue(TextTrackCue& aCue);

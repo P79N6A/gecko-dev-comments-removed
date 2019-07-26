@@ -40,7 +40,8 @@ public:
     return mList.Length();
   }
 
-  void Update(double time);
+  
+  void Update(double aTime);
 
   TextTrackCue* IndexedGetter(uint32_t aIndex, bool& aFound);
   TextTrackCue* GetCueById(const nsAString& aId);

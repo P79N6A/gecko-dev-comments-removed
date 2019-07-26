@@ -247,11 +247,75 @@ public:
     return mId;
   }
 
-  void DisplayCue();
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  void RenderCue();
+
+  
+
+
+
+
+
+
+  already_AddRefed<DocumentFragment> GetCueAsHTML();
+
+  
+
+
+
+
+
+
+
+
+  void
+  ConvertNodeTreeToDOMTree(nsIContent* aParentContent);
+
+  
+
+
+
+  already_AddRefed<nsIContent>
+  ConvertInternalNodeToContent(const webvtt_node* aWebVTTNode);
+
+  
+
+
+
+  already_AddRefed<nsIContent>
+  ConvertLeafNodeToContent(const webvtt_node* aWebVTTNode);
 
 private:
   void CueChanged();
   void SetDefaultCueSettings();
+  void CreateCueOverlay();
 
   nsCOMPtr<nsISupports> mGlobal;
   nsString mText;
@@ -269,6 +333,9 @@ private:
   nsString mVertical;
   int mLine;
   TextTrackCueAlign mAlign;
+
+  
+  nsCOMPtr<nsIContent> mCueDiv;
 };
 
 } 
