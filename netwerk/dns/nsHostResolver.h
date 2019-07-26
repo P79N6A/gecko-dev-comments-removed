@@ -80,7 +80,7 @@ public:
 
     mozilla::TimeStamp expiration;
 
-    bool HasResult() const { return addr_info || addr || negative; }
+    bool HasUsableResult(uint16_t queryFlags) const;
 
     
     bool   Blacklisted(mozilla::net::NetAddr *query);
@@ -98,6 +98,7 @@ private:
     
     bool    onQueue;  
     bool    usingAnyThread; 
+    bool    mDoomed; 
 
     
     
