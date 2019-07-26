@@ -246,11 +246,13 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags, gfxASurface** aWhiteSurface) = 0;
-  virtual TemporaryRef<gfx::DrawTarget>
-  CreateDTBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags, RefPtr<gfx::DrawTarget>* aWhiteDT)
-  { NS_RUNTIMEABORT("CreateDTBuffer not implemented on this platform!"); return nullptr; }
+
+
+
+  virtual void
+  CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+               gfxASurface** aBlackSurface, gfxASurface** aWhiteSurface,
+               RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) = 0;
   virtual bool SupportsAzureContent() const 
   { return false; }
 
