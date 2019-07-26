@@ -1027,16 +1027,6 @@ JSFunction::initBoundFunction(JSContext *cx, HandleValue thisArg,
     return true;
 }
 
-inline JSObject *
-JSFunction::getBoundFunctionTarget() const
-{
-    JS_ASSERT(isFunction());
-    JS_ASSERT(isBoundFunction());
-
-    
-    return getParent();
-}
-
 inline const js::Value &
 JSFunction::getBoundFunctionThis() const
 {
