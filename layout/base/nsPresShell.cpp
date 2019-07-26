@@ -5386,10 +5386,29 @@ PresShell::UpdateImageVisibility()
   list.DeleteAll();
 }
 
+static bool
+AssumeAllImagesVisible(nsPresContext* aPresContext, nsIDocument* aDocument)
+{
+  if (!aPresContext || !aDocument)
+    return true;
+
+  
+  
+  if (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
+      aPresContext->Type() == nsPresContext::eContext_Print ||
+      aPresContext->IsChrome() ||
+      aDocument->IsResourceDoc() ||
+      aDocument->IsXUL()) {
+    return true;
+  }
+
+  return false;
+}
+
 void
 PresShell::ScheduleImageVisibilityUpdate()
 {
-  if (!mPresContext)
+  if (AssumeAllImagesVisible(mPresContext, mDocument))
     return;
 
   if (!mPresContext->IsRootContentDocument()) {
@@ -5418,6 +5437,11 @@ PresShell::ScheduleImageVisibilityUpdate()
 void
 PresShell::EnsureImageInVisibleList(nsIImageLoadingContent* aImage)
 {
+  if (AssumeAllImagesVisible(mPresContext, mDocument)) {
+    aImage->IncrementVisibleCount();
+    return;
+  }
+
 #ifdef DEBUG
   
   nsCOMPtr<nsIContent> content = do_QueryInterface(aImage);
