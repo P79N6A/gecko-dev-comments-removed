@@ -143,6 +143,9 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
+#ifdef MOZ_WEBRTC
+#include "IPeerConnection.h"
+#endif 
 
 #include "mozAutoDocUpdate.h"
 #include "nsGlobalWindow.h"
@@ -6741,6 +6744,20 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
   if (idbManager && idbManager->HasOpenTransactions(win)) {
     return false;
   }
+
+#ifdef MOZ_WEBRTC
+  
+  nsCOMPtr<IPeerConnectionManager> pcManager =
+    do_GetService(IPEERCONNECTION_MANAGER_CONTRACTID);
+
+  if (pcManager && win) {
+    bool active;
+    pcManager->HasActivePeerConnection(win->WindowID(), &active);
+    if (active) {
+      return false;
+    }
+  }
+#endif 
 
   bool canCache = true;
   if (mSubDocuments)
