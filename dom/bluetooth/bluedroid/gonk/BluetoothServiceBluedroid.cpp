@@ -1192,12 +1192,14 @@ BluetoothServiceBluedroid::PrepareAdapterInternal()
 static void
 NextBluetoothProfileController()
 {
-  sControllerArray[0] = nullptr;
-  sControllerArray.RemoveElementAt(0);
+  MOZ_ASSERT(NS_IsMainThread());
 
-  if (!sControllerArray.IsEmpty()) {
-    sControllerArray[0]->Start();
-  }
+  
+  NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
+  sControllerArray.RemoveElementAt(0);
+  
+  NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
+  sControllerArray[0]->Start();
 }
 
 static void
