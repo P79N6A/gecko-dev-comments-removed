@@ -64,6 +64,9 @@ private:
 
   
 
+  static GstBusSyncReply ErrorCb(GstBus *aBus, GstMessage *aMessage, gpointer aUserData);
+  GstBusSyncReply Error(GstBus *aBus, GstMessage *aMessage);
+
   
 
 
@@ -116,7 +119,7 @@ private:
 
   
   static void EosCb(GstAppSink* aSink, gpointer aUserData);
-  void Eos(GstAppSink* aSink);
+  void Eos();
 
   GstElement* mPlayBin;
   GstBus* mBus;
