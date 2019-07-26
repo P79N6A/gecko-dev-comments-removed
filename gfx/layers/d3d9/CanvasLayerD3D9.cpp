@@ -104,7 +104,7 @@ CanvasLayerD3D9::UpdateSurface()
     DataSourceSurface* frameData = shareSurf->GetData();
     
     {
-      RefPtr<DrawTarget> mapDt = Factory::CreateDrawTargetForData(BACKEND_CAIRO,
+      RefPtr<DrawTarget> mapDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
                                                                   (uint8_t*)rect.pBits,
                                                                   shareSurf->Size(),
                                                                   rect.Pitch,

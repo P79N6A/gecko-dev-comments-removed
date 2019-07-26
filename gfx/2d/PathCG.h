@@ -71,7 +71,7 @@ public:
 
   
   
-  virtual BackendType GetBackendType() const { return BACKEND_COREGRAPHICS; }
+  virtual BackendType GetBackendType() const { return BackendType::COREGRAPHICS; }
 
   virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FILL_WINDING) const;
   virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
