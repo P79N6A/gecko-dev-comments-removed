@@ -536,7 +536,7 @@ MarkTypeObjectUnknownProperties(JSContext *cx, TypeObject *obj,
 
 
 inline void
-MarkTypePropertyConfigured(ExclusiveContext *cx, HandleObject obj, jsid id)
+MarkTypePropertyConfigured(ExclusiveContext *cx, JSObject *obj, jsid id)
 {
     if (cx->typeInferenceEnabled()) {
         id = IdToTypeId(id);
