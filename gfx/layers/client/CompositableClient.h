@@ -189,6 +189,8 @@ public:
 
   virtual void ClearCachedResources() {}
 
+  virtual void UseTexture(TextureClient* aTexture);
+
   
 
 
