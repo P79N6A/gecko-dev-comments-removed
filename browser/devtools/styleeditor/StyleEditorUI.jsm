@@ -205,7 +205,8 @@ StyleEditorUI.prototype = {
     
     for (let editor of this.editors) {
       if (editor.savedFile) {
-        this.savedLocations[editor.styleSheet.href] = editor.savedFile;
+        let identifier = this.getStyleSheetIdentifier(editor.styleSheet);
+        this.savedLocations[identifier] = editor.savedFile;
       }
     }
 
@@ -257,7 +258,8 @@ StyleEditorUI.prototype = {
 
   _addStyleSheetEditor: function(styleSheet, file, isNew) {
     
-    let savedFile = this.savedLocations[styleSheet.href];
+    let identifier = this.getStyleSheetIdentifier(styleSheet);
+    let savedFile = this.savedLocations[identifier];
     if (savedFile && !file) {
       file = savedFile;
     }
@@ -524,6 +526,18 @@ StyleEditorUI.prototype = {
     });
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+  getStyleSheetIdentifier: function (aStyleSheet) {
+    
+    return aStyleSheet.href ? aStyleSheet.href :
+            "inline-" + aStyleSheet.styleSheetIndex + "-at-" + aStyleSheet.nodeHref;
   },
 
   
