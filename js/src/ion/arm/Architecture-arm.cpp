@@ -4,17 +4,14 @@
 
 
 
-#include "ion/arm/Architecture-arm.h"
-
+#define HWCAP_ARMv7 (1 << 31)
 #include "mozilla/StandardInteger.h"
 
-#include <elf.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
-
-#define HWCAP_ARMv7 (1 << 31)
+#include <elf.h>
 
 
 
@@ -30,7 +27,8 @@
 #define HWCAP_NEON     (1<<6)
 #define HWCAP_ARMv7    (1<<7)
 #endif
-
+#include "ion/arm/Architecture-arm.h"
+#include "ion/arm/Assembler-arm.h"
 namespace js {
 namespace ion {
 

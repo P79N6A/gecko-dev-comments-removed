@@ -4,10 +4,10 @@
 
 
 
+#include "ion/BaselineJIT.h"
+#include "ion/BaselineIC.h"
 #include "ion/BaselineCompiler.h"
 #include "ion/BaselineHelpers.h"
-#include "ion/BaselineIC.h"
-#include "ion/BaselineJIT.h"
 #include "ion/IonLinker.h"
 
 using namespace js;
