@@ -51,13 +51,10 @@ namespace analyze {
 
 
 
-
-
 typedef enum JSTryNoteKind {
     JSTRY_CATCH,
     JSTRY_FINALLY,
-    JSTRY_ITER,
-    JSTRY_LOOP
+    JSTRY_ITER
 } JSTryNoteKind;
 
 
@@ -721,9 +718,6 @@ class JSScript : public js::gc::Cell
     inline bool ensureHasTypes(JSContext *cx);
 
     
-    inline bool ensureHasBytecodeTypeMap(JSContext *cx);
-
-    
 
 
 
@@ -764,7 +758,6 @@ class JSScript : public js::gc::Cell
 
   private:
     bool makeTypes(JSContext *cx);
-    bool makeBytecodeTypeMap(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
 
 #ifdef JS_METHODJIT

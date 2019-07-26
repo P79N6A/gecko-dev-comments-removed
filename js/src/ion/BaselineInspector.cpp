@@ -11,20 +11,6 @@ using namespace js;
 using namespace js::ion;
 
 bool
-SetElemICInspector::sawOOBDenseWrite() const
-{
-    if (!icEntry_)
-        return false;
-
-    
-    for (ICStub *stub = icEntry_->firstStub(); stub; stub = stub->next()) {
-        if (stub->isSetElem_DenseAdd())
-            return true;
-    }
-    return false;
-}
-
-bool
 SetElemICInspector::sawOOBTypedArrayWrite() const
 {
     if (!icEntry_)

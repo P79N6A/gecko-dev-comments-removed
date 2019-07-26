@@ -122,8 +122,13 @@ class Bytecode
 
   private:
 
-    
-    LoopAnalysis *loop;
+    union {
+        
+        types::StackTypeSet *observedTypes;
+
+        
+        LoopAnalysis *loop;
+    };
 
     
 
@@ -879,6 +884,11 @@ class ScriptAnalysis
     bool incrementInitialValueObserved(jsbytecode *pc) {
         const JSCodeSpec *cs = &js_CodeSpec[*pc];
         return (cs->format & JOF_POST) && !popGuaranteed(pc);
+    }
+
+    types::StackTypeSet *bytecodeTypes(const jsbytecode *pc) {
+        JS_ASSERT(js_CodeSpec[*pc].format & JOF_TYPESET);
+        return getCode(pc).observedTypes;
     }
 
     const SSAValue &poppedValue(uint32_t offset, uint32_t which) {

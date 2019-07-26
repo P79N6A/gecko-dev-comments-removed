@@ -1809,7 +1809,7 @@ JS_STATIC_ASSERT(JSTRY_CATCH == 0);
 JS_STATIC_ASSERT(JSTRY_FINALLY == 1);
 JS_STATIC_ASSERT(JSTRY_ITER == 2);
 
-static const char* const TryNoteNames[] = { "catch", "finally", "iter", "loop" };
+static const char* const TryNoteNames[] = { "catch", "finally", "iter" };
 
 static JSBool
 TryNotes(JSContext *cx, HandleScript script, Sprinter *sp)
@@ -4927,6 +4927,11 @@ ProcessArgs(JSContext *cx, JSObject *obj_, OptionParser *op)
     if (op->getBoolOption('s'))
         JS_ToggleOptions(cx, JSOPTION_STRICT);
 
+    if (op->getBoolOption("no-jm")) {
+        enableMethodJit = false;
+        JS_ToggleOptions(cx, JSOPTION_METHODJIT);
+    }
+
     if (op->getBoolOption('d')) {
         JS_SetRuntimeDebugMode(JS_GetRuntime(cx), true);
         JS_SetDebugMode(cx, true);
@@ -5122,10 +5127,6 @@ Shell(JSContext *cx, OptionParser *op, char **envp)
     if (op->getBoolOption("no-ti")) {
         enableTypeInference = false;
         JS_ToggleOptions(cx, JSOPTION_TYPE_INFERENCE);
-    }
-    if (op->getBoolOption("no-jm")) {
-        enableMethodJit = false;
-        JS_ToggleOptions(cx, JSOPTION_METHODJIT);
     }
 
     RootedObject glob(cx);
