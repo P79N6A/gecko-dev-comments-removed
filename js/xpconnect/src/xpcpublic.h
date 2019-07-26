@@ -24,6 +24,7 @@
 #include "nsStringBuffer.h"
 #include "nsIGlobalObject.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "nsDOMJSUtils.h"
 
 class nsIPrincipal;
 class nsIXPConnectWrappedJS;
@@ -166,7 +167,11 @@ xpc_UnmarkGrayScript(JSScript *script)
 inline JSContext *
 xpc_UnmarkGrayContext(JSContext *cx)
 {
-    if (cx) {
+    
+    
+    
+    
+    if (cx && !GetScriptContextFromJSContext(cx)) {
         JSObject *global = js::DefaultObjectForContextOrNull(cx);
         xpc_UnmarkGrayObject(global);
         if (global && JS_IsInRequest(JS_GetRuntime(cx))) {

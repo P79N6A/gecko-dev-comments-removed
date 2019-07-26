@@ -172,9 +172,6 @@ public:
   void AssertNoObjectsToTrace(void* aPossibleJSHolder);
 #endif
 
-  
-  static nsCycleCollectionParticipant* JSContextParticipant();
-
   nsCycleCollectionParticipant* GCThingParticipant();
   nsCycleCollectionParticipant* ZoneParticipant();
 

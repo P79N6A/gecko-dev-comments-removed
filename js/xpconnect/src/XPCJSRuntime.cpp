@@ -496,10 +496,6 @@ void XPCJSRuntime::TraceAdditionalNativeGrayRoots(JSTracer *trc)
 {
     XPCAutoLock lock(mMapLock);
 
-    
-    
-    dom::TraceOuterWindows(trc);
-
     XPCWrappedNativeScope::TraceWrappedNativesInAllScopes(trc, this);
 
     for (XPCRootSetElem *e = mVariantRoots; e ; e = e->GetNextRoot())
@@ -560,10 +556,6 @@ void
 XPCJSRuntime::TraverseAdditionalNativeRoots(nsCycleCollectionNoteRootCallback &cb)
 {
     XPCAutoLock lock(mMapLock);
-
-    
-    
-    dom::TraverseOuterWindows(cb);
 
     XPCWrappedNativeScope::SuspectAllWrappers(this, cb);
 
