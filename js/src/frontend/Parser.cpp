@@ -3970,14 +3970,6 @@ Parser::statement()
 
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_IN_COMPOUND);
         PopStatementPC(context, pc);
-
-        
-
-
-
-        if (hasFunctionStmt && (!pc->topStmt || pc->topStmt->type == STMT_BLOCK))
-            pn->pn_xflags |= PNX_NEEDBRACES;
-
         return pn;
       }
 

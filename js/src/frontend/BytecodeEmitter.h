@@ -278,8 +278,6 @@ enum SrcNoteType {
 
     SRC_ASSIGNOP    = 8,        
     SRC_COND        = 9,        
-    SRC_BRACE       = 10,       
-
     SRC_HIDDEN      = 11,       
     SRC_PCBASE      = 12,       
 
