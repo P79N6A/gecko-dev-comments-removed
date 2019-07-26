@@ -2,6 +2,10 @@
 
 
 
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
+
 this.EXPORTED_SYMBOLS = ["DOMHelpers"];
 
 
@@ -13,6 +17,9 @@ this.EXPORTED_SYMBOLS = ["DOMHelpers"];
 
 
 this.DOMHelpers = function DOMHelpers(aWindow) {
+  if (!aWindow) {
+    throw new Error("window can't be null or undefined");
+  }
   this.window = aWindow;
 };
 
@@ -120,5 +127,30 @@ DOMHelpers.prototype = {
   {
     delete this.window;
     delete this.treeWalker;
+  },
+
+  
+
+
+
+
+
+
+
+  onceDOMReady: function Helpers_onLocationChange(callback) {
+    let window = this.window;
+    let docShell = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation)
+                         .QueryInterface(Ci.nsIDocShell);
+    let onReady = function(event) {
+      if (event.target == window.document) {
+        docShell.chromeEventHandler.removeEventListener("DOMContentLoaded", onReady, false);
+        
+        
+        
+        Services.tm.mainThread.dispatch(callback, 0);
+      }
+    }
+    docShell.chromeEventHandler.addEventListener("DOMContentLoaded", onReady, false);
   }
 };
