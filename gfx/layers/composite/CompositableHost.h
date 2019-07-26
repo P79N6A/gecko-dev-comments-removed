@@ -114,7 +114,7 @@ public:
 
 
 
-  virtual void EnsureTextureHost(TextureIdentifier aTextureId,
+  virtual bool EnsureTextureHost(TextureIdentifier aTextureId,
                                  const SurfaceDescriptor& aSurface,
                                  ISurfaceAllocator* aAllocator,
                                  const TextureInfo& aTextureInfo) = 0;
