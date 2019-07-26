@@ -10,14 +10,12 @@
 
 #include "nsString.h"
 #include "nsWeakReference.h"
-#include "js/Class.h"           
 #include "nsTArray.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 
 class nsXBLBinding;
 class nsXBLDocumentInfo;
-class nsXBLJSClass;
 class nsIContent;
 class nsIDocument;
 class nsString;
@@ -117,32 +115,6 @@ public:
   static bool     gAllowDataURIs;            
                                              
                                              
-};
-
-class nsXBLJSClass : public JSClass
-{
-public:
-  nsXBLJSClass(const nsAFlatCString& aClassName);
-  ~nsXBLJSClass();
-
-  static bool IsXBLJSClass(const JSClass* aClass);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static nsXBLJSClass*
-  fromJSClass(const JSClass* c)
-  {
-    MOZ_ASSERT(IsXBLJSClass(c));
-    nsXBLJSClass* x = const_cast<nsXBLJSClass*>(static_cast<const nsXBLJSClass*>(c));
-    return x;
-  }
 };
 
 #endif

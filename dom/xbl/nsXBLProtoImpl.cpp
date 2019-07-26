@@ -91,8 +91,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
 
     
     
-    bool ok = JS_DefineProperty(cx, scopeObject,
-                                js::GetObjectClass(targetClassObject)->name,
+    bool ok = JS_DefineProperty(cx, scopeObject, aPrototypeBinding->ClassName().get(),
                                 JS::ObjectValue(*propertyHolder), JS_PropertyStub,
                                 JS_StrictPropertyStub,
                                 JSPROP_PERMANENT | JSPROP_READONLY);
