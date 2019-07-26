@@ -350,12 +350,8 @@ nsComboboxControlFrame::ShowPopup(bool aShowPopup)
 bool
 nsComboboxControlFrame::ShowList(bool aShowList)
 {
-  nsCOMPtr<nsIPresShell> shell = PresContext()->GetPresShell();
-
-  nsWeakFrame weakFrame(this);
-
+  nsView* view = mDropdownFrame->GetView();
   if (aShowList) {
-    nsView* view = mDropdownFrame->GetView();
     NS_ASSERTION(!view->HasWidget(),
                  "We shouldn't have a widget before we need to display the popup");
 
@@ -366,45 +362,38 @@ nsComboboxControlFrame::ShowList(bool aShowList)
     widgetData.mWindowType  = eWindowType_popup;
     widgetData.mBorderStyle = eBorderStyle_default;
     view->CreateWidgetForPopup(&widgetData);
+  } else {
+    nsIWidget* widget = view->GetWidget();
+    if (widget) {
+      
+      widget->CaptureRollupEvents(this, false);
+    }
   }
 
+  nsWeakFrame weakFrame(this);
   ShowPopup(aShowList);  
   if (!weakFrame.IsAlive()) {
     return false;
   }
 
   mDroppedDown = aShowList;
+  nsIWidget* widget = view->GetWidget();
   if (mDroppedDown) {
     
     
     mListControlFrame->AboutToDropDown();
     mListControlFrame->CaptureMouseEvents(true);
-  }
-
-  
-  shell->GetDocument()->FlushPendingNotifications(Flush_Layout);
-  if (!weakFrame.IsAlive()) {
-    return false;
-  }
-
-  nsIFrame* listFrame = do_QueryFrame(mListControlFrame);
-  if (listFrame) {
-    nsView* view = listFrame->GetView();
-    NS_ASSERTION(view, "nsComboboxControlFrame view is null");
-    if (view) {
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        widget->CaptureRollupEvents(this, mDroppedDown);
-
-        if (!aShowList) {
-          nsCOMPtr<nsIRunnable> widgetDestroyer =
-            new DestroyWidgetRunnable(widget);
-          
-          
-          view->DestroyWidget();
-          NS_DispatchToMainThread(widgetDestroyer);
-        }
-      }
+    if (widget) {
+      widget->CaptureRollupEvents(this, true);
+    }
+  } else {
+    if (widget) {
+      nsCOMPtr<nsIRunnable> widgetDestroyer =
+        new DestroyWidgetRunnable(widget);
+      
+      
+      view->DestroyWidget();
+      NS_DispatchToMainThread(widgetDestroyer);
     }
   }
 
