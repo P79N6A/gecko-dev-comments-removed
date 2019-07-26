@@ -334,12 +334,17 @@ class Histogram {
     void CheckSize(const Histogram& histogram) const;
 
     
-    void Accumulate(Sample value, Count count, size_t index);
+    void AccumulateWithLinearStats(Sample value, Count count, size_t index);
+    
+    void AccumulateWithExponentialStats(Sample value, Count count, size_t index);
 
     
     Count counts(size_t i) const { return counts_[i]; }
     Count TotalCount() const;
     int64_t sum() const { return sum_; }
+    uint64_t sum_squares() const { return sum_squares_; }
+    double log_sum() const { return log_sum_; }
+    double log_sum_squares() const { return log_sum_squares_; }
     int64_t redundant_count() const { return redundant_count_; }
     size_t size() const { return counts_.size(); }
 
@@ -360,6 +365,13 @@ class Histogram {
     
     
     int64_t sum_;         
+    uint64_t sum_squares_; 
+
+    
+    
+    
+    double log_sum_;      
+    double log_sum_squares_; 
 
    private:
     
@@ -511,6 +523,10 @@ class Histogram {
 
   virtual uint32_t CalculateRangeChecksum() const;
 
+  
+  
+  SampleSet sample_;
+
  private:
   
   FRIEND_TEST(HistogramTest, CorruptBucketBounds);
@@ -578,10 +594,6 @@ class Histogram {
   
   uint32_t range_checksum_;
 
-  
-  
-  SampleSet sample_;
-
   DISALLOW_COPY_AND_ASSIGN(Histogram);
 };
 
@@ -608,6 +620,8 @@ class LinearHistogram : public Histogram {
 
   
   virtual ClassType histogram_type() const;
+
+  virtual void Accumulate(Sample value, Count count, size_t index);
 
   
   
