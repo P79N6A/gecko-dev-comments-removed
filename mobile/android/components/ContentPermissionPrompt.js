@@ -69,8 +69,14 @@ ContentPermissionPrompt.prototype = {
       label: browserBundle.GetStringFromName(entityName + ".allow"),
       callback: function(aChecked) {
         
-        if (aChecked)
+        if (aChecked) {
           Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION);
+        } else if (entityName == "desktopNotification") {
+          
+          
+          Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION,
+                                          Ci.nsIPermissionManager.EXPIRE_SESSION);
+        }
 
         request.allow();
       }

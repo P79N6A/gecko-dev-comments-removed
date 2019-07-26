@@ -79,6 +79,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -105,6 +106,9 @@ public class GeckoAppShell
     static private boolean gRestartScheduled = false;
 
     static private GeckoEditableListener mEditableListener = null;
+
+    static private final HashMap<String, String>
+        mAlertCookies = new HashMap<String, String>();
 
     
 
@@ -1204,6 +1208,9 @@ public class GeckoAppShell
         clearNotificationIntent.setData(dataUri);
         PendingIntent clearIntent = PendingIntent.getBroadcast(GeckoApp.mAppContext, 0, clearNotificationIntent, 0);
 
+        mAlertCookies.put(aAlertName, aAlertCookie);
+        callObserver(aAlertName, "alertshow", aAlertCookie);
+
         sNotificationClient.add(notificationID, aImageUrl, aAlertTitle, aAlertText, contentIntent, clearIntent);
     }
 
@@ -1217,11 +1224,17 @@ public class GeckoAppShell
         }
     }
 
-    public static void alertsProgressListener_OnCancel(String aAlertName) {
+    public static void closeNotification(String aAlertName) {
+        String alertCookie = mAlertCookies.get(aAlertName);
+        if (alertCookie != null) {
+            callObserver(aAlertName, "alertfinished", alertCookie);
+            mAlertCookies.remove(aAlertName);
+        }
+
         removeObserver(aAlertName);
 
         int notificationID = aAlertName.hashCode();
-        removeNotification(notificationID);
+        sNotificationClient.remove(notificationID);
     }
 
     public static void handleNotification(String aAction, String aAlertName, String aAlertCookie) {
@@ -1236,19 +1249,12 @@ public class GeckoAppShell
             }
         }
 
-        callObserver(aAlertName, "alertfinished", aAlertCookie);
         
         
         
         
         sendEventToGecko(GeckoEvent.createBroadcastEvent("Notification:Clicked", aAlertCookie));
-        removeObserver(aAlertName);
-
-        removeNotification(notificationID);
-    }
-
-    private static void removeNotification(int notificationID) {
-        sNotificationClient.remove(notificationID);
+        closeNotification(aAlertName);
     }
 
     public static int getDpi() {
