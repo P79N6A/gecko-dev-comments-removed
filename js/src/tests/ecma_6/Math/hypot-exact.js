@@ -55,3 +55,6 @@ assertEq(Math.hypot(+0, +0, -0), +0);
 
 
 assertEq(Math.hypot.length, 2);
+
+
+reportCompare(0, 0, "ok");
