@@ -37,63 +37,6 @@ inline bool IsLowerCase(uint32_t c) {
   return ToUpperCase(c) != c;
 }
 
-class GreekCasing {
-  
-  
-  
-  
-  
-private:
-  enum GreekStates {
-    kStart,
-    kAlpha,
-    kEpsilon,
-    kEta,
-    kIota,
-    kOmicron,
-    kUpsilon,
-    kOmega,
-    kAlphaAcc,
-    kEpsilonAcc,
-    kEtaAcc,
-    kIotaAcc,
-    kOmicronAcc,
-    kUpsilonAcc,
-    kOmegaAcc,
-    kOmicronUpsilon,
-    kDiaeresis
-  };
-
-public:
-  class State {
-  public:
-    State()
-      : mState(kStart)
-    {
-    }
-
-    State(const GreekStates& aState)
-      : mState(aState)
-    {
-    }
-
-    void Reset()
-    {
-      mState = kStart;
-    }
-
-    operator GreekStates() const
-    {
-      return mState;
-    }
-
-  private:
-    GreekStates mState;
-  };
-
-  static uint32_t UpperCase(uint32_t aCh, State& aState);
-};
-
 #ifdef MOZILLA_INTERNAL_API
 
 class nsCaseInsensitiveStringComparator : public nsStringComparator
@@ -201,4 +144,4 @@ HashUTF8AsUTF16(const char* aUTF8, uint32_t aLength, bool* aErr);
 
 } 
 
-#endif
+#endif  

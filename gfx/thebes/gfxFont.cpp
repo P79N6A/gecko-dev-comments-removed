@@ -44,6 +44,8 @@
 #include "gfxMathTable.h"
 #include "gfx2DGlue.h"
 
+#include "GreekCasing.h"
+
 #if defined(XP_MACOSX)
 #include "nsCocoaFeatures.h"
 #endif
@@ -5709,8 +5711,8 @@ gfxFont::InitFakeSmallCapsRun(gfxContext     *aContext,
                     
                     
                     
-                    GreekCasing::State state;
-                    ch2 = GreekCasing::UpperCase(ch, state);
+                    mozilla::GreekCasing::State state;
+                    ch2 = mozilla::GreekCasing::UpperCase(ch, state);
                     if (ch != ch2) {
                         chCase = kSpecialUpper;
                     }
