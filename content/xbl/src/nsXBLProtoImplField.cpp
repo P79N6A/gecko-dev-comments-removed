@@ -327,7 +327,7 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
   
   JS::Rooted<jsid> id(aCx);
   JS::TwoByteChars chars(mName, NS_strlen(mName));
-  if (!JS_CharsToId(aCx, chars, id.address()))
+  if (!JS_CharsToId(aCx, chars, &id))
     return NS_ERROR_OUT_OF_MEMORY;
 
   

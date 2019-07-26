@@ -4273,7 +4273,7 @@ JS_SetGlobalJitCompilerOption(JSContext *cx, JSJitCompilerOption opt, uint32_t v
 
 
 extern JS_PUBLIC_API(bool)
-JS_IndexToId(JSContext *cx, uint32_t index, jsid *id);
+JS_IndexToId(JSContext *cx, uint32_t index, JS::MutableHandleId);
 
 
 
@@ -4281,13 +4281,13 @@ JS_IndexToId(JSContext *cx, uint32_t index, jsid *id);
 
 
 extern JS_PUBLIC_API(bool)
-JS_CharsToId(JSContext* cx, JS::TwoByteChars chars, jsid *idp);
+JS_CharsToId(JSContext* cx, JS::TwoByteChars chars, JS::MutableHandleId);
 
 
 
 
 extern JS_PUBLIC_API(bool)
-JS_IsIdentifier(JSContext *cx, JSString *str, bool *isIdentifier);
+JS_IsIdentifier(JSContext *cx, JS::HandleString str, bool *isIdentifier);
 
 
 
