@@ -1399,6 +1399,9 @@ BaselineCompiler::emit_JSOP_TRY()
     return true;
 }
 
+typedef bool (*EnterBlockFn)(JSContext *, BaselineFrame *, Handle<StaticBlockObject *>);
+static const VMFunction EnterBlockInfo = FunctionInfo<EnterBlockFn>(ion::EnterBlock);
+
 bool
 BaselineCompiler::emit_JSOP_ENTERBLOCK()
 {
@@ -1407,23 +1410,40 @@ BaselineCompiler::emit_JSOP_ENTERBLOCK()
     if (!addPCMappingEntry())
         return false;
 
-    
     StaticBlockObject &blockObj = script->getObject(pc)->asStaticBlock();
-
     for (size_t i = 0; i < blockObj.slotCount(); i++)
         frame.push(UndefinedValue());
 
     
     
     frame.syncStack(0);
-    return true;
+
+    
+    prepareVMCall();
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+
+    pushArg(ImmGCPtr(&blockObj));
+    pushArg(R0.scratchReg());
+
+    return callVM(EnterBlockInfo);
 }
+
+typedef bool (*LeaveBlockFn)(JSContext *, BaselineFrame *);
+static const VMFunction LeaveBlockInfo = FunctionInfo<LeaveBlockFn>(ion::LeaveBlock);
 
 bool
 BaselineCompiler::emit_JSOP_LEAVEBLOCK()
 {
     
+    prepareVMCall();
 
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+    pushArg(R0.scratchReg());
+
+    if (!callVM(LeaveBlockInfo))
+        return false;
+
+    
     size_t n = StackUses(script, pc);
     frame.popn(n);
     return true;
