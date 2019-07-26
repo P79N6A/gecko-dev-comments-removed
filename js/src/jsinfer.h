@@ -572,6 +572,19 @@ class StackTypeSet : public TypeSet
     bool maybeObject() { return unknownObject() || baseObjectCount() > 0; }
 
     
+
+
+
+
+    bool objectOrSentinel() {
+        TypeFlags flags = TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL | TYPE_FLAG_ANYOBJECT;
+        if (baseFlags() & (~flags & TYPE_FLAG_BASE_MASK))
+            return false;
+
+        return hasAnyFlag(TYPE_FLAG_ANYOBJECT) || baseObjectCount() > 0;
+    }
+
+    
     bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
 
     
