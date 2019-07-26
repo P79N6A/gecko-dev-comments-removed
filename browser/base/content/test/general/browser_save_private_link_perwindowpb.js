@@ -90,8 +90,12 @@ function test() {
 
   function doTest(aIsPrivateMode, aWindow, aCallback) {
     aWindow.gBrowser.addEventListener("pageshow", function pageShown(event) {
-      if (event.target.location == "about:blank")
+      
+      if (event.target.location == "about:blank" ||
+          event.target.location == "about:privatebrowsing") {
+        aWindow.gBrowser.selectedBrowser.loadURI(testURI);
         return;
+      }
       aWindow.gBrowser.removeEventListener("pageshow", pageShown);
 
       executeSoon(function () {
