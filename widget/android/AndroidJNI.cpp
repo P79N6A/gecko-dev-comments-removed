@@ -945,7 +945,7 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_getOverScrollMode(JNIEnv* env
 }
 
 NS_EXPORT jboolean JNICALL
-Java_org_mozilla_gecko_ANRReporter_requestNativeStack(JNIEnv*, jclass)
+Java_org_mozilla_gecko_ANRReporter_requestNativeStack(JNIEnv*, jclass, jboolean aUnwind)
 {
     if (profiler_is_active()) {
         
@@ -955,11 +955,25 @@ Java_org_mozilla_gecko_ANRReporter_requestNativeStack(JNIEnv*, jclass)
     
     
     
-    const char *NATIVE_STACK_FEATURES[] = {"leaf", "threads", "privacy"};
+    const char *NATIVE_STACK_FEATURES[] =
+        {"leaf", "threads", "privacy"};
+    const char *NATIVE_STACK_UNWIND_FEATURES[] =
+        {"leaf", "threads", "privacy", "stackwalk"};
+
+    const char **features = NATIVE_STACK_FEATURES;
+    size_t features_size = sizeof(NATIVE_STACK_FEATURES);
+    if (aUnwind) {
+        features = NATIVE_STACK_UNWIND_FEATURES;
+        features_size = sizeof(NATIVE_STACK_UNWIND_FEATURES);
+        
+        putenv("MOZ_PROFILER_NEW=1");
+    }
+
+    const char *NATIVE_STACK_THREADS[] =
+        {"GeckoMain", "Compositor"};
     
-    profiler_start(100, 10000, NATIVE_STACK_FEATURES,
-        sizeof(NATIVE_STACK_FEATURES) / sizeof(char*),
-        nullptr, 0);
+    profiler_start(100, 10000, features, features_size / sizeof(char*),
+        NATIVE_STACK_THREADS, sizeof(NATIVE_STACK_THREADS) / sizeof(char*));
     return JNI_TRUE;
 }
 
