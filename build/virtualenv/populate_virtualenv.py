@@ -5,7 +5,7 @@
 
 
 
-from __future__ import print_function, unicode_literals, with_statement
+from __future__ import print_function, unicode_literals
 
 import distutils.sysconfig
 import os
