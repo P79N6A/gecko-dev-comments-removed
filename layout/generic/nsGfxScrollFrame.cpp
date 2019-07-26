@@ -2385,13 +2385,12 @@ nsGfxScrollFrameInner::GetLineScrollAmount() const
                                 "mousewheel.min_line_scroll_amount", 1);
   }
   uint32_t appUnitsPerDevPixel = mOuter->PresContext()->AppUnitsPerDevPixel();
-  nscoord fontHeight =
+  nscoord minScrollAmountInAppUnits =
     NS_MAX(1, sMinLineScrollAmountInPixels) * appUnitsPerDevPixel;
-  if (fm) {
-    fontHeight = NS_MAX(fm->MaxHeight(), fontHeight);
-  }
-
-  return nsSize(fontHeight, fontHeight);
+  nscoord horizontalAmount = fm ? fm->AveCharWidth() : 0;
+  nscoord verticalAmount = fm ? fm->MaxHeight() : 0;
+  return nsSize(NS_MAX(horizontalAmount, minScrollAmountInAppUnits),
+                NS_MAX(verticalAmount, minScrollAmountInAppUnits));
 }
 
 
@@ -3422,11 +3421,13 @@ nsGfxScrollFrameInner::ReflowFinished()
   if (vScroll || hScroll) {
     nsWeakFrame weakFrame(mOuter);
     nsPoint scrollPos = GetScrollPosition();
-    
+    nsSize lineScrollAmount = GetLineScrollAmount();
     if (vScroll) {
-      const double kScrollMultiplier = Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
-                                                           NS_DEFAULT_VERTICAL_SCROLL_DISTANCE);
-      nscoord fontHeight = GetLineScrollAmount().height * kScrollMultiplier;
+      const double kScrollMultiplier =
+        Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
+                            NS_DEFAULT_VERTICAL_SCROLL_DISTANCE);
+      nscoord fontHeight = lineScrollAmount.height * kScrollMultiplier;
+      
       
       
       
@@ -3440,9 +3441,13 @@ nsGfxScrollFrameInner::ReflowFinished()
                                fontHeight);
     }
     if (hScroll) {
+      const double kScrollMultiplier =
+        Preferences::GetInt("toolkit.scrollbox.horizontalScrollDistance",
+                            NS_DEFAULT_HORIZONTAL_SCROLL_DISTANCE);
+      nscoord increment = lineScrollAmount.width * kScrollMultiplier;
       FinishReflowForScrollbar(hScroll, minX, maxX, scrollPos.x,
                                nscoord(float(mScrollPort.width) * 0.8),
-                               nsPresContext::CSSPixelsToAppUnits(10));
+                               increment);
     }
     NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
   }
