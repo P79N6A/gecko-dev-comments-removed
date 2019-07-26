@@ -89,7 +89,6 @@ private:
     
     static uint32_t ReadAntiAliasingThreshold();
 
-    int32_t mOSXVersion;
     uint32_t mFontAntiAliasingThreshold;
 };
 
