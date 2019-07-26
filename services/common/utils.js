@@ -483,6 +483,119 @@ this.CommonUtils = {
 
     return uuid.substring(1, uuid.length - 1);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getEpochPref: function getEpochPref(branch, pref, def=0, log=null) {
+    if (!Number.isInteger(def)) {
+      throw new Error("Default value is not a number: " + def);
+    }
+
+    let valueStr = branch.get(pref, null);
+
+    if (valueStr !== null) {
+      let valueInt = parseInt(valueStr, 10);
+      if (Number.isNaN(valueInt)) {
+        if (log) {
+          log.warn("Preference value is not an integer. Using default. " +
+                   pref + "=" + valueStr + " -> " + def);
+        }
+
+        return def;
+      }
+
+      return valueInt;
+    }
+
+    return def;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getDatePref: function getDatePref(branch, pref, def=0, log=null,
+                                    oldestYear=2010) {
+
+    let valueInt = this.getEpochPref(branch, pref, def, log);
+    let date = new Date(valueInt);
+
+    if (valueInt == def || date.getFullYear() >= oldestYear) {
+      return date;
+    }
+
+    if (log) {
+      log.warn("Unexpected old date seen in pref. Returning default: " +
+               pref + "=" + date + " -> " + def);
+    }
+
+    return new Date(def);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setDatePref: function setDatePref(branch, pref, date, oldestYear=2010) {
+    if (date.getFullYear() < oldestYear) {
+      throw new Error("Trying to set " + pref + " to a very old time: " +
+                      date + ". The current time is " + new Date() +
+                      ". Is the system clock wrong?");
+    }
+
+    branch.set(pref, "" + date.getTime());
+  },
 };
 
 XPCOMUtils.defineLazyGetter(CommonUtils, "_utf8Converter", function() {
