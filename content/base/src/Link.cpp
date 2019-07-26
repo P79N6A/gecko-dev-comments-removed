@@ -101,7 +101,7 @@ Link::LinkState() const
         self->mRegistered = true;
 
         
-        doc->GetCurrentDoc()->AddStyleRelevantLink(self);
+        element->GetCurrentDoc()->AddStyleRelevantLink(self);
       }
     }
   }
