@@ -6,54 +6,43 @@
 #ifndef mozilla_dom_WebVTTLoadListener_h
 #define mozilla_dom_WebVTTLoadListener_h
 
+#include "nsIWebVTTListener.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
-#include "nsIInterfaceRequestor.h"
 #include "nsAutoPtr.h"
-#include "nsAutoRef.h"
+#include "nsIInterfaceRequestor.h"
 #include "nsCycleCollectionParticipant.h"
+
+class nsIWebVTTParserWrapper;
 
 namespace mozilla {
 namespace dom {
 
 class HTMLTrackElement;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class WebVTTLoadListener MOZ_FINAL : public nsIStreamListener,
-                                     public nsIChannelEventSink,
-                                     public nsIInterfaceRequestor
+class WebVTTListener MOZ_FINAL : public nsIWebVTTListener,
+                                 public nsIStreamListener,
+                                 public nsIChannelEventSink,
+                                 public nsIInterfaceRequestor
 {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_NSIWEBVTTLISTENER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSICHANNELEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(WebVTTLoadListener,
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(WebVTTListener,
                                            nsIStreamListener)
 
 public:
-  WebVTTLoadListener(HTMLTrackElement* aElement);
-  ~WebVTTLoadListener();
+  WebVTTListener(HTMLTrackElement* aElement);
+  ~WebVTTListener();
 
   
-  
+
+
+
   nsresult LoadResource();
 
 private:
@@ -62,9 +51,8 @@ private:
                               uint32_t aCount, uint32_t* aWriteCount);
 
   nsRefPtr<HTMLTrackElement> mElement;
+  nsCOMPtr<nsIWebVTTParserWrapper> mParserWrapper;
 };
-
-
 
 } 
 } 
