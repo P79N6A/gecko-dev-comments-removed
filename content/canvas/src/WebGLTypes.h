@@ -7,6 +7,9 @@
 #define WEBGLTYPES_H_
 
 
+#include "GLTypes.h"
+
+
 
 typedef int64_t WebGLsizeiptr;
 typedef int64_t WebGLintptr;

@@ -297,18 +297,18 @@ public:
         return mCanvasElement;
     }
     GLsizei DrawingBufferWidth() const {
-        if (!IsContextStable())
+        if (IsContextLost())
             return 0;
         return mWidth;
     }
     GLsizei DrawingBufferHeight() const {
-        if (!IsContextStable())
+        if (IsContextLost())
             return 0;
         return mHeight;
     }
-        
+
     void GetContextAttributes(dom::Nullable<dom::WebGLContextAttributesInitializer>& retval);
-    bool IsContextLost() const { return !IsContextStable(); }
+    bool IsContextLost() const { return mContextStatus != ContextNotLost; }
     void GetSupportedExtensions(JSContext *cx, dom::Nullable< nsTArray<nsString> > &retval);
     JSObject* GetExtension(JSContext* cx, const nsAString& aName, ErrorResult& rv);
     void ActiveTexture(GLenum texture);
@@ -320,7 +320,7 @@ public:
     void BindTexture(GLenum target, WebGLTexture *tex);
     void BindVertexArray(WebGLVertexArray *vao);
     void BlendColor(GLclampf r, GLclampf g, GLclampf b, GLclampf a) {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fBlendColor(r, g, b, a);
@@ -371,13 +371,13 @@ public:
     void DetachShader(WebGLProgram *program, WebGLShader *shader);
     void DrawBuffers(const dom::Sequence<GLenum>& buffers);
     void Flush() {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fFlush();
     }
     void Finish() {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fFinish();
@@ -446,7 +446,7 @@ public:
     bool IsTexture(WebGLTexture *tex);
     bool IsVertexArray(WebGLVertexArray *vao);
     void LineWidth(GLfloat width) {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fLineWidth(width);
@@ -454,7 +454,7 @@ public:
     void LinkProgram(WebGLProgram *program);
     void PixelStorei(GLenum pname, GLint param);
     void PolygonOffset(GLfloat factor, GLfloat units) {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fPolygonOffset(factor, units);
@@ -466,7 +466,7 @@ public:
     void RenderbufferStorage(GLenum target, GLenum internalformat,
                              GLsizei width, GLsizei height);
     void SampleCoverage(GLclampf value, WebGLboolean invert) {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         MakeContextCurrent();
         gl->fSampleCoverage(value, invert);
@@ -497,7 +497,7 @@ public:
                     GLenum internalformat, GLenum format, GLenum type,
                     ElementType& elt, ErrorResult& rv)
     {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         nsRefPtr<gfxImageSurface> isurf;
         WebGLTexelFormat srcFormat;
@@ -536,7 +536,7 @@ public:
                        GLint xoffset, GLint yoffset, GLenum format,
                        GLenum type, ElementType& elt, ErrorResult& rv)
     {
-        if (!IsContextStable())
+        if (IsContextLost())
             return;
         nsRefPtr<gfxImageSurface> isurf;
         WebGLTexelFormat srcFormat;
@@ -947,9 +947,10 @@ protected:
     
     
     
+    
     enum ContextStatus {
         
-        ContextStable,
+        ContextNotLost,
         
         
         ContextLostAwaitingEvent,
@@ -1139,9 +1140,6 @@ protected:
                              const GLvoid *data);
 
     void MaybeRestoreContext();
-    bool IsContextStable() const {
-        return mContextStatus == ContextStable;
-    }
     void ForceLoseContext();
     void ForceRestoreContext();
 
