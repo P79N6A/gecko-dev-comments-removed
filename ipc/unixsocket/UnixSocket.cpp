@@ -118,7 +118,8 @@ public:
 
   void PrepareRemoval()
   {
-    mConsumer.forget();
+    mTask = nullptr;
+    mCurrentTaskIsCanceled = true;
   }
 
   
@@ -229,6 +230,7 @@ private:
 static void
 DestroyImpl(UnixSocketImpl* impl)
 {
+  MOZ_ASSERT(impl);
   delete impl;
 }
 
@@ -498,13 +500,15 @@ UnixSocketConsumer::CloseSocket()
   if (!mImpl) {
     return;
   }
+  UnixSocketImpl* impl = mImpl;
+  mImpl->mConsumer.forget();
+  mImpl = nullptr;
   
-  mImpl->PrepareRemoval();
   
   
   XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
                                    NewRunnableFunction(DestroyImpl,
-                                                       mImpl.forget()));
+                                                       impl));
 }
 
 void
