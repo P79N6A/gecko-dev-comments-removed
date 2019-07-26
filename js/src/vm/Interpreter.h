@@ -131,7 +131,7 @@ Invoke(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
 
 extern bool
 Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, Value *argv,
-       Value *rval);
+       MutableHandleValue rval);
 
 
 
@@ -139,7 +139,7 @@ Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, Valu
 
 extern bool
 InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, unsigned argc, Value *argv,
-                     Value *rval);
+                     MutableHandleValue rval);
 
 
 
