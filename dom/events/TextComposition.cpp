@@ -5,7 +5,6 @@
 
 
 #include "ContentEventHandler.h"
-#include "TextComposition.h"
 #include "nsContentUtils.h"
 #include "nsIContent.h"
 #include "nsIEditor.h"
@@ -14,6 +13,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/MiscEvents.h"
+#include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 
 using namespace mozilla::widget;
