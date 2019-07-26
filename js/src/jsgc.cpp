@@ -1502,11 +1502,9 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind)
 
 
 
-    Chunk *chunk = nullptr;
-
-    ArenaList *al = &arenaLists[thingKind];
     AutoLockGC maybeLock;
 
+    bool backgroundFinalizationIsRunning = false;
 #ifdef JS_THREADSAFE
     ArenaLists::BackgroundFinalizeState *bfs = &backgroundFinalizeState[thingKind];
     if (*bfs != BFS_DONE) {
@@ -1518,15 +1516,7 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind)
         JSRuntime *rt = zone->runtimeFromAnyThread();
         maybeLock.lock(rt);
         if (*bfs == BFS_RUN) {
-            JS_ASSERT(al->isCursorAtEnd());
-            chunk = rt->gc.pickChunk(zone);
-            if (!chunk) {
-                
-
-
-
-                return nullptr;
-            }
+            backgroundFinalizationIsRunning = true;
         } else if (*bfs == BFS_JUST_FINISHED) {
             
             *bfs = BFS_DONE;
@@ -1536,46 +1526,46 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind)
     }
 #endif 
 
-    if (!chunk) {
-        if (ArenaHeader *aheader = al->arenaAfterCursor()) {
-            
+    ArenaHeader *aheader;
+    ArenaList *al = &arenaLists[thingKind];
+    if (!backgroundFinalizationIsRunning && (aheader = al->arenaAfterCursor())) {
+        
 
 
 
 
 
-            JS_ASSERT(!aheader->isEmpty() || InParallelSection());
+        JS_ASSERT(!aheader->isEmpty() || InParallelSection());
 
-            al->moveCursorPast(aheader);
-
-            
-
-
-
-            FreeSpan firstFreeSpan = aheader->getFirstFreeSpan();
-            freeLists[thingKind].setHead(&firstFreeSpan);
-            aheader->setAsFullyUsed();
-            if (MOZ_UNLIKELY(zone->wasGCStarted())) {
-                if (zone->needsBarrier()) {
-                    aheader->allocatedDuringIncremental = true;
-                    zone->runtimeFromMainThread()->gc.marker.delayMarkingArena(aheader);
-                } else if (zone->isGCSweeping()) {
-                    PushArenaAllocatedDuringSweep(zone->runtimeFromMainThread(), aheader);
-                }
-            }
-            void *thing = freeLists[thingKind].allocate(Arena::thingSize(thingKind));
-            JS_ASSERT(thing);   
-            return thing;
-        }
+        al->moveCursorPast(aheader);
 
         
-        JSRuntime *rt = zone->runtimeFromAnyThread();
-        if (!maybeLock.locked())
-            maybeLock.lock(rt);
-        chunk = rt->gc.pickChunk(zone);
-        if (!chunk)
-            return nullptr;
+
+
+
+        FreeSpan firstFreeSpan = aheader->getFirstFreeSpan();
+        freeLists[thingKind].setHead(&firstFreeSpan);
+        aheader->setAsFullyUsed();
+        if (MOZ_UNLIKELY(zone->wasGCStarted())) {
+            if (zone->needsBarrier()) {
+                aheader->allocatedDuringIncremental = true;
+                zone->runtimeFromMainThread()->gc.marker.delayMarkingArena(aheader);
+            } else if (zone->isGCSweeping()) {
+                PushArenaAllocatedDuringSweep(zone->runtimeFromMainThread(), aheader);
+            }
+        }
+        void *thing = freeLists[thingKind].allocate(Arena::thingSize(thingKind));
+        JS_ASSERT(thing);   
+        return thing;
     }
+
+    
+    JSRuntime *rt = zone->runtimeFromAnyThread();
+    if (!maybeLock.locked())
+        maybeLock.lock(rt);
+    Chunk *chunk = rt->gc.pickChunk(zone);
+    if (!chunk)
+        return nullptr;
 
     
 
@@ -1587,7 +1577,7 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind)
 
 
     JS_ASSERT(al->isCursorAtEnd());
-    ArenaHeader *aheader = chunk->allocateArena(zone, thingKind);
+    aheader = chunk->allocateArena(zone, thingKind);
     if (!aheader)
         return nullptr;
 
