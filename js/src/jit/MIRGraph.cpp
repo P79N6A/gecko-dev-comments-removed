@@ -461,7 +461,9 @@ MBasicBlock::linkOsrValues(MStart *start)
             if (def->isOsrArgumentsObject())
                 def->toOsrArgumentsObject()->setResumePoint(res);
         } else {
-            JS_ASSERT(def->isOsrValue() || def->isGetArgumentsObjectArg() || def->isConstant());
+            JS_ASSERT(def->isOsrValue() || def->isGetArgumentsObjectArg() || def->isConstant() ||
+                      def->isParameter());
+
             
             
             JS_ASSERT_IF(def->isConstant(), def->toConstant()->value() == UndefinedValue());
@@ -470,6 +472,8 @@ MBasicBlock::linkOsrValues(MStart *start)
                 def->toOsrValue()->setResumePoint(res);
             else if (def->isGetArgumentsObjectArg())
                 def->toGetArgumentsObjectArg()->setResumePoint(res);
+            else if (def->isParameter())
+                def->toParameter()->setResumePoint(res);
         }
     }
 }

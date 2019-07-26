@@ -827,23 +827,17 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
 
 
 
-
-
-
-
 struct IonOsrTempData
 {
     void *jitcode;
-    uint8_t *stackFrame;
+    uint8_t *baselineFrame;
 };
 
 static IonOsrTempData *
 PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame,
                    HandleScript script, jsbytecode *pc, void *jitcode)
 {
-    
     size_t numLocalsAndStackVals = frame->numValueSlots();
-    size_t numFormalArgs = frame->isFunctionFrame() ? frame->numFormalArgs() : 0;
 
     
     
@@ -852,13 +846,11 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
     
     
     
-    
 
-    size_t stackFrameSpace = (sizeof(Value) * numLocalsAndStackVals) + sizeof(StackFrame)
-                           + (sizeof(Value) * (numFormalArgs + 1));
+    size_t frameSpace = sizeof(BaselineFrame) + sizeof(Value) * numLocalsAndStackVals;
     size_t ionOsrTempDataSpace = sizeof(IonOsrTempData);
 
-    size_t totalSpace = AlignBytes(stackFrameSpace, sizeof(Value)) +
+    size_t totalSpace = AlignBytes(frameSpace, sizeof(Value)) +
                         AlignBytes(ionOsrTempDataSpace, sizeof(Value));
 
     IonOsrTempData *info = (IonOsrTempData *)cx->runtime()->getIonRuntime(cx)->allocateOsrTempData(totalSpace);
@@ -869,44 +861,15 @@ PrepareOsrTempData(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
 
     info->jitcode = jitcode;
 
-    uint8_t *stackFrameStart = (uint8_t *)info + AlignBytes(ionOsrTempDataSpace, sizeof(Value));
-    info->stackFrame = stackFrameStart + (numFormalArgs * sizeof(Value)) + sizeof(Value);
+    
+    
+    
+    
+    
+    uint8_t *frameStart = (uint8_t *)info + AlignBytes(ionOsrTempDataSpace, sizeof(Value));
+    info->baselineFrame = frameStart + frameSpace;
 
-    
-    
-    
-
-    
-    memcpy(stackFrameStart, frame->argv() - 1, (numFormalArgs + 1) * sizeof(Value));
-
-    
-    uint8_t *stackFrame = info->stackFrame;
-    *((JSObject **) (stackFrame + StackFrame::offsetOfScopeChain())) = frame->scopeChain();
-    if (frame->script()->needsArgsObj()) {
-        JS_ASSERT(frame->hasArgsObj());
-        *((JSObject **) (stackFrame + StackFrame::offsetOfArgumentsObject())) = &frame->argsObj();
-    }
-    if (frame->isFunctionFrame()) {
-        
-        *((JSFunction **) (stackFrame + StackFrame::offsetOfExec())) = frame->fun();
-        *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) = StackFrame::FUNCTION;
-    } else {
-        *((JSScript **) (stackFrame + StackFrame::offsetOfExec())) = frame->script();
-        *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) = 0;
-    }
-
-    
-    if (frame->hasReturnValue()) {
-        *((uint32_t *) (stackFrame + StackFrame::offsetOfFlags())) |= StackFrame::HAS_RVAL;
-        *((Value *) (stackFrame + StackFrame::offsetOfReturnValue())) = *(frame->returnValue());
-    }
-
-    
-    
-    
-    Value *stackFrameLocalsStart = (Value *) (stackFrame + sizeof(StackFrame));
-    for (size_t i = 0; i < numLocalsAndStackVals; i++)
-        stackFrameLocalsStart[i] = *(frame->valueSlot(i));
+    memcpy(frameStart, (uint8_t *)frame - numLocalsAndStackVals * sizeof(Value), frameSpace);
 
     IonSpew(IonSpew_BaselineOSR, "Allocated IonOsrTempData at %p", (void *) info);
     IonSpew(IonSpew_BaselineOSR, "Jitcode is %p", info->jitcode);
@@ -1041,7 +1004,7 @@ ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, jitcode)), scratchReg);
-    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, stackFrame)), OsrFrameReg);
+    masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, baselineFrame)), OsrFrameReg);
     masm.jump(scratchReg);
 
     

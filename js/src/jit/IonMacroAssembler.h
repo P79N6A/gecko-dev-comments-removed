@@ -865,13 +865,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    
-    void performOsr();
-
-    
-    void maybeRemoveOsrFrame(Register scratch);
-
-    
     void generateBailoutTail(Register scratch, Register bailoutInfo);
 
     
