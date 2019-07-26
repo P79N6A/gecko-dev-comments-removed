@@ -96,7 +96,7 @@ nsMIMEInfoWin::LaunchWithFile(nsIFile* aFile)
         SHELLEXECUTEINFOW seinfo;
         memset(&seinfo, 0, sizeof(seinfo));
         seinfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-        seinfo.fMask  = NULL;
+        seinfo.fMask  = 0;
         seinfo.hwnd   = NULL;
         seinfo.lpVerb = NULL;
         seinfo.lpFile = rundll32Path;
@@ -708,7 +708,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
     
 
     
-
+    
     workingRegistryPath =
       NS_LITERAL_STRING("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\");
     workingRegistryPath += fileExtToUse;
@@ -746,7 +746,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
     
     
     
-
+    
     workingRegistryPath =
       NS_LITERAL_STRING("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\");
     workingRegistryPath += fileExtToUse;
@@ -821,7 +821,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
 
 
   
-
+  
 
   workingRegistryPath = NS_LITERAL_STRING("*\\OpenWithList");
 
