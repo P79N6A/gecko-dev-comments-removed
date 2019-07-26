@@ -33,7 +33,6 @@ log("\n\n======================= identity.js =======================\n\n");
 
 
 if (typeof kIdentityJSLoaded === 'undefined') {
-  const kReceivedIdentityAssertion = "received-id-assertion";
   const kIdentityDelegateWatch = "identity-delegate-watch";
   const kIdentityDelegateRequest = "identity-delegate-request";
   const kIdentityDelegateLogout = "identity-delegate-logout";
@@ -66,33 +65,10 @@ function identityCall(message) {
 
 
 function closeIdentityDialog() {
-  let randomId = uuidgen.generateUUID().toString();
-  let id = kReceivedIdentityAssertion + "-" + randomId;
-  let browser = Services.wm.getMostRecentWindow("navigator:browser");
-
-  let detail = {
-    type: kReceivedIdentityAssertion,
-    id: id,
-    showUI: showUI
-  };
-
-  
-  
-  
-  content.addEventListener("mozContentEvent", function closeIdentityDialogFinished(evt) {
-    content.removeEventListener("mozContentEvent", closeIdentityDialogFinished);
-
-    if (evt.detail.id == id && aCallback) {
-      aCallback();
-    }
-  });
-
+  log('ready to close');
   
   func = null; options = null;
   sendAsyncMessage(kIdentityDelegateFinished);
-
-  
-  browser.shell.sendChromeEvent(detail);
 }
 
 
