@@ -4001,23 +4001,40 @@ mjit::Compiler::ionCompileHelper()
     
     
     
+    
+    
+    
+    
+    
+    Jump last;
+
 #if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    Jump first = masm.branch32(Assembler::LessThan, AbsoluteAddress(useCountAddress),
-                               Imm32(minUses));
-    Jump second = masm.branch32(Assembler::Equal, AbsoluteAddress(ionScriptAddress),
-                                Imm32(0));
+    if (ion::js_IonOptions.parallelCompilation) {
+        Jump first = masm.branch32(Assembler::LessThan, AbsoluteAddress(useCountAddress),
+                                   Imm32(minUses));
+        last = masm.branch32(Assembler::Equal, AbsoluteAddress(ionScriptAddress),
+                             Imm32(0));
+        first.linkTo(masm.label(), &masm);
+    } else {
+        last = masm.branch32(Assembler::GreaterThanOrEqual, AbsoluteAddress(useCountAddress),
+                             Imm32(minUses));
+    }
 #else
     
     RegisterID reg = frame.allocReg();
     masm.move(ImmPtr(useCountAddress), reg);
-    Jump first = masm.branch32(Assembler::LessThan, Address(reg), Imm32(minUses));
-    masm.move(ImmPtr(ionScriptAddress), reg);
-    Jump second = masm.branchPtr(Assembler::Equal, Address(reg), ImmPtr(NULL));
+    if (ion::js_IonOptions.parallelCompilation) {
+        Jump first = masm.branch32(Assembler::LessThan, Address(reg), Imm32(minUses));
+        masm.move(ImmPtr(ionScriptAddress), reg);
+        last = masm.branchPtr(Assembler::Equal, Address(reg), ImmPtr(NULL));
+        first.linkTo(masm.label(), &masm);
+    } else {
+        last = masm.branch32(Assembler::GreaterThanOrEqual, Address(reg), Imm32(minUses));
+    }
     frame.freeReg(reg);
 #endif
-    first.linkTo(masm.label(), &masm);
 
-    stubcc.linkExit(second, Uses(0));
+    stubcc.linkExit(last, Uses(0));
     stubcc.leave();
 
     OOL_STUBCALL(stubs::TriggerIonCompile, REJOIN_RESUME);
