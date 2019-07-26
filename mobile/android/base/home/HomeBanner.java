@@ -60,6 +60,9 @@ public class HomeBanner extends LinearLayout
     private final ImageView mIconView;
 
     
+    private final float mHeight;
+
+    
     private OnDismissListener mOnDismissListener;
 
     public interface OnDismissListener {
@@ -77,6 +80,11 @@ public class HomeBanner extends LinearLayout
 
         mTextView = (EllipsisTextView) findViewById(R.id.text);
         mIconView = (ImageView) findViewById(R.id.icon);
+
+        mHeight = getResources().getDimensionPixelSize(R.dimen.home_banner_height);
+
+        
+        setEnabled(false);
     }
 
     @Override
@@ -93,7 +101,9 @@ public class HomeBanner extends LinearLayout
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                
                 HomeBanner.this.setVisibility(View.GONE);
+                HomeBanner.this.setEnabled(false);
 
                 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Dismiss", (String) getTag()));
@@ -110,6 +120,7 @@ public class HomeBanner extends LinearLayout
                 
                 
                 HomeBanner.this.setVisibility(View.GONE);
+                HomeBanner.this.setEnabled(false);
 
                 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Click", (String) getTag()));
@@ -159,15 +170,14 @@ public class HomeBanner extends LinearLayout
         final String iconURI = message.optString("iconURI");
 
         
+        if (TextUtils.isEmpty(id) || TextUtils.isEmpty(text)) {
+            return;
+        }
+
+        
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
             public void run() {
-                
-                if (TextUtils.isEmpty(id) || TextUtils.isEmpty(text)) {
-                    setVisibility(View.GONE);
-                    return;
-                }
-
                 
                 setTag(id);
                 mTextView.setOriginalText(Html.fromHtml(text));
@@ -184,8 +194,10 @@ public class HomeBanner extends LinearLayout
                     }
                 });
 
-                setVisibility(View.VISIBLE);
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomeBanner:Shown", id));
+
+                
+                setEnabled(true);
 
                 
                 if (mActive) {
@@ -204,7 +216,7 @@ public class HomeBanner extends LinearLayout
         mActive = active;
 
         
-        if (getVisibility() != View.VISIBLE) {
+        if (!isEnabled()) {
             return;
         }
 
@@ -215,12 +227,23 @@ public class HomeBanner extends LinearLayout
         }
     }
 
+    private void ensureVisible() {
+        
+        
+        if (getVisibility() == View.GONE) {
+            
+            ViewHelper.setTranslationY(this, mHeight);
+            setVisibility(View.VISIBLE);
+        }
+    }
+
     private void animateUp() {
         
-        
-        if (ViewHelper.getTranslationY(this) == 0 || mUserSwipedDown) {
+        if (mUserSwipedDown) {
             return;
         }
+
+        ensureVisible();
 
         final PropertyAnimator animator = new PropertyAnimator(100);
         animator.attach(this, Property.TRANSLATION_Y, 0);
@@ -228,20 +251,34 @@ public class HomeBanner extends LinearLayout
     }
 
     private void animateDown() {
-        
-        if (ViewHelper.getTranslationY(this) == getHeight()) {
+        if (ViewHelper.getTranslationY(this) == mHeight) {
+            
+            setVisibility(View.GONE);
             return;
         }
 
         final PropertyAnimator animator = new PropertyAnimator(100);
-        animator.attach(this, Property.TRANSLATION_Y, getHeight());
+        animator.attach(this, Property.TRANSLATION_Y, mHeight);
+        animator.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                
+                setVisibility(View.GONE);
+            }
+        });
         animator.start();
     }
 
     public void handleHomeTouch(MotionEvent event) {
-        if (!mActive || getVisibility() == GONE || mScrollingPages) {
+        if (!mActive || !isEnabled() || mScrollingPages) {
             return;
         }
+
+        ensureVisible();
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN: {
@@ -255,19 +292,18 @@ public class HomeBanner extends LinearLayout
                 final float delta = mTouchY - curY;
                 mSnapBannerToTop = delta <= 0.0f;
 
-                final float height = getHeight();
                 float newTranslationY = ViewHelper.getTranslationY(this) + delta;
 
                 
                 if (newTranslationY < 0.0f) {
                     newTranslationY = 0.0f;
-                } else if (newTranslationY > height) {
-                    newTranslationY = height;
+                } else if (newTranslationY > mHeight) {
+                    newTranslationY = mHeight;
                 }
 
                 
                 if (delta >= 10 || delta <= -10) {
-                    mUserSwipedDown = newTranslationY == height;
+                    mUserSwipedDown = (newTranslationY == mHeight);
                 }
 
                 ViewHelper.setTranslationY(this, newTranslationY);
@@ -278,15 +314,11 @@ public class HomeBanner extends LinearLayout
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
                 mTouchY = -1;
-                final float y = ViewHelper.getTranslationY(this);
-                final float height = getHeight();
-                if (y > 0.0f && y < height) {
-                    if (mSnapBannerToTop) {
-                        animateUp();
-                    } else {
-                        animateDown();
-                        mUserSwipedDown = true;
-                    }
+                if (mSnapBannerToTop) {
+                    animateUp();
+                } else {
+                    animateDown();
+                    mUserSwipedDown = true;
                 }
                 break;
             }
