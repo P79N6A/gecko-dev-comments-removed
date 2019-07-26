@@ -155,6 +155,10 @@ public:
 
   virtual void RenderLayer()
   {
+    if (GetMaskLayer()) {
+      ToClientLayer(GetMaskLayer())->RenderLayer();
+    }
+    
     
     
     if (UseIntermediateSurface()) {
