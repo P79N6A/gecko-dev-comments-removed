@@ -7,15 +7,19 @@
 #ifndef mozilla_dom_SourceBufferList_h_
 #define mozilla_dom_SourceBufferList_h_
 
-#include "AsyncEventRunner.h"
-#include "MediaSource.h"
 #include "SourceBuffer.h"
+#include "js/RootingAPI.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
+#include "nsCycleCollectionNoteChild.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDOMEventTargetHelper.h"
-#include "nsWrapperCache.h"
-#include "nscore.h"
+#include "nsISupports.h"
+#include "nsTArray.h"
+
+struct JSContext;
+class JSObject;
 
 namespace mozilla {
 
@@ -60,14 +64,14 @@ public:
   bool IsEmpty();
 
   
-  void DetachAndClear();
-
-  
   bool AnyUpdating();
 
   
   
   void Remove(double aStart, double aEnd, ErrorResult& aRv);
+
+  
+  void Ended();
 
 private:
   friend class AsyncEventRunner<SourceBufferList>;
@@ -79,5 +83,6 @@ private:
 };
 
 } 
+
 } 
 #endif 

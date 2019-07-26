@@ -68,6 +68,7 @@
 #include "nsHostObjectProtocolHandler.h"
 #include "mozilla/dom/MediaSource.h"
 #include "MediaMetadataManager.h"
+#include "MediaSourceDecoder.h"
 
 #include "AudioChannelService.h"
 
@@ -601,7 +602,7 @@ void HTMLMediaElement::AbortExistingLoads()
     EndSrcMediaStreamPlayback();
   }
   if (mMediaSource) {
-    mMediaSource->DetachElement();
+    mMediaSource->Detach();
     mMediaSource = nullptr;
   }
   if (mAudioStream) {
@@ -1135,16 +1136,15 @@ nsresult HTMLMediaElement::LoadResource()
       return rv;
     }
     mMediaSource = source.forget();
-    if (!mMediaSource->AttachElement(this)) {
-      
+    nsRefPtr<MediaSourceDecoder> decoder = new MediaSourceDecoder(this);
+    if (!mMediaSource->Attach(decoder)) {
       
       
       
       return NS_ERROR_FAILURE;
     }
-    
-    
-    
+    nsRefPtr<MediaResource> resource = new MediaSourceResource();
+    return FinishDecoderSetup(decoder, resource, nullptr, nullptr);
   }
 
   nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
@@ -1989,7 +1989,7 @@ HTMLMediaElement::~HTMLMediaElement()
     EndSrcMediaStreamPlayback();
   }
   if (mMediaSource) {
-    mMediaSource->DetachElement();
+    mMediaSource->Detach();
     mMediaSource = nullptr;
   }
 
