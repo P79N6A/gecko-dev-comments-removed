@@ -257,9 +257,7 @@ void
 ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
 {
   
-  GrallocTextureClientOGL* client =
-    static_cast<GrallocTextureClientOGL*>(aSource->GetTextureClient(nullptr));
-  sp<GraphicBuffer> graphicBuffer = client->GetGraphicBuffer();
+  sp<GraphicBuffer> graphicBuffer = aSource->GetGraphicBuffer();
 
   int pixelFormat = graphicBuffer->getPixelFormat();
   
