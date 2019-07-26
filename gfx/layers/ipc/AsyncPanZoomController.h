@@ -7,6 +7,7 @@
 #ifndef mozilla_layers_AsyncPanZoomController_h
 #define mozilla_layers_AsyncPanZoomController_h
 
+#include "CrossProcessMutex.h"
 #include "GeckoContentController.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
@@ -22,12 +23,20 @@
 #include "base/message_loop.h"
 
 namespace mozilla {
+
+namespace ipc {
+
+class SharedMemoryBasic;
+
+}
+
 namespace layers {
 
 struct ScrollableLayerGuid;
 class CompositorParent;
 class GestureEventListener;
 class ContainerLayer;
+class PCompositorParent;
 class ViewTransform;
 class APZCTreeManager;
 class AsyncPanZoomAnimation;
@@ -179,6 +188,14 @@ public:
 
 
   void SetCompositorParent(CompositorParent* aCompositorParent);
+
+  
+
+
+
+
+
+  void SetCrossProcessCompositorParent(PCompositorParent* aCrossProcessCompositorParent);
 
   
   
@@ -544,6 +561,7 @@ private:
 
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
+  PCompositorParent* mCrossProcessCompositorParent;
   TaskThrottler mPaintThrottler;
 
   
@@ -706,6 +724,9 @@ public:
 private:
   
 
+  const uint32_t mAPZCId;
+  
+
 
   ScreenRect mVisibleRect;
   
@@ -713,6 +734,20 @@ private:
   gfx3DMatrix mAncestorTransform;
   
   gfx3DMatrix mCSSTransform;
+
+  ipc::SharedMemoryBasic* mSharedFrameMetricsBuffer;
+  CrossProcessMutex* mSharedLock;
+  
+
+
+
+  void UpdateSharedCompositorFrameMetrics();
+  
+
+
+
+
+  void ShareCompositorFrameMetrics();
 };
 
 class AsyncPanZoomAnimation {

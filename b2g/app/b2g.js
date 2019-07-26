@@ -87,6 +87,15 @@ pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", false);
 
 
+
+
+#ifdef MOZ_WIDGET_COCOA
+pref("layers.progressive-paint", false);
+#else
+pref("layers.progressive-paint", false);
+#endif
+
+
 pref("browser.download.useDownloadDir", true);
 pref("browser.download.folderList", 1); 
 pref("browser.download.manager.showAlertOnComplete", false);
