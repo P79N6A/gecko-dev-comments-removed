@@ -579,8 +579,6 @@ public class BrowserSearch extends Fragment implements AdapterView.OnItemClickLi
 
                 row.updateFromCursor(c);
 
-                
-
                 return row;
             }
         }
