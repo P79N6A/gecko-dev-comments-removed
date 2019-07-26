@@ -41,6 +41,7 @@ class CodeGenerator : public CodeGeneratorSpecific
 
   public:
     CodeGenerator(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm = NULL);
+    ~CodeGenerator();
 
   public:
     bool generate();
@@ -260,6 +261,12 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitNameIC(OutOfLineUpdateCache *ool, NameIC *ic);
     bool visitCallsiteCloneIC(OutOfLineUpdateCache *ool, CallsiteCloneIC *ic);
 
+    IonScriptCounts *extractUnassociatedScriptCounts() {
+        IonScriptCounts *counts = unassociatedScriptCounts_;
+        unassociatedScriptCounts_ = NULL;  
+        return counts;
+    }
+
   private:
     bool addGetPropertyCache(LInstruction *ins, RegisterSet liveRegs, Register objReg,
                              PropertyName *name, TypedOrValueRegister output,
@@ -301,6 +308,9 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     
     bool emitStoreHoleCheck(Register elements, const LAllocation *index, LSnapshot *snapshot);
+
+    
+    IonScriptCounts *unassociatedScriptCounts_;
 };
 
 } 
