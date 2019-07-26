@@ -211,7 +211,9 @@ PreviewController.prototype = {
   get zoom() {
     
     
-    return this.winutils.screenPixelsPerCSSPixel;
+    
+    
+    return this.winutils.fullZoom;
   },
 
   
@@ -301,6 +303,12 @@ PreviewController.prototype = {
   },
 
   previewTabCallback: function (ctx) {
+    
+    
+    
+    let scale = this.winutils.screenPixelsPerCSSPixel / this.winutils.fullZoom;
+    ctx.save();
+    ctx.scale(scale, scale);
     let width = this.win.width;
     let height = this.win.height;
     
@@ -308,11 +316,20 @@ PreviewController.prototype = {
 
     
     
-    this.updateCanvasPreview();
+    
+    
+    
+    if (this.tab.hasAttribute("pending")) {
+      
+      
+      this.updateCanvasPreview();
 
-    let boxObject = this.linkedBrowser.boxObject;
-    ctx.translate(boxObject.x, boxObject.y);
-    ctx.drawImage(this.canvasPreview, 0, 0);
+      let boxObject = this.linkedBrowser.boxObject;
+      ctx.translate(boxObject.x, boxObject.y);
+      ctx.drawImage(this.canvasPreview, 0, 0);
+    }
+
+    ctx.restore();
   },
 
   drawThumbnail: function (ctx, width, height) {
