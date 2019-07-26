@@ -94,7 +94,6 @@ webidl_files = \
   Function.webidl \
   GainNode.webidl \
   Geolocation.webidl \
-  History.webidl \
   HTMLAnchorElement.webidl \
   HTMLAppletElement.webidl \
   HTMLAreaElement.webidl \
@@ -477,6 +476,7 @@ webidl_files += \
 ifdef MOZ_B2G_BT
 webidl_files += \
   BluetoothDeviceEvent.webidl \
+  BluetoothManager.webidl \
   BluetoothStatusChangedEvent.webidl \
   $(NULL)
 endif

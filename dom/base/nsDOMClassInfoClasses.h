@@ -5,6 +5,7 @@
 
 DOMCI_CLASS(Window)
 DOMCI_CLASS(Location)
+DOMCI_CLASS(History)
 DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 
@@ -136,7 +137,6 @@ DOMCI_CLASS(FMRadio)
 #endif
 
 #ifdef MOZ_B2G_BT
-DOMCI_CLASS(BluetoothManager)
 DOMCI_CLASS(BluetoothAdapter)
 DOMCI_CLASS(BluetoothDevice)
 #endif
