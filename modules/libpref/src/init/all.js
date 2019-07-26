@@ -152,6 +152,9 @@ pref("media.cache_size", 512000);
 
 pref("media.volume_scale", "1.0");
 
+
+pref("media.wakelock_timeout", 2000);
+
 #ifdef MOZ_WMF
 pref("media.windows-media-foundation.enabled", true);
 pref("media.windows-media-foundation.use-dxva", true);
