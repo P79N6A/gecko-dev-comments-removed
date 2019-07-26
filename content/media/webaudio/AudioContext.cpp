@@ -108,7 +108,7 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
 
-  if (aSampleRate != IdealAudioRate()) {
+  if (aSampleRate <= 0.0f) {
     
     aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     return nullptr;
