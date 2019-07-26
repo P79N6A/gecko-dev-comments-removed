@@ -500,10 +500,22 @@ var WifiManager = (function() {
   }
 
   function notifyStateChange(fields) {
+    
+    
+    
+    
+    if (manager.state === "COMPLETED" &&
+        fields.state !== "DISCONNECTED" &&
+        fields.state !== "INTERFACE_DISABLED" &&
+        fields.state !== "INACTIVE" &&
+        fields.state !== "SCANNING") {
+      return false;
+    }
     fields.prevState = manager.state;
     manager.state = fields.state;
 
     notify("statechange", fields);
+    return true;
   }
 
   function parseStatus(status, reconnected) {
@@ -744,8 +756,11 @@ var WifiManager = (function() {
       
       var bssid = eventData.split(" ")[4];
       var id = eventData.substr(eventData.indexOf("id=")).split(" ")[0];
-      notifyStateChange({ state: "CONNECTED", BSSID: bssid, id: id });
-      onconnected(false);
+
+      
+      
+      if (notifyStateChange({ state: "CONNECTED", BSSID: bssid, id: id }))
+        onconnected(false);
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-SCAN-RESULTS") === 0) {

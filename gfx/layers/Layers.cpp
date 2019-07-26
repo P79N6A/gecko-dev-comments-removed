@@ -468,7 +468,9 @@ ContainerLayer::DefaultComputeEffectiveTransforms(const gfx3DMatrix& aTransformT
 
 
 
-          if (clipRect && !clipRect->IsEmpty() && !child->GetVisibleRegion().IsEmpty()) {
+
+          if ((clipRect && !clipRect->IsEmpty() && !child->GetVisibleRegion().IsEmpty()) ||
+              child->GetMaskLayer()) {
             useIntermediateSurface = true;
             break;
           }

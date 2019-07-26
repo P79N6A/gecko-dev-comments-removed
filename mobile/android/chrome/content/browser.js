@@ -1415,6 +1415,12 @@ var SelectionHandler = {
       this.endSelection(data.x, data.y);
   },
 
+  notifySelectionChanged: function sh_notifySelectionChanged(aDoc, aSel, aReason) {
+    
+    if (aSel == "" && aReason == Ci.nsISelectionListener.NO_REASON)
+      this.endSelection();
+  },
+
   
   startSelection: function sh_startSelection(aElement, aX, aY) {
     
@@ -1461,9 +1467,11 @@ var SelectionHandler = {
     }
 
     
+    selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
+
+    
     this.cache = {};
     this.updateCacheForSelection();
-    this.updateCacheOffset();
 
     this.showHandles();
     this._active = true;
@@ -1471,9 +1479,8 @@ var SelectionHandler = {
 
   
   moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
-    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
     
-    
+
 
 
 
@@ -1491,15 +1498,14 @@ var SelectionHandler = {
 
     
     if (aIsStartHandle) {
-      this._start.style.left = aX + this.cache.offset.x + "px";
-      this._start.style.top = aY + this.cache.offset.y + "px";
+      this._start.style.left = aX + this._view.scrollX + "px";
+      this._start.style.top = aY + this._view.scrollY + "px";
     } else {
-      this._end.style.left = aX + this.cache.offset.x + "px";
-      this._end.style.top = aY + this.cache.offset.y + "px";
+      this._end.style.left = aX + this._view.scrollX + "px";
+      this._end.style.top = aY + this._view.scrollY + "px";
     }
 
-    
-    let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let cwu = this._view.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
     
     
@@ -1578,6 +1584,10 @@ var SelectionHandler = {
 
   
   endSelection: function sh_endSelection(aX, aY) {
+    if (!this._active)
+      return;
+
+    this._active = false;
     this.hideHandles();
 
     let selectedText = "";
@@ -1586,6 +1596,7 @@ var SelectionHandler = {
       if (selection) {
         selectedText = selection.toString().trim();
         selection.removeAllRanges();
+        selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
       }
     }
 
@@ -1598,15 +1609,11 @@ var SelectionHandler = {
 
       
       if (element.ownerDocument.defaultView == this._view) {
-        let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-        let scrollX = {}, scrollY = {};
-        cwu.getScrollXY(false, scrollX, scrollY);
-
-        
-        let pointInSelection = (aX - this.cache.offset.x + scrollX.value > this.cache.rect.left &&
-                                aX - this.cache.offset.x + scrollX.value < this.cache.rect.right) &&
-                               (aY - this.cache.offset.y + scrollY.value > this.cache.rect.top &&
-                                aY - this.cache.offset.y + scrollY.value < this.cache.rect.bottom);
+        let offset = this._getViewOffset();
+        let pointInSelection = (aX - offset.x > this.cache.rect.left  &&
+                                aX - offset.x < this.cache.rect.right) &&
+                               (aY - offset.y > this.cache.rect.top &&
+                                aY - offset.y < this.cache.rect.bottom);
         if (pointInSelection) {
           let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
           clipboard.copyString(selectedText);
@@ -1618,7 +1625,22 @@ var SelectionHandler = {
     this._isRTL = false;
     this._view = null;
     this.cache = null;
-    this._active = false;
+  },
+
+  _getViewOffset: function sh_getViewOffset() {
+    let offset = { x: 0, y: 0 };
+    let win = this._view;
+
+    
+    while (win.frameElement) {
+      let rect = win.frameElement.getBoundingClientRect();
+      offset.x += rect.left;
+      offset.y += rect.top;
+
+      win = win.parent;
+    }
+
+    return offset;
   },
 
   
@@ -1644,38 +1666,14 @@ var SelectionHandler = {
     return selectionReversed;
   },
 
-  updateCacheOffset: function sh_updateCacheOffset() {
-    let offset = { x: 0, y: 0 };
-    let cwu = null, scrollX = {}, scrollY = {};
-    let win = this._view;
-
-    
-    
-    while (win) {
-      cwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      cwu.getScrollXY(false, scrollX, scrollY);
-
-      offset.x += scrollX.value;
-      offset.y += scrollY.value;
-
-      
-      if (!win.frameElement)
-        break;
-
-      win = win.frameElement.contentWindow;
-    }
-
-    this.cache.offset = offset;
-  },
-
   
   
   positionHandles: function sh_positionHandles() {
-    this._start.style.left = (this.cache.start.x + this.cache.offset.x - this.HANDLE_WIDTH - this.HANDLE_PADDING) + "px";
-    this._start.style.top = (this.cache.start.y + this.cache.offset.y - this.HANDLE_VERTICAL_OFFSET) + "px";
+    this._start.style.left = (this.cache.start.x + this._view.scrollX - this.HANDLE_WIDTH - this.HANDLE_PADDING) + "px";
+    this._start.style.top = (this.cache.start.y + this._view.scrollY - this.HANDLE_VERTICAL_OFFSET) + "px";
 
-    this._end.style.left = (this.cache.end.x + this.cache.offset.x - this.HANDLE_PADDING) + "px";
-    this._end.style.top = (this.cache.end.y + this.cache.offset.y - this.HANDLE_VERTICAL_OFFSET) + "px";
+    this._end.style.left = (this.cache.end.x + this._view.scrollX - this.HANDLE_PADDING) + "px";
+    this._end.style.top = (this.cache.end.y + this._view.scrollY - this.HANDLE_VERTICAL_OFFSET) + "px";
   },
 
   showHandles: function sh_showHandles() {
@@ -1731,9 +1729,6 @@ var SelectionHandler = {
     switch (aEvent.type) {
       case "touchstart":
         aEvent.preventDefault();
-
-        
-        this.updateCacheOffset();
 
         let touch = aEvent.changedTouches[0];
         this._touchId = touch.identifier;

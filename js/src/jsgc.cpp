@@ -891,6 +891,8 @@ MarkExactStackRoots(JSTracer *trc)
                         MarkStringRoot(trc, (JSString **)addr, "exact stackroot string");
                     } else if (i == THING_ROOT_ID) {
                         MarkIdRoot(trc, (jsid *)addr, "exact stackroot id");
+                    } else if (i == THING_ROOT_PROPERTY_ID) {
+                        MarkIdRoot(trc, ((PropertyId *)addr)->asId(), "exact stackroot property id");
                     } else if (i == THING_ROOT_VALUE) {
                         MarkValueRoot(trc, (Value *)addr, "exact stackroot value");
                     } else if (i == THING_ROOT_SHAPE) {
@@ -3222,7 +3224,6 @@ EndMarkPhase(JSRuntime *rt)
 
 
     if (foundBlackGray) {
-        JS_ASSERT(false);
         for (CompartmentsIter c(rt); !c.done(); c.next()) {
             if (!c->isCollecting())
                 c->arenas.unmarkAll();
@@ -3868,7 +3869,9 @@ ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason)
     
     
     
-    return !rt->hasContexts() || reason == gcreason::CC_FORCED || reason == gcreason::DEBUG_MODE_GC;
+    return !rt->hasContexts() ||
+           reason == gcreason::SHUTDOWN_CC ||
+           reason == gcreason::DEBUG_MODE_GC;
 }
 
 static void
@@ -3887,7 +3890,7 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
 #ifdef JS_GC_ZEAL
     bool restartVerify = rt->gcVerifyData &&
                          rt->gcZeal() == ZealVerifierValue &&
-                         reason != gcreason::CC_FORCED &&
+                         reason != gcreason::SHUTDOWN_CC &&
                          rt->hasContexts();
 
     struct AutoVerifyBarriers {

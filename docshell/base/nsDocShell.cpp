@@ -9859,17 +9859,6 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
     } 
 
-    nsCOMPtr<nsISHistory> sessionHistory = mSessionHistory;
-    if (!sessionHistory) {
-        
-        GetRootSessionHistory(getter_AddRefs(sessionHistory));
-    }
-    NS_ENSURE_TRUE(sessionHistory, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsISHistoryInternal> shInternal =
-        do_QueryInterface(sessionHistory, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
     
     
