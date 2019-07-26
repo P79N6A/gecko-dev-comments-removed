@@ -906,18 +906,50 @@ function defineProperty(o, p, v) {
 
 
 
+
+
 var internalsMap = new WeakMap();
 
 
 
 
 
+function initializeIntlObject(obj) {
+    assert(IsObject(obj), "Non-object passed to initializeIntlObject");
 
+    
+    
 
-function initializeIntlObject(o) {
-    assert(IsObject(o), "initializeIntlObject");
     var internals = std_Object_create(null);
-    callFunction(std_WeakMap_set, internalsMap, o, internals);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    internals.type = "partial";
+    internals.lazyData = null;
+    internals.internalProps = null;
+
+    callFunction(std_WeakMap_set, internalsMap, obj, internals);
     return internals;
 }
 
@@ -925,18 +957,67 @@ function initializeIntlObject(o) {
 
 
 
+function setLazyData(internals, type, lazyData)
+{
+    assert(internals.type === "partial", "can't set lazy data for anything but a newborn");
+    assert(type === "Collator" || type === "DateTimeFormat" || type == "NumberFormat", "bad type");
+    assert(IsObject(lazyData), "non-object lazy data");
 
-
-function isInitializedIntlObject(o) {
-    return callFunction(std_WeakMap_has, internalsMap, o);
+    
+    internals.lazyData = lazyData;
+    internals.type = type;
 }
 
 
 
 
 
-function getInternals(o) {
-    return callFunction(std_WeakMap_get, internalsMap, o);
+
+function setInternalProperties(internals, internalProps)
+{
+    assert(internals.type !== "partial", "newborn internals can't have computed internals");
+    assert(IsObject(internals.lazyData), "lazy data must exist already");
+    assert(IsObject(internalProps), "internalProps argument should be an object");
+
+    
+    internals.internalProps = internalProps;
+    internals.lazyData = null;
+}
+
+
+
+
+
+
+function maybeInternalProperties(internals)
+{
+    assert(IsObject(internals), "non-object passed to maybeInternalProperties");
+    assert(internals.type !== "partial", "maybeInternalProperties must only be used on completely-initialized internals objects");
+    var lazyData = internals.lazyData;
+    if (lazyData)
+        return null;
+    assert(IsObject(internals.internalProps), "missing lazy data and computed internals");
+    return internals.internalProps;
+}
+
+
+
+
+
+function isInitializedIntlObject(obj) {
+#ifdef DEBUG
+    var internals = callFunction(std_WeakMap_get, internalsMap, obj);
+    if (IsObject(internals)) {
+        assert(callFunction(std_Object_hasOwnProperty, internals, "type"), "missing type");
+        var type = internals.type;
+        assert(type === "partial" || type === "Collator" || type === "DateTimeFormat" || type === "NumberFormat", "unexpected type");
+        assert(callFunction(std_Object_hasOwnProperty, internals, "lazyData"), "missing lazyData");
+        assert(callFunction(std_Object_hasOwnProperty, internals, "internalProps"), "missing internalProps");
+    } else {
+        assert(internals === undefined, "bad mapping for |obj|");
+    }
+#endif
+    return callFunction(std_WeakMap_has, internalsMap, obj);
 }
 
 
@@ -950,13 +1031,46 @@ function getInternals(o) {
 
 
 
-function checkIntlAPIObject(o, className, methodName) {
-    assert(typeof className === "string", "checkIntlAPIObject");
-    var internals = getInternals(o);
-    if (internals === undefined || internals["initialized" + className] !== true)
+
+
+function getIntlObjectInternals(obj, className, methodName) {
+    assert(typeof className === "string", "bad className for getIntlObjectInternals");
+
+    var internals = callFunction(std_WeakMap_get, internalsMap, obj);
+    assert(internals === undefined || isInitializedIntlObject(obj), "bad mapping in internalsMap");
+
+    if (internals === undefined || internals.type !== className)
         ThrowError(JSMSG_INTL_OBJECT_NOT_INITED, className, methodName, className);
-    assert(IsObject(o), "checkIntlAPIObject");
+
     return internals;
+}
+
+
+
+
+
+
+function getInternals(obj)
+{
+    assert(isInitializedIntlObject(obj), "for use only on guaranteed Intl objects");
+
+    var internals = callFunction(std_WeakMap_get, internalsMap, obj);
+
+    assert(internals.type !== "partial", "must have been successfully initialized");
+    var lazyData = internals.lazyData;
+    if (!lazyData)
+        return internals.internalProps;
+
+    var internalProps;
+    var type = internals.type;
+    if (type === "Collator")
+        internalProps = resolveCollatorInternals(lazyData)
+    else if (type === "DateTimeFormat")
+        internalProps = resolveDateTimeFormatInternals(lazyData)
+    else
+        internalProps = resolveNumberFormatInternals(lazyData);
+    setInternalProperties(internals, internalProps);
+    return internalProps;
 }
 
 
@@ -978,63 +1092,23 @@ var collatorKeyMappings = {
 
 
 
+function resolveCollatorInternals(lazyCollatorData)
+{
+    assert(IsObject(lazyCollatorData), "lazy data not an object?");
 
-
-function InitializeCollator(collator, locales, options) {
-    assert(IsObject(collator), "InitializeCollator");
-
-    
-    if (isInitializedIntlObject(collator))
-        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+    var internalProps = std_Object_create(null);
 
     
-    var internals = initializeIntlObject(collator);
-
-    
-    var requestedLocales = CanonicalizeLocaleList(locales);
-
-    
-    if (options === undefined)
-        options = {};
-    else
-        options = ToObject(options);
-
-    
-    
-    var u = GetOption(options, "usage", "string", ["sort", "search"], "sort");
-    internals.usage = u;
+    internalProps.usage = lazyCollatorData.usage;
 
     
     var Collator = collatorInternalProperties;
 
     
-    var localeData = u === "sort" ? Collator.sortLocaleData : Collator.searchLocaleData;
-
-    
-    var opt = new Record();
-
-    
-    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
-    opt.localeMatcher = matcher;
-
-    
-    
-    var key, mapping, property, value;
-    for (key in collatorKeyMappings) {
-        if (callFunction(std_Object_hasOwnProperty, collatorKeyMappings, key)) {
-            mapping = collatorKeyMappings[key];
-
-            
-            value = GetOption(options, mapping.property, mapping.type, mapping.values, undefined);
-
-            
-            if (mapping.type === "boolean" && value !== undefined)
-                value = callFunction(std_Boolean_toString, value);
-
-            
-            opt[key] = value;
-        }
-    }
+    var collatorIsSorting = lazyCollatorData.usage === "sort";
+    var localeData = collatorIsSorting
+                     ? Collator.sortLocaleData
+                     : Collator.searchLocaleData;
 
     
     
@@ -1042,13 +1116,16 @@ function InitializeCollator(collator, locales, options) {
 
     
     var r = ResolveLocale(Collator.availableLocales(),
-                          requestedLocales, opt,
+                          lazyCollatorData.requestedLocales,
+                          lazyCollatorData.opt,
                           relevantExtensionKeys,
                           localeData);
-    
-    internals.locale = r.locale;
 
     
+    internalProps.locale = r.locale;
+
+    
+    var key, property, value, mapping;
     var i = 0, len = relevantExtensionKeys.length;
     while (i < len) {
         
@@ -1067,7 +1144,7 @@ function InitializeCollator(collator, locales, options) {
         }
 
         
-        internals[property] = value;
+        internalProps[property] = value;
 
         
         i++;
@@ -1075,10 +1152,9 @@ function InitializeCollator(collator, locales, options) {
 
     
     
-    var s = GetOption(options, "sensitivity", "string",
-                      ["base", "accent", "case", "variant"], undefined);
+    var s = lazyCollatorData.rawSensitivity;
     if (s === undefined) {
-        if (u === "sort") {
+        if (collatorIsSorting) {
             
             s = "variant";
         } else {
@@ -1088,19 +1164,134 @@ function InitializeCollator(collator, locales, options) {
             s = dataLocaleData.sensitivity;
         }
     }
+    internalProps.sensitivity = s;
 
     
-    internals.sensitivity = s;
+    internalProps.ignorePunctuation = lazyCollatorData.ignorePunctuation;
+
+    
+    internalProps.boundFormat = undefined;
+
+    
+    
+    return internalProps;
+}
+
+
+
+
+
+
+function getCollatorInternals(obj, methodName) {
+    var internals = getIntlObjectInternals(obj, "Collator", methodName);
+    assert(internals.type === "Collator", "bad type escaped getIntlObjectInternals");
+
+    
+    var internalProps = maybeInternalProperties(internals);
+    if (internalProps)
+        return internalProps;
+
+    
+    internalProps = resolveCollatorInternals(internals.lazyData);
+    setInternalProperties(internals, internalProps);
+    return internalProps;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function InitializeCollator(collator, locales, options) {
+    assert(IsObject(collator), "InitializeCollator");
+
+    
+    if (isInitializedIntlObject(collator))
+        ThrowError(JSMSG_INTL_OBJECT_REINITED);
+
+    
+    var internals = initializeIntlObject(collator);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var lazyCollatorData = std_Object_create(null);
+
+    
+    var requestedLocales = CanonicalizeLocaleList(locales);
+    lazyCollatorData.requestedLocales = requestedLocales;
+
+    
+    
+    
+    
+    
+    
+    
+    if (options === undefined)
+        options = {};
+    else
+        options = ToObject(options);
+
+    
+    
+    var u = GetOption(options, "usage", "string", ["sort", "search"], "sort");
+    lazyCollatorData.usage = u;
+
+    
+    var opt = new Record();
+    lazyCollatorData.opt = opt;
+
+    
+    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
+    opt.localeMatcher = matcher;
+
+    
+    var numericValue = GetOption(options, "numeric", "boolean", undefined, undefined);
+    if (numericValue !== undefined)
+        numericValue = callFunction(std_Boolean_toString, numericValue);
+    opt.kn = numericValue;
+
+    var caseFirstValue = GetOption(options, "caseFirst", "string", ["upper", "lower", "false"], undefined);
+    opt.kf = caseFirstValue;
+
+    
+    
+    var s = GetOption(options, "sensitivity", "string",
+                      ["base", "accent", "case", "variant"], undefined);
+    lazyCollatorData.rawSensitivity = s;
 
     
     var ip = GetOption(options, "ignorePunctuation", "boolean", undefined, false);
-    internals.ignorePunctuation = ip;
+    lazyCollatorData.ignorePunctuation = ip;
 
     
-    internals.boundFormat = undefined;
-
     
-    internals.initializedCollator = true;
+    
+    
+    setLazyData(internals, "Collator", lazyCollatorData);
 }
 
 
@@ -1189,7 +1380,7 @@ function collatorCompareToBind(x, y) {
 
 function Intl_Collator_compare_get() {
     
-    var internals = checkIntlAPIObject(this, "Collator", "compare");
+    var internals = getCollatorInternals(this, "compare");
 
     
     if (internals.boundCompare === undefined) {
@@ -1213,7 +1404,7 @@ function Intl_Collator_compare_get() {
 
 function Intl_Collator_resolvedOptions() {
     
-    var internals = checkIntlAPIObject(this, "Collator", "resolvedOptions");
+    var internals = getCollatorInternals(this, "resolvedOptions");
 
     var result = {
         locale: internals.locale,
@@ -1240,6 +1431,126 @@ function Intl_Collator_resolvedOptions() {
 
 
 
+var numberFormatInternalProperties = {
+    localeData: numberFormatLocaleData,
+    _availableLocales: null,
+    availableLocales: function()
+    {
+        var locales = this._availableLocales;
+        if (locales)
+            return locales;
+        return (this._availableLocales =
+          addOldStyleLanguageTags(intl_NumberFormat_availableLocales()));
+    },
+    relevantExtensionKeys: ["nu"]
+};
+
+
+
+
+
+function resolveNumberFormatInternals(lazyNumberFormatData) {
+    assert(IsObject(lazyNumberFormatData), "lazy data not an object?");
+
+    var internalProps = std_Object_create(null);
+
+    
+    var requestedLocales = lazyNumberFormatData.requestedLocales;
+
+    
+    
+    var opt = lazyNumberFormatData.opt;
+
+    
+    
+    var NumberFormat = numberFormatInternalProperties;
+
+    
+    var localeData = NumberFormat.localeData;
+
+    
+    var r = ResolveLocale(NumberFormat.availableLocales(),
+                          lazyNumberFormatData.requestedLocales,
+                          lazyNumberFormatData.opt,
+                          NumberFormat.relevantExtensionKeys,
+                          localeData);
+
+    
+    internalProps.locale = r.locale;
+    internalProps.numberingSystem = r.nu;
+
+    
+    
+    var s = lazyNumberFormatData.style;
+    internalProps.style = s;
+
+    
+    if (s === "currency") {
+        internalProps.currency = lazyNumberFormatData.currency;
+        internalProps.currencyDisplay = lazyNumberFormatData.currencyDisplay;
+    }
+
+    
+    internalProps.minimumIntegerDigits = lazyNumberFormatData.minimumIntegerDigits;
+
+    
+    internalProps.minimumFractionDigits = lazyNumberFormatData.minimumFractionDigits;
+
+    
+    internalProps.maximumFractionDigits = lazyNumberFormatData.maximumFractionDigits;
+
+    
+    if ("minimumSignificantDigits" in lazyNumberFormatData) {
+        
+        
+        assert("maximumSignificantDigits" in lazyNumberFormatData, "min/max sig digits mismatch");
+        internalProps.minimumSignificantDigits = lazyNumberFormatData.minimumSignificantDigits;
+        internalProps.maximumSignificantDigits = lazyNumberFormatData.maximumSignificantDigits;
+    }
+
+    
+    internalProps.useGrouping = lazyNumberFormatData.useGrouping;
+
+    
+    internalProps.boundFormat = undefined;
+
+    
+    
+    return internalProps;
+}
+
+
+
+
+
+
+function getNumberFormatInternals(obj, methodName) {
+    var internals = getIntlObjectInternals(obj, "NumberFormat", methodName);
+    assert(internals.type === "NumberFormat", "bad type escaped getIntlObjectInternals");
+
+    
+    var internalProps = maybeInternalProperties(internals);
+    if (internalProps)
+        return internalProps;
+
+    
+    internalProps = resolveNumberFormatInternals(internals.lazyData);
+    setInternalProperties(internals, internalProps);
+    return internalProps;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 function InitializeNumberFormat(numberFormat, locales, options) {
     assert(IsObject(numberFormat), "InitializeNumberFormat");
 
@@ -1251,8 +1562,46 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     var internals = initializeIntlObject(numberFormat);
 
     
-    var requestedLocales = CanonicalizeLocaleList(locales);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var lazyNumberFormatData = std_Object_create(null);
 
+    
+    var requestedLocales = CanonicalizeLocaleList(locales);
+    lazyNumberFormatData.requestedLocales = requestedLocales;
+
+    
+    
+    
+    
+    
+    
     
     if (options === undefined)
         options = {};
@@ -1262,6 +1611,7 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     
     
     var opt = new Record();
+    lazyNumberFormatData.opt = opt;
 
     
     var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
@@ -1269,26 +1619,8 @@ function InitializeNumberFormat(numberFormat, locales, options) {
 
     
     
-    var NumberFormat = numberFormatInternalProperties;
-
-    
-    var localeData = NumberFormat.localeData;
-
-    
-    var r = ResolveLocale(NumberFormat.availableLocales(),
-                          requestedLocales, opt,
-                          NumberFormat.relevantExtensionKeys,
-                          localeData);
-
-    
-    internals.locale = r.locale;
-    internals.numberingSystem = r.nu;
-    var dataLocale = r.dataLocale;
-
-    
-    
     var s = GetOption(options, "style", "string", ["decimal", "percent", "currency"], "decimal");
-    internals.style = s;
+    lazyNumberFormatData.style = s;
 
     
     var c = GetOption(options, "currency", "string", undefined, undefined);
@@ -1301,23 +1633,23 @@ function InitializeNumberFormat(numberFormat, locales, options) {
 
         
         c = toASCIIUpperCase(c);
-        internals.currency = c;
+        lazyNumberFormatData.currency = c;
         cDigits = CurrencyDigits(c);
     }
 
     
     var cd = GetOption(options, "currencyDisplay", "string", ["code", "symbol", "name"], "symbol");
     if (s === "currency")
-        internals.currencyDisplay = cd;
+        lazyNumberFormatData.currencyDisplay = cd;
 
     
     var mnid = GetNumberOption(options, "minimumIntegerDigits", 1, 21, 1);
-    internals.minimumIntegerDigits = mnid;
+    lazyNumberFormatData.minimumIntegerDigits = mnid;
 
     
     var mnfdDefault = (s === "currency") ? cDigits : 0;
     var mnfd = GetNumberOption(options, "minimumFractionDigits", 0, 20, mnfdDefault);
-    internals.minimumFractionDigits = mnfd;
+    lazyNumberFormatData.minimumFractionDigits = mnfd;
 
     
     var mxfdDefault;
@@ -1328,7 +1660,7 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     else
         mxfdDefault = std_Math_max(mnfd, 3);
     var mxfd = GetNumberOption(options, "maximumFractionDigits", mnfd, 20, mxfdDefault);
-    internals.maximumFractionDigits = mxfd;
+    lazyNumberFormatData.maximumFractionDigits = mxfd;
 
     
     var mnsd = options.minimumSignificantDigits;
@@ -1338,21 +1670,19 @@ function InitializeNumberFormat(numberFormat, locales, options) {
     if (mnsd !== undefined || mxsd !== undefined) {
         mnsd = GetNumberOption(options, "minimumSignificantDigits", 1, 21, 1);
         mxsd = GetNumberOption(options, "maximumSignificantDigits", mnsd, 21, 21);
-        internals.minimumSignificantDigits = mnsd;
-        internals.maximumSignificantDigits = mxsd;
+        lazyNumberFormatData.minimumSignificantDigits = mnsd;
+        lazyNumberFormatData.maximumSignificantDigits = mxsd;
     }
 
     
     var g = GetOption(options, "useGrouping", "boolean", undefined, true);
-    internals.useGrouping = g;
+    lazyNumberFormatData.useGrouping = g;
 
     
-
     
-    internals.boundFormat = undefined;
-
     
-    internals.initializedNumberFormat = true;
+    
+    setLazyData(internals, "NumberFormat", lazyNumberFormatData);
 }
 
 
@@ -1424,26 +1754,6 @@ function Intl_NumberFormat_supportedLocalesOf(locales ) {
 }
 
 
-
-
-
-
-
-var numberFormatInternalProperties = {
-    localeData: numberFormatLocaleData,
-    _availableLocales: null,
-    availableLocales: function()
-    {
-        var locales = this._availableLocales;
-        if (locales)
-            return locales;
-        return (this._availableLocales =
-          addOldStyleLanguageTags(intl_NumberFormat_availableLocales()));
-    },
-    relevantExtensionKeys: ["nu"]
-};
-
-
 function getNumberingSystems(locale) {
     
     
@@ -1502,7 +1812,7 @@ function numberFormatFormatToBind(value) {
 
 function Intl_NumberFormat_format_get() {
     
-    var internals = checkIntlAPIObject(this, "NumberFormat", "format");
+    var internals = getNumberFormatInternals(this, "format");
 
     
     if (internals.boundFormat === undefined) {
@@ -1525,7 +1835,7 @@ function Intl_NumberFormat_format_get() {
 
 function Intl_NumberFormat_resolvedOptions() {
     
-    var internals = checkIntlAPIObject(this, "NumberFormat", "resolvedOptions");
+    var internals = getNumberFormatInternals(this, "resolvedOptions");
 
     var result = {
         locale: internals.locale,
@@ -1557,6 +1867,104 @@ function Intl_NumberFormat_resolvedOptions() {
 
 
 
+function resolveDateTimeFormatInternals(lazyDateTimeFormatData) {
+    assert(IsObject(lazyDateTimeFormatData), "lazy data not an object?");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    var internalProps = std_Object_create(null);
+
+    
+    
+    var DateTimeFormat = dateTimeFormatInternalProperties;
+
+    
+    var localeData = DateTimeFormat.localeData;
+
+    
+    var r = ResolveLocale(DateTimeFormat.availableLocales(),
+                          lazyDateTimeFormatData.requestedLocales,
+                          lazyDateTimeFormatData.localeOpt,
+                          DateTimeFormat.relevantExtensionKeys,
+                          localeData);
+
+    
+    internalProps.locale = r.locale;
+    internalProps.calendar = r.ca;
+    internalProps.numberingSystem = r.nu;
+
+    
+    
+    var dataLocale = r.dataLocale;
+
+    
+    internalProps.timeZone = lazyDateTimeFormatData.timeZone;
+
+    
+    var formatOpt = lazyDateTimeFormatData.formatOpt;
+
+    
+    var pattern = toBestICUPattern(dataLocale, formatOpt);
+
+    
+    internalProps.pattern = pattern;
+
+    
+    internalProps.boundFormat = undefined;
+
+    
+    
+    return internalProps;
+}
+
+
+
+
+
+
+function getDateTimeFormatInternals(obj, methodName) {
+    var internals = getIntlObjectInternals(obj, "DateTimeFormat", methodName);
+    assert(internals.type === "DateTimeFormat", "bad type escaped getIntlObjectInternals");
+
+    
+    var internalProps = maybeInternalProperties(internals);
+    if (internalProps)
+        return internalProps;
+
+    
+    internalProps = resolveDateTimeFormatInternals(internals.lazyData);
+    setInternalProperties(internals, internalProps);
+    return internalProps;
+}
+
+
+
+
 
 
 var dateTimeComponentValues = {
@@ -1580,6 +1988,12 @@ var dateTimeComponents = std_Object_getOwnPropertyNames(dateTimeComponentValues)
 
 
 
+
+
+
+
+
+
 function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     assert(IsObject(dateTimeFormat), "InitializeDateTimeFormat");
 
@@ -1591,40 +2005,50 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     var internals = initializeIntlObject(dateTimeFormat);
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var lazyDateTimeFormatData = std_Object_create(null);
+
+    
     var requestedLocales = CanonicalizeLocaleList(locales);
+    lazyDateTimeFormatData.requestedLocales = requestedLocales;
 
     
     options = ToDateTimeOptions(options, "any", "date");
 
     
     
-    var opt = new Record();
+    var localeOpt = new Record();
+    lazyDateTimeFormatData.localeOpt = localeOpt;
 
     
-    var matcher = GetOption(options, "localeMatcher", "string", ["lookup", "best fit"], "best fit");
-    opt.localeMatcher = matcher;
-
-    
-    
-    var DateTimeFormat = dateTimeFormatInternalProperties;
-
-    
-    var localeData = DateTimeFormat.localeData;
-
-    
-    var r = ResolveLocale(DateTimeFormat.availableLocales(),
-                          requestedLocales, opt,
-                          DateTimeFormat.relevantExtensionKeys,
-                          localeData);
-
-    
-    internals.locale = r.locale;
-    internals.calendar = r.ca;
-    internals.numberingSystem = r.nu;
-
-    
-    
-    var dataLocale = r.dataLocale;
+    var localeMatcher =
+        GetOption(options, "localeMatcher", "string", ["lookup", "best fit"],
+                  "best fit");
+    localeOpt.localeMatcher = localeMatcher;
 
     
     var tz = options.timeZone;
@@ -1633,23 +2057,31 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
         if (tz !== "UTC")
             ThrowError(JSMSG_INVALID_TIME_ZONE, tz);
     }
-    internals.timeZone = tz;
+    lazyDateTimeFormatData.timeZone = tz;
 
     
-    opt = new Record();
+    var formatOpt = new Record();
+    lazyDateTimeFormatData.formatOpt = formatOpt;
 
     
     var i, prop;
     for (i = 0; i < dateTimeComponents.length; i++) {
         prop = dateTimeComponents[i];
         var value = GetOption(options, prop, "string", dateTimeComponentValues[prop], undefined);
-        opt[prop] = value;
+        formatOpt[prop] = value;
     }
 
     
 
     
-    matcher = GetOption(options, "formatMatcher", "string", ["basic", "best fit"], "best fit");
+    
+    
+    
+    
+    
+    var formatMatcher =
+        GetOption(options, "formatMatcher", "string", ["basic", "best fit"],
+                  "best fit");
 
     
 
@@ -1658,19 +2090,13 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
 
     
     if (hr12 !== undefined)
-        opt.hour12 = hr12;
+        formatOpt.hour12 = hr12;
 
     
-    var pattern = toBestICUPattern(dataLocale, opt);
-
     
-    internals.pattern = pattern;
-
     
-    internals.boundFormat = undefined;
-
     
-    internals.initializedDateTimeFormat = true;
+    setLazyData(internals, "DateTimeFormat", lazyDateTimeFormatData);
 }
 
 
@@ -2080,7 +2506,7 @@ function dateTimeFormatFormatToBind() {
 
 function Intl_DateTimeFormat_format_get() {
     
-    var internals = checkIntlAPIObject(this, "DateTimeFormat", "format");
+    var internals = getDateTimeFormatInternals(this, "format");
 
     
     if (internals.boundFormat === undefined) {
@@ -2104,7 +2530,7 @@ function Intl_DateTimeFormat_format_get() {
 
 function Intl_DateTimeFormat_resolvedOptions() {
     
-    var internals = checkIntlAPIObject(this, "DateTimeFormat", "resolvedOptions");
+    var internals = getDateTimeFormatInternals(this, "resolvedOptions");
 
     var result = {
         locale: internals.locale,
