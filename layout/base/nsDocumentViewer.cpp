@@ -1094,7 +1094,7 @@ nsDocumentViewer::PermitUnload(bool aCallerClosesWindow, bool *aPermitUnload)
 
     
     nsCOMPtr<nsIDOMWindowUtils> utils = do_GetInterface(window);
-    bool dialogsWereEnabled;
+    bool dialogsWereEnabled = false;
     utils->AreDialogsEnabled(&dialogsWereEnabled);
     utils->DisableDialogs();
 
