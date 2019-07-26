@@ -207,12 +207,17 @@ SettingsListener.observe('devtools.debugger.remote-enabled', false, function(val
 #ifdef MOZ_WIDGET_GONK
   let enableAdb = value;
 
-  if (Services.prefs.getBoolPref('marionette.defaultPrefs.enabled')) {
-    
-    
-    
+  try {
+    if (Services.prefs.getBoolPref('marionette.defaultPrefs.enabled')) {
+      
+      
+      
 
-    enableAdb = true;
+      enableAdb = true;
+    }
+  } catch (e) {
+    
+    
   }
 
   
