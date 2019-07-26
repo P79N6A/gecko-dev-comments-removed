@@ -666,7 +666,6 @@ ScriptAnalysis::trackUseChain(const SSAValue &v)
 
 
 
-
 inline SSAUseChain *&
 ScriptAnalysis::useChain(const SSAValue &v)
 {
@@ -932,10 +931,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_CALLLOCAL:
           case JSOP_SETLOCAL:
             JS_ASSERT(GET_LOCALNO(pc) < script_->nfixed());
-            break;
-
-          case JSOP_PUSHBLOCKSCOPE:
-            localsAliasStack_ = true;
             break;
 
           default:
@@ -2296,13 +2291,6 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
     if (script_->bindingsAccessedDynamically())
         return false;
-
-    
-
-
-
-    if (localsAliasStack())
-        return true;
 
     unsigned pcOff = script_->pcToOffset(script_->argumentsBytecode());
 

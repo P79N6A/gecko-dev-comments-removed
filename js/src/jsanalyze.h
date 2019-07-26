@@ -60,7 +60,6 @@ class ScriptAnalysis
 
     
 
-    bool localsAliasStack_:1;
     bool canTrackVars:1;
     bool argumentsContentsObserved_:1;
 
@@ -79,12 +78,6 @@ class ScriptAnalysis
 
     MOZ_WARN_UNUSED_RESULT
     bool analyzeBytecode(JSContext *cx);
-
-    
-
-
-
-    bool localsAliasStack() { return localsAliasStack_; }
 
     bool isReachable(const jsbytecode *pc) { return maybeCode(pc); }
 
@@ -120,7 +113,6 @@ class ScriptAnalysis
     inline bool trackUseChain(const SSAValue &v);
 
     
-
 
 
     inline SSAUseChain *& useChain(const SSAValue &v);
