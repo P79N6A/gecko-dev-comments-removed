@@ -287,10 +287,27 @@ CustomizeMode.prototype = {
     }.bind(this)).then(null, ERROR);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _doTransition: function(aEntering) {
     let deferred = Promise.defer();
-
     let deck = this.document.getElementById("tab-view-deck");
+
     let customizeTransitionEnd = function(aEvent) {
       if (aEvent.originalTarget != deck || aEvent.propertyName != "padding-bottom") {
         return;
@@ -299,6 +316,10 @@ CustomizeMode.prototype = {
 
       if (!aEntering) {
         this.document.documentElement.removeAttribute("customize-exiting");
+        this.document.documentElement.removeAttribute("customizing");
+      } else {
+        this.document.documentElement.setAttribute("customize-entered", true);
+        this.document.documentElement.removeAttribute("customize-entering");
       }
       this.dispatchToolboxEvent("customization-transitionend", aEntering);
 
@@ -311,9 +332,10 @@ CustomizeMode.prototype = {
     }
     if (aEntering) {
       this.document.documentElement.setAttribute("customizing", true);
+      this.document.documentElement.setAttribute("customize-entering", true);
     } else {
       this.document.documentElement.setAttribute("customize-exiting", true);
-      this.document.documentElement.removeAttribute("customizing");
+      this.document.documentElement.removeAttribute("customize-entered");
     }
     return deferred.promise;
   },
