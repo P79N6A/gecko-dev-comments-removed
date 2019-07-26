@@ -584,7 +584,7 @@ public class GeckoAppShell
 
     
     public static void sendEventToGecko(GeckoEvent e) {
-        if (GeckoApp.checkLaunchState(GeckoApp.LaunchState.GeckoRunning)) {
+        if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             notifyGeckoOfEvent(e);
         } else {
             gPendingEvents.addLast(e);
@@ -793,7 +793,7 @@ public class GeckoAppShell
 
     static void onXreExit() {
         
-        GeckoApp.setLaunchState(GeckoApp.LaunchState.GeckoExiting);
+        GeckoThread.setLaunchState(GeckoThread.LaunchState.GeckoExiting);
         if (gRestartScheduled) {
             GeckoApp.mAppContext.doRestart();
         } else {
