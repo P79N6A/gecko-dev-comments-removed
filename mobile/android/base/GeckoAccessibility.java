@@ -44,6 +44,8 @@ public class GeckoAccessibility {
     private static JSONObject sEventMessage = null;
     private static AccessibilityNodeInfo sVirtualCursorNode = null;
 
+    
+    private static final int BRAILLE_CLICK_BASE_INDEX = -275000000;
     private static SelfBrailleClient sSelfBrailleClient = null;
 
     private static final HashSet<String> sServiceWhitelist =
@@ -340,10 +342,18 @@ public class GeckoAccessibility {
                             } else if (action == AccessibilityNodeInfo.ACTION_NEXT_AT_MOVEMENT_GRANULARITY &&
                                        virtualViewId == VIRTUAL_CURSOR_POSITION) {
                                 
+                                
                                 int granularity = arguments.getInt(AccessibilityNodeInfo.ACTION_ARGUMENT_MOVEMENT_GRANULARITY_INT);
                                 if (granularity < 0) {
+                                    int keyIndex = BRAILLE_CLICK_BASE_INDEX - granularity;
+                                    JSONObject activationData = new JSONObject();
+                                    try {
+                                        activationData.put("keyIndex", keyIndex);
+                                    } catch (JSONException e) {
+                                        return true;
+                                    }
                                     GeckoAppShell.
-                                        sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:ActivateObject", null));
+                                        sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:ActivateObject", activationData.toString()));
                                 } else {
                                     JSONObject movementData = new JSONObject();
                                     try {
