@@ -2520,15 +2520,36 @@ BaselineCompiler::emitCall()
     uint32_t argc = GET_ARGC(pc);
 
     frame.syncStack(0);
-    masm.mov(ImmWord(argc), R0.scratchReg());
+    masm.move32(Imm32(argc), R0.scratchReg());
 
     
-    ICCall_Fallback::Compiler stubCompiler(cx,  JSOp(*pc) == JSOP_NEW);
+    ICCall_Fallback::Compiler stubCompiler(cx,  JSOp(*pc) == JSOP_NEW,
+                                            false);
     if (!emitOpIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
     frame.popn(argc + 2);
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emitSpreadCall()
+{
+    JS_ASSERT(IsCallPC(pc));
+
+    frame.syncStack(0);
+    masm.move32(Imm32(1), R0.scratchReg());
+
+    
+    ICCall_Fallback::Compiler stubCompiler(cx,  JSOp(*pc) == JSOP_SPREADNEW,
+                                            true);
+    if (!emitOpIC(stubCompiler.getStub(&stubSpace_)))
+        return false;
+
+    
+    frame.popn(3);
     frame.push(R0);
     return true;
 }
@@ -2561,6 +2582,24 @@ bool
 BaselineCompiler::emit_JSOP_EVAL()
 {
     return emitCall();
+}
+
+bool
+BaselineCompiler::emit_JSOP_SPREADCALL()
+{
+    return emitSpreadCall();
+}
+
+bool
+BaselineCompiler::emit_JSOP_SPREADNEW()
+{
+    return emitSpreadCall();
+}
+
+bool
+BaselineCompiler::emit_JSOP_SPREADEVAL()
+{
+    return emitSpreadCall();
 }
 
 typedef bool (*ImplicitThisFn)(JSContext *, HandleObject, HandlePropertyName,

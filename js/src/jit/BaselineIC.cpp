@@ -8196,6 +8196,49 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, uint
     return true;
 }
 
+static bool
+DoSpreadCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, Value *vp,
+                     MutableHandleValue res)
+{
+    
+    DebugModeOSRVolatileStub<ICCall_Fallback *> stub(frame, stub_);
+
+    
+    AutoArrayRooter vpRoot(cx, 3, vp);
+
+    RootedScript script(cx, frame->script());
+    jsbytecode *pc = stub->icEntry()->pc(script);
+    FallbackICSpew(cx, stub, "SpreadCall(%s)", js_CodeName[JSOp(*pc)]);
+
+    RootedValue callee(cx, vp[0]);
+    RootedValue thisv(cx, vp[1]);
+    RootedValue arr(cx, vp[2]);
+
+    
+    if (cx->runtime()->spsProfiler.enabled() && frame->hasPushedSPSFrame())
+        cx->runtime()->spsProfiler.updatePC(script, pc);
+
+    if (!MaybeCloneFunctionAtCallsite(cx, &callee, script, pc))
+        return false;
+
+    if (!SpreadCallOperation(cx, script, pc, thisv, callee, arr, res))
+        return false;
+
+    
+    if (stub.invalid())
+        return true;
+
+    
+    ICTypeMonitor_Fallback *typeMonFbStub = stub->fallbackMonitorStub();
+    if (!typeMonFbStub->addMonitorStubForValue(cx, script, res))
+        return false;
+    
+    if (!stub->addMonitorStubForValue(cx, script, res))
+        return false;
+
+    return true;
+}
+
 void
 ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet regs, Register argcReg)
 {
@@ -8398,6 +8441,11 @@ typedef bool (*DoCallFallbackFn)(JSContext *, BaselineFrame *, ICCall_Fallback *
                                  uint32_t, Value *, MutableHandleValue);
 static const VMFunction DoCallFallbackInfo = FunctionInfo<DoCallFallbackFn>(DoCallFallback);
 
+typedef bool (*DoSpreadCallFallbackFn)(JSContext *, BaselineFrame *, ICCall_Fallback *,
+                                       Value *, MutableHandleValue);
+static const VMFunction DoSpreadCallFallbackInfo =
+    FunctionInfo<DoSpreadCallFallbackFn>(DoSpreadCallFallback);
+
 bool
 ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 {
@@ -8411,6 +8459,32 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     
 
     GeneralRegisterSet regs(availableGeneralRegs(0));
+
+    if (MOZ_UNLIKELY(isSpread_)) {
+        
+        
+        
+        masm.pushValue(Address(BaselineFrameReg, 0 * sizeof(Value) + STUB_FRAME_SIZE)); 
+        masm.pushValue(Address(BaselineFrameReg, 1 * sizeof(Value) + STUB_FRAME_SIZE)); 
+        masm.pushValue(Address(BaselineFrameReg, 2 * sizeof(Value) + STUB_FRAME_SIZE)); 
+
+        masm.push(BaselineStackReg);
+        masm.push(BaselineStubReg);
+
+        masm.loadPtr(Address(BaselineFrameReg, 0), R0.scratchReg());
+        masm.pushBaselineFramePtr(R0.scratchReg(), R0.scratchReg());
+
+        if (!callVM(DoSpreadCallFallbackInfo, masm))
+            return false;
+
+        leaveStubFrame(masm);
+        EmitReturnFromIC(masm);
+
+        
+        
+        return true;
+    }
+
     regs.take(R0.scratchReg()); 
 
     pushCallArguments(masm, regs, R0.scratchReg());
@@ -8474,6 +8548,9 @@ ICCall_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 bool
 ICCall_Fallback::Compiler::postGenerateStubCode(MacroAssembler &masm, Handle<JitCode *> code)
 {
+    if (MOZ_UNLIKELY(isSpread_))
+        return true;
+
     CodeOffsetLabel offset(returnOffset_);
     offset.fixup(&masm);
     cx->compartment()->jitCompartment()->initBaselineCallReturnAddr(code->raw() + offset.offset());
