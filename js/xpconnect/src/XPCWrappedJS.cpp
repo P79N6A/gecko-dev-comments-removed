@@ -273,7 +273,7 @@ CheckMainThreadOnly(nsXPCWrappedJS *aWrapper)
 
 
 nsresult
-nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
+nsXPCWrappedJS::GetNewOrUsed(JSContext* cx,
                              JSObject* aJSObj,
                              REFNSIID aIID,
                              nsISupports* aOuter,
@@ -284,7 +284,7 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
     nsXPCWrappedJS* root = nullptr;
     nsXPCWrappedJS* wrapper = nullptr;
     nsXPCWrappedJSClass* clazz = nullptr;
-    XPCJSRuntime* rt = ccx.GetRuntime();
+    XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
     JSBool release_root = false;
 
     map = rt->GetWrappedJSMap();
@@ -293,13 +293,13 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         return NS_ERROR_FAILURE;
     }
 
-    nsXPCWrappedJSClass::GetNewOrUsed(ccx, aIID, &clazz);
+    nsXPCWrappedJSClass::GetNewOrUsed(cx, aIID, &clazz);
     if (!clazz)
         return NS_ERROR_FAILURE;
     
 
     
-    rootJSObj = clazz->GetRootJSObject(ccx, aJSObj);
+    rootJSObj = clazz->GetRootJSObject(cx, aJSObj);
     if (!rootJSObj)
         goto return_wrapper;
 
@@ -322,7 +322,7 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         
         if (rootJSObj == aJSObj) {
             
-            wrapper = root = new nsXPCWrappedJS(ccx, aJSObj, clazz, nullptr,
+            wrapper = root = new nsXPCWrappedJS(cx, aJSObj, clazz, nullptr,
                                                 aOuter);
             if (!root)
                 goto return_wrapper;
@@ -347,12 +347,12 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
         } else {
             
             nsXPCWrappedJSClass* rootClazz = nullptr;
-            nsXPCWrappedJSClass::GetNewOrUsed(ccx, NS_GET_IID(nsISupports),
+            nsXPCWrappedJSClass::GetNewOrUsed(cx, NS_GET_IID(nsISupports),
                                               &rootClazz);
             if (!rootClazz)
                 goto return_wrapper;
 
-            root = new nsXPCWrappedJS(ccx, rootJSObj, rootClazz, nullptr, aOuter);
+            root = new nsXPCWrappedJS(cx, rootJSObj, rootClazz, nullptr, aOuter);
             NS_RELEASE(rootClazz);
 
             if (!root)
@@ -383,7 +383,7 @@ nsXPCWrappedJS::GetNewOrUsed(XPCCallContext& ccx,
     NS_ASSERTION(clazz,"bad clazz");
 
     if (!wrapper) {
-        wrapper = new nsXPCWrappedJS(ccx, aJSObj, clazz, root, aOuter);
+        wrapper = new nsXPCWrappedJS(cx, aJSObj, clazz, root, aOuter);
         if (!wrapper)
             goto return_wrapper;
 #if DEBUG_xpc_leaks
@@ -409,7 +409,7 @@ return_wrapper:
     return NS_OK;
 }
 
-nsXPCWrappedJS::nsXPCWrappedJS(XPCCallContext& ccx,
+nsXPCWrappedJS::nsXPCWrappedJS(JSContext* cx,
                                JSObject* aJSObj,
                                nsXPCWrappedJSClass* aClass,
                                nsXPCWrappedJS* root,
