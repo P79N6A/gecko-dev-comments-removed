@@ -9,7 +9,6 @@
 #define Stack_h__
 
 #include "jsfun.h"
-#include "jsscript.h"
 #ifdef JS_ION
 #include "ion/IonFrameIterator.h"
 #endif
@@ -213,136 +212,18 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 
 
-class BaselineFrame;
-
-
-class AbstractFramePtr
-{
-    uintptr_t ptr_;
-
-  protected:
-    AbstractFramePtr()
-      : ptr_(0)
-    {}
-
-  public:
-    AbstractFramePtr(StackFrame *fp)
-        : ptr_(fp ? uintptr_t(fp) | 0x1 : 0)
-    {
-        JS_ASSERT((uintptr_t(fp) & 1) == 0);
-    }
-
-    AbstractFramePtr(BaselineFrame *fp)
-      : ptr_(uintptr_t(fp))
-    {
-        JS_ASSERT((uintptr_t(fp) & 1) == 0);
-    }
-
-    explicit AbstractFramePtr(JSAbstractFramePtr frame)
-        : ptr_(uintptr_t(frame.raw()))
-    {
-    }
-
-    bool isStackFrame() const {
-        return ptr_ & 0x1;
-    }
-
-    StackFrame *asStackFrame() const {
-        JS_ASSERT(isStackFrame());
-        StackFrame *res = (StackFrame *)(ptr_ & ~0x1);
-        JS_ASSERT(res);
-        return res;
-    }
-
-    void *raw() const { return reinterpret_cast<void *>(ptr_); }
-
-    bool operator ==(const AbstractFramePtr &other) const { return ptr_ == other.ptr_; }
-    bool operator !=(const AbstractFramePtr &other) const { return ptr_ != other.ptr_; }
-
-    operator bool() const { return !!ptr_; }
-
-    inline JSGenerator *maybeSuspendedGenerator(JSRuntime *rt) const;
-
-    inline RawObject scopeChain() const;
-    inline CallObject &callObj() const;
-    inline JSCompartment *compartment() const;
-
-    inline StaticBlockObject *maybeBlockChain() const;
-    inline bool hasCallObj() const;
-    inline bool isGeneratorFrame() const;
-    inline bool isYielding() const;
-    inline bool isFunctionFrame() const;
-    inline bool isGlobalFrame() const;
-    inline bool isEvalFrame() const;
-    inline bool isFramePushedByExecute() const;
-    inline bool isDebuggerFrame() const;
-
-    inline RawScript script() const;
-    inline JSFunction *fun() const;
-    inline JSFunction *maybeFun() const;
-    inline JSFunction &callee() const;
-    inline Value calleev() const;
-    inline Value &thisValue() const;
-
-    inline bool isNonEvalFunctionFrame() const;
-    inline bool isNonStrictDirectEvalFrame() const;
-    inline bool isStrictEvalFrame() const;
-
-    inline unsigned numActualArgs() const;
-    inline unsigned numFormalArgs() const;
-
-    inline Value *formals() const;
-    inline Value *actuals() const;
-
-    inline bool hasArgsObj() const;
-    inline ArgumentsObject &argsObj() const;
-    inline void initArgsObj(ArgumentsObject &argsobj) const;
-    inline bool useNewType() const;
-
-    inline bool copyRawFrameSlots(AutoValueVector *vec) const;
-
-    inline Value &unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-    inline Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-    inline Value &unaliasedFormal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-    inline Value &unaliasedActual(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
-
-    inline bool prevUpToDate() const;
-    inline void setPrevUpToDate() const;
-
-    JSObject *evalPrevScopeChain(JSRuntime *rt) const;
-
-    inline void *maybeHookData() const;
-    inline void setHookData(void *data) const;
-    inline Value returnValue() const;
-    inline void setReturnValue(const Value &rval) const;
-
-    inline void popBlock(JSContext *cx) const;
-    inline void popWith(JSContext *cx) const;
-};
-
-class NullFramePtr : public AbstractFramePtr
-{
-  public:
-    NullFramePtr()
-      : AbstractFramePtr()
-    { }
-};
-
-
-
 
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x20, 
-    INITIAL_LOWERED        =    0x40000  
+    INITIAL_LOWERED        =    0x80000  
 };
 
 enum ExecuteType {
     EXECUTE_GLOBAL         =        0x1, 
     EXECUTE_DIRECT_EVAL    =        0x4, 
     EXECUTE_INDIRECT_EVAL  =        0x5, 
-    EXECUTE_DEBUG          =        0xc, 
-    EXECUTE_DEBUG_GLOBAL   =        0xd  
+    EXECUTE_DEBUG          =        0xc  
 };
 
 
@@ -375,40 +256,36 @@ class StackFrame
 
         
         HAS_HOOK_DATA      =     0x1000,  
-        HAS_RVAL           =     0x2000,  
-        HAS_SCOPECHAIN     =     0x4000,  
-        HAS_PREVPC         =     0x8000,  
-        HAS_BLOCKCHAIN     =    0x10000,  
+        HAS_ANNOTATION     =     0x2000,  
+        HAS_RVAL           =     0x4000,  
+        HAS_SCOPECHAIN     =     0x8000,  
+        HAS_PREVPC         =    0x10000,  
+        HAS_BLOCKCHAIN     =    0x20000,  
 
         
-        DOWN_FRAMES_EXPANDED =  0x20000,  
-        LOWERED_CALL_APPLY   =  0x40000,  
+        DOWN_FRAMES_EXPANDED =  0x40000,  
+        LOWERED_CALL_APPLY   =  0x80000,  
 
         
-        PREV_UP_TO_DATE    =    0x80000,  
+        PREV_UP_TO_DATE    =   0x100000,  
 
         
-        HAS_PUSHED_SPS_FRAME = 0x100000,  
+        HAS_PUSHED_SPS_FRAME = 0x200000,  
 
         
-        RUNNING_IN_ION     =   0x200000,  
-        CALLING_INTO_ION   =   0x400000,  
-
-        JIT_REVISED_STACK  =   0x800000,  
-
-        
-        USE_NEW_TYPE       =  0x1000000   
+        RUNNING_IN_ION       = 0x400000,  
+        CALLING_INTO_ION     = 0x800000   
     };
 
   private:
     mutable uint32_t    flags_;         
     union {                             
-        RawScript       script;         
+        JSScript        *script;        
         JSFunction      *fun;           
     } exec;
     union {                             
         unsigned        nactual;        
-        RawScript       evalScript;     
+        JSScript        *evalScript;    
     } u;
     mutable JSObject    *scopeChain_;   
     StackFrame          *prev_;         
@@ -419,6 +296,7 @@ class StackFrame
     jsbytecode          *prevpc_;       
     InlinedSite         *prevInline_;   
     void                *hookData_;     
+    void                *annotation_;   
     FrameRejoinState    rejoin_;        
 
 
@@ -443,7 +321,6 @@ class StackFrame
     Value *base() const { return slots() + script()->nfixed; }
     Value *formals() const { return (Value *)this - fun()->nargs; }
     Value *actuals() const { return formals() - (flags_ & OVERFLOW_ARGS ? 2 + u.nactual : 0); }
-    unsigned nactual() const { return u.nactual; }
 
   private:
     friend class FrameRegs;
@@ -466,15 +343,14 @@ class StackFrame
 
     
     void initCallFrame(JSContext *cx, JSFunction &callee,
-                       RawScript script, uint32_t nactual, StackFrame::Flags flags);
+                       JSScript *script, uint32_t nactual, StackFrame::Flags flags);
 
     
     void initFixupFrame(StackFrame *prev, StackFrame::Flags flags, void *ncode, unsigned nactual);
 
     
-    void initExecuteFrame(RawScript script, StackFrame *prevLink, AbstractFramePtr prev,
-                          FrameRegs *regs, const Value &thisv, JSObject &scopeChain,
-                          ExecuteType type);
+    void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,
+                          const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
   public:
     
@@ -496,7 +372,10 @@ class StackFrame
 
 
 
-    bool prologue(JSContext *cx);
+
+
+
+    bool prologue(JSContext *cx, bool newType);
     void epilogue(JSContext *cx);
 
     
@@ -505,7 +384,7 @@ class StackFrame
 
     
     void initFromBailout(JSContext *cx, ion::SnapshotIterator &iter);
-    bool initFunctionScopeObjects(JSContext *cx);
+    bool initCallObject(JSContext *cx);
 
     
     void initVarsToUndefined();
@@ -553,11 +432,11 @@ class StackFrame
     }
 
     inline bool isStrictEvalFrame() const {
-        return isEvalFrame() && script()->strict;
+        return isEvalFrame() && script()->strictModeCode;
     }
 
     bool isNonStrictEvalFrame() const {
-        return isEvalFrame() && !script()->strict;
+        return isEvalFrame() && !script()->strictModeCode;
     }
 
     bool isDirectEvalFrame() const {
@@ -630,7 +509,7 @@ class StackFrame
     inline bool forEachCanonicalActualArg(Op op, unsigned start = 0, unsigned count = unsigned(-1));
     template <class Op> inline bool forEachFormalArg(Op op);
 
-    void cleanupTornValues();
+
 
     
 
@@ -711,6 +590,7 @@ class StackFrame
 
 
 
+
     void popWith(JSContext *cx);
 
     
@@ -728,11 +608,11 @@ class StackFrame
 
 
 
-    RawScript script() const {
+    js::Return<JSScript*> script() const {
         return isFunctionFrame()
                ? isEvalFrame()
                  ? u.evalScript
-                 : fun()->nonLazyScript()
+                 : (JSScript*)fun()->script().unsafeGet()
                : exec.script;
     }
 
@@ -784,6 +664,15 @@ class StackFrame
 
     JSFunction* maybeFun() const {
         return isFunctionFrame() ? fun() : NULL;
+    }
+
+    JSFunction* maybeScriptFunction() const {
+        if (!isFunctionFrame())
+            return NULL;
+        const StackFrame *fp = this;
+        while (fp->isEvalFrame())
+            fp = fp->prev();
+        return fp->script()->function();
     }
 
     
@@ -863,6 +752,17 @@ class StackFrame
 
 
     inline JSCompartment *compartment() const;
+
+    
+
+    void* annotation() const {
+        return (flags_ & HAS_ANNOTATION) ? annotation_ : NULL;
+    }
+
+    void setAnnotation(void *annot) {
+        flags_ |= HAS_ANNOTATION;
+        annotation_ = annot;
+    }
 
     
 
@@ -1054,15 +954,6 @@ class StackFrame
         return flags_ & HAS_ARGS_OBJ;
     }
 
-    void setUseNewType() {
-        JS_ASSERT(isConstructing());
-        flags_ |= USE_NEW_TYPE;
-    }
-    bool useNewType() const {
-        JS_ASSERT(isConstructing());
-        return flags_ & USE_NEW_TYPE;
-    }
-
     
 
 
@@ -1200,13 +1091,6 @@ class StackFrame
     void clearCallingIntoIon() {
         flags_ &= ~CALLING_INTO_ION;
     }
-
-    bool jitRevisedStack() const {
-        return !!(flags_ & JIT_REVISED_STACK);
-    }
-    void setJitRevisedStack() const {
-        flags_ |= JIT_REVISED_STACK;
-    }
 };
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);
@@ -1235,8 +1119,8 @@ InitialFrameFlagsAreLowered(InitialFrameFlags initial)
     return !!(initial & INITIAL_LOWERED);
 }
 
-inline AbstractFramePtr Valueify(JSAbstractFramePtr frame) { return AbstractFramePtr(frame); }
-static inline JSAbstractFramePtr Jsvalify(AbstractFramePtr frame)   { return JSAbstractFramePtr(frame.raw()); }
+inline StackFrame *          Valueify(JSStackFrame *fp) { return (StackFrame *)fp; }
+static inline JSStackFrame * Jsvalify(StackFrame *fp)   { return (JSStackFrame *)fp; }
 
 
 
@@ -1306,7 +1190,7 @@ class FrameRegs
     }
 
     
-    void prepareToRun(StackFrame &fp, RawScript script) {
+    void prepareToRun(StackFrame &fp, JSScript *script) {
         pc = script->code;
         sp = fp.slots() + script->nfixed;
         fp_ = &fp;
@@ -1314,7 +1198,8 @@ class FrameRegs
     }
 
     void setToEndOfScript() {
-        RawScript script = fp()->script();
+        AutoAssertNoGC nogc;
+        RawScript script = fp()->script().get(nogc);
         sp = fp()->base();
         pc = script->code + script->length - JSOP_STOP_LENGTH;
         JS_ASSERT(*pc == JSOP_STOP);
@@ -1339,8 +1224,6 @@ class FrameRegs
 
 class StackSegment
 {
-    JSContext *cx_;
-
     
     StackSegment *const prevInContext_;
 
@@ -1353,23 +1236,12 @@ class StackSegment
     
     CallArgsList *calls_;
 
-#if JS_BITS_PER_WORD == 32
-    
-
-
-
-  protected:
-    uint32_t padding_;
-#endif
-
   public:
-    StackSegment(JSContext *cx,
-                 StackSegment *prevInContext,
+    StackSegment(StackSegment *prevInContext,
                  StackSegment *prevInMemory,
                  FrameRegs *regs,
                  CallArgsList *calls)
-      : cx_(cx),
-        prevInContext_(prevInContext),
+      : prevInContext_(prevInContext),
         prevInMemory_(prevInMemory),
         regs_(regs),
         calls_(calls)
@@ -1419,10 +1291,6 @@ class StackSegment
 
     Value *maybeCallArgv() const {
         return calls_ ? calls_->array() : NULL;
-    }
-
-    JSContext *cx() const {
-        return cx_;
     }
 
     StackSegment *prevInContext() const {
@@ -1620,7 +1488,7 @@ class ContextStack
 
     inline StackFrame *
     getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
-                 JSFunction *fun, HandleScript script, StackFrame::Flags *pflags) const;
+                 JSFunction *fun, JSScript *script, StackFrame::Flags *pflags) const;
 
     
     void popSegment();
@@ -1651,6 +1519,14 @@ class ContextStack
 
 
     inline bool hasfp() const { return seg_ && seg_->maybeRegs(); }
+
+    
+
+
+
+
+
+    ptrdiff_t spIndexOf(const Value *vp);
 
     
 
@@ -1687,9 +1563,9 @@ class ContextStack
                          InitialFrameFlags initial, InvokeFrameGuard *ifg);
 
     
-    bool pushExecuteFrame(JSContext *cx, HandleScript script, const Value &thisv,
-                          HandleObject scopeChain, ExecuteType type,
-                          AbstractFramePtr evalInFrame, ExecuteFrameGuard *efg);
+    bool pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thisv,
+                          JSObject &scopeChain, ExecuteType type,
+                          StackFrame *evalInFrame, ExecuteFrameGuard *efg);
 
     
     bool pushBailoutArgs(JSContext *cx, const ion::IonBailoutIterator &it,
@@ -1713,11 +1589,11 @@ class ContextStack
 
 
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         HandleFunction callee, HandleScript script,
+                         JSFunction &callee, JSScript *script,
                          InitialFrameFlags initial,
                          MaybeReportError report = REPORT_ERROR);
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         HandleFunction callee, HandleScript script,
+                         JSFunction &callee, JSScript *script,
                          InitialFrameFlags initial, Value **stackLimit);
     void popInlineFrame(FrameRegs &regs);
 
@@ -1734,7 +1610,7 @@ class ContextStack
         DONT_ALLOW_CROSS_COMPARTMENT = false,
         ALLOW_CROSS_COMPARTMENT = true
     };
-    inline RawScript currentScript(jsbytecode **pc = NULL,
+    inline JSScript *currentScript(jsbytecode **pc = NULL,
                                    MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
     
@@ -1746,7 +1622,7 @@ class ContextStack
 
 
     StackFrame *getFixupFrame(JSContext *cx, MaybeReportError report,
-                              const CallArgs &args, JSFunction *fun, HandleScript script,
+                              const CallArgs &args, JSFunction *fun, JSScript *script,
                               void *ncode, InitialFrameFlags initial, Value **stackLimit);
 
     bool saveFrameChain();
@@ -1813,19 +1689,6 @@ class GeneratorFrameGuard : public FrameGuard
     ~GeneratorFrameGuard() { if (pushed()) stack_->popGeneratorFrame(*this); }
 };
 
-template <>
-struct DefaultHasher<AbstractFramePtr> {
-    typedef AbstractFramePtr Lookup;
-
-    static js::HashNumber hash(const Lookup &key) {
-        return size_t(key.raw());
-    }
-
-    static bool match(const AbstractFramePtr &k, const Lookup &l) {
-        return k == l;
-    }
-};
-
 
 
 
@@ -1848,46 +1711,29 @@ struct DefaultHasher<AbstractFramePtr> {
 
 class StackIter
 {
+    friend class ContextStack;
+    PerThreadData *perThread_;
+    JSContext    *maybecx_;
   public:
     enum SavedOption { STOP_AT_SAVED, GO_THROUGH_SAVED };
+  private:
+    SavedOption  savedOption_;
+
     enum State { DONE, SCRIPTED, NATIVE, ION };
 
-    
+    State        state_;
 
+    StackFrame   *fp_;
+    CallArgsList *calls_;
 
-
-    struct Data
-    {
-        PerThreadData *perThread_;
-        JSContext    *cx_;
-        SavedOption  savedOption_;
-
-        State        state_;
-
-        StackFrame   *fp_;
-        CallArgsList *calls_;
-
-        StackSegment *seg_;
-        jsbytecode   *pc_;
-        CallArgs      args_;
-
-        bool          poppedCallDuringSettle_;
+    StackSegment *seg_;
+    jsbytecode   *pc_;
+    RootedScript  script_;
+    CallArgs      args_;
 
 #ifdef JS_ION
-        ion::IonActivationIterator ionActivations_;
-        ion::IonFrameIterator ionFrames_;
-#endif
-
-        Data(JSContext *cx, PerThreadData *perThread, SavedOption savedOption);
-        Data(JSContext *cx, JSRuntime *rt, StackSegment *seg);
-        Data(const Data &other);
-    };
-
-    friend class ContextStack;
-    friend class ::JSBrokenFrameIterator;
-  private:
-    Data data_;
-#ifdef JS_ION
+    ion::IonActivationIterator ionActivations_;
+    ion::IonFrameIterator ionFrames_;
     ion::InlineFrameIterator ionInlineFrames_;
 #endif
 
@@ -1895,6 +1741,7 @@ class StackIter
     void popFrame();
     void popCall();
 #ifdef JS_ION
+    void nextIonFrame();
     void popIonFrame();
 #endif
     void settleOnNewSegment();
@@ -1905,62 +1752,40 @@ class StackIter
     StackIter(JSContext *cx, SavedOption = STOP_AT_SAVED);
     StackIter(JSRuntime *rt, StackSegment &seg);
     StackIter(const StackIter &iter);
-    StackIter(const Data &data);
 
-    bool done() const { return data_.state_ == DONE; }
+    bool done() const { return state_ == DONE; }
     StackIter &operator++();
-
-    Data *copyData() const;
 
     bool operator==(const StackIter &rhs) const;
     bool operator!=(const StackIter &rhs) const { return !(*this == rhs); }
 
     JSCompartment *compartment() const;
 
-    bool poppedCallDuringSettle() const { return data_.poppedCallDuringSettle_; }
-
     bool isScript() const {
         JS_ASSERT(!done());
 #ifdef JS_ION
-        if (data_.state_ == ION)
-            return data_.ionFrames_.isScripted();
+        if (state_ == ION)
+            return ionFrames_.isScripted();
 #endif
-        return data_.state_ == SCRIPTED;
-    }
-    RawScript script() const {
-        JS_ASSERT(isScript());
-        if (data_.state_ == SCRIPTED)
-            return interpFrame()->script();
-#ifdef JS_ION
-        JS_ASSERT(data_.state_ == ION);
-        return ionInlineFrames_.script();
-#else
-        return NULL;
-#endif
+        return state_ == SCRIPTED;
     }
     bool isIon() const {
         JS_ASSERT(!done());
-        return data_.state_ == ION;
+        return state_ == ION;
     }
     bool isNativeCall() const {
         JS_ASSERT(!done());
 #ifdef JS_ION
-        if (data_.state_ == ION)
-            return data_.ionFrames_.isNative();
+        if (state_ == ION)
+            return ionFrames_.isNative();
 #endif
-        return data_.state_ == NATIVE;
+        return state_ == NATIVE;
     }
 
     bool isFunctionFrame() const;
-    bool isGlobalFrame() const;
     bool isEvalFrame() const;
     bool isNonEvalFunctionFrame() const;
-    bool isGeneratorFrame() const;
     bool isConstructing() const;
-
-    bool hasArgs() const { return isNonEvalFunctionFrame(); }
-
-    AbstractFramePtr abstractFramePtr() const;
 
     
 
@@ -1968,28 +1793,19 @@ class StackIter
 
 
 
-    StackFrame *interpFrame() const { JS_ASSERT(isScript() && !isIon()); return data_.fp_; }
+    StackFrame *interpFrame() const { JS_ASSERT(isScript() && !isIon()); return fp_; }
 
-    jsbytecode *pc() const { JS_ASSERT(isScript()); return data_.pc_; }
-    void        updatePcQuadratic();
+    jsbytecode *pc() const { JS_ASSERT(isScript()); return pc_; }
+    js::Return<JSScript*> script() const { JS_ASSERT(isScript()); return script_; }
     JSFunction *callee() const;
     Value       calleev() const;
     unsigned    numActualArgs() const;
-    unsigned    numFormalArgs() const { return script()->function()->nargs; }
-    Value       unaliasedActual(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
 
     JSObject   *scopeChain() const;
-    CallObject &callObj() const;
-
-    bool        hasArgsObj() const;
-    ArgumentsObject &argsObj() const;
 
     
     bool        computeThis() const;
     Value       thisv() const;
-
-    Value       returnValue() const;
-    void        setReturnValue(const Value &v);
 
     JSFunction *maybeCallee() const {
         return isFunctionFrame() ? callee() : NULL;
@@ -1999,10 +1815,10 @@ class StackIter
     size_t      numFrameSlots() const;
     Value       frameSlotValue(size_t index) const;
 
-    CallArgs nativeArgs() const { JS_ASSERT(isNativeCall()); return data_.args_; }
+    CallArgs nativeArgs() const { JS_ASSERT(isNativeCall()); return args_; }
 
     template <class Op>
-    inline void ionForEachCanonicalActualArg(JSContext *cx, Op op);
+    inline void ionForEachCanonicalActualArg(Op op);
 };
 
 
@@ -2015,11 +1831,7 @@ class ScriptFrameIter : public StackIter
 
   public:
     ScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
-      : StackIter(cx, opt) { settle(); }
-
-    ScriptFrameIter(const StackIter::Data &data)
-      : StackIter(data)
-    {}
+        : StackIter(cx, opt) { settle(); }
 
     ScriptFrameIter &operator++() { StackIter::operator++(); settle(); return *this; }
 };
@@ -2028,17 +1840,13 @@ class ScriptFrameIter : public StackIter
 class NonBuiltinScriptFrameIter : public StackIter
 {
     void settle() {
-        while (!done() && (!isScript() || script()->selfHosted))
+        while (!done() && (!isScript() || (isFunctionFrame() && callee()->isSelfHostedBuiltin())))
             StackIter::operator++();
     }
 
   public:
     NonBuiltinScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
         : StackIter(cx, opt) { settle(); }
-
-    NonBuiltinScriptFrameIter(const StackIter::Data &data)
-      : StackIter(data)
-    {}
 
     NonBuiltinScriptFrameIter &operator++() { StackIter::operator++(); settle(); return *this; }
 };
@@ -2049,37 +1857,21 @@ class NonBuiltinScriptFrameIter : public StackIter
 
 
 
-
 class AllFramesIter
 {
   public:
-    AllFramesIter(JSRuntime *rt);
+    AllFramesIter(StackSpace &space);
 
-    bool done() const { return state_ == DONE; }
+    bool done() const { return fp_ == NULL; }
     AllFramesIter& operator++();
 
-    bool isIon() const { return state_ == ION; }
-    StackFrame *interpFrame() const { JS_ASSERT(state_ == SCRIPTED); return fp_; }
-    StackSegment *seg() const { return seg_; }
-
-    AbstractFramePtr abstractFramePtr() const;
+    bool        isIon() const { return fp_->runningInIon(); }
+    StackFrame *interpFrame() const { return fp_; }
 
   private:
-    enum State { DONE, SCRIPTED, ION };
-
-#ifdef JS_ION
-    void popIonFrame();
-#endif
-    void settleOnNewState();
-
+    void settle();
     StackSegment *seg_;
     StackFrame *fp_;
-    State state_;
-
-#ifdef JS_ION
-    ion::IonActivationIterator ionActivations_;
-    ion::IonFrameIterator ionFrames_;
-#endif
 };
 
 }  
