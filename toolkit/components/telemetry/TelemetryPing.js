@@ -804,6 +804,9 @@ TelemetryPing.prototype = {
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
     Services.obs.addObserver(this, "quit-application-granted", false);
     Services.obs.addObserver(this, "profile-before-change2", false);
+#ifdef MOZ_WIDGET_ANDROID
+    Services.obs.addObserver(this, "application-background", false);
+#endif
     Services.obs.addObserver(this, "xul-window-visible", false);
     this._hasWindowRestoredObserver = true;
     this._hasXulWindowVisibleObserver = true;
@@ -1023,6 +1026,9 @@ TelemetryPing.prototype = {
     }
     Services.obs.removeObserver(this, "quit-application-granted");
     Services.obs.removeObserver(this, "profile-before-change2");
+#ifdef MOZ_WIDGET_ANDROID
+    Services.obs.removeObserver(this, "application-background", false);
+#endif
   },
 
   getPayload: function getPayload() {
@@ -1139,6 +1145,30 @@ TelemetryPing.prototype = {
         this.savePing(ping, true);
       }
       break;
+
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    case "application-background":
+      if (Telemetry.canSend) {
+        let ping = this.getSessionPayloadAndSlug("saved-session");
+        this.savePing(ping, true);
+      }
+      break;
+#endif
     }
   },
 
