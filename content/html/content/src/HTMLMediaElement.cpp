@@ -2158,7 +2158,7 @@ bool HTMLMediaElement::ParseAttribute(int32_t aNamespaceID,
 
 bool HTMLMediaElement::CheckAudioChannelPermissions(const nsAString& aString)
 {
-#ifdef MOZ_B2G
+#ifdef ANDROID
   
   if (!aString.EqualsASCII("normal")) {
     nsCOMPtr<nsIPermissionManager> permissionManager =
@@ -3213,7 +3213,7 @@ void HTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspendE
 void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
   nsIDocument* ownerDoc = OwnerDoc();
-#ifdef MOZ_B2G
+#ifdef ANDROID
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
   if (domDoc) {
     bool hidden = false;
@@ -3653,7 +3653,7 @@ nsresult HTMLMediaElement::UpdateChannelMuteState(bool aCanPlay)
 {
   
   
-#ifdef MOZ_B2G
+#ifdef ANDROID
   
   if (!aCanPlay && !mChannelSuspended) {
     mChannelSuspended = true;
@@ -3672,7 +3672,7 @@ nsresult HTMLMediaElement::UpdateChannelMuteState(bool aCanPlay)
 void HTMLMediaElement::UpdateAudioChannelPlayingState()
 {
   
-#ifdef MOZ_B2G
+#ifdef ANDROID
   bool playingThroughTheAudioChannel =
      (!mPaused &&
       (HasAttr(kNameSpaceID_None, nsGkAtoms::loop) ||
