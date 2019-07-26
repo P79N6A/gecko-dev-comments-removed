@@ -1112,6 +1112,11 @@ protected:
 
   Decimal GetDefaultStep() const;
 
+  enum StepCallerType {
+    CALLED_FOR_USER_EVENT,
+    CALLED_FOR_SCRIPT
+  };
+
   
 
 
@@ -1124,7 +1129,9 @@ protected:
 
 
 
-  nsresult GetValueIfStepped(int32_t aStep, Decimal* aNextStep);
+  nsresult GetValueIfStepped(int32_t aStepCount,
+                             StepCallerType aCallerType,
+                             Decimal* aNextStep);
 
   
 
