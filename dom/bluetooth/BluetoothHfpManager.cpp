@@ -63,8 +63,8 @@ using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
 namespace {
-  StaticRefPtr<BluetoothHfpManager> gBluetoothHfpManager;
-  bool gInShutdown = false;
+  StaticRefPtr<BluetoothHfpManager> sBluetoothHfpManager;
+  bool sInShutdown = false;
   static const char kHfpCrlf[] = "\xd\xa";
 
   
@@ -232,11 +232,11 @@ class BluetoothHfpManager::RespondToBLDNTask : public Task
 private:
   void Run() MOZ_OVERRIDE
   {
-    MOZ_ASSERT(gBluetoothHfpManager);
+    MOZ_ASSERT(sBluetoothHfpManager);
 
-    if (!gBluetoothHfpManager->mDialingRequestProcessed) {
-      gBluetoothHfpManager->mDialingRequestProcessed = true;
-      gBluetoothHfpManager->SendLine("ERROR");
+    if (!sBluetoothHfpManager->mDialingRequestProcessed) {
+      sBluetoothHfpManager->mDialingRequestProcessed = true;
+      sBluetoothHfpManager->SendLine("ERROR");
     }
   }
 };
@@ -260,20 +260,20 @@ public:
       return;
     }
 
-    if (!gBluetoothHfpManager) {
+    if (!sBluetoothHfpManager) {
       NS_WARNING("BluetoothHfpManager no longer exists, cannot send ring!");
       return;
     }
 
     nsAutoCString ringMsg("RING");
-    gBluetoothHfpManager->SendLine(ringMsg.get());
+    sBluetoothHfpManager->SendLine(ringMsg.get());
 
     if (!mNumber.IsEmpty()) {
       nsAutoCString clipMsg("+CLIP: \"");
       clipMsg.Append(NS_ConvertUTF16toUTF8(mNumber).get());
       clipMsg.AppendLiteral("\",");
       clipMsg.AppendInt(mType);
-      gBluetoothHfpManager->SendLine(clipMsg.get());
+      sBluetoothHfpManager->SendLine(clipMsg.get());
     }
 
     MessageLoop::current()->
@@ -292,9 +292,9 @@ class BluetoothHfpManager::CloseScoTask : public Task
 private:
   void Run() MOZ_OVERRIDE
   {
-    MOZ_ASSERT(gBluetoothHfpManager);
+    MOZ_ASSERT(sBluetoothHfpManager);
 
-    gBluetoothHfpManager->DisconnectSco();
+    sBluetoothHfpManager->DisconnectSco();
   }
 };
 
@@ -435,12 +435,12 @@ BluetoothHfpManager::Get()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  if (gBluetoothHfpManager) {
-    return gBluetoothHfpManager;
+  if (sBluetoothHfpManager) {
+    return sBluetoothHfpManager;
   }
 
   
-  if (gInShutdown) {
+  if (sInShutdown) {
     NS_WARNING("BluetoothHfpManager can't be created during shutdown");
     return nullptr;
   }
@@ -449,8 +449,8 @@ BluetoothHfpManager::Get()
   BluetoothHfpManager* manager = new BluetoothHfpManager();
   NS_ENSURE_TRUE(manager->Init(), nullptr);
 
-  gBluetoothHfpManager = manager;
-  return gBluetoothHfpManager;
+  sBluetoothHfpManager = manager;
+  return sBluetoothHfpManager;
 }
 
 void
@@ -650,10 +650,10 @@ void
 BluetoothHfpManager::HandleShutdown()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  gInShutdown = true;
+  sInShutdown = true;
   Disconnect();
   DisconnectSco();
-  gBluetoothHfpManager = nullptr;
+  sBluetoothHfpManager = nullptr;
 }
 
 
@@ -1000,7 +1000,7 @@ BluetoothHfpManager::Connect(const nsAString& aDeviceAddress,
   MOZ_ASSERT(NS_IsMainThread());
 
   BluetoothService* bs = BluetoothService::Get();
-  if (!bs || gInShutdown) {
+  if (!bs || sInShutdown) {
     DispatchBluetoothReply(aRunnable, BluetoothValue(),
                            NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     return;
@@ -1057,7 +1057,7 @@ BluetoothHfpManager::Listen()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (gInShutdown) {
+  if (sInShutdown) {
     NS_WARNING("Listen called while in shutdown!");
     return false;
   }
@@ -1679,7 +1679,7 @@ BluetoothHfpManager::ConnectSco(BluetoothReplyRunnable* aRunnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (gInShutdown) {
+  if (sInShutdown) {
     NS_WARNING("ConnecteSco called while in shutdown!");
     return false;
   }
@@ -1732,7 +1732,7 @@ BluetoothHfpManager::ListenSco()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (gInShutdown) {
+  if (sInShutdown) {
     NS_WARNING("ListenSco called while in shutdown!");
     return false;
   }
