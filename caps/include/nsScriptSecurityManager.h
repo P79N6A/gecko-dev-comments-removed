@@ -106,8 +106,6 @@ private:
     nsScriptSecurityManager();
     virtual ~nsScriptSecurityManager();
 
-    bool SubjectIsPrivileged();
-
     
     static bool
     ContentSecurityPolicyPermitsJSAction(JSContext *cx);
