@@ -63,23 +63,11 @@ this.WapPushManager = {
       return;
     }
 
-    let appid = options.headers["x-wap-application-id"];
-    if (!appid) {
-      
-      debug("Push message doesn't contains X-Wap-Application-Id.");
-    }
-
     
-    if (appid == "x-wap-application:mms.ua") {
-      let mmsService = Cc["@mozilla.org/mms/rilmmsservice;1"]
-                       .getService(Ci.nsIMmsService);
-      mmsService.QueryInterface(Ci.nsIWapPushApplication)
-                .receiveWapPush(data.array, data.array.length, data.offset, options);
-      return;
-    }
-
+    
     
 
+    
 
 
 
@@ -95,8 +83,13 @@ this.WapPushManager = {
     let contentType = options.headers["content-type"].media;
     let msg;
     let authInfo = null;
-
-    if (contentType === "text/vnd.wap.si" ||
+    if (contentType === "application/vnd.wap.mms-message") {
+      let mmsService = Cc["@mozilla.org/mms/rilmmsservice;1"]
+                       .getService(Ci.nsIMmsService);
+      mmsService.QueryInterface(Ci.nsIWapPushApplication)
+                .receiveWapPush(data.array, data.array.length, data.offset, options);
+      return;
+    } else if (contentType === "text/vnd.wap.si" ||
         contentType === "application/vnd.wap.sic") {
       msg = SI.PduHelper.parse(data, contentType);
     } else if (contentType === "text/vnd.wap.sl" ||
