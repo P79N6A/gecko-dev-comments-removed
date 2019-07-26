@@ -1,0 +1,176 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _CPR_WIN_TYPES_H_
+#define _CPR_WIN_TYPES_H_
+
+#include <sys/types.h>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <windows.h>
+#ifdef SIPCC_BUILD
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windef.h>
+#endif
+#include <stddef.h>
+#include <stdlib.h>
+
+
+
+
+
+
+#ifdef _MSC_VER
+#define CPR_WIN32_SDK_MICROSOFT
+#endif
+#ifdef __GNUC__
+#define CPR_WIN32_SDK_MINGW
+#endif
+
+
+
+
+
+
+
+
+#if defined(CPR_WIN32_SDK_MINGW)
+#include <stdint.h>
+#elif defined(_MSC_VER) && defined(CPR_WIN32_SDK_MICROSOFT)
+typedef __int8  int8_t;
+typedef __int16 int16_t;
+typedef __int32 int32_t;
+typedef __int64 int64_t;
+typedef unsigned char  uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int64 uint64_t;
+#endif
+
+
+
+
+
+typedef uint8_t boolean;
+
+
+
+
+
+
+
+
+
+#ifndef _SSIZE_T_
+#define _SSIZE_T_
+typedef int ssize_t;
+#endif
+
+
+
+
+
+#ifndef MIN
+#define MIN min
+#endif
+
+#ifndef MAX
+#define MAX max
+#endif
+
+
+
+
+
+
+
+
+
+
+#ifndef NUL
+#define NUL '\0'
+#endif
+
+
+
+
+
+
+
+#if defined(_POSIX_C_SOURCE)
+#define RESTRICT restrict
+#else
+#define RESTRICT
+#endif
+
+
+
+
+#ifndef CONST
+#define CONST const
+#endif
+
+
+
+
+#ifdef __cplusplus
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS   }
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
+#endif
+
+
+#define MSG_ECHO_EVENT 0xF001
+
+
+
+
+
+#ifndef __cplusplus
+#include "iso646.h"
+#endif
+#define equals ==
+
+#endif

@@ -1,0 +1,197 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "ccapi_service.h"
+#include "cc_device_manager.h"
+#include "cc_service.h"
+#include "phone_debug.h"
+#include "CCProvider.h"
+#include "sessionConstants.h"
+#include "ccsip_messaging.h"
+#include "ccapp_task.h"
+#include "config_api.h"
+#include "ccapi_device.h"
+#include "ccapi_device_info.h"
+#include "cc_device_listener.h"
+#include "cc_service_listener.h"
+#include "plat_api.h"
+#include "util_string.h"
+
+int sendResetUpdates  = 0;         
+
+
+int g_dev_hdl;
+char g_dev_name[64];
+char g_cfg_p[256];
+int g_compl_cfg;
+
+
+extern void setState(); 
+extern void resetReady();
+extern void resetNotReady();
+extern void ccpro_handleserviceControlNotify();
+
+
+extern cc_srv_ctrl_cmd_t reset_type;
+boolean isServiceStartRequestPending = FALSE;
+cc_boolean is_action_to_be_deferred(cc_action_t action);
+extern cc_action_t pending_action_type; 
+cc_boolean parse_config_properties (int device_handle, const char *device_name, const char *cfg, int from_memory); 
+
+
+
+
+
+
+
+
+
+
+
+cc_return_t CCAPI_Service_create() {
+    CCAPP_ERROR("CCAPI_Service_create - calling CC_Service_create \n");
+
+    registration_processEvent(EV_CC_CREATE);
+    return (CC_SUCCESS);
+    
+}
+
+
+
+
+
+cc_return_t CCAPI_Service_destroy() {
+    CCAPP_ERROR("CCAPI_Service_destroy - calling CC_Service_destroy \n");
+    
+    if (is_action_to_be_deferred(STOP_ACTION) == TRUE) {
+        return CC_SUCCESS; 
+    }
+    
+    init_empty_str(g_cfg_p);
+    isServiceStartRequestPending = FALSE;
+    registration_processEvent(EV_CC_DESTROY);
+    return (CC_SUCCESS);
+}
+
+
+
+
+
+cc_return_t CCAPI_Service_start() {
+
+    if (isServiceStartRequestPending == TRUE) {
+        DEF_DEBUG("CCAPI_Service_start request is already pending. Ignoring this.\n");
+        return CC_SUCCESS;
+    }
+
+    DEF_DEBUG("CCAPI_Service_start - \n");
+    isServiceStartRequestPending = TRUE;
+    
+    registration_processEvent(EV_CC_START);
+
+    return (CC_SUCCESS);
+}
+
+
+
+
+
+cc_return_t CCAPI_Service_stop() {
+
+    CCAPP_ERROR("CCAPI_Service_stop - calling registration stop \n");
+    if (is_action_to_be_deferred(STOP_ACTION) == TRUE) {
+        return CC_SUCCESS; 
+    }
+    sendResetUpdates  = 0;         
+    isServiceStartRequestPending = FALSE;
+    registration_processEvent(EV_CC_STOP);
+    return CC_SUCCESS;
+}
+
+
+
+
+
+
+cc_return_t CCAPI_Service_reregister(int device_handle, const char *device_name,
+                             const char *cfg,
+                             int complete_config)
+{
+    CCAPP_ERROR("CCAPI_Service_reregister - initiate reregister \n");
+
+    if (is_action_to_be_deferred(RE_REGISTER_ACTION) == TRUE) {
+        return CC_SUCCESS; 
+    }
+    if (pending_action_type != NO_ACTION) {
+        CCAPP_ERROR("Reset/Restart is pending, reregister Ignored! \n");
+        return CC_FAILURE;
+    }
+    
+    if (is_empty_str((char*)cfg)) {
+        CCAPP_ERROR("Reregister request with empty config.  Exiting.\n");
+        return CC_FAILURE;    
+    }
+
+    g_dev_hdl = device_handle;
+    strncpy(g_dev_name, device_name, 64);
+    strncpy(g_cfg_p, cfg, 256);
+    CCAPP_DEBUG("CCAPI_Service_reregister - devce name [%s], cfg [%s] \n", g_dev_name, g_cfg_p);
+    g_compl_cfg  = complete_config;
+
+    if (parse_config_properties(g_dev_hdl, g_dev_name, g_cfg_p, g_compl_cfg) == TRUE) {
+        registration_processEvent(EV_CC_RE_REGISTER);
+    }
+    
+    return (CC_SUCCESS);
+}
+
+
+
+
+
+void CCAPI_Service_reset_request()  {
+    cc_deviceinfo_ref_t handle = 0;
+    sendResetUpdates  = 1;  
+    if (CCAPI_DeviceInfo_isPhoneIdle(handle) == TRUE) {
+        resetReady();
+    } else {
+        resetNotReady();
+    }
+
+}

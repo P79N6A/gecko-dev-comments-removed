@@ -1,0 +1,199 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _CC_SIPCC_SERVICE_H
+#define _CC_SIPCC_SERVICE_H
+
+#include "CC_Service.h"
+
+extern "C" {
+	
+    void configCtlFetchReq(int device_handle);
+    char* platGetIPAddr();
+#ifndef _WIN32
+    void platGetDefaultGW(char *addr);
+#endif
+  
+    void CCAPI_DeviceListener_onDeviceEvent(ccapi_device_event_e type, cc_device_handle_t hDevice, cc_deviceinfo_ref_t dev_info);
+    void CCAPI_DeviceListener_onFeatureEvent(ccapi_device_event_e type, cc_deviceinfo_ref_t , cc_featureinfo_ref_t feature_info);
+    void CCAPI_LineListener_onLineEvent(ccapi_line_event_e eventType, cc_lineid_t line, cc_lineinfo_ref_t info);
+    void CCAPI_CallListener_onCallEvent(ccapi_call_event_e eventType, cc_call_handle_t handle, cc_callinfo_ref_t info, char* sdp);
+}
+
+#include "VcmSIPCCBinding.h"
+#include "CSFAudioControlWrapper.h"
+#include "CSFVideoControlWrapper.h"
+#include "CSFMediaProvider.h"
+
+#include "base/lock.h"
+#include "base/waitable_event.h"
+
+#include <vector>
+#include <set>
+
+namespace CSF
+{
+    class PhoneConfig;
+	DECLARE_PTR(CC_SIPCCService);
+
+	class CC_SIPCCService : public CC_Service, public StreamObserver, public MediaProviderObserver
+    {
+	    friend void ::configCtlFetchReq(int device_handle);
+	    friend char* ::platGetIPAddr();
+#ifndef _WIN32
+      friend void ::platGetDefaultGW(char *addr);
+#endif
+      
+	public:
+	    CC_SIPCCService();
+	    virtual ~CC_SIPCCService();
+
+	    
+
+
+	    virtual void addCCObserver ( CC_Observer * observer );
+	    virtual void removeCCObserver ( CC_Observer * observer );
+
+	    virtual bool init(const std::string& user, const std::string& password, const std::string& domain, const std::string& deviceName);
+	    virtual void destroy();
+
+	    virtual void setConfig(const std::string& xmlConfig);
+	    virtual void setDeviceName(const std::string& deviceName);
+	    virtual void setLoggingMask(int mask);
+	    virtual void setLocalAddressAndGateway(const std::string& localAddress, const std::string& defaultGW);
+
+	    virtual bool startService();
+	    virtual void stop();
+
+	    virtual bool isStarted();
+
+	    virtual CC_DevicePtr getActiveDevice();
+	    virtual std::vector<CC_DevicePtr> getDevices();
+
+	    virtual AudioControlPtr getAudioControl();
+	    virtual VideoControlPtr getVideoControl();
+	    
+	    
+	    virtual void registerStream(cc_call_handle_t call, int streamId, bool isVideo);
+    	virtual void deregisterStream(cc_call_handle_t call, int streamId);
+    	virtual void dtmfBurst(int digit, int direction, int duration);
+    	virtual void sendIFrame(cc_call_handle_t call);
+
+		virtual void onVideoModeChanged( bool enable );
+		virtual void onKeyFrameRequested( int stream );
+		virtual void onMediaLost( int callId );
+		virtual void onMediaRestored( int callId );
+
+		virtual bool setLocalVoipPort(int port);
+		virtual bool setRemoteVoipPort(int port);
+		virtual bool setP2PMode(bool mode);
+		virtual bool setROAPProxyMode(bool mode);
+		virtual bool setROAPClientMode(bool mode);
+
+        
+
+
+
+    public:
+        
+        
+        
+        
+        
+        static void onDeviceEvent(ccapi_device_event_e type, cc_device_handle_t hDevice, cc_deviceinfo_ref_t dev_info);
+        static void onFeatureEvent(ccapi_device_event_e type, cc_deviceinfo_ref_t , cc_featureinfo_ref_t feature_info);
+        static void onLineEvent(ccapi_line_event_e eventType, cc_lineid_t line, cc_lineinfo_ref_t info);
+        static void onCallEvent(ccapi_call_event_e eventType, cc_call_handle_t handle, cc_callinfo_ref_t info, char* sdp);
+
+	private: 
+
+        
+        void notifyDeviceEventObservers  (ccapi_device_event_e deviceEvent, CC_DevicePtr devicePtr, CC_DeviceInfoPtr info);
+        void notifyFeatureEventObservers (ccapi_device_event_e deviceEvent, CC_DevicePtr devicePtr, CC_FeatureInfoPtr info);
+        void notifyCallEventObservers    (ccapi_call_event_e callEvent,     CC_CallPtr callPtr, CC_CallInfoPtr info, char* sdp);
+        void notifyLineEventObservers    (ccapi_line_event_e lineEvent,     CC_LinePtr linePtr, CC_LineInfoPtr info);
+
+        bool waitUntilSIPCCFullyStarted();
+        void signalToPhoneWhenInService (ccapi_device_event_e type, cc_deviceinfo_ref_t info);
+        void endAllActiveCalls();
+
+        void applyLoggingMask(int newMask);
+        void applyAudioVideoConfigSettings (PhoneConfig & phoneConfig);
+
+        bool isValidMediaPortRange(int mediaStartPort, int mediaEndPort);
+        bool isValidDSCPValue(int value);
+
+    private: 
+        
+        static CC_SIPCCService* _self;
+
+	    
+	    std::string xmlConfig;
+	    std::string deviceName;
+        cc_int32_t loggingMask;
+
+        
+        std::string localAddress;
+        std::string defaultGW;
+
+	    
+        bool bCreated;
+        bool bStarted;
+        Lock m_lock;
+        base::WaitableEvent sippStartedEvent;
+
+        
+        VcmSIPCCBinding vcmMediaBridge;
+
+        
+    	std::set<CC_Observer *> ccObservers;
+
+		
+		AudioControlWrapperPtr audioControlWrapper;
+		VideoControlWrapperPtr videoControlWrapper;
+
+		
+		bool bUseConfig;
+		std::string sipUser;
+		std::string sipPassword;
+		std::string sipDomain;
+    };
+}
+
+#endif

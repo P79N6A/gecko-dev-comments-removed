@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "CC_Common.h"
+
+#include "CC_SIPCCFeatureInfo.h"
+#include "CC_SIPCCDeviceInfo.h"
+
+extern "C"
+{
+#include "ccapi_device.h"
+#include "ccapi_feature_info.h"
+}
+
+using namespace std;
+using namespace CSF;
+
+#include "CSFLog.h"
+
+CSF_IMPLEMENT_WRAP(CC_SIPCCFeatureInfo, cc_featureinfo_ref_t);
+
+CC_SIPCCFeatureInfo::CC_SIPCCFeatureInfo (cc_featureinfo_ref_t featureinfo) : featureinfo_ref(featureinfo)
+{
+
+}
+
+CC_SIPCCFeatureInfo::~CC_SIPCCFeatureInfo()
+{
+
+}
+
+cc_int32_t CC_SIPCCFeatureInfo::getButton()
+{
+    return CCAPI_featureInfo_getButton(featureinfo_ref);
+}
+
+cc_int32_t CC_SIPCCFeatureInfo::getFeatureID()
+{
+    return CCAPI_featureInfo_getFeatureID(featureinfo_ref);
+}
+
+string CC_SIPCCFeatureInfo::getDisplayName()
+{
+    return CCAPI_featureInfo_getDisplayName(featureinfo_ref);
+}
+
+string CC_SIPCCFeatureInfo::getSpeedDialNumber()
+{
+    return CCAPI_featureInfo_getSpeedDialNumber(featureinfo_ref);
+}
+
+string CC_SIPCCFeatureInfo::getContact()
+{
+    return CCAPI_featureInfo_getContact(featureinfo_ref);
+}
+
+string CC_SIPCCFeatureInfo::getRetrievalPrefix()
+{
+    return CCAPI_featureInfo_getRetrievalPrefix(featureinfo_ref);
+}
+
+cc_int32_t CC_SIPCCFeatureInfo::getFeatureOptionMask()
+{
+    return CCAPI_featureInfo_getFeatureOptionMask(featureinfo_ref);
+}

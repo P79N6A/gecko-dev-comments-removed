@@ -1,0 +1,125 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _CC_SIPCC_CALLINFO_H
+#define _CC_SIPCC_CALLINFO_H
+
+#include "CC_CallInfo.h"
+#include "CC_SIPCCCall.h"
+
+#include "common/Wrapper.h"
+
+extern "C" {
+    void CCAPI_CallListener_onCallEvent(ccapi_call_event_e eventType, cc_call_handle_t handle, cc_callinfo_ref_t info, char* sdp);
+}
+
+namespace CSF
+{
+	DECLARE_PTR(CC_SIPCCCallInfo);
+    class CC_SIPCCCallInfo : public CC_CallInfo
+    {
+
+    private:
+    	cc_callinfo_ref_t callinfo_ref;
+
+        CC_SIPCCCallInfo (cc_callinfo_ref_t callinfo);
+
+        CSF_DECLARE_WRAP(CC_SIPCCCallInfo, cc_callinfo_ref_t);
+
+        CC_SIPCCCallMediaDataPtr  pMediaData;
+
+    public:
+        ~CC_SIPCCCallInfo ();
+
+        cc_call_state_t getCallState ();
+        bool getRingerState();
+
+        virtual cc_call_attr_t getCallAttr();
+
+        virtual CC_LinePtr getline ();
+
+        virtual cc_call_type_t getCallType();
+        virtual std::string getCalledPartyName();
+        virtual std::string getCalledPartyNumber();
+        virtual std::string getCallingPartyName();
+        virtual std::string getCallingPartyNumber();
+        virtual std::string getAlternateNumber();
+        virtual bool hasCapability (CC_CallCapabilityEnum::CC_CallCapability capability);
+        virtual std::set<CC_CallCapabilityEnum::CC_CallCapability> getCapabilitySet();
+        virtual std::string getOriginalCalledPartyName();
+        virtual std::string getOriginalCalledPartyNumber();
+        virtual std::string getLastRedirectingPartyName();
+        virtual std::string getLastRedirectingPartyNumber();
+        virtual std::string getPlacedCallPartyName();
+        virtual std::string getPlacedCallPartyNumber();
+        virtual cc_int32_t getCallInstance();
+        virtual std::string getStatus();
+        virtual cc_call_security_t getSecurity();
+        virtual cc_int32_t getSelectionStatus();
+        virtual std::string getGCID();
+        virtual bool getIsRingOnce();
+        virtual int getRingerMode();
+        virtual cc_int32_t  getOnhookReason();
+        virtual bool getIsConference();
+        virtual std::set<cc_int32_t> getStreamStatistics();
+        virtual bool isCallSelected();
+        virtual std::string getINFOPack();
+        virtual std::string getINFOType();
+        virtual std::string getINFOBody();
+        virtual cc_calllog_ref_t getCallLogRef();
+        virtual cc_sdp_direction_t getVideoDirection();
+        virtual int getVolume();
+        virtual bool isMediaStateAvailable();
+        virtual bool isAudioMuted();
+        virtual bool isVideoMuted();
+
+        virtual void setMediaData(CC_SIPCCCallMediaDataPtr  pMediaData);
+
+    private:
+        
+        
+        
+        void generateCapabilities();
+        std::set<CC_CallCapabilityEnum::CC_CallCapability> caps;
+        bool hasFeature(ccapi_call_capability_e cap);
+    };
+};
+
+
+#endif
