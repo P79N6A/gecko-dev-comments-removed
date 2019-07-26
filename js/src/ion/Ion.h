@@ -99,11 +99,6 @@ struct IonOptions
     
     
     
-    bool rangeAnalysis;
-
-    
-    
-    
     
     uint32 usesBeforeCompile;
 
@@ -158,7 +153,6 @@ struct IonOptions
         lsra(true),
         inlining(true),
         edgeCaseAnalysis(true),
-        rangeAnalysis(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
         usesBeforeInlining(usesBeforeCompile),
