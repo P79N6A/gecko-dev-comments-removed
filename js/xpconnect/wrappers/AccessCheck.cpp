@@ -228,6 +228,14 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapperArg, j
     RootedObject wrapper(cx, wrapperArg);
     RootedObject obj(cx, Wrapper::wrappedObject(wrapper));
 
+    
+    
+    
+    
+    
+    if (id == JSID_VOID)
+        return false;
+
     const char *name;
     js::Class *clasp = js::GetObjectClass(obj);
     NS_ASSERTION(Jsvalify(clasp) != &XrayUtils::HolderClass, "shouldn't have a holder here");
