@@ -243,11 +243,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     }
 
     
-    void Compact() {
-      mArray.Compact();
-    }
-
-    
     
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
       return mArray.SizeOfExcludingThis(mallocSizeOf);
@@ -352,45 +347,6 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
       private:
         ForwardIterator mEnd;
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    class BackwardIterator : protected Iterator {
-      public:
-        typedef nsAutoTObserverArray<T, N> array_type;
-        typedef Iterator                   base_type;
-
-        BackwardIterator(const array_type& aArray)
-          : Iterator(aArray.Length(), aArray) {
-        }
-
-        
-        
-        
-        bool HasMore() const {
-          return base_type::mPosition > 0;
-        }
-
-        
-        
-        
-        elem_type& GetNext() {
-          NS_ASSERTION(HasMore(), "iterating beyond start of array");
-          return base_type::mArray.ElementAt(--base_type::mPosition);
-        }
-
-        
-        
-        
-        void Remove() {
-          return base_type::mArray.RemoveElementAt(base_type::mPosition);
-        }
     };
 
   protected:
