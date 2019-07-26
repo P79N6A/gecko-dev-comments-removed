@@ -630,20 +630,21 @@ SocialProvider.prototype = {
   
   
   
-  _pageMarkInfo: null,
-  get pageMarkInfo() {
-    return this._pageMarkInfo;
+  _recommendInfo: null,
+  get recommendInfo() {
+    return this._recommendInfo;
   },
-  set pageMarkInfo(data) {
+  set recommendInfo(data) {
+    
     
     let promptImages = {};
     let promptMessages = {};
     function reportError(reason) {
-      Cu.reportError("Invalid page-mark data from provider: " + reason + ": marking is disabled for this provider");
+      Cu.reportError("Invalid recommend data from provider: " + reason + ": sharing is disabled for this provider");
       
       
-      this._pageMarkInfo = null;
-      Services.obs.notifyObservers(null, "social:page-mark-config", this.origin);
+      this._recommendInfo = null;
+      Services.obs.notifyObservers(null, "social:recommend-info-changed", this.origin);
     }
     if (!data ||
         !data.images || typeof data.images != "object" ||
@@ -651,10 +652,10 @@ SocialProvider.prototype = {
       reportError("data is missing valid 'images' or 'messages' elements");
       return;
     }
-    for (let sub of ["marked", "unmarked"]) {
+    for (let sub of ["share", "unshare"]) {
       let url = data.images[sub];
       if (!url || typeof url != "string" || url.length == 0) {
-        reportError('images["' + sub + '"] is not a valid string');
+        reportError('images["' + sub + '"] is missing or not a non-empty string');
         return;
       }
       
@@ -668,15 +669,19 @@ SocialProvider.prototype = {
       }
       promptImages[sub] = imgUri.spec;
     }
-    for (let sub of ["markedTooltip", "unmarkedTooltip", "markedLabel", "unmarkedLabel"]) {
+    for (let sub of ["shareTooltip", "unshareTooltip",
+                     "sharedLabel", "unsharedLabel", "unshareLabel",
+                     "portraitLabel",
+                     "unshareConfirmLabel", "unshareConfirmAccessKey",
+                     "unshareCancelLabel", "unshareCancelAccessKey"]) {
       if (typeof data.messages[sub] != "string" || data.messages[sub].length == 0) {
         reportError('messages["' + sub + '"] is not a valid string');
         return;
       }
       promptMessages[sub] = data.messages[sub];
     }
-    this._pageMarkInfo = {images: promptImages, messages: promptMessages};
-    Services.obs.notifyObservers(null, "social:page-mark-config", this.origin);
+    this._recommendInfo = {images: promptImages, messages: promptMessages};
+    Services.obs.notifyObservers(null, "social:recommend-info-changed", this.origin);
   },
 
   

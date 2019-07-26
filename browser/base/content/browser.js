@@ -3405,7 +3405,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
     URLBarSetURI();
     XULBrowserWindow.asyncUpdateUI();
     BookmarksMenuButton.updateStarState();
-    SocialMark.updateMarkState();
+    SocialShareButton.updateShareState();
   }
 
   TabsInTitlebar.allowedBy("customizing-toolbars", true);
@@ -3879,7 +3879,7 @@ var XULBrowserWindow = {
 
         
         BookmarksMenuButton.updateStarState();
-        SocialMark.updateMarkState();
+        SocialShareButton.updateShareState();
       }
 
       
