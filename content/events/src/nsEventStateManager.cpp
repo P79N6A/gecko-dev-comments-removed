@@ -4173,7 +4173,13 @@ GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
 
   int32_t innerHeight = 0;
   aWindow->GetInnerHeight(&innerHeight);
- 
+
+  
+  
+  
+  innerWidth = int32_t(NS_round(aContext->CSSPixelsToDevPixels(innerWidth)));
+  innerHeight = int32_t(NS_round(aContext->CSSPixelsToDevPixels(innerHeight)));
+
   nsIntRect screen;
   aWidget->GetScreenBounds(screen);
 
