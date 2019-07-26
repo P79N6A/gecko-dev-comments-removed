@@ -4,11 +4,13 @@
 
 
 
+#include "ctypes/Library.h"
+
 #include "jscntxt.h"
 #include "jsstr.h"
-#include "ctypes/Library.h"
-#include "ctypes/CTypes.h"
 #include "prlink.h"
+
+#include "ctypes/CTypes.h"
 
 namespace js {
 namespace ctypes {
