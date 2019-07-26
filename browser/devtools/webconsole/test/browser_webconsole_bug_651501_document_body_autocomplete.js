@@ -123,7 +123,7 @@ function propertyPanelShown(aPanel)
   
   
   
-  for (let prop in Object.getPrototypeOf(content.document)) {
+  for (let prop in Object.getPrototypeOf(content.document).wrappedObject) {
     if (prop == "inputEncoding") {
       continue;
     }
