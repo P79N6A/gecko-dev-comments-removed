@@ -72,12 +72,14 @@ var shell = {
     return this.CrashSubmit;
   },
 
-  reportCrash: function shell_reportCrash(aCrashID) {
+  reportCrash: function shell_reportCrash(isChrome, aCrashID) {
     let crashID = aCrashID;
     try {
-      if (crashID == undefined || crashID == "")
+      
+      if (isChrome) {
         crashID = Cc["@mozilla.org/xre/app-info;1"]
                     .getService(Ci.nsIXULRuntime).lastRunCrashID;
+      }
     } catch(e) { }
 
     
@@ -87,23 +89,17 @@ var shell = {
 
     try {
       
-      
       if (Services.prefs.getBoolPref("app.reportCrashes")) {
         this.submitCrash(crashID);
       }
-      
-      this.sendChromeEvent({ type: "crash-banner" });
-    } catch (e) {
-      
-      if (Services.prefs.getBoolPref("app.showCrashDialog")) {
-        Services.prefs.setBoolPref("app.showCrashDialog", false);
-        this.sendChromeEvent({ type: "crash-dialog", crashID: crashID });
-      } else {
-        
-        
-        this.sendChromeEvent({ type: "crash-banner", crashID: crashID });
-      }
-    }
+    } catch (e) { }
+
+    
+    this.sendChromeEvent({
+      type: "handle-crash",
+      crashID: crashID,
+      chrome: isChrome
+    });
   },
 
   
@@ -358,7 +354,7 @@ var shell = {
 
         this.contentBrowser.removeEventListener('mozbrowserloadstart', this, true);
 
-        this.reportCrash();
+        this.reportCrash(true);
 
         let chromeWindow = window.QueryInterface(Ci.nsIDOMChromeWindow);
         chromeWindow.browserDOMWindow = new nsBrowserAccess();
@@ -795,7 +791,7 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
   Services.obs.addObserver(function(aSubject, aTopic, aData) {
       let props = aSubject.QueryInterface(Ci.nsIPropertyBag2);
       if (props.hasKey("abnormal") && props.hasKey("dumpID")) {
-        shell.reportCrash(props.getProperty("dumpID"));
+        shell.reportCrash(false, props.getProperty("dumpID"));
       }
     },
     "ipc:content-shutdown", false);
@@ -805,7 +801,7 @@ window.addEventListener('ContentStart', function ss_onContentStart() {
 window.addEventListener('ContentStart', function cr_onContentStart() {
   let content = shell.contentBrowser.contentWindow;
   content.addEventListener("mozContentEvent", function cr_onMozContentEvent(e) {
-    if (e.detail.type == "submit-crash") {
+    if (e.detail.type == "submit-crash" && e.detail.crashID) {
       shell.submitCrash(e.detail.crashID);
     }
   });
