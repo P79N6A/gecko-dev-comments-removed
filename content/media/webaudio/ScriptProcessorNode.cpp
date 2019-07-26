@@ -20,6 +20,10 @@
 namespace mozilla {
 namespace dom {
 
+
+
+static const float MAX_LATENCY_S = 0.5;
+
 NS_IMPL_CYCLE_COLLECTION_CLASS(ScriptProcessorNode)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ScriptProcessorNode)
@@ -90,9 +94,11 @@ private:
   };
 
 public:
-  SharedBuffers()
+  SharedBuffers(float aSampleRate)
     : mOutputQueue("SharedBuffers::outputQueue")
     , mDelaySoFar(TRACK_TICKS_MAX)
+    , mSampleRate(aSampleRate)
+    , mDroppingBuffers(false)
   {
   }
 
@@ -101,6 +107,29 @@ public:
                                    uint32_t aBufferSize)
   {
     MOZ_ASSERT(NS_IsMainThread());
+
+    TimeStamp now = TimeStamp::Now();
+
+    if (mLastEventTime.IsNull()) {
+      mLastEventTime = now;
+    } else {
+      
+      
+      
+      
+      
+      
+      float latency = (now - mLastEventTime).ToSeconds();
+      float bufferDuration = aBufferSize / mSampleRate;
+      mLatency += latency - bufferDuration;
+      mLastEventTime = now;
+      if (mLatency > MAX_LATENCY_S || (mDroppingBuffers && mLatency > 0.0)) {
+        mDroppingBuffers = true;
+        return;
+      } else {
+        mDroppingBuffers = false;
+      }
+    }
 
     MutexAutoLock lock(mOutputQueue.Lock());
     for (uint32_t offset = 0; offset < aBufferSize; offset += WEBAUDIO_BLOCK_SIZE) {
@@ -158,6 +187,16 @@ private:
   
   
   TrackTicks mDelaySoFar;
+  
+  float mSampleRate;
+  
+  
+  float mLatency;
+  
+  
+  TimeStamp mLastEventTime;
+  
+  bool mDroppingBuffers;
 };
 
 class ScriptProcessorNodeEngine : public AudioNodeEngine
@@ -386,7 +425,7 @@ ScriptProcessorNode::ScriptProcessorNode(AudioContext* aContext,
               aNumberOfInputChannels,
               mozilla::dom::ChannelCountMode::Explicit,
               mozilla::dom::ChannelInterpretation::Speakers)
-  , mSharedBuffers(new SharedBuffers())
+  , mSharedBuffers(new SharedBuffers(aContext->SampleRate()))
   , mBufferSize(aBufferSize ?
                   aBufferSize : 
                   4096)         
