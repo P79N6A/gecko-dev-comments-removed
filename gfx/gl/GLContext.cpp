@@ -605,6 +605,10 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 MarkUnsupported(GLFeature::depth_texture);
             }
 #endif
+            
+            if (IsANGLE()) {
+                MarkUnsupported(GLFeature::instanced_arrays);
+            }
         }
 
         NS_ASSERTION(!IsExtensionSupported(GLContext::ARB_pixel_buffer_object) ||
