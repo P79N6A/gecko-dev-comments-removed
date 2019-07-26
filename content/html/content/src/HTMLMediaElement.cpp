@@ -3519,28 +3519,6 @@ void HTMLMediaElement::GetCurrentSpec(nsCString& aString)
 
 
 double
-HTMLMediaElement::InitialTime()
-{
-  
-  
-  double duration = Duration();
-
-  double time = mFragmentStart < 0.0 ? 0.0 : mFragmentStart;
-  if (time > duration) {
-    time = duration;
-  }
-
-  return time;
-}
-
-NS_IMETHODIMP HTMLMediaElement::GetInitialTime(double* aTime)
-{
-  *aTime = InitialTime();
-  return NS_OK;
-}
-
-
-double
 HTMLMediaElement::MozFragmentEnd()
 {
   double duration = Duration();

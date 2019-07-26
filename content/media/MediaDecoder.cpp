@@ -1281,7 +1281,6 @@ bool MediaDecoder::IsMediaSeekable()
 
 nsresult MediaDecoder::GetSeekable(TimeRanges* aSeekable)
 {
-  
   double initialTime = 0.0;
 
   
