@@ -604,6 +604,10 @@ public:
   bool ContainsIdleObserver(nsIIdleObserver* aIdleObserver, uint32_t timeInS);
   void HandleIdleObserverCallback();
 
+  void AllowScriptsToClose()
+  {
+    mAllowScriptsToClose = true;
+  }
 protected:
   
   nsTObserverArray<IdleObserverHolder> mIdleObservers;
@@ -996,6 +1000,9 @@ protected:
 
   
   bool                   mNotifiedIDDestroyed : 1;
+  
+  
+  bool                   mAllowScriptsToClose : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
