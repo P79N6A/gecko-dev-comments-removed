@@ -182,8 +182,11 @@ js_DumpChars(const jschar *s, size_t n);
 
 
 
+
 extern JS_FRIEND_API(bool)
 JS_CopyPropertiesFrom(JSContext *cx, JSObject *target, JSObject *obj);
+
+
 
 
 

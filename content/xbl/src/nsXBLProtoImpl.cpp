@@ -114,9 +114,6 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
     curr->InstallMember(cx, propertyHolder);
 
   
-  JSAutoCompartment ac2(cx, targetClassObject);
-
-  
   
   
   
@@ -134,6 +131,9 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
       }
     }
   }
+
+  
+  JSAutoCompartment ac2(cx, targetClassObject);
 
   
   for (nsXBLProtoImplField* curr = mFields;
