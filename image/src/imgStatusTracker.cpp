@@ -433,6 +433,53 @@ imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
   NS_DispatchToCurrentThread(ev);
 }
 
+ void
+imgStatusTracker::SyncNotifyState(imgRequestProxy* proxy, bool hasImage, uint32_t state, nsIntRect& dirtyRect, bool hadLastPart)
+{
+  nsCOMPtr<imgIRequest> kungFuDeathGrip(proxy);
+
+  
+  if (state & stateRequestStarted)
+    proxy->OnStartRequest();
+
+  
+  if (state & stateHasSize)
+    proxy->OnStartContainer();
+
+  
+  if (state & stateDecodeStarted)
+    proxy->OnStartDecode();
+
+  
+  if (state & stateBlockingOnload)
+    proxy->BlockOnload();
+
+  if (hasImage) {
+    
+    
+    
+    
+    if (!dirtyRect.IsEmpty())
+      proxy->OnFrameUpdate(&dirtyRect);
+
+    if (state & stateFrameStopped)
+      proxy->OnStopFrame();
+
+    
+    if (state & stateImageIsAnimated)
+      proxy->OnImageIsAnimated();
+  }
+
+  if (state & stateDecodeStopped) {
+    NS_ABORT_IF_FALSE(hasImage, "stopped decoding without ever having an image?");
+    proxy->OnStopDecode();
+  }
+
+  if (state & stateRequestStopped) {
+    proxy->OnStopRequest(hadLastPart);
+  }
+}
+
 void
 imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
 {
@@ -444,52 +491,14 @@ imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
   LOG_SCOPE_WITH_PARAM(GetImgLog(), "imgStatusTracker::SyncNotify", "uri", spec.get());
 #endif
 
-  nsCOMPtr<imgIRequest> kungFuDeathGrip(proxy);
-
-  
-  if (mState & stateRequestStarted)
-    proxy->OnStartRequest();
-
-  
-  if (mState & stateHasSize)
-    proxy->OnStartContainer();
-
-  
-  if (mState & stateDecodeStarted)
-    proxy->OnStartDecode();
-
-  
-  if (mState & stateBlockingOnload)
-    proxy->BlockOnload();
-
+  nsIntRect r;
   if (mImage) {
     
     
-    
-    nsIntRect r(mImage->FrameRect(imgIContainer::FRAME_CURRENT));
-
-    
-    
-    
-    if (!r.IsEmpty())
-      proxy->OnFrameUpdate(&r);
-
-    if (mState & stateFrameStopped)
-      proxy->OnStopFrame();
-
-    
-    if (mState & stateImageIsAnimated)
-      proxy->OnImageIsAnimated();
+    r = mImage->FrameRect(imgIContainer::FRAME_CURRENT);
   }
 
-  if (mState & stateDecodeStopped) {
-    NS_ABORT_IF_FALSE(mImage, "stopped decoding without ever having an image?");
-    proxy->OnStopDecode();
-  }
-
-  if (mState & stateRequestStopped) {
-    proxy->OnStopRequest(mHadLastPart);
-  }
+  SyncNotifyState(proxy, !!mImage, mState, r, mHadLastPart);
 }
 
 void
