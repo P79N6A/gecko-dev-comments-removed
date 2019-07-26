@@ -198,12 +198,45 @@ BaselineCompiler::emitStackCheck()
     return true;
 }
 
+bool
+BaselineCompiler::emitUseCountIncrement()
+{
+    
+    
+
+    if (!ionCompileable_)
+        return true;
+
+    Register scriptReg = R2.scratchReg();
+    Register countReg = R0.scratchReg();
+    Address useCountAddr(scriptReg, JSScript::offsetOfUseCount());
+    Label lowCount;
+
+    masm.movePtr(ImmGCPtr(script), scriptReg);
+    masm.load32(useCountAddr, countReg);
+    masm.add32(Imm32(1), countReg);
+    masm.store32(countReg, useCountAddr);
+    masm.branch32(Assembler::LessThan, countReg, Imm32(js_IonOptions.usesBeforeCompile), &lowCount);
+
+    
+    ICUseCount_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
+        return false;
+
+    masm.bind(&lowCount);
+
+    return true;
+}
+
 MethodStatus
 BaselineCompiler::emitBody()
 {
     pc = script->code;
 
     if (!emitStackCheck())
+        return Method_Error;
+
+    if (!emitUseCountIncrement())
         return Method_Error;
 
     while (true) {
@@ -327,7 +360,6 @@ BaselineCompiler::emit_JSOP_GOTO()
 bool
 BaselineCompiler::emitToBoolean()
 {
-    
     Label skipIC;
     masm.branchTestBoolean(Assembler::Equal, R0, &skipIC);
 
@@ -436,7 +468,8 @@ BaselineCompiler::emit_JSOP_LOOPHEAD()
 bool
 BaselineCompiler::emit_JSOP_LOOPENTRY()
 {
-    return true;
+    frame.syncStack(0);
+    return emitUseCountIncrement();
 }
 
 bool
@@ -943,7 +976,6 @@ BaselineCompiler::emitCall()
     frame.syncStack(0);
     masm.mov(Imm32(argc), R0.scratchReg());
 
-    
     
     ICCall_Fallback::Compiler stubCompiler(cx);
     if (!emitIC(stubCompiler.getStub(&stubSpace_)))

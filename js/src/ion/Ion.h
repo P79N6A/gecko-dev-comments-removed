@@ -11,7 +11,6 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "IonCode.h"
-#include "CompileInfo.h"
 #include "jsinfer.h"
 #include "jsinterp.h"
 
@@ -19,12 +18,10 @@ namespace js {
 namespace ion {
 
 class TempAllocator;
-class ParallelCompileContext; 
 
 
 enum IonRegisterAllocator {
     RegisterAllocator_LSRA,
-    RegisterAllocator_Backtracking,
     RegisterAllocator_Stupid
 };
 
@@ -79,16 +76,6 @@ struct IonOptions
     
     
     
-    bool uce;
-
-    
-    
-    
-    bool eaa;
-
-    
-    
-    
     bool parallelCompilation;
 
     
@@ -107,7 +94,7 @@ struct IonOptions
     
     
     
-    double usesBeforeInliningFactor;
+    uint32_t usesBeforeInlining;
 
     
     
@@ -126,8 +113,7 @@ struct IonOptions
     
     
     
-    
-    uint32_t smallFunctionMaxInlineDepth;
+    uint32_t smallFunctionMaxBytecodeLength;
 
     
     
@@ -136,7 +122,7 @@ struct IonOptions
     
     
     
-    uint32_t smallFunctionMaxBytecodeLength;
+    uint32_t smallFunctionUsesBeforeInlining;
 
     
     
@@ -171,14 +157,13 @@ struct IonOptions
     
     uint32_t slowCallIncUseCount;
 
-    
-    
-    
-    uint32_t usesBeforeCompileParallel;
-
     void setEagerCompilation() {
         eagerCompilation = true;
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
+
+        
+        usesBeforeInlining = 0;
+        smallFunctionUsesBeforeInlining = 0;
 
         parallelCompilation = false;
     }
@@ -193,28 +178,21 @@ struct IonOptions
         inlining(true),
         edgeCaseAnalysis(true),
         rangeAnalysis(true),
-        uce(true),
-        eaa(true),
         parallelCompilation(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
-        usesBeforeInliningFactor(.125),
+        usesBeforeInlining(usesBeforeCompile),
         maxStackArgs(4096),
         maxInlineDepth(3),
-        smallFunctionMaxInlineDepth(10),
         smallFunctionMaxBytecodeLength(100),
+        smallFunctionUsesBeforeInlining(usesBeforeInlining / 4),
         polyInlineMax(4),
-        inlineMaxTotalBytecodeLength(1000),
+        inlineMaxTotalBytecodeLength(800),
         inlineUseCountRatio(128),
         eagerCompilation(false),
         slowCallLimit(512),
-        slowCallIncUseCount(5),
-        usesBeforeCompileParallel(1)
+        slowCallIncUseCount(5)
     {
-    }
-
-    uint32_t usesBeforeInlining() {
-        return usesBeforeCompile * usesBeforeInliningFactor;
     }
 };
 
@@ -226,13 +204,6 @@ enum MethodStatus
     Method_Compiled
 };
 
-enum AbortReason {
-    AbortReason_Alloc,
-    AbortReason_Inlining,
-    AbortReason_Disable,
-    AbortReason_NoAbort
-};
-
 
 
 
@@ -241,12 +212,9 @@ enum AbortReason {
 class IonContext
 {
   public:
-    IonContext(JSContext *cx, TempAllocator *temp);
-    IonContext(JSCompartment *comp, TempAllocator *temp);
-    IonContext(JSRuntime *rt);
+    IonContext(JSContext *cx, JSCompartment *compartment, TempAllocator *temp);
     ~IonContext();
 
-    JSRuntime *runtime;
     JSContext *cx;
     JSCompartment *compartment;
     TempAllocator *temp;
@@ -268,9 +236,11 @@ IonContext *GetIonContext();
 
 bool SetIonContext(IonContext *ctx);
 
-MethodStatus CanEnterAtBranch(JSContext *cx, JSScript *script,
-                              AbstractFramePtr fp, jsbytecode *pc, bool isConstructing);
-MethodStatus CanEnter(JSContext *cx, JSScript *script, AbstractFramePtr fp, bool isConstructing);
+bool CanIonCompileScript(JSScript *script);
+
+MethodStatus CanEnterAtBranch(JSContext *cx, HandleScript script,
+                              StackFrame *fp, jsbytecode *pc);
+MethodStatus CanEnter(JSContext *cx, HandleScript script, StackFrame *fp, bool newType);
 MethodStatus CanEnterUsingFastInvoke(JSContext *cx, HandleScript script, uint32_t numActualArgs);
 
 enum IonExecStatus
@@ -307,40 +277,34 @@ IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgsList &args);
 void Invalidate(types::TypeCompartment &types, FreeOp *fop,
                 const Vector<types::RecompileInfo> &invalid, bool resetUses = true);
 void Invalidate(JSContext *cx, const Vector<types::RecompileInfo> &invalid, bool resetUses = true);
-bool Invalidate(JSContext *cx, RawScript script, ExecutionMode mode, bool resetUses = true);
-bool Invalidate(JSContext *cx, RawScript script, bool resetUses = true);
+bool Invalidate(JSContext *cx, JSScript *script, bool resetUses = true);
 
 void MarkValueFromIon(JSRuntime *rt, Value *vp);
 void MarkShapeFromIon(JSRuntime *rt, Shape **shapep);
 
-void ToggleBarriers(JS::Zone *zone, bool needs);
+void ToggleBarriers(JSCompartment *comp, bool needs);
 
 class IonBuilder;
 class MIRGenerator;
-class LIRGraph;
 class CodeGenerator;
 
-bool OptimizeMIR(MIRGenerator *mir);
-LIRGraph *GenerateLIR(MIRGenerator *mir);
-CodeGenerator *GenerateCode(MIRGenerator *mir, LIRGraph *lir, MacroAssembler *maybeMasm = NULL);
-CodeGenerator *CompileBackEnd(MIRGenerator *mir, MacroAssembler *maybeMasm = NULL);
-
+CodeGenerator *CompileBackEnd(MIRGenerator *mir);
 void AttachFinishedCompilations(JSContext *cx);
 void FinishOffThreadBuilder(IonBuilder *builder);
+bool TestIonCompile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing);
 
 static inline bool IsEnabled(JSContext *cx)
 {
-    return cx->hasOption(JSOPTION_ION) && cx->typeInferenceEnabled();
+    return cx->hasRunOption(JSOPTION_ION) && cx->typeInferenceEnabled();
 }
 
-void ForbidCompilation(JSContext *cx, RawScript script);
-void ForbidCompilation(JSContext *cx, RawScript script, ExecutionMode mode);
-uint32_t UsesBeforeIonRecompile(RawScript script, jsbytecode *pc);
+void ForbidCompilation(JSContext *cx, JSScript *script);
+uint32_t UsesBeforeIonRecompile(JSScript *script, jsbytecode *pc);
 
-void PurgeCaches(RawScript script, JS::Zone *zone);
-size_t MemoryUsed(RawScript script, JSMallocSizeOfFun mallocSizeOf);
-void DestroyIonScripts(FreeOp *fop, RawScript script);
-void TraceIonScripts(JSTracer* trc, RawScript script);
+void PurgeCaches(JSScript *script, JSCompartment *c);
+size_t MemoryUsed(JSScript *script, JSMallocSizeOfFun mallocSizeOf);
+void DestroyIonScripts(FreeOp *fop, JSScript *script);
+void TraceIonScripts(JSTracer* trc, JSScript *script);
 
 } 
 } 

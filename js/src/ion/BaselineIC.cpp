@@ -252,6 +252,36 @@ ICStackCheck_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 
+static bool
+DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, size_t count)
+{
+    
+    
+    return true;
+}
+
+typedef bool (*DoUseCountFallbackFn)(JSContext *, ICUseCount_Fallback *, size_t count);
+static const VMFunction DoUseCountFallbackInfo =
+    FunctionInfo<DoUseCountFallbackFn>(DoUseCountFallback);
+
+bool
+ICUseCount_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    
+    EmitRestoreTailCallReg(masm);
+
+    masm.push(R0.scratchReg());
+    masm.push(BaselineStubReg);
+
+    return tailCallVM(DoUseCountFallbackInfo, masm);
+}
+
+
+
+
+
 bool
 ICTypeMonitor_Fallback::addMonitorStubForValue(JSContext *cx, ICStubSpace *space, HandleValue val)
 {
