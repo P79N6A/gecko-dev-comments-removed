@@ -596,25 +596,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
     if (!script_->analyzedArgsUsage())
         analyzeSSA(cx);
-
-    
-
-
-
-
-
-#ifdef JS_METHODJIT
-    mjit::JITScript *jit = NULL;
-    for (int constructing = 0; constructing <= 1 && !jit; constructing++) {
-        for (int barriers = 0; barriers <= 1 && !jit; barriers++)
-            jit = script_->getJIT((bool) constructing, (bool) barriers);
-    }
-    if (jit) {
-        mjit::CrossChunkEdge *edges = jit->edges();
-        for (size_t i = 0; i < jit->nedges; i++)
-            getCode(edges[i].target).safePoint = true;
-    }
-#endif
 }
 
 
@@ -890,7 +871,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
     ranLifetimes_ = true;
 }
 
-#ifdef JS_METHODJIT_SPEW
+#ifdef DEBUG
 void
 LifetimeVariable::print() const
 {
@@ -1104,21 +1085,6 @@ ScriptAnalysis::ensureVariable(LifetimeVariable &var, unsigned until)
     JS_ASSERT(until < var.lifetime->start);
     var.lifetime->start = until;
     var.ensured = true;
-}
-
-void
-ScriptAnalysis::clearAllocations()
-{
-    
-
-
-
-
-    for (unsigned i = 0; i < script_->length; i++) {
-        Bytecode *code = maybeCode(i);
-        if (code)
-            code->allocation = NULL;
-    }
 }
 
 
@@ -1842,12 +1808,8 @@ ScriptAnalysis::needsArgsObj(JSContext *cx, SeenVector &seen, SSAUseChain *use)
         return false;
 
     
-    if (op == JSOP_FUNAPPLY && GET_ARGC(pc) == 2 && use->u.which == 0) {
-#ifdef JS_METHODJIT
-        JS_ASSERT(mjit::IsLowerableFunCallOrApply(pc));
-#endif
+    if (op == JSOP_FUNAPPLY && GET_ARGC(pc) == 2 && use->u.which == 0)
         return false;
-    }
 
     
     if (op == JSOP_GETELEM && use->u.which == 1)

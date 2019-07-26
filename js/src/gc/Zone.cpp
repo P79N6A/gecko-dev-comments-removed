@@ -66,13 +66,6 @@ Zone::init(JSContext *cx)
 void
 Zone::setNeedsBarrier(bool needs, ShouldUpdateIon updateIon)
 {
-#ifdef JS_METHODJIT
-    
-    bool old = compileBarriers();
-    if (compileBarriers(needs) != old)
-        mjit::ClearAllFrames(this);
-#endif
-
 #ifdef JS_ION
     if (updateIon == UpdateIon && needs != ionUsingBarriers_) {
         ion::ToggleBarriers(this, needs);
@@ -156,41 +149,27 @@ Zone::sweep(FreeOp *fop, bool releaseTypes)
 void
 Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
 {
-#ifdef JS_METHODJIT
-    
-
-
-
-
-
-
-
-    mjit::ClearAllFrames(this);
-
+#ifdef JS_ION
     if (isPreservingCode()) {
         PurgeJITCaches(this);
     } else {
-# ifdef JS_ION
 
-#  ifdef DEBUG
+# ifdef DEBUG
         
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
             JS_ASSERT_IF(script->hasBaselineScript(), !script->baselineScript()->active());
         }
-#  endif
+# endif
 
         
         ion::MarkActiveBaselineScripts(this);
 
         
         ion::InvalidateAll(fop, this);
-# endif
+
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
-
-            mjit::ReleaseScriptCode(fop, script);
-# ifdef JS_ION
             ion::FinishInvalidation(fop, script);
 
             
@@ -198,7 +177,6 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
 
 
             ion::FinishDiscardBaselineScript(fop, script);
-# endif
 
             
 
@@ -209,14 +187,12 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
         }
 
         for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
-#ifdef JS_ION
             
             if (comp->ionCompartment())
                 comp->ionCompartment()->optimizedStubSpace()->free();
-#endif
 
             comp->types.sweepCompilerOutputs(fop, discardConstraints);
         }
     }
-#endif 
+#endif
 }

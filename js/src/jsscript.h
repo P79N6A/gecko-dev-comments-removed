@@ -288,70 +288,6 @@ class JSScript : public js::gc::Cell
     static const uint32_t stepCountMask = 0x7fffffffU;
 
   public:
-#ifdef JS_METHODJIT
-    
-    
-    
-    
-    class JITScriptHandle
-    {
-        
-        
-        friend class js::mjit::CallCompiler;
-
-        
-        
-        
-        
-        
-        
-        
-        static const js::mjit::JITScript *UNJITTABLE;   
-        js::mjit::JITScript *value;
-
-      public:
-        JITScriptHandle()       { value = NULL; }
-
-        bool isEmpty()          { return value == NULL; }
-        bool isUnjittable()     { return value == UNJITTABLE; }
-        bool isValid()          { return value  > UNJITTABLE; }
-
-        js::mjit::JITScript *getValid() {
-            JS_ASSERT(isValid());
-            return value;
-        }
-
-        void setEmpty()         { value = NULL; }
-        void setUnjittable()    { value = const_cast<js::mjit::JITScript *>(UNJITTABLE); }
-        void setValid(js::mjit::JITScript *jit) {
-            value = jit;
-            JS_ASSERT(isValid());
-        }
-
-        static void staticAsserts();
-    };
-
-    
-    struct JITScriptSet
-    {
-        JITScriptHandle jitHandleNormal;          
-        JITScriptHandle jitHandleNormalBarriered; 
-        JITScriptHandle jitHandleCtor;            
-        JITScriptHandle jitHandleCtorBarriered;   
-
-        static size_t jitHandleOffset(bool constructing, bool barriers) {
-            return constructing
-                ? (barriers
-                   ? offsetof(JITScriptSet, jitHandleCtorBarriered)
-                   : offsetof(JITScriptSet, jitHandleCtor))
-                : (barriers
-                   ? offsetof(JITScriptSet, jitHandleNormalBarriered)
-                   : offsetof(JITScriptSet, jitHandleNormal));
-        }
-    };
-
-#endif  
-
     
     
     
@@ -380,11 +316,6 @@ class JSScript : public js::gc::Cell
 
   private:
     js::ScriptSource *scriptSource_; 
-#ifdef JS_METHODJIT
-    JITScriptSet *mJITInfo;
-#else
-    void         *mJITInfoPad;
-#endif
     js::HeapPtrFunction function_;
 
     
@@ -492,17 +423,12 @@ class JSScript : public js::gc::Cell
     bool            shouldCloneAtCallsite:1;
 
     bool            isCallsiteClone:1; 
-#ifdef JS_METHODJIT
-    bool            debugMode:1;      
-    bool            failedBoundsCheck:1; 
-#else
-    bool            debugModePad:1;
-    bool            failedBoundsCheckPad:1;
-#endif
 #ifdef JS_ION
+    bool            failedBoundsCheck:1; 
     bool            failedShapeGuard:1; 
     bool            hadFrequentBailouts:1;
 #else
+    bool            failedBoundsCheckPad:1;
     bool            failedShapeGuardPad:1;
     bool            hadFrequentBailoutsPad:1;
 #endif
@@ -593,6 +519,10 @@ class JSScript : public js::gc::Cell
 
     
     js::ion::IonScript *parallelIon;
+
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding0;
+#endif
 
     
 
@@ -767,55 +697,12 @@ class JSScript : public js::gc::Cell
     bool makeBytecodeTypeMap(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
 
-#ifdef JS_METHODJIT
-  private:
-    
-    
-    friend class js::mjit::CallCompiler;
-
   public:
-    bool hasMJITInfo() {
-        return mJITInfo != NULL;
-    }
-
-    static size_t offsetOfMJITInfo() { return offsetof(JSScript, mJITInfo); }
-
-    inline bool ensureHasMJITInfo(JSContext *cx);
-    inline void destroyMJITInfo(js::FreeOp *fop);
-
-    JITScriptHandle *jitHandle(bool constructing, bool barriers) {
-        JS_ASSERT(mJITInfo);
-        return constructing
-               ? (barriers ? &mJITInfo->jitHandleCtorBarriered : &mJITInfo->jitHandleCtor)
-               : (barriers ? &mJITInfo->jitHandleNormalBarriered : &mJITInfo->jitHandleNormal);
-    }
-
-    js::mjit::JITScript *getJIT(bool constructing, bool barriers) {
-        if (!mJITInfo)
-            return NULL;
-        JITScriptHandle *jith = jitHandle(constructing, barriers);
-        return jith->isValid() ? jith->getValid() : NULL;
-    }
-
-    static void ReleaseCode(js::FreeOp *fop, JITScriptHandle *jith);
-
-    
-    inline void **nativeMap(bool constructing);
-    inline void *nativeCodeForPC(bool constructing, jsbytecode *pc);
-
     uint32_t getUseCount() const  { return useCount; }
     uint32_t incUseCount(uint32_t amount = 1) { return useCount += amount; }
     uint32_t *addressOfUseCount() { return &useCount; }
     static size_t offsetOfUseCount() { return offsetof(JSScript, useCount); }
     void resetUseCount() { useCount = 0; }
-
-    
-
-
-
-
-    size_t sizeOfJitScripts(JSMallocSizeOfFun mallocSizeOf);
-#endif
 
   public:
     bool initScriptCounts(JSContext *cx);

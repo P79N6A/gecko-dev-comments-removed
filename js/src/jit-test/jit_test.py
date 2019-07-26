@@ -142,21 +142,13 @@ def main(argv):
     if options.tbpl:
         
         flags = [
-                      ['--no-baseline', '--no-jm'],
                       ['--ion-eager'], 
-                      ['--no-baseline'],
-                      ['--no-baseline', '--ion-eager'],
                       ['--baseline-eager'],
                       ['--baseline-eager', '--no-ti', '--no-fpu'],
-                      
-                      ['--no-baseline', '--no-ion', '--no-jm', '--no-ti'],
-                      ['--no-baseline', '--no-ion', '--no-ti'],
-                      ['--no-baseline', '--no-ion', '--no-ti', '--always-mjit', '--debugjit'],
-                      ['--no-baseline', '--no-ion', '--no-jm'],
+                      ['--no-baseline'],
+                      ['--no-baseline', '--ion-eager'],
                       ['--no-baseline', '--no-ion'],
-                      ['--no-baseline', '--no-ion', '--always-mjit'],
-                      ['--no-baseline', '--no-ion', '--always-mjit', '--debugjit'],
-                      ['--no-baseline', '--no-ion', '--debugjit']
+                      ['--no-baseline', '--no-ion', '--no-ti'],
                     ]
         for test in test_list:
             for variant in flags:
