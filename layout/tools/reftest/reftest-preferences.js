@@ -30,8 +30,6 @@
     
     branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
     
-    branch.setBoolPref("layers.async-pan-zoom.enabled", true);
-    
     
     
     
