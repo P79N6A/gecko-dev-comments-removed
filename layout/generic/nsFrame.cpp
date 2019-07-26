@@ -4863,7 +4863,7 @@ nsIFrame::TryUpdateTransformOnly()
   
   
   
- static const gfx::Float kError = 0.0001;
+ static const gfx::Float kError = 0.0001f;
   if (!transform3d.Is2D(&transform) ||
       !layer->GetBaseTransform().Is2D(&previousTransform) ||
       !gfx::FuzzyEqual(transform.xx, previousTransform.xx, kError) ||

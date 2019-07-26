@@ -1503,7 +1503,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
   if (!glyphFound && largeop) {
     float scale;
-    float largeopFactor = M_SQRT2;
+    float largeopFactor = float(M_SQRT2);
 
     
     

@@ -341,13 +341,13 @@ nsMathMLmoFrame::ProcessOperatorData()
     
     
     
-    float lspace = 5.0/18.0;
-    float rspace = 5.0/18.0;
+    float lspace = 5.0f/18.0f;
+    float rspace = 5.0f/18.0f;
     if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
       
       
       
-      lspace = rspace = 0.0;
+      lspace = rspace = 0;
     } else {
       
       nsAutoString data;
@@ -508,7 +508,7 @@ nsMathMLmoFrame::ProcessOperatorData()
   
   
   
-  mMinSize = 0.0;
+  mMinSize = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::minsize_,
                value);
   if (!value.IsEmpty()) {
