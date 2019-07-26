@@ -111,6 +111,7 @@ public:
   void ProcessAtCops();
   void ProcessAtClcc();
   void ProcessUnknownAt(char *aAtString);
+  void ProcessKeyPressed();
 
   
   void UpdateSecondNumber(const nsAString& aNumber);

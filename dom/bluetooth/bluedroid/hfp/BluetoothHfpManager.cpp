@@ -168,7 +168,7 @@ UnknownAtCallback(char *at_string)
 static void
 KeyPressedCallback()
 {
-  
+  BT_HF_PROCESS_CB(ProcessKeyPressed);
 }
 
 static bthf_callbacks_t sBluetoothHfpCallbacks = {
@@ -711,6 +711,47 @@ BluetoothHfpManager::ProcessUnknownAt(char *aAtString)
   NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
   NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
     sBluetoothHfpInterface->at_response(BTHF_AT_RESPONSE_ERROR, 0));
+}
+
+void
+BluetoothHfpManager::ProcessKeyPressed()
+{
+  bool hasActiveCall =
+    (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED) > 0);
+
+  
+  if (mCallSetupState == nsITelephonyProvider::CALL_STATE_INCOMING
+      && !hasActiveCall) {
+    
+
+
+
+
+
+    ProcessAnswerCall();
+  } else if (hasActiveCall) {
+    if (!IsScoConnected()) {
+      
+
+
+
+      ConnectSco();
+    } else {
+      
+
+
+
+
+
+      ProcessHangupCall();
+    }
+  } else {
+    
+    mDialingRequestProcessed = false;
+    BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::NOTIFY_DIALER,
+                        NS_LITERAL_STRING("BLDN"));
+    BT_HF_DISPATCH_MAIN(MainThreadTaskCmd::POST_TASK_RESPOND_TO_BLDN);
+  }
 }
 
 void
