@@ -611,21 +611,17 @@ class Dumper_Linux(Dumper):
         return False
 
     def CopyDebug(self, file, debug_file, guid):
-        import zlib, struct, hashlib
         
         
         
         file_dbg = file + ".dbg"
-        if subprocess.call([self.objcopy, '--only-keep-debug', file, file_dbg], stdout=sys.stderr) == 0 and \
-           subprocess.call([self.objcopy, '--add-gnu-debuglink=%s' % file_dbg, file], stdout=sys.stderr) == 0:
+        if subprocess.call([self.objcopy, '--only-keep-debug', file, file_dbg]) == 0 and \
+           subprocess.call([self.objcopy, '--add-gnu-debuglink=%s' % file_dbg, file]) == 0:
             rel_path = os.path.join(debug_file,
                                     guid,
                                     debug_file + ".dbg")
             full_path = os.path.normpath(os.path.join(self.symbol_path,
                                                       rel_path))
-            
-            print >>sys.stderr, read_output('objdump', '-j', '.gnu_debuglink', '-s', file)
-            print >>sys.stderr, "%s crc: %08x" % (file_dbg, 0xffffffff & zlib.crc32(open(file_dbg).read()))
             shutil.move(file_dbg, full_path)
             
             os.system("gzip %s" % full_path)
