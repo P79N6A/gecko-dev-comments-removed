@@ -927,6 +927,12 @@ this.UITour = {
   recreatePopup: function(aPanel) {
     
     
+    if (aPanel.hidden) {
+      
+      
+      aPanel.clientWidth; 
+      return;
+    }
     aPanel.hidden = true;
     aPanel.clientWidth; 
     aPanel.hidden = false;
