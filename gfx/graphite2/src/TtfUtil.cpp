@@ -709,10 +709,8 @@ int PostLookup(const void * pPost, size_t lPostSize, const void * pMaxp,
 				if (be::swap(pTable2->glyph_name_index[nGlyphId]) == iPostName)
 					return nGlyphId;
 			}
-			return -1; 
 		}
 
-		else
 		{ 
 			size_t nStrSizeGoal = strlen(pPostName);
 			const char * pFirstGlyphName = reinterpret_cast<const char *>(

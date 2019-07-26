@@ -63,7 +63,7 @@ enum gr_face_options {
     
     gr_face_cacheCmap = 4,
     
-    gr_face_preloadAll = 6
+    gr_face_preloadAll = gr_face_preloadGlyphs | gr_face_cacheCmap
 };
 
 

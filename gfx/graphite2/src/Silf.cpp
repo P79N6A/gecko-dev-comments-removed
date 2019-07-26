@@ -133,8 +133,8 @@ bool Silf::readGraphite(const byte * const silf_start, size_t lSilf, const Face&
     be::skip<byte>(p);							
     if (p >= silf_end)   { releaseBuffers(); return false; }
     be::skip<uint32>(p, be::read<uint8>(p));	
+    if (p + sizeof(uint16) + sizeof(uint32) >= silf_end)  { releaseBuffers(); return false; }
     m_gEndLine  = be::read<uint16>(p);          
-    if (p >= silf_end)   { releaseBuffers(); return false; }
     const byte * o_passes = p,
                * const passes_start = silf_start + be::read<uint32>(p);
 

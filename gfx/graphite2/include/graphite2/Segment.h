@@ -158,6 +158,12 @@ GR2_API unsigned int gr_cinfo_unicode_char(const gr_char_info* p);
 
 
 
+
+
+
+
+
+
 GR2_API int gr_cinfo_break_weight(const gr_char_info* p);
 
 
@@ -165,7 +171,13 @@ GR2_API int gr_cinfo_break_weight(const gr_char_info* p);
 
 
 
+
+
+
 GR2_API int gr_cinfo_after(const gr_char_info* p);
+
+
+
 
 
 
@@ -342,7 +354,11 @@ GR2_API float gr_slot_origin_Y(const gr_slot* p);
 
 
 
+
+
+
 GR2_API float gr_slot_advance_X(const gr_slot* p, const gr_face* face, const gr_font *font);
+
 
 
 
@@ -355,7 +371,11 @@ GR2_API float gr_slot_advance_Y(const gr_slot* p, const gr_face* face, const gr_
 
 
 
+
+
 GR2_API int gr_slot_before(const gr_slot* p);
+
+
 
 
 
