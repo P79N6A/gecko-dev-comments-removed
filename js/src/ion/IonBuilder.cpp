@@ -5005,6 +5005,11 @@ IonBuilder::insertRecompileCheck()
     if (!oracle->canInlineCalls())
         return;
 
+    
+    
+    if (ion::IsBaselineEnabled(cx))
+        return;
+
     uint32_t minUses = UsesBeforeIonRecompile(script(), pc);
     MRecompileCheck *check = MRecompileCheck::New(minUses);
     current->add(check);
