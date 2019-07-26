@@ -780,7 +780,7 @@ void GrallocTextureHostOGL::BindTexture(GLenum aTextureUnit)
 bool
 GrallocTextureHostOGL::IsValid() const
 {
-  return !!mGraphicBuffer.get();
+  return !!mGL && !!mGraphicBuffer.get();
 }
 
 GrallocTextureHostOGL::~GrallocTextureHostOGL()
@@ -798,6 +798,9 @@ GrallocTextureHostOGL::~GrallocTextureHostOGL()
 bool
 GrallocTextureHostOGL::Lock()
 {
+  if (!IsValid()) {
+    return false;
+  }
   
 
 

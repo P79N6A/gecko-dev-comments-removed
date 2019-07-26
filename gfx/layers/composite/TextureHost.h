@@ -203,9 +203,10 @@ public:
 
 
 
-  virtual bool Lock() { return true; }
+  virtual bool Lock() { return IsValid(); }
 
   
+
 
 
   virtual void Unlock() {}
