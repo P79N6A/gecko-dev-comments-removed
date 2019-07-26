@@ -148,9 +148,11 @@
         throw new TypeError("The argument to require() must be a string uri, got " + path);
       }
       
-      let uri = path;
-      if (!(uri.endsWith(".js"))) {
-        uri += ".js";
+      let uri;
+      if (path.lastIndexOf(".") <= path.lastIndexOf("/")) {
+        uri = path + ".js";
+      } else {
+        uri = path;
       }
 
       
@@ -191,14 +193,14 @@
         
         
         source = "require._tmpModules[\"" + name + "\"] = " +
-          "function(exports, require, modules) {" +
+          "function(exports, require, module) {" +
           source +
         "\n}\n";
         let blob = new Blob([(new TextEncoder()).encode(source)]);
         objectURL = URL.createObjectURL(blob);
         paths.set(objectURL, path);
         importScripts(objectURL);
-        require._tmpModules[name](exports, require, modules);
+        require._tmpModules[name].call(null, exports, require, module);
 
       } catch (ex) {
         
