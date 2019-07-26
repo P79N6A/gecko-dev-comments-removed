@@ -88,9 +88,13 @@ public:
   virtual nsresult Allocate();
   virtual nsresult Deallocate();
   virtual nsresult Start(SourceMediaStream*, TrackID);
-  virtual nsresult Stop();
+  virtual nsresult Stop(SourceMediaStream*, TrackID);
   virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile);
-  virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime);
+  virtual void NotifyPull(MediaStreamGraph* aGraph,
+                          SourceMediaStream *aSource,
+                          TrackID aId,
+                          StreamTime aDesiredTime,
+                          TrackTicks &aLastEndTime);
 
   NS_DECL_ISUPPORTS
 
@@ -136,7 +140,7 @@ private:
   TrackTicks mLastEndTime;
 
   mozilla::ReentrantMonitor mMonitor; 
-  SourceMediaStream* mSource;
+  nsTArray<SourceMediaStream *> mSources; 
 
   int mFps; 
   int mMinFps; 
@@ -184,9 +188,13 @@ public:
   virtual nsresult Allocate();
   virtual nsresult Deallocate();
   virtual nsresult Start(SourceMediaStream*, TrackID);
-  virtual nsresult Stop();
+  virtual nsresult Stop(SourceMediaStream*, TrackID);
   virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile);
-  virtual void NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime);
+  virtual void NotifyPull(MediaStreamGraph* aGraph,
+                          SourceMediaStream *aSource,
+                          TrackID aId,
+                          StreamTime aDesiredTime,
+                          TrackTicks &aLastEndTime);
 
   
   void Process(const int channel, const webrtc::ProcessingTypes type,
@@ -208,6 +216,7 @@ private:
   webrtc::VoENetwork*  mVoENetwork;
 
   mozilla::ReentrantMonitor mMonitor;
+  nsTArray<SourceMediaStream *> mSources; 
 
   int mCapIndex;
   int mChannel;
@@ -217,7 +226,6 @@ private:
   nsString mDeviceName;
   nsString mDeviceUUID;
 
-  SourceMediaStream* mSource;
   NullTransport *mNullTransport;
 };
 

@@ -677,15 +677,11 @@ public:
 
     for (i = 0; i < videoCount; i++) {
       MediaEngineVideoSource *vSource = videoSources[i];
-      if (vSource->IsAvailable()) {
-        devices->AppendElement(new MediaDevice(vSource));
-      }
+      devices->AppendElement(new MediaDevice(vSource));
     }
     for (i = 0; i < audioCount; i++) {
       MediaEngineAudioSource *aSource = audioSources[i];
-      if (aSource->IsAvailable()) {
-        devices->AppendElement(new MediaDevice(aSource));
-      }
+      devices->AppendElement(new MediaDevice(aSource));
     }
 
     NS_DispatchToMainThread(new DeviceSuccessCallbackRunnable(

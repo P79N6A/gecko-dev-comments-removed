@@ -27,12 +27,6 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 #define MM_LOG(msg)
 #endif
 
-
-enum {
-  kVideoTrack = 1,
-  kAudioTrack = 2
-};
-
 class GetUserMediaNotificationEvent: public nsRunnable
 {
   public:
@@ -155,11 +149,11 @@ public:
         {
           NS_ASSERTION(!NS_IsMainThread(), "Never call on main thread");
           if (mAudioSource) {
-            mAudioSource->Stop();
+            mAudioSource->Stop(mSourceStream, kAudioTrack);
             mAudioSource->Deallocate();
           }
           if (mVideoSource) {
-            mVideoSource->Stop();
+            mVideoSource->Stop(mSourceStream, kVideoTrack);
             mVideoSource->Deallocate();
           }
           
@@ -202,7 +196,10 @@ public:
     : mMediaThread(aThread)
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
-    , mStream(aStream) {}
+    , mStream(aStream)
+    , mSourceStream(aStream->GetStream()->AsSourceStream())
+    , mLastEndTimeAudio(0)
+    , mLastEndTimeVideo(0) {}
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
@@ -231,8 +228,7 @@ public:
     
     
     runnable = new MediaOperationRunnable(MEDIA_STOP,
-                                          mStream->GetStream()->AsSourceStream(),
-                                          mAudioSource, mVideoSource);
+                                          mSourceStream, mAudioSource, mVideoSource);
     mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
     return;
@@ -253,10 +249,10 @@ public:
     
     
     if (mAudioSource) {
-      mAudioSource->NotifyPull(aGraph, aDesiredTime);
+      mAudioSource->NotifyPull(aGraph, mSourceStream, kAudioTrack, aDesiredTime, mLastEndTimeAudio);
     }
     if (mVideoSource) {
-      mVideoSource->NotifyPull(aGraph, aDesiredTime);
+      mVideoSource->NotifyPull(aGraph, mSourceStream, kVideoTrack, aDesiredTime, mLastEndTimeVideo);
     }
   }
 
@@ -272,6 +268,9 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   nsRefPtr<nsDOMMediaStream> mStream;
+  SourceMediaStream *mSourceStream; 
+  TrackTicks mLastEndTimeAudio;
+  TrackTicks mLastEndTimeVideo;
 };
 
 typedef nsTArray<nsRefPtr<GetUserMediaCallbackMediaStreamListener> > StreamListeners;
