@@ -1428,9 +1428,7 @@ var NativeWindow = {
 
     _sendToContent: function(aX, aY) {
       
-      let rootElement = ElementTouchHelper.elementFromPoint(aX, aY);
-      if (!rootElement)
-        rootElement = ElementTouchHelper.anyElementFromPoint(aX, aY)
+      let rootElement = BrowserEventHandler._highlightElement;
 
       this.menuitems = {};
       let menuitemsSet = false;
@@ -1460,11 +1458,13 @@ var NativeWindow = {
         rootElement.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
         rootElement.dispatchEvent(event);
       } else if (SelectionHandler.canSelect(rootElement)) {
+        BrowserEventHandler._cancelTapHighlight();
         SelectionHandler.startSelection(rootElement, aX, aY);
       }
     },
 
     _show: function(aEvent) {
+      BrowserEventHandler._cancelTapHighlight();
       if (aEvent.defaultPrevented)
         return;
 
@@ -1518,7 +1518,6 @@ var NativeWindow = {
     },
 
     observe: function(aSubject, aTopic, aData) {
-      BrowserEventHandler._cancelTapHighlight();
       let data = JSON.parse(aData);
       
       this._sendToContent(data.x, data.y);
@@ -3593,35 +3592,24 @@ var BrowserEventHandler = {
     if (!BrowserApp.isBrowserContentDocumentDisplayed() || aEvent.touches.length > 1 || aEvent.defaultPrevented)
       return;
 
-    let closest = aEvent.target;
+    
+    
+    
+    this._scrollableElement = this._findScrollableElement(aEvent.target, true);
+    this._firstScrollEvent = true;
 
-    if (closest) {
+    if (this._scrollableElement != null) {
       
-      
-      this._scrollableElement = this._findScrollableElement(closest, true);
-      this._firstScrollEvent = true;
-
-      if (this._scrollableElement != null) {
-        
-        let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
-          sendMessageToJava({ gecko: { type: "Panning:Override" } });
-      }
+      let doc = BrowserApp.selectedBrowser.contentDocument;
+      if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
+        sendMessageToJava({ gecko: { type: "Panning:Override" } });
     }
 
-    if (!ElementTouchHelper.isElementClickable(closest, null, false))
-      closest = ElementTouchHelper.elementFromPoint(aEvent.changedTouches[0].screenX,
-                                                    aEvent.changedTouches[0].screenY);
-    if (!closest)
-      closest = aEvent.target;
-
-    if (closest) {
-      let uri = this._getLinkURI(closest);
-      if (uri) {
-        Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null, null);
-      }
-      this._doTapHighlight(closest);
+    let uri = this._getLinkURI(aEvent.target);
+    if (uri) {
+      Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null, null);
     }
+    this._doTapHighlight(aEvent.target);
   },
 
   _getLinkURI: function(aElement) {
@@ -3703,10 +3691,6 @@ var BrowserEventHandler = {
       if (element) {
         try {
           let data = JSON.parse(aData);
-          if (ElementTouchHelper.isElementClickable(element)) {
-            [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
-            element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
-          }
 
           this._sendMouseEvent("mousemove", element, data.x, data.y);
           this._sendMouseEvent("mousedown", element, data.x, data.y);
@@ -3905,34 +3889,6 @@ var BrowserEventHandler = {
     this.motionBuffer.push({ dx: dx, dy: dy, time: this.lastTime });
   },
 
-  _moveClickPoint: function(aElement, aX, aY) {
-    
-    
-    if (!(aElement instanceof HTMLHtmlElement)) {
-      let isTouchClick = true;
-      let rects = ElementTouchHelper.getContentClientRects(aElement);
-      for (let i = 0; i < rects.length; i++) {
-        let rect = rects[i];
-        let inBounds =
-          (aX > rect.left && aX < (rect.left + rect.width)) &&
-          (aY > rect.top && aY < (rect.top + rect.height));
-        if (inBounds) {
-          isTouchClick = false;
-          break;
-        }
-      }
-
-      if (isTouchClick) {
-        let rect = rects[0];
-        if (rect.width != 0 || rect.height != 0) {
-          aX = Math.min(Math.floor(rect.left + rect.width), Math.max(Math.ceil(rect.left), aX));
-          aY = Math.min(Math.floor(rect.top + rect.height), Math.max(Math.ceil(rect.top),  aY));
-        }
-      }
-    }
-    return [aX, aY];
-  },
-
   _sendMouseEvent: function _sendMouseEvent(aName, aElement, aX, aY) {
     let window = aElement.ownerDocument.defaultView;
     try {
@@ -4047,184 +4003,6 @@ const ElementTouchHelper = {
     }
 
     return elem;
-  },
-
-  
-
-
-
-
-  elementFromPoint: function(aX, aY, aWindow) {
-    
-    
-    let win = (aWindow ? aWindow : BrowserApp.selectedBrowser.contentWindow);
-    let cwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-    let elem = this.getClosest(cwu, aX, aY);
-
-    
-    while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
-      
-      let rect = elem.getBoundingClientRect();
-      aX -= rect.left;
-      aY -= rect.top;
-      cwu = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      elem = this.getClosest(cwu, aX, aY);
-    }
-
-    return elem;
-  },
-
-  
-  getTouchRadius: function getTouchRadius() {
-    let dpiRatio = ViewportHandler.displayDPI / kReferenceDpi;
-    let zoom = BrowserApp.selectedTab._zoom;
-    return {
-      top: this.radius.top * dpiRatio / zoom,
-      right: this.radius.right * dpiRatio / zoom,
-      bottom: this.radius.bottom * dpiRatio / zoom,
-      left: this.radius.left * dpiRatio / zoom
-    };
-  },
-
-  
-  get radius() {
-    let prefs = Services.prefs;
-    delete this.radius;
-    return this.radius = { "top": prefs.getIntPref("browser.ui.touch.top"),
-                           "right": prefs.getIntPref("browser.ui.touch.right"),
-                           "bottom": prefs.getIntPref("browser.ui.touch.bottom"),
-                           "left": prefs.getIntPref("browser.ui.touch.left")
-                         };
-  },
-
-  get weight() {
-    delete this.weight;
-    return this.weight = { "visited": Services.prefs.getIntPref("browser.ui.touch.weight.visited") };
-  },
-
-  
-  getClosest: function getClosest(aWindowUtils, aX, aY) {
-    let target = aWindowUtils.elementFromPoint(aX, aY,
-                                               true,   
-                                               false); 
-
-    
-    
-    
-    let unclickableCache = new Array();
-    if (this.isElementClickable(target, unclickableCache, false))
-      return target;
-
-    target = null;
-    let radius = this.getTouchRadius();
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, radius.top, radius.right, radius.bottom, radius.left, true, false);
-
-    let threshold = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < nodes.length; i++) {
-      let current = nodes[i];
-      if (!current.mozMatchesSelector || !this.isElementClickable(current, unclickableCache, true))
-        continue;
-
-      let rect = current.getBoundingClientRect();
-      let distance = this._computeDistanceFromRect(aX, aY, rect);
-
-      
-      if (current && current.mozMatchesSelector("*:visited"))
-        distance *= (this.weight.visited / 100);
-
-      if (distance < threshold) {
-        target = current;
-        threshold = distance;
-      }
-    }
-
-    return target;
-  },
-
-  isElementClickable: function isElementClickable(aElement, aUnclickableCache, aAllowBodyListeners) {
-    const selector = "a,:link,:visited,[role=button],button,input,select,textarea";
-
-    let stopNode = null;
-    if (!aAllowBodyListeners && aElement && aElement.ownerDocument)
-      stopNode = aElement.ownerDocument.body;
-
-    for (let elem = aElement; elem && elem != stopNode; elem = elem.parentNode) {
-      if (aUnclickableCache && aUnclickableCache.indexOf(elem) != -1)
-        continue;
-      if (this._hasMouseListener(elem))
-        return true;
-      if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
-        return true;
-      if (elem instanceof HTMLLabelElement && elem.control != null)
-        return true;
-      if (aUnclickableCache)
-        aUnclickableCache.push(elem);
-    }
-    return false;
-  },
-
-  _computeDistanceFromRect: function _computeDistanceFromRect(aX, aY, aRect) {
-    let x = 0, y = 0;
-    let xmost = aRect.left + aRect.width;
-    let ymost = aRect.top + aRect.height;
-
-    
-    
-    if (aRect.left < aX && aX < xmost)
-      x = Math.min(xmost - aX, aX - aRect.left);
-    else if (aX < aRect.left)
-      x = aRect.left - aX;
-    else if (aX > xmost)
-      x = aX - xmost;
-
-    
-    
-    if (aRect.top < aY && aY < ymost)
-      y = Math.min(ymost - aY, aY - aRect.top);
-    else if (aY < aRect.top)
-      y = aRect.top - aY;
-    if (aY > ymost)
-      y = aY - ymost;
-
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-  },
-
-  _els: Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService),
-  _clickableEvents: ["mousedown", "mouseup", "click"],
-  _hasMouseListener: function _hasMouseListener(aElement) {
-    let els = this._els;
-    let listeners = els.getListenerInfoFor(aElement, {});
-    for (let i = 0; i < listeners.length; i++) {
-      if (this._clickableEvents.indexOf(listeners[i].type) != -1)
-        return true;
-    }
-    return false;
-  },
-
-  getContentClientRects: function(aElement) {
-    let offset = { x: 0, y: 0 };
-
-    let nativeRects = aElement.getClientRects();
-    
-    for (let frame = aElement.ownerDocument.defaultView; frame.frameElement; frame = frame.parent) {
-      
-      let rect = frame.frameElement.getBoundingClientRect();
-      let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
-      let top = frame.getComputedStyle(frame.frameElement, "").borderTopWidth;
-      offset.x += rect.left + parseInt(left);
-      offset.y += rect.top + parseInt(top);
-    }
-
-    let result = [];
-    for (let i = nativeRects.length - 1; i >= 0; i--) {
-      let r = nativeRects[i];
-      result.push({ left: r.left + offset.x,
-                    top: r.top + offset.y,
-                    width: r.width,
-                    height: r.height
-                  });
-    }
-    return result;
   },
 
   getBoundingContentRect: function(aElement) {
