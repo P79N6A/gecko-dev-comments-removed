@@ -9,6 +9,9 @@
 
 
 
+let { Ci, Cc, CC, Cu, Cr } = require("chrome");
+let Debugger = require("Debugger");
+let Services = require("Services");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
 let Services = require("Services");
 let EventEmitter = require("devtools/toolkit/event-emitter");
@@ -24,8 +27,9 @@ this.Cc = Cc;
 this.CC = CC;
 this.Cu = Cu;
 this.Cr = Cr;
-this.DevToolsUtils = DevToolsUtils;
+this.Debugger = Debugger;
 this.Services = Services;
+this.DevToolsUtils = DevToolsUtils;
 
 
 
@@ -41,8 +45,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-Cu.import("resource://gre/modules/jsdebugger.jsm");
-addDebuggerToGlobal(this);
 
 function loadSubScript(aURL)
 {

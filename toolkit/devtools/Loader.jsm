@@ -8,7 +8,18 @@
 
 
 
-let { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+let { Constructor: CC, classes: Cc, interfaces: Ci, utils: Cu } = Components;
+
+
+
+
+let sandbox = Cu.Sandbox(CC('@mozilla.org/systemprincipal;1', 'nsIPrincipal')());
+Cu.evalInSandbox(
+  "Components.utils.import('resource://gre/modules/jsdebugger.jsm');" +
+  "addDebuggerToGlobal(this);",
+  sandbox
+);
+let Debugger = sandbox.Debugger;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -51,6 +62,7 @@ BuiltinProvider.prototype = {
   load: function() {
     this.loader = new loader.Loader({
       modules: {
+        "Debugger": Debugger,
         "Services": Object.create(Services),
         "toolkit/loader": loader,
         "source-map": SourceMap,
@@ -128,6 +140,7 @@ SrcdirProvider.prototype = {
     let acornWalkURI = OS.Path.join(acornURI, "walk.js");
     this.loader = new loader.Loader({
       modules: {
+        "Debugger": Debugger,
         "Services": Object.create(Services),
         "toolkit/loader": loader,
         "source-map": SourceMap,
