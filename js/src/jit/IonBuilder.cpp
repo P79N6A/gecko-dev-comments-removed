@@ -6554,39 +6554,18 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     index = addBoundsCheck(index, length);
 
     
-    MDefinition *owner;
-    MDefinition *indexFromOwner;
-    if (obj->isNewDerivedTypedObject()) {
-        MNewDerivedTypedObject *ins = obj->toNewDerivedTypedObject();
-        MDefinition *ownerOffset = ins->offset();
-
-        
-        
-        
-
-        MConstant *alignment = MConstant::New(Int32Value(elemTypeRepr->alignment()));
-        current->add(alignment);
-
-        MDiv *scaledOffset = MDiv::NewAsmJS(ownerOffset, alignment, MIRType_Int32);
-        current->add(scaledOffset);
-
-        MAdd *scaledOffsetPlusIndex = MAdd::NewAsmJS(scaledOffset, index,
-                                                     MIRType_Int32);
-        current->add(scaledOffsetPlusIndex);
-
-        owner = ins->owner();
-        indexFromOwner = scaledOffsetPlusIndex;
-    } else {
-        owner = obj;
-        indexFromOwner = index;
-    }
+    
+    const int32_t alignment = elemTypeRepr->alignment();
+    MMul *indexAsByteOffset = MMul::New(index, constantInt(alignment),
+                                        MIRType_Int32, MMul::Integer);
+    current->add(indexAsByteOffset);
 
     
-    MTypedObjectElements *elements = MTypedObjectElements::New(owner);
-    current->add(elements);
+    MDefinition *elements, *scaledOffset;
+    loadTypedObjectElements(obj, indexAsByteOffset, alignment, &elements, &scaledOffset);
 
     
-    MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(elements, indexFromOwner, elemTypeRepr->type());
+    MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(elements, scaledOffset, elemTypeRepr->type());
     current->add(load);
     current->push(load);
 
@@ -6616,8 +6595,7 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     JS_ASSERT(objTypeReprs.allOfArrayKind());
 
     MDefinition *type = loadTypedObjectType(obj);
-    MInstruction *elemType = MLoadFixedSlot::New(type, JS_TYPEOBJ_SLOT_ARRAY_ELEM_TYPE);
-    current->add(elemType);
+    MDefinition *elemType = typeObjectForElementFromArrayStructType(type);
 
     
     size_t lenOfAll = objTypeReprs.arrayLength();
@@ -6647,33 +6625,14 @@ IonBuilder::getElemTryComplexElemOfTypedObject(bool *emitted,
     current->add(indexAsByteOffset);
 
     
-    MDefinition *owner;
-    MDefinition *indexAsByteOffsetFromOwner;
-    if (obj->isNewDerivedTypedObject()) {
-        MNewDerivedTypedObject *ins = obj->toNewDerivedTypedObject();
-        MDefinition *ownerOffset = ins->offset();
-
-        MAdd *offsetPlusScaledIndex = MAdd::NewAsmJS(ownerOffset,
-                                                     indexAsByteOffset,
-                                                     MIRType_Int32);
-        current->add(offsetPlusScaledIndex);
-
-        owner = ins->owner();
-        indexAsByteOffsetFromOwner = offsetPlusScaledIndex;
-    } else {
-        owner = obj;
-        indexAsByteOffsetFromOwner = indexAsByteOffset;
-    }
-
-    
-    MTypedObjectElements *elements = MTypedObjectElements::New(owner);
-    current->add(elements);
+    MDefinition *owner, *ownerOffset;
+    loadTypedObjectData(obj, indexAsByteOffset, &owner, &ownerOffset);
 
     
     MInstruction *derived = new MNewDerivedTypedObject(elemTypeReprs,
                                                        elemType,
                                                        owner,
-                                                       indexAsByteOffsetFromOwner);
+                                                       ownerOffset);
 
     types::TemporaryTypeSet *resultTypes = bytecodeTypes(pc);
     derived->setResultTypeSet(resultTypes);
@@ -8236,31 +8195,20 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
     ScalarTypeRepresentation *fieldTypeRepr = fieldTypeReprs.getTypeRepresentation()->asScalar();
 
     
-    *emitted = true;
 
     MDefinition *typedObj = current->pop();
 
     
-    MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(typedObj, fieldOffset, &owner, &ownerOffset);
-
-    
-    MTypedObjectElements *elements = MTypedObjectElements::New(owner);
-    current->add(elements);
+    MDefinition *elements, *scaledOffset;
+    loadTypedObjectElements(typedObj, constantInt(fieldOffset),
+                            fieldTypeRepr->alignment(),
+                            &elements, &scaledOffset);
 
     
     
     
     bool allowDouble = resultTypes->hasType(types::Type::DoubleType());
     MIRType knownType = MIRTypeForTypedArrayRead(fieldTypeRepr->type(), allowDouble);
-
-    
-    
-    
-    MConstant *alignment = MConstant::New(Int32Value(fieldTypeRepr->alignment()));
-    current->add(alignment);
-    MDiv *scaledOffset = MDiv::NewAsmJS(ownerOffset, alignment, MIRType_Int32);
-    current->add(scaledOffset);
 
     MLoadTypedArrayElement *load =
         MLoadTypedArrayElement::New(elements, scaledOffset,
@@ -8269,6 +8217,7 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
     load->setResultTypeSet(resultTypes);
     current->add(load);
     current->push(load);
+    *emitted = true;
     return true;
 }
 
@@ -8284,7 +8233,8 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
     if (fieldIndex == SIZE_MAX)
         return true;
 
-    *emitted = true;
+    
+
     MDefinition *typedObj = current->pop();
 
     
@@ -8293,7 +8243,8 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
 
     
     MDefinition *owner, *ownerOffset;
-    loadTypedObjectData(typedObj, fieldOffset, &owner, &ownerOffset);
+    loadTypedObjectData(typedObj, constantInt(fieldOffset),
+                        &owner, &ownerOffset);
 
     
     MInstruction *derived = new MNewDerivedTypedObject(fieldTypeReprs,
@@ -8303,6 +8254,7 @@ IonBuilder::getPropTryComplexPropOfTypedObject(bool *emitted,
     derived->setResultTypeSet(resultTypes);
     current->add(derived);
     current->push(derived);
+    *emitted = true;
     return true;
 }
 
@@ -8752,9 +8704,20 @@ IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
         return true;
 
       case TypeRepresentation::Scalar:
-        break;
+        return setPropTryScalarPropOfTypedObject(emitted, obj, fieldOffset,
+                                                 value, fieldTypeReprs);
     }
 
+    MOZ_ASSUME_UNREACHABLE("Unknown kind");
+}
+
+bool
+IonBuilder::setPropTryScalarPropOfTypedObject(bool *emitted,
+                                              MDefinition *obj,
+                                              int32_t fieldOffset,
+                                              MDefinition *value,
+                                              TypeRepresentationSet fieldTypeReprs)
+{
     
     if (!fieldTypeReprs.singleton())
         return true;
@@ -8762,34 +8725,13 @@ IonBuilder::setPropTryTypedObject(bool *emitted, MDefinition *obj,
         fieldTypeReprs.getTypeRepresentation()->asScalar();
 
     
-    *emitted = true;
 
-    MTypedObjectElements *elements = MTypedObjectElements::New(obj);
-    current->add(elements);
-
-    
-    
-    
-    JS_ASSERT(fieldOffset % fieldTypeRepr->alignment() == 0);
-    int32_t scaledFieldOffset = fieldOffset / fieldTypeRepr->alignment();
-
-    MConstant *offset = MConstant::New(Int32Value(scaledFieldOffset));
-    current->add(offset);
-
-    
-    MDefinition *toWrite = value;
-    if (fieldTypeRepr->type() == ScalarTypeRepresentation::TYPE_UINT8_CLAMPED) {
-        toWrite = MClampToUint8::New(value);
-        current->add(toWrite->toInstruction());
-    }
-
-    MStoreTypedArrayElement *store =
-        MStoreTypedArrayElement::New(elements, offset, toWrite,
-                                     fieldTypeRepr->type());
-    current->add(store);
+    if (!storeScalarTypedObjectValue(obj, constantInt(fieldOffset), fieldTypeRepr, value))
+        return false;
 
     current->push(value);
 
+    *emitted = true;
     return true;
 }
 
@@ -9624,12 +9566,12 @@ IonBuilder::loadTypedObjectType(MDefinition *typedObj)
 
 void
 IonBuilder::loadTypedObjectData(MDefinition *typedObj,
-                                int32_t offset,
+                                MDefinition *offset,
                                 MDefinition **owner,
                                 MDefinition **ownerOffset)
 {
-    MConstant *offsetDef = MConstant::New(Int32Value(offset));
-    current->add(offsetDef);
+    JS_ASSERT(typedObj->type() == MIRType_Object);
+    JS_ASSERT(offset->type() == MIRType_Int32);
 
     
     
@@ -9640,8 +9582,7 @@ IonBuilder::loadTypedObjectData(MDefinition *typedObj,
         
         MNewDerivedTypedObject *ins = typedObj->toNewDerivedTypedObject();
 
-        MAdd *offsetAdd = MAdd::NewAsmJS(ins->offset(), offsetDef,
-                                         MIRType_Int32);
+        MAdd *offsetAdd = MAdd::NewAsmJS(ins->offset(), offset, MIRType_Int32);
         current->add(offsetAdd);
 
         *owner = ins->owner();
@@ -9650,7 +9591,38 @@ IonBuilder::loadTypedObjectData(MDefinition *typedObj,
     }
 
     *owner = typedObj;
-    *ownerOffset = offsetDef;
+    *ownerOffset = offset;
+}
+
+
+
+
+
+
+void
+IonBuilder::loadTypedObjectElements(MDefinition *typedObj,
+                                    MDefinition *offset,
+                                    int32_t unit,
+                                    MDefinition **ownerElements,
+                                    MDefinition **ownerScaledOffset)
+{
+    MDefinition *owner, *ownerOffset;
+    loadTypedObjectData(typedObj, offset, &owner, &ownerOffset);
+
+    
+    MTypedObjectElements *elements = MTypedObjectElements::New(owner);
+    current->add(elements);
+
+    
+    if (unit != 1) {
+        MDiv *scaledOffset = MDiv::NewAsmJS(ownerOffset, constantInt(unit), MIRType_Int32);
+        current->add(scaledOffset);
+        *ownerScaledOffset = scaledOffset;
+    } else {
+        *ownerScaledOffset = ownerOffset;
+    }
+
+    *ownerElements = elements;
 }
 
 
@@ -9693,6 +9665,18 @@ IonBuilder::lookupTypedObjectField(MDefinition *typedObj,
 }
 
 MDefinition *
+IonBuilder::typeObjectForElementFromArrayStructType(MDefinition *typeObj)
+{
+    MInstruction *elemType = MLoadFixedSlot::New(typeObj, JS_TYPEOBJ_SLOT_ARRAY_ELEM_TYPE);
+    current->add(elemType);
+
+    MInstruction *unboxElemType = MUnbox::New(elemType, MIRType_Object, MUnbox::Infallible);
+    current->add(unboxElemType);
+
+    return unboxElemType;
+}
+
+MDefinition *
 IonBuilder::typeObjectForFieldFromStructType(MDefinition *typeObj,
                                              size_t fieldIndex)
 {
@@ -9701,16 +9685,60 @@ IonBuilder::typeObjectForFieldFromStructType(MDefinition *typeObj,
     MInstruction *fieldTypes = MLoadFixedSlot::New(typeObj, JS_TYPEOBJ_SLOT_STRUCT_FIELD_TYPES);
     current->add(fieldTypes);
 
+    MInstruction *unboxFieldTypes = MUnbox::New(fieldTypes, MIRType_Object, MUnbox::Infallible);
+    current->add(unboxFieldTypes);
+
     
 
-    MInstruction *fieldTypesElements = MElements::New(fieldTypes);
+    MInstruction *fieldTypesElements = MElements::New(unboxFieldTypes);
     current->add(fieldTypesElements);
 
-    MConstant *fieldIndexDef = MConstant::New(Int32Value(fieldIndex));
-    current->add(fieldIndexDef);
+    MConstant *fieldIndexDef = constantInt(fieldIndex);
 
     MInstruction *fieldType = MLoadElement::New(fieldTypesElements, fieldIndexDef, false, false);
     current->add(fieldType);
 
-    return fieldType;
+    MInstruction *unboxFieldType = MUnbox::New(fieldType, MIRType_Object, MUnbox::Infallible);
+    current->add(unboxFieldType);
+
+    return unboxFieldType;
+}
+
+bool
+IonBuilder::storeScalarTypedObjectValue(MDefinition *typedObj,
+                                        MDefinition *offset,
+                                        ScalarTypeRepresentation *typeRepr,
+                                        MDefinition *value)
+{
+    
+    MDefinition *elements, *scaledOffset;
+    loadTypedObjectElements(typedObj, offset, typeRepr->alignment(), &elements, &scaledOffset);
+
+    
+    MDefinition *toWrite = value;
+    if (typeRepr->type() == ScalarTypeRepresentation::TYPE_UINT8_CLAMPED) {
+        toWrite = MClampToUint8::New(value);
+        current->add(toWrite->toInstruction());
+    }
+
+    MStoreTypedArrayElement *store =
+        MStoreTypedArrayElement::New(elements, scaledOffset, toWrite,
+                                     typeRepr->type());
+    current->add(store);
+
+    return true;
+}
+
+MConstant *
+IonBuilder::constant(const Value &v)
+{
+    MConstant *c = MConstant::New(v);
+    current->add(c);
+    return c;
+}
+
+MConstant *
+IonBuilder::constantInt(int32_t i)
+{
+    return constant(Int32Value(i));
 }
