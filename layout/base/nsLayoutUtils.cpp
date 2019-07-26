@@ -1258,6 +1258,10 @@ nsLayoutUtils::GetAnimatedGeometryRootFor(nsIFrame* aFrame,
         stickyFrame = nullptr;
       }
     }
+    
+    if (IsFixedPosFrameInDisplayPort(f)) {
+      return f;
+    }
     f = parent;
   }
   return f;
@@ -1268,6 +1272,13 @@ nsLayoutUtils::GetAnimatedGeometryRootFor(nsDisplayItem* aItem,
                                           nsDisplayListBuilder* aBuilder)
 {
   nsIFrame* f = aItem->Frame();
+  if (aItem->GetType() == nsDisplayItem::TYPE_SCROLL_LAYER) {
+    nsDisplayScrollLayer* scrollLayerItem =
+      static_cast<nsDisplayScrollLayer*>(aItem);
+    nsIFrame* scrolledFrame = scrollLayerItem->GetScrolledFrame();
+    return nsLayoutUtils::GetAnimatedGeometryRootFor(scrolledFrame,
+        aBuilder->FindReferenceFrameFor(scrolledFrame));
+  }
   if (aItem->ShouldFixToViewport(aBuilder)) {
     
     
