@@ -920,6 +920,12 @@ public:
 
 
 
+  const float GetLocalOpacity();
+
+  
+
+
+
 
 
   void ApplyPendingUpdatesToSubtree();
@@ -1169,12 +1175,6 @@ protected:
   
   
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
-
-  
-
-
-
-  const float GetLocalOpacity();
 
   
 
