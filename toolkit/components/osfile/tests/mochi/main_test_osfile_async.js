@@ -160,7 +160,6 @@ let test = maketest("Main", function main(test) {
     yield test_iter();
     yield test_exists();
     yield test_debug_test();
-    yield test_duration();
     info("Test is over");
     SimpleTest.finish();
   });
@@ -616,90 +615,3 @@ let test_debug_test = maketest("debug_test", function debug_test(test) {
 });
 
 
-
-
-
-let test_duration = maketest("duration", function duration(test) {
-  return Task.spawn(function() {
-    Services.prefs.setBoolPref("toolkit.osfile.log", true);
-    
-    let copyOptions = {
-      
-      
-      outExecutionDuration: null
-    };
-    let currentDir = yield OS.File.getCurrentDirectory();
-    let pathSource = OS.Path.join(currentDir, EXISTING_FILE);
-    let copyFile = pathSource + ".bak";
-    let testOptions = function testOptions(options, name) {
-      test.info("Checking outExecutionDuration for operation: " + name);
-      test.info(name + ": Gathered method duration time: " +
-        options.outExecutionDuration + "ms");
-      
-      test.ok(typeof options.outExecutionDuration === "number",
-              name + ": Operation duration is a number");
-      test.ok(options.outExecutionDuration >= 0,
-              name + ": Operation duration time is non-negative.");
-    };
-    
-    yield OS.File.copy(pathSource, copyFile, copyOptions);
-    testOptions(copyOptions, "OS.File.copy");
-    yield OS.File.remove(copyFile);
-
-    
-    let pathDest = OS.Path.join(OS.Constants.Path.tmpDir,
-      "osfile async test read writeAtomic.tmp");
-    let tmpPath = pathDest + ".tmp";
-    let readOptions = {
-      outExecutionDuration: null
-    };
-    let contents = yield OS.File.read(pathSource, undefined, readOptions);
-    testOptions(readOptions, "OS.File.read");
-    
-    let writeAtomicOptions = {
-      
-      
-      outExecutionDuration: null,
-      tmpPath: tmpPath
-    };
-    yield OS.File.writeAtomic(pathDest, contents, writeAtomicOptions);
-    testOptions(writeAtomicOptions, "OS.File.writeAtomic");
-    yield OS.File.remove(pathDest);
-
-    test.info("Ensuring that we can use outExecutionDuration to accumulate durations");
-
-    let ARBITRARY_BASE_DURATION = 5;
-    copyOptions = {
-      
-      
-      outExecutionDuration: ARBITRARY_BASE_DURATION
-    };
-    let backupDuration = ARBITRARY_BASE_DURATION;
-    
-    yield OS.File.copy(pathSource, copyFile, copyOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 1");
-
-    backupDuration = copyOptions.outExecutionDuration;
-    yield OS.File.remove(copyFile, copyOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 2");
-
-    
-    
-    writeAtomicOptions = {
-      
-      
-      outExecutionDuration: copyOptions.outExecutionDuration,
-      tmpPath: tmpPath
-    };
-    backupDuration = writeAtomicOptions.outExecutionDuration;
-
-    yield OS.File.writeAtomic(pathDest, contents, writeAtomicOptions);
-    test.ok(copyOptions.outExecutionDuration >= backupDuration, "duration has increased 3");
-    OS.File.remove(pathDest);
-
-    
-    let file = yield OS.File.open(pathSource);
-    yield file.stat();
-    yield file.close();
-  });
-});
