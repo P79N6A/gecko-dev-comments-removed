@@ -608,10 +608,10 @@ nsPluginStreamListenerPeer::MakeByteRangeString(NPByteRange* aRangeList, nsACStr
 
     
     string.AppendInt(range->offset);
-    string.Append("-");
+    string.Append('-');
     string.AppendInt(range->offset + range->length - 1);
     if (range->next)
-      string += ",";
+      string.Append(',');
 
     requestCnt++;
   }

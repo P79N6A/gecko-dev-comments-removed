@@ -261,7 +261,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
 
 
 
-            mConfigURL.Append("?");
+            mConfigURL.Append('?');
             mConfigURL.Append(emailAddr); 
         }
     }
