@@ -900,9 +900,7 @@ let emulator = (function() {
 
 
 
-  function setupConferenceTwoCalls(outNumber, inNumber) {
-    log('Create conference with two calls.');
-
+  function createConferenceWithTwoCalls(outNumber, inNumber) {
     let outCall;
     let inCall;
     let outInfo = outCallStrPool(outNumber);
@@ -941,41 +939,51 @@ let emulator = (function() {
 
 
 
+  function createCallAndAddToConference(inNumber, conferenceCalls) {
+    
+    let allInfo = conferenceCalls.map(function(call, i) {
+      return (i === 0) ? outCallStrPool(call.number)
+                       : inCallStrPool(call.number);
+    });
 
+    
+    
+    function addInfoState(allInfo, state) {
+      Object.defineProperty(allInfo, state, {
+        get: function() {
+          return allInfo.map(function(info) { return info[state]; });
+        }
+      });
+    }
 
-  function setupConferenceThreeCalls(outNumber, inNumber, inNumber2) {
-    log('Create conference with three calls.');
+    for (let state of ['ringing', 'incoming', 'active', 'held']) {
+      addInfoState(allInfo, state);
+    }
 
-    let outCall;
-    let inCall;
-    let inCall2;
-    let outInfo = outCallStrPool(outNumber);
-    let inInfo = inCallStrPool(inNumber);
-    let inInfo2 = inCallStrPool(inNumber2);
+    let newCall;
+    let newInfo = inCallStrPool(inNumber);
 
-    return Promise.resolve()
-      .then(() => setupConferenceTwoCalls(outNumber, inNumber))
-      .then(calls => {
-          outCall = calls[0];
-          inCall = calls[1];
-      })
-      .then(() => remoteDial(inNumber2))
-      .then(call => { inCall2 = call; })
-      .then(() => checkAll(conference, [inCall2], 'connected', [outCall, inCall],
-                           [outInfo.active, inInfo.active, inInfo2.incoming]))
-      .then(() => answer(inCall2, function() {
-        checkState(inCall2, [inCall2], 'held', [outCall, inCall]);
+    return remoteDial(inNumber)
+      .then(call => { newCall = call; })
+      .then(() => checkAll(conference, [newCall], 'connected', conferenceCalls,
+                           allInfo.active.concat(newInfo.incoming)))
+      .then(() => answer(newCall, function() {
+        checkState(newCall, [newCall], 'held', conferenceCalls);
       }))
-      .then(() => checkAll(inCall2, [inCall2], 'held', [outCall, inCall],
-                           [outInfo.held, inInfo.held, inInfo2.active]))
-      .then(() => addCallsToConference([inCall2], function() {
-        checkState(conference, [], 'connected', [outCall, inCall, inCall2]);
-      }))
-      .then(() => checkAll(conference, [],
-                           'connected', [outCall, inCall, inCall2],
-                           [outInfo.active, inInfo.active, inInfo2.active]))
+      .then(() => checkAll(newCall, [newCall], 'held', conferenceCalls,
+                           allInfo.held.concat(newInfo.active)))
       .then(() => {
-        return [outCall, inCall, inCall2];
+        
+        conferenceCalls.push(newCall);
+        allInfo.push(newInfo);
+      })
+      .then(() => addCallsToConference([newCall], function() {
+        checkState(conference, [], 'connected', conferenceCalls);
+      }))
+      .then(() => checkAll(conference, [], 'connected', conferenceCalls,
+                           allInfo.active))
+      .then(() => {
+        return conferenceCalls;
       });
   }
 
@@ -987,77 +995,18 @@ let emulator = (function() {
 
 
 
+  function setupConference(callNumbers) {
+    log("Create a conference with " + callNumbers.length + " calls.");
 
+    let promise = createConferenceWithTwoCalls(callNumbers[0], callNumbers[1]);
 
+    callNumbers.shift();
+    callNumbers.shift();
+    for (let number of callNumbers) {
+      promise = promise.then(createCallAndAddToConference.bind(null, number));
+    }
 
-
-
-
-
-  function setupConferenceFiveCalls(outNumber, inNumber, inNumber2, inNumber3,
-                                    inNumber4) {
-    log('Create conference with five calls.');
-
-    let outCall;
-    let inCall;
-    let inCall2;
-    let inCall3;
-    let inCall4;
-    let outInfo = outCallStrPool(outNumber);
-    let inInfo = inCallStrPool(inNumber);
-    let inInfo2 = inCallStrPool(inNumber2);
-    let inInfo3 = inCallStrPool(inNumber3);
-    let inInfo4 = inCallStrPool(inNumber4);
-
-    return Promise.resolve()
-      .then(() => setupConferenceThreeCalls(outNumber, inNumber, inNumber2))
-      .then(calls => {
-        [outCall, inCall, inCall2] = calls;
-      })
-      .then(() => remoteDial(inNumber3))
-      .then(call => {inCall3 = call;})
-      .then(() => checkAll(conference, [inCall3], 'connected',
-                           [outCall, inCall, inCall2],
-                           [outInfo.active, inInfo.active, inInfo2.active,
-                           inInfo3.incoming]))
-      .then(() => answer(inCall3, function() {
-        checkState(inCall3, [inCall3], 'held', [outCall, inCall, inCall2]);
-      }))
-      .then(() => checkAll(inCall3, [inCall3], 'held',
-                           [outCall, inCall, inCall2],
-                           [outInfo.held, inInfo.held, inInfo2.held,
-                            inInfo3.active]))
-      .then(() => addCallsToConference([inCall3], function() {
-        checkState(conference, [], 'connected', [outCall, inCall, inCall2, inCall3]);
-      }))
-      .then(() => checkAll(conference, [], 'connected',
-                           [outCall, inCall, inCall2, inCall3],
-                           [outInfo.active, inInfo.active, inInfo2.active,
-                            inInfo3.active]))
-      .then(() => remoteDial(inNumber4))
-      .then(call => {inCall4 = call;})
-      .then(() => checkAll(conference, [inCall4], 'connected',
-                           [outCall, inCall, inCall2, inCall3],
-                           [outInfo.active, inInfo.active, inInfo2.active,
-                            inInfo3.active, inInfo4.incoming]))
-      .then(() => answer(inCall4, function() {
-        checkState(inCall4, [inCall4], 'held', [outCall, inCall, inCall2, inCall3]);
-      }))
-      .then(() => checkAll(inCall4, [inCall4], 'held',
-                           [outCall, inCall, inCall2, inCall3],
-                           [outInfo.held, inInfo.held, inInfo2.held,
-                            inInfo3.held, inInfo4.active]))
-      .then(() => addCallsToConference([inCall4], function() {
-        checkState(conference, [], 'connected', [outCall, inCall, inCall2,
-                                                 inCall3, inCall4]);
-      }))
-      .then(() => checkAll(conference, [], 'connected',
-                           [outCall, inCall, inCall2, inCall3, inCall4],
-                           [outInfo.active, inInfo.active, inInfo2.active,
-                            inInfo3.active, inInfo4.active]))
-      .then(() => {
-        return [outCall, inCall, inCall2, inCall3, inCall4];
-      });
+    return promise;
   }
 
   
@@ -1082,9 +1031,7 @@ let emulator = (function() {
   this.gResumeConference = resumeConference;
   this.gRemoveCallInConference = removeCallInConference;
   this.gHangUpCallInConference = hangUpCallInConference;
-  this.gSetupConferenceTwoCalls = setupConferenceTwoCalls;
-  this.gSetupConferenceThreeCalls = setupConferenceThreeCalls;
-  this.gSetupConferenceFiveCalls = setupConferenceFiveCalls;
+  this.gSetupConference = setupConference;
   this.gReceivedPending = receivedPending;
 }());
 
