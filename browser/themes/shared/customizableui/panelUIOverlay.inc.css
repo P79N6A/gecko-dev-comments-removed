@@ -295,6 +295,7 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 
 .panelUI-grid .toolbarbutton-1 > .toolbarbutton-menubutton-button > .toolbarbutton-icon,
 .panelUI-grid .toolbarbutton-1 > .toolbarbutton-icon,
+.panelUI-grid .toolbarbutton-1 > .toolbarbutton-badge-container,
 .customization-palette .toolbarbutton-1 > .toolbarbutton-menubutton-button > .toolbarbutton-icon,
 .customization-palette .toolbarbutton-1 > .toolbarbutton-icon,
 .panelUI-grid #bookmarks-toolbar-placeholder > .toolbarbutton-icon,
@@ -315,6 +316,16 @@ toolbaritem[cui-areatype="menu-panel"][sdkstylewidget="true"]:not(.panel-wide-it
 
 
   margin: 4px calc(@menuPanelButtonWidth@ / 2 - 23px);
+}
+
+
+
+
+.panelUI-grid .toolbarbutton-1 > .toolbarbutton-badge-container > .toolbarbutton-icon {
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
 }
 
 toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
