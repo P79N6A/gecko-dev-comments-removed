@@ -455,12 +455,6 @@ var gAllTests = [
     pm.addFromPrincipal(principal, "offline-app", Ci.nsIOfflineCacheUpdateService.ALLOW_NO_WARN);
 
     
-    var dsm = Cc["@mozilla.org/dom/storagemanager;1"]
-             .getService(Ci.nsIDOMStorageManager);
-    var localStorage = dsm.getLocalStorageForPrincipal(principal, URL);
-    localStorage.setItem("test", "value");
-
-    
     const nsICache = Components.interfaces.nsICache;
     var cs = Components.classes["@mozilla.org/network/cache-service;1"]
              .getService(Components.interfaces.nsICacheService);
@@ -478,8 +472,6 @@ var gAllTests = [
       this.acceptDialog();
 
       
-      is(localStorage.length, 0, "DOM storage cleared");
-
       var size = -1;
       var visitor = {
         visitDevice: function (deviceID, deviceInfo)
