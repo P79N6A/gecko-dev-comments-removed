@@ -784,17 +784,19 @@ void MediaPipelineTransmit::PipelineListener::ProcessAudioChunk(
 }
 
 #ifdef MOZILLA_INTERNAL_API
-static void FillBlackYCbCr420PixelData(uint8_t* aBuffer, const gfxIntSize& aSize)
-{
-  
-}
-
 void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     VideoSessionConduit* conduit,
     TrackRate rate,
     VideoChunk& chunk) {
   layers::Image *img = chunk.mFrame.GetImage();
-  gfxIntSize size = img ? img->GetSize() : chunk.mFrame.GetIntrinsicSize();
+
+  
+  if (!img) {
+    
+    return;
+  }
+
+  gfxIntSize size = img->GetSize();
   if ((size.width & 1) != 0 || (size.height & 1) != 0) {
     MOZ_ASSERT(false, "Can't handle odd-sized images");
     return;
@@ -818,12 +820,6 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
       conduit->SendVideoFrame(pixelData, length, size.width, size.height,
                               mozilla::kVideoI420, 0);
     }
-    return;
-  }
-
-  
-  if (!img) {
-    
     return;
   }
 
