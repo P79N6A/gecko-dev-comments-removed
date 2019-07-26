@@ -128,6 +128,19 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
     
     CompartmentPrivate *priv = EnsureCompartmentPrivate(aGlobal);
     priv->scope = this;
+
+    
+    mUseXBLScope = XPCJSRuntime::Get()->XBLScopesEnabled();
+    if (mUseXBLScope) {
+      js::Class *clasp = js::GetObjectClass(mGlobalJSObject);
+      mUseXBLScope = !strcmp(clasp->name, "Window") ||
+                     !strcmp(clasp->name, "ChromeWindow") ||
+                     !strcmp(clasp->name, "ModalContentWindow");
+    }
+    if (mUseXBLScope) {
+      nsIPrincipal *principal = GetPrincipal();
+      mUseXBLScope = principal && !nsContentUtils::IsSystemPrincipal(principal);
+    }
 }
 
 
@@ -181,20 +194,7 @@ XPCWrappedNativeScope::EnsureXBLScope(JSContext *cx)
         return mXBLScope;
 
     
-    MOZ_ASSERT(!strcmp(js::GetObjectClass(mGlobalJSObject)->name, "Window") ||
-               !strcmp(js::GetObjectClass(mGlobalJSObject)->name, "ChromeWindow") ||
-               !strcmp(js::GetObjectClass(mGlobalJSObject)->name, "ModalContentWindow"));
-
-    
-    
-    nsIPrincipal *principal = GetPrincipal();
-    if (!principal)
-        return nullptr;
-    if (nsContentUtils::IsSystemPrincipal(principal))
-        return global;
-
-    
-    if (!XPCJSRuntime::Get()->XBLScopesEnabled())
+    if (!mUseXBLScope)
         return global;
 
     
@@ -212,6 +212,7 @@ XPCWrappedNativeScope::EnsureXBLScope(JSContext *cx)
     options.proto = global;
 
     
+    nsIPrincipal *principal = GetPrincipal();
     nsCOMPtr<nsIExpandedPrincipal> ep;
     MOZ_ASSERT(!(ep = do_QueryInterface(principal)));
     nsTArray< nsCOMPtr<nsIPrincipal> > principalAsArray(1);
