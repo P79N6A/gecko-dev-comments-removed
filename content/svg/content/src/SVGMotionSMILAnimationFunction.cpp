@@ -11,10 +11,12 @@
 #include "SVGMotionSMILPathUtils.h"
 #include "nsSVGPathDataParser.h"
 #include "nsSVGPathElement.h" 
-#include "nsSVGMpathElement.h"
+#include "SVGMPathElement.h"
 #include "nsAttrValueInlines.h"
 
 namespace mozilla {
+
+using namespace dom;
 
 SVGMotionSMILAnimationFunction::SVGMotionSMILAnimationFunction()
   : mRotateType(eRotateType_Explicit),
@@ -124,14 +126,14 @@ SVGMotionSMILAnimationFunction::GetCalcMode() const
 
 
 
-static nsSVGMpathElement*
+static SVGMPathElement*
 GetFirstMpathChild(nsIContent* aElem)
 {
   for (nsIContent* child = aElem->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
     if (child->IsSVG(nsGkAtoms::mpath)) {
-      return static_cast<nsSVGMpathElement*>(child);
+      return static_cast<SVGMPathElement*>(child);
     }
   }
 
@@ -210,7 +212,7 @@ SVGMotionSMILAnimationFunction::
 
 void
 SVGMotionSMILAnimationFunction::
-  RebuildPathAndVerticesFromMpathElem(nsSVGMpathElement* aMpathElem)
+  RebuildPathAndVerticesFromMpathElem(SVGMPathElement* aMpathElem)
 {
   mPathSourceType = ePathSourceType_Mpath;
 
@@ -270,7 +272,7 @@ SVGMotionSMILAnimationFunction::
 
   
   
-  nsSVGMpathElement* firstMpathChild =
+  SVGMPathElement* firstMpathChild =
     GetFirstMpathChild(&mAnimationElement->AsElement());
 
   if (firstMpathChild) {
