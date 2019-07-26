@@ -1274,6 +1274,23 @@ this.JSTermHelpers = function JSTermHelpers(aOwner)
 
 
 
+  aOwner.sandbox.inspect = function JSTH_inspect(aObject)
+  {
+    let dbgObj = aOwner.makeDebuggeeValue(aObject);
+    let grip = aOwner.createValueGrip(dbgObj);
+    aOwner.helperResult = {
+      type: "inspectObject",
+      input: aOwner.evalInput,
+      object: grip,
+    };
+  };
+
+  
+
+
+
+
+
 
   aOwner.sandbox.pprint = function JSTH_pprint(aObject)
   {
