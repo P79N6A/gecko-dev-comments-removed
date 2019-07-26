@@ -1124,61 +1124,48 @@ NS_IMETHODIMP
 HTMLSelectElement::IsOptionDisabled(int32_t aIndex, bool* aIsDisabled)
 {
   *aIsDisabled = false;
-  nsCOMPtr<nsIDOMNode> optionNode;
-  Item(aIndex, getter_AddRefs(optionNode));
-  NS_ENSURE_TRUE(optionNode, NS_ERROR_FAILURE);
+  nsRefPtr<HTMLOptionElement> option = Item(aIndex);
+  NS_ENSURE_TRUE(option, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMHTMLOptionElement> option = do_QueryInterface(optionNode);
-  if (option) {
-    bool isDisabled;
-    option->GetDisabled(&isDisabled);
-    if (isDisabled) {
-      *aIsDisabled = true;
-      return NS_OK;
-    }
+  *aIsDisabled = IsOptionDisabled(option);
+  return NS_OK;
+}
+
+bool
+HTMLSelectElement::IsOptionDisabled(HTMLOptionElement* aOption)
+{
+  MOZ_ASSERT(aOption);
+  if (aOption->Disabled()) {
+    return true;
   }
 
   
   
   if (mNonOptionChildren) {
-    nsCOMPtr<nsIDOMNode> parent;
-    while (1) {
-      optionNode->GetParentNode(getter_AddRefs(parent));
-
+    for (nsCOMPtr<Element> node = aOption->GetParentElement();
+         node;
+         node = node->GetParentElement()) {
       
-      if (!parent) {
-        break;
+      if (node->IsHTML(nsGkAtoms::select)) {
+        return false;
       }
 
-      
-      nsCOMPtr<nsIDOMHTMLSelectElement> selectElement =
-        do_QueryInterface(parent);
-      if (selectElement) {
-        break;
-      }
+      nsRefPtr<HTMLOptGroupElement> optGroupElement =
+        HTMLOptGroupElement::FromContent(node);
 
-      nsCOMPtr<nsIDOMHTMLOptGroupElement> optGroupElement =
-        do_QueryInterface(parent);
-
-      if (optGroupElement) {
-        bool isDisabled;
-        optGroupElement->GetDisabled(&isDisabled);
-
-        if (isDisabled) {
-          *aIsDisabled = true;
-          return NS_OK;
-        }
-      } else {
+      if (!optGroupElement) {
         
         
-        break;
+        return false;
       }
 
-      optionNode = parent;
+      if (optGroupElement->Disabled()) {
+        return true;
+      }
     }
   }
 
-  return NS_OK;
+  return false;
 }
 
 NS_IMETHODIMP
