@@ -237,6 +237,12 @@ public:
 
 
   virtual bool DidHistoryRestore() = 0;
+  
+
+
+
+
+  virtual void ClearDidHistoryRestore() = 0;
 };
 
 #endif

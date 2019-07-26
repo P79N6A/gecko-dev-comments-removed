@@ -2890,6 +2890,7 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
   if (rootScroll && rootScroll->DidHistoryRestore()) {
     
     aScroll = false;
+    rootScroll->ClearDidHistoryRestore();
   }
 
   if (content) {
