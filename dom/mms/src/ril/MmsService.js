@@ -1135,6 +1135,24 @@ MmsService.prototype = {
     debug("handleDeliveryIndication: got delivery report for " + messageId);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   createSavableFromParams: function createSavableFromParams(aParams) {
     debug("createSavableFromParams: aParams: " + JSON.stringify(aParams));
     let message = {};
@@ -1181,13 +1199,17 @@ MmsService.prototype = {
       for (let i = 0; i < attachments.length; i++) {
         let attachment = attachments[i];
         let content = attachment.content;
+        let location = attachment.location;
         let part = {
           "headers": {
             "content-type": {
-              "media": content.type
+              "media": content.type,
+              "params": {
+                "name": location
+              }
             },
             "content-length": content.size,
-            "content-location": attachment.location,
+            "content-location": location,
             "content-id": attachment.id
           },
           "content": content
