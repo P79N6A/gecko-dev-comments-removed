@@ -14,16 +14,16 @@
 
 #include "BrowserElementParent.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
-#include "nsOpenWindowEventDetail.h"
 #include "nsEventDispatcher.h"
 #include "nsIDOMCustomEvent.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
-#include "nsAsyncScrollEventDetail.h"
+#include "mozilla/dom/BrowserElementDictionariesBinding.h"
+#include "nsCxPusher.h"
+#include "GeneratedEventClasses.h"
 
-using mozilla::dom::Element;
-using mozilla::dom::HTMLIFrameElement;
-using mozilla::dom::TabParent;
+using namespace mozilla;
+using namespace mozilla::dom;
 
 namespace {
 
@@ -72,7 +72,7 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
 
 bool
 DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
-                       nsISupports *aDetailValue)
+                       JSContext* cx, JS::Handle<JS::Value> aDetailValue)
 {
   NS_ENSURE_TRUE(aFrameElement, false);
   nsIPresShell *shell = aFrameElement->OwnerDoc()->GetShell();
@@ -87,20 +87,24 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
                                  getter_AddRefs(domEvent));
   NS_ENSURE_TRUE(domEvent, false);
 
-  nsCOMPtr<nsIWritableVariant> detailVariant = new nsVariant();
-  nsresult rv = detailVariant->SetAsISupports(aDetailValue);
-  NS_ENSURE_SUCCESS(rv, false);
   nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(domEvent);
   NS_ENSURE_TRUE(customEvent, false);
-  customEvent->InitCustomEvent(aEventName,
-                                true,
-                                false,
-                               detailVariant);
+  ErrorResult res;
+  CustomEvent* event = static_cast<CustomEvent*>(customEvent.get());
+  event->InitCustomEvent(cx,
+                         aEventName,
+                          true,
+                          false,
+                         aDetailValue,
+                         res);
+  if (res.Failed()) {
+    return false;
+  }
   customEvent->SetTrusted(true);
   
   nsEventStatus status = nsEventStatus_eIgnore;
-  rv = nsEventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
-                                           domEvent, presContext, &status);
+  nsresult rv = nsEventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
+                                                    domEvent, presContext, &status);
   return NS_SUCCEEDED(rv);
 }
 
@@ -123,14 +127,32 @@ DispatchOpenWindowEvent(Element* aOpenerFrameElement,
   
 
   
-  nsRefPtr<nsOpenWindowEventDetail> detail =
-    new nsOpenWindowEventDetail(aURL, aName, aFeatures,
-                                aPopupFrameElement->AsDOMNode());
+  OpenWindowEventDetailInitializer detail;
+  detail.mUrl = aURL;
+  detail.mName = aName;
+  detail.mFeatures = aFeatures;
+  detail.mFrameElement = aPopupFrameElement;
+
+  AutoJSContext cx;
+  JS::Rooted<JS::Value> val(cx);
+
+  nsIGlobalObject* sgo = aPopupFrameElement->OwnerDoc()->GetScopeObject();
+  if (!sgo) {
+    return false;
+  }
+
+  JS::Rooted<JSObject*> global(cx, sgo->GetGlobalJSObject());
+  JSAutoCompartment ac(cx, global);
+  if (!detail.ToObject(cx, global, &val)) {
+    MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
+    return false;
+  }
 
   bool dispatchSucceeded =
     DispatchCustomDOMEvent(aOpenerFrameElement,
                            NS_LITERAL_STRING("mozbrowseropenwindow"),
-                           detail);
+                           cx,
+                           val);
 
   
   
@@ -263,13 +285,27 @@ NS_IMETHODIMP DispatchAsyncScrollEventRunnable::Run()
 {
   nsCOMPtr<Element> frameElement = mTabParent->GetOwnerElement();
   
-  nsRefPtr<nsAsyncScrollEventDetail> detail =
-    new nsAsyncScrollEventDetail(mContentRect.x, mContentRect.y,
-                                 mContentRect.width, mContentRect.height,
-                                 mContentSize.width, mContentSize.height);
+  AsyncScrollEventDetailInitializer detail;
+  detail.mLeft = mContentRect.x;
+  detail.mTop = mContentRect.y;
+  detail.mWidth = mContentRect.width;
+  detail.mHeight = mContentRect.height;
+  detail.mScrollWidth = mContentRect.width;
+  detail.mScrollHeight = mContentRect.height;
+  AutoSafeJSContext cx;
+  JS::Rooted<JS::Value> val(cx);
+
+  
+  
+  if (!detail.ToObject(cx, JS::NullPtr(), &val)) {
+    MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
+    return NS_ERROR_FAILURE;
+  }
+
   DispatchCustomDOMEvent(frameElement,
                          NS_LITERAL_STRING("mozbrowserasyncscroll"),
-                         detail);
+                         cx,
+                         val);
   return NS_OK;
 }
 
