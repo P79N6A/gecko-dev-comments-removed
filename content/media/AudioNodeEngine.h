@@ -188,6 +188,11 @@ public:
   {
     NS_ERROR("SetBuffer called on engine that doesn't support it");
   }
+  
+  virtual void SetRawArrayData(nsTArray<float>& aData)
+  {
+    NS_ERROR("SetRawArrayData called on an engine that doesn't support it");
+  }
 
   
 
