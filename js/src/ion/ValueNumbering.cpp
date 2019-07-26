@@ -72,6 +72,34 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
     return ins;
 }
 
+MControlInstruction *
+ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
+{
+    if (def->isEffectful())
+        return def;
+
+    MDefinition *repl = def->foldsTo(false);
+    if (repl == def || !repl->updateForFolding(def))
+        return def;
+
+    
+    if (!repl->valueNumberData())
+        repl->setValueNumberData(new ValueNumberData);
+
+    MBasicBlock *block = def->block();
+
+    
+    JS_ASSERT(repl->isControlInstruction());
+    JS_ASSERT(def->useCount() == 0);
+
+    if (def->isInWorklist())
+        repl->setInWorklist();
+
+    block->discardLastIns();
+    block->end((MControlInstruction *)repl);
+    return (MControlInstruction *)repl;
+}
+
 void
 ValueNumberer::markDefinition(MDefinition *def)
 {
@@ -229,6 +257,7 @@ ValueNumberer::computeValueNumbers()
             }
             
             MControlInstruction *jump = block->lastIns();
+            jump = simplifyControlInstruction(jump);
 
             
             if (!jump->isInWorklist())
