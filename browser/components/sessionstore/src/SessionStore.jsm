@@ -156,8 +156,8 @@ this.SessionStore = {
     SessionStoreInternal.canRestoreLastSession = val;
   },
 
-  init: function ss_init(aWindow) {
-    SessionStoreInternal.init(aWindow);
+  init: function ss_init() {
+    SessionStoreInternal.init();
   },
 
   getBrowserState: function ss_getBrowserState() {
@@ -368,13 +368,9 @@ let SessionStoreInternal = {
   
 
 
-  init: function (aWindow) {
+  init: function () {
     if (this._initialized) {
       throw new Error("SessionStore.init() must only be called once!");
-    }
-
-    if (!aWindow) {
-      throw new Error("SessionStore.init() must be called with a valid window.");
     }
 
     this._disabledForMultiProcess = Services.prefs.getBoolPref("browser.tabs.remote");
@@ -390,20 +386,6 @@ let SessionStoreInternal = {
 
     this._initPrefs();
     this._initialized = true;
-
-    
-    gSessionStartup.onceInitialized.then(() => {
-      
-      let initialState = this.initSession();
-
-      
-      if (!aWindow.closed) {
-        this.onLoad(aWindow, initialState);
-      }
-
-      
-      this._deferredInitialized.resolve();
-    }, Cu.reportError);
   },
 
   initSession: function ssi_initSession() {
@@ -489,7 +471,6 @@ let SessionStoreInternal = {
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
 
     this._performUpgradeBackup();
-    this._sessionInitialized = true;
 
     return state;
   },
@@ -876,7 +857,34 @@ let SessionStoreInternal = {
   onOpen: function ssi_onOpen(aWindow) {
     let onload = () => {
       aWindow.removeEventListener("load", onload);
-      this.onLoad(aWindow);
+
+      if (this._sessionInitialized) {
+        this.onLoad(aWindow);
+        return;
+      }
+
+      
+      
+      
+      
+      
+      
+      gSessionStartup.onceInitialized.then(() => {
+        if (aWindow.closed) {
+          return;
+        }
+
+        if (this._sessionInitialized) {
+          this.onLoad(aWindow);
+        } else {
+          let initialState = this.initSession();
+          this._sessionInitialized = true;
+          this.onLoad(aWindow, initialState);
+
+          
+          this._deferredInitialized.resolve();
+        }
+      }, Cu.reportError);
     };
 
     aWindow.addEventListener("load", onload);
@@ -1471,7 +1479,7 @@ let SessionStoreInternal = {
 
     TabStateCache.delete(aTab);
     this._setWindowStateBusy(window);
-    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0);
+    this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
   },
 
   duplicateTab: function ssi_duplicateTab(aWindow, aTab, aDelta = 0) {
@@ -1491,7 +1499,7 @@ let SessionStoreInternal = {
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
 
-    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0,
+    this.restoreHistoryPrecursor(aWindow, [newTab], [tabState], 0, 0, 0,
                                  true );
 
     return newTab;
@@ -1571,7 +1579,7 @@ let SessionStoreInternal = {
     let tab = tabbrowser.addTab();
 
     
-    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1);
+    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
 
     
     tabbrowser.moveTabTo(tab, closedTab.pos);
@@ -2344,7 +2352,7 @@ let SessionStoreInternal = {
     }
 
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
-      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0));
+      (overwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
 
     if (aState.scratchpads) {
       ScratchpadManager.restoreSession(aState.scratchpads);
@@ -2452,12 +2460,35 @@ let SessionStoreInternal = {
 
 
 
+
+
+
+
   restoreHistoryPrecursor:
     function ssi_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
-                                         aRestoreImmediately = false)
-  {
+                                         aIx, aCount, aRestoreImmediately = false) {
 
     var tabbrowser = aWindow.gBrowser;
+
+    
+    
+    for (var t = aIx; t < aTabs.length; t++) {
+      try {
+        if (!tabbrowser.getBrowserForTab(aTabs[t]).webNavigation.sessionHistory) {
+          throw new Error();
+        }
+      }
+      catch (ex) { 
+        if (aCount < 10) {
+          var restoreHistoryFunc = function(self) {
+            self.restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab,
+                                         aIx, aCount + 1, aRestoreImmediately);
+          };
+          aWindow.setTimeout(restoreHistoryFunc, 100, this);
+          return;
+        }
+      }
+    }
 
     if (!this._isWindowLoaded(aWindow)) {
       
@@ -2492,7 +2523,7 @@ let SessionStoreInternal = {
     
     
     
-    for (let t = 0; t < aTabs.length; t++) {
+    for (t = 0; t < aTabs.length; t++) {
       let tab = aTabs[t];
       let browser = tabbrowser.getBrowserForTab(tab);
       let tabData = aTabData[t];
@@ -2564,8 +2595,8 @@ let SessionStoreInternal = {
 
     
     
-    let idMap = { used: {} };
-    let docIdentMap = {};
+    var idMap = { used: {} };
+    var docIdentMap = {};
     this.restoreHistory(aWindow, aTabs, aTabData, idMap, docIdentMap,
                         aRestoreImmediately);
   },
