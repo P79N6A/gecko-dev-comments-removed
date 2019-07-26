@@ -24,13 +24,22 @@ math {
   font-family: MathJax_Main, STIXGeneral, DejaVu Serif, DejaVu Sans, Cambria, Cambria Math, Times, Lucida Sans Unicode, OpenSymbol, Standard Symbols L, serif;
   text-rendering: optimizeLegibility;
   -moz-float-edge: margin-box;
+  -moz-math-display: inline;
 }
 math[mode="display"], math[display="block"] {
   display: block;
   text-align: -moz-center;
+  -moz-math-display: block;
 }
 math[display="inline"] {
   display: inline;
+  -moz-math-display: inline;
+}
+math[displaystyle="false"] {
+  -moz-math-display: inline;
+}
+math[displaystyle="true"] {
+  -moz-math-display: block;
 }
 
 
@@ -243,13 +252,104 @@ mtable[frame="dashed"] > mtr > mtd:last-child {
 
 
 
-:-moz-math-increment-script-level { -moz-script-level:+1; }
 
 
 
-mroot > :not(:first-child) { -moz-script-level:+2; }
+
+
+
+
+mstyle[displaystyle="false"] {
+  -moz-math-display: inline;
+}
+mstyle[displaystyle="true"] {
+  -moz-math-display: block;
+}
+
+
+
+
+
+
+:-moz-math-increment-script-level { -moz-script-level: +1; }
+
+
+
+
+   
+mfrac > * {
+    -moz-script-level: auto;
+    -moz-math-display: inline;
+}
+
+
+
+
+
+
+mroot > :not(:first-child) {
+    -moz-script-level: +2;
+    -moz-math-display: inline;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 msub > :not(:first-child),
 msup > :not(:first-child),
 msubsup > :not(:first-child),
-mmultiscripts > :not(:first-child) { -moz-script-level:+1; }
+mmultiscripts > :not(:first-child) {
+    -moz-script-level: +1;
+    -moz-math-display: inline;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+munder > :not(:first-child),
+mover > :not(:first-child),
+munderover > :not(:first-child) {
+    -moz-math-display: inline;
+}
+
+
+
+
+
+
+mtable { -moz-math-display: inline; }
+mtable[displaystyle="true"] { -moz-math-display: block; }
+
+
+
+
+
+
+
+
+
+
