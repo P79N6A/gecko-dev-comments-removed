@@ -309,14 +309,6 @@ nsEditor::PostCreate()
   
   nsCOMPtr<nsIContent> focusedContent = GetFocusedContent();
   if (focusedContent) {
-    nsCOMPtr<nsIPresShell> ps = GetPresShell();
-    NS_ASSERTION(ps, "no pres shell even though we have focus");
-    NS_ENSURE_TRUE(ps, NS_ERROR_UNEXPECTED);
-    nsPresContext* pc = ps->GetPresContext(); 
-
-    nsIMEStateManager::OnChangeFocus(pc, focusedContent,
-                                     InputContextAction::CAUSE_UNKNOWN);
-
     nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(focusedContent);
     if (target) {
       InitializeSelection(target);
@@ -328,6 +320,12 @@ nsEditor::PostCreate()
     nsEditorEventListener* listener =
       reinterpret_cast<nsEditorEventListener*> (mEventListener.get());
     listener->SpellCheckIfNeeded();
+
+    IMEState newState;
+    rv = GetPreferredIMEState(&newState);
+    NS_ENSURE_SUCCESS(rv, NS_OK);
+    nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
+    nsIMEStateManager::UpdateIMEState(newState, content);
   }
   return NS_OK;
 }
@@ -486,6 +484,12 @@ nsEditor::SetFlags(uint32_t aFlags)
 
   
   
+  if (!mDidPostCreate) {
+    return NS_OK;
+  }
+
+  
+  
   nsCOMPtr<nsIContent> focusedContent = GetFocusedContent();
   if (focusedContent) {
     IMEState newState;
@@ -493,7 +497,8 @@ nsEditor::SetFlags(uint32_t aFlags)
     if (NS_SUCCEEDED(rv)) {
       
       
-      nsIMEStateManager::UpdateIMEState(newState, focusedContent);
+      nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
+      nsIMEStateManager::UpdateIMEState(newState, content);
     }
   }
 
@@ -5215,6 +5220,12 @@ nsEditor::GetFocusedContent()
 
   nsCOMPtr<nsIContent> content = fm->GetFocusedContent();
   return SameCOMIdentity(content, piTarget) ? content.forget() : nullptr;
+}
+
+already_AddRefed<nsIContent>
+nsEditor::GetFocusedContentForIME()
+{
+  return GetFocusedContent();
 }
 
 bool
