@@ -578,7 +578,8 @@ OscillatorNode::Start(double aWhen, ErrorResult& aRv)
 
   
   ns->SetStreamTimeParameter(OscillatorNodeEngine::START,
-                             Context(), aWhen);
+                             Context()->DestinationStream(),
+                             aWhen);
 
   MarkActive();
 }
@@ -604,7 +605,8 @@ OscillatorNode::Stop(double aWhen, ErrorResult& aRv)
 
   
   ns->SetStreamTimeParameter(OscillatorNodeEngine::STOP,
-                             Context(), std::max(0.0, aWhen));
+                             Context()->DestinationStream(),
+                             std::max(0.0, aWhen));
 }
 
 void
