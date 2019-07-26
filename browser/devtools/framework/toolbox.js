@@ -67,6 +67,7 @@ function Toolbox(target, selectedTool, hostType, hostOptions) {
   this._toolRegistered = this._toolRegistered.bind(this);
   this._toolUnregistered = this._toolUnregistered.bind(this);
   this._refreshHostTitle = this._refreshHostTitle.bind(this);
+  this._splitConsoleOnKeypress = this._splitConsoleOnKeypress.bind(this)
   this.destroy = this.destroy.bind(this);
 
   this._target.on("close", this.destroy);
@@ -229,11 +230,55 @@ Toolbox.prototype = {
     }, true);
   },
 
+  _splitConsoleOnKeypress: function(e) {
+    if (e.keyCode === e.DOM_VK_ESCAPE) {
+      this.toggleSplitConsole();
+    }
+  },
+
   _addToolSwitchingKeys: function() {
     let nextKey = this.doc.getElementById("toolbox-next-tool-key");
     nextKey.addEventListener("command", this.selectNextTool.bind(this), true);
     let prevKey = this.doc.getElementById("toolbox-previous-tool-key");
     prevKey.addEventListener("command", this.selectPreviousTool.bind(this), true);
+
+    
+    
+    this.doc.addEventListener("keypress", this._splitConsoleOnKeypress, false);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _refreshConsoleDisplay: function() {
+    let deck = this.doc.getElementById("toolbox-deck");
+    let webconsolePanel = this.doc.getElementById("toolbox-panel-webconsole");
+    let splitter = this.doc.getElementById("toolbox-console-splitter");
+    let openedConsolePanel = this.currentToolId === "webconsole";
+
+    if (openedConsolePanel) {
+      deck.setAttribute("collapsed", "true");
+      splitter.setAttribute("hidden", "true");
+      webconsolePanel.removeAttribute("collapsed");
+    } else {
+      deck.removeAttribute("collapsed");
+      if (this._splitConsole) {
+        webconsolePanel.removeAttribute("collapsed");
+        splitter.removeAttribute("hidden");
+      } else {
+        webconsolePanel.setAttribute("collapsed", "true");
+        splitter.setAttribute("hidden", "true");
+      }
+    }
   },
 
   
@@ -502,8 +547,11 @@ Toolbox.prototype = {
     }
     let vbox = this.doc.createElement("vbox");
     vbox.className = "toolbox-panel " + toolDefinition.bgTheme;
-    vbox.id = "toolbox-panel-" + id;
 
+    
+    if (!this.doc.getElementById("toolbox-panel-" + id)) {
+      vbox.id = "toolbox-panel-" + id;
+    }
 
     
     if (tabs.childNodes.length == 0 ||
@@ -613,7 +661,6 @@ Toolbox.prototype = {
     let tab = this.doc.getElementById("toolbox-tab-" + id);
     tab.setAttribute("selected", "true");
 
-
     if (this.currentToolId == id) {
       
       this.focusTool(id);
@@ -656,6 +703,7 @@ Toolbox.prototype = {
     deck.selectedIndex = index;
 
     this.currentToolId = id;
+    this._refreshConsoleDisplay();
     if (id != "options") {
       Services.prefs.setCharPref(this._prefs.LAST_TOOL, id);
     }
@@ -678,6 +726,27 @@ Toolbox.prototype = {
   focusTool: function(id) {
     let iframe = this.doc.getElementById("toolbox-panel-iframe-" + id);
     iframe.focus();
+  },
+
+  
+
+
+
+  toggleSplitConsole: function() {
+    let openedConsolePanel = this.currentToolId === "webconsole";
+
+    
+    if (!openedConsolePanel) {
+      this._splitConsole = !this._splitConsole;
+      this._refreshConsoleDisplay();
+      this.emit("split-console");
+
+      if (this._splitConsole) {
+        this.loadTool("webconsole").then(() => {
+          this.focusTool("webconsole");
+        });
+      }
+    }
   },
 
   
@@ -789,7 +858,7 @@ Toolbox.prototype = {
       iframe.swapFrameLoaders(this.frame);
 
       this._host.off("window-closed", this.destroy);
-      this._host.destroy();
+      this.destroyHost();
 
       this._host = newHost;
 
@@ -879,6 +948,17 @@ Toolbox.prototype = {
   
 
 
+
+
+  destroyHost: function() {
+    this.doc.removeEventListener("keypress",
+      this._splitConsoleOnKeypress, false);
+    return this._host.destroy();
+  },
+
+  
+
+
   destroy: function() {
     
     
@@ -917,7 +997,7 @@ Toolbox.prototype = {
       container.removeChild(container.firstChild);
     }
 
-    outstanding.push(this._host.destroy());
+    outstanding.push(this.destroyHost());
 
     this._telemetry.destroy();
 
