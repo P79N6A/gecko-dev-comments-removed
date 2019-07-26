@@ -375,7 +375,7 @@ private:
   bool TryRemoteBrowser();
 
   
-  bool ShowRemoteFrame(const nsIntSize& size,
+  bool ShowRemoteFrame(const mozilla::ScreenIntSize& size,
                        nsSubDocumentFrame *aFrame = nullptr);
 
   bool AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
