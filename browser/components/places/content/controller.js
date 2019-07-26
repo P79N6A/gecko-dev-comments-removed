@@ -57,6 +57,8 @@ InsertionPoint.prototype = {
     return this._index = val;
   },
 
+  promiseGUID: function () PlacesUtils.promiseItemGUID(this.itemId),
+
   get index() {
     if (this.dropNearItemId > 0) {
       
@@ -137,7 +139,6 @@ PlacesController.prototype = {
       case "placesCmd_new:folder":
       case "placesCmd_new:livemark":
       case "placesCmd_new:bookmark":
-      case "placesCmd_new:separator":
       case "placesCmd_sortBy:name":
       case "placesCmd_createBookmark":
         return false;
@@ -284,7 +285,7 @@ PlacesController.prototype = {
       this.newItem("livemark");
       break;
     case "placesCmd_new:separator":
-      this.newSeparator();
+      this.newSeparator().then(null, Cu.reportError);
       break;
     case "placesCmd_show:info":
       this.showBookmarkPropertiesForSelection();
@@ -774,17 +775,28 @@ PlacesController.prototype = {
   
 
 
-  newSeparator: function PC_newSeparator() {
+  newSeparator: Task.async(function* () {
     var ip = this._view.insertionPoint;
     if (!ip)
       throw Cr.NS_ERROR_NOT_AVAILABLE;
-    var txn = new PlacesCreateSeparatorTransaction(ip.itemId, ip.index);
-    PlacesUtils.transactionManager.doTransaction(txn);
+
+    if (!PlacesUIUtils.useAsyncTransactions) {
+      var txn = new PlacesCreateSeparatorTransaction(ip.itemId, ip.index);
+      PlacesUtils.transactionManager.doTransaction(txn);
+      
+      let insertedNodeId = PlacesUtils.bookmarks
+                                      .getIdForItemAt(ip.itemId, ip.index);
+      this._view.selectItems([insertedNodeId], false);
+      return;
+    }
+
+    let txn = PlacesTransactions.NewSeparator({ parentGUID: yield ip.promiseGUID()
+                                              , index: ip.index });
+    let guid = yield PlacesTransactions.transact(txn);
+    let itemId = yield PlacesUtils.promiseItemId(guid);
     
-    var insertedNodeId = PlacesUtils.bookmarks
-                                    .getIdForItemAt(ip.itemId, ip.index);
-    this._view.selectItems([insertedNodeId], false);
-  },
+    this._view.selectItems([itemId], false);
+  }),
 
   
 
