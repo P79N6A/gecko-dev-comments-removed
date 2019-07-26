@@ -345,7 +345,7 @@ public class GeckoLayerClient
             
             
             
-            return handleViewportMessage(metrics, pageSizeUpdate ? ViewportMessageType.UPDATE : ViewportMessageType.PAGE_SIZE);
+            return handleViewportMessage(metrics, pageSizeUpdate ? ViewportMessageType.PAGE_SIZE : ViewportMessageType.UPDATE);
         } else {
             
             
