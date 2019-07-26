@@ -46,7 +46,8 @@ public:
 
 
   virtual void RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
-                                         AudioChannelType aType);
+                                         AudioChannelType aType,
+                                         bool aWithVideo);
 
   
 
@@ -90,11 +91,11 @@ protected:
   void SendAudioChannelChangedNotification(uint64_t aChildID);
 
   
-  void RegisterType(AudioChannelType aType, uint64_t aChildID);
+  void RegisterType(AudioChannelType aType, uint64_t aChildID, bool aWithVideo);
   void UnregisterType(AudioChannelType aType, bool aElementHidden,
-                      uint64_t aChildID);
+                      uint64_t aChildID, bool aWithVideo);
   void UnregisterTypeInternal(AudioChannelType aType, bool aElementHidden,
-                              uint64_t aChildID);
+                              uint64_t aChildID, bool aWithVideo);
 
   AudioChannelState GetStateInternal(AudioChannelType aType, uint64_t aChildID,
                                      bool aElementHidden,
@@ -143,15 +144,18 @@ protected:
   public:
     AudioChannelAgentData(AudioChannelType aType,
                           bool aElementHidden,
-                          AudioChannelState aState)
+                          AudioChannelState aState,
+                          bool aWithVideo)
     : mType(aType)
     , mElementHidden(aElementHidden)
     , mState(aState)
+    , mWithVideo(aWithVideo)
     {}
 
     AudioChannelType mType;
     bool mElementHidden;
     AudioChannelState mState;
+    const bool mWithVideo;
   };
 
   static PLDHashOperator
@@ -166,6 +170,7 @@ protected:
   AudioChannelType mCurrentVisibleHigherChannel;
 
   nsTArray<uint64_t> mActiveContentChildIDs;
+  nsTArray<uint64_t> mWithVideoChildIDs;
   bool mActiveContentChildIDsFrozen;
 
   nsCOMPtr<nsITimer> mDeferTelChannelTimer;
