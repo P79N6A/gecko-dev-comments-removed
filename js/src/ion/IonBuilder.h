@@ -299,8 +299,10 @@ class IonBuilder : public MIRGenerator
     bool maybeInsertResume();
 
     bool initParameters();
+    void rewriteParameter(uint32_t slotIdx, MDefinition *param, int32_t argIndex);
     void rewriteParameters();
     bool initScopeChain();
+    bool initArgumentsObject();
     bool pushConstant(const Value &v);
 
     

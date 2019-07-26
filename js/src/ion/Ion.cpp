@@ -1448,11 +1448,11 @@ CheckFrame(AbstractFramePtr fp)
 }
 
 static bool
-CheckScript(RawScript script)
+CheckScript(RawScript script, bool osr)
 {
-    if (script->needsArgsObj()) {
+    if (osr && script->needsArgsObj()) {
         
-        IonSpew(IonSpew_Abort, "script has argsobj");
+        IonSpew(IonSpew_Abort, "OSR script has argsobj");
         return false;
     }
 
@@ -1508,9 +1508,9 @@ SequentialCompileContext::checkScriptSize(JSContext *cx, RawScript script)
 }
 
 bool
-CanIonCompileScript(JSContext *cx, HandleScript script)
+CanIonCompileScript(JSContext *cx, HandleScript script, bool osr)
 {
-    if (!script->canIonCompile() || !CheckScript(script))
+    if (!script->canIonCompile() || !CheckScript(script, osr))
         return false;
 
     SequentialCompileContext compileContext;
@@ -1519,9 +1519,8 @@ CanIonCompileScript(JSContext *cx, HandleScript script)
 
 template <typename CompileContext>
 static MethodStatus
-Compile(JSContext *cx, HandleScript script,
-        AbstractFramePtr fp, jsbytecode *osrPc, bool constructing,
-        CompileContext &compileContext)
+Compile(JSContext *cx, HandleScript script, AbstractFramePtr fp, jsbytecode *osrPc,
+        bool constructing, CompileContext &compileContext)
 {
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
@@ -1541,7 +1540,7 @@ Compile(JSContext *cx, HandleScript script,
         return Method_CantCompile;
     }
 
-    if (!CheckScript(script)) {
+    if (!CheckScript(script, bool(osrPc))) {
         IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d", script->filename(), script->lineno);
         return Method_CantCompile;
     }
@@ -1921,7 +1920,8 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
         fp->cleanupTornValues();
 
         
-        maxArgc = CountArgSlots(fp->fun()) - 1; 
+        
+        maxArgc = CountArgSlots(fp->script(), fp->fun()) - StartArgSlot(fp->script(), fp->fun());
         maxArgv = fp->formals() - 1;            
 
         
