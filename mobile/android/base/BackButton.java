@@ -95,6 +95,6 @@ public class BackButton extends ShapedButton {
 
     @Override
     public void onLightweightThemeReset() {
-        setBackgroundResource(R.drawable.address_bar_nav_button);
+        setBackgroundResource(R.drawable.url_bar_nav_button);
     }
 }

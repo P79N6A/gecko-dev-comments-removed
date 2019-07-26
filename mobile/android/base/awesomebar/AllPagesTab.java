@@ -85,12 +85,19 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
     private static final int MESSAGE_UPDATE_FAVICONS = 2;
     private static final int DELAY_SHOW_THUMBNAILS = 550;
 
+    private class SearchEntryViewHolder {
+        public FlowLayout suggestionView;
+        public FaviconView iconView;
+        public LinearLayout userEnteredView;
+        public TextView userEnteredTextView;
+    }
+
     public AllPagesTab(Context context) {
         super(context);
         mSearchEngines = new ArrayList<SearchEngine>();
 
         registerEventListener("SearchEngines:Data");
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
 
         mHandler = new AllPagesHandler();
     }
@@ -102,7 +109,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
 
     @Override
     public int getTitleStringId() {
-        return R.string.awesomebar_all_pages_title;
+        return R.string.all_pages_title;
     }
 
     @Override
@@ -123,7 +130,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             mView = (LinearLayout) (LayoutInflater.from(mContext).inflate(R.layout.awesomebar_allpages_list, null));
             mView.setTag(TAG);
 
-            final ListView list = getListView();
+            ListView list = getListView();
             list.setTag(TAG);
             ((Activity)mContext).registerForContextMenu(list);
             list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -132,27 +139,11 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                      handleItemClick(parent, view, position, id);
                 }
             });
+            list.setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
 
             AwesomeBarCursorAdapter adapter = getCursorAdapter();
             list.setAdapter(adapter);
             list.setOnTouchListener(mListListener);
-
-            final ListSelectionListener listener = new ListSelectionListener();
-            list.setOnItemSelectedListener(listener);
-            list.setOnFocusChangeListener(listener);
-
-            list.setOnKeyListener(new View.OnKeyListener() {
-                @Override
-                public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
-                    View selected = list.getSelectedView();
-
-                    if (selected instanceof SearchEngineRow) {
-                        return ((SearchEngineRow) selected).onKeyDown(keyCode, event);
-                    }
-                    return false;
-                }
-            });
-
         }
 
         return mView;
@@ -354,11 +345,8 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
 
             if (bitmap != null) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)) {
-                    favicon = stream.toByteArray();
-                } else {
-                    Log.w(LOGTAG, "Favicon compression failed.");
-                }
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                favicon = stream.toByteArray();
             }
 
             return new ContextMenuSubject(id, url, favicon,
@@ -483,12 +471,6 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         public boolean isEnabled(int position) {
             
             
-            if (!getListView().isInTouchMode()) {
-                return true;
-            }
-
-            
-            
             
             
             int index = getEngineIndex(position);
@@ -501,21 +483,23 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         public View getView(int position, View convertView, ViewGroup parent) {
             int type = getItemViewType(position);
             if (type == ROW_SEARCH || type == ROW_SUGGEST) {
-                if (convertView == null || !(convertView instanceof SearchEngineRow)) {
-                    convertView = (SearchEngineRow) getInflater().inflate(R.layout.home_search_item_row, getListView(), false);
-                    ((SearchEngineRow) convertView).setOnUrlOpenListener(getUrlListener());
+                SearchEntryViewHolder viewHolder = null;
+
+                if (convertView == null || !(convertView.getTag() instanceof SearchEntryViewHolder)) {
+                    convertView = getInflater().inflate(R.layout.awesomebar_suggestion_row, getListView(), false);
+
+                    viewHolder = new SearchEntryViewHolder();
+                    viewHolder.suggestionView = (FlowLayout) convertView.findViewById(R.id.suggestion_layout);
+                    viewHolder.iconView = (FaviconView) convertView.findViewById(R.id.suggestion_icon);
+                    viewHolder.userEnteredView = (LinearLayout) convertView.findViewById(R.id.suggestion_user_entered);
+                    viewHolder.userEnteredTextView = (TextView) convertView.findViewById(R.id.suggestion_text);
+
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (SearchEntryViewHolder) convertView.getTag();
                 }
 
-                SearchEngineRow searchRow = (SearchEngineRow) convertView;
-                searchRow.setSearchTerm(mSearchTerm);
-
-                final SearchEngine engine = mSearchEngines.get(getEngineIndex(position));
-                final boolean doAnimation = (mAnimateSuggestions && engine.suggestions.size() > 0);
-                searchRow.updateFromSearchEngine(engine, doAnimation);
-                if (doAnimation) {
-                    
-                    mAnimateSuggestions = false;
-                }
+                bindSearchEngineView(mSearchEngines.get(getEngineIndex(position)), viewHolder);
             } else {
                 AwesomeEntryViewHolder viewHolder = null;
 
@@ -545,6 +529,91 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             }
 
             return convertView;
+        }
+
+        private void bindSearchEngineView(final SearchEngine engine, final SearchEntryViewHolder viewHolder) {
+            
+            OnClickListener clickListener = new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    AwesomeBarTabs.OnUrlOpenListener listener = getUrlListener();
+                    if (listener != null) {
+                        String suggestion = ((TextView) v.findViewById(R.id.suggestion_text)).getText().toString();
+
+                        
+                        
+                        
+                        
+                        if (v != viewHolder.userEnteredView && !StringUtils.isSearchQuery(suggestion, false)) {
+                            listener.onUrlOpen(suggestion, null);
+                        } else {
+                            listener.onSearch(engine, suggestion);
+                        }
+                    }
+                }
+            };
+
+            
+            OnLongClickListener longClickListener = new OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    AwesomeBarTabs.OnUrlOpenListener listener = getUrlListener();
+                    if (listener != null) {
+                        String suggestion = ((TextView) v.findViewById(R.id.suggestion_text)).getText().toString();
+                        listener.onEditSuggestion(suggestion);
+                        return true;
+                    }
+                    return false;
+                }
+            };
+
+            
+            FlowLayout suggestionView = viewHolder.suggestionView;
+            updateFavicon(viewHolder.iconView, engine.icon, engine.name);
+
+            
+            viewHolder.userEnteredTextView.setText(mSearchTerm);
+            viewHolder.userEnteredView.setOnClickListener(clickListener);
+            
+            
+            int recycledSuggestionCount = suggestionView.getChildCount();
+            int suggestionCount = engine.suggestions.size();
+            boolean showedSuggestions = false;
+
+            for (int i = 0; i < suggestionCount; i++) {
+                String suggestion = engine.suggestions.get(i);
+                View suggestionItem = null;
+
+                
+                if (i+1 < recycledSuggestionCount) {
+                    suggestionItem = suggestionView.getChildAt(i+1);
+                    suggestionItem.setVisibility(View.VISIBLE);
+                } else {
+                    suggestionItem = getInflater().inflate(R.layout.awesomebar_suggestion_item, null);
+                    ((ImageView) suggestionItem.findViewById(R.id.suggestion_magnifier)).setVisibility(View.GONE);
+                    suggestionView.addView(suggestionItem);
+                }
+                ((TextView) suggestionItem.findViewById(R.id.suggestion_text)).setText(suggestion);
+
+                suggestionItem.setOnClickListener(clickListener);
+                suggestionItem.setOnLongClickListener(longClickListener);
+
+                if (mAnimateSuggestions) {
+                    showedSuggestions = true;
+                    AlphaAnimation anim = new AlphaAnimation(0, 1);
+                    anim.setDuration(ANIMATION_DURATION);
+                    anim.setStartOffset(i * ANIMATION_DURATION);
+                    suggestionItem.startAnimation(anim);
+                }
+            }
+            
+            
+            for (int i = suggestionCount + 1; i < recycledSuggestionCount; i++) {
+                suggestionView.getChildAt(i).setVisibility(View.GONE);
+            }
+
+            if (showedSuggestions)
+                mAnimateSuggestions = false;
         }
     };
 
@@ -588,7 +657,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                     
                     Tab tab = Tabs.getInstance().getSelectedTab();
                     if (tab == null || !tab.isPrivate())
-                        mSuggestClient = new SuggestClient(getView().getContext(), suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+                        mSuggestClient = new SuggestClient(GeckoApp.mAppContext, suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
                 } else {
                     searchEngines.add(new SearchEngine(name, identifier, icon));
                 }
@@ -630,18 +699,6 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         };
         yesButton.setOnClickListener(listener);
         noButton.setOnClickListener(listener);
-
-        
-        
-        final View promptContainer = mSuggestionsOptInPrompt.findViewById(R.id.prompt_container);
-        promptContainer.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    yesButton.requestFocus();
-                }
-            }
-        });
 
         mSuggestionsOptInPrompt.setVisibility(View.GONE);
         ((LinearLayout)getView()).addView(mSuggestionsOptInPrompt, 0);
@@ -749,9 +806,9 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         bookmarkIconView.setVisibility(visibility);
 
         if (display == Combined.DISPLAY_READER) {
-            bookmarkIconView.setImageResource(R.drawable.ic_awesomebar_reader);
+            bookmarkIconView.setImageResource(R.drawable.ic_url_bar_reader);
         } else {
-            bookmarkIconView.setImageResource(R.drawable.ic_awesomebar_star);
+            bookmarkIconView.setImageResource(R.drawable.ic_url_bar_star);
         }
     }
 
@@ -810,11 +867,8 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
     }
 
     public void storeFaviconsInMemCache(Cursor c) {
-        if (c == null)
-            return;
-
         try {
-            if (!c.moveToFirst())
+            if (c == null || !c.moveToFirst())
                 return;
 
             do {
@@ -831,7 +885,8 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                 Favicons.getInstance().putFaviconInMemCache(url, favicon);
             } while (c.moveToNext());
         } finally {
-            c.close();
+            if (c != null)
+                c.close();
         }
     }
 
@@ -914,48 +969,6 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                 case MESSAGE_UPDATE_FAVICONS:
                     updateFavicons();
                     break;
-            }
-        }
-    }
-
-    private static class ListSelectionListener implements View.OnFocusChangeListener,
-                                                          AdapterView.OnItemSelectedListener {
-        private SearchEngineRow mSelectedEngineRow;
-
-        @Override
-        public void onFocusChange(View v, boolean hasFocus) {
-            if (hasFocus) {
-                View selectedRow = ((ListView) v).getSelectedView();
-                if (selectedRow != null) {
-                    selectRow(selectedRow);
-                }
-            } else {
-                deselectRow();
-            }
-        }
-
-        @Override
-        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            deselectRow();
-            selectRow(view);
-        }
-
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-            deselectRow();
-        }
-
-        private void selectRow(View row) {
-            if (row instanceof SearchEngineRow) {
-                mSelectedEngineRow = (SearchEngineRow) row;
-                mSelectedEngineRow.onSelected();
-            }
-        }
-
-        private void deselectRow() {
-            if (mSelectedEngineRow != null) {
-                mSelectedEngineRow.onDeselected();
-                mSelectedEngineRow = null;
             }
         }
     }

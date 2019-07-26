@@ -46,7 +46,7 @@ public class BookmarksTab extends AwesomeBarTab {
 
     @Override
     public int getTitleStringId() {
-        return R.string.awesomebar_bookmarks_title;
+        return R.string.bookmarks_title;
     }
 
     @Override
@@ -76,6 +76,7 @@ public class BookmarksTab extends AwesomeBarTab {
                     handleItemClick(parent, view, position, id);
                 }
             });
+            list.setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
 
             if (mShowReadingList) {
                 String title = getResources().getString(R.string.bookmarks_folder_reading_list);
