@@ -1331,6 +1331,31 @@ js::ClampDoubleToUint8(const double x)
     return y;
 }
 
+bool
+js::ToDoubleForTypedArray(JSContext *cx, JS::HandleValue vp, double *d)
+{
+    if (vp.isDouble()) {
+        *d = vp.toDouble();
+    } else if (vp.isNull()) {
+        *d = 0.0;
+    } else if (vp.isPrimitive()) {
+        JS_ASSERT(vp.isString() || vp.isUndefined() || vp.isBoolean());
+        if (vp.isString()) {
+            if (!ToNumber(cx, vp, d))
+                return false;
+        } else if (vp.isUndefined()) {
+            *d = js_NaN;
+        } else {
+            *d = double(vp.toBoolean());
+        }
+    } else {
+        
+        *d = js_NaN;
+    }
+
+    return true;
+}
+
 
 
 
@@ -1502,31 +1527,6 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     }
 
     static bool
-    toDoubleForTypedArray(JSContext *cx, HandleValue vp, double *d)
-    {
-        if (vp.isDouble()) {
-            *d = vp.toDouble();
-        } else if (vp.isNull()) {
-            *d = 0.0;
-        } else if (vp.isPrimitive()) {
-            JS_ASSERT(vp.isString() || vp.isUndefined() || vp.isBoolean());
-            if (vp.isString()) {
-                if (!ToNumber(cx, vp, d))
-                    return false;
-            } else if (vp.isUndefined()) {
-                *d = js_NaN;
-            } else {
-                *d = double(vp.toBoolean());
-            }
-        } else {
-            
-            *d = js_NaN;
-        }
-
-        return true;
-    }
-
-    static bool
     setElementTail(JSContext *cx, HandleObject tarray, uint32_t index,
                    MutableHandleValue vp, JSBool strict)
     {
@@ -1539,7 +1539,7 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         }
 
         double d;
-        if (!toDoubleForTypedArray(cx, vp, &d))
+        if (!ToDoubleForTypedArray(cx, vp, &d))
             return false;
 
         
