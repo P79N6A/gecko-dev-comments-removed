@@ -223,6 +223,7 @@ nsDOMIdentity.prototype = {
     
     var self = this;
     this.watch({
+      _internal: true,
       oncancel: function get_oncancel() {
         if (aCallback) {
           aCallback(null);
