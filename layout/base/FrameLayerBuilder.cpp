@@ -2028,8 +2028,6 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         topLeft = activeScrolledRoot->GetOffsetToCrossDoc(mContainerReferenceFrame);
       }
     }
-  
-    nsAutoPtr<nsDisplayItemGeometry> geometry(item->AllocateGeometry(mBuilder));
 
     
     if (layerState == LAYER_ACTIVE_FORCE ||
@@ -2047,7 +2045,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       
       
       
-      InvalidateForLayerChange(item, nullptr, aClip, topLeft, geometry);
+      InvalidateForLayerChange(item, nullptr, aClip, topLeft, nullptr);
 
       
       
@@ -2121,16 +2119,24 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                    "Layer already in list???");
 
       mNewChildLayers.AppendElement(ownLayer);
+
+      
+
+
+
+      nsAutoPtr<nsDisplayItemGeometry> dummy;
       mLayerBuilder->AddLayerDisplayItem(ownLayer, item, 
                                          aClip, layerState, 
                                          topLeft, nullptr,
-                                         geometry);
+                                         dummy);
     } else {
       ThebesLayerData* data =
         FindThebesLayerFor(item, itemVisibleRect, itemDrawRect, aClip,
                            activeScrolledRoot, topLeft);
 
       data->mLayer->SetIsFixedPosition(isFixed);
+
+      nsAutoPtr<nsDisplayItemGeometry> geometry(item->AllocateGeometry(mBuilder));
 
       InvalidateForLayerChange(item, data->mLayer, aClip, topLeft, geometry);
 
