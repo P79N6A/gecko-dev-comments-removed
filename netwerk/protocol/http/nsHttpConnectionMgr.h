@@ -273,7 +273,7 @@ private:
         nsConnectionEntry(nsHttpConnectionInfo *ci);
         ~nsConnectionEntry();
 
-        nsHttpConnectionInfo        *mConnInfo;
+        nsRefPtr<nsHttpConnectionInfo> mConnInfo;
         nsTArray<nsHttpTransaction*> mPendingQ;    
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
@@ -393,10 +393,10 @@ private:
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSAHTTPCONNECTION(mConn)
 
-        nsConnectionHandle(nsHttpConnection *conn) { NS_ADDREF(mConn = conn); }
+        nsConnectionHandle(nsHttpConnection *conn) : mConn(conn) { }
         virtual ~nsConnectionHandle();
 
-        nsHttpConnection *mConn;
+        nsRefPtr<nsHttpConnection> mConn;
     };
 
     
