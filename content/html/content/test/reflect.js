@@ -161,24 +161,24 @@ function reflectUnsignedInt(aParameters)
   for (var value of values) {
     element[attr] = value;
     is(element[attr], value, "." + attr + " should be equals " + value);
-    is(element.getAttribute(attr), value,
+    is(element.getAttribute(attr), String(value),
        "@" + attr + " should be equals " + value);
 
     element.setAttribute(attr, value);
     is(element[attr], value, "." + attr + " should be equals " + value);
-    is(element.getAttribute(attr), value,
+    is(element.getAttribute(attr), String(value),
        "@" + attr + " should be equals " + value);
   }
 
   
   element[attr] = -3000000000;
   is(element[attr], 1294967296, "." + attr + " should be equals to 1294967296");
-  is(element.getAttribute(attr), 1294967296,
+  is(element.getAttribute(attr), "1294967296",
      "@" + attr + " should be equals to 1294967296");
 
   
   element.setAttribute(attr, -3000000000);
-  is(element.getAttribute(attr), -3000000000,
+  is(element.getAttribute(attr), "-3000000000",
      "@" + attr + " should be equals to " + -3000000000);
   is(element[attr], defaultValue,
      "." + attr + " should be equals to " + defaultValue);
@@ -192,7 +192,7 @@ function reflectUnsignedInt(aParameters)
 
   for (var values of nonValidValues) {
     element[attr] = values[0];
-    is(element.getAttribute(attr), values[1],
+    is(element.getAttribute(attr), String(values[1]),
        "@" + attr + " should be equals to " + values[1]);
     is(element[attr], defaultValue,
        "." + attr + " should be equals to " + defaultValue);
@@ -200,7 +200,7 @@ function reflectUnsignedInt(aParameters)
 
   for (var values of nonValidValues) {
     element.setAttribute(attr, values[0]);
-    is(element.getAttribute(attr), values[0],
+    is(element.getAttribute(attr), String(values[0]),
        "@" + attr + " should be equals to " + values[0]);
     is(element[attr], defaultValue,
        "." + attr + " should be equals to " + defaultValue);
@@ -223,8 +223,8 @@ function reflectUnsignedInt(aParameters)
   }
 
   
-  element.setAttribute(attr, 0);
-  is(element.getAttribute(attr), 0, "@" + attr + " should be equals to 0");
+  element.setAttribute(attr, "0");
+  is(element.getAttribute(attr), "0", "@" + attr + " should be equals to 0");
   if (nonZero) {
     is(element[attr], defaultValue,
        "." + attr + " should be equals to " + defaultValue);
@@ -474,9 +474,10 @@ function reflectInt(aParameters)
     
     var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
     if (result) {
-      if ((nonNegative ? 0:-0x80000000) <= result[1] && result[1] <= 0x7FFFFFFF) {
+      var resultInt = parseInt(result[1], 10);
+      if ((nonNegative ? 0 : -0x80000000) <= resultInt && resultInt <= 0x7FFFFFFF) {
         
-        return result[1];
+        return resultInt;
       }
     }
     return defaultValue;
@@ -569,8 +570,9 @@ function reflectInt(aParameters)
       } else {
         is(element[attr], expectedIdlAttributeResult(v), element.localName + "[" + attr + "] = " + v +
           ", " + element.localName + "[" + attr + "] ");
-        is(element.getAttribute(attr), expectedIdlAttributeResult(v), element.localName + "[" + attr +
-          "] = " + v + ", " + element.localName + ".getAttribute(" + attr + ") ");
+        is(element.getAttribute(attr), String(expectedIdlAttributeResult(v)),
+           element.localName + "[" + attr + "] = " + v + ", " +
+           element.localName + ".getAttribute(" + attr + ") ");
       }
     }
     element.removeAttribute(attr);
