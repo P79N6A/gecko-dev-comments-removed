@@ -1427,24 +1427,27 @@ AppUnitsPerDevPixel(nsDisplayItem* aItem)
 
 
 
+
+
 static void
-RestrictVisibleRegionForLayer(Layer* aLayer, const nsIntRect& aItemVisible)
+SetVisibleRegionForLayer(Layer* aLayer, const nsIntRegion& aLayerVisibleRegion,
+                         const nsIntRect& aRestrictToRect)
 {
   gfx3DMatrix transform = aLayer->GetTransform();
 
   
   
-  gfxRect itemVisible(aItemVisible.x, aItemVisible.y, aItemVisible.width, aItemVisible.height);
+  gfxRect itemVisible(aRestrictToRect.x, aRestrictToRect.y,
+                      aRestrictToRect.width, aRestrictToRect.height);
   gfxRect layerVisible = transform.Inverse().ProjectRectBounds(itemVisible);
   layerVisible.RoundOut();
 
   nsIntRect visibleRect;
-  if (!gfxUtils::GfxRectToIntRect(layerVisible, &visibleRect))
-    return;
-
-  nsIntRegion rgn = aLayer->GetVisibleRegion();
-  if (!visibleRect.Contains(rgn.GetBounds())) {
-    rgn.And(rgn, visibleRect);
+  if (!gfxUtils::GfxRectToIntRect(layerVisible, &visibleRect)) {
+    aLayer->SetVisibleRegion(nsIntRegion());
+  } else {
+    nsIntRegion rgn;
+    rgn.And(aLayerVisibleRegion, visibleRect);
     aLayer->SetVisibleRegion(rgn);
   }
 }
@@ -2084,10 +2087,12 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     bool snap;
     nsRect itemContent = item->GetBounds(mBuilder, &snap);
     nsIntRect itemDrawRect = ScaleToOutsidePixels(itemContent, snap);
+    nsIntRect clipRect;
     if (aClip.mHaveClipRect) {
       itemContent.IntersectRect(itemContent, aClip.mClipRect);
-      nsIntRect clipRect = ScaleToNearestPixels(aClip.mClipRect);
+      clipRect = ScaleToNearestPixels(aClip.NonRoundedIntersection());
       itemDrawRect.IntersectRect(itemDrawRect, clipRect);
+      clipRect.MoveBy(mParameters.mOffset);
     }
     mBounds.UnionRect(mBounds, itemContent);
     itemVisibleRect.IntersectRect(itemVisibleRect, itemDrawRect);
@@ -2142,6 +2147,13 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         continue;
       }
 
+      bool setVisibleRegion = type != nsDisplayItem::TYPE_TRANSFORM;
+      if (setVisibleRegion) {
+        mParameters.mAncestorClipRect = nullptr;
+      } else {
+        mParameters.mAncestorClipRect = aClip.mHaveClipRect ? &clipRect : nullptr;
+      }
+
       
       nsRefPtr<Layer> ownLayer = item->BuildLayer(mBuilder, mManager, mParameters);
       if (!ownLayer) {
@@ -2178,9 +2190,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
                    "If we have rounded rects, we must have a clip rect");
       
       if (aClip.mHaveClipRect) {
-        nsIntRect clip = ScaleToNearestPixels(aClip.NonRoundedIntersection());
-        clip.MoveBy(mParameters.mOffset);
-        ownLayer->SetClipRect(&clip);
+        ownLayer->SetClipRect(&clipRect);
       } else {
         ownLayer->SetClipRect(nullptr);
       }
@@ -2196,8 +2206,8 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         data->mDrawAboveRegion.SimplifyOutward(4);
       }
       itemVisibleRect.MoveBy(mParameters.mOffset);
-      if (!nsDisplayTransform::IsLayerPrerendered(ownLayer)) {
-        RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
+      if (setVisibleRegion) {
+        SetVisibleRegionForLayer(ownLayer, ownLayer->GetVisibleRegion(), itemVisibleRect);
       }
 
       
@@ -2848,7 +2858,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           nsDisplayItem* aContainerItem,
                                           const nsDisplayList& aChildren,
                                           const ContainerParameters& aParameters,
-                                          const gfx3DMatrix* aTransform)
+                                          const gfx3DMatrix* aTransform,
+                                          uint32_t aFlags)
 {
   uint32_t containerDisplayItemKey =
     aContainerItem ? aContainerItem->GetPerFrameKey() : nsDisplayItem::TYPE_ZERO;
@@ -2980,7 +2991,12 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
 
   NS_ASSERTION(bounds.IsEqualInterior(aChildren.GetBounds(aBuilder)), "Wrong bounds");
   pixBounds.MoveBy(nsIntPoint(scaleParameters.mOffset.x, scaleParameters.mOffset.y));
-  containerLayer->SetVisibleRegion(pixBounds);
+  if (aParameters.mAncestorClipRect && !(aFlags & CONTAINER_NOT_CLIPPED_BY_ANCESTORS)) {
+    SetVisibleRegionForLayer(containerLayer, nsIntRegion(pixBounds),
+                             *aParameters.mAncestorClipRect);
+  } else {
+    containerLayer->SetVisibleRegion(pixBounds);
+  }
   
   
   if (aChildren.IsOpaque() && !aChildren.NeedsTransparentSurface()) {
