@@ -463,6 +463,10 @@ let CustomizableUIInternal = {
     if (gPalette.has(aWidgetId)) {
       return CustomizableUI.PROVIDER_API;
     }
+    
+    if (gSeenWidgets.has(aWidgetId)) {
+      return null;
+    }
 
     
     
@@ -1795,6 +1799,9 @@ let CustomizableUIInternal = {
       return widgetNode.getAttribute("removable") == "true";
     }
 
+    
+    
+    
     
     return true;
   },
