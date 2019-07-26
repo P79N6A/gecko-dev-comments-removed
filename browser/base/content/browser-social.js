@@ -91,7 +91,7 @@ let SocialUI = {
 
   updateToggleCommand: function SocialUI_updateToggleCommand() {
     let toggleCommand = this.toggleCommand;
-    toggleCommand.setAttribute("checked", Social.enabled);
+    toggleCommand.setAttribute("checked", Services.prefs.getBoolPref("social.enabled"));
 
     
     
