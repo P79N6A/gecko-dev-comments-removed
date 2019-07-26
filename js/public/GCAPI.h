@@ -13,6 +13,20 @@
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 
+typedef enum JSGCMode {
+    
+    JSGC_MODE_GLOBAL = 0,
+
+    
+    JSGC_MODE_COMPARTMENT = 1,
+
+    
+
+
+
+    JSGC_MODE_INCREMENTAL = 2
+} JSGCMode;
+
 namespace JS {
 
 #define GCREASONS(D)                            \
