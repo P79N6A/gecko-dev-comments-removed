@@ -25,7 +25,6 @@ import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Distribution;
 import org.mozilla.gecko.Distribution.DistributionDescriptor;
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.background.healthreport.EnvironmentBuilder;
@@ -91,6 +90,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     private volatile HealthReportDatabaseStorage storage;
     private final ProfileInformationCache profileCache;
     private final EventDispatcher dispatcher;
+    private final SharedPreferences prefs;
 
     
     
@@ -118,16 +118,9 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
 
 
 
-    private void setHealthEnvironment(final int env) {
-        this.env = env;
-    }
-
-    
-
-
-
 
     public BrowserHealthRecorder(final Context context,
+                                 final SharedPreferences appPrefs,
                                  final String profilePath,
                                  final EventDispatcher dispatcher,
                                  final String osLocale,
@@ -161,6 +154,8 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception initializing.", e);
         }
+
+        this.prefs = appPrefs;
     }
 
     public boolean isEnabled() {
@@ -544,8 +539,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
             return;
         }
 
-        final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
-        final SharedPreferences.Editor editor = prefs.edit();
+        final SharedPreferences.Editor editor = this.prefs.edit();
 
         recordSessionEnd(sessionEndReason, editor, prev);
 
