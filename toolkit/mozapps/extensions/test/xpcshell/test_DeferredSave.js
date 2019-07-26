@@ -37,8 +37,8 @@ function DeferredSaveTester(aDelay, aDataProvider) {
       return tester.saver.flush();
     },
 
-    get lastError() {
-      return tester.saver.lastError;
+    get error() {
+      return tester.saver.error;
     }
   };
 
@@ -154,11 +154,11 @@ add_task(function test_error_immediate() {
     count => do_throw("Did not get expected error"),
     error => do_check_eq(testError.message, error.message)
     );
-  do_check_eq(testError, tester.lastError);
+  do_check_eq(testError, tester.error);
 
   
   yield tester.save("test_error_immediate succeeds");
-  do_check_eq(null, tester.lastError);
+  do_check_eq(null, tester.error);
   
   do_check_eq(2, tester.saver.totalSaves);
 });
