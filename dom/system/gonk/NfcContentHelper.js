@@ -99,10 +99,6 @@ NfcContentHelper.prototype = {
   _requestMap: null,
   peerEventsCallbackMap: null,
 
-  
-
-
-
   encodeNDEFRecords: function encodeNDEFRecords(records) {
     let encodedRecords = [];
     for (let i = 0; i < records.length; i++) {
