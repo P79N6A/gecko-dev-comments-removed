@@ -67,15 +67,15 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
     } else if (FirefoxAccounts.firefoxAccountsExist(this)) {
       intent = new Intent(this, FxAccountStatusActivity.class);
     }
+
     if (intent != null) {
       this.setAccountAuthenticatorResult(null);
       setResult(RESULT_CANCELED);
       
       
       intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-      startActivity(intent);
-      finish();
-      return;
+      this.startActivity(intent);
+      this.finish();
     }
   }
 

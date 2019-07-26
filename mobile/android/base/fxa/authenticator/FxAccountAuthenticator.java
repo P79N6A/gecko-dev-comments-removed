@@ -98,4 +98,47 @@ public class FxAccountAuthenticator extends AbstractAccountAuthenticator {
 
     return null;
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Override
+  public Bundle getAccountRemovalAllowed(final AccountAuthenticatorResponse response, Account account)
+      throws NetworkErrorException {
+    Bundle result = super.getAccountRemovalAllowed(response, account);
+
+    if (result == null ||
+        !result.containsKey(AccountManager.KEY_BOOLEAN_RESULT) ||
+        result.containsKey(AccountManager.KEY_INTENT)) {
+      return result;
+    }
+
+    final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+    if (!removalAllowed) {
+      return result;
+    }
+
+    
+    
+    
+    
+    
+    final Intent intent = AndroidFxAccount.makeDeletedAccountIntent(context, account);
+    Logger.info(LOG_TAG, "Account named " + account.name + " being removed; " +
+        "broadcasting secure intent " + intent.getAction() + ".");
+    context.sendBroadcast(intent, FxAccountConstants.PER_ACCOUNT_TYPE_PERMISSION);
+
+    return result;
+  }
 }

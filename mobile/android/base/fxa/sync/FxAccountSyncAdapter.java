@@ -21,6 +21,7 @@ import org.mozilla.gecko.browserid.RSACryptoImplementation;
 import org.mozilla.gecko.browserid.verifier.BrowserIDRemoteVerifierClient;
 import org.mozilla.gecko.browserid.verifier.BrowserIDVerifierDelegate;
 import org.mozilla.gecko.fxa.FxAccountConstants;
+import org.mozilla.gecko.fxa.authenticator.AccountPickler;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.authenticator.FxAccountAuthenticator;
 import org.mozilla.gecko.fxa.login.FxAccountLoginStateMachine;
@@ -35,6 +36,7 @@ import org.mozilla.gecko.sync.GlobalSession;
 import org.mozilla.gecko.sync.PrefsBackoffHandler;
 import org.mozilla.gecko.sync.SharedPreferencesClientsDataDelegate;
 import org.mozilla.gecko.sync.SyncConfiguration;
+import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.delegates.BaseGlobalSessionCallback;
@@ -439,6 +441,19 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     if (FxAccountConstants.LOG_PERSONAL_INFORMATION) {
       fxAccount.dump();
     }
+
+    
+    ThreadPool.run(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          AccountPickler.pickle(fxAccount, FxAccountConstants.ACCOUNT_PICKLE_FILENAME);
+        } catch (Exception e) {
+          
+          Logger.warn(LOG_TAG, "Got exception pickling current account details; ignoring.", e);
+        }
+      }
+    });
 
     final CountDownLatch latch = new CountDownLatch(1);
     final SyncDelegate syncDelegate = new SyncDelegate(context, latch, syncResult, fxAccount, notificationManager);
