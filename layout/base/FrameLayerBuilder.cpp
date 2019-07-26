@@ -1866,7 +1866,7 @@ ContainerState::PopThebesLayerData()
   uint32_t flags = 0;
   nsIWidget* widget = mContainerReferenceFrame->PresContext()->GetRootWidget();
   
-  bool hidpi = widget && widget->GetDefaultScale().scale >= 2;
+  bool hidpi = false && widget && widget->GetDefaultScale().scale >= 2;
   if (hidpi) {
     flags |= Layer::CONTENT_DISABLE_SUBPIXEL_AA;
   }
