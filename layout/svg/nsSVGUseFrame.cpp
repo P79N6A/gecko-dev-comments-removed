@@ -6,10 +6,12 @@
 
 #include "nsIAnonymousContentCreator.h"
 #include "nsSVGGFrame.h"
-#include "nsSVGUseElement.h"
+#include "mozilla/dom/SVGUseElement.h"
 #include "nsContentList.h"
 
 typedef nsSVGGFrame nsSVGUseFrameBase;
+
+using namespace mozilla::dom;
 
 class nsSVGUseFrame : public nsSVGUseFrameBase,
                       public nsIAnonymousContentCreator
@@ -104,7 +106,7 @@ nsSVGUseFrame::Init(nsIContent* aContent,
                "Content is not an SVG use!");
 
   mHasValidDimensions =
-    static_cast<nsSVGUseElement*>(aContent)->HasValidDimensions();
+    static_cast<SVGUseElement*>(aContent)->HasValidDimensions();
 
   return nsSVGUseFrameBase::Init(aContent, aParent, aPrevInFlow);
 }
@@ -114,7 +116,7 @@ nsSVGUseFrame::AttributeChanged(int32_t         aNameSpaceID,
                                 nsIAtom*        aAttribute,
                                 int32_t         aModType)
 {
-  nsSVGUseElement *useElement = static_cast<nsSVGUseElement*>(mContent);
+  SVGUseElement *useElement = static_cast<SVGUseElement*>(mContent);
 
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::x ||
@@ -157,7 +159,7 @@ nsSVGUseFrame::AttributeChanged(int32_t         aNameSpaceID,
 void
 nsSVGUseFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  nsRefPtr<nsSVGUseElement> use = static_cast<nsSVGUseElement*>(mContent);
+  nsRefPtr<SVGUseElement> use = static_cast<SVGUseElement*>(mContent);
   nsSVGUseFrameBase::DestroyFrom(aDestructRoot);
   use->DestroyAnonymousContent();
 }
@@ -179,7 +181,7 @@ nsSVGUseFrame::ReflowSVG()
   
   
   float x, y;
-  static_cast<nsSVGUseElement*>(mContent)->
+  static_cast<SVGUseElement*>(mContent)->
     GetAnimatedLengthValues(&x, &y, nullptr);
   mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
                  gfxRect(x, y, 0.0, 0.0),
@@ -194,9 +196,9 @@ nsSVGUseFrame::NotifySVGChanged(uint32_t aFlags)
       !(aFlags & TRANSFORM_CHANGED)) {
     
     
-    nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
-    if (use->mLengthAttributes[nsSVGUseElement::X].IsPercentage() ||
-        use->mLengthAttributes[nsSVGUseElement::Y].IsPercentage()) {
+    SVGUseElement *use = static_cast<SVGUseElement*>(mContent);
+    if (use->mLengthAttributes[SVGUseElement::X].IsPercentage() ||
+        use->mLengthAttributes[SVGUseElement::Y].IsPercentage()) {
       aFlags |= TRANSFORM_CHANGED;
       
       
@@ -221,7 +223,7 @@ nsSVGUseFrame::NotifySVGChanged(uint32_t aFlags)
 nsresult
 nsSVGUseFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
-  nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
+  SVGUseElement *use = static_cast<SVGUseElement*>(mContent);
 
   nsIContent* clone = use->CreateAnonymousContent();
   if (!clone)
@@ -235,7 +237,7 @@ void
 nsSVGUseFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
                                         uint32_t aFilter)
 {
-  nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
+  SVGUseElement *use = static_cast<SVGUseElement*>(mContent);
   nsIContent* clone = use->GetAnonymousContent();
   aElements.MaybeAppendElement(clone);
 }
