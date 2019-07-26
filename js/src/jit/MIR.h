@@ -3402,6 +3402,8 @@ class MMathFunction
 
   public:
     INSTRUCTION_HEADER(MathFunction)
+
+    
     static MMathFunction *New(MDefinition *input, Function function, MathCache *cache) {
         return new MMathFunction(input, function, cache);
     }
