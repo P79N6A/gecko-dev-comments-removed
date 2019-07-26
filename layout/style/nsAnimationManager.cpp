@@ -203,8 +203,9 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       
       
-      if (anim.mLastNotification == ElementAnimation::LAST_NOTIFICATION_END &&
-          anim.mLastNotification != oldLastNotification) {
+      if (anim.mLastNotification != oldLastNotification &&
+          (anim.mLastNotification == ElementAnimation::LAST_NOTIFICATION_END ||
+           anim.mLastNotification == 0)) {
         aIsThrottled = false;
         break;
       }
