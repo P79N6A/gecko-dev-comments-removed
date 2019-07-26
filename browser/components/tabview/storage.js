@@ -39,29 +39,6 @@ let Storage = {
   
   
   
-  wipe: function Storage_wipe() {
-    try {
-      var self = this;
-
-      
-      AllTabs.tabs.forEach(function(tab) {
-        self.saveTab(tab, null);
-      });
-
-      
-      this.saveGroupItemsData(gWindow, {});
-      this.saveUIData(gWindow, {});
-
-      this._sessionStore.setWindowValue(gWindow, this.GROUP_DATA_IDENTIFIER,
-        JSON.stringify({}));
-    } catch (e) {
-      Utils.log("Error in wipe: "+e);
-    }
-  },
-
-  
-  
-  
   saveTab: function Storage_saveTab(tab, data) {
     Utils.assert(tab, "tab");
 

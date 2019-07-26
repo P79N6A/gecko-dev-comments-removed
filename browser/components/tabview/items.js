@@ -18,9 +18,6 @@
 
 
 
-
-
-
 function Item() {
   
   
@@ -102,7 +99,6 @@ Item.prototype = {
     Utils.assert(typeof this.setZ == 'function', 'Subclass must provide setZ');
     Utils.assert(typeof this.close == 'function', 'Subclass must provide close');
     Utils.assert(typeof this.save == 'function', 'Subclass must provide save');
-    Utils.assert(Utils.isPoint(this.defaultSize), 'Subclass must provide defaultSize');
     Utils.assert(Utils.isRect(this.bounds), 'Subclass must provide bounds');
 
     this.container = container;
