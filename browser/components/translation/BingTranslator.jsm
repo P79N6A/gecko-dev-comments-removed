@@ -46,6 +46,7 @@ this.BingTranslation = function(translationDocument, sourceLanguage, targetLangu
   this.targetLanguage = targetLanguage;
   this._pendingRequests = 0;
   this._partialSuccess = false;
+  this._serviceUnavailable = false;
   this._translatedCharacterCount = 0;
 };
 
@@ -80,7 +81,8 @@ this.BingTranslation.prototype = {
                                           this.sourceLanguage,
                                           this.targetLanguage);
         this._pendingRequests++;
-        bingRequest.fireRequest().then(this._chunkCompleted.bind(this));
+        bingRequest.fireRequest().then(this._chunkCompleted.bind(this),
+                                       this._chunkFailed.bind(this));
 
         currentIndex = request.lastIndex;
         if (request.finished) {
@@ -101,28 +103,55 @@ this.BingTranslation.prototype = {
 
 
   _chunkCompleted: function(bingRequest) {
-     this._pendingRequests--;
-     if (bingRequest.requestSucceeded &&
-         this._parseChunkResult(bingRequest)) {
-       
-       this._partialSuccess = true;
-       
-       this._translatedCharacterCount += bingRequest.characterCount;
-     }
+    if (this._parseChunkResult(bingRequest)) {
+      this._partialSuccess = true;
+      
+      this._translatedCharacterCount += bingRequest.characterCount;
+    }
 
+    this._checkIfFinished();
+  },
+
+  
+
+
+
+
+
+
+
+
+  _chunkFailed: function(aError) {
+    if (aError instanceof RESTRequest &&
+        aError.response.status == 400) {
+      let body = aError.response.body;
+      if (body.contains("TranslateApiException") && body.contains("balance"))
+        this._serviceUnavailable = true;
+    }
+
+    this._checkIfFinished();
+  },
+
+  
+
+
+
+
+  _checkIfFinished: function() {
     
     
     
     
     
     
-    if (this._pendingRequests == 0) {
+    if (--this._pendingRequests == 0) {
       if (this._partialSuccess) {
         this._onFinishedDeferred.resolve({
           characterCount: this._translatedCharacterCount
         });
       } else {
-        this._onFinishedDeferred.reject("failure");
+        let error = this._serviceUnavailable ? "unavailable" : "failure";
+        this._onFinishedDeferred.reject(error);
       }
     }
   },
@@ -280,24 +309,16 @@ BingRequest.prototype = {
 
       let deferred = Promise.defer();
       request.post(utf8, function(err) {
+        if (request.error || !request.response.success)
+          deferred.reject(request);
+
         deferred.resolve(this);
       }.bind(this));
 
       this.networkRequest = request;
       return deferred.promise;
     }.bind(this));
-  },
-
-  
-
-
-
-
-
-  get requestSucceeded() {
-    return !this.networkRequest.error &&
-            this.networkRequest.response.success;
-   }
+  }
 };
 
 
@@ -359,6 +380,12 @@ let BingTokenManager = {
 
       try {
         let json = JSON.parse(this.response.body);
+
+        if (json.error) {
+          deferred.reject(json.error);
+          return;
+        }
+
         let token = json.access_token;
         let expires_in = json.expires_in;
         BingTokenManager._currentToken = token;

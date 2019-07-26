@@ -28,6 +28,9 @@ this.Translation = {
   STATE_TRANSLATING: 1,
   STATE_TRANSLATED: 2,
   STATE_ERROR: 3,
+  STATE_UNAVAILABLE: 4,
+
+  serviceUnavailable: false,
 
   supportedSourceLanguages: ["en", "zh", "ja", "es", "de", "fr", "ru", "ar", "ko", "pt"],
   supportedTargetLanguages: ["en", "pl", "tr", "vi"],
@@ -172,6 +175,11 @@ TranslationUI.prototype = {
 
   shouldShowInfoBar: function(aURI) {
     
+    
+    if (Translation.serviceUnavailable)
+      return false;
+
+    
     let neverForLangs =
       Services.prefs.getCharPref("browser.translation.neverForLanguages");
     if (neverForLangs.split(",").indexOf(this.detectedLanguage) != -1)
@@ -210,6 +218,9 @@ TranslationUI.prototype = {
           
           TranslationHealthReport.recordTranslation(msg.data.from, msg.data.to,
                                                     msg.data.characterCount);
+        } else if (msg.data.unavailable) {
+          Translation.serviceUnavailable = true;
+          this.state = Translation.STATE_UNAVAILABLE;
         } else {
           this.state = Translation.STATE_ERROR;
         }
