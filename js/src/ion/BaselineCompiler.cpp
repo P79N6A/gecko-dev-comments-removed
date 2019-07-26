@@ -2350,7 +2350,7 @@ typedef bool (*LeaveBlockFn)(JSContext *, BaselineFrame *);
 static const VMFunction LeaveBlockInfo = FunctionInfo<LeaveBlockFn>(ion::LeaveBlock);
 
 bool
-BaselineCompiler::emit_JSOP_LEAVEBLOCK()
+BaselineCompiler::emitLeaveBlock()
 {
     
     prepareVMCall();
@@ -2358,12 +2358,41 @@ BaselineCompiler::emit_JSOP_LEAVEBLOCK()
     masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
     pushArg(R0.scratchReg());
 
-    if (!callVM(LeaveBlockInfo))
+    return callVM(LeaveBlockInfo);
+}
+
+bool
+BaselineCompiler::emit_JSOP_LEAVEBLOCK()
+{
+    if (!emitLeaveBlock())
         return false;
 
     
-    size_t n = StackUses(script, pc);
-    frame.popn(n);
+    frame.popn(GET_UINT16(pc));
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_LEAVEBLOCKEXPR()
+{
+    if (!emitLeaveBlock())
+        return false;
+
+    
+    
+    frame.popRegsAndSync(1);
+    frame.popn(GET_UINT16(pc));
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_LEAVEFORLETIN()
+{
+    if (!emitLeaveBlock())
+        return false;
+
+    
     return true;
 }
 
