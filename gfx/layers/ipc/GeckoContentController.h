@@ -38,6 +38,12 @@ public:
 
   virtual void HandleSingleTap(const nsIntPoint& aPoint) = 0;
 
+  
+
+
+
+  virtual void HandleLongTap(const nsIntPoint& aPoint) = 0;
+
   GeckoContentController() {}
   virtual ~GeckoContentController() {}
 };

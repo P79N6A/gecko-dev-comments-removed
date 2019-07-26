@@ -108,6 +108,12 @@ protected:
 
 
 
+  nsEventStatus HandleLongTapEvent(const MultiTouchInput& aEvent);
+
+  
+
+
+
 
 
 
@@ -130,6 +136,11 @@ protected:
 
 
   void TimeoutDoubleTap();
+  
+
+
+
+  void TimeoutLongTap();
 
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
 
@@ -182,6 +193,13 @@ protected:
 
 
   CancelableTask *mDoubleTapTimeoutTask;
+
+  
+
+
+
+
+  CancelableTask *mLongTapTimeoutTask;
 
   
 
