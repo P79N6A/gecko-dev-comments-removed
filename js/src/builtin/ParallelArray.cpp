@@ -975,7 +975,7 @@ Class js::ParallelArrayProtoClass = {
 
 Class js::ParallelArrayClass = {
     "ParallelArray",
-    JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_PA_MAX) | JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray) | Class::NON_NATIVE,
+    JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_PA_MAX) | JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
