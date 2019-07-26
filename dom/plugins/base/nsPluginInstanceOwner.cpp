@@ -3727,6 +3727,10 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
 {
   NS_ENSURE_ARG_POINTER(result);
   double scaleFactor = 1.0;
+  
+  
+  
+#if defined(XP_MACOSX)
   if (mWidget) {
     scaleFactor = mWidget->GetDefaultScale();
   } else {
@@ -3746,6 +3750,7 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
       }
     }
   }
+#endif
   *result = scaleFactor;
   return NS_OK;
 }
