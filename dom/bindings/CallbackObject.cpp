@@ -93,6 +93,11 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   mAr.construct(cx);
 
   
+  
+  
+  mRootedCallable.construct(cx, aCallback);
+
+  
   mCxPusher.Push(cx);
 
   
