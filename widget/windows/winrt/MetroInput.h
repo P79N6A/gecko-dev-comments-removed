@@ -223,7 +223,7 @@ private:
   
   
   
-  void InitTouchEventTouchList(nsTouchEvent* aEvent);
+  void InitTouchEventTouchList(WidgetTouchEvent* aEvent);
   nsBaseHashtable<nsUint32HashKey,
                   nsRefPtr<mozilla::dom::Touch>,
                   nsRefPtr<mozilla::dom::Touch> > mTouches;
@@ -264,8 +264,9 @@ private:
 
   
   void DispatchAsyncEventIgnoreStatus(nsInputEvent* aEvent);
-  void DispatchAsyncTouchEventIgnoreStatus(nsTouchEvent* aEvent);
-  void DispatchAsyncTouchEventWithCallback(nsTouchEvent* aEvent, void (MetroInput::*Callback)());
+  void DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent);
+  void DispatchAsyncTouchEventWithCallback(WidgetTouchEvent* aEvent,
+                                           void (MetroInput::*Callback)());
 
   
   void DeliverNextQueuedEventIgnoreStatus();

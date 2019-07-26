@@ -6080,8 +6080,8 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
   PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
 
   if (mGesture.GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs)) {
-    nsTouchEvent* touchEventToSend = nullptr;
-    nsTouchEvent* touchEndEventToSend = nullptr;
+    WidgetTouchEvent* touchEventToSend = nullptr;
+    WidgetTouchEvent* touchEndEventToSend = nullptr;
     nsEventStatus status;
 
     
@@ -6091,7 +6091,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
       if (pInputs[i].dwFlags & (TOUCHEVENTF_DOWN | TOUCHEVENTF_MOVE)) {
         
         if (!touchEventToSend) {
-          touchEventToSend = new nsTouchEvent(true, NS_TOUCH_MOVE, this);
+          touchEventToSend = new WidgetTouchEvent(true, NS_TOUCH_MOVE, this);
           touchEventToSend->time = ::GetMessageTime();
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEventToSend);
@@ -6109,7 +6109,7 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
         
         
         if (!touchEndEventToSend) {
-          touchEndEventToSend = new nsTouchEvent(true, NS_TOUCH_END, this);
+          touchEndEventToSend = new WidgetTouchEvent(true, NS_TOUCH_END, this);
           touchEndEventToSend->time = ::GetMessageTime();
           ModifierKeyState modifierKeyState;
           modifierKeyState.InitInputEvent(*touchEndEventToSend);

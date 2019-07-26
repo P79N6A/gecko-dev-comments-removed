@@ -5960,7 +5960,7 @@ EvictTouchPoint(nsRefPtr<dom::Touch>& aTouch)
     return;
   }
   
-  nsTouchEvent event(true, NS_TOUCH_END, widget);
+  WidgetTouchEvent event(true, NS_TOUCH_END, widget);
   event.widget = widget;
   event.time = PR_IntervalNow();
   event.touches.AppendElement(aTouch);
@@ -6202,7 +6202,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
       uint32_t flags = 0;
       if (aEvent->message == NS_TOUCH_START) {
         flags |= INPUT_IGNORE_ROOT_SCROLL_FRAME;
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
         
         
         
@@ -6334,7 +6334,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
       case NS_TOUCH_CANCEL:
       case NS_TOUCH_END: {
         
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
         nsTArray< nsRefPtr<dom::Touch> >& touches = touchEvent->touches;
         for (uint32_t i = 0; i < touches.Length(); ++i) {
           dom::Touch* touch = touches[i];
@@ -6723,7 +6723,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
         isHandlingUserInput = true;
         break;
       case NS_TOUCH_START: {
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
         
         
         
@@ -6751,7 +6751,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_TOUCH_END: {
         
         
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
         nsTArray< nsRefPtr<dom::Touch> >& touches = touchEvent->touches;
         for (uint32_t i = 0; i < touches.Length(); ++i) {
           dom::Touch* touch = touches[i];
@@ -6778,7 +6778,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       }
       case NS_TOUCH_MOVE: {
         
-        nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+        WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
         nsTArray< nsRefPtr<dom::Touch> >& touches = touchEvent->touches;
         bool haveChanged = false;
         for (int32_t i = touches.Length(); i; ) {
@@ -6943,7 +6943,7 @@ PresShell::DispatchTouchEvent(nsEvent *aEvent,
               (aEvent->message == NS_TOUCH_MOVE && aTouchIsNew);
   bool preventDefault = false;
   nsEventStatus tmpStatus = nsEventStatus_eIgnore;
-  nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
+  WidgetTouchEvent* touchEvent = static_cast<WidgetTouchEvent*>(aEvent);
 
   
   for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
@@ -6968,7 +6968,7 @@ PresShell::DispatchTouchEvent(nsEvent *aEvent,
       content = capturingContent;
     }
     
-    nsTouchEvent newEvent(touchEvent->mFlags.mIsTrusted, touchEvent);
+    WidgetTouchEvent newEvent(touchEvent->mFlags.mIsTrusted, touchEvent);
     newEvent.target = targetPtr;
 
     nsRefPtr<PresShell> contentPresShell;

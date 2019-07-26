@@ -398,7 +398,7 @@ MetroInput::OnPointerNonTouch(UI::Input::IPointerPoint* aPoint) {
 }
 
 void
-MetroInput::InitTouchEventTouchList(nsTouchEvent* aEvent)
+MetroInput::InitTouchEventTouchList(WidgetTouchEvent* aEvent)
 {
   MOZ_ASSERT(aEvent);
   mTouches.Enumerate(&AppendToTouchList,
@@ -439,8 +439,8 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   touch->mChanged = true;
   mTouches.Put(pointerId, touch);
 
-  nsTouchEvent* touchEvent =
-    new nsTouchEvent(true, NS_TOUCH_START, mWidget.Get());
+  WidgetTouchEvent* touchEvent =
+    new WidgetTouchEvent(true, NS_TOUCH_START, mWidget.Get());
 
   if (mTouches.Count() == 1) {
     
@@ -544,8 +544,8 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   
   if (!mIsFirstTouchMove && touch->mChanged) {
-    nsTouchEvent* touchEvent =
-      new nsTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
+    WidgetTouchEvent* touchEvent =
+      new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
     DispatchAsyncTouchEventIgnoreStatus(touchEvent);
   }
@@ -555,8 +555,8 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   mTouches.Put(pointerId, touch);
 
-  nsTouchEvent* touchEvent =
-    new nsTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
+  WidgetTouchEvent* touchEvent =
+    new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
 
   
   
@@ -623,8 +623,8 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
 
   
   if (touch->mChanged) {
-    nsTouchEvent* touchEvent =
-      new nsTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
+    WidgetTouchEvent* touchEvent =
+      new WidgetTouchEvent(true, NS_TOUCH_MOVE, mWidget.Get());
     InitTouchEventTouchList(touchEvent);
     DispatchAsyncTouchEventIgnoreStatus(touchEvent);
   }
@@ -635,8 +635,8 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   mTouches.Remove(pointerId);
 
   
-  nsTouchEvent* touchEvent =
-    new nsTouchEvent(true, NS_TOUCH_END, mWidget.Get());
+  WidgetTouchEvent* touchEvent =
+    new WidgetTouchEvent(true, NS_TOUCH_END, mWidget.Get());
   touchEvent->touches.AppendElement(CreateDOMTouch(currentPoint.Get()));
   DispatchAsyncTouchEventIgnoreStatus(touchEvent);
 
@@ -1148,7 +1148,7 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
 }
 
 void
-MetroInput::DispatchAsyncTouchEventIgnoreStatus(nsTouchEvent* aEvent)
+MetroInput::DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent)
 {
   aEvent->time = ::GetMessageTime();
   mModifierKeyState.Update();
@@ -1163,7 +1163,8 @@ nsEventStatus
 MetroInput::DeliverNextQueuedTouchEvent()
 {
   nsEventStatus status;
-  nsTouchEvent* event = static_cast<nsTouchEvent*>(mInputEventQueue.PopFront());
+  WidgetTouchEvent* event =
+    static_cast<WidgetTouchEvent*>(mInputEventQueue.PopFront());
   MOZ_ASSERT(event);
 
   AutoDeleteEvent wrap(event);
@@ -1212,7 +1213,7 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
-  nsTouchEvent transformedEvent(*event);
+  WidgetTouchEvent transformedEvent(*event);
   status = mWidget->ApzReceiveInputEvent(event, &transformedEvent);
   if (!mCancelable && status == nsEventStatus_eConsumeNoDefault) {
     if (!mTouchCancelSent) {
@@ -1237,13 +1238,14 @@ MetroInput::DispatchTouchCancel()
   
   
   
-  nsTouchEvent touchEvent(true, NS_TOUCH_CANCEL, mWidget.Get());
+  WidgetTouchEvent touchEvent(true, NS_TOUCH_CANCEL, mWidget.Get());
   InitTouchEventTouchList(&touchEvent);
   mWidget->DispatchEvent(&touchEvent, sThrowawayStatus);
 }
 
 void
-MetroInput::DispatchAsyncTouchEventWithCallback(nsTouchEvent* aEvent, void (MetroInput::*Callback)())
+MetroInput::DispatchAsyncTouchEventWithCallback(WidgetTouchEvent* aEvent,
+                                                void (MetroInput::*Callback)())
 {
   aEvent->time = ::GetMessageTime();
   mModifierKeyState.Update();

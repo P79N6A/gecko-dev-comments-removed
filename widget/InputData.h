@@ -133,6 +133,7 @@ public:
 
 
 
+
 class MultiTouchInput : public InputData
 {
 public:
@@ -158,7 +159,7 @@ public:
   {
   }
 
-  MultiTouchInput(const nsTouchEvent& aTouchEvent);
+  MultiTouchInput(const WidgetTouchEvent& aTouchEvent);
 
   
   
