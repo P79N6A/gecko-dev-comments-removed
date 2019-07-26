@@ -514,7 +514,7 @@ ReferenceFinder::addReferrer(jsval referrerArg, Path *path)
         if (!array)
             return false;
         v.setObject(*array);
-        return !!JS_SetProperty(context, result, pathName, &v);
+        return !!JS_SetProperty(context, result, pathName, v);
     }
 
     
