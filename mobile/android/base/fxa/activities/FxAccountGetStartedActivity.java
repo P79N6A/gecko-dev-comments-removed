@@ -85,15 +85,21 @@ public class FxAccountGetStartedActivity extends AccountAuthenticatorActivity {
 
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent data) {
-    Logger.debug(LOG_TAG, "onActivityResult: " + requestCode);
+    Logger.debug(LOG_TAG, "onActivityResult: " + requestCode + ", " + resultCode);
     if (requestCode != CHILD_REQUEST_CODE) {
       super.onActivityResult(requestCode, resultCode, data);
       return;
     }
+
+    this.setResult(requestCode, data);
     if (data != null) {
       this.setAccountAuthenticatorResult(data.getExtras());
+
+      
+      
+      
+      this.finish();
     }
-    this.setResult(requestCode, data);
   }
 
   protected void linkifyOldFirefoxLink() {
