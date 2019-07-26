@@ -254,7 +254,7 @@ typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
 
 
 
-class TypedDatum : public JSObject
+class TypedDatum : public ArrayBufferViewObject
 {
   private:
     static const bool IsTypedDatumClass = true;
@@ -274,8 +274,6 @@ class TypedDatum : public JSObject
                                     MutableHandleValue vp);
 
   protected:
-    static void obj_finalize(js::FreeOp *op, JSObject *obj);
-
     static void obj_trace(JSTracer *trace, JSObject *object);
 
     static bool obj_lookupGeneric(JSContext *cx, HandleObject obj,
@@ -357,6 +355,7 @@ class TypedDatum : public JSObject
     
     static size_t dataOffset();
 
+    
     static TypedDatum *createUnattachedWithClass(JSContext *cx,
                                                  const Class *clasp,
                                                  HandleTypeDescr type,
@@ -370,9 +369,8 @@ class TypedDatum : public JSObject
     
     
     
-    template<class T>
-    static T *createUnattached(JSContext *cx, HandleTypeDescr type,
-                               int32_t length);
+    static TypedDatum *createUnattached(JSContext *cx, HandleTypeDescr type,
+                                        int32_t length);
 
     
     
@@ -382,15 +380,36 @@ class TypedDatum : public JSObject
                                      Handle<TypedDatum*> typedContents,
                                      size_t offset);
 
+    
+    
+    
+    static TypedDatum *createZeroed(JSContext *cx,
+                                    HandleTypeDescr typeObj,
+                                    int32_t length);
 
     
-    void attach(uint8_t *mem);
+    
+    
+    static bool constructSized(JSContext *cx, unsigned argc, Value *vp);
 
     
-    void attach(TypedDatum &datum, uint32_t offset);
+    static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
 
-    TypedDatum &owner() const {
-        return getReservedSlot(JS_DATUM_SLOT_OWNER).toObject().as<TypedDatum>();
+    
+    void attach(ArrayBufferObject &buffer, int32_t offset);
+
+    
+    void attach(TypedDatum &datum, int32_t offset);
+
+    
+    void neuter(JSContext *cx);
+
+    int32_t offset() const {
+        return getReservedSlot(JS_DATUM_SLOT_BYTEOFFSET).toInt32();
+    }
+
+    ArrayBufferObject &owner() const {
+        return getReservedSlot(JS_DATUM_SLOT_OWNER).toObject().as<ArrayBufferObject>();
     }
 
     TypeDescr &typeDescr() const {
@@ -443,19 +462,6 @@ class TypedObject : public TypedDatum
 {
   public:
     static const Class class_;
-
-    
-    
-    
-    static TypedObject *createZeroed(JSContext *cx,
-                                     HandleTypeDescr typeObj,
-                                     int32_t length);
-
-    
-    static bool constructSized(JSContext *cx, unsigned argc, Value *vp);
-
-    
-    static bool constructUnsized(JSContext *cx, unsigned argc, Value *vp);
 };
 
 typedef Handle<TypedObject*> HandleTypedObject;
@@ -510,14 +516,6 @@ extern const JSJitInfo ObjectIsTypeDescrJitInfo;
 
 
 
-bool ObjectIsTypeRepresentation(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTypeRepresentationJitInfo;
-
-
-
-
-
-
 bool ObjectIsTypedHandle(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsTypedHandleJitInfo;
 
@@ -535,8 +533,8 @@ extern const JSJitInfo ObjectIsTypedObjectJitInfo;
 
 
 
-bool IsAttached(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo IsAttachedJitInfo;
+bool DatumIsAttached(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo DatumIsAttachedJitInfo;
 
 
 
@@ -673,6 +671,13 @@ JS_FOR_EACH_UNIQUE_SCALAR_TYPE_REPR_CTYPE(JS_LOAD_SCALAR_CLASS_DEFN)
 JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_STORE_REFERENCE_CLASS_DEFN)
 JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 
+inline bool
+IsTypedDatumClass(const Class *class_)
+{
+    return class_ == &TypedObject::class_ ||
+           class_ == &TypedHandle::class_;
+}
+
 } 
 
 JSObject *
@@ -708,7 +713,7 @@ template <>
 inline bool
 JSObject::is<js::TypedDatum>() const
 {
-    return is<js::TypedObject>() || is<js::TypedHandle>();
+    return IsTypedDatumClass(getClass());
 }
 
 #endif

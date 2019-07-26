@@ -29,6 +29,10 @@
 
 
 
+#define DATUM_BYTEOFFSET(obj) \
+    TO_INT32(UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_BYTEOFFSET))
+#define DATUM_BYTELENGTH(obj) \
+    TO_INT32(UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_BYTELENGTH))
 #define DATUM_TYPE_DESCR(obj) \
     UnsafeGetReservedSlot(obj, JS_DATUM_SLOT_TYPE_DESCR)
 #define DATUM_OWNER(obj) \
@@ -320,7 +324,7 @@ TypedObjectPointer.prototype.moveToFieldIndex = function(index) {
 
 
 TypedObjectPointer.prototype.get = function() {
-  assert(ObjectIsAttached(this.datum), "get() called with unattached datum");
+  assert(DatumIsAttached(this.datum), "get() called with unattached datum");
 
   switch (this.kind()) {
   case JS_TYPEREPR_SCALAR_KIND:
@@ -431,7 +435,7 @@ TypedObjectPointer.prototype.getX4 = function() {
 
 
 TypedObjectPointer.prototype.set = function(fromValue) {
-  assert(ObjectIsAttached(this.datum), "set() called with unattached datum");
+  assert(DatumIsAttached(this.datum), "set() called with unattached datum");
 
   
   
@@ -439,7 +443,7 @@ TypedObjectPointer.prototype.set = function(fromValue) {
   if (IsObject(fromValue) && ObjectIsTypedDatum(fromValue)) {
     var typeRepr = DESCR_TYPE_REPR(this.descr);
     if (!typeRepr.variable && DATUM_TYPE_REPR(fromValue) === typeRepr) {
-      if (!ObjectIsAttached(fromValue))
+      if (!DatumIsAttached(fromValue))
         ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
       var size = DESCR_SIZE(this.descr);
@@ -602,7 +606,7 @@ function ConvertAndCopyTo(destDescr,
   assert(IsObject(destDatum) && ObjectIsTypedDatum(destDatum),
          "ConvertAndCopyTo: not type datum");
 
-  if (!ObjectIsAttached(destDatum))
+  if (!DatumIsAttached(destDatum))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
   var ptr = new TypedObjectPointer(destDescr, destDatum, destOffset);
@@ -618,7 +622,7 @@ function Reify(sourceDescr,
   assert(IsObject(sourceDatum) && ObjectIsTypedDatum(sourceDatum),
          "Reify: not type datum");
 
-  if (!ObjectIsAttached(sourceDatum))
+  if (!DatumIsAttached(sourceDatum))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
   var ptr = new TypedObjectPointer(sourceDescr, sourceDatum, sourceOffset);
@@ -783,6 +787,29 @@ function ArrayShorthand(...dims) {
 
 
 
+
+
+function StorageOfTypedDatum(obj) {
+  if (IsObject(obj)) {
+    
+    if (ObjectIsTypedHandle(obj))
+      return null;
+
+    
+    if (ObjectIsTypedDatum(obj))
+      return { buffer: DATUM_OWNER(obj),
+               byteLength: DATUM_BYTELENGTH(obj),
+               byteOffset: DATUM_BYTEOFFSET(obj) };
+  }
+
+  ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+  return null; 
+}
+
+
+
+
+
 function TypeOfTypedDatum(obj) {
   if (IsObject(obj) && ObjectIsTypedDatum(obj))
     return DATUM_TYPE_DESCR(obj);
@@ -807,13 +834,6 @@ function TypeOfTypedDatum(obj) {
 function ObjectIsTypedDatum(obj) {
   assert(IsObject(obj), "ObjectIsTypedDatum invoked with non-object")
   return ObjectIsTypedObject(obj) || ObjectIsTypedHandle(obj);
-}
-
-function ObjectIsAttached(obj) {
-  assert(IsObject(obj), "ObjectIsAttached invoked with non-object")
-  assert(ObjectIsTypedDatum(obj),
-         "ObjectIsAttached() invoked on invalid obj");
-  return DATUM_OWNER(obj) != null;
 }
 
 
