@@ -322,10 +322,7 @@ DebuggerClient.prototype = {
 
   attachTab: function DC_attachTab(aTabActor, aOnResponse) {
     let self = this;
-    let packet = {
-      to: aTabActor,
-      type: "attach"
-    };
+    let packet = { to: aTabActor, type: "attach" };
     this.request(packet, function(aResponse) {
       let tabClient;
       if (!aResponse.error) {
@@ -376,16 +373,9 @@ DebuggerClient.prototype = {
 
 
 
-
-
-
-  attachThread: function DC_attachThread(aThreadActor, aOnResponse, aOptions={}) {
+  attachThread: function DC_attachThread(aThreadActor, aOnResponse) {
     let self = this;
-    let packet = {
-      to: aThreadActor,
-      type: "attach",
-      options: aOptions
-    };
+    let packet = { to: aThreadActor, type: "attach" };
     this.request(packet, function(aResponse) {
       if (!aResponse.error) {
         var threadClient = new ThreadClient(self, aThreadActor);
@@ -443,7 +433,7 @@ DebuggerClient.prototype = {
 
   _sendRequests: function DC_sendRequests() {
     let self = this;
-    this._pendingRequests = this._pendingRequests.filter(function (request) {
+    this._pendingRequests = this._pendingRequests.filter(function(request) {
       if (request.to in self._activeRequests) {
         return true;
       }
@@ -480,53 +470,55 @@ DebuggerClient.prototype = {
         return;
       }
 
-      if (!aPacket.from) {
-        let msg = "Server did not specify an actor, dropping packet: " +
-                  JSON.stringify(aPacket);
-        Cu.reportError(msg);
-        dumpn(msg);
-        return;
-      }
+      try {
+        if (!aPacket.from) {
+          let msg = "Server did not specify an actor, dropping packet: " +
+                    JSON.stringify(aPacket);
+          Cu.reportError(msg);
+          dumpn(msg);
+          return;
+        }
 
-      let onResponse;
-      
-      if (aPacket.from in this._activeRequests &&
-          !(aPacket.type in UnsolicitedNotifications) &&
-          !(aPacket.type == ThreadStateTypes.paused &&
-            aPacket.why.type in UnsolicitedPauses)) {
-        onResponse = this._activeRequests[aPacket.from].onResponse;
-        delete this._activeRequests[aPacket.from];
-      }
+        let onResponse;
+        
+        if (aPacket.from in this._activeRequests &&
+            !(aPacket.type in UnsolicitedNotifications) &&
+            !(aPacket.type == ThreadStateTypes.paused &&
+              aPacket.why.type in UnsolicitedPauses)) {
+          onResponse = this._activeRequests[aPacket.from].onResponse;
+          delete this._activeRequests[aPacket.from];
+        }
 
-      
-      if (aPacket.type in ThreadStateTypes &&
-          aPacket.from in this._threadClients) {
-        this._threadClients[aPacket.from]._onThreadState(aPacket);
-      }
-      
-      
-      
-      if (this.activeThread &&
-          aPacket.type == UnsolicitedNotifications.tabNavigated &&
-          aPacket.from in this._tabClients) {
-        let resumption = { from: this.activeThread._actor, type: "resumed" };
-        this.activeThread._onThreadState(resumption);
-      }
-      
-      
-      if (aPacket.type) {
-        this.notify(aPacket.type, aPacket);
-      }
+        
+        if (aPacket.type in ThreadStateTypes &&
+            aPacket.from in this._threadClients) {
+          this._threadClients[aPacket.from]._onThreadState(aPacket);
+        }
+        
+        
+        
+        if (this.activeThread &&
+            aPacket.type == UnsolicitedNotifications.tabNavigated &&
+            aPacket.from in this._tabClients) {
+          let resumption = { from: this.activeThread._actor, type: "resumed" };
+          this.activeThread._onThreadState(resumption);
+        }
+        
+        
+        if (aPacket.type) {
+          this.notify(aPacket.type, aPacket);
+        }
 
-      if (onResponse) {
-        onResponse(aPacket);
+        if (onResponse) {
+          onResponse(aPacket);
+        }
+      } catch(ex) {
+        dumpn("Error handling response: " + ex + " - stack:\n" + ex.stack);
+        Cu.reportError(ex.message + "\n" + ex.stack);
       }
 
       this._sendRequests();
-    }.bind(this), function (ex) {
-      dumpn("Error handling response: " + ex + " - stack:\n" + ex.stack);
-      Cu.reportError(ex.message + "\n" + ex.stack);
-    });
+    }.bind(this));
   },
 
   
