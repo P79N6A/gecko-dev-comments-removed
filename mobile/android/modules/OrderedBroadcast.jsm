@@ -38,6 +38,7 @@ let _callbackId = 1;
 
 
 
+
 function sendOrderedBroadcast(action, token, callback, permission) {
   let callbackId = _callbackId++;
   let responseEvent = "OrderedBroadcast:Response:" + callbackId;
@@ -79,6 +80,6 @@ function sendOrderedBroadcast(action, token, callback, permission) {
     action: action,
     responseEvent: responseEvent,
     token: { callbackId: callbackId, data: token || null },
-    permission: permission || null,
+    permission: permission,
   });
 };

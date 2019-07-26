@@ -5,10 +5,10 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -77,8 +77,11 @@ public final class OrderedBroadcastHelper
                 message.getJSONObject("token") : null;
 
             
-            final String permission = (message.has("permission") && !message.isNull("permission")) ?
-                message.getString("permission") : null;
+            
+            
+            final String permission = message.has("permission") ?
+                                      (message.isNull("permission") ? null : message.getString("permission")) :
+                                      GlobalConstants.PER_ANDROID_PACKAGE_PERMISSION;
 
             final BroadcastReceiver resultReceiver = new BroadcastReceiver() {
                 @Override
