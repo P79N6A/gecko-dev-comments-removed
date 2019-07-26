@@ -298,6 +298,13 @@ ProcessPriorityManager::OnGracePeriodTimerFired()
 
   mGracePeriodTimer = nullptr;
   hal::SetProcessPriority(getpid(), PROCESS_PRIORITY_BACKGROUND);
+
+  
+  nsCOMPtr<nsIMemoryReporterManager> mgr =
+    do_GetService("@mozilla.org/memory-reporter-manager;1");
+  if (mgr) {
+    mgr->MinimizeMemoryUsage( nullptr);
+  }
 }
 
 } 
