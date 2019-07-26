@@ -220,7 +220,7 @@ BlockingResourceBase::PrintCycle(const DDT::ResourceAcquisitionArray* aCycle,
 
 
 void
-Mutex::Lock()
+OffTheBooksMutex::Lock()
 {
     CallStack callContext = CallStack();
 
@@ -230,7 +230,7 @@ Mutex::Lock()
 }
 
 void
-Mutex::Unlock()
+OffTheBooksMutex::Unlock()
 {
     Release();                  
     PRStatus status = PR_Unlock(mLock);

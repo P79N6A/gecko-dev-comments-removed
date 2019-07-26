@@ -23,6 +23,10 @@
 
 
 
+
+
+
+
 namespace mozilla {
 
 
@@ -30,9 +34,7 @@ namespace mozilla {
 
 
 
-
-
-class NS_COM_GLUE Mutex : BlockingResourceBase
+class NS_COM_GLUE OffTheBooksMutex : BlockingResourceBase
 {
 public:
     
@@ -41,27 +43,21 @@ public:
 
 
 
-
-    Mutex(const char* name) :
+    OffTheBooksMutex(const char* name) :
         BlockingResourceBase(name, eMutex)
     {
-        MOZ_COUNT_CTOR(Mutex);
         mLock = PR_NewLock();
         if (!mLock)
             NS_RUNTIMEABORT("Can't allocate mozilla::Mutex");
     }
 
-    
-
-
-    ~Mutex()
+    ~OffTheBooksMutex()
     {
         NS_ASSERTION(mLock,
                      "improperly constructed Lock or double free");
         
         PR_DestroyLock(mLock);
         mLock = 0;
-        MOZ_COUNT_DTOR(Mutex);
     }
 
 #ifndef DEBUG
@@ -116,15 +112,39 @@ public:
 #endif  
 
 private:
-    Mutex();
-    Mutex(const Mutex&);
-    Mutex& operator=(const Mutex&);
+    OffTheBooksMutex();
+    OffTheBooksMutex(const OffTheBooksMutex&);
+    OffTheBooksMutex& operator=(const OffTheBooksMutex&);
 
     PRLock* mLock;
 
     friend class CondVar;
 };
 
+
+
+
+
+
+class NS_COM_GLUE Mutex : public OffTheBooksMutex
+{
+public:
+   Mutex(const char* name)
+       : OffTheBooksMutex(name)
+   {
+       MOZ_COUNT_CTOR(Mutex);
+   }
+
+   ~Mutex()
+   {
+       MOZ_COUNT_DTOR(Mutex);
+   }
+
+private:
+    Mutex();
+    Mutex(const Mutex&);
+    Mutex& operator=(const Mutex&);
+};
 
 
 
@@ -169,6 +189,7 @@ private:
 };
 
 typedef BaseAutoLock<Mutex> MutexAutoLock;
+typedef BaseAutoLock<OffTheBooksMutex> OffTheBooksMutexAutoLock;
 
 
 
@@ -206,6 +227,7 @@ private:
 };
 
 typedef BaseAutoUnlock<Mutex> MutexAutoUnlock;
+typedef BaseAutoUnlock<OffTheBooksMutex> OffTheBooksMutexAutoUnlock;
 
 } 
 
