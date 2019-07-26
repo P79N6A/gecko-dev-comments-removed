@@ -124,6 +124,11 @@ public:
     
     
     virtual int64_t BytesWritten() = 0;
+
+    
+    
+    virtual void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks,
+                                      nsIEventTarget* aCallbackTarget) = 0;
 };
 
 #define NS_DECL_NSAHTTPCONNECTION(fwdObject)                    \
@@ -195,6 +200,11 @@ public:
         return (fwdObject)->Classify(newclass);             \
     }                                                       \
     int64_t BytesWritten()                                  \
-    {     return fwdObject ? (fwdObject)->BytesWritten() : 0; }
+    {     return fwdObject ? (fwdObject)->BytesWritten() : 0; } \
+    void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks, \
+                              nsIEventTarget* aCallbackTarget) \
+    {                                                       \
+        (fwdObject)->SetSecurityCallbacks(aCallbacks, aCallbackTarget); \
+    }
 
 #endif 

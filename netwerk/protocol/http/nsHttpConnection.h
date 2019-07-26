@@ -151,6 +151,8 @@ public:
 
     int64_t BytesWritten() { return mTotalBytesWritten; }
 
+    void    SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks,
+                                 nsIEventTarget* aCallbackTarget);
     void    PrintDiagnostics(nsCString &log);
 
 private:
@@ -197,6 +199,7 @@ private:
     
     nsRefPtr<nsAHttpTransaction>    mTransaction;
 
+    mozilla::Mutex                  mCallbacksLock;
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsIEventTarget>        mCallbackTarget;
 
