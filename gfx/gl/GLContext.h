@@ -2564,25 +2564,6 @@ public:
 
     virtual bool RenewSurface() { return false; }
 
-    already_AddRefed<gfxImageSurface> GetTexImage(GLuint aTexture,
-                                                  bool aYInvert,
-                                                  SurfaceFormat aFormat);
-
-    
-
-
-
-
-
-
-    void ReadPixelsIntoImageSurface(gfxImageSurface* dest);
-
-    
-    
-    void ReadScreenIntoImageSurface(gfxImageSurface* dest);
-
-    TemporaryRef<gfx::SourceSurface> ReadPixelsToSourceSurface(const gfx::IntSize &aSize);
-
     
     static bool ListHasExtension(const GLubyte *extensions,
                                  const char *extension);

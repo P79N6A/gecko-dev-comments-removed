@@ -42,6 +42,7 @@
 #include "nsString.h"                   
 #include "DecomposeIntoNoRepeatTriangles.h"
 #include "ScopedGLHelpers.h"
+#include "GLReadTexImageHelper.h"
 
 #if MOZ_ANDROID_OMTC
 #include "TexturePoolOGL.h"
@@ -1485,8 +1486,16 @@ CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfxMatrix& aTransform)
     mGLContext->fReadBuffer(LOCAL_GL_BACK);
   }
 
-  RefPtr<SourceSurface> source =
-    mGLContext->ReadPixelsToSourceSurface(IntSize(width, height));
+  RefPtr<DataSourceSurface> source =
+        Factory::CreateDataSourceSurface(rect.Size(), gfx::FORMAT_B8G8R8A8);
+  
+  nsRefPtr<gfxImageSurface> surf =
+    new gfxImageSurface(source->GetData(),
+                        gfxIntSize(width, height),
+                        source->Stride(),
+                        gfxImageFormatARGB32);
+  ReadPixelsIntoImageSurface(mGLContext, surf);
+  source->MarkDirty();
 
   
   Matrix glToCairoTransform = ToMatrix(aTransform);
