@@ -237,9 +237,6 @@ let Scheduler = {
 
   resetTimer: null,
 
-  
-
-
   restartTimer: function(arg) {
     let delay;
     try {
@@ -252,98 +249,7 @@ let Scheduler = {
     if (this.resetTimer) {
       clearTimeout(this.resetTimer);
     }
-    this.resetTimer = setTimeout(
-      () => Scheduler.kill({reset: true, shutdown: false}),
-      delay
-    );
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  kill: function({shutdown, reset}) {
-    return Task.spawn(function*() {
-
-      yield this.queue;
-
-      if (!this.launched || this.shutdown || !worker) {
-        
-        this.shutdown = this.shutdown || shutdown;
-        worker = null;
-        return null;
-      }
-
-      
-      
-      let deferred = Promise.defer();
-      this.queue = deferred.promise;
-
-      let message = ["Meta_shutdown", [reset]];
-
-      try {
-        Scheduler.latestReceived = [];
-        Scheduler.latestSent = [Date.now(), ...message];
-        let promise = worker.post(...message);
-
-        
-        let resources;
-        try {
-          resources = (yield promise).ok;
-
-          Scheduler.latestReceived = [Date.now(), message];
-        } catch (ex) {
-          LOG("Could not dispatch Meta_reset", ex);
-          
-          
-          
-          resources = {openedFiles: [], openedDirectoryIterators: [], killed: true};
-
-          Scheduler.latestReceived = [Date.now(), message, ex];
-        }
-
-        let {openedFiles, openedDirectoryIterators, killed} = resources;
-        if (!reset
-          && (openedFiles && openedFiles.length
-            || ( openedDirectoryIterators && openedDirectoryIterators.length))) {
-          
-
-          let msg = "";
-          if (openedFiles.length > 0) {
-            msg += "The following files are still open:\n" +
-              openedFiles.join("\n");
-          }
-          if (openedDirectoryIterators.length > 0) {
-            msg += "The following directory iterators are still open:\n" +
-              openedDirectoryIterators.join("\n");
-          }
-
-          LOG("WARNING: File descriptors leaks detected.\n" + msg);
-        }
-
-        
-        if (killed || shutdown) {
-          worker = null;
-        }
-
-        this.shutdown = shutdown;
-
-        return resources;
-
-      } finally {
-        
-        
-        
-        deferred.resolve();
-      }
-
-    }.bind(this));
+    this.resetTimer = setTimeout(File.resetWorker, delay);
   },
 
   
@@ -404,11 +310,6 @@ let Scheduler = {
       
       Scheduler.Debugging.latestReceived = null;
       Scheduler.Debugging.latestSent = [Date.now(), method, summarizeObject(methodArgs)];
-
-      
-      Scheduler.restartTimer();
-
-
       let data;
       let reply;
       let isError = false;
@@ -445,7 +346,11 @@ let Scheduler = {
           Scheduler._updateTelemetry();
         }
 
-        Scheduler.restartTimer();
+        
+        
+        if (method != "Meta_reset") {
+          Scheduler.restartTimer();
+        }
       }
 
       
@@ -565,9 +470,54 @@ const WEB_WORKERS_SHUTDOWN_TOPIC = "web-workers-shutdown";
 const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
   "toolkit.osfile.test.shutdown.observer";
 
+
+
+
+
+
+
+
+
+
+
+
+function warnAboutUnclosedFiles(shutdown = true) {
+  if (!Scheduler.launched || !worker) {
+    
+    
+    
+    return null;
+  }
+  let promise = Scheduler.post("Meta_getUnclosedResources");
+
+  
+  if (shutdown) {
+    Scheduler.shutdown = true;
+  }
+
+  return promise.then(function onSuccess(opened) {
+    let msg = "";
+    if (opened.openedFiles.length > 0) {
+      msg += "The following files are still open:\n" +
+        opened.openedFiles.join("\n");
+    }
+    if (msg) {
+      msg += "\n";
+    }
+    if (opened.openedDirectoryIterators.length > 0) {
+      msg += "The following directory iterators are still open:\n" +
+        opened.openedDirectoryIterators.join("\n");
+    }
+    
+    if (msg) {
+      LOG("WARNING: File descriptors leaks detected.\n" + msg);
+    }
+  });
+};
+
 AsyncShutdown.webWorkersShutdown.addBlocker(
   "OS.File: flush pending requests, warn about unclosed files, shut down service.",
-  () => Scheduler.kill({reset: false, shutdown: true})
+  () => warnAboutUnclosedFiles(true)
 );
 
 
@@ -592,7 +542,7 @@ Services.prefs.addObserver(PREF_OSFILE_TEST_SHUTDOWN_OBSERVER,
       let phase = AsyncShutdown._getPhase(TOPIC);
       phase.addBlocker(
         "(for testing purposes) OS.File: warn about unclosed files",
-        () => Scheduler.kill({shutdown: false, reset: false})
+        () => warnAboutUnclosedFiles(false)
       );
     }
   }, false);
@@ -1416,14 +1366,43 @@ DirectoryIterator.Entry.fromMsg = function fromMsg(value) {
   return new DirectoryIterator.Entry(value);
 };
 
+
+
+
+
+
+
+
+
 File.resetWorker = function() {
-  return Task.spawn(function*() {
-    let resources = yield Scheduler.kill({shutdown: false, reset: true});
-    if (resources && !resources.killed) {
-        throw new Error("Could not reset worker, this would leak file descriptors: " + JSON.stringify(resources));
+  if (!Scheduler.launched || Scheduler.shutdown) {
+    
+    return Promise.resolve();
+  }
+  return Scheduler.post("Meta_reset").then(
+    function(wouldLeak) {
+      if (!wouldLeak) {
+        
+        worker = null;
+        return;
+      }
+      
+      
+      let msg = "Cannot reset worker: ";
+      let {openedFiles, openedDirectoryIterators} = wouldLeak;
+      if (openedFiles.length > 0) {
+        msg += "The following files are still open:\n" +
+          openedFiles.join("\n");
+      }
+      if (openedDirectoryIterators.length > 0) {
+        msg += "The following directory iterators are still open:\n" +
+          openedDirectoryIterators.join("\n");
+      }
+      throw new Error(msg);
     }
-  });
+  );
 };
+
 
 
 File.POS_START = SysAll.POS_START;
