@@ -343,12 +343,12 @@ protected:
 
 private:
     
-    static nsXPConnect*      gSelf;
-    static bool              gOnceAliveNowDead;
+    static nsXPConnect*             gSelf;
+    static bool                     gOnceAliveNowDead;
 
-    XPCJSRuntime*            mRuntime;
-    nsIXPCSecurityManager*   mDefaultSecurityManager;
-    bool                     mShuttingDown;
+    XPCJSRuntime*                   mRuntime;
+    nsRefPtr<nsIXPCSecurityManager> mDefaultSecurityManager;
+    bool                            mShuttingDown;
 
     
     
