@@ -546,7 +546,9 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
   DrainOverflowColumns();
 
-  if (mLastBalanceHeight != aConfig.mColMaxHeight) {
+  const bool colHeightChanged = mLastBalanceHeight != aConfig.mColMaxHeight;
+
+  if (colHeightChanged) {
     mLastBalanceHeight = aConfig.mColMaxHeight;
     
     
@@ -647,6 +649,10 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       kidReflowState.mFlags.mIsTopOfPage = true;
       kidReflowState.mFlags.mTableIsSplittable = false;
       kidReflowState.mFlags.mIsColumnBalancing = aConfig.mBalanceColCount < INT32_MAX;
+
+      
+      
+      kidReflowState.mFlags.mMustReflowPlaceholders = !colHeightChanged;
 
 #ifdef DEBUG_roc
       printf("*** Reflowing child #%d %p: availHeight=%d\n",

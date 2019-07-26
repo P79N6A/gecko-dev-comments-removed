@@ -364,6 +364,12 @@ public:
     uint16_t mDummyParentReflowState:1; 
                                         
                                         
+    uint16_t mMustReflowPlaceholders:1; 
+                                        
+                                        
+                                        
+                                        
+                                        
   } mFlags;
 
   
