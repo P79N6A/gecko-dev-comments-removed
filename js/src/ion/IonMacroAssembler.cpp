@@ -372,11 +372,12 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
 }
 
 void
-MacroAssembler::getNewObject(JSContext *cx, const Register &result,
-                             HandleObject templateObject, Label *fail)
+MacroAssembler::newGCThing(JSContext *cx, const Register &result,
+                           HandleObject templateObject, Label *fail)
 {
-    gc::AllocKind allocKind = templateObject->getAllocKind();
+    
 
+    gc::AllocKind allocKind = templateObject->getAllocKind();
     JS_ASSERT(allocKind >= gc::FINALIZE_OBJECT0 && allocKind <= gc::FINALIZE_OBJECT_LAST);
     int thingSize = (int)gc::Arena::thingSize(allocKind);
 
@@ -401,55 +402,50 @@ MacroAssembler::getNewObject(JSContext *cx, const Register &result,
 
     addPtr(Imm32(thingSize), result);
     storePtr(result, AbsoluteAddress(&list->first));
+    subPtr(Imm32(thingSize), result);
+}
 
-    
-    
-    
-    
-    
-    
+void
+MacroAssembler::initGCThing(JSContext *cx, const Register &obj, HandleObject templateObject)
+{
     
 
-    int elementsOffset = JSObject::offsetOfFixedElements();
+    storePtr(ImmGCPtr(templateObject->lastProperty()), Address(obj, JSObject::offsetOfShape()));
+    storePtr(ImmGCPtr(templateObject->type()), Address(obj, JSObject::offsetOfType()));
+    storePtr(ImmWord((void *)NULL), Address(obj, JSObject::offsetOfSlots()));
 
-    
-    
     if (templateObject->isDenseArray()) {
         JS_ASSERT(!templateObject->getDenseArrayInitializedLength());
-        addPtr(Imm32(-thingSize + elementsOffset), result);
-        storePtr(result, Address(result, -elementsOffset + JSObject::offsetOfElements()));
-        addPtr(Imm32(-elementsOffset), result);
-    } else {
-        subPtr(Imm32(thingSize), result);
-        storePtr(ImmWord(emptyObjectElements), Address(result, JSObject::offsetOfElements()));
-    }
 
-    storePtr(ImmGCPtr(templateObject->lastProperty()), Address(result, JSObject::offsetOfShape()));
-    storePtr(ImmGCPtr(templateObject->type()), Address(result, JSObject::offsetOfType()));
-    storePtr(ImmWord((void *)NULL), Address(result, JSObject::offsetOfSlots()));
+        int elementsOffset = JSObject::offsetOfFixedElements();
 
-    if (templateObject->isDenseArray()) {
+        addPtr(Imm32(elementsOffset), obj);
+        storePtr(obj, Address(obj, -elementsOffset + JSObject::offsetOfElements()));
+        addPtr(Imm32(-elementsOffset), obj);
+
         
         store32(Imm32(templateObject->getDenseArrayCapacity()),
-                Address(result, elementsOffset + ObjectElements::offsetOfCapacity()));
+                Address(obj, elementsOffset + ObjectElements::offsetOfCapacity()));
         store32(Imm32(templateObject->getDenseArrayInitializedLength()),
-                Address(result, elementsOffset + ObjectElements::offsetOfInitializedLength()));
+                Address(obj, elementsOffset + ObjectElements::offsetOfInitializedLength()));
         store32(Imm32(templateObject->getArrayLength()),
-                Address(result, elementsOffset + ObjectElements::offsetOfLength()));
+                Address(obj, elementsOffset + ObjectElements::offsetOfLength()));
     } else {
+        storePtr(ImmWord(emptyObjectElements), Address(obj, JSObject::offsetOfElements()));
+
         
         
         size_t nslots = JS_MIN(templateObject->numFixedSlots(), templateObject->slotSpan());
         for (unsigned i = 0; i < nslots; i++) {
             storeValue(templateObject->getFixedSlot(i),
-                       Address(result, JSObject::getFixedSlotOffset(i)));
+                       Address(obj, JSObject::getFixedSlotOffset(i)));
         }
     }
 
     if (templateObject->hasPrivate()) {
         uint32_t nfixed = templateObject->numFixedSlots();
         storePtr(ImmWord(templateObject->getPrivate()),
-                 Address(result, JSObject::getPrivateDataOffset(nfixed)));
+                 Address(obj, JSObject::getPrivateDataOffset(nfixed)));
     }
 }
 

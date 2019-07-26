@@ -439,7 +439,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     void clampDoubleToUint8(FloatRegister input, Register output);
 
-    void getNewObject(JSContext *cx, const Register &result, HandleObject templateObject, Label *fail);
+    
+    void newGCThing(JSContext *cx, const Register &result, HandleObject templateObject, Label *fail);
+    void initGCThing(JSContext *cx, const Register &obj, HandleObject templateObject);
 
     
     

@@ -425,12 +425,30 @@ class LToIdV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
 };
 
 
-class LCreateThis : public LInstructionHelper<1, 2, 0>
+
+class LCreateThis : public LInstructionHelper<1, 0, 0>
 {
   public:
     LIR_HEADER(CreateThis);
 
-    LCreateThis(const LAllocation &callee, const LAllocation &prototype)
+    LCreateThis()
+    { }
+
+    const LDefinition *output() {
+        return getDef(0);
+    }
+    MCreateThis *mir() const {
+        return mir_->toCreateThis();
+    }
+};
+
+
+class LCreateThisVM : public LInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(CreateThisVM);
+
+    LCreateThisVM(const LAllocation &callee, const LAllocation &prototype)
     {
         setOperand(0, callee);
         setOperand(1, prototype);
@@ -446,6 +464,9 @@ class LCreateThis : public LInstructionHelper<1, 2, 0>
         return getDef(0);
     }
 
+    bool isCall() const {
+        return true;
+    }
     MCreateThis *mir() const {
         return mir_->toCreateThis();
     }
