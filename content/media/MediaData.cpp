@@ -230,8 +230,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
 
   
   if (aPicture.width <= 0 || aPicture.height <= 0) {
-    
-    MOZ_ASSERT(false, "Empty picture rect");
+    NS_WARNING("Empty picture rect");
     return nullptr;
   }
   if (!ValidatePlane(aBuffer.mPlanes[0]) || !ValidatePlane(aBuffer.mPlanes[1]) ||
