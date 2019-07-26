@@ -317,6 +317,10 @@ struct JSCompartment
 
 
 
+
+
+
+
 #ifdef DEBUG
         JS::RootedObject cacheResult(cx);
 #endif
