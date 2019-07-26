@@ -516,7 +516,12 @@ class TypedDatum : public JSObject
     }
 
     uint8_t *typedMem(size_t offset) const {
-        JS_ASSERT(offset < size());
+        
+        
+        
+        
+        
+        JS_ASSERT(offset <= size());
         return typedMem() + offset;
     }
 };
