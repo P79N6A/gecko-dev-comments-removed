@@ -587,12 +587,14 @@ TypeInferenceOracle::canInlineCall(HandleScript caller, jsbytecode *pc)
     
     if (op != JSOP_FUNAPPLY && code->monitoredTypes)
         return false;
-
-    
-    if (caller->analysis()->typeBarriers(cx, pc))
-        return false;
-
     return true;
+}
+
+types::TypeBarrier*
+TypeInferenceOracle::callArgsBarrier(HandleScript caller, jsbytecode *pc)
+{
+    JS_ASSERT(types::IsInlinableCall(pc));
+    return caller->analysis()->typeBarriers(cx, pc);
 }
 
 bool

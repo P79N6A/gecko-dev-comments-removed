@@ -277,7 +277,17 @@ class IonBuilder : public MIRGenerator
     void rewriteParameters();
     bool initScopeChain();
     bool pushConstant(const Value &v);
+
+    
+    
     bool pushTypeBarrier(MInstruction *ins, types::StackTypeSet *actual, types::StackTypeSet *observed);
+
+    
+    
+    
+    
+    void addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *calleeObs);
+
     void monitorResult(MInstruction *ins, types::TypeSet *barrier, types::StackTypeSet *types);
 
     JSObject *getSingletonPrototype(JSFunction *target);
@@ -455,7 +465,7 @@ class IonBuilder : public MIRGenerator
                           types::StackTypeSet *calleeTypes, bool cloneAtCallsite);
     bool makeCallBarrier(HandleFunction target,  CallInfo &callInfo,
                          types::StackTypeSet *calleeTypes, bool cloneAtCallsite);
-    bool makeCall(HandleFunction target, CallInfo &callInfo, 
+    bool makeCall(HandleFunction target, CallInfo &callInfo,
                   types::StackTypeSet *calleeTypes, bool cloneAtCallsite);
 
     MDefinition *patchInlinedReturn(CallInfo &callInfo, MBasicBlock *exit, MBasicBlock *bottom);
@@ -542,6 +552,10 @@ class CallInfo
     types::StackTypeSet *barrier_;
     types::StackTypeSet *types_;
 
+    types::TypeBarrier *argsBarriers_;
+    types::StackTypeSet *thisType_;
+    Vector<types::StackTypeSet *> argsType_;
+
     MDefinition *fun_;
     MDefinition *thisArg_;
     Vector<MDefinition *> args_;
@@ -552,6 +566,9 @@ class CallInfo
     CallInfo(JSContext *cx, bool constructing)
       : barrier_(NULL),
         types_(NULL),
+        argsBarriers_(NULL),
+        thisType_(NULL),
+        argsType_(cx),
         fun_(NULL),
         thisArg_(NULL),
         args_(cx),
@@ -562,6 +579,9 @@ class CallInfo
              types::StackTypeSet *types, types::StackTypeSet *barrier)
       : barrier_(barrier),
         types_(types),
+        argsBarriers_(NULL),
+        thisType_(NULL),
+        argsType_(cx),
         fun_(NULL),
         thisArg_(NULL),
         args_(cx),
@@ -570,6 +590,10 @@ class CallInfo
 
     bool init(CallInfo &callInfo) {
         JS_ASSERT(constructing_ == callInfo.constructing());
+
+        thisType_ = callInfo.thisType_;
+        if (thisType_ && !argsType_.append(callInfo.argsType_.begin(), callInfo.argsType_.end()))
+            return false;
 
         fun_ = callInfo.fun();
         thisArg_ = callInfo.thisArg();
@@ -589,10 +613,8 @@ class CallInfo
         
         if (!args_.reserve(argc))
             return false;
-        for (int32_t i = argc; i > 0; i--) {
-            if (!args_.append(current->peek(-i)))
-                return false;
-        }
+        for (int32_t i = argc; i > 0; i--)
+            args_.infallibleAppend(current->peek(-i));
         current->popn(argc);
 
         
@@ -600,6 +622,33 @@ class CallInfo
         setFun(current->pop());
 
         return true;
+    }
+
+    bool initCallType(TypeOracle *oracle, HandleScript script, jsbytecode *pc) {
+        argsBarriers_ = oracle->callArgsBarrier(script, pc);
+        thisType_ = oracle->getCallTarget(script, argc(), pc);
+        if (!argsType_.reserve(argc()))
+            return false;
+        for (uint32_t i = 1; i <= argc(); i++)
+            argsType_.infallibleAppend(oracle->getCallArg(script, argc(), i, pc));
+        return true;
+    }
+
+    bool initFunApplyArguments(TypeOracle *oracle, HandleScript script, jsbytecode *pc, uint32_t nargs) {
+        argsBarriers_ = oracle->callArgsBarrier(script, pc);
+        thisType_ = oracle->getCallArg(script, 2, 0, pc);
+        if (!argsType_.reserve(nargs))
+            return false;
+        for (uint32_t i = 0; i < nargs; i++)
+            argsType_.infallibleAppend(oracle->parameterTypeSet(script, i));
+        return true;
+    }
+
+    bool hasCallType() {
+        
+        
+        
+        return hasTypeInfo() && thisType_;
     }
 
     void popFormals(MBasicBlock *current) {
@@ -637,9 +686,23 @@ class CallInfo
         return &args_;
     }
 
+    Vector<types::StackTypeSet *> &argvType() {
+        return argsType_;
+    }
+
     MDefinition *getArg(uint32_t i) {
         JS_ASSERT(i < argc());
         return args_[i];
+    }
+
+    types::StackTypeSet *getArgType(uint32_t i) {
+        JS_ASSERT(i < argc() && argc() == argsType_.length());
+        return argsType_[i];
+    }
+
+    void setArg(uint32_t i, MDefinition *def) {
+        JS_ASSERT(i < argc());
+        args_[i] = def;
     }
 
     MDefinition *thisArg() {
@@ -647,8 +710,17 @@ class CallInfo
         return thisArg_;
     }
 
+    types::StackTypeSet *thisType() {
+        JS_ASSERT(thisType_);
+        return thisType_;
+    }
+
     void setThis(MDefinition *thisArg) {
         thisArg_ = thisArg;
+    }
+
+    void setThisType(types::StackTypeSet *thisType) {
+        thisType_ = thisType;
     }
 
     bool constructing() {
@@ -661,6 +733,10 @@ class CallInfo
 
     types::StackTypeSet *barrier() {
         return barrier_;
+    }
+
+    types::TypeBarrier *argsBarrier() {
+        return argsBarriers_;
     }
 
     void wrapArgs(MBasicBlock *current) {
