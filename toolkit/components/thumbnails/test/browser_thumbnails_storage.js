@@ -19,7 +19,6 @@ XPCOMUtils.defineLazyGetter(this, "Sanitizer", function () {
 
 function runTests() {
   yield clearHistory();
-  yield addVisitsAndRepopulateNewTabLinks(URL, next);
   yield createThumbnail();
 
   
@@ -40,7 +39,6 @@ function runTests() {
     yield clearHistory();
   }
 
-  yield addVisitsAndRepopulateNewTabLinks(URL, next);
   yield createThumbnail();
 
   
