@@ -100,9 +100,13 @@ HTMLOptionElement::SetSelected(bool aValue)
   HTMLSelectElement* selectInt = GetSelect();
   if (selectInt) {
     int32_t index = Index();
+    uint32_t mask = HTMLSelectElement::SET_DISABLED | HTMLSelectElement::NOTIFY;
+    if (aValue) {
+      mask |= HTMLSelectElement::IS_SELECTED;
+    }
+
     
-    selectInt->SetOptionsSelectedByIndex(index, index, aValue,
-                                         false, true, true);
+    selectInt->SetOptionsSelectedByIndex(index, index, mask);
   } else {
     SetSelectedInternal(aValue, true);
   }
@@ -202,16 +206,23 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
   
   NS_ASSERTION(!mSelectedChanged, "Shouldn't be here");
 
-  bool newSelected = (aValue != nullptr);
   bool inSetDefaultSelected = mIsInSetDefaultSelected;
   mIsInSetDefaultSelected = true;
 
   int32_t index = Index();
+  uint32_t mask = HTMLSelectElement::SET_DISABLED;
+  if (aValue) {
+    mask |= HTMLSelectElement::IS_SELECTED;
+  }
+
+  if (aNotify) {
+    mask |= HTMLSelectElement::NOTIFY;
+  }
+
   
   
   
-  selectInt->SetOptionsSelectedByIndex(index, index, newSelected,
-                                       false, true, aNotify);
+  selectInt->SetOptionsSelectedByIndex(index, index, mask);
 
   
   

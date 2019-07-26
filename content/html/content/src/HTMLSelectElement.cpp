@@ -246,7 +246,8 @@ HTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
       if (option && option->Selected()) {
         
         if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
-          SetOptionsSelectedByIndex(i, i, true, true, true, true);
+          uint32_t mask = IS_SELECTED | CLEAR_ALL | SET_DISABLED | NOTIFY;
+          SetOptionsSelectedByIndex(i, i, mask);
         }
 
         
@@ -813,8 +814,12 @@ nsresult
 HTMLSelectElement::SetSelectedIndexInternal(int32_t aIndex, bool aNotify)
 {
   int32_t oldSelectedIndex = mSelectedIndex;
+  uint32_t mask = IS_SELECTED | CLEAR_ALL | SET_DISABLED;
+  if (aNotify) {
+    mask |= NOTIFY;
+  }
 
-  SetOptionsSelectedByIndex(aIndex, aIndex, true, true, true, aNotify);
+  SetOptionsSelectedByIndex(aIndex, aIndex, mask);
 
   nsresult rv = NS_OK;
   nsISelectControlFrame* selectFrame = GetSelectFrame();
@@ -924,18 +929,15 @@ HTMLSelectElement::FindSelectedIndex(int32_t aStartIndex, bool aNotify)
 bool
 HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
                                              int32_t aEndIndex,
-                                             bool aIsSelected,
-                                             bool aClearAll,
-                                             bool aSetDisabled,
-                                             bool aNotify)
+                                             uint32_t aOptionsMask)
 {
 #if 0
   printf("SetOption(%d-%d, %c, ClearAll=%c)\n", aStartIndex, aEndIndex,
-                                       (aIsSelected ? 'Y' : 'N'),
-                                       (aClearAll ? 'Y' : 'N'));
+                                      (aOptionsMask & IS_SELECTED ? 'Y' : 'N'),
+                                      (aOptionsMask & CLEAR_ALL ? 'Y' : 'N'));
 #endif
   
-  if (!aSetDisabled && IsDisabled()) {
+  if (!(aOptionsMask & SET_DISABLED) && IsDisabled()) {
     return false;
   }
 
@@ -957,7 +959,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
   bool didGetFrame = false;
   nsWeakFrame weakSelectFrame;
 
-  if (aIsSelected) {
+  if (aOptionsMask & IS_SELECTED) {
     
     if (aStartIndex < 0 || SafeCast<uint32_t>(aStartIndex) >= numItems ||
         aEndIndex < 0 || SafeCast<uint32_t>(aEndIndex) >= numItems) {
@@ -974,7 +976,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
     
     
     
-    bool allDisabled = !aSetDisabled;
+    bool allDisabled = !(aOptionsMask & SET_DISABLED);
 
     
     
@@ -996,7 +998,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
         nsRefPtr<HTMLOptionElement> option = Item(optIndex);
 
         
-        if (!aSetDisabled) {
+        if (!(aOptionsMask & SET_DISABLED)) {
           if (option && IsOptionDisabled(option)) {
             continue;
           }
@@ -1013,7 +1015,8 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
           weakSelectFrame = do_QueryFrame(selectFrame);
           didGetFrame = true;
 
-          OnOptionSelected(selectFrame, optIndex, true, true, aNotify);
+          OnOptionSelected(selectFrame, optIndex, true, true,
+                           aOptionsMask & NOTIFY);
           optionsSelected = true;
         }
       }
@@ -1022,7 +1025,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
     
     
     if (((!isMultiple && optionsSelected)
-       || (aClearAll && !allDisabled)
+       || ((aOptionsMask & CLEAR_ALL) && !allDisabled)
        || aStartIndex == -1)
        && previousSelectedIndex != -1) {
       for (uint32_t optIndex = SafeCast<uint32_t>(previousSelectedIndex);
@@ -1044,7 +1047,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
             }
 
             OnOptionSelected(selectFrame, optIndex, false, true,
-                             aNotify);
+                             aOptionsMask & NOTIFY);
             optionsDeselected = true;
 
             
@@ -1060,7 +1063,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
     
     for (int32_t optIndex = aStartIndex; optIndex <= aEndIndex; optIndex++) {
       HTMLOptionElement* option = Item(optIndex);
-      if (!aSetDisabled && IsOptionDisabled(option)) {
+      if (!(aOptionsMask & SET_DISABLED) && IsOptionDisabled(option)) {
         continue;
       }
 
@@ -1076,7 +1079,8 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
           didGetFrame = true;
         }
 
-        OnOptionSelected(selectFrame, optIndex, false, true, aNotify);
+        OnOptionSelected(selectFrame, optIndex, false, true,
+                         aOptionsMask & NOTIFY);
         optionsDeselected = true;
       }
     }
@@ -1084,7 +1088,8 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
 
   
   if (optionsDeselected && aStartIndex != -1) {
-    optionsSelected = CheckSelectSomething(aNotify) || optionsSelected;
+    optionsSelected =
+      CheckSelectSomething(aOptionsMask & NOTIFY) || optionsSelected;
   }
 
   
@@ -1612,9 +1617,10 @@ HTMLSelectElement::RestoreStateTo(SelectState* aNewSelected)
   }
 
   uint32_t len = Length();
+  uint32_t mask = IS_SELECTED | CLEAR_ALL | SET_DISABLED | NOTIFY;
 
   
-  SetOptionsSelectedByIndex(-1, -1, true, true, true, true);
+  SetOptionsSelectedByIndex(-1, -1, mask);
 
   
   for (uint32_t i = 0; i < len; i++) {
@@ -1623,7 +1629,7 @@ HTMLSelectElement::RestoreStateTo(SelectState* aNewSelected)
       nsAutoString value;
       nsresult rv = option->GetValue(value);
       if (NS_SUCCEEDED(rv) && aNewSelected->ContainsOption(i, value)) {
-        SetOptionsSelectedByIndex(i, i, true, false, true, true);
+        SetOptionsSelectedByIndex(i, i, IS_SELECTED | SET_DISABLED | NOTIFY);
       }
     }
   }
@@ -1645,11 +1651,14 @@ HTMLSelectElement::Reset()
       
       
       
-      bool selected = option->DefaultSelected();
-      SetOptionsSelectedByIndex(i, i, selected, false, true, true);
-      if (selected) {
+
+      uint32_t mask = SET_DISABLED | NOTIFY;
+      if (option->DefaultSelected()) {
+        mask |= IS_SELECTED;
         numSelected++;
       }
+
+      SetOptionsSelectedByIndex(i, i, mask);
     }
   }
 

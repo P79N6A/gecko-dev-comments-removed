@@ -110,6 +110,24 @@ class HTMLSelectElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
                                     public nsIConstraintValidation
 {
 public:
+  
+
+
+
+
+
+
+
+
+
+
+  enum OptionType {
+    IS_SELECTED   = 1 << 0,
+    CLEAR_ALL     = 1 << 1,
+    SET_DISABLED  = 1 << 2,
+    NOTIFY        = 1 << 3
+  };
+
   using nsIConstraintValidation::GetValidationMessage;
 
   HTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -311,16 +329,9 @@ public:
 
 
 
-
-
-
-
   bool SetOptionsSelectedByIndex(int32_t aStartIndex,
                                  int32_t aEndIndex,
-                                 bool aIsSelected,
-                                 bool aClearAll,
-                                 bool aSetDisabled,
-                                 bool aNotify);
+                                 uint32_t aOptionsMask);
 
   
 
@@ -641,4 +652,4 @@ protected:
 } 
 } 
 
-#endif 
+#endif
