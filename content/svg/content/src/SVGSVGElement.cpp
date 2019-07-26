@@ -429,15 +429,10 @@ SVGSVGElement::PauseAnimations()
 void
 SVGSVGElement::PauseAnimations(ErrorResult& rv)
 {
-  if (NS_SMILEnabled()) {
-    if (mTimedDocumentRoot) {
-      mTimedDocumentRoot->Pause(nsSMILTimeContainer::PAUSE_SCRIPT);
-    }
-    
-    return;
+  if (mTimedDocumentRoot) {
+    mTimedDocumentRoot->Pause(nsSMILTimeContainer::PAUSE_SCRIPT);
   }
-  NS_NOTYETIMPLEMENTED("SVGSVGElement::PauseAnimations");
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+  
 }
 
 
@@ -452,15 +447,10 @@ SVGSVGElement::UnpauseAnimations()
 void
 SVGSVGElement::UnpauseAnimations(ErrorResult& rv)
 {
-  if (NS_SMILEnabled()) {
-    if (mTimedDocumentRoot) {
-      mTimedDocumentRoot->Resume(nsSMILTimeContainer::PAUSE_SCRIPT);
-    }
-    
-    return;
+  if (mTimedDocumentRoot) {
+    mTimedDocumentRoot->Resume(nsSMILTimeContainer::PAUSE_SCRIPT);
   }
-  NS_NOTYETIMPLEMENTED("SVGSVGElement::UnpauseAnimations");
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+  
 }
 
 
@@ -475,13 +465,8 @@ SVGSVGElement::AnimationsPaused(bool *_retval)
 bool
 SVGSVGElement::AnimationsPaused(ErrorResult& rv)
 {
-  if (NS_SMILEnabled()) {
-    nsSMILTimeContainer* root = GetTimedDocumentRoot();
-    return root && root->IsPausedByType(nsSMILTimeContainer::PAUSE_SCRIPT);
-  }
-  NS_NOTYETIMPLEMENTED("SVGSVGElement::AnimationsPaused");
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return false;
+  nsSMILTimeContainer* root = GetTimedDocumentRoot();
+  return root && root->IsPausedByType(nsSMILTimeContainer::PAUSE_SCRIPT);
 }
 
 
@@ -496,18 +481,13 @@ SVGSVGElement::GetCurrentTime(float *_retval)
 float
 SVGSVGElement::GetCurrentTime(ErrorResult& rv)
 {
-  if (NS_SMILEnabled()) {
-    nsSMILTimeContainer* root = GetTimedDocumentRoot();
-    if (root) {
-      double fCurrentTimeMs = double(root->GetCurrentTime());
-      return (float)(fCurrentTimeMs / PR_MSEC_PER_SEC);
-    } else {
-      return 0.f;
-    }
+  nsSMILTimeContainer* root = GetTimedDocumentRoot();
+  if (root) {
+    double fCurrentTimeMs = double(root->GetCurrentTime());
+    return (float)(fCurrentTimeMs / PR_MSEC_PER_SEC);
+  } else {
+    return 0.f;
   }
-  NS_NOTYETIMPLEMENTED("SVGSVGElement::GetCurrentTime");
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return 0.f;
 }
 
 
@@ -523,28 +503,23 @@ SVGSVGElement::SetCurrentTime(float seconds)
 void
 SVGSVGElement::SetCurrentTime(float seconds, ErrorResult &rv)
 {
-  if (NS_SMILEnabled()) {
-    if (mTimedDocumentRoot) {
-      
-      FlushAnimations();
-      double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
-      
-      
-      nsSMILTime lMilliseconds = int64_t(NS_round(fMilliseconds));
-      mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
-      AnimationNeedsResample();
-      
-      
-      
-      
-      
-      FlushAnimations();
-    } 
-      
-    return;
+  if (mTimedDocumentRoot) {
+    
+    FlushAnimations();
+    double fMilliseconds = double(seconds) * PR_MSEC_PER_SEC;
+    
+    
+    nsSMILTime lMilliseconds = int64_t(NS_round(fMilliseconds));
+    mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
+    AnimationNeedsResample();
+    
+    
+    
+    
+    
+    FlushAnimations();
   }
-  NS_NOTYETIMPLEMENTED("SVGSVGElement::SetCurrentTime");
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+  
 }
 
 
