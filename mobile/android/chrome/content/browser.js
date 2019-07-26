@@ -3180,18 +3180,6 @@ Tab.prototype = {
     this.shouldShowPluginDoorhanger = true;
     this.clickToPlayPluginsActivated = false;
 
-    
-    
-    if (WebappsUI.isMarketplace(aLocationURI)) {
-      
-      
-      HelperApps.showDoorhanger(aLocationURI, function() {
-        WebappsUI.installAndLaunchMarketplace(aLocationURI.spec);
-        if (aRequest)
-          aRequest.cancel(Cr.NS_OK);
-      });
-    }
-
     let message = {
       gecko: {
         type: "Content:LocationChange",
@@ -6554,10 +6542,6 @@ var WebappsUI = {
     let manifest = new ManifestHelper(aData.app.manifest, aData.app.origin);
     let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
-
-    
-    if (aData.app.origin == this.MARKETPLACE.URI.prePath)
-      showPrompt = false;
 
     if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name)) {
       
