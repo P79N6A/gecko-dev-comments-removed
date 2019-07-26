@@ -95,6 +95,15 @@
        
 
 
+       if (OS.Constants.Sys.Name == "NetBSD") {
+         Type.stat_size_t = Type.off_t.withName("stat_size_t");
+       } else {
+         Type.stat_size_t = Type.size_t.withName("stat_size_t");
+       }
+
+       
+
+
        Type.time_t =
          Type.intn_t(Const.OSFILE_SIZEOF_TIME_T).withName("time_t");
 
@@ -165,7 +174,7 @@
          }
 
          stat.add_field_at(Const.OSFILE_OFFSETOF_STAT_ST_SIZE,
-                        "st_size", Type.size_t.implementation);
+                        "st_size", Type.stat_size_t.implementation);
          Type.stat = stat.getType();
        }
 
@@ -398,9 +407,15 @@
                     Type.int,
                       Type.int);
 
-       declareLazyFFI(SysFile,  "opendir", libc, "opendir", ctypes.default_abi,
+       if (OS.Constants.Sys.Name == "NetBSD") {
+          declareLazyFFI(SysFile,  "opendir", libc, "__opendir30", ctypes.default_abi,
+                    Type.null_or_DIR_ptr,
+                      Type.path);
+       } else {
+          declareLazyFFI(SysFile,  "opendir", libc, "opendir", ctypes.default_abi,
                      Type.null_or_DIR_ptr,
                        Type.path);
+       }
 
        declareLazyFFI(SysFile,  "pread", libc, "pread", ctypes.default_abi,
                      Type.negativeone_or_ssize_t,
@@ -436,6 +451,10 @@
          
          declareLazyFFI(SysFile,  "readdir", libc, "readdir$INODE64", ctypes.default_abi,
                      Type.null_or_dirent_ptr,
+                         Type.DIR.in_ptr); 
+       } else if (OS.Constants.Sys.Name == "NetBSD") {
+         declareLazyFFI(SysFile,  "readdir", libc, "__readdir30", ctypes.default_abi,
+                      Type.null_or_dirent_ptr,
                          Type.DIR.in_ptr); 
        } else {
          declareLazyFFI(SysFile,  "readdir", libc, "readdir", ctypes.default_abi,
@@ -547,6 +566,23 @@
          SysFile.fstat = function fstat(fd, buf) {
            return Stat.fxstat(ver, fd, buf);
          };
+       } else if (OS.Constants.Sys.Name == "NetBSD") {
+         
+         declareLazyFFI(SysFile,  "stat", libc, "__stat50", ctypes.default_abi,
+                       Type.negativeone_or_nothing,
+                         Type.path,
+                          Type.stat.out_ptr
+                     );
+         declareLazyFFI(SysFile,  "lstat", libc, "__lstat50", ctypes.default_abi,
+                       Type.negativeone_or_nothing,
+                         Type.path,
+                          Type.stat.out_ptr
+                     );
+         declareLazyFFI(SysFile,  "fstat", libc, "__fstat50", ctypes.default_abi,
+                       Type.negativeone_or_nothing,
+                           Type.fd,
+                          Type.stat.out_ptr
+                     );
        } else {
          
          declareLazyFFI(SysFile,  "stat", libc, "stat", ctypes.default_abi,
@@ -589,16 +625,32 @@
          return result;
        };
 
-       declareLazyFFI(SysFile, "utimes", libc, "utimes", ctypes.default_abi,
+       if (OS.Constants.Sys.Name == "NetBSD") {
+           declareLazyFFI(SysFile, "utimes", libc, "__utimes50", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                              Type.path,
                        Type.timevals.out_ptr
                       );
-       declareLazyFFI(SysFile, "futimes", libc, "futimes", ctypes.default_abi,
+       } else {
+           declareLazyFFI(SysFile, "utimes", libc, "utimes", ctypes.default_abi,
+                           Type.negativeone_or_nothing,
+                             Type.path,
+                       Type.timevals.out_ptr
+                      );
+       }
+       if (OS.Constants.Sys.Name == "NetBSD") {
+           declareLazyFFI(SysFile, "futimes", libc, "__futimes50", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                                Type.fd,
                        Type.timevals.out_ptr
                       );
+       } else {
+           declareLazyFFI(SysFile, "futimes", libc, "futimes", ctypes.default_abi,
+                           Type.negativeone_or_nothing,
+                               Type.fd,
+                       Type.timevals.out_ptr
+                      );
+       }
      };
 
      exports.OS.Unix = {
