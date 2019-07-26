@@ -172,11 +172,6 @@ public:
   virtual void MaybeUpdateTouchState() {}
   virtual void UpdateTouchState() {}
 
-  
-  nsIDOMDocument* GetExtantDocument() const
-  {
-    return mDocument;
-  }
   nsIDocument* GetExtantDoc() const
   {
     return mDoc;

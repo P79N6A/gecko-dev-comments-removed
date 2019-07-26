@@ -641,8 +641,7 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
         }
     }
 
-    mDocumentOnloadBlockedOn =
-        do_QueryInterface(mOriginalInnerWindow->GetExtantDocument());
+    mDocumentOnloadBlockedOn = mOriginalInnerWindow->GetExtantDoc();
     if (mDocumentOnloadBlockedOn) {
         
         
@@ -667,7 +666,7 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
     if (mIsAsync) {
         
         method = &nsJSChannel::EvaluateScript;
-    } else {   
+    } else {
         EvaluateScript();
         if (mOpenedStreamChannel) {
             
