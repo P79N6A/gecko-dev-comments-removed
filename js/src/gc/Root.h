@@ -102,17 +102,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 namespace js {
 
 class Module;
@@ -135,16 +124,10 @@ namespace JS {
 
 template <typename T> class Rooted;
 
-class AutoAssertNoGC;
-
 template <typename T> class Handle;
 template <typename T> class MutableHandle;
 
-JS_FRIEND_API(void) EnterAssertNoGCScope();
-JS_FRIEND_API(void) LeaveAssertNoGCScope();
 
-
-JS_FRIEND_API(bool) InNoGCScope();
 JS_FRIEND_API(bool) isGCEnabled();
 
 #if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
@@ -782,39 +765,6 @@ MutableHandle<T>::MutableHandle(Rooted<T> *root)
     ptr = root->address();
 }
 
-
-
-
-
-
-class AutoAssertNoGC
-{
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-public:
-    AutoAssertNoGC(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-#ifdef DEBUG
-        EnterAssertNoGCScope();
-#endif
-    }
-
-    ~AutoAssertNoGC() {
-#ifdef DEBUG
-        LeaveAssertNoGCScope();
-#endif
-    }
-};
-
-
-
-
-JS_ALWAYS_INLINE void
-AssertCanGC()
-{
-    JS_ASSERT_IF(isGCEnabled(), !InNoGCScope());
-}
-
 JS_FRIEND_API(bool) NeedRelaxedRootChecks();
 
 } 
@@ -827,7 +777,6 @@ namespace js {
 
 inline void MaybeCheckStackRoots(JSContext *cx, bool relax = true)
 {
-    JS::AssertCanGC();
 #if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
     if (relax && NeedRelaxedRootChecks())
         return;
