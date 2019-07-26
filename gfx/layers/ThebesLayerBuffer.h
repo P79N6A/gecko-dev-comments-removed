@@ -190,6 +190,10 @@ protected:
     mBufferProvider = aProvider;
     if (!mBufferProvider) {
       mBuffer = nullptr;
+    } else {
+      
+      
+      MOZ_ASSERT(!mBuffer);
     }
   }
 
