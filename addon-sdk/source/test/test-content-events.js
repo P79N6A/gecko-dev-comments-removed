@@ -44,13 +44,17 @@ exports["test multiple tabs"] = function(assert, done) {
   on(events, "data", function({type, target, timeStamp}) {
     
     
+    
+    
     if (target.URL !== "about:blank" &&
+        target.URL !== "about:home" &&
+        !target.URL.match(/^https?:\/\//i) &&
         type !== "chrome-document-global-created" &&
         type !== "content-document-global-created")
       actual.push(type + " -> " + target.URL)
   });
 
-  let window =  getMostRecentBrowserWindow();
+  let window = getMostRecentBrowserWindow();
   let firstTab = open("data:text/html,first-tab", window);
 
   when("pageshow", firstTab).
