@@ -27,14 +27,14 @@ using namespace js;
 using namespace js::gc;
 
 static inline HeapSlot &
-GetCall(JSObject *proxy)
+GetCall(UnrootedObject proxy)
 {
     JS_ASSERT(IsFunctionProxy(proxy));
     return proxy->getSlotRef(JSSLOT_PROXY_CALL);
 }
 
 static inline Value
-GetConstruct(JSObject *proxy)
+GetConstruct(UnrootedObject proxy)
 {
     if (proxy->slotSpan() <= JSSLOT_PROXY_CONSTRUCT)
         return UndefinedValue();
@@ -42,7 +42,7 @@ GetConstruct(JSObject *proxy)
 }
 
 static inline HeapSlot &
-GetFunctionProxyConstruct(JSObject *proxy)
+GetFunctionProxyConstruct(UnrootedObject proxy)
 {
     JS_ASSERT(IsFunctionProxy(proxy));
     JS_ASSERT(proxy->slotSpan() > JSSLOT_PROXY_CONSTRUCT);
@@ -60,8 +60,10 @@ BaseProxyHandler::~BaseProxyHandler()
 }
 
 bool
-BaseProxyHandler::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
+BaseProxyHandler::has(JSContext *cx, JSObject *proxy_, jsid id_, bool *bp)
 {
+    RootedObject proxy(cx, proxy_);
+    RootedId id(cx, id_);
     AutoPropertyDescriptorRooter desc(cx);
     if (!getPropertyDescriptor(cx, proxy, id, &desc, 0))
         return false;
@@ -70,8 +72,10 @@ BaseProxyHandler::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
 }
 
 bool
-BaseProxyHandler::hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
+BaseProxyHandler::hasOwn(JSContext *cx, JSObject *proxy_, jsid id_, bool *bp)
 {
+    RootedObject proxy(cx, proxy_);
+    RootedId id(cx, id_);
     AutoPropertyDescriptorRooter desc(cx);
     if (!getOwnPropertyDescriptor(cx, proxy, id, &desc, 0))
         return false;
@@ -120,7 +124,7 @@ BaseProxyHandler::getElementIfPresent(JSContext *cx, JSObject *proxy_, JSObject 
     RootedObject proxy(cx, proxy_);
     RootedObject receiver(cx, receiver_);
 
-    RootedId id(cx);
+    jsid id;
     if (!IndexToId(cx, index, &id))
         return false;
 
@@ -263,17 +267,19 @@ BaseProxyHandler::call(JSContext *cx, JSObject *proxy, unsigned argc,
                        Value *vp)
 {
     AutoValueRooter rval(cx);
-    JSBool ok = Invoke(cx, vp[1], GetCall(proxy), argc, JS_ARGV(cx, vp), rval.addr());
+    RootedValue call(cx, GetCall(proxy));
+    JSBool ok = Invoke(cx, vp[1], call, argc, JS_ARGV(cx, vp), rval.addr());
     if (ok)
         JS_SET_RVAL(cx, vp, rval.value());
     return ok;
 }
 
 bool
-BaseProxyHandler::construct(JSContext *cx, JSObject *proxy, unsigned argc,
+BaseProxyHandler::construct(JSContext *cx, JSObject *proxy_, unsigned argc,
                             Value *argv, Value *rval)
 {
-    Value fval = GetConstruct(proxy);
+    RootedObject proxy(cx, proxy_);
+    RootedValue fval(cx, GetConstruct(proxy_));
     if (fval.isUndefined())
         fval = GetCall(proxy);
     return InvokeConstructor(cx, fval, argc, argv, rval);
@@ -702,7 +708,7 @@ ArrayToIdVector(JSContext *cx, const Value &array, AutoIdVector &props)
             return false;
         if (!JSObject::getElement(cx, obj, obj, n, &v))
             return false;
-        RootedId id(cx);
+        jsid id;
         if (!ValueToId(cx, v, &id))
             return false;
         if (!props.append(id))
@@ -818,7 +824,7 @@ ScriptedIndirectProxyHandler::defineProperty(JSContext *cx, JSObject *proxy, jsi
     RootedValue fval(cx), value(cx);
     RootedId id(cx, id_);
     return GetFundamentalTrap(cx, handler, cx->names().defineProperty, &fval) &&
-           NewPropertyDescriptorObject(cx, desc, &value) &&
+           NewPropertyDescriptorObject(cx, desc, value.address()) &&
            Trap2(cx, handler, fval, id, value, value.address());
 }
 
@@ -1286,7 +1292,7 @@ TrapGetOwnProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandle
         AutoPropertyDescriptorRooter desc(cx);
         if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
             return false;
-        return NewPropertyDescriptorObject(cx, &desc, rval);
+        return NewPropertyDescriptorObject(cx, &desc, rval.address());
     }
 
     
@@ -1484,7 +1490,7 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 
         
         RootedId id(cx);
-        if (!ValueToId(cx, v, &id))
+        if (!ValueToId(cx, v, id.address()))
             return false;
 
         
@@ -1646,7 +1652,7 @@ ScriptedDirectProxyHandler::getOwnPropertyNames(JSContext *cx, JSObject *proxy_,
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::getOwnPropertyNames(cx, proxy_, props);
+        return DirectProxyHandler::getOwnPropertyNames(cx, proxy, props);
 
     
     Value argv[] = {
@@ -1687,7 +1693,7 @@ ScriptedDirectProxyHandler::delete_(JSContext *cx, JSObject *proxy_, jsid id_, b
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::delete_(cx, proxy_, id_, bp);
+        return DirectProxyHandler::delete_(cx, proxy, id, bp);
 
     
     RootedValue value(cx);
@@ -1741,7 +1747,7 @@ ScriptedDirectProxyHandler::enumerate(JSContext *cx, JSObject *proxy_, AutoIdVec
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::enumerate(cx, proxy_, props);
+        return DirectProxyHandler::enumerate(cx, proxy, props);
 
     
     Value argv[] = {
@@ -1787,7 +1793,7 @@ ScriptedDirectProxyHandler::has(JSContext *cx, JSObject *proxy_, jsid id_, bool 
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::has(cx, proxy_, id_, bp);
+        return DirectProxyHandler::has(cx, proxy, id, bp);
 
     
     RootedValue value(cx);
@@ -1850,7 +1856,7 @@ ScriptedDirectProxyHandler::hasOwn(JSContext *cx, JSObject *proxy_, jsid id_, bo
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::hasOwn(cx, proxy_, id_, bp);
+        return DirectProxyHandler::hasOwn(cx, proxy, id, bp);
 
     
     RootedValue value(cx);
@@ -1923,7 +1929,7 @@ ScriptedDirectProxyHandler::get(JSContext *cx, JSObject *proxy_, JSObject *recei
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::get(cx, proxy_, receiver_, id_, vp);
+        return DirectProxyHandler::get(cx, proxy, receiver, id, vp);
 
     
     RootedValue value(cx);
@@ -1996,7 +2002,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, JSObject *proxy_, JSObject *recei
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::set(cx, proxy_, receiver_, id_, strict, vp);
+        return DirectProxyHandler::set(cx, proxy, receiver, id, strict, vp);
 
     
     RootedValue value(cx);
@@ -2066,7 +2072,7 @@ ScriptedDirectProxyHandler::keys(JSContext *cx, JSObject *proxy_, AutoIdVector &
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::keys(cx, proxy_, props);
+        return DirectProxyHandler::keys(cx, proxy, props);
 
     
     Value argv[] = {
@@ -2126,7 +2132,7 @@ ScriptedDirectProxyHandler::call(JSContext *cx, JSObject *proxy_, unsigned argc,
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::call(cx, proxy_, argc, vp);
+        return DirectProxyHandler::call(cx, proxy, argc, vp);
 
     
     Value argv[] = {
@@ -2167,7 +2173,7 @@ ScriptedDirectProxyHandler::construct(JSContext *cx, JSObject *proxy_, unsigned 
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::construct(cx, proxy_, argc, argv, rval);
+        return DirectProxyHandler::construct(cx, proxy, argc, argv, rval);
 
     
     Value constructArgv[] = {
@@ -2216,14 +2222,8 @@ Proxy::getPropertyDescriptor(JSContext *cx, JSObject *proxy_, unsigned flags, js
     JS_CHECK_RECURSION(cx, return false);
     RootedObject proxy(cx, proxy_);
     AutoPropertyDescriptorRooter desc(cx);
-    if (!Proxy::getPropertyDescriptor(cx, proxy, id, &desc, flags))
-        return false;
-
-    RootedValue value(cx);
-    if (!NewPropertyDescriptorObject(cx, &desc, &value))
-        return false;
-    *vp = value;
-    return true;
+    return Proxy::getPropertyDescriptor(cx, proxy, id, &desc, flags) &&
+           NewPropertyDescriptorObject(cx, &desc, vp);
 }
 
 bool
@@ -2242,14 +2242,8 @@ Proxy::getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy_, unsigned flags,
     JS_CHECK_RECURSION(cx, return false);
     RootedObject proxy(cx, proxy_);
     AutoPropertyDescriptorRooter desc(cx);
-    if (!Proxy::getOwnPropertyDescriptor(cx, proxy, id, &desc, flags))
-        return false;
-
-    RootedValue value(cx);
-    if (!NewPropertyDescriptorObject(cx, &desc, &value))
-        return false;
-    *vp = value;
-    return true;
+    return Proxy::getOwnPropertyDescriptor(cx, proxy, id, &desc, flags) &&
+           NewPropertyDescriptorObject(cx, &desc, vp);
 }
 
 bool
@@ -2376,7 +2370,7 @@ Proxy::getElementIfPresent(JSContext *cx, HandleObject proxy, HandleObject recei
     }
 
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
 
     bool hasOwn;
@@ -2567,7 +2561,7 @@ proxy_LookupElement(JSContext *cx, HandleObject obj, uint32_t index,
                     MutableHandleObject objp, MutableHandleShape propp)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_LookupGeneric(cx, obj, id, objp, propp);
 }
@@ -2607,7 +2601,7 @@ proxy_DefineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue
                     PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_DefineGeneric(cx, obj, id, value, getter, setter, attrs);
 }
@@ -2640,7 +2634,7 @@ proxy_GetElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_
                  MutableHandleValue vp)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_GetGeneric(cx, obj, receiver, id, vp);
 }
@@ -2680,7 +2674,7 @@ proxy_SetElement(JSContext *cx, HandleObject obj, uint32_t index,
                  MutableHandleValue vp, JSBool strict)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_SetGeneric(cx, obj, id, vp, strict);
 }
@@ -2714,7 +2708,7 @@ static JSBool
 proxy_GetElementAttributes(JSContext *cx, HandleObject obj, uint32_t index, unsigned *attrsp)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_GetGenericAttributes(cx, obj, id, attrsp);
 }
@@ -2748,7 +2742,7 @@ static JSBool
 proxy_SetElementAttributes(JSContext *cx, HandleObject obj, uint32_t index, unsigned *attrsp)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_SetGenericAttributes(cx, obj, id, attrsp);
 }
@@ -2785,7 +2779,7 @@ proxy_DeleteElement(JSContext *cx, HandleObject obj, uint32_t index,
                     MutableHandleValue rval, JSBool strict)
 {
     RootedId id(cx);
-    if (!IndexToId(cx, index, &id))
+    if (!IndexToId(cx, index, id.address()))
         return false;
     return proxy_DeleteGeneric(cx, obj, id, rval, strict);
 }
@@ -3003,7 +2997,7 @@ JS_FRIEND_DATA(Class) js::OuterWindowProxyClass = {
 static JSBool
 proxy_Call(JSContext *cx, unsigned argc, Value *vp)
 {
-    JSObject *proxy = &JS_CALLEE(cx, vp).toObject();
+    RootedObject proxy(cx, &JS_CALLEE(cx, vp).toObject());
     JS_ASSERT(proxy->isProxy());
     return Proxy::call(cx, proxy, argc, vp);
 }
@@ -3011,10 +3005,9 @@ proxy_Call(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 proxy_Construct(JSContext *cx, unsigned argc, Value *vp)
 {
-    JSObject *proxy = &JS_CALLEE(cx, vp).toObject();
+    RootedObject proxy(cx, &JS_CALLEE(cx, vp).toObject());
     JS_ASSERT(proxy->isProxy());
-    bool ok = Proxy::construct(cx, proxy, argc, JS_ARGV(cx, vp), vp);
-    return ok;
+    return Proxy::construct(cx, proxy, argc, JS_ARGV(cx, vp), vp);
 }
 
 JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
