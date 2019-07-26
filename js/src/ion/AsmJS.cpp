@@ -1559,7 +1559,7 @@ class MOZ_STACK_CLASS ModuleCompiler
         
         
         uint32_t bodyEnd = parser_.tokenStream.currentToken().pos.end;
-        module_->initPostLinkFailureInfo(parser_.ss, bodyStart_, bodyEnd);
+        module_->initSourceDesc(parser_.ss, bodyStart_, bodyEnd);
 
         
         masm_.finish();
