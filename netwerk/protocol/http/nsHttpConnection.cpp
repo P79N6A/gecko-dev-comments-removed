@@ -409,36 +409,6 @@ nsHttpConnection::SetupNPN(uint32_t caps)
     }
 }
 
-void
-nsHttpConnection::HandleAlternateProtocol(nsHttpResponseHead *responseHead)
-{
-    
-    
-    
-    
-
-    if (!gHttpHandler->IsSpdyEnabled() || mUsingSpdyVersion)
-        return;
-
-    const char *val = responseHead->PeekHeader(nsHttp::Alternate_Protocol);
-    if (!val)
-        return;
-
-    
-    
-    
-    
-
-    uint8_t alternateProtocolVersion;
-    if (NS_SUCCEEDED(gHttpHandler->SpdyInfo()->
-                     GetAlternateProtocolVersionIndex(val,
-                                                      &alternateProtocolVersion))) {
-         LOG(("Connection %p Transaction %p found Alternate-Protocol "
-             "header %s", this, mTransaction.get(), val));
-        gHttpHandler->ConnMgr()->ReportSpdyAlternateProtocol(this);
-    }
-}
-
 nsresult
 nsHttpConnection::AddTransaction(nsAHttpTransaction *httpTransaction,
                                  int32_t priority)
@@ -843,9 +813,6 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
 
     if (!foundKeepAliveMax && mRemainingConnectionUses && !mUsingSpdyVersion)
         --mRemainingConnectionUses;
-
-    if (!mProxyConnectStream)
-        HandleAlternateProtocol(responseHead);
 
     
     

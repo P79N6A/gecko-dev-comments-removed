@@ -178,10 +178,6 @@ private:
     void     SetupNPN(uint32_t caps);
 
     
-    
-    void     HandleAlternateProtocol(nsHttpResponseHead *);
-
-    
     void     StartSpdy(uint8_t versionLevel);
 
     

@@ -67,11 +67,6 @@ public:
   
   nsresult GetNPNVersionIndex(const nsACString &npnString, uint8_t *result);
 
-  
-  
-  nsresult GetAlternateProtocolVersionIndex(const char *val,
-                                            uint8_t *result);
-
   enum {
     SPDY_VERSION_2 = 2,
     SPDY_VERSION_3 = 3
@@ -79,7 +74,6 @@ public:
 
   uint8_t   Version[2];
   nsCString VersionString[2];
-  nsCString AlternateProtocolString[2];
 };
 
 }} 

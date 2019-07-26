@@ -136,11 +136,6 @@ public:
     nsresult UpdateRequestTokenBucket(mozilla::net::EventTokenBucket *aBucket);
 
     
-    bool GetSpdyAlternateProtocol(nsACString &key);
-    void ReportSpdyAlternateProtocol(nsHttpConnection *);
-    void RemoveSpdyAlternateProtocol(nsACString &key);
-
-    
 
     const static uint32_t kPipelineInfoTypeMask = 0xffff0000;
     const static uint32_t kPipelineInfoIDMask   = ~kPipelineInfoTypeMask;
@@ -650,12 +645,6 @@ private:
     
     
     nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
-
-    
-    
-    nsTHashtable<nsCStringHashKey> mAlternateProtocolHash;
-    static PLDHashOperator TrimAlternateProtocolHash(nsCStringHashKey *entry,
-                                                     void *closure);
 
     static PLDHashOperator ReadConnectionEntry(const nsACString &key,
                                                nsAutoPtr<nsConnectionEntry> &ent,

@@ -380,18 +380,6 @@ nsHttpChannel::Connect()
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
-
-        
-        if (gHttpHandler->IsSpdyEnabled() && mAllowSpdy) {
-            nsAutoCString hostPort;
-
-            if (NS_SUCCEEDED(mURI->GetHostPort(hostPort)) &&
-                gHttpHandler->ConnMgr()->GetSpdyAlternateProtocol(hostPort)) {
-                LOG(("nsHttpChannel::Connect() Alternate-Protocol found\n"));
-                return AsyncCall(
-                    &nsHttpChannel::HandleAsyncRedirectChannelToHttps);
-            }
-        }
     }
 
     
@@ -4882,16 +4870,6 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         
         
         mSecurityInfo = mTransaction->SecurityInfo();
-    }
-
-    if (!mCachePump && NS_FAILED(mStatus) &&
-        (mLoadFlags & LOAD_REPLACE) && mOriginalURI && mAllowSpdy) {
-        
-        
-
-        nsAutoCString hostPort;
-        if (NS_SUCCEEDED(mOriginalURI->GetHostPort(hostPort)))
-            gHttpHandler->ConnMgr()->RemoveSpdyAlternateProtocol(hostPort);
     }
 
     
