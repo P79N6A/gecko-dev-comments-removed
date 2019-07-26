@@ -313,7 +313,7 @@ protected:
 
   void ClearRuleCascades();
 
-  nsresult WillDirty();
+  void     WillDirty();
   void     DidDirty();
 
   
