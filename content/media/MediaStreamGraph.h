@@ -719,6 +719,20 @@ protected:
 
 
 class MediaInputPort {
+  
+  MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
+                 uint32_t aFlags, uint16_t aInputNumber,
+                 uint16_t aOutputNumber)
+    : mSource(aSource)
+    , mDest(aDest)
+    , mFlags(aFlags)
+    , mInputNumber(aInputNumber)
+    , mOutputNumber(aOutputNumber)
+    , mGraph(nullptr)
+  {
+    MOZ_COUNT_CTOR(MediaInputPort);
+  }
+
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaInputPort)
 
@@ -735,16 +749,6 @@ public:
     
     FLAG_BLOCK_OUTPUT = 0x02
   };
-  
-  MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
-                 uint32_t aFlags)
-    : mSource(aSource)
-    , mDest(aDest)
-    , mFlags(aFlags)
-    , mGraph(nullptr)
-  {
-    MOZ_COUNT_CTOR(MediaInputPort);
-  }
   ~MediaInputPort()
   {
     MOZ_COUNT_DTOR(MediaInputPort);
@@ -766,6 +770,9 @@ public:
   
   MediaStream* GetSource() { return mSource; }
   ProcessedMediaStream* GetDestination() { return mDest; }
+
+  uint16_t InputNumber() const { return mInputNumber; }
+  uint16_t OutputNumber() const { return mOutputNumber; }
 
   
   struct InputInterval {
@@ -795,6 +802,10 @@ protected:
   MediaStream* mSource;
   ProcessedMediaStream* mDest;
   uint32_t mFlags;
+  
+  
+  const uint16_t mInputNumber;
+  const uint16_t mOutputNumber;
 
   
   MediaStreamGraphImpl* mGraph;
@@ -817,7 +828,9 @@ public:
 
 
   already_AddRefed<MediaInputPort> AllocateInputPort(MediaStream* aStream,
-                                                     uint32_t aFlags = 0);
+                                                     uint32_t aFlags = 0,
+                                                     uint16_t aInputNumber = 0,
+                                                     uint16_t aOutputNumber = 0);
   
 
 
