@@ -3,24 +3,24 @@
 
 
 .viewContainer {
-  background: #cddae5; 
+  background: hsl(0,0%,89%); 
   font-family: monospace;
   font-size: inherit; 
 }
 
 .view {
   color: black; 
-  background: #f0f0ff; 
+  background: white; 
   padding-left: 4px;
 }
 
 .readonly > .view {
-  background: #f0f0ff;
+  background: #fdfefd; 
 }
 
 .ruler {
-  background: #cddae5;
-  color: #7a8a99;
+  background: hsl(0,0%,89%);
+  color: hsl(0,0%,55%);
 }
 .ruler.annotations {
   width: 16px;
@@ -105,16 +105,10 @@
   outline: 1px solid grey;
 }
 
-.token_singleline_comment {
-  color: #45a946; 
-}
-
-.token_multiline_comment {
-  color: #45a946; 
-}
-
-.token_doc_comment {
-  color: #45a946; 
+.token_singleline_comment,
+.token_multiline_comment,
+.token_doc_comment  {
+  color: hsl(90,2%,50%); 
 }
 
 .token_doc_html_markup {
@@ -131,12 +125,12 @@
 }
 
 .token_string {
-  color: #1e66b1; 
+  color: hsl(72,100%,27%); 
   font-style: italic;
 }
 
 .token_keyword {
-  color: #dd0058; 
+  color: hsl(276,44%,45%); 
 }
 
 .token_space {
@@ -155,34 +149,33 @@
 
 .line_caret,
 .annotationLine.currentLine { 
-  background: #dae2ee; 
+  background: hsl(208, 93%, 94%);
 }
 
 .readonly .line_caret,
 .readonly .annotationLine.currentLine {
-  background: #cddae5; 
+  background: hsl(208, 80%, 90%);
 }
 
 
 .entity-name-tag {
-  color: #dd0058; 
+  color: hsl(208,48%,40%); 
 }
 
 .entity-other-attribute-name {
-  color: #dd0058; 
+  color: hsl(208,48%,40%); 
 }
 
 .punctuation-definition-comment {
-  color: #45a946; 
+  color: hsl(90,2%,50%); 
 }
 
 .comment {
-  color: #45a946; 
+  color: hsl(90,2%,50%); 
 }
 
 .string-quoted {
-  color: #1e66b1; 
-  font-style: italic;
+  color: hsl(24,85%,39%); 
 }
 
 .invalid {
