@@ -34,9 +34,22 @@ public final class JavascriptMessageParser {
     private String lastTestName = "";
     
     private boolean testFinishedMessageSeen = false;
+    private final boolean endOnAssertionFailure;
 
-    public JavascriptMessageParser(final Assert asserter) {
+    
+
+
+
+
+
+
+
+
+
+
+    public JavascriptMessageParser(final Assert asserter, final boolean endOnAssertionFailure) {
         this.asserter = asserter;
+        this.endOnAssertionFailure = endOnAssertionFailure;
     }
 
     public boolean isTestFinished() {
@@ -61,6 +74,13 @@ public final class JavascriptMessageParser {
                 try {
                     asserter.ok(false, name, message);
                 } catch (AssertionFailedError e) {
+                    
+                    
+                    if (this.endOnAssertionFailure) {
+                        throw e;
+                    }
+                    
+                    
                     
                     
                 }
