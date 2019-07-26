@@ -223,14 +223,6 @@ public:
     const gfx::Point& aAcceleration,
     double aEstimatedPaintDuration);
 
-  
-
-
-
-
-
-  static CSSToScreenScale CalculateResolution(const FrameMetrics& aMetrics);
-
   static CSSRect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
 
   

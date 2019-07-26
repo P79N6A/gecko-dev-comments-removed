@@ -104,6 +104,17 @@ public:
   }
 
   
+
+
+
+
+
+  CSSToScreenScale CalculateResolution() const
+  {
+    return CalculateIntrinsicScale() * mZoom;
+  }
+
+  
   
   
 
