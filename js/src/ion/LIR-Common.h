@@ -2622,6 +2622,17 @@ class LIteratorEnd : public LInstructionHelper<0, 1, 2>
 };
 
 
+class LArgumentsLength : public LInstructionHelper<1, 0, 0>
+{
+  public:
+    LIR_HEADER(ArgumentsLength);
+
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
 class LTypeBarrier : public LInstructionHelper<BOX_PIECES, BOX_PIECES, 1>
 {
   public:

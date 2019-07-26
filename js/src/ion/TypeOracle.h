@@ -67,7 +67,8 @@ enum MIRType
     MIRType_Slots,      
     MIRType_Elements,   
     MIRType_UpvarSlots, 
-    MIRType_StackFrame  
+    MIRType_StackFrame, 
+    MIRType_ArgObj      
 };
 
 class TypeOracle
@@ -370,6 +371,8 @@ StringFromMIRType(MIRType type)
       return "UpvarSlots";
     case MIRType_StackFrame:
       return "StackFrame";
+    case MIRType_ArgObj:
+      return "ArgumentsObject";
     default:
       JS_NOT_REACHED("Unknown MIRType.");
       return "";
