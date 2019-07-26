@@ -67,12 +67,16 @@ const SYNC_START_OVER   = "start-over";
 const OBSERVER_TOPICS = ["fxaccounts:onlogin",
                          "fxaccounts:onlogout",
                          "private-browsing",
+                         "quit-application-requested",
                          "sessionstore-windows-restored",
                          "weave:engine:start-tracking",
                          "weave:engine:stop-tracking",
+                         "weave:service:login:error",
                          "weave:service:setup-complete",
                          "weave:service:sync:finish",
+                         "weave:service:sync:delayed",
                          "weave:service:sync:error",
+                         "weave:service:sync:start"
                         ];
 
 let TPS = {
@@ -80,10 +84,13 @@ let TPS = {
   _currentPhase: -1,
   _enabledEngines: null,
   _errors: 0,
+  _finalPhase: false,
   _isTracking: false,
   _operations_pending: 0,
+  _phaseFinished: false,
   _phaselist: {},
   _setupComplete: false,
+  _syncActive: false,
   _syncErrors: 0,
   _tabsAdded: 0,
   _tabsFinished: 0,
@@ -111,7 +118,7 @@ let TPS = {
     }
   },
 
-  DumpError: function (msg) {
+  DumpError: function TPS__DumpError(msg) {
     this._errors++;
     Logger.logError("[phase" + this._currentPhase + "] " + msg);
     this.quit();
@@ -129,7 +136,33 @@ let TPS = {
           Logger.logInfo("private browsing " + data);
           break;
 
+        case "quit-application-requested":
+          
+          if (this._errors || !this._phaseFinished || this._finalPhase) {
+            try {
+              this.WipeServer();
+            } catch (ex) {}
+          }
+
+          OBSERVER_TOPICS.forEach(function(topic) {
+            Services.obs.removeObserver(this, topic);
+          }, this);
+
+          Logger.close();
+
+          break;
+
+        case "sessionstore-windows-restored":
+          Utils.nextTick(this.RunNextTestAction, this);
+          break;
+
+        case "weave:service:setup-complete":
+          this._setupComplete = true;
+          break;
+
         case "weave:service:sync:error":
+          this._syncActive = false;
+
           if (this._waitingForSync && this._syncErrors == 0) {
             
             Logger.logInfo("sync error; retrying...");
@@ -144,13 +177,11 @@ let TPS = {
           }
           break;
 
-        case "weave:service:setup-complete":
-          this._setupComplete = true;
-          break;
-
         case "weave:service:sync:finish":
+          this._syncActive = false;
+          this._syncErrors = 0;
+
           if (this._waitingForSync) {
-            this._syncErrors = 0;
             this._waitingForSync = false;
             
             
@@ -160,16 +191,16 @@ let TPS = {
           }
           break;
 
+        case "weave:service:sync:start":
+          this._syncActive = true;
+          break;
+
         case "weave:engine:start-tracking":
           this._isTracking = true;
           break;
 
         case "weave:engine:stop-tracking":
           this._isTracking = false;
-          break;
-
-        case "sessionstore-windows-restored":
-          Utils.nextTick(this.RunNextTestAction, this);
           break;
       }
     }
@@ -194,10 +225,6 @@ let TPS = {
   },
 
   quit: function TPS__quit() {
-    OBSERVER_TOPICS.forEach(function(topic) {
-      Services.obs.removeObserver(this, topic);
-    }, this);
-    Logger.close();
     this.goQuitApplication();
   },
 
@@ -504,7 +531,8 @@ let TPS = {
           this._phaselist["phase" + this._currentPhase].length) {
         
         Logger.logInfo("test phase " + this._currentPhase + ": " +
-          (this._errors ? "FAIL" : "PASS"));
+                       (this._errors ? "FAIL" : "PASS"));
+        this._phaseFinished = true;
         this.quit();
         return;
       }
@@ -640,12 +668,12 @@ let TPS = {
 
       
       if (currentPhase <= 1) {
-        this_phase.unshift([this.ResetData]);
+        this_phase.unshift([this.Login]);
       }
 
       
       if (currentPhase >= Object.keys(this.phases).length) {
-        this_phase.push([this.WipeServer]);
+        this._finalPhase = true;
       }
 
       
@@ -760,10 +788,15 @@ let TPS = {
     if (!this._setupComplete) {
       this.waitForEvent("weave:service:setup-complete");
     }
+  },
 
-    let cb = Async.makeSyncCallback();
-    Utils.nextTick(cb);
-    Async.waitForSyncCallback(cb);
+  
+
+
+  waitForSyncFinished: function TPS__waitForSyncFinished() {
+    if (this._syncActive) {
+      this.waitForEvent("weave:service:sync:finished");
+    }
   },
 
   
@@ -773,34 +806,6 @@ let TPS = {
     if (!this._isTracking) {
       this.waitForEvent("weave:engine:start-tracking");
     }
-
-    let cb = Async.makeSyncCallback();
-    Utils.nextTick(cb);
-    Async.waitForSyncCallback(cb);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  ResetData: function ResetData() {
-    this.Login(true);
-
-    Weave.Service.login();
-    Weave.Service.wipeServer();
-    Weave.Service.resetClient();
-    Weave.Service.login();
-
-    this.waitForTracking();
   },
 
   
@@ -848,8 +853,10 @@ let TPS = {
   },
 
   WipeServer: function TPS__WipeServer() {
-    Logger.logInfo("WipeServer()");
-    this.Login();
+    Logger.logInfo("Wiping data from server.");
+
+    this.Login(false);
+    Weave.Service.login();
     Weave.Service.wipeServer();
   },
 
