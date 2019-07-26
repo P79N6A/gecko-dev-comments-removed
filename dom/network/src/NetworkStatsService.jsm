@@ -98,6 +98,7 @@ this.NetworkStatsService = {
                      "NetworkStats:GetAlarms",
                      "NetworkStats:RemoveAlarms",
                      "NetworkStats:GetAvailableNetworks",
+                     "NetworkStats:GetAvailableServiceTypes",
                      "NetworkStats:SampleRate",
                      "NetworkStats:MaxStorageAge"];
 
@@ -112,8 +113,8 @@ this.NetworkStatsService = {
                                 Ci.nsITimer.TYPE_REPEATING_PRECISE);
 
     
-    this.cachedAppStats = Object.create(null);
-    this.cachedAppStatsDate = new Date();
+    this.cachedStats = Object.create(null);
+    this.cachedStatsDate = new Date();
 
     this.updateQueue = [];
     this.isQueueRunning = false;
@@ -153,6 +154,9 @@ this.NetworkStatsService = {
         break;
       case "NetworkStats:GetAvailableNetworks":
         this.getAvailableNetworks(mm, msg);
+        break;
+      case "NetworkStats:GetAvailableServiceTypes":
+        this.getAvailableServiceTypes(mm, msg);
         break;
       case "NetworkStats:SampleRate":
         
@@ -307,6 +311,13 @@ this.NetworkStatsService = {
     });
   },
 
+  getAvailableServiceTypes: function getAvailableServiceTypes(mm, msg) {
+    this._db.getAvailableServiceTypes(function onGetServiceTypes(aError, aResult) {
+      mm.sendAsyncMessage("NetworkStats:GetAvailableServiceTypes:Return",
+                          { id: msg.id, error: aError, result: aResult });
+    });
+  },
+
   initAlarms: function initAlarms() {
     debug("Init usage alarms");
     let self = this;
@@ -340,16 +351,19 @@ this.NetworkStatsService = {
     let netId = this.getNetworkId(network.id, network.type);
 
     let appId = 0;
-    let manifestURL = msg.manifestURL;
-    if (manifestURL) {
-      appId = appsService.getAppLocalIdByManifestURL(manifestURL);
+    let appManifestURL = msg.appManifestURL;
+    if (appManifestURL) {
+      appId = appsService.getAppLocalIdByManifestURL(appManifestURL);
 
       if (!appId) {
         mm.sendAsyncMessage("NetworkStats:Get:Return",
-                            { id: msg.id, error: "Invalid manifestURL", result: null });
+                            { id: msg.id,
+                              error: "Invalid appManifestURL", result: null });
         return;
       }
     }
+
+    let serviceType = msg.serviceType || "";
 
     let start = new Date(msg.start);
     let end = new Date(msg.end);
@@ -359,13 +373,13 @@ this.NetworkStatsService = {
     if (this._networks[netId]) {
       this.updateStats(netId, function onStatsUpdated(aResult, aMessage) {
         debug("getstats for network " + network.id + " of type " + network.type);
-        debug("appId: " + appId + " from manifestURL: " + manifestURL);
+        debug("appId: " + appId + " from appManifestURL: " + appManifestURL);
 
-        self.updateCachedAppStats(function onAppStatsUpdated(aResult, aMessage) {
+        self.updateCachedStats(function onStatsUpdated(aResult, aMessage) {
           self._db.find(function onStatsFound(aError, aResult) {
             mm.sendAsyncMessage("NetworkStats:Get:Return",
                                 { id: msg.id, error: aError, result: aResult });
-          }, network, start, end, appId, manifestURL);
+          }, appId, serviceType, network, start, end, appManifestURL);
         });
       });
       return;
@@ -394,7 +408,7 @@ this.NetworkStatsService = {
         self._db.find(function onStatsFound(aError, aResult) {
           mm.sendAsyncMessage("NetworkStats:Get:Return",
                               { id: msg.id, error: aError, result: aResult });
-        }, network, start, end, appId, manifestURL);
+        }, appId, serviceType, network, start, end, appManifestURL);
         return;
       }
 
@@ -454,7 +468,7 @@ this.NetworkStatsService = {
 
   updateAllStats: function updateAllStats(aCallback) {
     
-    this.updateCachedAppStats();
+    this.updateCachedStats();
 
     let elements = [];
     let lastElement;
@@ -601,12 +615,14 @@ this.NetworkStatsService = {
       return;
     }
 
-    let stats = { appId:       0,
-                  networkId:   this._networks[aNetId].network.id,
-                  networkType: this._networks[aNetId].network.type,
-                  date:        aDate,
-                  rxBytes:     aTxBytes,
-                  txBytes:     aRxBytes };
+    let stats = { appId:          0,
+                  serviceType:    "",
+                  networkId:      this._networks[aNetId].network.id,
+                  networkType:    this._networks[aNetId].network.type,
+                  date:           aDate,
+                  rxBytes:        aTxBytes,
+                  txBytes:        aRxBytes,
+                  isAccumulative: true };
 
     debug("Update stats for: " + JSON.stringify(stats));
 
@@ -625,7 +641,9 @@ this.NetworkStatsService = {
   
 
 
-  saveAppStats: function saveAppStats(aAppId, aNetwork, aTimeStamp, aRxBytes, aTxBytes, aCallback) {
+  saveStats: function saveStats(aAppId, aServiceType, aNetwork, aTimeStamp,
+                                aRxBytes, aTxBytes, aIsAccumulative,
+                                aCallback) {
     let netId = this.convertNetworkInterface(aNetwork);
     if (!netId) {
       if (aCallback) {
@@ -634,36 +652,43 @@ this.NetworkStatsService = {
       return;
     }
 
-    debug("saveAppStats: " + aAppId + " " + netId + " " +
+    debug("saveStats: " + aAppId + " " + aServiceType + " " + netId + " " +
           aTimeStamp + " " + aRxBytes + " " + aTxBytes);
 
     
-    if (!aAppId || !this._networks[netId]) {
-      debug("Invalid appId or network interface");
+    
+    
+    
+    
+    if (!this._networks[netId] || (aAppId && aServiceType) ||
+        (!aAppId && !aServiceType)) {
+      debug("Invalid network interface, appId or serviceType");
       return;
     }
 
-    let stats = { appId: aAppId,
-                  networkId: this._networks[netId].network.id,
-                  networkType: this._networks[netId].network.type,
-                  date: new Date(aTimeStamp),
-                  rxBytes: aRxBytes,
-                  txBytes: aTxBytes };
+    let stats = { appId:          aAppId,
+                  serviceType:    aServiceType,
+                  networkId:      this._networks[netId].network.id,
+                  networkType:    this._networks[netId].network.type,
+                  date:           new Date(aTimeStamp),
+                  rxBytes:        aRxBytes,
+                  txBytes:        aTxBytes,
+                  isAccumulative: aIsAccumulative };
 
     
     
-    let key = stats.appId + "" + netId;
+    let key = stats.appId + "" + stats.serviceType + "" + netId;
 
     
     
     
     let diff = (this._db.normalizeDate(stats.date) -
-                this._db.normalizeDate(this.cachedAppStatsDate)) /
+                this._db.normalizeDate(this.cachedStatsDate)) /
                this._db.sampleRate;
     if (diff != 0) {
-      this.updateCachedAppStats(function onUpdated(success, message) {
-        this.cachedAppStatsDate = stats.date;
-        this.cachedAppStats[key] = stats;
+      this.updateCachedStats(function onUpdated(success, message) {
+        this.cachedStatsDate = stats.date;
+        this.cachedStats[key] = stats;
 
         if (!aCallback) {
           return;
@@ -682,34 +707,34 @@ this.NetworkStatsService = {
 
     
     
-    let appStats = this.cachedAppStats[key];
-    if (!appStats) {
-      this.cachedAppStats[key] = stats;
+    let cachedStats = this.cachedStats[key];
+    if (!cachedStats) {
+      this.cachedStats[key] = stats;
       return;
     }
 
     
-    appStats.rxBytes += stats.rxBytes;
-    appStats.txBytes += stats.txBytes;
+    cachedStats.rxBytes += stats.rxBytes;
+    cachedStats.txBytes += stats.txBytes;
 
     
     
     
-    if (appStats.rxBytes > MAX_CACHED_TRAFFIC ||
-        appStats.txBytes > MAX_CACHED_TRAFFIC) {
-      this._db.saveStats(appStats,
+    if (cachedStats.rxBytes > MAX_CACHED_TRAFFIC ||
+        cachedStats.txBytes > MAX_CACHED_TRAFFIC) {
+      this._db.saveStats(cachedStats,
         function (error, result) {
           debug("Application stats inserted in indexedDB");
         }
       );
-      delete this.cachedAppStats[key];
+      delete this.cachedStats[key];
     }
   },
 
-  updateCachedAppStats: function updateCachedAppStats(aCallback) {
-    debug("updateCachedAppStats: " + this.cachedAppStatsDate);
+  updateCachedStats: function updateCachedStats(aCallback) {
+    debug("updateCachedStats: " + this.cachedStatsDate);
 
-    let stats = Object.keys(this.cachedAppStats);
+    let stats = Object.keys(this.cachedStats);
     if (stats.length == 0) {
       
       if (aCallback) {
@@ -720,7 +745,7 @@ this.NetworkStatsService = {
     }
 
     let index = 0;
-    this._db.saveStats(this.cachedAppStats[stats[index]],
+    this._db.saveStats(this.cachedStats[stats[index]],
       function onSavedStats(error, result) {
         if (DEBUG) {
           debug("Application stats inserted in indexedDB");
@@ -728,7 +753,7 @@ this.NetworkStatsService = {
 
         
         if (index == stats.length - 1) {
-          this.cachedAppStats = Object.create(null);
+          this.cachedStats = Object.create(null);
 
           if (!aCallback) {
             return;
@@ -745,7 +770,7 @@ this.NetworkStatsService = {
 
         
         index += 1;
-        this._db.saveStats(this.cachedAppStats[stats[index]],
+        this._db.saveStats(this.cachedStats[stats[index]],
                            onSavedStats.bind(this, error, result));
       }.bind(this));
   },
