@@ -1961,17 +1961,15 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       
       
       
-#if 0
-      if (!pfd->GetFlag(PFD_ISTEXTFRAME)) {
-#else
-
       bool canUpdate = !pfd->GetFlag(PFD_ISTEXTFRAME);
-      if (!canUpdate && pfd->GetFlag(PFD_ISNONWHITESPACETEXTFRAME)) {
+      if ((!canUpdate && pfd->GetFlag(PFD_ISNONWHITESPACETEXTFRAME)) ||
+          (canUpdate && (pfd->GetFlag(PFD_ISBULLET) ||
+                         nsGkAtoms::bulletFrame == frame->GetType()))) {
+        
         canUpdate =
           frame->StyleText()->mLineHeight.GetUnit() == eStyleUnit_Normal;
       }
       if (canUpdate) {
-#endif
         nscoord yTop, yBottom;
         if (frameSpan) {
           
