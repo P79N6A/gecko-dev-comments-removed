@@ -3851,21 +3851,9 @@ nsWindow::NativeResize(int32_t aX, int32_t aY,
 }
 
 void
-nsWindow::NativeShow (bool    aAction)
+nsWindow::NativeShow(bool aAction)
 {
     if (aAction) {
-        
-        
-        
-        
-        
-        
-        
-        
-        if (mTransparencyBitmap) {
-            ApplyTransparencyBitmap();
-        }
-
         
         mNeedsShow = false;
 
