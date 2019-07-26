@@ -147,10 +147,7 @@ public abstract class SessionTest extends BaseTest {
             
             
             if (i > 0) {
-                Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
                 addTab();
-                pageShowExpecter.blockForEvent();
-                pageShowExpecter.unregisterListener();
             }
 
             for (int j = 1; j < pages.length; j++) {
