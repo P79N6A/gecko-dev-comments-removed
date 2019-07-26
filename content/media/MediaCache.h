@@ -499,7 +499,9 @@ private:
   
   
   
-  int64_t           mPartialBlockBuffer[BLOCK_SIZE/sizeof(int64_t)];
+  
+  
+  nsAutoArrayPtr<int64_t> mPartialBlockBuffer;
 };
 
 } 
