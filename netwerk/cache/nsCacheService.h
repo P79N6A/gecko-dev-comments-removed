@@ -30,6 +30,7 @@ class nsMemoryCacheDevice;
 class nsOfflineCacheDevice;
 class nsCacheServiceAutoLock;
 class nsITimer;
+class mozIStorageService;
 
 
 
@@ -315,6 +316,8 @@ private:
 
 
     static nsCacheService *         gService;  
+
+    nsCOMPtr<mozIStorageService>    mStorageService;
 
     nsCacheProfilePrefObserver *    mObserver;
 
