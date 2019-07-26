@@ -1080,15 +1080,10 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
 
 
 
-
-
-    if (access != PROPERTY_WRITE) {
-        if (JSObject *singleton = object->singleton ? object->singleton : object->proto) {
-            Type type = GetSingletonPropertyType(cx, singleton, id);
-            if (!type.isUnknown())
-                target->addType(cx, type);
-        }
-    }
+    bool markOwn = access == PROPERTY_WRITE && JSID_IS_VOID(id);
+    HeapTypeSet *types = object->getProperty(cx, id, markOwn);
+    if (!types)
+        return;
 
     
 
@@ -1096,10 +1091,26 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
 
 
 
-    bool markOwn = access == PROPERTY_WRITE && JSID_IS_VOID(id);
-    HeapTypeSet *types = object->getProperty(cx, id, markOwn);
-    if (!types)
-        return;
+
+
+    if (access != PROPERTY_WRITE) {
+        JSObject *singleton = object->singleton;
+
+        
+
+
+
+        if (!singleton && !types->ownProperty(false))
+            singleton = object->proto;
+
+        if (singleton) {
+            Type type = GetSingletonPropertyType(cx, singleton, id);
+            if (!type.isUnknown())
+                target->addType(cx, type);
+        }
+    }
+
+    
     if (access == PROPERTY_WRITE) {
         target->addSubset(cx, types);
     } else {
