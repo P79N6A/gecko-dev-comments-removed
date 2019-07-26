@@ -283,6 +283,38 @@ public:
 
   void FireChangeEventIfNeeded();
 
+  
+
+
+
+
+
+
+
+  double GetMinimum() const;
+
+  
+
+
+
+
+
+
+
+  double GetMaximum() const;
+
+  
+
+
+
+
+
+  double GetValueAsDouble() const;
+
+  double GetPositionAsPercent();
+
+  void SetPositionAsPercent(double position);
+
 protected:
   
   
@@ -575,14 +607,6 @@ protected:
 
 
 
-  double GetValueAsDouble() const;
-
-  
-
-
-
-
-
 
 
 
@@ -658,26 +682,6 @@ protected:
 
 
   void UpdateHasRange();
-
-  
-
-
-
-
-
-
-
-  double GetMinimum() const;
-
-  
-
-
-
-
-
-
-
-  double GetMaximum() const;
 
    
 
