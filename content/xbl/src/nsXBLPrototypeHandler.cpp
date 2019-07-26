@@ -272,7 +272,6 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   if (!boundContext)
     return NS_OK;
 
-  nsScriptObjectHolder<JSObject> handler(boundContext);
   nsISupports *scriptTarget;
 
   if (winRoot) {
@@ -287,13 +286,15 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   nsCxPusher pusher;
   NS_ENSURE_STATE(pusher.Push(aTarget));
 
-  rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, handler);
+  AutoPushJSContext cx(boundContext->GetNativeContext());
+  JS::Rooted<JSObject*> handler(cx);
+
+  rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, &handler);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  AutoPushJSContext cx(boundContext->GetNativeContext());
   JSAutoRequest ar(cx);
-  JSObject* globalObject = boundGlobal->GetGlobalJSObject();
-  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
+  JS::Rooted<JSObject*> globalObject(cx, boundGlobal->GetGlobalJSObject());
+  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, globalObject));
 
   
   
@@ -302,32 +303,32 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   
   
   JSAutoCompartment ac(cx, scopeObject);
-  JSObject* genericHandler = handler.get();
-  bool ok = JS_WrapObject(cx, &genericHandler);
+  JS::Rooted<JSObject*> genericHandler(cx, handler.get());
+  bool ok = JS_WrapObject(cx, genericHandler.address());
   NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   MOZ_ASSERT(!js::IsCrossCompartmentWrapper(genericHandler));
 
   
   
   
-  JS::Value targetV = JS::UndefinedValue();
-  rv = nsContentUtils::WrapNative(cx, scopeObject, scriptTarget, &targetV, nullptr,
+  JS::Rooted<JS::Value> targetV(cx, JS::UndefinedValue());
+  rv = nsContentUtils::WrapNative(cx, scopeObject, scriptTarget, targetV.address(), nullptr,
                                    true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  JSObject* bound = JS_CloneFunctionObject(cx, genericHandler, &targetV.toObject());
+  JS::Rooted<JSObject*> bound(cx, JS_CloneFunctionObject(cx, genericHandler, &targetV.toObject()));
   NS_ENSURE_TRUE(bound, NS_ERROR_FAILURE);
 
   
   JSAutoCompartment ac2(cx, globalObject);
-  if (!JS_WrapObject(cx, &bound)) {
+  if (!JS_WrapObject(cx, bound.address())) {
     return NS_ERROR_FAILURE;
   }
-  nsScriptObjectHolder<JSObject> boundHandler(boundContext, bound);
+  JS::Rooted<JSObject*> boundHandler(cx, bound);
 
   nsRefPtr<EventHandlerNonNull> handlerCallback =
-    new EventHandlerNonNull(cx, globalObject, boundHandler.get(), &ok);
+    new EventHandlerNonNull(cx, globalObject, boundHandler, &ok);
   if (!ok) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -352,12 +353,14 @@ nsresult
 nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
                                           nsIScriptContext *aBoundContext,
                                           nsIAtom *aName,
-                                          nsScriptObjectHolder<JSObject>& aHandler)
+                                          JS::MutableHandle<JSObject*> aHandler)
 {
+  AutoPushJSContext cx(aBoundContext->GetNativeContext());
+
   
   nsCOMPtr<nsPIDOMWindow> pWindow = do_QueryInterface(aGlobal);
   if (pWindow) {
-    JSObject* cachedHandler = pWindow->GetCachedXBLPrototypeHandler(this);
+    JS::Rooted<JSObject*> cachedHandler(cx, pWindow->GetCachedXBLPrototypeHandler(this));
     if (cachedHandler) {
       xpc_UnmarkGrayObject(cachedHandler);
       aHandler.set(cachedHandler);
@@ -370,9 +373,8 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
   nsDependentString handlerText(mHandlerText);
   NS_ENSURE_TRUE(!handlerText.IsEmpty(), NS_ERROR_FAILURE);
 
-  AutoPushJSContext cx(aBoundContext->GetNativeContext());
-  JSObject* globalObject = aGlobal->GetGlobalJSObject();
-  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
+  JS::Rooted<JSObject*> globalObject(cx, aGlobal->GetGlobalJSObject());
+  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, globalObject));
 
   nsAutoCString bindingURI;
   mPrototypeBinding->DocURI()->GetSpec(bindingURI);
@@ -390,18 +392,18 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
          .setVersion(JSVERSION_LATEST)
          .setUserBit(true); 
 
-  JS::RootedObject rootedNull(cx, nullptr); 
-  JSObject* handlerFun = nullptr;
+  JS::Rooted<JSObject*> rootedNull(cx); 
+  JS::Rooted<JSObject*> handlerFun(cx);
   nsresult rv = nsJSUtils::CompileFunction(cx, rootedNull, options,
                                            nsAtomCString(aName), argCount,
-                                           argNames, handlerText, &handlerFun);
+                                           argNames, handlerText, handlerFun.address());
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(handlerFun, NS_ERROR_FAILURE);
 
   
   
   JSAutoCompartment ac2(cx, globalObject);
-  bool ok = JS_WrapObject(cx, &handlerFun);
+  bool ok = JS_WrapObject(cx, handlerFun.address());
   NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   aHandler.set(handlerFun);
   NS_ENSURE_TRUE(aHandler, NS_ERROR_FAILURE);

@@ -2467,8 +2467,8 @@ nsXULPrototypeScript::Deserialize(nsIObjectInputStream* aStream,
     nsIScriptContext *context = aGlobal->GetScriptContext();
     NS_ASSERTION(context != nullptr, "Have no context for deserialization");
     NS_ENSURE_TRUE(context, NS_ERROR_UNEXPECTED);
-    nsScriptObjectHolder<JSScript> newScriptObject(context);
-    rv = context->Deserialize(aStream, newScriptObject);
+    JS::Rooted<JSScript*> newScriptObject(context->GetNativeContext());
+    rv = context->Deserialize(aStream, &newScriptObject);
     if (NS_FAILED(rv)) {
         NS_WARNING("Language deseralization failed");
         return rv;
@@ -2587,7 +2587,7 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
 
     
 
-    nsScriptObjectHolder<JSScript> newScriptObject(context);
+    JS::Rooted<JSScript*> newScriptObject(context->GetNativeContext());
 
     
     
@@ -2606,7 +2606,7 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
                                 urlspec.get(),
                                 aLineNo,
                                 mLangVersion,
-                                newScriptObject,
+                                &newScriptObject,
                                 saveSource);
     if (NS_FAILED(rv))
         return rv;

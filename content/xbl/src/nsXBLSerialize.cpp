@@ -4,7 +4,7 @@
 
 
 #include "nsXBLSerialize.h"
-#include "nsDOMScriptObjectHolder.h"
+#include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "jsdbgapi.h"
 
