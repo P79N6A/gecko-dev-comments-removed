@@ -676,17 +676,17 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     
     
-    
-    for (gc::CellIter i(cx->zone(), gc::FINALIZE_LAZY_SCRIPT); !i.done(); i.next()) {
-        LazyScript *lazy = i.get<LazyScript>();
-        JSFunction *fun = lazy->function();
-        if (fun->compartment() == cx->compartment() &&
-            lazy->sourceObject() && !lazy->maybeScript())
-        {
-            MOZ_ASSERT(fun->isInterpretedLazy());
-            MOZ_ASSERT(lazy == fun->lazyScriptOrNull());
-            if (!lazyFunctions.append(fun))
-                return false;
+    for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
+        JSObject *obj = i.get<JSObject>();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
+            if (fun->isInterpretedLazy()) {
+                LazyScript *lazy = fun->lazyScriptOrNull();
+                if (lazy && lazy->sourceObject() && !lazy->maybeScript()) {
+                    if (!lazyFunctions.append(fun))
+                        return false;
+                }
+            }
         }
     }
 
@@ -708,24 +708,27 @@ CreateLazyScriptsForCompartment(JSContext *cx)
             return false;
     }
 
+    
+    for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
+        JSObject *obj = i.get<JSObject>();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
+            if (fun->isInterpretedLazy()) {
+                LazyScript *lazy = fun->lazyScriptOrNull();
+                if (lazy && lazy->maybeScript())
+                    fun->existingScript();
+            }
+        }
+    }
+
     return true;
 }
 
 bool
-JSCompartment::ensureDelazifyScriptsForDebugMode(JSContext *cx)
-{
-    MOZ_ASSERT(cx->compartment() == this);
-    if ((debugModeBits & DebugNeedDelazification) && !CreateLazyScriptsForCompartment(cx))
-        return false;
-    debugModeBits &= ~DebugNeedDelazification;
-    return true;
-}
-
-bool
-JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeInvalidation &invalidate)
+JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeGC &dmgc)
 {
     bool enabledBefore = debugMode();
-    bool enabledAfter = (debugModeBits & DebugModeFromMask & ~DebugFromC) || b;
+    bool enabledAfter = (debugModeBits & ~unsigned(DebugFromC)) || b;
 
     
     
@@ -744,12 +747,14 @@ JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeInvalidatio
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_DEBUG_NOT_IDLE);
             return false;
         }
+        if (enabledAfter && !CreateLazyScriptsForCompartment(cx))
+            return false;
     }
 
-    debugModeBits = (debugModeBits & ~DebugFromC) | (b ? DebugFromC : 0);
+    debugModeBits = (debugModeBits & ~unsigned(DebugFromC)) | (b ? DebugFromC : 0);
     JS_ASSERT(debugMode() == enabledAfter);
     if (enabledBefore != enabledAfter) {
-        updateForDebugMode(cx->runtime()->defaultFreeOp(), invalidate);
+        updateForDebugMode(cx->runtime()->defaultFreeOp(), dmgc);
         if (!enabledAfter)
             DebugScopes::onCompartmentLeaveDebugMode(this);
     }
@@ -757,7 +762,7 @@ JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeInvalidatio
 }
 
 void
-JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeInvalidation &invalidate)
+JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeGC &dmgc)
 {
     JSRuntime *rt = runtimeFromMainThread();
 
@@ -767,7 +772,6 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeInvalidation &invali
     }
 
 #ifdef JS_ION
-    MOZ_ASSERT(invalidate.isFor(this));
     JS_ASSERT_IF(debugMode(), !hasScriptsOnStack());
 
     
@@ -777,32 +781,43 @@ JSCompartment::updateForDebugMode(FreeOp *fop, AutoDebugModeInvalidation &invali
     
     
     
-    invalidate.scheduleInvalidation(debugMode());
+    
+    
+    
+    
+    
+    
+    
+    if (!rt->isHeapBusy())
+        dmgc.scheduleGC(zone());
 #endif
 }
 
 bool
 JSCompartment::addDebuggee(JSContext *cx, js::GlobalObject *global)
 {
-    AutoDebugModeInvalidation invalidate(this);
-    return addDebuggee(cx, global, invalidate);
+    AutoDebugModeGC dmgc(cx->runtime());
+    return addDebuggee(cx, global, dmgc);
 }
 
 bool
 JSCompartment::addDebuggee(JSContext *cx,
                            GlobalObject *globalArg,
-                           AutoDebugModeInvalidation &invalidate)
+                           AutoDebugModeGC &dmgc)
 {
     Rooted<GlobalObject*> global(cx, globalArg);
 
     bool wasEnabled = debugMode();
+    if (!wasEnabled && !CreateLazyScriptsForCompartment(cx))
+        return false;
     if (!debuggees.put(global)) {
         js_ReportOutOfMemory(cx);
         return false;
     }
     debugModeBits |= DebugFromJS;
-    if (!wasEnabled)
-        updateForDebugMode(cx->runtime()->defaultFreeOp(), invalidate);
+    if (!wasEnabled) {
+        updateForDebugMode(cx->runtime()->defaultFreeOp(), dmgc);
+    }
     return true;
 }
 
@@ -811,14 +826,14 @@ JSCompartment::removeDebuggee(FreeOp *fop,
                               js::GlobalObject *global,
                               js::GlobalObjectSet::Enum *debuggeesEnum)
 {
-    AutoDebugModeInvalidation invalidate(this);
-    return removeDebuggee(fop, global, invalidate, debuggeesEnum);
+    AutoDebugModeGC dmgc(fop->runtime());
+    return removeDebuggee(fop, global, dmgc, debuggeesEnum);
 }
 
 void
 JSCompartment::removeDebuggee(FreeOp *fop,
                               js::GlobalObject *global,
-                              AutoDebugModeInvalidation &invalidate,
+                              AutoDebugModeGC &dmgc,
                               js::GlobalObjectSet::Enum *debuggeesEnum)
 {
     bool wasEnabled = debugMode();
@@ -832,7 +847,7 @@ JSCompartment::removeDebuggee(FreeOp *fop,
         debugModeBits &= ~DebugFromJS;
         if (wasEnabled && !debugMode()) {
             DebugScopes::onCompartmentLeaveDebugMode(this);
-            updateForDebugMode(fop, invalidate);
+            updateForDebugMode(fop, dmgc);
         }
     }
 }

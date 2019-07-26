@@ -110,7 +110,7 @@ struct TypeInferenceSizes;
 }
 
 namespace js {
-class AutoDebugModeInvalidation;
+class AutoDebugModeGC;
 class ArrayBufferObject;
 class DebugScopes;
 class WeakMapBase;
@@ -278,13 +278,7 @@ struct JSCompartment
     js::WeakMapBase              *gcWeakMapList;
 
   private:
-    enum {
-        DebugFromC = 1 << 0,
-        DebugFromJS = 1 << 1,
-        DebugNeedDelazification = 1 << 2
-    };
-
-    static const unsigned DebugModeFromMask = DebugFromC | DebugFromJS;
+    enum { DebugFromC = 1, DebugFromJS = 2 };
 
     unsigned                     debugModeBits;  
 
@@ -363,48 +357,26 @@ struct JSCompartment
 
 
 
-
-
-
-
-    bool debugMode() const {
-        return !!(debugModeBits & DebugModeFromMask);
-    }
+    bool debugMode() const { return !!debugModeBits; }
 
     
     bool hasScriptsOnStack();
 
-    
-
-
-
-    void scheduleDelazificationForDebugMode() {
-        debugModeBits |= DebugNeedDelazification;
-    }
-
-    
-
-
-
-    bool ensureDelazifyScriptsForDebugMode(JSContext *cx);
-
   private:
-
     
-    void updateForDebugMode(js::FreeOp *fop, js::AutoDebugModeInvalidation &invalidate);
+    void updateForDebugMode(js::FreeOp *fop, js::AutoDebugModeGC &dmgc);
 
   public:
     js::GlobalObjectSet &getDebuggees() { return debuggees; }
     bool addDebuggee(JSContext *cx, js::GlobalObject *global);
     bool addDebuggee(JSContext *cx, js::GlobalObject *global,
-                     js::AutoDebugModeInvalidation &invalidate);
+                     js::AutoDebugModeGC &dmgc);
     void removeDebuggee(js::FreeOp *fop, js::GlobalObject *global,
                         js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
     void removeDebuggee(js::FreeOp *fop, js::GlobalObject *global,
-                        js::AutoDebugModeInvalidation &invalidate,
+                        js::AutoDebugModeGC &dmgc,
                         js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
-    bool setDebugModeFromC(JSContext *cx, bool b,
-                           js::AutoDebugModeInvalidation &invalidate);
+    bool setDebugModeFromC(JSContext *cx, bool b, js::AutoDebugModeGC &dmgc);
 
     void clearBreakpointsIn(js::FreeOp *fop, js::Debugger *dbg, JSObject *handler);
     void clearTraps(js::FreeOp *fop);
@@ -453,53 +425,26 @@ JSRuntime::isAtomsZone(JS::Zone *zone)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-class js::AutoDebugModeInvalidation
+class js::AutoDebugModeGC
 {
-    JSCompartment *comp_;
-    JS::Zone *zone_;
-
-    enum {
-        NoNeed = 0,
-        ToggledOn = 1,
-        ToggledOff = 2
-    } needInvalidation_;
-
+    JSRuntime *rt;
+    bool needGC;
   public:
-    explicit AutoDebugModeInvalidation(JSCompartment *comp)
-      : comp_(comp), zone_(nullptr), needInvalidation_(NoNeed)
-    { }
+    explicit AutoDebugModeGC(JSRuntime *rt) : rt(rt), needGC(false) {}
 
-    explicit AutoDebugModeInvalidation(JS::Zone *zone)
-      : comp_(nullptr), zone_(zone), needInvalidation_(NoNeed)
-    { }
-
-    ~AutoDebugModeInvalidation();
-
-    bool isFor(JSCompartment *comp) {
-        if (comp_)
-            return comp == comp_;
-        return comp->zone() == zone_;
+    ~AutoDebugModeGC() {
+        
+        
+        
+        
+        if (needGC)
+            GC(rt, GC_NORMAL, JS::gcreason::DEBUG_MODE_GC);
     }
 
-    void scheduleInvalidation(bool debugMode) {
-        
-        
-        
-        MOZ_ASSERT_IF(needInvalidation_ != NoNeed,
-                      needInvalidation_ == debugMode ? ToggledOn : ToggledOff);
-        needInvalidation_ = debugMode ? ToggledOn : ToggledOff;
+    void scheduleGC(Zone *zone) {
+        JS_ASSERT(!rt->isHeapBusy());
+        PrepareZoneForGC(zone);
+        needGC = true;
     }
 };
 

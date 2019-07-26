@@ -4620,8 +4620,13 @@ ShouldCleanUpEverything(JSRuntime *rt, JS::gcreason::Reason reason, JSGCInvocati
     
     
     
+    
+    
+    
+    
     return reason == JS::gcreason::DESTROY_RUNTIME ||
            reason == JS::gcreason::SHUTDOWN_CC ||
+           reason == JS::gcreason::DEBUG_MODE_GC ||
            gckind == GC_SHRINK;
 }
 

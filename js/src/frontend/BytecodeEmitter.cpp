@@ -1757,9 +1757,7 @@ BytecodeEmitter::tellDebuggerAboutCompiledScript(ExclusiveContext *cx)
 
     RootedFunction function(cx, script->function());
     CallNewScriptHook(cx->asJSContext(), script, function);
-    
-    
-    if (emitterMode != LazyFunction && !parent) {
+    if (!parent) {
         GlobalObject *compileAndGoGlobal = nullptr;
         if (script->compileAndGo)
             compileAndGoGlobal = &script->global();
