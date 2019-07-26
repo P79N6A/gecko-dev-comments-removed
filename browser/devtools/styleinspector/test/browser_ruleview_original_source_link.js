@@ -47,7 +47,7 @@ function highlightNode()
   
   let div = content.document.getElementsByTagName("div")[0];
 
-  inspector.selection.setNode(div);
+  inspector.selection.setNode(div, "test");
   inspector.once("inspector-updated", () => {
     is(inspector.selection.node, div, "selection matches the div element");
     testRuleViewLink();

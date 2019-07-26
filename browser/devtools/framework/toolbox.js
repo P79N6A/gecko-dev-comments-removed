@@ -10,7 +10,7 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
 
 let {Cc, Ci, Cu} = require("chrome");
-let promise = require("sdk/core/promise");
+let {Promise: promise} = require("resource://gre/modules/Promise.jsm");
 let EventEmitter = require("devtools/toolkit/event-emitter");
 let Telemetry = require("devtools/shared/telemetry");
 let HUDService = require("devtools/webconsole/hudservice");
@@ -1433,20 +1433,20 @@ ToolboxHighlighterUtils.prototype = {
 
 
   unhighlight: function(forceHide=false) {
-    if (this.isRemoteHighlightable) {
-      
-      return this.toolbox.initInspector().then(() => {
-        let autohide = forceHide || !gDevTools.testing;
+    let unhighlightPromise;
+    forceHide = forceHide || !gDevTools.testing;
 
-        if (autohide) {
-          return this.toolbox.highlighter.hideBoxModel();
-        }
-        return promise.resolve();
-      });
+    if (forceHide && this.isRemoteHighlightable && this.toolbox.highlighter) {
+      
+      unhighlightPromise = this.toolbox.highlighter.hideBoxModel();
     } else {
       
       
-      return promise.resolve();
+      unhighlightPromise = promise.resolve();
     }
+
+    return unhighlightPromise.then(() => {
+      this.toolbox.emit("node-unhighlight");
+    });
   }
 };

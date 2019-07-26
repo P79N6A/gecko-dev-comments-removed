@@ -692,8 +692,10 @@ HTMLBreadcrumbs.prototype = {
 
       
       this.scroll();
-      this.inspector.emit("breadcrumbs-updated", this.selection.nodeFront);
-      doneUpdating();
+      return resolveNextTick().then(() => {
+        this.inspector.emit("breadcrumbs-updated", this.selection.nodeFront);
+        doneUpdating();
+      });
     }).then(null, err => {
       doneUpdating(this.selection.nodeFront);
       this.selectionGuardEnd(err);

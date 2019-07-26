@@ -177,7 +177,7 @@ MarkupView.prototype = {
   },
 
   _hideBoxModel: function(forceHide) {
-    this._inspector.toolbox.highlighterUtils.unhighlight(forceHide);
+    return this._inspector.toolbox.highlighterUtils.unhighlight(forceHide);
   },
 
   _briefBoxModelTimer: null,
@@ -1044,9 +1044,13 @@ MarkupView.prototype = {
 
 
   destroy: function() {
+    if (this._destroyer) {
+      return this._destroyer;
+    }
+
     
     
-    this._hideBoxModel();
+    this._destroyer = this._hideBoxModel();
 
     this._hoveredNode = null;
     this._inspector.toolbox.off("picker-node-hovered", this._onToolboxPickerHover);
@@ -1100,6 +1104,8 @@ MarkupView.prototype = {
 
     this.tooltip.destroy();
     this.tooltip = null;
+
+    return this._destroyer;
   },
 
   
