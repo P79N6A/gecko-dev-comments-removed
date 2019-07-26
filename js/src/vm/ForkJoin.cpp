@@ -1473,11 +1473,6 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
     
     
 
-    
-    
-    
-    JS::AutoAssertNoGC nogc;
-
     Allocator *allocator = allocators_[threadId];
     ForkJoinSlice slice(perThread, threadId, numSlices_, allocator,
                         this, &records_[threadId]);
