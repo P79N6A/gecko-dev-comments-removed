@@ -2034,6 +2034,13 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         
         if (!mGdkWindow)
             return TRUE;
+
+        
+        
+        listener =
+            mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+        if (!listener)
+            return FALSE;
     }
 
 #if defined(MOZ_WIDGET_GTK2)
