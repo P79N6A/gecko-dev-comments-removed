@@ -14,6 +14,8 @@
 #include "jspubtd.h"
 #include "jsprvtd.h"
 
+#include "js/CallArgs.h"
+
 
 
 
@@ -1436,10 +1438,82 @@ JS_GetDataViewData(JSObject *obj);
 
 
 
+class JSJitGetterCallArgs : protected JS::MutableHandleValue
+{
+  public:
+    explicit JSJitGetterCallArgs(const JS::CallArgs& args)
+      : JS::MutableHandleValue(args.rval())
+    {}
+
+    JS::MutableHandleValue rval() {
+        return *this;
+    }
+};
+
+
+
+
+
+class JSJitSetterCallArgs : protected JS::MutableHandleValue
+{
+  public:
+    explicit JSJitSetterCallArgs(const JS::CallArgs& args)
+      : JS::MutableHandleValue(args.handleAt(0))
+    {}
+
+    JS::MutableHandleValue handleAt(unsigned i) {
+        MOZ_ASSERT(i == 0);
+        return *this;
+    }
+
+    unsigned length() const { return 1; }
+
+    
+};
+
+
+
+
+
+class JSJitMethodCallArgs : protected JS::detail::CallArgsBase<JS::detail::NoUsedRval>
+{
+  private:
+    typedef JS::detail::CallArgsBase<JS::detail::NoUsedRval> Base;
+
+  public:
+    explicit JSJitMethodCallArgs(const JS::CallArgs& args) {
+        argv_ = args.array();
+        argc_ = args.length();
+    }
+
+    JS::MutableHandleValue rval() const {
+        return Base::rval();
+    }
+
+    unsigned length() const { return Base::length(); }
+
+    JS::MutableHandleValue handleAt(unsigned i) const {
+        return Base::handleAt(i);
+    }
+
+    bool hasDefined(unsigned i) const {
+        return Base::hasDefined(i);
+    }
+
+    
+};
+
+
+
+
+
 
 typedef bool
-(* JSJitPropertyOp)(JSContext *cx, JSHandleObject thisObj,
-                    void *specializedThis, JS::Value *vp);
+(* JSJitGetterOp)(JSContext *cx, JSHandleObject thisObj,
+                  void *specializedThis, JS::Value *vp);
+typedef bool
+(* JSJitSetterOp)(JSContext *cx, JSHandleObject thisObj,
+                  void *specializedThis, JS::Value *vp);
 typedef bool
 (* JSJitMethodOp)(JSContext *cx, JSHandleObject thisObj,
                   void *specializedThis, unsigned argc, JS::Value *vp);
@@ -1451,7 +1525,11 @@ struct JSJitInfo {
         Method
     };
 
-    JSJitPropertyOp op;
+    union {
+        JSJitGetterOp getter;
+        JSJitSetterOp setter;
+        JSJitMethodOp method;
+    };
     uint32_t protoID;
     uint32_t depth;
     OpType type;

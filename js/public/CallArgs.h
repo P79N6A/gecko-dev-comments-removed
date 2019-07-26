@@ -31,6 +31,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/TypeTraits.h"
 
 #include "jstypes.h"
 
@@ -92,22 +93,42 @@ namespace JS {
 
 
 
-class MOZ_STACK_CLASS CallReceiver
+
+namespace detail {
+
+enum UsedRval { IncludeUsedRval, NoUsedRval };
+
+template<UsedRval WantUsedRval>
+class MOZ_STACK_CLASS UsedRvalBase;
+
+template<>
+class MOZ_STACK_CLASS UsedRvalBase<IncludeUsedRval>
 {
   protected:
-#ifdef DEBUG
     mutable bool usedRval_;
     void setUsedRval() const { usedRval_ = true; }
     void clearUsedRval() const { usedRval_ = false; }
-#else
+};
+
+template<>
+class MOZ_STACK_CLASS UsedRvalBase<NoUsedRval>
+{
+  protected:
     void setUsedRval() const {}
     void clearUsedRval() const {}
+};
+
+template<UsedRval WantUsedRval>
+class MOZ_STACK_CLASS CallReceiverBase : public UsedRvalBase<
+#ifdef DEBUG
+        WantUsedRval
+#else
+        NoUsedRval
 #endif
-
+    >
+{
+  protected:
     Value *argv_;
-
-    friend CallReceiver CallReceiverFromVp(Value *vp);
-    friend CallReceiver CallReceiverFromArgv(Value *argv);
 
   public:
     
@@ -115,7 +136,7 @@ class MOZ_STACK_CLASS CallReceiver
 
 
     JSObject &callee() const {
-        MOZ_ASSERT(!usedRval_);
+        MOZ_ASSERT(!this->usedRval_);
         return argv_[-2].toObject();
     }
 
@@ -124,7 +145,7 @@ class MOZ_STACK_CLASS CallReceiver
 
 
     HandleValue calleev() const {
-        MOZ_ASSERT(!usedRval_);
+        MOZ_ASSERT(!this->usedRval_);
         return HandleValue::fromMarkedLocation(&argv_[-2]);
     }
 
@@ -160,7 +181,7 @@ class MOZ_STACK_CLASS CallReceiver
 
 
     MutableHandleValue rval() const {
-        setUsedRval();
+        this->setUsedRval();
         return MutableHandleValue::fromMarkedLocation(&argv_[-2]);
     }
 
@@ -171,7 +192,7 @@ class MOZ_STACK_CLASS CallReceiver
     Value *base() const { return argv_ - 2; }
 
     Value *spAfterCall() const {
-        setUsedRval();
+        this->setUsedRval();
         return argv_ - 1;
     }
 
@@ -181,7 +202,7 @@ class MOZ_STACK_CLASS CallReceiver
     
 
     void setCallee(Value aCalleev) const {
-        clearUsedRval();
+        this->clearUsedRval();
         argv_[-2] = aCalleev;
     }
 
@@ -192,6 +213,15 @@ class MOZ_STACK_CLASS CallReceiver
     MutableHandleValue mutableThisv() const {
         return MutableHandleValue::fromMarkedLocation(&argv_[-1]);
     }
+};
+
+} 
+
+class MOZ_STACK_CLASS CallReceiver : public detail::CallReceiverBase<detail::IncludeUsedRval>
+{
+  private:
+    friend CallReceiver CallReceiverFromVp(Value *vp);
+    friend CallReceiver CallReceiverFromArgv(Value *argv);
 };
 
 MOZ_ALWAYS_INLINE CallReceiver
@@ -233,11 +263,63 @@ CallReceiverFromVp(Value *vp)
 
 
 
-class MOZ_STACK_CLASS CallArgs : public CallReceiver
+namespace detail {
+
+template<UsedRval WantUsedRval>
+class MOZ_STACK_CLASS CallArgsBase :
+        public mozilla::Conditional<WantUsedRval == detail::IncludeUsedRval,
+                                    CallReceiver,
+                                    CallReceiverBase<NoUsedRval> >::Type
 {
   protected:
     unsigned argc_;
 
+  public:
+    
+    unsigned length() const { return argc_; }
+
+    
+    Value &operator[](unsigned i) const {
+        MOZ_ASSERT(i < argc_);
+        return this->argv_[i];
+    }
+
+    
+    MutableHandleValue handleAt(unsigned i) const {
+        MOZ_ASSERT(i < argc_);
+        return MutableHandleValue::fromMarkedLocation(&this->argv_[i]);
+    }
+
+    
+
+
+
+    Value get(unsigned i) const {
+        return i < length() ? this->argv_[i] : UndefinedValue();
+    }
+
+    
+
+
+
+    bool hasDefined(unsigned i) const {
+        return i < argc_ && !this->argv_[i].isUndefined();
+    }
+
+  public:
+    
+    
+    
+
+    Value *array() const { return this->argv_; }
+    Value *end() const { return this->argv_ + argc_; }
+};
+
+} 
+
+class MOZ_STACK_CLASS CallArgs : public detail::CallArgsBase<detail::IncludeUsedRval>
+{
+  private:
     friend CallArgs CallArgsFromVp(unsigned argc, Value *vp);
     friend CallArgs CallArgsFromSp(unsigned argc, Value *sp);
 
@@ -249,45 +331,6 @@ class MOZ_STACK_CLASS CallArgs : public CallReceiver
         return args;
     }
 
-  public:
-    
-    unsigned length() const { return argc_; }
-
-    
-    Value &operator[](unsigned i) const {
-        MOZ_ASSERT(i < argc_);
-        return argv_[i];
-    }
-
-    
-    MutableHandleValue handleAt(unsigned i) const {
-        MOZ_ASSERT(i < argc_);
-        return MutableHandleValue::fromMarkedLocation(&argv_[i]);
-    }
-
-    
-
-
-
-    Value get(unsigned i) const {
-        return i < length() ? argv_[i] : UndefinedValue();
-    }
-
-    
-
-
-
-    bool hasDefined(unsigned i) const {
-        return i < argc_ && !argv_[i].isUndefined();
-    }
-
-  public:
-    
-    
-    
-
-    Value *array() const { return argv_; }
-    Value *end() const { return argv_ + argc_; }
 };
 
 MOZ_ALWAYS_INLINE CallArgs

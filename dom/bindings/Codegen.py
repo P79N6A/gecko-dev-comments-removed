@@ -5104,7 +5104,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
         return CGIndenter(CGGeneric(
             "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
             "MOZ_ASSERT(info->type == JSJitInfo::Method);\n"
-            "JSJitMethodOp method = (JSJitMethodOp)info->op;\n"
+            "JSJitMethodOp method = info->method;\n"
             "return method(cx, obj, self, argc, vp);"))
 
 class CGSpecializedMethod(CGAbstractStaticMethod):
@@ -5240,7 +5240,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
         return CGIndenter(CGGeneric(
             "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
             "MOZ_ASSERT(info->type == JSJitInfo::Getter);\n"
-            "JSJitPropertyOp getter = info->op;\n"
+            "JSJitGetterOp getter = info->getter;\n"
             "return getter(cx, obj, self, vp);"))
 
 class CGSpecializedGetter(CGAbstractStaticMethod):
@@ -5324,7 +5324,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "JS::Value* argv = JS_ARGV(cx, vp);\n"
                 "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
                 "MOZ_ASSERT(info->type == JSJitInfo::Setter);\n"
-                "JSJitPropertyOp setter = info->op;\n"
+                "JSJitSetterOp setter = info->setter;\n"
                 "if (!setter(cx, obj, self, argv)) {\n"
                 "  return false;\n"
                 "}\n"
@@ -5431,7 +5431,7 @@ class CGMemberJITInfo(CGThing):
                             "")
         return ("\n"
                 "static const JSJitInfo %s = {\n"
-                "  %s,\n"
+                "  { %s },\n"
                 "  %s,\n"
                 "  %s,\n"
                 "  JSJitInfo::%s,\n"
@@ -5445,7 +5445,9 @@ class CGMemberJITInfo(CGThing):
     def define(self):
         if self.member.isAttr():
             getterinfo = ("%s_getterinfo" % self.member.identifier.name)
-            getter = ("(JSJitPropertyOp)get_%s" % self.member.identifier.name)
+            
+            
+            getter = ("(JSJitGetterOp)get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
             getterconst = self.member.getExtendedAttribute("Constant")
             getterpure = getterconst or self.member.getExtendedAttribute("Pure")
@@ -5457,7 +5459,9 @@ class CGMemberJITInfo(CGThing):
                                         [self.member.type])
             if not self.member.readonly or self.member.getExtendedAttribute("PutForwards") is not None:
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
-                setter = ("(JSJitPropertyOp)set_%s" % self.member.identifier.name)
+                
+                
+                setter = ("(JSJitGetterOp)set_%s" % self.member.identifier.name)
                 
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, False,
@@ -5467,7 +5471,7 @@ class CGMemberJITInfo(CGThing):
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
             name = CppKeywords.checkMethodName(self.member.identifier.name)
             
-            method = ("(JSJitPropertyOp)%s" % name)
+            method = ("(JSJitGetterOp)%s" % name)
 
             
             
