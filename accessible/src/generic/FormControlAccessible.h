@@ -21,7 +21,9 @@ public:
   ProgressMeterAccessible(nsIContent* aContent, DocAccessible* aDoc) :
     LeafAccessible(aContent, aDoc)
   {
-    mStateFlags |= eHasNumericValue;
+    
+    
+    mStateFlags |= eHasNumericValue | eIgnoreDOMUIEvent;
     mType = eProgressType;
   }
 

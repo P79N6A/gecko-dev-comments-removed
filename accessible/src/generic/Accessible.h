@@ -723,6 +723,15 @@ public:
 
   bool HasNumericValue() const;
 
+  
+
+
+
+
+
+  bool NeedsDOMUIEvent() const
+    { return !(mStateFlags & eIgnoreDOMUIEvent); }
+
 protected:
 
   
@@ -789,6 +798,7 @@ protected:
     eSharedNode = 1 << 2, 
     eNotNodeMapEntry = 1 << 3, 
     eHasNumericValue = 1 << 4, 
+    eIgnoreDOMUIEvent = 1 << 5, 
 
     eLastStateFlag = eHasNumericValue
   };

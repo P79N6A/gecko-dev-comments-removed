@@ -26,7 +26,13 @@ class HTMLCheckboxAccessible : public LeafAccessible
 public:
   enum { eAction_Click = 0 };
 
-  HTMLCheckboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLCheckboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    LeafAccessible(aContent, aDoc)
+  {
+    
+    
+    mStateFlags |= eIgnoreDOMUIEvent;
+  }
 
   
   NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
@@ -51,7 +57,13 @@ class HTMLRadioButtonAccessible : public RadioButtonAccessible
 {
 
 public:
-  HTMLRadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLRadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    RadioButtonAccessible(aContent, aDoc)
+  {
+    
+    
+    mStateFlags |= eIgnoreDOMUIEvent;
+  }
 
   
   virtual uint64_t NativeState();
