@@ -14,19 +14,19 @@ printStatus (summary);
 
 if (typeof window != 'undefined')
 {
-  var d = document;
+  var s = self;
 
-  d.writeln(uneval(document));
-  document = 1;
-  d.writeln(uneval(document));
+  document.writeln(uneval(self));
+  self = 1;
+  document.writeln(uneval(self));
 
   if (1)
-    function document() { return 1; }
+    function self() { return 1; }
 
-  d.writeln(uneval(document));
+  document.writeln(uneval(self));
 
   
-  document = d;
+  self = s;
 }
 else
 {
