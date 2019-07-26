@@ -82,9 +82,27 @@ struct JSTryNote {
 
 namespace js {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct BlockScopeNote {
+    static const uint32_t NoBlockScopeIndex = UINT32_MAX;
+
     uint32_t        index;      
+                                
+                                
     uint32_t        start;      
+                                
     uint32_t        length;     
     uint32_t        parent;     
 };
