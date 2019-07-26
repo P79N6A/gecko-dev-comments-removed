@@ -94,6 +94,19 @@ function getChildAtPoint(aIdentifier, aX, aY, aFindDeepestChild)
 
 
 
+function testPos(aID, aPoint)
+{
+  var [expectedX, expectedY] =
+    (aPoint != undefined) ? aPoint : getBoundsForDOMElm(aID);
+
+  var [x, y] = getBounds(aID);
+  is(x, expectedX, "Wrong x coordinate of " + prettyName(aID));
+  is(y, expectedY, "Wrong y coordinate of " + prettyName(aID));
+}
+
+
+
+
 function testBounds(aID, aRect)
 {
   var [expectedX, expectedY, expectedWidth, expectedHeight] =
@@ -105,6 +118,18 @@ function testBounds(aID, aRect)
   is(width, expectedWidth, "Wrong width of " + prettyName(aID));
   is(height, expectedHeight, "Wrong height of " + prettyName(aID));
 }
+
+
+
+
+function getPos(aID)
+{
+  var accessible = getAccessible(aID);
+  var x = {}, y = {};
+  accessible.getBounds(x, y, {}, {});
+  return [x.value, y.value];
+}
+
 
 
 

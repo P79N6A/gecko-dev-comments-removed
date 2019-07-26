@@ -172,6 +172,7 @@ public:
 
 
 
+
   static nsIntPoint GetScreenCoordsForWindow(nsINode *aNode);
 
   
