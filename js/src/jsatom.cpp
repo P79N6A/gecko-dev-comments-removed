@@ -38,11 +38,10 @@ using mozilla::RangedPtr;
 const char *
 js::AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes)
 {
-    
-    
-    if (!cx->isJSContext())
-        return "";
-    return js_ValueToPrintable(cx->asJSContext(), StringValue(atom), bytes);
+    JSString *str = js_QuoteString(cx, atom, 0);
+    if (!str)
+        return NULL;
+    return bytes->encodeLatin1(cx, str);
 }
 
 const char * const js::TypeStrings[] = {

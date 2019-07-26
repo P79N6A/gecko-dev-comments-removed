@@ -233,7 +233,7 @@ extern const char       js_EscapeMap[];
 
 
 extern JSString *
-js_QuoteString(JSContext *cx, JSString *str, jschar quote);
+js_QuoteString(js::ExclusiveContext *cx, JSString *str, jschar quote);
 
 namespace js {
 
@@ -422,7 +422,7 @@ class Sprinter
         }
     };
 
-    JSContext               *context;       
+    ExclusiveContext        *context;       
 
   private:
     static const size_t     DefaultSize;
@@ -437,7 +437,7 @@ class Sprinter
     bool realloc_(size_t newSize);
 
   public:
-    explicit Sprinter(JSContext *cx);
+    explicit Sprinter(ExclusiveContext *cx);
     ~Sprinter();
 
     

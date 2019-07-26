@@ -59,11 +59,14 @@ public:
 
 
 
+
+
   virtual nsresult EvaluateString(const nsAString& aScript,
                                   JS::Handle<JSObject*> aScopeObject,
                                   JS::CompileOptions& aOptions,
                                   bool aCoerceToString,
-                                  JS::Value* aRetValue) = 0;
+                                  JS::Value* aRetValue,
+                                  void **aOffThreadToken = nullptr) = 0;
 
   
 
