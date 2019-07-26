@@ -177,13 +177,15 @@ enum MethodStatus
 
 
 
+
 class IonContext
 {
   public:
-    IonContext(JSContext *cx, TempAllocator *temp);
+    IonContext(JSContext *cx, JSCompartment *compartment, TempAllocator *temp);
     ~IonContext();
 
     JSContext *cx;
+    JSCompartment *compartment;
     TempAllocator *temp;
     int getNextAssemblerId() {
         return assemblerCount_++;
