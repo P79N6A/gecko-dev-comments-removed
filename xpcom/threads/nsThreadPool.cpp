@@ -251,10 +251,14 @@ nsThreadPool::Dispatch(nsIRunnable *event, uint32_t flags)
 NS_IMETHODIMP
 nsThreadPool::IsOnCurrentThread(bool *result)
 {
-  
-  
-  NS_NOTREACHED("implement me");
-
+  ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
+  nsIThread* thread = NS_GetCurrentThread();
+  for (uint32_t i = 0; i < mThreads.Count(); ++i) {
+    if (mThreads[i] == thread) {
+      *result = true;
+      return NS_OK;
+    }
+  }
   *result = false;
   return NS_OK;
 }
