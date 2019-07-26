@@ -551,7 +551,7 @@ nsXBLBinding::InstallEventHandlers()
         nsXBLEventHandler* handler = curr->GetEventHandler();
         if (handler) {
           
-          dom::EventListenerFlags flags;
+          EventListenerFlags flags;
           flags.mCapture = (curr->GetPhase() == NS_PHASE_CAPTURING);
 
           
@@ -588,7 +588,7 @@ nsXBLBinding::InstallEventHandlers()
         
 
         
-        dom::EventListenerFlags flags;
+        EventListenerFlags flags;
         flags.mCapture = (handler->GetPhase() == NS_PHASE_CAPTURING);
 
         if ((handler->GetType() & (NS_HANDLER_TYPE_XBL_COMMAND |
@@ -702,7 +702,7 @@ nsXBLBinding::UnhookEventHandlers()
         continue;
 
       
-      dom::EventListenerFlags flags;
+      EventListenerFlags flags;
       flags.mCapture = (curr->GetPhase() == NS_PHASE_CAPTURING);
 
       
@@ -729,7 +729,7 @@ nsXBLBinding::UnhookEventHandlers()
       handler->GetEventName(type);
 
       
-      dom::EventListenerFlags flags;
+      EventListenerFlags flags;
       flags.mCapture = (handler->GetPhase() == NS_PHASE_CAPTURING);
 
       
