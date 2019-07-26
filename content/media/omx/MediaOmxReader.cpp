@@ -140,6 +140,11 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
       return false;
     }
 
+    
+    if (frame.mSize == 0 && !frame.mGraphicBuffer) {
+      return true;
+    }
+
     parsed++;
     if (frame.mShouldSkip && mSkipCount < MAX_DROPPED_FRAMES) {
       mSkipCount++;
