@@ -71,6 +71,7 @@
 #include "mozilla/Preferences.h"
 #include "nsLocation.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Telemetry.h"
 
 
 #include "nsIDocShell.h"
@@ -8061,6 +8062,9 @@ nsHTMLPluginObjElementSH::DoCall(nsIXPConnectWrappedNative *wrapper,
   
   JSAutoRequest ar(cx);
   *_retval = ::JS::Call(cx, thisVal, pi_obj, argc, argv, vp);
+  if (*_retval) {
+    Telemetry::Accumulate(Telemetry::PLUGIN_CALLED_DIRECTLY, true);
+  }
 
   return NS_OK;
 }
