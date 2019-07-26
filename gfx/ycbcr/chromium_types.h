@@ -5,12 +5,16 @@
 #ifndef GFX_CHROMIUMTYPES_H
 #define GFX_CHROMIUMTYPES_H
 
-#include "prtypes.h"
 #include "mozilla/StandardInteger.h"
 
+
+#ifndef PROTYPES_H
 typedef uint8_t uint8;
 typedef int8_t int8;
 typedef int16_t int16;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+#endif
 
 
 
