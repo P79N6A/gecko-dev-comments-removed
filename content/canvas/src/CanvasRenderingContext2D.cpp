@@ -2548,7 +2548,7 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
   const ContextState &state = CurrentState();
 
   
-  bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
+  bool doDrawShadow = NeedToDrawShadow();
 
   CanvasBidiProcessor processor;
 
