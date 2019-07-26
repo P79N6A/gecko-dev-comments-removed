@@ -73,7 +73,7 @@ FileRequest::NotifyHelperCompleted(FileHelper* aFileHelper)
   }
 
   
-  jsval result;
+  JS::Value result;
 
   nsIScriptContext* sc = GetContextForEventHandlers(&rv);
   NS_ENSURE_STATE(sc);
