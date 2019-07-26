@@ -2350,6 +2350,10 @@ abstract public class BrowserApp extends GeckoApp
 
         final int itemId = item.getItemId();
 
+        
+        
+        Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.MENU, getResources().getResourceEntryName(itemId));
+
         if (itemId == R.id.bookmark) {
             tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {

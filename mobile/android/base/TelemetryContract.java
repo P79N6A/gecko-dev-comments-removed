@@ -46,6 +46,9 @@ public interface TelemetryContract {
 
         
         public static final String LOAD_URL = "loadurl.1";
+
+        
+        public static final String ACTION = "action.1";
     }
 
     
@@ -64,6 +67,9 @@ public interface TelemetryContract {
 
         
         public static final String INTENT = "intent";
+
+        
+        public static final String MENU = "menu";
 
         
         public static final String CONTEXT_MENU = "contextmenu";
