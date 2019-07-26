@@ -14,7 +14,7 @@
 
 
 
-class nsHTMLReflowState;
+struct nsHTMLReflowState;
 
 
 #define NS_REFLOW_CALC_BOUNDING_METRICS  0x0001

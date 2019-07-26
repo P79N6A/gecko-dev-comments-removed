@@ -209,9 +209,9 @@ namespace jit {
 
 namespace types {
 
-class TypeZone;
+struct TypeZone;
 class TypeSet;
-class TypeObjectKey;
+struct TypeObjectKey;
 
 
 
@@ -1400,7 +1400,7 @@ struct TypeObjectKey
 
 class HeapTypeSetKey
 {
-    friend class TypeObjectKey;
+    friend struct TypeObjectKey;
 
     
     TypeObjectKey *object_;

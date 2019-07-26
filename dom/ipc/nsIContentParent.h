@@ -31,7 +31,7 @@ class CpowEntry;
 } 
 
 namespace dom {
-struct IPCTabContext;
+class IPCTabContext;
 class ContentParent;
 
 class nsIContentParent : public nsISupports

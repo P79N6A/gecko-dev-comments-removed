@@ -19,7 +19,7 @@
 
 namespace js {
 
-class ContextFriendFields;
+struct ContextFriendFields;
 
 
 class SystemAllocPolicy

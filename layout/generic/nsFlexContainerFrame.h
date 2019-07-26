@@ -35,7 +35,7 @@ public:
   class FlexItem;
   class FlexLine;
   class FlexboxAxisTracker;
-  class StrutInfo;
+  struct StrutInfo;
 
   
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,

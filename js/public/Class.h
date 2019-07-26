@@ -24,12 +24,12 @@
 
 
 
-class JSFreeOp;
+struct JSFreeOp;
 struct JSFunctionSpec;
 
 namespace js {
 
-class Class;
+struct Class;
 class FreeOp;
 class PropertyName;
 class Shape;

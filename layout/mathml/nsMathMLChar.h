@@ -20,9 +20,9 @@ class nsDisplayListBuilder;
 class nsDisplayListSet;
 class nsPresContext;
 class nsRenderingContext;
-class nsBoundingMetrics;
+struct nsBoundingMetrics;
 class nsStyleContext;
-class nsFont;
+struct nsFont;
 
 
 enum {

@@ -12,8 +12,8 @@
 
 namespace mozilla {
 
-class VideoTrackConstraintsN;
-class AudioTrackConstraintsN;
+struct VideoTrackConstraintsN;
+struct AudioTrackConstraintsN;
 
 
 
@@ -24,7 +24,7 @@ class AudioTrackConstraintsN;
 
 class MediaEngineVideoSource;
 class MediaEngineAudioSource;
-struct MediaEnginePrefs;
+class MediaEnginePrefs;
 
 enum MediaEngineState {
   kAllocated,

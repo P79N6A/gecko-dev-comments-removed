@@ -249,7 +249,7 @@ void set_tls_stack_top(void* stackTop);
 
 
 
-class PseudoStack;
+struct PseudoStack;
 class ThreadProfile;
 
 

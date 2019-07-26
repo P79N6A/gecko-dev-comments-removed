@@ -72,8 +72,8 @@ class DOMMediaStream;
 #endif
 
 namespace dom {
-class RTCConfiguration;
-class MediaConstraintsInternal;
+struct RTCConfiguration;
+struct MediaConstraintsInternal;
 class MediaStreamTrack;
 
 #ifdef USE_FAKE_PCOBSERVER
@@ -207,7 +207,7 @@ class PeerConnectionImpl MOZ_FINAL : public nsISupports,
 #endif
                                      public sigslot::has_slots<>
 {
-  class Internal; 
+  struct Internal; 
 
 public:
   PeerConnectionImpl(const mozilla::dom::GlobalObject* aGlobal = nullptr);

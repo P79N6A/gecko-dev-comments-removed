@@ -11256,7 +11256,7 @@ class CGForwardDeclarations(CGWrapper):
             builder.add(d.nativeType)
 
         
-        builder.addInMozillaDom("NativePropertyHooks")
+        builder.addInMozillaDom("NativePropertyHooks", isStruct=True)
         builder.addInMozillaDom("ProtoAndIfaceCache")
         
         for d in descriptors:
