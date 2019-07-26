@@ -499,7 +499,7 @@ class HeapSlot : public EncapsulatedValue
 
 
 inline void
-SlotRangeWriteBarrierPost(JSCompartment *comp, JSObject *obj, uint32_t start, uint32_t count);
+DenseRangeWriteBarrierPost(JSCompartment *comp, JSObject *obj, uint32_t start, uint32_t count);
 
 
 

@@ -791,6 +791,11 @@ struct JSRuntime : js::RuntimeFriendFields
     
 
 
+    bool                gcGenerationalEnabled;
+
+    
+
+
 
 
     bool                gcExactScanningEnabled;
