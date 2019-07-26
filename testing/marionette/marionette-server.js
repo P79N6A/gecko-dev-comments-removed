@@ -555,6 +555,7 @@ MarionetteServerConnection.prototype = {
     let caps = {
       
       "browserName": appName,
+      "browserVersion": Services.appinfo.version,
       "platformName": platformName,
       "platformVersion": Services.appinfo.platformVersion,
 
