@@ -87,50 +87,25 @@ nsSVGFilterInstance::nsSVGFilterInstance(const nsStyleFilter& aFilter,
   
   
 
-  gfxIntSize filterRes;
-  const nsSVGIntegerPair* filterResAttrs =
-    mFilterFrame->GetIntegerPairValue(SVGFilterElement::FILTERRES);
-  if (filterResAttrs->IsExplicitlySet()) {
-    int32_t filterResX = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eFirst);
-    int32_t filterResY = filterResAttrs->GetAnimValue(nsSVGIntegerPair::eSecond);
-    if (filterResX <= 0 || filterResY <= 0) {
-      
-      return;
-    }
-
-    mFilterRegion.Scale(filterResX, filterResY);
-    mFilterRegion.RoundOut();
-    mFilterRegion.Scale(1.0 / filterResX, 1.0 / filterResY);
+  
+  
+  gfxMatrix canvasTM =
+    nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
+  if (canvasTM.IsSingular()) {
     
-    
-    bool overflow;
-    filterRes =
-      nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
-                                       &overflow);
-    
-    
-  } else {
-    
-    
-    gfxMatrix canvasTM =
-      nsSVGUtils::GetCanvasTM(mTargetFrame, nsISVGChildFrame::FOR_OUTERSVG_TM);
-    if (canvasTM.IsSingular()) {
-      
-      return;
-    }
-
-    gfxSize scale = canvasTM.ScaleFactors(true);
-    mFilterRegion.Scale(scale.width, scale.height);
-    mFilterRegion.RoundOut();
-    
-    
-    bool overflow;
-    filterRes = nsSVGUtils::ConvertToSurfaceSize(mFilterRegion.Size(),
-                                                 &overflow);
-    mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
+    return;
   }
 
-  mFilterSpaceBounds.SetRect(nsIntPoint(0, 0), filterRes);
+  gfxSize scale = canvasTM.ScaleFactors(true);
+  mFilterRegion.Scale(scale.width, scale.height);
+  mFilterRegion.RoundOut();
+
+  
+  
+  bool overflow;
+  mFilterSpaceBounds.SetRect(nsIntPoint(0, 0),
+    nsSVGUtils::ConvertToSurfaceSize(mFilterRegion.Size(), &overflow));
+  mFilterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
 
   mInitialized = true;
 }
