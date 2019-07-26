@@ -50,12 +50,6 @@ public:
                                       const uint8_t *aFontData,
                                       uint32_t aLength);
 
-    
-    
-
-    
-    PangoLanguage *GetPangoLanguage() { return mPangoLanguage; }
-
 private:
     
     
