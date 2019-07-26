@@ -108,8 +108,11 @@ const gValidKeyPoints = [
   "0; 0.000001; 1",
 ];
 
+
+
 const gInvalidKeyPoints = [
   "0; 1",
+  "0; 0.5; 0.75; 1",
   "0; 1;",
   "0",
   "1",

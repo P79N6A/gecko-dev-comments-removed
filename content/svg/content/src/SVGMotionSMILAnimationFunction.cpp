@@ -377,16 +377,12 @@ SVGMotionSMILAnimationFunction::CheckKeyPoints()
     SetKeyPointsErrorFlag(false);
   }
 
-  if (mKeyPoints.IsEmpty()) {
+  if (mKeyPoints.Length() != mKeyTimes.Length()) {
     
     SetKeyPointsErrorFlag(true);
     return;
   }
 
-  
-  
-  
-  
   
   
   
