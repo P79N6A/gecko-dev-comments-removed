@@ -832,6 +832,14 @@ TraceJSHolder(void* aHolder, nsScriptObjectTracer*& aTracer, void* aArg)
 }
 
 void
+mozilla::TraceScriptHolder(nsISupports* aHolder, JSTracer* aTracer)
+{
+  nsXPCOMCycleCollectionParticipant* participant = nullptr;
+  CallQueryInterface(aHolder, &participant);
+  participant->Trace(aHolder, JsGcTracer(), aTracer);
+}
+
+void
 CycleCollectedJSRuntime::TraceNativeGrayRoots(JSTracer* aTracer)
 {
   
