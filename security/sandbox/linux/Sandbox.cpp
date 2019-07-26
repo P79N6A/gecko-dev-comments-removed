@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/Sandbox.h"
+
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/ptrace.h>
@@ -11,10 +13,19 @@
 #include <sys/syscall.h>
 #include <signal.h>
 #include <string.h>
+#include <linux/futex.h>
+#include <sys/time.h>
+#include <dirent.h>
+#include <stdlib.h>
+#include <pthread.h>
 
+#include "mozilla/Atomics.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/NullPtr.h"
 #include "mozilla/unused.h"
+#include "mozilla/dom/Exceptions.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -25,10 +36,6 @@
 #include <android/log.h>
 #endif
 #include "seccomp_filter.h"
-
-#include "mozilla/dom/Exceptions.h"
-#include "nsString.h"
-#include "nsThreadUtils.h"
 
 #include "linux_seccomp.h"
 #ifdef MOZ_LOGGING
@@ -47,6 +54,8 @@ static PRLogModuleInfo* gSeccompSandboxLog;
 #define LOG_ERROR(args...)
 #endif
 
+
+#ifdef MOZ_CONTENT_SANDBOX
 struct sock_filter seccomp_filter[] = {
   VALIDATE_ARCHITECTURE,
   EXAMINE_SYSCALL,
@@ -221,7 +230,191 @@ InstallSyscallFilter(void)
   }
   return 0;
 }
+#endif
 
+#if defined(ANDROID) || defined(MOZ_CONTENT_SANDBOX)
+
+static base::ChildPrivileges sSetPrivilegesTo;
+
+static mozilla::Atomic<int> sSetSandboxDone;
+
+
+static const int sSetSandboxSignum = SIGRTMIN + 3;
+#endif
+
+static bool
+SetThreadSandbox(base::ChildPrivileges aPrivs, bool aIsMainThread)
+{
+  bool didAnything = false;
+  bool shouldSetPrivs = aIsMainThread;
+#if defined(ANDROID)
+  shouldSetPrivs = true;
+#endif
+
+  if (shouldSetPrivs && (aIsMainThread || geteuid() == 0)) {
+    SetCurrentProcessPrivileges(aPrivs);
+    if (aPrivs != base::PRIVILEGES_INHERIT) {
+      didAnything = true;
+    }
+  }
+#if defined(MOZ_CONTENT_SANDBOX)
+  if (PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX") == nullptr &&
+      prctl(PR_GET_SECCOMP, 0, 0, 0, 0) == 0) {
+    if (InstallSyscallFilter() == 0) {
+      didAnything = true;
+    }
+    
+
+
+
+
+  }
+#endif
+  return didAnything;
+}
+
+#if defined(ANDROID) || defined(MOZ_CONTENT_SANDBOX)
+static void
+SetThreadSandboxHandler(int signum)
+{
+  
+  
+  if (SetThreadSandbox(sSetPrivilegesTo,  false)) {
+    sSetSandboxDone = 2;
+  } else {
+    sSetSandboxDone = 1;
+  }
+  
+  
+  syscall(__NR_futex, reinterpret_cast<int*>(&sSetSandboxDone),
+          FUTEX_WAKE, 1);
+}
+
+static void
+BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
+{
+  pid_t pid, tid;
+  DIR *taskdp;
+  struct dirent *de;
+
+  static_assert(sizeof(mozilla::Atomic<int>) == sizeof(int),
+                "mozilla::Atomic<int> isn't represented by an int");
+  MOZ_ASSERT(NS_IsMainThread());
+  pid = getpid();
+  taskdp = opendir("/proc/self/task");
+  if (taskdp == nullptr) {
+    LOG_ERROR("opendir /proc/self/task: %s\n", strerror(errno));
+    MOZ_CRASH();
+  }
+  if (signal(sSetSandboxSignum, SetThreadSandboxHandler) != SIG_DFL) {
+    LOG_ERROR("signal %d in use!\n", sSetSandboxSignum);
+    MOZ_CRASH();
+  }
+
+  
+  
+  
+  sSetPrivilegesTo = aPrivs;
+  bool sandboxProgress;
+  do {
+    sandboxProgress = false;
+    
+    while ((de = readdir(taskdp))) {
+      char *endptr;
+      tid = strtol(de->d_name, &endptr, 10);
+      if (*endptr != '\0' || tid <= 0) {
+        
+        continue;
+      }
+      if (tid == pid) {
+        
+        
+        continue;
+      }
+      
+      sSetSandboxDone = 0;
+      if (syscall(__NR_tgkill, pid, tid, sSetSandboxSignum) != 0) {
+        if (errno == ESRCH) {
+          LOG_ERROR("Thread %d unexpectedly exited.", tid);
+          
+          sandboxProgress = true;
+          continue;
+        }
+        LOG_ERROR("tgkill(%d,%d): %s\n", pid, tid, strerror(errno));
+        MOZ_CRASH();
+      }
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      static const int crashDelay = 10; 
+      struct timespec timeLimit;
+      clock_gettime(CLOCK_MONOTONIC, &timeLimit);
+      timeLimit.tv_sec += crashDelay;
+      while (true) {
+        static const struct timespec futexTimeout = { 0, 10*1000*1000 }; 
+        
+        if (syscall(__NR_futex, reinterpret_cast<int*>(&sSetSandboxDone),
+                  FUTEX_WAIT, 0, &futexTimeout) != 0) {
+          if (errno != EWOULDBLOCK && errno != ETIMEDOUT && errno != EINTR) {
+            LOG_ERROR("FUTEX_WAIT: %s\n", strerror(errno));
+            MOZ_CRASH();
+          }
+        }
+        
+        if (sSetSandboxDone > 0) {
+          if (sSetSandboxDone == 2) {
+            sandboxProgress = true;
+          }
+          break;
+        }
+        
+        if (syscall(__NR_tgkill, pid, tid, 0) != 0) {
+          if (errno == ESRCH) {
+            LOG_ERROR("Thread %d unexpectedly exited.", tid);
+          }
+          
+          
+          
+          sandboxProgress = true;
+          break;
+        }
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        if (now.tv_sec > timeLimit.tv_nsec ||
+            (now.tv_sec == timeLimit.tv_nsec &&
+             now.tv_nsec > timeLimit.tv_nsec)) {
+          LOG_ERROR("Thread %d unresponsive for %d seconds.  Killing process.",
+                    tid, crashDelay);
+          MOZ_CRASH();
+        }
+      }
+    }
+    rewinddir(taskdp);
+  } while (sandboxProgress);
+  unused << signal(sSetSandboxSignum, SIG_DFL);
+  unused << closedir(taskdp);
+  
+  SetThreadSandbox(aPrivs,  true);
+}
+#else
+static void
+BroadcastSetThreadSandbox(base::ChildPrivileges aPrivs)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  SetThreadSandbox(aPrivs,  true);
+}
+#endif
 
 
 
@@ -230,11 +423,8 @@ InstallSyscallFilter(void)
 
 
 void
-SetCurrentProcessSandbox(void)
+SetCurrentProcessSandbox(base::ChildPrivileges aPrivs)
 {
-  if (PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX"))
-    return;
-
 #if !defined(ANDROID) && defined(PR_LOGGING)
   if (!gSeccompSandboxLog) {
     gSeccompSandboxLog = PR_NewLogModule("SeccompSandbox");
@@ -242,29 +432,14 @@ SetCurrentProcessSandbox(void)
   PR_ASSERT(gSeccompSandboxLog);
 #endif
 
-#ifdef MOZ_CONTENT_SANDBOX_REPORTER
+#if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_CONTENT_SANDBOX_REPORTER)
   if (InstallSyscallReporter()) {
     LOG_ERROR("install_syscall_reporter() failed\n");
-    
-
-
-
-
-    
   }
-
 #endif
 
-  if (InstallSyscallFilter()) {
-    LOG_ERROR("install_syscall_filter() failed\n");
-    
-
-
-
-
-    
-  }
-
+  BroadcastSetThreadSandbox(aPrivs);
 }
+
 } 
 
