@@ -2048,11 +2048,17 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     oldTimedChannel->GetResponseEnd(&prevResponseEnd);
     newTimedChannel->SetRedirectEnd(prevResponseEnd);
 
+    nsAutoString initiatorType;
+    oldTimedChannel->GetInitiatorType(initiatorType);
+    newTimedChannel->SetInitiatorType(initiatorType);
+
     
     newTimedChannel->SetAllRedirectsSameOrigin(
         mAllRedirectsSameOrigin && SameOriginWithOriginalUri(newURI));
   }
 
+  
+  mTimingEnabled = false;
   return NS_OK;
 }
 
