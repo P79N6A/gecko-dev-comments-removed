@@ -28,7 +28,7 @@ function run_test() {
 
   test_BrokenFile("chrome://test/content/test.jsm",
                   true,
-                  "NS_ERROR_ILLEGAL_VALUE");
+                  "NS_ERROR_NOT_AVAILABLE");
 
   
   
