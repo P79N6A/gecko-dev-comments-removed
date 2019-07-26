@@ -174,6 +174,18 @@ struct JS_PUBLIC_API(NullPtr)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 template <typename T>
 class Heap : public js::HeapBase<T>
 {
