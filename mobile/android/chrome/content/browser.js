@@ -613,6 +613,13 @@ var BrowserApp = {
     
     Services.obs.notifyObservers(null, "FormHistory:Init", "");
     Services.obs.notifyObservers(null, "Passwords:Init", "");
+
+    
+    
+    if (Services.prefs.prefHasUserValue("plugins.click_to_play")) {
+      Services.prefs.setIntPref("plugin.default.state", Ci.nsIPluginTag.STATE_ENABLED);
+      Services.prefs.clearUserPref("plugins.click_to_play");
+    }
   },
 
   shutdown: function shutdown() {
