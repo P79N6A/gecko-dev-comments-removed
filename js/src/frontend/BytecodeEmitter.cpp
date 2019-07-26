@@ -1473,12 +1473,8 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 static bool
 CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answer)
 {
-    bool ok;
-    ParseNode *pn2;
-
-    ok = true;
     if (!pn || *answer)
-        return ok;
+        return true;
 
     switch (pn->getArity()) {
       case PN_FUNC:
@@ -1489,8 +1485,8 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
 
 
 
-        *answer = false;
-        break;
+        MOZ_ASSERT(*answer == false);
+        return true;
 
       case PN_LIST:
         if (pn->isOp(JSOP_NOP) || pn->isOp(JSOP_OR) || pn->isOp(JSOP_AND) ||
@@ -1499,35 +1495,39 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
 
 
 
-            for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
+            bool ok = true;
+            for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
                 ok &= CheckSideEffects(cx, bce, pn2, answer);
-        } else if (pn->isKind(PNK_GENEXP)) {
-            
-            *answer = false;
-        } else {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-            *answer = true;
+            return ok;
         }
-        break;
+
+        if (pn->isKind(PNK_GENEXP)) {
+            
+            MOZ_ASSERT(*answer == false);
+            return true;
+        }
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+        *answer = true;
+        return true;
 
       case PN_TERNARY:
-        ok = CheckSideEffects(cx, bce, pn->pn_kid1, answer) &&
-             CheckSideEffects(cx, bce, pn->pn_kid2, answer) &&
-             CheckSideEffects(cx, bce, pn->pn_kid3, answer);
-        break;
+        return CheckSideEffects(cx, bce, pn->pn_kid1, answer) &&
+               CheckSideEffects(cx, bce, pn->pn_kid2, answer) &&
+               CheckSideEffects(cx, bce, pn->pn_kid3, answer);
 
       case PN_BINARY:
         if (pn->isAssignment()) {
@@ -1540,7 +1540,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
 
 
 
-            pn2 = pn->pn_left;
+            ParseNode *pn2 = pn->pn_left;
             if (!pn2->isKind(PNK_NAME)) {
                 *answer = true;
             } else {
@@ -1551,36 +1551,38 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
                 if (!*answer && (!pn->isOp(JSOP_NOP) || !pn2->isConst()))
                     *answer = true;
             }
-        } else {
-            if (pn->isOp(JSOP_OR) || pn->isOp(JSOP_AND) || pn->isOp(JSOP_STRICTEQ) ||
-                pn->isOp(JSOP_STRICTNE)) {
-                
-
-
-
-                ok = CheckSideEffects(cx, bce, pn->pn_left, answer) &&
-                     CheckSideEffects(cx, bce, pn->pn_right, answer);
-            } else {
-                
-
-
-
-                *answer = true;
-            }
+            return true;
         }
-        break;
+
+        if (pn->isOp(JSOP_OR) || pn->isOp(JSOP_AND) || pn->isOp(JSOP_STRICTEQ) ||
+            pn->isOp(JSOP_STRICTNE)) {
+            
+
+
+
+            return CheckSideEffects(cx, bce, pn->pn_left, answer) &&
+                   CheckSideEffects(cx, bce, pn->pn_right, answer);
+        }
+
+        
+
+
+
+        *answer = true;
+        return true;
 
       case PN_UNARY:
         switch (pn->getKind()) {
           case PNK_DELETE:
-            pn2 = pn->pn_kid;
+          {
+            ParseNode *pn2 = pn->pn_kid;
             switch (pn2->getKind()) {
               case PNK_NAME:
                 if (!BindNameToSlot(cx, bce, pn2))
                     return false;
                 if (pn2->isConst()) {
-                    *answer = false;
-                    break;
+                    MOZ_ASSERT(*answer == false);
+                    return true;
                 }
                 
               case PNK_DOT:
@@ -1588,12 +1590,13 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
               case PNK_ELEM:
                 
                 *answer = true;
-                break;
+                return true;
               default:
-                ok = CheckSideEffects(cx, bce, pn2, answer);
-                break;
+                return CheckSideEffects(cx, bce, pn2, answer);
             }
-            break;
+            MOZ_NOT_REACHED("We have a returning default case");
+            return false;
+          }
 
           case PNK_TYPEOF:
           case PNK_VOID:
@@ -1601,8 +1604,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
           case PNK_BITNOT:
             if (pn->isOp(JSOP_NOT)) {
                 
-                ok = CheckSideEffects(cx, bce, pn->pn_kid, answer);
-                break;
+                return CheckSideEffects(cx, bce, pn->pn_kid, answer);
             }
             
 
@@ -1614,9 +1616,10 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
 
 
             *answer = true;
-            break;
+            return true;
         }
-        break;
+        MOZ_NOT_REACHED("We have a returning default case");
+        return false;
 
       case PN_NAME:
         
@@ -1640,15 +1643,14 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
             
             *answer = true;
         }
-        ok = CheckSideEffects(cx, bce, pn->maybeExpr(), answer);
-        break;
+        return CheckSideEffects(cx, bce, pn->maybeExpr(), answer);
 
       case PN_NULLARY:
         if (pn->isKind(PNK_DEBUGGER))
             *answer = true;
-        break;
+        return true;
     }
-    return ok;
+    return true;
 }
 
 bool
