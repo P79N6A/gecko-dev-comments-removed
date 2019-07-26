@@ -319,7 +319,17 @@ HomeStorage.prototype = {
 
 
 
-  save: function(data) {
+
+
+
+
+
+
+
+
+
+
+  save: function(data, options) {
     if (data && data.length > MAX_SAVE_COUNT) {
       throw "save failed for dataset = " + this.datasetId +
         ": you cannot save more than " + MAX_SAVE_COUNT + " items at once";
@@ -329,6 +339,10 @@ HomeStorage.prototype = {
       let db = yield getDatabaseConnection();
       try {
         yield db.executeTransaction(function save_transaction() {
+          if (options && options.replace) {
+            yield db.executeCached(SQL.deleteFromDataset, { dataset_id: this.datasetId });
+          }
+
           
           for (let item of data) {
             validateItem(this.datasetId, item);
