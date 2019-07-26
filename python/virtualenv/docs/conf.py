@@ -14,6 +14,8 @@
 import os
 import sys
 
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
 
 sys.path.insert(0, os.path.abspath(os.pardir))
 
@@ -36,7 +38,7 @@ master_doc = 'index'
 
 
 project = 'virtualenv'
-copyright = '2007-2013, Ian Bicking, The Open Planning Project, The virtualenv developers'
+copyright = '2007-2014, Ian Bicking, The Open Planning Project, PyPA'
 
 
 
@@ -81,8 +83,14 @@ pygments_style = 'sphinx'
 
 
 
-html_theme = 'nature'
-html_theme_path = ['_theme']
+if os.environ.get('DOCS_LOCAL'):
+    import sphinx_rtd_theme
+    html_theme = "sphinx_rtd_theme"
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+else:
+    
+    html_theme = 'default'
+
 
 
 
