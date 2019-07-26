@@ -4302,7 +4302,9 @@ pref("dom.sms.enabled", false);
 
 pref("dom.sms.strict7BitEncoding", false);
 pref("dom.sms.requestStatusReport", true);
-pref("dom.mms.requestStatusReport", true);
+
+
+pref("dom.sms.defaultServiceId", 0);
 
 
 pref("dom.mozContacts.enabled", false);
@@ -4428,6 +4430,8 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 
 pref("dom.mms.version", 19);
 
+pref("dom.mms.requestStatusReport", true);
+
 
 
 
@@ -4442,7 +4446,12 @@ pref("dom.mms.retrievalRetryCount", 4);
 pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 
 
+pref("dom.mms.defaultServiceId", 0);
+
 pref("mms.debugging.enabled", false);
+
+
+pref("ril.numRadioInterfaces", 0);
 
 
 
@@ -4481,6 +4490,9 @@ pref("dom.datastore.enabled", false);
 pref("dom.telephony.enabled", false);
 
 
+pref("dom.telephony.defaultServiceId", 0);
+
+
 pref("dom.cellbroadcast.enabled", false);
 
 
@@ -4491,6 +4503,9 @@ pref("dom.mobileconnection.enabled", false);
 
 
 pref("dom.voicemail.enabled", false);
+
+
+pref("dom.voicemail.defaultServiceId", 0);
 
 
 pref("dom.inter-app-communication-api.enabled", false);

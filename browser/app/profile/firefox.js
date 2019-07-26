@@ -1166,6 +1166,9 @@ pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.transitions", true);
 
 
+pref("devtools.shadereditor.enabled", false);
+
+
 pref("devtools.chrome.enabled", false);
 
 
