@@ -181,11 +181,10 @@ test(
       { encoding: 'utf-8', input: [0xE0, 0x80, 0xC0] }, 
       { encoding: 'utf-8', input: [0xFC, 0x80, 0x80, 0x80, 0x80, 0x80] }, 
       { encoding: 'utf-16', input: [0x00] }, 
-      
-      
-      
-      
-      
+      { encoding: 'utf-16', input: [0x00, 0xd8] }, 
+      { encoding: 'utf-16', input: [0x00, 0xd8, 0x00, 0x00] }, 
+      { encoding: 'utf-16', input: [0x00, 0xdc, 0x00, 0x00] }, 
+      { encoding: 'utf-16', input: [0x00, 0xdc, 0x00, 0xd8] }  
       
     ];
 

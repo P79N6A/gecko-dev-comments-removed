@@ -16,6 +16,10 @@ protected:
   
   nsUTF16ToUnicodeBase() { Reset();}
 
+  nsresult UTF16ConvertToUnicode(const char * aSrc,
+                                 int32_t * aSrcLength, PRUnichar * aDest,
+                                 int32_t * aDestLength, bool aSwapBytes);
+
 public: 
   
   
