@@ -296,6 +296,9 @@ CertErrorRunnable::CheckCertOverrides()
 {
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p][%p] top of CheckCertOverrides\n",
                                     mFdForLogging, this));
+  
+  
+  unused << mFdForLogging;
 
   if (!NS_IsMainThread()) {
     NS_ERROR("CertErrorRunnable::CheckCertOverrides called off main thread");
