@@ -140,6 +140,11 @@ pref("dom.undo_manager.enabled", false);
 
 
 
+
+pref("dom.compartment_per_addon", false);
+
+
+
 pref("browser.sessionhistory.max_total_viewers", -1);
 
 pref("ui.use_native_colors", true);

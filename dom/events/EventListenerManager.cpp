@@ -6,6 +6,7 @@
 
 #undef CreateEvent
 
+#include "mozilla/AddonPathService.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/EventDispatcher.h"
@@ -842,6 +843,8 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
                                    typeAtom, win,
                                    &argCount, &argNames);
 
+  JSAddonId *addonId = MapURIToAddonID(uri);
+
   
   
   
@@ -856,6 +859,17 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
                                               false);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
+    }
+  }
+  if (addonId) {
+    JS::Rooted<JSObject*> vObj(cx, &v.toObject());
+    JS::Rooted<JSObject*> addonScope(cx, xpc::GetAddonScope(cx, vObj, addonId));
+    if (!addonScope) {
+      return NS_ERROR_FAILURE;
+    }
+    JSAutoCompartment ac(cx, addonScope);
+    if (!JS_WrapValue(cx, &v)) {
+      return NS_ERROR_FAILURE;
     }
   }
   JS::Rooted<JSObject*> target(cx, &v.toObject());
