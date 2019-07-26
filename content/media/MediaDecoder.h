@@ -685,6 +685,10 @@ public:
 
   
   
+  virtual void ApplyStateToStateMachine(PlayState aState);
+
+  
+  
   void OnReadMetadataCompleted() MOZ_OVERRIDE { }
 
   
@@ -766,6 +770,9 @@ public:
 
 #ifdef MOZ_WEBM
   static bool IsWebMEnabled();
+#endif
+#ifdef MOZ_RTSP
+  static bool IsRtspEnabled();
 #endif
 
 #ifdef MOZ_GSTREAMER

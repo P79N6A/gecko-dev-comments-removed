@@ -12,6 +12,7 @@
 #endif
 #include "nsIChannel.h"
 #include "nsIURI.h"
+#include "nsIStreamingProtocolController.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
@@ -182,6 +183,7 @@ inline MediaByteRange::MediaByteRange(TimestampedMediaByteRange& aByteRange)
   NS_ASSERTION(mStart < mEnd, "Range should end after start!");
 }
 
+class RtspMediaResource;
 
 
 
@@ -391,6 +393,18 @@ public:
   
   
   virtual const nsCString& GetContentType() const = 0;
+
+  
+  
+  virtual RtspMediaResource* GetRtspPointer() {
+    return nullptr;
+  }
+
+  
+  virtual bool IsRealTime() {
+    return false;
+  }
+
 protected:
   virtual ~MediaResource() {};
 };

@@ -2505,7 +2505,19 @@ nsresult HTMLMediaElement::InitializeDecoderForChannel(nsIChannel* aChannel,
   
   mChannel = nullptr;
 
-  return FinishDecoderSetup(decoder, resource, aListener, nullptr);
+  
+  
+  
+  if (DecoderTraits::DecoderWaitsForOnConnected(mimeType)) {
+    decoder->SetResource(resource);
+    mDecoder = decoder;
+    if (aListener) {
+      *aListener = nullptr;
+    }
+    return NS_OK;
+  } else {
+    return FinishDecoderSetup(decoder, resource, aListener, nullptr);
+  }
 }
 
 nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,

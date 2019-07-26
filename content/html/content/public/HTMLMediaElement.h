@@ -536,6 +536,13 @@ public:
     }
   }
 
+  
+
+
+  nsresult FinishDecoderSetup(MediaDecoder* aDecoder, MediaResource* aStream) {
+    return FinishDecoderSetup(aDecoder, aStream, nullptr, nullptr);
+  }
+
 protected:
   class MediaLoadListener;
   class StreamListener;

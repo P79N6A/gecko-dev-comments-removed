@@ -5,6 +5,7 @@
 #include <stagefright/DataSource.h>
 #include <stagefright/MediaSource.h>
 #include <utils/RefBase.h>
+#include <stagefright/MediaExtractor.h>
 
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
@@ -172,7 +173,16 @@ public:
   
   virtual void statusChanged();
 
-  bool Init();
+  
+  
+  
+  
+  
+  
+  
+  
+  bool Init(sp<MediaExtractor>& extractor);
+
   bool TryLoad();
   bool IsDormantNeeded();
   bool IsWaitingMediaResources();

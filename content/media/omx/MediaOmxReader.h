@@ -26,7 +26,6 @@ class AbstractMediaDecoder;
 class MediaOmxReader : public MediaDecoderReader
 {
   nsCString mType;
-  android::sp<android::OmxDecoder> mOmxDecoder;
   bool mHasVideo;
   bool mHasAudio;
   nsIntRect mPicture;
@@ -34,6 +33,16 @@ class MediaOmxReader : public MediaDecoderReader
   int64_t mVideoSeekTimeUs;
   int64_t mAudioSeekTimeUs;
   int32_t mSkipCount;
+
+protected:
+  android::sp<android::OmxDecoder> mOmxDecoder;
+
+  
+  
+  
+  
+  virtual nsresult InitOmxDecoder();
+
 public:
   MediaOmxReader(AbstractMediaDecoder* aDecoder);
   ~MediaOmxReader();

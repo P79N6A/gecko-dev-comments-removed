@@ -57,6 +57,10 @@ public:
   
   
   static bool IsSupportedInVideoDocument(const nsACString& aType);
+
+  
+  
+  static bool DecoderWaitsForOnConnected(const nsACString& aType);
 };
 
 }
