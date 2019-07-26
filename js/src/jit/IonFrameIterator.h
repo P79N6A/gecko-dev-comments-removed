@@ -27,39 +27,39 @@ enum FrameType
 {
     
     
-    IonFrame_OptimizedJS,
+    JitFrame_IonJS,
 
     
-    IonFrame_BaselineJS,
-
-    
-    
-    IonFrame_BaselineStub,
+    JitFrame_BaselineJS,
 
     
     
-    IonFrame_Entry,
+    JitFrame_BaselineStub,
 
     
     
-    IonFrame_Rectifier,
+    JitFrame_Entry,
 
     
     
-    
-    IonFrame_Unwound_OptimizedJS,
-
-    
-    IonFrame_Unwound_BaselineStub,
-
-    
-    
-    IonFrame_Unwound_Rectifier,
+    JitFrame_Rectifier,
 
     
     
     
-    IonFrame_Exit
+    JitFrame_Unwound_IonJS,
+
+    
+    JitFrame_Unwound_BaselineStub,
+
+    
+    
+    JitFrame_Unwound_Rectifier,
+
+    
+    
+    
+    JitFrame_Exit
 };
 
 enum ReadFrameArgsBehavior {
@@ -99,7 +99,7 @@ class IonFrameIterator
   public:
     explicit IonFrameIterator(uint8_t *top, ExecutionMode mode)
       : current_(top),
-        type_(IonFrame_Exit),
+        type_(JitFrame_Exit),
         returnAddressToFp_(nullptr),
         frameSize_(0),
         cachedSafepointIndex_(nullptr),
@@ -141,16 +141,16 @@ class IonFrameIterator
     bool checkInvalidation() const;
 
     bool isScripted() const {
-        return type_ == IonFrame_BaselineJS || type_ == IonFrame_OptimizedJS;
+        return type_ == JitFrame_BaselineJS || type_ == JitFrame_IonJS;
     }
     bool isBaselineJS() const {
-        return type_ == IonFrame_BaselineJS;
+        return type_ == JitFrame_BaselineJS;
     }
-    bool isOptimizedJS() const {
-        return type_ == IonFrame_OptimizedJS;
+    bool isIonJS() const {
+        return type_ == JitFrame_IonJS;
     }
     bool isBaselineStub() const {
-        return type_ == IonFrame_BaselineStub;
+        return type_ == JitFrame_BaselineStub;
     }
     bool isNative() const;
     bool isOOLNative() const;
@@ -158,7 +158,7 @@ class IonFrameIterator
     bool isOOLProxy() const;
     bool isDOMExit() const;
     bool isEntry() const {
-        return type_ == IonFrame_Entry;
+        return type_ == JitFrame_Entry;
     }
     bool isFunctionFrame() const;
 
@@ -186,14 +186,14 @@ class IonFrameIterator
     
     
     size_t frameSize() const {
-        JS_ASSERT(type_ != IonFrame_Exit);
+        JS_ASSERT(type_ != JitFrame_Exit);
         return frameSize_;
     }
 
     
     
     inline bool done() const {
-        return type_ == IonFrame_Entry;
+        return type_ == JitFrame_Entry;
     }
     IonFrameIterator &operator++();
 

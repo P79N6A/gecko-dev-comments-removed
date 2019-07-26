@@ -320,20 +320,20 @@ struct BaselineStackBuilder
         
         
         
-        if (type == IonFrame_OptimizedJS || type == IonFrame_Entry)
+        if (type == JitFrame_IonJS || type == JitFrame_Entry)
             return nullptr;
 
         
         
         
         
-        if (type == IonFrame_BaselineStub) {
+        if (type == JitFrame_BaselineStub) {
             size_t offset = IonJSFrameLayout::Size() + topFrame->prevFrameLocalSize() +
                             IonBaselineStubFrameLayout::reverseOffsetOfSavedFramePtr();
             return virtualPointerAtStackOffset(offset);
         }
 
-        JS_ASSERT(type == IonFrame_Rectifier);
+        JS_ASSERT(type == JitFrame_Rectifier);
         
         
         
@@ -350,11 +350,11 @@ struct BaselineStackBuilder
         BufferPointer<IonRectifierFrameLayout> priorFrame =
             pointerAtStackOffset<IonRectifierFrameLayout>(priorOffset);
         FrameType priorType = priorFrame->prevType();
-        JS_ASSERT(priorType == IonFrame_OptimizedJS || priorType == IonFrame_BaselineStub);
+        JS_ASSERT(priorType == JitFrame_IonJS || priorType == JitFrame_BaselineStub);
 
         
         
-        if (priorType == IonFrame_OptimizedJS)
+        if (priorType == JitFrame_IonJS)
             return nullptr;
 
         
@@ -1045,7 +1045,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     size_t baselineFrameDescr = MakeFrameDescriptor((uint32_t) builder.framePushed(),
-                                                    IonFrame_BaselineJS);
+                                                    JitFrame_BaselineJS);
     if (!builder.writeWord(baselineFrameDescr, "Descriptor"))
         return false;
 
@@ -1134,7 +1134,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     size_t baselineStubFrameSize = builder.framePushed() - startOfBaselineStubFrame;
     size_t baselineStubFrameDescr = MakeFrameDescriptor((uint32_t) baselineStubFrameSize,
-                                                        IonFrame_BaselineStub);
+                                                        JitFrame_BaselineStub);
 
     
     if (!builder.writeWord(actualArgc, "ActualArgc"))
@@ -1228,7 +1228,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     size_t rectifierFrameSize = builder.framePushed() - startOfRectifierFrame;
     size_t rectifierFrameDescr = MakeFrameDescriptor((uint32_t) rectifierFrameSize,
-                                                     IonFrame_Rectifier);
+                                                     JitFrame_Rectifier);
 
     
     if (!builder.writeWord(actualArgc, "ActualArgc"))
@@ -1269,12 +1269,12 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     
     
     
-    JS_ASSERT(iter.isOptimizedJS());
+    JS_ASSERT(iter.isIonJS());
     FrameType prevFrameType = iter.prevType();
-    JS_ASSERT(prevFrameType == IonFrame_OptimizedJS ||
-              prevFrameType == IonFrame_BaselineStub ||
-              prevFrameType == IonFrame_Entry ||
-              prevFrameType == IonFrame_Rectifier);
+    JS_ASSERT(prevFrameType == JitFrame_IonJS ||
+              prevFrameType == JitFrame_BaselineStub ||
+              prevFrameType == JitFrame_Entry ||
+              prevFrameType == JitFrame_Rectifier);
 
     
     
@@ -1523,7 +1523,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
     uint32_t frameno = 0;
     while (frameno < numFrames) {
-        JS_ASSERT(!iter.isOptimizedJS());
+        JS_ASSERT(!iter.isIonJS());
 
         if (iter.isBaselineJS()) {
             BaselineFrame *frame = iter.baselineFrame();

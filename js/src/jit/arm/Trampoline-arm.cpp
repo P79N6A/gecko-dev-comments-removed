@@ -176,7 +176,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     }
 
     masm.ma_sub(r8, sp, r8);
-    masm.makeFrameDescriptor(r8, IonFrame_Entry);
+    masm.makeFrameDescriptor(r8, JitFrame_Entry);
 
     masm.startDataTransferM(IsStore, sp, IB, NoWriteBack);
                            
@@ -253,7 +253,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         
         masm.addPtr(Imm32(BaselineFrame::Size() + BaselineFrame::FramePointerOffset), scratch);
-        masm.makeFrameDescriptor(scratch, IonFrame_BaselineJS);
+        masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
         masm.push(scratch);
         masm.push(Imm32(0)); 
         masm.enterFakeExitFrame();
@@ -451,7 +451,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     masm.ma_lsl(Imm32(3), r6, r6);
 
     
-    masm.makeFrameDescriptor(r6, IonFrame_Rectifier);
+    masm.makeFrameDescriptor(r6, JitFrame_Rectifier);
 
     
     masm.ma_push(r0); 
