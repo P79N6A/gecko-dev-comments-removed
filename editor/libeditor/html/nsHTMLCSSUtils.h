@@ -291,9 +291,18 @@ public:
 
 
 
-  nsresult GetInlineStyles(nsIDOMElement * aElement, nsIDOMCSSStyleDeclaration ** aCssDecl,
-                           uint32_t * aLength);
+  nsresult GetInlineStyles(mozilla::dom::Element* aElement,
+                           nsIDOMCSSStyleDeclaration** aCssDecl,
+                           uint32_t* aLength);
+  nsresult GetInlineStyles(nsIDOMElement* aElement,
+                           nsIDOMCSSStyleDeclaration** aCssDecl,
+                           uint32_t* aLength);
+private:
+  nsresult GetInlineStyles(nsISupports* aElement,
+                           nsIDOMCSSStyleDeclaration** aCssDecl,
+                           uint32_t* aLength);
 
+public:
   
 
 
