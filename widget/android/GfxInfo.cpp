@@ -382,8 +382,10 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
+        
         bool isWhitelisted =
           cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator()) ||
+          (cManufacturer.Find("sony", true) != -1) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator());
 
         if (cModel.Equals("GT-I8160", nsCaseInsensitiveCStringComparator()) ||
