@@ -4778,32 +4778,45 @@ nsSVGTextFrame2::UpdateGlyphPositioning(bool aForceGlobalTransform)
   if (!kid)
     return;
 
-  bool needsReflow =
-    (mState & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN));
-
   NS_ASSERTION(!(kid->GetStateBits() & NS_FRAME_IN_REFLOW),
                "should not be in reflow when about to reflow again");
 
-  if (!needsReflow)
-    return;
-
-  if (mState & NS_FRAME_IS_DIRTY) {
-    
-    kid->AddStateBits(NS_FRAME_IS_DIRTY);
-  }
-
-  if (needsReflow) {
+  if (mState & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) {
+    if (mState & NS_FRAME_IS_DIRTY) {
+      
+      
+      
+      
+      kid->AddStateBits(NS_FRAME_IS_DIRTY);
+    }
     nsPresContext::InterruptPreventer noInterrupts(PresContext());
     DoReflow(aForceGlobalTransform);
   }
 
-  DoGlyphPositioning();
+  if (mPositioningDirty) {
+    DoGlyphPositioning();
+  }
 }
 
 void
 nsSVGTextFrame2::DoReflow(bool aForceGlobalTransform)
 {
+  
+  
   mPositioningDirty = true;
+
+  if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mState &= ~(NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN);
+  }
 
   nsPresContext *presContext = PresContext();
   nsIFrame* kid = GetFirstPrincipalChild();
