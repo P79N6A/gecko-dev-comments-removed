@@ -19,8 +19,6 @@
 
 
 
-
-
 #include "jsutil.h"
 
 #include "js/TemplateLib.h"
@@ -159,8 +157,6 @@ class BumpChunk
 
 
 
-
-
 class LifoAlloc
 {
     typedef detail::BumpChunk BumpChunk;
@@ -177,12 +173,10 @@ class LifoAlloc
     LifoAlloc(const LifoAlloc &) MOZ_DELETE;
 
     
-
-
-
-
-
-
+    
+    
+    
+    
     BumpChunk *getOrCreateChunk(size_t n);
 
     void reset(size_t defaultChunkSize) {
@@ -224,9 +218,7 @@ class LifoAlloc
         JS_ASSERT(!other->markCount);
 
         
-
-
-
+        
         size_t oldPeakSize = peakSize_;
         PodCopy((char *) this, (char *) other, sizeof(*this));
         peakSize_ = Max(oldPeakSize, curSize_);
@@ -302,9 +294,7 @@ class LifoAlloc
     }
 
     
-
-
-
+    
     template <typename T>
     T *newArrayUninitialized(size_t count) {
         return static_cast<T *>(alloc(sizeof(T) * count));
@@ -327,10 +317,8 @@ class LifoAlloc
         }
 
         
-
-
-
-
+        
+        
         BumpChunk *container;
         for (container = first; !container->contains(mark); container = container->next())
             JS_ASSERT(container != latest);
@@ -371,9 +359,7 @@ class LifoAlloc
     }
 
     
-
-
-
+    
     size_t peakSizeOfExcludingThis() const { return peakSize_; }
 
     
