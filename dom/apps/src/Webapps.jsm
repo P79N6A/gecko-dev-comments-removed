@@ -2104,8 +2104,6 @@ this.DOMApplicationRegistry = {
         app.downloadAvailable = false;
         this._saveApps((function() {
           this.updateAppHandlers(null, aManifest, appObject);
-          this.broadcastMessage("Webapps:AddApp", { id: aId, app: appObject });
-
           if (supportUseCurrentProfile()) {
             
             PermissionsInstaller.installPermissions({ manifest: aManifest,
@@ -2980,10 +2978,6 @@ this.DOMApplicationRegistry = {
 
   getAppLocalIdByManifestURL: function(aManifestURL) {
     return AppsUtils.getAppLocalIdByManifestURL(this.webapps, aManifestURL);
-  },
-
-  getAppFromObserverMessage: function(aMessage) {
-    return AppsUtils.getAppFromObserverMessage(this.webapps, aMessage);
   },
 
   getCoreAppsBasePath: function() {
