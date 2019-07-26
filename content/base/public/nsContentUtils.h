@@ -44,6 +44,7 @@ class nsIChannel;
 class nsIConsoleService;
 class nsIContent;
 class nsIContentPolicy;
+class nsIContentSecurityPolicy;
 class nsIDocShell;
 class nsIDocument;
 class nsIDocumentLoaderFactory;
@@ -470,6 +471,12 @@ public:
   {
     return sSecurityManager;
   }
+
+  
+
+
+  static bool GetContentSecurityPolicy(JSContext* aCx,
+                                       nsIContentSecurityPolicy** aCSP);
 
   
   
