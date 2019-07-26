@@ -601,6 +601,9 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
+pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
+
+
 
 
 pref("urlclassifier.max-complete-age", 2700);

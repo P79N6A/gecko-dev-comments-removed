@@ -11,8 +11,8 @@
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIIOService.h"
+#include "nsIObserverService.h"
 #include "nsIPrefService.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsIStreamListener.h"
 #include "nsIStringStream.h"
 #include "nsIUploadChannel2.h"
@@ -25,7 +25,6 @@
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsNetCID.h"
-#include "nsReadableUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -39,117 +38,79 @@ using mozilla::Preferences;
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
 #define PREF_SB_MALWARE_ENABLED "browser.safebrowsing.malware.enabled"
 #define PREF_GENERAL_LOCALE "general.useragent.locale"
-#define PREF_DOWNLOAD_BLOCK_TABLE "urlclassifier.download_block_table"
-#define PREF_DOWNLOAD_ALLOW_TABLE "urlclassifier.download_allow_table"
 
+NS_IMPL_ISUPPORTS1(ApplicationReputationService, nsIApplicationReputationService)
 
+ApplicationReputationService* ApplicationReputationService::gApplicationReputationService = nullptr;
 
+ApplicationReputationService *
+ApplicationReputationService::GetSingleton()
+{
+  if (gApplicationReputationService) {
+    NS_ADDREF(gApplicationReputationService);
+    return gApplicationReputationService;
+  }
 
+  gApplicationReputationService = new ApplicationReputationService();
+  if (gApplicationReputationService) {
+    NS_ADDREF(gApplicationReputationService);
+  }
 
-
-class PendingLookup MOZ_FINAL :
-  public nsIStreamListener,
-  public nsIUrlClassifierCallback {
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIREQUESTOBSERVER
-  NS_DECL_NSISTREAMLISTENER
-  NS_DECL_NSIURLCLASSIFIERCALLBACK
-  PendingLookup(nsIApplicationReputationQuery* aQuery,
-                nsIApplicationReputationCallback* aCallback);
-  ~PendingLookup();
-
-private:
-  nsCOMPtr<nsIApplicationReputationQuery> mQuery;
-  nsCOMPtr<nsIApplicationReputationCallback> mCallback;
-  
-
-
-
-
-  nsCString mResponse;
-  
-
-
-
-  nsresult OnComplete(bool shouldBlock, nsresult rv);
-  
-
-
-
-  nsresult OnStopRequestInternal(nsIRequest *aRequest,
-                                 nsISupports *aContext,
-                                 nsresult aResult,
-                                 bool* aShouldBlock);
-  
-
-
-
-  nsresult SendRemoteQuery();
-};
-
-NS_IMPL_ISUPPORTS3(PendingLookup,
-                   nsIStreamListener,
-                   nsIRequestObserver,
-                   nsIUrlClassifierCallback)
-
-PendingLookup::PendingLookup(nsIApplicationReputationQuery* aQuery,
-                             nsIApplicationReputationCallback* aCallback) :
-  mQuery(aQuery),
-  mCallback(aCallback) {
+  return gApplicationReputationService;
 }
 
-PendingLookup::~PendingLookup() {
-}
-
-nsresult
-PendingLookup::OnComplete(bool shouldBlock, nsresult rv) {
-  nsresult res = mCallback->OnComplete(shouldBlock, rv);
-  return res;
-}
-
-
+ApplicationReputationService::ApplicationReputationService() { }
+ApplicationReputationService::~ApplicationReputationService() { }
 
 NS_IMETHODIMP
-PendingLookup::HandleEvent(const nsACString& tables) {
-  
-  
-  
-  nsCString allow_list;
-  Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allow_list);
-  if (FindInReadable(tables, allow_list)) {
-    return OnComplete(false, NS_OK);
-  }
+ApplicationReputationService::QueryReputation(
+  nsIApplicationReputationQuery* aQuery,
+  nsIApplicationReputationCallback* aCallback) {
+  NS_ENSURE_ARG_POINTER(aQuery);
+  NS_ENSURE_ARG_POINTER(aCallback);
 
-  nsCString block_list;
-  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &block_list);
-  if (FindInReadable(tables, block_list)) {
-    return OnComplete(true, NS_OK);
-  }
-
-  nsresult rv = SendRemoteQuery();
+  nsresult rv = QueryReputationInternal(aQuery, aCallback);
   if (NS_FAILED(rv)) {
-    return OnComplete(false, rv);
+    aCallback->OnComplete(false, rv);
+    aCallback = nullptr;
   }
   return NS_OK;
 }
 
 nsresult
-PendingLookup::SendRemoteQuery() {
-  
-  
-  safe_browsing::ClientDownloadRequest req;
-  nsCOMPtr<nsIURI> uri;
+ApplicationReputationService::QueryReputationInternal(
+  nsIApplicationReputationQuery* aQuery,
+  nsIApplicationReputationCallback* aCallback) {
   nsresult rv;
-  rv = mQuery->GetSourceURI(getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCString spec;
-  rv = uri->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  req.set_url(spec.get());
+  aQuery->SetCallback(aCallback);
 
+  
+  if (!Preferences::GetBool(PREF_SB_MALWARE_ENABLED, false)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  nsCString serviceUrl;
+  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
+                    NS_ERROR_NOT_AVAILABLE);
+  if (serviceUrl.EqualsLiteral("")) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  safe_browsing::ClientDownloadRequest req;
+
+  nsCString spec;
+  nsCOMPtr<nsIURI> aURI;
+  rv = aQuery->GetSourceURI(getter_AddRefs(aURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  NS_ENSURE_STATE(aURI);
+  rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  req.set_url(spec.get());
   uint32_t fileSize;
-  rv = mQuery->GetFileSize(&fileSize);
+  rv = aQuery->GetFileSize(&fileSize);
   NS_ENSURE_SUCCESS(rv, rv);
   req.set_length(fileSize);
   
@@ -160,11 +121,11 @@ PendingLookup::SendRemoteQuery() {
                     NS_ERROR_NOT_AVAILABLE);
   req.set_locale(locale.get());
   nsCString sha256Hash;
-  rv = mQuery->GetSha256Hash(sha256Hash);
+  rv = aQuery->GetSha256Hash(sha256Hash);
   NS_ENSURE_SUCCESS(rv, rv);
   req.mutable_digests()->set_sha256(sha256Hash.Data());
   nsString fileName;
-  rv = mQuery->GetSuggestedFileName(fileName);
+  rv = aQuery->GetSuggestedFileName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
   req.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
 
@@ -189,9 +150,6 @@ PendingLookup::SendRemoteQuery() {
 
   
   nsCOMPtr<nsIChannel> channel;
-  nsCString serviceUrl;
-  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
-                    NS_ERROR_NOT_AVAILABLE);
   rv = ios->NewChannel(serviceUrl, nullptr, nullptr, getter_AddRefs(channel));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -213,11 +171,93 @@ PendingLookup::SendRemoteQuery() {
     NS_LITERAL_CSTRING("POST"), false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = channel->AsyncOpen(this, nullptr);
+  nsCOMPtr<nsIStreamListener> listener = do_QueryInterface(aQuery, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = channel->AsyncOpen(listener, nullptr);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
+
+NS_IMPL_ISUPPORTS3(ApplicationReputationQuery,
+                   nsIApplicationReputationQuery,
+                   nsIStreamListener,
+                   nsIRequestObserver)
+
+ApplicationReputationQuery::ApplicationReputationQuery() :
+  mURI(nullptr),
+  mFileSize(0),
+  mCallback(nullptr) {
+}
+
+ApplicationReputationQuery::~ApplicationReputationQuery() {
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::GetSourceURI(nsIURI** aURI) {
+  *aURI = mURI;
+  NS_IF_ADDREF(*aURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::SetSourceURI(nsIURI* aURI) {
+  mURI = aURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::GetSuggestedFileName(
+  nsAString& aSuggestedFileName) {
+  aSuggestedFileName = mSuggestedFileName;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::SetSuggestedFileName(
+  const nsAString& aSuggestedFileName) {
+  mSuggestedFileName = aSuggestedFileName;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::GetFileSize(uint32_t* aFileSize) {
+  *aFileSize = mFileSize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::SetFileSize(uint32_t aFileSize) {
+  mFileSize = aFileSize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::GetSha256Hash(nsACString& aSha256Hash) {
+  aSha256Hash = mSha256Hash;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::SetSha256Hash(const nsACString& aSha256Hash) {
+  mSha256Hash = aSha256Hash;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::GetCallback(
+  nsIApplicationReputationCallback** aCallback) {
+  *aCallback = mCallback;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ApplicationReputationQuery::SetCallback(
+  nsIApplicationReputationCallback* aCallback) {
+  mCallback = aCallback;
+  return NS_OK;
+}
+
 
 
 
@@ -235,39 +275,40 @@ AppendSegmentToString(nsIInputStream* inputStream,
 }
 
 NS_IMETHODIMP
-PendingLookup::OnDataAvailable(nsIRequest *aRequest,
-                               nsISupports *aContext,
-                               nsIInputStream *aStream,
-                               uint64_t offset,
-                               uint32_t count) {
+ApplicationReputationQuery::OnDataAvailable(nsIRequest *aRequest,
+                                            nsISupports *aContext,
+                                            nsIInputStream *aStream,
+                                            uint64_t offset,
+                                            uint32_t count) {
   uint32_t read;
   return aStream->ReadSegments(AppendSegmentToString, &mResponse, count, &read);
 }
 
 NS_IMETHODIMP
-PendingLookup::OnStartRequest(nsIRequest *aRequest,
-                              nsISupports *aContext) {
+ApplicationReputationQuery::OnStartRequest(nsIRequest *aRequest,
+                                      nsISupports *aContext) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PendingLookup::OnStopRequest(nsIRequest *aRequest,
-                             nsISupports *aContext,
-                             nsresult aResult) {
+ApplicationReputationQuery::OnStopRequest(nsIRequest *aRequest,
+                                          nsISupports *aContext,
+                                          nsresult aResult) {
   NS_ENSURE_STATE(mCallback);
 
   bool shouldBlock = false;
   nsresult rv = OnStopRequestInternal(aRequest, aContext, aResult,
                                       &shouldBlock);
-  OnComplete(shouldBlock, rv);
+  mCallback->OnComplete(shouldBlock, rv);
+  mCallback = nullptr;
   return rv;
 }
 
 nsresult
-PendingLookup::OnStopRequestInternal(nsIRequest *aRequest,
-                                     nsISupports *aContext,
-                                     nsresult aResult,
-                                     bool* aShouldBlock) {
+ApplicationReputationQuery::OnStopRequestInternal(nsIRequest *aRequest,
+                                                  nsISupports *aContext,
+                                                  nsresult aResult,
+                                                  bool* aShouldBlock) {
   *aShouldBlock = false;
   nsresult rv;
   nsCOMPtr<nsIHttpChannel> channel = do_QueryInterface(aRequest, &rv);
@@ -295,103 +336,4 @@ PendingLookup::OnStopRequestInternal(nsIRequest *aRequest,
   }
 
   return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS1(ApplicationReputationService,
-                   nsIApplicationReputationService)
-
-ApplicationReputationService*
-  ApplicationReputationService::gApplicationReputationService = nullptr;
-
-ApplicationReputationService*
-ApplicationReputationService::GetSingleton()
-{
-  if (gApplicationReputationService) {
-    NS_ADDREF(gApplicationReputationService);
-    return gApplicationReputationService;
-  }
-
-  
-  gApplicationReputationService = new ApplicationReputationService();
-  if (gApplicationReputationService) {
-    NS_ADDREF(gApplicationReputationService);
-  }
-
-  return gApplicationReputationService;
-}
-
-ApplicationReputationService::ApplicationReputationService() :
-  mDBService(nullptr),
-  mSecurityManager(nullptr) {
-}
-
-ApplicationReputationService::~ApplicationReputationService() {
-}
-
-NS_IMETHODIMP
-ApplicationReputationService::QueryReputation(
-    nsIApplicationReputationQuery* aQuery,
-    nsIApplicationReputationCallback* aCallback) {
-  NS_ENSURE_ARG_POINTER(aQuery);
-  NS_ENSURE_ARG_POINTER(aCallback);
-
-  nsresult rv = QueryReputationInternal(aQuery, aCallback);
-  if (NS_FAILED(rv)) {
-    aCallback->OnComplete(false, rv);
-  }
-  return NS_OK;
-}
-
-nsresult ApplicationReputationService::QueryReputationInternal(
-  nsIApplicationReputationQuery* aQuery,
-  nsIApplicationReputationCallback* aCallback) {
-  
-  nsresult rv;
-  if (!mDBService) {
-    mDBService = do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  if (!mSecurityManager) {
-    mSecurityManager = do_GetService("@mozilla.org/scriptsecuritymanager;1",
-                                     &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  
-  if (!Preferences::GetBool(PREF_SB_MALWARE_ENABLED, false)) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
-  nsCString serviceUrl;
-  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
-                    NS_ERROR_NOT_AVAILABLE);
-  if (serviceUrl.EqualsLiteral("")) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
-  NS_ENSURE_STATE(mDBService);
-  NS_ENSURE_STATE(mSecurityManager);
-
-  
-  nsRefPtr<PendingLookup> lookup(new PendingLookup(aQuery, aCallback));
-  NS_ENSURE_STATE(lookup);
-
-  nsCOMPtr<nsIURI> uri;
-  rv = aQuery->GetSourceURI(getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  NS_ENSURE_STATE(uri);
-  nsCOMPtr<nsIPrincipal> principal;
-  
-  
-  
-  
-  rv = mSecurityManager->GetNoAppCodebasePrincipal(uri,
-                                                   getter_AddRefs(principal));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  return mDBService->Lookup(principal, lookup);
 }
