@@ -118,6 +118,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionSaver",
+  "resource:///modules/sessionstore/SessionSaver.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
@@ -263,6 +265,10 @@ this.SessionStore = {
     return SessionStoreInternal.checkPrivacyLevel(aIsHTTPS, aUseDefaultPref);
   },
 
+  getCurrentState: function (aUpdateAll) {
+    return SessionStoreInternal.getCurrentState(aUpdateAll);
+  },
+
   
 
 
@@ -294,9 +300,6 @@ let SessionStoreInternal = {
 
   
   _browserSetState: false,
-
-  
-  _lastSaveTime: 0,
 
   
   
@@ -528,13 +531,6 @@ let SessionStoreInternal = {
       gDebuggingEnabled = this._prefBranch.getBoolPref("sessionstore.debug");
     }, false);
 
-    
-    XPCOMUtils.defineLazyGetter(this, "_interval", function () {
-      
-      this._prefBranch.addObserver("sessionstore.interval", this, true);
-      return this._prefBranch.getIntPref("sessionstore.interval");
-    });
-
     XPCOMUtils.defineLazyGetter(this, "_max_tabs_undo", function () {
       this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
       return this._prefBranch.getIntPref("sessionstore.max_tabs_undo");
@@ -557,17 +553,14 @@ let SessionStoreInternal = {
 
     
     if (this._sessionInitialized) {
-      this.saveState(true);
+      SessionSaver.run();
     }
 
     
     TabRestoreQueue.reset();
 
     
-    if (this._saveTimer) {
-      this._saveTimer.cancel();
-      this._saveTimer = null;
-    }
+    SessionSaver.cancel();
   },
 
   
@@ -732,7 +725,7 @@ let SessionStoreInternal = {
     
     if (this._loadState == STATE_STOPPED) {
       this._loadState = STATE_RUNNING;
-      this._lastSaveTime = Date.now();
+      SessionSaver.updateLastSaveTime();
 
       
       if (aInitialState) {
@@ -764,7 +757,7 @@ let SessionStoreInternal = {
         Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
 
         
-        this._lastSaveTime -= this._interval;
+        SessionSaver.clearLastSaveTime();
       }
     }
     
@@ -1035,7 +1028,6 @@ let SessionStoreInternal = {
 
 
   onPurgeSessionHistory: function ssi_onPurgeSessionHistory() {
-    var _this = this;
     _SessionFile.wipe();
     
     
@@ -1067,10 +1059,11 @@ let SessionStoreInternal = {
     this._closedWindows = [];
     
     var win = this._getMostRecentBrowserWindow();
-    if (win)
-      win.setTimeout(function() { _this.saveState(true); }, 0);
-    else if (this._loadState == STATE_RUNNING)
-      this.saveState(true);
+    if (win) {
+      win.setTimeout(() => SessionSaver.run(), 0);
+    } else if (this._loadState == STATE_RUNNING) {
+      SessionSaver.run();
+    }
 
     this._clearRestoringWindows();
   },
@@ -1127,8 +1120,10 @@ let SessionStoreInternal = {
         this._closedWindows[ix].title = selectedTab.entries[activeIndex].title;
       }
     }
-    if (this._loadState == STATE_RUNNING)
-      this.saveState(true);
+
+    if (this._loadState == STATE_RUNNING) {
+      SessionSaver.run();
+    }
 
     this._clearRestoringWindows();
   },
@@ -1152,24 +1147,7 @@ let SessionStoreInternal = {
         this._max_windows_undo = this._prefBranch.getIntPref("sessionstore.max_windows_undo");
         this._capClosedWindows();
         break;
-      case "sessionstore.interval":
-        this._interval = this._prefBranch.getIntPref("sessionstore.interval");
-        
-        if (this._saveTimer) {
-          this._saveTimer.cancel();
-          this._saveTimer = null;
-        }
-        this.saveStateDelayed(null, -1);
-        break;
     }
-  },
-
-  
-
-
-  onTimerCallback: function ssi_onTimerCallback() {
-    this._saveTimer = null;
-    this.saveState();
   },
 
   
@@ -1312,7 +1290,7 @@ let SessionStoreInternal = {
 
     TabStateCache.delete(aBrowser);
 
-    this.saveStateDelayed(aWindow, 3000);
+    this.saveStateDelayed(aWindow);
   },
 
   
@@ -1374,7 +1352,12 @@ let SessionStoreInternal = {
   
 
   getBrowserState: function ssi_getBrowserState() {
-    return this._toJSONString(this._getCurrentState());
+    let state = this.getCurrentState();
+
+    
+    delete state.lastSessionState;
+
+    return this._toJSONString(state);
   },
 
   setBrowserState: function ssi_setBrowserState(aState) {
@@ -2466,7 +2449,7 @@ let SessionStoreInternal = {
 
 
 
-  _getCurrentState: function ssi_getCurrentState(aUpdateAll) {
+  getCurrentState: function (aUpdateAll) {
     this._handleClosedWindows();
 
     var activeWindow = this._getMostRecentBrowserWindow();
@@ -2552,13 +2535,20 @@ let SessionStoreInternal = {
     
     var scratchpads = ScratchpadManager.getSessionState();
 
-    return {
+    let state = {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
       session: session,
       scratchpads: scratchpads
     };
+
+    
+    if (this._lastSessionState) {
+      state.lastSessionState = this._lastSessionState;
+    }
+
+    return state;
   },
 
   
@@ -3620,139 +3610,15 @@ let SessionStoreInternal = {
 
 
 
-
-  saveStateDelayed: function ssi_saveStateDelayed(aWindow = null, aDelay = 2000) {
+  saveStateDelayed: function (aWindow = null) {
     if (aWindow) {
       DirtyWindows.add(aWindow);
     }
 
-    if (!this._saveTimer) {
-      
-      var minimalDelay = this._lastSaveTime + this._interval - Date.now();
-
-      
-      aDelay = Math.max(minimalDelay, aDelay);
-      if (aDelay > 0) {
-        this._saveTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        this._saveTimer.init(this, aDelay, Ci.nsITimer.TYPE_ONE_SHOT);
-      }
-      else {
-        this.saveState();
-      }
-    }
+    SessionSaver.runDelayed();
   },
 
   
-
-
-
-
-  saveState: function ssi_saveState(aUpdateAll) {
-    
-    
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_DATA_MS");
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
-
-    var oState = this._getCurrentState(aUpdateAll);
-    if (!oState) {
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_MS");
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
-      return;
-    }
-
-    
-    for (let i = oState.windows.length - 1; i >= 0; i--) {
-      if (oState.windows[i].isPrivate) {
-        oState.windows.splice(i, 1);
-        if (oState.selectedWindow >= i) {
-          oState.selectedWindow--;
-        }
-      }
-    }
-
-#ifndef XP_MACOSX
-    
-    
-    if (oState.windows.length == 0) {
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_MS");
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
-      return;
-    }
-#endif
-
-    for (let i = oState._closedWindows.length - 1; i >= 0; i--) {
-      if (oState._closedWindows[i].isPrivate) {
-        oState._closedWindows.splice(i, 1);
-      }
-    }
-
-#ifndef XP_MACOSX
-    
-    
-    
-    while (oState._closedWindows.length) {
-      let i = oState._closedWindows.length - 1;
-      if (oState._closedWindows[i]._shouldRestore) {
-        delete oState._closedWindows[i]._shouldRestore;
-        oState.windows.unshift(oState._closedWindows.pop());
-      }
-      else {
-        
-        break;
-      }
-    }
-#endif
-
-    
-    if (this._lastSessionState)
-      oState.lastSessionState = this._lastSessionState;
-
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_DATA_MS");
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
-
-    this._saveStateObject(oState);
-  },
-
-  
-
-
-  _saveStateObject: function ssi_saveStateObject(aStateObj) {
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_SERIALIZE_DATA_MS");
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_SERIALIZE_DATA_LONGEST_OP_MS");
-    let data = this._toJSONString(aStateObj);
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_SERIALIZE_DATA_MS");
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_SERIALIZE_DATA_LONGEST_OP_MS");
-
-    let stateString = this._createSupportsString(data);
-    Services.obs.notifyObservers(stateString, "sessionstore-state-write", "");
-    data = stateString.data;
-
-    
-    if (!data) {
-      return;
-    }
-
-    
-    let promise = _SessionFile.write(data);
-
-    
-    
-    promise = promise.then(() => {
-      this._lastSaveTime = Date.now();
-      Services.obs.notifyObservers(null, "sessionstore-state-write-complete",
-        "");
-    });
-  },
-
-  
-
-  
-  _createSupportsString: function ssi_createSupportsString(aData) {
-    let string = Cc["@mozilla.org/supports-string;1"]
-                   .createInstance(Ci.nsISupportsString);
-    string.data = aData;
-    return string;
-  },
 
   
 
