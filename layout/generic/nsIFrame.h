@@ -2931,6 +2931,10 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
   inline bool IsFlexItem() const;
+  
+
+
+  inline bool IsFlexOrGridItem() const;
 
   inline bool IsBlockInside() const;
   inline bool IsBlockOutside() const;
