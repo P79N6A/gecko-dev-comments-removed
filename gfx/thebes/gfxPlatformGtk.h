@@ -99,18 +99,7 @@ public:
     static int32_t GetDPI();
 
     bool UseXRender() {
-#if defined(MOZ_X11) && defined(MOZ_PLATFORM_MAEMO)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        return true;
-#elif defined(MOZ_X11)
+#if defined(MOZ_X11)
         if (GetContentBackend() != mozilla::gfx::BACKEND_NONE &&
             GetContentBackend() != mozilla::gfx::BACKEND_CAIRO)
             return false;

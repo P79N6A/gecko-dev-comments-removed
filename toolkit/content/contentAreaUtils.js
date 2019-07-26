@@ -933,8 +933,7 @@ function validateFileName(aFileName)
   }
   else if (navigator.appVersion.indexOf("Macintosh") != -1)
     re = /[\:\/]+/g;
-  else if (navigator.appVersion.indexOf("Android") != -1 ||
-           navigator.appVersion.indexOf("Maemo") != -1) {
+  else if (navigator.appVersion.indexOf("Android") != -1) {
     
     
     

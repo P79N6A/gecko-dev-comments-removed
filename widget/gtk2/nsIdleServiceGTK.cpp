@@ -94,8 +94,6 @@ nsIdleServiceGTK::PollIdleTime(uint32_t *aIdleTime)
 {
     if (!sInitialized) {
         
-        
-        
         return false;
     }
 

@@ -298,15 +298,6 @@ public:
 
 
 
-    eIntID_MaemoClassic,
-
-    
-
-
-
-
-
-
 
 
 

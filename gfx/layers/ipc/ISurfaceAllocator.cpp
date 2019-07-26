@@ -29,16 +29,7 @@ namespace layers {
 
 SharedMemory::SharedMemoryType OptimalShmemType()
 {
-#if defined(MOZ_PLATFORM_MAEMO) && defined(MOZ_HAVE_SHAREDMEMORYSYSV)
-  
-  
-  
-  
-  
-  return SharedMemory::TYPE_SYSV;
-#else
   return SharedMemory::TYPE_BASIC;
-#endif
 }
 
 bool

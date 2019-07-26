@@ -295,12 +295,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     return NS_OK;
   }
 
-#ifdef MOZ_PLATFORM_MAEMO
-  *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
-  
-  return NS_OK;
-#endif
-
   
   if (!aDriverInfo.Length()) {
     

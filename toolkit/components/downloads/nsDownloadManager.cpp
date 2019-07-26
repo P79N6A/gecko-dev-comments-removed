@@ -1392,16 +1392,7 @@ nsDownloadManager::GetDefaultDownloadsDirectory(nsIFile **aResult)
     }
   }
 #elif defined(XP_UNIX)
-#if defined(MOZ_PLATFORM_MAEMO)
-    
-    
-    
-    
-    
-    rv = dirService->Get(NS_UNIX_XDG_DOCUMENTS_DIR,
-                         NS_GET_IID(nsIFile),
-                         getter_AddRefs(downloadDir));
-#elif defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
     
     
     char* downloadDirPath = getenv("DOWNLOADS_DIRECTORY");

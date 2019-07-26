@@ -198,38 +198,11 @@ void MozQWidget::hoverMoveEvent(QGraphicsSceneHoverEvent* aEvent)
 
 void MozQWidget::keyPressEvent(QKeyEvent* aEvent)
 {
-#if (MOZ_PLATFORM_MAEMO == 6)
-    if (!gKeyboardOpen ||
-       
-       aEvent->key() == Qt::Key_Space ||
-       aEvent->key() == Qt::Key_Return ||
-       aEvent->key() == Qt::Key_Backspace) {
-        mReceiver->OnKeyPressEvent(aEvent);
-    }
-#elif (MOZ_PLATFORM_MAEMO == 5)
-    
-    
-    
-#else
     mReceiver->OnKeyPressEvent(aEvent);
-#endif
 }
 
 void MozQWidget::keyReleaseEvent(QKeyEvent* aEvent)
 {
-#if (MOZ_PLATFORM_MAEMO == 6)
-    if (!gKeyboardOpen ||
-       
-       aEvent->key() == Qt::Key_Space ||
-       aEvent->key() == Qt::Key_Return ||
-       aEvent->key() == Qt::Key_Backspace) {
-        mReceiver->OnKeyReleaseEvent(aEvent);
-    }
-    return;
-#elif (MOZ_PLATFORM_MAEMO == 5)
-    
-    mReceiver->OnKeyPressEvent(aEvent);
-#endif
     mReceiver->OnKeyReleaseEvent(aEvent);
 }
 

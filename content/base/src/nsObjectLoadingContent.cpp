@@ -2676,12 +2676,6 @@ DoDelayedStop(nsPluginInstanceOwner* aInstanceOwner,
               nsObjectLoadingContent* aContent,
               bool aDelayedStop)
 {
-#if (MOZ_PLATFORM_MAEMO==5)
-  
-  if (aDelayedStop && aInstanceOwner->MatchPluginName("Shockwave Flash"))
-    return false;
-#endif
-
   
   
   if (aDelayedStop

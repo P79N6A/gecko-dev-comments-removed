@@ -29,32 +29,7 @@ void nsQAppInstance::AddRef(int& aArgc, char** aArgv, bool aDefaultProcess) {
       QApplication::setGraphicsSystem(QString(graphicsSystem));
     }
 #endif
-#if (MOZ_PLATFORM_MAEMO == 6)
-    
-    
-    
-    if (!aDefaultProcess) {
-      QApplication::setStyle(QLatin1String("windows"));
-    }
-    if (!aArgc) {
-      aArgv[aArgc] = strdup("nsQAppInstance");
-      aArgc++;
-    }
-#endif
     sQAppInstance = new QApplication(aArgc, aArgv);
-#ifdef MOZ_ENABLE_MEEGOTOUCH
-    if (aDefaultProcess) {
-      
-      
-      
-      
-      
-      
-      gArgv[gArgc] = strdup("-software");
-      gArgc++;
-      sMComponentData = new MComponentData(aArgc, aArgv, "", new MApplicationService(""));
-    }
-#endif
   }
   sQAppRefCount++;
 }

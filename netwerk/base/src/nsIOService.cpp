@@ -45,7 +45,7 @@
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
 
-#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
+#if defined(XP_WIN)
 #include "nsNativeConnectionHelper.h"
 #endif
 
@@ -1105,7 +1105,8 @@ nsIOService::TrackNetworkLinkStatusForOffline()
         
         
         if (autodialEnabled) {
-#if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
+#if defined(XP_WIN)
+            
             
             
             

@@ -100,11 +100,6 @@ protected:
                      const NPRemoteWindow& aWindow,
                      bool aIsAsync);
 
-    virtual bool
-    AnswerHandleKeyEvent(const nsKeyEvent& aEvent, bool* handled);
-    virtual bool
-    AnswerHandleTextEvent(const nsTextEvent& aEvent, bool* handled);
-
     virtual PPluginSurfaceChild* AllocPPluginSurfaceChild(const WindowsSharedMemoryHandle&,
                                                           const gfxIntSize&, const bool&) {
         return new PPluginSurfaceChild();
@@ -601,6 +596,7 @@ private:
     
     
     
+    
     bool mDoAlphaExtraction;
 
     
@@ -612,12 +608,6 @@ private:
     
     
     nsIntRect mSurfaceDifferenceRect;
-
-#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
-    
-    
-    bool                  mMaemoImageRendering;
-#endif
 };
 
 } 

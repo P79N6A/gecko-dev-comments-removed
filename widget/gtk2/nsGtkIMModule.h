@@ -17,12 +17,6 @@
 #include "nsGUIEvent.h"
 #include "nsIWidget.h"
 
-
-
-#ifdef MOZ_PLATFORM_MAEMO
-#define NS_IME_ENABLED_ON_PASSWORD_FIELD 1
-#endif
-
 class nsWindow;
 
 class nsGtkIMModule
@@ -110,13 +104,11 @@ protected:
     
     GtkIMContext       *mContext;
 
-#ifndef NS_IME_ENABLED_ON_PASSWORD_FIELD
     
     
     
     
     GtkIMContext       *mSimpleContext;
-#endif 
 
     
     

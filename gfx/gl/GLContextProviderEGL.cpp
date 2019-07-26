@@ -122,7 +122,7 @@ public:
 
 using namespace mozilla::gfx;
 
-#if defined(MOZ_PLATFORM_MAEMO) || defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_WIDGET_GONK)
 static bool gUseBackingSurface = true;
 #else
 static bool gUseBackingSurface = false;
@@ -1989,8 +1989,6 @@ GLContextEGL::CreateEGLPixmapOffscreenContext(const gfxIntSize& size)
 
     return glContext.forget();
 }
-
-
 
 
 

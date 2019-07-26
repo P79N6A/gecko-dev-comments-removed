@@ -92,39 +92,6 @@ nsNativeAppSupportQt::Start(bool* aRetVal)
 #endif
 
   *aRetVal = true;
-#ifdef MOZ_ENABLE_LIBCONIC
-  g_type_init();
-#endif
-
-#if (MOZ_PLATFORM_MAEMO == 5)
-  
-
-
-
-
-
-
-
-
-  nsAutoCString applicationName;
-  if (gAppData->vendor) {
-      applicationName.Append(gAppData->vendor);
-      applicationName.Append(".");
-  }
-  applicationName.Append(gAppData->name);
-  ToLowerCase(applicationName);
-
-  m_osso_context = osso_initialize(applicationName.get(),
-                                   gAppData->version ? gAppData->version : "1.0",
-                                   true,
-                                   nullptr);
-
-  
-  if (m_osso_context == nullptr) {
-      return NS_ERROR_FAILURE;
-  }
-#endif
-
   return NS_OK;
 }
 
@@ -133,13 +100,6 @@ nsNativeAppSupportQt::Stop(bool* aResult)
 {
   NS_ENSURE_ARG(aResult);
   *aResult = true;
-
-#if (MOZ_PLATFORM_MAEMO == 5)
-  if (m_osso_context) {
-    osso_deinitialize(m_osso_context);
-    m_osso_context = nullptr;
-  }
-#endif
 
   return NS_OK;
 }
