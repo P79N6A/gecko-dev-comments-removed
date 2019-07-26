@@ -16,6 +16,12 @@
 #include "mozilla/IOInterposer.h"
 
 
+#define LAST_KNOWN_VFS_VERSION 3
+
+
+#define LAST_KNOWN_IOMETHODS_VERSION 3
+
+
 
 
 
@@ -402,8 +408,9 @@ xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
     memset(pNew, 0, sizeof(*pNew));
     
     
-    pNew->iVersion = 3;
-    MOZ_ASSERT(pNew->iVersion >= pSub->iVersion);
+    
+    pNew->iVersion = pSub->iVersion;
+    MOZ_ASSERT(pNew->iVersion <= LAST_KNOWN_IOMETHODS_VERSION);
     pNew->xClose = xClose;
     pNew->xRead = xRead;
     pNew->xWrite = xWrite;
@@ -416,19 +423,23 @@ xOpen(sqlite3_vfs* vfs, const char *zName, sqlite3_file* pFile,
     pNew->xFileControl = xFileControl;
     pNew->xSectorSize = xSectorSize;
     pNew->xDeviceCharacteristics = xDeviceCharacteristics;
-    
-    pNew->xShmMap = pSub->xShmMap ? xShmMap : 0;
-    pNew->xShmLock = pSub->xShmLock ? xShmLock : 0;
-    pNew->xShmBarrier = pSub->xShmBarrier ? xShmBarrier : 0;
-    pNew->xShmUnmap = pSub->xShmUnmap ? xShmUnmap : 0;
-    
-    
-    
-    
-    MOZ_ASSERT(pSub->xFetch);
-    pNew->xFetch = xFetch;
-    MOZ_ASSERT(pSub->xUnfetch);
-    pNew->xUnfetch = xUnfetch;
+    if (pNew->iVersion >= 2) {
+      
+      pNew->xShmMap = pSub->xShmMap ? xShmMap : 0;
+      pNew->xShmLock = pSub->xShmLock ? xShmLock : 0;
+      pNew->xShmBarrier = pSub->xShmBarrier ? xShmBarrier : 0;
+      pNew->xShmUnmap = pSub->xShmUnmap ? xShmUnmap : 0;
+    }
+    if (pNew->iVersion >= 3) {
+      
+      
+      
+      
+      MOZ_ASSERT(pSub->xFetch);
+      pNew->xFetch = xFetch;
+      MOZ_ASSERT(pSub->xUnfetch);
+      pNew->xUnfetch = xUnfetch;
+    }
     pFile->pMethods = pNew;
   }
   return rc;
@@ -574,8 +585,9 @@ sqlite3_vfs* ConstructTelemetryVFS()
   memset(tvfs, 0, sizeof(::sqlite3_vfs));
   
   
-  tvfs->iVersion = 3;
-  MOZ_ASSERT(vfs->iVersion == tvfs->iVersion);
+  
+  tvfs->iVersion = vfs->iVersion;
+  MOZ_ASSERT(vfs->iVersion <= LAST_KNOWN_VFS_VERSION);
   tvfs->szOsFile = sizeof(telemetry_file) - sizeof(sqlite3_file) + vfs->szOsFile;
   tvfs->mxPathname = vfs->mxPathname;
   tvfs->zName = "telemetry-vfs";
@@ -592,13 +604,16 @@ sqlite3_vfs* ConstructTelemetryVFS()
   tvfs->xSleep = xSleep;
   tvfs->xCurrentTime = xCurrentTime;
   tvfs->xGetLastError = xGetLastError;
-  
-  tvfs->xCurrentTimeInt64 = xCurrentTimeInt64;
-  
-  tvfs->xSetSystemCall = xSetSystemCall;
-  tvfs->xGetSystemCall = xGetSystemCall;
-  tvfs->xNextSystemCall = xNextSystemCall;
-
+  if (tvfs->iVersion >= 2) {
+    
+    tvfs->xCurrentTimeInt64 = xCurrentTimeInt64;
+  }
+  if (tvfs->iVersion >= 3) {
+    
+    tvfs->xSetSystemCall = xSetSystemCall;
+    tvfs->xGetSystemCall = xGetSystemCall;
+    tvfs->xNextSystemCall = xNextSystemCall;
+  }
   return tvfs;
 }
 
