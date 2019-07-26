@@ -1941,7 +1941,11 @@ function WifiWorker() {
       self._lastConnectionInfo = null;
       self._fireEvent("onconnect", { network: netToDOM(self.currentNetwork) });
     } else {
-      WifiManager.reassociate(function(){});
+      
+      
+      WifiManager.disconnect(function() {
+        WifiManager.reassociate(function(){});
+      });
     }
   };
 
