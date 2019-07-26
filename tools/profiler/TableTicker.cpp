@@ -706,6 +706,26 @@ void TableTicker::BuildJSObject(JSAObjectBuilder& b, JSCustomObject* profile)
 }
 
 static
+void addDynamicTag(ThreadProfile &aProfile, char aTagName, const char *aStr)
+{
+  aProfile.addTag(ProfileEntry(aTagName, ""));
+  
+  size_t strLen = strlen(aStr) + 1;
+  for (size_t j = 0; j < strLen;) {
+    
+    char text[sizeof(void*)];
+    int len = sizeof(void*)/sizeof(char);
+    if (j+len >= strLen) {
+      len = strLen - j;
+    }
+    memcpy(text, &aStr[j], len);
+    j += sizeof(void*)/sizeof(char);
+    
+    aProfile.addTag(ProfileEntry('d', *((void**)(&text[0]))));
+  }
+}
+
+static
 void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
                      ProfileStack *stack, void *lastpc)
 {
@@ -718,19 +738,7 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
     
     
 
-    aProfile.addTag(ProfileEntry('c', ""));
-    
-    size_t strLen = strlen(sampleLabel) + 1;
-    for (size_t j = 0; j < strLen;) {
-      
-      char text[sizeof(void*)];
-      for (size_t pos = 0; pos < sizeof(void*) && j+pos < strLen; pos++) {
-        text[pos] = sampleLabel[j+pos];
-      }
-      j += sizeof(void*)/sizeof(char);
-      
-      aProfile.addTag(ProfileEntry('d', *((void**)(&text[0]))));
-    }
+    addDynamicTag(aProfile, 'c', sampleLabel);
     if (entry.js()) {
       if (!entry.pc()) {
         
@@ -907,7 +915,7 @@ void TableTicker::Tick(TickSample* sample)
   
   ProfileStack* stack = mPrimaryThreadProfile.GetStack();
   for (int i = 0; stack->getMarker(i) != NULL; i++) {
-    mPrimaryThreadProfile.addTag(ProfileEntry('m', stack->getMarker(i)));
+    addDynamicTag(mPrimaryThreadProfile, 'm', stack->getMarker(i));
   }
   stack->mQueueClearMarker = true;
 

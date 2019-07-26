@@ -274,6 +274,10 @@ public:
 
   void addMarker(const char *aMarker)
   {
+    char* markerCopy = strdup(aMarker);
+    mSignalLock = true;
+    STORE_SEQUENCER();
+
     if (mQueueClearMarker) {
       clearMarkers();
     }
@@ -283,18 +287,24 @@ public:
     if (size_t(mMarkerPointer) == mozilla::ArrayLength(mMarkers)) {
       return; 
     }
-    mMarkers[mMarkerPointer] = aMarker;
-    STORE_SEQUENCER();
+    mMarkers[mMarkerPointer] = markerCopy;
     mMarkerPointer++;
+
+    mSignalLock = false;
+    STORE_SEQUENCER();
   }
 
   
   const char* getMarker(int aMarkerId)
   {
-    if (mQueueClearMarker) {
-      clearMarkers();
-    }
-    if (aMarkerId < 0 ||
+    
+    
+    
+    
+    
+    
+    
+    if (mSignalLock || mQueueClearMarker || aMarkerId < 0 ||
       static_cast<mozilla::sig_safe_t>(aMarkerId) >= mMarkerPointer) {
       return NULL;
     }
@@ -304,6 +314,9 @@ public:
   
   void clearMarkers()
   {
+    for (mozilla::sig_safe_t i = 0; i < mMarkerPointer; i++) {
+      free(mMarkers[i]);
+    }
     mMarkerPointer = 0;
     mQueueClearMarker = false;
   }
@@ -370,11 +383,13 @@ public:
   
   StackEntry volatile mStack[1024];
   
-  char const * volatile mMarkers[1024];
+  char* mMarkers[1024];
  private:
   
   
-  volatile mozilla::sig_safe_t mStackPointer;
+  mozilla::sig_safe_t mStackPointer;
+  
+  volatile bool mSignalLock;
  public:
   volatile mozilla::sig_safe_t mMarkerPointer;
   
@@ -432,6 +447,12 @@ inline void mozilla_sampler_add_marker(const char *aMarker)
 {
   if (!stack_key_initialized)
     return;
+
+  
+  
+  if (!mozilla_sampler_is_active()) {
+    return;
+  }
 
   ProfileStack *stack = tlsStack.get();
   if (!stack) {
