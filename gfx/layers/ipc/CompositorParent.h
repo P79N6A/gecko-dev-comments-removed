@@ -182,7 +182,7 @@ public:
 
 
 
-  static bool
+  static PCompositorParent*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
   

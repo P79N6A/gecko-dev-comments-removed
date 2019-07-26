@@ -38,7 +38,7 @@ public:
 
 
 
-  static bool
+  static PCompositorChild*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
   static PCompositorChild* Get();

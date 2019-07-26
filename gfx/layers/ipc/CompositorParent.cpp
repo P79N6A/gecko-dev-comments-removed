@@ -920,7 +920,7 @@ OpenCompositor(CrossProcessCompositorParent* aCompositor,
   MOZ_ASSERT(ok);
 }
 
- bool
+ PCompositorParent*
 CompositorParent::Create(Transport* aTransport, ProcessId aOtherProcess)
 {
   nsRefPtr<CrossProcessCompositorParent> cpcp =
@@ -928,14 +928,16 @@ CompositorParent::Create(Transport* aTransport, ProcessId aOtherProcess)
   ProcessHandle handle;
   if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
     
-    return false;
+    return nullptr;
   }
   cpcp->mSelfRef = cpcp;
   CompositorLoop()->PostTask(
     FROM_HERE,
     NewRunnableFunction(OpenCompositor, cpcp.get(),
                         aTransport, handle, XRE_GetIOMessageLoop()));
-  return true;
+  
+  
+  return cpcp.get();
 }
 
 IToplevelProtocol*

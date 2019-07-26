@@ -51,7 +51,7 @@ CompositorChild::Destroy()
   SendStop();
 }
 
- bool
+ PCompositorChild*
 CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
 {
   
@@ -62,15 +62,14 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
   if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
     
     NS_RUNTIMEABORT("Couldn't OpenProcessHandle() to parent process.");
-    return false;
+    return nullptr;
   }
   if (!child->Open(aTransport, handle, XRE_GetIOMessageLoop(), ipc::ChildSide)) {
     NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
-    return false;
+    return nullptr;
   }
   
-  sCompositor = child.forget().get();
-  return true;
+  return sCompositor = child.forget().get();
 }
 
  PCompositorChild*
