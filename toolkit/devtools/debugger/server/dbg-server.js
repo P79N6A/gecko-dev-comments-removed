@@ -578,13 +578,6 @@ DebuggerServerConnection.prototype = {
   
 
 
-  addCleanup: function DSC_addCleanup(aCleanup) {
-    this._actorPool.addCleanup(aCleanup);
-  },
-
-  
-
-
 
 
 
