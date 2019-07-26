@@ -193,6 +193,12 @@ typedef NSInteger NSEventGestureAxis;
 #endif 
 #endif 
 
+#if !defined(MAC_OS_X_VERSION_10_8) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+enum {
+  NSEventPhaseMayBegin    = 0x1 << 5
+};
+#endif 
+
 
 
 @interface NSEvent (ScrollPhase)
@@ -243,6 +249,11 @@ typedef NSInteger NSEventGestureAxis;
   
   
   
+  BOOL mExpectingWheelStop;
+
+  
+  
+  
   
   
   nsIDragService* mDragService;
@@ -278,6 +289,7 @@ typedef NSInteger NSEventGestureAxis;
 #ifdef __LP64__
   
   BOOL* mCancelSwipeAnimation;
+  uint32_t mCurrentSwipeDir;
 #endif
 
   
@@ -342,13 +354,17 @@ typedef NSInteger NSEventGestureAxis;
 - (void)rotateWithEvent:(NSEvent *)anEvent;
 - (void)endGestureWithEvent:(NSEvent *)anEvent;
 
+- (void)scrollWheel:(NSEvent *)anEvent;
+
 
 + (BOOL)isLionSmartMagnifyEvent:(NSEvent*)anEvent;
 
 
 #ifdef __LP64__
 - (void)maybeTrackScrollEventAsSwipe:(NSEvent *)anEvent
-                      scrollOverflow:(double)overflow;
+                     scrollOverflowX:(double)anOverflowX
+                     scrollOverflowY:(double)anOverflowY
+              viewPortIsOverscrolled:(BOOL)aViewPortIsOverscrolled;
 #endif
 
 - (void)setUsingOMTCompositor:(BOOL)aUseOMTC;
