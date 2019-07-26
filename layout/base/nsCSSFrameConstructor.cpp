@@ -2294,7 +2294,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
                                 nullptr, aFrameState);
   
   
-  state.mTreeMatchContext.InitAncestors(nullptr);
+  state.mTreeMatchContext.mAncestorFilter.Init(nullptr);
 
   
   if (!mTempFrameTreeState)
@@ -2361,8 +2361,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     return NS_OK;
   }
 
-  TreeMatchContext::AutoAncestorPusher
-    ancestorPusher(true, state.mTreeMatchContext, aDocElement);
+  AncestorFilter::AutoAncestorPusher
+    ancestorPusher(true, state.mTreeMatchContext.mAncestorFilter, aDocElement);
 
   
   styleContext->StartBackgroundImageLoads();
@@ -3571,9 +3571,9 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   
   
   
-  TreeMatchContext::AutoAncestorPusher
+  AncestorFilter::AutoAncestorPusher
     ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
+                   aState.mTreeMatchContext.mAncestorFilter,
                    content->IsElement() ? content->AsElement() : nullptr);
 
   nsIFrame* newFrame;
@@ -3807,9 +3807,9 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
 
   nsFrameConstructorState::PendingBindingAutoPusher pusher(aState,
                                                            aPendingBinding);
-  TreeMatchContext::AutoAncestorPusher
+  AncestorFilter::AutoAncestorPusher
     ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
+                   aState.mTreeMatchContext.mAncestorFilter,
                    aParent->AsElement());
 
   nsIAnonymousContentCreator* creator = do_QueryFrame(aParentFrame);
@@ -6608,7 +6608,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                 GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame));
-  state.mTreeMatchContext.InitAncestors(aContainer->AsElement());
+  state.mTreeMatchContext.mAncestorFilter.Init(aContainer->AsElement());
 
   
   bool haveFirstLetterStyle = false, haveFirstLineStyle = false;
@@ -7044,9 +7044,9 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
                                 GetAbsoluteContainingBlock(parentFrame),
                                 GetFloatContainingBlock(parentFrame),
                                 aFrameState);
-  state.mTreeMatchContext.InitAncestors(aContainer ?
-                                          aContainer->AsElement() :
-                                          nullptr);
+  state.mTreeMatchContext.mAncestorFilter.Init(aContainer ?
+                                                 aContainer->AsElement() :
+                                                 nullptr);
 
   
   
@@ -11281,9 +11281,9 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
   nsStyleContext* const parentStyleContext = aParentItem.mStyleContext;
   nsIContent* const parentContent = aParentItem.mContent;
 
-  TreeMatchContext::AutoAncestorPusher
+  AncestorFilter::AutoAncestorPusher
     ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
+                   aState.mTreeMatchContext.mAncestorFilter,
                    parentContent->AsElement());
   
   CreateGeneratedContentItem(aState, nullptr, parentContent, parentStyleContext,

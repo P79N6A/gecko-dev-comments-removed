@@ -21,7 +21,6 @@
 #include "nsCSSAnonBoxes.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSRuleProcessor.h"
-#include "nsDataHashtable.h"
 #include "nsIContent.h"
 #include "nsRuleData.h"
 #include "nsRuleProcessorData.h"
@@ -101,7 +100,6 @@ static const nsStyleSet::sheetType gCSSSheetTypes[] = {
   nsStyleSet::eAgentSheet,
   nsStyleSet::eUserSheet,
   nsStyleSet::eDocSheet,
-  nsStyleSet::eScopedDocSheet,
   nsStyleSet::eOverrideSheet
 };
 
@@ -210,101 +208,11 @@ nsStyleSet::SetQuirkStyleSheet(nsIStyleSheet* aQuirkStyleSheet)
   mQuirkStyleSheet = aQuirkStyleSheet;
 }
 
-typedef nsDataHashtable<nsPtrHashKey<nsINode>, uint32_t> ScopeDepthCache;
-
-
-
-
-static uint32_t
-GetScopeDepth(nsINode* aScopeElement, ScopeDepthCache& aCache)
-{
-  nsINode* parent = aScopeElement->GetParent();
-  if (!parent || !parent->IsElementInStyleScope()) {
-    return 1;
-  }
-
-  uint32_t depth = aCache.Get(aScopeElement);
-  if (!depth) {
-    for (nsINode* n = parent; n; n = n->GetParent()) {
-      if (n->IsScopedStyleRoot()) {
-        depth = GetScopeDepth(n, aCache) + 1;
-        aCache.Put(aScopeElement, depth);
-        break;
-      }
-    }
-  }
-  return depth;
-}
-
-struct ScopedSheetOrder
-{
-  nsCSSStyleSheet* mSheet;
-  uint32_t mDepth;
-  uint32_t mOrder;
-
-  bool operator==(const ScopedSheetOrder& aRHS) const
-  {
-    return mDepth == aRHS.mDepth &&
-           mOrder == aRHS.mOrder;
-  }
-
-  bool operator<(const ScopedSheetOrder& aRHS) const
-  {
-    if (mDepth != aRHS.mDepth) {
-      return mDepth < aRHS.mDepth;
-    }
-    return mOrder < aRHS.mOrder;
-  }
-};
-
-
-
-
-static void
-SortStyleSheetsByScope(nsTArray<nsCSSStyleSheet*>& aSheets)
-{
-  uint32_t n = aSheets.Length();
-  if (n == 1) {
-    return;
-  }
-
-  ScopeDepthCache cache;
-  cache.Init();
-
-  nsTArray<ScopedSheetOrder> sheets;
-  sheets.SetLength(n);
-
-  
-  
-  for (uint32_t i = 0; i < n; i++) {
-    sheets[i].mSheet = aSheets[i];
-    sheets[i].mDepth = GetScopeDepth(aSheets[i]->GetScopeElement(), cache);
-    sheets[i].mOrder = i;
-  }
-
-  
-  sheets.Sort();
-
-  for (uint32_t i = 0; i < n; i++) {
-    aSheets[i] = sheets[i].mSheet;
-  }
-}
-
 nsresult
 nsStyleSet::GatherRuleProcessors(sheetType aType)
 {
   mRuleProcessors[aType] = nullptr;
-  if (aType == eScopedDocSheet) {
-    for (int i = 0; i < mScopedDocSheetRuleProcessors.Length(); i++) {
-      nsIStyleRuleProcessor* processor = mScopedDocSheetRuleProcessors[i].get();
-      Element* scope =
-        static_cast<nsCSSRuleProcessor*>(processor)->GetScopeElement();
-      scope->ClearIsScopedStyleRoot();
-    }
-    mScopedDocSheetRuleProcessors.Clear();
-  }
   if (mAuthorStyleDisabled && (aType == eDocSheet || 
-                               aType == eScopedDocSheet ||
                                aType == ePresHintSheet ||
                                aType == eStyleAttrSheet)) {
     
@@ -324,49 +232,6 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
     mRuleProcessors[aType] = PresContext()->TransitionManager();
     return NS_OK;
   }
-  if (aType == eScopedDocSheet) {
-    
-    uint32_t count = mSheets[eScopedDocSheet].Count();
-    if (count) {
-      
-      
-      
-      nsTArray<nsCSSStyleSheet*> sheets(count);
-      for (int32_t i = 0; i < count; i++) {
-        nsRefPtr<nsCSSStyleSheet> sheet =
-          do_QueryObject(mSheets[eScopedDocSheet].ObjectAt(i));
-        sheets.AppendElement(sheet);
-
-        Element* scope = sheet->GetScopeElement();
-        scope->SetIsScopedStyleRoot();
-      }
-
-      
-      
-      SortStyleSheetsByScope(sheets);
-
-      uint32_t start = 0, end;
-      do {
-        
-        Element* scope = sheets[start]->GetScopeElement();
-        end = start + 1;
-        while (end < count && sheets[end]->GetScopeElement() == scope) {
-          end++;
-        }
-
-        scope->SetIsScopedStyleRoot();
-
-        
-        nsTArray< nsRefPtr<nsCSSStyleSheet> > sheetsForScope;
-        sheetsForScope.AppendElements(sheets.Elements() + start, end - start);
-        mScopedDocSheetRuleProcessors.AppendElement
-          (new nsCSSRuleProcessor(sheetsForScope, uint8_t(aType), scope));
-
-        start = end;
-      } while (start < count);
-    }
-    return NS_OK;
-  }
   if (mSheets[aType].Count()) {
     switch (aType) {
       case eAgentSheet:
@@ -381,8 +246,8 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
           NS_ASSERTION(cssSheet, "not a CSS sheet");
           cssSheets.AppendElement(cssSheet);
         }
-        mRuleProcessors[aType] =
-          new nsCSSRuleProcessor(cssSheets, uint8_t(aType), nullptr);
+        mRuleProcessors[aType] = new nsCSSRuleProcessor(cssSheets, 
+                                                        uint8_t(aType));
       } break;
 
       default:
@@ -394,15 +259,6 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
   }
 
   return NS_OK;
-}
-
-static bool
-IsScopedStyleSheet(nsIStyleSheet* aSheet)
-{
-  nsRefPtr<nsCSSStyleSheet> cssSheet = do_QueryObject(aSheet);
-  NS_ASSERTION(cssSheet, "expected aSheet to be an nsCSSStyleSheet");
-
-  return cssSheet->GetScopeElement();
 }
 
 nsresult
@@ -520,21 +376,18 @@ nsStyleSet::AddDocStyleSheet(nsIStyleSheet* aSheet, nsIDocument* aDocument)
   NS_ASSERTION(aSheet->IsApplicable(),
                "Inapplicable sheet being placed in style set");
 
-  sheetType type = IsScopedStyleSheet(aSheet) ?
-                     eScopedDocSheet :
-                     eDocSheet;
-  nsCOMArray<nsIStyleSheet>& sheets = mSheets[type];
+  nsCOMArray<nsIStyleSheet>& docSheets = mSheets[eDocSheet];
 
-  sheets.RemoveObject(aSheet);
+  docSheets.RemoveObject(aSheet);
   nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
 
   
   int32_t newDocIndex = aDocument->GetIndexOfStyleSheet(aSheet);
 
-  int32_t count = sheets.Count();
+  int32_t count = docSheets.Count();
   int32_t index;
   for (index = 0; index < count; index++) {
-    nsIStyleSheet* sheet = sheets.ObjectAt(index);
+    nsIStyleSheet* sheet = docSheets.ObjectAt(index);
     int32_t sheetDocIndex = aDocument->GetIndexOfStyleSheet(sheet);
     if (sheetDocIndex > newDocIndex)
       break;
@@ -549,21 +402,13 @@ nsStyleSet::AddDocStyleSheet(nsIStyleSheet* aSheet, nsIDocument* aDocument)
         sheet == aDocument->FirstAdditionalAuthorSheet()))
         break;
   }
-  if (!sheets.InsertObjectAt(aSheet, index))
+  if (!docSheets.InsertObjectAt(aSheet, index))
     return NS_ERROR_OUT_OF_MEMORY;
   if (!mBatching)
-    return GatherRuleProcessors(type);
+    return GatherRuleProcessors(eDocSheet);
 
-  mDirty |= 1 << type;
+  mDirty |= 1 << eDocSheet;
   return NS_OK;
-}
-
-nsresult
-nsStyleSet::RemoveDocStyleSheet(nsIStyleSheet *aSheet)
-{
-  nsRefPtr<nsCSSStyleSheet> cssSheet = do_QueryObject(aSheet);
-  bool isScoped = cssSheet && cssSheet->GetScopeElement();
-  return RemoveStyleSheet(isScoped ? eScopedDocSheet : eDocSheet, aSheet);
 }
 
 
@@ -898,7 +743,7 @@ nsStyleSet::AssertNoCSSRules(nsRuleNode* aCurrLevelNode,
 
 void
 nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc, 
-                      RuleProcessorData* aData, Element* aElement,
+                      RuleProcessorData* aData, nsIContent* aContent,
                       nsRuleWalker* aRuleWalker)
 {
   SAMPLE_LABEL("nsStyleSet", "FileRules");
@@ -930,7 +775,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
   aRuleWalker->SetLevel(eUserSheet, false, true);
   bool skipUserStyles =
-    aElement && aElement->IsInNativeAnonymousSubtree();
+    aContent && aContent->IsInNativeAnonymousSubtree();
   if (!skipUserStyles && mRuleProcessors[eUserSheet]) 
     (*aCollectorFunc)(mRuleProcessors[eUserSheet], aData);
   nsRuleNode* lastUserRN = aRuleWalker->CurrentNode();
@@ -943,42 +788,21 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   
   aRuleWalker->SetLevel(eDocSheet, false, true);
   bool cutOffInheritance = false;
-  if (mBindingManager && aElement) {
+  if (mBindingManager && aContent) {
     
     mBindingManager->WalkRules(aCollectorFunc,
                                static_cast<ElementDependentRuleProcessorData*>(aData),
                                &cutOffInheritance);
   }
-  if (!skipUserStyles && !cutOffInheritance && 
-      mRuleProcessors[eDocSheet])
-    (*aCollectorFunc)(mRuleProcessors[eDocSheet], aData);
-  nsRuleNode* lastDocRN = aRuleWalker->CurrentNode();
-  bool haveImportantDocRules = !aRuleWalker->GetCheckForImportantRules();
-  nsTArray<nsRuleNode*> lastScopedRNs;
-  nsTArray<bool> haveImportantScopedRules;
-  bool haveAnyImportantScopedRules = false;
   if (!skipUserStyles && !cutOffInheritance &&
-      aElement && aElement->IsElementInStyleScope()) {
-    lastScopedRNs.SetLength(mScopedDocSheetRuleProcessors.Length());
-    haveImportantScopedRules.SetLength(mScopedDocSheetRuleProcessors.Length());
-    for (int32_t i = 0; i < mScopedDocSheetRuleProcessors.Length(); i++) {
-      aRuleWalker->SetLevel(eScopedDocSheet, false, true);
-      nsCSSRuleProcessor* processor =
-        static_cast<nsCSSRuleProcessor*>(mScopedDocSheetRuleProcessors[i].get());
-      aData->mScope = processor->GetScopeElement();
-      (*aCollectorFunc)(mScopedDocSheetRuleProcessors[i], aData);
-      lastScopedRNs[i] = aRuleWalker->CurrentNode();
-      haveImportantScopedRules[i] = !aRuleWalker->GetCheckForImportantRules();
-      haveAnyImportantScopedRules = haveAnyImportantScopedRules || haveImportantScopedRules[i];
-    }
-    aData->mScope = nullptr;
-  }
-  nsRuleNode* lastScopedRN = aRuleWalker->CurrentNode();
-  aRuleWalker->SetLevel(eStyleAttrSheet, false, true);
+      mRuleProcessors[eDocSheet]) 
+    (*aCollectorFunc)(mRuleProcessors[eDocSheet], aData);
+  aRuleWalker->SetLevel(eStyleAttrSheet, false,
+                        aRuleWalker->GetCheckForImportantRules());
   if (mRuleProcessors[eStyleAttrSheet])
     (*aCollectorFunc)(mRuleProcessors[eStyleAttrSheet], aData);
-  nsRuleNode* lastStyleAttrRN = aRuleWalker->CurrentNode();
-  bool haveImportantStyleAttrRules = !aRuleWalker->GetCheckForImportantRules();
+  nsRuleNode* lastDocRN = aRuleWalker->CurrentNode();
+  bool haveImportantDocRules = !aRuleWalker->GetCheckForImportantRules();
 
   aRuleWalker->SetLevel(eOverrideSheet, false, true);
   if (mRuleProcessors[eOverrideSheet])
@@ -990,27 +814,6 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   aRuleWalker->SetLevel(eAnimationSheet, false, false);
   (*aCollectorFunc)(mRuleProcessors[eAnimationSheet], aData);
 
-  if (haveAnyImportantScopedRules) {
-    for (uint32_t i = lastScopedRNs.Length(); i-- != 0; ) {
-      aRuleWalker->SetLevel(eScopedDocSheet, true, false);
-      nsRuleNode* startRN = lastScopedRNs[i];
-      nsRuleNode* endRN = i == 0 ? lastDocRN : lastScopedRNs[i - 1];
-      if (haveImportantScopedRules[i]) {
-        AddImportantRules(startRN, endRN, aRuleWalker);  
-      }
-#ifdef DEBUG
-      else {
-        AssertNoImportantRules(startRN, endRN);
-      }
-#endif
-    }
-  }
-#ifdef DEBUG
-  else {
-    AssertNoImportantRules(lastScopedRN, lastDocRN);
-  }
-#endif
-
   if (haveImportantDocRules) {
     aRuleWalker->SetLevel(eDocSheet, true, false);
     AddImportantRules(lastDocRN, lastPresHintRN, aRuleWalker);  
@@ -1021,23 +824,13 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   }
 #endif
 
-  if (haveImportantStyleAttrRules) {
-    aRuleWalker->SetLevel(eStyleAttrSheet, true, false);
-    AddImportantRules(lastStyleAttrRN, lastScopedRN, aRuleWalker);  
-  }
-#ifdef DEBUG
-  else {
-    AssertNoImportantRules(lastStyleAttrRN, lastScopedRN);
-  }
-#endif
-
   if (haveImportantOverrideRules) {
     aRuleWalker->SetLevel(eOverrideSheet, true, false);
-    AddImportantRules(lastOvrRN, lastStyleAttrRN, aRuleWalker);  
+    AddImportantRules(lastOvrRN, lastDocRN, aRuleWalker);  
   }
 #ifdef DEBUG
   else {
-    AssertNoImportantRules(lastOvrRN, lastStyleAttrRN);
+    AssertNoImportantRules(lastOvrRN, lastDocRN);
   }
 #endif
 
@@ -1106,14 +899,9 @@ nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
       mBindingManager->WalkRules(aFunc, aData, &cutOffInheritance);
     }
   }
-  if (!skipUserStyles && !cutOffInheritance) {
-    if (mRuleProcessors[eDocSheet]) 
-      (*aFunc)(mRuleProcessors[eDocSheet], aData);
-    if (aData->mElement->IsElementInStyleScope()) {
-      for (int32_t i = 0; i < mScopedDocSheetRuleProcessors.Length(); i++)
-        (*aFunc)(mScopedDocSheetRuleProcessors[i], aData);
-    }
-  }
+  if (!skipUserStyles && !cutOffInheritance &&
+      mRuleProcessors[eDocSheet]) 
+    (*aFunc)(mRuleProcessors[eDocSheet], aData);
   if (mRuleProcessors[eStyleAttrSheet])
     (*aFunc)(mRuleProcessors[eStyleAttrSheet], aData);
   if (mRuleProcessors[eOverrideSheet])
@@ -1471,8 +1259,6 @@ nsStyleSet::AppendFontFaceRules(nsPresContext* aPresContext,
   NS_ENSURE_FALSE(mInShutdown, false);
 
   for (uint32_t i = 0; i < ArrayLength(gCSSSheetTypes); ++i) {
-    if (gCSSSheetTypes[i] == eScopedDocSheet)
-      continue;
     nsCSSRuleProcessor *ruleProc = static_cast<nsCSSRuleProcessor*>
                                     (mRuleProcessors[gCSSSheetTypes[i]].get());
     if (ruleProc && !ruleProc->AppendFontFaceRules(aPresContext, aArray))
@@ -1488,8 +1274,6 @@ nsStyleSet::AppendKeyframesRules(nsPresContext* aPresContext,
   NS_ENSURE_FALSE(mInShutdown, false);
 
   for (uint32_t i = 0; i < ArrayLength(gCSSSheetTypes); ++i) {
-    if (gCSSSheetTypes[i] == eScopedDocSheet)
-      continue;
     nsCSSRuleProcessor *ruleProc = static_cast<nsCSSRuleProcessor*>
                                     (mRuleProcessors[gCSSSheetTypes[i]].get());
     if (ruleProc && !ruleProc->AppendKeyframesRules(aPresContext, aArray))
@@ -1505,8 +1289,6 @@ nsStyleSet::AppendPageRules(nsPresContext* aPresContext,
   NS_ENSURE_FALSE(mInShutdown, false);
 
   for (uint32_t i = 0; i < NS_ARRAY_LENGTH(gCSSSheetTypes); ++i) {
-    if (gCSSSheetTypes[i] == eScopedDocSheet)
-      continue;
     nsCSSRuleProcessor* ruleProc = static_cast<nsCSSRuleProcessor*>
                                     (mRuleProcessors[gCSSSheetTypes[i]].get());
     if (ruleProc && !ruleProc->AppendPageRules(aPresContext, aArray))

@@ -1051,17 +1051,12 @@ RuleCascadeData::AttributeListFor(nsIAtom* aAttribute)
 
 
 nsCSSRuleProcessor::nsCSSRuleProcessor(const sheet_array_type& aSheets,
-                                       uint8_t aSheetType,
-                                       Element* aScopeElement)
+                                       uint8_t aSheetType)
   : mSheets(aSheets)
   , mRuleCascades(nullptr)
   , mLastPresContext(nullptr)
   , mSheetType(aSheetType)
-  , mScopeElement(aScopeElement)
 {
-  NS_ASSERTION(!!mScopeElement == (aSheetType == nsStyleSet::eScopedDocSheet),
-               "aScopeElement must be specified iff aSheetType is "
-               "eScopedDocSheet");
   for (sheet_array_type::size_type i = mSheets.Length(); i-- != 0; ) {
     mSheets[i]->AddRuleProcessor(this);
   }
@@ -2204,13 +2199,6 @@ static bool SelectorMatchesTree(Element* aPrevElement,
 
     
     
-    if (aTreeMatchContext.mForScopedStyle &&
-        !aTreeMatchContext.IsWithinStyleScopeForSelectorMatching()) {
-      return false;
-    }
-
-    
-    
     Element* element = nullptr;
     if (PRUnichar('+') == selector->mOperator ||
         PRUnichar('~') == selector->mOperator) {
@@ -2239,13 +2227,6 @@ static bool SelectorMatchesTree(Element* aPrevElement,
       
       if (content && content->IsElement()) {
         element = content->AsElement();
-        if (aTreeMatchContext.mForScopedStyle) {
-          
-          
-          
-          
-          aTreeMatchContext.PopStyleScopeForSelectorMatching(element);
-        }
       }
     }
     if (!element) {
@@ -2314,12 +2295,6 @@ void ContentEnumFunc(const RuleValue& value, nsCSSSelector* aSelector,
   if (ancestorFilter &&
       !ancestorFilter->MightHaveMatchingAncestor<RuleValue::eMaxAncestorHashes>(
           value.mAncestorSelectorHashes)) {
-    
-    return;
-  }
-  if (!data->mTreeMatchContext.SetStyleScopeForSelectorMatching(data->mElement,
-                                                                data->mScope)) {
-    
     
     return;
   }
@@ -2506,13 +2481,6 @@ static void
 AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
 {
   AttributeRuleProcessorData *data = aData->data;
-
-  if (!data->mTreeMatchContext.SetStyleScopeForSelectorMatching(data->mElement,
-                                                                data->mScope)) {
-    
-    
-    return;
-  }
 
   nsRestyleHint possibleChange = RestyleHintForOp(aSelector->mOperator);
 
@@ -3290,12 +3258,12 @@ nsCSSRuleProcessor::SelectorListMatches(Element* aElement,
 
 
 void
-TreeMatchContext::InitAncestors(Element *aElement)
+AncestorFilter::Init(Element *aElement)
 {
-  MOZ_ASSERT(!mAncestorFilter.mFilter);
-  MOZ_ASSERT(mAncestorFilter.mHashes.IsEmpty());
+  MOZ_ASSERT(!mFilter);
+  MOZ_ASSERT(mHashes.IsEmpty());
 
-  mAncestorFilter.mFilter = new AncestorFilter::Filter();
+  mFilter = new Filter();
 
   if (MOZ_LIKELY(aElement)) {
     MOZ_ASSERT(aElement->IsInDoc(),
@@ -3316,8 +3284,7 @@ TreeMatchContext::InitAncestors(Element *aElement)
 
     
     for (uint32_t i = ancestors.Length(); i-- != 0; ) {
-      mAncestorFilter.PushAncestor(ancestors[i]);
-      PushStyleScope(ancestors[i]);
+      PushAncestor(ancestors[i]);
     }
   }
 }

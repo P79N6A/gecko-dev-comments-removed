@@ -233,7 +233,6 @@ class nsStyleSet
     eUserSheet, 
     ePresHintSheet,
     eDocSheet, 
-    eScopedDocSheet,
     eStyleAttrSheet,
     eOverrideSheet, 
     eAnimationSheet,
@@ -266,7 +265,6 @@ class nsStyleSet
     return mSheets[aType].ObjectAt(aIndex);
   }
 
-  nsresult RemoveDocStyleSheet(nsIStyleSheet* aSheet);
   nsresult AddDocStyleSheet(nsIStyleSheet* aSheet, nsIDocument* aDocument);
 
   void     BeginUpdate();
@@ -348,7 +346,7 @@ class nsStyleSet
   
   
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 RuleProcessorData* aData, mozilla::dom::Element* aElement,
+                 RuleProcessorData* aData, nsIContent* aContent,
                  nsRuleWalker* aRuleWalker);
 
   
@@ -374,12 +372,7 @@ class nsStyleSet
   
   nsCOMArray<nsIStyleSheet> mSheets[eSheetTypeCount];
 
-  
-  
   nsCOMPtr<nsIStyleRuleProcessor> mRuleProcessors[eSheetTypeCount];
-
-  
-  nsTArray<nsCOMPtr<nsIStyleRuleProcessor> > mScopedDocSheetRuleProcessors;
 
   
   nsCOMPtr<nsIStyleSheet> mQuirkStyleSheet;
@@ -395,7 +388,7 @@ class nsStyleSet
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mInReconstruct : 1;
-  unsigned mDirty : 9;  
+  unsigned mDirty : 8;  
 
   uint32_t mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
