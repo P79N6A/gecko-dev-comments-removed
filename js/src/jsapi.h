@@ -1078,6 +1078,8 @@ ToBoolean(HandleValue v)
         double d = v.toDouble();
         return !mozilla::IsNaN(d) && d != 0;
     }
+    if (v.isSymbol())
+        return true;
 
     
     return js::ToBooleanSlow(v);
