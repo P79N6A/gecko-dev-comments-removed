@@ -1041,6 +1041,7 @@ var gBrowserInit = {
     
     
     FullZoom.init();
+    PanelUI.init();
     LightweightThemeListener.init();
     WebrtcIndicator.init();
 
