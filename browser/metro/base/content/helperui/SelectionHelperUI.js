@@ -832,16 +832,7 @@ var SelectionHelperUI = {
       return;
     }
 
-    let selectionTap = this._hitTestSelection(aEvent);
-
-    
-    
-    
-    if (selectionTap) {
-      if (!this._targetIsEditable) {
-        this.closeEditSession(false);
-        return;
-      }
+    if (this._hitTestSelection(aEvent) && this._targetIsEditable) {
       
       this._sendAsyncMessage("Browser:CaretAttach", {
         xPos: aEvent.clientX,
@@ -855,12 +846,11 @@ var SelectionHelperUI = {
     if (this.startMark.visible && pointInTargetElement &&
         this._targetIsEditable) {
       this._transitionFromSelectionToCaret(clientCoords.x, clientCoords.y);
+      return;
     }
 
     
-    
-    aEvent.stopPropagation();
-    aEvent.preventDefault();
+    this.closeEditSession(false);
   },
 
   _onKeypress: function _onKeypress() {

@@ -306,114 +306,45 @@ gTests.push({
   },
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+gTests.push({
+  desc: "tap on selection clears selection in content",
+  setUp: setUpAndTearDown,
+  run: function test() {
+
+    sendContextMenuClick(30, 20);
+
+    yield waitForCondition(function () {
+        return SelectionHelperUI.isSelectionUIVisible;
+      }, kCommonWaitMs, kCommonPollMs);
+
+    sendTap(gWindow, 30, 20);
+
+    yield waitForCondition(function () {
+        return !SelectionHelperUI.isSelectionUIVisible;
+      }, kCommonWaitMs, kCommonPollMs);
+  },
+  tearDown: setUpAndTearDown,
+});
+
+gTests.push({
+  desc: "tap off selection clears selection in content",
+  setUp: setUpAndTearDown,
+  run: function test() {
+
+    sendContextMenuClick(30, 20);
+
+    yield waitForCondition(function () {
+        return SelectionHelperUI.isSelectionUIVisible;
+      }, kCommonWaitMs, kCommonPollMs);
+
+    sendTap(gWindow, 30, 100);
+
+    yield waitForCondition(function () {
+        return !SelectionHelperUI.isSelectionUIVisible;
+      }, kCommonWaitMs, kCommonPollMs);
+  },
+  tearDown: setUpAndTearDown,
+});
 
 function test() {
   if (!isLandscapeMode()) {
