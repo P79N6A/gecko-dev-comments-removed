@@ -265,19 +265,6 @@ appUpdater.prototype =
       if (cancelQuit.data)
         return;
 
-      
-      
-      
-      
-      try {
-        Components.classes["@mozilla.org/updates/update-processor;1"].
-          createInstance(Components.interfaces.nsIUpdateProcessor).
-          processUpdate(null);
-      } catch (e) {
-        
-        
-      }
-
       let appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"].
                        getService(Components.interfaces.nsIAppStartup);
 
@@ -287,7 +274,8 @@ appUpdater.prototype =
         return;
       }
 
-      appStartup.quit(Components.interfaces.nsIAppStartup.eAttemptQuit);
+      appStartup.quit(Components.interfaces.nsIAppStartup.eAttemptQuit |
+                      Components.interfaces.nsIAppStartup.eRestart);
       return;
     }
 
