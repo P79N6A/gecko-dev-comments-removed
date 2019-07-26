@@ -39,13 +39,6 @@
         <item name="android:ellipsize">marquee</item>
     </style>
 
-    <!-- AwesomeBar -->
-    <style name="AwesomeBar">
-        <item name="android:layout_width">fill_parent</item>
-        <item name="android:layout_height">@dimen/browser_toolbar_height</item>
-        <item name="android:orientation">horizontal</item>
-    </style>
- 
     <!-- ActionBar -->
     <style name="ActionBar" parent="android:style/Widget.Holo.ActionBar" />
  
@@ -67,8 +60,8 @@
     </style>
 
     <!-- Spinner DropDown Item -->
-    <style name="Widget.DropDownItem.Spinner" parent="@android:style/Widget.Holo.Light.DropDownItem.Spinner">
-         <item name="android:textColor">#FF000000</item>
+    <style name="SpinnerDropDownItem" parent="@android:style/Widget.Holo.DropDownItem.Spinner">
+         <item name="android:textColor">#FF222222</item>
     </style>
 
     <style name="Widget.Spinner" parent="android:style/Widget.Holo.Light.Spinner">

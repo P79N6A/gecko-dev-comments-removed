@@ -36,7 +36,6 @@ public class ActivityHandlerHelper implements GeckoEventListener {
 
     private final ActivityResultHandlerMap mActivityResultHandlerMap;
     private final FilePickerResultHandlerSync mFilePickerResultHandlerSync;
-    private final AwesomebarResultHandler mAwesomebarResultHandler;
     private final CameraImageResultHandler mCameraImageResultHandler;
     private final CameraVideoResultHandler mCameraVideoResultHandler;
 
@@ -58,7 +57,6 @@ public class ActivityHandlerHelper implements GeckoEventListener {
         };
         mActivityResultHandlerMap = new ActivityResultHandlerMap();
         mFilePickerResultHandlerSync = new FilePickerResultHandlerSync(mFilePickerResult);
-        mAwesomebarResultHandler = new AwesomebarResultHandler();
         mCameraImageResultHandler = new CameraImageResultHandler(mFilePickerResult);
         mCameraVideoResultHandler = new CameraVideoResultHandler(mFilePickerResult);
         GeckoAppShell.getEventDispatcher().registerEventListener("FilePicker:Show", this);
@@ -91,16 +89,8 @@ public class ActivityHandlerHelper implements GeckoEventListener {
         }
     }
 
-    public int makeRequestCodeForAwesomebar() {
-        return mActivityResultHandlerMap.put(mAwesomebarResultHandler);
-    }
-
     public int makeRequestCode(ActivityResultHandler aHandler) {
         return mActivityResultHandlerMap.put(aHandler);
-    }
-
-    public void startIntentForActivity (Activity activity, Intent intent, ActivityResultHandler activityResultHandler) {
-        activity.startActivityForResult(intent, mActivityResultHandlerMap.put(activityResultHandler));
     }
 
     private int addIntentActivitiesToList(Context context, Intent intent, ArrayList<Prompt.PromptListItem> items, ArrayList<Intent> aIntents) {
@@ -190,11 +180,6 @@ public class ActivityHandlerHelper implements GeckoEventListener {
         public void gotIntent(Intent intent);
     }
 
-    
-
-
-
-
     private void getFilePickerIntentAsync(final Context context, String aMimeType, final IntentHandler handler) {
         final ArrayList<Intent> intents = new ArrayList<Intent>();
         final Prompt.PromptListItem[] items =
@@ -213,22 +198,22 @@ public class ActivityHandlerHelper implements GeckoEventListener {
 
         final Prompt prompt = new Prompt(context, new Prompt.PromptCallback() {
             public void onPromptFinished(String promptServiceResult) {
-                if (handler == null) {
-                    return;
-                }
-
                 int itemId = -1;
                 try {
                     itemId = new JSONObject(promptServiceResult).getInt("button");
+
+                    if (itemId == -1) {
+                        handler.gotIntent(null);
+                        return;
+                    }
                 } catch (JSONException e) {
                     Log.e(LOGTAG, "result from promptservice was invalid: ", e);
+                    handler.gotIntent(null);
+                    return;
                 }
 
-                if (itemId == -1) {
-                    handler.gotIntent(null);
-                } else {
+                if (handler != null)
                     handler.gotIntent(intents.get(itemId));
-                }
             }
         });
 
@@ -318,29 +303,20 @@ public class ActivityHandlerHelper implements GeckoEventListener {
         return filePickerResult;
     }
 
-    
-
-
-
     public void showFilePickerAsync(final Activity parentActivity, String aMimeType, final FileResultHandler handler) {
         getFilePickerIntentAsync(parentActivity, aMimeType, new IntentHandler() {
             public void gotIntent(Intent intent) {
-                if (handler == null) {
-                    return;
-                }
-
                 if (intent == null) {
                     handler.gotFile("");
-                    return;
                 }
-
-                if (MediaStore.ACTION_IMAGE_CAPTURE.equals(intent.getAction())) {
+        
+                if (intent.getAction().equals(MediaStore.ACTION_IMAGE_CAPTURE)) {
                     CameraImageResultHandler cam = new CameraImageResultHandler(handler);
                     parentActivity.startActivityForResult(intent, mActivityResultHandlerMap.put(cam));
-                } else if (MediaStore.ACTION_VIDEO_CAPTURE.equals(intent.getAction())) {
+                } else if (intent.getAction().equals(MediaStore.ACTION_VIDEO_CAPTURE)) {
                     CameraVideoResultHandler vid = new CameraVideoResultHandler(handler);
                     parentActivity.startActivityForResult(intent, mActivityResultHandlerMap.put(vid));
-                } else if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
+                } else if (intent.getAction().equals(Intent.ACTION_GET_CONTENT)) {
                     FilePickerResultHandlerSync file = new FilePickerResultHandlerSync(handler);
                     parentActivity.startActivityForResult(intent, mActivityResultHandlerMap.put(file));
                 } else {

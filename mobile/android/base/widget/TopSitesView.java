@@ -5,7 +5,6 @@
 
 package org.mozilla.gecko.widget;
 
-import org.mozilla.gecko.AwesomeBar;
 import org.mozilla.gecko.BrowserApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.R;
@@ -124,11 +123,6 @@ public class TopSitesView extends GridView {
                 
                 
                 View view = getChildAt(info.position);
-                
-                
-                if (view == null) {
-                    return;
-                }
                 TopSitesViewHolder holder = (TopSitesViewHolder) view.getTag();
                 if (TextUtils.isEmpty(holder.getUrl())) {
                     menu.findItem(R.id.abouthome_open_new_tab).setVisible(false);
@@ -293,9 +287,8 @@ public class TopSitesView extends GridView {
 
             
             
-            if (view == null) {
+            if (view == null)
                 continue;
-            }
 
             TopSitesViewHolder holder = (TopSitesViewHolder)view.getTag();
             final String url = holder.getUrl();
@@ -322,8 +315,7 @@ public class TopSitesView extends GridView {
                 if (b == null)
                     continue;
 
-                Bitmap thumbnail = null;
-                thumbnail = BitmapUtils.decodeByteArray(b);
+                Bitmap thumbnail = BitmapUtils.decodeByteArray(b);
                 if (thumbnail == null)
                     continue;
 
@@ -512,11 +504,6 @@ public class TopSitesView extends GridView {
     private void clearThumbnailsWithUrl(final String url) {
         for (int i = 0; i < mTopSitesAdapter.getCount(); i++) {
             final View view = getChildAt(i);
-            
-            
-            if (view == null) {
-                continue;
-            }
             final TopSitesViewHolder holder = (TopSitesViewHolder) view.getTag();
 
             if (holder.getUrl().equals(url)) {
@@ -557,11 +544,6 @@ public class TopSitesView extends GridView {
         final int position = info.position;
 
         final View v = getChildAt(position);
-        
-        
-        if (v == null) {
-            return;
-        }
         final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         final String url = holder.getUrl();
         
@@ -580,11 +562,6 @@ public class TopSitesView extends GridView {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         final int position = info.position;
         View v = getChildAt(position);
-        
-        
-        if (v == null) {
-            return;
-        }
 
         final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         holder.setPinned(true);
@@ -616,11 +593,6 @@ public class TopSitesView extends GridView {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         int position = info.position;
         View v = getChildAt(position);
-        
-        
-        if (v == null) {
-            return;
-        }
 
         TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
         
@@ -629,88 +601,6 @@ public class TopSitesView extends GridView {
 
     
     public void editSite(String url, final int position) {
-        Intent intent = new Intent(mContext, AwesomeBar.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-        intent.putExtra(AwesomeBar.TARGET_KEY, AwesomeBar.Target.PICK_SITE.toString());
-        if (url != null && !TextUtils.isEmpty(url)) {
-            intent.putExtra(AwesomeBar.CURRENT_URL_KEY, url);
-        }
 
-        int requestCode = GeckoAppShell.sActivityHelper.makeRequestCode(new ActivityResultHandler() {
-            @Override
-            public void onActivityResult(int resultCode, Intent data) {
-                if (resultCode == Activity.RESULT_CANCELED || data == null)
-                    return;
-
-                final View v = getChildAt(position);
-                
-                
-                if (v == null) {
-                    return;
-                }
-                final TopSitesViewHolder holder = (TopSitesViewHolder) v.getTag();
-
-                String title = data.getStringExtra(AwesomeBar.TITLE_KEY);
-                String url = data.getStringExtra(AwesomeBar.URL_KEY);
-
-                
-                if (TextUtils.isEmpty(url)) {
-                    return;
-                }
-
-                
-                
-                if (data.getBooleanExtra(AwesomeBar.USER_ENTERED_KEY, false)) {
-                    
-                    title = url;
-                    url = encodeUserEnteredUrl(url);
-                }
-
-                clearThumbnailsWithUrl(url);
-
-                holder.setUrl(url);
-                holder.setTitle(title);
-                holder.setPinned(true);
-
-                
-                (new UiAsyncTask<Void, Void, Bitmap>(ThreadUtils.getBackgroundHandler()) {
-                    @Override
-                    public Bitmap doInBackground(Void... params) {
-                        final ContentResolver resolver = mContext.getContentResolver();
-                        BrowserDB.pinSite(resolver, holder.getUrl(), holder.getTitle(), position);
-
-                        List<String> urls = new ArrayList<String>();
-                        urls.add(holder.getUrl());
-
-                        Bitmap bitmap = null;
-                        Cursor c = null;
-
-                        try {
-                            c = BrowserDB.getThumbnailsForUrls(resolver, urls);
-                            if (c != null && c.moveToFirst()) {
-                                final byte[] b = c.getBlob(c.getColumnIndexOrThrow(Thumbnails.DATA));
-
-                                if (b != null) {
-                                    bitmap = BitmapUtils.decodeByteArray(b);
-                                }
-                            }
-                        } finally {
-                            if (c != null) {
-                                c.close();
-                            }
-                        }
-
-                        return bitmap;
-                    }
-
-                    @Override
-                    public void onPostExecute(Bitmap b) {
-                        displayThumbnail(v, b);
-                    }
-                }).execute();
-            }
-        });
-
-        mActivity.startActivityForResult(intent, requestCode);
     }
 }
