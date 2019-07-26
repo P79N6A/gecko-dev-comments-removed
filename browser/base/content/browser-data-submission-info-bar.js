@@ -47,11 +47,6 @@ let gDataNotificationInfoBar = {
       return;
     }
 
-    let policy = Cc["@mozilla.org/datareporting/service;1"]
-                   .getService(Ci.nsISupports)
-                   .wrappedJSObject
-                   .policy;
-
     let brandBundle = document.getElementById("bundle_brand");
     let appName = brandBundle.getString("brandShortName");
     let vendorName = brandBundle.getString("vendorShortName");
@@ -60,7 +55,7 @@ let gDataNotificationInfoBar = {
       "dataReportingNotification.message",
       [appName, vendorName]);
 
-    let actionTaken = false;
+    this._actionTaken = false;
 
     let buttons = [{
       label: gNavigatorBundle.getString("dataReportingNotification.button.label"),
@@ -72,9 +67,9 @@ let gDataNotificationInfoBar = {
         
         
         request.onUserAccept("info-bar-button-pressed");
-        actionTaken = true;
+        this._actionTaken = true;
         window.openAdvancedPreferences("dataChoicesTab");
-      },
+      }.bind(this),
     }];
 
     this._log.info("Creating data reporting policy notification.");
@@ -86,7 +81,7 @@ let gDataNotificationInfoBar = {
       buttons,
       function onEvent(event) {
         if (event == "removed") {
-          if (!actionTaken) {
+          if (!this._actionTaken) {
             request.onUserAccept("info-bar-dismissed");
           }
 
@@ -102,6 +97,7 @@ let gDataNotificationInfoBar = {
   _clearPolicyNotification: function () {
     let notification = this._getDataReportingNotification();
     if (notification) {
+      this._log.debug("Closing notification.");
       notification.close();
     }
   },
@@ -121,6 +117,10 @@ let gDataNotificationInfoBar = {
         break;
 
       case "datareporting:notify-data-policy:close":
+        
+        
+        
+        this._actionTaken = true;
         this._clearPolicyNotification();
         break;
 
