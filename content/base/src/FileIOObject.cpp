@@ -85,13 +85,13 @@ FileIOObject::DispatchError(nsresult rv, nsAString& finalEvent)
   
   switch (rv) {
   case NS_ERROR_FILE_NOT_FOUND:
-    mError = DOMError::CreateWithName(NS_LITERAL_STRING("NotFoundError"));
+    mError = new DOMError(GetOwner(), NS_LITERAL_STRING("NotFoundError"));
     break;
   case NS_ERROR_FILE_ACCESS_DENIED:
-    mError = DOMError::CreateWithName(NS_LITERAL_STRING("SecurityError"));
+    mError = new DOMError(GetOwner(), NS_LITERAL_STRING("SecurityError"));
     break;
   default:
-    mError = DOMError::CreateWithName(NS_LITERAL_STRING("NotReadableError"));
+    mError = new DOMError(GetOwner(), NS_LITERAL_STRING("NotReadableError"));
     break;
   }
 
@@ -231,7 +231,7 @@ FileIOObject::Abort(ErrorResult& aRv)
   mReadyState = 2; 
                    
   
-  mError = DOMError::CreateWithName(NS_LITERAL_STRING("AbortError"));
+  mError = new DOMError(GetOwner(), NS_LITERAL_STRING("AbortError"));
 
   nsString finalEvent;
   DoAbort(finalEvent);

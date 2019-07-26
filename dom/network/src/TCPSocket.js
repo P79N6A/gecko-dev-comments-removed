@@ -40,11 +40,8 @@ const BUFFER_SIZE = 65536;
 
 
 
-function createTCPError(aErrorName, aErrorType) {
-  let error = Cc["@mozilla.org/dom-error;1"]
-                .createInstance(Ci.nsIDOMDOMError);
-  error.wrappedJSObject.init(aErrorName);
-  return error;
+function createTCPError(aWindow, aErrorName, aErrorType) {
+  return new (aWindow ? aWindow.DOMError : DOMError)(aErrorName);
 }
 
 
@@ -272,7 +269,7 @@ TCPSocket.prototype = {
   callListenerError: function ts_callListenerError(type, name) {
     
     
-    this.callListener(type, createTCPError(name));
+    this.callListener(type, createTCPError(this.useWin, name));
   },
 
   callListenerData: function ts_callListenerString(type, data) {
@@ -635,7 +632,7 @@ TCPSocket.prototype = {
             break;
         }
       }
-      let err = createTCPError(errName, errType);
+      let err = createTCPError(this.useWin, errName, errType);
       this.callListener("error", err);
     }
     this.callListener("close");
