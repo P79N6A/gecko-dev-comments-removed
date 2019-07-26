@@ -66,12 +66,9 @@ let gPage = {
   
 
 
-
-
-  update: function Page_update(aOnlyIfHidden=false) {
-    let skipUpdate = aOnlyIfHidden && this.allowBackgroundCaptures;
+  update: function Page_update() {
     
-    if (gGrid.ready && !skipUpdate) {
+    if (gGrid.ready) {
       gGrid.refresh();
     }
   },

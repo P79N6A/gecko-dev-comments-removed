@@ -159,34 +159,20 @@ function clearHistory(aCallback) {
 
 function fillHistory(aLinks, aCallback) {
   let numLinks = aLinks.length;
-  if (!numLinks) {
-    if (aCallback)
-      executeSoon(aCallback);
-    return;
-  }
-
   let transitionLink = Ci.nsINavHistoryService.TRANSITION_LINK;
 
-  
-  
-  let now = Date.now() * 1000;
-
-  for (let i = 0; i < aLinks.length; i++) {
-    let link = aLinks[i];
+  for (let link of aLinks.reverse()) {
     let place = {
       uri: makeURI(link.url),
       title: link.title,
-      
-      
-      
-      visits: [{visitDate: now - i, transitionType: transitionLink}]
+      visits: [{visitDate: Date.now() * 1000, transitionType: transitionLink}]
     };
 
     PlacesUtils.asyncHistory.updatePlaces(place, {
       handleError: function () ok(false, "couldn't add visit to history"),
       handleResult: function () {},
       handleCompletion: function () {
-        if (--numLinks == 0 && aCallback)
+        if (--numLinks == 0)
           aCallback();
       }
     });
@@ -518,17 +504,11 @@ function createDragEvent(aEventType, aData) {
 
 
 
-
-
-
-
-function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
+function whenPagesUpdated(aCallback) {
   let page = {
-    update: function (onlyIfHidden=false) {
-      if (onlyIfHidden == aOnlyIfHidden) {
-        NewTabUtils.allPages.unregister(this);
-        executeSoon(aCallback || TestRunner.next);
-      }
+    update: function () {
+      NewTabUtils.allPages.unregister(this);
+      executeSoon(aCallback || TestRunner.next);
     }
   };
 

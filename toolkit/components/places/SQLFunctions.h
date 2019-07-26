@@ -280,43 +280,6 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class FrecencyNotificationFunction MOZ_FINAL : public mozIStorageFunction
-{
-public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_MOZISTORAGEFUNCTION
-
-  
-
-
-
-
-
-  static nsresult create(mozIStorageConnection *aDBConn);
-};
-
-
 } 
 } 
 
