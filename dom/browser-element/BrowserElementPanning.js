@@ -45,16 +45,21 @@ const ContentPanning = {
       this.watchedEventsType = 'mouse';
     }
 
-    let els = Cc["@mozilla.org/eventlistenerservice;1"]
-                .getService(Ci.nsIEventListenerService);
+    
+    
+    
+    if (!this._asyncPanZoomForViewportFrame) {
+      let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                  .getService(Ci.nsIEventListenerService);
 
-    events.forEach(function(type) {
-      
-      
-      els.addSystemEventListener(global, type,
-                                 this.handleEvent.bind(this),
-                                  false);
-    }.bind(this));
+      events.forEach(function(type) {
+        
+        
+        els.addSystemEventListener(global, type,
+                                   this.handleEvent.bind(this),
+                                    false);
+      }.bind(this));
+    }
 
     addMessageListener("Viewport:Change", this._recvViewportChange.bind(this));
     addMessageListener("Gesture:DoubleTap", this._recvDoubleTap.bind(this));
