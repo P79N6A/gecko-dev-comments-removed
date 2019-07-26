@@ -80,20 +80,22 @@ this.WapPushManager = {
 
 
     let contentType = options.headers["content-type"].media;
-    let msg = { contentType: contentType };
+    let msg;
 
     if (contentType === "text/vnd.wap.si" ||
         contentType === "application/vnd.wap.sic") {
-      SI.PduHelper.parse(data, contentType, msg);
+      msg = SI.PduHelper.parse(data, contentType);
     } else if (contentType === "text/vnd.wap.sl" ||
                contentType === "application/vnd.wap.slc") {
-      SL.PduHelper.parse(data, contentType, msg);
-    } else if (contentType === "text/vnd.wap.connectivity-xml" ||
-               contentType === "application/vnd.wap.connectivity-wbxml") {
-      
+      msg = SL.PduHelper.parse(data, contentType);
     } else {
       
-      msg.content = data.array;
+
+      
+      msg = {
+        contentType: contentType,
+        content: data.array
+      };
     }
 
     

@@ -33,12 +33,8 @@ this.PduHelper = {
 
 
 
-
-
-  parse: function parse_sl(data, contentType, msg) {
-    if (!msg) {
-      msg = {};
-    }
+  parse: function parse_sl(data, contentType) {
+    let msg = {};
 
     
 
@@ -55,6 +51,7 @@ this.PduHelper = {
 
       WBXML.PduHelper.parse(data, appToken, msg);
 
+      msg.contentType = "text/vnd.wap.sl";
       return msg;
     }
 
@@ -65,6 +62,7 @@ this.PduHelper = {
       let stringData = WSP.Octet.decodeMultiple(data, data.array.length);
       msg.publicId = PUBLIC_IDENTIFIER_SL;
       msg.content = WSP.PduHelper.decodeStringContent(stringData, "UTF-8");
+      msg.contentType = "text/vnd.wap.sl";
       return msg;
     }
 
