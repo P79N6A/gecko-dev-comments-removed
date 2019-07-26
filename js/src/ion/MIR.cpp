@@ -1236,7 +1236,9 @@ KnownNonStringPrimitive(MDefinition *op)
 }
 
 void
-MBinaryArithInstruction::infer(bool overflowed)
+MBinaryArithInstruction::infer(BaselineInspector *inspector,
+                               jsbytecode *pc,
+                               bool overflowed)
 {
     JS_ASSERT(this->type() == MIRType_Value);
 
@@ -1247,8 +1249,9 @@ MBinaryArithInstruction::infer(bool overflowed)
     MIRType rhs = getOperand(1)->type();
 
     
+    
     if (!KnownNonStringPrimitive(getOperand(0)) || !KnownNonStringPrimitive(getOperand(1)))
-        return;
+        return inferFallback(inspector, pc);
 
     
     
@@ -1257,7 +1260,7 @@ MBinaryArithInstruction::infer(bool overflowed)
     else if (lhs == MIRType_Double || rhs == MIRType_Double)
         setResultType(MIRType_Double);
     else
-        return;
+        return inferFallback(inspector, pc);
 
     
     if (overflowed)
@@ -1288,6 +1291,29 @@ MBinaryArithInstruction::infer(bool overflowed)
     if (isAdd() || isMul())
         setCommutative();
     setResultType(rval);
+}
+
+void
+MBinaryArithInstruction::inferFallback(BaselineInspector *inspector,
+                                       jsbytecode *pc)
+{
+    
+    specialization_ = inspector->expectedBinaryArithSpecialization(pc);
+    if (specialization_ != MIRType_None) {
+        setResultType(specialization_);
+        return;
+    }
+
+    
+    
+    
+    
+    
+    if (block()->info().executionMode() == ParallelExecution) {
+        specialization_ = MIRType_Double;
+        setResultType(MIRType_Double);
+        return;
+    }
 }
 
 static bool
