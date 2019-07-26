@@ -29,6 +29,7 @@ struct JSContext;
 
 namespace mozilla {
 
+class ContainerParser;
 class ErrorResult;
 class SourceBufferResource;
 class SubBufferDecoder;
@@ -88,7 +89,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SourceBuffer, DOMEventTargetHelper)
 
-  explicit SourceBuffer(MediaSource* aMediaSource, const nsACString& aType);
+  static already_AddRefed<SourceBuffer> Create(MediaSource* aMediaSource, const nsACString& aType);
   ~SourceBuffer();
 
   MediaSource* GetParentObject() const;
@@ -108,14 +109,9 @@ public:
   
   void Evict(double aStart, double aEnd);
 
-  
-  bool Init()
-  {
-    MOZ_ASSERT(!mCurrentDecoder);
-    return InitNewDecoder();
-  }
-
 private:
+  SourceBuffer(MediaSource* aMediaSource, const nsACString& aType);
+
   friend class AsyncEventRunner<SourceBuffer>;
   void DispatchSimpleEvent(const char* aName);
   void QueueAsyncSimpleEvent(const char* aName);
@@ -138,6 +134,8 @@ private:
   nsRefPtr<MediaSource> mMediaSource;
 
   const nsAutoCString mType;
+
+  nsAutoPtr<ContainerParser> mParser;
 
   
   

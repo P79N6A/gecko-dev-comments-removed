@@ -112,6 +112,38 @@ SubBufferDecoder::ConvertToByteOffset(double aTime)
   return offset;
 }
 
+class ContainerParser {
+public:
+  virtual ~ContainerParser() {}
+
+  virtual bool IsInitSegmentPresent(const uint8_t* aData, uint32_t aLength)
+  {
+    return false;
+  }
+};
+
+class WebMContainerParser : public ContainerParser {
+public:
+  bool IsInitSegmentPresent(const uint8_t* aData, uint32_t aLength)
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aLength >= 4 &&
+        aData[0] == 0x1a && aData[1] == 0x45 && aData[2] == 0xdf && aData[3] == 0xa3) {
+      return true;
+    }
+    return false;
+  }
+};
+
 namespace dom {
 
 void
@@ -232,10 +264,10 @@ SourceBuffer::Abort(ErrorResult& aRv)
   mAppendWindowStart = 0;
   mAppendWindowEnd = PositiveInfinity<double>();
 
-  MSE_DEBUG("%p Abort: Switching decoders.", this);
-  mCurrentDecoder->GetResource()->Ended();
-  if (!InitNewDecoder()) {
-    aRv.Throw(NS_ERROR_FAILURE); 
+  MSE_DEBUG("%p Abort: Discarding decoders.", this);
+  if (mCurrentDecoder) {
+    mCurrentDecoder->GetResource()->Ended();
+    mCurrentDecoder = nullptr;
   }
 }
 
@@ -286,6 +318,19 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
   , mUpdating(false)
 {
   MOZ_ASSERT(aMediaSource);
+  if (mType.EqualsIgnoreCase("video/webm") || mType.EqualsIgnoreCase("audio/webm")) {
+    mParser = new WebMContainerParser();
+  } else {
+    
+    mParser = new ContainerParser();
+  }
+}
+
+already_AddRefed<SourceBuffer>
+SourceBuffer::Create(MediaSource* aMediaSource, const nsACString& aType)
+{
+  nsRefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(aMediaSource, aType);
+  return sourceBuffer.forget();
 }
 
 SourceBuffer::~SourceBuffer()
@@ -379,10 +424,20 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   
   StartUpdating();
   
+  if (mParser->IsInitSegmentPresent(aData, aLength) || !mCurrentDecoder) {
+    MSE_DEBUG("%p AppendBuffer: New initialization segment, switching decoders.", this);
+    if (mCurrentDecoder) {
+      mCurrentDecoder->GetResource()->Ended();
+    }
+    if (!InitNewDecoder()) {
+      aRv.Throw(NS_ERROR_FAILURE); 
+      return;
+    }
+  }
+  
   mCurrentDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData),
                                      aLength,
                                      mCurrentDecoder->GetResource()->GetLength());
-  
   mCurrentDecoder->GetResource()->AppendData(aData, aLength);
 
   
