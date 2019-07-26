@@ -2294,6 +2294,13 @@ this.CustomizableUI = {
 
 
 
+
+
+
+
+
+
+
   addListener: function(aListener) {
     CustomizableUIInternal.addListener(aListener);
   },
