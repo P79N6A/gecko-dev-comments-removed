@@ -5,6 +5,9 @@
 
 
 
+#ifndef SkImages_DEFINED
+#define SkImages_DEFINED
+
 class SkImages {
 public:
     
@@ -12,3 +15,5 @@ public:
 
     static void InitializeFlattenables();
 };
+
+#endif
