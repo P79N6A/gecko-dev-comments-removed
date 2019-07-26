@@ -1741,7 +1741,7 @@ InMemoryDataSource::EnsureFastContainment(nsIRDFResource* aSource)
     
     hashAssertion->AddRef();
 
-    register Assertion *first = GetForwardArcs(aSource);
+    Assertion *first = GetForwardArcs(aSource);
     SetForwardArcs(aSource, hashAssertion);
 
     
