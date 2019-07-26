@@ -761,6 +761,25 @@ Editor.prototype = {
   
 
 
+  getFontSize: function () {
+    let cm  = editors.get(this);
+    let el  = cm.getWrapperElement();
+    let win = el.ownerDocument.defaultView;
+
+    return parseInt(win.getComputedStyle(el).getPropertyValue("font-size"), 10);
+  },
+
+  
+
+
+  setFontSize: function (size) {
+    let cm = editors.get(this);
+    cm.getWrapperElement().style.fontSize = parseInt(size, 10) + "px";
+  },
+
+  
+
+
 
 
 
