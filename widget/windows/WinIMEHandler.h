@@ -7,6 +7,7 @@
 #define WinIMEHandler_h_
 
 #include "nscore.h"
+#include "nsEvent.h"
 #include <windows.h>
 
 class nsWindow;
@@ -46,6 +47,12 @@ public:
 
 
   static bool IsComposingOn(nsWindow* aWindow);
+
+  
+
+
+  static nsresult NotifyIME(nsWindow* aWindow,
+                            NotificationToIME aNotification);
 
   
 
