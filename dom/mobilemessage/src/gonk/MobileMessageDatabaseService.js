@@ -1373,8 +1373,8 @@ MobileMessageDatabaseService.prototype = {
       if (receivers.length >= 2) {
         let isSuccess = false;
         let slicedReceivers = receivers.slice();
-        if (aMessage.msisdn) {
-          let found = slicedReceivers.indexOf(aMessage.msisdn);
+        if (aMessage.phoneNumber) {
+          let found = slicedReceivers.indexOf(aMessage.phoneNumber);
           if (found !== -1) {
             isSuccess = true;
             slicedReceivers.splice(found, 1);
@@ -1382,6 +1382,7 @@ MobileMessageDatabaseService.prototype = {
         }
 
         if (!isSuccess) {
+          
           
           
           

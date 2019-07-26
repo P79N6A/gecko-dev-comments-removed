@@ -47,6 +47,10 @@ const RADIOINTERFACE_CID =
   Components.ID("{6a7c91f0-a2b3-4193-8562-8969296c0b54}");
 const RILNETWORKINTERFACE_CID =
   Components.ID("{3bdd52a9-3965-4130-b569-0ac5afed045e}");
+const GSMICCINFO_CID =
+  Components.ID("{d90c4261-a99d-47bc-8b05-b057bb7e8f8a}");
+const CDMAICCINFO_CID =
+  Components.ID("{39ba3c08-aacc-46d0-8c04-9b619c387061}");
 
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kSmsReceivedObserverTopic          = "sms-received";
@@ -462,6 +466,52 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
     }
   };
 });
+
+function IccInfo() {}
+IccInfo.prototype = {
+  iccType: null,
+  iccid: null,
+  mcc: null,
+  mnc: null,
+  spn: null,
+  isDisplayNetworkNameRequired: null,
+  isDisplaySpnRequired: null
+};
+
+function GsmIccInfo() {}
+GsmIccInfo.prototype = {
+  __proto__: IccInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMMozGsmIccInfo]),
+  classID: GSMICCINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          GSMICCINFO_CID,
+    classDescription: "MozGsmIccInfo",
+    flags:            Ci.nsIClassInfo.DOM_OBJECT,
+    interfaces:       [Ci.nsIDOMMozGsmIccInfo]
+  }),
+
+  
+
+  msisdn: null
+};
+
+function CdmaIccInfo() {}
+CdmaIccInfo.prototype = {
+  __proto__: IccInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMMozCdmaIccInfo]),
+  classID: CDMAICCINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          CDMAICCINFO_CID,
+    classDescription: "MozCdmaIccInfo",
+    flags:            Ci.nsIClassInfo.DOM_OBJECT,
+    interfaces:       [Ci.nsIDOMMozCdmaIccInfo]
+  }),
+
+  
+
+  mdn: null,
+  min: null
+};
 
 function RadioInterfaceLayer() {
   gMessageManager.init(this);
@@ -1049,9 +1099,27 @@ RadioInterface.prototype = {
     }
   },
 
-  getMsisdn: function getMsisdn() {
+  
+
+
+
+
+
+
+
+
+  getPhoneNumber: function getPhoneNumber() {
     let iccInfo = this.rilContext.iccInfo;
-    let number = iccInfo ? iccInfo.msisdn : null;
+
+    if (!iccInfo) {
+      return null;
+    }
+
+    
+    
+    
+    
+    let number = (iccInfo instanceof GsmIccInfo) ? iccInfo.msisdn : iccInfo.mdn;
 
     
     
@@ -1744,7 +1812,7 @@ RadioInterface.prototype = {
 
     message.type = "sms";
     message.sender = message.sender || null;
-    message.receiver = this.getMsisdn();
+    message.receiver = this.getPhoneNumber();
     message.body = message.fullBody = message.fullBody || null;
     message.timestamp = Date.now();
 
@@ -1991,12 +2059,27 @@ RadioInterface.prototype = {
   },
 
   handleIccInfoChange: function handleIccInfoChange(message) {
-    let oldIccInfo = this.rilContext.iccInfo;
-    this.rilContext.iccInfo = message;
+    let oldSpn = this.rilContext.iccInfo ? this.rilContext.iccInfo.spn : null;
 
-    if (!this.isInfoChanged(message, oldIccInfo)) {
-      return;
+    if (!message || !message.iccType) {
+      
+      this.rilContext.iccInfo = null;
+    } else {
+      if (!this.rilContext.iccInfo) {
+        if (message.iccType === "ruim" || message.iccType === "csim") {
+          this.rilContext.iccInfo = new CdmaIccInfo();
+        } else {
+          this.rilContext.iccInfo = new GsmIccInfo();
+        }
+      }
+
+      if (!this.isInfoChanged(message, this.rilContext.iccInfo)) {
+        return;
+      }
+
+      this.updateInfo(message, this.rilContext.iccInfo);
     }
+
     
     
     gMessageManager.sendIccMessage("RIL:IccInfoChanged",
@@ -2020,7 +2103,6 @@ RadioInterface.prototype = {
     }
 
     
-    let oldSpn = oldIccInfo ? oldIccInfo.spn : null;
     if (!oldSpn && message.spn) {
       let voice = this.rilContext.voice;
       let data = this.rilContext.data;
@@ -2945,7 +3027,7 @@ RadioInterface.prototype = {
 
     let sendingMessage = {
       type: "sms",
-      sender: this.getMsisdn(),
+      sender: this.getPhoneNumber(),
       receiver: number,
       body: message,
       deliveryStatusRequested: options.requestStatusReport,
