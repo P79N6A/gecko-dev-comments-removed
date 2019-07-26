@@ -280,7 +280,8 @@ WebRtc_Word32 AudioDeviceModuleImpl::CreatePlatformSpecificObjects()
         
         ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
     }
-#elif defined(WEBRTC_ANDROID_OPENSLES) or defined(WEBRTC_ANDROID)
+#endif
+#if defined(WEBRTC_ANDROID_OPENSLES) or defined(WEBRTC_ANDROID)
     
     if (ptrAudioDevice == NULL) {
         
