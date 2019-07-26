@@ -24,6 +24,7 @@
 #include "nsTimeRanges.h"
 #include "nsIDOMWakeLock.h"
 #include "AudioChannelCommon.h"
+#include "DecoderTraits.h"
 
 
 
@@ -57,12 +58,6 @@ public:
 #ifdef MOZ_DASH
   friend class DASHDecoder;
 #endif
-
-  enum CanPlayStatus {
-    CANPLAY_NO,
-    CANPLAY_MAYBE,
-    CANPLAY_YES
-  };
 
   mozilla::CORSMode GetCORSMode() {
     return mCORSMode;
@@ -256,64 +251,7 @@ public:
 
   
   
-  
-  
-  
-  static CanPlayStatus CanHandleMediaType(const char* aMIMEType,
-                                          char const *const ** aSupportedCodecs);
-
-  
-  
-  static CanPlayStatus GetCanPlay(const nsAString& aType);
-
-  
-  
-  
-  
-  static bool ShouldHandleMediaType(const char* aMIMEType);
-
-#ifdef MOZ_OGG
-  static bool IsOggType(const nsACString& aType);
-  static const char gOggTypes[3][16];
-  static char const *const gOggCodecs[3];
-  static char const *const gOggCodecsWithOpus[4];
-#endif
-
-#ifdef MOZ_WAVE
-  static bool IsWaveType(const nsACString& aType);
-  static const char gWaveTypes[4][15];
-  static char const *const gWaveCodecs[2];
-#endif
-
-#ifdef MOZ_WEBM
-  static bool IsWebMType(const nsACString& aType);
-  static const char gWebMTypes[2][11];
-  static char const *const gWebMCodecs[4];
-#endif
-
-#ifdef MOZ_GSTREAMER
-  static bool IsGStreamerSupportedType(const nsACString& aType);
-  static bool IsH264Type(const nsACString& aType);
-  static const char gH264Types[3][16];
-#endif
-
-#ifdef MOZ_WIDGET_GONK
-  static bool IsOmxSupportedType(const nsACString& aType);
-  static const char gOmxTypes[5][16];
-#endif
-
-#if defined(MOZ_GSTREAMER) || defined(MOZ_WIDGET_GONK)
-  static char const *const gH264Codecs[9];
-#endif
-
-#ifdef MOZ_MEDIA_PLUGINS
-  static bool IsMediaPluginsType(const nsACString& aType);
-#endif
-
-#ifdef MOZ_DASH
-  static bool IsDASHMPDType(const nsACString& aType);
-  static const char gDASHMPDTypes[1][21];
-#endif
+  static mozilla::CanPlayStatus GetCanPlay(const nsAString& aType);
 
   
 
