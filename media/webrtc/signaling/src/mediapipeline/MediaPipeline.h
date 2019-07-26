@@ -18,7 +18,6 @@
 #include "VideoUtils.h"
 #endif
 #include "MediaConduitInterface.h"
-#include "MediaPipelineFilter.h"
 #include "AudioSegment.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "SrtpFlow.h"
@@ -29,8 +28,6 @@
 #ifdef MOZILLA_INTERNAL_API
 #include "VideoSegment.h"
 #endif
-
-#include "webrtc/modules/rtp_rtcp/interface/rtp_header_parser.h"
 
 namespace mozilla {
 
@@ -83,11 +80,16 @@ class MediaPipeline : public sigslot::has_slots<> {
         track_id_(track_id),
         level_(level),
         conduit_(conduit),
-        rtp_(rtp_transport, rtcp_transport ? RTP : MUX),
-        rtcp_(rtcp_transport ? rtcp_transport : rtp_transport,
-              rtcp_transport ? RTCP : MUX),
+        rtp_transport_(rtp_transport),
+        rtp_state_(MP_CONNECTING),
+        rtcp_transport_(rtcp_transport),
+        rtcp_state_(MP_CONNECTING),
         main_thread_(main_thread),
         sts_thread_(sts_thread),
+        rtp_send_srtp_(),
+        rtcp_send_srtp_(),
+        rtp_recv_srtp_(),
+        rtcp_recv_srtp_(),
         rtp_packets_sent_(0),
         rtcp_packets_sent_(0),
         rtp_packets_received_(0),
@@ -99,8 +101,11 @@ class MediaPipeline : public sigslot::has_slots<> {
       
       
       
-      MOZ_ASSERT(rtp_transport != rtcp_transport);
+      MOZ_ASSERT(rtp_transport_ != rtcp_transport_);
 
+      if (!rtcp_transport_) {
+        rtcp_transport_ = rtp_transport;
+      }
       
       transport_ = new PipelineTransport(this);
   }
@@ -121,22 +126,12 @@ class MediaPipeline : public sigslot::has_slots<> {
 
   virtual nsresult Init();
 
-  
-  
-  
-  
-  
-  
-  void SetUsingBundle_s(bool decision);
-  void UpdateFilterFromRemoteDescription_s(
-      nsAutoPtr<MediaPipelineFilter> filter);
-
   virtual Direction direction() const { return direction_; }
   virtual TrackID trackid() const { return track_id_; }
   virtual int level() const { return level_; }
 
   bool IsDoingRtcpMux() const {
-    return (rtp_.type_ == MUX);
+    return (rtp_transport_ == rtcp_transport_);
   }
 
   int32_t rtp_packets_sent() const { return rtp_packets_sent_; }
@@ -151,13 +146,6 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaPipeline)
 
-  typedef enum {
-    RTP,
-    RTCP,
-    MUX,
-    MAX_RTP_TYPE
-  } RtpType;
-
  protected:
   virtual void DetachMediaStream() {}
 
@@ -165,7 +153,7 @@ class MediaPipeline : public sigslot::has_slots<> {
   class PipelineTransport : public TransportInterface {
    public:
     
-    explicit PipelineTransport(MediaPipeline *pipeline)
+    PipelineTransport(MediaPipeline *pipeline)
         : pipeline_(pipeline),
           sts_thread_(pipeline->sts_thread_) {}
 
@@ -184,40 +172,15 @@ class MediaPipeline : public sigslot::has_slots<> {
   };
   friend class PipelineTransport;
 
-  class TransportInfo {
-    public:
-      TransportInfo(RefPtr<TransportFlow> flow, RtpType type) :
-        transport_(flow),
-        state_(MP_CONNECTING),
-        type_(type) {
-        MOZ_ASSERT(flow);
-      }
-
-      RefPtr<TransportFlow> transport_;
-      State state_;
-      RefPtr<SrtpFlow> send_srtp_;
-      RefPtr<SrtpFlow> recv_srtp_;
-      RtpType type_;
-  };
-
-  
-  virtual nsresult TransportFailed_s(TransportInfo &info);
-  
-  virtual nsresult TransportReady_s(TransportInfo &info);
-  void UpdateRtcpMuxState(TransportInfo &info);
-
-  
-  void DisconnectTransport_s(TransportInfo &info);
-  nsresult ConnectTransport_s(TransportInfo &info);
-
-  TransportInfo* GetTransportInfo_s(TransportFlow *flow);
+  virtual nsresult TransportFailed_s(TransportFlow *flow);  
+  virtual nsresult TransportReady_s(TransportFlow *flow);   
 
   void increment_rtp_packets_sent(int bytes);
   void increment_rtcp_packets_sent();
   void increment_rtp_packets_received(int bytes);
   void increment_rtcp_packets_received();
 
-  virtual nsresult SendPacket(TransportFlow *flow, const void *data, int len);
+  virtual nsresult SendPacket(TransportFlow *flow, const void* data, int len);
 
   
   void StateChange(TransportFlow *flow, TransportLayer::State);
@@ -239,18 +202,10 @@ class MediaPipeline : public sigslot::has_slots<> {
                                          
 
   
-  TransportInfo rtp_;
-  TransportInfo rtcp_;
-  
-  
-  
-  
-  
-  
-  
-  
-  nsAutoPtr<TransportInfo> possible_bundle_rtp_;
-  nsAutoPtr<TransportInfo> possible_bundle_rtcp_;
+  RefPtr<TransportFlow> rtp_transport_;
+  State rtp_state_;
+  RefPtr<TransportFlow> rtcp_transport_;
+  State rtcp_state_;
 
   
   
@@ -261,6 +216,13 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   RefPtr<PipelineTransport> transport_;
 
+  
+  RefPtr<SrtpFlow> rtp_send_srtp_;
+  RefPtr<SrtpFlow> rtcp_send_srtp_;
+  RefPtr<SrtpFlow> rtp_recv_srtp_;
+  RefPtr<SrtpFlow> rtcp_recv_srtp_;
+
+  
   
   
   int32_t rtp_packets_sent_;
@@ -273,10 +235,6 @@ class MediaPipeline : public sigslot::has_slots<> {
   
   std::string pc_;
   std::string description_;
-
-  
-  nsAutoPtr<MediaPipelineFilter> filter_;
-  nsAutoPtr<webrtc::RtpHeaderParser> rtp_parser_;
 
  private:
   nsresult Init_s();
@@ -386,7 +344,7 @@ class MediaPipelineTransmit : public MediaPipeline {
   }
 
   
-  virtual nsresult TransportReady_s(TransportInfo &info);
+  virtual nsresult TransportReady_s(TransportFlow *flow);
 
   
   class PipelineListener : public MediaStreamDirectListener {
@@ -487,26 +445,11 @@ class MediaPipelineReceive : public MediaPipeline {
                        int level,
                        RefPtr<MediaSessionConduit> conduit,
                        RefPtr<TransportFlow> rtp_transport,
-                       RefPtr<TransportFlow> rtcp_transport,
-                       RefPtr<TransportFlow> bundle_rtp_transport,
-                       RefPtr<TransportFlow> bundle_rtcp_transport,
-                       nsAutoPtr<MediaPipelineFilter> filter) :
+                       RefPtr<TransportFlow> rtcp_transport) :
       MediaPipeline(pc, RECEIVE, main_thread, sts_thread,
                     stream, track_id, level, conduit, rtp_transport,
                     rtcp_transport),
       segments_added_(0) {
-    filter_ = filter;
-    rtp_parser_ = webrtc::RtpHeaderParser::Create();
-    if (bundle_rtp_transport) {
-      if (bundle_rtcp_transport) {
-        MOZ_ASSERT(bundle_rtp_transport != bundle_rtcp_transport);
-        possible_bundle_rtp_ = new TransportInfo(bundle_rtp_transport, RTP);
-        possible_bundle_rtcp_ = new TransportInfo(bundle_rtcp_transport, RTCP);
-      } else {
-        possible_bundle_rtp_ = new TransportInfo(bundle_rtp_transport, MUX);
-        possible_bundle_rtcp_ = new TransportInfo(bundle_rtp_transport, MUX);
-      }
-    }
   }
 
   int segments_added() const { return segments_added_; }
@@ -530,14 +473,10 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
                             int level,
                             RefPtr<AudioSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
-                            RefPtr<TransportFlow> rtcp_transport,
-                            RefPtr<TransportFlow> bundle_rtp_transport,
-                            RefPtr<TransportFlow> bundle_rtcp_transport,
-                            nsAutoPtr<MediaPipelineFilter> filter) :
+                            RefPtr<TransportFlow> rtcp_transport) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, bundle_rtp_transport,
-                           bundle_rtcp_transport, filter),
+                           rtcp_transport),
       listener_(new PipelineListener(stream->AsSourceStream(),
                                      track_id, conduit)) {
   }
@@ -597,14 +536,10 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
                             int level,
                             RefPtr<VideoSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
-                            RefPtr<TransportFlow> rtcp_transport,
-                            RefPtr<TransportFlow> bundle_rtp_transport,
-                            RefPtr<TransportFlow> bundle_rtcp_transport,
-                            nsAutoPtr<MediaPipelineFilter> filter) :
+                            RefPtr<TransportFlow> rtcp_transport) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
                            stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, bundle_rtp_transport,
-                           bundle_rtcp_transport, filter),
+                           rtcp_transport),
       renderer_(new PipelineRenderer(MOZ_THIS_IN_INITIALIZER_LIST())),
       listener_(new PipelineListener(stream->AsSourceStream(), track_id)) {
   }

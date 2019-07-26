@@ -42,9 +42,6 @@
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Types.h"
 
-#include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/modules/rtp_rtcp/interface/rtp_header_parser.h"
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 
@@ -78,35 +75,41 @@ nsresult MediaPipeline::Init_s() {
   conduit_->AttachTransport(transport_);
 
   nsresult res;
-  MOZ_ASSERT(rtp_.transport_);
-  MOZ_ASSERT(rtcp_.transport_);
-  res = ConnectTransport_s(rtp_);
-  if (NS_FAILED(res)) {
-    return res;
-  }
+  MOZ_ASSERT(rtp_transport_);
+  
+  rtp_transport_->SignalStateChange.connect(this,
+                                            &MediaPipeline::StateChange);
 
-  if (rtcp_.transport_ != rtp_.transport_) {
-    res = ConnectTransport_s(rtcp_);
+  if (rtp_transport_->state() == TransportLayer::TS_OPEN) {
+    res = TransportReady_s(rtp_transport_);
     if (NS_FAILED(res)) {
+      MOZ_MTLOG(ML_ERROR, "Error calling TransportReady(); res="
+                << static_cast<uint32_t>(res) << " in " << __FUNCTION__);
       return res;
     }
+  } else if (rtp_transport_->state() == TransportLayer::TS_ERROR) {
+    MOZ_MTLOG(ML_ERROR, "RTP transport is already in error state");
+    TransportFailed_s(rtp_transport_);
+    return NS_ERROR_FAILURE;
   }
 
-  if (possible_bundle_rtp_) {
-    MOZ_ASSERT(possible_bundle_rtcp_);
-    MOZ_ASSERT(possible_bundle_rtp_->transport_);
-    MOZ_ASSERT(possible_bundle_rtcp_->transport_);
+  
+  
+  if (rtcp_transport_ != rtp_transport_) {
+    rtcp_transport_->SignalStateChange.connect(this,
+                                               &MediaPipeline::StateChange);
 
-    res = ConnectTransport_s(*possible_bundle_rtp_);
-    if (NS_FAILED(res)) {
-      return res;
-    }
-
-    if (possible_bundle_rtcp_->transport_ != possible_bundle_rtp_->transport_) {
-      res = ConnectTransport_s(*possible_bundle_rtcp_);
+    if (rtcp_transport_->state() == TransportLayer::TS_OPEN) {
+      res = TransportReady_s(rtcp_transport_);
       if (NS_FAILED(res)) {
+        MOZ_MTLOG(ML_ERROR, "Error calling TransportReady(); res="
+                  << static_cast<uint32_t>(res) << " in " << __FUNCTION__);
         return res;
       }
+    } else if (rtcp_transport_->state() == TransportLayer::TS_ERROR) {
+      MOZ_MTLOG(ML_ERROR, "RTCP transport is already in error state");
+      TransportFailed_s(rtcp_transport_);
+      return NS_ERROR_FAILURE;
     }
   }
 
@@ -123,72 +126,55 @@ void MediaPipeline::ShutdownTransport_s() {
 
   disconnect_all();
   transport_->Detach();
-  rtp_.transport_ = nullptr;
-  rtcp_.transport_ = nullptr;
-  possible_bundle_rtp_ = nullptr;
-  possible_bundle_rtcp_ = nullptr;
+  rtp_transport_ = nullptr;
+  rtcp_transport_ = nullptr;
 }
 
 void MediaPipeline::StateChange(TransportFlow *flow, TransportLayer::State state) {
-  TransportInfo* info = GetTransportInfo_s(flow);
-  MOZ_ASSERT(info);
+  
+  
+  if (rtcp_transport_ == rtp_transport_) {
+    MOZ_ASSERT(flow == rtp_transport_);
+  }
 
   if (state == TransportLayer::TS_OPEN) {
     MOZ_MTLOG(ML_INFO, "Flow is ready");
-    TransportReady_s(*info);
+    TransportReady_s(flow);
   } else if (state == TransportLayer::TS_CLOSED ||
              state == TransportLayer::TS_ERROR) {
-    TransportFailed_s(*info);
+    TransportFailed_s(flow);
   }
 }
 
-static bool MakeRtpTypeToStringArray(const char** array) {
-  static const char* RTP_str = "RTP";
-  static const char* RTCP_str = "RTCP";
-  static const char* MUX_str = "RTP/RTCP mux";
-  array[MediaPipeline::RTP] = RTP_str;
-  array[MediaPipeline::RTCP] = RTCP_str;
-  array[MediaPipeline::MUX] = MUX_str;
-  return true;
-}
-
-static const char* ToString(MediaPipeline::RtpType type) {
-  static const char* array[(int)MediaPipeline::MAX_RTP_TYPE] = {nullptr};
-  
-  static bool dummy = MakeRtpTypeToStringArray(array);
-  (void)dummy;
-  return array[type];
-}
-
-nsresult MediaPipeline::TransportReady_s(TransportInfo &info) {
+nsresult MediaPipeline::TransportReady_s(TransportFlow *flow) {
   MOZ_ASSERT(!description_.empty());
+  bool rtcp = !(flow == rtp_transport_);
+  State *state = rtcp ? &rtcp_state_ : &rtp_state_;
 
   
   
-  if (info.state_ != MP_CONNECTING) {
+  if (*state != MP_CONNECTING) {
     MOZ_MTLOG(ML_ERROR, "Transport ready for flow in wrong state:" <<
-              description_ << ": " << ToString(info.type_));
+              description_ << ": " << (rtcp ? "rtcp" : "rtp"));
     return NS_ERROR_FAILURE;
   }
 
+  nsresult res;
+
   MOZ_MTLOG(ML_INFO, "Transport ready for pipeline " <<
             static_cast<void *>(this) << " flow " << description_ << ": " <<
-            ToString(info.type_));
-
-  
-  nsresult res;
+            (rtcp ? "rtcp" : "rtp"));
 
   
   TransportLayerDtls *dtls = static_cast<TransportLayerDtls *>(
-      info.transport_->GetLayer(TransportLayerDtls::ID()));
+      flow->GetLayer(TransportLayerDtls::ID()));
   MOZ_ASSERT(dtls);  
 
   uint16_t cipher_suite;
   res = dtls->GetSrtpCipher(&cipher_suite);
   if (NS_FAILED(res)) {
     MOZ_MTLOG(ML_ERROR, "Failed to negotiate DTLS-SRTP. This is an error");
-    info.state_ = MP_CLOSED;
-    UpdateRtcpMuxState(info);
+    *state = MP_CLOSED;
     return res;
   }
 
@@ -198,8 +184,7 @@ nsresult MediaPipeline::TransportReady_s(TransportInfo &info) {
                                    srtp_block, sizeof(srtp_block));
   if (NS_FAILED(res)) {
     MOZ_MTLOG(ML_ERROR, "Failed to compute DTLS-SRTP keys. This is an error");
-    info.state_ = MP_CLOSED;
-    UpdateRtcpMuxState(info);
+    *state = MP_CLOSED;
     MOZ_CRASH();  
                   
                   
@@ -233,63 +218,88 @@ nsresult MediaPipeline::TransportReady_s(TransportInfo &info) {
     read_key = client_write_key;
   }
 
-  MOZ_ASSERT(!info.send_srtp_ && !info.recv_srtp_);
-  info.send_srtp_ = SrtpFlow::Create(cipher_suite, false, write_key,
-                                     SRTP_TOTAL_KEY_LENGTH);
-  info.recv_srtp_ = SrtpFlow::Create(cipher_suite, true, read_key,
-                                     SRTP_TOTAL_KEY_LENGTH);
-  if (!info.send_srtp_ || !info.recv_srtp_) {
-    MOZ_MTLOG(ML_ERROR, "Couldn't create SRTP flow for "
-              << ToString(info.type_));
-    info.state_ = MP_CLOSED;
-    UpdateRtcpMuxState(info);
-    return NS_ERROR_FAILURE;
-  }
+  if (!rtcp) {
+    
+    MOZ_ASSERT(!rtp_send_srtp_ && !rtp_recv_srtp_);
+    rtp_send_srtp_ = SrtpFlow::Create(cipher_suite, false,
+                                      write_key, SRTP_TOTAL_KEY_LENGTH);
+    rtp_recv_srtp_ = SrtpFlow::Create(cipher_suite, true,
+                                      read_key, SRTP_TOTAL_KEY_LENGTH);
+    if (!rtp_send_srtp_ || !rtp_recv_srtp_) {
+      MOZ_MTLOG(ML_ERROR, "Couldn't create SRTP flow for RTCP");
+      *state = MP_CLOSED;
+      return NS_ERROR_FAILURE;
+    }
 
-  if (direction_ == RECEIVE) {
     
     
-    MOZ_MTLOG(ML_INFO, "Listening for " << ToString(info.type_)
-                       << " packets received on " <<
-                       static_cast<void *>(dtls->downward()));
+    if (rtcp_transport_ == rtp_transport_) {
+      MOZ_ASSERT(!rtcp_send_srtp_ && !rtcp_recv_srtp_);
+      rtcp_send_srtp_ = rtp_send_srtp_;
+      rtcp_recv_srtp_ = rtp_recv_srtp_;
 
-    switch (info.type_) {
-      case RTP:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::RtpPacketReceived);
-        break;
-      case RTCP:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::RtcpPacketReceived);
-        break;
-      case MUX:
-        dtls->downward()->SignalPacketReceived.connect(
-            this,
-            &MediaPipeline::PacketReceived);
-        break;
-      default:
-        MOZ_CRASH();
+      MOZ_MTLOG(ML_INFO, "Listening for packets received on " <<
+                static_cast<void *>(dtls->downward()));
+
+      dtls->downward()->SignalPacketReceived.connect(this,
+                                                     &MediaPipeline::
+                                                     PacketReceived);
+      rtcp_state_ = MP_OPEN;
+    } else {
+      MOZ_MTLOG(ML_INFO, "Listening for RTP packets received on " <<
+                static_cast<void *>(dtls->downward()));
+
+      dtls->downward()->SignalPacketReceived.connect(this,
+                                                     &MediaPipeline::
+                                                     RtpPacketReceived);
     }
   }
+  else {
+    MOZ_ASSERT(!rtcp_send_srtp_ && !rtcp_recv_srtp_);
+    rtcp_send_srtp_ = SrtpFlow::Create(cipher_suite, false,
+                                       write_key, SRTP_TOTAL_KEY_LENGTH);
+    rtcp_recv_srtp_ = SrtpFlow::Create(cipher_suite, true,
+                                       read_key, SRTP_TOTAL_KEY_LENGTH);
+    if (!rtcp_send_srtp_ || !rtcp_recv_srtp_) {
+      MOZ_MTLOG(ML_ERROR, "Couldn't create SRTCP flow for RTCP");
+      *state = MP_CLOSED;
+      return NS_ERROR_FAILURE;
+    }
 
-  info.state_ = MP_OPEN;
-  UpdateRtcpMuxState(info);
+    MOZ_MTLOG(ML_DEBUG, "Listening for RTCP packets received on " <<
+              static_cast<void *>(dtls->downward()));
+
+    
+    dtls->downward()->SignalPacketReceived.connect(this,
+                                                  &MediaPipeline::
+                                                  RtcpPacketReceived);
+  }
+
+  *state = MP_OPEN;
   return NS_OK;
 }
 
-nsresult MediaPipeline::TransportFailed_s(TransportInfo &info) {
+nsresult MediaPipeline::TransportFailed_s(TransportFlow *flow) {
   ASSERT_ON_THREAD(sts_thread_);
+  bool rtcp = !(flow == rtp_transport_);
 
-  info.state_ = MP_CLOSED;
-  UpdateRtcpMuxState(info);
+  State *state = rtcp ? &rtcp_state_ : &rtp_state_;
 
-  MOZ_MTLOG(ML_INFO, "Transport closed for flow " << ToString(info.type_));
+  *state = MP_CLOSED;
+
+  
+  if(rtcp_transport_ == rtp_transport_) {
+    MOZ_ASSERT(state != &rtcp_state_);
+    rtcp_state_ = MP_CLOSED;
+  }
+
+
+  MOZ_MTLOG(ML_INFO, "Transport closed for flow " << (rtcp ? "rtcp" : "rtp"));
 
   NS_WARNING(
       "MediaPipeline Transport failed. This is not properly cleaned up yet");
 
+
   
   
   
@@ -298,24 +308,6 @@ nsresult MediaPipeline::TransportFailed_s(TransportInfo &info) {
   return NS_OK;
 }
 
-void MediaPipeline::UpdateRtcpMuxState(TransportInfo &info) {
-  if (info.type_ == MUX) {
-    if (info.transport_ == rtcp_.transport_) {
-      rtcp_.state_ = info.state_;
-      if (!rtcp_.send_srtp_) {
-        rtcp_.send_srtp_ = info.send_srtp_;
-        rtcp_.recv_srtp_ = info.recv_srtp_;
-      }
-    } else if (possible_bundle_rtcp_ &&
-               info.transport_ == possible_bundle_rtcp_->transport_) {
-      possible_bundle_rtcp_->state_ = info.state_;
-      if (!possible_bundle_rtcp_->send_srtp_) {
-        possible_bundle_rtcp_->send_srtp_ = info.send_srtp_;
-        possible_bundle_rtcp_->recv_srtp_ = info.recv_srtp_;
-      }
-    }
-  }
-}
 
 nsresult MediaPipeline::SendPacket(TransportFlow *flow, const void *data,
                                    int len) {
@@ -348,7 +340,7 @@ void MediaPipeline::increment_rtp_packets_sent(int32_t bytes) {
   if (!(rtp_packets_sent_ % 100)) {
     MOZ_MTLOG(ML_INFO, "RTP sent packet count for " << description_
               << " Pipeline " << static_cast<void *>(this)
-              << " Flow : " << static_cast<void *>(rtp_.transport_)
+              << " Flow : " << static_cast<void *>(rtp_transport_)
               << ": " << rtp_packets_sent_
               << " (" << rtp_bytes_sent_ << " bytes)");
   }
@@ -359,7 +351,7 @@ void MediaPipeline::increment_rtcp_packets_sent() {
   if (!(rtcp_packets_sent_ % 100)) {
     MOZ_MTLOG(ML_INFO, "RTCP sent packet count for " << description_
               << " Pipeline " << static_cast<void *>(this)
-              << " Flow : " << static_cast<void *>(rtcp_.transport_)
+              << " Flow : " << static_cast<void *>(rtcp_transport_)
               << ": " << rtcp_packets_sent_);
   }
 }
@@ -370,7 +362,7 @@ void MediaPipeline::increment_rtp_packets_received(int32_t bytes) {
   if (!(rtp_packets_received_ % 100)) {
     MOZ_MTLOG(ML_INFO, "RTP received packet count for " << description_
               << " Pipeline " << static_cast<void *>(this)
-              << " Flow : " << static_cast<void *>(rtp_.transport_)
+              << " Flow : " << static_cast<void *>(rtp_transport_)
               << ": " << rtp_packets_received_
               << " (" << rtp_bytes_received_ << " bytes)");
   }
@@ -381,7 +373,7 @@ void MediaPipeline::increment_rtcp_packets_received() {
   if (!(rtcp_packets_received_ % 100)) {
     MOZ_MTLOG(ML_INFO, "RTCP received packet count for " << description_
               << " Pipeline " << static_cast<void *>(this)
-              << " Flow : " << static_cast<void *>(rtcp_.transport_)
+              << " Flow : " << static_cast<void *>(rtcp_transport_)
               << ": " << rtcp_packets_received_);
   }
 }
@@ -399,84 +391,34 @@ void MediaPipeline::RtpPacketReceived(TransportLayer *layer,
     return;
   }
 
-  TransportInfo* info = &rtp_;
-
-  if (possible_bundle_rtp_ &&
-      possible_bundle_rtp_->transport_->Contains(layer)) {
-    
-    info = possible_bundle_rtp_;
-  }
-
-  
-  
-  if (info->state_ != MP_OPEN) {
+  if (rtp_state_ != MP_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; pipeline not open");
     return;
   }
 
-  if (info->transport_->state() != TransportLayer::TS_OPEN) {
+  if (rtp_transport_->state() != TransportLayer::TS_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; transport not open");
     return;
   }
 
-  
-  MOZ_ASSERT(info->recv_srtp_);
+  MOZ_ASSERT(rtp_recv_srtp_);  
 
   if (direction_ == TRANSMIT) {
-    return;
-  }
-
-  if (possible_bundle_rtp_ && (info == &rtp_))  {
     
     
-    
-    
-    SetUsingBundle_s(false);
-    MOZ_MTLOG(ML_INFO, "Ruled out the possibility that we're receiving bundle "
-                       "for " << description_);
-    
-    
-    
-    
-    
-    
-  }
-
-  if (!len) {
     return;
   }
 
   
-  if (data[0] < 128 || data[0] > 191) {
-    return;
-  }
-
-  if (filter_) {
-    webrtc::RTPHeader header;
-    if (!rtp_parser_->Parse(data, len, &header) ||
-        !filter_->Filter(header)) {
-      return;
-    }
-  }
-
-  if (possible_bundle_rtp_) {
-    
-    
-    SetUsingBundle_s(true);
-    MOZ_MTLOG(ML_INFO, "Confirmed the possibility that we're receiving bundle");
-  }
-
   
-  MOZ_ASSERT(!possible_bundle_rtp_);
-  MOZ_ASSERT(!possible_bundle_rtcp_);
 
   
   ScopedDeletePtr<unsigned char> inner_data(
       new unsigned char[len]);
   memcpy(inner_data, data, len);
   int out_len = 0;
-  nsresult res = rtp_.recv_srtp_->UnprotectRtp(inner_data,
-                                               len, len, &out_len);
+  nsresult res = rtp_recv_srtp_->UnprotectRtp(inner_data,
+                                              len, len, &out_len);
   if (!NS_SUCCEEDED(res)) {
     char tmp[16];
 
@@ -509,58 +451,25 @@ void MediaPipeline::RtcpPacketReceived(TransportLayer *layer,
     return;
   }
 
-  TransportInfo* info = &rtcp_;
-  if (possible_bundle_rtcp_ &&
-      possible_bundle_rtcp_->transport_->Contains(layer)) {
-    info = possible_bundle_rtcp_;
-  }
-
-  if (info->state_ != MP_OPEN) {
+  if (rtcp_state_ != MP_OPEN) {
     MOZ_MTLOG(ML_DEBUG, "Discarding incoming packet; pipeline not open");
     return;
   }
 
-  if (info->transport_->state() != TransportLayer::TS_OPEN) {
+  if (rtcp_transport_->state() != TransportLayer::TS_OPEN) {
     MOZ_MTLOG(ML_ERROR, "Discarding incoming packet; transport not open");
     return;
   }
 
-  if (possible_bundle_rtp_ && (info == &rtcp_)) {
+  if (direction_ == RECEIVE) {
     
     
-    SetUsingBundle_s(false);
-  }
-
-  if (!len) {
     return;
   }
 
-  
-  if (data[0] < 128 || data[0] > 191) {
-    return;
-  }
-
-  MediaPipelineFilter::Result filter_result = MediaPipelineFilter::PASS;
-  if (filter_) {
-    filter_result = filter_->FilterRTCP(data, len);
-    if (filter_result == MediaPipelineFilter::FAIL) {
-      return;
-    }
-  }
-
-  if (filter_result == MediaPipelineFilter::PASS && possible_bundle_rtp_) {
-    
-    
-    SetUsingBundle_s(true);
-  }
-
-  
-  
-  
-  
   increment_rtcp_packets_received();
 
-  MOZ_ASSERT(info->recv_srtp_);  
+  MOZ_ASSERT(rtcp_recv_srtp_);  
 
   
   ScopedDeletePtr<unsigned char> inner_data(
@@ -568,10 +477,7 @@ void MediaPipeline::RtcpPacketReceived(TransportLayer *layer,
   memcpy(inner_data, data, len);
   int out_len;
 
-  nsresult res = info->recv_srtp_->UnprotectRtcp(inner_data,
-                                                 len,
-                                                 len,
-                                                 &out_len);
+  nsresult res = rtcp_recv_srtp_->UnprotectRtcp(inner_data, len, len, &out_len);
 
   if (!NS_SUCCEEDED(res))
     return;
@@ -657,134 +563,16 @@ nsresult MediaPipelineTransmit::Init() {
   return MediaPipeline::Init();
 }
 
-nsresult MediaPipelineTransmit::TransportReady_s(TransportInfo &info) {
-  ASSERT_ON_THREAD(sts_thread_);
+nsresult MediaPipelineTransmit::TransportReady_s(TransportFlow *flow) {
   
-  MediaPipeline::TransportReady_s(info);
+  MediaPipeline::TransportReady_s(flow);
 
-  
-  MOZ_ASSERT(!possible_bundle_rtp_);
-  if (&info == &rtp_) {
+  if (flow == rtp_transport_) {
     
     listener_->SetActive(true);
   }
 
   return NS_OK;
-}
-
-void MediaPipeline::DisconnectTransport_s(TransportInfo &info) {
-  MOZ_ASSERT(info.transport_);
-  ASSERT_ON_THREAD(sts_thread_);
-
-  info.transport_->SignalStateChange.disconnect(this);
-  
-  
-  TransportLayerDtls *dtls = static_cast<TransportLayerDtls *>(
-      info.transport_->GetLayer(TransportLayerDtls::ID()));
-  MOZ_ASSERT(dtls);  
-  MOZ_ASSERT(dtls->downward());
-  dtls->downward()->SignalPacketReceived.disconnect(this);
-}
-
-nsresult MediaPipeline::ConnectTransport_s(TransportInfo &info) {
-  MOZ_ASSERT(info.transport_);
-  ASSERT_ON_THREAD(sts_thread_);
-
-  
-  if (info.transport_->state() == TransportLayer::TS_OPEN) {
-    nsresult res = TransportReady_s(info);
-    if (NS_FAILED(res)) {
-      MOZ_MTLOG(ML_ERROR, "Error calling TransportReady(); res="
-                << static_cast<uint32_t>(res) << " in " << __FUNCTION__);
-      return res;
-    }
-  } else if (info.transport_->state() == TransportLayer::TS_ERROR) {
-    MOZ_MTLOG(ML_ERROR, ToString(info.type_)
-                        << "transport is already in error state");
-    TransportFailed_s(info);
-    return NS_ERROR_FAILURE;
-  }
-
-  info.transport_->SignalStateChange.connect(this,
-                                             &MediaPipeline::StateChange);
-
-  return NS_OK;
-}
-
-MediaPipeline::TransportInfo* MediaPipeline::GetTransportInfo_s(
-    TransportFlow *flow) {
-  ASSERT_ON_THREAD(sts_thread_);
-  if (flow == rtp_.transport_) {
-    return &rtp_;
-  }
-
-  if (flow == rtcp_.transport_) {
-    return &rtcp_;
-  }
-
-  if (possible_bundle_rtp_) {
-    if (flow == possible_bundle_rtp_->transport_) {
-      return possible_bundle_rtp_;
-    }
-
-    if (flow == possible_bundle_rtcp_->transport_) {
-      return possible_bundle_rtcp_;
-    }
-  }
-
-  return nullptr;
-}
-
-void MediaPipeline::SetUsingBundle_s(bool decision) {
-  ASSERT_ON_THREAD(sts_thread_);
-  
-  
-  
-  if (!possible_bundle_rtp_) {
-    if (!decision) {
-      
-      filter_ = nullptr;
-    }
-    return;
-  }
-
-  if (direction_ == RECEIVE) {
-    if (decision) {
-      MOZ_MTLOG(ML_INFO, "Non-master pipeline confirmed bundle for "
-                         << description_);
-      
-      
-      DisconnectTransport_s(rtp_);
-      DisconnectTransport_s(rtcp_);
-      rtp_ = *possible_bundle_rtp_;
-      rtcp_ = *possible_bundle_rtcp_;
-    } else {
-      MOZ_MTLOG(ML_INFO, "Non-master pipeline confirmed no bundle for "
-                         << description_);
-      
-      DisconnectTransport_s(*possible_bundle_rtp_);
-      DisconnectTransport_s(*possible_bundle_rtcp_);
-      filter_ = nullptr;
-    }
-
-    
-    possible_bundle_rtp_ = nullptr;
-    possible_bundle_rtcp_ = nullptr;
-  }
-}
-
-void MediaPipeline::UpdateFilterFromRemoteDescription_s(
-    nsAutoPtr<MediaPipelineFilter> filter) {
-  ASSERT_ON_THREAD(sts_thread_);
-  
-  
-  MOZ_ASSERT(filter_);
-
-  if (!filter) {
-    filter_ = nullptr;
-  } else {
-    filter_->IncorporateRemoteDescription(*filter);
-  }
 }
 
 nsresult MediaPipeline::PipelineTransport::SendRtpPacket(
@@ -805,17 +593,16 @@ nsresult MediaPipeline::PipelineTransport::SendRtpPacket(
 
 nsresult MediaPipeline::PipelineTransport::SendRtpPacket_s(
     nsAutoPtr<DataBuffer> data) {
-  ASSERT_ON_THREAD(sts_thread_);
   if (!pipeline_)
     return NS_OK;  
 
-  if (!pipeline_->rtp_.send_srtp_) {
+  if (!pipeline_->rtp_send_srtp_) {
     MOZ_MTLOG(ML_DEBUG, "Couldn't write RTP packet; SRTP not set up yet");
     return NS_OK;
   }
 
-  MOZ_ASSERT(pipeline_->rtp_.transport_);
-  NS_ENSURE_TRUE(pipeline_->rtp_.transport_, NS_ERROR_NULL_POINTER);
+  MOZ_ASSERT(pipeline_->rtp_transport_);
+  NS_ENSURE_TRUE(pipeline_->rtp_transport_, NS_ERROR_NULL_POINTER);
 
   
   
@@ -827,15 +614,15 @@ nsresult MediaPipeline::PipelineTransport::SendRtpPacket_s(
   memcpy(inner_data, data->data(), data->len());
 
   int out_len;
-  nsresult res = pipeline_->rtp_.send_srtp_->ProtectRtp(inner_data,
-                                                        data->len(),
-                                                        max_len,
-                                                        &out_len);
+  nsresult res = pipeline_->rtp_send_srtp_->ProtectRtp(inner_data,
+                                                       data->len(),
+                                                       max_len,
+                                                       &out_len);
   if (!NS_SUCCEEDED(res))
     return res;
 
   pipeline_->increment_rtp_packets_sent(out_len);
-  return pipeline_->SendPacket(pipeline_->rtp_.transport_, inner_data,
+  return pipeline_->SendPacket(pipeline_->rtp_transport_, inner_data,
                                out_len);
 }
 
@@ -857,17 +644,16 @@ nsresult MediaPipeline::PipelineTransport::SendRtcpPacket(
 
 nsresult MediaPipeline::PipelineTransport::SendRtcpPacket_s(
     nsAutoPtr<DataBuffer> data) {
-  ASSERT_ON_THREAD(sts_thread_);
   if (!pipeline_)
     return NS_OK;  
 
-  if (!pipeline_->rtcp_.send_srtp_) {
+  if (!pipeline_->rtcp_send_srtp_) {
     MOZ_MTLOG(ML_DEBUG, "Couldn't write RTCP packet; SRTCP not set up yet");
     return NS_OK;
   }
 
-  MOZ_ASSERT(pipeline_->rtcp_.transport_);
-  NS_ENSURE_TRUE(pipeline_->rtcp_.transport_, NS_ERROR_NULL_POINTER);
+  MOZ_ASSERT(pipeline_->rtcp_transport_);
+  NS_ENSURE_TRUE(pipeline_->rtcp_transport_, NS_ERROR_NULL_POINTER);
 
   
   
@@ -879,16 +665,15 @@ nsresult MediaPipeline::PipelineTransport::SendRtcpPacket_s(
   memcpy(inner_data, data->data(), data->len());
 
   int out_len;
-  nsresult res = pipeline_->rtcp_.send_srtp_->ProtectRtcp(inner_data,
-                                                          data->len(),
-                                                          max_len,
-                                                          &out_len);
-
+  nsresult res = pipeline_->rtcp_send_srtp_->ProtectRtcp(inner_data,
+                                                         data->len(),
+                                                         max_len,
+                                                         &out_len);
   if (!NS_SUCCEEDED(res))
     return res;
 
   pipeline_->increment_rtcp_packets_sent();
-  return pipeline_->SendPacket(pipeline_->rtcp_.transport_, inner_data,
+  return pipeline_->SendPacket(pipeline_->rtcp_transport_, inner_data,
                                out_len);
 }
 
