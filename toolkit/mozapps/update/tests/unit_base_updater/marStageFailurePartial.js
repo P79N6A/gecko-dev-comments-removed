@@ -14,6 +14,8 @@ function run_test() {
   setTestFilesAndDirsForFailure();
   setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
 
+  createUpdaterINI(true);
+
   
   
   
@@ -27,7 +29,16 @@ function run_test() {
   runUpdate(1, STATE_FAILED_UNEXPECTED_FILE_OPERATION_ERROR);
 }
 
+
+
+
+
 function checkUpdateApplied() {
+  if (IS_MACOSX || IS_WIN) {
+    
+    do_check_false(getPostUpdateFile(".running").exists());
+  }
+
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");

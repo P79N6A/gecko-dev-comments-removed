@@ -17,6 +17,8 @@ function run_test() {
   gTestDirs = [];
   setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false, false);
 
+  createUpdaterINI();
+
   
   
   
@@ -24,7 +26,16 @@ function run_test() {
   runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_CHANNEL_MISMATCH_ERROR);
 }
 
+
+
+
+
 function checkUpdateApplied() {
+  if (IS_MACOSX || IS_WIN) {
+    
+    do_check_false(getPostUpdateFile(".running").exists());
+  }
+
   checkFilesAfterUpdateSuccess();
   doTestFinish();
 }

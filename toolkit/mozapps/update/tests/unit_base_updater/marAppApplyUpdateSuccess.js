@@ -18,6 +18,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
 
+  createUpdaterINI();
+
   
   
   
@@ -50,6 +52,19 @@ function setupAppFilesFinished() {
 
 
 function checkUpdateFinished() {
+  if (IS_MACOSX || IS_WIN) {
+    gCheckFunc = finishCheckUpdateFinished;
+    checkPostUpdateAppLog();
+  } else {
+    finishCheckUpdateFinished();
+  }
+}
+
+
+
+
+
+function finishCheckUpdateFinished() {
   gTimeoutRuns++;
   
   let state = readStatusState();

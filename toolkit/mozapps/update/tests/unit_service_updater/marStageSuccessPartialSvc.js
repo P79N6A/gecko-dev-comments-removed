@@ -19,6 +19,8 @@ function run_test() {
   gTestDirs = gTestDirsPartialSuccess;
   setupUpdaterTest(FILE_PARTIAL_MAR, false, false);
 
+  createUpdaterINI(false);
+
   
   
   
@@ -52,13 +54,36 @@ function checkUpdateFinished() {
     checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
   }
 
+  if (IS_MACOSX || IS_WIN) {
+    
+    
+    do_check_false(getPostUpdateFile(".running").exists());
+  }
+
   
   gStageUpdate = false;
   gSwitchApp = true;
   runUpdate(0, STATE_SUCCEEDED);
 }
 
+
+
+
+
 function checkUpdateApplied() {
+  if (IS_MACOSX || IS_WIN) {
+    gCheckFunc = finishCheckUpdateApplied;
+    checkPostUpdateAppLog();
+  } else {
+    finishCheckUpdateApplied();
+  }
+}
+
+
+
+
+
+function finishCheckUpdateApplied() {
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");

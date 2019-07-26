@@ -11,6 +11,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
 
+  createUpdaterINI();
+
   
   
   
@@ -24,7 +26,24 @@ function run_test() {
   runUpdate(0, STATE_SUCCEEDED);
 }
 
+
+
+
+
 function checkUpdateApplied() {
+  if (IS_MACOSX || IS_WIN) {
+    gCheckFunc = finishCheckUpdateApplied;
+    checkPostUpdateAppLog();
+  } else {
+    finishCheckUpdateApplied();
+  }
+}
+
+
+
+
+
+function finishCheckUpdateApplied() {
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");

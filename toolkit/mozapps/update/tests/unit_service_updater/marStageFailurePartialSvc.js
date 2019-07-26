@@ -18,6 +18,8 @@ function run_test() {
   setTestFilesAndDirsForFailure();
   setupUpdaterTest(FILE_PARTIAL_MAR, true, false);
 
+  createUpdaterINI(true);
+
   
   
   
@@ -35,7 +37,16 @@ function setupAppFilesFinished() {
   runUpdateUsingService(STATE_PENDING_SVC, STATE_FAILED);
 }
 
+
+
+
+
 function checkUpdateFinished() {
+  if (IS_MACOSX || IS_WIN) {
+    
+    do_check_false(getPostUpdateFile(".running").exists());
+  }
+
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");

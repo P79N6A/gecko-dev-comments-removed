@@ -18,6 +18,8 @@ function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   setupUpdaterTest(FILE_COMPLETE_MAR, false, false);
 
+  createUpdaterINI(false);
+
   if (IS_WIN) {
     Services.prefs.setBoolPref(PREF_APP_UPDATE_SERVICE_ENABLED, false);
   }
@@ -106,6 +108,12 @@ function checkUpdateApplied() {
     return;
   }
 
+  if (IS_MACOSX || IS_WIN) {
+    
+    
+    do_check_false(getPostUpdateFile(".running").exists());
+  }
+
   let updatedDir = getUpdatedDir();
   logTestInfo("testing " + updatedDir.path + " should exist");
   do_check_true(updatedDir.exists());
@@ -183,6 +191,19 @@ function checkUpdateApplied() {
 
 
 function checkUpdateFinished() {
+  if (IS_MACOSX || IS_WIN) {
+    gCheckFunc = finishCheckUpdateApplied;
+    checkPostUpdateAppLog();
+  } else {
+    finishCheckUpdateApplied();
+  }
+}
+
+
+
+
+
+function finishCheckUpdateApplied() {
   gTimeoutRuns++;
   
   let state = readStatusState();
