@@ -60,12 +60,19 @@ this.FileUtils = {
 
 
   getDir: function FileUtils_getDir(key, pathArray, shouldCreate, followLinks) {
-    var dir = gDirService.get(key, Ci.nsILocalFile);
+    var dir = gDirService.get(key, Ci.nsIFile);
     for (var i = 0; i < pathArray.length; ++i) {
       dir.append(pathArray[i]);
-      if (shouldCreate && !dir.exists())
-        dir.create(Ci.nsILocalFile.DIRECTORY_TYPE, this.PERMS_DIRECTORY);
     }
+
+    if (shouldCreate) {
+      try {
+        dir.create(Ci.nsIFile.DIRECTORY_TYPE, this.PERMS_DIRECTORY);
+      } catch (ex if ex.result == Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+        
+      }
+    }
+
     if (!followLinks)
       dir.followLinks = false;
     return dir;
