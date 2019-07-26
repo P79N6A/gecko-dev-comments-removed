@@ -437,12 +437,12 @@ PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
         *((NPBool*)aValue) = false;
         return NPERR_NO_ERROR;
     }
+#endif 
 
     case NPNVcontentsScaleFactor: {
         *static_cast<double*>(aValue) = mContentsScaleFactor;
         return NPERR_NO_ERROR;
     }
-#endif 
 #endif 
 
 #ifdef DEBUG
