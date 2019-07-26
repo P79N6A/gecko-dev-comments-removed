@@ -18,7 +18,7 @@ TaskThrottler::TaskThrottler()
 
 void
 TaskThrottler::PostTask(const tracked_objects::Location& aLocation,
-                        CancelableTask* aTask)
+                        CancelableTask* aTask, const TimeStamp& aTimeStamp)
 {
   aTask->SetBirthPlace(aLocation);
 
@@ -28,22 +28,53 @@ TaskThrottler::PostTask(const tracked_objects::Location& aLocation,
     }
     mQueuedTask = aTask;
   } else {
+    mStartTime = aTimeStamp;
     aTask->Run();
     delete aTask;
     mOutstanding = true;
   }
 }
 
-bool
-TaskThrottler::TaskComplete()
+void
+TaskThrottler::TaskComplete(const TimeStamp& aTimeStamp)
 {
+  if (!mOutstanding) {
+    return;
+  }
+
+  
+  
+  if (mDurations.Length() >= mMaxDurations) {
+    mDurations.RemoveElementAt(0);
+  }
+  if (mMaxDurations) {
+    mDurations.AppendElement(aTimeStamp - mStartTime);
+  }
+
   if (mQueuedTask) {
+    mStartTime = aTimeStamp;
     mQueuedTask->Run();
     mQueuedTask = nullptr;
-    return true;
+  } else {
+    mOutstanding = false;
   }
-  mOutstanding = false;
-  return false;
+}
+
+TimeDuration
+TaskThrottler::AverageDuration()
+{
+  TimeDuration durationSum;
+  for (uint32_t i = 0; i < mDurations.Length(); i++) {
+    durationSum += mDurations[i];
+  }
+
+  return durationSum / mDurations.Length();
+}
+
+TimeDuration
+TaskThrottler::TimeSinceLastRequest(const TimeStamp& aTimeStamp)
+{
+  return aTimeStamp - mStartTime;
 }
 
 }

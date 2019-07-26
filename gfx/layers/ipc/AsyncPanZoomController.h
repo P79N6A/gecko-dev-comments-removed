@@ -11,7 +11,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/TimeStamp.h"
 #include "InputData.h"
 #include "Axis.h"
 #include "TaskThrottler.h"
@@ -555,13 +554,6 @@ private:
   PanZoomState mState;
 
   
-  nsTArray<TimeDuration> mPreviousPaintDurations;
-
-  
-  
-  TimeStamp mPreviousPaintStartTime;
-
-  
   
   TimeStamp mLastAsyncScrollTime;
   CSSPoint mLastAsyncScrollOffset;
@@ -583,12 +575,6 @@ private:
   uint32_t mAsyncScrollTimeout;
 
   int mDPI;
-
-  
-  
-  
-  
-  bool mWaitingForContentToPaint;
 
   
   
