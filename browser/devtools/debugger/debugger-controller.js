@@ -447,6 +447,7 @@ StackFrames.prototype = {
   currentEvaluation: null,
   currentException: null,
   currentReturnedValue: null,
+  _dontSwitchSources: false,
 
   
 
@@ -603,12 +604,24 @@ StackFrames.prototype = {
     
     DebuggerView.showInstrumentsPane();
 
+    this._refillFrames();
+  },
+
+  
+
+
+
+  _refillFrames: function() {
     
     DebuggerView.StackFrames.empty();
 
     let previousBlackBoxed = null;
     for (let frame of this.activeThread.cachedFrames) {
-      let { depth, where: { url, line }, isBlackBoxed } = frame;
+      let { depth, where: { url, line }, source } = frame;
+
+      let isBlackBoxed = source
+        ? this.activeThread.source(source).isBlackBoxed
+        : false;
       let frameLocation = NetworkHelper.convertToUnicode(unescape(url));
       let frameTitle = StackFrameUtils.getFrameTitle(frame);
 
@@ -621,8 +634,10 @@ StackFrames.prototype = {
         previousBlackBoxed = null;
       }
 
-      DebuggerView.StackFrames.addFrame(frameTitle, frameLocation, line, depth, isBlackBoxed);
+      DebuggerView.StackFrames.addFrame(
+        frameTitle, frameLocation, line, depth, isBlackBoxed);
     }
+
     if (this.currentFrame == null) {
       DebuggerView.StackFrames.selectedDepth = 0;
     }
@@ -653,10 +668,9 @@ StackFrames.prototype = {
 
   _onBlackBoxChange: function() {
     if (this.activeThread.state == "paused") {
-      
-      
-      this.activeThread._clearFrames();
-      this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
+      this._dontSwitchSources = true;
+      this.currentFrame = null;
+      this._refillFrames();
     }
   },
 
@@ -682,7 +696,9 @@ StackFrames.prototype = {
 
 
 
-  selectFrame: function(aDepth) {
+
+
+  selectFrame: function(aDepth, aDontSwitchSources) {
     
     let frame = this.activeThread.cachedFrames[this.currentFrame = aDepth];
     if (!frame) {
@@ -695,8 +711,11 @@ StackFrames.prototype = {
       return;
     }
 
+    let noSwitch = this._dontSwitchSources;
+    this._dontSwitchSources = false;
+
     
-    DebuggerView.updateEditor(url, line);
+    DebuggerView.updateEditor(url, line, { noSwitch: noSwitch });
     
     DebuggerView.Sources.highlightBreakpoint(url, line);
     

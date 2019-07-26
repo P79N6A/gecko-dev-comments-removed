@@ -637,7 +637,12 @@ SideMenuItem.prototype = {
       checkbox.removeAttribute("checked");
     }
 
-    checkbox.addEventListener("command", function () {
+    
+    checkbox.addEventListener("mousedown", function (event) {
+      event.stopPropagation();
+    }, false);
+
+    checkbox.addEventListener("command", function (event) {
       ViewHelpers.dispatchEvent(checkbox, "check", {
         checked: checkbox.checked,
       });
