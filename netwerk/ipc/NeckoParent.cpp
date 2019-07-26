@@ -397,7 +397,21 @@ NeckoParent::AllocPRemoteOpenFileParent(const URIParams& aURI,
     fileURL->GetPath(requestedPath);
     NS_UnescapeURL(requestedPath);
 
-    if (hasManage) {
+    
+    bool netErrorWhiteList = false;
+
+    nsCOMPtr<nsIURI> appUri = DeserializeURI(aAppURI);
+    if (appUri) {
+      nsAdoptingString netErrorURI;
+      netErrorURI = Preferences::GetString("b2g.neterror.url");
+      if (netErrorURI) {
+        nsAutoCString spec;
+        appUri->GetSpec(spec);
+        netErrorWhiteList = spec.Equals(NS_ConvertUTF16toUTF8(netErrorURI).get());
+      }
+    }
+
+    if (hasManage || netErrorWhiteList) {
       
       
       
