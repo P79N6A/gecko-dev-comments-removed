@@ -607,6 +607,11 @@ HandleDynamicLinkFailure(JSContext *cx, CallArgs args, AsmJSModule &module, Hand
            .setCompileAndGo(false)
            .setNoScriptRval(false);
 
+    
+    
+    if (module.strict())
+        options.strictOption = true;
+
     SourceBufferHolder srcBuf(src->chars(), end - begin, SourceBufferHolder::NoOwnership);
     if (!frontend::CompileFunctionBody(cx, &fun, options, formals, srcBuf))
         return false;
