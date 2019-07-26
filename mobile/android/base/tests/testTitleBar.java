@@ -1,7 +1,5 @@
 package org.mozilla.gecko.tests;
-import android.view.View;
-import org.mozilla.gecko.*;
-import java.util.ArrayList;
+import org.mozilla.gecko.Actions;
 
 
 

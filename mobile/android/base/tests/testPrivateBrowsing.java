@@ -1,11 +1,10 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
-
 import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.Actions;
 
 
 
