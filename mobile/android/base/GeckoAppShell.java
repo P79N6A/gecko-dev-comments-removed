@@ -1188,7 +1188,16 @@ public class GeckoAppShell
             intent.setDataAndType(Uri.parse(aUriSpec), aMimeType);
         } else {
             Uri uri = Uri.parse(aUriSpec);
-            if ("sms".equals(uri.getScheme())) {
+            final String scheme = uri.getScheme();
+            if ("tel".equals(scheme)) {
+                
+                
+                
+                final String number = uri.getSchemeSpecificPart();
+                if (number.contains("#") || number.contains("*") || uri.getFragment() != null) {
+                    return false;
+                }
+            } else if ("sms".equals(scheme)) {
                 
                 
                 final String query = uri.getEncodedQuery();
