@@ -83,12 +83,37 @@ WebappsRegistry.prototype = {
   },
 
   
+  
+  _ensureForeground: function(aRequest) {
+    let docShell = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell);
+    if (docShell.isActive) {
+      return true;
+    }
+
+    let runnable = {
+      run: function run() {
+        Services.DOMRequest.fireError(aRequest, "BACKGROUND_APP");
+      }
+    }
+    Services.tm.currentThread.dispatch(runnable,
+                                       Ci.nsIThread.DISPATCH_NORMAL);
+    return false;
+  },
+
+  
 
   install: function(aURL, aParams) {
+    let request = this.createRequest();
+
+    if (!this._ensureForeground(request)) {
+      return request;
+    }
+
     this._validateScheme(aURL);
 
     let installURL = this._window.location.href;
-    let request = this.createRequest();
     let requestID = this.getRequestId(request);
     let receipts = (aParams && aParams.receipts &&
                     Array.isArray(aParams.receipts)) ? aParams.receipts
@@ -159,10 +184,15 @@ WebappsRegistry.prototype = {
   
 
   installPackage: function(aURL, aParams) {
+    let request = this.createRequest();
+
+    if (!this._ensureForeground(request)) {
+      return request;
+    }
+
     this._validateScheme(aURL);
 
     let installURL = this._window.location.href;
-    let request = this.createRequest();
     let requestID = this.getRequestId(request);
     let receipts = (aParams && aParams.receipts &&
                     Array.isArray(aParams.receipts)) ? aParams.receipts
