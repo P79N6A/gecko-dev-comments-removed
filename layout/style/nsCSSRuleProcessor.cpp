@@ -1008,6 +1008,22 @@ SizeOfSelectorsEntry(PLDHashEntryHdr* aHdr, MallocSizeOf aMallocSizeOf, void *)
   return entry->mSelectors.SizeOfExcludingThis(aMallocSizeOf);
 }
 
+static size_t
+SizeOfKeyframesRuleEntryExcludingThis(nsStringHashKey::KeyType aKey,
+                                      nsCSSKeyframesRule* const& aData,
+                                      mozilla::MallocSizeOf aMallocSizeOf,
+                                      void* aUserArg)
+{
+  
+  
+  
+  
+  
+  
+
+  return aKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+}
+
 size_t
 RuleCascadeData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 {
@@ -1042,6 +1058,9 @@ RuleCascadeData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   n += mKeyframesRules.SizeOfExcludingThis(aMallocSizeOf);
   n += mFontFeatureValuesRules.SizeOfExcludingThis(aMallocSizeOf);
   n += mPageRules.SizeOfExcludingThis(aMallocSizeOf);
+  n += mKeyframesRuleTable.SizeOfExcludingThis(SizeOfKeyframesRuleEntryExcludingThis,
+                                               aMallocSizeOf,
+                                               nullptr);
 
   return n;
 }
