@@ -3604,7 +3604,7 @@ NestedShell(JSContext *cx, unsigned argc, jsval *vp)
 
         
         
-        if (!strcmp(argv.back(), "--js-cache")) {
+        if (!strcmp(argv.back(), "--js-cache") && jsCacheDir) {
             char *newArg = JS_smprintf("--js-cache=%s", jsCacheDir);
             if (!newArg)
                 return false;
