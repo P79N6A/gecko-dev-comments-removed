@@ -473,7 +473,8 @@ nsPrefetchService::ProcessNextURI()
         
         
         
-        rv = mCurrentNode->OpenChannel();
+        nsRefPtr<nsPrefetchNode> node = mCurrentNode;
+        rv = node->OpenChannel();
     }
     while (NS_FAILED(rv));
 }
