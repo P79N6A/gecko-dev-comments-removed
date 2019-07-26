@@ -35,7 +35,12 @@ window.addEventListener("message", function(event) {
       }
     }
   } catch(e) {}
-}, false);
+});
+
+window.addEventListener("unload", function onUnload() {
+  window.removeEventListener("unload", onUnload);
+  UI.destroy();
+});
 
 let UI = {
   isReady: false,
@@ -55,8 +60,15 @@ let UI = {
     });
   },
 
+  destroy: function() {
+    if (this.connection) {
+      this.connection.off(Connection.Events.STATUS_CHANGED, this._onConnectionStatusChange);
+    }
+    this.template.destroy();
+  },
+
   onNewConnection: function() {
-    this.connection.on(Connection.Events.STATUS_CHANGED, () => this._onConnectionStatusChange());
+    this.connection.on(Connection.Events.STATUS_CHANGED, this._onConnectionStatusChange);
     this._onConnectionStatusChange();
   },
 
@@ -426,5 +438,9 @@ let UI = {
     return this.manifestEditor.show(editorContainer);
   }
 };
+
+
+
+UI._onConnectionStatusChange = UI._onConnectionStatusChange.bind(UI);
 
 EventEmitter.decorate(UI);
