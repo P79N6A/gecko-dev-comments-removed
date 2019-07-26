@@ -474,6 +474,44 @@ RTCPeerConnection.prototype = {
     this.__DOM_IMPL__.dispatchEvent(event);
   },
 
+  
+  reportError: function(msg, file, line) {
+    this.reportMsg(msg, file, line, Ci.nsIScriptError.exceptionFlag);
+  },
+
+  reportWarning: function(msg, file, line) {
+    this.reportMsg(msg, file, line, Ci.nsIScriptError.warningFlag);
+  },
+
+  reportMsg: function(msg, file, line, flag) {
+    let scriptErrorClass = Cc["@mozilla.org/scripterror;1"];
+    let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
+    scriptError.initWithWindowID(msg, file, null, line, 0, flag,
+                                 "content javascript", this._winID);
+    let console = Cc["@mozilla.org/consoleservice;1"].
+      getService(Ci.nsIConsoleService);
+    console.logMessage(scriptError);
+
+    if (flag != Ci.nsIScriptError.warningFlag) {
+      
+      try {
+        if (typeof this._win.onerror === "function") {
+          this._win.onerror(msg, file, line);
+        }
+      } catch(e) {
+        
+        try {
+          let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
+          scriptError.initWithWindowID(e.message, e.fileName, null, e.lineNumber,
+                                       0, Ci.nsIScriptError.exceptionFlag,
+                                       "content javascript",
+                                       this._winID);
+          console.logMessage(scriptError);
+        } catch(e) {}
+      }
+    }
+  },
+
   getEH: function(type) {
     return this.__DOM_IMPL__.getEventHandler(type);
   },
@@ -503,7 +541,7 @@ RTCPeerConnection.prototype = {
   },
 
   deprecated: function(name) {
-    dump(name + " is deprecated!\n");
+    this.reportWarning(name + " is deprecated!", null, 0);
   },
 
   createOffer: function(onSuccess, onError, constraints) {
@@ -852,37 +890,8 @@ PeerConnectionObserver.prototype = {
         
         
         
-        this.reportError(e.message, e.fileName, e.lineNumber);
+        this._dompc.reportError(e.message, e.fileName, e.lineNumber);
       }
-    }
-  },
-
-  
-  reportError: function(msg, file, line) {
-    let scriptErrorClass = Cc["@mozilla.org/scripterror;1"];
-    let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
-    scriptError.initWithWindowID(msg, file, null, line,0,
-                                 Ci.nsIScriptError.exceptionFlag,
-                                 "content javascript", this._dompc._winID);
-    let console = Cc["@mozilla.org/consoleservice;1"].
-      getService(Ci.nsIConsoleService);
-    console.logMessage(scriptError);
-
-    
-    try {
-      if (typeof this._dompc._win.onerror === "function") {
-        this._dompc._win.onerror(msg, file, line);
-      }
-    } catch(e) {
-      
-      try {
-        let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
-        scriptError.initWithWindowID(e.message, e.fileName, null, e.lineNumber,
-                                     0, Ci.nsIScriptError.exceptionFlag,
-                                     "content javascript",
-                                     this._dompc._winID);
-        console.logMessage(scriptError);
-      } catch(e) {}
     }
   },
 
