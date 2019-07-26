@@ -944,8 +944,9 @@ WebGLContext::ValidateTexImageSize(GLenum target, GLint level,
 
     const GLuint maxTexImageSize = MaxTextureSizeForTarget(target) >> level;
     const bool isCubemapTarget = IsTexImageCubemapTarget(target);
+    const bool isSub = IsSubFunc(func);
 
-    if (isCubemapTarget && width != height) {
+    if (!isSub && isCubemapTarget && (width != height)) {
         
 
 
