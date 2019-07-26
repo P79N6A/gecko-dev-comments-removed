@@ -103,18 +103,14 @@ enum MaybeConstruct {
     CONSTRUCT = INITIAL_CONSTRUCT
 };
 
-
-
-
+extern bool
+ReportIsNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO_CONSTRUCT);
 
 extern bool
-ReportIsNotFunction(JSContext *cx, const Value &v, int numToSkip = -1,
-                    MaybeConstruct construct = NO_CONSTRUCT);
-
+ReportIsNotFunction(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
 
 extern JSObject *
-ValueToCallable(JSContext *cx, const Value &vp, int numToSkip = -1,
-                MaybeConstruct construct = NO_CONSTRUCT);
+ValueToCallable(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
 
 
 
@@ -368,9 +364,6 @@ CallElement(JSContext *cx, MutableHandleValue lref, HandleValue rref, MutableHan
 bool
 SetObjectElement(JSContext *cx, HandleObject obj, HandleValue index, HandleValue value,
                  JSBool strict);
-bool
-SetObjectElement(JSContext *cx, HandleObject obj, HandleValue index, HandleValue value,
-                 JSBool strict, HandleScript script, jsbytecode *pc);
 
 bool
 AddValues(JSContext *cx, HandleScript script, jsbytecode *pc,
@@ -415,6 +408,10 @@ DefFunOperation(JSContext *cx, HandleScript script, HandleObject scopeChain, Han
 
 bool
 GetAndClearException(JSContext *cx, MutableHandleValue res);
+
+bool
+DeleteNameOperation(JSContext *cx, HandlePropertyName name, HandleObject scopeObj,
+                    MutableHandleValue res);
 
 }  
 

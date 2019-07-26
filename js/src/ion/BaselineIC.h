@@ -321,6 +321,8 @@ class ICEntry
     _(GetName_Fallback)         \
     _(GetName_Global)           \
                                 \
+    _(BindName_Fallback)        \
+                                \
     _(GetProp_Fallback)         \
     _(GetProp_ArrayLength)      \
     _(GetProp_TypedArrayLength) \
@@ -891,10 +893,13 @@ class ICTypeMonitor_Fallback : public ICStub
     uint32_t numOptimizedMonitorStubs_ : 8;
 
     
-    
-    uint32_t argumentIndex_ : 24;
+    bool hasFallbackStub_ : 1;
 
-    static const uint32_t BYTECODE_INDEX = (1 << 24) - 1;
+    
+    
+    uint32_t argumentIndex_ : 23;
+
+    static const uint32_t BYTECODE_INDEX = (1 << 23) - 1;
 
     ICTypeMonitor_Fallback(IonCode *stubCode, ICMonitoredFallbackStub *mainFallbackStub,
                            uint32_t argumentIndex)
@@ -903,6 +908,7 @@ class ICTypeMonitor_Fallback : public ICStub
         firstMonitorStub_(this),
         lastMonitorStubPtrAddr_(NULL),
         numOptimizedMonitorStubs_(0),
+        hasFallbackStub_(mainFallbackStub != NULL),
         argumentIndex_(argumentIndex)
     { }
 
@@ -910,7 +916,7 @@ class ICTypeMonitor_Fallback : public ICStub
         stub->setNext(this);
 
         JS_ASSERT(lastMonitorStubPtrAddr_ != NULL ==
-                  (numOptimizedMonitorStubs_ || !monitorsBytecode()));
+                  (numOptimizedMonitorStubs_ || !hasFallbackStub_));
 
         if (lastMonitorStubPtrAddr_)
             *lastMonitorStubPtrAddr_ = stub;
@@ -935,12 +941,12 @@ class ICTypeMonitor_Fallback : public ICStub
     }
 
     inline ICFallbackStub *mainFallbackStub() const {
-        JS_ASSERT(monitorsBytecode());
+        JS_ASSERT(hasFallbackStub_);
         return mainFallbackStub_;
     }
 
     inline ICEntry *icEntry() const {
-        return monitorsBytecode() ? mainFallbackStub()->icEntry() : icEntry_;
+        return hasFallbackStub_ ? mainFallbackStub()->icEntry() : icEntry_;
     }
 
     inline ICStub *firstMonitorStub() const {
@@ -973,7 +979,7 @@ class ICTypeMonitor_Fallback : public ICStub
 
     
     void fixupICEntry(ICEntry *icEntry) {
-        JS_ASSERT(!monitorsBytecode());
+        JS_ASSERT(!hasFallbackStub_);
         JS_ASSERT(icEntry_ == NULL);
         JS_ASSERT(lastMonitorStubPtrAddr_ == NULL);
         icEntry_ = icEntry;
@@ -2077,6 +2083,9 @@ class ICSetElem_DenseAdd : public ICUpdatedStub
 
 
 
+
+
+
 class ICGetName_Fallback : public ICMonitoredFallbackStub
 {
     friend class ICStubSpace;
@@ -2159,6 +2168,36 @@ class ICGetName_Global : public ICMonitoredStub
 
         ICStub *getStub(ICStubSpace *space) {
             return ICGetName_Global::New(space, getStubCode(), firstMonitorStub_, shape_, slot_);
+        }
+    };
+};
+
+
+
+class ICBindName_Fallback : public ICFallbackStub
+{
+    friend class ICStubSpace;
+
+    ICBindName_Fallback(IonCode *stubCode)
+      : ICFallbackStub(ICStub::BindName_Fallback, stubCode)
+    { }
+
+  public:
+    static inline ICBindName_Fallback *New(ICStubSpace *space, IonCode *code) {
+        return space->allocate<ICBindName_Fallback>(code);
+    }
+
+    class Compiler : public ICStubCompiler {
+      protected:
+        bool generateStubCode(MacroAssembler &masm);
+
+      public:
+        Compiler(JSContext *cx)
+          : ICStubCompiler(cx, ICStub::BindName_Fallback)
+        { }
+
+        ICStub *getStub(ICStubSpace *space) {
+            return ICBindName_Fallback::New(space, getStubCode());
         }
     };
 };
