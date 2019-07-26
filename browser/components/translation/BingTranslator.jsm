@@ -13,6 +13,7 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://services-common/utils.js");
+Cu.import("resource://services-common/rest.js");
 
 
 const MAX_REQUEST_DATA = 5000; 
@@ -174,6 +175,76 @@ this.BingTranslation.prototype = {
       lastIndex: 0
     };
   }
+};
+
+
+
+
+
+
+
+
+
+
+
+function BingRequest(translationData, sourceLanguage, targetLanguage) {
+  this.translationData = translationData;
+  this.sourceLanguage = sourceLanguage;
+  this.targetLanguage = targetLanguage;
+}
+
+BingRequest.prototype = {
+  
+
+
+  fireRequest: function() {
+    return Task.spawn(function *(){
+      let token = yield BingTokenManager.getToken();
+      let auth = "Bearer " + token;
+      let request = new RESTRequest("https://api.microsofttranslator.com/v2/Http.svc/TranslateArray");
+      request.setHeader("Content-type", "text/xml");
+      request.setHeader("Authorization", auth);
+
+      let requestString =
+        '<TranslateArrayRequest>' +
+          '<AppId/>' +
+          '<From>' + this.sourceLanguage + '</From>' +
+          '<Options>' +
+            '<ContentType xmlns="http://schemas.datacontract.org/2004/07/Microsoft.MT.Web.Service.V2">text/html</ContentType>' +
+            '<ReservedFlags xmlns="http://schemas.datacontract.org/2004/07/Microsoft.MT.Web.Service.V2" />' +
+          '</Options>' +
+          '<Texts xmlns:s="http://schemas.microsoft.com/2003/10/Serialization/Arrays">';
+
+      for (let [, text] of this.translationData) {
+        requestString += '<s:string>' + text + '</s:string>';
+      }
+
+      requestString += '</Texts>' +
+          '<To>' + this.targetLanguage + '</To>' +
+        '</TranslateArrayRequest>';
+
+      let utf8 = CommonUtils.encodeUTF8(requestString);
+
+      let deferred = Promise.defer();
+      request.post(utf8, function(err) {
+        deferred.resolve(this);
+      }.bind(this));
+
+      this.networkRequest = request;
+      return deferred.promise;
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+  get requestSucceeded() {
+    return !this.networkRequest.error &&
+            this.networkRequest.response.success;
+   }
 };
 
 
