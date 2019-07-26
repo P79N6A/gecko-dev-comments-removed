@@ -165,9 +165,6 @@ class ThreadPool : public Monitor
     friend class ThreadPoolWorker;
 
     
-    JSRuntime *const runtime_;
-
-    
     js::Vector<ThreadPoolWorker *, 8, SystemAllocPolicy> workers_;
 
     
@@ -178,6 +175,9 @@ class ThreadPool : public Monitor
     ParallelJob *job_;
 
 #ifdef DEBUG
+    
+    JSRuntime *const runtime_;
+
     
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stolenSlices_;
 #endif

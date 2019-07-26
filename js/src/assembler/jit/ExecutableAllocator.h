@@ -115,13 +115,6 @@ private:
     size_t m_otherCodeBytes;
 
 public:
-    
-    bool m_destroy;
-
-    
-    
-    size_t m_gcNumber;
-
     void release(bool willDestroy = false)
     {
         JS_ASSERT(m_refCount != 0);
@@ -159,7 +152,7 @@ public:
     ExecutablePool(ExecutableAllocator* allocator, Allocation a)
       : m_allocator(allocator), m_freePtr(a.pages), m_end(m_freePtr + a.size), m_allocation(a),
         m_refCount(1), m_ionCodeBytes(0), m_baselineCodeBytes(0), m_regexpCodeBytes(0),
-        m_otherCodeBytes(0), m_destroy(false), m_gcNumber(0)
+        m_otherCodeBytes(0)
     { }
 
     ~ExecutablePool();
