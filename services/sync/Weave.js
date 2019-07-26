@@ -66,10 +66,34 @@ WeaveService.prototype = {
   },
 
   get fxAccountsEnabled() {
-    let fxAccountsEnabled = false;
+    
+    
+    
+    
+    let fxAccountsAvailable;
     try {
-      fxAccountsEnabled = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
+      fxAccountsAvailable = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
     } catch (_) {
+    }
+    if (!fxAccountsAvailable) {
+      
+      
+      delete this.fxAccountsEnabled;
+      this.fxAccountsEnabled = false;
+      return false;
+    }
+    
+    
+    let fxAccountsEnabled;
+    try {
+      fxAccountsEnabled = Services.prefs.getBoolPref("services.sync.fxaccounts.enabled");
+    } catch (_) {
+      
+      
+      
+      let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+      fxAccountsEnabled = !prefs.prefHasUserValue("username");
+      Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", fxAccountsEnabled);
     }
     
     
