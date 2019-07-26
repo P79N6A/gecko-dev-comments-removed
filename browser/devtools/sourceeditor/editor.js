@@ -150,7 +150,8 @@ function Editor(config) {
     styleActiveLine:   true,
     autoCloseBrackets: "()[]{}''\"\"",
     autoCloseEnabled:  useAutoClose,
-    theme:             "mozilla"
+    theme:             "mozilla",
+    autocomplete:      false
   };
 
   
@@ -334,6 +335,17 @@ Editor.prototype = {
 
   getMode: function () {
     return this.getOption("mode");
+  },
+
+  
+
+
+  loadScript: function (url) {
+    if (!this.container) {
+      throw new Error("Can't load a script until the editor is loaded.")
+    }
+    let win = this.container.contentWindow.wrappedJSObject;
+    Services.scriptloader.loadSubScript(url, win, "utf8");
   },
 
   
@@ -820,6 +832,19 @@ Editor.prototype = {
     let cm = editors.get(this);
     cm.getWrapperElement().style.fontSize = parseInt(size, 10) + "px";
     cm.refresh();
+  },
+
+  
+
+
+
+  setupAutoCompletion: function (options = {}) {
+    if (this.config.autocomplete) {
+      this.extend(require("./autocomplete"));
+      
+      
+      this.setupAutoCompletion(options);
+    }
   },
 
   
