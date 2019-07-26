@@ -890,6 +890,32 @@ BaselineCompiler::emit_JSOP_NEWARRAY()
 }
 
 bool
+BaselineCompiler::emit_JSOP_INITELEM_ARRAY()
+{
+    
+    frame.syncStack(1);
+
+    StackValue *array = frame.peek(-2);
+    StackValue *element = frame.peek(-1);
+
+    uint32_t index = GET_UINT24(pc);
+
+    
+    Register scratch = R2.scratchReg();
+    masm.extractObject(frame.addressOfStackValue(array), scratch);
+    masm.loadPtr(Address(scratch, JSObject::offsetOfElements()), scratch);
+
+    
+    masm.store32(Imm32(index + 1), Address(scratch, ObjectElements::offsetOfInitializedLength()));
+
+    
+    storeValue(element, Address(scratch, index * sizeof(Value)), R0);
+
+    frame.pop();
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_ENDINIT()
 {
     return true;
