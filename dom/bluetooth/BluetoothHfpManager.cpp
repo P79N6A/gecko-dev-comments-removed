@@ -440,10 +440,7 @@ BluetoothHfpManager::Get()
   }
 
   
-  if (sInShutdown) {
-    NS_WARNING("BluetoothHfpManager can't be created during shutdown");
-    return nullptr;
-  }
+  NS_ENSURE_FALSE(sInShutdown, nullptr);
 
   
   BluetoothHfpManager* manager = new BluetoothHfpManager();
