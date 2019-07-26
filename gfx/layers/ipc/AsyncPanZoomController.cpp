@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/layers/AsyncCompositionManager.h" 
 #include "CompositorParent.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -19,6 +20,7 @@
 #include "Layers.h"
 #include "AnimationCommon.h"
 #include <algorithm>
+#include "mozilla/layers/LayerManagerComposite.h"
 
 using namespace mozilla::css;
 

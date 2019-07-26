@@ -21,7 +21,7 @@
 #include "mozilla/Monitor.h"
 #include "mozilla/TimeStamp.h"
 #include "ShadowLayersManager.h"
-#include "mozilla/layers/LayerManagerComposite.h"
+
 class nsIWidget;
 
 namespace base {
@@ -33,27 +33,9 @@ namespace layers {
 
 class AsyncPanZoomController;
 class Layer;
-class LayerManager;
+class LayerManagerComposite;
+class AsyncCompositionManager;
 struct TextureFactoryIdentifier;
-
-
-struct ViewTransform {
-  ViewTransform(gfxPoint aTranslation = gfxPoint(),
-                gfxSize aScale = gfxSize(1, 1))
-    : mTranslation(aTranslation)
-    , mScale(aScale)
-  {}
-
-  operator gfx3DMatrix() const
-  {
-    return
-      gfx3DMatrix::ScalingMatrix(mScale.width, mScale.height, 1) *
-      gfx3DMatrix::Translation(mTranslation.x, mTranslation.y, 0);
-  }
-
-  gfxPoint mTranslation;
-  gfxSize mScale;
-};
 
 class CompositorParent : public PCompositorParent,
                          public ShadowLayersManager
@@ -86,12 +68,13 @@ public:
 
 
 
-  void ForceIsFirstPaint() { mIsFirstPaint = true; }
+  void ForceIsFirstPaint();
   void Destroy();
 
   LayerManagerComposite* GetLayerManager() { return mLayerManager; }
 
   void SetTransformation(float aScale, nsIntPoint aScrollOffset);
+
   void AsyncRender();
 
   
@@ -167,6 +150,19 @@ public:
   static void StartUpWithExistingThread(MessageLoop* aMsgLoop,
                                         PlatformThreadId aThreadID);
 
+  struct LayerTreeState {
+    nsRefPtr<Layer> mRoot;
+    nsRefPtr<AsyncPanZoomController> mController;
+    TargetConfig mTargetConfig;
+  };
+
+  
+
+
+
+
+  static const LayerTreeState* GetIndirectShadowTree(uint64_t aId);
+
 protected:
   virtual PLayerTransactionParent*
     AllocPLayerTransaction(const LayersBackend& aBackendHint,
@@ -176,16 +172,6 @@ protected:
   virtual void ScheduleTask(CancelableTask*, int);
   virtual void Composite();
   virtual void ComposeToTarget(gfxContext* aTarget);
-  virtual void SetFirstPaintViewport(const nsIntPoint& aOffset, float aZoom, const nsIntRect& aPageRect, const gfx::Rect& aCssPageRect);
-  virtual void SetPageRect(const gfx::Rect& aCssPageRect);
-  virtual void SyncViewportInfo(const nsIntRect& aDisplayPort, float aDisplayResolution, bool aLayersUpdated,
-                                nsIntPoint& aScrollOffset, float& aScaleX, float& aScaleY,
-                                gfx::Margin& aFixedLayerMargins, float& aOffsetX, float& aOffsetY);
-  virtual void SyncFrameMetrics(Layer* aLayer, const ViewTransform& aTreeTransform,
-                                const gfxPoint& aScrollOffset, gfx::Margin& aFixedLayerMargins,
-                                float& aOffsetX, float& aOffsetY,
-                                bool aIsFirstPaint, bool aLayersUpdated) {
-  }
 
   void SetEGLSurfaceSize(int width, int height);
 
@@ -194,16 +180,6 @@ private:
   void ResumeComposition();
   void ResumeCompositionAndResize(int width, int height);
   void ForceComposition();
-
-  
-  
-  bool TransformShadowTree(TimeStamp aCurrentFrame);
-  void TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRootTransform);
-  
-  
-  
-  bool ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame, Layer* aLayer,
-                                        bool* aWantNextFrame);
 
   inline PlatformThreadId CompositorThreadID();
 
@@ -252,22 +228,9 @@ private:
 
   bool CanComposite();
 
-  
-  
-
-
-
-
-
-
-  void TransformFixedLayers(Layer* aLayer,
-                            const gfxPoint& aTranslation,
-                            const gfxSize& aScaleDiff,
-                            const gfx::Margin& aFixedLayerMargins);
-
   nsRefPtr<LayerManagerComposite> mLayerManager;
+  RefPtr<AsyncCompositionManager> mCompositionManager;
   nsIWidget* mWidget;
-  TargetConfig mTargetConfig;
   CancelableTask *mCurrentCompositeTask;
   TimeStamp mLastCompose;
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
@@ -275,21 +238,6 @@ private:
 #endif
 
   bool mPaused;
-  float mXScale;
-  float mYScale;
-  nsIntPoint mScrollOffset;
-  nsIntRect mContentRect;
-
-  
-  
-  
-  
-  
-  bool mIsFirstPaint;
-
-  
-  
-  bool mLayersUpdated;
 
   bool mRenderToEGLSurface;
   nsIntSize mEGLSurfaceSize;
