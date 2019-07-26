@@ -17,8 +17,9 @@ namespace image {
 
 extern const char* SVG_MIMETYPE;
 
-struct ImageFactory
+class ImageFactory
 {
+public:
   
 
 

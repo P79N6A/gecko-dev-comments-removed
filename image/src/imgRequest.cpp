@@ -767,7 +767,8 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       mImage = ImageFactory::CreateImage(aRequest, mStatusTracker, mContentType,
-                                         mURI, mIsMultiPartChannel, mInnerWindowId);
+                                         mURI, mIsMultiPartChannel,
+                                         static_cast<uint32_t>(mInnerWindowId));
 
       
       mStatusTracker = nullptr;

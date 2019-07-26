@@ -150,8 +150,9 @@ DiscardingEnabled()
   return enabled;
 }
 
-struct ScaleRequest
+class ScaleRequest
 {
+public:
   ScaleRequest(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
     : scale(aScale)
     , dstLocked(false)
@@ -364,7 +365,16 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mLoopCount(-1),
   mLockCount(0),
   mDecoder(nullptr),
+
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4355)
+#endif
   mDecodeRequest(this),
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   mBytesDecoded(0),
   mDecodeCount(0),
 #ifdef DEBUG
@@ -842,10 +852,12 @@ RasterImage::GetCurrentImgFrameEndTime() const
     
     
     
-    return TimeStamp() + TimeDuration::FromMilliseconds(UINT64_MAX);
+    return TimeStamp() +
+           TimeDuration::FromMilliseconds(static_cast<double>(UINT64_MAX));
   }
 
-  TimeDuration durationOfTimeout = TimeDuration::FromMilliseconds(timeout);
+  TimeDuration durationOfTimeout =
+    TimeDuration::FromMilliseconds(static_cast<double>(timeout));
   TimeStamp currentFrameEndTime = currentFrameTime + durationOfTimeout;
 
   return currentFrameEndTime;
