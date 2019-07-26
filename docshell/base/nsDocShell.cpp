@@ -3466,11 +3466,14 @@ nsDocShell::IsSandboxedFrom(nsIDocShell* aTargetDocShell)
         return false;
     }
 
-    uint32_t sandboxFlags = 0;
-
-    nsCOMPtr<nsIDocument> doc = mContentViewer->GetDocument();
-    if (doc) {
-        sandboxFlags = doc->GetSandboxFlags();
+    
+    
+    uint32_t sandboxFlags = mSandboxFlags;
+    if (mContentViewer) {
+        nsCOMPtr<nsIDocument> doc = mContentViewer->GetDocument();
+        if (doc) {
+            sandboxFlags = doc->GetSandboxFlags();
+        }
     }
 
     
