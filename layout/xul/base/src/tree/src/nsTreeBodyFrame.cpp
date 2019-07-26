@@ -2182,7 +2182,7 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
       return NS_ERROR_FAILURE;
 
     
-    imageRequest->RequestDecode();
+    imageRequest->StartDecoding();
     imageRequest->LockImage();
 
     

@@ -177,7 +177,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   
   
   if (wasDecoded || mDecodeRequested)
-    mOwner->RequestDecode();
+    mOwner->StartDecoding();
 
   return NS_OK;
 }
@@ -304,6 +304,20 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
 
 
 NS_IMETHODIMP
+imgRequestProxy::StartDecoding()
+{
+  if (!mOwner)
+    return NS_ERROR_FAILURE;
+
+  
+  mDecodeRequested = true;
+
+  
+  return mOwner->StartDecoding();
+}
+
+
+NS_IMETHODIMP
 imgRequestProxy::RequestDecode()
 {
   if (!mOwner)
@@ -315,6 +329,7 @@ imgRequestProxy::RequestDecode()
   
   return mOwner->RequestDecode();
 }
+
 
 
 NS_IMETHODIMP

@@ -496,6 +496,22 @@ imgRequest::RequestDecode()
   return NS_OK;
 }
 
+nsresult
+imgRequest::StartDecoding()
+{
+  
+  if (mImage) {
+    return mImage->StartDecoding();
+  }
+
+  
+  mDecodeRequested = true;
+
+  return NS_OK;
+}
+
+
+
 
 
 
@@ -1147,7 +1163,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
         
         if (mDecodeRequested) {
-          mImage->RequestDecode();
+          mImage->StartDecoding();
         }
       } else { 
         nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);

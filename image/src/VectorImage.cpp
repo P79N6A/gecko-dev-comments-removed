@@ -575,6 +575,14 @@ VectorImage::RequestDecode()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+VectorImage::StartDecoding()
+{
+  
+  return NS_OK;
+}
+
+
 
 
 NS_IMETHODIMP
