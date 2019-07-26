@@ -259,26 +259,23 @@ HTMLButtonAccessible::NativeRole()
 ENameValueFlag
 HTMLButtonAccessible::NativeName(nsString& aName)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+
   ENameValueFlag nameFlag = Accessible::NativeName(aName);
-  if (!aName.IsEmpty() || mContent->Tag() != nsGkAtoms::input)
+  if (!aName.IsEmpty() || mContent->Tag() != nsGkAtoms::input ||
+      !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                             nsGkAtoms::image, eCaseMatters))
     return nameFlag;
 
-  
-  
-  if (!mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::alt, aName)) {
-    
-    nsIFrame* frame = GetFrame();
-    if (frame) {
-      nsIFormControlFrame* fcFrame = do_QueryFrame(frame);
-      if (fcFrame)
-        fcFrame->GetFormProperty(nsGkAtoms::defaultLabel, aName);
-    }
-  }
-
-  if (aName.IsEmpty() &&
-      !mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::src, aName)) {
-    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, aName);
-  }
+  if (!mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::alt, aName))
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, aName);
 
   aName.CompressWhitespace();
   return eNameOK;
