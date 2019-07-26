@@ -20,7 +20,7 @@
 
 
 
-#define structof(p,t,f) ((t*)(- offsetof(t,f) + (char*)(p)))
+#define structof(p,t,f) ((t*)(- (ptrdiff_t) offsetof(t,f) + (char*)(p)))
 
 
 
