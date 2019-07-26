@@ -27,6 +27,7 @@ class LIRGeneratorX64 : public LIRGeneratorX86Shared
     
     bool useBox(LInstruction *lir, size_t n, MDefinition *mir,
                 LUse::Policy policy = LUse::REGISTER, bool useAtStart = false);
+    bool useBoxFixed(LInstruction *lir, size_t n, MDefinition *mir, Register reg1, Register);
 
     bool lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs,
                        MDefinition *rhs);

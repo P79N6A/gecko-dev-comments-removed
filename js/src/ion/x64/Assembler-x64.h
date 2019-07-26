@@ -80,6 +80,7 @@ static const Register CallTempReg1 = rdi;
 static const Register CallTempReg2 = rbx;
 static const Register CallTempReg3 = rcx;
 static const Register CallTempReg4 = rsi;
+static const Register CallTempReg5 = rdx;
 
 
 #if defined(_WIN64)

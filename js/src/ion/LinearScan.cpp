@@ -597,6 +597,20 @@ LinearScanAllocator::buildLivenessInfo()
                     
                     JS_ASSERT(inputOf(*ins) > outputOf(block->firstId()));
 
+                    
+                    
+                    JS_ASSERT_IF(ins->isCall() && !alloc.isSnapshotInput(),
+                                 use->isFixedRegister() || use->usedAtStart());
+
+#ifdef DEBUG
+                    
+                    
+                    if (ins->isCall() && use->usedAtStart()) {
+                        for (size_t i = 0; i < ins->numTemps(); i++)
+                            JS_ASSERT(vregs[ins->getTemp(i)].isDouble() != vregs[use].isDouble());
+                    }
+#endif
+
                     CodePosition to;
                     if (use->isFixedRegister()) {
                         JS_ASSERT(!use->usedAtStart());
@@ -605,12 +619,7 @@ LinearScanAllocator::buildLivenessInfo()
                             return false;
                         to = inputOf(*ins);
                     } else {
-                        
-                        
-                        if (use->usedAtStart() || (ins->isCall() && !alloc.isSnapshotInput()))
-                            to = inputOf(*ins);
-                        else
-                            to = outputOf(*ins);
+                        to = use->usedAtStart() ? inputOf(*ins) : outputOf(*ins);
                     }
 
                     LiveInterval *interval = vregs[use].getInterval(0);
