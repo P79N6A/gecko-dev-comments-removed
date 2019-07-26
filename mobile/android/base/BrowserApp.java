@@ -116,6 +116,9 @@ abstract public class BrowserApp extends GeckoApp
     private static final int FEEDBACK_LAUNCH_COUNT = 15;
 
     
+    private boolean mDynamicToolbarEnabled = false;
+
+    
     private int mToolbarHeight = 0;
 
     private Integer mPrefObserverId;
