@@ -64,6 +64,7 @@
 #include "MediaStreamGraph.h"
 #include "nsDOMMediaStream.h"
 #include "nsIScriptError.h"
+#include "nsHostObjectProtocolHandler.h"
 
 #include "nsCSSParser.h"
 #include "nsIMediaList.h"
@@ -758,7 +759,7 @@ void nsHTMLMediaElement::SelectResource()
   
   nsAutoString src;
   if (mSrcAttrStream) {
-    SetupSrcMediaStreamPlayback();
+    SetupSrcMediaStreamPlayback(mSrcAttrStream);
   } else if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
     nsCOMPtr<nsIURI> uri;
     nsresult rv = NewURIFromString(src, getter_AddRefs(uri));
@@ -766,6 +767,7 @@ void nsHTMLMediaElement::SelectResource()
       LOG(PR_LOG_DEBUG, ("%p Trying load from src=%s", this, NS_ConvertUTF16toUTF8(src).get()));
       NS_ASSERTION(!mIsLoadingFromSourceChildren,
         "Should think we're not loading from source children by default");
+
       mLoadingSrc = uri;
       if (mPreloadAction == nsHTMLMediaElement::PRELOAD_NONE) {
         
@@ -1035,7 +1037,7 @@ nsresult nsHTMLMediaElement::LoadResource()
   mCORSMode = AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
 
   nsHTMLMediaElement* other = LookupMediaElementURITable(mLoadingSrc);
-  if (other) {
+  if (other && other->mDecoder) {
     
     nsresult rv = InitializeDecoderAsClone(other->mDecoder);
     
@@ -1060,6 +1062,21 @@ nsresult nsHTMLMediaElement::LoadResource()
   NS_ENSURE_SUCCESS(rv, rv);
   if (NS_CP_REJECTED(shouldLoad)) {
     return NS_ERROR_FAILURE;
+  }
+
+  if (IsMediaStreamURI(mLoadingSrc)) {
+    nsCOMPtr<nsIDOMMediaStream> stream;
+    rv = NS_GetStreamForMediaStreamURI(mLoadingSrc, getter_AddRefs(stream));
+    if (NS_FAILED(rv)) {
+      nsCString specUTF8;
+      mLoadingSrc->GetSpec(specUTF8);
+      NS_ConvertUTF8toUTF16 spec(specUTF8);
+      const PRUnichar* params[] = { spec.get() };
+      ReportLoadError("MediaLoadInvalidURI", params, ArrayLength(params));
+      return rv;
+    }
+    SetupSrcMediaStreamPlayback(static_cast<nsDOMMediaStream*>(stream.get()));
+    return NS_OK;
   }
 
   nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
@@ -2765,11 +2782,11 @@ private:
   bool mDidHaveCurrentData;
 };
 
-void nsHTMLMediaElement::SetupSrcMediaStreamPlayback()
+void nsHTMLMediaElement::SetupSrcMediaStreamPlayback(nsDOMMediaStream* aStream)
 {
   NS_ASSERTION(!mSrcStream && !mSrcStreamListener, "Should have been ended already");
 
-  mSrcStream = mSrcAttrStream;
+  mSrcStream = aStream;
   
   
   mSrcStreamListener = new StreamListener(this);

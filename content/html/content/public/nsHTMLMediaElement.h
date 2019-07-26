@@ -431,7 +431,7 @@ protected:
   
 
 
-  void SetupSrcMediaStreamPlayback();
+  void SetupSrcMediaStreamPlayback(nsDOMMediaStream* aStream);
   
 
 
