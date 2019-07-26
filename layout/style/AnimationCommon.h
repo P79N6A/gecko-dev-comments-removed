@@ -75,6 +75,11 @@ protected:
   virtual void ElementDataRemoved() = 0;
   void RemoveAllElementData();
 
+  static CommonElementAnimationData*
+  GetAnimationsForCompositor(nsIContent* aContent,
+                             nsIAtom* aElementProperty,
+                             nsCSSProperty aProperty);
+
   
   
   
