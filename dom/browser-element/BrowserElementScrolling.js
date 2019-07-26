@@ -236,7 +236,6 @@ const ContentPanning = {
     if (!isPan) {
       
       
-      evt.preventDefault();
       return;
     }
 
