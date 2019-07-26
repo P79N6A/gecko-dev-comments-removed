@@ -472,11 +472,31 @@ MediaStreamGraphImpl::UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream
   NS_ASSERTION(!stream->mHasBeenOrdered, "stream should not have already been ordered");
   if (stream->mIsOnOrderingStack) {
     MediaStream* iter = aStack->getLast();
+    AudioNodeStream* ns = stream->AsAudioNodeStream();
+    bool delayNodePresent = ns ? ns->Engine()->AsDelayNodeEngine() != nullptr : false;
+    bool cycleFound = false;
     if (iter) {
       do {
+        cycleFound = true;
         iter->AsProcessedStream()->mInCycle = true;
+        AudioNodeStream* ns = iter->AsAudioNodeStream();
+        if (ns && ns->Engine()->AsDelayNodeEngine()) {
+          delayNodePresent = true;
+        }
         iter = iter->getPrevious();
       } while (iter && iter != stream);
+    }
+    if (cycleFound && !delayNodePresent) {
+      
+      
+      MOZ_ASSERT(iter);
+      do {
+        
+        
+        
+        MOZ_ASSERT(iter->AsAudioNodeStream());
+        iter->AsAudioNodeStream()->Mute();
+      } while((iter = iter->getNext()));
     }
     return;
   }
@@ -513,6 +533,10 @@ MediaStreamGraphImpl::UpdateStreamOrder()
     ProcessedMediaStream* ps = stream->AsProcessedStream();
     if (ps) {
       ps->mInCycle = false;
+      AudioNodeStream* ns = ps->AsAudioNodeStream();
+      if (ns) {
+        ns->Unmute();
+      }
     }
   }
 
