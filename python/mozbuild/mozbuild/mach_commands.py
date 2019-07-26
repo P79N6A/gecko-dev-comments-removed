@@ -248,13 +248,14 @@ class BuildOutputManager(LoggingMixin):
         if relevant:
             self.log(logging.INFO, 'build_output', {'line': line}, '{line}')
         elif state_changed:
-            
-            
-            self.handler.acquire()
+            have_handler = hasattr(self, 'handler')
+            if have_handler:
+                self.handler.acquire()
             try:
                 self.refresh()
             finally:
-                self.handler.release()
+                if have_handler:
+                    self.handler.release()
 
 
 @CommandProvider
