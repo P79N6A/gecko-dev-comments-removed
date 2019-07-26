@@ -206,8 +206,9 @@ public:
 
 
 
-  void UpdateCompositionBounds(const ScrollableLayerGuid& aGuid,
-                               const ScreenIntRect& aCompositionBounds);
+
+  void UpdateRootCompositionBounds(const uint64_t& aLayersId,
+                                   const ScreenIntRect& aCompositionBounds);
 
   
 
@@ -305,12 +306,14 @@ public:
 
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint);
+  already_AddRefed<AsyncPanZoomController> GetRootAPZCFor(const uint64_t& aLayersId);
   void GetInputTransforms(AsyncPanZoomController *aApzc, gfx3DMatrix& aTransformToApzcOut,
                           gfx3DMatrix& aTransformToGeckoOut);
 private:
   
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid);
   AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& aHitTestPoint);
+  AsyncPanZoomController* FindRootAPZC(AsyncPanZoomController* aApzc, const uint64_t& aLayersId);
   already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
   already_AddRefed<AsyncPanZoomController> RootAPZCForLayersId(AsyncPanZoomController* aApzc);
   already_AddRefed<AsyncPanZoomController> GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent, ScreenPoint aPoint);
