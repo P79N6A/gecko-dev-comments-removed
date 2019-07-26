@@ -14,7 +14,6 @@
 #include "nsEvent.h"
 #include "nsCOMPtr.h"
 #include "nsITheme.h"
-#include "nsNativeWidget.h"
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
@@ -61,6 +60,11 @@ class DrawTarget;
 
 
 typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
+
+
+
+
+typedef void* nsNativeWidget;
 
 
 
