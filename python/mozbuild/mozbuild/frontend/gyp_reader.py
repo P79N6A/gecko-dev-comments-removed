@@ -14,6 +14,7 @@ from .sandbox import (
     GlobalNamespace,
 )
 from .sandbox_symbols import VARIABLES
+from .reader import SandboxValidationError
 
 
 
@@ -71,7 +72,7 @@ def encode(value):
     return value
 
 
-def read_from_gyp(config, path, output, vars):
+def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
     """Read a gyp configuration and emits GypSandboxes for the backend to
     process.
 
@@ -82,6 +83,7 @@ def read_from_gyp(config, path, output, vars):
     """
 
     time_start = time.time()
+    all_sources = set()
 
     
     
@@ -161,10 +163,16 @@ def read_from_gyp(config, path, output, vars):
             
             sandbox['LIBRARY_NAME'] = name.decode('utf-8')
             
-            sources = alphabetical_sorted(spec.get('sources', []))
+            sources = set(mozpath.normpath(mozpath.join(sandbox['SRCDIR'], f))
+                for f in spec.get('sources', [])
+                if mozpath.splitext(f)[-1] != '.h')
+
+            unified_sources = sources - non_unified_sources
+            sources -= unified_sources
+            all_sources |= sources
             
-            sandbox['SOURCES'] = \
-                [f for f in sources if mozpath.splitext(f)[-1] != '.h']
+            sandbox['SOURCES'] = alphabetical_sorted(sources)
+            sandbox['UNIFIED_SOURCES'] = alphabetical_sorted(unified_sources)
 
             for define in target_conf.get('defines', []):
                 if '=' in define:
@@ -188,3 +196,7 @@ def read_from_gyp(config, path, output, vars):
         sandbox.execution_time = time.time() - time_start
         yield sandbox
         time_start = time.time()
+
+
+
+
