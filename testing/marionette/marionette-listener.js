@@ -1789,7 +1789,7 @@ function screenShot(msg) {
   let highlights = msg.json.highlights;
 
   var document = curWindow.document;
-  var rect, win, width, height, left, top;
+  var rect, win, width, height, left, top, needsOffset;
   
   if (node == curWindow) {
     
@@ -1798,6 +1798,8 @@ function screenShot(msg) {
     height = win.innerHeight;
     top = 0;
     left = 0;
+    
+    needsOffset = true;
   }
   else {
     
@@ -1807,6 +1809,8 @@ function screenShot(msg) {
     height = rect.height;
     top = rect.top;
     left = rect.left;
+    
+    needsOffset = false;
   }
 
   var canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
@@ -1823,11 +1827,19 @@ function screenShot(msg) {
     ctx.save();
 
     for (var i = 0; i < highlights.length; ++i) {
-      var elem = elementManager.getKnownElement(highlights[i], curWindow)
+      var elem = highlights[i];
       rect = elem.getBoundingClientRect();
 
-      var offsetY = -top;
-      var offsetX = -left;
+      var offsetY = 0, offsetX = 0;
+      if (needsOffset) {
+        var offset = getChromeOffset(elem);
+        offsetX = offset.x;
+        offsetY = offset.y;
+      } else {
+        
+        offsetY = -top;
+        offsetX = -left;
+      }
 
       
       ctx.strokeRect(rect.left + offsetX, rect.top + offsetY, rect.width, rect.height);
