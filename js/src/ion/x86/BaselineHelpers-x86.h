@@ -42,12 +42,12 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 }
 
 inline void
-EmitEnterTypeMonitorIC(MacroAssembler &masm)
+EmitEnterTypeMonitorIC(MacroAssembler &masm,
+                       size_t monitorStubOffset = ICMonitoredStub::offsetOfFirstMonitorStub())
 {
     
     
-    masm.movl(Operand(BaselineStubReg, (int32_t) ICMonitoredStub::offsetOfFirstMonitorStub()),
-              BaselineStubReg);
+    masm.movl(Operand(BaselineStubReg, (int32_t) monitorStubOffset), BaselineStubReg);
 
     
     masm.movl(Operand(BaselineStubReg, (int32_t) ICStub::offsetOfStubCode()),

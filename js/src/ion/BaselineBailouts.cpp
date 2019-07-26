@@ -175,9 +175,15 @@ struct BaselineStackBuilder
         if (!write<size_t>(w))
             return false;
         if (info) {
-            IonSpew(IonSpew_BaselineBailouts,
-                    "      WRITE_WRD %p/%p %-15s %016llx",
-                    header_->copyStackBottom, virtualPointerAtStackOffset(0), info, w);
+            if (sizeof(size_t) == 4) {
+                IonSpew(IonSpew_BaselineBailouts,
+                        "      WRITE_WRD %p/%p %-15s %08x",
+                        header_->copyStackBottom, virtualPointerAtStackOffset(0), info, w);
+            } else {
+                IonSpew(IonSpew_BaselineBailouts,
+                        "      WRITE_WRD %p/%p %-15s %016llx",
+                        header_->copyStackBottom, virtualPointerAtStackOffset(0), info, w);
+            }
         }
         return true;
     }
@@ -547,6 +553,7 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     uint32_t pcOff = iter.pcOffset();
     jsbytecode *pc = script->code + pcOff;
     JSOp op = JSOp(*pc);
+    bool isCall = js_CodeSpec[op].format & JOF_INVOKE;
     bool resumeAfter = iter.resumeAfter();
     BaselineScript *baselineScript = script->baselineScript();
 
@@ -563,7 +570,6 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
         
         
         bool enterMonitorChain = resumeAfter ? !!(js_CodeSpec[op].format & JOF_TYPESET) : false;
-        bool isCall = js_CodeSpec[*pc].format & JOF_INVOKE;
         uint32_t numCallArgs = isCall ? GET_ARGC(pc) : 0;
 
         if (resumeAfter && !enterMonitorChain)
@@ -700,7 +706,8 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     size_t startOfBaselineStubFrame = builder.framePushed();
 
     
-    if (!builder.writePtr(icEntry.firstStub(), "StubPtr"))
+    JS_ASSERT(icEntry.fallbackStub()->isCall_Fallback());
+    if (!builder.writePtr(icEntry.fallbackStub(), "StubPtr"))
         return false;
 
     
@@ -710,11 +717,11 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
 
     
     
-    JS_ASSERT(op == JSOP_CALL || op == JSOP_NEW);
+    JS_ASSERT(isCall);
     unsigned actualArgc = GET_ARGC(pc);
     JS_ASSERT(actualArgc + 2 <= exprStackSlots);
     for (unsigned i = 0; i < actualArgc + 1; i++) {
-        size_t argSlot = ((script->nfixed + exprStackSlots) - (actualArgc + 1) - 1) + i;
+        size_t argSlot = (script->nfixed + exprStackSlots) - (i + 1);
         if (!builder.writeValue(*blFrame->valueSlot(argSlot), "ArgVal"))
             return false;
     }

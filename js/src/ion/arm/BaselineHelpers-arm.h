@@ -45,12 +45,12 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 }
 
 inline void
-EmitEnterTypeMonitorIC(MacroAssembler &masm)
+EmitEnterTypeMonitorIC(MacroAssembler &masm,
+                       size_t monitorStubOffset = ICMonitoredStub::offsetOfFirstMonitorStub())
 {
     
     
-    masm.loadPtr(Address(BaselineStubReg, ICMonitoredStub::offsetOfFirstMonitorStub()),
-                 BaselineStubReg);
+    masm.loadPtr(Address(BaselineStubReg, (uint32_t) monitorStubOffset), BaselineStubReg);
 
     
     

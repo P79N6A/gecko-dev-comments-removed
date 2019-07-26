@@ -297,7 +297,7 @@ IonCompartment::sweep(FreeOp *fop)
     stubCodes_->sweep(fop);
 
     
-    if (!stubCodes_->lookup(static_cast<uint32_t>(ICStub::Call_Scripted)))
+    if (!stubCodes_->lookup(static_cast<uint32_t>(ICStub::Call_Fallback)))
         baselineCallReturnAddr_ = NULL;
 }
 
