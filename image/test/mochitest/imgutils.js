@@ -7,9 +7,8 @@
 
 function clearImageCache()
 {
-  var tools = SpecialPowers.wrap(Components)
-                             .classes["@mozilla.org/image/tools;1"]
-                             .getService(Components.interfaces.imgITools);
+  var tools = SpecialPowers.Cc["@mozilla.org/image/tools;1"]
+                             .getService(SpecialPowers.Ci.imgITools);
   var imageCache = tools.getImgCacheForDocument(window.document);
   imageCache.clearCache(false); 
 }
@@ -18,7 +17,7 @@ function clearImageCache()
 function isFrameDecoded(id)
 {
   return (getImageStatus(id) &
-          Components.interfaces.imgIRequest.STATUS_FRAME_COMPLETE)
+          SpecialPowers.Ci.imgIRequest.STATUS_FRAME_COMPLETE)
          ? true : false;
 }
 
@@ -26,7 +25,7 @@ function isFrameDecoded(id)
 function isImageLoaded(id)
 {
   return (getImageStatus(id) &
-          Components.interfaces.imgIRequest.STATUS_LOAD_COMPLETE)
+          SpecialPowers.Ci.imgIRequest.STATUS_LOAD_COMPLETE)
          ? true : false;
 }
 
@@ -40,10 +39,10 @@ function getImageStatus(id)
   var img = document.getElementById(id);
 
   
-  img.QueryInterface(Components.interfaces.nsIImageLoadingContent);
+  img.QueryInterface(SpecialPowers.Ci.nsIImageLoadingContent);
 
   
-  var request = img.getRequest(Components.interfaces
+  var request = img.getRequest(SpecialPowers.Ci
                                          .nsIImageLoadingContent
                                          .CURRENT_REQUEST);
 
