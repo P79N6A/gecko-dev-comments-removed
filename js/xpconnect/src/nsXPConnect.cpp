@@ -291,7 +291,8 @@ xpc_TryUnmarkWrappedGrayObject(nsISupports* aWrappedJS)
 
 
 
-static inline nsresult UnexpectedFailure(nsresult rv)
+template<typename T>
+static inline T UnexpectedFailure(T rv)
 {
     NS_ERROR("This is not supposed to fail!");
     return rv;
@@ -398,6 +399,40 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
     return global;
 }
 
+bool
+InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal, uint32_t aFlags)
+{
+    
+    
+    JSAutoCompartment ac(aJSContext, aGlobal);
+    if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
+        
+        if (!GetCompartmentPrivate(aGlobal)->scope->AttachComponentsObject(aJSContext) ||
+            !XPCNativeWrapper::AttachNewConstructorObject(aJSContext, aGlobal)) {
+            return UnexpectedFailure(false);
+        }
+    }
+
+    
+    MOZ_ASSERT(js::GetObjectClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL);
+
+    
+    
+    
+    
+    if (!PromiseBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !TextDecoderBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !TextEncoderBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !DOMErrorBinding::GetConstructorObject(aJSContext, aGlobal)) {
+        return UnexpectedFailure(false);
+    }
+
+    if (!(aFlags & nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK))
+        JS_FireOnNewGlobalObject(aJSContext, aGlobal);
+
+    return true;
+}
+
 } 
 
 NS_IMETHODIMP
@@ -424,39 +459,15 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     nsresult rv =
         XPCWrappedNative::WrapNewGlobal(helper, aPrincipal,
                                         aFlags & nsIXPConnect::INIT_JS_STANDARD_CLASSES,
-                                        !(aFlags & nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK),
                                         aOptions, getter_AddRefs(wrappedGlobal));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     RootedObject global(aJSContext, wrappedGlobal->GetFlatJSObject());
     MOZ_ASSERT(!js::GetObjectParent(global));
-    JSAutoCompartment ac(aJSContext, global);
 
-    if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
-        
-        if (!wrappedGlobal->GetScope()->AttachComponentsObject(aJSContext))
-            return UnexpectedFailure(NS_ERROR_FAILURE);
-
-        if (!XPCNativeWrapper::AttachNewConstructorObject(aJSContext, global))
-            return UnexpectedFailure(NS_ERROR_FAILURE);
-    }
-
-    
-    
-    
-    MOZ_ASSERT(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL);
-
-    
-    
-    
-    
-    if (!PromiseBinding::GetConstructorObject(aJSContext, global) ||
-        !TextDecoderBinding::GetConstructorObject(aJSContext, global) ||
-        !TextEncoderBinding::GetConstructorObject(aJSContext, global) ||
-        !DOMErrorBinding::GetConstructorObject(aJSContext, global)) {
+    if (!InitGlobalObject(aJSContext, global, aFlags))
         return UnexpectedFailure(NS_ERROR_FAILURE);
-    }
 
     wrappedGlobal.forget(_retval);
     return NS_OK;
