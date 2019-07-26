@@ -30,6 +30,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
 XPCOMUtils.defineLazyServiceGetter(this, "gBrowserGlue",
                                    "@mozilla.org/browser/browserglue;1",
                                    "nsIBrowserGlue");
+XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
+                                  "resource:///modules/RecentWindow.jsm");
 
 
 
@@ -72,31 +74,83 @@ DownloadsUI.prototype = {
       let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
 
       if (!browserWin || browserWin.windowState == kMinimized) {
-        this._toolkitUI.show(aWindowContext, aID, aReason);
+        this._showDownloadManagerUI(aWindowContext, aID, aReason);
       }
       else {
         
         
         browserWin.DownloadsButton.checkIsVisible(function(isVisible) {
           if (!isVisible) {
-            this._toolkitUI.show(aWindowContext, aID, aReason);
+            this._showDownloadManagerUI(aWindowContext, aID, aReason);
           }
         }.bind(this));
       }
     } else {
-      this._toolkitUI.show(aWindowContext, aID, aReason);
+      this._showDownloadManagerUI(aWindowContext, aID, aReason);
     }
   },
 
   get visible()
   {
-    return this._toolkitUI.visible;
+    
+    
+    
+    
+    return DownloadsCommon.useToolkitUI ? this._toolkitUI.visible : true;
   },
 
   getAttention: function DUI_getAttention()
   {
     if (DownloadsCommon.useToolkitUI) {
       this._toolkitUI.getAttention();
+    }
+  },
+
+  
+
+
+
+
+  _showDownloadManagerUI:
+  function DUI_showDownloadManagerUI(aWindowContext, aID, aReason)
+  {
+    
+    let usePlacesView = false;
+    try {
+      usePlacesView =
+        Services.prefs.getBoolPref("browser.library.useNewDownloadsView");
+    } catch(e) {}
+
+    if (!usePlacesView) {
+      
+      
+      
+      this._toolkitUI.show(aWindowContext, aID, aReason);
+      return;
+    }
+
+    let organizer = Services.wm.getMostRecentWindow("Places:Organizer");
+    if (!organizer) {
+      let parentWindow = aWindowContext;
+      
+      
+      
+      if (!parentWindow) {
+        parentWindow = RecentWindow.getMostRecentBrowserWindow();
+        if (!parentWindow) {
+          Components.utils
+                    .reportError("Couldn't find a browser window to open " +
+                                 "the Places Downloads View from.");
+          return;
+        }
+      }
+      parentWindow.openDialog("chrome://browser/content/places/places.xul",
+                              "", "chrome,toolbar=yes,dialog=no,resizable",
+                              "Downloads");
+    }
+    else {
+      organizer.PlacesOrganizer.selectLeftPaneQuery("Downloads");
+      organizer.focus();
     }
   }
 };
