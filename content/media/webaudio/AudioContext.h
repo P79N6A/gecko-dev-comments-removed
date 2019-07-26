@@ -227,7 +227,7 @@ private:
   nsRefPtr<AudioDestinationNode> mDestination;
   nsRefPtr<AudioListener> mListener;
   MediaBufferDecoder mDecoder;
-  nsTArray<nsAutoPtr<WebAudioDecodeJob> > mDecodeJobs;
+  nsTArray<nsRefPtr<WebAudioDecodeJob> > mDecodeJobs;
   
   
   
