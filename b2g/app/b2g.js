@@ -284,7 +284,7 @@ pref("media.video-queue.default-size", 3);
 
 
 pref("image.mem.decodeondraw", true);
-pref("content.image.allow_locking", false); 
+pref("image.mem.allow_locking_in_content_processes", false); 
 pref("image.mem.min_discard_timeout_ms", 86400000); 
 pref("image.mem.max_decoded_image_kb", 30000); 
 pref("image.onload.decode.limit", 24); 
