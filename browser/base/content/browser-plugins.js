@@ -684,7 +684,7 @@ var gPluginHandler = {
       Services.telemetry.getHistogramById("PLUGINS_NOTIFICATION_SHOWN")
         .add(!this.options.primaryPlugin);
       
-      let histogramCount = this.options.centerActions.size - 1;
+      let histogramCount = this.options.pluginData.size - 1;
       if (histogramCount > 4) {
         histogramCount = 4;
       }
@@ -845,11 +845,11 @@ var gPluginHandler = {
     }
 
     
-    let centerActions;
+    let pluginData;
     if (notification) {
-      centerActions = notification.options.centerActions;
+      pluginData = notification.options.pluginData;
     } else {
-      centerActions = new Map();
+      pluginData = new Map();
     }
 
     let principal = aBrowser.contentDocument.nodePrincipal;
@@ -861,7 +861,7 @@ var gPluginHandler = {
         Cu.reportError("No permission string for active plugin.");
         continue;
       }
-      if (centerActions.has(pluginInfo.permissionString)) {
+      if (pluginData.has(pluginInfo.permissionString)) {
         continue;
       }
 
@@ -888,8 +888,8 @@ var gPluginHandler = {
         url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "clicktoplay";
       }
       pluginInfo.detailsLink = url;
-      
-      centerActions.set(pluginInfo.permissionString, pluginInfo);
+
+      pluginData.set(pluginInfo.permissionString, pluginInfo);
     }
 
     let primaryPluginPermission = null;
@@ -912,7 +912,7 @@ var gPluginHandler = {
       dismissed: !aShowNow,
       eventCallback: this._clickToPlayNotificationEventCallback,
       primaryPlugin: primaryPluginPermission,
-      centerActions: centerActions
+      pluginData: pluginData
     };
     PopupNotifications.show(aBrowser, "click-to-play-plugins",
                             "", "plugins-notification-icon",
@@ -934,7 +934,7 @@ var gPluginHandler = {
     
     let haveInsecure = false;
     let actions = new Map();
-    for (let action of notification.options.centerActions.values()) {
+    for (let action of notification.options.pluginData.values()) {
       switch (action.fallbackType) {
         
         
