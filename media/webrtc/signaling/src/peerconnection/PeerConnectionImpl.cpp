@@ -135,7 +135,7 @@ public:
       mRemoteStream = mPC->media()->GetRemoteStream(streams->media_stream_id);
       MOZ_ASSERT(mRemoteStream);
     }
-    if ((mCallState == CREATEOFFERSUCCESS) || (mCallState == CREATEANSWERSUCCESS)) {
+    if ((mCallState == CREATEOFFER) || (mCallState == CREATEANSWER)) {
         mSdpStr = aInfo->getSDP();
     }
   }
@@ -165,11 +165,11 @@ public:
     }
 
     switch (mCallState) {
-      case CREATEOFFERSUCCESS:
+      case CREATEOFFER:
         mObserver->OnCreateOfferSuccess(mSdpStr.c_str());
         break;
 
-      case CREATEANSWERSUCCESS:
+      case CREATEANSWER:
         mObserver->OnCreateAnswerSuccess(mSdpStr.c_str());
         break;
 
@@ -181,7 +181,7 @@ public:
         mObserver->OnCreateAnswerError(mCode, mReason.c_str());
         break;
 
-      case SETLOCALDESCSUCCESS:
+      case SETLOCALDESC:
         
         
         
@@ -191,7 +191,7 @@ public:
         mObserver->OnSetLocalDescriptionSuccess();
         break;
 
-      case SETREMOTEDESCSUCCESS:
+      case SETREMOTEDESC:
         
         
         
@@ -1278,12 +1278,12 @@ PeerConnectionImpl::onCallEvent(ccapi_call_event_e aCallEvent,
   }
 
   switch (event) {
-    case SETLOCALDESCSUCCESS:
+    case SETLOCALDESC:
     case UPDATELOCALDESC:
       mLocalSDP = aInfo->getSDP();
       break;
 
-    case SETREMOTEDESCSUCCESS:
+    case SETREMOTEDESC:
     case ADDICECANDIDATE:
       mRemoteSDP = aInfo->getSDP();
       break;
