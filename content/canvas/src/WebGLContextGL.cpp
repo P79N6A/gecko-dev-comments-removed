@@ -39,6 +39,9 @@ static bool BaseTypeAndSizeFromUniformType(WebGLenum uType, WebGLenum *baseType,
 static WebGLenum InternalFormatForFormatAndType(WebGLenum format, WebGLenum type, bool isGLES2);
 
 
+static const int MAX_DRAW_CALLS_SINCE_FLUSH = 100;
+
+
 
 
 
@@ -1477,6 +1480,17 @@ WebGLContext::DrawArrays(GLenum mode, WebGLint first, WebGLsizei count)
         mShouldPresent = true;
         mIsScreenCleared = false;
     }
+
+    if (gl->WorkAroundDriverBugs()) {
+        if (gl->Renderer() == gl::GLContext::RendererTegra) {
+            mDrawCallsSinceLastFlush++;
+
+            if (mDrawCallsSinceLastFlush >= MAX_DRAW_CALLS_SINCE_FLUSH) {
+                gl->fFlush();
+                mDrawCallsSinceLastFlush = 0;
+            }
+        }
+    }
 }
 
 void
@@ -1575,6 +1589,17 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type,
         Invalidate();
         mShouldPresent = true;
         mIsScreenCleared = false;
+    }
+
+    if (gl->WorkAroundDriverBugs()) {
+        if (gl->Renderer() == gl::GLContext::RendererTegra) {
+            mDrawCallsSinceLastFlush++;
+
+            if (mDrawCallsSinceLastFlush >= MAX_DRAW_CALLS_SINCE_FLUSH) {
+                gl->fFlush();
+                mDrawCallsSinceLastFlush = 0;
+            }
+        }
     }
 }
 

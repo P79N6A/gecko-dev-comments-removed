@@ -158,7 +158,7 @@ WebGLContext::WebGLContext()
 
     mScissorTestEnabled = 0;
     mDitherEnabled = 1;
-    
+
     
     
     mGLMaxVertexAttribs = 0;
@@ -198,6 +198,8 @@ WebGLContext::WebGLContext()
     mIsScreenCleared = false;
 
     mDisableFragHighP = false;
+
+    mDrawCallsSinceLastFlush = 0;
 }
 
 WebGLContext::~WebGLContext()
@@ -520,12 +522,12 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
 
     
     if (!gl && useOpenGL) {
-        GLContext::ContextFlags flag = useMesaLlvmPipe 
+        GLContext::ContextFlags flag = useMesaLlvmPipe
                                        ? GLContext::ContextFlagsMesaLLVMPipe
                                        : GLContext::ContextFlagsNone;
         gl = gl::GLContextProvider::CreateOffscreen(size, caps, flag);
         if (gl && !InitAndValidateGL()) {
-            GenerateWarning("Error during %s initialization", 
+            GenerateWarning("Error during %s initialization",
                             useMesaLlvmPipe ? "Mesa LLVMpipe" : "OpenGL");
             return NS_ERROR_FAILURE;
         }
@@ -806,6 +808,7 @@ public:
 
         
         context->PresentScreenBuffer();
+        context->mDrawCallsSinceLastFlush = 0;
     }
 
     
@@ -975,9 +978,9 @@ bool WebGLContext::IsExtensionSupported(JSContext *cx, WebGLExtensionID ext) con
         case WEBGL_compressed_texture_pvrtc:
             return gl->IsExtensionSupported(GLContext::IMG_texture_compression_pvrtc);
         case WEBGL_depth_texture:
-            if (gl->IsGLES2() && 
+            if (gl->IsGLES2() &&
                 gl->IsExtensionSupported(GLContext::OES_packed_depth_stencil) &&
-                gl->IsExtensionSupported(GLContext::OES_depth_texture)) 
+                gl->IsExtensionSupported(GLContext::OES_depth_texture))
             {
                 return true;
             }
@@ -1389,7 +1392,7 @@ WebGLContext::MaybeRestoreContext()
             resetStatus = GLContext::CONTEXT_GUILTY_CONTEXT_RESET_ARB;
         }
     }
-    
+
     if (resetStatus != GLContext::CONTEXT_NO_ERROR) {
         
         

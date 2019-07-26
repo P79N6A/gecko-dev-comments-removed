@@ -262,7 +262,7 @@ public:
     bool IsGLES2() const {
         return mIsGLES2;
     }
-    
+
     
 
 
@@ -301,6 +301,7 @@ public:
         RendererAdrenoTM320,
         RendererSGX530,
         RendererSGX540,
+        RendererTegra,
         RendererOther
     };
 
@@ -874,7 +875,7 @@ public:
 
 
 
-    ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
+    ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface,
                                              const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
@@ -882,16 +883,16 @@ public:
                                              bool aPixelBuffer = false,
                                              GLenum aTextureUnit = LOCAL_GL_TEXTURE0);
 
-    
-    void TexImage2D(GLenum target, GLint level, GLint internalformat, 
+
+    void TexImage2D(GLenum target, GLint level, GLint internalformat,
                     GLsizei width, GLsizei height, GLsizei stride,
-                    GLint pixelsize, GLint border, GLenum format, 
+                    GLint pixelsize, GLint border, GLenum format,
                     GLenum type, const GLvoid *pixels);
 
-    void TexSubImage2D(GLenum target, GLint level, 
-                       GLint xoffset, GLint yoffset, 
+    void TexSubImage2D(GLenum target, GLint level,
+                       GLint xoffset, GLint yoffset,
                        GLsizei width, GLsizei height, GLsizei stride,
-                       GLint pixelsize, GLenum format, 
+                       GLint pixelsize, GLenum format,
                        GLenum type, const GLvoid* pixels);
 
     
@@ -1399,19 +1400,19 @@ protected:
     }
 
 public:
- 
+
     
 
 
     GLenum GetAndClearError() {
         
         GLenum error = fGetError();
-        
+
         if (error) {
             
             while(fGetError()) {}
         }
-        
+
         return error;
     }
 
@@ -1460,7 +1461,7 @@ public:
             if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] < %s [0x%04x]\n", this, glFunction, mGLError);
             if (mGLError != LOCAL_GL_NO_ERROR) {
-                printf_stderr("GL ERROR: %s generated GL error %s(0x%04x)\n", 
+                printf_stderr("GL ERROR: %s generated GL error %s(0x%04x)\n",
                               glFunction,
                               GLErrorToString(mGLError),
                               mGLError);
@@ -1497,7 +1498,7 @@ public:
 #define BEFORE_GL_CALL do {                     \
     BeforeGLCall(MOZ_FUNCTION_NAME);            \
 } while (0)
-    
+
 #define AFTER_GL_CALL do {                      \
     AfterGLCall(MOZ_FUNCTION_NAME);             \
 } while (0)
@@ -1591,7 +1592,7 @@ private:
         
         
         
-        NS_ASSERTION(!mFlipped || (x == 0 && y == 0), "TODO: Need to flip the viewport rect"); 
+        NS_ASSERTION(!mFlipped || (x == 0 && y == 0), "TODO: Need to flip the viewport rect");
         mSymbols.fViewport(x, y, width, height);
         AFTER_GL_CALL;
     }
@@ -1985,7 +1986,7 @@ public:
     }
 
     void fGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
-    {  
+    {
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetTexLevelParameteriv);
         mSymbols.fGetTexLevelParameteriv(target, level, pname, params);

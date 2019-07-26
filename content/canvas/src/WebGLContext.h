@@ -1128,6 +1128,10 @@ protected:
     ContextStatus mContextStatus;
     bool mContextLostErrorSet;
 
+    
+    
+    int mDrawCallsSinceLastFlush;
+
     int mAlreadyGeneratedWarnings;
     bool mAlreadyWarnedAboutFakeVertexAttrib0;
 
