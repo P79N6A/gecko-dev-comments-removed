@@ -18,16 +18,27 @@
 #include "jscntxt.h"
 #include "jslock.h"
 
+#include "ion/Ion.h"
+
 namespace js {
 
 namespace ion {
   class IonBuilder;
 }
 
+inline bool
+OffThreadCompilationEnabled(JSContext *cx)
+{
+    return ion::js_IonOptions.parallelCompilation
+        && cx->runtime->useHelperThreads()
+        && cx->runtime->helperThreadCount() != 0;
+}
+
 #if defined(JS_THREADSAFE) && defined(JS_ION)
 # define JS_PARALLEL_COMPILATION
 
 struct WorkerThread;
+struct AsmJSParallelTask;
 
 
 class WorkerThreadState
@@ -45,6 +56,16 @@ class WorkerThreadState
     
     js::Vector<ion::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
 
+    
+    js::Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSWorklist;
+
+    
+
+
+
+
+    js::Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSFinishedList;
+
     WorkerThreadState() { PodZero(this); }
     ~WorkerThreadState();
 
@@ -61,7 +82,32 @@ class WorkerThreadState
     void notify(CondVar which);
     void notifyAll(CondVar which);
 
+    bool canStartAsmJSCompile();
     bool canStartIonCompile();
+
+    uint32_t harvestFailedAsmJSJobs() {
+        JS_ASSERT(isLocked());
+        uint32_t n = numAsmJSFailedJobs;
+        numAsmJSFailedJobs = 0;
+        return n;
+    }
+    void noteAsmJSFailure(int32_t func) {
+        
+        JS_ASSERT(isLocked());
+        if (asmJSFailedFunctionIndex < 0)
+            asmJSFailedFunctionIndex = func;
+        numAsmJSFailedJobs++;
+    }
+    bool asmJSWorkerFailed() const {
+        return bool(numAsmJSFailedJobs);
+    }
+    void resetAsmJSFailureState() {
+        numAsmJSFailedJobs = 0;
+        asmJSFailedFunctionIndex = -1;
+    }
+    int32_t maybeGetAsmJSFailedFunctionIndex() const {
+        return asmJSFailedFunctionIndex;
+    }
 
   private:
 
@@ -80,6 +126,18 @@ class WorkerThreadState
 
     
     PRCondVar *helperWakeup;
+
+    
+
+
+
+    uint32_t numAsmJSFailedJobs;
+
+    
+
+
+
+    int32_t asmJSFailedFunctionIndex;
 };
 
 
@@ -96,7 +154,13 @@ struct WorkerThread
     
     ion::IonBuilder *ionBuilder;
 
+    
+    AsmJSParallelTask *asmData;
+
     void destroy();
+
+    void handleAsmJSWorkload(WorkerThreadState &state);
+    void handleIonWorkload(WorkerThreadState &state);
 
     static void ThreadMain(void *arg);
     void threadLoop();
@@ -105,6 +169,14 @@ struct WorkerThread
 #endif 
 
 
+
+
+bool
+EnsureParallelCompilationInitialized(JSRuntime *rt);
+
+
+bool
+StartOffThreadAsmJSCompile(JSContext *cx, AsmJSParallelTask *asmData);
 
 
 

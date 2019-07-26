@@ -6,6 +6,8 @@
 
 
 #include "jsmath.h"
+#include "jsworkers.h"
+
 #include "frontend/ParseNode.h"
 #include "ion/AsmJS.h"
 #include "ion/AsmJSModule.h"
@@ -1029,7 +1031,7 @@ class ModuleCompiler
     typedef Vector<AsmJSGlobalAccess> GlobalAccessVector;
 
     JSContext *                    cx_;
-    IonContext                     ionContext_;
+    IonContext                     ictx_;
     MacroAssembler                 masm_;
 
     ScopedJSDeletePtr<AsmJSModule> module_;
@@ -1066,8 +1068,8 @@ class ModuleCompiler
   public:
     ModuleCompiler(JSContext *cx, TokenStream &ts)
       : cx_(cx),
-        ionContext_(cx->runtime), 
-        masm_(),
+        ictx_(cx->runtime),
+        masm_(cx),
         moduleFunctionName_(NULL),
         globalArgumentName_(NULL),
         importArgumentName_(NULL),
@@ -4431,6 +4433,194 @@ CheckFunctionBodiesSequential(ModuleCompiler &m)
     return true;
 }
 
+#ifdef JS_PARALLEL_COMPILATION
+
+struct ParallelGroupState
+{
+    WorkerThreadState &state;
+    Vector<AsmJSParallelTask> &tasks;
+    int32_t outstandingJobs; 
+    uint32_t compiledJobs;
+
+    ParallelGroupState(WorkerThreadState &state, Vector<AsmJSParallelTask> &tasks)
+      : state(state), tasks(tasks), outstandingJobs(0), compiledJobs(0)
+    { }
+};
+
+
+static AsmJSParallelTask *
+GetFinishedCompilation(ModuleCompiler &m, ParallelGroupState &group)
+{
+    AutoLockWorkerThreadState lock(m.cx()->runtime);
+
+    while (!group.state.asmJSWorkerFailed()) {
+        if (!group.state.asmJSFinishedList.empty()) {
+            group.outstandingJobs--;
+            return group.state.asmJSFinishedList.popCopy();
+        }
+        group.state.wait(WorkerThreadState::MAIN);
+    }
+
+    return NULL;
+}
+
+static bool
+GenerateCodeForFinishedJob(ModuleCompiler &m, ParallelGroupState &group, AsmJSParallelTask **outTask)
+{
+    
+    AsmJSParallelTask *task = GetFinishedCompilation(m, group);
+    if (!task)
+        return false;
+
+    
+    if (!GenerateAsmJSCode(m, m.function(task->funcNum), *task->mir, *task->lir))
+        return false;
+    group.compiledJobs++;
+
+    
+    TempAllocator &tempAlloc = task->mir->temp();
+    tempAlloc.TempAllocator::~TempAllocator();
+    task->lifo.releaseAll();
+
+    *outTask = task;
+    return true;
+}
+
+static inline bool
+GetUnusedTask(ParallelGroupState &group, uint32_t funcNum, AsmJSParallelTask **outTask)
+{
+    
+    
+    
+    if (funcNum >= group.tasks.length())
+        return false;
+    *outTask = &group.tasks[funcNum];
+    return true;
+}
+
+static bool
+CheckFunctionBodiesParallelImpl(ModuleCompiler &m, ParallelGroupState &group)
+{
+    JS_ASSERT(group.state.asmJSWorklist.empty());
+    JS_ASSERT(group.state.asmJSFinishedList.empty());
+    group.state.resetAsmJSFailureState();
+
+    
+    for (uint32_t i = 0; i < m.numFunctions(); i++) {
+        ModuleCompiler::Func &func = m.function(i);
+
+        
+        AsmJSParallelTask *task = NULL;
+        if (!GetUnusedTask(group, i, &task) && !GenerateCodeForFinishedJob(m, group, &task))
+            return false;
+
+        
+        MIRGenerator *mir = CheckFunctionBody(m, func, task->lifo);
+        if (!mir)
+            return false;
+
+        
+        task->init(i, mir);
+        if (!StartOffThreadAsmJSCompile(m.cx(), task))
+            return false;
+
+        group.outstandingJobs++;
+    }
+
+    
+    while (group.outstandingJobs > 0) {
+        AsmJSParallelTask *ignored = NULL;
+        if (!GenerateCodeForFinishedJob(m, group, &ignored))
+            return false;
+    }
+
+    JS_ASSERT(group.outstandingJobs == 0);
+    JS_ASSERT(group.compiledJobs == m.numFunctions());
+    JS_ASSERT(group.state.asmJSWorklist.empty());
+    JS_ASSERT(group.state.asmJSFinishedList.empty());
+    JS_ASSERT(!group.state.asmJSWorkerFailed());
+
+    return true;
+}
+
+static void
+CancelOutstandingJobs(ModuleCompiler &m, ParallelGroupState &group)
+{
+    
+    
+    
+    
+    
+
+    JS_ASSERT(group.outstandingJobs >= 0);
+    if (!group.outstandingJobs)
+        return;
+
+    AutoLockWorkerThreadState lock(m.cx()->runtime);
+
+    
+    group.outstandingJobs -= group.state.asmJSWorklist.length();
+    group.state.asmJSWorklist.clear();
+
+    
+    group.outstandingJobs -= group.state.asmJSFinishedList.length();
+    group.state.asmJSFinishedList.clear();
+
+    
+    group.outstandingJobs -= group.state.harvestFailedAsmJSJobs();
+
+    
+    JS_ASSERT(group.outstandingJobs >= 0);
+    while (group.outstandingJobs > 0) {
+        group.state.wait(WorkerThreadState::MAIN);
+
+        group.outstandingJobs -= group.state.harvestFailedAsmJSJobs();
+        group.outstandingJobs -= group.state.asmJSFinishedList.length();
+        group.state.asmJSFinishedList.clear();
+    }
+
+    JS_ASSERT(group.outstandingJobs == 0);
+    JS_ASSERT(group.state.asmJSWorklist.empty());
+    JS_ASSERT(group.state.asmJSFinishedList.empty());
+}
+
+static const size_t LIFO_ALLOC_PARALLEL_CHUNK_SIZE = 1 << 12;
+
+static bool
+CheckFunctionBodiesParallel(ModuleCompiler &m)
+{
+    
+    WorkerThreadState &state = *m.cx()->runtime->workerThreadState;
+    size_t numParallelJobs = state.numThreads + 1;
+
+    
+    
+    Vector<AsmJSParallelTask, 0> tasks(m.cx());
+    if (!tasks.initCapacity(numParallelJobs))
+        return false;
+
+    for (size_t i = 0; i < numParallelJobs; i++)
+        tasks.infallibleAppend(LIFO_ALLOC_PARALLEL_CHUNK_SIZE);
+
+    
+    ParallelGroupState group(state, tasks);
+    if (!CheckFunctionBodiesParallelImpl(m, group)) {
+        CancelOutstandingJobs(m, group);
+
+        
+        int32_t maybeFailureIndex = state.maybeGetAsmJSFailedFunctionIndex();
+        if (maybeFailureIndex >= 0) {
+            ParseNode *fn = m.function(maybeFailureIndex).fn();
+            return m.fail("Internal compiler failure (probably out of memory)", fn);
+        }
+
+        
+        return false;
+    }
+    return true;
+}
+#endif 
+
 static RegisterSet AllRegs = RegisterSet(GeneralRegisterSet(Registers::AllMask),
                                          FloatRegisterSet(FloatRegisters::AllMask));
 static RegisterSet NonVolatileRegs = RegisterSet(GeneralRegisterSet(Registers::NonVolatileMask),
@@ -4958,8 +5148,18 @@ CheckModule(JSContext *cx, TokenStream &ts, ParseNode *fn, ScopedJSDeletePtr<Asm
 
     m.setFirstPassComplete();
 
+#ifdef JS_PARALLEL_COMPILATION
+    if (OffThreadCompilationEnabled(cx)) {
+        if (!CheckFunctionBodiesParallel(m))
+            return false;
+    } else {
+        if (!CheckFunctionBodiesSequential(m))
+            return false;
+    }
+#else
     if (!CheckFunctionBodiesSequential(m))
         return false;
+#endif
 
     m.setSecondPassComplete();
 
@@ -5000,6 +5200,11 @@ js::CompileAsmJS(JSContext *cx, TokenStream &ts, ParseNode *fn, HandleScript scr
 #ifdef JS_ASMJS
     if (!EnsureAsmJSSignalHandlersInstalled(cx->runtime))
         return Warn(cx, JSMSG_USE_ASM_TYPE_FAIL, "Platform missing signal handler support");
+
+# ifdef JS_PARALLEL_COMPILATION
+    if (!EnsureParallelCompilationInitialized(cx->runtime))
+        return Warn(cx, JSMSG_USE_ASM_TYPE_FAIL, "Failed initialization of compilation threads");
+# endif
 
     ScopedJSDeletePtr<AsmJSModule> module;
     if (!CheckModule(cx, ts, fn, &module))

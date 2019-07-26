@@ -261,7 +261,7 @@ class Label : public LabelBase
         
         
         if (!js_IonOptions.parallelCompilation)
-            JS_ASSERT_IF(!GetIonContext()->cx->runtime->hadOutOfMemory, !used());
+            JS_ASSERT_IF(!GetIonContext()->runtime->hadOutOfMemory, !used());
 #endif
     }
 };

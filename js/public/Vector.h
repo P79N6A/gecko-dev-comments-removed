@@ -297,7 +297,7 @@ class Vector : private AllocPolicy
 #endif
 
     
-    template <class U> void internalAppend(U t);
+    template <class U> void internalAppend(U u);
     void internalAppendN(const T &t, size_t n);
     template <class U> void internalAppend(const U *begin, size_t length);
     template <class U, size_t O, class BP> void internalAppend(const Vector<U,O,BP> &other);
@@ -396,7 +396,10 @@ class Vector : private AllocPolicy
     
 
     
-    bool reserve(size_t capacity);
+    bool initCapacity(size_t capacity);
+
+    
+    bool reserve(size_t request);
 
     
 
@@ -441,8 +444,8 @@ class Vector : private AllocPolicy
 
 
 
-    void infallibleAppend(const T &t) {
-        internalAppend(t);
+    template <class U> void infallibleAppend(const U &u) {
+        internalAppend(u);
     }
     void infallibleAppendN(const T &t, size_t n) {
         internalAppendN(t, n);
@@ -701,6 +704,25 @@ Vector<T,N,AP>::growStorageBy(size_t incr)
 
 template <class T, size_t N, class AP>
 inline bool
+Vector<T,N,AP>::initCapacity(size_t capacity)
+{
+    JS_ASSERT(empty());
+    JS_ASSERT(usingInlineStorage());
+    if (capacity == 0)
+        return true;
+    T *newbuf = reinterpret_cast<T *>(this->malloc_(capacity * sizeof(T)));
+    if (!newbuf)
+        return false;
+    mBegin = newbuf;
+    mCapacity = capacity;
+#ifdef DEBUG
+    mReserved = capacity;
+#endif
+    return true;
+}
+
+template <class T, size_t N, class AP>
+inline bool
 Vector<T,N,AP>::reserve(size_t request)
 {
     REENTRANCY_GUARD_ET_AL;
@@ -837,11 +859,11 @@ Vector<T,N,AP>::append(U t)
 template <class T, size_t N, class AP>
 template <class U>
 JS_ALWAYS_INLINE void
-Vector<T,N,AP>::internalAppend(U t)
+Vector<T,N,AP>::internalAppend(U u)
 {
     JS_ASSERT(mLength + 1 <= mReserved);
     JS_ASSERT(mReserved <= mCapacity);
-    new(endNoCheck()) T(t);
+    new(endNoCheck()) T(u);
     ++mLength;
 }
 

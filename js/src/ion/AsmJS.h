@@ -27,6 +27,7 @@ namespace js {
 class SPSProfiler;
 class AsmJSModule;
 namespace frontend { struct TokenStream; struct ParseNode; }
+namespace ion { class MIRGenerator; class LIRGraph; }
 
 
 
@@ -124,6 +125,28 @@ class AsmJSMachExceptionHandler
     void setCurrentThread();
 };
 #endif
+
+
+
+struct AsmJSParallelTask
+{
+    LifoAlloc lifo;         
+
+    uint32_t funcNum;       
+    ion::MIRGenerator *mir; 
+    ion::LIRGraph *lir;     
+
+    AsmJSParallelTask(size_t defaultChunkSize)
+      : lifo(defaultChunkSize),
+        funcNum(0), mir(NULL), lir(NULL)
+    { }
+
+    void init(uint32_t newFuncNum, ion::MIRGenerator *newMir) {
+        funcNum = newFuncNum;
+        mir = newMir;
+        lir = NULL;
+    }
+};
 
 } 
 
