@@ -49,6 +49,7 @@
   -moz-transform-origin: inherit;
   
   -moz-backface-visibility: inherit;
+  clip: inherit;
 }
 
 *|*::-moz-table-row {
