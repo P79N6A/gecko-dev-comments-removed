@@ -86,6 +86,9 @@ public class DynamicPanel extends HomeFragment
     private OnUrlOpenListener mUrlOpenListener;
 
     
+    private UIMode mUIMode;
+
+    
 
 
 
@@ -140,6 +143,12 @@ public class DynamicPanel extends HomeFragment
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        
+        
+        if (mUIMode != null) {
+            setUIMode(mUIMode);
+        }
 
         mPanelAuthCache.setOnChangeListener(new PanelAuthChangeListener());
         GeckoAppShell.registerEventListener("HomePanels:RefreshDataset", this);
@@ -250,7 +259,12 @@ public class DynamicPanel extends HomeFragment
                 }
                 mPanelLayout.setVisibility(View.VISIBLE);
 
-                if (canLoad()) {
+                
+                
+                
+                
+                
+                if (mUIMode != mode && canLoad()) {
                     mPanelLayout.load();
                 }
                 break;
@@ -268,6 +282,8 @@ public class DynamicPanel extends HomeFragment
             default:
                 throw new IllegalStateException("Unrecognized UIMode in DynamicPanel");
         }
+
+        mUIMode = mode;
     }
 
     @Override
