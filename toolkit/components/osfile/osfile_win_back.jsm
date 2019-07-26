@@ -188,7 +188,11 @@
                          ctypes.voidptr_t);
 
        WinFile.CloseHandle = function(fd) {
-         return fd.dispose(); 
+         if (fd == INVALID_HANDLE) {
+           return true;
+         } else {
+           return fd.dispose(); 
+         }
        };
 
        let _FindClose =
@@ -197,7 +201,11 @@
                          ctypes.voidptr_t);
 
        WinFile.FindClose = function(handle) {
-         return handle.dispose(); 
+         if (handle == INVALID_HANDLE) {
+           return true;
+         } else {
+           return handle.dispose(); 
+         }
        };
 
        
