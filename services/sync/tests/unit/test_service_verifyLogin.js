@@ -1,5 +1,8 @@
-Cu.import("resource://services-sync/constants.js");
+
+
+
 Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
@@ -68,14 +71,14 @@ function run_test() {
 
     _("Success if passphrase is set.");
     Status.resetSync();
-    Identity.syncKey = "foo";
+    Service.identity.syncKey = "foo";
     do_check_true(Service.verifyLogin());
     do_check_eq(Status.service, STATUS_OK);
     do_check_eq(Status.login, LOGIN_SUCCEEDED);
 
     _("If verifyLogin() encounters a server error, it flips on the backoff flag and notifies observers on a 503 with Retry-After.");
     Status.resetSync();
-    Identity.account = "janedoe";
+    Service.identity.account = "janedoe";
     Service._updateCachedURLs();
     do_check_false(Status.enforceBackoff);
     let backoffInterval;

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const EXPORTED_SYMBOLS = ["Identity", "IdentityManager"];
+const EXPORTED_SYMBOLS = ["IdentityManager"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -12,15 +12,6 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/keys.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/util.js");
-
-XPCOMUtils.defineLazyGetter(this, "Identity", function() {
-  return new IdentityManager();
-});
-
-
-
-
-
 
 
 
