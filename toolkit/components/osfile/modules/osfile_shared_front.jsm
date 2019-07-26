@@ -141,6 +141,64 @@ AbstractFile.prototype = {
 
 
 
+
+AbstractFile.openUnique = function openUnique(path, options = {}) {
+  let mode = {
+    create : true
+  };
+
+  let dirName = OS.Path.dirname(path);
+  let leafName = OS.Path.basename(path);
+  let lastDotCharacter = leafName.lastIndexOf('.');
+  let fileName = leafName.substring(0, lastDotCharacter != -1 ? lastDotCharacter : leafName.length);
+  let suffix = (lastDotCharacter != -1 ? leafName.substring(lastDotCharacter) : "");
+  let uniquePath = "";
+  let maxAttempts = options.maxAttempts || 99;
+  let humanReadable = !!options.humanReadable;
+  const HEX_RADIX = 16;
+  
+  const MAX_HEX_NUMBER = 16777215;
+
+  try {
+    return {
+      path: path,
+      file: OS.File.open(path, mode)
+    };
+  } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) {
+    for (let i = 0; i < maxAttempts; ++i) {
+      try {
+        if (humanReadable) {
+          uniquePath = OS.Path.join(dirName, fileName + "-" + (i + 1) + suffix);
+        } else {
+          let hexNumber = Math.floor(Math.random() * MAX_HEX_NUMBER).toString(HEX_RADIX);
+          uniquePath = OS.Path.join(dirName, fileName + "-" + hexNumber + suffix);
+        }
+        return {
+          path: uniquePath,
+          file: OS.File.open(uniquePath, mode)
+        };
+      } catch (ex if ex instanceof OS.File.Error && ex.becauseExists) {
+        
+      }
+    }
+    throw OS.File.Error.exists("could not find an unused file name.");
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes) {
   if (!candidate) {
     throw new TypeError("Expecting  a Typed Array or a C pointer");

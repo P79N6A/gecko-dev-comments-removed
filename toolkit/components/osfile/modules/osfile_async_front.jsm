@@ -514,6 +514,35 @@ File.open = function open(path, mode, options) {
 
 
 
+
+
+
+
+
+
+
+
+File.openUnique = function openUnique(path, options) {
+  return Scheduler.post(
+      "openUnique", [Type.path.toMsg(path), options],
+      path
+    ).then(
+    function onSuccess(msg) {
+      return {
+        path: msg.path,
+        file: new File(msg.file)
+      };
+    }
+  );
+};
+
+
+
+
+
+
+
+
 File.stat = function stat(path) {
   return Scheduler.post(
     "stat", [Type.path.toMsg(path)],
