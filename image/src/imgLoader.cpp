@@ -599,7 +599,6 @@ static nsresult NewImageChannel(nsIChannel **aResult,
   
   
   
-  aLoadFlags |= nsIChannel::LOAD_CLASSIFY_URI;
   rv = NS_NewChannel(aResult,
                      aURI,        
                      nullptr,      
