@@ -1470,17 +1470,34 @@ struct nsCSSGridNamedArea {
 };
 
 struct nsCSSValueGridTemplateAreas {
-  nsTArray<nsCSSGridNamedArea> mNamedAreas; 
-  nsTArray<nsString> mTemplates;  
+  
+  nsTArray<nsCSSGridNamedArea> mNamedAreas;
+
+  
+  
+  nsTArray<nsString> mTemplates;
+
+  
+  
+  uint32_t mNColumns;
+
+  
+  
+  uint32_t NRows() const {
+    return mTemplates.Length();
+  }
 
   nsCSSValueGridTemplateAreas()
+    : mNColumns(0)
+    
   {
   }
 
-  nsCSSValueGridTemplateAreas(const nsCSSValueGridTemplateAreas& aOther)
-    : mNamedAreas(aOther.mNamedAreas)
-    , mTemplates(aOther.mTemplates)
+  void Reset()
   {
+    mNamedAreas.Clear();
+    mTemplates.Clear();
+    mNColumns = 0;
   }
 
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,

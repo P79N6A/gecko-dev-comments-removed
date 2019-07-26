@@ -638,10 +638,12 @@ protected:
   bool ParseGridTrackSize(nsCSSValue& aValue);
   bool ParseGridAutoColumnsRows(nsCSSProperty aPropID);
   bool ParseGridTrackList(nsCSSProperty aPropID);
+
+  
+  
   bool ParseGridTemplateAreasLine(const nsAutoString& aInput,
-                                  nsTArray<nsCSSGridNamedArea>& aNamedAreas,
-                                  uint32_t aRow,
-                                  uint32_t& aColumns);
+                                  nsCSSValueGridTemplateAreas& aResult,
+                                  nsDataHashtable<nsStringHashKey, uint32_t>& aAreaIndices);
   bool ParseGridTemplateAreas();
   bool ParseGridLine(nsCSSValue& aValue);
   bool ParseGridAutoPosition();
@@ -7080,13 +7082,15 @@ CSSParserImpl::ParseGridTrackList(nsCSSProperty aPropID)
 
 bool
 CSSParserImpl::ParseGridTemplateAreasLine(const nsAutoString& aInput,
-                                          nsTArray<nsCSSGridNamedArea>& aNamedAreas,
-                                          uint32_t aRow,
-                                          uint32_t& aColumns)
+                                          nsCSSValueGridTemplateAreas& aAreas,
+                                          nsDataHashtable<nsStringHashKey, uint32_t>& aAreaIndices)
 {
+  aAreas.mTemplates.AppendElement(mToken.mIdent);
+
   nsCSSGridTemplateAreaScanner scanner(aInput);
   nsCSSGridTemplateAreaToken token;
   nsCSSGridNamedArea* currentArea = nullptr;
+  uint32_t row = aAreas.NRows();
   uint32_t column;
   for (column = 1; scanner.Next(token); column++) {
     if (token.isTrash) {
@@ -7094,7 +7098,7 @@ CSSParserImpl::ParseGridTemplateAreasLine(const nsAutoString& aInput,
     }
     if (currentArea) {
       if (token.mName == currentArea->mName) {
-        if (currentArea->mRowStart == aRow) {
+        if (currentArea->mRowStart == row) {
           
           currentArea->mColumnEnd++;
         }
@@ -7103,7 +7107,7 @@ CSSParserImpl::ParseGridTemplateAreasLine(const nsAutoString& aInput,
       
       
       if (currentArea->mColumnEnd != column) {
-        NS_ASSERTION(currentArea->mRowStart != aRow,
+        NS_ASSERTION(currentArea->mRowStart != row,
                      "Inconsistent column end for the first row of a named area.");
         
         return false;
@@ -7114,38 +7118,48 @@ CSSParserImpl::ParseGridTemplateAreasLine(const nsAutoString& aInput,
       
 
       
-      for (uint32_t i = 0, end = aNamedAreas.Length(); i < end; i++) {
-        if (aNamedAreas[i].mName == token.mName) {
-          currentArea = &aNamedAreas[i];
-          if (currentArea->mColumnStart != column || currentArea->mRowEnd != aRow) {
-            
-            return false;
-          }
+      uint32_t index;
+      if (aAreaIndices.Get(token.mName, &index)) {
+        MOZ_ASSERT(index < aAreas.mNamedAreas.Length(),
+                   "Invalid aAreaIndices hash table");
+        currentArea = &aAreas.mNamedAreas[index];
+        if (currentArea->mColumnStart != column ||
+            currentArea->mRowEnd != row) {
           
-          currentArea->mRowEnd++;
-          break;
+          return false;
         }
-      }
-      if (!currentArea) {
         
-        currentArea = aNamedAreas.AppendElement();
+        currentArea->mRowEnd++;
+      } else {
+        
+        aAreaIndices.Put(token.mName, aAreas.mNamedAreas.Length());
+        currentArea = aAreas.mNamedAreas.AppendElement();
         currentArea->mName = token.mName;
         
         
         currentArea->mColumnStart = column;
         currentArea->mColumnEnd = column + 1;
-        currentArea->mRowStart = aRow;
-        currentArea->mRowEnd = aRow + 1;
+        currentArea->mRowStart = row;
+        currentArea->mRowEnd = row + 1;
       }
     }
   }
   if (currentArea && currentArea->mColumnEnd != column) {
-    NS_ASSERTION(currentArea->mRowStart != aRow,
+    NS_ASSERTION(currentArea->mRowStart != row,
                  "Inconsistent column end for the first row of a named area.");
     
     return false;
   }
-  aColumns = column;
+
+  
+  
+  
+  
+  if (row == 1) {
+    aAreas.mNColumns = column;
+  } else if (aAreas.mNColumns != column) {
+    return false;
+  }
   return true;
 }
 
@@ -7158,30 +7172,24 @@ CSSParserImpl::ParseGridTemplateAreas()
     return true;
   }
 
-  nsCSSValueGridTemplateAreas& result = value.SetGridTemplateAreas();
-  uint32_t row = 1;
-  uint32_t firstRowColumns;
-  do {
+  nsCSSValueGridTemplateAreas& areas = value.SetGridTemplateAreas();
+  nsDataHashtable<nsStringHashKey, uint32_t> areaIndices;
+  for (;;) {
     if (!GetToken(true)) {
-      return false;
+      break;
     }
     if (eCSSToken_String != mToken.mType) {
-      UngetToken();  
+      UngetToken();
+      break;
+    }
+    if (!ParseGridTemplateAreasLine(mToken.mIdent, areas, areaIndices)) {
       return false;
     }
-    uint32_t columns;
-    if (!ParseGridTemplateAreasLine(mToken.mIdent, result.mNamedAreas,
-                                    row, columns)) {
-      return false;
-    }
-    if (row == 1) {
-      firstRowColumns = columns;
-    } else if (columns != firstRowColumns) {
-      return false;
-    }
-    result.mTemplates.AppendElement(mToken.mIdent);
-    row++;
-  } while (!CheckEndProperty());
+  }
+
+  if (areas.NRows() == 0) {
+    return false;
+  }
 
   AppendValue(eCSSProperty_grid_template_areas, value);
   return true;
