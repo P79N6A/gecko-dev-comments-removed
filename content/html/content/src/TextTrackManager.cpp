@@ -20,6 +20,59 @@
 namespace mozilla {
 namespace dom {
 
+CompareTextTracks::CompareTextTracks(HTMLMediaElement* aMediaElement)
+{
+  mMediaElement = aMediaElement;
+}
+
+int32_t
+CompareTextTracks::TrackChildPosition(TextTrack* aTextTrack) const {
+  HTMLTrackElement* trackElement = aTextTrack->GetTrackElement();
+  if (!trackElement) {
+    return -1;
+  }
+  return mMediaElement->IndexOf(trackElement);
+}
+
+bool
+CompareTextTracks::Equals(TextTrack* aOne, TextTrack* aTwo) const {
+  
+  
+  
+  
+  return false;
+}
+
+bool
+CompareTextTracks::LessThan(TextTrack* aOne, TextTrack* aTwo) const
+{
+  TextTrackSource sourceOne = aOne->GetTextTrackSource();
+  TextTrackSource sourceTwo = aTwo->GetTextTrackSource();
+  if (sourceOne != sourceTwo) {
+    return sourceOne == Track ||
+           (sourceOne == AddTextTrack && sourceTwo == MediaResourceSpecific);
+  }
+  switch (sourceOne) {
+    case Track: {
+      int32_t positionOne = TrackChildPosition(aOne);
+      int32_t positionTwo = TrackChildPosition(aTwo);
+      
+      
+      return positionOne != -1 && positionTwo != -1 &&
+             positionOne < positionTwo;
+    }
+    case AddTextTrack:
+      
+      
+      
+      return true;
+    case MediaResourceSpecific:
+      
+      break;
+  }
+  return true;
+}
+
 NS_IMPL_CYCLE_COLLECTION_3(TextTrackManager, mTextTracks,
                            mPendingTextTracks, mNewCues)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(TextTrackManager, AddRef)
@@ -58,10 +111,15 @@ TextTrackManager::TextTracks() const
 
 already_AddRefed<TextTrack>
 TextTrackManager::AddTextTrack(TextTrackKind aKind, const nsAString& aLabel,
-                               const nsAString& aLanguage)
+                               const nsAString& aLanguage,
+                               TextTrackSource aTextTrackSource)
 {
+  if (!mMediaElement) {
+    return nullptr;
+  }
   nsRefPtr<TextTrack> ttrack =
-    mTextTracks->AddTextTrack(aKind, aLabel, aLanguage);
+    mTextTracks->AddTextTrack(aKind, aLabel, aLanguage, aTextTrackSource,
+                              CompareTextTracks(mMediaElement));
   ttrack->SetReadyState(HTMLTrackElement::READY_STATE_LOADED);
   AddCues(ttrack);
   return ttrack.forget();
@@ -70,7 +128,10 @@ TextTrackManager::AddTextTrack(TextTrackKind aKind, const nsAString& aLabel,
 void
 TextTrackManager::AddTextTrack(TextTrack* aTextTrack)
 {
-  mTextTracks->AddTextTrack(aTextTrack);
+  if (!mMediaElement) {
+    return;
+  }
+  mTextTracks->AddTextTrack(aTextTrack, CompareTextTracks(mMediaElement));
   AddCues(aTextTrack);
 }
 
@@ -157,7 +218,8 @@ TextTrackManager::PopulatePendingList()
     TextTrack* ttrack = mTextTracks->IndexedGetter(index, dummy);
     if (ttrack && ttrack->Mode() != TextTrackMode::Disabled &&
         ttrack->ReadyState() == HTMLTrackElement::READY_STATE_LOADING) {
-      mPendingTextTracks->AddTextTrack(ttrack);
+      mPendingTextTracks->AddTextTrack(ttrack,
+                                       CompareTextTracks(mMediaElement));
     }
   }
 }
