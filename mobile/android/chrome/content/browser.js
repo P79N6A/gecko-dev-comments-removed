@@ -7106,17 +7106,19 @@ var RemoteDebugger = {
 };
 
 var Telemetry = {
-  _PREF_TELEMETRY_PROMPTED: "toolkit.telemetry.prompted",
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
   _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabledPreRelease",
+  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.notifiedOptOut",
 #else
   _PREF_TELEMETRY_ENABLED: "toolkit.telemetry.enabled",
+  _PREF_TELEMETRY_DISPLAYED: "toolkit.telemetry.prompted",
 #endif
   _PREF_TELEMETRY_REJECTED: "toolkit.telemetry.rejected",
   _PREF_TELEMETRY_SERVER_OWNER: "toolkit.telemetry.server_owner",
 
   
-  _TELEMETRY_PROMPT_REV: "@MOZ_TELEMETRY_DISPLAY_REV@",
+  
+  _TELEMETRY_DISPLAY_REV: @MOZ_TELEMETRY_DISPLAY_REV@,
 
   init: function init() {
     Services.obs.addObserver(this, "Preferences:Set", false);
@@ -7141,7 +7143,7 @@ var Telemetry = {
       
       let pref = JSON.parse(aData);
       if (pref.name == this._PREF_TELEMETRY_ENABLED)
-        Services.prefs.setIntPref(this._PREF_TELEMETRY_PROMPTED, this._TELEMETRY_PROMPT_REV);
+        Services.prefs.setIntPref(this._PREF_TELEMETRY_DISPLAYED, this._TELEMETRY_DISPLAY_REV);
     } else if (aTopic == "Telemetry:Add") {
       let json = JSON.parse(aData);
       this.addData(json.name, json.value);
@@ -7153,40 +7155,103 @@ var Telemetry = {
   },
 
   prompt: function prompt() {
+    let brandShortName = Strings.brand.GetStringFromName("brandShortName");
     let serverOwner = Services.prefs.getCharPref(this._PREF_TELEMETRY_SERVER_OWNER);
-    let telemetryPrompted = null;
+    let telemetryEnabled = Services.prefs.getBoolPref(this._PREF_TELEMETRY_ENABLED);
+    let message;
+    let buttons;
     let self = this;
-    try {
-      telemetryPrompted = Services.prefs.getIntPref(this._PREF_TELEMETRY_PROMPTED);
-    } catch (e) {  }
 
     
-    
-    if (telemetryPrompted === this._TELEMETRY_PROMPT_REV)
+
+
+
+
+
+
+
+
+
+    let telemetryDisplayed;
+    try {
+      telemetryDisplayed = Services.prefs.getIntPref(self._PREF_TELEMETRY_DISPLAYED);
+    } catch(e) {}
+    if (telemetryDisplayed === self._TELEMETRY_DISPLAY_REV)
       return;
 
-    Services.prefs.clearUserPref(this._PREF_TELEMETRY_PROMPTED);
-    Services.prefs.clearUserPref(this._PREF_TELEMETRY_ENABLED);
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+    
 
-    let buttons = [
+
+
+
+
+
+
+
+    let telemetryEnabled = Services.prefs.getBoolPref(self._PREF_TELEMETRY_ENABLED);
+    if (!telemetryEnabled)
+      return;
+
+    
+    
+    let telemetryRejected = false;
+    try {
+      telemetryRejected = Services.prefs.getBoolPref(self._PREF_TELEMETRY_REJECTED);
+    } catch(e) {}
+    if (telemetryRejected) {
+      Services.prefs.setBoolPref(self._PREF_TELEMETRY_ENABLED, false);
+      Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
+      return;
+    }
+
+    
+    
+    let optInTelemetryEnabled = false;
+    try {
+      optInTelemetryEnabled = Services.prefs.getBoolPref("toolkit.telemetry.enabled");
+    } catch(e) {}
+    if (optInTelemetryEnabled && telemetryDisplayed === undefined) {
+      Services.prefs.setBoolPref(self._PREF_TELEMETRY_REJECTED, false);
+      Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
+      return;
+    }
+
+    message = Strings.browser.formatStringFromName("telemetry.optout.message",
+                                                    [brandShortName, serverOwner, brandShortName], 3);
+    buttons = [
+      {
+        label: Strings.browser.GetStringFromName("telemetry.optout.ok"),
+        callback: function () {
+          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
+        }
+      }
+    ];
+#else
+    
+    Services.prefs.clearUserPref(self._PREF_TELEMETRY_DISPLAYED);
+    Services.prefs.clearUserPref(self._PREF_TELEMETRY_ENABLED);
+    Services.prefs.clearUserPref(self._PREF_TELEMETRY_REJECTED);
+
+    message = Strings.browser.formatStringFromName("telemetry.optin.message2",
+                                                  [serverOwner, brandShortName], 2);
+    buttons = [
       {
         label: Strings.browser.GetStringFromName("telemetry.optin.yes"),
         callback: function () {
-          Services.prefs.setIntPref(self._PREF_TELEMETRY_PROMPTED, self._TELEMETRY_PROMPT_REV);
+          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
           Services.prefs.setBoolPref(self._PREF_TELEMETRY_ENABLED, true);
         }
       },
       {
         label: Strings.browser.GetStringFromName("telemetry.optin.no"),
         callback: function () {
-          Services.prefs.setIntPref(self._PREF_TELEMETRY_PROMPTED, self._TELEMETRY_PROMPT_REV);
+          Services.prefs.setIntPref(self._PREF_TELEMETRY_DISPLAYED, self._TELEMETRY_DISPLAY_REV);
           Services.prefs.setBoolPref(self._PREF_TELEMETRY_REJECTED, true);
         }
       }
     ];
-
-    let brandShortName = Strings.brand.GetStringFromName("brandShortName");
-    let message = Strings.browser.formatStringFromName("telemetry.optin.message2", [serverOwner, brandShortName], 2);
+#endif
     let learnMoreLabel = Strings.browser.GetStringFromName("telemetry.optin.learnMore");
     let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
     learnMoreUrl += "how-can-i-help-submitting-performance-data";
@@ -7196,7 +7261,7 @@ var Telemetry = {
         url: learnMoreUrl
       }
     };
-    NativeWindow.doorhanger.show(message, "telemetry-optin", buttons, BrowserApp.selectedTab.id, options);
+    NativeWindow.doorhanger.show(message, "telemetry-prompt", buttons, BrowserApp.selectedTab.id, options);
   },
 };
 
