@@ -81,6 +81,11 @@ public:
   
 
 
+  static bool GetCriticalDisplayPort(nsIContent* aContent, nsRect* aResult);
+
+  
+
+
 
   static nsIFrame::ChildListID GetChildListNameFor(nsIFrame* aChildFrame);
 
