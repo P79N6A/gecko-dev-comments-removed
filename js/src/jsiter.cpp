@@ -57,6 +57,11 @@ NativeIterator::mark(JSTracer *trc)
         MarkString(trc, str, "prop");
     if (obj)
         MarkObject(trc, &obj, "obj");
+
+    
+    
+    if (iterObj_)
+        MarkObjectUnbarriered(trc, &iterObj_, "iterObj");
 }
 
 struct IdHashPolicy {
@@ -1076,12 +1081,6 @@ SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate p
             HeapPtr<JSFlatString> *props_end = ni->end();
             for (HeapPtr<JSFlatString> *idp = props_cursor; idp < props_end; ++idp) {
                 if (predicate(*idp)) {
-                     
-
-
-
-                    AutoObjectRooter iterRoot(cx, ni->iterObj());
-
                     
 
 

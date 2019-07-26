@@ -416,10 +416,9 @@ ObjectWrapperChild::AnswerNewEnumerateInit(
     AutoCheckOperation aco(this, status);
 
     JSClass* clasp = const_cast<JSClass*>(&sCPOW_NewEnumerateState_JSClass);
-    JSObject* state = JS_NewObjectWithGivenProto(cx, clasp, NULL, NULL);
+    JS::Rooted<JSObject*> state(cx, JS_NewObjectWithGivenProto(cx, clasp, NULL, NULL));
     if (!state)
         return false;
-    AutoObjectRooter tvr(cx, state);
 
     for (JSObject* proto = mObj; proto; ) {
         AutoIdArray ids(cx, JS_Enumerate(cx, proto));
