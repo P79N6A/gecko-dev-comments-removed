@@ -673,7 +673,7 @@ protected:
 
 
 
-  virtual nsGenericElement* GetOffsetRect(nsRect& aRect);
+  virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
 
   
 
