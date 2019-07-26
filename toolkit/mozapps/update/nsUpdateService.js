@@ -754,6 +754,26 @@ function writeVersionFile(dir, version) {
 
 
 
+function cleanUpMozUpdaterDirs() {
+  try {
+    var tmpDir = Components.classes["@mozilla.org/file/directory_service;1"].
+                            getService(Components.interfaces.nsIProperties).
+                            get("TmpD", Components.interfaces.nsIFile);
+    
+    var mozUpdaterDir = tmpDir.clone();
+    mozUpdaterDir.append("MozUpdater");
+    if (mozUpdaterDir.exists()) {
+      LOG("cleanUpMozUpdaterDirs - Cleaning MozUpdater folder");
+      mozUpdaterDir.remove(true);
+    }
+  } catch (e) {
+    LOG("cleanUpMozUpdaterDirs - Exception: " + e);
+  }
+}
+
+
+
+
 
 
 
@@ -1697,6 +1717,9 @@ UpdateService.prototype = {
 
       prompter.showUpdateError(update);
     }
+
+    
+    cleanUpMozUpdaterDirs();
   },
 
   

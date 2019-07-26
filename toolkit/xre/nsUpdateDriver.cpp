@@ -376,7 +376,11 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   
   
   
+  
+  
+  
   tmpDir->Append(NS_LITERAL_STRING("MozUpdater"));
+  tmpDir->Append(NS_LITERAL_STRING("bgupdate"));
   tmpDir->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
 
   nsCOMPtr<nsIFile> updater;
