@@ -15,6 +15,7 @@
 #include "mozilla/Attributes.h"
 #include "nsNetAddr.h"
 #include "nsNetSegmentUtils.h"
+#include "NetworkActivityMonitor.h"
 #include "nsStreamUtils.h"
 #include "nsIPipe.h"
 #include "prerror.h"
@@ -453,6 +454,9 @@ nsUDPServerSocket::InitWithAddress(const NetAddr *aAddr)
   }
 
   PRNetAddrToNetAddr(&addr, &mAddr);
+
+  
+  NetworkActivityMonitor::AttachIOLayer(mFD);
 
   
   
