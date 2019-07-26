@@ -932,7 +932,7 @@ nsSVGOuterSVGAnonChildFrame::GetType() const
 }
 
 bool
-nsSVGOuterSVGAnonChildFrame::HasChildrenOnlyTransform(gfxMatrix *aTransform) const
+nsSVGOuterSVGAnonChildFrame::HasChildrenOnlyTransform(gfx::Matrix *aTransform) const
 {
   
   
@@ -944,9 +944,9 @@ nsSVGOuterSVGAnonChildFrame::HasChildrenOnlyTransform(gfxMatrix *aTransform) con
   if (hasTransform && aTransform) {
     
     gfxMatrix identity;
-    *aTransform =
+    *aTransform = gfx::ToMatrix(
       content->PrependLocalTransformsTo(identity,
-                                        nsSVGElement::eChildToUserSpace);
+                                        nsSVGElement::eChildToUserSpace));
   }
 
   return hasTransform;

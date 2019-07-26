@@ -98,8 +98,8 @@ public:
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransform,
-                                gfxMatrix *aFromParentTransform) const MOZ_OVERRIDE {
+  virtual bool IsSVGTransformed(mozilla::gfx::Matrix *aOwnTransform,
+                                mozilla::gfx::Matrix *aFromParentTransform) const MOZ_OVERRIDE {
     
     
     
@@ -133,7 +133,7 @@ public:
   void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
   void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
 
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const MOZ_OVERRIDE {
+  virtual bool HasChildrenOnlyTransform(mozilla::gfx::Matrix *aTransform) const MOZ_OVERRIDE {
     
     
     
@@ -271,7 +271,7 @@ public:
     return static_cast<nsSVGOuterSVGFrame*>(mParent)->GetCanvasTM(aFor, aTransformRoot);
   }
 
-  virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const MOZ_OVERRIDE;
+  virtual bool HasChildrenOnlyTransform(mozilla::gfx::Matrix *aTransform) const MOZ_OVERRIDE;
 };
 
 #endif

@@ -1337,8 +1337,8 @@ public:
 
 
 
-  virtual bool IsSVGTransformed(gfxMatrix *aOwnTransforms = nullptr,
-                                gfxMatrix *aFromParentTransforms = nullptr) const;
+  virtual bool IsSVGTransformed(mozilla::gfx::Matrix *aOwnTransforms = nullptr,
+                                mozilla::gfx::Matrix *aFromParentTransforms = nullptr) const;
 
   
 
