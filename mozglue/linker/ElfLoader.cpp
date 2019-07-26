@@ -166,12 +166,12 @@ SystemElf::Load(const char *path, int flags)
   
 
   if (path && path[0] == '/' && (access(path, F_OK) == -1)){
-    debug("dlopen(\"%s\", %x) = %p", path, flags, (void *)NULL);
+    debug("dlopen(\"%s\", 0x%x) = %p", path, flags, (void *)NULL);
     return NULL;
   }
 
   void *handle = dlopen(path, flags);
-  debug("dlopen(\"%s\", %x) = %p", path, flags, handle);
+  debug("dlopen(\"%s\", 0x%x) = %p", path, flags, handle);
   ElfLoader::Singleton.lastError = dlerror();
   if (handle) {
     SystemElf *elf = new SystemElf(path, handle);
