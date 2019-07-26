@@ -27,16 +27,19 @@ class PostMessageRunnable : public nsRunnable
   public:
     NS_DECL_NSIRUNNABLE
 
-    PostMessageRunnable(MessagePort* aPort)
-      : mPort(aPort)
-      , mMessage(nullptr)
+    PostMessageRunnable()
+      : mMessage(nullptr)
       , mMessageLen(0)
     {
     }
 
     ~PostMessageRunnable()
     {
-      NS_ASSERTION(!mMessage, "Message should have been deserialized!");
+      
+      if (mMessage) {
+        JSAutoStructuredCloneBuffer buffer;
+        buffer.adopt(mMessage, mMessageLen);
+      }
     }
 
     void SetJSData(JSAutoStructuredCloneBuffer& aBuffer)
@@ -49,6 +52,12 @@ class PostMessageRunnable : public nsRunnable
     {
       mSupportsArray.AppendElement(aSupports);
       return true;
+    }
+
+    void Dispatch(MessagePort* aPort)
+    {
+      mPort = aPort;
+      NS_DispatchToCurrentThread(this);
     }
 
   private:
@@ -183,6 +192,8 @@ JSStructuredCloneCallbacks kPostMessageCallbacks = {
 NS_IMETHODIMP
 PostMessageRunnable::Run()
 {
+  MOZ_ASSERT(mPort);
+
   
   JSAutoStructuredCloneBuffer buffer;
   buffer.adopt(mMessage, mMessageLen);
@@ -243,8 +254,8 @@ PostMessageRunnable::Run()
   return status ? NS_OK : NS_ERROR_FAILURE;
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_1(MessagePort, nsDOMEventTargetHelper,
-                                     mEntangledPort)
+NS_IMPL_CYCLE_COLLECTION_INHERITED_2(MessagePort, nsDOMEventTargetHelper,
+                                     mEntangledPort, mMessageQueue)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MessagePort)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
@@ -254,6 +265,7 @@ NS_IMPL_RELEASE_INHERITED(MessagePort, nsDOMEventTargetHelper)
 
 MessagePort::MessagePort(nsPIDOMWindow* aWindow)
   : nsDOMEventTargetHelper(aWindow)
+  , mMessageQueueEnabled(false)
 {
   MOZ_COUNT_CTOR(MessagePort);
   SetIsDOMBinding();
@@ -276,11 +288,7 @@ MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
                          const Optional<JS::Handle<JS::Value> >& aTransfer,
                          ErrorResult& aRv)
 {
-  if (!mEntangledPort) {
-    return;
-  }
-
-  nsRefPtr<PostMessageRunnable> event = new PostMessageRunnable(mEntangledPort);
+  nsRefPtr<PostMessageRunnable> event = new PostMessageRunnable();
 
   
   
@@ -300,13 +308,34 @@ MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   }
 
   event->SetJSData(buffer);
-  NS_DispatchToCurrentThread(event);
+
+  if (!mEntangledPort) {
+    return;
+  }
+
+  if (!mEntangledPort->mMessageQueueEnabled) {
+    mEntangledPort->mMessageQueue.AppendElement(event);
+    return;
+  }
+
+  event->Dispatch(mEntangledPort);
 }
 
 void
 MessagePort::Start()
 {
-  
+  if (mMessageQueueEnabled) {
+    return;
+  }
+
+  mMessageQueueEnabled = true;
+
+  while (!mMessageQueue.IsEmpty()) {
+    nsRefPtr<PostMessageRunnable> event = mMessageQueue.ElementAt(0);
+    mMessageQueue.RemoveElementAt(0);
+
+    event->Dispatch(this);
+  }
 }
 
 void
@@ -322,6 +351,28 @@ MessagePort::Close()
 
   
   port->Close();
+}
+
+EventHandlerNonNull*
+MessagePort::GetOnmessage()
+{
+  if (NS_IsMainThread()) {
+    return GetEventHandler(nsGkAtoms::onmessage, EmptyString());
+  }
+  return GetEventHandler(nullptr, NS_LITERAL_STRING("message"));
+}
+
+void
+MessagePort::SetOnmessage(EventHandlerNonNull* aCallback, ErrorResult& aRv)
+{
+  if (NS_IsMainThread()) {
+    SetEventHandler(nsGkAtoms::onmessage, EmptyString(), aCallback, aRv);
+  } else {
+    SetEventHandler(nullptr, NS_LITERAL_STRING("message"), aCallback, aRv);
+  }
+
+  
+  Start();
 }
 
 void
@@ -341,8 +392,7 @@ MessagePort::Clone(nsPIDOMWindow* aWindow)
   nsRefPtr<MessagePort> newPort = new MessagePort(aWindow->GetCurrentInnerWindow());
 
   
-  
-  
+  newPort->mMessageQueue.SwapElements(mMessageQueue);
 
   if (mEntangledPort) {
     nsRefPtr<MessagePort> port = mEntangledPort;
