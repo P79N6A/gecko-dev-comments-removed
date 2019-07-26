@@ -917,7 +917,29 @@ public class GlobalSession implements PrefsSource, HttpResponseObserver {
       return config.enabledEngineNames;
     }
 
-    return SyncConfiguration.validEngineNames();
+    
+    Set<String> validEngineNames = SyncConfiguration.validEngineNames();
+
+    
+    
+    if (config.userSelectedEngines == null) {
+      return validEngineNames;
+    }
+
+    
+    
+    
+    
+    
+    Set<String> validAndSelectedEngineNames = new HashSet<String>();
+    for (String engineName : validEngineNames) {
+      if (config.userSelectedEngines.containsKey(engineName) &&
+          !config.userSelectedEngines.get(engineName)) {
+        continue;
+      }
+      validAndSelectedEngineNames.add(engineName);
+    }
+    return validAndSelectedEngineNames;
   }
 
   

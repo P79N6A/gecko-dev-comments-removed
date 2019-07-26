@@ -112,7 +112,7 @@ public class TokenServerClient {
     
     
     String contentType = response.getEntity().getContentType().getValue();
-    if (contentType != "application/json" && !contentType.startsWith("application/json;")) {
+    if (!contentType.equals("application/json") && !contentType.startsWith("application/json;")) {
       Logger.warn(LOG_TAG, "Got non-JSON response with Content-Type " +
           contentType + ". Misconfigured server?");
       throw new TokenServerMalformedResponseException(null, "Non-JSON response Content-Type.");
