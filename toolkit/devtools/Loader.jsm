@@ -282,6 +282,11 @@ DevToolsLoader.prototype = {
 
 
   main: function(id) {
+    
+    
+    if (this._mainid) {
+      return;
+    }
     this._mainid = id;
     this._main = loader.main(this.provider.loader, id);
 
