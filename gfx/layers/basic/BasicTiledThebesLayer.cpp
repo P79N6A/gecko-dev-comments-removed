@@ -278,7 +278,7 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
   
   
   
-  bool forceProgressive = aTiledBuffer.IsLowPrecision();
+  bool drawingLowPrecision = aTiledBuffer.IsLowPrecision();
 
   
   nsIntRegion freshRegion;
@@ -292,7 +292,8 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
   
   gfx::Rect viewport;
   float scaleX, scaleY;
-  if (BasicManager()->ProgressiveUpdateCallback(!freshRegion.IsEmpty(), viewport, scaleX, scaleY)) {
+  if (BasicManager()->ProgressiveUpdateCallback(!freshRegion.IsEmpty(), viewport,
+                                                scaleX, scaleY, !drawingLowPrecision)) {
     SAMPLE_MARKER("Abort painting");
     aRegionToPaint.SetEmpty();
     return aIsRepeated;
@@ -367,7 +368,7 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
     
     
     
-    if (!forceProgressive && paintVisible && drawingStale) {
+    if (!drawingLowPrecision && paintVisible && drawingStale) {
       repeatImmediately = true;
     } else {
       BasicManager()->SetRepeatTransaction();

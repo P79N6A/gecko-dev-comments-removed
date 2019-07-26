@@ -76,6 +76,7 @@ public class GeckoLayerClient
 
     
     private final ProgressiveUpdateData mProgressiveUpdateData;
+    private boolean mProgressiveUpdateIsCurrent;
 
     
     private volatile boolean mCompositorCreated;
@@ -359,7 +360,8 @@ public class GeckoLayerClient
     
     
     public ProgressiveUpdateData progressiveUpdateCallback(boolean aHasPendingNewThebesContent,
-                                                           float x, float y, float width, float height, float resolution) {
+                                                           float x, float y, float width, float height,
+                                                           float resolution, boolean lowPrecision) {
         
         
         DisplayPortMetrics displayPort = mDisplayPort;
@@ -369,26 +371,30 @@ public class GeckoLayerClient
 
         
         
-        if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
-            Log.d(LOGTAG, "Aborting draw due to resolution change");
-            mProgressiveUpdateData.abort = true;
+        
+        
+        
+
+        
+        
+        
+        
+        if (!lowPrecision) {
+            mProgressiveUpdateIsCurrent =
+              Math.abs(displayPort.getLeft() - x) <= 2 &&
+              Math.abs(displayPort.getTop() - y) <= 2 &&
+              Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
+              Math.abs(displayPort.getRight() - (x + width)) <= 2;
+        }
+        if (mProgressiveUpdateIsCurrent) {
             return mProgressiveUpdateData;
         }
 
         
         
-        
-        
-        
-
-        
-        
-        
-        
-        if (Math.abs(displayPort.getLeft() - x) <= 2 &&
-            Math.abs(displayPort.getTop() - y) <= 2 &&
-            Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
-            Math.abs(displayPort.getRight() - (x + width)) <= 2) {
+        if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
+            Log.d(LOGTAG, "Aborting draw due to resolution change");
+            mProgressiveUpdateData.abort = true;
             return mProgressiveUpdateData;
         }
 
