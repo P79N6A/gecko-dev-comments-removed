@@ -104,6 +104,8 @@ class Bytecode
 
 
     bool arrayWriteHole: 1;     
+    bool getStringElement:1;    
+    bool nonNativeGetElement:1; 
     bool accessGetter: 1;       
 
     

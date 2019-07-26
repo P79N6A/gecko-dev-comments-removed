@@ -1253,7 +1253,7 @@ SetObjectElementOperation(JSContext *cx, Handle<JSObject*> obj, HandleId id, con
             
             
             
-            if (script) {
+            if (script || cx->currentlyRunningInInterpreter()) {
                 JS_ASSERT(!!script == !!pc);
                 if (!script)
                     types::TypeScript::GetPcScript(cx, script.address(), &pc);
