@@ -17,6 +17,9 @@ Cu.import("resource://gre/modules/Messaging.jsm");
 const PREFS_PANEL_AUTH_PREFIX = "home_panels_auth_";
 
 
+const DEFAULT_WEIGHT = 100;
+
+
 function resolveGeckoURI(aURI) {
   if (!aURI)
     throw "Can't resolve an empty uri";
@@ -49,6 +52,9 @@ function BannerMessage(options) {
 
   if ("ondismiss" in options && typeof options.ondismiss === "function")
     this.ondismiss = options.ondismiss;
+
+  let weight = parseInt(options.weight, 10);
+  this.weight = weight > 0 ? weight : DEFAULT_WEIGHT;
 }
 
 
@@ -62,7 +68,9 @@ let HomeBanner = (function () {
   
   HomeBannerMessageHandlers = {
     "HomeBanner:Get": function handleBannerGet(data) {
-      if (!_sendBannerData()) {
+      if (Object.keys(_messages).length > 0) {
+        _sendBannerData();
+      } else {
         _pendingRequest = true;
       }
     }
@@ -71,23 +79,30 @@ let HomeBanner = (function () {
   
   let _messages = {};
 
+  
+  
+  
   let _sendBannerData = function() {
-    let keys = Object.keys(_messages);
-    if (!keys.length) {
-      return false;
+    let totalWeight = 0;
+    for (let key in _messages) {
+      let message = _messages[key];
+      totalWeight += message.weight;
+      message.totalWeight = totalWeight;
     }
 
-    
-    let randomId = keys[Math.floor(Math.random() * keys.length)];
-    let message = _messages[randomId];
-
-    sendMessageToJava({
-      type: "HomeBanner:Data",
-      id: message.id,
-      text: message.text,
-      iconURI: message.iconURI
-    });
-    return true;
+    let threshold = Math.random() * totalWeight;
+    for (let key in _messages) {
+      let message = _messages[key];
+      if (threshold < message.totalWeight) {
+        sendMessageToJava({
+          type: "HomeBanner:Data",
+          id: message.id,
+          text: message.text,
+          iconURI: message.iconURI
+        });
+        return;
+      }
+    }
   };
 
   let _handleShown = function(id) {
