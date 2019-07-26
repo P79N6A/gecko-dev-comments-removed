@@ -267,7 +267,26 @@ protected:
 
 
   int32_t FindWordBoundary(int32_t aOffset, nsDirection aDirection,
-                           EWordMovementType aWordMovementType);
+                           EWordMovementType aWordMovementType)
+  {
+    return FindBoundary(aOffset, aDirection, eSelectWord, aWordMovementType);
+  }
+
+  
+
+
+  int32_t FindLineBoundary(int32_t aOffset, nsDirection aDirection,
+                           nsSelectionAmount aAmount)
+  {
+    return FindBoundary(aOffset, aDirection, aAmount, eDefaultBehavior);
+  }
+
+  
+
+
+  int32_t FindBoundary(int32_t aOffset, nsDirection aDirection,
+                       nsSelectionAmount aAmount,
+                       EWordMovementType aWordMovementType = eDefaultBehavior);
 
   
 
