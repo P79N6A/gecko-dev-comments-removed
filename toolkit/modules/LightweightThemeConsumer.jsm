@@ -42,7 +42,9 @@ LightweightThemeConsumer.prototype = {
   _lastScreenWidth: null,
   _lastScreenHeight: null,
   _enabled: true,
-  _active: false,
+#ifdef XP_MACOSX
+  _chromemarginDefault: undefined,
+#endif
 
   enable: function() {
     this._enabled = true;
@@ -98,9 +100,8 @@ LightweightThemeConsumer.prototype = {
     if (!this._enabled)
       return;
 
-    let root = this._doc.documentElement;
-    let active = !!aData.headerURL;
-    let stateChanging = (active != this._active);
+    var root = this._doc.documentElement;
+    var active = !!aData.headerURL;
 
     if (active) {
       root.style.color = aData.textcolor || "black";
@@ -115,8 +116,6 @@ LightweightThemeConsumer.prototype = {
       root.removeAttribute("lwthemetextcolor");
       root.removeAttribute("lwtheme");
     }
-
-    this._active = active;
 
     _setImage(root, active, aData.headerURL);
     if (this._footerId) {
@@ -133,23 +132,17 @@ LightweightThemeConsumer.prototype = {
     
     
     
-    
-    
-    if (stateChanging) {
-      if (!root.hasAttribute("chromemargin-nonlwtheme")) {
-        root.setAttribute("chromemargin-nonlwtheme", root.getAttribute("chromemargin"));
-      }
+    if (this._chromemarginDefault === undefined)
+      this._chromemarginDefault = root.getAttribute("chromemargin");
 
-      if (active) {
-        root.setAttribute("chromemargin", "0,-1,-1,-1");
-      } else {
-        let defaultChromemargin = root.getAttribute("chromemargin-nonlwtheme");
-        if (defaultChromemargin) {
-          root.setAttribute("chromemargin", defaultChromemargin);
-        } else {
-          root.removeAttribute("chromemargin");
-        }
-      }
+    if (active) {
+      root.setAttribute("chromemargin", "0,-1,-1,-1");
+    }
+    else {
+      if (this._chromemarginDefault)
+        root.setAttribute("chromemargin", this._chromemarginDefault);
+      else
+        root.removeAttribute("chromemargin");
     }
 #endif
   }
