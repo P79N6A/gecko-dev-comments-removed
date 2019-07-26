@@ -1142,15 +1142,16 @@ var gPluginHandler = {
   
   pluginInstanceCrashed: function (plugin, aEvent) {
     
-    if (!(aEvent instanceof Ci.nsIDOMDataContainerEvent))
+    if (!(aEvent instanceof Ci.nsIDOMCustomEvent))
       return;
 
-    let submittedReport = aEvent.getData("submittedCrashReport");
+    let propBag = aEvent.detail.QueryInterface(Ci.nsIPropertyBag2);
+    let submittedReport = propBag.getPropertyAsBool("submittedCrashReport");
     let doPrompt        = true; 
     let submitReports   = true; 
-    let pluginName      = aEvent.getData("pluginName");
-    let pluginDumpID    = aEvent.getData("pluginDumpID");
-    let browserDumpID   = aEvent.getData("browserDumpID");
+    let pluginName      = propBag.getPropertyAsAString("pluginName");
+    let pluginDumpID    = propBag.getPropertyAsAString("pluginDumpID");
+    let browserDumpID   = propBag.getPropertyAsAString("browserDumpID");
 
     
     pluginName = this.makeNicePluginName(pluginName);
