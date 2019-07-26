@@ -1785,6 +1785,13 @@ public:
   }
 
   nsTArray< nsRefPtr<mozilla::dom::Touch> > touches;
+
+  void AssignTouchEventData(const nsTouchEvent& aEvent, bool aCopyTargets)
+  {
+    AssignInputEventData(aEvent, aCopyTargets);
+
+    
+  }
 };
 
 
