@@ -215,10 +215,7 @@ FrameWorker.prototype = {
 
       
       worker.loaded = true;
-
-      let pending = worker.pendingPorts;
-      while (pending.length) {
-        let port = pending.shift();
+      for (let port of worker.pendingPorts) {
         if (port._portid) { 
           try {
             port._createWorkerAndEntangle(worker);
@@ -228,6 +225,7 @@ FrameWorker.prototype = {
           }
         }
       }
+      worker.pendingPorts = [];
     });
 
     
@@ -419,9 +417,10 @@ ClientPort.prototype = {
     this._window = worker.frame.contentWindow;
     worker.ports[this._portid] = this;
     this._postControlMessage("port-create");
-    while (this._pendingMessagesOutgoing.length) {
-      this._dopost(this._pendingMessagesOutgoing.shift());
+    for (let message of this._pendingMessagesOutgoing) {
+      this._dopost(message);
     }
+    this._pendingMessagesOutgoing = [];
   },
 
   _dopost: function fw_ClientPort_dopost(data) {
