@@ -21,9 +21,10 @@ richlistitem.download {
                               [state="9"]) )
                                            .downloadRemoveFromHistoryMenuItem,
 .download-state:not(:-moz-any([state="-1"],
-                              [state="5"], 
                               [state="0"], 
-                              [state="4"]) )
+                              [state="1"], 
+                              [state="4"], 
+                              [state="5"]) )
                                            .downloadShowMenuItem,
 
 .download-state[state="7"]                 .downloadCommandsSeparator
