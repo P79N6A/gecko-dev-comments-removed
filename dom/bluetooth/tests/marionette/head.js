@@ -4,10 +4,127 @@
 
 
 
+
+
+
+
+
+
+
+
+
+const EMULATOR_ADDRESS = "56:34:12:00:54:52";
+
+
+
+
+
+const EMULATOR_NAME = "Full Android on Emulator";
+
+
+
+
+
+
+
+const EMULATOR_CLASS = 0x58020c;
+
+
+
+const BDADDR_ANY   = "00:00:00:00:00:00";
+const BDADDR_ALL   = "ff:ff:ff:ff:ff:ff";
+const BDADDR_LOCAL = "ff:ff:ff:00:00:00";
+
 let Promise =
   SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Promise;
 
 let bluetoothManager;
+
+let pendingEmulatorCmdCount = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function runEmulatorCmdSafe(aCommand) {
+  let deferred = Promise.defer();
+
+  ++pendingEmulatorCmdCount;
+  runEmulatorCmd(aCommand, function(aResult) {
+    --pendingEmulatorCmdCount;
+
+    ok(true, "Emulator response: " + JSON.stringify(aResult));
+    if (Array.isArray(aResult) && aResult[aResult.length - 1] === "OK") {
+      deferred.resolve(aResult);
+    } else {
+      ok(false, "Got an abnormal response from emulator.");
+      log("Fail to execute emulator command: [" + aCommand + "]");
+      deferred.reject(aResult);
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setEmulatorDeviceProperty(aAddress, aPropertyName, aValue) {
+  let cmd = "bt property " + aAddress + " " + aPropertyName + " " + aValue;
+  return runEmulatorCmdSafe(cmd);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getEmulatorDeviceProperty(aAddress, aPropertyName) {
+  let cmd = "bt property " + aAddress + " " + aPropertyName;
+  return runEmulatorCmdSafe(cmd)
+    .then(function(aResults) {
+      return aResults[0];
+    });
+}
 
 
 
@@ -165,6 +282,9 @@ function ensureBluetoothManager(aPermissions) {
 
 
 
+
+
+
 function waitForManagerEvent(aEventName) {
   let deferred = Promise.defer();
 
@@ -172,6 +292,33 @@ function waitForManagerEvent(aEventName) {
     bluetoothManager.removeEventListener(aEventName, onevent);
 
     ok(true, "BluetoothManager event '" + aEventName + "' got.");
+    deferred.resolve(aEvent);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAdapterEvent(aAdapter, aEventName) {
+  let deferred = Promise.defer();
+
+  aAdapter.addEventListener(aEventName, function onevent(aEvent) {
+    aAdapter.removeEventListener(aEventName, onevent);
+
+    ok(true, "BluetoothAdapter event '" + aEventName + "' got.");
     deferred.resolve(aEvent);
   });
 
@@ -249,11 +396,15 @@ function getDefaultAdapter() {
 
 
 function cleanUp() {
-  SpecialPowers.flushPermissions(function() {
-    
-    ok(true, "permissions flushed");
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      
+      ok(true, "permissions flushed");
 
-    finish();
+      finish();
+    });
+  }, function() {
+    return pendingEmulatorCmdCount === 0;
   });
 }
 

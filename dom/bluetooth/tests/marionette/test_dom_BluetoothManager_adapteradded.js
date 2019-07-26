@@ -7,31 +7,6 @@
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
-
-
-
-
-
-
-
-
-
-const EMULATOR_ADDRESS = "56:34:12:00:54:52";
-
-
-
-
-
-const EMULATOR_NAME = "Full Android on Emulator";
-
-
-
-
-
-
-
-const EMULATOR_CLASS = 0x58020c;
-
 startBluetoothTest(true, function testCaseMain(aAdapter) {
   log("Checking adapter attributes ...");
 
