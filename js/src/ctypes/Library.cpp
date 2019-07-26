@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=2 sw=2 et tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "ctypes/Library.h"
 
@@ -15,9 +15,9 @@
 namespace js {
 namespace ctypes {
 
-/*******************************************************************************
-** JSAPI function prototypes
-*******************************************************************************/
+
+
+
 
 namespace Library
 {
@@ -27,9 +27,9 @@ namespace Library
   static bool Declare(JSContext* cx, unsigned argc, jsval* vp);
 }
 
-/*******************************************************************************
-** JSObject implementation
-*******************************************************************************/
+
+
+
 
 typedef Rooted<JSFlatString*>    RootedFlatString;
 
@@ -58,7 +58,7 @@ Library::Name(JSContext* cx, unsigned argc, jsval *vp)
   }
 
   jsval arg = JS_ARGV(cx, vp)[0];
-  JSString* str = NULL;
+  JSString* str = nullptr;
   if (JSVAL_IS_STRING(arg)) {
     str = JSVAL_TO_STRING(arg);
   }
@@ -85,56 +85,57 @@ JSObject*
 Library::Create(JSContext* cx, jsval path_, JSCTypesCallbacks* callbacks)
 {
   RootedValue path(cx, path_);
-  RootedObject libraryObj(cx, JS_NewObject(cx, &sLibraryClass, NULL, NULL));
+  RootedObject libraryObj(cx,
+                          JS_NewObject(cx, &sLibraryClass, nullptr, nullptr));
   if (!libraryObj)
-    return NULL;
+    return nullptr;
 
-  // initialize the library
-  JS_SetReservedSlot(libraryObj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(NULL));
+  
+  JS_SetReservedSlot(libraryObj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(nullptr));
 
-  // attach API functions
+  
   if (!JS_DefineFunctions(cx, libraryObj, sLibraryFunctions))
-    return NULL;
+    return nullptr;
 
   if (!JSVAL_IS_STRING(path)) {
     JS_ReportError(cx, "open takes a string argument");
-    return NULL;
+    return nullptr;
   }
 
   PRLibSpec libSpec;
   RootedFlatString pathStr(cx, JS_FlattenString(cx, JSVAL_TO_STRING(path)));
   if (!pathStr)
-    return NULL;
+    return nullptr;
 #ifdef XP_WIN
-  // On Windows, converting to native charset may corrupt path string.
-  // So, we have to use Unicode path directly.
+  
+  
   const PRUnichar* pathChars = JS_GetFlatStringChars(pathStr);
   if (!pathChars)
-    return NULL;
+    return nullptr;
 
   libSpec.value.pathname_u = pathChars;
   libSpec.type = PR_LibSpec_PathnameU;
 #else
-  // Convert to platform native charset if the appropriate callback has been
-  // provided.
+  
+  
   char* pathBytes;
   if (callbacks && callbacks->unicodeToNative) {
     pathBytes = 
       callbacks->unicodeToNative(cx, pathStr->chars(), pathStr->length());
     if (!pathBytes)
-      return NULL;
+      return nullptr;
 
   } else {
-    // Fallback: assume the platform native charset is UTF-8. This is true
-    // for Mac OS X, Android, and probably Linux.
+    
+    
     size_t nbytes =
       GetDeflatedUTF8StringLength(cx, pathStr->chars(), pathStr->length());
     if (nbytes == (size_t) -1)
-      return NULL;
+      return nullptr;
 
     pathBytes = static_cast<char*>(JS_malloc(cx, nbytes + 1));
     if (!pathBytes)
-      return NULL;
+      return nullptr;
 
     ASSERT_OK(DeflateStringToUTF8Buffer(cx, pathStr->chars(),
                 pathStr->length(), pathBytes, &nbytes));
@@ -154,14 +155,14 @@ Library::Create(JSContext* cx, jsval path_, JSCTypesCallbacks* callbacks)
     JS_ReportError(cx, "couldn't open library %s", pathBytes);
     JS_free(cx, pathBytes);
 #endif
-    return NULL;
+    return nullptr;
   }
 
 #ifndef XP_WIN
   JS_free(cx, pathBytes);
 #endif
 
-  // stash the library
+  
   JS_SetReservedSlot(libraryObj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(library));
 
   return libraryObj;
@@ -236,9 +237,9 @@ Library::Close(JSContext* cx, unsigned argc, jsval* vp)
     return false;
   }
 
-  // delete our internal objects
+  
   UnloadLibrary(obj);
-  JS_SetReservedSlot(obj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(NULL));
+  JS_SetReservedSlot(obj, SLOT_LIBRARY, PRIVATE_TO_JSVAL(nullptr));
 
   JS_SET_RVAL(cx, vp, JSVAL_VOID);
   return true;
@@ -261,16 +262,16 @@ Library::Declare(JSContext* cx, unsigned argc, jsval* vp)
     return false;
   }
 
-  // We allow two API variants:
-  // 1) library.declare(name, abi, returnType, argType1, ...)
-  //    declares a function with the given properties, and resolves the symbol
-  //    address in the library.
-  // 2) library.declare(name, type)
-  //    declares a symbol of 'type', and resolves it. The object that comes
-  //    back will be of type 'type', and will point into the symbol data.
-  //    This data will be both readable and writable via the usual CData
-  //    accessors. If 'type' is a PointerType to a FunctionType, the result will
-  //    be a function pointer, as with 1). 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (argc < 2) {
     JS_ReportError(cx, "declare requires at least two arguments");
     return false;
@@ -282,23 +283,23 @@ Library::Declare(JSContext* cx, unsigned argc, jsval* vp)
     return false;
   }
 
-  RootedObject fnObj(cx, NULL);
+  RootedObject fnObj(cx, nullptr);
   RootedObject typeObj(cx);
   bool isFunction = argc > 2;
   if (isFunction) {
-    // Case 1).
-    // Create a FunctionType representing the function.
+    
+    
     fnObj = FunctionType::CreateInternal(cx,
               argv[1], argv[2], &argv[3], argc - 3);
     if (!fnObj)
       return false;
 
-    // Make a function pointer type.
+    
     typeObj = PointerType::CreateInternal(cx, fnObj);
     if (!typeObj)
       return false;
   } else {
-    // Case 2).
+    
     if (JSVAL_IS_PRIMITIVE(argv[1]) ||
         !CType::IsCType(JSVAL_TO_OBJECT(argv[1])) ||
         !CType::IsSizeDefined(JSVAL_TO_OBJECT(argv[1]))) {
@@ -318,11 +319,11 @@ Library::Declare(JSContext* cx, unsigned argc, jsval* vp)
   JSString* nameStr = JSVAL_TO_STRING(argv[0]);
   AutoCString symbol;
   if (isFunction) {
-    // Build the symbol, with mangling if necessary.
+    
     FunctionType::BuildSymbolName(nameStr, fnObj, symbol);
     AppendString(symbol, "\0");
 
-    // Look up the function symbol.
+    
     fnptr = PR_FindFunctionSymbol(library, symbol.begin());
     if (!fnptr) {
       JS_ReportError(cx, "couldn't find function symbol in library");
@@ -331,7 +332,7 @@ Library::Declare(JSContext* cx, unsigned argc, jsval* vp)
     data = &fnptr;
 
   } else {
-    // 'typeObj' is another data type. Look up the data symbol.
+    
     AppendString(symbol, nameStr);
     AppendString(symbol, "\0");
 
@@ -348,12 +349,12 @@ Library::Declare(JSContext* cx, unsigned argc, jsval* vp)
 
   JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(result));
 
-  // Seal the CData object, to prevent modification of the function pointer.
-  // This permanently associates this object with the library, and avoids
-  // having to do things like reset SLOT_REFERENT when someone tries to
-  // change the pointer value.
-  // XXX This will need to change when bug 541212 is fixed -- CData::ValueSetter
-  // could be called on a sealed object.
+  
+  
+  
+  
+  
+  
   if (isFunction && !JS_FreezeObject(cx, result))
     return false;
 

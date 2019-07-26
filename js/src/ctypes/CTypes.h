@@ -27,20 +27,20 @@ private:
   typedef AutoPtr<T> self_type;
 
 public:
-  AutoPtr() : mPtr(NULL) { }
+  AutoPtr() : mPtr(nullptr) { }
   explicit AutoPtr(T* ptr) : mPtr(ptr) { }
   ~AutoPtr() { js_delete(mPtr); }
 
   T*   operator->()         { return mPtr; }
-  bool operator!()          { return mPtr == NULL; }
+  bool operator!()          { return mPtr == nullptr; }
   T&   operator[](size_t i) { return *(mPtr + i); }
   
   
   
 
   T*   get()         { return mPtr; }
-  void set(T* other) { JS_ASSERT(mPtr == NULL); mPtr = other; }
-  T*   forget()      { T* result = mPtr; mPtr = NULL; return result; }
+  void set(T* other) { JS_ASSERT(mPtr == nullptr); mPtr = other; }
+  T*   forget()      { T* result = mPtr; mPtr = nullptr; return result; }
 
   self_type& operator=(T* rhs) { mPtr = rhs; return *this; }
 
@@ -91,7 +91,7 @@ void
 AppendString(Vector<jschar, N, AP> &v, JSString* str)
 {
   JS_ASSERT(str);
-  const jschar *chars = str->getChars(NULL);
+  const jschar *chars = str->getChars(nullptr);
   if (!chars)
     return;
   v.append(chars, str->length());
@@ -107,7 +107,7 @@ AppendString(Vector<char, N, AP> &v, JSString* str)
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(NULL);
+  const jschar *chars = str->getChars(nullptr);
   if (!chars)
     return;
 
@@ -143,7 +143,7 @@ PrependString(Vector<jschar, N, AP> &v, JSString* str)
   if (!v.resize(vlen + alen))
     return;
 
-  const jschar *chars = str->getChars(NULL);
+  const jschar *chars = str->getChars(nullptr);
   if (!chars)
     return;
 
@@ -290,8 +290,8 @@ struct ClosureInfo
   
   ClosureInfo(JSRuntime* runtime)
     : rt(runtime)
-    , errResult(NULL)
-    , closure(NULL)
+    , errResult(nullptr)
+    , closure(nullptr)
   {}
 
   ~ClosureInfo() {
