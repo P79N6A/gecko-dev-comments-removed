@@ -7,6 +7,7 @@
 #include "base/basictypes.h"
 #include "nsDOMClassInfo.h"
 #include "jsapi.h"
+#include "CameraRecorderProfiles.h"
 #include "DOMCameraControl.h"
 #include "DOMCameraCapabilities.h"
 #include "CameraCommon.h"
@@ -346,5 +347,59 @@ DOMCameraCapabilities::GetZoomRatios(JSContext* cx, JS::Value* aZoomRatios)
 NS_IMETHODIMP
 DOMCameraCapabilities::GetVideoSizes(JSContext* cx, JS::Value* aVideoSizes)
 {
-  return DimensionListToNewObject(cx, aVideoSizes, CAMERA_PARAM_SUPPORTED_VIDEOSIZES);
+  NS_ENSURE_TRUE(mCamera, NS_ERROR_NOT_AVAILABLE);
+
+  nsTArray<CameraSize> sizes;
+  nsresult rv = mCamera->GetVideoSizes(sizes);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (sizes.Length() == 0) {
+    
+    *aVideoSizes = JSVAL_NULL;
+    return NS_OK;
+  }
+
+  JSObject* array = JS_NewArrayObject(cx, 0, nullptr);
+  if (!array) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  for (uint32_t i = 0; i < sizes.Length(); ++i) {
+    JSObject* o = JS_NewObject(cx, nullptr, nullptr, nullptr);
+    jsval v = INT_TO_JSVAL(sizes[i].width);
+    if (!JS_SetProperty(cx, o, "width", &v)) {
+      return NS_ERROR_FAILURE;
+    }
+    v = INT_TO_JSVAL(sizes[i].height);
+    if (!JS_SetProperty(cx, o, "height", &v)) {
+      return NS_ERROR_FAILURE;
+    }
+
+    v = OBJECT_TO_JSVAL(o);
+    if (!JS_SetElement(cx, array, i, &v)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  *aVideoSizes = OBJECT_TO_JSVAL(array);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+DOMCameraCapabilities::GetRecorderProfiles(JSContext* cx, JS::Value* aRecorderProfiles)
+{
+  NS_ENSURE_TRUE(mCamera, NS_ERROR_NOT_AVAILABLE);
+
+  nsRefPtr<RecorderProfileManager> profileMgr = mCamera->GetRecorderProfileManager();
+  if (!profileMgr) {
+    *aRecorderProfiles = JSVAL_NULL;
+    return NS_OK;
+  }
+
+  JSObject* o = nullptr;  
+  nsresult rv = profileMgr->GetJsObject(cx, &o);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *aRecorderProfiles = OBJECT_TO_JSVAL(o);
+  return NS_OK;
 }
