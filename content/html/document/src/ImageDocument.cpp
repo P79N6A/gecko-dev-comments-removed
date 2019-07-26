@@ -41,6 +41,7 @@
 #include "nsIScrollableFrame.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/Preferences.h"
 #include <algorithm>
 
@@ -110,11 +111,28 @@ protected:
 
   void UpdateTitleAndCharset();
 
-  nsresult ScrollImageTo(int32_t aX, int32_t aY, bool restoreImage);
+  enum eScaleOptions {
+    eDevicePixelScale,
+    eCSSPixelScale
+  };
+  nsresult ScrollImageTo(int32_t aX, int32_t aY, eScaleOptions aScaleOption);
 
-  float GetRatio() {
+  float GetDevicePixelSizeInCSSPixels() {
+    nsIPresShell *shell = GetShell();
+    if (!shell) {
+      return 1.0f;
+    }
+    return shell->GetPresContext()->DevPixelsToFloatCSSPixels(1);
+  }
+
+  float GetShrinkToFitRatio() {
     return std::min(mVisibleWidth / mImageWidth,
                     mVisibleHeight / mImageHeight);
+  }
+
+  float GetCurrentRatio() {
+    return mImageIsScaledToDevicePixels ? GetDevicePixelSizeInCSSPixels() :
+           mImageIsResized ? GetShrinkToFitRatio() : 1.0f;
   }
 
   void ResetZoomLevel();
@@ -123,6 +141,7 @@ protected:
   enum eModeClasses {
     eNone,
     eShrinkToFit,
+    eScaleToDevicePixels,
     eOverflowing
   };
   void SetModeClass(eModeClasses mode);
@@ -141,7 +160,11 @@ protected:
   bool                          mClickResizingEnabled;
   bool                          mImageIsOverflowing;
   
+  
+  
+  
   bool                          mImageIsResized;
+  bool                          mImageIsScaledToDevicePixels;
   
   
   
@@ -396,6 +419,13 @@ ImageDocument::GetImageIsResized(bool* aImageIsResized)
 }
 
 NS_IMETHODIMP
+ImageDocument::GetImageIsScaledToDevicePixels(bool* aImageIsScaledToDevPix)
+{
+  *aImageIsScaledToDevPix = mImageIsScaledToDevicePixels;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ImageDocument::GetImageRequest(imgIRequest** aImageRequest)
 {
   nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mImageContent);
@@ -422,17 +452,13 @@ ImageDocument::ShrinkToFit()
   
   nsCOMPtr<nsIContent> imageContent = mImageContent;
   nsCOMPtr<nsIDOMHTMLImageElement> image = do_QueryInterface(mImageContent);
-  image->SetWidth(std::max(1, NSToCoordFloor(GetRatio() * mImageWidth)));
-  image->SetHeight(std::max(1, NSToCoordFloor(GetRatio() * mImageHeight)));
-  
-  
-  
-  (void) ScrollImageTo(0, 0, false);
+  image->SetWidth(std::max(1, NSToCoordFloor(GetShrinkToFitRatio() * mImageWidth)));
+  image->SetHeight(std::max(1, NSToCoordFloor(GetShrinkToFitRatio() * mImageHeight)));
 
   SetModeClass(eShrinkToFit);
-  
+
   mImageIsResized = true;
-  
+
   UpdateTitleAndCharset();
 
   return NS_OK;
@@ -441,31 +467,82 @@ ImageDocument::ShrinkToFit()
 NS_IMETHODIMP
 ImageDocument::RestoreImageTo(int32_t aX, int32_t aY)
 {
-  return ScrollImageTo(aX, aY, true);
+  return ScrollImageTo(aX, aY, eCSSPixelScale);
+}
+
+NS_IMETHODIMP
+ImageDocument::ScaleToDevicePixelsTo(int32_t aX, int32_t aY)
+{
+  return ScrollImageTo(aX, aY, eDevicePixelScale);
 }
 
 nsresult
-ImageDocument::ScrollImageTo(int32_t aX, int32_t aY, bool restoreImage)
+ImageDocument::ScrollImageTo(int32_t aX, int32_t aY,
+                             eScaleOptions aScaleOption)
 {
-  float ratio = GetRatio();
-
-  if (restoreImage) {
-    RestoreImage();
-    FlushPendingNotifications(Flush_Layout);
-  }
+  
+  
+  
 
   nsIPresShell *shell = GetShell();
-  if (!shell)
+  if (!shell) {
     return NS_OK;
+  }
 
   nsIScrollableFrame* sf = shell->GetRootScrollFrameAsScrollable();
-  if (!sf)
+  if (!sf) {
     return NS_OK;
+  }
 
-  nsRect portRect = sf->GetScrollPortRect();
-  sf->ScrollTo(nsPoint(nsPresContext::CSSPixelsToAppUnits(aX/ratio) - portRect.width/2,
-                       nsPresContext::CSSPixelsToAppUnits(aY/ratio) - portRect.height/2),
-               nsIScrollableFrame::INSTANT);
+  
+  
+  float ratio = GetCurrentRatio();
+  float imageX = aX / ratio;
+  float imageY = aY / ratio;
+
+  
+  
+  
+  nsRefPtr<nsClientRect> clientRect =
+    mImageContent->AsElement()->GetBoundingClientRect();
+  float origLeft = clientRect->Left();
+  float origTop = clientRect->Top();
+
+  
+  switch (aScaleOption) {
+  case eDevicePixelScale:
+    ScaleToDevicePixels();
+    break;
+  case eCSSPixelScale:
+    RestoreImage();
+    break;
+  }
+  FlushPendingNotifications(Flush_Layout);
+
+  nsPoint scroll = sf->GetScrollPosition();
+
+  
+  
+  clientRect = mImageContent->AsElement()->GetBoundingClientRect();
+  float clientLeft = clientRect->Left();
+  float clientTop = clientRect->Top();
+  ratio = GetCurrentRatio();
+
+  
+  
+  
+  scroll.x +=
+    nsPresContext::CSSPixelsToAppUnits((clientLeft + imageX * ratio) -
+                                       (origLeft + aX));
+  scroll.y +=
+    nsPresContext::CSSPixelsToAppUnits((clientTop + imageY * ratio) -
+                                       (origTop + aY));
+
+  
+  
+  
+  sf->ScrollTo(scroll, nsIScrollableFrame::INSTANT);
+
   return NS_OK;
 }
 
@@ -479,20 +556,52 @@ ImageDocument::RestoreImage()
   nsCOMPtr<nsIContent> imageContent = mImageContent;
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::width, true);
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::height, true);
+
   
-  if (mImageIsOverflowing) {
+  
+  
+  if (mImageIsOverflowing || GetDevicePixelSizeInCSSPixels() < 1.0f) {
     SetModeClass(eOverflowing);
   }
   else {
     SetModeClass(eNone);
   }
-  
+
   mImageIsResized = false;
-  
+  mImageIsScaledToDevicePixels = false;
+
   UpdateTitleAndCharset();
 
   return NS_OK;
 }
+
+NS_IMETHODIMP
+ImageDocument::ScaleToDevicePixels()
+{
+  if (!mImageContent) {
+    return NS_OK;
+  }
+
+  float ratio = GetDevicePixelSizeInCSSPixels();
+  if (ratio == 1.0f) {
+    
+    return RestoreImage();
+  }
+
+  nsCOMPtr<nsIDOMHTMLImageElement> image = do_QueryInterface(mImageContent);
+  image->SetWidth(std::max(1, NSToCoordFloor(ratio * mImageWidth)));
+  image->SetHeight(std::max(1, NSToCoordFloor(ratio * mImageHeight)));
+
+  SetModeClass(eScaleToDevicePixels);
+
+  mImageIsResized = false;
+  mImageIsScaledToDevicePixels = true;
+
+  UpdateTitleAndCharset();
+
+  return NS_OK;
+}
+
 
 NS_IMETHODIMP
 ImageDocument::ToggleImageSize()
@@ -502,8 +611,7 @@ ImageDocument::ToggleImageSize()
     mShouldResize = false;
     ResetZoomLevel();
     RestoreImage();
-  }
-  else if (mImageIsOverflowing) {
+  } else if (mImageIsOverflowing) {
     ResetZoomLevel();
     ShrinkToFit();
   }
@@ -564,6 +672,12 @@ ImageDocument::SetModeClass(eModeClasses mode)
     classList->Remove(NS_LITERAL_STRING("shrinkToFit"), rv);
   }
 
+  if (mode == eScaleToDevicePixels) {
+    classList->Add(NS_LITERAL_STRING("scaleToDevicePixels"), rv);
+  } else {
+    classList->Remove(NS_LITERAL_STRING("scaleToDevicePixels"), rv);
+  }
+
   if (mode == eOverflowing) {
     classList->Add(NS_LITERAL_STRING("overflowing"), rv);
   } else {
@@ -614,29 +728,75 @@ ImageDocument::HandleEvent(nsIDOMEvent* aEvent)
   aEvent->GetType(eventType);
   if (eventType.EqualsLiteral("resize")) {
     CheckOverflowing(false);
+    return NS_OK;
   }
-  else if (eventType.EqualsLiteral("click") && mClickResizingEnabled) {
+
+  if (eventType.EqualsLiteral("click") && mClickResizingEnabled) {
     ResetZoomLevel();
     mShouldResize = true;
-    if (mImageIsResized) {
-      int32_t x = 0, y = 0;
-      nsCOMPtr<nsIDOMMouseEvent> event(do_QueryInterface(aEvent));
-      if (event) {
-        event->GetClientX(&x);
-        event->GetClientY(&y);
-        int32_t left = 0, top = 0;
-        nsCOMPtr<nsIDOMHTMLElement> htmlElement =
-          do_QueryInterface(mImageContent);
-        htmlElement->GetOffsetLeft(&left);
-        htmlElement->GetOffsetTop(&top);
-        x -= left;
-        y -= top;
-      }
-      mShouldResize = false;
-      RestoreImageTo(x, y);
+
+    float devPixelRatio = GetDevicePixelSizeInCSSPixels();
+    float shrinkToFitRatio = GetShrinkToFitRatio();
+
+    
+    
+    int32_t x = 0, y = 0;
+    nsCOMPtr<nsIDOMMouseEvent> event(do_QueryInterface(aEvent));
+    if (event) {
+      event->GetClientX(&x);
+      event->GetClientY(&y);
+      
+      
+      nsRefPtr<nsClientRect> clientRect =
+        mImageContent->AsElement()->GetBoundingClientRect();
+      x -= NSToIntRound(clientRect->Left());
+      y -= NSToIntRound(clientRect->Top());
     }
-    else if (mImageIsOverflowing) {
-      ShrinkToFit();
+
+    if (mImageIsResized || mImageIsScaledToDevicePixels) {
+      
+      if (devPixelRatio == 1.0f) {
+        RestoreImageTo(x, y);
+        mShouldResize = false;
+        return NS_OK;
+      }
+
+      if (mImageIsResized) {
+        
+        
+        
+        if (devPixelRatio > shrinkToFitRatio) {
+          ScaleToDevicePixelsTo(x, y);
+        } else {
+          RestoreImageTo(x, y);
+        }
+        mShouldResize = false;
+      } else {
+        if (shrinkToFitRatio > devPixelRatio && shrinkToFitRatio < 1.0f) {
+          ShrinkToFit();
+        } else {
+          RestoreImageTo(x, y);
+          mShouldResize = false;
+        }
+      }
+      return NS_OK;
+    }
+
+    if (mImageIsOverflowing) {
+      
+      
+      if (devPixelRatio < shrinkToFitRatio) {
+        ScaleToDevicePixelsTo(x, y);
+        mShouldResize = false;
+      } else {
+        ShrinkToFit();
+      }
+      return NS_OK;
+    }
+
+    if (devPixelRatio != 1.0f) {
+      ScaleToDevicePixelsTo(x, y);
+      mShouldResize = false;
     }
   }
 
@@ -792,9 +952,9 @@ ImageDocument::UpdateTitleAndCharset()
   }
 
   nsXPIDLString status;
-  if (mImageIsResized) {
+  if (mImageIsResized || mImageIsScaledToDevicePixels) {
     nsAutoString ratioStr;
-    ratioStr.AppendInt(NSToCoordFloor(GetRatio() * 100));
+    ratioStr.AppendInt(NSToCoordFloor(GetCurrentRatio() * 100));
 
     const PRUnichar* formatString[1] = { ratioStr.get() };
     mStringBundle->FormatStringFromName(NS_LITERAL_STRING("ScaledImage").get(),
