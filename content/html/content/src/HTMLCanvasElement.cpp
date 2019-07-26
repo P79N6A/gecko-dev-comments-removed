@@ -476,48 +476,6 @@ HTMLCanvasElement::ExtractData(const nsAString& aType,
 }
 
 nsresult
-HTMLCanvasElement::ParseParams(JSContext* aCx,
-                               const nsAString& aType,
-                               const JS::Value& aEncoderOptions,
-                               nsAString& aParams,
-                               bool* usingCustomParseOptions)
-{
-  
-  if (aType.EqualsLiteral("image/jpeg")) {
-    if (aEncoderOptions.isNumber()) {
-      double quality = aEncoderOptions.toNumber();
-      
-      if (quality >= 0.0 && quality <= 1.0) {
-        aParams.AppendLiteral("quality=");
-        aParams.AppendInt(NS_lround(quality * 100.0));
-      }
-    }
-  }
-
-  
-  
-  
-  *usingCustomParseOptions = false;
-  if (aParams.Length() == 0 && aEncoderOptions.isString()) {
-    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
-    nsDependentJSString paramString;
-    if (!paramString.init(aCx, aEncoderOptions.toString())) {
-      return NS_ERROR_FAILURE;
-    }
-    if (StringBeginsWith(paramString, mozParseOptions)) {
-      nsDependentSubstring parseOptions = Substring(paramString,
-                                                    mozParseOptions.Length(),
-                                                    paramString.Length() -
-                                                    mozParseOptions.Length());
-      aParams.Append(parseOptions);
-      *usingCustomParseOptions = true;
-    }
-  }
-
-  return NS_OK;
-}
-
-nsresult
 HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
                                  const nsAString& aMimeType,
                                  const JS::Value& aEncoderOptions,
@@ -538,10 +496,37 @@ HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
   }
 
   nsAutoString params;
-  bool usingCustomParseOptions;
-  rv = ParseParams(aCx, type, aEncoderOptions, params, &usingCustomParseOptions);
-  if (NS_FAILED(rv)) {
-    return rv;
+
+  
+  if (type.EqualsLiteral("image/jpeg")) {
+    if (aEncoderOptions.isNumber()) {
+      double quality = aEncoderOptions.toNumber();
+      
+      if (quality >= 0.0 && quality <= 1.0) {
+        params.AppendLiteral("quality=");
+        params.AppendInt(NS_lround(quality * 100.0));
+      }
+    }
+  }
+
+  
+  
+  
+  bool usingCustomParseOptions = false;
+  if (params.Length() == 0 && aEncoderOptions.isString()) {
+    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
+    nsDependentJSString paramString;
+    if (!paramString.init(aCx, aEncoderOptions.toString())) {
+      return NS_ERROR_FAILURE;
+    }
+    if (StringBeginsWith(paramString, mozParseOptions)) {
+      nsDependentSubstring parseOptions = Substring(paramString,
+                                                    mozParseOptions.Length(),
+                                                    paramString.Length() -
+                                                    mozParseOptions.Length());
+      params.Append(parseOptions);
+      usingCustomParseOptions = true;
+    }
   }
 
   nsCOMPtr<nsIInputStream> stream;
@@ -574,9 +559,7 @@ HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
 
 NS_IMETHODIMP
 HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
-                          const nsAString& aType,
-                          const JS::Value& aEncoderOptions,
-                          JSContext* aCx)
+                          const nsAString& aType)
 {
   
   if (mWriteOnly && !nsContentUtils::IsCallerChrome()) {
@@ -593,24 +576,10 @@ HTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
     return rv;
   }
 
-  nsAutoString params;
-  bool usingCustomParseOptions;
-  rv = ParseParams(aCx, type, aEncoderOptions, params, &usingCustomParseOptions);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
   bool fallbackToPNG = false;
 
   nsCOMPtr<nsIInputStream> stream;
-  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
-  
-  
-  if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
-    fallbackToPNG = false;
-    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
-  }
-
+  rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (fallbackToPNG) {
