@@ -12,6 +12,12 @@ public class testAboutPage extends PixelTest {
         return TEST_MOCHITEST;
     }
 
+    private void ensureTitleMatches(final String regex) {
+        Element urlBarTitle = mDriver.findElement(getActivity(), URL_BAR_TITLE_ID);
+        mAsserter.isnot(urlBarTitle, null, "Got the URL bar title");
+        assertMatches(urlBarTitle.getText(), regex, "page title match");
+    }
+
     public void testAboutPage() {
         blockForGeckoReady();
 
@@ -19,13 +25,14 @@ public class testAboutPage extends PixelTest {
         String url = "about:";
         loadAndPaint(url);
 
-        Element urlBarTitle = mDriver.findElement(getActivity(), URL_BAR_TITLE_ID);
-        mAsserter.isnot(urlBarTitle, null, "Got the URL bar title");
-        assertMatches(urlBarTitle.getText(), "About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)", "page title match");
+        ensureTitleMatches("About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)");
 
         
         url = getAbsoluteUrl("/robocop/robocop_blank_01.html");
         inputAndLoadUrl(url);
+
+        
+        ensureTitleMatches("Browser Blank Page 01");
 
         
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
@@ -41,8 +48,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         
-        urlBarTitle = mDriver.findElement(getActivity(), URL_BAR_TITLE_ID);
-        mAsserter.isnot(urlBarTitle, null, "Got the URL bar title");
-        assertMatches(urlBarTitle.getText(), "About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)", "page title match");
+        ensureTitleMatches("About (Fennec|Nightly|Aurora|Firefox|Firefox Beta)");
     }
 }
