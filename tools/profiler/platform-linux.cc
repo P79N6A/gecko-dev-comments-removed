@@ -588,8 +588,19 @@ void TickSample::PopulateContext(void* aContext)
   }
 }
 
+
 void OS::SleepMicro(int microseconds)
 {
-  usleep(microseconds);
+  struct timespec ts;
+  ts.tv_sec  = 0;
+  ts.tv_nsec = microseconds * 1000UL;
+
+  while (true) {
+    
+    
+    if (!nanosleep(&ts, &ts) || errno != EINTR) {
+      return;
+    }
+  }
 }
 
