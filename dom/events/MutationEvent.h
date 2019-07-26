@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsDOMMutationEvent_h__
-#define nsDOMMutationEvent_h__
+#ifndef mozilla_dom_MutationEvent_h_
+#define mozilla_dom_MutationEvent_h_
 
 #include "nsIDOMMutationEvent.h"
 #include "nsINode.h"
@@ -12,13 +12,16 @@
 #include "mozilla/dom/MutationEventBinding.h"
 #include "mozilla/EventForwards.h"
 
-class nsDOMMutationEvent : public nsDOMEvent,
-                           public nsIDOMMutationEvent
+namespace mozilla {
+namespace dom {
+
+class MutationEvent : public nsDOMEvent,
+                      public nsIDOMMutationEvent
 {
 public:
-  nsDOMMutationEvent(mozilla::dom::EventTarget* aOwner,
-                     nsPresContext* aPresContext,
-                     mozilla::InternalMutationEvent* aEvent);
+  MutationEvent(EventTarget* aOwner,
+                nsPresContext* aPresContext,
+                InternalMutationEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -30,7 +33,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
-    return mozilla::dom::MutationEventBinding::Wrap(aCx, aScope, this);
+    return MutationEventBinding::Wrap(aCx, aScope, this);
   }
 
   
@@ -48,12 +51,15 @@ public:
                          const nsAString& aPrevValue,
                          const nsAString& aNewValue,
                          const nsAString& aAttrName,
-                         uint16_t& aAttrChange, mozilla::ErrorResult& aRv)
+                         uint16_t& aAttrChange, ErrorResult& aRv)
   {
     aRv = InitMutationEvent(aType, aCanBubble, aCancelable,
                             aRelatedNode ? aRelatedNode->AsDOMNode() : nullptr,
                             aPrevValue, aNewValue, aAttrName, aAttrChange);
   }
 };
+
+} 
+} 
 
 #endif 
