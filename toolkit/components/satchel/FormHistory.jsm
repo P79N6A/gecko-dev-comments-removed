@@ -903,6 +903,7 @@ this.FormHistory = {
       }
 
       numSearches++;
+      let changeToUpdate = change;
       FormHistory.search(
         [ "guid" ],
         {
@@ -926,7 +927,7 @@ this.FormHistory = {
             }
 
             this.foundResult = true;
-            change.guid = aResult["guid"];
+            changeToUpdate.guid = aResult["guid"];
           },
 
           handleError : function(aError) {
