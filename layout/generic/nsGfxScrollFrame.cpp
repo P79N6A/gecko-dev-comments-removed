@@ -2183,7 +2183,7 @@ void
 ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
                                            const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists,
-                                           bool&                   aCreateLayer,
+                                           bool                    aCreateLayer,
                                            bool                    aPositioned)
 {
   nsITheme* theme = mOuter->PresContext()->GetTheme();
@@ -2475,16 +2475,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
                                      aDirtyRect, aLists);
 
-#ifdef MOZ_WIDGET_GONK
-    
-    
-    
-    createLayersForScrollbars = true;
-#endif
     if (addScrollBars) {
       
-      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
-                          true);
+      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, true, true);
     }
 
     return;
@@ -2685,14 +2678,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     scrolledContent.BorderBackground()->AppendNewToBottom(layerItem);
   }
   
-#ifdef MOZ_WIDGET_GONK
   
   
-  
-  createLayersForScrollbars = true;
-#endif
-  AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent,
-                      createLayersForScrollbars, true);
+  AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent, true, true);
   scrolledContent.MoveTo(aLists);
 }
 
