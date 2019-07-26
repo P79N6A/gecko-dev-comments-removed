@@ -126,7 +126,7 @@ let gUpdater = {
 
 
   _removeLegacySites: function Updater_removeLegacySites(aSites, aCallback) {
-    let batch = new Batch(aCallback);
+    let batch = [];
 
     
     gGrid.sites.forEach(function (aSite) {
@@ -134,7 +134,8 @@ let gUpdater = {
       if (!aSite || aSites.indexOf(aSite) != -1)
         return;
 
-      batch.push();
+      let deferred = Promise.defer();
+      batch.push(deferred.promise);
 
       
       gTransformation.hideSite(aSite, function () {
@@ -142,11 +143,12 @@ let gUpdater = {
 
         
         node.parentNode.removeChild(node);
-        batch.pop();
+        deferred.resolve();
       });
     });
 
-    batch.close();
+    let wait = Promise.promised(aCallback);
+    wait.apply(null, batch);
   },
 
   
@@ -156,14 +158,15 @@ let gUpdater = {
 
   _fillEmptyCells: function Updater_fillEmptyCells(aLinks, aCallback) {
     let {cells, sites} = gGrid;
-    let batch = new Batch(aCallback);
+    let batch = [];
 
     
     sites.forEach(function (aSite, aIndex) {
       if (aSite || !aLinks[aIndex])
         return;
 
-      batch.push();
+      let deferred = Promise.defer();
+      batch.push(deferred.promise);
 
       
       let site = gGrid.createSite(aLinks[aIndex], cells[aIndex]);
@@ -174,9 +177,10 @@ let gUpdater = {
       
       
       window.getComputedStyle(site.node).opacity;
-      gTransformation.showSite(site, function () batch.pop());
+      gTransformation.showSite(site, function () deferred.resolve());
     });
 
-    batch.close();
+    let wait = Promise.promised(aCallback);
+    wait.apply(null, batch);
   }
 };

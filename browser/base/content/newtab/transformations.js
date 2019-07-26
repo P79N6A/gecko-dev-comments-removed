@@ -169,37 +169,33 @@ let gTransformation = {
 
 
   rearrangeSites: function Transformation_rearrangeSites(aSites, aOptions) {
-    let batch;
+    let batch = [];
     let cells = gGrid.cells;
     let callback = aOptions && aOptions.callback;
     let unfreeze = aOptions && aOptions.unfreeze;
-
-    if (callback) {
-      batch = new Batch(callback);
-      callback = function () batch.pop();
-    }
 
     aSites.forEach(function (aSite, aIndex) {
       
       if (!aSite || aSite == gDrag.draggedSite)
         return;
 
-      if (batch)
-        batch.push();
+      let deferred = Promise.defer();
+      batch.push(deferred.promise);
+      let cb = function () deferred.resolve();
 
       if (!cells[aIndex])
         
-        this.hideSite(aSite, callback);
+        this.hideSite(aSite, cb);
       else if (this._getNodeOpacity(aSite.node) != 1)
         
-        this.showSite(aSite, callback);
+        this.showSite(aSite, cb);
       else
         
-        this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: callback});
+        this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: cb});
     }, this);
 
-    if (batch)
-      batch.close();
+    let wait = Promise.promised(function () callback && callback());
+    wait.apply(null, batch);
   },
 
   
