@@ -212,52 +212,44 @@ LIRGenerator::visitCall(MCall *call)
 
     
     uint32 argslot = getArgumentSlotForCall();
+    freeArguments(call->numStackArgs());
+
     JSFunction *target = call->getSingleTarget();
 
-    if (target && target->isNative()) {
-        if (call->isDOMFunction()) {
-            LCallDOMNative *lir = new LCallDOMNative(argslot,
-                                                     tempFixed(CallTempReg0),
-                                                     tempFixed(CallTempReg1),
-                                                     tempFixed(CallTempReg2),
-                                                     tempFixed(CallTempReg3),
-                                                     tempFixed(CallTempReg4));
-            if (!defineReturn(lir, call))
-                return false;
-            if (!assignSafepoint(lir, call))
-                return false;
-        } else {
+    
+    if (call->isDOMFunction()) {
+        JS_ASSERT(target && target->isNative());
+        LCallDOMNative *lir = new LCallDOMNative(argslot, tempFixed(CallTempReg0),
+                                                 tempFixed(CallTempReg1), tempFixed(CallTempReg2),
+                                                 tempFixed(CallTempReg3), tempFixed(CallTempReg4));
+        return (defineReturn(lir, call) && assignSafepoint(lir, call));
+    }
+
+    
+    if (target) {
+        if (target->isNative()) {
             LCallNative *lir = new LCallNative(argslot, tempFixed(CallTempReg0),
                                                tempFixed(CallTempReg1), tempFixed(CallTempReg2),
                                                tempFixed(CallTempReg3));
-            if (!defineReturn(lir, call))
-                return false;
-            if (!assignSafepoint(lir, call))
-                return false;
+            return (defineReturn(lir, call) && assignSafepoint(lir, call));
         }
-    } else if (!target && call->isConstructing()) {
-        LCallConstructor *lir = new LCallConstructor(useFixed(call->getFunction(), CallTempReg0),
-                                                       argslot);
-        if (!defineVMReturn(lir, call))
-            return false;
-        if (!assignSafepoint(lir, call))
-            return false;
-    } else {
-        LCallGeneric *lir = new LCallGeneric(useFixed(call->getFunction(), CallTempReg0),
-            argslot, tempFixed(ArgumentsRectifierReg), tempFixed(CallTempReg2));
 
-        
-        if (!target && !assignSnapshot(lir))
-            return false;
-
-        if (!defineReturn(lir, call))
-            return false;
-        if (!assignSafepoint(lir, call))
-            return false;
+        LCallKnown *lir = new LCallKnown(useFixed(call->getFunction(), CallTempReg0),
+                                         argslot, tempFixed(CallTempReg2));
+        return (defineReturn(lir, call) && assignSafepoint(lir, call));
     }
 
-    freeArguments(call->numStackArgs());
-    return true;
+    
+    if (call->isConstructing()) {
+        LCallConstructor *lir = new LCallConstructor(useFixed(call->getFunction(),
+                                                     CallTempReg0), argslot);
+        return (defineVMReturn(lir, call) && assignSafepoint(lir, call));
+    }
+
+    
+    LCallGeneric *lir = new LCallGeneric(useFixed(call->getFunction(), CallTempReg0),
+        argslot, tempFixed(ArgumentsRectifierReg), tempFixed(CallTempReg2));
+    return (assignSnapshot(lir) && defineReturn(lir, call) && assignSafepoint(lir, call));
 }
 
 bool

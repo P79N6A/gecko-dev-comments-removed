@@ -471,7 +471,7 @@ CodeGenerator::visitMonitorTypes(LMonitorTypes *lir)
 bool
 CodeGenerator::visitCallNative(LCallNative *call)
 {
-    JSFunction *target = call->function();
+    JSFunction *target = call->getSingleTarget();
     JS_ASSERT(target);
     JS_ASSERT(target->isNative());
 
@@ -554,7 +554,7 @@ CodeGenerator::visitCallNative(LCallNative *call)
 bool
 CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
 {
-    JSFunction *target = call->func();
+    JSFunction *target = call->getSingleTarget();
     JS_ASSERT(target);
     JS_ASSERT(target->isNative());
     JS_ASSERT(target->jitInfo());
@@ -654,7 +654,8 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
 
 
 bool
-CodeGenerator::emitCallInvokeFunction(LCallGeneric *call, uint32 unusedStack)
+CodeGenerator::emitCallInvokeFunction(LInstruction *call, Register calleereg,
+                                      uint32 argc, uint32 unusedStack)
 {
     typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
     static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
@@ -663,79 +664,52 @@ CodeGenerator::emitCallInvokeFunction(LCallGeneric *call, uint32 unusedStack)
     
     masm.freeStack(unusedStack);
 
-    pushArg(StackPointer);                    
-    pushArg(Imm32(call->numActualArgs()));    
-    pushArg(ToRegister(call->getFunction())); 
+    pushArg(StackPointer); 
+    pushArg(Imm32(argc));  
+    pushArg(calleereg);    
 
     if (!callVM(InvokeFunctionInfo, call))
         return false;
 
     
     masm.reserveStack(unusedStack);
-
     return true;
 }
 
 bool
 CodeGenerator::visitCallGeneric(LCallGeneric *call)
 {
-    
-    const LAllocation *callee = call->getFunction();
-    Register calleereg = ToRegister(callee);
+    Register calleereg = ToRegister(call->getFunction());
+    Register objreg    = ToRegister(call->getTempObject());
+    Register nargsreg  = ToRegister(call->getNargsReg());
+    uint32 unusedStack = StackOffsetOfPassedArg(call->argslot());
+    Label invoke, thunk, makeCall, end;
 
     
-    const LAllocation *obj = call->getTempObject();
-    Register objreg = ToRegister(obj);
+    JS_ASSERT(!call->hasSingleTarget());
+    
+    JS_ASSERT(!call->mir()->isConstructing());
 
     
-    const LAllocation *nargs = call->getNargsReg();
-    Register nargsreg = ToRegister(nargs);
-
-    uint32 callargslot = call->argslot();
-    uint32 unusedStack = StackOffsetOfPassedArg(callargslot);
+    IonCompartment *ion = gen->ionCompartment();
+    IonCode *argumentsRectifier = ion->getArgumentsRectifier(GetIonContext()->cx);
+    if (!argumentsRectifier)
+        return false;
 
     masm.checkStackAlignment();
 
     
-    if (!call->hasSingleTarget()) {
-        masm.loadObjClass(calleereg, nargsreg);
-        masm.cmpPtr(nargsreg, ImmWord(&js::FunctionClass));
-        if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
-            return false;
-    }
-
-    
-    if (call->hasSingleTarget() &&
-        call->getSingleTarget()->script()->ion == ION_DISABLED_SCRIPT)
-    {
-        if (!emitCallInvokeFunction(call, unusedStack))
-            return false;
-
-        if (call->mir()->isConstructing()) {
-            Label notPrimitive;
-            masm.branchTestPrimitive(Assembler::NotEqual, JSReturnOperand, &notPrimitive);
-            masm.loadValue(Address(StackPointer, unusedStack), JSReturnOperand);
-            masm.bind(&notPrimitive);
-        }
-
-        dropArguments(call->numStackArgs() + 1);
-        return true;
-    }
-
-    Label end, invoke;
+    masm.loadObjClass(calleereg, nargsreg);
+    masm.cmpPtr(nargsreg, ImmWord(&js::FunctionClass));
+    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
+        return false;
 
     
     
     
-    if (!call->hasSingleTarget()) {
-        Address flags(calleereg, offsetof(JSFunction, flags));
-        masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_INTERPRETED), nargsreg);
-        masm.branch32(Assembler::NotEqual, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
-    } else {
-        
-        JS_ASSERT(!call->getSingleTarget()->isNative());
-    }
-
+    Address flags(calleereg, offsetof(JSFunction, flags));
+    masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_INTERPRETED), nargsreg);
+    masm.branch32(Assembler::NotEqual, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
 
     
     masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
@@ -753,65 +727,113 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.Push(calleereg);
     masm.Push(Imm32(descriptor));
 
-    Label thunk, rejoin;
-
-    if (call->hasSingleTarget()) {
-        
-        JS_ASSERT(call->getSingleTarget()->nargs <= call->numStackArgs());
-    } else {
-        
-        masm.load16ZeroExtend(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
-        masm.cmp32(nargsreg, Imm32(call->numStackArgs()));
-        masm.j(Assembler::Above, &thunk);
-    }
+    
+    masm.load16ZeroExtend(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
+    masm.cmp32(nargsreg, Imm32(call->numStackArgs()));
+    masm.j(Assembler::Above, &thunk);
 
     
+    masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+    masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+    masm.jump(&makeCall);
+
+    
+    masm.bind(&thunk);
     {
-        masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+        JS_ASSERT(ArgumentsRectifierReg != objreg);
+        masm.movePtr(ImmGCPtr(argumentsRectifier), objreg); 
         masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+        masm.move32(Imm32(call->numStackArgs()), ArgumentsRectifierReg);
     }
-
-    Label afterCall;
 
     
-    if (!call->hasSingleTarget()) {
-        
-        masm.jump(&rejoin);
-        masm.bind(&thunk);
+    masm.bind(&makeCall);
+    masm.callIon(objreg);
+    if (!markSafepoint(call))
+        return false;
 
-        
-        IonCompartment *ion = gen->ionCompartment();
-        IonCode *argumentsRectifier = ion->getArgumentsRectifier(GetIonContext()->cx);
-        if (!argumentsRectifier)
+    
+    
+    int prefixGarbage = sizeof(IonJSFrameLayout) - sizeof(void *);
+    masm.adjustStack(prefixGarbage - unusedStack);
+    masm.jump(&end);
+
+    
+    masm.bind(&invoke);
+    if (!emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack))
+        return false;
+
+    masm.bind(&end);
+    dropArguments(call->numStackArgs() + 1);
+    return true;
+}
+
+bool
+CodeGenerator::visitCallKnown(LCallKnown *call)
+{
+    Register calleereg = ToRegister(call->getFunction());
+    Register objreg    = ToRegister(call->getTempObject());
+    uint32 unusedStack = StackOffsetOfPassedArg(call->argslot());
+    JSFunction *target = call->getSingleTarget();
+    Label end, invoke;
+
+    
+    JS_ASSERT(!target->isNative());
+    
+    JS_ASSERT(target->nargs <= call->numStackArgs());
+
+    masm.checkStackAlignment();
+
+    
+    if (target->script()->ion == ION_DISABLED_SCRIPT) {
+        if (!emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack))
             return false;
 
-        JS_ASSERT(ArgumentsRectifierReg != objreg);
-        masm.move32(Imm32(call->numStackArgs()), ArgumentsRectifierReg);
-        masm.call(argumentsRectifier);
-        if (!markSafepoint(call))
-            return false;
-        masm.jump(&afterCall);
+        if (call->mir()->isConstructing()) {
+            Label notPrimitive;
+            masm.branchTestPrimitive(Assembler::NotEqual, JSReturnOperand, &notPrimitive);
+            masm.loadValue(Address(StackPointer, unusedStack), JSReturnOperand);
+            masm.bind(&notPrimitive);
+        }
+
+        dropArguments(call->numStackArgs() + 1);
+        return true;
     }
 
-    masm.bind(&rejoin);
+    
+    masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.movePtr(Address(objreg, offsetof(JSScript, ion)), objreg);
+
+    
+    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_COMPILING_SCRIPT), &invoke);
+
+    
+    masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+    masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+
+    
+    masm.freeStack(unusedStack);
+
+    
+    uint32 descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_JS);
+    masm.Push(Imm32(call->numActualArgs()));
+    masm.Push(calleereg);
+    masm.Push(Imm32(descriptor));
 
     
     masm.callIon(objreg);
     if (!markSafepoint(call))
         return false;
 
-    masm.bind(&afterCall);
-
     
     
     int prefixGarbage = sizeof(IonJSFrameLayout) - sizeof(void *);
     masm.adjustStack(prefixGarbage - unusedStack);
-
     masm.jump(&end);
 
     
     masm.bind(&invoke);
-    if (!emitCallInvokeFunction(call, unusedStack))
+    if (!emitCallInvokeFunction(call, calleereg, call->numActualArgs(), unusedStack))
         return false;
 
     masm.bind(&end);
