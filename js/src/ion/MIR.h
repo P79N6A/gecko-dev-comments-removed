@@ -4949,6 +4949,8 @@ class MLoadTypedArrayElement
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::TypedArrayElement);
     }
+
+    void computeRange();
 };
 
 
