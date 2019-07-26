@@ -47,15 +47,15 @@ function test_black_box()
   );
 
   Components.utils.evalInSandbox(
-    "" + function runTest() { 
-      doStuff(                
-        function (n) {        
-          debugger;           
-        }                     
-      );                      
-    }                         
-    + "\ndebugger;\n"         
-    + "runTest()",            
+    "" + function runTest() {                   
+      doStuff(                                  
+        function (n) {                          
+          debugger;                             
+        }                                       
+      );                                        
+    }                                           
+    + "\ndebugger;\n"                           
+    + "try { runTest() } catch (ex) { }",       
     gDebuggee,
     "1.8",
     SOURCE_URL,

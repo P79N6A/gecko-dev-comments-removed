@@ -71,20 +71,20 @@ function test_simple_stepping()
   });
 
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +
-                 "function f() {\n" + 
-                 "  debugger;\n" +    
-                 "  var a = 10;\n" +  
-                 "  return a;\n" +    
-                 "}\n" +              
-                 "function g() {\n" + 
-                 "  debugger;\n" +    
-                 "}\n" +              
-                 "function h() {\n" + 
-                 "  debugger;\n" +    
-                 "  throw 'ah';\n" +  
-                 "  return 2;\n" +    
-                 "}\n" +              
-                 "f();\n" +           
-                 "g();\n" +           
-                 "h();\n");           
+                 "function f() {\n" +                   
+                 "  debugger;\n" +                      
+                 "  var a = 10;\n" +                    
+                 "  return a;\n" +                      
+                 "}\n" +                                
+                 "function g() {\n" +                   
+                 "  debugger;\n" +                      
+                 "}\n" +                                
+                 "function h() {\n" +                   
+                 "  debugger;\n" +                      
+                 "  throw 'ah';\n" +                    
+                 "  return 2;\n" +                      
+                 "}\n" +                                
+                 "f();\n" +                             
+                 "g();\n" +                             
+                 "try { h() } catch (ex) { };\n");      
 }
