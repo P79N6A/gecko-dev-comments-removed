@@ -168,8 +168,9 @@ private:
 class BluetoothService::ToggleBtTask : public nsRunnable
 {
 public:
-  ToggleBtTask(bool aEnabled)
+  ToggleBtTask(bool aEnabled, bool aIsStartup)
     : mEnabled(aEnabled)
+    , mIsStartup(aIsStartup)
   {
     MOZ_ASSERT(NS_IsMainThread());
   }
@@ -185,7 +186,11 @@ public:
 
 
 
-    if (mEnabled == gBluetoothService->IsEnabledInternal()) {
+
+
+
+
+    if (!mIsStartup && mEnabled == gBluetoothService->IsEnabledInternal()) {
       NS_WARNING("Bluetooth has already been enabled/disabled before.");
     } else {
       
@@ -225,6 +230,7 @@ public:
 
 private:
   bool mEnabled;
+  bool mIsStartup;
 };
 
 class BluetoothService::StartupTask : public nsISettingsServiceCallback
@@ -442,7 +448,7 @@ BluetoothService::DistributeSignal(const BluetoothSignal& aSignal)
 }
 
 nsresult
-BluetoothService::StartStopBluetooth(bool aStart)
+BluetoothService::StartStopBluetooth(bool aStart, bool aIsStartup)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -469,7 +475,7 @@ BluetoothService::StartStopBluetooth(bool aStart)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(aStart);
+  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(aStart, aIsStartup);
   rv = mBluetoothCommandThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -539,7 +545,7 @@ nsresult
 BluetoothService::HandleStartupSettingsCheck(bool aEnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  return StartStopBluetooth(aEnable);
+  return StartStopBluetooth(aEnable, true);
 }
 
 nsresult
@@ -625,7 +631,7 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
 
     gToggleInProgress = true;
 
-    nsresult rv = StartStopBluetooth(value.toBoolean());
+    nsresult rv = StartStopBluetooth(value.toBoolean(), false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -690,7 +696,7 @@ BluetoothService::HandleShutdown()
     }
   }
 
-  if (IsEnabled() && NS_FAILED(StartStopBluetooth(false))) {
+  if (IsEnabled() && NS_FAILED(StartStopBluetooth(false, false))) {
     MOZ_ASSERT(false, "Failed to deliver stop message!");
   }
 
