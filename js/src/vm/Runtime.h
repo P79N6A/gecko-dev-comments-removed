@@ -56,6 +56,9 @@ namespace js {
 class PerThreadData;
 class ThreadSafeContext;
 class AutoKeepAtoms;
+#if JS_TRACE_LOGGING
+class TraceLogger;
+#endif
 
 
 extern mozilla::ThreadLocal<PerThreadData*> TlsPerThreadData;
@@ -537,6 +540,10 @@ class PerThreadData : public PerThreadDataFriendFields
     uintptr_t            jitStackLimit;
 
     inline void setJitStackLimit(uintptr_t limit);
+
+#if JS_TRACE_LOGGING
+    TraceLogger         *traceLogger;
+#endif
 
     
 

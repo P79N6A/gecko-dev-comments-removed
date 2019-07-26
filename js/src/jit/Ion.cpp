@@ -11,9 +11,7 @@
 
 #include "jscompartment.h"
 #include "jsworkers.h"
-#if JS_TRACE_LOGGING
 #include "TraceLogging.h"
-#endif
 
 #include "jsprf.h"
 #include "gc/Marking.h"
@@ -1635,6 +1633,8 @@ AttachFinishedCompilations(JSContext *cx)
 
     GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
 
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+
     
     
     while (true) {
@@ -1655,6 +1655,8 @@ AttachFinishedCompilations(JSContext *cx)
         if (CodeGenerator *codegen = builder->backgroundCodegen()) {
             RootedScript script(cx, builder->script());
             IonContext ictx(cx, &builder->alloc());
+            AutoTraceLog logScript(logger, TraceLogCreateTextId(logger, script));
+            AutoTraceLog logLink(logger, TraceLogger::IonLink);
 
             
             
@@ -1748,12 +1750,10 @@ IonCompile(JSContext *cx, JSScript *script,
            ExecutionMode executionMode, bool recompile,
            OptimizationLevel optimizationLevel)
 {
-#if JS_TRACE_LOGGING
-    AutoTraceLog logger(TraceLogging::defaultLogger(),
-                        TraceLogging::ION_COMPILE_START,
-                        TraceLogging::ION_COMPILE_STOP,
-                        script);
-#endif
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    AutoTraceLog logScript(logger, TraceLogCreateTextId(logger, script));
+    AutoTraceLog logCompile(logger, TraceLogger::IonCompile);
+
     JS_ASSERT(optimizationLevel > Optimization_DontCompile);
 
     
