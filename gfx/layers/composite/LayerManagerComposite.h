@@ -261,6 +261,11 @@ private:
   RefPtr<Compositor> mCompositor;
   nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
 
+  
+
+
+  RefPtr<gfx::DrawTarget> mTarget;
+
   gfx::Matrix mWorldMatrix;
   nsIntRegion mInvalidRegion;
   nsAutoPtr<FPSState> mFPS;
