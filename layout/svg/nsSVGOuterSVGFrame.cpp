@@ -17,7 +17,6 @@
 #include "nsStubMutationObserver.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGForeignObjectFrame.h"
-#include "nsSVGTextContainerFrame.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGViewElement.h"
 #include "nsSubDocumentFrame.h"
@@ -68,12 +67,6 @@ nsSVGMutationObserver::AttributeChanged(nsIDocument* aDocument,
     return;
   }
 
-  
-  nsSVGTextContainerFrame* containerFrame = do_QueryFrame(frame);
-  if (containerFrame) {
-    containerFrame->NotifyGlyphMetricsChange();
-    return;
-  }
   
   UpdateTextFragmentTrees(frame);
 }

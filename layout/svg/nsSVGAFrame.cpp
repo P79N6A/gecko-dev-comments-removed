@@ -6,19 +6,14 @@
 
 #include "gfxMatrix.h"
 #include "mozilla/dom/SVGAElement.h"
+#include "nsSVGContainerFrame.h"
 #include "nsSVGIntegrationUtils.h"
-#include "nsSVGTextContainerFrame.h"
 #include "nsSVGUtils.h"
 #include "SVGLengthList.h"
 
-
-
-
-
-
 using namespace mozilla;
 
-typedef nsSVGTextContainerFrame nsSVGAFrameBase;
+typedef nsSVGDisplayContainerFrame nsSVGAFrameBase;
 
 class nsSVGAFrame : public nsSVGAFrameBase
 {
@@ -61,13 +56,6 @@ public:
   
   virtual gfxMatrix GetCanvasTM(uint32_t aFor,
                                 nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
-
-  
-  virtual void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
-  virtual void GetDxDy(mozilla::SVGUserUnitList *aDx, mozilla::SVGUserUnitList *aDy);
-  virtual const SVGNumberList* GetRotate() {
-    return nullptr;
-  }
 
 private:
   nsAutoPtr<gfxMatrix> mCanvasTM;
@@ -166,21 +154,4 @@ nsSVGAFrame::GetCanvasTM(uint32_t aFor, nsIFrame* aTransformRoot)
   }
 
   return *mCanvasTM;
-}
-
-
-
-
-void
-nsSVGAFrame::GetXY(SVGUserUnitList *aX, SVGUserUnitList *aY)
-{
-  aX->Clear();
-  aY->Clear();
-}
-
-void
-nsSVGAFrame::GetDxDy(SVGUserUnitList *aDx, SVGUserUnitList *aDy)
-{
-  aDx->Clear();
-  aDy->Clear();
 }
