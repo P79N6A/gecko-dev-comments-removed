@@ -181,11 +181,14 @@ extern const char * const TypeStrings[];
 
 
 
-extern void
+void
 MarkAtoms(JSTracer *trc);
 
-extern void
+void
 MarkPermanentAtoms(JSTracer *trc);
+
+void
+MarkWellKnownSymbols(JSTracer *trc);
 
 
 enum InternBehavior

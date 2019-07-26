@@ -55,3 +55,28 @@ BEGIN_TEST(testSymbol_GetSymbolFor)
     return true;
 }
 END_TEST(testSymbol_GetSymbolFor)
+
+BEGIN_TEST(testSymbol_GetWellKnownSymbol)
+{
+    using namespace JS;
+
+    Rooted<Symbol*> sym1(cx);
+    CHECK(sym1 = GetWellKnownSymbol(cx, SymbolCode::iterator));
+    RootedValue v(cx);
+    EVAL("Symbol.iterator", &v);
+    CHECK_SAME(v, SymbolValue(sym1));
+
+    
+    RootedString desc(cx);
+    CHECK(desc = JS_NewStringCopyZ(cx, "Symbol.iterator"));
+    CHECK_SAME(StringValue(GetSymbolDescription(sym1)), StringValue(desc));
+
+    
+    Rooted<Symbol*> sym2(cx);
+    CHECK(sym2 = GetSymbolFor(cx, desc));
+    CHECK(sym2 != sym1);
+
+    return true;
+}
+END_TEST(testSymbol_GetWellKnownSymbol)
+

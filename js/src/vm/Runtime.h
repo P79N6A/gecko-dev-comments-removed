@@ -414,6 +414,26 @@ struct JSAtomState
 
 namespace js {
 
+
+
+
+
+
+
+
+
+
+struct WellKnownSymbols
+{
+    js::ImmutableSymbolPtr iterator;
+
+    ImmutableSymbolPtr &get(size_t i) {
+        MOZ_ASSERT(i < JS::WellKnownSymbolLimit);
+        ImmutableSymbolPtr *symbols = reinterpret_cast<ImmutableSymbolPtr *>(this);
+        return symbols[i];
+    }
+};
+
 #define NAME_OFFSET(name)       offsetof(JSAtomState, name)
 
 inline HandlePropertyName
@@ -1215,6 +1235,10 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::AtomSet *permanentAtoms;
 
     bool transformToPermanentAtoms();
+
+    
+    
+    js::WellKnownSymbols *wellKnownSymbols;
 
     const JSWrapObjectCallbacks            *wrapObjectCallbacks;
     js::PreserveWrapperCallback            preserveWrapperCallback;

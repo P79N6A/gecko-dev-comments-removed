@@ -12,6 +12,7 @@
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RangedPtr.h"
+#include "mozilla/TypedEnum.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -4386,6 +4387,33 @@ GetSymbolFor(JSContext *cx, HandleString key);
 
 JS_PUBLIC_API(JSString *)
 GetSymbolDescription(HandleSymbol symbol);
+
+
+MOZ_BEGIN_ENUM_CLASS(SymbolCode, uint32_t)
+    iterator,                       
+    InSymbolRegistry = 0xfffffffe,  
+    UniqueSymbol = 0xffffffff       
+MOZ_END_ENUM_CLASS(SymbolCode)
+
+
+const size_t WellKnownSymbolLimit = 1;
+
+
+
+
+
+
+JS_PUBLIC_API(SymbolCode)
+GetSymbolCode(Handle<Symbol*> symbol);
+
+
+
+
+
+
+
+JS_PUBLIC_API(Symbol *)
+GetWellKnownSymbol(JSContext *cx, SymbolCode which);
 
 } 
 
