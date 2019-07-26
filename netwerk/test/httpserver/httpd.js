@@ -3974,10 +3974,7 @@ Response.prototype =
       var avail = bodyStream ? bodyStream.available() : 0;
 
       
-      
-      if (!headers.hasHeader("Content-Length")) {
-        headers.setHeader("Content-Length", "" + avail, false);
-      }
+      headers.setHeader("Content-Length", "" + avail, false);
     }
 
 
