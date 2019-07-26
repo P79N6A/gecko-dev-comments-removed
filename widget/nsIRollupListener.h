@@ -36,6 +36,11 @@ class nsIRollupListener {
   
 
 
+  virtual bool ShouldConsumeOnMouseWheelEvent() = 0;
+
+  
+
+
   virtual bool ShouldRollupOnMouseActivate() = 0;
 
   

@@ -178,6 +178,9 @@ public:
   virtual bool ShouldRollupOnMouseWheelEvent()
     { return true; }
 
+  virtual bool ShouldConsumeOnMouseWheelEvent()
+    { return false; }
+
   
 
 

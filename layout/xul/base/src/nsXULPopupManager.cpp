@@ -238,6 +238,21 @@ bool nsXULPopupManager::ShouldRollupOnMouseWheelEvent()
   return StringBeginsWith(value, NS_LITERAL_STRING("autocomplete"));
 }
 
+bool nsXULPopupManager::ShouldConsumeOnMouseWheelEvent()
+{
+  nsMenuChainItem* item = GetTopVisibleMenu();
+  if (!item)
+    return false;
+
+  nsMenuPopupFrame* frame = item->Frame();
+  if (frame->PopupType() != ePopupTypePanel)
+    return true;
+
+  nsIContent* content = frame->GetContent();
+  return !(content && content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                                           nsGkAtoms::arrow, eCaseMatters));
+}
+
 
 bool nsXULPopupManager::ShouldRollupOnMouseActivate()
 {
