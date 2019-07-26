@@ -128,9 +128,13 @@ private:
     
 
 
+
     bool operator<(const Entry& aOther) const
     {
-      return mFrame < aOther.mFrame;
+      if (mDepth == aOther.mDepth) {
+        return mFrame < aOther.mFrame;
+      }
+      return mDepth > aOther.mDepth; 
     }
 
     static int compare(const Entry& aOne, const Entry& aTwo)
