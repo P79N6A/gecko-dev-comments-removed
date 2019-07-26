@@ -4701,6 +4701,7 @@ let TabStateCacheTelemetry = {
       
       return;
     }
+    this._initialized = true;
     Services.obs.addObserver(this, "profile-before-change", false);
   },
 
