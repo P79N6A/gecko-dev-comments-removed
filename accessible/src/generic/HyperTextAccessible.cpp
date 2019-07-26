@@ -182,187 +182,6 @@ HyperTextAccessible::GetBoundsInFrame(nsIFrame* aFrame,
   return screenRect.ToNearestPixels(presContext->AppUnitsPerDevPixel());
 }
 
-
-
-
-nsIFrame*
-HyperTextAccessible::GetPosAndText(int32_t& aStartOffset, int32_t& aEndOffset,
-                                   nsAString* aText, nsIFrame** aEndFrame,
-                                   Accessible** aStartAcc,
-                                   Accessible** aEndAcc)
-{
-  aStartOffset = ConvertMagicOffset(aStartOffset);
-  aEndOffset = ConvertMagicOffset(aEndOffset);
-
-  int32_t startOffset = aStartOffset;
-  int32_t endOffset = aEndOffset;
-  
-  bool isPassword = (Role() == roles::PASSWORD_TEXT);
-
-  
-  if (aText) {
-    aText->Truncate();
-  }
-  if (endOffset < 0) {
-    const int32_t kMaxTextLength = 32767;
-    endOffset = kMaxTextLength; 
-  }
-  else if (startOffset > endOffset) {
-    return nullptr;
-  }
-
-  nsIFrame *startFrame = nullptr;
- nsIFrame* endFrame = nullptr;
-  if (aEndFrame) {
-    *aEndFrame = nullptr;
-  }
-  if (aStartAcc)
-    *aStartAcc = nullptr;
-  if (aEndAcc)
-    *aEndAcc = nullptr;
-
-  nsIntRect unionRect;
-  Accessible* lastAccessible = nullptr;
-
-  gfxSkipChars skipChars;
-  gfxSkipCharsIterator iter;
-
-  
-  
-  uint32_t childCount = ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* childAcc = mChildren[childIdx];
-    lastAccessible = childAcc;
-
-    nsIFrame *frame = childAcc->GetFrame();
-    if (!frame) {
-      continue;
-    }
-    endFrame = frame;
-    if (!nsAccUtils::IsEmbeddedObject(childAcc)) {
-      
-      
-      int32_t substringEndOffset = -1;
-      uint32_t ourRenderedStart = 0;
-      int32_t ourContentStart = 0;
-      if (frame->GetType() == nsGkAtoms::textFrame) {
-        nsresult rv = frame->GetRenderedText(nullptr, &skipChars, &iter);
-        if (NS_SUCCEEDED(rv)) {
-          ourRenderedStart = iter.GetSkippedOffset();
-          ourContentStart = iter.GetOriginalOffset();
-          substringEndOffset =
-            iter.ConvertOriginalToSkipped(skipChars.GetOriginalCharCount() +
-                                          ourContentStart) - ourRenderedStart;
-        }
-      }
-      if (substringEndOffset < 0) {
-        
-        
-        substringEndOffset = nsAccUtils::TextLength(childAcc);
-      }
-      if (startOffset < substringEndOffset ||
-          (startOffset == substringEndOffset && (childIdx == childCount - 1))) {
-        
-        if (startOffset > 0 || endOffset < substringEndOffset) {
-          
-          
-          int32_t outStartLineUnused;
-          int32_t contentOffset;
-          if (frame->GetType() == nsGkAtoms::textFrame) {
-            contentOffset = iter.ConvertSkippedToOriginal(startOffset) +
-                            ourRenderedStart - ourContentStart;
-          }
-          else {
-            contentOffset = startOffset;
-          }
-          frame->GetChildFrameContainingOffset(contentOffset, true,
-                                               &outStartLineUnused, &frame);
-          if (aEndFrame) {
-            *aEndFrame = frame; 
-            if (aEndAcc)
-              NS_ADDREF(*aEndAcc = childAcc);
-          }
-          if (substringEndOffset > endOffset) {
-            
-            substringEndOffset = endOffset;
-          }
-          aEndOffset = endOffset;
-        }
-        if (aText) {
-          if (isPassword) {
-            for (int32_t count = startOffset; count < substringEndOffset; count ++)
-              *aText += '*'; 
-          }
-          else {
-            childAcc->AppendTextTo(*aText, startOffset,
-                                   substringEndOffset - startOffset);
-          }
-        }
-        if (!startFrame) {
-          startFrame = frame;
-          aStartOffset = startOffset;
-          if (aStartAcc)
-            NS_ADDREF(*aStartAcc = childAcc);
-        }
-        
-        
-        startOffset = 0;
-      }
-      else {
-        
-        
-        startOffset -= substringEndOffset;
-      }
-      
-      endOffset -= substringEndOffset;
-    }
-    else {
-      
-      
-      if (startOffset >= 1) {
-        -- startOffset;
-      }
-      else {
-        if (endOffset > 0) {
-          if (aText) {
-            
-            if (frame->GetType() == nsGkAtoms::brFrame) {
-              *aText += kForcedNewLineChar;
-            } else if (nsAccUtils::MustPrune(this)) {
-              *aText += kImaginaryEmbeddedObjectChar;
-              
-              
-            } else {
-              *aText += kEmbeddedObjectChar;
-            }
-          }
-        }
-        if (!startFrame) {
-          startFrame = frame;
-          aStartOffset = 0;
-          if (aStartAcc)
-            NS_ADDREF(*aStartAcc = childAcc);
-        }
-      }
-      -- endOffset;
-    }
-    if (endOffset <= 0 && startFrame) {
-      break; 
-    }
-  }
-
-  if (aStartAcc && !*aStartAcc) {
-    NS_IF_ADDREF(*aStartAcc = lastAccessible);
-  }
-  if (aEndFrame && !*aEndFrame) {
-    *aEndFrame = endFrame;
-    if (aEndAcc && !*aEndAcc)
-      NS_IF_ADDREF(*aEndAcc = lastAccessible);
-  }
-
-  return startFrame;
-}
-
 void
 HyperTextAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOffset,
                                    nsAString& aText)
@@ -623,45 +442,46 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
                                 EWordMovementType aWordMovementType)
 {
   
-  int32_t offsetInFrame = aOffset, notUsedOffset = aOffset;
-  nsRefPtr<Accessible> accAtOffset;
-  nsIFrame* frameAtOffset =
-    GetPosAndText(offsetInFrame, notUsedOffset, nullptr, nullptr,
-                  getter_AddRefs(accAtOffset));
-  if (!frameAtOffset) {
-    if (aOffset == CharacterCount()) {
-      
-      if (accAtOffset)
-        frameAtOffset = accAtOffset->GetFrame();
-    }
-    NS_ASSERTION(frameAtOffset, "No start frame for text getting!");
-    if (!frameAtOffset)
+  HyperTextAccessible* text = this;
+  Accessible* child = nullptr;
+  int32_t innerOffset = aOffset;
+
+  do {
+    int32_t childIdx = text->GetChildIndexAtOffset(innerOffset);
+    NS_ASSERTION(childIdx != -1, "Bad in offset!");
+    if (childIdx == -1)
       return -1;
 
-    
-    frameAtOffset = frameAtOffset->LastContinuation();
+    child = text->GetChildAt(childIdx);
+    innerOffset -= text->GetChildOffset(childIdx);
+
+    text = child->AsHyperText();
+  } while (text);
+
+  nsIFrame* childFrame = child->GetFrame();
+  NS_ENSURE_TRUE(childFrame, -1);
+
+  int32_t innerContentOffset = innerOffset;
+  if (child->IsTextLeaf()) {
+    NS_ASSERTION(childFrame->GetType() == nsGkAtoms::textFrame, "Wrong frame!");
+    RenderedToContentOffset(childFrame, innerOffset, &innerContentOffset);
   }
 
-  
-  int32_t contentOffset = offsetInFrame;
-  nsIFrame* primaryFrame = accAtOffset->GetFrame();
-  NS_ENSURE_TRUE(primaryFrame, -1);
-
-  nsresult rv = NS_OK;
-  if (primaryFrame->GetType() == nsGkAtoms::textFrame) {
-    rv = RenderedToContentOffset(primaryFrame, offsetInFrame, &contentOffset);
-    NS_ENSURE_SUCCESS(rv, -1);
-  }
+  nsIFrame* frameAtOffset = childFrame;
+  int32_t unusedOffsetInFrame = 0;
+  childFrame->GetChildFrameContainingOffset(innerContentOffset, true,
+                                            &unusedOffsetInFrame,
+                                            &frameAtOffset);
 
   const bool kIsJumpLinesOk = true; 
   const bool kIsScrollViewAStop = false; 
   const bool kIsKeyboardSelect = true; 
   const bool kIsVisualBidi = false; 
-  nsPeekOffsetStruct pos(aAmount, aDirection, contentOffset,
+  nsPeekOffsetStruct pos(aAmount, aDirection, innerContentOffset,
                          0, kIsJumpLinesOk, kIsScrollViewAStop,
                          kIsKeyboardSelect, kIsVisualBidi,
                          aWordMovementType);
-  rv = frameAtOffset->PeekOffset(&pos);
+  nsresult rv = frameAtOffset->PeekOffset(&pos);
 
   
   if (NS_FAILED(rv) && aAmount == eSelectLine) {
