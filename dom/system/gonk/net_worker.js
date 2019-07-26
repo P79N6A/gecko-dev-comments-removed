@@ -28,6 +28,9 @@ const kNetdInterfaceChangedTopic = "netd-interface-change";
 const kNetdBandwidthControlTopic = "netd-bandwidth-control";
 
 
+const DUMMY_COMMAND = "tether status";
+
+
 const USB_FUNCTION_RETRY_TIMES = 20;
 
 const USB_FUNCTION_RETRY_INTERVAL = 100;
@@ -67,6 +70,11 @@ function isError(code) {
 function isComplete(code) {
   let type = netdResponseType(code);
   return (type != NETD_COMMAND_PROCEEDING);
+}
+
+function isProceeding(code) {
+  let type = netdResponseType(code);
+  return (type === NETD_COMMAND_PROCEEDING);
 }
 
 function sendBroadcastMessage(code, reason) {
@@ -268,6 +276,7 @@ let gCommandQueue = [];
 let gCurrentCommand = null;
 let gCurrentCallback = null;
 let gPending = false;
+let gReason = [];
 
 
 
@@ -294,23 +303,33 @@ function onNetdMessage(data) {
     reason += String.fromCharCode(octet);
   }
 
+  if (isBroadcastMessage(code)) {
+    debug("Receiving broadcast message from netd.");
+    debug("          ==> Code: " + code + "  Reason: " + reason);
+    sendBroadcastMessage(code, reason);
+    nextNetdCommand();
+    return;
+  }
+
   
   debug("Receiving '" + gCurrentCommand + "' command response from netd.");
   debug("          ==> Code: " + code + "  Reason: " + reason);
 
+  gReason.push(reason);
+
   
   
-  if (isBroadcastMessage(code)) {
-    sendBroadcastMessage(code, reason);
-    nextNetdCommand();
+  if (isProceeding(code)) {
     return;
   }
 
   if (isComplete(code)) {
     gPending = false;
   }
+
   if (gCurrentCallback) {
-    gCurrentCallback(isError(code), {code: code, reason: reason});
+    gCurrentCallback(isError(code), {code: code, reason: gReason.join(" ")});
+    gReason = [];
   }
 
   
@@ -356,23 +375,63 @@ function setIpForwardingEnabled(params, callback) {
   if (params.enable) {
     command = "ipfwd enable";
   } else {
-    command = "ipfwd disable";
+    
+    
+    if (params.interfaceList.length > 1) {
+      command = DUMMY_COMMAND;
+    } else {
+      command = "ipfwd disable";
+    }
   }
   return doCommand(command, callback);
 }
 
 function startTethering(params, callback) {
-  let command = "tether start " + params.startIp + " " + params.endIp;
+  let command;
+  
+  
+  if (params.resultReason.indexOf("started") !== -1) {
+    command = DUMMY_COMMAND;
+  } else {
+    command = "tether start " + params.wifiStartIp + " " + params.wifiEndIp +
+              " " + params.usbStartIp + " " + params.usbEndIp;
+  }
+  return doCommand(command, callback);
+}
+
+function tetheringStatus(params, callback) {
+  let command = "tether status";
   return doCommand(command, callback);
 }
 
 function stopTethering(params, callback) {
-  let command = "tether stop";
+  let command;
+
+  
+  
+  if (params.interfaceList.length > 1) {
+    command = DUMMY_COMMAND;
+  } else {
+    command = "tether stop";
+  }
   return doCommand(command, callback);
 }
 
 function tetherInterface(params, callback) {
   let command = "tether interface add " + params.ifname;
+  return doCommand(command, callback);
+}
+
+function preTetherInterfaceList(params, callback) {
+  let command = "tether interface list 0";
+  return doCommand(command, callback);
+}
+
+function postTetherInterfaceList(params, callback) {
+  params.interfaceList = params.resultReason.split(" ");
+
+  
+  let command = DUMMY_COMMAND;
   return doCommand(command, callback);
 }
 
@@ -393,8 +452,16 @@ function enableNat(params, callback) {
 }
 
 function disableNat(params, callback) {
-  let command = "nat disable " + params.internalIfname + " " +
-                params.externalIfname + " " + "0";
+  let command;
+
+  
+  
+  if (params.interfaceList.length > 1) {
+    command = DUMMY_COMMAND;
+  } else {
+    command = "nat disable " + params.internalIfname + " " +
+              params.externalIfname + " " + "0";
+  }
   return doCommand(command, callback);
 }
 
@@ -594,6 +661,7 @@ let gWifiEnableChain = [wifiFirmwareReload,
                         setInterfaceUp,
                         tetherInterface,
                         setIpForwardingEnabled,
+                        tetheringStatus,
                         startTethering,
                         setDnsForwarders,
                         enableNat,
@@ -602,8 +670,10 @@ let gWifiEnableChain = [wifiFirmwareReload,
 let gWifiDisableChain = [stopSoftAP,
                          stopAccessPointDriver,
                          wifiFirmwareReload,
-                         disableNat,
                          untetherInterface,
+                         preTetherInterfaceList,
+                         postTetherInterfaceList,
+                         disableNat,
                          setIpForwardingEnabled,
                          stopTethering,
                          wifiTetheringSuccess];
@@ -651,14 +721,17 @@ let gUSBEnableChain = [setInterfaceUp,
                        enableNat,
                        setIpForwardingEnabled,
                        tetherInterface,
+                       tetheringStatus,
                        startTethering,
                        setDnsForwarders,
                        usbTetheringSuccess];
 
-let gUSBDisableChain = [disableNat,
+let gUSBDisableChain = [untetherInterface,
+                        preTetherInterfaceList,
+                        postTetherInterfaceList,
+                        disableNat,
                         setIpForwardingEnabled,
                         stopTethering,
-                        untetherInterface,
                         usbTetheringSuccess];
 
 
