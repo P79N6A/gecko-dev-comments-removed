@@ -1596,97 +1596,43 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(nsIPrincipal* aPrincipal,
     return rv;
 }
 
-nsresult
-nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
-                                           nsIPrincipal *aPrincipal,
-                                           bool *result)
-{
-    *result = false; 
-
-    if (aPrincipal == mSystemPrincipal)
-    {
-        
-        *result = true;
-        return NS_OK;
-    }
-
-    
-    nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal);
-    if (ep)
-    {
-        *result = true;
-        return NS_OK;
-    }
-
-    
-    
-    
-    
-    nsCOMPtr<nsIURI> principalURI;
-    aPrincipal->GetURI(getter_AddRefs(principalURI));
-    if (!principalURI) {
-        
-        *result = false;
-        return NS_ERROR_UNEXPECTED;
-    }
-        
-    bool isAbout;
-    nsresult rv = principalURI->SchemeIs("about", &isAbout);
-    if (NS_SUCCEEDED(rv) && isAbout) {
-        nsCOMPtr<nsIAboutModule> module;
-        rv = NS_GetAboutModule(principalURI, getter_AddRefs(module));
-        if (NS_SUCCEEDED(rv)) {
-            uint32_t flags;
-            rv = module->GetURIFlags(principalURI, &flags);
-            if (NS_SUCCEEDED(rv) &&
-                (flags & nsIAboutModule::ALLOW_SCRIPT)) {
-                *result = true;
-                return NS_OK;              
-            }
-        }
-    }
-
-    *result = mIsJavaScriptEnabled;
-    if (!*result)
-        return NS_OK; 
-
-    
-    static const char jsPrefGroupName[] = "javascript";
-    ClassInfoData nameData(nullptr, jsPrefGroupName);
-
-    SecurityLevel secLevel;
-    rv = LookupPolicy(aPrincipal, nameData, EnabledID(),
-                      nsIXPCSecurityManager::ACCESS_GET_PROPERTY,
-                      nullptr, &secLevel);
-    if (NS_FAILED(rv) || secLevel.level == SCRIPT_SECURITY_NO_ACCESS)
-    {
-        *result = false;
-        return rv;
-    }
-
-    
-    *result = true;
-    return NS_OK;
-}
-
-NS_IMETHODIMP_(bool)
+bool
 nsScriptSecurityManager::ScriptAllowed(JSObject *aGlobal)
 {
     MOZ_ASSERT(aGlobal);
     MOZ_ASSERT(JS_IsGlobalObject(aGlobal) || js::IsOuterObject(aGlobal));
-    AutoJSContext cx_;
-    JS::RootedObject global(cx_, js::UncheckedUnwrap(aGlobal,  false));
+    AutoJSContext cx;
+    JS::RootedObject global(cx, js::UncheckedUnwrap(aGlobal,  false));
 
     
-    if (!xpc::Scriptability::Get(global).Allowed()) {
+    xpc::Scriptability& scriptability = xpc::Scriptability::Get(aGlobal);
+    if (!scriptability.Allowed()) {
         return false;
     }
 
-    nsCOMPtr<nsIScriptContext> scx = nsJSUtils::GetStaticScriptContext(global);
-    AutoPushJSContext cx(scx ? scx->GetNativeContext() : GetSafeJSContext());
-    bool result = false;
-    nsresult rv = CanExecuteScripts(cx, doGetObjectPrincipal(global), &result);
-    return NS_SUCCEEDED(rv) && result;
+    
+    if (scriptability.IsImmuneToScriptPolicy()) {
+        return true;
+    }
+
+    
+    if (!mIsJavaScriptEnabled) {
+        return false;
+    }
+
+    
+    static const char jsPrefGroupName[] = "javascript";
+    ClassInfoData nameData(nullptr, jsPrefGroupName);
+    SecurityLevel secLevel;
+    nsresult rv = LookupPolicy(doGetObjectPrincipal(global), nameData,
+                               EnabledID(),
+                               nsIXPCSecurityManager::ACCESS_GET_PROPERTY,
+                               nullptr, &secLevel);
+    if (NS_FAILED(rv) || secLevel.level == SCRIPT_SECURITY_NO_ACCESS) {
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -1883,7 +1829,7 @@ nsScriptSecurityManager::GetObjectPrincipal(JSContext *aCx, JSObject *aObj,
 
 
 nsIPrincipal*
-nsScriptSecurityManager::doGetObjectPrincipal(JS::Handle<JSObject*> aObj)
+nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj)
 {
     JSCompartment *compartment = js::GetObjectCompartment(aObj);
     JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);

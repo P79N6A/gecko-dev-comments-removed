@@ -381,7 +381,7 @@ private:
 
     
     
-    static nsIPrincipal* doGetObjectPrincipal(JS::Handle<JSObject*> obj);
+    static nsIPrincipal* doGetObjectPrincipal(JSObject* obj);
 
     
     
@@ -461,9 +461,6 @@ private:
                         nsISupports* aObj, JSObject* aJSObject,
                         nsIPrincipal* aSubjectPrincipal,
                         const char* aObjectSecurityLevel);
-
-    nsresult
-    CanExecuteScripts(JSContext* cx, nsIPrincipal *aPrincipal, bool *result);
 
     nsresult
     Init();

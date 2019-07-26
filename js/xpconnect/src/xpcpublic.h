@@ -37,8 +37,9 @@ namespace xpc {
 
 class Scriptability {
 public:
-    Scriptability();
+    Scriptability(JSCompartment *c);
     bool Allowed();
+    bool IsImmuneToScriptPolicy();
 
     void Block();
     void Unblock();
@@ -56,6 +57,10 @@ private:
     
     
     bool mDocShellAllowsScript;
+
+    
+    
+    bool mImmuneToScriptPolicy;
 };
 
 JSObject *
