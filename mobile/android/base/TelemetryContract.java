@@ -14,7 +14,10 @@ public interface TelemetryContract {
 
 
 
-    public interface Event {}
+    public interface Event {
+        
+        public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
+    }
 
     
 
