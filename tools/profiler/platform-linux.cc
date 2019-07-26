@@ -42,8 +42,6 @@
 #include <sys/prctl.h> 
 #include <stdlib.h>
 #include <sched.h>
-#include <iostream>
-#include <fstream>
 #ifdef ANDROID
 #include <android/log.h>
 #else
