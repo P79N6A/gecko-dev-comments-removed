@@ -40,6 +40,10 @@ def build_dict(env=os.environ):
     d["toolkit"] = env["MOZ_WIDGET_TOOLKIT"]
     
     
+    if 'MOZ_APP_NAME' in env:
+      d["appname"] = env["MOZ_APP_NAME"]
+
+    
     p = env["TARGET_CPU"]
     
     if d["os"] == "mac" and "UNIVERSAL_BINARY" in env and env["UNIVERSAL_BINARY"] == "1":

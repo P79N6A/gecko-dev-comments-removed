@@ -732,6 +732,14 @@ class XPCShellTests(object):
 
     
     
+    
+    
+    appDirKey = None
+    if "appname" in self.mozInfo:
+      appDirKey = self.mozInfo["appname"] + "-appdir"
+
+    
+    
     self.trySetupNode()
 
     pStdout, pStderr = self.getPipes()
@@ -776,6 +784,15 @@ class XPCShellTests(object):
 
       
       expected = test['expected'] == 'pass'
+
+      
+      
+      if appDirKey != None and appDirKey in test:
+        relAppDir = test[appDirKey]
+        relAppDir = os.path.join(self.xrePath, relAppDir)
+        self.appPath = os.path.abspath(relAppDir)
+      else:
+        self.appPath = None
 
       testdir = os.path.dirname(name)
       self.buildXpcsCmd(testdir)
