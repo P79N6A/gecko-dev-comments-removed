@@ -433,29 +433,6 @@ ArrayBufferObject::ensureNonInline(JSContext *cx, Handle<ArrayBufferObject*> buf
     return true;
 }
 
-
-
-
-
-ObjectElements *
-ArrayBufferObject::getTransferableContents(JSContext *cx, bool *callerOwns)
-{
-    if (hasDynamicElements() && !isAsmJSArrayBuffer()) {
-        *callerOwns = false;
-        return getElementsHeader();
-    }
-
-    uint32_t byteLen = byteLength();
-    ObjectElements *newheader = AllocateArrayBufferContents(cx, byteLen);
-    if (!newheader)
-        return nullptr;
-
-    initElementsHeader(newheader, byteLen);
-    memcpy(reinterpret_cast<void*>(newheader->elements()), dataPointer(), byteLen);
-    *callerOwns = true;
-    return newheader;
-}
-
 #if defined(JS_ION) && defined(JS_CPU_X64)
 
 
@@ -708,31 +685,48 @@ ArrayBufferObject::createDataViewForThis(JSContext *cx, unsigned argc, Value *vp
     return CallNonGenericMethod<IsArrayBuffer, createDataViewForThisImpl>(cx, args);
 }
 
-bool
+ bool
 ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer, void **contents,
                                  uint8_t **data)
 {
     
-    bool own;
-    ObjectElements *header = reinterpret_cast<ObjectElements*>(buffer->getTransferableContents(cx, &own));
-    if (!header)
-        return false;
-    JS_ASSERT(!IsInsideNursery(cx->runtime(), header));
-    *contents = header;
-    *data = reinterpret_cast<uint8_t *>(header + 1);
+    
+    
+    
+    ObjectElements *transferableHeader;
+    bool stolen;
+    if (buffer->hasDynamicElements() && !buffer->isAsmJSArrayBuffer()) {
+        stolen = true;
+        transferableHeader = buffer->getElementsHeader();
+    } else {
+        stolen = false;
+
+        uint32_t byteLen = buffer->byteLength();
+        transferableHeader = AllocateArrayBufferContents(cx, byteLen);
+        if (!transferableHeader)
+            return false;
+
+        initElementsHeader(transferableHeader, byteLen);
+        void *headerDataPointer = reinterpret_cast<void*>(transferableHeader->elements());
+        memcpy(headerDataPointer, buffer->dataPointer(), byteLen);
+    }
+
+    JS_ASSERT(!IsInsideNursery(cx->runtime(), transferableHeader));
+    *contents = transferableHeader;
+    *data = reinterpret_cast<uint8_t *>(transferableHeader + 1);
 
     
     
     if (!ArrayBufferObject::neuterViews(cx, buffer))
         return false;
 
-    if (!own) {
-        
-        
+    
+    
+    
+    if (stolen)
         buffer->changeContents(cx, ObjectElements::fromElements(buffer->fixedElements()));
-    }
-    buffer->neuter(cx);
 
+    buffer->neuter(cx);
     return true;
 }
 

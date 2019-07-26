@@ -183,14 +183,6 @@ class ArrayBufferObject : public JSObject
     
 
 
-
-
-
-    ObjectElements *getTransferableContents(JSContext *cx, bool *callerOwns);
-
-    
-
-
     static bool neuterViews(JSContext *cx, Handle<ArrayBufferObject*> buffer);
 
     inline uint8_t * dataPointer() const {
