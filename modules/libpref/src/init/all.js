@@ -180,8 +180,10 @@ pref("media.gstreamer.enabled", true);
 #endif
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
-pref("media.peerconnection.enabled", false);
+pref("media.peerconnection.enabled", true);
 pref("media.navigator.permission.disabled", false);
+pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:23.21.150.121\"}]");
+pref("media.peerconnection.use_document_iceservers", true);
 
 
 
@@ -1685,7 +1687,11 @@ pref("layout.css.supports-rule.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.flexbox.enabled", false);
+#else
 pref("layout.css.flexbox.enabled", true);
+#endif
 
 
 pref("layout.css.prefixes.border-image", true);
@@ -2394,9 +2400,6 @@ pref("print.print_extra_margin", 90);
 
 
 pref("print.extend_native_print_dialog", true);
-
-
-pref("plugin.scan.SunJRE", "1.6");
 
 
 pref("plugin.scan.Acrobat", "5.0");
@@ -4114,3 +4117,9 @@ pref("ui.touch_activation.delay_ms", 100);
 
 
 pref("memory_info_dumper.watch_fifo", false);
+
+#ifdef MOZ_CAPTIVEDETECT
+pref("captivedetect.maxWaitingTime", 5000);
+pref("captivedetect.pollingTime", 3000);
+pref("captivedetect.maxRetryCount", 5);
+#endif
