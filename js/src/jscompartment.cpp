@@ -307,27 +307,25 @@ JSCompartment::wrap(JSContext *cx, JSString **strp)
     }
 
     
-    Rooted<JSLinearString *> linear(cx, str->ensureLinear(cx));
-    if (!linear)
-        return false;
-    JSString *copy = js_NewStringCopyN<CanGC>(cx, linear->chars(),
-                                              linear->length());
+
+
+
+
+
+    JSString *copy;
+    if (str->hasPureChars()) {
+        copy = js_NewStringCopyN<CanGC>(cx, str->pureChars(), str->length());
+    } else {
+        ScopedJSFreePtr<jschar> copiedChars;
+        if (!str->copyNonPureCharsZ(cx, copiedChars))
+            return false;
+        copy = js_NewString<CanGC>(cx, copiedChars.forget(), str->length());
+    }
+
     if (!copy)
         return false;
     if (!putWrapper(cx, key, StringValue(copy)))
         return false;
-
-    if (linear->zone()->isGCMarking()) {
-        
-
-
-
-
-
-        JSString *tmp = linear;
-        MarkStringUnbarriered(&cx->runtime()->gcMarker, &tmp, "wrapped string");
-        JS_ASSERT(tmp == linear);
-    }
 
     *strp = copy;
     return true;
