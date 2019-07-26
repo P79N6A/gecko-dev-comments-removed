@@ -353,16 +353,6 @@ LIRGenerator::visitCompare(MCompare *comp)
         
         
         
-        if (comp->specialization() == MIRType_String) {
-            LCompareS *lir = new LCompareS(comp->jsop(), useRegister(left), useRegister(right));
-            if (!define(lir, comp))
-                return false;
-            return assignSafepoint(lir, comp);
-        }
-
-        
-        
-        
         
         if (CanEmitCompareAtUses(comp))
             return emitAtUses(comp);

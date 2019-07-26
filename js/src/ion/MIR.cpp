@@ -992,12 +992,6 @@ MCompare::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
             return;
         }
 
-        if (lhs == MIRType_String && rhs == MIRType_String) {
-            
-            specialization_ = MIRType_String;
-            return;
-        }
-
         if (IsNullOrUndefined(lhs)) {
             
             
