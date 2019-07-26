@@ -597,6 +597,12 @@ nsWindow::Create(nsIWidget *aParent,
       Preferences::GetBool("intl.keyboard.per_window_layout", false);
   }
 
+  
+  
+  if (!nsUXThemeData::sTitlebarInfoPopulatedThemed ||
+      !nsUXThemeData::sTitlebarInfoPopulatedAero) {
+    nsUXThemeData::UpdateTitlebarInfo(mWnd);
+  }
   return NS_OK;
 }
 
