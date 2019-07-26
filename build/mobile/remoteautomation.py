@@ -48,7 +48,7 @@ class RemoteAutomation(Automation):
         self._remoteLog = logfile
 
     
-    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None):
+    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None):
         
         
         if env is None:
