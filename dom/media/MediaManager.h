@@ -438,6 +438,8 @@ private:
   nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
                                            bool* aAudio);
 
+  void StopMediaStreams();
+
   
   WindowTable mActiveWindows;
   nsRefPtrHashtable<nsStringHashKey, nsRunnable> mActiveCallbacks;
