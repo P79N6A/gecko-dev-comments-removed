@@ -49,6 +49,19 @@ public class testHomeBanner extends UITest {
         NavigationHelper.enterAndLoadUrl("about:home");
         mAboutHome.assertVisible()
                   .assertBannerNotVisible();
+
+        
+        addBannerMessage();
+
+        NavigationHelper.enterAndLoadUrl("about:home");
+        mAboutHome.assertVisible();
+
+        
+        eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageDismissed");
+        mAboutHome.dismissBanner();
+        eventExpecter.blockForEvent();
+
+        mAboutHome.assertBannerNotVisible();
     }
 
     
