@@ -5,8 +5,11 @@
 
 #ifndef nsViewManager_h___
 #define nsViewManager_h___
+
+#include "nscore.h"
+#include "nsView.h"
+#include "nsEvent.h"
 #include "nsCOMPtr.h"
-#include "nsIViewManager.h"
 #include "nsCRT.h"
 #include "nsITimer.h"
 #include "prtime.h"
@@ -16,103 +19,326 @@
 #include "nsIPresShell.h"
 #include "nsDeviceContext.h"
 
+class nsIWidget;
+struct nsRect;
+class nsRegion;
+class nsDeviceContext;
+class nsIPresShell;
+class nsView;
 
+#define NS_IVIEWMANAGER_IID \
+{ 0x540610a6, 0x4fdd, 0x4ae3, \
+  { 0x9b, 0xdb, 0xa6, 0x4d, 0x8b, 0xca, 0x02, 0x0f } }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsViewManager : public nsIViewManager {
+class nsViewManager : public nsISupports
+{
 public:
-  nsViewManager();
+  friend class nsView;
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IVIEWMANAGER_IID)
 
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
   NS_DECL_ISUPPORTS
 
+  nsViewManager();
+  virtual ~nsViewManager();
+
+  
+
+
+
+
+
   NS_IMETHOD  Init(nsDeviceContext* aContext);
+
+  
+
+
+
+
+
+
+
+
+
+
 
   NS_IMETHOD_(nsView*) CreateView(const nsRect& aBounds,
                                    const nsView* aParent,
                                    nsViewVisibility aVisibilityFlag = nsViewVisibility_kShow);
 
-  NS_IMETHOD_(nsView*) GetRootView();
+  
+
+
+
+  NS_IMETHOD_(nsView*) GetRootView() { return mRootView; }
+
+  
+
+
+
+
+
   NS_IMETHOD  SetRootView(nsView *aView);
 
-  NS_IMETHOD  GetWindowDimensions(nscoord *width, nscoord *height);
-  NS_IMETHOD  SetWindowDimensions(nscoord width, nscoord height);
+  
+
+
+
+
+
+  NS_IMETHOD  GetWindowDimensions(nscoord *aWidth, nscoord *aHeight);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD  SetWindowDimensions(nscoord aWidth, nscoord aHeight);
+
+  
+
+
   NS_IMETHOD  FlushDelayedResize(bool aDoReflow);
 
+  
+
+
+
+
   NS_IMETHOD  InvalidateView(nsView *aView);
+
+  
+
+
+
+
+
+
   NS_IMETHOD  InvalidateViewNoSuppression(nsView *aView, const nsRect &aRect);
+
+  
+
+
   NS_IMETHOD  InvalidateAllViews();
 
+  
+
+
+
+
+
+
+
   NS_IMETHOD  DispatchEvent(nsGUIEvent *aEvent,
-      nsView* aTargetView, nsEventStatus* aStatus);
+      nsView* aViewTarget, nsEventStatus* aStatus);
 
-  NS_IMETHOD  InsertChild(nsView *parent, nsView *child, nsView *sibling,
-                          bool above);
+  
 
-  NS_IMETHOD  InsertChild(nsView *parent, nsView *child,
-                          int32_t zindex);
 
-  NS_IMETHOD  RemoveChild(nsView *parent);
+
+
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD  InsertChild(nsView *aParent, nsView *aChild, nsView *aSibling,
+                          bool aAfter);
+
+  NS_IMETHOD InsertChild(nsView *aParent, nsView *aChild, int32_t aZIndex);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD  RemoveChild(nsView *aChild);
+
+  
+
+
+
+
+
+
+
 
   NS_IMETHOD  MoveViewTo(nsView *aView, nscoord aX, nscoord aY);
 
-  NS_IMETHOD  ResizeView(nsView *aView, const nsRect &aRect, bool aRepaintExposedAreaOnly = false);
+  
 
-  NS_IMETHOD  SetViewFloating(nsView *aView, bool aFloating);
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD  ResizeView(nsView *aView, const nsRect &aRect,
+                         bool aRepaintExposedAreaOnly = false);
+
+  
+
+
+
+
+
+
+
+
+
 
   NS_IMETHOD  SetViewVisibility(nsView *aView, nsViewVisibility aVisible);
 
-  NS_IMETHOD  SetViewZIndex(nsView *aView, bool aAuto, int32_t aZIndex, bool aTopMost=false);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD  SetViewZIndex(nsView *aView, bool aAutoZIndex, int32_t aZindex, bool aTopMost = false);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD  SetViewFloating(nsView *aView, bool aFloatingView);
+
+  
+
+
 
   virtual void SetPresShell(nsIPresShell *aPresShell) { mPresShell = aPresShell; }
+
+  
+
+
   virtual nsIPresShell* GetPresShell() { return mPresShell; }
+
+  
+
+
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext);
 
-  virtual nsIViewManager* IncrementDisableRefreshCount();
+  
+
+
+
+
+
+
+
+
+
+
+
+  class NS_STACK_CLASS AutoDisableRefresh {
+  public:
+    AutoDisableRefresh(nsViewManager* aVM) {
+      if (aVM) {
+        mRootVM = aVM->IncrementDisableRefreshCount();
+      }
+    }
+    ~AutoDisableRefresh() {
+      if (mRootVM) {
+        mRootVM->DecrementDisableRefreshCount();
+      }
+    }
+  private:
+    AutoDisableRefresh(const AutoDisableRefresh& aOther);
+    const AutoDisableRefresh& operator=(const AutoDisableRefresh& aOther);
+
+    nsCOMPtr<nsViewManager> mRootVM;
+  };
+
+private:
+  friend class AutoDisableRefresh;
+
+  virtual nsViewManager* IncrementDisableRefreshCount();
   virtual void DecrementDisableRefreshCount();
 
+public:
+  
+
+
+
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
- 
+
+  
+
+
+
+
+
   NS_IMETHOD IsPainting(bool& aIsPainting);
+
+  
+
+
+
+
+
+
   NS_IMETHOD GetLastUserEventTime(uint32_t& aTime);
+
+  
+
+
+
+  static nsView* GetDisplayRootFor(nsView* aView);
+
+  
+
+
+
+  virtual void ProcessPendingUpdates();
+
+  
+
+
+  virtual void UpdateWidgetGeometry();
+
+  uint32_t AppUnitsPerDevPixel() const
+  {
+    return mContext->AppUnitsPerDevPixel();
+  }
+  nsView* GetRootViewImpl() const { return mRootView; }
+
+private:
   static uint32_t gLastUserEventTime;
 
   
   void InvalidateHierarchy();
-
-  virtual void ProcessPendingUpdates();
-  virtual void UpdateWidgetGeometry();
-
-protected:
-  virtual ~nsViewManager();
-
-private:
-
   void FlushPendingInvalidates();
+
   void ProcessPendingUpdatesForView(nsView *aView,
                                     bool aFlushDirtyRegion = true);
   void FlushDirtyRegionToWidget(nsView* aView);
@@ -156,8 +382,6 @@ private:
 
   nsresult InvalidateView(nsView *aView, const nsRect &aRect);
 
-public: 
-  nsView* GetRootViewImpl() const { return mRootView; }
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   bool IsRootVM() const { return this == RootViewManager(); }
 
@@ -175,12 +399,6 @@ public:
   
   void PostPendingUpdate();
 
-  uint32_t AppUnitsPerDevPixel() const
-  {
-    return mContext->AppUnitsPerDevPixel();
-  }
-
-private:
   nsRefPtr<nsDeviceContext> mContext;
   nsIPresShell   *mPresShell;
 
@@ -191,12 +409,12 @@ private:
   nsView           *mRootView;
   
   
-  nsViewManager     *mRootViewManager;
+  nsViewManager   *mRootViewManager;
 
   
   
   
-  
+
   int32_t           mRefreshDisableCount;
   
   bool              mPainting;
@@ -211,4 +429,31 @@ private:
   static nsVoidArray       *gViewManagers;
 };
 
-#endif 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsViewManager, NS_IVIEWMANAGER_IID)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif  
