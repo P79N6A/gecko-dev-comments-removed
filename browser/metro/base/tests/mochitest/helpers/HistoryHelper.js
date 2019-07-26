@@ -68,7 +68,7 @@ var HistoryTestHelper = {
 
     
     
-    this.createNodes(this._startView._limit + 3);
+    this.createNodes(this._startView.maxTiles + 3);
 
     this._originalNavHistoryService = this._startView._navHistoryService;
     this._startView._navHistoryService = this.MockNavHistoryService;

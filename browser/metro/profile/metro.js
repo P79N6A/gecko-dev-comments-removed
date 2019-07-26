@@ -126,14 +126,14 @@ pref("network.protocol-handler.warn-external.ms-windows-store", false);
 pref("network.protocol-handler.external.ms-windows-store", true);
 
 
+
 pref("browser.display.overlaynavbuttons", true);
 
+pref("browser.display.startUI.topsites.maxresults", 8);
 
-pref("browser.display.history.maxresults", 100);
+pref("browser.display.startUI.bookmarks.maxresults", 16);
 
-
-pref("browser.display.startUI.maxresults", 16);
-
+pref("browser.display.startUI.history.maxresults", 16);
 
 pref("browser.firstrun.count", 3);
 
@@ -639,13 +639,6 @@ pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/
 
 
 pref("browser.firstrun.show.localepicker", false);
-
-
-
-
-
-
-
 
 
 pref("javascript.options.showInConsole", true);
