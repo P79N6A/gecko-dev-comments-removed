@@ -9,18 +9,14 @@ import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.gfx.LayerView;
-import org.mozilla.gecko.menu.GeckoMenu;
-import org.mozilla.gecko.menu.MenuPopup;
-import org.mozilla.gecko.PageActionLayout;
-import org.mozilla.gecko.PrefsHelper;
-import org.mozilla.gecko.util.Clipboard;
+import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.HardwareUtils;
+
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
-import org.mozilla.gecko.util.GeckoEventListener;
 
-import org.json.JSONObject;
+import org.mozilla.gecko.PrefsHelper;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -32,30 +28,33 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.text.style.ForegroundColorSpan;
+import android.text.Editable;
+import android.text.InputType;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.ContextMenu;
-import android.view.LayoutInflater;
+import android.view.KeyEvent;
 import android.view.MenuInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.Window;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.animation.AlphaAnimation;
-import android.view.animation.Interpolator;
 import android.view.animation.TranslateAnimation;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -64,18 +63,45 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.ViewSwitcher;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class BrowserToolbar extends GeckoRelativeLayout
-                            implements Tabs.OnTabsChangedListener,
+public class BrowserToolbar implements TextWatcher,
+                                       AutocompleteHandler,
+                                       Tabs.OnTabsChangedListener,
                                        GeckoMenu.ActionItemBarPresenter,
-                                       Animation.AnimationListener,
-                                       GeckoEventListener {
+                                       Animation.AnimationListener {
     private static final String LOGTAG = "GeckoToolbar";
     public static final String PREF_TITLEBAR_MODE = "browser.chrome.titlebarMode";
+
+    public static enum EditingTarget {
+        NEW_TAB,
+        CURRENT_TAB,
+        PICK_SITE
+    };
+
+    public interface OnActivateListener {
+        public void onActivate();
+    }
+
+    public interface OnCommitListener {
+        public void onCommit(EditingTarget target);
+    }
+
+    public interface OnDismissListener {
+        public void onDismiss();
+    }
+
+    public interface OnFilterListener {
+        public void onFilter(String searchText, AutocompleteHandler handler);
+    }
+
+    private GeckoRelativeLayout mLayout;
     private LayoutParams mAwesomeBarParams;
     private View mUrlDisplayContainer;
+    private View mUrlEditContainer;
+    private CustomEditText mUrlEditText;
     private View mAwesomeBarEntry;
     private ImageView mAwesomeBarRightEdge;
     private BrowserToolbarBackground mAddressBarBg;
@@ -89,22 +115,36 @@ public class BrowserToolbar extends GeckoRelativeLayout
     public ImageButton mFavicon;
     public ImageButton mStop;
     public ImageButton mSiteSecurity;
-    public PageActionLayout mPageActionLayout;
-    private Animation mProgressSpinner;
+    public ImageButton mReader;
+    public ImageButton mGo;
+    private AnimationDrawable mProgressSpinner;
     private TabCounter mTabsCounter;
     private ImageView mShadow;
     private GeckoImageButton mMenu;
     private GeckoImageView mMenuIcon;
     private LinearLayout mActionItemBar;
     private MenuPopup mMenuPopup;
-    private List<? extends View> mFocusOrder;
+    private List<View> mFocusOrder;
+    private EditingTarget mEditingTarget;
+    private OnActivateListener mActivateListener;
+    private OnCommitListener mCommitListener;
+    private OnDismissListener mDismissListener;
+    private OnFilterListener mFilterListener;
 
     final private BrowserApp mActivity;
+    private Handler mHandler;
     private boolean mHasSoftMenuButton;
 
     private boolean mShowSiteSecurity;
     private boolean mShowReader;
-    private boolean mSpinnerVisible;
+
+    private boolean mDelayRestartInput;
+    
+    private String mAutoCompleteResult = "";
+    
+    private String mAutoCompletePrefix = null;
+
+    private static List<View> sActionItems;
 
     private boolean mAnimatingEntry;
 
@@ -119,14 +159,12 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private int mFaviconSize;
 
     private PropertyAnimator mVisibilityAnimator;
-    private static final Interpolator sButtonsInterpolator = new AccelerateInterpolator();
 
     private static final int TABS_CONTRACTED = 1;
     private static final int TABS_EXPANDED = 2;
 
     private static final int FORWARD_ANIMATION_DURATION = 450;
     private final ForegroundColorSpan mUrlColor;
-    private final ForegroundColorSpan mBlockedColor;
     private final ForegroundColorSpan mDomainColor;
     private final ForegroundColorSpan mPrivateDomainColor;
 
@@ -134,19 +172,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     private Integer mPrefObserverId;
 
-    public BrowserToolbar(Context context) {
-        this(context, null);
-    }
-
-    public BrowserToolbar(Context context, AttributeSet attrs) {
-        super(context, attrs);
-
+    public BrowserToolbar(BrowserApp activity) {
         
-        mActivity = (BrowserApp) context;
+        mActivity = activity;
 
-        
-        LayoutInflater.from(context).inflate(R.layout.browser_toolbar, this);
-
+        sActionItems = new ArrayList<View>();
         Tabs.registerOnTabsChangedListener(this);
         mSwitchingTabs = true;
 
@@ -181,95 +211,37 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
-        Resources res = getResources();
+        Resources res = mActivity.getResources();
         mUrlColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_urltext));
-        mBlockedColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_blockedtext));
         mDomainColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_domaintext));
         mPrivateDomainColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_domaintext_private));
 
-        registerEventListener("Reader:Click");
-        registerEventListener("Reader:LongClick");
-
-        mShowSiteSecurity = false;
-        mShowReader = false;
-
-        mAnimatingEntry = false;
-
-        mAddressBarBg = (BrowserToolbarBackground) findViewById(R.id.address_bar_bg);
-        mAddressBarViewOffset = res.getDimensionPixelSize(R.dimen.addressbar_offset_left);
-        mDefaultForwardMargin = res.getDimensionPixelSize(R.dimen.forward_default_offset);
-        mUrlDisplayContainer = findViewById(R.id.awesome_bar_display_container);
-        mAwesomeBarEntry = findViewById(R.id.awesome_bar_entry);
-
-        
-        mAwesomeBarRightEdge = (ImageView) findViewById(R.id.awesome_bar_right_edge);
-        if (mAwesomeBarRightEdge != null) {
-            mAwesomeBarRightEdge.getDrawable().setLevel(5000);
-        }
-
-        mTitle = (GeckoTextView) findViewById(R.id.awesome_bar_title);
-        mTitlePadding = mTitle.getPaddingRight();
-
-        mTabs = (ShapedButton) findViewById(R.id.tabs);
-        mTabsCounter = (TabCounter) findViewById(R.id.tabs_counter);
-        mBack = (ImageButton) findViewById(R.id.back);
-        mForward = (ImageButton) findViewById(R.id.forward);
-        mForward.setEnabled(false); 
-
-        mFavicon = (ImageButton) findViewById(R.id.favicon);
-        if (Build.VERSION.SDK_INT >= 16)
-            mFavicon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        mFaviconSize = Math.round(res.getDimension(R.dimen.browser_toolbar_favicon_size));
-
-        mSiteSecurity = (ImageButton) findViewById(R.id.site_security);
-        mSiteSecurityVisible = (mSiteSecurity.getVisibility() == View.VISIBLE);
-        mActivity.getSiteIdentityPopup().setAnchor(mSiteSecurity);
-
-        mProgressSpinner = AnimationUtils.loadAnimation(mActivity, R.anim.progress_spinner);
-
-        mStop = (ImageButton) findViewById(R.id.stop);
-        mShadow = (ImageView) findViewById(R.id.shadow);
-        mPageActionLayout = (PageActionLayout) findViewById(R.id.page_action_layout);
-
-        if (Build.VERSION.SDK_INT >= 16) {
-            mShadow.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        }
-
-        mMenu = (GeckoImageButton) findViewById(R.id.menu);
-        mMenuIcon = (GeckoImageView) findViewById(R.id.menu_icon);
-        mActionItemBar = (LinearLayout) findViewById(R.id.menu_items);
-        mHasSoftMenuButton = !HardwareUtils.hasMenuButton();
-
-        
-        
-        if (HardwareUtils.isTablet()) {
-            mFocusOrder = Arrays.asList(mTabs, mBack, mForward, this,
-                    mSiteSecurity, mPageActionLayout, mStop, mActionItemBar, mMenu);
-        } else {
-            mFocusOrder = Arrays.asList(this, mSiteSecurity, mPageActionLayout, mStop,
-                    mTabs, mMenu);
-        }
     }
 
-    @Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
+    public void from(RelativeLayout layout) {
+        if (mLayout != null) {
+            
+            layout.setVisibility(mLayout.getVisibility());
+        }
 
-        setOnClickListener(new Button.OnClickListener() {
+        mLayout = (GeckoRelativeLayout) layout;
+
+        mLayout.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mActivity.autoHideTabs();
-                onAwesomeBarSearch();
+                if (mActivateListener != null) {
+                    mActivateListener.onActivate();
+                }
             }
         });
 
-        setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
+        mLayout.setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
             @Override
             public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
                 MenuInflater inflater = mActivity.getMenuInflater();
                 inflater.inflate(R.menu.titlebar_contextmenu, menu);
 
-                String clipboard = Clipboard.getText();
+                String clipboard = GeckoAppShell.getClipboardText();
                 if (TextUtils.isEmpty(clipboard)) {
                     menu.findItem(R.id.pasteandgo).setVisible(false);
                     menu.findItem(R.id.paste).setVisible(false);
@@ -296,6 +268,122 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
+        mShowSiteSecurity = false;
+        mShowReader = false;
+
+        mAnimatingEntry = false;
+
+        mAddressBarBg = (BrowserToolbarBackground) mLayout.findViewById(R.id.address_bar_bg);
+        mAddressBarViewOffset = mActivity.getResources().getDimensionPixelSize(R.dimen.addressbar_offset_left);
+        mDefaultForwardMargin = mActivity.getResources().getDimensionPixelSize(R.dimen.forward_default_offset);
+        mUrlDisplayContainer = mLayout.findViewById(R.id.awesome_bar_display_container);
+        mAwesomeBarEntry = mLayout.findViewById(R.id.awesome_bar_entry);
+
+        mUrlEditContainer = mLayout.findViewById(R.id.awesome_bar_edit_container);
+        mUrlEditText = (CustomEditText) mLayout.findViewById(R.id.awesome_bar_edit_text);
+
+        mUrlEditText.addTextChangedListener(this);
+
+        mUrlEditText.setOnKeyPreImeListener(new CustomEditText.OnKeyPreImeListener() {
+            @Override
+            public boolean onKeyPreIme(View v, int keyCode, KeyEvent event) {
+                
+                if (event.getAction() != KeyEvent.ACTION_DOWN)
+                    return false;
+
+                if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                    
+                    
+                    Editable content = mUrlEditText.getText();
+                    if (!hasCompositionString(content)) {
+                        if (mCommitListener != null) {
+                            mCommitListener.onCommit(mEditingTarget);
+                        }
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        });
+
+        mUrlEditText.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER || GamepadUtils.isActionKey(event)) {
+                    if (event.getAction() != KeyEvent.ACTION_DOWN)
+                        return true;
+
+                    if (mCommitListener != null) {
+                        mCommitListener.onCommit(mEditingTarget);
+                    }
+                    return true;
+                } else if (GamepadUtils.isBackKey(event)) {
+                    if (mDismissListener != null) {
+                        mDismissListener.onDismiss();
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+        mUrlEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (v == null || hasFocus) {
+                    return;
+                }
+
+                InputMethodManager imm = (InputMethodManager) mActivity.getSystemService(Context.INPUT_METHOD_SERVICE);
+                try {
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                } catch (NullPointerException e) {
+                    Log.e(LOGTAG, "InputMethodManagerService, why are you throwing"
+                                  + " a NullPointerException? See bug 782096", e);
+                }
+            }
+        });
+
+        mUrlEditText.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (Build.VERSION.SDK_INT >= 11) {
+                    CustomEditText text = (CustomEditText) v;
+
+                    if (text.getSelectionStart() == text.getSelectionEnd())
+                        return false;
+
+                    
+                    return false;
+                }
+
+                return false;
+            }
+        });
+
+        mUrlEditText.setOnSelectionChangedListener(new CustomEditText.OnSelectionChangedListener() {
+            @Override
+            public void onSelectionChanged(int selStart, int selEnd) {
+                if (Build.VERSION.SDK_INT >= 11 && selStart == selEnd) {
+                    
+                }
+            }
+        });
+
+        
+        mAwesomeBarRightEdge = (ImageView) mLayout.findViewById(R.id.awesome_bar_right_edge);
+        if (mAwesomeBarRightEdge != null) {
+            mAwesomeBarRightEdge.getDrawable().setLevel(5000);
+        }
+
+        mTitle = (GeckoTextView) mLayout.findViewById(R.id.awesome_bar_title);
+        mTitlePadding = mTitle.getPaddingRight();
+        if (Build.VERSION.SDK_INT >= 16)
+            mTitle.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+
+        mTabs = (ShapedButton) mLayout.findViewById(R.id.tabs);
         mTabs.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -304,6 +392,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
         });
         mTabs.setImageLevel(0);
 
+        mTabsCounter = (TabCounter) mLayout.findViewById(R.id.tabs_counter);
+
+        mBack = (ImageButton) mLayout.findViewById(R.id.back);
         mBack.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -317,6 +408,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
+        mForward = (ImageButton) mLayout.findViewById(R.id.forward);
+        mForward.setEnabled(false); 
         mForward.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -336,20 +429,23 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 if (mSiteSecurity.getVisibility() != View.VISIBLE)
                     return;
 
-                JSONObject identityData = Tabs.getInstance().getSelectedTab().getIdentityData();
-                if (identityData == null) {
-                    Log.e(LOGTAG, "Selected tab has no identity data");
-                    return;
-                }
-                SiteIdentityPopup siteIdentityPopup = mActivity.getSiteIdentityPopup();
-                siteIdentityPopup.updateIdentity(identityData);
-                siteIdentityPopup.show();
+                SiteIdentityPopup.getInstance().show(mSiteSecurity);
             }
         };
 
+        mFavicon = (ImageButton) mLayout.findViewById(R.id.favicon);
         mFavicon.setOnClickListener(faviconListener);
+        if (Build.VERSION.SDK_INT >= 16)
+            mFavicon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        mFaviconSize = Math.round(mActivity.getResources().getDimension(R.dimen.browser_toolbar_favicon_size));
+
+        mSiteSecurity = (ImageButton) mLayout.findViewById(R.id.site_security);
         mSiteSecurity.setOnClickListener(faviconListener);
+        mSiteSecurityVisible = (mSiteSecurity.getVisibility() == View.VISIBLE);
+
+        mProgressSpinner = (AnimationDrawable) mActivity.getResources().getDrawable(R.drawable.progress_spinner);
         
+        mStop = (ImageButton) mLayout.findViewById(R.id.stop);
         mStop.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -360,16 +456,56 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
+        mReader = (ImageButton) mLayout.findViewById(R.id.reader);
+        mReader.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Tab tab = Tabs.getInstance().getSelectedTab();
+                if (tab != null) {
+                    if (ReaderModeUtils.isAboutReader(tab.getURL())) {
+                        tab.doBack();
+                    } else {
+                        tab.readerMode();
+                    }
+                }
+            }
+        });
+
+        mReader.setOnLongClickListener(new Button.OnLongClickListener() {
+            public boolean onLongClick(View v) {
+                Tab tab = Tabs.getInstance().getSelectedTab();
+                if (tab != null) {
+                    tab.addToReadingList();
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+        mGo = (ImageButton) mLayout.findViewById(R.id.go);
+        mGo.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCommitListener != null) {
+                    mCommitListener.onCommit(mEditingTarget);
+                }
+            }
+        });
+
+        mShadow = (ImageView) mLayout.findViewById(R.id.shadow);
         mShadow.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
             }
         });
 
-        float slideWidth = getResources().getDimension(R.dimen.browser_toolbar_lock_width);
+        mHandler = new Handler();
+
+        float slideWidth = mActivity.getResources().getDimension(R.dimen.browser_toolbar_lock_width);
 
         LinearLayout.LayoutParams siteSecParams = (LinearLayout.LayoutParams) mSiteSecurity.getLayoutParams();
-        final float scale = getResources().getDisplayMetrics().density;
+        final float scale = mActivity.getResources().getDisplayMetrics().density;
         slideWidth += (siteSecParams.leftMargin + siteSecParams.rightMargin) * scale + 0.5f;
 
         mLockFadeIn = new AlphaAnimation(0.0f, 1.0f);
@@ -386,6 +522,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mTitleSlideLeft.setDuration(lockAnimDuration);
         mTitleSlideRight.setDuration(lockAnimDuration);
 
+        mMenu = (GeckoImageButton) mLayout.findViewById(R.id.menu);
+        mMenuIcon = (GeckoImageView) mLayout.findViewById(R.id.menu_icon);
+        mActionItemBar = (LinearLayout) mLayout.findViewById(R.id.menu_items);
+        mHasSoftMenuButton = !HardwareUtils.hasMenuButton();
+
         if (mHasSoftMenuButton) {
             mMenu.setVisibility(View.VISIBLE);
             mMenuIcon.setVisibility(View.VISIBLE);
@@ -401,7 +542,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         if (!HardwareUtils.isTablet()) {
             
             
-            post(new Runnable() {
+            mLayout.post(new Runnable() {
                 @Override
                 public void run() {
                     int height = mTabs.getHeight();
@@ -414,33 +555,95 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 }
             });
         }
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            View panel = mActivity.getMenuPanel();
+
+            
+            
+            
+            
+
+            if (panel == null) {
+                mActivity.onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
+                panel = mActivity.getMenuPanel();
+
+                if (mHasSoftMenuButton) {
+                    mMenuPopup = new MenuPopup(mActivity);
+                    mMenuPopup.setPanelView(panel);
+
+                    mMenuPopup.setOnDismissListener(new PopupWindow.OnDismissListener() {
+                        @Override
+                        public void onDismiss() {
+                            mActivity.onOptionsMenuClosed(null);
+                        }
+                    });
+                }
+            }
+        }
+
+        mFocusOrder = Arrays.asList(mBack, mForward, mLayout, mReader, mSiteSecurity, mStop, mTabs);
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        
-        
-        if (event != null && event.getY() > getHeight() - getScrollY()) {
+    public boolean onKey(int keyCode, KeyEvent event) {
+        if (event.getAction() != KeyEvent.ACTION_DOWN) {
             return false;
         }
 
-        return super.onTouchEvent(event);
+        
+        
+        if (keyCode > KeyEvent.getMaxKeyCode()) {
+            return true;
+        }
+
+        
+        
+        if (keyCode == KeyEvent.KEYCODE_BACK ||
+            keyCode == KeyEvent.KEYCODE_MENU ||
+            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+            keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+            keyCode == KeyEvent.KEYCODE_DEL ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            return false;
+        } else if (keyCode == KeyEvent.KEYCODE_SEARCH) {
+             mUrlEditText.setText("");
+             mUrlEditText.requestFocus();
+
+             InputMethodManager imm =
+                    (InputMethodManager) mActivity.getSystemService(Context.INPUT_METHOD_SERVICE);
+             imm.showSoftInput(mUrlEditText, InputMethodManager.SHOW_IMPLICIT);
+
+             return true;
+        } else if (isEditing()) {
+            final int prevSelStart = mUrlEditText.getSelectionStart();
+            final int prevSelEnd = mUrlEditText.getSelectionEnd();
+
+            
+            
+            mUrlEditText.dispatchKeyEvent(event);
+
+            final int curSelStart = mUrlEditText.getSelectionStart();
+            final int curSelEnd = mUrlEditText.getSelectionEnd();
+
+            if (prevSelStart != curSelStart || prevSelEnd != curSelEnd) {
+                mUrlEditText.requestFocusFromTouch();
+
+                
+                mUrlEditText.setSelection(curSelStart, curSelEnd);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-
-        if (h != oldh) {
-            
-            
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    mActivity.refreshToolbarHeight();
-                }
-            });
-        }
+    public View getLayout() {
+        return mLayout;
     }
 
     @Override
@@ -459,7 +662,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     if (showProgress && tab.getState() == Tab.STATE_LOADING)
                         setProgressVisibility(true);
                     setSecurityMode(tab.getSecurityMode());
-                    setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+                    setReaderMode(tab.getReaderEnabled());
                 }
                 break;
             case STOP:
@@ -471,15 +674,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     updateTitle();
                 }
                 break;
-            case LOADED:
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    updateTitle();
-                }
-                break;
             case RESTORED:
-                
-            case SELECTED:
                 updateTabCount(Tabs.getInstance().getDisplayCount());
+                break;
+            case SELECTED:
                 mSwitchingTabs = true;
                 
             case LOCATION_CHANGE:
@@ -491,7 +689,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 break;
             case CLOSED:
             case ADDED:
-                updateTabCount(Tabs.getInstance().getDisplayCount());
+                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     updateBackButton(tab.canDoBack());
                     updateForwardButton(tab.canDoForward());
@@ -509,25 +707,100 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 break;
             case READER_ENABLED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
-                    setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+                    setReaderMode(tab.getReaderEnabled());
                 }
                 break;
         }
     }
 
+    
+    
+    @Override
+    public void onAutocomplete(final String result) {
+        final String text = mUrlEditText.getText().toString();
+
+        if (result == null) {
+            mAutoCompleteResult = "";
+            return;
+        }
+
+        if (!result.startsWith(text) || text.equals(result)) {
+            return;
+        }
+
+        mAutoCompleteResult = result;
+        mUrlEditText.getText().append(result.substring(text.length()));
+        mUrlEditText.setSelection(text.length(), result.length());
+    }
+
+    @Override
+    public void afterTextChanged(final Editable s) {
+        final String text = s.toString();
+        boolean useHandler = false;
+        boolean reuseAutocomplete = false;
+        if (!hasCompositionString(s) && !StringUtils.isSearchQuery(text, false)) {
+            useHandler = true;
+
+            
+            
+            if (mAutoCompletePrefix != null && (mAutoCompletePrefix.length() >= text.length())) {
+                useHandler = false;
+            } else if (mAutoCompleteResult != null && mAutoCompleteResult.startsWith(text)) {
+                
+                
+                useHandler = false;
+                reuseAutocomplete = true;
+            }
+        }
+
+        
+        if (TextUtils.isEmpty(mAutoCompleteResult) || !mAutoCompleteResult.equals(text)) {
+            if (mFilterListener != null) {
+                mFilterListener.onFilter(text, useHandler ? this : null);
+            }
+            mAutoCompletePrefix = text;
+
+            if (reuseAutocomplete) {
+                onAutocomplete(mAutoCompleteResult);
+            }
+        }
+
+        
+        
+        if (!hasCompositionString(s)) {
+            updateGoButton(text);
+        }
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            
+        }
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count,
+                                  int after) {
+        
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before,
+                              int count) {
+        
+    }
+
     public boolean isVisible() {
-        return getScrollY() == 0;
+        return mLayout.getScrollY() == 0;
     }
 
     public void setNextFocusDownId(int nextId) {
-        super.setNextFocusDownId(nextId);
+        mLayout.setNextFocusDownId(nextId);
         mTabs.setNextFocusDownId(nextId);
         mBack.setNextFocusDownId(nextId);
         mForward.setNextFocusDownId(nextId);
         mFavicon.setNextFocusDownId(nextId);
         mStop.setNextFocusDownId(nextId);
         mSiteSecurity.setNextFocusDownId(nextId);
-        mPageActionLayout.setNextFocusDownId(nextId);
+        mReader.setNextFocusDownId(nextId);
         mMenu.setNextFocusDownId(nextId);
     }
 
@@ -560,189 +833,24 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     private int getAwesomeBarEntryTranslation() {
-        return getWidth() - mAwesomeBarEntry.getRight();
+        return mLayout.getWidth() - mAwesomeBarEntry.getRight();
     }
 
     private int getAwesomeBarCurveTranslation() {
-        return getWidth() - mTabs.getLeft();
+        return mLayout.getWidth() - mTabs.getLeft();
     }
 
-    public void fromAwesomeBarSearch(String url) {
-        
-        
-        if (url != null && url.length() > 0) {
-            setTitle(url);
-        }
-
-        if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
-            return;
-        }
-
-        
-        
-        
-        
-        
-        if (!isSelected()) {
-            
-            setSelected(true);
-
-            final int entryTranslation = getAwesomeBarEntryTranslation();
-            final int curveTranslation = getAwesomeBarCurveTranslation();
-
-            if (mAwesomeBarRightEdge != null) {
-                ViewHelper.setTranslationX(mAwesomeBarRightEdge, entryTranslation);
+    private static boolean hasCompositionString(Editable content) {
+        Object[] spans = content.getSpans(0, content.length(), Object.class);
+        if (spans != null) {
+            for (Object span : spans) {
+                if ((content.getSpanFlags(span) & Spanned.SPAN_COMPOSING) != 0) {
+                    
+                    return true;
+                }
             }
-
-            ViewHelper.setTranslationX(mTabs, curveTranslation);
-            ViewHelper.setTranslationX(mTabsCounter, curveTranslation);
-            ViewHelper.setTranslationX(mActionItemBar, curveTranslation);
-
-            if (mHasSoftMenuButton) {
-                ViewHelper.setTranslationX(mMenu, curveTranslation);
-                ViewHelper.setTranslationX(mMenuIcon, curveTranslation);
-            }
-
-            ViewHelper.setAlpha(mPageActionLayout, 0);
-            ViewHelper.setAlpha(mStop, 0);
         }
-
-        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
-        contentAnimator.setUseHardwareLayer(false);
-
-        
-
-        if (mAwesomeBarRightEdge != null) {
-            contentAnimator.attach(mAwesomeBarRightEdge,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   0);
-        }
-
-        contentAnimator.attach(mTabs,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               0);
-        contentAnimator.attach(mTabsCounter,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               0);
-        contentAnimator.attach(mActionItemBar,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               0);
-
-        if (mHasSoftMenuButton) {
-            contentAnimator.attach(mMenu,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   0);
-            contentAnimator.attach(mMenuIcon,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   0);
-        }
-
-        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
-            @Override
-            public void onPropertyAnimationStart() {
-            }
-
-            @Override
-            public void onPropertyAnimationEnd() {
-                
-                setSelected(false);
-
-                PropertyAnimator buttonsAnimator = new PropertyAnimator(300);
-
-                
-                
-                buttonsAnimator.attach(mPageActionLayout,
-                                       PropertyAnimator.Property.ALPHA,
-                                       1);
-                buttonsAnimator.attach(mStop,
-                                       PropertyAnimator.Property.ALPHA,
-                                       1);
-
-                buttonsAnimator.start();
-
-                mAnimatingEntry = false;
-
-                
-                
-                updateTabCount(Tabs.getInstance().getDisplayCount());
-            }
-        });
-
-        mAnimatingEntry = true;
-
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                contentAnimator.start();
-            }
-        }, 500);
-    }
-
-    private void onAwesomeBarSearch() {
-        
-        if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
-            mActivity.onSearchRequested();
-            return;
-        }
-
-        if (mAnimatingEntry)
-            return;
-
-        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
-        contentAnimator.setUseHardwareLayer(false);
-
-        final int entryTranslation = getAwesomeBarEntryTranslation();
-        final int curveTranslation = getAwesomeBarCurveTranslation();
-
-        
-        setSelected(true);
-
-        
-        ViewHelper.setAlpha(mPageActionLayout, 0);
-        ViewHelper.setAlpha(mStop, 0);
-
-        
-
-        if (mAwesomeBarRightEdge != null) {
-            contentAnimator.attach(mAwesomeBarRightEdge,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   entryTranslation);
-        }
-
-        contentAnimator.attach(mTabs,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               curveTranslation);
-        contentAnimator.attach(mTabsCounter,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               curveTranslation);
-        contentAnimator.attach(mActionItemBar,
-                               PropertyAnimator.Property.TRANSLATION_X,
-                               curveTranslation);
-
-        if (mHasSoftMenuButton) {
-            contentAnimator.attach(mMenu,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   curveTranslation);
-            contentAnimator.attach(mMenuIcon,
-                                   PropertyAnimator.Property.TRANSLATION_X,
-                                   curveTranslation);
-        }
-
-        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
-            @Override
-            public void onPropertyAnimationStart() {
-            }
-
-            @Override
-            public void onPropertyAnimationEnd() {
-                
-                mActivity.onSearchRequested();
-                mAnimatingEntry = false;
-            }
-        });
-
-        mAnimatingEntry = true;
-        contentAnimator.start();
+        return false;
     }
 
     private void addTab() {
@@ -769,23 +877,36 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
     }
 
+    public void updateTabCountAndAnimate(int count) {
+        
+        if (!isVisible()) {
+            updateTabCount(count);
+            return;
+        }
+
+        
+        
+        
+        
+        if (!isEditing()) {
+            mTabsCounter.setCount(count);
+
+            mTabs.setContentDescription((count > 1) ?
+                                        mActivity.getString(R.string.num_tabs, count) :
+                                        mActivity.getString(R.string.one_tab));
+        }
+    }
+
     public void updateTabCount(int count) {
         
         
         
         
-        if (isSelected()) {
+        if (isEditing()) {
             return;
         }
 
-        
-        if (isVisible() && ViewHelper.getAlpha(mTabsCounter) != 0) {
-            mTabsCounter.setCountWithAnimation(count);
-        } else {
-            mTabsCounter.setCount(count);
-        }
-
-        
+        mTabsCounter.setCurrentText(String.valueOf(count));
         mTabs.setContentDescription((count > 1) ?
                                     mActivity.getString(R.string.num_tabs, count) :
                                     mActivity.getString(R.string.one_tab));
@@ -796,26 +917,16 @@ public class BrowserToolbar extends GeckoRelativeLayout
         
         
         if (visible) {
-            mFavicon.setImageResource(R.drawable.progress_spinner);
-            
-            if (!mSpinnerVisible) {
-                setPageActionVisibility(true);
-                mFavicon.setAnimation(mProgressSpinner);
-                mProgressSpinner.start();
-                mSpinnerVisible = true;
-            }
+            mFavicon.setImageDrawable(mProgressSpinner);
+            mProgressSpinner.start();
+            setPageActionVisibility(true);
             Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - Throbber start");
         } else {
+            mProgressSpinner.stop();
+            setPageActionVisibility(false);
             Tab selectedTab = Tabs.getInstance().getSelectedTab();
             if (selectedTab != null)
                 setFavicon(selectedTab.getFavicon());
-
-            if (mSpinnerVisible) {
-                setPageActionVisibility(false);
-                mFavicon.setAnimation(null);
-                mProgressSpinner.cancel();
-                mSpinnerVisible = false;
-            }
             Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - Throbber stop");
         }
     }
@@ -827,16 +938,21 @@ public class BrowserToolbar extends GeckoRelativeLayout
         
         setSiteSecurityVisibility(mShowSiteSecurity && !isLoading);
 
-        boolean inReaderMode = false;
+        
+        
+        
+        boolean exitableReaderMode = false;
         Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null)
-            inReaderMode = ReaderModeUtils.isAboutReader(tab.getURL());
+            exitableReaderMode = ReaderModeUtils.isAboutReader(tab.getURL()) && tab.canDoBack();
+        mReader.setImageResource(exitableReaderMode ? R.drawable.reader_active : R.drawable.reader);
+        mReader.setVisibility(!isLoading && (mShowReader || exitableReaderMode) ? View.VISIBLE : View.GONE);
 
-        mPageActionLayout.setVisibility(!isLoading ? View.VISIBLE : View.GONE);
         
         
         
-        mTitle.setPadding(0, 0, (!isLoading && !(mShowReader || inReaderMode) ? mTitlePadding : 0), 0);
+        mTitle.setPadding(0, 0, (!isLoading && !(mShowReader || exitableReaderMode) ? mTitlePadding : 0), 0);
+
         updateFocusOrder();
     }
 
@@ -875,39 +991,16 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private void updateFocusOrder() {
         View prevView = null;
 
-        
-        
-        boolean needsNewFocus = false;
-
         for (View view : mFocusOrder) {
-            if (view.getVisibility() != View.VISIBLE || !view.isEnabled()) {
-                if (view.hasFocus()) {
-                    needsNewFocus = true;
-                }
+            if (view.getVisibility() != View.VISIBLE)
                 continue;
+
+            if (prevView != null) {
+                view.setNextFocusLeftId(prevView.getId());
+                prevView.setNextFocusRightId(view.getId());
             }
 
-            if (view == mActionItemBar) {
-                final int childCount = mActionItemBar.getChildCount();
-                for (int child = 0; child < childCount; child++) {
-                    View childView = mActionItemBar.getChildAt(child);
-                    if (prevView != null) {
-                        childView.setNextFocusLeftId(prevView.getId());
-                        prevView.setNextFocusRightId(childView.getId());
-                    }
-                    prevView = childView;
-                }
-            } else {
-                if (prevView != null) {
-                    view.setNextFocusLeftId(prevView.getId());
-                    prevView.setNextFocusRightId(view.getId());
-                }
-                prevView = view;
-            }
-        }
-
-        if (needsNewFocus) {
-            requestFocus();
+            prevView = view;
         }
     }
 
@@ -920,8 +1013,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
         String url = tab.getURL();
 
         
-        visible &= !(url == null || (url.startsWith("about:") &&
-                     !url.equals("about:blank")));
+        
+        visible &= !(url == null || (url.startsWith("about:") && 
+                     !url.equals("about:blank"))) && !isEditing();
 
         if ((mShadow.getVisibility() == View.VISIBLE) != visible) {
             mShadow.setVisibility(visible ? View.VISIBLE : View.GONE);
@@ -930,7 +1024,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     private void setTitle(CharSequence title) {
         mTitle.setText(title);
-        setContentDescription(title != null ? title : mTitle.getHint());
+        mLayout.setContentDescription(title != null ? title : mTitle.getHint());
     }
 
     
@@ -942,18 +1036,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
 
         String url = tab.getURL();
+        mUrlEditText.setText(url);
+
         
         if ("about:home".equals(url) || "about:privatebrowsing".equals(url)) {
             setTitle(null);
-            return;
-        }
-
-        
-        if (tab.getErrorType() == Tab.ErrorType.BLOCKED) {
-            String title = tab.getDisplayTitle();
-            SpannableStringBuilder builder = new SpannableStringBuilder(title);
-            builder.setSpan(mBlockedColor, 0, title.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-            setTitle(builder);
             return;
         }
 
@@ -993,30 +1080,31 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
     
     private void setSecurityMode(String mode) {
-        int imageLevel = SiteIdentityPopup.getSecurityImageLevel(mode);
-        mSiteSecurity.setImageLevel(imageLevel);
-        mShowSiteSecurity = (imageLevel != SiteIdentityPopup.LEVEL_UKNOWN);
+        mShowSiteSecurity = true;
+
+        if (mode.equals(SiteIdentityPopup.IDENTIFIED)) {
+            mSiteSecurity.setImageLevel(1);
+        } else if (mode.equals(SiteIdentityPopup.VERIFIED)) {
+            mSiteSecurity.setImageLevel(2);
+        } else {
+            mSiteSecurity.setImageLevel(0);
+            mShowSiteSecurity = false;
+        }
 
         setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
     }
 
-    public void prepareTabsAnimation(PropertyAnimator animator, boolean tabsAreShown) {
+    private void setReaderMode(boolean showReader) {
+        mShowReader = showReader;
+        setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+    }
+
+    public void requestFocusFromTouch() {
+        mLayout.requestFocusFromTouch();
+    }
+
+    public void prepareTabsAnimation(boolean tabsAreShown) {
         if (!tabsAreShown) {
-            PropertyAnimator buttonsAnimator =
-                    new PropertyAnimator(animator.getDuration(), sButtonsInterpolator);
-
-            buttonsAnimator.attach(mTabsCounter,
-                                   PropertyAnimator.Property.ALPHA,
-                                   1.0f);
-
-            if (mHasSoftMenuButton && !HardwareUtils.isTablet()) {
-                buttonsAnimator.attach(mMenuIcon,
-                                       PropertyAnimator.Property.ALPHA,
-                                       1.0f);
-            }
-
-            buttonsAnimator.start();
-
             return;
         }
 
@@ -1024,6 +1112,283 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         if (mHasSoftMenuButton && !HardwareUtils.isTablet()) {
             ViewHelper.setAlpha(mMenuIcon, 0.0f);
+        }
+    }
+
+    public void finishTabsAnimation(boolean tabsAreShown) {
+        if (tabsAreShown) {
+            return;
+        }
+
+        PropertyAnimator animator = new PropertyAnimator(150);
+
+        animator.attach(mTabsCounter,
+                        PropertyAnimator.Property.ALPHA,
+                        1.0f);
+
+        if (mHasSoftMenuButton && !HardwareUtils.isTablet()) {
+            animator.attach(mMenuIcon,
+                            PropertyAnimator.Property.ALPHA,
+                            1.0f);
+        }
+
+        animator.start();
+    }
+
+    public void setOnActivateListener(OnActivateListener listener) {
+        mActivateListener = listener;
+    }
+
+    public void setOnCommitListener(OnCommitListener listener) {
+        mCommitListener = listener;
+    }
+
+    public void setOnDismissListener(OnDismissListener listener) {
+        mDismissListener = listener;
+    }
+
+    public void setOnFilterListener(OnFilterListener listener) {
+        mFilterListener = listener;
+    }
+
+    private void showUrlEditContainer() {
+        mUrlDisplayContainer.setVisibility(View.GONE);
+        mUrlEditContainer.setVisibility(View.VISIBLE);
+        mUrlEditText.requestFocus();
+
+        InputMethodManager imm =
+               (InputMethodManager) mActivity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(mUrlEditText, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void hideUrlEditContainer() {
+        mUrlDisplayContainer.setVisibility(View.VISIBLE);
+        mUrlEditContainer.setVisibility(View.GONE);
+    }
+
+    public EditingTarget getEditingTarget() {
+        return (isEditing() ? mEditingTarget : null);
+    }
+
+    public boolean isEditing() {
+        return mLayout.isSelected();
+    }
+
+    public void startEditing(EditingTarget target, String url) {
+        if (isEditing()) {
+            return;
+        }
+
+        mEditingTarget = target;
+        mUrlEditText.setText(url != null ? url : "");
+
+        
+        if (HardwareUtils.isTablet()) {
+            mLayout.setSelected(true);
+            showUrlEditContainer();
+            return;
+        }
+
+        if (mAnimatingEntry)
+            return;
+
+        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+        contentAnimator.setUseHardwareLayer(false);
+
+        final int entryTranslation = getAwesomeBarEntryTranslation();
+        final int curveTranslation = getAwesomeBarCurveTranslation();
+
+        
+        mLayout.setSelected(true);
+
+        
+        ViewHelper.setAlpha(mReader, 0);
+        ViewHelper.setAlpha(mStop, 0);
+
+        
+
+        if (mAwesomeBarRightEdge != null) {
+            contentAnimator.attach(mAwesomeBarRightEdge,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   entryTranslation);
+        }
+
+        contentAnimator.attach(mTabs,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               curveTranslation);
+        contentAnimator.attach(mTabsCounter,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               curveTranslation);
+        contentAnimator.attach(mActionItemBar,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               curveTranslation);
+
+        if (mHasSoftMenuButton)
+            contentAnimator.attach(mMenu,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   curveTranslation);
+
+        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                showUrlEditContainer();
+                mAnimatingEntry = false;
+            }
+        });
+
+        mAnimatingEntry = true;
+        contentAnimator.start();
+    }
+
+    public String stopEditing() {
+        final String url = mUrlEditText.getText().toString();
+
+        if (!isEditing()) {
+            return url;
+        }
+
+        
+        
+        if (url != null && url.length() > 0) {
+            setTitle(url);
+        }
+
+        hideUrlEditContainer();
+
+        if (HardwareUtils.isTablet()) {
+            mLayout.setSelected(false);
+            updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+            return url;
+        }
+
+        final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+        contentAnimator.setUseHardwareLayer(false);
+
+        
+
+        if (mAwesomeBarRightEdge != null) {
+            contentAnimator.attach(mAwesomeBarRightEdge,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   0);
+        }
+
+        contentAnimator.attach(mTabs,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mTabsCounter,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+        contentAnimator.attach(mActionItemBar,
+                               PropertyAnimator.Property.TRANSLATION_X,
+                               0);
+
+        if (mHasSoftMenuButton)
+            contentAnimator.attach(mMenu,
+                                   PropertyAnimator.Property.TRANSLATION_X,
+                                   0);
+
+        contentAnimator.setPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
+            @Override
+            public void onPropertyAnimationStart() {
+            }
+
+            @Override
+            public void onPropertyAnimationEnd() {
+                
+                mLayout.setSelected(false);
+                setShadowVisibility(true);
+
+                PropertyAnimator buttonsAnimator = new PropertyAnimator(300);
+
+                
+                
+                buttonsAnimator.attach(mReader,
+                                       PropertyAnimator.Property.ALPHA,
+                                       1);
+                buttonsAnimator.attach(mStop,
+                                       PropertyAnimator.Property.ALPHA,
+                                       1);
+
+                buttonsAnimator.start();
+
+                mAnimatingEntry = false;
+
+                
+                
+                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
+            }
+        });
+
+        mAnimatingEntry = true;
+        contentAnimator.start();
+
+        return url;
+    }
+
+    private void updateGoButton(String text) {
+        if (text.length() == 0) {
+            mGo.setVisibility(View.GONE);
+            return;
+        }
+
+        mGo.setVisibility(View.VISIBLE);
+
+        int imageResource = R.drawable.ic_awesomebar_go;
+        String contentDescription = mActivity.getString(R.string.go);
+        int imeAction = EditorInfo.IME_ACTION_GO;
+
+        int actionBits = mUrlEditText.getImeOptions() & EditorInfo.IME_MASK_ACTION;
+        if (StringUtils.isSearchQuery(text, actionBits == EditorInfo.IME_ACTION_SEARCH)) {
+            imageResource = R.drawable.ic_awesomebar_search;
+            contentDescription = mActivity.getString(R.string.search);
+            imeAction = EditorInfo.IME_ACTION_SEARCH;
+        }
+
+        InputMethodManager imm = InputMethods.getInputMethodManager(mUrlEditText.getContext());
+        if (imm == null) {
+            return;
+        }
+        boolean restartInput = false;
+        if (actionBits != imeAction) {
+            int optionBits = mUrlEditText.getImeOptions() & ~EditorInfo.IME_MASK_ACTION;
+            mUrlEditText.setImeOptions(optionBits | imeAction);
+
+            mDelayRestartInput = (imeAction == EditorInfo.IME_ACTION_GO) &&
+                                 (InputMethods.shouldDelayAwesomebarUpdate(mUrlEditText.getContext()));
+            if (!mDelayRestartInput) {
+                restartInput = true;
+            }
+        } else if (mDelayRestartInput) {
+            
+            
+            
+            mDelayRestartInput = false;
+            restartInput = true;
+        }
+        if (restartInput) {
+            updateKeyboardInputType();
+            imm.restartInput(mUrlEditText);
+            mGo.setImageResource(imageResource);
+            mGo.setContentDescription(contentDescription);
+        }
+    }
+
+    private void updateKeyboardInputType() {
+        
+        
+        
+        
+        String text = mUrlEditText.getText().toString();
+        int currentInputType = mUrlEditText.getInputType();
+        int newInputType = StringUtils.isSearchQuery(text, false)
+                           ? (currentInputType & ~InputType.TYPE_TEXT_VARIATION_URI) 
+                           : (currentInputType | InputType.TYPE_TEXT_VARIATION_URI); 
+        if (newInputType != currentInputType) {
+            mUrlEditText.setRawInputType(newInputType);
         }
     }
 
@@ -1080,7 +1445,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
                 ViewGroup.MarginLayoutParams layoutParams =
                     (ViewGroup.MarginLayoutParams)mForward.getLayoutParams();
-                layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? width : 0);
+                layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? mForward.getWidth() / 2 : 0);
                 ViewHelper.setTranslationX(mForward, 0);
 
                 mUrlDisplayContainer.requestLayout();
@@ -1138,19 +1503,28 @@ public class BrowserToolbar extends GeckoRelativeLayout
     @Override
     public void addActionItem(View actionItem) {
         mActionItemBar.addView(actionItem);
+
+        if (!sActionItems.contains(actionItem))
+            sActionItems.add(actionItem);
     }
 
     @Override
-    public void removeActionItem(View actionItem) {
-        mActionItemBar.removeView(actionItem);
+    public void removeActionItem(int index) {
+        mActionItemBar.removeViewAt(index);
+        sActionItems.remove(index);
+    }
+
+    @Override
+    public int getActionItemsCount() {
+        return sActionItems.size();
     }
 
     public void show() {
-        setVisibility(View.VISIBLE);
+        mLayout.setVisibility(View.VISIBLE);
     }
 
     public void hide() {
-        setVisibility(View.GONE);
+        mLayout.setVisibility(View.GONE);
     }
 
     public void refresh() {
@@ -1160,18 +1534,19 @@ public class BrowserToolbar extends GeckoRelativeLayout
             setFavicon(tab.getFavicon());
             setProgressVisibility(tab.getState() == Tab.STATE_LOADING);
             setSecurityMode(tab.getSecurityMode());
-            setPageActionVisibility(mStop.getVisibility() == View.VISIBLE);
+            setReaderMode(tab.getReaderEnabled());
             setShadowVisibility(true);
             updateBackButton(tab.canDoBack());
             updateForwardButton(tab.canDoForward());
 
             final boolean isPrivate = tab.isPrivate();
             mAddressBarBg.setPrivateMode(isPrivate);
-            setPrivateMode(isPrivate);
+            mLayout.setPrivateMode(isPrivate);
             mTabs.setPrivateMode(isPrivate);
             mTitle.setPrivateMode(isPrivate);
             mMenu.setPrivateMode(isPrivate);
             mMenuIcon.setPrivateMode(isPrivate);
+            mUrlEditText.setPrivateMode(isPrivate);
 
             if (mBack instanceof BackButton)
                 ((BackButton) mBack).setPrivateMode(isPrivate);
@@ -1187,31 +1562,14 @@ public class BrowserToolbar extends GeckoRelativeLayout
              mPrefObserverId = null;
         }
         Tabs.unregisterOnTabsChangedListener(this);
-
-        unregisterEventListener("Reader:Click");
-        unregisterEventListener("Reader:LongClick");
     }
 
     public boolean openOptionsMenu() {
         if (!mHasSoftMenuButton)
             return false;
 
-        
-        if (mMenuPopup == null) {
-            View panel = mActivity.getMenuPanel();
-            mMenuPopup = new MenuPopup(mActivity);
-            mMenuPopup.setPanelView(panel);
-
-            mMenuPopup.setOnDismissListener(new PopupWindow.OnDismissListener() {
-                @Override
-                public void onDismiss() {
-                    mActivity.onOptionsMenuClosed(null);
-                }
-            });
-        }
-
-        GeckoAppShell.getGeckoInterface().invalidateOptionsMenu();
-        if (!mMenuPopup.isShowing())
+        GeckoApp.mAppContext.invalidateOptionsMenu();
+        if (mMenuPopup != null && !mMenuPopup.isShowing())
             mMenuPopup.showAsDropDown(mMenu);
 
         return true;
@@ -1225,28 +1583,5 @@ public class BrowserToolbar extends GeckoRelativeLayout
             mMenuPopup.dismiss();
 
         return true;
-    }
-
-    protected void registerEventListener(String event) {
-        GeckoAppShell.getEventDispatcher().registerEventListener(event, this);
-    }
-
-    protected void unregisterEventListener(String event) {
-        GeckoAppShell.getEventDispatcher().unregisterEventListener(event, this);
-    }
-
-    @Override
-    public void handleMessage(String event, JSONObject message) {
-        if (event.equals("Reader:Click")) {
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                tab.toggleReaderMode();
-            }
-        } else if (event.equals("Reader:LongClick")) {
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                tab.addToReadingList();
-            }
-        }
     }
 }
