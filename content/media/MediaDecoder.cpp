@@ -188,14 +188,18 @@ void MediaDecoder::DestroyDecodedStream()
 
   
   
-  for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
+  for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
     OutputStreamData& os = mOutputStreams[i];
     
     
     
-    if (!os.mStream->IsDestroyed()) {
-      os.mStream->ChangeExplicitBlockerCount(1);
+    if (os.mStream->IsDestroyed()) {
+      
+      os.mPort->Destroy();
+      mOutputStreams.RemoveElementAt(i);
+      continue;
     }
+    os.mStream->ChangeExplicitBlockerCount(1);
     
     
     os.mPort->Destroy();
@@ -220,8 +224,15 @@ void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs)
   
   
   
-  for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
-    ConnectDecodedStreamToOutputStream(&mOutputStreams[i]);
+  for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
+    OutputStreamData& os = mOutputStreams[i];
+    if (os.mStream->IsDestroyed()) {
+      
+      
+      mOutputStreams.RemoveElementAt(i);
+      continue;
+    }
+    ConnectDecodedStreamToOutputStream(&os);
   }
 
   mDecodedStream->mHaveBlockedForPlayState = mPlayState != PLAY_STATE_PLAYING;
@@ -244,7 +255,7 @@ void MediaDecoder::NotifyDecodedStreamMainThreadStateChanged()
 }
 
 void MediaDecoder::AddOutputStream(ProcessedMediaStream* aStream,
-                                       bool aFinishWhenEnded)
+                                   bool aFinishWhenEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
   LOG(PR_LOG_DEBUG, ("MediaDecoder::AddOutputStream this=%p aStream=%p!",
@@ -810,12 +821,17 @@ void MediaDecoder::PlaybackEnded()
 
     for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
       OutputStreamData& os = mOutputStreams[i];
+      if (os.mStream->IsDestroyed()) {
+        
+        os.mPort->Destroy();
+        mOutputStreams.RemoveElementAt(i);
+        continue;
+      }
       if (os.mFinishWhenEnded) {
         
         
         os.mStream->Finish();
         os.mPort->Destroy();
-        os.mPort = nullptr;
         
         
         os.mStream->ChangeExplicitBlockerCount(1);
