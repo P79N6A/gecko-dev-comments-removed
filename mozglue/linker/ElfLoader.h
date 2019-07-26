@@ -50,6 +50,25 @@ extern "C" {
 
 
 
+
+
+class LibHandle;
+
+namespace mozilla {
+
+template <> inline void RefCounted<LibHandle>::Release();
+
+template <> inline RefCounted<LibHandle>::~RefCounted()
+{
+  MOZ_ASSERT(refCnt == 0x7fffdead);
+}
+
+} 
+
+
+
+
+
 class LibHandle: public mozilla::RefCounted<LibHandle>
 {
 public:
@@ -142,6 +161,36 @@ private:
   int directRefCnt;
   char *path;
 };
+
+
+
+
+
+
+
+
+
+namespace mozilla {
+
+template <> inline void RefCounted<LibHandle>::Release() {
+#ifdef DEBUG
+  if (refCnt > 0x7fff0000)
+    MOZ_ASSERT(refCnt > 0x7fffdead);
+#endif
+  MOZ_ASSERT(refCnt > 0);
+  if (refCnt > 0) {
+    if (0 == --refCnt) {
+#ifdef DEBUG
+      refCnt = 0x7fffdead;
+#else
+      refCnt = 1;
+#endif
+      delete static_cast<LibHandle*>(this);
+    }
+  }
+}
+
+} 
 
 
 
