@@ -88,6 +88,14 @@ DefinePrefable(JSContext* cx, JSObject* obj, Prefable<T>* props)
   return true;
 }
 
+bool
+DefineUnforgeableAttributes(JSContext* cx, JSObject* obj,
+                            Prefable<JSPropertySpec>* props)
+{
+  return DefinePrefable(cx, obj, props);
+}
+
+
 
 
 
@@ -499,49 +507,58 @@ XrayResolveProperty(JSContext* cx, JSObject* wrapper, jsid id,
     }
   }
 
-  if (nativeProperties->attributes) {
-    Prefable<JSPropertySpec>* attr;
-    for (attr = nativeProperties->attributes; attr->specs; ++attr) {
-      if (attr->enabled) {
-        
-        
-        size_t i = attr->specs - nativeProperties->attributeSpecs;
-        for ( ; nativeProperties->attributeIds[i] != JSID_VOID; ++i) {
-          if (id == nativeProperties->attributeIds[i]) {
-            JSPropertySpec& attrSpec = nativeProperties->attributeSpecs[i];
-            
-            
-            
-            desc->attrs = attrSpec.flags & ~JSPROP_NATIVE_ACCESSORS;
-            
-            JSObject *global = JS_GetGlobalForObject(cx, wrapper);
-            JSFunction *fun = JS_NewFunction(cx, (JSNative)attrSpec.getter.op,
-                                             0, 0, global, nullptr);
-            if (!fun)
-              return false;
-            SET_JITINFO(fun, attrSpec.getter.info);
-            JSObject *funobj = JS_GetFunctionObject(fun);
-            desc->getter = js::CastAsJSPropertyOp(funobj);
-            desc->attrs |= JSPROP_GETTER;
-            if (attrSpec.setter.op) {
+  JSPropertySpec* attributeSpecs = nativeProperties->attributeSpecs;
+  Prefable<JSPropertySpec>* attr = nativeProperties->attributes;
+  jsid* attributeIds = nativeProperties->attributeIds;
+  
+  for (int attrIteration = 0; attrIteration < 2; ++attrIteration) {
+    if (attr) {
+      for (; attr->specs; ++attr) {
+        if (attr->enabled) {
+          
+          
+          size_t i = attr->specs - attributeSpecs;
+          for ( ; attributeIds[i] != JSID_VOID; ++i) {
+            if (id == attributeIds[i]) {
+              JSPropertySpec& attrSpec = attributeSpecs[i];
               
-              fun = JS_NewFunction(cx, (JSNative)attrSpec.setter.op, 1, 0,
-                                   global, nullptr);
+              
+              
+              desc->attrs = attrSpec.flags & ~JSPROP_NATIVE_ACCESSORS;
+              
+              JSObject *global = JS_GetGlobalForObject(cx, wrapper);
+              JSFunction *fun = JS_NewFunction(cx, (JSNative)attrSpec.getter.op,
+                                               0, 0, global, nullptr);
               if (!fun)
                 return false;
-              SET_JITINFO(fun, attrSpec.setter.info);
-              funobj = JS_GetFunctionObject(fun);
-              desc->setter = js::CastAsJSStrictPropertyOp(funobj);
-              desc->attrs |= JSPROP_SETTER;
-            } else {
-              desc->setter = nullptr;
+              SET_JITINFO(fun, attrSpec.getter.info);
+              JSObject *funobj = JS_GetFunctionObject(fun);
+              desc->getter = js::CastAsJSPropertyOp(funobj);
+              desc->attrs |= JSPROP_GETTER;
+              if (attrSpec.setter.op) {
+                
+                fun = JS_NewFunction(cx, (JSNative)attrSpec.setter.op, 1, 0,
+                                     global, nullptr);
+                if (!fun)
+                  return false;
+                SET_JITINFO(fun, attrSpec.setter.info);
+                funobj = JS_GetFunctionObject(fun);
+                desc->setter = js::CastAsJSStrictPropertyOp(funobj);
+                desc->attrs |= JSPROP_SETTER;
+              } else {
+                desc->setter = nullptr;
+              }
+              desc->obj = wrapper;
+              return true;
             }
-            desc->obj = wrapper;
-            return true;
           }
         }
       }
     }
+
+    attributeSpecs = nativeProperties->unforgeableAttributeSpecs;
+    attr = nativeProperties->unforgeableAttributes;
+    attributeIds = nativeProperties->unforgeableAttributeIds;
   }
 
   if (nativeProperties->constants) {
@@ -608,21 +625,30 @@ XrayEnumerateProperties(JS::AutoIdVector& props,
     }
   }
 
-  if (nativeProperties->attributes) {
-    Prefable<JSPropertySpec>* attr;
-    for (attr = nativeProperties->attributes; attr->specs; ++attr) {
-      if (attr->enabled) {
-        
-        
-        size_t i = attr->specs - nativeProperties->attributeSpecs;
-        for ( ; nativeProperties->attributeIds[i] != JSID_VOID; ++i) {
-          if ((nativeProperties->attributeSpecs[i].flags & JSPROP_ENUMERATE) &&
-              !props.append(nativeProperties->attributeIds[i])) {
-            return false;
+  JSPropertySpec* attributeSpecs = nativeProperties->attributeSpecs;
+  Prefable<JSPropertySpec>* attr = nativeProperties->attributes;
+  jsid* attributeIds = nativeProperties->attributeIds;
+  
+  for (int attrIteration = 0; attrIteration < 2; ++attrIteration) {
+    if (attr) {
+      for (; attr->specs; ++attr) {
+        if (attr->enabled) {
+          
+          
+          size_t i = attr->specs - attributeSpecs;
+          for ( ; attributeIds[i] != JSID_VOID; ++i) {
+            if ((attributeSpecs[i].flags & JSPROP_ENUMERATE) &&
+                !props.append(attributeIds[i])) {
+              return false;
+            }
           }
         }
       }
     }
+
+    attributeSpecs = nativeProperties->unforgeableAttributeSpecs;
+    attr = nativeProperties->unforgeableAttributes;
+    attributeIds = nativeProperties->unforgeableAttributeIds;
   }
 
   if (nativeProperties->constants) {
