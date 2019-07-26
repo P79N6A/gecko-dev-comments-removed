@@ -77,7 +77,12 @@ MoveEmitterX86::tempReg()
 
     
     
-    spilledReg_ = Register::FromCode(2);
+    spilledReg_ = edx;
+
+#ifdef JS_CPU_X64
+    JS_ASSERT(edx == rdx);
+#endif
+
     if (pushedAtSpill_ == -1) {
         masm.Push(spilledReg_);
         pushedAtSpill_ = masm.framePushed();
@@ -109,6 +114,11 @@ MoveEmitterX86::breakCycle(const MoveOperand &from, const MoveOperand &to, Move:
             masm.mov(toOperand(to), temp);
             masm.mov(temp, cycleSlot());
         } else {
+            if (to.reg() == spilledReg_) {
+                
+                masm.mov(spillSlot(), spilledReg_);
+                spilledReg_ = InvalidReg;
+            }
             masm.mov(to.reg(), cycleSlot());
         }
     }
@@ -136,6 +146,10 @@ MoveEmitterX86::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
             masm.mov(cycleSlot(), temp);
             masm.mov(temp, toOperand(to));
         } else {
+            if (to.reg() == spilledReg_) {
+                
+                spilledReg_ = InvalidReg;
+            }
             masm.mov(cycleSlot(), to.reg());
         }
     }
