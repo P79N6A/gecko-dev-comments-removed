@@ -381,9 +381,12 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     current->setCallerResumePoint(callerResumePoint);
 
     
+    const size_t numActualArgs = argv.length() - 1;
     const size_t nargs = info().nargs();
-    if (argv.length() - 1 < nargs) {
-        for (size_t i = 0, missing = nargs - (argv.length() - 1); i < missing; ++i) {
+    IonSpew(IonSpew_MIR, "Inlining with %s of arguments.",
+            (numActualArgs == nargs) ? "right number": ((numActualArgs < nargs) ? "underflow" : "overflow"));
+    if (numActualArgs < nargs) {
+        for (size_t i = 0, missing = nargs - numActualArgs; i < missing; ++i) {
             MConstant *undef = MConstant::New(UndefinedValue());
             current->add(undef);
             if (!argv.append(undef))
@@ -2728,6 +2731,9 @@ IonBuilder::jsop_call_inline(JSFunction *callee, uint32 argc, IonBuilder &inline
                                                         MResumePoint::Outer);
     if (!inlineResumePoint)
         return false;
+
+    
+    JS_ASSERT(argc == GET_ARGC(inlineResumePoint->pc()));
 
     
     

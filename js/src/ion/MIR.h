@@ -1128,19 +1128,19 @@ class MCall
     
     CompilerRootFunction target_;
     
-    uint32 bytecodeArgc_;
+    uint32 numActualArgs_;
 
-    MCall(JSFunction *target, uint32 bytecodeArgc, bool construct)
+    MCall(JSFunction *target, uint32 numActualArgs, bool construct)
       : construct_(construct),
         target_(target),
-        bytecodeArgc_(bytecodeArgc)
+        numActualArgs_(numActualArgs)
     {
         setResultType(MIRType_Value);
     }
 
   public:
     INSTRUCTION_HEADER(Call);
-    static MCall *New(JSFunction *target, size_t argc, size_t bytecodeArgc, bool construct);
+    static MCall *New(JSFunction *target, size_t maxArgc, size_t numActualArgs, bool construct);
 
     void initPrepareCall(MDefinition *start) {
         JS_ASSERT(start->isPrepareCall());
@@ -1174,13 +1174,16 @@ class MCall
     }
 
     
-    uint32 argc() const {
+    
+    
+    
+    uint32 numStackArgs() const {
         return numOperands() - NumNonArgumentOperands;
     }
 
     
-    uint32 bytecodeArgc() const {
-        return bytecodeArgc_;
+    uint32 numActualArgs() const {
+        return numActualArgs_;
     }
 
     TypePolicy *typePolicy() {
@@ -4510,9 +4513,9 @@ class MResumePoint : public MNode
 {
   public:
     enum Mode {
-        ResumeAt,
-        ResumeAfter,
-        Outer
+        ResumeAt,    
+        ResumeAfter, 
+        Outer        
     };
 
   private:

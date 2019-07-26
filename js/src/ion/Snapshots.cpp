@@ -121,7 +121,6 @@ using namespace js::ion;
 
 
 
-
 SnapshotReader::SnapshotReader(const uint8 *buffer, const uint8 *end)
   : reader_(buffer, end),
     slotCount_(0),

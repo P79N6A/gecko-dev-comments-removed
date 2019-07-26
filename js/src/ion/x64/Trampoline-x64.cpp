@@ -134,6 +134,12 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     
+    
+    masm.movq(result, reg_argc);
+    masm.unboxInt32(Operand(reg_argc, 0), reg_argc);
+    masm.push(reg_argc);
+
+    
     masm.push(token);
 
     
@@ -334,9 +340,12 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.movq(Operand(rsp, IonJSFrameLayout::offsetOfCalleeToken()), rax);
+    masm.movq(Operand(rsp, IonRectifierFrameLayout::offsetOfCalleeToken()), rax);
     masm.movzwl(Operand(rax, offsetof(JSFunction, nargs)), rcx);
     masm.subq(r8, rcx);
+
+    
+    masm.movq(Operand(rsp, IonRectifierFrameLayout::offsetOfNumActualArgs()), rdx);
 
     masm.moveValue(UndefinedValue(), r10);
 
@@ -355,12 +364,8 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    masm.movq(r8, r9);
-    masm.shlq(Imm32(3), r9); 
-
-    masm.movq(rbp, rcx);
-    masm.addq(Imm32(sizeof(IonRectifierFrameLayout)), rcx);
-    masm.addq(r9, rcx);
+    BaseIndex b = BaseIndex(rbp, r8, TimesEight, sizeof(IonRectifierFrameLayout));
+    masm.lea(Operand(b), rcx);
 
     
     {
@@ -373,8 +378,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
         masm.subl(Imm32(1), r8);
         masm.bind(&initialSkip);
 
-        masm.mov(Operand(rcx, 0x0), rdx);
-        masm.push(rdx);
+        masm.push(Operand(rcx, 0x0));
 
         masm.testl(r8, r8);
         masm.j(Assembler::NonZero, &copyLoopTop);
@@ -385,6 +389,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.makeFrameDescriptor(rbp, IonFrame_Rectifier);
 
     
+    masm.push(rdx); 
     masm.push(rax); 
     masm.push(rbp); 
 
@@ -399,6 +404,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
     masm.pop(rbp);            
     masm.shrq(Imm32(FRAMESIZE_SHIFT), rbp);
+    masm.pop(r11);            
     masm.pop(r11);            
     masm.addq(rbp, rsp);      
 

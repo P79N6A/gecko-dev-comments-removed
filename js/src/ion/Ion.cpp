@@ -870,8 +870,7 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->script()->needsArgsObj() || fp->script()->argumentsHasLocalBinding()) {
-        
+    if (fp->script()->needsArgsObj()) {
         
         IonSpew(IonSpew_Abort, "frame has argsobj");
         return false;
@@ -931,6 +930,12 @@ Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
 {
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
+
+    
+    if (fp->hasArgs() && fp->numActualArgs() > js_IonOptions.maxStackArgs) {
+        IonSpew(IonSpew_Abort, "Ignore compilation due huge number of arguments of %s:%d", script->filename, script->lineno);
+        return Method_Skipped;
+    }
 
     if (cx->compartment->debugMode()) {
         IonSpew(IonSpew_Abort, "debugging");
@@ -1058,25 +1063,35 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
 
     EnterIonCode enter = cx->compartment->ionCompartment()->enterJITInfallible();
 
-    int argc = 0;
-    Value *argv = NULL;
+    
+    
+    int maxArgc = 0;
+    Value *maxArgv = NULL;
+    int numActualArgs = 0;
 
     void *calleeToken;
     if (fp->isFunctionFrame()) {
         
-        
-        argc = CountArgSlots(fp->fun()) - 1;
-        argv = fp->formals() - 1;
+        maxArgc = CountArgSlots(fp->fun()) - 1; 
+        maxArgv = fp->formals() - 1;            
 
+        
+        
+        
+        numActualArgs = fp->numActualArgs();
+
+        
+        
         if (fp->hasOverflowArgs()) {
-            int formalArgc = argc;
-            Value *formalArgv = argv;
-            argc = fp->numActualArgs() + 1;
-            argv = fp->actuals() - 1;
+            int formalArgc = maxArgc;
+            Value *formalArgv = maxArgv;
+            maxArgc = numActualArgs + 1; 
+            maxArgv = fp->actuals() - 1; 
+
             
             
             
-            memcpy(argv, formalArgv, formalArgc * sizeof(Value));
+            memcpy(maxArgv, formalArgv, formalArgc * sizeof(Value));
         }
         calleeToken = CalleeToToken(&fp->callee());
     } else {
@@ -1086,7 +1101,7 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
     
     JS_ASSERT_IF(fp->isConstructing(), fp->functionThis().isObject());
 
-    Value result;
+    Value result = Int32Value(numActualArgs);
     {
         AssertCompartmentUnchanged pcc(cx);
         IonContext ictx(cx, NULL);
@@ -1094,7 +1109,7 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
         
-        enter(jitcode, argc, argv, fp, calleeToken, &result);
+        enter(jitcode, maxArgc, maxArgv, fp, calleeToken, &result);
     }
 
     if (result.isMagic() && result.whyMagic() == JS_ION_BAILOUT) {

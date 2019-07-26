@@ -459,8 +459,10 @@ CodeGenerator::visitCallNative(LCallNative *call)
 
     
     masm.loadJSContext(argJSContextReg);
-    masm.move32(Imm32(call->nargs()), argUintNReg);
+    masm.move32(Imm32(call->numStackArgs()), argUintNReg);
     masm.movePtr(StackPointer, argVpReg);
+
+    masm.Push(argUintNReg);
 
     
     uint32 safepointOffset = masm.buildFakeExitFrame(tempReg);
@@ -481,7 +483,7 @@ CodeGenerator::visitCallNative(LCallNative *call)
     masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
     
-    masm.loadValue(Address(StackPointer, IonExitFrameLayout::SizeWithFooter()), JSReturnOperand);
+    masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), JSReturnOperand);
     masm.jump(&success);
 
     
@@ -495,7 +497,7 @@ CodeGenerator::visitCallNative(LCallNative *call)
     
 
     
-    masm.adjustStack(IonExitFrameLayout::SizeWithFooter() - unusedStack + sizeof(Value));
+    masm.adjustStack(IonNativeExitFrameLayout::Size() - unusedStack);
     JS_ASSERT(masm.framePushed() == initialStack);
 
     return true;
@@ -512,7 +514,7 @@ CodeGenerator::emitCallInvokeFunction(LCallGeneric *call, uint32 unusedStack)
     masm.freeStack(unusedStack);
 
     pushArg(StackPointer);                    
-    pushArg(Imm32(call->bytecodeArgc()));     
+    pushArg(Imm32(call->numStackArgs()));     
     pushArg(ToRegister(call->getFunction())); 
 
     if (!callVM(InvokeFunctionInfo, call))
@@ -595,6 +597,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     uint32 descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_JS);
+    masm.Push(Imm32(call->numActualArgs()));
     masm.Push(calleereg);
     masm.Push(Imm32(descriptor));
 
@@ -602,11 +605,11 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     if (call->hasSingleTarget()) {
         
-        JS_ASSERT(call->getSingleTarget()->nargs <= call->nargs());
+        JS_ASSERT(call->getSingleTarget()->nargs <= call->numStackArgs());
     } else {
         
         masm.load16ZeroExtend(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
-        masm.cmp32(nargsreg, Imm32(call->nargs()));
+        masm.cmp32(nargsreg, Imm32(call->numStackArgs()));
         masm.j(Assembler::Above, &thunk);
     }
 
@@ -631,7 +634,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
             return false;
 
         JS_ASSERT(ArgumentsRectifierReg != objreg);
-        masm.move32(Imm32(call->nargs()), ArgumentsRectifierReg);
+        masm.move32(Imm32(call->numStackArgs()), ArgumentsRectifierReg);
         masm.call(argumentsRectifier);
         if (!markSafepoint(call))
             return false;
@@ -693,9 +696,9 @@ CodeGenerator::visitCallConstructor(LCallConstructor *call)
     
     masm.freeStack(unusedStack);
 
-    pushArg(StackPointer);          
-    pushArg(Imm32(call->nargs()));  
-    pushArg(calleereg);             
+    pushArg(StackPointer);                  
+    pushArg(Imm32(call->numActualArgs()));  
+    pushArg(calleereg);                     
 
     if (!callVM(InvokeConstructorFunctionInfo, call))
         return false;

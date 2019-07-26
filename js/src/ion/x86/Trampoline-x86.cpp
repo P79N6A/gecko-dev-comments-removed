@@ -79,6 +79,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.push(ebx);
     masm.push(esi);
     masm.push(edi);
+    masm.movl(esp, esi);
 
     
     masm.movl(Operand(ebp, ARG_ARGC), eax);
@@ -129,23 +130,28 @@ IonCompartment::generateEnterJIT(JSContext *cx)
         masm.bind(&footer);
     }
 
-    
-    masm.push(Operand(ebp, ARG_CALLEETOKEN));
 
     
     
-    masm.movl(Operand(ebp, ARG_ARGC), eax);
-    masm.shll(Imm32(3), eax);
-    masm.addl(eax, ecx);
-    masm.addl(Imm32(4), ecx);
+    
+    masm.mov(Operand(ebp, ARG_RESULT), eax);
+    masm.unboxInt32(Address(eax, 0x0), eax);
+    masm.push(eax);
+
+    
+    masm.push(Operand(ebp, ARG_CALLEETOKEN));
 
     
     
     masm.movl(Operand(ebp, ARG_STACKFRAME), OsrFrameReg);
 
     
-    masm.makeFrameDescriptor(ecx, IonFrame_Entry);
-    masm.push(ecx);
+
+
+    
+    masm.subl(esp, esi);
+    masm.makeFrameDescriptor(esi, IonFrame_Entry);
+    masm.push(esi);
 
     
 
@@ -336,9 +342,12 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     JS_ASSERT(ArgumentsRectifierReg == esi);
 
     
-    masm.movl(Operand(esp, IonJSFrameLayout::offsetOfCalleeToken()), eax);
+    masm.movl(Operand(esp, IonRectifierFrameLayout::offsetOfCalleeToken()), eax);
     masm.movzwl(Operand(eax, offsetof(JSFunction, nargs)), ecx);
     masm.subl(esi, ecx);
+
+    
+    masm.movl(Operand(esp, IonRectifierFrameLayout::offsetOfNumActualArgs()), edx);
 
     masm.moveValue(UndefinedValue(), ebx, edi);
 
@@ -358,12 +367,8 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     }
 
     
-    masm.movl(esi, edi);
-    masm.shll(Imm32(3), edi); 
-
-    masm.movl(ebp, ecx);
-    masm.addl(Imm32(sizeof(IonRectifierFrameLayout)), ecx);
-    masm.addl(edi, ecx);
+    BaseIndex b = BaseIndex(ebp, esi, TimesEight, sizeof(IonRectifierFrameLayout));
+    masm.lea(Operand(b), ecx);
 
     
     {
@@ -376,10 +381,8 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
         masm.subl(Imm32(1), esi);
         masm.bind(&initialSkip);
 
-        masm.mov(Operand(ecx, sizeof(Value)/2), edx);
-        masm.push(edx);
-        masm.mov(Operand(ecx, 0x0), edx);
-        masm.push(edx);
+        masm.push(Operand(ecx, sizeof(Value)/2));
+        masm.push(Operand(ecx, 0x0));
 
         masm.testl(esi, esi);
         masm.j(Assembler::NonZero, &copyLoopTop);
@@ -390,6 +393,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.makeFrameDescriptor(ebp, IonFrame_Rectifier);
 
     
+    masm.push(edx); 
     masm.push(eax); 
     masm.push(ebp); 
 
@@ -404,6 +408,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
     masm.pop(ebp);            
     masm.shrl(Imm32(FRAMESIZE_SHIFT), ebp); 
+    masm.pop(edi);            
     masm.pop(edi);            
     masm.addl(ebp, esp);      
 

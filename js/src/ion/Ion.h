@@ -114,6 +114,11 @@ struct IonOptions
     
     uint32 usesBeforeInlining;
 
+    
+    
+    
+    uint32 maxStackArgs;
+
     void setEagerCompilation() {
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
 
@@ -132,7 +137,8 @@ struct IonOptions
         rangeAnalysis(true),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
-        usesBeforeInlining(usesBeforeCompile)
+        usesBeforeInlining(usesBeforeCompile),
+        maxStackArgs(4096)
     { }
 };
 

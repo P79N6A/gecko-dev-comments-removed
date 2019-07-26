@@ -1351,10 +1351,9 @@ MacroAssemblerARMCompat::buildFakeExitFrame(const Register &scratch)
     DebugOnly<uint32> initialDepth = framePushed();
     uint32 descriptor = MakeFrameDescriptor(framePushed(), IonFrame_JS);
 
-    Push(scratch); 
     Push(Imm32(descriptor)); 
-    Push(scratch); 
 
+    enterNoPool();
     DebugOnly<uint32> offsetBeforePush = currentOffset();
     Push(pc); 
 
@@ -1363,6 +1362,7 @@ MacroAssemblerARMCompat::buildFakeExitFrame(const Register &scratch)
     
     ma_nop();
     uint32 pseudoReturnOffset = currentOffset();
+    leaveNoPool();
 
     JS_ASSERT(framePushed() == initialDepth + IonExitFrameLayout::Size());
     JS_ASSERT(pseudoReturnOffset - offsetBeforePush == 8);
@@ -1373,16 +1373,11 @@ void
 MacroAssemblerARMCompat::callWithExitFrame(IonCode *target)
 {
     uint32 descriptor = MakeFrameDescriptor(framePushed(), IonFrame_JS);
-#ifdef DEBUG
-    ma_mov(Imm32(0xdeadbeef), ScratchRegister);
-#endif
-    Push(ScratchRegister); 
     Push(Imm32(descriptor)); 
 
     addPendingJump(m_buffer.nextOffset(), target->raw(), Relocation::IONCODE);
     ma_mov(Imm32((int) target->raw()), ScratchRegister);
-    adjustFrame(sizeof(void*));
-    ma_callIon(ScratchRegister);
+    ma_callIonHalfPush(ScratchRegister);
 }
 
 void
@@ -2777,6 +2772,7 @@ MacroAssemblerARMCompat::testStringTruthy(bool truthy, const ValueOperand &value
 void
 MacroAssemblerARMCompat::enterOsr(Register calleeToken, Register code)
 {
+    push(Imm32(0)); 
     push(calleeToken);
     push(Imm32(MakeFrameDescriptor(0, IonFrame_Osr)));
     ma_add(sp, Imm32(sizeof(uintptr_t)), sp);   

@@ -71,6 +71,31 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
     masm.dumpPool();
 }
 
+struct EnterJITStack
+{
+    void *r0; 
+
+    
+    void *r4;
+    void *r5;
+    void *r6;
+    void *r7;
+    void *r8;
+    void *r9;
+    void *r10;
+    void *r11;
+    
+    void *lr;
+
+    
+    
+    
+    
+    
+    CalleeToken token;
+    Value *vp;
+};
+
 
 
 
@@ -86,8 +111,8 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     const Register reg_argv  = r2;
     const Register reg_frame = r3;
 
-    const DTRAddr slot_token = DTRAddr(sp, DtrOffImm(40));
-    const DTRAddr slot_vp    = DTRAddr(sp, DtrOffImm(44));
+    const Address slot_token(sp, offsetof(EnterJITStack, token));
+    const Address slot_vp(sp, offsetof(EnterJITStack, vp));
 
     JS_ASSERT(OsrFrameReg == reg_frame);
 
@@ -113,17 +138,14 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.finishDataTransfer();
 
     
-    aasm->as_dtr(IsLoad, 32, Offset, r11, slot_token);
+    masm.movePtr(sp, r8);
 
-    aasm->as_mov(r9, lsl(r1, 3)); 
     
+    masm.loadPtr(slot_token, r9);
+
     
-    
-    
-    
-    
-    
-    aasm->as_add(r9, r9, Imm8(16-4));
+    masm.loadPtr(slot_vp, r10);
+    masm.unboxInt32(Address(r10, 0), r10);
 
 #if 0
     
@@ -136,6 +158,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     aasm->as_sub(sp, sp, Imm8(4));
     aasm->as_orr(sp, sp, Imm8(4));
 #endif
+
     
     aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); 
     
@@ -163,48 +186,44 @@ IonCompartment::generateEnterJIT(JSContext *cx)
         masm.bind(&footer);
     }
 
-    masm.makeFrameDescriptor(r9, IonFrame_Entry);
+    masm.ma_sub(r8, sp, r8);
+    masm.makeFrameDescriptor(r8, IonFrame_Entry);
 
-#ifdef DEBUG
-    masm.ma_mov(Imm32(0xdeadbeef), r8);
-#endif
     masm.startDataTransferM(IsStore, sp, IB, NoWriteBack);
                            
     masm.transferReg(r8);  
     masm.transferReg(r9);  
-    masm.transferReg(r11); 
+    masm.transferReg(r10); 
     masm.finishDataTransfer();
 
     
-    aasm->as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
-
-    
-    aasm->as_blx(r0);
+    masm.ma_callIonNoPush(r0);
 
     
     
     
-    aasm->as_dtr(IsLoad, 32, Offset, r5, DTRAddr(sp, DtrOffImm(4)));
+    aasm->as_sub(sp, sp, Imm8(4));
 
     
+    masm.loadPtr(Address(sp, IonJSFrameLayout::offsetOfDescriptor()), r5);
     aasm->as_add(sp, sp, lsr(r5, FRAMESIZE_SHIFT));
 
     
-    aasm->as_dtr(IsLoad, 32, Offset, r5, slot_vp);
+    masm.loadPtr(slot_vp, r5);
+    masm.storeValue(JSReturnOperand, Address(r5, 0));
+
+    
+    
+    
+    
+    
+    
+    
 
     
     aasm->as_add(sp, sp, Imm8(4));
 
     
-    
-    
-    ASSERT(JSReturnReg_Type.code() == JSReturnReg_Data.code()+1);
-
-    
-    ASSERT((JSReturnReg_Data.code() & 1) == 0);
-    aasm->as_extdtr(IsStore, 64, true, Offset,
-                    JSReturnReg_Data, EDtrAddr(r5, EDtrOffImm(0)));
-
     GenerateReturn(masm, JS_TRUE);
 
     Linker linker(masm);
@@ -368,7 +387,10 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonJSFrameLayout::offsetOfCalleeToken())), r1);
+    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonRectifierFrameLayout::offsetOfNumActualArgs())), r0);
+
+    
+    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonRectifierFrameLayout::offsetOfCalleeToken())), r1);
     masm.ma_ldrh(EDtrAddr(r1, EDtrOffImm(offsetof(JSFunction, nargs))), r6);
 
     masm.ma_sub(r6, r8, r2);
@@ -391,7 +413,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
 
     masm.ma_alu(r3, lsl(r8, 3), r3, op_add); 
-    masm.ma_add(r3, Imm32(sizeof(IonJSFrameLayout)), r3);
+    masm.ma_add(r3, Imm32(sizeof(IonRectifierFrameLayout)), r3);
 
     
     {
@@ -412,10 +434,9 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.makeFrameDescriptor(r6, IonFrame_Rectifier);
 
     
+    masm.ma_push(r0); 
     masm.ma_push(r1); 
     masm.ma_push(r6); 
-    masm.ma_mov(Imm32(0xdeadbeef), r11);
-    masm.ma_push(r11); 
 
     
     
@@ -430,14 +451,22 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
     
     
-    masm.ma_dtr(IsLoad, sp, Imm32(4), r4, PreIndex);  
+    
+    
+
+    
+    masm.ma_dtr(IsLoad, sp, Imm32(12), r4, PostIndex);
+
     
     
     
     
     
-    masm.ma_add(sp, Imm32(8), sp);
-    masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, op_add);      
+    
+    
+
+    
+    masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, op_add);
 
     masm.ret();
     Linker linker(masm);
