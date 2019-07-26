@@ -55,10 +55,28 @@ nsresultForErrno(int err)
     switch (err) {
       case 0:
         return NS_OK;
+#ifdef EDQUOT
+      case EDQUOT: 
+        
+#endif
+      case ENOSPC:
+        return NS_ERROR_FILE_DISK_FULL;
+#ifdef EISDIR
+      case EISDIR:    
+        return NS_ERROR_FILE_IS_DIRECTORY;
+#endif
+      case ENAMETOOLONG: 
+        return NS_ERROR_FILE_NAME_TOO_LONG;
+      case ENOEXEC:  
+        return NS_ERROR_FILE_EXECUTION_FAILED;
       case ENOENT:
         return NS_ERROR_FILE_TARGET_DOES_NOT_EXIST;
       case ENOTDIR:
         return NS_ERROR_FILE_DESTINATION_NOT_DIR;
+#ifdef ELOOP
+      case ELOOP:
+        return NS_ERROR_FILE_UNRESOLVABLE_SYMLINK;
+#endif 
 #ifdef ENOLINK
       case ENOLINK:
         return NS_ERROR_FILE_UNRESOLVABLE_SYMLINK;
@@ -70,6 +88,10 @@ nsresultForErrno(int err)
 #endif 
       case EACCES:
         return NS_ERROR_FILE_ACCESS_DENIED;
+#ifdef EROFS
+      case EROFS: 
+        return NS_ERROR_FILE_READ_ONLY;
+#endif
       
 
 
@@ -79,6 +101,17 @@ nsresultForErrno(int err)
       case ENOTEMPTY:
         return NS_ERROR_FILE_DIR_NOT_EMPTY;
 #endif 
+        
+
+
+
+
+
+
+
+      case EFBIG: 
+        return NS_ERROR_FILE_TOO_BIG;
+
       default:
         return NS_ERROR_FAILURE;
     }
