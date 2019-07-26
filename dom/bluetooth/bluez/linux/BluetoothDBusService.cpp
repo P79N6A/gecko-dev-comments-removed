@@ -1855,11 +1855,13 @@ BluetoothDBusService::IsReady()
   return true;
 }
 
-class WatchDBusConnectionTask : public Task
+class StartDBusConnectionTask : public Task
 {
 public:
-  WatchDBusConnectionTask(RawDBusConnection* aConnection)
+  StartDBusConnectionTask(RawDBusConnection* aConnection,
+                          bool aQueryDefaultAdapter)
   : mConnection(aConnection)
+  , mQueryDefaultAdapter(aQueryDefaultAdapter)
   {
     MOZ_ASSERT(mConnection);
   }
@@ -1867,17 +1869,42 @@ public:
   void Run()
   {
     mConnection->Watch();
+
+    
+
+
+
+
+
+
+    if (mQueryDefaultAdapter) {
+      bool success = mConnection->SendWithReply(OnDefaultAdapterReply, nullptr,
+                                                1000, "/",
+                                                DBUS_MANAGER_IFACE,
+                                                "DefaultAdapter",
+                                                DBUS_TYPE_INVALID);
+      if (!success) {
+        BT_WARNING("Failed to query default adapter!");
+      }
+    }
   }
 
 private:
   RawDBusConnection* mConnection;
+  bool mQueryDefaultAdapter;
 };
 
 nsresult
 BluetoothDBusService::StartInternal()
 {
   
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!NS_IsMainThread()); 
+
+  if (sDBusConnection) {
+    
+    BT_WARNING("Bluetooth is already running");
+    return NS_OK;
+  }
 
 #ifdef MOZ_WIDGET_GONK
   if (!sBluedroid.Enable()) {
@@ -1886,19 +1913,12 @@ BluetoothDBusService::StartInternal()
   }
 #endif
 
-  NS_ENSURE_TRUE(!sDBusConnection, NS_OK);
-
   RawDBusConnection* connection = new RawDBusConnection();
   nsresult rv = connection->EstablishDBusConnection();
   if (NS_FAILED(rv)) {
     BT_WARNING("Failed to establish connection to BlueZ daemon");
     return NS_ERROR_FAILURE;
   }
-
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-    new WatchDBusConnectionTask(connection));
-
-  sDBusConnection = connection;
 
   DBusError err;
   dbus_error_init(&err);
@@ -1927,23 +1947,10 @@ BluetoothDBusService::StartInternal()
     sPairingReqTable = new nsDataHashtable<nsStringHashKey, DBusMessage* >;
   }
 
-  
+  sDBusConnection = connection;
 
-
-
-
-
-
-  if (sAdapterPath.IsEmpty()) {
-    bool success = connection->SendWithReply(OnDefaultAdapterReply, nullptr,
-                                             1000, "/",
-                                             DBUS_MANAGER_IFACE,
-                                             "DefaultAdapter",
-                                             DBUS_TYPE_INVALID);
-    if (!success) {
-      BT_WARNING("Failed to query default adapter!");
-    }
-  }
+  Task* task = new StartDBusConnectionTask(connection, sAdapterPath.IsEmpty());
+  DispatchToDBusThread(task);
 
   return NS_OK;
 }
@@ -2035,8 +2042,7 @@ BluetoothDBusService::StopInternal()
 
   sDBusConnection = nullptr;
 
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-    new DeleteDBusConnectionTask(connection));
+  DispatchToDBusThread(new DeleteDBusConnectionTask(connection));
 
 #ifdef MOZ_WIDGET_GONK
   MOZ_ASSERT(sBluedroid.IsEnabled());
