@@ -201,6 +201,14 @@ let Scheduler = {
   
 
 
+
+
+
+  _killQueue: Promise.resolve(),
+
+  
+
+
   Debugging: {
     
 
@@ -286,7 +294,14 @@ let Scheduler = {
 
 
   kill: function({shutdown, reset}) {
-    return Task.spawn(function*() {
+    
+    
+    let killQueue = this._killQueue;
+    return this._killQueue = Task.spawn(function*() {
+
+      yield killQueue;
+      
+      
 
       yield this.queue;
 
