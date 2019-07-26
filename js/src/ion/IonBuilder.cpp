@@ -4918,10 +4918,13 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
                                          shape->setterObject();
 
         
-        if (!found)
+        if (!found) {
+            if (!curFound->isFunction())
+                return true;
             found = curFound;
-        else if (found != curFound)
+        } else if (found != curFound) {
             return true;
+        }
 
         
         
@@ -4933,7 +4936,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     }
 
     
-    if (!found || !found->isFunction())
+    if (!found)
         return true;
 
     JS_ASSERT(foundProto);
@@ -4970,6 +4973,8 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
             JS_ASSERT(propSet);
         }
     }
+
+    *funcp = found->toFunction();
 
     return true;
 }
