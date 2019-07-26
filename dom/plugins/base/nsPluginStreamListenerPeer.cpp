@@ -27,6 +27,7 @@
 #include "nsPluginNativeWindow.h"
 #include "GeckoProfiler.h"
 #include "nsPluginInstanceOwner.h"
+#include "nsDataHashtable.h"
 
 #define MAGIC_REQUEST_CONTEXT 0x01020304
 
@@ -241,28 +242,6 @@ nsPluginByteRangeStreamListener::GetInterface(const nsIID& aIID, void** result)
 
   return finalStreamListener->GetInterface(aIID, result);
 }
-    
-
-
-
-class nsPRUintKey : public nsHashKey {
-protected:
-  uint32_t mKey;
-public:
-  nsPRUintKey(uint32_t key) : mKey(key) {}
-  
-  uint32_t HashCode() const {
-    return mKey;
-  }
-  
-  bool Equals(const nsHashKey *aKey) const {
-    return mKey == ((const nsPRUintKey*)aKey)->mKey;
-  }
-  nsHashKey *Clone() const {
-    return new nsPRUintKey(mKey);
-  }
-  uint32_t GetValue() { return mKey; }
-};
 
 
 
@@ -350,7 +329,7 @@ nsresult nsPluginStreamListenerPeer::Initialize(nsIURI *aURL,
 
   mPendingRequests = 1;
 
-  mDataForwardToRequest = new nsHashtable();
+  mDataForwardToRequest = new nsDataHashtable<nsUint32HashKey, uint32_t>();
 
   return NS_OK;
 }
@@ -841,10 +820,8 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnDataAvailable(nsIRequest *request,
       
       
       
-      nsPRUintKey key(absoluteOffset);
-      int32_t amtForwardToPlugin =
-      NS_PTR_TO_INT32(mDataForwardToRequest->Get(&key));
-      mDataForwardToRequest->Put(&key, NS_INT32_TO_PTR(amtForwardToPlugin + aLength));
+      int32_t amtForwardToPlugin = mDataForwardToRequest->Get(absoluteOffset);
+      mDataForwardToRequest->Put(absoluteOffset, (amtForwardToPlugin + aLength));
       
       SetStreamOffset(absoluteOffset + amtForwardToPlugin);
     }
@@ -913,11 +890,9 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
     brr->GetStartRange(&absoluteOffset64);
     
     int32_t absoluteOffset = (int32_t)int64_t(absoluteOffset64);
+
     
-    nsPRUintKey key(absoluteOffset);
-    
-    
-    mDataForwardToRequest->Remove(&key);
+    mDataForwardToRequest->Remove(absoluteOffset);
     
     
     PLUGIN_LOG(PLUGIN_LOG_NOISY,
