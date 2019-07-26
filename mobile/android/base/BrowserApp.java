@@ -538,8 +538,6 @@ abstract public class BrowserApp extends GeckoApp
                 
                 if (mRestoreMode == RESTORE_NONE) {
                     Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
-                } else {
-                    hideAboutHome();
                 }
             } else {
                 int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED;
