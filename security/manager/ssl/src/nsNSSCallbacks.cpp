@@ -826,6 +826,7 @@ PK11PasswordPrompt(PK11SlotInfo* slot, PRBool retry, void* arg)
 void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   nsNSSShutDownPreventionLock locker;
   int32_t sslStatus;
+  char* signer = nullptr;
   char* cipherName = nullptr;
   int32_t keyLength;
   nsresult rv;
@@ -846,7 +847,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   ioLayerHelpers.rememberTolerantSite(infoObject);
 
   if (SECSuccess != SSL_SecurityStatus(fd, &sslStatus, &cipherName, &keyLength,
-                                       &encryptBits, nullptr, nullptr)) {
+                                       &encryptBits, &signer, nullptr)) {
     return;
   }
 
@@ -882,88 +883,116 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     }
   }
 
+
   ScopedCERTCertificate serverCert(SSL_PeerCertificate(fd));
+  const char* caName = nullptr; 
+  char* certOrgName = CERT_GetOrgName(&serverCert->issuer);
+  caName = certOrgName ? certOrgName : signer;
 
-  infoObject->SetSecurityState(secStatus);
-
+  const char* verisignName = "Verisign, Inc.";
   
-  RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
-  if (!status) {
-    status = new nsSSLStatus();
-    infoObject->SetSSLStatus(status);
-  }
-
-  RememberCertErrorsTable::GetInstance().LookupCertErrorBits(infoObject,
-                                                             status);
-
-  RefPtr<nsNSSCertificate> nssc(nsNSSCertificate::Create(serverCert));
-  nsCOMPtr<nsIX509Cert> prevcert;
-  infoObject->GetPreviousCert(getter_AddRefs(prevcert));
-
-  bool equals_previous = false;
-  if (prevcert && nssc) {
-    nsresult rv = nssc->Equals(prevcert, &equals_previous);
-    if (NS_FAILED(rv)) {
-      equals_previous = false;
-    }
-  }
-
-  if (equals_previous) {
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-            ("HandshakeCallback using PREV cert %p\n", prevcert.get()));
-    status->mServerCert = prevcert;
-  }
-  else {
-    if (status->mServerCert) {
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-              ("HandshakeCallback KEEPING cert %p\n", status->mServerCert.get()));
-    }
-    else {
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-              ("HandshakeCallback using NEW cert %p\n", nssc.get()));
-      status->mServerCert = nssc;
-    }
-  }
-
-  status->mHaveKeyLengthAndCipher = true;
-  status->mKeyLength = keyLength;
-  status->mSecretKeyLength = encryptBits;
-  status->mCipherName.Assign(cipherName);
-
   
-  SSLNextProtoState state;
-  unsigned char npnbuf[256];
-  unsigned int npnlen;
+  if (nsCRT::strcmp((const char*)caName, "RSA Data Security, Inc.") == 0) {
+    caName = verisignName;
+  }
+
+  nsAutoString shortDesc;
+  const PRUnichar* formatStrings[1] = { ToNewUnicode(NS_ConvertUTF8toUTF16(caName)) };
+  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
+  if (NS_SUCCEEDED(rv)) {
+    rv = nssComponent->PIPBundleFormatStringFromName("SignedBy",
+                                                   formatStrings, 1,
+                                                   shortDesc);
+
+    nsMemory::Free(const_cast<PRUnichar*>(formatStrings[0]));
+
+    nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+    infoObject->SetSecurityState(secStatus);
+    infoObject->SetShortSecurityDescription(shortDesc.get());
+
     
-  if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess) {
-    if (state == SSL_NEXT_PROTO_NEGOTIATED)
-      infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+    RefPtr<nsSSLStatus> status(infoObject->SSLStatus());
+    if (!status) {
+      status = new nsSSLStatus();
+      infoObject->SetSSLStatus(status);
+    }
+
+    RememberCertErrorsTable::GetInstance().LookupCertErrorBits(infoObject,
+                                                               status);
+
+    if (serverCert) {
+      RefPtr<nsNSSCertificate> nssc(nsNSSCertificate::Create(serverCert));
+      nsCOMPtr<nsIX509Cert> prevcert;
+      infoObject->GetPreviousCert(getter_AddRefs(prevcert));
+
+      bool equals_previous = false;
+      if (prevcert && nssc) {
+        nsresult rv = nssc->Equals(prevcert, &equals_previous);
+        if (NS_FAILED(rv)) {
+          equals_previous = false;
+        }
+      }
+
+      if (equals_previous) {
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+               ("HandshakeCallback using PREV cert %p\n", prevcert.get()));
+        status->mServerCert = prevcert;
+      }
+      else {
+        if (status->mServerCert) {
+          PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+                 ("HandshakeCallback KEEPING cert %p\n", status->mServerCert.get()));
+        }
+        else {
+          PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+                 ("HandshakeCallback using NEW cert %p\n", nssc.get()));
+          status->mServerCert = nssc;
+        }
+      }
+    }
+
+    status->mHaveKeyLengthAndCipher = true;
+    status->mKeyLength = keyLength;
+    status->mSecretKeyLength = encryptBits;
+    status->mCipherName.Assign(cipherName);
+
+    
+    SSLNextProtoState state;
+    unsigned char npnbuf[256];
+    unsigned int npnlen;
+    
+    if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess) {
+      if (state == SSL_NEXT_PROTO_NEGOTIATED)
+        infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+      else
+        infoObject->SetNegotiatedNPN(nullptr, 0);
+      mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
+    }
     else
       infoObject->SetNegotiatedNPN(nullptr, 0);
-    mozilla::Telemetry::Accumulate(Telemetry::SSL_NPN_TYPE, state);
-  }
-  else
-    infoObject->SetNegotiatedNPN(nullptr, 0);
 
-  SSLChannelInfo channelInfo;
-  if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
-    
-    
-    unsigned int versionEnum = channelInfo.protocolVersion & 0xFF;
-    Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_VERSION, versionEnum);
-
-    SSLCipherSuiteInfo cipherInfo;
-    if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
-                                sizeof (cipherInfo)) == SECSuccess) {
+    SSLChannelInfo channelInfo;
+    if (SSL_GetChannelInfo(fd, &channelInfo, sizeof(channelInfo)) == SECSuccess) {
       
-      Telemetry::Accumulate(Telemetry::SSL_KEY_EXCHANGE_ALGORITHM,
-                            cipherInfo.keaType);
+      
+      unsigned int versionEnum = channelInfo.protocolVersion & 0xFF;
+      Telemetry::Accumulate(Telemetry::SSL_HANDSHAKE_VERSION, versionEnum);
+
+      SSLCipherSuiteInfo cipherInfo;
+      if (SSL_GetCipherSuiteInfo(channelInfo.cipherSuite, &cipherInfo,
+                                 sizeof (cipherInfo)) == SECSuccess) {
+        
+        Telemetry::Accumulate(Telemetry::SSL_KEY_EXCHANGE_ALGORITHM,
+                              cipherInfo.keaType);
+      }
+      
     }
-      
+    infoObject->SetHandshakeCompleted(isResumedSession);
   }
-  infoObject->SetHandshakeCompleted(isResumedSession);
 
   PORT_Free(cipherName);
+  PR_FREEIF(certOrgName);
+  PR_Free(signer);
 }
 
 struct OCSPDefaultResponders {
