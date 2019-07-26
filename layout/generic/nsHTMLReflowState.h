@@ -366,7 +366,6 @@ public:
                                      
                                      
                                      
-    uint16_t mBlinks:1;              
     uint16_t mHasClearance:1;        
     uint16_t mAssumingHScrollbar:1;  
                                      

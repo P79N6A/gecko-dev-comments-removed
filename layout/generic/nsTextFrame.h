@@ -512,7 +512,7 @@ public:
 
   
   void ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
-                  nsRenderingContext* aRenderingContext, bool aShouldBlink,
+                  nsRenderingContext* aRenderingContext,
                   nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
 
   bool IsFloatingFirstLetterChild() const;

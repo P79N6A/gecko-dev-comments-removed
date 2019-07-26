@@ -37,10 +37,6 @@
 using namespace mozilla;
 using namespace mozilla::layout;
 
-
-static bool sPrefIsLoaded = false;
-static bool sBlinkIsAllowed = true;
-
 enum eNormalLineHeightControl {
   eUninitialized = -1,
   eNoExternalLeading = 0,   
@@ -1760,30 +1756,6 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
   }
 }
 
-
-static int
-PrefsChanged(const char *aPrefName, void *instance)
-{
-  sBlinkIsAllowed =
-    Preferences::GetBool("browser.blink_allowed", sBlinkIsAllowed);
-
-  return 0; 
-}
-
-
-
-
-static bool BlinkIsAllowed(void)
-{
-  if (!sPrefIsLoaded) {
-    
-    Preferences::RegisterCallback(PrefsChanged, "browser.blink_allowed");
-    PrefsChanged(nullptr, nullptr);
-    sPrefIsLoaded = true;
-  }
-  return sBlinkIsAllowed;
-}
-
 static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
 {
   if (sNormalLineHeightControl == eUninitialized) {
@@ -2104,12 +2076,6 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
           )
         CalculateBlockSideMargins(availableWidth, mComputedWidth, aFrameType);
     }
-  }
-  
-  mFlags.mBlinks = (parentReflowState && parentReflowState->mFlags.mBlinks);
-  if (!mFlags.mBlinks && BlinkIsAllowed()) {
-    const nsStyleTextReset* st = frame->StyleTextReset();
-    mFlags.mBlinks = (st->mTextBlink != NS_STYLE_TEXT_BLINK_NONE);
   }
 }
 

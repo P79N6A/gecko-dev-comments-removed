@@ -199,10 +199,8 @@ NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nullptr)
 #define TEXT_WHITESPACE_FLAGS      (TEXT_IS_ONLY_WHITESPACE | \
                                     TEXT_ISNOT_ONLY_WHITESPACE)
 
-#define TEXT_BLINK_ON              NS_FRAME_STATE_BIT(29)
 
-
-#define TEXT_IN_TEXTRUN_USER_DATA  NS_FRAME_STATE_BIT(30)
+#define TEXT_IN_TEXTRUN_USER_DATA  NS_FRAME_STATE_BIT(29)
 
 
 
@@ -3253,178 +3251,6 @@ PropertyProvider::SetupJustificationSpacing()
 
 
 
-
-
-class nsBlinkTimer : public nsITimerCallback
-{
-public:
-  nsBlinkTimer();
-  virtual ~nsBlinkTimer();
-
-  NS_DECL_ISUPPORTS
-
-  void AddFrame(nsPresContext* aPresContext, nsIFrame* aFrame);
-
-  bool RemoveFrame(nsIFrame* aFrame);
-
-  int32_t FrameCount();
-
-  void Start();
-
-  void Stop();
-
-  NS_DECL_NSITIMERCALLBACK
-
-  static void AddBlinkFrame(nsPresContext* aPresContext, nsIFrame* aFrame);
-  static void RemoveBlinkFrame(nsIFrame* aFrame);
-  
-  static bool     GetBlinkIsOff() { return sState == 3; }
-  
-protected:
-
-  struct FrameData {
-    nsPresContext* mPresContext;  
-    nsIFrame*       mFrame;
-
-
-    FrameData(nsPresContext* aPresContext,
-              nsIFrame*       aFrame)
-      : mPresContext(aPresContext), mFrame(aFrame) {}
-  };
-
-  class FrameDataComparator {
-    public:
-      bool Equals(const FrameData& aTimer, nsIFrame* const& aFrame) const {
-        return aTimer.mFrame == aFrame;
-      }
-  };
-
-  nsCOMPtr<nsITimer> mTimer;
-  nsTArray<FrameData> mFrames;
-  nsPresContext* mPresContext;
-
-protected:
-
-  static nsBlinkTimer* sTextBlinker;
-  static uint32_t      sState; 
-  
-};
-
-nsBlinkTimer* nsBlinkTimer::sTextBlinker = nullptr;
-uint32_t      nsBlinkTimer::sState = 0;
-
-#ifdef NOISY_BLINK
-static PRTime gLastTick;
-#endif
-
-nsBlinkTimer::nsBlinkTimer()
-{
-}
-
-nsBlinkTimer::~nsBlinkTimer()
-{
-  Stop();
-  sTextBlinker = nullptr;
-}
-
-void nsBlinkTimer::Start()
-{
-  nsresult rv;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-  if (NS_OK == rv) {
-    mTimer->InitWithCallback(this, 250, nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP);
-  }
-}
-
-void nsBlinkTimer::Stop()
-{
-  if (nullptr != mTimer) {
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-}
-
-NS_IMPL_ISUPPORTS1(nsBlinkTimer, nsITimerCallback)
-
-void nsBlinkTimer::AddFrame(nsPresContext* aPresContext, nsIFrame* aFrame) {
-  mFrames.AppendElement(FrameData(aPresContext, aFrame));
-  if (1 == mFrames.Length()) {
-    Start();
-  }
-}
-
-bool nsBlinkTimer::RemoveFrame(nsIFrame* aFrame) {
-  mFrames.RemoveElement(aFrame, FrameDataComparator());
-  
-  if (mFrames.IsEmpty()) {
-    Stop();
-  }
-  return true;
-}
-
-int32_t nsBlinkTimer::FrameCount() {
-  return int32_t(mFrames.Length());
-}
-
-NS_IMETHODIMP nsBlinkTimer::Notify(nsITimer *timer)
-{
-  
-  
-  
-  sState = (sState + 1) % 4;
-  if (sState == 1 || sState == 2)
-    
-    return NS_OK;
-
-#ifdef NOISY_BLINK
-  PRTime now = PR_Now();
-  char buf[50];
-  PRTime delta;
-  delta = now - gLastTick;
-  gLastTick = now;
-  PR_snprintf(buf, sizeof(buf), "%lldusec", delta);
-  printf("%s\n", buf);
-#endif
-
-  uint32_t n = mFrames.Length();
-  for (uint32_t i = 0; i < n; i++) {
-    FrameData& frameData = mFrames.ElementAt(i);
-
-    
-    
-    frameData.mFrame->InvalidateFrame();
-  }
-  return NS_OK;
-}
-
-
-
-void nsBlinkTimer::AddBlinkFrame(nsPresContext* aPresContext, nsIFrame* aFrame)
-{
-  if (!sTextBlinker)
-  {
-    sTextBlinker = new nsBlinkTimer;
-  }
-
-  NS_ADDREF(sTextBlinker);
-
-  sTextBlinker->AddFrame(aPresContext, aFrame);
-}
-
-
-
-void nsBlinkTimer::RemoveBlinkFrame(nsIFrame* aFrame)
-{
-  NS_ASSERTION(sTextBlinker, "Should have blink timer here");
-
-  nsBlinkTimer* blinkTimer = sTextBlinker;    
-
-  blinkTimer->RemoveFrame(aFrame);  
-  NS_RELEASE(blinkTimer);
-}
-
-
-
 static nscolor
 EnsureDifferentColors(nscolor colorA, nscolor colorB)
 {
@@ -4246,10 +4072,6 @@ NS_IMPL_FRAMEARENA_HELPERS(nsContinuingTextFrame)
 
 nsTextFrame::~nsTextFrame()
 {
-  if (0 != (mState & TEXT_BLINK_ON))
-  {
-    nsBlinkTimer::RemoveBlinkFrame(this);
-  }
 }
 
 NS_IMETHODIMP
@@ -4619,10 +4441,6 @@ nsTextFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   DO_GLOBAL_REFLOW_COUNT_DSP("nsTextFrame");
 
-  if ((0 != (mState & TEXT_BLINK_ON)) && nsBlinkTimer::GetBlinkIsOff() &&
-      PresContext()->IsDynamic() && !aBuilder->IsForEventDelivery())
-    return;
-    
   aLists.Content()->AppendNewToTop(
     new (aBuilder) nsDisplayText(aBuilder, this));
 }
@@ -7629,8 +7447,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   ReflowText(*aReflowState.mLineLayout, aReflowState.availableWidth,
-             aReflowState.rendContext, aReflowState.mFlags.mBlinks,
-             aMetrics, aStatus);
+             aReflowState.rendContext, aMetrics, aStatus);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return NS_OK;
@@ -7667,7 +7484,6 @@ private:
 void
 nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
                         nsRenderingContext* aRenderingContext,
-                        bool aShouldBlink,
                         nsHTMLReflowMetrics& aMetrics,
                         nsReflowStatus& aStatus)
 {
@@ -7703,19 +7519,6 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
     return;
-  }
-
-  if (aShouldBlink) {
-    if (0 == (mState & TEXT_BLINK_ON)) {
-      mState |= TEXT_BLINK_ON;
-      nsBlinkTimer::AddBlinkFrame(presContext, this);
-    }
-  }
-  else {
-    if (0 != (mState & TEXT_BLINK_ON)) {
-      mState &= ~TEXT_BLINK_ON;
-      nsBlinkTimer::RemoveBlinkFrame(this);
-    }
   }
 
 #ifdef NOISY_BIDI
