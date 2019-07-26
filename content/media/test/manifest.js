@@ -185,6 +185,9 @@ var gPlayTests = [
   
   
   { name:"owl-funny-id3.mp3", type:"audio/mpeg", duration:3.29 },
+  
+  
+  { name:"owl-funnier-id3.mp3", type:"audio/mpeg", duration:3.29 },
 
   
   { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN }

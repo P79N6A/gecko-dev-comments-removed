@@ -42,19 +42,35 @@ public:
 
   bool IsMP3() {
     MutexAutoLock mon(mLock);
-    return mIsMP3;
+    return mIsMP3 != NOT_MP3;
   }
 
-  void Parse(const uint8_t* aBuffer, uint32_t aLength, int64_t aOffset);
+  void Parse(const char* aBuffer, uint32_t aLength, int64_t aStreamOffset);
 
-  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
-
+  
+  
+  
   int64_t GetDuration();
 
-private:
-  size_t ParseInternalBuffer(const uint8_t* aBuffer, uint32_t aLength, int64_t aOffset);
+  
+  
+  int64_t GetMP3Offset();
 
-  uint8_t  mBuffer[10];
+private:
+
+  
+  
+  
+  
+  
+  nsresult ParseBuffer(const uint8_t* aBuffer,
+                       uint32_t aLength,
+                       int64_t aStreamOffset,
+                       uint32_t* aOutBytesRead);
+
+  
+  
+  uint8_t  mBuffer[32];
   uint32_t mBufferLength;
 
   
@@ -64,13 +80,33 @@ private:
   uint64_t mDurationUs;
   uint64_t mBitRateSum;
   uint64_t mNumFrames;
-  int64_t  mOffset;
-  int64_t  mUnhandled;
-  int64_t  mLength;
-  uint32_t mTrailing;
 
   
-  bool mIsMP3;
+  
+  
+  int64_t  mOffset;
+
+  
+  
+  int64_t  mUnhandled;
+  int64_t  mLength;
+  
+  
+  int64_t mMP3Offset;
+
+  
+  
+  
+  uint32_t mSkippedBytes;
+
+  enum eIsMP3 {
+    MAYBE_MP3, 
+    DEFINITELY_MP3, 
+    NOT_MP3 
+  };
+
+  eIsMP3 mIsMP3;
+
 };
 
 }
