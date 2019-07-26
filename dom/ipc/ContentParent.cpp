@@ -222,7 +222,9 @@ ContentParent::PreallocateAppProcess()
     sPreallocatedAppProcess =
         new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
                           false,
-                          base::PRIVILEGES_DEFAULT);
+                          
+                          
+                          base::PRIVILEGES_INHERIT);
     sPreallocatedAppProcess->Init();
 }
 
@@ -440,20 +442,14 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext)
     nsRefPtr<ContentParent> p = gAppContentParents->Get(manifestURL);
     if (!p) {
         ChildPrivileges privs = PrivilegesForApp(ownApp);
-        if (privs != base::PRIVILEGES_DEFAULT) {
+        p = MaybeTakePreallocatedAppProcess();
+        if (p) {
+            p->TransformPreallocatedIntoApp(manifestURL, privs);            
+        } else {
+            NS_WARNING("Unable to use pre-allocated app process");
             p = new ContentParent(manifestURL,  false,
                                   privs);
             p->Init();
-        } else {
-            p = MaybeTakePreallocatedAppProcess();
-            if (p) {
-                p->SetManifestFromPreallocated(manifestURL);
-            } else {
-                NS_WARNING("Unable to use pre-allocated app process");
-                p = new ContentParent(manifestURL,  false,
-                                      base::PRIVILEGES_DEFAULT);
-                p->Init();
-            }
         }
         gAppContentParents->Put(manifestURL, p);
     }
@@ -536,12 +532,15 @@ ContentParent::Init()
 }
 
 void
-ContentParent::SetManifestFromPreallocated(const nsAString& aAppManifestURL)
+ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
+                                            ChildPrivileges aPrivs)
 {
     MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
     
     
     const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+    
+    unused << SendSetProcessPrivileges(aPrivs);
 }
 
 void

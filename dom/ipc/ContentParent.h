@@ -178,7 +178,8 @@ private:
 
     
     
-    void SetManifestFromPreallocated(const nsAString& aAppManifestURL);
+    void TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
+                                      ChildPrivileges aPrivs);
 
     
 
