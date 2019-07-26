@@ -1337,10 +1337,6 @@ class PropertyArrays():
         return [ "staticMethods", "staticAttrs", "methods", "attrs",
                  "unforgeableAttrs", "consts" ]
 
-    @staticmethod
-    def xrayRelevantArrayNames():
-        return [ "methods", "attrs", "unforgeableAttrs", "consts" ]
-
     def hasChromeOnly(self):
         return any(getattr(self, a).hasChromeOnly() for a in self.arrayNames())
     def hasNonChromeOnly(self):
@@ -1417,7 +1413,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         
         
         if not self.descriptor.workers:
-            for var in self.properties.xrayRelevantArrayNames():
+            for var in self.properties.arrayNames():
                 props = getattr(self.properties, var)
                 
                 if props.hasChromeOnly():
