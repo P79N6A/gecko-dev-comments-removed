@@ -138,6 +138,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "bitguard.dll", MAKE_VERSION(2, 6, 1694, 24) },
 
+  
+  
+  { "atkdx11disp.dll", ALL_VERSIONS },
+
   { nullptr, 0 }
 };
 
