@@ -510,6 +510,25 @@ var SelectionHelperUI = {
 
 
 
+
+  debugDisplayDebugPoint: function (aLeft, aTop, aSize, aCssColorStr, aFill) {
+    this.overlay.enabled = true;
+    this.overlay.displayDebugLayer = true;
+    this.overlay.addDebugRect(aLeft, aTop, aLeft + aSize, aTop + aSize,
+                              aCssColorStr, aFill);
+  },
+
+  debugClearDebugPoints: function () {
+    this.overlay.displayDebugLayer = false;
+    if (!this._msgTarget) {
+      this.overlay.enabled = false;
+    }
+  },
+
+  
+
+
+
   init: function () {
     Services.obs.addObserver(this, "attach_edit_session_to_content", false);
   },
