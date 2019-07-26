@@ -246,15 +246,6 @@ class nsParser : public nsIParser,
 
     virtual nsIStreamListener* GetStreamListener();
 
-    
-
-
-
-    bool DetectMetaTag(const char* aBytes, 
-                         int32_t aLen, 
-                         nsCString& oCharset, 
-                         int32_t& oCharsetSource);
-
     void SetSinkCharset(nsACString& aCharset);
 
     

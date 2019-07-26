@@ -44,27 +44,13 @@ class nsScanner {
       
 
 
-
-
-
-
-
-
-
-
-      nsScanner(const nsAString& anHTMLString, const nsACString& aCharset, int32_t aSource);
+      nsScanner(const nsAString& anHTMLString);
 
       
 
 
 
-
-
-
-
-
-
-      nsScanner(nsString& aFilename,bool aCreateStream, const nsACString& aCharset, int32_t aSource);
+      nsScanner(nsString& aFilename, bool aCreateStream);
 
       ~nsScanner();
 

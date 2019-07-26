@@ -41,6 +41,7 @@
 #include "mozilla/Mutex.h"
 #include "nsParserConstants.h"
 #include "nsCharsetSource.h"
+#include "nsContentUtils.h"
 
 using namespace mozilla;
 
@@ -1250,8 +1251,7 @@ nsParser::Parse(nsIURI* aURL,
     }
     NS_ConvertUTF8toUTF16 theName(spec);
 
-    nsScanner* theScanner = new nsScanner(theName, false, mCharset,
-                                          mCharsetSource);
+    nsScanner* theScanner = new nsScanner(theName, false);
     CParserContext* pc = new CParserContext(mParserContext, theScanner, aKey,
                                             mCommand, aListener);
     if (pc && theScanner) {
@@ -1311,7 +1311,7 @@ nsParser::Parse(const nsAString& aSourceBuffer,
     if (!pc) {
       
       
-      nsScanner* theScanner = new nsScanner(mUnusedInput, mCharset, mCharsetSource);
+      nsScanner* theScanner = new nsScanner(mUnusedInput);
       NS_ENSURE_TRUE(theScanner, NS_ERROR_OUT_OF_MEMORY);
 
       eAutoDetectResult theStatus = eUnknownDetect;
@@ -1674,11 +1674,6 @@ nsParser::OnStartRequest(nsIRequest *request, nsISupports* aContext)
 }
 
 
-#define UTF16_BOM "UTF-16"
-#define UTF16_BE "UTF-16BE"
-#define UTF16_LE "UTF-16LE"
-#define UTF8 "UTF-8"
-
 static inline bool IsSecondMarker(unsigned char aChar)
 {
   switch (aChar) {
@@ -1693,146 +1688,87 @@ static inline bool IsSecondMarker(unsigned char aChar)
 }
 
 static bool
-DetectByteOrderMark(const unsigned char* aBytes, int32_t aLen,
-                    nsCString& oCharset, int32_t& oCharsetSource)
+ExtractCharsetFromXmlDeclaration(const unsigned char* aBytes, int32_t aLen,
+                                 nsCString& oCharset)
 {
- oCharsetSource= kCharsetFromAutoDetection;
- oCharset.Truncate();
- 
- 
- 
- 
- 
- switch(aBytes[0])
-	 {
-   case 0x00:
-     if((0x3C==aBytes[1]) && (0x00==aBytes[2])) {
-        
-        if(IsSecondMarker(aBytes[3])) {
-           
-           oCharset.Assign(UTF16_BE); 
-           oCharsetSource = kCharsetFromByteOrderMark;
-        } 
-     }
-   break;
-   case 0x3C:
-     if(0x00==aBytes[1] && (0x00==aBytes[3])) {
-        
-        if(IsSecondMarker(aBytes[2])) {
-           
-           oCharset.Assign(UTF16_LE); 
-           oCharsetSource = kCharsetFromByteOrderMark;
-        } 
-     
-     
-     } else if(                     (0x3F==aBytes[1]) &&
-               (0x78==aBytes[2]) && (0x6D==aBytes[3]) &&
-               (0 == PL_strncmp("<?xml", (char*)aBytes, 5 ))) {
-       
-       
-       
-       
-       
-       int32_t i;
-       bool versionFound = false, encodingFound = false;
-       for (i=6; i < aLen && !encodingFound; ++i) {
-         
-         if ((((char*)aBytes)[i] == '?') && 
-           ((i+1) < aLen) &&
-           (((char*)aBytes)[i+1] == '>')) {
-           break;
-         }
-         
-         if (!versionFound) {
-           
-           
-           
-           
-           
-           if ((((char*)aBytes)[i] == 'n') &&
-             (i >= 12) && 
-             (0 == PL_strncmp("versio", (char*)(aBytes+i-6), 6 ))) {
-             
-             char q = 0;
-             for (++i; i < aLen; ++i) {
-               char qi = ((char*)aBytes)[i];
-               if (qi == '\'' || qi == '"') {
-                 if (q && q == qi) {
-                   
-                   versionFound = true;
-                   break;
-                 } else {
-                   
-                   q = qi;
-                 }
-               }
-             }
-           }
-         } else {
-           
-           
-           
-           
-           
-           
-           if ((((char*)aBytes)[i] == 'g') &&
-             (i >= 25) && 
-             (0 == PL_strncmp("encodin", (char*)(aBytes+i-7), 7 ))) {
-             int32_t encStart = 0;
-             char q = 0;
-             for (++i; i < aLen; ++i) {
-               char qi = ((char*)aBytes)[i];
-               if (qi == '\'' || qi == '"') {
-                 if (q && q == qi) {
-                   int32_t count = i - encStart;
-                   
-                   if (count > 0 && 
-                     (0 != PL_strcmp("UTF-16", (char*)(aBytes+encStart)))) {
-                     oCharset.Assign((char*)(aBytes+encStart),count);
-                     oCharsetSource = kCharsetFromMetaTag;
-                   }
-                   encodingFound = true;
-                   break;
-                 } else {
-                   encStart = i+1;
-                   q = qi;
-                 }
-               }
-             }
-           }
-         } 
-       } 
-     }
-   break;
-   case 0xEF:  
-     if((0xBB==aBytes[1]) && (0xBF==aBytes[2])) {
+  
+  
+  oCharset.Truncate();
+  if ((aLen >= 5) &&
+      ('<' == aBytes[0]) &&
+      ('?' == aBytes[1]) &&
+      ('x' == aBytes[2]) &&
+      ('m' == aBytes[3]) &&
+      ('l' == aBytes[4])) {
+    int32_t i;
+    bool versionFound = false, encodingFound = false;
+    for (i = 6; i < aLen && !encodingFound; ++i) {
+      
+      if ((((char*) aBytes)[i] == '?') &&
+          ((i + 1) < aLen) &&
+          (((char*) aBytes)[i + 1] == '>')) {
+        break;
+      }
+      
+      if (!versionFound) {
         
         
-        oCharset.Assign(UTF8); 
-        oCharsetSource= kCharsetFromByteOrderMark;
-     }
-   break;
-   case 0xFE:
-     if(0xFF==aBytes[1]) {
         
-        oCharset.Assign(UTF16_BOM); 
-        oCharsetSource= kCharsetFromByteOrderMark;
-     }
-   break;
-   case 0xFF:
-     if(0xFE==aBytes[1]) {
-       
-       
-       oCharset.Assign(UTF16_BOM); 
-       oCharsetSource= kCharsetFromByteOrderMark;
-     }
-   break;
-   
-   
-   
-   
- }  
- return !oCharset.IsEmpty();
+        
+        
+        if ((((char*) aBytes)[i] == 'n') &&
+            (i >= 12) &&
+            (0 == PL_strncmp("versio", (char*) (aBytes + i - 6), 6))) {
+          
+          char q = 0;
+          for (++i; i < aLen; ++i) {
+            char qi = ((char*) aBytes)[i];
+            if (qi == '\'' || qi == '"') {
+              if (q && q == qi) {
+                
+                versionFound = true;
+                break;
+              } else {
+                
+                q = qi;
+              }
+            }
+          }
+        }
+      } else {
+        
+        
+        
+        
+        
+        
+        if ((((char*) aBytes)[i] == 'g') && (i >= 25) && (0 == PL_strncmp(
+            "encodin", (char*) (aBytes + i - 7), 7))) {
+          int32_t encStart = 0;
+          char q = 0;
+          for (++i; i < aLen; ++i) {
+            char qi = ((char*) aBytes)[i];
+            if (qi == '\'' || qi == '"') {
+              if (q && q == qi) {
+                int32_t count = i - encStart;
+                
+                if (count > 0 && (0 != PL_strcmp("UTF-16",
+                    (char*) (aBytes + encStart)))) {
+                  oCharset.Assign((char*) (aBytes + encStart), count);
+                }
+                encodingFound = true;
+                break;
+              } else {
+                encStart = i + 1;
+                q = qi;
+              }
+            }
+          }
+        }
+      } 
+    } 
+  }
+  return !oCharset.IsEmpty();
 }
 
 inline const char
@@ -1841,131 +1777,6 @@ GetNextChar(nsACString::const_iterator& aStart,
 {
   NS_ASSERTION(aStart != aEnd, "end of buffer");
   return (++aStart != aEnd) ? *aStart : '\0';
-}
-
-bool
-nsParser::DetectMetaTag(const char* aBytes,
-                        int32_t aLen,
-                        nsCString& aCharset,
-                        int32_t& aCharsetSource)
-{
-  aCharsetSource= kCharsetFromMetaTag;
-  aCharset.SetLength(0);
-
-  
-  
-  if (!mParserContext->mMimeType.EqualsLiteral(TEXT_HTML)) {
-    return false;
-  }
-
-  
-  
-  const nsASingleFragmentCString& str =
-      Substring(aBytes, aBytes + NS_MIN(aLen, 2048));
-  
-  nsACString::const_iterator begin, end;
-
-  str.BeginReading(begin);
-  str.EndReading(end);
-  nsACString::const_iterator currPos(begin);
-  nsACString::const_iterator tokEnd;
-  nsACString::const_iterator tagEnd(begin);
-
-  while (currPos != end) {
-    if (!FindCharInReadable('<', currPos, end))
-      break; 
-
-    if (GetNextChar(currPos, end) == '!') {
-      if (GetNextChar(currPos, end) != '-' ||
-          GetNextChar(currPos, end) != '-') {
-        
-        if (!FindCharInReadable('>', currPos, end)) {
-          return false; 
-        }
-
-        
-        ++currPos;
-        continue;
-      }
-
-      
-      bool foundMDC = false;
-      bool foundMatch = false;
-      while (!foundMDC) {
-        if (GetNextChar(currPos, end) == '-' &&
-            GetNextChar(currPos, end) == '-') {
-          foundMatch = !foundMatch; 
-        } else if (currPos == end) {
-          return false; 
-        } else if (foundMatch && *currPos == '>') {
-          foundMDC = true; 
-          ++currPos;
-        }
-      }
-      continue; 
-    }
-
-    
-    tagEnd = currPos;
-    if (!FindCharInReadable('>', tagEnd, end))
-      break;
-
-    
-    if ( (*currPos != 'm' && *currPos != 'M') ||
-         (*(++currPos) != 'e' && *currPos != 'E') ||
-         (*(++currPos) != 't' && *currPos != 'T') ||
-         (*(++currPos) != 'a' && *currPos != 'A') ||
-         !nsCRT::IsAsciiSpace(*(++currPos))) {
-      currPos = tagEnd;
-      continue;
-    }
-
-    
-    tokEnd = tagEnd;
-    if (!CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("CHARSET"),
-                                       currPos, tokEnd)) {
-      currPos = tagEnd;
-      continue;
-    }
-    currPos = tokEnd;
-
-    
-    while (*currPos == kSpace || *currPos == kNewLine ||
-           *currPos == kCR || *currPos == kTab) {
-      ++currPos;
-    }
-    
-    if (*currPos != '=') {
-      currPos = tagEnd;
-      continue;
-    }
-    ++currPos;
-    
-    while (*currPos == kSpace || *currPos == kNewLine ||
-           *currPos == kCR || *currPos == kTab) {
-      ++currPos;
-    }
-
-    
-    if (*currPos == '\'' || *currPos == '\"')
-      ++currPos;
-
-    
-    tokEnd = currPos;
-    while (*tokEnd != '\'' && *tokEnd != '\"' && tokEnd != tagEnd)
-      ++tokEnd;
-
-    
-    if (currPos != tokEnd) {
-      aCharset.Assign(currPos.get(), tokEnd.get() - currPos.get());
-      return true;
-    }
-
-    
-    currPos = tagEnd;
-  }
-
-  return false;
 }
 
 static NS_METHOD
@@ -2003,7 +1814,8 @@ ParserWriteFunc(nsIInputStream* in,
 {
   nsresult result;
   ParserWriteStruct* pws = static_cast<ParserWriteStruct*>(closure);
-  const char* buf = fromRawSegment;
+  const unsigned char* buf =
+    reinterpret_cast<const unsigned char*> (fromRawSegment);
   uint32_t theNumRead = count;
 
   if (!pws) {
@@ -2011,47 +1823,37 @@ ParserWriteFunc(nsIInputStream* in,
   }
 
   if (pws->mNeedCharsetCheck) {
-    int32_t guessSource;
-    nsAutoCString guess;
-    nsAutoCString preferred;
-
     pws->mNeedCharsetCheck = false;
-    if (pws->mParser->DetectMetaTag(buf, theNumRead, guess, guessSource) ||
-        ((count >= 4) &&
-         DetectByteOrderMark((const unsigned char*)buf,
-                             theNumRead, guess, guessSource))) {
-      result = nsCharsetAlias::GetPreferred(guess, preferred);
+    int32_t source;
+    nsAutoCString preferred;
+    nsAutoCString maybePrefer;
+    pws->mParser->GetDocumentCharset(preferred, source);
+
+    
+    
+    if (nsContentUtils::CheckForBOM(buf, count, maybePrefer)) {
       
       
-      if (NS_SUCCEEDED(result) &&
-          ((kCharsetFromByteOrderMark == guessSource) ||
-           (!preferred.EqualsLiteral("UTF-16") &&
-            !preferred.EqualsLiteral("UTF-16BE") &&
-            !preferred.EqualsLiteral("UTF-16LE")))) {
-        guess = preferred;
-        pws->mParser->SetDocumentCharset(guess, guessSource);
-        pws->mParser->SetSinkCharset(preferred);
-        nsCOMPtr<nsICachingChannel> channel(do_QueryInterface(pws->mRequest));
-        if (channel) {
-          nsCOMPtr<nsISupports> cacheToken;
-          channel->GetCacheToken(getter_AddRefs(cacheToken));
-          if (cacheToken) {
-            nsCOMPtr<nsICacheEntryDescriptor> cacheDescriptor(do_QueryInterface(cacheToken));
-            if (cacheDescriptor) {
-#ifdef DEBUG
-              nsresult rv =
-#endif
-                cacheDescriptor->SetMetaDataElement("charset",
-                                                    guess.get());
-              NS_ASSERTION(NS_SUCCEEDED(rv),"cannot SetMetaDataElement");
-            }
-          }
+      preferred.Assign(maybePrefer);
+      source = kCharsetFromByteOrderMark;
+    } else if (source < kCharsetFromChannel) {
+      nsAutoCString declCharset;
+
+      if (ExtractCharsetFromXmlDeclaration(buf, count, declCharset)) {
+        nsresult rv = nsCharsetAlias::GetPreferred(declCharset, maybePrefer);
+        if (NS_SUCCEEDED(rv)) {
+          preferred.Assign(maybePrefer);
+          source = kCharsetFromMetaTag;
         }
       }
     }
+
+    pws->mParser->SetDocumentCharset(preferred, source);
+    pws->mParser->SetSinkCharset(preferred);
+
   }
 
-  result = pws->mScanner->Append(buf, theNumRead, pws->mRequest);
+  result = pws->mScanner->Append(fromRawSegment, theNumRead, pws->mRequest);
   if (NS_SUCCEEDED(result)) {
     *writeCount = count;
   }
@@ -2103,8 +1905,7 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
 
     uint32_t totalRead;
     ParserWriteStruct pws;
-    pws.mNeedCharsetCheck =
-      (0 == sourceOffset) && (mCharsetSource < kCharsetFromMetaTag);
+    pws.mNeedCharsetCheck = true;
     pws.mParser = this;
     pws.mScanner = theContext->mScanner;
     pws.mRequest = request;

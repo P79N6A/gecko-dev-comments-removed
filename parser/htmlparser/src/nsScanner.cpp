@@ -57,8 +57,7 @@ const int   kBufsize=64;
 
 
 
-nsScanner::nsScanner(const nsAString& anHTMLString, const nsACString& aCharset,
-                     int32_t aSource)
+nsScanner::nsScanner(const nsAString& anHTMLString)
 {
   MOZ_COUNT_CTOR(nsScanner);
 
@@ -85,12 +84,7 @@ nsScanner::nsScanner(const nsAString& anHTMLString, const nsACString& aCharset,
 
 
 
-
-
-
-
-nsScanner::nsScanner(nsString& aFilename,bool aCreateStream,
-                     const nsACString& aCharset, int32_t aSource)
+nsScanner::nsScanner(nsString& aFilename, bool aCreateStream)
   : mFilename(aFilename)
 {
   MOZ_COUNT_CTOR(nsScanner);
@@ -115,7 +109,8 @@ nsScanner::nsScanner(nsString& aFilename,bool aCreateStream,
   mCharsetSource = kCharsetUninitialized;
   mHasInvalidCharacter = false;
   mReplacementCharacter = PRUnichar(0x0);
-  SetDocumentCharset(aCharset, aSource);
+  
+  SetDocumentCharset(NS_LITERAL_CSTRING("UTF-8"), kCharsetFromDocTypeDefault);
 }
 
 nsresult nsScanner::SetDocumentCharset(const nsACString& aCharset , int32_t aSource)
@@ -130,6 +125,7 @@ nsresult nsScanner::SetDocumentCharset(const nsACString& aCharset , int32_t aSou
     res = nsCharsetAlias::Equals(aCharset, mCharset, &same);
     if(NS_SUCCEEDED(res) && same)
     {
+      mCharsetSource = aSource;
       return NS_OK; 
     }
   }
@@ -137,16 +133,9 @@ nsresult nsScanner::SetDocumentCharset(const nsACString& aCharset , int32_t aSou
   
   nsCString charsetName;
   res = nsCharsetAlias::GetPreferred(aCharset, charsetName);
+  MOZ_ASSERT(NS_SUCCEEDED(res), "Should never call with a bogus aCharset.");
 
-  if(NS_FAILED(res) && (mCharsetSource == kCharsetUninitialized))
-  {
-     
-    mCharset.AssignLiteral("ISO-8859-1");
-  }
-  else
-  {
-    mCharset.Assign(charsetName);
-  }
+  mCharset.Assign(charsetName);
 
   mCharsetSource = aSource;
 
