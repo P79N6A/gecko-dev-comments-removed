@@ -133,8 +133,7 @@ var gPrefsToRestore = [];
 const gProtocolRE = /^\w+:/;
 const gPrefItemRE = /^(|test-|ref-)pref\((.+?),(.*)\)$/;
 
-var HTTP_SERVER_PORT = 4444;
-const HTTP_SERVER_PORTS_TO_TRY = 50;
+var gHttpServerPort = -1;
 
 
 var gRunSlowTests = true;
@@ -380,19 +379,8 @@ function InitAndStartRefTests()
 function StartHTTPServer()
 {
     gServer.registerContentType("sjs", "sjs");
-    
-    
-    var tries = HTTP_SERVER_PORTS_TO_TRY;
-    do {
-        try {
-            gServer.start(HTTP_SERVER_PORT);
-            return;
-        } catch (ex) {
-            ++HTTP_SERVER_PORT;
-            if (--tries == 0)
-                throw ex;
-        }
-    } while (true);
+    gServer.start(-1);
+    gHttpServerPort = gServer.identity.primaryPort;
 }
 
 function StartTests()
@@ -1081,9 +1069,8 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
     var secMan = CC[NS_SCRIPTSECURITYMANAGER_CONTRACTID]
                      .getService(CI.nsIScriptSecurityManager);
 
-    var testbase = gIOService.newURI("http://localhost:" + HTTP_SERVER_PORT +
-                                         path + dirPath,
-                                     null, null);
+    var testbase = gIOService.newURI("http://localhost:" + gHttpServerPort +
+                                     path + dirPath, null, null);
 
     function FileToURI(file)
     {
