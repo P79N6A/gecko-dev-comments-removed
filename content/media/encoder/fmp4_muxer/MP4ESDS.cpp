@@ -106,8 +106,6 @@ ES_Descriptor::Generate(uint32_t* aBoxSize)
   nsresult rv;
   
   
-  Box::MetaHelper meta;
-  meta.Init(mControl);
   FragmentBuffer* frag = mControl->GetFragment(Audio_Track);
   rv = frag->GetCSD(DecodeSpecificInfo);
   NS_ENSURE_SUCCESS(rv, rv);

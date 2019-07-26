@@ -58,6 +58,8 @@ public:
     AVC_CSD,          
     AAC_AUDIO_FRAME,
     AAC_CSD,          
+    AMR_AUDIO_CSD,
+    AMR_AUDIO_FRAME,
     UNKNOWN           
   };
   nsresult SwapInFrameData(nsTArray<uint8_t>& aData)

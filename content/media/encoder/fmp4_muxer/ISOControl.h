@@ -29,8 +29,7 @@ public:
   
   
   
-  FragmentBuffer(uint32_t aTrackType, uint32_t aFragDuration,
-                 TrackMetadataBase* aMetadata);
+  FragmentBuffer(uint32_t aTrackType, uint32_t aFragDuration);
   ~FragmentBuffer();
 
   
@@ -191,11 +190,13 @@ public:
   uint32_t GetMuxingType() { return mMuxingType; }
 
   nsresult SetMetadata(TrackMetadataBase* aTrackMeta);
-  nsresult GetAudioMetadata(nsRefPtr<AACTrackMetadata>& aAudMeta);
-  nsresult GetVideoMetadata(nsRefPtr<AVCTrackMetadata>& aVidMeta);
+  nsresult GetAudioMetadata(nsRefPtr<AudioTrackMetadata>& aAudMeta);
+  nsresult GetVideoMetadata(nsRefPtr<VideoTrackMetadata>& aVidMeta);
 
   
-  uint32_t GetTrackID(uint32_t aTrackType);
+  
+  
+  uint32_t GetTrackID(TrackMetadataBase::MetadataKind aKind);
   uint32_t GetNextTrackID();
 
   bool HasAudioTrack();

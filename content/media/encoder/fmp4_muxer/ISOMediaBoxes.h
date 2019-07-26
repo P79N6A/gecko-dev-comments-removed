@@ -26,8 +26,8 @@ namespace mozilla {
 #define Audio_Track 0x01
 #define Video_Track 0x02
 
-class AACTrackMetadata;
-class AVCTrackMetadata;
+class AudioTrackMetadata;
+class VideoTrackMetadata;
 class ES_Descriptor;
 class ISOControl;
 
@@ -55,22 +55,6 @@ public:
 
   
   
-  
-  class MetaHelper {
-  public:
-    nsresult Init(ISOControl* aControl);
-    bool AudioOnly() {
-      if (mAudMeta && !mVidMeta) {
-        return true;
-      }
-      return false;
-    }
-    nsRefPtr<AACTrackMetadata> mAudMeta;
-    nsRefPtr<AVCTrackMetadata> mVidMeta;
-  };
-
-  
-  
   class BoxSizeChecker {
   public:
     BoxSizeChecker(ISOControl* aControl, uint32_t aSize);
@@ -86,6 +70,8 @@ protected:
   Box(const nsACString& aType, ISOControl* aControl);
 
   ISOControl* mControl;
+  nsRefPtr<AudioTrackMetadata> mAudioMeta;
+  nsRefPtr<VideoTrackMetadata> mVideoMeta;
 };
 
 
@@ -189,9 +175,6 @@ public:
   MovieHeaderBox(ISOControl* aControl);
   ~MovieHeaderBox();
   uint32_t GetTimeScale();
-
-protected:
-  MetaHelper mMeta;
 };
 
 
@@ -220,7 +203,6 @@ public:
 
 protected:
   uint32_t mTrackType;
-  MetaHelper mMeta;
 };
 
 
@@ -299,7 +281,6 @@ protected:
 
   uint32_t mAllSampleSize;
   uint32_t mTrackType;
-  MetaHelper mMeta;
 };
 
 
@@ -333,7 +314,6 @@ public:
 
 protected:
   uint32_t mTrackType;
-  MetaHelper mMeta;
 };
 
 
@@ -404,7 +384,6 @@ public:
 
 protected:
   uint32_t mTrackType;
-  MetaHelper mMeta;
 };
 
 
@@ -414,9 +393,6 @@ class MovieExtendsBox : public DefaultContainerImpl {
 public:
   MovieExtendsBox(ISOControl* aControl);
   ~MovieExtendsBox();
-
-protected:
-  MetaHelper mMeta;
 };
 
 
@@ -527,8 +503,6 @@ public:
 
 protected:
   SampleEntryBox() MOZ_DELETE;
-
-  MetaHelper mMeta;
 };
 
 
@@ -764,7 +738,6 @@ public:
 
 protected:
   uint32_t mTrackType;
-  MetaHelper mMeta;
 };
 
 

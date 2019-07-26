@@ -28,5 +28,33 @@ public:
   virtual MetadataKind GetKind() const = 0;
 };
 
+
+class AudioTrackMetadata : public TrackMetadataBase {
+public:
+  
+  
+  virtual uint32_t GetAudioFrameDuration() = 0;
+  
+  
+  virtual uint32_t GetAudioFrameSize() = 0;
+  
+  virtual uint32_t GetAudioSampleRate() = 0;
+  virtual uint32_t GetAudioChannels() = 0;
+};
+
+
+class VideoTrackMetadata : public TrackMetadataBase {
+public:
+  virtual uint32_t GetVideoHeight() = 0;
+  virtual uint32_t GetVideoWidth() = 0;
+  
+  
+  
+  
+  virtual uint32_t GetVideoClockRate() = 0;
+  
+  virtual uint32_t GetVideoFrameRate() = 0;
+};
+
 }
 #endif
