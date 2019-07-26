@@ -97,7 +97,7 @@ static const unsigned long kKeyMapping[] = {
     NS_VK_SLASH,
     NS_VK_AT,
     0, 
-    0, 
+    NS_VK_F1, 
     0, 
     NS_VK_PLUS,
     NS_VK_CONTEXT_MENU,

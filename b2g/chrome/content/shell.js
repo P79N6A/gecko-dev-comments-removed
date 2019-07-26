@@ -30,6 +30,10 @@ XPCOMUtils.defineLazyServiceGetter(Services, 'ss',
                                    '@mozilla.org/content/style-sheet-service;1',
                                    'nsIStyleSheetService');
 
+XPCOMUtils.defineLazyServiceGetter(this, 'gSystemMessenger',
+                                   '@mozilla.org/system-message-internal;1',
+                                   'nsISystemMessagesInternal');
+
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyServiceGetter(Services, 'audioManager',
                                    '@mozilla.org/telephony/audiomanager;1',
@@ -287,6 +291,9 @@ var shell = {
       case evt.DOM_VK_CONTEXT_MENU: 
         type = 'menu-button';
         break;
+      case evt.DOM_VK_F1: 
+        type = 'headset-button';
+        break;
       default:                      
         return;  
     }
@@ -307,6 +314,13 @@ var shell = {
         break;
       case 'keypress':
         return;
+    }
+
+    
+    if (evt.keyCode == evt.DOM_VK_F1 && type !== this.lastHardwareButtonEventType) {
+      this.lastHardwareButtonEventType = type;
+      gSystemMessenger.broadcastMessage('headset-button', type);
+      return;
     }
 
     
