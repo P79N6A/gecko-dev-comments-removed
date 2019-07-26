@@ -18,6 +18,8 @@ function run_test() {
 
   
   
-  do_check_neq(sharedStr, null);
-  do_check_neq(sharedStr, "");
+  do_check_neq(sharedStr.indexOf("name"), -1);
+  do_check_neq(sharedStr.indexOf("start"), -1);
+  do_check_neq(sharedStr.indexOf("end"), -1);
+  do_check_neq(sharedStr.indexOf("offset"), -1);
 }
