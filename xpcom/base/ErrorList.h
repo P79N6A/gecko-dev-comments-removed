@@ -167,16 +167,6 @@
   
   
   
-#define MODULE NS_ERROR_MODULE_WIDGET
-  
-
-  ERROR(NS_SUCCESS_IME_NO_UPDATES,  SUCCESS(1)),
-#undef MODULE
-
-
-  
-  
-  
 #define MODULE NS_ERROR_MODULE_NETWORK
   
 

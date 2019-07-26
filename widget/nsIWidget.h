@@ -1496,9 +1496,6 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
-
     NS_IMETHOD OnIMEFocusChange(bool aFocus) = 0;
 
     
