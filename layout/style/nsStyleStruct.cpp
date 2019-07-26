@@ -1275,6 +1275,7 @@ nsStylePosition::nsStylePosition(void)
   mAlignItems = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
   mAlignSelf = NS_STYLE_ALIGN_SELF_AUTO;
   mFlexDirection = NS_STYLE_FLEX_DIRECTION_ROW;
+  mFlexWrap = NS_STYLE_FLEX_WRAP_NOWRAP;
   mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
   mOrder = NS_STYLE_ORDER_INITIAL;
   mFlexGrow = 0.0f;
@@ -1328,12 +1329,14 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   }
 
   
-
+  
+  
   
   
   
   if (mAlignItems != aOther.mAlignItems ||
-      mFlexDirection != aOther.mFlexDirection) {
+      mFlexDirection != aOther.mFlexDirection ||
+      mFlexWrap != aOther.mFlexWrap) {
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
