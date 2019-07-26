@@ -1430,6 +1430,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mInStyleRefresh(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
+  , mOverflowChangedTracker(nullptr)
   , mAnimationGeneration(0)
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
                      ELEMENT_IS_POTENTIAL_RESTYLE_ROOT, this)
@@ -1507,6 +1508,10 @@ nsCSSFrameConstructor::NotifyDestroyingFrame(nsIFrame* aFrame)
     
     
     CountersDirty();
+  }
+
+  if (mOverflowChangedTracker) {
+    mOverflowChangedTracker->RemoveFrame(aFrame);
   }
 
   nsFrameManager::NotifyDestroyingFrame(aFrame);
@@ -8118,6 +8123,10 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 
   SAMPLE_LABEL("CSS", "ProcessRestyledFrames");
 
+  MOZ_ASSERT(!GetOverflowChangedTracker(), 
+             "Can't have multiple overflow changed trackers!");
+  SetOverflowChangedTracker(&aTracker);
+
   
   
   BeginUpdate();
@@ -8202,9 +8211,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
       
       
       
-      if (content->GetPrimaryFrame()) {
-        aTracker.RemoveFrameAndDescendants(content->GetPrimaryFrame());
-      }
       RecreateFramesForContent(content, false);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
@@ -8306,6 +8312,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 #endif
   }
 
+  SetOverflowChangedTracker(nullptr);
   aChangeList.Clear();
   return NS_OK;
 }

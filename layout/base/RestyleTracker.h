@@ -51,26 +51,9 @@ public:
   
 
 
-  void RemoveFrameAndDescendants(nsIFrame* aFrame) {
+  void RemoveFrame(nsIFrame* aFrame) {
     if (mEntryList.contains(Entry(aFrame, 0, false))) {
       delete mEntryList.remove(Entry(aFrame, 0, false));
-    }
-    if (mEntryList.empty()) {
-      return;
-    }
-
-    nsAutoTArray<nsIFrame::ChildList,4> childListArray;
-    aFrame->GetCrossDocChildLists(&childListArray);
-
-    nsIFrame::ChildListArrayIterator lists(childListArray);
-    for (; !lists.IsDone(); lists.Next()) {
-      nsFrameList::Enumerator childFrames(lists.CurrentList());
-      for (; !childFrames.AtEnd(); childFrames.Next()) {
-        RemoveFrameAndDescendants(childFrames.get());
-        if (mEntryList.empty()) {
-          return;
-        }
-      }
     }
   }
 
@@ -140,24 +123,17 @@ private:
     
 
 
-
     bool operator<(const Entry& aOther) const
     {
-      if (mDepth != aOther.mDepth) {
-        
-        
-        return mDepth > aOther.mDepth;
-      }
-
       return mFrame < aOther.mFrame;
     }
 
     static int compare(const Entry& aOne, const Entry& aTwo)
     {
-      if (aOne < aTwo) {
-        return -1;
-      } else if (aOne == aTwo) {
+      if (aOne == aTwo) {
         return 0;
+      } else if (aOne < aTwo) {
+        return -1;
       } else {
         return 1;
       }

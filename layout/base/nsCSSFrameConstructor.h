@@ -307,6 +307,15 @@ public:
     PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
   }
 
+  OverflowChangedTracker *GetOverflowChangedTracker() const 
+  { 
+    return mOverflowChangedTracker; 
+  }
+  void SetOverflowChangedTracker(OverflowChangedTracker *aTracker)
+  {
+    mOverflowChangedTracker = aTracker;    
+  }
+
 private:
   
 
@@ -1894,6 +1903,8 @@ private:
   nsChangeHint        mRebuildAllExtraHint;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
+
+  OverflowChangedTracker *mOverflowChangedTracker;
 
   
   
