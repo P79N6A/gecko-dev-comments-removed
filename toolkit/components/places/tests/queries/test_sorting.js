@@ -414,22 +414,16 @@ tests.push({
     
     populateDB(this._unsortedData);
     
-    PlacesUtils.history.addVisit(uri("http://example.com/a"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/b1"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/b1"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/b2"), timeInMicroseconds + 1, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/b2"), timeInMicroseconds + 1, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/c"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/c"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-    PlacesUtils.history.addVisit(uri("http://example.com/c"), timeInMicroseconds, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits([
+      { uri: uri("http://example.com/a"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+      { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+      { uri: uri("http://example.com/b1"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1 },
+      { uri: uri("http://example.com/b2"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds + 1 },
+      { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+      { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+      { uri: uri("http://example.com/c"), transition: TRANSITION_TYPED, visitDate: timeInMicroseconds },
+    ]);
   },
 
   check: function() {
@@ -1265,23 +1259,16 @@ tests.push({
 
 function run_test() {
   do_test_pending();
-  runNextTest();
-}
-
-function runNextTest() {
-  if (tests.length) {
-    let test = tests.shift();
-    test.setup();
-    promiseAsyncUpdates().then(function () {
+  Task.spawn(function () {
+    for (let [, test] in Iterator(tests)) {
+      yield test.setup();
+      yield promiseAsyncUpdates();
       test.check();
       
       test.check_reverse();
       
       remove_all_bookmarks();
-      promiseClearHistory().then(runNextTest);
-    });
-  }
-  else {
-    do_test_finished();
-  }
+      yield promiseClearHistory();
+    }
+  }).then(do_test_finished);
 }

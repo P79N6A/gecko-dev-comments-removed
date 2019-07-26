@@ -892,9 +892,9 @@ NavHistoryResultObserver.prototype = {
 
 
 
-function addVisits(aPlaceInfo, aCallback, aStack)
+function promiseAddVisits(aPlaceInfo)
 {
-  let stack = aStack || Components.stack.caller;
+  let deferred = Promise.defer();
   let places = [];
   if (aPlaceInfo instanceof Ci.nsIURI) {
     places.push({ uri: aPlaceInfo });
@@ -922,14 +922,34 @@ function addVisits(aPlaceInfo, aCallback, aStack)
   PlacesUtils.asyncHistory.updatePlaces(
     places,
     {
-      handleError: function AAV_handleError() {
-        do_throw("Unexpected error in adding visit.", stack);
+      handleError: function AAV_handleError(aResultCode, aPlaceInfo) {
+        let ex = new Components.Exception("Unexpected error in adding visits.",
+                                          aResultCode);
+        deferred.reject(ex);
       },
       handleResult: function () {},
       handleCompletion: function UP_handleCompletion() {
-        if (aCallback)
-          aCallback();
+        deferred.resolve();
       }
+    }
+  );
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+function addVisits(aPlaceInfo, aCallback, aStack)
+{
+  let stack = aStack || Components.stack.caller;
+  promiseAddVisits(aPlaceInfo).then(
+    aCallback,
+    function addVisits_onFailure(ex) {
+      do_throw(ex, stack);
     }
   );
 }
