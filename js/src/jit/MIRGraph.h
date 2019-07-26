@@ -91,6 +91,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void setUnreachable() {
         JS_ASSERT(!unreachable_);
+        setUnreachableUnchecked();
+    }
+    void setUnreachableUnchecked() {
         unreachable_ = true;
     }
     bool unreachable() const {
