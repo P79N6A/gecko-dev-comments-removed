@@ -39,7 +39,7 @@ const DEFAULT_EDITOR_CONFIG = {
 
 
 
-let gTarget, gFront;
+let gToolbox, gTarget, gFront;
 
 
 
@@ -71,8 +71,10 @@ let EventsHandler = {
 
 
   initialize: function() {
+    this._onHostChanged = this._onHostChanged.bind(this);
     this._onWillNavigate = this._onWillNavigate.bind(this);
     this._onProgramLinked = this._onProgramLinked.bind(this);
+    gToolbox.on("host-changed", this._onHostChanged);
     gTarget.on("will-navigate", this._onWillNavigate);
     gFront.on("program-linked", this._onProgramLinked);
 
@@ -82,8 +84,18 @@ let EventsHandler = {
 
 
   destroy: function() {
+    gToolbox.off("host-changed", this._onHostChanged);
     gTarget.off("will-navigate", this._onWillNavigate);
     gFront.off("program-linked", this._onProgramLinked);
+  },
+
+  
+
+
+  _onHostChanged: function() {
+    if (gToolbox.hostType == "side") {
+      $("#shaders-pane").removeAttribute("height");
+    }
   },
 
   
@@ -171,6 +183,12 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
     
     if (!this.selectedItem) {
       this.selectedIndex = 0;
+    }
+
+    
+    
+    if (gToolbox.hostType == "side" && this.itemCount == SHADERS_AUTOGROW_ITEMS) {
+      this._pane.setAttribute("height", this._pane.getBoundingClientRect().height);
     }
   },
 
