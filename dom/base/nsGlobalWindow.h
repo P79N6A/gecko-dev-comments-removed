@@ -51,7 +51,6 @@
 #include "nsIDOMStorageIndexedDB.h"
 #include "nsIDOMOfflineResourceList.h"
 #include "nsIArray.h"
-#include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h"
@@ -120,6 +119,9 @@ namespace mozilla {
 namespace dom {
 class Navigator;
 class URL;
+namespace indexedDB {
+class IDBFactory;
+} 
 } 
 } 
 
@@ -1148,7 +1150,7 @@ protected:
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
 
-  nsCOMPtr<nsIIDBFactory> mIndexedDB;
+  nsRefPtr<mozilla::dom::indexedDB::IDBFactory> mIndexedDB;
 
   
   
