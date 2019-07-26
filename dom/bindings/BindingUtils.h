@@ -1695,6 +1695,10 @@ JSBool
 InterfaceHasInstance(JSContext* cx, JSHandleObject obj, JSMutableHandleValue vp,
                      JSBool* bp);
 
+
+void
+ReportLenientThisUnwrappingFailure(JSContext* cx, JS::Handle<JSObject*> obj);
+
 } 
 } 
 
