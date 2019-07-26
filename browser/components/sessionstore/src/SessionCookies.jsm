@@ -60,7 +60,9 @@ let SessionCookiesInternal = {
       
       let hosts = this.getHostsForWindow(window, true);
 
-      for (let [host, isPinned] in Iterator(hosts)) {
+      for (let host of Object.keys(hosts)) {
+        let isPinned = hosts[host];
+
         for (let cookie of CookieStore.getCookiesForHost(host)) {
           
           
@@ -302,7 +304,7 @@ let CookieStore = {
     let cookies = [];
 
     for (let pathToNamesMap of this._hosts.get(host).values()) {
-      cookies = cookies.concat([cookie for (cookie of pathToNamesMap.values())]);
+      cookies.push(...pathToNamesMap.values());
     }
 
     return cookies;

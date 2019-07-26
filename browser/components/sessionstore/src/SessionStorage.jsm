@@ -113,9 +113,9 @@ let SessionStorageInternal = {
       
       let storage = storageManager.createStorage(principal, "", aDocShell.usePrivateBrowsing);
 
-      for (let [key, value] in Iterator(data)) {
+      for (let key of Object.keys(data)) {
         try {
-          storage.setItem(key, value);
+          storage.setItem(key, data[key]);
         } catch (e) {
           
           console.error(e);
