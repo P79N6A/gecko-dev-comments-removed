@@ -381,17 +381,12 @@ pref("dom.ipc.content.nice", 1);
 
 
 pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
-pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/releasenotes/");
+
 pref("app.sync.tutorialURL", "https://support.mozilla.org/kb/sync-firefox-between-desktop-and-mobile");
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 pref("app.privacyURL", "http://www.mozilla.com/legal/privacy/");
 pref("app.creditsURL", "http://www.mozilla.org/credits/");
 pref("app.channelURL", "http://www.mozilla.org/%LOCALE%/firefox/channel/");
-#if MOZ_UPDATE_CHANNEL == beta
-pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/beta/faq/");
-#else
-pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/faq/");
-#endif
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -399,12 +394,6 @@ pref("security.alternate_certificate_error_page", "certerror");
 pref("security.warn_viewing_mixed", false); 
 
 
-
-#ifdef MOZ_OFFICIAL_BRANDING
-pref("browser.search.param.yahoo-fr", "moz35");
-pref("browser.search.param.yahoo-fr-cjkt", "moz35");
-pref("browser.search.param.yahoo-fr-ja", "mozff");
-#endif
 
 
 pref("app.update.timer", 60000); 
@@ -418,23 +407,9 @@ pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
 pref("app.update.mode", 1);
 pref("app.update.silent", false);
 pref("app.update.url", "https://aus2.mozilla.org/update/4/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%-xul/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/%PLATFORM_VERSION%/update.xml");
-pref("app.update.promptWaitTime", 43200);
 pref("app.update.idletime", 60);
 pref("app.update.showInstalledUI", false);
 pref("app.update.incompatible.mode", 0);
-pref("app.update.download.backgroundInterval", 0);
-
-
-#ifdef MOZ_OFFICIAL_BRANDING
-pref("app.update.interval", 86400);
-pref("app.update.url.manual", "https://www.mozilla.org/%LOCALE%/firefox/update/");
-pref("app.update.url.details", "https://www.mozilla.org/%LOCALE%/firefox/releases/");
-#else
-pref("app.update.interval", 28800);
-pref("app.update.url.manual", "https://www.mozilla.org/%LOCALE%/firefox/");
-pref("app.update.url.details", "https://www.mozilla.org/%LOCALE%/firefox/");
-#endif
-#endif
 
 
 pref("editor.singleLine.pasteNewlines", 2);
