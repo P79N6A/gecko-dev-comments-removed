@@ -4417,25 +4417,6 @@ JS::CanCompileOffThread(JSContext *cx, const CompileOptions &options)
     if (cx->runtime()->activeGCInAtomsZone())
         return false;
 
-    
-    
-    
-    static const char *blacklist[] = {
-#ifdef XP_MACOSX
-        "chrome://browser/content/places/editBookmarkOverlay.js",
-        "chrome://browser/content/nsContextMenu.js",
-        "chrome://browser/content/newtab/newTab.js",
-        "chrome://browser/content/places/browserPlacesViews.js",
-#endif
-        nullptr
-    };
-
-    const char *filename = options.filename;
-    for (const char **ptest = blacklist; *ptest; ptest++) {
-        if (!strcmp(*ptest, filename))
-            return false;
-    }
-
     return true;
 #else
     return false;
