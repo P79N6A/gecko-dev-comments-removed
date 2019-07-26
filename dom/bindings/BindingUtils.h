@@ -596,24 +596,45 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope,
 
 
 
-
-
 bool
-DoHandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope,
-                                  nsISupports* value, JS::Value* vp);
+NativeInterface2JSObjectAndThrowIfFailed(JSContext* aCx,
+                                         JSObject* aScope,
+                                         JS::Value* aRetval,
+                                         xpcObjectHelper& aHelper,
+                                         const nsIID* aIID,
+                                         bool aAllowNativeWrapper);
+
+inline nsWrapperCache*
+GetWrapperCache(nsWrapperCache* cache)
+{
+  return cache;
+}
+
+inline nsWrapperCache*
+GetWrapperCache(nsGlobalWindow* not_allowed);
+
+inline nsWrapperCache*
+GetWrapperCache(void* p)
+{
+  return NULL;
+}
 
 
 
 
 
 template <class T>
-bool
+MOZ_ALWAYS_INLINE bool
 HandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope, T* value,
                                 JS::Value* vp)
 {
-  nsCOMPtr<nsISupports> val;
-  CallQueryInterface(value, getter_AddRefs(val));
-  return DoHandleNewBindingWrappingFailure(cx, scope, val, vp);
+  if (JS_IsExceptionPending(cx)) {
+    return false;
+  }
+
+  qsObjectHelper helper(value, GetWrapperCache(value));
+  return NativeInterface2JSObjectAndThrowIfFailed(cx, scope, vp, helper,
+                                                  nullptr, true);
 }
 
 
@@ -699,21 +720,6 @@ FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values,
 
   *ok = EnumValueNotFound<InvalidValueFatal>(cx, chars, length, type);
   return -1;
-}
-
-inline nsWrapperCache*
-GetWrapperCache(nsWrapperCache* cache)
-{
-  return cache;
-}
-
-inline nsWrapperCache*
-GetWrapperCache(nsGlobalWindow* not_allowed);
-
-inline nsWrapperCache*
-GetWrapperCache(void* p)
-{
-  return NULL;
 }
 
 struct ParentObject {
