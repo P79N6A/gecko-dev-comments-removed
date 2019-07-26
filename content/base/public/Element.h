@@ -737,9 +737,6 @@ public:
                           ErrorResult& aError);
 
   
-  using nsINode::GetElementById;
-
-  
 
   
 

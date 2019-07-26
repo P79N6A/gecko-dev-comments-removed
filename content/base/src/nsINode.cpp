@@ -2334,59 +2334,6 @@ AddScopeElements(TreeMatchContext& aMatchContext,
   }
 }
 
-namespace {
-struct SelectorMatchInfo {
-  nsCSSSelectorList* const mSelectorList;
-  TreeMatchContext& mMatchContext;
-};
-}
-
-
-
-
-template<bool onlyFirstMatch, class T>
-inline static void
-FindMatchingElementsWithId(const nsAString& aId, nsINode* aRoot,
-                           SelectorMatchInfo* aMatchInfo,
-                           T& aList)
-{
-  MOZ_ASSERT(aRoot->IsInDoc(),
-             "Don't call me if the root is not in the document");
-  MOZ_ASSERT(aRoot->IsElement() || aRoot->IsNodeOfType(nsINode::eDOCUMENT),
-             "The optimization below to check ContentIsDescendantOf only for "
-             "elements depends on aRoot being either an element or a "
-             "document if it's in the document.  Note that document fragments "
-             "can't be IsInDoc(), so should never show up here.");
-
-  const nsSmallVoidArray* elements = aRoot->OwnerDoc()->GetAllElementsForId(aId);
-
-  if (!elements) {
-    
-    return;
-  }
-
-  
-  
-  for (int32_t i = 0; i < elements->Count(); ++i) {
-    Element *element = static_cast<Element*>(elements->ElementAt(i));
-    if (!aRoot->IsElement() ||
-        (element != aRoot &&
-           nsContentUtils::ContentIsDescendantOf(element, aRoot))) {
-      
-      
-      if (!aMatchInfo ||
-          nsCSSRuleProcessor::SelectorListMatches(element,
-                                                  aMatchInfo->mMatchContext,
-                                                  aMatchInfo->mSelectorList)) {
-        aList.AppendElement(element);
-        if (onlyFirstMatch) {
-          return;
-        }
-      }
-    }
-  }
-}
-
 
 
 
@@ -2394,6 +2341,7 @@ template<bool onlyFirstMatch, class T>
 inline static nsresult
 FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
 {
+
   nsIDocument* doc = aRoot->OwnerDoc();
   nsIDocument::SelectorCache& cache = doc->GetSelectorCache();
   nsCSSSelectorList* selectorList = nullptr;
@@ -2447,9 +2395,32 @@ FindMatchingElements(nsINode* aRoot, const nsAString& aSelector, T &aList)
       !selectorList->mNext &&
       selectorList->mSelectors->mIDList) {
     nsIAtom* id = selectorList->mSelectors->mIDList->mAtom;
-    SelectorMatchInfo info = { selectorList, matchingContext };
-    FindMatchingElementsWithId<onlyFirstMatch, T>(nsDependentAtomString(id),
-                                                  aRoot, &info, aList);
+    const nsSmallVoidArray* elements =
+      doc->GetAllElementsForId(nsDependentAtomString(id));
+
+    
+    
+    if (elements) {
+      for (int32_t i = 0; i < elements->Count(); ++i) {
+        Element *element = static_cast<Element*>(elements->ElementAt(i));
+        if (!aRoot->IsElement() ||
+            (element != aRoot &&
+             nsContentUtils::ContentIsDescendantOf(element, aRoot))) {
+          
+          
+          if (nsCSSRuleProcessor::SelectorListMatches(element, matchingContext,
+                                                      selectorList)) {
+            aList.AppendElement(element);
+            if (onlyFirstMatch) {
+              return NS_OK;
+            }
+          }
+        }
+      }
+    }
+
+    
+    
     return NS_OK;
   }
 
@@ -2517,29 +2488,6 @@ nsINode::QuerySelectorAll(const nsAString& aSelector, nsIDOMNodeList **aReturn)
   ErrorResult rv;
   *aReturn = nsINode::QuerySelectorAll(aSelector, rv).get();
   return rv.ErrorCode();
-}
-
-Element*
-nsINode::GetElementById(const nsAString& aId)
-{
-  MOZ_ASSERT(IsElement() || IsNodeOfType(eDOCUMENT_FRAGMENT),
-             "Bogus this object for GetElementById call");
-  if (IsInDoc()) {
-    ElementHolder holder;
-    FindMatchingElementsWithId<true>(aId, this, nullptr, holder);
-    return holder.mElement;
-  }
-
-  for (nsIContent* kid = GetFirstChild(); kid; kid = kid->GetNextNode(this)) {
-    if (!kid->IsElement()) {
-      continue;
-    }
-    nsIAtom* id = kid->AsElement()->GetID();
-    if (id && id->Equals(aId)) {
-      return kid->AsElement();
-    }
-  }
-  return nullptr;
 }
 
 JSObject*

@@ -40,8 +40,6 @@ public:
   using FragmentOrElement::GetFirstChild;
   using nsINode::QuerySelector;
   using nsINode::QuerySelectorAll;
-  
-  using nsINode::GetElementById;
 
   
   NS_DECL_ISUPPORTS_INHERITED

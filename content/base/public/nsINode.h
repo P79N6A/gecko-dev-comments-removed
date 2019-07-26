@@ -1076,12 +1076,6 @@ public:
   nsresult QuerySelector(const nsAString& aSelector, nsIDOMElement **aReturn);
   nsresult QuerySelectorAll(const nsAString& aSelector, nsIDOMNodeList **aReturn);
 
-protected:
-  
-  
-  mozilla::dom::Element* GetElementById(const nsAString& aId);
-
-public:
   
 
 
