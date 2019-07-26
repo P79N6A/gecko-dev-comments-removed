@@ -222,7 +222,7 @@ public class TabsTray extends ListView
         }
 
         private void removeTab(Tab tab) {
-            if (tab.isPrivate() == mIsPrivate) {
+            if (tab.isPrivate() == mIsPrivate && mTabs != null) {
                 mTabs.remove(tab);
                 notifyDataSetChanged(); 
             }
