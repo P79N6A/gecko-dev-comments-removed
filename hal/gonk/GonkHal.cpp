@@ -1061,6 +1061,83 @@ EnsureKernelLowMemKillerParamsSet()
   }
 }
 
+static void
+SetNiceForPid(int aPid, int aNice)
+{
+  errno = 0;
+  int origProcPriority = getpriority(PRIO_PROCESS, aPid);
+  if (errno) {
+    LOG("Unable to get nice for pid=%d; error %d.  SetNiceForPid bailing.",
+        aPid, errno);
+    return;
+  }
+
+  int rv = setpriority(PRIO_PROCESS, aPid, aNice);
+  if (rv) {
+    LOG("Unable to set nice for pid=%d; error %d.  SetNiceForPid bailing.",
+        aPid, errno);
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+
+  DIR* tasksDir = opendir(nsPrintfCString("/proc/%d/task/", aPid).get());
+  if (!tasksDir) {
+    LOG("Unable to open /proc/%d/task.  SetNiceForPid bailing.", aPid);
+    return;
+  }
+
+  
+
+  while (struct dirent* de = readdir(tasksDir)) {
+    char* endptr = nullptr;
+    long tidlong = strtol(de->d_name, &endptr,  10);
+    if (*endptr || tidlong < 0 || tidlong > INT32_MAX || tidlong == aPid) {
+      
+      
+      
+      
+      
+      
+      continue;
+    }
+
+    int tid = static_cast<int>(tidlong);
+
+    errno = 0;
+    
+    int origtaskpriority = getpriority(PRIO_PROCESS, tid);
+    if (errno) {
+      LOG("Unable to get nice for tid=%d (pid=%d); error %d.  This isn't "
+          "necessarily a problem; it could be a benign race condition.",
+          tid, aPid, errno);
+      continue;
+    }
+
+    int newtaskpriority =
+      std::max(origtaskpriority + aNice - origProcPriority, origProcPriority);
+    rv = setpriority(PRIO_PROCESS, tid, newtaskpriority);
+
+    if (rv) {
+      LOG("Unable to set nice for tid=%d (pid=%d); error %d.  This isn't "
+          "necessarily a problem; it could be a benign race condition.",
+          tid, aPid, errno);
+      continue;
+    }
+  }
+
+  LOG("Changed nice for pid %d from %d to %d.",
+      aPid, origProcPriority, aNice);
+
+  closedir(tasksDir);
+}
+
 void
 SetProcessPriority(int aPid, ProcessPriority aPriority)
 {
@@ -1141,10 +1218,7 @@ SetProcessPriority(int aPid, ProcessPriority aPriority)
   if (NS_SUCCEEDED(rv)) {
     HAL_LOG(("Setting nice for pid %d to %d", aPid, nice));
 
-    int success = setpriority(PRIO_PROCESS, aPid, nice);
-    if (success != 0) {
-      HAL_LOG(("Failed to set nice for pid %d to %d", aPid, nice));
-    }
+    SetNiceForPid(aPid, nice);
   }
 }
 
