@@ -169,7 +169,7 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
 
       nsIntRegion intersectingRegion;
       bool retainTile = false;
-      if (aNewResolution != aOldResolution) {
+      if (fabs(aNewResolution.width - aOldResolution.width) > 1e-6) {
         
         
         

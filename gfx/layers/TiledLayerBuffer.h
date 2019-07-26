@@ -246,7 +246,7 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   
   
   int tileX = 0;
-  int tileY;
+  int tileY = 0;
   
   for (int32_t x = newBound.x; x < newBound.XMost(); tileX++) {
     
