@@ -84,6 +84,7 @@ public:
                          const InputContextAction* aAction);
     InputContext GetInputContext();
     nsresult CancelIMEComposition(nsWindow* aCaller);
+    void OnUpdateComposition();
 
     
     
@@ -136,6 +137,9 @@ protected:
     
     
     GdkEventKey* mProcessingKeyEvent;
+
+    
+    uint32_t mCompositionTargetOffset;
 
     
     enum eCompositionState {
