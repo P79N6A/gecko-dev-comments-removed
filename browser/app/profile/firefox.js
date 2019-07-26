@@ -144,16 +144,7 @@ pref("app.update.auto", true);
 
 
 
-
-pref("app.update.mode", 0);
-
-#ifdef XP_WIN
-#ifdef MOZ_METRO
-
-
-pref("app.update.metro.enabled", true);
-#endif
-#endif
+pref("app.update.mode", 1);
 
 
 pref("app.update.silent", false);
@@ -1076,7 +1067,7 @@ pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-autoconnect", false);
 pref("devtools.debugger.remote-connection-retries", 3);
 pref("devtools.debugger.remote-timeout", 20000);
-pref("devtools.debugger.source-maps-enabled", false);
+pref("devtools.debugger.source-maps-enabled", true);
 
 
 pref("devtools.debugger.ui.win-x", 0);
