@@ -154,6 +154,8 @@ var BrowserUI = {
         Util.dumpLn("Exception in delay load module:", ex.message);
       }
 
+      BrowserUI._pullDesktopControlledPrefs();
+
       
       if (BrowserUI.startupCrashCheck()) {
         Browser.selectedTab = BrowserUI.newOrSelectTab("about:crash");
@@ -242,6 +244,37 @@ var BrowserUI = {
     } catch (ex) {}
 
     return uri.spec;
+  },
+
+  
+
+
+
+  _pullDesktopControlledPrefs: function() {
+    function pullDesktopControlledPrefType(prefType, prefFunc) {
+      try {
+        registry.create(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                      "Software\\Mozilla\\Firefox\\Metro\\Prefs\\" + prefType,
+                      Ci.nsIWindowsRegKey.ACCESS_ALL);
+        for (let i = 0; i < registry.valueCount; i++) {
+          let prefName = registry.getValueName(i);
+          let prefValue = registry.readStringValue(prefName);
+          if (prefType == Ci.nsIPrefBranch.PREF_BOOL) {
+            prefValue = prefValue == "true";
+          }
+          Services.prefs[prefFunc](prefName, prefValue);
+        }
+      } catch (ex) {
+        Util.dumpLn("Could not pull for prefType " + prefType + ": " + ex);
+      } finally {
+        registry.close();
+      }
+    }
+    let registry = Cc["@mozilla.org/windows-registry-key;1"].
+                   createInstance(Ci.nsIWindowsRegKey);
+    pullDesktopControlledPrefType(Ci.nsIPrefBranch.PREF_INT, "setIntPref");
+    pullDesktopControlledPrefType(Ci.nsIPrefBranch.PREF_BOOL, "setBoolPref");
+    pullDesktopControlledPrefType(Ci.nsIPrefBranch.PREF_STRING, "setCharPref");
   },
 
   
