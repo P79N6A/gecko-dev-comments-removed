@@ -316,6 +316,32 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
+void
+TabChild::InitializeRootMetrics()
+{
+  
+  
+  
+  mLastRootMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
+  mLastRootMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
+  mLastRootMetrics.mZoom = mLastRootMetrics.CalculateIntrinsicScale();
+  mLastRootMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
+  
+  
+  mLastRootMetrics.mCumulativeResolution =
+    mLastRootMetrics.mZoom / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+  
+  
+  mLastRootMetrics.mResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
+  mLastRootMetrics.mScrollOffset = CSSPoint(0, 0);
+}
+
+bool
+TabChild::HasValidInnerSize()
+{
+  return (mInnerSize.width != 0) && (mInnerSize.height != 0);
+}
+
 NS_IMETHODIMP
 TabChild::Observe(nsISupports *aSubject,
                   const char *aTopic,
@@ -355,23 +381,13 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        mLastRootMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
-        mLastRootMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
-        mLastRootMetrics.mZoom = mLastRootMetrics.CalculateIntrinsicScale();
-        mLastRootMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
         
-        
-        mLastRootMetrics.mCumulativeResolution =
-          mLastRootMetrics.mZoom / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
-        
-        
-        mLastRootMetrics.mResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
-        mLastRootMetrics.mScrollOffset = CSSPoint(0, 0);
-
-        utils->SetResolution(mLastRootMetrics.mResolution.scale,
-                             mLastRootMetrics.mResolution.scale);
-
-        HandlePossibleViewportChange();
+        if (HasValidInnerSize()) {
+          InitializeRootMetrics();
+          utils->SetResolution(mLastRootMetrics.mResolution.scale,
+                               mLastRootMetrics.mResolution.scale);
+          HandlePossibleViewportChange();
+        }
       }
     }
   }
@@ -1458,6 +1474,9 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const 
     mOuterRect.width = rect.width;
     mOuterRect.height = rect.height;
 
+    bool initialSizing = !HasValidInnerSize()
+                      && (size.width != 0 && size.height != 0);
+
     mOrientation = orientation;
     mInnerSize = ScreenIntSize::FromUnknownSize(
       gfx::IntSize(size.width, size.height));
@@ -1467,6 +1486,14 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const 
     nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(mWebNav);
     baseWin->SetPositionAndSize(0, 0, size.width, size.height,
                                 true);
+
+    if (initialSizing && mContentDocumentIsDisplayed) {
+      
+      
+      
+      
+      InitializeRootMetrics();
+    }
 
     HandlePossibleViewportChange();
 

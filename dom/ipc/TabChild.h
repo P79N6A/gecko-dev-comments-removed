@@ -411,6 +411,9 @@ private:
 
     nsresult Init();
 
+    void InitializeRootMetrics();
+    bool HasValidInnerSize();
+
     
     
     
