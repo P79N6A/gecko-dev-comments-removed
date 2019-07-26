@@ -414,6 +414,8 @@ const PanelUI = {
                                      " -- " + e.stack);
         sbWidth.value = 0;
       }
+      
+      sbWidth.value = Math.max(sbWidth.value, 10);
       deferred.resolve(sbWidth.value);
       iframe.remove();
     });
