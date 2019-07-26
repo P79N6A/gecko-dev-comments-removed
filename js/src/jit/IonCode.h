@@ -196,7 +196,7 @@ struct IonScript
     
     
     
-    bool hasUncompiledCallTarget_;
+    mozilla::Atomic<bool, mozilla::Relaxed> hasUncompiledCallTarget_;
 
     
     bool hasSPSInstrumentation_;
