@@ -701,8 +701,7 @@ InitGlobals(nsPresContext* aPresContext)
   
   
   if (!gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("MathJax_Main")) ||
-      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("STIXNonUnicode")) ||
-      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("STIXSizeOneSym")) ||
+      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("STIXGeneral")) ||
       !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("Standard Symbols L"))
 #ifdef XP_WIN
       || !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("Symbol"))
