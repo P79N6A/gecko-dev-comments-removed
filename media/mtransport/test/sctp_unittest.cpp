@@ -197,18 +197,28 @@ class TransportTestPeer : public sigslot::has_slots<> {
   int received() const { return received_; }
   bool connected() const { return connected_; }
 
-  TransportResult SendPacket_s(const unsigned char* data, size_t len) {
-    return flow_->SendPacket(data, len);
+  static TransportResult SendPacket_s(const unsigned char* data, size_t len,
+                                      const mozilla::RefPtr<TransportFlow>& flow) {
+    TransportResult res = flow->SendPacket(data, len);
+    delete data; 
+    return res;
   }
 
   TransportResult SendPacket(const unsigned char* data, size_t len) {
-    TransportResult res;
+    unsigned char *buffer = new unsigned char[len];
+    memcpy(buffer, data, len);
 
-    test_utils->sts_target()->Dispatch(WrapRunnableRet(
-        this, &TransportTestPeer::SendPacket_s, data, len, &res),
-                                       NS_DISPATCH_SYNC);
+    
+    
+    
+    
+    
+    
+    RUN_ON_THREAD(test_utils->sts_target(), WrapRunnableNM(
+        &TransportTestPeer::SendPacket_s, buffer, len, flow_),
+                  NS_DISPATCH_NORMAL);
 
-    return res;
+    return 0;
   }
 
   void PacketReceived(TransportFlow * flow, const unsigned char* data,
