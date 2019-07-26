@@ -240,9 +240,11 @@ FocusManager::ProcessDOMFocus(nsINode* aTarget)
 
   DocAccessible* document =
     GetAccService()->GetDocAccessible(aTarget->OwnerDoc());
+  if (!document)
+    return;
 
   Accessible* target = document->GetAccessibleEvenIfNotInMapOrContainer(aTarget);
-  if (target && document) {
+  if (target) {
     
     
     nsINode* focusedNode = FocusedDOMNode();
