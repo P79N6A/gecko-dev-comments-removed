@@ -94,9 +94,7 @@ public:
     static void RunAfterPreallocatedProcessReady(nsIRunnable* aRequest);
 
     static already_AddRefed<ContentParent>
-    GetNewOrUsed(bool aForBrowserElement = false,
-                 hal::ProcessPriority aPriority =
-                   hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND);
+    GetNewOrUsed(bool aForBrowserElement = false);
 
     
 
@@ -333,6 +331,10 @@ private:
 
 
     void ShutDownProcess(bool aCloseWithError);
+
+    
+    
+    void ShutDownMessageManager();
 
     PCompositorParent*
     AllocPCompositorParent(mozilla::ipc::Transport* aTransport,

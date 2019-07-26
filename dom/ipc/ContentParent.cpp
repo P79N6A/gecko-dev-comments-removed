@@ -673,7 +673,7 @@ ContentParent::JoinAllSubprocesses()
 }
 
  already_AddRefed<ContentParent>
-ContentParent::GetNewOrUsed(bool aForBrowserElement, ProcessPriority aPriority)
+ContentParent::GetNewOrUsed(bool aForBrowserElement)
 {
     if (!sNonAppContentParents)
         sNonAppContentParents = new nsTArray<ContentParent*>();
@@ -704,7 +704,7 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement, ProcessPriority aPriority)
         p = new ContentParent( nullptr,
                               aForBrowserElement,
                                false,
-                              aPriority);
+                              PROCESS_PRIORITY_FOREGROUND);
         p->Init();
     }
 
@@ -723,7 +723,7 @@ ContentParent::GetInitialProcessPriority(Element* aFrameElement)
     }
 
     if (aFrameElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozapptype,
-                                   NS_LITERAL_STRING("inputmethod"), eCaseMatters)) {
+                                   NS_LITERAL_STRING("keyboard"), eCaseMatters)) {
         return PROCESS_PRIORITY_FOREGROUND_KEYBOARD;
     } else if (!aFrameElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozapptype,
                                            NS_LITERAL_STRING("critical"), eCaseMatters)) {
@@ -767,13 +767,8 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         return nullptr;
     }
 
-    ProcessPriority initialPriority = GetInitialProcessPriority(aFrameElement);
-
     if (aContext.IsBrowserElement() || !aContext.HasOwnApp()) {
-        nsRefPtr<ContentParent> cp = GetNewOrUsed(aContext.IsBrowserElement(),
-                                                  initialPriority);
-
-        if (cp) {
+        if (nsRefPtr<ContentParent> cp = GetNewOrUsed(aContext.IsBrowserElement())) {
             uint32_t chromeFlags = 0;
 
             
@@ -824,6 +819,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         return nullptr;
     }
 
+    ProcessPriority initialPriority = GetInitialProcessPriority(aFrameElement);
     nsRefPtr<ContentParent> p = sAppContentParents->Get(manifestURL);
 
     if (!p && Preferences::GetBool("dom.ipc.reuse_parent_app")) {
@@ -1176,10 +1172,23 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
     
     
     
-    if (mMessageManager) {
-      mMessageManager->Disconnect();
-      mMessageManager = nullptr;
-    }
+    ShutDownMessageManager();
+}
+
+void
+ContentParent::ShutDownMessageManager()
+{
+  if (!mMessageManager) {
+    return;
+  }
+
+  mMessageManager->ReceiveMessage(
+            static_cast<nsIContentFrameMessageManager*>(mMessageManager.get()),
+            CHILD_PROCESS_SHUTDOWN_MESSAGE, false,
+            nullptr, nullptr, nullptr, nullptr);
+
+  mMessageManager->Disconnect();
+  mMessageManager = nullptr;
 }
 
 void
@@ -1305,12 +1314,8 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         mForceKillTask = nullptr;
     }
 
-    nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
-    if (ppm) {
-      ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
-                          CHILD_PROCESS_SHUTDOWN_MESSAGE, false,
-                          nullptr, nullptr, nullptr, nullptr);
-    }
+    ShutDownMessageManager();
+
     nsRefPtr<ContentParent> kungFuDeathGrip(this);
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
@@ -1319,10 +1324,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
             obs->RemoveObserver(static_cast<nsIObserver*>(this),
                                 sObserverTopics[i]);
         }
-    }
-
-    if (ppm) {
-      ppm->Disconnect();
     }
 
     
