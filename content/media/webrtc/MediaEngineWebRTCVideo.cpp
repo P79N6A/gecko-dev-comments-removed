@@ -124,8 +124,11 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   if (delta > 0) {
     
     segment.AppendFrame(image ? image.forget() : nullptr, delta, gfxIntSize(mWidth, mHeight));
-    aSource->AppendToTrack(aID, &(segment));
-    aLastEndTime = target;
+    
+    
+    if (aSource->AppendToTrack(aID, &(segment))) {
+      aLastEndTime = target;
+    }
   }
 }
 
