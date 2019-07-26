@@ -55,6 +55,11 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
     return 0;
   }
 
+  MOZ_ASSERT(mWidth*mHeight*3/2 == size);
+  if (mWidth*mHeight*3/2 != size) {
+    return 0;
+  }
+
   
   ImageFormat format = PLANAR_YCBCR;
 
@@ -119,11 +124,24 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   TrackTicks delta = target - aLastEndTime;
   LOGFRAME(("NotifyPull, desired = %ld, target = %ld, delta = %ld %s", (int64_t) aDesiredTime, 
             (int64_t) target, (int64_t) delta, image ? "" : "<null>"));
+
+  
+  
+  
+  
+  
+  
+  
+
   
   
   if (delta > 0) {
     
-    segment.AppendFrame(image ? image.forget() : nullptr, delta, gfxIntSize(mWidth, mHeight));
+    if (image) {
+      segment.AppendFrame(image.forget(), delta, gfxIntSize(mWidth, mHeight));
+    } else {
+      segment.AppendFrame(nullptr, delta, gfxIntSize(0,0));
+    }
     
     
     if (aSource->AppendToTrack(aID, &(segment))) {
@@ -133,21 +151,19 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 }
 
 void
-MediaEngineWebRTCVideoSource::ChooseCapability(uint32_t aWidth, uint32_t aHeight, uint32_t aMinFPS)
+MediaEngineWebRTCVideoSource::ChooseCapability(const MediaEnginePrefs &aPrefs)
 {
   int num = mViECapture->NumberOfCapabilities(mUniqueId, KMaxUniqueIdLength);
 
-  NS_WARN_IF_FALSE(!mCapabilityChosen,"Shouldn't select capability of a device twice");
+  LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps", aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
 
   if (num <= 0) {
     
-    mCapability.width  = mOpts.mWidth  = aWidth;
-    mCapability.height = mOpts.mHeight = aHeight;
-    mCapability.maxFPS = mOpts.mMaxFPS = DEFAULT_VIDEO_FPS;
-    mOpts.codecType = kVideoCodecI420;
+    mCapability.width  = aPrefs.mWidth;
+    mCapability.height = aPrefs.mHeight;
+    mCapability.maxFPS = MediaEngine::DEFAULT_VIDEO_FPS;
 
     
-    mCapabilityChosen = true;
     return;
   }
 
@@ -160,31 +176,26 @@ MediaEngineWebRTCVideoSource::ChooseCapability(uint32_t aWidth, uint32_t aHeight
     mViECapture->GetCaptureCapability(mUniqueId, KMaxUniqueIdLength, i, cap);
     if (higher) {
       if (i == 0 ||
-          (mOpts.mWidth > cap.width && mOpts.mHeight > cap.height)) {
-        mOpts.mWidth = cap.width;
-        mOpts.mHeight = cap.height;
-        mOpts.mMaxFPS = cap.maxFPS;
+          (mCapability.width > cap.width && mCapability.height > cap.height)) {
+        
         mCapability = cap;
         
       }
-      if (cap.width <= aWidth && cap.height <= aHeight) {
+      if (cap.width <= (uint32_t) aPrefs.mWidth && cap.height <= (uint32_t) aPrefs.mHeight) {
         higher = false;
       }
     } else {
-      if (cap.width > aWidth || cap.height > aHeight || cap.maxFPS < aMinFPS) {
+      if (cap.width > (uint32_t) aPrefs.mWidth || cap.height > (uint32_t) aPrefs.mHeight ||
+          cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
         continue;
       }
-      if (mOpts.mWidth < cap.width && mOpts.mHeight < cap.height) {
-        mOpts.mWidth = cap.width;
-        mOpts.mHeight = cap.height;
-        mOpts.mMaxFPS = cap.maxFPS;
+      if (mCapability.width < cap.width && mCapability.height < cap.height) {
         mCapability = cap;
         
       }
     }
   }
-  LOG(("chose cap %dx%d @%dfps", mOpts.mWidth, mOpts.mHeight, mOpts.mMaxFPS));
-  mCapabilityChosen = true;
+  LOG(("chose cap %dx%d @%dfps", mCapability.width, mCapability.height, mCapability.maxFPS));
 }
 
 void
@@ -202,15 +213,15 @@ MediaEngineWebRTCVideoSource::GetUUID(nsAString& aUUID)
 }
 
 nsresult
-MediaEngineWebRTCVideoSource::Allocate()
+MediaEngineWebRTCVideoSource::Allocate(const MediaEnginePrefs &aPrefs)
 {
   LOG((__FUNCTION__));
-  if (!mCapabilityChosen) {
-    
-    ChooseCapability(mWidth, mHeight, mMinFps);
-  }
-
   if (mState == kReleased && mInitDone) {
+    
+    
+
+    ChooseCapability(aPrefs);
+
     if (mViECapture->AllocateCaptureDevice(mUniqueId, KMaxUniqueIdLength, mCaptureIndex)) {
       return NS_ERROR_FAILURE;
     }
@@ -260,15 +271,6 @@ MediaEngineWebRTCVideoSource::Deallocate()
     LOG(("Video device %d deallocated but still in use", mCaptureIndex));
   }
   return NS_OK;
-}
-
-const MediaEngineVideoOptions*
-MediaEngineWebRTCVideoSource::GetOptions()
-{
-  if (!mCapabilityChosen) {
-    ChooseCapability(mWidth, mHeight, mMinFps);
-  }
-  return &mOpts;
 }
 
 nsresult
@@ -445,7 +447,9 @@ MediaEngineWebRTCVideoSource::Init()
   mDeviceName[0] = '\0'; 
   mUniqueId[0] = '\0';
 
-  (void) mFps; 
+  
+  (void) mFps;
+  (void) mMinFps;
 
   LOG((__FUNCTION__));
   if (mVideoEngine == NULL) {

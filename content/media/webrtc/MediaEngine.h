@@ -20,6 +20,7 @@ namespace mozilla {
 
 class MediaEngineVideoSource;
 class MediaEngineAudioSource;
+struct MediaEnginePrefs;
 
 enum MediaEngineState {
   kAllocated,
@@ -38,6 +39,11 @@ class MediaEngine
 {
 public:
   virtual ~MediaEngine() {}
+
+  static const int DEFAULT_VIDEO_FPS = 30;
+  static const int DEFAULT_VIDEO_MIN_FPS = 10;
+  static const int DEFAULT_VIDEO_WIDTH = 640;
+  static const int DEFAULT_VIDEO_HEIGHT = 480;
 
   
 
@@ -63,7 +69,7 @@ public:
   virtual void GetUUID(nsAString&) = 0;
 
   
-  virtual nsresult Allocate() = 0;
+  virtual nsresult Allocate(const MediaEnginePrefs &aPrefs) = 0;
 
   
   virtual nsresult Deallocate() = 0;
@@ -113,27 +119,17 @@ protected:
 
 
 
-enum MediaEngineVideoCodecType {
-  kVideoCodecH263,
-  kVideoCodecVP8,
-  kVideoCodecI420
-};
-
-struct MediaEngineVideoOptions {
-  uint32_t mWidth;
-  uint32_t mHeight;
-  uint32_t mMaxFPS;
-  MediaEngineVideoCodecType codecType;
+struct MediaEnginePrefs {
+  int32_t mWidth;
+  int32_t mHeight;
+  int32_t mFPS;
+  int32_t mMinFPS;
 };
 
 class MediaEngineVideoSource : public MediaEngineSource
 {
 public:
   virtual ~MediaEngineVideoSource() {}
-
-  
-
-  virtual const MediaEngineVideoOptions *GetOptions() = 0;
 };
 
 
