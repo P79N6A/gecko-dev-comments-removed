@@ -270,7 +270,8 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public PRCListStr,
                        public nsIDOMWindowPerformance,
                        public nsITouchEventReceiver,
-                       public nsIInlineEventHandlers
+                       public nsIInlineEventHandlers,
+                       public nsIWindowCrypto
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -334,6 +335,9 @@ public:
 
   
   NS_DECL_NSIINLINEEVENTHANDLERS
+
+  
+  NS_DECL_NSIWINDOWCRYPTO
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
@@ -824,6 +828,8 @@ protected:
   static void MakeScriptDialogTitle(nsAString &aOutTitle);
 
   bool CanMoveResizeWindows();
+
+  bool     GetBlurSuppression();
 
   
   
