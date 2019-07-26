@@ -13,7 +13,9 @@
 
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/Preferences.h"
+#include "nsIDOMCSSConditionRule.h"
 #include "nsIDOMCSSFontFaceRule.h"
+#include "nsIDOMCSSGroupingRule.h"
 #include "nsIDOMCSSMediaRule.h"
 #include "nsIDOMCSSMozDocumentRule.h"
 #include "nsIDOMCSSSupportsRule.h"
@@ -70,6 +72,12 @@ public:
   NS_DECL_NSIDOMCSSRULE
 
   
+  NS_DECL_NSIDOMCSSGROUPINGRULE
+
+  
+  NS_DECL_NSIDOMCSSCONDITIONRULE
+
+  
   NS_DECL_NSIDOMCSSMEDIARULE
 
   
@@ -83,6 +91,8 @@ public:
     SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
+  void AppendConditionText(nsAString& aOutput);
+
   nsRefPtr<nsMediaList> mMedia;
 };
 
@@ -119,6 +129,12 @@ public:
   NS_DECL_NSIDOMCSSRULE
 
   
+  NS_DECL_NSIDOMCSSGROUPINGRULE
+
+  
+  NS_DECL_NSIDOMCSSCONDITIONRULE
+
+  
   NS_DECL_NSIDOMCSSMOZDOCUMENTRULE
 
   
@@ -153,6 +169,8 @@ public:
     SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 protected:
+  void AppendConditionText(nsAString& aOutput);
+
   nsAutoPtr<URL> mURLs; 
 };
 
@@ -536,6 +554,12 @@ public:
 
   
   NS_DECL_NSIDOMCSSRULE
+
+  
+  NS_DECL_NSIDOMCSSGROUPINGRULE
+
+  
+  NS_DECL_NSIDOMCSSCONDITIONRULE
 
   
   NS_DECL_NSIDOMCSSSUPPORTSRULE
