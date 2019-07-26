@@ -463,19 +463,21 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
 
-  if (constructResolutionItem) {
-    nsDisplayResolution* resolutionItem =
-      new (aBuilder) nsDisplayResolution(aBuilder, subdocRootFrame, &childItems,
-                                         nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
-    childItems.AppendToTop(resolutionItem);
-    needsOwnLayer = false;
-  }
   if (constructZoomItem) {
     nsDisplayZoom* zoomItem =
       new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
                                    subdocAPD, parentAPD,
                                    nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
     childItems.AppendToTop(zoomItem);
+    needsOwnLayer = false;
+  }
+  
+  
+  if (constructResolutionItem) {
+    nsDisplayResolution* resolutionItem =
+      new (aBuilder) nsDisplayResolution(aBuilder, subdocRootFrame, &childItems,
+                                         nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS);
+    childItems.AppendToTop(resolutionItem);
     needsOwnLayer = false;
   }
   if (needsOwnLayer) {
