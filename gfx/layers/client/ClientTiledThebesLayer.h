@@ -70,18 +70,6 @@ private:
   }
 
   
-  virtual void
-  PaintBuffer(gfxContext* aContext,
-              const nsIntRegion& aRegionToDraw,
-              const nsIntRegion& aExtendedRegionToDraw,
-              const nsIntRegion& aRegionToInvalidate,
-              bool aDidSelfCopy,
-              LayerManager::DrawThebesLayerCallback aCallback,
-              void* aCallbackData)
-  { NS_RUNTIMEABORT("Not reached."); }
-
-
-  
 
 
 

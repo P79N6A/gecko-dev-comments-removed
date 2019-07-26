@@ -828,12 +828,14 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
   
   
   
-  gfxUtils::ClipToRegion(result.mContext, result.mRegionToDraw);
+  result.mClip = CLIP_DRAW;
 
   if (mTexImage->GetContentType() == GFX_CONTENT_COLOR_ALPHA) {
+    result.mContext->Save();
+    gfxUtils::ClipToRegion(result.mContext, result.mRegionToDraw);
     result.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
     result.mContext->Paint();
-    result.mContext->SetOperator(gfxContext::OPERATOR_OVER);
+    result.mContext->Restore();
   }
 
   return result;
@@ -931,7 +933,7 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     } else {
       void* callbackData = mOGLManager->GetThebesLayerCallbackData();
       SetAntialiasingFlags(this, state.mContext);
-      callback(this, state.mContext, state.mRegionToDraw,
+      callback(this, state.mContext, state.mRegionToDraw, state.mClip,
                state.mRegionToInvalidate, callbackData);
       
       

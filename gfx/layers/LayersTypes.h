@@ -58,6 +58,12 @@ enum BufferMode {
   BUFFER_BUFFERED
 };
 
+enum DrawRegionClip {
+  CLIP_DRAW,
+  CLIP_DRAW_SNAPPED,
+  CLIP_NONE,
+};
+
 
 
 

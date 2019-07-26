@@ -200,21 +200,6 @@ public:
   void* GetThebesLayerCallbackData() const
   { return mThebesLayerCallbackData; }
 
-  
-
-
-  void CallThebesLayerDrawCallback(ThebesLayer* aLayer,
-                                   gfxContext* aContext,
-                                   const nsIntRegion& aRegionToDraw)
-  {
-    NS_ASSERTION(mThebesLayerCallback,
-                 "CallThebesLayerDrawCallback without callback!");
-    mThebesLayerCallback(aLayer, aContext,
-                         aRegionToDraw, nsIntRegion(),
-                         mThebesLayerCallbackData);
-  }
-
-
   GLenum FBOTextureTarget() { return mFBOTextureTarget; }
 
   

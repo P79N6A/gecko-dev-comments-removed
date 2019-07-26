@@ -21,6 +21,7 @@
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
 #include "nsTraceRefcnt.h"              
+#include "LayersTypes.h"
 
 struct gfxMatrix;
 struct nsIntSize;
@@ -218,6 +219,7 @@ public:
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
     bool mDidSelfCopy;
+    DrawRegionClip mClip;
   };
 
   enum {
