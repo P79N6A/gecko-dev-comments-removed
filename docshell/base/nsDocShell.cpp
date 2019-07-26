@@ -6425,11 +6425,14 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
         do_QueryInterface(aNewChannel);
     if (appCacheChannel) {
-        
-        if (GeckoProcessType_Default != XRE_GetProcessType())
+        if (GeckoProcessType_Default != XRE_GetProcessType()) {
+            
             appCacheChannel->SetChooseApplicationCache(true);
-        else
-            appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(newURI));
+        } else {
+            appCacheChannel->SetChooseApplicationCache(
+                                NS_ShouldCheckAppCache(newURI,
+                                                       mInPrivateBrowsing));
+        }
     }
 
     if (!(aRedirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) && 
@@ -9169,26 +9172,6 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
     return nullptr;
 }
 
-bool
-nsDocShell::ShouldCheckAppCache(nsIURI *aURI)
-{
-    if (mInPrivateBrowsing) {
-        return false;
-    }
-
-    nsCOMPtr<nsIOfflineCacheUpdateService> offlineService =
-        do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID);
-    if (!offlineService) {
-        return false;
-    }
-
-    bool allowed;
-    nsresult rv = offlineService->OfflineAppAllowedForURI(aURI,
-                                                          nullptr,
-                                                          &allowed);
-    return NS_SUCCEEDED(rv) && allowed;
-}
-
 nsresult
 nsDocShell::DoURILoad(nsIURI * aURI,
                       nsIURI * aReferrerURI,
@@ -9276,12 +9259,13 @@ nsDocShell::DoURILoad(nsIURI * aURI,
 
         
         
-        
-        if (GeckoProcessType_Default != XRE_GetProcessType())
+        if (GeckoProcessType_Default != XRE_GetProcessType()) {
+            
             appCacheChannel->SetChooseApplicationCache(true);
-        else
+        } else {
             appCacheChannel->SetChooseApplicationCache(
-                ShouldCheckAppCache(aURI));
+                NS_ShouldCheckAppCache(aURI, mInPrivateBrowsing));
+        }
     }
 
     

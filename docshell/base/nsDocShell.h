@@ -284,10 +284,6 @@ protected:
 
     
     
-    bool ShouldCheckAppCache(nsIURI * aURI);
-
-    
-    
     
     virtual nsresult DoURILoad(nsIURI * aURI,
                                nsIURI * aReferrer,

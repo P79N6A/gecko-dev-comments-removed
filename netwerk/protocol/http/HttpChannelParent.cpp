@@ -225,16 +225,10 @@ HttpChannelParent::RecvAsyncOpen(const URIParams&           aURI,
     }
 
     if (setChooseApplicationCache) {
-      nsCOMPtr<nsIOfflineCacheUpdateService> offlineUpdateService =
-        do_GetService("@mozilla.org/offlinecacheupdate-service;1", &rv);
-      if (NS_SUCCEEDED(rv)) {
-        rv = offlineUpdateService->OfflineAppAllowedForURI(uri,
-                                                           nullptr,
-                                                           &setChooseApplicationCache);
-
-        if (setChooseApplicationCache && NS_SUCCEEDED(rv))
-          appCacheChan->SetChooseApplicationCache(true);
-      }
+      
+      
+      appCacheChan->SetChooseApplicationCache(
+            NS_ShouldCheckAppCache(uri, NS_UsePrivateBrowsing(mChannel)));
     }
   }
 
