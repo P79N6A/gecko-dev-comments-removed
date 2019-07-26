@@ -517,8 +517,6 @@ EnsureCanEnterIon(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *frame
         *jitcodePtr = ion->method()->raw() + ion->osrEntryOffset();
     }
 
-    script->resetUseCount();
-
     return true;
 }
 
@@ -643,13 +641,8 @@ DoUseCountFallback(JSContext *cx, ICUseCount_Fallback *stub, BaselineFrame *fram
         script->resetUseCount();
         return true;
     }
-    if (script->isIonCompilingOffThread()) {
-        
-        
-        
-        script->resetUseCount();
-        return true;
-    }
+
+    JS_ASSERT(!script->isIonCompilingOffThread());
 
     
     
