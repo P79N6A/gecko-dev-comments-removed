@@ -109,7 +109,7 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
             gc::Mark(tracer, &key, "Debugger WeakMap key");
             if (key != e.front().key)
                 e.rekeyFront(key);
-            key.unsafeSet(NULL);
+            key.unsafeSet(nullptr);
         }
     }
 
@@ -562,7 +562,7 @@ class BreakpointSite {
     void inc(FreeOp *fop);
     void dec(FreeOp *fop);
     void setTrap(FreeOp *fop, JSTrapHandler handler, const Value &closure);
-    void clearTrap(FreeOp *fop, JSTrapHandler *handlerp = NULL, Value *closurep = NULL);
+    void clearTrap(FreeOp *fop, JSTrapHandler *handlerp = nullptr, Value *closurep = nullptr);
     void destroyIfEmpty(FreeOp *fop);
 };
 
@@ -612,7 +612,7 @@ Breakpoint *
 Debugger::firstBreakpoint() const
 {
     if (JS_CLIST_IS_EMPTY(&breakpoints))
-        return NULL;
+        return nullptr;
     return Breakpoint::fromDebuggerLinks(JS_NEXT_LINK(&breakpoints));
 }
 

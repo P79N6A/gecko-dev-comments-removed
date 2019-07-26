@@ -46,7 +46,7 @@ class DateObject : public JSObject
     }
 
     
-    void setUTCTime(double t, Value *vp = NULL);
+    void setUTCTime(double t, Value *vp = nullptr);
 
     inline double cachedLocalTime(DateTimeInfo *dtInfo);
 
