@@ -147,7 +147,13 @@ function assertTooltipShownOn(tooltip, element, cb) {
     tooltip.panel.removeEventListener("popupshown", shown, true);
     cb();
   }, true);
-  tooltip._showOnHover(element);
+
+  
+  
+  
+  element.ownerDocument.defaultView.requestAnimationFrame(() => {
+      executeSoon(() => { tooltip._showOnHover(element); });
+    });
 }
 
 function assertTooltipNotShownOn(tooltip, element, cb) {
