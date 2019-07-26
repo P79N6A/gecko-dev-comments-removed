@@ -11,6 +11,7 @@
 #include "DocAccessible.h"
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
+#include "Relation.h"
 #include "uiaRawElmProvider.h"
 
 #include "mozilla/Preferences.h"
@@ -60,33 +61,12 @@ ServiceProvider::QueryService(REFGUID aGuidService, REFIID aIID,
     if (aIID != IID_IAccessible)
       return E_NOINTERFACE;
 
-    nsCOMPtr<nsIDocShell> docShell =
-      nsCoreUtils::GetDocShellFor(mAccessible->GetNode());
-    if (!docShell)
-      return E_UNEXPECTED;
-
-    
-    
-    nsCOMPtr<nsIDocShellTreeItem> root;
-    docShell->GetSameTypeRootTreeItem(getter_AddRefs(root));
-    if (!root)
-      return E_UNEXPECTED;
-
-
-    
-    
-    int32_t itemType;
-    root->GetItemType(&itemType);
-    if (itemType != nsIDocShellTreeItem::typeContent)
+    Relation rel = mAccessible->RelationByType(RelationType::CONTAINING_TAB_PANE);
+    AccessibleWrap* tabDoc = static_cast<AccessibleWrap*>(rel.Next());
+    if (!tabDoc)
       return E_NOINTERFACE;
 
-    
-    DocAccessible* docAcc = nsAccUtils::GetDocAccessibleFor(root);
-    if (!docAcc)
-      return E_UNEXPECTED;
-
-    *aInstancePtr = static_cast<IAccessible*>(docAcc);
-
+    *aInstancePtr = static_cast<IAccessible*>(tabDoc);
     (reinterpret_cast<IUnknown*>(*aInstancePtr))->AddRef();
     return S_OK;
   }
