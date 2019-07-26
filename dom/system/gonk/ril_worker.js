@@ -5537,6 +5537,49 @@ let GsmPDUHelper = {
 
 
 
+  writeStringTo8BitUnpacked: function writeStringTo8BitUnpacked(numOctets, str) {
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    
+    
+    let i, j;
+    let len = str ? str.length : 0;
+    for (i = 0, j = 0; i < len && j < numOctets; i++) {
+      let c = str.charAt(i);
+      let octet = langTable.indexOf(c);
+
+      if (octet == -1) {
+        
+        if (j + 2 > numOctets) {
+          break;
+        }
+
+        octet = langShiftTable.indexOf(c);
+        if (octet == -1) {
+          
+          octet = langTable.indexOf(' ');
+        }
+        this.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+        j++;
+      }
+      this.writeHexOctet(octet);
+      j++;
+    }
+
+    
+    while (j++ < numOctets) {
+      this.writeHexOctet(0xff);
+    }
+  },
+
+  
+
+
+
+
+
+
 
   readUCS2String: function readUCS2String(numOctets) {
     let str = "";
@@ -5917,35 +5960,81 @@ let GsmPDUHelper = {
 
 
 
-
-  readAlphaIdDiallingNumber: function readAlphaIdDiallingNumber(options) {
-    let contact = null;
-    let ffLen; 
+  readAlphaIdDiallingNumber: function readAlphaIdDiallingNumber(recordSize) {
     let length = Buf.readUint32();
 
-    let alphaLen = options.recordSize - MSISDN_FOOTER_SIZE_BYTES;
+    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
     let alphaId = this.readAlphaIdentifier(alphaLen);
 
+    let number;
     let numLen = this.readHexOctet();
     if (numLen != 0xff) {
-      
-      if (numLen > MSISDN_MAX_NUMBER_SIZE_BYTES + 1) {
+      if (numLen > ADN_MAX_BCD_NUMBER_BYTES) {
         throw new Error("invalid length of BCD number/SSC contents - " + numLen);
       }
 
-      contact = {alphaId: alphaId,
-                 number: this.readDiallingNumber(numLen)};
-
-      ffLen = length / 2 - alphaLen - numLen - 1; 
+      number = this.readDiallingNumber(numLen);
+      Buf.seekIncoming((ADN_MAX_BCD_NUMBER_BYTES - numLen) * PDU_HEX_OCTET_SIZE);
     } else {
-      ffLen = MSISDN_FOOTER_SIZE_BYTES - 1; 
+      Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * PDU_HEX_OCTET_SIZE);
     }
 
     
-    Buf.seekIncoming(ffLen * PDU_HEX_OCTET_SIZE);
+    Buf.seekIncoming(2 * PDU_HEX_OCTET_SIZE);
     Buf.readStringDelimiter(length);
 
+    let contact = null;
+    if (alphaId || number) {
+      contact = {alphaId: alphaId,
+                 number: number};
+    }
     return contact;
+  },
+
+  
+
+
+
+
+
+
+  writeAlphaIdDiallingNumber: function writeAlphaIdDiallingNumber(recordSize,
+                                                                  alphaId,
+                                                                  number) {
+    
+    let length = recordSize * 2;
+    Buf.writeUint32(length);
+
+    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
+    this.writeAlphaIdentifier(alphaLen, alphaId);
+
+    if (number) {
+      let numStart = number[0] == "+" ? 1 : 0;
+      let numDigits = number.length - numStart;
+      if (numDigits > ADN_MAX_NUMBER_DIGITS) {
+        number = number.substring(0, ADN_MAX_NUMBER_DIGITS + numStart);
+        numDigits = number.length - numStart;
+      }
+
+      
+      let numLen = Math.ceil(numDigits / 2) + 1;
+      this.writeHexOctet(numLen);
+      this.writeDiallingNumber(number);
+      
+      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES - numLen; i++) {
+        this.writeHexOctet(0xff);
+      }
+    } else {
+      
+      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES + 1; i++) {
+        this.writeHexOctet(0xff);
+      }
+    }
+
+    
+    this.writeHexOctet(0xff);
+    this.writeHexOctet(0xff);
+    Buf.writeStringDelimiter(length);
   },
 
   
@@ -5963,8 +6052,11 @@ let GsmPDUHelper = {
 
 
   readAlphaIdentifier: function readAlphaIdentifier(numOctets) {
-    let temp;
+    if (numOctets === 0) {
+      return "";
+    }
 
+    let temp;
     
     if ((temp = GsmPDUHelper.readHexOctet()) == 0x80 ||
          temp == 0x81 ||
@@ -5974,6 +6066,40 @@ let GsmPDUHelper = {
     } else {
       Buf.seekIncoming(-1 * PDU_HEX_OCTET_SIZE);
       return this.read8BitUnpackedToString(numOctets);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  writeAlphaIdentifier: function writeAlphaIdentifier(numOctets, alphaId) {
+    if (numOctets === 0) {
+      return;
+    }
+
+    
+    if (!alphaId || ICCUtilsHelper.isGsm8BitAlphabet(alphaId)) {
+      this.writeStringTo8BitUnpacked(numOctets, alphaId);
+    } else {
+      
+      this.writeHexOctet(0x80);
+      numOctets--;
+      
+      if (alphaId.length * 2 > numOctets) {
+        alphaId = alphaId.substring(0, Math.floor(numOctets / 2));
+      }
+      this.writeUCS2String(alphaId);
+      for (let i = alphaId.length * 2; i < numOctets; i++) {
+        this.writeHexOctet(0xff);
+      }
     }
   },
 
@@ -8465,7 +8591,7 @@ let ICCRecordHelper = {
 
   getMSISDN: function getMSISDN() {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact || RIL.iccInfo.msisdn === contact.number) {
         return;
       }
@@ -8616,7 +8742,7 @@ let ICCRecordHelper = {
 
   getFDN: function getFDN(options) {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
         RIL.iccInfo.fdn.push(contact);
       }
@@ -8657,7 +8783,7 @@ let ICCRecordHelper = {
 
   getADN: function getADN(options) {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
         RIL.iccInfo.adn.push(contact);
       }
@@ -8701,7 +8827,7 @@ let ICCRecordHelper = {
 
   getMBDN: function getMBDN() {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options);
+      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact || RIL.iccInfo.mbdn === contact.number){
         return;
       }
@@ -9286,6 +9412,34 @@ let ICCUtilsHelper = {
     return (serviceTable &&
            (index < serviceTable.length) &&
            (serviceTable[index] & bitmask)) != 0;
+  },
+
+  
+
+
+
+
+
+  isGsm8BitAlphabet: function isGsm8BitAlphabet(str) {
+    if (!str) {
+      return false;
+    }
+
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    for (let i = 0; i < str.length; i++) {
+      let c = str.charAt(i);
+      let octet = langTable.indexOf(c);
+      if (octet == -1) {
+        octet = langShiftTable.indexOf(c);
+        if (octet == -1) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   },
 };
 
