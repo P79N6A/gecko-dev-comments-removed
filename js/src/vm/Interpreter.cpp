@@ -61,17 +61,6 @@ using mozilla::DebugOnly;
 using mozilla::PodCopy;
 
 
-static inline JSObject *
-CallThisObjectHook(JSContext *cx, HandleObject obj, Value *argv)
-{
-    JSObject *thisp = JSObject::thisObject(cx, obj);
-    if (!thisp)
-        return NULL;
-    argv[-1].setObject(*thisp);
-    return thisp;
-}
-
-
 
 
 

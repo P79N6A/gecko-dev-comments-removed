@@ -53,11 +53,6 @@ id_prototype(JSContext *cx) {
 }
 
 static inline jsid
-id_length(JSContext *cx) {
-    return NameToId(cx->names().length);
-}
-
-static inline jsid
 id___proto__(JSContext *cx) {
     return NameToId(cx->names().proto);
 }
@@ -2737,24 +2732,6 @@ TypeObject::print()
 
 
 
-static inline TypeObject *
-GetInitializerType(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    if (!script->compileAndGo)
-        return NULL;
-
-    JSOp op = JSOp(*pc);
-    JS_ASSERT(op == JSOP_NEWARRAY || op == JSOP_NEWOBJECT || op == JSOP_NEWINIT);
-
-    bool isArray = (op == JSOP_NEWARRAY || (op == JSOP_NEWINIT && GET_UINT8(pc) == JSProto_Array));
-    JSProtoKey key = isArray ? JSProto_Array : JSProto_Object;
-
-    if (UseNewTypeForInitializer(cx, script, pc, key))
-        return NULL;
-
-    return TypeScript::InitObject(cx, script, pc, key);
-}
-
 
 
 
@@ -3199,78 +3176,6 @@ types::UseNewTypeForClone(JSFunction *fun)
 
 
 
-
-
-
-
-
-static inline bool
-IgnorePushed(const jsbytecode *pc, unsigned index)
-{
-    switch (JSOp(*pc)) {
-      
-      case JSOP_BINDNAME:
-      case JSOP_BINDGNAME:
-      case JSOP_BINDINTRINSIC:
-        return true;
-
-      
-      case JSOP_IN:
-      case JSOP_EQ:
-      case JSOP_NE:
-      case JSOP_LT:
-      case JSOP_LE:
-      case JSOP_GT:
-      case JSOP_GE:
-        return (index == 0);
-
-      
-      case JSOP_OR:
-      case JSOP_AND:
-        return (index == 0);
-
-      
-      case JSOP_HOLE:
-        return (index == 0);
-
-      
-      case JSOP_ENTERWITH:
-      case JSOP_ENTERBLOCK:
-      case JSOP_ENTERLET0:
-      case JSOP_ENTERLET1:
-        return true;
-
-      
-      case JSOP_ITER:
-      case JSOP_ITERNEXT:
-      case JSOP_MOREITER:
-      case JSOP_ENDITER:
-        return true;
-
-      
-      case JSOP_DUP:
-      case JSOP_DUP2:
-      case JSOP_SWAP:
-      case JSOP_PICK:
-        return true;
-
-      
-      case JSOP_FINALLY:
-        return true;
-
-      
-
-
-
-
-
-      case JSOP_GETLOCAL:
-        return JSOp(pc[JSOP_GETLOCAL_LENGTH]) == JSOP_POP;
-
-      default:
-        return false;
-    }
-}
 
 bool
 JSScript::makeTypes(JSContext *cx)
