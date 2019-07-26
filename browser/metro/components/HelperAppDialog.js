@@ -18,10 +18,6 @@ XPCOMUtils.defineLazyGetter(this, "ContentUtil", function() {
   Cu.import("resource:///modules/ContentUtil.jsm");
   return ContentUtil;
 });
-XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
-                                  "resource://gre/modules/Downloads.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -138,98 +134,98 @@ HelperAppLauncherDialog.prototype = {
   },
 
   promptForSaveToFile: function hald_promptForSaveToFile(aLauncher, aContext, aDefaultFile, aSuggestedFileExt, aForcePrompt) {
-    return Task.spawn(function() {
-      let file = null;
-      let prefs = Services.prefs;
+    let file = null;
+    let prefs = Services.prefs;
 
-      if (!aForcePrompt) {
-        
-        
-        let autodownload = true;
-        try {
-          autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
-        } catch (e) { }
-
-        if (autodownload) {
-          
-          let defaultFolder = yield Downloads.getPreferredDownloadsDirectory();
-
-          try {
-            file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
-          }
-          catch (e) {
-          }
-
-          
-          if (file)
-            throw new Task.Result(file);
-        }
-      }
-
-      
-      let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-      let windowTitle = "";
-      let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-      picker.init(parent, windowTitle, Ci.nsIFilePicker.modeSave);
-      picker.defaultString = aDefaultFile;
-
-      if (aSuggestedFileExt) {
-        
-        picker.defaultExtension = aSuggestedFileExt.substring(1);
-      }
-      else {
-        try {
-          picker.defaultExtension = aLauncher.MIMEInfo.primaryExtension;
-        }
-        catch (e) { }
-      }
-
-      var wildCardExtension = "*";
-      if (aSuggestedFileExt) {
-        wildCardExtension += aSuggestedFileExt;
-        picker.appendFilter(aLauncher.MIMEInfo.description, wildCardExtension);
-      }
-
-      picker.appendFilters(Ci.nsIFilePicker.filterAll);
-
+    if (!aForcePrompt) {
       
       
-      
-      picker.displayDirectory = yield Downloads.getPreferredDownloadsDirectory();
-
-      
+      let autodownload = true;
       try {
-        let lastDir = prefs.getComplexValue("browser.download.lastDir", Ci.nsILocalFile);
-        if (isUsableDirectory(lastDir))
-          picker.displayDirectory = lastDir;
+        autodownload = prefs.getBoolPref(PREF_BD_USEDOWNLOADDIR);
+      } catch (e) { }
+
+      if (autodownload) {
+        
+        let dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+        let defaultFolder = dnldMgr.userDownloadsDirectory;
+
+        try {
+          file = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExt);
+        }
+        catch (e) {
+        }
+
+        
+        if (file)
+          return file;
+      }
+    }
+
+    
+    let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    let windowTitle = "";
+    let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+    picker.init(parent, windowTitle, Ci.nsIFilePicker.modeSave);
+    picker.defaultString = aDefaultFile;
+
+    if (aSuggestedFileExt) {
+      
+      picker.defaultExtension = aSuggestedFileExt.substring(1);
+    }
+    else {
+      try {
+        picker.defaultExtension = aLauncher.MIMEInfo.primaryExtension;
       }
       catch (e) { }
+    }
 
-      if (picker.show() == Ci.nsIFilePicker.returnCancel) {
+    var wildCardExtension = "*";
+    if (aSuggestedFileExt) {
+      wildCardExtension += aSuggestedFileExt;
+      picker.appendFilter(aLauncher.MIMEInfo.description, wildCardExtension);
+    }
+
+    picker.appendFilters(Ci.nsIFilePicker.filterAll);
+
+    
+    
+    
+    var dnldMgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+    picker.displayDirectory = dnldMgr.userDownloadsDirectory;
+
+    
+    try {
+      let lastDir = prefs.getComplexValue("browser.download.lastDir", Ci.nsILocalFile);
+      if (isUsableDirectory(lastDir))
+        picker.displayDirectory = lastDir;
+    }
+    catch (e) { }
+
+    if (picker.show() == Ci.nsIFilePicker.returnCancel) {
+      
+      return null;
+    }
+
+    
+    
+    
+    file = picker.file;
+
+    if (file) {
+      try {
         
-        throw new Task.Result(null);
+        
+        
+        if (file.exists())
+          file.remove(false);
       }
-
-      
-      
-      
-      file = picker.file;
-
-      if (file) {
-        try {
-          
-          
-          
-          if (file.exists())
-            file.remove(false);
-        }
-        catch (e) { }
-        var newDir = file.parent.QueryInterface(Ci.nsILocalFile);
-        prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
-        file = this.validateLeafName(newDir, file.leafName, null);
-      }
-      throw new Task.Result(file);
-    }.bind(this));
+      catch (e) { }
+      var newDir = file.parent.QueryInterface(Ci.nsILocalFile);
+      prefs.setComplexValue("browser.download.lastDir", Ci.nsILocalFile, newDir);
+      file = this.validateLeafName(newDir, file.leafName, null);
+    }
+    return file;
   },
 
   validateLeafName: function hald_validateLeafName(aLocalFile, aLeafName, aFileExt) {
