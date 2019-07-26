@@ -33,6 +33,9 @@ using namespace std;
 namespace mozilla {
 namespace layers {
 
+typedef map<uint64_t, CompositorParent::LayerTreeState> LayerTreeMap;
+static LayerTreeMap sIndirectLayerTrees;
+
 
 
 
@@ -193,6 +196,14 @@ CompositorParent::RecvWillStop()
 
   
   if (mLayerManager) {
+    for (LayerTreeMap::iterator it = sIndirectLayerTrees.begin();
+         it != sIndirectLayerTrees.end(); it++)
+    {
+      LayerTreeState* lts = &it->second;
+      if (lts->mParent == this) {
+        mLayerManager->ClearCachedResources(lts->mRoot);
+      }
+    }
     mLayerManager->Destroy();
     mLayerManager = nullptr;
     mCompositionManager = nullptr;
@@ -666,9 +677,6 @@ CompositorParent::SetTimeAndSampleAnimations(TimeStamp aTime, bool aIsTesting)
     it->second->mCompositionManager->TransformShadowTree(aTime);
   }
 }
-
-typedef map<uint64_t, CompositorParent::LayerTreeState> LayerTreeMap;
-static LayerTreeMap sIndirectLayerTrees;
 
 bool
 CompositorParent::RecvNotifyChildCreated(const uint64_t& child)
