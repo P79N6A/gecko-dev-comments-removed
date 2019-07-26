@@ -140,20 +140,19 @@ const Float SIGMA_MAX = 100;
 
 static int64_t gCanvasAzureMemoryUsed = 0;
 
-static int64_t GetCanvasAzureMemoryUsed() {
-  return gCanvasAzureMemoryUsed;
-}
 
 
 
-
-NS_MEMORY_REPORTER_IMPLEMENT(CanvasAzureMemory,
-  "canvas-2d-pixel-bytes",
-  KIND_OTHER,
-  UNITS_BYTES,
-  GetCanvasAzureMemoryUsed,
-  "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
-  "bytes.")
+class Canvas2dPixelsReporter MOZ_FINAL : public MemoryReporterBase
+{
+  public:
+    Canvas2dPixelsReporter()
+      : MemoryReporterBase("canvas-2d-pixels", KIND_OTHER, UNITS_BYTES,
+"Memory used by 2D canvases. Each canvas requires (width * height * 4) bytes.")
+    {}
+private:
+    int64_t Amount() MOZ_OVERRIDE { return gCanvasAzureMemoryUsed; }
+};
 
 class CanvasRadialGradient : public CanvasGradient
 {
@@ -897,7 +896,7 @@ CanvasRenderingContext2D::EnsureTarget()
     static bool registered = false;
     if (!registered) {
       registered = true;
-      NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(CanvasAzureMemory));
+      NS_RegisterMemoryReporter(new Canvas2dPixelsReporter());
     }
 
     gCanvasAzureMemoryUsed += mWidth * mHeight * 4;
