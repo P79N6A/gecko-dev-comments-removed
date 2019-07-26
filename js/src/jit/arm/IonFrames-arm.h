@@ -7,12 +7,13 @@
 #ifndef jit_arm_IonFrames_arm_h
 #define jit_arm_IonFrames_arm_h
 
+#include <stdint.h>
+
 #include "jit/shared/IonFrames-shared.h"
 
 namespace js {
 namespace jit {
 
-class IonFramePrefix;
 
 
 class IonCommonFrameLayout
@@ -50,26 +51,16 @@ class IonCommonFrameLayout
     }
 };
 
-
-class IonEntryFrameLayout : public IonCommonFrameLayout
+class IonJSFrameLayout : public IonCommonFrameLayout
 {
-  public:
-    static inline size_t Size() {
-        return sizeof(IonEntryFrameLayout);
-    }
-};
-
-class IonJSFrameLayout : public IonEntryFrameLayout
-{
-  protected:
-    void *calleeToken_;
+    CalleeToken calleeToken_;
     uintptr_t numActualArgs_;
 
   public:
-    void *calleeToken() const {
+    CalleeToken calleeToken() const {
         return calleeToken_;
     }
-    void replaceCalleeToken(void *calleeToken) {
+    void replaceCalleeToken(CalleeToken calleeToken) {
         calleeToken_ = calleeToken;
     }
 
@@ -113,6 +104,15 @@ class IonJSFrameLayout : public IonEntryFrameLayout
     }
 };
 
+
+class IonEntryFrameLayout : public IonJSFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonEntryFrameLayout);
+    }
+};
+
 class IonRectifierFrameLayout : public IonJSFrameLayout
 {
   public:
@@ -121,7 +121,8 @@ class IonRectifierFrameLayout : public IonJSFrameLayout
     }
 };
 
-class IonUnwoundRectifierFrameLayout : public IonJSFrameLayout
+
+class IonUnwoundRectifierFrameLayout : public IonRectifierFrameLayout
 {
   public:
     static inline size_t Size() {
@@ -156,36 +157,6 @@ class IonExitFooterFrame
     template <typename T>
     T *outParam() {
         return reinterpret_cast<T *>(reinterpret_cast<char *>(this) - sizeof(T));
-    }
-};
-
-class IonOsrFrameLayout : public IonJSFrameLayout
-{
-  public:
-    static inline size_t Size() {
-        return sizeof(IonOsrFrameLayout);
-    }
-};
-
-class ICStub;
-
-class IonBaselineStubFrameLayout : public IonCommonFrameLayout
-{
-  public:
-    static inline size_t Size() {
-        return sizeof(IonBaselineStubFrameLayout);
-    }
-
-    static inline int reverseOffsetOfStubPtr() {
-        return -int(sizeof(void *));
-    }
-    static inline int reverseOffsetOfSavedFramePtr() {
-        return -int(2 * sizeof(void *));
-    }
-
-    inline ICStub *maybeStubPtr() {
-        uint8_t *fp = reinterpret_cast<uint8_t *>(this);
-        return *reinterpret_cast<ICStub **>(fp + reverseOffsetOfStubPtr());
     }
 };
 
@@ -273,6 +244,7 @@ class IonExitFrameLayout : public IonCommonFrameLayout
 
 class IonNativeExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     uintptr_t argc_;
@@ -300,6 +272,7 @@ class IonNativeExitFrameLayout
 
 class IonOOLNativeExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
@@ -343,6 +316,7 @@ class IonOOLNativeExitFrameLayout
 
 class IonOOLPropertyOpExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
 
@@ -438,6 +412,7 @@ class IonOOLProxyExitFrameLayout
 
 class IonDOMExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     JSObject *thisObj;
@@ -470,6 +445,7 @@ struct IonDOMMethodExitFrameLayoutTraits;
 
 class IonDOMMethodExitFrameLayout
 {
+  protected: 
     IonExitFooterFrame footer_;
     IonExitFrameLayout exit_;
     
@@ -512,6 +488,36 @@ struct IonDOMMethodExitFrameLayoutTraits {
     static const size_t offsetOfArgcFromArgv =
         offsetof(IonDOMMethodExitFrameLayout, argc_) -
         offsetof(IonDOMMethodExitFrameLayout, argv_);
+};
+
+class IonOsrFrameLayout : public IonJSFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonOsrFrameLayout);
+    }
+};
+
+class ICStub;
+
+class IonBaselineStubFrameLayout : public IonCommonFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        return sizeof(IonBaselineStubFrameLayout);
+    }
+
+    static inline int reverseOffsetOfStubPtr() {
+        return -int(sizeof(void *));
+    }
+    static inline int reverseOffsetOfSavedFramePtr() {
+        return -int(2 * sizeof(void *));
+    }
+
+    inline ICStub *maybeStubPtr() {
+        uint8_t *fp = reinterpret_cast<uint8_t *>(this);
+        return *reinterpret_cast<ICStub **>(fp + reverseOffsetOfStubPtr());
+    }
 };
 
 

@@ -14,9 +14,10 @@
 namespace js {
 namespace jit {
 
+
+
 class IonCommonFrameLayout
 {
-  private:
     uint8_t *returnAddress_;
     uintptr_t descriptor_;
 
@@ -52,15 +53,15 @@ class IonCommonFrameLayout
 
 class IonJSFrameLayout : public IonCommonFrameLayout
 {
-    void *calleeToken_;
+    CalleeToken calleeToken_;
     uintptr_t numActualArgs_;
 
   public:
     CalleeToken calleeToken() const {
         return calleeToken_;
     }
-    void replaceCalleeToken(void *value) {
-        calleeToken_ = value;
+    void replaceCalleeToken(CalleeToken calleeToken) {
+        calleeToken_ = calleeToken;
     }
 
     static size_t offsetOfCalleeToken() {
@@ -103,6 +104,7 @@ class IonJSFrameLayout : public IonCommonFrameLayout
     }
 };
 
+
 class IonEntryFrameLayout : public IonJSFrameLayout
 {
   public:
@@ -124,6 +126,9 @@ class IonUnwoundRectifierFrameLayout : public IonRectifierFrameLayout
 {
   public:
     static inline size_t Size() {
+        
+        
+        
         return sizeof(IonUnwoundRectifierFrameLayout);
     }
 };
@@ -160,6 +165,7 @@ class IonOOLNativeExitFrameLayout;
 class IonOOLPropertyOpExitFrameLayout;
 class IonOOLProxyExitFrameLayout;
 class IonDOMExitFrameLayout;
+
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
@@ -233,6 +239,8 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         return reinterpret_cast<IonDOMExitFrameLayout *>(footer());
     }
 };
+
+
 
 class IonNativeExitFrameLayout
 {
@@ -463,6 +471,7 @@ class IonDOMMethodExitFrameLayout
     }
 
     inline Value *vp() {
+        
         JS_STATIC_ASSERT(offsetof(IonDOMMethodExitFrameLayout, loCalleeResult_) ==
                          (offsetof(IonDOMMethodExitFrameLayout, argc_) + sizeof(uintptr_t)));
         return reinterpret_cast<Value*>(&loCalleeResult_);
@@ -538,7 +547,7 @@ class InvalidationBailoutStack
     void checkInvariants() const;
 };
 
-}
-}
+} 
+} 
 
 #endif 

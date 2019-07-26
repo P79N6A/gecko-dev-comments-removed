@@ -2423,7 +2423,7 @@ MacroAssemblerARMCompat::cmpPtr(const Address &lhs, const ImmPtr &rhs)
 void
 MacroAssemblerARMCompat::setStackArg(const Register &reg, uint32_t arg)
 {
-    ma_dataTransferN(IsStore, 32, true, sp, Imm32(arg * STACK_SLOT_SIZE), reg);
+    ma_dataTransferN(IsStore, 32, true, sp, Imm32(arg * sizeof(intptr_t)), reg);
 
 }
 
@@ -3641,7 +3641,7 @@ MacroAssemblerARMCompat::callWithABIPre(uint32_t *stackAdjust)
         *stackAdjust += ComputeByteAlignment(framePushed_ + *stackAdjust, StackAlignment);
     } else {
         
-        *stackAdjust += ComputeByteAlignment(*stackAdjust + STACK_SLOT_SIZE, StackAlignment);
+        *stackAdjust += ComputeByteAlignment(*stackAdjust + sizeof(intptr_t), StackAlignment);
     }
 
     reserveStack(*stackAdjust);

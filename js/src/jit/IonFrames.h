@@ -17,6 +17,13 @@
 namespace js {
 namespace jit {
 
+
+
+static const uint32_t STACK_SLOT_SIZE = 4;
+
+
+static const uint32_t DOUBLE_STACK_ALIGNMENT = 2;
+
 typedef void * CalleeToken;
 
 enum CalleeTokenTag
@@ -309,29 +316,6 @@ namespace jit {
 
 void
 GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes);
-
-
-
-
-static inline int32_t
-OffsetOfFrameSlot(int32_t slot)
-{
-    if (slot <= 0)
-        return -slot;
-    return -(slot * STACK_SLOT_SIZE);
-}
-
-static inline uintptr_t
-ReadFrameSlot(IonJSFrameLayout *fp, int32_t slot)
-{
-    return *(uintptr_t *)((char *)fp + OffsetOfFrameSlot(slot));
-}
-
-static inline double
-ReadFrameDoubleSlot(IonJSFrameLayout *fp, int32_t slot)
-{
-    return *(double *)((char *)fp + OffsetOfFrameSlot(slot));
-}
 
 CalleeToken
 MarkCalleeToken(JSTracer *trc, CalleeToken token);

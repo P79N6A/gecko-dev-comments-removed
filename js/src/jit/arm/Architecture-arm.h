@@ -17,17 +17,11 @@
 namespace js {
 namespace jit {
 
-static const uint32_t STACK_SLOT_SIZE       = 4;
-static const uint32_t DOUBLE_STACK_ALIGNMENT = 2;
-
 
 
 
 
 static const uint32_t ION_FRAME_SLACK_SIZE   = 20;
-
-
-static const int32_t INVALID_STACK_SLOT      = -1;
 
 
 

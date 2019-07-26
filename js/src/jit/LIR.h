@@ -37,7 +37,7 @@ class MSnapshot;
 
 static const uint32_t VREG_INCREMENT = 1;
 
-static const uint32_t THIS_FRAME_SLOT = 0;
+static const uint32_t THIS_FRAME_ARGSLOT = 0;
 
 #if defined(JS_NUNBOX32)
 # define BOX_PIECES         2
@@ -350,7 +350,6 @@ class LConstantIndex : public LAllocation
 };
 
 
-
 class LStackSlot : public LAllocation
 {
   public:
@@ -362,8 +361,6 @@ class LStackSlot : public LAllocation
         return data();
     }
 };
-
-
 
 
 class LArgument : public LAllocation
