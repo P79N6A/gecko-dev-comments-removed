@@ -191,7 +191,7 @@ ElementStyle.prototype = {
       return this.dummyElementPromise.then(() => {
         if (this.populated != populated) {
           
-          return promise.reject("unused");
+          return;
         }
 
         

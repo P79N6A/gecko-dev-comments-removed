@@ -38,6 +38,10 @@ registerCleanupFunction(() => {
 
 
 
+gDevTools.testing = true;
+registerCleanupFunction(() => gDevTools.testing = false);
+
+
 
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.dump.emit");
