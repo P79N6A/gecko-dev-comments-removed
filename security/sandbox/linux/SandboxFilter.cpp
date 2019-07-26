@@ -15,6 +15,7 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <linux/net.h>
 
 namespace mozilla {
 
@@ -78,6 +79,14 @@ SandboxFilterImpl::Build() {
 #endif
 
   
+  
+#if SYSCALL_EXISTS(socketcall)
+#define SOCKETCALL(name, NAME) SYSCALL_WITH_ARG(socketcall, 0, SYS_##NAME)
+#else
+#define SOCKETCALL(name, NAME) SYSCALL(name)
+#endif
+
+  
 
 
 
@@ -95,14 +104,8 @@ SandboxFilterImpl::Build() {
 
 
   Allow(SYSCALL(futex));
-  
-  
-#if SYSCALL_EXISTS(socketcall)
-  Allow(SYSCALL(socketcall));
-#else
-  Allow(SYSCALL(recvmsg));
-  Allow(SYSCALL(sendmsg));
-#endif
+  Allow(SOCKETCALL(recvmsg, RECVMSG));
+  Allow(SOCKETCALL(sendmsg, SENDMSG));
 
   
   
@@ -182,11 +185,8 @@ SandboxFilterImpl::Build() {
   Allow(SYSCALL_LARGEFILE(fstat, fstat64));
   Allow(SYSCALL_LARGEFILE(stat, stat64));
   Allow(SYSCALL_LARGEFILE(lstat, lstat64));
-  
-#if !SYSCALL_EXISTS(socketcall)
-  Allow(SYSCALL(socketpair));
-  Deny(EACCES, SYSCALL(socket));
-#endif
+  Allow(SOCKETCALL(socketpair, SOCKETPAIR));
+  Deny(EACCES, SOCKETCALL(socket, SOCKET));
   Allow(SYSCALL(open));
   Allow(SYSCALL(readlink)); 
   Allow(SYSCALL(prctl));
@@ -213,10 +213,8 @@ SandboxFilterImpl::Build() {
 
   
 #ifdef MOZ_WIDGET_GONK
-#if !SYSCALL_EXISTS(socketcall)
-  Allow(SYSCALL(sendto));
-  Allow(SYSCALL(recvfrom));
-#endif
+  Allow(SOCKETCALL(sendto, SENDTO));
+  Allow(SOCKETCALL(recvfrom, RECVFROM));
   Allow(SYSCALL_LARGEFILE(getdents, getdents64));
   Allow(SYSCALL(epoll_ctl));
   Allow(SYSCALL(sched_yield));
