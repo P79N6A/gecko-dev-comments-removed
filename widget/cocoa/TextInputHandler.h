@@ -843,8 +843,11 @@ public:
 
 
 
+
+
   void SetMarkedText(NSAttributedString* aAttrString,
-                     NSRange& aSelectedRange);
+                     NSRange& aSelectedRange,
+                     NSRange* aReplacementRange = nullptr);
 
   
 
