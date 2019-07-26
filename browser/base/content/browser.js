@@ -4464,6 +4464,9 @@ var TabsInTitlebar = {
     let titlebar = $("titlebar");
     let titlebarContent = $("titlebar-content");
     let menubar = $("toolbar-menubar");
+#ifdef XP_MACOSX
+    let secondaryButtonsWidth = rect($("titlebar-secondary-buttonbox")).width;
+#endif
 
     if (allowed) {
       
@@ -4481,7 +4484,6 @@ var TabsInTitlebar = {
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox-container")).width;
 
 #ifdef XP_MACOSX
-      let secondaryButtonsWidth = rect($("titlebar-secondary-buttonbox")).width;
       
       let menuHeight = 0;
       let fullMenuHeight = 0;
@@ -4556,9 +4558,6 @@ var TabsInTitlebar = {
 
 
       
-#ifdef XP_MACOSX
-      this._sizePlaceholder("fullscreen-button", secondaryButtonsWidth);
-#endif
       this._sizePlaceholder("caption-buttons", captionButtonsBoxWidth);
 
       if (!this._draghandles) {
@@ -4586,6 +4585,10 @@ var TabsInTitlebar = {
       titlebar.style.marginBottom = "";
       menubar.style.paddingBottom = "";
     }
+
+#ifdef XP_MACOSX
+    this._sizePlaceholder("fullscreen-button", secondaryButtonsWidth);
+#endif
   },
 
   _sizePlaceholder: function (type, width) {
