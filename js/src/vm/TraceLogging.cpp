@@ -328,7 +328,7 @@ TraceLogger::~TraceLogger()
         
         
         enabled = true;
-        while (stack.currentId() > 0)
+        while (stack.size() > 0)
             stopEvent();
         enabled = false;
     }
@@ -707,7 +707,6 @@ TraceLogger::stopEvent()
             return;
         }
     }
-    JS_ASSERT(stack.currentId() > 0);
     stack.pop();
 }
 
