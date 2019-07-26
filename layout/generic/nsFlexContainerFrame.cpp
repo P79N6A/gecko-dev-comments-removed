@@ -1733,11 +1733,6 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
         curItem.GetNumAutoMarginsInAxis(aAxisTracker.GetCrossAxis()) == 0) {
       
       
-      
-      
-      MOZ_ASSERT(aAxisTracker.GetCrossAxis() == eAxis_TB,
-                 "Only expecting to do baseline-alignment in horizontal "
-                 "flex containers, with top-to-bottom cross axis");
 
       
       
@@ -1919,8 +1914,8 @@ SingleLineCrossAxisPositionTracker::
 
 FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame)
 {
-  uint32_t flexDirection =
-    aFlexContainerFrame->StylePosition()->mFlexDirection;
+  const nsStylePosition* pos = aFlexContainerFrame->StylePosition();
+  uint32_t flexDirection = pos->mFlexDirection;
   uint32_t cssDirection =
     aFlexContainerFrame->StyleVisibility()->mDirection;
 
@@ -1975,18 +1970,12 @@ FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame
   }
 
   
-  
+  if (pos->mFlexWrap == NS_STYLE_FLEX_WRAP_WRAP_REVERSE) {
+    mCrossAxis = GetReverseAxis(mCrossAxis);
+  }
+
   MOZ_ASSERT(IsAxisHorizontal(mMainAxis) != IsAxisHorizontal(mCrossAxis),
              "main & cross axes should be in different dimensions");
-
-
-  
-  
-  
-  
-  
-  
-  MOZ_ASSERT(mCrossAxis != eAxis_BT, "Not expecting bottom-to-top cross axis");
 }
 
 nsresult
