@@ -205,6 +205,11 @@ CustomizeMode.prototype = {
     let browser = document.getElementById("browser");
     browser.parentNode.selectedPanel = browser;
 
+    
+    
+    
+    this._customizing = false;
+
     if (this.browser.selectedBrowser.currentURI.spec == kAboutURI) {
       let custBrowser = this.browser.selectedBrowser;
       if (custBrowser.canGoBack) {
@@ -220,7 +225,6 @@ CustomizeMode.prototype = {
     }
 
     this._changed = false;
-    this._customizing = false;
   },
 
   populatePalette: function() {
