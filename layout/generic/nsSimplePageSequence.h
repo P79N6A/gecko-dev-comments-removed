@@ -29,11 +29,7 @@ class nsSharedPageData {
 public:
   
   
-  nsSharedPageData() :
-    mPageContentXMost(0),
-    mPageContentSize(0)
-  {
-  }
+  nsSharedPageData() : mShrinkToFitRatio(1.0f) {}
 
   nsString    mDateTimeStr;
   nsString    mPageNumFormat;
@@ -52,8 +48,10 @@ public:
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
   nsCOMPtr<nsIPrintOptions> mPrintOptions;
 
-  nscoord      mPageContentXMost;      
-  nscoord      mPageContentSize;       
+  
+  
+  
+  float mShrinkToFitRatio;
 };
 
 
