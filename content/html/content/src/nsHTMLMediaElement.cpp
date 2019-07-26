@@ -2134,12 +2134,14 @@ nsHTMLMediaElement::IsWebMType(const nsACString& aType)
 #endif
 
 #if defined(MOZ_GSTREAMER) || defined(MOZ_WIDGET_GONK)
-char const *const nsHTMLMediaElement::gH264Codecs[7] = {
+char const *const nsHTMLMediaElement::gH264Codecs[9] = {
   "avc1.42E01E",  
   "avc1.42001E",  
   "avc1.58A01E",  
   "avc1.4D401E",  
   "avc1.64001E",  
+  "avc1.64001F",  
+  "mp4v.20.3",    
   "mp4a.40.2",    
   nullptr
 };
