@@ -273,10 +273,21 @@ struct Zone : public JS::shadow::Zone,
     js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
 
     
+
+
+
+
+
+    typedef js::HashSet<Zone *, js::DefaultHasher<Zone *>, js::SystemAllocPolicy> ZoneSet;
+    ZoneSet gcZoneGroupEdges;
+
+    
     void *data;
 
     Zone(JSRuntime *rt);
     ~Zone();
+
+    bool init();
 
     void findOutgoingEdges(js::gc::ComponentFinder<JS::Zone> &finder);
 

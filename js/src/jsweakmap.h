@@ -56,6 +56,9 @@ class WeakMapBase {
     static bool markCompartmentIteratively(JSCompartment *c, JSTracer *tracer);
 
     
+    static bool findZoneEdgesForCompartment(JSCompartment *c);
+
+    
     
     static void sweepCompartment(JSCompartment *c);
 
@@ -79,6 +82,7 @@ class WeakMapBase {
     virtual void nonMarkingTraceKeys(JSTracer *tracer) = 0;
     virtual void nonMarkingTraceValues(JSTracer *tracer) = 0;
     virtual bool markIteratively(JSTracer *tracer) = 0;
+    virtual bool findZoneEdges() = 0;
     virtual void sweep() = 0;
     virtual void traceMappings(WeakMapTracer *tracer) = 0;
     virtual void finish() = 0;
@@ -180,6 +184,11 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
             key.unsafeSet(nullptr);
         }
         return markedAny;
+    }
+
+    bool findZoneEdges() {
+        
+        return true;
     }
 
     void sweep() {
