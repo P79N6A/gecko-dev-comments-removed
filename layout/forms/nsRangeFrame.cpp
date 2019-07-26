@@ -63,52 +63,55 @@ nsRangeFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 nsresult
-nsRangeFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
+nsRangeFrame::MakeAnonymousDiv(nsIContent** aResult,
+                               nsCSSPseudoElements::Type aPseudoType,
+                               nsTArray<ContentInfo>& aElements)
 {
   
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
 
-  
   nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
                                                  kNameSpaceID_XHTML,
                                                  nsIDOMNode::ELEMENT_NODE);
   NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
-  nsresult rv = NS_NewHTMLElement(getter_AddRefs(mTrackDiv), nodeInfo.forget(),
+  nsresult rv = NS_NewHTMLElement(aResult, nodeInfo.forget(),
                                   mozilla::dom::NOT_FROM_PARSER);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  nsCSSPseudoElements::Type pseudoType =
-    nsCSSPseudoElements::ePseudo_mozRangeTrack;
   nsRefPtr<nsStyleContext> newStyleContext =
     PresContext()->StyleSet()->ResolvePseudoElementStyle(mContent->AsElement(),
-                                                         pseudoType,
+                                                         aPseudoType,
                                                          StyleContext());
 
-  if (!aElements.AppendElement(ContentInfo(mTrackDiv, newStyleContext))) {
+  if (!aElements.AppendElement(ContentInfo(*aResult, newStyleContext))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-
-  
-  nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
-                                                 kNameSpaceID_XHTML,
-                                                 nsIDOMNode::ELEMENT_NODE);
-  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
-  rv = NS_NewHTMLElement(getter_AddRefs(mThumbDiv), nodeInfo.forget(),
-                         mozilla::dom::NOT_FROM_PARSER);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  pseudoType = nsCSSPseudoElements::ePseudo_mozRangeThumb;
-  newStyleContext =
-    PresContext()->StyleSet()->ResolvePseudoElementStyle(mContent->AsElement(),
-                                                         pseudoType,
-                                                         StyleContext());
-
-  if (!aElements.AppendElement(ContentInfo(mThumbDiv, newStyleContext))) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
   return NS_OK;
+}
+
+nsresult
+nsRangeFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
+{
+  nsresult rv;
+
+  
+  rv = MakeAnonymousDiv(getter_AddRefs(mTrackDiv),
+                        nsCSSPseudoElements::ePseudo_mozRangeTrack,
+                        aElements);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = MakeAnonymousDiv(getter_AddRefs(mProgressDiv),
+                        nsCSSPseudoElements::ePseudo_mozRangeProgress,
+                        aElements);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = MakeAnonymousDiv(getter_AddRefs(mThumbDiv),
+                        nsCSSPseudoElements::ePseudo_mozRangeThumb,
+                        aElements);
+  return rv;
 }
 
 void
@@ -116,6 +119,7 @@ nsRangeFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
                                        uint32_t aFilter)
 {
   aElements.MaybeAppendElement(mTrackDiv);
+  aElements.MaybeAppendElement(mProgressDiv);
   aElements.MaybeAppendElement(mThumbDiv);
 }
 
@@ -136,8 +140,9 @@ nsRangeFrame::Reflow(nsPresContext*           aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsRangeFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
-  NS_ASSERTION(mTrackDiv, "Track div must exist!");
-  NS_ASSERTION(mThumbDiv, "Thumb div must exist!");
+  NS_ASSERTION(mTrackDiv, "::-moz-range-track div must exist!");
+  NS_ASSERTION(mProgressDiv, "::-moz-range-progress div must exist!");
+  NS_ASSERTION(mThumbDiv, "::-moz-range-thumb div must exist!");
   NS_ASSERTION(!GetPrevContinuation() && !GetNextContinuation(),
                "nsRangeFrame should not have continuations; if it does we "
                "need to call RegUnregAccessKey only for the first.");
@@ -164,6 +169,11 @@ nsRangeFrame::Reflow(nsPresContext*           aPresContext,
   nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
   if (trackFrame) {
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, trackFrame);
+  }
+
+  nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
+  if (rangeProgressFrame) {
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, rangeProgressFrame);
   }
 
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
@@ -263,6 +273,34 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
 
     DoUpdateThumbPosition(thumbFrame, nsSize(aDesiredSize.width,
                                              aDesiredSize.height));
+  }
+
+  nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
+
+  if (rangeProgressFrame) { 
+    nsHTMLReflowState progressReflowState(aPresContext, aReflowState,
+                                          rangeProgressFrame,
+                                          nsSize(aReflowState.ComputedWidth(),
+                                                 NS_UNCONSTRAINEDSIZE));
+
+    
+    
+    
+
+    nsReflowStatus frameStatus = NS_FRAME_COMPLETE;
+    nsHTMLReflowMetrics progressDesiredSize;
+    nsresult rv = ReflowChild(rangeProgressFrame, aPresContext,
+                              progressDesiredSize, progressReflowState, 0, 0,
+                              0, frameStatus);
+    NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(frameStatus),
+               "We gave our child unconstrained height, so it should be complete");
+    rv = FinishReflowChild(rangeProgressFrame, aPresContext,
+                           &progressReflowState, progressDesiredSize, 0, 0, 0);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    DoUpdateRangeProgressFrame(rangeProgressFrame, nsSize(aDesiredSize.width,
+                                                          aDesiredSize.height));
   }
 
   return NS_OK;
@@ -382,16 +420,22 @@ nsRangeFrame::GetValueAtEventPoint(nsGUIEvent* aEvent)
 }
 
 void
-nsRangeFrame::UpdateThumbPositionForValueChange()
+nsRangeFrame::UpdateForValueChange()
 {
   if (NS_SUBTREE_DIRTY(this)) {
     return; 
   }
+  nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
-  if (!thumbFrame) {
+  if (!rangeProgressFrame && !thumbFrame) {
     return; 
   }
-  DoUpdateThumbPosition(thumbFrame, GetSize());
+  if (rangeProgressFrame) {
+    DoUpdateRangeProgressFrame(rangeProgressFrame, GetSize());
+  }
+  if (thumbFrame) {
+    DoUpdateThumbPosition(thumbFrame, GetSize());
+  }
   if (IsThemed()) {
     
     
@@ -449,6 +493,51 @@ nsRangeFrame::DoUpdateThumbPosition(nsIFrame* aThumbFrame,
   aThumbFrame->SetPosition(newPosition);
 }
 
+void
+nsRangeFrame::DoUpdateRangeProgressFrame(nsIFrame* aRangeProgressFrame,
+                                         const nsSize& aRangeSize)
+{
+  MOZ_ASSERT(aRangeProgressFrame);
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsMargin borderAndPadding = GetUsedBorderAndPadding();
+  nsSize progSize = aRangeProgressFrame->GetSize();
+  nsRect progRect(borderAndPadding.left, borderAndPadding.top,
+                  progSize.width, progSize.height);
+
+  nsSize rangeContentBoxSize(aRangeSize);
+  rangeContentBoxSize.width -= borderAndPadding.LeftRight();
+  rangeContentBoxSize.height -= borderAndPadding.TopBottom();
+
+  double fraction = GetValueAsFractionOfRange();
+  MOZ_ASSERT(fraction >= 0.0 && fraction <= 1.0);
+
+  
+  nsSize frameSizeOverride(aRangeSize.width, aRangeSize.height);
+  if (IsHorizontal(&frameSizeOverride)) {
+    nscoord progLength = NSToCoordRound(fraction * rangeContentBoxSize.width);
+    if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+      progRect.x += rangeContentBoxSize.width - progLength;
+    }
+    progRect.y += (rangeContentBoxSize.height - progSize.height)/2;
+    progRect.width = progLength;
+  } else {
+    nscoord progLength = NSToCoordRound(fraction * rangeContentBoxSize.height);
+    progRect.x += (rangeContentBoxSize.width - progSize.width)/2;
+    progRect.y += rangeContentBoxSize.height - progLength;
+    progRect.height = progLength;
+  }
+  aRangeProgressFrame->SetRect(progRect);
+}
+
 NS_IMETHODIMP
 nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
                                nsIAtom* aAttribute,
@@ -477,7 +566,7 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
                            NS_FORM_INPUT_RANGE;
       MOZ_ASSERT(typeIsRange || aAttribute == nsGkAtoms::value, "why?");
       if (typeIsRange) {
-        UpdateThumbPositionForValueChange();
+        UpdateForValueChange();
       }
     } else if (aAttribute == nsGkAtoms::orient) {
       PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eResize,
@@ -599,6 +688,8 @@ nsRangeFrame::ShouldUseNativeStyle() const
          !PresContext()->HasAuthorSpecifiedRules(const_cast<nsRangeFrame*>(this),
                                                  STYLES_DISABLING_NATIVE_THEMING) &&
          !PresContext()->HasAuthorSpecifiedRules(mTrackDiv->GetPrimaryFrame(),
+                                                 STYLES_DISABLING_NATIVE_THEMING) &&
+         !PresContext()->HasAuthorSpecifiedRules(mProgressDiv->GetPrimaryFrame(),
                                                  STYLES_DISABLING_NATIVE_THEMING) &&
          !PresContext()->HasAuthorSpecifiedRules(mThumbDiv->GetPrimaryFrame(),
                                                  STYLES_DISABLING_NATIVE_THEMING);

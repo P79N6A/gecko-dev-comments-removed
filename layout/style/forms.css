@@ -776,6 +776,28 @@ input[type=range][orient=vertical]::-moz-range-track {
 
 
 
+
+
+::-moz-range-progress {
+  
+  display: inline-block !important;
+  float: none !important;
+  position: static !important;
+  
+
+
+  width: 0.2em;
+  height: 0.2em;
+  
+  -moz-user-select: none ! important;
+}
+
+
+
+
+
+
+
 input[type=range]::-moz-range-thumb {
   
   display: inline-block !important;
