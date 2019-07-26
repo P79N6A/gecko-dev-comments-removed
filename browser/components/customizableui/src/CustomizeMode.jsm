@@ -170,14 +170,6 @@ CustomizeMode.prototype = {
     let window = this.window;
     let document = this.document;
 
-    if (this._changed) {
-      
-      
-      
-      
-      this.persistCurrentSets();
-    }
-
     document.documentElement.removeAttribute("customizing");
 
     for (let target of this.areas) {
@@ -190,6 +182,14 @@ CustomizeMode.prototype = {
       target.removeEventListener("dragover", this);
       target.removeEventListener("dragexit", this);
       target.removeEventListener("drop", this);
+    }
+
+    if (this._changed) {
+      
+      
+      
+      
+      this.persistCurrentSets();
     }
 
     
