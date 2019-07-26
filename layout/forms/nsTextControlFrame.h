@@ -12,11 +12,11 @@
 #include "nsITextControlFrame.h"
 #include "nsITextControlElement.h"
 #include "nsIStatefulFrame.h"
-#include "nsIEditor.h"
 
 class nsISelectionController;
 class EditorInitializerEntryTracker;
 class nsTextEditorState;
+class nsIEditor;
 namespace mozilla {
 namespace dom {
 class Element;
@@ -168,40 +168,6 @@ public:
   
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
-
-  class MOZ_STACK_CLASS ValueSetter {
-  public:
-    ValueSetter(nsIEditor* aEditor)
-      : mEditor(aEditor)
-      , mCanceled(false)
-    {
-      MOZ_ASSERT(aEditor);
-
-      
-      
-      
-      mEditor->GetSuppressDispatchingInputEvent(&mOuterTransaction);
-    }
-    void Cancel() {
-      mCanceled = true;
-    }
-    void Init() {
-      mEditor->SetSuppressDispatchingInputEvent(true);
-    }
-    ~ValueSetter() {
-      mEditor->SetSuppressDispatchingInputEvent(mOuterTransaction);
-
-      if (mCanceled) {
-        return;
-      }
-    }
-
-  private:
-    nsCOMPtr<nsIEditor> mEditor;
-    bool mOuterTransaction;
-    bool mCanceled;
-  };
-  friend class ValueSetter;
 
 #define DEFINE_TEXTCTRL_FORWARDER(type, name)                                  \
   type name() {                                                                \

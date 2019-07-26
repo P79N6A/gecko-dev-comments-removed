@@ -50,6 +50,33 @@ static NS_DEFINE_CID(kTextEditorCID, NS_TEXTEDITOR_CID);
 static nsINativeKeyBindings *sNativeInputBindings = nullptr;
 static nsINativeKeyBindings *sNativeTextAreaBindings = nullptr;
 
+class MOZ_STACK_CLASS ValueSetter
+{
+public:
+  ValueSetter(nsIEditor* aEditor)
+    : mEditor(aEditor)
+  {
+    MOZ_ASSERT(aEditor);
+  
+    
+    
+    
+    mEditor->GetSuppressDispatchingInputEvent(&mOuterTransaction);
+  }
+  ~ValueSetter()
+  {
+    mEditor->SetSuppressDispatchingInputEvent(mOuterTransaction);
+  }
+  void Init()
+  {
+    mEditor->SetSuppressDispatchingInputEvent(true);
+  }
+
+private:
+  nsCOMPtr<nsIEditor> mEditor;
+  bool mOuterTransaction;
+};
+
 class RestoreSelectionState : public nsRunnable {
 public:
   RestoreSelectionState(nsTextEditorState *aState, nsTextControlFrame *aFrame)
@@ -1808,7 +1835,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
     
     if (!currentValue.Equals(aValue))
     {
-      nsTextControlFrame::ValueSetter valueSetter(mEditor);
+      ValueSetter valueSetter(mEditor);
 
       
       
@@ -1902,7 +1929,6 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
           if (!mBoundFrame) {
             SetValue(newValue, false, aSetValueChanged);
           }
-          valueSetter.Cancel();
           return;
         }
 
