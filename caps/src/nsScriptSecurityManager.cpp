@@ -184,12 +184,6 @@ GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
   return GetOriginFromURI(uri, aOrigin);
 }
 
-static nsIScriptContext *
-GetScriptContext(JSContext *cx)
-{
-    return GetScriptContextFromJSContext(cx);
-}
-
 inline void SetPendingException(JSContext *cx, const char *aMsg)
 {
     JS_ReportError(cx, "%s", aMsg);
@@ -1622,21 +1616,6 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
     {
         *result = true;
         return NS_OK;
-    }
-
-    
-    nsIScriptContext *scriptContext = GetScriptContext(cx);
-    if (scriptContext) {
-        if (!scriptContext->GetScriptsEnabled()) {
-            
-            *result = false;
-            return NS_OK;
-        }
-
-        nsIScriptGlobalObject *sgo = scriptContext->GetGlobalObject();
-        if (!sgo) {
-            return NS_ERROR_FAILURE;
-        }
     }
 
     

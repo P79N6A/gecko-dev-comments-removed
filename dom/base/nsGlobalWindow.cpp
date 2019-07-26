@@ -3190,19 +3190,6 @@ nsGlobalWindow::PoisonOuterWindowProxy(JSObject *aObject)
   }
 }
 
-void
-nsGlobalWindow::SetScriptsEnabled(bool aEnabled, bool aFireTimeouts)
-{
-  FORWARD_TO_INNER_VOID(SetScriptsEnabled, (aEnabled, aFireTimeouts));
-
-  if (aEnabled && aFireTimeouts) {
-    
-    
-    void (nsGlobalWindow::*run)() = &nsGlobalWindow::RunTimeout;
-    NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, run));
-  }
-}
-
 nsresult
 nsGlobalWindow::SetArguments(nsIArray *aArguments)
 {
@@ -11832,20 +11819,6 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     nsCOMPtr<nsIScriptContext> scx = GetContextInternal();
 
     if (!scx) {
-      
-      
-      continue;
-    }
-
-    
-    
-    
-    if (!scx->GetScriptsEnabled()) {
-      
-      
-      
-      
-      
       
       
       continue;
