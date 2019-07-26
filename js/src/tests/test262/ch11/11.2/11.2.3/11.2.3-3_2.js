@@ -1,0 +1,24 @@
+
+
+
+
+
+
+
+
+
+
+
+function testcase() {
+    var fooCalled = false;
+    var foo = function (){ fooCalled = true; } 
+    
+    var o = { }; 
+    try {
+        o.bar( foo() );
+        throw new Exception("o.bar does not exist!");
+    } catch(e) {
+        return (e instanceof TypeError) && (fooCalled===true);
+    }
+}
+runTestCase(testcase);
