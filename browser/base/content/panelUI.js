@@ -38,27 +38,6 @@ const PanelUI = {
             this.viewStack.getAttribute("view") == "subview");
   },
 
-  
-
-
-
-
-
-
-  set _showingSubView(aVal) {
-    if (aVal) {
-      let oldHeight = this.mainView.clientHeight;
-      this.viewStack.setAttribute("view", "subview");
-      this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
-      this.container.style.height = this.subViews.scrollHeight + "px";
-    } else {
-      this.viewStack.setAttribute("view", "main");
-      this._syncContainerWithMainView();
-    }
-
-    return aVal;
-  },
-
   init: function() {
     for (let [k, v] of Iterator(this.kElements)) {
       
@@ -76,6 +55,12 @@ const PanelUI = {
 
     this.clickCapturer.addEventListener("click", this._onCapturerClick,
                                         true);
+
+    
+    
+    this._subViewObserver = new MutationObserver(function(aMutations) {
+      this._syncContainerWithSubView();
+    }.bind(this));
   },
 
   uninit: function() {
@@ -164,14 +149,20 @@ const PanelUI = {
   showMainView: function() {
     
     if (this._showingSubView) {
-      let viewNode = this.subViews.selectedPanel;
+      let viewNode = this._currentSubView;
       let evt = document.createEvent("CustomEvent");
       evt.initCustomEvent("ViewHiding", true, true, viewNode);
       viewNode.dispatchEvent(evt);
+
+      viewNode.removeAttribute("current");
+      this._currentSubView = null;
+      this._subViewObserver.disconnect();
     }
 
+    this.viewStack.setAttribute("view", "main");
+    this._syncContainerWithMainView();
+
     this._shiftMainView();
-    this._showingSubView = false;
   },
 
   
@@ -191,13 +182,19 @@ const PanelUI = {
       return;
     }
 
+    let oldHeight = this.mainView.clientHeight;
+    viewNode.setAttribute("current", true);
+    this._currentSubView = viewNode;
+
     
     
     let evt = document.createEvent("CustomEvent");
     evt.initCustomEvent("ViewShowing", true, true, viewNode);
     viewNode.dispatchEvent(evt);
 
-    this.subViews.selectedPanel = viewNode;
+    this.viewStack.setAttribute("view", "subview");
+    this.mainViewSpring.style.height = this.subViews.scrollHeight - oldHeight + "px";
+    this.container.style.height = this.subViews.scrollHeight + "px";
 
     
     
@@ -212,7 +209,12 @@ const PanelUI = {
     
     
     this._shiftMainView(aAnchor);
-    this._showingSubView = true;
+    this._subViewObserver.observe(viewNode, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true
+    });
   },
 
   
@@ -224,6 +226,18 @@ const PanelUI = {
     let springHeight = this.mainViewSpring.getBoundingClientRect().height;
     this.container.style.height = (this.mainView.scrollHeight - springHeight) + "px";
     this.mainViewSpring.style.height = "";
+  },
+
+  
+
+
+
+
+  _syncContainerWithSubView: function() {
+    let springHeight = this.mainViewSpring.getBoundingClientRect().height;
+    let mainViewHeight = this.mainView.clientHeight - springHeight;
+    this.container.style.height = this.subViews.scrollHeight + "px";
+    this.mainViewSpring.style.height = (this.subViews.scrollHeight - mainViewHeight) + "px";
   },
 
   

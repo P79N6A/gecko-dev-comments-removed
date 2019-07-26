@@ -42,13 +42,7 @@ XPCOMUtils.defineLazyGetter(this, "gBuiltInWidgets", function() {
     
     
     onViewShowing: function(aEvent) {
-      
-      
-      
       LOG("Bookmark view is being shown!");
-      let doc = aEvent.detail.ownerDocument;
-      let vbox = doc.getElementById("PanelUI-bookmarks-tall-maker");
-      vbox.style.height = "500px";
     },
     onViewHiding: function(aEvent) {
       LOG("Bookmark view is being hidden!");
