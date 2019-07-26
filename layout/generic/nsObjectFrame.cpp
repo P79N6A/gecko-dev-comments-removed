@@ -1596,14 +1596,6 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
 
   
-  nsRefPtr<ImageContainer> container = mInstanceOwner->GetImageContainer();
-
-  if (!container) {
-    
-    return nullptr;
-  }
-
-  
   double scaleFactor = 1.0;
   if (NS_FAILED(mInstanceOwner->GetContentsScaleFactor(&scaleFactor))) {
     scaleFactor = 1.0;
@@ -1627,8 +1619,14 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
         return nullptr;
     }
 
-    NS_ASSERTION(layer->GetType() == Layer::TYPE_IMAGE, "Bad layer type");
+    
+    nsRefPtr<ImageContainer> container = mInstanceOwner->GetImageContainer();
+    if (!container) {
+      
+      return nullptr;
+    }
 
+    NS_ASSERTION(layer->GetType() == Layer::TYPE_IMAGE, "Bad layer type");
     ImageLayer* imglayer = static_cast<ImageLayer*>(layer.get());
     UpdateImageLayer(r);
 
