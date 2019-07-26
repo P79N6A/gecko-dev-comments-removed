@@ -559,8 +559,6 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
 
     
     Value lastIndex = reobj->getLastIndex();
-
-    const jschar *chars = input->chars();
     size_t length = input->length();
 
     
@@ -593,6 +591,7 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
     }
 
     
+    const jschar *chars = input->chars();
     size_t lastIndexInt(i);
     RegExpRunStatus status =
         ExecuteRegExpImpl(cx, res, *re, input, chars, length, &lastIndexInt, matches);

@@ -571,6 +571,9 @@ RegExpShared::executeMatchOnly(JSContext *cx, const jschar *chars, size_t length
                                size_t *lastIndex, MatchPair &match)
 {
     
+    SkipRoot skipChars(cx, &chars);
+
+    
     if (!compileMatchOnlyIfNecessary(cx))
         return RegExpRunStatus_Error;
 
