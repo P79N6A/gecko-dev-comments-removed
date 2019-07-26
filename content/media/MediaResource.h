@@ -13,6 +13,7 @@
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsProxyRelease.h"
 #include "MediaCache.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
@@ -395,7 +396,7 @@ protected:
 
 class BaseMediaResource : public MediaResource {
 public:
-  virtual nsIURI* URI() const { return mURI; }
+  virtual nsIURI* URI() const { return const_cast<nsIURI*>(mURI.get()); }
   virtual void MoveLoadsToBackground();
 
 protected:
@@ -404,8 +405,8 @@ protected:
                     nsIURI* aURI,
                     const nsACString& aContentType) :
     mDecoder(aDecoder),
-    mChannel(aChannel),
-    mURI(aURI),
+    mChannel(new nsMainThreadPtrHolder<nsIChannel>(aChannel)),
+    mURI(new nsMainThreadPtrHolder<nsIURI>(aURI)),
     mContentType(aContentType),
     mLoadInBackground(false)
   {
@@ -438,11 +439,11 @@ protected:
 
   
   
-  nsCOMPtr<nsIChannel> mChannel;
+  nsMainThreadPtrHandle<nsIChannel> mChannel;
 
   
   
-  nsCOMPtr<nsIURI> mURI;
+  nsMainThreadPtrHandle<nsIURI> mURI;
 
   
   
