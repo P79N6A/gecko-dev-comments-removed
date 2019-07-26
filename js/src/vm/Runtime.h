@@ -1297,14 +1297,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     ExtraTracerVector   gcBlackRootTracers;
     ExtraTracer         gcGrayRootTracer;
 
-    
-
-
-
-    size_t              gcSystemPageSize;
-
-    
-    size_t              gcSystemAllocGranularity;
+    js::gc::SystemPageAllocator pageAllocator;
 
     
     js::ScriptAndCountsVector *scriptAndCountsVector;
