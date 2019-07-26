@@ -494,7 +494,7 @@ private:
 
   
   void SetCssTextToCoord(nsAString& aCssText, const nsStyleCoord& aCoord);
-  nsROCSSPrimitiveValue* CreatePrimitiveValueForStyleFilter(
+  mozilla::dom::CSSValue* CreatePrimitiveValueForStyleFilter(
     const nsStyleFilter& aStyleFilter);
 
   struct ComputedStyleMapEntry
