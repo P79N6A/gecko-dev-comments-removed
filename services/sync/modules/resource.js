@@ -143,6 +143,8 @@ AsyncResource.prototype = {
     
     channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
     channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
+    
+    channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS;
 
     
     channel.notificationCallbacks = new ChannelNotificationListener();
