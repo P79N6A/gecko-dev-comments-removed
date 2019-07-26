@@ -161,10 +161,10 @@ class MOZ_STACK_CLASS nsWSRunObject
 
     
     
-    static nsresult ScrubBlockBoundary(nsHTMLEditor *aHTMLEd, 
-                                       nsCOMPtr<nsIDOMNode> *aBlock,
+    static nsresult ScrubBlockBoundary(nsHTMLEditor* aHTMLEd,
                                        BlockBoundary aBoundary,
-                                       int32_t *aOffset = 0);
+                                       nsINode* aBlock,
+                                       int32_t aOffset = -1);
     
     
     
@@ -363,9 +363,6 @@ class MOZ_STACK_CLASS nsWSRunObject
     nsresult CheckTrailingNBSP(WSFragment *aRun, nsIDOMNode *aNode, int32_t aOffset);
     nsresult CheckLeadingNBSP(WSFragment *aRun, nsIDOMNode *aNode, int32_t aOffset);
     
-    static nsresult ScrubBlockBoundaryInner(nsHTMLEditor *aHTMLEd, 
-                                       nsCOMPtr<nsIDOMNode> *aBlock,
-                                       BlockBoundary aBoundary);
     nsresult Scrub();
     nsresult GetPreviousWSNodeInner(nsINode* aStartNode, nsINode* aBlockParent,
                                     nsCOMPtr<nsINode>* aPriorNode);
