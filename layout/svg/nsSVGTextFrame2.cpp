@@ -3969,9 +3969,7 @@ nsSVGTextFrame2::ResolvePositions(nsIContent* aContent,
       }
       
       while (j < count) {
-        if (!mPositions[aIndex + j].IsAngleSpecified()) {
-          mPositions[aIndex + j].mAngle = mPositions[aIndex + j - 1].mAngle;
-        }
+        mPositions[aIndex + j].mAngle = mPositions[aIndex + j - 1].mAngle;
         j++;
       }
     }
