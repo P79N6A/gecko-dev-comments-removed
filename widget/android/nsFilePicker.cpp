@@ -119,7 +119,7 @@ NS_IMETHODIMP nsFilePicker::Show(int16_t *_retval)
         return NS_ERROR_NOT_IMPLEMENTED;
     nsAutoString filePath;
 
-    if (mExtensionsFilter.IsEmpty() == mMimeTypeFilter.IsEmpty()) {
+    if (mExtensionsFilter.IsEmpty() && mMimeTypeFilter.IsEmpty()) {
       
       mozilla::AndroidBridge::Bridge()->ShowFilePickerForMimeType(filePath, NS_LITERAL_STRING("*/*"));
     } else if (!mExtensionsFilter.IsEmpty()) {
