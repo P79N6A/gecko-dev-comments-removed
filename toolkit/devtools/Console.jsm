@@ -586,6 +586,14 @@ function ConsoleAPI(aConsoleOptions = {}) {
   this.dump = aConsoleOptions.dump || dump;
   this.prefix = aConsoleOptions.prefix || "";
   this.maxLogLevel = aConsoleOptions.maxLogLevel || "all";
+
+  
+  for (let prop in this) {
+    let desc = Object.getOwnPropertyDescriptor(this, prop);
+    if (typeof(desc.value) === "function") {
+      this[prop] = desc.value.bind(this);
+    }
+  }
 }
 
 ConsoleAPI.prototype = {
