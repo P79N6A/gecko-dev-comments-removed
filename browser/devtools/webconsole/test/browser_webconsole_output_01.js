@@ -105,10 +105,10 @@ let inputTests = [
 
   
   {
-    input: "false",
+    input: "new Boolean(false)",
     output: "false",
+    inspectable: true,
   },
-
 
   
   {
@@ -125,6 +125,20 @@ let inputTests = [
     printOutput: "Invalid Date",
     inspectable: true,
     variablesViewLabel: "Invalid Date",
+  },
+
+  
+  {
+    input: "new Number(43)",
+    output: "43",
+    inspectable: true,
+  },
+
+  
+  {
+    input: "new String('hello world')",
+    output: '"hello world"',
+    inspectable: true,
   },
 ];
 

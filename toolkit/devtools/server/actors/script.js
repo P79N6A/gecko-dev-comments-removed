@@ -3308,6 +3308,41 @@ ObjectActor.prototype.requestTypes = {
 
 
 DebuggerServer.ObjectActorPreviewers = {
+  String: [function({obj, threadActor}, aGrip) {
+    let result = genericObjectPreviewer("String", String, obj, threadActor);
+    if (result) {
+      let length = DevToolsUtils.getProperty(obj, "length");
+      if (typeof length != "number") {
+        return false;
+      }
+
+      aGrip.displayString = result.value;
+      return true;
+    }
+
+    return true;
+  }],
+
+  Boolean: [function({obj, threadActor}, aGrip) {
+    let result = genericObjectPreviewer("Boolean", Boolean, obj, threadActor);
+    if (result) {
+      aGrip.preview = result;
+      return true;
+    }
+
+    return false;
+  }],
+
+  Number: [function({obj, threadActor}, aGrip) {
+    let result = genericObjectPreviewer("Number", Number, obj, threadActor);
+    if (result) {
+      aGrip.preview = result;
+      return true;
+    }
+
+    return false;
+  }],
+
   Function: [function({obj, threadActor}, aGrip) {
     if (obj.name) {
       aGrip.name = obj.name;
@@ -3484,6 +3519,45 @@ DebuggerServer.ObjectActorPreviewers = {
     return true;
   }], 
 }; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function genericObjectPreviewer(aClassName, aClass, aObj, aThreadActor) {
+  if (!aObj.proto || aObj.proto.class != aClassName) {
+    return null;
+  }
+
+  let raw = aObj.unsafeDereference();
+  let v = null;
+  try {
+    v = aClass.prototype.valueOf.call(raw);
+  } catch (ex) {
+    
+    return null;
+  }
+
+  if (v !== null) {
+    v = aThreadActor.createValueGrip(makeDebuggeeValueIfNeeded(aObj, v));
+    return { value: v };
+  }
+
+  return null;
+}
 
 
 DebuggerServer.ObjectActorPreviewers.Object = [
