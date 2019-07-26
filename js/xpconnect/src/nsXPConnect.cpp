@@ -1981,18 +1981,7 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt)
     if (!NS_IsMainThread())
         MOZ_CRASH();
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    JSContext *unpushedCx = XPCJSRuntime::Get()->GetJSContextStack()
-                                               ->GetSafeJSContext();
-
+    AutoSafeJSContext cx;
     JS_SetRuntimeDebugMode(rt, gDesiredDebugMode);
 
     nsresult rv;
@@ -2002,7 +1991,7 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt)
         goto fail;
     }
 
-    if (!JS_SetDebugModeForAllCompartments(unpushedCx, gDesiredDebugMode))
+    if (!JS_SetDebugModeForAllCompartments(cx, gDesiredDebugMode))
         goto fail;
 
     if (gDesiredDebugMode) {
