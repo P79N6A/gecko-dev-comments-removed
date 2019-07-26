@@ -28,21 +28,24 @@
 
 
 
+"use strict";
+
 const EventEmitter = require("devtools/shared/event-emitter");
 
 function ObservableObject(object = {}) {
+  EventEmitter.decorate(this);
   let handler = new Handler(this);
   this.object = new Proxy(object, handler);
   handler._wrappers.set(this.object, object);
   handler._paths.set(object, []);
 }
 
-exports.ObservableObject = ObservableObject;
+module.exports = ObservableObject;
 
-ObservableObject.prototype = new EventEmitter();
-
-function isObject(value) {
-  return Object(value) === value;
+function isObject(x) {
+  if (typeof x === "object")
+    return x !== null;
+  return typeof x === "function";
 }
 
 function Handler(emitter) {
@@ -71,7 +74,7 @@ Handler.prototype = {
     if (!isObject(value) || !this._wrappers.has(value)) {
       return [value, this._paths.get(target).concat(key)];
     }
-    return [this._wrappers.get(value), this._paths.get(value)];
+    return [this._wrappers.get(value), this._paths.get(target).concat(key)];
   },
   get: function(target, key) {
     let value = target[key];
