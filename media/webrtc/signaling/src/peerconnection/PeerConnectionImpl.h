@@ -259,8 +259,8 @@ private:
   void ShutdownMedia(bool isSynchronous);
 
   
-  nsresult IceGatheringCompleted_m(NrIceCtx *aCtx);
-  nsresult IceCompleted_m(NrIceCtx *aCtx);
+  nsresult IceGatheringCompleted_m();
+  nsresult IceCompleted_m();
 
   
   Role mRole;
