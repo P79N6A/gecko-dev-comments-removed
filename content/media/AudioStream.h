@@ -65,8 +65,6 @@ public:
   
   
   bool GetPreservesPitch();
-  
-  int64_t GetWritten();
 private:
   
   
@@ -374,7 +372,12 @@ private:
 
   
   
-  uint64_t mLostFrames;
+  
+  uint64_t mWrittenFramesPast; 
+  uint64_t mLostFramesPast;    
+  
+  uint64_t mWrittenFramesLast; 
+  uint64_t mLostFramesLast;    
 
   
   FILE* mDumpFile;

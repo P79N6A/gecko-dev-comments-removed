@@ -152,7 +152,10 @@ AudioStream::AudioStream()
   , mAudioClock(MOZ_THIS_IN_INITIALIZER_LIST())
   , mLatencyRequest(HighLatency)
   , mReadPoint(0)
-  , mLostFrames(0)
+  , mWrittenFramesPast(0)
+  , mLostFramesPast(0)
+  , mWrittenFramesLast(0)
+  , mLostFramesLast(0)
   , mDumpFile(nullptr)
   , mVolume(1.0)
   , mBytesPerFrame(0)
@@ -780,9 +783,28 @@ AudioStream::GetPositionInFramesUnlocked()
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   uint64_t adjustedPosition = 0;
-  if (position >= mLostFrames) {
-    adjustedPosition = position - mLostFrames;
+  if (position <= mWrittenFramesPast) {
+    adjustedPosition = position;
+  } else if (position <= mWrittenFramesPast + mLostFramesPast) {
+    adjustedPosition = mWrittenFramesPast;
+  } else if (position <= mWrittenFramesPast + mLostFramesPast + mWrittenFramesLast) {
+    adjustedPosition = position - mLostFramesPast;
+  } else {
+    adjustedPosition = mWrittenFramesPast + mWrittenFramesLast;
   }
   return std::min<uint64_t>(adjustedPosition, INT64_MAX);
 }
@@ -929,6 +951,9 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
   uint32_t servicedFrames = 0;
   int64_t insertTime;
 
+  mWrittenFramesPast += mWrittenFramesLast;
+  mLostFramesPast += mLostFramesLast;
+
   
   
 
@@ -992,6 +1017,8 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
   }
 
   underrunFrames = aFrames - servicedFrames;
+  mWrittenFramesLast = servicedFrames;
+  mLostFramesLast = underrunFrames;
 
   if (mState != DRAINING) {
     uint8_t* rpos = static_cast<uint8_t*>(aBuffer) + FramesToBytes(aFrames - underrunFrames);
@@ -1000,7 +1027,6 @@ AudioStream::DataCallback(void* aBuffer, long aFrames)
       PR_LOG(gAudioStreamLog, PR_LOG_WARNING,
              ("AudioStream %p lost %d frames", this, underrunFrames));
     }
-    mLostFrames += underrunFrames;
     servicedFrames += underrunFrames;
   }
 
