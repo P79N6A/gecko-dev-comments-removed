@@ -2,11 +2,11 @@
 
 
 
-
 #ifndef nsDOMJSUtils_h__
 #define nsDOMJSUtils_h__
 
 #include "nsIScriptContext.h"
+#include "jsapi.h"
 
 class nsIJSArgArray;
 

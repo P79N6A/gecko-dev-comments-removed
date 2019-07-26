@@ -4,7 +4,6 @@
 
 
 #include "jsctypes-test.h"
-#include "jsapi.h"
 #include "nsCRTGlue.h"
 #include <math.h>
 #include <stdarg.h>

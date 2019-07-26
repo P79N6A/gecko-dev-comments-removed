@@ -4,7 +4,6 @@
 
 
 
-#include "jsapi.h"
 #include "jscompartment.h"
 #include "jsgc.h"
 

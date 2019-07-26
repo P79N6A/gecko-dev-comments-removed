@@ -6,9 +6,9 @@
 
 #ifdef __APPLE__
 
-#include "jsapi.h"
 #include <dlfcn.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <unistd.h>
 
 
 

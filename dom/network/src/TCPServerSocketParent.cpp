@@ -3,8 +3,6 @@
 
 
 #include "TCPServerSocketParent.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
 #include "nsJSUtils.h"
 #include "TCPSocketParent.h"
 #include "mozilla/unused.h"

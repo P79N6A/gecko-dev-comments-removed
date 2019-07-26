@@ -50,7 +50,6 @@
 #include "nsJSUtils.h"
 #include "jsapi.h"              
 #include "js/OldDebugAPI.h"     
-#include "jsfriendapi.h"        
 #include "jswrapper.h"
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
