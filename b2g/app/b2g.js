@@ -109,6 +109,7 @@ pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", true);
+pref("layers.low-precision-buffer", true);
 
 
 
@@ -116,7 +117,7 @@ pref("layers.enable-tiles", true);
 #ifdef MOZ_WIDGET_COCOA
 pref("layers.progressive-paint", false);
 #else
-pref("layers.progressive-paint", false);
+pref("layers.progressive-paint", true);
 #endif
 
 
@@ -945,6 +946,10 @@ pref("apz.enlarge_displayport_when_clipped", true);
 
 pref("apz.axis_lock_mode", 2);
 pref("apz.subframe.enabled", true);
+
+
+pref("apz.overscroll.snap_back_accel", "0.003");
+pref("apz.overscroll.snap_back_init_vel", "1");
 
 
 

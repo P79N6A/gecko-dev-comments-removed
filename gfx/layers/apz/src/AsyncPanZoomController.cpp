@@ -257,6 +257,13 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -396,7 +403,7 @@ public:
 
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
-                      const TimeDuration& aDelta);
+                      const TimeDuration& aDelta) MOZ_OVERRIDE;
 
 private:
   static bool SameDirection(float aVelocity1, float aVelocity2)
@@ -428,7 +435,7 @@ public:
   {}
 
   virtual bool Sample(FrameMetrics& aFrameMetrics,
-                      const TimeDuration& aDelta);
+                      const TimeDuration& aDelta) MOZ_OVERRIDE;
 
 private:
   TimeDuration mDuration;
@@ -446,6 +453,26 @@ private:
   
   CSSPoint mEndOffset;
   CSSToScreenScale mEndZoom;
+};
+
+class OverscrollSnapBackAnimation: public AsyncPanZoomAnimation {
+public:
+  OverscrollSnapBackAnimation(AsyncPanZoomController& aApzc)
+    : mApzc(aApzc)
+  {
+    mApzc.mX.StartSnapBack();
+    mApzc.mY.StartSnapBack();
+  }
+
+  virtual bool Sample(FrameMetrics& aFrameMetrics,
+                      const TimeDuration& aDelta) MOZ_OVERRIDE
+  {
+    return mApzc.mX.SampleSnapBack(aDelta)
+        || mApzc.mY.SampleSnapBack(aDelta);
+  }
+
+private:
+  AsyncPanZoomController& mApzc;
 };
 
 void
@@ -794,6 +821,9 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
       return nsEventStatus_eIgnore;
 
     case WAITING_CONTENT_RESPONSE:
+    case SNAP_BACK:  
+                     
+                     
       NS_WARNING("Received impossible touch in OnTouchMove");
       break;
   }
@@ -865,6 +895,9 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     return nsEventStatus_eIgnore;
 
   case WAITING_CONTENT_RESPONSE:
+  case SNAP_BACK:  
+                   
+                   
     NS_WARNING("Received impossible touch in OnTouchEnd");
     break;
   }
@@ -1353,6 +1386,11 @@ void AsyncPanZoomController::HandleFlingOverscroll(const ScreenPoint& aVelocity)
   }
 }
 
+void AsyncPanZoomController::StartSnapBack() {
+  SetState(SNAP_BACK);
+  StartAnimation(new OverscrollSnapBackAnimation(*this));
+}
+
 bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                                                 uint32_t aOverscrollHandoffChainIndex) {
   
@@ -1428,6 +1466,10 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
        shouldContinueFlingY = mApzc.mY.FlingApplyFrictionOrCancel(aDelta);
   
   if (!shouldContinueFlingX && !shouldContinueFlingY) {
+    
+    if (mApzc.IsOverscrolled()) {
+      mDeferredTasks.append(NewRunnableMethod(&mApzc, &AsyncPanZoomController::StartSnapBack));
+    }
     return false;
   }
 

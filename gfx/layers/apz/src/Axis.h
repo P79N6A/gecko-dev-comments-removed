@@ -102,6 +102,22 @@ public:
   
 
 
+  void StartSnapBack();
+
+  
+
+
+
+  bool SampleSnapBack(const TimeDuration& aDelta);
+
+  
+
+
+  bool IsOverscrolled() const;
+
+  
+
+
 
 
   float PanDistance();

@@ -539,6 +539,7 @@ private:
 
 
 
+    SNAP_BACK,                
   };
 
   
@@ -774,6 +775,7 @@ public:
 
 private:
   friend class FlingAnimation;
+  friend class OverscrollSnapBackAnimation;
   
   ScreenPoint mLastFlingVelocity;
   
@@ -788,6 +790,9 @@ private:
 
   
   void AcceptFling(const ScreenPoint& aVelocity, bool aAllowOverscroll);
+
+  
+  void StartSnapBack();
 
 
   
@@ -922,6 +927,10 @@ public:
 
   bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
     return mVisibleRect.Contains(aPoint);
+  }
+
+  bool IsOverscrolled() const {
+    return mX.IsOverscrolled() || mY.IsOverscrolled();
   }
 
 private:
