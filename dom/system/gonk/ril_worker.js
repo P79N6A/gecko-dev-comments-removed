@@ -5942,6 +5942,23 @@ RilObject.prototype[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, op
 };
 RilObject.prototype[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 RilObject.prototype.readDataCall_v5 = function(options) {
   if (!options) {
     options = {};
@@ -5951,7 +5968,15 @@ RilObject.prototype.readDataCall_v5 = function(options) {
   options.active = Buf.readInt32(); 
   options.type = Buf.readString();
   options.apn = Buf.readString();
-  options.address = Buf.readString();
+  options.ipaddr = Buf.readString();
+  options.dns = Buf.readString();
+  
+  if (options.ipaddr) {
+    options.ipaddr = options.ipaddr.split(" ")[0];
+  }
+  if (options.dns) {
+    options.dns = options.dns.split(" ");
+  }
   return options;
 };
 
