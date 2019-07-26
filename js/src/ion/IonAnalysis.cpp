@@ -661,67 +661,6 @@ SkipContainedLoop(MBasicBlock *block, MBasicBlock *header)
     return block;
 }
 
-
-bool
-ion::FindNaturalLoops(MIRGraph &graph)
-{
-    Vector<MBasicBlock *, 8, SystemAllocPolicy> worklist;
-
-    
-    
-    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
-        if (!block->isLoopBackedge())
-            continue;
-
-        MBasicBlock *header = block->loopHeaderOfBackedge();
-        JS_ASSERT(!block->loopHeader());
-        JS_ASSERT(!header->loopHeader());
-
-        
-        header->setLoopHeader(header);
-        if (!header->addContainedInLoop(header))
-            return false;
-
-        MBasicBlock *current = *block;
-        do {
-            
-            for (size_t i = 0; i < current->numPredecessors(); i++) {
-                MBasicBlock *pred = current->getPredecessor(i);
-
-                
-                
-                if (pred->loopHeader() == header)
-                    continue;
-
-                
-                
-                JS_ASSERT_IF(pred != graph.osrBlock(),
-                             header->id() < pred->id() && pred->id() < block->id());
-
-                
-                
-                pred = SkipContainedLoop(pred, header);
-                if (pred == header)
-                    continue;
-
-                JS_ASSERT(!pred->isLoopBackedge());
-
-                if (!worklist.append(pred))
-                    return false;
-            }
-
-            current->setLoopHeader(header);
-            if (!header->addContainedInLoop(current))
-                return false;
-            if (worklist.empty())
-                break;
-            current = worklist.popCopy();
-        } while (true);
-    }
-
-    return true;
-}
-
 #ifdef DEBUG
 static bool
 CheckSuccessorImpliesPredecessor(MBasicBlock *A, MBasicBlock *B)
