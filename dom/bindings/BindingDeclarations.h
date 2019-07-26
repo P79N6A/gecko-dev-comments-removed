@@ -372,12 +372,9 @@ public:
     return true;
   }
 
-  operator JS::Value()
-  {
-    return mValue;
-  }
-
-  operator const JS::Value() const
+  
+  
+  operator JS::Value() const
   {
     return mValue;
   }
