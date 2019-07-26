@@ -36,6 +36,8 @@
 #include "nsDOMDataChannelDeclarations.h"
 
 #ifdef MOZILLA_INTERNAL_API
+#include "mozilla/TimeStamp.h"
+#include "mozilla/Telemetry.h"
 #include "nsDOMJSUtils.h"
 #include "nsIDocument.h"
 #include "nsIScriptError.h"
@@ -245,6 +247,9 @@ public:
         
         mPC->ClearSdpParseErrorMessages();
         mObserver->OnSetRemoteDescriptionSuccess();
+#ifdef MOZILLA_INTERNAL_API
+        mPC->setStartTime();
+#endif
         break;
 
       case SETLOCALDESCERROR:
@@ -1326,6 +1331,14 @@ PeerConnectionImpl::ShutdownMedia()
   if (!mMedia)
     return;
 
+#ifdef MOZILLA_INTERNAL_API
+  
+  if (!mStartTime.IsNull()){
+    mozilla::TimeDuration timeDelta = mozilla::TimeStamp::Now() - mStartTime;
+    Telemetry::Accumulate(Telemetry::WEBRTC_CALL_DURATION, timeDelta.ToSeconds());
+  }
+#endif
+
   
   
   mMedia.forget().get()->SelfDestruct();
@@ -1543,6 +1556,13 @@ PeerConnectionImpl::GetSdpParseErrors() {
   return mSDPParseErrorMessages;
 }
 
+#ifdef MOZILLA_INTERNAL_API
+
+void
+PeerConnectionImpl::setStartTime() {
+  mStartTime = mozilla::TimeStamp::Now();
+}
+#endif
 
 #ifdef MOZILLA_INTERNAL_API
 static nsresult

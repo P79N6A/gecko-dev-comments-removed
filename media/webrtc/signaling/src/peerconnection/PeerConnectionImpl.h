@@ -29,6 +29,7 @@
 #include "PeerConnectionMedia.h"
 
 #ifdef MOZILLA_INTERNAL_API
+#include "mozilla/TimeStamp.h"
 #include "mozilla/net/DataChannel.h"
 #include "VideoUtils.h"
 #include "VideoSegment.h"
@@ -281,6 +282,11 @@ public:
   
   void SetSignalingState_m(SignalingState aSignalingState);
 
+#ifdef MOZILLA_INTERNAL_API
+  
+  void setStartTime();
+#endif
+
 private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
@@ -365,6 +371,11 @@ private:
 #endif
 
   nsRefPtr<PeerConnectionMedia> mMedia;
+
+#ifdef MOZILLA_INTERNAL_API
+  
+  mozilla::TimeStamp mStartTime;
+#endif
 
   
   
