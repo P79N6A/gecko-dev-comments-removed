@@ -203,10 +203,6 @@ class JitFrameIterator
 
     
     
-    IonScript *ionScriptFromCalleeToken() const;
-
-    
-    
     const SafepointIndex *safepoint() const;
 
     

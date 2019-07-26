@@ -10,14 +10,9 @@
 
 #include "jslock.h"
 
-#include "js/Utility.h"
 #include "vm/ForkJoin.h"
 #include "vm/Monitor.h"
 #include "vm/Runtime.h"
-
-#ifdef JSGC_FJGENERATIONAL
-#include "prmjtime.h"
-#endif
 
 using namespace js;
 
@@ -261,24 +256,18 @@ ThreadPool::ThreadPool(JSRuntime *rt)
   : activeWorkers_(0),
     joinBarrier_(nullptr),
     job_(nullptr),
-    runtime_(rt),
 #ifdef DEBUG
+    runtime_(rt),
     stolenSlices_(0),
 #endif
     pendingSlices_(0),
-    isMainThreadActive_(false),
-    chunkLock_(nullptr),
-    timeOfLastAllocation_(0),
-    freeChunks_(nullptr)
+    isMainThreadActive_(false)
 { }
 
 ThreadPool::~ThreadPool()
 {
     terminateWorkers();
-    clearChunkCache();
 #ifdef JS_THREADSAFE
-    if (chunkLock_)
-        PR_DestroyLock(chunkLock_);
     if (joinBarrier_)
         PR_DestroyCondVar(joinBarrier_);
 #endif
@@ -291,13 +280,10 @@ ThreadPool::init()
     if (!Monitor::init())
         return false;
     joinBarrier_ = PR_NewCondVar(lock_);
-    if (!joinBarrier_)
-        return false;
-    chunkLock_ = PR_NewLock();
-    if (!chunkLock_)
-        return false;
-#endif
+    return !!joinBarrier_;
+#else
     return true;
+#endif
 }
 
 uint32_t
@@ -495,93 +481,4 @@ ThreadPool::abortJob()
     
     
     while (hasWork());
-}
-
-
-
-
-
-
-
-
-
-
-
-
-gc::ForkJoinNurseryChunk *
-ThreadPool::getChunk()
-{
-#ifdef JSGC_FJGENERATIONAL
-    PR_Lock(chunkLock_);
-    timeOfLastAllocation_ = PRMJ_Now()/1000000;
-    ChunkFreeList *p = freeChunks_;
-    if (p)
-        freeChunks_ = p->next;
-    PR_Unlock(chunkLock_);
-
-    if (p) {
-        
-        return reinterpret_cast<gc::ForkJoinNurseryChunk *>(p);
-    }
-    gc::ForkJoinNurseryChunk *c =
-        reinterpret_cast<gc::ForkJoinNurseryChunk *>(
-            runtime_->gc.pageAllocator.mapAlignedPages(gc::ChunkSize, gc::ChunkSize));
-    if (!c)
-        return c;
-    poisonChunk(c);
-    return c;
-#else
-    return nullptr;
-#endif
-}
-
-void
-ThreadPool::putFreeChunk(gc::ForkJoinNurseryChunk *c)
-{
-#ifdef JSGC_FJGENERATIONAL
-    poisonChunk(c);
-
-    PR_Lock(chunkLock_);
-    ChunkFreeList *p = reinterpret_cast<ChunkFreeList *>(c);
-    p->next = freeChunks_;
-    freeChunks_ = p;
-    PR_Unlock(chunkLock_);
-#endif
-}
-
-void
-ThreadPool::poisonChunk(gc::ForkJoinNurseryChunk *c)
-{
-#ifdef JSGC_FJGENERATIONAL
-#ifdef DEBUG
-    memset(c, JS_POISONED_FORKJOIN_CHUNK, gc::ChunkSize);
-#endif
-    c->trailer.runtime = nullptr;
-#endif
-}
-
-void
-ThreadPool::pruneChunkCache()
-{
-#ifdef JSGC_FJGENERATIONAL
-    if (PRMJ_Now()/1000000 - timeOfLastAllocation_ >= secondsBeforePrune)
-        clearChunkCache();
-#endif
-}
-
-void
-ThreadPool::clearChunkCache()
-{
-#ifdef JSGC_FJGENERATIONAL
-    PR_Lock(chunkLock_);
-    ChunkFreeList *p = freeChunks_;
-    freeChunks_ = nullptr;
-    PR_Unlock(chunkLock_);
-
-    while (p) {
-        ChunkFreeList *victim = p;
-        p = p->next;
-        runtime_->gc.pageAllocator.unmapPages(victim, gc::ChunkSize);
-    }
-#endif
 }
