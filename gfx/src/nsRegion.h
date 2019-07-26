@@ -247,6 +247,13 @@ public:
 
 
 
+
+  void SimplifyOutwardByArea(uint32_t aThreshold);
+  
+
+
+
+
   void SimplifyInward (uint32_t aMaxRects);
 
   nsCString ToString() const;
@@ -538,6 +545,10 @@ public:
   void SimplifyOutward (uint32_t aMaxRects)
   {
     mImpl.SimplifyOutward (aMaxRects);
+  }
+  void SimplifyOutwardByArea (uint32_t aThreshold)
+  {
+    mImpl.SimplifyOutwardByArea (aThreshold);
   }
   
 
