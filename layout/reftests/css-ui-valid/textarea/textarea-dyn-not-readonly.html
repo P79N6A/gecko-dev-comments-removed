@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
+  <head>
+    <script>
+      function doTest() {
+        document.getElementById('t').removeAttribute('readonly');
+        document.documentElement.className='';
+      }
+      document.addEventListener("MozReftestInvalidate", doTest, false);
+    </script>
+  </head>
   
 
   <link rel='stylesheet' type='text/css' href='style.css'>
-  <body onload="document.getElementById('t').removeAttribute('readonly');
-                document.documentElement.className='';">
+  <body>
     <textarea class='notvalid' id='t' readonly></textarea>
   </body>
 </html>
