@@ -219,15 +219,20 @@ public class Tab {
         return mThumbnailBitmap;
     }
 
-    public void updateThumbnail(final Bitmap b) {
+    public void updateThumbnail(final Bitmap b, final ThumbnailHelper.CachePolicy cachePolicy) {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 if (b != null) {
                     try {
                         mThumbnail = new BitmapDrawable(mAppContext.getResources(), b);
-                        if (mState == Tab.STATE_SUCCESS)
+                        if (mState == Tab.STATE_SUCCESS && cachePolicy == ThumbnailHelper.CachePolicy.STORE) {
                             saveThumbnailToDB();
+                        } else {
+                            
+                            
+                            clearThumbnailFromDB();
+                        }
                     } catch (OutOfMemoryError oom) {
                         Log.w(LOGTAG, "Unable to create/scale bitmap.", oom);
                         mThumbnail = null;
@@ -712,6 +717,19 @@ public class Tab {
             }
 
             BrowserDB.updateThumbnailForUrl(getContentResolver(), url, thumbnail);
+        } catch (Exception e) {
+            
+        }
+    }
+
+    private void clearThumbnailFromDB() {
+        try {
+            String url = getURL();
+            if (url == null)
+                return;
+
+            
+            BrowserDB.updateThumbnailForUrl(getContentResolver(), url, null);
         } catch (Exception e) {
             
         }
