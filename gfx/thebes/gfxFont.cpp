@@ -2346,7 +2346,7 @@ gfxFont::HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript)
 }
 
 bool
-gfxFont::BypassShapedWordCache(int32_t aRunScript)
+gfxFont::SpaceMayParticipateInShaping(int32_t aRunScript)
 {
     
     
@@ -3690,6 +3690,21 @@ gfxFont::ShapeTextWithoutWordCache(gfxContext *aContext,
 inline static bool IsChar8Bit(uint8_t ) { return true; }
 inline static bool IsChar8Bit(char16_t aCh) { return aCh < 0x100; }
 
+inline static bool HasSpaces(const uint8_t *aString, uint32_t aLen)
+{
+    return memchr(aString, 0x20, aLen) != nullptr;
+}
+
+inline static bool HasSpaces(const char16_t *aString, uint32_t aLen)
+{
+    for (const char16_t *ch = aString; ch < aString + aLen; ch++) {
+        if (*ch == 0x20) {
+            return true;
+        }
+    }
+    return false;
+}
+
 template<typename T>
 bool
 gfxFont::SplitAndInitTextRun(gfxContext *aContext,
@@ -3720,16 +3735,24 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
     }
 #endif
 
-    if (BypassShapedWordCache(aRunScript)) {
-        TEXT_PERF_INCR(tp, wordCacheSpaceRules);
-        return ShapeTextWithoutWordCache(aContext, aString + aRunStart,
-                                         aRunStart, aRunLength, aRunScript,
-                                         aTextRun);
+    uint32_t wordCacheCharLimit =
+        gfxPlatform::GetPlatform()->WordCacheCharLimit();
+
+    
+    
+    
+    
+    if (SpaceMayParticipateInShaping(aRunScript)) {
+        if (aRunLength > wordCacheCharLimit ||
+            HasSpaces(aString + aRunStart, aRunLength)) {
+            TEXT_PERF_INCR(tp, wordCacheSpaceRules);
+            return ShapeTextWithoutWordCache(aContext, aString + aRunStart,
+                                             aRunStart, aRunLength, aRunScript,
+                                             aTextRun);
+        }
     }
 
     InitWordCache();
-    uint32_t wordCacheCharLimit =
-        gfxPlatform::GetPlatform()->WordCacheCharLimit();
 
     
     uint32_t flags = aTextRun->GetFlags();

@@ -1808,7 +1808,7 @@ protected:
     bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript);
 
     
-    bool BypassShapedWordCache(int32_t aRunScript);
+    bool SpaceMayParticipateInShaping(int32_t aRunScript);
 
     
     bool ShapeText(gfxContext    *aContext,
