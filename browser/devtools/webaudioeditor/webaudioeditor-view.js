@@ -38,7 +38,7 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
   editableValueTooltip: "",
   editableNameTooltip: "",
   preventDisableOnChange: true,
-  preventDescriptorModifiers: true,
+  preventDescriptorModifiers: false,
   eval: () => {}
 };
 
@@ -437,8 +437,11 @@ let WebAudioInspectorView = {
     
     this._togglePropertiesView(!!props.length);
 
-    props.forEach(({ param, value }) => {
-      let descriptor = { value: value };
+    props.forEach(({ param, value, flags }) => {
+      let descriptor = {
+        value: value,
+        writable: !flags || !flags.readonly,
+      };
       audioParamsScope.addItem(param, descriptor);
     });
 
@@ -477,18 +480,22 @@ let WebAudioInspectorView = {
     let propName = variable.name;
     let error;
 
-    
-    try {
-      let number = parseFloat(value);
-      if (!isNaN(number)) {
-        value = number;
-      } else {
-        value = JSON.parse(value);
+    if (!variable._initialDescriptor.writable) {
+      error = new Error("Variable " + propName + " is not writable.");
+    } else {
+      
+      try {
+        let number = parseFloat(value);
+        if (!isNaN(number)) {
+          value = number;
+        } else {
+          value = JSON.parse(value);
+        }
+        error = yield node.actor.setParam(propName, value);
       }
-      error = yield node.actor.setParam(propName, value);
-    }
-    catch (e) {
-      error = e;
+      catch (e) {
+        error = e;
+      }
     }
 
     
