@@ -134,6 +134,7 @@ function ignoreEdgeAddressTaken(edge)
 
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
+    "je_malloc_printf" : true,
     "PR_ExplodeTime" : true,
     "PR_ErrorInstallTable" : true,
     "PR_SetThreadPrivate" : true,
