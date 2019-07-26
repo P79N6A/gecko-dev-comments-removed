@@ -774,8 +774,8 @@ LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto);
 
 
 extern bool
-DefinePropertiesAndBrand(JSContext *cx, JSObject *obj,
-                         const JSPropertySpec *ps, const JSFunctionSpec *fs);
+DefinePropertiesAndFunctions(JSContext *cx, HandleObject obj,
+                             const JSPropertySpec *ps, const JSFunctionSpec *fs);
 
 typedef HashSet<GlobalObject *, DefaultHasher<GlobalObject *>, SystemAllocPolicy> GlobalObjectSet;
 
