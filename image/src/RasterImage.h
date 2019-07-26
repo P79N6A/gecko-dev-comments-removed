@@ -290,7 +290,13 @@ public:
     kDisposeRestorePrevious 
   };
 
-  const char* GetURIString() { return mURIString.get();}
+  nsCString GetURIString() {
+    nsCString spec;
+    if (GetURI()) {
+      GetURI()->GetSpec(spec);
+    }
+    return spec;
+  }
 
   
   static void Initialize();
@@ -647,7 +653,6 @@ private:
   
   FallibleTArray<char>       mSourceData;
   nsCString                  mSourceDataMimeType;
-  nsCString                  mURIString;
 
   friend class DiscardTracker;
 
