@@ -1007,10 +1007,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
     }
   }
 
-  nsJSObjWrapperKey key(obj, npp);
-
-  JSObjWrapperTable::AddPtr p = sJSObjWrappers.lookupForAdd(key);
-
+  JSObjWrapperTable::Ptr p = sJSObjWrappers.lookupForAdd(nsJSObjWrapperKey(obj, npp));
   if (p) {
     MOZ_ASSERT(p->value());
     
@@ -1030,7 +1027,8 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
 
   wrapper->mJSObj = obj;
 
-  if (!sJSObjWrappers.add(p, key, wrapper)) {
+  nsJSObjWrapperKey key(obj, npp);
+  if (!sJSObjWrappers.putNew(key, wrapper)) {
     
     _releaseobject(wrapper);
     return nullptr;
