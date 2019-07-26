@@ -37,9 +37,8 @@ pref("browser.bookmarks.max_backups",       5);
 
 
 
-
-
 pref("browser.cache.use_new_backend",       0);
+pref("browser.cache.use_new_backend_temp",  true);
 
 pref("browser.cache.disk.enable",           true);
 
