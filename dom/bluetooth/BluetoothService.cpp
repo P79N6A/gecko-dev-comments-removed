@@ -156,6 +156,7 @@ public:
     
     
     gBluetoothService->SetEnabled(mEnabled);
+    gToggleInProgress = false;
 
     nsAutoString signalName;
     signalName = mEnabled ? NS_LITERAL_STRING("Enabled")
@@ -547,8 +548,6 @@ BluetoothService::SetEnabled(bool aEnabled)
   }
 
   mEnabled = aEnabled;
-
-  gToggleInProgress = false;
 }
 
 nsresult
