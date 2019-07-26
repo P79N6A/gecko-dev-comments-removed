@@ -32,6 +32,7 @@
 
 class imgRequestNotifyRunnable;
 class imgStatusNotifyRunnable;
+class ProxyBehaviour;
 
 namespace mozilla {
 namespace image {
@@ -161,16 +162,17 @@ protected:
   
   
   
-  virtual imgStatusTracker& GetStatusTracker() const;
+  imgStatusTracker& GetStatusTracker() const;
 
   nsITimedChannel* TimedChannel()
   {
-    if (!mOwner)
+    if (!GetOwner())
       return nullptr;
-    return mOwner->mTimedChannel;
+    return GetOwner()->mTimedChannel;
   }
 
-  virtual mozilla::image::Image* GetImage() const;
+  mozilla::image::Image* GetImage() const;
+  imgRequest* GetOwner() const;
 
   nsresult PerformClone(imgINotificationObserver* aObserver,
                         imgRequestProxy* (aAllocFn)(imgRequestProxy*),
@@ -179,16 +181,12 @@ protected:
 public:
   NS_FORWARD_SAFE_NSITIMEDCHANNEL(TimedChannel())
 
+protected:
+  nsAutoPtr<ProxyBehaviour> mBehaviour;
+
 private:
   friend class imgCacheValidator;
-
-  
-  
-  
-  
-  
-  
-  nsRefPtr<imgRequest> mOwner;
+  friend imgRequestProxy* NewStaticProxy(imgRequestProxy* aThis);
 
   
   nsCOMPtr<nsIURI> mURI;
@@ -214,9 +212,6 @@ private:
   
   
   bool mSentStartContainer;
-
-  protected:
-    bool mOwnerHasImage;
 };
 
 
@@ -226,15 +221,9 @@ class imgRequestProxyStatic : public imgRequestProxy
 
 public:
   imgRequestProxyStatic(mozilla::image::Image* aImage,
-                        nsIPrincipal* aPrincipal)
-                       : mImage(aImage)
-                       , mPrincipal(aPrincipal)
-  {
-    mOwnerHasImage = true;
-  };
+                        nsIPrincipal* aPrincipal);
 
   NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal) MOZ_OVERRIDE;
-  virtual imgStatusTracker& GetStatusTracker() const MOZ_OVERRIDE;
 
   NS_IMETHOD Clone(imgINotificationObserver* aObserver,
                    imgIRequest** aClone) MOZ_OVERRIDE;
@@ -244,14 +233,7 @@ protected:
 
   
   
-  nsRefPtr<mozilla::image::Image> mImage;
-
-  
-  
   nsCOMPtr<nsIPrincipal> mPrincipal;
-
-  mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
-  using imgRequestProxy::GetImage;
 };
 
 #endif 

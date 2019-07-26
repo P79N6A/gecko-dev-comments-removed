@@ -25,6 +25,70 @@
 
 using namespace mozilla::image;
 
+
+
+
+
+class ProxyBehaviour
+{
+ public:
+  virtual ~ProxyBehaviour() {}
+
+  virtual mozilla::image::Image* GetImage() const = 0;
+  virtual imgStatusTracker& GetStatusTracker() const = 0;
+  virtual imgRequest* GetOwner() const = 0;
+  virtual void SetOwner(imgRequest* aOwner) = 0;
+};
+
+class RequestBehaviour : public ProxyBehaviour
+{
+ public:
+  RequestBehaviour() : mOwner(nullptr), mOwnerHasImage(false) {}
+
+  virtual mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
+  virtual imgStatusTracker& GetStatusTracker() const MOZ_OVERRIDE;
+
+  virtual imgRequest* GetOwner() const MOZ_OVERRIDE {
+    return mOwner;
+  }
+
+  virtual void SetOwner(imgRequest* aOwner) MOZ_OVERRIDE {
+    mOwner = aOwner;
+    mOwnerHasImage = !!aOwner->GetStatusTracker().GetImage();
+  }
+
+ private:
+  
+  
+  
+  
+  
+  
+  nsRefPtr<imgRequest> mOwner;
+
+  bool mOwnerHasImage;
+};
+
+mozilla::image::Image*
+RequestBehaviour::GetImage() const
+{
+  if (!mOwnerHasImage)
+    return nullptr;
+  return GetStatusTracker().GetImage();
+}
+
+imgStatusTracker&
+RequestBehaviour::GetStatusTracker() const
+{
+  
+  
+  
+  
+  
+  
+  return mOwner->GetStatusTracker();
+}
+
 NS_IMPL_ADDREF(imgRequestProxy)
 NS_IMPL_RELEASE(imgRequestProxy)
 
@@ -38,7 +102,7 @@ NS_INTERFACE_MAP_BEGIN(imgRequestProxy)
 NS_INTERFACE_MAP_END
 
 imgRequestProxy::imgRequestProxy() :
-  mOwner(nullptr),
+  mBehaviour(new RequestBehaviour),
   mURI(nullptr),
   mListener(nullptr),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
@@ -49,8 +113,7 @@ imgRequestProxy::imgRequestProxy() :
   mListenerIsStrongRef(false),
   mDecodeRequested(false),
   mDeferNotifications(false),
-  mSentStartContainer(false),
-  mOwnerHasImage(false)
+  mSentStartContainer(false)
 {
   
 
@@ -74,14 +137,14 @@ imgRequestProxy::~imgRequestProxy()
   
   NullOutListener();
 
-  if (mOwner) {
+  if (GetOwner()) {
     
 
 
 
 
     mCanceled = true;
-    mOwner->RemoveProxy(this, NS_OK);
+    GetOwner()->RemoveProxy(this, NS_OK);
   }
 }
 
@@ -89,14 +152,13 @@ nsresult imgRequestProxy::Init(imgStatusTracker* aStatusTracker,
                                nsILoadGroup* aLoadGroup,
                                nsIURI* aURI, imgINotificationObserver* aObserver)
 {
-  NS_PRECONDITION(!mOwner && !mListener, "imgRequestProxy is already initialized");
+  NS_PRECONDITION(!GetOwner() && !mListener, "imgRequestProxy is already initialized");
 
   LOG_SCOPE_WITH_PARAM(GetImgLog(), "imgRequestProxy::Init", "request", aStatusTracker->GetRequest());
 
   NS_ABORT_IF_FALSE(mAnimationConsumers == 0, "Cannot have animation before Init");
 
-  mOwner = aStatusTracker->GetRequest();
-  mOwnerHasImage = !!aStatusTracker->GetImage();
+  mBehaviour->SetOwner(aStatusTracker->GetRequest());
   mListener = aObserver;
   
   
@@ -109,15 +171,15 @@ nsresult imgRequestProxy::Init(imgStatusTracker* aStatusTracker,
   mURI = aURI;
 
   
-  if (mOwner)
-    mOwner->AddProxy(this);
+  if (GetOwner())
+    GetOwner()->AddProxy(this);
 
   return NS_OK;
 }
 
 nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
 {
-  NS_PRECONDITION(mOwner, "Cannot ChangeOwner on a proxy without an owner!");
+  NS_PRECONDITION(GetOwner(), "Cannot ChangeOwner on a proxy without an owner!");
 
   if (mCanceled) {
     
@@ -142,10 +204,9 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
     wasDecoded = true;
   }
 
-  mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER);
+  GetOwner()->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER);
 
-  mOwner = aNewOwner;
-  mOwnerHasImage = !!GetStatusTracker().GetImage();
+  mBehaviour->SetOwner(aNewOwner);
 
   
   for (uint32_t i = 0; i < oldLockCount; i++)
@@ -157,12 +218,12 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   for (uint32_t i = 0; i < oldAnimationConsumers; i++)
     IncrementAnimationConsumers();
 
-  mOwner->AddProxy(this);
+  GetOwner()->AddProxy(this);
 
   
   
   if (wasDecoded || mDecodeRequested)
-    mOwner->StartDecoding();
+    GetOwner()->StartDecoding();
 
   return NS_OK;
 }
@@ -241,8 +302,8 @@ NS_IMETHODIMP imgRequestProxy::Cancel(nsresult status)
 void
 imgRequestProxy::DoCancel(nsresult status)
 {
-  if (mOwner) {
-    mOwner->RemoveProxy(this, status);
+  if (GetOwner()) {
+    GetOwner()->RemoveProxy(this, status);
   }
 
   NullOutListener();
@@ -268,8 +329,8 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
   bool oldIsInLoadGroup = mIsInLoadGroup;
   mIsInLoadGroup = false;
 
-  if (mOwner) {
-    mOwner->RemoveProxy(this, aStatus);
+  if (GetOwner()) {
+    GetOwner()->RemoveProxy(this, aStatus);
   }
 
   mIsInLoadGroup = oldIsInLoadGroup;
@@ -289,28 +350,28 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
 NS_IMETHODIMP
 imgRequestProxy::StartDecoding()
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
   
   mDecodeRequested = true;
 
   
-  return mOwner->StartDecoding();
+  return GetOwner()->StartDecoding();
 }
 
 
 NS_IMETHODIMP
 imgRequestProxy::RequestDecode()
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
   
   mDecodeRequested = true;
 
   
-  return mOwner->RequestDecode();
+  return GetOwner()->RequestDecode();
 }
 
 
@@ -423,7 +484,9 @@ NS_IMETHODIMP imgRequestProxy::GetImage(imgIContainer * *aImage)
   
   
   
-  imgIContainer* imageToReturn = GetImage() ? GetImage() : mOwner->mImage.get();
+  imgIContainer* imageToReturn = GetImage();
+  if (!imageToReturn && GetOwner())
+    imageToReturn = GetOwner()->mImage.get();
 
   if (!imageToReturn)
     return NS_ERROR_FAILURE;
@@ -463,10 +526,10 @@ NS_IMETHODIMP imgRequestProxy::GetNotificationObserver(imgINotificationObserver 
 
 NS_IMETHODIMP imgRequestProxy::GetMimeType(char **aMimeType)
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
-  const char *type = mOwner->GetMimeType();
+  const char *type = GetOwner()->GetMimeType();
   if (!type)
     return NS_ERROR_FAILURE;
 
@@ -484,8 +547,7 @@ imgRequestProxy* NewStaticProxy(imgRequestProxy* aThis)
 {
   nsCOMPtr<nsIPrincipal> currentPrincipal;
   aThis->GetImagePrincipal(getter_AddRefs(currentPrincipal));
-  return new imgRequestProxyStatic(
-      static_cast<imgRequestProxyStatic*>(aThis)->mImage, currentPrincipal);
+  return new imgRequestProxyStatic(aThis->GetImage(), currentPrincipal);
 }
 
 NS_IMETHODIMP imgRequestProxy::Clone(imgINotificationObserver* aObserver,
@@ -531,20 +593,20 @@ nsresult imgRequestProxy::PerformClone(imgINotificationObserver* aObserver,
 
 NS_IMETHODIMP imgRequestProxy::GetImagePrincipal(nsIPrincipal **aPrincipal)
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
-  NS_ADDREF(*aPrincipal = mOwner->GetPrincipal());
+  NS_ADDREF(*aPrincipal = GetOwner()->GetPrincipal());
   return NS_OK;
 }
 
 
 NS_IMETHODIMP imgRequestProxy::GetMultipart(bool *aMultipart)
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
-  *aMultipart = mOwner->GetMultipart();
+  *aMultipart = GetOwner()->GetMultipart();
 
   return NS_OK;
 }
@@ -552,10 +614,10 @@ NS_IMETHODIMP imgRequestProxy::GetMultipart(bool *aMultipart)
 
 NS_IMETHODIMP imgRequestProxy::GetCORSMode(int32_t* aCorsMode)
 {
-  if (!mOwner)
+  if (!GetOwner())
     return NS_ERROR_FAILURE;
 
-  *aCorsMode = mOwner->GetCORSMode();
+  *aCorsMode = GetOwner()->GetCORSMode();
 
   return NS_OK;
 }
@@ -564,22 +626,22 @@ NS_IMETHODIMP imgRequestProxy::GetCORSMode(int32_t* aCorsMode)
 
 NS_IMETHODIMP imgRequestProxy::GetPriority(int32_t *priority)
 {
-  NS_ENSURE_STATE(mOwner);
-  *priority = mOwner->Priority();
+  NS_ENSURE_STATE(GetOwner());
+  *priority = GetOwner()->Priority();
   return NS_OK;
 }
 
 NS_IMETHODIMP imgRequestProxy::SetPriority(int32_t priority)
 {
-  NS_ENSURE_STATE(mOwner && !mCanceled);
-  mOwner->AdjustPriority(this, priority - mOwner->Priority());
+  NS_ENSURE_STATE(GetOwner() && !mCanceled);
+  GetOwner()->AdjustPriority(this, priority - GetOwner()->Priority());
   return NS_OK;
 }
 
 NS_IMETHODIMP imgRequestProxy::AdjustPriority(int32_t priority)
 {
-  NS_ENSURE_STATE(mOwner && !mCanceled);
-  mOwner->AdjustPriority(this, priority);
+  NS_ENSURE_STATE(GetOwner() && !mCanceled);
+  GetOwner()->AdjustPriority(this, priority);
   return NS_OK;
 }
 
@@ -587,8 +649,8 @@ NS_IMETHODIMP imgRequestProxy::AdjustPriority(int32_t priority)
 
 NS_IMETHODIMP imgRequestProxy::GetSecurityInfo(nsISupports** _retval)
 {
-  if (mOwner)
-    return mOwner->GetSecurityInfo(_retval);
+  if (GetOwner())
+    return GetOwner()->GetSecurityInfo(_retval);
 
   *_retval = nullptr;
   return NS_OK;
@@ -596,8 +658,8 @@ NS_IMETHODIMP imgRequestProxy::GetSecurityInfo(nsISupports** _retval)
 
 NS_IMETHODIMP imgRequestProxy::GetHasTransferredData(bool* hasData)
 {
-  if (mOwner) {
-    *hasData = mOwner->HasTransferredData();
+  if (GetOwner()) {
+    *hasData = GetOwner()->HasTransferredData();
   } else {
     
     *hasData = true;
@@ -652,7 +714,7 @@ void imgRequestProxy::OnStopDecode()
   }
 
   
-  if (mOwner && mOwner->GetMultipart())
+  if (GetOwner() && GetOwner()->GetMultipart())
     mSentStartContainer = false;
 }
 
@@ -819,9 +881,9 @@ void imgRequestProxy::NotifyListener()
   
   
 
-  if (mOwner) {
+  if (GetOwner()) {
     
-    GetStatusTracker().Notify(mOwner, this);
+    GetStatusTracker().Notify(GetOwner(), this);
   } else {
     
     
@@ -846,7 +908,9 @@ imgRequestProxy::SetHasImage()
 {
   Image* image = GetStatusTracker().GetImage();
 
-  mOwnerHasImage = true;
+  
+  
+  mBehaviour->SetOwner(mBehaviour->GetOwner());
 
   
   for (uint32_t i = 0; i < mLockCount; ++i)
@@ -860,24 +924,56 @@ imgRequestProxy::SetHasImage()
 imgStatusTracker&
 imgRequestProxy::GetStatusTracker() const
 {
-  
-  
-  
-  
-  
-  
-  return mOwner->GetStatusTracker();
+  return mBehaviour->GetStatusTracker();
 }
 
 mozilla::image::Image*
 imgRequestProxy::GetImage() const
 {
-  if (!mOwnerHasImage)
-    return nullptr;
-  return GetStatusTracker().GetImage();
+  return mBehaviour->GetImage();
+}
+
+imgRequest*
+imgRequestProxy::GetOwner() const
+{
+  return mBehaviour->GetOwner();
 }
 
 
+
+class StaticBehaviour : public ProxyBehaviour
+{
+public:
+  StaticBehaviour(mozilla::image::Image* aImage) : mImage(aImage) {}
+
+  virtual mozilla::image::Image* GetImage() const MOZ_OVERRIDE {
+    return mImage;
+  }
+
+  virtual imgStatusTracker& GetStatusTracker() const MOZ_OVERRIDE {
+    return mImage->GetStatusTracker();
+  }
+
+  virtual imgRequest* GetOwner() const MOZ_OVERRIDE {
+    return nullptr;
+  }
+
+  virtual void SetOwner(imgRequest* aOwner) MOZ_OVERRIDE {
+    MOZ_ASSERT_IF(aOwner, "We shouldn't be giving static requests a non-null owner.");
+  }
+
+private:
+  
+  
+  nsRefPtr<mozilla::image::Image> mImage;
+};
+
+imgRequestProxyStatic::imgRequestProxyStatic(mozilla::image::Image* aImage,
+                                             nsIPrincipal* aPrincipal)
+: mPrincipal(aPrincipal)
+{
+  mBehaviour = new StaticBehaviour(aImage);
+}
 
 NS_IMETHODIMP imgRequestProxyStatic::GetImagePrincipal(nsIPrincipal **aPrincipal)
 {
@@ -887,18 +983,6 @@ NS_IMETHODIMP imgRequestProxyStatic::GetImagePrincipal(nsIPrincipal **aPrincipal
   NS_ADDREF(*aPrincipal = mPrincipal);
 
   return NS_OK;
-}
-
-mozilla::image::Image*
-imgRequestProxyStatic::GetImage() const
-{
-  return mImage;
-}
-
-imgStatusTracker&
-imgRequestProxyStatic::GetStatusTracker() const
-{
-  return mImage->GetStatusTracker();
 }
 
 NS_IMETHODIMP
