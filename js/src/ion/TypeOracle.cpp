@@ -357,8 +357,11 @@ TypeInferenceOracle::elementReadIsString(JSScript *script, jsbytecode *pc)
     if (id->getKnownTypeTag() != JSVAL_TYPE_INT32)
         return false;
 
-    types::TypeSet *pushed = script->analysis()->pushedTypes(pc, 0);
-    if (!pushed->hasType(types::Type::StringType()))
+    
+    
+    
+    StackTypeSet *pushed = script->analysis()->pushedTypes(pc, 0);
+    if (pushed->getKnownTypeTag() != JSVAL_TYPE_STRING)
         return false;
 
     return true;
