@@ -1727,7 +1727,8 @@ add_task(function test_history_tryToKeepPartialData()
 
   
   
-  do_check_true(time >= beforeStartTimeMs * 1000);
+  
+  do_check_true(time >= beforeStartTimeMs * 1000 - 1000000);
 
   
   continueResponses();
