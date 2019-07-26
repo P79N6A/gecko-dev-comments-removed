@@ -5263,13 +5263,6 @@ nsGlobalWindow::Alert(const nsAString& aString)
 
   
   
-
-  NS_NAMED_LITERAL_STRING(null_str, "null");
-
-  const nsAString *str = DOMStringIsNull(aString) ? &null_str : &aString;
-
-  
-  
   EnsureReflowFlushAndPaint();
 
   nsAutoString title;
@@ -5278,7 +5271,7 @@ nsGlobalWindow::Alert(const nsAString& aString)
   
   
   nsAutoString final;
-  nsContentUtils::StripNullChars(*str, final);
+  nsContentUtils::StripNullChars(aString, final);
 
   
   
