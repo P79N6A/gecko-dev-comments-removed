@@ -362,7 +362,7 @@ let CustomizableUIInternal = {
         
         
         
-        if (node.id) {
+        if (node.id && node.getAttribute("skipintoolbarset") != "true") {
           if (this.isWidgetRemovable(node)) {
             if (palette) {
               palette.appendChild(node);
@@ -370,7 +370,7 @@ let CustomizableUIInternal = {
             } else {
               container.removeChild(node);
             }
-          } else if (node.getAttribute("skipintoolbarset") != "true") {
+          } else {
             this.setLocationAttributes(currentNode, aArea);
             node.setAttribute("removable", false);
             LOG("Adding non-removable widget to placements of " + aArea + ": " +
