@@ -34,8 +34,8 @@ public class TopSitesGridView extends GridView {
     private static final String LOGTAG = "GeckoTopSitesGridView";
 
     
-    public static interface OnPinSiteListener {
-        public void onPinSite(int position);
+    public static interface OnEditPinnedSiteListener {
+        public void onEditPinnedSite(int position);
     }
 
     
@@ -60,7 +60,7 @@ public class TopSitesGridView extends GridView {
     private OnUrlOpenListener mUrlOpenListener;
 
     
-    private OnPinSiteListener mPinSiteListener;
+    private OnEditPinnedSiteListener mEditPinnedSiteListener;
 
     
     private TopSitesGridContextMenuInfo mContextMenuInfo;
@@ -114,8 +114,8 @@ public class TopSitesGridView extends GridView {
                         mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
                     }
                 } else {
-                    if (mPinSiteListener != null) {
-                        mPinSiteListener.onPinSite(position);
+                    if (mEditPinnedSiteListener != null) {
+                        mEditPinnedSiteListener.onEditPinnedSite(position);
                     }
                 }
             }
@@ -136,7 +136,7 @@ public class TopSitesGridView extends GridView {
         super.onDetachedFromWindow();
 
         mUrlOpenListener = null;
-        mPinSiteListener = null;
+        mEditPinnedSiteListener = null;
     }
 
     @Override
@@ -233,8 +233,8 @@ public class TopSitesGridView extends GridView {
 
 
 
-    public void setOnPinSiteListener(OnPinSiteListener listener) {
-        mPinSiteListener = listener;
+    public void setOnEditPinnedSiteListener(final OnEditPinnedSiteListener listener) {
+        mEditPinnedSiteListener = listener;
     }
 
     
