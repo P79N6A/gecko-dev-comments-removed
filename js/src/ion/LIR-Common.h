@@ -435,14 +435,39 @@ class LReturnFromCtor : public LInstructionHelper<1, BOX_PIECES + 1, 0>
 };
 
 
-class LStackArg : public LInstructionHelper<0, BOX_PIECES, 0>
+class LStackArgT : public LInstructionHelper<0, 1, 0>
 {
     uint32 argslot_; 
 
   public:
-    LIR_HEADER(StackArg);
+    LIR_HEADER(StackArgT);
 
-    LStackArg(uint32 argslot)
+    LStackArgT(uint32 argslot, const LAllocation &arg)
+      : argslot_(argslot)
+    {
+        setOperand(0, arg);
+    }
+
+    MPassArg *mir() const {
+        return this->mir_->toPassArg();
+    }
+    uint32 argslot() const {
+        return argslot_;
+    }
+    const LAllocation *getArgument() {
+        return getOperand(0);
+    }
+};
+
+
+class LStackArgV : public LInstructionHelper<0, BOX_PIECES, 0>
+{
+    uint32 argslot_; 
+
+  public:
+    LIR_HEADER(StackArgV);
+
+    LStackArgV(uint32 argslot)
       : argslot_(argslot)
     { }
 

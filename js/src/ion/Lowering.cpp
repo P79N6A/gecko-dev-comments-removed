@@ -159,13 +159,7 @@ bool
 LIRGenerator::visitPassArg(MPassArg *arg)
 {
     MDefinition *opd = arg->getArgument();
-    JS_ASSERT(opd->type() == MIRType_Value);
-
     uint32 argslot = getArgumentSlot(arg->getArgnum());
-
-    LStackArg *stack = new LStackArg(argslot);
-    if (!useBox(stack, 0, opd))
-        return false;
 
     
     
@@ -174,6 +168,15 @@ LIRGenerator::visitPassArg(MPassArg *arg)
     
     arg->setVirtualRegister(opd->virtualRegister());
 
+    
+    if (opd->type() == MIRType_Value) {
+        LStackArgV *stack = new LStackArgV(argslot);
+        return useBox(stack, 0, opd) && add(stack);
+    }
+
+    
+    LStackArgT *stack = new LStackArgT(argslot, useRegisterOrConstant(opd));
+    stack->setMir(arg);
     return add(stack);
 }
 
