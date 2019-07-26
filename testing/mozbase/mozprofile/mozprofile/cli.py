@@ -19,7 +19,6 @@ from profile import Profile
 __all__ = ['MozProfileCLI', 'cli']
 
 class MozProfileCLI(object):
-    """The Command Line Interface for ``mozprofile``."""
 
     module = 'mozprofile'
 
@@ -76,22 +75,16 @@ class MozProfileCLI(object):
 
         return prefs()
 
-    def profile(self, restore=False):
-        """create the profile"""
-
-        kwargs = self.profile_args()
-        kwargs['restore'] = restore
-        return Profile(**kwargs)
-
 
 def cli(args=sys.argv[1:]):
-    """ Handles the command line arguments for ``mozprofile`` via ``sys.argv``"""
 
     
     cli = MozProfileCLI(args)
 
     
-    profile = cli.profile()
+    kwargs = cli.profile_args()
+    kwargs['restore'] = False
+    profile = Profile(**kwargs)
 
     
     if not cli.options.profile:

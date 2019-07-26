@@ -7,34 +7,29 @@ __all__ = ['Profile', 'FirefoxProfile', 'ThunderbirdProfile']
 import os
 import time
 import tempfile
-import types
 import uuid
 from addons import AddonManager
 from permissions import Permissions
-from shutil import copytree, rmtree
-from webapps import WebappCollection
+from shutil import rmtree
 
 try:
-    import json
+    import simplejson
 except ImportError:
-    import simplejson as json
+    import json as simplejson
 
 class Profile(object):
     """Handles all operations regarding profile. Created new profiles, installs extensions,
     sets preferences and handles cleanup."""
 
-    def __init__(self, profile=None, addons=None, addon_manifests=None, apps=None,
-                 preferences=None, locations=None, proxy=None, restore=True):
-        """
-        :param profile: Path to the profile
-        :param addons: String of one or list of addons to install
-        :param addon_manifests: Manifest for addons, see http://ahal.ca/blog/2011/bulk-installing-fx-addons/
-        :param apps: Dictionary or class of webapps to install
-        :param preferences: Dictionary or class of preferences
-        :param locations: locations to proxy
-        :param proxy: setup a proxy - dict of server-loc,server-port,ssl-port
-        :param restore: If true remove all installed addons preferences when cleaning up
-        """
+    def __init__(self,
+                 profile=None, 
+                 addons=None,  
+                 addon_manifests=None,  
+                 preferences=None, 
+                 locations=None, 
+                 proxy=None, 
+                 restore=True 
+                 ):
 
         
         self.restore = restore
@@ -85,10 +80,6 @@ class Profile(object):
         self.addon_manager = AddonManager(self.profile)
         self.addon_manager.install_addons(addons, addon_manifests)
 
-        
-        self.webapps = WebappCollection(profile=self.profile, apps=apps)
-        self.webapps.update_manifests()
-
     def exists(self):
         """returns whether the profile exists or not"""
         return os.path.exists(self.profile)
@@ -109,30 +100,6 @@ class Profile(object):
                       locations=self._locations,
                       proxy = self._proxy)
 
-    @classmethod
-    def clone(cls, path_from, path_to=None, **kwargs):
-        """Instantiate a temporary profile via cloning
-        - path: path of the basis to clone
-        - kwargs: arguments to the profile constructor
-        """
-        if not path_to:
-            tempdir = tempfile.mkdtemp() 
-            rmtree(tempdir) 
-            path_to = tempdir
-        copytree(path_from, path_to)
-
-        def cleanup_clone(fn):
-            """Deletes a cloned profile when restore is True"""
-            def wrapped(self):
-                fn(self)
-                if self.restore and os.path.exists(self.profile):
-                        rmtree(self.profile, onerror=self._cleanup_error)
-            return wrapped
-
-        c = cls(path_to, **kwargs)
-        c.__del__ = c.cleanup = types.MethodType(cleanup_clone(cls.cleanup), c)
-        return c
-
     def create_new_profile(self):
         """Create a new clean profile in tmp which is a simple empty folder"""
         profile = tempfile.mkdtemp(suffix='.mozrunner')
@@ -143,6 +110,7 @@ class Profile(object):
 
     def set_preferences(self, preferences, filename='user.js'):
         """Adds preferences dict to profile preferences"""
+
 
         
         prefs_file = os.path.join(self.profile, filename)
@@ -160,7 +128,7 @@ class Profile(object):
 
             
             f.write('\n%s\n' % self.delimeters[0])
-            _prefs = [(json.dumps(k), json.dumps(v) )
+            _prefs = [(simplejson.dumps(k), simplejson.dumps(v) )
                       for k, v in preferences]
             for _pref in _prefs:
                 f.write('user_pref(%s, %s);\n' % _pref)
@@ -251,7 +219,6 @@ class Profile(object):
                 self.clean_preferences()
                 self.addon_manager.clean_addons()
                 self.permissions.clean_db()
-                self.webapps.clean()
 
     __del__ = cleanup
 
@@ -268,8 +235,6 @@ class FirefoxProfile(Profile):
                    
                    'browser.warnOnQuit': False,
                    
-                   'datareporting.healthreport.documentServerURI' : 'http://%(server)s/healthreport/',
-                   
                    
                    
                    'extensions.enabledScopes' : 5,
@@ -283,18 +248,12 @@ class FirefoxProfile(Profile):
                    
                    'extensions.update.notifyUser' : False,
                    
-                   'focusmanager.testmode' : True,
-                   
-                   'security.notification_enable_delay' : 0,
-                   
                    'toolkit.startup.max_resumed_crashes' : -1,
                    
-                   'toolkit.telemetry.enabled' : False,
-                   'toolkit.telemetry.enabledPreRelease' : False,
+                   'focusmanager.testmode' : True,
                    }
 
 class ThunderbirdProfile(Profile):
-    """Specialized Profile subclass for Thunderbird"""
     preferences = {'extensions.update.enabled'    : False,
                    'extensions.update.notifyUser' : False,
                    'browser.shell.checkDefaultBrowser' : False,
