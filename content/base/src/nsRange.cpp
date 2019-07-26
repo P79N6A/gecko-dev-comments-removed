@@ -643,16 +643,16 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
   nsINode* container = NODE_FROM(aContainer, aDocument);
   bool gravitateStart = false;
   bool gravitateEnd = false;
+  bool didCheckStartParentDescendant = false;
 
   
   if (container == mStartParent) {
     if (aIndexInContainer < mStartOffset) {
       --mStartOffset;
     }
-  }
-  
-  else if (nsContentUtils::ContentIsDescendantOf(mStartParent, aChild)) {
-    gravitateStart = true;
+  } else { 
+    didCheckStartParentDescendant = true;
+    gravitateStart = nsContentUtils::ContentIsDescendantOf(mStartParent, aChild);
   }
 
   
@@ -660,9 +660,10 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
     if (aIndexInContainer < mEndOffset) {
       --mEndOffset;
     }
-  }
-  else if (nsContentUtils::ContentIsDescendantOf(mEndParent, aChild)) {
-    gravitateEnd = true;
+  } else if (didCheckStartParentDescendant && mStartParent == mEndParent) {
+    gravitateEnd = gravitateStart;
+  } else {
+    gravitateEnd = nsContentUtils::ContentIsDescendantOf(mEndParent, aChild);
   }
 
   if (!mEnableGravitationOnElementRemoval) {
@@ -1091,19 +1092,10 @@ nsRange::IsValidBoundary(nsINode* aNode)
     return root;
   }
 
-  root = aNode;
-  while ((aNode = aNode->GetParentNode())) {
-    root = aNode;
-  }
+  root = aNode->SubtreeRoot();
 
   NS_ASSERTION(!root->IsNodeOfType(nsINode::eDOCUMENT),
                "GetCurrentDoc should have returned a doc");
-
-#ifdef DEBUG_smaug
-  NS_WARN_IF_FALSE(root->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
-                   root->IsNodeOfType(nsINode::eATTRIBUTE),
-                   "Creating a DOM Range using root which isn't in DOM!");
-#endif
 
   
   return root;
