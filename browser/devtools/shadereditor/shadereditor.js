@@ -13,7 +13,7 @@ Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
-const promise = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
+const promise = require("sdk/core/promise");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const Editor = require("devtools/sourceeditor/editor");
@@ -28,13 +28,7 @@ const EVENTS = {
   SOURCES_SHOWN: "ShaderEditor:SourcesShown",
 
   
-  SHADER_COMPILED: "ShaderEditor:ShaderCompiled",
-
-  
-  UI_RESET: "ShaderEditor:UIReset",
-
-  
-  EDITOR_ERROR_MARKERS_REMOVED: "ShaderEditor:EditorCleaned"
+  SHADER_COMPILED: "ShaderEditor:ShaderCompiled"
 };
 
 const STRINGS_URI = "chrome://browser/locale/devtools/shadereditor.properties"
@@ -120,17 +114,15 @@ let EventsHandler = {
   _onTabNavigated: function(event) {
     switch (event) {
       case "will-navigate": {
-        Task.spawn(function() {
-          
-          gFront.setup({ reload: false });
+        
+        gFront.setup({ reload: false });
 
-          
-          ShadersListView.empty();
-          $("#reload-notice").hidden = true;
-          $("#waiting-notice").hidden = false;
-          yield ShadersEditorsView.setText({ vs: "", fs: "" });
-          $("#content").hidden = true;
-        }).then(() => window.emit(EVENTS.UI_RESET));
+        
+        ShadersListView.empty();
+        ShadersEditorsView.setText({ vs: "", fs: "" });
+        $("#reload-notice").hidden = true;
+        $("#waiting-notice").hidden = false;
+        $("#content").hidden = true;
         break;
       }
       case "navigate": {
@@ -280,16 +272,13 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
       ]);
     }
     function showSources([vertexShaderText, fragmentShaderText]) {
-      return ShadersEditorsView.setText({
+      ShadersEditorsView.setText({
         vs: vertexShaderText,
         fs: fragmentShaderText
       });
     }
 
-    getShaders()
-      .then(getSources)
-      .then(showSources)
-      .then(null, Cu.reportError);
+    getShaders().then(getSources).then(showSources).then(null, Cu.reportError);
   },
 
   
@@ -363,23 +352,18 @@ let ShadersEditorsView = {
 
 
 
-
-
   setText: function(sources) {
-    let view = this;
     function setTextAndClearHistory(editor, text) {
       editor.setText(text);
       editor.clearHistory();
     }
 
-    return Task.spawn(function() {
-      yield view._toggleListeners("off");
-      yield promise.all([
-        view._getEditor("vs").then(e => setTextAndClearHistory(e, sources.vs)),
-        view._getEditor("fs").then(e => setTextAndClearHistory(e, sources.fs))
-      ]);
-      yield view._toggleListeners("on");
-    }).then(() => window.emit(EVENTS.SOURCES_SHOWN, sources));
+    this._toggleListeners("off");
+    this._getEditor("vs").then(e => setTextAndClearHistory(e, sources.vs));
+    this._getEditor("fs").then(e => setTextAndClearHistory(e, sources.fs));
+    this._toggleListeners("on");
+
+    window.emit(EVENTS.SOURCES_SHOWN, sources);
   },
 
   
@@ -389,11 +373,9 @@ let ShadersEditorsView = {
 
 
 
-
-
   _getEditor: function(type) {
     if ($("#content").hidden) {
-      return promise.reject(new Error("Shader Editor is still waiting for a WebGL context to be created."));
+      return promise.reject(null);
     }
     if (this._editorPromises.has(type)) {
       return this._editorPromises.get(type);
@@ -418,15 +400,13 @@ let ShadersEditorsView = {
 
 
 
-
-
   _toggleListeners: function(flag) {
-    return promise.all(["vs", "fs"].map(type => {
-      return this._getEditor(type).then(editor => {
+    ["vs", "fs"].forEach(type => {
+      this._getEditor(type).then(editor => {
         editor[flag]("focus", this["_" + type + "Focused"]);
         editor[flag]("change", this["_" + type + "Changed"]);
       });
-    }));
+    });
   },
 
   
@@ -574,7 +554,6 @@ let ShadersEditorsView = {
       editor.removeAllMarkers("errors");
       this._errors[type].forEach(e => editor.removeLineClass(e.line));
       this._errors[type].length = 0;
-      window.emit(EVENTS.EDITOR_ERROR_MARKERS_REMOVED);
     });
   },
 
