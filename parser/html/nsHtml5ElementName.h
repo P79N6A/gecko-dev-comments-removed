@@ -442,6 +442,7 @@ class nsHtml5ElementName
     static nsHtml5ElementName* ELT_EXPONENTIALE;
     static nsHtml5ElementName* ELT_FETURBULENCE;
     static nsHtml5ElementName* ELT_FEPOINTLIGHT;
+    static nsHtml5ElementName* ELT_FEDROPSHADOW;
     static nsHtml5ElementName* ELT_FEMORPHOLOGY;
     static nsHtml5ElementName* ELT_OUTERPRODUCT;
     static nsHtml5ElementName* ELT_ANIMATEMOTION;

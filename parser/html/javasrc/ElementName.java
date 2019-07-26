@@ -773,6 +773,7 @@ public final class ElementName
     public static final ElementName EXPONENTIALE = new ElementName("exponentiale", "exponentiale", TreeBuilder.OTHER);
     public static final ElementName FETURBULENCE = new ElementName("feturbulence", "feTurbulence", TreeBuilder.OTHER);
     public static final ElementName FEPOINTLIGHT = new ElementName("fepointlight", "fePointLight", TreeBuilder.OTHER);
+    public static final ElementName FEDROPSHADOW = new ElementName("fedropshadow", "feDropShadow", TreeBuilder.OTHER);
     public static final ElementName FEMORPHOLOGY = new ElementName("femorphology", "feMorphology", TreeBuilder.OTHER);
     public static final ElementName OUTERPRODUCT = new ElementName("outerproduct", "outerproduct", TreeBuilder.OTHER);
     public static final ElementName ANIMATEMOTION = new ElementName("animatemotion", "animateMotion", TreeBuilder.OTHER);
@@ -1167,6 +1168,7 @@ public final class ElementName
     EXPONENTIALE,
     FETURBULENCE,
     FEPOINTLIGHT,
+    FEDROPSHADOW,
     FEMORPHOLOGY,
     OUTERPRODUCT,
     ANIMATEMOTION,
@@ -1562,6 +1564,7 @@ public final class ElementName
     408072233,
     409112005,
     409608425,
+    409713793,
     409771500,
     419040932,
     437730612,
