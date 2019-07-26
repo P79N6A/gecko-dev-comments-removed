@@ -444,9 +444,10 @@ TargetEventsHandler.prototype = {
     switch (aType) {
       case "will-navigate": {
         
-        NetMonitorView.RequestsMenu.reset();
-        NetMonitorView.Sidebar.toggle(false);
-
+        if (!Services.prefs.getBoolPref("devtools.webconsole.persistlog")) {
+          NetMonitorView.RequestsMenu.reset();
+          NetMonitorView.Sidebar.toggle(false);
+        }
         
         if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {
           NetMonitorView.showNetworkInspectorView();

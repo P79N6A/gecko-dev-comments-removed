@@ -1,0 +1,34 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Network Monitor test page</title>
+  </head>
+
+  <body>
+    <p>Performing a custom number of GETs</p>
+
+    <script type="text/javascript">
+      function get(aAddress, aCallback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", aAddress, true);
+
+        xhr.onreadystatechange = function() {
+          if (this.readyState == this.DONE) {
+            aCallback();
+          }
+        };
+        xhr.send(null);
+      }
+
+      (function performRequests() {
+        get("request_0", function() {
+        });
+      })();
+    </script>
+  </body>
+
+</html>
