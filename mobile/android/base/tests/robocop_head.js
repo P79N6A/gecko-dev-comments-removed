@@ -1139,3 +1139,93 @@ function run_next_test()
     do_test_finished();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+function JavaBridge(obj) {
+
+  this._EVENT_TYPE = "Robocop:JS";
+  this._target = obj;
+  
+  this._repliesNeeded = 0;
+  this._Services.obs.addObserver(this, this._EVENT_TYPE, false);
+};
+
+JavaBridge.prototype = {
+
+  _Services: Components.utils.import(
+    "resource://gre/modules/Services.jsm", {}).Services,
+
+  _sendMessageToJava: Components.utils.import(
+    "resource://gre/modules/Messaging.jsm", {}).sendMessageToJava,
+
+  _sendMessage: function (innerType, args) {
+    this._sendMessageToJava({
+      type: this._EVENT_TYPE,
+      innerType: innerType,
+      method: args[0],
+      args: Array.prototype.slice.call(args, 1),
+    });
+  },
+
+  observe: function(subject, topic, data) {
+    let message = JSON.parse(data);
+    if (message.innerType === "sync-reply") {
+      
+      this._repliesNeeded--;
+      return;
+    }
+    
+    try {
+      this._target[message.method].apply(this._target, message.args);
+    } catch (e) {
+      do_report_unexpected_exception(e, "Failed to call " + message.method);
+    }
+    if (message.innerType === "sync-call") {
+      
+      this._sendMessage("sync-reply", [message.method]);
+    }
+  },
+
+  
+
+
+
+  syncCall: function (methodName ) {
+    this._sendMessage("sync-call", arguments);
+    let thread = this._Services.tm.currentThread;
+    let initialReplies = this._repliesNeeded;
+    
+    this._repliesNeeded++;
+    
+    
+    
+    
+    while (this._repliesNeeded > initialReplies) {
+      thread.processNextEvent(true);
+    }
+  },
+
+  
+
+
+
+  asyncCall: function (methodName ) {
+    this._sendMessage("async-call", arguments);
+  },
+
+  
+
+
+  disconnect: function () {
+    this._Services.obs.removeObserver(this, this._EVENT_TYPE);
+  },
+};
