@@ -446,6 +446,9 @@ class ManifestParser(object):
 
         
         for section, data in sections:
+            subsuite = ''
+            if 'subsuite' in data:
+                subsuite = data['subsuite']
 
             
             
@@ -498,6 +501,7 @@ class ManifestParser(object):
                 else:
                     _relpath = relpath(path, rootdir)
 
+            test['subsuite'] = subsuite
             test['path'] = path
             test['relpath'] = _relpath
 
@@ -1080,14 +1084,20 @@ class TestManifest(ManifestParser):
                 if parse(condition, **values):
                     test['expected'] = 'fail'
 
-    def active_tests(self, exists=True, disabled=True, **values):
+    def active_tests(self, exists=True, disabled=True, options=None, **values):
         """
         - exists : return only existing tests
         - disabled : whether to return disabled tests
         - tags : keys and values to filter on (e.g. `os = linux mac`)
         """
-
         tests = [i.copy() for i in self.tests] 
+
+        
+        if options:
+            if  options.subsuite:
+                tests = [test for test in tests if options.subsuite == test['subsuite']]
+            else:
+                tests = [test for test in tests if not test['subsuite']]
 
         
         for test in tests:
