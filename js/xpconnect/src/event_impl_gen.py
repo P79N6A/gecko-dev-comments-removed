@@ -5,7 +5,6 @@
 
 
 
-from codegen import *
 import sys, os.path, re, xpidl, itertools
 
 
@@ -17,6 +16,9 @@ def strip_end(text, suffix):
         return text
     return text[:-len(suffix)]
 
+
+def makeQuote(filename):
+    return filename.replace(' ', '\\ ')  
 
 def writeMakeDependOutput(filename):
     print "Creating makedepend file", filename

@@ -487,7 +487,6 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "nsDOMMutationObserver.h"
 
 #include "nsWrapperCacheInlines.h"
-#include "dombindings.h"
 #include "mozilla/dom/HTMLCollectionBinding.h"
 
 #include "nsIDOMBatteryManager.h"
@@ -4539,10 +4538,6 @@ nsDOMClassInfo::Init()
 
   
   mozilla::dom::Register(nameSpaceManager);
-
-  
-  
-  mozilla::dom::oldproxybindings::Register(nameSpaceManager);
 
   sIsInitialized = true;
 
@@ -8917,7 +8912,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSHandleObject obj_,
       return JS_FALSE;
     }
 
-    nsIContent *node = nodeList->GetNodeAt(JSID_TO_INT(id));
+    nsIContent *node = nodeList->Item(JSID_TO_INT(id));
 
     result = node;
     cache = node;

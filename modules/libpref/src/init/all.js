@@ -681,7 +681,6 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 
-pref("dom.new_bindings", true);
 pref("dom.experimental_bindings", true);
 
 

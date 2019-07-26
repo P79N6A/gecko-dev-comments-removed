@@ -1040,7 +1040,7 @@ nsHTMLDocument::GetBody()
   nsRefPtr<nsContentList> nodeList =
     NS_GetContentList(this, kNameSpaceID_XHTML, NS_LITERAL_STRING("frameset"));
 
-  return nodeList->GetNodeAt(0);
+  return nodeList->Item(0);
 }
 
 NS_IMETHODIMP
@@ -2096,7 +2096,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
       
       
 
-      nsIContent *node = list->GetNodeAt(0);
+      nsIContent *node = list->Item(0);
       if (!aForm || nsContentUtils::BelongsInForm(aForm, node)) {
         NS_ADDREF(*aResult = node);
         *aCache = node;
@@ -2124,7 +2124,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
         
         
 
-        nsIContent *node = fc_list->GetNodeAt(0);
+        nsIContent *node = fc_list->Item(0);
 
         NS_IF_ADDREF(*aResult = node);
         *aCache = node;
