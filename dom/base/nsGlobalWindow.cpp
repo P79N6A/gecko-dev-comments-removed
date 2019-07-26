@@ -1423,8 +1423,10 @@ nsGlobalWindow::FreeInnerObjects()
   NotifyDOMWindowDestroyed(this);
 
   
+  
   nsIScriptContext *scx = GetContextInternal();
-  AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
+  AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+  JSAutoRequest ar(cx);
   mozilla::dom::workers::CancelWorkersForWindow(cx, this);
 
   
@@ -11018,8 +11020,10 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
     DisableGamepadUpdates();
 
     
+  
     nsIScriptContext *scx = GetContextInternal();
-    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+    JSAutoRequest ar(cx);
     mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
 
     TimeStamp now = TimeStamp::Now();
@@ -11109,8 +11113,10 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
     }
 
     
+    
     nsIScriptContext *scx = GetContextInternal();
-    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+    JSAutoRequest ar(cx);
     mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
 
     
