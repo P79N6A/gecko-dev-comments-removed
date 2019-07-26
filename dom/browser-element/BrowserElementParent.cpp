@@ -226,7 +226,7 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
                                           const nsACString& aFeatures,
                                           nsIDOMWindow** aReturnWindow)
 {
-  *aReturnWindow = NULL;
+  *aReturnWindow = nullptr;
 
   
   

@@ -185,7 +185,7 @@ CollectWindowReports(nsGlobalWindow *aWindow,
 
   
   
-  nsGlobalWindow *top = NULL;
+  nsGlobalWindow *top = nullptr;
   nsCOMPtr<nsIURI> location;
   if (aWindow->GetOuterWindow()) {
     
@@ -483,7 +483,7 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryReporterCallback* aCb,
   WindowPaths topWindowPaths;
 
   
-  nsWindowSizes windowTotalSizes(NULL);
+  nsWindowSizes windowTotalSizes(nullptr);
   nsCOMPtr<amIAddonManager> addonManager;
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     

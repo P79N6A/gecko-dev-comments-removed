@@ -676,7 +676,7 @@ nsOuterWindowProxy::preventExtensions(JSContext *cx,
                                       JS::Handle<JSObject*> proxy)
 {
   
-  JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+  JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                        JSMSG_CANT_CHANGE_EXTENSIBILITY);
   return false;
 }
@@ -1222,7 +1222,7 @@ nsGlobalWindow::~nsGlobalWindow()
   if (IsOuterWindow()) {
     JSObject *proxy = GetWrapperPreserveColor();
     if (proxy) {
-      js::SetProxyExtra(proxy, 0, js::PrivateValue(NULL));
+      js::SetProxyExtra(proxy, 0, js::PrivateValue(nullptr));
     }
 
     
@@ -2115,7 +2115,7 @@ CreateNativeGlobalForInner(JSContext* aCx,
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aHolder);
 
-  nsGlobalWindow *top = NULL;
+  nsGlobalWindow *top = nullptr;
   if (aNewInner->GetOuterWindow()) {
     top = aNewInner->GetTop();
   }
@@ -2396,7 +2396,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         return NS_ERROR_FAILURE;
       }
 
-      js::SetProxyExtra(mJSObject, 0, js::PrivateValue(NULL));
+      js::SetProxyExtra(mJSObject, 0, js::PrivateValue(nullptr));
 
       JS::Rooted<JSObject*> obj(cx, mJSObject);
       outerObject = xpc::TransplantObject(cx, obj, outerObject);
@@ -3133,7 +3133,7 @@ void
 nsGlobalWindow::OnFinalize(JSObject* aObject)
 {
   if (aObject == mJSObject) {
-    mJSObject = NULL;
+    mJSObject = nullptr;
   }
 }
 
@@ -5618,7 +5618,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
     pmService->NewWakeLock(NS_LITERAL_STRING("DOM_Fullscreen"), this, getter_AddRefs(mWakeLock));
   } else if (mWakeLock && !mFullScreen) {
     mWakeLock->Unlock();
-    mWakeLock = NULL;
+    mWakeLock = nullptr;
   }
 
   return NS_OK;
@@ -10956,7 +10956,7 @@ nsGlobalWindow::GetParentInternal()
     return parent;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 void
@@ -12697,7 +12697,7 @@ nsGlobalWindow::SyncGamepadState()
 {
   FORWARD_TO_INNER_VOID(SyncGamepadState, ());
   if (mHasSeenGamepadInput) {
-    mGamepads.EnumerateRead(EnumGamepadsForSync, NULL);
+    mGamepads.EnumerateRead(EnumGamepadsForSync, nullptr);
   }
 }
 #endif
