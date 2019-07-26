@@ -135,7 +135,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.bind(&done);
         
         JS_ASSERT(R0.payloadReg() == edx);
-        JS_ASSERT(R0.tagReg() == ecx);
+        JS_ASSERT(R0.typeReg() == ecx);
         break;
       }
       case JSOP_BITOR:
