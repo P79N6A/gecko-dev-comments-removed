@@ -73,6 +73,7 @@ WebVTTLoadListener::LoadResource()
   mParser.own(parser);
   NS_ENSURE_TRUE(mParser != nullptr, NS_ERROR_FAILURE);
 
+  mElement->mReadyState = HTMLTrackElement::LOADING;
   return NS_OK;
 }
 
@@ -89,6 +90,9 @@ WebVTTLoadListener::OnStopRequest(nsIRequest* aRequest,
                                   nsresult aStatus)
 {
   webvtt_finish_parsing(mParser);
+  if(mElement->mReadyState != HTMLTrackElement::ERROR) {
+    mElement->mReadyState = HTMLTrackElement::LOADED;
+  }
   return NS_OK;
 }
 
@@ -227,6 +231,11 @@ WebVTTLoadListener::OnReportError(uint32_t aLine, uint32_t aCol,
 #endif
 
   switch(aError) {
+    
+    case WEBVTT_MALFORMED_TAG:
+      mElement->mReadyState = HTMLTrackElement::ERROR;
+      return -1;
+
     
     
     case WEBVTT_MALFORMED_TIMESTAMP:
