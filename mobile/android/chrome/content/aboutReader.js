@@ -17,75 +17,140 @@ XPCOMUtils.defineLazyGetter(window, "gChromeWin", function ()
     .QueryInterface(Ci.nsIDOMChromeWindow));
 
 function dump(s) {
-  Services.console.logStringMessage("Reader: " + s);
+  Services.console.logStringMessage("AboutReader: " + s);
 }
 
 let gStrings = Services.strings.createBundle("chrome://browser/locale/aboutReader.properties");
 
-let AboutReader = {
+let AboutReader = function(doc, win) {
+  dump("Init()");
+
+  this._docRef = Cu.getWeakReference(doc);
+  this._winRef = Cu.getWeakReference(win);
+
+  Services.obs.addObserver(this, "Reader:FaviconReturn", false);
+
+  this._article = null;
+
+  dump("Feching toolbar, header and content notes from about:reader");
+  this._headerElementRef = Cu.getWeakReference(doc.getElementById("reader-header"));
+  this._domainElementRef = Cu.getWeakReference(doc.getElementById("reader-domain"));
+  this._titleElementRef = Cu.getWeakReference(doc.getElementById("reader-title"));
+  this._creditsElementRef = Cu.getWeakReference(doc.getElementById("reader-credits"));
+  this._contentElementRef = Cu.getWeakReference(doc.getElementById("reader-content"));
+  this._toolbarElementRef = Cu.getWeakReference(doc.getElementById("reader-toolbar"));
+
+  this._toolbarEnabled = false;
+
+  this._scrollOffset = win.pageYOffset;
+
+  let body = doc.body;
+  body.addEventListener("touchstart", this, false);
+  body.addEventListener("click", this, false);
+
+  win.addEventListener("scroll", this, false);
+  win.addEventListener("popstate", this, false);
+  win.addEventListener("resize", this, false);
+
+  this._setupAllDropdowns();
+  this._setupButton("toggle-button", this._onReaderToggle.bind(this));
+  this._setupButton("list-button", this._onList.bind(this));
+  this._setupButton("share-button", this._onShare.bind(this));
+
+  let colorSchemeOptions = [
+    { name: gStrings.GetStringFromName("aboutReader.colorSchemeLight"),
+      value: "light"},
+    { name: gStrings.GetStringFromName("aboutReader.colorSchemeDark"),
+      value: "dark"}
+  ];
+
+  let colorScheme = Services.prefs.getCharPref("reader.color_scheme");
+  this._setupSegmentedButton("color-scheme-buttons", colorSchemeOptions, colorScheme, this._setColorScheme.bind(this));
+  this._setColorScheme(colorScheme);
+
+  let fontTitle = gStrings.GetStringFromName("aboutReader.textTitle");
+  this._setupStepControl("font-size-control", fontTitle, this._onFontSizeChange.bind(this));
+  this._fontSize = 0;
+  this._setFontSize(Services.prefs.getIntPref("reader.font_size"));
+
+  let marginTitle = gStrings.GetStringFromName("aboutReader.marginTitle");
+  this._setupStepControl("margin-size-control", marginTitle, this._onMarginSizeChange.bind(this));
+  this._marginSize = 0;
+  this._setMarginSize(Services.prefs.getIntPref("reader.margin_size"));
+
+  dump("Decoding query arguments");
+  let queryArgs = this._decodeQueryString(win.location.href);
+
+  this._isReadingListItem = (queryArgs.readingList == "1");
+  this._updateToggleButton();
+
+  let url = queryArgs.url;
+  let tabId = queryArgs.tabId;
+  if (tabId) {
+    dump("Loading from tab with ID: " + tabId + ", URL: " + url);
+    this._loadFromTab(tabId, url);
+  } else {
+    dump("Fetching page with URL: " + url);
+    this._loadFromURL(url);
+  }
+}
+
+AboutReader.prototype = {
   _STEP_INCREMENT: 0,
   _STEP_DECREMENT: 1,
 
-  init: function Reader_init() {
-    dump("Init()");
+  _BLOCK_IMAGES_SELECTOR: ".content p > img:only-child, " +
+                          ".content p > a:only-child > img:only-child, " +
+                          ".content .wp-caption img, " +
+                          ".content figure img",
 
-    this._article = null;
+  get _doc() {
+    return this._docRef.get();
+  },
 
-    dump("Feching toolbar, header and content notes from about:reader");
-    this._titleElement = document.getElementById("reader-header");
-    this._contentElement = document.getElementById("reader-content");
-    this._toolbarElement = document.getElementById("reader-toolbar");
+  get _win() {
+    return this._winRef.get();
+  },
 
-    this._scrollOffset = window.pageYOffset;
+  get _headerElement() {
+    return this._headerElementRef.get();
+  },
 
-    let body = document.body;
-    body.addEventListener("touchstart", this, false);
-    body.addEventListener("click", this, false);
-    window.addEventListener("scroll", this, false);
+  get _domainElement() {
+    return this._domainElementRef.get();
+  },
 
-    this._setupAllDropdowns();
-    this._setupButton("share-button", this._onShare.bind(this));
+  get _titleElement() {
+    return this._titleElementRef.get();
+  },
 
-    let colorSchemeOptions = [
-      { name: gStrings.GetStringFromName("aboutReader.colorSchemeLight"),
-        value: "light"},
-      { name: gStrings.GetStringFromName("aboutReader.colorSchemeDark"),
-        value: "dark"},
-      { name: gStrings.GetStringFromName("aboutReader.colorSchemeSepia"),
-        value: "sepia"}
-    ];
+  get _creditsElement() {
+    return this._creditsElementRef.get();
+  },
 
-    let colorScheme = Services.prefs.getCharPref("reader.color_scheme");
-    this._setupSegmentedButton("color-scheme-buttons", colorSchemeOptions, colorScheme, this._setColorScheme.bind(this));
-    this._setColorScheme(colorScheme);
+  get _contentElement() {
+    return this._contentElementRef.get();
+  },
 
-    let fontTitle = gStrings.GetStringFromName("aboutReader.textTitle");
-    this._setupStepControl("font-size-control", fontTitle, this._onFontSizeChange.bind(this));
-    this._fontSize = 0;
-    this._setFontSize(Services.prefs.getIntPref("reader.font_size"));
+  get _toolbarElement() {
+    return this._toolbarElementRef.get();
+  },
 
-    let marginTitle = gStrings.GetStringFromName("aboutReader.marginTitle");
-    this._setupStepControl("margin-size-control", marginTitle, this._onMarginSizeChange.bind(this));
-    this._marginSize = 0;
-    this._setMarginSize(Services.prefs.getIntPref("reader.margin_size"));
-
-    dump("Decoding query arguments");
-    let queryArgs = this._decodeQueryString(window.location.href);
-
-    let url = queryArgs.url;
-    if (url) {
-      dump("Fetching page with URL: " + url);
-      this._loadFromURL(url);
-    } else {
-      var tabId = queryArgs.tabId;
-      if (tabId) {
-        dump("Loading from tab with ID: " + tabId);
-        this._loadFromTab(tabId);
+  observe: function Reader_observe(aMessage, aTopic, aData) {
+    switch(aTopic) {
+      case "Reader:FaviconReturn": {
+        let info = JSON.parse(aData);
+        this._loadFavicon(info.url, info.faviconUrl);
+        Services.obs.removeObserver(this, "Reader:FaviconReturn", false);
+        break;
       }
     }
   },
 
   handleEvent: function Reader_handleEvent(aEvent) {
+    if (!aEvent.isTrusted)
+      return;
+
     switch (aEvent.type) {
       case "touchstart":
         this._scrolled = false;
@@ -100,18 +165,69 @@ let AboutReader = {
           this._setToolbarVisibility(false);
         }
         break;
+      case "popstate":
+        if (!aEvent.state)
+          this._closeAllDropdowns();
+        break;
+      case "resize":
+        this._updateImageMargins();
+        break;
     }
   },
 
-  uninit: function Reader_uninit() {
-    dump("Uninit()");
+  _updateToggleButton: function Reader_updateToggleButton() {
+    let classes = this._doc.getElementById("toggle-button").classList;
 
-    let body = document.body;
-    body.removeEventListener("touchstart", this, false);
-    body.removeEventListener("click", this, false);
-    window.removeEventListener("scroll", this, false);
+    if (this._isReadingListItem) {
+      classes.add("on");
+    } else {
+      classes.remove("on");
+    }
+  },
 
-    this._hideContent();
+  _onReaderToggle: function Reader_onToggle() {
+    if (!this._article)
+      return;
+
+    this._isReadingListItem = !this._isReadingListItem;
+    this._updateToggleButton();
+
+    if (this._isReadingListItem) {
+      gChromeWin.Reader.storeArticleInCache(this._article, function(success) {
+        dump("Reader:Add (in reader) success=" + success);
+
+        gChromeWin.sendMessageToJava({
+          gecko: {
+            type: "Reader:Added",
+            success: success,
+            title: this._article.title,
+            url: this._article.url,
+          }
+        });
+      }.bind(this));
+    } else {
+      gChromeWin.Reader.removeArticleFromCache(this._article.url , function(success) {
+        dump("Reader:Remove (in reader) success=" + success);
+
+        gChromeWin.sendMessageToJava({
+          gecko: {
+            type: "Reader:Removed",
+            url: this._article.url
+          }
+        });
+      }.bind(this));
+    }
+  },
+
+  _onList: function Reader_onList() {
+    if (!this._article)
+      return;
+
+    gChromeWin.sendMessageToJava({
+      gecko: {
+        type: "Reader:GoToReadingList"
+      }
+    });
   },
 
   _onShare: function Reader_onShare() {
@@ -138,9 +254,13 @@ let AboutReader = {
     if (this._marginSize === newMarginSize)
       return;
 
+    let doc = this._doc;
+
     this._marginSize = Math.max(5, Math.min(25, newMarginSize));
-    document.body.style.marginLeft = this._marginSize + "%";
-    document.body.style.marginRight = this._marginSize + "%";
+    doc.body.style.marginLeft = this._marginSize + "%";
+    doc.body.style.marginRight = this._marginSize + "%";
+
+    this._updateImageMargins();
 
     Services.prefs.setIntPref("reader.margin_size", this._marginSize);
   },
@@ -156,7 +276,7 @@ let AboutReader = {
     if (this._fontSize === newFontSize)
       return;
 
-    let bodyClasses = document.body.classList;
+    let bodyClasses = this._doc.body.classList;
 
     if (this._fontSize > 0)
       bodyClasses.remove("font-size" + this._fontSize);
@@ -171,7 +291,7 @@ let AboutReader = {
     if (this._colorScheme === newColorScheme)
       return;
 
-    let bodyClasses = document.body.classList;
+    let bodyClasses = this._doc.body.classList;
 
     if (this._colorScheme)
       bodyClasses.remove(this._colorScheme);
@@ -187,17 +307,27 @@ let AboutReader = {
   },
 
   _setToolbarVisibility: function Reader_setToolbarVisibility(visible) {
-    this._closeAllDropdowns();
+    let win = this._win;
+    if (win.history.state)
+      win.history.back();
+
+    if (!this._toolbarEnabled)
+      return;
 
     if (this._getToolbarVisibility() === visible)
       return;
 
-    let toolbarElement = this._toolbarElement;
+    this._toolbarElement.classList.toggle("toolbar-hidden");
 
-    if (visible)
-      toolbarElement.display = "block";
+    if (!visible && !this._hasUsedToolbar) {
+      this._hasUsedToolbar = Services.prefs.getBoolPref("reader.has_used_toolbar");
+      if (!this._hasUsedToolbar) {
+        gChromeWin.NativeWindow.toast.show(gStrings.GetStringFromName("aboutReader.toolbarTip"), "short");
 
-    toolbarElement.classList.toggle("toolbar-hidden");
+        Services.prefs.setBoolPref("reader.has_used_toolbar", true);
+        this._hasUsedToolbar = true;
+      }
+    }
   },
 
   _toggleToolbarVisibility: function Reader_toggleToolbarVisibility(visible) {
@@ -215,10 +345,10 @@ let AboutReader = {
     }.bind(this));
   },
 
-  _loadFromTab: function Reader_loadFromTab(tabId) {
+  _loadFromTab: function Reader_loadFromTab(tabId, url) {
     this._showProgress();
 
-    gChromeWin.Reader.parseDocumentFromTab(tabId, function(article) {
+    gChromeWin.Reader.getArticleForTab(tabId, url, function(article) {
       if (article)
         this._showContent(article);
       else
@@ -226,33 +356,117 @@ let AboutReader = {
     }.bind(this));
   },
 
+  _requestFavicon: function Reader_requestFavicon() {
+    gChromeWin.sendMessageToJava({
+      gecko: {
+        type: "Reader:FaviconRequest",
+        url: this._article.url
+      }
+    });
+  },
+
+  _loadFavicon: function Reader_loadFavicon(url, faviconUrl) {
+    if (this._article.url !== url)
+      return;
+
+    let doc = this._doc;
+
+    let link = doc.createElement('link');
+    link.rel = 'shortcut icon';
+    link.href = faviconUrl;
+
+    doc.getElementsByTagName('head')[0].appendChild(link);
+  },
+
+  _updateImageMargins: function Reader_updateImageMargins() {
+    let windowWidth = this._win.innerWidth;
+    let contentWidth = this._contentElement.offsetWidth;
+    let maxWidthStyle = windowWidth + "px !important";
+
+    let setImageMargins = function(img) {
+      if (!img._originalWidth)
+        img._originalWidth = img.offsetWidth;
+
+      let imgWidth = img._originalWidth;
+
+      
+      
+      if (imgWidth < contentWidth && imgWidth > windowWidth * 0.55)
+        imgWidth = windowWidth;
+
+      let sideMargin = Math.max((contentWidth - windowWidth) / 2,
+                                (contentWidth - imgWidth) / 2);
+
+      let imageStyle = sideMargin + "px !important";
+      let widthStyle = imgWidth + "px !important";
+
+      let cssText = "max-width: " + maxWidthStyle + ";" +
+                    "width: " + widthStyle + ";" +
+                    "margin-left: " + imageStyle + ";" +
+                    "margin-right: " + imageStyle + ";";
+
+      img.style.cssText = cssText;
+    }
+
+    let imgs = this._doc.querySelectorAll(this._BLOCK_IMAGES_SELECTOR);
+    for (let i = imgs.length; --i >= 0;) {
+      let img = imgs[i];
+
+      if (img.width > 0) {
+        setImageMargins(img);
+      } else {
+        img.onload = function() {
+          setImageMargins(img);
+        }
+      }
+    }
+  },
+
   _showError: function Reader_showError(error) {
-    this._titleElement.style.display = "none";
+    this._headerElement.style.display = "none";
     this._contentElement.innerHTML = error;
     this._contentElement.style.display = "block";
 
-    document.title = error;
+    this._doc.title = error;
   },
 
   _showContent: function Reader_showContent(article) {
     this._article = article;
 
-    this._titleElement.innerHTML = article.title;
-    this._titleElement.style.display = "block";
+    let articleUri = Services.io.newURI(article.url, null, null);
+    let domain = articleUri.host;
 
-    this._contentElement.innerHTML = article.content;
+    this._domainElement.innerHTML = domain;
+
+    this._creditsElement.innerHTML = article.byline;
+
+    this._titleElement.innerHTML = article.title;
+    this._doc.title = article.title;
+
+    this._headerElement.style.display = "block";
+
+    let parserUtils = Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils);
+    let contentFragment = parserUtils.parseFragment(article.content, Ci.nsIParserUtils.SanitizerDropForms,
+                                                    false, articleUri, this._contentElement);
+    this._contentElement.innerHTML = "";
+    this._contentElement.appendChild(contentFragment);
+    this._updateImageMargins();
+
     this._contentElement.style.display = "block";
 
-    document.title = article.title;
+    this._toolbarEnabled = true;
+    this._setToolbarVisibility(true);
+
+    this._requestFavicon();
   },
 
   _hideContent: function Reader_hideContent() {
-    this._titleElement.style.display = "none";
+    this._headerElement.style.display = "none";
     this._contentElement.style.display = "none";
   },
 
   _showProgress: function Reader_showProgress() {
-    this._titleElement.style.display = "none";
+    this._headerElement.style.display = "none";
     this._contentElement.innerHTML = gStrings.GetStringFromName("aboutReader.loading");
     this._contentElement.style.display = "block";
   },
@@ -272,45 +486,56 @@ let AboutReader = {
   },
 
   _setupStepControl: function Reader_setupStepControl(id, name, callback) {
-    let stepControl = document.getElementById(id);
+    let doc = this._doc;
+    let stepControl = doc.getElementById(id);
 
-    let title = document.createElement("h1");
+    let title = this._doc.createElement("h1");
     title.innerHTML = name;
     stepControl.appendChild(title);
 
-    let plusButton = document.createElement("div");
+    let plusButton = doc.createElement("div");
     plusButton.className = "button plus-button";
     stepControl.appendChild(plusButton);
 
-    let minusButton = document.createElement("div");
+    let minusButton = doc.createElement("div");
     minusButton.className = "button minus-button";
     stepControl.appendChild(minusButton);
 
     plusButton.addEventListener("click", function(aEvent) {
+      if (!aEvent.isTrusted)
+        return;
+
       aEvent.stopPropagation();
       callback(this._STEP_INCREMENT);
     }.bind(this), true);
 
     minusButton.addEventListener("click", function(aEvent) {
+      if (!aEvent.isTrusted)
+        return;
+
       aEvent.stopPropagation();
       callback(this._STEP_DECREMENT);
     }.bind(this), true);
   },
 
   _setupSegmentedButton: function Reader_setupSegmentedButton(id, options, initialValue, callback) {
-    let segmentedButton = document.getElementById(id);
+    let doc = this._doc;
+    let segmentedButton = doc.getElementById(id);
 
     for (let i = 0; i < options.length; i++) {
       let option = options[i];
 
-      let item = document.createElement("li");
-      let link = document.createElement("a");
+      let item = doc.createElement("li");
+      let link = doc.createElement("a");
       link.innerHTML = option.name;
       item.appendChild(link);
 
       segmentedButton.appendChild(item);
 
       link.addEventListener("click", function(aEvent) {
+        if (!aEvent.isTrusted)
+          return;
+
         aEvent.stopPropagation();
 
         let items = segmentedButton.children;
@@ -328,15 +553,22 @@ let AboutReader = {
   },
 
   _setupButton: function Reader_setupButton(id, callback) {
-    let button = document.getElementById(id);
+    let button = this._doc.getElementById(id);
 
     button.addEventListener("click", function(aEvent) {
+      if (!aEvent.isTrusted)
+        return;
+
+      aEvent.stopPropagation();
       callback();
     }, true);
   },
 
   _setupAllDropdowns: function Reader_setupAllDropdowns() {
-    let dropdowns = document.getElementsByClassName("dropdown");
+    let doc = this._doc;
+    let win = this._win;
+
+    let dropdowns = doc.getElementsByClassName("dropdown");
 
     for (let i = dropdowns.length - 1; i >= 0; i--) {
       let dropdown = dropdowns[i];
@@ -347,7 +579,7 @@ let AboutReader = {
       if (!dropdownToggle || !dropdownPopup)
         continue;
 
-      let dropdownArrow = document.createElement("div");
+      let dropdownArrow = doc.createElement("div");
       dropdownArrow.className = "dropdown-arrow";
       dropdownPopup.appendChild(dropdownArrow);
 
@@ -358,37 +590,67 @@ let AboutReader = {
           let toggleLeft = dropdownToggle.offsetLeft;
 
           let popupShift = (toggleWidth - popupWidth) / 2;
-          let popupLeft = Math.max(0, Math.min(window.innerWidth - popupWidth, toggleLeft + popupShift));
+          let popupLeft = Math.max(0, Math.min(win.innerWidth - popupWidth, toggleLeft + popupShift));
           dropdownPopup.style.left = popupLeft + "px";
 
           let arrowShift = (toggleWidth - arrowWidth) / 2;
           let arrowLeft = toggleLeft - popupLeft + arrowShift;
           dropdownArrow.style.left = arrowLeft + "px";
-      }
+      };
 
-      window.addEventListener("resize", function(aEvent) {
+      win.addEventListener("resize", function(aEvent) {
+        if (!aEvent.isTrusted)
+          return;
+
         updatePopupPosition();
       }, true);
 
       dropdownToggle.addEventListener("click", function(aEvent) {
+        if (!aEvent.isTrusted)
+          return;
+
         aEvent.stopPropagation();
 
         let dropdownClasses = dropdown.classList;
 
-        if (!dropdownClasses.contains("open")) {
+        if (dropdownClasses.contains("open")) {
+          win.history.back();
+        } else {
           updatePopupPosition();
-          this._closeAllDropdowns();
-        }
+          if (!this._closeAllDropdowns())
+            this._pushDropdownState();
 
-        dropdownClasses.toggle("open");
+          dropdownClasses.add("open");
+        }
       }.bind(this), true);
     }
   },
 
+  _pushDropdownState: function Reader_pushDropdownState() {
+    
+    
+    
+    
+
+    let doc = this._doc;
+    let body = doc.body;
+
+    if (this._pushStateScript)
+      body.removeChild(this._pushStateScript);
+
+    this._pushStateScript = doc.createElement('script');
+    this._pushStateScript.type = "text/javascript";
+    this._pushStateScript.innerHTML = 'history.pushState({ dropdown: 1 }, document.title);';
+
+    body.appendChild(this._pushStateScript);
+  },
+
   _closeAllDropdowns : function Reader_closeAllDropdowns() {
-    let dropdowns = document.getElementsByClassName("dropdown");
+    let dropdowns = this._doc.querySelectorAll(".dropdown.open");
     for (let i = dropdowns.length - 1; i >= 0; i--) {
       dropdowns[i].classList.remove("open");
     }
+
+    return (dropdowns.length > 0)
   }
-}
+};
