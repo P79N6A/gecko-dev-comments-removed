@@ -4513,11 +4513,6 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   
   
   mVisibilityState = GetVisibilityState();
-
-  
-  if (mTemplateContentsOwner && mTemplateContentsOwner != this) {
-    mTemplateContentsOwner->SetScriptGlobalObject(aScriptGlobalObject);
-  }
 }
 
 nsIScriptGlobalObject*
@@ -9448,6 +9443,7 @@ nsDocument::GetTemplateContentsOwner()
     bool hasHadScriptObject = true;
     nsIScriptGlobalObject* scriptObject =
       GetScriptHandlingObject(hasHadScriptObject);
+    NS_ENSURE_TRUE(scriptObject || !hasHadScriptObject, nullptr);
 
     nsCOMPtr<nsIDOMDocument> domDocument;
     nsresult rv = NS_NewDOMDocument(getter_AddRefs(domDocument),
@@ -9465,16 +9461,12 @@ nsDocument::GetTemplateContentsOwner()
     mTemplateContentsOwner = do_QueryInterface(domDocument);
     NS_ENSURE_TRUE(mTemplateContentsOwner, nullptr);
 
+    mTemplateContentsOwner->SetScriptHandlingObject(scriptObject);
+
+    
+    
+    
     nsDocument* doc = static_cast<nsDocument*>(mTemplateContentsOwner.get());
-    doc->mHasHadScriptHandlingObject = hasHadScriptObject;
-
-    if (!scriptObject) {
-      mTemplateContentsOwner->SetScopeObject(GetScopeObject());
-    }
-
-    
-    
-    
     doc->mTemplateContentsOwner = doc;
   }
 
