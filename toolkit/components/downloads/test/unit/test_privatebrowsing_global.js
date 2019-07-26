@@ -23,7 +23,14 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+this.__defineGetter__("pb", function () {
+  delete this.pb;
+  try {
+    return this.pb = Cc["@mozilla.org/privatebrowsing;1"].
+                     getService(Ci.nsIPrivateBrowsingService);
+  } catch (e) {}
+  return this.pb = null;
+});
 
 this.__defineGetter__("dm", function() {
   delete this.dm;
@@ -35,52 +42,44 @@ this.__defineGetter__("dm", function() {
 
 
 
-function is_active_download_available(aGUID, aSrc, aDst, aName, aPrivate) {
-  let enumerator = aPrivate ? dm.activePrivateDownloads : dm.activeDownloads;
+function is_active_download_available(aID, aSrc, aDst, aName) {
+  let enumerator = dm.activeDownloads;
   while (enumerator.hasMoreElements()) {
     let download = enumerator.getNext();
-    if (download.guid == aGUID &&
+    if (download.id == aID &&
         download.source.spec == aSrc &&
         download.targetFile.path == aDst.path &&
         download.displayName == aName &&
-        download.isPrivate == aPrivate)
+        download.isPrivate == pb.privateBrowsingEnabled)
       return true;
   }
   return false;
 }
 
-function expect_download_present(aGUID, aSrc, aDst, aName, aPrivate) {
-  is_download_available(aGUID, aSrc, aDst, aName, aPrivate, true);
-}
-
-function expect_download_absent(aGUID, aSrc, aDst, aName, aPrivate) {
-  is_download_available(aGUID, aSrc, aDst, aName, aPrivate, false);
-}
 
 
 
 
-
-function is_download_available(aGUID, aSrc, aDst, aName, aPrivate, present) {
-  do_test_pending();
-  dm.getDownloadByGUID(aGUID, function(status, download) {
-    if (!present) {
-      do_check_eq(download, null);
-    } else {
-      do_check_neq(download, null);
-      do_check_eq(download.guid, aGUID);
-      do_check_eq(download.source.spec, aSrc);
-      do_check_eq(download.targetFile.path, aDst.path);
-      do_check_eq(download.displayName, aName);
-      do_check_eq(download.isPrivate, aPrivate);
-    }
-    do_test_finished();
-  });
+function is_download_available(aID, aSrc, aDst, aName) {
+  let download;
+  try {
+    download = dm.getDownload(aID);
+  } catch (ex) {
+    return false;
+  }
+  return (download.id == aID &&
+          download.source.spec == aSrc &&
+          download.targetFile.path == aDst.path &&
+          download.displayName == aName);
 }
 
 function run_test() {
+  if (!pb) 
+    return;
+
   let prefBranch = Cc["@mozilla.org/preferences-service;1"].
                    getService(Ci.nsIPrefBranch);
+  prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
   do_test_pending();
   let httpserv = new HttpServer();
@@ -93,7 +92,6 @@ function run_test() {
 
   
   do_check_eq(dm.activeDownloadCount, 0);
-  do_check_eq(dm.activePrivateDownloadCount, 0);
 
   let listener = {
     phase: 1,
@@ -116,21 +114,35 @@ function run_test() {
         
         
         case dm.DOWNLOAD_DOWNLOADING:
-          if (aDownload.guid == downloadC && !this.handledC && this.phase == 2) {
+          if (aDownload.id == downloadC && !this.handledC && this.phase == 2) {
             
             do_check_true(dlC.resumable);
 
             
-            expect_download_present(downloadA, downloadASource,
-              fileA, downloadAName, false);
+            pb.privateBrowsingEnabled = true;
+            do_check_true(pb.privateBrowsingEnabled);
 
             
-            expect_download_absent(downloadB, downloadBSource,
-              fileB, downloadBName, true);
+            do_check_eq(dlC.state, dm.DOWNLOAD_PAUSED);
+            do_check_eq(dm.activeDownloadCount, 0);
+            do_check_false(is_download_available(downloadC, downloadCSource,
+              fileC, downloadCName));
 
             
-            expect_download_present(downloadC, downloadCSource,
-              fileC, downloadCName, false);
+            pb.privateBrowsingEnabled = false;
+            do_check_false(pb.privateBrowsingEnabled);
+
+            
+            do_check_true(is_download_available(downloadA, downloadASource,
+              fileA, downloadAName));
+
+            
+            do_check_false(is_download_available(downloadB, downloadBSource,
+              fileB, downloadBName));
+
+            
+            do_check_true(is_download_available(downloadC, downloadCSource,
+              fileC, downloadCName));
 
             
             this.handledC = true;
@@ -153,22 +165,29 @@ function run_test() {
           do_check_eq(dm.activeDownloadCount, 0);
 
           
+          pb.privateBrowsingEnabled = true;
+          do_check_true(pb.privateBrowsingEnabled);
+
+          
+          do_check_false(is_download_available(downloadA, downloadASource,
+            fileA, downloadAName));
+
+          
           let dlB = addDownload({
-            isPrivate: true,
+            isPrivate: pb.privateBrowsingEnabled,
             targetFile: fileB,
             sourceURI: downloadBSource,
             downloadName: downloadBName,
             runBeforeStart: function (aDownload) {
               
-              do_check_eq(dm.activePrivateDownloadCount, 1);
-              do_check_eq(dm.activeDownloadCount, 0);
-              do_check_true(is_active_download_available(aDownload.guid,
-                downloadBSource, fileB, downloadBName, true));
-              expect_download_present(aDownload.guid,
-                downloadBSource, fileB, downloadBName, true);
+              do_check_eq(dm.activeDownloadCount, 1);
+              do_check_true(is_active_download_available(aDownload.id,
+                downloadBSource, fileB, downloadBName));
+              do_check_true(is_download_available(aDownload.id,
+                downloadBSource, fileB, downloadBName));
             }
           });
-          downloadB = dlB.guid;
+          downloadB = dlB.id;
 
           
           ++this.phase;
@@ -179,55 +198,57 @@ function run_test() {
           do_check_eq(dm.activeDownloadCount, 0);
 
           
-          Services.obs.notifyObservers(null, "last-pb-context-exited", null);
+          pb.privateBrowsingEnabled = false;
+          do_check_false(pb.privateBrowsingEnabled);
+
+          
+          do_check_true(is_download_available(downloadA, downloadASource,
+            fileA, downloadAName));
+
+          
+          do_check_false(is_download_available(downloadB, downloadBSource,
+            fileB, downloadBName));
 
           
           httpserv.start(4444);
           dlC = addDownload({
-            isPrivate: false,
+            isPrivate: pb.privateBrowsingEnabled,
             targetFile: fileC,
             sourceURI: downloadCSource,
             downloadName: downloadCName,
             runBeforeStart: function (aDownload) {
               
-              do_check_eq(dm.activePrivateDownloadCount, 0);
-              do_check_true(is_active_download_available(aDownload.guid,
-                downloadCSource, fileC, downloadCName, false));
-              expect_download_present(aDownload.guid,
-                downloadCSource, fileC, downloadCName, false);
+              do_check_eq(dm.activeDownloadCount, 1);
+              do_check_true(is_active_download_available(aDownload.id,
+                downloadCSource, fileC, downloadCName));
+              do_check_true(is_download_available(aDownload.id,
+                downloadCSource, fileC, downloadCName));
             }
           });
-          downloadC = dlC.guid;
+          downloadC = dlC.id;
 
           
           ++this.phase;
-
-          
-          expect_download_present(downloadA, downloadASource,
-            fileA, downloadAName, false);
-
-          
-          expect_download_absent(downloadB, downloadBSource,
-            fileB, downloadBName, true);
         }
         break;
 
         case 3: {
-          do_check_eq(dm.activePrivateDownloadCount, 0);
+          do_check_eq(dm.activeDownloadCount, 0);
 
           
-          expect_download_present(downloadA, downloadASource,
-            fileA, downloadAName, false);
+          do_check_true(is_download_available(downloadA, downloadASource,
+            fileA, downloadAName));
 
           
-          expect_download_absent(downloadB, downloadBSource,
-            fileB, downloadBName, true);
+          do_check_false(is_download_available(downloadB, downloadBSource,
+            fileB, downloadBName));
 
           
-          expect_download_present(downloadC, downloadCSource,
-            fileC, downloadCName, false);
+          do_check_true(is_download_available(downloadC, downloadCSource,
+            fileC, downloadCName));
 
           
+          prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
           dm.removeListener(this);
           httpserv.stop(do_test_finished);
         }
@@ -240,8 +261,8 @@ function run_test() {
     }
   };
 
-  dm.addPrivacyAwareListener(listener);
-  dm.addPrivacyAwareListener(getDownloadListener());
+  dm.addListener(listener);
+  dm.addListener(getDownloadListener());
 
   
   let downloadA = -1;
@@ -277,18 +298,18 @@ function run_test() {
 
   
   let dlA = addDownload({
-    isPrivate: false,
+    isPrivate: pb.privateBrowsingEnabled,
     targetFile: fileA,
     sourceURI: downloadASource,
     downloadName: downloadAName,
     runBeforeStart: function (aDownload) {
       
-      do_check_eq(dm.activePrivateDownloadCount, 0);
-      do_check_true(is_active_download_available(aDownload.guid, downloadASource, fileA, downloadAName, false));
-      expect_download_present(aDownload.guid, downloadASource, fileA, downloadAName, false);
+      do_check_eq(dm.activeDownloadCount, 1);
+      do_check_true(is_active_download_available(aDownload.id, downloadASource, fileA, downloadAName));
+      do_check_true(is_download_available(aDownload.id, downloadASource, fileA, downloadAName));
     }
   });
-  downloadA = dlA.guid;
+  downloadA = dlA.id;
 
   
 }

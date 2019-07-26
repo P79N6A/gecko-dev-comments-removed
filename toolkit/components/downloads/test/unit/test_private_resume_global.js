@@ -2,13 +2,29 @@
 
 
 
+this.__defineGetter__("pb", function () {
+  delete this.pb;
+  try {
+    return this.pb = Cc["@mozilla.org/privatebrowsing;1"].
+                     getService(Ci.nsIPrivateBrowsingService);
+  } catch (e) {}
+  return this.pb = null;
+});
+
 
 
 
 
 function run_test() {
+  
+  if (!pb) {
+    return;
+  }
+
   do_test_pending();
   let httpserv = new HttpServer();
+
+  Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
   let times = 0;
   httpserv.registerPathHandler("/head_download_manager.js", function (meta, response) {
@@ -47,11 +63,11 @@ function run_test() {
           state++;
           do_check_true(aDownload.resumable);
 
-          aDownload.pause();
+          downloadUtils.downloadManager.pauseDownload(aDownload.id);
           do_check_eq(aDownload.state, downloadUtils.downloadManager.DOWNLOAD_PAUSED);
 
           do_execute_soon(function() {
-            aDownload.resume();
+            downloadUtils.downloadManager.resumeDownload(aDownload.id);
           });
           break;
 
@@ -64,19 +80,23 @@ function run_test() {
 
               state++;
                               
+              pb.privateBrowsingEnabled = true;
+
               addDownload({
-                isPrivate: true,
+                isPrivate: pb.privateBrowsingEnabled,
                 sourceURI: downloadCSource,
                 downloadName: downloadCName + "!!!",
                 runBeforeStart: function (aDownload) {
                   
-                  do_check_eq(downloadUtils.downloadManager.activePrivateDownloadCount, 1);
+                  do_check_eq(downloadUtils.downloadManager.activeDownloadCount, 1);
                 }
               });
             });
           } else if (state == 2) {
             
             do_execute_soon(function() {
+              pb.privateBrowsingEnabled = false;
+              Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
               httpserv.stop(do_test_finished);
             });
           }
@@ -91,14 +111,14 @@ function run_test() {
     onSecurityChange: function(a, b, c, d) { }
   };
 
-  downloadUtils.downloadManager.addPrivacyAwareListener(listener);
+  downloadUtils.downloadManager.addListener(listener);
 
   const downloadCSource = "http://localhost:4444/head_download_manager.js";
   const downloadCName = "download-C";
 
   
   let dl = addDownload({
-    isPrivate: false,
+    isPrivate: pb.privateBrowsingEnabled,
     sourceURI: downloadCSource,
     downloadName: downloadCName,
     runBeforeStart: function (aDownload) {
