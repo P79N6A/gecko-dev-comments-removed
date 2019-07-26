@@ -83,6 +83,7 @@ const DEFAULT_DATABASE_NAME = "healthreport.sqlite";
 
 
 
+
 function HealthReporter(branch, policy, sessionRecorder) {
   if (!branch.endsWith(".")) {
     throw new Error("Branch must end with a period (.): " + branch);
