@@ -9,6 +9,9 @@ const Cr = Components.results;
 Cu.import("resource://testing-common/httpd.js");
 
 
+Cu.importGlobalProperties(['atob']);
+
+
 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -66,6 +69,29 @@ function partial(fn) {
 
 function uuid() {
   return uuidGenerator.generateUUID().toString();
+}
+
+function base64UrlDecode(s) {
+  s = s.replace(/-/g, '+');
+  s = s.replace(/_/g, '/');
+
+  
+  
+  switch (s.length % 4) {
+    case 0:
+      break; 
+    case 2:
+      s += "==";
+      break; 
+    case 3:
+      s += "=";
+      break; 
+    default:
+      throw new InputException("Illegal base64url string!");
+  }
+
+  
+  return atob(s);
 }
 
 
@@ -187,8 +213,8 @@ function setup_provisioning(identity, afterSetupCallback, doneProvisioningCallba
         doneProvisioningCallback(err);
     },
     sandbox: {
-	
-	free: function() {}
+  
+  free: function() {}
     }
   };
 
