@@ -19,7 +19,7 @@
 #include "nsPropertyTable.h"        
 #include "nsTObserverArray.h"       
 #include "nsWindowMemoryReporter.h" 
-#include "nsWrapperCache.h"         
+#include "mozilla/dom/EventTarget.h" 
 
 
 #ifdef XP_WIN
@@ -267,8 +267,7 @@ private:
 
 
 
-class nsINode : public nsIDOMEventTarget,
-                public nsWrapperCache
+class nsINode : public mozilla::dom::EventTarget
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODE_IID)
