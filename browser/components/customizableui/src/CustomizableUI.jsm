@@ -448,7 +448,8 @@ let CustomizableUIInternal = {
       let palette = aAreaNode.toolbox ? aAreaNode.toolbox.palette : null;
       let limit = currentNode.previousSibling;
       let node = container.lastChild;
-      while (node != limit) {
+      while (node && node != limit) {
+        let previousSibling = node.previousSibling;
         
         
         
@@ -460,7 +461,7 @@ let CustomizableUIInternal = {
             container.removeChild(node);
           }
         }
-        node = node.previousSibling;
+        node = previousSibling;
       }
     }
   },
