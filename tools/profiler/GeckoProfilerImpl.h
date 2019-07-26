@@ -140,6 +140,18 @@ void profiler_unlock()
   return mozilla_sampler_unlock();
 }
 
+static inline
+void profiler_register_thread(const char* name)
+{
+  mozilla_sampler_register_thread(name);
+}
+
+static inline
+void profiler_unregister_thread()
+{
+  mozilla_sampler_unregister_thread();
+}
+
 
 
 
@@ -153,6 +165,7 @@ void profiler_unlock()
 #define PROFILER_MAIN_THREAD_LABEL(name_space, info)  MOZ_ASSERT(NS_IsMainThread(), "This can only be called on the main thread"); mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, __LINE__)
 #define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, ...)  MOZ_ASSERT(NS_IsMainThread(), "This can only be called on the main thread"); mozilla::SamplerStackFramePrintfRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, __LINE__, __VA_ARGS__)
 #define PROFILER_MAIN_THREAD_MARKER(info)  MOZ_ASSERT(NS_IsMainThread(), "This can only be called on the main thread"); mozilla_sampler_add_marker(info)
+
 
 
 
