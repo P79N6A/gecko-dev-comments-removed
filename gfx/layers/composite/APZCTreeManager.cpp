@@ -16,48 +16,126 @@ APZCTreeManager::APZCTreeManager()
   AsyncPanZoomController::InitializeGlobalState();
 }
 
+
+static void
+Collect(AsyncPanZoomController* aApzc, nsTArray< nsRefPtr<AsyncPanZoomController> >* aCollection)
+{
+  if (aApzc) {
+    aCollection->AppendElement(aApzc);
+    Collect(aApzc->GetLastChild(), aCollection);
+    Collect(aApzc->GetPrevSibling(), aCollection);
+  }
+}
+
 void
 APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Layer* aRoot,
-                                             uint64_t aLayersId, bool aIsFirstPaint)
+                                             bool aIsFirstPaint, uint64_t aFirstPaintLayersId)
 {
   Compositor::AssertOnCompositorThread();
 
   MonitorAutoLock lock(mTreeLock);
-  AsyncPanZoomController* controller = nullptr;
-  if (aRoot && aRoot->AsContainerLayer()) {
-    ContainerLayer* container = aRoot->AsContainerLayer();
 
-    
-    
-    
-    controller = container->GetAsyncPanZoomController();
-    const FrameMetrics& metrics = container->GetFrameMetrics();
-    if (metrics.IsScrollable()) {
-      
-      if (!controller) {
-        const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
-        if (state && state->mController.get()) {
-          controller = new AsyncPanZoomController(state->mController,
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsTArray< nsRefPtr<AsyncPanZoomController> > apzcsToDestroy;
+  Collect(mRootApzc, &apzcsToDestroy);
+  mRootApzc = nullptr;
+
+  if (aRoot) {
+    UpdatePanZoomControllerTree(aCompositor,
+                                aRoot, CompositorParent::ROOT_LAYER_TREE_ID,
+                                nullptr, nullptr,
+                                aIsFirstPaint, aFirstPaintLayersId,
+                                &apzcsToDestroy);
+  }
+
+  for (int i = apzcsToDestroy.Length() - 1; i >= 0; i--) {
+    apzcsToDestroy[i]->Destroy();
+  }
+}
+
+AsyncPanZoomController*
+APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
+                                             Layer* aLayer, uint64_t aLayersId,
+                                             AsyncPanZoomController* aParent,
+                                             AsyncPanZoomController* aNextSibling,
+                                             bool aIsFirstPaint, uint64_t aFirstPaintLayersId,
+                                             nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy)
+{
+  ContainerLayer* container = aLayer->AsContainerLayer();
+  AsyncPanZoomController* controller = nullptr;
+  if (container) {
+    if (container->GetFrameMetrics().IsScrollable()) {
+      const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
+      if (state && state->mController.get()) {
+        
+        
+        
+
+        controller = container->GetAsyncPanZoomController();
+        if (!controller) {
+          controller = new AsyncPanZoomController(aLayersId, state->mController,
                                                   AsyncPanZoomController::USE_GESTURE_DETECTOR);
           controller->SetCompositorParent(aCompositor);
+        } else {
+          
+          
+          
+          
+          
+          aApzcsToDestroy->RemoveElement(controller);
+          controller->SetPrevSibling(nullptr);
+          controller->SetLastChild(nullptr);
         }
+
+        controller->NotifyLayersUpdated(container->GetFrameMetrics(),
+                                        aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
+
+        
+        if (aNextSibling) {
+          aNextSibling->SetPrevSibling(controller);
+        } else if (aParent) {
+          aParent->SetLastChild(controller);
+        } else {
+          mRootApzc = controller;
+        }
+
+        
+        aParent = controller;
       }
-    } else if (controller) {
-      
-      controller = nullptr;
     }
+
     container->SetAsyncPanZoomController(controller);
-
-    if (controller) {
-      controller->NotifyLayersUpdated(container->GetFrameMetrics(), aIsFirstPaint);
-    }
   }
 
+  uint64_t childLayersId = (aLayer->AsRefLayer() ? aLayer->AsRefLayer()->GetReferentId() : aLayersId);
+  AsyncPanZoomController* next = nullptr;
+  for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
+    next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aParent, next,
+                                       aIsFirstPaint, aFirstPaintLayersId, aApzcsToDestroy);
+  }
+
+  
+  
+  
+  
   if (controller) {
-    mApzcs[aLayersId] = controller;
-  } else {
-    mApzcs.erase(aLayersId);
+    return controller;
   }
+  if (next) {
+    return next;
+  }
+  return aNextSibling;
 }
 
 nsEventStatus
@@ -203,24 +281,29 @@ APZCTreeManager::ClearTree()
 {
   MonitorAutoLock lock(mTreeLock);
 
-  std::map< uint64_t, nsRefPtr<AsyncPanZoomController> >::iterator it = mApzcs.begin();
-  while (it != mApzcs.end()) {
-    nsRefPtr<AsyncPanZoomController> apzc = it->second;
-    apzc->Destroy();
-    it++;
+  
+  
+  
+  nsTArray< nsRefPtr<AsyncPanZoomController> > apzcsToDestroy;
+  Collect(mRootApzc, &apzcsToDestroy);
+  for (int i = apzcsToDestroy.Length() - 1; i >= 0; i--) {
+    apzcsToDestroy[i]->Destroy();
   }
-  mApzcs.clear();
+  mRootApzc = nullptr;
 }
 
 already_AddRefed<AsyncPanZoomController>
 APZCTreeManager::GetTargetAPZC(const ScrollableLayerGuid& aGuid)
 {
   MonitorAutoLock lock(mTreeLock);
-  std::map< uint64_t, nsRefPtr<AsyncPanZoomController> >::iterator it = mApzcs.find(aGuid.mLayersId);
-  if (it == mApzcs.end()) {
-    return nullptr;
+  nsRefPtr<AsyncPanZoomController> target;
+  
+  for (AsyncPanZoomController* apzc = mRootApzc; apzc; apzc = apzc->GetPrevSibling()) {
+    target = FindTargetAPZC(apzc, aGuid);
+    if (target) {
+      break;
+    }
   }
-  nsRefPtr<AsyncPanZoomController> target = it->second;
   return target.forget();
 }
 
@@ -230,6 +313,23 @@ APZCTreeManager::GetTargetAPZC(const ScreenPoint& aPoint)
   MonitorAutoLock lock(mTreeLock);
   
   
+  return nullptr;
+}
+
+AsyncPanZoomController*
+APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid) {
+  
+  
+  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
+    AsyncPanZoomController* match = FindTargetAPZC(child, aGuid);
+    if (match) {
+      return match;
+    }
+  }
+
+  if (aApzc->Matches(aGuid)) {
+    return aApzc;
+  }
   return nullptr;
 }
 

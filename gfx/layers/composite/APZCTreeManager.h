@@ -9,10 +9,12 @@
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "Layers.h"
 #include "CompositorParent.h"
-#include <map>
 
 namespace mozilla {
 namespace layers {
+
+class AsyncPanZoomController;
+class CompositorParent;
 
 
 
@@ -107,8 +109,18 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
   void UpdatePanZoomControllerTree(CompositorParent* aCompositor, Layer* aRoot,
-                                   uint64_t aLayersId, bool aIsFirstPaint);
+                                   bool aIsFirstPaint, uint64_t aFirstPaintLayersId);
 
   
 
@@ -216,13 +228,34 @@ private:
 
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint);
+  
+  AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid);
+
+  
+
+
+
+
+
+
+
+
+  AsyncPanZoomController* UpdatePanZoomControllerTree(CompositorParent* aCompositor,
+                                                      Layer* aLayer, uint64_t aLayersId,
+                                                      AsyncPanZoomController* aParent,
+                                                      AsyncPanZoomController* aNextSibling,
+                                                      bool aIsFirstPaint,
+                                                      uint64_t aFirstPaintLayersId,
+                                                      nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy);
 
 private:
   
 
 
+
+
   mozilla::Monitor mTreeLock;
-  std::map< uint64_t, nsRefPtr<AsyncPanZoomController> > mApzcs;
+  nsRefPtr<AsyncPanZoomController> mRootApzc;
 };
 
 }

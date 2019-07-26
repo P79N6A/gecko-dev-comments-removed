@@ -162,9 +162,11 @@ AsyncPanZoomController::InitializeGlobalState()
   ClearOnShutdown(&gComputedTimingFunction);
 }
 
-AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoContentController,
+AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
+                                               GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
-  :  mPaintThrottler(GetFrameTime()),
+  :  mLayersId(aLayersId),
+     mPaintThrottler(GetFrameTime()),
      mGeckoContentController(aGeckoContentController),
      mRefPtrMonitor("RefPtrMonitor"),
      mTouchListenerTimeoutTask(nullptr),
@@ -215,9 +217,13 @@ AsyncPanZoomController::GetGestureEventListener() {
 void
 AsyncPanZoomController::Destroy()
 {
-  MonitorAutoLock lock(mRefPtrMonitor);
-  mGeckoContentController = nullptr;
-  mGestureEventListener = nullptr;
+  { 
+    MonitorAutoLock lock(mRefPtrMonitor);
+    mGeckoContentController = nullptr;
+    mGestureEventListener = nullptr;
+  }
+  mPrevSibling = nullptr;
+  mLastChild = nullptr;
 }
 
 float
@@ -1515,6 +1521,13 @@ void AsyncPanZoomController::UpdateScrollOffset(const CSSPoint& aScrollOffset)
 {
   MonitorAutoLock monitor(mMonitor);
   mFrameMetrics.mScrollOffset = aScrollOffset;
+}
+
+bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
+{
+  
+  
+  return aGuid.mLayersId == mLayersId;
 }
 
 }
