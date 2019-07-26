@@ -70,6 +70,8 @@ function Template(root, store, l10nResolver) {
   this._root = root;
   this._doc = this._root.ownerDocument;
 
+  this._queuedNodeRegistrations = [];
+
   this._storeChanged = this._storeChanged.bind(this);
   this._store.on("set", this._storeChanged);
 }
@@ -77,6 +79,7 @@ function Template(root, store, l10nResolver) {
 Template.prototype = {
   start: function() {
     this._processTree(this._root);
+    this._registerQueuedNodes();
   },
 
   destroy: function() {
@@ -99,6 +102,8 @@ Template.prototype = {
         this._invalidate(registeredPath);
       }
     }
+
+    this._registerQueuedNodes();
   },
 
   _invalidate: function(path) {
@@ -127,24 +132,36 @@ Template.prototype = {
     }
   },
 
-  _registerNode: function(path, element) {
+  
+  
+  
+  
+  _queueNodeRegistration: function(path, element) {
+    this._queuedNodeRegistrations.push([path, element]);
+  },
 
-    
-    
-    
-    
-
-    if (!this._nodeListeners.has(path)) {
-      this._nodeListeners.set(path, new Set());
+  _registerQueuedNodes: function() {
+    for (let [path, element] of this._queuedNodeRegistrations) {
+      
+      
+      
+      
+      if (!this._nodeListeners.has(path)) {
+        this._nodeListeners.set(path, new Set());
+      }
+      let set = this._nodeListeners.get(path);
+      set.add(element);
     }
-    let set = this._nodeListeners.get(path);
-    set.add(element);
+    this._queuedNodeRegistrations.length = 0;
   },
 
   _unregisterNodes: function(nodes) {
     for (let e of nodes) {
       for (let registeredPath of e.registeredPaths) {
         let set = this._nodeListeners.get(registeredPath);
+        if (!set) {
+          continue;
+        }
         set.delete(e);
         if (set.size === 0) {
           this._nodeListeners.delete(registeredPath);
@@ -239,7 +256,7 @@ Template.prototype = {
       }
       if (paths.length > 0) {
         for (let path of paths) {
-          this._registerNode(path, e);
+          this._queueNodeRegistration(path, e);
         }
       }
       
