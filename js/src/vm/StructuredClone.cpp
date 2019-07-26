@@ -1631,13 +1631,17 @@ JS_StructuredClone(JSContext *cx, JS::HandleValue value, JS::MutableHandleValue 
 
     JSAutoStructuredCloneBuffer buf;
     {
-        mozilla::Maybe<AutoCompartment> ac;
+        
+        
+        
         if (value.isObject()) {
-            ac.construct(cx, &value.toObject());
+            AutoCompartment ac(cx, &value.toObject());
+            if (!buf.write(cx, value, callbacks, closure))
+                return false;
+        } else {
+            if (!buf.write(cx, value, callbacks, closure))
+                return false;
         }
-
-        if (!buf.write(cx, value, callbacks, closure))
-            return false;
     }
 
     return buf.read(cx, vp, callbacks, closure);
