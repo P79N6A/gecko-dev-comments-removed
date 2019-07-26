@@ -2,39 +2,27 @@
 
 
 
-
 "use strict";
 
-this.EXPORTED_SYMBOLS = [ ];
-
-Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
-const { devtools } = Components.utils.import("resource://gre/modules/devtools/Loader.jsm", {});
-const gcli = devtools.require("gcli/index");
+const gcli = require("gcli/index");
 
 
 
 
 Object.defineProperty(this, "TiltManager", {
   get: function() {
-    return devtools.require("devtools/tilt/tilt").TiltManager;
+    return require("devtools/tilt/tilt").TiltManager;
   },
   enumerable: true
 });
 
-
-
-
-gcli.addCommand({
+exports.items = [
+{
   name: 'tilt',
   description: gcli.lookup("tiltDesc"),
   manual: gcli.lookup("tiltManual")
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt open',
   description: gcli.lookup("tiltOpenDesc"),
   manual: gcli.lookup("tiltOpenManual"),
@@ -45,13 +33,8 @@ gcli.addCommand({
       Tilt.toggle();
     }
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: "tilt toggle",
   buttonId: "command-button-tilt",
   buttonClass: "command-button command-button-invertable",
@@ -80,13 +63,8 @@ gcli.addCommand({
     let Tilt = TiltManager.getTiltForBrowser(chromeWindow);
     Tilt.toggle();
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt translate',
   description: gcli.lookup("tiltTranslateDesc"),
   manual: gcli.lookup("tiltTranslateManual"),
@@ -113,13 +91,8 @@ gcli.addCommand({
       Tilt.currentInstance.controller.arcball.translate([args.x, args.y]);
     }
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt rotate',
   description: gcli.lookup("tiltRotateDesc"),
   manual: gcli.lookup("tiltRotateManual"),
@@ -153,13 +126,8 @@ gcli.addCommand({
       Tilt.currentInstance.controller.arcball.rotate([args.x, args.y, args.z]);
     }
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt zoom',
   description: gcli.lookup("tiltZoomDesc"),
   manual: gcli.lookup("tiltZoomManual"),
@@ -179,13 +147,8 @@ gcli.addCommand({
       Tilt.currentInstance.controller.arcball.zoom(-args.zoom);
     }
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt reset',
   description: gcli.lookup("tiltResetDesc"),
   manual: gcli.lookup("tiltResetManual"),
@@ -197,13 +160,8 @@ gcli.addCommand({
       Tilt.currentInstance.controller.arcball.reset();
     }
   }
-});
-
-
-
-
-
-gcli.addCommand({
+},
+{
   name: 'tilt close',
   description: gcli.lookup("tiltCloseDesc"),
   manual: gcli.lookup("tiltCloseManual"),
@@ -213,4 +171,5 @@ gcli.addCommand({
 
     Tilt.destroy(Tilt.currentWindowId);
   }
-});
+}
+];
