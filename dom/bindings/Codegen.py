@@ -771,9 +771,6 @@ class CGHeaders(CGWrapper):
                 parentDesc = jsImplemented.getDescriptor(jsParent.identifier.name)
                 declareIncludes.add(parentDesc.jsImplParentHeader)
 
-        if len(jsImplementedDescriptors) != 0:
-            bindingHeaders.add("nsIDOMGlobalPropertyInitializer.h")
-
         
         def _includeString(includes):
             return ''.join(['#include "%s"\n' % i for i in includes]) + '\n'
