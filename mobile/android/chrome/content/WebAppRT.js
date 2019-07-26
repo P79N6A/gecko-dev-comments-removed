@@ -30,7 +30,7 @@ let WebAppRT = {
     
     pref("toolkit.telemetry.prompted", 999),
     pref("toolkit.telemetry.notifiedOptOut", 999),
-    pref("media.useAudioChannelService", true);
+    pref("media.useAudioChannelService", true)
   ],
 
   init: function(aStatus, aUrl, aCallback) {
