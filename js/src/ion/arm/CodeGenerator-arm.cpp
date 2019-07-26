@@ -171,6 +171,22 @@ CodeGeneratorARM::generateOutOfLineCode()
 bool
 CodeGeneratorARM::bailoutIf(Assembler::Condition condition, LSnapshot *snapshot)
 {
+    CompileInfo &info = snapshot->mir()->block()->info();
+    switch (info.executionMode()) {
+
+      case ParallelExecution: {
+        
+        OutOfLineAbortPar *ool = oolAbortPar(ParallelBailoutUnsupported,
+                                             snapshot->mir()->block(),
+                                             snapshot->mir()->pc());
+        masm.ma_b(ool->entry(), condition);
+        return true;
+      }
+      case SequentialExecution:
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("No such execution mode");
+    }
     if (!encode(snapshot))
         return false;
 
@@ -205,6 +221,7 @@ CodeGeneratorARM::bailoutFrom(Label *label, LSnapshot *snapshot)
 
     CompileInfo &info = snapshot->mir()->block()->info();
     switch (info.executionMode()) {
+
       case ParallelExecution: {
         
         OutOfLineAbortPar *ool = oolAbortPar(ParallelBailoutUnsupported,
