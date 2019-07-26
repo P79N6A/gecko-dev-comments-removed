@@ -162,6 +162,42 @@ function IsObject(v) {
            (typeof v === "undefined" && v !== undefined);
 }
 
+
+
+
+
+
+
+
+
+
+var wrappersTestMap = new WeakMap();
+function testWrappersAllowUseAsKey(o) {
+  wrappersTestMap.set(o, o);
+  var mappedO = wrappersTestMap.get(o);
+  wrappersTestMap.clear();
+  return mappedO;
+}
+function testWrappersForbidAccess(o, operation) {
+  try {
+    switch (operation) {
+      case 'get': var result = o.prop; break;
+      case 'set': o.prop2 = 'value'; break;
+      case 'call': o(); break;
+      case '__proto__':
+        Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(o, new Object());
+        break;
+    }
+  } catch (e) {
+    
+    return /denied/.test(e);
+  }
+  return false;
+}
+
+MakeWrappable(testWrappersAllowUseAsKey);
+MakeWrappable(testWrappersForbidAccess);
+
 #ifdef ENABLE_PARALLEL_JS
 
 
