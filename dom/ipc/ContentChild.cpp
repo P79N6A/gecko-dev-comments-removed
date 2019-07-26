@@ -565,6 +565,37 @@ PBrowserChild*
 ContentChild::AllocPBrowser(const IPCTabContext& aContext,
                             const uint32_t& aChromeFlags)
 {
+    
+    
+    
+
+    nsRefPtr<TabChild> child = TabChild::Create(TabContext(aContext), aChromeFlags);
+
+    
+    return child.forget().get();
+}
+
+bool
+ContentChild::RecvPBrowserConstructor(PBrowserChild* actor,
+                                      const IPCTabContext& context,
+                                      const uint32_t& chromeFlags)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (os) {
+        nsITabChild* tc =
+            static_cast<nsITabChild*>(static_cast<TabChild*>(actor));
+        os->NotifyObservers(tc, "tab-child-created", nullptr);
+    }
+
     static bool hasRunOnce = false;
     if (!hasRunOnce) {
         hasRunOnce = true;
@@ -581,15 +612,9 @@ ContentChild::AllocPBrowser(const IPCTabContext& aContext,
         TemporarilyLockProcessPriority();
     }
 
-    
-    
-    
-
-    nsRefPtr<TabChild> child = TabChild::Create(TabContext(aContext), aChromeFlags);
-
-    
-    return child.forget().get();
+    return true;
 }
+
 
 bool
 ContentChild::DeallocPBrowser(PBrowserChild* iframe)
