@@ -35,6 +35,14 @@ struct ImageFactory
                                              nsIURI* aURI,
                                              bool aIsMultiPart,
                                              uint32_t aInnerWindowId);
+  
+
+
+
+
+
+  static already_AddRefed<Image> CreateAnonymousImage(const nsCString& aMimeType);
+
 
 private:
   
