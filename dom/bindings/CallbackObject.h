@@ -81,6 +81,11 @@ public:
     return mCallback;
   }
 
+  enum ExceptionHandling {
+    eReportExceptions,
+    eRethrowExceptions
+  };
+
 protected:
   explicit CallbackObject(CallbackObject* aCallbackFunction)
     : mCallback(aCallbackFunction->mCallback)
@@ -112,7 +117,8 @@ protected:
 
 
   public:
-    CallSetup(JSObject* const aCallable);
+    CallSetup(JSObject* const aCallable, ErrorResult& aRv,
+              ExceptionHandling aExceptionHandling);
     ~CallSetup();
 
     JSContext* GetContext() const
@@ -149,6 +155,12 @@ protected:
     
     
     Maybe<JSAutoCompartment> mAc;
+
+    
+    
+    ErrorResult& mErrorResult;
+    const ExceptionHandling mExceptionHandling;
+    uint32_t mSavedJSContextOptions;
   };
 };
 

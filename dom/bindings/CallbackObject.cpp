@@ -33,8 +33,12 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-CallbackObject::CallSetup::CallSetup(JSObject* const aCallback)
+CallbackObject::CallSetup::CallSetup(JSObject* const aCallback,
+                                     ErrorResult& aRv,
+                                     ExceptionHandling aExceptionHandling)
   : mCx(nullptr)
+  , mErrorResult(aRv)
+  , mExceptionHandling(aExceptionHandling)
 {
   xpc_UnmarkGrayObject(aCallback);
 
@@ -123,6 +127,12 @@ CallbackObject::CallSetup::CallSetup(JSObject* const aCallback)
 
   
   mCx = cx;
+
+  
+  if (mExceptionHandling == eRethrowExceptions) {
+    mSavedJSContextOptions = JS_GetOptions(cx);
+    JS_SetOptions(cx, mSavedJSContextOptions | JSOPTION_DONT_REPORT_UNCAUGHT);
+  }
 }
 
 CallbackObject::CallSetup::~CallSetup()
@@ -130,7 +140,27 @@ CallbackObject::CallSetup::~CallSetup()
   
   
   if (mCx) {
-    nsJSUtils::ReportPendingException(mCx);
+    bool dealtWithPendingException = false;
+    if (mExceptionHandling == eRethrowExceptions) {
+      
+      JS_SetOptions(mCx, mSavedJSContextOptions);
+      mErrorResult.MightThrowJSException();
+      if (JS_IsExceptionPending(mCx)) {
+        JS::Value exn;
+        if (JS_GetPendingException(mCx, &exn)) {
+          mErrorResult.ThrowJSException(mCx, exn);
+          JS_ClearPendingException(mCx);
+          dealtWithPendingException = true;
+        }
+      }
+    }
+
+    if (!dealtWithPendingException) {
+      
+      
+      
+      nsJSUtils::ReportPendingException(mCx);
+    }
   }
 
   
