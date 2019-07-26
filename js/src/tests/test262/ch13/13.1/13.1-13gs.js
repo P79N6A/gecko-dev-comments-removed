@@ -9,6 +9,6 @@
 
 
 
-ï»¿"use strict";
+"use strict";
 throw NotEarlyError;
 function arguments() { };
