@@ -54,7 +54,7 @@ this.EXPORTED_SYMBOLS = ["VariablesViewController", "StackFrameUtils"];
 
 
 
-function VariablesViewController(aView, aOptions) {
+function VariablesViewController(aView, aOptions = {}) {
   this.addExpander = this.addExpander.bind(this);
 
   this._getObjectClient = aOptions.getObjectClient;
@@ -441,6 +441,37 @@ VariablesViewController.prototype = {
         this.releaseActor(actor);
       }
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  setSingleVariable: function(aOptions) {
+    let scope = this.view.addScope(aOptions.label);
+    scope.expanded = true;
+    scope.locked = true;
+
+    let variable = scope.addItem();
+    let expanded;
+
+    if (aOptions.objectActor) {
+      expanded = this.expand(variable, aOptions.objectActor);
+    } else if (aOptions.rawObject) {
+      variable.populate(aOptions.rawObject, { expanded: true });
+      expanded = promise.resolve();
+    }
+
+    return { variable: variable, expanded: expanded };
   },
 };
 
