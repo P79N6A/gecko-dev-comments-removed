@@ -7,6 +7,7 @@
 
 #include "mozilla/Attributes.h"
 
+#include "mozilla/Selection.h"
 #include "nsIFrame.h"
 #include "nsIContent.h"
 #include "nsISelectionController.h"
@@ -185,13 +186,13 @@ class nsIScrollableFrame;
 
 
 
-class nsFrameSelection MOZ_FINAL : public nsISupports {
+class nsFrameSelection MOZ_FINAL {
 public:
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
   
   
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsFrameSelection)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsFrameSelection)
 
   
 
