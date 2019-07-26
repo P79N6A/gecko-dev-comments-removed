@@ -231,15 +231,6 @@ private:
 
   static bool gIsShutdown;
 
-  
-
-
-
-
-
-
-  bool HasUniversalAriaProperty(nsIContent *aContent);
-
   friend nsAccessibilityService* GetAccService();
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
   friend mozilla::a11y::ApplicationAccessible* mozilla::a11y::ApplicationAcc();
