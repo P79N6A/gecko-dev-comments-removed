@@ -21,6 +21,12 @@ CommandLineHandler.prototype = {
                createInstance(Ci.nsIWritablePropertyBag);
     let inTestMode = this._handleTestMode(cmdLine, args);
 
+    let debugPort = this._handleDebugMode(cmdLine);
+    if (!isNaN(debugPort)) {
+      Cu.import("resource://webapprt/modules/RemoteDebugger.jsm");
+      RemoteDebugger.init(debugPort);
+    }
+
     if (inTestMode) {
       
       Services.ww.openWindow(null,
@@ -39,6 +45,34 @@ CommandLineHandler.prototype = {
       Cu.import("resource://webapprt/modules/Startup.jsm");
       startup(window);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _handleDebugMode: function(cmdLine) {
+    
+    let idx = cmdLine.findFlag("debug", true);
+    if (idx < 0) {
+      return NaN;
+    }
+
+    let port;
+    let portIdx = idx + 1;
+    if (portIdx < cmdLine.length) {
+      port = parseInt(cmdLine.getArgument(portIdx));
+      if (port != NaN) {
+        return port;
+      }
+    }
+
+    return Services.prefs.getIntPref('devtools.debugger.remote-port');
   },
 
   _handleTestMode: function _handleTestMode(cmdLine, args) {

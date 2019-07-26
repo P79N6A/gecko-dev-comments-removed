@@ -37,7 +37,7 @@ function appShellDOMWindowType(aWindow) {
 
 
 function sendShutdownEvent() {
-  for (let win of allAppShellDOMWindows("navigator:browser")) {
+  for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
     let evt = win.document.createEvent("Event");
     evt.initEvent("Debugger:Shutdown", true, false);
     win.document.documentElement.dispatchEvent(evt);
@@ -196,7 +196,7 @@ BrowserTabList.prototype._getChildren = function(aWindow) {
 };
 
 BrowserTabList.prototype.getList = function() {
-  let topXULWindow = windowMediator.getMostRecentWindow("navigator:browser");
+  let topXULWindow = windowMediator.getMostRecentWindow(DebuggerServer.chromeWindowType);
 
   
   
@@ -209,7 +209,7 @@ BrowserTabList.prototype.getList = function() {
   
 
   
-  for (let win of allAppShellDOMWindows("navigator:browser")) {
+  for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
     let selectedBrowser = this._getSelectedBrowser(win);
 
     
@@ -333,7 +333,7 @@ BrowserTabList.prototype._checkListening = function() {
 BrowserTabList.prototype._listenForEventsIf = function(aShouldListen, aGuard, aEventNames) {
   if (!aShouldListen !== !this[aGuard]) {
     let op = aShouldListen ? "addEventListener" : "removeEventListener";
-    for (let win of allAppShellDOMWindows("navigator:browser")) {
+    for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
       for (let name of aEventNames) {
         win[op](name, this, false);
       }
@@ -391,7 +391,7 @@ BrowserTabList.prototype.onOpenWindow = makeInfallible(function(aWindow) {
     
     aWindow.removeEventListener("load", handleLoad, false);
 
-    if (appShellDOMWindowType(aWindow) !== "navigator:browser")
+    if (appShellDOMWindowType(aWindow) !== DebuggerServer.chromeWindowType)
       return;
 
     
@@ -425,7 +425,7 @@ BrowserTabList.prototype.onCloseWindow = makeInfallible(function(aWindow) {
   aWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsIDOMWindow);
 
-  if (appShellDOMWindowType(aWindow) !== "navigator:browser")
+  if (appShellDOMWindowType(aWindow) !== DebuggerServer.chromeWindowType)
     return;
 
   
