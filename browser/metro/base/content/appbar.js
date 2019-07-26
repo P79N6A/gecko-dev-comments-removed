@@ -36,7 +36,7 @@ var Appbar = {
         break;
 
       case 'MozAppbarDismissing':
-        if (this.activeTileset) {
+        if (this.activeTileset && ('isBound' in this.activeTileset)) {
           this.activeTileset.clearSelection();
         }
         this.clearContextualActions();
@@ -146,7 +146,7 @@ var Appbar = {
 
   dispatchContextualAction: function(aActionName){
     let activeTileset = this.activeTileset;
-    if (activeTileset) {
+    if (activeTileset && ('isBound' in this.activeTileset)) {
       
       
       let event = document.createEvent("Events");
@@ -235,7 +235,10 @@ var Appbar = {
     let activeTileset = aEvent.target;
 
     
-    if (this.activeTileset && this.activeTileset !== activeTileset) {
+    
+    if (this.activeTileset &&
+          ('isBound' in this.activeTileset) &&
+          this.activeTileset !== activeTileset) {
       this.activeTileset.clearSelection();
     }
     
