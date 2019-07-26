@@ -8,6 +8,7 @@ package org.mozilla.gecko;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.gfx.BitmapUtils;
+import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.util.UiAsyncTask;
 import org.mozilla.gecko.util.GeckoBackgroundThread;
 
@@ -41,6 +42,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.InputStream;
@@ -87,6 +89,12 @@ abstract public class BrowserApp extends GeckoApp
     
     private static final int FEEDBACK_LAUNCH_COUNT = 15;
 
+    
+    private static final int TOOLBAR_ONLOAD_HIDE_DELAY = 2000;
+    private float mLastTouchY = 0.0f;
+    private float mToolbarSubpixelAccumulation = 0.0f;
+    private boolean mToolbarLocked = true;
+
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         switch(msg) {
@@ -97,10 +105,15 @@ abstract public class BrowserApp extends GeckoApp
                 
             case SELECTED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
-                    if ("about:home".equals(tab.getURL()))
+                    if ("about:home".equals(tab.getURL())) {
                         showAboutHome();
-                    else
+
+                        
+                        mBrowserToolbar.animateVisibility(true, 0);
+                        mToolbarLocked = true;
+                    } else {
                         hideAboutHome();
+                    }
 
                     
                     SiteIdentityPopup.getInstance().dismiss();
@@ -119,9 +132,23 @@ abstract public class BrowserApp extends GeckoApp
                     });
                 }
                 break;
-            case LOAD_ERROR:
             case START:
+                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    invalidateOptionsMenu();
+
+                    
+                    mBrowserToolbar.animateVisibility(true, 0);
+                }
+                break;
+            case LOAD_ERROR:
             case STOP:
+                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    if (!mAboutHomeShowing) {
+                        
+                        mBrowserToolbar.animateVisibility(false, TOOLBAR_ONLOAD_HIDE_DELAY);
+                    }
+                }
+                
             case MENU_UPDATED:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     invalidateOptionsMenu();
@@ -147,6 +174,93 @@ abstract public class BrowserApp extends GeckoApp
     void handleClearHistory() {
         super.handleClearHistory();
         updateAboutHomeTopSites();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(View view, MotionEvent event) {
+        int action = event.getActionMasked();
+
+        int pointerCount = event.getPointerCount();
+
+        View toolbarView = mBrowserToolbar.getLayout();
+        if (action == MotionEvent.ACTION_DOWN ||
+            action == MotionEvent.ACTION_POINTER_DOWN) {
+            if (pointerCount == 1) {
+                mToolbarLocked = false;
+                mToolbarSubpixelAccumulation = 0.0f;
+                mLastTouchY = event.getY();
+                return super.onInterceptTouchEvent(view, event);
+            }
+            
+            
+            mToolbarLocked = true;
+
+            
+            mBrowserToolbar.animateVisibility(
+                toolbarView.getScrollY() > toolbarView.getHeight() / 2 ?
+                    false : true, 0);
+        }
+
+        
+        
+        if (pointerCount > 1) {
+            return super.onInterceptTouchEvent(view, event);
+        }
+
+        
+        
+        if (pointerCount == 1 && action == MotionEvent.ACTION_POINTER_UP) {
+            mLastTouchY = event.getY(1 - event.getActionIndex());
+            mToolbarLocked = false;
+            return super.onInterceptTouchEvent(view, event);
+        }
+
+        
+        
+        float eventY = event.getY();
+        if (Tabs.getInstance().getSelectedTab().getState() != Tab.STATE_LOADING) {
+            int toolbarHeight = toolbarView.getHeight();
+            if (action == MotionEvent.ACTION_MOVE && !mToolbarLocked) {
+                
+                mBrowserToolbar.cancelVisibilityAnimation();
+
+                
+                
+                float deltaY = mLastTouchY - eventY;
+
+                
+                
+                ImmutableViewportMetrics metrics =
+                    mLayerView.getLayerClient().getViewportMetrics();
+                float toolbarMaxY = Math.min(toolbarHeight,
+                    Math.max(0, toolbarHeight - (metrics.pageRectTop -
+                                                 metrics.viewportRectTop)));
+
+                int toolbarY = toolbarView.getScrollY();
+                float newToolbarYf = Math.max(0, Math.min(toolbarMaxY,
+                    toolbarY + deltaY + mToolbarSubpixelAccumulation));
+                int newToolbarY = Math.round(newToolbarYf);
+                mToolbarSubpixelAccumulation = (newToolbarYf - newToolbarY);
+
+                toolbarView.scrollTo(0, newToolbarY);
+
+                
+                if (newToolbarY == 0 || newToolbarY == toolbarHeight) {
+                    mLastTouchY = eventY;
+                }
+            } else if (action == MotionEvent.ACTION_UP ||
+                       action == MotionEvent.ACTION_CANCEL) {
+                
+                
+                mBrowserToolbar.animateVisibility(
+                    toolbarView.getScrollY() > toolbarHeight / 2 ? false : true, 0);
+            }
+        }
+
+        
+        mLastTouchY = eventY;
+
+        return super.onInterceptTouchEvent(view, event);
     }
 
     void handleReaderAdded(boolean success, final String title, final String url) {
@@ -194,7 +308,7 @@ abstract public class BrowserApp extends GeckoApp
         super.onCreate(savedInstanceState);
 
         LinearLayout actionBar = (LinearLayout) getActionBarLayout();
-        mMainLayout.addView(actionBar, 0);
+        mMainLayout.addView(actionBar, 1);
 
         ((GeckoApp.MainLayout) mMainLayout).setOnInterceptTouchListener(new HideTabsTouchListener());
 
@@ -319,6 +433,10 @@ abstract public class BrowserApp extends GeckoApp
             mMainLayout.addView(actionBar, index);
             mBrowserToolbar.from(actionBar);
             mBrowserToolbar.refresh();
+
+            if (mAboutHomeContent != null) {
+                mAboutHomeContent.setPadding(0, mBrowserToolbar.getLayout().getHeight(), 0, 0);
+            }
 
             
             if (mDoorHangerPopup != null)
@@ -772,6 +890,7 @@ abstract public class BrowserApp extends GeckoApp
                             mAboutHomeStartupTimer.stop();
                         }
                     });
+                    mAboutHomeContent.setPadding(0, mBrowserToolbar.getLayout().getHeight(), 0, 0);
                 } else {
                     mAboutHomeContent.update(EnumSet.of(AboutHomeContent.UpdateFlags.TOP_SITES,
                                                         AboutHomeContent.UpdateFlags.REMOTE_TABS));
