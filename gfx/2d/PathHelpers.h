@@ -99,6 +99,17 @@ void AppendRoundedRectToPath(PathBuilder* aPathBuilder,
                              const Size(& aCornerRadii)[4],
                              bool aDrawClockwise = true);
 
+
+
+
+
+
+
+
+void AppendEllipseToPath(PathBuilder* aPathBuilder,
+                         const Point& aCenter,
+                         const Size& aDimensions);
+
 } 
 } 
 
