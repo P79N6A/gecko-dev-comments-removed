@@ -130,13 +130,12 @@ class Build(MachCommandBase):
 
         
         
-        if self.substs['MOZ_BUILD_APP'] != 'mobile/android':
-            app_path = self.get_binary_path('app')
-            print('To take your build for a test drive, run: %s' % app_path)
-
-        
-        
         if not what:
+            
+            
+            if self.substs['MOZ_BUILD_APP'] != 'mobile/android':
+                app_path = self.get_binary_path('app')
+                print('To take your build for a test drive, run: %s' % app_path)
             app = self.substs['MOZ_BUILD_APP']
             if app in ('browser', 'mobile/android'):
                 print('For more information on what to do now, see '
