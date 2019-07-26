@@ -14,6 +14,7 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoProfile;
 
 import org.mozilla.gecko.background.healthreport.EnvironmentBuilder;
+import org.mozilla.gecko.background.healthreport.HealthReportConstants;
 import org.mozilla.gecko.background.healthreport.HealthReportDatabaseStorage;
 import org.mozilla.gecko.background.healthreport.HealthReportGenerator;
 
@@ -34,16 +35,15 @@ import org.json.JSONObject;
 public class BrowserHealthReporter implements GeckoEventListener {
     private static final String LOGTAG = "GeckoHealthRep";
 
-    public static final long MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
-    public static final long MILLISECONDS_PER_SIX_MONTHS = 180 * MILLISECONDS_PER_DAY;
-
     public static final String EVENT_REQUEST  = "HealthReport:Request";
     public static final String EVENT_RESPONSE = "HealthReport:Response";
+
+    protected final Context context;
 
     public BrowserHealthReporter() {
         GeckoAppShell.registerEventListener(EVENT_REQUEST, this);
 
-        final Context context = GeckoAppShell.getContext();
+        context = GeckoAppShell.getContext();
         if (context == null) {
             throw new IllegalStateException("Null Gecko context");
         }
@@ -63,13 +63,10 @@ public class BrowserHealthReporter implements GeckoEventListener {
 
 
 
-    public JSONObject generateReport(long since, long lastPingTime, String profilePath) throws JSONException {
-        final Context context = GeckoAppShell.getContext();
-        if (context == null) {
-            Log.e(LOGTAG, "Null Gecko context; returning null report.", new RuntimeException());
-            return null;
-        }
 
+
+
+    public JSONObject generateReport(long since, long lastPingTime, String profilePath) throws JSONException {
         
         
         
@@ -86,12 +83,15 @@ public class BrowserHealthReporter implements GeckoEventListener {
             
             HealthReportDatabaseStorage storage = EnvironmentBuilder.getStorage(client, profilePath);
             if (storage == null) {
-                Log.e(LOGTAG, "No storage in health reporter; returning null report.", new RuntimeException());
-                return null;
+                throw new IllegalStateException("No storage in Health Reporter.");
             }
 
             HealthReportGenerator generator = new HealthReportGenerator(storage);
-            return generator.generateDocument(since, lastPingTime, profilePath);
+            JSONObject report = generator.generateDocument(since, lastPingTime, profilePath);
+            if (report == null) {
+                throw new IllegalStateException("Not enough profile information to generate report.");
+            }
+            return report;
         } finally {
             client.release();
         }
@@ -102,13 +102,31 @@ public class BrowserHealthReporter implements GeckoEventListener {
 
 
 
+
+
+
+    protected long getLastUploadLocalTime() {
+        return context
+            .getSharedPreferences(HealthReportConstants.PREFS_BRANCH, 0)
+            .getLong(HealthReportConstants.PREF_LAST_UPLOAD_LOCAL_TIME, 0L);
+    }
+
+    
+
+
+
+
+
+
+
+
     public JSONObject generateReport() throws JSONException {
         GeckoProfile profile = GeckoAppShell.getGeckoInterface().getProfile();
         String profilePath = profile.getDir().getAbsolutePath();
 
-        long since = System.currentTimeMillis() - MILLISECONDS_PER_SIX_MONTHS;
-         
-        long lastPingTime = since;
+        long since = System.currentTimeMillis() - HealthReportConstants.MILLISECONDS_PER_SIX_MONTHS;
+        long lastPingTime = Math.max(getLastUploadLocalTime(), HealthReportConstants.EARLIEST_LAST_PING);
+
         return generateReport(since, lastPingTime, profilePath);
     }
 
@@ -118,11 +136,12 @@ public class BrowserHealthReporter implements GeckoEventListener {
             ThreadUtils.postToBackgroundThread(new Runnable() {
                 @Override
                 public void run() {
-                    JSONObject report = new JSONObject();
+                    JSONObject report = null;
                     try {
-                        report = generateReport();
+                        report = generateReport(); 
                     } catch (Exception e) {
-                        Log.e(LOGTAG, "Generating report failed; responding with null.", e);
+                        Log.e(LOGTAG, "Generating report failed; responding with empty report.", e);
+                        report = new JSONObject();
                     }
 
                     GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent(EVENT_RESPONSE, report.toString()));
