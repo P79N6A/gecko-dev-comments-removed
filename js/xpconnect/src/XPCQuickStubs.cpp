@@ -219,12 +219,12 @@ ThrowCallFailed(JSContext *cx, nsresult rv,
     const char* name;
 
     
-
-
-
-
-
-    if (XPCThrower::CheckForPendingException(rv, cx))
+    
+    
+    
+    
+    
+    if (JS_IsExceptionPending(cx))
         return false;
 
     
