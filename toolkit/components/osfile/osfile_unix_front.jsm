@@ -319,11 +319,17 @@
 
 
 
+
+
      File.makeDir = function makeDir(path, options) {
        options = options || noOptions;
        let omode = options.unixMode || DEFAULT_UNIX_MODE_DIR;
-       throw_on_negative("makeDir",
-         UnixFile.mkdir(path, omode));
+       let result = UnixFile.mkdir(path, omode);
+       if (result != -1 ||
+           options.ignoreExisting && ctypes.errno == OS.Constants.libc.EEXIST) {
+        return;
+       }
+       throw new File.Error("makeDir");
      };
 
      

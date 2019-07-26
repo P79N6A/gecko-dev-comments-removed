@@ -480,6 +480,14 @@ let test_mkdir = maketest("mkdir", function mkdir(test) {
 
     
     try {
+      yield OS.File.makeDir(DIRNAME, {ignoreExisting: true});
+      test.ok(true, "Creating a directory with ignoreExisting succeeds");
+    } catch(err) {
+      test.ok(false, "Creating a directory with ignoreExisting fails");
+    }
+
+    
+    try {
       yield OS.File.makeDir(DIRNAME);
       test.fail("Creating over an existing directory should have failed");
     } catch (err) {
