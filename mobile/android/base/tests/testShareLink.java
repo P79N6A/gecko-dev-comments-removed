@@ -120,9 +120,9 @@ public class testShareLink extends AboutHomeTest {
         verifySharePopup(shareOptions,"top_sites");
 
         
-        openAboutHomeTab(AboutHomeTabs.MOST_RECENT);
+        openAboutHomeTab(AboutHomeTabs.HISTORY);
 
-        ListView mostRecentList = findListViewWithTag("most_recent");
+        ListView mostRecentList = findListViewWithTag("history");
         mAsserter.is(waitForNonEmptyListToLoad(mostRecentList), true, "list is properly loaded");
 
         

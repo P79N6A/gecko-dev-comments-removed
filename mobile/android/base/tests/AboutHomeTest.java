@@ -26,7 +26,14 @@ import com.jayway.android.robotium.solo.Condition;
 
 
 abstract class AboutHomeTest extends PixelTest {
-    protected enum AboutHomeTabs {HISTORY, MOST_RECENT, TABS_FROM_LAST_TIME, TOP_SITES, BOOKMARKS, READING_LIST};
+    protected enum AboutHomeTabs {
+        RECENT_TABS,
+        HISTORY,
+        TOP_SITES,
+        BOOKMARKS,
+        READING_LIST
+    };
+
     private ArrayList<String> aboutHomeTabs = new ArrayList<String>() {{
                   add("TOP_SITES");
                   add("BOOKMARKS");
@@ -42,8 +49,10 @@ abstract class AboutHomeTest extends PixelTest {
             
             if (mDevice.type.equals("phone")) {
                 aboutHomeTabs.add(0, AboutHomeTabs.HISTORY.toString());
+                aboutHomeTabs.add(0, AboutHomeTabs.RECENT_TABS.toString());
             } else {
                 aboutHomeTabs.add(AboutHomeTabs.HISTORY.toString());
+                aboutHomeTabs.add(AboutHomeTabs.RECENT_TABS.toString());
             }
         }
     }
@@ -233,71 +242,13 @@ abstract class AboutHomeTest extends PixelTest {
 
         
         if (mDevice.type.equals("tablet")) {
-            if (AboutHomeTabs.MOST_RECENT == tab || AboutHomeTabs.TABS_FROM_LAST_TIME == tab) {
-                tabOffset = aboutHomeTabs.indexOf(AboutHomeTabs.HISTORY.toString()) - currentTabIndex;
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(StringHelper.HISTORY_LABEL));
-                TabWidget tabwidget = (TabWidget)mSolo.getView(TabWidget.class, 0);
-
-                switch (tab) {
-                    case MOST_RECENT: {
-                        mSolo.clickOnView(tabwidget.getChildAt(0));
-                        
-                        mAsserter.ok(waitForText(StringHelper.TODAY_LABEL), "Checking that we are in the most recent tab of about:home", "We are in the most recent tab");
-                        break;
-                    }
-                    case TABS_FROM_LAST_TIME: {
-                        mSolo.clickOnView(tabwidget.getChildAt(1));
-                        mAsserter.ok(waitForText(StringHelper.TABS_FROM_LAST_TIME_LABEL), "Checking that we are in the Tabs from last time tab of about:home", "We are in the Tabs from last time tab");
-                        break;
-                    }
-                }
-            } else {
-                clickAboutHomeTab(tab);
-            }
+            clickAboutHomeTab(tab);
             return;
         }
 
         
         tabOffset = aboutHomeTabs.indexOf(tab.toString()) - currentTabIndex;
-        switch (tab) {
-            case TOP_SITES : {
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(tab.toString()));
-                break;
-            }
-            case BOOKMARKS : {
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(tab.toString()));
-                break;
-            }
-            case MOST_RECENT: {
-                
-                tabOffset = aboutHomeTabs.indexOf(AboutHomeTabs.HISTORY.toString()) - currentTabIndex;
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(StringHelper.HISTORY_LABEL));
-                TabWidget tabwidget = (TabWidget)mSolo.getView(TabWidget.class, 0);
-                mSolo.clickOnView(tabwidget.getChildAt(0));
-                
-                mAsserter.ok(waitForText(StringHelper.TODAY_LABEL), "Checking that we are in the most recent tab of about:home", "We are in the most recent tab");
-                break;
-            }
-            case TABS_FROM_LAST_TIME: {
-                
-                tabOffset = aboutHomeTabs.indexOf(AboutHomeTabs.HISTORY.toString()) - currentTabIndex;
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(StringHelper.HISTORY_LABEL));
-                TabWidget tabwidget = (TabWidget)mSolo.getView(TabWidget.class, 0);
-                mSolo.clickOnView(tabwidget.getChildAt(1));
-                mAsserter.ok(waitForText(StringHelper.TABS_FROM_LAST_TIME_LABEL), "Checking that we are in the Tabs from last time tab of about:home", "We are in the Tabs from last time tab");
-                break;
-            }
-            case READING_LIST: {
-                swipeAboutHome(tabOffset);
-                waitForAboutHomeTab(aboutHomeTabs.indexOf(tab.toString()));
-                break;
-            }
-
-        }
+        swipeAboutHome(tabOffset);
+        waitForAboutHomeTab(aboutHomeTabs.indexOf(tab.toString()));
     }
 }

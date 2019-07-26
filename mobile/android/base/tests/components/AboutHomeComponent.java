@@ -30,13 +30,15 @@ public class AboutHomeComponent extends BaseComponent {
         HISTORY,
         TOP_SITES,
         BOOKMARKS,
-        READING_LIST
+        READING_LIST,
+        RECENT_TABS
     }
 
     
     
     
     private enum PhonePanel {
+        RECENT_TABS,
         HISTORY,
         TOP_SITES,
         BOOKMARKS,
@@ -48,7 +50,8 @@ public class AboutHomeComponent extends BaseComponent {
         TOP_SITES,
         BOOKMARKS,
         READING_LIST,
-        HISTORY
+        HISTORY,
+        RECENT_TABS
     }
 
     
