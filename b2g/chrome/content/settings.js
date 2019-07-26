@@ -121,9 +121,17 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
                                           Ci.nsIPrefLocalizedString).data;
   } catch(e) {}
 
+  
+  
+  
+  
+  
   if (!((new RegExp('^' + value + '[^a-z-_] *[,;]?', 'i')).test(intl))) {
-    Services.prefs.setCharPref(prefName, value + ', ' + intl);
+    value = value + ', ' + intl;
+  } else {
+    value = intl;
   }
+  Services.prefs.setCharPref(prefName, value);
 
   if (shell.hasStarted() == false) {
     shell.start();
