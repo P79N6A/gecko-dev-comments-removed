@@ -179,8 +179,8 @@ function summarizeObject(obj) {
   return obj;
 }
 
-let worker = null;
 let Scheduler = {
+
   
 
 
@@ -240,6 +240,25 @@ let Scheduler = {
   
 
 
+
+
+
+
+
+  get worker() {
+    if (!this._worker) {
+      
+      this._worker = new PromiseWorker(
+	"resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+    }
+    return this._worker;
+  },
+
+  _worker: null,
+
+  
+
+
   restartTimer: function(arg) {
     let delay;
     try {
@@ -273,10 +292,14 @@ let Scheduler = {
 
       yield this.queue;
 
-      if (!this.launched || this.shutdown || !worker) {
+      
+      
+      
+
+      if (!this.launched || this.shutdown || !this._worker) {
         
         this.shutdown = this.shutdown || shutdown;
-        worker = null;
+        this._worker = null;
         return null;
       }
 
@@ -285,12 +308,15 @@ let Scheduler = {
       let deferred = Promise.defer();
       this.queue = deferred.promise;
 
+
+      
+
       let message = ["Meta_shutdown", [reset]];
 
       try {
         Scheduler.latestReceived = [];
         Scheduler.latestSent = [Date.now(), ...message];
-        let promise = worker.post(...message);
+        let promise = this._worker.post(...message);
 
         
         let resources;
@@ -329,7 +355,7 @@ let Scheduler = {
 
         
         if (killed || shutdown) {
-          worker = null;
+          this._worker = null;
         }
 
         this.shutdown = shutdown;
@@ -376,19 +402,14 @@ let Scheduler = {
     if (this.shutdown) {
       LOG("OS.File is not available anymore. The following request has been rejected.",
         method, args);
-      return Promise.reject(new Error("OS.File has been shut down."));
-    }
-    if (!worker) {
-      
-      worker = new PromiseWorker(
-        "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+      return Promise.reject(new Error("OS.File has been shut down. Rejecting post to " + method));
     }
     let firstLaunch = !this.launched;
     this.launched = true;
 
     if (firstLaunch && SharedAll.Config.DEBUG) {
       
-      worker.post("SET_DEBUG", [true]);
+      this.worker.post("SET_DEBUG", [true]);
       Scheduler.Debugging.messagesSent++;
     }
 
@@ -399,7 +420,13 @@ let Scheduler = {
       options = methodArgs[methodArgs.length - 1];
     }
     Scheduler.Debugging.messagesQueued++;
-    return this.push(() => Task.spawn(function*() {
+    return this.push(Task.async(function*() {
+      if (this.shutdown) {
+	LOG("OS.File is not available anymore. The following request has been rejected.",
+	  method, args);
+	throw new Error("OS.File has been shut down. Rejecting request to " + method);
+      }
+
       
       
       Scheduler.Debugging.latestReceived = null;
@@ -414,7 +441,7 @@ let Scheduler = {
       let isError = false;
       try {
         try {
-          data = yield worker.post(method, ...args);
+          data = yield this.worker.post(method, ...args);
         } finally {
           Scheduler.Debugging.messagesReceived++;
         }
@@ -474,7 +501,7 @@ let Scheduler = {
         options.outExecutionDuration = durationMs;
       }
       return data.ok;
-    }));
+    }.bind(this)));
   },
 
   
@@ -483,6 +510,7 @@ let Scheduler = {
 
 
   _updateTelemetry: function() {
+    let worker = this.worker;
     let workerTimeStamps = worker.workerTimeStamps;
     if (!workerTimeStamps) {
       
@@ -1482,7 +1510,7 @@ AsyncShutdown.profileBeforeChange.addBlocker(
     let result = {
       launched: Scheduler.launched,
       shutdown: Scheduler.shutdown,
-      worker: !!worker,
+      worker: !!Scheduler._worker,
       pendingReset: !!Scheduler.resetTimer,
       latestSent: Scheduler.Debugging.latestSent,
       latestReceived: Scheduler.Debugging.latestReceived,
