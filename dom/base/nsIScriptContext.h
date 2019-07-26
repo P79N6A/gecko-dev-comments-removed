@@ -73,11 +73,11 @@ public:
 
 
 
-  virtual nsresult EvaluateStringWithValue(const nsAString& aScript,
-                                           JSObject& aScopeObject,
-                                           JS::CompileOptions& aOptions,
-                                           bool aCoerceToString,
-                                           JS::Value& aRetValue) = 0;
+  virtual nsresult EvaluateString(const nsAString& aScript,
+                                  JSObject& aScopeObject,
+                                  JS::CompileOptions& aOptions,
+                                  bool aCoerceToString,
+                                  JS::Value& aRetValue) = 0;
 
   
 

@@ -111,11 +111,11 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   options.setFileAndLine(uriSpec.get(), mLineNumber)
          .setVersion(JSVERSION_LATEST)
          .setUserBit(true); 
-  rv = context->EvaluateStringWithValue(nsDependentString(mFieldText,
-                                                          mFieldTextLength),
-                                        *aBoundNode, options,
-                                         false,
-                                        result);
+  rv = context->EvaluateString(nsDependentString(mFieldText,
+                                                 mFieldTextLength),
+                               *aBoundNode, options,
+                                false,
+                               result);
   if (NS_FAILED(rv)) {
     return rv;
   }

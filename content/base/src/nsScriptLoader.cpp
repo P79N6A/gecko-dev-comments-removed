@@ -862,8 +862,8 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   if (aRequest->mOriginPrincipal)
     options.setOriginPrincipals(nsJSPrincipals::get(aRequest->mOriginPrincipal));
   JS::Value ignored;
-  rv = context->EvaluateStringWithValue(aScript, *globalObject->GetGlobalJSObject(),
-                                        options,  false, ignored);
+  rv = context->EvaluateString(aScript, *globalObject->GetGlobalJSObject(),
+                               options,  false, ignored);
 
   
   mCurrentScript = oldCurrent;
