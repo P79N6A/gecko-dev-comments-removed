@@ -3579,8 +3579,8 @@ let SessionStoreInternal = {
     }
     
     
-    if (this.windowToFocus && this.windowToFocus.content) {
-      this.windowToFocus.content.focus();
+    if (this.windowToFocus) {
+      this.windowToFocus.focus();
     }
   },
 
