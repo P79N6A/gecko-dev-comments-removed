@@ -1240,12 +1240,20 @@ this.WidgetMethods = {
 
 
 
-  getItemForElement: function(aElement) {
+
+
+
+
+  getItemForElement: function(aElement, aFlags = {}) {
     while (aElement) {
-      let item =
-        this._itemsByElement.get(aElement) ||
-        this._itemsByElement.get(aElement.nextElementSibling) ||
-        this._itemsByElement.get(aElement.previousElementSibling);
+      let item = this._itemsByElement.get(aElement);
+
+      
+      if (!aFlags.noSiblings) {
+        item = item ||
+          this._itemsByElement.get(aElement.nextElementSibling) ||
+          this._itemsByElement.get(aElement.previousElementSibling);
+      }
       if (item) {
         return item;
       }
