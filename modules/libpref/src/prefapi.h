@@ -16,6 +16,11 @@
 extern "C" {
 #endif
 
+
+static const uint32_t MAX_PREF_LENGTH = 1 * 1024 * 1024;
+
+static const uint32_t MAX_ADVISABLE_PREF_LENGTH = 4 * 1024;
+
 typedef union
 {
     char*       stringVal;
