@@ -1,0 +1,712 @@
+
+
+
+
+#include "DataStore.h"
+#include "DataStoreCursor.h"
+
+#include "mozilla/dom/DataStore.h"
+#include "mozilla/dom/DataStoreCursor.h"
+#include "mozilla/dom/DataStoreBinding.h"
+#include "mozilla/dom/DataStoreImplBinding.h"
+
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/PromiseWorkerProxy.h"
+#include "mozilla/ErrorResult.h"
+
+#include "WorkerPrivate.h"
+#include "WorkerRunnable.h"
+#include "WorkerScope.h"
+
+BEGIN_WORKERS_NAMESPACE
+
+NS_IMPL_ADDREF_INHERITED(WorkerDataStore, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(WorkerDataStore, DOMEventTargetHelper)
+
+NS_INTERFACE_MAP_BEGIN(WorkerDataStore)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
+
+WorkerDataStore::WorkerDataStore(WorkerGlobalScope* aScope)
+  : DOMEventTargetHelper(aScope)
+{}
+
+already_AddRefed<WorkerDataStore>
+WorkerDataStore::Constructor(GlobalObject& aGlobal, ErrorResult& aRv)
+{
+  JSContext* cx = aGlobal.GetContext();
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<WorkerDataStore> store =
+    new WorkerDataStore(workerPrivate->GlobalScope());
+  return store.forget();
+}
+
+JSObject*
+WorkerDataStore::WrapObject(JSContext* aCx)
+{
+  return DataStoreBinding_workers::Wrap(aCx, this);
+}
+
+
+class DataStoreRunnable : public WorkerMainThreadRunnable
+{
+protected:
+  nsMainThreadPtrHandle<DataStore> mBackingStore;
+
+public:
+  DataStoreRunnable(WorkerPrivate* aWorkerPrivate,
+                    const nsMainThreadPtrHandle<DataStore>& aBackingStore)
+    : WorkerMainThreadRunnable(aWorkerPrivate)
+    , mBackingStore(aBackingStore)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+};
+
+
+
+
+
+
+class DataStoreGetStringRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  typedef void
+  (DataStore::*FuncType)(nsAString&, ErrorResult&);
+
+  FuncType mFunc;
+  nsAString& mString;
+  ErrorResult& mRv;
+
+public:
+  DataStoreGetStringRunnable(WorkerPrivate* aWorkerPrivate,
+                             const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                             FuncType aFunc,
+                             nsAString& aString,
+                             ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mFunc(aFunc)
+    , mString(aString)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsString string;
+    (mBackingStore.get()->*mFunc)(string, mRv);
+    mString.Assign(string);
+    return true;
+  }
+};
+
+
+
+class DataStoreGetReadOnlyRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  ErrorResult& mRv;
+
+public:
+  bool mReadOnly;
+
+public:
+  DataStoreGetReadOnlyRunnable(WorkerPrivate* aWorkerPrivate,
+                               const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                               ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    mReadOnly = mBackingStore->GetReadOnly(mRv);
+    return true;
+  }
+};
+
+
+class DataStoreGetRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  Sequence<OwningStringOrUnsignedLong> mId;
+  ErrorResult& mRv;
+
+public:
+  DataStoreGetRunnable(WorkerPrivate* aWorkerPrivate,
+                       const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                       Promise* aWorkerPromise,
+                       const Sequence<OwningStringOrUnsignedLong>& aId,
+                       ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    if (!mId.AppendElements(aId)) {
+      mRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    }
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsRefPtr<Promise> promise = mBackingStore->Get(mId, mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+
+class DataStorePutRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  JSAutoStructuredCloneBuffer mObjBuffer;
+  const StringOrUnsignedLong& mId;
+  const nsString mRevisionId;
+  ErrorResult& mRv;
+
+public:
+  DataStorePutRunnable(WorkerPrivate* aWorkerPrivate,
+                       const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                       Promise* aWorkerPromise,
+                       JSContext* aCx,
+                       JS::Handle<JS::Value> aObj,
+                       const StringOrUnsignedLong& aId,
+                       const nsAString& aRevisionId,
+                       ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mId(aId)
+    , mRevisionId(aRevisionId)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    
+    if (!mObjBuffer.write(aCx, aObj)) {
+      JS_ClearPendingException(aCx);
+      mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
+    }
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    
+    nsCOMPtr<nsIScriptGlobalObject> sgo =
+      do_QueryInterface(static_cast<DOMEventTargetHelper*>
+                        (mBackingStore.get())->GetOwner());
+    MOZ_ASSERT(sgo);
+
+    nsCOMPtr<nsIScriptContext> scriptContext = sgo->GetContext();
+    AutoPushJSContext cx(scriptContext ? scriptContext->GetNativeContext()
+                                       : nsContentUtils::GetSafeJSContext());
+    MOZ_ASSERT(cx);
+
+    JS::Rooted<JS::Value> value(cx);
+    if (!mObjBuffer.read(cx, &value)) {
+      JS_ClearPendingException(cx);
+      mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
+      return true;
+    }
+
+    nsRefPtr<Promise> promise = mBackingStore->Put(cx,
+                                                   value,
+                                                   mId,
+                                                   mRevisionId,
+                                                   mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+
+class DataStoreAddRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  JSAutoStructuredCloneBuffer mObjBuffer;
+  const Optional<StringOrUnsignedLong>& mId;
+  const nsString mRevisionId;
+  ErrorResult& mRv;
+
+public:
+  DataStoreAddRunnable(WorkerPrivate* aWorkerPrivate,
+                       const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                       Promise* aWorkerPromise,
+                       JSContext* aCx,
+                       JS::Handle<JS::Value> aObj,
+                       const Optional<StringOrUnsignedLong>& aId,
+                       const nsAString& aRevisionId,
+                       ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mId(aId)
+    , mRevisionId(aRevisionId)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    
+    if (!mObjBuffer.write(aCx, aObj)) {
+      JS_ClearPendingException(aCx);
+      mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
+    }
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    
+    nsCOMPtr<nsIScriptGlobalObject> sgo =
+      do_QueryInterface(static_cast<DOMEventTargetHelper*>
+                        (mBackingStore.get())->GetOwner());
+    MOZ_ASSERT(sgo);
+
+    nsCOMPtr<nsIScriptContext> scriptContext = sgo->GetContext();
+    AutoPushJSContext cx(scriptContext ? scriptContext->GetNativeContext()
+                                       : nsContentUtils::GetSafeJSContext());
+    MOZ_ASSERT(cx);
+
+    JS::Rooted<JS::Value> value(cx);
+    if (!mObjBuffer.read(cx, &value)) {
+      JS_ClearPendingException(cx);
+      mRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
+      return true;
+    }
+
+    nsRefPtr<Promise> promise = mBackingStore->Add(cx,
+                                                   value,
+                                                   mId,
+                                                   mRevisionId,
+                                                   mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+
+
+class DataStoreRemoveRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  const StringOrUnsignedLong& mId;
+  const nsString mRevisionId;
+  ErrorResult& mRv;
+
+public:
+  DataStoreRemoveRunnable(WorkerPrivate* aWorkerPrivate,
+                          const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                          Promise* aWorkerPromise,
+                          const StringOrUnsignedLong& aId,
+                          const nsAString& aRevisionId,
+                          ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mId(aId)
+    , mRevisionId(aRevisionId)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsRefPtr<Promise> promise = mBackingStore->Remove(mId, mRevisionId, mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+
+class DataStoreSyncStoreRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  WorkerDataStoreCursor* mWorkerCursor;
+  const nsString mRevisionId;
+  ErrorResult& mRv;
+
+public:
+  DataStoreSyncStoreRunnable(WorkerPrivate* aWorkerPrivate,
+                             const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                             WorkerDataStoreCursor* aWorkerCursor,
+                             const nsAString& aRevisionId,
+                             ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mWorkerCursor(aWorkerCursor)
+    , mRevisionId(aRevisionId)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    
+    nsRefPtr<DataStoreCursor> cursor = mBackingStore->Sync(mRevisionId, mRv);
+    nsMainThreadPtrHandle<DataStoreCursor> backingCursor =
+      new nsMainThreadPtrHolder<DataStoreCursor>(cursor);
+    mWorkerCursor->SetBackingDataStoreCursor(backingCursor);
+
+    return true;
+  }
+};
+
+void
+WorkerDataStore::GetName(JSContext* aCx, nsAString& aName, ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<DataStoreGetStringRunnable> runnable =
+    new DataStoreGetStringRunnable(workerPrivate,
+                                   mBackingStore,
+                                   &DataStore::GetName,
+                                   aName,
+                                   aRv);
+  runnable->Dispatch(aCx);
+}
+
+void
+WorkerDataStore::GetOwner(JSContext* aCx, nsAString& aOwner, ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<DataStoreGetStringRunnable> runnable =
+    new DataStoreGetStringRunnable(workerPrivate,
+                                   mBackingStore,
+                                   &DataStore::GetOwner,
+                                   aOwner,
+                                   aRv);
+  runnable->Dispatch(aCx);
+}
+
+bool
+WorkerDataStore::GetReadOnly(JSContext* aCx, ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<DataStoreGetReadOnlyRunnable> runnable =
+    new DataStoreGetReadOnlyRunnable(workerPrivate, mBackingStore, aRv);
+  runnable->Dispatch(aCx);
+
+  return runnable->mReadOnly;
+}
+
+already_AddRefed<Promise>
+WorkerDataStore::Get(JSContext* aCx,
+                     const Sequence<OwningStringOrUnsignedLong>& aId,
+                     ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStoreGetRunnable> runnable =
+    new DataStoreGetRunnable(workerPrivate,
+                             mBackingStore,
+                             promise,
+                             aId,
+                             aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+already_AddRefed<Promise>
+WorkerDataStore::Put(JSContext* aCx,
+                     JS::Handle<JS::Value> aObj,
+                     const StringOrUnsignedLong& aId,
+                     const nsAString& aRevisionId,
+                     ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStorePutRunnable> runnable =
+    new DataStorePutRunnable(workerPrivate,
+                             mBackingStore,
+                             promise,
+                             aCx,
+                             aObj,
+                             aId,
+                             aRevisionId,
+                             aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+already_AddRefed<Promise>
+WorkerDataStore::Add(JSContext* aCx,
+                     JS::Handle<JS::Value> aObj,
+                     const Optional<StringOrUnsignedLong>& aId,
+                     const nsAString& aRevisionId,
+                     ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStoreAddRunnable> runnable =
+    new DataStoreAddRunnable(workerPrivate,
+                             mBackingStore,
+                             promise,
+                             aCx,
+                             aObj,
+                             aId,
+                             aRevisionId,
+                             aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+already_AddRefed<Promise>
+WorkerDataStore::Remove(JSContext* aCx,
+                        const StringOrUnsignedLong& aId,
+                        const nsAString& aRevisionId,
+                        ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStoreRemoveRunnable> runnable =
+    new DataStoreRemoveRunnable(workerPrivate,
+                                mBackingStore,
+                                promise,
+                                aId,
+                                aRevisionId,
+                                aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+
+class DataStoreClearRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  const nsString mRevisionId;
+  ErrorResult& mRv;
+
+public:
+  DataStoreClearRunnable(WorkerPrivate* aWorkerPrivate,
+                         const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                         Promise* aWorkerPromise,
+                         const nsAString& aRevisionId,
+                         ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mRevisionId(aRevisionId)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsRefPtr<Promise> promise = mBackingStore->Clear(mRevisionId, mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+already_AddRefed<Promise>
+WorkerDataStore::Clear(JSContext* aCx,
+                       const nsAString& aRevisionId,
+                       ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStoreClearRunnable> runnable =
+    new DataStoreClearRunnable(workerPrivate,
+                               mBackingStore,
+                               promise,
+                               aRevisionId,
+                               aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+void
+WorkerDataStore::GetRevisionId(JSContext* aCx,
+                               nsAString& aRevisionId,
+                               ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<DataStoreGetStringRunnable> runnable =
+    new DataStoreGetStringRunnable(workerPrivate,
+                                   mBackingStore,
+                                   &DataStore::GetRevisionId,
+                                   aRevisionId,
+                                   aRv);
+  runnable->Dispatch(aCx);
+}
+
+
+class DataStoreGetLengthRunnable MOZ_FINAL : public DataStoreRunnable
+{
+  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  ErrorResult& mRv;
+
+public:
+  DataStoreGetLengthRunnable(WorkerPrivate* aWorkerPrivate,
+                             const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+                             Promise* aWorkerPromise,
+                             ErrorResult& aRv)
+    : DataStoreRunnable(aWorkerPrivate, aBackingStore)
+    , mRv(aRv)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    mPromiseWorkerProxy =
+      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+  }
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    nsRefPtr<Promise> promise = mBackingStore->GetLength(mRv);
+    promise->AppendNativeHandler(mPromiseWorkerProxy);
+    return true;
+  }
+};
+
+already_AddRefed<Promise>
+WorkerDataStore::GetLength(JSContext* aCx, ErrorResult& aRv)
+{
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<Promise> promise = new Promise(workerPrivate->GlobalScope());
+
+  nsRefPtr<DataStoreGetLengthRunnable> runnable =
+    new DataStoreGetLengthRunnable(workerPrivate,
+                                   mBackingStore,
+                                   promise,
+                                   aRv);
+  runnable->Dispatch(aCx);
+
+  return promise.forget();
+}
+
+already_AddRefed<WorkerDataStoreCursor>
+WorkerDataStore::Sync(JSContext* aCx,
+                      const nsAString& aRevisionId,
+                      ErrorResult& aRv)
+{
+  
+  
+  nsRefPtr<WorkerDataStoreCursor> workerCursor = new WorkerDataStoreCursor();
+
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
+  MOZ_ASSERT(workerPrivate);
+  workerPrivate->AssertIsOnWorkerThread();
+
+  nsRefPtr<DataStoreSyncStoreRunnable> runnable =
+    new DataStoreSyncStoreRunnable(workerPrivate,
+                                   mBackingStore,
+                                   workerCursor,
+                                   aRevisionId,
+                                   aRv);
+  runnable->Dispatch(aCx);
+
+  return workerCursor.forget();
+}
+
+void
+WorkerDataStore::SetDataStoreImpl(DataStoreImpl& aStore, ErrorResult& aRv)
+{
+  NS_NOTREACHED("We don't use this for the WorkerDataStore!");
+}
+
+void
+WorkerDataStore::SetBackingDataStore(
+  const nsMainThreadPtrHandle<DataStore>& aBackingStore)
+{
+  mBackingStore = aBackingStore;
+}
+
+
+
+END_WORKERS_NAMESPACE

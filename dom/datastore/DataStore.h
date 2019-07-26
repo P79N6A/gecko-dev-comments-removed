@@ -82,9 +82,6 @@ public:
   
   void SetDataStoreImpl(DataStoreImpl& aStore, ErrorResult& aRv);
 
-protected:
-  virtual ~DataStore() {}
-
 private:
   nsRefPtr<DataStoreImpl> mStore;
 };
