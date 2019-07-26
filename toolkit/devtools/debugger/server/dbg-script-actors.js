@@ -1277,11 +1277,7 @@ SourceActor.prototype = {
       
       
       
-      let prefix = "file://";
-      if ("nsILocalFileWin" in Ci && url instanceof Ci.nsILocalFileWin) {
-        prefix += '/'
-      }
-      url = prefix + url;
+      url = "file://" + url;
       scheme = Services.io.extractScheme(url);
     }
 
@@ -1306,7 +1302,15 @@ SourceActor.prototype = {
         break;
 
       default:
-        let channel = Services.io.newChannel(url, null, null);
+        let channel;
+        try {
+          channel = Services.io.newChannel(url, null, null);
+        } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
+          
+          
+          url = "file:///" + url;
+          channel = Services.io.newChannel(url, null, null);
+        }
         let chunks = [];
         let streamListener = {
           onStartRequest: function(aRequest, aContext, aStatusCode) {
