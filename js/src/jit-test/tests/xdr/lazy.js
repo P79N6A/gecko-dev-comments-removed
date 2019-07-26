@@ -1,5 +1,6 @@
 load(libdir + 'bytecode-cache.js');
 var test = "";
+var checkAfter;
 
 
 test = (function () {
@@ -100,3 +101,36 @@ test = (function () {
   return f.toSource() + "; f();";
 })();
 evalWithCache(test, { assertEqBytecode: true });
+
+
+test = "function f() { }; f();"
+     + "assertEq(isLazyFunction(f), false);"
+     + "var expect = isRelazifiableFunction(f);";
+checkAfter = function (ctx) {
+  gc(ctx.global.f); 
+  evaluate("assertEq(isLazyFunction(f), expect);", ctx);
+};
+evalWithCache(test, {
+  assertEqBytecode: true,  
+  assertEqResult: true,    
+                           
+  checkAfter: checkAfter   
+                           
+});
+
+
+
+test = "function f() { return isRelazifiableFunction(f) }; var expect = f();"
+     + "assertEq(isLazyFunction(f), false);"
+     + "expect";
+checkAfter = function (ctx) {
+  gc(ctx.global.f); 
+  evaluate("assertEq(isLazyFunction(f), expect);", ctx);
+};
+evalWithCache(test, {
+  assertEqBytecode: true,  
+  assertEqResult: true,    
+                           
+  checkAfter: checkAfter   
+                           
+});

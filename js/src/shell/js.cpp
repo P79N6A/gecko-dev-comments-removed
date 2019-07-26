@@ -1119,7 +1119,7 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
 
         
         
-        if (loadBytecode || saveBytecode || assertEqBytecode) {
+        if (loadBytecode || saveBytecode) {
             if (!cacheEntry) {
                 JS_ReportErrorNumber(cx, my_GetErrorMessage, nullptr, JSSMSG_INVALID_ARGS,
                                      "evaluate");
