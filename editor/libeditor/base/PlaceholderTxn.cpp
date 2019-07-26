@@ -114,10 +114,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
 
   EditTxn *editTxn = (EditTxn*)aTransaction;  
   
-  nsCOMPtr<nsIAbsorbingTransaction> plcTxn;
-  
-  
-  editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction), getter_AddRefs(plcTxn));
+  nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryObject(editTxn);
 
   
   if (mAbsorb)
@@ -164,12 +161,8 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
          (mName.get() == nsGkAtoms::DeleteTxnName)) 
          && !mCommitted ) 
     {
-      nsCOMPtr<nsIAbsorbingTransaction> plcTxn;
-      
-      
-      editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction), getter_AddRefs(plcTxn));
-      if (plcTxn)
-      {
+      nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryObject(editTxn);
+      if (plcTxn) {
         nsCOMPtr<nsIAtom> atom;
         plcTxn->GetTxnName(getter_AddRefs(atom));
         if (atom && (atom == mName))
