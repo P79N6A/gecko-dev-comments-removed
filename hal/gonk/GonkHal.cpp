@@ -60,6 +60,28 @@
 #define NsecPerSec   1000000000
 
 
+
+
+#ifndef OOM_DISABLE
+#define OOM_DISABLE  (-17)
+#endif
+
+#ifndef OOM_ADJUST_MIN
+#define OOM_ADJUST_MIN  (-16)
+#endif
+
+#ifndef OOM_ADJUST_MAX
+#define OOM_ADJUST_MAX  15
+#endif
+
+#ifndef OOM_SCORE_ADJ_MIN
+#define OOM_SCORE_ADJ_MIN  (-1000)
+#endif
+
+#ifndef OOM_SCORE_ADJ_MAX
+#define OOM_SCORE_ADJ_MAX  1000
+#endif
+
 using namespace mozilla;
 using namespace mozilla::hal;
 
@@ -828,6 +850,23 @@ SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
   return true;
 }
 
+static int
+oomAdjOfOomScoreAdj(int aOomScoreAdj)
+{
+  
+  
+
+  int adj;
+
+  if (aOomScoreAdj < 0) {
+    adj = (OOM_DISABLE * aOomScoreAdj) / OOM_SCORE_ADJ_MIN;
+  } else {
+    adj = (OOM_ADJUST_MAX * aOomScoreAdj) / OOM_SCORE_ADJ_MAX;
+  }
+
+  return adj;
+}
+
 void
 SetProcessPriority(int aPid, ProcessPriority aPriority)
 {
@@ -851,10 +890,15 @@ SetProcessPriority(int aPid, ProcessPriority aPriority)
   
   
 
-  int32_t oomAdj = 0;
+  int32_t oomScoreAdj = 0;
   nsresult rv = Preferences::GetInt(nsPrintfCString(
-    "hal.processPriorityManager.gonk.%sOomAdjust", priorityStr).get(), &oomAdj);
+    "hal.processPriorityManager.gonk.%sOomScoreAdjust",
+    priorityStr).get(), &oomScoreAdj);
+
   if (NS_SUCCEEDED(rv)) {
+
+    int oomAdj = oomAdjOfOomScoreAdj(oomScoreAdj);
+
     HAL_LOG(("Setting oom_adj for pid %d to %d", aPid, oomAdj));
     WriteToFile(nsPrintfCString("/proc/%d/oom_adj", aPid).get(),
                 nsPrintfCString("%d", oomAdj).get());
