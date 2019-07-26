@@ -1044,8 +1044,23 @@ nsGonkCameraControl::StopRecordingImpl()
   mRecorder = nullptr;
   OnRecorderStateChange(CameraControlListener::kRecorderStopped);
 
-  if (mAutoFlashModeOverridden) {
-    SetAndPush(CAMERA_PARAM_FLASHMODE, NS_LITERAL_STRING("auto"));
+  {
+    ICameraControlParameterSetAutoEnter set(this);
+
+    
+    
+    
+    nsresult rv = mParams.Set(CAMERA_PARAM_RECORDINGHINT, false);
+    if (NS_FAILED(rv)) {
+      DOM_CAMERA_LOGE("Failed to set recording hint (0x%x)\n", rv);
+    }
+
+    if (mAutoFlashModeOverridden) {
+      rv = mParams.Set(CAMERA_PARAM_FLASHMODE, NS_LITERAL_STRING("auto"));
+      if (NS_FAILED(rv)) {
+        DOM_CAMERA_LOGE("Failed to set flash mode (0x%x)\n", rv);
+      }
+    }
   }
 
   

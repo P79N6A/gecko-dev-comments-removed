@@ -85,6 +85,8 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
       
       
       return "hdr-need-1x";
+    case CAMERA_PARAM_RECORDINGHINT:
+      return KEY_RECORDING_HINT;
 
     case CAMERA_PARAM_SUPPORTED_PREVIEWSIZES:
       return KEY_SUPPORTED_PREVIEW_SIZES;
