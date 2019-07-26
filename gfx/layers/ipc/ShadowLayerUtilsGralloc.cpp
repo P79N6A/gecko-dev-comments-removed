@@ -273,11 +273,17 @@ void GrallocBufferActor::ActorDestroy(ActorDestroyReason)
   if (mDeprecatedTextureHost) {
     mDeprecatedTextureHost->ForgetBuffer();
   }
+  mDeprecatedTextureHost = nullptr;
 }
 
 
 void GrallocBufferActor::SetDeprecatedTextureHost(DeprecatedTextureHost* aDeprecatedTextureHost)
 {
+  if (mDeprecatedTextureHost &&
+      mDeprecatedTextureHost != aDeprecatedTextureHost)
+  {
+    mDeprecatedTextureHost->ForgetBuffer();
+  }
   mDeprecatedTextureHost = aDeprecatedTextureHost;
 }
 
