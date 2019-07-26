@@ -4493,56 +4493,54 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
     
     nsDisplayItem* itemToInsert = nullptr;
     nsIFrame* frame = i->GetUnderlyingFrame();
-    if (frame) {
-      nsIContent* content = frame->GetContent();
-      if (content) {
-        bool atStart = (content == aRange->GetStartParent());
-        bool atEnd = (content == aRange->GetEndParent());
-        if ((atStart || atEnd) && frame->GetType() == nsGkAtoms::textFrame) {
-          int32_t frameStartOffset, frameEndOffset;
-          frame->GetOffsets(frameStartOffset, frameEndOffset);
+    nsIContent* content = frame->GetContent();
+    if (content) {
+      bool atStart = (content == aRange->GetStartParent());
+      bool atEnd = (content == aRange->GetEndParent());
+      if ((atStart || atEnd) && frame->GetType() == nsGkAtoms::textFrame) {
+        int32_t frameStartOffset, frameEndOffset;
+        frame->GetOffsets(frameStartOffset, frameEndOffset);
 
-          int32_t hilightStart =
-            atStart ? std::max(aRange->StartOffset(), frameStartOffset) : frameStartOffset;
-          int32_t hilightEnd =
-            atEnd ? std::min(aRange->EndOffset(), frameEndOffset) : frameEndOffset;
-          if (hilightStart < hilightEnd) {
-            
-            nsPoint startPoint, endPoint;
-            frame->GetPointFromOffset(hilightStart, &startPoint);
-            frame->GetPointFromOffset(hilightEnd, &endPoint);
-
-            
-            
-            
-            
-            nsRect textRect(aBuilder->ToReferenceFrame(frame), frame->GetSize());
-            nscoord x = std::min(startPoint.x, endPoint.x);
-            textRect.x += x;
-            textRect.width = std::max(startPoint.x, endPoint.x) - x;
-            surfaceRect.UnionRect(surfaceRect, textRect);
-
-            DisplayItemClip newClip;
-            newClip.SetTo(textRect);
-            newClip.IntersectWith(i->GetClip());
-            i->SetClip(aBuilder, newClip);
-            itemToInsert = i;
-          }
-        }
-        
-        
-        
-        else if (content->GetCurrentDoc() ==
-                   aRange->GetStartParent()->GetCurrentDoc()) {
+        int32_t hilightStart =
+          atStart ? std::max(aRange->StartOffset(), frameStartOffset) : frameStartOffset;
+        int32_t hilightEnd =
+          atEnd ? std::min(aRange->EndOffset(), frameEndOffset) : frameEndOffset;
+        if (hilightStart < hilightEnd) {
           
-          bool before, after;
-          nsresult rv =
-            nsRange::CompareNodeToRange(content, aRange, &before, &after);
-          if (NS_SUCCEEDED(rv) && !before && !after) {
-            itemToInsert = i;
-            bool snap;
-            surfaceRect.UnionRect(surfaceRect, i->GetBounds(aBuilder, &snap));
-          }
+          nsPoint startPoint, endPoint;
+          frame->GetPointFromOffset(hilightStart, &startPoint);
+          frame->GetPointFromOffset(hilightEnd, &endPoint);
+
+          
+          
+          
+          
+          nsRect textRect(aBuilder->ToReferenceFrame(frame), frame->GetSize());
+          nscoord x = std::min(startPoint.x, endPoint.x);
+          textRect.x += x;
+          textRect.width = std::max(startPoint.x, endPoint.x) - x;
+          surfaceRect.UnionRect(surfaceRect, textRect);
+
+          DisplayItemClip newClip;
+          newClip.SetTo(textRect);
+          newClip.IntersectWith(i->GetClip());
+          i->SetClip(aBuilder, newClip);
+          itemToInsert = i;
+        }
+      }
+      
+      
+      
+      else if (content->GetCurrentDoc() ==
+                 aRange->GetStartParent()->GetCurrentDoc()) {
+        
+        bool before, after;
+        nsresult rv =
+          nsRange::CompareNodeToRange(content, aRange, &before, &after);
+        if (NS_SUCCEEDED(rv) && !before && !after) {
+          itemToInsert = i;
+          bool snap;
+          surfaceRect.UnionRect(surfaceRect, i->GetBounds(aBuilder, &snap));
         }
       }
     }
@@ -5282,16 +5280,14 @@ PresShell::MarkImagesInListVisible(const nsDisplayList& aList)
     nsIFrame* f = item->GetUnderlyingFrame();
     
     
-    if (f) {
+    
+    nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(f->GetContent()));
+    if (content) {
       
-      nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(f->GetContent()));
-      if (content) {
-        
-        PresShell* presShell = static_cast<PresShell*>(f->PresContext()->PresShell());
-        if (presShell) {
-          content->IncrementVisibleCount();
-          presShell->mVisibleImages.AppendElement(content);
-        }
+      PresShell* presShell = static_cast<PresShell*>(f->PresContext()->PresShell());
+      if (presShell) {
+        content->IncrementVisibleCount();
+        presShell->mVisibleImages.AppendElement(content);
       }
     }
   }
