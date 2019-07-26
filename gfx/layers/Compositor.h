@@ -412,13 +412,6 @@ public:
 
 
 
-  virtual void NotifyLayersTransaction() = 0;
-
-  
-
-
-
-
   virtual void Pause() {}
   
 
@@ -452,6 +445,17 @@ public:
 
 
   static LayersBackend GetBackend();
+
+  size_t GetFillRatio() {
+    float fillRatio = 0;
+    if (mPixelsFilled > 0 && mPixelsPerFrame > 0) {
+      fillRatio = 100.0f * float(mPixelsFilled) / float(mPixelsPerFrame);
+      if (fillRatio > 999.0f) {
+        fillRatio = 999.0f;
+      }
+    }
+    return fillRatio;
+  }
 
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,

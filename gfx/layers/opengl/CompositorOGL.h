@@ -51,7 +51,6 @@ class GLManagerCompositor;
 class TextureSource;
 struct Effect;
 struct EffectChain;
-struct FPSState;
 
 class CompositorOGL : public Compositor
 {
@@ -151,8 +150,6 @@ public:
   virtual const char* Name() const MOZ_OVERRIDE { return "OGL"; }
 #endif 
 
-  virtual void NotifyLayersTransaction() MOZ_OVERRIDE;
-
   virtual void Pause() MOZ_OVERRIDE;
   virtual bool Resume() MOZ_OVERRIDE;
 
@@ -196,12 +193,6 @@ private:
   nsIntSize mSurfaceSize;
 
   ScreenPoint mRenderOffset;
-
-  
-  class ReadDrawFPSPref MOZ_FINAL : public nsRunnable {
-  public:
-    NS_IMETHOD Run() MOZ_OVERRIDE;
-  };
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
 
@@ -328,11 +319,6 @@ private:
   
 
 
-  double AddFrameAndGetFps(const TimeStamp& timestamp);
-
-  
-
-
 
 
 
@@ -343,7 +329,6 @@ private:
 
   bool mDestroyed;
 
-  nsAutoPtr<FPSState> mFPS;
   
   
   nsTArray<GLuint> mTextures;
