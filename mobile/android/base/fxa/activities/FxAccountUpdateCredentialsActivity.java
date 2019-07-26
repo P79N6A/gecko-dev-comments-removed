@@ -41,6 +41,14 @@ public class FxAccountUpdateCredentialsActivity extends FxAccountAbstractSetupAc
 
   protected Account account;
 
+  public FxAccountUpdateCredentialsActivity() {
+    
+    
+    
+    
+    super(CANNOT_RESUME_WHEN_NO_ACCOUNTS_EXIST);
+  }
+
   
 
 
@@ -73,11 +81,12 @@ public class FxAccountUpdateCredentialsActivity extends FxAccountAbstractSetupAc
   public void onResume() {
     super.onResume();
     Account accounts[] = FxAccountAuthenticator.getFirefoxAccounts(this);
-    if (accounts.length < 1) {
-      redirectToActivity(FxAccountGetStartedActivity.class);
-      finish();
-    }
     account = accounts[0];
+    if (account == null) {
+      setResult(RESULT_CANCELED);
+      finish();
+      return;
+    }
     emailEdit.setText(account.name);
   }
 
