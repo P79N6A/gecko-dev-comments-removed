@@ -1,9 +1,6 @@
 
 
 
-const TAB_STATE_NEEDS_RESTORE = 1;
-const TAB_STATE_RESTORING = 2;
-
 let stateBackup = ss.getBrowserState();
 
 let statePinned = {windows:[{tabs:[

@@ -1,8 +1,6 @@
 
 
 
-const TAB_STATE_NEEDS_RESTORE = 1;
-
 let tabState = {
   entries: [{url: "data:text/html,<input%20id='foo'>", formdata: { id: { "foo": "bar" } } }]
 };

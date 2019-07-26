@@ -1,9 +1,6 @@
 
 
 
-const TAB_STATE_NEEDS_RESTORE = 1;
-const TAB_STATE_RESTORING = 2;
-
 let state = {windows:[{tabs:[
   {entries:[{url:"http://example.com#1"}]},
   {entries:[{url:"http://example.com#2"}]},
