@@ -375,19 +375,15 @@ CustomizeMode.prototype = {
   
   
   persistCurrentSets: function()  {
-    
-    
-    return;
-
     let document = this.document;
-    let toolbar = document.getElementById("nav-bar");
+    let toolbars = document.querySelectorAll("toolbar");
 
-    
-    let currentSet = toolbar.currentSet;
-    toolbar.setAttribute("currentset", currentSet);
-
-    
-    document.persist(toolbar.id, "currentset");
+    for (let toolbar of toolbars) {
+      
+      toolbar.setAttribute("currentset", toolbar.currentSet);
+      
+      document.persist(toolbar.id, "currentset");
+    }
   },
 
   reset: function() {

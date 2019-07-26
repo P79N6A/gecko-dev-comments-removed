@@ -224,11 +224,16 @@ let gFuturePlacements = new Map();
 
 let gDefaultPlacements = new Map([
   ["nav-bar", [
+    "unified-back-forward-button",
+    "urlbar-container",
+    "reload-button",
+    "stop-button",
     "search-container",
+    "webrtc-status-button",
     "bookmarks-menu-button-container",
     "downloads-button",
+    "home-button",
     "social-toolbar-button",
-    "PanelUI-button",
     "share-page"
   ]],
   ["PanelUI-contents", [
@@ -371,6 +376,7 @@ let CustomizableUIInternal = {
 
     let placements = gPlacements.get(area);
     this.buildArea(area, placements, aToolbar);
+    aToolbar.setAttribute("currentset", placements.join(","));
 
     
     
@@ -415,12 +421,16 @@ let CustomizableUIInternal = {
       while (node != limit) {
         
         
-        if (palette) {
-          palette.appendChild(node);
-        } else {
-          container.removeChild(node);
+        
+        
+        if (node.getAttribute("removable") == "true") {
+          if (palette) {
+            palette.appendChild(node);
+          } else {
+            container.removeChild(node);
+          }
         }
-        node = container.lastChild;
+        node = node.previousSibling;
       }
     }
   },
