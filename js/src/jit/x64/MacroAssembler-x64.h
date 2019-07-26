@@ -42,7 +42,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     uint32_t passedFloatArgs_;
     uint32_t stackForCall_;
     bool dynamicAlignment_;
-    bool enoughMemory_;
 
     
     
@@ -83,18 +82,13 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     using MacroAssemblerX86Shared::store32;
 
     MacroAssemblerX64()
-      : inCall_(false),
-        enoughMemory_(true)
+      : inCall_(false)
     {
     }
 
     
     
     void finish();
-
-    bool oom() const {
-        return MacroAssemblerX86Shared::oom() || !enoughMemory_;
-    }
 
     
     

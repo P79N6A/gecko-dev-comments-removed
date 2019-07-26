@@ -340,7 +340,6 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
 
     bool dynamicAlignment_;
 
-    bool enoughMemory_;
     
     
     
@@ -363,12 +362,8 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
   public:
     MacroAssemblerMIPSCompat()
       : inCall_(false),
-        enoughMemory_(true),
         framePushed_(0)
     { }
-    bool oom() const {
-        return Assembler::oom();
-    }
 
   public:
     using MacroAssemblerMIPS::call;
