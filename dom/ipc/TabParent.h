@@ -297,6 +297,9 @@ private:
                                         nsInputEvent* aOutEvent);
     
     
+    bool mMarkedDestroying;
+    
+    
     bool mIsDestroyed;
 };
 
