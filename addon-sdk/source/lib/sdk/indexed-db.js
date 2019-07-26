@@ -28,18 +28,6 @@ let sanitizeId = function(id){
 const PSEUDOURI = "indexeddb://" + sanitizeId(id) 
 
 
-
-if (typeof(indexedDB) === "undefined") {
-  Cc["@mozilla.org/dom/indexeddb/manager;1"].
-    getService(Ci.nsIIndexedDatabaseManager).
-    initWindowless(this);
-
-  
-  if (typeof(indexedDB) === "undefined")
-    this.indexedDB = mozIndexedDB;
-}
-
-
 let principaluri = Cc["@mozilla.org/network/io-service;1"].
               getService(Ci.nsIIOService).
               newURI(PSEUDOURI, null, null);
@@ -50,8 +38,9 @@ let principal = Cc["@mozilla.org/scriptsecuritymanager;1"].
 
 exports.indexedDB = Object.freeze({
   open: indexedDB.openForPrincipal.bind(indexedDB, principal),
+  openForPrincipal: indexedDB.openForPrincipal.bind(indexedDB),
   deleteDatabase: indexedDB.deleteForPrincipal.bind(indexedDB, principal),
-  cmp: indexedDB.cmp
+  cmp: indexedDB.cmp.bind(indexedDB)
 });
 
 exports.IDBKeyRange = IDBKeyRange;

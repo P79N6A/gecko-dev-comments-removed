@@ -7,6 +7,12 @@
 const {Cu, Cc, Ci} = require("chrome");
 const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
+try {
+    const { indexedDB } = require("sdk/indexed-db");
+} catch (e) {
+    
+    
+}
 const {async} = require("devtools/async-utils");
 const {Arg, Option, method, RetVal, types} = protocol;
 const {LongStringActor, ShortLongString} = require("devtools/server/actors/string");
@@ -930,11 +936,6 @@ StorageActors.createActor({
 }, {
   initialize: function(storageActor) {
     protocol.Actor.prototype.initialize.call(this, null);
-    if (!global.indexedDB) {
-      let idbManager = Cc["@mozilla.org/dom/indexeddb/manager;1"]
-                         .getService(Ci.nsIIndexedDatabaseManager);
-      idbManager.initWindowless(global);
-    }
     this.objectsSize = {};
     this.storageActor = storageActor;
     this.onWindowReady = this.onWindowReady.bind(this);
