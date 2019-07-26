@@ -45,13 +45,20 @@ this.PhoneNumberUtils = {
 #ifdef MOZ_B2G_RIL
     
     
-    let voice = mobileConnection.getVoiceConnectionInfo(0);
+    
+    
+    
+    
+    let clientId = 0;
+
+    
+    let voice = mobileConnection.getVoiceConnectionInfo(clientId);
     if (voice && voice.network && voice.network.mcc) {
       mcc = voice.network.mcc;
     }
 
     
-    let iccInfo = icc.iccInfo;
+    let iccInfo = icc.getIccInfo(clientId);
     if (!mcc && iccInfo && iccInfo.mcc) {
       mcc = iccInfo.mcc;
     }
