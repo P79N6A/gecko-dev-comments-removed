@@ -316,6 +316,18 @@ To see more help for a specific command, run:
 
             
             
+            
+            
+            
+            
+            if not len(stack):
+                print(COMMAND_ERROR)
+                self._print_exception(sys.stdout, exc_type, exc_value,
+                    traceback.extract_tb(exc_tb))
+                return 1
+
+            
+            
             command_frames = []
             other_frames = []
 
