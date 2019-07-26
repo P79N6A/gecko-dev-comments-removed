@@ -6,8 +6,6 @@
 #ifndef nsComposeTxtSrvFilter_h__
 #define nsComposeTxtSrvFilter_h__
 
-#include "nsCOMPtr.h"                   
-#include "nsIAtom.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsITextServicesFilter.h"
 
@@ -18,11 +16,10 @@
 
 
 
-class nsComposeTxtSrvFilter : public nsITextServicesFilter
+class nsComposeTxtSrvFilter MOZ_FINAL : public nsITextServicesFilter
 {
 public:
   nsComposeTxtSrvFilter();
-  virtual ~nsComposeTxtSrvFilter() {}
 
   
   NS_DECL_ISUPPORTS
@@ -33,21 +30,8 @@ public:
   
   void Init(bool aIsForMail) { mIsForMail = aIsForMail; }
 
-protected:
+private:
   bool              mIsForMail;
-  nsCOMPtr<nsIAtom> mBlockQuoteAtom;
-  nsCOMPtr<nsIAtom> mSpanAtom;         
-  nsCOMPtr<nsIAtom> mMozQuoteAtom;     
-  nsCOMPtr<nsIAtom> mTableAtom;
-  nsCOMPtr<nsIAtom> mClassAtom;
-  nsCOMPtr<nsIAtom> mTypeAtom;
-  nsCOMPtr<nsIAtom> mScriptAtom;
-  nsCOMPtr<nsIAtom> mTextAreaAtom;
-  nsCOMPtr<nsIAtom> mSelectAreaAtom;
-  nsCOMPtr<nsIAtom> mMapAtom;
-  nsCOMPtr<nsIAtom> mCiteAtom;
-  nsCOMPtr<nsIAtom> mTrueAtom;
-  nsCOMPtr<nsIAtom> mMozSignatureAtom;
 };
 
 #define NS_COMPOSERTXTSRVFILTER_CID \
