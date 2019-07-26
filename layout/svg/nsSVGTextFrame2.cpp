@@ -2827,7 +2827,12 @@ nsSVGTextFrame2::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                   const nsRect& aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
-  NS_ASSERTION(!NS_SUBTREE_DIRTY(this), "reflow should have happened");
+  if (NS_SUBTREE_DIRTY(this)) {
+    
+    
+    
+    return NS_OK;
+  }
   return aLists.Content()->AppendNewToTop(
            new (aBuilder) nsDisplaySVGText(aBuilder, this));
 }
@@ -3100,8 +3105,11 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
     
     
     UpdateGlyphPositioning(true);
-  } else {
-    NS_ASSERTION(!NS_SUBTREE_DIRTY(this), "reflow should have happened");
+  } else if (NS_SUBTREE_DIRTY(this)) {
+    
+    
+    
+    return NS_OK;
   }
 
   gfxMatrix canvasTM = GetCanvasTM(FOR_PAINTING);
