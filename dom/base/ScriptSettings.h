@@ -71,7 +71,7 @@ private:
 
 
 
-class AutoEntryScript {
+class AutoEntryScript : protected ScriptSettingsStackEntry {
 public:
   AutoEntryScript(nsIGlobalObject* aGlobalObject,
                   bool aIsMainThread = NS_IsMainThread(),
@@ -81,7 +81,6 @@ public:
 
 private:
   dom::ScriptSettingsStack& mStack;
-  dom::ScriptSettingsStackEntry mEntry;
   mozilla::Maybe<AutoCxPusher> mCxPusher;
   mozilla::Maybe<JSAutoCompartment> mAc; 
                                          
@@ -90,13 +89,12 @@ private:
 
 
 
-class AutoIncumbentScript {
+class AutoIncumbentScript : protected ScriptSettingsStackEntry {
 public:
   AutoIncumbentScript(nsIGlobalObject* aGlobalObject);
   ~AutoIncumbentScript();
 private:
   dom::ScriptSettingsStack& mStack;
-  dom::ScriptSettingsStackEntry mEntry;
   JS::AutoHideScriptedCaller mCallerOverride;
 };
 
