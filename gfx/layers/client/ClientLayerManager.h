@@ -24,6 +24,7 @@
 #include "nsRect.h"                     
 #include "nsTArray.h"                   
 #include "nscore.h"                     
+#include "mozilla/layers/TransactionIdAllocator.h"
 
 class nsIWidget;
 
@@ -210,6 +211,8 @@ public:
   
   void GetCompositorSideAPZTestData(APZTestData* aData) const;
 
+  void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) { mTransactionIdAllocator = aAllocator; }
+
 protected:
   enum TransactionPhase {
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
@@ -255,6 +258,8 @@ private:
   
   
   nsRefPtr<gfxContext> mShadowTarget;
+
+  nsRefPtr<TransactionIdAllocator> mTransactionIdAllocator;
 
   
   
