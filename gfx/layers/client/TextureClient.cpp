@@ -512,11 +512,13 @@ TextureClient::Finalize()
 
   if (actor) {
     
+    
+    
+    actor->mTextureClient = nullptr;
+    
     if (actor->GetForwarder()) {
       actor->GetForwarder()->RemoveTexture(this);
     }
-    
-    actor->mTextureClient = nullptr;
   }
 }
 
