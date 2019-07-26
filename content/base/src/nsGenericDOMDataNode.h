@@ -169,7 +169,7 @@ public:
 
   
   
-  void SetData(const nsAString& aData, mozilla::ErrorResult& rv)
+  virtual void SetData(const nsAString& aData, mozilla::ErrorResult& rv)
   {
     rv = SetData(aData);
   }
