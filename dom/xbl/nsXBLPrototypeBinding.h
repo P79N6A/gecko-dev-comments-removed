@@ -31,7 +31,7 @@ class nsXBLProtoImplField;
 
 
 
-class nsXBLPrototypeBinding
+class nsXBLPrototypeBinding MOZ_FINAL
 {
 public:
   nsIContent* GetBindingElement() const { return mBinding; }
