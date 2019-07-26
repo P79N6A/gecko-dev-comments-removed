@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "timecard.h"
 
@@ -14,7 +14,9 @@
 
 #include "nspr.h"
 #include "nss.h"
+#include "ssl.h"
 
+#include "nsThreadUtils.h"
 #include "FakeMediaStreams.h"
 #include "FakeMediaStreamsImpl.h"
 #include "PeerConnectionImpl.h"
@@ -127,7 +129,7 @@ class SdpTest : public ::testing::Test {
       return body;
     }
 
-    
+    // Returns "level" for new media section
     int AddNewMedia(sdp_media_e type) {
       final_level_++;
       EXPECT_EQ(sdp_insert_media_line(sdp_ptr_, final_level_), SDP_SUCCESS);
@@ -351,8 +353,8 @@ TEST_F(SdpTest, parseRtcpFbCcmVbcm) {
   ParseSdp(kVideoSdp + "a=rtcp-fb:120 ccm vbcm 123 456 789\r\n");
   ASSERT_EQ(sdp_attr_get_rtcp_fb_ccm(sdp_ptr_, 1, 120, 1),
                                      SDP_RTCP_FB_CCM_VBCM);
-  
-  
+  // We don't currently parse out VBCM submessage types, since we don't have
+  // any use for them.
 }
 
 TEST_F(SdpTest, parseRtcpFbCcmFoo) {
@@ -450,8 +452,8 @@ TEST_F(SdpTest, parseRtcpFbKitchenSink) {
             SDP_RTCP_FB_CCM_TSTR);
   ASSERT_EQ(sdp_attr_get_rtcp_fb_ccm(sdp_ptr_, 1, 120, 5),
             SDP_RTCP_FB_CCM_VBCM);
-  
-  
+  // We don't currently parse out VBCM submessage types, since we don't have
+  // any use for them.
   ASSERT_EQ(sdp_attr_get_rtcp_fb_ccm(sdp_ptr_, 1, 120, 6),
             SDP_RTCP_FB_CCM_UNKNOWN);
   ASSERT_EQ(sdp_attr_get_rtcp_fb_ccm(sdp_ptr_, 1, 120, 7),
@@ -763,7 +765,7 @@ TEST_F(SdpTest, addFmtpMaxFsFr) {
             std::string::npos);
 }
 
-} 
+} // End namespace test.
 
 int main(int argc, char **argv) {
   test_utils = new MtransportTestUtils();

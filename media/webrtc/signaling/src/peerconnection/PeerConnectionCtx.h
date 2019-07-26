@@ -27,6 +27,26 @@ class PeerConnectionCtxShutdown;
 
 namespace sipcc {
 
+using namespace mozilla;
+
+
+
+class MediaConstraintsExternal {
+public:
+  MediaConstraintsExternal(cc_media_constraints_t *aConstraints)
+  : mConstraints(aConstraints) {}
+  cc_media_constraints_t *mConstraints;
+};
+
+class OnCallEventArgs {
+public:
+  OnCallEventArgs(ccapi_call_event_e aCallEvent, CSF::CC_CallInfoPtr aInfo)
+  : mCallEvent(aCallEvent), mInfo(aInfo) {}
+
+  ccapi_call_event_e mCallEvent;
+  CSF::CC_CallInfoPtr mInfo;
+};
+
 
 
 
@@ -48,7 +68,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   
   CSF::CC_CallPtr createCall();
 
-  PeerConnectionImpl::SipccState sipcc_state() { return mSipccState; }
+  mozilla::dom::PCImplSipccState sipcc_state() { return mSipccState; }
 
   
   friend class PeerConnectionImpl;
@@ -58,7 +78,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   
   std::map<const std::string, PeerConnectionImpl *> mPeerConnections;
 
-  PeerConnectionCtx() :  mSipccState(PeerConnectionImpl::kIdle),
+  PeerConnectionCtx() :  mSipccState(mozilla::dom::PCImplSipccState::Idle),
                          mCCM(NULL), mDevice(NULL) {}
   
   PeerConnectionCtx(const PeerConnectionCtx& other) MOZ_DELETE;
@@ -68,7 +88,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   nsresult Initialize();
   nsresult Cleanup();
 
-  void ChangeSipccState(PeerConnectionImpl::SipccState aState) {
+  void ChangeSipccState(mozilla::dom::PCImplSipccState aState) {
     mSipccState = aState;
   }
 
@@ -76,7 +96,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   int mConnectionCounter;
 
   
-  PeerConnectionImpl::SipccState mSipccState;  
+  mozilla::dom::PCImplSipccState mSipccState;  
   CSF::CallControlManagerPtr mCCM;
   CSF::CC_DevicePtr mDevice;
 
