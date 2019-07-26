@@ -3,9 +3,8 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "mozilla/dom/SVGAElement.h"
+#include "base/compiler_specific.h"
 #include "mozilla/dom/SVGAElementBinding.h"
 #include "nsILink.h"
 #include "nsSVGString.h"
@@ -47,7 +46,7 @@ NS_IMPL_ISUPPORTS_INHERITED5(SVGAElement, SVGAElementBase,
 
 SVGAElement::SVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : SVGAElementBase(aNodeInfo),
-    Link(this)
+    ALLOW_THIS_IN_INITIALIZER_LIST(Link(this))
 {
 }
 

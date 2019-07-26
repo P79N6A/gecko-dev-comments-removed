@@ -260,13 +260,13 @@ SVGContentUtils::AngleBisect(float a1, float a2)
 {
   float delta = fmod(a2 - a1, static_cast<float>(2*M_PI));
   if (delta < 0) {
-    delta += 2*M_PI;
+    delta += static_cast<float>(2*M_PI);
   }
   
   float r = a1 + delta/2;
   if (delta >= M_PI) {
     
-    r += M_PI;
+    r += static_cast<float>(M_PI);
   }
   return r;
 }
