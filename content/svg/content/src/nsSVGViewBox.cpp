@@ -4,10 +4,9 @@
 
 
 #include "nsSVGViewBox.h"
-#include "prdtoa.h"
-#include "nsTextFormatter.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsSMILValue.h"
+#include "nsTextFormatter.h"
 #include "SVGContentUtils.h"
 #include "SVGViewBoxSMILType.h"
 
@@ -122,16 +121,8 @@ ToSVGViewBoxRect(const nsAString& aStr, nsSVGViewBoxRect *aViewBox)
   float vals[NUM_VIEWBOX_COMPONENTS];
   uint32_t i;
   for (i = 0; i < NUM_VIEWBOX_COMPONENTS && tokenizer.hasMoreTokens(); ++i) {
-    NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
-    const char *token = utf8Token.get();
-    if (*token == '\0') {
-      return NS_ERROR_DOM_SYNTAX_ERR; 
-    }
-
-    char *end;
-    vals[i] = float(PR_strtod(token, &end));
-    if (*end != '\0' || !NS_finite(vals[i])) {
-      return NS_ERROR_DOM_SYNTAX_ERR; 
+    if (!SVGContentUtils::ParseNumber(tokenizer.nextToken(), vals[i])) {
+      return NS_ERROR_DOM_SYNTAX_ERR;
     }
   }
 

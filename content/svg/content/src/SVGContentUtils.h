@@ -132,6 +132,34 @@ public:
                       float aViewboxWidth, float aViewboxHeight,
                       const SVGPreserveAspectRatio &aPreserveAspectRatio);
 
+  
+
+
+
+
+
+  template<class floatType>
+  static bool
+  ParseNumber(const nsAString& aString, floatType& aValue,
+              nsAString& aLeftOver);
+
+  
+
+
+
+
+
+  template<class floatType>
+  static bool
+  ParseNumber(const nsAString& aString, floatType& aValue);
+
+  
+
+
+
+
+  static bool
+  ParseInteger(const nsAString& aString, int32_t& aValue);
 };
 
 #endif
