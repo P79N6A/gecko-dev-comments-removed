@@ -169,6 +169,11 @@ AudioChannelService::GetMutedInternal(AudioChannelType aType, uint64_t aChildID,
     mChannelCounters[oldType].RemoveElement(aChildID);
   }
 
+  
+  if (!aElementHidden) {
+    return false;
+  }
+
   bool muted = false;
 
   
