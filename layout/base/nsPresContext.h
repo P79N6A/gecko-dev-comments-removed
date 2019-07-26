@@ -265,8 +265,8 @@ public:
   
 
 
-  already_AddRefed<nsIDOMMediaQueryList>
-    MatchMedia(const nsAString& aMediaQueryList);
+  void MatchMedia(const nsAString& aMediaQueryList,
+                  nsIDOMMediaQueryList** aResult);
 
   
 
