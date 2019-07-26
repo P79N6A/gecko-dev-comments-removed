@@ -16,8 +16,6 @@
 #include "nsCOMPtr.h"
 #include "mozAutoDocUpdate.h"
 #include "nsIURI.h"
-#include "mozilla/dom/BindingUtils.h"
-#include "nsContentUtils.h"
 
 using namespace mozilla;
 
@@ -171,9 +169,8 @@ NS_IMETHODIMP
 nsDOMCSSDeclaration::GetPropertyValue(const nsAString& aPropertyName,
                                       nsAString& aReturn)
 {
-  const nsCSSProperty propID =
-    nsCSSProps::LookupProperty(aPropertyName,
-                               nsCSSProps::eEnabledForAllContent);
+  const nsCSSProperty propID = nsCSSProps::LookupProperty(aPropertyName,
+                                                          nsCSSProps::eEnabled);
   if (propID == eCSSProperty_UNKNOWN) {
     aReturn.Truncate();
     return NS_OK;
@@ -191,9 +188,8 @@ NS_IMETHODIMP
 nsDOMCSSDeclaration::GetAuthoredPropertyValue(const nsAString& aPropertyName,
                                               nsAString& aReturn)
 {
-  const nsCSSProperty propID =
-    nsCSSProps::LookupProperty(aPropertyName,
-                               nsCSSProps::eEnabledForAllContent);
+  const nsCSSProperty propID = nsCSSProps::LookupProperty(aPropertyName,
+                                                          nsCSSProps::eEnabled);
   if (propID == eCSSProperty_UNKNOWN) {
     aReturn.Truncate();
     return NS_OK;
@@ -233,9 +229,8 @@ nsDOMCSSDeclaration::SetProperty(const nsAString& aPropertyName,
                                  const nsAString& aPriority)
 {
   
-  nsCSSProperty propID =
-    nsCSSProps::LookupProperty(aPropertyName,
-                               nsCSSProps::eEnabledForAllContent);
+  nsCSSProperty propID = nsCSSProps::LookupProperty(aPropertyName,
+                                                    nsCSSProps::eEnabled);
   if (propID == eCSSProperty_UNKNOWN) {
     return NS_OK;
   }
@@ -270,9 +265,8 @@ NS_IMETHODIMP
 nsDOMCSSDeclaration::RemoveProperty(const nsAString& aPropertyName,
                                     nsAString& aReturn)
 {
-  const nsCSSProperty propID =
-    nsCSSProps::LookupProperty(aPropertyName,
-                               nsCSSProps::eEnabledForAllContent);
+  const nsCSSProperty propID = nsCSSProps::LookupProperty(aPropertyName,
+                                                          nsCSSProps::eEnabled);
   if (propID == eCSSProperty_UNKNOWN) {
     aReturn.Truncate();
     return NS_OK;
@@ -430,25 +424,4 @@ nsDOMCSSDeclaration::RemoveCustomProperty(const nsAString& aPropertyName)
   decl = decl->EnsureMutable();
   decl->RemoveVariableDeclaration(Substring(aPropertyName, VAR_PREFIX_LENGTH));
   return SetCSSDeclaration(decl);
-}
-
-bool IsCSSPropertyExposedToJS(nsCSSProperty aProperty, JSContext* cx, JSObject* obj)
-{
-  nsCSSProps::EnabledState enabledState = nsCSSProps::eEnabledForAllContent;
-
-  
-  
-  
-  bool isEnabledInChromeOrCertifiedApp
-    = nsCSSProps::PropHasFlags(aProperty,
-                               CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP);
-
-  if (isEnabledInChromeOrCertifiedApp) {
-    if (dom::IsInCertifiedApp(cx, obj) ||
-        nsContentUtils::ThreadsafeIsCallerChrome())
-    {
-      enabledState |= nsCSSProps::eEnabledInChromeOrCertifiedApp;
-    }
-  }
-  return nsCSSProps::IsEnabled(aProperty, enabledState);
 }
