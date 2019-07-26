@@ -4959,7 +4959,7 @@ nsContentUtils::SetDataTransferInEvent(nsDragEvent* aDragEvent)
     
     
     
-    initialDataTransfer = new nsDOMDataTransfer(aDragEvent->message, true);
+    initialDataTransfer = new nsDOMDataTransfer(aDragEvent->message, true, -1);
 
     NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
 
