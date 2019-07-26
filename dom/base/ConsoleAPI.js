@@ -180,7 +180,7 @@ ConsoleAPI.prototype = {
     this._queuedCalls = [];
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     this._window = Cu.getWeakReference(aWindow);
-    this.timerRegistry = {};
+    this.timerRegistry = new Map();
 
     return contentObj;
   },
@@ -193,7 +193,7 @@ ConsoleAPI.prototype = {
         Services.obs.removeObserver(this, "inner-window-destroyed");
         this._windowDestroyed = true;
         if (!this._timerInitialized) {
-          this.timerRegistry = {};
+          this.timerRegistry.clear();
         }
       }
     }
@@ -209,11 +209,16 @@ ConsoleAPI.prototype = {
 
   queueCall: function CA_queueCall(aMethod, aArguments)
   {
+    let window = this._window.get();
     let metaForCall = {
-      isPrivate: PrivateBrowsingUtils.isWindowPrivate(this._window.get()),
+      isPrivate: PrivateBrowsingUtils.isWindowPrivate(window),
       timeStamp: Date.now(),
       stack: this.getStackTrace(aMethod != "trace" ? 1 : null),
     };
+
+    if (aMethod == "time" || aMethod == "timeEnd") {
+      metaForCall.monotonicTimer = window.performance.now();
+    }
 
     this._queuedCalls.push([aMethod, aArguments, metaForCall]);
 
@@ -239,7 +244,7 @@ ConsoleAPI.prototype = {
 
       if (this._windowDestroyed) {
         ConsoleAPIStorage.clearEvents(this._innerID);
-        this.timerRegistry = {};
+        this.timerRegistry.clear();
       }
     }
   },
@@ -293,10 +298,10 @@ ConsoleAPI.prototype = {
       case "dir":
         break;
       case "time":
-        consoleEvent.timer = this.startTimer(args[0], meta.timeStamp);
+        consoleEvent.timer = this.startTimer(args[0], meta.monotonicTimer);
         break;
       case "timeEnd":
-        consoleEvent.timer = this.stopTimer(args[0], meta.timeStamp);
+        consoleEvent.timer = this.stopTimer(args[0], meta.monotonicTimer);
         break;
       default:
         
@@ -420,8 +425,6 @@ ConsoleAPI.prototype = {
 
 
 
-
-
   timerRegistry: null,
 
   
@@ -437,18 +440,19 @@ ConsoleAPI.prototype = {
 
 
 
+
   startTimer: function CA_startTimer(aName, aTimestamp) {
     if (!aName) {
-        return;
+      return;
     }
-    if (Object.keys(this.timerRegistry).length > MAX_PAGE_TIMERS - 1) {
-        return { error: "maxTimersExceeded" };
+    if (this.timerRegistry.size > MAX_PAGE_TIMERS - 1) {
+      return { error: "maxTimersExceeded" };
     }
-    let key = this._innerID + "-" + aName.toString();
-    if (!(key in this.timerRegistry)) {
-        this.timerRegistry[key] = aTimestamp || Date.now();
+    let key = aName.toString();
+    if (!this.timerRegistry.has(key)) {
+      this.timerRegistry.set(key, aTimestamp);
     }
-    return { name: aName, started: this.timerRegistry[key] };
+    return { name: aName, started: this.timerRegistry.get(key) };
   },
 
   
@@ -462,16 +466,17 @@ ConsoleAPI.prototype = {
 
 
 
+
   stopTimer: function CA_stopTimer(aName, aTimestamp) {
     if (!aName) {
-        return;
+      return;
     }
-    let key = this._innerID + "-" + aName.toString();
-    if (!(key in this.timerRegistry)) {
-        return;
+    let key = aName.toString();
+    if (!this.timerRegistry.has(key)) {
+      return;
     }
-    let duration = (aTimestamp || Date.now()) - this.timerRegistry[key];
-    delete this.timerRegistry[key];
+    let duration = aTimestamp - this.timerRegistry.get(key);
+    this.timerRegistry.delete(key);
     return { name: aName, duration: duration };
   }
 };
