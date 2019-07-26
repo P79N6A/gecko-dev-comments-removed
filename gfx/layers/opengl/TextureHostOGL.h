@@ -605,6 +605,26 @@ public:
     return this;
   }
 
+  
+  
+  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator) MOZ_OVERRIDE;
+
+  
+  virtual void ForgetBuffer()
+  {
+    if (mBuffer) {
+      
+      
+      
+      
+      delete mBuffer;
+      mBuffer = nullptr;
+    }
+
+    mGraphicBuffer = nullptr;
+    DeleteTextures();
+  }
+
 private:
   void DeleteTextures();
 

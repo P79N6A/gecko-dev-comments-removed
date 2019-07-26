@@ -185,6 +185,8 @@ GrallocBufferActor::GrallocBufferActor()
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(GrallocBufferActor));
     registered = true;
   }
+
+  mTextureHost = nullptr;
 }
 
 GrallocBufferActor::~GrallocBufferActor()
@@ -219,6 +221,20 @@ GrallocBufferActor::Create(const gfxIntSize& aSize,
   actor->mGraphicBuffer = buffer;
   *aOutHandle = MagicGrallocBufferHandle(buffer);
   return actor;
+}
+
+
+void GrallocBufferActor::ActorDestroy(ActorDestroyReason)
+{
+  if (mTextureHost) {
+    mTextureHost->ForgetBuffer();
+  }
+}
+
+
+void GrallocBufferActor::SetTextureHost(TextureHost* aTextureHost)
+{
+  mTextureHost = aTextureHost;
 }
 
  already_AddRefed<TextureImage>

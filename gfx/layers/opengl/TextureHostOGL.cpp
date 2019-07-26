@@ -637,6 +637,16 @@ GrallocTextureHostOGL::DeleteTextures()
   }
 }
 
+
+static void
+RegisterTextureHostAtGrallocBufferActor(TextureHost* aTextureHost, const SurfaceDescriptor& aSurfaceDescriptor)
+{
+  if (IsSurfaceDescriptorValid(aSurfaceDescriptor)) {
+    GrallocBufferActor* actor = static_cast<GrallocBufferActor*>(aSurfaceDescriptor.get_SurfaceDescriptorGralloc().bufferParent());
+    actor->SetTextureHost(aTextureHost);
+  }
+}
+
 void
 GrallocTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage,
                                  nsIntRegion* aRegion)
@@ -648,7 +658,6 @@ void
 GrallocTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
                                         nsIntRegion*)
 {
-  android::sp<android::GraphicBuffer> buffer = GrallocBufferActor::GetFrom(aImage);
   MOZ_ASSERT(aImage.type() == SurfaceDescriptor::TSurfaceDescriptorGralloc);
 
   const SurfaceDescriptorGralloc& desc = aImage.get_SurfaceDescriptorGralloc();
@@ -657,6 +666,11 @@ GrallocTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
   mTextureTarget = TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
 
   DeleteTextures();
+
+  
+  
+  
+  RegisterTextureHostAtGrallocBufferActor(this, aImage);
 }
 
 void GrallocTextureHostOGL::BindTexture(GLenum aTextureUnit)
@@ -678,6 +692,13 @@ GrallocTextureHostOGL::IsValid() const
 GrallocTextureHostOGL::~GrallocTextureHostOGL()
 {
   DeleteTextures();
+
+  
+  if (mBuffer) {
+    
+    
+    RegisterTextureHostAtGrallocBufferActor(nullptr, *mBuffer);
+  }
 }
 
 bool
@@ -734,6 +755,17 @@ GrallocTextureHostOGL::GetFormat() const
   return mFormat;
 }
 
+void
+GrallocTextureHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator) MOZ_OVERRIDE
+{
+  MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
+  mBuffer = aBuffer;
+  mDeAllocator = aAllocator;
+
+  
+  
+  RegisterTextureHostAtGrallocBufferActor(this, *mBuffer);
+}
 
 #endif
 

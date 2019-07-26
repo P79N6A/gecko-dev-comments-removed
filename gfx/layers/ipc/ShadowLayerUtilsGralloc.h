@@ -15,6 +15,10 @@
 #include "mozilla/layers/PGrallocBufferChild.h"
 #include "mozilla/layers/PGrallocBufferParent.h"
 
+
+
+#include "TextureHost.h"
+
 #define MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
 #define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
 
@@ -81,6 +85,14 @@ public:
   static android::sp<GraphicBuffer>
   GetFrom(const SurfaceDescriptorGralloc& aDescriptor);
 
+  
+  
+  void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+
+  
+  
+  void SetTextureHost(TextureHost* aTextureHost);
+
 private:
   GrallocBufferActor();
 
@@ -91,6 +103,10 @@ private:
   
   
   size_t mAllocBytes;
+
+  
+  
+  TextureHost* mTextureHost;
 
   friend class ISurfaceAllocator;
 };

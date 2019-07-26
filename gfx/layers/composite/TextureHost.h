@@ -245,12 +245,18 @@ public:
 
 
 
-  void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
+  
+  
+  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
   {
     MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
     mBuffer = aBuffer;
     mDeAllocator = aAllocator;
   }
+
+  
+  
+  virtual void ForgetBuffer() {}
 
 protected:
   
@@ -290,7 +296,11 @@ protected:
 
   
   TextureFlags mFlags;
-  SurfaceDescriptor* mBuffer;
+  SurfaceDescriptor* mBuffer; 
+                              
+                              
+                              
+                              
   gfx::SurfaceFormat mFormat;
 
   ISurfaceAllocator* mDeAllocator;
