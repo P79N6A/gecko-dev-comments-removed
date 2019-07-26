@@ -1188,6 +1188,9 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_ARGUMENTS:
         return jsop_arguments();
 
+      case JSOP_RUNONCE:
+        return jsop_runonce();
+
       case JSOP_REST:
         return jsop_rest();
 
@@ -1304,7 +1307,11 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_CALLGNAME:
       {
         RootedPropertyName name(cx, info().getAtom(pc)->asPropertyName());
-        return jsop_getgname(name);
+        RootedObject obj(cx, &script()->global());
+        bool succeeded;
+        if (!getStaticName(obj, name, &succeeded))
+            return false;
+        return succeeded || jsop_getname(name);
       }
 
       case JSOP_BINDGNAME:
@@ -1313,7 +1320,8 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_SETGNAME:
       {
         RootedPropertyName name(cx, info().getAtom(pc)->asPropertyName());
-        return jsop_setgname(name);
+        RootedObject obj(cx, &script()->global());
+        return setStaticName(obj, name);
       }
 
       case JSOP_NAME:
@@ -4282,7 +4290,8 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     
     
     
-    MInstruction *callObj = MNewCallObject::New(templateObj, slots);
+    
+    MInstruction *callObj = MNewCallObject::New(templateObj, script()->treatAsRunOnce, slots);
     current->add(callObj);
 
     
@@ -5902,44 +5911,50 @@ IonBuilder::pushTypeBarrier(MInstruction *ins, types::StackTypeSet *observed, bo
 }
 
 bool
-IonBuilder::jsop_getgname(HandlePropertyName name)
+IonBuilder::getStaticName(HandleObject staticObject, HandlePropertyName name, bool *psucceeded)
 {
-    
-    if (name == cx->names().undefined)
-        return pushConstant(UndefinedValue());
-    if (name == cx->names().NaN)
-        return pushConstant(cx->runtime->NaNValue);
-    if (name == cx->names().Infinity)
-        return pushConstant(cx->runtime->positiveInfinityValue);
+    JS_ASSERT(staticObject->isGlobal() || staticObject->isCall());
 
-    RootedObject globalObj(cx, &script()->global());
-    JS_ASSERT(globalObj->isNative());
+    *psucceeded = true;
+
+    if (staticObject->isGlobal()) {
+        
+        if (name == cx->names().undefined)
+            return pushConstant(UndefinedValue());
+        if (name == cx->names().NaN)
+            return pushConstant(cx->runtime->NaNValue);
+        if (name == cx->names().Infinity)
+            return pushConstant(cx->runtime->positiveInfinityValue);
+    }
 
     RootedId id(cx, NameToId(name));
 
     
     
-    RootedShape shape(cx, globalObj->nativeLookup(cx, id));
-    if (!shape || !shape->hasDefaultGetter() || !shape->hasSlot())
-        return jsop_getname(name);
+    RootedShape shape(cx, staticObject->nativeLookup(cx, id));
+    if (!shape || !shape->hasDefaultGetter() || !shape->hasSlot()) {
+        *psucceeded = false;
+        return true;
+    }
 
-    types::TypeObject *globalType = globalObj->getType(cx);
-    if (!globalType)
+    types::TypeObject *staticType = staticObject->getType(cx);
+    if (!staticType)
         return false;
     types::HeapTypeSet *propertyTypes = NULL;
-    if (!globalType->unknownProperties()) {
-        propertyTypes = globalType->getProperty(cx, id, false);
+    if (!staticType->unknownProperties()) {
+        propertyTypes = staticType->getProperty(cx, id, false);
         if (!propertyTypes)
             return false;
     }
-    if (propertyTypes && propertyTypes->isOwnProperty(cx, globalType, true)) {
+    if (propertyTypes && propertyTypes->isOwnProperty(cx, staticType, true)) {
         
         
-        return jsop_getname(name);
+        *psucceeded = false;
+        return true;
     }
 
     types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
-    bool barrier = PropertyReadNeedsTypeBarrier(cx, globalType, name, types);
+    bool barrier = PropertyReadNeedsTypeBarrier(cx, staticType, name, types);
 
     
 
@@ -5950,7 +5965,7 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
         if (singleton) {
             
             bool isKnownConstant;
-            if (!TestSingletonProperty(cx, globalObj, singleton, id, &isKnownConstant))
+            if (!TestSingletonProperty(cx, staticObject, singleton, id, &isKnownConstant))
                 return false;
             if (isKnownConstant)
                 return pushConstant(ObjectValue(*singleton));
@@ -5961,27 +5976,19 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
             return pushConstant(NullValue());
     }
 
-    MInstruction *global = MConstant::New(ObjectValue(*globalObj));
-    current->add(global);
+    MInstruction *obj = MConstant::New(ObjectValue(*staticObject));
+    current->add(obj);
 
     
     
     if (!propertyTypes && shape->configurable())
-        global = addShapeGuard(global, globalObj->lastProperty(), Bailout_ShapeGuard);
+        obj = addShapeGuard(obj, staticObject->lastProperty(), Bailout_ShapeGuard);
 
-    JS_ASSERT(shape->slot() >= globalObj->numFixedSlots());
+    MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
+    if (barrier)
+        rvalType = MIRType_Value;
 
-    MSlots *slots = MSlots::New(global);
-    current->add(slots);
-    MLoadSlot *load = MLoadSlot::New(slots, shape->slot() - globalObj->numFixedSlots());
-    current->add(load);
-
-    
-    if (knownType != JSVAL_TYPE_UNKNOWN && !barrier)
-        load->setResultType(MIRTypeFromValueType(knownType));
-
-    current->push(load);
-    return pushTypeBarrier(load, types, barrier);
+    return loadSlot(obj, shape, rvalType, barrier, types);
 }
 
 
@@ -6018,34 +6025,33 @@ ion::NeedsPostBarrier(CompileInfo &info, MDefinition *value)
 }
 
 bool
-IonBuilder::jsop_setgname(HandlePropertyName name)
+IonBuilder::setStaticName(HandleObject staticObject, HandlePropertyName name)
 {
-    RootedObject globalObj(cx, &script()->global());
     RootedId id(cx, NameToId(name));
 
-    JS_ASSERT(globalObj->isNative());
+    JS_ASSERT(staticObject->isGlobal() || staticObject->isCall());
 
     MDefinition *value = current->peek(-1);
 
-    if (globalObj->watched())
+    if (staticObject->watched())
         return jsop_setprop(name);
 
     
     
-    RootedShape shape(cx, globalObj->nativeLookup(cx, id));
+    RootedShape shape(cx, staticObject->nativeLookup(cx, id));
     if (!shape || !shape->hasDefaultSetter() || !shape->writable() || !shape->hasSlot())
         return jsop_setprop(name);
 
-    types::TypeObject *globalType = globalObj->getType(cx);
-    if (!globalType)
+    types::TypeObject *staticType = staticObject->getType(cx);
+    if (!staticType)
         return false;
     types::HeapTypeSet *propertyTypes = NULL;
-    if (!globalType->unknownProperties()) {
-        propertyTypes = globalType->getProperty(cx, id, false);
+    if (!staticType->unknownProperties()) {
+        propertyTypes = staticType->getProperty(cx, id, false);
         if (!propertyTypes)
             return false;
     }
-    if (!propertyTypes || propertyTypes->isOwnProperty(cx, globalType, true)) {
+    if (!propertyTypes || propertyTypes->isOwnProperty(cx, staticType, true)) {
         
         
         return jsop_setprop(name);
@@ -6053,48 +6059,36 @@ IonBuilder::jsop_setgname(HandlePropertyName name)
     if (!TypeSetIncludes(propertyTypes, value->type(), value->resultTypeSet()))
         return jsop_setprop(name);
 
-    MInstruction *global = MConstant::New(ObjectValue(*globalObj));
-    current->add(global);
+    current->pop();
+
+    
+    MDefinition *obj = current->pop();
+    JS_ASSERT(&obj->toConstant()->value().toObject() == staticObject);
 
     
     
     
     if (!propertyTypes)
-        global = addShapeGuard(global, globalObj->lastProperty(), Bailout_ShapeGuard);
-
-    JS_ASSERT(shape->slot() >= globalObj->numFixedSlots());
-
-    MSlots *slots = MSlots::New(global);
-    current->add(slots);
+        obj = addShapeGuard(obj, staticObject->lastProperty(), Bailout_ShapeGuard);
 
     
     
-    current->pop();
-    MStoreSlot *store = MStoreSlot::New(slots, shape->slot() - globalObj->numFixedSlots(), value);
-    current->add(store);
-
-    
-    if (!propertyTypes || propertyTypes->needsBarrier(cx))
-        store->setNeedsBarrier();
-
-    
-    DebugOnly<MDefinition *> pushedGlobal = current->pop();
-    JS_ASSERT(&pushedGlobal->toConstant()->value().toObject() == globalObj);
+    if (!staticObject->isGlobal() && NeedsPostBarrier(info(), value))
+        current->add(MPostWriteBarrier::New(obj, value));
 
     
     
     
     
-    if (propertyTypes && !globalObj->getSlot(shape->slot()).isUndefined()) {
+    MIRType slotType = MIRType_None;
+    if (propertyTypes && !staticObject->getSlot(shape->slot()).isUndefined()) {
         JSValueType knownType = propertyTypes->getKnownTypeTag(cx);
         if (knownType != JSVAL_TYPE_UNKNOWN)
-            store->setSlotType(MIRTypeFromValueType(knownType));
+            slotType = MIRTypeFromValueType(knownType);
     }
 
-    JS_ASSERT_IF(store->needsBarrier(), store->slotType() != MIRType_None);
-
-    current->push(value);
-    return resumeAfter(store);
+    bool needsBarrier = !propertyTypes || propertyTypes->needsBarrier(cx);
+    return storeSlot(obj, shape, value, needsBarrier, slotType);
 }
 
 bool
@@ -7070,6 +7064,14 @@ GetDefiniteSlot(JSContext *cx, types::StackTypeSet *types, JSAtom *atom)
 }
 
 bool
+IonBuilder::jsop_runonce()
+{
+    MRunOncePrologue *ins = MRunOncePrologue::New();
+    current->add(ins);
+    return resumeAfter(ins);
+}
+
+bool
 IonBuilder::jsop_not()
 {
     MDefinition *value = current->pop();
@@ -7415,7 +7417,8 @@ IonBuilder::loadSlot(MDefinition *obj, Shape *shape, MIRType rvalType,
 }
 
 bool
-IonBuilder::storeSlot(MDefinition *obj, Shape *shape, MDefinition *value, bool needsBarrier)
+IonBuilder::storeSlot(MDefinition *obj, Shape *shape, MDefinition *value, bool needsBarrier,
+                      MIRType slotType )
 {
     JS_ASSERT(shape->hasDefaultSetter());
     JS_ASSERT(shape->writable());
@@ -7438,6 +7441,8 @@ IonBuilder::storeSlot(MDefinition *obj, Shape *shape, MDefinition *value, bool n
     current->push(value);
     if (needsBarrier)
         store->setNeedsBarrier();
+    if (slotType != MIRType_None)
+        store->setSlotType(slotType);
     return resumeAfter(store);
 }
 
@@ -8151,8 +8156,73 @@ IonBuilder::walkScopeChain(unsigned hops)
 }
 
 bool
+IonBuilder::hasStaticScopeObject(ScopeCoordinate sc, MutableHandleObject pcall)
+{
+    JSScript *outerScript = ScopeCoordinateFunctionScript(cx, script(), pc);
+    if (!outerScript || !outerScript->treatAsRunOnce)
+        return false;
+
+    types::TypeObject *funType = outerScript->function()->getType(cx);
+    if (!funType)
+        return false;
+    if (types::HeapTypeSet::HasObjectFlags(cx, funType, types::OBJECT_FLAG_RUNONCE_INVALIDATED))
+        return false;
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    MDefinition *scope = current->getSlot(info().scopeChainSlot());
+    scope->setFoldedUnchecked();
+
+    JSObject *environment = script()->function()->environment();
+    while (environment && !environment->isGlobal()) {
+        if (environment->isCall() &&
+            !environment->asCall().isForEval() &&
+            environment->asCall().callee().nonLazyScript() == outerScript)
+        {
+            JS_ASSERT(environment->hasSingletonType());
+            pcall.set(environment);
+            return true;
+        }
+        environment = environment->enclosingScope();
+    }
+
+    
+    
+    
+    
+
+    if (script() == outerScript && fp && info().osrPc()) {
+        JSObject *scope = fp.scopeChain();
+        if (scope->isCall() && scope->asCall().callee().nonLazyScript() == outerScript) {
+            JS_ASSERT(scope->hasSingletonType());
+            pcall.set(scope);
+            return true;
+        }
+    }
+
+    return true;
+}
+
+bool
 IonBuilder::jsop_getaliasedvar(ScopeCoordinate sc)
 {
+    RootedObject call(cx);
+    if (hasStaticScopeObject(sc, &call) && call) {
+        RootedPropertyName name(cx, ScopeCoordinateName(cx, script(), pc));
+        bool succeeded;
+        if (!getStaticName(call, name, &succeeded))
+            return false;
+        if (succeeded)
+            return true;
+    }
+
     MDefinition *obj = walkScopeChain(sc.hops);
 
     RootedShape shape(cx, ScopeCoordinateToStaticScopeShape(cx, script(), pc));
@@ -8177,6 +8247,34 @@ IonBuilder::jsop_getaliasedvar(ScopeCoordinate sc)
 bool
 IonBuilder::jsop_setaliasedvar(ScopeCoordinate sc)
 {
+    RootedObject call(cx);
+    if (hasStaticScopeObject(sc, &call)) {
+        uint32_t depth = current->stackDepth() + 1;
+        if (depth > current->nslots()) {
+            if (!current->increaseSlots(depth - current->nslots()))
+                return false;
+        }
+        MDefinition *value = current->pop();
+        RootedPropertyName name(cx, ScopeCoordinateName(cx, script(), pc));
+
+        if (call) {
+            
+            
+            MInstruction *constant = MConstant::New(ObjectValue(*call));
+            current->add(constant);
+            current->push(constant);
+            current->push(value);
+            return setStaticName(call, name);
+        }
+
+        
+        
+        MDefinition *obj = walkScopeChain(sc.hops);
+        current->push(obj);
+        current->push(value);
+        return jsop_setprop(name);
+    }
+
     MDefinition *rval = current->peek(-1);
     MDefinition *obj = walkScopeChain(sc.hops);
 
