@@ -296,6 +296,12 @@ public:
 
   
   
+  
+  
+  
+  
+  
+  
   MediaResource* GetResource() const MOZ_FINAL MOZ_OVERRIDE
   {
     return mResource;
