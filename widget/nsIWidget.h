@@ -12,12 +12,15 @@
 #include "nsStringGlue.h"
 
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
+#include "nsITimer.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/TimeStamp.h"
 #include "Units.h"
 
 
@@ -97,8 +100,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0x746cb189, 0x9793, 0x4e53, \
-  { 0x89, 0x47, 0x78, 0x56, 0xb6, 0xcd, 0x9f, 0x71 } }
+{ 0x67da44c4, 0xe21b, 0x4742, \
+  { 0x9c, 0x2b, 0x26, 0xc7, 0x70, 0x21, 0xde, 0x87 } }
 
 
 
@@ -493,7 +496,9 @@ class nsIWidget : public nsISupports {
       : mLastChild(nullptr)
       , mPrevSibling(nullptr)
       , mOnDestroyCalled(false)
-    {}
+    {
+      ClearNativeTouchSequence();
+    }
 
         
     
@@ -1559,6 +1564,85 @@ class nsIWidget : public nsISupports {
                                                       uint32_t aModifierFlags,
                                                       uint32_t aAdditionalFlags) = 0;
 
+    
+
+
+
+    enum TouchPointerState {
+      
+      TOUCH_HOVER    = 0x01,
+      
+      TOUCH_CONTACT  = 0x02,
+      
+      TOUCH_REMOVE   = 0x04,
+      
+      
+      
+      
+      TOUCH_CANCEL   = 0x08
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                                TouchPointerState aPointerState,
+                                                nsIntPoint aPointerScreenPoint,
+                                                double aPointerPressure,
+                                                uint32_t aPointerOrientation) = 0;
+
+    
+
+
+
+
+    virtual nsresult ClearNativeTouchSequence();
+
+    
+
+
+
+
+
+    nsresult SynthesizeNativeTouchTap(nsIntPoint aPointerScreenPoint,
+                                      bool aLongTap);
+
+private:
+  class LongTapInfo
+  {
+  public:
+    LongTapInfo(int32_t aPointerId, nsIntPoint& aPoint,
+                mozilla::TimeDuration aDuration) :
+      mPointerId(aPointerId),
+      mPosition(aPoint),
+      mDuration(aDuration),
+      mStamp(mozilla::TimeStamp::Now())
+    {
+    }
+
+    int32_t mPointerId;
+    nsIntPoint mPosition;
+    mozilla::TimeDuration mDuration;
+    mozilla::TimeStamp mStamp;
+  };
+
+  static void OnLongTapTimerCallback(nsITimer* aTimer, void* aClosure);
+
+  nsAutoPtr<LongTapInfo> mLongTapTouchPoint;
+  nsCOMPtr<nsITimer> mLongTapTimer;
+  static int32_t sPointerIdCounter;
+
+public:
     
 
 

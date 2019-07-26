@@ -71,6 +71,11 @@ nsIContent* nsBaseWidget::mLastRollup = nullptr;
 bool            gDisableNativeTheme               = false;
 
 
+#define TOUCH_INJECT_PUMP_TIMER_MSEC 50
+#define TOUCH_INJECT_LONG_TAP_DEFAULT_MSEC 1500
+int32_t nsIWidget::sPointerIdCounter = 0;
+
+
 NS_IMPL_ISUPPORTS1(nsBaseWidget, nsIWidget)
 
 
@@ -1526,7 +1531,103 @@ nsBaseWidget::GetRootAccessible()
   return nullptr;
 }
 
+#endif 
+
+nsresult
+nsIWidget::SynthesizeNativeTouchTap(nsIntPoint aPointerScreenPoint, bool aLongTap)
+{
+  if (sPointerIdCounter > TOUCH_INJECT_MAX_POINTS) {
+    sPointerIdCounter = 0;
+  }
+  int pointerId = sPointerIdCounter;
+  sPointerIdCounter++;
+  nsresult rv = SynthesizeNativeTouchPoint(pointerId, TOUCH_CONTACT,
+                                           aPointerScreenPoint, 1.0, 90);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (!aLongTap) {
+    nsresult rv = SynthesizeNativeTouchPoint(pointerId, TOUCH_REMOVE,
+                                             aPointerScreenPoint, 0, 0);
+    return rv;
+  }
+
+  
+  int elapse = Preferences::GetInt("ui.click_hold_context_menus.delay",
+                                   TOUCH_INJECT_LONG_TAP_DEFAULT_MSEC);
+  if (!mLongTapTimer) {
+    mLongTapTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      SynthesizeNativeTouchPoint(pointerId, TOUCH_CANCEL,
+                                 aPointerScreenPoint, 0, 0);
+      return NS_ERROR_UNEXPECTED;
+    }
+    
+    
+    int timeout = elapse;
+    if (timeout > TOUCH_INJECT_PUMP_TIMER_MSEC) {
+      timeout = TOUCH_INJECT_PUMP_TIMER_MSEC;
+    }
+    mLongTapTimer->InitWithFuncCallback(OnLongTapTimerCallback, this,
+                                        timeout,
+                                        nsITimer::TYPE_REPEATING_SLACK);
+  }
+
+  
+  
+  if (mLongTapTouchPoint) {
+    SynthesizeNativeTouchPoint(mLongTapTouchPoint->mPointerId, TOUCH_CANCEL,
+                               mLongTapTouchPoint->mPosition, 0, 0);
+  }
+
+  mLongTapTouchPoint = new LongTapInfo(pointerId, aPointerScreenPoint,
+                                       TimeDuration::FromMilliseconds(elapse));
+  return NS_OK;
+}
+
+
+void
+nsIWidget::OnLongTapTimerCallback(nsITimer* aTimer, void* aClosure)
+{
+  nsIWidget *self = static_cast<nsIWidget *>(aClosure);
+
+  if ((self->mLongTapTouchPoint->mStamp + self->mLongTapTouchPoint->mDuration) >
+      TimeStamp::Now()) {
+#ifdef XP_WIN
+    
+    
+    self->SynthesizeNativeTouchPoint(self->mLongTapTouchPoint->mPointerId,
+                                     TOUCH_CONTACT,
+                                     self->mLongTapTouchPoint->mPosition,
+                                     1.0, 90);
 #endif
+    return;
+  }
+
+  
+  self->mLongTapTimer->Cancel();
+  self->mLongTapTimer = nullptr;
+  self->SynthesizeNativeTouchPoint(self->mLongTapTouchPoint->mPointerId,
+                                   TOUCH_REMOVE,
+                                   self->mLongTapTouchPoint->mPosition,
+                                   0, 0);
+  self->mLongTapTouchPoint = nullptr;
+}
+
+nsresult
+nsIWidget::ClearNativeTouchSequence()
+{
+  if (!mLongTapTimer) {
+    return NS_OK;
+  }
+  mLongTapTimer->Cancel();
+  mLongTapTimer = nullptr;
+  SynthesizeNativeTouchPoint(mLongTapTouchPoint->mPointerId, TOUCH_CANCEL,
+                             mLongTapTouchPoint->mPosition, 0, 0);
+  mLongTapTouchPoint = nullptr;
+  return NS_OK;
+}
 
 #ifdef DEBUG
 

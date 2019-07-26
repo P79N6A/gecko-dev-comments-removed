@@ -41,6 +41,11 @@ namespace base {
 class Thread;
 }
 
+
+
+
+#define TOUCH_INJECT_MAX_POINTS 256
+
 class nsBaseWidget;
 
 class WidgetShutdownObserver MOZ_FINAL : public nsIObserver
@@ -320,6 +325,14 @@ protected:
                                                     uint32_t aAdditionalFlags)
   { return NS_ERROR_UNEXPECTED; }
 
+  virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                              TouchPointerState aPointerState,
+                                              nsIntPoint aPointerScreenPoint,
+                                              double aPointerPressure,
+                                              uint32_t aPointerOrientation)
+  { return NS_ERROR_UNEXPECTED; }
+
+protected:
   
   
   bool StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
