@@ -603,6 +603,48 @@ class LiveRangeAllocator : public RegisterAllocator
         LMoveGroup *moves = getMoveGroupAfter(pos);
         return addMove(moves, from, to);
     }
+
+    void addLiveRegistersForInterval(VirtualRegister *reg, LiveInterval *interval)
+    {
+        
+        LAllocation *a = interval->getAllocation();
+        if (!a->isRegister())
+            return;
+
+        
+        CodePosition start = interval->start();
+        if (interval->index() == 0 && !reg->isTemp())
+            start = start.next();
+
+        size_t i = findFirstNonCallSafepoint(start);
+        for (; i < graph.numNonCallSafepoints(); i++) {
+            LInstruction *ins = graph.getNonCallSafepoint(i);
+            CodePosition pos = inputOf(ins);
+
+            
+            
+            if (interval->end() < pos)
+                break;
+
+            if (!interval->covers(pos))
+                continue;
+
+            LSafepoint *safepoint = ins->safepoint();
+            safepoint->addLiveRegister(a->toRegister());
+        }
+    }
+
+    
+    size_t findFirstSafepoint(LiveInterval *interval, size_t startFrom)
+    {
+        size_t i = startFrom;
+        for (; i < graph.numSafepoints(); i++) {
+            LInstruction *ins = graph.getSafepoint(i);
+            if (interval->start() <= inputOf(ins))
+                break;
+        }
+        return i;
+    }
 };
 
 } 
