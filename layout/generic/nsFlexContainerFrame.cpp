@@ -1979,18 +1979,39 @@ FlexboxAxisTracker::FlexboxAxisTracker(nsFlexContainerFrame* aFlexContainerFrame
 }
 
 nsresult
-nsFlexContainerFrame::GenerateFlexItems(
+nsFlexContainerFrame::GenerateFlexLines(
   nsPresContext* aPresContext,
   const nsHTMLReflowState& aReflowState,
   const FlexboxAxisTracker& aAxisTracker,
-  FlexLine& aFlexLine)
+  nsTArray<FlexLine>& aLines)
 {
-  MOZ_ASSERT(aFlexLine.mItems.IsEmpty(),
-             "Expecting outparam to start out empty");
+  MOZ_ASSERT(aLines.IsEmpty(), "Expecting outparam to start out empty");
 
-  aFlexLine.mItems.SetCapacity(mFrames.GetLength());
+  
+  
+  FlexLine* curLine = aLines.AppendElement();
+
+  nscoord wrapThreshold;
+  if (NS_STYLE_FLEX_WRAP_NOWRAP == aReflowState.mStylePosition->mFlexWrap) {
+    
+    wrapThreshold = NS_UNCONSTRAINEDSIZE;
+
+    
+    
+    curLine->mItems.SetCapacity(mFrames.GetLength());
+  } else {
+    
+    
+    
+    
+    
+    wrapThreshold = GET_MAIN_COMPONENT(aAxisTracker,
+                      aReflowState.ComputedWidth(),
+                      GetEffectiveComputedHeight(aReflowState));
+  }
+
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    FlexItem* item = aFlexLine.mItems.AppendElement(
+    FlexItem* item = curLine->mItems.AppendElement(
                        GenerateFlexItemForChild(aPresContext, e.get(),
                                                 aReflowState, aAxisTracker));
 
@@ -2004,9 +2025,30 @@ nsFlexContainerFrame::GenerateFlexItems(
     
     
     
+    if (wrapThreshold != NS_UNCONSTRAINEDSIZE &&
+        curLine->mItems.Length() > 1 && 
+        wrapThreshold < (curLine->GetTotalOuterHypotheticalMainSize() +
+                         itemOuterHypotheticalMainSize)) {
+      
+      
+      curLine = aLines.AppendElement();
+      
+      
+      
+      item = nullptr;
 
-    aFlexLine.AddToMainSizeTotals(itemInnerHypotheticalMainSize,
-                                  itemOuterHypotheticalMainSize);
+      FlexLine& prevLine = aLines[aLines.Length() - 2];
+      uint32_t itemIdxInPrevLine = prevLine.mItems.Length() - 1;
+      FlexItem& itemToCopy = prevLine.mItems[itemIdxInPrevLine];
+
+      
+      curLine->mItems.AppendElement(itemToCopy);
+      
+      prevLine.mItems.RemoveElementAt(itemIdxInPrevLine);
+    }
+
+    curLine->AddToMainSizeTotals(itemInnerHypotheticalMainSize,
+                                 itemOuterHypotheticalMainSize);
   }
 
   return NS_OK;
@@ -2337,10 +2379,13 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   const FlexboxAxisTracker axisTracker(this);
 
   
-  FlexLine line;
-  nsresult rv = GenerateFlexItems(aPresContext, aReflowState,
-                                  axisTracker, line);
+  nsAutoTArray<FlexLine, 1> lines;
+  nsresult rv = GenerateFlexLines(aPresContext, aReflowState,
+                                  axisTracker, lines);
   NS_ENSURE_SUCCESS(rv, rv);
+  FlexLine& line = lines[0]; 
+                             
+                             
 
   
   
