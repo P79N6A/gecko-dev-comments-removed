@@ -46,9 +46,8 @@
 
 /** Test for Bug 589696 **/
 
-netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-var os = Components.classes['@mozilla.org/observer-service;1']
-                   .getService(Components.interfaces.nsIObserverService);
+var os = SpecialPowers.Cc['@mozilla.org/observer-service;1']
+                      .getService(SpecialPowers.Ci.nsIObserverService);
 var observers = os.enumerateObservers("invalidformsubmit");
 
 /**

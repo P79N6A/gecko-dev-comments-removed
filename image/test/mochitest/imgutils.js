@@ -33,9 +33,6 @@ function isImageLoaded(id)
 function getImageStatus(id)
 {
   
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-
-  
   var img = SpecialPowers.wrap(document.getElementById(id));
 
   
@@ -54,8 +51,6 @@ function getImageStatus(id)
 
 function forceDecode(id)
 {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-
   
   var img = document.getElementById(id);
 
@@ -81,9 +76,8 @@ const DISCARD_TIMEOUT_PREF = {name: "min_discard_timeout_ms", branch: "image.mem
 
 function setImagePref(pref, val)
 {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"]
-                              .getService(Components.interfaces.nsIPrefService);
+  var prefService = SpecialPowers.Cc["@mozilla.org/preferences-service;1"]
+                                 .getService(SpecialPowers.Ci.nsIPrefService);
   var branch = prefService.getBranch(pref.branch);
   if (val != null) {
     switch(pref.type) {
@@ -103,9 +97,8 @@ function setImagePref(pref, val)
 
 function getImagePref(pref)
 {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-  var prefService = Components.classes["@mozilla.org/preferences-service;1"]
-                              .getService(Components.interfaces.nsIPrefService);
+  var prefService = SpecialPowers.Cc["@mozilla.org/preferences-service;1"]
+                                 .getService(SpecialPowers.Ci.nsIPrefService);
   var branch = prefService.getBranch(pref.branch);
   if (branch.prefHasUserValue(pref.name)) {
     switch (pref.type) {
