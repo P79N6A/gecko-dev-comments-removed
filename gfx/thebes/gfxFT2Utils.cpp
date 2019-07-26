@@ -127,11 +127,23 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         
         
         
-        
-        aMetrics->maxAscent =
-            std::max(aMetrics->maxAscent, NS_round(aMetrics->emAscent));
-        aMetrics->maxDescent =
-            std::max(aMetrics->maxDescent, NS_round(aMetrics->emDescent));
+        const uint16_t kUseTypoMetricsMask = 1 << 7;
+        FT_ULong length = 0;
+        if ((os2->fsSelection & kUseTypoMetricsMask) ||
+            0 == FT_Load_Sfnt_Table(mFace, FT_MAKE_TAG('M','A','T','H'),
+                                    0, nullptr, &length)) {
+            aMetrics->maxAscent = NS_round(aMetrics->emAscent);
+            aMetrics->maxDescent = NS_round(aMetrics->emDescent);
+        } else {
+            
+            
+            
+            
+            aMetrics->maxAscent =
+                std::max(aMetrics->maxAscent, NS_round(aMetrics->emAscent));
+            aMetrics->maxDescent =
+                std::max(aMetrics->maxDescent, NS_round(aMetrics->emDescent));
+        }
     } else {
         aMetrics->emAscent = aMetrics->maxAscent;
         aMetrics->emDescent = aMetrics->maxDescent;
