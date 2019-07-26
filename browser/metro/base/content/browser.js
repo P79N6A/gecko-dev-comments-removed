@@ -1376,7 +1376,6 @@ function getNotificationBox(aBrowser) {
 }
 
 function showDownloadManager(aWindowContext, aID, aReason) {
-  PanelUI.show("downloads-container");
   
 }
 

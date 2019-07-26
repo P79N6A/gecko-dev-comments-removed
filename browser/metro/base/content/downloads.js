@@ -6,15 +6,14 @@
 const URI_GENERIC_ICON_DOWNLOAD = "chrome://browser/skin/images/alert-downloads-30.png";
 
 var Downloads = {
-  _inited: false,
-  _progressAlert: null,
-
   
 
 
 
 
   _downloadCount: 0,
+  _inited: false,
+  _progressAlert: null,
   _lastSec: Infinity,
   _notificationBox: null,
   _progressNotification: null,
@@ -55,6 +54,9 @@ var Downloads = {
     Services.obs.addObserver(this, "dl-failed", true);
 
     this._notificationBox = Browser.getNotificationBox();
+
+    this._progress = new DownloadProgressListener(this);
+    this.manager.addListener(this._progress);
   },
 
   uninit: function dh_uninit() {
@@ -155,8 +157,9 @@ var Downloads = {
     
     let observer = {
       observe: function (aSubject, aTopic, aData) {
-        if (aTopic == "alertclickcallback")
-          PanelUI.show("downloads-container");
+        if (aTopic == "alertclickcallback") {
+          
+        }
       }
     };
 
@@ -320,6 +323,14 @@ var Downloads = {
     }
   },
 
+  updateDownload: function dv_updateDownload(aDownload) {
+    if (this._progressNotification != null) {
+      this._saveDownloadData(aDownload);
+      this._progressNotification.label =
+        this._computeDownloadProgressString(aDownload);
+    }
+  },
+
   observe: function (aSubject, aTopic, aData) {
     let message = "";
     let msgTitle = "";
@@ -380,268 +391,23 @@ var Downloads = {
 
 
 
-
-
-function DownloadsView(aSet, aLimit) {
-  this._set = aSet;
-  this._limit = aLimit;
-
-  this._progress = new DownloadProgressListener(this);
-  Downloads.manager.addListener(this._progress);
-
-  
-  let obs = Cc["@mozilla.org/observer-service;1"].
-                  getService(Ci.nsIObserverService);
-  obs.addObserver(this, "download-manager-remove-download-guid", false);
-
-  this.getDownloads();
-}
-
-DownloadsView.prototype = {
-  _progress: null,
-  _stmt: null,
-  _timeoutID: null,
-  _set: null,
-  _limit: null,
-
-  _getItemForDownloadGuid: function dv__getItemForDownload(aGuid) {
-    return this._set.querySelector("richgriditem[downloadGuid='" + aGuid + "']");
-  },
-
-  _getItemForDownload: function dv__getItemForDownload(aDownload) {
-    return this._set.querySelector("richgriditem[downloadId='" + aDownload.id + "']");
-  },
-
-  _getDownloadForItem: function dv__getDownloadForItem(anItem) {
-    let id = anItem.getAttribute("downloadId");
-    return Downloads.manager.getDownload(id);
-  },
-
-  _getAttrsForDownload: function dv__getAttrsForDownload(aDownload) {
-    
-    return {
-      typeName: 'download',
-      downloadId: aDownload.id,
-      downloadGuid: aDownload.guid,
-      name: aDownload.displayName,
-      
-      target: aDownload.target.spec,
-      iconURI: "moz-icon://" + aDownload.displayName + "?size=64",
-      date: DownloadUtils.getReadableDates(new Date())[0],
-      domain: DownloadUtils.getURIHost(aDownload.source.spec)[0],
-      size: Util.getDownloadSize(aDownload.size),
-      state: aDownload.state
-    };
-
-  },
-  _updateItemWithAttrs: function dv__updateItemWithAttrs(anItem, aAttrs) {
-    for (let name in aAttrs)
-      anItem.setAttribute(name, aAttrs[name]);
-    if (anItem.refresh)
-      anItem.refresh();
-  },
-
-  _initStatement: function dv__initStatement() {
-    if (this._stmt)
-      this._stmt.finalize();
-
-    let limitClause = this._limit ? ("LIMIT " + this._limit) : "";
-
-    this._stmt = Downloads.manager.DBConnection.createStatement(
-      "SELECT id, guid, name, target, source, state, startTime, endTime, referrer, " +
-             "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive " +
-      "FROM moz_downloads " +
-      "ORDER BY isActive DESC, endTime DESC, startTime DESC " +
-      limitClause);
-  },
-
-  _stepDownloads: function dv__stepDownloads(aNumItems) {
-    try {
-      if (!this._stmt.executeStep()) {
-        
-        this._stmt.finalize();
-        this._stmt = null;
-        this._fire("DownloadsReady", this._set);
-        return;
-      }
-      let attrs = {
-        typeName: 'download',
-        
-        downloadGuid: this._stmt.row.guid,
-        downloadId: this._stmt.row.id,
-        name: this._stmt.row.name,
-        target: this._stmt.row.target,
-        iconURI: "moz-icon://" + this._stmt.row.name + "?size=25",
-        date: DownloadUtils.getReadableDates(new Date(this._stmt.row.endTime / 1000))[0],
-        domain: DownloadUtils.getURIHost(this._stmt.row.source)[0],
-        size: Util.getDownloadSize(this._stmt.row.maxBytes),
-        state: this._stmt.row.state
-      };
-
-      let item = this._set.appendItem(attrs.target, attrs.downloadId);
-      this._updateItemWithAttrs(item, attrs);
-    } catch (e) {
-      
-      this._stmt.reset();
-      return;
-    }
-
-    
-    
-    if (aNumItems > 1) {
-      this._stepDownloads(aNumItems - 1);
-    } else {
-      
-      let delay = Math.min(this._set.itemCount * 10, 300);
-      let self = this;
-      this._timeoutID = setTimeout(function() { self._stepDownloads(5); }, delay);
-    }
-  },
-
-  _fire: function _fire(aName, anElement) {
-    let event = document.createEvent("Events");
-    event.initEvent(aName, true, true);
-    anElement.dispatchEvent(event);
-  },
-
-  observe: function dv_managerObserver(aSubject, aTopic, aData) {
-    
-    switch (aTopic) {
-      case "download-manager-remove-download-guid":
-        let guid = aSubject.QueryInterface(Ci.nsISupportsCString);
-        this.removeDownload({
-          guid: guid
-        });
-        return;
-    }
-  },
-
-  getDownloads: function dv_getDownloads() {
-    this._initStatement();
-    clearTimeout(this._timeoutID);
-
-    
-    this.clearDownloads();
-
-    this._stmt.reset();
-    this._stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED);
-    this._stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
-    this._stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
-    this._stmt.bindInt32Parameter(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
-    this._stmt.bindInt32Parameter(4, Ci.nsIDownloadManager.DOWNLOAD_SCANNING);
-
-    
-    let self = this;
-    this._timeoutID = setTimeout(function() {
-      self._stepDownloads(1);
-    }, 0);
-  },
-
-  clearDownloads: function dv_clearDownloads() {
-    this._set.clearAll();
-  },
-
-  addDownload: function dv_addDownload(aDownload) {
-    
-    let attrs = this._getAttrsForDownload(aDownload);
-    let item = this._set.insertItemAt(0, attrs.target, attrs.downloadId);
-    this._updateItemWithAttrs(item, attrs);
-  },
-
-  updateDownload: function dv_updateDownload(aDownload) {
-    
-    let item = this._getItemForDownload(aDownload);
-
-    if (!item)
-      return;
-
-    let attrs = this._getAttrsForDownload(aDownload);
-    this._updateItemWithAttrs(item, attrs);
-
-    if (Downloads._progressNotification != null) {
-      Downloads._saveDownloadData(aDownload);
-      Downloads._progressNotification.label =
-        Downloads._computeDownloadProgressString(aDownload);
-    }
-  },
-
-  removeDownload: function dv_removeDownload(aDownload) {
-    
-    let item;
-    if (aDownload.id) {
-      item = this._getItemForDownload(aDownload.id);
-    } else if (aDownload.guid) {
-      item = this._getItemForDownloadGuid(aDownload.guid);
-    }
-    if (!item)
-      return;
-
-    let idx = this._set.getIndexOfItem(item);
-    if (idx < 0)
-        return;
-    
-    this._set.removeItemAt(idx);
-  },
-
-  destruct: function dv_destruct() {
-    Downloads.manager.removeListener(this._progress);
-  }
-};
-
-var DownloadsPanelView = {
-  _view: null,
-
-  get _grid() { return document.getElementById("downloads-list"); },
-  get visible() { return PanelUI.isPaneVisible("downloads-container"); },
-
-  init: function init() {
-    this._view = new DownloadsView(this._grid);
-  },
-
-  show: function show() {
-    this._grid.arrangeItems();
-  },
-
-  uninit: function uninit() {
-    this._view.destruct();
-  }
-};
-
-
-
-
-
-
-function DownloadProgressListener(aView) {
-  this._view = aView;
+function DownloadProgressListener(aDownloads) {
+  this._downloads = aDownloads;
 }
 
 DownloadProgressListener.prototype = {
-  _view: null,
+  _downloads: null,
 
   
   
   onDownloadStateChange: function dPL_onDownloadStateChange(aState, aDownload) {
-    let state = aDownload.state;
-    switch (state) {
-      case Ci.nsIDownloadManager.DOWNLOAD_QUEUED:
-      case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_POLICY:
-        this._view.addDownload(aDownload);
-        break;
-      case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
-      case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
-      case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_PARENTAL:
-      case Ci.nsIDownloadManager.DOWNLOAD_DIRTY:
-      case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
-        break;
-    }
-
-    this._view.updateDownload(aDownload);
+    
+    this._downloads.updateDownload(aDownload);
   },
 
   onProgressChange: function dPL_onProgressChange(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress, aDownload) {
     
-    this._view.updateDownload(aDownload);
+    this._downloads.updateDownload(aDownload);
   },
 
   onStateChange: function(aWebProgress, aRequest, aState, aStatus, aDownload) { },

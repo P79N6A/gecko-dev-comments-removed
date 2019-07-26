@@ -112,8 +112,6 @@ let gDownloadRowTemplate = {
 
 
 function test() {
-  DownloadsPanelView._view.clearDownloads();
-  PanelUI.show("downloads-container");
   runTests();
 }
 
@@ -212,43 +210,11 @@ function gen_addDownloadRows(aDataRows){
 
 
 
-
-
-
-
-
-
-
-gTests.push({
-  desc: "UI sanity check",
-  run: function(){
-
-    ok(document.getElementById('downloads-list'), "Downloads panel grid is present");
-    ok(DownloadsPanelView, "Downloads panel object is present");
-
-    PanelUI.show('downloads-container');
-    ok(DownloadsPanelView.visible, "Downloads panel is visible after being shown");
-  }
-});
-
 gTests.push({
   desc: "zero downloads",
   run: function () {
-
     yield resetDownloads();
-
-    let downloadsList = document.getElementById("downloads-list");
-
-    
-    
-    let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
-    
-    DownloadsPanelView._view.getDownloads();
-
-    yield isReady;
-
-    let count = downloadsList.children.length;
-    is(count, 0, "Zero items in grid view with empty downloads db");
+    todo("Test there are no visible notifications with an empty db.");
   }
 });
 
@@ -276,67 +242,23 @@ gTests.push({
 
     yield resetDownloads();
 
-    
-    let downloadsList = document.getElementById("downloads-list");
-    
-    
-    let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
-
-    
-
     try {
       
       
       yield spawn( gen_addDownloadRows( DownloadData ) );
 
-      
-      DownloadsPanelView._view.getDownloads();
+      todo("Check that Downloads._progressNotificationInfo and Downloads._downloadCount
+        have the correct length (DownloadData.length)
+        May also test that the correct notifications show up for various states.");
 
-      yield isReady;
-
-      if (!isReady || isReady instanceof Error){
-        ok(false, "DownloadsReady event never fired");
-      }
-
-      is(downloadsList.children.length, DownloadData.length,
-         "There is the correct number of richlistitems");
-
-      for (let i = 0; i < downloadsList.children.length; i++) {
-        let element = downloadsList.children[i];
-        let id = element.getAttribute("downloadId");
-        let dataItem = Downloads.manager.getDownload(id); 
-
-        ok( equalStrings(
-              element.getAttribute("name"),
-              dataItem.displayName,
-              DownloadData[i].name
-            ), "Download names match up");
-
-        ok( equalNumbers(
-                element.getAttribute("state"),
-                dataItem.state,
-                DownloadData[i].state
-            ), "Download states match up");
-
-        ok( equalStrings(
-              element.getAttribute("target"),
-              dataItem.target.spec,
-              DownloadData[i].target
-            ), "Download targets match up");
-
-        if (DownloadData[i].source && dataItem.referrer){
-          ok( equalStrings(
-                dataItem.referrer.spec,
-                DownloadData[i].source
-              ), "Download sources match up");
-        }
-      }
+      todo("Iterate through download objects in Downloads._progressNotificationInfo
+        and confirm that the downloads they refer to are the same as those in
+        DownloadData.");
     } catch(e) {
       info("Show downloads, some error: " + e);
     }
     finally {
       
-      DownloadsPanelView._view.clearDownloads();
       yield resetDownloads();
     }
   }
@@ -356,25 +278,10 @@ gTests.push({
     ];
 
     yield resetDownloads();
-    DownloadsPanelView._view.getDownloads();
 
     try {
       
       yield spawn( gen_addDownloadRows( DownloadData ) );
-
-      
-      let downloadsList = document.getElementById("downloads-list");
-      
-      
-      let isReady = waitForEvent(downloadsList, "DownloadsReady", 2000);
-      
-      DownloadsPanelView._view.getDownloads();
-
-      yield isReady;
-
-      if (!isReady || isReady instanceof Error){
-        is(false, "DownloadsReady event never fired");
-      }
 
       let downloadRows = null,
           promisedDownloads;
@@ -392,15 +299,9 @@ gTests.push({
 
       is(downloadRows.length, 3, "Correct number of downloads in the db before removal");
 
-      
-      let itemNode = downloadsList.children[0];
-      let id = itemNode.getAttribute("downloadId");
-      
-      let download = Downloads.manager.getDownload( id );
-      let file = download.targetFile;
-      ok(file && file.exists());
+      todo("Get some download from Downloads._progressNotificationInfo,
+        confirm that its file exists, then remove it.");
 
-      Downloads.manager.removeDownload( id );
       
       yield waitForMs(0);
 
@@ -417,18 +318,14 @@ gTests.push({
       });
       yield promisedDownloads;
 
-      is(downloadRows.length, 2, "Correct number of downloads in the db after removal");
-
-      is(2, downloadsList.children.length,
-         "Removing a download updates the items list");
-      ok(file && file.exists(), "File still exists after download removal");
+      todo("confirm that the removed download is no longer in the database
+        and its file no longer exists.");
 
     } catch(e) {
       info("Remove downloads, some error: " + e);
     }
     finally {
       
-      DownloadsPanelView._view.clearDownloads();
       yield resetDownloads();
     }
   }
