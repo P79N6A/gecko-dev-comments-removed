@@ -38,9 +38,13 @@ if (typeof Components != "undefined") {
   let LOG = OS.Shared.LOG.bind(OS.Shared, "Win", "allthreads");
 
   
-  let libc = ctypes.open("kernel32.dll");
-  if (!libc) {
-    throw new Error("Could not open kernel32.dll");
+  let libc;
+  try {
+    libc = ctypes.open("kernel32.dll");
+  } catch (ex) {
+    
+    
+    throw new Error("Could not open system library: " + ex.message);
   }
   exports.OS.Shared.Win.libc = libc;
 

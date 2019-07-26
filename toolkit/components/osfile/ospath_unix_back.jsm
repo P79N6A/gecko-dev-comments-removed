@@ -16,7 +16,24 @@
 
 if (typeof Components != "undefined") {
   this.EXPORTED_SYMBOLS = ["OS"];
-  Components.utils.import("resource://gre/modules/osfile/osfile_unix_allthreads.jsm", this);
+  let Scope = {};
+  Components.utils.import("resource://gre/modules/Services.jsm", Scope);
+
+  
+  
+  
+  let syslib_necessary = true;
+  try {
+    syslib_necessary = Scope.Services.prefs.getBoolPref("toolkit.osfile.test.syslib_necessary");
+  } catch (x) {
+    
+  }
+
+  try {
+    Components.utils.import("resource://gre/modules/osfile/osfile_unix_allthreads.jsm", this);
+  } catch (ex if !syslib_necessary && ex.message.startsWith("Could not open system library:")) {
+    
+  }
 }
 (function(exports) {
    "use strict";

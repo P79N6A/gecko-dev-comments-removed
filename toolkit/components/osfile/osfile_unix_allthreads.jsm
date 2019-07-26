@@ -51,7 +51,8 @@ if (typeof Components != "undefined") {
     }
   }
   if (!libc) {
-    throw new Error("Could not open any libc.");
+    
+    throw new Error("Could not open system library: no libc");
   }
   exports.OS.Shared.Unix.libc = libc;
 

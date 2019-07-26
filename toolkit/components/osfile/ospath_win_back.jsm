@@ -22,9 +22,27 @@
 
 
 
+
 if (typeof Components != "undefined") {
   this.EXPORTED_SYMBOLS = ["OS"];
-  Components.utils.import("resource://gre/modules/osfile/osfile_win_allthreads.jsm", this);
+  let Scope = {};
+  Components.utils.import("resource://gre/modules/Services.jsm", Scope);
+
+  
+  
+  
+  let syslib_necessary = true;
+  try {
+    syslib_necessary = Scope.Services.prefs.getBoolPref("toolkit.osfile.test.syslib_necessary");
+  } catch (x) {
+    
+  }
+
+  try {
+    Components.utils.import("resource://gre/modules/osfile/osfile_win_allthreads.jsm", this);
+  } catch (ex if !syslib_necessary && ex.message.startsWith("Could not open system library:")) {
+    
+  }
 }
 (function(exports) {
    "use strict";
@@ -43,9 +61,16 @@ if (typeof Components != "undefined") {
 
 
      basename: function basename(path) {
-       ensureNotUNC(path);
+       if (path.startsWith("\\\\")) {
+         
+         let index = path.lastIndexOf("\\");
+         if (index != 1) {
+           return path.slice(index + 1);
+         }
+         return ""; 
+       }
        return path.slice(Math.max(path.lastIndexOf("\\"),
-         path.lastIndexOf(":")) + 1);
+                                  path.lastIndexOf(":")) + 1);
      },
 
      
@@ -62,8 +87,9 @@ if (typeof Components != "undefined") {
 
 
 
+
+
      dirname: function dirname(path, options) {
-       ensureNotUNC(path);
        let noDrive = (options && options.winNoDrive);
 
        
@@ -76,6 +102,15 @@ if (typeof Components != "undefined") {
          } else {
            
            return ".";
+         }
+       }
+
+       if (index == 1 && path.charAt(0) == "\\") {
+         
+         if (noDrive) {
+           return ".";
+         } else {
+           return path;
          }
        }
 
@@ -114,7 +149,12 @@ if (typeof Components != "undefined") {
          let abs   = this.winIsAbsolute(subpath);
          if (drive) {
            root = drive;
-           paths = [trimBackslashes(subpath.slice(drive.length))];
+           let component = trimBackslashes(subpath.slice(drive.length));
+           if (component) {
+             paths = [component];
+           } else {
+             paths = [];
+           }
            absolute = abs;
          } else if (abs) {
            paths = [trimBackslashes(subpath)];
@@ -138,8 +178,23 @@ if (typeof Components != "undefined") {
 
 
 
+
+
+
+
      winGetDrive: function winGetDrive(path) {
-       ensureNotUNC(path);
+       if (path.startsWith("\\\\")) {
+         
+         if (path.length == 2) {
+           return null;
+         }
+         let index = path.indexOf("\\", 2);
+         if (index == -1) {
+           return path;
+         }
+         return path.slice(0, index);
+       }
+       
        let index = path.indexOf(":");
        if (index <= 0) return null;
        return path.slice(0, index + 1);
@@ -152,14 +207,6 @@ if (typeof Components != "undefined") {
 
 
      winIsAbsolute: function winIsAbsolute(path) {
-       ensureNotUNC(path);
-       return this._winIsAbsolute(path);
-     },
-     
-
-
-
-     _winIsAbsolute: function _winIsAbsolute(path) {
        let index = path.indexOf(":");
        return path.length > index + 1 && path[index + 1] == "\\";
      },
@@ -178,7 +225,7 @@ if (typeof Components != "undefined") {
        }
 
        
-       let absolute = this._winIsAbsolute(path);
+       let absolute = this.winIsAbsolute(path);
 
        
        path = path.replace("/", "\\");
@@ -240,22 +287,6 @@ if (typeof Components != "undefined") {
        };
      }
    };
-
-    
-
-
-
-
-
-
-    let ensureNotUNC = function ensureNotUNC(path) {
-       if (!path) {
-          throw new TypeError("Expecting a non-null path");
-       }
-       if (path.length >= 2 && path[0] == "\\" && path[1] == "\\") {
-          throw new Error("Module Path cannot handle UNC-formatted paths yet: " + path);
-       }
-    };
 
     
 
