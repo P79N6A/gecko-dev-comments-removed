@@ -770,6 +770,9 @@ typedef js::HashSet<StackTrace*, StackTrace, InfallibleAllocPolicy>
         StackTraceTable;
 static StackTraceTable* gStackTraceTable = nullptr;
 
+
+static uint32_t gGCStackTraceTableWhenSizeExceeds = 4 * 1024;
+
 void
 StackTrace::Print(const Writer& aWriter, LocationService* aLocService) const
 {
@@ -1017,6 +1020,61 @@ public:
 typedef js::HashSet<Block, Block, InfallibleAllocPolicy> BlockTable;
 static BlockTable* gBlockTable = nullptr;
 
+typedef js::HashSet<const StackTrace*, js::DefaultHasher<const StackTrace*>,
+                    InfallibleAllocPolicy>
+        StackTraceSet;
+
+
+
+static void
+GatherUsedStackTraces(StackTraceSet& aStackTraces)
+{
+  MOZ_ASSERT(gStateLock->IsLocked());
+  MOZ_ASSERT(Thread::Fetch()->InterceptsAreBlocked());
+
+  aStackTraces.finish();
+  aStackTraces.init(1024);
+
+  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
+    const Block& b = r.front();
+    aStackTraces.put(b.AllocStackTrace());
+    aStackTraces.put(b.ReportStackTrace1());
+    aStackTraces.put(b.ReportStackTrace2());
+  }
+
+  
+  
+  aStackTraces.remove(nullptr);
+}
+
+
+static void
+GCStackTraces()
+{
+  MOZ_ASSERT(gStateLock->IsLocked());
+  MOZ_ASSERT(Thread::Fetch()->InterceptsAreBlocked());
+
+  StackTraceSet usedStackTraces;
+  GatherUsedStackTraces(usedStackTraces);
+
+  
+  
+  for (StackTraceTable::Enum e(*gStackTraceTable);
+       !e.empty();
+       e.popFront()) {
+    StackTrace* const& st = e.front();
+
+    if (!usedStackTraces.has(st)) {
+      e.removeFront();
+      InfallibleAllocPolicy::delete_(st);
+    }
+  }
+
+  
+  
+  gGCStackTraceTableWhenSizeExceeds = 2 * gStackTraceTable->count();
+}
+
 
 
 
@@ -1070,6 +1128,10 @@ FreeCallback(void* aPtr, Thread* aT)
   AutoBlockIntercepts block(aT);
 
   gBlockTable->remove(aPtr);
+
+  if (gStackTraceTable->count() > gGCStackTraceTableWhenSizeExceeds) {
+    GCStackTraces();
+  }
 }
 
 
@@ -1886,16 +1948,8 @@ SizeOfInternal(Sizes* aSizes)
     return;
   }
 
-  js::HashSet<const StackTrace*, js::DefaultHasher<const StackTrace*>,
-              InfallibleAllocPolicy> usedStackTraces;
-  usedStackTraces.init(1024);
-
-  for(BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
-    const Block& b = r.front();
-    usedStackTraces.put(b.AllocStackTrace());
-    usedStackTraces.put(b.ReportStackTrace1());
-    usedStackTraces.put(b.ReportStackTrace2());
-  }
+  StackTraceSet usedStackTraces;
+  GatherUsedStackTraces(usedStackTraces);
 
   for (StackTraceTable::Range r = gStackTraceTable->all();
        !r.empty();
