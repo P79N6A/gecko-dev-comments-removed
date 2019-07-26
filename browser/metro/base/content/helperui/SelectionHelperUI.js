@@ -348,11 +348,11 @@ var SelectionHelperUI = {
 
 
   attachToCaret: function attachToCaret(aBrowser, aX, aY) {
-    if (!aBrowser)
-      return;
     if (!this.isActive)
       this._init(aBrowser);
     this._setupDebugOptions();
+
+    this._lastPoint = { xPos: aX, yPos: aY };
 
     this._selectionHandlerActive = false;
     this._sendAsyncMessage("Browser:CaretAttach", {
@@ -428,6 +428,8 @@ var SelectionHelperUI = {
     window.addEventListener("MozContextUIShow", this, true);
     window.addEventListener("MozContextUIDismiss", this, true);
     window.addEventListener("MozPrecisePointer", this, true);
+    window.addEventListener("MozDeckOffsetChanging", this, true);
+    window.addEventListener("MozDeckOffsetChanged", this, true);
 
     Elements.browsers.addEventListener("URLChanged", this, true);
     Elements.browsers.addEventListener("SizeChanged", this, true);
@@ -451,6 +453,8 @@ var SelectionHelperUI = {
     window.removeEventListener("MozContextUIShow", this, true);
     window.removeEventListener("MozContextUIDismiss", this, true);
     window.removeEventListener("MozPrecisePointer", this, true);
+    window.removeEventListener("MozDeckOffsetChanging", this, true);
+    window.removeEventListener("MozDeckOffsetChanged", this, true);
 
     Elements.browsers.removeEventListener("URLChanged", this, true);
     Elements.browsers.removeEventListener("SizeChanged", this, true);
@@ -667,6 +671,18 @@ var SelectionHelperUI = {
                               "selectionhandle-mark3"];
   },
 
+  _hideMonocles: function _hideMonocles() {
+    if (this._startMark) {
+      this.startMark.hide();
+    }
+    if (this._endMark) {
+      this.endMark.hide();
+    }
+    if (this._caretMark) {
+      this.caretMark.hide();
+    }
+  },
+
   
 
 
@@ -791,6 +807,26 @@ var SelectionHelperUI = {
 
 
 
+
+  _onDeckOffsetChanging: function _onDeckOffsetChanging(aEvent) {
+    
+    this._hideMonocles();
+  },
+
+  
+
+
+
+
+  _onDeckOffsetChanged: function _onDeckOffsetChanged(aEvent) {
+    
+    this.attachToCaret(null, this._lastPoint.xPos, this._lastPoint.yPos);
+  },
+
+  
+
+
+
   _onDebugRectRequest: function _onDebugRectRequest(aMsg) {
     this.overlay.addDebugRect(aMsg.left, aMsg.top, aMsg.right, aMsg.bottom,
                               aMsg.color, aMsg.fill, aMsg.id);
@@ -823,6 +859,7 @@ var SelectionHelperUI = {
       } else {
         
         this.closeEditSession();
+        return;
       }
     }
 
@@ -902,6 +939,14 @@ var SelectionHelperUI = {
       case "MozContextUIShow":
       case "MozContextUIDismiss":
         this._onContextUIVisibilityEvent(aEvent.type);
+        break;
+
+      case "MozDeckOffsetChanging":
+        this._onDeckOffsetChanging(aEvent);
+        break;
+
+      case "MozDeckOffsetChanged":
+        this._onDeckOffsetChanged(aEvent);
         break;
     }
   },
