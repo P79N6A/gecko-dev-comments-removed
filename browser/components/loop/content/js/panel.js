@@ -3,89 +3,21 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var loop = loop || {};
-loop.panel = (function(_, __) {
+loop.panel = (function(TB, mozl10n) {
   "use strict";
 
   var baseServerUrl = Services.prefs.getCharPref("loop.server"),
-      panelView;
+      panelView,
+      
+      __ = mozl10n.get;
 
   
 
 
-  function init() {
-    panelView = new PanelView();
-    panelView.render();
-  }
-
-  
-
-
-  var NotificationModel = Backbone.Model.extend({
-    defaults: {
-      level: "info",
-      message: ""
-    }
-  });
-
-  
-
-
-  var NotificationCollection = Backbone.Collection.extend({
-    model: NotificationModel
-  });
-
-  
-
-
-  var NotificationView = Backbone.View.extend({
-    template: _.template([
-      '<div class="alert alert-<%- level %>">',
-      '  <button class="close"></button>',
-      '  <p class="message"><%- message %></p>',
-      '</div>'
-    ].join("")),
-
-    events: {
-      "click .close": "dismiss"
-    },
-
-    dismiss: function() {
-      this.$el.addClass("fade-out");
-      setTimeout(function() {
-        this.collection.remove(this.model);
-        this.remove();
-      }.bind(this), 500);
-    },
-
-    render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
-    }
-  });
-
-  
-
-
-  var NotificationListView = Backbone.View.extend({
-    initialize: function() {
-      this.listenTo(this.collection, "reset add remove", this.render);
-    },
-
-    render: function() {
-      this.$el.html(this.collection.map(function(notification) {
-        return new NotificationView({
-          model: notification,
-          collection: this.collection
-        }).render().$el;
-      }.bind(this)));
-      return this;
-    }
-  });
-
-  
 
 
   var PanelView = Backbone.View.extend({
@@ -101,19 +33,9 @@ loop.panel = (function(_, __) {
       this.client = new loop.shared.Client({
         baseServerUrl: baseServerUrl
       });
-      this.notificationCollection = new NotificationCollection();
-      this.notificationListView = new NotificationListView({
-        el: this.$(".messages"),
-        collection: this.notificationCollection
-      });
-      this.notificationListView.render();
-    },
-
-    notify: function(message, level) {
-      this.notificationCollection.add({
-        level: level || "info",
-        message: message
-      });
+      this.notifier = new loop.shared.views.NotificationListView({
+        el: this.$(".messages")
+      }).render();
     },
 
     getCallUrl: function(event) {
@@ -121,7 +43,10 @@ loop.panel = (function(_, __) {
       var nickname = this.$("input[name=caller]").val();
       var callback = function(err, callUrl) {
         if (err) {
-          this.notify(__("unable_retrieve_url"), "error");
+          this.notifier.notify({
+            message: __("unable_retrieve_url"),
+            level: "error"
+          });
           return;
         }
         this.onCallUrlReceived(callUrl);
@@ -137,7 +62,7 @@ loop.panel = (function(_, __) {
     },
 
     onCallUrlReceived: function(callUrl) {
-      this.notificationCollection.reset();
+      this.notifier.clear();
       this.$(".action .invite").hide();
       this.$(".action .invite input").val("");
       this.$(".action .result input").val(callUrl);
@@ -154,12 +79,16 @@ loop.panel = (function(_, __) {
     }
   });
 
+  
+
+
+  function init() {
+    panelView = new PanelView();
+    panelView.render();
+  }
+
   return {
     init: init,
-    NotificationModel: NotificationModel,
-    NotificationCollection: NotificationCollection,
-    NotificationView: NotificationView,
-    NotificationListView: NotificationListView,
     PanelView: PanelView
   };
-})(_, document.mozL10n.get);
+})(_, document.mozL10n);
