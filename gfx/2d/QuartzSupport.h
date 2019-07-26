@@ -93,15 +93,6 @@ private:
   double                    mContentsScaleFactor;
 };
 
-enum CGContextType {
-  CG_CONTEXT_TYPE_UNKNOWN = 0,
-  
-  CG_CONTEXT_TYPE_BITMAP = 4,
-  CG_CONTEXT_TYPE_IOSURFACE = 8
-};
-
-CGContextType GetContextType(CGContextRef ref);
-
 #endif 
 #endif 
 
