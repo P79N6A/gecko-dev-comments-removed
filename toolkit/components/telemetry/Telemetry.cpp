@@ -1863,8 +1863,8 @@ TelemetryImpl::CreateTelemetryInstance()
   
   NS_ADDREF(sTelemetry);
   
-  NS_ADDREF(sTelemetry);
-  return sTelemetry;
+  nsCOMPtr<nsITelemetry> ret = sTelemetry;
+  return ret.forget();
 }
 
 void

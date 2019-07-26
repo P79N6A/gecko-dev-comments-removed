@@ -68,14 +68,10 @@ nsLanguageAtomService::LookupCharSet(const char *aCharSet, nsresult *aError)
     return nullptr;
   }
 
-  
-  nsIAtom *raw = nullptr;
-  langGroup.swap(raw);
-
   if (aError)
     *aError = NS_OK;
 
-  return raw;
+  return langGroup.forget();
 }
 
 nsIAtom*

@@ -455,8 +455,8 @@ nsHTMLStyleSheet::UniqueMappedAttributes(nsMappedAttributes* aMapped)
     
     entry->mAttributes = aMapped;
   }
-  NS_ADDREF(entry->mAttributes); 
-  return entry->mAttributes;
+  nsRefPtr<nsMappedAttributes> ret = entry->mAttributes;
+  return ret.forget();
 }
 
 void

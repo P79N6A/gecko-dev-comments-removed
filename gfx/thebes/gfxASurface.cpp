@@ -126,14 +126,13 @@ gfxASurface::SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf)
 already_AddRefed<gfxASurface>
 gfxASurface::Wrap (cairo_surface_t *csurf)
 {
-    gfxASurface *result;
+    nsRefPtr<gfxASurface> result;
 
     
     result = GetSurfaceWrapper(csurf);
     if (result) {
         
-        NS_ADDREF(result);
-        return result;
+        return result.forget();
     }
 
     
@@ -177,8 +176,7 @@ gfxASurface::Wrap (cairo_surface_t *csurf)
 
     
 
-    NS_ADDREF(result);
-    return result;
+    return result.forget();
 }
 
 void

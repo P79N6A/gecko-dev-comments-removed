@@ -202,9 +202,7 @@ gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, bool aNeedsBold)
         font = newFont;
         gfxFontCache::GetCache()->AddNew(font);
     }
-    gfxFont *f = nullptr;
-    font.swap(f);
-    return f;
+    return font.forget();
 }
 
 bool
@@ -1255,9 +1253,8 @@ gfxFontCache::Lookup(const gfxFontEntry *aFontEntry,
     if (!entry)
         return nullptr;
 
-    gfxFont *font = entry->mFont;
-    NS_ADDREF(font);
-    return font;
+    nsRefPtr<gfxFont> font = entry->mFont;
+    return font.forget();
 }
 
 void
@@ -4395,11 +4392,10 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     bool isVarSelector = gfxFontUtils::IsVarSelector(aCh);
 
     if (!isJoinControl && !wasJoinCauser && !isVarSelector) {
-        gfxFont *firstFont = mFonts[0].Font();
+        nsRefPtr<gfxFont> firstFont = mFonts[0].Font();
         if (firstFont->HasCharacter(aCh)) {
             *aMatchType = gfxTextRange::kFontGroup;
-            firstFont->AddRef();
-            return firstFont;
+            return firstFont.forget();
         }
         
         
@@ -4418,16 +4414,16 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
         
         uint8_t category = GetGeneralCategory(aCh);
         if (category == HB_UNICODE_GENERAL_CATEGORY_CONTROL) {
-            aPrevMatchedFont->AddRef();
-            return aPrevMatchedFont;
+            nsRefPtr<gfxFont> ret = aPrevMatchedFont;
+            return ret.forget();
         }
 
         
         
         if (isJoinControl || wasJoinCauser) {
             if (aPrevMatchedFont->HasCharacter(aCh)) {
-                aPrevMatchedFont->AddRef();
-                return aPrevMatchedFont;
+                nsRefPtr<gfxFont> ret = aPrevMatchedFont;
+                return ret.forget();
             }
         }
     }
@@ -4437,8 +4433,8 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     
     if (isVarSelector) {
         if (aPrevMatchedFont) {
-            aPrevMatchedFont->AddRef();
-            return aPrevMatchedFont;
+            nsRefPtr<gfxFont> ret = aPrevMatchedFont;
+            return ret.forget();
         }
         
         return nullptr;
@@ -4475,8 +4471,8 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
     
     if (aPrevMatchedFont && aPrevMatchedFont->HasCharacter(aCh)) {
         *aMatchType = gfxTextRange::kSystemFallback;
-        aPrevMatchedFont->AddRef();
-        return aPrevMatchedFont;
+        nsRefPtr<gfxFont> ret = aPrevMatchedFont;
+        return ret.forget();
     }
 
     
@@ -4637,7 +4633,7 @@ struct PrefFontCallbackData {
 already_AddRefed<gfxFont>
 gfxFontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
 {
-    gfxFont *font;
+    nsRefPtr<gfxFont> font;
 
     
     uint32_t unicodeRange = FindCharUnicodeRange(aCh);
@@ -4647,8 +4643,7 @@ gfxFontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
     if (mLastPrefFont && charLang == mLastPrefLang &&
         mLastPrefFirstFont && mLastPrefFont->HasCharacter(aCh)) {
         font = mLastPrefFont;
-        NS_ADDREF(font);
-        return font;
+        return font.forget();
     }
 
     
@@ -4686,8 +4681,7 @@ gfxFontGroup::WhichPrefFontSupportsChar(uint32_t aCh)
             
             if (family == mLastPrefFamily && mLastPrefFont->HasCharacter(aCh)) {
                 font = mLastPrefFont;
-                NS_ADDREF(font);
-                return font;
+                return font.forget();
             }
 
             bool needsBold;

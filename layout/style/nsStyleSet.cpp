@@ -1664,8 +1664,8 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   
   
   if (aStyleContext->GetParent() == aNewParentContext) {
-    aStyleContext->AddRef();
-    return aStyleContext;
+    nsRefPtr<nsStyleContext> ret = aStyleContext;
+    return ret.forget();
   }
 
   nsIAtom* pseudoTag = aStyleContext->GetPseudo();

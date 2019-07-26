@@ -1470,35 +1470,35 @@ nsHTMLDocument::Open(JSContext* cx,
     
     
     
-    NS_ADDREF_THIS();
-    return this;
+    nsCOMPtr<nsIDocument> ret = this;
+    return ret.forget();
   }
 
   
   if (!mScriptGlobalObject) {
-    NS_ADDREF_THIS();
-    return this;
+    nsCOMPtr<nsIDocument> ret = this;
+    return ret.forget();
   }
 
   nsPIDOMWindow* outer = GetWindow();
   if (!outer || (GetInnerWindow() != outer->GetCurrentInnerWindow())) {
-    NS_ADDREF_THIS();
-    return this;
+    nsCOMPtr<nsIDocument> ret = this;
+    return ret.forget();
   }
 
   
   nsCOMPtr<nsIDocShell> shell = do_QueryReferent(mDocumentContainer);
   if (!shell) {
     
-    NS_ADDREF_THIS();
-    return this;
+    nsCOMPtr<nsIDocument> ret = this;
+    return ret.forget();
   }
 
   bool inUnload;
   shell->GetIsInUnload(&inUnload);
   if (inUnload) {
-    NS_ADDREF_THIS();
-    return this;
+    nsCOMPtr<nsIDocument> ret = this;
+    return ret.forget();
   }
 
   
@@ -1563,8 +1563,8 @@ nsHTMLDocument::Open(JSContext* cx,
       if (NS_SUCCEEDED(cv->PermitUnload(false, &okToUnload)) && !okToUnload) {
         
         
-        NS_ADDREF_THIS();
-        return this;
+        nsCOMPtr<nsIDocument> ret = this;
+        return ret.forget();
       }
     }
 

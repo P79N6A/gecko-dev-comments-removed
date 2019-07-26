@@ -4616,20 +4616,20 @@ nsEventStateManager::GetEventTargetContent(nsEvent* aEvent)
     return content.forget();
   }
 
-  nsIContent *content = nullptr;
+  nsCOMPtr<nsIContent> content;
 
   nsIPresShell *presShell = mPresContext->GetPresShell();
   if (presShell) {
-    content = presShell->GetEventTargetContent(aEvent).get();
+    content = presShell->GetEventTargetContent(aEvent);
   }
 
   
   
   if (!content && mCurrentTarget) {
-    mCurrentTarget->GetContentForEvent(aEvent, &content);
+    mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(content));
   }
 
-  return content;
+  return content.forget();
 }
 
 static Element*

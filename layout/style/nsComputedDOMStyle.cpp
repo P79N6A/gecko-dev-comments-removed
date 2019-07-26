@@ -316,8 +316,8 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
       
       if (!result->HasPseudoElementData()) {
         
-        result->AddRef();
-        return result;
+        nsRefPtr<nsStyleContext> ret = result;
+        return ret.forget();
       }
     }
   }
