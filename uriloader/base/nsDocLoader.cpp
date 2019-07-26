@@ -626,7 +626,7 @@ nsDocLoader::OnStopRequest(nsIRequest *aRequest,
     
     
     
-    if ((oldMax == LL_ZERO) && (info->mCurrentProgress == LL_ZERO)) {
+    if ((oldMax == 0) && (info->mCurrentProgress == 0)) {
       nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
 
       
@@ -1150,12 +1150,12 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
       
       
       if (info->mUploading != uploading) {
-        mCurrentSelfProgress  = mMaxSelfProgress  = LL_ZERO;
-        mCurrentTotalProgress = mMaxTotalProgress = LL_ZERO;
-        mCompletedTotalProgress = LL_ZERO;
+        mCurrentSelfProgress  = mMaxSelfProgress  = 0;
+        mCurrentTotalProgress = mMaxTotalProgress = 0;
+        mCompletedTotalProgress = 0;
         info->mUploading = uploading;
-        info->mCurrentProgress = LL_ZERO;
-        info->mMaxProgress = LL_ZERO;
+        info->mCurrentProgress = 0;
+        info->mMaxProgress = 0;
       }
     }
 
@@ -1195,9 +1195,9 @@ void nsDocLoader::ClearInternalProgress()
 {
   ClearRequestInfoHash();
 
-  mCurrentSelfProgress  = mMaxSelfProgress  = LL_ZERO;
-  mCurrentTotalProgress = mMaxTotalProgress = LL_ZERO;
-  mCompletedTotalProgress = LL_ZERO;
+  mCurrentSelfProgress  = mMaxSelfProgress  = 0;
+  mCurrentTotalProgress = mMaxTotalProgress = 0;
+  mCompletedTotalProgress = 0;
 
   mProgressStateFlags = nsIWebProgressListener::STATE_STOP;
 }

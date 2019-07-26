@@ -2456,7 +2456,7 @@ nsWebBrowserPersist::CalcTotalProgress()
     }
 
     
-    if (mTotalCurrentProgress == LL_ZERO && mTotalMaxProgress == LL_ZERO)
+    if (mTotalCurrentProgress == 0 && mTotalMaxProgress == 0)
     {
         
         mTotalCurrentProgress = 10000;
