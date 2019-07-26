@@ -232,6 +232,7 @@ pref("media.navigator.video.default_fps",30);
 pref("media.navigator.video.default_minfps",10);
 pref("media.navigator.video.max_fs", 0); 
 pref("media.navigator.video.max_fr", 0); 
+pref("media.navigator.load_adapt", false);
 pref("media.peerconnection.enabled", true);
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:stun.services.mozilla.com\"}]");
@@ -4479,6 +4480,9 @@ pref("dom.mms.defaultServiceId", 0);
 pref("mms.debugging.enabled", false);
 
 
+pref("dom.mms.requestReadReport", true);
+
+
 pref("ril.numRadioInterfaces", 0);
 
 
@@ -4515,22 +4519,42 @@ pref("dom.mozInputMethod.enabled", false);
 pref("dom.datastore.enabled", false);
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.telephony.enabled", true);
+#else
 pref("dom.telephony.enabled", false);
+#endif
 
 
 pref("dom.telephony.defaultServiceId", 0);
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.cellbroadcast.enabled", true);
+#else
 pref("dom.cellbroadcast.enabled", false);
+#endif
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.icc.enabled", true);
+#else
 pref("dom.icc.enabled", false);
+#endif
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.mobileconnection.enabled", true);
+#else
 pref("dom.mobileconnection.enabled", false);
+#endif
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.voicemail.enabled", true);
+#else
 pref("dom.voicemail.enabled", false);
+#endif
 
 
 pref("dom.voicemail.defaultServiceId", 0);
