@@ -23,15 +23,58 @@
 
 
 
+
+
+
+
+
+
+#if defined(USE_GCC_INLINE_ASM) && defined(__arm__) && \
+    !defined(__aarch64__) && (!defined(__thumb__) || defined(__thumb2__))
+#if defined(__ARM_ARCH_6__)   || defined(__ARM_ARCH_6J__)  || \
+    defined(__ARM_ARCH_6K__)  || defined(__ARM_ARCH_6Z__)  || \
+    defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__) || \
+    defined(__ARM_ARCH_6M__)  || defined(__ARM_ARCH_7__)   || \
+    defined(__ARM_ARCH_7A__)  || defined(__ARM_ARCH_7R__)  || \
+    defined(__ARM_ARCH_7M__)  || defined(__ARM_ARCH_7EM__)
+
+static force_inline uint32_t
+un8x4_add_un8x4 (uint32_t x, uint32_t y)
+{
+    uint32_t t;
+    asm ("uqadd8 %0, %1, %2" : "=r" (t) : "%r" (x), "r" (y));
+    return t;
+}
+
+#define UN8x4_ADD_UN8x4(x, y) \
+    ((x) = un8x4_add_un8x4 ((x), (y)))
+
+#define UN8_rb_ADD_UN8_rb(x, y, t) \
+    ((t) = un8x4_add_un8x4 ((x), (y)), (x) = (t))
+
+#define ADD_UN8(x, y, t) \
+    ((t) = (x), un8x4_add_un8x4 ((t), (y)))
+
+#endif
+#endif
+
+
+
+
+
+
+
 #define MUL_UN8(a, b, t)						\
     ((t) = (a) * (uint16_t)(b) + ONE_HALF, ((((t) >> G_SHIFT ) + (t) ) >> G_SHIFT ))
 
 #define DIV_UN8(a, b)							\
     (((uint16_t) (a) * MASK + ((b) / 2)) / (b))
 
+#ifndef ADD_UN8
 #define ADD_UN8(x, y, t)				     \
     ((t) = (x) + (y),					     \
      (uint32_t) (uint8_t) ((t) | (0 - ((t) >> G_SHIFT))))
+#endif
 
 #define DIV_ONE_UN8(x)							\
     (((x) + ONE_HALF + (((x) + ONE_HALF) >> G_SHIFT)) >> G_SHIFT)
@@ -56,6 +99,7 @@
 
 
 
+#ifndef UN8_rb_ADD_UN8_rb
 #define UN8_rb_ADD_UN8_rb(x, y, t)					\
     do									\
     {									\
@@ -63,6 +107,7 @@
 	t |= RB_MASK_PLUS_ONE - ((t >> G_SHIFT) & RB_MASK);		\
 	x = (t & RB_MASK);						\
     } while (0)
+#endif
 
 
 
@@ -208,6 +253,7 @@
 
 
 
+#ifndef UN8x4_ADD_UN8x4
 #define UN8x4_ADD_UN8x4(x, y)						\
     do									\
     {									\
@@ -223,3 +269,4 @@
 									\
 	x = r1__ | (r2__ << G_SHIFT);					\
     } while (0)
+#endif
