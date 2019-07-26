@@ -27,8 +27,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x513c2c1a, 0xf4f1, 0x44da, \
-  { 0x8e, 0x38, 0xf4, 0x0c, 0x30, 0x9a, 0x5d, 0xef } }
+{ 0x7cf47061, 0x745d, 0x4c6c, \
+  { 0xa0, 0xe5, 0x9f, 0xef, 0xa8, 0xcc, 0x2a, 0xf0 } }
 
 
 
@@ -44,29 +44,6 @@ class nsIScriptContext : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_IID)
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult EvaluateString(const nsAString& aScript,
-                                  JS::Handle<JSObject*> aScopeObject,
-                                  JS::CompileOptions& aOptions,
-                                  bool aCoerceToString,
-                                  JS::Value* aRetValue,
-                                  void **aOffThreadToken = nullptr) = 0;
 
   
 
