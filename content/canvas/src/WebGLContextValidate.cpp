@@ -1011,18 +1011,8 @@ WebGLContext::InitAndValidateGL()
         
         
         
-#ifdef XP_WIN
-        if (!(gl->WorkAroundDriverBugs() &&
-              gl->Vendor() == gl::GLContext::VendorATI))
-#else
-        if (true)
-#endif
-        {
-            
-            
-            
-            gl->fEnable(LOCAL_GL_POINT_SPRITE);
-        }
+        
+        gl->fEnable(LOCAL_GL_POINT_SPRITE);
     }
 
 #ifdef XP_MACOSX
