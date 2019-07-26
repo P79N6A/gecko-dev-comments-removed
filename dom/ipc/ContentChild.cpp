@@ -591,15 +591,7 @@ ContentChild::AllocPBrowserChild(const IPCTabContext& aContext,
     
     
 
-    MaybeInvalidTabContext tc(aContext);
-    if (!tc.IsValid()) {
-        NS_ERROR(nsPrintfCString("Received an invalid TabContext from "
-                                 "the parent process. (%s)  Crashing...",
-                                 tc.InvalidReason()));
-        MOZ_CRASH("Invalid TabContext received from the parent process.");
-    }
-
-    nsRefPtr<TabChild> child = TabChild::Create(this, tc.GetTabContext(), aChromeFlags);
+    nsRefPtr<TabChild> child = TabChild::Create(this, TabContext(aContext), aChromeFlags);
 
     
     return child.forget().get();
