@@ -80,13 +80,13 @@ webidl_files = \
   File.webidl \
   FileHandle.webidl \
   FileList.webidl \
-  FileMode.webidl \
   FileReader.webidl \
   FileReaderSync.webidl \
   FileRequest.webidl \
   FocusEvent.webidl \
   FormData.webidl \
   Function.webidl \
+  Future.webidl \
   GainNode.webidl \
   Geolocation.webidl \
   HTMLAnchorElement.webidl \
@@ -181,7 +181,6 @@ webidl_files = \
   MozActivity.webidl \
   MozMmsMessage.webidl \
   MozNamedAttrMap.webidl \
-  MozTimeManager.webidl \
   MutationEvent.webidl \
   MutationObserver.webidl \
   NetDashboard.webidl \
