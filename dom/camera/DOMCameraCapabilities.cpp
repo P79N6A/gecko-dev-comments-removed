@@ -201,6 +201,13 @@ DOMCameraCapabilities::GetPictureSizes(JSContext* cx, JS::Value* aPictureSizes)
 
 
 NS_IMETHODIMP
+DOMCameraCapabilities::GetThumbnailSizes(JSContext* cx, JS::Value* aThumbnailSizes)
+{
+  return DimensionListToNewObject(cx, aThumbnailSizes, CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES);
+}
+
+
+NS_IMETHODIMP
 DOMCameraCapabilities::GetFileFormats(JSContext* cx, JS::Value* aFileFormats)
 {
   return StringListToNewObject(cx, aFileFormats, CAMERA_PARAM_SUPPORTED_PICTUREFORMATS);
