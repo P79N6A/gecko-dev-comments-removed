@@ -29,8 +29,6 @@ nsDOMCompositionEvent::nsDOMCompositionEvent(mozilla::dom::EventTarget* aOwner,
 
   mData = static_cast<nsCompositionEvent*>(mEvent)->data;
   
-
-  SetIsDOMBinding();
 }
 
 nsDOMCompositionEvent::~nsDOMCompositionEvent()
