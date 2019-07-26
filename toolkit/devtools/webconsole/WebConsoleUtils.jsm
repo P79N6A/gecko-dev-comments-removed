@@ -166,6 +166,31 @@ this.WebConsoleUtils = {
 
 
 
+
+
+  getWindowByOuterId: function WCU_getWindowByOuterId(aOuterId, aHintWindow)
+  {
+    let someWindow = aHintWindow || Services.wm.getMostRecentWindow(null);
+    let content = null;
+
+    if (someWindow) {
+      let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                                   getInterface(Ci.nsIDOMWindowUtils);
+      content = windowUtils.getOuterWindowWithId(aOuterId);
+    }
+
+    return content;
+  },
+
+  
+
+
+
+
+
+
+
+
   abbreviateSourceURL: function WCU_abbreviateSourceURL(aSourceURL)
   {
     
@@ -1306,7 +1331,8 @@ PageErrorListener.prototype =
       }
 
       let errorWindow =
-        Services.wm.getOuterWindowById(aScriptError.outerWindowID);
+        WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID,
+                                           this.window);
       if (!errorWindow || errorWindow.top != this.window) {
         return;
       }
@@ -1445,7 +1471,8 @@ ConsoleAPIListener.prototype =
 
     let apiMessage = aMessage.wrappedJSObject;
     if (this.window) {
-      let msgWindow = Services.wm.getOuterWindowById(apiMessage.ID);
+      let msgWindow = WebConsoleUtils.getWindowByOuterId(apiMessage.ID,
+                                                         this.window);
       if (!msgWindow || msgWindow.top != this.window) {
         
         return;
