@@ -1014,6 +1014,45 @@ class MNop : public MNullaryInstruction
 };
 
 
+
+class MLimitedTruncate : public MUnaryInstruction
+{
+  public:
+    TruncateKind truncate_;
+    TruncateKind truncateLimit_;
+
+  protected:
+    MLimitedTruncate(MDefinition *input, TruncateKind limit)
+      : MUnaryInstruction(input),
+        truncate_(NoTruncate),
+        truncateLimit_(limit)
+    {
+        setResultType(input->type());
+        setResultTypeSet(input->resultTypeSet());
+    }
+
+  public:
+    INSTRUCTION_HEADER(LimitedTruncate)
+    static MLimitedTruncate *New(TempAllocator &alloc, MDefinition *input, TruncateKind kind) {
+        return new(alloc) MLimitedTruncate(input, kind);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+
+    void computeRange(TempAllocator &alloc);
+    bool truncate(TruncateKind kind);
+    TruncateKind operandTruncateKind(size_t index) const;
+    TruncateKind truncateKind() const {
+        return truncate_;
+    }
+    void setTruncateKind(TruncateKind kind) {
+        truncate_ = kind;
+    }
+};
+
+
 class MConstant : public MNullaryInstruction
 {
     Value value_;

@@ -651,7 +651,14 @@ IonBuilder::inlineMathFloor(CallInfo &callInfo)
     
     if (argType == MIRType_Int32 && returnType == MIRType_Int32) {
         callInfo.setImplicitlyUsedUnchecked();
-        current->push(callInfo.getArg(0));
+        
+        
+        
+        
+        MLimitedTruncate *ins = MLimitedTruncate::New(alloc(), callInfo.getArg(0),
+                                                      MDefinition::IndirectTruncate);
+        current->add(ins);
+        current->push(ins);
         return InliningStatus_Inlined;
     }
 
@@ -689,7 +696,14 @@ IonBuilder::inlineMathCeil(CallInfo &callInfo)
     
     if (argType == MIRType_Int32 && returnType == MIRType_Int32) {
         callInfo.setImplicitlyUsedUnchecked();
-        current->push(callInfo.getArg(0));
+        
+        
+        
+        
+        MLimitedTruncate *ins = MLimitedTruncate::New(alloc(), callInfo.getArg(0),
+                                                      MDefinition::IndirectTruncate);
+        current->add(ins);
+        current->push(ins);
         return InliningStatus_Inlined;
     }
 
@@ -719,7 +733,14 @@ IonBuilder::inlineMathRound(CallInfo &callInfo)
     
     if (argType == MIRType_Int32 && returnType == MIRType_Int32) {
         callInfo.setImplicitlyUsedUnchecked();
-        current->push(callInfo.getArg(0));
+        
+        
+        
+        
+        MLimitedTruncate *ins = MLimitedTruncate::New(alloc(), callInfo.getArg(0),
+                                                      MDefinition::IndirectTruncate);
+        current->add(ins);
+        current->push(ins);
         return InliningStatus_Inlined;
     }
 
