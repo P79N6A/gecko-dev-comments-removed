@@ -1,0 +1,129 @@
+
+
+
+
+function waitForCondition(condition, nextTest, errorMsg) {
+  var tries = 0;
+  var interval = setInterval(function() {
+    if (tries >= 30) {
+      ok(false, errorMsg);
+      moveOn();
+    }
+    if (condition()) {
+      moveOn();
+    }
+    tries++;
+  }, 100);
+  var moveOn = function() { clearInterval(interval); nextTest(); };
+}
+
+
+
+function ensureSocialUrlNotRemembered(url) {
+  let gh = Cc["@mozilla.org/browser/global-history;2"]
+           .getService(Ci.nsIGlobalHistory2);
+  let uri = Services.io.newURI(url, null, null);
+  ok(!gh.isVisited(uri), "social URL " + url + " should not be in global history");
+}
+
+function runSocialTestWithProvider(manifest, callback) {
+  let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+
+  let manifests = Array.isArray(manifest) ? manifest : [manifest];
+
+  
+  registerCleanupFunction(function () {
+    manifests.forEach(function (m) {
+      for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
+        if (m[what]) {
+          ensureSocialUrlNotRemembered(m[what]);
+        }
+      }
+    });
+  });
+
+  info("runSocialTestWithProvider: " + manifests.toSource());
+
+  let providersAdded = 0;
+  let firstProvider;
+  manifests.forEach(function (m) {
+    SocialService.addProvider(m, function(provider) {
+      provider.active = true;
+
+      providersAdded++;
+      info("runSocialTestWithProvider: provider added");
+
+      
+      if (provider.origin == manifests[0].origin) {
+        firstProvider = provider;
+      }
+
+      
+      
+      if (providersAdded == manifests.length) {
+        
+        Social.provider = firstProvider;
+        Social.enabled = true;
+
+        registerCleanupFunction(function () {
+          
+          
+          Services.prefs.clearUserPref("social.enabled");
+          
+          
+          
+          
+          manifests.forEach(function (m) {
+            try {
+              SocialService.removeProvider(m.origin, finish);
+            } catch (ex) {}
+          });
+        });
+        function finishSocialTest() {
+          SocialService.removeProvider(provider.origin, finish);
+        }
+        callback(finishSocialTest);
+      }
+    });
+  });
+}
+
+function runSocialTests(tests, cbPreTest, cbPostTest, cbFinish) {
+  let testIter = Iterator(tests);
+
+  if (cbPreTest === undefined) {
+    cbPreTest = function(cb) {cb()};
+  }
+  if (cbPostTest === undefined) {
+    cbPostTest = function(cb) {cb()};
+  }
+
+  function runNextTest() {
+    let name, func;
+    try {
+      [name, func] = testIter.next();
+    } catch (err if err instanceof StopIteration) {
+      
+      (cbFinish || finish)();
+      return;
+    }
+    
+    
+    executeSoon(function() {
+      function cleanupAndRunNextTest() {
+        info("sub-test " + name + " complete");
+        cbPostTest(runNextTest);
+      }
+      cbPreTest(function() {
+        info("sub-test " + name + " starting");
+        try {
+          func.call(tests, cleanupAndRunNextTest);
+        } catch (ex) {
+          ok(false, "sub-test " + name + " failed: " + ex.toString() +"\n"+ex.stack);
+          cleanupAndRunNextTest();
+        }
+      })
+    });
+  }
+  runNextTest();
+}

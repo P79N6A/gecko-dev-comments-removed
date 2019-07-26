@@ -8,8 +8,8 @@ function test() {
   let manifest = { 
     name: "provider 1",
     origin: "https://example.com",
-    sidebarURL: "https://example.com/browser/browser/base/content/test/social_sidebar.html",
-    workerURL: "https://example.com/browser/browser/base/content/test/social_worker.js",
+    sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html",
+    workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
     iconURL: "https://example.com/browser/browser/base/content/test/moz.png"
   };
   let oldwidth = window.outerWidth; 
@@ -102,7 +102,7 @@ var tests = {
   
   
   testWorkerChatWindowMinimized: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     let seen_opened = false;
     ok(port, "provider has a port");
@@ -175,7 +175,7 @@ var tests = {
     }
   },
   testWorkerChatWindow: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.postMessage({topic: "test-init"});
@@ -414,7 +414,7 @@ var tests = {
 
   testSecondTopLevelWindow: function(next) {
     
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     let secondWindow;
     port.onmessage = function(e) {
@@ -437,7 +437,7 @@ var tests = {
   testChatWindowChooser: function(next) {
     
     
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let chatId = 1;
     let port = Social.provider.getWorkerPort();
     port.postMessage({topic: "test-init"});
@@ -481,7 +481,7 @@ var tests = {
   
   
   testCloseOnLogout: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.postMessage({topic: "test-init"});
@@ -552,7 +552,7 @@ function get3ChatsForCollapsing(mode, cb) {
 }
 
 function makeChat(mode, uniqueid, cb) {
-  const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+  const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
   let provider = Social.provider;
   window.SocialChatBar.openChat(provider, chatUrl + "?id=" + uniqueid, function(chat) {
     
