@@ -137,7 +137,7 @@ public:
   
   void NotifyConnection();
   void NotifyClosedConnection();
-  void NotifyDataChannel(mozilla::DataChannel *aChannel);
+  void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel);
 
   
   const nsRefPtr<PeerConnectionMedia>& media() const {
