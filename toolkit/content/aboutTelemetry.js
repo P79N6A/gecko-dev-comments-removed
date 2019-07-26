@@ -171,19 +171,21 @@ let SlowSQL = {
 
 
 
+
   renderTableHeader: function SlowSQL_renderTableHeader(aTable, aTitle) {
     let caption = document.createElement("caption");
-    caption.appendChild(document.createTextNode(aTitle));
+    caption.appendChild(document.createTextNode(aTitle + "\n"));
     aTable.appendChild(caption);
 
     let headings = document.createElement("tr");
-    this.appendColumn(headings, "th", this.slowSqlHits);
-    this.appendColumn(headings, "th", this.slowSqlAverage);
-    this.appendColumn(headings, "th", this.slowSqlStatement);
+    this.appendColumn(headings, "th", this.slowSqlHits + "\t");
+    this.appendColumn(headings, "th", this.slowSqlAverage + "\t");
+    this.appendColumn(headings, "th", this.slowSqlStatement + "\n");
     aTable.appendChild(headings);
   },
 
   
+
 
 
 
@@ -195,9 +197,9 @@ let SlowSQL = {
 
       let sqlRow = document.createElement("tr");
 
-      this.appendColumn(sqlRow, "td", hitCount);
-      this.appendColumn(sqlRow, "td", averageTime.toFixed(0));
-      this.appendColumn(sqlRow, "td", sql);
+      this.appendColumn(sqlRow, "td", hitCount + "\t");
+      this.appendColumn(sqlRow, "td", averageTime.toFixed(0) + "\t");
+      this.appendColumn(sqlRow, "td", sql + "\n");
 
       aTable.appendChild(sqlRow);
     }
@@ -212,8 +214,8 @@ let SlowSQL = {
 
   appendColumn: function SlowSQL_appendColumn(aRowElement, aColType, aColText) {
     let colElement = document.createElement(aColType);
-    let aColTextElement = document.createTextNode(aColText);
-    colElement.appendChild(aColTextElement);
+    let colTextElement = document.createTextNode(aColText);
+    colElement.appendChild(colTextElement);
     aRowElement.appendChild(colElement);
   }
 };
@@ -532,20 +534,22 @@ let KeyValueTable = {
 
 
 
+
   renderHeader: function KeyValueTable_renderHeader(aTable) {
     let headerRow = document.createElement("tr");
     aTable.appendChild(headerRow);
 
     let keysColumn = document.createElement("th");
-    keysColumn.appendChild(document.createTextNode(this.keysHeader));
+    keysColumn.appendChild(document.createTextNode(this.keysHeader + "\t"));
     let valuesColumn = document.createElement("th");
-    valuesColumn.appendChild(document.createTextNode(this.valuesHeader));
+    valuesColumn.appendChild(document.createTextNode(this.valuesHeader + "\n"));
 
     headerRow.appendChild(keysColumn);
     headerRow.appendChild(valuesColumn);
   },
 
   
+
 
 
 
@@ -561,11 +565,11 @@ let KeyValueTable = {
       aTable.appendChild(newRow);
 
       let keyField = document.createElement("td");
-      keyField.appendChild(document.createTextNode(key));
+      keyField.appendChild(document.createTextNode(key + "\t"));
       newRow.appendChild(keyField);
 
       let valueField = document.createElement("td");
-      valueField.appendChild(document.createTextNode(value));
+      valueField.appendChild(document.createTextNode(value + "\n"));
       newRow.appendChild(valueField);
     }
   }
