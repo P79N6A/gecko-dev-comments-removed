@@ -277,7 +277,7 @@ private:
         nsTArray<nsHttpTransaction*> mPendingQ;    
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
-        nsTArray<nsHalfOpenSocket*>  mHalfOpens;
+        nsTArray<nsHalfOpenSocket*>  mHalfOpens;   
 
         
         
