@@ -111,6 +111,13 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
 
 
 #ifdef DEBUG
+  
+
+
+
+
+
+
   {
     
     
@@ -124,6 +131,20 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "dW50cnVzdHdvcnRoeSkgQ0ExEzARBgNVBCkTCmV2LXRlc3QtY2ExLDAqBgkqhkiG"
     "9w0BCQEWHWNoYXJsYXRhbkB0ZXN0aW5nLmV4YW1wbGUuY29t",
     "AK/FPSJmJkky",
+    nullptr
+  },
+  {
+    
+    
+    "1.3.6.1.4.1.13769.666.666.666.1.500.9.1",
+    "DEBUGtesting EV OID",
+    SEC_OID_UNKNOWN,
+    "9C:62:EF:DB:AE:F9:EB:36:58:FB:3B:D3:47:64:93:9D:86:29:6A:E0",
+    "MIGnMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ0ExFjAUBgNVBAcMDU1vdW50YWlu"
+    "IFZpZXcxIzAhBgNVBAoMGk1vemlsbGEgLSBFViBkZWJ1ZyB0ZXN0IENBMR0wGwYD"
+    "VQQLDBRTZWN1cml0eSBFbmdpbmVlcmluZzEvMC0GA1UEAwwmWFBDU2hlbGwgRVYg"
+    "VGVzdGluZyAodW50cnVzdHdvcnRoeSkgQ0E=",
+    "At+3zdo=",
     nullptr
   },
 #endif
@@ -1112,7 +1133,7 @@ nsNSSComponent::IdentityInfoInit()
 
 #ifdef DEBUG
     
-    if (iEV != 0) {
+    if (iEV > 1) {
        NS_ASSERTION(entry.cert, "Could not find EV root in NSS storage");
     }
 #endif
