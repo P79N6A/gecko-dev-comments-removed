@@ -60,6 +60,85 @@ var tests = {
     }
     port.postMessage({topic: "test-init", data: { id: 1 }});
   },
+  testOpenMinimized: function(next) {
+    
+    
+    
+    
+    let chats = document.getElementById("pinnedchats");
+    let port = Social.provider.getWorkerPort();
+    let seen_opened = false;
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "test-init-done":
+          port.postMessage({topic: "test-chatbox-open"});
+          break;
+        case "chatbox-opened":
+          is(e.data.result, "ok", "the sidebar says it got a chatbox");
+          if (!seen_opened) {
+            
+            
+            
+            ok(!chats.selectedChat.minimized, "chat not initially minimized")
+            chats.selectedChat.minimized = true
+            seen_opened = true;
+            port.postMessage({topic: "test-chatbox-open"});
+          } else {
+            
+            
+            let chats = document.getElementById("pinnedchats");
+            ok(!chats.selectedChat.minimized, "chat no longer minimized")
+            chats.selectedChat.close();
+            is(chats.selectedChat, null, "should only have been one chat open");
+            port.close();
+            next();
+          }
+      }
+    }
+    port.postMessage({topic: "test-init", data: { id: 1 }});
+  },
+  
+  
+  
+  testWorkerChatWindowMinimized: function(next) {
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    let port = Social.provider.getWorkerPort();
+    let seen_opened = false;
+    ok(port, "provider has a port");
+    port.postMessage({topic: "test-init"});
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "got-chatbox-message":
+          ok(true, "got a chat window opened");
+          let chats = document.getElementById("pinnedchats");
+          if (!seen_opened) {
+            
+            
+            
+            ok(chats.selectedChat.minimized, "chatbox from worker opened as minimized");
+            seen_opened = true;
+            port.postMessage({topic: "test-worker-chat", data: chatUrl});
+            
+            
+            
+            chats.selectedChat.iframe.contentWindow.wrappedJSObject.pingWorker();
+          } else {
+            
+            
+            let chats = document.getElementById("pinnedchats");
+            ok(chats.selectedChat.minimized, "chat still minimized")
+            chats.selectedChat.close();
+            is(chats.selectedChat, null, "should only have been one chat open");
+            port.close();
+            next();
+          }
+          break;
+      }
+    }
+    port.postMessage({topic: "test-worker-chat", data: chatUrl});
+  },
   testManyChats: function(next) {
     
     
