@@ -208,7 +208,7 @@ public:
 
 private:
   
-  Maybe<nsString> mString;
+  Maybe<nsAutoString> mString;
 
   
   
