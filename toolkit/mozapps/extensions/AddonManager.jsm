@@ -9,6 +9,19 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+
+
+
+
+if ("@mozilla.org/xre/app-info;1" in Cc) {
+  let runtime = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
+  if (runtime.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+    
+    throw new Error("You cannot use the AddonManager in child processes!");
+  }
+}
+
+
 const PREF_BLOCKLIST_PINGCOUNTVERSION = "extensions.blocklist.pingCountVersion";
 const PREF_EM_UPDATE_ENABLED          = "extensions.update.enabled";
 const PREF_EM_LAST_APP_VERSION        = "extensions.lastAppVersion";
