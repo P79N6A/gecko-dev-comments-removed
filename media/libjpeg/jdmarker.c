@@ -304,7 +304,7 @@ get_sos (j_decompress_ptr cinfo)
 
 {
   INT32 length;
-  int i, ci, n, c, cc;
+  int i, ci, n, c, cc, pi;
   jpeg_component_info * compptr;
   INPUT_VARS(cinfo);
 
@@ -348,6 +348,13 @@ get_sos (j_decompress_ptr cinfo)
     
     TRACEMS3(cinfo, 1, JTRC_SOS_COMPONENT, cc,
 	     compptr->dc_tbl_no, compptr->ac_tbl_no);
+
+    
+    for (pi = 0; pi < i; pi++) {
+      if (cinfo->cur_comp_info[pi] == compptr) {
+        ERREXIT1(cinfo, JERR_BAD_COMPONENT_ID, cc);
+      }
+    }
   }
 
   
