@@ -2750,8 +2750,11 @@ nsDocument::SetDocumentURI(nsIURI* aURI)
   nsIURI* newBase = GetDocBaseURI();
 
   bool equalBases = false;
+  
+  
+  
   if (oldBase && newBase) {
-    oldBase->Equals(newBase, &equalBases);
+    oldBase->EqualsExceptRef(newBase, &equalBases);
   }
   else {
     equalBases = !oldBase && !newBase;
