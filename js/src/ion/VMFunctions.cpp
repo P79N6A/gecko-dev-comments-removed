@@ -507,15 +507,11 @@ DebugPrologue(JSContext *cx, BaselineFrame *frame, JSBool *mustReturn)
 {
     *mustReturn = false;
 
-    if (frame->isEvalFrame()) {
-        
-        
-        
-        ScriptFrameIter iter(cx);
-        JS_ASSERT(iter.abstractFramePtr() == AbstractFramePtr(frame));
-        ++iter;
-        frame->setEvalPrev(iter.abstractFramePtr());
-    }
+    
+    
+    
+    if (frame->isEvalFrame())
+        frame->initEvalPrev(cx);
 
     JSTrapStatus status = ScriptDebugPrologue(cx, frame);
     switch (status) {
@@ -541,6 +537,9 @@ DebugPrologue(JSContext *cx, BaselineFrame *frame, JSBool *mustReturn)
 bool
 DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok)
 {
+    
+    UnwindScope(cx, frame, 0);
+
     
     
     

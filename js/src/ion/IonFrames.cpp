@@ -383,6 +383,9 @@ HandleException(JSContext *cx, const IonFrameIterator &frame, ResumeFromExceptio
             continue;
 
         
+        UnwindScope(cx, frame.baselineFrame(), tn->stackDepth);
+
+        
         rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
         rfe->stackPointer = rfe->framePointer - BaselineFrame::Size() -
             (script->nfixed + tn->stackDepth) * sizeof(Value);
