@@ -7,9 +7,6 @@
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 #include "nsUnicharUtils.h"
-#include "nsUnicodeProperties.h"
-#include "nsUnicodeScriptCodes.h"
-#include "harfbuzz/hb.h"
 #include "nsIServiceManager.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
@@ -17,8 +14,6 @@
 #include "nsISupportsPrimitives.h"
 #include "punycode.h"
 
-
-using namespace mozilla::unicode;
 
 
 
@@ -31,8 +26,6 @@ static const uint32_t kMaxDNSNodeLen = 63;
 #define NS_NET_PREF_IDNBLACKLIST    "network.IDN.blacklist_chars"
 #define NS_NET_PREF_SHOWPUNYCODE    "network.IDN_show_punycode"
 #define NS_NET_PREF_IDNWHITELIST    "network.IDN.whitelist."
-#define NS_NET_PREF_IDNUSEWHITELIST "network.IDN.use_whitelist"
-#define NS_NET_PREF_IDNRESTRICTION  "network.IDN.restriction_profile"
 
 inline bool isOnlySafeChars(const nsAFlatString& in,
                               const nsAFlatString& blacklist)
@@ -63,8 +56,6 @@ nsresult nsIDNService::Init()
     prefInternal->AddObserver(NS_NET_PREF_IDNPREFIX, this, true); 
     prefInternal->AddObserver(NS_NET_PREF_IDNBLACKLIST, this, true);
     prefInternal->AddObserver(NS_NET_PREF_SHOWPUNYCODE, this, true);
-    prefInternal->AddObserver(NS_NET_PREF_IDNRESTRICTION, this, true);
-    prefInternal->AddObserver(NS_NET_PREF_IDNUSEWHITELIST, this, true);
     prefsChanged(prefInternal, nullptr);
   }
 
@@ -111,26 +102,6 @@ void nsIDNService::prefsChanged(nsIPrefBranch *prefBranch, const PRUnichar *pref
     if (NS_SUCCEEDED(prefBranch->GetBoolPref(NS_NET_PREF_SHOWPUNYCODE, &val)))
       mShowPunycode = val;
   }
-  if (!pref || NS_LITERAL_STRING(NS_NET_PREF_IDNUSEWHITELIST).Equals(pref)) {
-    bool val;
-    if (NS_SUCCEEDED(prefBranch->GetBoolPref(NS_NET_PREF_IDNUSEWHITELIST,
-                                             &val)))
-      mIDNUseWhitelist = val;
-  }
-  if (!pref || NS_LITERAL_STRING(NS_NET_PREF_IDNRESTRICTION).Equals(pref)) {
-    nsXPIDLCString profile;
-    if (NS_FAILED(prefBranch->GetCharPref(NS_NET_PREF_IDNRESTRICTION,
-                                          getter_Copies(profile)))) {
-      profile.Truncate();
-    }
-    if (profile.Equals(NS_LITERAL_CSTRING("moderate"))) {
-      mRestrictionProfile = eModeratelyRestrictiveProfile;
-    } else if (profile.Equals(NS_LITERAL_CSTRING("high"))) {
-      mRestrictionProfile = eHighlyRestrictiveProfile;
-    } else {
-      mRestrictionProfile = eASCIIOnlyProfile;
-    }
-  }
 }
 
 nsIDNService::nsIDNService()
@@ -156,15 +127,10 @@ nsIDNService::~nsIDNService()
 
 NS_IMETHODIMP nsIDNService::ConvertUTF8toACE(const nsACString & input, nsACString & ace)
 {
-  return UTF8toACE(input, ace, true, true);
+  return UTF8toACE(input, ace, true);
 }
 
-nsresult nsIDNService::SelectiveUTF8toACE(const nsACString& input, nsACString& ace)
-{
-  return UTF8toACE(input, ace, true, false);
-}
-
-nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, bool allowUnassigned, bool convertAllLabels)
+nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, bool allowUnassigned)
 {
   nsresult rv;
   NS_ConvertUTF8toUTF16 ustr(input);
@@ -188,7 +154,7 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
     len++;
     if (*start++ == (PRUnichar)'.') {
       rv = stringPrepAndACE(Substring(ustr, offset, len - 1), encodedBuf,
-                            allowUnassigned, convertAllLabels);
+                            allowUnassigned);
       NS_ENSURE_SUCCESS(rv, rv);
 
       ace.Append(encodedBuf);
@@ -204,7 +170,7 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
   
   if (len) {
     rv = stringPrepAndACE(Substring(ustr, offset, len), encodedBuf,
-                          allowUnassigned, convertAllLabels);
+                          allowUnassigned);
     NS_ENSURE_SUCCESS(rv, rv);
 
     ace.Append(encodedBuf);
@@ -216,21 +182,21 @@ nsresult nsIDNService::UTF8toACE(const nsACString & input, nsACString & ace, boo
 
 NS_IMETHODIMP nsIDNService::ConvertACEtoUTF8(const nsACString & input, nsACString & _retval)
 {
-  return ACEtoUTF8(input, _retval, true, true);
-}
-
-nsresult nsIDNService::SelectiveACEtoUTF8(const nsACString& input, nsACString& _retval)
-{
-  return ACEtoUTF8(input, _retval, false, false);
+  return ACEtoUTF8(input, _retval, true);
 }
 
 nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
-                                 bool allowUnassigned, bool convertAllLabels)
+                                 bool allowUnassigned)
 {
   
   
   
 
+  if (!IsASCII(input)) {
+    _retval.Assign(input);
+    return NS_OK;
+  }
+  
   uint32_t len = 0, offset = 0;
   nsAutoCString decodedBuf;
 
@@ -244,7 +210,7 @@ nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
     len++;
     if (*start++ == '.') {
       if (NS_FAILED(decodeACE(Substring(input, offset, len - 1), decodedBuf,
-                              allowUnassigned, convertAllLabels))) {
+                              allowUnassigned))) {
         _retval.Assign(input);
         return NS_OK;
       }
@@ -258,7 +224,7 @@ nsresult nsIDNService::ACEtoUTF8(const nsACString & input, nsACString & _retval,
   
   if (len) {
     if (NS_FAILED(decodeACE(Substring(input, offset, len), decodedBuf,
-                            allowUnassigned, convertAllLabels)))
+                            allowUnassigned)))
       _retval.Assign(input);
     else
       _retval.Append(decodedBuf);
@@ -335,29 +301,20 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
   
   
 
-  nsresult rv = NS_OK;
-
-  
-  
-  bool isACE;
-  IsACE(input, &isACE);
+  nsresult rv;
 
   if (IsASCII(input)) {
     
     _retval = input;
     ToLowerCase(_retval);
 
-    if (isACE && !mShowPunycode) {
+    bool isACE;
+    IsACE(_retval, &isACE);
+
+    if (isACE && !mShowPunycode && isInWhitelist(_retval)) {
       
       nsAutoCString temp(_retval);
-      if (isInWhitelist(temp)) {
-        
-        ACEtoUTF8(temp, _retval, false, true);
-      } else {
-        
-        
-        SelectiveACEtoUTF8(temp, _retval);
-      }
+      ACEtoUTF8(temp, _retval, false);
       *_isASCII = IsASCII(_retval);
     } else {
       *_isASCII = true;
@@ -366,16 +323,7 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     
     
     
-    
-    
-    
-    if (isACE) {
-      nsAutoCString temp;
-      ACEtoUTF8(input, temp, false, true);
-      rv = Normalize(temp, _retval);
-    } else {
-      rv = Normalize(input, _retval);
-    }
+    rv = Normalize(input, _retval);
     if (NS_FAILED(rv)) return rv;
 
     if (mShowPunycode && NS_SUCCEEDED(ConvertUTF8toACE(_retval, _retval))) {
@@ -388,12 +336,8 @@ NS_IMETHODIMP nsIDNService::ConvertToDisplayIDN(const nsACString & input, bool *
     
     *_isASCII = IsASCII(_retval);
     if (!*_isASCII && !isInWhitelist(_retval)) {
-      
-      
-      
-      rv = SelectiveUTF8toACE(_retval, _retval);
-      *_isASCII = IsASCII(_retval);
-      return rv;
+      *_isASCII = true;
+      return ConvertUTF8toACE(_retval, _retval);
     }
   }
 
@@ -598,8 +542,7 @@ nsresult nsIDNService::encodeToACE(const nsAString& in, nsACString& out)
 }
 
 nsresult nsIDNService::stringPrepAndACE(const nsAString& in, nsACString& out,
-                                        bool allowUnassigned,
-                                        bool convertAllLabels)
+                                        bool allowUnassigned)
 {
   nsresult rv = NS_OK;
 
@@ -612,8 +555,6 @@ nsresult nsIDNService::stringPrepAndACE(const nsAString& in, nsACString& out,
 
   if (IsASCII(in))
     LossyCopyUTF16toASCII(in, out);
-  else if (!convertAllLabels && isLabelSafe(in))
-    CopyUTF16toUTF8(in, out);
   else {
     nsAutoString strPrep;
     rv = stringPrep(in, strPrep, allowUnassigned);
@@ -662,7 +603,7 @@ void nsIDNService::normalizeFullStops(nsAString& s)
 }
 
 nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
-                                 bool allowUnassigned, bool convertAllLabels)
+                                 bool allowUnassigned)
 {
   bool isAce;
   IsACE(in, &isAce);
@@ -692,17 +633,13 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
   nsAutoString utf16;
   ucs4toUtf16(output, utf16);
   delete [] output;
-  if (!convertAllLabels && !isLabelSafe(utf16)) {
-    out.Assign(in);
-    return NS_OK;
-  }
   if (!isOnlySafeChars(utf16, mIDNBlacklist))
     return NS_ERROR_FAILURE;
   CopyUTF16toUTF8(utf16, out);
 
   
   nsAutoCString ace;
-  nsresult rv = UTF8toACE(out, ace, allowUnassigned, true);
+  nsresult rv = UTF8toACE(out, ace, allowUnassigned);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!ace.Equals(in, nsCaseInsensitiveCStringComparator()))
@@ -713,11 +650,11 @@ nsresult nsIDNService::decodeACE(const nsACString& in, nsACString& out,
 
 bool nsIDNService::isInWhitelist(const nsACString &host)
 {
-  if (mIDNUseWhitelist && mIDNWhitelistPrefBranch) {
+  if (mIDNWhitelistPrefBranch) {
     nsAutoCString tld(host);
     
     
-    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, false, true))) {
+    if (!IsASCII(tld) && NS_FAILED(UTF8toACE(tld, tld, false))) {
       return false;
     }
 
@@ -737,173 +674,3 @@ bool nsIDNService::isInWhitelist(const nsACString &host)
   return false;
 }
 
-bool nsIDNService::isLabelSafe(const nsAString &label)
-{
-  
-  NS_ASSERTION(!IsASCII(label), "ASCII label in IDN checking");
-  if (mRestrictionProfile == eASCIIOnlyProfile) {
-    return false;
-  }
-
-  nsAString::const_iterator current, end;
-  label.BeginReading(current);
-  label.EndReading(end);
-
-  int32_t lastScript = MOZ_SCRIPT_INVALID;
-  uint32_t previousChar = 0;
-  uint32_t savedNumberingSystem = 0;
-  HanVariantType savedHanVariant = HVT_NotHan;
-
-  int32_t savedScript = -1;
-
-  while (current != end) {
-    uint32_t ch = *current++;
-
-    if (NS_IS_HIGH_SURROGATE(ch) && current != end &&
-        NS_IS_LOW_SURROGATE(*current)) {
-      ch = SURROGATE_TO_UCS4(ch, *current++);
-    }
-
-    
-    XidmodType xm = GetIdentifierModification(ch);
-    int32_t script = GetScriptCode(ch);
-    if (xm > XIDMOD_RECOMMENDED &&
-        !(xm == XIDMOD_LIMITED_USE &&
-          (script == MOZ_SCRIPT_CANADIAN_ABORIGINAL ||
-           script == MOZ_SCRIPT_MIAO ||
-           script == MOZ_SCRIPT_MONGOLIAN ||
-           script == MOZ_SCRIPT_TIFINAGH ||
-           script == MOZ_SCRIPT_YI))) {
-      return false;
-    }
-
-    
-    if (script != MOZ_SCRIPT_COMMON &&
-        script != MOZ_SCRIPT_INHERITED &&
-        script != lastScript) {
-      if (illegalScriptCombo(script, savedScript)) {
-        return false;
-      }
-      lastScript = script;
-    }
-
-    
-    if (GetGeneralCategory(ch) ==
-        HB_UNICODE_GENERAL_CATEGORY_DECIMAL_NUMBER) {
-      uint32_t zeroCharacter = ch - GetNumericValue(ch);
-      if (savedNumberingSystem == 0) {
-        
-        
-        savedNumberingSystem = zeroCharacter;
-      } else if (zeroCharacter != savedNumberingSystem) {
-        return false;
-      }
-    }
-
-    
-    if (previousChar != 0 &&
-        previousChar == ch &&
-        GetGeneralCategory(ch) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) {
-      return false;
-    }
-
-    
-    HanVariantType hanVariant = GetHanVariant(ch);
-    if (hanVariant == HVT_SimplifiedOnly || hanVariant == HVT_TraditionalOnly) {
-      if (savedHanVariant == HVT_NotHan) {
-        savedHanVariant = hanVariant;
-      } else if (hanVariant != savedHanVariant)  {
-        return false;
-      }
-    }
-
-    previousChar = ch;
-  }
-  return true;
-}
-
-
-static const int32_t scriptTable[] = {
-  MOZ_SCRIPT_BOPOMOFO, MOZ_SCRIPT_CYRILLIC, MOZ_SCRIPT_GREEK,
-  MOZ_SCRIPT_HANGUL,   MOZ_SCRIPT_HAN,      MOZ_SCRIPT_HIRAGANA,
-  MOZ_SCRIPT_KATAKANA, MOZ_SCRIPT_LATIN };
-
-#define BOPO 0
-#define CYRL 1
-#define GREK 2
-#define HANG 3
-#define HANI 4
-#define HIRA 5
-#define KATA 6
-#define LATN 7
-#define OTHR 8
-#define JPAN 9    // Latin + Han + Hiragana + Katakana
-#define CHNA 10   // Latin + Han + Bopomofo
-#define KORE 11   // Latin + Han + Hangul
-#define HNLT 12   // Latin + Han (could be any of the above combinations)
-#define FAIL 13
-
-static inline int32_t findScriptIndex(int32_t aScript)
-{
-  int32_t tableLength = sizeof(scriptTable) / sizeof(int32_t);
-  for (int32_t index = 0; index < tableLength; ++index) {
-    if (aScript == scriptTable[index]) {
-      return index;
-    }
-  }
-  return OTHR;
-}
-
-static const int32_t scriptComboTable[13][9] = {
-
-
-   { BOPO, FAIL, FAIL, FAIL, CHNA, FAIL, FAIL, CHNA, FAIL },
-   { FAIL, CYRL, FAIL, FAIL, FAIL, FAIL, FAIL, FAIL, FAIL },
-   { FAIL, FAIL, GREK, FAIL, FAIL, FAIL, FAIL, FAIL, FAIL },
-   { FAIL, FAIL, FAIL, HANG, KORE, FAIL, FAIL, KORE, FAIL },
-   { CHNA, FAIL, FAIL, KORE, HANI, JPAN, JPAN, HNLT, FAIL },
-   { FAIL, FAIL, FAIL, FAIL, JPAN, HIRA, JPAN, JPAN, FAIL },
-   { FAIL, FAIL, FAIL, FAIL, JPAN, JPAN, KATA, JPAN, FAIL },
-   { CHNA, FAIL, FAIL, KORE, HNLT, JPAN, JPAN, LATN, OTHR },
-   { FAIL, FAIL, FAIL, FAIL, FAIL, FAIL, FAIL, OTHR, FAIL },
-   { FAIL, FAIL, FAIL, FAIL, JPAN, JPAN, JPAN, JPAN, FAIL },
-   { CHNA, FAIL, FAIL, FAIL, CHNA, FAIL, FAIL, CHNA, FAIL },
-   { FAIL, FAIL, FAIL, KORE, KORE, FAIL, FAIL, KORE, FAIL },
-   { CHNA, FAIL, FAIL, KORE, HNLT, JPAN, JPAN, HNLT, FAIL }
-};
-
-bool nsIDNService::illegalScriptCombo(int32_t script, int32_t& savedScript)
-{
-  if (savedScript == -1) {
-    savedScript = findScriptIndex(script);
-    return false;
-  }
-
-  savedScript = scriptComboTable[savedScript] [findScriptIndex(script)];
-  
-
-
-
-
-
-
-
-  return ((savedScript == OTHR &&
-           mRestrictionProfile == eHighlyRestrictiveProfile) ||
-          savedScript == FAIL);
-}
-
-#undef BOPO
-#undef CYRL
-#undef GREK
-#undef HANG
-#undef HANI
-#undef HIRA
-#undef KATA
-#undef LATN
-#undef OTHR
-#undef JPAN
-#undef CHNA
-#undef KORE
-#undef HNLT
-#undef FAIL
