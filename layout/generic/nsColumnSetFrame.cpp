@@ -99,6 +99,7 @@ protected:
     nscoord mExpectedWidthLeftOver;
     nscoord mColGap;
     nscoord mColMaxHeight;
+    bool mIsBalancing;
   };
 
   
@@ -433,7 +434,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
   printf("*** nsColumnSetFrame::ChooseColumnStrategy: numColumns=%d, colWidth=%d, expectedWidthLeftOver=%d, colHeight=%d, colGap=%d\n",
          numColumns, colWidth, expectedWidthLeftOver, colHeight, colGap);
 #endif
-  ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap, colHeight };
+  ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap,
+                          colHeight, isBalancing };
   return config;
 }
 
@@ -912,7 +914,6 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
 
   ReflowConfig config = ChooseColumnStrategy(aReflowState);
-  bool isBalancing = config.mBalanceColCount < INT32_MAX;
   
   
   
@@ -921,7 +922,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
   
   nsIFrame* nextInFlow = GetNextInFlow();
-  bool unboundedLastColumn = isBalancing && !nextInFlow;
+  bool unboundedLastColumn = config.mIsBalancing && !nextInFlow;
   nsCollapsingMargin carriedOutBottomMargin;
   ColumnBalanceData colData;
   colData.mShouldRevertToAuto = false;
@@ -935,13 +936,13 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   do {
     if (colData.mShouldRevertToAuto) {
       config = ChooseColumnStrategy(aReflowState, true);
-      isBalancing = false;
+      config.mIsBalancing = false;
     }
 
     bool feasible = ReflowChildren(aDesiredSize, aReflowState,
       aStatus, config, unboundedLastColumn, &carriedOutBottomMargin, colData);
 
-    if (isBalancing && !aPresContext->HasPendingInterrupt()) {
+    if (config.mIsBalancing && !aPresContext->HasPendingInterrupt()) {
       nscoord availableContentHeight = GetAvailableContentHeight(aReflowState);
 
       
