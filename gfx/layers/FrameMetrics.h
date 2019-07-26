@@ -36,7 +36,7 @@ public:
   
   typedef uint64_t ViewID;
   static const ViewID NULL_SCROLL_ID;   
-  static const ViewID START_SCROLL_ID;  
+  static const ViewID START_SCROLL_ID = 2;  
                                         
 
   FrameMetrics()
@@ -54,7 +54,6 @@ public:
     , mMayHaveTouchListeners(false)
     , mPresShellId(-1)
     , mIsRoot(false)
-    , mHasScrollgrab(false)
   {}
 
   
@@ -257,9 +256,6 @@ public:
 
   
   bool mIsRoot;
-
-  
-  bool mHasScrollgrab;
 };
 
 
