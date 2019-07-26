@@ -802,7 +802,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
 
-#if defined(MOZ_DEBUG)
+#if defined(DEBUG)
   
   
   const char *envvar = PR_GetEnv("MOZ_CRASHREPORTER");
