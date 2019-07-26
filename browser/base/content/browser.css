@@ -397,6 +397,14 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   opacity: 0.0;
 }
 
+
+
+
+
+#full-screen-warning-container:not([obscure-browser]) {
+  pointer-events: none;
+}
+
 #full-screen-warning-message {
   
 

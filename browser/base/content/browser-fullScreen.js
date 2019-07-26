@@ -88,12 +88,10 @@ var FullScreen = {
 
   handleEvent: function (event) {
     switch (event.type) {
-      case "deactivate":
-        
-        
-        
-        
-        setTimeout(this.exitDomFullScreen.bind(this), 0);
+      case "activate":
+        if (document.mozFullScreen) {
+          this.showWarning(this.fullscreenDoc);
+        }
         break;
       case "transitionend":
         if (event.propertyName == "opacity")
@@ -139,9 +137,10 @@ var FullScreen = {
     gBrowser.tabContainer.addEventListener("TabSelect", this.exitDomFullScreen);
 
     
-    if (!this.useLionFullScreen &&
-        gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
-      window.addEventListener("deactivate", this);
+    
+    
+    if (!this.useLionFullScreen) {
+      window.addEventListener("activate", this);
     }
 
     
@@ -171,7 +170,8 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
       if (!this.useLionFullScreen)
-        window.removeEventListener("deactivate", this);
+        window.removeEventListener("activate", this);
+      this.fullscreenDoc = null;
     }
   },
 
@@ -307,7 +307,6 @@ var FullScreen = {
   cancelWarning: function(event) {
     if (!this.warningBox)
       return;
-    this.fullscreenDoc = null;
     this.warningBox.removeEventListener("transitionend", this);
     if (this.warningFadeOutTimeout) {
       clearTimeout(this.warningFadeOutTimeout);
