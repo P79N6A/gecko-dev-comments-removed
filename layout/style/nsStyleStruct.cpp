@@ -1258,7 +1258,6 @@ nsStylePosition::nsStylePosition(void)
   
   
   
-
   
 }
 
