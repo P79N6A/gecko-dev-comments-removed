@@ -16,7 +16,10 @@ this.UpdateChannel = {
 
 
 
-  get: function UpdateChannel_get() {
+
+
+
+  get: function UpdateChannel_get(aIncludePartners = true) {
     let channel = "@MOZ_UPDATE_CHANNEL@";
     let defaults = Services.prefs.getDefaultBranch(null);
     try {
@@ -25,16 +28,18 @@ this.UpdateChannel = {
       
     }
 
-    try {
-      let partners = Services.prefs.getChildList("app.partner.").sort();
-      if (partners.length) {
-        channel += "-cck";
-        partners.forEach(function (prefName) {
-          channel += "-" + Services.prefs.getCharPref(prefName);
-        });
+    if (aIncludePartners) {
+      try {
+        let partners = Services.prefs.getChildList("app.partner.").sort();
+        if (partners.length) {
+          channel += "-cck";
+          partners.forEach(function (prefName) {
+            channel += "-" + Services.prefs.getCharPref(prefName);
+          });
+        }
+      } catch (e) {
+        Cu.reportError(e);
       }
-    } catch (e) {
-      Cu.reportError(e);
     }
 
     return channel;
