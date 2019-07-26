@@ -94,6 +94,10 @@ var LoginManagerContent = {
         return this.__formFillService;
     },
 
+    
+
+
+
 
     onFormPassword: function (event) {
       if (!event.isTrusted)
@@ -145,7 +149,7 @@ var LoginManagerContent = {
 
       let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isWindowPrivate(doc.defaultView);
 
-      this._fillForm(form, autofillForm, false, false, null);
+      this._fillForm(form, autofillForm, false, false, false, null);
     },
 
 
@@ -192,7 +196,7 @@ var LoginManagerContent = {
             if (!Services.logins.isLoggedIn)
                 return;
 
-            this._fillForm(acForm, true, true, true, null);
+            this._fillForm(acForm, true, true, true, true, null);
         } else {
             
         }
@@ -549,8 +553,12 @@ var LoginManagerContent = {
 
 
 
+
+
+
+
     _fillForm : function (form, autofillForm, ignoreAutocomplete,
-                          clobberPassword, foundLogins) {
+                          clobberPassword, userTriggered, foundLogins) {
         
         
         
@@ -652,7 +660,16 @@ var LoginManagerContent = {
             let matchingLogins = logins.filter(function(l)
                                      l.username.toLowerCase() == username);
             if (matchingLogins.length) {
-                selectedLogin = matchingLogins[0];
+                
+                for (let l of matchingLogins) {
+                    if (l.username == usernameField.value) {
+                        selectedLogin = l;
+                    }
+                }
+                
+                if (!selectedLogin) {
+                  selectedLogin = matchingLogins[0];
+                }
             } else {
                 didntFillReason = "existingUsername";
                 log("Password not filled. None of the stored logins match the username already present.");
@@ -680,9 +697,24 @@ var LoginManagerContent = {
         var didFillForm = false;
         if (selectedLogin && autofillForm && !isFormDisabled) {
             
-            
-            if (usernameField && !(usernameField.disabled || usernameField.readOnly))
-                usernameField.value = selectedLogin.username;
+
+            if (usernameField) {
+                
+                let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
+
+                
+                
+                
+                dump("field value: " + usernameField.value + "\n");
+                dump("selectedLogin value: " + selectedLogin.username + "\n");
+                let userEnteredDifferentCase = userTriggered &&
+                      (usernameField.value != selectedLogin.username &&
+                       usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase());
+    
+                if (!disabledOrReadOnly && !userEnteredDifferentCase) {
+                    usernameField.value = selectedLogin.username;
+                }
+            }
             passwordField.value = selectedLogin.password;
             didFillForm = true;
         } else if (selectedLogin && !autofillForm) {
