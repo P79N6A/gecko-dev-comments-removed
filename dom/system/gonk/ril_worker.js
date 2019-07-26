@@ -8951,7 +8951,7 @@ let ICCRecordHelper = {
 
       if (ICCUtilsHelper.isICCServiceAvailable("PNN")) {
         if (DEBUG) debug("PNN: PNN is available");
-        this.getPNN();
+        this.readPNN();
       } else {
         if (DEBUG) debug("PNN: PNN is not available");
       }
@@ -9465,7 +9465,7 @@ let ICCRecordHelper = {
 
 
 
-  getPNN: function getPNN() {
+  readPNN: function readPNN() {
     let pnn = [];
     function callback(options) {
       let pnnElement = {
