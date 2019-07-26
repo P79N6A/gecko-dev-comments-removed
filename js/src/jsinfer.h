@@ -1291,10 +1291,7 @@ struct CompilerOutput
     
     
     unsigned kindInt : 2;
-    bool constructing : 1;
-    bool barriers : 1;
     bool pendingRecompilation : 1;
-    uint32_t chunkIndex:27;
 
     CompilerOutput();
 
@@ -1369,14 +1366,6 @@ struct TypeCompartment
 
 
 
-    unsigned recompilations;
-    unsigned frameExpansions;
-
-    
-
-
-
-
     RecompileInfo compiledInfo;
 
     
@@ -1433,7 +1422,7 @@ struct TypeCompartment
 
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
-    void addPendingRecompile(JSContext *cx, JSScript *script, jsbytecode *pc);
+    void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
     void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,
