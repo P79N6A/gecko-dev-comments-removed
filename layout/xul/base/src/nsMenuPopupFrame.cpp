@@ -1318,10 +1318,11 @@ nsMenuPopupFrame::GetConstraintRect(const nsRect& aAnchorRect,
     
     
     nsRect rect = mInContentShell ? aRootScreenRect : aAnchorRect;
-    int32_t width = rect.width > 0 ? presContext->AppUnitsToDevPixels(rect.width) : 1;
-    int32_t height = rect.height > 0 ? presContext->AppUnitsToDevPixels(rect.height) : 1;
-    sm->ScreenForRect(presContext->AppUnitsToDevPixels(rect.x),
-                      presContext->AppUnitsToDevPixels(rect.y),
+    
+    int32_t width = NS_MAX(1, nsPresContext::AppUnitsToIntCSSPixels(rect.width));
+    int32_t height = NS_MAX(1, nsPresContext::AppUnitsToIntCSSPixels(rect.height));
+    sm->ScreenForRect(nsPresContext::AppUnitsToIntCSSPixels(rect.x),
+                      nsPresContext::AppUnitsToIntCSSPixels(rect.y),
                       width, height, getter_AddRefs(screen));
     if (screen) {
       
