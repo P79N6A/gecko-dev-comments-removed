@@ -45,11 +45,29 @@ protected:
   nsRefPtr<CacheFileChunk>         mChunk;
 };
 
+bool
+CacheFileChunk::DispatchRelease()
+{
+  if (NS_IsMainThread()) {
+    return false;
+  }
+
+  nsRefPtr<nsRunnableMethod<CacheFileChunk, MozExternalRefCountType, false> > event =
+    NS_NewNonOwningRunnableMethod(this, &CacheFileChunk::Release);
+  NS_DispatchToMainThread(event);
+
+  return true;
+}
 
 NS_IMPL_ADDREF(CacheFileChunk)
 NS_IMETHODIMP_(MozExternalRefCountType)
 CacheFileChunk::Release()
 {
+  if (DispatchRelease()) {
+    
+    return mRefCnt - 1;
+  }
+
   NS_PRECONDITION(0 != mRefCnt, "dup release");
   nsrefcnt count = --mRefCnt;
   NS_LOG_RELEASE(this, count, "CacheFileChunk");
@@ -60,8 +78,18 @@ CacheFileChunk::Release()
     return 0;
   }
 
-  if (!mRemovingChunk && count == 1) {
-    mFile->RemoveChunk(this);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mActiveChunk && count == 1) {
+    mFile->DeactivateChunk(this);
   }
 
   return count;
@@ -78,7 +106,7 @@ CacheFileChunk::CacheFileChunk(CacheFile *aFile, uint32_t aIndex)
   , mState(INITIAL)
   , mStatus(NS_OK)
   , mIsDirty(false)
-  , mRemovingChunk(false)
+  , mActiveChunk(false)
   , mDataSize(0)
   , mBuf(nullptr)
   , mBufSize(0)
