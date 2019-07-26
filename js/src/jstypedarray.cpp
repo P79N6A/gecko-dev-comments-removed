@@ -3185,7 +3185,6 @@ Class js::ArrayBufferClass = {
         ArrayBufferObject::obj_deleteSpecial,
         ArrayBufferObject::obj_enumerate,
         NULL,       
-        NULL,       
     }
 };
 
@@ -3356,7 +3355,6 @@ IMPL_TYPED_ARRAY_COMBINED_UNWRAPPERS(Float64, double, double)
         _typedArray::obj_deleteElement,                                        \
         _typedArray::obj_deleteSpecial,                                        \
         _typedArray::obj_enumerate,                                            \
-        NULL,                /* typeOf      */                                 \
         NULL,                /* thisObject  */                                 \
     }                                                                          \
 }

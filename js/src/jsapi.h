@@ -1013,12 +1013,6 @@ typedef JSBool
 typedef JSBool
 (* JSConvertOp)(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp);
 
-
-
-
-typedef JSType
-(* JSTypeOfOp)(JSContext *cx, JSHandleObject obj);
-
 typedef struct JSFreeOp JSFreeOp;
 
 struct JSFreeOp {

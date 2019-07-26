@@ -73,13 +73,6 @@ JSObject::defaultValue(JSContext *cx, js::HandleObject obj, JSType hint, js::Mut
     return ok;
 }
 
- inline JSType
-JSObject::typeOf(JSContext *cx, js::HandleObject obj)
-{
-    js::TypeOfOp op = obj->getOps()->typeOf;
-    return (op ? op : js::baseops::TypeOf)(cx, obj);
-}
-
  inline JSObject *
 JSObject::thisObject(JSContext *cx, js::HandleObject obj)
 {
