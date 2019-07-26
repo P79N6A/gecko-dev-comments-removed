@@ -57,9 +57,11 @@ void JS_FASTCALL ScriptProbeOnlyEpilogue(VMFrame &f);
 
 
 struct UncachedCallResult {
-    JSFunction *fun;          
-    void       *codeAddr;     
-    bool       unjittable;    
+    RootedFunction fun;        
+    void           *codeAddr;  
+    bool           unjittable; 
+
+    UncachedCallResult(JSContext *cx) : fun(cx) {}
 
     void init() {
         fun = NULL;
@@ -73,8 +75,8 @@ struct UncachedCallResult {
 
 
 
-void UncachedCallHelper(VMFrame &f, uint32_t argc, bool lowered, UncachedCallResult *ucr);
-void UncachedNewHelper(VMFrame &f, uint32_t argc, UncachedCallResult *ucr);
+void UncachedCallHelper(VMFrame &f, uint32_t argc, bool lowered, UncachedCallResult &ucr);
+void UncachedNewHelper(VMFrame &f, uint32_t argc, UncachedCallResult &ucr);
 
 void JS_FASTCALL CreateThis(VMFrame &f, JSObject *proto);
 void JS_FASTCALL Throw(VMFrame &f);

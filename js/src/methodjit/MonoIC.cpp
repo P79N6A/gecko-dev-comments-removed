@@ -1209,11 +1209,11 @@ class CallCompiler : public BaseCompiler
 
         StackFrame *initialFp = f.fp();
 
-        stubs::UncachedCallResult ucr;
+        stubs::UncachedCallResult ucr(f.cx);
         if (callingNew)
-            stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), &ucr);
+            stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), ucr);
         else
-            stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), lowered, &ucr);
+            stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), lowered, ucr);
 
         
         
