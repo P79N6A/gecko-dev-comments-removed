@@ -8,9 +8,12 @@ let tempScope = {};
 
 Cu.import("resource://gre/modules/NetUtil.jsm", tempScope);
 Cu.import("resource://gre/modules/FileUtils.jsm", tempScope);
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", tempScope);
+
 
 let NetUtil = tempScope.NetUtil;
 let FileUtils = tempScope.FileUtils;
+let Promise = tempScope.Promise;
 
 let gScratchpadWindow; 
 
@@ -103,6 +106,82 @@ function createTempFile(aName, aContent, aCallback=function(){})
     aCallback(aStatus, file);
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function runAsyncTests(aScratchpad, aTests)
+{
+  let deferred = Promise.defer();
+
+  (function runTest() {
+    if (aTests.length) {
+      let test = aTests.shift();
+      aScratchpad.setText(test.code);
+      aScratchpad[test.method]().then(function success() {
+        is(aScratchpad.getText(), test.result, test.label);
+        runTest();
+      }, function failure(error) {
+        ok(false, error.stack + " " + test.label);
+        runTest();
+      });
+    } else {
+      deferred.resolve();
+    }
+  })();
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function runAsyncCallbackTests(aScratchpad, aTests)
+{
+  let deferred = Promise.defer();
+
+  (function runTest() {
+    if (aTests.length) {
+      let test = aTests.shift();
+      test.prepare();
+      aScratchpad[test.method]().then(test.then.bind(test)).then(runTest);
+    } else {
+      deferred.resolve();
+    }
+  })();
+
+  return deferred.promise;
+}
+
 
 function cleanup()
 {

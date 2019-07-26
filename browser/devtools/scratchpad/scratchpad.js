@@ -28,7 +28,8 @@ Cu.import("resource:///modules/devtools/scratchpad-manager.jsm");
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 Cu.import("resource:///modules/devtools/Target.jsm");
-Cu.import("resource://gre/modules/osfile.jsm")
+Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 
 const SCRATCHPAD_CONTEXT_CONTENT = 1;
 const SCRATCHPAD_CONTEXT_BROWSER = 2;
@@ -361,59 +362,34 @@ var Scratchpad = {
 
 
 
-  evalInContentSandbox: function SP_evalInContentSandbox(aString)
-  {
-    let error, result;
-    try {
-      result = Cu.evalInSandbox(aString, this.contentSandbox, "1.8",
-                                this.uniqueName, 1);
-    }
-    catch (ex) {
-      error = ex;
-    }
-
-    return [error, result];
-  },
-
-  
-
-
-
-
-
-
-
-  evalInChromeSandbox: function SP_evalInChromeSandbox(aString)
-  {
-    let error, result;
-    try {
-      result = Cu.evalInSandbox(aString, this.chromeSandbox, "1.8",
-                                this.uniqueName, 1);
-    }
-    catch (ex) {
-      error = ex;
-    }
-
-    return [error, result];
-  },
-
-  
-
-
-
-
-
-
-
 
   evalForContext: function SP_evaluateForContext(aString)
   {
-    return this.executionContext == SCRATCHPAD_CONTEXT_CONTENT ?
-           this.evalInContentSandbox(aString) :
-           this.evalInChromeSandbox(aString);
+    let deferred = Promise.defer();
+
+    
+    
+    
+    
+    setTimeout(() => {
+      let chrome = this.executionContext != SCRATCHPAD_CONTEXT_CONTENT;
+      let sandbox = chrome ? this.chromeSandbox : this.contentSandbox;
+      let name = this.uniqueName;
+
+      try {
+        let result = Cu.evalInSandbox(aString, sandbox, "1.8", name, 1);
+        deferred.resolve([aString, undefined, result]);
+      }
+      catch (ex) {
+        deferred.resolve([aString, ex]);
+      }
+    }, 0);
+
+    return deferred.promise;
   },
 
   
+
 
 
 
@@ -422,42 +398,51 @@ var Scratchpad = {
   execute: function SP_execute()
   {
     let selection = this.selectedText || this.getText();
-    let [error, result] = this.evalForContext(selection);
-    return [selection, error, result];
+    return this.evalForContext(selection);
   },
 
   
+
+
+
 
 
 
   run: function SP_run()
   {
-    let [selection, error, result] = this.execute();
-
-    if (!error) {
-      this.deselect();
-    } else {
-      this.writeAsErrorComment(error);
-    }
-
-    return [selection, error, result];
+    let promise = this.execute();
+    promise.then(([, aError, ]) => {
+      if (aError) {
+        this.writeAsErrorComment(aError);
+      }
+      else {
+        this.deselect();
+      }
+    });
+    return promise;
   },
 
   
+
+
+
 
 
 
 
   inspect: function SP_inspect()
   {
-    let [selection, error, result] = this.execute();
-
-    if (!error) {
-      this.deselect();
-      this.openPropertyPanel(selection, result);
-    } else {
-      this.writeAsErrorComment(error);
-    }
+    let promise = this.execute();
+    promise.then(([aString, aError, aResult]) => {
+      if (aError) {
+        this.writeAsErrorComment(aError);
+      }
+      else {
+        this.deselect();
+        this.openPropertyPanel(aString, aResult);
+      }
+    });
+    return promise;
   },
 
   
@@ -465,8 +450,13 @@ var Scratchpad = {
 
 
 
+
+
+
   reloadAndRun: function SP_reloadAndRun()
   {
+    let deferred = Promise.defer();
+
     if (this.executionContext !== SCRATCHPAD_CONTEXT_CONTENT) {
       Cu.reportError(this.strings.
           GetStringFromName("scratchpadContext.invalid"));
@@ -475,17 +465,20 @@ var Scratchpad = {
 
     let browser = this.gBrowser.selectedBrowser;
 
-    this._reloadAndRunEvent = function onLoad(evt) {
+    this._reloadAndRunEvent = evt => {
       if (evt.target !== browser.contentDocument) {
         return;
       }
 
       browser.removeEventListener("load", this._reloadAndRunEvent, true);
-      this.run();
-    }.bind(this);
+
+      this.run().then(aResults => deferred.resolve(aResults));
+    };
 
     browser.addEventListener("load", this._reloadAndRunEvent, true);
     browser.contentWindow.location.reload();
+
+    return deferred.promise;
   },
 
   
@@ -494,15 +487,21 @@ var Scratchpad = {
 
 
 
+
+
+
   display: function SP_display()
   {
-    let [selectedText, error, result] = this.execute();
-
-    if (!error) {
-      this.writeAsComment(result);
-    } else {
-      this.writeAsErrorComment(error);
-    }
+    let promise = this.execute();
+    promise.then(([aString, aError, aResult]) => {
+      if (aError) {
+        this.writeAsErrorComment(aError);
+      }
+      else {
+        this.writeAsComment(aResult);
+      }
+    });
+    return promise;
   },
 
   
@@ -567,7 +566,6 @@ var Scratchpad = {
 
   openPropertyPanel: function SP_openPropertyPanel(aEvalString, aOutputObject)
   {
-    let self = this;
     let propPanel;
     
     
@@ -583,12 +581,12 @@ var Scratchpad = {
                GetStringFromName("propertyPanel.updateButton.label"),
         accesskey: this.strings.
                    GetStringFromName("propertyPanel.updateButton.accesskey"),
-        oncommand: function _SP_PP_Update_onCommand() {
-          let [error, result] = self.evalForContext(aEvalString);
-
-          if (!error) {
-            propPanel.treeView.data = { object: result };
-          }
+        oncommand: () => {
+          this.evalForContext(aEvalString).then(([, aError, aResult]) => {
+            if (!aError) {
+              propPanel.treeView.data = { object: aResult };
+            }
+          });
         }
       });
     }
