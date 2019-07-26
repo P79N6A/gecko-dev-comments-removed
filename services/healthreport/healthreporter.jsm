@@ -357,9 +357,11 @@ HealthReporter.prototype = Object.freeze({
     
     this._shutdownInitiated = true;
 
-    if (this._initialized) {
+    
+    
+    try {
       Services.obs.removeObserver(this, "idle-daily");
-    }
+    } catch (ex) { }
 
     
     if (this._collector) {
