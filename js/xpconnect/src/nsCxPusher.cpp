@@ -106,17 +106,18 @@ nsCxPusher::Push(JSContext *cx)
   MOZ_ASSERT(!mPushedSomething, "No double pushing with nsCxPusher::Push()!");
   MOZ_ASSERT(cx);
 
-  
-  
-  
-  mScx = GetScriptContextFromJSContext(cx);
-
   DoPush(cx);
 }
 
 void
 nsCxPusher::DoPush(JSContext* cx)
 {
+  
+  
+  
+  if (cx)
+    mScx = GetScriptContextFromJSContext(cx);
+
   
   if (cx && nsJSUtils::GetDynamicScriptContext(cx) &&
       xpc::IsJSContextOnStack(cx))
