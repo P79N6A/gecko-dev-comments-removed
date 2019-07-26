@@ -237,7 +237,7 @@ class CallObject : public ScopeObject
 
     
     static CallObject *
-    create(JSContext *cx, HandleScript script, HandleShape shape, HandleTypeObject type);
+    create(JSContext *cx, HandleScript script, HandleShape shape, HandleTypeObject type, HeapSlot *slots);
 
     static CallObject *
     createTemplateObject(JSContext *cx, HandleScript script, gc::InitialHeap heap);

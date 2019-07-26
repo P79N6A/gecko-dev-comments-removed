@@ -187,10 +187,6 @@ class JitRuntime
     JitCode *shapePreBarrier_;
 
     
-    JitCode *mallocStub_;
-    JitCode *freeStub_;
-
-    
     JitCode *debugTrapHandler_;
 
     
@@ -225,8 +221,6 @@ class JitRuntime
     JitCode *generateBailoutHandler(JSContext *cx);
     JitCode *generateInvalidator(JSContext *cx);
     JitCode *generatePreBarrier(JSContext *cx, MIRType type);
-    JitCode *generateMallocStub(JSContext *cx);
-    JitCode *generateFreeStub(JSContext *cx);
     JitCode *generateDebugTrapHandler(JSContext *cx);
     JitCode *generateForkJoinGetSliceStub(JSContext *cx);
     JitCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
@@ -330,14 +324,6 @@ class JitRuntime
 
     JitCode *shapePreBarrier() const {
         return shapePreBarrier_;
-    }
-
-    JitCode *mallocStub() const {
-        return mallocStub_;
-    }
-
-    JitCode *freeStub() const {
-        return freeStub_;
     }
 
     bool ensureForkJoinGetSliceStubExists(JSContext *cx);
