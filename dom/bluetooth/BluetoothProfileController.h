@@ -89,7 +89,12 @@ public:
 
 
 
-  void Start();
+  void StartSession();
+
+  
+
+
+  void EndSession();
 
   
 

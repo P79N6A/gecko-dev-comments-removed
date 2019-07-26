@@ -3244,7 +3244,7 @@ NextBluetoothProfileController()
 
   
   NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
-  sControllerArray[0]->Start();
+  sControllerArray[0]->StartSession();
 }
 
 static void
@@ -3267,7 +3267,7 @@ ConnectDisconnect(bool aConnect, const nsAString& aDeviceAddress,
 
 
   if (sControllerArray.Length() == 1) {
-    sControllerArray[0]->Start();
+    sControllerArray[0]->StartSession();
   }
 }
 
