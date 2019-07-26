@@ -773,11 +773,9 @@ MediaRule::MediaRule(const MediaRule& aCopy)
   : GroupRule(aCopy)
 {
   if (aCopy.mMedia) {
-    aCopy.mMedia->Clone(getter_AddRefs(mMedia));
-    if (mMedia) {
-      
-      mMedia->SetStyleSheet(aCopy.GetStyleSheet());
-    }
+    mMedia = aCopy.mMedia->Clone();
+    
+    mMedia->SetStyleSheet(aCopy.GetStyleSheet());
   }
 }
 
