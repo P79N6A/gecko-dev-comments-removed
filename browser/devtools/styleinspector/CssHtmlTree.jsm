@@ -133,6 +133,7 @@ this.CssHtmlTree = function CssHtmlTree(aStyleInspector)
   this.getRTLAttr = chromeReg.isLocaleRTL("global") ? "rtl" : "ltr";
 
   
+  this.siFocusWindow = this.focusWindow.bind(this);
   this.siBoundMenuUpdate = this.computedViewMenuUpdate.bind(this);
   this.siBoundCopy = this.computedViewCopy.bind(this);
   this.siBoundCopyDeclaration = this.computedViewCopyDeclaration.bind(this);
@@ -140,6 +141,7 @@ this.CssHtmlTree = function CssHtmlTree(aStyleInspector)
   this.siBoundCopyPropertyValue = this.computedViewCopyPropertyValue.bind(this);
 
   this.styleDocument.addEventListener("copy", this.siBoundCopy);
+  this.styleDocument.addEventListener("mousedown", this.siFocusWindow);
 
   
   this.root = this.styleDocument.getElementById("root");
@@ -562,6 +564,17 @@ CssHtmlTree.prototype = {
 
 
 
+  focusWindow: function si_focusWindow(aEvent)
+  {
+    let win = this.styleDocument.defaultView;
+    win.focus();
+  },
+
+  
+
+
+
+
   computedViewCopy: function si_computedViewCopy(aEvent)
   {
     let win = this.styleDocument.defaultView;
@@ -704,6 +717,7 @@ CssHtmlTree.prototype = {
 
     
     this.styleDocument.removeEventListener("copy", this.siBoundCopy);
+    this.styleDocument.removeEventListener("mousedown", this.siFocusWindow);
 
     
     delete this.root;
