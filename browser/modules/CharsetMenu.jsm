@@ -82,7 +82,7 @@ const kPinned = [
 ];
 
 this.CharsetMenu = Object.freeze({
-  build: function BuildCharsetMenu(event) {
+  build: function BuildCharsetMenu(event, showAccessKeys) {
     let parent = event.target;
     if (parent.lastChild.localName != "menuseparator") {
       
@@ -100,11 +100,13 @@ this.CharsetMenu = Object.freeze({
         
         menuItem.setAttribute("label", encoding);
       }
-      try {
-        menuItem.setAttribute("accesskey",
-                              gBundle.GetStringFromName(encoding + ".key"));
-      } catch (e) {
-        
+      if (showAccessKeys) {
+        try {
+          menuItem.setAttribute("accesskey",
+                                gBundle.GetStringFromName(encoding + ".key"));
+        } catch (e) {
+          
+        }
       }
       menuItem.setAttribute("id", "charset." + encoding);
       return menuItem;
