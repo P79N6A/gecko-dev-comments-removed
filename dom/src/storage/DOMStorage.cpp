@@ -7,7 +7,7 @@
 #include "DOMStorageCache.h"
 #include "DOMStorageManager.h"
 
-#include "nsIDOMStorageEvent.h"
+#include "mozilla/dom/StorageEvent.h"
 #include "nsIObserverService.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIPermissionManager.h"
@@ -190,23 +190,19 @@ DOMStorage::BroadcastChangeNotification(const nsSubstring& aKey,
                                         const nsSubstring& aOldValue,
                                         const nsSubstring& aNewValue)
 {
-  nsCOMPtr<nsIDOMEvent> domEvent;
-  
-  
-  NS_NewDOMStorageEvent(getter_AddRefs(domEvent), nullptr, nullptr, nullptr);
+  StorageEventInit dict;
+  dict.mBubbles = false;
+  dict.mCancelable = false;
+  dict.mKey = aKey;
+  dict.mNewValue = aNewValue;
+  dict.mOldValue = aOldValue;
+  dict.mStorageArea = static_cast<nsIDOMStorage*>(this);
+  dict.mUrl = mDocumentURI;
 
-  nsCOMPtr<nsIDOMStorageEvent> event = do_QueryInterface(domEvent);
-  nsresult rv = event->InitStorageEvent(NS_LITERAL_STRING("storage"),
-                                        false,
-                                        false,
-                                        aKey,
-                                        aOldValue,
-                                        aNewValue,
-                                        mDocumentURI,
-                                        static_cast<nsIDOMStorage*>(this));
-  if (NS_FAILED(rv)) {
-    return;
-  }
+  
+  
+  nsRefPtr<StorageEvent> event =
+    StorageEvent::Constructor(nullptr, NS_LITERAL_STRING("storage"), dict);
 
   nsRefPtr<StorageNotifierRunnable> r =
     new StorageNotifierRunnable(event,

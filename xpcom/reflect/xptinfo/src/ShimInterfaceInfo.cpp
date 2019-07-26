@@ -152,7 +152,6 @@
 #include "nsIDOMSpeechRecognitionEvent.h"
 #include "nsIDOMSpeechSynthesisEvent.h"
 #endif 
-#include "nsIDOMStorageEvent.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsIDOMStyleSheetList.h"
 #include "nsIDOMStyleRuleChangeEvent.h"
@@ -510,7 +509,6 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
   DEFINE_SHIM(SpeechRecognitionEvent),
   DEFINE_SHIM(SpeechSynthesisEvent),
 #endif 
-  DEFINE_SHIM(StorageEvent),
   DEFINE_SHIM(StyleSheet),
   DEFINE_SHIM(StyleSheetList),
   DEFINE_SHIM(StyleRuleChangeEvent),
