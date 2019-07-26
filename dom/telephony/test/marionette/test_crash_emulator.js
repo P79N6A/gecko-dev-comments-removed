@@ -9,6 +9,38 @@ let telephony = window.navigator.mozTelephony;
 let outNumber = "5555551111";
 let outgoingCall;
 
+function getExistingCalls() {
+  runEmulatorCmd("gsm list", function(result) {
+    log("Initial call list: " + result);
+    if (result[0] == "OK") {
+      dial();
+    } else {
+      cancelExistingCalls(result);
+    };
+  });
+}
+
+function cancelExistingCalls(callList) {
+  if (callList.length && callList[0] != "OK") {
+    
+    nextCall = callList.shift().split(' ')[2].trim();
+    log("Cancelling existing call '" + nextCall +"'");
+    runEmulatorCmd("gsm cancel " + nextCall, function(result) {
+      if (result[0] == "OK") {
+        cancelExistingCalls(callList);
+      } else {
+        log("Failed to cancel existing call");
+        cleanUp();
+      };
+    });
+  } else {
+    
+    waitFor(dial, function() {
+      return (telephony.calls.length == 0);
+    });
+  };
+}
+
 function dial() {
   log("Make an outgoing call.");
   outgoingCall = telephony.dial(outNumber);
@@ -41,4 +73,4 @@ function cleanUp(){
   finish();
 }
 
-dial();
+getExistingCalls();
