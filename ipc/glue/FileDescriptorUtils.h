@@ -9,6 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "nsIRunnable.h"
+#include <stdio.h>
 
 namespace mozilla {
 namespace ipc {
@@ -41,6 +42,17 @@ private:
 
   void CloseFile();
 };
+
+
+
+
+FILE* FileDescriptorToFILE(const FileDescriptor& aDesc,
+                           const char* aOpenMode);
+
+
+
+
+FileDescriptor FILEToFileDescriptor(FILE* aStream);
 
 } 
 } 
