@@ -8,13 +8,16 @@
 #define AudioDestinationNode_h_
 
 #include "AudioNode.h"
+#include "nsIDOMEventListener.h"
 
 namespace mozilla {
 namespace dom {
 
 class AudioContext;
+class AudioChannelAgent;
 
 class AudioDestinationNode : public AudioNode
+                           , public nsIDOMEventListener
 {
 public:
   
@@ -28,6 +31,7 @@ public:
   virtual void DestroyMediaStream() MOZ_OVERRIDE;
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioDestinationNode, AudioNode)
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
@@ -48,9 +52,17 @@ public:
 
   void OfflineShutdown();
 
+  
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+
+  
+  void SetCanPlay(bool aCanPlay);
+
 private:
   SelfReference<AudioDestinationNode> mOfflineRenderingRef;
   uint32_t mFramesToProduce;
+
+  nsRefPtr<AudioChannelAgent> mAudioChannelAgent;
 };
 
 }
