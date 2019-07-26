@@ -1416,7 +1416,6 @@ nsMemoryReporterManager::GetExplicit(int64_t* aAmount)
 #ifndef HAVE_JEMALLOC_STATS
     return NS_ERROR_NOT_AVAILABLE;
 #else
-    bool more;
 
     
     
