@@ -167,6 +167,10 @@ var ContentAreaObserver = {
     appBar.style.bottom = keyboardHeight + "px";
     findBar.style.bottom = keyboardHeight + "px";
 
+    
+    
+    BrowserUI._updateButtons();
+
     this._disatchBrowserEvent("ViewableSizeChanged");
   },
 
@@ -180,6 +184,12 @@ var ContentAreaObserver = {
 
 
   _onKeyboardDisplayChanging: function _onKeyboardDisplayChanging(aNewState) {
+    if (aNewState) {
+      Elements.stack.setAttribute("keyboardVisible", true);
+    } else {
+      Elements.stack.removeAttribute("keyboardVisible");
+    }
+
     this.updateViewableArea();
 
     if (!aNewState) {
