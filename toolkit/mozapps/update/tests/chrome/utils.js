@@ -163,7 +163,7 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
 
 var gURLData = URL_HOST + "/" + REL_PATH_DATA + "/";
 
-var gTestTimeout = 45000; 
+var gTestTimeout = 240000; 
 var gTimeoutTimer;
 
 
