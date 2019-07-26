@@ -387,47 +387,6 @@ MacroAssemblerX86::branchTestValue(Condition cond, const ValueOperand &value, co
     }
 }
 
-Assembler::Condition
-MacroAssemblerX86::testNegativeZero(const FloatRegister &reg, const Register &scratch)
-{
-    
-    
-
-    Label nonZero;
-
-    
-    xorpd(ScratchFloatReg, ScratchFloatReg);
-
-    
-    
-    branchDouble(DoubleNotEqual, reg, ScratchFloatReg, &nonZero);
-
-    
-    movmskpd(reg, scratch);
-
-    
-    
-    
-    orl(Imm32(2), scratch);
-
-    bind(&nonZero);
-
-    
-    
-    
-    
-    
-    return Parity;
-}
-
-Assembler::Condition
-MacroAssemblerX86::testNegativeZeroFloat32(const FloatRegister &reg, const Register &scratch)
-{
-    movd(reg, scratch);
-    cmpl(scratch, Imm32(1));
-    return Overflow;
-}
-
 #ifdef JSGC_GENERATIONAL
 
 void

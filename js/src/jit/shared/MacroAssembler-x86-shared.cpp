@@ -154,3 +154,45 @@ MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
     Push(ImmPtr(fakeReturnAddr));
     return true;
 }
+
+void
+MacroAssemblerX86Shared::branchNegativeZero(const FloatRegister &reg,
+                                            const Register &scratch,
+                                            Label *label)
+{
+    
+    
+
+#if defined(JS_CODEGEN_X86)
+    Label nonZero;
+
+    
+    xorpd(ScratchFloatReg, ScratchFloatReg);
+
+    
+    branchDouble(DoubleNotEqual, reg, ScratchFloatReg, &nonZero);
+
+    
+    movmskpd(reg, scratch);
+
+    
+    
+    branchTest32(NonZero, scratch, Imm32(1), label);
+
+    bind(&nonZero);
+#elif defined(JS_CODEGEN_X64)
+    movq(reg, scratch);
+    cmpq(scratch, Imm32(1));
+    j(Overflow, label);
+#endif
+}
+
+void
+MacroAssemblerX86Shared::branchNegativeZeroFloat32(const FloatRegister &reg,
+                                                   const Register &scratch,
+                                                   Label *label)
+{
+    movd(reg, scratch);
+    cmpl(scratch, Imm32(1));
+    j(Overflow, label);
+}
