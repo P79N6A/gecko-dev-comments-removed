@@ -2262,7 +2262,7 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
           return nullptr;
         }
 
-        bitmap = CreatePartialBitmapForSurface(dataSurf, mat, pat->mExtendMode); 
+        bitmap = CreatePartialBitmapForSurface(dataSurf, mTransform, mSize, pat->mExtendMode, mat, mRT); 
         if (!bitmap) {
           return nullptr;
         }
@@ -2419,131 +2419,6 @@ DrawTargetD2D::CreateTextureForAnalysis(IDWriteGlyphRunAnalysis *aAnalysis, cons
   }
 
   return tex;
-}
-
-TemporaryRef<ID2D1Bitmap>
-DrawTargetD2D::CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix, ExtendMode aExtendMode)
-{
-  RefPtr<ID2D1Bitmap> bitmap;
-
-  
-  
-  
-  
-
-  Matrix transform = mTransform;
-  Matrix invTransform = transform = aMatrix * transform;
-  if (!invTransform.Invert()) {
-    
-    return nullptr;
-  }
-
-  Rect rect(0, 0, Float(mSize.width), Float(mSize.height));
-
-  
-  rect = invTransform.TransformBounds(rect);
-  rect.RoundOut();
-
-  IntSize size = aSurface->GetSize();
-
-  Rect uploadRect(0, 0, Float(size.width), Float(size.height));
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (uploadRect.Contains(rect)) {
-    
-    
-    uploadRect = rect;
-  } else if (aExtendMode == EXTEND_CLAMP && uploadRect.Intersects(rect)) {
-    
-    
-    
-    uploadRect = uploadRect.Intersect(rect);
-
-    
-    
-  } else if (rect.x >= 0 && rect.XMost() < size.width) {
-    uploadRect.x = rect.x;
-    uploadRect.width = rect.width;
-  } else if (rect.y >= 0 && rect.YMost() < size.height) {
-    uploadRect.y = rect.y;
-    uploadRect.height = rect.height;
-  }
-
-
-  int stride = aSurface->Stride();
-
-  if (uploadRect.width <= mRT->GetMaximumBitmapSize() &&
-      uploadRect.height <= mRT->GetMaximumBitmapSize()) {
-
-    
-    mRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
-                      aSurface->GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * stride,
-                      stride,
-                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
-                      byRef(bitmap));
-
-    aMatrix.Translate(uploadRect.x, uploadRect.y);
-
-    return bitmap;
-  } else {
-    int Bpp = BytesPerPixel(aSurface->GetFormat());
-
-    if (Bpp != 4) {
-      
-      MOZ_ASSERT(false);
-      return nullptr;
-    }
-
-    ImageHalfScaler scaler(aSurface->GetData(), stride, size);
-
-    
-    Point topRight = transform * Point(Float(size.width), 0);
-    Point topLeft = transform * Point(0, 0);
-    Point bottomRight = transform * Point(Float(size.width), Float(size.height));
-    Point bottomLeft = transform * Point(0, Float(size.height));
-    
-    IntSize scaleSize;
-
-    scaleSize.width = int32_t(max(Distance(topRight, topLeft),
-                                  Distance(bottomRight, bottomLeft)));
-    scaleSize.height = int32_t(max(Distance(topRight, bottomRight),
-                                   Distance(topLeft, bottomLeft)));
-
-    if (unsigned(scaleSize.width) > mRT->GetMaximumBitmapSize()) {
-      
-      
-      
-      scaleSize.width = 4095;
-    }
-    if (unsigned(scaleSize.height) > mRT->GetMaximumBitmapSize()) {
-      scaleSize.height = 4095;
-    }
-
-    scaler.ScaleForSize(scaleSize);
-
-    IntSize newSize = scaler.GetSize();
-    
-    mRT->CreateBitmap(D2D1::SizeU(newSize.width, newSize.height),
-                      scaler.GetScaledData(), scaler.GetStride(),
-                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
-                      byRef(bitmap));
-
-    aMatrix.Scale(Float(size.width / newSize.width),
-                  Float(size.height / newSize.height));
-    return bitmap;
-  }
 }
 
 void
