@@ -1095,11 +1095,17 @@ pref("devtools.toolbox.sideEnabled", true);
 pref("devtools.toolbox.zoomValue", "1");
 
 
+
 pref("devtools.inspector.enabled", true);
+
 pref("devtools.inspector.activeSidebar", "ruleview");
+
 pref("devtools.inspector.markupPreview", false);
 pref("devtools.inspector.remote", false);
+
 pref("devtools.inspector.show_pseudo_elements", true);
+
+pref("devtools.inspector.imagePreviewTooltipSize", 300);
 
 
 pref("devtools.defaultColorUnit", "hex");
