@@ -8152,8 +8152,9 @@ class nsCopyFaviconCallback MOZ_FINAL : public nsIFaviconDataCallback
 public:
     NS_DECL_ISUPPORTS
 
-    nsCopyFaviconCallback(nsIURI *aNewURI)
+    nsCopyFaviconCallback(nsIURI *aNewURI, bool aInPrivateBrowsing)
       : mNewURI(aNewURI)
+      , mInPrivateBrowsing(aInPrivateBrowsing)
     {
     }
 
@@ -8173,23 +8174,28 @@ public:
         NS_ENSURE_STATE(favSvc);
 
         return favSvc->SetAndFetchFaviconForPage(mNewURI, aFaviconURI,
-                                                 false, nullptr);
+                                                 false,
+                                                 mInPrivateBrowsing ?
+                                                   nsIFaviconService::FAVICON_LOAD_PRIVATE :
+                                                   nsIFaviconService::FAVICON_LOAD_NON_PRIVATE,
+                                                 nullptr);
     }
 
 private:
     nsCOMPtr<nsIURI> mNewURI;
+    bool mInPrivateBrowsing;
 };
 
 NS_IMPL_ISUPPORTS1(nsCopyFaviconCallback, nsIFaviconDataCallback)
 
 
-void CopyFavicon(nsIURI *aOldURI, nsIURI *aNewURI)
+void CopyFavicon(nsIURI *aOldURI, nsIURI *aNewURI, bool inPrivateBrowsing)
 {
     nsCOMPtr<mozIAsyncFavicons> favSvc =
         do_GetService("@mozilla.org/browser/favicon-service;1");
     if (favSvc) {
         nsCOMPtr<nsIFaviconDataCallback> callback =
-            new nsCopyFaviconCallback(aNewURI);
+            new nsCopyFaviconCallback(aNewURI, inPrivateBrowsing);
         favSvc->GetFaviconURLForPage(aOldURI, callback);
     }
 }
@@ -8856,7 +8862,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
             
             
-            CopyFavicon(oldURI, aURI);
+            CopyFavicon(oldURI, aURI, mInPrivateBrowsing);
 
             return NS_OK;
         }
@@ -10195,7 +10201,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
         
         
-        CopyFavicon(oldURI, newURI);
+        CopyFavicon(oldURI, newURI, mInPrivateBrowsing);
     }
     else {
         FireDummyOnLocationChange();

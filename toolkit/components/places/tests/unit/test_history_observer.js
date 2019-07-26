@@ -143,5 +143,7 @@ add_test(function test_onPageChanged() {
   
   
   PlacesUtils.favicons.setAndFetchFaviconForPage(testuri, SMALLPNG_DATA_URI,
-                                                 false, null);
+                                                 false,
+                                                 PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+                                                 null);
 });
