@@ -236,20 +236,20 @@ nsNativeKeyBindings::~nsNativeKeyBindings()
 NS_IMPL_ISUPPORTS1(nsNativeKeyBindings, nsINativeKeyBindings)
 
 bool
-nsNativeKeyBindings::KeyDown(const nsNativeKeyEvent& aEvent,
+nsNativeKeyBindings::KeyDown(const nsKeyEvent& aEvent,
                              DoCommandCallback aCallback, void *aCallbackData)
 {
   return false;
 }
 
 bool
-nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
+nsNativeKeyBindings::KeyPress(const nsKeyEvent& aEvent,
                               DoCommandCallback aCallback, void *aCallbackData)
 {
   
   
   
-  if (!aEvent.mGeckoEvent->mNativeKeyEvent) {
+  if (!aEvent.mNativeKeyEvent) {
     
     return false;
   }
@@ -260,24 +260,17 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
     keyval = gdk_unicode_to_keyval(aEvent.charCode);
   } else {
     keyval =
-      static_cast<GdkEventKey*>(aEvent.mGeckoEvent->mNativeKeyEvent)->keyval;
+      static_cast<GdkEventKey*>(aEvent.mNativeKeyEvent)->keyval;
   }
 
   if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyval)) {
     return true;
   }
 
-  nsKeyEvent *nativeKeyEvent = aEvent.mGeckoEvent;
-  if (!nativeKeyEvent ||
-      (nativeKeyEvent->eventStructType != NS_KEY_EVENT &&
-       nativeKeyEvent->message != NS_KEY_PRESS)) {
-    return false;
-  }
-
-  for (uint32_t i = 0; i < nativeKeyEvent->alternativeCharCodes.Length(); ++i) {
-    uint32_t ch = nativeKeyEvent->IsShift() ?
-        nativeKeyEvent->alternativeCharCodes[i].mShiftedCharCode :
-        nativeKeyEvent->alternativeCharCodes[i].mUnshiftedCharCode;
+  for (uint32_t i = 0; i < aEvent.alternativeCharCodes.Length(); ++i) {
+    uint32_t ch = aEvent.IsShift() ?
+      aEvent.alternativeCharCodes[i].mShiftedCharCode :
+      aEvent.alternativeCharCodes[i].mUnshiftedCharCode;
     if (ch && ch != aEvent.charCode) {
       keyval = gdk_unicode_to_keyval(ch);
       if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyval)) {
@@ -299,17 +292,18 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
 
 
 
+
   return false;
 }
 
 bool
-nsNativeKeyBindings::KeyPressInternal(const nsNativeKeyEvent& aEvent,
+nsNativeKeyBindings::KeyPressInternal(const nsKeyEvent& aEvent,
                                       DoCommandCallback aCallback,
                                       void *aCallbackData,
                                       guint aKeyval)
 {
   guint modifiers =
-    static_cast<GdkEventKey*>(aEvent.mGeckoEvent->mNativeKeyEvent)->state;
+    static_cast<GdkEventKey*>(aEvent.mNativeKeyEvent)->state;
 
   gCurrentCallback = aCallback;
   gCurrentCallbackData = aCallbackData;
@@ -330,7 +324,7 @@ nsNativeKeyBindings::KeyPressInternal(const nsNativeKeyEvent& aEvent,
 }
 
 bool
-nsNativeKeyBindings::KeyUp(const nsNativeKeyEvent& aEvent,
+nsNativeKeyBindings::KeyUp(const nsKeyEvent& aEvent,
                            DoCommandCallback aCallback, void *aCallbackData)
 {
   return false;

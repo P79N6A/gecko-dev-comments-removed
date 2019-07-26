@@ -96,7 +96,6 @@ struct JSContext;
 struct JSPropertyDescriptor;
 struct JSRuntime;
 struct nsIntMargin;
-struct nsNativeKeyEvent; 
 
 template<class E> class nsCOMArray;
 template<class E> class nsTArray;
@@ -1391,9 +1390,6 @@ public:
 
 
   static nsEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
-  static bool DOMEventToNativeKeyEvent(nsIDOMKeyEvent* aKeyEvent,
-                                         nsNativeKeyEvent* aNativeEvent,
-                                         bool aGetCharCode);
 
   
 
