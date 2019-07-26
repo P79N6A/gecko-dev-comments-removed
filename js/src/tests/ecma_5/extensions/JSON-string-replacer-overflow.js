@@ -1,6 +1,7 @@
 
 
 
+
 var r1 = [0, 1, 2, 3];
 Object.defineProperty(r1, (1 << 23) - 1, {});
 JSON.stringify({ 0: 0, 1: 1, 2: 2, 3: 3 }, r1)
