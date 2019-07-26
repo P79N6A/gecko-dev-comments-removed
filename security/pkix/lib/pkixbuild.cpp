@@ -37,6 +37,16 @@ BackCert::Init()
   if (!exts) {
     return Success;
   }
+  
+  
+  
+  
+  
+  
+  if (! (nssCert->version.len == 1 &&
+      nssCert->version.data[0] == mozilla::pkix::der::Version::v3)) {
+    return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
+  }
 
   const SECItem* dummyEncodedSubjectKeyIdentifier = nullptr;
   const SECItem* dummyEncodedAuthorityKeyIdentifier = nullptr;
