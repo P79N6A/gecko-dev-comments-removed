@@ -68,9 +68,7 @@ public:
 
 
 
-  nsViewManager* GetViewManager() const
-  { return reinterpret_cast<nsViewManager*>(mViewManager); }
-  nsViewManager* GetViewManagerInternal() const { return mViewManager; }
+  nsViewManager* GetViewManager() const { return mViewManager; }
 
   
 
