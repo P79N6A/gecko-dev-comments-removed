@@ -23,7 +23,6 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsISecureBrowserUI.h"
 #include "nsIDocumentLoader.h"
-#include "nsIWebNavigation.h"
 #include "nsLoadGroup.h"
 
 #include "prlog.h"
@@ -355,6 +354,8 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   
+
+  
   nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
   NS_ENSURE_TRUE(docShell, NS_OK);
   bool rootHasSecureConnection = false;
@@ -365,54 +366,10 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
      return rv;
   }
 
-
   
   nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
   docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-  NS_ASSERTION(sameTypeRoot, "No root tree item from docshell!");
-
-  
-  
-  
-  if (aContentType == TYPE_SUBDOCUMENT && !rootHasSecureConnection) {
-
-    bool httpsParentExists = false;
-    bool chromeParent = false;
-
-    nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-    parentTreeItem = docShell;
-
-    while(!httpsParentExists && parentTreeItem) {
-      nsCOMPtr<nsIWebNavigation> parentAsNav(do_QueryInterface(parentTreeItem));
-      NS_ASSERTION(parentAsNav, "No web navigation object from parent's docshell tree item");
-      nsCOMPtr<nsIURI> parentURI;
-
-      parentAsNav->GetCurrentURI(getter_AddRefs(parentURI));
-      if (!parentURI || NS_FAILED(parentURI->SchemeIs("https", &httpsParentExists))) {
-        
-        httpsParentExists = true;
-        break;
-      }
-
-      
-      
-      if(sameTypeRoot == parentTreeItem) {
-        break;
-      }
-
-      
-      nsCOMPtr<nsIDocShellTreeItem> newParentTreeItem;
-      parentTreeItem->GetSameTypeParent(getter_AddRefs(newParentTreeItem));
-      parentTreeItem = newParentTreeItem;
-    } 
-
-    if (!httpsParentExists) {
-      *aDecision = nsIContentPolicy::ACCEPT;
-      return NS_OK;
-    }
-  }
-
-  
+  NS_ASSERTION(sameTypeRoot, "No document shell root tree item from document shell tree item!");
   nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
   NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
 
