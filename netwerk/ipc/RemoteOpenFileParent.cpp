@@ -17,51 +17,42 @@
 namespace mozilla {
 namespace net {
 
-RemoteOpenFileParent::RemoteOpenFileParent(nsIFileURL *aURI)
-  : mURI(aURI)
-#if !defined(XP_WIN) && !defined(MOZ_WIDGET_COCOA)
-  , mFd(-1)
-#endif
-{}
-
-RemoteOpenFileParent::~RemoteOpenFileParent()
-{
-#if !defined(XP_WIN) && !defined(MOZ_WIDGET_COCOA)
-  if (mFd != -1) {
-    
-    
-    close(mFd);
-  }
-#endif
-}
-
 bool
-RemoteOpenFileParent::RecvAsyncOpenFile()
+RemoteOpenFileParent::OpenSendCloseDelete()
 {
 #if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
-  NS_NOTREACHED("osX and Windows shouldn't be doing IPDL here");
+  MOZ_NOT_REACHED("OS X and Windows shouldn't be doing IPDL here");
 #else
 
   
 
+  FileDescriptor fileDescriptor;
+
   nsAutoCString path;
   nsresult rv = mURI->GetFilePath(path);
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "GetFilePath failed!");
+
   NS_UnescapeURL(path);
+
   if (NS_SUCCEEDED(rv)) {
     int fd = open(path.get(), O_RDONLY);
-    if (fd != -1) {
-      unused << SendFileOpened(FileDescriptor(fd));
-      
-      
-      mFd = fd;
-      return true;
+    if (fd == -1) {
+      printf_stderr("RemoteOpenFileParent: file '%s' was not found!\n",
+                    path.get());
+    } else {
+      fileDescriptor = FileDescriptor(fd);
     }
   }
 
   
-  
-  printf_stderr("RemoteOpenFileParent: file '%s' was not found!\n", path.get());
-  unused << SendFileDidNotOpen();
+  unused << Send__delete__(this, fileDescriptor);
+
+  if (fileDescriptor.IsValid()) {
+    
+    
+    close(fileDescriptor.PlatformHandle());
+  }
+
 #endif 
 
   return true;
