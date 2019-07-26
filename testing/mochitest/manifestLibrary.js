@@ -19,8 +19,7 @@ function parseTestManifest(testManifest, params, callback) {
   
   for (var obj of testManifest['tests']) {
     var path = obj['path'];
-    
-    if ("disabled" in obj) {
+    if (obj.disabled) {
       dump("TEST-SKIPPED | " + path + " | " + obj.disabled + "\n");
       continue;
     }
