@@ -219,9 +219,9 @@ CloseScoSocket()
 }
 
 BluetoothHfpManager::BluetoothHfpManager()
-  : mCurrentVgs(-1)
-  , mCurrentCallIndex(0)
+  : mCurrentCallIndex(0)
   , mCurrentCallState(nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED)
+  , mReceiveVgsFlag(false)
 {
   sCINDItems[CINDType::CALL].value = CallState::NO_CALL;
   sCINDItems[CINDType::CALLSETUP].value = CallSetupState::NO_CALLSETUP;
@@ -248,6 +248,18 @@ BluetoothHfpManager::Init()
       return false;
     }
   }
+
+  float volume;
+  nsCOMPtr<nsIAudioManager> am = do_GetService("@mozilla.org/telephony/audiomanager;1");
+  if (!am) {
+    NS_WARNING("Failed to get AudioManager Service!");
+    return false;
+  }
+  am->GetMasterVolume(&volume);
+
+  
+  
+  mCurrentVgs = floor(volume * 15);
 
   return true;
 }
@@ -354,10 +366,6 @@ BluetoothHfpManager::HandleVolumeChanged(const nsAString& aData)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (GetConnectionStatus() != SocketConnectionStatus::SOCKET_CONNECTED) {
-    return NS_OK;
-  }
-
   
   
   
@@ -411,7 +419,16 @@ BluetoothHfpManager::HandleVolumeChanged(const nsAString& aData)
   
   
   float volume = value.toNumber();
-  mCurrentVgs = ceil(volume * 15);
+  mCurrentVgs = floor(volume * 15);
+
+  if (mReceiveVgsFlag) {
+    mReceiveVgsFlag = false;
+    return NS_OK;
+  }
+
+  if (GetConnectionStatus() != SocketConnectionStatus::SOCKET_CONNECTED) {
+    return NS_OK;
+  }
 
   SendCommand("+VGS: ", mCurrentVgs);
 
@@ -458,12 +475,20 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
   } else if (!strncmp(msg, "AT+CHLD=", 8)) {
     SendLine("OK");
   } else if (!strncmp(msg, "AT+VGS=", 7)) {
-    
-    int newVgs = msg[7] - '0';
+    mReceiveVgsFlag = true;
 
-    if (strlen(msg) > 8) {
-      newVgs *= 10;
-      newVgs += (msg[8] - '0');
+    int length = strlen(msg) - 8;
+    nsAutoCString vgsString(nsDependentCSubstring(msg+7, length));
+
+    nsresult rv;
+    int newVgs = vgsString.ToInteger(&rv);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Failed to extract volume value from bluetooth headset!");
+    }
+
+    if (newVgs == mCurrentVgs) {
+      SendLine("OK");
+      return;
     }
 
 #ifdef DEBUG
@@ -472,16 +497,12 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
 
     
     
-    
-    
+    nsString data;
+    int volume;
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (newVgs > mCurrentVgs) {
-      os->NotifyObservers(nullptr, "bluetooth-volume-change", NS_LITERAL_STRING("up").get());
-    } else if (newVgs < mCurrentVgs) {
-      os->NotifyObservers(nullptr, "bluetooth-volume-change", NS_LITERAL_STRING("down").get());
-    }
-
-    mCurrentVgs = newVgs;
+    volume = ceil((float)newVgs / 15.0 * 10.0);
+    data.AppendInt(volume);
+    os->NotifyObservers(nullptr, "bluetooth-volume-change", data.get());
 
     SendLine("OK");
   } else if (!strncmp(msg, "AT+BLDN", 7)) {
