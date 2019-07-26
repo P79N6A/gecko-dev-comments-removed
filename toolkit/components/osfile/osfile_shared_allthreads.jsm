@@ -837,21 +837,6 @@
      };
      exports.OS.Shared.declareFFI = declareFFI;
 
-
-     
-
-
-
-     
-     defineLazyGetter(exports.OS.Shared, "libxul",
-       function init_libxul() {
-         return ctypes.open(OS.Constants.Path.libxul);
-       });
-
-     exports.OS.Shared.Utils = {};
-
-     let Strings = exports.OS.Shared.Utils.Strings = {};
-
      
      let gOffsetByType;
 
@@ -896,73 +881,7 @@
          return ctypes.cast(addr, type);
      };
 
-     
 
 
-
-
-
-
-     Strings.importWString = function importWString(wstring) {
-       return wstring.readString();
-     };
-
-
-     let Pointers = {};
-     defineLazyGetter(Pointers, "NS_Free",
-       function init_NS_Free() {
-         return exports.OS.Shared.libxul.declare("osfile_ns_free",
-           ctypes.default_abi,
-           Types.void_t.implementation,
-           Types.voidptr_t.implementation);
-       });
-
-     
-
-
-
-
-
-
-
-     defineLazyGetter(Strings, "exportWString",
-       function init_exportWString() {
-         return declareFFI(exports.OS.Shared.libxul,
-           "osfile_wstrdup",
-           ctypes.default_abi,
-            Types.out_wstring.releaseWith(Pointers.NS_Free),
-            Types.wstring);
-       });
-
-
-
-     defineLazyGetter(Strings, "encodeAll",
-       function init_encodeAll() {
-         return declareFFI(exports.OS.Shared.libxul,
-           "osfile_EncodeAll",
-           ctypes.default_abi,
-                Types.void_t.out_ptr.releaseWith(Pointers.NS_Free),
-              Types.cstring,
-                Types.wstring,
-                 Types.uint32_t.out_ptr);
-       });
-
-     defineLazyGetter(Strings, "decodeAll",
-       function init_decodeAll() {
-         let _decodeAll = declareFFI(exports.OS.Shared.libxul, "osfile_DecodeAll",
-           ctypes.default_abi,
-                 Types.out_wstring.releaseWith(Pointers.NS_Free),
-               Types.cstring,
-                 Types.void_t.in_ptr,
-                  Types.uint32_t);
-         return function decodeAll(encoding, source, bytes) {
-           let decoded = _decodeAll(encoding, source, bytes);
-           if (!decoded) {
-             return null;
-           }
-           return Strings.importWString(decoded);
-          };
-        }
-     );
    })(this);
 }
