@@ -21,6 +21,37 @@ class DummyFrameGuard;
 
 
 
+class MOZ_STACK_CLASS WrapperOptions : public ProxyOptions {
+  public:
+    WrapperOptions() : ProxyOptions(false, nullptr),
+                       proto_()
+    {}
+
+    WrapperOptions(JSContext *cx) : ProxyOptions(false, nullptr),
+                                    proto_()
+    {
+        proto_.construct(cx);
+    }
+
+    JSObject *proto() const {
+        return proto_.empty() ? Wrapper::defaultProto : proto_.ref();
+    }
+    WrapperOptions &setProto(JSObject *protoArg) {
+        JS_ASSERT(!proto_.empty());
+        proto_.ref() = protoArg;
+        return *this;
+    }
+
+  private:
+    mozilla::Maybe<JS::RootedObject> proto_;
+};
+
+
+
+
+
+
+
 
 
 
@@ -60,6 +91,8 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 
     static Wrapper singleton;
     static Wrapper singletonWithPrototype;
+
+    static JSObject *defaultProto;
 };
 
 
