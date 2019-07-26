@@ -375,11 +375,31 @@ Range::subTruncate(const Range *lhs, const Range *rhs)
 Range
 Range::and_(const Range *lhs, const Range *rhs)
 {
-    int64_t lower = 0;
+    int64_t lower;
+    int64_t upper;
+
     
-    if (lhs->lower_ < 0 && rhs->lower_ < 0)
+    if (lhs->lower_ < 0 && rhs->lower_ < 0) {
         lower = INT_MIN;
-    int64_t upper = Max(lhs->upper_, rhs->upper_);
+        upper = Max(lhs->upper_, rhs->upper_);
+        Range ret(lower, upper);
+        return ret;
+    }
+
+    
+    
+    
+    lower = 0;
+    upper = Min(lhs->upper_, rhs->upper_);
+
+    
+    
+    
+    if (lhs->lower_ < 0)
+       upper = rhs->upper_;
+    if (rhs->lower_ < 0)
+        upper = lhs->upper_;
+
     Range ret(lower, upper);
     return ret;
 
