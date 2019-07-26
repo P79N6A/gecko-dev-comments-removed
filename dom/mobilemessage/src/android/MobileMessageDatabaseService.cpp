@@ -58,6 +58,7 @@ MobileMessageDatabaseService::CreateMessageCursor(nsIDOMMozSmsFilter* aFilter,
 NS_IMETHODIMP
 MobileMessageDatabaseService::MarkMessageRead(int32_t aMessageId,
                                               bool aValue,
+                                              bool aSendReadReport,
                                               nsIMobileMessageCallback* aRequest)
 {
   
