@@ -17,6 +17,9 @@ Cu.import("resource://gre/modules/DownloadsIPC.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
+XPCOMUtils.defineLazyServiceGetter(this, "volumeService",
+                                   "@mozilla.org/telephony/volume-service;1",
+                                    "nsIVolumeService");
 
 function debug(aStr) {
 #ifdef MOZ_DEBUG
@@ -207,6 +210,8 @@ function DOMDownloadImpl() {
   this.currentBytes = 0;
   this.url = null;
   this.path = null;
+  this.storageName = null;
+  this.storagePath = null;
   this.contentType = null;
 
   
@@ -308,16 +313,46 @@ DOMDownloadImpl.prototype = {
       return;
     }
 
-    let props = ["totalBytes", "currentBytes", "url", "path", "state",
-                 "contentType", "startTime"];
+    let props = ["totalBytes", "currentBytes", "url", "path", "storageName",
+                 "storagePath", "state", "contentType", "startTime"];
     let changed = false;
+    let changedProps = {};
 
     props.forEach((prop) => {
       if (aDownload[prop] && (aDownload[prop] != this[prop])) {
         this[prop] = aDownload[prop];
-        changed = true;
+        changedProps[prop] = changed = true;
       }
     });
+
+    
+    
+    
+    if (changedProps["path"]) {
+      let storages = this._window.navigator.getDeviceStorages("sdcard");
+      let preferredStorageName;
+      
+      
+      storages.forEach((aStorage) => {
+        if (aStorage.default || !preferredStorageName) {
+          preferredStorageName = aStorage.storageName;
+        }
+      });
+      
+      let volume;
+      if (preferredStorageName) {
+        let volume = volumeService.getVolumeByName(preferredStorageName);
+        if (volume) {
+          
+          
+          
+          this.storageName = preferredStorageName;
+          this.storagePath =
+            this.path.substring(this.path.indexOf(volume.mountPoint) +
+                                volume.mountPoint.length + 1);
+        }
+      }
+    }
 
     if (aDownload.error) {
       
