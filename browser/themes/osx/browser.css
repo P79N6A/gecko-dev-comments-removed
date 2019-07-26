@@ -2851,6 +2851,16 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
+
+
+#main-window[tabsintitlebar]:not([inFullscreen]) .tab-background-middle:not([selected=true]) {
+  clip-path: url(chrome://browser/content/browser.xul#tab-hover-clip-path);
+}
+
+
+
+
+
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
   margin-top: -2px;

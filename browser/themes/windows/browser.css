@@ -1903,6 +1903,16 @@ toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
 }
 
 
+
+
+
+
+
+#main-window[tabsintitlebar][sizemode=normal] #toolbar-menubar[autohide="true"][inactive] + #TabsToolbar .tab-background-middle:not([selected=true]) {
+  clip-path: url(chrome://browser/content/browser.xul#tab-hover-clip-path);
+}
+
+
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
   margin-bottom: -9px;
