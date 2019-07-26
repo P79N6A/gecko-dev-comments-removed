@@ -267,53 +267,23 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
     ScopedJSDeletePtr<ParseTask> task(
         cx->new_<ParseTask>(workercx.get(), cx, chars, length,
                             scopeChain, callback, callbackData));
-    if (!task)
+    if (!task || !task->init(cx, options))
         return false;
 
     workercx.forget();
 
-    if (!task->init(cx, options))
-        return false;
-
     WorkerThreadState &state = *cx->runtime()->workerThreadState;
     JS_ASSERT(state.numThreads);
 
-    
-    
-    
-    
-    
-    
-    if (cx->runtime()->activeGCInAtomsZone()) {
-        if (!state.parseWaitingOnGC.append(task.get()))
-            return false;
-    } else {
-        AutoLockWorkerThreadState lock(state);
+    AutoLockWorkerThreadState lock(state);
 
-        if (!state.parseWorklist.append(task.get()))
-            return false;
-
-        state.notifyAll(WorkerThreadState::PRODUCER);
-    }
+    if (!state.parseWorklist.append(task.get()))
+        return false;
 
     task.forget();
 
-    return true;
-}
-
-void
-js::EnqueuePendingParseTasksAfterGC(JSRuntime *rt)
-{
-    if (!rt->workerThreadState || rt->workerThreadState->parseWaitingOnGC.empty())
-        return;
-
-    WorkerThreadState &state = *rt->workerThreadState;
-    AutoLockWorkerThreadState lock(state);
-
-    JS_ASSERT(state.parseWorklist.empty());
-    state.parseWorklist.swap(state.parseWaitingOnGC);
-
     state.notifyAll(WorkerThreadState::PRODUCER);
+    return true;
 }
 
 void
