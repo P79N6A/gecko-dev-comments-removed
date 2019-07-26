@@ -74,7 +74,7 @@ NS_IMPL_ISUPPORTS2(AudioChannelService, nsIObserver, nsITimerCallback)
 AudioChannelService::AudioChannelService()
 : mCurrentHigherChannel(AUDIO_CHANNEL_LAST)
 , mCurrentVisibleHigherChannel(AUDIO_CHANNEL_LAST)
-, mActiveContentChildIDsFrozen(false)
+, mPlayableHiddenContentChildID(CONTENT_PROCESS_ID_UNKNOWN)
 , mDisabled(false)
 , mDefChannelChildID(CONTENT_PROCESS_ID_UNKNOWN)
 {
@@ -135,6 +135,18 @@ AudioChannelService::RegisterType(AudioChannelType aType, uint64_t aChildID, boo
 
     if (aWithVideo) {
       mWithVideoChildIDs.AppendElement(aChildID);
+    }
+
+    
+    
+    if (type == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
+        mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+      mPlayableHiddenContentChildID = aChildID;
+    }
+    
+    
+    else if (type == AUDIO_CHANNEL_INT_CONTENT) {
+      mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
     }
 
     
@@ -205,10 +217,9 @@ AudioChannelService::UnregisterTypeInternal(AudioChannelType aType,
     
     
     if (aType == AUDIO_CHANNEL_CONTENT &&
-        mActiveContentChildIDs.Contains(aChildID) &&
-        !aElementHidden &&
-        !mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].Contains(aChildID)) {
-      mActiveContentChildIDs.RemoveElement(aChildID);
+        mPlayableHiddenContentChildID == aChildID &&
+        !mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].Contains(aChildID)) {
+      mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
     }
 
     if (aWithVideo) {
@@ -235,6 +246,19 @@ AudioChannelService::UpdateChannelType(AudioChannelType aType,
     mChannelCounters[newType].AppendElement(aChildID);
     MOZ_ASSERT(mChannelCounters[oldType].Contains(aChildID));
     mChannelCounters[oldType].RemoveElement(aChildID);
+  }
+
+  
+  
+  if (oldType == AUDIO_CHANNEL_INT_CONTENT &&
+      newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
+      mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+    mPlayableHiddenContentChildID = aChildID;
+  }
+  
+  
+  else if (newType == AUDIO_CHANNEL_INT_CONTENT) {
+    mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
   }
 }
 
@@ -265,43 +289,6 @@ AudioChannelService::GetStateInternal(AudioChannelType aType, uint64_t aChildID,
   AudioChannelInternalType newType = GetInternalType(aType, aElementHidden);
   AudioChannelInternalType oldType = GetInternalType(aType, aElementWasHidden);
 
-  
-  if (newType == AUDIO_CHANNEL_INT_CONTENT &&
-      oldType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN) {
-
-    if (mActiveContentChildIDsFrozen) {
-      mActiveContentChildIDsFrozen = false;
-      mActiveContentChildIDs.Clear();
-    }
-
-    if (!mActiveContentChildIDs.Contains(aChildID)) {
-      mActiveContentChildIDs.AppendElement(aChildID);
-    }
-  }
-  else if (newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
-           oldType == AUDIO_CHANNEL_INT_CONTENT &&
-           !mActiveContentChildIDsFrozen) {
-    
-    
-    
-    
-    
-    if (mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
-      mActiveContentChildIDsFrozen = true;
-    } else if (!mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].Contains(aChildID)) {
-      MOZ_ASSERT(mActiveContentChildIDs.Contains(aChildID));
-      mActiveContentChildIDs.RemoveElement(aChildID);
-    }
-  }
-  else if (newType == AUDIO_CHANNEL_INT_NORMAL &&
-           oldType == AUDIO_CHANNEL_INT_NORMAL_HIDDEN &&
-           mWithVideoChildIDs.Contains(aChildID)) {
-    if (mActiveContentChildIDsFrozen) {
-      mActiveContentChildIDsFrozen = false;
-      mActiveContentChildIDs.Clear();
-    }
-  }
-
   if (newType != oldType &&
       (aType == AUDIO_CHANNEL_CONTENT ||
        (aType == AUDIO_CHANNEL_NORMAL &&
@@ -322,7 +309,16 @@ AudioChannelService::GetStateInternal(AudioChannelType aType, uint64_t aChildID,
   
   if (newType == AUDIO_CHANNEL_INT_NORMAL_HIDDEN ||
       (newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
-       !mActiveContentChildIDs.Contains(aChildID))) {
+       
+       
+       
+       
+       
+       
+       
+       !(mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].Contains(aChildID) ||
+         (mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty() &&
+          mPlayableHiddenContentChildID == aChildID)))) {
     return AUDIO_CHANNEL_STATE_MUTED;
   }
 
@@ -494,11 +490,7 @@ AudioChannelService::SendAudioChannelChangedNotification(uint64_t aChildID)
     }
 
     
-    
-    
-    else if (!mActiveContentChildIDs.IsEmpty() &&
-             mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].Contains(
-             mActiveContentChildIDs[0])) {
+    else if (mPlayableHiddenContentChildID != CONTENT_PROCESS_ID_UNKNOWN) {
       higher = AUDIO_CHANNEL_CONTENT;
     }
   }
@@ -641,9 +633,12 @@ AudioChannelService::Observe(nsISupports* aSubject, const char* aTopic, const PR
         }
       }
 
-      while ((index = mActiveContentChildIDs.IndexOf(childID)) != -1) {
-        mActiveContentChildIDs.RemoveElementAt(index);
+      
+      
+      if (mPlayableHiddenContentChildID == childID) {
+        mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
       }
+
       while ((index = mWithVideoChildIDs.IndexOf(childID)) != -1) {
         mWithVideoChildIDs.RemoveElementAt(index);
       }

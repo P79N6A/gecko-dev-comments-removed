@@ -169,9 +169,26 @@ protected:
   AudioChannelType mCurrentHigherChannel;
   AudioChannelType mCurrentVisibleHigherChannel;
 
-  nsTArray<uint64_t> mActiveContentChildIDs;
   nsTArray<uint64_t> mWithVideoChildIDs;
-  bool mActiveContentChildIDsFrozen;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint64_t mPlayableHiddenContentChildID;
 
   bool mDisabled;
 

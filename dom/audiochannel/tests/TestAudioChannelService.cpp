@@ -281,14 +281,14 @@ TestContentChannels()
 
   rv = agent1->StartPlaying(&playable);
   NS_ENSURE_SUCCESS(rv, rv);
-  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_MUTED,
-    "Test3: A content channel unvisible agent1 must be muted while playing "
+  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_NORMAL,
+    "Test3: A content channel unvisible agent1 must be playable "
     "from background state");
 
   rv = agent2->StartPlaying(&playable);
   NS_ENSURE_SUCCESS(rv, rv);
-  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_MUTED,
-    "Test3: A content channel unvisible agent2 must be muted while playing "
+  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_NORMAL,
+    "Test3: A content channel unvisible agent2 must be playable "
     "from background state");
 
   agent1->StopPlaying();
@@ -418,8 +418,8 @@ TestPriorities()
 
   rv = contentAgent->StartPlaying(&playable);
   NS_ENSURE_SUCCESS(rv, rv);
-  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_MUTED,
-    "Test5: A content channel unvisible agent agent must be muted while "
+  TEST_ENSURE_BASE(playable == AUDIO_CHANNEL_STATE_NORMAL,
+    "Test5: A content channel unvisible agent must be playable while "
     "playing from background state");
 
   rv = notificationAgent->StartPlaying(&playable);
