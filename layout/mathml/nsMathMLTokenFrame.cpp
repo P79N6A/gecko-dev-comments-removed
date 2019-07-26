@@ -140,8 +140,6 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
-  nsresult rv = NS_OK;
-
   
   aDesiredSize.Width() = aDesiredSize.Height() = 0;
   aDesiredSize.SetTopAscent(0);
@@ -156,21 +154,14 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                                          | NS_REFLOW_CALC_BOUNDING_METRICS);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
-                     childReflowState, aStatus);
+    ReflowChild(childFrame, aPresContext, childDesiredSize,
+                childReflowState, aStatus);
     
-    if (NS_FAILED(rv)) {
-      
-      DidReflowChildren(GetFirstPrincipalChild(), childFrame);
-      return rv;
-    }
-
     SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
                                     childDesiredSize.mBoundingMetrics);
 
     childFrame = childFrame->GetNextSibling();
   }
-
 
   
   FinalizeReflow(*aReflowState.rendContext, aDesiredSize);

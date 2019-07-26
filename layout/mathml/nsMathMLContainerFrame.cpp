@@ -849,12 +849,9 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
   NS_ASSERTION(!inlineFrame, "Inline frames should be wrapped in blocks");
 #endif
   
-  nsresult rv = nsContainerFrame::
+  nsContainerFrame::
          ReflowChild(aChildFrame, aPresContext, aDesiredSize, aReflowState,
                      0, 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
-
-  if (NS_FAILED(rv))
-    return rv;
 
   if (aDesiredSize.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
     
@@ -878,7 +875,7 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
     aDesiredSize.mBoundingMetrics.descent = r.YMost() - aDesiredSize.TopAscent();
     aDesiredSize.mBoundingMetrics.width = aDesiredSize.Width();
   }
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -903,15 +900,9 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
                                          aDesiredSize.mFlags);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
-    nsresult rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
-                              childReflowState, childStatus);
+    ReflowChild(childFrame, aPresContext, childDesiredSize,
+                childReflowState, childStatus);
     
-    if (NS_FAILED(rv)) {
-      
-      DidReflowChildren(mFrames.FirstChild(), childFrame);
-      return rv;
-    }
-
     SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
                                     childDesiredSize.mBoundingMetrics);
     childFrame = childFrame->GetNextSibling();

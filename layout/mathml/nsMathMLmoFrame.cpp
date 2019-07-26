@@ -945,8 +945,9 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
   
   ProcessOperatorData();
 
-  return nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize,
-                                    aReflowState, aStatus);
+  nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize,
+                             aReflowState, aStatus);
+  return NS_OK;
 }
 
  void

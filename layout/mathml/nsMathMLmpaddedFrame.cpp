@@ -310,10 +310,10 @@ nsMathMLmpaddedFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  nsresult rv = nsMathMLContainerFrame::Reflow(aPresContext, aDesiredSize,
-                                               aReflowState, aStatus);
+  nsMathMLContainerFrame::Reflow(aPresContext, aDesiredSize,
+                                 aReflowState, aStatus);
   
-  return rv;
+  return NS_OK;
 }
 
  nsresult
