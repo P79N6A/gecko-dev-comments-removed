@@ -52,7 +52,7 @@ this.EXPORTED_SYMBOLS = ["VariablesViewController"];
 function VariablesViewController(aView, aOptions) {
   this.addExpander = this.addExpander.bind(this);
 
-  this._getGripClient = aOptions.getGripClient;
+  this._getObjectClient = aOptions.getObjectClient;
   this._getLongStringClient = aOptions.getLongStringClient;
   this._releaseActor = aOptions.releaseActor;
 
@@ -132,7 +132,7 @@ VariablesViewController.prototype = {
   _populateFromObject: function(aTarget, aGrip) {
     let deferred = promise.defer();
 
-    this._getGripClient(aGrip).getPrototypeAndProperties(aResponse => {
+    this._getObjectClient(aGrip).getPrototypeAndProperties(aResponse => {
       let { ownProperties, prototype } = aResponse;
       
       let safeGetterValues = aResponse.safeGetterValues || {};
