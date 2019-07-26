@@ -159,7 +159,7 @@ AutocompletePopup.prototype = {
 
 
   get isOpen() {
-    return this._panel.state == "open";
+    return this._panel.state == "open" || this._panel.state == "showing";
   },
 
   
