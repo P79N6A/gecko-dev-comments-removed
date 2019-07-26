@@ -280,9 +280,8 @@ class StringBuilder {
 
 template <class Dest, class Source>
 inline Dest BitCast(const Source& source) {
-  
-  
-  typedef char VerifySizesAreEqual[sizeof(Dest) == sizeof(Source) ? 1 : -1];
+  static_assert(sizeof(Dest) == sizeof(Source),
+                "BitCast's source and destination types must be the same size");
 
   Dest dest;
   memmove(&dest, &source, sizeof(dest));
