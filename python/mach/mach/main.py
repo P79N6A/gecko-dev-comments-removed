@@ -19,10 +19,11 @@ from mozbuild.logger import LoggingManager
 
 
 
-
+from mach.settings import Settings
 
 
 HANDLERS = [
+    Settings,
 ]
 
 
