@@ -2546,7 +2546,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         
 
         
-        ::JS_DeleteProperty(cx, currentInner->mJSObject, "document");
+        JS::Rooted<JSObject*> obj(cx, currentInner->mJSObject);
+        ::JS_DeleteProperty(cx, obj, "document");
       }
     } else {
       newInnerWindow->InnerSetNewDocument(aDocument);
