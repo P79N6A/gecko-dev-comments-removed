@@ -11,10 +11,13 @@
 
 
 
-#include "jsapi.h"
 #include "jsbytecode.h"
 
+#include "js/CallArgs.h"
+#include "js/IdForward.h"
+
 class JSAtom;
+class JSFreeOp;
 
 namespace js { class StackFrame; }
 
@@ -45,7 +48,7 @@ FormatStackDump(JSContext *cx, char *buf, bool showArgs, bool showLocals, bool s
 }
 
 # ifdef DEBUG
-JS_FRIEND_API(void) js_DumpValue(const js::Value &val);
+JS_FRIEND_API(void) js_DumpValue(const JS::Value &val);
 JS_FRIEND_API(void) js_DumpId(jsid id);
 JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, js::StackFrame *start = NULL);
 # endif
@@ -62,24 +65,24 @@ typedef enum JSTrapStatus {
 } JSTrapStatus;
 
 typedef JSTrapStatus
-(* JSTrapHandler)(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
-                  jsval closure);
+(* JSTrapHandler)(JSContext *cx, JSScript *script, jsbytecode *pc, JS::Value *rval,
+                  JS::Value closure);
 
 typedef JSTrapStatus
-(* JSInterruptHook)(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
+(* JSInterruptHook)(JSContext *cx, JSScript *script, jsbytecode *pc, JS::Value *rval,
                     void *closure);
 
 typedef JSTrapStatus
-(* JSDebuggerHandler)(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
+(* JSDebuggerHandler)(JSContext *cx, JSScript *script, jsbytecode *pc, JS::Value *rval,
                       void *closure);
 
 typedef JSTrapStatus
-(* JSThrowHook)(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
+(* JSThrowHook)(JSContext *cx, JSScript *script, jsbytecode *pc, JS::Value *rval,
                 void *closure);
 
 typedef bool
-(* JSWatchPointHandler)(JSContext *cx, JSObject *obj, jsid id, jsval old,
-                        jsval *newp, void *closure);
+(* JSWatchPointHandler)(JSContext *cx, JSObject *obj, jsid id, JS::Value old,
+                        JS::Value *newp, void *closure);
 
 
 typedef void
@@ -157,11 +160,11 @@ JS_SetSingleStepMode(JSContext *cx, JSScript *script, bool singleStep);
 
 extern JS_PUBLIC_API(bool)
 JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
-           JSTrapHandler handler, jsval closure);
+           JSTrapHandler handler, JS::Value closure);
 
 extern JS_PUBLIC_API(void)
 JS_ClearTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
-             JSTrapHandler *handlerp, jsval *closurep);
+             JSTrapHandler *handlerp, JS::Value *closurep);
 
 extern JS_PUBLIC_API(void)
 JS_ClearScriptTraps(JSRuntime *rt, JSScript *script);
@@ -299,11 +302,11 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
 
 
 typedef struct JSPropertyDesc {
-    jsval           id;         
-    jsval           value;      
+    JS::Value       id;         
+    JS::Value       value;      
     uint8_t         flags;      
     uint8_t         spare;      
-    jsval           alias;      
+    JS::Value       alias;      
 } JSPropertyDesc;
 
 #define JSPD_ENUMERATE  0x01    /* visible to for/in loop */
