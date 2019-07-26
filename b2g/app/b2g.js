@@ -432,8 +432,6 @@ pref("services.push.requestTimeout", 10000);
 
 pref("services.push.udp.wakeupEnabled", true);
 
-pref("services.push.udp.port", 2442);
-
 
 #ifdef MOZ_B2G_RIL
 pref("dom.mozNetworkStats.enabled", true);
