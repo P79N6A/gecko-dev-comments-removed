@@ -359,7 +359,7 @@ PrivilegesForApp(mozIApplication* aApp)
     const SpecialPermission specialPermissions[] = {
         
         
-        { "camera", base::PRIVILEGES_INHERIT },
+        { "camera", base::PRIVILEGES_CAMERA },
         
         
         { "deprecated-hwvideo", base::PRIVILEGES_VIDEO }
