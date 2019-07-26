@@ -484,6 +484,10 @@ public:
     return sSecurityManager;
   }
 
+  
+  
+  static nsIPrincipal* GetSubjectPrincipal();
+
   static nsresult GenerateStateKey(nsIContent* aContent,
                                    const nsIDocument* aDocument,
                                    nsIStatefulFrame::SpecialStateID aID,

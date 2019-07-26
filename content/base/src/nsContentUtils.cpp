@@ -2354,6 +2354,20 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
 }
 
 
+nsIPrincipal*
+nsContentUtils::GetSubjectPrincipal()
+{
+  nsCOMPtr<nsIPrincipal> subject;
+  sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subject));
+
+  
+  if (!subject)
+    sSecurityManager->GetSystemPrincipal(getter_AddRefs(subject));
+
+  return subject;
+}
+
+
 nsresult
 nsContentUtils::NewURIWithDocumentCharset(nsIURI** aResult,
                                           const nsAString& aSpec,
