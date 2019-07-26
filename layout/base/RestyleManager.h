@@ -254,9 +254,6 @@ public:
 
   void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
-  void SetPromoteReflowsToReframeRoot(bool aPromote)
-    { mPromoteReflowsToReframeRoot = aPromote; }
-
 private:
   
   
@@ -281,9 +278,6 @@ private:
   bool mObservingRefreshDriver : 1;
   
   bool mInStyleRefresh : 1;
-  
-  
-  bool mPromoteReflowsToReframeRoot : 1;
   uint32_t mHoverGeneration;
   nsChangeHint mRebuildAllExtraHint;
 
