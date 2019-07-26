@@ -138,20 +138,6 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
       *trustLevel = TrustLevel::ActivelyDistrusted;
       return SECSuccess;
     }
-
-#ifdef MOZ_B2G_CERTDATA
-    
-    
-    
-
-    
-    
-    
-    if (flags & CERTDB_TRUSTED_CA) {
-      *trustLevel = TrustLevel::TrustAnchor;
-      return SECSuccess;
-    }
-#endif
   }
 
   
