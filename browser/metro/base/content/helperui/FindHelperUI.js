@@ -154,12 +154,6 @@ var FindHelperUI = {
   search: function findHelperSearch(aValue) {
     this.updateCommands(aValue);
 
-    
-    if (aValue == "") {
-      this.status = null;
-      return;
-    }
-
     Browser.selectedBrowser.messageManager.sendAsyncMessage("FindAssist:Find", { searchString: aValue });
   },
 
