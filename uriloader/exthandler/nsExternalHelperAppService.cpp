@@ -1661,7 +1661,12 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
     case NS_ERROR_FILE_ACCESS_DENIED:
         if (type == kWriteError) {
           
+#if defined(ANDROID)
+          
+          msgId.AssignLiteral("accessErrorSD");
+#else
           msgId.AssignLiteral("accessError");
+#endif
         }
         else
         {
