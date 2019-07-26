@@ -173,9 +173,9 @@ class NameResolver
 
 
 
-    JSAtom *resolveFun(ParseNode *pn, JSAtom *prefix) {
+    JSAtom *resolveFun(ParseNode *pn, HandleAtom prefix) {
         JS_ASSERT(pn != NULL && pn->isKind(PNK_FUNCTION));
-        JSFunction *fun = pn->pn_funbox->fun();
+        RootedFunction fun(cx, pn->pn_funbox->fun());
         if (nparents == 0)
             return NULL;
 
@@ -268,12 +268,13 @@ class NameResolver
 
 
 
-    void resolve(ParseNode *cur, JSAtom *prefix = NULL) {
+    void resolve(ParseNode *cur, HandleAtom prefixArg = NullPtr()) {
+        RootedAtom prefix(cx, prefixArg);
         if (cur == NULL)
             return;
 
         if (cur->isKind(PNK_FUNCTION) && cur->isArity(PN_FUNC)) {
-            JSAtom *prefix2 = resolveFun(cur, prefix);
+            RootedAtom prefix2(cx, resolveFun(cur, prefix));
             
 
 
