@@ -2027,6 +2027,8 @@ StackTypeSet::convertDoubleElements(JSContext *cx)
         if (!types)
             return AmbiguousDoubleConversion;
 
+        types->addFreeze(cx);
+
         
         
         
