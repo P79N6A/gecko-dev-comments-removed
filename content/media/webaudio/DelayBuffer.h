@@ -4,18 +4,18 @@
 
 
 
-#ifndef DelayProcessor_h_
-#define DelayProcessor_h_
+#ifndef DelayBuffer_h_
+#define DelayBuffer_h_
 
 #include "nsTArray.h"
 
 namespace mozilla {
 
-class DelayProcessor {
+class DelayBuffer {
 public:
   
   
-  DelayProcessor(int aMaxDelayFrames, double aSmoothingRate)
+  DelayBuffer(int aMaxDelayFrames, double aSmoothingRate)
     : mSmoothingRate(aSmoothingRate)
     , mCurrentDelay(0.)
     , mMaxDelayFrames(aMaxDelayFrames)
@@ -38,7 +38,7 @@ public:
   void Reset() { mBuffer.Clear(); };
 
   int MaxDelayFrames() const { return mMaxDelayFrames; }
-  int BufferChannelCount() const { return mBuffer.Length(); }
+  int ChannelCount() const { return mBuffer.Length(); }
 
 private:
   bool EnsureBuffer(uint32_t aNumberOfChannels);
