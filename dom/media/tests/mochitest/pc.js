@@ -1300,15 +1300,6 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  get readyState() {
-    return this._pc.readyState;
-  },
-
-  
-
-
-
-
   get remoteDescription() {
     return this._pc.remoteDescription;
   },
