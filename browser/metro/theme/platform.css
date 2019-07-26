@@ -840,7 +840,14 @@ appbar toolbar[labelled] toolbarbutton > .toolbarbutton-text {
   list-style-image: url(chrome://browser/skin/images/appbar-icons.png);
 }
 
-.flyout-narrow description,
-.flyout-narrow label {
-  max-width: 266px; 
+
+
+.flyout-narrow {
+  width: 346px;
+}
+
+
+
+.flyout-narrow .flyoutpanel-hack {
+  max-width: calc(346px - 2 * 40px);
 }
