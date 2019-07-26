@@ -251,6 +251,7 @@ public:
 
 protected:
   nsresult DetermineCurrentDirection();
+  void FireInputEvent();
 
   
 
