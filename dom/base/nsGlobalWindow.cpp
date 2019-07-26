@@ -2324,7 +2324,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     JS::ExposeObjectToActiveJS(mJSObject);
-    if (!JS_RefreshCrossCompartmentWrappers(cx, mJSObject)) {
+    JS::Rooted<JSObject*> rootedObject(cx, mJSObject);
+    if (!JS_RefreshCrossCompartmentWrappers(cx, rootedObject)) {
       return NS_ERROR_FAILURE;
     }
 
