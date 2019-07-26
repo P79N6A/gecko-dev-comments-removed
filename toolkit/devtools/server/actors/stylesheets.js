@@ -33,23 +33,24 @@ transition-property: all !important;\
 let LOAD_ERROR = "error-load";
 
 exports.register = function(handle) {
-  handle.addTabActor(StyleEditorActor, "styleEditorActor");
-  handle.addGlobalActor(StyleEditorActor, "styleEditorActor");
+  handle.addTabActor(StyleSheetsActor, "styleSheetsActor");
+  handle.addGlobalActor(StyleSheetsActor, "styleSheetsActor");
 };
 
 exports.unregister = function(handle) {
-  handle.removeTabActor(StyleEditorActor);
-  handle.removeGlobalActor(StyleEditorActor);
+  handle.removeTabActor(StyleSheetsActor);
+  handle.removeGlobalActor(StyleSheetsActor);
 };
 
-types.addActorType("old-stylesheet");
+types.addActorType("stylesheet");
+types.addActorType("originalsource");
 
 
 
 
 
-let StyleEditorActor = protocol.ActorClass({
-  typeName: "styleeditor",
+let StyleSheetsActor = protocol.ActorClass({
+  typeName: "stylesheets",
 
   
 
@@ -60,13 +61,6 @@ let StyleEditorActor = protocol.ActorClass({
 
 
   get document() this.window.document,
-
-  events: {
-    "document-load" : {
-      type: "documentLoad",
-      styleSheets: Arg(0, "array:old-stylesheet")
-    }
-  },
 
   form: function()
   {
@@ -94,43 +88,37 @@ let StyleEditorActor = protocol.ActorClass({
 
 
 
-  newDocument: method(function() {
-    
-    this._clearStyleSheetActors();
+  getStyleSheets: method(function() {
+    let deferred = promise.defer();
 
-    
-    
-    if (this.document.readyState == "complete") {
-      this._onDocumentLoaded();
-    }
-    else {
-      this.window.addEventListener("load", this._onDocumentLoaded, false);
-    }
-    return {};
-  }),
+    let window = this.window;
+    var domReady = () => {
+      window.removeEventListener("DOMContentLoaded", domReady, true);
 
-  
-
-
-
-  _onDocumentLoaded: function(event) {
-    if (event) {
-      this.window.removeEventListener("load", this._onDocumentLoaded, false);
-    }
-
-    let documents = [this.document];
-    var forms = [];
-    for (let doc of documents) {
-      let sheetForms = this._addStyleSheets(doc.styleSheets);
-      forms = forms.concat(sheetForms);
-      
-      for (let iframe of doc.getElementsByTagName("iframe")) {
-        documents.push(iframe.contentDocument);
+      let documents = [this.document];
+      let actors = [];
+      for (let doc of documents) {
+        let sheets = this._addStyleSheets(doc.styleSheets);
+        actors = actors.concat(sheets);
+        
+        for (let iframe of doc.getElementsByTagName("iframe")) {
+          documents.push(iframe.contentDocument);
+        }
       }
+      deferred.resolve(actors);
+    };
+
+    if (window.document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", domReady, true);
+    } else {
+      domReady();
     }
 
-    events.emit(this, "document-load", forms);
-  },
+    return deferred.promise;
+  }, {
+    request: {},
+    response: { styleSheets: RetVal("array:stylesheet") }
+  }),
 
   
 
@@ -155,27 +143,6 @@ let StyleEditorActor = protocol.ActorClass({
     let actors = sheets.map(this._createStyleSheetActor.bind(this));
 
     return actors;
-  },
-
-  
-
-
-
-
-
-
-
-  _createStyleSheetActor: function(styleSheet)
-  {
-    if (this._sheets.has(styleSheet)) {
-      return this._sheets.get(styleSheet);
-    }
-    let actor = new OldStyleSheetActor(styleSheet, this);
-
-    this.manage(actor);
-    this._sheets.set(styleSheet, actor);
-
-    return actor;
   },
 
   
@@ -213,6 +180,27 @@ let StyleEditorActor = protocol.ActorClass({
   
 
 
+
+
+
+
+
+  _createStyleSheetActor: function(styleSheet)
+  {
+    if (this._sheets.has(styleSheet)) {
+      return this._sheets.get(styleSheet);
+    }
+    let actor = new StyleSheetActor(styleSheet, this);
+
+    this.manage(actor);
+    this._sheets.set(styleSheet, actor);
+
+    return actor;
+  },
+
+  
+
+
   _clearStyleSheetActors: function() {
     for (let actor in this._sheets) {
       this.unmanage(this._sheets[actor]);
@@ -229,7 +217,7 @@ let StyleEditorActor = protocol.ActorClass({
 
 
 
-  newStyleSheet: method(function(text) {
+  addStyleSheet: method(function(text) {
     let parent = this.document.documentElement;
     let style = this.document.createElementNS("http://www.w3.org/1999/xhtml", "style");
     style.setAttribute("type", "text/css");
@@ -243,43 +231,28 @@ let StyleEditorActor = protocol.ActorClass({
     return actor;
   }, {
     request: { text: Arg(0, "string") },
-    response: { styleSheet: RetVal("old-stylesheet") }
+    response: { styleSheet: RetVal("stylesheet") }
   })
 });
 
 
 
 
-let StyleEditorFront = protocol.FrontClass(StyleEditorActor, {
+let StyleSheetsFront = protocol.FrontClass(StyleSheetsActor, {
   initialize: function(client, tabForm) {
     protocol.Front.prototype.initialize.call(this, client);
-    this.actorID = tabForm.styleEditorActor;
+    this.actorID = tabForm.styleSheetsActor;
 
     client.addActorPool(this);
     this.manage(this);
-  },
-
-  getStyleSheets: function() {
-    let deferred = promise.defer();
-
-    events.once(this, "document-load", (styleSheets) => {
-      deferred.resolve(styleSheets);
-    });
-    this.newDocument();
-
-    return deferred.promise;
-  },
-
-  addStyleSheet: function(text) {
-    return this.newStyleSheet(text);
   }
 });
 
 
 
 
-let OldStyleSheetActor = protocol.ActorClass({
-  typeName: "old-stylesheet",
+let StyleSheetActor = protocol.ActorClass({
+  typeName: "stylesheet",
 
   events: {
     "property-change" : {
@@ -287,17 +260,16 @@ let OldStyleSheetActor = protocol.ActorClass({
       property: Arg(0, "string"),
       value: Arg(1, "json")
     },
-    "source-load" : {
-      type: "sourceLoad",
-      source: Arg(0, "string")
-    },
     "style-applied" : {
       type: "styleApplied"
     }
   },
 
+  
+  _originalSources: null,
+
   toString: function() {
-    return "[OldStyleSheetActor " + this.actorID + "]";
+    return "[StyleSheetActor " + this.actorID + "]";
   },
 
   
@@ -427,14 +399,17 @@ let OldStyleSheetActor = protocol.ActorClass({
     events.emit(this, "property-change", property, this.form()[property]);
   },
 
-   
+  
 
 
-
-  fetchSource: method(function() {
-    this._getText().then((content) => {
-      events.emit(this, "source-load", this.text);
+  getText: method(function() {
+    return this._getText().then((text) => {
+      return new LongStringActor(this.conn, text || "");
     });
+  }, {
+    response: {
+      text: RetVal("longstring")
+    }
   }),
 
   
@@ -466,6 +441,163 @@ let OldStyleSheetActor = protocol.ActorClass({
       return content;
     });
   },
+
+  
+
+
+
+  getOriginalSources: method(function() {
+    if (this._originalSources) {
+      return promise.resolve(this._originalSources);
+    }
+    return this._fetchOriginalSources();
+  }, {
+    request: {},
+    response: {
+      originalSources: RetVal("nullable:array:originalsource")
+    }
+  }),
+
+  
+
+
+
+
+
+
+  _fetchOriginalSources: function() {
+    this._clearOriginalSources();
+    this._originalSources = [];
+
+    return this.getSourceMap().then((sourceMap) => {
+      if (!sourceMap) {
+        return null;
+      }
+      for (let url of sourceMap.sources) {
+        let actor = new OriginalSourceActor(url, sourceMap, this);
+
+        this.manage(actor);
+        this._originalSources.push(actor);
+      }
+      return this._originalSources;
+    })
+  },
+
+  
+
+
+
+
+
+
+  getSourceMap: function() {
+    if (this._sourceMap) {
+      return this._sourceMap;
+    }
+    return this._fetchSourceMap();
+  },
+
+  
+
+
+
+
+
+  _fetchSourceMap: function() {
+    let deferred = promise.defer();
+
+    this._getText().then((content) => {
+      let url = this._extractSourceMapUrl(content);
+      if (!url) {
+        
+        deferred.resolve(null);
+        return;
+      };
+
+      url = normalize(url, this.href);
+
+      let map = fetch(url, { loadFromCache: false, window: this.window })
+        .then(({content}) => {
+          let map = new SourceMapConsumer(content);
+          this._setSourceMapRoot(map, url, this.href);
+          this._sourceMap = promise.resolve(map);
+
+          deferred.resolve(map);
+          return map;
+        }, deferred.reject);
+
+      this._sourceMap = map;
+    }, deferred.reject);
+
+    return deferred.promise;
+  },
+
+  
+
+
+  _clearOriginalSources: function() {
+    for (actor in this._originalSources) {
+      this.unmanage(actor);
+    }
+    this._originalSources = null;
+  },
+
+  
+
+
+  _setSourceMapRoot: function(aSourceMap, aAbsSourceMapURL, aScriptURL) {
+    const base = dirname(
+      aAbsSourceMapURL.indexOf("data:") === 0
+        ? aScriptURL
+        : aAbsSourceMapURL);
+    aSourceMap.sourceRoot = aSourceMap.sourceRoot
+      ? normalize(aSourceMap.sourceRoot, base)
+      : base;
+  },
+
+  
+
+
+
+
+
+
+
+  _extractSourceMapUrl: function(content) {
+    var matches = /sourceMappingURL\=([^\s\*]*)/.exec(content);
+    if (matches) {
+      return matches[1];
+    }
+    return null;
+  },
+
+  
+
+
+
+
+  getOriginalLocation: method(function(line, column) {
+    return this.getSourceMap().then((sourceMap) => {
+      if (sourceMap) {
+        return sourceMap.originalPositionFor({ line: line, column: column });
+      }
+      return {
+        source: this.href,
+        line: line,
+        column: column
+      }
+    });
+  }, {
+    request: {
+      line: Arg(0, "number"),
+      column: Arg(1, "number")
+    },
+    response: RetVal(types.addDictType("originallocationresponse", {
+      source: "string",
+      line: "number",
+      column: "number"
+    }))
+  }),
 
   
 
@@ -585,7 +717,7 @@ let OldStyleSheetActor = protocol.ActorClass({
 
 
 
-var OldStyleSheetFront = protocol.FrontClass(OldStyleSheetActor, {
+var StyleSheetFront = protocol.FrontClass(StyleSheetActor, {
   initialize: function(conn, form, ctx, detail) {
     protocol.Front.prototype.initialize.call(this, conn, form, ctx, detail);
 
@@ -612,22 +744,6 @@ var OldStyleSheetFront = protocol.FrontClass(OldStyleSheetActor, {
     this._form = form;
   },
 
-  getText: function() {
-    let deferred = promise.defer();
-
-    events.once(this, "source-load", (source) => {
-      let longStr = new ShortLongString(source);
-      deferred.resolve(longStr);
-    });
-    this.fetchSource();
-
-    return deferred.promise;
-  },
-
-  getOriginalSources: function() {
-    return promise.resolve([]);
-  },
-
   get href() this._form.href,
   get nodeHref() this._form.nodeHref,
   get disabled() !!this._form.disabled,
@@ -637,15 +753,89 @@ var OldStyleSheetFront = protocol.FrontClass(OldStyleSheetActor, {
   get ruleCount() this._form.ruleCount
 });
 
+
+
+
+
+let OriginalSourceActor = protocol.ActorClass({
+  typeName: "originalsource",
+
+  initialize: function(aUrl, aSourceMap, aParentActor) {
+    protocol.Actor.prototype.initialize.call(this, null);
+
+    this.url = aUrl;
+    this.sourceMap = aSourceMap;
+    this.parentActor = aParentActor;
+    this.conn = this.parentActor.conn;
+
+    this.text = null;
+  },
+
+  form: function() {
+    return {
+      actor: this.actorID, 
+      url: this.url,
+      parentSource: this.parentActor.actorID
+    };
+  },
+
+  _getText: function() {
+    if (this.text) {
+      return promise.resolve(this.text);
+    }
+    return fetch(this.url, { window: this.window }).then(({content}) => {
+      this.text = content;
+      return content;
+    });
+  },
+
+  
+
+
+  getText: method(function() {
+    return this._getText().then((text) => {
+      return new LongStringActor(this.conn, text || "");
+    });
+  }, {
+    response: {
+      text: RetVal("longstring")
+    }
+  })
+})
+
+
+
+
+let OriginalSourceFront = protocol.FrontClass(OriginalSourceActor, {
+  initialize: function(client, form) {
+    protocol.Front.prototype.initialize.call(this, client, form);
+
+    this.isOriginalSource = true;
+  },
+
+  form: function(form, detail) {
+    if (detail === "actorid") {
+      this.actorID = form;
+      return;
+    }
+    this.actorID = form.actor;
+    this._form = form;
+  },
+
+  get href() this._form.url,
+  get url() this._form.url
+});
+
+
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
 
-exports.StyleEditorActor = StyleEditorActor;
-exports.StyleEditorFront = StyleEditorFront;
+exports.StyleSheetsActor = StyleSheetsActor;
+exports.StyleSheetsFront = StyleSheetsFront;
 
-exports.OldStyleSheetActor = OldStyleSheetActor;
-exports.OldStyleSheetFront = OldStyleSheetFront;
+exports.StyleSheetActor = StyleSheetActor;
+exports.StyleSheetFront = StyleSheetFront;
 
 
 
