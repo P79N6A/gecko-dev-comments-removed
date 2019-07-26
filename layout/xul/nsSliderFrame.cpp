@@ -664,11 +664,10 @@ nsSliderFrame::CurrentPositionChanged()
   else
      newThumbRect.y = clientRect.y + NSToCoordRound(pos * mRatio);
 
-#ifdef MOZ_WIDGET_GONK
   
   nscoord appUnitsPerPixel = PresContext()->AppUnitsPerDevPixel();
   newThumbRect = newThumbRect.ToNearestPixels(appUnitsPerPixel).ToAppUnits(appUnitsPerPixel);
-#endif
+
   
   thumbFrame->SetRect(newThumbRect);
 
