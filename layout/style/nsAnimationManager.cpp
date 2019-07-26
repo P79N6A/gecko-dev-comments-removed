@@ -51,32 +51,16 @@ ElementAnimationsPropertyDtor(void           *aObject,
 
 ComputedTiming
 ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
-                                          const AnimationTiming& aTiming,
-                                          ElementAnimation* aAnimation,
-                                          ElementAnimations* aEa,
-                                          EventArray* aEventsToDispatch)
+                                          const AnimationTiming& aTiming)
 {
-  MOZ_ASSERT(!aAnimation == !aEa && !aAnimation == !aEventsToDispatch);
-
   
   ComputedTiming result;
 
   
   
   double currentIterationCount = aElapsedDuration / aTiming.mIterationDuration;
-  bool dispatchStartOrIteration = false;
   if (currentIterationCount >= aTiming.mIterationCount) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
-    if (aAnimation) {
-      
-      if (aAnimation->mLastNotification !=
-          ElementAnimation::LAST_NOTIFICATION_END) {
-        aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
-        AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
-                              aElapsedDuration, aEa->PseudoElement());
-        aEventsToDispatch->AppendElement(ei);
-      }
-    }
     if (!aTiming.FillsForwards()) {
       
       result.mTimeFraction = ComputedTiming::kNullTimeFraction;
@@ -93,7 +77,6 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
     currentIterationCount = 0.0;
   } else {
     result.mPhase = ComputedTiming::AnimationPhase_Active;
-    dispatchStartOrIteration = aAnimation && !aAnimation->IsPaused();
   }
 
   
@@ -141,25 +124,6 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   }
   if (thisIterationReverse) {
     positionInIteration = 1.0 - positionInIteration;
-  }
-
-  
-  if (aAnimation && dispatchStartOrIteration &&
-      whichIteration != aAnimation->mLastNotification) {
-    
-    
-    
-    
-    
-    
-    uint32_t message =
-      aAnimation->mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
-        ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
-
-    aAnimation->mLastNotification = whichIteration;
-    AnimationEventInfo ei(aEa->mElement, aAnimation->mName, message,
-                          aElapsedDuration, aEa->PseudoElement());
-    aEventsToDispatch->AppendElement(ei);
   }
 
   result.mTimeFraction = positionInIteration;
@@ -347,8 +311,39 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
       continue;
     }
 
-    GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                           anim->mTiming, anim, this, &aEventsToDispatch);
+    TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
+    ComputedTiming computedTiming =
+      GetPositionInIteration(elapsedDuration, anim->mTiming);
+
+    if (computedTiming.mPhase == ComputedTiming::AnimationPhase_After) {
+      
+      if (anim->mLastNotification != ElementAnimation::LAST_NOTIFICATION_END) {
+        anim->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
+        AnimationEventInfo ei(mElement, anim->mName, NS_ANIMATION_END,
+                              elapsedDuration, PseudoElement());
+        aEventsToDispatch.AppendElement(ei);
+      }
+    } else if (computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) {
+      if (!anim->IsPaused()) {
+        
+        if (computedTiming.mCurrentIteration != anim->mLastNotification) {
+          
+          
+          
+          
+          
+          
+          uint32_t message =
+            anim->mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
+              ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
+
+          anim->mLastNotification = computedTiming.mCurrentIteration;
+          AnimationEventInfo ei(mElement, anim->mName, message,
+                                elapsedDuration, PseudoElement());
+          aEventsToDispatch.AppendElement(ei);
+        }
+      }
+    }
   }
 }
 
