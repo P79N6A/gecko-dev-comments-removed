@@ -124,6 +124,13 @@ public:
   DeviceManagerD3D9();
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DeviceManagerD3D9)
 
+  
+
+
+
+
+
+
   bool Init();
 
   
@@ -193,19 +200,19 @@ public:
   bool DeviceManagerD3D9::IsInTextureHostList(TextureSourceD3D9* aFind);
 #endif
 
-  static uint32_t sMaskQuadRegister;
-
-private:
-  friend class SwapChainD3D9;
-
-  ~DeviceManagerD3D9();
-
   
 
 
 
 
   bool VerifyReadyForRendering();
+
+  static uint32_t sMaskQuadRegister;
+
+private:
+  friend class SwapChainD3D9;
+
+  ~DeviceManagerD3D9();
 
   
 

@@ -13,6 +13,7 @@
 #include "plstr.h"
 #include <algorithm>
 #include "gfxPlatform.h"
+#include "gfxWindowsPlatform.h"
 #include "TextureD3D9.h"
 #include "mozilla/gfx/Point.h"
 
@@ -177,7 +178,13 @@ DeviceManagerD3D9::DeviceManagerD3D9()
 
 DeviceManagerD3D9::~DeviceManagerD3D9()
 {
+  
+  
+  
+  ReleaseTextureResources();
+
   LayerManagerD3D9::OnDeviceManagerDestroy(this);
+  gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
 }
 
 bool
@@ -675,6 +682,7 @@ DeviceManagerD3D9::VerifyReadyForRendering()
       if (FAILED(hr)) {
         mDeviceWasRemoved = true;
         LayerManagerD3D9::OnDeviceManagerDestroy(this);
+        gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
         ++mDeviceResetCount;
         return false;
       }
@@ -690,7 +698,7 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   }
 
   mVB = nullptr;
-  
+
   D3DPRESENT_PARAMETERS pp;
   memset(&pp, 0, sizeof(D3DPRESENT_PARAMETERS));
 
@@ -705,32 +713,10 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   hr = mDevice->Reset(&pp);
   ++mDeviceResetCount;
 
-  if (hr == D3DERR_DEVICELOST) {
-    
-
-
-
-
-
-    HMONITOR hMonitorWindow;
-    hMonitorWindow = MonitorFromWindow(mFocusWnd, MONITOR_DEFAULTTOPRIMARY);
-    if (hMonitorWindow == mDeviceMonitor) {
-      
-
-
-      
-
-
-
-
-      return false;
-    }
-    
-  }
-
   if (FAILED(hr) || !CreateVertexBuffer()) {
     mDeviceWasRemoved = true;
     LayerManagerD3D9::OnDeviceManagerDestroy(this);
+    gfxWindowsPlatform::GetPlatform()->OnDeviceManagerDestroy(this);
     return false;
   }
 

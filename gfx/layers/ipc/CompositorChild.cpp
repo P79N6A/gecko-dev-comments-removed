@@ -6,7 +6,7 @@
 
 #include "CompositorChild.h"
 #include <stddef.h>                     
-#include "Layers.h"                     
+#include "ClientLayerManager.h"         
 #include "base/message_loop.h"          
 #include "base/process_util.h"          
 #include "base/task.h"                  
@@ -19,6 +19,7 @@
 #include "nsTArray.h"                   
 #include "nsTraceRefcnt.h"              
 #include "nsXULAppAPI.h"                
+#include "FrameLayerBuilder.h"
 
 using mozilla::layers::LayerTransactionChild;
 
@@ -27,7 +28,7 @@ namespace layers {
 
  CompositorChild* CompositorChild::sCompositor;
 
-CompositorChild::CompositorChild(LayerManager *aLayerManager)
+CompositorChild::CompositorChild(ClientLayerManager *aLayerManager)
   : mLayerManager(aLayerManager)
 {
   MOZ_COUNT_CTOR(CompositorChild);
@@ -93,6 +94,13 @@ bool
 CompositorChild::DeallocPLayerTransactionChild(PLayerTransactionChild* actor)
 {
   delete actor;
+  return true;
+}
+
+bool
+CompositorChild::RecvInvalidateAll()
+{
+  FrameLayerBuilder::InvalidateAllLayers(mLayerManager);
   return true;
 }
 

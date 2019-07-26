@@ -240,7 +240,6 @@ public:
   }
 
   bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
-  RefPtr<Compositor> mCompositor;
 
 private:
   
@@ -272,6 +271,8 @@ private:
   void RenderDebugOverlay(const gfx::Rect& aBounds);
 
   void WorldTransformRect(nsIntRect& aRect);
+
+  RefPtr<Compositor> mCompositor;
 
   
   nsRefPtr<Composer2D> mComposer2D;

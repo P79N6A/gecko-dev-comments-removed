@@ -122,6 +122,8 @@ class ISurfaceAllocator;
 class NewTextureSource;
 class DataTextureSource;
 class CompositingRenderTarget;
+class PCompositorParent;
+class LayerManagerComposite;
 
 enum SurfaceInitMode
 {
@@ -176,9 +178,10 @@ enum SurfaceInitMode
 class Compositor : public RefCounted<Compositor>
 {
 public:
-  Compositor()
+  Compositor(PCompositorParent* aParent = nullptr)
     : mCompositorID(0)
     , mDiagnosticTypes(DIAGNOSTIC_NONE)
+    , mParent(aParent)
   {
     MOZ_COUNT_CTOR(Compositor);
   }
@@ -291,6 +294,7 @@ public:
                         gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform) = 0;
 
   
+
 
 
 
@@ -446,6 +450,7 @@ protected:
   uint32_t mCompositorID;
   static LayersBackend sBackend;
   DiagnosticTypes mDiagnosticTypes;
+  PCompositorParent* mParent;
 
   
 
