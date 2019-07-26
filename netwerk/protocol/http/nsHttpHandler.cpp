@@ -405,6 +405,11 @@ nsHttpHandler::IsAcceptableEncoding(const char *enc)
     if (!PL_strncasecmp(enc, "x-", 2))
         enc += 2;
 
+    
+    
+    if (!PL_strcasecmp(enc, "gzip") || !PL_strcasecmp(enc, "deflate"))
+        return true;
+
     return nsHttp::FindToken(mAcceptEncodings.get(), enc, HTTP_LWS ",") != nullptr;
 }
 
@@ -1410,6 +1415,7 @@ nsHttpHandler::NewURI(const nsACString &aSpec,
                       nsIURI *aBaseURI,
                       nsIURI **aURI)
 {
+    LOG(("nsHttpHandler::NewURI\n"));
     return ::NewURI(aSpec, aCharset, aBaseURI, NS_HTTP_DEFAULT_PORT, aURI);
 }
 
