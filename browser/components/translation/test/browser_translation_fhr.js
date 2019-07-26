@@ -33,7 +33,10 @@ let MetricsChecker = {
       pageCount: day.get("pageTranslatedCount") || 0,
       charCount: day.get("charactersTranslatedCount") || 0,
       deniedOffers: day.get("deniedTranslationOffer") || 0,
-      showOriginal: day.get("showOriginalContent") || 0
+      showOriginal: day.get("showOriginalContent") || 0,
+      detectedLanguageChangedBefore: day.get("detectedLanguageChangedBefore") || 0,
+      detectedLanguageChangeAfter: day.get("detectedLanguageChangedAfter") || 0,
+      targetLanguageChanged: day.get("targetLanguageChanged") || 0
     };
     this._metricsTime = metricsTime;
   }),
@@ -72,16 +75,16 @@ add_task(function* setup() {
   });
 
   
-  yield translate("<h1>Hallo Welt!</h1>", "de", "en");
+  yield translate("<h1>Hallo Welt!</h1>", "de");
   yield MetricsChecker.updateMetrics();
 });
 
 add_task(function* test_fhr() {
   
-  yield translate("<h1>Hallo Welt!</h1>", "de", "en");
+  yield translate("<h1>Hallo Welt!</h1>", "de");
 
   
-  yield translate("<h1>Hallo Welt!</h1><h1>Bratwurst!</h1>", "de", "en");
+  yield translate("<h1>Hallo Welt!</h1><h1>Bratwurst!</h1>", "de");
   yield MetricsChecker.checkAdditions({ pageCount: 1, charCount: 21, deniedOffers: 0});
 });
 
@@ -100,19 +103,60 @@ add_task(function* test_deny_translation_metric() {
 
   
   
-  let tab =
-    yield translate("<h1>Hallo Welt!</h1>", "de", "en", false);
+  let tab = yield translate("<h1>Hallo Welt!</h1>", "de", false);
   yield MetricsChecker.checkAdditions({ deniedOffers: 0 });
   gBrowser.removeTab(tab);
 });
 
 add_task(function* test_show_original() {
-  let tab = 
-    yield translate("<h1>Hallo Welt!</h1><h1>Bratwurst!</h1>", "de", "en", false);
+  let tab =
+    yield translate("<h1>Hallo Welt!</h1><h1>Bratwurst!</h1>", "de", false);
   yield MetricsChecker.checkAdditions({ pageCount: 1, showOriginal: 0 });
   getInfobarElement(tab.linkedBrowser, "showOriginal").doCommand();
   yield MetricsChecker.checkAdditions({ pageCount: 0, showOriginal: 1 });
   gBrowser.removeTab(tab);
+});
+
+add_task(function* test_language_change() {
+  for (let i of Array(4)) {
+    let tab = yield offerTranslatationFor("<h1>Hallo Welt!</h1>", "fr");
+    let browser = tab.linkedBrowser;
+    
+    
+    let detectedLangMenulist = getInfobarElement(browser, "detectedLanguage");
+    simulateUserSelectInMenulist(detectedLangMenulist, "de");
+    simulateUserSelectInMenulist(detectedLangMenulist, "it");
+    simulateUserSelectInMenulist(detectedLangMenulist, "de");
+    yield acceptTranslationOffer(tab);
+
+    
+    
+    let fromLangMenulist = getInfobarElement(browser, "fromLanguage");
+    simulateUserSelectInMenulist(fromLangMenulist, "it");
+    simulateUserSelectInMenulist(fromLangMenulist, "de");
+
+    
+    simulateUserSelectInMenulist(fromLangMenulist, "de");
+
+    let toLangMenulist = getInfobarElement(browser, "toLanguage");
+    simulateUserSelectInMenulist(toLangMenulist, "fr");
+    simulateUserSelectInMenulist(toLangMenulist, "en");
+    simulateUserSelectInMenulist(toLangMenulist, "it");
+
+    
+    simulateUserSelectInMenulist(toLangMenulist, "it");
+
+    
+    
+    simulateUserSelectInMenulist(toLangMenulist, "de");
+
+    gBrowser.removeTab(tab);
+  }
+  yield MetricsChecker.checkAdditions({
+    detectedLanguageChangedBefore: 4,
+    detectedLanguageChangeAfter: 8,
+    targetLanguageChanged: 12
+  });
 });
 
 function getInfobarElement(browser, anonid) {
@@ -140,19 +184,18 @@ function offerTranslatationFor(text, from) {
   });
 }
 
-function acceptTranslationOffer(tab, to) {
+function acceptTranslationOffer(tab) {
   return Task.spawn(function* task_accept_translation_offer() {
     let browser = tab.linkedBrowser;
-    getInfobarElement(browser, "toLanguage").value = to;
-    getInfobarElement(browser, "toLanguage").doCommand();
+    getInfobarElement(browser, "translate").doCommand();
     yield waitForMessage(browser, "Translation:Finished");
   });
 }
 
-function translate(text, from, to, closeTab = true) {
+function translate(text, from, closeTab = true) {
   return Task.spawn(function* task_translate() {
     let tab = yield offerTranslatationFor(text, from);
-    yield acceptTranslationOffer(tab, to);
+    yield acceptTranslationOffer(tab);
     if (closeTab) {
       gBrowser.removeTab(tab);
     } else {
@@ -179,4 +222,9 @@ function promiseBrowserLoaded(browser) {
       }
     }, true);
   });
+}
+
+function simulateUserSelectInMenulist(menulist, value) {
+  menulist.value = value;
+  menulist.doCommand();
 }
