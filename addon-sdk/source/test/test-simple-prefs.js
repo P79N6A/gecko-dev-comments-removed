@@ -41,7 +41,7 @@ exports.testSetGetBool = function(assert) {
 };
 
 
-exports.testSpecialChars = function(assert) {
+exports.testSpecialChars = function(assert, done) {
   let chars = specialChars.split("");
   let len = chars.length;
 
@@ -54,7 +54,7 @@ exports.testSpecialChars = function(assert) {
 
       
       if (++count == len)
-        test.done();
+        done();
     })
     sp[char] = rand;
   });

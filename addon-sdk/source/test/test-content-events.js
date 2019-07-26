@@ -44,16 +44,9 @@ exports["test multiple tabs"] = function(assert, done) {
 
   on(events, "data", handler);
   function handler ({type, target, timeStamp}) {
-    
-    
-    
-    
-    if (target.URL !== "about:blank" &&
-        target.URL !== "about:home" &&
-        !target.URL.match(/^https?:\/\//i) &&
-        type !== "chrome-document-global-created" &&
-        type !== "content-document-global-created")
+    eventFilter(type, target, () => {
       actual.push(type + " -> " + target.URL)
+    });
   }
 
   let window = getMostRecentBrowserWindow();
@@ -92,12 +85,9 @@ exports["test nested frames"] = function(assert, done) {
   let actual = [];
   on(events, "data", handler);
   function handler ({type, target, timeStamp}) {
-    
-    
-    if (target.URL !== "about:blank" &&
-       type !== "chrome-document-global-created" &&
-       type !== "content-document-global-created")
+    eventFilter(type, target, () => {
       actual.push(type + " -> " + target.URL)
+    });
   }
 
   let window =  getMostRecentBrowserWindow();
@@ -126,4 +116,20 @@ exports["test nested frames"] = function(assert, done) {
     });
 };
 
+
+
+
+
+
+
+function eventFilter (type, target, callback) {
+  if (target.URL !== "about:blank" &&
+    target.URL !== "about:home" &&
+    !target.URL.match(/^https?:\/\//i) &&
+    !target.URL.match(/searchplugins/) &&
+    type !== "chrome-document-global-created" &&
+    type !== "content-document-global-created")
+  
+    callback();
+}
 require("test").run(exports);

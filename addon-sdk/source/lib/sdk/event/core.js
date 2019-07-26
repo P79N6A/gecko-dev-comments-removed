@@ -36,7 +36,7 @@ const observers = function observers(target, type) {
 
 
 function on(target, type, listener) {
-   if (typeof(listener) !== 'function')
+  if (typeof(listener) !== 'function')
     throw new Error(BAD_LISTENER);
 
   let listeners = observers(target, type);
@@ -56,9 +56,9 @@ exports.on = on;
 
 
 function once(target, type, listener) {
-  on(target, type, function observer() {
+  on(target, type, function observer(...args) {
     off(target, type, observer);
-    listener.apply(target, arguments);
+    listener.apply(target, args);
   });
 }
 exports.once = once;
@@ -77,37 +77,21 @@ exports.once = once;
 
 
 
-
-
-function emit(target, type, message ) {
-  for each (let item in emit.lazy.apply(emit.lazy, arguments)) {
-    
-  }
-}
-
-
-
-
-
-
-
-
-
-emit.lazy = function lazy(target, type, message ) {
-  let args = Array.slice(arguments, 2);
+function emit (target, type, ...args) {
   let state = observers(target, type);
   let listeners = state.slice();
-  let index = 0;
   let count = listeners.length;
+  let index = 0;
 
   
   
-  if (count === 0 && type === 'error') console.exception(message);
+  if (count === 0 && type === 'error') console.exception(args[0]);
   while (index < count) {
     try {
       let listener = listeners[index];
       
-      if (~state.indexOf(listener)) yield listener.apply(target, args);
+      if (~state.indexOf(listener))
+        listener.apply(target, args);
     }
     catch (error) {
       
@@ -115,8 +99,10 @@ emit.lazy = function lazy(target, type, message ) {
       if (type !== 'error') emit(target, 'error', error);
       else console.exception(error);
     }
-    index = index + 1;
+    index++;
   }
+   
+  if (type !== '*') emit(target, '*', type, ...args);
 }
 exports.emit = emit;
 
@@ -145,7 +131,7 @@ function off(target, type, listener) {
   }
   else if (length === 1) {
     let listeners = event(target);
-    Object.keys(listeners).forEach(function(type) delete listeners[type]);
+    Object.keys(listeners).forEach(type => delete listeners[type]);
   }
 }
 exports.off = off;
@@ -171,7 +157,7 @@ exports.count = count;
 
 
 function setListeners(target, listeners) {
-  Object.keys(listeners || {}).forEach(function onEach(key) {
+  Object.keys(listeners || {}).forEach(key => {
     let match = EVENT_TYPE_PATTERN.exec(key);
     let type = match && match[1].toLowerCase();
     let listener = listeners[key];

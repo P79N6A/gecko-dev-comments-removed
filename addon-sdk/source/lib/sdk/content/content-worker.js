@@ -137,6 +137,14 @@ const ContentWorker = Object.freeze({
         registerMethod = chromeSetInterval;
       else
         throw new Error("Unknown timer kind: " + timer.kind);
+
+      if (typeof timer.fun == 'string') {
+        let code = timer.fun;
+        timer.fun = () => chromeAPI.sandbox.evaluate(exports, code);
+      } else if (typeof timer.fun != 'function') {
+        throw new Error('Unsupported callback type' + typeof timer.fun);
+      }
+
       let id = registerMethod(onFire, timer.delay);
       function onFire() {
         try {
@@ -145,10 +153,45 @@ const ContentWorker = Object.freeze({
           timer.fun.apply(null, timer.args);
         } catch(e) {
           console.exception(e);
+          let wrapper = {
+            instanceOfError: instanceOf(e, Error),
+            value: e,
+          };
+          if (wrapper.instanceOfError) {
+            wrapper.value = {
+              message: e.message,
+              fileName: e.fileName,
+              lineNumber: e.lineNumber,
+              stack: e.stack,
+              name: e.name, 
+            };
+          }
+          pipe.emit('error', wrapper);
         }
       }
       _timers[id] = timer;
       return id;
+    }
+
+    
+    function instanceOf(value, Type) {
+      var isConstructorNameSame;
+      var isConstructorSourceSame;
+
+      
+      var isInstanceOf = value instanceof Type;
+
+      
+      
+      
+      
+      if (!isInstanceOf && value) {
+        isConstructorNameSame = value.constructor.name === Type.name;
+        isConstructorSourceSame = String(value.constructor) == String(Type);
+        isInstanceOf = (isConstructorNameSame && isConstructorSourceSame) ||
+                        instanceOf(Object.getPrototypeOf(value), Type);
+      }
+      return isInstanceOf;
     }
 
     function unregisterTimer(id) {
