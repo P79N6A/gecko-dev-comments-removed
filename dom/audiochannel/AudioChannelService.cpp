@@ -703,8 +703,13 @@ AudioChannelService::Observe(nsISupports* aSubject, const char* aTopic, const PR
       audioManager->SetAudioChannelVolume(AUDIO_CHANNEL_ALARM, index);
     } else if (keyStr.EqualsLiteral("audio.volume.telephony")) {
       audioManager->SetAudioChannelVolume(AUDIO_CHANNEL_TELEPHONY, index);
-    } else {
-      MOZ_ASSUME_UNREACHABLE("unexpected audio channel for volume control");
+    } else if (!keyStr.EqualsLiteral("audio.volume.bt_sco")) {
+      
+      
+      
+      
+      
+      NS_WARNING("unexpected audio channel for volume control");
     }
   }
 #endif
