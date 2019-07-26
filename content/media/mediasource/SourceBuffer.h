@@ -108,10 +108,20 @@ public:
   
   void Evict(double aStart, double aEnd);
 
+  
+  bool Init()
+  {
+    MOZ_ASSERT(!mCurrentDecoder);
+    return InitNewDecoder();
+  }
+
 private:
   friend class AsyncEventRunner<SourceBuffer>;
   void DispatchSimpleEvent(const char* aName);
   void QueueAsyncSimpleEvent(const char* aName);
+
+  
+  bool InitNewDecoder();
 
   
   void StartUpdating();
@@ -127,7 +137,12 @@ private:
 
   nsRefPtr<MediaSource> mMediaSource;
 
-  nsRefPtr<SubBufferDecoder> mDecoder;
+  const nsAutoCString mType;
+
+  
+  
+  nsTArray<nsRefPtr<SubBufferDecoder>> mDecoders;
+  nsRefPtr<SubBufferDecoder> mCurrentDecoder;
 
   double mAppendWindowStart;
   double mAppendWindowEnd;
