@@ -116,7 +116,13 @@
 
 
 
-#  ifdef __ARM_NEON__
+
+
+
+
+
+
+#  if defined(__ARM_NEON__) && defined(PNG_ALIGNED_MEMORY_SUPPORTED)
 #     define PNG_ARM_NEON_OPT 2
 #  else
 #     define PNG_ARM_NEON_OPT 0
@@ -1234,7 +1240,7 @@ PNG_INTERNAL_FUNCTION(void,png_read_finish_IDAT,(png_structrp png_ptr),
 PNG_INTERNAL_FUNCTION(void,png_read_finish_row,(png_structrp png_ptr),
    PNG_EMPTY);
    
-#endif
+#endif 
 
 
 PNG_INTERNAL_FUNCTION(void,png_read_start_row,(png_structrp png_ptr),PNG_EMPTY);
@@ -1245,31 +1251,6 @@ PNG_INTERNAL_FUNCTION(void,png_read_transform_info,(png_structrp png_ptr,
     png_inforp info_ptr),PNG_EMPTY);
 #endif
 
-
-#ifdef PNG_READ_FILLER_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_read_filler,(png_row_infop row_info,
-    png_bytep row, png_uint_32 filler, png_uint_32 flags),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_SWAP_ALPHA_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_read_swap_alpha,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_WRITE_SWAP_ALPHA_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_write_swap_alpha,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_read_invert_alpha,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_WRITE_INVERT_ALPHA_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_write_invert_alpha,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
 
 #if defined(PNG_WRITE_FILLER_SUPPORTED) || \
     defined(PNG_READ_STRIP_ALPHA_SUPPORTED)
@@ -1290,93 +1271,13 @@ PNG_INTERNAL_FUNCTION(void,png_do_packswap,(png_row_infop row_info,
     png_bytep row),PNG_EMPTY);
 #endif
 
-#ifdef PNG_READ_RGB_TO_GRAY_SUPPORTED
-PNG_INTERNAL_FUNCTION(int,png_do_rgb_to_gray,(png_structrp png_ptr,
-    png_row_infop row_info, png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_gray_to_rgb,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_PACK_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_unpack,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_SHIFT_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_unshift,(png_row_infop row_info,
-    png_bytep row, png_const_color_8p sig_bits),PNG_EMPTY);
-#endif
-
 #if defined(PNG_READ_INVERT_SUPPORTED) || defined(PNG_WRITE_INVERT_SUPPORTED)
 PNG_INTERNAL_FUNCTION(void,png_do_invert,(png_row_infop row_info,
     png_bytep row),PNG_EMPTY);
 #endif
 
-#ifdef PNG_READ_SCALE_16_TO_8_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_scale_16_to_8,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_STRIP_16_TO_8_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_chop,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_QUANTIZE_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_quantize,(png_row_infop row_info,
-    png_bytep row, png_const_bytep palette_lookup,
-    png_const_bytep quantize_lookup),PNG_EMPTY);
-
-#  ifdef PNG_CORRECT_PALETTE_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_correct_palette,(png_structrp png_ptr,
-    png_colorp palette, int num_palette),PNG_EMPTY);
-#  endif
-#endif
-
 #if defined(PNG_READ_BGR_SUPPORTED) || defined(PNG_WRITE_BGR_SUPPORTED)
 PNG_INTERNAL_FUNCTION(void,png_do_bgr,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
-
-#ifdef PNG_WRITE_PACK_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_pack,(png_row_infop row_info,
-   png_bytep row, png_uint_32 bit_depth),PNG_EMPTY);
-#endif
-
-#ifdef PNG_WRITE_SHIFT_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_shift,(png_row_infop row_info,
-    png_bytep row, png_const_color_8p bit_depth),PNG_EMPTY);
-#endif
-
-#if defined(PNG_READ_BACKGROUND_SUPPORTED) ||\
-    defined(PNG_READ_ALPHA_MODE_SUPPORTED)
-PNG_INTERNAL_FUNCTION(void,png_do_compose,(png_row_infop row_info,
-    png_bytep row, png_structrp png_ptr),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_GAMMA_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_gamma,(png_row_infop row_info,
-    png_bytep row, png_structrp png_ptr),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_ALPHA_MODE_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_encode_alpha,(png_row_infop row_info,
-   png_bytep row, png_structrp png_ptr),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_EXPAND_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_expand_palette,(png_row_infop row_info,
-    png_bytep row, png_const_colorp palette, png_const_bytep trans,
-    int num_trans),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_do_expand,(png_row_infop row_info,
-    png_bytep row, png_const_color_16p trans_color),PNG_EMPTY);
-#endif
-
-#ifdef PNG_READ_EXPAND_16_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_expand_16,(png_row_infop row_info,
     png_bytep row),PNG_EMPTY);
 #endif
 
@@ -1488,15 +1389,13 @@ PNG_INTERNAL_FUNCTION(void,png_handle_unknown,(png_structrp png_ptr,
 
 
 
-#ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
 #if defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED) ||\
-   defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
+    defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
 PNG_INTERNAL_FUNCTION(int,png_chunk_unknown_handling,
     (png_const_structrp png_ptr, png_uint_32 chunk_name),PNG_EMPTY);
    
 
 
-#endif 
 #endif 
 
 
@@ -1567,13 +1466,6 @@ PNG_INTERNAL_FUNCTION(void,png_push_read_iTXt,(png_structrp png_ptr,
 #  endif
 
 #endif 
-
-#ifdef PNG_MNG_FEATURES_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_do_read_intrapixel,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_do_write_intrapixel,(png_row_infop row_info,
-    png_bytep row),PNG_EMPTY);
-#endif
 
 #ifdef PNG_APNG_SUPPORTED
 PNG_INTERNAL_FUNCTION(void,png_ensure_fcTL_is_valid,(png_structp png_ptr,
@@ -1959,7 +1851,7 @@ PNG_INTERNAL_FUNCTION(int,png_check_fp_string,(png_const_charp string,
    png_size_t size),PNG_EMPTY);
 #endif 
 
-#if defined(PNG_READ_GAMMA_SUPPORTED) ||\
+#if defined(PNG_GAMMA_SUPPORTED) ||\
     defined(PNG_INCH_CONVERSIONS_SUPPORTED) || defined(PNG_READ_pHYs_SUPPORTED)
 
 
