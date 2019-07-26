@@ -20,7 +20,6 @@
 
 
 
-#include "prlock.h"
 #include "nscore.h"
 #include "mozilla/GuardObjects.h"
 
