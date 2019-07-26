@@ -2448,15 +2448,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 
-  if (aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping()) {
-    
-    
-    
-    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
-                                     aDirtyRect, aLists);
-    return;
-  }
-
   
   
   
@@ -2467,6 +2458,47 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   bool createLayersForScrollbars = mIsRoot &&
     mOuter->PresContext()->IsRootContentDocument();
+
+  if (aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping()) {
+
+    
+    
+    
+    bool addScrollBars = mIsRoot &&
+      nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
+      !aBuilder->IsForEventDelivery();
+    
+    
+    if (aBuilder->RootReferenceFrame()->PresContext() == mOuter->PresContext()) {
+      addScrollBars = false;
+    }
+
+    if (addScrollBars) {
+      
+      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
+                          false);
+    }
+
+    
+    
+    
+    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame,
+                                     aDirtyRect, aLists);
+
+#ifdef MOZ_WIDGET_GONK
+    
+    
+    
+    createLayersForScrollbars = true;
+#endif
+    if (addScrollBars) {
+      
+      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
+                          true);
+    }
+
+    return;
+  }
 
   
   
