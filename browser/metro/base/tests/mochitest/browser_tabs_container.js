@@ -50,7 +50,7 @@ gTests.push({
     notifyPrecise();
     yield precisePromise;
 
-    todo(!isElementVisible(tabStrip._scrollButtonUp), "Bug 952297 - left scrollbutton is hidden in precise mode");
+    ok(!isElementVisible(tabStrip._scrollButtonUp), "Bug 952297 - left scrollbutton is hidden in precise mode");
     ok(!isElementVisible(tabStrip._scrollButtonDown), "right scrollbutton is hidden in precise mode");
   },
   tearDown: tearDown
@@ -98,17 +98,20 @@ gTests.push({
       yield addTab("about:mozilla");
     }
 
-    let tabs = Elements.tabList.strip.querySelectorAll("documenttab");
-    
-    Elements.tabs.selectedTab = tabs[0];
-    ok(isElementVisible(Elements.tabList.strip._scrollButtonDown), "right scrollbutton should be visible when tabList has overflow");
-    todo(!isElementVisible(Elements.tabList.strip._scrollButtonUp), "Bug 952297 - left scrollbutton should not visible when 1st tab is selected and tablist has overflow");
-
+    ok(isElementVisible(Elements.tabList.strip._scrollButtonUp), "left scrollbutton should be visible in precise mode");
+    ok(isElementVisible(Elements.tabList.strip._scrollButtonDown), "right scrollbutton should be visible in precise mode");
 
     
-    Elements.tabs.selectedTab = tabs[tabs.length-1];
-    ok(isElementVisible(Elements.tabList.strip._scrollButtonUp), "left scrollbutton should be visible when tablist has overflow and last tab is selected");
-    todo(!isElementVisible(Elements.tabList.strip._scrollButtonDown), "Bug 952297 - right scrollbutton should not visible when last tab is selected and tablist has overflow");
+    Browser.selectedTab = Browser.tabs[0];
+    yield waitForMs(1000); 
+    ok(Elements.tabList.strip._scrollButtonUp.disabled, "left scrollbutton should be disabled when 1st tab is selected and tablist has overflow");
+    ok(!Elements.tabList.strip._scrollButtonDown.disabled, "right scrollbutton should be enabled when 1st tab is selected and tablist has overflow");
+
+    
+    Browser.selectedTab = Browser.tabs[Browser.tabs.length - 1];
+    yield waitForMs(1000); 
+    ok(!Elements.tabList.strip._scrollButtonUp.disabled, "left scrollbutton should be enabled when 1st tab is selected and tablist has overflow");
+    ok(Elements.tabList.strip._scrollButtonDown.disabled, "right scrollbutton should be disabled when last tab is selected and tablist has overflow");
 
   }
 });
