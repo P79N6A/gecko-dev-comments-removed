@@ -1009,6 +1009,12 @@ public:
                     }
                 }
             } else {
+                
+                if (!backTrack->lastContext) {
+                    ASSERT(!"Tripped Bug 856796!");
+                    return JSRegExpErrorInternal;
+                }
+
                 resetMatches(term, context);
                 popParenthesesDisjunctionContext(backTrack);
                 freeParenthesesDisjunctionContext(context);
@@ -1053,6 +1059,12 @@ public:
                         recordParenthesesMatch(term, context);
                     }
                     return JSRegExpMatch;
+                }
+
+                
+                if (!backTrack->lastContext) {
+                    ASSERT(!"Tripped Bug 856796!");
+                    return JSRegExpErrorInternal;
                 }
 
                 
