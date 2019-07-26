@@ -211,6 +211,7 @@ select {
   
   display: inline-block;
   page-break-inside: avoid;
+  overflow-clip-box: padding-box !important; 
 }
 
 
