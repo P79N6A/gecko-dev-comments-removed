@@ -147,11 +147,6 @@ using namespace mozilla::widget;
 
 
 
-nsIRollupListener*  gRollupListener           = 0;
-nsIWidget*          gRollupWidget             = 0;
-bool                gRollupConsumeRollupEvent = false;
-
-
 uint32_t            gOS2Flags = 0;
 
 
@@ -494,10 +489,10 @@ NS_METHOD nsWindow::Destroy()
 
   
   
-  if (this == gRollupWidget) {
-    if (gRollupListener) {
-      gRollupListener->Rollup(UINT32_MAX);
-    }
+  nsIRollupListener* rollupListener = GetActiveRollupListener();
+  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+  if (this == rollupWidget) {
+    rollupListener->Rollup(UINT32_MAX);
     CaptureRollupEvents(nullptr, false, true);
   }
 
@@ -812,7 +807,7 @@ NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
 {
   if (mFrame) {
     nsresult rv = mFrame->Move(aX, aY);
-    NotifyRollupGeometryChange(gRollupListener);
+    NotifyRollupGeometryChange();
     return rv;
   }
   Resize(aX, aY, mBounds.width, mBounds.height, false);
@@ -825,7 +820,7 @@ NS_METHOD nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
 {
   if (mFrame) {
     nsresult rv = mFrame->Resize(aWidth, aHeight, aRepaint);
-    NotifyRollupGeometryChange(gRollupListener);
+    NotifyRollupGeometryChange();
     return rv;
   }
   Resize(mBounds.x, mBounds.y, aWidth, aHeight, aRepaint);
@@ -839,7 +834,7 @@ NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY,
 {
   if (mFrame) {
     nsresult rv = mFrame->Resize(aX, aY, aWidth, aHeight, aRepaint);
-    NotifyRollupGeometryChange(gRollupListener);
+    NotifyRollupGeometryChange();
     return rv;
   }
 
@@ -878,7 +873,7 @@ NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY,
     }
   }
 
-  NotifyRollupGeometryChange(gRollupListener);
+  NotifyRollupGeometryChange();
   return NS_OK;
 }
 
@@ -1529,24 +1524,9 @@ HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
 
 
 NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener* aListener,
-                                            bool aDoCapture,
-                                            bool aConsumeRollupEvent)
+                                            bool aDoCapture)
 {
-  
-  
-  
-  if (aDoCapture) {
-    NS_ASSERTION(!gRollupWidget, "rollup widget reassigned before release");
-    gRollupConsumeRollupEvent = aConsumeRollupEvent;
-    NS_IF_RELEASE(gRollupWidget);
-    gRollupListener = aListener;
-    gRollupWidget = this;
-    NS_ADDREF(this);
- } else {
-    gRollupListener = nullptr;
-    NS_IF_RELEASE(gRollupWidget);
-  }
-
+  gRollupListener = aDoCapture ? aListener : nullptr;
   return NS_OK;
 }
 
@@ -1578,8 +1558,11 @@ bool nsWindow::EventIsInsideWindow(nsWindow* aWindow)
 
 bool nsWindow::RollupOnButtonDown(ULONG aMsg)
 {
+  nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+
   
-  if (EventIsInsideWindow((nsWindow*)gRollupWidget)) {
+  if (EventIsInsideWindow((nsWindow*)rollupWidget)) {
     return false;
   }
 
@@ -1587,9 +1570,9 @@ bool nsWindow::RollupOnButtonDown(ULONG aMsg)
   
   uint32_t popupsToRollup = UINT32_MAX;
 
-  if (gRollupListener) {
+  if (rollupListener) {
     nsAutoTArray<nsIWidget*, 5> widgetChain;
-    uint32_t sameTypeCount = gRollupListener->GetSubmenuWidgetChain(&widgetChain);
+    uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
     for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
       nsIWidget* widget = widgetChain[i];
       if (EventIsInsideWindow((nsWindow*)widget)) {
@@ -1604,11 +1587,12 @@ bool nsWindow::RollupOnButtonDown(ULONG aMsg)
 
   
   NS_ASSERTION(!mLastRollup, "mLastRollup is null");
-  mLastRollup = gRollupListener->Rollup(popupsToRollup, aMsg == WM_BUTTON1DOWN);
+  bool consumeRollupEvent =
+    rollupListener->Rollup(popupsToRollup, aMsg == WM_LBUTTONDOWN ? &mLastRollup : nullptr);
   NS_IF_ADDREF(mLastRollup);
 
   
-  return gRollupConsumeRollupEvent;
+  return consumeRollupEvent;
 }
 
 
@@ -1616,7 +1600,9 @@ bool nsWindow::RollupOnButtonDown(ULONG aMsg)
 
 void nsWindow::RollupOnFocusLost(HWND aFocus)
 {
-  HWND hRollup = ((nsWindow*)gRollupWidget)->mWnd;
+  nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+  HWND hRollup = ((nsWindow*)rollupWidget)->mWnd;
 
   
   if (hRollup == aFocus) {
@@ -1624,19 +1610,18 @@ void nsWindow::RollupOnFocusLost(HWND aFocus)
   }
 
   
-  if (gRollupListener) {
+  if (rollupListener) {
     nsAutoTArray<nsIWidget*, 5> widgetChain;
-    gRollupListener->GetSubmenuWidgetChain(&widgetChain);
+    rollupListener->GetSubmenuWidgetChain(&widgetChain);
     for (uint32_t i = 0; i < widgetChain.Length(); ++i) {
       if (((nsWindow*)widgetChain[i])->mWnd == aFocus) {
         return;
       }
     }
-  }
 
-  
-  gRollupListener->Rollup(UINT32_MAX);
-  return;
+    
+    rollupListener->Rollup(UINT32_MAX);
+  }
 }
 
 
@@ -1666,22 +1651,21 @@ MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
   }
 
   
-  if (gRollupListener && gRollupWidget) {
-    switch (msg) {
-      case WM_BUTTON1DOWN:
-      case WM_BUTTON2DOWN:
-      case WM_BUTTON3DOWN:
-        if (nsWindow::RollupOnButtonDown(msg)) {
-          return (MRESULT)true;
-        }
-        break;
+  }
+  switch (msg) {
+    case WM_BUTTON1DOWN:
+    case WM_BUTTON2DOWN:
+    case WM_BUTTON3DOWN:
+      if (nsWindow::RollupOnButtonDown(msg)) {
+        return (MRESULT)true;
+      }
+      break;
 
-      case WM_SETFOCUS:
-        if (!mp2) {
-          nsWindow::RollupOnFocusLost((HWND)mp1);
-        }
-        break;
-    }
+    case WM_SETFOCUS:
+      if (!mp2) {
+        nsWindow::RollupOnFocusLost((HWND)mp1);
+      }
+      break;
   }
 
   return wnd->ProcessMessage(msg, mp1, mp2);

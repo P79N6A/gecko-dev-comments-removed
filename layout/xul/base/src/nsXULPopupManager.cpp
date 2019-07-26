@@ -164,17 +164,18 @@ nsXULPopupManager::Observe(nsISupports *aSubject,
 nsXULPopupManager*
 nsXULPopupManager::GetInstance()
 {
+  MOZ_ASSERT(sInstance);
   return sInstance;
 }
 
-nsIContent*
-nsXULPopupManager::Rollup(uint32_t aCount, bool aGetLastRolledUp)
+bool
+nsXULPopupManager::Rollup(uint32_t aCount, nsIContent** aLastRolledUp)
 {
-  nsIContent* lastRolledUpPopup = nullptr;
+  bool consume = false;
 
   nsMenuChainItem* item = GetTopVisibleMenu();
   if (item) {
-    if (aGetLastRolledUp) {
+    if (aLastRolledUp) {
       
       
       
@@ -186,8 +187,10 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aGetLastRolledUp)
       nsMenuChainItem* first = item;
       while (first->GetParent())
         first = first->GetParent();
-      lastRolledUpPopup = first->Content();
+      *aLastRolledUp = first->Content();
     }
+
+    consume = item->Frame()->ConsumeOutsideClicks();
 
     
     
@@ -205,7 +208,7 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aGetLastRolledUp)
     HidePopup(item->Content(), true, true, false, lastPopup);
   }
 
-  return lastRolledUpPopup;
+  return consume;
 }
 
 
@@ -262,6 +265,13 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain)
   }
 
   return sameTypeCount;
+}
+
+nsIWidget*
+nsXULPopupManager::GetRollupWidget()
+{
+  nsMenuChainItem* item = GetTopVisibleMenu();
+  return item ? item->Frame()->GetWidget() : nullptr;
 }
 
 void
@@ -1545,7 +1555,7 @@ nsXULPopupManager::SetCaptureState(nsIContent* aOldPopup)
     return;
 
   if (mWidget) {
-    mWidget->CaptureRollupEvents(this, false, false);
+    mWidget->CaptureRollupEvents(nullptr, false);
     mWidget = nullptr;
   }
 
@@ -1553,7 +1563,7 @@ nsXULPopupManager::SetCaptureState(nsIContent* aOldPopup)
     nsMenuPopupFrame* popup = item->Frame();
     mWidget = popup->GetWidget();
     if (mWidget) {
-      mWidget->CaptureRollupEvents(this, true, popup->ConsumeOutsideClicks());
+      mWidget->CaptureRollupEvents(nullptr, true);
       popup->AttachedDismissalListener();
     }
   }
@@ -2102,7 +2112,7 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
         
         
         if (mPopups)
-          Rollup(0);
+          Rollup(0, nullptr);
         else if (mActiveMenuBar)
           mActiveMenuBar->MenuClosed();
       }
@@ -2179,7 +2189,7 @@ nsXULPopupManager::KeyPress(nsIDOMKeyEvent* aKeyEvent)
   ) {
     
     if (item)
-      Rollup(0);
+      Rollup(0, nullptr);
     else if (mActiveMenuBar)
       mActiveMenuBar->MenuClosed();
   }

@@ -90,8 +90,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x4e05b167, 0x475b, 0x422b, \
-    { 0x88, 0xc0, 0xa5, 0xb1, 0x61, 0xcf, 0x87, 0x79 } }
+  { 0x8181a08f, 0xaa37, 0x4fd0, \
+    { 0x94, 0x32, 0x27, 0x74, 0xe2, 0xce, 0x02, 0xc8 } }
 
 
 
@@ -1203,9 +1203,7 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, bool aDoCapture,
-                                   bool aConsumeRollupEvent) = 0;
+    NS_IMETHOD CaptureRollupEvents(nsIRollupListener* aListener, bool aDoCapture) = 0;
 
     
 

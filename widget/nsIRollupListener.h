@@ -24,7 +24,9 @@ class nsIRollupListener {
 
 
 
-  virtual nsIContent* Rollup(uint32_t aCount, bool aGetLastRolledUp = false) = 0;
+
+
+  virtual bool Rollup(uint32_t aCount, nsIContent** aLastRolledUp) = 0;
 
   
 
@@ -50,6 +52,8 @@ class nsIRollupListener {
 
 
   virtual void NotifyGeometryChange() = 0;
+
+  virtual nsIWidget* GetRollupWidget() = 0;
 };
 
 #endif 

@@ -129,7 +129,7 @@ public:
   NS_IMETHOD              EnableDragDrop(bool aEnable);
   NS_IMETHOD              CaptureMouse(bool aCapture);
   NS_IMETHOD              CaptureRollupEvents(nsIRollupListener * aListener,
-                                              bool aDoCapture, bool aConsumeRollupEvent);
+                                              bool aDoCapture);
   NS_IMETHOD              GetAttention(int32_t aCycleCount);
   virtual bool            HasPendingInputEvent();
   virtual LayerManager*   GetLayerManager(PLayersChild* aShadowManager = nullptr,
@@ -529,11 +529,6 @@ protected:
   static UINT           sRollupMsgId;
   static HWND           sRollupMsgWnd;
   static UINT           sHookTimerId;
-
-  
-  static nsIWidget*     sRollupWidget;
-  static bool           sRollupConsumeEvent;
-  static nsIRollupListener* sRollupListener;
 
   
   

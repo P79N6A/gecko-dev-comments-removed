@@ -213,11 +213,6 @@ HWND            nsWindow::sRollupMsgWnd           = NULL;
 UINT            nsWindow::sHookTimerId            = 0;
 
 
-nsIRollupListener* nsWindow::sRollupListener      = nullptr;
-nsIWidget*      nsWindow::sRollupWidget           = nullptr;
-bool            nsWindow::sRollupConsumeEvent     = false;
-
-
 
 POINT           nsWindow::sLastMousePoint         = {0};
 POINT           nsWindow::sLastMouseMovePoint     = {0};
@@ -1372,7 +1367,7 @@ NS_METHOD nsWindow::Move(int32_t aX, int32_t aY)
 
     SetThemeRegion();
   }
-  NotifyRollupGeometryChange(sRollupListener);
+  NotifyRollupGeometryChange();
   return NS_OK;
 }
 
@@ -1415,7 +1410,7 @@ NS_METHOD nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
   if (aRepaint)
     Invalidate();
 
-  NotifyRollupGeometryChange(sRollupListener);
+  NotifyRollupGeometryChange();
   return NS_OK;
 }
 
@@ -1460,7 +1455,7 @@ NS_METHOD nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeig
   if (aRepaint)
     Invalidate();
 
-  NotifyRollupGeometryChange(sRollupListener);
+  NotifyRollupGeometryChange();
   return NS_OK;
 }
 
@@ -3061,26 +3056,16 @@ NS_METHOD nsWindow::CaptureMouse(bool aCapture)
 
 
 NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
-                                            bool aDoCapture,
-                                            bool aConsumeRollupEvent)
+                                            bool aDoCapture)
 {
   if (aDoCapture) {
-    
-
-
-    NS_ASSERTION(!sRollupWidget, "rollup widget reassigned before release");
-    sRollupConsumeEvent = aConsumeRollupEvent;
-    NS_IF_RELEASE(sRollupWidget);
-    sRollupListener = aListener;
-    sRollupWidget = this;
-    NS_ADDREF(this);
+    gRollupListener = aListener;
     if (!sMsgFilterHook && !sCallProcHook && !sCallMouseHook) {
       RegisterSpecialDropdownHooks();
     }
     sProcessHook = true;
   } else {
-    sRollupListener = nullptr;
-    NS_IF_RELEASE(sRollupWidget);
+    gRollupListener = nullptr;
     sProcessHook = false;
     UnregisterSpecialDropdownHooks();
   }
@@ -7089,10 +7074,12 @@ void nsWindow::OnDestroy()
 
   
   
-  if ( this == sRollupWidget ) {
-    if ( sRollupListener )
-      sRollupListener->Rollup(0);
-    CaptureRollupEvents(nullptr, false, true);
+  nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+  if ( this == rollupWidget ) {
+    if ( rollupListener )
+      rollupListener->Rollup(0, nullptr);
+    CaptureRollupEvents(nullptr, false);
   }
 
   
@@ -7857,7 +7844,6 @@ VOID CALLBACK nsWindow::HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent, D
 
   if (sRollupMsgId != 0) {
     
-    
     LRESULT popupHandlingResult;
     nsAutoRollup autoRollup;
     DealWithPopups(sRollupMsgWnd, sRollupMsgId, 0, 0, &popupHandlingResult);
@@ -7917,7 +7903,9 @@ nsWindow::EventIsInsideWindow(UINT Msg, nsWindow* aWindow)
 BOOL
 nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLParam, LRESULT* outResult)
 {
-  if (sRollupListener && sRollupWidget && ::IsWindowVisible(inWnd)) {
+  nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+  if (rollupWidget && ::IsWindowVisible(inWnd)) {
 
     inMsg = WinUtils::GetNativeMessage(inMsg);
     if (inMsg == WM_LBUTTONDOWN || inMsg == WM_RBUTTONDOWN || inMsg == WM_MBUTTONDOWN ||
@@ -7933,11 +7921,11 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         inMsg == WM_MENUSELECT)
     {
       
-      bool rollup = !nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)sRollupWidget);
+      bool rollup = !nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)(rollupWidget.get()));
 
       if (rollup && (inMsg == WM_MOUSEWHEEL || inMsg == WM_MOUSEHWHEEL))
       {
-        rollup = sRollupListener->ShouldRollupOnMouseWheelEvent();
+        rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
         *outResult = true;
       }
 
@@ -7945,25 +7933,23 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
       
       uint32_t popupsToRollup = UINT32_MAX;
       if (rollup) {
-        if ( sRollupListener ) {
-          nsAutoTArray<nsIWidget*, 5> widgetChain;
-          uint32_t sameTypeCount = sRollupListener->GetSubmenuWidgetChain(&widgetChain);
-          for ( uint32_t i = 0; i < widgetChain.Length(); ++i ) {
-            nsIWidget* widget = widgetChain[i];
-            if ( nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)widget) ) {
-              
-              
-              
-              
-              if (i < sameTypeCount) {
-                rollup = false;
-              }
-              else {
-                popupsToRollup = sameTypeCount;
-              }
-              break;
+        nsAutoTArray<nsIWidget*, 5> widgetChain;
+        uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
+        for ( uint32_t i = 0; i < widgetChain.Length(); ++i ) {
+          nsIWidget* widget = widgetChain[i];
+          if ( nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)widget) ) {
+            
+            
+            
+            
+            if (i < sameTypeCount) {
+              rollup = false;
             }
-          } 
+            else {
+              popupsToRollup = sameTypeCount;
+            }
+            break;
+          }
         } 
       }
 
@@ -7983,7 +7969,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
           {
             
             
-            rollup = sRollupListener->ShouldRollupOnMouseActivate();
+            rollup = rollupListener->ShouldRollupOnMouseActivate();
             if (!rollup)
             {
               *outResult = MA_NOACTIVATE;
@@ -7995,11 +7981,9 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
       
       else if (rollup) {
         
-        
-        bool consumeRollupEvent = sRollupConsumeEvent;
-        
         NS_ASSERTION(!mLastRollup, "mLastRollup is null");
-        mLastRollup = sRollupListener->Rollup(popupsToRollup, inMsg == WM_LBUTTONDOWN);
+        bool consumeRollupEvent =
+          rollupListener->Rollup(popupsToRollup, inMsg == WM_LBUTTONDOWN ? &mLastRollup : nullptr);
         NS_IF_ADDREF(mLastRollup);
 
         
