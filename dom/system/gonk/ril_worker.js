@@ -1063,7 +1063,7 @@ let RIL = {
     this.getIMSI();
     this.getMSISDN();
     this.getAD();
-    this.getUST();
+    this.getSST();
     this.getMBDN();
   },
 
@@ -1202,40 +1202,85 @@ let RIL = {
 
 
 
+  isICCServiceAvailable: function isICCServiceAvailable(geckoService) {
+    let serviceTable = this.iccInfo.sst;
+    let index, bitmask;
+    if (this.appType == CARD_APPTYPE_SIM) {
+      
 
-  isUSTServiceAvailable: function isUSTServiceAvailable(service) {
-    service -= 1;
-    let index = service / 8;
-    let bitmask = 1 << (service % 8);
-    return this.iccInfo.ust &&
-           (index < this.iccInfo.ust.length) &&
-           (this.iccInfo.ust[index] & bitmask);
+
+
+
+
+
+
+
+
+
+
+
+
+      let simService = GECKO_ICC_SERVICES.sim[geckoService];
+      if (!simService) {
+        return false;
+      }
+      simService -= 1;
+      index = Math.floor(simService / 4);
+      bitmask = 2 << ((simService % 4) << 1);
+    } else {
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+      let usimService = GECKO_ICC_SERVICES.usim[geckoService];
+      if (!usimService) {
+        return false;
+      }
+      usimService -= 1;
+      index = Math.floor(usimService / 8);
+      bitmask = 1 << ((usimService % 8) << 0);
+    }
+
+    return (serviceTable &&
+           (index < serviceTable.length) &&
+           (serviceTable[index] & bitmask)) != 0;
   },
 
   
 
 
-  getUST: function getUST() {
+  getSST: function getSST() {
     function callback() {
       let length = Buf.readUint32();
       
       let len = length / 2;
-      this.iccInfo.ust = GsmPDUHelper.readHexOctetArray(len);
+      this.iccInfo.sst = GsmPDUHelper.readHexOctetArray(len);
       Buf.readStringDelimiter(length);
-      
+
       if (DEBUG) {
         let str = "";
-        for (let i = 0; i < this.iccInfo.ust.length; i++) {
-          str += this.iccInfo.ust[i] + ", ";
+        for (let i = 0; i < this.iccInfo.sst.length; i++) {
+          str += this.iccInfo.sst[i] + ", ";
         }
-        debug("UST: " + str);
+        debug("SST: " + str);
       }
     }
 
+    
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
-      fileId:    ICC_EF_UST,
-      pathId:    this._getPathIdForICCRecord(ICC_EF_UST),
+      fileId:    ICC_EF_SST,
+      pathId:    this._getPathIdForICCRecord(ICC_EF_SST),
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -2379,7 +2424,7 @@ let RIL = {
 
           case ICC_EF_AD:
           case ICC_EF_MBDN:
-          case ICC_EF_UST:
+          case ICC_EF_SST:
             return EF_PATH_MF_SIM + EF_PATH_DF_GSM;
         }
       case CARD_APPTYPE_USIM:

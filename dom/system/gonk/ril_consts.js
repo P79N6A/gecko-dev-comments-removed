@@ -703,6 +703,25 @@ const STK_TEXT_CODING_UCS2 = 0x08;
 
 
 
+const GECKO_ICC_SERVICES = {
+  sim: {
+    ADN: 2,
+    FDN: 3,
+    SDN: 18,
+    BDN: 31
+  },
+  usim: {
+    FDN: 2,
+    SDN: 4,
+    BDN: 6
+  }
+};
+
+
+
+
+
+
 const PDU_TOA_UNKNOWN       = 0x80; 
                                     
                                     
