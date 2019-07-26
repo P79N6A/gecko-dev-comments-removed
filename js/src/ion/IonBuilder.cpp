@@ -2088,6 +2088,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     
 
     JS_ASSERT(op == JSOP_TABLESWITCH);
+    JS_ASSERT(SN_TYPE(sn) == SRC_SWITCH);
 
     
     MDefinition *ins = current->pop();
