@@ -3229,7 +3229,9 @@ ASTSerializer::functionArgs(ParseNode *pn, ParseNode *pnargs, ParseNode *pndestr
 
 
 
-            if (!identifier(arg, &node))
+            JS_ASSERT(arg->isKind(PNK_NAME) || arg->isKind(PNK_ASSIGN));
+            ParseNode *argName = arg->isKind(PNK_NAME) ? arg : arg->pn_left;
+            if (!identifier(argName, &node))
                 return false;
             if (rest->isUndefined() && arg->pn_next == pnbody)
                 rest->setObject(node.toObject());

@@ -273,6 +273,13 @@ protected:
   nsCOMPtr<nsIDOMEventListener> mButtonListener;
 
   
+  
+  
+  
+  
+  nscoord               mLastDropDownAboveScreenY;
+  nscoord               mLastDropDownBelowScreenY;
+  
   bool                  mDroppedDown;
   
   bool                  mInRedisplayText;

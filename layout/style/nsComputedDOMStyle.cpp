@@ -3352,7 +3352,17 @@ nsIDOMCSSValue*
 nsComputedDOMStyle::DoGetMinHeight()
 {
   nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
-  SetValueToCoord(val, GetStylePosition()->mMinHeight, true,
+  nsStyleCoord minHeight = GetStylePosition()->mMinHeight;
+
+  if (eStyleUnit_Auto == minHeight.GetUnit()) {
+    
+    
+    
+    
+    minHeight.SetCoordValue(0);
+  }
+
+  SetValueToCoord(val, minHeight, true,
                   &nsComputedDOMStyle::GetCBContentHeight);
   return val;
 }
@@ -3361,7 +3371,17 @@ nsIDOMCSSValue*
 nsComputedDOMStyle::DoGetMinWidth()
 {
   nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
-  SetValueToCoord(val, GetStylePosition()->mMinWidth, true,
+
+  nsStyleCoord minWidth = GetStylePosition()->mMinWidth;
+
+  if (eStyleUnit_Auto == minWidth.GetUnit()) {
+    
+    
+    
+    minWidth.SetCoordValue(0);
+  }
+
+  SetValueToCoord(val, minWidth, true,
                   &nsComputedDOMStyle::GetCBContentWidth,
                   nsCSSProps::kWidthKTable);
   return val;
@@ -3926,6 +3946,16 @@ nsComputedDOMStyle::GetSVGPaintFor(bool aFill)
       val->SetURI(paint->mPaint.mPaintServer);
       SetToRGBAColor(fallback, paint->mFallbackColor);
       return valueList;
+    }
+    case eStyleSVGPaintType_ObjectFill:
+    {
+      val->SetIdent(eCSSKeyword__moz_objectfill);
+      break;
+    }
+    case eStyleSVGPaintType_ObjectStroke:
+    {
+      val->SetIdent(eCSSKeyword__moz_objectstroke);
+      break;
     }
   }
 

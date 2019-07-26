@@ -68,6 +68,7 @@ struct nsGlobalNameStruct
 
   
   mozilla::dom::DefineInterface mDefineDOMInterface;
+  mozilla::dom::PrefEnabled mPrefEnabled; 
 
 private:
 
@@ -139,7 +140,8 @@ public:
   nsGlobalNameStruct* GetConstructorProto(const nsGlobalNameStruct* aStruct);
 
   void RegisterDefineDOMInterface(const nsAFlatString& aName,
-    mozilla::dom::DefineInterface aDefineDOMInterface);
+    mozilla::dom::DefineInterface aDefineDOMInterface,
+    mozilla::dom::PrefEnabled aPrefEnabled);
 
 private:
   

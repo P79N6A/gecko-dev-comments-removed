@@ -865,8 +865,7 @@ DOMJSClass DedicatedWorkerGlobalScope::sClass = {
       prototypes::id::_ID_Count },
     false,
     &sNativePropertyHooks
-  },
-  -1
+  }
 };
 
 JSPropertySpec DedicatedWorkerGlobalScope::sProperties[] = {
@@ -985,10 +984,12 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   }
 
   
-  if (!XMLHttpRequestBinding_workers::CreateInterfaceObjects(aCx, global,
-                                                             global) ||
-      !XMLHttpRequestUploadBinding_workers::CreateInterfaceObjects(aCx, global,
-                                                                   global)) {
+  
+  
+  
+  
+  if (!XMLHttpRequestBinding_workers::GetProtoObject(aCx, global, global) ||
+      !XMLHttpRequestUploadBinding_workers::GetProtoObject(aCx, global, global)) {
     return NULL;
   }
 

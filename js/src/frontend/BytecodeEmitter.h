@@ -27,9 +27,13 @@
 namespace js {
 namespace frontend {
 
-struct TryNode {
-    JSTryNote       note;
-    TryNode       *prev;
+struct CGTryNoteList {
+    Vector<JSTryNote> list;
+    CGTryNoteList(JSContext *cx) : list(cx) {}
+
+    bool append(JSTryNoteKind kind, unsigned stackDepth, size_t start, size_t end);
+    size_t length() const { return list.length(); }
+    void finish(TryNoteArray *array);
 };
 
 struct CGObjectList {
@@ -43,10 +47,10 @@ struct CGObjectList {
     void finish(ObjectArray *array);
 };
 
-class GCConstList {
+class CGConstList {
     Vector<Value> list;
   public:
-    GCConstList(JSContext *cx) : list(cx) {}
+    CGConstList(JSContext *cx) : list(cx) {}
     bool append(Value v) { JS_ASSERT_IF(v.isString(), v.toString()->isAtom()); return list.append(v); }
     size_t length() const { return list.length(); }
     void finish(ConstArray *array);
@@ -92,17 +96,13 @@ struct BytecodeEmitter
     int             stackDepth;     
     unsigned        maxStackDepth;  
 
-    unsigned        ntrynotes;      
-    TryNode         *lastTryNode;   
+    CGTryNoteList   tryNoteList;    
 
     unsigned        arrayCompDepth; 
 
     unsigned        emitLevel;      
 
-    typedef HashMap<JSAtom *, Value> ConstMap;
-    ConstMap        constMap;       
-
-    GCConstList     constList;      
+    CGConstList     constList;      
 
     CGObjectList    objectList;     
     CGObjectList    regexpList;     
@@ -208,21 +208,6 @@ Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode o
 
 ptrdiff_t
 EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
 
 
@@ -418,9 +403,6 @@ AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t 
 
 bool
 FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
-
-void
-FinishTakingTryNotes(BytecodeEmitter *bce, TryNoteArray *array);
 
 
 

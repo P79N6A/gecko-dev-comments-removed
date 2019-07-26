@@ -2095,6 +2095,12 @@ public:
   
 
 
+  bool IsFlexItem() const
+  { return mParent && mParent->GetType() == nsGkAtoms::flexContainerFrame; }
+
+  
+
+
 
 
 

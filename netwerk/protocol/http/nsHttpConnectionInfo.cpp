@@ -46,9 +46,21 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
     
     
     
-    if (!mUsingHttpProxy && ProxyHost()) {
+    
+    
+    
+    
+    
+    
+
+    if ((!mUsingHttpProxy && ProxyHost()) ||
+        (mUsingHttpProxy && mUsingConnect)) {
         mHashKey.AppendLiteral(" (");
         mHashKey.Append(ProxyType());
+        mHashKey.Append(':');
+        mHashKey.Append(ProxyHost());
+        mHashKey.Append(':');
+        mHashKey.AppendInt(ProxyPort());
         mHashKey.Append(')');
     }
 }

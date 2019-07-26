@@ -49,6 +49,7 @@ public:
   virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows);
   virtual void SelectRow(uint32_t aRowIdx);
   virtual void UnselectRow(uint32_t aRowIdx);
+  virtual Accessible* AsAccessible() { return this; }
 
   
   virtual void Shutdown();
@@ -147,12 +148,13 @@ public:
   NS_IMETHOD DoAction(uint8_t aIndex);
 
   
-  NS_DECL_OR_FORWARD_NSIACCESSIBLETABLECELL_WITH_XPCACCESSIBLETABLECELL
+  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
 
   
   virtual void Init();
 
   
+  virtual TableCellAccessible* AsTableCell() { return this; }
   virtual void Shutdown();
   virtual ENameValueFlag Name(nsString& aName);
   virtual Accessible* FocusedChild();
@@ -167,12 +169,15 @@ public:
   virtual uint8_t ActionCount();
 
   
-  NS_DECLARE_STATIC_IID_ACCESSOR(XULTREEGRIDCELLACCESSIBLE_IMPL_CID)
+  virtual TableAccessible* Table() const MOZ_OVERRIDE;
+  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
+  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
+  virtual void ColHeaderCells(nsTArray<Accessible*>* aHeaderCells) MOZ_OVERRIDE;
+  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE { }
+  virtual bool Selected() MOZ_OVERRIDE;
 
   
-
-
-  int32_t GetColumnIndex() const;
+  NS_DECLARE_STATIC_IID_ACCESSOR(XULTREEGRIDCELLACCESSIBLE_IMPL_CID)
 
   
 

@@ -294,7 +294,10 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
                 } else if (JSVAL_IS_NUMBER(jsexception)) {
                     
                     if (JSVAL_IS_DOUBLE(jsexception))
-                        rv = (nsresult)(JSVAL_TO_DOUBLE(jsexception));
+                        
+                        
+                        
+                        rv = (nsresult)(uint32_t)(JSVAL_TO_DOUBLE(jsexception));
                     else
                         rv = (nsresult)(JSVAL_TO_INT(jsexception));
 

@@ -1117,7 +1117,19 @@ struct nsStylePosition {
   nsStyleCoord  mZIndex;                
 
   bool WidthDependsOnContainer() const
-    { return WidthCoordDependsOnContainer(mWidth); }
+    {
+      return mWidth.GetUnit() == eStyleUnit_Auto ||
+        WidthCoordDependsOnContainer(mWidth);
+    }
+
+  
+  
+  
+  
+  
+  
+  
+  
   bool MinWidthDependsOnContainer() const
     { return WidthCoordDependsOnContainer(mMinWidth); }
   bool MaxWidthDependsOnContainer() const
@@ -1130,7 +1142,13 @@ struct nsStylePosition {
   
   
   bool HeightDependsOnContainer() const
-    { return HeightCoordDependsOnContainer(mHeight); }
+    {
+      return mHeight.GetUnit() == eStyleUnit_Auto || 
+        HeightCoordDependsOnContainer(mHeight);
+    }
+
+  
+  
   bool MinHeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mMinHeight); }
   bool MaxHeightDependsOnContainer() const
@@ -1144,10 +1162,7 @@ struct nsStylePosition {
 private:
   static bool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord);
   static bool HeightCoordDependsOnContainer(const nsStyleCoord &aCoord)
-  {
-    return aCoord.GetUnit() == eStyleUnit_Auto || 
-           aCoord.HasPercent();
-  }
+    { return aCoord.HasPercent(); }
 };
 
 struct nsStyleTextOverflowSide {
@@ -2148,7 +2163,15 @@ protected:
 enum nsStyleSVGPaintType {
   eStyleSVGPaintType_None = 1,
   eStyleSVGPaintType_Color,
-  eStyleSVGPaintType_Server
+  eStyleSVGPaintType_Server,
+  eStyleSVGPaintType_ObjectFill,
+  eStyleSVGPaintType_ObjectStroke
+};
+
+enum nsStyleSVGOpacitySource {
+  eStyleSVGOpacitySource_Normal,
+  eStyleSVGOpacitySource_ObjectFillOpacity,
+  eStyleSVGOpacitySource_ObjectStrokeOpacity
 };
 
 struct nsStyleSVGPaint
@@ -2215,6 +2238,16 @@ struct nsStyleSVG {
   uint8_t          mStrokeLinejoin;   
   uint8_t          mTextAnchor;       
   uint8_t          mTextRendering;    
+
+  
+  
+  nsStyleSVGOpacitySource mFillOpacitySource    : 2;
+  nsStyleSVGOpacitySource mStrokeOpacitySource  : 2;
+
+  
+  bool mStrokeDasharrayFromObject   : 1;
+  bool mStrokeDashoffsetFromObject  : 1;
+  bool mStrokeWidthFromObject       : 1;
 };
 
 struct nsStyleSVGReset {

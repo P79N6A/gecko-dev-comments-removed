@@ -12,6 +12,7 @@
 #include "nsSVGGeometryFrame.h"
 #include "nsSVGUtils.h"
 #include "nsTextFragment.h"
+#include "gfxSVGGlyphs.h"
 
 class CharacterIterator;
 class gfxContext;
@@ -21,6 +22,7 @@ class nsRenderingContext;
 class nsSVGGlyphFrame;
 class nsSVGTextFrame;
 class nsSVGTextPathFrame;
+class gfxTextObjectPaint;
 
 struct CharacterPosition;
 
@@ -236,7 +238,7 @@ private:
   void DrawCharacters(CharacterIterator *aIter,
                       gfxContext *aContext,
                       DrawMode aDrawMode,
-                      gfxPattern *aStrokePattern = nullptr);
+                      gfxTextObjectPaint *aObjectPaint = nullptr);
 
   void NotifyGlyphMetricsChange();
   void SetupGlobalTransform(gfxContext *aContext, uint32_t aFor);
@@ -265,7 +267,114 @@ private:
 
 private:
   DrawMode SetupCairoState(gfxContext *aContext,
-                           gfxPattern **aStrokePattern);
+                           gfxTextObjectPaint *aOuterObjectPaint,
+                           gfxTextObjectPaint **aThisObjectPaint);
+
+  
+  struct SVGTextObjectPaint : public gfxTextObjectPaint {
+    already_AddRefed<gfxPattern> GetFillPattern(float opacity);
+    already_AddRefed<gfxPattern> GetStrokePattern(float opacity);
+
+    void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
+    float GetFillOpacity() { return mFillOpacity; }
+
+    void SetStrokeOpacity(float aOpacity) { mStrokeOpacity = aOpacity; }
+    float GetStrokeOpacity() { return mStrokeOpacity; }
+
+    struct Paint {
+      Paint() {
+        mPatternCache.Init();
+      }
+
+      void SetPaintServer(nsIFrame *aFrame, const gfxMatrix& aContextMatrix,
+                          nsSVGPaintServerFrame *aPaintServerFrame) {
+        mPaintType = eStyleSVGPaintType_Server;
+        mPaintDefinition.mPaintServerFrame = aPaintServerFrame;
+        mFrame = aFrame;
+        mContextMatrix = aContextMatrix;
+      }
+
+      void SetColor(const nscolor &aColor) {
+        mPaintType = eStyleSVGPaintType_Color;
+        mPaintDefinition.mColor = aColor;
+      }
+
+      void SetObjectPaint(gfxTextObjectPaint *aObjectPaint,
+                          nsStyleSVGPaintType aPaintType) {
+        NS_ASSERTION(aPaintType == eStyleSVGPaintType_ObjectFill ||
+                     aPaintType == eStyleSVGPaintType_ObjectStroke,
+                     "Invalid object paint type");
+        mPaintType = aPaintType;
+        mPaintDefinition.mObjectPaint = aObjectPaint;
+      }
+
+      union {
+        nsSVGPaintServerFrame *mPaintServerFrame;
+        gfxTextObjectPaint *mObjectPaint;
+        nscolor mColor;
+      } mPaintDefinition;
+
+      nsIFrame *mFrame;
+      gfxMatrix mContextMatrix;
+      nsStyleSVGPaintType mPaintType;
+
+      gfxMatrix mPatternMatrix;
+      nsRefPtrHashtable<nsFloatHashKey, gfxPattern> mPatternCache;
+
+      already_AddRefed<gfxPattern> GetPattern(float aOpacity,
+                                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke);
+    };
+
+    Paint mFillPaint;
+    Paint mStrokePaint;
+
+    float mFillOpacity;
+    float mStrokeOpacity;
+  };
+
+  
+
+
+
+  bool SetupCairoStroke(gfxContext *aContext,
+                        gfxTextObjectPaint *aOuterObjectPaint,
+                        SVGTextObjectPaint *aThisObjectPaint);
+
+  
+
+
+
+  bool SetupCairoFill(gfxContext *aContext,
+                      gfxTextObjectPaint *aOuterObjectPaint,
+                      SVGTextObjectPaint *aThisObjectPaint);
+
+  
+
+
+
+
+  bool SetupObjectPaint(gfxContext *aContext,
+                        nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                        float& aOpacity,
+                        gfxTextObjectPaint *aObjectPaint);
+
+  
+
+
+
+
+
+
+
+
+
+  void SetupInheritablePaint(gfxContext *aContext,
+                             float& aOpacity,
+                             gfxTextObjectPaint *aOuterObjectPaint,
+                             SVGTextObjectPaint::Paint& aTargetPaint,
+                             nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                             const FramePropertyDescriptor *aProperty);
+
 };
 
 #endif

@@ -22,6 +22,7 @@
 #include "nsMathUtils.h"
 #include "nsPoint.h"
 #include "nsRect.h"
+#include "nsStyleStruct.h"
 #include "mozilla/Constants.h"
 
 class gfxASurface;
@@ -46,6 +47,7 @@ class nsSVGOuterSVGFrame;
 class nsSVGPathGeometryFrame;
 class nsSVGSVGElement;
 class nsTextFrame;
+class gfxTextObjectPaint;
 
 struct nsStyleSVG;
 struct nsStyleSVGPaint;
@@ -681,37 +683,56 @@ public:
   
 
 
-
-  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext);
-
-  
-
-
-
-  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext);
-
-  
-
-
-  static bool HasStroke(nsIFrame* aFrame);
-
-  static float GetStrokeWidth(nsIFrame* aFrame);
-
-  
-
-
-  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext);
-
-  
-
-
-  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext);
+  static bool SetupObjectPaint(gfxContext *aContext,
+                               gfxTextObjectPaint *aObjectPaint,
+                               const nsStyleSVGPaint& aPaint,
+                               float aOpacity);
 
   
 
 
 
-  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext);
+  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext,
+                                  gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+
+  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext,
+                                    gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  static float GetOpacity(nsStyleSVGOpacitySource aOpacityType,
+                          const float& aOpacity,
+                          gfxTextObjectPaint *aOuterObjectPaint);
+
+  
+
+
+  static bool HasStroke(nsIFrame* aFrame,
+                        gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  static float GetStrokeWidth(nsIFrame* aFrame,
+                              gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+  static void SetupCairoStrokeGeometry(nsIFrame* aFrame, gfxContext *aContext,
+                                       gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+  static void SetupCairoStrokeHitGeometry(nsIFrame* aFrame, gfxContext *aContext,
+                                          gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+
+  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext,
+                               gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 

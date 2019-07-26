@@ -5016,10 +5016,10 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
 NS_IMETHODIMP
 nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
                                nsIInputStream *input,
-                               uint32_t offset, uint32_t count)
+                               uint64_t offset, uint32_t count)
 {
     SAMPLE_LABEL("network", "nsHttpChannel::OnDataAvailable");
-    LOG(("nsHttpChannel::OnDataAvailable [this=%p request=%p offset=%u count=%u]\n",
+    LOG(("nsHttpChannel::OnDataAvailable [this=%p request=%p offset=%llu count=%u]\n",
         this, request, offset, count));
 
     
@@ -5066,17 +5066,10 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         
         
 
-        
-        
-        
-        
-        uint32_t odaOffset = mLogicalOffset > PR_UINT32_MAX
-                           ? PR_UINT32_MAX : uint32_t(mLogicalOffset);
-
         nsresult rv =  mListener->OnDataAvailable(this,
                                                   mListenerContext,
                                                   input,
-                                                  odaOffset,
+                                                  mLogicalOffset,
                                                   count);
         if (NS_SUCCEEDED(rv))
             mLogicalOffset = progress;

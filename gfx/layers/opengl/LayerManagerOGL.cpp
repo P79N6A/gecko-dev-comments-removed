@@ -48,6 +48,242 @@ using namespace mozilla::gl;
 int ShaderProgramOGL::sCurrentProgramKey = 0;
 #endif
 
+static const double kFpsWindowMs = 250.0;
+static const size_t kNumFrameTimeStamps = 16;
+struct FPSCounter {
+  FPSCounter() : mCurrentFrameIndex(0) {}
+
+  
+  
+  
+  
+  TimeStamp mFrames[kNumFrameTimeStamps];
+  size_t mCurrentFrameIndex;
+
+  void AddFrame(TimeStamp aNewFrame) {
+    mFrames[mCurrentFrameIndex] = aNewFrame;
+    mCurrentFrameIndex = (mCurrentFrameIndex + 1) % kNumFrameTimeStamps;
+  }
+
+  double AddFrameAndGetFps(TimeStamp aCurrentFrame) {
+    AddFrame(aCurrentFrame);
+    return EstimateFps(aCurrentFrame);
+  }
+
+  double GetFpsAt(TimeStamp aNow) {
+    return EstimateFps(aNow);
+  }
+
+private:
+  double EstimateFps(TimeStamp aNow) {
+    TimeStamp beginningOfWindow =
+      (aNow - TimeDuration::FromMilliseconds(kFpsWindowMs));
+    TimeStamp earliestFrameInWindow = aNow;
+    size_t numFramesDrawnInWindow = 0;
+    for (size_t i = 0; i < kNumFrameTimeStamps; ++i) {
+      const TimeStamp& frame = mFrames[i];
+      if (!frame.IsNull() && frame > beginningOfWindow) {
+        ++numFramesDrawnInWindow;
+        earliestFrameInWindow = PR_MIN(earliestFrameInWindow, frame);
+      }
+    }
+    double realWindowSecs = (aNow - earliestFrameInWindow).ToSeconds();
+    if (realWindowSecs == 0.0) {
+      return 0.0;
+    }
+    return double(numFramesDrawnInWindow) / realWindowSecs;
+  }
+};
+
+struct FPSState {
+  GLuint mTexture;
+  FPSCounter mCompositionFps;
+  FPSCounter mTransactionFps;
+
+  FPSState() : mTexture(0) { }
+
+  void DrawFPS(TimeStamp, GLContext*, ShaderProgramOGL*);
+
+  static void DrawFrameCounter(GLContext* context);
+
+  void NotifyShadowTreeTransaction() {
+    mTransactionFps.AddFrame(TimeStamp::Now());
+  }
+};
+
+
+void
+FPSState::DrawFPS(TimeStamp aNow,
+                  GLContext* context, ShaderProgramOGL* copyprog)
+{
+  int fps = int(mCompositionFps.AddFrameAndGetFps(aNow));
+  int txnFps = int(mTransactionFps.GetFpsAt(aNow));
+
+  GLint viewport[4];
+  context->fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
+
+  if (!mTexture) {
+    
+    context->fGenTextures(1, &mTexture);
+    context->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+    context->fTexParameteri(LOCAL_GL_TEXTURE_2D,LOCAL_GL_TEXTURE_MIN_FILTER,LOCAL_GL_NEAREST);
+    context->fTexParameteri(LOCAL_GL_TEXTURE_2D,LOCAL_GL_TEXTURE_MAG_FILTER,LOCAL_GL_NEAREST);
+
+    unsigned char text[] = {
+      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+      0, 255, 255, 255,   0, 255, 255,   0,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,
+      0, 255,   0, 255,   0,   0, 255,   0,   0,   0,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0,   0,   0,   0,   0, 255,   0, 255,   0, 255,   0, 255,   0, 255,   0,
+      0, 255,   0, 255,   0,   0, 255,   0,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,
+      0, 255,   0, 255,   0,   0, 255,   0,   0, 255,   0,   0,   0,   0,   0, 255,   0,   0,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0,
+      0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    };
+
+    
+    
+    unsigned int* buf = (unsigned int*)malloc(64 * 8 * 4);
+    for (int i = 0; i < 7; i++) {
+      for (int j = 0; j < 41; j++) {
+        unsigned int purple = 0xfff000ff;
+        unsigned int white  = 0xffffffff;
+        buf[i * 64 + j] = (text[i * 41 + j] == 0) ? purple : white;
+      }
+    }
+    context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, 64, 8, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, buf);
+    free(buf);
+  }
+
+  struct Vertex2D {
+    float x,y;
+  };
+  const Vertex2D vertices[] = {
+    { -1.0f, 1.0f - 42.f / viewport[3] },
+    { -1.0f, 1.0f},
+    { -1.0f + 22.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 22.f / viewport[2], 1.0f },
+
+    {  -1.0f + 22.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    {  -1.0f + 22.f / viewport[2], 1.0f },
+    {  -1.0f + 44.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    {  -1.0f + 44.f / viewport[2], 1.0f },
+
+    { -1.0f + 44.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 44.f / viewport[2], 1.0f },
+    { -1.0f + 66.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 66.f / viewport[2], 1.0f }
+  };
+
+  const Vertex2D vertices2[] = {
+    { -1.0f + 80.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 80.f / viewport[2], 1.0f },
+    { -1.0f + 102.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 102.f / viewport[2], 1.0f },
+    
+    { -1.0f + 102.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 102.f / viewport[2], 1.0f },
+    { -1.0f + 124.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 124.f / viewport[2], 1.0f },
+    
+    { -1.0f + 124.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 124.f / viewport[2], 1.0f },
+    { -1.0f + 146.f / viewport[2], 1.0f - 42.f / viewport[3] },
+    { -1.0f + 146.f / viewport[2], 1.0f },
+  };
+
+  int v1   = fps % 10;
+  int v10  = (fps % 100) / 10;
+  int v100 = (fps % 1000) / 100;
+
+  int txn1 = txnFps % 10;
+  int txn10  = (txnFps % 100) / 10;
+  int txn100 = (txnFps % 1000) / 100;
+
+  
+  
+  const GLfloat texCoords[] = {
+    (v100 * 4.f) / 64, 7.f / 8,
+    (v100 * 4.f) / 64, 0.0f,
+    (v100 * 4.f + 4) / 64, 7.f / 8,
+    (v100 * 4.f + 4) / 64, 0.0f,
+
+    (v10 * 4.f) / 64, 7.f / 8,
+    (v10 * 4.f) / 64, 0.0f,
+    (v10 * 4.f + 4) / 64, 7.f / 8,
+    (v10 * 4.f + 4) / 64, 0.0f,
+
+    (v1 * 4.f) / 64, 7.f / 8,
+    (v1 * 4.f) / 64, 0.0f,
+    (v1 * 4.f + 4) / 64, 7.f / 8,
+    (v1 * 4.f + 4) / 64, 0.0f,
+  };
+
+  const GLfloat texCoords2[] = {
+    (txn100 * 4.f) / 64, 7.f / 8,
+    (txn100 * 4.f) / 64, 0.0f,
+    (txn100 * 4.f + 4) / 64, 7.f / 8,
+    (txn100 * 4.f + 4) / 64, 0.0f,
+
+    (txn10 * 4.f) / 64, 7.f / 8,
+    (txn10 * 4.f) / 64, 0.0f,
+    (txn10 * 4.f + 4) / 64, 7.f / 8,
+    (txn10 * 4.f + 4) / 64, 0.0f,
+
+    (txn1 * 4.f) / 64, 7.f / 8,
+    (txn1 * 4.f) / 64, 0.0f,
+    (txn1 * 4.f + 4) / 64, 7.f / 8,
+    (txn1 * 4.f + 4) / 64, 0.0f,
+  };
+
+  
+  context->fEnable(LOCAL_GL_BLEND);
+  context->fBlendFunc(LOCAL_GL_ONE, LOCAL_GL_SRC_COLOR);
+
+  context->fActiveTexture(LOCAL_GL_TEXTURE0);
+  context->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+
+  copyprog->Activate();
+  copyprog->SetTextureUnit(0);
+
+  
+  context->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
+
+  
+  context->fBlendFuncSeparate(LOCAL_GL_ONE, LOCAL_GL_ZERO,
+                              LOCAL_GL_ONE, LOCAL_GL_ZERO);
+
+  
+  
+  GLint vcattr = copyprog->AttribLocation(ShaderProgramOGL::VertexCoordAttrib);
+  GLint tcattr = copyprog->AttribLocation(ShaderProgramOGL::TexCoordAttrib);
+
+  context->fEnableVertexAttribArray(vcattr);
+  context->fEnableVertexAttribArray(tcattr);
+
+  context->fVertexAttribPointer(vcattr,
+                                2, LOCAL_GL_FLOAT,
+                                LOCAL_GL_FALSE,
+                                0, vertices);
+
+  context->fVertexAttribPointer(tcattr,
+                                2, LOCAL_GL_FLOAT,
+                                LOCAL_GL_FALSE,
+                                0, texCoords);
+
+  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
+
+  context->fVertexAttribPointer(vcattr,
+                                2, LOCAL_GL_FLOAT,
+                                LOCAL_GL_FALSE,
+                                0, vertices2);
+
+  context->fVertexAttribPointer(tcattr,
+                                2, LOCAL_GL_FLOAT,
+                                LOCAL_GL_FALSE,
+                                0, texCoords2);
+
+  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
+}
+
 
 
 
@@ -335,6 +571,7 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 
   if (NS_IsMainThread()) {
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+    Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
     class ReadDrawFPSPref : public nsRunnable {
@@ -342,6 +579,7 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
       NS_IMETHOD Run()
       {
         Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+        Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
         return NS_OK;
       }
     };
@@ -513,201 +751,28 @@ LayerManagerOGL::RootLayer() const
 }
 
 bool LayerManagerOGL::sDrawFPS = false;
+bool LayerManagerOGL::sFrameCounter = false;
 
+static uint16_t sFrameCount = 0;
 void
-LayerManagerOGL::FPSState::NotifyShadowTreeTransaction()
+FPSState::DrawFrameCounter(GLContext* context)
 {
-  contentFCount++;
-}
-
-
-
-void
-LayerManagerOGL::FPSState::DrawFPS(GLContext* context, ShaderProgramOGL* copyprog)
-{
-  fcount++;
-
-  int rate = 30;
-  if (fcount >= rate) {
-    TimeStamp now = TimeStamp::Now();
-    TimeDuration duration = now - last;
-    last = now;
-    fps = rate / duration.ToSeconds() + .5;
-    fcount = 0;
-  }
-  if (contentFCount >= rate) {
-    TimeStamp now = TimeStamp::Now();
-    TimeDuration duration = now - contentLast;
-    contentLast = now;
-    contentFps = contentFCount / duration.ToSeconds() + .5;
-    contentFCount = 0;
-  }
-
-  GLint viewport[4];
-  context->fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
-
-  static GLuint texture;
-  if (!initialized) {
-    
-    context->fGenTextures(1, &texture);
-    context->fBindTexture(LOCAL_GL_TEXTURE_2D, texture);
-    context->fTexParameteri(LOCAL_GL_TEXTURE_2D,LOCAL_GL_TEXTURE_MIN_FILTER,LOCAL_GL_NEAREST);
-    context->fTexParameteri(LOCAL_GL_TEXTURE_2D,LOCAL_GL_TEXTURE_MAG_FILTER,LOCAL_GL_NEAREST);
-
-    unsigned char text[] = {
-      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-      0, 255, 255, 255,   0, 255, 255,   0,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,
-      0, 255,   0, 255,   0,   0, 255,   0,   0,   0,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0,   0,   0,   0,   0, 255,   0, 255,   0, 255,   0, 255,   0, 255,   0,
-      0, 255,   0, 255,   0,   0, 255,   0,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,
-      0, 255,   0, 255,   0,   0, 255,   0,   0, 255,   0,   0,   0,   0,   0, 255,   0,   0,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0, 255,   0, 255,   0,   0,   0, 255,   0,
-      0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0, 255, 255, 255,   0,   0,   0, 255,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-    };
+  SAMPLER_FRAME_NUMBER(sFrameCount);
+  uint16_t frameNumber = sFrameCount;
+  for (size_t i = 0; i < 16; i++) {
+    context->fScissor(3*i, 0, 3, 3);
 
     
     
-    unsigned int* buf = (unsigned int*)malloc(64 * 8 * 4);
-    for (int i = 0; i < 7; i++) {
-      for (int j = 0; j < 41; j++) {
-        unsigned int purple = 0xfff000ff;
-        unsigned int white  = 0xffffffff;
-        buf[i * 64 + j] = (text[i * 41 + j] == 0) ? purple : white;
-      }
+    if ((frameNumber >> i) & 0x1) {
+      context->fClearColor(0.0, 0.0, 0.0, 0.0);
+    } else {
+      context->fClearColor(1.0, 1.0, 1.0, 0.0);
     }
-    context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, 64, 8, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, buf);
-    free(buf);
-    initialized = true;
+    context->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
   }
-
-  struct Vertex2D {
-    float x,y;
-  };
-  const Vertex2D vertices[] = {
-    { -1.0f, 1.0f - 42.f / viewport[3] },
-    { -1.0f, 1.0f},
-    { -1.0f + 22.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 22.f / viewport[2], 1.0f },
-
-    {  -1.0f + 22.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    {  -1.0f + 22.f / viewport[2], 1.0f },
-    {  -1.0f + 44.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    {  -1.0f + 44.f / viewport[2], 1.0f },
-
-    { -1.0f + 44.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 44.f / viewport[2], 1.0f },
-    { -1.0f + 66.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 66.f / viewport[2], 1.0f },
-  };
-    
-  const Vertex2D vertices2[] = {
-    { -1.0f + 80.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 80.f / viewport[2], 1.0f },
-    { -1.0f + 102.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 102.f / viewport[2], 1.0f },
-    
-    { -1.0f + 102.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 102.f / viewport[2], 1.0f },
-    { -1.0f + 124.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 124.f / viewport[2], 1.0f },
-    
-    { -1.0f + 124.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 124.f / viewport[2], 1.0f },
-    { -1.0f + 146.f / viewport[2], 1.0f - 42.f / viewport[3] },
-    { -1.0f + 146.f / viewport[2], 1.0f },
-  };
-
-  int v1   = fps % 10;
-  int v10  = (fps % 100) / 10;
-  int v100 = (fps % 1000) / 100;
-
-  int content1 = contentFps % 10;
-  int content10  = (contentFps % 100) / 10;
-  int content100 = (contentFps % 1000) / 100;
-
   
-  
-  const GLfloat texCoords[] = {
-    (v100 * 4.f) / 64, 7.f / 8,
-    (v100 * 4.f) / 64, 0.0f,
-    (v100 * 4.f + 4) / 64, 7.f / 8,
-    (v100 * 4.f + 4) / 64, 0.0f,
-
-    (v10 * 4.f) / 64, 7.f / 8,
-    (v10 * 4.f) / 64, 0.0f,
-    (v10 * 4.f + 4) / 64, 7.f / 8,
-    (v10 * 4.f + 4) / 64, 0.0f,
-
-    (v1 * 4.f) / 64, 7.f / 8,
-    (v1 * 4.f) / 64, 0.0f,
-    (v1 * 4.f + 4) / 64, 7.f / 8,
-    (v1 * 4.f + 4) / 64, 0.0f,
-  };
-    
-  const GLfloat texCoords2[] = {
-    (content100 * 4.f) / 64, 7.f / 8,
-    (content100 * 4.f) / 64, 0.0f,
-    (content100 * 4.f + 4) / 64, 7.f / 8,
-    (content100 * 4.f + 4) / 64, 0.0f,
-
-    (content10 * 4.f) / 64, 7.f / 8,
-    (content10 * 4.f) / 64, 0.0f,
-    (content10 * 4.f + 4) / 64, 7.f / 8,
-    (content10 * 4.f + 4) / 64, 0.0f,
-
-    (content1 * 4.f) / 64, 7.f / 8,
-    (content1 * 4.f) / 64, 0.0f,
-    (content1 * 4.f + 4) / 64, 7.f / 8,
-    (content1 * 4.f + 4) / 64, 0.0f,
-  };
-
-  
-  context->fEnable(LOCAL_GL_BLEND);
-  context->fBlendFunc(LOCAL_GL_ONE, LOCAL_GL_SRC_COLOR);
-
-  context->fActiveTexture(LOCAL_GL_TEXTURE0);
-  context->fBindTexture(LOCAL_GL_TEXTURE_2D, texture);
-
-  copyprog->Activate();
-  copyprog->SetTextureUnit(0);
-
-  
-  context->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
-
-  
-  context->fBlendFuncSeparate(LOCAL_GL_ONE, LOCAL_GL_ZERO,
-                              LOCAL_GL_ONE, LOCAL_GL_ZERO);
-
-  
-  
-  GLint vcattr = copyprog->AttribLocation(ShaderProgramOGL::VertexCoordAttrib);
-  GLint tcattr = copyprog->AttribLocation(ShaderProgramOGL::TexCoordAttrib);
-
-  context->fEnableVertexAttribArray(vcattr);
-  context->fEnableVertexAttribArray(tcattr);
-
-  context->fVertexAttribPointer(vcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, vertices);
-
-  context->fVertexAttribPointer(tcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, texCoords);
-
-  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
-  
-  context->fVertexAttribPointer(vcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, vertices2);
-
-  context->fVertexAttribPointer(tcattr,
-                                2, LOCAL_GL_FLOAT,
-                                LOCAL_GL_FALSE,
-                                0, texCoords2);
-
-  context->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 12);
+  sFrameCount++;
 }
 
 
@@ -788,7 +853,9 @@ LayerManagerOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
 void
 LayerManagerOGL::NotifyShadowTreeTransaction()
 {
-  mFPS.NotifyShadowTreeTransaction();
+  if (mFPS) {
+    mFPS->NotifyShadowTreeTransaction();
+  }
 }
 
 void
@@ -900,8 +967,16 @@ LayerManagerOGL::Render()
     return;
   }
 
-  if (sDrawFPS) {
-    mFPS.DrawFPS(mGLContext, GetProgram(Copy2DProgramType));
+  if (sDrawFPS && !mFPS) {
+    mFPS = new FPSState();
+  } else if (!sDrawFPS && mFPS) {
+    mFPS = nullptr;
+  }
+
+  if (mFPS) {
+    mFPS->DrawFPS(TimeStamp::Now(), mGLContext, GetProgram(Copy2DProgramType));
+  } else if (sFrameCounter) {
+    FPSState::DrawFrameCounter(mGLContext);
   }
 
   if (mGLContext->IsDoubleBuffered()) {

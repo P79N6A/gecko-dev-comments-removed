@@ -410,6 +410,14 @@ NS_IMETHODIMP
 nsFileInputStream::Close()
 {
     
+    
+    
+    if (mBehaviorFlags & REOPEN_ON_REWIND) {
+        
+        nsFileStreamBase::Tell(&mCachedPosition);
+    }
+
+    
     PR_FREEIF(mLineBuffer);
     nsresult rv = nsFileStreamBase::Close();
     if (NS_FAILED(rv)) return rv;
@@ -460,9 +468,15 @@ nsFileInputStream::Seek(int32_t aWhence, int64_t aOffset)
     PR_FREEIF(mLineBuffer); 
     if (!mFD) {
         if (mBehaviorFlags & REOPEN_ON_REWIND) {
-            nsresult rv = Reopen();
-            if (NS_FAILED(rv)) {
-                return rv;
+            rv = Open(mFile, mIOFlags, mPerm);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            
+            
+            
+            if (aWhence == NS_SEEK_CUR) {
+                aWhence = NS_SEEK_SET;
+                aOffset += mCachedPosition;
             }
         } else {
             return NS_BASE_STREAM_CLOSED;
@@ -470,6 +484,18 @@ nsFileInputStream::Seek(int32_t aWhence, int64_t aOffset)
     }
 
     return nsFileStreamBase::Seek(aWhence, aOffset);
+}
+
+NS_IMETHODIMP
+nsFileInputStream::Tell(int64_t *aResult)
+{
+    return nsFileStreamBase::Tell(aResult);
+}
+
+NS_IMETHODIMP
+nsFileInputStream::Available(uint64_t *aResult)
+{
+    return nsFileStreamBase::Available(aResult);
 }
 
 void

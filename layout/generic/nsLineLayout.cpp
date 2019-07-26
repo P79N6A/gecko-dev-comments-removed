@@ -751,6 +751,15 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
+  nscoord maxLineBoxWidth = aFrame->PresContext()->PresShell()->MaxLineBoxWidth();
+
+  if (maxLineBoxWidth > 0 && psd->mRightEdge > maxLineBoxWidth) {
+    psd->mRightEdge = maxLineBoxWidth;
+  }
+
+  
+  
+  
   NS_WARN_IF_FALSE(psd->mRightEdge != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "

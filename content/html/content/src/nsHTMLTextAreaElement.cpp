@@ -545,8 +545,22 @@ nsHTMLTextAreaElement::SetValueInternal(const nsAString& aValue,
 NS_IMETHODIMP 
 nsHTMLTextAreaElement::SetValue(const nsAString& aValue)
 {
+  
+  
+  
+  
+  
+  
+  
+  nsAutoString currentValue;
+  GetValueInternal(currentValue, true);
+
   SetValueInternal(aValue, false);
-  GetValueInternal(mFocusedValue, true);
+
+  if (mFocusedValue.Equals(currentValue)) {
+    GetValueInternal(mFocusedValue, true);
+  }
+
   return NS_OK;
 }
 

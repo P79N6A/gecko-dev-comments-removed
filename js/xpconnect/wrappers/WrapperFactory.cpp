@@ -329,17 +329,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         if (AccessCheck::isChrome(origin)) {
             wrapper = &CrossCompartmentWrapper::singleton;
         } else {
-            bool isSystem;
-            {
-                JSAutoCompartment ac(cx, obj);
-                JSObject *globalObj = JS_GetGlobalForObject(cx, obj);
-                JS_ASSERT(globalObj);
-                isSystem = JS_IsSystemObject(cx, globalObj);
-            }
-
-            if (isSystem) {
-                wrapper = &CrossCompartmentWrapper::singleton;
-            } else if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
+            if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
                 
                 
                 wrapper = &WaiveXrayWrapper::singleton;

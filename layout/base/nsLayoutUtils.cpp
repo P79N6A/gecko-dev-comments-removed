@@ -2389,7 +2389,8 @@ GetPercentHeight(const nsStyleCoord& aStyle,
     if (minh > h)
       h = minh;
   } else {
-    NS_ASSERTION(pos->mMinHeight.HasPercent(),
+    NS_ASSERTION(pos->mMinHeight.HasPercent() ||
+                 pos->mMinHeight.GetUnit() == eStyleUnit_Auto,
                  "unknown min-height unit");
   }
 
@@ -2496,7 +2497,19 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
   nscoord maxw;
   bool haveFixedMaxWidth = GetAbsoluteCoord(styleMaxWidth, maxw);
   nscoord minw;
-  bool haveFixedMinWidth = GetAbsoluteCoord(styleMinWidth, minw);
+
+  
+  bool haveFixedMinWidth;
+  if (eStyleUnit_Auto == styleMinWidth.GetUnit()) {
+    
+    
+    
+    
+    minw = 0;
+    haveFixedMinWidth = true;
+  } else {
+    haveFixedMinWidth = GetAbsoluteCoord(styleMinWidth, minw);
+  }
 
   
   
@@ -2528,12 +2541,18 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
 
     
     
+    
+    
+    
+    
     const nsStyleCoord &styleHeight = stylePos->mHeight;
     const nsStyleCoord &styleMinHeight = stylePos->mMinHeight;
     const nsStyleCoord &styleMaxHeight = stylePos->mMaxHeight;
+
     if (styleHeight.GetUnit() != eStyleUnit_Auto ||
-        !(styleMinHeight.GetUnit() == eStyleUnit_Coord &&
-          styleMinHeight.GetCoordValue() == 0) ||
+        !(styleMinHeight.GetUnit() == eStyleUnit_Auto || 
+          (styleMinHeight.GetUnit() == eStyleUnit_Coord &&
+           styleMinHeight.GetCoordValue() == 0)) ||
         styleMaxHeight.GetUnit() != eStyleUnit_None) {
 
       nsSize ratio = aFrame->GetIntrinsicRatio();
@@ -2797,17 +2816,48 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
                    nsSize aIntrinsicRatio, nsSize aCBSize,
                    nsSize aMargin, nsSize aBorder, nsSize aPadding)
 {
-  const nsStylePosition *stylePos = aFrame->GetStylePosition();
+  const nsStylePosition* stylePos = aFrame->GetStylePosition();
+
   
-  
-  
+  const nsStyleCoord* widthStyleCoord = &(stylePos->mWidth);
+  const nsStyleCoord* heightStyleCoord = &(stylePos->mHeight);
+
+  bool isFlexItem = aFrame->IsFlexItem();
+  bool isHorizontalFlexItem = false;
+
+#ifdef MOZ_FLEXBOX
+  if (isFlexItem) {
+    
+    
+    
+    
+    uint32_t flexDirection =
+      aFrame->GetParent()->GetStylePosition()->mFlexDirection;
+    isHorizontalFlexItem =
+      flexDirection == NS_STYLE_FLEX_DIRECTION_ROW ||
+      flexDirection == NS_STYLE_FLEX_DIRECTION_ROW_REVERSE;
+
+    if (stylePos->mFlexBasis.GetUnit() != eStyleUnit_Auto) {
+      if (isHorizontalFlexItem) {
+        widthStyleCoord = &(stylePos->mFlexBasis);
+      } else {
+        heightStyleCoord = &(stylePos->mFlexBasis);
+      }
+    }
+  }
+#endif 
+
 
   
   
   
 
-  const bool isAutoWidth = stylePos->mWidth.GetUnit() == eStyleUnit_Auto;
-  const bool isAutoHeight = IsAutoHeight(stylePos->mHeight, aCBSize.height);
+  
+  
+  
+
+  const bool isAutoWidth = widthStyleCoord->GetUnit() == eStyleUnit_Auto;
+  const bool isAutoHeight = IsAutoHeight(*heightStyleCoord, aCBSize.height);
 
   nsSize boxSizingAdjust(0,0);
   switch (stylePos->mBoxSizing) {
@@ -2825,10 +2875,11 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
   if (!isAutoWidth) {
     width = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
               aFrame, aCBSize.width, boxSizingAdjust.width,
-              boxSizingToMarginEdgeWidth, stylePos->mWidth);
+              boxSizingToMarginEdgeWidth, *widthStyleCoord);
   }
 
-  if (stylePos->mMaxWidth.GetUnit() != eStyleUnit_None) {
+  if (stylePos->mMaxWidth.GetUnit() != eStyleUnit_None &&
+      !(isFlexItem && isHorizontalFlexItem)) {
     maxWidth = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
                  aFrame, aCBSize.width, boxSizingAdjust.width,
                  boxSizingToMarginEdgeWidth, stylePos->mMaxWidth);
@@ -2836,17 +2887,31 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
     maxWidth = nscoord_MAX;
   }
 
-  minWidth = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
-               aFrame, aCBSize.width, boxSizingAdjust.width,
-               boxSizingToMarginEdgeWidth, stylePos->mMinWidth);
+  
+  
+  
+  if (stylePos->mMinWidth.GetUnit() != eStyleUnit_Auto &&
+      !(isFlexItem && isHorizontalFlexItem)) {
+    minWidth = nsLayoutUtils::ComputeWidthValue(aRenderingContext,
+                 aFrame, aCBSize.width, boxSizingAdjust.width,
+                 boxSizingToMarginEdgeWidth, stylePos->mMinWidth);
+  } else {
+    
+    
+    
+    
+    
+    minWidth = 0;
+  }
 
   if (!isAutoHeight) {
     height = nsLayoutUtils::ComputeHeightValue(aCBSize.height, 
                 boxSizingAdjust.height, 
-                stylePos->mHeight);
+                *heightStyleCoord);
   }
 
-  if (!IsAutoHeight(stylePos->mMaxHeight, aCBSize.height)) {
+  if (!IsAutoHeight(stylePos->mMaxHeight, aCBSize.height) &&
+      !(isFlexItem && !isHorizontalFlexItem)) {
     maxHeight = nsLayoutUtils::ComputeHeightValue(aCBSize.height, 
                   boxSizingAdjust.height, 
                   stylePos->mMaxHeight);
@@ -2854,7 +2919,8 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
     maxHeight = nscoord_MAX;
   }
 
-  if (!IsAutoHeight(stylePos->mMinHeight, aCBSize.height)) {
+  if (!IsAutoHeight(stylePos->mMinHeight, aCBSize.height) &&
+      !(isFlexItem && !isHorizontalFlexItem)) {
     minHeight = nsLayoutUtils::ComputeHeightValue(aCBSize.height, 
                   boxSizingAdjust.height,
                   stylePos->mMinHeight);

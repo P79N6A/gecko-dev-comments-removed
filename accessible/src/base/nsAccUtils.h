@@ -9,7 +9,6 @@
 #include "nsIAccessible.h"
 #include "nsIAccessibleRole.h"
 #include "nsIAccessibleText.h"
-#include "nsIAccessibleTable.h"
 
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
@@ -293,32 +292,6 @@ public:
 
 
   static bool MustPrune(Accessible* aAccessible);
-
-  
-
-
-  enum {
-    
-    eRowHeaderCells,
-    
-    eColumnHeaderCells
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult GetHeaderCellsFor(nsIAccessibleTable *aTable,
-                                    nsIAccessibleTableCell *aCell,
-                                    int32_t aRowOrColHeaderCells,
-                                    nsIArray **aCells);
 };
 
 #endif

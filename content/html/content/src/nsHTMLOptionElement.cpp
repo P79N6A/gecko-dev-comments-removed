@@ -260,7 +260,7 @@ NS_IMETHODIMP
 nsHTMLOptionElement::GetText(nsAString& aText)
 {
   nsAutoString text;
-  nsContentUtils::GetNodeTextContent(this, false, text);
+  nsContentUtils::GetNodeTextContent(this, true, text);
 
   
   text.CompressWhitespace(true, true);

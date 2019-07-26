@@ -32,7 +32,8 @@ using namespace mozilla;
 
 nsresult
 nsDiskCacheMap::Open(nsIFile *  cacheDirectory,
-                     nsDiskCache::CorruptCacheInfo *  corruptInfo)
+                     nsDiskCache::CorruptCacheInfo *  corruptInfo,
+                     bool reportCacheCleanTelemetryData)
 {
     NS_ENSURE_ARG_POINTER(corruptInfo);
 
@@ -62,7 +63,9 @@ nsDiskCacheMap::Open(nsIFile *  cacheDirectory,
     rv = NS_ERROR_FILE_CORRUPTED;  
     uint32_t mapSize = PR_Available(mMapFD);    
 
-    if (NS_FAILED(InitCacheClean(cacheDirectory, corruptInfo))) {
+    if (NS_FAILED(InitCacheClean(cacheDirectory,
+                                 corruptInfo,
+                                 reportCacheCleanTelemetryData))) {
         
         goto error_exit;
     }
@@ -256,7 +259,6 @@ nsDiskCacheMap::Trim()
 nsresult
 nsDiskCacheMap::FlushHeader()
 {
-    RevalidateCache();
     if (!mMapFD)  return NS_ERROR_NOT_AVAILABLE;
     
     
@@ -273,6 +275,11 @@ nsDiskCacheMap::FlushHeader()
 
     PRStatus err = PR_Sync(mMapFD);
     if (err != PR_SUCCESS) return NS_ERROR_UNEXPECTED;
+
+    
+    if (!mHeader.mIsDirty) {
+        RevalidateCache();
+    }
 
     return NS_OK;
 }
@@ -1212,7 +1219,8 @@ nsDiskCacheMap::NotifyCapacityChange(uint32_t capacity)
 
 nsresult
 nsDiskCacheMap::InitCacheClean(nsIFile *  cacheDirectory,
-                               nsDiskCache::CorruptCacheInfo *  corruptInfo)
+                               nsDiskCache::CorruptCacheInfo *  corruptInfo,
+                               bool reportCacheCleanTelemetryData)
 {
     
     
@@ -1248,7 +1256,7 @@ nsDiskCacheMap::InitCacheClean(nsIFile *  cacheDirectory,
         int32_t bytesRead = PR_Read(mCleanFD, &clean, 1);
         if (bytesRead != 1) {
             NS_WARNING("Could not read _CACHE_CLEAN_ file contents");
-        } else {
+        } else if (reportCacheCleanTelemetryData) {
             Telemetry::Accumulate(Telemetry::DISK_CACHE_REDUCTION_TRIAL,
                                   clean == '1' ? 1 : 0);
         }
@@ -1312,7 +1320,12 @@ nsDiskCacheMap::InvalidateCache()
   
     if (!mIsDirtyCacheFlushed) {
         rv = WriteCacheClean(false);
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (NS_FAILED(rv)) {
+          Telemetry::Accumulate(Telemetry::DISK_CACHE_INVALIDATION_SUCCESS, 0);
+          return rv;
+        }
+
+        Telemetry::Accumulate(Telemetry::DISK_CACHE_INVALIDATION_SUCCESS, 1);
         mIsDirtyCacheFlushed = true;
     }
 
@@ -1382,10 +1395,13 @@ nsDiskCacheMap::RevalidateCache()
     nsresult rv;
 
     if (!IsCacheInSafeState()) {
+        Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SAFE, 0);
         CACHE_LOG_DEBUG(("CACHE: Revalidation not performed because "
                          "cache not in a safe state\n"));
         return NS_ERROR_FAILURE;
     }
+
+    Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SAFE, 1);
 
     
     Telemetry::AutoTimer<Telemetry::NETWORK_DISK_CACHE_REVALIDATION> totalTimer;
@@ -1395,6 +1411,12 @@ nsDiskCacheMap::RevalidateCache()
   
     
     rv = WriteCacheClean(true);
+    if (NS_FAILED(rv)) {
+        Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SUCCESS, 0);
+        return rv;
+    }
+
+    Telemetry::Accumulate(Telemetry::DISK_CACHE_REVALIDATION_SUCCESS, 1);
     mIsDirtyCacheFlushed = false;
 
     return NS_OK;

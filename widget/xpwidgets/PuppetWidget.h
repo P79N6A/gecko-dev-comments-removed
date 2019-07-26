@@ -133,13 +133,20 @@ public:
   
   
 
+  
+  
+  
+  
+  
+  
+  virtual nsTransparencyMode GetTransparencyMode() MOZ_OVERRIDE
+  { return eTransparencyTransparent; }
 
   virtual LayerManager*
   GetLayerManager(PLayersChild* aShadowManager = nullptr,
                   LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
                   LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
                   bool* aAllowRetaining = nullptr);
-
   virtual gfxASurface*      GetThebesSurface();
 
   NS_IMETHOD ResetInputState();

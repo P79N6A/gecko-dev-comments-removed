@@ -224,7 +224,7 @@ public:
 
 
 
-  void ChildrenOnlyTransformChanged(PRUint32 aFlags = 0);
+  void ChildrenOnlyTransformChanged(uint32_t aFlags = 0);
 
   
   

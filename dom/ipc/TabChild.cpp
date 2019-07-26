@@ -678,6 +678,23 @@ TabChild::~TabChild()
 }
 
 bool
+TabChild::IsRootContentDocument()
+{
+    if (!mIsBrowserElement && mAppId == nsIScriptSecurityManager::NO_APP_ID) {
+        
+        
+        return true;
+    }
+
+    
+    
+    
+    
+    
+    return false;
+}
+
+bool
 TabChild::RecvLoadURL(const nsCString& uri)
 {
     printf("loading %s, %d\n", uri.get(), NS_IsMainThread());

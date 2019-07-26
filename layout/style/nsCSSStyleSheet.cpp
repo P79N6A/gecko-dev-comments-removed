@@ -2134,8 +2134,6 @@ nsCSSStyleSheet::ParseSheet(const nsAString& aInput)
     loader = new css::Loader();
   }
 
-  nsCSSParser parser(loader, this);
-
   mozAutoDocUpdate updateBatch(mDocument, UPDATE_STYLE, true);
 
   nsresult rv = WillDirty();
@@ -2163,6 +2161,8 @@ nsCSSStyleSheet::ParseSheet(const nsAString& aInput)
 
   
   bool allowUnsafeRules = nsContentUtils::IsSystemPrincipal(mInner->mPrincipal);
+
+  nsCSSParser parser(loader, this);
   rv = parser.ParseSheet(aInput, mInner->mSheetURI, mInner->mBaseURI,
                          mInner->mPrincipal, 1, allowUnsafeRules);
   DidDirty(); 

@@ -14,29 +14,24 @@
 
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
+#include "nsIDiskCacheStreamInternal.h"
 
 #include "pratom.h"
 
 class nsDiskCacheInputStream;
-class nsDiskCacheOutputStream;
 class nsDiskCacheDevice;
 
-class nsDiskCacheStreamIO : public nsISupports {
+class nsDiskCacheStreamIO : public nsIOutputStream, nsIDiskCacheStreamInternal {
 public:
              nsDiskCacheStreamIO(nsDiskCacheBinding *   binding);
     virtual ~nsDiskCacheStreamIO();
     
     NS_DECL_ISUPPORTS
+    NS_DECL_NSIOUTPUTSTREAM
+    NS_DECL_NSIDISKCACHESTREAMINTERNAL
 
     nsresult    GetInputStream(uint32_t offset, nsIInputStream ** inputStream);
     nsresult    GetOutputStream(uint32_t offset, nsIOutputStream ** outputStream);
-
-    nsresult    CloseOutputStream(nsDiskCacheOutputStream * outputStream);
-    nsresult    CloseOutputStreamInternal(nsDiskCacheOutputStream * outputStream);
-        
-    nsresult    Write( const char * buffer,
-                       uint32_t     count,
-                       uint32_t *   bytesWritten);
 
     nsresult    Seek(int32_t whence, int32_t offset);
     nsresult    Tell(uint32_t * position);    
@@ -55,20 +50,14 @@ public:
     
     nsDiskCacheStreamIO() { NS_NOTREACHED("oops"); }
 private:
-
-
-    void        Close();
     nsresult    OpenCacheFile(int flags, PRFileDesc ** fd);
     nsresult    ReadCacheBlocks();
     nsresult    FlushBufferToFile();
     void        UpdateFileSize();
     void        DeleteBuffer();
-    nsresult    Flush();
-
 
     nsDiskCacheBinding *        mBinding;       
     nsDiskCacheDevice *         mDevice;
-    nsDiskCacheOutputStream *   mOutStream;     
     int32_t                     mInStreamCount;
     nsCOMPtr<nsIFile>           mLocalFile;
     PRFileDesc *                mFD;
@@ -78,7 +67,8 @@ private:
     uint32_t                    mBufPos;        
     uint32_t                    mBufEnd;        
     uint32_t                    mBufSize;       
-    bool                        mBufDirty;
+    bool                        mBufDirty;      
+    bool                        mOutputStreamIsOpen; 
     char *                      mBuffer;
     
 };

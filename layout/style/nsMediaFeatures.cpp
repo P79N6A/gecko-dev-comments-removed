@@ -330,6 +330,14 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
     return NS_OK;
 }
 
+static nsresult
+GetIsGlyph(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+          nsCSSValue& aResult)
+{
+    aResult.SetIntValue(aPresContext->IsGlyph() ? 1 : 0, eCSSUnit_Integer);
+    return NS_OK;
+}
+
 
 
 
@@ -566,6 +574,17 @@ nsMediaFeatures::features[] = {
         nsMediaFeature::eIdent,
         { nullptr },
         GetWindowsTheme
+    },
+
+    
+    
+    
+    {
+        &nsGkAtoms::_moz_is_glyph,
+        nsMediaFeature::eMinMaxNotAllowed,
+        nsMediaFeature::eBoolInteger,
+        { nullptr },
+        GetIsGlyph
     },
     
     {
