@@ -89,7 +89,7 @@ public:
 
 
 
-    void Paint(gfxContext* aDestinationCtx, const gfxPoint& offset = gfxPoint(0.0, 0.0));
+    void Paint(gfxContext* aDestinationCtx);
 
     
 
