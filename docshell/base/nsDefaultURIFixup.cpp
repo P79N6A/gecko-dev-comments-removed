@@ -403,7 +403,9 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                 
                 nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
                 if (obsSvc) {
-                    obsSvc->NotifyObservers(defaultEngine, "keyword-search", NS_ConvertUTF8toUTF16(keyword).get());
+                  
+                  
+                  obsSvc->NotifyObservers(defaultEngine, "keyword-search", NS_ConvertUTF8toUTF16(keyword).get());
                 }
 
                 return submission->GetUri(aURI);
