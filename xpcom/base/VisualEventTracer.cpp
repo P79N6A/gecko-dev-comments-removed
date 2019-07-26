@@ -384,9 +384,6 @@ EventFilter::EventPasses(const char * eventName)
 }
 
 
-bool gStopFlushingThread = false;
-
-
 
 EventFilter * gEventFilter = nullptr;
 unsigned gThreadPrivateIndex;
