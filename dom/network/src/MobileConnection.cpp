@@ -2,7 +2,8 @@
 
 
 
-#include "MobileConnection.h"
+#include "mozilla/dom/network/MobileConnection.h"
+
 #include "GeneratedEvents.h"
 #include "mozilla/Preferences.h"
 #include "nsDOMEvent.h"

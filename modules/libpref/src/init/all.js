@@ -4536,7 +4536,11 @@ pref("dom.icc.enabled", false);
 #endif
 
 
+#ifdef MOZ_B2G_RIL
+pref("dom.mobileconnection.enabled", true);
+#else
 pref("dom.mobileconnection.enabled", false);
+#endif
 
 
 pref("dom.voicemail.enabled", false);
