@@ -510,6 +510,12 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
   AssertIsOnMainThread();
 
   
+  if (aFlags & JSRESOLVE_ASSIGNING) {
+    aObjp.set(nullptr);
+    return true;
+  }
+
+  
   if (JSID_IS_VOID(gStringIDs[0])) {
     for (uint32_t i = 0; i < ID_COUNT; i++) {
       JSString* str = JS_InternString(aCx, gStringChars[i]);
