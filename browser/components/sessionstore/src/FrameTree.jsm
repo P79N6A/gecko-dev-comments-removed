@@ -11,7 +11,7 @@ const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
-const EXPORTED_METHODS = ["addObserver", "contains", "map"];
+const EXPORTED_METHODS = ["addObserver", "contains", "map", "forEach"];
 
 
 
@@ -159,6 +159,34 @@ FrameTreeInternal.prototype = {
     }
 
     return walk(this.content);
+  },
+
+  
+
+
+
+
+
+
+
+  forEach: function (cb) {
+    let frames = this._frames;
+
+    function walk(frame) {
+      cb(frame);
+
+      if (!frames.has(frame)) {
+        return;
+      }
+
+      Array.forEach(frame.frames, subframe => {
+        if (frames.has(subframe)) {
+          cb(subframe);
+        }
+      });
+    }
+
+    walk(this.content);
   },
 
   

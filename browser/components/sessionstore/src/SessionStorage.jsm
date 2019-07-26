@@ -14,8 +14,14 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
-  "resource:///modules/sessionstore/PrivacyLevel.jsm");
+
+
+function getPrincipalForFrame(docShell, frame) {
+  let ssm = Services.scriptSecurityManager;
+  let doc = frame && frame.document;
+  let uri = Services.io.newURI(doc.documentURI, null, null);
+  return ssm.getDocShellCodebasePrincipal(uri, docShell);
+}
 
 this.SessionStorage = Object.freeze({
   
@@ -26,8 +32,10 @@ this.SessionStorage = Object.freeze({
 
 
 
-  collect: function (aDocShell) {
-    return SessionStorageInternal.collect(aDocShell);
+
+
+  collect: function (docShell, frameTree) {
+    return SessionStorageInternal.collect(docShell, frameTree);
   },
 
   
@@ -53,30 +61,34 @@ let SessionStorageInternal = {
 
 
 
-  collect: function (aDocShell) {
-    let data = {};
-    let webNavigation = aDocShell.QueryInterface(Ci.nsIWebNavigation);
-    let shistory = webNavigation.sessionHistory;
 
-    for (let i = 0; shistory && i < shistory.count; i++) {
-      let principal = History.getPrincipalForEntry(shistory, i, aDocShell);
+
+  collect: function (docShell, frameTree) {
+    let data = {};
+    let visitedOrigins = new Set();
+
+    frameTree.forEach(frame => {
+      let principal = getPrincipalForFrame(docShell, frame);
       if (!principal) {
-        continue;
+        return;
       }
 
       
       
       let origin = principal.jarPrefix + principal.origin;
-      if (data.hasOwnProperty(origin)) {
+      if (visitedOrigins.has(origin)) {
         
-        continue;
+        return;
       }
 
-      let originData = this._readEntry(principal, aDocShell);
+      
+      visitedOrigins.add(origin);
+
+      let originData = this._readEntry(principal, docShell);
       if (Object.keys(originData).length) {
         data[origin] = originData;
       }
-    }
+    });
 
     return Object.keys(data).length ? data : null;
   },
@@ -91,10 +103,11 @@ let SessionStorageInternal = {
 
 
   restore: function (aDocShell, aStorageData) {
-    for (let [host, data] in Iterator(aStorageData)) {
+    for (let host of Object.keys(aStorageData)) {
+      let data = aStorageData[host];
       let uri = Services.io.newURI(host, null, null);
       let principal = Services.scriptSecurityManager.getDocShellCodebasePrincipal(uri, aDocShell);
-      let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+      let storageManager = aDocShell.QueryInterface(Ci.nsIDOMStorageManager);
 
       
       
@@ -124,7 +137,7 @@ let SessionStorageInternal = {
     let storage;
 
     try {
-      let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+      let storageManager = aDocShell.QueryInterface(Ci.nsIDOMStorageManager);
       storage = storageManager.getStorage(aPrincipal);
     } catch (e) {
       
@@ -143,26 +156,4 @@ let SessionStorageInternal = {
 
     return hostData;
   }
-};
-
-let History = {
-  
-
-
-
-
-
-
-
-
-  getPrincipalForEntry: function History_getPrincipalForEntry(aHistory,
-                                                              aIndex,
-                                                              aDocShell) {
-    try {
-      return Services.scriptSecurityManager.getDocShellCodebasePrincipal(
-        aHistory.getEntryAtIndex(aIndex, false).URI, aDocShell);
-    } catch (e) {
-      
-    }
-  },
 };
