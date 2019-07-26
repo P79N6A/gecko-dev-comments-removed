@@ -26,6 +26,8 @@
 #include "mozilla/StandardInteger.h"
 #include "stddef.h"
 
+#include "mozilla/NullPtr.h"
+
 
 
 
@@ -323,22 +325,6 @@ typedef unsigned long nsrefcnt;
 #else
 typedef uint32_t nsrefcnt;
 #endif
-
-
-
-
-
-#ifndef HAVE_NULLPTR
-#ifndef __cplusplus
-# define nullptr ((void*)0)
-#elif defined(__GNUC__)
-# define nullptr __null
-#elif defined(_WIN64)
-# define nullptr 0LL
-#else
-# define nullptr 0L
-#endif
-#endif 
 
 #include "nsError.h"
 
