@@ -147,4 +147,115 @@ OmxVideoTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   return NS_OK;
 }
 
+nsresult
+OmxAudioTrackEncoder::Init(int aChannels, int aSamplingRate)
+{
+  mChannels = aChannels;
+  mSamplingRate = aSamplingRate;
+
+  mEncoder = OMXCodecWrapper::CreateAACEncoder();
+  NS_ENSURE_TRUE(mEncoder, NS_ERROR_FAILURE);
+
+  nsresult rv = mEncoder->Configure(mChannels, mSamplingRate);
+
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  mInitialized = (rv == NS_OK);
+
+  mReentrantMonitor.NotifyAll();
+
+  return NS_OK;
+}
+
+already_AddRefed<TrackMetadataBase>
+OmxAudioTrackEncoder::GetMetadata()
+{
+  {
+    
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    while (!mCanceled && !mInitialized) {
+      mReentrantMonitor.Wait();
+    }
+  }
+
+  if (mCanceled || mEncodingComplete) {
+    return nullptr;
+  }
+
+  nsRefPtr<AACTrackMetadata> meta = new AACTrackMetadata();
+  meta->Channels = mChannels;
+  meta->SampleRate = mSamplingRate;
+  meta->FrameSize = OMXCodecWrapper::kAACFrameSize;
+  meta->FrameDuration = OMXCodecWrapper::kAACFrameDuration;
+
+  return meta.forget();
+}
+
+nsresult
+OmxAudioTrackEncoder::AppendEncodedFrames(EncodedFrameContainer& aContainer)
+{
+  nsTArray<uint8_t> frameData;
+  int outFlags = 0;
+  int64_t outTimeUs = -1;
+
+  nsresult rv = mEncoder->GetNextEncodedFrame(&frameData, &outTimeUs, &outFlags,
+                                              3000); 
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!frameData.IsEmpty()) {
+    bool isCSD = false;
+    if (outFlags & OMXCodecWrapper::BUFFER_CODEC_CONFIG) { 
+      isCSD = true;
+    } else if (outFlags & OMXCodecWrapper::BUFFER_EOS) { 
+      mEncodingComplete = true;
+    } else {
+      MOZ_ASSERT(frameData.Length() == OMXCodecWrapper::kAACFrameSize);
+    }
+
+    nsRefPtr<EncodedFrame> audiodata = new EncodedFrame();
+    audiodata->SetFrameType(isCSD ?
+      EncodedFrame::AAC_CSD : EncodedFrame::AUDIO_FRAME);
+    audiodata->SetTimeStamp(outTimeUs);
+    audiodata->SetFrameData(&frameData);
+    aContainer.AppendEncodedFrame(audiodata);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+OmxAudioTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
+{
+  AudioSegment segment;
+  
+  
+  {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+
+    
+    while (!mInitialized && !mCanceled) {
+      mReentrantMonitor.Wait();
+    }
+
+    if (mCanceled || mEncodingComplete) {
+      return NS_ERROR_FAILURE;
+    }
+
+    segment.AppendFrom(&mRawSegment);
+  }
+
+  if (!mEosSetInEncoder) {
+    if (mEndOfStream) {
+      mEosSetInEncoder = true;
+    }
+    if (segment.GetDuration() > 0 || mEndOfStream) {
+      
+      nsresult rv = mEncoder->Encode(segment,
+                                mEndOfStream ? OMXCodecWrapper::BUFFER_EOS : 0);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  return AppendEncodedFrames(aData);
+}
+
 }
