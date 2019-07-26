@@ -101,7 +101,7 @@ AreaPositionManager.prototype = {
       let doc = aContainer.ownerDocument;
       let draggedItem = doc.getElementById(aDraggedItemId);
       
-      if (draggedItem &&
+      if (this._inPanel && draggedItem &&
           draggedItem.classList.contains(CustomizableUI.WIDE_PANEL_CLASS)) {
         return this._firstInRow(closest);
       }
