@@ -75,7 +75,7 @@ SharedSurface_Gralloc::Create(GLContext* prodGL,
           allocator,
           gfx::ImageFormatToSurfaceFormat(format),
           gfx::BackendType::NONE, 
-          TEXTURE_FLAGS_DEFAULT);
+          layers::TextureFlags::DEFAULT);
 
     if (!grallocTC->AllocateForGLRendering(size)) {
       return nullptr;

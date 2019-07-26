@@ -28,7 +28,8 @@ const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
 
 
 
-MOZ_BEGIN_ENUM_CLASS(TextureFlags)
+MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
+  NO_FLAGS           = 0,
   
   USE_NEAREST_FILTER = 1 << 0,
   
@@ -51,39 +52,41 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags)
   
   RB_SWAPPED         = 1 << 6,
 
-  FRONT              = 1 << 12,
+  FRONT              = 1 << 7,
   
-  ON_WHITE           = 1 << 13,
+  ON_WHITE           = 1 << 8,
   
-  ON_BLACK           = 1 << 14,
+  ON_BLACK           = 1 << 9,
   
-  TILE               = 1 << 15,
+  TILE               = 1 << 10,
   
-  RECYCLE            = 1 << 16,
-  
-  
-  COPY_PREVIOUS      = 1 << 24,
+  RECYCLE            = 1 << 11,
   
   
+  COPY_PREVIOUS      = 1 << 12,
   
   
   
-  DEALLOCATE_CLIENT  = 1 << 25,
+  
+  
+  DEALLOCATE_CLIENT  = 1 << 13,
   
   
   
-  IMMUTABLE          = 1 << 27,
+  IMMUTABLE          = 1 << 14,
   
   
   
-  IMMEDIATE_UPLOAD   = 1 << 28,
+  IMMEDIATE_UPLOAD   = 1 << 15,
   
   
   
-  DOUBLE_BUFFERED    = 1 << 29,
+  DOUBLE_BUFFERED    = 1 << 16,
   
   
-  ALLOC_FALLBACK     = 1 << 31,
+  ALLOC_FALLBACK     = 1 << 17,
+  
+  ALL_BITS           = (1 << 18) - 1,
   
   DEFAULT = FRONT
 MOZ_END_ENUM_CLASS(TextureFlags)
@@ -229,13 +232,13 @@ struct TextureInfo
   TextureInfo()
     : mCompositableType(BUFFER_UNKNOWN)
     , mDeprecatedTextureHostFlags(0)
-    , mTextureFlags(0)
+    , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
 
   TextureInfo(CompositableType aType)
     : mCompositableType(aType)
     , mDeprecatedTextureHostFlags(0)
-    , mTextureFlags(0)
+    , mTextureFlags(TextureFlags::NO_FLAGS)
   {}
 
   bool operator==(const TextureInfo& aOther) const
