@@ -3743,7 +3743,7 @@ var XULBrowserWindow = {
       } catch (ex) {  }
 
       try {
-        Services.appinfo.annotateCrashReport("URL", uri.spec);
+        gCrashReporter.annotateCrashReport("URL", uri.spec);
       } catch (ex if ex.result == Components.results.NS_ERROR_NOT_INITIALIZED) {
         
       }
