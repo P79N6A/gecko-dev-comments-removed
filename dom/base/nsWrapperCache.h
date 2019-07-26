@@ -8,6 +8,7 @@
 
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Assertions.h"
+#include "js/Id.h"          
 #include "js/Value.h"       
 #include "js/RootingAPI.h"
 

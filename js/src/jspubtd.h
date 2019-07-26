@@ -17,6 +17,8 @@
 #include "jstypes.h"
 #include "jsversion.h"  
 
+#include "js/IdForward.h"
+
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING) || defined(DEBUG)
 # define JSGC_TRACK_EXACT_ROOTS
 #endif
@@ -43,38 +45,6 @@ class JS_PUBLIC_API(CompartmentOptions);
 struct Zone;
 
 } 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# if defined(DEBUG) && !defined(JS_NO_JSVAL_JSID_STRUCT_TYPES)
-#  define JS_USE_JSID_STRUCT_TYPES
-# endif
-
-# ifdef JS_USE_JSID_STRUCT_TYPES
-struct jsid
-{
-    size_t asBits;
-    bool operator==(jsid rhs) const { return asBits == rhs.asBits; }
-    bool operator!=(jsid rhs) const { return asBits != rhs.asBits; }
-};
-#  define JSID_BITS(id) (id.asBits)
-# else  
-typedef ptrdiff_t jsid;
-#  define JSID_BITS(id) (id)
-# endif  
 
 #ifdef WIN32
 typedef wchar_t   jschar;
