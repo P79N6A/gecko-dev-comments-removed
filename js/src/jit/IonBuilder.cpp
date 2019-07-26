@@ -7181,10 +7181,12 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
             
             
             types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
-            tarrType->watchStateChangeForTypedArrayBuffer(constraints());
+            if (!tarrType->unknownProperties()) {
+                tarrType->watchStateChangeForTypedArrayBuffer(constraints());
 
-            obj->setImplicitlyUsedUnchecked();
-            return MConstantElements::New(alloc(), data);
+                obj->setImplicitlyUsedUnchecked();
+                return MConstantElements::New(alloc(), data);
+            }
         }
     }
     return MTypedArrayElements::New(alloc(), obj);
