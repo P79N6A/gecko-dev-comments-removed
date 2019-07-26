@@ -31,7 +31,9 @@ ProxyObject::New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv, Tag
 
 
 
-    if (proto.isObject() && !options.singleton()) {
+
+
+    if (proto.isObject() && !options.singleton() && !clasp->isDOMClass()) {
         RootedObject protoObj(cx, proto.toObject());
         if (!JSObject::setNewTypeUnknown(cx, clasp, protoObj))
             return nullptr;
@@ -50,7 +52,7 @@ ProxyObject::New(JSContext *cx, BaseProxyHandler *handler, HandleValue priv, Tag
     proxy->initCrossCompartmentPrivate(priv);
 
     
-    if (newKind != SingletonObject)
+    if (newKind != SingletonObject && !clasp->isDOMClass())
         MarkTypeObjectUnknownProperties(cx, proxy->type());
 
     return proxy;

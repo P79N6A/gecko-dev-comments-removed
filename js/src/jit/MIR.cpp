@@ -3096,9 +3096,14 @@ PropertyReadNeedsTypeBarrier(types::CompilerConstraintList *constraints,
     
     
     
-
-    if (object->unknownProperties() || observed->empty())
+    
+    
+    
+    if (object->unknownProperties() || observed->empty() ||
+        object->clasp()->isProxy())
+    {
         return true;
+    }
 
     jsid id = name ? NameToId(name) : JSID_VOID;
     types::HeapTypeSetKey property = object->property(id);
