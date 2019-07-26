@@ -6888,7 +6888,6 @@ class MMonitorTypes : public MUnaryInstruction
       : MUnaryInstruction(def),
         typeSet_(types)
     {
-        setResultType(MIRType_Value);
         setGuard();
         JS_ASSERT(!types->unknown());
     }

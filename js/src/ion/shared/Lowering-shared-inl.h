@@ -401,9 +401,6 @@ LIRGeneratorShared::add(T *ins, MInstruction *mir)
 static inline uint32_t
 VirtualRegisterOfPayload(MDefinition *mir)
 {
-    
-    while (mir->isTypeBarrier())
-        mir = mir->getOperand(0);
     if (mir->isBox()) {
         MDefinition *inner = mir->toBox()->getOperand(0);
         if (!inner->isConstant() && inner->type() != MIRType_Double)
