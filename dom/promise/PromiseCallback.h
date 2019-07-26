@@ -33,7 +33,8 @@ public:
 
   
   static PromiseCallback*
-  Factory(Promise* aNextPromise, AnyCallback* aCallback, Task aTask);
+  Factory(Promise* aNextPromise, JS::Handle<JSObject*> aObject,
+          AnyCallback* aCallback, Task aTask);
 };
 
 
@@ -43,16 +44,18 @@ class WrapperPromiseCallback MOZ_FINAL : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WrapperPromiseCallback,
-                                           PromiseCallback)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(WrapperPromiseCallback,
+                                                         PromiseCallback)
 
   void Call(JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
 
-  WrapperPromiseCallback(Promise* aNextPromise, AnyCallback* aCallback);
+  WrapperPromiseCallback(Promise* aNextPromise, JS::Handle<JSObject*> aGlobal,
+                         AnyCallback* aCallback);
   ~WrapperPromiseCallback();
 
 private:
   nsRefPtr<Promise> mNextPromise;
+  JS::Heap<JSObject*> mGlobal;
   nsRefPtr<AnyCallback> mCallback;
 };
 
@@ -62,16 +65,17 @@ class ResolvePromiseCallback MOZ_FINAL : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ResolvePromiseCallback,
-                                           PromiseCallback)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(ResolvePromiseCallback,
+                                                         PromiseCallback)
 
   void Call(JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
 
-  ResolvePromiseCallback(Promise* aPromise);
+  ResolvePromiseCallback(Promise* aPromise, JS::Handle<JSObject*> aGlobal);
   ~ResolvePromiseCallback();
 
 private:
   nsRefPtr<Promise> mPromise;
+  JS::Heap<JSObject*> mGlobal;
 };
 
 
@@ -80,16 +84,17 @@ class RejectPromiseCallback MOZ_FINAL : public PromiseCallback
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(RejectPromiseCallback,
-                                           PromiseCallback)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(RejectPromiseCallback,
+                                                         PromiseCallback)
 
   void Call(JS::Handle<JS::Value> aValue) MOZ_OVERRIDE;
 
-  RejectPromiseCallback(Promise* aPromise);
+  RejectPromiseCallback(Promise* aPromise, JS::Handle<JSObject*> aGlobal);
   ~RejectPromiseCallback();
 
 private:
   nsRefPtr<Promise> mPromise;
+  JS::Heap<JSObject*> mGlobal;
 };
 
 
