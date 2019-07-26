@@ -2,6 +2,7 @@
 
 
 
+
 #include "WebGLContext.h"
 #include "WebGLExtensions.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
@@ -49,6 +50,9 @@ WebGLExtensionDrawBuffers::~WebGLExtensionDrawBuffers()
 
 void WebGLExtensionDrawBuffers::DrawBuffersWEBGL(const dom::Sequence<GLenum>& buffers)
 {
+    if (mIsLost)
+        return mContext->ErrorInvalidOperation("drawBuffersWEBGL: Extension is lost.");
+
     mContext->DrawBuffers(buffers);
 }
 
