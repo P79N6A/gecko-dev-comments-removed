@@ -1535,9 +1535,7 @@ void AsyncPanZoomController::UpdateScrollOffset(const CSSPoint& aScrollOffset)
 
 bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
 {
-  
-  
-  return aGuid.mLayersId == mLayersId && aGuid.mScrollId == mFrameMetrics.mScrollId;
+  return aGuid == ScrollableLayerGuid(mLayersId, mFrameMetrics);
 }
 
 void AsyncPanZoomController::GetGuid(ScrollableLayerGuid* aGuidOut)

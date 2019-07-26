@@ -125,6 +125,22 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         
         
+        
+        
+        if (apzc == nullptr) {
+          ScrollableLayerGuid target(aLayersId, container->GetFrameMetrics());
+          for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
+            if (aApzcsToDestroy->ElementAt(i)->Matches(target)) {
+              apzc = aApzcsToDestroy->ElementAt(i);
+              break;
+            }
+          }
+        }
+
+        
+        
+        
+        
         bool newApzc = (apzc == nullptr || apzc->IsDestroyed());
         if (newApzc) {
           apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
