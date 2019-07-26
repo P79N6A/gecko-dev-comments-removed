@@ -18,6 +18,7 @@
 #include "nsCharsetSource.h" 
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
+#include "nsDocElementCreatedNotificationRunner.h"
 
 namespace mozilla {
 namespace dom {
