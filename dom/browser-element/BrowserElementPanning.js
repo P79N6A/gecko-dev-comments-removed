@@ -45,21 +45,16 @@ const ContentPanning = {
       this.watchedEventsType = 'mouse';
     }
 
-    
-    
-    
-    if (!docShell.asyncPanZoomEnabled) {
-      let els = Cc["@mozilla.org/eventlistenerservice;1"]
-                  .getService(Ci.nsIEventListenerService);
+    let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
 
-      events.forEach(function(type) {
-        
-        
-        els.addSystemEventListener(global, type,
-                                   this.handleEvent.bind(this),
-                                    false);
-      }.bind(this));
-    }
+    events.forEach(function(type) {
+      
+      
+      els.addSystemEventListener(global, type,
+                                 this.handleEvent.bind(this),
+                                  false);
+    }.bind(this));
 
     addMessageListener("Viewport:Change", this._recvViewportChange.bind(this));
     addMessageListener("Gesture:DoubleTap", this._recvDoubleTap.bind(this));
@@ -70,6 +65,8 @@ const ContentPanning = {
   },
 
   handleEvent: function cp_handleEvent(evt) {
+    this._tryDelayMouseEvents();
+
     if (evt.defaultPrevented || evt.multipleActionsPrevented) {
       
       if(evt.type === 'touchend' || evt.type === 'mouseup') {
@@ -81,13 +78,6 @@ const ContentPanning = {
       }
       return;
     }
-
-    let start = Date.now();
-    let thread = Services.tm.currentThread;
-    while (this._delayEvents && (Date.now() - start) < this._activeDurationMs) {
-      thread.processNextEvent(true);
-    }
-    this._delayEvents = false;
 
     switch (evt.type) {
       case 'mousedown':
@@ -189,7 +179,8 @@ const ContentPanning = {
 
     
     
-    if (this.panning || this.preventNextClick) {
+    if (docShell.asyncPanZoomEnabled === false &&
+        (this.panning || this.preventNextClick)) {
       evt.preventDefault();
     }
   },
@@ -228,7 +219,7 @@ const ContentPanning = {
         let view = target.ownerDocument ? target.ownerDocument.defaultView
                                         : target;
         view.addEventListener('click', this, true, true);
-      } else {
+      } else if (docShell.asyncPanZoomEnabled === false) {
         
         evt.preventDefault();
       }
@@ -236,12 +227,7 @@ const ContentPanning = {
       this.notify(this._activationTimer);
 
       this._delayEvents = true;
-      let start = Date.now();
-      let thread = Services.tm.currentThread;
-      while (this._delayEvents && (Date.now() - start) < this._activeDurationMs) {
-        thread.processNextEvent(true);
-      }
-      this._delayEvents = false;
+      this._tryDelayMouseEvents();
     }
 
     this._finishPanning();
@@ -278,7 +264,12 @@ const ContentPanning = {
     }
 
     let isPan = KineticPanning.isPan();
-    this.scrollCallback(delta.scale(-1));
+
+    
+    
+    if (docShell.asyncPanZoomEnabled === false) {
+      this.scrollCallback(delta.scale(-1));
+    }
 
     
     
@@ -454,6 +445,15 @@ const ContentPanning = {
     return this._activeDurationMs = duration;
   },
 
+  _tryDelayMouseEvents: function cp_tryDelayMouseEvents() {
+    let start = Date.now();
+    let thread = Services.tm.currentThread;
+    while (this._delayEvents && (Date.now() - start) < this._activeDurationMs) {
+      thread.processNextEvent(true);
+    }
+    this._delayEvents = false;
+  },
+
   _resetActive: function cp_resetActive() {
     let elt = this.pointerDownTarget || this.target;
     let root = elt.ownerDocument || elt.document;
@@ -594,7 +594,9 @@ const ContentPanning = {
     delete this.primaryPointerId;
     this._activationTimer.cancel();
 
-    if (this.panning) {
+    
+    
+    if (this.panning && docShell.asyncPanZoomEnabled === false) {
       KineticPanning.start(this);
     }
   }
