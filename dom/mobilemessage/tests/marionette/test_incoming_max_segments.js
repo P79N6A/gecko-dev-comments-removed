@@ -1,7 +1,7 @@
 
 
 
-MARIONETTE_TIMEOUT = 20000;
+MARIONETTE_TIMEOUT = 60000;
 
 SpecialPowers.setBoolPref("dom.sms.enabled", true);
 SpecialPowers.addPermission("sms", true, document);
