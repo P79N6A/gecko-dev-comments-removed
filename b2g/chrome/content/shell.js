@@ -24,6 +24,7 @@ Cu.import('resource://gre/modules/ObjectWrapper.jsm');
 Cu.import('resource://gre/modules/accessibility/AccessFu.jsm');
 Cu.import('resource://gre/modules/Payment.jsm');
 Cu.import("resource://gre/modules/AppsUtils.jsm");
+Cu.import('resource://gre/modules/UserAgentOverrides.jsm');
 
 XPCOMUtils.defineLazyServiceGetter(Services, 'env',
                                    '@mozilla.org/process/environment;1',
@@ -178,6 +179,7 @@ var shell = {
     CustomEventManager.init();
     WebappsHelper.init();
     AccessFu.attach(window);
+    UserAgentOverrides.init();
 
     
     SettingsListener.observe("debug.fps.enabled", false, function(value) {
@@ -213,6 +215,7 @@ var shell = {
 #ifndef MOZ_WIDGET_GONK
     delete Services.audioManager;
 #endif
+    UserAgentOverrides.uninit();
   },
 
   
