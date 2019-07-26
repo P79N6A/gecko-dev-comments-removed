@@ -568,11 +568,11 @@ private:
   
   
   TimeStamp mLastAsyncScrollTime;
-  gfx::Point mLastAsyncScrollOffset;
+  CSSPoint mLastAsyncScrollOffset;
 
   
   
-  gfx::Point mCurrentAsyncScrollOffset;
+  CSSPoint mCurrentAsyncScrollOffset;
 
   
   

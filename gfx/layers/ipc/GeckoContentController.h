@@ -51,8 +51,8 @@ public:
 
 
 
-  virtual void SendAsyncScrollDOMEvent(const gfx::Rect &aContentRect,
-                                       const gfx::Size &aScrollableSize) = 0;
+  virtual void SendAsyncScrollDOMEvent(const CSSRect &aContentRect,
+                                       const CSSSize &aScrollableSize) = 0;
 
   
 
