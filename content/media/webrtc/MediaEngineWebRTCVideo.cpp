@@ -6,6 +6,7 @@
 #include "Layers.h"
 #include "ImageTypes.h"
 #include "ImageContainer.h"
+#include "mtransport/runnable_utils.h"
 
 namespace mozilla {
 
@@ -227,7 +228,26 @@ MediaEngineWebRTCVideoSource::Deallocate()
       return NS_ERROR_FAILURE;
     }
 
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    NS_DispatchToMainThread(WrapRunnable(mViECapture,
+                                         &webrtc::ViECapture::ReleaseCaptureDevice,
+                                         mCaptureIndex),
+                            NS_DISPATCH_SYNC);
+#else
     mViECapture->ReleaseCaptureDevice(mCaptureIndex);
+#endif
     mState = kReleased;
     LOG(("Video device %d deallocated", mCaptureIndex));
   } else {

@@ -351,6 +351,9 @@ class MediaManager MOZ_FINAL : public nsIMediaManagerService,
 public:
   static already_AddRefed<MediaManager> GetInstance();
 
+  
+  
+  
   static MediaManager* Get() {
     if (!sSingleton) {
       sSingleton = new MediaManager();
