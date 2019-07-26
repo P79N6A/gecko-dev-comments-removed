@@ -72,8 +72,12 @@ class IonRuntime
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
     IonCode *debugTrapHandler(JSContext *cx) {
-        if (!debugTrapHandler_)
+        if (!debugTrapHandler_) {
+            
+            
+            AutoEnterAtomsCompartment ac(cx);
             debugTrapHandler_ = generateDebugTrapHandler(cx);
+        }
         return debugTrapHandler_;
     }
 

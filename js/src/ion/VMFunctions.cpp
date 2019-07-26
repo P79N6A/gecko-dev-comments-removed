@@ -541,8 +541,12 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok)
     
     
     ok = ScriptDebugEpilogue(cx, frame, ok);
-    JS_ASSERT_IF(ok, frame->hasReturnValue());
-    DebugScopes::onPopCall(frame, cx);
+
+    if (frame->isNonEvalFunctionFrame()) {
+        JS_ASSERT_IF(ok, frame->hasReturnValue());
+        DebugScopes::onPopCall(frame, cx);
+    }
+
     return ok;
 }
 
