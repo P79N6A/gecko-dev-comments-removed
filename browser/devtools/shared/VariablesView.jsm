@@ -531,7 +531,11 @@ Scope.prototype = {
   
 
 
-  toggle: function S_toggle() {
+  toggle: function S_toggle(e) {
+    if (e && e.button != 0) {
+      
+      return;
+    }
     this._wasToggled = true;
     this.expanded ^= 1;
 
@@ -656,6 +660,11 @@ Scope.prototype = {
 
 
   allowDeletion: false,
+
+  
+
+
+  contextMenu: "",
 
   
 
@@ -1211,6 +1220,9 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       closeNode.addEventListener("click", this._onClose, false);
       this._title.appendChild(closeNode);
     }
+    if (this.ownerView.contextMenu) {
+      this._title.setAttribute("context", this.ownerView.contextMenu);
+    }
   },
 
   
@@ -1373,7 +1385,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _activateNameInput: function V__activateNameInput() {
+  _activateNameInput: function V__activateNameInput(e) {
+    if (e && e.button != 0) {
+      
+      return;
+    }
     if (!this.ownerView.allowNameInput || !this.switch) {
       return;
     }
@@ -1400,7 +1416,11 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _activateValueInput: function V__activateValueInput() {
+  _activateValueInput: function V__activateValueInput(e) {
+    if (e && e.button != 0) {
+      
+      return;
+    }
     if (!this.ownerView.allowValueInput || !this.eval) {
       return;
     }

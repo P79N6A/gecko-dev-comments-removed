@@ -965,6 +965,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
     this._container = new StackList(document.getElementById("expressions"));
     this._variables = document.getElementById("variables");
 
+    this._container.setAttribute("context", "debuggerWatchExpressionsContextMenu");
     this._container.permaText = L10N.getStr("addWatchExpressionText");
     this._container.itemFactory = this._createItemView;
     this._container.addEventListener("click", this._onClick, false);
@@ -1133,7 +1134,33 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
   
 
 
+  _onCmdAddExpression: function BP__onCmdAddExpression(aText) {
+    
+    if (this.getExpressions().indexOf("") == -1) {
+      this.addExpression(aText || DebuggerView.editor.getSelectedText());
+    }
+  },
+
+  
+
+
+  _onCmdRemoveAllExpressions: function BP__onCmdRemoveAllExpressions() {
+    
+    this.empty();
+    this._cache = [];
+
+    
+    DebuggerController.StackFrames.syncWatchExpressions();
+  },
+
+  
+
+
   _onClick: function DVWE__onClick(e) {
+    if (e.button != 0) {
+      
+      return;
+    }
     let expressionItem = this.getItemForElement(e.target);
     if (!expressionItem) {
       
