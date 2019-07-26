@@ -141,7 +141,6 @@ BreakpointStore.prototype = {
 
 
 
-
   hasBreakpoint: function BS_hasBreakpoint(aLocation) {
     let { url, line, column } = aLocation;
     dbg_assert(url != null);
@@ -271,6 +270,136 @@ BreakpointStore.prototype = {
 
 
 
+function EventLoopStack({ inspector, thread, hooks }) {
+  this._inspector = inspector;
+  this._hooks = hooks;
+  this._thread = thread;
+}
+
+EventLoopStack.prototype = {
+  
+
+
+  get size() {
+    return this._inspector.eventLoopNestLevel;
+  },
+
+  
+
+
+  get lastPausedUrl() {
+    return this.size > 0
+      ? this._inspector.lastNestRequestor.url
+      : null;
+  },
+
+  
+
+
+
+
+  push: function () {
+    return new EventLoop({
+      inspector: this._inspector,
+      thread: this._thread,
+      hooks: this._hooks
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+function EventLoop({ inspector, thread, hooks }) {
+  this._inspector = inspector;
+  this._thread = thread;
+  this._hooks = hooks;
+
+  this.enter = this.enter.bind(this);
+  this.resolve = this.resolve.bind(this);
+}
+
+EventLoop.prototype = {
+  entered: false,
+  resolved: false,
+  get url() { return this._hooks.url; },
+
+  
+
+
+  enter: function () {
+    let nestData = this._hooks.preNest
+      ? this._hooks.preNest()
+      : null;
+
+    this.entered = true;
+    this._inspector.enterNestedEventLoop(this);
+
+    
+    if (this._inspector.eventLoopNestLevel > 0) {
+      const { resolved } = this._inspector.lastNestRequestor;
+      if (resolved) {
+        this._inspector.exitNestedEventLoop();
+      }
+    }
+
+    dbg_assert(this._thread.state === "running",
+               "Should be in the running state");
+
+    if (this._hooks.postNest) {
+      this._hooks.postNest(nestData);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  resolve: function () {
+    if (!this.entered) {
+      throw new Error("Can't resolve an event loop before it has been entered!");
+    }
+    if (this.resolved) {
+      throw new Error("Already resolved this nested event loop!");
+    }
+    this.resolved = true;
+    if (this === this._inspector.lastNestRequestor) {
+      this._inspector.exitNestedEventLoop();
+      return true;
+    }
+    return false;
+  },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function ThreadActor(aHooks, aGlobal)
@@ -280,6 +409,11 @@ function ThreadActor(aHooks, aGlobal)
   this._environmentActors = [];
   this._hooks = aHooks;
   this.global = aGlobal;
+  this._nestedEventLoops = new EventLoopStack({
+    inspector: DebuggerServer.xpcInspector,
+    hooks: aHooks,
+    thread: this
+  });
   
   this._hiddenBreakpoints = new Map();
 
@@ -324,6 +458,27 @@ ThreadActor.prototype = {
                                         this._allowSource, this.onNewSource);
     }
     return this._sources;
+  },
+
+  
+
+
+
+
+
+  _threadPauseEventLoops: null,
+  _pushThreadPause: function TA__pushThreadPause() {
+    if (!this._threadPauseEventLoops) {
+      this._threadPauseEventLoops = [];
+    }
+    const eventLoop = this._nestedEventLoops.push();
+    this._threadPauseEventLoops.push(eventLoop);
+    eventLoop.enter();
+  },
+  _popThreadPause: function TA__popThreadPause() {
+    const eventLoop = this._threadPauseEventLoops.pop();
+    dbg_assert(eventLoop, "Should have an event loop.");
+    eventLoop.resolve();
   },
 
   clearDebuggees: function TA_clearDebuggees() {
@@ -485,7 +640,7 @@ ThreadActor.prototype = {
       this.conn.send(packet);
 
       
-      this._nest();
+      this._pushThreadPause();
 
       
       
@@ -529,7 +684,7 @@ ThreadActor.prototype = {
 
 
   _pauseAndRespond: function TA__pauseAndRespond(aFrame, aReason,
-                                                 onPacket=function (k) k) {
+                                                 onPacket=function (k) { return k; }) {
     try {
       let packet = this._paused(aFrame);
       if (!packet) {
@@ -548,14 +703,17 @@ ThreadActor.prototype = {
               message: error.message + "\n" + error.stack
             };
           })
-          .then(packet => this.conn.send(packet));
+          .then(packet => {
+            this.conn.send(packet)
+          });
       });
 
-      return this._nest();
+      this._pushThreadPause();
     } catch(e) {
       reportError(e, "Got an exception during TA__pauseAndRespond: ");
-      return undefined;
     }
+
+    return undefined;
   },
 
   
@@ -573,13 +731,13 @@ ThreadActor.prototype = {
     
     
     
-    if (DebuggerServer.xpcInspector.eventLoopNestLevel > 1) {
-      let lastNestRequestor = DebuggerServer.xpcInspector.lastNestRequestor;
-      if (lastNestRequestor.connection != this.conn) {
-        return { error: "wrongOrder",
-                 message: "trying to resume in the wrong order.",
-                 lastPausedUrl: lastNestRequestor.url };
-      }
+    if (this._nestedEventLoops.size
+        && this._nestedEventLoops.lastPausedUrl !== this._hooks.url) {
+      return {
+        error: "wrongOrder",
+        message: "trying to resume in the wrong order.",
+        lastPausedUrl: this._nestedEventLoops.lastPausedUrl
+      };
     }
 
     if (aRequest && aRequest.forceCompletion) {
@@ -592,7 +750,7 @@ ThreadActor.prototype = {
 
       this.dbg.getNewestFrame().pop(aRequest.completionValue);
       let packet = this._resumed();
-      DebuggerServer.xpcInspector.exitNestedEventLoop();
+      this._popThreadPause();
       return { type: "resumeLimit", frameFinished: aRequest.forceCompletion };
     }
 
@@ -614,17 +772,27 @@ ThreadActor.prototype = {
       
 
       let onEnterFrame = aFrame => {
-        if (this.sources.isBlackBoxed(aFrame.script.url)) {
-          return undefined;
-        }
-        return pauseAndRespond(aFrame);
+        let { url } = this.synchronize(this.sources.getOriginalLocation(
+          aFrame.script.url,
+          aFrame.script.getOffsetLine(aFrame.offset),
+          getOffsetColumn(aFrame.offset, aFrame.script)));
+
+        return this.sources.isBlackBoxed(url)
+          ? undefined
+          : pauseAndRespond(aFrame);
       };
 
       let thread = this;
 
       let onPop = function TA_onPop(aCompletion) {
         
-        if (thread.sources.isBlackBoxed(this.script.url)) {
+
+        let { url } = thread.synchronize(thread.sources.getOriginalLocation(
+          this.script.url,
+          this.script.getOffsetLine(this.offset),
+          getOffsetColumn(this.offset, this.script)));
+
+        if (thread.sources.isBlackBoxed(url)) {
           return undefined;
         }
 
@@ -650,7 +818,12 @@ ThreadActor.prototype = {
       let onStep = function TA_onStep() {
         
 
-        if (thread.sources.isBlackBoxed(this.script.url)) {
+        let { url } = thread.synchronize(thread.sources.getOriginalLocation(
+          this.script.url,
+          this.script.getOffsetLine(this.offset),
+          getOffsetColumn(this.offset, this.script)));
+
+        if (thread.sources.isBlackBoxed(url)) {
           return undefined;
         }
 
@@ -712,8 +885,42 @@ ThreadActor.prototype = {
     }
 
     let packet = this._resumed();
-    DebuggerServer.xpcInspector.exitNestedEventLoop();
+    this._popThreadPause();
     return packet;
+  },
+
+  
+
+
+
+
+
+
+  synchronize: function(aPromise) {
+    let needNest = true;
+    let eventLoop;
+    let returnVal;
+
+    aPromise
+      .then((aResolvedVal) => {
+        needNest = false;
+        returnVal = aResolvedVal;
+      })
+      .then(null, (aError) => {
+        reportError(aError, "Error inside synchronize:");
+      })
+      .then(() => {
+        if (eventLoop) {
+          eventLoop.resolve();
+        }
+      });
+
+    if (needNest) {
+      eventLoop = this._nestedEventLoops.push();
+      eventLoop.enter();
+    }
+
+    return returnVal;
   },
 
   
@@ -1278,7 +1485,7 @@ ThreadActor.prototype = {
       this.conn.send(packet);
 
       
-      this._nest();
+      this._pushThreadPause();
 
       
       
@@ -1426,26 +1633,6 @@ ThreadActor.prototype = {
     }
 
     return packet;
-  },
-
-  _nest: function TA_nest() {
-    if (this._hooks.preNest) {
-      var nestData = this._hooks.preNest();
-    }
-
-    let requestor = Object.create(null);
-    requestor.url = this._hooks.url;
-    requestor.connection = this.conn;
-    DebuggerServer.xpcInspector.enterNestedEventLoop(requestor);
-
-    dbg_assert(this.state === "running", "Should be in the running state");
-
-    if (this._hooks.postNest) {
-      this._hooks.postNest(nestData)
-    }
-
-    
-    return undefined;
   },
 
   _resumed: function TA_resumed() {
@@ -1753,10 +1940,14 @@ ThreadActor.prototype = {
   onDebuggerStatement: function TA_onDebuggerStatement(aFrame) {
     
     
-    if (this.sources.isBlackBoxed(aFrame.script.url) || aFrame.onStep) {
-      return undefined;
-    }
-    return this._pauseAndRespond(aFrame, { type: "debuggerStatement" });
+    let { url } = this.synchronize(this.sources.getOriginalLocation(
+      aFrame.script.url,
+      aFrame.script.getOffsetLine(aFrame.offset),
+      getOffsetColumn(aFrame.offset, aFrame.script)));
+
+    return this.sources.isBlackBoxed(url) || aFrame.onStep
+      ? undefined
+      : this._pauseAndRespond(aFrame, { type: "debuggerStatement" });
   },
 
   
@@ -1769,9 +1960,15 @@ ThreadActor.prototype = {
 
 
   onExceptionUnwind: function TA_onExceptionUnwind(aFrame, aValue) {
-    if (this.sources.isBlackBoxed(aFrame.script.url)) {
+    let { url } = this.synchronize(this.sources.getOriginalLocation(
+      aFrame.script.url,
+      aFrame.script.getOffsetLine(aFrame.offset),
+      getOffsetColumn(aFrame.offset, aFrame.script)));
+
+    if (this.sources.isBlackBoxed(url)) {
       return undefined;
     }
+
     try {
       let packet = this._paused(aFrame);
       if (!packet) {
@@ -1781,11 +1978,13 @@ ThreadActor.prototype = {
       packet.why = { type: "exception",
                      exception: this.createValueGrip(aValue) };
       this.conn.send(packet);
-      return this._nest();
+
+      this._pushThreadPause();
     } catch(e) {
       reportError(e, "Got an exception during TA_onExceptionUnwind: ");
-      return undefined;
     }
+
+    return undefined;
   },
 
   
@@ -2781,8 +2980,13 @@ BreakpointActor.prototype = {
   hit: function BA_hit(aFrame) {
     
     
-    if (this.threadActor.sources.isBlackBoxed(this.location.url) ||
-        aFrame.onStep) {
+    let { url } = this.threadActor.synchronize(
+      this.threadActor.sources.getOriginalLocation(
+        this.location.url,
+        this.location.line,
+        this.location.column));
+
+    if (this.threadActor.sources.isBlackBoxed(url) || aFrame.onStep) {
       return undefined;
     }
 
