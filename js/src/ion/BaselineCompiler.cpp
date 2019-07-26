@@ -865,6 +865,37 @@ BaselineCompiler::emitCompare()
 }
 
 bool
+BaselineCompiler::emit_JSOP_NEWARRAY()
+{
+    frame.syncStack(0);
+
+    uint32_t length = GET_UINT24(pc);
+    RootedTypeObject type(cx);
+    if (!types::UseNewTypeForInitializer(cx, script, pc, JSProto_Array)) {
+        type = types::TypeScript::InitObject(cx, script, pc, JSProto_Array);
+        if (!type)
+            return NULL;
+    }
+
+    
+    masm.move32(Imm32(length), R0.scratchReg());
+    masm.movePtr(ImmGCPtr(type), R1.scratchReg());
+
+    ICNewArray_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
+        return false;
+
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_ENDINIT()
+{
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_GETELEM()
 {
     

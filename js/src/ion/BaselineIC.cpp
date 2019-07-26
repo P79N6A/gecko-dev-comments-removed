@@ -526,6 +526,35 @@ ICDefVar_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
+DoNewArray(JSContext *cx, uint32_t length, HandleTypeObject type, MutableHandleValue res)
+{
+    RawObject obj = NewInitArray(cx, length, type);
+    if (!obj)
+        return false;
+
+    res.setObject(*obj);
+    return true;
+}
+
+typedef bool(*DoNewArrayFn)(JSContext *, uint32_t, HandleTypeObject, MutableHandleValue);
+static const VMFunction DoNewArrayInfo = FunctionInfo<DoNewArrayFn>(DoNewArray);
+
+bool
+ICNewArray_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    EmitRestoreTailCallReg(masm);
+
+    masm.push(R1.scratchReg()); 
+    masm.push(R0.scratchReg()); 
+
+    return tailCallVM(DoNewArrayInfo, masm);
+}
+
+
+
+
+
+static bool
 DoCompareFallback(JSContext *cx, ICCompare_Fallback *stub, HandleValue lhs, HandleValue rhs,
                   MutableHandleValue ret)
 {
