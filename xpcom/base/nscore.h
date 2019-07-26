@@ -363,31 +363,6 @@ typedef uint32_t nsrefcnt;
 #define NS_STRINGIFY_HELPER(x_) #x_
 #define NS_STRINGIFY(x_) NS_STRINGIFY_HELPER(x_)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(__GNUC__) && (__GNUC__ > 2)
-#define NS_LIKELY(x)    (__builtin_expect(!!(x), 1))
-#define NS_UNLIKELY(x)  (__builtin_expect(!!(x), 0))
-#else
-#define NS_LIKELY(x)    (!!(x))
-#define NS_UNLIKELY(x)  (!!(x))
-#endif
-
  
 
 

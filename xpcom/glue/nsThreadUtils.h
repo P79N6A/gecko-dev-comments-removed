@@ -16,6 +16,7 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "mozilla/threads/nsThreadIDs.h"
+#include "mozilla/Likely.h"
 
 
 
@@ -345,7 +346,7 @@ public:
   {}
 
   NS_IMETHOD Run() {
-    if (NS_LIKELY(mReceiver.mObj))
+    if (MOZ_LIKELY(mReceiver.mObj))
       ((*mReceiver.mObj).*mMethod)();
     return NS_OK;
   }

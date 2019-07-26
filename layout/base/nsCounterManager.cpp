@@ -10,6 +10,7 @@
 #include "nsBulletFrame.h" 
 #include "nsContentUtils.h"
 #include "nsTArray.h"
+#include "mozilla/Likely.h"
 
 bool
 nsCounterUseNode::InitTextFrame(nsGenConList* aList,
@@ -229,7 +230,7 @@ nsCounterManager::AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
 
     
     
-    if (NS_LIKELY(!counterList->IsDirty())) {
+    if (MOZ_LIKELY(!counterList->IsDirty())) {
         node->Calc(counterList);
     }
     return false;

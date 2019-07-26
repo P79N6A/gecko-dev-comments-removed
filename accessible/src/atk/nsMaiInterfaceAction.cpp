@@ -4,111 +4,69 @@
 
 
 
+#include "InterfaceInitFuncs.h"
 
+#include "Accessible-inl.h"
+#include "nsMai.h"
+#include "Role.h"
+#include "mozilla/Likely.h"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "nsMaiInterfaceAction.h"
-
-#include "nsAccUtils.h"
-#include "nsRoleMap.h"
 #include "nsString.h"
 
-#include "nsIDOMDOMStringList.h"
+using namespace mozilla::a11y;
 
-void
-actionInterfaceInitCB(AtkActionIface *aIface)
-{
-    NS_ASSERTION(aIface, "Invalid aIface");
-    if (!aIface)
-        return;
+extern "C" {
 
-    aIface->do_action = doActionCB;
-    aIface->get_n_actions = getActionCountCB;
-    aIface->get_description = getActionDescriptionCB;
-    aIface->get_keybinding = getKeyBindingCB;
-    aIface->get_name = getActionNameCB;
-}
-
-gboolean
+static gboolean
 doActionCB(AtkAction *aAction, gint aActionIndex)
 {
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
-    if (!accWrap)
-        return FALSE;
+  AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
+  if (!accWrap)
+    return FALSE;
  
-    nsresult rv = accWrap->DoAction(aActionIndex);
-    return (NS_FAILED(rv)) ? FALSE : TRUE;
+  nsresult rv = accWrap->DoAction(aActionIndex);
+  return (NS_FAILED(rv)) ? FALSE : TRUE;
 }
 
-gint
+static gint
 getActionCountCB(AtkAction *aAction)
 {
-  nsAccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
+  AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
   return accWrap ? accWrap->ActionCount() : 0;
 }
 
-const gchar *
+static const gchar*
 getActionDescriptionCB(AtkAction *aAction, gint aActionIndex)
 {
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
-    if (!accWrap)
-        return nsnull;
+  AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
+  if (!accWrap)
+    return nullptr;
 
-    nsAutoString description;
-    nsresult rv = accWrap->GetActionDescription(aActionIndex, description);
-    NS_ENSURE_SUCCESS(rv, nsnull);
-    return nsAccessibleWrap::ReturnString(description);
+  nsAutoString description;
+  nsresult rv = accWrap->GetActionDescription(aActionIndex, description);
+  NS_ENSURE_SUCCESS(rv, nullptr);
+  return AccessibleWrap::ReturnString(description);
 }
 
-const gchar *
+static const gchar*
 getActionNameCB(AtkAction *aAction, gint aActionIndex)
 {
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
+    AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
     if (!accWrap)
-        return nsnull;
+        return nullptr;
 
     nsAutoString autoStr;
     nsresult rv = accWrap->GetActionName(aActionIndex, autoStr);
-    NS_ENSURE_SUCCESS(rv, nsnull);
-    return nsAccessibleWrap::ReturnString(autoStr);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+    return AccessibleWrap::ReturnString(autoStr);
 }
 
-const gchar *
+static const gchar*
 getKeyBindingCB(AtkAction *aAction, gint aActionIndex)
 {
-  nsAccessibleWrap* acc = GetAccessibleWrap(ATK_OBJECT(aAction));
+  AccessibleWrap* acc = GetAccessibleWrap(ATK_OBJECT(aAction));
   if (!acc)
-    return nsnull;
+    return nullptr;
 
   
   nsAutoString keyBindingsStr;
@@ -118,12 +76,10 @@ getKeyBindingCB(AtkAction *aAction, gint aActionIndex)
   if (!keyBinding.IsEmpty()) {
     keyBinding.AppendToString(keyBindingsStr, KeyBinding::eAtkFormat);
 
-    nsAccessible* parent = acc->Parent();
-    PRUint32 role = parent ? parent->Role() : 0;
-    if (role == nsIAccessibleRole::ROLE_PARENT_MENUITEM ||
-        role == nsIAccessibleRole::ROLE_MENUITEM ||
-        role == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM ||
-        role == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM) {
+    Accessible* parent = acc->Parent();
+    roles::Role role = parent ? parent->Role() : roles::NOTHING;
+    if (role == roles::PARENT_MENUITEM || role == roles::MENUITEM ||
+        role == roles::RADIO_MENU_ITEM || role == roles::CHECK_MENU_ITEM) {
       
       
       nsAutoString keysInHierarchyStr = keyBindingsStr;
@@ -136,8 +92,7 @@ getKeyBindingCB(AtkAction *aAction, gint aActionIndex)
 
           keysInHierarchyStr.Insert(str, 0);
         }
-      } while ((parent = parent->Parent()) &&
-               parent->Role() != nsIAccessibleRole::ROLE_MENUBAR);
+      } while ((parent = parent->Parent()) && parent->Role() != roles::MENUBAR);
 
       keyBindingsStr.Append(';');
       keyBindingsStr.Append(keysInHierarchyStr);
@@ -154,5 +109,20 @@ getKeyBindingCB(AtkAction *aAction, gint aActionIndex)
     keyBinding.AppendToString(keyBindingsStr, KeyBinding::eAtkFormat);
   }
 
-  return nsAccessibleWrap::ReturnString(keyBindingsStr);
+  return AccessibleWrap::ReturnString(keyBindingsStr);
+}
+}
+
+void
+actionInterfaceInitCB(AtkActionIface* aIface)
+{
+  NS_ASSERTION(aIface, "Invalid aIface");
+  if (MOZ_UNLIKELY(!aIface))
+    return;
+
+  aIface->do_action = doActionCB;
+  aIface->get_n_actions = getActionCountCB;
+  aIface->get_description = getActionDescriptionCB;
+  aIface->get_keybinding = getKeyBindingCB;
+  aIface->get_name = getActionNameCB;
 }

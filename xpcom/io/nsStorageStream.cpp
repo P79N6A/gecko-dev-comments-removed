@@ -22,6 +22,7 @@
 #include "nsISeekableStream.h"
 #include "prlog.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Likely.h"
 
 #if defined(PR_LOGGING)
 
@@ -155,7 +156,7 @@ nsStorageStream::Write(const char *aBuffer, uint32_t aCount, uint32_t *aNumWritt
     
     
     bool firstTime = mSegmentedBuffer->GetSegmentCount() == 0;
-    while (remaining || NS_UNLIKELY(firstTime)) {
+    while (remaining || MOZ_UNLIKELY(firstTime)) {
         firstTime = false;
         availableInSegment = mSegmentEnd - mWriteCursor;
         if (!availableInSegment) {

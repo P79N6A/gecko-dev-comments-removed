@@ -48,6 +48,7 @@
 #include "mozilla/storage.h"
 #include "mozilla/Util.h" 
 #include "mozilla/Attributes.h"
+#include "mozilla/Likely.h"
 #include "nsIAppsService.h"
 #include "mozIApplication.h"
 
@@ -2072,11 +2073,11 @@ nsCookieService::EnsureReadDomain(const nsCookieKey &aKey)
     "not in default db state");
 
   
-  if (NS_LIKELY(!mDBState->dbConn || !mDefaultDBState->pendingRead))
+  if (MOZ_LIKELY(!mDBState->dbConn || !mDefaultDBState->pendingRead))
     return;
 
   
-  if (NS_LIKELY(mDefaultDBState->readSet.GetEntry(aKey)))
+  if (MOZ_LIKELY(mDefaultDBState->readSet.GetEntry(aKey)))
     return;
 
   
@@ -2167,7 +2168,7 @@ nsCookieService::EnsureReadComplete()
     "not in default db state");
 
   
-  if (NS_LIKELY(!mDBState->dbConn || !mDefaultDBState->pendingRead))
+  if (MOZ_LIKELY(!mDBState->dbConn || !mDefaultDBState->pendingRead))
     return;
 
   

@@ -64,6 +64,7 @@ using namespace QtMobility;
 #include "nsQtKeyUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Likely.h"
 #include "nsIWidgetListener.h"
 
 #include "nsIStringBundle.h"
@@ -1056,7 +1057,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         targetSurface = gBufferSurface;
     }
 
-    if (NS_UNLIKELY(!targetSurface))
+    if (MOZ_UNLIKELY(!targetSurface))
         return false;
 
     nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
@@ -1091,7 +1092,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
 
     
     
-    if (NS_UNLIKELY(mIsDestroyed))
+    if (MOZ_UNLIKELY(mIsDestroyed))
         return painted;
 
     if (!painted)
@@ -1324,7 +1325,7 @@ nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 
     
     if (domButton == nsMouseEvent::eRightButton &&
-        NS_LIKELY(!mIsDestroyed)) {
+        MOZ_LIKELY(!mIsDestroyed)) {
         nsMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
                                       nsMouseEvent::eReal);
         InitButtonEvent(contextMenuEvent, aEvent, 1);
@@ -1574,7 +1575,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         nsEventStatus status = DispatchEvent(&downEvent);
 
         
-        if (NS_UNLIKELY(mIsDestroyed)) {
+        if (MOZ_UNLIKELY(mIsDestroyed)) {
             qWarning() << "Returning[" << __LINE__ << "]: " << "Window destroyed";
             return status;
         }

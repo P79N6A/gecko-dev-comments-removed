@@ -12,6 +12,7 @@
 #include "nsGenConList.h"
 #include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
+#include "mozilla/Likely.h"
 
 class nsCounterList;
 struct nsCounterUseNode;
@@ -166,7 +167,7 @@ public:
         nsGenConList::Insert(aNode);
         
         
-        if (NS_LIKELY(!IsDirty())) {
+        if (MOZ_LIKELY(!IsDirty())) {
             SetScope(aNode);
         }
     }

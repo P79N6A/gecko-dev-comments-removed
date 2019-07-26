@@ -8,6 +8,7 @@
 
 #include "cairo-ft.h"
 #include "gfxFT2FontBase.h"
+#include "mozilla/Likely.h"
 
 
 
@@ -53,7 +54,7 @@ public:
     
     gfxFloat XScale()
     {
-        if (NS_UNLIKELY(!mFace))
+        if (MOZ_UNLIKELY(!mFace))
             return 0.0;
 
         const FT_Size_Metrics& ftMetrics = mFace->size->metrics;

@@ -70,10 +70,11 @@
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 
-#include "mozilla/dom/Element.h"
-#include "mozilla/Util.h" 
-#include "mozilla/LookAndFeel.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/Element.h"
+#include "mozilla/Likely.h"
+#include "mozilla/LookAndFeel.h"
+#include "mozilla/Util.h" 
 
 #include "sampler.h"
 
@@ -2395,7 +2396,7 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun, float aInflation)
         else {
           TextRunUserData* userData = static_cast<TextRunUserData*>(oldTextRun->GetUserData());
           firstFrame = userData->mMappedFlows[0].mStartFrame;
-          if (NS_UNLIKELY(f != firstFrame)) {
+          if (MOZ_UNLIKELY(f != firstFrame)) {
             TextRunMappedFlow* flow = FindFlowForContent(userData, f->GetContent());
             if (flow) {
               startOffset = flow->mDOMOffsetToBeforeTransformOffset;
@@ -2409,7 +2410,7 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun, float aInflation)
         
         
         nsTextFrame* clearFrom = nullptr;
-        if (NS_UNLIKELY(f != firstFrame)) {
+        if (MOZ_UNLIKELY(f != firstFrame)) {
           
           
           gfxSkipCharsIterator iter(oldTextRun->GetSkipChars(), startOffset, f->GetContentOffset());
@@ -7690,7 +7691,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
       offset += whitespaceCount;
       length -= whitespaceCount;
       
-      if (NS_UNLIKELY(offset > GetContentEnd())) {
+      if (MOZ_UNLIKELY(offset > GetContentEnd())) {
         SetLength(offset - GetContentOffset(), &aLineLayout,
                   ALLOW_FRAME_CREATION_AND_DESTRUCTION);
       }

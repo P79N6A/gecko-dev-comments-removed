@@ -19,6 +19,7 @@
 #include "nsIRandomGenerator.h"
 #endif
 #include "mozilla/Telemetry.h"
+#include "mozilla/Likely.h"
 
 using namespace mozilla::storage;
 
@@ -151,7 +152,7 @@ namespace {
       }
 
       
-      if (NS_UNLIKELY(error)) {
+      if (MOZ_UNLIKELY(error)) {
         return false;
       }
 

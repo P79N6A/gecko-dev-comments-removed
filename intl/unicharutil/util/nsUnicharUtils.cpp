@@ -13,6 +13,7 @@
 #include "nsUTF8Utils.h"
 #include "nsUnicodeProperties.h"
 #include "nsHashKeys.h"
+#include "mozilla/Likely.h"
 
 
 
@@ -283,7 +284,7 @@ GetLowerUTF8Codepoint(const char* aStr, const char* aEnd, const char **aNext)
     *aNext = aStr + 1;
     return gASCIIToLower[*str];
   }
-  if (UTF8traits::is2byte(str[0]) && NS_LIKELY(aStr + 1 < aEnd)) {
+  if (UTF8traits::is2byte(str[0]) && MOZ_LIKELY(aStr + 1 < aEnd)) {
     
     
     
@@ -300,7 +301,7 @@ GetLowerUTF8Codepoint(const char* aStr, const char* aEnd, const char **aNext)
     *aNext = aStr + 2;
     return c;
   }
-  if (UTF8traits::is3byte(str[0]) && NS_LIKELY(aStr + 2 < aEnd)) {
+  if (UTF8traits::is3byte(str[0]) && MOZ_LIKELY(aStr + 2 < aEnd)) {
     
     
     
@@ -315,7 +316,7 @@ GetLowerUTF8Codepoint(const char* aStr, const char* aEnd, const char **aNext)
     *aNext = aStr + 3;
     return c;
   }
-  if (UTF8traits::is4byte(str[0]) && NS_LIKELY(aStr + 3 < aEnd)) {
+  if (UTF8traits::is4byte(str[0]) && MOZ_LIKELY(aStr + 3 < aEnd)) {
     
     
 
@@ -345,11 +346,11 @@ int32_t CaseInsensitiveCompare(const char *aLeft,
 
   while (aLeft < leftEnd && aRight < rightEnd) {
     uint32_t leftChar = GetLowerUTF8Codepoint(aLeft, leftEnd, &aLeft);
-    if (NS_UNLIKELY(leftChar == uint32_t(-1)))
+    if (MOZ_UNLIKELY(leftChar == uint32_t(-1)))
       return -1;
 
     uint32_t rightChar = GetLowerUTF8Codepoint(aRight, rightEnd, &aRight);
-    if (NS_UNLIKELY(rightChar == uint32_t(-1)))
+    if (MOZ_UNLIKELY(rightChar == uint32_t(-1)))
       return -1;
 
     
@@ -383,13 +384,13 @@ CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
   NS_ASSERTION(aRight < aRightEnd, "aRight must be less than aRightEnd.");
 
   uint32_t leftChar = GetLowerUTF8Codepoint(aLeft, aLeftEnd, aLeftNext);
-  if (NS_UNLIKELY(leftChar == uint32_t(-1))) {
+  if (MOZ_UNLIKELY(leftChar == uint32_t(-1))) {
     *aErr = true;
     return false;
   }
 
   uint32_t rightChar = GetLowerUTF8Codepoint(aRight, aRightEnd, aRightNext);
-  if (NS_UNLIKELY(rightChar == uint32_t(-1))) {
+  if (MOZ_UNLIKELY(rightChar == uint32_t(-1))) {
     *aErr = true;
     return false;
   }

@@ -22,6 +22,7 @@
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Likely.h"
 
 
 
@@ -794,7 +795,7 @@ nsSocketTransportService::DoPollIteration(bool wait)
                 
                 
                 
-                if (NS_UNLIKELY(pollInterval >
+                if (MOZ_UNLIKELY(pollInterval >
                                 static_cast<uint32_t>(UINT16_MAX) -
                                 s.mElapsedTime))
                     s.mElapsedTime = UINT16_MAX;
