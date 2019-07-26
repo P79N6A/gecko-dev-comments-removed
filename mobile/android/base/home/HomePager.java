@@ -14,7 +14,6 @@ import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -51,9 +50,6 @@ public class HomePager extends ViewPager {
 
     
     private boolean mRestartLoader;
-
-    
-    private final Drawable mOriginalBackground;
 
     
     
@@ -126,8 +122,6 @@ public class HomePager extends ViewPager {
         
         
         setFocusableInTouchMode(true);
-
-        mOriginalBackground = getBackground();
     }
 
     @Override
@@ -316,18 +310,9 @@ public class HomePager extends ViewPager {
         
         adapter.update(enabledPanels);
 
+        
         final int count = enabledPanels.size();
-        if (count == 0) {
-            
-            setBackgroundResource(R.drawable.home_pager_empty_state);
-            
-            mTabStrip.setVisibility(View.INVISIBLE);
-        } else {
-            mTabStrip.setVisibility(View.VISIBLE);
-            
-            setBackground(mOriginalBackground);
-        }
-
+        mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
         
         
         setAdapter(adapter);
