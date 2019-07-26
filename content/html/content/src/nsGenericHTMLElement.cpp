@@ -4,8 +4,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/Util.h"
 #include "mozilla/Likely.h"
 
 #include "nscore.h"

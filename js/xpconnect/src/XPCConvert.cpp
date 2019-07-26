@@ -7,7 +7,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "xpcprivate.h"
 #include "nsIAtom.h"

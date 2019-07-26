@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/SVGMPathElement.h"
 #include "nsDebug.h"

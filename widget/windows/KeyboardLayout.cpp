@@ -3,10 +3,10 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
-#include "mozilla/Util.h"
 #include "mozilla/WindowsVersion.h"
 
 #include "KeyboardLayout.h"

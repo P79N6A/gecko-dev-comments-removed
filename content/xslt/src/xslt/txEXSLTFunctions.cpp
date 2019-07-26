@@ -3,8 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/Util.h"
 
 #include "nsIAtom.h"
 #include "nsGkAtoms.h"

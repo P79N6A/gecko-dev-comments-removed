@@ -4,10 +4,10 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Util.h"
 
 #include "necko-config.h"
 

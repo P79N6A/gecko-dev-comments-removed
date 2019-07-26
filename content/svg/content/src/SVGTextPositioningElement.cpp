@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/SVGTextPositioningElement.h"
 #include "SVGAnimatedLengthList.h"

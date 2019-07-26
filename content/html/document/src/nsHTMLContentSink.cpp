@@ -10,7 +10,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "nsContentSink.h"
 #include "nsCOMPtr.h"

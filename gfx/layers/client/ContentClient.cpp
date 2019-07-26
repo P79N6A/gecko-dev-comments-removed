@@ -13,7 +13,7 @@
 #include "gfxTeeSurface.h"              
 #include "gfxUtils.h"                   
 #include "ipc/ShadowLayers.h"           
-#include "mozilla/Util.h"               
+#include "mozilla/ArrayUtils.h"         
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/BaseSize.h"       

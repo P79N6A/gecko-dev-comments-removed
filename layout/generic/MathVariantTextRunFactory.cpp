@@ -4,10 +4,12 @@
 
 
 #include "MathVariantTextRunFactory.h"
+
+#include "mozilla/ArrayUtils.h"
+ 
 #include "nsStyleConsts.h"
 #include "nsStyleContext.h"
 #include "nsTextFrameUtils.h"
-#include "mozilla/Util.h"
 
 using namespace mozilla;
 

@@ -3,8 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Util.h"
 
 #include "nsSVGElement.h"
 

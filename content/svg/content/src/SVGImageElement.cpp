@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/SVGImageElement.h"
 #include "mozilla/gfx/2D.h"

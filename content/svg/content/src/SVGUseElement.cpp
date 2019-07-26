@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/SVGUseElement.h"
 #include "mozilla/dom/SVGUseElementBinding.h"

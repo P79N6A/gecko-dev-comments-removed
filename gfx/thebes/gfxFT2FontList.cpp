@@ -3,8 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Util.h"
 
 #if (MOZ_WIDGET_GTK == 2)
 #include "gfxPlatformGtk.h"

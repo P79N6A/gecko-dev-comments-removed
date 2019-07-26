@@ -4,8 +4,8 @@
 
 
 #include <stdint.h>
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/BasicEvents.h"
-#include "mozilla/Util.h"
 #include "mozilla/Likely.h"
 
 #include "nsGkAtoms.h"

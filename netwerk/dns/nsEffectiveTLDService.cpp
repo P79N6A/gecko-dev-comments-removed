@@ -8,8 +8,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Util.h"
 
 #include "nsEffectiveTLDService.h"
 #include "nsIIDNService.h"

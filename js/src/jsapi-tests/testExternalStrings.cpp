@@ -2,8 +2,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/Util.h"
 
 #include "jsapi-tests/tests.h"
 

@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #ifdef MOZ_VALGRIND
 # include <valgrind/memcheck.h>

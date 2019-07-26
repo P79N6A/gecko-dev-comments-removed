@@ -10,7 +10,7 @@
 #include "nsColorNames.h"
 #include "prprf.h"
 #include "nsString.h"
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 
 #define GFX_COLOR(_name, _value) #_name,

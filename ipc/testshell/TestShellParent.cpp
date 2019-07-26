@@ -5,7 +5,7 @@
 #include "TestShellParent.h"
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "mozilla/dom/ContentParent.h"
 

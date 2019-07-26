@@ -3,8 +3,9 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
+
 #include "GLContext.h"
-#include "mozilla/Util.h"
 
 #if defined(XP_UNIX)
 

@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "SVGNumberList.h"
 #include "nsCharSeparatedTokenizer.h"

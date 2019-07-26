@@ -3,9 +3,9 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/TextEvents.h"
-#include "mozilla/Util.h"
 
 #include "nsNativeKeyBindings.h"
 #include "nsString.h"

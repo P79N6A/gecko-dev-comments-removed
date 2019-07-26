@@ -4,7 +4,7 @@
 
 #include "mozilla/dom/EncodingUtils.h"
 
-#include "mozilla/Util.h" 
+#include "mozilla/ArrayUtils.h" 
 #include "nsUConvPropertySearch.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIUnicodeEncoder.h"

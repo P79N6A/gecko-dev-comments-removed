@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 #include "nsGConfService.h"
 #include "nsStringAPI.h"
 #include "nsCOMPtr.h"

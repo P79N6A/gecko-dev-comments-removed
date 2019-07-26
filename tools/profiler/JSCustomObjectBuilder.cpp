@@ -5,7 +5,7 @@
 
 #include "JSCustomObjectBuilder.h"
 
-#include "mozilla/Util.h" 
+#include "mozilla/ArrayUtils.h" 
 #include "nsDataHashtable.h"
 #include "nsString.h"
 #include "nsTArray.h"

@@ -7,7 +7,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "ipc/AutoOpenSurface.h"
 

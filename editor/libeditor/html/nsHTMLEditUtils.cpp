@@ -3,8 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"         
 #include "mozilla/Assertions.h"         
-#include "mozilla/Util.h"               
 #include "mozilla/dom/Element.h"        
 #include "nsAString.h"                  
 #include "nsCOMPtr.h"                   

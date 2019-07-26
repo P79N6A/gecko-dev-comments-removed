@@ -3,16 +3,15 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"         
+#include "mozilla/mozalloc.h"           
 
 #include "nsColor.h"
 #include <sys/types.h>                  
-#include "mozilla/Util.h"               
-#include "mozilla/mozalloc.h"           
 #include "nsColorNames.h"               
 #include "nsDebug.h"                    
 #include "nsStaticNameTable.h"
-#include "nsString.h"               
+#include "nsString.h"                   
 #include "nscore.h"                     
 
 using namespace mozilla;

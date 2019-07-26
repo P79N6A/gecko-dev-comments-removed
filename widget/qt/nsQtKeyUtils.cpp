@@ -4,8 +4,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/TextEvents.h"
-#include "mozilla/Util.h"
 
 #include "nsWindow.h"
 #include "nsQtKeyUtils.h"

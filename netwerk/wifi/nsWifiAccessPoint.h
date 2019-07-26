@@ -7,8 +7,8 @@
 
 #include "nsString.h"
 #include "nsCOMArray.h"
+#include "mozilla/ArrayUtils.h" 
 #include "mozilla/Attributes.h"
-#include "mozilla/Util.h" 
 
 #ifndef __nsWifiAccessPoint__
 #define __nsWifiAccessPoint__

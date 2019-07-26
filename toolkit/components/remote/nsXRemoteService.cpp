@@ -5,7 +5,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "nsXRemoteService.h"
 #include "nsIObserverService.h"

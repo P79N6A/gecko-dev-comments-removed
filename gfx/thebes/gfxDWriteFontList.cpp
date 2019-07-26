@@ -3,8 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Util.h"
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG

@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "prenv.h"
 #include "prerror.h"

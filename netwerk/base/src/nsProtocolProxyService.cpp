@@ -4,8 +4,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Util.h"
 
 #include "nsProtocolProxyService.h"
 #include "nsProxyInfo.h"

@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "SVGAnimatedPreserveAspectRatio.h"
 #include "mozilla/dom/SVGAnimatedPreserveAspectRatioBinding.h"

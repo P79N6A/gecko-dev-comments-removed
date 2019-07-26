@@ -6,7 +6,7 @@
 #include "base/basictypes.h"
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "pratom.h"
 #include "prmem.h"

@@ -8,17 +8,16 @@
 
 
 
-
-#ifndef mozilla_Util_h
-#define mozilla_Util_h
+#ifndef mozilla_ArrayUtils_h
+#define mozilla_ArrayUtils_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Types.h"
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 
-#include "mozilla/Alignment.h"
 #include "mozilla/Array.h"
 
 namespace mozilla {

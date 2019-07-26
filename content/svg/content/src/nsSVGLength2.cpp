@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "nsSVGLength2.h"
 #include "mozilla/dom/SVGAnimatedLength.h"

@@ -7,7 +7,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "ThebesLayerD3D10.h"
 #include "gfxPlatform.h"

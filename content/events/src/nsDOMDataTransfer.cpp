@@ -4,8 +4,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/BasicEvents.h"
-#include "mozilla/Util.h"
 
 #include "nsDOMDataTransfer.h"
 

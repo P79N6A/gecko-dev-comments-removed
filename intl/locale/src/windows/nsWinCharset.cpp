@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/Util.h"
+#include "mozilla/ArrayUtils.h"
 
 #include "nsIPlatformCharset.h"
 #include "nsUConvPropertySearch.h"

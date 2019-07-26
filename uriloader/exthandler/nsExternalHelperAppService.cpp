@@ -11,8 +11,8 @@
 #include "base/basictypes.h"
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Base64.h"
-#include "mozilla/Util.h"
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabChild.h"
