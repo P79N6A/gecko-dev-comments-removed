@@ -377,7 +377,8 @@ protected:
 
 
     nsresult CreateElementFromPrototype(nsXULPrototypeElement* aPrototype,
-                                        mozilla::dom::Element** aResult);
+                                        mozilla::dom::Element** aResult,
+                                        bool aIsRoot);
 
     
 
