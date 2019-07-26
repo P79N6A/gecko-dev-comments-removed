@@ -9,7 +9,7 @@
 %define tabCurveHalfWidth 15px
 
 
-#TabsToolbar::before {
+#tabbrowser-tabs::before {
   
   -moz-box-ordinal-group: 0;
   content: '';
