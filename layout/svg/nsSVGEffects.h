@@ -141,7 +141,7 @@ protected:
   
   SourceReference mElement;
   
-   nsIFrame *mFrame;
+  nsIFrame *mFrame;
   
   
   
@@ -185,12 +185,21 @@ protected:
 class nsSVGTextPathProperty : public nsSVGIDRenderingObserver {
 public:
   nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
-    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
+    : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage)
+    , mValid(true) {}
 
   virtual bool ObservesReflow() MOZ_OVERRIDE { return false; }
 
 protected:
   virtual void DoUpdate() MOZ_OVERRIDE;
+
+private:
+  
+
+
+  bool TargetIsValid();
+
+  bool mValid;
 };
  
 class nsSVGPaintingProperty : public nsSVGIDRenderingObserver {

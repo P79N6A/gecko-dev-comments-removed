@@ -288,6 +288,13 @@ nsSVGMarkerProperty::DoUpdate()
     mFrame->GetContent()->AsElement(), nsRestyleHint(0), changeHint);
 }
 
+bool
+nsSVGTextPathProperty::TargetIsValid()
+{
+  Element* target = GetTarget();
+  return target && target->IsSVG(nsGkAtoms::path);
+}
+
 void
 nsSVGTextPathProperty::DoUpdate()
 {
@@ -297,6 +304,23 @@ nsSVGTextPathProperty::DoUpdate()
 
   NS_ASSERTION(mFrame->IsFrameOfType(nsIFrame::eSVG) || mFrame->IsSVGText(),
                "SVG frame expected");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool nowValid = TargetIsValid();
+  if (!mValid && !nowValid) {
+    
+    return;
+  }
+  mValid = nowValid;
 
   
   nsChangeHint changeHint =
