@@ -5017,24 +5017,20 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  if (s_content_id == id) {
+  
+  
+  
+  if ((s_content_id == id) && !xpc::WrapperFactory::IsXrayWrapper(obj)) {
     
     
     
-
-    JS::Rooted<JSObject*> windowObj(cx, js::CheckedUnwrap(obj,  false));
-    NS_ENSURE_TRUE(windowObj, NS_ERROR_DOM_SECURITY_ERR);
-
     JS::Rooted<JSObject*> funObj(cx);
-    {
-      JSAutoCompartment ac(cx, windowObj);
-      JSFunction *fun = ::JS_NewFunction(cx, ContentWindowGetter, 0, 0,
-                                         windowObj, "_content");
-      if (!fun) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      funObj = ::JS_GetFunctionObject(fun);
+    JSFunction *fun = ::JS_NewFunction(cx, ContentWindowGetter, 0, 0,
+                                       obj, "_content");
+    if (!fun) {
+      return NS_ERROR_OUT_OF_MEMORY;
     }
+    funObj = ::JS_GetFunctionObject(fun);
 
     if (!JS_WrapObject(cx, funObj.address()) ||
         !JS_DefinePropertyById(cx, obj, id, JSVAL_VOID,
