@@ -55,7 +55,7 @@ UpdateCheckListener.prototype = {
   _updatePrompt: null,
 
   onCheckComplete: function UCL_onCheckComplete(request, updates, updateCount) {
-    if (Services.um.activeUpdate && Services.aus.isDownloading) {
+    if (Services.um.activeUpdate) {
       
       
       this._updatePrompt.setUpdateStatus("active-update");
