@@ -1572,7 +1572,9 @@ JSStructuredCloneReader::readTransferMap()
             MOZ_ASSERT(obj);
             MOZ_ASSERT(!cx->isExceptionPending());
         }
-
+        
+        
+        
         if (!obj)
             return false;
 
