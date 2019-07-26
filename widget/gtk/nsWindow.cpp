@@ -2368,7 +2368,8 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
 
     
     
-    NotifyWindowMoved(mBounds.x, mBounds.y);
+    if (mWidgetListener)
+      mWidgetListener->WindowMoved(this, mBounds.x, mBounds.y);
 
     return FALSE;
 }
