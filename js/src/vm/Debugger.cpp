@@ -2321,8 +2321,8 @@ class Debugger::ScriptQuery {
   public:
     
     ScriptQuery(JSContext *cx, Debugger *dbg):
-        cx(cx), debugger(dbg), compartments(cx->runtime()), url(cx), sourceURL(cx),
-        sourceURLChars(nullptr), innermostForCompartment(cx->runtime())
+        cx(cx), debugger(dbg), compartments(cx->runtime()), url(cx), displayURL(cx),
+        displayURLChars(nullptr), innermostForCompartment(cx->runtime())
     {}
 
     
@@ -2420,9 +2420,9 @@ class Debugger::ScriptQuery {
         }
 
         
-        if (!JSObject::getProperty(cx, query, query, cx->names().displayURL, &sourceURL))
+        if (!JSObject::getProperty(cx, query, query, cx->names().displayURL, &displayURL))
             return false;
-        if (!sourceURL.isUndefined() && !sourceURL.isString()) {
+        if (!displayURL.isUndefined() && !displayURL.isString()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
                                  "query object's 'displayURL' property",
                                  "neither undefined nor a string");
@@ -2437,7 +2437,7 @@ class Debugger::ScriptQuery {
         url.setUndefined();
         hasLine = false;
         innermost = false;
-        sourceURLChars = nullptr;
+        displayURLChars = nullptr;
         return matchAllDebuggeeGlobals();
     }
 
@@ -2503,11 +2503,11 @@ class Debugger::ScriptQuery {
 
     
 
-    RootedValue sourceURL;
+    RootedValue displayURL;
 
     
-    const jschar *sourceURLChars;
-    size_t sourceURLLength;
+    const jschar *displayURLChars;
+    size_t displayURLLength;
 
     
     bool hasLine;
@@ -2582,11 +2582,11 @@ class Debugger::ScriptQuery {
             if (!urlCString.encodeLatin1(cx, url.toString()))
                 return false;
         }
-        if (sourceURL.isString()) {
-            JSString *s = sourceURL.toString();
-            sourceURLChars = s->getChars(cx);
-            sourceURLLength = s->length();
-            if (!sourceURLChars)
+        if (displayURL.isString()) {
+            JSString *s = displayURL.toString();
+            displayURLChars = s->getChars(cx);
+            displayURLLength = s->length();
+            if (!displayURLChars)
                 return false;
         }
 
@@ -2617,11 +2617,11 @@ class Debugger::ScriptQuery {
             if (line < script->lineno() || script->lineno() + js_GetScriptLineExtent(script) < line)
                 return;
         }
-        if (sourceURLChars) {
-            if (!script->scriptSource() || !script->scriptSource()->hasSourceURL())
+        if (displayURLChars) {
+            if (!script->scriptSource() || !script->scriptSource()->hasDisplayURL())
                 return;
-            const jschar *s = script->scriptSource()->sourceURL();
-            if (CompareChars(s, js_strlen(s), sourceURLChars, sourceURLLength) != 0) {
+            const jschar *s = script->scriptSource()->displayURL();
+            if (CompareChars(s, js_strlen(s), displayURLChars, displayURLLength) != 0) {
                 return;
             }
         }
@@ -3843,8 +3843,8 @@ DebuggerSource_getDisplayURL(JSContext *cx, unsigned argc, Value *vp)
     ScriptSource *ss = sourceObject->source();
     JS_ASSERT(ss);
 
-    if (ss->hasSourceURL()) {
-        JSString *str = JS_NewUCStringCopyZ(cx, ss->sourceURL());
+    if (ss->hasDisplayURL()) {
+        JSString *str = JS_NewUCStringCopyZ(cx, ss->displayURL());
         if (!str)
             return false;
         args.rval().setString(str);
