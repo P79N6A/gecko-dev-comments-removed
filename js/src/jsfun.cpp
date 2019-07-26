@@ -919,164 +919,75 @@ fun_toSource(JSContext *cx, unsigned argc, Value *vp)
 bool
 js_fun_call(JSContext *cx, unsigned argc, Value *vp)
 {
-    RootedValue fval(cx, vp[1]);
+    CallArgs args = CallArgsFromVp(argc, vp);
 
+    HandleValue fval = args.thisv();
     if (!js_IsCallable(fval)) {
-        ReportIncompatibleMethod(cx, CallReceiverFromVp(vp), &JSFunction::class_);
+        ReportIncompatibleMethod(cx, args, &JSFunction::class_);
         return false;
     }
 
-    Value *argv = vp + 2;
-    RootedValue thisv(cx, UndefinedValue());
-    if (argc != 0) {
-        thisv = argv[0];
-
-        argc--;
-        argv++;
-    }
-
-    
-    InvokeArgs args(cx);
-    if (!args.init(argc))
+    InvokeArgs args2(cx);
+    if (!args2.init(args.length() ? args.length() - 1 : 0))
         return false;
 
-    
-    args.setCallee(fval);
-    args.setThis(thisv);
-    PodCopy(args.array(), argv, argc);
+    args2.setCallee(fval);
+    args2.setThis(args.get(0));
+    PodCopy(args2.array(), args.array() + 1, args2.length());
 
-    bool ok = Invoke(cx, args);
-    *vp = args.rval();
-    return ok;
-}
-
-#ifdef JS_ION
-static bool
-PushBaselineFunApplyArguments(JSContext *cx, jit::IonFrameIterator &frame, InvokeArgs &args,
-                              Value *vp)
-{
-    unsigned length = frame.numActualArgs();
-    JS_ASSERT(length <= ARGS_LENGTH_MAX);
-
-    if (!args.init(length))
+    if (!Invoke(cx, args2))
         return false;
 
-    
-    args.setCallee(vp[1]);
-    args.setThis(vp[2]);
-
-    
-    frame.unaliasedForEachActual(CopyTo(args.array()), jit::ReadFrame_Actuals);
+    args.rval().set(args2.rval());
     return true;
 }
-#endif
 
 
 bool
 js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
 {
+    CallArgs args = CallArgsFromVp(argc, vp);
+
     
-    RootedValue fval(cx, vp[1]);
+    HandleValue fval = args.thisv();
     if (!js_IsCallable(fval)) {
-        ReportIncompatibleMethod(cx, CallReceiverFromVp(vp), &JSFunction::class_);
+        ReportIncompatibleMethod(cx, args, &JSFunction::class_);
         return false;
     }
 
     
-    if (argc < 2 || vp[3].isNullOrUndefined())
+    if (args.length() < 2 || args[1].isNullOrUndefined())
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
-    InvokeArgs args(cx);
+    InvokeArgs args2(cx);
 
     
-
-
-
-
-    if (vp[3].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
+    
+    
+    
+    if (args[1].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
         
+        ScriptFrameIter iter(cx);
+        JS_ASSERT(iter.numActualArgs() <= ARGS_LENGTH_MAX);
+        if (!args2.init(iter.numActualArgs()))
+            return false;
 
-
+        args2.setCallee(fval);
+        args2.setThis(args[0]);
 
         
-
-#ifdef JS_ION
-        
-        
-        
-        if (cx->currentlyRunningInJit()) {
-            jit::JitActivationIterator activations(cx->runtime());
-            jit::IonFrameIterator frame(activations);
-            if (frame.isNative()) {
-                
-                ++frame;
-                if (frame.isOptimizedJS()) {
-                    jit::InlineFrameIterator iter(cx, &frame);
-
-                    unsigned length = iter.numActualArgs();
-                    JS_ASSERT(length <= ARGS_LENGTH_MAX);
-
-                    if (!args.init(length))
-                        return false;
-
-                    
-                    args.setCallee(fval);
-                    args.setThis(vp[2]);
-
-                    
-                    iter.unaliasedForEachActual(cx, CopyTo(args.array()),
-                                                jit::ReadFrame_Actuals);
-                } else {
-                    JS_ASSERT(frame.isBaselineStub());
-
-                    ++frame;
-                    JS_ASSERT(frame.isBaselineJS());
-
-                    if (!PushBaselineFunApplyArguments(cx, frame, args, vp))
-                        return false;
-                }
-            } else {
-                JS_ASSERT(frame.type() == jit::IonFrame_Exit);
-
-                ++frame;
-                JS_ASSERT(frame.isBaselineStub());
-
-                ++frame;
-                JS_ASSERT(frame.isBaselineJS());
-
-                if (!PushBaselineFunApplyArguments(cx, frame, args, vp))
-                    return false;
-            }
-        } else
-#endif
-        {
-            StackFrame *fp = cx->interpreterFrame();
-            unsigned length = fp->numActualArgs();
-            JS_ASSERT(length <= ARGS_LENGTH_MAX);
-
-            if (!args.init(length))
-                return false;
-
-            
-            args.setCallee(fval);
-            args.setThis(vp[2]);
-
-            
-            fp->unaliasedForEachActual(CopyTo(args.array()));
-        }
+        iter.unaliasedForEachActual(cx, CopyTo(args2.array()));
     } else {
         
-        if (!vp[3].isObject()) {
+        if (!args[1].isObject()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                  JSMSG_BAD_APPLY_ARGS, js_apply_str);
             return false;
         }
 
         
-
-
-
-        RootedObject aobj(cx, &vp[3].toObject());
+        
+        RootedObject aobj(cx, &args[1].toObject());
         uint32_t length;
         if (!GetLengthProperty(cx, aobj, &length))
             return false;
@@ -1087,29 +998,30 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
             return false;
         }
 
-        if (!args.init(length))
+        if (!args2.init(length))
             return false;
 
         
-        args.setCallee(fval);
-        args.setThis(vp[2]);
+        args2.setCallee(fval);
+        args2.setThis(args[0]);
 
         
-        if (args.callee().is<JSFunction>()) {
-            JSFunction *fun = &args.callee().as<JSFunction>();
+        if (args2.callee().is<JSFunction>()) {
+            JSFunction *fun = &args2.callee().as<JSFunction>();
             if (fun->isInterpreted() && !fun->getOrCreateScript(cx))
                 return false;
         }
+
         
-        if (!GetElements(cx, aobj, length, args.array()))
+        if (!GetElements(cx, aobj, length, args2.array()))
             return false;
     }
 
     
-    if (!Invoke(cx, args))
+    if (!Invoke(cx, args2))
         return false;
 
-    *vp = args.rval();
+    args.rval().set(args2.rval());
     return true;
 }
 

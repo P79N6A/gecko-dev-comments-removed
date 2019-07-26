@@ -136,7 +136,9 @@ template <class Op>
 inline void
 StackFrame::unaliasedForEachActual(Op op)
 {
-    JS_ASSERT(!script()->funHasAnyAliasedFormal());
+    
+    
+    
 
     const Value *argsEnd = argv() + numActualArgs();
     for (const Value *p = argv(); p < argsEnd; ++p)
