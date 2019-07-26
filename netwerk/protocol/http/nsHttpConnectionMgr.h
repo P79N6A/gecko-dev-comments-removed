@@ -29,6 +29,12 @@ class nsHttpPipeline;
 
 class nsIHttpUpgradeListener;
 
+namespace mozilla {
+namespace net {
+class EventTokenBucket;
+}
+}
+
 
 
 class nsHttpConnectionMgr : public nsIObserver
@@ -123,6 +129,10 @@ public:
     
     
     nsresult UpdateParam(nsParamName name, uint16_t value);
+
+    
+    
+    nsresult UpdateRequestTokenBucket(mozilla::net::EventTokenBucket *aBucket);
 
     
     bool GetSpdyAlternateProtocol(nsACString &key);
@@ -517,6 +527,7 @@ private:
     nsresult CreateTransport(nsConnectionEntry *, nsAHttpTransaction *,
                              uint32_t, bool);
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
+    void     DecrementActiveConnCount(nsHttpConnection *);
     void     StartedConnect();
     void     RecvdConnect();
 
@@ -605,6 +616,7 @@ private:
     void OnMsgClosePersistentConnections (int32_t, void *);
     void OnMsgProcessFeedback      (int32_t, void *);
     void OnMsgProcessAllSpdyPendingQ (int32_t, void *);
+    void OnMsgUpdateRequestTokenBucket (int32_t, void *);
 
     
     
@@ -612,6 +624,8 @@ private:
     
     
     uint16_t mNumIdleConns;
+    
+    uint16_t mNumSpdyActiveConns;
     
     
     uint32_t mNumHalfOpenConns;

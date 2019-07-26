@@ -35,6 +35,14 @@ class nsHttpTransaction;
 class nsAHttpTransaction;
 class nsIHttpChannel;
 class nsIPrefBranch;
+class nsICancelable;
+
+namespace mozilla {
+namespace net {
+class ATokenBucketEvent;
+class EventTokenBucket;
+}
+}
 
 
 
@@ -98,6 +106,9 @@ public:
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CritialRequestPrioritization() { return mCritialRequestPrioritization; }
+
+    bool           UseRequestTokenBucket() { return mRequestTokenBucketEnabled; }
+    uint16_t       RequestTokenBucketMinParallelism() { return mRequestTokenBucketMinParallelism; }
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
@@ -410,10 +421,37 @@ private:
 
     
     
+    bool           mRequestTokenBucketEnabled;
+    uint16_t       mRequestTokenBucketMinParallelism;
+    uint32_t       mRequestTokenBucketHz;  
+    uint32_t       mRequestTokenBucketBurst; 
+
+    
+    
     bool           mCritialRequestPrioritization;
+
+private:
+    
+    
+    void MakeNewRequestTokenBucket();
+    nsRefPtr<mozilla::net::EventTokenBucket> mRequestTokenBucket;
+
+public:
+    
+    nsresult SubmitPacedRequest(mozilla::net::ATokenBucketEvent *event,
+                                nsICancelable **cancel)
+    {
+        if (!mRequestTokenBucket)
+            return NS_ERROR_UNEXPECTED;
+        return mRequestTokenBucket->SubmitEvent(event, cancel);
+    }
+
+    
+    void SetRequestTokenBucket(mozilla::net::EventTokenBucket *aTokenBucket)
+    {
+        mRequestTokenBucket = aTokenBucket;
+    }
 };
-
-
 
 extern nsHttpHandler *gHttpHandler;
 

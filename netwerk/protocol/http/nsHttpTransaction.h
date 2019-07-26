@@ -10,6 +10,7 @@
 #include "nsHttpHeaderArray.h"
 #include "nsAHttpTransaction.h"
 #include "nsAHttpConnection.h"
+#include "EventTokenBucket.h"
 #include "nsCOMPtr.h"
 
 #include "nsIPipe.h"
@@ -37,6 +38,7 @@ class UpdateSecurityCallbacks;
 
 
 class nsHttpTransaction : public nsAHttpTransaction
+                        , public mozilla::net::ATokenBucketEvent
                         , public nsIInputStreamCallback
                         , public nsIOutputStreamCallback
 {
@@ -309,6 +311,32 @@ private:
         
         bool                            mSetup;
     } mRestartInProgressVerifier;
+
+
+public:
+    
+    
+    
+    bool TryToRunPacedRequest();
+
+    
+    
+    
+    
+    
+    void OnTokenBucketAdmitted(); 
+
+    
+    
+    
+    
+    void CancelPacing(nsresult reason);
+
+private:
+    bool mSubmittedRatePacing;
+    bool mPassedRatePacing;
+    bool mSynchronousRatePaceRequest;
+    nsCOMPtr<nsICancelable> mTokenBucketCancel;
 };
 
 #endif 

@@ -63,6 +63,7 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
     , mIsShuttingDown(false)
     , mNumActiveConns(0)
     , mNumIdleConns(0)
+    , mNumSpdyActiveConns(0)
     , mNumHalfOpenConns(0)
     , mTimeOfNextWakeUp(UINT64_MAX)
     , mTimeoutTickArmed(false)
@@ -413,6 +414,28 @@ nsHttpConnectionMgr::ProcessPendingQ()
     return PostEvent(&nsHttpConnectionMgr::OnMsgProcessPendingQ, 0, nullptr);
 }
 
+void
+nsHttpConnectionMgr::OnMsgUpdateRequestTokenBucket(int32_t, void *param)
+{
+    nsRefPtr<EventTokenBucket> tokenBucket =
+        dont_AddRef(static_cast<EventTokenBucket *>(param));
+    gHttpHandler->SetRequestTokenBucket(tokenBucket);
+}
+
+nsresult
+nsHttpConnectionMgr::UpdateRequestTokenBucket(EventTokenBucket *aBucket)
+{
+    nsRefPtr<EventTokenBucket> bucket(aBucket);
+    
+    
+    
+    nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgUpdateRequestTokenBucket,
+                            0, bucket.get());
+    if (NS_SUCCEEDED(rv))
+        bucket.forget();
+    return rv;
+}
+
 
 
 
@@ -502,8 +525,9 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
 
     if (!usingSpdy)
         return;
-    
+
     ent->mUsingSpdy = true;
+    mNumSpdyActiveConns++;
 
     uint32_t ttl = conn->TimeToLive();
     uint64_t timeOfExpire = NowInSeconds() + ttl;
@@ -957,7 +981,7 @@ nsHttpConnectionMgr::ShutdownPassCB(const nsACString &key,
         conn = ent->mActiveConns[0];
 
         ent->mActiveConns.RemoveElementAt(0);
-        self->mNumActiveConns--;
+        self->DecrementActiveConnCount(conn);
 
         conn->Close(NS_ERROR_ABORT);
         NS_RELEASE(conn);
@@ -1590,6 +1614,23 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
 
     
     
+    
+    
+    
+    
+    
+    if (gHttpHandler->UseRequestTokenBucket() &&
+        (mNumActiveConns >= mNumSpdyActiveConns) && 
+        ((mNumActiveConns - mNumSpdyActiveConns) >= gHttpHandler->RequestTokenBucketMinParallelism()) &&
+        !(caps & (NS_HTTP_LOAD_AS_BLOCKING | NS_HTTP_LOAD_UNBLOCKED))) {
+        if (!trans->TryToRunPacedRequest()) {
+            LOG(("   blocked due to rate pacing\n"));
+            return NS_ERROR_NOT_AVAILABLE;
+        }
+    }
+
+    
+    
     if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
         nsRefPtr<nsHttpConnection> conn;
         while (!conn && (ent->mIdleConns.Length() > 0)) {
@@ -1678,6 +1719,11 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
          "[ci=%s trans=%x caps=%x conn=%x priority=%d]\n",
          ent->mConnInfo->HashKey().get(), trans, caps, conn, priority));
 
+    
+    
+    
+    trans->CancelPacing(NS_OK);
+
     if (conn->UsingSpdy()) {
         LOG(("Spdy Dispatch Transaction via Activate(). Transaction host = %s,"
              "Connection host = %s\n",
@@ -1765,7 +1811,7 @@ nsHttpConnectionMgr::DispatchAbstractTransaction(nsConnectionEntry *ent,
         ent->mActiveConns.RemoveElement(conn);
         if (conn == ent->mYellowConnection)
             ent->OnYellowComplete();
-        mNumActiveConns--;
+        DecrementActiveConnCount(conn);
         ConditionallyStopTimeoutTick();
 
         
@@ -1899,6 +1945,14 @@ nsHttpConnectionMgr::AddActiveConn(nsHttpConnection *conn,
     ent->mActiveConns.AppendElement(conn);
     mNumActiveConns++;
     ActivateTimeoutTick();
+}
+
+void
+nsHttpConnectionMgr::DecrementActiveConnCount(nsHttpConnection *conn)
+{
+    mNumActiveConns--;
+    if (conn->EverUsedSpdy())
+        mNumSpdyActiveConns--;
 }
 
 void
@@ -2213,13 +2267,13 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(int32_t, void *param)
             
             conn->DontReuse();
         }
-        
+
         if (ent->mActiveConns.RemoveElement(conn)) {
             if (conn == ent->mYellowConnection)
                 ent->OnYellowComplete();
             nsHttpConnection *temp = conn;
             NS_RELEASE(temp);
-            mNumActiveConns--;
+            DecrementActiveConnCount(conn);
             ConditionallyStopTimeoutTick();
         }
 
