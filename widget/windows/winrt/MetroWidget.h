@@ -69,10 +69,12 @@ public:
   static HWND GetICoreWindowHWND() { return sICoreHwnd; }
 
   
-  virtual void InitEvent(nsGUIEvent& aEvent, nsIntPoint* aPoint = nullptr) MOZ_OVERRIDE;
   virtual bool DispatchWindowEvent(nsGUIEvent* aEvent) MOZ_OVERRIDE;
   virtual bool IsTopLevelWidget() MOZ_OVERRIDE { return true; }
   virtual nsWindowBase* GetParentWindowBase(bool aIncludeOwner) MOZ_OVERRIDE { return nullptr; }
+  
+  
+  virtual void InitEvent(nsGUIEvent& aEvent, nsIntPoint* aPoint = nullptr) MOZ_OVERRIDE;
 
   
   virtual CompositorParent* NewCompositorParent(int aSurfaceWidth, int aSurfaceHeight);

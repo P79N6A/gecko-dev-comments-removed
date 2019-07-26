@@ -38,6 +38,8 @@ public:
   
 
 
+
+
   virtual void InitEvent(nsGUIEvent& aEvent, nsIntPoint* aPoint = nullptr) = 0;
 
   
