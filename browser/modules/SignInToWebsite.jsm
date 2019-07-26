@@ -26,17 +26,29 @@ function log(...aMessageArgs) {
 let SignInToWebsiteUX = {
 
   init: function SignInToWebsiteUX_init() {
-    Services.obs.addObserver(this, "identity-request", false);
-    Services.obs.addObserver(this, "identity-auth", false);
-    Services.obs.addObserver(this, "identity-auth-complete", false);
-    Services.obs.addObserver(this, "identity-login-state-changed", false);
+
+    
+
+
+
+
+
+
+
+
   },
 
   uninit: function SignInToWebsiteUX_uninit() {
-    Services.obs.removeObserver(this, "identity-request");
-    Services.obs.removeObserver(this, "identity-auth");
-    Services.obs.removeObserver(this, "identity-auth-complete");
-    Services.obs.removeObserver(this, "identity-login-state-changed");
+    
+
+
+
+
+
+
+
+
+
   },
 
   observe: function SignInToWebsiteUX_observe(aSubject, aTopic, aData) {
