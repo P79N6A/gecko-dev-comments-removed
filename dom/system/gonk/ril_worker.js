@@ -254,7 +254,6 @@ let RIL = {
 
 
     this.radioState = GECKO_RADIOSTATE_UNAVAILABLE;
-    this._isInitialRadioState = true;
 
     
 
@@ -5256,13 +5255,7 @@ RIL[REQUEST_RADIO_POWER] = function(length, options) {
         this.cachedDialRequest.onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
         this.cachedDialRequest = null;
       }
-      return;
     }
-
-    if (this._isInitialRadioState) {
-      this._isInitialRadioState = false;
-    }
-
     return;
   }
 
@@ -6081,14 +6074,6 @@ RIL[RIL_REQUEST_GPRS_ATTACH] = null;
 RIL[RIL_REQUEST_GPRS_DETACH] = null;
 RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function() {
   let radioState = Buf.readInt32();
-
-  
-  if (this._isInitialRadioState) {
-    
-    
-    this.setRadioEnabled({enabled: false});
-  }
-
   let newState;
   if (radioState == RADIO_STATE_UNAVAILABLE) {
     newState = GECKO_RADIOSTATE_UNAVAILABLE;
@@ -6403,6 +6388,8 @@ RIL[UNSOLICITED_RIL_CONNECTED] = function(length) {
   this.initRILState();
   
   this.exitEmergencyCbMode();
+  
+  this.setRadioEnabled({enabled: false});
 };
 
 
