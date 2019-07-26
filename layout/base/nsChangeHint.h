@@ -111,7 +111,13 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_BorderStyleNoneChange = 0x8000
+  nsChangeHint_BorderStyleNoneChange = 0x8000,
+
+  
+
+
+
+  nsChangeHint_UpdateTextPath = 0x10000
 
   
   
