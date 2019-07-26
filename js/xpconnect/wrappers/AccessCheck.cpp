@@ -255,24 +255,6 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 }
 
 bool
-AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
-{
-    MOZ_ASSERT(js::IsWrapper(wrapper));
-
-    unsigned flags;
-    (void) js::UnwrapObject(wrapper, true, &flags);
-
-    
-    if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {
-        if (flags & WrapperFactory::SOW_FLAG)
-            return !isSystemOnlyAccessPermitted(cx);
-        return true;
-    }
-
-    return false;
-}
-
-bool
 OnlyIfSubjectIsSystem::isSafeToUnwrap()
 {
     
