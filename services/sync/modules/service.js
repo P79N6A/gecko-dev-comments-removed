@@ -484,6 +484,16 @@ WeaveSvc.prototype = {
   
 
 
+  getStorageRequest: function getStorageRequest(url) {
+    let request = new SyncStorageRequest(url);
+    request.authenticator = this._identity.getRESTRequestAuthenticator();
+
+    return request;
+  },
+
+  
+
+
   _fetchInfo: function _fetchInfo(url) {
     let infoURL = url || this.infoURL;
 
@@ -1430,7 +1440,7 @@ WeaveSvc.prototype = {
     let info_type = "info/" + type;
     this._log.trace("Retrieving '" + info_type + "'...");
     let url = this.userBaseURL + info_type;
-    return new SyncStorageRequest(url).get(function onComplete(error) {
+    return this.getStorageRequest(url).get(function onComplete(error) {
       
       if (error) {
         this._log.debug("Failed to retrieve '" + info_type + "': " +
