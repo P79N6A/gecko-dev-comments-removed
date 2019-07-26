@@ -665,32 +665,14 @@ function coordinates(target, x, y) {
 
 function elementInViewport(el) {
   let rect = el.getBoundingClientRect();
-  return  (
-           (rect.top >= curFrame.pageYOffset &&
-            rect.top <= (curFrame.pageYOffset + curFrame.innerHeight) &&
-            rect.left >= curFrame.pageXOffset &&
-            rect.left <= (curFrame.pageXOffset + curFrame.innerWidth)) ||
-            
-           (rect.top >= curFrame.pageYOffset &&
-            rect.top <= (curFrame.pageYOffset + curFrame.innerHeight) &&
-            rect.right >= curFrame.pageXOffset &&
-            rect.right <= (curFrame.pageXOffset + curFrame.innerWidth)) ||
-           
-           (rect.bottom >= curFrame.pageYOffset &&
-            rect.bottom <= (curFrame.pageYOffset + curFrame.innerHeight)  &&
-            rect.right >= curFrame.pageXOffset &&
-            rect.right <= (curFrame.pageXOffset + curFrame.innerWidth)) ||
-           
-           (rect.bottom >= curFrame.pageYOffset &&
-            rect.bottom <= (curFrame.pageYOffset + curFrame.innerHeight)  &&
-            rect.left >= curFrame.pageXOffset &&
-            rect.left <= (curFrame.pageXOffset + curFrame.innerWidth)) ||
-           
-           ((rect.top + (rect.height/2)) <= curFrame.pageYOffset &&
-            (rect.top + (rect.height/2)) >= (curFrame.pageYOffset + curFrame.innerHeight) &&
-            (rect.left + (rect.width/2)) <= curFrame.pageXOffset &&
-            (rect.left + (rect.width/2)) >= (curFrame.pageXOffset + curFrame.innerWidth))
-         );
+  let viewPort = {top: curFrame.pageYOffset,
+                  left: curFrame.pageXOffset,
+                  bottom: (curFrame.pageYOffset + curFrame.innerHeight),
+                  right:(curFrame.pageXOffset + curFrame.innerWidth)};
+  return (viewPort.left <= rect.right + curFrame.pageXOffset &&
+          rect.left + curFrame.pageXOffset <= viewPort.right &&
+          viewPort.top <= rect.bottom + curFrame.pageYOffset &&
+          rect.top + curFrame.pageYOffset <= viewPort.bottom);
 }
 
 
