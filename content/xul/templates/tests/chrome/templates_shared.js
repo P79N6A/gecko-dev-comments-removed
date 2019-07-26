@@ -138,7 +138,7 @@ function iterateChanged(root, ds)
 
 function checkResults(root, step)
 {
-  var output = expectedOutput.copy();
+  var output = expectedOutput.cloneNode(true);
   setForCurrentStep(output, step);
 
   var error;
@@ -147,7 +147,8 @@ function checkResults(root, step)
     
     
     actualoutput = treeViewToDOM(root);
-    error = compareOutput(actualoutput, output.treechildren, false);
+    var treechildrenElements = [e for (e of output.children) if (e.localName === "treechildren")];
+    error = compareOutput(actualoutput, treechildrenElements[0], false);
   }
   else {
     error = compareOutput(actualoutput, output, true);
@@ -178,7 +179,7 @@ function checkResults(root, step)
     serializedXML = serializedXML.replace(nsrepl, "");
     if (debug)
       dump("-------- " + adjtestid + "  " + error + ":\n" + serializedXML + "\n");
-    if (error)
+    if (!stilltodo && error)
       is(serializedXML, "Same", "Error is: " + error);
   }
 }
@@ -189,24 +190,29 @@ function checkResults(root, step)
 function setForCurrentStep(content, currentStep)
 {
   var todelete = [];
-  for each (var child in content) {
-    var stepstr = child.@step.toString();
-    var stepsarr = stepstr.split(",");
-    for (var s = 0; s < stepsarr.length; s++) {
-      var step = parseInt(stepsarr[s]);
-      if ((step > 0 && step > currentStep) ||
-          (step < 0 && -step <= currentStep)) {
-        todelete.push(child);
+  for (var child of content.childNodes) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      var stepstr = child.getAttribute("step") || "";
+      var stepsarr = stepstr.split(",");
+      for (var s = 0; s < stepsarr.length; s++) {
+        var step = parseInt(stepsarr[s]);
+        if ((step > 0 && step > currentStep) ||
+            (step < 0 && -step <= currentStep)) {
+          todelete.push(child);
+        }
       }
+    } else if (child.nodeType === Node.TEXT_NODE) {
+      
+      if (child.nodeValue.trim() === "")
+        todelete.push(child);
     }
   }
 
-  
-  for (var d = 0; d < todelete.length; d++)
-    delete content.*[todelete[d].childIndex()];
-  
-  for each (var child in content) {
-    delete child.@step;
+  for (var e of todelete)
+    content.removeChild(e);
+
+  for (var child of content.children) {
+    child.removeAttribute("step");
     setForCurrentStep(child, currentStep);
   }
 }
@@ -220,52 +226,41 @@ function setForCurrentStep(content, currentStep)
 
 function compareOutput(actual, expected, isroot)
 {
-  
-  
-  
-  if (expected.localName() != "output" && isroot) {
-    
-    
-    
-    if (actual.childNodes.length != 2)
-      return "incorrect child node count of root " +
-             (actual.childNodes.length - 1) + " expected 1";
-    return compareOutput(actual.lastChild, expected, false);
-  }
+  if (isroot && expected.localName != "data")
+    return "expected must be a <data> element";
 
   var t;
 
   
-  if (expected.nodeKind() == "text") {
-    if (actual.nodeValue != expected.toString())
-      return "Text " + actual.nodeValue + " doesn't match " + expected.toString();
+  if (expected.nodeType == Node.TEXT_NODE) {
+    if (actual.nodeValue !== expected.nodeValue.trim())
+      return "Text " + actual.nodeValue + " doesn't match " + expected.nodeValue;
     return "";
   }
 
   if (!isroot) {
     var anyid = false;
     
-    if (actual.localName != expected.localName())
-      return "Tag name " + expected.localName() + " not found";
+    if (actual.localName != expected.localName)
+      return "Tag name " + expected.localName + " not found";
 
     
     
 
-    var expectedAttrs = expected.attributes();
-    for (var a = 0; a < expectedAttrs.length(); a++) {
+    var expectedAttrs = expected.attributes;
+    for (var a = 0; a < expectedAttrs.length; a++) {
       var attr = expectedAttrs[a];
-      expectedAttrs.length(); 
-      var expectval = "" + attr;
+      var expectval = attr.value;
       
       
-      if (attr.name() == "anyid" && expectval == "true") {
+      if (attr.name == "anyid" && expectval == "true") {
         anyid = true;
         if (!actual.hasAttribute("id"))
           return "expected id attribute";
       }
-      else if (actual.getAttribute(attr.name()) != expectval) {
-        return "attribute " + attr.name() + " is '" +
-               actual.getAttribute(attr.name()) + "' instead of  '" + expectval + "'";
+      else if (actual.getAttribute(attr.name) != expectval) {
+        return "attribute " + attr.name + " is '" +
+               actual.getAttribute(attr.name) + "' instead of '" + expectval + "'";
       }
     }
 
@@ -274,7 +269,7 @@ function compareOutput(actual, expected, isroot)
     var length = actual.attributes.length;
     for (t = 0; t < length; t++) {
       var aattr = actual.attributes[t];
-      var expectval = "" + expected.@[aattr.name];
+      var expectval = expected.getAttribute(aattr.name);
       
       if (expectval != actual.getAttribute(aattr.name) &&
           aattr.name != "staticHint" && aattr.name != "xmlns" &&
@@ -286,12 +281,12 @@ function compareOutput(actual, expected, isroot)
   
   
   length = actual.childNodes.length - (isroot ? 1 : 0);
-  if (length != expected.children().length())
+  if (length != expected.childNodes.length)
     return "incorrect child node count of " + actual.localName + " " + length +
-           " expected " + expected.children().length();
+           " expected " + expected.childNodes.length;
 
   
-  var unordered = (expected.localName() == "output" && expected.@unordered == "true");
+  var unordered = (expected.localName == "data" && expected.getAttribute("unordered") == "true");
 
   
   var adj = 0;
@@ -305,15 +300,15 @@ function compareOutput(actual, expected, isroot)
     else {
       var output = "unexpected";
       if (unordered) {
-        var expectedChildren = expected.children();
-        for (var e = 0; e < expectedChildren.length(); e++) {
+        var expectedChildren = expected.childNodes;
+        for (var e = 0; e < expectedChildren.length; e++) {
           output = compareOutput(actualnode, expectedChildren[e], false);
           if (!output)
             break;
         }
       }
       else {
-        output = compareOutput(actualnode, expected.children()[t - adj], false);
+        output = compareOutput(actualnode, expected.childNodes[t - adj], false);
       }
 
       
@@ -330,7 +325,6 @@ function compareOutput(actual, expected, isroot)
 
 function copyRDFDataSource(root, sourceds)
 {
-  var sourceds;
   var dsourcesArr = [];
   var composite = root.database;
   var dsources = composite.GetDataSources();
