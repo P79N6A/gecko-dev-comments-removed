@@ -276,6 +276,14 @@ IDBDatabase::Invalidate()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
+  InvalidateInternal( false);
+}
+
+void
+IDBDatabase::InvalidateInternal(bool aIsDead)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
   if (IsInvalidated()) {
     return;
   }
@@ -293,7 +301,13 @@ IDBDatabase::Invalidate()
     QuotaManager::CancelPromptsForWindow(owner);
   }
 
-  DatabaseInfo::Remove(mDatabaseId);
+  
+  
+  
+  
+  if (!aIsDead) {
+    DatabaseInfo::Remove(mDatabaseId);
+  }
 
   
   if (mActorParent) {
@@ -332,9 +346,7 @@ IDBDatabase::CloseInternal(bool aIsDead)
       mDatabaseInfo.swap(previousInfo);
 
       if (!aIsDead) {
-        nsRefPtr<DatabaseInfo> clonedInfo = previousInfo->Clone();
-
-        clonedInfo.swap(mDatabaseInfo);
+        mDatabaseInfo = previousInfo->Clone();
       }
     }
 
