@@ -616,13 +616,27 @@ private:
 
 
 public:
-  void SetLastChild(AsyncPanZoomController* child) { mLastChild = child; }
-  void SetPrevSibling(AsyncPanZoomController* sibling) { mPrevSibling = sibling; }
+  void SetLastChild(AsyncPanZoomController* child) {
+    mLastChild = child;
+    if (child) {
+      child->mParent = this;
+    }
+  }
+
+  void SetPrevSibling(AsyncPanZoomController* sibling) {
+    mPrevSibling = sibling;
+    if (sibling) {
+      sibling->mParent = mParent;
+    }
+  }
+
   AsyncPanZoomController* GetLastChild() const { return mLastChild; }
   AsyncPanZoomController* GetPrevSibling() const { return mPrevSibling; }
+  AsyncPanZoomController* GetParent() const { return mParent; }
 private:
   nsRefPtr<AsyncPanZoomController> mLastChild;
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
+  nsRefPtr<AsyncPanZoomController> mParent;
 
   
 
