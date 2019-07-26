@@ -1408,7 +1408,7 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
       let sourceResults = parsedSource.getNamedFunctionDefinitions(aToken);
 
       for (let scriptResult of sourceResults) {
-        for (let parseResult of scriptResult.parseResults) {
+        for (let parseResult of scriptResult) {
           aStore.push({
             sourceUrl: scriptResult.sourceUrl,
             scriptOffset: scriptResult.scriptOffset,

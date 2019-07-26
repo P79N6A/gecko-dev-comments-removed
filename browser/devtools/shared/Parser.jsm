@@ -134,7 +134,7 @@ SyntaxTreesPool.prototype = {
 
 
   getIdentifierAt: function({ line, column, scriptIndex }) {
-    return this._first(this._call("getIdentifierAt", scriptIndex, line, column));
+    return this._call("getIdentifierAt", scriptIndex, line, column)[0];
   },
 
   
@@ -184,18 +184,6 @@ SyntaxTreesPool.prototype = {
 
 
 
-  _first: function(aSourceResults) {
-    let scriptResult = aSourceResults.filter(e => !!e.parseResults)[0];
-    return scriptResult ? scriptResult.parseResults : null;
-  },
-
-  
-
-
-
-
-
-
 
 
 
@@ -216,12 +204,13 @@ SyntaxTreesPool.prototype = {
 
     for (let syntaxTree of targettedTrees) {
       try {
-        results.push({
-          sourceUrl: syntaxTree.url,
-          scriptLength: syntaxTree.length,
-          scriptOffset: syntaxTree.offset,
-          parseResults: syntaxTree[aFunction].apply(syntaxTree, aParams)
-        });
+        let parseResults = syntaxTree[aFunction].apply(syntaxTree, aParams);
+        if (parseResults) {
+          parseResults.sourceUrl = syntaxTree.url;
+          parseResults.scriptLength = syntaxTree.length;
+          parseResults.scriptOffset = syntaxTree.offset;
+          results.push(parseResults);
+        }
       } catch (e) {
         
         
