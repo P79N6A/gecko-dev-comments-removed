@@ -6,24 +6,27 @@
 
 const {Cc, Ci, Cu} = require("chrome");
 
-const ToolDefinitions = require("main").Tools;
-const {CssLogic} = require("devtools/styleinspector/css-logic");
-const {ELEMENT_STYLE} = require("devtools/server/actors/styles");
-const promise = require("sdk/core/promise");
-const {EventEmitter} = require("devtools/shared/event-emitter");
+let ToolDefinitions = require("main").Tools;
+let {CssLogic} = require("devtools/styleinspector/css-logic");
+let {ELEMENT_STYLE} = require("devtools/server/actors/styles");
+let promise = require("sdk/core/promise");
+let {EventEmitter} = require("devtools/shared/event-emitter");
 const {OutputParser} = require("devtools/output-parser");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
-const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/Templater.jsm");
 
+let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
+
 const FILTER_CHANGED_TIMEOUT = 300;
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
 
 
 
@@ -180,7 +183,7 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   
   this.tooltip = new Tooltip(this.styleInspector.inspector.panelDoc);
   this.tooltip.startTogglingOnHover(this.propertyContainer,
-    this._onTooltipTargetHover.bind(this));
+    this._buildTooltipContent.bind(this));
 
   this._buildContextMenu();
   this.createStyleViews();
@@ -514,36 +517,29 @@ CssHtmlTree.prototype = {
 
 
 
-
-
-  _onTooltipTargetHover: function(target)
+  _buildTooltipContent: function(target)
   {
-    let inspector = this.styleInspector.inspector;
-
     
-    if (target.classList.contains("theme-link") && inspector.hasUrlToImageDataResolver) {
+    if (target.classList.contains("theme-link")) {
       let propValue = target.parentNode;
       let propName = propValue.parentNode.querySelector(".property-name");
       if (propName.textContent === "background-image") {
-        let maxDim = Services.prefs.getIntPref("devtools.inspector.imagePreviewTooltipSize");
-        let uri = CssLogic.getBackgroundImageUriFromProperty(propValue.textContent);
-        return this.tooltip.setRelativeImageContent(uri, inspector.inspector, maxDim);
+        this.tooltip.setCssBackgroundImageContent(propValue.textContent);
+        return true;
       }
     }
 
     
     if (target.classList.contains("property-value")) {
+      let def = promise.defer();
       let propValue = target;
       let propName = target.parentNode.querySelector(".property-name");
       if (propName.textContent === "transform") {
-        return this.tooltip.setCssTransformContent(propValue.textContent,
-          this.pageStyle, this.viewedElement);
+        this.tooltip.setCssTransformContent(propValue.textContent,
+          this.pageStyle, this.viewedElement).then(def.resolve);
+        return def.promise;
       }
     }
-
-    
-    
-    return promise.reject();
   },
 
   

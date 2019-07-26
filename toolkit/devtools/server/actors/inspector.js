@@ -65,8 +65,6 @@ const {HighlighterActor} = require("devtools/server/actors/highlighter");
 
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 const HIDDEN_CLASS = "__fx-devtools-hide-shortcut__";
-const XHTML_NS = "http://www.w3.org/1999/xhtml";
-const IMAGE_FETCHING_TIMEOUT = 500;
 
 
 const PSEUDO_SELECTORS = [
@@ -299,16 +297,49 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
 
 
 
+
   getImageData: method(function(maxDim) {
+    let isImg = this.rawNode.tagName.toLowerCase() === "img";
+    let isCanvas = this.rawNode.tagName.toLowerCase() === "canvas";
+
+    if (!isImg && !isCanvas) {
+      return null;
+    }
+
+    
+    let resizeRatio = 1;
+    let imgWidth = isImg ? this.rawNode.naturalWidth : this.rawNode.width;
+    let imgHeight = isImg ? this.rawNode.naturalHeight : this.rawNode.height;
+    let imgMax = Math.max(imgWidth, imgHeight);
+    if (maxDim && imgMax > maxDim) {
+      resizeRatio = maxDim / imgMax;
+    }
+
+    
+    let canvas = this.rawNode.ownerDocument.createElement("canvas");
+    canvas.width = imgWidth * resizeRatio;
+    canvas.height = imgHeight * resizeRatio;
+    let ctx = canvas.getContext("2d");
+
+    
+    let imageData;
     
     try {
-      let imageData = imageToImageData(this.rawNode, maxDim);
-      return promise.resolve({
-        data: LongStringActor(this.conn, imageData.data),
-        size: imageData.size
-      });
-    } catch(e) {
-      return promise.reject(new Error("Image not available"));
+      ctx.drawImage(this.rawNode, 0, 0, canvas.width, canvas.height);
+      imageData = canvas.toDataURL("image/png");
+    } catch (e) {
+      imageData = "";
+    }
+
+    return {
+      data: LongStringActor(this.conn, imageData),
+      size: {
+        naturalWidth: imgWidth,
+        naturalHeight: imgHeight,
+        width: canvas.width,
+        height: canvas.height,
+        resized: resizeRatio !== 1
+      }
     }
   }, {
     request: {maxDim: Arg(0, "nullable:number")},
@@ -1331,7 +1362,8 @@ var WalkerActor = protocol.ActorClass({
 
 
 
-  _readForward: function(walker, count) {
+  _readForward: function(walker, count)
+  {
     let ret = [];
     let node = walker.currentNode;
     do {
@@ -1345,7 +1377,8 @@ var WalkerActor = protocol.ActorClass({
 
 
 
-  _readBackward: function(walker, count) {
+  _readBackward: function(walker, count)
+  {
     let ret = [];
     let node = walker.currentNode;
     do {
@@ -2370,7 +2403,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
 
   
   
-  frontForRawNode: function(rawNode) {
+  frontForRawNode: function(rawNode){
     if (!this.isLocal()) {
       console.warn("Tried to use frontForRawNode on a remote connection.");
       return null;
@@ -2517,54 +2550,6 @@ var InspectorActor = protocol.ActorClass({
     response: {
       highligter: RetVal("highlighter")
     }
-  }),
-
-  
-
-
-
-
-
-
-
-
-
-
-  getImageDataFromURL: method(function(url, maxDim) {
-    let deferred = promise.defer();
-    let img = new this.window.Image();
-
-    
-    img.onload = () => {
-      
-      try {
-        let imageData = imageToImageData(img, maxDim);
-        deferred.resolve({
-          data: LongStringActor(this.conn, imageData.data),
-          size: imageData.size
-        });
-      } catch (e) {
-        deferred.reject(new Error("Image " + url+ " not available"));
-      }
-    }
-
-    
-    img.onerror = () => {
-      deferred.reject(new Error("Image " + url+ " not available"));
-    }
-
-    
-    
-    this.window.setTimeout(() => {
-      deferred.reject(new Error("Image " + url + " could not be retrieved in time"));
-    }, IMAGE_FETCHING_TIMEOUT);
-
-    img.src = url;
-
-    return deferred.promise;
-  }, {
-    request: {url: Arg(0), maxDim: Arg(1, "nullable:number")},
-    response: RetVal("imageData")
   })
 });
 
@@ -2630,7 +2615,8 @@ function nodeDocument(node) {
 
 
 
-function DocumentWalker(aNode, aRootWin, aShow, aFilter, aExpandEntityReferences) {
+function DocumentWalker(aNode, aRootWin, aShow, aFilter, aExpandEntityReferences)
+{
   let doc = nodeDocument(aNode);
   this.layoutHelpers = new LayoutHelpers(aRootWin);
   this.walker = doc.createTreeWalker(doc,
@@ -2651,7 +2637,7 @@ DocumentWalker.prototype = {
 
 
 
-  _reparentWalker: function(aNewNode) {
+  _reparentWalker: function DW_reparentWalker(aNewNode) {
     if (!aNewNode) {
       return null;
     }
@@ -2663,7 +2649,8 @@ DocumentWalker.prototype = {
     return aNewNode;
   },
 
-  parentNode: function() {
+  parentNode: function DW_parentNode()
+  {
     let currentNode = this.walker.currentNode;
     let parentNode = this.walker.parentNode();
 
@@ -2683,7 +2670,8 @@ DocumentWalker.prototype = {
     return parentNode;
   },
 
-  firstChild: function() {
+  firstChild: function DW_firstChild()
+  {
     let node = this.walker.currentNode;
     if (!node)
       return null;
@@ -2695,7 +2683,8 @@ DocumentWalker.prototype = {
     return this.walker.firstChild();
   },
 
-  lastChild: function() {
+  lastChild: function DW_lastChild()
+  {
     let node = this.walker.currentNode;
     if (!node)
       return null;
@@ -2709,72 +2698,19 @@ DocumentWalker.prototype = {
 
   previousSibling: function DW_previousSibling() this.walker.previousSibling(),
   nextSibling: function DW_nextSibling() this.walker.nextSibling()
-};
+}
 
 
 
 
-function whitespaceTextFilter(aNode) {
+function whitespaceTextFilter(aNode)
+{
     if (aNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
         !/[^\s]/.exec(aNode.nodeValue)) {
       return Ci.nsIDOMNodeFilter.FILTER_SKIP;
     } else {
       return Ci.nsIDOMNodeFilter.FILTER_ACCEPT;
     }
-}
-
-
-
-
-
-
-
-
-
-
-function imageToImageData(node, maxDim) {
-  let isImg = node.tagName.toLowerCase() === "img";
-  let isCanvas = node.tagName.toLowerCase() === "canvas";
-
-  if (!isImg && !isCanvas) {
-    return null;
-  }
-
-  
-  let resizeRatio = 1;
-  let imgWidth = node.naturalWidth || node.width;
-  let imgHeight = node.naturalHeight || node.height;
-  let imgMax = Math.max(imgWidth, imgHeight);
-  if (maxDim && imgMax > maxDim) {
-    resizeRatio = maxDim / imgMax;
-  }
-
-  
-  let imageData;
-  
-  
-  if (isImg && node.src.startsWith("data:")) {
-    imageData = node.src;
-  } else {
-    
-    let canvas = node.ownerDocument.createElementNS(XHTML_NS, "canvas");
-    canvas.width = imgWidth * resizeRatio;
-    canvas.height = imgHeight * resizeRatio;
-    let ctx = canvas.getContext("2d");
-
-    
-    ctx.drawImage(node, 0, 0, canvas.width, canvas.height);
-    imageData = canvas.toDataURL("image/png");
-  }
-
-  return {
-    data: imageData,
-    size: {
-      naturalWidth: imgWidth,
-      naturalHeight: imgHeight,
-      resized: resizeRatio !== 1
-    }
-  }
 }
 
 loader.lazyGetter(this, "DOMUtils", function () {
