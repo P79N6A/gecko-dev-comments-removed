@@ -13,9 +13,10 @@ const DB_VERSION = 5;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/Promise.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
+                                  "resource://gre/modules/LoginHelper.jsm");
 
 
 
@@ -243,7 +244,7 @@ LoginManagerStorage_mozStorage.prototype = {
         let encUsername, encPassword;
 
         
-        this._checkLoginValues(login);
+        LoginHelper.checkLoginValues(login);
 
         [encUsername, encPassword, encType] = this._encryptLogin(login);
 
@@ -355,108 +356,15 @@ LoginManagerStorage_mozStorage.prototype = {
         let [idToModify, oldStoredLogin] = this._getIdForLogin(oldLogin);
         if (!idToModify)
             throw "No matching logins";
-        oldStoredLogin.QueryInterface(Ci.nsILoginMetaInfo);
 
-        let newLogin;
-        if (newLoginData instanceof Ci.nsILoginInfo) {
-            
-            
-            newLogin = oldStoredLogin.clone();
-            newLogin.init(newLoginData.hostname,
-                          newLoginData.formSubmitURL, newLoginData.httpRealm,
-                          newLoginData.username, newLoginData.password,
-                          newLoginData.usernameField, newLoginData.passwordField);
-            newLogin.QueryInterface(Ci.nsILoginMetaInfo);
+        let newLogin = LoginHelper.buildModifiedLogin(oldStoredLogin, newLoginData);
 
-            
-            if (newLogin.password != oldLogin.password)
-                newLogin.timePasswordChanged = Date.now();
-        } else if (newLoginData instanceof Ci.nsIPropertyBag) {
-            function _bagHasProperty(aPropName) {
-                try {
-                    newLoginData.getProperty(aPropName);
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
-
-            
-            newLogin = oldStoredLogin.clone();
-            newLogin.QueryInterface(Ci.nsILoginMetaInfo);
-
-            
-            
-            
-            if (_bagHasProperty("password")) {
-                let newPassword = newLoginData.getProperty("password");
-                if (newPassword != oldLogin.password)
-                    newLogin.timePasswordChanged = Date.now();
-            }
-
-            let propEnum = newLoginData.enumerator;
-            while (propEnum.hasMoreElements()) {
-                let prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
-                switch (prop.name) {
-                    
-                    case "hostname":
-                    case "httpRealm":
-                    case "formSubmitURL":
-                    case "username":
-                    case "password":
-                    case "usernameField":
-                    case "passwordField":
-                    
-                    case "guid":
-                    case "timeCreated":
-                    case "timeLastUsed":
-                    case "timePasswordChanged":
-                    case "timesUsed":
-                        newLogin[prop.name] = prop.value;
-                        if (prop.name == "guid" && !this._isGuidUnique(newLogin.guid))
-                            throw "specified GUID already exists";
-                        break;
-
-                    
-                    case "timesUsedIncrement":
-                        newLogin.timesUsed += prop.value;
-                        break;
-
-                    
-                    default:
-                        throw "Unexpected propertybag item: " + prop.name;
-                }
-            }
-        } else {
-            throw "newLoginData needs an expected interface!";
+        
+        if (newLogin.guid != oldStoredLogin.guid &&
+            !this._isGuidUnique(newLogin.guid)) 
+        {
+            throw "specified GUID already exists";
         }
-
-        
-        if (newLogin.hostname == null || newLogin.hostname.length == 0)
-            throw "Can't add a login with a null or empty hostname.";
-
-        
-        if (newLogin.username == null)
-            throw "Can't add a login with a null username.";
-
-        if (newLogin.password == null || newLogin.password.length == 0)
-            throw "Can't add a login with a null or empty password.";
-
-        if (newLogin.formSubmitURL || newLogin.formSubmitURL == "") {
-            
-            if (newLogin.httpRealm != null)
-                throw "Can't add a login with both a httpRealm and formSubmitURL.";
-        } else if (newLogin.httpRealm) {
-            
-            if (newLogin.formSubmitURL != null)
-                throw "Can't add a login with both a httpRealm and formSubmitURL.";
-        } else {
-            
-            throw "Can't add a login without a httpRealm or formSubmitURL.";
-        }
-
-        
-        this._checkLoginValues(newLogin);
 
         
         if (!newLogin.matches(oldLogin, true)) {
@@ -665,7 +573,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
      storeDeletedLogin : function(aLogin) {
-#ifdef ANDROID
           let stmt = null; 
           try {
               this.log("Storing " + aLogin.guid + " in deleted passwords\n");
@@ -680,7 +587,6 @@ LoginManagerStorage_mozStorage.prototype = {
               if (stmt)
                   stmt.reset();
           }		
-#endif
      },
 
 
@@ -714,7 +620,7 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         this._sendNotification("removeAllLogins", null);
-   },
+    },
 
 
     
@@ -747,7 +653,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
     setLoginSavingEnabled : function (hostname, enabled) {
         
-        this._checkHostnameValue(hostname);
+        LoginHelper.checkHostnameValue(hostname);
 
         this.log("Setting login saving enabled for " + hostname + " to " + enabled);
         let query;
@@ -788,8 +694,8 @@ LoginManagerStorage_mozStorage.prototype = {
         };
         let matchData = { };
         for each (let field in ["hostname", "formSubmitURL", "httpRealm"])
-          if (loginData[field] != '')
-              matchData[field] = loginData[field];
+            if (loginData[field] != '')
+                matchData[field] = loginData[field];
         let [logins, ids] = this._searchLogins(matchData);
 
         
@@ -975,70 +881,6 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         return [conditions, params];
-    },
-
-
-    
-
-
-
-
-
-
-    _checkLoginValues : function (aLogin) {
-        function badCharacterPresent(l, c) {
-            return ((l.formSubmitURL && l.formSubmitURL.indexOf(c) != -1) ||
-                    (l.httpRealm     && l.httpRealm.indexOf(c)     != -1) ||
-                                        l.hostname.indexOf(c)      != -1  ||
-                                        l.usernameField.indexOf(c) != -1  ||
-                                        l.passwordField.indexOf(c) != -1);
-        }
-
-        
-        
-        if (badCharacterPresent(aLogin, "\0"))
-            throw "login values can't contain nulls";
-
-        
-        
-        
-        
-        if (aLogin.username.indexOf("\0") != -1 ||
-            aLogin.password.indexOf("\0") != -1)
-            throw "login values can't contain nulls";
-
-        
-        if (badCharacterPresent(aLogin, "\r") ||
-            badCharacterPresent(aLogin, "\n"))
-            throw "login values can't contain newlines";
-
-        
-        if (aLogin.usernameField == "." ||
-            aLogin.formSubmitURL == ".")
-            throw "login values can't be periods";
-
-        
-        
-        
-        if (aLogin.hostname.indexOf(" (") != -1)
-            throw "bad parens in hostname";
-    },
-
-
-    
-
-
-
-
-
-    _checkHostnameValue : function (hostname) {
-        
-        
-        if (hostname == "." ||
-            hostname.indexOf("\r") != -1 ||
-            hostname.indexOf("\n") != -1 ||
-            hostname.indexOf("\0") != -1)
-            throw "Invalid hostname";
     },
 
 
