@@ -1303,17 +1303,22 @@ public:
         }
         char basename[MAXPATHLEN] = {'\0'};
         char ccname[MAXPATHLEN] = {'\0'};
+        char* env;
+        if ((env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY"))) {
+            strcpy(basename, env);
+        } else {
 #ifdef XP_WIN
-        
-        
-        GetTempPathA(mozilla::ArrayLength(basename), basename);
+            
+            
+            GetTempPathA(mozilla::ArrayLength(basename), basename);
 #else
-        tmpnam(basename);
-        char *lastSlash = strrchr(basename, XPCOM_FILE_PATH_SEPARATOR[0]);
-        if (lastSlash) {
-            *lastSlash = '\0';
-        }
+            tmpnam(basename);
+            char *lastSlash = strrchr(basename, XPCOM_FILE_PATH_SEPARATOR[0]);
+            if (lastSlash) {
+                *lastSlash = '\0';
+            }
 #endif
+        }
 
         ++gLogCounter;
 
