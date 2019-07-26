@@ -4311,7 +4311,7 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
         }
     } else {
         
-        JS_ASSERT(!obj->isBlock());
+        JS_ASSERT(!obj->is<BlockObject>());
 
         if (obj->isGlobal() &&
             (defineHow & DNP_UNQUALIFIED) &&
