@@ -889,10 +889,6 @@ private:
                                 nsIDocShellTreeItem* aOriginalRequestor,
                                 nsIDocShellTreeItem** _retval);
 
-    
-    static bool IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
-                                nsIDocShellTreeItem* aAccessingItem);
-
 #ifdef DEBUG
     
     static unsigned long gNumberOfDocShells;

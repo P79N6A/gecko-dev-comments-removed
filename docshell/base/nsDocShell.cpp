@@ -1323,6 +1323,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
     nsCOMPtr<nsISHEntry> shEntry;
     nsXPIDLString target;
     nsAutoString srcdoc;
+    nsCOMPtr<nsIDocShell> sourceDocShell;
 
     uint32_t loadType = MAKE_LOAD_TYPE(LOAD_NORMAL, aLoadFlags);    
 
@@ -1352,6 +1353,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
         aLoadInfo->GetSendReferrer(&sendReferrer);
         aLoadInfo->GetIsSrcdocLoad(&isSrcdoc);
         aLoadInfo->GetSrcdocData(srcdoc);
+        aLoadInfo->GetSourceDocShell(getter_AddRefs(sourceDocShell));
     }
 
 #if defined(PR_LOGGING) && defined(DEBUG)
@@ -1597,6 +1599,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
                         nullptr,         
                         aFirstParty,
                         srcdoc,
+                        sourceDocShell,
                         nullptr,         
                         nullptr);        
 }
@@ -3303,11 +3306,7 @@ nsDocShell::FindItemWithName(const char16_t * aName,
         
         
         if (foundItem) {
-            if (IsSandboxedFrom(foundItem, aOriginalRequestor)) {
-                return NS_ERROR_DOM_INVALID_ACCESS_ERR;
-            } else {
-                foundItem.swap(*_retval);
-            }
+            foundItem.swap(*_retval);
         }
         return NS_OK;
     }
@@ -3380,19 +3379,22 @@ nsDocShell::DoFindItemWithName(const char16_t* aName,
     return NS_OK;
 }
 
-
 bool
-nsDocShell::IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
-                            nsIDocShellTreeItem* aAccessingItem)
+nsDocShell::IsSandboxedFrom(nsIDocShell* aTargetDocShell)
 {
     
-    if (SameCOMIdentity(aTargetItem, aAccessingItem)) {
+    if (!aTargetDocShell) {
+        return false;
+    }
+
+    
+    if (aTargetDocShell == this) {
         return false;
     }
 
     uint32_t sandboxFlags = 0;
 
-    nsCOMPtr<nsIDocument> doc = do_GetInterface(aAccessingItem);
+    nsCOMPtr<nsIDocument> doc = mContentViewer->GetDocument();
     if (doc) {
         sandboxFlags = doc->GetSandboxFlags();
     }
@@ -3404,11 +3406,11 @@ nsDocShell::IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
 
     
     nsCOMPtr<nsIDocShellTreeItem> ancestorOfTarget;
-    aTargetItem->GetSameTypeParent(getter_AddRefs(ancestorOfTarget));
+    aTargetDocShell->GetSameTypeParent(getter_AddRefs(ancestorOfTarget));
     if (ancestorOfTarget) {
         do {
             
-            if (SameCOMIdentity(aAccessingItem, ancestorOfTarget)) {
+            if (ancestorOfTarget == this) {
                 return false;
             }
             nsCOMPtr<nsIDocShellTreeItem> tempTreeItem;
@@ -3422,11 +3424,10 @@ nsDocShell::IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
 
     
     
-    nsCOMPtr<nsIDocShell> targetDocShell = do_QueryInterface(aTargetItem);
     nsCOMPtr<nsIDocShell> permittedNavigator;
-    targetDocShell->
+    aTargetDocShell->
         GetOnePermittedSandboxedNavigator(getter_AddRefs(permittedNavigator));
-    if (SameCOMIdentity(aAccessingItem, permittedNavigator)) {
+    if (permittedNavigator == this) {
         return false;
     }
 
@@ -3434,8 +3435,8 @@ nsDocShell::IsSandboxedFrom(nsIDocShellTreeItem* aTargetItem,
     
     if (!(sandboxFlags & SANDBOXED_TOPLEVEL_NAVIGATION)) {
         nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
-        aAccessingItem->GetSameTypeRootTreeItem(getter_AddRefs(rootTreeItem));
-        if (SameCOMIdentity(aTargetItem, rootTreeItem)) {
+        GetSameTypeRootTreeItem(getter_AddRefs(rootTreeItem));
+        if (SameCOMIdentity(aTargetDocShell, rootTreeItem)) {
             return false;
         }
     }
@@ -4793,7 +4794,7 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const char16_t *aURL,
     return InternalLoad(errorPageURI, nullptr, nullptr,
                         INTERNAL_LOAD_FLAGS_INHERIT_OWNER, nullptr, nullptr,
                         NullString(), nullptr, nullptr, LOAD_ERROR_PAGE,
-                        nullptr, true, NullString(), nullptr,nullptr);
+                        nullptr, true, NullString(), this, nullptr, nullptr);
 }
 
 
@@ -4861,6 +4862,7 @@ nsDocShell::Reload(uint32_t aReloadFlags)
                           nullptr,         
                           true,
                           srcdoc,          
+                          this,            
                           nullptr,         
                           nullptr);        
     }
@@ -8636,7 +8638,7 @@ public:
                       const char* aTypeHint, nsIInputStream * aPostData,
                       nsIInputStream * aHeadersData, uint32_t aLoadType,
                       nsISHEntry * aSHEntry, bool aFirstParty,
-                      const nsAString &aSrcdoc) :
+                      const nsAString &aSrcdoc, nsIDocShell* aSourceDocShell) :
         mSrcdoc(aSrcdoc),
         mDocShell(aDocShell),
         mURI(aURI),
@@ -8647,7 +8649,8 @@ public:
         mSHEntry(aSHEntry),
         mFlags(aFlags),
         mLoadType(aLoadType),
-        mFirstParty(aFirstParty)
+        mFirstParty(aFirstParty),
+        mSourceDocShell(aSourceDocShell)
     {
         
         if (aTypeHint) {
@@ -8660,7 +8663,7 @@ public:
                                        nullptr, mTypeHint.get(),
                                        NullString(), mPostData, mHeadersData,
                                        mLoadType, mSHEntry, mFirstParty,
-                                       mSrcdoc, nullptr, nullptr);
+                                       mSrcdoc, mSourceDocShell, nullptr, nullptr);
     }
 
 private:
@@ -8680,6 +8683,7 @@ private:
     uint32_t mFlags;
     uint32_t mLoadType;
     bool mFirstParty;
+    nsCOMPtr<nsIDocShell> mSourceDocShell;
 };
 
 
@@ -8713,6 +8717,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                          nsISHEntry * aSHEntry,
                          bool aFirstParty,
                          const nsAString &aSrcdoc,
+                         nsIDocShell* aSourceDocShell,
                          nsIDocShell** aDocShell,
                          nsIRequest** aRequest)
 {
@@ -8776,10 +8781,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     if (aWindowTarget && *aWindowTarget) {
         
         nsCOMPtr<nsIDocShellTreeItem> targetItem;
-        if (FindItemWithName(aWindowTarget, nullptr, this,
-               getter_AddRefs(targetItem)) == NS_ERROR_DOM_INVALID_ACCESS_ERR) {
-            return NS_ERROR_DOM_INVALID_ACCESS_ERR;
-        }
+        rv = FindItemWithName(aWindowTarget, nullptr, this,
+                              getter_AddRefs(targetItem));
+        NS_ENSURE_SUCCESS(rv, rv);
 
         targetDocShell = do_QueryInterface(targetItem);
         
@@ -8968,6 +8972,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                               aSHEntry,
                                               aFirstParty,
                                               aSrcdoc,
+                                              aSourceDocShell,
                                               aDocShell,
                                               aRequest);
             if (rv == NS_ERROR_NO_CONTENT) {
@@ -9022,17 +9027,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         return rv;
     }
 
-    
-    
-    nsCOMPtr<nsIDocShellTreeItem> parent;
-    GetParent(getter_AddRefs(parent));
-    if (parent) {
-      nsCOMPtr<nsIDocument> doc = do_GetInterface(parent);
-      if (doc) {
-        doc->TryCancelFrameLoaderInitialization(this);
-      }
-    }
-
     if (mFiredUnloadEvent) {
         if (IsOKToLoadURI(aURI)) {
             NS_PRECONDITION(!aWindowTarget || !*aWindowTarget,
@@ -9049,12 +9043,30 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             nsCOMPtr<nsIRunnable> ev =
                 new InternalLoadEvent(this, aURI, aReferrer, aOwner, aFlags,
                                       aTypeHint, aPostData, aHeadersData,
-                                      aLoadType, aSHEntry, aFirstParty, aSrcdoc);
+                                      aLoadType, aSHEntry, aFirstParty, aSrcdoc,
+                                      aSourceDocShell);
             return NS_DispatchToCurrentThread(ev);
         }
 
         
         return NS_OK;
+    }
+
+    
+    
+    if (aSourceDocShell && aSourceDocShell->IsSandboxedFrom(this)) {
+        return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+    }
+
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> parent;
+    GetParent(getter_AddRefs(parent));
+    if (parent) {
+        nsCOMPtr<nsIDocument> doc = do_GetInterface(parent);
+        if (doc) {
+            doc->TryCancelFrameLoaderInitialization(this);
+        }
     }
 
     
@@ -11067,6 +11079,10 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, uint32_t aLoadType)
         srcdoc = NullString();
     }
 
+    
+    
+    
+    
     rv = InternalLoad(uri,
                       referrerURI,
                       owner,
@@ -11080,6 +11096,7 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, uint32_t aLoadType)
                       aEntry,             
                       true,
                       srcdoc,
+                      nullptr,            
                       nullptr,            
                       nullptr);           
     return rv;
@@ -12494,6 +12511,7 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
                              nullptr,                   
                              true,                      
                              NullString(),              
+                             this,                      
                              aDocShell,                 
                              aRequest);                 
   if (NS_SUCCEEDED(rv)) {

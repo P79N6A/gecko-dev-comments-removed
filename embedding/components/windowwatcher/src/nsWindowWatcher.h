@@ -64,9 +64,8 @@ protected:
   
   
   
-  nsresult SafeGetWindowByName(const nsAString& aName,
-                               nsIDOMWindow* aCurrentWindow,
-                               nsIDOMWindow** aResult);
+  already_AddRefed<nsIDOMWindow>
+    SafeGetWindowByName(const nsAString& aName, nsIDOMWindow* aCurrentWindow);
 
   
   
