@@ -676,17 +676,17 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     
     
-    
-    for (gc::CellIter i(cx->zone(), gc::FINALIZE_LAZY_SCRIPT); !i.done(); i.next()) {
-        LazyScript *lazy = i.get<LazyScript>();
-        JSFunction *fun = lazy->function();
-        if (fun->compartment() == cx->compartment() &&
-            lazy->sourceObject() && !lazy->maybeScript())
-        {
-            MOZ_ASSERT(fun->isInterpretedLazy());
-            MOZ_ASSERT(lazy == fun->lazyScriptOrNull());
-            if (!lazyFunctions.append(fun))
-                return false;
+    for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
+        JSObject *obj = i.get<JSObject>();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
+            if (fun->isInterpretedLazy()) {
+                LazyScript *lazy = fun->lazyScriptOrNull();
+                if (lazy && lazy->sourceObject() && !lazy->maybeScript()) {
+                    if (!lazyFunctions.append(fun))
+                        return false;
+                }
+            }
         }
     }
 
@@ -708,16 +708,19 @@ CreateLazyScriptsForCompartment(JSContext *cx)
             return false;
     }
 
-    return true;
-}
+    
+    for (gc::CellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
+        JSObject *obj = i.get<JSObject>();
+        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
+            JSFunction *fun = &obj->as<JSFunction>();
+            if (fun->isInterpretedLazy()) {
+                LazyScript *lazy = fun->lazyScriptOrNull();
+                if (lazy && lazy->maybeScript())
+                    fun->existingScript();
+            }
+        }
+    }
 
-bool
-JSCompartment::ensureDelazifyScriptsForDebugMode(JSContext *cx)
-{
-    MOZ_ASSERT(cx->compartment() == this);
-    if ((debugModeBits & DebugNeedDelazification) && !CreateLazyScriptsForCompartment(cx))
-        return false;
-    debugModeBits &= ~DebugNeedDelazification;
     return true;
 }
 
@@ -725,7 +728,7 @@ bool
 JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeInvalidation &invalidate)
 {
     bool enabledBefore = debugMode();
-    bool enabledAfter = (debugModeBits & DebugModeFromMask & ~DebugFromC) || b;
+    bool enabledAfter = (debugModeBits & ~unsigned(DebugFromC)) || b;
 
     
     
@@ -744,9 +747,11 @@ JSCompartment::setDebugModeFromC(JSContext *cx, bool b, AutoDebugModeInvalidatio
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_DEBUG_NOT_IDLE);
             return false;
         }
+        if (enabledAfter && !CreateLazyScriptsForCompartment(cx))
+            return false;
     }
 
-    debugModeBits = (debugModeBits & ~DebugFromC) | (b ? DebugFromC : 0);
+    debugModeBits = (debugModeBits & ~unsigned(DebugFromC)) | (b ? DebugFromC : 0);
     JS_ASSERT(debugMode() == enabledAfter);
     if (enabledBefore != enabledAfter) {
         updateForDebugMode(cx->runtime()->defaultFreeOp(), invalidate);
@@ -796,6 +801,8 @@ JSCompartment::addDebuggee(JSContext *cx,
     Rooted<GlobalObject*> global(cx, globalArg);
 
     bool wasEnabled = debugMode();
+    if (!wasEnabled && !CreateLazyScriptsForCompartment(cx))
+        return false;
     if (!debuggees.put(global)) {
         js_ReportOutOfMemory(cx);
         return false;
