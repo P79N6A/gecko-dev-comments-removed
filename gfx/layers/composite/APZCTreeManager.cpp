@@ -215,6 +215,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
         apzc->NotifyLayersUpdated(metrics,
                                   aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
+        apzc->SetScrollHandoffParentId(container->GetScrollHandoffParentId());
 
         
         
@@ -869,12 +870,45 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
   mOverscrollHandoffChain.clear();
 
   
-  for (AsyncPanZoomController* apzc = aInitialTarget; apzc; apzc = apzc->GetParent()) {
+  
+  
+  
+  AsyncPanZoomController* apzc = aInitialTarget;
+  while (apzc != nullptr) {
     if (!mOverscrollHandoffChain.append(apzc)) {
       NS_WARNING("Vector::append failed");
       mOverscrollHandoffChain.clear();
       return;
     }
+    if (apzc->GetScrollHandoffParentId() == FrameMetrics::NULL_SCROLL_ID) {
+      if (!apzc->IsRootForLayersId()) {
+        
+        NS_WARNING("Found a non-root APZ with no handoff parent");
+      }
+      apzc = apzc->GetParent();
+      continue;
+    }
+
+    
+    
+    
+    
+    AsyncPanZoomController* scrollParent = nullptr;
+    AsyncPanZoomController* parent = apzc;
+    while (!parent->IsRootForLayersId()) {
+      parent = parent->GetParent();
+      
+      
+      
+      if (parent->GetGuid().mScrollId == apzc->GetScrollHandoffParentId()) {
+        scrollParent = parent;
+        break;
+      }
+    }
+    if (!scrollParent) {
+      scrollParent = FindTargetAPZC(parent, apzc->GetScrollHandoffParentId());
+    }
+    apzc = scrollParent;
   }
 
   
@@ -887,6 +921,30 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
   
   std::stable_sort(mOverscrollHandoffChain.begin(), mOverscrollHandoffChain.end(),
                    CompareByScrollPriority());
+}
+
+
+
+
+AsyncPanZoomController*
+APZCTreeManager::FindTargetAPZC(AsyncPanZoomController* aApzc, FrameMetrics::ViewID aScrollId)
+{
+  mTreeLock.AssertCurrentThreadOwns();
+
+  if (aApzc->GetGuid().mScrollId == aScrollId) {
+    return aApzc;
+  }
+  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
+    if (child->GetGuid().mLayersId != aApzc->GetGuid().mLayersId) {
+      continue;
+    }
+    AsyncPanZoomController* match = FindTargetAPZC(child, aScrollId);
+    if (match) {
+      return match;
+    }
+  }
+
+  return nullptr;
 }
 
 void

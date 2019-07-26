@@ -822,6 +822,23 @@ private:
 
 
 public:
+  void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId) {
+    mScrollParentId = aScrollParentId;
+  }
+
+  FrameMetrics::ViewID GetScrollHandoffParentId() const {
+    return mScrollParentId;
+  }
+
+private:
+  FrameMetrics::ViewID mScrollParentId;
+
+
+  
+
+
+
+public:
   void SetLayerHitTestData(const ParentLayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
                            const gfx3DMatrix& aTransformForLayer) {
     mVisibleRect = aRect;
