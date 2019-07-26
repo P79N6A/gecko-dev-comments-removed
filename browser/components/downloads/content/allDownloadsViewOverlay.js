@@ -600,6 +600,7 @@ function DownloadsPlacesView(aRichListBox) {
 
   
   window.addEventListener("unload", function() {
+    this._richlistbox.controllers.removeController(this);
     downloadsData.removeView(this);
     this.result = null;
   }.bind(this), true);
@@ -770,6 +771,7 @@ DownloadsPlacesView.prototype = {
     
     if (aElement.nextSibling &&
         this._richlistbox.selectedItems &&
+        this._richlistbox.selectedItems.length > 0 &&
         this._richlistbox.selectedItems[0] == aElement) {
       this._richlistbox.selectItem(aElement.nextSibling);
     }
