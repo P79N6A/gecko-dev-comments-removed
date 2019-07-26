@@ -1148,10 +1148,10 @@ MUrsh::computeRange()
     
     
     left.wrapAroundToInt32();
+    right.wrapAroundToShiftCount();
 
     MDefinition *rhs = getOperand(1);
     if (!rhs->isConstant()) {
-        right.wrapAroundToShiftCount();
         setRange(Range::ursh(&left, &right));
     } else {
         int32_t c = rhs->toConstant()->value().toInt32();
@@ -1246,6 +1246,14 @@ MMod::computeRange()
 
     
     
+    if (specialization() == MIRType_Int32 && lhs.lower() >= 0 && rhs.lower() > 0 &&
+        !lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart())
+    {
+        unsigned_ = true;
+    }
+
+    
+    
     if (unsigned_) {
         
         
@@ -1320,6 +1328,13 @@ MDiv::computeRange()
     
     if (lhs.lower() >= 0 && rhs.lower() >= 1) {
         setRange(new Range(0, lhs.upper(), true, lhs.exponent()));
+
+        
+        if (specialization() == MIRType_Int32 &&
+            !lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart())
+        {
+            unsigned_ = true;
+        }
     } else if (unsigned_ && rhs.lower() >= 1) {
         
         
@@ -2521,4 +2536,19 @@ MPowHalf::collectRangeInfoPreTrunc()
         operandIsNeverNegativeZero_ = true;
     if (!inputRange.canBeNaN())
         operandIsNeverNaN_ = true;
+}
+
+void
+MUrsh::collectRangeInfoPreTrunc()
+{
+    Range lhsRange(lhs()), rhsRange(rhs());
+
+    
+    lhsRange.wrapAroundToInt32();
+    rhsRange.wrapAroundToShiftCount();
+
+    
+    
+    if (lhsRange.lower() >= 0 || rhsRange.lower() >= 1)
+        bailoutsDisabled_ = true;
 }
