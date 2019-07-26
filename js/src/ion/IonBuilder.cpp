@@ -2728,45 +2728,45 @@ IonBuilder::jsop_notearg()
     return true;
 }
 
-bool
-IonBuilder::jsop_call_inline(IonBuilder &inlineBuilder, HandleFunction callee,
-                             uint32 argc, bool constructing)
+class AutoAccumulateExits
 {
-#ifdef DEBUG
-    uint32 origStackDepth = current->stackDepth();
-#endif
+    MIRGraph &graph_;
+    MIRGraphExits *prev_;
 
-    
-    MBasicBlock *top = current;
+  public:
+    AutoAccumulateExits(MIRGraph &graph, MIRGraphExits &exits) : graph_(graph) {
+        prev_ = graph_.exitAccumulator();
+        graph_.setExitAccumulator(&exits);
+    }
+    ~AutoAccumulateExits() {
+        graph_.setExitAccumulator(prev_);
+    }
+};
 
+bool
+IonBuilder::jsop_call_inline(HandleFunction callee, uint32 argc, bool constructing,
+                             MConstant *constFun, MResumePoint *inlineResumePoint,
+                             MDefinitionVector &argv, MBasicBlock *bottom,
+                             Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns)
+{
     
     
-    MConstant *constFun = MConstant::New(ObjectValue(*callee));
-    current->add(constFun);
-
-    
-    
-    MResumePoint *inlineResumePoint =
-        MResumePoint::New(top, pc, callerResumePoint_, MResumePoint::Outer);
-    if (!inlineResumePoint)
+    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(
+                            callee->script(), callee, (jsbytecode *)NULL);
+    if (!info)
         return false;
 
-    
-    JS_ASSERT(argc == GET_ARGC(inlineResumePoint->pc()));
+    MIRGraphExits saveExits;
+    AutoAccumulateExits aae(graph(), saveExits);
 
-    
-    
-    
-    MDefinitionVector argv;
-    if (!discardCallArgs(argc, argv, top))
+    TypeInferenceOracle oracle;
+    if (!oracle.init(cx, callee->script()))
         return false;
 
-    
-    
-    
-    inlineResumePoint->replaceOperand(inlineResumePoint->numOperands() - (argc + 2), constFun);
-    current->pop();
-    current->push(constFun);
+    RootedObject scopeChain(NULL);
+
+    IonBuilder inlineBuilder(cx, scopeChain, temp(), graph(), &oracle,
+                             *info, inliningDepth + 1, loopDepth_);
 
     
     MDefinition *thisDefn = NULL;
@@ -2785,14 +2785,7 @@ IonBuilder::jsop_call_inline(IonBuilder &inlineBuilder, HandleFunction callee,
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
 
     
-    JS_ASSERT(types::IsInlinableCall(pc));
-    jsbytecode *postCall = GetNextPc(pc);
-    MBasicBlock *bottom = newBlock(NULL, postCall);
-    bottom->setCallerResumePoint(callerResumePoint_);
-
     
-    
-    Vector<MDefinition *, 8, IonAllocPolicy> retvalDefns;
     for (MBasicBlock **it = exits.begin(), **end = exits.end(); it != end; ++it) {
         MBasicBlock *exitBlock = *it;
 
@@ -2819,58 +2812,8 @@ IonBuilder::jsop_call_inline(IonBuilder &inlineBuilder, HandleFunction callee,
             return false;
     }
     JS_ASSERT(!retvalDefns.empty());
-
-    if (!bottom->inheritNonPredecessor(top))
-        return false;
-
-    
-    (void) bottom->pop();
-
-    MDefinition *retvalDefn;
-    if (retvalDefns.length() > 1) {
-        
-        MPhi *phi = MPhi::New(bottom->stackDepth());
-        bottom->addPhi(phi);
-
-        for (MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end(); it != end; ++it) {
-            if (!phi->addInput(*it))
-                return false;
-        }
-        retvalDefn = phi;
-    } else {
-        retvalDefn = retvalDefns.back();
-    }
-
-    bottom->push(retvalDefn);
-
-    
-    uint32 retvalSlot = bottom->stackDepth() - 1;
-    bottom->entryResumePoint()->replaceOperand(retvalSlot, retvalDefn);
-
-    
-    
-    
-    
-    JS_ASSERT(bottom->stackDepth() == origStackDepth - argc - 1);
-
-    current = bottom;
     return true;
 }
-
-class AutoAccumulateExits
-{
-    MIRGraph &graph_;
-    MIRGraphExits *prev_;
-
-  public:
-    AutoAccumulateExits(MIRGraph &graph, MIRGraphExits &exits) : graph_(graph) {
-        prev_ = graph_.exitAccumulator();
-        graph_.setExitAccumulator(&exits);
-    }
-    ~AutoAccumulateExits() {
-        graph_.setExitAccumulator(prev_);
-    }
-};
 
 static bool IsSmallFunction(JSFunction *target) {
     if (!target->isInterpreted())
@@ -2925,27 +2868,93 @@ IonBuilder::makeInliningDecision(HandleFunction target)
 bool
 IonBuilder::inlineScriptedCall(HandleFunction target, uint32 argc, bool constructing)
 {
+#ifdef DEBUG
+    uint32 origStackDepth = current->stackDepth();
+#endif
+
     IonSpew(IonSpew_Inlining, "Recursively building");
 
     
+    MBasicBlock *top = current;
+
     
-    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(target->script(),
-                                                              target, (jsbytecode *)NULL);
-    if (!info)
+    MConstant *constFun = MConstant::New(ObjectValue(*target));
+    current->add(constFun);
+
+    
+    
+    MResumePoint *inlineResumePoint =
+        MResumePoint::New(top, pc, callerResumePoint_, MResumePoint::Outer);
+    if (!inlineResumePoint)
         return false;
 
-    MIRGraphExits exits;
-    AutoAccumulateExits aae(graph(), exits);
+    
+    JS_ASSERT(argc == GET_ARGC(inlineResumePoint->pc()));
 
-    TypeInferenceOracle oracle;
-    if (!oracle.init(cx, target->script()))
+    
+    
+    
+    MDefinitionVector argv;
+    if(!discardCallArgs(argc, argv, top))
         return false;
 
-    RootedObject scopeChain(NULL);
+    
+    
+    
+    inlineResumePoint->replaceOperand(inlineResumePoint->numOperands() - (argc + 2), constFun);
+    current->pop();
+    current->push(constFun);
 
-    IonBuilder inlineBuilder(cx, scopeChain, temp(), graph(), &oracle,
-                             *info, inliningDepth + 1, loopDepth_);
-    return jsop_call_inline(inlineBuilder, target, argc, constructing);
+    
+    JS_ASSERT(types::IsInlinableCall(pc));
+    jsbytecode *postCall = GetNextPc(pc);
+    MBasicBlock *bottom = newBlock(NULL, postCall);
+    bottom->setCallerResumePoint(callerResumePoint_);
+
+    Vector<MDefinition *, 8, IonAllocPolicy> retvalDefns;
+
+    
+    if(!jsop_call_inline(target, argc, constructing, constFun,
+                         inlineResumePoint, argv, bottom, retvalDefns))
+        return false;
+
+    graph_.moveBlockToEnd(bottom);
+
+    if (!bottom->inheritNonPredecessor(top))
+        return false;
+
+    
+    (void) bottom->pop();
+
+    MDefinition *retvalDefn;
+    if (retvalDefns.length() > 1) {
+        
+        MPhi *phi = MPhi::New(bottom->stackDepth());
+        bottom->addPhi(phi);
+
+        for (MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end(); it != end; ++it) {
+            if (!phi->addInput(*it))
+                return false;
+        }
+        retvalDefn = phi;
+    } else {
+        retvalDefn = retvalDefns.back();
+    }
+
+    bottom->push(retvalDefn);
+
+    
+    uint32 retvalSlot = bottom->stackDepth() - 1;
+    bottom->entryResumePoint()->replaceOperand(retvalSlot, retvalDefn);
+
+    
+    
+    
+    
+    JS_ASSERT(bottom->stackDepth() == origStackDepth - argc - 1);
+
+    current = bottom;
+    return true;
 }
 
 void
