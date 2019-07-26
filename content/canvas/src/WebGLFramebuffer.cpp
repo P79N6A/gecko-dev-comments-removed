@@ -890,7 +890,7 @@ FinalizeDrawAndReadBuffers(GLContext* aGL, bool aColorBufferDefined)
     
     
     
-    if (aGL->IsGLES2() ||
+    if (aGL->IsGLES() ||
         aGL->IsSupported(GLFeature::ES2_compatibility) ||
         aGL->IsAtLeast(ContextProfile::OpenGL, 420))
     {

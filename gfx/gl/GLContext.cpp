@@ -484,7 +484,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
     
     if (mInitialized) {
-        if (IsGLES2()) {
+        if (IsGLES()) {
             SymLoadStruct symbols_ES2[] = {
                 { (PRFuncPtr*) &mSymbols.fGetShaderPrecisionFormat, { "GetShaderPrecisionFormat", nullptr } },
                 { (PRFuncPtr*) &mSymbols.fClearDepthf, { "ClearDepthf", nullptr } },
@@ -1338,7 +1338,7 @@ GLContext::ChooseGLFormats(const SurfaceCaps& caps) const
     
     
     bool bpp16 = caps.bpp16;
-    if (IsGLES2()) {
+    if (IsGLES()) {
         if (!IsExtensionSupported(OES_rgb8_rgba8))
             bpp16 = true;
     } else {
@@ -1348,7 +1348,7 @@ GLContext::ChooseGLFormats(const SurfaceCaps& caps) const
     }
 
     if (bpp16) {
-        MOZ_ASSERT(IsGLES2());
+        MOZ_ASSERT(IsGLES());
         if (caps.alpha) {
             formats.color_texInternalFormat = LOCAL_GL_RGBA;
             formats.color_texFormat = LOCAL_GL_RGBA;
@@ -1364,11 +1364,11 @@ GLContext::ChooseGLFormats(const SurfaceCaps& caps) const
         formats.color_texType = LOCAL_GL_UNSIGNED_BYTE;
 
         if (caps.alpha) {
-            formats.color_texInternalFormat = IsGLES2() ? LOCAL_GL_RGBA : LOCAL_GL_RGBA8;
+            formats.color_texInternalFormat = IsGLES() ? LOCAL_GL_RGBA : LOCAL_GL_RGBA8;
             formats.color_texFormat = LOCAL_GL_RGBA;
             formats.color_rbFormat  = LOCAL_GL_RGBA8;
         } else {
-            formats.color_texInternalFormat = IsGLES2() ? LOCAL_GL_RGB : LOCAL_GL_RGB8;
+            formats.color_texInternalFormat = IsGLES() ? LOCAL_GL_RGB : LOCAL_GL_RGB8;
             formats.color_texFormat = LOCAL_GL_RGB;
             formats.color_rbFormat  = LOCAL_GL_RGB8;
         }
@@ -1387,12 +1387,12 @@ GLContext::ChooseGLFormats(const SurfaceCaps& caps) const
 
     
     formats.depthStencil = 0;
-    if (!IsGLES2() || IsExtensionSupported(OES_packed_depth_stencil)) {
+    if (!IsGLES() || IsExtensionSupported(OES_packed_depth_stencil)) {
         formats.depthStencil = LOCAL_GL_DEPTH24_STENCIL8;
     }
 
     formats.depth = 0;
-    if (IsGLES2()) {
+    if (IsGLES()) {
         if (IsExtensionSupported(OES_depth24)) {
             formats.depth = LOCAL_GL_DEPTH_COMPONENT24;
         } else {

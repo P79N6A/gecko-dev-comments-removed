@@ -1631,7 +1631,7 @@ WebGLContext::InitAndValidateGL()
     MakeContextCurrent();
 
     
-    if (!gl->IsGLES2()) {
+    if (!gl->IsGLES()) {
         gl->fEnableVertexAttribArray(0);
     }
 
@@ -1729,7 +1729,7 @@ WebGLContext::InitAndValidateGL()
     
     mMaxFramebufferColorAttachments = 1;
 
-    if (!gl->IsGLES2()) {
+    if (!gl->IsGLES()) {
         
         
         gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);

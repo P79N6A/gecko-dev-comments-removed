@@ -60,7 +60,7 @@ WebGLContext::CreateQuery()
     if (IsContextLost())
         return nullptr;
 
-    if (mActiveOcclusionQuery && !gl->IsGLES2()) {
+    if (mActiveOcclusionQuery && !gl->IsGLES()) {
         
 
 
@@ -95,7 +95,7 @@ WebGLContext::DeleteQuery(WebGLQuery *query)
         EndQuery(query->mType);
     }
 
-    if (mActiveOcclusionQuery && !gl->IsGLES2()) {
+    if (mActiveOcclusionQuery && !gl->IsGLES()) {
         
 
 
