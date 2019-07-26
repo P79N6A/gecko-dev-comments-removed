@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 2; -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_TabChild_h
 #define mozilla_dom_TabChild_h
@@ -92,7 +92,7 @@ public:
                               nsIDOMEventListener* aListener,
                               bool aUseCapture)
   {
-    
+    // By default add listeners only for trusted events!
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
                                                     aUseCapture, false, 2);
   }
@@ -235,6 +235,11 @@ protected:
 
     bool DispatchWidgetEvent(nsGUIEvent& event);
 
+    virtual PIndexedDBChild* AllocPIndexedDB(const nsCString& aASCIIOrigin,
+                                             bool* /* aAllowed */);
+
+    virtual bool DeallocPIndexedDB(PIndexedDBChild* actor);
+
 private:
     void ActorDestroy(ActorDestroyReason why);
 
@@ -283,4 +288,4 @@ GetTabChildFrom(nsIDOMWindow* aWindow)
 }
 }
 
-#endif 
+#endif // mozilla_dom_TabChild_h

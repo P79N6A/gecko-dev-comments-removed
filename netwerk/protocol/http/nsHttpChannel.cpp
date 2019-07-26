@@ -10,6 +10,7 @@
 #include "nsIApplicationCacheService.h"
 #include "nsIApplicationCacheContainer.h"
 #include "nsIAuthInformation.h"
+#include "nsICryptoHash.h"
 #include "nsIStringBundle.h"
 #include "nsIIDNService.h"
 #include "nsIStreamListenerTee.h"
@@ -26,7 +27,6 @@
 #include "nsChannelClassifier.h"
 #include "nsIRedirectResultListener.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Telemetry.h"
 #include "nsDOMError.h"
 #include "nsAlgorithm.h"
 #include "sampler.h"
@@ -34,7 +34,9 @@
 #include "base/compiler_specific.h"
 #include "NullHttpTransaction.h"
 
-using namespace mozilla;
+namespace mozilla { namespace net {
+ 
+namespace {
 
 
 const char kDiskDeviceID[] = "disk";
@@ -47,6 +49,98 @@ const char kOfflineDeviceID[] = "offline";
                       nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE))
 
 static NS_DEFINE_CID(kStreamListenerTeeCID, NS_STREAMLISTENERTEE_CID);
+static NS_DEFINE_CID(kStreamTransportServiceCID,
+                     NS_STREAMTRANSPORTSERVICE_CID);
+
+const mozilla::Telemetry::ID UNKNOWN_DEVICE
+    = static_cast<mozilla::Telemetry::ID>(0);
+void
+AccumulateCacheHitTelemetry(mozilla::Telemetry::ID deviceHistogram,
+                            PRUint32 hitOrMiss)
+{
+    mozilla::Telemetry::Accumulate(
+            mozilla::Telemetry::HTTP_CACHE_DISPOSITION, hitOrMiss);
+    if (deviceHistogram != UNKNOWN_DEVICE) {
+        mozilla::Telemetry::Accumulate(deviceHistogram, hitOrMiss);
+    }
+}
+
+const char *
+GetCacheSessionNameForStoragePolicy(nsCacheStoragePolicy storagePolicy,
+                                    bool isPrivate)
+{
+    MOZ_ASSERT(!isPrivate || storagePolicy == nsICache::STORE_IN_MEMORY);
+
+    switch (storagePolicy) {
+    case nsICache::STORE_IN_MEMORY:
+        return isPrivate ? "HTTP-memory-only-PB" : "HTTP-memory-only";
+    case nsICache::STORE_OFFLINE:
+        return "HTTP-offline";
+    default:
+        return "HTTP";
+    }
+}
+
+
+
+nsresult
+Hash(const char *buf, nsACString &hash)
+{
+    nsresult rv;
+      
+    nsCOMPtr<nsICryptoHash> hasher
+      = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = hasher->Init(nsICryptoHash::SHA1);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = hasher->Update(reinterpret_cast<unsigned const char*>(buf),
+                         strlen(buf));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = hasher->Finish(true, hash);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+}
+
+bool IsRedirectStatus(PRUint32 status)
+{
+    
+    return status == 300 || status == 301 || status == 302 || status == 303 ||
+           status == 307 || status == 308;
+}
+
+
+
+bool
+WillRedirect(const nsHttpResponseHead * response)
+{
+    return IsRedirectStatus(response->Status()) &&
+           response->PeekHeader(nsHttp::Location);
+}
+
+void
+MaybeMarkCacheEntryValid(const void * channel,
+                         nsICacheEntryDescriptor * cacheEntry,
+                         nsCacheAccessMode cacheAccess)
+{
+    
+    
+    if (cacheAccess & nsICache::ACCESS_WRITE) {
+        nsresult rv = cacheEntry->MarkValid();
+        LOG(("Marking cache entry valid "
+             "[channel=%p, entry=%p, access=%d, result=%d]",
+             channel, cacheEntry, PRIntn(cacheAccess), PRIntn(rv)));
+    } else {
+        LOG(("Not marking read-only cache entry valid "
+             "[channel=%p, entry=%p, access=%d]", 
+             channel, cacheEntry, PRIntn(cacheAccess)));
+    }
+}
+
+} 
 
 class AutoRedirectVetoNotifier
 {
@@ -77,6 +171,112 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
         vetoHook->OnRedirectResult(succeeded);
 }
 
+class HttpCacheQuery : public nsRunnable, public nsICacheListener
+{
+public:
+    HttpCacheQuery(nsHttpChannel * channel,
+                   const nsACString & clientID,
+                   nsCacheStoragePolicy storagePolicy,
+                   bool usingPrivateBrowsing,
+                   const nsACString & cacheKey,
+                   nsCacheAccessMode accessToRequest,
+                   bool noWait,
+                   bool usingSSL,
+                   bool loadedFromApplicationCache)
+        
+        : mChannel(channel)
+        , mHasQueryString(HasQueryString(channel->mRequestHead.Method(),
+                                         channel->mURI))
+        , mLoadFlags(channel->mLoadFlags)
+        , mCacheForOfflineUse(channel->mCacheForOfflineUse)
+        , mFallbackChannel(channel->mFallbackChannel)
+        , mClientID(clientID)
+        , mStoragePolicy(storagePolicy)
+        , mUsingPrivateBrowsing(usingPrivateBrowsing)
+        , mCacheKey(cacheKey)
+        , mAccessToRequest(accessToRequest)
+        , mNoWait(noWait)
+        , mUsingSSL(usingSSL)
+        , mLoadedFromApplicationCache(loadedFromApplicationCache)
+        
+        , mCacheAccess(0)
+        , mStatus(NS_ERROR_NOT_INITIALIZED)
+        , mRunCount(0)
+        
+        , mRequestHead(channel->mRequestHead)
+        , mRedirectedCachekeys(channel->mRedirectedCachekeys.forget())
+        
+        , mCachedContentIsValid(false)
+        , mCachedContentIsPartial(false)
+        , mCustomConditionalRequest(false)
+        , mDidReval(false)
+        , mCacheEntryDeviceTelemetryID(UNKNOWN_DEVICE)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+    }
+
+    nsresult Dispatch();
+
+private:
+    NS_DECL_ISUPPORTS_INHERITED
+    NS_DECL_NSIRUNNABLE
+    NS_DECL_NSICACHELISTENER
+
+    MOZ_ALWAYS_INLINE void AssertOnCacheThread() const
+    {
+        MOZ_ASSERT(mCacheThread);
+#ifdef DEBUG
+        bool onCacheThread;
+        nsresult rv = mCacheThread->IsOnCurrentThread(&onCacheThread);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        MOZ_ASSERT(onCacheThread);
+#endif
+    }
+
+    static bool HasQueryString(nsHttpAtom method, nsIURI * uri);
+    nsresult CheckCache();
+    bool ResponseWouldVary() const;
+    bool MustValidateBasedOnQueryUrl() const;
+    nsresult SetupByteRangeRequest(PRUint32 partialLen);
+    nsresult StartBufferingCachedEntity();
+
+    nsCOMPtr<nsICacheListener> mChannel;
+    const bool mHasQueryString;
+    const PRUint32 mLoadFlags;
+    const bool mCacheForOfflineUse;
+    const bool mFallbackChannel;
+    const InfallableCopyCString mClientID;
+    const nsCacheStoragePolicy mStoragePolicy;
+    const bool mUsingPrivateBrowsing;
+    const InfallableCopyCString mCacheKey;
+    const nsCacheAccessMode mAccessToRequest;
+    const bool mNoWait;
+    const bool mUsingSSL;
+    const bool mLoadedFromApplicationCache;
+
+    
+    nsCOMPtr<nsIEventTarget> mCacheThread;
+    nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
+    nsCacheAccessMode mCacheAccess;
+    nsresult mStatus;
+    PRUint32 mRunCount;
+
+    
+    friend class nsHttpChannel;
+     nsHttpRequestHead mRequestHead;
+     nsAutoPtr<nsTArray<nsCString> > mRedirectedCachekeys;
+     AutoClose<nsIAsyncInputStream> mCacheAsyncInputStream;
+     nsAutoPtr<nsHttpResponseHead> mCachedResponseHead;
+     nsCOMPtr<nsISupports> mCachedSecurityInfo;
+     bool mCachedContentIsValid;
+     bool mCachedContentIsPartial;
+     bool mCustomConditionalRequest;
+     bool mDidReval;
+     mozilla::Telemetry::ID mCacheEntryDeviceTelemetryID;
+};
+
+NS_IMPL_ISUPPORTS_INHERITED1(HttpCacheQuery, nsRunnable, nsICacheListener)
+
 
 
 
@@ -85,6 +285,7 @@ nsHttpChannel::nsHttpChannel()
     : ALLOW_THIS_IN_INITIALIZER_LIST(HttpAsyncAborter<nsHttpChannel>(this))
     , mLogicalOffset(0)
     , mCacheAccess(0)
+    , mCacheEntryDeviceTelemetryID(UNKNOWN_DEVICE)
     , mPostID(0)
     , mRequestTime(0)
     , mOnCacheEntryAvailableCallback(nsnull)
@@ -140,7 +341,7 @@ nsHttpChannel::Init(nsIURI *uri,
 
 
 nsresult
-nsHttpChannel::Connect(bool firstTime)
+nsHttpChannel::Connect()
 {
     nsresult rv;
 
@@ -190,97 +391,80 @@ nsHttpChannel::Connect(bool firstTime)
         return NS_ERROR_UNKNOWN_HOST;
 
     
-    if (firstTime) {
+    SpeculativeConnect();
 
-        
-        SpeculativeConnect();
+    
+    bool offline = gIOService->IsOffline();
+    if (offline)
+        mLoadFlags |= LOAD_ONLY_FROM_CACHE;
+    else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
+        return ResolveProxy();  
 
-        
-        bool offline = gIOService->IsOffline();
-        if (offline)
-            mLoadFlags |= LOAD_ONLY_FROM_CACHE;
-        else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
-            return ResolveProxy();  
+    
+    if (mResuming && (mLoadFlags & LOAD_ONLY_FROM_CACHE)) {
+        LOG(("Resuming from cache is not supported yet"));
+        return NS_ERROR_DOCUMENT_NOT_CACHED;
+    }
 
+    if (!gHttpHandler->UseCache())
+        return ContinueConnect();
+
+    
+    rv = OpenCacheEntry(usingSSL);
+
+    
+    if (mOnCacheEntryAvailableCallback) {
+        NS_ASSERTION(NS_SUCCEEDED(rv), "Unexpected state");
+        return NS_OK;
+    }
+
+    if (NS_FAILED(rv)) {
+        LOG(("OpenCacheEntry failed [rv=%x]\n", rv));
         
-        if (mResuming && (mLoadFlags & LOAD_ONLY_FROM_CACHE)) {
-            LOG(("Resuming from cache is not supported yet"));
+        
+        if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
+            
+            
+            if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
+                return AsyncCall(&nsHttpChannel::HandleAsyncFallback);
+            }
             return NS_ERROR_DOCUMENT_NOT_CACHED;
         }
-
         
-        rv = OpenCacheEntry();
-
-        
-        if (mOnCacheEntryAvailableCallback) {
-            NS_ASSERTION(NS_SUCCEEDED(rv), "Unexpected state");
-            return NS_OK;
-        }
-
-        if (NS_FAILED(rv)) {
-            LOG(("OpenCacheEntry failed [rv=%x]\n", rv));
-            
-            
-            if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
-                
-                
-                if (!mFallbackChannel && !mFallbackKey.IsEmpty()) {
-                    return AsyncCall(&nsHttpChannel::HandleAsyncFallback);
-                }
-                return NS_ERROR_DOCUMENT_NOT_CACHED;
-            }
-            
-        }
-
-        
-        
-        if (mCacheForOfflineUse) {
-            rv = OpenOfflineCacheEntryForWriting();
-            if (NS_FAILED(rv)) return rv;
-
-            if (mOnCacheEntryAvailableCallback)
-                return NS_OK;
-        }
     }
 
     
-    if (mCacheEntry) {
-        
-        
-        
-        rv = CheckCache();
-        if (NS_FAILED(rv))
-            NS_WARNING("cache check failed");
+    
+    if (mCacheForOfflineUse) {
+        rv = OpenOfflineCacheEntryForWriting();
+        if (NS_FAILED(rv)) return rv;
 
+        if (mOnCacheEntryAvailableCallback)
+            return NS_OK;
+    }
+
+    return ContinueConnect();
+}
+
+nsresult
+nsHttpChannel::ContinueConnect()
+{
+    
+    if (mCacheEntry) {
         
         if (mCachedContentIsValid) {
             nsRunnableMethod<nsHttpChannel> *event = nsnull;
             if (!mCachedContentIsPartial) {
                 AsyncCall(&nsHttpChannel::AsyncOnExamineCachedResponse, &event);
             }
-            rv = ReadFromCache();
+            nsresult rv = ReadFromCache(true);
             if (NS_FAILED(rv) && event) {
                 event->Revoke();
             }
-            mozilla::Telemetry::Accumulate(
-                    mozilla::Telemetry::HTTP_CACHE_DISPOSITION, kCacheHit);
 
-            char* cacheDeviceID = nsnull;
-            mCacheEntry->GetDeviceID(&cacheDeviceID);
-            if (cacheDeviceID) {
-                if (!strcmp(cacheDeviceID, kDiskDeviceID))
-                    mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION,
-                            kCacheHit);
-                else if (!strcmp(cacheDeviceID, kMemoryDeviceID))
-                    mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION,
-                            kCacheHit);
-                else if (!strcmp(cacheDeviceID, kOfflineDeviceID))
-                    mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION,
-                            kCacheHit);
-            }
+            AccumulateCacheHitTelemetry(mCacheEntryDeviceTelemetryID,
+                                        kCacheHit);
+
             return rv;
         }
         else if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
@@ -305,7 +489,7 @@ nsHttpChannel::Connect(bool firstTime)
     }
 
     
-    rv = SetupTransaction();
+    nsresult rv = SetupTransaction();
     if (NS_FAILED(rv)) return rv;
 
     rv = gHttpHandler->InitiateTransaction(mTransaction, mPriority);
@@ -405,8 +589,8 @@ nsHttpChannel::ContinueHandleAsyncRedirect(nsresult rv)
     if (mCacheEntry) {
         if (NS_FAILED(rv))
             mCacheEntry->Doom();
-        CloseCacheEntry(false);
     }
+    CloseCacheEntry(false);
 
     mIsPending = false;
 
@@ -783,24 +967,16 @@ nsHttpChannel::CallOnStartRequest()
 
     if (!mCanceled) {
         
-        if (mCacheForOfflineUse) {
-            bool shouldCacheForOfflineUse;
-            rv = ShouldUpdateOfflineCacheEntry(&shouldCacheForOfflineUse);
+        if (ShouldUpdateOfflineCacheEntry()) {
+            LOG(("writing to the offline cache"));
+            rv = InitOfflineCacheEntry();
             if (NS_FAILED(rv)) return rv;
-            
-            if (shouldCacheForOfflineUse) {
-                LOG(("writing to the offline cache"));
-                rv = InitOfflineCacheEntry();
-                if (NS_FAILED(rv)) return rv;
                 
-                if (mOfflineCacheEntry) {
-                  rv = InstallOfflineCacheListener();
-                  if (NS_FAILED(rv)) return rv;
-                }
-            } else {
-                LOG(("offline cache is up to date, not updating"));
-                CloseOfflineCacheEntry();
-            }
+            rv = InstallOfflineCacheListener();
+            if (NS_FAILED(rv)) return rv;
+        } else if (mCacheForOfflineUse) {
+            LOG(("offline cache is up to date, not updating"));
+            CloseOfflineCacheEntry();
         }
     }
 
@@ -996,6 +1172,11 @@ nsHttpChannel::ProcessResponse()
         NS_ASSERTION(NS_SUCCEEDED(rv), "ProcessSTSHeader failed, continuing load.");
     }
 
+    MOZ_ASSERT(!mCachedContentIsValid);
+    if (httpStatus != 304 && httpStatus != 206) {
+        mCacheAsyncInputStream.CloseAndRelease();
+    }
+
     
     gHttpHandler->OnExamineResponse(this);
 
@@ -1041,8 +1222,10 @@ nsHttpChannel::ProcessResponse()
     case 206:
         if (mCachedContentIsPartial) 
             rv = ProcessPartialContent();
-        else
+        else {
+            mCacheAsyncInputStream.CloseAndRelease();
             rv = ProcessNormal();
+        }
         break;
     case 300:
     case 301:
@@ -1067,6 +1250,7 @@ nsHttpChannel::ProcessResponse()
         rv = ProcessNotModified();
         if (NS_FAILED(rv)) {
             LOG(("ProcessNotModified failed [rv=%x]\n", rv));
+            mCacheAsyncInputStream.CloseAndRelease();
             rv = ProcessNormal();
         }
         else {
@@ -1107,7 +1291,7 @@ nsHttpChannel::ProcessResponse()
         break;
     }
 
-    int cacheDisposition;
+    PRUint32 cacheDisposition;
     if (!mDidReval)
         cacheDisposition = kCacheMissed;
     else if (successfulReval)
@@ -1115,26 +1299,9 @@ nsHttpChannel::ProcessResponse()
     else
         cacheDisposition = kCacheMissedViaReval;
 
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::HTTP_CACHE_DISPOSITION,
-            cacheDisposition);
-    if (mCacheEntry) {
-        char* cacheDeviceID = nsnull;
-        mCacheEntry->GetDeviceID(&cacheDeviceID);
-        if (cacheDeviceID) {
-            if (!strcmp(cacheDeviceID, kDiskDeviceID))
-                mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION,
-                        cacheDisposition);
-            else if (!strcmp(cacheDeviceID, kMemoryDeviceID))
-                mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION,
-                        cacheDisposition);
-            else if (!strcmp(cacheDeviceID, kOfflineDeviceID))
-                mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION,
-                        cacheDisposition);
-        }
-    }
+    AccumulateCacheHitTelemetry(mCacheEntry ? mCacheEntryDeviceTelemetryID
+                                            : UNKNOWN_DEVICE,
+                                cacheDisposition);
 
     return rv;
 }
@@ -1610,8 +1777,10 @@ nsHttpChannel::ResolveProxy()
 }
 
 bool
-nsHttpChannel::ResponseWouldVary()
+HttpCacheQuery::ResponseWouldVary() const
 {
+    AssertOnCacheThread();
+
     nsresult rv;
     nsCAutoString buf, metaKey;
     mCachedResponseHead->GetHeader(nsHttp::Vary, buf);
@@ -1622,9 +1791,9 @@ nsHttpChannel::ResponseWouldVary()
         char *val = buf.BeginWriting(); 
         char *token = nsCRT::strtok(val, NS_HTTP_HEADER_SEPS, &val);
         while (token) {
-            LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
+            LOG(("HttpCacheQuery::ResponseWouldVary [channel=%p] " \
                  "processing %s\n",
-                 this, token));
+                 mChannel.get(), token));
             
             
             
@@ -1648,8 +1817,9 @@ nsHttpChannel::ResponseWouldVary()
             
             nsXPIDLCString lastVal;
             mCacheEntry->GetMetaDataElement(metaKey.get(), getter_Copies(lastVal));
-            LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
-                    "stored value = %c%s%c\n", this, '"', lastVal.get(), '"'));
+            LOG(("HttpCacheQuery::ResponseWouldVary [channel=%p] "
+                     "stored value = \"%s\"\n",
+                 mChannel.get(), lastVal.get()));
 
             
             nsHttpAtom atom = nsHttp::ResolveAtom(token);
@@ -1671,9 +1841,9 @@ nsHttpChannel::ResponseWouldVary()
                         return true;
                     newVal = hash.get();
 
-                    LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
+                    LOG(("HttpCacheQuery::ResponseWouldVary [this=%p] " \
                             "set-cookie value hashed to %s\n",
-                         this, newVal));
+                         mChannel.get(), newVal));
                 }
 
                 if (strcmp(newVal, lastVal))
@@ -1699,31 +1869,6 @@ nsHttpChannel::HandleAsyncAbort()
     HttpAsyncAborter<nsHttpChannel>::HandleAsyncAbort();
 }
 
-
-nsresult
-nsHttpChannel::Hash(const char *buf, nsACString &hash)
-{
-    nsresult rv;
-    if (!mHasher) {
-        mHasher = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-        if (NS_FAILED(rv)) {
-            LOG(("nsHttpChannel: Failed to instantiate crypto-hasher"));
-            return rv;
-        }
-    }
-
-    rv = mHasher->Init(nsICryptoHash::SHA1);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-   rv = mHasher->Update(reinterpret_cast<unsigned const char*>(buf),
-                         strlen(buf));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mHasher->Finish(true, hash);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return NS_OK;
-}
 
 nsresult
 nsHttpChannel::EnsureAssocReq()
@@ -1841,8 +1986,10 @@ nsHttpChannel::EnsureAssocReq()
 
 
 nsresult
-nsHttpChannel::SetupByteRangeRequest(PRUint32 partialLen)
+HttpCacheQuery::SetupByteRangeRequest(PRUint32 partialLen)
 {
+    AssertOnCacheThread();
+
     
     
 
@@ -1920,7 +2067,7 @@ nsHttpChannel::ProcessPartialContent()
 
     
     mCachedContentIsValid = true;
-    return ReadFromCache();
+    return ReadFromCache(false);
 }
 
 nsresult
@@ -2036,7 +2183,7 @@ nsHttpChannel::ProcessNotModified()
     gHttpHandler->OnExamineMergedResponse(this);
 
     mCachedContentIsValid = true;
-    rv = ReadFromCache();
+    rv = ReadFromCache(false);
     if (NS_FAILED(rv)) return rv;
 
     mTransactionReplaced = true;
@@ -2090,8 +2237,7 @@ nsHttpChannel::ProcessFallback(bool *waitingForRedirectCallback)
     mOfflineCacheAccess = 0;
 
     
-    if (mCacheEntry)
-        CloseCacheEntry(true);
+    CloseCacheEntry(true);
 
     
     nsRefPtr<nsIChannel> newChannel;
@@ -2183,7 +2329,7 @@ IsSubRangeRequest(nsHttpRequestHead &aRequestHead)
 }
 
 nsresult
-nsHttpChannel::OpenCacheEntry()
+nsHttpChannel::OpenCacheEntry(bool usingSSL)
 {
     nsresult rv;
 
@@ -2258,41 +2404,35 @@ nsHttpChannel::OpenCacheEntry()
     
     if (mApplicationCache) {
         nsCAutoString appCacheClientID;
-        mApplicationCache->GetClientID(appCacheClientID);
+        rv = mApplicationCache->GetClientID(appCacheClientID);
+        if (NS_SUCCEEDED(rv)) {
+            
+            
+            
+            mCacheQuery = new HttpCacheQuery(
+                                this, appCacheClientID,
+                                nsICache::STORE_OFFLINE, UsingPrivateBrowsing(),
+                                cacheKey, nsICache::ACCESS_READ,
+                                mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY,
+                                usingSSL, true);
 
-        nsCOMPtr<nsICacheService> serv =
-            do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
+            mOnCacheEntryAvailableCallback =
+                &nsHttpChannel::OnOfflineCacheEntryAvailable;
 
-        rv = serv->CreateSession(appCacheClientID.get(),
-                                 nsICache::STORE_OFFLINE,
-                                 nsICache::STREAM_BASED,
-                                 getter_AddRefs(session));
-        NS_ENSURE_SUCCESS(rv, rv);
+            rv = mCacheQuery->Dispatch();
 
-        session->SetIsPrivate(UsingPrivateBrowsing());
+            if (NS_SUCCEEDED(rv))
+                return NS_OK;
 
-        mOnCacheEntryAvailableCallback =
-            &nsHttpChannel::OnOfflineCacheEntryAvailable;
-        
-        
-        
-        rv = session->AsyncOpenCacheEntry(
-            cacheKey,
-            nsICache::ACCESS_READ,
-            this,
-            mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
-
-        if (NS_SUCCEEDED(rv))
-            return NS_OK;
-
-        mOnCacheEntryAvailableCallback = nsnull;
+            mCacheQuery = nsnull;
+            mOnCacheEntryAvailableCallback = nsnull;
+        }
 
         
         return OnOfflineCacheEntryAvailable(nsnull, nsICache::ACCESS_NONE, rv);
     }
 
-    return OpenNormalCacheEntry();
+    return OpenNormalCacheEntry(usingSSL);
 }
 
 nsresult
@@ -2310,6 +2450,8 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
         mCacheAccess = aAccess;
     }
 
+    
+    
     if (aEntryStatus == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
         LOG(("bypassing local cache since it is busy\n"));
         
@@ -2357,45 +2499,47 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
         }
     }
 
-    return OpenNormalCacheEntry();
+    bool usingSSL = false;
+    (void) mURI->SchemeIs("https", &usingSSL);
+    return OpenNormalCacheEntry(usingSSL);
 }
 
 
 nsresult
-nsHttpChannel::OpenNormalCacheEntry()
+nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
 {
     NS_ASSERTION(!mCacheEntry, "We have already mCacheEntry");
 
     nsresult rv;
 
+    bool isPrivate = UsingPrivateBrowsing();
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy(isPrivate);
+    nsDependentCString clientID(
+        GetCacheSessionNameForStoragePolicy(storagePolicy, isPrivate));
+
     nsCAutoString cacheKey;
     GenerateCacheKey(mPostID, cacheKey);
 
-    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
-
-    nsCOMPtr<nsICacheSession> session;
-    rv = gHttpHandler->GetCacheSession(storagePolicy,
-                                       UsingPrivateBrowsing(),
-                                       getter_AddRefs(session));
-    if (NS_FAILED(rv))
-        return rv;
-
-    nsCacheAccessMode accessRequested = 0;
+    nsCacheAccessMode accessRequested;
     rv = DetermineCacheAccess(&accessRequested);
     if (NS_FAILED(rv))
         return rv;
+ 
+    mCacheQuery = new HttpCacheQuery(
+                                this, clientID, storagePolicy,
+                                UsingPrivateBrowsing(), cacheKey,
+                                accessRequested,
+                                mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY,
+                                usingSSL, false);
 
     mOnCacheEntryAvailableCallback =
         &nsHttpChannel::OnNormalCacheEntryAvailable;
-    rv = session->AsyncOpenCacheEntry(
-        cacheKey,
-        accessRequested,
-        this,
-        mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
 
+    rv = mCacheQuery->Dispatch();
     if (NS_SUCCEEDED(rv))
         return NS_OK;
 
+    mCacheQuery = nsnull;
     mOnCacheEntryAvailableCallback = nsnull;
 
     return rv;
@@ -2472,6 +2616,11 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
                              nsICache::STREAM_BASED,
                              getter_AddRefs(session));
     if (NS_FAILED(rv)) return rv;
+
+    if (mProfileDirectory) {
+        rv = session->SetProfileDirectory(mProfileDirectory);
+        if (NS_FAILED(rv)) return rv;
+    }
 
     mOnCacheEntryAvailableCallback =
         &nsHttpChannel::OnOfflineCacheEntryForWritingAvailable;
@@ -2606,17 +2755,146 @@ nsHttpChannel::UpdateExpirationTime()
     return NS_OK;
 }
 
-
-
-
+NS_IMETHODIMP
+HttpCacheQuery::OnCacheEntryDoomed(nsresult)
+{
+    return NS_ERROR_UNEXPECTED;
+}
 
 nsresult
-nsHttpChannel::CheckCache()
+HttpCacheQuery::Dispatch()
 {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsresult rv;
+
+    
+    
+    nsCOMPtr<nsICacheService> service = 
+        do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
+
+    
+    if (NS_SUCCEEDED(rv)) {
+        nsCOMPtr<nsIStreamTransportService> sts =
+            do_GetService(kStreamTransportServiceCID, &rv);
+    }
+
+    if (NS_SUCCEEDED(rv)) {
+        rv = service->GetCacheIOTarget(getter_AddRefs(mCacheThread));
+    }
+
+    if (NS_SUCCEEDED(rv)) {
+        rv = mCacheThread->Dispatch(this, NS_DISPATCH_NORMAL);
+    }
+
+    return rv;
+}
+
+NS_IMETHODIMP
+HttpCacheQuery::Run()
+{
+    nsresult rv;
+    if (!NS_IsMainThread()) {
+        AssertOnCacheThread();
+
+        nsCOMPtr<nsICacheService> serv =
+            do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
+        nsCOMPtr<nsICacheSession> session;
+        if (NS_SUCCEEDED(rv)) {
+            rv = serv->CreateSession(mClientID.get(), mStoragePolicy,
+                                     nsICache::STREAM_BASED,
+                                     getter_AddRefs(session));
+        }
+        if (NS_SUCCEEDED(rv)) {
+            rv = session->SetIsPrivate(mUsingPrivateBrowsing);
+        }
+        if (NS_SUCCEEDED(rv)) {
+            rv = session->SetDoomEntriesIfExpired(false);
+        }
+        if (NS_SUCCEEDED(rv)) {
+            
+            
+            rv = session->AsyncOpenCacheEntry(mCacheKey, mAccessToRequest, this,
+                                              mNoWait);
+        }
+        if (NS_FAILED(rv)) {
+            LOG(("Failed to open cache entry -- calling OnCacheEntryAvailable "
+                 "directly."));
+            rv = OnCacheEntryAvailable(nsnull, 0, rv);
+        }
+    } else {
+        
+        nsCOMPtr<nsICacheListener> channel = mChannel.forget();
+        mCacheThread = nsnull;
+        nsCOMPtr<nsICacheEntryDescriptor> entry = mCacheEntry.forget();
+
+        rv = channel->OnCacheEntryAvailable(entry, mCacheAccess, mStatus);
+    }
+    
+    return rv;
+}
+
+NS_IMETHODIMP
+HttpCacheQuery::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
+                                      nsCacheAccessMode access,
+                                      nsresult status)
+
+{
+    LOG(("HttpCacheQuery::OnCacheEntryAvailable [channel=%p entry=%p "
+         "access=%x status=%x, mRunConut=%d]\n", mChannel.get(), entry, access,
+         status, PRIntn(mRunCount)));
+
+    
+    
+    
+    
+    NS_ENSURE_TRUE(mRunCount == 0, NS_ERROR_UNEXPECTED);
+    ++mRunCount;
+
+    AssertOnCacheThread();
+
+    mCacheEntry = entry;
+    mCacheAccess = access;
+    mStatus = status;
+
+    nsresult rv = CheckCache();
+    if (NS_FAILED(rv))
+        NS_WARNING("cache check failed");
+
+    if (mCachedContentIsValid) {
+        char* cacheDeviceID = nsnull;
+        mCacheEntry->GetDeviceID(&cacheDeviceID);
+        if (cacheDeviceID) {
+            if (!strcmp(cacheDeviceID, kDiskDeviceID)) {
+                mCacheEntryDeviceTelemetryID
+                    = mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION;
+            } else if (!strcmp(cacheDeviceID, kMemoryDeviceID)) {
+                mCacheEntryDeviceTelemetryID
+                    = mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION;
+            } else if (!strcmp(cacheDeviceID, kOfflineDeviceID)) {
+                mCacheEntryDeviceTelemetryID
+                    = mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION;
+            } else {
+                MOZ_NOT_REACHED("unknown cache device ID");
+            }
+
+            delete cacheDeviceID;
+        }
+    }
+
+    rv = NS_DispatchToMainThread(this);
+    return rv;
+}
+
+nsresult
+HttpCacheQuery::CheckCache()
+{
+    AssertOnCacheThread();
+
     nsresult rv = NS_OK;
 
-    LOG(("nsHTTPChannel::CheckCache enter [this=%p entry=%p access=%d]",
-        this, mCacheEntry.get(), mCacheAccess));
+    LOG(("HttpCacheQuery::CheckCache enter [channel=%p entry=%p access=%d]",
+        mChannel.get(), mCacheEntry.get(), mCacheAccess));
     
     
     mCachedContentIsValid = false;
@@ -2656,11 +2934,16 @@ nsHttpChannel::CheckCache()
 
     
     mCachedResponseHead = new nsHttpResponseHead();
-    if (!mCachedResponseHead)
-        return NS_ERROR_OUT_OF_MEMORY;
     rv = mCachedResponseHead->Parse((char *) buf.get());
     NS_ENSURE_SUCCESS(rv, rv);
     buf.Adopt(0);
+
+    bool isCachedRedirect = WillRedirect(mCachedResponseHead);
+
+    
+    
+    NS_ENSURE_TRUE((mCachedResponseHead->Status() / 100 != 3) ||
+                   isCachedRedirect, NS_ERROR_ABORT);
 
     
     
@@ -2669,13 +2952,16 @@ nsHttpChannel::CheckCache()
     if (!mCacheForOfflineUse &&
         (mLoadedFromApplicationCache ||
          (mCacheAccess == nsICache::ACCESS_READ &&
-          !(mLoadFlags & INHIBIT_CACHING)) ||
+          !(mLoadFlags & nsIRequest::INHIBIT_CACHING)) ||
          mFallbackChannel)) {
-        mCachedContentIsValid = true;
-        return NS_OK;
+        rv = StartBufferingCachedEntity();
+        if (NS_SUCCEEDED(rv)) {
+            mCachedContentIsValid = true;
+            
+            MaybeMarkCacheEntryValid(this, mCacheEntry, mCacheAccess);
+        }
+        return rv;
     }
-
-    PRUint16 isCachedRedirect = mCachedResponseHead->Status()/100 == 3;
 
     mCustomConditionalRequest =
         mRequestHead.PeekHeader(nsHttp::If_Modified_Since) ||
@@ -2685,6 +2971,10 @@ nsHttpChannel::CheckCache()
         mRequestHead.PeekHeader(nsHttp::If_Range);
 
     if (method != nsHttp::Head && !isCachedRedirect) {
+        
+        
+        
+        
         
         
         
@@ -2709,11 +2999,18 @@ nsHttpChannel::CheckCache()
                      !mCustomConditionalRequest &&
                      !mCachedResponseHead->NoStore()) {
                     
+                    
                     rv = SetupByteRangeRequest(size);
-                    NS_ENSURE_SUCCESS(rv, rv);
-                    mCachedContentIsPartial = true;
+                    mCachedContentIsPartial = NS_SUCCEEDED(rv);
+                    if (mCachedContentIsPartial) {
+                        rv = StartBufferingCachedEntity();
+                    } else {
+                        
+                        mRequestHead.ClearHeader(nsHttp::Range);
+                        mRequestHead.ClearHeader(nsHttp::If_Range);
+                    }
                 }
-                return NS_OK;
+                return rv;
             }
         }
     }
@@ -2728,24 +3025,24 @@ nsHttpChannel::CheckCache()
         doValidation = true;
     }
     
-    else if (mLoadFlags & LOAD_FROM_CACHE) {
+    else if (mLoadFlags & nsIRequest::LOAD_FROM_CACHE) {
         LOG(("NOT validating based on LOAD_FROM_CACHE load flag\n"));
         doValidation = false;
     }
     
     
-    else if (mLoadFlags & VALIDATE_ALWAYS) {
+    else if (mLoadFlags & nsIRequest::VALIDATE_ALWAYS) {
         LOG(("Validating based on VALIDATE_ALWAYS load flag\n"));
         doValidation = true;
     }
     
     
-    else if (mLoadFlags & VALIDATE_NEVER) {
+    else if (mLoadFlags & nsIRequest::VALIDATE_NEVER) {
         LOG(("VALIDATE_NEVER set\n"));
         
         
         if (mCachedResponseHead->NoStore() ||
-           (mCachedResponseHead->NoCache() && mConnectionInfo->UsingSSL())) {
+           (mCachedResponseHead->NoCache() && mUsingSSL)) {
             LOG(("Validating based on (no-store || (no-cache && ssl)) logic\n"));
             doValidation = true;
         }
@@ -2776,7 +3073,7 @@ nsHttpChannel::CheckCache()
             doValidation = false;
         else if (mCachedResponseHead->MustValidateIfExpired())
             doValidation = true;
-        else if (mLoadFlags & VALIDATE_ONCE_PER_SESSION) {
+        else if (mLoadFlags & nsIRequest::VALIDATE_ONCE_PER_SESSION) {
             
             
             
@@ -2835,20 +3132,17 @@ nsHttpChannel::CheckCache()
     
     
     if (!doValidation && isCachedRedirect) {
-        nsCAutoString cacheKey;
-        GenerateCacheKey(mPostID, cacheKey);
-
         if (!mRedirectedCachekeys)
             mRedirectedCachekeys = new nsTArray<nsCString>();
-        else if (mRedirectedCachekeys->Contains(cacheKey))
+        else if (mRedirectedCachekeys->Contains(mCacheKey))
             doValidation = true;
 
         LOG(("Redirection-chain %s key %s\n",
-             doValidation ? "contains" : "does not contain", cacheKey.get()));
+             doValidation ? "contains" : "does not contain", mCacheKey.get()));
 
         
         if (!doValidation)
-            mRedirectedCachekeys->AppendElement(cacheKey);
+            mRedirectedCachekeys->AppendElement(mCacheKey);
     }
 
     mCachedContentIsValid = !doValidation;
@@ -2887,30 +3181,69 @@ nsHttpChannel::CheckCache()
         }
     }
 
-    LOG(("nsHTTPChannel::CheckCache exit [this=%p doValidation=%d]\n", this, doValidation));
-    return NS_OK;
+    
+    
+    
+    
+    
+    if (mCachedContentIsValid || mDidReval) {
+        rv = StartBufferingCachedEntity();
+        if (NS_FAILED(rv)) {
+            
+            
+            if (mDidReval) {
+                
+                mRequestHead.ClearHeader(nsHttp::If_Modified_Since);
+                mRequestHead.ClearHeader(nsHttp::ETag);
+                mDidReval = false;
+            }
+            mCachedContentIsValid = false;
+        }
+    }
+
+    if (mCachedContentIsValid) {
+        
+        MaybeMarkCacheEntryValid(this, mCacheEntry, mCacheAccess);
+    }
+
+    LOG(("nsHTTPChannel::CheckCache exit [this=%p doValidation=%d]\n",
+         this, doValidation));
+    return rv;
 }
 
-bool
-nsHttpChannel::MustValidateBasedOnQueryUrl()
+ inline bool
+HttpCacheQuery::HasQueryString(nsHttpAtom method, nsIURI * uri)
 {
     
     
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (method != nsHttp::Get && method != nsHttp::Head)
+        return false;
+
+    nsCAutoString query;
+    nsCOMPtr<nsIURL> url = do_QueryInterface(uri);
+    nsresult rv = url->GetQuery(query);
+    return NS_SUCCEEDED(rv) && !query.IsEmpty();
+}
+
+bool
+HttpCacheQuery::MustValidateBasedOnQueryUrl() const
+{
+    AssertOnCacheThread();
+
     
     
-    if (mRequestHead.Method() == nsHttp::Get)
+    
+    
+    if (mHasQueryString)
     {
-        nsCAutoString query;
-        nsCOMPtr<nsIURL> url = do_QueryInterface(mURI);
-        nsresult rv = url->GetQuery(query);
-        if (NS_SUCCEEDED(rv) && !query.IsEmpty()) {
-            PRUint32 tmp; 
-            rv = mCachedResponseHead->GetExpiresValue(&tmp);
+        PRUint32 tmp; 
+        nsresult rv = mCachedResponseHead->GetExpiresValue(&tmp);
+        if (NS_FAILED(rv)) {
+            rv = mCachedResponseHead->GetMaxAgeValue(&tmp);
             if (NS_FAILED(rv)) {
-                rv = mCachedResponseHead->GetMaxAgeValue(&tmp);
-                if (NS_FAILED(rv)) {
-                    return true;
-                }
+                return true;
             }
         }
     }
@@ -2918,56 +3251,146 @@ nsHttpChannel::MustValidateBasedOnQueryUrl()
 }
 
 
-nsresult
-nsHttpChannel::ShouldUpdateOfflineCacheEntry(bool *shouldCacheForOfflineUse)
+bool
+nsHttpChannel::ShouldUpdateOfflineCacheEntry()
 {
-    *shouldCacheForOfflineUse = false;
-
-    if (!mOfflineCacheEntry) {
-        return NS_OK;
+    if (!mCacheForOfflineUse || !mOfflineCacheEntry) {
+        return false;
     }
 
     
     if (mCacheEntry && (mCacheAccess & nsICache::ACCESS_WRITE)) {
-        *shouldCacheForOfflineUse = true;
-        return NS_OK;
+        return true;
     }
 
     
     if (mOfflineCacheEntry && (mOfflineCacheAccess == nsICache::ACCESS_WRITE)) {
-        *shouldCacheForOfflineUse = true;
-        return NS_OK;
+        return true;
     }
 
     
     PRUint32 docLastModifiedTime;
     nsresult rv = mResponseHead->GetLastModifiedValue(&docLastModifiedTime);
     if (NS_FAILED(rv)) {
-        *shouldCacheForOfflineUse = true;
-        return NS_OK;
+        return true;
     }
 
     PRUint32 offlineLastModifiedTime;
     rv = mOfflineCacheEntry->GetLastModified(&offlineLastModifiedTime);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+        return false;
+    }
 
     if (docLastModifiedTime > offlineLastModifiedTime) {
-        *shouldCacheForOfflineUse = true;
+        return true;
+    }
+
+    return false;
+}
+
+nsresult
+HttpCacheQuery::StartBufferingCachedEntity()
+{
+    AssertOnCacheThread();
+
+    if (mUsingSSL) {
+        nsresult rv = mCacheEntry->GetSecurityInfo(
+                                      getter_AddRefs(mCachedSecurityInfo));
+        if (NS_FAILED(rv)) {
+            LOG(("failed to parse security-info [channel=%p, entry=%p]",
+                 this, mCacheEntry.get()));
+            NS_WARNING("failed to parse security-info");
+            return rv;
+        }
+        MOZ_ASSERT(mCachedSecurityInfo);
+        if (!mCachedSecurityInfo) {
+            LOG(("mCacheEntry->GetSecurityInfo returned success but did not "
+                 "return the security info [channel=%p, entry=%p]",
+                 this, mCacheEntry.get()));
+            return NS_ERROR_UNEXPECTED; 
+        }
+    }
+
+    nsresult rv = NS_OK;
+
+    
+
+    if (WillRedirect(mCachedResponseHead)) {
+        
+        
+        LOG(("Will skip read of cached redirect entity\n"));
         return NS_OK;
     }
 
-    return NS_OK;
+    if ((mLoadFlags & nsICachingChannel::LOAD_ONLY_IF_MODIFIED) &&
+        !mCachedContentIsPartial) {
+        
+        
+        if (!mCacheForOfflineUse) {
+            LOG(("Will skip read from cache based on LOAD_ONLY_IF_MODIFIED "
+                 "load flag\n"));
+            return NS_OK;
+        }
+
+        
+        
+        
+        
+        
+        
+        LOG(("May skip read from cache based on LOAD_ONLY_IF_MODIFIED "
+              "load flag\n"));
+    }
+
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsIInputStream> wrapper;
+
+    nsCOMPtr<nsIInputStream> stream;
+    nsCOMPtr<nsITransport> transport;
+
+    nsCOMPtr<nsIStreamTransportService> sts =
+        do_GetService(kStreamTransportServiceCID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(stream));
+    if (NS_SUCCEEDED(rv)) {
+        rv = sts->CreateInputTransport(stream, PRInt64(-1), PRInt64(-1),
+                                        true, getter_AddRefs(transport));
+    }
+    if (NS_SUCCEEDED(rv)) {
+        rv = transport->OpenInputStream(0, 0, 0, getter_AddRefs(wrapper));
+    }
+    if (NS_SUCCEEDED(rv)) {
+        mCacheAsyncInputStream = do_QueryInterface(wrapper, &rv);
+    }
+    if (NS_SUCCEEDED(rv)) {
+        LOG(("Opened cache input stream [channel=%p, wrapper=%p, "
+              "transport=%p, stream=%p]", this, wrapper.get(),
+              transport.get(), stream.get()));
+    } else {
+        LOG(("Failed to open cache input stream [channel=%p, "
+              "wrapper=%p, transport=%p, stream=%p]", this,
+              wrapper.get(), transport.get(), stream.get()));
+
+        if (wrapper)
+            wrapper->Close();
+        if (stream)
+            stream->Close();
+    }
+
+    return rv;
 }
 
 
 
-
-
 nsresult
-nsHttpChannel::ReadFromCache()
+nsHttpChannel::ReadFromCache(bool alreadyMarkedValid)
 {
-    nsresult rv;
-
     NS_ENSURE_TRUE(mCacheEntry, NS_ERROR_FAILURE);
     NS_ENSURE_TRUE(mCachedContentIsValid, NS_ERROR_FAILURE);
 
@@ -2984,47 +3407,67 @@ nsHttpChannel::ReadFromCache()
     
     
     if (!mSecurityInfo)
-        mCacheEntry->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+        mSecurityInfo = mCachedSecurityInfo;
 
-    if ((mCacheAccess & nsICache::ACCESS_WRITE) && !mCachedContentIsPartial) {
+    if (!alreadyMarkedValid && !mCachedContentIsPartial) {
         
         
         
-        mCacheEntry->MarkValid();
+        
+        
+        
+        MaybeMarkCacheEntryValid(this, mCacheEntry, mCacheAccess);
     }
 
-    
-    
-    
-    if (mResponseHead && (mResponseHead->Status() / 100 == 3) 
-                      && (mResponseHead->PeekHeader(nsHttp::Location)))
-        return AsyncCall(&nsHttpChannel::HandleAsyncRedirect);
+    nsresult rv;
 
+    
+    
+
+    if (WillRedirect(mResponseHead)) {
+        
+        
+        MOZ_ASSERT(!mCacheAsyncInputStream);
+        LOG(("Skipping skip read of cached redirect entity\n"));
+        return AsyncCall(&nsHttpChannel::HandleAsyncRedirect);
+    }
     
     if ((mLoadFlags & LOAD_ONLY_IF_MODIFIED) && !mCachedContentIsPartial) {
-        
-        
-        
-        bool shouldUpdateOffline;
-        if (!mCacheForOfflineUse ||
-            NS_FAILED(ShouldUpdateOfflineCacheEntry(&shouldUpdateOffline)) ||
-            !shouldUpdateOffline) {
-
-            LOG(("skipping read from cache based on LOAD_ONLY_IF_MODIFIED "
+        if (!mCacheForOfflineUse) {
+            LOG(("Skipping read from cache based on LOAD_ONLY_IF_MODIFIED "
                  "load flag\n"));
+            MOZ_ASSERT(!mCacheAsyncInputStream);
+            
+            
+            return AsyncCall(&nsHttpChannel::HandleAsyncNotModified);
+        }
+        
+        if (!ShouldUpdateOfflineCacheEntry()) {
+            LOG(("Skipping read from cache based on LOAD_ONLY_IF_MODIFIED "
+                 "load flag (mCacheForOfflineUse case)\n"));
+            mCacheAsyncInputStream.CloseAndRelease();
+            
+            
             return AsyncCall(&nsHttpChannel::HandleAsyncNotModified);
         }
     }
 
-    
-    nsCOMPtr<nsIInputStream> stream;
-    rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(stream));
-    if (NS_FAILED(rv)) return rv;
+    MOZ_ASSERT(mCacheAsyncInputStream);
+    if (!mCacheAsyncInputStream) {
+        NS_ERROR("mCacheAsyncInputStream is null but we're expecting to "
+                        "be able to read from it.");
+        return NS_ERROR_UNEXPECTED;
+    }
 
-    rv = nsInputStreamPump::Create(getter_AddRefs(mCachePump),
-                                   stream, PRInt64(-1), PRInt64(-1), 0, 0,
-                                   true);
-    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIAsyncInputStream> inputStream = mCacheAsyncInputStream.forget();
+ 
+    rv = nsInputStreamPump::Create(getter_AddRefs(mCachePump), inputStream,
+                                   PRInt64(-1), PRInt64(-1), 0, 0, true);
+    if (NS_FAILED(rv)) {
+        inputStream->Close();
+        return rv;
+    }
 
     rv = mCachePump->AsyncRead(this, mListenerContext);
     if (NS_FAILED(rv)) return rv;
@@ -3042,6 +3485,9 @@ nsHttpChannel::ReadFromCache()
 void
 nsHttpChannel::CloseCacheEntry(bool doomOnFailure)
 {
+    mCacheQuery = nsnull;
+    mCacheAsyncInputStream.CloseAndRelease();
+
     if (!mCacheEntry)
         return;
 
@@ -3493,6 +3939,7 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
             
             cachingChannel->SetOfflineCacheClientID(mOfflineCacheClientID);
             cachingChannel->SetCacheForOfflineUse(mCacheForOfflineUse);
+            cachingChannel->SetProfileDirectory(mProfileDirectory);
         }
     }
 
@@ -3790,6 +4237,8 @@ nsHttpChannel::Cancel(nsresult status)
         gHttpHandler->CancelTransaction(mTransaction, status);
     if (mTransactionPump)
         mTransactionPump->Cancel(status);
+    mCacheQuery = nsnull;
+    mCacheAsyncInputStream.CloseAndRelease();
     if (mCachePump)
         mCachePump->Cancel(status);
     if (mAuthProvider)
@@ -3961,6 +4410,8 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
 NS_IMETHODIMP
 nsHttpChannel::SetupFallbackChannel(const char *aFallbackKey)
 {
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
     LOG(("nsHttpChannel::SetupFallbackChannel [this=%x, key=%s]",
          this, aFallbackKey));
     mFallbackChannel = true;
@@ -4503,8 +4954,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             
             mCacheEntry->MarkValid();
         }
-        CloseCacheEntry(!contentComplete);
     }
+    CloseCacheEntry(!contentComplete);
 
     if (mOfflineCacheEntry)
         CloseOfflineCacheEntry();
@@ -4839,8 +5290,7 @@ nsHttpChannel::SetCacheKey(nsISupports *key)
 
     LOG(("nsHttpChannel::SetCacheKey [this=%p key=%p]\n", this, key));
 
-    
-    NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
     if (!key)
         mPostID = 0;
@@ -4892,6 +5342,8 @@ nsHttpChannel::GetCacheForOfflineUse(bool *value)
 NS_IMETHODIMP
 nsHttpChannel::SetCacheForOfflineUse(bool value)
 {
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
     mCacheForOfflineUse = value;
 
     return NS_OK;
@@ -4908,8 +5360,26 @@ nsHttpChannel::GetOfflineCacheClientID(nsACString &value)
 NS_IMETHODIMP
 nsHttpChannel::SetOfflineCacheClientID(const nsACString &value)
 {
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
     mOfflineCacheClientID = value;
 
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetProfileDirectory(nsILocalFile **_result)
+{
+    NS_ENSURE_ARG(_result);
+
+    NS_ADDREF(*_result = mProfileDirectory);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetProfileDirectory(nsILocalFile *value)
+{
+    mProfileDirectory = value;
     return NS_OK;
 }
 
@@ -4946,17 +5416,36 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
                                      nsCacheAccessMode access,
                                      nsresult status)
 {
+    MOZ_ASSERT(NS_IsMainThread());
+
     nsresult rv;
 
     LOG(("nsHttpChannel::OnCacheEntryAvailable [this=%p entry=%p "
          "access=%x status=%x]\n", this, entry, access, status));
 
+    if (mCacheQuery) {
+        mRequestHead = mCacheQuery->mRequestHead;
+        mRedirectedCachekeys = mCacheQuery->mRedirectedCachekeys.forget();
+        mCacheAsyncInputStream.takeOver(mCacheQuery->mCacheAsyncInputStream);
+        mCachedResponseHead = mCacheQuery->mCachedResponseHead.forget();
+        mCachedSecurityInfo = mCacheQuery->mCachedSecurityInfo.forget();
+        mCachedContentIsValid = mCacheQuery->mCachedContentIsValid;
+        mCachedContentIsPartial = mCacheQuery->mCachedContentIsPartial;
+        mCustomConditionalRequest = mCacheQuery->mCustomConditionalRequest;
+        mDidReval = mCacheQuery->mDidReval;
+        mCacheEntryDeviceTelemetryID = mCacheQuery->mCacheEntryDeviceTelemetryID;
+        mCacheQuery = nsnull;
+    }
+
     
     
-    if (!mIsPending)
+    if (!mIsPending) {
+        mCacheAsyncInputStream.CloseAndRelease();
         return NS_OK;
+    }
 
     rv = OnCacheEntryAvailableInternal(entry, access, status);
+
     if (NS_FAILED(rv)) {
         CloseCacheEntry(true);
         AsyncAbort(rv);
@@ -5017,7 +5506,7 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntryDescriptor *entry,
             return rv;
     }
 
-    return Connect(false);
+    return ContinueConnect();
 }
 
 NS_IMETHODIMP
@@ -5097,7 +5586,7 @@ nsHttpChannel::GetApplicationCache(nsIApplicationCache **out)
 NS_IMETHODIMP
 nsHttpChannel::SetApplicationCache(nsIApplicationCache *appCache)
 {
-    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
     mApplicationCache = appCache;
     return NS_OK;
@@ -5120,7 +5609,7 @@ nsHttpChannel::GetInheritApplicationCache(bool *aInherit)
 NS_IMETHODIMP
 nsHttpChannel::SetInheritApplicationCache(bool aInherit)
 {
-    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
     mInheritApplicationCache = aInherit;
     return NS_OK;
@@ -5136,7 +5625,7 @@ nsHttpChannel::GetChooseApplicationCache(bool *aChoose)
 NS_IMETHODIMP
 nsHttpChannel::SetChooseApplicationCache(bool aChoose)
 {
-    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+    ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
     mChooseApplicationCache = aChoose;
     return NS_OK;
@@ -5346,7 +5835,7 @@ nsHttpChannel::InvalidateCacheEntryForLocation(const char *location)
 }
 
 void
-nsHttpChannel::DoInvalidateCacheEntry(nsACString &key)
+nsHttpChannel::DoInvalidateCacheEntry(const nsCString &key)
 {
     
     
@@ -5355,24 +5844,39 @@ nsHttpChannel::DoInvalidateCacheEntry(nsACString &key)
     
 
     
+    bool isPrivate = UsingPrivateBrowsing();
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy(isPrivate);
+    const char * clientID = GetCacheSessionNameForStoragePolicy(storagePolicy,
+                                                                isPrivate);
+
+    LOG(("DoInvalidateCacheEntry [channel=%p session=%s policy=%d key=%s]",
+         this, clientID, PRIntn(storagePolicy), key.get()));
+
+    nsresult rv;
+    nsCOMPtr<nsICacheService> serv =
+        do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
     nsCOMPtr<nsICacheSession> session;
-    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
+    if (NS_SUCCEEDED(rv)) {
+        rv = serv->CreateSession(clientID, storagePolicy,  
+                                 nsICache::STREAM_BASED,
+                                 getter_AddRefs(session));
+    }
+    if (NS_SUCCEEDED(rv)) {
+        rv = session->SetIsPrivate(UsingPrivateBrowsing());
+    }
+    if (NS_SUCCEEDED(rv)) {
+        rv = session->DoomEntry(key, nsnull);
+    }
 
-    nsresult rv = gHttpHandler->GetCacheSession(storagePolicy,
-                                                UsingPrivateBrowsing(),
-                                                getter_AddRefs(session));
-
-    if (NS_FAILED(rv))
-        return;
-
-    session->DoomEntry(key, nsnull);
+    LOG(("DoInvalidateCacheEntry [channel=%p session=%s policy=%d key=%s rv=%d]",
+         this, clientID, PRIntn(storagePolicy), key.get(), PRIntn(rv)));
 }
 
 nsCacheStoragePolicy
-nsHttpChannel::DetermineStoragePolicy()
+nsHttpChannel::DetermineStoragePolicy(bool isPrivate)
 {
     nsCacheStoragePolicy policy = nsICache::STORE_ANYWHERE;
-    if (UsingPrivateBrowsing())
+    if (isPrivate)
         policy = nsICache::STORE_IN_MEMORY;
     else if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
         policy = nsICache::STORE_IN_MEMORY;
@@ -5407,3 +5911,5 @@ nsHttpChannel::AsyncOnExamineCachedResponse()
     gHttpHandler->OnExamineCachedResponse(this);
 
 }
+
+} } 

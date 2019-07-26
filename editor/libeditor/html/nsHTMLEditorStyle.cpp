@@ -225,6 +225,78 @@ nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty,
 
 
 
+
+
+bool
+nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
+                                     nsIAtom* aProperty,
+                                     const nsAString* aAttribute,
+                                     const nsAString* aValue)
+{
+  
+  MOZ_ASSERT(aProperty);
+  MOZ_ASSERT_IF(aAttribute, aValue);
+
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aContent);
+  if (!element) {
+    return false;
+  }
+
+  
+  if (element->IsHTML(aProperty) && !element->GetAttrCount() &&
+      (!aAttribute || aAttribute->IsEmpty())) {
+    return true;
+  }
+
+  
+  if (!element->GetAttrCount() &&
+      ((aProperty == nsGkAtoms::b && element->IsHTML(nsGkAtoms::strong)) ||
+       (aProperty == nsGkAtoms::i && element->IsHTML(nsGkAtoms::em)) ||
+       (aProperty == nsGkAtoms::strike && element->IsHTML(nsGkAtoms::s)))) {
+    return true;
+  }
+
+  
+  if (aAttribute && !aAttribute->IsEmpty()) {
+    nsCOMPtr<nsIAtom> atom = do_GetAtom(*aAttribute);
+    MOZ_ASSERT(atom);
+
+    if (element->IsHTML(aProperty) && IsOnlyAttribute(element, *aAttribute) &&
+        element->AttrValueIs(kNameSpaceID_None, atom, *aValue, eIgnoreCase)) {
+      
+      
+      
+      return true;
+    }
+  }
+
+  
+  
+  
+  if (!mHTMLCSSUtils->IsCSSEditableProperty(element, aProperty,
+                                            aAttribute, aValue) ||
+      !element->IsHTML(nsGkAtoms::span) || element->GetAttrCount() != 1 ||
+      !element->HasAttr(kNameSpaceID_None, nsGkAtoms::style)) {
+    return false;
+  }
+
+  
+  
+  
+  
+  nsCOMPtr<nsIContent> newSpan;
+  nsresult res = CreateHTMLContent(NS_LITERAL_STRING("span"),
+                                   getter_AddRefs(newSpan));
+  NS_ASSERTION(NS_SUCCEEDED(res), "CreateHTMLContent failed");
+  NS_ENSURE_SUCCESS(res, false);
+  mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(newSpan->AsElement(), aProperty,
+                                             aAttribute, aValue,
+                                              true);
+
+  return mHTMLCSSUtils->ElementsSameStyle(newSpan->AsElement(), element);
+}
+
+
 nsresult
 nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode, 
                                             PRInt32 aStartOffset,
@@ -250,8 +322,7 @@ nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode,
   
   
   bool bHasProp;
-  if (IsCSSEnabled() &&
-      mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+  if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
                                            aAttribute, aValue)) {
     
     
@@ -290,16 +361,12 @@ nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode,
   if (aAttribute) {
     
     nsIContent* sibling = GetPriorHTMLSibling(content);
-    if (sibling && sibling->Tag() == aProperty &&
-        HasAttrVal(sibling, aAttribute, *aValue) &&
-        IsOnlyAttribute(sibling, *aAttribute)) {
+    if (IsSimpleModifiableNode(sibling, aProperty, aAttribute, aValue)) {
       
       return MoveNode(node, sibling->AsDOMNode(), -1);
     }
     sibling = GetNextHTMLSibling(content);
-    if (sibling && sibling->Tag() == aProperty &&
-        HasAttrVal(sibling, aAttribute, *aValue) &&
-        IsOnlyAttribute(sibling, *aAttribute)) {
+    if (IsSimpleModifiableNode(sibling, aProperty, aAttribute, aValue)) {
       
       return MoveNode(node, sibling->AsDOMNode(), 0);
     }
@@ -349,13 +416,43 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
     return NS_OK;
   }
 
+  
+  nsresult res;
+  nsCOMPtr<nsIContent> previousSibling = GetPriorHTMLSibling(aNode);
+  nsCOMPtr<nsIContent> nextSibling = GetNextHTMLSibling(aNode);
+  if (IsSimpleModifiableNode(previousSibling, aProperty, aAttribute, aValue)) {
+    res = MoveNode(aNode, previousSibling, -1);
+    NS_ENSURE_SUCCESS(res, res);
+    if (IsSimpleModifiableNode(nextSibling, aProperty, aAttribute, aValue)) {
+      res = JoinNodes(previousSibling, nextSibling);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+    return NS_OK;
+  }
+  if (IsSimpleModifiableNode(nextSibling, aProperty, aAttribute, aValue)) {
+    res = MoveNode(aNode, nextSibling, 0);
+    NS_ENSURE_SUCCESS(res, res);
+    return NS_OK;
+  }
+
+  
+  if (mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty,
+                                           aAttribute, aValue)) {
+    if (mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(
+          aNode, aProperty, aAttribute, *aValue, COMPUTED_STYLE_TYPE)) {
+      return NS_OK;
+    }
+  } else if (IsTextPropertySetByContent(aNode, aProperty,
+                                        aAttribute, aValue)) {
+    return NS_OK;
+  }
+
   bool useCSS = (IsCSSEnabled() &&
                  mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty,
                                                       aAttribute, aValue)) ||
                 
                 aAttribute->EqualsLiteral("bgcolor");
 
-  nsresult res;
   if (useCSS) {
     nsCOMPtr<nsIDOMNode> tmp = aNode->AsDOMNode();
     
@@ -373,27 +470,6 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
                                                      aAttribute, aValue,
                                                      &count, false);
     NS_ENSURE_SUCCESS(res, res);
-
-    nsCOMPtr<nsIDOMNode> nextSibling, previousSibling;
-    GetNextHTMLSibling(tmp, address_of(nextSibling));
-    GetPriorHTMLSibling(tmp, address_of(previousSibling));
-    if (nextSibling || previousSibling) {
-      nsCOMPtr<nsIDOMNode> mergeParent;
-      res = tmp->GetParentNode(getter_AddRefs(mergeParent));
-      NS_ENSURE_SUCCESS(res, res);
-      if (previousSibling &&
-          nsEditor::NodeIsType(previousSibling, nsEditProperty::span) &&
-          NodesSameType(tmp, previousSibling)) {
-        res = JoinNodes(previousSibling, tmp, mergeParent);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      if (nextSibling &&
-          nsEditor::NodeIsType(nextSibling, nsEditProperty::span) &&
-          NodesSameType(tmp, nextSibling)) {
-        res = JoinNodes(tmp, nextSibling, mergeParent);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
     return NS_OK;
   }
 
@@ -402,26 +478,6 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
     
     nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
     return SetAttribute(elem, *aAttribute, *aValue);
-  }
-
-  
-  
-  if (aAttribute) {
-    nsIContent* priorNode = GetPriorHTMLSibling(aNode);
-    if (priorNode && priorNode->Tag() == aProperty &&
-        HasAttrVal(priorNode, aAttribute, *aValue) &&
-        IsOnlyAttribute(priorNode, *aAttribute)) {
-      
-      return MoveNode(aNode->AsDOMNode(), priorNode->AsDOMNode(), -1);
-    }
-
-    nsIContent* nextNode = GetNextHTMLSibling(aNode);
-    if (nextNode && nextNode->Tag() == aProperty &&
-        HasAttrVal(nextNode, aAttribute, *aValue) &&
-        IsOnlyAttribute(nextNode, *aAttribute)) {
-      
-      return MoveNode(aNode->AsDOMNode(), nextNode->AsDOMNode(), 0);
-    }
   }
 
   
@@ -857,23 +913,6 @@ bool nsHTMLEditor::HasAttr(nsIDOMNode* aNode,
   return element->HasAttr(kNameSpaceID_None, atom);
 }
 
-
-bool nsHTMLEditor::HasAttrVal(const nsIContent* aNode,
-                              const nsAString* aAttribute,
-                              const nsAString& aValue)
-{
-  MOZ_ASSERT(aNode);
-
-  if (!aAttribute || aAttribute->IsEmpty()) {
-    
-    return true;
-  }
-
-  nsCOMPtr<nsIAtom> atom = do_GetAtom(*aAttribute);
-  NS_ENSURE_TRUE(atom, false);
-
-  return aNode->AttrValueIs(kNameSpaceID_None, atom, aValue, eIgnoreCase);
-}
 
 nsresult nsHTMLEditor::PromoteRangeIfStartsOrEndsInNamedAnchor(nsIDOMRange *inRange)
 {
@@ -1498,7 +1537,8 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
     
     PRInt32 offset;
     nsCOMPtr<nsIDOMNode> selectedNode;
-    res = GetStartNodeAndOffset(selection, getter_AddRefs(selectedNode), &offset);
+    GetStartNodeAndOffset(selection, getter_AddRefs(selectedNode), &offset);
+    NS_ENSURE_TRUE(selectedNode, NS_OK);
     if (IsTextNode(selectedNode)) {
       nsCOMPtr<nsIDOMNode> parent;
       res = selectedNode->GetParentNode(getter_AddRefs(parent));

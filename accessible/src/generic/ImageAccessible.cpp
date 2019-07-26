@@ -19,6 +19,7 @@
 #include "nsIPresShell.h"
 #include "nsIServiceManager.h"
 #include "nsIDOMHTMLImageElement.h"
+#include "nsIDOMDocument.h"
 #include "nsPIDOMWindow.h"
 
 using namespace mozilla::a11y;
@@ -29,7 +30,7 @@ using namespace mozilla::a11y;
 
 ImageAccessible::
   ImageAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LinkableAccessible(aContent, aDoc)
+  nsLinkableAccessible(aContent, aDoc)
 {
   mFlags |= eImageAccessible;
 }
@@ -40,13 +41,13 @@ NS_IMPL_ISUPPORTS_INHERITED1(ImageAccessible, Accessible,
 
 
 
-uint64_t
+PRUint64
 ImageAccessible::NativeState()
 {
   
   
 
-  uint64_t state = LinkableAccessible::NativeState();
+  PRUint64 state = nsLinkableAccessible::NativeState();
 
   nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(mContent));
   nsCOMPtr<imgIRequest> imageRequest;
@@ -100,15 +101,15 @@ ImageAccessible::NativeRole()
 
 
 
-uint8_t
+PRUint8
 ImageAccessible::ActionCount()
 {
-  uint8_t actionCount = LinkableAccessible::ActionCount();
+  PRUint8 actionCount = nsLinkableAccessible::ActionCount();
   return HasLongDesc() ? actionCount + 1 : actionCount;
 }
 
 NS_IMETHODIMP
-ImageAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+ImageAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
 
@@ -119,24 +120,24 @@ ImageAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
     aName.AssignLiteral("showlongdesc"); 
     return NS_OK;
   }
-  return LinkableAccessible::GetActionName(aIndex, aName);
+  return nsLinkableAccessible::GetActionName(aIndex, aName);
 }
 
 NS_IMETHODIMP
-ImageAccessible::DoAction(uint8_t aIndex)
+ImageAccessible::DoAction(PRUint8 aIndex)
 {
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
   
   if (!IsLongDescIndex(aIndex))
-    return LinkableAccessible::DoAction(aIndex);
+    return nsLinkableAccessible::DoAction(aIndex);
 
   nsCOMPtr<nsIURI> uri = GetLongDescURI();
   if (!uri)
     return NS_ERROR_INVALID_ARG;
 
-  nsAutoCString utf8spec;
+  nsCAutoString utf8spec;
   uri->GetSpec(utf8spec);
   NS_ConvertUTF8toUTF16 spec(utf8spec);
 
@@ -154,9 +155,9 @@ ImageAccessible::DoAction(uint8_t aIndex)
 
 
 NS_IMETHODIMP
-ImageAccessible::GetImagePosition(uint32_t aCoordType, int32_t* aX, int32_t* aY)
+ImageAccessible::GetImagePosition(PRUint32 aCoordType, PRInt32* aX, PRInt32* aY)
 {
-  int32_t width, height;
+  PRInt32 width, height;
   nsresult rv = GetBounds(aX, aY, &width, &height);
   if (NS_FAILED(rv))
     return rv;
@@ -165,9 +166,9 @@ ImageAccessible::GetImagePosition(uint32_t aCoordType, int32_t* aX, int32_t* aY)
 }
 
 NS_IMETHODIMP
-ImageAccessible::GetImageSize(int32_t* aWidth, int32_t* aHeight)
+ImageAccessible::GetImageSize(PRInt32* aWidth, PRInt32* aHeight)
 {
-  int32_t x, y;
+  PRInt32 x, y;
   return GetBounds(&x, &y, aWidth, aHeight);
 }
 
@@ -178,7 +179,7 @@ ImageAccessible::GetAttributesInternal(nsIPersistentProperties* aAttributes)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  nsresult rv = LinkableAccessible::GetAttributesInternal(aAttributes);
+  nsresult rv = nsLinkableAccessible::GetAttributesInternal(aAttributes);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoString src;
@@ -200,7 +201,7 @@ ImageAccessible::GetLongDescURI() const
       nsGenericHTMLElement::FromContent(mContent);
     if (element) {
       nsCOMPtr<nsIURI> uri;
-      element->GetURIAttr(nsGkAtoms::longdesc, nullptr, getter_AddRefs(uri));
+      element->GetURIAttr(nsGkAtoms::longdesc, nsnull, getter_AddRefs(uri));
       return uri.forget();
     }
   }
@@ -215,18 +216,18 @@ ImageAccessible::GetLongDescURI() const
           nsGenericHTMLElement::FromContent(target);
 
         nsCOMPtr<nsIURI> uri;
-        element->GetURIAttr(nsGkAtoms::href, nullptr, getter_AddRefs(uri));
+        element->GetURIAttr(nsGkAtoms::href, nsnull, getter_AddRefs(uri));
         return uri.forget();
       }
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 bool
-ImageAccessible::IsLongDescIndex(uint8_t aIndex)
+ImageAccessible::IsLongDescIndex(PRUint8 aIndex)
 {
-  return aIndex == LinkableAccessible::ActionCount();
+  return aIndex == nsLinkableAccessible::ActionCount();
 }
 

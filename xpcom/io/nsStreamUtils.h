@@ -188,6 +188,18 @@ NS_CopySegmentToBuffer(nsIInputStream *aInputStream, void *aClosure,
 
 
 extern NS_METHOD
+NS_CopySegmentToBuffer(nsIOutputStream *aOutputStream, void *aClosure,
+                       char *aToSegment, PRUint32 aFromOffset,
+                       PRUint32 aCount, PRUint32 *aReadCount);
+
+
+
+
+
+
+
+
+extern NS_METHOD
 NS_DiscardSegment(nsIInputStream *aInputStream, void *aClosure,
                   const char *aFromSegment, PRUint32 aToOffset,
                   PRUint32 aCount, PRUint32 *aWriteCount);

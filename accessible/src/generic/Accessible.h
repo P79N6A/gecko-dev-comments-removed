@@ -26,8 +26,7 @@ class AccGroupInfo;
 class EmbeddedObjCollector;
 class KeyBinding;
 class Accessible;
-class nsHyperTextAccessible;
-class nsHTMLImageAccessible;
+class HyperTextAccessible;
 class nsHTMLImageMapAccessible;
 struct nsRoleMapEntry;
 class Relation;
@@ -36,6 +35,7 @@ namespace mozilla {
 namespace a11y {
 
 class HTMLLIAccessible;
+class ImageAccessible;
 class TableAccessible;
 class TextLeafAccessible;
 
@@ -210,6 +210,17 @@ public:
   
 
 
+
+  PRUint64 InteractiveState() const
+  {
+    PRUint64 state = NativeInteractiveState();
+    ApplyARIAState(&state);
+    return state;
+  }
+
+  
+
+
   PRUint64 LinkState() const
   {
     PRUint64 state = NativeLinkState();
@@ -226,12 +237,22 @@ public:
   
 
 
+  virtual PRUint64 NativeInteractiveState() const;
+
+  
+
+
   virtual PRUint64 NativeLinkState() const;
 
   
 
 
   PRUint64 VisibilityState();
+
+  
+
+
+  virtual bool NativelyUnavailable() const;
 
   
 
@@ -245,7 +266,6 @@ public:
   virtual mozilla::a11y::GroupPos GroupPosition();
 
   
-
 
 
   enum EWhichChildAtPoint {
@@ -473,7 +493,7 @@ public:
   DocAccessible* AsDoc();
 
   inline bool IsHyperText() const { return mFlags & eHyperTextAccessible; }
-  nsHyperTextAccessible* AsHyperText();
+  HyperTextAccessible* AsHyperText();
 
   inline bool IsHTMLFileInput() const { return mFlags & eHTMLFileInputAccessible; }
 
@@ -481,7 +501,7 @@ public:
   mozilla::a11y::HTMLLIAccessible* AsHTMLListItem();
 
   inline bool IsImage() const { return mFlags & eImageAccessible; }
-  nsHTMLImageAccessible* AsImage();
+  mozilla::a11y::ImageAccessible* AsImage();
 
   bool IsImageMapAccessible() const { return mFlags & eImageMapAccessible; }
   nsHTMLImageMapAccessible* AsImageMap();
@@ -826,9 +846,7 @@ protected:
 
 
 
-
-
-  PRUint32 GetActionRule(PRUint64 aStates);
+  PRUint32 GetActionRule();
 
   
 

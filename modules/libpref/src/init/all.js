@@ -192,12 +192,26 @@ pref("gfx.font_rendering.graphite.enabled", false);
 #endif
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef XP_MACOSX
 
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 #ifdef ANDROID
-pref("gfx.font_rendering.harfbuzz.scripts", 71);
+
+
+pref("gfx.font_rendering.harfbuzz.scripts", -1);
 #else
 
 pref("gfx.font_rendering.harfbuzz.scripts", 7);
@@ -223,6 +237,7 @@ pref("gfx.textures.poweroftwo.force-enabled", false);
 #endif
 
 pref("gfx.work-around-driver-bugs", true);
+pref("gfx.prefer-mesa-llvmpipe", false);
 
 pref("accessibility.browsewithcaret", false);
 pref("accessibility.warn_on_browsewithcaret", true);
@@ -653,7 +668,8 @@ pref("javascript.options.typeinference", true);
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
-pref("javascript.options.mem.gc_incremental", false);
+pref("javascript.options.mem.disable_explicit_compartment_gc", true);
+pref("javascript.options.mem.gc_incremental", true);
 pref("javascript.options.mem.gc_incremental_slice_ms", 10);
 pref("javascript.options.mem.log", false);
 pref("javascript.options.gc_on_memory_pressure", true);
@@ -3435,14 +3451,6 @@ pref("layers.acceleration.disabled", false);
 pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
-
-
-
-
-
-#ifndef MOZ_X11
-pref("layers.offmainthreadcomposition.enabled", false);
-#endif
 
 #ifdef MOZ_X11
 #ifdef MOZ_WIDGET_GTK2

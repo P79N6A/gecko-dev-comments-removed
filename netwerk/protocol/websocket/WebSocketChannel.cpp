@@ -694,6 +694,8 @@ WebSocketChannel::WebSocketChannel() :
   mOpenRunning(0),
   mChannelWasOpened(0),
   mDataStarted(0),
+  mIncrementedSessionCount(0),
+  mDecrementedSessionCount(0),
   mMaxMessageSize(PR_INT32_MAX),
   mStopOnClose(NS_OK),
   mServerCloseCode(CLOSE_ABNORMAL),
@@ -715,18 +717,12 @@ WebSocketChannel::WebSocketChannel() :
   if (!sWebSocketAdmissions)
     sWebSocketAdmissions = new nsWSAdmissionManager();
 
-  
-  sWebSocketAdmissions->IncrementSessionCount();
-
   mFramePtr = mBuffer = static_cast<PRUint8 *>(moz_xmalloc(mBufferSize));
 }
 
 WebSocketChannel::~WebSocketChannel()
 {
   LOG(("WebSocketChannel::~WebSocketChannel() %p\n", this));
-
-  if (sWebSocketAdmissions)
-    sWebSocketAdmissions->DecrementSessionCount();
 
   
   StopSession(NS_ERROR_UNEXPECTED);
@@ -1556,6 +1552,8 @@ WebSocketChannel::CleanupConnection()
     mTransport->Close(NS_BASE_STREAM_CLOSED);
     mTransport = nsnull;
   }
+
+  DecrementSessionCount();
 }
 
 void
@@ -1709,6 +1707,28 @@ WebSocketChannel::ReleaseSession()
   if (mStopped)
     return;
   StopSession(NS_OK);
+}
+
+void
+WebSocketChannel::IncrementSessionCount()
+{
+  if (!mIncrementedSessionCount) {
+    sWebSocketAdmissions->IncrementSessionCount();
+    mIncrementedSessionCount = 1;
+  }
+}
+
+void
+WebSocketChannel::DecrementSessionCount()
+{
+  
+  
+  
+  
+  if (mIncrementedSessionCount && !mDecrementedSessionCount) {
+    sWebSocketAdmissions->DecrementSessionCount();
+    mDecrementedSessionCount = 1;
+  }
 }
 
 nsresult
@@ -2308,7 +2328,14 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
   if (NS_FAILED(rv))
     return rv;
 
-  return ApplyForAdmission();
+  rv = ApplyForAdmission();
+  if (NS_FAILED(rv))
+    return rv;
+
+  
+  IncrementSessionCount();
+
+  return rv;
 }
 
 NS_IMETHODIMP

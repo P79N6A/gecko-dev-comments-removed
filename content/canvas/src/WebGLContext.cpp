@@ -38,7 +38,7 @@
 #include "mozilla/Telemetry.h"
 
 #include "nsIObserverService.h"
-
+#include "mozilla/dom/WebGLRenderingContextBinding.h"
 
 using namespace mozilla;
 using namespace mozilla::gl;
@@ -75,6 +75,7 @@ WebGLContext::WebGLContext()
     : mCanvasElement(nsnull),
       gl(nsnull)
 {
+    SetIsDOMBinding();
     mEnabledExtensions.SetLength(WebGLExtensionID_Max);
 
     mGeneration = 0;
@@ -162,6 +163,14 @@ WebGLContext::~WebGLContext()
     WebGLMemoryMultiReporterWrapper::RemoveWebGLContext(this);
     TerminateContextLossTimer();
     mContextRestorer = nsnull;
+}
+
+JSObject*
+WebGLContext::WrapObject(JSContext *cx, JSObject *scope,
+                         bool *triedToWrap)
+{
+    return dom::WebGLRenderingContextBinding::Wrap(cx, scope, this,
+                                                   triedToWrap);
 }
 
 void
@@ -370,6 +379,8 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 #endif
     bool forceEnabled =
         Preferences::GetBool("webgl.force-enabled", false);
+    bool useMesaLlvmPipe =
+        Preferences::GetBool("gfx.prefer-mesa-llvmpipe", false);
     bool disabled =
         Preferences::GetBool("webgl.disabled", false);
 
@@ -455,45 +466,10 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
 #ifdef XP_WIN
     
-    if (PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
+    if (useMesaLlvmPipe || PR_GetEnv("MOZ_WEBGL_FORCE_OPENGL")) {
         preferEGL = false;
         useANGLE = false;
         useOpenGL = true;
-    }
-#endif
-
-
-#ifdef ANDROID
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!forceEnabled) {
-        GLContext *globalContext = GLContextProvider::GetGlobalContext();
-        if (!globalContext) {
-            
-            
-            NS_RUNTIMEABORT("No global context anymore? Then you need to update "
-                            "this code, or force-enable WebGL.");
-        }
-        int renderer = globalContext->Renderer();
-        if (renderer == gl::GLContext::RendererAdreno200 ||
-            renderer == gl::GLContext::RendererAdreno205)
-        {
-            GenerateWarning("WebGL blocked on this Adreno driver!");
-            return NS_ERROR_FAILURE;
-        }
     }
 #endif
 
@@ -520,9 +496,14 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
     
     if (!gl && useOpenGL) {
-        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), format);
+        GLContext::ContextFlags flag = useMesaLlvmPipe 
+                                       ? GLContext::ContextFlagsMesaLLVMPipe
+                                       : GLContext::ContextFlagsNone;
+        gl = gl::GLContextProvider::CreateOffscreen(gfxIntSize(width, height), 
+                                                               format, flag);
         if (gl && !InitAndValidateGL()) {
-            GenerateWarning("Error during OpenGL initialization");
+            GenerateWarning("Error during %s initialization", 
+                            useMesaLlvmPipe ? "Mesa LLVMpipe" : "OpenGL");
             return NS_ERROR_FAILURE;
         }
     }

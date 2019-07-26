@@ -6,7 +6,7 @@
 #ifndef mozilla_a11y_ImageAccessible_h__
 #define mozilla_a11y_ImageAccessible_h__
 
-#include "BaseAccessibles.h"
+#include "nsBaseWidgetAccessible.h"
 #include "nsIAccessibleImage.h"
 
 class nsGenericHTMLElement;
@@ -19,7 +19,7 @@ namespace a11y {
 
 
 
-class ImageAccessible : public LinkableAccessible,
+class ImageAccessible : public nsLinkableAccessible,
                         public nsIAccessibleImage
 {
 public:
@@ -29,8 +29,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
 
   
   NS_DECL_NSIACCESSIBLEIMAGE
@@ -38,11 +38,11 @@ public:
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
 private:
   
@@ -70,7 +70,7 @@ private:
 
 
 
-  inline bool IsLongDescIndex(uint8_t aIndex);
+  inline bool IsLongDescIndex(PRUint8 aIndex);
 
 };
 
@@ -84,7 +84,7 @@ inline mozilla::a11y::ImageAccessible*
 Accessible::AsImage()
 {
   return IsImage() ?
-    static_cast<mozilla::a11y::ImageAccessible*>(this) : nullptr;
+    static_cast<mozilla::a11y::ImageAccessible*>(this) : nsnull;
 }
 
 #endif

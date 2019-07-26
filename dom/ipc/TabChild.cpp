@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8; -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TabChild.h"
 #include "mozilla/IntentionalCrash.h"
@@ -59,12 +59,14 @@
 #include "nsEventListenerManager.h"
 #include "PCOMContentPermissionRequestChild.h"
 #include "xpcpublic.h"
+#include "IndexedDBChild.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
 using namespace mozilla::docshell;
+using namespace mozilla::dom::indexedDB;
 
 NS_IMPL_ISUPPORTS1(ContentListener, nsIDOMEventListener)
 
@@ -134,7 +136,7 @@ NS_IMPL_RELEASE(TabChild)
 NS_IMETHODIMP
 TabChild::SetStatus(PRUint32 aStatusType, const PRUnichar* aStatus)
 {
-  
+  // FIXME/bug 617804: should the platform support this?
   return NS_OK;
 }
 
@@ -213,7 +215,7 @@ TabChild::SetStatusWithContext(PRUint32 aStatusType,
                                     const nsAString& aStatusText,
                                     nsISupports* aStatusContext)
 {
-  
+  // FIXME/bug 617804: should the platform support this?
   return NS_OK;
 }
 
@@ -264,7 +266,7 @@ TabChild::GetVisibility(bool* aVisibility)
 NS_IMETHODIMP
 TabChild::SetVisibility(bool aVisibility)
 {
-  
+  // should the platform support this? Bug 666365
   return NS_OK;
 }
 
@@ -279,7 +281,7 @@ TabChild::GetTitle(PRUnichar** aTitle)
 NS_IMETHODIMP
 TabChild::SetTitle(const PRUnichar* aTitle)
 {
-  
+  // FIXME/bug 617804: should the platform support this?
   return NS_OK;
 }
 
@@ -316,8 +318,8 @@ TabChild::FocusPrevElement()
 NS_IMETHODIMP
 TabChild::GetInterface(const nsIID & aIID, void **aSink)
 {
-    
-    
+    // XXXbz should we restrict the set of interfaces we hand out here?
+    // See bug 537429
     return QueryInterface(aIID, aSink);
 }
 
@@ -424,9 +426,9 @@ TabChild::DestroyWindow()
     if (baseWindow)
         baseWindow->Destroy();
 
-    
-    
-    
+    // NB: the order of mWidget->Destroy() and mRemoteFrame->Destroy()
+    // is important: we want to kill off remote layers before their
+    // frames
     if (mWidget) {
         mWidget->Destroy();
     }
@@ -441,8 +443,8 @@ void
 TabChild::ActorDestroy(ActorDestroyReason why)
 {
   if (mTabChildGlobal) {
-    
-    
+    // The messageManager relays messages via the TabChild which
+    // no longer exists.
     static_cast<nsFrameMessageManager*>
       (mTabChildGlobal->mMessageManager.get())->Disconnect();
     mTabChildGlobal->mMessageManager = nsnull;
@@ -495,10 +497,10 @@ TabChild::RecvShow(const nsIntSize& size)
     }
 
     if (!InitWidget(size)) {
-        
-        
-        
-        
+        // We can fail to initialize our widget if the <browser
+        // remote> has already been destroyed, and we couldn't hook
+        // into the parent-process's layer system.  That's not a fatal
+        // error.
         return true;
     }
 
@@ -507,8 +509,8 @@ TabChild::RecvShow(const nsIntSize& size)
     baseWindow->Create();
     baseWindow->SetVisibility(true);
 
-    
-    
+    // IPC uses a WebBrowser object for which DNS prefetching is turned off
+    // by default. But here we really want it, so enable it explicitly
     nsCOMPtr<nsIWebBrowserSetup> webBrowserSetup = do_QueryInterface(baseWindow);
     if (webBrowserSetup) {
       webBrowserSetup->SetProperty(nsIWebBrowserSetup::SETUP_ALLOW_DNS_PREFETCH,
@@ -688,12 +690,12 @@ TabChild::RecvPDocumentRendererConstructor(PDocumentRendererChild* actor,
 
     nsCOMPtr<nsIWebBrowser> browser = do_QueryInterface(mWebNav);
     if (!browser)
-        return true; 
+        return true; // silently ignore
     nsCOMPtr<nsIDOMWindow> window;
     if (NS_FAILED(browser->GetContentDOMWindow(getter_AddRefs(window))) ||
         !window)
     {
-        return true; 
+        return true; // silently ignore
     }
 
     nsCString data;
@@ -703,7 +705,7 @@ TabChild::RecvPDocumentRendererConstructor(PDocumentRendererChild* actor,
                                       renderFlags, flushLayout,
                                       renderSize, data);
     if (!ret)
-        return true; 
+        return true; // silently ignore
 
     return PDocumentRendererChild::Send__delete__(actor, renderSize, data);
 }
@@ -775,8 +777,8 @@ bool
 TabChild::RecvLoadRemoteScript(const nsString& aURL)
 {
   if (!mCx && !InitTabChildGlobal())
-    
-    
+    // This can happen if we're half-destroyed.  It's not a fatal
+    // error.
     return true;
 
   LoadFrameScriptInternal(aURL);
@@ -828,13 +830,13 @@ bool
 TabChild::RecvDestroy()
 {
   if (mTabChildGlobal) {
-    
+    // Let the frame scripts know the child is being closed
     nsContentUtils::AddScriptRunner(
       new UnloadScriptEvent(this, mTabChildGlobal)
     );
   }
 
-  
+  // XXX what other code in ~TabChild() should we be running here?
   DestroyWindow();
 
   return Send__delete__(this);
@@ -894,10 +896,10 @@ TabChild::InitWidget(const nsIntSize& size)
         return false;
     }
     mWidget->Create(
-        nsnull, 0,              
+        nsnull, 0,              // no parents
         nsIntRect(nsIntPoint(0, 0), size),
-        nsnull,                 
-        nsnull                  
+        nsnull,                 // HandleWidgetEvent
+        nsnull                  // nsDeviceContext
         );
 
     RenderFrameChild* remoteFrame =
@@ -914,7 +916,7 @@ TabChild::InitWidget(const nsIntSize& size)
     PLayersChild* shadowManager = remoteFrame->SendPLayersConstructor(&be, &maxTextureSize);
     if (!shadowManager) {
       NS_WARNING("failed to construct LayersChild");
-      
+      // This results in |remoteFrame| being deleted.
       PRenderFrameChild::Send__delete__(remoteFrame);
       return false;
     }
@@ -948,6 +950,20 @@ TabChild::GetMessageManager(nsIContentFrameMessageManager** aResult)
   }
   *aResult = nsnull;
   return NS_ERROR_FAILURE;
+}
+
+PIndexedDBChild*
+TabChild::AllocPIndexedDB(const nsCString& aASCIIOrigin, bool* /* aAllowed */)
+{
+  NS_NOTREACHED("Should never get here!");
+  return NULL;
+}
+
+bool
+TabChild::DeallocPIndexedDB(PIndexedDBChild* aActor)
+{
+  delete aActor;
+  return true;
 }
 
 static bool

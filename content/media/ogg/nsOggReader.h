@@ -117,7 +117,9 @@ private:
   
   
   
+  
   nsresult SeekInBufferedRange(PRInt64 aTarget,
+                               PRInt64 aAdjustedTarget,
                                PRInt64 aStartTime,
                                PRInt64 aEndTime,
                                const nsTArray<SeekRange>& aRanges,
@@ -220,6 +222,10 @@ private:
   ogg_packet* NextOggPacket(nsOggCodecState* aCodecState);
 
   
+  
+  void BuildSerialList(nsTArray<PRUint32>& aTracks);
+
+  
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
 
   
@@ -255,8 +261,10 @@ private:
   
   
   PRUint32 mVorbisSerial;
+  PRUint32 mOpusSerial;
   PRUint32 mTheoraSerial;
   vorbis_info mVorbisInfo;
+  int mOpusPreSkip;
   th_info mTheoraInfo;
 
   

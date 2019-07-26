@@ -77,6 +77,8 @@ nsDiskCacheMap::Open(nsILocalFile *  cacheDirectory)
         if (!cacheFilesExist)
             goto error_exit;
 
+        CACHE_LOG_DEBUG(("CACHE: nsDiskCacheMap::Open [this=%p] reading map", this));
+
         
         PRUint32 bytesRead = PR_Read(mMapFD, &mHeader, sizeof(nsDiskCacheHeader));
         if (sizeof(nsDiskCacheHeader) != bytesRead)  goto error_exit;
@@ -686,7 +688,11 @@ nsDiskCacheMap::ReadDiskCacheEntry(nsDiskCacheRecord * record)
                                             getter_AddRefs(file));
         NS_ENSURE_SUCCESS(rv, nsnull);
 
+        CACHE_LOG_DEBUG(("CACHE: nsDiskCacheMap::ReadDiskCacheEntry"
+                         "[this=%p] reading disk cache entry", this));
+
         PRFileDesc * fd = nsnull;
+
         
         rv = file->OpenNSPRFileDesc(PR_RDONLY, 00600, &fd);
         NS_ENSURE_SUCCESS(rv, nsnull);

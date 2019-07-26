@@ -492,6 +492,7 @@ void nsTableFrame::InsertColGroups(PRInt32                   aStartColIndex,
   PRInt32 colIndex = aStartColIndex;
   nsFrameList::Enumerator colGroups(aColGroups);
   for (; !colGroups.AtEnd(); colGroups.Next()) {
+    MOZ_ASSERT(colGroups.get()->GetType() == nsGkAtoms::tableColGroupFrame);
     nsTableColGroupFrame* cgFrame =
       static_cast<nsTableColGroupFrame*>(colGroups.get());
     cgFrame->SetStartColumnIndex(colIndex);
@@ -1341,12 +1342,13 @@ nsTableFrame::SetColumnDimensions(nscoord         aHeight,
   PRInt32 tableColIncr = tableIsLTR ? 1 : -1;
   nsPoint colGroupOrigin(aBorderPadding.left + cellSpacingX,
                          aBorderPadding.top + cellSpacingY);
-  while (nsnull != colGroupFrame) {
+  while (colGroupFrame) {
+    MOZ_ASSERT(colGroupFrame->GetType() == nsGkAtoms::tableColGroupFrame);
     nscoord colGroupWidth = 0;
     nsTableIterator iterCol(*colGroupFrame);
     nsIFrame* colFrame = iterCol.First();
     nsPoint colOrigin(0,0);
-    while (nsnull != colFrame) {
+    while (colFrame) {
       if (NS_STYLE_DISPLAY_TABLE_COLUMN ==
           colFrame->GetStyleDisplay()->mDisplay) {
         NS_ASSERTION(colX < GetColCount(), "invalid number of columns");
@@ -2101,6 +2103,12 @@ nsTableFrame::AppendFrames(ChildListID     aListID,
   return NS_OK;
 }
 
+
+struct ChildListInsertions {
+  nsIFrame::ChildListID mID;
+  nsFrameList mList;
+};
+
 NS_IMETHODIMP
 nsTableFrame::InsertFrames(ChildListID     aListID,
                            nsIFrame*       aPrevFrame,
@@ -2122,14 +2130,54 @@ nsTableFrame::InsertFrames(ChildListID     aListID,
   }
 
   
+  
+  ChildListInsertions insertions[2]; 
+  const nsStyleDisplay* display = aFrameList.FirstChild()->GetStyleDisplay();
+  nsFrameList::FrameLinkEnumerator e(aFrameList);
+  for (; !aFrameList.IsEmpty(); e.Next()) {
+    nsIFrame* next = e.NextFrame();
+    if (!next || next->GetStyleDisplay()->mDisplay != display->mDisplay) {
+      nsFrameList head = aFrameList.ExtractHead(e);
+      if (display->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) {
+        insertions[0].mID = kColGroupList;
+        insertions[0].mList.AppendFrames(nsnull, head);
+      } else {
+        insertions[1].mID = kPrincipalList;
+        insertions[1].mList.AppendFrames(nsnull, head);
+      }
+      if (!next) {
+        break;
+      }
+      display = next->GetStyleDisplay();
+    }
+  }
+  for (PRUint32 i = 0; i < ArrayLength(insertions); ++i) {
+    
+    
+    
+    if (!insertions[i].mList.IsEmpty()) {
+      HomogenousInsertFrames(insertions[i].mID, aPrevFrame,
+                             insertions[i].mList);
+    }
+  }
+  return NS_OK;
+}
+
+void
+nsTableFrame::HomogenousInsertFrames(ChildListID     aListID,
+                                     nsIFrame*       aPrevFrame,
+                                     nsFrameList&    aFrameList)
+{
+  
   const nsStyleDisplay* display = aFrameList.FirstChild()->GetStyleDisplay();
 #ifdef DEBUG
   
+  
   for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
     const nsStyleDisplay* nextDisplay = e.get()->GetStyleDisplay();
-    NS_ASSERTION((display->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) ==
-        (nextDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP),
-      "heterogenous childlist");
+    MOZ_ASSERT((display->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) ==
+               (nextDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP),
+               "heterogenous childlist");
   }
 #endif
   if (aPrevFrame) {
@@ -2187,8 +2235,7 @@ nsTableFrame::InsertFrames(ChildListID     aListID,
     }
   }
   if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == display->mDisplay) {
-    NS_ASSERTION(aListID == kPrincipalList || aListID == kColGroupList,
-                 "unexpected child list");
+    NS_ASSERTION(aListID == kColGroupList, "unexpected child list");
     
     const nsFrameList::Slice& newColgroups =
       mColGroups.InsertFrames(nsnull, aPrevFrame, aFrameList);
@@ -2215,7 +2262,7 @@ nsTableFrame::InsertFrames(ChildListID     aListID,
     NS_NOTREACHED("How did we even get here?");
     
     mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
-    return NS_OK;
+    return;
   }
 
   PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -2225,7 +2272,7 @@ nsTableFrame::InsertFrames(ChildListID     aListID,
   printf("=== TableFrame::InsertFrames\n");
   Dump(true, true, true);
 #endif
-  return NS_OK;
+  return;
 }
 
 NS_IMETHODIMP

@@ -850,32 +850,41 @@ DWORD nsWindow::WindowExStyle()
 
 void nsWindow::SubclassWindow(BOOL bState)
 {
-  if (NULL != mWnd) {
-    
-    if (!::IsWindow(mWnd)) {
+  if (bState) {
+    if (!mWnd || !IsWindow(mWnd)) {
       NS_ERROR("Invalid window handle");
     }
 
-    if (bState) {
-      
-      if (mUnicodeWidget)
-        mPrevWndProc = (WNDPROC)::SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
-                                                (LONG_PTR)nsWindow::WindowProc);
-      else
-        mPrevWndProc = (WNDPROC)::SetWindowLongPtrA(mWnd, GWLP_WNDPROC,
-                                                (LONG_PTR)nsWindow::WindowProc);
-      NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
-      
-      WinUtils::SetNSWindowPtr(mWnd, this);
+    if (mUnicodeWidget) {
+      mPrevWndProc =
+        reinterpret_cast<WNDPROC>(
+          SetWindowLongPtrW(mWnd,
+                            GWLP_WNDPROC,
+                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
+    } else {
+      mPrevWndProc =
+        reinterpret_cast<WNDPROC>(
+          SetWindowLongPtrA(mWnd,
+                            GWLP_WNDPROC,
+                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
     }
-    else {
-      if (mUnicodeWidget)
-        ::SetWindowLongPtrW(mWnd, GWLP_WNDPROC, (LONG_PTR)mPrevWndProc);
-      else
-        ::SetWindowLongPtrA(mWnd, GWLP_WNDPROC, (LONG_PTR)mPrevWndProc);
-      WinUtils::SetNSWindowPtr(mWnd, NULL);
-      mPrevWndProc = NULL;
+    NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
+    
+    WinUtils::SetNSWindowPtr(mWnd, this);
+  } else {
+    if (IsWindow(mWnd)) {
+      if (mUnicodeWidget) {
+        SetWindowLongPtrW(mWnd,
+                          GWLP_WNDPROC,
+                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
+      } else {
+        SetWindowLongPtrA(mWnd,
+                          GWLP_WNDPROC,
+                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
+      }
     }
+    WinUtils::SetNSWindowPtr(mWnd, NULL);
+    mPrevWndProc = NULL;
   }
 }
 

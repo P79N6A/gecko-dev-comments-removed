@@ -11,7 +11,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/ctypes.jsm")
+Components.utils.import("resource://gre/modules/ctypes.jsm");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -432,15 +432,15 @@ XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpda
 #endif
 
   try {
-    var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
+    var updateTestFile = getInstallDirRoot();
+    updateTestFile.append(FILE_PERMS_TEST);
     LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
     testWriteAccess(updateTestFile, true);
 #ifndef XP_MACOSX
     
     
     
-    updateTestFile = getUpdateDirCreate([]);
-    updateTestFile = updateTestFile.parent;
+    updateTestFile = getInstallDirRoot().parent;
     updateTestFile.append(FILE_PERMS_TEST);
     LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
     updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
@@ -550,6 +550,22 @@ function getUpdateDirCreate(pathArray) {
   }
 #endif
   return FileUtils.getDir(KEY_APPDIR, pathArray, true);
+}
+
+
+
+
+
+
+
+
+function getInstallDirRoot() {
+  var dir = FileUtils.getDir(KEY_APPDIR, [], false);
+#ifdef XP_MACOSX
+  
+  dir = dir.parent.parent;
+#endif
+  return dir;
 }
 
 
@@ -988,6 +1004,36 @@ function handleUpdateFailure(update, errorCode) {
   }
   
   return false;
+}
+
+
+
+
+
+
+function handleFallbackToCompleteUpdate(update) {
+  cleanupActiveUpdate();
+
+  update.statusText = gUpdateBundle.GetStringFromName("patchApplyFailure");
+  var oldType = update.selectedPatch ? update.selectedPatch.type
+                                     : "complete";
+  if (update.selectedPatch && oldType == "partial" && update.patchCount == 2) {
+    
+    
+    LOG("UpdateService:_postUpdateProcessing - install of partial patch " +
+        "failed, downloading complete patch");
+    var status = Cc["@mozilla.org/updates/update-service;1"].
+                 getService(Ci.nsIApplicationUpdateService).
+                 downloadUpdate(update, true);
+    if (status == STATE_NONE)
+      cleanupActiveUpdate();
+  }
+  else {
+    LOG("handleFallbackToCompleteUpdate - install of complete or " +
+        "only one patch offered failed.");
+  }
+  update.QueryInterface(Ci.nsIWritablePropertyBag);
+  update.setProperty("patchingFailed", oldType);
 }
 
 
@@ -1571,26 +1617,8 @@ UpdateService.prototype = {
       }
 
       
-      cleanupActiveUpdate();
+      handleFallbackToCompleteUpdate(update);
 
-      update.statusText = gUpdateBundle.GetStringFromName("patchApplyFailure");
-      var oldType = update.selectedPatch ? update.selectedPatch.type
-                                         : "complete";
-      if (update.selectedPatch && oldType == "partial" && update.patchCount == 2) {
-        
-        
-        LOG("UpdateService:_postUpdateProcessing - install of partial patch " +
-            "failed, downloading complete patch");
-        var status = this.downloadUpdate(update, true);
-        if (status == STATE_NONE)
-          cleanupActiveUpdate();
-      }
-      else {
-        LOG("UpdateService:_postUpdateProcessing - install of complete or " +
-            "only one patch offered failed... showing error.");
-      }
-      update.QueryInterface(Ci.nsIWritablePropertyBag);
-      update.setProperty("patchingFailed", oldType);
       prompter.showUpdateError(update);
     }
   },
@@ -2021,6 +2049,13 @@ UpdateService.prototype = {
   
 
 
+  get canStageUpdates() {
+    return gCanStageUpdates;
+  },
+
+  
+
+
   addDownloadListener: function AUS_addDownloadListener(listener) {
     if (!this._downloader) {
       LOG("UpdateService:addDownloadListener - no downloader!");
@@ -2108,6 +2143,11 @@ UpdateService.prototype = {
     if (this.isDownloading)
       this._downloader.cancel();
   },
+
+  
+
+
+  getUpdatesDirectory: getUpdatesDir,
 
   
 
@@ -2391,7 +2431,9 @@ UpdateManager.prototype = {
     update.state = ary[0];
     if (update.state == STATE_FAILED && ary[1]) {
       updateSucceeded = false;
-      handleUpdateFailure(update, ary[1]);
+      if (!handleUpdateFailure(update, ary[1])) {
+        handleFallbackToCompleteUpdate(update);
+      }
     }
     if (update.state == STATE_APPLIED && shouldUseService()) {
       writeStatusFile(getUpdatesDir(), update.state = STATE_APPLIED_SVC);
@@ -2409,6 +2451,8 @@ UpdateManager.prototype = {
 
     
     
+    LOG("UpdateManager:refreshUpdateStatus - Notifying observers that " +
+        "the update was staged. state: " + update.state + ", status: " + status);
     Services.obs.notifyObservers(null, "update-staged", update.state);
 
     

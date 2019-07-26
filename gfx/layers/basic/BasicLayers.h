@@ -178,6 +178,8 @@ protected:
   
   nsRefPtr<gfxContext> mTarget;
   
+  nsRefPtr<gfxContext> mShadowTarget;
+  
   nsRefPtr<ImageFactory> mFactory;
 
   

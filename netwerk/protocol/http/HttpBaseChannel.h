@@ -140,10 +140,7 @@ public:
   
   inline void CleanRedirectCacheChainIfNecessary()
   {
-      if (mRedirectedCachekeys) {
-          delete mRedirectedCachekeys;
-          mRedirectedCachekeys = nsnull;
-      }
+      mRedirectedCachekeys = nsnull;
   }
   NS_IMETHOD HTTPUpgrade(const nsACString & aProtocolName,
                          nsIHttpUpgradeListener *aListener); 
@@ -272,7 +269,7 @@ protected:
   
   PRUint32                          mSuspendCount;
 
-  nsTArray<nsCString>              *mRedirectedCachekeys;
+  nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
 };
 
 

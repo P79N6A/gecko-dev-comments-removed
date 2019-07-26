@@ -15,7 +15,11 @@
 #endif
 #ifdef MOZ_OPUS
 #include <opus/opus.h>
+
+#include "nsBuiltinDecoderStateMachine.h"
+#include "nsBuiltinDecoderReader.h"
 #endif
+#include <nsAutoRef.h>
 #include <nsDeque.h>
 #include <nsTArray.h>
 #include <nsClassHashtable.h>
@@ -83,6 +87,8 @@ public:
   static nsOggCodecState* Create(ogg_page* aPage);
   
   virtual CodecType GetType() { return TYPE_UNKNOWN; }
+
+  
   
   
   virtual bool DecodeHeader(ogg_packet* aPacket) {
@@ -298,23 +304,34 @@ public:
 
   CodecType GetType() { return TYPE_OPUS; }
   bool DecodeHeader(ogg_packet* aPacket);
-  PRInt64 Time(PRInt64 granulepos);
+  PRInt64 Time(PRInt64 aGranulepos);
   bool Init();
   nsresult Reset();
+  nsresult Reset(bool aStart);
   bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage);
 
   
+  static PRInt64 Time(int aPreSkip, PRInt64 aGranulepos);
+
+  
   int mRate;        
-  int mNominalRate; 
+  PRUint32 mNominalRate; 
   int mChannels;    
-  int mPreSkip;     
+  PRUint16 mPreSkip; 
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
   float mGain;      
+#else
+  PRInt32 mGain_Q16; 
+#endif
   int mChannelMapping; 
   int mStreams;     
 
   OpusDecoder *mDecoder;
   int mSkip;        
+  
+  
+  PRInt64 mPrevPacketGranulepos;
 
 private:
 
@@ -323,7 +340,13 @@ private:
   
   
   
-  void ReconstructGranulepos();
+  bool ReconstructOpusGranulepos();
+
+  
+  
+  
+  PRInt64 mPrevPageGranulepos;
+
 #endif 
 };
 
@@ -459,6 +482,17 @@ private:
 
   
   nsClassHashtable<nsUint32HashKey, nsKeyFrameIndex> mIndex;
+};
+
+
+
+template <>
+class nsAutoRefTraits<ogg_packet> : public nsPointerRefTraits<ogg_packet>
+{
+public:
+  static void Release(ogg_packet* aPacket) {
+    nsOggCodecState::ReleasePacket(aPacket);
+  }
 };
 
 #endif

@@ -3509,11 +3509,26 @@ void
 BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 {
   NS_ABORT_IF_FALSE(mKeepAlive.IsEmpty(), "uncommitted txn?");
+  nsRefPtr<gfxContext> targetContext = aTarget;
+
   
   
   
   if (HasShadowManager()) {
     ShadowLayerForwarder::BeginTransaction();
+
+    
+    
+    if (aTarget && (aTarget != mDefaultTarget)) {
+      mShadowTarget = aTarget;
+
+      
+      
+      nsRefPtr<gfxASurface> targetSurface = gfxPlatform::GetPlatform()->
+        CreateOffscreenSurface(aTarget->OriginalSurface()->GetSize(),
+                               aTarget->OriginalSurface()->GetContentType());
+      targetContext = new gfxContext(targetSurface);
+    }
   }
   BasicLayerManager::BeginTransactionWithTarget(aTarget);
 }
@@ -3525,6 +3540,10 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
 {
   BasicLayerManager::EndTransaction(aCallback, aCallbackData, aFlags);
   ForwardTransaction();
+  if (mShadowTarget) {
+    ShadowLayerForwarder::ShadowDrawToTarget(mShadowTarget);
+    mShadowTarget = nsnull;
+  }
 }
 
 bool

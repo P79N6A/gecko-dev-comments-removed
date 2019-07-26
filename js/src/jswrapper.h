@@ -78,14 +78,14 @@ class JS_FRIEND_API(AbstractWrapper) : public IndirectProxyHandler
 };
 
 
-class JS_FRIEND_API(Wrapper) : public AbstractWrapper
+class JS_FRIEND_API(DirectWrapper) : public AbstractWrapper
 {
   public:
-    explicit Wrapper(unsigned flags);
+    explicit DirectWrapper(unsigned flags);
 
     typedef enum { PermitObjectAccess, PermitPropertyAccess, DenyAccess } Permission;
 
-    virtual ~Wrapper();
+    virtual ~DirectWrapper();
 
     
     virtual bool has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
@@ -106,10 +106,10 @@ class JS_FRIEND_API(Wrapper) : public AbstractWrapper
 
     using AbstractWrapper::Action;
 
-    static Wrapper singleton;
+    static DirectWrapper singleton;
 
     static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
-                         Wrapper *handler);
+                         DirectWrapper *handler);
 
     using AbstractWrapper::wrappedObject;
     using AbstractWrapper::wrapperHandler;
@@ -123,7 +123,13 @@ class JS_FRIEND_API(Wrapper) : public AbstractWrapper
 };
 
 
-class JS_FRIEND_API(CrossCompartmentWrapper) : public Wrapper
+
+
+
+typedef DirectWrapper Wrapper;
+
+
+class JS_FRIEND_API(CrossCompartmentWrapper) : public DirectWrapper
 {
   public:
     CrossCompartmentWrapper(unsigned flags);
@@ -183,7 +189,7 @@ class JS_FRIEND_API(SecurityWrapper) : public Base
     virtual bool regexp_toShared(JSContext *cx, JSObject *proxy, RegExpGuard *g) MOZ_OVERRIDE;
 };
 
-typedef SecurityWrapper<Wrapper> SameCompartmentSecurityWrapper;
+typedef SecurityWrapper<DirectWrapper> SameCompartmentSecurityWrapper;
 typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
 
 
@@ -232,7 +238,7 @@ UnwrapObject(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = NULL);
 JS_FRIEND_API(JSObject *)
 UnwrapObjectChecked(JSContext *cx, JSObject *obj);
 
-bool
+JS_FRIEND_API(bool)
 IsCrossCompartmentWrapper(const JSObject *obj);
 
 void

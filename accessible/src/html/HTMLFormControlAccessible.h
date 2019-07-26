@@ -7,7 +7,7 @@
 #define MOZILLA_A11Y_HTMLFormControlAccessible_H_
 
 #include "FormControlAccessible.h"
-#include "nsHyperTextAccessibleWrap.h"
+#include "HyperTextAccessibleWrap.h"
 
 namespace mozilla {
 namespace a11y {
@@ -64,7 +64,7 @@ public:
 
 
 
-class HTMLButtonAccessible : public nsHyperTextAccessibleWrap
+class HTMLButtonAccessible : public HyperTextAccessibleWrap
 {
 
 public:
@@ -93,7 +93,7 @@ public:
 
 
 
-class HTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
+class HTMLTextFieldAccessible : public HyperTextAccessibleWrap
 {
 
 public:
@@ -130,7 +130,7 @@ public:
 
 
 
-class HTMLFileInputAccessible : public nsHyperTextAccessibleWrap
+class HTMLFileInputAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLFileInputAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -143,7 +143,7 @@ public:
 
 
 
-class HTMLGroupboxAccessible : public nsHyperTextAccessibleWrap
+class HTMLGroupboxAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -161,7 +161,7 @@ protected:
 
 
 
-class HTMLLegendAccessible : public nsHyperTextAccessibleWrap
+class HTMLLegendAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLLegendAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -174,7 +174,7 @@ public:
 
 
 
-class HTMLFigureAccessible : public nsHyperTextAccessibleWrap
+class HTMLFigureAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLFigureAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -193,7 +193,7 @@ protected:
 
 
 
-class HTMLFigcaptionAccessible : public nsHyperTextAccessibleWrap
+class HTMLFigcaptionAccessible : public HyperTextAccessibleWrap
 {
 public:
   HTMLFigcaptionAccessible(nsIContent* aContent, DocAccessible* aDoc);

@@ -26,7 +26,7 @@ using namespace mozilla::a11y;
 
 nsHTMLImageMapAccessible::
   nsHTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  nsHTMLImageAccessibleWrap(aContent, aDoc)
+  ImageAccessibleWrap(aContent, aDoc)
 {
   mFlags |= eImageMapAccessible;
 }
@@ -34,7 +34,7 @@ nsHTMLImageMapAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLImageMapAccessible, nsHTMLImageAccessible)
+NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLImageMapAccessible, ImageAccessible)
 
 
 
@@ -179,7 +179,7 @@ nsHTMLAreaAccessible::Description(nsString& aDescription)
 
   
   nsCOMPtr<nsIDOMHTMLAreaElement> area(do_QueryInterface(mContent));
-  if (area) 
+  if (area)
     area->GetShape(aDescription);
 }
 

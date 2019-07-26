@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IDBEvents.h"
 
@@ -39,7 +39,7 @@ private:
   nsCOMPtr<nsIDOMEvent> mEvent;
 };
 
-} 
+} // anonymous namespace
 
 already_AddRefed<nsDOMEvent>
 mozilla::dom::indexedDB::CreateGenericEvent(const nsAString& aType,
@@ -58,7 +58,7 @@ mozilla::dom::indexedDB::CreateGenericEvent(const nsAString& aType,
   return event.forget();
 }
 
-
+// static
 already_AddRefed<nsDOMEvent>
 IDBVersionChangeEvent::CreateInternal(const nsAString& aType,
                                       PRUint64 aOldVersion,
@@ -80,7 +80,7 @@ IDBVersionChangeEvent::CreateInternal(const nsAString& aType,
   return result;
 }
 
-
+// static
 already_AddRefed<nsIRunnable>
 IDBVersionChangeEvent::CreateRunnableInternal(const nsAString& aType,
                                               PRUint64 aOldVersion,
@@ -114,15 +114,16 @@ IDBVersionChangeEvent::GetOldVersion(PRUint64* aOldVersion)
 }
 
 NS_IMETHODIMP
-IDBVersionChangeEvent::GetNewVersion(JS::Value* aNewVersion)
+IDBVersionChangeEvent::GetNewVersion(JSContext* aCx,
+                                     JS::Value* aNewVersion)
 {
   NS_ENSURE_ARG_POINTER(aNewVersion);
 
   if (!mNewVersion) {
     *aNewVersion = JSVAL_NULL;
   }
-  else {
-    *aNewVersion = INT_TO_JSVAL(mNewVersion);
+  else if (!JS_NewNumberValue(aCx, double(mNewVersion), aNewVersion)) {
+    return NS_ERROR_FAILURE;
   }
 
   return NS_OK;

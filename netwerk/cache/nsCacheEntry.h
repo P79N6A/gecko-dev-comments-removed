@@ -63,6 +63,9 @@ public:
 
     nsCacheDevice * CacheDevice()                            { return mCacheDevice; }
     void            SetCacheDevice( nsCacheDevice * device)  { mCacheDevice = device; }
+    void            SetCustomCacheDevice( nsCacheDevice * device )
+                                                             { mCustomDevice = device; }
+    nsCacheDevice * CustomCacheDevice()                      { return mCustomDevice; }
     const char *    GetDeviceID();
 
     
@@ -216,6 +219,7 @@ private:
     PRInt64                 mPredictedDataSize;  
     PRUint32                mDataSize;       
     nsCacheDevice *         mCacheDevice;    
+    nsCacheDevice *         mCustomDevice;   
     nsCOMPtr<nsISupports>   mSecurityInfo;   
     nsISupports *           mData;           
     nsCOMPtr<nsIThread>     mThread;

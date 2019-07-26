@@ -6,7 +6,7 @@
 #ifndef _nsXFormsAccessible_H_
 #define _nsXFormsAccessible_H_
 
-#include "nsHyperTextAccessibleWrap.h"
+#include "HyperTextAccessibleWrap.h"
 #include "nsIXFormsUtilityService.h"
 
 #define NS_NAMESPACE_XFORMS "http://www.w3.org/2002/xforms"
@@ -33,7 +33,7 @@ protected:
 
 
 
-class nsXFormsAccessible : public nsHyperTextAccessibleWrap,
+class nsXFormsAccessible : public HyperTextAccessibleWrap,
                            public nsXFormsAccessibleBase
 {
 public:
@@ -52,6 +52,7 @@ public:
   
   
   virtual PRUint64 NativeState();
+  virtual bool NativelyUnavailable() const;
 
   
   

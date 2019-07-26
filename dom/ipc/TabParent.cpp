@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8; -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "TabParent.h"
 
@@ -39,14 +39,17 @@
 #include "mozilla/unused.h"
 #include "nsDebug.h"
 #include "nsPrintfCString.h"
+#include "IndexedDBParent.h"
+#include "IDBFactory.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 using namespace mozilla::layout;
 using namespace mozilla::widget;
+using namespace mozilla::dom::indexedDB;
 
-
-
+// The flags passed by the webProgress notifications are 16 bits shifted
+// from the ones registered by webProgressListeners.
 #define NOTIFY_FLAG_SHIFT 16
 
 namespace mozilla {
@@ -57,8 +60,12 @@ TabParent *TabParent::mIMETabParent = nsnull;
 NS_IMPL_ISUPPORTS3(TabParent, nsITabParent, nsIAuthPromptProvider, nsISecureBrowserUI)
 
 TabParent::TabParent()
-  : mIMEComposing(false)
+  : mFrameElement(NULL)
+  , mIMESelectionAnchor(0)
+  , mIMESelectionFocus(0)
+  , mIMEComposing(false)
   , mIMECompositionEnding(false)
+  , mIMECompositionStart(0)
   , mIMESeqno(0)
   , mDPI(0)
   , mActive(false)
@@ -80,9 +87,9 @@ TabParent::SetOwnerElement(nsIDOMElement* aElement)
 void
 TabParent::Destroy()
 {
-  
-  
-  
+  // If this fails, it's most likely due to a content-process crash,
+  // and auto-cleanup will kick in.  Otherwise, the child side will
+  // destroy itself and send back __delete__().
   unused << SendDestroy();
 
   for (size_t i = 0; i < ManagedPRenderFrameParent().Length(); ++i) {
@@ -138,8 +145,8 @@ TabParent::AnswerCreateWindow(PBrowserParent** retval)
         return false;
     }
 
-    
-    
+    // Get a new rendering area from the browserDOMWin.  We don't want
+    // to be starting any loads here, so get it with a null URI.
     nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner;
     mBrowserDOMWindow->OpenURIInFrame(nsnull, nsnull,
                                       nsIBrowserDOMWindow::OPEN_NEWTAB,
@@ -180,7 +187,7 @@ TabParent::LoadURL(nsIURI* aURI)
 void
 TabParent::Show(const nsIntSize& size)
 {
-    
+    // sigh
     mShown = true;
     unused << SendShow(size);
 }
@@ -397,25 +404,25 @@ TabParent::RecvNotifyIMESelection(const PRUint32& aSeqno,
 bool
 TabParent::RecvNotifyIMETextHint(const nsString& aText)
 {
-  
+  // Replace our cache with new text
   mIMECacheText = aText;
   return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Try to answer query event using cached text.
+ *
+ * For NS_QUERY_SELECTED_TEXT, fail if the cache doesn't contain the whole
+ *  selected range. (This shouldn't happen because PuppetWidget should have
+ *  already sent the whole selection.)
+ *
+ * For NS_QUERY_TEXT_CONTENT, fail only if the cache doesn't overlap with
+ *  the queried range. Note the difference from above. We use
+ *  this behavior because a normal NS_QUERY_TEXT_CONTENT event is allowed to
+ *  have out-of-bounds offsets, so that widget can request content without
+ *  knowing the exact length of text. It's up to widget to handle cases when
+ *  the returned offset/length are different from the queried offset/length.
+ */
 bool
 TabParent::HandleQueryContentEvent(nsQueryContentEvent& aEvent)
 {
@@ -480,13 +487,13 @@ TabParent::SendCompositionEvent(nsCompositionEvent& event)
   return PBrowserParent::SendCompositionEvent(event);
 }
 
-
-
-
-
-
-
-
+/**
+ * During ResetInputState or CancelComposition, widget usually sends a
+ * NS_TEXT_TEXT event to finalize or clear the composition, respectively
+ *
+ * Because the event will not reach content in time, we intercept it
+ * here and pass the text as the EndIMEComposition return value
+ */
 bool
 TabParent::SendTextEvent(nsTextEvent& event)
 {
@@ -495,8 +502,8 @@ TabParent::SendTextEvent(nsTextEvent& event)
     return true;
   }
 
-  
-  
+  // We must be able to simulate the selection because
+  // we might not receive selection updates in time
   if (!mIMEComposing) {
     mIMECompositionStart = NS_MIN(mIMESelectionAnchor, mIMESelectionFocus);
   }
@@ -563,9 +570,9 @@ TabParent::RecvSetInputContext(const PRInt32& aIMEEnabled,
                                const PRInt32& aCause,
                                const PRInt32& aFocusChange)
 {
-  
-  
-  
+  // mIMETabParent (which is actually static) tracks which if any TabParent has IMEFocus
+  // When the input mode is set to anything but IMEState::DISABLED,
+  // mIMETabParent should be set to this
   mIMETabParent =
     aIMEEnabled != static_cast<PRInt32>(IMEState::DISABLED) ? this : nsnull;
   nsCOMPtr<nsIWidget> widget = GetWidget();
@@ -636,9 +643,9 @@ TabParent::ReceiveMessage(const nsString& aMessage,
       frameLoader->GetFrameMessageManager();
     JSContext* ctx = manager->GetJSContext();
     JSAutoRequest ar(ctx);
-    PRUint32 len = 0; 
-    
-    
+    PRUint32 len = 0; //TODO: obtain a real value in bug 572685
+    // Because we want JS messages to have always the same properties,
+    // create array even if len == 0.
     JSObject* objectsArray = JS_NewArrayObject(ctx, len, NULL);
     if (!objectsArray) {
       return false;
@@ -654,14 +661,66 @@ TabParent::ReceiveMessage(const nsString& aMessage,
   return true;
 }
 
+PIndexedDBParent*
+TabParent::AllocPIndexedDB(const nsCString& aASCIIOrigin, bool* /* aAllowed */)
+{
+  return new IndexedDBParent();
+}
 
+bool
+TabParent::DeallocPIndexedDB(PIndexedDBParent* aActor)
+{
+  delete aActor;
+  return true;
+}
 
+bool
+TabParent::RecvPIndexedDBConstructor(PIndexedDBParent* aActor,
+                                     const nsCString& aASCIIOrigin,
+                                     bool* aAllowed)
+{
+  nsRefPtr<IndexedDatabaseManager> mgr = IndexedDatabaseManager::GetOrCreate();
+  NS_ENSURE_TRUE(mgr, false);
 
+  if (!IndexedDatabaseManager::IsMainProcess()) {
+    NS_RUNTIMEABORT("Not supported yet!");
+  }
+
+  nsCOMPtr<nsINode> node = do_QueryInterface(GetOwnerElement());
+  NS_ENSURE_TRUE(node, false);
+
+  nsIDocument* doc = node->GetOwnerDocument();
+  NS_ENSURE_TRUE(doc, false);
+
+  nsCOMPtr<nsPIDOMWindow> window = doc->GetInnerWindow();
+  NS_ENSURE_TRUE(window, false);
+
+  nsRefPtr<IDBFactory> factory;
+  nsresult rv =
+    IDBFactory::Create(window, aASCIIOrigin, getter_AddRefs(factory));
+  NS_ENSURE_SUCCESS(rv, false);
+
+  if (!factory) {
+    *aAllowed = false;
+    return true;
+  }
+
+  IndexedDBParent* actor = static_cast<IndexedDBParent*>(aActor);
+  actor->mFactory = factory;
+  actor->mASCIIOrigin = aASCIIOrigin;
+
+  *aAllowed = true;
+  return true;
+}
+
+// nsIAuthPromptProvider
+
+// This method is largely copied from nsDocShell::GetAuthPrompt
 NS_IMETHODIMP
 TabParent::GetAuthPrompt(PRUint32 aPromptReason, const nsIID& iid,
                           void** aResult)
 {
-  
+  // we're either allowing auth, or it's a proxy request
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> wwatch =
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
@@ -672,8 +731,8 @@ TabParent::GetAuthPrompt(PRUint32 aPromptReason, const nsIID& iid,
   if (frame)
     window = do_QueryInterface(frame->OwnerDoc()->GetWindow());
 
-  
-  
+  // Get an auth prompter for our window so that the parenting
+  // of the dialogs works as it should when using tabs.
   return wwatch->GetPrompt(window, iid,
                            reinterpret_cast<void**>(aResult));
 }
@@ -835,8 +894,8 @@ TabParent::TryCacheDPI()
   nsCOMPtr<nsIWidget> widget = GetWidget();
 
   if (!widget && mFrameElement) {
-    
-    
+    // Even if we don't have a widget (e.g. because we're display:none), there's
+    // probably a widget somewhere in the hierarchy our frame element lives in.
     nsCOMPtr<nsIDOMDocument> ownerDoc;
     mFrameElement->GetOwnerDocument(getter_AddRefs(ownerDoc));
 
@@ -864,5 +923,5 @@ TabParent::GetWidget() const
   return widget.forget();
 }
 
-} 
-} 
+} // namespace tabs
+} // namespace mozilla

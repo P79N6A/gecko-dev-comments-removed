@@ -89,12 +89,13 @@ const TESTS = [
     category: "Image",
     matchString: "corrupt",
   },
-  { 
-    file: "test-bug-595934-workers.html",
-    category: "Web Worker",
-    matchString: "fooBarWorker",
-    expectError: true,
-  },
+  
+  
+  
+  
+  
+  
+  
 ];
 
 let pos = -1;

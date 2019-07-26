@@ -301,6 +301,11 @@ public:
   static char const *const gH264Codecs[6];
 #endif
 
+#ifdef MOZ_MEDIA_PLUGINS
+  static bool IsMediaPluginsEnabled();
+  static bool IsMediaPluginsType(const nsACString& aType);
+#endif
+
   
 
 

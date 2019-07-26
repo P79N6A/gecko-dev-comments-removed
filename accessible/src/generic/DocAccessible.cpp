@@ -78,7 +78,7 @@ static const PRUint32 kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
 DocAccessible::
   DocAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
                   nsIPresShell* aPresShell) :
-  nsHyperTextAccessibleWrap(aRootContent, this),
+  HyperTextAccessibleWrap(aRootContent, this),
   mDocument(aDocument), mScrollPositionChangedTicks(0),
   mLoadState(eTreeConstructionPending), mLoadEventType(0),
   mVirtualCursor(nsnull),
@@ -168,8 +168,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocAccessible)
     
 
     status = IsHyperText() ? 
-      nsHyperTextAccessible::QueryInterface(aIID,
-                                            (void**)&foundInterface) :
+      HyperTextAccessible::QueryInterface(aIID, (void**)&foundInterface) :
       Accessible::QueryInterface(aIID, (void**)&foundInterface);
   } else {
     NS_ADDREF(foundInterface);
@@ -180,8 +179,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocAccessible)
   return status;
 }
 
-NS_IMPL_ADDREF_INHERITED(DocAccessible, nsHyperTextAccessible)
-NS_IMPL_RELEASE_INHERITED(DocAccessible, nsHyperTextAccessible)
+NS_IMPL_ADDREF_INHERITED(DocAccessible, HyperTextAccessible)
+NS_IMPL_RELEASE_INHERITED(DocAccessible, HyperTextAccessible)
 
 
 
@@ -286,7 +285,7 @@ DocAccessible::NativeState()
     0 : states::STALE;
 
   
-  state |= states::FOCUSABLE;
+  state |= states::FOCUSABLE; 
   if (FocusMgr()->IsFocused(this))
     state |= states::FOCUSED;
 
@@ -310,6 +309,19 @@ DocAccessible::NativeState()
   state |= editor ? states::EDITABLE : states::READONLY;
 
   return state;
+}
+
+PRUint64
+DocAccessible::NativeInteractiveState() const
+{
+  
+  return states::FOCUSABLE;
+}
+
+bool
+DocAccessible::NativelyUnavailable() const
+{
+  return false;
 }
 
 
@@ -633,6 +645,8 @@ DocAccessible::Shutdown()
 
   
   
+  
+  mFlags |= eIsDefunct;
   nsCOMPtr<nsIDocument> kungFuDeathGripDoc = mDocument;
   mDocument = nsnull;
 
@@ -663,7 +677,7 @@ DocAccessible::Shutdown()
   mNodeToAccessibleMap.Clear();
   ClearCache(mAccessibleCache);
 
-  nsHyperTextAccessibleWrap::Shutdown();
+  HyperTextAccessibleWrap::Shutdown();
 
   GetAccService()->NotifyOfDocumentShutdown(kungFuDeathGripDoc);
 }
@@ -1305,7 +1319,7 @@ DocAccessible::HandleAccEvent(AccEvent* aEvent)
   if (logging::IsEnabled(logging::eDocLoad))
     logging::DocLoadEventHandled(aEvent);
 
-  return nsHyperTextAccessible::HandleAccEvent(aEvent);
+  return HyperTextAccessible::HandleAccEvent(aEvent);
 }
 #endif
 
@@ -1762,7 +1776,7 @@ DocAccessible::ProcessPendingEvent(AccEvent* aEvent)
 {
   PRUint32 eventType = aEvent->GetEventType();
   if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-    nsHyperTextAccessible* hyperText = aEvent->GetAccessible()->AsHyperText();
+    HyperTextAccessible* hyperText = aEvent->GetAccessible()->AsHyperText();
     PRInt32 caretOffset;
     if (hyperText &&
         NS_SUCCEEDED(hyperText->GetCaretOffset(&caretOffset))) {
@@ -1837,6 +1851,21 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
 
   
   Accessible* child = GetAccessible(aChildNode);
+#ifdef DEBUG
+  if (logging::IsEnabled(logging::eTree)) {
+    logging::MsgBegin("TREE", "process content %s",
+                      (aIsInsert ? "insertion" : "removal"));
+    logging::Node("container", aContainer->GetNode());
+    logging::Node("child", aChildNode);
+    if (child)
+      logging::Address("child", child);
+    else
+      logging::MsgEntry("child accessible: null");
+
+    logging::MsgEnd();
+  }
+#endif
+
   if (child) {
     updateFlags |= UpdateTreeInternal(child, aIsInsert);
 
@@ -2029,8 +2058,12 @@ DocAccessible::IsLoadEventTarget() const
 
   
   
-  if (parentTreeItem)
-    return ParentDocument()->HasLoadState(eCompletelyLoaded);
+  
+  
+  if (parentTreeItem) {
+    DocAccessible* parentDoc = ParentDocument();
+    return parentDoc && parentDoc->HasLoadState(eCompletelyLoaded);
+  }
 
   
   PRInt32 contentType;

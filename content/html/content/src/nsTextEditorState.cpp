@@ -630,6 +630,7 @@ public:
   void SetFrame(nsTextControlFrame *aFrame){mFrame = aFrame;}
 
   void SettingValue(bool aValue) { mSettingValue = aValue; }
+  void SetValueChanged(bool aSetValueChanged) { mSetValueChanged = aSetValueChanged; }
 
   NS_DECL_ISUPPORTS
 
@@ -667,6 +668,11 @@ protected:
 
 
   bool mSettingValue;
+  
+
+
+
+  bool mSetValueChanged;
 };
 
 
@@ -681,6 +687,7 @@ nsTextInputListener::nsTextInputListener(nsITextControlElement* aTxtCtrlElement)
 , mHadUndoItems(false)
 , mHadRedoItems(false)
 , mSettingValue(false)
+, mSetValueChanged(true)
 {
 }
 
@@ -857,7 +864,9 @@ nsTextInputListener::EditAction()
 
   
   
-  frame->SetValueChanged(true);
+  if (mSetValueChanged) {
+    frame->SetValueChanged(true);
+  }
 
   if (!mSettingValue) {
     mTxtCtrlElement->OnValueChanged(true);
@@ -1316,7 +1325,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     rv = newEditor->EnableUndo(false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    SetValue(defaultValue, false);
+    SetValue(defaultValue, false, false);
 
     rv = newEditor->EnableUndo(true);
     NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
@@ -1500,7 +1509,7 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   
   if (!mValueTransferInProgress) {
-    SetValue(value, false);
+    SetValue(value, false, false);
   }
 
   if (mRootNode && mMutationObserver) {
@@ -1719,7 +1728,8 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 }
 
 void
-nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
+nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
+                            bool aSetValueChanged)
 {
   if (mEditor && mBoundFrame) {
     
@@ -1824,6 +1834,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
         mEditor->SetFlags(flags);
 
         mTextListener->SettingValue(true);
+        mTextListener->SetValueChanged(aSetValueChanged);
 
         
         PRInt32 savedMaxLength;
@@ -1836,6 +1847,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
           plaintextEditor->InsertText(insertValue);
         }
 
+        mTextListener->SetValueChanged(true);
         mTextListener->SettingValue(false);
 
         if (!weakFrame.IsAlive()) {
@@ -1845,7 +1857,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
           
           
           if (!mBoundFrame) {
-            SetValue(newValue, false);
+            SetValue(newValue, false, aSetValueChanged);
           }
           valueSetter.Cancel();
           return;

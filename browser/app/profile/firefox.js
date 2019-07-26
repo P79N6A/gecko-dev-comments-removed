@@ -1036,8 +1036,11 @@ pref("devtools.inspector.highlighterShowVeil", true);
 pref("devtools.inspector.highlighterShowInfobar", true);
 
 
-pref("devtools.layoutview.enabled", false);
+pref("devtools.layoutview.enabled", true);
 pref("devtools.layoutview.open", false);
+
+
+pref("devtools.responsiveUI.enabled", true);
 
 
 pref("devtools.debugger.enabled", true);
@@ -1052,6 +1055,8 @@ pref("devtools.debugger.remote-timeout", 3000);
 pref("devtools.debugger.ui.height", 250);
 pref("devtools.debugger.ui.remote-win.width", 900);
 pref("devtools.debugger.ui.remote-win.height", 400);
+pref("devtools.debugger.ui.stackframes-width", 200);
+pref("devtools.debugger.ui.variables-width", 300);
 
 
 pref("devtools.styleinspector.enabled", true);

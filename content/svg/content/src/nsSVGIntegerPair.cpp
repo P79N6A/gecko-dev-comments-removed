@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSVGIntegerPair.h"
 #include "nsSVGUtils.h"
@@ -26,7 +26,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGIntegerPair::DOMAnimatedInteger)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimatedInteger)
 NS_INTERFACE_MAP_END
 
-
+/* Implementation */
 
 static nsresult
 ParseIntegerOptionalInteger(const nsAString& aValue,
@@ -44,23 +44,23 @@ ParseIntegerOptionalInteger(const nsAString& aValue,
     NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
     const char *token = utf8Token.get();
     if (*token == '\0') {
-      return NS_ERROR_DOM_SYNTAX_ERR; 
+      return NS_ERROR_DOM_SYNTAX_ERR; // empty string (e.g. two commas in a row)
     }
 
     char *end;
     aValues[i] = strtol(token, &end, 10);
     if (*end != '\0' || !NS_finite(aValues[i])) {
-      return NS_ERROR_DOM_SYNTAX_ERR; 
+      return NS_ERROR_DOM_SYNTAX_ERR; // parse error
     }
   }
   if (i == 1) {
     aValues[1] = aValues[0];
   }
 
-  if (i == 0                    ||                
-      tokenizer.hasMoreTokens() ||                
-      tokenizer.lastTokenEndedWithWhitespace() || 
-      tokenizer.lastTokenEndedWithSeparator()) {  
+  if (i == 0                    ||                // Too few values.
+      tokenizer.hasMoreTokens() ||                // Too many values.
+      tokenizer.lastTokenEndedWithWhitespace() || // Trailing whitespace.
+      tokenizer.lastTokenEndedWithSeparator()) {  // Trailing comma.
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
@@ -90,9 +90,9 @@ nsSVGIntegerPair::SetBaseValueString(const nsAString &aValueAsString,
     aSVGElement->AnimationNeedsResample();
   }
 
-  
-  
-  
+  // We don't need to call DidChange* here - we're only called by
+  // nsSVGElement::ParseAttribute under nsGenericElement::SetAttr,
+  // which takes care of notifying.
   return NS_OK;
 }
 
@@ -153,6 +153,9 @@ nsSVGIntegerPair::SetBaseValues(PRInt32 aValue1, PRInt32 aValue2,
 void
 nsSVGIntegerPair::SetAnimValue(const PRInt32 aValue[2], nsSVGElement *aSVGElement)
 {
+  if (mIsAnimated && mAnimVal[0] == aValue[0] && mAnimVal[1] == aValue[1]) {
+    return;
+  }
   mAnimVal[0] = aValue[0];
   mAnimVal[1] = aValue[1];
   mIsAnimated = true;
@@ -177,7 +180,7 @@ nsSVGIntegerPair::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGIntegerPair::SMILIntegerPair::ValueFromString(const nsAString& aStr,
-                                                   const nsISMILAnimationElement* ,
+                                                   const nsISMILAnimationElement* /*aSrcElement*/,
                                                    nsSMILValue& aValue,
                                                    bool& aPreventCachingOfSandwich) const
 {

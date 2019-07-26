@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsHTMLEditRules_h__
 #define nsHTMLEditRules_h__
@@ -53,7 +53,7 @@ public:
   virtual   ~nsHTMLEditRules();
 
 
-  
+  // nsIEditRules methods
   NS_IMETHOD Init(nsPlaintextEditor *aEditor);
   NS_IMETHOD DetachEditor();
   NS_IMETHOD BeforeEdit(nsEditor::OperationID action,
@@ -72,7 +72,7 @@ public:
   nsresult GetParagraphState(bool *aMixed, nsAString &outFormat);
   nsresult MakeSureElemStartsOrEndsOnCR(nsIDOMNode *aNode);
 
-  
+  // nsIEditActionListener methods
   
   NS_IMETHOD WillCreateNode(const nsAString& aTag, nsIDOMNode *aParent, PRInt32 aPosition);
   NS_IMETHOD DidCreateNode(const nsAString& aTag, nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aPosition, nsresult aResult);
@@ -105,7 +105,7 @@ protected:
     kBlockEnd
   };
 
-  
+  // nsHTMLEditRules implementation methods
   nsresult WillInsert(nsISelection *aSelection, bool *aCancel);
   nsresult WillInsertText(  nsEditor::OperationID aAction,
                             nsISelection *aSelection, 
@@ -246,7 +246,7 @@ protected:
   nsresult PopListItem(nsIDOMNode *aListItem, bool *aOutOfList);
   nsresult RemoveListStructure(nsIDOMNode *aList);
   nsresult CacheInlineStyles(nsIDOMNode *aNode);
-  nsresult ReapplyCachedStyles(); 
+  nsresult ReapplyCachedStyles();
   nsresult ClearCachedStyles();
   nsresult AdjustSpecialBreaks(bool aSafeToAskFrames = false);
   nsresult AdjustWhitespace(nsISelection *aSelection);
@@ -271,7 +271,7 @@ protected:
   nsresult RelativeChangeIndentationOfElementNode(nsIDOMNode *aNode, PRInt8 aRelativeChange);
   void DocumentModifiedWorker();
 
-
+// data members
 protected:
   nsHTMLEditor           *mHTMLEditor;
   nsRefPtr<nsRange>       mDocChangeRange;
@@ -281,11 +281,11 @@ protected:
   bool                    mDidRangedDelete;
   bool                    mRestoreContentEditableCount;
   nsRefPtr<nsRange>       mUtilRange;
-  PRUint32                mJoinOffset;  
+  PRUint32                mJoinOffset;  // need to remember an int across willJoin/didJoin...
   nsCOMPtr<nsIDOMNode>    mNewBlock;
   nsRangeStore            mRangeItem;
   StyleCache              mCachedStyles[SIZE_STYLE_TABLE];
 };
 
-#endif
+#endif //nsHTMLEditRules_h__
 

@@ -110,24 +110,28 @@ nsXULMenuitemAccessible::NativeState()
     } 
   } 
 
-  
-  
-  if (state & states::UNAVAILABLE) {
+  return state;
+}
+
+PRUint64
+nsXULMenuitemAccessible::NativeInteractiveState() const
+{
+  if (NativelyUnavailable()) {
     
-    PRInt32 skipDisabledMenuItems =
-      LookAndFeel::GetInt(LookAndFeel::eIntID_SkipNavigatingDisabledMenuItem);
-    
-    
-    if (skipDisabledMenuItems || isComboboxOption) {
-      return state;
+    bool skipNavigatingDisabledMenuItem = true;
+    nsMenuFrame* menuFrame = do_QueryFrame(GetFrame());
+    if (!menuFrame->IsOnMenuBar()) {
+      skipNavigatingDisabledMenuItem = LookAndFeel::
+        GetInt(LookAndFeel::eIntID_SkipNavigatingDisabledMenuItem, 0) != 0;
     }
+
+    if (skipNavigatingDisabledMenuItem)
+      return states::UNAVAILABLE;
+
+    return states::UNAVAILABLE | states::FOCUSABLE | states::SELECTABLE;
   }
 
-  state |= (states::FOCUSABLE | states::SELECTABLE);
-  if (FocusMgr()->IsFocused(this))
-    state |= states::FOCUSED;
-
-  return state;
+  return states::FOCUSABLE | states::SELECTABLE;
 }
 
 nsresult
@@ -554,17 +558,6 @@ nsXULMenubarAccessible::
   AccessibleWrap(aContent, aDoc)
 {
 }
-
-PRUint64
-nsXULMenubarAccessible::NativeState()
-{
-  PRUint64 state = Accessible::NativeState();
-
-  
-  state &= ~states::FOCUSABLE;
-  return state;
-}
-
 
 nsresult
 nsXULMenubarAccessible::GetNameInternal(nsAString& aName)

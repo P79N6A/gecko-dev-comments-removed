@@ -1729,6 +1729,80 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     return NS_OK;
 }
 
+XPCWrappedNative*
+XPCWrappedNative::GetParentWrapper()
+{
+    XPCWrappedNative *wrapper = nsnull;
+    JSObject *parent = js::GetObjectParent(mFlatJSObject);
+    if (parent && IS_WN_WRAPPER(parent)) {
+        wrapper = static_cast<XPCWrappedNative*>(js::GetObjectPrivate(parent));
+    }
+    return wrapper;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+XPCWrappedNative::IsOrphan()
+{
+    JSObject *parent = js::GetObjectParent(mFlatJSObject);
+
+    
+    
+    if (!parent)
+        return false;
+
+    
+    return js::IsCrossCompartmentWrapper(parent);
+}
+
+
+
+
+
+nsresult
+XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
+{
+    
+    
+    nsresult rv;
+    XPCWrappedNative *parentWrapper = GetParentWrapper();
+    if (parentWrapper && parentWrapper->IsOrphan()) {
+        rv = parentWrapper->RescueOrphans(ccx);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    
+    
+    if (!IsOrphan())
+        return NS_OK;
+
+    
+    JSObject *parentGhost = js::GetObjectParent(mFlatJSObject);
+    JSObject *realParent = js::UnwrapObject(parentGhost);
+    nsRefPtr<XPCWrappedNative> ignored;
+    return ReparentWrapperIfFound(ccx,
+                                  XPCWrappedNativeScope::
+                                    FindInJSObjectScope(ccx, parentGhost),
+                                  XPCWrappedNativeScope::
+                                    FindInJSObjectScope(ccx, realParent),
+                                  realParent, mIdentity, getter_AddRefs(ignored));
+}
+
 #define IS_TEAROFF_CLASS(clazz)                                               \
           ((clazz) == &XPC_WN_Tearoff_JSClass)
 
