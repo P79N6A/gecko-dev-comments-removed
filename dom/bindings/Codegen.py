@@ -7116,11 +7116,65 @@ class CGExampleClass(CGClass):
             appendMethod(iface.ctor())
         for m in iface.members:
             if m.isMethod():
+                if (m.isIdentifierLess() and
+                    m != descriptor.operations['Stringifier']):
+                    continue
                 appendMethod(m)
             elif m.isAttr():
                 methodDecls.append(CGExampleGetter(descriptor, m))
                 if not m.readonly:
                     methodDecls.append(CGExampleSetter(descriptor, m))
+
+        
+        def appendSpecialOperation(name, op):
+            if op is None:
+                return
+            if name == "IndexedCreator" or name == "NamedCreator":
+                
+                return
+            assert len(op.signatures()) == 1
+            (returnType, args) = op.signatures()[0]
+            
+            args = list(args)
+            if op.isGetter() or op.isDeleter():
+                
+                
+                
+                args.append(FakeArgument(BuiltinTypes[IDLBuiltinType.Types.boolean],
+                                         op, name="&found"))
+            if name == "Stringifier" and op.isIdentifierLess():
+                
+                name = "__stringify"
+            methodDecls.append(
+                CGNativeMember(descriptor, op,
+                               name,
+                               (returnType, args),
+                               descriptor.getExtendedAttributes(op)))
+        
+        ops = descriptor.operations.items()
+        ops.sort(key=lambda x: x[0])
+        for (name, op) in ops:
+            appendSpecialOperation(name, op)
+        
+        
+        if descriptor.supportsIndexedProperties():
+            methodDecls.append(
+                CGNativeMember(descriptor, FakeMember(),
+                               "Length",
+                               (BuiltinTypes[IDLBuiltinType.Types.unsigned_long],
+                                []),
+                               { "infallible": True }))
+        
+        
+        if descriptor.supportsNamedProperties():
+            methodDecls.append(
+                CGNativeMember(
+                    descriptor, FakeMember(),
+                    "GetSupportedNames",
+                    (IDLSequenceType(None,
+                                     BuiltinTypes[IDLBuiltinType.Types.domstring]),
+                     []),
+                    { "infallible": True }))
 
         wrapArgs = [Argument('JSContext*', 'aCx'),
                     Argument('JSObject*', 'aScope')]
@@ -7336,6 +7390,21 @@ class CGCallbackFunction(CGClass):
                             body=bodyWithoutThis),
                 callCallback]
 
+class FakeMember():
+    def __init__(self):
+        self.treatUndefinedAs = self.treatNullAs = "Default"
+    def isStatic(self):
+        return False
+    def isAttr(self):
+        return False
+    def getExtendedAttribute(self, name):
+        
+        
+        
+        if name == "Creator":
+            return True
+        return None
+
 class CallCallback(CGNativeMember):
     def __init__(self, callback, descriptorProvider):
         sig = callback.signatures()[0]
@@ -7343,20 +7412,6 @@ class CallCallback(CGNativeMember):
         self.callback = callback
         args = sig[1]
         self.argCount = len(args)
-        class FakeMember():
-            def __init__(self):
-                self.treatUndefinedAs = self.treatNullAs = "Default"
-            def isStatic(self):
-                return False
-            def isAttr(self):
-                return False
-            def getExtendedAttribute(self, name):
-                
-                
-                
-                if name == "Creator":
-                    return True
-                return None
         CGNativeMember.__init__(self, descriptorProvider, FakeMember(),
                                 "Call", (self.retvalType, args),
                                 extendedAttrs={},
