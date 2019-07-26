@@ -18,8 +18,6 @@
 #ifndef NATIVEWINDOW_GONKCONSUMERBASE_KK_H
 #define NATIVEWINDOW_GONKCONSUMERBASE_KK_H
 
-#include <gui/BufferQueue.h>
-
 #include <ui/GraphicBuffer.h>
 
 #include <utils/String8.h>
@@ -166,9 +164,7 @@ protected:
     
     
     
-    virtual status_t releaseBufferLocked(int slot,
-            const sp<GraphicBuffer> graphicBuffer,
-            EGLDisplay display, EGLSyncKHR eglFence);
+    virtual status_t releaseBufferLocked(int slot, const sp<GraphicBuffer> graphicBuffer);
 
     
     bool stillTracking(int slot, const sp<GraphicBuffer> graphicBuffer);

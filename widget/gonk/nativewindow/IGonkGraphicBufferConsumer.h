@@ -130,9 +130,7 @@ public:
     
     
     
-    virtual status_t releaseBuffer(int buf, uint64_t frameNumber,
-            EGLDisplay display, EGLSyncKHR fence,
-            const sp<Fence>& releaseFence) = 0;
+    virtual status_t releaseBuffer(int buf, uint64_t frameNumber, const sp<Fence>& releaseFence) = 0;
 
     
     

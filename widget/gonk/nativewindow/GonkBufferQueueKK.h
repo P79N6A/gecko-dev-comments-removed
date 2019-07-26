@@ -18,9 +18,6 @@
 #ifndef NATIVEWINDOW_GONKBUFFERQUEUE_KK_H
 #define NATIVEWINDOW_GONKBUFFERQUEUE_KK_H
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-
 #include <gui/IConsumerListener.h>
 #include <gui/IGraphicBufferAlloc.h>
 #include <gui/IGraphicBufferProducer.h>
@@ -243,7 +240,6 @@ public:
     
     
     virtual status_t releaseBuffer(int buf, uint64_t frameNumber,
-                    EGLDisplay display, EGLSyncKHR fence,
                     const sp<Fence>& releaseFence);
 
     
@@ -370,11 +366,10 @@ private:
     struct BufferSlot {
 
         BufferSlot()
-        : mEglDisplay(EGL_NO_DISPLAY),
+        : mSurfaceDescriptor(SurfaceDescriptor()),
           mBufferState(BufferSlot::FREE),
           mRequestBufferCalled(false),
           mFrameNumber(0),
-          mEglFence(EGL_NO_SYNC_KHR),
           mAcquireCalled(false),
           mNeedsCleanupOnRelease(false) {
         }
@@ -382,9 +377,6 @@ private:
         
         
         sp<GraphicBuffer> mGraphicBuffer;
-
-        
-        EGLDisplay mEglDisplay;
 
         
         SurfaceDescriptor mSurfaceDescriptor;
@@ -442,13 +434,6 @@ private:
         
         
         uint64_t mFrameNumber;
-
-        
-        
-        
-        
-        
-        EGLSyncKHR mEglFence;
 
         
         
