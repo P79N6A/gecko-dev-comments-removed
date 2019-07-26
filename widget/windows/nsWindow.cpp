@@ -5444,37 +5444,61 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
   if (mSizeMode == nsSizeMode_Maximized)
     isResizable = false;
 
+  
+  
+  nsIntMargin nonClientSize(NS_MAX(mHorResizeMargin - mNonClientOffset.left,
+                                   kResizableBorderMinSize),
+                            NS_MAX(mCaptionHeight - mNonClientOffset.top,
+                                   kResizableBorderMinSize),
+                            NS_MAX(mHorResizeMargin - mNonClientOffset.right,
+                                   kResizableBorderMinSize),
+                            NS_MAX(mVertResizeMargin - mNonClientOffset.bottom,
+                                   kResizableBorderMinSize));
+
+  bool allowContentOverride = mSizeMode == nsSizeMode_Maximized ||
+                              (mx >= winRect.left + nonClientSize.left &&
+                               mx <= winRect.right - nonClientSize.right &&
+                               my >= winRect.top + nonClientSize.top &&
+                               my <= winRect.bottom - nonClientSize.bottom);
+
+  
+  
+  
+  
+  
+  nsIntMargin borderSize(NS_MAX(nonClientSize.left, mHorResizeMargin),
+                         NS_MAX(nonClientSize.top, mVertResizeMargin),
+                         NS_MAX(nonClientSize.right, mHorResizeMargin),
+                         NS_MAX(nonClientSize.bottom, mVertResizeMargin));
+
+  bool contentMayOverlap = false;
+
   bool top    = false;
   bool bottom = false;
   bool left   = false;
   bool right  = false;
 
-  int topOffset = NS_MAX(mCaptionHeight - mNonClientOffset.top,
-                         kResizableBorderMinSize);
-  int bottomOffset = NS_MAX(mVertResizeMargin - mNonClientOffset.bottom,
-                            kResizableBorderMinSize);
-  int topBounds = winRect.top + topOffset;
-  int bottomBounds = winRect.bottom - bottomOffset;
-
-  if (my >= winRect.top && my < topBounds)
+  if (my >= winRect.top && my < winRect.top + borderSize.top) {
     top = true;
-  else if (my <= winRect.bottom && my > bottomBounds)
+    contentMayOverlap = (my >= winRect.top + nonClientSize.top);
+  } else if (my <= winRect.bottom && my > winRect.bottom - borderSize.bottom) {
     bottom = true;
+    contentMayOverlap = (my <= winRect.bottom - nonClientSize.bottom);
+  }
 
-  int leftOffset = NS_MAX(mHorResizeMargin - mNonClientOffset.left,
-                          kResizableBorderMinSize);
-  int rightOffset = NS_MAX(mHorResizeMargin - mNonClientOffset.right,
-                           kResizableBorderMinSize);
   
-  int leftBounds = winRect.left +
-                   (bottom ? (2*leftOffset) : leftOffset);
-  int rightBounds = winRect.right -
-                    (bottom ? (2*rightOffset) : rightOffset);
-
-  if (mx >= winRect.left && mx < leftBounds)
+  int multiplier = (top || bottom) ? 2 : 1;
+  if (mx >= winRect.left &&
+      mx < winRect.left + (multiplier * borderSize.left)) {
     left = true;
-  else if (mx <= winRect.right && mx > rightBounds)
+    contentMayOverlap =
+      contentMayOverlap || (mx >= winRect.left + nonClientSize.left);
+  } else if (mx <= winRect.right &&
+             mx > winRect.right - (multiplier * borderSize.right)) {
     right = true;
+    contentMayOverlap =
+      contentMayOverlap || (mx <= winRect.right - nonClientSize.right);
+  }
 
   if (isResizable) {
     if (top) {
@@ -5502,22 +5526,7 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
       testResult = HTBORDER;
   }
 
-  bool contentOverlap = true;
-
-  if (mSizeMode != nsSizeMode_Maximized) {
-    contentOverlap = mx >= winRect.left + leftOffset &&
-                     mx <= winRect.right - rightOffset &&
-                     my >= winRect.top + topOffset &&
-                     my <= winRect.bottom - bottomOffset;
-  }
-
-  if (!sIsInMouseCapture &&
-      contentOverlap &&
-      (testResult == HTCLIENT ||
-       testResult == HTTOP ||
-       testResult == HTBORDER ||
-       testResult == HTTOPLEFT ||
-       testResult == HTCAPTION)) {
+  if (!sIsInMouseCapture && allowContentOverride && contentMayOverlap) {
     LPARAM lParam = MAKELPARAM(mx, my);
     LPARAM lParamClient = lParamToClient(lParam);
     bool result = DispatchMouseEvent(NS_MOUSE_MOZHITTEST, 0, lParamClient,
