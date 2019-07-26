@@ -1644,14 +1644,6 @@ class ContextStack
 
 
 
-
-
-    ptrdiff_t spIndexOf(const Value *vp);
-
-    
-
-
-
     inline FrameRegs *maybeRegs() const { return seg_ ? seg_->maybeRegs() : NULL; }
     inline StackFrame *maybefp() const { return seg_ ? seg_->maybefp() : NULL; }
 
