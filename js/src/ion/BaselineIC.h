@@ -566,6 +566,8 @@ class ICToNumber_Fallback : public ICFallbackStub
 
 
 
+
+
 class ICBinaryArith_Fallback : public ICFallbackStub
 {
     ICBinaryArith_Fallback(IonCode *stubCode)
@@ -604,13 +606,23 @@ class ICBinaryArith_Int32 : public ICStub
     }
 
     
-    class Compiler : public ICMultiStubCompiler {
+    class Compiler : public ICStubCompiler {
       protected:
+        JSOp op_;
+        bool allowDouble_;
+
         bool generateStubCode(MacroAssembler &masm);
 
+        
+        virtual int32_t getKey() const {
+            return (static_cast<int32_t>(kind) | (static_cast<int32_t>(op_) << 16) |
+                    (static_cast<int32_t>(allowDouble_) << 24));
+        }
+
       public:
-        Compiler(JSContext *cx, JSOp op)
-          : ICMultiStubCompiler(cx, ICStub::BinaryArith_Int32, op) {}
+        Compiler(JSContext *cx, JSOp op, bool allowDouble)
+          : ICStubCompiler(cx, ICStub::BinaryArith_Int32),
+            op_(op), allowDouble_(allowDouble) {}
 
         ICStub *getStub() {
             return ICBinaryArith_Int32::New(getStubCode());

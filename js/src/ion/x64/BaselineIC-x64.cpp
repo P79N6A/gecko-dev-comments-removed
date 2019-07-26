@@ -63,28 +63,82 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
     masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
-    
-    
-    masm.unboxNonDouble(R0, rdx);
-    masm.unboxNonDouble(R1, ScratchReg);
-
-    switch(op) {
+    Label revertRegister;
+    switch(op_) {
       case JSOP_ADD:
-        masm.addl(rdx, ScratchReg);
+        masm.unboxInt32(R1, ExtractTemp0);
+        
+        
+        masm.addl(R0.valueReg(), ExtractTemp0);
+        masm.j(Assembler::Overflow, &failure);
+
+        
+        masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
+        break;
+      case JSOP_BITOR:
+        
+        
+        masm.orq(R1.valueReg(), R0.valueReg());
+        break;
+      case JSOP_BITXOR:
+        masm.xorl(R1.valueReg(), R0.valueReg());
+        masm.boxValue(JSVAL_TYPE_INT32, R0.valueReg(), R0.valueReg());
+        break;
+      case JSOP_BITAND:
+        masm.andq(R1.valueReg(), R0.valueReg());
+        break;
+      case JSOP_LSH:
+        masm.unboxInt32(R0, ExtractTemp0);
+        masm.unboxInt32(R1, ecx); 
+        masm.shll_cl(ExtractTemp0);
+        masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
+        break;
+      case JSOP_RSH:
+        masm.unboxInt32(R0, ExtractTemp0);
+        masm.unboxInt32(R1, ecx);
+        masm.sarl_cl(ExtractTemp0);
+        masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
+        break;
+      case JSOP_URSH:
+        if (!allowDouble_)
+            masm.movq(R0.valueReg(), ScratchReg);
+
+        masm.unboxInt32(R0, ExtractTemp0);
+        masm.unboxInt32(R1, ecx); 
+
+        masm.shrl_cl(ExtractTemp0);
+        masm.testl(ExtractTemp0, ExtractTemp0);
+        if (allowDouble_) {
+            Label toUint;
+            masm.j(Assembler::Signed, &toUint);
+
+            
+            masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
+            EmitReturnFromIC(masm);
+
+            masm.bind(&toUint);
+            masm.convertUInt32ToDouble(ExtractTemp0, ScratchFloatReg);
+            masm.boxDouble(ScratchFloatReg, R0);
+        } else {
+            masm.j(Assembler::Signed, &revertRegister);
+            masm.boxValue(JSVAL_TYPE_INT32, ExtractTemp0, R0.valueReg());
+        }
         break;
       default:
-        JS_ASSERT(!"Unhandled op for BinaryArith_Int32!");
-        return false;
+        JS_NOT_REACHED("Unhandled op in BinaryArith_Int32");
+        return NULL;
     }
 
     
-    
-    masm.j(Assembler::Overflow, &failure);
-
-    
-    masm.boxValue(JSVAL_TYPE_INT32, ScratchReg, R0.valueReg());
     EmitReturnFromIC(masm);
 
+    
+    if (op_ == JSOP_URSH && !allowDouble_) {
+        masm.bind(&revertRegister);
+        
+        masm.movq(ScratchReg, R0.valueReg());
+        
+    }
     
     masm.bind(&failure);
     EmitStubGuardFailure(masm);

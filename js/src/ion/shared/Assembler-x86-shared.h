@@ -17,22 +17,23 @@ class AssemblerX86Shared
 {
   protected:
     struct RelativePatch {
-        int32_t offset;
+        int32 offset;
         void *target;
         Relocation::Kind kind;
 
-        RelativePatch(int32_t offset, void *target, Relocation::Kind kind)
+        RelativePatch(int32 offset, void *target, Relocation::Kind kind)
           : offset(offset),
             target(target),
             kind(kind)
         { }
     };
 
-    Vector<CodeLabel, 0, SystemAllocPolicy> codeLabels_;
-    Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
+    js::Vector<DeferredData *, 0, SystemAllocPolicy> data_;
+    js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
+    js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
     CompactBufferWriter jumpRelocations_;
     CompactBufferWriter dataRelocations_;
-    CompactBufferWriter preBarriers_;
+    size_t dataBytesNeeded_;
     bool enoughMemory_;
 
     void writeDataRelocation(const Value &val) {
@@ -42,9 +43,6 @@ class AssemblerX86Shared
     void writeDataRelocation(const ImmGCPtr &ptr) {
         if (ptr.value)
             dataRelocations_.writeUnsigned(masm.currentOffset());
-    }
-    void writePrebarrierOffset(CodeOffsetLabel label) {
-        preBarriers_.writeUnsigned(label.offset());
     }
 
   protected:
@@ -100,36 +98,6 @@ class AssemblerX86Shared
         DoubleLessThanOrEqualOrUnordered = BelowOrEqual
     };
 
-    enum NaNCond {
-        NaN_Unexpected,
-        NaN_IsTrue,
-        NaN_IsFalse
-    };
-
-    static inline NaNCond NaNCondFromDoubleCondition(DoubleCondition cond) {
-        switch (cond) {
-          case DoubleOrdered:
-          case DoubleEqual:
-          case DoubleNotEqual:
-          case DoubleGreaterThan:
-          case DoubleGreaterThanOrEqual:
-          case DoubleLessThan:
-          case DoubleLessThanOrEqual:
-            return NaN_IsFalse;
-          case DoubleUnordered:
-          case DoubleEqualOrUnordered:
-          case DoubleNotEqualOrUnordered:
-          case DoubleGreaterThanOrUnordered:
-          case DoubleGreaterThanOrEqualOrUnordered:
-          case DoubleLessThanOrUnordered:
-          case DoubleLessThanOrEqualOrUnordered:
-            return NaN_IsTrue;
-        }
-
-        JS_NOT_REACHED("Unknown double condition");
-        return NaN_Unexpected;
-    }
-
     static void staticAsserts() {
         
         JS_STATIC_ASSERT(!((Equal | NotEqual | Above | AboveOrEqual | Below |
@@ -137,7 +105,8 @@ class AssemblerX86Shared
     }
 
     AssemblerX86Shared()
-      : enoughMemory_(true)
+      : dataBytesNeeded_(0),
+        enoughMemory_(true)
     {
     }
 
@@ -156,25 +125,25 @@ class AssemblerX86Shared
         return masm.oom() ||
                !enoughMemory_ ||
                jumpRelocations_.oom() ||
-               dataRelocations_.oom() ||
-               preBarriers_.oom();
-    }
-
-    void setPrinter(Sprinter *sp) {
-        masm.setPrinter(sp);
+               dataRelocations_.oom();
     }
 
     void executableCopy(void *buffer);
-    void processCodeLabels(uint8_t *rawCode);
-    void copyJumpRelocationTable(uint8_t *dest);
-    void copyDataRelocationTable(uint8_t *dest);
-    void copyPreBarrierTable(uint8_t *dest);
+    void processDeferredData(IonCode *code, uint8 *data);
+    void processCodeLabels(IonCode *code);
+    void copyJumpRelocationTable(uint8 *buffer);
+    void copyDataRelocationTable(uint8 *buffer);
 
-    bool addCodeLabel(CodeLabel label) {
-        return codeLabels_.append(label);
+    bool addDeferredData(DeferredData *data, size_t bytes) {
+        data->setOffset(dataBytesNeeded_);
+        dataBytesNeeded_ += bytes;
+        if (dataBytesNeeded_ >= MAX_BUFFER_SIZE)
+            return false;
+        return data_.append(data);
     }
-    size_t numCodeLabels() const {
-        return codeLabels_.length();
+    
+    bool addCodeLabel(CodeLabel *label) {
+        return codeLabels_.append(label);
     }
 
     
@@ -188,31 +157,20 @@ class AssemblerX86Shared
     size_t dataRelocationTableBytes() const {
         return dataRelocations_.length();
     }
-    size_t preBarrierTableBytes() const {
-        return preBarriers_.length();
-    }
     
+    size_t dataSize() const {
+        return dataBytesNeeded_;
+    }
     size_t bytesNeeded() const {
         return size() +
+               dataSize() +
                jumpRelocationTableBytes() +
-               dataRelocationTableBytes() +
-               preBarrierTableBytes();
+               dataRelocationTableBytes();
     }
 
   public:
     void align(int alignment) {
         masm.align(alignment);
-    }
-    void writeCodePointer(AbsoluteLabel *label) {
-        JS_ASSERT(!label->bound());
-        
-        
-        masm.jumpTablePointer(label->prev());
-        label->setPrev(masm.size());
-    }
-    void writeDoubleConstant(double d, Label *label) {
-        label->bind(masm.size());
-        masm.doubleConstant(d);
     }
     void movl(const Imm32 &imm32, const Register &dest) {
         masm.movl_i32r(imm32.value, dest.code());
@@ -460,18 +418,6 @@ class AssemblerX86Shared
             JS_NOT_REACHED("unexpected operand kind");
         }
     }
-    void leal(const Operand &src, const Register &dest) {
-        switch (src.kind()) {
-          case Operand::REG_DISP:
-            masm.leal_mr(src.disp(), src.base(), dest.code());
-            break;
-          case Operand::SCALE:
-            masm.leal_mr(src.disp(), src.base(), src.index(), src.scale(), dest.code());
-            break;
-          default:
-            JS_NOT_REACHED("unexpected operand kind");
-        }
-    }
 
   protected:
     JmpSrc jSrc(Condition cond, Label *label) {
@@ -577,7 +523,7 @@ class AssemblerX86Shared
         }
         label->bind(masm.label().offset());
     }
-    uint32_t currentOffset() {
+    uint32 currentOffset() {
         return masm.label().offset();
     }
 
@@ -606,7 +552,8 @@ class AssemblerX86Shared
         label->reset();
     }
 
-    static void Bind(uint8_t *raw, AbsoluteLabel *label, const void *address) {
+    static void Bind(IonCode *code, AbsoluteLabel *label, const void *address) {
+        uint8 *raw = code->raw();
         if (label->used()) {
             intptr_t src = label->offset();
             do {
@@ -850,6 +797,9 @@ class AssemblerX86Shared
             JS_NOT_REACHED("unexpected operand kind");
         }
     }
+    void andl(const Register &src, const Register &dest) {
+        masm.andl_rr(src.code(), dest.code());
+    }
     void andl(Imm32 imm, const Register &dest) {
         masm.andl_ir(imm.value, dest.code());
     }
@@ -1014,13 +964,6 @@ class AssemblerX86Shared
         masm.pop_r(src.code());
     }
 
-    void pushFlags() {
-        masm.push_flags();
-    }
-    void popFlags() {
-        masm.pop_flags();
-    }
-
 #ifdef JS_CPU_X86
     void pushAllRegs() {
         masm.pusha();
@@ -1038,11 +981,8 @@ class AssemblerX86Shared
     void cdq() {
         masm.cdq();
     }
-    void idiv(Register divisor) {
-        masm.idivl_r(divisor.code());
-    }
-    void udiv(Register divisor) {
-        masm.divl_r(divisor.code());
+    void idiv(Register dest) {
+        masm.idivl_r(dest.code());
     }
 
     void unpcklps(const FloatRegister &src, const FloatRegister &dest) {
@@ -1206,15 +1146,18 @@ class AssemblerX86Shared
     }
 
     
-    uint32_t actualOffset(uint32_t x) {
+    uint32 actualOffset(uint32 x) {
         return x;
     }
 
-    uint32_t actualIndex(uint32_t x) {
+    uint32 actualIndex(uint32 x) {
         return x;
     }
 
     void flushBuffer() {
+    }
+
+    void finish() {
     }
 
     
@@ -1222,22 +1165,22 @@ class AssemblerX86Shared
     static size_t patchWrite_NearCallSize() {
         return 5;
     }
-    static uintptr_t getPointer(uint8_t *instPtr) {
+    static uintptr_t getPointer(uint8 *instPtr) {
         uintptr_t *ptr = ((uintptr_t *) instPtr) - 1;
         return *ptr;
     }
     
     
     static void patchWrite_NearCall(CodeLocationLabel startLabel, CodeLocationLabel target) {
-        uint8_t *start = startLabel.raw();
+        uint8 *start = startLabel.raw();
         *start = 0xE8;
         ptrdiff_t offset = target - startLabel - patchWrite_NearCallSize();
-        JS_ASSERT(int32_t(offset) == offset);
-        *((int32_t *) (start + 1)) = offset;
+        JS_ASSERT(int32(offset) == offset);
+        *((int32 *) (start + 1)) = offset;
     }
 
     static void patchWrite_Imm32(CodeLocationLabel dataLabel, Imm32 toWrite) {
-        *((int32_t *) dataLabel.raw() - 1) = toWrite.value;
+        *((int32 *) dataLabel.raw() - 1) = toWrite.value;
     }
 
     static void patchDataWithValueCheck(CodeLocationLabel data, ImmWord newData,
@@ -1247,10 +1190,10 @@ class AssemblerX86Shared
         JS_ASSERT(*ptr == expectedData.value);
         *ptr = newData.value;
     }
-    static uint32_t nopSize() {
+    static uint32 nopSize() {
         return 1;
     }
-    static uint8_t *nextInstruction(uint8_t *cur, uint32_t *count) {
+    static uint8 *nextInstruction(uint8 *cur, uint32 *count) {
         JS_NOT_REACHED("nextInstruction NYI on x86");
     }
 
@@ -1264,12 +1207,6 @@ class AssemblerX86Shared
         uint8_t *ptr = (uint8_t *)inst.raw();
         JS_ASSERT(*ptr == 0xE9);
         *ptr = 0x3D;
-    }
-    static void ToggleCall(CodeLocationLabel inst, bool enabled) {
-        uint8_t *ptr = (uint8_t *)inst.raw();
-        JS_ASSERT(*ptr == 0x3D || 
-                  *ptr == 0xE8);  
-        *ptr = enabled ? 0xE8 : 0x3D;
     }
 };
 
