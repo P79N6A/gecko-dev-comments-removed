@@ -5112,6 +5112,19 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     if (!EmitTree(cx, bce, iter))                                
         return false;
 
+    
+    if (Emit1(cx, bce, JSOP_DUP) < 0)                            
+        return false;
+    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
+        return false;
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+        return false;
+    if (Emit1(cx, bce, JSOP_NOTEARG) < 0)
+        return false;
+    if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                     
+        return false;
+    CheckTypeSet(cx, bce, JSOP_CALL);
+
     int depth = bce->stackDepth;
     JS_ASSERT(depth >= 1);
 
