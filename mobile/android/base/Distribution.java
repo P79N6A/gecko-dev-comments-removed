@@ -75,10 +75,6 @@ public final class Distribution {
                     File distDir = new File("/system/" + context.getPackageName() + "/distribution");
                     if (distDir.exists()) {
                         distributionSet = true;
-
-                        
-                        String pathKeyName = context.getPackageName() + ".distribution_path";
-                        settings.edit().putString(pathKeyName, distDir.getPath()).commit();
                     }
                 }
 
@@ -173,15 +169,10 @@ public final class Distribution {
                 }
             } else {
                 
-                
-                String pathKeyName = context.getPackageName() + ".distribution_path";
-                String distPath = settings.getString(pathKeyName, null);
-
-                File distDir = null;
-                if (distPath != null) {
-                    distDir = new File(distPath);
-                } else {
-                    distDir = new File(context.getApplicationInfo().dataDir, "distribution");
+                File distDir = new File(context.getApplicationInfo().dataDir, "distribution");
+                if (!distDir.exists()) {
+                    
+                    distDir = new File("/system/" + context.getPackageName() + "/distribution");
                 }
 
                 File file = new File(distDir, "bookmarks.json");
