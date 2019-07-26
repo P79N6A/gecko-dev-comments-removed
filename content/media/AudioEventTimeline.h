@@ -249,22 +249,7 @@ public:
 
     
     if (!previous) {
-      switch (next->mType) {
-      case AudioTimelineEvent::SetValue:
-      case AudioTimelineEvent::SetTarget:
-        
-        return mValue;
-      case AudioTimelineEvent::LinearRamp:
-        
-        return LinearInterpolate(0.0, mValue, next->template Time<TimeType>(), next->mValue, aTime);
-      case AudioTimelineEvent::ExponentialRamp:
-        
-        return ExponentialInterpolate(0.0, mValue, next->template Time<TimeType>(), next->mValue, aTime);
-      case AudioTimelineEvent::SetValueCurve:
-        
-        return 0.0f;
-      }
-      MOZ_ASSERT(false, "unreached");
+      return mValue;
     }
 
     
