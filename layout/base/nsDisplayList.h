@@ -1899,6 +1899,7 @@ protected:
   bool IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder,
                                   const nsRect& aClipRect,
                                   gfxRect* aDestRect);
+  nsRect GetBoundsInternal();
 
   
   
@@ -1906,6 +1907,8 @@ protected:
   
   nsRefPtr<ImageContainer> mImageContainer;
   gfxRect mDestRect;
+  
+  nsRect mBounds;
   uint32_t mLayer;
 
   nsITheme::Transparency mThemeTransparency;
