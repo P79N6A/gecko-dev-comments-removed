@@ -13,7 +13,7 @@ pref("app.update.interval", 28800);
 
 pref("app.update.download.backgroundInterval", 60);
 
-pref("app.update.promptWaitTime", 86400);
+pref("app.update.promptWaitTime", 604800);
 
 
 pref("app.update.url.manual", "https://www.mozilla.org/firefox/aurora/");
