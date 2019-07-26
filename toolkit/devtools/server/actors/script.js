@@ -1076,7 +1076,7 @@ ThreadActor.prototype = {
     }, error => {
       return error instanceof Error
         ? { error: "unknownError",
-            message: safeErrorString(error) }
+            message: DevToolsUtils.safeErrorString(error) }
         
         
         : error;
@@ -2509,7 +2509,7 @@ SourceActor.prototype = {
           "from": this.actorID,
           "error": "loadSourceError",
           "message": "Could not load the source for " + this._url + ".\n"
-            + safeErrorString(aError)
+            + DevToolsUtils.safeErrorString(aError)
         };
       });
   },

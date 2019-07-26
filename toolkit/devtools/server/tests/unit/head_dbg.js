@@ -15,7 +15,8 @@ Services.prefs.setBoolPref("devtools.debugger.log", true);
 
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
-Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
+const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 
 function tryImport(url) {
   try {

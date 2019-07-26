@@ -141,7 +141,7 @@ ProfilerActor.prototype = {
     }
     return { unregistered: unregistered }
   },
-  observe: makeInfallible(function(aSubject, aTopic, aData) {
+  observe: DevToolsUtils.makeInfallible(function(aSubject, aTopic, aData) {
     
 
 

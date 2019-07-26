@@ -9,6 +9,7 @@
 
 
 
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
 
 
 
@@ -21,6 +22,8 @@ this.Cc = Cc;
 this.CC = CC;
 this.Cu = Cu;
 this.Cr = Cr;
+this.DevToolsUtils = DevToolsUtils;
+
 
 
 Object.defineProperty(this, "Components", {
@@ -31,7 +34,6 @@ const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
 const nsFile = CC("@mozilla.org/file/local;1", "nsIFile", "initWithPath");
 Cu.import("resource://gre/modules/reflect.jsm");
-Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
@@ -61,8 +63,6 @@ this.promised = promised;
 this.all = all;
 
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
-
-loadSubScript.call(this, "resource://gre/modules/devtools/DevToolsUtils.js");
 
 function dumpn(str) {
   if (wantLogging) {
@@ -341,13 +341,6 @@ var DebuggerServer = {
   
 
 
-
-
-
-
-
-
-
   addBrowserActors: function(aWindowType = "navigator:browser", restrictPrivileges = false) {
     this.chromeWindowType = aWindowType;
     this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
@@ -368,14 +361,11 @@ var DebuggerServer = {
     
     
     
-    if (!("WebConsoleActor" in this)) {
-      this.addTabActors();
-    }
-    
     if (!("BrowserTabActor" in this)) {
       this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
+      this.addTabActors();
     }
-    if (!("ContentAppActor" in this)) {
+    if (!("ContentAppActor" in DebuggerServer)) {
       this.addActors("resource://gre/modules/devtools/server/actors/childtab.js");
     }
   },
@@ -527,7 +517,7 @@ var DebuggerServer = {
   
 
   onSocketAccepted:
-  makeInfallible(function DS_onSocketAccepted(aSocket, aTransport) {
+  DevToolsUtils.makeInfallible(function DS_onSocketAccepted(aSocket, aTransport) {
     if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") && !this._allowConnection()) {
       return;
     }
@@ -931,7 +921,7 @@ DebuggerServerConnection.prototype = {
   },
 
   _unknownError: function DSC__unknownError(aPrefix, aError) {
-    let errorString = aPrefix + ": " + safeErrorString(aError);
+    let errorString = aPrefix + ": " + DevToolsUtils.safeErrorString(aError);
     Cu.reportError(errorString);
     dumpn(errorString);
     return {

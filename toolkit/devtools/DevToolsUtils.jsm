@@ -14,19 +14,5 @@
 
 this.EXPORTED_SYMBOLS = [ "DevToolsUtils" ];
 
-Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-  .getService(Components.interfaces.mozIJSSubScriptLoader)
-  .loadSubScript("resource://gre/modules/devtools/DevToolsUtils.js", this);
-
-this.DevToolsUtils = {
-  safeErrorString: safeErrorString,
-  reportException: reportException,
-  makeInfallible: makeInfallible,
-  zip: zip,
-  yieldingEach: yieldingEach,
-  reportingDisabled: false , 
-  defineLazyPrototypeGetter: defineLazyPrototypeGetter,
-  getProperty: getProperty,
-  hasSafeGetter: hasSafeGetter,
-  isSafeJSObject: isSafeJSObject,
-};
+const { devtools } = Components.utils.import("resource://gre/modules/devtools/Loader.jsm", {});
+this.DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
