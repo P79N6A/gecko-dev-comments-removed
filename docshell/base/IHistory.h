@@ -18,8 +18,9 @@ namespace mozilla {
         class Link;
     }
 
+
 #define IHISTORY_IID \
-  {0x6f733924, 0x6321, 0x4384, {0x01, 0xee, 0x8e, 0x7d, 0xfb, 0xde, 0xe7, 0xa8}}
+  {0x0057c9d3, 0xb98e, 0x4933, {0xbd, 0xc5, 0x02, 0x75, 0xd0, 0x67, 0x05, 0xe1}}
 
 class IHistory : public nsISupports
 {
@@ -117,6 +118,14 @@ public:
 
 
     NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle) = 0;
+
+    
+
+
+
+
+
+    NS_IMETHOD NotifyVisited(nsIURI* aURI) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
@@ -129,7 +138,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
     NS_IMETHOD VisitURI(nsIURI *aURI, \
                         nsIURI *aLastVisitedURI, \
                         uint32_t aFlags); \
-    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle);
+    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle); \
+    NS_IMETHOD NotifyVisited(nsIURI* aURI);
 
 } 
 

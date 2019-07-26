@@ -128,8 +128,10 @@
 #include "nsIStrictTransportSecurityService.h"
 #include "nsStructuredCloneContainer.h"
 #include "nsIStructuredCloneContainer.h"
+#ifdef MOZ_PLACES
 #include "nsIFaviconService.h"
 #include "mozIAsyncFavicons.h"
+#endif
 
 
 #include "nsIEditingSession.h"
@@ -8237,6 +8239,7 @@ nsDocShell::CheckLoadingPermissions()
 namespace
 {
 
+#ifdef MOZ_PLACES
 
 
 class nsCopyFaviconCallback MOZ_FINAL : public nsIFaviconDataCallback
@@ -8279,10 +8282,12 @@ private:
 };
 
 NS_IMPL_ISUPPORTS1(nsCopyFaviconCallback, nsIFaviconDataCallback)
+#endif
 
 
 void CopyFavicon(nsIURI *aOldURI, nsIURI *aNewURI, bool inPrivateBrowsing)
 {
+#ifdef MOZ_PLACES
     nsCOMPtr<mozIAsyncFavicons> favSvc =
         do_GetService("@mozilla.org/browser/favicon-service;1");
     if (favSvc) {
@@ -8290,6 +8295,7 @@ void CopyFavicon(nsIURI *aOldURI, nsIURI *aNewURI, bool inPrivateBrowsing)
             new nsCopyFaviconCallback(aNewURI, inPrivateBrowsing);
         favSvc->GetFaviconURLForPage(aOldURI, callback);
     }
+#endif
 }
 
 } 

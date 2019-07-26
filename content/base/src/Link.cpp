@@ -90,17 +90,19 @@ Link::LinkState() const
     }
 
     
-    nsresult rv = mHistory->RegisterVisitedCallback(hrefURI, self);
-    if (NS_SUCCEEDED(rv)) {
-      self->mRegistered = true;
+    if (mHistory) {
+      nsresult rv = mHistory->RegisterVisitedCallback(hrefURI, self);
+      if (NS_SUCCEEDED(rv)) {
+        self->mRegistered = true;
 
-      
-      self->mLinkState = eLinkState_Unvisited;
+        
+        self->mLinkState = eLinkState_Unvisited;
 
-      
-      nsIDocument *doc = element->GetCurrentDoc();
-      if (doc) {
-        doc->AddStyleRelevantLink(self);
+        
+        nsIDocument *doc = element->GetCurrentDoc();
+        if (doc) {
+          doc->AddStyleRelevantLink(self);
+        }
       }
     }
   }
@@ -468,10 +470,12 @@ Link::UnregisterFromHistory()
   NS_ASSERTION(mCachedURI, "mRegistered is true, but we have no cached URI?!");
 
   
-  nsresult rv = mHistory->UnregisterVisitedCallback(mCachedURI, this);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "This should only fail if we misuse the API!");
-  if (NS_SUCCEEDED(rv)) {
-    mRegistered = false;
+  if (mHistory) {
+    nsresult rv = mHistory->UnregisterVisitedCallback(mCachedURI, this);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "This should only fail if we misuse the API!");
+    if (NS_SUCCEEDED(rv)) {
+      mRegistered = false;
+    }
   }
 }
 
