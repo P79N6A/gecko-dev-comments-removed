@@ -718,6 +718,9 @@ function test18f() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 18f, Plugin should not be activated");
 
+  
+  
+  
   notification.options.eventCallback = function() { executeSoon(test18g); };
   EventUtils.synthesizeMouseAtCenter(plugin, {}, gTestBrowser.contentWindow);
 }
@@ -879,7 +882,10 @@ function test21a() {
   notification.reshow();
 }
 
-function test21b() {
+function test21b(type) {
+  if (type != "shown") {
+    return;
+  }
   var notification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   notification.options.eventCallback = null;
   var centerAction = null;
@@ -938,7 +944,10 @@ function test21c() {
   notification.reshow();
 }
 
-function test21d() {
+function test21d(type) {
+  if (type != "shown") {
+    return;
+  }
   var notification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   notification.options.eventCallback = null;
 
