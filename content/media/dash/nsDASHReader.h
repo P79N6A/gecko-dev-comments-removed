@@ -48,7 +48,7 @@ public:
   
   
   nsresult ReadMetadata(nsVideoInfo* aInfo,
-                        nsHTMLMediaElement::MetadataTags** aTags);
+                        MetadataTags** aTags);
 
   
   

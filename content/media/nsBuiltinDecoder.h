@@ -506,7 +506,7 @@ public:
   void MetadataLoaded(uint32_t aChannels,
                       uint32_t aRate,
                       bool aHasAudio,
-                      const nsHTMLMediaElement::MetadataTags* aTags);
+                      const MetadataTags* aTags);
 
   
   

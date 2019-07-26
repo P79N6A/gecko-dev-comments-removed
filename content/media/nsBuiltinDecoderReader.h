@@ -395,7 +395,7 @@ public:
   
   
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
-                                nsHTMLMediaElement::MetadataTags** aTags) = 0;
+                                MetadataTags** aTags) = 0;
 
   
   

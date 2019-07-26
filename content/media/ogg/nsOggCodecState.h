@@ -98,7 +98,7 @@ public:
   }
 
   
-  virtual nsHTMLMediaElement::MetadataTags* GetTags() {
+  virtual MetadataTags* GetTags() {
     return nullptr;
   }
 
@@ -200,7 +200,7 @@ protected:
   
   
   
-  static bool AddVorbisComment(nsHTMLMediaElement::MetadataTags* aTags,
+  static bool AddVorbisComment(MetadataTags* aTags,
                         const char* aComment,
                         uint32_t aLength);
 };
@@ -219,7 +219,7 @@ public:
   nsresult PageIn(ogg_page* aPage); 
 
   
-  nsHTMLMediaElement::MetadataTags* GetTags();
+  MetadataTags* GetTags();
 
   
   static int64_t Time(vorbis_info* aInfo, int64_t aGranulePos); 
@@ -357,7 +357,7 @@ public:
   int64_t mPrevPacketGranulepos;
 
   
-  nsHTMLMediaElement::MetadataTags* GetTags();
+  MetadataTags* GetTags();
 
 private:
 
