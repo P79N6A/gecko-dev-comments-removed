@@ -241,7 +241,6 @@ struct JSCompartment
     
     js::InitialShapeSet          initialShapes;
     void sweepInitialShapeTable();
-    void markAllInitialShapeTableEntries(JSTracer *trc);
 
     
     js::types::TypeObjectWithNewScriptSet newTypeObjects;
