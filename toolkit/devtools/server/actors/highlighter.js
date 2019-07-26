@@ -353,10 +353,14 @@ XULBasedHighlighter.prototype = {
 
 
 
-  show: function(node) {
+
+
+  show: function(node, options={}) {
     if (!isNodeValid(node) || node === this.currentNode) {
       return;
     }
+
+    this.options = options;
 
     this._detachPageListeners();
     this.currentNode = node;
@@ -375,6 +379,7 @@ XULBasedHighlighter.prototype = {
     this._hide();
     this._detachPageListeners();
     this.currentNode = null;
+    this.options = null;
   },
 
   
@@ -635,7 +640,33 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
 
 
 
-  _show: function(options={}) {
+
+
+
+
+  show: function(node, options={}) {
+    if (!isNodeValid(node)) {
+      return;
+    }
+
+    this.options = options;
+
+    if (!this.options.region) {
+      this.options.region = "content";
+    }
+
+    this._detachPageListeners();
+    this.currentNode = node;
+    this._attachPageListeners();
+    this._show();
+  },
+
+  
+
+
+
+
+  _show: function() {
     this._update();
     this._trackMutations();
     this.emit("ready");
@@ -665,12 +696,8 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
 
 
 
-
-
-
-
-  _update: function(options={}) {
-    if (this._updateBoxModel(options)) {
+  _update: function() {
+    if (this._updateBoxModel()) {
       this._showInfobar();
       this._showBoxModel();
     } else {
@@ -723,13 +750,7 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
 
 
 
-
-
-
-
-  _updateBoxModel: function(options) {
-    options.region = options.region || "content";
-
+  _updateBoxModel: function() {
     if (this._nodeNeedsHighlighting()) {
       for (let boxType in this._boxModelNodes) {
         let {p1, p2, p3, p4} =
@@ -742,7 +763,7 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
                              p3.x + "," + p3.y + " " +
                              p4.x + "," + p4.y);
 
-        if (boxType === options.region) {
+        if (boxType === this.options.region) {
           this._showGuides(p1, p2, p3, p4);
         }
       }
