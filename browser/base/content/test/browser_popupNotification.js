@@ -18,7 +18,10 @@ function cleanUp() {
     Services.obs.removeObserver(gActiveObservers[topic], topic);
   for (var eventName in gActiveListeners)
     PopupNotifications.panel.removeEventListener(eventName, gActiveListeners[eventName], false);
+  PopupNotifications.buttonDelay = PREF_SECURITY_DELAY_INITIAL;
 }
+
+const PREF_SECURITY_DELAY_INITIAL = Services.prefs.getIntPref("security.notification_enable_delay");
 
 var gActiveListeners = {};
 var gActiveObservers = {};
@@ -675,6 +678,52 @@ var tests = [
         this.notificationOld.remove();
       }
     ]
+  },
+  { 
+    run: function () {
+      
+      PopupNotifications.buttonDelay = 100000;
+
+      this.notifyObj = new basicNotification();
+      showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj);
+      triggerMainCommand(popup);
+
+      
+      executeSoon(function delayedDismissal() {
+        dismissNotification(popup);
+      });
+
+    },
+    onHidden: function (popup) {
+      ok(!this.notifyObj.mainActionClicked, "mainAction was not clicked because it was too soon");
+      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback was triggered");
+    },
+  },
+  { 
+    run: function () {
+      
+      PopupNotifications.buttonDelay = 10;
+
+      this.notifyObj = new basicNotification();
+      showNotification(this.notifyObj);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj);
+
+      
+      setTimeout(function delayedDismissal() {
+        triggerMainCommand(popup);
+      }, 500);
+
+    },
+    onHidden: function (popup) {
+      ok(this.notifyObj.mainActionClicked, "mainAction was clicked after the delay");
+      ok(!this.notifyObj.dismissalCallbackTriggered, "dismissal callback was not triggered");
+      PopupNotifications.buttonDelay = PREF_SECURITY_DELAY_INITIAL;
+    },
   }
 ];
 
