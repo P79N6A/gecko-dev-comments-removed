@@ -1349,7 +1349,7 @@ let SessionStoreInternal = {
       
       if (tab.linkedBrowser.__SS_restoreState &&
           tab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)
-        this.restoreTab(tab);
+        this.restoreTabContent(tab);
 
       
       this._updateCrashReportURL(aWindow);
@@ -2701,7 +2701,7 @@ let SessionStoreInternal = {
     
     
     if (restoreImmediately || window.gBrowser.selectedBrowser == browser) {
-      this.restoreTab(tab);
+      this.restoreTabContent(tab);
     } else {
       TabRestoreQueue.add(tab);
       this.restoreNextTab();
@@ -2725,7 +2725,7 @@ let SessionStoreInternal = {
 
 
 
-  restoreTab: function ssi_restoreTab(aTab) {
+  restoreTabContent: function (aTab) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
     let tabData = browser.__SS_data;
@@ -2828,7 +2828,7 @@ let SessionStoreInternal = {
 
     let tab = TabRestoreQueue.shift();
     if (tab) {
-      let didStartLoad = this.restoreTab(tab);
+      let didStartLoad = this.restoreTabContent(tab);
       
       
       if (!didStartLoad)
@@ -4125,7 +4125,7 @@ SessionStoreSHistoryListener.prototype = {
     
     
     
-    SessionStoreInternal.restoreTab(this.tab);
+    SessionStoreInternal.restoreTabContent(this.tab);
     
     return false;
   }
