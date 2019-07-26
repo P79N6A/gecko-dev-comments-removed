@@ -1896,6 +1896,7 @@ PeerConnectionImpl::IceGatheringStateChange(
                 NS_DISPATCH_NORMAL);
 }
 
+#ifdef MOZILLA_INTERNAL_API
 static bool isDone(PCImplIceConnectionState state) {
   return state != PCImplIceConnectionState::Checking &&
          state != PCImplIceConnectionState::New;
@@ -1910,6 +1911,7 @@ static bool isFailed(PCImplIceConnectionState state) {
   return state == PCImplIceConnectionState::Failed ||
          state == PCImplIceConnectionState::Disconnected;
 }
+#endif
 
 nsresult
 PeerConnectionImpl::IceConnectionStateChange_m(PCImplIceConnectionState aState)
@@ -2186,11 +2188,6 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
   ASSERT_ON_THREAD(query->iceCtx->thread());
 
   
-  
-  RefPtr<NrIceCtx> iceCtxTmp(query->iceCtx);
-  query->iceCtx = nullptr;
-
-  
 
   for (size_t p = 0; p < query->pipelines.Length(); ++p) {
     const MediaPipeline& mp = *query->pipelines[p];
@@ -2333,6 +2330,11 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
                      &(query->report));
   }
 
+  
+  
+  
+  query->streams.Clear();
+  query->iceCtx = nullptr;
   return NS_OK;
 }
 
