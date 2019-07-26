@@ -479,7 +479,7 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
 
     public static final String MEASUREMENT_NAME_SEARCH_COUNTS = "org.mozilla.searches.counts";
-    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 3;
+    public static final int MEASUREMENT_VERSION_SEARCH_COUNTS = 4;
 
     public static final String[] SEARCH_LOCATIONS = {
         "barkeyword",
@@ -578,7 +578,8 @@ public class BrowserHealthRecorder implements GeckoEventListener {
                         
                         
                         
-                        out.add(new FieldSpec(location, Field.TYPE_STRING_DISCRETE));
+                        
+                        out.add(new FieldSpec(location, Field.TYPE_COUNTED_STRING_DISCRETE));
                     }
                     return out;
                 }
