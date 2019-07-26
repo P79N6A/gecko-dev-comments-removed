@@ -209,8 +209,35 @@ public:
       aMargin.TopBottom();
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsPoint PhysicalPositionFromLogicalPosition(nscoord aMainPosn,
-                                              nscoord aCrossPosn) const {
+                                              nscoord aCrossPosn,
+                                              nscoord aContainerMainSize,
+                                              nscoord aContainerCrossSize) const {
+    
+    
+    
+    
+    if (!AxisGrowsInPositiveDirection(mMainAxis)) {
+      aMainPosn = aContainerMainSize - aMainPosn;
+    }
+    if (!AxisGrowsInPositiveDirection(mCrossAxis)) {
+      aCrossPosn = aContainerCrossSize - aCrossPosn;
+    }
+
     return IsAxisHorizontal(mMainAxis) ?
       nsPoint(aMainPosn, aCrossPosn) :
       nsPoint(aCrossPosn, aMainPosn);
@@ -2342,17 +2369,13 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     
 
-    nscoord mainPosn = curItem.GetMainPosition();
-    nscoord crossPosn = curItem.GetCrossPosition();
-    if (!AxisGrowsInPositiveDirection(axisTracker.GetMainAxis())) {
-      mainPosn = contentBoxMainSize - mainPosn;
-    }
-    if (!AxisGrowsInPositiveDirection(axisTracker.GetCrossAxis())) {
-      crossPosn = contentBoxCrossSize - crossPosn;
-    }
-
-    nsPoint physicalPosn =
-      axisTracker.PhysicalPositionFromLogicalPosition(mainPosn, crossPosn);
+    nsPoint physicalPosn = axisTracker.PhysicalPositionFromLogicalPosition(
+                             curItem.GetMainPosition(),
+                             curItem.GetCrossPosition(),
+                             contentBoxMainSize,
+                             contentBoxCrossSize);
+    
+    
     physicalPosn += containerContentBoxOrigin;
 
     nsHTMLReflowMetrics childDesiredSize;
