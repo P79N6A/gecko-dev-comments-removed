@@ -724,8 +724,6 @@ class HashTable : private AllocPolicy
     
     
     
-    
-    
     class Enum : public Range
     {
         friend class HashTable;
