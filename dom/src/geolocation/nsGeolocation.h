@@ -210,17 +210,7 @@ private:
   uint32_t mLastWatchId;
 
   
-  class PendingRequest
-  {
-  public:
-    nsRefPtr<nsGeolocationRequest> request;
-    enum {
-      GetCurrentPosition,
-      WatchPosition
-    } type;
-  };
-
-  nsTArray<PendingRequest> mPendingRequests;
+  nsTArray<nsRefPtr<nsGeolocationRequest> > mPendingRequests;
 };
 
 class PositionError MOZ_FINAL : public nsIDOMGeoPositionError,
