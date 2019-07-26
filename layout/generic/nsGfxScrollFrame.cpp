@@ -3886,16 +3886,8 @@ nsGfxScrollFrameInner::SaveState()
     return nullptr;
   }
 
-  nsPoint scrollPos = GetLogicalScrollPosition();
-  
-  if (scrollPos == nsPoint(0,0)) {
-    return nullptr;
-  }
-
   nsPresState* state = new nsPresState();
-
-  state->SetScrollState(scrollPos);
-
+  state->SetScrollState(GetLogicalScrollPosition());
   return state;
 }
 
