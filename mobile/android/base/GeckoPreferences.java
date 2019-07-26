@@ -6,6 +6,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.background.announcements.AnnouncementsConstants;
+import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.GeckoPreferenceFragment;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -290,6 +291,9 @@ public class GeckoPreferences
 
 
 
+
+
+
     public static void broadcastPrefAction(final Context context,
                                            final String action,
                                            final String pref,
@@ -300,7 +304,7 @@ public class GeckoPreferences
         intent.putExtra("branch", GeckoApp.PREFS_NAME);
         intent.putExtra("enabled", value);
         Log.d(LOGTAG, "Broadcast: " + action + ", " + pref + ", " + GeckoApp.PREFS_NAME + ", " + value);
-        context.sendBroadcast(intent);
+        context.sendBroadcast(intent, GlobalConstants.PER_ANDROID_PACKAGE_PERMISSION);
     }
 
     
