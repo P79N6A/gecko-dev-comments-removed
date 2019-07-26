@@ -2,23 +2,13 @@
 
 
 
-#include "nsCOMPtr.h"
 #include "nsImageFrame.h"
 #include "nsIFormControlFrame.h"
-#include "nsIFormControl.h"
-#include "nsHTMLParts.h"
 #include "nsPresContext.h"
-#include "nsIPresShell.h"
-#include "nsStyleContext.h"
-#include "nsLeafFrame.h"
-#include "nsCSSRendering.h"
-#include "nsISupports.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsFormControlFrame.h"
 #include "nsGUIEvent.h"
-#include "nsIServiceManager.h"
-#include "nsContainerFrame.h"
 #include "nsLayoutUtils.h"
 
 using namespace mozilla;

@@ -3,8 +3,6 @@
 
 
 #include "nsSelectsAreaFrame.h"
-#include "nsCOMPtr.h"
-#include "nsIDOMHTMLOptionElement.h"
 #include "nsIContent.h"
 #include "nsListControlFrame.h"
 #include "nsDisplayList.h"

@@ -3,19 +3,20 @@
 
 
 
-
-
-
-
-
 #ifndef nsButtonFrameRenderer_h___
 #define nsButtonFrameRenderer_h___
 
-#include "nsCoord.h"
 #include "nsAutoPtr.h"
-#include "nsFrame.h"
+#include "nsMargin.h"
 
-class nsStyleChangeList;
+class nsIFrame;
+class nsFrame;
+class nsDisplayList;
+class nsDisplayListBuilder;
+class nsPresContext;
+class nsRenderingContext;
+class nsRect;
+class nsStyleContext;
 
 
 #define NS_BUTTON_RENDERER_FOCUS_INNER_CONTEXT_INDEX  0
