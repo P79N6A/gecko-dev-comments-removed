@@ -422,7 +422,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
+    bool wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
 
@@ -451,7 +451,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
+    bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
 
     
     bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
