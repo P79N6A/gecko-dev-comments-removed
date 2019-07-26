@@ -142,7 +142,9 @@ var BrowserUI = {
       window.removeEventListener("UIReadyDelayed",  delayedInit, false);
 
       
-      Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);	  
+      Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+      Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
+
       messageManager.addMessageListener("Browser:MozApplicationManifest", OfflineApps);
 
       try {
