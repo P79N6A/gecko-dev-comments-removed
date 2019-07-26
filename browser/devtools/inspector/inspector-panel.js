@@ -27,6 +27,33 @@ const LAYOUT_CHANGE_TIMER = 250;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function InspectorPanel(iframeWindow, toolbox) {
   this._toolbox = toolbox;
   this._target = toolbox._target;
@@ -320,6 +347,7 @@ InspectorPanel.prototype = {
       this.once("markuploaded", () => {
         this.markup.expandNode(this.selection.nodeFront);
         this.setupSearchBox();
+        this.emit("new-root");
       });
     });
   },
