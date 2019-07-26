@@ -198,14 +198,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void boxValue(JSValueType type, Register src, Register dest) {
         JSValueShiftedTag tag = (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
         movq(ImmShiftedTag(tag), dest);
-
-        
-        
-        
-        
-        
-        if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN)
-            movl(src, src);
+#ifdef DEBUG
+        if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
+            Label upper32BitsZeroed;
+            branchPtr(Assembler::BelowOrEqual, src, Imm32(UINT32_MAX), &upper32BitsZeroed);
+            breakpoint();
+            bind(&upper32BitsZeroed);
+        }
+#endif
         orq(src, dest);
     }
 
@@ -353,6 +353,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         cmpPtr(Operand(lhs), rhs);
     }
     void cmpPtr(const Operand &lhs, const Register &rhs) {
+        cmpq(lhs, rhs);
+    }
+    void cmpPtr(const Operand &lhs, const Imm32 rhs) {
         cmpq(lhs, rhs);
     }
     void cmpPtr(const Address &lhs, const Register &rhs) {

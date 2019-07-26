@@ -298,10 +298,7 @@ class MacroAssemblerX86Shared : public Assembler
     void convertDoubleToInt32(FloatRegister src, Register dest, Label *fail,
                               bool negativeZeroCheck = true)
     {
-        
-        
-        
-        cvttsd2s(src, dest);
+        cvttsd2si(src, dest);
         cvtsi2sd(dest, ScratchFloatReg);
         ucomisd(src, ScratchFloatReg);
         j(Assembler::Parity, fail);
