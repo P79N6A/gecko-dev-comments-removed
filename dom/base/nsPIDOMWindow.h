@@ -340,10 +340,11 @@ public:
   
   bool HasActiveDocument()
   {
+    MOZ_ASSERT(IsInnerWindow());
     return IsCurrentInnerWindow() ||
-      (GetOuterWindow() &&
-       GetOuterWindow()->GetCurrentInnerWindow() &&
-       GetOuterWindow()->GetCurrentInnerWindow()->GetDoc() == mDoc);
+      (mOuterWindow &&
+       mOuterWindow->GetCurrentInnerWindow() &&
+       mOuterWindow()->GetCurrentInnerWindow()->GetDoc() == mDoc);
   }
 
   bool IsOuterWindow() const
