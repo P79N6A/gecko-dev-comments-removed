@@ -10,6 +10,8 @@
 #include "nsICookie2.h"
 #include "nsString.h"
 
+#include "mozilla/MemoryReporting.h"
+
 
 
 
@@ -76,6 +78,8 @@ class nsCookie : public nsICookie2
 
     virtual ~nsCookie() {}
 
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
     
     inline const nsDependentCString Name()  const { return nsDependentCString(mName, mValue - 1); }
     inline const nsDependentCString Value() const { return nsDependentCString(mValue, mHost - 1); }
@@ -99,6 +103,8 @@ class nsCookie : public nsICookie2
     inline void SetCreationTime(int64_t aTime)    { mCreationTime = aTime; }
 
   protected:
+    
+    
     
     
     

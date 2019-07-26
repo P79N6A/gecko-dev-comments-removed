@@ -111,6 +111,14 @@ nsCookie::Create(const nsACString &aName,
                               aIsSession, aIsSecure, aIsHttpOnly);
 }
 
+size_t
+nsCookie::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+    
+    
+    return aMallocSizeOf(this);
+}
+
 
 
 
