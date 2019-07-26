@@ -30,8 +30,9 @@ function test() {
   }
 
   function endTests() {
-    executeSoon(() => {
-      toolbox.destroy();
+    inspector.destroy().then(() =>
+      toolbox.destroy()
+    ).then(() => {
       toolbox = inspector = page1 = page2 = null;
       gBrowser.removeCurrentTab();
       finish();
@@ -40,7 +41,7 @@ function test() {
 
   function loadPageAnd(page, callback) {
     inspector.once("markuploaded", () => {
-      executeSoon(callback);
+      callback();
     });
 
     if (page) {
@@ -58,7 +59,7 @@ function test() {
 
       loadPageAnd(false, () => {
         is(inspector.selection.node.id, id, "Node re-selected after reload");
-        executeSoon(callback);
+        callback();
       });
     });
 
@@ -85,14 +86,12 @@ function test() {
     
     
     loadPageAnd(page2, () => {
-      executeSoon(() => {
-        is(
-          inspector.selection.node.tagName.toLowerCase(),
-          "body",
-          "Node not found, body selected"
-        );
-        executeSoon(testSameNodeSelectedOnNavigateAwayAndBack);
-      });
+      is(
+        inspector.selection.node.tagName.toLowerCase(),
+        "body",
+        "Node not found, body selected"
+      );
+      testSameNodeSelectedOnNavigateAwayAndBack();
     });
   }
 
@@ -106,17 +105,12 @@ function test() {
     inspector.once("inspector-updated", () => {
       is(inspector.selection.node.id, id);
 
-      executeSoon(() => {
-        
-        loadPageAnd(page1, () => {
-
-          executeSoon(() => {
-            
-            loadPageAnd(page2, () => {
-              is(inspector.selection.node.id, id, "Node re-selected after navigation");
-              executeSoon(endTests);
-            });
-          });
+      
+      loadPageAnd(page1, () => {
+          
+        loadPageAnd(page2, () => {
+          is(inspector.selection.node.id, id, "Node re-selected after navigation");
+          endTests();
         });
       });
     });
