@@ -101,7 +101,7 @@ class autoJArray {
       length = other.length;
     }
 #if defined(MOZ_HAVE_CXX11_NULLPTR)
-#  if defined(__clang__)
+#  if defined(__clang__) || defined(__ANDROID__)
     
     typedef decltype(nullptr) jArray_nullptr_t;
 #  else
