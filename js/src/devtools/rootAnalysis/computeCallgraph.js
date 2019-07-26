@@ -10,6 +10,8 @@ var subclasses = {};
 var superclasses = {};
 var classFunctions = {};
 
+var fieldCallSeen = {};
+
 function addClassEntry(index, name, other)
 {
     if (!(name in index)) {
@@ -146,8 +148,17 @@ function getCallees(edge)
             }
             if (functions) {
                 
-                for (var name of functions)
+                
+                
+                
+                
+                
+                var targets = [];
+                for (var name of functions) {
                     callees.push({'kind': "direct", 'name': name});
+                    targets.push({'kind': "direct", 'name': name});
+                }
+                callees.push({'kind': "resolved-field", 'csu': csuName, 'field': fieldName, 'callees': targets});
             } else {
                 
                 
@@ -200,6 +211,21 @@ function processBody(caller, body)
             } else if (callee.kind == 'field') {
                 var { csu, field } = callee;
                 printOnce("F " + prologue + "CLASS " + csu + " FIELD " + field);
+            } else if (callee.kind == 'resolved-field') {
+                
+                
+                
+                
+                
+                
+                
+                var { csu, field, callees } = callee;
+                var fullFieldName = csu + "." + field;
+                if (!(fullFieldName in fieldCallSeen)) {
+                    fieldCallSeen[fullFieldName] = true;
+                    for (var target of callees)
+                        printOnce("R " + memo(fullFieldName) + " " + memo(target.name));
+                }
             } else if (callee.kind == 'indirect') {
                 printOnce("I " + prologue + "VARIABLE " + callee.variable);
             } else if (callee.kind == 'unknown') {

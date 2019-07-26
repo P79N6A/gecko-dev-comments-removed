@@ -40,6 +40,7 @@ var functionNames = [""];
 function loadCallgraph(file)
 {
     var suppressedFieldCalls = {};
+    var resolvedFunctions = {};
 
     var textLines = snarf(file).split('\n');
     for (var line of textLines) {
@@ -72,18 +73,29 @@ function loadCallgraph(file)
             var caller = functionNames[match[1]];
             var callee = functionNames[match[2]];
             addCallEdge(caller, callee, suppressed);
+        } else if (match = /^R (\d+) (\d+)/.exec(line)) {
+            var callerField = functionNames[match[1]];
+            var callee = functionNames[match[2]];
+            addCallEdge(callerField, callee, false);
+            resolvedFunctions[callerField] = true;
         }
     }
 
+    
+    
     var worklist = [];
-    for (var name in callerGraph)
-        suppressedFunctions[name] = true;
-    for (var name in calleeGraph) {
-        if (!(name in callerGraph)) {
-            suppressedFunctions[name] = true;
-            worklist.push(name);
+    for (var callee in callerGraph)
+        suppressedFunctions[callee] = true;
+    for (var caller in calleeGraph) {
+        if (!(caller in callerGraph)) {
+            suppressedFunctions[caller] = true;
+            worklist.push(caller);
         }
     }
+
+    
+    
+    
     while (worklist.length) {
         name = worklist.pop();
         if (shouldSuppressGC(name))
@@ -99,6 +111,7 @@ function loadCallgraph(file)
         }
     }
 
+    
     for (var name in gcFunctions) {
         if (name in suppressedFunctions)
             delete gcFunctions[name];
@@ -115,10 +128,12 @@ function loadCallgraph(file)
         addGCFunction(gcName, "GC");
     }
 
+    
     var worklist = [];
     for (var name in gcFunctions)
         worklist.push(name);
 
+    
     while (worklist.length) {
         name = worklist.pop();
         assert(name in gcFunctions);
@@ -127,6 +142,15 @@ function loadCallgraph(file)
         for (var entry of callerGraph[name]) {
             if (!entry.suppressed && addGCFunction(entry.caller, name))
                 worklist.push(entry.caller);
+        }
+    }
+
+    
+    
+    for (var name in resolvedFunctions) {
+        if (!(name in gcFunctions)) {
+            suppressedFunctions[name] = true;
+            printErr("Adding " + name);
         }
     }
 }
