@@ -192,10 +192,17 @@ public:
 
 
 
-
   static HRESULT SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
                                              REFIID riid, void **ppv);
 
+  
+
+
+
+  static HRESULT SHGetKnownFolderPath(REFKNOWNFOLDERID rfid,
+                                      DWORD dwFlags,
+                                      HANDLE hToken,
+                                      PWSTR *ppszPath);
   
 
 
@@ -229,13 +236,11 @@ private:
                                                             REFIID riid,
                                                             void **ppv);
   static SHCreateItemFromParsingNamePtr sCreateItemFromParsingName;
-
-  
-
-
-
-
-  static bool VistaCreateItemFromParsingNameInit();
+  typedef HRESULT (WINAPI * SHGetKnownFolderPathPtr)(REFKNOWNFOLDERID rfid,
+                                                     DWORD dwFlags,
+                                                     HANDLE hToken,
+                                                     PWSTR *ppszPath);
+  static SHGetKnownFolderPathPtr sGetKnownFolderPath;
 };
 
 #ifdef MOZ_PLACES

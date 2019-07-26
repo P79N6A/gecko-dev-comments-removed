@@ -10,6 +10,10 @@
 
 
 
+
+#include <vssym32.h>
+#include <vsstyle.h>
+
 #define THEME_COLOR 204
 #define THEME_FONT  210
 
@@ -23,10 +27,6 @@
 
 #define TKP_FOCUSED   4
 #define TKP_DISABLED  5
-
-
-#define TP_BUTTON 1
-#define TP_SEPARATOR 5
 
 
 #define TB_CHECKED       5
@@ -77,16 +77,6 @@
 
 #define SPNP_UP            1
 #define SPNP_DOWN          2
-
-
-#define PP_BAR             1
-#define PP_BARVERT         2
-#define PP_CHUNK           3
-#define PP_CHUNKVERT       4
-#define PP_FILL            5
-#define PP_FILLVERT        6
-#define PP_MOVEOVERLAY     8
-#define PP_MOVEOVERLAYVERT 9
 
 
 #define TABP_TAB             4
@@ -150,12 +140,6 @@
 
 #define MSM_NORMAL 1
 #define MSM_DISABLED 2
-
-
-#define TMT_TEXTCOLOR 3803
-#define TMT_SIZINGMARGINS 3601
-#define TMT_CONTENTMARGINS 3602
-#define TMT_CAPTIONMARGINS 3603
 
 
 #define RP_BAND              3

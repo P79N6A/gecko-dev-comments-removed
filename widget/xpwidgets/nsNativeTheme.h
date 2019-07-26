@@ -59,6 +59,8 @@ class nsNativeTheme : public nsITimerCallback
   
   bool IsFrameRTL(nsIFrame* aFrame);
 
+  bool IsHTMLContent(nsIFrame *aFrame);
+  
   
   bool IsDefaultButton(nsIFrame* aFrame) {
     return CheckBooleanAttr(aFrame, nsGkAtoms::_default);
@@ -75,11 +77,11 @@ class nsNativeTheme : public nsITimerCallback
   bool IsSelected(nsIFrame* aFrame) {
     return GetCheckedOrSelected(aFrame, true);
   }
-  
+
   bool IsFocused(nsIFrame* aFrame) {
     return CheckBooleanAttr(aFrame, nsGkAtoms::focused);
   }
-  
+
   
   int32_t GetScrollbarButtonType(nsIFrame* aFrame);
 

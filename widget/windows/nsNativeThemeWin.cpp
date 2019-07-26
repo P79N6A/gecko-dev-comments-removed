@@ -44,13 +44,20 @@ extern PRLogModuleInfo* gWindowsLog;
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsNativeThemeWin, nsNativeTheme, nsITheme)
 
-static inline bool IsHTMLContent(nsIFrame *frame)
+nsNativeThemeWin::nsNativeThemeWin()
 {
-  nsIContent* content = frame->GetContent();
-  return content && content->IsHTML();
+  
+  
+  
 }
 
-static int32_t GetTopLevelWindowActiveState(nsIFrame *aFrame)
+nsNativeThemeWin::~nsNativeThemeWin()
+{
+  nsUXThemeData::Invalidate();
+}
+
+static int32_t
+GetTopLevelWindowActiveState(nsIFrame *aFrame)
 {
   
   
@@ -67,7 +74,8 @@ static int32_t GetTopLevelWindowActiveState(nsIFrame *aFrame)
   return mozilla::widget::themeconst::FS_INACTIVE;
 }
 
-static int32_t GetWindowFrameButtonState(nsIFrame *aFrame, nsEventStates eventState)
+static int32_t
+GetWindowFrameButtonState(nsIFrame *aFrame, nsEventStates eventState)
 {
   if (GetTopLevelWindowActiveState(aFrame) ==
       mozilla::widget::themeconst::FS_INACTIVE) {
@@ -84,7 +92,8 @@ static int32_t GetWindowFrameButtonState(nsIFrame *aFrame, nsEventStates eventSt
   return mozilla::widget::themeconst::BS_NORMAL;
 }
 
-static int32_t GetClassicWindowFrameButtonState(nsEventStates eventState)
+static int32_t
+GetClassicWindowFrameButtonState(nsEventStates eventState)
 {
   if (eventState.HasState(NS_EVENT_STATE_ACTIVE) &&
       eventState.HasState(NS_EVENT_STATE_HOVER))
@@ -92,7 +101,8 @@ static int32_t GetClassicWindowFrameButtonState(nsEventStates eventState)
   return DFCS_BUTTONPUSH;
 }
 
-static void QueryForButtonData(nsIFrame *aFrame)
+static void
+QueryForButtonData(nsIFrame *aFrame)
 {
   if (nsUXThemeData::sTitlebarInfoPopulatedThemed && nsUXThemeData::sTitlebarInfoPopulatedAero)
     return;
@@ -107,17 +117,8 @@ static void QueryForButtonData(nsIFrame *aFrame)
   nsUXThemeData::UpdateTitlebarInfo(window->GetWindowHandle());
 }
 
-nsNativeThemeWin::nsNativeThemeWin() {
-  
-  
-  
-}
-
-nsNativeThemeWin::~nsNativeThemeWin() {
-  nsUXThemeData::Invalidate();
-}
-
-static bool IsTopLevelMenu(nsIFrame *aFrame)
+static bool
+IsTopLevelMenu(nsIFrame *aFrame)
 {
   bool isTopLevel(false);
   nsMenuFrame *menuFrame = do_QueryFrame(aFrame);
@@ -127,16 +128,21 @@ static bool IsTopLevelMenu(nsIFrame *aFrame)
   return isTopLevel;
 }
 
-static MARGINS GetCheckboxMargins(HANDLE theme, HDC hdc)
+static MARGINS
+GetCheckboxMargins(HANDLE theme, HDC hdc)
 {
     MARGINS checkboxContent = {0};
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECK, MCB_NORMAL, TMT_CONTENTMARGINS, NULL, &checkboxContent);
+    GetThemeMargins(theme, hdc, MENU_POPUPCHECK, MCB_NORMAL,
+                    TMT_CONTENTMARGINS, NULL, &checkboxContent);
     return checkboxContent;
 }
-static SIZE GetCheckboxBGSize(HANDLE theme, HDC hdc)
+
+static SIZE
+GetCheckboxBGSize(HANDLE theme, HDC hdc)
 {
     SIZE checkboxSize;
-    GetThemePartSize(theme, hdc, MENU_POPUPCHECK, MC_CHECKMARKNORMAL, NULL, TS_TRUE, &checkboxSize);
+    GetThemePartSize(theme, hdc, MENU_POPUPCHECK, MC_CHECKMARKNORMAL,
+                     NULL, TS_TRUE, &checkboxSize);
 
     MARGINS checkboxMargins = GetCheckboxMargins(theme, hdc);
 
@@ -152,17 +158,27 @@ static SIZE GetCheckboxBGSize(HANDLE theme, HDC hdc)
     ret.cy = height;
     return ret;
 }
-static SIZE GetCheckboxBGBounds(HANDLE theme, HDC hdc)
+
+static SIZE
+GetCheckboxBGBounds(HANDLE theme, HDC hdc)
 {
     MARGINS checkboxBGSizing = {0};
     MARGINS checkboxBGContent = {0};
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL, TMT_SIZINGMARGINS, NULL, &checkboxBGSizing);
-    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL, TMT_CONTENTMARGINS, NULL, &checkboxBGContent);
+    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
+                    TMT_SIZINGMARGINS, NULL, &checkboxBGSizing);
+    GetThemeMargins(theme, hdc, MENU_POPUPCHECKBACKGROUND, MCB_NORMAL,
+                    TMT_CONTENTMARGINS, NULL, &checkboxBGContent);
 
 #define posdx(d) ((d) > 0 ? d : 0)
 
-    int dx = posdx(checkboxBGContent.cxRightWidth - checkboxBGSizing.cxRightWidth) + posdx(checkboxBGContent.cxLeftWidth - checkboxBGSizing.cxLeftWidth);
-    int dy = posdx(checkboxBGContent.cyTopHeight - checkboxBGSizing.cyTopHeight) + posdx(checkboxBGContent.cyBottomHeight - checkboxBGSizing.cyBottomHeight);
+    int dx = posdx(checkboxBGContent.cxRightWidth -
+                   checkboxBGSizing.cxRightWidth) +
+             posdx(checkboxBGContent.cxLeftWidth -
+                   checkboxBGSizing.cxLeftWidth);
+    int dy = posdx(checkboxBGContent.cyTopHeight -
+                   checkboxBGSizing.cyTopHeight) +
+             posdx(checkboxBGContent.cyBottomHeight -
+                   checkboxBGSizing.cyBottomHeight);
 
 #undef posdx
 
@@ -171,7 +187,9 @@ static SIZE GetCheckboxBGBounds(HANDLE theme, HDC hdc)
     ret.cy += dy;
     return ret;
 }
-static SIZE GetGutterSize(HANDLE theme, HDC hdc)
+
+static SIZE
+GetGutterSize(HANDLE theme, HDC hdc)
 {
     SIZE gutterSize;
     GetThemePartSize(theme, hdc, MENU_POPUPGUTTER, 0, NULL, TS_TRUE, &gutterSize);
@@ -189,67 +207,71 @@ static SIZE GetGutterSize(HANDLE theme, HDC hdc)
     return ret;
 }
 
-static HRESULT DrawThemeBGRTLAware(HANDLE theme, HDC hdc, int part, int state,
-                                   const RECT *widgetRect, const RECT *clipRect,
-                                   bool isRTL)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static HRESULT
+DrawThemeBGRTLAware(HANDLE aTheme, HDC aHdc, int aPart, int aState,
+                    const RECT *aWidgetRect, const RECT *aClipRect,
+                    bool aIsRtl)
 {
-  
+  NS_ASSERTION(aTheme, "Bad theme handle.");
+  NS_ASSERTION(aHdc, "Bad hdc.");
+  NS_ASSERTION(aWidgetRect, "Bad rect.");
+  NS_ASSERTION(aClipRect, "Bad clip rect.");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (isRTL) {
-    HGDIOBJ hObj = GetCurrentObject(hdc, OBJ_BITMAP);
-    BITMAP bitmap;
-    POINT vpOrg;
-
-    if (hObj &&
-        GetObject(hObj, sizeof(bitmap), &bitmap) &&
-        GetViewportOrgEx(hdc, &vpOrg))
-    {
-      RECT newWRect(*widgetRect);
-      newWRect.left = bitmap.bmWidth - (widgetRect->right + 2*vpOrg.x);
-      newWRect.right = bitmap.bmWidth - (widgetRect->left + 2*vpOrg.x);
-
-      RECT newCRect;
-      RECT *newCRectPtr = NULL;
-
-      if (clipRect) {
-        newCRect.top = clipRect->top;
-        newCRect.bottom = clipRect->bottom;
-        newCRect.left = bitmap.bmWidth - (clipRect->right + 2*vpOrg.x);
-        newCRect.right = bitmap.bmWidth - (clipRect->left + 2*vpOrg.x);
-        newCRectPtr = &newCRect;
-      }
-
-      SetLayout(hdc, LAYOUT_RTL);
-      HRESULT hr = DrawThemeBackground(theme, hdc, part, state, &newWRect, newCRectPtr);
-      SetLayout(hdc, 0);
-
-      if (hr == S_OK)
-        return hr;
-    }
+  if (!aIsRtl) {
+    return DrawThemeBackground(aTheme, aHdc, aPart, aState,
+                               aWidgetRect, aClipRect);
   }
 
-  
-  return DrawThemeBackground(theme, hdc, part, state, widgetRect, clipRect);
+  HGDIOBJ hObj = GetCurrentObject(aHdc, OBJ_BITMAP);
+  BITMAP bitmap;
+  POINT vpOrg;
+
+  if (hObj && GetObject(hObj, sizeof(bitmap), &bitmap) &&
+      GetViewportOrgEx(aHdc, &vpOrg)) {
+    RECT newWRect(*aWidgetRect);
+    newWRect.left = bitmap.bmWidth - (aWidgetRect->right + 2*vpOrg.x);
+    newWRect.right = bitmap.bmWidth - (aWidgetRect->left + 2*vpOrg.x);
+
+    RECT newCRect;
+    RECT *newCRectPtr = NULL;
+
+    if (aClipRect) {
+      newCRect.top = aClipRect->top;
+      newCRect.bottom = aClipRect->bottom;
+      newCRect.left = bitmap.bmWidth - (aClipRect->right + 2*vpOrg.x);
+      newCRect.right = bitmap.bmWidth - (aClipRect->left + 2*vpOrg.x);
+      newCRectPtr = &newCRect;
+    }
+
+    SetLayout(aHdc, LAYOUT_RTL);
+    HRESULT hr = DrawThemeBackground(aTheme, aHdc, aPart, aState, &newWRect,
+                                     newCRectPtr);
+    SetLayout(aHdc, 0);
+    if (SUCCEEDED(hr)) {
+      return hr;
+    }
+  }
+  return DrawThemeBackground(aTheme, aHdc, aPart, aState,
+                             aWidgetRect, aClipRect);
 }
 
 
@@ -317,6 +339,39 @@ static CaptionButtonPadding buttonData[3] = {
 };
 
 
+static void
+AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
+  if (!aSize)
+    return;
+  RECT offset;
+  if (!IsAppThemed())
+    offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
+  else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
+    offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
+  else
+    offset = buttonData[CAPTION_BASIC].hotPadding[button];
+  aSize->width += offset.left + offset.right;
+  aSize->height += offset.top + offset.bottom;
+}
+
+
+
+static void
+OffsetBackgroundRect(RECT& rect, CaptionButton button) {
+  RECT offset;
+  if (!IsAppThemed())
+    offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
+  else if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION)
+    offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
+  else
+    offset = buttonData[CAPTION_BASIC].hotPadding[button];
+  rect.left += offset.left;
+  rect.top += offset.top;
+  rect.right -= offset.right;
+  rect.bottom -= offset.bottom;
+}
+
+
 
 
 
@@ -341,37 +396,6 @@ static const double kProgressClassicIndeterminateSpeed = 0.0875;
 static const int32_t kProgressIndeterminateDelay = 500;
 
 static const int32_t kProgressDeterminedVistaDelay = 1000;
-
-
-static void AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
-  if (!aSize)
-    return;
-  RECT offset;
-  if (!IsAppThemed())
-    offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
-  else if (WinUtils::GetWindowsVersion() == WinUtils::WINXP_VERSION)
-    offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
-  else
-    offset = buttonData[CAPTION_BASIC].hotPadding[button];
-  aSize->width += offset.left + offset.right;
-  aSize->height += offset.top + offset.bottom;
-}
-
-
-
-static void OffsetBackgroundRect(RECT& rect, CaptionButton button) {
-  RECT offset;
-  if (!IsAppThemed())
-    offset = buttonData[CAPTION_CLASSIC].hotPadding[button];
-  else if (WinUtils::GetWindowsVersion() == WinUtils::WINXP_VERSION)
-    offset = buttonData[CAPTION_XPTHEME].hotPadding[button];
-  else
-    offset = buttonData[CAPTION_BASIC].hotPadding[button];
-  rect.left += offset.left;
-  rect.top += offset.top;
-  rect.right -= offset.right;
-  rect.bottom -= offset.bottom;
-}
 
 HANDLE
 nsNativeThemeWin::GetTheme(uint8_t aWidgetType)
