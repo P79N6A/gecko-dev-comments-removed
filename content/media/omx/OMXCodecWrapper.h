@@ -282,6 +282,12 @@ public:
 
   nsresult GetCodecConfig(nsTArray<uint8_t>* aOutputBuf);
 
+  
+
+
+
+  nsresult RequestIDRFrame();
+
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
                                        ABuffer* aData) MOZ_OVERRIDE;
