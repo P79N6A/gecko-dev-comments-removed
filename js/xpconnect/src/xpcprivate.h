@@ -277,20 +277,24 @@ extern const char XPC_XPCONNECT_CONTRACTID[];
 #define WRAPPER_SLOTS (JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | \
                        JSCLASS_HAS_RESERVED_SLOTS(1))
 
-
-
 #define INVALID_OBJECT ((JSObject *)1)
+
+
+
+
+
+#define WN_XRAYEXPANDOCHAIN_SLOT 0
 
 inline void SetWNExpandoChain(JSObject *obj, JSObject *chain)
 {
     MOZ_ASSERT(IS_WN_REFLECTOR(obj));
-    JS_SetReservedSlot(obj, WRAPPER_MULTISLOT, JS::ObjectOrNullValue(chain));
+    JS_SetReservedSlot(obj, WN_XRAYEXPANDOCHAIN_SLOT, JS::ObjectOrNullValue(chain));
 }
 
 inline JSObject* GetWNExpandoChain(JSObject *obj)
 {
     MOZ_ASSERT(IS_WN_REFLECTOR(obj));
-    return JS_GetReservedSlot(obj, WRAPPER_MULTISLOT).toObjectOrNull();
+    return JS_GetReservedSlot(obj, WN_XRAYEXPANDOCHAIN_SLOT).toObjectOrNull();
 }
 
 

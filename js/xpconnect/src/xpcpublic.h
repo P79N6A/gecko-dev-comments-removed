@@ -89,13 +89,6 @@ static inline bool IS_WN_CLASS(js::Class* clazz)
 {
     return clazz->ext.isWrappedNative;
 }
-
-
-
-
-
-#define WRAPPER_MULTISLOT 0
-
 static inline bool IS_WN_REFLECTOR(JSObject *obj)
 {
     return IS_WN_CLASS(js::GetObjectClass(obj));

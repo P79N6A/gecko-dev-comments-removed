@@ -1057,7 +1057,8 @@ XPCWrappedNative::FinishInit()
     AutoJSContext cx;
 
     
-    JS_SetReservedSlot(mFlatJSObject, WRAPPER_MULTISLOT, JSVAL_NULL);
+    
+    JS_SetReservedSlot(mFlatJSObject, WN_XRAYEXPANDOCHAIN_SLOT, JSVAL_NULL);
 
     
     
