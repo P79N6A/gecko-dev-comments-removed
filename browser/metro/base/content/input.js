@@ -1037,14 +1037,10 @@ var GestureModule = {
 
 var InputSourceHelper = {
   isPrecise: false,
-  touchIsActive: false,
 
   init: function ish_init() {
-    window.addEventListener("mousemove", this, true);
-    window.addEventListener("mousedown", this, true);
-    window.addEventListener("touchstart", this, true);
-    window.addEventListener("touchend", this, true);
-    window.addEventListener("touchcancel", this, true);
+    Services.obs.addObserver(this, "metro_precise_input", false);
+    Services.obs.addObserver(this, "metro_imprecise_input", false);
   },
 
   _precise: function () {
@@ -1061,37 +1057,17 @@ var InputSourceHelper = {
     }
   },
 
-  handleEvent: function ish_handleEvent(aEvent) {
-    switch(aEvent.type) {
-      case "touchstart":
+  observe: function BrowserUI_observe(aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "metro_precise_input":
+        this._precise();
+        break;
+      case "metro_imprecise_input":
         this._imprecise();
-        this.touchIsActive = true;
-        break;
-      case "touchend":
-      case "touchcancel":
-        this.touchIsActive = false;
-        break;
-      default:
-        
-        
-        
-        
-        if (this.touchIsActive) {
-          return;
-        }
-
-        switch (aEvent.mozInputSource) {
-          case Ci.nsIDOMMouseEvent.MOZ_SOURCE_MOUSE:
-          case Ci.nsIDOMMouseEvent.MOZ_SOURCE_PEN:
-          case Ci.nsIDOMMouseEvent.MOZ_SOURCE_ERASER:
-          case Ci.nsIDOMMouseEvent.MOZ_SOURCE_CURSOR:
-            this._precise();
-            break;
-        }
         break;
     }
   },
-  
+
   fireUpdate: function fireUpdate() {
     if (this.isPrecise) {
       this._fire("MozPrecisePointer");

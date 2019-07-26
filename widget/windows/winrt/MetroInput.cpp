@@ -206,6 +206,7 @@ MetroInput::MetroInput(MetroWidget* aWidget,
                        UI::Core::ICoreWindow* aWindow)
               : mWidget(aWidget),
                 mChromeHitTestCacheForTouch(false),
+                mCurrentInputLevel(LEVEL_IMPRECISE),
                 mWindow(aWindow)
 {
   LogFunction();
@@ -245,6 +246,51 @@ MetroInput::~MetroInput()
 
 
 
+void
+MetroInput::UpdateInputLevel(InputPrecisionLevel aInputLevel)
+{
+  
+  if (aInputLevel == LEVEL_PRECISE && mTouches.Count() > 0) {
+    return;
+  }
+  if (mCurrentInputLevel != aInputLevel) {
+    mCurrentInputLevel = aInputLevel;
+    MetroUtils::FireObserver(mCurrentInputLevel == LEVEL_PRECISE ?
+                               "metro_precise_input" : "metro_imprecise_input");
+  }
+}
+
+
+
+
+
+uint16_t
+MetroInput::ProcessInputTypeForGesture(UI::Input::IEdgeGestureEventArgs* aArgs)
+{
+  MOZ_ASSERT(aArgs);
+  UI::Input::EdgeGestureKind kind;
+  aArgs->get_Kind(&kind);
+  switch(kind) {
+    case UI::Input::EdgeGestureKind::EdgeGestureKind_Touch:
+      UpdateInputLevel(LEVEL_PRECISE);
+      return nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+    break;
+    case UI::Input::EdgeGestureKind::EdgeGestureKind_Keyboard:
+      return nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
+    break;
+    case UI::Input::EdgeGestureKind::EdgeGestureKind_Mouse:
+      UpdateInputLevel(LEVEL_IMPRECISE);
+      return nsIDOMMouseEvent::MOZ_SOURCE_MOUSE;
+    break;
+  }
+  return nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
+}
+
+
+
+
+
+
 
 
 
@@ -263,8 +309,7 @@ MetroInput::OnEdgeGestureStarted(UI::Input::IEdgeGesture* sender,
   mModifierKeyState.Update();
   mModifierKeyState.InitInputEvent(geckoEvent);
   geckoEvent.time = ::GetMessageTime();
-
-  geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+  geckoEvent.inputSource = ProcessInputTypeForGesture(aArgs);
 
   
   DispatchEventIgnoreStatus(&geckoEvent);
@@ -295,8 +340,7 @@ MetroInput::OnEdgeGestureCanceled(UI::Input::IEdgeGesture* sender,
   mModifierKeyState.Update();
   mModifierKeyState.InitInputEvent(geckoEvent);
   geckoEvent.time = ::GetMessageTime();
-
-  geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
+  geckoEvent.inputSource = ProcessInputTypeForGesture(aArgs);
 
   
   DispatchEventIgnoreStatus(&geckoEvent);
@@ -326,15 +370,7 @@ MetroInput::OnEdgeGestureCompleted(UI::Input::IEdgeGesture* sender,
   mModifierKeyState.Update();
   mModifierKeyState.InitInputEvent(geckoEvent);
   geckoEvent.time = ::GetMessageTime();
-
-  UI::Input::EdgeGestureKind value;
-  aArgs->get_Kind(&value);
-
-  if (value == UI::Input::EdgeGestureKind::EdgeGestureKind_Keyboard) {
-    geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
-  } else {
-    geckoEvent.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_TOUCH;
-  }
+  geckoEvent.inputSource = ProcessInputTypeForGesture(aArgs);
 
   
   DispatchEventIgnoreStatus(&geckoEvent);
@@ -391,6 +427,7 @@ MetroInput::OnPointerNonTouch(UI::Input::IPointerPoint* aPoint) {
       event->message = NS_MOUSE_BUTTON_UP;
       break;
   }
+  UpdateInputLevel(LEVEL_PRECISE);
   InitGeckoMouseEventFromPointerPoint(event, aPoint);
   DispatchAsyncEventIgnoreStatus(event);
 }
@@ -430,6 +467,8 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
   }
 
   
+  UpdateInputLevel(LEVEL_IMPRECISE);
+
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
@@ -517,6 +556,8 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   }
 
   
+  UpdateInputLevel(LEVEL_IMPRECISE);
+
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
@@ -614,6 +655,8 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
   }
 
   
+  UpdateInputLevel(LEVEL_IMPRECISE);
+
   
   uint32_t pointerId;
   currentPoint->get_PointerId(&pointerId);
@@ -748,9 +791,11 @@ MetroInput::OnPointerEntered(UI::Core::ICoreWindow* aSender,
     WidgetMouseEvent* event =
       new WidgetMouseEvent(true, NS_MOUSE_ENTER, mWidget.Get(),
                            WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
+    UpdateInputLevel(LEVEL_PRECISE);
     InitGeckoMouseEventFromPointerPoint(event, currentPoint.Get());
     DispatchAsyncEventIgnoreStatus(event);
   }
+  UpdateInputLevel(LEVEL_IMPRECISE);
   return S_OK;
 }
 
@@ -779,9 +824,11 @@ MetroInput::OnPointerExited(UI::Core::ICoreWindow* aSender,
     WidgetMouseEvent* event =
       new WidgetMouseEvent(true, NS_MOUSE_EXIT, mWidget.Get(),
                            WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
+    UpdateInputLevel(LEVEL_PRECISE);
     InitGeckoMouseEventFromPointerPoint(event, currentPoint.Get());
     DispatchAsyncEventIgnoreStatus(event);
   }
+  UpdateInputLevel(LEVEL_IMPRECISE);
   return S_OK;
 }
 

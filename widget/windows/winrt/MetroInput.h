@@ -156,6 +156,14 @@ private:
   ModifierKeyState mModifierKeyState;
 
   
+  enum InputPrecisionLevel {
+    LEVEL_PRECISE,
+    LEVEL_IMPRECISE
+  };
+  InputPrecisionLevel mCurrentInputLevel;
+  void UpdateInputLevel(InputPrecisionLevel aInputLevel);
+
+  
   void RegisterInputEvents();
   void UnregisterInputEvents();
 
@@ -174,6 +182,7 @@ private:
                                 Point const& aPosition,
                                 uint32_t aMagEventType,
                                 uint32_t aRotEventType);
+  uint16_t ProcessInputTypeForGesture(IEdgeGestureEventArgs* aArgs);
 
   
   
