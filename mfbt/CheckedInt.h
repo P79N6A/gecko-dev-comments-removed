@@ -9,31 +9,18 @@
 #define mozilla_CheckedInt_h_
 
 
+#define MOZ_CHECKEDINT_USE_MFBT
 
-
-
-
-
-
-
-#define MOZ_CHECKEDINT_ENABLE_MOZ_ASSERTS
-
-
-
-
-
-
-#ifdef MOZ_CHECKEDINT_ENABLE_MOZ_ASSERTS
+#ifdef MOZ_CHECKEDINT_USE_MFBT
 #  include "mozilla/Assertions.h"
+#  include "mozilla/StandardInteger.h"
 #else
-#  ifndef MOZ_STATIC_ASSERT
-#    include <cassert>
-#    define MOZ_STATIC_ASSERT(cond, reason) assert((cond) && reason)
-#    define MOZ_ASSERT(cond, reason) assert((cond) && reason)
-#  endif
+#  include <cassert>
+#  include <stdint.h>
+#  define MOZ_STATIC_ASSERT(cond, reason) assert((cond) && reason)
+#  define MOZ_ASSERT(cond, reason) assert((cond) && reason)
+#  define MOZ_DELETE
 #endif
-
-#include "mozilla/StandardInteger.h"
 
 #include <climits>
 #include <cstddef>
