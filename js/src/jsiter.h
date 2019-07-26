@@ -133,33 +133,10 @@ class PropertyIteratorObject : public JSObject
     static void finalize(FreeOp *fop, JSObject *obj);
 };
 
-
-
-
-
-
-
-
-
-
-
-
-class ElementIteratorObject : public JSObject
+class ArrayIteratorObject : public JSObject
 {
   public:
     static const Class class_;
-
-    static JSObject *create(JSContext *cx, Handle<Value> target);
-    static const JSFunctionSpec methods[];
-
-    enum {
-        TargetSlot,
-        IndexSlot,
-        NumSlots
-    };
-
-    static bool next(JSContext *cx, unsigned argc, Value *vp);
-    static bool next_impl(JSContext *cx, JS::CallArgs args);
 };
 
 bool

@@ -3194,15 +3194,6 @@ JS_NewPropertyIterator(JSContext *cx, JSObject *obj);
 extern JS_PUBLIC_API(bool)
 JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp);
 
-
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_ArrayIterator(JSContext *cx, unsigned argc, jsval *vp);
-
 extern JS_PUBLIC_API(bool)
 JS_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                jsval *vp, unsigned *attrsp);

@@ -9,8 +9,6 @@ function test(obj, name) {
     assertEq(iter.toString(), "[object " + obj.constructor.name + " Iterator]");
 }
 
-
-
-
+test([]);
 test(new Map);
 test(new Set);

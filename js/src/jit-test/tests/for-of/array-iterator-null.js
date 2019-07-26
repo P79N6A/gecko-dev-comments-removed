@@ -1,9 +1,9 @@
 
 
 load(libdir + "asserts.js");
-for (var v of [undefined, null]) {
-    var it = Array.prototype.iterator.call(v);
+load(libdir + "iteration.js");
 
+for (var v of [undefined, null]) {
     
-    assertThrowsInstanceOf(function () { it.next(); }, TypeError);
+    assertThrowsInstanceOf(function () { Array.prototype[std_iterator].call(v); }, TypeError);
 }

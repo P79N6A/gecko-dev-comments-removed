@@ -1,8 +1,13 @@
 
 
+
+
+
+
 load(libdir + "asserts.js");
+load(libdir + "iteration.js");
+
 var g = newGlobal();
-g.eval("var it = [1, 2].iterator();");
-assertEq(g.it.next(), 1);
-assertEq([].iterator().next.call(g.it), 2);
-assertThrowsValue([].iterator().next.bind(g.it), StopIteration);
+g.eval("var it = [1, 2]['" + std_iterator + "']();");
+assertIteratorResult(g.it.next(), 1, false);
+assertThrowsInstanceOf([][std_iterator]().next.bind(g.it), TypeError)
