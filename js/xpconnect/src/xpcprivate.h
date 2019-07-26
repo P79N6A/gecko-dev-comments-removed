@@ -4202,9 +4202,10 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
 
 
 nsresult
-xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
+xpc_EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
                   const char *filename, int32_t lineNo,
-                  JSVersion jsVersion, bool returnStringOnly, jsval *rval);
+                  JSVersion jsVersion, bool returnStringOnly,
+                  JS::MutableHandleValue rval);
 
 
 
