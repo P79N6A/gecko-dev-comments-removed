@@ -688,7 +688,7 @@ NotifyAnimationActivity(JSObject *obj);
 
 
 
-JS_FRIEND_API(JSScript *)
+JS_FRIEND_API(JSFunction *)
 GetOutermostEnclosingFunctionOfScriptedCaller(JSContext *cx);
 
 JS_FRIEND_API(JSFunction *)
