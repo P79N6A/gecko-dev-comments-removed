@@ -24,6 +24,9 @@ function run_test()
       return request.call(this, aRequest, aOnResponse);
     };
   }(gClient.request));
+  
+  
+  gc();
   gClient.connect(function () {
     attachTestGlobalClientAndResume(gClient, "test-stack", function (aResponse, aThreadClient) {
       gThreadClient = aThreadClient;
