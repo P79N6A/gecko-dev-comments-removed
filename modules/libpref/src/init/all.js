@@ -4245,6 +4245,10 @@ pref("layers.frame-counter", false);
 pref("layers.max-active", -1);
 
 
+
+pref("layers.scroll-graph", false);
+
+
 pref("layers.offmainthreadcomposition.enabled", false);
 
 pref("layers.use-deprecated-textures", true);

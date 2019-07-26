@@ -241,6 +241,14 @@ public:
 
   bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
+  
+
+
+
+  bool DebugOverlayWantsNextFrame() { return mDebugOverlayWantsNextFrame; }
+  void SetDebugOverlayWantsNextFrame(bool aVal)
+  { mDebugOverlayWantsNextFrame = aVal; }
+
 private:
   
   nsIntRegion mClippingRegion;
@@ -287,6 +295,7 @@ private:
   bool mIsCompositorReady;
   nsIntRegion mInvalidRegion;
   nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
+  bool mDebugOverlayWantsNextFrame;
 };
 
 
