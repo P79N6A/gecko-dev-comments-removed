@@ -277,6 +277,7 @@ ThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
     aTarget->Restore();
   } else {
     RefPtr<DrawTarget> dt = aTarget->GetDrawTarget();
+    bool clipped = false;
 
     
     
@@ -292,11 +293,24 @@ ThebesLayerBuffer::DrawTo(ThebesLayer* aLayer,
       
       
       gfxUtils::ClipToRegionSnapped(dt, aLayer->GetEffectiveVisibleRegion());
+      clipped = true;
     }
 
-    DrawBufferWithRotation(aTarget, BUFFER_BLACK, aOpacity, aMask, aMaskTransform);
-    aTarget->Restore();
-   }
+    RefPtr<SourceSurface> mask;
+    if (aMask) {
+      mask = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, aMask);
+    }
+
+    Matrix maskTransform;
+    if (aMaskTransform) {
+      maskTransform = ToMatrix(*aMaskTransform);
+    }
+
+    DrawBufferWithRotation(dt, BUFFER_BLACK, aOpacity, mask, &maskTransform);
+    if (clipped) {
+      dt->PopClip();
+    }
+  }
 }
 
 static void
