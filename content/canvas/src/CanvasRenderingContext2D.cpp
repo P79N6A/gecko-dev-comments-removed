@@ -3221,28 +3221,6 @@ CanvasRenderingContext2D::DrawImage(const HTMLImageOrCanvasOrVideoElement& image
       error.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
       return;
     }
-
-    
-    nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
-    if (srcCanvas == this) {
-      
-      srcSurf = mTarget->Snapshot();
-      imgSize = gfxIntSize(mWidth, mHeight);
-    } else if (srcCanvas) {
-      
-      srcSurf = srcCanvas->GetSurfaceSnapshot();
-
-      if (srcSurf) {
-        if (mCanvasElement) {
-          
-          CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
-                                                element->NodePrincipal(),
-                                                canvas->IsWriteOnly(),
-                                                false);
-        }
-        imgSize = gfxIntSize(srcSurf->GetSize().width, srcSurf->GetSize().height);
-      }
-    }
   } else {
     if (image.IsHTMLImageElement()) {
       HTMLImageElement* img = &image.GetAsHTMLImageElement();
