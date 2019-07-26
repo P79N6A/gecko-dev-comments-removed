@@ -917,7 +917,7 @@ abstract public class BrowserApp extends GeckoApp
         if (!Intent.ACTION_MAIN.equals(intent.getAction()))
             return;
 
-        (new GeckoAsyncTask<Void, Void, Boolean>() {
+        (new GeckoAsyncTask<Void, Void, Boolean>(mAppContext, GeckoAppShell.getHandler()) {
             @Override
             public synchronized Boolean doInBackground(Void... params) {
                 
@@ -954,7 +954,7 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     private void getLastUrl() {
-        (new GeckoAsyncTask<Void, Void, String>() {
+        (new GeckoAsyncTask<Void, Void, String>(mAppContext, GeckoAppShell.getHandler()) {
             @Override
             public synchronized String doInBackground(Void... params) {
                 
