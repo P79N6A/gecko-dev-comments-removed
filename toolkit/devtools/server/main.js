@@ -376,7 +376,7 @@ var DebuggerServer = {
     if (!("BrowserTabActor" in this)) {
       this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
     }
-    if (!("ContentAppActor" in this)) {
+    if (!("ContentActor" in this)) {
       this.addActors("resource://gre/modules/devtools/server/actors/childtab.js");
     }
   },
