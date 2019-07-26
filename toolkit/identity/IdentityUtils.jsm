@@ -12,7 +12,8 @@ this.EXPORTED_SYMBOLS = [
   "checkDeprecated",
   "checkRenamed",
   "getRandomId",
-  "objectCopy"
+  "objectCopy",
+  "makeMessageObject",
 ];
 
 const Cu = Components.utils;
@@ -73,3 +74,38 @@ this.objectCopy = function objectCopy(source, target){
     }
   });
 };
+
+this.makeMessageObject = function makeMessageObject(aRpCaller) {
+  let options = {};
+
+  options.id = aRpCaller.id;
+  options.origin = aRpCaller.origin;
+
+  
+  
+  options.loggedInUser = aRpCaller.loggedInUser;
+
+  
+  options._internal = aRpCaller._internal;
+
+  Object.keys(aRpCaller).forEach(function(option) {
+    
+    
+    if (!Object.hasOwnProperty(this, option)
+        && option[0] !== '_'
+        && typeof aRpCaller[option] !== 'function') {
+      options[option] = aRpCaller[option];
+    }
+  });
+
+  
+  if ((typeof options.id === 'undefined') ||
+      (typeof options.origin === 'undefined')) {
+    let err = "id and origin required in relying-party message: " + JSON.stringify(options);
+    reportError(err);
+    throw new Error(err);
+  }
+
+  return options;
+}
+

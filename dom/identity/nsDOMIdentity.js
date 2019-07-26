@@ -76,6 +76,11 @@ nsDOMIdentity.prototype = {
 
   watch: function nsDOMIdentity_watch(aOptions) {
     if (this._rpWatcher) {
+      
+      
+      
+      
+      
       throw new Error("navigator.id.watch was already called");
     }
 
@@ -84,18 +89,27 @@ nsDOMIdentity.prototype = {
     }
 
     
-    let requiredCallbacks = ["onlogin", "onlogout"];
-    for (let cbName of requiredCallbacks) {
-      if ((!(cbName in aOptions))
-          || typeof(aOptions[cbName]) !== "function") {
-           throw new Error(cbName + " callback is required.");
-         }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (typeof(aOptions["onlogin"]) != "function") {
+      throw new Error("onlogin() callback is required.");
     }
 
     
-    if (aOptions["onready"]
-        && typeof(aOptions['onready']) !== "function") {
-      throw new Error("onready must be a function");
+    for (let cb of ["onready", "onlogout"]) {
+      if (aOptions[cb] && typeof(aOptions[cb]) != "function") {
+        throw new Error(cb + " must be a function");
+      }
     }
 
     let message = this.DOMIdentityMessage(aOptions);
@@ -379,6 +393,7 @@ nsDOMIdentity.prototype = {
     
     this._window = aWindow;
     this._origin = aWindow.document.nodePrincipal.origin;
+    this._appStatus = aWindow.document.nodePrincipal.appStatus;
 
     
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -535,6 +550,11 @@ nsDOMIdentity.prototype = {
 
     
     message.origin = this._origin;
+
+    
+    
+    
+    message.appStatus = this._appStatus;
 
     return message;
   },

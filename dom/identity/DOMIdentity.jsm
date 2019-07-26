@@ -5,6 +5,15 @@
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const PREF_FXA_ENABLED = "identity.fxaccounts.enabled";
+let _fxa_enabled = false;
+try {
+  if (Services.prefs.getPrefType(PREF_FXA_ENABLED) === Ci.nsIPrefBranch.PREF_BOOL) {
+    _fxa_enabled = Services.prefs.getBoolPref(PREF_FXA_ENABLED);
+  }
+} catch(noPref) {
+}
+const FXA_ENABLED = _fxa_enabled;
 
 
 this.EXPORTED_SYMBOLS = ["DOMIdentity"];
@@ -21,6 +30,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "IdentityService",
 #else
                                   "resource://gre/modules/identity/Identity.jsm");
 #endif
+
+XPCOMUtils.defineLazyModuleGetter(this, "FirefoxAccounts",
+                                  "resource://gre/modules/identity/FirefoxAccounts.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "makeMessageObject",
+                                  "resource://gre/modules/identity/IdentityUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this,
                                   "Logger",
@@ -104,6 +119,14 @@ function RPWatchContext(aOptions, aTargetMM) {
   
   this._internal = aOptions._internal;
 
+  
+  
+  
+  
+  
+  
+  this.audience = this.origin;
+
   this._mm = aTargetMM;
 }
 
@@ -141,6 +164,72 @@ RPWatchContext.prototype = {
 };
 
 this.DOMIdentity = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _serviceContexts: new Map(),
+  _mmContexts: new Map(),
+
+  
+
+
+  newContext: function(message, targetMM) {
+    let context = new RPWatchContext(message, targetMM);
+    this._serviceContexts.set(message.id, context);
+    this._mmContexts.set(targetMM, message.id);
+    return context;
+  },
+
+  
+
+
+
+
+
+
+
+
+  getService: function(message) {
+    if (!this._serviceContexts.has(message.id)) {
+      throw new Error("getService called before newContext for " + message.id);
+    }
+
+    let context = this._serviceContexts.get(message.id);
+    if (context.wantIssuer == "firefox-accounts") {
+      if (FXA_ENABLED) {
+        return FirefoxAccounts;
+      }
+      log("WARNING: Firefox Accounts is not enabled; Defaulting to BrowserID");
+    }
+    return IdentityService;
+  },
+
+  
+
+
+  getContextForMM: function(targetMM) {
+    return this._serviceContexts.get(this._mmContexts.get(targetMM));
+  },
+
+  
+
+
+
+  deleteContextForMM: function(targetMM) {
+    this._serviceContexts.delete(this._mmContexts.get(targetMM));
+    this._mmContexts.delete(targetMM);
+  },
+
   
   receiveMessage: function DOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
@@ -235,69 +324,63 @@ this.DOMIdentity = {
     ppmm = null;
   },
 
-  _resetFrameState: function(aContext) {
-    log("_resetFrameState: ", aContext.id);
-    if (!aContext._mm) {
-      throw new Error("ERROR: Trying to reset an invalid context");
-    }
-    let message = new IDDOMMessage({id: aContext.id});
-    aContext._mm.sendAsyncMessage("Identity:ResetState", message);
-  },
-
   _watch: function DOMIdentity__watch(message, targetMM) {
     log("DOMIdentity__watch: " + message.id);
-    
-    
-    let context = new RPWatchContext(message, targetMM);
-    IdentityService.RP.watch(context);
+    let context = this.newContext(message, targetMM);
+    this.getService(message).RP.watch(context);
   },
 
   _unwatch: function DOMIdentity_unwatch(message, targetMM) {
-    IdentityService.RP.unwatch(message.id, targetMM);
+    this.getService(message).RP.unwatch(message.id, targetMM);
   },
 
   _request: function DOMIdentity__request(message) {
-    IdentityService.RP.request(message.id, message);
+    this.getService(message).RP.request(message.id, message);
   },
 
   _logout: function DOMIdentity__logout(message) {
-    IdentityService.RP.logout(message.id, message.origin, message);
+    log("logout " + message + "\n");
+    this.getService(message).RP.logout(message.id, message.origin, message);
   },
 
   _childProcessShutdown: function DOMIdentity__childProcessShutdown(targetMM) {
-    IdentityService.RP.childProcessShutdown(targetMM);
+    this.getContextForMM(targetMM).RP.childProcessShutdown(targetMM);
+    this.deleteContextForMM(targetMM);
+
+    let options = makeMessageObject({messageManager: targetMM, id: null, origin: null});
+    Services.obs.notifyObservers({wrappedJSObject: options}, "identity-child-process-shutdown", null);
   },
 
   _beginProvisioning: function DOMIdentity__beginProvisioning(message, targetMM) {
     let context = new IDPProvisioningContext(message.id, message.origin,
                                              targetMM);
-    IdentityService.IDP.beginProvisioning(context);
+    this.getService(message).IDP.beginProvisioning(context);
   },
 
   _genKeyPair: function DOMIdentity__genKeyPair(message) {
-    IdentityService.IDP.genKeyPair(message.id);
+    this.getService(message).IDP.genKeyPair(message.id);
   },
 
   _registerCertificate: function DOMIdentity__registerCertificate(message) {
-    IdentityService.IDP.registerCertificate(message.id, message.cert);
+    this.getService(message).IDP.registerCertificate(message.id, message.cert);
   },
 
   _provisioningFailure: function DOMIdentity__provisioningFailure(message) {
-    IdentityService.IDP.raiseProvisioningFailure(message.id, message.reason);
+    this.getService(message).IDP.raiseProvisioningFailure(message.id, message.reason);
   },
 
   _beginAuthentication: function DOMIdentity__beginAuthentication(message, targetMM) {
     let context = new IDPAuthenticationContext(message.id, message.origin,
                                                targetMM);
-    IdentityService.IDP.beginAuthentication(context);
+    this.getService(message).IDP.beginAuthentication(context);
   },
 
   _completeAuthentication: function DOMIdentity__completeAuthentication(message) {
-    IdentityService.IDP.completeAuthentication(message.id);
+    this.getService(message).IDP.completeAuthentication(message.id);
   },
 
   _authenticationFailure: function DOMIdentity__authenticationFailure(message) {
-    IdentityService.IDP.cancelAuthentication(message.id);
+    this.getService(message).IDP.cancelAuthentication(message.id);
   }
 };
 

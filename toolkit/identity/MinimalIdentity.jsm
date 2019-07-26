@@ -29,9 +29,8 @@ Cu.import("resource://gre/modules/identity/LogUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "objectCopy",
                                   "resource://gre/modules/identity/IdentityUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this,
-                                  "jwcrypto",
-                                  "resource://gre/modules/identity/jwcrypto.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "makeMessageObject",
+                                  "resource://gre/modules/identity/IdentityUtils.jsm");
 
 function log(...aMessageArgs) {
   Logger.log.apply(Logger, ["minimal core"].concat(aMessageArgs));
@@ -40,42 +39,8 @@ function reportError(...aMessageArgs) {
   Logger.reportError.apply(Logger, ["core"].concat(aMessageArgs));
 }
 
-function makeMessageObject(aRpCaller) {
-  let options = {};
-
-  options.id = aRpCaller.id;
-  options.origin = aRpCaller.origin;
-
-  
-  options.loggedInUser = aRpCaller.loggedInUser;
-
-  
-  options._internal = aRpCaller._internal;
-
-  Object.keys(aRpCaller).forEach(function(option) {
-    
-    
-    if (!Object.hasOwnProperty(this, option)
-        && option[0] !== '_'
-        && typeof aRpCaller[option] !== 'function') {
-      options[option] = aRpCaller[option];
-    }
-  });
-
-  
-  if ((typeof options.id === 'undefined') ||
-      (typeof options.origin === 'undefined')) {
-    let err = "id and origin required in relying-party message: " + JSON.stringify(options);
-    reportError(err);
-    throw new Error(err);
-  }
-
-  return options;
-}
-
 function IDService() {
   Services.obs.addObserver(this, "quit-application-granted", false);
-  
 
   
   this.RP = this;
@@ -212,8 +177,6 @@ IDService.prototype = {
   },
 
   childProcessShutdown: function childProcessShutdown(messageManager) {
-    let options = makeMessageObject({messageManager: messageManager, id: null, origin: null});
-    Services.obs.notifyObservers({wrappedJSObject: options}, "identity-child-process-shutdown", null);
     Object.keys(this._rpFlows).forEach(function(key) {
       if (this._rpFlows[key]._mm === messageManager) {
         log("child process shutdown for rp", key, "- deleting flow");
@@ -273,202 +236,7 @@ IDService.prototype = {
     }
 
     rp.doCancel();
-  },
-
-
-  
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-  beginProvisioning: function beginProvisioning(aCaller) {
-  },
-
-  
-
-
-
-
-
-
-
-  raiseProvisioningFailure: function raiseProvisioningFailure(aProvId, aReason) {
-    reportError("Provisioning failure", aReason);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  genKeyPair: function genKeyPair(aProvId) {
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  registerCertificate: function registerCertificate(aProvId, aCert) {
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  beginAuthentication: function beginAuthentication(aCaller) {
-  },
-
-  
-
-
-
-
-
-
-  completeAuthentication: function completeAuthentication(aAuthId) {
-  },
-
-  
-
-
-
-
-
-
-  cancelAuthentication: function cancelAuthentication(aAuthId) {
-  },
-
-  
-
-  
-
-
-
-
-
-
-
-
-
-  _discoverIdentityProvider: function _discoverIdentityProvider(aIdentity, aCallback) {
-    
-    
-    var parsedEmail = this.parseEmail(aIdentity);
-    if (parsedEmail === null) {
-      return aCallback("Could not parse email: " + aIdentity);
-    }
-    log("_discoverIdentityProvider: identity:", aIdentity, "domain:", parsedEmail.domain);
-
-    this._fetchWellKnownFile(parsedEmail.domain, function fetchedWellKnown(err, idpParams) {
-      
-      
-
-      
-      
-      
-      return aCallback(err, idpParams);
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _fetchWellKnownFile: function _fetchWellKnownFile(aDomain, aCallback, aScheme='https') {
-    
-    let url = aScheme + '://' + aDomain + "/.well-known/browserid";
-    log("_fetchWellKnownFile:", url);
-
-    
-    let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                .createInstance(Ci.nsIXMLHttpRequest);
-
-    
-    
-    req.open("GET", url, true);
-    req.responseType = "json";
-    req.mozBackgroundRequest = true;
-    req.onload = function _fetchWellKnownFile_onload() {
-      if (req.status < 200 || req.status >= 400) {
-        log("_fetchWellKnownFile", url, ": server returned status:", req.status);
-        return aCallback("Error");
-      }
-      try {
-        let idpParams = req.response;
-
-        
-        if (! (idpParams.provisioning &&
-            idpParams.authentication &&
-            idpParams['public-key'])) {
-          let errStr= "Invalid well-known file from: " + aDomain;
-          log("_fetchWellKnownFile:", errStr);
-          return aCallback(errStr);
-        }
-
-        let callbackObj = {
-          domain: aDomain,
-          idpParams: idpParams,
-        };
-        log("_fetchWellKnownFile result: ", callbackObj);
-        
-        return aCallback(null, callbackObj);
-
-      } catch (err) {
-        reportError("_fetchWellKnownFile", "Bad configuration from", aDomain, err);
-        return aCallback(err.toString());
-      }
-    };
-    req.onerror = function _fetchWellKnownFile_onerror() {
-      log("_fetchWellKnownFile", "ERROR:", req.status, req.statusText);
-      log("ERROR: _fetchWellKnownFile:", err);
-      return aCallback("Error");
-    };
-    req.send(null);
-  },
-
+  }
 };
 
 this.IdentityService = new IDService();
