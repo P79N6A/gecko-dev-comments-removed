@@ -7,6 +7,11 @@ function run_test() {
   var rv;
 
   
+  
+  
+  [sb1, sb2, sb4].forEach(function(x) { x.Components = Cu.getComponentsForScope(x); });
+
+  
   sb1.C = Components;
   rv = Cu.evalInSandbox("C.utils", sb1);
   do_check_eq(rv, undefined);  
