@@ -1069,7 +1069,7 @@ nsXBLBinding::InstallImplementation()
   
   
   if (AllowScripts())
-    return mPrototypeBinding->InstallImplementation(mBoundElement);
+    return mPrototypeBinding->InstallImplementation(this);
 
   return NS_OK;
 }

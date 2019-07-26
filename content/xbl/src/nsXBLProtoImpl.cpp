@@ -42,7 +42,8 @@ public:
 };
 
 nsresult
-nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIContent* aBoundElement)
+nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
+                                      nsXBLBinding* aBinding)
 {
   
   
@@ -53,7 +54,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIConten
 
   
   
-  nsIDocument* document = aBoundElement->OwnerDoc();
+  nsIDocument* document = aBinding->GetBoundElement()->OwnerDoc();
                                               
   nsIScriptGlobalObject *global = document->GetScopeObject();
   if (!global) return NS_OK;
@@ -67,7 +68,8 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIConten
   
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
   JSObject* targetClassObject = nullptr;
-  nsresult rv = InitTargetObjects(aBinding, context, aBoundElement,
+  nsresult rv = InitTargetObjects(aPrototypeBinding, context,
+                                  aBinding->GetBoundElement(),
                                   getter_AddRefs(holder), &targetClassObject);
   NS_ENSURE_SUCCESS(rv, rv); 
 
@@ -82,7 +84,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aBinding, nsIConten
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
        curr = curr->GetNext())
-    curr->InstallMember(context, aBoundElement, targetScriptObject,
+    curr->InstallMember(context, aBinding->GetBoundElement(), targetScriptObject,
                         targetClassObject, mClassName);
 
   return NS_OK;
