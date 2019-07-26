@@ -1485,6 +1485,16 @@ let RIL = {
 
 
 
+  queryCLIP: function queryCLIP(options) {
+    Buf.simpleRequest(REQUEST_QUERY_CLIP, options);
+  },
+
+  
+
+
+
+
+
   setScreenState: function setScreenState(on) {
     Buf.newParcel(REQUEST_SCREEN_STATE);
     Buf.writeUint32(1);
@@ -2422,6 +2432,17 @@ let RIL = {
         return;
 
       
+      case MMI_SC_CLIP:
+        options.mmiServiceCode = MMI_KS_SC_CLIP;
+        options.procedure = mmi.procedure;
+        if (options.procedure === MMI_PROCEDURE_INTERROGATION) {
+          this.queryCLIP(options);
+        } else {
+          _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED, MMI_KS_SC_CLIP);
+        }
+        return;
+
+      
       case MMI_SC_BAOC:
       case MMI_SC_BAOIC:
       case MMI_SC_BAOICxH:
@@ -2432,8 +2453,6 @@ let RIL = {
       case MMI_SC_BA_MT:
       
       case MMI_SC_CALL_WAITING:
-      
-      case MMI_SC_CLIP:
       
       case MMI_SC_CLIR:
         _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
@@ -5174,7 +5193,44 @@ RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION(length, option
 RIL[REQUEST_SEPARATE_CONNECTION] = null;
 RIL[REQUEST_SET_MUTE] = null;
 RIL[REQUEST_GET_MUTE] = null;
-RIL[REQUEST_QUERY_CLIP] = null;
+RIL[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, options) {
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendDOMMessage(options);
+    return;
+  }
+
+  let bufLength = Buf.readUint32();
+  if (!bufLength) {
+    options.success = false;
+    options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+    this.sendDOMMessage(options);
+    return;
+  }
+
+  
+  
+  
+  
+  
+  options.provisioned = Buf.readUint32();
+  if (options.rilMessageType === "sendMMI") {
+    switch (options.provisioned) {
+      case 0:
+        options.statusMessage = MMI_SM_KS_SERVICE_DISABLED;
+        break;
+      case 1:
+        options.statusMessage = MMI_SM_KS_SERVICE_ENABLED;
+        break;
+      default:
+        options.success = false;
+        options.errorMsg = MMI_ERROR_KS_ERROR;
+        break;
+    }
+  }
+  this.sendDOMMessage(options);
+};
 RIL[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
 
 RIL.readDataCall_v5 = function readDataCall_v5(options) {
