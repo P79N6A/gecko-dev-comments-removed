@@ -20,7 +20,12 @@ function load(url, cb) {
 function test() {
   waitForExplicitFinish();
 
-  ok(gFindBar.hidden, "Find bar should not be visible");
+  ok(gFindBar.hidden, "Find bar should not be visible by default");
+
+  
+  EventUtils.synthesizeKey("f", { accelKey: true });
+  ok(!gFindBar.hidden, "Find bar should be visible");
+
   nextTest();
 }
 
@@ -59,6 +64,13 @@ function testFindEnabled(url, cb) {
   load(url, function() {
     ok(!document.getElementById("cmd_find").getAttribute("disabled"),
        "Find command should not be disabled");
+
+    ok(!gFindBar.hidden, "Find bar should be visible again");
+
+    
+    EventUtils.synthesizeKey("f", { accelKey: true });
+    EventUtils.synthesizeKey("VK_ESCAPE", { });
+    ok(gFindBar.hidden, "Find bar should now be hidden");
 
     gBrowser.removeTab(gTab);
     cb();
