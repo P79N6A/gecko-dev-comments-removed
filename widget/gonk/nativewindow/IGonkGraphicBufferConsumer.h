@@ -14,8 +14,8 @@
 
 
 
-#ifndef ANDROID_GUI_IGRAPHICBUFFERCONSUMER_H
-#define ANDROID_GUI_IGRAPHICBUFFERCONSUMER_H
+#ifndef ANDROID_GUI_IGONKGRAPHICBUFFERCONSUMER_H
+#define ANDROID_GUI_IGONKGRAPHICBUFFERCONSUMER_H
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -27,6 +27,8 @@
 #include <binder/IInterface.h>
 #include <ui/Rect.h>
 
+#include "mozilla/layers/LayersSurfaces.h"
+
 namespace android {
 
 
@@ -34,8 +36,8 @@ class IConsumerListener;
 class GraphicBuffer;
 class Fence;
 
-class IGraphicBufferConsumer : public IInterface {
-
+class IGonkGraphicBufferConsumer : public IInterface {
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
 public:
 
     
@@ -95,6 +97,9 @@ public:
         
         
         bool mTransformToDisplayInverse;
+
+        
+        SurfaceDescriptor mSurfaceDescriptor;
     };
 
 
@@ -200,12 +205,12 @@ public:
     virtual void dump(String8& result, const char* prefix) const = 0;
 
 public:
-    DECLARE_META_INTERFACE(GraphicBufferConsumer);
+    DECLARE_META_INTERFACE(GonkGraphicBufferConsumer);
 };
 
 
 
-class BnGraphicBufferConsumer : public BnInterface<IGraphicBufferConsumer>
+class BnGonkGraphicBufferConsumer : public BnInterface<IGonkGraphicBufferConsumer>
 {
 public:
     virtual status_t    onTransact( uint32_t code,

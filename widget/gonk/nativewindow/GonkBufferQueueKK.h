@@ -14,18 +14,17 @@
 
 
 
-#ifndef ANDROID_GUI_BUFFERQUEUE_H
-#define ANDROID_GUI_BUFFERQUEUE_H
+
+#ifndef NATIVEWINDOW_GONKBUFFERQUEUE_KK_H
+#define NATIVEWINDOW_GONKBUFFERQUEUE_KK_H
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-#include <binder/IBinder.h>
-
 #include <gui/IConsumerListener.h>
 #include <gui/IGraphicBufferAlloc.h>
 #include <gui/IGraphicBufferProducer.h>
-#include <gui/IGraphicBufferConsumer.h>
+#include "IGonkGraphicBufferConsumer.h"
 
 #include <ui/Fence.h>
 #include <ui/GraphicBuffer.h>
@@ -34,12 +33,16 @@
 #include <utils/Vector.h>
 #include <utils/threads.h>
 
+#include "mozilla/layers/LayersSurfaces.h"
+
 namespace android {
 
 
-class BufferQueue : public BnGraphicBufferProducer,
-                    public BnGraphicBufferConsumer,
+class GonkBufferQueue : public BnGraphicBufferProducer,
+                    public BnGonkGraphicBufferConsumer,
                     private IBinder::DeathRecipient {
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
     enum { NUM_BUFFER_SLOTS = 32 };
@@ -79,8 +82,9 @@ public:
     
     
     
-    BufferQueue(const sp<IGraphicBufferAlloc>& allocator = NULL);
-    virtual ~BufferQueue();
+    GonkBufferQueue(bool allowSynchronousMode = true,
+            const sp<IGraphicBufferAlloc>& allocator = NULL);
+    virtual ~GonkBufferQueue();
 
     
 
@@ -239,8 +243,8 @@ public:
     
     
     virtual status_t releaseBuffer(int buf, uint64_t frameNumber,
-            EGLDisplay display, EGLSyncKHR fence,
-            const sp<Fence>& releaseFence);
+                    EGLDisplay display, EGLSyncKHR fence,
+                    const sp<Fence>& releaseFence);
 
     
     
@@ -312,15 +316,22 @@ public:
     
     virtual void dump(String8& result, const char* prefix) const;
 
+    int getGeneration();
+    SurfaceDescriptor *getSurfaceDescriptorFromBuffer(ANativeWindowBuffer* buffer);
 
 private:
     
     
-    void freeBufferLocked(int index);
+    void releaseBufferFreeListUnlocked(nsTArray<SurfaceDescriptor>& freeList);
 
     
     
-    void freeAllBuffersLocked();
+    
+
+    
+    
+    
+    void freeAllBuffersLocked(nsTArray<SurfaceDescriptor>& freeList);
 
     
     
@@ -374,6 +385,9 @@ private:
 
         
         EGLDisplay mEglDisplay;
+
+        
+        SurfaceDescriptor mSurfaceDescriptor;
 
         
         
@@ -566,6 +580,9 @@ private:
 
     
     sp<IBinder> mConnectedProducerToken;
+
+    
+    uint32_t mGeneration;
 };
 
 

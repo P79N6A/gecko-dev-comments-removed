@@ -14,8 +14,9 @@
 
 
 
-#ifndef ANDROID_GUI_CONSUMERBASE_H
-#define ANDROID_GUI_CONSUMERBASE_H
+
+#ifndef NATIVEWINDOW_GONKCONSUMERBASE_KK_H
+#define NATIVEWINDOW_GONKCONSUMERBASE_KK_H
 
 #include <gui/BufferQueue.h>
 
@@ -26,6 +27,8 @@
 #include <utils/threads.h>
 #include <gui/IConsumerListener.h>
 
+#include "GonkBufferQueueKK.h"
+
 namespace android {
 
 
@@ -34,7 +37,7 @@ class String8;
 
 
 
-class ConsumerBase : public virtual RefBase,
+class GonkConsumerBase : public virtual RefBase,
         protected ConsumerListener {
 public:
     struct FrameAvailableListener : public virtual RefBase {
@@ -49,7 +52,7 @@ public:
         virtual void onFrameAvailable() = 0;
     };
 
-    virtual ~ConsumerBase();
+    virtual ~GonkConsumerBase();
 
     
     
@@ -68,6 +71,10 @@ public:
 
     
     
+    sp<GonkBufferQueue> getBufferQueue() const;
+
+    
+    
     
     void dump(String8& result) const;
     void dump(String8& result, const char* prefix) const;
@@ -77,15 +84,14 @@ public:
     void setFrameAvailableListener(const wp<FrameAvailableListener>& listener);
 
 private:
-    ConsumerBase(const ConsumerBase&);
-    void operator=(const ConsumerBase&);
+    GonkConsumerBase(const GonkConsumerBase&);
+    void operator=(const GonkConsumerBase&);
 
 protected:
+
     
     
-    
-    
-    ConsumerBase(const sp<IGraphicBufferConsumer>& consumer, bool controlledByApp = false);
+    GonkConsumerBase(const sp<GonkBufferQueue>& bufferQueue, bool controlledByApp = false);
 
     
     
@@ -150,7 +156,7 @@ protected:
     
     
     
-    virtual status_t acquireBufferLocked(IGraphicBufferConsumer::BufferItem *item,
+    virtual status_t acquireBufferLocked(IGonkGraphicBufferConsumer::BufferItem *item,
         nsecs_t presentWhen);
 
     
@@ -201,7 +207,7 @@ protected:
     
     
     
-    Slot mSlots[BufferQueue::NUM_BUFFER_SLOTS];
+    Slot mSlots[GonkBufferQueue::NUM_BUFFER_SLOTS];
 
     
     
@@ -221,7 +227,7 @@ protected:
 
     
     
-    sp<IGraphicBufferConsumer> mConsumer;
+    sp<GonkBufferQueue> mConsumer;
 
     
     
