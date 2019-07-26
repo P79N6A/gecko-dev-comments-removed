@@ -20,7 +20,6 @@ function test() {
   
   
   .then(() => {
-    debuggee.performRequests();
     return waitForRequestsToOverflowContainer(monitor, requestsContainer);
   }).then(() => {
     ok(scrolledToBottom(requestsContainer), "Scrolled to bottom on overflow.");
