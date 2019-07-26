@@ -632,10 +632,13 @@ protected:
                                          bool&             aMadeNewFrame);
 
   
-  
+
+
+
+
   void PushTruncatedLine(nsBlockReflowState& aState,
                          line_iterator       aLine,
-                         bool&             aKeepReflowGoing);
+                         bool*               aKeepReflowGoing);
 
   nsresult SplitLine(nsBlockReflowState& aState,
                      nsLineLayout& aLineLayout,

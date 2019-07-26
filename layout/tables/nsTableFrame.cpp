@@ -2799,8 +2799,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       
       
       
-      
-      if (childX > (thead ? 1 : 0) &&
+      if (childX > ((thead && IsRepeatedFrame(thead)) ? 1 : 0) &&
           (rowGroups[childX - 1]->GetRect().YMost() > 0)) {
         kidReflowState.mFlags.mIsTopOfPage = false;
       }
@@ -2827,11 +2826,22 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
           childX = rowGroups.Length();
         }
       }
+      if (isPaginated && !NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
+          ShouldAvoidBreakInside(aReflowState.reflowState)) {
+        aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+        break;
+      }
       
       
-      if (NS_FRAME_IS_COMPLETE(aStatus) && isPaginated &&
-          (NS_UNCONSTRAINEDSIZE != kidReflowState.availableHeight) &&
-          kidReflowState.availableHeight < desiredSize.height) {
+      if (isPaginated &&
+          (NS_INLINE_IS_BREAK_BEFORE(aStatus) ||
+           (NS_FRAME_IS_COMPLETE(aStatus) &&
+            (NS_UNCONSTRAINEDSIZE != kidReflowState.availableHeight) &&
+            kidReflowState.availableHeight < desiredSize.height))) {
+        if (ShouldAvoidBreakInside(aReflowState.reflowState)) {
+          aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+          break;
+        }
         
         if (kidReflowState.mFlags.mIsTopOfPage) {
           if (childX+1 < rowGroups.Length()) {

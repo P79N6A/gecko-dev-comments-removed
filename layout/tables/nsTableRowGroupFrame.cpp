@@ -1017,7 +1017,8 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
                                     nsHTMLReflowMetrics&     aDesiredSize,
                                     const nsHTMLReflowState& aReflowState,
                                     nsTableFrame*            aTableFrame,
-                                    nsReflowStatus&          aStatus)
+                                    nsReflowStatus&          aStatus,
+                                    bool                     aRowForcedPageBreak)
 {
   NS_PRECONDITION(aPresContext->IsPaginated(), "SplitRowGroup currently supports only paged media"); 
 
@@ -1080,6 +1081,12 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
         rowFrame->DidReflow(aPresContext, nullptr, NS_FRAME_REFLOW_FINISHED);
         rowFrame->DidResize();
 
+        if (!aRowForcedPageBreak && !NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
+            ShouldAvoidBreakInside(aReflowState)) {
+          aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+          break;
+        }
+
         nsTableFrame::InvalidateTableFrame(rowFrame, oldRowRect,
                                            oldRowVisualOverflow,
                                            false);
@@ -1110,7 +1117,8 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
           
           
           
-          if (rowMetrics.height > availSize.height) {
+          if (rowMetrics.height > availSize.height ||
+              (NS_INLINE_IS_BREAK_BEFORE(aStatus) && !aRowForcedPageBreak)) {
             
             if (isTopOfPage) { 
               
@@ -1140,6 +1148,10 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
       nscoord spanningRowBottom = availHeight;
       if (!rowIsOnPage) {
         NS_ASSERTION(!contRow, "We should not have created a continuation if none of this row fits");
+        if (!aRowForcedPageBreak && ShouldAvoidBreakInside(aReflowState)) {
+          aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+          break;
+        }
         if (prevRowFrame) {
           spanningRowBottom = prevRowFrame->GetRect().YMost();
           lastRowThisPage = prevRowFrame;
@@ -1292,15 +1304,17 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
     bool specialReflow = (bool)aReflowState.mFlags.mSpecialHeightReflow;
     ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = false;
 
-    SplitRowGroup(aPresContext, aDesiredSize, aReflowState, tableFrame, aStatus);
+    SplitRowGroup(aPresContext, aDesiredSize, aReflowState, tableFrame, aStatus,
+                  splitDueToPageBreak);
 
     ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = specialReflow;
   }
 
   
   
-  if (GetNextInFlow()) {
-    aStatus = NS_FRAME_NOT_COMPLETE;
+  
+  if (GetNextInFlow() && GetNextInFlow()->GetFirstPrincipalChild()) {
+    NS_FRAME_SET_INCOMPLETE(aStatus);
   }
 
   SetHasStyleHeight((NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) &&

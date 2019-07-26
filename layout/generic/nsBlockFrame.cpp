@@ -3058,9 +3058,13 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       
       aState.mY = startingY;
       aState.mPrevBottomMargin = incomingMargin;
-      PushLines(aState, aLine.prev());
-      NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
       *aKeepReflowGoing = false;
+      if (ShouldAvoidBreakInside(aState.mReflowState)) {
+        aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      } else {
+        PushLines(aState, aLine.prev());
+        NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+      }
       return NS_OK;
     }
 
@@ -3120,9 +3124,13 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     if (NS_INLINE_IS_BREAK_BEFORE(frameReflowStatus)) {
       
-      PushLines(aState, aLine.prev());
       *aKeepReflowGoing = false;
-      NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+      if (ShouldAvoidBreakInside(aState.mReflowState)) {
+        aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      } else {
+        PushLines(aState, aLine.prev());
+        NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
+      }
     }
     else {
       
@@ -3141,6 +3149,11 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                                          collapsedBottomMargin,
                                          aLine->mBounds, overflowAreas,
                                          frameReflowStatus);
+      if (!NS_FRAME_IS_FULLY_COMPLETE(frameReflowStatus) &&
+          ShouldAvoidBreakInside(aState.mReflowState)) {
+        *aKeepReflowGoing = false;
+      }
+
       if (aLine->SetCarriedOutBottomMargin(collapsedBottomMargin)) {
         line_iterator nextLine = aLine;
         ++nextLine;
@@ -3281,16 +3294,14 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                brc.GetCarriedOutBottomMargin(), collapsedBottomMargin.get(),
                aState.mPrevBottomMargin);
 #endif
-      }
-      else {
-        
-        if (aLine == mLines.front() && !GetPrevInFlow()) {
+      } else {
+        if ((aLine == mLines.front() && !GetPrevInFlow()) ||
+            ShouldAvoidBreakInside(aState.mReflowState)) {
           
           
           
           aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
-        }
-        else {
+        } else {
           
           
           PushLines(aState, aLine.prev());
@@ -3399,12 +3410,10 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
 void
 nsBlockFrame::PushTruncatedLine(nsBlockReflowState& aState,
                                 line_iterator       aLine,
-                                bool&             aKeepReflowGoing)
+                                bool*               aKeepReflowGoing)
 {
-  line_iterator prevLine = aLine;
-  --prevLine;
-  PushLines(aState, prevLine);
-  aKeepReflowGoing = false;
+  PushLines(aState, aLine.prev());
+  *aKeepReflowGoing = false;
   NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
 }
 
@@ -3625,8 +3634,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
         
         
         lineReflowStatus = LINE_REFLOW_TRUNCATED;
-        
-        PushTruncatedLine(aState, aLine, *aKeepReflowGoing);
+        PushTruncatedLine(aState, aLine, aKeepReflowGoing);
       }
     }
 
@@ -4191,21 +4199,25 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
     newY = aState.mY + dy;
   }
 
-  
+  if (!NS_FRAME_IS_FULLY_COMPLETE(aState.mReflowStatus) &&
+      ShouldAvoidBreakInside(aState.mReflowState)) {
+    aLine->AppendFloats(aState.mCurrentLineFloats);
+    aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+    return true;
+  }
+
   
   if (mLines.front() != aLine &&
       newY > aState.mBottomEdge &&
       aState.mBottomEdge != NS_UNCONSTRAINEDSIZE) {
-    
-    
-    NS_ASSERTION((aState.mCurrentLine == aLine), "oops");
-    PushLines(aState, aLine.prev());
-
-    
-    
-    if (*aKeepReflowGoing) {
-      NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
-      *aKeepReflowGoing = false;
+    NS_ASSERTION(aState.mCurrentLine == aLine, "oops");
+    if (ShouldAvoidBreakInside(aState.mReflowState)) {
+      
+      aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+    } else {
+      
+      
+      PushTruncatedLine(aState, aLine, aKeepReflowGoing);
     }
     return true;
   }
@@ -5755,11 +5767,15 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
                          aReflowStatus, aState);
   } while (NS_SUCCEEDED(rv) && clearanceFrame);
 
-  
-  
-  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) &&
-      (NS_UNCONSTRAINEDSIZE == aAdjustedAvailableSpace.height))
+  if (!NS_FRAME_IS_FULLY_COMPLETE(aReflowStatus) &&
+      ShouldAvoidBreakInside(floatRS)) {
+    aReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+  } else if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) &&
+             (NS_UNCONSTRAINEDSIZE == aAdjustedAvailableSpace.height)) {
+    
+    
     aReflowStatus = NS_FRAME_COMPLETE;
+  }
 
   if (aReflowStatus & NS_FRAME_REFLOW_NEXTINFLOW) {
     aState.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;

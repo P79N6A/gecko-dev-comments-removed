@@ -408,6 +408,15 @@ public:
   virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const;
 
 
+  
+
+
+  bool ShouldAvoidBreakInside(const nsHTMLReflowState& aReflowState) const {
+    return !aReflowState.mFlags.mIsTopOfPage &&
+           NS_STYLE_PAGE_BREAK_AVOID == GetStyleDisplay()->mBreakInside &&
+           !GetPrevInFlow();
+  }
+
 #ifdef DEBUG
   
 

@@ -767,8 +767,21 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
        !mustPlaceFloat &&
        aFloat->GetSize().height + floatMargin.TopBottom() >
          mContentArea.YMost() - floatY) ||
-      NS_FRAME_IS_TRUNCATED(reflowStatus)) {
+      NS_FRAME_IS_TRUNCATED(reflowStatus) ||
+      NS_INLINE_IS_BREAK_BEFORE(reflowStatus)) {
+    PushFloatPastBreak(aFloat);
+    return false;
+  }
 
+  
+  
+  
+  if (!mustPlaceFloat && (!mReflowState.mFlags.mIsTopOfPage || floatY > 0) &&
+      NS_STYLE_PAGE_BREAK_AVOID == aFloat->GetStyleDisplay()->mBreakInside &&
+      (!NS_FRAME_IS_FULLY_COMPLETE(reflowStatus) ||
+       aFloat->GetSize().height + floatMargin.TopBottom() >
+         mContentArea.YMost() - floatY) &&
+      !aFloat->GetPrevInFlow()) {
     PushFloatPastBreak(aFloat);
     return false;
   }
