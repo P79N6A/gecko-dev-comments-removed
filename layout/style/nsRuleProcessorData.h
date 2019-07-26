@@ -143,6 +143,12 @@ struct MOZ_STACK_CLASS TreeMatchContext {
 
   void InitAncestors(mozilla::dom::Element *aElement);
 
+  
+
+
+
+  void InitStyleScopes(mozilla::dom::Element* aElement);
+
   void PushStyleScope(mozilla::dom::Element* aElement)
   {
     NS_PRECONDITION(aElement, "aElement must not be null");
