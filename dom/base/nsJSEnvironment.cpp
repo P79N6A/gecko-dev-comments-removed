@@ -1263,8 +1263,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
 
   
   
+  XPCAutoRequest ar(mContext);
   {
-    XPCAutoRequest ar(mContext);
     JSAutoCompartment ac(mContext, &aScopeObject);
 
     ++mExecuteDepth;
@@ -1293,6 +1293,9 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   pusher.Pop();
   ScriptEvaluated(true);
 
+  
+  if (!JS_WrapValue(mContext, aRetValue))
+    return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
 }
 
