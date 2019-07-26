@@ -74,8 +74,7 @@ typedef enum JSTryNoteKind {
 
 struct JSTryNote {
     uint8_t         kind;       
-    uint8_t         padding;    
-    uint16_t        stackDepth; 
+    uint32_t        stackDepth; 
     uint32_t        start;      
 
     uint32_t        length;     
