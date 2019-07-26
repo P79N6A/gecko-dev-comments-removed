@@ -51,7 +51,7 @@ public:
   SpdyInformation();
   ~SpdyInformation() {}
 
-  static const uint32_t kCount = 3;
+  static const uint32_t kCount = 2;
 
   
   bool ProtocolEnabled(uint32_t index);
