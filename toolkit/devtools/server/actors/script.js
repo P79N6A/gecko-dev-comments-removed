@@ -2070,6 +2070,34 @@ ThreadActor.prototype = {
     return true;
   },
 
+
+  
+
+
+  onPrototypesAndProperties: function TA_onPrototypesAndProperties(aRequest) {
+    let result = {};
+    for (let actorID of aRequest.actors) {
+      
+      
+      let actor = this.conn.getActor(actorID);
+      if (!actor) {
+        return { from: this.actorID,
+                 error: "noSuchActor" };
+      }
+      let handler = actor.onPrototypeAndProperties;
+      if (!handler) {
+        return { from: this.actorID,
+                 error: "unrecognizedPacketType",
+                 message: ('Actor "' + actorID +
+                           '" does not recognize the packet type ' +
+                           '"prototypeAndProperties"') };
+      }
+      result[actorID] = handler.call(actor, {});
+    }
+    return { from: this.actorID,
+             actors: result };
+  }
+
 };
 
 ThreadActor.prototype.requestTypes = {
@@ -2084,7 +2112,8 @@ ThreadActor.prototype.requestTypes = {
   "releaseMany": ThreadActor.prototype.onReleaseMany,
   "setBreakpoint": ThreadActor.prototype.onSetBreakpoint,
   "sources": ThreadActor.prototype.onSources,
-  "threadGrips": ThreadActor.prototype.onThreadGrips
+  "threadGrips": ThreadActor.prototype.onThreadGrips,
+  "prototypesAndProperties": ThreadActor.prototype.onPrototypesAndProperties
 };
 
 
