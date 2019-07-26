@@ -383,6 +383,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   prettyPrint: function() {
+    if (this._prettyPrintButton.hasAttribute("disabled")) {
+      return;
+    }
+
     const resetEditor = ([{ url }]) => {
       
       if (url == this.selectedValue) {
@@ -691,6 +695,20 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     document.title = L10N.getFormatStr("DebuggerWindowScriptTitle", script);
 
     this.maybeShowBlackBoxMessage();
+    this._updatePrettyPrintButtonState();
+  },
+
+  
+
+
+
+  _updatePrettyPrintButtonState: function() {
+    const { source } = this.selectedItem.attachment;
+    if (gThreadClient.source(source).isBlackBoxed) {
+      this._prettyPrintButton.setAttribute("disabled", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("disabled");
+    }
   },
 
   
@@ -715,8 +733,23 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _onSourceCheck: function({ detail: { checked }, target }) {
-    let item = this.getItemForElement(target);
-    DebuggerController.SourceScripts.blackBox(item.attachment.source, !checked);
+    const shouldBlackBox = !checked;
+
+    
+    
+    
+    
+
+    if (shouldBlackBox) {
+      this._prettyPrintButton.setAttribute("disabled", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("disabled");
+    }
+
+    const { source } = this.getItemForElement(target).attachment;
+    DebuggerController.SourceScripts.blackBox(source, shouldBlackBox)
+      .then(this._updatePrettyPrintButtonState,
+            this._updatePrettyPrintButtonState);
   },
 
   
