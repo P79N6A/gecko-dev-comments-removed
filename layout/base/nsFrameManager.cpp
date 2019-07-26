@@ -986,6 +986,14 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
                (ourChange & nsChangeHint_NeedReflow),
                "Reflow hint bits set without actually asking for a reflow");
 
+  
+  
+  
+  if ((ourChange & nsChangeHint_UpdateEffects) &&
+      aContent && !aContent->IsElement()) {
+    ourChange = NS_SubtractHint(ourChange, nsChangeHint_UpdateEffects);
+  }
+
   NS_UpdateHint(ourChange, aChangeToAssume);
   if (NS_UpdateHint(aMinChange, ourChange)) {
     if (!(ourChange & nsChangeHint_ReconstructFrame) || aContent) {
