@@ -21,14 +21,14 @@
 #include "nsSDR.h"
 #include "nsNSSComponent.h"
 #include "nsNSSShutDown.h"
-#include "ScopedNSSTypes.h"
 
 #include "pk11func.h"
 #include "pk11sdr.h" 
 
 #include "ssl.h" 
 
-using namespace mozilla;
+#include "nsNSSCleaner.h"
+NSSCleanupAutoPtrClass(PK11SlotInfo, PK11_FreeSlot)
 
 
 
@@ -51,7 +51,8 @@ Encrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
-  ScopedPK11SlotInfo slot;
+  PK11SlotInfo *slot = 0;
+  PK11SlotInfoCleaner tmpSlotCleaner(slot);
   SECItem keyid;
   SECItem request;
   SECItem reply;
@@ -93,7 +94,8 @@ Decrypt(unsigned char * data, int32_t dataLen, unsigned char * *result, int32_t 
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
-  ScopedPK11SlotInfo slot;
+  PK11SlotInfo *slot = 0;
+  PK11SlotInfoCleaner tmpSlotCleaner(slot);
   SECStatus s;
   SECItem request;
   SECItem reply;
@@ -198,11 +200,15 @@ ChangePassword()
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv;
-  ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+  PK11SlotInfo *slot;
+
+  slot = PK11_GetInternalKeySlot();
   if (!slot) return NS_ERROR_NOT_AVAILABLE;
 
   
   NS_ConvertUTF8toUTF16 tokenName(PK11_GetTokenName(slot));
+
+  PK11_FreeSlot(slot);
 
   
   nsCOMPtr<nsITokenPasswordDialogs> dialogs;

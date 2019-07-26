@@ -11,14 +11,15 @@
 #include "nsNSSComponent.h"
 #include "nsNSSCertificate.h"
 #include "nsReadableUtils.h"
+#include "nsNSSCleaner.h"
 #include "nsICertPickDialogs.h"
 #include "nsNSSShutDown.h"
 #include "nsNSSCertHelper.h"
-#include "ScopedNSSTypes.h"
+
+NSSCleanupAutoPtrClass(CERTCertNicknames, CERT_FreeNicknames)
+NSSCleanupAutoPtrClass(CERTCertList, CERT_DestroyCertList)
 
 #include "cert.h"
-
-using namespace mozilla;
 
 NS_IMPL_ISUPPORTS1(nsCertPicker, nsIUserCertPicker)
 
@@ -48,24 +49,31 @@ NS_IMETHODIMP nsCertPicker::PickByUsage(nsIInterfaceRequestor *ctx,
 
   {
     
+    CERTCertList *allcerts = nullptr;
     nsCOMPtr<nsIInterfaceRequestor> ctx = new PipUIContext();
-    ScopedCERTCertList allcerts(PK11_ListCerts(PK11CertListUnique, ctx));
+    allcerts = PK11_ListCerts(PK11CertListUnique, ctx);
+    CERT_DestroyCertList(allcerts);
   }
 
   
   
 
-  ScopedCERTCertList certList( 
+  CERTCertList *certList = 
     CERT_FindUserCertsByUsage(CERT_GetDefaultCertDB(), 
                               (SECCertUsage)certUsage,
                               !allowDuplicateNicknames,
                               !allowInvalid,
-                              ctx));
+                              ctx);
+  CERTCertListCleaner clc(certList);
+
   if (!certList) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  ScopedCERTCertNicknames nicknames(getNSSCertNicknamesFromCertList(certList));
+  CERTCertNicknames *nicknames = getNSSCertNicknamesFromCertList(certList);
+
+  CERTCertNicknamesCleaner cnc(nicknames);
+
   if (!nicknames) {
     return NS_ERROR_NOT_AVAILABLE;
   }
