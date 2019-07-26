@@ -8,7 +8,10 @@ public class testPictureLinkContextMenu extends ContentContextMenuTest {
     private static String PICTURE_PAGE_URL;
     private static String BLANK_PAGE_URL;
     private static final String PICTURE_PAGE_TITLE = "Picture Link";
-    private static final String photoMenuItems [] = { "Copy Image Location", "Share Image", "Set Image As", "Save Image", "Open Link in New Tab", "Open Link in Private Tab", "Copy Link", "Share Link", "Bookmark Link"};
+    private static final String tabs [] = { "Image", "Link" };
+    private static final String photoMenuItems [] = { "Copy Image Location", "Share Image", "Set Image As", "Save Image" };
+    private static final String linkMenuItems [] = { "Open Link in New Tab", "Open Link in Private Tab", "Copy Link", "Share Link", "Bookmark Link"};
+    private static final String linkTitle = "^Link$";
 
     @Override
     protected int getTestType() {
@@ -24,13 +27,21 @@ public class testPictureLinkContextMenu extends ContentContextMenuTest {
         verifyPageTitle(PICTURE_PAGE_TITLE);
 
         verifyContextMenuItems(photoMenuItems);
+        verifyTabs(tabs);
         verifyCopyOption(photoMenuItems[0], "Firefox.jpg"); 
         verifyShareOption(photoMenuItems[1], PICTURE_PAGE_TITLE); 
-        openTabFromContextMenu(photoMenuItems[4],2); 
-        openTabFromContextMenu(photoMenuItems[5],2); 
-        verifyCopyOption(photoMenuItems[6], BLANK_PAGE_URL); 
-        verifyShareOption(photoMenuItems[7], PICTURE_PAGE_TITLE); 
-        verifyBookmarkLinkOption(photoMenuItems[8],BLANK_PAGE_URL); 
+
+        switchTabs(linkTitle);
+        verifyContextMenuItems(linkMenuItems);
+        openTabFromContextMenu(linkMenuItems[0],2); 
+        switchTabs(linkTitle);
+        openTabFromContextMenu(linkMenuItems[1],2); 
+        switchTabs(linkTitle);
+        verifyCopyOption(linkMenuItems[2], BLANK_PAGE_URL); 
+        switchTabs(linkTitle);
+        verifyShareOption(linkMenuItems[3], PICTURE_PAGE_TITLE); 
+        switchTabs(linkTitle);
+        verifyBookmarkLinkOption(linkMenuItems[4],BLANK_PAGE_URL); 
     }
 
     @Override
