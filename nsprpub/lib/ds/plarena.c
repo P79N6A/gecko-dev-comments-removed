@@ -345,6 +345,22 @@ PR_IMPLEMENT(void) PL_ArenaFinish(void)
     once = pristineCallOnce;
 }
 
+PR_IMPLEMENT(size_t) PL_SizeOfArenaPoolExcludingPool(
+    PLArenaPool *pool, PLMallocSizeFn mallocSizeOf)
+{
+    
+
+
+
+    size_t size = 0;
+    PLArena *arena = pool->first.next;
+    while (arena) {
+        size += mallocSizeOf(arena);
+        arena = arena->next;
+    }
+    return size;
+}
+
 #ifdef PL_ARENAMETER
 PR_IMPLEMENT(void) PL_ArenaCountAllocation(PLArenaPool *pool, PRUint32 nb)
 {

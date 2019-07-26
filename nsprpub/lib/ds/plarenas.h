@@ -60,6 +60,19 @@ PR_EXTERN(void) PL_ArenaRelease(PLArenaPool *pool, char *mark);
 
 PR_EXTERN(void) PL_ClearArenaPool(PLArenaPool *pool, PRInt32 pattern);
 
+
+
+
+
+typedef size_t (*PLMallocSizeFn)(const void *ptr);
+
+
+
+
+
+PR_EXTERN(size_t) PL_SizeOfArenaPoolExcludingPool(
+    PLArenaPool *pool, PLMallocSizeFn mallocSizeOf);
+
 PR_END_EXTERN_C
 
 #endif 

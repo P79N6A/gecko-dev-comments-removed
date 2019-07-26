@@ -304,6 +304,59 @@ void _PR_MD_NOTIFYALL_CV(_MDCVar *cv, _MDLock *lock)
     return;
 }
 
+typedef BOOL (WINAPI *INITIALIZECRITICALSECTIONEX)(
+    CRITICAL_SECTION *lpCriticalSection,
+    DWORD dwSpinCount,
+    DWORD Flags);
+
+static INITIALIZECRITICALSECTIONEX sInitializeCriticalSectionEx;
+
+void _PR_MD_INIT_LOCKS(void)
+{
+    
+
+
+
+
+
+
+
+    HMODULE hKernel32 = GetModuleHandle("kernel32.dll");
+    PR_ASSERT(hKernel32);
+    PR_ASSERT(!sInitializeCriticalSectionEx);
+    sInitializeCriticalSectionEx = (INITIALIZECRITICALSECTIONEX)
+            GetProcAddress(hKernel32, "InitializeCriticalSectionEx");
+}
+
+
+
+
+
+
+
+#define LOCK_SPIN_COUNT 1500
+
+PRStatus _PR_MD_NEW_LOCK(_MDLock *lock)
+{
+    CRITICAL_SECTION *cs = &lock->mutex;
+    BOOL ok;
+
+    if (sInitializeCriticalSectionEx) {
+        ok = sInitializeCriticalSectionEx(cs, LOCK_SPIN_COUNT,
+                                          CRITICAL_SECTION_NO_DEBUG_INFO);
+    } else {
+        ok = InitializeCriticalSectionAndSpinCount(cs, LOCK_SPIN_COUNT);
+    }
+    if (!ok) {
+        _PR_MD_MAP_DEFAULT_ERROR(GetLastError());
+        return PR_FAILURE;
+    }
+
+    lock->notified.length = 0;
+    lock->notified.link = NULL;
+    return PR_SUCCESS;
+}
+
 void _PR_MD_UNLOCK(_MDLock *lock)
 {
     if (0 != lock->notified.length) {
@@ -311,5 +364,4 @@ void _PR_MD_UNLOCK(_MDLock *lock)
     } else {
         LeaveCriticalSection(&lock->mutex);
     }
-    return;
 }
