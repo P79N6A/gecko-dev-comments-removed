@@ -367,11 +367,26 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   bool forceExternalHandling = false;
   uint32_t disposition;
   rv = aChannel->GetContentDisposition(&disposition);
-  if (NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT)
+
+  bool allowContentDispositionToForceExternalHandling = true;
+
+#ifdef MOZ_B2G
+
+  
+  
+  
+  allowContentDispositionToForceExternalHandling =
+    !mContentType.LowerCaseEqualsASCII("application/vnd.oma.drm.message");
+
+#endif
+
+  if (NS_SUCCEEDED(rv) && (disposition == nsIChannel::DISPOSITION_ATTACHMENT) &&
+      allowContentDispositionToForceExternalHandling) {
     forceExternalHandling = true;
+  }
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
-    
+
   
   nsCOMPtr<nsIURIContentListener> contentListener;
   
