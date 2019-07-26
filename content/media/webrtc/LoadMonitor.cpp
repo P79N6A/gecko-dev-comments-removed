@@ -149,11 +149,17 @@ private:
 
 void LoadMonitor::Shutdown()
 {
-  MutexAutoLock lock(mLock);
   if (mLoadInfoThread) {
-    mShutdownPending = true;
-    mCondVar.Notify();
+    {
+      MutexAutoLock lock(mLock);
+      LOG(("LoadMonitor: shutting down"));
+      mShutdownPending = true;
+      mCondVar.Notify();
+    }
 
+    
+    
+    
     mLoadInfoThread = nullptr;
 
     nsRefPtr<LoadMonitorRemoveObserver> remObsRunner = new LoadMonitorRemoveObserver(this);
@@ -516,8 +522,10 @@ class LoadInfoCollectRunner : public nsRunnable
 {
 public:
   LoadInfoCollectRunner(nsRefPtr<LoadMonitor> loadMonitor,
-                        RefPtr<LoadInfo> loadInfo)
-    : mLoadUpdateInterval(loadMonitor->mLoadUpdateInterval),
+                        RefPtr<LoadInfo> loadInfo,
+                        nsIThread *loadInfoThread)
+    : mThread(loadInfoThread),
+      mLoadUpdateInterval(loadMonitor->mLoadUpdateInterval),
       mLoadNoiseCounter(0)
   {
     mLoadMonitor = loadMonitor;
@@ -526,6 +534,19 @@ public:
 
   NS_IMETHOD Run()
   {
+    if (NS_IsMainThread()) {
+      if (mThread) {
+        
+        mThread->Shutdown(); 
+        
+        
+        
+        
+        
+      }
+      return NS_OK;
+    }
+
     MutexAutoLock lock(mLoadMonitor->mLock);
     while (!mLoadMonitor->mShutdownPending) {
       mLoadInfo->UpdateSystemLoad();
@@ -543,10 +564,13 @@ public:
 
       mLoadMonitor->mCondVar.Wait(PR_MillisecondsToInterval(mLoadUpdateInterval));
     }
+    
+    NS_DispatchToMainThread(this);
     return NS_OK;
   }
 
 private:
+  nsCOMPtr<nsIThread> mThread;
   RefPtr<LoadInfo> mLoadInfo;
   nsRefPtr<LoadMonitor> mLoadMonitor;
   int mLoadUpdateInterval;
@@ -605,7 +629,7 @@ LoadMonitor::Init(nsRefPtr<LoadMonitor> &self)
   NS_NewNamedThread("Sys Load Info", getter_AddRefs(mLoadInfoThread));
 
   nsRefPtr<LoadInfoCollectRunner> runner =
-    new LoadInfoCollectRunner(self, load_info);
+    new LoadInfoCollectRunner(self, load_info, mLoadInfoThread);
   mLoadInfoThread->Dispatch(runner, NS_DISPATCH_NORMAL);
 
   return NS_OK;
