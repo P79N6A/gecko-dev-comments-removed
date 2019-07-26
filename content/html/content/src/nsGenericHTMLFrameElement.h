@@ -72,28 +72,6 @@ public:
 
 protected:
   
-
-
-
-
-  class TitleChangedListener MOZ_FINAL : public nsIDOMEventListener
-  {
-  public:
-    TitleChangedListener(nsGenericHTMLFrameElement *aElement,
-                         mozilla::dom::EventTarget *aChromeHandler);
-
-    
-    void Unregister();
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIDOMEVENTLISTENER
-
-  private:
-    nsWeakPtr mElement; 
-    nsWeakPtr mChromeHandler; 
-  };
-
-  
   
   void EnsureFrameLoader();
   nsresult LoadSrc();
