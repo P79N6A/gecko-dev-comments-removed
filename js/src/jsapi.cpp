@@ -3289,10 +3289,23 @@ JS_DefineProperties(JSContext *cx, JSObject *objArg, const JSPropertySpec *ps)
     RootedObject obj(cx, objArg);
     bool ok;
     for (ok = true; ps->name; ps++) {
-        if (ps->selfHostedGetter) {
+        if (ps->flags & JSPROP_NATIVE_ACCESSORS) {
             
             
-            JS_ASSERT(!ps->getter.op && !ps->setter.op);
+            JS_ASSERT(ps->getter.propertyOp.op);
+            
+            
+            
+            JS_ASSERT_IF(ps->setter.propertyOp.info, ps->setter.propertyOp.op);
+
+            ok = DefineProperty(cx, obj, ps->name, UndefinedValue(),
+                                ps->getter.propertyOp, ps->setter.propertyOp,
+                                ps->flags, Shape::HAS_SHORTID, ps->tinyid);
+        } else {
+            
+            
+            JS_ASSERT(!ps->getter.propertyOp.op && !ps->setter.propertyOp.op);
+            JS_ASSERT(ps->flags & JSPROP_GETTER);
             
 
 
@@ -3304,18 +3317,10 @@ JS_DefineProperties(JSContext *cx, JSObject *objArg, const JSPropertySpec *ps)
                 continue;
 
             ok = DefineSelfHostedProperty(cx, obj, ps->name,
-                                          ps->selfHostedGetter,
-                                          ps->selfHostedSetter,
+                                          ps->getter.selfHosted.funname,
+                                          ps->setter.selfHosted.funname,
                                           ps->flags, Shape::HAS_SHORTID,
                                           ps->tinyid);
-        } else {
-            
-            
-            
-            JS_ASSERT(ps->getter.op && !ps->selfHostedSetter);
-
-            ok = DefineProperty(cx, obj, ps->name, UndefinedValue(), ps->getter, ps->setter,
-                                ps->flags, Shape::HAS_SHORTID, ps->tinyid);
         }
         if (!ok)
             break;
