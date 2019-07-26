@@ -98,10 +98,15 @@ bool IsBlobOrFileList(JSObject *obj)
 
 static bool
 StackScopedCloneWrite(JSContext *cx, JSStructuredCloneWriter *writer,
-                      Handle<JSObject *> obj, void *closure)
+                      Handle<JSObject *> objArg, void *closure)
 {
     MOZ_ASSERT(closure, "Null pointer!");
     StackScopedCloneData *cloneData = static_cast<StackScopedCloneData *>(closure);
+
+    
+    
+    
+    RootedObject obj(cx, JS_ObjectToInnerObject(cx, objArg));
     if ((cloneData->mOptions->wrapReflectors && IsReflector(obj)) ||
         IsBlobOrFileList(obj))
     {
