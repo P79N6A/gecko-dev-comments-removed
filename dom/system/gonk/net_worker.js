@@ -17,10 +17,13 @@
 
 const DEBUG = false;
 
-const USB_FUNCTION_PATH  = "sys.usb.config";
-const USB_FUNCTION_STATE = "sys.usb.state";
-const USB_FUNCTION_RNDIS = "rndis,adb";
-const USB_FUNCTION_ADB   = "adb";
+const PERSIST_SYS_USB_CONFIG_PROPERTY = "persist.sys.usb.config";
+const SYS_USB_CONFIG_PROPERTY         = "sys.usb.config";
+const SYS_USB_STATE_PROPERTY          = "sys.usb.state";
+
+const USB_FUNCTION_RNDIS  = "rndis";
+const USB_FUNCTION_ADB    = "adb";
+
 
 const USB_FUNCTION_RETRY_TIMES = 20;
 
@@ -93,7 +96,7 @@ function usbTetheringFail(params) {
   chain(params, gUSBFailChain, null);
 
   
-  setUSBFunction({usbfunc: USB_FUNCTION_ADB, report: false});
+  enableUsbRndis({enable: false, report: false});
 }
 
 function usbTetheringSuccess(params) {
@@ -398,20 +401,58 @@ function setAccessPoint(params, callback) {
 
 
 
-function setUSBFunction(params) {
+function enableUsbRndis(params) {
   let report = params.report;
   let retry = 0;
-  let i = 0;
 
-  libcutils.property_set(USB_FUNCTION_PATH, params.usbfunc);
   
-  if (report) {
-    setTimeout(checkUSBFunction, USB_FUNCTION_RETRY_INTERVAL, params);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  let currentConfig = libcutils.property_get(SYS_USB_CONFIG_PROPERTY);
+  let configFuncs = currentConfig.split(",");
+  let persistConfig = libcutils.property_get(PERSIST_SYS_USB_CONFIG_PROPERTY);
+  let persistFuncs = persistConfig.split(",");
+
+  if (params.enable) {
+    configFuncs = [USB_FUNCTION_RNDIS];
+    if (persistFuncs.indexOf(USB_FUNCTION_ADB) >= 0) {
+      configFuncs.push(USB_FUNCTION_ADB);
+    }
+  } else {
+    
+    
+    
+    configFuncs = persistFuncs;
+  }
+  let newConfig = configFuncs.join(",");
+  if (newConfig != currentConfig) {
+    libcutils.property_set(SYS_USB_CONFIG_PROPERTY, newConfig);
   }
 
-  function checkUSBFunction(params) {
-    let result = libcutils.property_get(USB_FUNCTION_STATE);
-    if (result == params.usbfunc) {
+  
+  if (report) {
+    setTimeout(checkUsbRndisState, USB_FUNCTION_RETRY_INTERVAL, params);
+  }
+
+  function checkUsbRndisState(params) {
+    let currentState = libcutils.property_get(SYS_USB_STATE_PROPERTY);
+    let stateFuncs = currentState.split(",");
+    let rndisPresent = (stateFuncs.indexOf(USB_FUNCTION_RNDIS) >= 0);
+    if (params.enable == rndisPresent) {
       params.result = true;
       postMessage(params);
       retry = 0;
@@ -419,7 +460,7 @@ function setUSBFunction(params) {
     }
     if (retry < USB_FUNCTION_RETRY_TIMES) {
       retry++;
-      setTimeout(checkUSBFunction, USB_FUNCTION_RETRY_INTERVAL, params);
+      setTimeout(checkUsbRndisState, USB_FUNCTION_RETRY_INTERVAL, params);
       return;
     }
     params.result = false;
