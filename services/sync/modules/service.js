@@ -889,7 +889,28 @@ Sync11Service.prototype = {
 
     this.identity.deleteSyncCredentials();
 
-    Svc.Obs.notify("weave:service:start-over:finish");
+    
+    
+    if (Svc.Prefs.get("services.sync-testing.startOverKeepIdentity", false)) {
+      Svc.Obs.notify("weave:service:start-over:finish");
+      return;
+    }
+
+    this.identity.username = "";
+    Services.prefs.clearUserPref("services.sync.fxaccounts.enabled");
+    this.status.__authManager = null;
+    this.identity = Status._authManager;
+    this._clusterManager = this.identity.createClusterManager(this);
+
+    
+    this.identity.initialize().then(() => {
+      Svc.Obs.notify("weave:service:start-over:finish");
+    }).then(null, err => {
+      this._log.error("startOver failed to re-initialize the identity manager: " + err);
+      
+      
+      Svc.Obs.notify("weave:service:start-over:finish");
+    });
   },
 
   persistLogin: function persistLogin() {
