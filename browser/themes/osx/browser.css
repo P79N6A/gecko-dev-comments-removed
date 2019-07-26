@@ -1070,6 +1070,15 @@ toolbar .toolbarbutton-1:not([type="menu-button"]),
     list-style-image: url(chrome://browser/skin/menuPanel-small@2x.png);
   }
 
+  
+
+  #edit-controls@inAnyPanel@ > toolbarbutton > .toolbarbutton-icon,
+  #zoom-controls@inAnyPanel@ > toolbarbutton > .toolbarbutton-icon,
+  toolbarpaletteitem[place="palette"] > #edit-controls > toolbarbutton > .toolbarbutton-icon,
+  toolbarpaletteitem[place="palette"] > #zoom-controls > toolbarbutton > .toolbarbutton-icon {
+    width: 16px;
+  }
+
   #edit-controls@inAnyPanel@ > #cut-button,
   toolbarpaletteitem[place="palette"] > #edit-controls > #cut-button {
     -moz-image-region: rect(0px, 64px, 32px, 32px);
