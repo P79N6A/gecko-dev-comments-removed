@@ -250,7 +250,7 @@ static NTSTATUS NTAPI InterposedNtCreateFile(
   uint32_t len = aObjectAttributes ?
                    aObjectAttributes->ObjectName->Length / sizeof(WCHAR) :
                    0;
-  nsDependentString filename(buf, len);
+  nsDependentSubstring filename(buf, len);
   WinIOAutoObservation timer(IOInterposeObserver::OpCreateOrOpen, filename);
 
   
@@ -429,7 +429,7 @@ static NTSTATUS NTAPI InterposedNtQueryFullAttributesFile(
   uint32_t len = aObjectAttributes ?
                    aObjectAttributes->ObjectName->Length / sizeof(WCHAR) :
                    0;
-  nsDependentString filename(buf, len);
+  nsDependentSubstring filename(buf, len);
   WinIOAutoObservation timer(IOInterposeObserver::OpStat, filename);
 
   
