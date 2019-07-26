@@ -685,7 +685,7 @@ InitRestParameter(JSContext *cx, uint32_t length, Value *rest, HandleObject temp
 
         
         
-        if (length) {
+        if (length > 0) {
             if (!res->ensureElements(cx, length))
                 return NULL;
             res->setDenseInitializedLength(length);
