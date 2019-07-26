@@ -663,13 +663,7 @@ pref("plugins.click_to_play", true);
 
 pref("plugins.hideMissingPluginsNotification", false);
 
-#ifdef RELEASE_BUILD
-
-
-pref("plugin.default.state", 2);
-#else
 pref("plugin.default.state", 1);
-#endif
 
 
 pref("plugin.defaultXpi.state", 2);
@@ -678,6 +672,124 @@ pref("plugin.defaultXpi.state", 2);
 
 pref("plugin.state.flash", 2);
 pref("plugin.state.java", 1);
+
+
+
+
+#ifdef XP_WIN
+pref("plugin.state.npunity3d", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.unity web player", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npciscowebcommunicator", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.ciscowebcommunicator", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npmcafeemss", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npplayerplugin", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.playerplugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npchip", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.cisco jabber guest plug-in", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npesteid-firefox-plugin", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.esteidfirefoxplugin", 2);
+#endif
+#ifdef UNIX_BUT_NOT_MAC
+pref("plugin.state.npesteid-firefox-plugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npmozcouponprinter", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.couponprinter-firefox_v", 2);
+#endif
+
+
+pref("plugin.state.npbispbrowser", 2);
+
+
+#ifdef XP_WIN
+pref("plugin.state.npgcplugin", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.gcplugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npwebcard", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npatgpc", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.webex", 2);
+#endif
+#ifdef UNIX_BUT_NOT_MAC
+pref("plugin.state.npatgpc", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npskypewebplugin", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.skypewebplugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npfacebookvideocalling", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.facebookvideocalling", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npmeetingjoinpluginoc", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.lwaplugin", 2);
+#endif
+
+
+#ifdef XP_WIN
+pref("plugin.state.npvidyoweb", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugin.state.npvidyoweb", 2);
+pref("plugin.state.vidyoweb", 2);
+#endif
 
 
 pref("plugins.notifyMissingFlash", true);
