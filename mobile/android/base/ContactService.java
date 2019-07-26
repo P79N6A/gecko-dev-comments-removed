@@ -214,10 +214,10 @@ public class ContactService implements GeckoEventListener {
             sortBy = findOptions.optString("sortBy").toLowerCase();
             sortOrder = findOptions.optString("sortOrder").toLowerCase();
 
-            if ("undefined".equals(sortBy)) {
+            if ("".equals(sortBy)) {
                 sortBy = null;
             }
-            if ("undefined".equals(sortOrder)) {
+            if ("".equals(sortOrder)) {
                 sortOrder = "ascending";
             }
 
@@ -240,15 +240,15 @@ public class ContactService implements GeckoEventListener {
 
         try {
             final JSONObject findOptions = contactOptions.getJSONObject("findOptions");
-            String filterValue = findOptions.getString("filterValue");
+            String filterValue = findOptions.optString("filterValue");
             JSONArray filterBy = findOptions.optJSONArray("filterBy");
-            final String filterOp = findOptions.getString("filterOp");
+            final String filterOp = findOptions.optString("filterOp");
             final int filterLimit = findOptions.getInt("filterLimit");
             final int substringMatching = findOptions.getInt("substringMatching");
 
             
             
-            if ("undefined".equals(filterValue)) {
+            if ("".equals(filterValue) || "".equals(filterOp)) {
                 long[] allRawContactIds = getAllRawContactIds();
 
                 
@@ -972,7 +972,7 @@ public class ContactService implements GeckoEventListener {
         }
     }
 
-    private void insertContact(final JSONObject contactProperties, final String requestID) {
+    private void insertContact(final JSONObject contactProperties, final String requestID) throws JSONException {
         ArrayList<ContentProviderOperation> newContactOptions = new ArrayList<ContentProviderOperation>();
 
         
@@ -1018,7 +1018,7 @@ public class ContactService implements GeckoEventListener {
                                  new Object[] {newRawContactId, "create"});
     }
 
-    private void updateContact(final JSONObject contactProperties, final long rawContactId, final String requestID) {
+    private void updateContact(final JSONObject contactProperties, final long rawContactId, final String requestID) throws JSONException {
         
         
         
@@ -1069,65 +1069,61 @@ public class ContactService implements GeckoEventListener {
                                  new Object[] {rawContactId, "update"});
     }
 
-    private List<ContentValues> getContactValues(final JSONObject contactProperties) {
+    private List<ContentValues> getContactValues(final JSONObject contactProperties) throws JSONException {
         List<ContentValues> contactValues = new ArrayList<ContentValues>();
 
-        try {
-            
-            
-            ContentValues defaultGroupValues = new ContentValues();
-            defaultGroupValues.put(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE);
-            defaultGroupValues.put(GroupMembership.GROUP_ROW_ID, mGroupId);
-            contactValues.add(defaultGroupValues);
+        
+        
+        ContentValues defaultGroupValues = new ContentValues();
+        defaultGroupValues.put(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE);
+        defaultGroupValues.put(GroupMembership.GROUP_ROW_ID, mGroupId);
+        contactValues.add(defaultGroupValues);
 
-            
-            getNameValues(contactProperties.optJSONArray("name"),
-                          contactProperties.optJSONArray("givenName"),
-                          contactProperties.optJSONArray("familyName"),
-                          contactProperties.optJSONArray("honorificPrefix"),
-                          contactProperties.optJSONArray("honorificSuffix"),
-                          contactValues);
+        
+        getNameValues(contactProperties.optJSONArray("name"),
+                      contactProperties.optJSONArray("givenName"),
+                      contactProperties.optJSONArray("familyName"),
+                      contactProperties.optJSONArray("honorificPrefix"),
+                      contactProperties.optJSONArray("honorificSuffix"),
+                      contactValues);
 
-            getGenericValues(MIMETYPE_ADDITIONAL_NAME, CUSTOM_DATA_COLUMN,
-                             contactProperties.optJSONArray("additionalName"), contactValues);
+        getGenericValues(MIMETYPE_ADDITIONAL_NAME, CUSTOM_DATA_COLUMN,
+                         contactProperties.optJSONArray("additionalName"), contactValues);
 
-            getNicknamesValues(contactProperties.optJSONArray("nickname"), contactValues);
+        getNicknamesValues(contactProperties.optJSONArray("nickname"), contactValues);
 
-            getAddressesValues(contactProperties.optJSONArray("adr"), contactValues);
+        getAddressesValues(contactProperties.optJSONArray("adr"), contactValues);
 
-            getPhonesValues(contactProperties.optJSONArray("tel"), contactValues);
+        getPhonesValues(contactProperties.optJSONArray("tel"), contactValues);
 
-            getEmailsValues(contactProperties.optJSONArray("email"), contactValues);
+        getEmailsValues(contactProperties.optJSONArray("email"), contactValues);
 
-            
+        
 
-            getGenericValues(Organization.CONTENT_ITEM_TYPE, Organization.COMPANY,
-                             contactProperties.optJSONArray("org"), contactValues);
+        getGenericValues(Organization.CONTENT_ITEM_TYPE, Organization.COMPANY,
+                         contactProperties.optJSONArray("org"), contactValues);
 
-            getGenericValues(Organization.CONTENT_ITEM_TYPE, Organization.TITLE,
-                             contactProperties.optJSONArray("jobTitle"), contactValues);
+        getGenericValues(Organization.CONTENT_ITEM_TYPE, Organization.TITLE,
+                         contactProperties.optJSONArray("jobTitle"), contactValues);
 
-            getNotesValues(contactProperties.optJSONArray("note"), contactValues);
+        getNotesValues(contactProperties.optJSONArray("note"), contactValues);
 
-            getWebsitesValues(contactProperties.optJSONArray("url"), contactValues);
+        getWebsitesValues(contactProperties.optJSONArray("url"), contactValues);
 
-            getImsValues(contactProperties.optJSONArray("impp"), contactValues);
+        getImsValues(contactProperties.optJSONArray("impp"), contactValues);
 
-            getCategoriesValues(contactProperties.optJSONArray("category"), contactValues);
+        getCategoriesValues(contactProperties.optJSONArray("category"), contactValues);
 
-            getEventValues(contactProperties.optString("bday"), Event.TYPE_BIRTHDAY, contactValues);
+        getEventValues(contactProperties.optString("bday"), Event.TYPE_BIRTHDAY, contactValues);
 
-            getEventValues(contactProperties.optString("anniversary"), Event.TYPE_ANNIVERSARY, contactValues);
+        getEventValues(contactProperties.optString("anniversary"), Event.TYPE_ANNIVERSARY, contactValues);
 
-            getCustomMimetypeValues(contactProperties.optString("sex"), MIMETYPE_SEX, contactValues);
+        getCustomMimetypeValues(contactProperties.optString("sex"), MIMETYPE_SEX, contactValues);
 
-            getCustomMimetypeValues(contactProperties.optString("genderIdentity"), MIMETYPE_GENDER_IDENTITY, contactValues);
+        getCustomMimetypeValues(contactProperties.optString("genderIdentity"), MIMETYPE_GENDER_IDENTITY, contactValues);
 
-            getGenericValues(MIMETYPE_KEY, CUSTOM_DATA_COLUMN, contactProperties.optJSONArray("key"),
-                             contactValues);
-        } catch (JSONException e) {
-            throw new IllegalArgumentException("Unexpected or missing JSON data: " + e);
-        }
+        getGenericValues(MIMETYPE_KEY, CUSTOM_DATA_COLUMN, contactProperties.optJSONArray("key"),
+                         contactValues);
 
         return contactValues;
     }
