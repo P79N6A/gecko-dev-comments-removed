@@ -8,17 +8,21 @@
 
 #include "BluetoothA2dpManager.h"
 
+#include <hardware/bluetooth.h>
+#include <hardware/bt_av.h>
+
 #include "BluetoothCommon.h"
 #include "BluetoothService.h"
+#include "BluetoothServiceBluedroid.h"
 #include "BluetoothSocket.h"
 #include "BluetoothUtils.h"
 
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "nsIObserverService.h"
 #include "MainThreadUtils.h"
-
+#include "nsIObserverService.h"
+#include "nsThreadUtils.h"
 
 using namespace mozilla;
 USING_BLUETOOTH_NAMESPACE
@@ -26,7 +30,32 @@ USING_BLUETOOTH_NAMESPACE
 namespace {
   StaticRefPtr<BluetoothA2dpManager> sBluetoothA2dpManager;
   bool sInShutdown = false;
+  static const btav_interface_t* sBtA2dpInterface;
 } 
+
+
+class SinkPropertyChangedHandler : public nsRunnable
+{
+public:
+  SinkPropertyChangedHandler(const BluetoothSignal& aSignal)
+    : mSignal(aSignal)
+  {
+  }
+
+  NS_IMETHOD
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BluetoothA2dpManager* a2dp = BluetoothA2dpManager::Get();
+    NS_ENSURE_TRUE(a2dp, NS_ERROR_FAILURE);
+    a2dp->HandleSinkPropertyChanged(mSignal);
+    return NS_OK;
+  }
+
+private:
+  BluetoothSignal mSignal;
+};
 
 NS_IMETHODIMP
 BluetoothA2dpManager::Observe(nsISupports* aSubject,
@@ -50,18 +79,100 @@ BluetoothA2dpManager::BluetoothA2dpManager()
   ResetAvrcp();
 }
 
+static void
+AvStatusToSinkString(btav_connection_state_t aStatus, nsAString& aState)
+{
+  nsAutoString state;
+  if (aStatus == BTAV_CONNECTION_STATE_DISCONNECTED) {
+    aState = NS_LITERAL_STRING("disconnected");
+  } else if (aStatus == BTAV_CONNECTION_STATE_CONNECTING) {
+    aState = NS_LITERAL_STRING("connecting");
+  } else if (aStatus == BTAV_CONNECTION_STATE_CONNECTED) {
+    aState = NS_LITERAL_STRING("connected");
+  } else if (aStatus == BTAV_CONNECTION_STATE_DISCONNECTING) {
+    aState = NS_LITERAL_STRING("disconnecting");
+  } else {
+    BT_WARNING("Unknown sink state");
+  }
+}
+
+static void
+A2dpConnectionStateCallback(btav_connection_state_t aState,
+                            bt_bdaddr_t* aBdAddress)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  nsString remoteDeviceBdAddress;
+  BdAddressTypeToString(aBdAddress, remoteDeviceBdAddress);
+
+  nsString a2dpState;
+  AvStatusToSinkString(aState, a2dpState);
+
+  InfallibleTArray<BluetoothNamedValue> props;
+  props.AppendElement(
+    BluetoothNamedValue(NS_LITERAL_STRING("State"), a2dpState));
+
+  BluetoothSignal signal(NS_LITERAL_STRING("AudioSink"),
+                         remoteDeviceBdAddress, props);
+  NS_DispatchToMainThread(new SinkPropertyChangedHandler(signal));
+}
+
+static void
+A2dpAudioStateCallback(btav_audio_state_t aState,
+                       bt_bdaddr_t* aBdAddress)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  nsString remoteDeviceBdAddress;
+  BdAddressTypeToString(aBdAddress, remoteDeviceBdAddress);
+
+  nsString a2dpState;
+
+  if (aState == BTAV_AUDIO_STATE_STARTED) {
+    a2dpState = NS_LITERAL_STRING("playing");
+  } else if (aState == BTAV_AUDIO_STATE_STOPPED) {
+    
+    a2dpState = NS_LITERAL_STRING("connected");
+  } else if (aState == BTAV_AUDIO_STATE_REMOTE_SUSPEND) {
+    
+    a2dpState = NS_LITERAL_STRING("connected");
+  }
+
+  InfallibleTArray<BluetoothNamedValue> props;
+  props.AppendElement(
+    BluetoothNamedValue(NS_LITERAL_STRING("State"), a2dpState));
+
+  BluetoothSignal signal(NS_LITERAL_STRING("AudioSink"),
+                         remoteDeviceBdAddress, props);
+  NS_DispatchToMainThread(new SinkPropertyChangedHandler(signal));
+}
+
+static btav_callbacks_t sBtA2dpCallbacks = {
+  sizeof(sBtA2dpCallbacks),
+  A2dpConnectionStateCallback,
+  A2dpAudioStateCallback
+};
+
+
+
+
+
+
+
 bool
 BluetoothA2dpManager::Init()
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  const bt_interface_t* btInf = GetBluetoothInterface();
+  NS_ENSURE_TRUE(btInf, false);
+  sBtA2dpInterface = (btav_interface_t *)btInf->
+    get_profile_interface(BT_PROFILE_ADVANCED_AUDIO_ID);
+  NS_ENSURE_TRUE(sBtA2dpInterface, false);
 
-  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  NS_ENSURE_TRUE(obs, false);
-  if (NS_FAILED(obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false))) {
-    BT_WARNING("Failed to add shutdown observer!");
+  int ret = sBtA2dpInterface->init(&sBtA2dpCallbacks);
+  if (ret != BT_STATUS_SUCCESS) {
+    BT_LOGR("failed to init a2dp module");
     return false;
   }
-
   return true;
 }
 
@@ -92,6 +203,10 @@ BluetoothA2dpManager::ResetAvrcp()
   mPosition = 0;
   mPlayStatus = ControlPlayStatus::PLAYSTATUS_UNKNOWN;
 }
+
+
+
+
 
 static BluetoothA2dpManager::SinkState
 StatusStringToSinkState(const nsAString& aStatus)
@@ -165,11 +280,11 @@ BluetoothA2dpManager::Connect(const nsAString& aDeviceAddress,
   mDeviceAddress = aDeviceAddress;
   mController = aController;
 
-  if (NS_FAILED(bs->SendSinkMessage(aDeviceAddress,
-                                    NS_LITERAL_STRING("Connect")))) {
-    aController->OnConnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
-    return;
-  }
+  bt_bdaddr_t remoteAddress;
+  StringToBdAddressType(aDeviceAddress, &remoteAddress);
+  NS_ENSURE_TRUE_VOID(sBtA2dpInterface);
+  NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
+                      sBtA2dpInterface->connect(&remoteAddress));
 }
 
 void
@@ -195,10 +310,11 @@ BluetoothA2dpManager::Disconnect(BluetoothProfileController* aController)
 
   mController = aController;
 
-  if (NS_FAILED(bs->SendSinkMessage(mDeviceAddress,
-                                    NS_LITERAL_STRING("Disconnect")))) {
-    aController->OnDisconnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
-    return;
+  bt_bdaddr_t remoteAddress;
+  StringToBdAddressType(mDeviceAddress, &remoteAddress);
+  if (sBtA2dpInterface) {
+    NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
+                        sBtA2dpInterface->disconnect(&remoteAddress));
   }
 }
 
@@ -254,7 +370,8 @@ void
 BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aSignal.value().type() == BluetoothValue::TArrayOfBluetoothNamedValue);
+  MOZ_ASSERT(aSignal.value().type() ==
+             BluetoothValue::TArrayOfBluetoothNamedValue);
 
   const nsString& address = aSignal.path();
   const InfallibleTArray<BluetoothNamedValue>& arr =
@@ -293,13 +410,12 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
       break;
     case SinkState::SINK_CONNECTED:
       
-      if (prevState == SinkState::SINK_PLAYING) {
+      if (prevState == SinkState::SINK_PLAYING ||
+          prevState == SinkState::SINK_CONNECTED) {
         break;
       }
-      
-      
-      MOZ_ASSERT(prevState == SinkState::SINK_CONNECTING);
 
+      
       mA2dpConnected = true;
       mDeviceAddress = address;
       NotifyConnectionStatusChanged();
