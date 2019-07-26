@@ -489,11 +489,13 @@ ion::HandleException(ResumeFromException *rfe)
             }
         }
 
-        IonJSFrameLayout *current = iter.isBaselineJS() ? iter.jsFrame() : NULL;
+        IonJSFrameLayout *current = iter.isScripted() ? iter.jsFrame() : NULL;
 
         ++iter;
 
         if (current) {
+            
+            
             
             
             
