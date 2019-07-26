@@ -278,6 +278,18 @@ TryAttachNativeStub(JSContext *cx, IonCacheGetProperty &cache, HandleObject obj,
     if (!IsCacheableGetProp(obj, holder, shape))
         return true;
 
+    
+    
+    
+    
+    
+    if (cache.idempotent() &&
+        holder->hasSingletonType() &&
+        holder->getSlot(shape->slot()).isUndefined())
+    {
+        return true;
+    }
+
     *isCacheableNative = true;
 
     if (cache.stubCount() < MAX_STUBS) {
