@@ -6,16 +6,19 @@ function run_test() {
                     .getService(Ci.nsISiteSecurityService);
 
   
-  do_check_true(SSService.isStsHost("bugzilla.mozilla.org", 0));
+  do_check_true(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
+                                       "bugzilla.mozilla.org", 0));
 
   
   let offsetSeconds = 19 * 7 * 24 * 60 * 60;
   Services.prefs.setIntPref("test.currentTimeOffsetSeconds", offsetSeconds);
 
   
-  do_check_false(SSService.isStsHost("bugzilla.mozilla.org", 0));
+  do_check_false(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
+                                        "bugzilla.mozilla.org", 0));
 
   
   Services.prefs.clearUserPref("test.currentTimeOffsetSeconds");
-  do_check_true(SSService.isStsHost("bugzilla.mozilla.org", 0));
+  do_check_true(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
+                                       "bugzilla.mozilla.org", 0));
 }
