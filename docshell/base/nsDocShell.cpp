@@ -1325,7 +1325,6 @@ nsDocShell::LoadURI(nsIURI * aURI,
     if (IsPrintingOrPP()) {
       return NS_OK; 
     }
-    nsresult rv;
     nsCOMPtr<nsIURI> referrer;
     nsCOMPtr<nsIInputStream> postStream;
     nsCOMPtr<nsIInputStream> headersStream;
@@ -1556,14 +1555,8 @@ nsDocShell::LoadURI(nsIURI * aURI,
     }
     if (!owner && !inheritOwner && !ownerIsExplicit) {
         
-        nsCOMPtr<nsIScriptSecurityManager> secMan =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = secMan->SubjectPrincipalIsSystem(&inheritOwner);
-        if (NS_FAILED(rv)) {
-            
-            inheritOwner = false;
-        }
+        inheritOwner = nsContentUtils::IsSystemPrincipal(
+          nsContentUtils::GetSubjectPrincipal());
     }
 
     if (aLoadFlags & LOAD_FLAGS_DISALLOW_INHERIT_OWNER) {
