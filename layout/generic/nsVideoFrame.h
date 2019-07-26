@@ -112,7 +112,7 @@ protected:
   
   
   
-  nsresult UpdatePosterSource(bool aNotify);
+  void UpdatePosterSource(bool aNotify);
 
   virtual ~nsVideoFrame();
 
