@@ -364,6 +364,40 @@ TypeSet::isSubsetIgnorePrimitives(TypeSet *other)
     return true;
 }
 
+bool
+TypeSet::intersectionEmpty(TypeSet *other)
+{
+    
+    
+    
+    if (unknown() || other->unknown())
+        return false;
+
+    if (unknownObject() && unknownObject())
+        return false;
+
+    if (unknownObject() && other->getObjectCount() > 0)
+        return false;
+
+    if (other->unknownObject() && getObjectCount() > 0)
+        return false;
+
+    
+    if ((baseFlags() & other->baseFlags()) != 0)
+        return false;
+
+    
+    for (unsigned i = 0; i < getObjectCount(); i++) {
+        TypeObjectKey *obj = getObject(i);
+        if (!obj)
+            continue;
+        if (other->hasType(Type::ObjectType(obj)))
+            return false;
+    }
+
+    return true;
+}
+
 inline void
 TypeSet::addTypesToConstraint(JSContext *cx, TypeConstraint *constraint)
 {
