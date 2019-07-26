@@ -431,6 +431,17 @@ gfxPlatformMac::UseAcceleratedCanvas()
   return OSXVersion() >= 0x1070 && Preferences::GetBool("gfx.canvas.azure.accelerated", false);
 }
 
+bool
+gfxPlatformMac::SupportsOffMainThreadCompositing()
+{
+  
+  
+  if (OSXVersion() >= 0x1070) {
+    return true;
+  }
+  return GetPrefLayersOffMainThreadCompositionForceEnabled();
+}
+
 qcms_profile *
 gfxPlatformMac::GetPlatformCMSOutputProfile()
 {

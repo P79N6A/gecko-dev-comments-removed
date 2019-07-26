@@ -89,6 +89,8 @@ public:
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 
+    virtual bool SupportsOffMainThreadCompositing();
+
     
     static uint32_t ReadAntiAliasingThreshold();
 
