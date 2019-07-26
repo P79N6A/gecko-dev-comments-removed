@@ -7178,8 +7178,23 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
         Label skipThisReplace;
         masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
 
+        Register scratchReg = JSReturnOperand.scratchReg();
+
         
-        masm.loadValue(Address(BaselineStackReg, 3*sizeof(size_t)), JSReturnOperand);
+        
+        
+        
+        
+        masm.loadPtr(Address(BaselineStackReg, 2*sizeof(size_t)), scratchReg);
+
+        
+        
+        
+        
+        masm.lshiftPtr(Imm32(1), scratchReg);
+        BaseIndex reloadThisSlot(BaselineStackReg, scratchReg, TimesEight,
+                                 STUB_FRAME_SIZE + sizeof(Value) + 3*sizeof(size_t));
+        masm.loadValue(reloadThisSlot, JSReturnOperand);
 #ifdef DEBUG
         masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
         masm.breakpoint();
