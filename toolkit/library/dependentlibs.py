@@ -103,7 +103,11 @@ def dependentlibs(lib, libpaths, func):
             deppath = os.path.join(dir, dep)
             if os.path.exists(deppath):
                 deps.extend([d for d in dependentlibs(deppath, libpaths, func) if not d in deps])
-                deps.append(dep)
+		
+		
+		
+		if not dep.startswith("icudt"):
+                    deps.append(dep)
                 break
 
     return deps
