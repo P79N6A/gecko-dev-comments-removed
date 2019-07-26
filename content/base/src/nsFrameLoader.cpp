@@ -1379,6 +1379,12 @@ nsFrameLoader::ShouldUseRemoteProcess()
 
   
   
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    return false;
+  }
+
+  
+  
   if (OwnerIsBrowserFrame() &&
       !mOwnerContent->HasAttr(kNameSpaceID_None, nsGkAtoms::Remote)) {
 

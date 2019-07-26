@@ -20,8 +20,6 @@
 
 using namespace mozilla;
 
-static bool sIgnoreXFrameOptions = false;
-
 
 
 
@@ -30,18 +28,6 @@ nsDSURIContentListener::nsDSURIContentListener(nsDocShell* aDocShell)
     : mDocShell(aDocShell), 
       mParentContentListener(nsnull)
 {
-  static bool initializedPrefCache = false;
-
-  
-  if (NS_UNLIKELY(!initializedPrefCache)) {
-    
-    nsIPrefBranch *root = Preferences::GetRootBranch();
-    if (XRE_GetProcessType() != GeckoProcessType_Content)
-      root->LockPref("b2g.ignoreXFrameOptions");
-
-    Preferences::AddBoolVarCache(&sIgnoreXFrameOptions, "b2g.ignoreXFrameOptions");
-    initializedPrefCache = true;
-  }
 }
 
 nsDSURIContentListener::~nsDSURIContentListener()
@@ -292,8 +278,10 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
         if (!thisWindow)
             return true;
 
+        
+        
         nsCOMPtr<nsIDOMWindow> topWindow;
-        thisWindow->GetTop(getter_AddRefs(topWindow));
+        thisWindow->GetScriptableTop(getter_AddRefs(topWindow));
 
         
         if (thisWindow == topWindow)
@@ -318,8 +306,17 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
 
         
         
+        
         while (NS_SUCCEEDED(curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem))) &&
                parentDocShellItem) {
+
+            nsCOMPtr<nsIDocShell> curDocShell = do_QueryInterface(curDocShellItem);
+            bool browserFrame = false;
+            curDocShell->GetIsBrowserFrame(&browserFrame);
+            if (browserFrame) {
+              break;
+            }
+
             bool system = false;
             topDoc = do_GetInterface(parentDocShellItem);
             if (topDoc) {
@@ -369,11 +366,6 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
 
 bool nsDSURIContentListener::CheckFrameOptions(nsIRequest *request)
 {
-    
-    if (sIgnoreXFrameOptions) {
-        return true;
-    }
-
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
     if (!httpChannel) {
         return true;

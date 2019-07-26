@@ -310,9 +310,7 @@ private:
     nsCOMPtr<nsICacheEntryDescriptor> mOfflineCacheEntry;
     nsCacheAccessMode                 mOfflineCacheAccess;
     PRUint32                          mOfflineCacheLastModifiedTime;
-    nsCString                         mOfflineCacheClientID;
-
-    nsCOMPtr<nsIFile>                 mProfileDirectory;
+    nsCOMPtr<nsIApplicationCache>     mApplicationCacheForWrite;
 
     
     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
@@ -340,7 +338,6 @@ private:
     PRUint32                          mAuthRetryPending         : 1;
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
-    PRUint32                          mCacheForOfflineUse       : 1;
     
     
     PRUint32                          mFallbackChannel          : 1;

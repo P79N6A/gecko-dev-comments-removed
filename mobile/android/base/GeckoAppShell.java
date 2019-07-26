@@ -8,6 +8,7 @@ package org.mozilla.gecko;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
+import org.mozilla.gecko.gfx.GfxInfoThread;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.LayerView;
@@ -20,6 +21,8 @@ import org.mozilla.gecko.gfx.RectUtils;
 import java.io.*;
 import java.lang.reflect.*;
 import java.nio.*;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.text.*;
 import java.util.*;
 import java.util.zip.*;
@@ -1052,6 +1055,79 @@ public class GeckoAppShell
         if (subType == null)
             subType = "*";
         return type + "/" + subType;
+    }
+
+    static void safeStreamClose(Closeable stream) {
+        try {
+            if (stream != null)
+                stream.close();
+        } catch (IOException e) {}
+    }
+
+    static void shareImage(String aSrc, String aType) {
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        boolean isDataURI = aSrc.startsWith("data:");
+        OutputStream os = null;
+
+        File dir = GeckoApp.getTempDirectory();
+        GeckoApp.deleteTempFiles();
+
+        try {
+            
+            File imageFile = File.createTempFile("image",
+                                                 "." + aType.replace("image/",""),
+                                                 dir);
+            os = new FileOutputStream(imageFile);
+
+            if (isDataURI) {
+                
+                int dataStart = aSrc.indexOf(',');
+                byte[] buf = Base64.decode(aSrc.substring(dataStart+1), Base64.DEFAULT);
+                os.write(buf);
+            } else {
+                
+                InputStream is = null;
+                try {
+                    URL url = new URL(aSrc);
+                    is = url.openStream();
+                    byte[] buf = new byte[2048];
+                    int length;
+
+                    while ((length = is.read(buf)) != -1) {
+                        os.write(buf, 0, length);
+                    }
+                } finally {
+                    safeStreamClose(is);
+                }
+            }
+            intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(imageFile));
+
+            
+            
+            if (aType.startsWith("image/")) {
+                intent.setType(aType);
+            } else {
+                intent.setType("image/*");
+            }
+        } catch (IOException e) {
+            if (!isDataURI) {
+               
+               intent.putExtra(Intent.EXTRA_TEXT, aSrc);
+               intent.setType("text/plain");
+            } else {
+               
+               Toast toast = Toast.makeText(GeckoApp.mAppContext,
+                                            GeckoApp.mAppContext.getResources().getString(R.string.share_image_failed),
+                                            Toast.LENGTH_SHORT);
+               toast.show();
+               return;
+            }
+        } finally {
+            safeStreamClose(os);
+        }
+        GeckoApp.mAppContext.startActivity(Intent.createChooser(intent,
+                GeckoApp.mAppContext.getResources().getString(R.string.share_title)));
     }
 
     static boolean openUriExternal(String aUriSpec, String aMimeType, String aPackageName,

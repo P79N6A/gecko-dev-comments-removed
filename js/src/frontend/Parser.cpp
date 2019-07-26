@@ -76,10 +76,22 @@ using namespace js::frontend;
     JS_END_MACRO
 #define MUST_MATCH_TOKEN(tt, errno) MUST_MATCH_TOKEN_WITH_FLAGS(tt, errno, 0)
 
-bool
+StrictMode::StrictModeState
 StrictModeGetter::get() const
 {
-    return parser->tc->sc->inStrictMode();
+    return parser->tc->sc->strictModeState;
+}
+
+CompileError *
+StrictModeGetter::queuedStrictModeError() const
+{
+    return parser->tc->queuedStrictModeError;
+}
+
+void
+StrictModeGetter::setQueuedStrictModeError(CompileError *e)
+{
+    parser->tc->setQueuedStrictModeError(e);
 }
 
 static void
@@ -165,7 +177,8 @@ Parser::newObjectBox(JSObject *obj)
     return objbox;
 }
 
-FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc)
+FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc,
+                         StrictMode::StrictModeState sms)
   : ObjectBox(traceListHead, obj),
     node(fn),
     siblings(tc->functionList),
@@ -174,6 +187,7 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn,
     bindings(),
     level(tc->staticLevel),
     ndefaults(0),
+    strictModeState(sms),
     inLoop(false),
     inWith(!!tc->innermostWith),
     inGenexpLambda(false),
@@ -197,7 +211,8 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn,
 }
 
 FunctionBox *
-Parser::newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc)
+Parser::newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc,
+                       StrictMode::StrictModeState sms)
 {
     JS_ASSERT(obj && !IsPoisonedPtr(obj));
     JS_ASSERT(obj->isFunction());
@@ -209,7 +224,7 @@ Parser::newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc)
 
 
 
-    FunctionBox *funbox = context->tempLifoAlloc().new_<FunctionBox>(traceListHead, obj, fn, tc);
+    FunctionBox *funbox = context->tempLifoAlloc().new_<FunctionBox>(traceListHead, obj, fn, tc, sms);
     if (!funbox) {
         js_ReportOutOfMemory(context);
         return NULL;
@@ -261,7 +276,8 @@ Parser::parse(JSObject *chain)
 
 
 
-    SharedContext globalsc(context, chain,  NULL,  NULL);
+    SharedContext globalsc(context, chain,  NULL,  NULL,
+                           StrictModeFromContext(context));
     TreeContext globaltc(this, &globalsc,  0,  0);
     if (!globaltc.init())
         return NULL;
@@ -520,13 +536,13 @@ CheckStrictParameters(JSContext *cx, Parser *parser)
                 return false;
         }
 
-        if (sc->inStrictMode() && FindKeyword(name->charsZ(), name->length())) {
+        if (sc->needStrictChecks() && FindKeyword(name->charsZ(), name->length())) {
             
 
 
 
-            JS_ALWAYS_TRUE(!ReportBadParameter(cx, parser, name, JSMSG_RESERVED_ID));
-            return false;
+            if (!ReportBadParameter(cx, parser, name, JSMSG_RESERVED_ID))
+                return false;
         }
 
         
@@ -579,6 +595,11 @@ Parser::functionBody(FunctionBodyType type)
     } else {
         JS_ASSERT(type == ExpressionBody);
         JS_ASSERT(JS_HAS_EXPR_CLOSURES);
+
+        
+        
+        if (!setStrictMode(false))
+            return NULL;
         pn = UnaryNode::create(PNK_RETURN, this);
         if (pn) {
             pn->pn_kid = assignExpr();
@@ -705,7 +726,7 @@ Parser::functionBody(FunctionBodyType type)
 
 
 
-        if (tc->sc->inStrictMode()) {
+        if (tc->sc->needStrictChecks()) {
             for (AtomDefnListMap::Range r = tc->decls.all(); !r.empty(); r.popFront()) {
                 DefinitionList &dlist = r.front().value();
                 for (DefinitionList::Range dr = dlist.all(); !dr.empty(); dr.popFront()) {
@@ -1032,9 +1053,9 @@ Parser::newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
                          JSFUN_INTERPRETED | (kind == Expression ? JSFUN_LAMBDA : 0),
                          parent, atom);
     if (fun && !compileAndGo) {
-        if (!fun->clearParent(context))
+        if (!JSObject::clearParent(context, fun))
             return NULL;
-        if (!fun->clearType(context))
+        if (!JSObject::clearType(context, fun))
             return NULL;
         fun->setEnvironment(NULL);
     }
@@ -1539,18 +1560,19 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         return NULL;
 
     
-    FunctionBox *funbox = newFunctionBox(fun, pn, outertc);
+    StrictMode::StrictModeState sms = (outertc->sc->strictModeState == StrictMode::STRICT) ?
+        StrictMode::STRICT : StrictMode::UNKNOWN;
+
+    
+    FunctionBox *funbox = newFunctionBox(fun, pn, outertc, sms);
     if (!funbox)
         return NULL;
 
     
-    SharedContext funsc(context,  NULL, fun, funbox);
+    SharedContext funsc(context,  NULL, fun, funbox, sms);
     TreeContext funtc(this, &funsc, outertc->staticLevel + 1, outertc->blockidGen);
     if (!funtc.init())
         return NULL;
-
-    if (outertc->sc->inStrictMode())
-        funsc.setInStrictMode();    
 
     
     ParseNode *prelude = NULL;
@@ -1693,7 +1715,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
 
 
-            JS_ASSERT(!outertc->sc->inStrictMode());
+            JS_ASSERT(outertc->sc->strictModeState != StrictMode::STRICT);
             op = JSOP_DEFFUN;
             outertc->sc->setFunMightAliasLocals();
             outertc->sc->setFunHasExtensibleScope();
@@ -1746,10 +1768,9 @@ Parser::functionStmt()
     }
 
     
-    if (!tc->atBodyLevel() && tc->sc->inStrictMode()) {
-        reportStrictModeError(NULL, JSMSG_STRICT_FUNCTION_STATEMENT);
+    if (!tc->atBodyLevel() && tc->sc->needStrictChecks() &&
+        !reportStrictModeError(NULL, JSMSG_STRICT_FUNCTION_STATEMENT))
         return NULL;
-    }
 
     return functionDef(name, Normal, Statement);
 }
@@ -1763,6 +1784,83 @@ Parser::functionExpr()
     else
         tokenStream.ungetToken();
     return functionDef(name, Normal, Expression);
+}
+
+void
+FunctionBox::recursivelySetStrictMode(StrictMode::StrictModeState strictness)
+{
+    if (strictModeState == StrictMode::UNKNOWN) {
+        strictModeState = strictness;
+        for (FunctionBox *kid = kids; kid; kid = kid->siblings)
+            kid->recursivelySetStrictMode(strictness);
+    }
+}
+
+
+
+
+
+bool
+Parser::setStrictMode(bool strictMode)
+{
+    if (tc->sc->strictModeState != StrictMode::UNKNOWN) {
+        
+        JS_ASSERT(tc->sc->strictModeState == StrictMode::STRICT);
+        if (tc->sc->inFunction() && tc->sc->funbox()) {
+            JS_ASSERT(tc->sc->funbox()->strictModeState == tc->sc->strictModeState);
+            JS_ASSERT(tc->parent->sc->strictModeState == StrictMode::STRICT);
+        } else {
+            JS_ASSERT(StrictModeFromContext(context) == StrictMode::STRICT || tc->staticLevel);
+        }
+        return true;
+    }
+    if (strictMode) {
+        if (tc->queuedStrictModeError) {
+            
+            
+            JS_ASSERT(!(tc->queuedStrictModeError->report.flags & JSREPORT_WARNING));
+            tc->queuedStrictModeError->throwError();
+            return false;
+        }
+        tc->sc->strictModeState = StrictMode::STRICT;
+    } else if (!tc->parent || tc->parent->sc->strictModeState == StrictMode::NOTSTRICT) {
+        
+        tc->sc->strictModeState = StrictMode::NOTSTRICT;
+        if (tc->queuedStrictModeError && context->hasStrictOption() &&
+            tc->queuedStrictModeError->report.errorNumber != JSMSG_STRICT_CODE_WITH) {
+            
+            tc->queuedStrictModeError->report.flags |= JSREPORT_WARNING;
+            tc->queuedStrictModeError->throwError();
+        }
+    }
+    JS_ASSERT_IF(!tc->sc->inFunction(), !tc->functionList);
+    if (tc->sc->strictModeState != StrictMode::UNKNOWN && tc->sc->inFunction()) {
+        
+        
+        
+        if (tc->sc->funbox())
+            tc->sc->funbox()->strictModeState = tc->sc->strictModeState;
+        for (FunctionBox *kid = tc->functionList; kid; kid = kid->siblings)
+            kid->recursivelySetStrictMode(tc->sc->strictModeState);
+    }
+    return true;
+}
+
+
+
+
+
+
+static bool
+IsEscapeFreeStringLiteral(const Token &tok)
+{
+    
+
+
+
+
+    return (tok.pos.begin.lineno == tok.pos.end.lineno &&
+            tok.pos.begin.index + tok.atom()->length() + 2 == tok.pos.end.index);
 }
 
 
@@ -1785,52 +1883,45 @@ Parser::functionExpr()
 
 
 bool
-Parser::recognizeDirectivePrologue(ParseNode *pn, bool *isDirectivePrologueMember)
+Parser::processDirectives(ParseNode *stmts)
 {
-    *isDirectivePrologueMember = pn->isStringExprStatement();
-    if (!*isDirectivePrologueMember)
-        return true;
-
-    ParseNode *kid = pn->pn_kid;
-    if (kid->isEscapeFreeStringLiteral()) {
-        
-
-
-
-
-
-
-
-
-
-
-
-        pn->pn_prologue = true;
-
-        JSAtom *directive = kid->pn_atom;
-        if (directive == context->runtime->atomState.useStrictAtom) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (tokenStream.hasOctalCharacterEscape()) {
-                reportError(NULL, JSMSG_DEPRECATED_OCTAL);
+    bool gotStrictMode = false;
+    for (TokenKind tt = tokenStream.getToken(TSF_OPERAND); tt == TOK_STRING; tt = tokenStream.getToken(TSF_OPERAND)) {
+        ParseNode *stringNode = atomNode(PNK_STRING, JSOP_STRING);
+        if (!stringNode)
+            return false;
+        const Token directive = tokenStream.currentToken();
+        bool isDirective = IsEscapeFreeStringLiteral(directive);
+        JSAtom *atom = directive.atom();
+        TokenKind next = tokenStream.peekTokenSameLine();
+        if (next != TOK_EOF && next != TOK_EOL && next != TOK_SEMI && next != TOK_RC) {
+            freeTree(stringNode);
+            if (next == TOK_ERROR)
                 return false;
-            }
-
-            tc->sc->setInStrictMode();
+            break;
         }
+        tokenStream.matchToken(TOK_SEMI);
+        if (isDirective) {
+            
+            if (atom == context->runtime->atomState.useStrictAtom && !gotStrictMode) {
+                if (!setStrictMode(true))
+                    return false;
+                gotStrictMode = true;
+            }
+        }
+        ParseNode *stmt = UnaryNode::create(PNK_SEMI, this);
+        if (!stmt) {
+            freeTree(stringNode);
+            return false;
+        }
+        stmt->pn_pos = stringNode->pn_pos;
+        stmt->pn_kid = stringNode;
+        stmt->pn_prologue = isDirective;
+        stmts->append(stmt);
     }
+    tokenStream.ungetToken();
+    if (!gotStrictMode && !setStrictMode(false))
+        return false;
     return true;
 }
 
@@ -1854,8 +1945,8 @@ Parser::statements(bool *hasFunctionStmt)
     ParseNode *saveBlock = tc->blockNode;
     tc->blockNode = pn;
 
-    bool inDirectivePrologue = tc->atBodyLevel();
-    tokenStream.setOctalCharacterEscape(false);
+    if (tc->atBodyLevel() && !processDirectives(pn))
+        return NULL;
     for (;;) {
         TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF || tt == TOK_RC) {
@@ -1872,9 +1963,6 @@ Parser::statements(bool *hasFunctionStmt)
                 tokenStream.setUnexpectedEOF();
             return NULL;
         }
-
-        if (inDirectivePrologue && !recognizeDirectivePrologue(next, &inDirectivePrologue))
-            return NULL;
 
         if (next->isKind(PNK_FUNCTION)) {
             
@@ -2013,8 +2101,8 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
 
 
     bool redeclared;
-    jsid id = AtomToId(atom);
-    Shape *shape = blockObj->addVar(cx, id, blockCount, &redeclared);
+    RootedId id(cx, AtomToId(atom));
+    Shape *shape = StaticBlockObject::addVar(cx, blockObj, id, blockCount, &redeclared);
     if (!shape) {
         if (redeclared)
             ReportRedeclaration(cx, parser, pn, false, atom);
@@ -2062,7 +2150,7 @@ PopStatementTC(TreeContext *tc)
 }
 
 static inline bool
-OuterLet(TreeContext *tc, StmtInfoTC *stmt, JSAtom *atom)
+OuterLet(TreeContext *tc, StmtInfoTC *stmt, HandleAtom atom)
 {
     while (stmt->downScope) {
         stmt = LexicalLookup(tc, atom, NULL, stmt->downScope);
@@ -2110,8 +2198,10 @@ BindFunctionLocal(JSContext *cx, BindData *data, DefinitionList::Range &defs, Tr
 }
 
 static bool
-BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
+BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom_, Parser *parser)
 {
+    RootedAtom atom(cx, atom_);
+
     TreeContext *tc = parser->tc;
     ParseNode *pn = data->pn;
 
@@ -2310,7 +2400,7 @@ NoteLValue(JSContext *cx, ParseNode *pn, SharedContext *sc, unsigned dflag = PND
 static bool
 NoteNameUse(ParseNode *pn, Parser *parser)
 {
-    PropertyName *name = pn->pn_atom->asPropertyName();
+    RootedPropertyName name(parser->context, pn->pn_atom->asPropertyName());
     StmtInfoTC *stmt = LexicalLookup(parser->tc, name, NULL, (StmtInfoTC *)NULL);
 
     DefinitionList::Range defs = parser->tc->decls.lookupMulti(name);
@@ -2562,7 +2652,8 @@ CheckDestructuring(JSContext *cx, BindData *data, ParseNode *left, Parser *parse
 
     if (toplevel && blockObj && blockCountBefore == blockObj->slotCount()) {
         bool redeclared;
-        if (!blockObj->addVar(cx, INT_TO_JSID(blockCountBefore), blockCountBefore, &redeclared))
+        RootedId id(cx, INT_TO_JSID(blockCountBefore));
+        if (!StaticBlockObject::addVar(cx, blockObj, id, blockCountBefore, &redeclared))
             return false;
         JS_ASSERT(!redeclared);
         JS_ASSERT(blockObj->slotCount() == blockCountBefore + 1);
@@ -3546,17 +3637,15 @@ Parser::withStatement()
     JS_ASSERT(tokenStream.isCurrentTokenType(TOK_WITH));
 
     
-
-
-
-
-
-
-
-    if (tc->sc->inStrictMode()) {
-        reportError(NULL, JSMSG_STRICT_CODE_WITH);
+    
+    
+    
+    
+    
+    
+    
+    if (!reportStrictModeError(NULL, JSMSG_STRICT_CODE_WITH))
         return NULL;
-    }
 
     ParseNode *pn = BinaryNode::create(PNK_WITH, this);
     if (!pn)
@@ -5044,7 +5133,7 @@ CompExprTransplanter::transplant(ParseNode *pn)
                 AdjustBlockId(dn, adjust, tc);
             }
 
-            JSAtom *atom = pn->pn_atom;
+            RootedAtom atom(parser->context, pn->pn_atom);
 #ifdef DEBUG
             StmtInfoTC *stmt = LexicalLookup(tc, atom, NULL, (StmtInfoTC *)NULL);
             JS_ASSERT(!stmt || stmt != tc->topStmt);
@@ -5391,11 +5480,11 @@ Parser::generatorExpr(ParseNode *kid)
             return NULL;
 
         
-        FunctionBox *funbox = newFunctionBox(fun, genfn, outertc);
+        FunctionBox *funbox = newFunctionBox(fun, genfn, outertc, outertc->sc->strictModeState);
         if (!funbox)
             return NULL;
 
-        SharedContext gensc(context,  NULL, fun, funbox);
+        SharedContext gensc(context,  NULL, fun, funbox, outertc->sc->strictModeState);
         TreeContext gentc(this, &gensc, outertc->staticLevel + 1, outertc->blockidGen);
         if (!gentc.init())
             return NULL;
@@ -5723,7 +5812,7 @@ Parser::memberExpr(bool allowCallSyntax)
 
 
 
-                    if (!tc->sc->inStrictMode())
+                    if (tc->sc->strictModeState != StrictMode::STRICT)
                         tc->sc->setFunHasExtensibleScope();
                 }
             } else if (lhs->isOp(JSOP_GETPROP)) {
@@ -6367,11 +6456,10 @@ Parser::parseXMLText(JSObject *chain, bool allowList)
 
 
 
-    SharedContext xmlsc(context, chain,  NULL,  NULL);
+    SharedContext xmlsc(context, chain,  NULL,  NULL, StrictMode::NOTSTRICT);
     TreeContext xmltc(this, &xmlsc,  0,  0);
     if (!xmltc.init())
         return NULL;
-    JS_ASSERT(!xmlsc.inStrictMode());
 
     
     tokenStream.setXMLOnlyMode();
@@ -6875,9 +6963,9 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
                         return NULL;
 
                     Reporter reporter = 
-                        (oldAssignType == VALUE && assignType == VALUE && !tc->sc->inStrictMode())
+                        (oldAssignType == VALUE && assignType == VALUE && !tc->sc->needStrictChecks())
                         ? &Parser::reportWarning
-                        : &Parser::reportError;
+                        : (tc->sc->needStrictChecks() ? &Parser::reportStrictModeError : &Parser::reportError);
                     if (!(this->*reporter)(NULL, JSMSG_DUPLICATE_PROPERTY, name.ptr()))
                         return NULL;
                 }
@@ -6931,31 +7019,38 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
 #if JS_HAS_XML_SUPPORT
       case TOK_AT:
       case TOK_STAR:
+        if (!allowsXML())
+            goto syntaxerror;
         pn = starOrAtPropertyIdentifier(tt);
         break;
 
       case TOK_XMLSTAGO:
+        if (!allowsXML())
+            goto syntaxerror;
         pn = xmlElementOrListRoot(true);
         if (!pn)
             return NULL;
         break;
 
       case TOK_XMLCDATA:
-        JS_ASSERT(allowsXML());
+        if (!allowsXML())
+            goto syntaxerror;
         pn = atomNode(PNK_XMLCDATA, JSOP_XMLCDATA);
         if (!pn)
             return NULL;
         break;
 
       case TOK_XMLCOMMENT:
-        JS_ASSERT(allowsXML());
+        if (!allowsXML())
+            goto syntaxerror;
         pn = atomNode(PNK_XMLCOMMENT, JSOP_XMLCOMMENT);
         if (!pn)
             return NULL;
         break;
 
       case TOK_XMLPI: {
-        JS_ASSERT(allowsXML());
+        if (!allowsXML())
+            goto syntaxerror;
         const Token &tok = tokenStream.currentToken();
         pn = new_<XMLProcessingInstruction>(tok.xmlPITarget(), tok.xmlPIData(), tok.pos);
         if (!pn)
@@ -6989,9 +7084,9 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
             return NULL;
 
         if (!compileAndGo) {
-            if (!reobj->clearParent(context))
+            if (!JSObject::clearParent(context, reobj))
                 return NULL;
-            if (!reobj->clearType(context))
+            if (!JSObject::clearType(context, reobj))
                 return NULL;
         }
 
@@ -7024,6 +7119,7 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
         
         return NULL;
 
+    syntaxerror:
       default:
         reportError(NULL, JSMSG_SYNTAX_ERROR);
         return NULL;

@@ -617,19 +617,7 @@ NS_IMETHODIMP
 nsEditor::DoTransaction(nsITransaction* aTxn)
 {
   if (mPlaceHolderBatch && !mPlaceHolderTxn) {
-    
-    
-
-    
-    nsRefPtr<EditTxn> editTxn = new PlaceholderTxn();
-
-    
-    
-    nsCOMPtr<nsIAbsorbingTransaction> plcTxn;
-    editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction),
-                            getter_AddRefs(plcTxn));
-    
-    
+    nsCOMPtr<nsIAbsorbingTransaction> plcTxn = new PlaceholderTxn();
 
     
     mPlaceHolderTxn = do_GetWeakReference(plcTxn);
@@ -637,7 +625,6 @@ nsEditor::DoTransaction(nsITransaction* aTxn)
     
     mSelState = nsnull;
 
-    
     
     nsCOMPtr<nsITransaction> theTxn = do_QueryInterface(plcTxn);
     
@@ -1744,9 +1731,10 @@ nsEditor::MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset)
   }
 
   
-  res = DeleteNode(aNode);
+  nsCOMPtr<nsIDOMNode> node = aNode;
+  res = DeleteNode(node);
   NS_ENSURE_SUCCESS(res, res);
-  return InsertNode(aNode, aParent, aOffset);
+  return InsertNode(node, aParent, aOffset);
 }
 
 
@@ -3124,6 +3112,7 @@ already_AddRefed<nsIDOMNode>
 nsEditor::GetNodeLocation(nsIDOMNode* aChild, PRInt32* outOffset)
 {
   MOZ_ASSERT(aChild && outOffset);
+  NS_ENSURE_TRUE(aChild && outOffset, nsnull);
   *outOffset = -1;
 
   nsCOMPtr<nsIDOMNode> parent;

@@ -442,44 +442,22 @@ nsSVGGlyphFrame::UpdateBounds()
 
   mRect.SetEmpty();
 
+  PRUint32 flags = nsSVGUtils::eBBoxIncludeFill |
+                   nsSVGUtils::eBBoxIncludeStroke |
+                   nsSVGUtils::eBBoxIncludeMarkers;
   
   
-  nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
-
-  bool hasStroke = HasStroke();
-  if (hasStroke) {
-    SetupCairoStrokeGeometry(tmpCtx);
-  } else if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {
-    return;
+  
+  
+  
+  PRUint16 hitTestFlags = GetHitTestFlags();
+  if ((hitTestFlags & SVG_HIT_TEST_FILL)) {
+   flags |= nsSVGUtils::eBBoxIncludeFillGeometry;
   }
-
-  CharacterIterator iter(this, true);
-  iter.SetInitialMatrix(tmpCtx);
-  AddBoundingBoxesToPath(&iter, tmpCtx);
-  tmpCtx->IdentityMatrix();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxRect extent = tmpCtx->GetUserPathExtent();
-  if (hasStroke) {
-    extent =
-      nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this, gfxMatrix());
+  if ((hitTestFlags & SVG_HIT_TEST_STROKE)) {
+   flags |= nsSVGUtils::eBBoxIncludeStrokeGeometry;
   }
+  gfxRect extent = GetBBoxContribution(gfxMatrix(), flags);
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
@@ -603,18 +581,36 @@ nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
   gfxRect bbox;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
   gfxRect pathExtents = tmpCtx->GetUserPathExtent();
 
   
-  if ((aFlags & nsSVGUtils::eBBoxIncludeFill) != 0 &&
-      ((aFlags & nsSVGUtils::eBBoxIgnoreFillIfNone) == 0 ||
+  if ((aFlags & nsSVGUtils::eBBoxIncludeFillGeometry) ||
+      ((aFlags & nsSVGUtils::eBBoxIncludeFill) &&
        GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None)) {
     bbox = pathExtents;
   }
 
   
-  if ((aFlags & nsSVGUtils::eBBoxIncludeStroke) != 0 &&
-      ((aFlags & nsSVGUtils::eBBoxIgnoreStrokeIfNone) == 0 || HasStroke())) {
+  if ((aFlags & nsSVGUtils::eBBoxIncludeStrokeGeometry) ||
+      ((aFlags & nsSVGUtils::eBBoxIncludeStroke) && HasStroke())) {
     bbox =
       bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
                                                            this,

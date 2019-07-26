@@ -1145,6 +1145,15 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
 
     
     
+    if (pref && PREF_CHANGED(HTTP_PREF("diagnostics"))) {
+        rv = prefs->GetBoolPref(HTTP_PREF("diagnostics"), &cVar);
+        if (NS_SUCCEEDED(rv) && cVar) {
+            if (mConnMgr)
+                mConnMgr->PrintDiagnostics();
+        }
+    }
+    
+    
     
 
     if (PREF_CHANGED(INTL_ACCEPT_LANGUAGES)) {

@@ -12,7 +12,7 @@ import tempfile
 class DeviceManagerADB(DeviceManager):
 
   def __init__(self, host=None, port=20701, retrylimit=5, packageName='fennec',
-               adbPath='adb', deviceSerial=None):
+               adbPath='adb', deviceSerial=None, deviceRoot=None):
     self.host = host
     self.port = port
     self.retrylimit = retrylimit
@@ -24,7 +24,7 @@ class DeviceManagerADB(DeviceManager):
     self.useZip = False
     self.packageName = None
     self.tempDir = None
-    self.deviceRoot = None
+    self.deviceRoot = deviceRoot
 
     
     self.adbPath = adbPath
@@ -537,6 +537,13 @@ class DeviceManagerADB(DeviceManager):
 
   
   def setupDeviceRoot(self):
+    
+    if self.deviceRoot:
+      if not self.dirExists(self.deviceRoot):
+        if not self.mkDir(self.deviceRoot):
+          raise DMError("Unable to create device root %s" % self.deviceRoot)
+      return
+
     
     
     testRoot = "/data/local/tests"

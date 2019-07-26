@@ -233,6 +233,11 @@ private:
   nsresult
   FindPlugins(bool aCreatePluginList, bool * aPluginsChanged);
 
+  
+  
+  enum nsRegisterType { ePluginRegister, ePluginUnregister };
+  void RegisterWithCategoryManager(nsCString &aMimeType, nsRegisterType aType);
+
   nsresult
   ScanPluginsDirectory(nsIFile *pluginsDir,
                        bool aCreatePluginList,

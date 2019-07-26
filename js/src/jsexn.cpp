@@ -558,6 +558,9 @@ Exception(JSContext *cx, unsigned argc, Value *vp)
     ScriptFrameIter iter(cx);
 
     
+    SkipRoot skip(cx, &iter);
+
+    
     RootedString filename(cx);
     if (args.length() > 1) {
         filename = ToString(cx, args[1]);
@@ -606,11 +609,11 @@ exn_toString(JSContext *cx, unsigned argc, Value *vp)
     }
 
     
-    JSObject &obj = args.thisv().toObject();
+    RootedObject obj(cx, &args.thisv().toObject());
 
     
     Value nameVal;
-    if (!obj.getProperty(cx, cx->runtime->atomState.nameAtom, &nameVal))
+    if (!obj->getProperty(cx, cx->runtime->atomState.nameAtom, &nameVal))
         return false;
 
     
@@ -625,7 +628,7 @@ exn_toString(JSContext *cx, unsigned argc, Value *vp)
 
     
     Value msgVal;
-    if (!obj.getProperty(cx, cx->runtime->atomState.messageAtom, &msgVal))
+    if (!obj->getProperty(cx, cx->runtime->atomState.messageAtom, &msgVal))
         return false;
 
     
@@ -678,12 +681,12 @@ exn_toSource(JSContext *cx, unsigned argc, Value *vp)
     JS_CHECK_RECURSION(cx, return false);
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    JSObject *obj = ToObject(cx, &args.thisv());
+    RootedObject obj(cx, ToObject(cx, &args.thisv()));
     if (!obj)
         return false;
 
     Value nameVal;
-    JSString *name;
+    RootedString name(cx);
     if (!obj->getProperty(cx, cx->runtime->atomState.nameAtom, &nameVal) ||
         !(name = ToString(cx, nameVal)))
     {
@@ -691,7 +694,7 @@ exn_toSource(JSContext *cx, unsigned argc, Value *vp)
     }
 
     Value messageVal;
-    JSString *message;
+    RootedString message(cx);
     if (!obj->getProperty(cx, cx->runtime->atomState.messageAtom, &messageVal) ||
         !(message = js_ValueToSource(cx, messageVal)))
     {
@@ -699,7 +702,7 @@ exn_toSource(JSContext *cx, unsigned argc, Value *vp)
     }
 
     Value filenameVal;
-    JSString *filename;
+    RootedString filename(cx);
     if (!obj->getProperty(cx, cx->runtime->atomState.fileNameAtom, &filenameVal) ||
         !(filename = js_ValueToSource(cx, filenameVal)))
     {

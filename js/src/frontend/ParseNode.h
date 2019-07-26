@@ -810,48 +810,6 @@ struct ParseNode {
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool isStringExprStatement() const {
-        if (getKind() == PNK_SEMI) {
-            JS_ASSERT(pn_arity == PN_UNARY);
-            ParseNode *kid = pn_kid;
-            return kid && kid->getKind() == PNK_STRING && !kid->pn_parens;
-        }
-        return false;
-    }
-
-    
-
-
-
-
-    bool isEscapeFreeStringLiteral() const {
-        JS_ASSERT(isKind(PNK_STRING) && !pn_parens);
-
-        
-
-
-
-
-        JSString *str = pn_atom;
-        return (pn_pos.begin.lineno == pn_pos.end.lineno &&
-                pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
-    }
-
-    
     bool isDirectivePrologueMember() const { return pn_prologue; }
 
 #ifdef JS_HAS_DESTRUCTURING
@@ -1513,6 +1471,7 @@ struct FunctionBox : public ObjectBox
     Bindings        bindings;               
     uint16_t        level;
     uint16_t        ndefaults;
+    StrictMode::StrictModeState strictModeState;
     bool            inLoop:1;               
     bool            inWith:1;               
 
@@ -1520,7 +1479,8 @@ struct FunctionBox : public ObjectBox
 
     ContextFlags    cxFlags;
 
-    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc);
+    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc,
+                StrictMode::StrictModeState sms);
 
     bool funIsHeavyweight()      const { return cxFlags.funIsHeavyweight; }
     bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
@@ -1535,6 +1495,8 @@ struct FunctionBox : public ObjectBox
 
 
     bool inAnyDynamicScope() const;
+
+    void recursivelySetStrictMode(StrictMode::StrictModeState strictness);
 };
 
 } 

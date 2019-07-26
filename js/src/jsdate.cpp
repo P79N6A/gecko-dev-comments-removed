@@ -148,21 +148,23 @@ TimeWithinDay(double t)
 
 
 inline bool
-IsLeapYear(int year)
+IsLeapYear(double year)
 {
-    return year % 4 == 0 && (year % 100 || (year % 400 == 0));
+    JS_ASSERT(ToInteger(year) == year);
+    return fmod(year, 4) == 0 && (fmod(year, 100) != 0 || fmod(year, 400) == 0);
 }
 
-inline int
-DaysInYear(int year)
+inline double
+DaysInYear(double year)
 {
+    if (!MOZ_DOUBLE_IS_FINITE(year))
+        return js_NaN;
     return IsLeapYear(year) ? 366 : 365;
 }
 
-inline int
-DayFromYear(int y)
+inline double
+DayFromYear(double y)
 {
-    
     return 365 * (y - 1970) +
            floor((y - 1969) / 4.0) -
            floor((y - 1901) / 100.0) +
@@ -170,15 +172,20 @@ DayFromYear(int y)
 }
 
 inline double
-TimeFromYear(int y)
+TimeFromYear(double y)
 {
     return DayFromYear(y) * msPerDay;
 }
 
-static int
+static double
 YearFromTime(double t)
 {
-    int y = (int) floor(t / (msPerDay * 365.2425)) + 1970;
+    if (!MOZ_DOUBLE_IS_FINITE(t))
+        return js_NaN;
+
+    JS_ASSERT(ToInteger(t) == t);
+
+    double y = floor(t / (msPerDay * 365.2425)) + 1970;
     double t2 = TimeFromYear(y);
 
     
@@ -202,18 +209,21 @@ DaysInFebruary(int year)
 }
 
 
-inline int
-DayWithinYear(double t, int year)
+inline double
+DayWithinYear(double t, double year)
 {
-    JS_ASSERT(YearFromTime(t) == year);
-    return int(Day(t) - DayFromYear(year));
+    JS_ASSERT_IF(MOZ_DOUBLE_IS_FINITE(t), YearFromTime(t) == year);
+    return Day(t) - DayFromYear(year);
 }
 
-static int
+static double
 MonthFromTime(double t)
 {
-    int year = YearFromTime(t);
-    int d = DayWithinYear(t, year);
+    if (!MOZ_DOUBLE_IS_FINITE(t))
+        return js_NaN;
+
+    double year = YearFromTime(t);
+    double d = DayWithinYear(t, year);
 
     int step;
     if (d < (step = 31))
@@ -242,11 +252,11 @@ MonthFromTime(double t)
 }
 
 
-static int
+static double
 DateFromTime(double t)
 {
-    int year = YearFromTime(t);
-    int d = DayWithinYear(t, year);
+    double year = YearFromTime(t);
+    double d = DayWithinYear(t, year);
 
     int next;
     if (d <= (next = 30))
@@ -289,6 +299,11 @@ DateFromTime(double t)
 static int
 WeekDay(double t)
 {
+    
+
+
+
+    JS_ASSERT(ToInteger(t) == t);
     int result = (int(Day(t)) + 4) % 7;
     if (result < 0)
         result += 7;
@@ -297,6 +312,68 @@ WeekDay(double t)
 
 
 static double LocalTZA; 
+
+inline int
+DayFromMonth(int month, bool isLeapYear)
+{
+    
+
+
+
+    static const int firstDayOfMonth[2][13] = {
+        {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
+        {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}
+    };
+
+    JS_ASSERT(0 <= month && month <= 12);
+    return firstDayOfMonth[isLeapYear][month];
+}
+
+template<typename T>
+inline int
+DayFromMonth(T month, bool isLeapYear) MOZ_DELETE;
+
+
+static double
+MakeDay(double year, double month, double date)
+{
+    
+    if (!MOZ_DOUBLE_IS_FINITE(year) || !MOZ_DOUBLE_IS_FINITE(month) || !MOZ_DOUBLE_IS_FINITE(date))
+        return js_NaN;
+
+    
+    double y = ToInteger(year);
+    double m = ToInteger(month);
+    double dt = ToInteger(date);
+
+    
+    double ym = y + floor(m / 12);
+
+    
+    int mn = int(fmod(m, 12.0));
+    if (mn < 0)
+        mn += 12;
+
+    
+    bool leap = IsLeapYear(ym);
+
+    double yearday = floor(TimeFromYear(ym) / msPerDay);
+    double monthday = DayFromMonth(mn, leap);
+
+    return yearday + monthday + dt - 1;
+}
+
+
+inline double
+MakeDate(double day, double time)
+{
+    
+    if (!MOZ_DOUBLE_IS_FINITE(day) || !MOZ_DOUBLE_IS_FINITE(time))
+        return js_NaN;
+
+    
+    return day * msPerDay + time;
+}
 
 
 
@@ -329,59 +406,6 @@ EquivalentYearForDST(int year)
     return yearStartingWith[IsLeapYear(year)][day];
 }
 
-inline int
-DayFromMonth(int month, bool isLeapYear)
-{
-    
-
-
-
-    static const int firstDayOfMonth[2][13] = {
-        {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
-        {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}
-    };
-
-    JS_ASSERT(0 <= month && month <= 12);
-    return firstDayOfMonth[isLeapYear][month];
-}
-
-
-static double
-MakeDay(double year, double month, double date)
-{
-    if (!MOZ_DOUBLE_IS_FINITE(year) || !MOZ_DOUBLE_IS_FINITE(month) || !MOZ_DOUBLE_IS_FINITE(date))
-        return js_NaN;
-
-    JS_ASSERT(ToInteger(year) == year);
-    JS_ASSERT(ToInteger(month) == month);
-    JS_ASSERT(ToInteger(date) == date);
-
-    year += floor(month / 12);
-
-    month = fmod(month, 12.0);
-    if (month < 0)
-        month += 12;
-
-    bool leap = IsLeapYear((int) year);
-
-    double yearday = floor(TimeFromYear(year) / msPerDay);
-    double monthday = DayFromMonth(month, leap);
-
-    return yearday + monthday + date - 1;
-}
-
-
-inline double
-MakeDate(double day, double time)
-{
-    
-    if (!MOZ_DOUBLE_IS_FINITE(day) || !MOZ_DOUBLE_IS_FINITE(time))
-        return js_NaN;
-
-    
-    return day * msPerDay + time;
-}
-
 
 static double
 DaylightSavingTA(double t, JSContext *cx)
@@ -394,7 +418,7 @@ DaylightSavingTA(double t, JSContext *cx)
 
 
     if (t < 0.0 || t > 2145916800000.0) {
-        int year = EquivalentYearForDST(YearFromTime(t));
+        int year = EquivalentYearForDST(int(YearFromTime(t)));
         double day = MakeDay(year, MonthFromTime(t), DateFromTime(t));
         t = MakeDate(day, TimeWithinDay(t));
     }
@@ -433,39 +457,39 @@ const double msPerSecond = 1000;
 const double msPerMinute = msPerSecond * SecondsPerMinute;
 const double msPerHour = msPerMinute * MinutesPerHour;
 
-static int
+static double
 HourFromTime(double t)
 {
-    int result = (int) fmod(floor(t/msPerHour), HoursPerDay);
+    double result = fmod(floor(t/msPerHour), HoursPerDay);
     if (result < 0)
-        result += int(HoursPerDay);
+        result += HoursPerDay;
     return result;
 }
 
-static int
+static double
 MinFromTime(double t)
 {
-    int result = (int) fmod(floor(t / msPerMinute), MinutesPerHour);
+    double result = fmod(floor(t / msPerMinute), MinutesPerHour);
     if (result < 0)
-        result += int(MinutesPerHour);
+        result += MinutesPerHour;
     return result;
 }
 
-static int
+static double
 SecFromTime(double t)
 {
-    int result = (int) fmod(floor(t / msPerSecond), SecondsPerMinute);
+    double result = fmod(floor(t / msPerSecond), SecondsPerMinute);
     if (result < 0)
-        result += int(SecondsPerMinute);
+        result += SecondsPerMinute;
     return result;
 }
 
-static int
+static double
 msFromTime(double t)
 {
-    int result = (int) fmod(t, msPerSecond);
+    double result = fmod(t, msPerSecond);
     if (result < 0)
-        result += int(msPerSecond);
+        result += msPerSecond;
     return result;
 }
 
@@ -500,15 +524,6 @@ MakeTime(double hour, double min, double sec, double ms)
 
 
 const double SecondsPerDay = SecondsPerMinute * MinutesPerHour * HoursPerDay;
-
-
-static int
-DaysInMonth(int year, int month)
-{
-    bool leap = IsLeapYear(year);
-    int result = int(DayFromMonth(month, leap) - DayFromMonth(month - 1, leap));
-    return result;
-}
 
 
 
@@ -600,14 +615,7 @@ static double
 date_msecFromDate(double year, double mon, double mday, double hour,
                   double min, double sec, double msec)
 {
-    double day;
-    double msec_time;
-    double result;
-
-    day = MakeDay(year, mon, mday);
-    msec_time = MakeTime(hour, min, sec, msec);
-    result = MakeDate(day, msec_time);
-    return result;
+    return MakeDate(MakeDay(year, mon, mday), MakeTime(hour, min, sec, msec));
 }
 
 
@@ -729,6 +737,14 @@ ndigits(size_t n, size_t *result, const jschar *s, size_t* i, size_t limit)
 
     *i = init;
     return JS_FALSE;
+}
+
+static int
+DaysInMonth(int year, int month)
+{
+    bool leap = IsLeapYear(year);
+    int result = int(DayFromMonth(month, leap) - DayFromMonth(month - 1, leap));
+    return result;
 }
 
 
@@ -1291,8 +1307,8 @@ FillLocalTimes(JSContext *cx, JSObject *obj)
 
     obj->setSlot(JSObject::JSSLOT_DATE_LOCAL_TIME, DoubleValue(localTime));
 
-    int year = (int) floor(localTime /(msPerDay*365.2425)) + 1970;
-    double yearStartTime = (double) TimeFromYear(year);
+    int year = (int) floor(localTime /(msPerDay * 365.2425)) + 1970;
+    double yearStartTime = TimeFromYear(year);
 
     
     int yearDays;
@@ -1536,11 +1552,8 @@ date_getUTCMonth(JSContext *cx, unsigned argc, Value *vp)
     if (!thisObj)
         return true;
 
-    double result = thisObj->getDateUTCTime().toNumber();
-    if (MOZ_DOUBLE_IS_FINITE(result))
-        result = MonthFromTime(result);
-
-    args.rval().setNumber(result);
+    double d = thisObj->getDateUTCTime().toNumber();
+    args.rval().setNumber(MonthFromTime(d));
     return true;
 }
 
@@ -2413,27 +2426,29 @@ static const char* months[] =
 static void
 print_gmt_string(char* buf, size_t size, double utctime)
 {
+    JS_ASSERT(TimeClip(utctime) == utctime);
     JS_snprintf(buf, size, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
-                days[WeekDay(utctime)],
-                DateFromTime(utctime),
-                months[MonthFromTime(utctime)],
-                YearFromTime(utctime),
-                HourFromTime(utctime),
-                MinFromTime(utctime),
-                SecFromTime(utctime));
+                days[int(WeekDay(utctime))],
+                int(DateFromTime(utctime)),
+                months[int(MonthFromTime(utctime))],
+                int(YearFromTime(utctime)),
+                int(HourFromTime(utctime)),
+                int(MinFromTime(utctime)),
+                int(SecFromTime(utctime)));
 }
 
 static void
 print_iso_string(char* buf, size_t size, double utctime)
 {
+    JS_ASSERT(TimeClip(utctime) == utctime);
     JS_snprintf(buf, size, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ",
-                YearFromTime(utctime),
-                MonthFromTime(utctime) + 1,
-                DateFromTime(utctime),
-                HourFromTime(utctime),
-                MinFromTime(utctime),
-                SecFromTime(utctime),
-                msFromTime(utctime));
+                int(YearFromTime(utctime)),
+                int(MonthFromTime(utctime)) + 1,
+                int(DateFromTime(utctime)),
+                int(HourFromTime(utctime)),
+                int(MinFromTime(utctime)),
+                int(SecFromTime(utctime)),
+                int(msFromTime(utctime)));
 }
 
 
@@ -2544,7 +2559,7 @@ date_toJSON(JSContext *cx, unsigned argc, Value *vp)
 static void
 new_explode(double timeval, PRMJTime *split, JSContext *cx)
 {
-    int year = YearFromTime(timeval);
+    double year = YearFromTime(timeval);
 
     split->tm_usec = int32_t(msFromTime(timeval)) * 1000;
     split->tm_sec = int8_t(SecFromTime(timeval));
@@ -2579,6 +2594,8 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
     if (!MOZ_DOUBLE_IS_FINITE(date)) {
         JS_snprintf(buf, sizeof buf, js_NaN_date_str);
     } else {
+        JS_ASSERT(TimeClip(date) == date);
+
         double local = LocalTime(date, cx);
 
         
@@ -2638,13 +2655,13 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
             
             JS_snprintf(buf, sizeof buf,
                         "%s %s %.2d %.4d %.2d:%.2d:%.2d GMT%+.4d%s%s",
-                        days[WeekDay(local)],
-                        months[MonthFromTime(local)],
-                        DateFromTime(local),
-                        YearFromTime(local),
-                        HourFromTime(local),
-                        MinFromTime(local),
-                        SecFromTime(local),
+                        days[int(WeekDay(local))],
+                        months[int(MonthFromTime(local))],
+                        int(DateFromTime(local)),
+                        int(YearFromTime(local)),
+                        int(HourFromTime(local)),
+                        int(MinFromTime(local)),
+                        int(SecFromTime(local)),
                         offset,
                         usetz ? " " : "",
                         usetz ? tzbuf : "");
@@ -2653,18 +2670,18 @@ date_format(JSContext *cx, double date, formatspec format, CallReceiver call)
             
             JS_snprintf(buf, sizeof buf,
                         "%s %s %.2d %.4d",
-                        days[WeekDay(local)],
-                        months[MonthFromTime(local)],
-                        DateFromTime(local),
-                        YearFromTime(local));
+                        days[int(WeekDay(local))],
+                        months[int(MonthFromTime(local))],
+                        int(DateFromTime(local)),
+                        int(YearFromTime(local)));
             break;
           case FORMATSPEC_TIME:
             
             JS_snprintf(buf, sizeof buf,
                         "%.2d:%.2d:%.2d GMT%+.4d%s%s",
-                        HourFromTime(local),
-                        MinFromTime(local),
-                        SecFromTime(local),
+                        int(HourFromTime(local)),
+                        int(MinFromTime(local)),
+                        int(SecFromTime(local)),
                         offset,
                         usetz ? " " : "",
                         usetz ? tzbuf : "");
@@ -3199,20 +3216,3 @@ js_DateGetMsecSinceEpoch(JSContext *cx, JSObject *obj)
     return obj->isDate() ? obj->getDateUTCTime().toNumber() : 0;
 }
 
-#ifdef JS_THREADSAFE
-#include "prinrval.h"
-
-JS_FRIEND_API(uint32_t)
-js_IntervalNow()
-{
-    return uint32_t(PR_IntervalToMilliseconds(PR_IntervalNow()));
-}
-
-#else 
-
-JS_FRIEND_API(uint32_t)
-js_IntervalNow()
-{
-    return uint32_t(PRMJ_Now() / PRMJ_USEC_PER_MSEC);
-}
-#endif

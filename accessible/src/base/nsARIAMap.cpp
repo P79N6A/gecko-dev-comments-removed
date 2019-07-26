@@ -582,7 +582,7 @@ nsRoleMapEntry nsARIAMap::gEmptyRoleMap = {
 
 
 
-EStateRule nsARIAMap::gWAIUnivStateMap[] = {
+static const EStateRule sWAIUnivStateMap[] = {
   eARIABusy,
   eARIADisabled,
   eARIAExpanded,  
@@ -635,7 +635,8 @@ nsAttributeCharacteristics nsARIAMap::gWAIUnivAttrMap[] = {
   {&nsGkAtoms::aria_valuetext,         ATTR_BYPASSOBJ                 }
 };
 
-PRUint32 nsARIAMap::gWAIUnivAttrMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIUnivAttrMap);
+PRUint32
+nsARIAMap::gWAIUnivAttrMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIUnivAttrMap);
 
 nsRoleMapEntry*
 aria::GetRoleMap(nsINode* aNode)
@@ -671,4 +672,15 @@ aria::GetRoleMap(nsINode* aNode)
   
   
   return &sLandmarkRoleMap;
+}
+
+PRUint64
+aria::UniversalStatesFor(mozilla::dom::Element* aElement)
+{
+  PRUint64 state = 0;
+  PRUint32 index = 0;
+  while (MapToState(sWAIUnivStateMap[index], aElement, &state))
+    index++;
+
+  return state;
 }

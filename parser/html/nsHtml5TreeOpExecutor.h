@@ -212,21 +212,6 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     bool IsScriptEnabled();
 
-    
-
-
-
-
-
-
-    void EnableFragmentMode(bool aPreventScriptExecution) {
-      mPreventScriptExecution = aPreventScriptExecution;
-    }
-    
-    void PreventScriptExecution() {
-      mPreventScriptExecution = true;
-    }
-
     bool BelongsToStringParser() {
       return mRunsToCompletion;
     }

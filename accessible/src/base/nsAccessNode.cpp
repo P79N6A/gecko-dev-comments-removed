@@ -74,12 +74,6 @@ void nsAccessNode::LastRelease()
 
 
 
-bool
-nsAccessNode::Init()
-{
-  return true;
-}
-
 
 void
 nsAccessNode::Shutdown()

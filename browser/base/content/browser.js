@@ -1394,6 +1394,7 @@ var gBrowserInit = {
     if (devToolbarEnabled) {
       document.getElementById("menu_devToolbar").hidden = false;
       document.getElementById("Tools:DevToolbar").removeAttribute("disabled");
+      document.getElementById("Tools:DevToolbarFocus").removeAttribute("disabled");
 #ifdef MENUBAR_CAN_AUTOHIDE
       document.getElementById("appmenu_devToolbar").hidden = false;
 #endif
@@ -6057,16 +6058,45 @@ function WindowIsClosing()
 
 function warnAboutClosingWindow() {
   
-  if (!toolbar.visible)
+  let isPBWindow = gPrivateBrowsingUI.privateWindow;
+  if (!isPBWindow && !toolbar.visible)
     return gBrowser.warnAboutClosingTabs(true);
 
   
   let e = Services.wm.getEnumerator("navigator:browser");
+  let otherPBWindowExists = false;
+  let warnAboutClosingTabs = false;
   while (e.hasMoreElements()) {
     let win = e.getNext();
-    if (win != window && win.toolbar.visible)
-      return gBrowser.warnAboutClosingTabs(true);
+    if (win != window) {
+      if (isPBWindow &&
+          ("gPrivateBrowsingUI" in win) &&
+          win.gPrivateBrowsingUI.privateWindow)
+        otherPBWindowExists = true;
+      if (win.toolbar.visible)
+        warnAboutClosingTabs = true;
+      
+      
+      
+      
+      
+      if ((!isPBWindow || otherPBWindowExists) && warnAboutClosingTabs)
+        break;
+    }
   }
+
+  if (isPBWindow && !otherPBWindowExists) {
+    let exitingCanceled = Cc["@mozilla.org/supports-PRBool;1"].
+                          createInstance(Ci.nsISupportsPRBool);
+    exitingCanceled.data = false;
+    Services.obs.notifyObservers(exitingCanceled,
+                                 "last-pb-context-exiting",
+                                 null);
+    if (exitingCanceled.data)
+      return false;
+  }
+  if (warnAboutClosingTabs)
+    return gBrowser.warnAboutClosingTabs(true);
 
   let os = Services.obs;
 

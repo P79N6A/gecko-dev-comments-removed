@@ -225,17 +225,17 @@ nsSVGPathGeometryFrame::UpdateBounds()
   PRUint32 flags = nsSVGUtils::eBBoxIncludeFill |
                    nsSVGUtils::eBBoxIncludeStroke |
                    nsSVGUtils::eBBoxIncludeMarkers;
-  PRUint32 pointerEvents = GetStyleVisibility()->mPointerEvents;
-  if (pointerEvents == NS_STYLE_POINTER_EVENTS_AUTO ||
-      pointerEvents == NS_STYLE_POINTER_EVENTS_VISIBLEPAINTED ||
-      pointerEvents == NS_STYLE_POINTER_EVENTS_PAINTED ||
-      pointerEvents == NS_STYLE_POINTER_EVENTS_NONE) {
-    
-    
-    
-    
-    flags |= nsSVGUtils::eBBoxIgnoreStrokeIfNone |
-             nsSVGUtils::eBBoxIgnoreFillIfNone;
+  
+  
+  
+  
+  
+  PRUint16 hitTestFlags = GetHitTestFlags();
+  if ((hitTestFlags & SVG_HIT_TEST_FILL)) {
+   flags |= nsSVGUtils::eBBoxIncludeFillGeometry;
+  }
+  if ((hitTestFlags & SVG_HIT_TEST_STROKE)) {
+   flags |= nsSVGUtils::eBBoxIncludeStrokeGeometry;
   }
   gfxRect extent = GetBBoxContribution(gfxMatrix(), flags);
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent,
@@ -324,15 +324,15 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   gfxRect pathExtents = tmpCtx->GetUserPathExtent();
 
   
-  if ((aFlags & nsSVGUtils::eBBoxIncludeFill) != 0 &&
-      ((aFlags & nsSVGUtils::eBBoxIgnoreFillIfNone) == 0 ||
+  if ((aFlags & nsSVGUtils::eBBoxIncludeFillGeometry) ||
+      ((aFlags & nsSVGUtils::eBBoxIncludeFill) &&
        GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None)) {
     bbox = pathExtents;
   }
 
   
-  if ((aFlags & nsSVGUtils::eBBoxIncludeStroke) != 0 &&
-      ((aFlags & nsSVGUtils::eBBoxIgnoreStrokeIfNone) == 0 || HasStroke())) {
+  if ((aFlags & nsSVGUtils::eBBoxIncludeStrokeGeometry) ||
+      ((aFlags & nsSVGUtils::eBBoxIncludeStroke) && HasStroke())) {
     
     
     

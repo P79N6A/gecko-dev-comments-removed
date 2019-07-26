@@ -776,24 +776,6 @@ ContentScriptHasUniversalXPConnect()
     return false;
 }
 
-class AutoLeaveHelper
-{
-  public:
-    AutoLeaveHelper(js::Wrapper &xray, JSContext *cx, JSObject *wrapper)
-      : xray(xray), cx(cx), wrapper(wrapper)
-    {
-    }
-    ~AutoLeaveHelper()
-    {
-        xray.leave(cx, wrapper);
-    }
-
-  private:
-    js::Wrapper &xray;
-    JSContext *cx;
-    JSObject *wrapper;
-};
-
 bool
 XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper,
                                                JSObject *wrapper, JSObject *holder, jsid id,
@@ -815,8 +797,6 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
         desc->obj = NULL; 
         if (!jsWrapper.enter(cx, wrapper, id, action, &status))
             return status;
-
-        AutoLeaveHelper helper(jsWrapper, cx, wrapper);
 
         desc->obj = wrapper;
         desc->attrs = JSPROP_ENUMERATE|JSPROP_SHARED;
@@ -1175,10 +1155,7 @@ IsTransparent(JSContext *cx, JSObject *wrapper)
     
     
     
-    if (ContentScriptHasUniversalXPConnect())
-        return true;
-
-    return AccessCheck::documentDomainMakesSameOrigin(cx, UnwrapObject(wrapper));
+    return ContentScriptHasUniversalXPConnect();
 }
 
 JSObject *
@@ -1263,8 +1240,6 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
 
-    AutoLeaveHelper helper(*this, cx, wrapper);
-
     typename Traits::ResolvingId resolving(wrapper, id);
 
     
@@ -1300,8 +1275,6 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
         desc->obj = NULL; 
         if (!this->enter(cx, wrapper, id, action, &status))
             return status;
-
-        AutoLeaveHelper helper(*this, cx, wrapper);
 
         desc->obj = wrapper;
         desc->attrs = JSPROP_ENUMERATE|JSPROP_SHARED;
@@ -1368,8 +1341,6 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, JSObject *wra
     desc->obj = NULL; 
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
-
-    AutoLeaveHelper helper(*this, cx, wrapper);
 
     typename Traits::ResolvingId resolving(wrapper, id);
 

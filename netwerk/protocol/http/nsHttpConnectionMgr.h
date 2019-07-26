@@ -201,6 +201,10 @@ public:
 
     
     
+    void PrintDiagnostics();
+
+    
+    
     
 
     
@@ -392,6 +396,7 @@ private:
 
         bool HasConnected() { return mHasConnected; }
 
+        void PrintDiagnostics(nsCString &log);
     private:
         nsConnectionEntry              *mEnt;
         nsRefPtr<nsAHttpTransaction>   mTransaction;
@@ -601,6 +606,13 @@ private:
     static PLDHashOperator ReadTimeoutTickCB(const nsACString &key,
                                              nsAutoPtr<nsConnectionEntry> &ent,
                                              void *closure);
+
+    
+    void OnMsgPrintDiagnostics(PRInt32, void *);
+    static PLDHashOperator PrintDiagnosticsCB(const nsACString &key,
+                                              nsAutoPtr<nsConnectionEntry> &ent,
+                                              void *closure);
+    nsCString mLogData;
 };
 
 #endif 

@@ -152,6 +152,8 @@ public:
 
     PRInt64 BytesWritten() { return mTotalBytesWritten; }
 
+    void    PrintDiagnostics(nsCString &log);
+
 private:
     
     nsresult ProxyStartSSL();

@@ -304,8 +304,6 @@ protected:
   
   PRUint8 mRunsToCompletion : 1;
   
-  PRUint8 mPreventScriptExecution : 1;
-  
   
   
   

@@ -309,8 +309,11 @@ struct JSObject : public js::ObjectImpl
 
     bool setSlotSpan(JSContext *cx, uint32_t span);
 
-    inline bool nativeContains(JSContext *cx, jsid id);
-    inline bool nativeContains(JSContext *cx, const js::Shape &shape);
+    inline bool nativeContains(JSContext *cx, js::HandleId id);
+    inline bool nativeContains(JSContext *cx, js::HandleShape shape);
+
+    inline bool nativeContainsNoAllocation(jsid id);
+    inline bool nativeContainsNoAllocation(const js::Shape &shape);
 
     
     static const uint32_t NELEMENTS_LIMIT = JS_BIT(28);
@@ -514,8 +517,8 @@ struct JSObject : public js::ObjectImpl
     inline JSPrincipals *principals(JSContext *cx);
 
     
-    inline bool clearType(JSContext *cx);
-    bool clearParent(JSContext *cx);
+    static inline bool clearType(JSContext *cx, js::HandleObject obj);
+    static bool clearParent(JSContext *cx, js::HandleObject obj);
 
     
 
@@ -1093,7 +1096,7 @@ extern const char js_lookupSetter_str[];
 #endif
 
 extern JSBool
-js_PopulateObject(JSContext *cx, js::HandleObject newborn, JSObject *props);
+js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject props);
 
 
 
@@ -1121,7 +1124,7 @@ js_CreateThisForFunction(JSContext *cx, js::HandleObject callee, bool newType);
 
 
 extern JSObject *
-js_CreateThis(JSContext *cx, js::Class *clasp, JSObject *callee);
+js_CreateThis(JSContext *cx, js::Class *clasp, js::HandleObject callee);
 
 
 
@@ -1199,7 +1202,7 @@ DefineProperty(JSContext *cx, js::HandleObject obj,
 
 
 extern bool
-ReadPropertyDescriptors(JSContext *cx, JSObject *props, bool checkAccessors,
+ReadPropertyDescriptors(JSContext *cx, HandleObject props, bool checkAccessors,
                         AutoIdVector *ids, AutoPropDescArrayRooter *descs);
 
 
