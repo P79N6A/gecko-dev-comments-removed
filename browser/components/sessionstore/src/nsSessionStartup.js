@@ -81,6 +81,8 @@ SessionStartup.prototype = {
 
 
   init: function sss_init() {
+    Services.obs.notifyObservers(null, "sessionstore-init-started", null);
+
     
     if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
       this._initialized = true;
