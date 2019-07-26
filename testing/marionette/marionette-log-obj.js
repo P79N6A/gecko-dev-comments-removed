@@ -2,7 +2,7 @@
 
 
 
-function MarionetteLogObj() {
+this.MarionetteLogObj = function MarionetteLogObj() {
   this.logs = [];
 }
 MarionetteLogObj.prototype = {
