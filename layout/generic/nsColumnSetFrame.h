@@ -162,7 +162,8 @@ protected:
 
 
   ReflowConfig ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
-                                    bool aForceAuto);
+                                    bool aForceAuto, nscoord aFeasibleHeight,
+                                    nscoord aInfeasibleHeight);
 
   
 

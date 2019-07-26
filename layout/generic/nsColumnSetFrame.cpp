@@ -176,8 +176,14 @@ GetColumnGap(nsColumnSetFrame*    aFrame,
 
 nsColumnSetFrame::ReflowConfig
 nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
-                                       bool aForceAuto = false)
+                                       bool aForceAuto = false,
+                                       nscoord aFeasibleHeight = NS_INTRINSICSIZE,
+                                       nscoord aInfeasibleHeight = 0)
+
 {
+  nscoord knownFeasibleHeight = aFeasibleHeight;
+  nscoord knownInfeasibleHeight = aInfeasibleHeight;
+
   const nsStyleColumn* colStyle = StyleColumn();
   nscoord availContentWidth = GetAvailableContentWidth(aReflowState);
   if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
@@ -290,7 +296,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
          numColumns, colWidth, expectedWidthLeftOver, colHeight, colGap);
 #endif
   ReflowConfig config = { numColumns, colWidth, expectedWidthLeftOver, colGap,
-                          colHeight, isBalancing };
+                          colHeight, isBalancing, knownFeasibleHeight,
+                          knownInfeasibleHeight };
   return config;
 }
 
@@ -810,89 +817,93 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      nscoord knownFeasibleHeight = NS_INTRINSICSIZE;
-      nscoord knownInfeasibleHeight = 0;
+
       
       
       
       bool maybeContinuousBreakingDetected = false;
 
       while (!aPresContext->HasPendingInterrupt()) {
-        nscoord lastKnownFeasibleHeight = knownFeasibleHeight;
+        nscoord lastKnownFeasibleHeight = config.mKnownFeasibleHeight;
 
         
         if (feasible) {
           
-          knownFeasibleHeight = std::min(knownFeasibleHeight, colData.mMaxHeight);
-          knownFeasibleHeight = std::min(knownFeasibleHeight, mLastBalanceHeight);
+          config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
+                                                 colData.mMaxHeight);
+          config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
+                                                 mLastBalanceHeight);
 
           
           
           
           
           if (mFrames.GetLength() == config.mBalanceColCount) {
-            knownInfeasibleHeight = std::max(knownInfeasibleHeight,
-                                           colData.mLastHeight - 1);
+            config.mKnownInfeasibleHeight =
+              std::max(config.mKnownInfeasibleHeight, colData.mLastHeight - 1);
           }
         } else {
-          knownInfeasibleHeight = std::max(knownInfeasibleHeight, mLastBalanceHeight);
+          config.mKnownInfeasibleHeight =
+            std::max(config.mKnownInfeasibleHeight, mLastBalanceHeight);
           
           
           
-          knownInfeasibleHeight = std::max(knownInfeasibleHeight,
-                                         colData.mMaxOverflowingHeight - 1);
+          config.mKnownInfeasibleHeight =
+            std::max(config.mKnownInfeasibleHeight,
+                     colData.mMaxOverflowingHeight - 1);
 
           if (unboundedLastColumn) {
             
             
-            knownFeasibleHeight = std::min(knownFeasibleHeight,
-                                         colData.mMaxHeight);
+            config.mKnownFeasibleHeight = std::min(config.mKnownFeasibleHeight,
+                                                   colData.mMaxHeight);
           }
         }
 
 #ifdef DEBUG_roc
         printf("*** nsColumnSetFrame::Reflow balancing knownInfeasible=%d knownFeasible=%d\n",
-               knownInfeasibleHeight, knownFeasibleHeight);
+               config.mKnownInfeasibleHeight, config.mKnownFeasibleHeight);
 #endif
 
 
-        if (knownInfeasibleHeight >= knownFeasibleHeight - 1) {
+        if (config.mKnownInfeasibleHeight >= config.mKnownFeasibleHeight - 1) {
           
           break;
 
         }
-        if (knownInfeasibleHeight >= availableContentHeight) {
+        if (config.mKnownInfeasibleHeight >= availableContentHeight) {
           break;
         }
 
-        if (lastKnownFeasibleHeight - knownFeasibleHeight == 1) {
+        if (lastKnownFeasibleHeight - config.mKnownFeasibleHeight == 1) {
           
           
           
           maybeContinuousBreakingDetected = true;
         }
 
-        nscoord nextGuess = (knownFeasibleHeight + knownInfeasibleHeight)/2;
+        nscoord nextGuess =
+          (config.mKnownFeasibleHeight + config.mKnownInfeasibleHeight)/2;
         
-        if (knownFeasibleHeight - nextGuess < 600 &&
+        if (config.mKnownFeasibleHeight - nextGuess < 600 &&
             !maybeContinuousBreakingDetected) {
           
           
           
-          nextGuess = knownFeasibleHeight - 1;
+          nextGuess = config.mKnownFeasibleHeight - 1;
         } else if (unboundedLastColumn) {
           
           
           
           nextGuess = colData.mSumHeight/config.mBalanceColCount + 600;
           
-          nextGuess = clamped(nextGuess, knownInfeasibleHeight + 1,
-                                         knownFeasibleHeight - 1);
-        } else if (knownFeasibleHeight == NS_INTRINSICSIZE) {
+          nextGuess = clamped(nextGuess, config.mKnownInfeasibleHeight + 1,
+                                         config.mKnownFeasibleHeight - 1);
+        } else if (config.mKnownFeasibleHeight == NS_INTRINSICSIZE) {
           
           
           
-          nextGuess = knownInfeasibleHeight*2 + 600;
+          nextGuess = config.mKnownInfeasibleHeight*2 + 600;
         }
         
         nextGuess = std::min(availableContentHeight, nextGuess);
@@ -914,13 +925,13 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
         
         
         bool skip = false;
-        if (knownInfeasibleHeight >= availableContentHeight) {
-          config.mColMaxHeight = availableContentHeight;
+        if (config.mKnownInfeasibleHeight >= availableContentHeight) {
+            config.mColMaxHeight = availableContentHeight;
           if (mLastBalanceHeight == availableContentHeight) {
             skip = true;
           }
         } else {
-          config.mColMaxHeight = knownFeasibleHeight;
+          config.mColMaxHeight = config.mKnownFeasibleHeight;
         }
         if (!skip) {
           
