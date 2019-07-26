@@ -1408,8 +1408,10 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, HandleObject wra
     
     
     
-    nsGlobalWindow *win;
-    if (!desc.object() && Traits::Type == XrayForWrappedNative && JSID_IS_STRING(id) &&
+    nsGlobalWindow *win = nullptr;
+    if (!desc.object() &&
+        (Traits::Type == XrayForWrappedNative) &&
+        JSID_IS_STRING(id) &&
         (win = static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper))))
     {
         nsDependentJSString name(id);
