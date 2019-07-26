@@ -59,18 +59,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/l
     
 
 
+
     initialize: function() {
-      var observer = function observer(sbject, topic, data) {
-        if (topic == "browser-delayed-startup-finished") {
-          Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
-          MozLoopService.initialize();
-        }
-      };
-      Services.obs.addObserver(observer,
-                               "browser-delayed-startup-finished", false);
-    }
+      MozLoopService.initialize();
+    },
 
   };
-
-  LoopUI.initialize();
 })();
