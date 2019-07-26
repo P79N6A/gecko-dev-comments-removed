@@ -731,7 +731,6 @@ add_task(function test_download_error_restart()
 
 
 
-
 add_task(function test_download_public_and_private()
 {
   let source_path = "/test_download_public_and_private.txt";
@@ -746,7 +745,6 @@ add_task(function test_download_public_and_private()
     Services.cookies.removeAll();
     gHttpServer.registerPathHandler(source_path, null);
   }
-
   do_register_cleanup(cleanup);
 
   gHttpServer.registerPathHandler(source_path, function (aRequest, aResponse) {
@@ -800,5 +798,78 @@ add_task(function test_download_cancel_immediately_restart_and_check_startTime()
 
   yield download.start();
   do_check_true(download.startTime.getTime() > startTime.getTime());
+});
+
+
+
+
+add_task(function test_download_with_content_encoding()
+{
+  let source_path = "/test_download_with_content_encoding.txt";
+  let source_uri = NetUtil.newURI(HTTP_BASE + source_path);
+
+  function cleanup() {
+    gHttpServer.registerPathHandler(source_path, null);
+  }
+  do_register_cleanup(cleanup);
+
+  gHttpServer.registerPathHandler(source_path, function (aRequest, aResponse) {
+    aResponse.setHeader("Content-Type", "text/plain", false);
+    aResponse.setHeader("Content-Encoding", "gzip", false);
+    aResponse.setHeader("Content-Length",
+                        "" + TEST_DATA_SHORT_GZIP_ENCODED.length, false);
+
+    let bos =  new BinaryOutputStream(aResponse.bodyOutputStream);
+    bos.writeByteArray(TEST_DATA_SHORT_GZIP_ENCODED,
+                       TEST_DATA_SHORT_GZIP_ENCODED.length);
+  });
+
+  let download = yield Downloads.createDownload({
+    source: { uri: source_uri },
+    target: { file: getTempFile(TEST_TARGET_FILE_NAME) },
+    saver: { type: "copy" },
+  });
+  yield download.start();
+
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
+
+  
+  yield promiseVerifyContents(download.target.file, TEST_DATA_SHORT);
+});
+
+
+
+
+add_task(function test_download_cancel_midway_restart_with_content_encoding()
+{
+  let download = yield promiseSimpleDownload(TEST_INTERRUPTIBLE_GZIP_URI);
+
+  
+  let deferResponse = deferNextResponse();
+  try {
+    let deferCancel = Promise.defer();
+    download.onchange = function () {
+      if (!download.stopped && !download.canceled &&
+          download.currentBytes == TEST_DATA_SHORT_GZIP_ENCODED_FIRST.length) {
+        deferCancel.resolve(download.cancel());
+      }
+    };
+    download.start();
+    yield deferCancel.promise;
+  } finally {
+    deferResponse.resolve();
+  }
+
+  do_check_true(download.stopped);
+
+  
+  download.onchange = null;
+  yield download.start()
+
+  do_check_eq(download.progress, 100);
+  do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
+
+  yield promiseVerifyContents(download.target.file, TEST_DATA_SHORT);
 });
 
