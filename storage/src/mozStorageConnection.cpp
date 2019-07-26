@@ -333,9 +333,11 @@ class AsyncCloseConnection MOZ_FINAL: public nsRunnable
 {
 public:
   AsyncCloseConnection(Connection *aConnection,
+                       sqlite3 *aNativeConnection,
                        nsIRunnable *aCallbackEvent,
                        already_AddRefed<nsIThread> aAsyncExecutionThread)
   : mConnection(aConnection)
+  , mNativeConnection(aNativeConnection)
   , mCallbackEvent(aCallbackEvent)
   , mAsyncExecutionThread(aAsyncExecutionThread)
   {
@@ -351,7 +353,7 @@ public:
 #endif 
 
     
-    (void)mConnection->internalClose();
+    (void)mConnection->internalClose(mNativeConnection);
 
     
     if (mCallbackEvent) {
@@ -376,6 +378,7 @@ public:
   }
 private:
   nsRefPtr<Connection> mConnection;
+  sqlite3 *mNativeConnection;
   nsCOMPtr<nsIRunnable> mCallbackEvent;
   nsCOMPtr<nsIThread> mAsyncExecutionThread;
 };
@@ -470,6 +473,7 @@ Connection::Connection(Service *aService,
 , threadOpenedOn(do_GetCurrentThread())
 , mDBConn(nullptr)
 , mAsyncExecutionThreadShuttingDown(false)
+, mConnectionClosed(false)
 , mTransactionInProgress(false)
 , mProgressHandler(nullptr)
 , mFlags(aFlags)
@@ -744,11 +748,11 @@ Connection::databaseElementExists(enum DatabaseElementType aElementType,
   query.Append("'");
 
   sqlite3_stmt *stmt;
-  int srv = prepareStatement(query, &stmt);
+  int srv = prepareStatement(mDBConn, query, &stmt);
   if (srv != SQLITE_OK)
     return convertResultCode(srv);
 
-  srv = stepStatement(stmt);
+  srv = stepStatement(mDBConn, stmt);
   
   (void)::sqlite3_finalize(stmt);
 
@@ -813,31 +817,50 @@ Connection::setClosedState()
     mAsyncExecutionThreadShuttingDown = true;
   }
 
+  
+  
+  mDBConn = nullptr;
+
   return NS_OK;
 }
 
 bool
-Connection::isClosing(bool aResultOnClosed) {
+Connection::connectionReady()
+{
+  return mDBConn != nullptr;
+}
+
+bool
+Connection::isClosing()
+{
+  bool shuttingDown = false;
+  {
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    shuttingDown = mAsyncExecutionThreadShuttingDown;
+  }
+  return shuttingDown && !isClosed();
+}
+
+bool
+Connection::isClosed()
+{
   MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
-  return mAsyncExecutionThreadShuttingDown &&
-    (aResultOnClosed || ConnectionReady());
+  return mConnectionClosed;
 }
 
 nsresult
-Connection::internalClose()
+Connection::internalClose(sqlite3 *aNativeConnection)
 {
-#ifdef DEBUG
   
-  NS_ASSERTION(mDBConn, "Database connection is already null!");
+  MOZ_ASSERT(aNativeConnection, "Database connection is invalid!");
+  MOZ_ASSERT(!isClosed());
 
+#ifdef DEBUG
   { 
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
     NS_ASSERTION(mAsyncExecutionThreadShuttingDown,
                  "Did not call setClosedState!");
   }
-
-  bool onOpeningThread = false;
-  (void)threadOpenedOn->IsOnCurrentThread(&onOpeningThread);
 #endif 
 
 #ifdef PR_LOGGING
@@ -850,23 +873,21 @@ Connection::internalClose()
 
   
   
-  sqlite3 *dbConn = mDBConn;
-  mDBConn = nullptr;
-
   
   
   
   
-  
-  
-
-  int srv = sqlite3_close(dbConn);
+  {
+    MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
+    mConnectionClosed = true;
+  }
+  int srv = sqlite3_close(aNativeConnection);
 
   if (srv == SQLITE_BUSY) {
     
 
     sqlite3_stmt *stmt = nullptr;
-    while ((stmt = ::sqlite3_next_stmt(dbConn, stmt))) {
+    while ((stmt = ::sqlite3_next_stmt(aNativeConnection, stmt))) {
       PR_LOG(gStorageLog, PR_LOG_NOTICE,
              ("Auto-finalizing SQL statement '%s' (%x)",
               ::sqlite3_sql(stmt),
@@ -901,7 +922,7 @@ Connection::internalClose()
 
     
     
-    srv = ::sqlite3_close(dbConn);
+    srv = ::sqlite3_close(aNativeConnection);
 
   }
 
@@ -924,7 +945,7 @@ Connection::getFilename()
 }
 
 int
-Connection::stepStatement(sqlite3_stmt *aStatement)
+Connection::stepStatement(sqlite3 *aNativeConnection, sqlite3_stmt *aStatement)
 {
   MOZ_ASSERT(aStatement);
   bool checkedMainThread = false;
@@ -935,12 +956,10 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
   
   
   
-  
-  
-  if (!mDBConn)
+  if (isClosed())
     return SQLITE_MISUSE;
 
-  (void)::sqlite3_extended_result_codes(mDBConn, 1);
+  (void)::sqlite3_extended_result_codes(aNativeConnection, 1);
 
   int srv;
   while ((srv = ::sqlite3_step(aStatement)) == SQLITE_LOCKED_SHAREDCACHE) {
@@ -952,7 +971,7 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
       }
     }
 
-    srv = WaitForUnlockNotify(mDBConn);
+    srv = WaitForUnlockNotify(aNativeConnection);
     if (srv != SQLITE_OK) {
       break;
     }
@@ -971,21 +990,26 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
                                       duration.ToMilliseconds());
   }
 
-  (void)::sqlite3_extended_result_codes(mDBConn, 0);
+  (void)::sqlite3_extended_result_codes(aNativeConnection, 0);
   
   return srv & 0xFF;
 }
 
 int
-Connection::prepareStatement(const nsCString &aSQL,
+Connection::prepareStatement(sqlite3 *aNativeConnection, const nsCString &aSQL,
                              sqlite3_stmt **_stmt)
 {
+  
+  
+  if (isClosed())
+    return SQLITE_MISUSE;
+
   bool checkedMainThread = false;
 
-  (void)::sqlite3_extended_result_codes(mDBConn, 1);
+  (void)::sqlite3_extended_result_codes(aNativeConnection, 1);
 
   int srv;
-  while((srv = ::sqlite3_prepare_v2(mDBConn,
+  while((srv = ::sqlite3_prepare_v2(aNativeConnection,
                                     aSQL.get(),
                                     -1,
                                     _stmt,
@@ -998,7 +1022,7 @@ Connection::prepareStatement(const nsCString &aSQL,
       }
     }
 
-    srv = WaitForUnlockNotify(mDBConn);
+    srv = WaitForUnlockNotify(aNativeConnection);
     if (srv != SQLITE_OK) {
       break;
     }
@@ -1009,7 +1033,7 @@ Connection::prepareStatement(const nsCString &aSQL,
     warnMsg.AppendLiteral("The SQL statement '");
     warnMsg.Append(aSQL);
     warnMsg.AppendLiteral("' could not be compiled due to an error: ");
-    warnMsg.Append(::sqlite3_errmsg(mDBConn));
+    warnMsg.Append(::sqlite3_errmsg(aNativeConnection));
 
 #ifdef DEBUG
     NS_WARNING(warnMsg.get());
@@ -1017,7 +1041,7 @@ Connection::prepareStatement(const nsCString &aSQL,
     PR_LOG(gStorageLog, PR_LOG_ERROR, ("%s", warnMsg.get()));
   }
 
-  (void)::sqlite3_extended_result_codes(mDBConn, 0);
+  (void)::sqlite3_extended_result_codes(aNativeConnection, 0);
   
   int rc = srv & 0xFF;
   
@@ -1088,10 +1112,13 @@ Connection::Close()
     NS_ENSURE_TRUE(asyncCloseWasCalled, NS_ERROR_UNEXPECTED);
   }
 
+  
+  
+  sqlite3 *nativeConn = mDBConn;
   nsresult rv = setClosedState();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return internalClose();
+  return internalClose(nativeConn);
 }
 
 NS_IMETHODIMP
@@ -1106,6 +1133,9 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
   nsIEventTarget *asyncThread = getAsyncExecutionTarget();
   NS_ENSURE_TRUE(asyncThread, NS_ERROR_NOT_INITIALIZED);
 
+  
+  
+  sqlite3 *nativeConn = mDBConn;
   nsresult rv = setClosedState();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1121,6 +1151,7 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
     
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
     closeEvent = new AsyncCloseConnection(this,
+                                          nativeConn,
                                           completeEvent,
                                           mAsyncExecutionThread.forget());
   }
@@ -1252,7 +1283,7 @@ Connection::GetDefaultPageSize(int32_t *_defaultPageSize)
 NS_IMETHODIMP
 Connection::GetConnectionReady(bool *_ready)
 {
-  *_ready = ConnectionReady();
+  *_ready = connectionReady();
   return NS_OK;
 }
 

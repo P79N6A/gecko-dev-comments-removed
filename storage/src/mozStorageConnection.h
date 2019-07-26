@@ -135,6 +135,10 @@ public:
 
 
 
+
+
+
+
   Mutex sharedAsyncExecutionMutex;
 
   
@@ -154,7 +158,7 @@ public:
   
 
 
-  nsresult internalClose();
+  nsresult internalClose(sqlite3 *aDBConn);
 
   
 
@@ -170,21 +174,10 @@ public:
 
 
 
-  int prepareStatement(const nsCString &aSQL, sqlite3_stmt **_stmt);
-
-  
 
 
-
-
-
-
-
-  int stepStatement(sqlite3_stmt* aStatement);
-
-  bool ConnectionReady() {
-    return mDBConn != nullptr;
-  }
+  int prepareStatement(sqlite3* aNativeConnection,
+                       const nsCString &aSQL, sqlite3_stmt **_stmt);
 
   
 
@@ -196,7 +189,21 @@ public:
 
 
 
-  bool isClosing(bool aResultOnceClosed = false);
+  int stepStatement(sqlite3* aNativeConnection, sqlite3_stmt* aStatement);
+
+  bool connectionReady();
+
+  
+
+
+  bool isClosing();
+
+  
+
+
+
+
+  bool isClosed();
 
   nsresult initializeClone(Connection *aClone, bool aReadOnly);
 
@@ -279,6 +286,15 @@ private:
 
 
   bool mAsyncExecutionThreadShuttingDown;
+
+  
+
+
+
+
+
+
+  bool mConnectionClosed;
 
   
 

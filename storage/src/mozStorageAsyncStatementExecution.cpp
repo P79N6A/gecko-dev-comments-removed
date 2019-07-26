@@ -337,7 +337,7 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     
     SQLiteMutexAutoLock lockedScope(mDBMutex);
 
-    int rc = mConnection->stepStatement(aStatement);
+    int rc = mConnection->stepStatement(mNativeConnection, aStatement);
     
     if (rc == SQLITE_DONE)
     {
@@ -568,6 +568,8 @@ AsyncExecuteStatements::Cancel()
 NS_IMETHODIMP
 AsyncExecuteStatements::Run()
 {
+  MOZ_ASSERT(!mConnection->isClosed());
+
   
   {
     MutexAutoLock lockedScope(mMutex);
