@@ -172,8 +172,12 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     
-    bool subsumes = AccessCheck::subsumes(js::GetContextCompartment(cx),
-                                          js::GetObjectCompartment(obj));
+    
+    
+    
+    
+    bool subsumes = AccessCheck::subsumesIgnoringDomain(js::GetContextCompartment(cx),
+                                                        js::GetObjectCompartment(obj));
     XrayType xrayType = GetXrayType(obj);
     if (!subsumes && xrayType == NotXray) {
         JSProtoKey key = JSProto_Null;
