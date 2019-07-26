@@ -88,12 +88,12 @@ nsresult nsUniversalDetector::HandleData(const char* aBuf, uint32_t aLen)
         case '\xFE':
           if ('\xFF' == aBuf[1])
             
-            mDetectedCharset = "UTF-16";
+            mDetectedCharset = "UTF-16BE";
         break;
         case '\xFF':
           if ('\xFE' == aBuf[1])
             
-            mDetectedCharset = "UTF-16";
+            mDetectedCharset = "UTF-16LE";
         break;
       }  
 

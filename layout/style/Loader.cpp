@@ -665,7 +665,6 @@ SheetLoadData::OnDetermineCharset(nsIUnicharStreamLoader* aLoader,
                                   aCharset)) {
     
     
-    
     mCharset.Assign(aCharset);
 #ifdef PR_LOGGING
     LOG(("  Setting from BOM to: %s", PromiseFlatCString(aCharset).get()));
