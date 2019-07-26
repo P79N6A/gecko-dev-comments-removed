@@ -2069,10 +2069,10 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       
       if (isBlock &&
           !IsSideCaption(frame, mStyleDisplay) &&
-          mStyleDisplay->mDisplay != NS_STYLE_DISPLAY_INLINE_TABLE
-          && !flexContainerFrame
-          )
+          mStyleDisplay->mDisplay != NS_STYLE_DISPLAY_INLINE_TABLE &&
+          !flexContainerFrame) {
         CalculateBlockSideMargins(availableWidth, mComputedWidth, aFrameType);
+      }
     }
   }
 }
