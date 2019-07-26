@@ -7,7 +7,7 @@
 #include "nsStyleSet.h"
 #include "mozilla/dom/Element.h"
 
-nsTreeStyleCache::Transition::Transition(uint32_t aState, nsIAtom* aSymbol)
+nsTreeStyleCache::Transition::Transition(DFAState aState, nsIAtom* aSymbol)
   : mState(aState), mInputSymbol(aSymbol)
 {
 }
@@ -47,22 +47,22 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
 
   
   Transition transition(0, aPseudoElement);
-  nsDFAState* currState = mTransitionTable->Get(transition);
+  DFAState currState = mTransitionTable->Get(transition);
 
   if (!currState) {
     
-    currState = new nsDFAState(mNextState);
+    currState = mNextState;
     mNextState++;
     mTransitionTable->Put(transition, currState);
   }
 
   for (uint32_t i = 0; i < count; i++) {
-    Transition transition(currState->GetStateID(), aInputWord[i]);
+    Transition transition(currState, aInputWord[i]);
     currState = mTransitionTable->Get(transition);
 
     if (!currState) {
       
-      currState = new nsDFAState(mNextState);
+      currState = mNextState;
       mNextState++;
       mTransitionTable->Put(transition, currState);
     }
@@ -72,7 +72,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
   
   nsStyleContext* result = nullptr;
   if (mCache) {
-    result = mCache->GetWeak(currState->GetStateID());
+    result = mCache->GetWeak(currState);
   }
   if (!result) {
     
@@ -85,7 +85,7 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
       mCache = new StyleContextCache();
     }
     result = newResult.get();
-    mCache->Put(currState->GetStateID(), newResult.forget());
+    mCache->Put(currState, newResult.forget());
   }
 
   return result;
