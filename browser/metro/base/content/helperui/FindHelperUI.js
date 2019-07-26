@@ -199,6 +199,14 @@ var FindHelperUI = {
       browserShift += this._container.boxObject.height;
     }
     browserShift += Services.metro.keyboardHeight;
+
+    
+    
+    if (aElementRect.y < browserShift) {
+      browserShift = 0;
+    }
+
+    
     ContentAreaObserver.shiftBrowserDeck(browserShift);
 
     
