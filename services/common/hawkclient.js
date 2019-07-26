@@ -240,7 +240,7 @@ this.HawkClient.prototype = {
       }
       
       
-      deferred.resolve(this.response.body);
+      deferred.resolve(this.response);
     };
 
     function onComplete(error) {

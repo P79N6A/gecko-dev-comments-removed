@@ -8,6 +8,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
   "HAWKAuthenticatedRESTRequest",
+  "deriveHawkCredentials"
 ];
 
 Cu.import("resource://gre/modules/Preferences.jsm");
@@ -15,6 +16,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/rest.js");
+Cu.import("resource://services-common/utils.js");
+Cu.import("resource://gre/modules/Credentials.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
                                   "resource://services-crypto/utils.js");
@@ -89,6 +92,46 @@ HAWKAuthenticatedRESTRequest.prototype = {
     );
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function deriveHawkCredentials(tokenHex, context, size=96) {
+  let token = CommonUtils.hexToBytes(tokenHex);
+  let out = CryptoUtils.hkdf(token, undefined, Credentials.keyWord(context), size);
+
+  let result = {
+    algorithm: "sha256",
+    key: out.slice(32, 64),
+    id: CommonUtils.bytesAsHex(out.slice(0, 32))
+  };
+  if (size > 64) {
+    result.extra = out.slice(64);
+  }
+
+  return result;
+}
 
 
 
