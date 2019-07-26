@@ -22,6 +22,10 @@
 
 var Ci = Components.interfaces;
 
+if (navigator.platform.startsWith("Mac")) {
+  SimpleTest.expectAssertions(2);
+}
+
 SimpleTest.waitForExplicitFinish();
 
 /*

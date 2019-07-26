@@ -39,11 +39,11 @@ public:
 
 protected:
     
-    void FormatSizeString(int64_t inSize, nsString& outSizeString);
-    nsresult FormatInputStream(nsIRequest* aRequest, nsISupports *aContext, const nsAString &aBuffer);
+    void FormatSizeString(int64_t inSize, nsCString& outSizeString);
+    nsresult SendToListener(nsIRequest* aRequest, nsISupports *aContext, const nsACString &aBuffer);
     
     nsresult DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
-                              nsString& aBuffer);
+                              nsCString& aBuffer);
 
 protected:
     nsCOMPtr<nsIDirIndexParser>     mParser;
@@ -58,7 +58,6 @@ protected:
 private:
     
     bool mExpectAbsLoc;
-    nsString mEscapedEllipsis;
 };
 
 #endif
