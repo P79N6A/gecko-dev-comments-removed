@@ -403,7 +403,7 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
           
           
           if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
-            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp",
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp2",
                                                      [uri.asciiSpec]));
           }
         } catch(e) {
@@ -651,7 +651,7 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
           
           
           if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
-            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp",
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp2",
                                                      [uri.asciiSpec]));
           }
         } catch(e) {
