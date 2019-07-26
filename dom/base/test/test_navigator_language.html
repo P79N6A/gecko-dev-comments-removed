@@ -60,6 +60,7 @@
     if (currentTestIdx >= tests.length) {
       tearDown();
       SimpleTest.finish();
+      return;
     }
 
     tests[currentTestIdx]();
