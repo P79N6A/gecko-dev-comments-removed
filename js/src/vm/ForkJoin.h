@@ -199,9 +199,9 @@ struct ForkJoinSlice
 
     
     static inline ForkJoinSlice *Current();
-    static inline bool InParallelSection();
 
-    static bool Initialize();
+    
+    static bool InitializeTLS();
 
   private:
     friend class AutoRendezvous;
@@ -235,6 +235,12 @@ struct ForkJoinOp
     virtual bool parallel(ForkJoinSlice &slice) = 0;
 };
 
+static inline bool
+InParallelSection()
+{
+    return ForkJoinSlice::Current() != NULL;
+}
+
 } 
 
  inline js::ForkJoinSlice *
@@ -245,12 +251,6 @@ js::ForkJoinSlice::Current()
 #else
     return NULL;
 #endif
-}
-
- inline bool
-js::ForkJoinSlice::InParallelSection()
-{
-    return Current() != NULL;
 }
 
 #endif 

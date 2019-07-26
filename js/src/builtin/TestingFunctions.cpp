@@ -882,7 +882,9 @@ DisplayName(JSContext *cx, unsigned argc, jsval *vp)
 JSBool
 js::testingFunc_inParallelSection(JSContext *cx, unsigned argc, jsval *vp)
 {
-    JS_ASSERT(!ForkJoinSlice::InParallelSection());
+    
+    
+    JS_ASSERT(!InParallelSection());
     JS_SET_RVAL(cx, vp, JSVAL_FALSE);
     return true;
 }

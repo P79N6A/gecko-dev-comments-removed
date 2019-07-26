@@ -1493,7 +1493,7 @@ RunLastDitchGC(JSContext *cx, JS::Zone *zone, AllocKind thingKind)
 
 
 
-    JS_ASSERT(!ForkJoinSlice::InParallelSection());
+    JS_ASSERT(!InParallelSection());
 
     PrepareZoneForGC(zone);
 
@@ -4413,7 +4413,7 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
         JSGCInvocationKind gckind, gcreason::Reason reason)
 {
     
-    JS_ASSERT(!ForkJoinSlice::InParallelSection());
+    JS_ASSERT(!InParallelSection());
 
     JS_AbortIfWrongThread(rt);
 

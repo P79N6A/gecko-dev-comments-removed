@@ -524,7 +524,7 @@ ForkJoinSlice::check()
 }
 
 bool
-ForkJoinSlice::Initialize()
+ForkJoinSlice::InitializeTLS()
 {
 #ifdef JS_THREADSAFE
     if (!TLSInitialized) {
@@ -623,7 +623,7 @@ js::ExecuteForkJoinOp(JSContext *cx, ForkJoinOp &op)
 {
 #ifdef JS_THREADSAFE
     
-    JS_ASSERT(!ForkJoinSlice::InParallelSection());
+    JS_ASSERT(!InParallelSection());
 
     AutoEnterParallelSection enter(cx);
 
