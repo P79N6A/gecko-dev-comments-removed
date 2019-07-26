@@ -762,7 +762,6 @@ var gBrowserInit = {
 
     
     
-    gBrowser.init();
     XULBrowserWindow.init();
     window.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(nsIWebNavigation)
