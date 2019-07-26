@@ -1559,8 +1559,8 @@ namespace {
     
     
     void InsertCoord(nscoord c) {
-      uint32_t i;
-      if (!mStops.GreatestIndexLtEq(c, i)) {
+      uint32_t i = mStops.IndexOfFirstElementGt(c);
+      if (i == 0 || mStops[i-1] != c) {
         mStops.InsertElementAt(i, c);
       }
     }

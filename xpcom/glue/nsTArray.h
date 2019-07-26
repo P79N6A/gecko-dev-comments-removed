@@ -891,59 +891,39 @@ public:
   
   
   
+  
+  
+  
+  
+  
   template<class Item, class Comparator>
-  bool
-  GreatestIndexLtEq(const Item& item,
-                    const Comparator& comp,
-                    index_type* idx) const {
-    
-    
-    
-
+  index_type
+  IndexOfFirstElementGt(const Item& item,
+                        const Comparator& comp) const {
     
     index_type low = 0, high = Length();
     while (high > low) {
       index_type mid = (high + low) >> 1;
-      if (comp.Equals(ElementAt(mid), item)) {
-        
-        
-        
-        
-        do {
-          --mid;
-        } while (NoIndex != mid && comp.Equals(ElementAt(mid), item));
-        *idx = ++mid;
-        return true;
-      }
-      if (comp.LessThan(ElementAt(mid), item))
+      
+      
+      if (comp.LessThan(ElementAt(mid), item) ||
+          comp.Equals(ElementAt(mid), item)) {
         
         low = mid + 1;
-      else
+      } else {
         
         high = mid;
+      }
     }
-    
-    
-    
-    *idx = high;
-    return false;
-  }
-
-  
-  template<class Item, class Comparator>
-  bool
-  GreatestIndexLtEq(const Item& item,
-                    index_type& idx,
-                    const Comparator& comp) const {
-    return GreatestIndexLtEq(item, comp, &idx);
+    MOZ_ASSERT(high == low);
+    return low;
   }
 
   
   template<class Item>
-  bool
-  GreatestIndexLtEq(const Item& item,
-                    index_type& idx) const {
-    return GreatestIndexLtEq(item, nsDefaultComparator<elem_type, Item>(), &idx);
+  index_type
+  IndexOfFirstElementGt(const Item& item) const {
+    return IndexOfFirstElementGt(item, nsDefaultComparator<elem_type, Item>());
   }
 
   
@@ -951,8 +931,7 @@ public:
   
   template<class Item, class Comparator>
   elem_type *InsertElementSorted(const Item& item, const Comparator& comp) {
-    index_type index;
-    GreatestIndexLtEq(item, comp, &index);
+    index_type index = IndexOfFirstElementGt(item, comp);
     return InsertElementAt(index, item);
   }
 
@@ -1079,11 +1058,12 @@ public:
   
   template<class Item, class Comparator>
   bool RemoveElementSorted(const Item& item, const Comparator& comp) {
-    index_type index;
-    bool found = GreatestIndexLtEq(item, comp, &index);
-    if (found)
-      RemoveElementAt(index);
-    return found;
+    index_type index = IndexOfFirstElementGt(item, comp);
+    if (index > 0 && comp.Equals(ElementAt(index - 1), item)) {
+      RemoveElementAt(index - 1);
+      return true;
+    }
+    return false;
   }
 
   
