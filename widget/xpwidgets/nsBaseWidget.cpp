@@ -30,6 +30,7 @@
 #include "nsIGfxInfo.h"
 #include "npapi.h"
 #include "base/thread.h"
+#include "prdtoa.h"
 #include "prenv.h"
 #include "mozilla/Attributes.h"
 #include "nsContentUtils.h"
@@ -383,14 +384,14 @@ double nsIWidget::GetDefaultScale()
   
   
   
-  float devPixelsPerCSSPixel = -1.0;
+  double devPixelsPerCSSPixel = -1.0;
 
   nsAdoptingCString prefString = Preferences::GetCString("layout.css.devPixelsPerPx");
   if (!prefString.IsEmpty()) {
-    devPixelsPerCSSPixel = static_cast<float>(atof(prefString));
+    devPixelsPerCSSPixel = PR_strtod(prefString, nullptr);
   }
 
-  if (devPixelsPerCSSPixel <= 0) {
+  if (devPixelsPerCSSPixel <= 0.0) {
     devPixelsPerCSSPixel = GetDefaultScaleInternal();
   }
 
