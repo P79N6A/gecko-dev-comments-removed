@@ -185,7 +185,7 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
 static StackFrame *
 PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
 {
-    AssertCanGC();
+    AutoAssertNoGC nogc;
 
     
     
@@ -223,7 +223,7 @@ PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
 static uint32_t
 ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 {
-    AssertCanGC();
+    AutoAssertNoGC nogc;
     IonSpew(IonSpew_Bailouts, "Bailing out %s:%u, IonScript %p",
             it.script()->filename, it.script()->lineno, (void *) it.ionScript());
     IonSpew(IonSpew_Bailouts, " reading from snapshot offset %u size %u",
@@ -357,7 +357,7 @@ EnsureExitFrame(IonCommonFrameLayout *frame)
 uint32_t
 ion::Bailout(BailoutStack *sp)
 {
-    AssertCanGC();
+    AutoAssertNoGC nogc;
     JSContext *cx = GetIonContext()->cx;
     
     cx->runtime->ionTop = NULL;
@@ -380,7 +380,7 @@ ion::Bailout(BailoutStack *sp)
 uint32_t
 ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
 {
-    AssertCanGC();
+    AutoAssertNoGC nogc;
     sp->checkInvariants();
 
     JSContext *cx = GetIonContext()->cx;
