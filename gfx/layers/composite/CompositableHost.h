@@ -112,7 +112,7 @@ public:
 
 
 
-  virtual void OnActorDestroy() = 0;
+  virtual void OnActorDestroy();
 
   
   virtual void SetCompositor(Compositor* aCompositor);
