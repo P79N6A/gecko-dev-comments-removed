@@ -20,7 +20,7 @@ Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
@@ -128,6 +128,8 @@ function HealthReporter(branch, policy, sessionRecorder) {
   this._shutdownInitiated = false;
   this._shutdownComplete = false;
   this._shutdownCompleteCallback = null;
+
+  this._constantOnlyProviders = {};
 
   this._ensureDirectoryExists(this._stateDir)
       .then(this._onStateDirCreated.bind(this),
@@ -549,10 +551,15 @@ HealthReporter.prototype = Object.freeze({
         let ns = {};
         Cu.import(uri, ns);
 
-        let provider = new ns[entry]();
-        provider.initPreferences(this._branch + "provider.");
-        provider.healthReporter = this;
-        promises.push(this.registerProvider(provider));
+        let proto = ns[entry].prototype;
+        if (proto.constantOnly) {
+          this._log.info("Provider is constant-only. Deferring initialization: " +
+                         proto.name);
+          this._constantOnlyProviders[proto.name] = ns[entry];
+        } else {
+          let provider = this.initProviderFromType(ns[entry]);
+          promises.push(this.registerProvider(provider));
+        }
       } catch (ex) {
         this._log.warn("Error registering provider from category manager: " +
                        entry + "; " + CommonUtils.exceptionStr(ex));
@@ -567,11 +574,54 @@ HealthReporter.prototype = Object.freeze({
     });
   },
 
+  initProviderFromType: function (providerType) {
+    let provider = new providerType();
+    provider.initPreferences(this._branch + "provider.");
+    provider.healthReporter = this;
+
+    return provider;
+  },
+
   
 
 
   collectMeasurements: function () {
-    return this._collector.collectConstantData();
+    return Task.spawn(function doCollection() {
+      for each (let providerType in this._constantOnlyProviders) {
+        try {
+          let provider = this.initProviderFromType(providerType);
+          yield this.registerProvider(provider);
+        } catch (ex) {
+          this._log.warn("Error registering constant-only provider: " +
+                         CommonUtils.exceptionStr(ex));
+        }
+      }
+
+      let result;
+      try {
+        result = yield this._collector.collectConstantData();
+      } finally {
+        for (let provider of this._collector.providers) {
+          if (!provider.constantOnly) {
+            continue;
+          }
+
+          this._log.info("Shutting down constant-only provider: " +
+                         provider.name);
+
+          try {
+            yield provider.shutdown();
+          } catch (ex) {
+            this._log.warn("Error when shutting down provider: " +
+                           CommonUtils.exceptionStr(ex));
+          } finally {
+            this._collector.unregisterProvider(provider.name);
+          }
+        }
+      }
+
+      throw new Task.Result(result);
+    }.bind(this));
   },
 
   

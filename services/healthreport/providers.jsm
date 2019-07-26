@@ -31,7 +31,7 @@ Cu.import("resource://gre/modules/Metrics.jsm");
 
 #endif
 
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
@@ -120,6 +120,8 @@ AppInfoProvider.prototype = Object.freeze({
   name: "org.mozilla.appInfo",
 
   measurementTypes: [AppInfoMeasurement, AppVersionMeasurement],
+
+  constantOnly: true,
 
   appInfoFields: {
     
@@ -295,6 +297,8 @@ SysInfoProvider.prototype = Object.freeze({
   name: "org.mozilla.sysinfo",
 
   measurementTypes: [SysInfoMeasurement],
+
+  constantOnly: true,
 
   sysInfoFields: {
     cpucount: "cpuCount",
@@ -476,6 +480,8 @@ SessionsProvider.prototype = Object.freeze({
   name: "org.mozilla.appSessions",
 
   measurementTypes: [CurrentSessionMeasurement, PreviousSessionsMeasurement],
+
+  constantOnly: true,
 
   collectConstantData: function () {
     let previous = this.getMeasurement("previous", 2);
@@ -745,6 +751,8 @@ CrashesProvider.prototype = Object.freeze({
   name: "org.mozilla.crashes",
 
   measurementTypes: [DailyCrashesMeasurement],
+
+  constantOnly: true,
 
   collectConstantData: function () {
     return Task.spawn(this._populateCrashCounts.bind(this));
