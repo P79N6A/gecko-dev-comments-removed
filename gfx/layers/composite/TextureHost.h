@@ -258,12 +258,38 @@ private:
 
 
 
-class TextureHost : public RefCounted<TextureHost>
+class TextureHost
 {
+  Atomic<int> mRefCount;
+
+  
+
+
+
+
+
+  void Finalize();
+
 public:
   TextureHost(TextureFlags aFlags);
 
   virtual ~TextureHost();
+
+  void AddRef() {
+    MOZ_ASSERT(mRefCount >= 0);
+    ++mRefCount;
+  }
+
+  void Release() {
+    MOZ_ASSERT(mRefCount > 0);
+    if (0 == --mRefCount) {
+#ifdef DEBUG
+      mRefCount = detail::DEAD;
+#endif
+      Finalize();
+      delete this;
+    }
+  }
 
   
 
@@ -394,7 +420,7 @@ public:
 
   
   
-  virtual void OnActorDestroy() {}
+  virtual void OnShutdown() {}
 
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
@@ -490,7 +516,7 @@ public:
 
   virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
 
-  virtual void OnActorDestroy() MOZ_OVERRIDE;
+  virtual void OnShutdown() MOZ_OVERRIDE;
 
 protected:
   mozilla::ipc::Shmem* mShmem;
@@ -718,7 +744,7 @@ public:
   
   virtual void ForgetBuffer() {}
 
-  void OnActorDestroy();
+  void OnShutdown();
 
 protected:
   
