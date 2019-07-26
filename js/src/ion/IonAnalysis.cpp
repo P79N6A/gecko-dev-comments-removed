@@ -245,8 +245,16 @@ GuessPhiType(MPhi *phi)
     MIRType type = MIRType_None;
     for (size_t i = 0; i < phi->numOperands(); i++) {
         MDefinition *in = phi->getOperand(i);
-        if (in->isPhi() && !in->toPhi()->triedToSpecialize())
-            continue;
+        if (in->isPhi()) {
+            if (!in->toPhi()->triedToSpecialize())
+                continue;
+            if (in->type() == MIRType_None) {
+                
+                
+                
+                continue;
+            }
+        }
         if (type == MIRType_None) {
             type = in->type();
             continue;
@@ -274,6 +282,8 @@ TypeAnalyzer::respecialize(MPhi *phi, MIRType type)
 bool
 TypeAnalyzer::propagateSpecialization(MPhi *phi)
 {
+    JS_ASSERT(phi->type() != MIRType_None);
+
     
     for (MUseDefIterator iter(phi); iter; iter++) {
         if (!iter.def()->isPhi())
@@ -311,7 +321,15 @@ TypeAnalyzer::specializePhis()
 {
     for (PostorderIterator block(graph.poBegin()); block != graph.poEnd(); block++) {
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
-            phi->specialize(GuessPhiType(*phi));
+            MIRType type = GuessPhiType(*phi);
+            phi->specialize(type);
+            if (type == MIRType_None) {
+                
+                
+                
+                
+                continue;
+            }
             if (!propagateSpecialization(*phi))
                 return false;
         }
