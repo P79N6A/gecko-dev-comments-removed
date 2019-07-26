@@ -362,7 +362,7 @@ OnShutdown();
 
 
 
-struct NS_STACK_CLASS AsyncCallbackAutoLock
+struct MOZ_STACK_CLASS AsyncCallbackAutoLock
 {
   AsyncCallbackAutoLock();
   ~AsyncCallbackAutoLock();
@@ -389,8 +389,8 @@ protected:
 
 
 
-class NPPAutoPusher : public NPPStack,
-                      protected PluginDestructionGuard
+class MOZ_STACK_CLASS NPPAutoPusher : public NPPStack,
+                                      protected PluginDestructionGuard
 {
 public:
   NPPAutoPusher(NPP npp)
