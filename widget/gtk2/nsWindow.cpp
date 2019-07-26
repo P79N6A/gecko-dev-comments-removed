@@ -2938,7 +2938,7 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
 
     bool isKeyDownCancelled = false;
     if (DispatchKeyDownEvent(aEvent, &isKeyDownCancelled) &&
-        MOZ_UNLIKELY(mIsDestroyed)) {
+        (MOZ_UNLIKELY(mIsDestroyed) || isKeyDownCancelled)) {
         return TRUE;
     }
 
@@ -2999,10 +2999,6 @@ nsWindow::OnKeyPressEvent(GdkEventKey *aEvent)
 
     nsKeyEvent event(true, NS_KEY_PRESS, this);
     KeymapWrapper::InitKeyEvent(event, aEvent);
-    if (isKeyDownCancelled) {
-      
-      event.mFlags.mDefaultPrevented = true;
-    }
 
     
     
