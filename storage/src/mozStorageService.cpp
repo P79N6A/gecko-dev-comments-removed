@@ -53,22 +53,20 @@ namespace storage {
 
 
 
-static int64_t
-GetStorageSQLiteMemoryUsed()
+
+
+
+
+class StorageSQLiteReporter MOZ_FINAL : public MemoryReporterBase
 {
-  return ::sqlite3_memory_used();
-}
-
-
-
-
-
-NS_MEMORY_REPORTER_IMPLEMENT(StorageSQLite,
-    "storage-sqlite",
-    KIND_OTHER,
-    UNITS_BYTES,
-    GetStorageSQLiteMemoryUsed,
-    "Memory used by SQLite.")
+public:
+  StorageSQLiteReporter()
+    : MemoryReporterBase("storage-sqlite", KIND_OTHER, UNITS_BYTES,
+                         "Memory used by SQLite.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE { return ::sqlite3_memory_used(); }
+};
 
 class StorageSQLiteMultiReporter MOZ_FINAL : public nsIMemoryMultiReporter
 {
@@ -81,7 +79,7 @@ private:
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  StorageSQLiteMultiReporter(Service *aService) 
+  StorageSQLiteMultiReporter(Service *aService)
   : mService(aService)
   {
     mStmtDesc = NS_LITERAL_CSTRING(
@@ -305,8 +303,6 @@ Service::Service()
 , mSqliteVFS(nullptr)
 , mRegistrationMutex("Service::mRegistrationMutex")
 , mConnections()
-, mStorageSQLiteReporter(nullptr)
-, mStorageSQLiteMultiReporter(nullptr)
 {
 }
 
@@ -545,7 +541,7 @@ Service::initialize()
 
   
   
-  mStorageSQLiteReporter = new NS_MEMORY_REPORTER_NAME(StorageSQLite);
+  mStorageSQLiteReporter = new StorageSQLiteReporter();
   mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(this);
   (void)::NS_RegisterMemoryReporter(mStorageSQLiteReporter);
   (void)::NS_RegisterMemoryMultiReporter(mStorageSQLiteMultiReporter);
