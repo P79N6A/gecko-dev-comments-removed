@@ -189,15 +189,9 @@ this.Keyboard = {
 
     let browser = Services.wm.getMostRecentWindow("navigator:browser");
 
-    
-    
     browser.shell.sendChromeEvent({
       type: 'inputmethod-contextchange',
-      inputType: msg.data.type,
-      value: msg.data.value,
-      choices: JSON.stringify(msg.data.choices),
-      min: msg.data.min,
-      max: msg.data.max
+      inputType: msg.data.type
     });
   },
 
