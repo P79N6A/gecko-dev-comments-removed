@@ -2,13 +2,13 @@
 
 
 
-#ifndef nsTraceRefcntImpl_h___
-#define nsTraceRefcntImpl_h___
+#ifndef nsTraceRefcnt_h___
+#define nsTraceRefcnt_h___
 
 #include <stdio.h> 
 #include "nscore.h"
 
-class nsTraceRefcntImpl
+class nsTraceRefcnt
 {
 public:
   static void Startup();
