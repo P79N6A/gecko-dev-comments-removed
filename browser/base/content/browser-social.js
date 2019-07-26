@@ -191,7 +191,6 @@ let SocialChatBar = {
 
 function sizeSocialPanelToContent(iframe) {
   
-  
   let doc = iframe.contentDocument;
   if (!doc) {
     return;
@@ -199,13 +198,36 @@ function sizeSocialPanelToContent(iframe) {
   
   
   let body = doc.getElementById("notif") || doc.body;
-  if (!body || !body.firstChild) {
+  if (!body) {
     return;
   }
-
-  let [height, width] = [body.firstChild.offsetHeight || 300, 330];
-  iframe.style.width = width + "px";
+  
+  
+  
+  
+  iframe.style.width = "330px";
+  
+  let cs = doc.defaultView.getComputedStyle(body);
+  let computedHeight = parseInt(cs.marginTop) + body.offsetHeight + parseInt(cs.marginBottom);
+  let height = computedHeight || 300;
   iframe.style.height = height + "px";
+}
+
+function setupDynamicPanelResizer(iframe) {
+  let doc = iframe.contentDocument;
+  let mo = new iframe.contentWindow.MutationObserver(function(mutations) {
+    sizeSocialPanelToContent(iframe);
+  });
+  
+  let config = {attributes: true, characterData: true, childList: true, subtree: true};
+  mo.observe(doc, config);
+  doc.addEventListener("unload", function() {
+    if (mo) {
+      mo.disconnect();
+      mo = null;
+    }
+  }, false);
+  sizeSocialPanelToContent(iframe);
 }
 
 let SocialFlyout = {
@@ -275,7 +297,7 @@ let SocialFlyout = {
     if (src != aURL) {
       iframe.addEventListener("load", function documentLoaded() {
         iframe.removeEventListener("load", documentLoaded, true);
-        sizeSocialPanelToContent(iframe);
+        setupDynamicPanelResizer(iframe);
         if (aCallback) {
           try {
             aCallback(iframe.contentWindow);
@@ -650,13 +672,13 @@ var SocialToolbar = {
       notificationFrame.docShell.isActive = true;
       notificationFrame.docShell.isAppTab = true;
       if (notificationFrame.contentDocument.readyState == "complete") {
-        sizeSocialPanelToContent(notificationFrame);
+        setupDynamicPanelResizer(notificationFrame);
         dispatchPanelEvent("socialFrameShow");
       } else {
         
         notificationFrame.addEventListener("load", function panelBrowserOnload(e) {
           notificationFrame.removeEventListener("load", panelBrowserOnload, true);
-          sizeSocialPanelToContent(notificationFrame);
+          setupDynamicPanelResizer(notificationFrame);
           setTimeout(function() {
             dispatchPanelEvent("socialFrameShow");
           }, 0);
