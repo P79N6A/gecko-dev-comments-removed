@@ -750,6 +750,3 @@ pref("dom.promise.enabled", false);
 
 
 pref("b2g.adb.timeout-hours", 12);
-
-
-pref("dom.mozInputMethod.enabled", true);
