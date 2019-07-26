@@ -1291,6 +1291,14 @@ class JitActivation : public Activation
     bool firstFrameIsConstructing_;
     bool active_;
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+  protected:
+    
+    
+    uint32_t checkRegs_;
+    RegisterDump regs_;
+#endif
+
   public:
     JitActivation(JSContext *cx, bool firstFrameIsConstructing, bool active = true);
     ~JitActivation();
@@ -1309,6 +1317,18 @@ class JitActivation : public Activation
     bool firstFrameIsConstructing() const {
         return firstFrameIsConstructing_;
     }
+
+#ifdef CHECK_OSIPOINT_REGISTERS
+    void setCheckRegs(bool check) {
+        checkRegs_ = check;
+    }
+    static size_t offsetOfCheckRegs() {
+        return offsetof(JitActivation, checkRegs_);
+    }
+    static size_t offsetOfRegs() {
+        return offsetof(JitActivation, regs_);
+    }
+#endif
 };
 
 

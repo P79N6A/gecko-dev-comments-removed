@@ -985,6 +985,12 @@ class LSafepoint : public TempObject
     
     GeneralRegisterSet gcRegs_;
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+    
+    
+    RegisterSet tempRegs_;
+#endif
+
     
     
     uint32_t safepointOffset_;
@@ -1029,6 +1035,14 @@ class LSafepoint : public TempObject
     const RegisterSet &liveRegs() const {
         return liveRegs_;
     }
+#ifdef CHECK_OSIPOINT_REGISTERS
+    void addTempRegister(AnyRegister reg) {
+        tempRegs_.addUnchecked(reg);
+    }
+    const RegisterSet &tempRegs() const {
+        return tempRegs_;
+    }
+#endif
     void addGcRegister(Register reg) {
         gcRegs_.addUnchecked(reg);
     }

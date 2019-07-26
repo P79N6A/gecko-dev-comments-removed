@@ -92,6 +92,14 @@ struct IonOptions
     
     bool parallelCompilation;
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+    
+    
+    
+    
+    bool checkOsiPointRegisters;
+#endif
+
     
     
     
@@ -207,6 +215,9 @@ struct IonOptions
         uce(true),
         eaa(true),
         parallelCompilation(false),
+#ifdef CHECK_OSIPOINT_REGISTERS
+        checkOsiPointRegisters(false),
+#endif
         baselineUsesBeforeCompile(10),
         usesBeforeCompile(1000),
         usesBeforeInliningFactor(.125),

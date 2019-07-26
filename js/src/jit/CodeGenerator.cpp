@@ -832,6 +832,11 @@ CodeGenerator::visitOsiPoint(LOsiPoint *lir)
     }
 #endif
 
+#ifdef CHECK_OSIPOINT_REGISTERS
+    if (shouldVerifyOsiPointRegs(safepoint))
+        verifyOsiPointRegs(safepoint);
+#endif
+
     return true;
 }
 
@@ -2730,6 +2735,20 @@ CodeGenerator::generateBody()
                 if (!markArgumentSlots(iter->safepoint()))
                     return false;
             }
+
+#ifdef CHECK_OSIPOINT_REGISTERS
+            if (iter->safepoint() && shouldVerifyOsiPointRegs(iter->safepoint())) {
+                
+                
+                GeneralRegisterSet allRegs(GeneralRegisterSet::All());
+                Register scratch = allRegs.takeAny();
+                masm.push(scratch);
+                masm.loadJitActivation(scratch);
+                Address checkRegs(scratch, JitActivation::offsetOfCheckRegs());
+                masm.store32(Imm32(0), checkRegs);
+                masm.pop(scratch);
+            }
+#endif
 
             if (!callTraceLIR(i, *iter))
                 return false;

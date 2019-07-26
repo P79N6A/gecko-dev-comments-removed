@@ -85,6 +85,21 @@ struct FloatRegister {
     }
 };
 
+class RegisterDump
+{
+  protected: 
+    uintptr_t regs_[Registers::Total];
+    double fpregs_[FloatRegisters::Total];
+
+  public:
+    static size_t offsetOfRegister(Register reg) {
+        return offsetof(RegisterDump, regs_) + reg.code() * sizeof(uintptr_t);
+    }
+    static size_t offsetOfRegister(FloatRegister reg) {
+        return offsetof(RegisterDump, fpregs_) + reg.code() * sizeof(double);
+    }
+};
+
 
 class MachineState
 {
