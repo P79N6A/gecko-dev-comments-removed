@@ -18,6 +18,8 @@
 #include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
 
+#include "mozilla/Preferences.h"
+
 
 #include "MediaEngineDefault.h"
 #if defined(MOZ_WEBRTC)
@@ -674,6 +676,11 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   }
 
   
+  if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
+    aPrivileged = true;
+  }
+
+  
 
 
 
@@ -706,7 +713,7 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   if (picture) {
     
     NS_DispatchToMainThread(gUMRunnable);
-  } else if (aPrivileged) {
+  } else if (aPrivileged || fake) {
     if (!mMediaThread) {
       nsresult rv = NS_NewThread(getter_AddRefs(mMediaThread));
       NS_ENSURE_SUCCESS(rv, rv);
