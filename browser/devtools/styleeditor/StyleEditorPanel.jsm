@@ -86,7 +86,8 @@ StyleEditorPanel.prototype = {
   
 
 
-  newPage: function StyleEditor_newPage(event, window) {
+  newPage: function StyleEditor_newPage(event, payload) {
+    let window = payload._navPayload || payload;
     this.reset();
     this.setPage(window);
   },
@@ -94,7 +95,8 @@ StyleEditorPanel.prototype = {
   
 
 
-  beforeNavigate: function StyleEditor_beforeNavigate(event, request) {
+  beforeNavigate: function StyleEditor_beforeNavigate(event, payload) {
+    let request = payload._navPayload || payload;
     if (this.styleEditorChrome.isDirty) {
       this.preventNavigate(request);
     }

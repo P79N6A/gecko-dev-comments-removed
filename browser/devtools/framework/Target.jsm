@@ -288,19 +288,21 @@ TabTarget.prototype = {
 
 
   _setupRemoteListeners: function TabTarget__setupRemoteListeners() {
-    
-    if (this._webProgressListener) {
-      this._webProgressListener.destroy();
-    }
-
     this.client.addListener("tabDetached", this.destroy);
 
     this._onTabNavigated = function onRemoteTabNavigated(aType, aPacket) {
+      let event = Object.create(null);
+      event.url = aPacket.url;
+      event.title = aPacket.title;
+      
+      
+      event._navPayload = this._navPayload;
       if (aPacket.state == "start") {
-        this.emit("will-navigate", aPacket);
+        this.emit("will-navigate", event);
       } else {
-        this.emit("navigate", aPacket);
+        this.emit("navigate", event);
       }
+      this._navPayload = null;
     }.bind(this);
     this.client.addListener("tabNavigated", this._onTabNavigated);
   },
@@ -359,6 +361,10 @@ TabTarget.prototype = {
     this.off("thread-paused", this._handleThreadState);
 
     if (this._tab) {
+      if (this._webProgressListener) {
+        this._webProgressListener.destroy();
+      }
+
       this._tab.ownerDocument.defaultView.removeEventListener("unload", this);
       this._tab.removeEventListener("TabClose", this);
       this._tab.parentNode.removeEventListener("TabSelect", this);
@@ -368,10 +374,6 @@ TabTarget.prototype = {
     
     
     if (this._tab && !this._client) {
-      if (this._webProgressListener) {
-        this._webProgressListener.destroy();
-      }
-
       targets.delete(this._tab);
       this._tab = null;
       this._client = null;
@@ -434,7 +436,13 @@ TabWebProgressListener.prototype = {
 
     
     if (this.target && this.target.window == progress.DOMWindow) {
-      this.target.emit("will-navigate", request);
+      
+      
+      if (this.target._client) {
+        this.target._navPayload = request;
+      } else {
+        this.target.emit("will-navigate", request);
+      }
     }
   },
 
@@ -446,7 +454,13 @@ TabWebProgressListener.prototype = {
     if (this.target &&
         !(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
       let window = webProgress.DOMWindow;
-      this.target.emit("navigate", window);
+      
+      
+      if (this.target._client) {
+        this.target._navPayload = window;
+      } else {
+        this.target.emit("navigate", window);
+      }
     }
   },
 
