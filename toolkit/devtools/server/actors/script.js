@@ -49,7 +49,7 @@ BreakpointStore.prototype = {
 
 
 
-  addBreakpoint: function BS_addBreakpoint(aBreakpoint) {
+  addBreakpoint: function (aBreakpoint) {
     let { url, line, column } = aBreakpoint;
 
     if (column != null) {
@@ -79,7 +79,7 @@ BreakpointStore.prototype = {
 
 
 
-  removeBreakpoint: function BS_removeBreakpoint({ url, line, column }) {
+  removeBreakpoint: function ({ url, line, column }) {
     if (column != null) {
       if (this._breakpoints[url]) {
         if (this._breakpoints[url][line]) {
@@ -115,7 +115,7 @@ BreakpointStore.prototype = {
 
 
 
-  getBreakpoint: function BS_getBreakpoint(aLocation) {
+  getBreakpoint: function (aLocation) {
     let { url, line, column } = aLocation;
     dbg_assert(url != null);
     dbg_assert(line != null);
@@ -141,7 +141,7 @@ BreakpointStore.prototype = {
 
 
 
-  hasBreakpoint: function BS_hasBreakpoint(aLocation) {
+  hasBreakpoint: function (aLocation) {
     let { url, line, column } = aLocation;
     dbg_assert(url != null);
     dbg_assert(line != null);
@@ -167,7 +167,7 @@ BreakpointStore.prototype = {
 
 
 
-  findBreakpoints: function BS_findBreakpoints(aSearchParams={}) {
+  findBreakpoints: function (aSearchParams={}) {
     if (aSearchParams.column != null) {
       dbg_assert(aSearchParams.line != null);
     }
@@ -191,7 +191,7 @@ BreakpointStore.prototype = {
     }
   },
 
-  _iterUrls: function BS__iterUrls(aUrl) {
+  _iterUrls: function (aUrl) {
     if (aUrl) {
       if (this._breakpoints[aUrl] || this._wholeLineBreakpoints[aUrl]) {
         yield aUrl;
@@ -209,7 +209,7 @@ BreakpointStore.prototype = {
     }
   },
 
-  _iterLines: function BS__iterLines(aUrl, aLine) {
+  _iterLines: function (aUrl, aLine) {
     if (aLine != null) {
       if ((this._wholeLineBreakpoints[aUrl]
            && this._wholeLineBreakpoints[aUrl][aLine])
@@ -237,7 +237,7 @@ BreakpointStore.prototype = {
     }
   },
 
-  _iterColumns: function BS__iterColumns(aUrl, aLine, aColumn) {
+  _iterColumns: function (aUrl, aLine, aColumn) {
     if (!this._breakpoints[aUrl] || !this._breakpoints[aUrl][aLine]) {
       return;
     }
@@ -513,7 +513,7 @@ ThreadActor.prototype = {
 
 
   _threadPauseEventLoops: null,
-  _pushThreadPause: function TA__pushThreadPause() {
+  _pushThreadPause: function () {
     if (!this._threadPauseEventLoops) {
       this._threadPauseEventLoops = [];
     }
@@ -521,13 +521,13 @@ ThreadActor.prototype = {
     this._threadPauseEventLoops.push(eventLoop);
     eventLoop.enter();
   },
-  _popThreadPause: function TA__popThreadPause() {
+  _popThreadPause: function () {
     const eventLoop = this._threadPauseEventLoops.pop();
     dbg_assert(eventLoop, "Should have an event loop.");
     eventLoop.resolve();
   },
 
-  clearDebuggees: function TA_clearDebuggees() {
+  clearDebuggees: function () {
     if (this.dbg) {
       this.dbg.removeAllDebuggees();
     }
@@ -541,7 +541,7 @@ ThreadActor.prototype = {
 
 
 
-  addDebuggee: function TA_addDebuggee(aGlobal) {
+  addDebuggee: function (aGlobal) {
     let globalDebugObject;
     try {
       globalDebugObject = this.dbg.addDebuggee(aGlobal);
@@ -555,7 +555,7 @@ ThreadActor.prototype = {
   
 
 
-  _initDebugger: function TA__initDebugger() {
+  _initDebugger: function () {
     this.dbg = new Debugger();
     this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
     this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
@@ -568,7 +568,7 @@ ThreadActor.prototype = {
   
 
 
-  removeDebugee: function TA_removeDebuggee(aGlobal) {
+  removeDebugee: function (aGlobal) {
     try {
       this.dbg.removeDebuggee(aGlobal);
     } catch(ex) {
@@ -582,7 +582,7 @@ ThreadActor.prototype = {
 
 
 
-  _addDebuggees: function TA__addDebuggees(aWindow) {
+  _addDebuggees: function (aWindow) {
     let globalDebugObject = this.addDebuggee(aWindow);
     let frames = aWindow.frames;
     if (frames) {
@@ -598,7 +598,7 @@ ThreadActor.prototype = {
 
 
   globalManager: {
-    findGlobals: function TA_findGlobals() {
+    findGlobals: function () {
       this.globalDebugObject = this._addDebuggees(this.global);
     },
 
@@ -609,7 +609,7 @@ ThreadActor.prototype = {
 
 
 
-    onNewGlobal: function TA_onNewGlobal(aGlobal) {
+    onNewGlobal: function (aGlobal) {
       
       
       if (aGlobal.hostAnnotations &&
@@ -627,7 +627,7 @@ ThreadActor.prototype = {
     }
   },
 
-  disconnect: function TA_disconnect() {
+  disconnect: function () {
     dumpn("in ThreadActor.prototype.disconnect");
     if (this._state == "paused") {
       this.onResume();
@@ -656,12 +656,12 @@ ThreadActor.prototype = {
   
 
 
-  exit: function TA_exit() {
+  exit: function () {
     this.disconnect();
   },
 
   
-  onAttach: function TA_onAttach(aRequest) {
+  onAttach: function (aRequest) {
     if (this.state === "exited") {
       return { type: "exited" };
     }
@@ -706,7 +706,7 @@ ThreadActor.prototype = {
     }
   },
 
-  onDetach: function TA_onDetach(aRequest) {
+  onDetach: function (aRequest) {
     this.disconnect();
     dumpn("ThreadActor.prototype.onDetach: returning 'detached' packet");
     return {
@@ -714,7 +714,7 @@ ThreadActor.prototype = {
     };
   },
 
-  onReconfigure: function TA_onReconfigure(aRequest) {
+  onReconfigure: function (aRequest) {
     if (this.state == "exited") {
       return { error: "wrongState" };
     }
@@ -738,8 +738,7 @@ ThreadActor.prototype = {
 
 
 
-  _pauseAndRespond: function TA__pauseAndRespond(aFrame, aReason,
-                                                 onPacket=function (k) { return k; }) {
+  _pauseAndRespond: function (aFrame, aReason, onPacket=function (k) { return k; }) {
     try {
       let packet = this._paused(aFrame);
       if (!packet) {
@@ -777,7 +776,7 @@ ThreadActor.prototype = {
 
 
 
-  _forceCompletion: function TA__forceCompletion(aRequest) {
+  _forceCompletion: function (aRequest) {
     
     
     return {
@@ -786,7 +785,7 @@ ThreadActor.prototype = {
     };
   },
 
-  _makeOnEnterFrame: function TA__makeOnEnterFrame({ pauseAndRespond }) {
+  _makeOnEnterFrame: function ({ pauseAndRespond }) {
     return aFrame => {
       const generatedLocation = getFrameLocation(aFrame);
       let { url } = this.synchronize(this.sources.getOriginalLocation(
@@ -798,7 +797,7 @@ ThreadActor.prototype = {
     };
   },
 
-  _makeOnPop: function TA__makeOnPop({ thread, pauseAndRespond, createValueGrip }) {
+  _makeOnPop: function ({ thread, pauseAndRespond, createValueGrip }) {
     return function (aCompletion) {
       
 
@@ -830,8 +829,8 @@ ThreadActor.prototype = {
     };
   },
 
-  _makeOnStep: function TA__makeOnStep({ thread, pauseAndRespond, startFrame,
-                                         startLocation }) {
+  _makeOnStep: function ({ thread, pauseAndRespond, startFrame,
+                           startLocation }) {
     return function () {
       
 
@@ -876,7 +875,7 @@ ThreadActor.prototype = {
   
 
 
-  _makeSteppingHooks: function TA__makeSteppingHooks(aStartLocation) {
+  _makeSteppingHooks: function (aStartLocation) {
     
     
     
@@ -907,7 +906,7 @@ ThreadActor.prototype = {
 
 
 
-  _handleResumeLimit: function TA__handleResumeLimit(aRequest) {
+  _handleResumeLimit: function (aRequest) {
     let steppingType = aRequest.resumeLimit.type;
     if (["step", "next", "finish"].indexOf(steppingType) == -1) {
       return reject({ error: "badParameterType",
@@ -949,7 +948,7 @@ ThreadActor.prototype = {
 
 
 
-  _clearSteppingHooks: function TA__clearSteppingHooks(aFrame) {
+  _clearSteppingHooks: function (aFrame) {
     while (aFrame) {
       aFrame.onStep = undefined;
       aFrame.onPop = undefined;
@@ -963,7 +962,7 @@ ThreadActor.prototype = {
 
 
 
-  _maybeListenToEvents: function TA__maybeListenToEvents(aRequest) {
+  _maybeListenToEvents: function (aRequest) {
     
     let events = aRequest.pauseOnDOMEvents;
     if (this.global && events &&
@@ -979,7 +978,7 @@ ThreadActor.prototype = {
   
 
 
-  onResume: function TA_onResume(aRequest) {
+  onResume: function (aRequest) {
     if (this._state !== "paused") {
       return {
         error: "wrongState",
@@ -1161,7 +1160,7 @@ ThreadActor.prototype = {
   
 
 
-  _getNextStepFrame: function TA__getNextStepFrame(aFrame) {
+  _getNextStepFrame: function (aFrame) {
     let stepFrame = aFrame.reportedPop ? aFrame.older : aFrame;
     if (!stepFrame || !stepFrame.script) {
       stepFrame = null;
@@ -1169,7 +1168,7 @@ ThreadActor.prototype = {
     return stepFrame;
   },
 
-  onClientEvaluate: function TA_onClientEvaluate(aRequest) {
+  onClientEvaluate: function (aRequest) {
     if (this.state !== "paused") {
       return { error: "wrongState",
                message: "Debuggee must be paused to evaluate code." };
@@ -1205,7 +1204,7 @@ ThreadActor.prototype = {
     return packet;
   },
 
-  onFrames: function TA_onFrames(aRequest) {
+  onFrames: function (aRequest) {
     if (this.state !== "paused") {
       return { error: "wrongState",
                message: "Stack frames are only available while the debuggee is paused."};
@@ -1247,7 +1246,7 @@ ThreadActor.prototype = {
     });
   },
 
-  onReleaseMany: function TA_onReleaseMany(aRequest) {
+  onReleaseMany: function (aRequest) {
     if (!aRequest.actors) {
       return { error: "missingParameter",
                message: "no actors were specified" };
@@ -1271,7 +1270,7 @@ ThreadActor.prototype = {
   
 
 
-  onSetBreakpoint: function TA_onSetBreakpoint(aRequest) {
+  onSetBreakpoint: function (aRequest) {
     if (this.state !== "paused") {
       return { error: "wrongState",
                message: "Breakpoints can only be set while the debuggee is paused."};
@@ -1355,7 +1354,7 @@ ThreadActor.prototype = {
 
 
 
-  _setBreakpoint: function TA__setBreakpoint(aLocation) {
+  _setBreakpoint: function (aLocation) {
     let actor;
     let storedBp = this.breakpointStore.getBreakpoint(aLocation);
     if (storedBp.actor) {
@@ -1508,9 +1507,9 @@ ThreadActor.prototype = {
 
 
 
-  _findClosestOffsetMappings: function TA__findClosestOffsetMappings(aTargetLocation,
-                                                                     aScript,
-                                                                     aScriptsAndOffsetMappings) {
+  _findClosestOffsetMappings: function (aTargetLocation,
+                                        aScript,
+                                        aScriptsAndOffsetMappings) {
     
     
 
@@ -1562,7 +1561,7 @@ ThreadActor.prototype = {
   
 
 
-  _discoverSources: function TA__discoverSources() {
+  _discoverSources: function () {
     
     const sourcesToScripts = new Map();
     for (let s of this.dbg.findScripts()) {
@@ -1575,7 +1574,7 @@ ThreadActor.prototype = {
                 for (script of sourcesToScripts.values())]);
   },
 
-  onSources: function TA_onSources(aRequest) {
+  onSources: function (aRequest) {
     return this._discoverSources().then(() => {
       return {
         sources: [s.form() for (s of this.sources.iter())]
@@ -1601,7 +1600,7 @@ ThreadActor.prototype = {
   
 
 
-  onInterrupt: function TA_onInterrupt(aRequest) {
+  onInterrupt: function (aRequest) {
     if (this.state == "exited") {
       return { type: "exited" };
     } else if (this.state == "paused") {
@@ -1641,7 +1640,7 @@ ThreadActor.prototype = {
   
 
 
-  onEventListeners: function TA_onEventListeners(aRequest) {
+  onEventListeners: function (aRequest) {
     
     if (!this.global) {
       return {
@@ -1694,7 +1693,7 @@ ThreadActor.prototype = {
   
 
 
-  _requestFrame: function TA_requestFrame(aFrameID) {
+  _requestFrame: function (aFrameID) {
     if (!aFrameID) {
       return this.youngestFrame;
     }
@@ -1706,7 +1705,7 @@ ThreadActor.prototype = {
     return undefined;
   },
 
-  _paused: function TA__paused(aFrame) {
+  _paused: function (aFrame) {
     
     
     
@@ -1773,7 +1772,7 @@ ThreadActor.prototype = {
     return packet;
   },
 
-  _resumed: function TA_resumed() {
+  _resumed: function () {
     this._state = "running";
 
     
@@ -1790,7 +1789,7 @@ ThreadActor.prototype = {
 
 
 
-  _updateFrames: function TA_updateFrames() {
+  _updateFrames: function () {
     let popped = [];
 
     
@@ -1819,7 +1818,7 @@ ThreadActor.prototype = {
     return popped;
   },
 
-  _createFrameActor: function TA_createFrameActor(aFrame) {
+  _createFrameActor: function (aFrame) {
     if (aFrame.actor) {
       return aFrame.actor;
     }
@@ -1843,7 +1842,7 @@ ThreadActor.prototype = {
 
 
   createEnvironmentActor:
-  function TA_createEnvironmentActor(aEnvironment, aPool) {
+  function (aEnvironment, aPool) {
     if (!aEnvironment) {
       return undefined;
     }
@@ -1863,7 +1862,7 @@ ThreadActor.prototype = {
 
 
 
-  createValueGrip: function TA_createValueGrip(aValue, aPool=false) {
+  createValueGrip: function (aValue, aPool=false) {
     if (!aPool) {
       aPool = this._pausePool;
     }
@@ -1905,7 +1904,7 @@ ThreadActor.prototype = {
 
 
   createProtocolCompletionValue:
-  function TA_createProtocolCompletionValue(aCompletion) {
+  function (aCompletion) {
     let protoValue = {};
     if ("return" in aCompletion) {
       protoValue.return = this.createValueGrip(aCompletion.return);
@@ -1927,7 +1926,7 @@ ThreadActor.prototype = {
 
 
 
-  objectGrip: function TA_objectGrip(aValue, aPool) {
+  objectGrip: function (aValue, aPool) {
     if (!aPool.objectActors) {
       aPool.objectActors = new WeakMap();
     }
@@ -1950,7 +1949,7 @@ ThreadActor.prototype = {
 
 
 
-  pauseObjectGrip: function TA_pauseObjectGrip(aValue) {
+  pauseObjectGrip: function (aValue) {
     if (!this._pausePool) {
       throw "Object grip requested while not paused.";
     }
@@ -1964,7 +1963,7 @@ ThreadActor.prototype = {
 
 
 
-  threadObjectGrip: function TA_threadObjectGrip(aActor) {
+  threadObjectGrip: function (aActor) {
     
     
     aActor.registeredPool.objectActors.delete(aActor.obj);
@@ -1979,7 +1978,7 @@ ThreadActor.prototype = {
 
 
 
-  onThreadGrips: function OA_onThreadGrips(aRequest) {
+  onThreadGrips: function (aRequest) {
     if (this.state != "paused") {
       return { error: "wrongState" };
     }
@@ -2006,7 +2005,7 @@ ThreadActor.prototype = {
 
 
 
-  longStringGrip: function TA_longStringGrip(aString, aPool) {
+  longStringGrip: function (aString, aPool) {
     if (!aPool.longStringActors) {
       aPool.longStringActors = {};
     }
@@ -2027,7 +2026,7 @@ ThreadActor.prototype = {
 
 
 
-  pauseLongStringGrip: function TA_pauseLongStringGrip (aString) {
+  pauseLongStringGrip: function (aString) {
     return this.longStringGrip(aString, this._pausePool);
   },
 
@@ -2037,7 +2036,7 @@ ThreadActor.prototype = {
 
 
 
-  threadLongStringGrip: function TA_pauseLongStringGrip (aString) {
+  threadLongStringGrip: function (aString) {
     return this.longStringGrip(aString, this._threadLifetimePool);
   },
 
@@ -2048,7 +2047,7 @@ ThreadActor.prototype = {
 
 
 
-  _stringIsLong: function TA__stringIsLong(aString) {
+  _stringIsLong: function (aString) {
     return aString.length >= DebuggerServer.LONG_STRING_LENGTH;
   },
 
@@ -2062,7 +2061,7 @@ ThreadActor.prototype = {
 
 
 
-  uncaughtExceptionHook: function TA_uncaughtExceptionHook(aException) {
+  uncaughtExceptionHook: function (aException) {
     dumpn("Got an exception: " + aException.message + "\n" + aException.stack);
   },
 
@@ -2073,7 +2072,7 @@ ThreadActor.prototype = {
 
 
 
-  onDebuggerStatement: function TA_onDebuggerStatement(aFrame) {
+  onDebuggerStatement: function (aFrame) {
     
     
     const generatedLocation = getFrameLocation(aFrame);
@@ -2094,7 +2093,7 @@ ThreadActor.prototype = {
 
 
 
-  onExceptionUnwind: function TA_onExceptionUnwind(aFrame, aValue) {
+  onExceptionUnwind: function (aFrame, aValue) {
     let willBeCaught = false;
     for (let frame = aFrame; frame != null; frame = frame.older) {
       if (frame.script.isInCatchScope(frame.offset)) {
@@ -2142,12 +2141,12 @@ ThreadActor.prototype = {
 
 
 
-  onNewScript: function TA_onNewScript(aScript, aGlobal) {
+  onNewScript: function (aScript, aGlobal) {
     this._addScript(aScript);
     this.sources.sourcesForScript(aScript);
   },
 
-  onNewSource: function TA_onNewSource(aSource) {
+  onNewSource: function (aSource) {
     this.conn.send({
       from: this.actorID,
       type: "newSource",
@@ -2163,7 +2162,7 @@ ThreadActor.prototype = {
 
 
 
-  _allowSource: function TA__allowSource(aSourceUrl) {
+  _allowSource: function (aSourceUrl) {
     
     if (!aSourceUrl)
       return false;
@@ -2181,7 +2180,7 @@ ThreadActor.prototype = {
   
 
 
-  _restoreBreakpoints: function TA__restoreBreakpoints() {
+  _restoreBreakpoints: function () {
     for (let s of this.dbg.findScripts()) {
       this._addScript(s);
     }
@@ -2194,7 +2193,7 @@ ThreadActor.prototype = {
 
 
 
-  _addScript: function TA__addScript(aScript) {
+  _addScript: function (aScript) {
     if (!this._allowSource(aScript.url)) {
       return false;
     }
@@ -2220,7 +2219,7 @@ ThreadActor.prototype = {
   
 
 
-  onPrototypesAndProperties: function TA_onPrototypesAndProperties(aRequest) {
+  onPrototypesAndProperties: function (aRequest) {
     let result = {};
     for (let actorID of aRequest.actors) {
       
@@ -2300,7 +2299,7 @@ function PauseScopedActor()
 
 
 
-PauseScopedActor.withPaused = function PSA_withPaused(aMethod) {
+PauseScopedActor.withPaused = function (aMethod) {
   return function () {
     if (this.isPaused()) {
       return aMethod.apply(this, arguments);
@@ -2315,7 +2314,7 @@ PauseScopedActor.prototype = {
   
 
 
-  isPaused: function PSA_isPaused() {
+  isPaused: function () {
     
     
     
@@ -2325,7 +2324,7 @@ PauseScopedActor.prototype = {
   
 
 
-  _wrongState: function PSA_wrongState() {
+  _wrongState: function () {
     return {
       error: "wrongState",
       message: this.constructor.name +
@@ -2391,7 +2390,7 @@ SourceActor.prototype = {
     return this.threadActor.prettyPrintWorker;
   },
 
-  form: function SA_form() {
+  form: function () {
     return {
       actor: this.actorID,
       url: this._url,
@@ -2401,13 +2400,13 @@ SourceActor.prototype = {
     };
   },
 
-  disconnect: function SA_disconnect() {
+  disconnect: function () {
     if (this.registeredPool && this.registeredPool.sourceActors) {
       delete this.registeredPool.sourceActors[this.actorID];
     }
   },
 
-  _getSourceText: function SA__getSourceText() {
+  _getSourceText: function () {
     const toResolvedContent = t => resolve({
       content: t,
       contentType: this._contentType
@@ -2431,7 +2430,7 @@ SourceActor.prototype = {
   
 
 
-  onSource: function SA_onSource() {
+  onSource: function () {
     return resolve(this._init)
       .then(this._getSourceText)
       .then(({ content, contentType }) => {
@@ -2491,7 +2490,7 @@ SourceActor.prototype = {
 
 
 
-  _sendToPrettyPrintWorker: function SA__sendToPrettyPrintWorker(aIndent) {
+  _sendToPrettyPrintWorker: function (aIndent) {
     return ({ content }) => {
       const deferred = promise.defer();
       const id = Math.random();
@@ -2529,7 +2528,7 @@ SourceActor.prototype = {
 
 
 
-  _invertSourceMap: function SA__invertSourceMap({ code, mappings }) {
+  _invertSourceMap: function ({ code, mappings }) {
     const generator = new SourceMapGenerator({ file: this._url });
     return DevToolsUtils.yieldingEach(mappings, m => {
       let mapping = {
@@ -2586,7 +2585,7 @@ SourceActor.prototype = {
 
 
 
-  _saveMap: function SA__saveMap({ map }) {
+  _saveMap: function ({ map }) {
     if (this._sourceMap) {
       
       this._oldSourceMap = this._sourceMap;
@@ -2604,7 +2603,7 @@ SourceActor.prototype = {
   
 
 
-  onDisablePrettyPrint: function SA_onDisablePrettyPrint() {
+  onDisablePrettyPrint: function () {
     this._sourceMap = this._oldSourceMap;
     this.threadActor.sources.saveSourceMap(this._sourceMap,
                                            this._generatedSource || this._url);
@@ -2615,7 +2614,7 @@ SourceActor.prototype = {
   
 
 
-  onBlackBox: function SA_onBlackBox(aRequest) {
+  onBlackBox: function (aRequest) {
     this.threadActor.sources.blackBox(this.url);
     let packet = {
       from: this.actorID
@@ -2631,7 +2630,7 @@ SourceActor.prototype = {
   
 
 
-  onUnblackBox: function SA_onUnblackBox(aRequest) {
+  onUnblackBox: function (aRequest) {
     this.threadActor.sources.unblackBox(this.url);
     return {
       from: this.actorID
@@ -2670,7 +2669,7 @@ ObjectActor.prototype = {
   
 
 
-  grip: function OA_grip() {
+  grip: function () {
     let g = {
       "type": "object",
       "class": this.obj.class,
@@ -2715,7 +2714,7 @@ ObjectActor.prototype = {
   
 
 
-  release: function OA_release() {
+  release: function () {
     if (this.registeredPool.objectActors) {
       this.registeredPool.objectActors.delete(this.obj);
     }
@@ -2725,7 +2724,7 @@ ObjectActor.prototype = {
   
 
 
-  _forceMagicProperties: function OA__forceMagicProperties() {
+  _forceMagicProperties: function () {
     if (this._forcedMagicProps) {
       return;
     }
@@ -2750,7 +2749,7 @@ ObjectActor.prototype = {
 
 
 
-  onOwnPropertyNames: function OA_onOwnPropertyNames(aRequest) {
+  onOwnPropertyNames: function (aRequest) {
     this._forceMagicProperties();
     return { from: this.actorID,
              ownPropertyNames: this.obj.getOwnPropertyNames() };
@@ -2763,7 +2762,7 @@ ObjectActor.prototype = {
 
 
 
-  onPrototypeAndProperties: function OA_onPrototypeAndProperties(aRequest) {
+  onPrototypeAndProperties: function (aRequest) {
     this._forceMagicProperties();
     let ownProperties = Object.create(null);
     let names;
@@ -2797,7 +2796,7 @@ ObjectActor.prototype = {
 
 
 
-  _findSafeGetterValues: function OA__findSafeGetterValues(aOwnProperties)
+  _findSafeGetterValues: function (aOwnProperties)
   {
     let safeGetterValues = Object.create(null);
     let obj = this.obj;
@@ -2865,7 +2864,7 @@ ObjectActor.prototype = {
 
 
 
-  _findSafeGetters: function OA__findSafeGetters(aObject)
+  _findSafeGetters: function (aObject)
   {
     if (aObject._safeGetters) {
       return aObject._safeGetters;
@@ -2901,7 +2900,7 @@ ObjectActor.prototype = {
 
 
 
-  onPrototype: function OA_onPrototype(aRequest) {
+  onPrototype: function (aRequest) {
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto) };
   },
@@ -2913,7 +2912,7 @@ ObjectActor.prototype = {
 
 
 
-  onProperty: function OA_onProperty(aRequest) {
+  onProperty: function (aRequest) {
     if (!aRequest.name) {
       return { error: "missingParameter",
                message: "no property name was specified" };
@@ -2929,7 +2928,7 @@ ObjectActor.prototype = {
 
 
 
-  onDisplayString: function OA_onDisplayString(aRequest) {
+  onDisplayString: function (aRequest) {
     let toString;
     try {
       
@@ -2967,7 +2966,7 @@ ObjectActor.prototype = {
 
 
 
-  _propertyDescriptor: function OA_propertyDescriptor(aName) {
+  _propertyDescriptor: function (aName) {
     let desc;
     try {
       desc = this.obj.getOwnPropertyDescriptor(aName);
@@ -3012,7 +3011,7 @@ ObjectActor.prototype = {
 
 
 
-  onDecompile: function OA_onDecompile(aRequest) {
+  onDecompile: function (aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "decompile request is only valid for object grips " +
@@ -3029,7 +3028,7 @@ ObjectActor.prototype = {
 
 
 
-  onParameterNames: function OA_onParameterNames(aRequest) {
+  onParameterNames: function (aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "'parameterNames' request is only valid for object " +
@@ -3045,7 +3044,7 @@ ObjectActor.prototype = {
 
 
 
-  onRelease: function OA_onRelease(aRequest) {
+  onRelease: function (aRequest) {
     this.release();
     return {};
   },
@@ -3056,7 +3055,7 @@ ObjectActor.prototype = {
 
 
 
-  onScope: function OA_onScope(aRequest) {
+  onScope: function (aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "scope request is only valid for object grips with a" +
@@ -3127,7 +3126,7 @@ update(PauseScopedObjectActor.prototype, {
 
 
 
-  onThreadGrip: PauseScopedActor.withPaused(function OA_onThreadGrip(aRequest) {
+  onThreadGrip: PauseScopedActor.withPaused(function (aRequest) {
     this.threadActor.threadObjectGrip(this);
     return {};
   }),
@@ -3138,7 +3137,7 @@ update(PauseScopedObjectActor.prototype, {
 
 
 
-  onRelease: PauseScopedActor.withPaused(function OA_onRelease(aRequest) {
+  onRelease: PauseScopedActor.withPaused(function (aRequest) {
     if (this.registeredPool !== this.threadActor.threadLifetimePool) {
       return { error: "notReleasable",
                message: "Only thread-lifetime actors can be released." };
@@ -3171,7 +3170,7 @@ LongStringActor.prototype = {
 
   actorPrefix: "longString",
 
-  disconnect: function LSA_disconnect() {
+  disconnect: function () {
     
     
     
@@ -3183,7 +3182,7 @@ LongStringActor.prototype = {
   
 
 
-  grip: function LSA_grip() {
+  grip: function () {
     return {
       "type": "longString",
       "initial": this.string.substring(
@@ -3199,7 +3198,7 @@ LongStringActor.prototype = {
 
 
 
-  onSubstring: function LSA_onSubString(aRequest) {
+  onSubstring: function (aRequest) {
     return {
       "from": this.actorID,
       "substring": this.string.substring(aRequest.start, aRequest.end)
@@ -3209,7 +3208,7 @@ LongStringActor.prototype = {
   
 
 
-  onRelease: function LSA_onRelease() {
+  onRelease: function () {
     
     
     
@@ -3260,7 +3259,7 @@ FrameActor.prototype = {
 
 
 
-  disconnect: function FA_disconnect() {
+  disconnect: function () {
     this.conn.removeActorPool(this._frameLifetimePool);
     this._frameLifetimePool = null;
   },
@@ -3268,7 +3267,7 @@ FrameActor.prototype = {
   
 
 
-  form: function FA_form() {
+  form: function () {
     let form = { actor: this.actorID,
                  type: this.frame.type };
     if (this.frame.type === "call") {
@@ -3294,7 +3293,7 @@ FrameActor.prototype = {
     return form;
   },
 
-  _args: function FA__args() {
+  _args: function () {
     if (!this.frame.arguments) {
       return [];
     }
@@ -3309,7 +3308,7 @@ FrameActor.prototype = {
 
 
 
-  onPop: function FA_onPop(aRequest) {
+  onPop: function (aRequest) {
     
     if (typeof this.frame.pop != "function") {
       return { error: "notImplemented",
@@ -3361,7 +3360,7 @@ BreakpointActor.prototype = {
 
 
 
-  addScript: function BA_addScript(aScript, aThreadActor) {
+  addScript: function (aScript, aThreadActor) {
     this.threadActor = aThreadActor;
     this.scripts.push(aScript);
   },
@@ -3382,7 +3381,7 @@ BreakpointActor.prototype = {
 
 
 
-  hit: function BA_hit(aFrame) {
+  hit: function (aFrame) {
     
     
     let { url } = this.threadActor.synchronize(
@@ -3413,7 +3412,7 @@ BreakpointActor.prototype = {
 
 
 
-  onDelete: function BA_onDelete(aRequest) {
+  onDelete: function (aRequest) {
     
     this.threadActor.breakpointStore.removeBreakpoint(this.location);
     this.threadActor._hooks.removeFromParentPool(this);
@@ -3450,7 +3449,7 @@ EnvironmentActor.prototype = {
   
 
 
-  form: function EA_form() {
+  form: function () {
     let form = { actor: this.actorID };
 
     
@@ -3490,7 +3489,7 @@ EnvironmentActor.prototype = {
 
 
 
-  _bindings: function EA_bindings() {
+  _bindings: function () {
     let bindings = { arguments: [], variables: {} };
 
     
@@ -3579,7 +3578,7 @@ EnvironmentActor.prototype = {
 
 
 
-  onAssign: function EA_onAssign(aRequest) {
+  onAssign: function (aRequest) {
     
     
     
@@ -3607,7 +3606,7 @@ EnvironmentActor.prototype = {
 
 
 
-  onBindings: function EA_onBindings(aRequest) {
+  onBindings: function (aRequest) {
     return { from: this.actorID,
              bindings: this._bindings() };
   }
@@ -3696,7 +3695,7 @@ update(ChromeDebuggerActor.prototype, {
 
 
   globalManager: {
-    findGlobals: function CDA_findGlobals() {
+    findGlobals: function () {
       
       this.dbg.addAllGlobalsAsDebuggees();
     },
@@ -3708,7 +3707,7 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
-    onNewGlobal: function CDA_onNewGlobal(aGlobal) {
+    onNewGlobal: function (aGlobal) {
       this.addDebuggee(aGlobal);
       
       this.conn.send({
@@ -3772,8 +3771,7 @@ ThreadSources.prototype = {
 
 
 
-  source: function TS_source({ url, sourceMap, generatedSource, text,
-                               contentType }) {
+  source: function ({ url, sourceMap, generatedSource, text, contentType }) {
     if (!this._allow(url)) {
       return null;
     }
@@ -3803,7 +3801,7 @@ ThreadSources.prototype = {
   
 
 
-  _sourceForScript: function TS__sourceForScript(aScript) {
+  _sourceForScript: function (aScript) {
     const spec = {
       url: aScript.url
     };
@@ -3837,7 +3835,7 @@ ThreadSources.prototype = {
 
 
 
-  sourcesForScript: function TS_sourcesForScript(aScript) {
+  sourcesForScript: function (aScript) {
     if (!this._useSourceMaps || !aScript.sourceMapURL) {
       return resolve([this._sourceForScript(aScript)].filter(isNotNull));
     }
@@ -3864,7 +3862,7 @@ ThreadSources.prototype = {
 
 
 
-  sourceMap: function TS_sourceMap(aScript) {
+  sourceMap: function (aScript) {
     dbg_assert(aScript.sourceMapURL, "Script should have a sourceMapURL");
     let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
     let map = this._fetchSourceMap(sourceMapURL, aScript.url)
@@ -3877,7 +3875,7 @@ ThreadSources.prototype = {
 
 
 
-  saveSourceMap: function TS_saveSourceMap(aSourceMap, aGeneratedSource) {
+  saveSourceMap: function (aSourceMap, aGeneratedSource) {
     if (!aSourceMap) {
       delete this._sourceMapsByGeneratedSource[aGeneratedSource];
       return null;
@@ -3902,7 +3900,7 @@ ThreadSources.prototype = {
 
 
 
-  _fetchSourceMap: function TS__fetchSourceMap(aAbsSourceMapURL, aScriptURL) {
+  _fetchSourceMap: function (aAbsSourceMapURL, aScriptURL) {
     return fetch(aAbsSourceMapURL, { loadFromCache: false })
       .then(({ content }) => {
         let map = new SourceMapConsumer(content);
@@ -3914,8 +3912,7 @@ ThreadSources.prototype = {
   
 
 
-  _setSourceMapRoot: function TS__setSourceMapRoot(aSourceMap, aAbsSourceMapURL,
-                                                   aScriptURL) {
+  _setSourceMapRoot: function (aSourceMap, aAbsSourceMapURL, aScriptURL) {
     const base = this._dirname(
       aAbsSourceMapURL.indexOf("data:") === 0
         ? aScriptURL
@@ -3925,7 +3922,7 @@ ThreadSources.prototype = {
       : base;
   },
 
-  _dirname: function TS__dirname(aPath) {
+  _dirname: function (aPath) {
     return Services.io.newURI(
       ".", null, Services.io.newURI(aPath, null, null)).spec;
   },
@@ -3934,7 +3931,7 @@ ThreadSources.prototype = {
 
 
 
-  getOriginalLocation: function TS_getOriginalLocation({ url, line, column }) {
+  getOriginalLocation: function ({ url, line, column }) {
     if (url in this._sourceMapsByGeneratedSource) {
       return this._sourceMapsByGeneratedSource[url]
         .then((aSourceMap) => {
@@ -3973,7 +3970,7 @@ ThreadSources.prototype = {
 
 
 
-  getGeneratedLocation: function TS_getGeneratedLocation({ url, line, column }) {
+  getGeneratedLocation: function ({ url, line, column }) {
     if (url in this._sourceMapsByOriginalSource) {
       return this._sourceMapsByOriginalSource[url]
         .then((aSourceMap) => {
@@ -4005,7 +4002,7 @@ ThreadSources.prototype = {
 
 
 
-  isBlackBoxed: function TS_isBlackBoxed(aURL) {
+  isBlackBoxed: function (aURL) {
     return ThreadSources._blackBoxedSources.has(aURL);
   },
 
@@ -4015,7 +4012,7 @@ ThreadSources.prototype = {
 
 
 
-  blackBox: function TS_blackBox(aURL) {
+  blackBox: function (aURL) {
     ThreadSources._blackBoxedSources.add(aURL);
   },
 
@@ -4025,7 +4022,7 @@ ThreadSources.prototype = {
 
 
 
-  unblackBox: function TS_unblackBox(aURL) {
+  unblackBox: function (aURL) {
     ThreadSources._blackBoxedSources.delete(aURL);
   },
 
@@ -4035,7 +4032,7 @@ ThreadSources.prototype = {
 
 
 
-  isPrettyPrinted: function TS_isPrettyPrinted(aURL) {
+  isPrettyPrinted: function (aURL) {
     return ThreadSources._prettyPrintedSources.has(aURL);
   },
 
@@ -4045,14 +4042,14 @@ ThreadSources.prototype = {
 
 
 
-  prettyPrint: function TS_prettyPrint(aURL, aIndent) {
+  prettyPrint: function (aURL, aIndent) {
     ThreadSources._prettyPrintedSources.set(aURL, aIndent);
   },
 
   
 
 
-  prettyPrintIndent: function TS_prettyPrintIndent(aURL) {
+  prettyPrintIndent: function (aURL) {
     return ThreadSources._prettyPrintedSources.get(aURL);
   },
 
@@ -4062,14 +4059,14 @@ ThreadSources.prototype = {
 
 
 
-  disablePrettyPrint: function TS_disablePrettyPrint(aURL) {
+  disablePrettyPrint: function (aURL) {
     ThreadSources._prettyPrintedSources.delete(aURL);
   },
 
   
 
 
-  _normalize: function TS__normalize(...aURLs) {
+  _normalize: function (...aURLs) {
     dbg_assert(aURLs.length > 1, "Should have more than 1 URL");
     let base = Services.io.newURI(aURLs.pop(), null, null);
     let url;
@@ -4079,7 +4076,7 @@ ThreadSources.prototype = {
     return base.spec;
   },
 
-  iter: function TS_iter() {
+  iter: function () {
     for (let url in this._sourceActors) {
       yield this._sourceActors[url];
     }
