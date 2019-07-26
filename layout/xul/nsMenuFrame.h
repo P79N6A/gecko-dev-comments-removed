@@ -129,6 +129,12 @@ public:
   virtual nsIScrollableFrame* GetScrollTargetFrame() MOZ_OVERRIDE;
 
   
+  
+  
+  
+  nsIContent* GetAnchor();
+
+  
 
 
   void OpenMenu(bool aSelectFirstItem);

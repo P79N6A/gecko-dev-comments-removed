@@ -379,7 +379,8 @@ nsMenuPopupFrame::IsLeaf() const
 }
 
 void
-nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, bool aSizedToPopup)
+nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
+                              nsIFrame* aAnchor, bool aSizedToPopup)
 {
   if (!mGeneratedChildren)
     return;
@@ -427,7 +428,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
   }
 
   if (shouldPosition) {
-    SetPopupPosition(aParentMenu, false);
+    SetPopupPosition(aAnchor, false, aSizedToPopup);
   }
 
   nsRect bounds(GetRect());
@@ -444,7 +445,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
       
       mPrefSize = newsize;
       if (isOpen) {
-        SetPopupPosition(nullptr, false);
+        SetPopupPosition(nullptr, false, aSizedToPopup);
       }
     }
   }
@@ -1120,7 +1121,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
 }
 
 nsresult
-nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
+nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aSizedToPopup)
 {
   if (!mShouldAutoPosition)
     return NS_OK;
@@ -1152,12 +1153,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     }
   }
 
-  bool sizedToPopup = false;
-  if (aAnchorFrame->GetContent()) {
-    
-    sizedToPopup = nsMenuFrame::IsSizedToPopup(aAnchorFrame->GetContent(), false);
-  }
-
   
   nsRect parentRect = aAnchorFrame->GetScreenRectInAppUnits();
 
@@ -1174,7 +1169,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   
   NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
                "preferred size of popup not set");
-  mRect.width = sizedToPopup ? parentRect.width : mPrefSize.width;
+  mRect.width = aSizedToPopup ? parentRect.width : mPrefSize.width;
   mRect.height = mPrefSize.height;
 
   
@@ -1370,7 +1365,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   
   nsBoxFrame::SetPosition(viewPoint - GetParent()->GetOffsetTo(rootFrame));
 
-  if (sizedToPopup) {
+  if (aSizedToPopup) {
     nsBoxLayoutState state(PresContext());
     
     SetBounds(state, nsRect(mRect.x, mRect.y, parentRect.width, mRect.height));
@@ -1934,7 +1929,7 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   mScreenXPos = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
   mScreenYPos = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
 
-  SetPopupPosition(nullptr, true);
+  SetPopupPosition(nullptr, true, false);
 
   nsCOMPtr<nsIContent> popup = mContent;
   if (aUpdateAttrs && (popup->HasAttr(kNameSpaceID_None, nsGkAtoms::left) ||
@@ -1962,7 +1957,7 @@ nsMenuPopupFrame::MoveToAnchor(nsIContent* aAnchorContent,
   mPopupState = ePopupOpenAndVisible;
 
   
-  SetPopupPosition(nullptr, false);
+  SetPopupPosition(nullptr, false, false);
 }
 
 bool

@@ -203,7 +203,8 @@ public:
   virtual bool IsLeaf() const MOZ_OVERRIDE;
 
   
-  void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, bool aSizedToPopup);
+  void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
+                   nsIFrame* aAnchor, bool aSizedToPopup);
 
   nsView* GetRootViewForPopup(nsIFrame* aStartFrame);
 
@@ -212,7 +213,7 @@ public:
   
   
   
-  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove);
+  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aSizedToPopup);
 
   bool HasGeneratedChildren() { return mGeneratedChildren; }
   void SetGeneratedChildren() { mGeneratedChildren = true; }
