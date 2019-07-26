@@ -25,7 +25,7 @@ function run_test() {
     if (certs.length == 1 && useShortHandCmdLine) {
       args.push("-n", certs[0]);
     } else {
-      for (i = 0; i < certs.length; i++) {
+      for (var i = 0; i < certs.length; i++) {
         args.push("-n" + i, certs[i]);
       }
     }
@@ -153,7 +153,15 @@ function run_test() {
     
     
     
-    if (!isWindows) {
+    if (isWindows || isOSX) {
+      if (certs.length == 1 && useShortHandCmdLine) {
+        args.push("-D", "data/" + certs[0] + ".der");
+      } else {
+        for (var i = 0; i < certs.length; i++) {
+          args.push("-D" + i, "data/" + certs[i] + ".der");
+        }
+      }
+    } else {
       let NSSConfigDir = do_get_file("data");
       args = ["-d", NSSConfigDir.path];
       if (certs.length == 1 && useShortHandCmdLine) {
@@ -161,15 +169,6 @@ function run_test() {
       } else {
         for (var i = 0; i < certs.length; i++) {
           args.push("-n" + i, certs[i]);
-        }
-      }
-    }
-    if (isWindows || isOSX) {
-      if (certs.length == 1 && useShortHandCmdLine) {
-        args.push("-D", "data/" + certs[0] + ".der");
-      } else {
-        for (var i = 0; i < certs.length; i++) {
-          args.push("-D" + i, "data/" + certs[i] + ".der");
         }
       }
     }
