@@ -31,6 +31,7 @@
 #include "gc/Barrier.h"
 #include "gc/Marking.h"
 #include "jit/AsmJS.h"
+#include "jit/AsmJSModule.h"
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
 #include "vm/NumericConversions.h"
@@ -330,27 +331,32 @@ GetViewListRef(ArrayBufferObject *obj)
     return reinterpret_cast<OldObjectRepresentationHack*>(obj->getElementsHeader())->views;
 }
 
-void
-ArrayBufferObject::neuterViews(JSContext *maybecx)
+bool
+ArrayBufferObject::neuterViews(JSContext *cx)
 {
     ArrayBufferViewObject *view;
     for (view = GetViewList(this); view; view = view->nextView()) {
         view->neuter();
 
         
-        if (maybecx)
-            MarkObjectStateChange(maybecx, view);
+        MarkObjectStateChange(cx, view);
     }
 
     
     
-    if (isAsmJSArrayBuffer())
-        ArrayBufferObject::neuterAsmJSArrayBuffer(*this);
+    if (isAsmJSArrayBuffer()) {
+        if (!ArrayBufferObject::neuterAsmJSArrayBuffer(cx, *this))
+            return false;
+    }
+
+    return true;
 }
 
 void
 ArrayBufferObject::changeContents(JSContext *maybecx, ObjectElements *newHeader)
 {
+   JS_ASSERT(!isAsmJSArrayBuffer());
+
     
     uint32_t byteLengthCopy = byteLength();
     uintptr_t oldDataPointer = uintptr_t(dataPointer());
@@ -391,6 +397,8 @@ ArrayBufferObject::neuter(JSContext *cx)
 
     uint32_t byteLen = 0;
     updateElementsHeader(getElementsHeader(), byteLen);
+
+    getElementsHeader()->setIsNeuteredBuffer();
 }
 
 bool
@@ -523,22 +531,6 @@ ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, JSObject *obj)
     munmap(p, AsmJSMappedSize);
 # endif
 }
-
-void
-ArrayBufferObject::neuterAsmJSArrayBuffer(ArrayBufferObject &buffer)
-{
-    
-    
-    JS_ASSERT(buffer.isAsmJSArrayBuffer());
-    JS_ASSERT(buffer.byteLength() % AsmJSAllocationGranularity == 0);
-#ifdef XP_WIN
-    if (!VirtualAlloc(buffer.dataPointer(), buffer.byteLength(), MEM_RESERVE, PAGE_NOACCESS))
-        MOZ_CRASH();
-#else
-    if (mprotect(buffer.dataPointer(), buffer.byteLength(), PROT_NONE))
-        MOZ_CRASH();
-#endif
-}
 #else  
 bool
 ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer)
@@ -559,13 +551,22 @@ ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, JSObject *obj)
 {
     fop->free_(obj->as<ArrayBufferObject>().getElementsHeader());
 }
-
-void
-ArrayBufferObject::neuterAsmJSArrayBuffer(ArrayBufferObject &buffer)
-{
-    
-}
 #endif
+
+bool
+ArrayBufferObject::neuterAsmJSArrayBuffer(JSContext *cx, ArrayBufferObject &buffer)
+{
+    AsmJSActivation *act = cx->mainThread().asmJSActivationStackFromOwnerThread();
+    for (; act; act = act->prev()) {
+        if (act->module().maybeHeapBufferObject() == &buffer)
+            break;
+    }
+    if (!act)
+        return true;
+
+    js_ReportOverRecursed(cx);
+    return false;
+}
 
 void
 ArrayBufferObject::addView(ArrayBufferViewObject *view)
@@ -679,7 +680,8 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents, 
 
     
     
-    buffer.neuterViews(cx);
+    if (!buffer.neuterViews(cx))
+        return false;
 
     if (!own) {
         
@@ -4024,12 +4026,14 @@ JS_GetArrayBufferData(JSObject *obj)
     return buffer.dataPointer();
 }
 
-JS_FRIEND_API(void)
-JS_NeuterArrayBuffer(JSObject *obj, JSContext *cx)
+JS_FRIEND_API(bool)
+JS_NeuterArrayBuffer(JSContext *cx, JSObject *obj)
 {
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
-    buffer.neuterViews(cx);
+    if (!buffer.neuterViews(cx))
+        return false;
     buffer.neuter(cx);
+    return true;
 }
 
 JS_FRIEND_API(JSObject *)

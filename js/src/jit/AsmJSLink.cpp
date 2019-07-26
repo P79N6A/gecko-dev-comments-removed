@@ -335,6 +335,15 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     
+    if (module.maybeHeapBufferObject() && module.maybeHeapBufferObject()->isNeutered()) {
+        js_ReportOverRecursed(cx);
+        return false;
+    }
+
+    
+    
+    
+    
     
     
     
