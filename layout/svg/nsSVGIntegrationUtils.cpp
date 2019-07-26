@@ -283,12 +283,12 @@ nsRect
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToBoundingBox);
 }
 
-nsIntRect
+nsIntRegion
 nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
                                                       const nsPoint& aToReferenceFrame,
-                                                      const nsIntRect& aInvalidRect)
+                                                      const nsIntRegion& aInvalidRegion)
 {
-  if (aInvalidRect.IsEmpty()) {
+  if (aInvalidRegion.IsEmpty()) {
     return nsIntRect();
   }
 
@@ -298,7 +298,7 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(aFrame);
   nsSVGFilterProperty *prop = nsSVGEffects::GetFilterProperty(firstFrame);
   if (!prop || !prop->IsInObserverLists()) {
-    return aInvalidRect;
+    return aInvalidRegion;
   }
 
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
@@ -318,12 +318,12 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
   
   
   toBoundingBox -= aToReferenceFrame;
-  nsRect preEffectsRect = aInvalidRect.ToAppUnits(appUnitsPerDevPixel) + toBoundingBox;
+  nsRegion preEffectsRegion = aInvalidRegion.ToAppUnits(appUnitsPerDevPixel).MovedBy(toBoundingBox);
 
   
   
-  nsRect result = nsFilterInstance::GetPostFilterDirtyArea(firstFrame,
-    preEffectsRect) - toBoundingBox;
+  nsRegion result = nsFilterInstance::GetPostFilterDirtyArea(firstFrame,
+    preEffectsRegion).MovedBy(-toBoundingBox);
   
   return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
@@ -347,7 +347,7 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   
-  return nsFilterInstance::GetPreFilterNeededArea(firstFrame, postEffectsRect)
+  return nsFilterInstance::GetPreFilterNeededArea(firstFrame, postEffectsRect).GetBounds()
     - toUserSpace;
 }
 
@@ -521,8 +521,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
                                        offsetToUserSpace);
 
-    nsRect dirtyRect = aDirtyRect - offsetToBoundingBox;
-    nsFilterInstance::PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRect);
+    nsRegion dirtyRegion = aDirtyRect - offsetToBoundingBox;
+    nsFilterInstance::PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRegion);
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());
     aLayerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer, aBuilder);

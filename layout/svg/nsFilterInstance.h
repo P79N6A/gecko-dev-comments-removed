@@ -58,7 +58,7 @@ public:
   static nsresult PaintFilteredFrame(nsRenderingContext *aContext,
                                      nsIFrame *aFilteredFrame,
                                      nsSVGFilterPaintCallback *aPaintCallback,
-                                     const nsRect* aDirtyArea,
+                                     const nsRegion* aDirtyArea,
                                      nsIFrame* aTransformRoot = nullptr);
 
   
@@ -67,8 +67,8 @@ public:
 
 
 
-  static nsRect GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
-                                       const nsRect& aPreFilterDirtyRect);
+  static nsRegion GetPostFilterDirtyArea(nsIFrame *aFilteredFrame,
+                                         const nsRegion& aPreFilterDirtyRegion);
 
   
 
@@ -76,8 +76,8 @@ public:
 
 
 
-  static nsRect GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
-                                       const nsRect& aPostFilterDirtyRect);
+  static nsRegion GetPreFilterNeededArea(nsIFrame *aFilteredFrame,
+                                         const nsRegion& aPostFilterDirtyRegion);
 
   
 
@@ -109,8 +109,8 @@ public:
 
   nsFilterInstance(nsIFrame *aTargetFrame,
                    nsSVGFilterPaintCallback *aPaintCallback,
-                   const nsRect *aPostFilterDirtyRect = nullptr,
-                   const nsRect *aPreFilterDirtyRect = nullptr,
+                   const nsRegion *aPostFilterDirtyRegion = nullptr,
+                   const nsRegion *aPreFilterDirtyRegion = nullptr,
                    const nsRect *aOverridePreFilterVisualOverflowRect = nullptr,
                    const gfxRect *aOverrideBBox = nullptr,
                    nsIFrame* aTransformRoot = nullptr);
@@ -135,7 +135,7 @@ public:
 
 
 
-  nsresult ComputePostFilterDirtyRect(nsRect* aPostFilterDirtyRect);
+  nsresult ComputePostFilterDirtyRegion(nsRegion* aPostFilterDirtyRegion);
 
   
 
@@ -239,8 +239,17 @@ private:
 
 
 
+
   nsIntRect FrameSpaceToFilterSpace(const nsRect* aRect) const;
+  nsIntRegion FrameSpaceToFilterSpace(const nsRegion* aRegion) const;
+
+  
+
+
+
+
   nsRect FilterSpaceToFrameSpace(const nsIntRect& aRect) const;
+  nsRegion FilterSpaceToFrameSpace(const nsIntRegion& aRegion) const;
 
   
 
@@ -293,17 +302,12 @@ private:
   
 
 
-
-
-  nsIntRect               mPostFilterDirtyRect;
+  nsIntRegion             mPostFilterDirtyRegion;
 
   
 
 
-
-
-
-  nsIntRect               mPreFilterDirtyRect;
+  nsIntRegion             mPreFilterDirtyRegion;
 
   SourceInfo              mSourceGraphic;
   SourceInfo              mFillPaint;

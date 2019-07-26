@@ -16,6 +16,7 @@ class nsDisplayList;
 class nsDisplayListBuilder;
 class nsIFrame;
 class nsRenderingContext;
+class nsIntRegion;
 
 struct nsRect;
 struct nsIntRect;
@@ -101,9 +102,9 @@ public:
 
 
 
-  static nsIntRect
+  static nsIntRegion
   AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame, const nsPoint& aToReferenceFrame,
-                                 const nsIntRect& aInvalidRect);
+                                 const nsIntRegion& aInvalidRegion);
 
   
 
