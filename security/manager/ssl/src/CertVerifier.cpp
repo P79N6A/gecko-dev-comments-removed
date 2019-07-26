@@ -384,7 +384,9 @@ pkix_done:
           
           ScopedCERTCertificate tempCert(CERT_DupCertificate(trustAnchor));
           rv = CERT_AddCertToListTail(*validationChain, tempCert);
-          if (rv != SECSuccess) {
+          if (rv == SECSuccess) {
+            tempCert.forget(); 
+          } else {
             CERT_DestroyCertList(*validationChain);
             *validationChain = nullptr;
           }
