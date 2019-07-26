@@ -313,8 +313,7 @@ public:
 
 
 
-  void Restyle(nsPresContext     *aPresContext,
-               nsIContent        *aParentContent,
+  void Restyle(nsIContent        *aParentContent,
                nsStyleChangeList *aChangeList,
                nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                nsRestyleHint      aRestyleHint,
