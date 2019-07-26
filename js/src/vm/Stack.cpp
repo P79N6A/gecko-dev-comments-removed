@@ -97,37 +97,30 @@ StackFrame::initDummyFrame(JSContext *cx, JSObject &chain)
     scopeChain_ = &chain;
 }
 
-template <StackFrame::TriggerPostBarriers doPostBarrier>
+template <class T, class U, StackFrame::TriggerPostBarriers doPostBarrier>
 void
-StackFrame::copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
-                               const Value *othervp, Value *othersp)
+StackFrame::copyFrameAndValues(JSContext *cx, T *vp, StackFrame *otherfp, U *othervp, Value *othersp)
 {
-    JS_ASSERT(vp == (Value *)this - ((Value *)otherfp - othervp));
-    JS_ASSERT(othervp == otherfp->generatorArgsSnapshotBegin());
+    JS_ASSERT((U *)vp == (U *)this - ((U *)otherfp - othervp));
+    JS_ASSERT((Value *)othervp == otherfp->generatorArgsSnapshotBegin());
     JS_ASSERT(othersp >= otherfp->slots());
     JS_ASSERT(othersp <= otherfp->generatorSlotsSnapshotBegin() + otherfp->script()->nslots);
-    JS_ASSERT((Value *)this - vp == (Value *)otherfp - othervp);
+    JS_ASSERT((T *)this - vp == (U *)otherfp - othervp);
 
     
-    const Value *srcend = otherfp->generatorArgsSnapshotEnd();
-    Value *dst = vp;
-    for (const Value *src = othervp; src < srcend; src++, dst++) {
+    U *srcend = (U *)otherfp->generatorArgsSnapshotEnd();
+    T *dst = vp;
+    for (U *src = othervp; src < srcend; src++, dst++)
         *dst = *src;
-        if (doPostBarrier)
-            HeapValue::writeBarrierPost(*dst, dst);
-    }
 
     *this = *otherfp;
     if (doPostBarrier)
         writeBarrierPost();
 
-    srcend = othersp;
-    dst = slots();
-    for (const Value *src = otherfp->slots(); src < srcend; src++, dst++) {
+    srcend = (U *)othersp;
+    dst = (T *)slots();
+    for (U *src = (U *)otherfp->slots(); src < srcend; src++, dst++)
         *dst = *src;
-        if (doPostBarrier)
-            HeapValue::writeBarrierPost(*dst, dst);
-    }
 
     if (cx->compartment->debugMode())
         cx->runtime->debugScopes->onGeneratorFrameChange(otherfp, this, cx);
@@ -135,11 +128,11 @@ StackFrame::copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
 
 
 template
-void StackFrame::copyFrameAndValues<StackFrame::NoPostBarrier>(
-                                    JSContext *, Value *, StackFrame *, const Value *, Value *);
+void StackFrame::copyFrameAndValues<Value, HeapValue, StackFrame::NoPostBarrier>(
+                                    JSContext *, Value *, StackFrame *, HeapValue *, Value *);
 template
-void StackFrame::copyFrameAndValues<StackFrame::DoPostBarrier>(
-                                    JSContext *, Value *, StackFrame *, const Value *, Value *);
+void StackFrame::copyFrameAndValues<HeapValue, Value, StackFrame::DoPostBarrier>(
+                                    JSContext *, HeapValue *, StackFrame *, Value *, Value *);
 
 void
 StackFrame::writeBarrierPost()
@@ -202,10 +195,8 @@ StackFrame::prevpcSlow(InlinedSite **pinlined)
 }
 
 jsbytecode *
-StackFrame::pcQuadratic(const ContextStack &stack, StackFrame *next, InlinedSite **pinlined)
+StackFrame::pcQuadratic(const ContextStack &stack, size_t maxDepth)
 {
-    JS_ASSERT_IF(next, next->prev() == this);
-
     StackSegment &seg = stack.space().containingSegment(this);
     FrameRegs &regs = seg.regs();
 
@@ -213,15 +204,19 @@ StackFrame::pcQuadratic(const ContextStack &stack, StackFrame *next, InlinedSite
 
 
 
-    if (regs.fp() == this) {
-        if (pinlined)
-            *pinlined = regs.inlined();
+    if (regs.fp() == this)
         return regs.pc;
-    }
 
-    if (!next)
-        next = seg.computeNextFrame(this);
-    return next->prevpc(pinlined);
+    
+
+
+
+
+    if (StackFrame *next = seg.computeNextFrame(this, maxDepth))
+        return next->prevpc();
+
+    
+    return regs.fp()->script()->code;
 }
 
 bool
@@ -438,15 +433,18 @@ StackSegment::contains(const CallArgsList *call) const
 }
 
 StackFrame *
-StackSegment::computeNextFrame(const StackFrame *f) const
+StackSegment::computeNextFrame(const StackFrame *f, size_t maxDepth) const
 {
     JS_ASSERT(contains(f) && f != fp());
 
     StackFrame *next = fp();
-    StackFrame *prev;
-    while ((prev = next->prev()) != f)
-        next = prev;
-    return next;
+    for (size_t i = 0; i <= maxDepth; ++i) {
+        if (next->prev() == f)
+            return next;
+        next = next->prev();
+    }
+
+    return NULL;
 }
 
 Value *
@@ -1147,8 +1145,8 @@ ContextStack::pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrame
     JSObject::writeBarrierPre(gen->obj);
 
     
-    stackfp->copyFrameAndValues<StackFrame::NoPostBarrier>(cx, stackvp, gen->fp,
-                                                           Valueify(genvp), gen->regs.sp);
+    stackfp->copyFrameAndValues<Value, HeapValue, StackFrame::NoPostBarrier>(
+                                cx, stackvp, gen->fp, genvp, gen->regs.sp);
     stackfp->resetGeneratorPrev(cx);
     gfg->regs_.rebaseFromTo(gen->regs, *stackfp);
 
@@ -1171,15 +1169,9 @@ ContextStack::popGeneratorFrame(const GeneratorFrameGuard &gfg)
 
     
     if (stackfp->isYielding()) {
-        
-
-
-
-        JS_ASSERT(!GeneratorHasMarkableFrame(gen));
-
         gen->regs.rebaseFromTo(stackRegs, *gen->fp);
-        gen->fp->copyFrameAndValues<StackFrame::DoPostBarrier>(cx_, (Value *)genvp, stackfp,
-                                                               stackvp, stackRegs.sp);
+        gen->fp->copyFrameAndValues<HeapValue, Value, StackFrame::DoPostBarrier>(
+                                    cx_, genvp, stackfp, stackvp, stackRegs.sp);
     }
 
     

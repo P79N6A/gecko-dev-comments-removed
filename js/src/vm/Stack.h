@@ -743,12 +743,10 @@ class StackFrame
 
 
 
+    jsbytecode *pcQuadratic(const ContextStack &stack, size_t maxDepth = SIZE_MAX);
 
-
-    jsbytecode *pcQuadratic(const ContextStack &stack, StackFrame *next = NULL,
-                            InlinedSite **pinlined = NULL);
-
-    jsbytecode *prevpc(InlinedSite **pinlined) {
+    
+    jsbytecode *prevpc(InlinedSite **pinlined = NULL) {
         if (flags_ & HAS_PREVPC) {
             if (pinlined)
                 *pinlined = prevInline_;
@@ -1001,9 +999,8 @@ class StackFrame
         DoPostBarrier = true,
         NoPostBarrier = false
     };
-    template <TriggerPostBarriers doPostBarrier>
-    void copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
-                            const Value *othervp, Value *othersp);
+    template <class T, class U, TriggerPostBarriers doPostBarrier>
+    void copyFrameAndValues(JSContext *cx, T *vp, StackFrame *otherfp, U *othervp, Value *othersp);
 
     JSGenerator *maybeSuspendedGenerator(JSRuntime *rt);
 
@@ -1414,7 +1411,7 @@ class StackSegment
     bool contains(const FrameRegs *regs) const;
     bool contains(const CallArgsList *call) const;
 
-    StackFrame *computeNextFrame(const StackFrame *fp) const;
+    StackFrame *computeNextFrame(const StackFrame *fp, size_t maxDepth) const;
 
     Value *end() const;
 
