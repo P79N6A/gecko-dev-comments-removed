@@ -46,6 +46,7 @@
 #include "nsXPCOMPrivate.h" 
 
 #include "mozilla/Telemetry.h"
+#include "mozilla/WindowsDllBlocklist.h"
 
 using namespace mozilla;
 
@@ -154,9 +155,6 @@ static void AttachToTestHarness()
 XRE_GetFileFromPathType XRE_GetFileFromPath;
 XRE_CreateAppDataType XRE_CreateAppData;
 XRE_FreeAppDataType XRE_FreeAppData;
-#ifdef XRE_HAS_DLL_BLOCKLIST
-XRE_SetupDllBlocklistType XRE_SetupDllBlocklist;
-#endif
 XRE_TelemetryAccumulateType XRE_TelemetryAccumulate;
 XRE_StartupTimelineRecordType XRE_StartupTimelineRecord;
 XRE_mainType XRE_main;
@@ -166,9 +164,6 @@ static const nsDynamicFunctionLoad kXULFuncs[] = {
     { "XRE_GetFileFromPath", (NSFuncPtr*) &XRE_GetFileFromPath },
     { "XRE_CreateAppData", (NSFuncPtr*) &XRE_CreateAppData },
     { "XRE_FreeAppData", (NSFuncPtr*) &XRE_FreeAppData },
-#ifdef XRE_HAS_DLL_BLOCKLIST
-    { "XRE_SetupDllBlocklist", (NSFuncPtr*) &XRE_SetupDllBlocklist },
-#endif
     { "XRE_TelemetryAccumulate", (NSFuncPtr*) &XRE_TelemetryAccumulate },
     { "XRE_StartupTimelineRecord", (NSFuncPtr*) &XRE_StartupTimelineRecord },
     { "XRE_main", (NSFuncPtr*) &XRE_main },
@@ -607,16 +602,23 @@ int main(int argc, char* argv[])
 
   nsIFile *xreDirectory;
 
+#ifdef HAS_DLL_BLOCKLIST
+  DllBlocklist_Initialize();
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!GetModuleHandleA("user32.dll"));
+#endif
+
   nsresult rv = InitXPCOMGlue(argv[0], &xreDirectory);
   if (NS_FAILED(rv)) {
     return 255;
   }
 
   XRE_StartupTimelineRecord(mozilla::StartupTimeline::START, start);
-
-#ifdef XRE_HAS_DLL_BLOCKLIST
-  XRE_SetupDllBlocklist();
-#endif
 
   if (gotCounters) {
 #if defined(XP_WIN)
