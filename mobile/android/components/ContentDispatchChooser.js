@@ -43,7 +43,7 @@ ContentDispatchChooser.prototype =
 
     
     
-    if(aHandler.possibleApplicationHandlers.length > 1) {
+    if (aHandler.possibleApplicationHandlers.length > 1) {
       aHandler.launchWithURI(aURI, aWindowContext);
     } else {
       let win = this._getChromeWin();
