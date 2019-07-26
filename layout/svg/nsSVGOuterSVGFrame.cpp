@@ -167,6 +167,19 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   SVGSVGElement *svg = static_cast<SVGSVGElement*>(aContent);
   if (!svg->PassesConditionalProcessingTests()) {
     AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
+  } else {
+    
+    
+    
+    
+    
+    
+    for (nsIFrame* f = aParent; f; f = f->GetParent()) {
+      if (f->IsFrameOfType(eSVG)) {
+        AddStateBits(f->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD);
+        break;
+      }
+    }
   }
 
   nsSVGOuterSVGFrameBase::Init(aContent, aParent, aPrevInFlow);

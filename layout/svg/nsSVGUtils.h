@@ -521,6 +521,7 @@ public:
   static nsIFrame* GetFirstNonAAncestorFrame(nsIFrame* aStartFrame);
 
   static bool OuterSVGIsCallingReflowSVG(nsIFrame *aFrame);
+  static bool AnyOuterSVGIsCallingReflowSVG(nsIFrame *aFrame);
 
   
 
