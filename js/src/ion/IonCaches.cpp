@@ -1020,7 +1020,6 @@ IonCacheSetProperty::attachSetterCall(JSContext *cx, IonScript *ion,
 
     
     DebugOnly<uint32> initialStack = masm.framePushed();
-    masm.checkStackAlignment();
 
     Label success, exception;
 
