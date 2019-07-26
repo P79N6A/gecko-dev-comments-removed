@@ -377,6 +377,13 @@ let gDevToolsBrowser = {
   
 
 
+  openAppManager: function(gBrowser) {
+    gBrowser.selectedTab = gBrowser.addTab("chrome://browser/content/devtools/app-manager/index.xul");
+  },
+
+  
+
+
 
 
 
