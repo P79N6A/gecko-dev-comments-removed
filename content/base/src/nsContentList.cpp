@@ -414,20 +414,9 @@ GetFuncStringContentList(nsINode* aRootNode,
     
     list = new ListType(aRootNode, aFunc, aDestroyFunc, aDataAllocator,
                         aString);
-    if (list && !list->AllocatedData()) {
-      
-      delete list;
-      list = nullptr;
-    }
-
     if (entry) {
-      if (list)
-        entry->mContentList = list;
-      else
-        PL_DHashTableRawRemove(&gContentListHashTable, entry);
+      entry->mContentList = list;
     }
-
-    NS_ENSURE_TRUE(list, nullptr);
   }
 
   NS_ADDREF(list);

@@ -44,7 +44,6 @@
 #include "nsIParser.h"
 #include "nsIFragmentContentSink.h"
 #include "nsIContentSink.h"
-#include "nsContentList.h"
 #include "nsIHTMLDocument.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMHTMLElement.h"
@@ -6245,9 +6244,10 @@ struct ClassMatchingInfo {
   nsCaseTreatment mCaseTreatment;
 };
 
-static bool
-MatchClassNames(nsIContent* aContent, int32_t aNamespaceID, nsIAtom* aAtom,
-                void* aData)
+
+bool
+nsContentUtils::MatchClassNames(nsIContent* aContent, int32_t aNamespaceID,
+                                nsIAtom* aAtom, void* aData)
 {
   
   const nsAttrValue* classAttr = aContent->GetClasses();
@@ -6273,23 +6273,23 @@ MatchClassNames(nsIContent* aContent, int32_t aNamespaceID, nsIAtom* aAtom,
   return true;
 }
 
-static void
-DestroyClassNameArray(void* aData)
+
+void
+nsContentUtils::DestroyClassNameArray(void* aData)
 {
   ClassMatchingInfo* info = static_cast<ClassMatchingInfo*>(aData);
   delete info;
 }
 
-static void*
-AllocClassMatchingInfo(nsINode* aRootNode,
-                       const nsString* aClasses)
+
+void*
+nsContentUtils::AllocClassMatchingInfo(nsINode* aRootNode,
+                                       const nsString* aClasses)
 {
   nsAttrValue attrValue;
   attrValue.ParseAtomArray(*aClasses);
   
   ClassMatchingInfo* info = new ClassMatchingInfo;
-  NS_ENSURE_TRUE(info, nullptr);
-
   if (attrValue.Type() == nsAttrValue::eAtomArray) {
     info->mClasses.SwapElements(*(attrValue.GetAtomArrayValue()));
   } else if (attrValue.Type() == nsAttrValue::eAtom) {
@@ -6303,26 +6303,6 @@ AllocClassMatchingInfo(nsINode* aRootNode,
 }
 
 
-
-nsresult
-nsContentUtils::GetElementsByClassName(nsINode* aRootNode,
-                                       const nsAString& aClasses,
-                                       nsIDOMNodeList** aReturn)
-{
-  NS_PRECONDITION(aRootNode, "Must have root node");
-  
-  nsContentList* elements =
-    NS_GetFuncStringHTMLCollection(aRootNode, MatchClassNames,
-                                   DestroyClassNameArray,
-                                   AllocClassMatchingInfo,
-                                   aClasses).get();
-  NS_ENSURE_TRUE(elements, NS_ERROR_OUT_OF_MEMORY);
-
-  
-  *aReturn = elements;
-
-  return NS_OK;
-}
 
 #ifdef DEBUG
 class DebugWrapperTraversalCallback : public nsCycleCollectionTraversalCallback
