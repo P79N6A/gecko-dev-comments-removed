@@ -205,7 +205,6 @@ public class HistoryTab extends AwesomeBarTab {
         private static final long MS_PER_WEEK = MS_PER_DAY * 7;
 
         protected Pair<GroupList,List<ChildrenList>> doInBackground(Void... arg0) {
-            Pair<GroupList, List<ChildrenList>> result = null;
             Cursor cursor = BrowserDB.getRecentHistory(getContentResolver(), MAX_RESULTS);
 
             Date now = new Date();
@@ -217,9 +216,9 @@ public class HistoryTab extends AwesomeBarTab {
 
             
             
-            List<ChildrenList> childrenLists = null;
+            List<ChildrenList> childrenLists = new LinkedList<ChildrenList>();
             ChildrenList children = null;
-            GroupList groups = null;
+            GroupList groups = new GroupList();
             HistorySection section = null;
 
             
@@ -233,12 +232,6 @@ public class HistoryTab extends AwesomeBarTab {
             while (cursor.moveToNext()) {
                 long time = cursor.getLong(cursor.getColumnIndexOrThrow(URLColumns.DATE_LAST_VISITED));
                 HistorySection itemSection = getSectionForTime(time, today);
-
-                if (groups == null)
-                    groups = new GroupList();
-
-                if (childrenLists == null)
-                    childrenLists = new LinkedList<ChildrenList>();
 
                 if (section != itemSection) {
                     if (section != null) {
@@ -263,11 +256,8 @@ public class HistoryTab extends AwesomeBarTab {
             
             cursor.close();
 
-            if (groups != null && childrenLists != null) {
-                result = Pair.<GroupList,List<ChildrenList>>create(groups, childrenLists);
-            }
-
-            return result;
+            
+            return Pair.<GroupList,List<ChildrenList>>create(groups, childrenLists);
         }
 
         public Map<String,Object> createHistoryItem(Cursor cursor) {
@@ -350,10 +340,6 @@ public class HistoryTab extends AwesomeBarTab {
         }
 
         protected void onPostExecute(Pair<GroupList,List<ChildrenList>> result) {
-            
-            if (result == null)
-                return;
-
             mCursorAdapter = new HistoryListAdapter(
                 mContext,
                 result.first,
