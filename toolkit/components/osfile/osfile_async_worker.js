@@ -38,7 +38,7 @@ if (this.Components) {
        }
        
        
-       if (typeof options === "object" && "outExecutionDuration" in options) {
+       if (options && typeof options === "object" && "outExecutionDuration" in options) {
          start = Date.now();
        }
 
