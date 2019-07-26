@@ -181,7 +181,6 @@ public:
 
 
 
-
   bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                       ContainerLayer* aLayer,
                                       ViewTransform* aNewTransform,
@@ -193,7 +192,8 @@ public:
 
 
 
-  void NotifyLayersUpdated(const FrameMetrics& aViewportFrame, bool aIsFirstPaint);
+
+  void NotifyLayersUpdated(const FrameMetrics& aLayerMetrics, bool aIsFirstPaint);
 
   
 
@@ -535,11 +535,13 @@ protected:
   
   
   
-  
-  
   Monitor mMonitor;
 
 private:
+  
+  
+  
+  
   
   
   FrameMetrics mLastContentPaintMetrics;
