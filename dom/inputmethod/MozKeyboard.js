@@ -199,8 +199,6 @@ MozKeyboard.prototype = {
   }
 };
 
-const TESTING_ENABLED_PREF = "dom.mozInputMethod.testing";
-
 
 
 
@@ -317,24 +315,6 @@ MozInputMethod.prototype = {
   }),
 
   init: function mozInputMethodInit(win) {
-    
-    let isTesting = false;
-    try {
-      isTesting = Services.prefs.getBoolPref(TESTING_ENABLED_PREF);
-    } catch (e) {}
-
-    
-    if (!isTesting) {
-      let principal = win.document.nodePrincipal;
-      let perm = Services.perms
-                 .testExactPermissionFromPrincipal(principal, "keyboard");
-      if (perm != Ci.nsIPermissionManager.ALLOW_ACTION) {
-        dump("No permission to use the keyboard API for " +
-             principal.origin + "\n");
-        return;
-      }
-    }
-
     this._window = win;
     this._mgmt = new MozInputMethodManager(win);
     this.innerWindowID = win.QueryInterface(Ci.nsIInterfaceRequestor)
