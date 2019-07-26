@@ -938,16 +938,16 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   }
   
   nsCOMPtr<nsIWyciwygChannel> wyciwygChannel(do_QueryInterface(mRequest));
-  if (wyciwygChannel) {
-    mReparseForbidden = true;
-    mFeedChardet = false;
-    
-    
-  } else if (mCharsetSource < kCharsetFromParentForced) {
+  if (!wyciwygChannel) {
     
     
     return NS_OK;
   }
+
+  
+  mReparseForbidden = true;
+  mFeedChardet = false;
+
   
   nsCOMPtr<nsICharsetConverterManager> convManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
