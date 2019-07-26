@@ -619,9 +619,6 @@ Service::getLocaleCollation()
 
 
 
-#ifndef NS_APP_STORAGE_50_FILE
-#define NS_APP_STORAGE_50_FILE "UStor"
-#endif
 
 NS_IMETHODIMP
 Service::OpenSpecialDatabase(const char *aStorageKey,
@@ -632,13 +629,6 @@ Service::OpenSpecialDatabase(const char *aStorageKey,
   nsCOMPtr<nsIFile> storageFile;
   if (::strcmp(aStorageKey, "memory") == 0) {
     
-    
-  }
-  else if (::strcmp(aStorageKey, "profile") == 0) {
-    rv = NS_GetSpecialDirectory(NS_APP_STORAGE_50_FILE,
-                                getter_AddRefs(storageFile));
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
   }
   else {
