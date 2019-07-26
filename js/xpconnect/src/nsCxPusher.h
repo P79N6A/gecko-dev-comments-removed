@@ -118,9 +118,40 @@ private:
 
 
 
+class MOZ_STACK_CLASS ThreadsafeAutoJSContext {
+public:
+  ThreadsafeAutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  operator JSContext*() const;
+
+private:
+  JSContext* mCx; 
+  Maybe<JSAutoRequest> mRequest; 
+  Maybe<AutoJSContext> mAutoJSContext; 
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
+
+
+
 class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
 public:
   AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+};
+
+
+
+
+class MOZ_STACK_CLASS ThreadsafeAutoSafeJSContext {
+public:
+  ThreadsafeAutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  operator JSContext*() const;
+
+private:
+  JSContext* mCx; 
+  Maybe<JSAutoRequest> mRequest; 
+  Maybe<AutoSafeJSContext> mAutoSafeJSContext; 
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 
