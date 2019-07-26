@@ -135,6 +135,8 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 #define NS_UNLIMITED_SCRIPT_RUNTIME (0x40000000LL << 32)
 
+#define NS_MAJOR_FORGET_SKIPPABLE_CALLS 2
+
 
 
 static nsITimer *sGCTimer;
@@ -2502,7 +2504,9 @@ FireForgetSkippable(uint32_t aSuspected, bool aRemoveChildless)
 {
   PRTime startTime = PR_Now();
   FinishAnyIncrementalGC();
-  nsCycleCollector_forgetSkippable(aRemoveChildless);
+  bool earlyForgetSkippable =
+    sCleanupsSinceLastGC < NS_MAJOR_FORGET_SKIPPABLE_CALLS;
+  nsCycleCollector_forgetSkippable(aRemoveChildless, earlyForgetSkippable);
   sPreviousSuspectedCount = nsCycleCollector_suspectedCount();
   ++sCleanupsSinceLastGC;
   PRTime delta = PR_Now() - startTime;
@@ -2552,8 +2556,9 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
   
   
-  if (sCleanupsSinceLastGC < 2 && aExtraForgetSkippableCalls >= 0) {
-    while (sCleanupsSinceLastGC < 2) {
+  if (sCleanupsSinceLastGC < NS_MAJOR_FORGET_SKIPPABLE_CALLS &&
+      aExtraForgetSkippableCalls >= 0) {
+    while (sCleanupsSinceLastGC < NS_MAJOR_FORGET_SKIPPABLE_CALLS) {
       FireForgetSkippable(nsCycleCollector_suspectedCount(), false);
       ranSyncForgetSkippable = true;
     }
