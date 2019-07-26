@@ -903,6 +903,7 @@ pref("apz.y_stationary_size_multiplier", "1.8");
 pref("apz.enlarge_displayport_when_clipped", true);
 
 pref("apz.axis_lock_mode", 2);
+pref("apz.subframe.enabled", true);
 
 
 

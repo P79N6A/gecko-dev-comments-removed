@@ -335,6 +335,9 @@ pref("apz.axis_lock_mode", 0);
 
 pref("apz.printtree", false);
 
+
+pref("apz.subframe.enabled", false);
+
 #ifdef XP_MACOSX
 
 
