@@ -58,6 +58,10 @@ function unwrapIfWrapped(x) {
   return isWrapper(x) ? unwrapPrivileged(x) : x;
 };
 
+function wrapIfUnwrapped(x) {
+  return isWrapper(x) ? x : wrapPrivileged(x);
+}
+
 function isXrayWrapper(x) {
   return Cu.isXrayWrapper(x);
 }
@@ -395,6 +399,24 @@ SPConsoleListener.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener])
 };
 
+function wrapCallback(cb) {
+  return function SpecialPowersCallbackWrapper() {
+    args = Array.prototype.map.call(arguments, wrapIfUnwrapped);
+    return cb.apply(this, args);
+  }
+}
+
+function wrapCallbackObject(obj) {
+  wrapper = { __exposedProps__: ExposedPropsWaiver };
+  for (var i in obj) {
+    if (typeof obj[i] == 'function')
+      wrapper[i] = wrapCallback(obj[i]);
+    else
+      wrapper[i] = obj[i];
+  }
+  return wrapper;
+}
+
 SpecialPowersAPI.prototype = {
 
   
@@ -425,9 +447,39 @@ SpecialPowersAPI.prototype = {
 
 
 
-  wrap: function(obj) { return isWrapper(obj) ? obj : wrapPrivileged(obj); },
+  wrap: wrapIfUnwrapped,
   unwrap: unwrapIfWrapped,
   isWrapper: isWrapper,
+
+  
+
+
+
+
+
+
+  wrapCallback: wrapCallback,
+  wrapCallbackObject: wrapCallbackObject,
+
+  
+
+
+  createBlankObject: function () {
+    var obj = new Object;
+    obj.__exposedProps__ = ExposedPropsWaiver;
+    return obj;
+  },
+
+  
+
+
+
+
+
+
+  compare: function(a, b) {
+    return unwrapIfWrapped(a) === unwrapIfWrapped(b);
+  },
 
   get MockFilePicker() {
     return MockFilePicker
