@@ -111,6 +111,20 @@ GrallocTextureClientOGL::GrallocTextureClientOGL(CompositableClient* aCompositab
 GrallocTextureClientOGL::~GrallocTextureClientOGL()
 {
   MOZ_COUNT_DTOR(GrallocTextureClientOGL);
+    if (ShouldDeallocateInDestructor()) {
+    
+    
+    if (mBufferLocked) {
+      mBufferLocked->Unlock();
+    } else {
+      MOZ_ASSERT(mCompositable);
+      
+      
+      SurfaceDescriptor sd = SurfaceDescriptorGralloc(nullptr, mGrallocActor,
+                                                      nsIntSize(0,0), false, false);
+      mCompositable->GetForwarder()->DestroySharedSurface(&sd);
+    }
+  }
 }
 
 void
