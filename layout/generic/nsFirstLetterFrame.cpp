@@ -389,3 +389,20 @@ nsFirstLetterFrame::GetBaseline() const
 {
   return mBaseline;
 }
+
+int
+nsFirstLetterFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
+{
+  if (GetPrevContinuation()) {
+    
+    
+    
+    
+    
+    return 1 << NS_SIDE_LEFT |
+           1 << NS_SIDE_RIGHT |
+           1 << NS_SIDE_TOP |
+           1 << NS_SIDE_BOTTOM;
+  }
+  return 0;  
+}
