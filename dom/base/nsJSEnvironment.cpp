@@ -1165,6 +1165,11 @@ nsJSContext::~nsJSContext()
   }
 }
 
+
+
+
+
+
 void
 nsJSContext::DestroyJSContext()
 {
@@ -1182,14 +1187,8 @@ nsJSContext::DestroyJSContext()
   if (mGCOnDestruction) {
     PokeGC(JS::gcreason::NSJSCONTEXT_DESTROY);
   }
-        
-  
-  nsIXPConnect *xpc = nsContentUtils::XPConnect();
-  if (xpc) {
-    xpc->ReleaseJSContext(mContext, true);
-  } else {
-    ::JS_DestroyContextNoGC(mContext);
-  }
+
+  JS_DestroyContextNoGC(mContext);
   mContext = nullptr;
 }
 
