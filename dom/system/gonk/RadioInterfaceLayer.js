@@ -526,6 +526,14 @@ RadioInterfaceLayer.prototype = {
       case "setPreferredNetworkType":
         this.handleSetPreferredNetworkType(message);
         break;
+      case "stkcallsetup":
+        
+        
+        
+        debug("STK app has placed a call no. " + message.command.options.address);
+        gSystemMessenger.broadcastMessage("icc-dialing", {state: "dialing",
+          number: message.command.options.address});
+        break;
       default:
         throw new Error("Don't know about this message type: " +
                         message.rilMessageType);
