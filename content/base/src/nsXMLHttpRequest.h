@@ -687,8 +687,6 @@ protected:
   nsXMLHttpRequestXPCOMifier* mXPCOMifier;
 };
 
-#undef IMPL_EVENT_HANDLER
-
 
 
 class nsXMLHttpRequestXPCOMifier MOZ_FINAL : public nsIStreamListener,
