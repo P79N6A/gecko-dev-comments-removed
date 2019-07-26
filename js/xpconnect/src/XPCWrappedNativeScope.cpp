@@ -294,9 +294,6 @@ XPCWrappedNativeScope::SetGlobal(JSContext *cx, JSObject* aGlobal)
     
     mGlobalJSObject = aGlobal;
 
-    
-    
-    mPrototypeNoHelper = nullptr;
 }
 
 XPCWrappedNativeScope::~XPCWrappedNativeScope()
@@ -729,6 +726,10 @@ WNProtoRemover(JSDHashTable *table, JSDHashEntryHdr *hdr,
 void
 XPCWrappedNativeScope::RemoveWrappedNativeProtos()
 {
+    
+    
+    mPrototypeNoHelper = nullptr;
+
     XPCAutoLock al(XPCJSRuntime::Get()->GetMapLock());
 
     mWrappedNativeProtoMap->Enumerate(WNProtoRemover,
