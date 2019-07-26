@@ -26,19 +26,16 @@
 #include "png.h"
 
 #include "android/log.h"
-#include "ui/FramebufferNativeWindow.h"
-#include "hardware_legacy/power.h"
+#include "GonkDisplay.h"
 #include "hardware/gralloc.h"
 
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
 #define LOGW(args...) __android_log_print(ANDROID_LOG_WARN, "Gonk", ## args)
 #define LOGE(args...) __android_log_print(ANDROID_LOG_ERROR, "Gonk", ## args)
 
-using namespace android;
 using namespace mozilla;
 using namespace std;
 
-static sp<FramebufferNativeWindow> gNativeWindow;
 static pthread_t sAnimationThread;
 static bool sRunAnimation;
 
@@ -260,8 +257,6 @@ struct AnimationPart {
     vector<AnimationFrame> frames;
 };
 
-using namespace android;
-
 struct RawReadState {
     const char *start;
     uint32_t offset;
@@ -421,9 +416,8 @@ AnimationThread(void *)
         return nullptr;
     }
 
-    int format;
-    ANativeWindow *window = gNativeWindow.get();
-    window->query(window, NATIVE_WINDOW_FORMAT, &format);
+    GonkDisplay *display = GetGonkDisplay();
+    int format = display->surfaceformat;
 
     hw_module_t const *module;
     if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module)) {
@@ -514,14 +508,9 @@ AnimationThread(void *)
                     frame.ReadPngFrame(format);
                 }
 
-                ANativeWindowBuffer *buf;
-                if (window->dequeueBuffer(window, &buf)) {
+                ANativeWindowBuffer *buf = display->DequeueBuffer();
+                if (!buf) {
                     LOGW("Failed to get an ANativeWindowBuffer");
-                    break;
-                }
-                if (window->lockBuffer(window, buf)) {
-                    LOGW("Failed to lock ANativeWindowBuffer");
-                    window->queueBuffer(window, buf);
                     break;
                 }
 
@@ -532,7 +521,7 @@ AnimationThread(void *)
                                    GRALLOC_USAGE_HW_FB,
                                    0, 0, width, height, &vaddr)) {
                     LOGW("Failed to lock buffer_handle_t");
-                    window->queueBuffer(window, buf);
+                    display->QueueBuffer(buf);
                     break;
                 }
                 memcpy(vaddr, frame.buf,
@@ -546,10 +535,11 @@ AnimationThread(void *)
                 if (tv2.tv_usec < frameDelayUs) {
                     usleep(frameDelayUs - tv2.tv_usec);
                 } else {
-                    LOGW("Frame delay is %d us but decoding took %d us", frameDelayUs, tv2.tv_usec);
+                    LOGW("Frame delay is %d us but decoding took %d us",
+                         frameDelayUs, tv2.tv_usec);
                 }
 
-                window->queueBuffer(window, buf);
+                display->QueueBuffer(buf);
 
                 if (part.count && j >= part.count) {
                     free(frame.buf);
@@ -563,61 +553,14 @@ AnimationThread(void *)
     return nullptr;
 }
 
-static int
-CancelBufferNoop(ANativeWindow* aWindow, android_native_buffer_t* aBuffer)
+void
+StartBootAnimation()
 {
-    return 0;
-}
-
-__attribute__ ((visibility ("default")))
-FramebufferNativeWindow*
-NativeWindow()
-{
-    if (gNativeWindow.get()) {
-        return gNativeWindow.get();
-    }
-
-    
-    
-    
-    
-    
-    
-    set_screen_state(1);
-
-    
-    
-    
-    {
-        char buf;
-        int len = 0;
-        ScopedClose fd(open("/sys/power/wait_for_fb_wake", O_RDONLY, 0));
-        do {
-            len = read(fd.get(), &buf, 1);
-        } while (len < 0 && errno == EINTR);
-        if (len < 0) {
-            LOGE("BootAnimation: wait_for_fb_sleep failed errno: %d", errno);
-        }
-    }
-
-    
-    
-    gNativeWindow = new FramebufferNativeWindow();
-
-    
-    
-    
-    
-    gNativeWindow->cancelBuffer = CancelBufferNoop;
-
     sRunAnimation = true;
     pthread_create(&sAnimationThread, nullptr, AnimationThread, nullptr);
-
-    return gNativeWindow.get();
 }
 
 
-__attribute__ ((visibility ("default")))
 void
 StopBootAnimation()
 {

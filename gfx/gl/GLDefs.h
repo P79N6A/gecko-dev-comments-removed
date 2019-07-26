@@ -3323,4 +3323,7 @@ typedef uint64_t EGLTime;
 
 #define LOCAL_EGL_NATIVE_BUFFER_ANDROID       0x3140
 
+
+#define LOCAL_EGL_FRAMEBUFFER_TARGET_ANDROID  0x3147
+
 #endif
