@@ -101,6 +101,10 @@ let HomeBanner = {
     if (Object.keys(this._messages).length == 1) {
       Services.obs.addObserver(this, "HomeBanner:Get", false);
       Services.obs.addObserver(this, "HomeBanner:Click", false);
+
+      
+      
+      this._handleGet();
     }
 
     return message.id;
