@@ -15,8 +15,8 @@
 #ifdef DEBUG
 void JSD_ASSERT_VALID_SOURCE_TEXT(JSDSourceText* jsdsrc)
 {
-    MOZ_ASSERT(jsdsrc);
-    MOZ_ASSERT(jsdsrc->url);
+    JS_ASSERT(jsdsrc);
+    JS_ASSERT(jsdsrc->url);
 }
 #endif
 
@@ -98,7 +98,7 @@ _newSource(JSDContext* jsdc, char* url)
 static void
 _destroySource(JSDContext* jsdc, JSDSourceText* jsdsrc)
 {
-    MOZ_ASSERT(nullptr == jsdsrc->text);  
+    JS_ASSERT(nullptr == jsdsrc->text);  
     free(jsdsrc->url);
     free(jsdsrc);
 }
@@ -491,7 +491,7 @@ jsd_StartingEvalUsingFilename(JSDContext* jsdc, const char* url)
     {
 #if 0
 #ifndef JSD_LOWLEVEL_SOURCE
-        MOZ_ASSERT(! jsdsrc->doingEval);
+        JS_ASSERT(! jsdsrc->doingEval);
 #endif
 #endif
         jsdsrc->doingEval = true;
@@ -515,7 +515,7 @@ jsd_FinishedEvalUsingFilename(JSDContext* jsdc, const char* url)
 
 
 
-        MOZ_ASSERT(jsdsrc->doingEval);
+        JS_ASSERT(jsdsrc->doingEval);
 #endif
 #endif
         jsdsrc->doingEval = false;
