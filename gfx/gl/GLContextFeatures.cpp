@@ -292,6 +292,23 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "texture_half_float",
+        310, 
+        300, 
+        {
+            GLContext::ARB_texture_float,
+            GLContext::NV_half_float,
+            GLContext::Extensions_End
+        }
+        
+
+
+
+
+
+
+    },
+    {
         "texture_non_power_of_two",
         200, 
         300, 
