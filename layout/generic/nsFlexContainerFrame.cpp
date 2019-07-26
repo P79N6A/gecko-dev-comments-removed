@@ -1471,10 +1471,9 @@ nsFlexContainerFrame::SanityCheckAnonymousFlexItems() const
 
 
 static void
-FreezeOrRestoreEachFlexibleSize(
-  const nscoord aTotalViolation,
-  nsTArray<FlexItem>& aItems,
-  bool aFinalIteration)
+FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
+                                nsTArray<FlexItem>& aItems,
+                                bool aFinalIteration)
 {
   enum FreezeType {
     eFreezeEverything,
