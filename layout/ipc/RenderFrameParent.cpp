@@ -615,6 +615,36 @@ public:
     return mHaveZoomConstraints;
   }
 
+  virtual void NotifyTransformBegin(const ScrollableLayerGuid& aGuid)
+  {
+    if (MessageLoop::current() != mUILoop) {
+      mUILoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RemoteContentController::NotifyTransformBegin,
+                          aGuid));
+      return;
+    }
+    if (mRenderFrame) {
+      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      browser->NotifyTransformBegin(aGuid.mScrollId);
+    }
+  }
+
+  virtual void NotifyTransformEnd(const ScrollableLayerGuid& aGuid)
+  {
+    if (MessageLoop::current() != mUILoop) {
+      mUILoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RemoteContentController::NotifyTransformEnd,
+                          aGuid));
+      return;
+    }
+    if (mRenderFrame) {
+      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      browser->NotifyTransformEnd(aGuid.mScrollId);
+    }
+  }
+
 private:
   void DoRequestContentRepaint(const FrameMetrics& aFrameMetrics)
   {
@@ -647,8 +677,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
   
   if (lm && lm->GetBackendType() == LAYERS_CLIENT) {
-    *aTextureFactoryIdentifier =
-      static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
+    *aTextureFactoryIdentifier = lm->GetTextureFactoryIdentifier();
   } else {
     *aTextureFactoryIdentifier = TextureFactoryIdentifier();
   }
