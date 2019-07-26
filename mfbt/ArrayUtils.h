@@ -30,10 +30,10 @@ namespace mozilla {
 
 template<class T>
 MOZ_ALWAYS_INLINE size_t
-PointerRangeSize(T* begin, T* end)
+PointerRangeSize(T* aBegin, T* aEnd)
 {
-  MOZ_ASSERT(end >= begin);
-  return (size_t(end) - size_t(begin)) / sizeof(T);
+  MOZ_ASSERT(aEnd >= aBegin);
+  return (size_t(aEnd) - size_t(aBegin)) / sizeof(T);
 }
 
 
@@ -44,14 +44,14 @@ PointerRangeSize(T* begin, T* end)
 
 template<typename T, size_t N>
 MOZ_CONSTEXPR size_t
-ArrayLength(T (&arr)[N])
+ArrayLength(T (&aArr)[N])
 {
   return N;
 }
 
 template<typename T, size_t N>
 MOZ_CONSTEXPR size_t
-ArrayLength(const Array<T, N>& arr)
+ArrayLength(const Array<T, N>& aArr)
 {
   return N;
 }
@@ -63,23 +63,23 @@ ArrayLength(const Array<T, N>& arr)
 
 template<typename T, size_t N>
 MOZ_CONSTEXPR T*
-ArrayEnd(T (&arr)[N])
+ArrayEnd(T (&aArr)[N])
 {
-  return arr + ArrayLength(arr);
+  return aArr + ArrayLength(aArr);
 }
 
 template<typename T, size_t N>
 MOZ_CONSTEXPR T*
-ArrayEnd(Array<T, N>& arr)
+ArrayEnd(Array<T, N>& aArr)
 {
-  return &arr[0] + ArrayLength(arr);
+  return &aArr[0] + ArrayLength(aArr);
 }
 
 template<typename T, size_t N>
 MOZ_CONSTEXPR const T*
-ArrayEnd(const Array<T, N>& arr)
+ArrayEnd(const Array<T, N>& aArr)
 {
-  return &arr[0] + ArrayLength(arr);
+  return &aArr[0] + ArrayLength(aArr);
 }
 
 namespace detail {

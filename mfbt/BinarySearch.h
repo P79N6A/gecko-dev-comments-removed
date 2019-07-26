@@ -32,32 +32,34 @@ namespace mozilla {
 
 template <typename Container, typename T>
 bool
-BinarySearch(const Container &c, size_t begin, size_t end, T target, size_t *matchOrInsertionPoint)
+BinarySearch(const Container& aContainer, size_t aBegin, size_t aEnd,
+             T aTarget, size_t* aMatchOrInsertionPoint)
 {
-  MOZ_ASSERT(begin <= end);
+  MOZ_ASSERT(aBegin <= aEnd);
 
-  size_t low = begin;
-  size_t high = end;
+  size_t low = aBegin;
+  size_t high = aEnd;
   while (low != high) {
     size_t middle = low + (high - low) / 2;
-    const T &middleValue = c[middle];
+    const T& middleValue = aContainer[middle];
 
-    MOZ_ASSERT(c[low] <= c[middle]);
-    MOZ_ASSERT(c[middle] <= c[high - 1]);
-    MOZ_ASSERT(c[low] <= c[high - 1]);
+    MOZ_ASSERT(aContainer[low] <= aContainer[middle]);
+    MOZ_ASSERT(aContainer[middle] <= aContainer[high - 1]);
+    MOZ_ASSERT(aContainer[low] <= aContainer[high - 1]);
 
-    if (target == middleValue) {
-      *matchOrInsertionPoint = middle;
+    if (aTarget == middleValue) {
+      *aMatchOrInsertionPoint = middle;
       return true;
     }
 
-    if (target < middleValue)
+    if (aTarget < middleValue) {
       high = middle;
-    else
+    } else {
       low = middle + 1;
+    }
   }
 
-  *matchOrInsertionPoint = low;
+  *aMatchOrInsertionPoint = low;
   return false;
 }
 
