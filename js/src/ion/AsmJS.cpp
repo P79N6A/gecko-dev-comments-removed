@@ -1149,7 +1149,7 @@ class MOZ_STACK_CLASS ModuleCompiler
   public:
     ModuleCompiler(JSContext *cx, TokenStream &ts, ParseNode *fn)
       : cx_(cx),
-        masm_(cx),
+        masm_(MacroAssembler::AsmJSToken()),
         moduleLifo_(LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
         moduleFunctionName_(NULL),
         globals_(cx),
@@ -1529,7 +1529,7 @@ class MOZ_STACK_CLASS ModuleCompiler
                                msTotal, slowFuns ? slowFuns.get() : ""));
     }
 
-    bool finish(ScopedJSDeletePtr<AsmJSModule> *module) {
+    bool staticallyLink(ScopedJSDeletePtr<AsmJSModule> *module) {
         
         masm_.finish();
         if (masm_.oom())
@@ -4844,12 +4844,15 @@ GenerateCodeForFinishedJob(ModuleCompiler &m, ParallelGroupState &group, AsmJSPa
         return false;
 
     ModuleCompiler::Func &func = *reinterpret_cast<ModuleCompiler::Func *>(task->func);
-
     func.accumulateCompileTime(task->compileTime);
 
-    
-    if (!GenerateCode(m, func, *task->mir, *task->lir))
-        return false;
+    {
+        
+        IonContext ionContext(m.cx()->compartment(), &task->mir->temp());
+        if (!GenerateCode(m, func, *task->mir, *task->lir))
+            return false;
+    }
+
     group.compiledJobs++;
 
     
@@ -5413,18 +5416,6 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     return true;
 }
 #endif
-
-static bool
-GenerateEntries(ModuleCompiler &m)
-{
-    for (unsigned i = 0; i < m.module().numExportedFunctions(); i++) {
-        m.setEntryOffset(i);
-        if (!GenerateEntry(m, m.module().exportedFunction(i)))
-            return false;
-    }
-
-    return true;
-}
 
 static inline bool
 TryEnablingIon(JSContext *cx, AsmJSModule &module, HandleFunction fun, uint32_t exitIndex,
@@ -5993,7 +5984,7 @@ GenerateFFIExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit, u
 
 
 
-static void
+static bool
 GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
@@ -6031,6 +6022,8 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
     void (*pf)(JSContext*) = js_ReportOverRecursed;
     masm.call(ImmWord(JS_FUNC_TO_DATA_PTR(void*, pf)));
     masm.jump(throwLabel);
+
+    return !masm.oom();
 }
 
 
@@ -6041,7 +6034,7 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
 
 
 
-static void
+static bool
 GenerateOperationCallbackExit(ModuleCompiler &m, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
@@ -6146,6 +6139,7 @@ GenerateOperationCallbackExit(ModuleCompiler &m, Label *throwLabel)
 
 #endif
 
+    return !masm.oom();
 }
 
 
@@ -6153,7 +6147,7 @@ GenerateOperationCallbackExit(ModuleCompiler &m, Label *throwLabel)
 
 
 
-static void
+static bool
 GenerateThrowExit(ModuleCompiler &m, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
@@ -6172,11 +6166,18 @@ GenerateThrowExit(ModuleCompiler &m, Label *throwLabel)
     masm.mov(Imm32(0), ReturnReg);
     masm.abiret();
 
+    return !masm.oom();
 }
 
 static bool
-GenerateExits(ModuleCompiler &m)
+GenerateStubs(ModuleCompiler &m)
 {
+    for (unsigned i = 0; i < m.module().numExportedFunctions(); i++) {
+        m.setEntryOffset(i);
+        if (!GenerateEntry(m, m.module().exportedFunction(i)))
+            return false;
+    }
+
     Label throwLabel;
 
     for (ModuleCompiler::ExitMap::Range r = m.allExits(); !r.empty(); r.popFront()) {
@@ -6185,13 +6186,30 @@ GenerateExits(ModuleCompiler &m)
             return false;
     }
 
-    if (m.stackOverflowLabel().used())
-        GenerateStackOverflowExit(m, &throwLabel);
+    if (m.stackOverflowLabel().used()) {
+        if (!GenerateStackOverflowExit(m, &throwLabel))
+            return false;
+    }
 
-    GenerateOperationCallbackExit(m, &throwLabel);
+    if (!GenerateOperationCallbackExit(m, &throwLabel))
+        return false;
 
-    GenerateThrowExit(m, &throwLabel);
+    if (!GenerateThrowExit(m, &throwLabel))
+        return false;
+
     return true;
+}
+
+static bool
+FinishModule(ModuleCompiler &m, ScopedJSDeletePtr<AsmJSModule> *module)
+{
+    TempAllocator alloc(&m.cx()->tempLifoAlloc());
+    IonContext ionContext(m.cx()->compartment(), &alloc);
+
+    if (!GenerateStubs(m))
+        return false;
+
+    return m.staticallyLink(module);
 }
 
 static bool
@@ -6244,13 +6262,7 @@ CheckModule(JSContext *cx, TokenStream &ts, ParseNode *fn, ScopedJSDeletePtr<Asm
     if (stmtIter)
         return m.fail(stmtIter, "top-level export (return) must be the last statement");
 
-    if (!GenerateEntries(m))
-        return false;
-
-    if (!GenerateExits(m))
-        return false;
-
-    if (!m.finish(module))
+    if (!FinishModule(m, module))
         return false;
 
     m.buildCompilationTimeReport(compilationTimeReport);
