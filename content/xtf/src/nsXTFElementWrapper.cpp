@@ -854,6 +854,16 @@ nsXTFElementWrapper::HandledByInner(nsIAtom *attr) const
   return retval;
 }
 
+
+
+
+uint32_t
+nsXTFElementWrapper::GetScriptableFlags()
+{
+  return GetBaseXPCClassInfo() ? GetBaseXPCClassInfo()->GetScriptableFlags()
+                               : 0;
+}
+
 nsresult
 nsXTFElementWrapper::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {

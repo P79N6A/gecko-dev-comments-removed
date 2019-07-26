@@ -117,6 +117,15 @@ nsInProcessTabChildGlobal::~nsInProcessTabChildGlobal()
   NS_ASSERTION(!mCx, "Couldn't release JSContext?!?");
 }
 
+
+
+
+NS_IMETHODIMP_(bool)
+nsInProcessTabChildGlobal::MarkForCC()
+{
+  return mMessageManager ? mMessageManager->MarkForCC() : false;
+}
+
 nsresult
 nsInProcessTabChildGlobal::Init()
 {

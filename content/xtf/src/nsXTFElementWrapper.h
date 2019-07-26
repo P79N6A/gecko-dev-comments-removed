@@ -195,6 +195,15 @@ private:
   nsXTFElementWrapper* mWrapper;  
 };
 
+
+
+
+inline uint32_t
+nsXTFClassInfo::GetScriptableFlags()
+{
+  return mWrapper ? mWrapper->GetScriptableFlags() : 0;
+}
+
 nsresult
 NS_NewXTFElementWrapper(nsIXTFElement* aXTFElement, already_AddRefed<nsINodeInfo> aNodeInfo,
                         nsIContent** aResult);
