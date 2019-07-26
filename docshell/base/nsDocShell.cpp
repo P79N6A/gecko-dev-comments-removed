@@ -9115,13 +9115,21 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         aLoadType == LOAD_HISTORY ||
         aLoadType == LOAD_LINK) {
 
+        nsCOMPtr<nsIURI> currentURI;
+        if (sURIFixup && mCurrentURI) {
+            rv = sURIFixup->CreateExposableURI(mCurrentURI,
+                                               getter_AddRefs(currentURI));
+            NS_ENSURE_SUCCESS(rv, rv);
+        } else {
+            currentURI = mCurrentURI;
+        }
         
         
         
         nsAutoCString curBeforeHash, curHash, newBeforeHash, newHash;
         nsresult splitRv1, splitRv2;
-        splitRv1 = mCurrentURI ?
-            nsContentUtils::SplitURIAtHash(mCurrentURI,
+        splitRv1 = currentURI ?
+            nsContentUtils::SplitURIAtHash(currentURI,
                                            curBeforeHash, curHash) :
             NS_ERROR_FAILURE;
         splitRv2 = nsContentUtils::SplitURIAtHash(aURI, newBeforeHash, newHash);
@@ -9178,9 +9186,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             if (aSHEntry && mDocumentRequest) {
                 mDocumentRequest->Cancel(NS_BINDING_ABORTED);
             }
-
-            
-            nsCOMPtr<nsIURI> oldURI = mCurrentURI;
 
             
             nscoord cx = 0, cy = 0;
@@ -9344,13 +9349,13 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 if (doHashchange) {
                     
                     
-                    win->DispatchAsyncHashchange(oldURI, aURI);
+                    win->DispatchAsyncHashchange(currentURI, aURI);
                 }
             }
 
             
             
-            CopyFavicon(oldURI, aURI, mInPrivateBrowsing);
+            CopyFavicon(currentURI, aURI, mInPrivateBrowsing);
 
             return NS_OK;
         }
