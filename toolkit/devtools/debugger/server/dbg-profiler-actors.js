@@ -4,6 +4,8 @@
 
 "use strict";
 
+var connCount = 0;
+
 
 
 
@@ -13,6 +15,7 @@ function ProfilerActor(aConnection)
   this._profiler = Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
   this._started = false;
   this._observedEvents = [];
+  connCount += 1;
 }
 
 ProfilerActor.prototype = {
@@ -22,9 +25,18 @@ ProfilerActor.prototype = {
     for (var event of this._observedEvents) {
       Services.obs.removeObserver(this, event);
     }
-    if (this._profiler && this._started) {
+
+    
+    
+    
+    
+    
+
+    connCount -= 1;
+    if (connCount <= 0 && this._profiler && this._started) {
       this._profiler.StopProfiler();
     }
+
     this._profiler = null;
   },
 

@@ -21,6 +21,16 @@ XPCOMUtils.defineLazyGetter(this, "DebuggerServer", function () {
 
 
 
+
+
+const sharedData = {
+  startTime: 0,
+  data: new WeakMap(),
+};
+
+
+
+
 function makeProfile(name) {
   return {
     name: name,
@@ -32,126 +42,39 @@ function makeProfile(name) {
 
 
 
-
-function ProfilerConnection(client) {
-  this.client = client;
-  this.startTime = 0;
+function addTarget(target) {
+  sharedData.data.set(target, new Map());
 }
 
-ProfilerConnection.prototype = {
-  actor: null,
-  startTime: null,
+function getProfiles(target) {
+  return sharedData.data.get(target);
+}
 
-  
-
-
-
-
-
-  get currentTime() {
-    return (new Date()).getTime() - this.startTime;
-  },
-
-  
+function getCurrentTime() {
+  return (new Date()).getTime() - sharedData.startTime;
+}
 
 
 
 
-
-  connect: function PCn_connect(aCallback) {
-    this.client.listTabs(function (aResponse) {
-      this.actor = aResponse.profilerActor;
-      aCallback();
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-  isActive: function PCn_isActive(aCallback) {
-    var message = { to: this.actor, type: "isActive" };
-    this.client.request(message, aCallback);
-  },
-
-  
-
-
-
-
-
-
-
-  startProfiler: function PCn_startProfiler(aCallback) {
-    var message = {
-      to: this.actor,
-      type: "startProfiler",
-      entries: 1000000,
-      interval: 1,
-      features: ["js"],
-    };
-
-    this.client.request(message, function () {
-      
-      
-      this.startTime = (new Date()).getTime();
-      aCallback.apply(null, Array.slice(arguments));
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-  stopProfiler: function PCn_stopProfiler(aCallback) {
-    var message = { to: this.actor, type: "stopProfiler" };
-    this.client.request(message, aCallback);
-  },
-
-  
-
-
-
-
-
-
-
-  getProfileData: function PCn_getProfileData(aCallback) {
-    var message = { to: this.actor, type: "getProfile" };
-    this.client.request(message, aCallback);
-  },
-
-  
-
-
-  destroy: function PCn_destroy() {
-    this.client = null;
-  }
-};
 
 
 
 
 function ProfilerController(target) {
-  this.profiler = new ProfilerConnection(target.client);
-  this.profiles = new Map();
+  this.target = target;
+  this.client = target.client;
+  this.isConnected = false;
+
+  addTarget(target);
 
   
   
-  this._connected = !!target.chrome;
-
   if (target.chrome) {
-    this.profiler.actor = target.form.profilerActor;
+    this.isConnected = true;
+    this.actor = target.form.profilerActor;
   }
-}
+};
 
 ProfilerController.prototype = {
   
@@ -159,33 +82,8 @@ ProfilerController.prototype = {
 
 
 
-
-
-
-  connect: function (aCallback) {
-    if (this._connected) {
-      return void aCallback();
-    }
-
-    this.profiler.connect(function onConnect() {
-      this._connected = true;
-      aCallback();
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-  isActive: function PC_isActive(aCallback) {
-    this.profiler.isActive(function onActive(aResponse) {
-      aCallback(aResponse.error, aResponse.isActive);
-    });
+  get profiles() {
+    return getProfiles(this.target);
   },
 
   
@@ -207,6 +105,56 @@ ProfilerController.prototype = {
 
 
 
+  connect: function (cb) {
+    if (this.isConnected) {
+      return void cb();
+    }
+
+    this.client.listTabs((resp) => {
+      this.actor = resp.profilerActor;
+      this.isConnected = true;
+      cb();
+    })
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  request: function (type, data, cb) {
+    data.to = this.actor;
+    data.type = type;
+    this.client.request(data, cb);
+  },
+
+  
+
+
+
+
+
+
+
+
+  isActive: function (cb) {
+    this.request("isActive", {}, (resp) => cb(resp.error, resp.isActive));
+  },
+
+  
+
+
+
+
+
+
+
 
 
   start: function PC_start(name, cb) {
@@ -214,28 +162,33 @@ ProfilerController.prototype = {
       return;
     }
 
-    let profiler = this.profiler;
     let profile = makeProfile(name);
     this.profiles.set(name, profile);
-
 
     
     if (this.isProfileRecording(profile)) {
       return void cb();
     }
 
-    this.isActive(function (err, isActive) {
+    this.isActive((err, isActive) => {
       if (isActive) {
-        profile.timeStarted = profiler.currentTime;
+        profile.timeStarted = getCurrentTime();
         return void cb();
       }
 
-      profiler.startProfiler(function onStart(aResponse) {
-        if (aResponse.error) {
-          return void cb(aResponse.error);
+      let params = {
+        entries: 1000000,
+        interval: 1,
+        features: ["js"],
+      };
+
+      this.request("startProfiler", params, (resp) => {
+        if (resp.error) {
+          return void cb(resp.error);
         }
 
-        profile.timeStarted = profiler.currentTime;
+        sharedData.startTime = (new Date()).getTime();
+        profile.timeStarted = getCurrentTime();
         cb();
       });
     });
@@ -251,51 +204,39 @@ ProfilerController.prototype = {
 
 
 
-  stop: function PC_stop(name, cb) {
-    let profiler = this.profiler;
-    let profile = this.profiles.get(name);
 
-    if (!profile || !this.isProfileRecording(profile)) {
+
+  stop: function PC_stop(name, cb) {
+    if (!this.profiles.has(name)) {
       return;
     }
 
-    let isRecording = function () {
-      for (let [ name, profile ] of this.profiles) {
-        if (this.isProfileRecording(profile)) {
-          return true;
-        }
+    let profile = this.profiles.get(name);
+    if (!this.isProfileRecording(profile)) {
+      return;
+    }
+
+    this.request("getProfile", {}, (resp) => {
+      if (resp.error) {
+        Cu.reportError("Failed to fetch profile data.");
+        return void cb(resp.error, null);
       }
 
-      return false;
-    }.bind(this);
+      let data = resp.profile;
+      profile.timeEnded = getCurrentTime();
 
-    let onStop = function (data) {
-      if (isRecording()) {
-        return void cb(null, data);
-      }
+      
+      
 
-      profiler.stopProfiler(function onStopProfiler(response) {
-        cb(response.error, data);
-      });
-    }.bind(this);
-
-    profiler.getProfileData(function onData(aResponse) {
-      if (aResponse.error) {
-        Cu.reportError("Failed to fetch profile data before stopping the profiler.");
-        return void cb(aResponse.error, null);
-      }
-
-      let data = aResponse.profile;
-      profile.timeEnded = profiler.currentTime;
-
-      data.threads = data.threads.map(function (thread) {
-        let samples = thread.samples.filter(function (sample) {
+      data.threads = data.threads.map((thread) => {
+        let samples = thread.samples.filter((sample) => {
           return sample.time >= profile.timeStarted;
         });
+
         return { samples: samples };
       });
 
-      onStop(data);
+      cb(null, data);
     });
   },
 
@@ -303,7 +244,8 @@ ProfilerController.prototype = {
 
 
   destroy: function PC_destroy() {
-    this.profiler.destroy();
-    this.profiler = null;
+    this.client = null;
+    this.target = null;
+    this.actor = null;
   }
 };
