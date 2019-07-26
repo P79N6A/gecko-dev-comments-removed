@@ -569,18 +569,12 @@ HistoryMenu.prototype = {
     if (!menuitem)
       return;
 
-    
-    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED ||
-        Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
+    if (!PlacesUIUtils.shouldShowTabsFromOtherComputersMenuitem()) {
       menuitem.setAttribute("hidden", true);
       return;
     }
 
-    
-    
-    let enabled = Weave.Service.isLoggedIn &&
-                  Weave.Service.engineManager.get("tabs") &&
-                  Weave.Service.engineManager.get("tabs").enabled;
+    let enabled = PlacesUIUtils.shouldEnableTabsFromOtherComputersMenuitem();
     menuitem.setAttribute("disabled", !enabled);
     menuitem.setAttribute("hidden", false);
 #endif
