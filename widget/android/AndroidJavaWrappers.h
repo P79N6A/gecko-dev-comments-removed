@@ -15,6 +15,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/dom/Touch.h"
 
 
 
@@ -660,6 +661,7 @@ public:
     RefCountedJavaObject* ByteBuffer() { return mByteBuffer; }
     int Width() { return mWidth; }
     int Height() { return mHeight; }
+    nsTouchEvent MakeTouchEvent(nsIWidget* widget);
 
 protected:
     int mAction;
