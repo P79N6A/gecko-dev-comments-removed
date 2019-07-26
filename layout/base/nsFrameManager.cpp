@@ -1484,7 +1484,13 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       }
     }
 
+    
+    
+    
+    
+    
     if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+
       DesiredA11yNotifications kidsDesiredA11yNotification =
         aDesiredA11yNotifications;
 #ifdef ACCESSIBILITY
@@ -1523,11 +1529,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         }
       }
 #endif
-
-      
-      
-      
-      
 
       
       nsIFrame::ChildListIterator lists(aFrame);
