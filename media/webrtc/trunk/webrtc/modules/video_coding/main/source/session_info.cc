@@ -11,6 +11,7 @@
 #include "webrtc/modules/video_coding/main/source/session_info.h"
 
 #include "webrtc/modules/video_coding/main/source/packet.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_format_h264.h"
 
 namespace webrtc {
 
@@ -418,34 +419,81 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
       (*rit).seqNum == packet.seqNum && (*rit).sizeBytes > 0)
     return -2;
 
-  
-  
-  
-  
-  if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
-    
-    frame_type_ = packet.frameType;
-    
-    first_packet_seq_num_ = static_cast<int>(packet.seqNum);
-  } else if (first_packet_seq_num_ != -1 &&
-        !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
-    return -3;
-  } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
-    
-    
-    frame_type_ = packet.frameType;
-  }
+  PacketIterator packet_list_it;
+  if (packet.codec == kVideoCodecH264) {
+    RTPVideoHeaderH264 h264 = packet.codecSpecificHeader.codecHeader.H264;
+    unsigned char nal_type = h264.nalu_header & 0x1F;
+    bool potential_start = false;
+    if (nal_type == RtpFormatH264::kH264NALU_SPS ||
+        nal_type == RtpFormatH264::kH264NALU_PPS ||
+        packet.codecSpecificHeader.codecHeader.H264.single_nalu) {
+      potential_start = true;
+    } else {
+      potential_start = packet.isFirstPacket;
+    }
+    if (potential_start) {
+      if (HaveFirstPacket() == false ||
+          IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum)) {
+        first_packet_seq_num_ = packet.seqNum;
+        frame_type_ = packet.frameType;
+      }
+    }
 
-  
-  if (packet.markerBit && last_packet_seq_num_ == -1) {
-    last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-  } else if (last_packet_seq_num_ != -1 &&
+    
+    if (packet.markerBit && last_packet_seq_num_ == -1) {
+      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
+    } else if (last_packet_seq_num_ != -1 &&
       IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-    return -3;
-  }
+      LOG(LS_WARNING) << "Received packet with a sequence number which is out "
+                       " of frame boundaries";
+      return -3;
+    }
 
-  
-  PacketIterator packet_list_it = packets_.insert(rit.base(), packet);
+    if (first_packet_seq_num_ == packet.seqNum &&
+        packet.completeNALU != kNaluComplete) {
+      VCMPacket& npacket = const_cast<VCMPacket&> (packet);
+      npacket.isFirstPacket = true;
+      npacket.completeNALU = kNaluStart;
+      
+      packet_list_it = packets_.insert(rit.base(), npacket);
+    } else {
+      
+      packet_list_it = packets_.insert(rit.base(), packet);
+    }
+  } else {
+    
+    
+    
+    
+    if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
+      
+      frame_type_ = packet.frameType;
+      
+      first_packet_seq_num_ = static_cast<int>(packet.seqNum);
+    } else if (first_packet_seq_num_ != -1 &&
+      !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
+      LOG(LS_WARNING) << "Received packet with a sequence number which is out "
+                       "of frame boundaries";
+      return -3;
+    } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
+      
+      
+      frame_type_ = packet.frameType;
+    }
+
+    
+    if (packet.markerBit && last_packet_seq_num_ == -1) {
+      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
+    } else if (last_packet_seq_num_ != -1 &&
+        IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
+      LOG(LS_WARNING) << "Received packet with a sequence number which is out "
+                       "of frame boundaries";
+      return -3;
+    }
+
+    
+    packet_list_it = packets_.insert(rit.base(), packet);
+  }
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();

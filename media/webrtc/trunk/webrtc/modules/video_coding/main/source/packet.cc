@@ -10,6 +10,7 @@
 
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/video_coding/main/source/packet.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_format_h264.h"
 
 #include <assert.h>
 
@@ -90,33 +91,65 @@ void VCMPacket::Reset() {
   memset(&codecSpecificHeader, 0, sizeof(RTPVideoHeader));
 }
 
-void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader)
-{
-    switch(videoHeader.codec)
-    {
-        case kRtpVideoVp8:
-            {
-                
-                
-                
-                if (isFirstPacket && markerBit)
-                    completeNALU = kNaluComplete;
-                else if (isFirstPacket)
-                    completeNALU = kNaluStart;
-                else if (markerBit)
-                    completeNALU = kNaluEnd;
-                else
-                    completeNALU = kNaluIncomplete;
+void VCMPacket::CopyCodecSpecifics(const RTPVideoHeader& videoHeader) {
+  switch (videoHeader.codec) {
+    case kRtpVideoVp8: {
+      
+      
+      
+      if (isFirstPacket && markerBit)
+          completeNALU = kNaluComplete;
+      else if (isFirstPacket)
+          completeNALU = kNaluStart;
+      else if (markerBit)
+          completeNALU = kNaluEnd;
+      else
+          completeNALU = kNaluIncomplete;
 
-                codec = kVideoCodecVP8;
-                break;
-            }
-        default:
-            {
-                codec = kVideoCodecUnknown;
-                break;
-            }
+      codec = kVideoCodecVP8;
+      break;
     }
+    case kRtpVideoH264: {
+      unsigned char nal_type = videoHeader.codecHeader.H264.nalu_header & 0x1F;
+      if (videoHeader.codecHeader.H264.single_nalu) {
+        if (nal_type == RtpFormatH264::kH264NALU_SPS ||
+            nal_type == RtpFormatH264::kH264NALU_PPS) {
+          insertStartCode = true;
+          isFirstPacket   = false;
+          markerBit       = false;
+        } else {
+          isFirstPacket   = true;
+          markerBit       = true;
+          insertStartCode = true;
+        }
+      } else {
+        
+        if (isFirstPacket) {
+          insertStartCode = true;
+          if (nal_type == RtpFormatH264::kH264NALU_IDR) {
+            
+            isFirstPacket = false;
+          }
+        } else {
+          insertStartCode = false;
+        }
+      }
+
+      if (isFirstPacket && markerBit)
+         completeNALU = kNaluComplete;
+      else if (isFirstPacket)
+         completeNALU = kNaluStart;
+      else if (markerBit)
+         completeNALU = kNaluEnd;
+      else
+         completeNALU = kNaluIncomplete;
+      codec = kVideoCodecH264;
+    }
+    default: {
+      codec = kVideoCodecUnknown;
+      break;
+    }
+  }
 }
 
-}
+}  
