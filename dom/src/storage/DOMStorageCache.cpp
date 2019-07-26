@@ -23,6 +23,7 @@ namespace dom {
 
 
 DOMStorageDBBridge* DOMStorageCache::sDatabase = nullptr;
+bool DOMStorageCache::sDatabaseDown = false;
 
 namespace { 
 
@@ -340,6 +341,10 @@ DOMStorageCache::WaitForPreload(Telemetry::ID aTelemetryID)
   
 
   
+
+  
+  
+  
   sDatabase->SyncPreload(this);
 }
 
@@ -496,6 +501,12 @@ DOMStorageCache::SetItem(const DOMStorage* aStorage, const nsAString& aKey,
   data.mKeys.Put(aKey, aValue);
 
   if (Persist(aStorage)) {
+    if (!sDatabase) {
+      NS_ERROR("Writing to localStorage after the database has been shut down"
+               ", data lose!");
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     if (DOMStringIsNull(aOld)) {
       return sDatabase->AsyncAddItem(this, aKey, aValue);
     }
@@ -531,6 +542,12 @@ DOMStorageCache::RemoveItem(const DOMStorage* aStorage, const nsAString& aKey,
   data.mKeys.Remove(aKey);
 
   if (Persist(aStorage)) {
+    if (!sDatabase) {
+      NS_ERROR("Writing to localStorage after the database has been shut down"
+               ", data lose!");
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     return sDatabase->AsyncRemoveItem(this, aKey);
   }
 
@@ -567,6 +584,12 @@ DOMStorageCache::Clear(const DOMStorage* aStorage)
   }
 
   if (Persist(aStorage) && (refresh || hadData)) {
+    if (!sDatabase) {
+      NS_ERROR("Writing to localStorage after the database has been shut down"
+               ", data lose!");
+      return NS_ERROR_NOT_INITIALIZED;
+    }
+
     return sDatabase->AsyncClear(this);
   }
 
@@ -745,7 +768,10 @@ DOMStorageUsage::CheckAndSetETLD1UsageDelta(uint32_t aDataSetIndex, const int64_
 DOMStorageDBBridge*
 DOMStorageCache::StartDatabase()
 {
-  if (sDatabase) {
+  if (sDatabase || sDatabaseDown) {
+    
+    
+    
     return sDatabase;
   }
 
@@ -787,6 +813,8 @@ DOMStorageCache::StopDatabase()
   if (!sDatabase) {
     return NS_OK;
   }
+
+  sDatabaseDown = true;
 
   nsresult rv = sDatabase->Shutdown();
   if (XRE_GetProcessType() == GeckoProcessType_Default) {

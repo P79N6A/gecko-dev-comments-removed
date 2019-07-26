@@ -225,6 +225,9 @@ private:
   
   
   static DOMStorageDBBridge* sDatabase;
+
+  
+  static bool sDatabaseDown;
 };
 
 
