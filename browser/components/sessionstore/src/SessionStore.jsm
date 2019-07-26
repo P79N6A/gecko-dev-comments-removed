@@ -62,6 +62,18 @@ const CAPABILITIES = [
   "DNSPrefetch", "Auth", "WindowControl"
 ];
 
+const MESSAGES = [
+  
+  
+  
+  "SessionStore:input",
+
+  
+  
+  
+  "SessionStore:pageshow"
+];
+
 
 const TAB_EVENTS = [
   "TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide", "TabPinned",
@@ -621,6 +633,9 @@ let SessionStoreInternal = {
       case "SessionStore:pageshow":
         this.onTabLoad(win, browser);
         break;
+      case "SessionStore:input":
+        this.onTabInput(win, browser);
+        break;
       default:
         debug("received unknown message '" + aMessage.name + "'");
         break;
@@ -645,11 +660,6 @@ let SessionStoreInternal = {
         if (browser.__SS_restore_data)
           this.restoreDocument(win, browser, aEvent);
         this.onTabLoad(win, browser);
-        break;
-      case "change":
-      case "input":
-      case "DOMAutoComplete":
-        this.onTabInput(win, aEvent.currentTarget);
         break;
       case "TabOpen":
         this.onTabAdd(win, aEvent.originalTarget);
@@ -1212,11 +1222,9 @@ let SessionStoreInternal = {
   onTabAdd: function ssi_onTabAdd(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.addEventListener("load", this, true);
-    browser.addEventListener("change", this, true);
-    browser.addEventListener("input", this, true);
-    browser.addEventListener("DOMAutoComplete", this, true);
 
-    browser.messageManager.addMessageListener("SessionStore:pageshow", this);
+    let mm = browser.messageManager;
+    MESSAGES.forEach(msg => mm.addMessageListener(msg, this));
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -1237,11 +1245,9 @@ let SessionStoreInternal = {
   onTabRemove: function ssi_onTabRemove(aWindow, aTab, aNoNotification) {
     let browser = aTab.linkedBrowser;
     browser.removeEventListener("load", this, true);
-    browser.removeEventListener("change", this, true);
-    browser.removeEventListener("input", this, true);
-    browser.removeEventListener("DOMAutoComplete", this, true);
 
-    browser.messageManager.removeMessageListener("SessionStore:pageshow", this);
+    let mm = browser.messageManager;
+    MESSAGES.forEach(msg => mm.removeMessageListener(msg, this));
 
     delete browser.__SS_data;
     delete browser.__SS_tabStillLoading;
@@ -2254,16 +2260,8 @@ let SessionStoreInternal = {
       }
 
       
-      if ((aContent.document.designMode || "") == "on" && aContent.document.body) {
-        if (aData.innerHTML === undefined && !aFullData) {
-          
-          let _this = this;
-          aContent.addEventListener("keypress", function(aEvent) {
-            _this.saveStateDelayed(aWindow, 3000);
-          }, true);
-        }
+      if ((aContent.document.designMode || "") == "on" && aContent.document.body)
         aData.innerHTML = aContent.document.body.innerHTML;
-      }
     }
 
     
