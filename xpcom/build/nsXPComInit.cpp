@@ -789,11 +789,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
             }
         }
 
-        
-        
-        mozilla::layers::ImageBridgeChild::ShutDown();
-        mozilla::layers::CompositorParent::ShutDown();
-
         NS_ProcessPendingEvents(thread);
         mozilla::scache::StartupCache::DeleteSingleton();
         if (observerService)
