@@ -154,6 +154,10 @@ class IonActivation
     uint8 *prevIonTop_;
     JSContext *prevIonJSContext_;
 
+    
+    
+    jsbytecode *prevpc_;
+
   public:
     IonActivation(JSContext *cx, StackFrame *fp);
     ~IonActivation();
@@ -166,6 +170,10 @@ class IonActivation
     }
     uint8 *prevIonTop() const {
         return prevIonTop_;
+    }
+    jsbytecode *prevpc() const {
+        JS_ASSERT(entryfp_->callingIntoIon());
+        return prevpc_;
     }
     void setBailout(BailoutClosure *bailout) {
         JS_ASSERT(!bailout_);
@@ -186,6 +194,13 @@ class IonActivation
     }
     JSCompartment *compartment() const {
         return compartment_;
+    }
+
+    static inline size_t offsetOfPrevPc() {
+        return offsetof(IonActivation, prevpc_);
+    }
+    static inline size_t offsetOfEntryFp() {
+        return offsetof(IonActivation, entryfp_);
     }
 };
 

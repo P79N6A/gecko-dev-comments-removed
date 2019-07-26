@@ -19,6 +19,8 @@
 #include "jscntxtinlines.h"
 #include "jscompartment.h"
 #include "jsscope.h"
+#include "ion/Ion.h"
+#include "ion/IonCompartment.h"
 
 #include "jsgcinlines.h"
 #include "jsinterpinlines.h"
@@ -789,6 +791,21 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 "   pop     {ip,pc}"                        "\n"
 );
 
+asm (
+".text\n"
+FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(IonVeneer)          "\n"
+SYMBOL_STRING(IonVeneer) ":"                "\n"
+    
+
+
+
+
+"   push    {lr}"                           "\n"
+"   blx     ip"                             "\n"
+"   pop     {pc}"                           "\n"
+);
+
 # elif defined(JS_CPU_SPARC)
 # elif defined(JS_CPU_MIPS)
 # else
@@ -1012,7 +1029,10 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
     JSBool ok;
     {
         AssertCompartmentUnchanged pcc(cx);
+        ion::IonContext ictx(cx, NULL);
+        ion::IonActivation activation(cx, NULL);
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
+
         ok = JaegerTrampoline(cx, fp, code, stackLimit);
     }
 

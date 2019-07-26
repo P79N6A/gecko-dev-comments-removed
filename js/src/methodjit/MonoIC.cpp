@@ -30,6 +30,7 @@
 #include "jsscriptinlines.h"
 
 #include "methodjit/StubCalls-inl.h"
+#include "ion/IonMacroAssembler.h"
 
 using namespace js;
 using namespace js::mjit;
@@ -552,6 +553,266 @@ class CallCompiler : public BaseCompiler
         repatch.relink(oolCall, fptr);
     }
 
+    bool generateIonStub()
+    {
+        RecompilationMonitor monitor(cx);
+
+        if (f.script()->function()) {
+            f.script()->uninlineable = true;
+            MarkTypeObjectFlags(cx, f.script()->function(), types::OBJECT_FLAG_UNINLINEABLE);
+        }
+
+        
+        if (monitor.recompiled())
+            return true;
+
+        JS_ASSERT(!f.regs.inlined());
+
+        Assembler masm;
+        Registers regs(Registers::AvailRegs);
+
+        regs.takeReg(Registers::ClobberInCall);
+
+        
+        RegisterID funObjReg = regs.takeAnyReg().reg();
+        if (ic.funObjReg != funObjReg)
+            masm.move(ic.funObjReg, funObjReg);
+
+        size_t argc = ic.frameSize.staticArgc();
+
+        
+        RegisterID ionScript = regs.takeAnyReg().reg();
+        Address scriptAddr(funObjReg, JSFunction::offsetOfNativeOrScript());
+        masm.loadPtr(scriptAddr, ionScript);
+        masm.loadPtr(Address(ionScript, offsetof(JSScript, ion)), ionScript);
+
+        
+        Jump noIonCode = masm.branchPtr(Assembler::BelowOrEqual, ionScript,
+                                        ImmPtr(ION_DISABLED_SCRIPT));
+
+        RegisterID t0 = regs.takeAnyReg().reg();
+        RegisterID t1 = Registers::ClobberInCall;
+
+        masm.move(ImmPtr(f.regs.pc), t1);
+
+        
+        masm.load32(Address(JSFrameReg, StackFrame::offsetOfFlags()), t0);
+        masm.or32(Imm32(StackFrame::CALLING_INTO_ION), t0);
+        masm.store32(t0, Address(JSFrameReg, StackFrame::offsetOfFlags()));
+
+        
+        masm.loadPtr(&cx->runtime->ionActivation, t0);
+        masm.storePtr(JSFrameReg, Address(t0, ion::IonActivation::offsetOfEntryFp()));
+        masm.storePtr(t1, Address(t0, ion::IonActivation::offsetOfPrevPc()));
+
+        
+        int32_t storeFrameDepth = ic.frameSize.staticLocalSlots();
+        masm.storePtr(ImmPtr((void *)ic.frameSize.rejoinState(f.pc(), true)),
+                      FrameAddress(offsetof(VMFrame, stubRejoin)));
+        masm.setupFallibleABICall(cx->typeInferenceEnabled(), f.regs.pc, storeFrameDepth);
+
+#ifdef JS_PUNBOX64
+        
+        masm.push(Registers::TypeMaskReg);
+        masm.push(Registers::PayloadMaskReg);
+#endif
+
+        
+
+
+
+
+
+
+
+
+        size_t staticPushed =
+            (sizeof(Value) * (argc + 1)) +
+            sizeof(uintptr_t) +
+            sizeof(uintptr_t) +
+            sizeof(uintptr_t);
+
+        
+
+
+
+        JS_ASSERT(ComputeByteAlignment(staticPushed + sizeof(uintptr_t), 8) == 0);
+
+        
+
+
+
+
+
+
+
+        RegisterID stackPushed = regs.takeAnyReg().reg();
+        masm.move(Imm32(staticPushed - sizeof(uintptr_t)), stackPushed);
+
+        
+
+
+
+
+
+
+
+
+        masm.load16(Address(funObjReg, offsetof(JSFunction, nargs)), t0);
+        Jump noPadding = masm.branch32(Assembler::BelowOrEqual, t0, Imm32(argc));
+        {
+            
+            masm.sub32(Imm32(argc), t0);
+
+            
+            JS_STATIC_ASSERT(sizeof(Value) == 8);
+            masm.move(t0, t1);
+            masm.lshift32(Imm32(3), t1);
+            masm.add32(t1, stackPushed);
+
+            Label loop = masm.label();
+            masm.subPtr(Imm32(sizeof(Value)), Registers::StackPointer);
+            masm.storeValue(UndefinedValue(), Address(Registers::StackPointer, 0));
+            Jump test = masm.branchSub32(Assembler::NonZero, Imm32(t1), t0);
+            test.linkTo(loop, &masm);
+        }
+        noPadding.linkTo(masm.label(), &masm);
+
+        
+        size_t spOffset = sizeof(StackFrame) +
+                          ic.frameSize.staticLocalSlots() * sizeof(Value);
+        masm.addPtr(Imm32(spOffset), JSFrameReg, t0);
+
+        
+        for (size_t i = 0; i < argc + 1; i++) {
+            
+#ifdef JS_NUNBOX32
+            masm.push(Address(t0, -((i + 1) * sizeof(Value)) + 4));
+            masm.push(Address(t0, -((i + 1) * sizeof(Value))));
+#elif defined JS_PUNBOX64
+            masm.push(Address(t0, -((i + 1) * sizeof(Value))));
+#endif
+        }
+
+        
+        masm.push(Imm32(argc));
+        masm.push(funObjReg);
+
+        
+        masm.lshiftPtr(Imm32(ion::FRAMESIZE_SHIFT), stackPushed);
+        masm.orPtr(Imm32(ion::IonFrame_Entry), stackPushed);
+        masm.push(stackPushed);
+
+        
+        masm.loadPtr(Address(ionScript, ion::IonScript::offsetOfMethod()), t0);
+#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
+        masm.loadPtr(Address(t0, ion::IonCode::OffsetOfCode()), t0);
+        masm.call(t0);
+#elif defined(JS_CPU_ARM)
+        masm.loadPtr(Address(t0, ion::IonCode::OffsetOfCode()), JSC::ARMRegisters::ip);
+        masm.callAddress(JS_FUNC_TO_DATA_PTR(void *, IonVeneer));
+#endif
+
+        
+        masm.pop(Registers::ReturnReg);
+        masm.rshift32(Imm32(ion::FRAMESIZE_SHIFT), Registers::ReturnReg);
+        masm.addPtr(Registers::ReturnReg, Registers::StackPointer);
+
+#ifdef JS_PUNBOX64
+        
+        masm.pop(Registers::PayloadMaskReg);
+        masm.pop(Registers::TypeMaskReg);
+#endif
+
+        
+        regs = Registers(Registers::AvailRegs);
+#ifdef JS_NUNBOX32
+        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg_Type.code());
+        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg_Data.code());
+#elif JS_PUNBOX64
+        regs.takeRegUnchecked((RegisterID)ion::JSReturnReg.code());
+#endif
+
+#ifdef JS_CPU_X86
+        RegisterID returnTypeReg = (RegisterID)ion::JSReturnReg_Type.code();
+#elif JS_CPU_ARM
+        
+
+
+
+        RegisterID returnTypeReg = regs.takeAnyReg().reg();
+        masm.move((RegisterID)ion::JSReturnReg_Type.code(), returnTypeReg);
+#endif
+
+        
+        masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
+
+        
+        masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
+
+        
+        t0 = regs.takeAnyReg().reg();
+        masm.loadPtr(&cx->runtime->ionActivation, t0);
+        masm.storePtr(ImmPtr(NULL), Address(t0, ion::IonActivation::offsetOfEntryFp()));
+
+        
+        masm.load32(Address(JSFrameReg, StackFrame::offsetOfFlags()), t0);
+        masm.and32(Imm32(~StackFrame::CALLING_INTO_ION), t0);
+        masm.store32(t0, Address(JSFrameReg, StackFrame::offsetOfFlags()));
+
+        
+        Address rval(JSFrameReg, spOffset - ((argc + 2) * sizeof(Value)));
+#ifdef JS_NUNBOX32
+        Jump exception = masm.testMagic(Assembler::Equal, returnTypeReg);
+        masm.storeValueFromComponents(returnTypeReg,
+                                      (RegisterID)ion::JSReturnReg_Data.code(),
+                                      rval);
+#elif defined JS_PUNBOX64
+        masm.move(ion::JSReturnReg.code(), t0);
+        masm.convertValueToType(t0);
+        Jump exception = masm.testMagic(Assembler::Equal, t0);
+        masm.storePtr(ion::JSReturnReg.code(), rval);
+#endif
+
+        
+        NativeStubLinker::FinalJump done;
+#ifdef JS_CPU_X64
+        done = masm.moveWithPatch(ImmPtr(NULL), Registers::ValueReg);
+        masm.jump(Registers::ValueReg);
+#else
+        done = masm.jump();
+#endif
+
+        
+        exception.linkTo(masm.label(), &masm);
+        masm.throwInJIT();
+
+        NativeStubLinker linker(masm, f.chunk(), f.regs.pc, done);
+        if (!linker.init(f.cx))
+            return false;
+
+        if (!linker.verifyRange(f.chunk())) {
+            disable();
+            return false;
+        }
+
+        linker.link(noIonCode, ic.icCall());
+        linker.patchJump(ic.nativeRejoin());
+        JSC::CodeLocationLabel cs = linker.finalize(f);
+
+        ic.updateLastOolJump(linker.locationOf(noIonCode),
+                             JITCode(cs.executableAddress(), linker.size()));
+        ic.hasIonStub_ = true;
+
+        JaegerSpew(JSpew_PICs, "generated ION stub %p (%lu bytes)\n", cs.executableAddress(),
+                   (unsigned long) masm.size());
+
+        Repatcher repatch(f.chunk());
+        repatch.relink(ic.oolJump(), cs);
+
+        return true;
+    }
+
     bool generateFullCallStub(JSScript *script, uint32_t flags)
     {
         
@@ -642,8 +903,12 @@ class CallCompiler : public BaseCompiler
             disable();
             return true;
         }
+        if (ic.hasStubOolJump() && !linker.verifyRange(ic.lastOolCode())) {
+            disable();
+            return true;
+        }
 
-        linker.link(notCompiled, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
+        linker.link(notCompiled, ic.nativeRejoin());
         JSC::CodeLocationLabel cs = linker.finalize(f);
 
         JaegerSpew(JSpew_PICs, "generated CALL stub %p (%lu bytes)\n", cs.executableAddress(),
@@ -655,8 +920,7 @@ class CallCompiler : public BaseCompiler
         }
 
         Repatcher repatch(f.chunk());
-        JSC::CodeLocationJump oolJump = ic.slowPathStart.jumpAtOffset(ic.oolJumpOffset);
-        repatch.relink(oolJump, cs);
+        repatch.relink(ic.lastOolJump(), cs);
 
         return true;
     }
@@ -902,7 +1166,7 @@ class CallCompiler : public BaseCompiler
             return true;
         }
 
-        linker.patchJump(ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
+        linker.patchJump(ic.nativeRejoin());
 
         ic.fastGuardedNative = fun;
 
@@ -940,15 +1204,28 @@ class CallCompiler : public BaseCompiler
         if (monitor.recompiled() || f.fp() != initialFp)
             return ucr.codeAddr;
 
-        
-        
+        JSFunction *fun = ucr.fun;
+
         if (!ucr.codeAddr) {
+            
             if (ucr.unjittable)
                 disable();
+
+            
+            
+            if (!callingNew &&
+                fun &&
+                !ic.hasIonStub() &&
+                ic.frameSize.isStatic() &&
+                ic.frameSize.staticArgc() <= ion::SNAPSHOT_MAX_NARGS &&
+                fun->script()->hasIonScript())
+            {
+                if (!generateIonStub())
+                    THROWV(NULL);
+            }
             return NULL;
         }
 
-        JSFunction *fun = ucr.fun;
         JS_ASSERT(fun);
         JSScript *script = fun->script();
         JS_ASSERT(script);

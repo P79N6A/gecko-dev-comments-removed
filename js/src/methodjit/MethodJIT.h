@@ -237,6 +237,9 @@ struct VMFrame
 #if defined(JS_CPU_ARM) || defined(JS_CPU_SPARC) || defined(JS_CPU_MIPS)
 
 extern "C" void JaegerStubVeneer(void);
+# if defined(JS_CPU_ARM)
+extern "C" void IonVeneer(void);
+# endif
 #endif
 
 namespace mjit {

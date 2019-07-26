@@ -247,7 +247,11 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     activation->setBailout(br);
 
     StackFrame *fp;
-    if (it.isEntryJSFrame()) {
+    if (it.isEntryJSFrame() && cx->fp()->runningInIon()) {
+        
+        
+        
+        
         
         
         
@@ -256,9 +260,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         fp = cx->fp();
         cx->regs().sp = fp->base();
     } else {
-        
-        
-
         br->constructFrame();
         if (!cx->stack.pushBailoutArgs(cx, it, br->argsGuard()))
             return BAILOUT_RETURN_FATAL_ERROR;

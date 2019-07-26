@@ -254,16 +254,12 @@ ShouldJaegerCompileCallee(JSContext *cx, JSScript *caller, JSScript *callee, JIT
         return true;
 
     
-    if (!caller->canIonCompile() || !callee->canIonCompile())
+    if (!callee->canIonCompile())
         return true;
 
     
     
     if (!callee->hasAnalysis() || !callee->analysis()->hasLoops())
-        return true;
-
-    
-    if (callee->hasIonScript() && ++callerJit->ionCalls > 4000)
         return true;
 
     return false;
