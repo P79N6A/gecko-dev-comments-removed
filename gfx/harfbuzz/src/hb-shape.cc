@@ -153,6 +153,18 @@ parse_one_feature (const char **pp, const char *end, hb_feature_t *feature)
 	 *pp == end;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 hb_bool_t
 hb_feature_from_string (const char *str, int len,
 			hb_feature_t *feature)
@@ -162,6 +174,16 @@ hb_feature_from_string (const char *str, int len,
 
   return parse_one_feature (&str, str + len, feature);
 }
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_feature_to_string (hb_feature_t *feature,
@@ -181,23 +203,23 @@ hb_feature_to_string (hb_feature_t *feature,
   {
     s[len++] = '[';
     if (feature->start)
-      len += snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->start);
+      len += MAX (0, snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->start));
     if (feature->end != feature->start + 1) {
       s[len++] = ':';
       if (feature->end != (unsigned int) -1)
-	len += snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->end);
+	len += MAX (0, snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->end));
     }
     s[len++] = ']';
   }
   if (feature->value > 1)
   {
     s[len++] = '=';
-    len += snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->value);
+    len += MAX (0, snprintf (s + len, ARRAY_LENGTH (s) - len, "%d", feature->value));
   }
   assert (len < ARRAY_LENGTH (s));
   len = MIN (len, size - 1);
   memcpy (buf, s, len);
-  s[len] = '\0';
+  buf[len] = '\0';
 }
 
 
@@ -208,6 +230,15 @@ void free_static_shaper_list (void)
 {
   free (static_shaper_list);
 }
+
+
+
+
+
+
+
+
+
 
 const char **
 hb_shape_list_shapers (void)
@@ -244,6 +275,20 @@ retry:
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 hb_bool_t
 hb_shape_full (hb_font_t          *font,
 	       hb_buffer_t        *buffer,
@@ -264,6 +309,17 @@ hb_shape_full (hb_font_t          *font,
     buffer->content_type = HB_BUFFER_CONTENT_TYPE_GLYPHS;
   return res;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_shape (hb_font_t           *font,

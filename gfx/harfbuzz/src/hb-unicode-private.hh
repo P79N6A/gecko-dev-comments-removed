@@ -162,6 +162,9 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
 
 
 
+
+
+
   inline hb_bool_t
   is_default_ignorable (hb_codepoint_t ch)
   {
@@ -173,6 +176,7 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
       switch (page) {
 	case 0x00: return unlikely (ch == 0x00AD);
 	case 0x03: return unlikely (ch == 0x034F);
+	case 0x06: return unlikely (ch == 0x061C);
 	case 0x17: return hb_in_range<hb_codepoint_t> (ch, 0x17B4, 0x17B5);
 	case 0x18: return hb_in_range<hb_codepoint_t> (ch, 0x180B, 0x180E);
 	case 0x20: return hb_in_ranges<hb_codepoint_t> (ch, 0x200B, 0x200F,

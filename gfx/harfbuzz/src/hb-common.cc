@@ -57,24 +57,44 @@ _hb_options_init (void)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 hb_tag_t
-hb_tag_from_string (const char *s, int len)
+hb_tag_from_string (const char *str, int len)
 {
   char tag[4];
   unsigned int i;
 
-  if (!s || !len || !*s)
+  if (!str || !len || !*str)
     return HB_TAG_NONE;
 
   if (len < 0 || len > 4)
     len = 4;
-  for (i = 0; i < (unsigned) len && s[i]; i++)
-    tag[i] = s[i];
+  for (i = 0; i < (unsigned) len && str[i]; i++)
+    tag[i] = str[i];
   for (; i < 4; i++)
     tag[i] = ' ';
 
   return HB_TAG_CHAR4 (tag);
 }
+
+
+
+
+
+
+
+
+
 
 void
 hb_tag_to_string (hb_tag_t tag, char *buf)
@@ -95,6 +115,17 @@ const char direction_strings[][4] = {
   "btt"
 };
 
+
+
+
+
+
+
+
+
+
+
+
 hb_direction_t
 hb_direction_from_string (const char *str, int len)
 {
@@ -111,6 +142,16 @@ hb_direction_from_string (const char *str, int len)
 
   return HB_DIRECTION_INVALID;
 }
+
+
+
+
+
+
+
+
+
+
 
 const char *
 hb_direction_to_string (hb_direction_t direction)
@@ -187,7 +228,7 @@ struct hb_language_item_t {
     return *this;
   }
 
-  void finish (void) { free (lang); }
+  void finish (void) { free ((void *) lang); }
 };
 
 
@@ -237,14 +278,27 @@ retry:
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
 hb_language_t
 hb_language_from_string (const char *str, int len)
 {
+  char strbuf[64];
+
   if (!str || !len || !*str)
     return HB_LANGUAGE_INVALID;
 
-  char strbuf[32];
-  if (len >= 0) {
+  if (len >= 0)
+  {
     len = MIN (len, (int) sizeof (strbuf) - 1);
     str = (char *) memcpy (strbuf, str, len);
     strbuf[len] = '\0';
@@ -255,12 +309,31 @@ hb_language_from_string (const char *str, int len)
   return likely (item) ? item->lang : HB_LANGUAGE_INVALID;
 }
 
+
+
+
+
+
+
+
+
+
+
 const char *
 hb_language_to_string (hb_language_t language)
 {
   
   return language->s;
 }
+
+
+
+
+
+
+
+
+
 
 hb_language_t
 hb_language_get_default (void)
@@ -275,6 +348,16 @@ hb_language_get_default (void)
 
   return default_language;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -313,17 +396,48 @@ hb_script_from_iso15924_tag (hb_tag_t tag)
   return HB_SCRIPT_UNKNOWN;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 hb_script_t
 hb_script_from_string (const char *s, int len)
 {
   return hb_script_from_iso15924_tag (hb_tag_from_string (s, len));
 }
 
+
+
+
+
+
+
+
+
+
+
 hb_tag_t
 hb_script_to_iso15924_tag (hb_script_t script)
 {
   return (hb_tag_t) script;
 }
+
+
+
+
+
+
+
+
+
+
 
 hb_direction_t
 hb_script_get_horizontal_direction (hb_script_t script)
@@ -409,6 +523,16 @@ hb_user_data_array_t::get (hb_user_data_key_t *key)
 
 
 
+
+
+
+
+
+
+
+
+
+
 void
 hb_version (unsigned int *major,
 	    unsigned int *minor,
@@ -419,11 +543,32 @@ hb_version (unsigned int *major,
   *micro = HB_VERSION_MICRO;
 }
 
+
+
+
+
+
+
+
+
+
 const char *
 hb_version_string (void)
 {
   return HB_VERSION_STRING;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 hb_bool_t
 hb_version_check (unsigned int major,

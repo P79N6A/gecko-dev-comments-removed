@@ -76,6 +76,22 @@ _hb_blob_destroy_user_data (hb_blob_t *blob)
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 hb_blob_t *
 hb_blob_create (const char        *data,
 		unsigned int       length,
@@ -109,6 +125,26 @@ hb_blob_create (const char        *data,
   return blob;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 hb_blob_t *
 hb_blob_create_sub_blob (hb_blob_t    *parent,
 			 unsigned int  offset,
@@ -130,6 +166,17 @@ hb_blob_create_sub_blob (hb_blob_t    *parent,
   return blob;
 }
 
+
+
+
+
+
+
+
+
+
+
+
 hb_blob_t *
 hb_blob_get_empty (void)
 {
@@ -149,11 +196,35 @@ hb_blob_get_empty (void)
   return const_cast<hb_blob_t *> (&_hb_blob_nil);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 hb_blob_t *
 hb_blob_reference (hb_blob_t *blob)
 {
   return hb_object_reference (blob);
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 void
 hb_blob_destroy (hb_blob_t *blob)
@@ -165,6 +236,18 @@ hb_blob_destroy (hb_blob_t *blob)
   free (blob);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 hb_bool_t
 hb_blob_set_user_data (hb_blob_t          *blob,
 		       hb_user_data_key_t *key,
@@ -175,12 +258,31 @@ hb_blob_set_user_data (hb_blob_t          *blob,
   return hb_object_set_user_data (blob, key, data, destroy, replace);
 }
 
+
+
+
+
+
+
+
+
+
+
+
 void *
 hb_blob_get_user_data (hb_blob_t          *blob,
 		       hb_user_data_key_t *key)
 {
   return hb_object_get_user_data (blob, key);
 }
+
+
+
+
+
+
+
+
 
 
 void
@@ -192,6 +294,16 @@ hb_blob_make_immutable (hb_blob_t *blob)
   blob->immutable = true;
 }
 
+
+
+
+
+
+
+
+
+
+
 hb_bool_t
 hb_blob_is_immutable (hb_blob_t *blob)
 {
@@ -199,11 +311,32 @@ hb_blob_is_immutable (hb_blob_t *blob)
 }
 
 
+
+
+
+
+
+
+
+
+
+
 unsigned int
 hb_blob_get_length (hb_blob_t *blob)
 {
   return blob->length;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 const char *
 hb_blob_get_data (hb_blob_t *blob, unsigned int *length)
@@ -213,6 +346,22 @@ hb_blob_get_data (hb_blob_t *blob, unsigned int *length)
 
   return blob->data;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 char *
 hb_blob_get_data_writable (hb_blob_t *blob, unsigned int *length)
@@ -324,5 +473,3 @@ _try_writable (hb_blob_t *blob)
 
   return true;
 }
-
-
