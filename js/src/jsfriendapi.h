@@ -1447,8 +1447,9 @@ struct JSJitInfo {
     uint32_t protoID;
     uint32_t depth;
     OpType type;
-    bool isInfallible;    
-    bool isConstant;      
+    bool isInfallible;      
+    bool isConstant;        
+    JSValueType returnType; 
 };
 
 static JS_ALWAYS_INLINE const JSJitInfo *
