@@ -11,6 +11,7 @@
 #include "DeviceStorage.h"
 #include "DeviceStorageFileDescriptor.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/FileUtils.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -728,7 +729,11 @@ nsDOMCameraControl::OnCreatedFileDescriptor(bool aSucceeded)
       return;
     }
   }
-
+  
+  
+  
+  int fd = mDSFileDescriptor->mFileDescriptor.PlatformHandle();
+  ScopedClose autoClose(fd);
   OnError(CameraControlListener::kInStartRecording, NS_LITERAL_STRING("FAILURE"));
 }
 
