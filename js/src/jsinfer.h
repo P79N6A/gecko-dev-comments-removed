@@ -1221,7 +1221,7 @@ class RecompileInfo;
 
 
 bool
-FinishCompilation(JSContext *cx, JSScript *script, ExecutionMode executionMode,
+FinishCompilation(JSContext *cx, HandleScript script, ExecutionMode executionMode,
                   CompilerConstraintList *constraints, RecompileInfo *precompileInfo);
 
 struct ArrayTableKey;
