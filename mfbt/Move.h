@@ -133,6 +133,20 @@ template<typename T>
 inline MoveRef<T>
 Move(const T& t)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   return MoveRef<T>(const_cast<T&>(t));
 }
 
