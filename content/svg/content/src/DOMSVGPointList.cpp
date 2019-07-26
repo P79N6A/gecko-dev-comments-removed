@@ -437,7 +437,7 @@ DOMSVGPointList::RemoveItem(uint32_t aIndex, ErrorResult& aError)
   
   
   mItems[aIndex]->RemovingFromList();
-  nsCOMPtr<DOMSVGPoint> result = mItems[aIndex];
+  nsRefPtr<DOMSVGPoint> result = mItems[aIndex];
 
   InternalList().RemoveItem(aIndex);
   mItems.RemoveElementAt(aIndex);
