@@ -422,8 +422,6 @@ function updateAboutMemoryFromReporters()
 
 
 
-
-
 var gCurrentFileFormatVersion = 1;
 
 
@@ -822,11 +820,6 @@ function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize)
 {
   let pcollsByProcess = {};
 
-  
-  
-  
-  const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
-
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
                         aDescription, aPresence)
   {
@@ -834,33 +827,6 @@ function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize)
       assertInput(aKind === KIND_HEAP || aKind === KIND_NONHEAP,
                   "bad explicit kind");
       assertInput(aUnits === UNITS_BYTES, "bad explicit units");
-      assertInput(gSentenceRegExp.test(aDescription),
-                  "non-sentence explicit description");
-
-    } else {
-      const kLenientPrefixes =
-        ['rss/', 'pss/', 'size/', 'swap/', 'compartments/', 'ghost-windows/'];
-      let beLenient = function(aUnsafePath) {
-        for (let i = 0; i < kLenientPrefixes.length; i++) {
-          if (aUnsafePath.startsWith(kLenientPrefixes[i])) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      
-      
-      
-      
-      
-      
-      
-      if (!beLenient(aUnsafePath)) {
-        assertInput(gSentenceRegExp.test(aDescription),
-                    "non-sentence other description: " + aUnsafePath + ", " +
-                    aDescription);
-      }
     }
 
     assert(aPresence === undefined ||
