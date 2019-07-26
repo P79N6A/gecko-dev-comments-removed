@@ -1527,9 +1527,16 @@ MmsService.prototype = {
       let responseNotify = function responseNotify(mmsStatus, retrievedMsg) {
         
         
+        
         if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
           if (DEBUG) debug("RetrieveMessage fail after retry.");
-          aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+          gMobileMessageDatabaseService.setMessageDelivery(aMessageId,
+                                                           null,
+                                                           null,
+                                                           DELIVERY_STATUS_ERROR,
+                                                           function () {
+            aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+          });
           return;
         }
         
