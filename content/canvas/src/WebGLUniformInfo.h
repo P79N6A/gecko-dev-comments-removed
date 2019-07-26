@@ -44,7 +44,7 @@ struct WebGLUniformInfo {
             case SH_FLOAT_MAT4:
                 return 16;
             default:
-                NS_ABORT(); 
+                MOZ_ASSERT(false); 
                 return 0;
         }
     }
