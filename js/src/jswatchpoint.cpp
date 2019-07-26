@@ -93,8 +93,12 @@ WatchpointMap::unwatch(JSObject *obj, jsid id,
     if (Map::Ptr p = map.lookup(WatchKey(obj, id))) {
         if (handlerp)
             *handlerp = p->value.handler;
-        if (closurep)
+        if (closurep) {
+            
+            
+            ExposeGCThingToActiveJS(p->value.closure, JSTRACE_OBJECT);
             *closurep = p->value.closure;
+        }
         map.remove(p);
     }
 }
@@ -137,6 +141,10 @@ WatchpointMap::triggerWatchpoint(JSContext *cx, HandleObject obj, HandleId id, M
                 old = obj->nativeGetSlot(shape->slot());
         }
     }
+
+    
+    
+    ExposeGCThingToActiveJS(closure, JSTRACE_OBJECT);
 
     
     return handler(cx, obj, id, old, vp.address(), closure);
