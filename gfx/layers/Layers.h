@@ -47,7 +47,6 @@ extern uint8_t gLayerManagerLayerBuilder;
 namespace mozilla {
 
 class FrameLayerBuilder;
-class WebGLContext;
 
 namespace gl {
 class GLContext;
@@ -1541,25 +1540,22 @@ class THEBES_API CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mSurface(nullptr)
-      , mDrawTarget(nullptr)
-      , mGLContext(nullptr)
-      , mSize(0,0)
-      , mIsGLAlphaPremult(false)
+      : mSurface(nullptr), mGLContext(nullptr)
+      , mDrawTarget(nullptr), mGLBufferIsPremultiplied(false)
     { }
 
     
     gfxASurface* mSurface;  
+    mozilla::gl::GLContext* mGLContext; 
     mozilla::gfx::DrawTarget *mDrawTarget; 
-
-    
-    mozilla::gl::GLContext* mGLContext;
 
     
     nsIntSize mSize;
 
     
-    bool mIsGLAlphaPremult;
+
+
+    bool mGLBufferIsPremultiplied;
   };
 
   
@@ -1601,30 +1597,11 @@ public:
   
 
 
-  typedef void PreTransactionCallback(void* closureData);
-  void SetPreTransactionCallback(PreTransactionCallback* callback, void* closureData)
-  {
-    mPreTransCallback = callback;
-    mPreTransCallbackData = closureData;
-  }
-
-protected:
-  void FirePreTransactionCallback()
-  {
-    if (mPreTransCallback) {
-      mPreTransCallback(mPreTransCallbackData);
-    }
-  }
-
-public:
-  
-
-
   typedef void (* DidTransactionCallback)(void* aClosureData);
   void SetDidTransactionCallback(DidTransactionCallback aCallback, void* aClosureData)
   {
-    mPostTransCallback = aCallback;
-    mPostTransCallbackData = aClosureData;
+    mCallback = aCallback;
+    mCallbackData = aClosureData;
   }
 
   
@@ -1651,21 +1628,16 @@ public:
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData)
-    , mPreTransCallback(nullptr)
-    , mPreTransCallbackData(nullptr)
-    , mPostTransCallback(nullptr)
-    , mPostTransCallbackData(nullptr)
-    , mFilter(gfxPattern::FILTER_GOOD)
-    , mDirty(false)
-  {}
+    : Layer(aManager, aImplData),
+      mCallback(nullptr), mCallbackData(nullptr), mFilter(gfxPattern::FILTER_GOOD),
+      mDirty(false) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
   void FireDidTransactionCallback()
   {
-    if (mPostTransCallback) {
-      mPostTransCallback(mPostTransCallbackData);
+    if (mCallback) {
+      mCallback(mCallbackData);
     }
   }
 
@@ -1673,10 +1645,8 @@ protected:
 
 
   nsIntRect mBounds;
-  PreTransactionCallback* mPreTransCallback;
-  void* mPreTransCallbackData;
-  DidTransactionCallback mPostTransCallback;
-  void* mPostTransCallbackData;
+  DidTransactionCallback mCallback;
+  void* mCallbackData;
   gfxPattern::GraphicsFilter mFilter;
 
 private:

@@ -752,6 +752,7 @@ ShadowImageLayerOGL::Swap(const SharedImage& aNewFront,
                           SharedImage* aNewBack)
 {
   if (!mDestroyed) {
+
     if (aNewFront.type() == SharedImage::TSharedImageID) {
       
       
