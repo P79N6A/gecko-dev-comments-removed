@@ -204,10 +204,6 @@ DOMCI_CLASS(MozCellBroadcast)
 
 DOMCI_CLASS(CSSFontFaceRule)
 
-#if defined(MOZ_MEDIA)
-DOMCI_CLASS(TimeRanges)
-#endif
-
 
 DOMCI_CLASS(NodeIterator)
 
