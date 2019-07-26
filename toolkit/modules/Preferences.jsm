@@ -208,24 +208,7 @@ Preferences.prototype = {
       return;
     }
 
-    this._reset(prefName);
-  },
-
-  _reset: function(prefName) {
-    try {
-      this._prefSvc.clearUserPref(prefName);
-    }
-    catch(ex) {
-      
-      
-      
-      
-      
-      
-      
-      if (ex.result != Cr.NS_ERROR_UNEXPECTED)
-        throw ex;
-    }
+    this._prefSvc.clearUserPref(prefName);
   },
 
   
