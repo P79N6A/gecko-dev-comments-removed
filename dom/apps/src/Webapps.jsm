@@ -757,7 +757,7 @@ this.DOMApplicationRegistry = {
     let app = this.webapps[download.appId];
 
     app.progress = 0;
-    app.installState = app.previousState;
+    app.installState = download.previousState;
     app.downloading = false;
     app.downloadAvailable = false;
     app.downloadSize = 0;
@@ -780,6 +780,10 @@ this.DOMApplicationRegistry = {
     }
 
     
+    
+    let isUpdate = (app.installState == "installed");
+
+    
     let file = FileUtils.getFile(DIRECTORY_NAME,
                                  ["webapps", id, "update.webapp"], true);
 
@@ -792,8 +796,7 @@ this.DOMApplicationRegistry = {
 
         if (manifest.appcache_path) {
           debug("appcache found");
-          app.installState = "updating";
-          this.startOfflineCacheDownload(manifest, app);
+          this.startOfflineCacheDownload(manifest, app, null, null, isUpdate);
         } else {
           
           
@@ -816,7 +819,7 @@ this.DOMApplicationRegistry = {
 
       let manifest = new ManifestHelper(aJSON, app.installOrigin);
       this.downloadPackage(manifest, { manifestURL: aManifestURL,
-                                       origin: app.origin }, true,
+                                       origin: app.origin }, isUpdate,
         function(aId, aManifest) {
           
           
@@ -896,13 +899,23 @@ this.DOMApplicationRegistry = {
 
   startOfflineCacheDownload: function startOfflineCacheDownload(aManifest, aApp,
                                                                 aProfileDir,
-                                                                aOfflineCacheObserver) {
+                                                                aOfflineCacheObserver,
+                                                                aIsUpdate) {
     
     if (aManifest.appcache_path) {
       let appcacheURI = Services.io.newURI(aManifest.fullAppcachePath(), null, null);
       let updateService = Cc["@mozilla.org/offlinecacheupdate-service;1"]
                             .getService(Ci.nsIOfflineCacheUpdateService);
       let docURI = Services.io.newURI(aManifest.fullLaunchPath(), null, null);
+      
+      
+      
+      if (aIsUpdate) {
+        aApp.installState = "updating";
+      }
+      
+      
+      aApp.downloading = true;
       let cacheUpdate = aProfileDir ? updateService.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
                                     : updateService.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
       cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
@@ -1330,7 +1343,7 @@ this.DOMApplicationRegistry = {
     
     
 
-    debug(JSON.stringify(aApp));
+    debug("downloadPackage " + JSON.stringify(aApp));
 
     let id = this._appIdForManifestURL(aApp.manifestURL);
     let app = this.webapps[id];
@@ -1351,10 +1364,14 @@ this.DOMApplicationRegistry = {
         return;
       }
 
+      let download = self.downloads[aApp.manifestURL];
+      app.downloading = false;
+      app.installState = download.previousState;
       self.broadcastMessage("Webapps:PackageEvent",
                             { type: "error",
                               manifestURL:  aApp.manifestURL,
-                              error: aError });
+                              error: aError,
+                              app: app });
     }
 
     function getInferedStatus() {
@@ -1407,12 +1424,20 @@ this.DOMApplicationRegistry = {
           self.broadcastMessage("Webapps:PackageEvent",
                                 { type: "progress",
                                   manifestURL: aApp.manifestURL,
-                                  progress: aProgress });
+                                  progress: aProgress,
+                                  app: app });
         },
         onStatus: function notifStatus(aRequest, aContext, aStatus, aStatusArg) { }
       }
-      NetUtil.asyncFetch(requestChannel,
-      function(aInput, aResult, aRequest) {
+
+      
+      app.downloading = true;
+      
+      
+      
+      app.installState = aIsUpdate ? "updating" : "pending";
+
+      NetUtil.asyncFetch(requestChannel, function(aInput, aResult, aRequest) {
         if (!Components.isSuccessCode(aResult)) {
           
           cleanup("NETWORK_ERROR");
@@ -1946,7 +1971,10 @@ AppcacheObserver.prototype = {
       debug("Offlinecache setStatus to " + aStatus + " for " + app.origin);
       mustSave = (app.installState != aStatus);
       app.installState = aStatus;
-      app.downloading = false;
+      if (aStatus == "installed") {
+        app.downloading = false;
+        app.downloadAvailable = false;
+      }
       DOMApplicationRegistry.broadcastMessage("Webapps:OfflineCache",
                                               { manifest: app.manifestURL,
                                                 installState: app.installState });
@@ -1958,6 +1986,7 @@ AppcacheObserver.prototype = {
                                               { manifest: app.manifestURL,
                                                 error: aError });
       app.downloading = false;
+      app.downloadAvailable = false;
       mustSave = true;
     }
 
