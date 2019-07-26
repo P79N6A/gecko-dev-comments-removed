@@ -2000,9 +2000,15 @@ struct CycleCollectorStats
 
   void FinishCycleCollectionSlice()
   {
+    if (mBeginSliceTime.IsNull()) {
+      
+      return;
+    }
+
     uint32_t sliceTime = TimeUntilNow(mBeginSliceTime);
     mMaxSliceTime = std::max(mMaxSliceTime, sliceTime);
     mTotalSliceTime += sliceTime;
+    mBeginSliceTime = TimeStamp();
     MOZ_ASSERT(mExtraForgetSkippableCalls == 0, "Forget to reset extra forget skippable calls?");
   }
 
@@ -2197,6 +2203,8 @@ nsJSContext::EndCycleCollectionCallback(CycleCollectorResults &aResults)
 
   nsJSContext::KillICCTimer();
 
+  
+  
   
   gCCStats.FinishCycleCollectionSlice();
 
