@@ -675,6 +675,8 @@ protected:
 
     FrameType GetInheritedFrameType();
 
+    bool HasUnloadedParent();
+
     
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
 
