@@ -43,6 +43,8 @@
 
 
 
+
+
 SimpleTest.waitForExplicitFinish();
 var expand = SpecialPowers.Cu.import("resource://gre/modules/PermissionsTable.jsm").expandPermissions;
 const permTable = SpecialPowers.Cu.import("resource://gre/modules/PermissionsTable.jsm").PermissionsTable;
