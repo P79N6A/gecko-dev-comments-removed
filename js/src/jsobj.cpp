@@ -2453,12 +2453,11 @@ js_InferFlags(JSContext *cx, unsigned defaultFlags)
 
 
 
-    ScriptFrameIter i(cx);
-    if (i.done())
+    jsbytecode *pc;
+    JSScript *script = cx->stack.currentScript(&pc, ContextStack::ALLOW_CROSS_COMPARTMENT);
+    if (!script)
         return defaultFlags;
 
-    jsbytecode *pc = i.pc();
-    JSScript *script = i.script();
     const JSCodeSpec *cs = &js_CodeSpec[*pc];
     uint32_t format = cs->format;
     unsigned flags = 0;

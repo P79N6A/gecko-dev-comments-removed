@@ -1589,7 +1589,17 @@ class ContextStack
     void popFrameAfterOverflow();
 
     
-    inline JSScript *currentScript(jsbytecode **pc = NULL) const;
+
+
+
+
+
+    enum MaybeAllowCrossCompartment {
+        DONT_ALLOW_CROSS_COMPARTMENT = false,
+        ALLOW_CROSS_COMPARTMENT = true
+    };
+    inline JSScript *currentScript(jsbytecode **pc = NULL,
+                                   MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
     
     inline HandleObject currentScriptedScopeChain() const;
