@@ -231,6 +231,19 @@ CompileCompartment::hasObjectMetadataCallback()
     return compartment()->hasObjectMetadataCallback();
 }
 
+
+
+
+
+
+
+
+void
+CompileCompartment::setSingletonsAsValues()
+{
+    return JS::CompartmentOptionsRef(compartment()).setSingletonsAsValues();
+}
+
 #ifdef JS_THREADSAFE
 AutoLockForCompilation::AutoLockForCompilation(CompileCompartment *compartment
                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
@@ -239,3 +252,14 @@ AutoLockForCompilation::AutoLockForCompilation(CompileCompartment *compartment
     init(compartment->compartment()->runtimeFromAnyThread());
 }
 #endif
+
+JitCompileOptions::JitCompileOptions()
+  : cloneSingletons_(false)
+{
+}
+
+JitCompileOptions::JitCompileOptions(JSContext *cx)
+{
+    JS::CompartmentOptions &options = cx->compartment()->options();
+    cloneSingletons_ = options.cloneSingletons(cx);
+}

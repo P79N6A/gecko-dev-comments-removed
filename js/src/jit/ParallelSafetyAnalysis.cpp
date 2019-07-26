@@ -112,6 +112,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     
 
     SAFE_OP(Constant)
+    UNSAFE_OP(CloneLiteral)
     SAFE_OP(Parameter)
     SAFE_OP(Callee)
     SAFE_OP(TableSwitch)

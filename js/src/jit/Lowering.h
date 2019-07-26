@@ -61,6 +61,7 @@ class LIRGenerator : public LIRGeneratorSpecific
 
     
     
+    bool visitCloneLiteral(MCloneLiteral *ins);
     bool visitParameter(MParameter *param);
     bool visitCallee(MCallee *callee);
     bool visitGoto(MGoto *ins);

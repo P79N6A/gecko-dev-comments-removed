@@ -234,6 +234,27 @@ class LValue : public LInstructionHelper<BOX_PIECES, 0, 0>
 
 
 
+class LCloneLiteral : public LCallInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(CloneLiteral)
+
+    LCloneLiteral(const LAllocation &obj)
+    {
+        setOperand(0, obj);
+    }
+
+    const LAllocation *getObjectLiteral() {
+        return getOperand(0);
+    }
+
+    MCloneLiteral *mir() const {
+        return mir_->toCloneLiteral();
+    }
+};
+
+
+
 class LParameter : public LInstructionHelper<BOX_PIECES, 0, 0>
 {
   public:
