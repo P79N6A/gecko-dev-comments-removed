@@ -799,8 +799,10 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
               RemoveBidiContinuation(aBpd, frame,
                                      frameIndex, newIndex, lineOffset);
             }
-          } else if (runLength == fragmentLength) {
+          } else if (runLength == fragmentLength &&
+                     frame->GetNextSibling()) {
             
+
 
 
 
