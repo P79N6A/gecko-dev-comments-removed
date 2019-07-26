@@ -150,7 +150,7 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     inline int32_t SlotToStackOffset(int32_t slot) const {
         JS_ASSERT(slot > 0 && slot <= int32_t(graph.localSlotCount()));
-        int32_t offset = masm.framePushed() - (slot * STACK_SLOT_SIZE);
+        int32_t offset = masm.framePushed() - slot;
         JS_ASSERT(offset >= 0);
         return offset;
     }
@@ -161,8 +161,7 @@ class CodeGeneratorShared : public LInstructionVisitor
         
         
         
-        
-        return (masm.framePushed() - offset) / STACK_SLOT_SIZE;
+        return masm.framePushed() - offset;
     }
 
     

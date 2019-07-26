@@ -222,7 +222,6 @@ struct IonScript
     uint32_t safepointsSize_;
 
     
-    
     uint32_t frameSlots_;
 
     

@@ -20,7 +20,7 @@ using mozilla::FloorLog2;
 bool
 SafepointWriter::init(TempAllocator &alloc, uint32_t slotCount)
 {
-    frameSlots_ = BitSet::New(alloc, slotCount);
+    frameSlots_ = BitSet::New(alloc, slotCount / sizeof(intptr_t));
     if (!frameSlots_)
         return false;
 
@@ -102,7 +102,10 @@ MapSlotsToBitset(BitSet *set, CompactBufferWriter &stream, uint32_t nslots, uint
         
         
         
-        set->insert(slots[i] - 1);
+        
+        JS_ASSERT(slots[i] % sizeof(intptr_t) == 0);
+        JS_ASSERT(slots[i] / sizeof(intptr_t) > 0);
+        set->insert(slots[i] / sizeof(intptr_t) - 1);
     }
 
     size_t count = set->rawLength();
@@ -334,7 +337,7 @@ SafepointWriter::endEntry()
 SafepointReader::SafepointReader(IonScript *script, const SafepointIndex *si)
   : stream_(script->safepoints() + si->safepointOffset(),
             script->safepoints() + script->safepointsSize()),
-    frameSlots_(script->frameSlots())
+    frameSlots_(script->frameSlots() / sizeof(intptr_t))
 {
     osiCallPointOffset_ = stream_.readUnsigned();
 
@@ -398,7 +401,8 @@ SafepointReader::getSlotFromBitmap(uint32_t *slot)
 
     
     
-    *slot = ((nextSlotChunkNumber_ - 1) * BitSet::BitsPerWord) + bit + 1;
+    
+    *slot = (((nextSlotChunkNumber_ - 1) * BitSet::BitsPerWord) + bit + 1) * sizeof(intptr_t);
     return true;
 }
 

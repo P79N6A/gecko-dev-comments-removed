@@ -14,11 +14,7 @@ using namespace js::jit;
 static inline uint32_t
 DefaultStackSlot(uint32_t vreg)
 {
-#if JS_BITS_PER_WORD == 32
-    return vreg * 2 + 2;
-#else
-    return vreg + 1;
-#endif
+    return vreg * sizeof(Value);
 }
 
 LAllocation *
@@ -243,7 +239,7 @@ StupidAllocator::go()
     
     
     
-    graph.setLocalSlotCount(DefaultStackSlot(graph.numVirtualRegisters() - 1) + 1);
+    graph.setLocalSlotCount(DefaultStackSlot(graph.numVirtualRegisters()));
 
     if (!init())
         return false;
