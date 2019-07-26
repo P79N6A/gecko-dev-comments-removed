@@ -1,127 +1,49 @@
 
 
 
-MARIONETTE_TIMEOUT = 20000;
+MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = "head.js";
 
-SpecialPowers.addPermission("mobileconnection", true, document);
-
-
-
-let ifr = document.createElement("iframe");
-let mobileConnection;
-ifr.onload = function() {
-  mobileConnection = ifr.contentWindow.navigator.mozMobileConnections[0];
+function verifyDataCellLocationInfo(aLac, aCid) {
+  let cell = mobileConnection.data.cell;
+  ok(cell, "location available");
 
   
-  verifyInitialState();
-};
-document.body.appendChild(ifr);
-
-let emulatorStartLac = 0;
-let emulatorStartCid = 0;
-
-function verifyInitialState() {
-  log("Verifying initial state.");
-  ok(mobileConnection instanceof MozMobileConnection,
-      "mobileConnection is instanceof " + mobileConnection.constructor);
-  testStartingCellLocation();
+  
+  is(cell.gsmLocationAreaCode, aLac, "data.cell.gsmLocationAreaCode");
+  is(cell.gsmCellId, aCid, "data.cell.gsmCellId");
+  is(cell.cdmaBaseStationId, -1, "data.cell.cdmaBaseStationId");
+  is(cell.cdmaBaseStationLatitude, -2147483648,
+     "data.cell.cdmaBaseStationLatitude");
+  is(cell.cdmaBaseStationLongitude, -2147483648,
+     "data.cell.cdmaBaseStationLongitude");
+  is(cell.cdmaSystemId, -1, "data.cell.cdmaSystemId");
+  is(cell.cdmaNetworkId, -1, "data.cell.cdmaNetworkId");
 }
 
-function testStartingCellLocation() {
+
+function testDataCellLocationUpdate(aLac, aCid) {
   
-  log("Getting the starting GSM location from the emulator.");
+  log("Test cell location with lac=" + aLac + " and cid=" + aCid);
 
-  runEmulatorCmd("gsm location", function(result) {
-    log("Emulator callback.");
-    is(result[0].substring(0,3), "lac", "lac output");
-    is(result[1].substring(0,2), "ci", "ci output");
-    is(result[2], "OK", "emulator ok");
-
-    emulatorStartLac = result[0].substring(5);
-    log("Emulator GSM location LAC is '" + emulatorStartLac + "'.");
-    emulatorStartCid = result[1].substring(4);
-    log("Emulator GSM location CID is '" + emulatorStartCid + "'.");
-
-    log("mobileConnection.data.cell.gsmLocationAreaCode is '"
-        + mobileConnection.data.cell.gsmLocationAreaCode + "'.");
-    log("mobileConnection.data.cell.gsmCellId is '"
-        + mobileConnection.data.cell.gsmCellId + "'.");
-
-    
-    if (emulatorStartLac == -1) {
-      
-      is(mobileConnection.data.cell.gsmLocationAreaCode,
-          65535, "starting LAC");
-    } else {
-      
-      is(mobileConnection.data.cell.gsmLocationAreaCode,
-          emulatorStartLac, "starting LAC");
-    }
-    if (emulatorStartCid == -1) {
-      
-      is(mobileConnection.data.cell.gsmCellId, 268435455, "starting CID");
-    } else {
-      
-      is(mobileConnection.data.cell.gsmCellId,
-          emulatorStartCid, "starting CID");
-    }
-
-    
-    testChangeCellLocation(emulatorStartLac, emulatorStartCid);
-  });
+  let promises = [];
+  promises.push(waitForManagerEvent("datachange"));
+  promises.push(setEmulatorGsmLocation(aLac, aCid));
+  return Promise.all(promises)
+    .then(() => verifyDataCellLocationInfo(aLac, aCid));
 }
 
-function testChangeCellLocation() {
-  
-  let newLac = 1000;
-  let newCid = 2000;
-  let gotCallback = false;
+startTestCommon(function() {
+  return getEmulatorGsmLocation()
+    .then(function(aResult) {
+      log("Test initial data location info");
+      verifyDataCellLocationInfo(aResult.lac, aResult.cid);
 
-  
-  if (newLac == emulatorStartLac) { newLac++; };
-  if (newCid == emulatorStartCid) { newCid++; };
+      return Promise.resolve()
+        .then(() => testDataCellLocationUpdate(100, 100))
+        .then(() => testDataCellLocationUpdate(2000, 2000))
 
-  
-  mobileConnection.addEventListener("datachange", function ondatachange() {
-    mobileConnection.removeEventListener("datachange", ondatachange);
-    log("Received 'ondatachange' event.");
-    log("mobileConnection.data.cell.gsmLocationAreaCode is now '"
-        + mobileConnection.data.cell.gsmLocationAreaCode + "'.");
-    log("mobileConnection.data.cell.gsmCellId is now '"
-        + mobileConnection.data.cell.gsmCellId + "'.");
-    is(mobileConnection.data.cell.gsmLocationAreaCode, newLac,
-        "data.cell.gsmLocationAreaCode");
-    is(mobileConnection.data.cell.gsmCellId, newCid, "data.cell.gsmCellId");
-    waitFor(restoreLocation, function() {
-      return(gotCallback);
+        
+        .then(() => testDataCellLocationUpdate(aResult.lac, aResult.cid));
     });
-  });
-
-  
-  log("Changing emulator GSM location to '" + newLac + ", " + newCid
-      + "' and waiting for 'ondatachange' event.");
-  gotCallback = false;
-  runEmulatorCmd("gsm location " + newLac + " " + newCid, function(result) {
-    is(result[0], "OK");
-    log("Emulator callback on location change.");
-    gotCallback = true;
-  });
-}
-
-function restoreLocation() {
-  
-  log("Restoring emulator GSM location back to '" + emulatorStartLac + ", "
-      + emulatorStartCid + "'.");
-  runEmulatorCmd("gsm location " + emulatorStartLac + " " + emulatorStartCid,
-      function(result) {
-    log("Emulator callback on restore.");
-    is(result[0], "OK");
-    cleanUp();
-  });
-}
-
-function cleanUp() {
-  mobileConnection.ondatachange = null;
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
-}
+});
