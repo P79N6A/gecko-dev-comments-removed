@@ -178,26 +178,32 @@ let AboutHome = {
   
   
   sendAboutHomeData: function(target) {
-    let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-               getService(Ci.nsISessionStore);
-    let data = {
-      showRestoreLastSession: ss.canRestoreLastSession,
-      snippetsURL: AboutHomeUtils.snippetsURL,
-      showKnowYourRights: AboutHomeUtils.showKnowYourRights,
-      snippetsVersion: AboutHomeUtils.snippetsVersion
-    };
+    let wrapper = {};
+    Components.utils.import("resource:///modules/sessionstore/SessionStore.jsm",
+      wrapper);
+    let ss = wrapper.SessionStore;
+    ss.promiseInitialized.then(function() {
+      let data = {
+        showRestoreLastSession: ss.canRestoreLastSession,
+        snippetsURL: AboutHomeUtils.snippetsURL,
+        showKnowYourRights: AboutHomeUtils.showKnowYourRights,
+        snippetsVersion: AboutHomeUtils.snippetsVersion
+      };
 
-    if (AboutHomeUtils.showKnowYourRights) {
-      
-      let currentVersion = Services.prefs.getIntPref("browser.rights.version");
-      Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
-    }
+      if (AboutHomeUtils.showKnowYourRights) {
+        
+        let currentVersion = Services.prefs.getIntPref("browser.rights.version");
+        Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
+      }
 
-    if (target) {
-      target.messageManager.sendAsyncMessage("AboutHome:Update", data);
-    } else {
-      let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
-      mm.broadcastAsyncMessage("AboutHome:Update", data);
-    }
+      if (target) {
+        target.messageManager.sendAsyncMessage("AboutHome:Update", data);
+      } else {
+        let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
+        mm.broadcastAsyncMessage("AboutHome:Update", data);
+      }
+    }).then(null, function onError(x) {
+      Cu.reportError("Error in AboutHome.sendAboutHomeData " + x);
+    });
   },
 };
