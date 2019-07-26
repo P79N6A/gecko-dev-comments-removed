@@ -198,7 +198,11 @@ class NrIceCtx {
     ctx_(nullptr),
     peer_(nullptr),
     ice_handler_vtbl_(nullptr),
-    ice_handler_(nullptr) {}
+    ice_handler_(nullptr)
+  {
+    
+    (void)offerer_;
+  }
 
   DISALLOW_COPY_ASSIGN(NrIceCtx);
 

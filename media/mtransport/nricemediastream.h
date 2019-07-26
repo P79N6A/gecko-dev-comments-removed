@@ -126,7 +126,11 @@ class NrIceMediaStream {
       ctx_(ctx),
       name_(name),
       components_(components),
-      stream_(nullptr)  {}
+      stream_(nullptr)
+  {
+    
+    (void)components_;
+  }
 
   DISALLOW_COPY_ASSIGN(NrIceMediaStream);
 
