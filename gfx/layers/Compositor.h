@@ -392,8 +392,6 @@ public:
 
 
 
-
-
   static LayersBackend GetBackend();
 
 protected:
