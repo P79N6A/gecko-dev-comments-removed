@@ -511,7 +511,7 @@ HTMLFormElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 }
 
 nsresult
-HTMLFormElement::WillHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLFormElement::WillHandleEvent(EventChainPostVisitor& aVisitor)
 {
   
   
@@ -526,7 +526,7 @@ HTMLFormElement::WillHandleEvent(nsEventChainPostVisitor& aVisitor)
 }
 
 nsresult
-HTMLFormElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLFormElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   if (aVisitor.mEvent->originalTarget == static_cast<nsIContent*>(this)) {
     uint32_t msg = aVisitor.mEvent->message;

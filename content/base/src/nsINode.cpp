@@ -1169,7 +1169,7 @@ nsINode::DispatchEvent(nsIDOMEvent *aEvent, bool* aRetVal)
 }
 
 nsresult
-nsINode::PostHandleEvent(nsEventChainPostVisitor& )
+nsINode::PostHandleEvent(EventChainPostVisitor& )
 {
   return NS_OK;
 }

@@ -3731,7 +3731,7 @@ HTMLInputElement::ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget)
 }
 
 nsresult
-HTMLInputElement::MaybeInitPickers(nsEventChainPostVisitor& aVisitor)
+HTMLInputElement::MaybeInitPickers(EventChainPostVisitor& aVisitor)
 {
   
   
@@ -3757,7 +3757,7 @@ HTMLInputElement::MaybeInitPickers(nsEventChainPostVisitor& aVisitor)
 }
 
 nsresult
-HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   if (!aVisitor.mPresContext) {
     
@@ -4240,7 +4240,7 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 }
 
 void
-HTMLInputElement::PostHandleEventForRangeThumb(nsEventChainPostVisitor& aVisitor)
+HTMLInputElement::PostHandleEventForRangeThumb(EventChainPostVisitor& aVisitor)
 {
   MOZ_ASSERT(mType == NS_FORM_INPUT_RANGE);
 

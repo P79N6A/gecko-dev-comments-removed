@@ -2396,7 +2396,7 @@ Element::PreHandleEventForLinks(EventChainPreVisitor& aVisitor)
 }
 
 nsresult
-Element::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
+Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor)
 {
   
   

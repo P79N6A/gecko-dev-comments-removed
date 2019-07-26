@@ -286,7 +286,7 @@ HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 }
 
 nsresult
-HTMLMenuItemElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLMenuItemElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   
   if (aVisitor.mEvent->message == NS_MOUSE_CLICK &&
