@@ -359,11 +359,8 @@ Navigator::GetAppName(nsAString& aAppName)
 
 
 
-
-
-
-NS_IMETHODIMP
-Navigator::GetLanguage(nsAString& aLanguage)
+void
+Navigator::GetAcceptLanguages(nsTArray<nsString>& aLanguages)
 {
   
   const nsAdoptingString& acceptLang =
@@ -371,39 +368,70 @@ Navigator::GetLanguage(nsAString& aLanguage)
 
   
   nsCharSeparatedTokenizer langTokenizer(acceptLang, ',');
-  const nsSubstring &firstLangPart = langTokenizer.nextToken();
-  nsCharSeparatedTokenizer qTokenizer(firstLangPart, ';');
-  aLanguage.Assign(qTokenizer.nextToken());
+  while (langTokenizer.hasMoreTokens()) {
+    nsDependentSubstring lang = langTokenizer.nextToken();
 
-  
-  
-  if (aLanguage.Length() > 2 && aLanguage[2] == char16_t('_')) {
-    aLanguage.Replace(2, 1, char16_t('-')); 
-  }
-
-  
-  
-  if (aLanguage.Length() <= 2) {
-    return NS_OK;
-  }
-
-  nsCharSeparatedTokenizer localeTokenizer(aLanguage, '-');
-  int32_t pos = 0;
-  bool first = true;
-  while (localeTokenizer.hasMoreTokens()) {
-    const nsSubstring& code = localeTokenizer.nextToken();
-
-    if (code.Length() == 2 && !first) {
-      nsAutoString upper(code);
-      ToUpperCase(upper);
-      aLanguage.Replace(pos, code.Length(), upper);
+    
+    
+    if (lang.Length() > 2 && lang[2] == char16_t('_')) {
+      lang.Replace(2, 1, char16_t('-'));
     }
 
-    pos += code.Length() + 1; 
-    first = false;
+    
+    
+    
+    if (lang.Length() > 2) {
+      nsCharSeparatedTokenizer localeTokenizer(lang, '-');
+      int32_t pos = 0;
+      bool first = true;
+      while (localeTokenizer.hasMoreTokens()) {
+        const nsSubstring& code = localeTokenizer.nextToken();
+
+        if (code.Length() == 2 && !first) {
+          nsAutoString upper(code);
+          ToUpperCase(upper);
+          lang.Replace(pos, code.Length(), upper);
+        }
+
+        pos += code.Length() + 1; 
+        first = false;
+      }
+    }
+
+    aLanguages.AppendElement(lang);
+  }
+}
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+Navigator::GetLanguage(nsAString& aLanguage)
+{
+  nsTArray<nsString> languages;
+  GetLanguages(languages);
+  if (languages.Length() >= 1) {
+    aLanguage.Assign(languages[0]);
+  } else {
+    aLanguage.Truncate();
   }
 
-  return NS_OK;
+    return NS_OK;
+}
+
+void
+Navigator::GetLanguages(nsTArray<nsString>& aLanguages)
+{
+  GetAcceptLanguages(aLanguages);
+
+  
+  
+  
+  
 }
 
 NS_IMETHODIMP
