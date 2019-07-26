@@ -88,8 +88,7 @@ input::-moz-placeholder {
   
 
 
-
-  input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div[dir=ltr] {
+  input.uri-element-right-align[dir=ltr]:-moz-locale-dir(rtl) {
     text-align: left !important;
   }
 }
