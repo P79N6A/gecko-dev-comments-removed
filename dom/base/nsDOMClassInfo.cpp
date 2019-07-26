@@ -218,7 +218,6 @@ using mozilla::dom::workers::ResolveWorkerClasses;
 #include "BatteryManager.h"
 #include "nsIDOMPowerManager.h"
 #include "nsIDOMWakeLock.h"
-#include "nsIDOMSmsManager.h"
 #include "nsIDOMMobileMessageManager.h"
 #include "nsIDOMMozSmsMessage.h"
 #include "nsIDOMMozMmsMessage.h"
@@ -575,9 +574,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozWakeLock, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
-
-  NS_DEFINE_CLASSINFO_DATA(MozSmsManager, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozMobileMessageManager, nsDOMGenericSH,
@@ -1439,10 +1435,6 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(MozWakeLock, nsIDOMMozWakeLock)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozWakeLock)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(MozSmsManager, nsIDOMMozSmsManager)
-     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsManager)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozMobileMessageManager, nsIDOMMozMobileMessageManager)
@@ -4762,6 +4754,94 @@ nsStringListSH::GetStringAt(nsISupports *aNative, int32_t aIndex,
 
 
 
+NS_IMETHODIMP
+nsNamedArraySH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                           JSObject *aObj, jsid aId, uint32_t flags,
+                           JSObject **objp, bool *_retval)
+{
+  JS::Rooted<JSObject*> obj(cx, aObj);
+  JS::Rooted<jsid> id(cx, aId);
+  if ((!(JSRESOLVE_ASSIGNING & flags)) && JSID_IS_STRING(id) &&
+      !ObjectIsNativeWrapper(cx, obj)) {
+
+    {
+      JS::Rooted<JSObject*> realObj(cx, wrapper ? wrapper->GetJSObject() : obj);
+
+      JSAutoCompartment ac(cx, realObj);
+      JS::Rooted<JSObject*> proto(cx);
+      if (!::JS_GetPrototype(cx, realObj, proto.address())) {
+        return NS_ERROR_FAILURE;
+      }
+
+      if (proto) {
+        JSBool hasProp;
+        if (!::JS_HasPropertyById(cx, proto, id, &hasProp)) {
+          *_retval = false;
+          return NS_ERROR_FAILURE;
+        }
+
+        if (hasProp) {
+          
+          
+          return NS_OK;
+        }
+      }
+    }
+
+    
+    
+    nsresult rv = NS_OK;
+    nsWrapperCache *cache;
+
+    nsISupports* item = GetNamedItem(GetNative(wrapper, obj),
+                                     nsDependentJSString(id), &cache, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (item) {
+      *_retval = ::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, nullptr,
+                                         nullptr, JSPROP_ENUMERATE | JSPROP_SHARED);
+
+      *objp = obj;
+
+      return *_retval ? NS_OK : NS_ERROR_FAILURE;
+    }
+  }
+
+  return nsArraySH::NewResolve(wrapper, cx, obj, id, flags, objp, _retval);
+}
+
+NS_IMETHODIMP
+nsNamedArraySH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                            JSObject *aObj, jsid aId, jsval *vp,
+                            bool *_retval)
+{
+  JS::Rooted<JSObject*> obj(cx, aObj);
+  JS::Rooted<jsid> id(cx, aId);
+  if (JSID_IS_STRING(id) && !ObjectIsNativeWrapper(cx, obj)) {
+    nsresult rv = NS_OK;
+    nsWrapperCache *cache = nullptr;
+    nsISupports* item = GetNamedItem(GetNative(wrapper, obj),
+                                     nsDependentJSString(id), &cache, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (item) {
+      rv = WrapNative(cx, JS_GetGlobalForScopeChain(cx), item, cache,
+                      true, vp);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = NS_SUCCESS_I_DID_SOMETHING;
+    }
+
+    
+    return rv;
+  }
+
+  return nsArraySH::GetProperty(wrapper, cx, obj, id, vp, _retval);
+}
+
+
+
+
 JSClass sHTMLDocumentAllClass = {
   "HTML document.all class",
   JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_NEW_RESOLVE |
@@ -5176,7 +5256,7 @@ nsCSSRuleListSH::GetItemAt(nsISupports *aNative, uint32_t aIndex,
   }
 #endif
 
-  return list->Item(aIndex);
+  return list->GetItemAt(aIndex, aResult);
 }
 
 
