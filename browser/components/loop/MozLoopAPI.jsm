@@ -98,7 +98,13 @@ function injectLoopAPI(targetWindow) {
       configurable: true,
       writable: true,
       value: function(callback) {
-        return MozLoopService.register(callback);
+        
+        
+        return MozLoopService.register().then(() => {
+          callback(null);
+        }, err => {
+          callback(err);
+        });
       }
     },
 

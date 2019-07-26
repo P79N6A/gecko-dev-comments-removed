@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
 
 this.EXPORTED_SYMBOLS = ["MozLoopService"];
@@ -156,20 +157,21 @@ let MozLoopServiceInternal = {
   loopServerUri: Services.prefs.getCharPref("loop.server"),
 
   
-  registrationCallbacks: [],
+  
+  
+  _registeredDeferred: null,
 
   
 
 
 
   get initialRegistrationDelayMilliseconds() {
-    
-    let initialDelay = 5000;
     try {
       
-      initialDelay = Services.prefs.getIntPref("loop.initialDelay");
+      return Services.prefs.getIntPref("loop.initialDelay");
     } catch (x) {
       
+      return 5000;
     }
     return initialDelay;
   },
@@ -180,14 +182,12 @@ let MozLoopServiceInternal = {
 
 
   get expiryTimeSeconds() {
-    let expiryTimeSeconds = 0;
     try {
-      expiryTimeSeconds = Services.prefs.getIntPref("loop.urlsExpiryTimeSeconds");
+      return Services.prefs.getIntPref("loop.urlsExpiryTimeSeconds");
     } catch (x) {
       
+      return 0;
     }
-
-    return expiryTimeSeconds;
   },
 
   
@@ -225,87 +225,20 @@ let MozLoopServiceInternal = {
 
 
 
-
-
-
-
-
-  initialize: function(callback) {
-    if (this.registeredPushServer || this.initalizeTimer || this.registrationInProgress) {
-      if (callback)
-        callback(this.registeredPushServer ? null : false);
-      return;
+  promiseRegisteredWithServers: function() {
+    if (this._registeredDeferred) {
+      return this._registeredDeferred.promise;
     }
 
-    function secondsToMilli(value) {
-      return value * 1000;
-    }
-
-    
-    if (secondsToMilli(this.expiryTimeSeconds) > Date.now()) {
-      
-      
-      
-      this.initializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this.initializeTimer.initWithCallback(function() {
-        this.registerWithServers(callback);
-        this.initializeTimer = null;
-      }.bind(this),
-      this.initialRegistrationDelayMilliseconds, Ci.nsITimer.TYPE_ONE_SHOT);
-    }
-    else if (callback) {
-      
-      callback(false);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  registerWithServers: function(callback) {
+    this._registeredDeferred = Promise.defer();
     
     
-    if (this.registeredLoopServer) {
-      callback(null);
-      return;
-    }
-
-    
-    if (callback) {
-      this.registrationCallbacks.push(callback);
-    }
-
-    
-    if (this.registrationInProgress) {
-      return;
-    }
-
-    this.registrationInProgress = true;
+    let result = this._registeredDeferred.promise;
 
     PushHandlerHack.initialize(this.onPushRegistered.bind(this),
                                this.onHandleNotification.bind(this));
-  },
 
-  
-
-
-
-
-  endRegistration: function(err) {
-    
-    this.registrationInProgress = false;
-
-    
-    this.registrationCallbacks.forEach(function(callback) {
-      callback(err);
-    });
-    this.registrationCallbacks.length = 0;
+    return result;
   },
 
   
@@ -316,7 +249,8 @@ let MozLoopServiceInternal = {
 
   onPushRegistered: function(err, pushUrl) {
     if (err) {
-      this.endRegistration(err);
+      this._registeredDeferred.reject(err);
+      this._registeredDeferred = null;
       return;
     }
 
@@ -364,7 +298,8 @@ let MozLoopServiceInternal = {
       
       Cu.reportError("Failed to register with the loop server. Code: " +
         status + " Text: " + this.loopXhr.statusText);
-      this.endRegistration(status);
+      this._registeredDeferred.reject(status);
+      this._registeredDeferred = null;
       return;
     }
 
@@ -378,14 +313,17 @@ let MozLoopServiceInternal = {
       } else {
         
         console.warn("Loop server sent an invalid session token");
-        this.endRegistration("session-token-wrong-size");
+        this._registeredDeferred.reject("session-token-wrong-size");
+        this._registeredDeferred = null;
         return;
       }
     }
 
     
     this.registeredLoopServer = true;
-    this.endRegistration(null);
+    this._registeredDeferred.resolve();
+    
+    
   },
 
   
@@ -466,16 +404,27 @@ this.MozLoopService = {
 
 
 
+  initialize: function() {
+    
+    if ((MozLoopServiceInternal.expiryTimeSeconds * 1000) > Date.now()) {
+      this._startInitializeTimer();
+    }
+  },
+
+  
 
 
 
-
-
-
-
-
-  initialize: function(callback) {
-    MozLoopServiceInternal.initialize(callback);
+  _startInitializeTimer: function() {
+    
+    
+    
+    this._initializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._initializeTimer.initWithCallback(function() {
+      this.register();
+      this._initializeTimer = null;
+    }.bind(this),
+    MozLoopServiceInternal.initialRegistrationDelayMilliseconds, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   
@@ -485,10 +434,8 @@ this.MozLoopService = {
 
 
 
-
-
-  register: function(callback) {
-    MozLoopServiceInternal.registerWithServers(callback);
+  register: function() {
+    return MozLoopServiceInternal.promiseRegisteredWithServers();
   },
 
   

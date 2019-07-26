@@ -8,51 +8,51 @@ var server;
 
 const kServerPushUrl = "http://localhost:3456";
 
+var startTimerCalled = false;
 
 
 
 
-add_test(function test_initialize_no_expiry() {
-  MozLoopService.initialize(function(err) {
-    Assert.equal(err, false,
-      "should not register when no expiry time is set");
 
-    run_next_test();
-  });
+add_task(function test_initialize_no_expiry() {
+  startTimerCalled = false;
+
+  MozLoopService.initialize();
+
+  Assert.equal(startTimerCalled, false,
+    "should not register when no expiry time is set");
 });
 
 
 
 
 
-add_test(function test_initialize_expiry_past() {
+add_task(function test_initialize_expiry_past() {
   
   var nowSeconds = Date.now() / 1000;
   Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds - 2);
+  startTimerCalled = false;
 
-  MozLoopService.initialize(function(err) {
-    Assert.equal(err, false,
-      "should not register when expiry time is in past");
+  MozLoopService.initialize();
 
-    run_next_test();
-  });
+  Assert.equal(startTimerCalled, false,
+    "should not register when expiry time is in past");
 });
 
 
 
 
 
-add_test(function test_initialize_and_register() {
+add_task(function test_initialize_starts_timer() {
   
   var nowSeconds = Date.now() / 1000;
   Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", nowSeconds + 60);
+  startTimerCalled = false;
 
-  MozLoopService.initialize(function(err) {
-    Assert.equal(err, null,
-      "should not register when expiry time is in past");
+  MozLoopService.initialize();
 
-    run_next_test();
-  });
+  Assert.equal(startTimerCalled, true,
+    "should start the timer when expiry time is in the future");
 });
 
 function run_test()
@@ -71,7 +71,10 @@ function run_test()
   Services.prefs.setCharPref("loop.server", "http://localhost:" + server.identity.primaryPort);
 
   
-  Services.prefs.setIntPref("loop.initialDelay", 10);
+  
+  MozLoopService._startInitializeTimer = function() {
+    startTimerCalled = true;
+  };
 
   do_register_cleanup(function() {
     gMockWebSocketChannelFactory.unregister();

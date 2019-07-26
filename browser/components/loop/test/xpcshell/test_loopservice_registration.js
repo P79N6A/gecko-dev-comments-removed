@@ -15,9 +15,10 @@ add_test(function test_register_offline() {
   
   Services.io.offline = true;
 
-  MozLoopService.register(function(err) {
-    Assert.equal(err, "offline", "Expected error of 'offline' to be returned");
-
+  MozLoopService.register().then(() => {
+    do_throw("should not succeed when offline");
+  }, err => {
+    Assert.equal(err, "offline", "should reject with 'offline' when offline");
     Services.io.offline = false;
     run_next_test();
   });
@@ -28,7 +29,9 @@ add_test(function test_register_offline() {
 
 
 add_test(function test_register_websocket_success_loop_server_fail() {
-  MozLoopService.register(function(err) {
+  MozLoopService.register().then(() => {
+    do_throw("should not succeed when loop server registration fails");
+  }, err => {
     
     
     Assert.equal(err, 404, "Expected no errors in websocket registration");
@@ -65,22 +68,18 @@ add_test(function test_registration_returns_hawk_session_token() {
     response.finish();
   });
 
-  MozLoopService.register(function(err) {
-
-    Assert.equal(err, null, "Should not cause an error to be called back on" +
-      " an otherwise valid request");
-
+  MozLoopService.register().then(() => {
     var hawkSessionPref;
     try {
       hawkSessionPref = Services.prefs.getCharPref("loop.hawk-session-token");
     } catch (ex) {
-      
-      dump("unexpected exception: " + ex + "\n");
     }
     Assert.equal(hawkSessionPref, fakeSessionToken, "Should store" +
       " Hawk-Session-Token header contents in loop.hawk-session-token pref");
 
     run_next_test();
+  }, err => {
+    do_throw("shouldn't error on a succesful request");
   });
 });
 
@@ -99,15 +98,14 @@ add_test(function test_register_success() {
     response.processAsync();
     response.finish();
   });
-
-  MozLoopService.register(function(err) {
-    Assert.equal(err, null, "Expected no errors in websocket registration");
-
+  MozLoopService.register().then(() => {
     let instances = gMockWebSocketChannelFactory.createdInstances;
     Assert.equal(instances.length, 1,
                  "Should create only one instance of websocket");
 
     run_next_test();
+  }, err => {
+    do_throw("shouldn't error on a succesful request");
   });
 });
 
