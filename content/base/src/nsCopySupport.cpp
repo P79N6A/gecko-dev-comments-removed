@@ -79,19 +79,9 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
     *aTransferable = nullptr;
   }
 
-  nsresult rv = NS_OK;
-  
-  bool bIsPlainTextContext = false;
-
-  rv = nsCopySupport::IsPlainTextContext(aSel, aDoc, &bIsPlainTextContext);
-  if (NS_FAILED(rv)) 
-    return rv;
-
-  bool bIsHTMLCopy = !bIsPlainTextContext;
-  nsAutoString mimeType;
+  nsresult rv;
 
   nsCOMPtr<nsIDocumentEncoder> docEncoder;
-
   docEncoder = do_CreateInstance(NS_HTMLCOPY_ENCODER_CONTRACTID);
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
@@ -100,12 +90,9 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   
   
   
-  
-  
+  nsAutoString mimeType;
   mimeType.AssignLiteral(kUnicodeMime);
-  
-  
-  
+
   
   uint32_t flags = aFlags | nsIDocumentEncoder::OutputPreformatted
                           | nsIDocumentEncoder::OutputRaw;
@@ -114,28 +101,34 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   NS_ASSERTION(domDoc, "Need a document");
 
   rv = docEncoder->Init(domDoc, mimeType, flags);
-  if (NS_FAILED(rv)) 
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = docEncoder->SetSelection(aSel);
-  if (NS_FAILED(rv)) 
-    return rv;
-
-  nsAutoString buffer, parents, info, textBuffer, plaintextBuffer;
-
-  rv = docEncoder->EncodeToString(textBuffer);
-  if (NS_FAILED(rv)) 
-    return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  
-  
-  if (bIsHTMLCopy) {
+  rv = docEncoder->GetMimeType(mimeType);
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool selForcedTextPlain = mimeType.EqualsLiteral(kTextMime);
 
+  nsAutoString buf;
+  rv = docEncoder->EncodeToString(buf);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  rv = docEncoder->GetMimeType(mimeType);
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool encodedTextHTML = mimeType.EqualsLiteral(kHTMLMime);
+
+  
+  nsAutoString textPlainBuf;
+  if (selForcedTextPlain) {
     
-    mimeType.AssignLiteral("text/plain");
-
+    textPlainBuf.Assign(buf);
+  } else {
+    
     flags =
       nsIDocumentEncoder::OutputSelectionOnly |
       nsIDocumentEncoder::OutputAbsoluteLinks |
@@ -143,35 +136,35 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
       nsIDocumentEncoder::OutputDropInvisibleBreak |
       (aFlags & nsIDocumentEncoder::OutputNoScriptContent);
 
-    rv = docEncoder->Init(domDoc, mimeType, flags);
-    if (NS_FAILED(rv))
-      return rv;
-
-    rv = docEncoder->SetSelection(aSel);
-    if (NS_FAILED(rv))
-      return rv;
-
-    rv = docEncoder->EncodeToString(plaintextBuffer);
-    if (NS_FAILED(rv))
-      return rv;
-
-    
-
-    mimeType.AssignLiteral(kHTMLMime);
-
-    flags = aFlags;
-
+    mimeType.AssignLiteral(kTextMime);
     rv = docEncoder->Init(domDoc, mimeType, flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = docEncoder->SetSelection(aSel);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    rv = docEncoder->EncodeToStringWithContext(parents, info, buffer);
+    rv = docEncoder->EncodeToString(textPlainBuf);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
   
+  nsAutoString textHTMLBuf;
+  nsAutoString htmlParentsBuf;
+  nsAutoString htmlInfoBuf;
+  if (encodedTextHTML) {
+    
+    mimeType.AssignLiteral(kHTMLMime);
+    rv = docEncoder->Init(domDoc, mimeType, aFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = docEncoder->SetSelection(aSel);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = docEncoder->EncodeToStringWithContext(htmlParentsBuf, htmlInfoBuf,
+                                               textHTMLBuf);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   
   nsCOMPtr<nsIClipboard> clipboard;
   if (doPutOnClipboard) {
@@ -185,37 +178,37 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
     nsCOMPtr<nsITransferable> trans = do_CreateInstance(kCTransferableCID);
     if (trans) {
       trans->Init(aDoc->GetLoadContext());
-      if (bIsHTMLCopy) {
+      if (encodedTextHTML) {
         
         
         nsCOMPtr<nsIFormatConverter> htmlConverter =
           do_CreateInstance(kHTMLConverterCID);
         trans->SetConverter(htmlConverter);
 
-        if (!buffer.IsEmpty()) {
+        if (!textHTMLBuf.IsEmpty()) {
           
-          rv = AppendString(trans, buffer, kHTMLMime);
+          rv = AppendString(trans, textHTMLBuf, kHTMLMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
         
         
         
-        rv = AppendString(trans, parents, kHTMLContext);
+        rv = AppendString(trans, htmlParentsBuf, kHTMLContext);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (!info.IsEmpty()) {
+        if (!htmlInfoBuf.IsEmpty()) {
           
-          rv = AppendString(trans, info, kHTMLInfo);
+          rv = AppendString(trans, htmlInfoBuf, kHTMLInfo);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
-        if (!plaintextBuffer.IsEmpty()) {
+        if (!textPlainBuf.IsEmpty()) {
           
           
           
           
-          rv = AppendString(trans, plaintextBuffer, kUnicodeMime);
+          rv = AppendString(trans, textPlainBuf, kUnicodeMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
@@ -239,9 +232,9 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
           }
         }
       } else {
-        if (!textBuffer.IsEmpty()) {
+        if (!textPlainBuf.IsEmpty()) {
           
-          rv = AppendString(trans, textBuffer, kUnicodeMime);
+          rv = AppendString(trans, textPlainBuf, kUnicodeMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
       }
@@ -346,81 +339,6 @@ nsresult nsCopySupport::DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
   }
 
   return rv;
-}
-
-nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc, bool *aIsPlainTextContext)
-{
-  nsresult rv;
-
-  if (!aSel || !aIsPlainTextContext)
-    return NS_ERROR_NULL_POINTER;
-
-  *aIsPlainTextContext = false;
-  
-  nsCOMPtr<nsIDOMRange> range;
-  nsCOMPtr<nsIDOMNode> commonParent;
-  int32_t count = 0;
-
-  rv = aSel->GetRangeCount(&count);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (!count)
-    return NS_ERROR_FAILURE;
-  
-  
-  
-  
-  rv = aSel->GetRangeAt(0, getter_AddRefs(range));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!range)
-    return NS_ERROR_NULL_POINTER;
-  range->GetCommonAncestorContainer(getter_AddRefs(commonParent));
-
-  for (nsCOMPtr<nsIContent> selContent(do_QueryInterface(commonParent));
-       selContent;
-       selContent = selContent->GetParent())
-  {
-    
-
-    if (!selContent->IsHTML()) {
-      continue;
-    }
-
-    nsIAtom *atom = selContent->Tag();
-
-    if (atom == nsGkAtoms::input ||
-        atom == nsGkAtoms::textarea)
-    {
-      *aIsPlainTextContext = true;
-      break;
-    }
-
-    if (atom == nsGkAtoms::body)
-    {
-      
-      
-      
-      nsCOMPtr<nsIDOMElement> bodyElem = do_QueryInterface(selContent);
-      nsAutoString wsVal;
-      rv = bodyElem->GetAttribute(NS_LITERAL_STRING("style"), wsVal);
-      if (NS_SUCCEEDED(rv) && (kNotFound != wsVal.Find(NS_LITERAL_STRING("pre-wrap"))))
-      {
-        *aIsPlainTextContext = true;
-        break;
-      }
-    }
-  }
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(aDoc);
-  if (!(htmlDoc && aDoc->IsHTML()))
-    *aIsPlainTextContext = true;
-
-  return NS_OK;
 }
 
 nsresult

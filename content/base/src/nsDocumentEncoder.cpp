@@ -1260,6 +1260,7 @@ public:
   NS_IMETHOD EncodeToStringWithContext(nsAString& aContextString,
                                        nsAString& aInfoString,
                                        nsAString& aEncodedString);
+  NS_IMETHOD EncodeToString(nsAString& aOutputString);
 
 protected:
 
@@ -1390,15 +1391,19 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
   }
   
   
-  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
-  if (!(htmlDoc && mDocument->IsHTML()))
-    mIsTextWidget = true;
-  
-  
   if (mIsTextWidget) 
   {
     mSelection = aSelection;
     mMimeType.AssignLiteral("text/plain");
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
+  if (!(htmlDoc && mDocument->IsHTML())) {
+    mIsTextWidget = true;
+    mSelection = aSelection;
+    
     return NS_OK;
   }
   
@@ -1425,6 +1430,15 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
   }
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHTMLCopyEncoder::EncodeToString(nsAString& aOutputString)
+{
+  if (mIsTextWidget) {
+    mMimeType.AssignLiteral("text/plain");
+  }
+  return nsDocumentEncoder::EncodeToString(aOutputString);
 }
 
 NS_IMETHODIMP
