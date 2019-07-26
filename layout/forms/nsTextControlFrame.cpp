@@ -1108,82 +1108,73 @@ nsTextControlFrame::AttributeChanged(int32_t         aNameSpaceID,
   if (needEditor) {
     GetEditor(getter_AddRefs(editor));
   }
-  if ((needEditor && !editor) || !selCon)
+  if ((needEditor && !editor) || !selCon) {
     return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+  }
 
-  nsresult rv = NS_OK;
-
-  if (nsGkAtoms::maxlength == aAttribute) 
-  {
+  if (nsGkAtoms::maxlength == aAttribute) {
     int32_t maxLength;
     bool maxDefined = GetMaxLength(&maxLength);
-    
     nsCOMPtr<nsIPlaintextEditor> textEditor = do_QueryInterface(editor);
-    if (textEditor)
-    {
-      if (maxDefined) 
-      {  
-          textEditor->SetMaxTextLength(maxLength);
+    if (textEditor) {
+      if (maxDefined) { 
+        textEditor->SetMaxTextLength(maxLength);
         
-      }
-      else { 
-          textEditor->SetMaxTextLength(-1);
-      }
-    }
-    rv = NS_OK; 
-  } 
-  else if (nsGkAtoms::readonly == aAttribute) 
-  {
-    uint32_t flags;
-    editor->GetFlags(&flags);
-    if (AttributeExists(nsGkAtoms::readonly))
-    { 
-      flags |= nsIPlaintextEditor::eEditorReadonlyMask;
-      if (nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(false);
-    }
-    else 
-    { 
-      flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
-      if (!(flags & nsIPlaintextEditor::eEditorDisabledMask) &&
-          nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(true);
-    }
-    editor->SetFlags(flags);
-  }
-  else if (nsGkAtoms::disabled == aAttribute) 
-  {
-    uint32_t flags;
-    editor->GetFlags(&flags);
-    if (AttributeExists(nsGkAtoms::disabled))
-    { 
-      flags |= nsIPlaintextEditor::eEditorDisabledMask;
-      selCon->SetDisplaySelection(nsISelectionController::SELECTION_OFF);
-      if (nsContentUtils::IsFocusedContent(mContent))
-        selCon->SetCaretEnabled(false);
-    }
-    else 
-    { 
-      flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
-      if (nsContentUtils::IsFocusedContent(mContent)) {
-        selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
-        selCon->SetCaretEnabled(true);
-      } else {
-        selCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
+      } else { 
+        textEditor->SetMaxTextLength(-1);
       }
     }
-    editor->SetFlags(flags);
-  }
-  else if (!mUseEditor && nsGkAtoms::value == aAttribute) {
-    UpdateValueDisplay(true);
-  }
-  
-  
-  else {
-    rv = nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
+    return NS_OK;
   }
 
-  return rv;
+  if (nsGkAtoms::readonly == aAttribute) {
+    uint32_t flags;
+    editor->GetFlags(&flags);
+    if (AttributeExists(nsGkAtoms::readonly)) { 
+      flags |= nsIPlaintextEditor::eEditorReadonlyMask;
+      if (nsContentUtils::IsFocusedContent(mContent)) {
+        selCon->SetCaretEnabled(false);
+      }
+    } else { 
+      flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
+      if (!(flags & nsIPlaintextEditor::eEditorDisabledMask) &&
+          nsContentUtils::IsFocusedContent(mContent)) {
+        selCon->SetCaretEnabled(true);
+      }
+    }
+    editor->SetFlags(flags);
+    return NS_OK;
+  }
+
+  if (nsGkAtoms::disabled == aAttribute) {
+    uint32_t flags;
+    editor->GetFlags(&flags);
+    int16_t displaySelection = nsISelectionController::SELECTION_OFF;
+    const bool focused = nsContentUtils::IsFocusedContent(mContent);
+    const bool hasAttr = AttributeExists(nsGkAtoms::disabled);
+    if (hasAttr) { 
+      flags |= nsIPlaintextEditor::eEditorDisabledMask;
+    } else { 
+      flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
+      displaySelection = focused ? nsISelectionController::SELECTION_ON
+                                 : nsISelectionController::SELECTION_HIDDEN;
+    }
+    selCon->SetDisplaySelection(displaySelection);
+    if (focused) {
+      selCon->SetCaretEnabled(!hasAttr);
+    }
+    editor->SetFlags(flags);
+    return NS_OK;
+  }
+
+  if (!mUseEditor && nsGkAtoms::value == aAttribute) {
+    UpdateValueDisplay(true);
+    return NS_OK;
+  }
+
+  
+  
+  return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
 
