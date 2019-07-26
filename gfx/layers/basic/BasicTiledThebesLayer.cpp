@@ -583,12 +583,22 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     nsIntRegion lowPrecisionInvalidRegion;
     lowPrecisionInvalidRegion.Sub(mVisibleRegion, mLowPrecisionValidRegion);
 
+    
+    
+    nsIntRegion invalidHighPrecisionIntersect;
+    invalidHighPrecisionIntersect.And(lowPrecisionInvalidRegion, mValidRegion);
+    lowPrecisionInvalidRegion.Sub(lowPrecisionInvalidRegion, invalidHighPrecisionIntersect);
+
     if (!lowPrecisionInvalidRegion.IsEmpty()) {
       updatedLowPrecision =
         ProgressiveUpdate(mLowPrecisionTiledBuffer, mLowPrecisionValidRegion,
                           lowPrecisionInvalidRegion, oldValidRegion, transform,
                           scrollOffset, resolution, aCallback, aCallbackData);
     }
+
+    
+    
+    lowPrecisionInvalidRegion.Or(lowPrecisionInvalidRegion, invalidHighPrecisionIntersect);
   } else if (!mLowPrecisionValidRegion.IsEmpty()) {
     
     clearedLowPrecision = true;
