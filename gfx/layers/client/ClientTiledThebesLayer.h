@@ -99,6 +99,14 @@ private:
 
 
 
+  bool RenderLowPrecision(nsIntRegion& aInvalidRegion,
+                          LayerManager::DrawThebesLayerCallback aCallback,
+                          void* aCallbackData);
+
+  
+
+
+
 
   void EndPaint(bool aFinish);
 
