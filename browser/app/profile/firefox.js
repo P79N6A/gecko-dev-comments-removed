@@ -642,6 +642,10 @@ pref("plugins.update.notifyUser", false);
 pref("plugins.click_to_play", true);
 
 
+pref("plugin.default.state", 1);
+pref("plugin.state.flash", 2);
+
+
 pref("plugins.notifyMissingFlash", true);
 
 #ifdef XP_WIN
@@ -1075,7 +1079,6 @@ pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
 pref("devtools.inspector.remote", false);
-pref("devtools.inspector.show_pseudo_elements", true);
 
 
 pref("devtools.layoutview.enabled", true);
