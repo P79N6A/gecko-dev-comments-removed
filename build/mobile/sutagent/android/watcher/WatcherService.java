@@ -286,6 +286,18 @@ public class WatcherService extends Service
         stopForegroundCompat(R.string.foreground_service_started);
     }
 
+    @Override
+    public void onLowMemory() {
+        Log.e(LOGTAG, "onLowMemory");
+        System.gc();
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        Log.e(LOGTAG, "onTrimMemory: "+level);
+        System.gc();
+    }
+
     protected void getKeyGuardAndWakeLock()
         {
         
