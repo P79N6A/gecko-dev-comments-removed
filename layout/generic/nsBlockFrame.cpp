@@ -4779,8 +4779,7 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
   
   if (type == nsGkAtoms::textFrame &&
       !(aLastFrame->GetStateBits() & NS_FRAME_IS_DIRTY)) {
-    return aLastFrame->HasTerminalNewline() &&
-      aLastFrame->StyleText()->NewlineIsSignificant();
+    return aLastFrame->HasSignificantTerminalNewline();
   }
   return false;
 }

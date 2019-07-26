@@ -2828,7 +2828,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
 
-  virtual bool HasTerminalNewline() const;
+  virtual bool HasSignificantTerminalNewline() const;
 
   static bool AddCSSPrefSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth, bool& aHeightSet);
   static bool AddCSSMinSize(nsBoxLayoutState& aState, nsIFrame* aBox,

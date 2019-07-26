@@ -6250,8 +6250,7 @@ nsTextFrame::GetCharacterOffsetAtFramePointInternal(nsPoint aPoint,
     
     
     
-    if (StyleText()->NewlineIsSignificant() &&
-        HasTerminalNewline()) {
+    if (HasSignificantTerminalNewline()) {
       --selectedOffset;
     }
   }
@@ -7478,8 +7477,7 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
   if (end < f->mContentOffset) {
     
     if (aLineLayout &&
-        StyleText()->WhiteSpaceIsSignificant() &&
-        HasTerminalNewline() &&
+        HasSignificantTerminalNewline() &&
         GetParent()->GetType() != nsGkAtoms::letterFrame &&
         (aSetLengthFlags & ALLOW_FRAME_CREATION_AND_DESTRUCTION)) {
       
@@ -8562,9 +8560,9 @@ nsTextFrame::AdjustOffsetsForBidi(int32_t aStart, int32_t aEnd)
 
 
 bool
-nsTextFrame::HasTerminalNewline() const
+nsTextFrame::HasSignificantTerminalNewline() const
 {
-  return ::HasTerminalNewline(this);
+  return ::HasTerminalNewline(this) && StyleText()->NewlineIsSignificant();
 }
 
 bool

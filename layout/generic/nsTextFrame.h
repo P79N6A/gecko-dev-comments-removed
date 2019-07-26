@@ -183,11 +183,7 @@ public:
   virtual bool IsSelfEmpty() MOZ_OVERRIDE { return IsEmpty(); }
   virtual nscoord GetBaseline() const MOZ_OVERRIDE;
   
-  
-
-
-
-  virtual bool HasTerminalNewline() const MOZ_OVERRIDE;
+  virtual bool HasSignificantTerminalNewline() const MOZ_OVERRIDE;
 
   
 

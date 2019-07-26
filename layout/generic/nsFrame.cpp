@@ -5984,8 +5984,7 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
   }
 
   
-  if (aFrame->HasTerminalNewline() &&
-      aFrame->StyleText()->NewlineIsSignificant()) {
+  if (aFrame->HasSignificantTerminalNewline()) {
     int32_t startOffset, endOffset;
     aFrame->GetOffsets(startOffset, endOffset);
     result.mContent = aFrame->GetContent();
@@ -6145,8 +6144,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       
       if (offset < 0 && jumpedLine &&
           aPos->mDirection == eDirPrevious &&
-          current->StyleText()->NewlineIsSignificant() &&
-          current->HasTerminalNewline()) {
+          current->HasSignificantTerminalNewline()) {
         --aPos->mContentOffset;
       }
       
@@ -6218,8 +6216,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
             
             
             if (jumpedLine && wordSelectEatSpace &&
-                current->HasTerminalNewline() &&
-                current->StyleText()->NewlineIsSignificant()) {
+                current->HasSignificantTerminalNewline()) {
               offsetAdjustment = -1;
             }
           } else {
@@ -6395,7 +6392,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       FrameContentRange range = GetRangeForFrame(targetFrame.frame);
       aPos->mResultContent = range.content;
       aPos->mContentOffset = endOfLine ? range.end : range.start;
-      if (endOfLine && targetFrame.frame->HasTerminalNewline()) {
+      if (endOfLine && targetFrame.frame->HasSignificantTerminalNewline()) {
         
         
         --aPos->mContentOffset;
@@ -7369,7 +7366,7 @@ nsIFrame::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
 
 
 bool
-nsIFrame::HasTerminalNewline() const
+nsIFrame::HasSignificantTerminalNewline() const
 {
   return false;
 }
