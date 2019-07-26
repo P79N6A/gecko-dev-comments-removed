@@ -65,25 +65,9 @@ nsScreen::nsScreen()
   SetIsDOMBinding();
 }
 
-void
-nsScreen::Reset()
-{
-  hal::UnlockScreenOrientation();
-
-  if (mEventListener) {
-    nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner());
-    if (target) {
-      target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
-                                        mEventListener,  true);
-    }
-
-    mEventListener = nullptr;
-  }
-}
-
 nsScreen::~nsScreen()
 {
-  Reset();
+  MOZ_ASSERT(!mEventListener);
   hal::UnregisterScreenConfigurationObserver(this);
 }
 
@@ -368,7 +352,7 @@ nsScreen::MozLockOrientation(const Sequence<nsString>& aOrientations,
       
       
       
-      nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner());
+      nsCOMPtr<EventTarget> target = do_QueryInterface(GetOwner()->GetDoc());
       if (!target) {
         return false;
       }
@@ -427,23 +411,16 @@ nsScreen::FullScreenEventListener::HandleEvent(nsIDOMEvent* aEvent)
 #endif
 
   nsCOMPtr<EventTarget> target = aEvent->InternalDOMEvent()->GetCurrentTarget();
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(target);
+  MOZ_ASSERT(target && doc);
 
   
   
   
-  nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(target);
-  MOZ_ASSERT(window);
-
-  nsCOMPtr<nsIDOMDocument> doc;
-  window->GetDocument(getter_AddRefs(doc));
-  
-  
-  if (doc) {
-    bool fullscreen;
-    doc->GetMozFullScreen(&fullscreen);
-    if (fullscreen) {
-      return NS_OK;
-    }
+  bool fullscreen;
+  doc->GetMozFullScreen(&fullscreen);
+  if (fullscreen) {
+    return NS_OK;
   }
 
   target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
