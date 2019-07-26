@@ -42,12 +42,12 @@
         element.value = '#deadbe';
       }
       synthesizeMouseAtCenter(element, {});
-      yield;
+      yield undefined;
     };
 
     MockColorPicker.cleanup();
     SimpleTest.finish();
-    yield;
+    yield undefined;
   }
 
   </script>

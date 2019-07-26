@@ -95,12 +95,12 @@
       element = document.getElementsByTagName('input')[i];
       element.focus();
       synthesizeMouseAtCenter(element, {});
-      yield;
+      yield undefined;
     };
 
     MockColorPicker.cleanup();
     SimpleTest.finish();
-    yield;
+    yield undefined;
   }
 
   </script>
