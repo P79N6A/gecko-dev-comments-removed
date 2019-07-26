@@ -74,6 +74,7 @@
 #define speex_resampler_get_input_latency CAT_PREFIX(RANDOM_PREFIX,_resampler_get_input_latency)
 #define speex_resampler_get_output_latency CAT_PREFIX(RANDOM_PREFIX,_resampler_get_output_latency)
 #define speex_resampler_skip_zeros CAT_PREFIX(RANDOM_PREFIX,_resampler_skip_zeros)
+#define speex_resampler_set_skip_frac_num CAT_PREFIX(RANDOM_PREFIX,_resampler_set_skip_frac_num)
 #define speex_resampler_reset_mem CAT_PREFIX(RANDOM_PREFIX,_resampler_reset_mem)
 #define speex_resampler_strerror CAT_PREFIX(RANDOM_PREFIX,_resampler_strerror)
 
@@ -325,6 +326,22 @@ int speex_resampler_get_output_latency(SpeexResamplerState *st);
 
 
 int speex_resampler_skip_zeros(SpeexResamplerState *st);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int speex_resampler_set_skip_frac_num(SpeexResamplerState *st,
+                                      spx_uint32_t skip_frac_num);
 
 
 
