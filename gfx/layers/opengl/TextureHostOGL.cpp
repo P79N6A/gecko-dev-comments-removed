@@ -354,6 +354,22 @@ SurfaceStreamHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
 {
   MOZ_ASSERT(aImage.type() == SurfaceDescriptor::TSurfaceStreamDescriptor,
              "Invalid descriptor");
+
+  mStreamGL = nullptr;
+
+  if (aImage.type() == SurfaceDescriptor::TSurfaceStreamDescriptor) {
+    
+    
+    
+    
+    const SurfaceStreamDescriptor& streamDesc =
+        aImage.get_SurfaceStreamDescriptor();
+
+    SurfaceStream* surfStream = SurfaceStream::FromHandle(streamDesc.handle());
+    if (surfStream) {
+      mStreamGL = dont_AddRef(surfStream->GLContext());
+    }
+  } 
 }
 
 void
@@ -920,28 +936,6 @@ SurfaceStreamHostOGL::GetAsSurface() {
                      GetTextureFormat())
     : nullptr;
   return surf.forget();
-}
-
-void
-SurfaceStreamHostOGL::SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
-{
-  MOZ_ASSERT(!mBuffer, "Will leak the old mBuffer");
-  mBuffer = aBuffer;
-  mDeAllocator = aAllocator;
-
-  if (mBuffer && mBuffer->type() == SurfaceDescriptor::TSurfaceStreamDescriptor) {
-    
-    
-    
-    
-    const SurfaceStreamDescriptor& streamDesc =
-        mBuffer->get_SurfaceStreamDescriptor();
-
-    SurfaceStream* surfStream = SurfaceStream::FromHandle(streamDesc.handle());
-    if (surfStream) {
-      mStreamGL = dont_AddRef(surfStream->GLContext());
-    }
-  } 
 }
 
 already_AddRefed<gfxImageSurface>
