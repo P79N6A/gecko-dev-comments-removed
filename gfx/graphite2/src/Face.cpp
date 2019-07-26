@@ -25,6 +25,7 @@
 
 
 #include <cstring>
+#include <algorithm>
 #include "graphite2/Segment.h"
 #include "inc/CmapCache.h"
 #include "inc/debug.h"
