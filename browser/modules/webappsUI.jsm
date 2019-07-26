@@ -81,6 +81,9 @@ this.webappsUI = {
     let found = false;
     while (!found && browserEnumerator.hasMoreElements()) {
       let browserWin = browserEnumerator.getNext();
+      if (browserWin.closed) {
+        continue;
+      }
       let tabbrowser = browserWin.gBrowser;
 
       
@@ -156,10 +159,10 @@ this.webappsUI = {
           }
 
           DOMApplicationRegistry.confirmInstall(aData, localDir,
-            (aManifest, aZipPath) => {
+            (aManifest) => {
               Task.spawn(function() {
                 try {
-                  yield WebappsInstaller.install(aData, aManifest, aZipPath);
+                  yield WebappsInstaller.install(aData, aManifest);
                   if (this.downloads[manifestURL]) {
                     yield this.downloads[manifestURL].promise;
                   }

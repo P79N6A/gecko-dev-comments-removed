@@ -454,6 +454,9 @@ function openAboutDialog() {
   while (enumerator.hasMoreElements()) {
     
     let win = enumerator.getNext();
+    if (win.closed) {
+      continue;
+    }
     win.focus();
     return;
   }

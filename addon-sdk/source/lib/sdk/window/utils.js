@@ -297,6 +297,7 @@ function windows(type, options) {
     let window = winEnum.getNext().QueryInterface(Ci.nsIDOMWindow);
     
     
+    
     if (options.includePrivate || !isWindowPrivate(window)) {
       list.push(window);
     }

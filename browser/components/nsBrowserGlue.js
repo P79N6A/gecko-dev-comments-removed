@@ -769,6 +769,7 @@ BrowserGlue.prototype = {
     var browserEnum = Services.wm.getEnumerator("navigator:browser");
     let allWindowsPrivate = true;
     while (browserEnum.hasMoreElements()) {
+      
       windowcount++;
 
       var browser = browserEnum.getNext();
