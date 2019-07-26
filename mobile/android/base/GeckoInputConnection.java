@@ -536,10 +536,13 @@ class GeckoInputConnection
         
         
         
-        if (typeHint.equals("date") || typeHint.equals("time") ||
-            (Build.VERSION.SDK_INT > 10 &&
-            (typeHint.equals("datetime") || typeHint.equals("month") ||
-            typeHint.equals("week") || typeHint.equals("datetime-local")))) {
+        if (typeHint != null &&
+            (typeHint.equals("date") ||
+             typeHint.equals("time") ||
+             (Build.VERSION.SDK_INT > 10 && (typeHint.equals("datetime") ||
+                                             typeHint.equals("month") ||
+                                             typeHint.equals("week") ||
+                                             typeHint.equals("datetime-local"))))) {
             mIMEState = IME_STATE_DISABLED;
             return;
         }
