@@ -10,8 +10,9 @@
 
 
 
-#ifndef mozilla_BloomFilter_h_
-#define mozilla_BloomFilter_h_
+
+#ifndef mozilla_BloomFilter_h
+#define mozilla_BloomFilter_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Likely.h"

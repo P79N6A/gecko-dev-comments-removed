@@ -8,8 +8,9 @@
 
 
 
-#ifndef mozilla_NullPtr_h_
-#define mozilla_NullPtr_h_
+
+#ifndef mozilla_NullPtr_h
+#define mozilla_NullPtr_h
 
 #include "mozilla/Compiler.h"
 
@@ -45,4 +46,4 @@
 #  endif
 #endif
 
-#endif  
+#endif 

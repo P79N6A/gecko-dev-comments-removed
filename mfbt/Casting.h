@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Casting_h_
-#define mozilla_Casting_h_
+
+#ifndef mozilla_Casting_h
+#define mozilla_Casting_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/TypeTraits.h"
@@ -198,4 +199,4 @@ SafeCast(const From from)
 
 } 
 
-#endif  
+#endif 

@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_TypeTraits_h_
-#define mozilla_TypeTraits_h_
+
+#ifndef mozilla_TypeTraits_h
+#define mozilla_TypeTraits_h
 
 
 
@@ -665,4 +666,4 @@ struct Conditional<false, A, B>
 
 } 
 
-#endif  
+#endif 

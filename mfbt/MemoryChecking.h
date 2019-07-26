@@ -19,8 +19,9 @@
 
 
 
-#ifndef mozilla_MemoryChecking_h_
-#define mozilla_MemoryChecking_h_
+
+#ifndef mozilla_MemoryChecking_h
+#define mozilla_MemoryChecking_h
 
 #if defined(MOZ_VALGRIND)
 #include "valgrind/memcheck.h"
@@ -68,4 +69,4 @@ extern "C" {
 
 #endif
 
-#endif  
+#endif 

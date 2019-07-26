@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Types_h_
-#define mozilla_Types_h_
+
+#ifndef mozilla_Types_h
+#define mozilla_Types_h
 
 
 
@@ -141,4 +142,4 @@
 #  define decltype __typeof__
 #endif
 
-#endif  
+#endif 

@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_CheckedInt_h_
-#define mozilla_CheckedInt_h_
+
+#ifndef mozilla_CheckedInt_h
+#define mozilla_CheckedInt_h
 
 
 #define MOZ_CHECKEDINT_USE_MFBT

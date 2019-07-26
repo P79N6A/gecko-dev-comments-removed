@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_StandardInteger_h_
-#define mozilla_StandardInteger_h_
+
+#ifndef mozilla_StandardInteger_h
+#define mozilla_StandardInteger_h
 
 
 
@@ -40,4 +41,4 @@
 #  include <stdint.h>
 #endif
 
-#endif  
+#endif 

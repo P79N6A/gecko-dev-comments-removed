@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_RefPtr_h_
-#define mozilla_RefPtr_h_
+
+#ifndef mozilla_RefPtr_h
+#define mozilla_RefPtr_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
@@ -290,9 +291,6 @@ byRef(RefPtr<T>& ptr)
 
 } 
 
-#endif 
-
-
 #if 0
 
 
@@ -447,3 +445,5 @@ main(int argc, char** argv)
 }
 
 #endif
+
+#endif 

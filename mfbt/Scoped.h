@@ -4,8 +4,10 @@
 
 
 
-#ifndef mozilla_Scoped_h_
-#define mozilla_Scoped_h_
+
+
+#ifndef mozilla_Scoped_h
+#define mozilla_Scoped_h
 
 
 

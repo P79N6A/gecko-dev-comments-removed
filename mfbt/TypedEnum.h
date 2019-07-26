@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_TypedEnum_h_
-#define mozilla_TypedEnum_h_
+
+#ifndef mozilla_TypedEnum_h
+#define mozilla_TypedEnum_h
 
 #include "mozilla/Attributes.h"
 
@@ -210,4 +211,4 @@
 
 #endif 
 
-#endif  
+#endif 

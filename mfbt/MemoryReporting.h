@@ -6,8 +6,8 @@
 
 
 
-#ifndef mozilla_MemoryReporting_h_
-#define mozilla_MemoryReporting_h_
+#ifndef mozilla_MemoryReporting_h
+#define mozilla_MemoryReporting_h
 
 #include <stddef.h>
 

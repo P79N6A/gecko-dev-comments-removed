@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Array_h_
-#define mozilla_Array_h_
+
+#ifndef mozilla_Array_h
+#define mozilla_Array_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

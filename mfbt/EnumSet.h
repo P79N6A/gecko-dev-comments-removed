@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef mozilla_EnumSet_h
 #define mozilla_EnumSet_h
 

@@ -8,8 +8,9 @@
 
 
 
-#ifndef mozilla_RangedPtr_h_
-#define mozilla_RangedPtr_h_
+
+#ifndef mozilla_RangedPtr_h
+#define mozilla_RangedPtr_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -251,4 +252,4 @@ class RangedPtr
 
 } 
 
-#endif  
+#endif 

@@ -9,8 +9,8 @@
 
 
 
-#ifndef mozilla_Poison_h_
-#define mozilla_Poison_h_
+#ifndef mozilla_Poison_h
+#define mozilla_Poison_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/StandardInteger.h"

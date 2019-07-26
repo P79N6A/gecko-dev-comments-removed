@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Char16_h_
-#define mozilla_Char16_h_
+
+#ifndef mozilla_Char16_h
+#define mozilla_Char16_h
 
 #include "mozilla/Assertions.h"
 

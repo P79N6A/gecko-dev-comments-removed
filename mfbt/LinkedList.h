@@ -52,8 +52,9 @@
 
 
 
-#ifndef mozilla_LinkedList_h_
-#define mozilla_LinkedList_h_
+
+#ifndef mozilla_LinkedList_h
+#define mozilla_LinkedList_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -424,4 +425,5 @@ class LinkedList
 } 
 
 #endif 
+
 #endif 

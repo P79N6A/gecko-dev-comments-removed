@@ -8,8 +8,9 @@
 
 
 
-#ifndef mozilla_AllocPolicy_h_
-#define mozilla_AllocPolicy_h_
+
+#ifndef mozilla_AllocPolicy_h
+#define mozilla_AllocPolicy_h
 
 #include <stddef.h>
 #include <stdlib.h>

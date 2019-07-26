@@ -8,8 +8,9 @@
 
 
 
-#ifndef mozilla_Util_h_
-#define mozilla_Util_h_
+
+#ifndef mozilla_Util_h
+#define mozilla_Util_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -332,4 +333,4 @@ ArrayEnd(T (&arr)[N])
 #  define MOZ_ARRAY_LENGTH(array)   (sizeof(array)/sizeof((array)[0]))
 #endif
 
-#endif  
+#endif 

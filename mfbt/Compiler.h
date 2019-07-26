@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Compiler_h_
-#define mozilla_Compiler_h_
+
+#ifndef mozilla_Compiler_h
+#define mozilla_Compiler_h
 
 #if !defined(__clang__) && defined(__GNUC__)
 
@@ -28,4 +29,4 @@
 
 #endif
 
-#endif  
+#endif 

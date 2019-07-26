@@ -59,8 +59,9 @@
 
 
 
-#ifndef mozilla_Endian_h_
-#define mozilla_Endian_h_
+
+#ifndef mozilla_Endian_h
+#define mozilla_Endian_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

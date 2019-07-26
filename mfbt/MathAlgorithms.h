@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_MathAlgorithms_h_
-#define mozilla_MathAlgorithms_h_
+
+#ifndef mozilla_MathAlgorithms_h
+#define mozilla_MathAlgorithms_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/StandardInteger.h"
@@ -425,4 +426,4 @@ RoundUpPow2(size_t x)
 
 } 
 
-#endif  
+#endif 

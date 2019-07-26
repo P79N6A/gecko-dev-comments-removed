@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_ThreadLocal_h_
-#define mozilla_ThreadLocal_h_
+
+#ifndef mozilla_ThreadLocal_h
+#define mozilla_ThreadLocal_h
 
 #if defined(XP_WIN)
 

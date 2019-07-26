@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Attributes_h_
-#define mozilla_Attributes_h_
+
+#ifndef mozilla_Attributes_h
+#define mozilla_Attributes_h
 
 #include "mozilla/Compiler.h"
 
@@ -427,4 +428,4 @@
 
 #endif 
 
-#endif  
+#endif 

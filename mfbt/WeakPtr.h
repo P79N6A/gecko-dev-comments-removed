@@ -58,8 +58,9 @@
 
 
 
-#ifndef mozilla_WeakPtr_h_
-#define mozilla_WeakPtr_h_
+
+#ifndef mozilla_WeakPtr_h
+#define mozilla_WeakPtr_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"

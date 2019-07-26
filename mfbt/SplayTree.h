@@ -9,9 +9,8 @@
 
 
 
-
-#ifndef mozilla_SplayTree_h_
-#define mozilla_SplayTree_h_
+#ifndef mozilla_SplayTree_h
+#define mozilla_SplayTree_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/NullPtr.h"

@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_FloatingPoint_h_
-#define mozilla_FloatingPoint_h_
+
+#ifndef mozilla_FloatingPoint_h
+#define mozilla_FloatingPoint_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -206,4 +207,4 @@ DoublesAreIdentical(double d1, double d2)
 
 } 
 
-#endif  
+#endif 

@@ -42,8 +42,9 @@
 
 
 
-#ifndef mozilla_HashFunctions_h_
-#define mozilla_HashFunctions_h_
+
+#ifndef mozilla_HashFunctions_h
+#define mozilla_HashFunctions_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -356,4 +357,5 @@ HashBytes(const void* bytes, size_t length);
 
 } 
 #endif 
+
 #endif 

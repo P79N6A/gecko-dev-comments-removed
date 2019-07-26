@@ -4,9 +4,8 @@
 
 
 
-
-#ifndef mozilla_Range_h_
-#define mozilla_Range_h_
+#ifndef mozilla_Range_h
+#define mozilla_Range_h
 
 #include "mozilla/NullPtr.h"
 #include "mozilla/RangedPtr.h"
@@ -46,4 +45,3 @@ class Range
 } 
 
 #endif 
-

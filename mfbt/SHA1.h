@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_SHA1_h_
-#define mozilla_SHA1_h_
+
+#ifndef mozilla_SHA1_h
+#define mozilla_SHA1_h
 
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Types.h"

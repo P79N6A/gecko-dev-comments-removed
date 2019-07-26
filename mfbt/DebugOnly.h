@@ -8,8 +8,9 @@
 
 
 
-#ifndef mozilla_DebugOnly_h_
-#define mozilla_DebugOnly_h_
+
+#ifndef mozilla_DebugOnly_h
+#define mozilla_DebugOnly_h
 
 namespace mozilla {
 
@@ -74,4 +75,4 @@ class DebugOnly
 
 }
 
-#endif  
+#endif 

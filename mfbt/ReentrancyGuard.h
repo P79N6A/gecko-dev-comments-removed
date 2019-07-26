@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_ReentrancyGuard_h_
-#define mozilla_ReentrancyGuard_h_
+
+#ifndef mozilla_ReentrancyGuard_h
+#define mozilla_ReentrancyGuard_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

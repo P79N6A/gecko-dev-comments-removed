@@ -12,8 +12,9 @@
 
 
 
-#ifndef mozilla_Atomics_h_
-#define mozilla_Atomics_h_
+
+#ifndef mozilla_Atomics_h
+#define mozilla_Atomics_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/TypeTraits.h"

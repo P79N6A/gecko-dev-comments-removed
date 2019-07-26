@@ -5,8 +5,9 @@
 
 
 
-#ifndef mozilla_Move_h_
-#define mozilla_Move_h_
+
+#ifndef mozilla_Move_h
+#define mozilla_Move_h
 
 namespace mozilla {
 
