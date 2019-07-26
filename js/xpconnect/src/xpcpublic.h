@@ -479,8 +479,14 @@ typedef JSObject*
 typedef JSObject*
 (*ConstructNavigatorProperty)(JSContext *cx, JS::Handle<JSObject*> naviObj);
 
+
+
+
+
+
+
 typedef bool
-(*PrefEnabled)();
+(ConstructorEnabled)(JSContext* cx, JS::Handle<JSObject*> obj);
 
 extern bool
 DefineStaticJSVals(JSContext *cx);

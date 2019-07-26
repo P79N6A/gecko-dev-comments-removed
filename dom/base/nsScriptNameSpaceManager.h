@@ -55,6 +55,9 @@ struct nsGlobalNameStruct
     eTypeExternalConstructorAlias
   } mType;
 
+  
+  
+  
   bool mChromeOnly;
   bool mDisabled;
 
@@ -71,7 +74,8 @@ struct nsGlobalNameStruct
     mozilla::dom::DefineInterface mDefineDOMInterface; 
     mozilla::dom::ConstructNavigatorProperty mConstructNavigatorProperty; 
   };
-  mozilla::dom::PrefEnabled mPrefEnabled; 
+  
+  mozilla::dom::ConstructorEnabled* mConstructorEnabled;
 };
 
 
@@ -140,11 +144,11 @@ public:
 
   void RegisterDefineDOMInterface(const nsAFlatString& aName,
     mozilla::dom::DefineInterface aDefineDOMInterface,
-    mozilla::dom::PrefEnabled aPrefEnabled);
+    mozilla::dom::ConstructorEnabled* aConstructorEnabled);
 
   void RegisterNavigatorDOMConstructor(const nsAFlatString& aName,
     mozilla::dom::ConstructNavigatorProperty aNavConstructor,
-    mozilla::dom::PrefEnabled aPrefEnabled);
+    mozilla::dom::ConstructorEnabled* aConstructorEnabled);
 
   typedef PLDHashOperator
   (* GlobalNameEnumerator)(const nsAString& aGlobalName, void* aClosure);

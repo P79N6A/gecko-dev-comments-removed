@@ -114,7 +114,8 @@ HTMLTrackElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
 bool
 HTMLTrackElement::IsWebVTTEnabled()
 {
-  return HTMLTrackElementBinding::PrefEnabled();
+  
+  return HTMLTrackElementBinding::ConstructorEnabled(nullptr, JS::NullPtr());
 }
 
 TextTrack*
