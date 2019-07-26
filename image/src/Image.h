@@ -110,9 +110,12 @@ public:
 
 
 
+
+
   virtual nsresult OnImageDataComplete(nsIRequest* aRequest,
                                        nsISupports* aContext,
-                                       nsresult status) = 0;
+                                       nsresult aStatus,
+                                       bool aLastPart) = 0;
 
   
 

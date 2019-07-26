@@ -628,7 +628,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   if (mImage) {
-    nsresult rv = mImage->OnImageDataComplete(aRequest, ctxt, status);
+    nsresult rv = mImage->OnImageDataComplete(aRequest, ctxt, status, lastPart);
 
     
     
@@ -636,10 +636,13 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     
     if (NS_FAILED(rv) && NS_SUCCEEDED(status))
       status = rv;
+  } else {
+    
+    
+    imgStatusTracker& statusTracker = GetStatusTracker();
+    statusTracker.RecordCancel();  
+    statusTracker.OnStopRequest(lastPart, status);
   }
-
-  imgStatusTracker& statusTracker = GetStatusTracker();
-  statusTracker.RecordStopRequest(lastPart, status);
 
   
   
@@ -652,8 +655,6 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     
     this->Cancel(status);
   }
-
-  GetStatusTracker().OnStopRequest(lastPart, status);
 
   mTimedChannel = nullptr;
   return NS_OK;

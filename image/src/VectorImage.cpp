@@ -361,9 +361,32 @@ VectorImage::OutOfProcessSizeOfDecoded() const
 nsresult
 VectorImage::OnImageDataComplete(nsIRequest* aRequest,
                                  nsISupports* aContext,
-                                 nsresult aStatus)
+                                 nsresult aStatus,
+                                 bool aLastPart)
 {
-  return OnStopRequest(aRequest, aContext, aStatus);
+  NS_ABORT_IF_FALSE(mStopRequest.empty(), "Duplicate call to OnImageDataComplete?");
+
+  
+  
+  nsresult finalStatus = OnStopRequest(aRequest, aContext, aStatus);
+
+  
+  if (NS_FAILED(aStatus))
+    finalStatus = aStatus;
+
+  
+  
+  if (mError || NS_FAILED(finalStatus)) {
+    GetStatusTracker().OnStopRequest(aLastPart, finalStatus);
+    return finalStatus;
+  }
+
+  
+  
+  
+  mStopRequest.construct(aLastPart, finalStatus);
+
+  return finalStatus;
 }
 
 nsresult
@@ -883,6 +906,13 @@ VectorImage::OnSVGDocumentLoaded()
     observer->OnStartContainer(); 
     observer->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
     observer->OnStopFrame();
+
+    if (!mStopRequest.empty()) {
+      GetStatusTracker().OnStopRequest(mStopRequest.ref().lastPart,
+                                       mStopRequest.ref().status);
+      mStopRequest.destroy();
+    }
+
     observer->OnStopDecode(NS_OK); 
   }
 
@@ -900,6 +930,14 @@ VectorImage::OnSVGDocumentError()
   mError = true;
 
   if (mStatusTracker) {
+    if (!mStopRequest.empty()) {
+      nsresult status = NS_FAILED(mStopRequest.ref().status)
+                      ? mStopRequest.ref().status
+                      : NS_ERROR_FAILURE;
+      GetStatusTracker().OnStopRequest(mStopRequest.ref().lastPart, status);
+      mStopRequest.destroy();
+    }
+
     
     mStatusTracker->GetDecoderObserver()->OnStopDecode(NS_ERROR_FAILURE);
   }

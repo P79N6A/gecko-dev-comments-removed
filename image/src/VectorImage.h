@@ -55,7 +55,8 @@ public:
                                         uint32_t aCount) MOZ_OVERRIDE;
   virtual nsresult OnImageDataComplete(nsIRequest* aRequest,
                                        nsISupports* aContext,
-                                       nsresult status) MOZ_OVERRIDE;
+                                       nsresult aResult,
+                                       bool aLastPart) MOZ_OVERRIDE;
   virtual nsresult OnNewSourceData() MOZ_OVERRIDE;
 
   
@@ -78,10 +79,27 @@ protected:
 private:
   void CancelAllListeners();
 
+  
+  
+  struct StopRequest
+  {
+    StopRequest(bool aLastPart = true, nsresult aStatus = NS_OK)
+      : lastPart(aLastPart)
+      , status(aStatus)
+    { }
+
+    bool lastPart;
+    nsresult status;
+  };
+
   nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
   nsRefPtr<SVGRootRenderingObserver> mRenderingObserver;
   nsRefPtr<SVGLoadEventListener>     mLoadEventListener;
   nsRefPtr<SVGParseCompleteListener> mParseCompleteListener;
+
+  
+  
+  Maybe<StopRequest> mStopRequest;       
 
   nsIntRect      mRestrictedRegion;       
                                           

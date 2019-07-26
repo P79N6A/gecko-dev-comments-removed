@@ -91,7 +91,7 @@ NS_IMETHODIMP imgTools::DecodeImage(nsIInputStream* aInStr,
   rv = image->OnImageDataAvailable(nullptr, nullptr, inStream, 0, uint32_t(length));
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = image->OnImageDataComplete(nullptr, nullptr, NS_OK);
+  rv = image->OnImageDataComplete(nullptr, nullptr, NS_OK, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
