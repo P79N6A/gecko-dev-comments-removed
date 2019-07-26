@@ -91,12 +91,6 @@ public:
 
 
 
-  void Destroy();
-
-  
-
-
-
 
 
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);
@@ -207,6 +201,12 @@ public:
   
   
   
+
+  
+
+
+
+  void Destroy();
 
   
 
@@ -505,8 +505,17 @@ private:
 
   nsRefPtr<CompositorParent> mCompositorParent;
   TaskThrottler mPaintThrottler;
+
+  
+
+
   nsRefPtr<GeckoContentController> mGeckoContentController;
   nsRefPtr<GestureEventListener> mGestureEventListener;
+  Monitor mRefPtrMonitor;
+
+  
+  already_AddRefed<GeckoContentController> GetGeckoContentController();
+  already_AddRefed<GestureEventListener> GetGestureEventListener();
 
   
   
