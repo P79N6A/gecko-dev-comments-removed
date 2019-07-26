@@ -1049,8 +1049,10 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
 
 
 bool
-js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
+js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
 {
+    RootedObject wobj(cx, wobjArg);
+    RootedObject newTarget(cx, newTargetArg);
     JS_ASSERT(IsCrossCompartmentWrapper(wobj));
     JS_ASSERT(!IsCrossCompartmentWrapper(newTarget));
     JSObject *origTarget = Wrapper::wrappedObject(wobj);
@@ -1077,9 +1079,9 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
     
     
     
-    JSObject *tobj = newTarget;
+    RootedObject tobj(cx, newTarget);
     AutoCompartment ac(cx, wobj);
-    if (!wcompartment->wrap(cx, &tobj, wobj))
+    if (!wcompartment->wrap(cx, tobj.address(), wobj))
         MOZ_CRASH();
 
     
@@ -1107,10 +1109,11 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 
 
 JS_FRIEND_API(bool)
-js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
-                              JSObject *newTarget)
+js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTargetArg,
+                              JSObject *newTargetArg)
 {
-    Value origv = ObjectValue(*oldTarget);
+    RootedValue origv(cx, ObjectValue(*oldTargetArg));
+    RootedObject newTarget(cx, newTargetArg);
 
     AutoWrapperVector toTransplant(cx);
     if (!toTransplant.reserve(cx->runtime->compartments.length()))
