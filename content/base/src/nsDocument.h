@@ -463,6 +463,29 @@ protected:
   bool mHaveShutDown;
 };
 
+class CSPErrorQueue
+{
+  public:
+    
+
+
+
+
+    void Add(const char* aMessageName);
+    void Flush(nsIDocument* aDocument);
+
+    CSPErrorQueue()
+    {
+    }
+
+    ~CSPErrorQueue()
+    {
+    }
+
+  private:
+    nsAutoTArray<const char*,5> mErrors;
+};
+
 
 
 
@@ -1320,6 +1343,11 @@ private:
   nsresult CheckFrameOptions();
   nsresult InitCSP(nsIChannel* aChannel);
 
+  void FlushCSPWebConsoleErrorQueue()
+  {
+    mCSPWebConsoleErrorQueue.Flush(this);
+  }
+
   
 
 
@@ -1417,6 +1445,8 @@ private:
 
   nsrefcnt mStackRefCnt;
   bool mNeedsReleaseAfterStackRefCntRelease;
+
+  CSPErrorQueue mCSPWebConsoleErrorQueue;
 
 #ifdef DEBUG
 protected:
