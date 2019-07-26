@@ -1471,9 +1471,16 @@ Http2Compressor::ProcessHeader(const nvPair inputPair, bool neverIndex)
   }
 
   
-  DoOutput(kToggleOn, &inputPair, matchedIndex);
-  if (matchedIndex >= mHeaderTable.VariableLength()) {
+  
+  bool isStatic = (matchedIndex >= mHeaderTable.VariableLength());
+  if (isStatic) {
     MakeRoom(newSize);
+  }
+
+  
+  DoOutput(kToggleOn, &inputPair, matchedIndex);
+
+  if (isStatic) {
     mHeaderTable.AddElement(inputPair.mName, inputPair.mValue);
     IncrementReferenceSetIndices();
     mAlternateReferenceSet.AppendElement(0);
