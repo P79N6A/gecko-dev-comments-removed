@@ -104,7 +104,7 @@ IonFrameIterator::maybeCallee() const
 bool
 IonFrameIterator::isNative() const
 {
-    if (type_ != IonFrame_Exit)
+    if (type_ != IonFrame_Exit || isFakeExitFrame())
         return false;
     return exitFrame()->footer()->ionCode() == NULL;
 }
@@ -203,11 +203,7 @@ IonFrameIterator::prevFp() const
     
     
     
-    if (prevType() == IonFrame_Unwound_Rectifier ||
-        prevType() == IonFrame_Unwound_OptimizedJS ||
-        prevType() == IonFrame_Unwound_BaselineStub)
-    {
-        JS_ASSERT(type_ == IonFrame_Exit || type_ == IonFrame_BaselineJS);
+    if (isFakeExitFrame()) {
         JS_ASSERT(SizeOfFramePrefix(IonFrame_BaselineJS) ==
                   SizeOfFramePrefix(IonFrame_OptimizedJS));
         currentSize = SizeOfFramePrefix(IonFrame_OptimizedJS);
@@ -698,13 +694,17 @@ IonActivationIterator::ionStackRange(uintptr_t *&min, uintptr_t *&end)
 {
     IonFrameIterator frames(top());
 
-    IonExitFrameLayout *exitFrame = frames.exitFrame();
-    IonExitFooterFrame *footer = exitFrame->footer();
-    const VMFunction *f = footer->function();
-    if (exitFrame->isWrapperExit() && f->outParam == Type_Handle)
-        min = reinterpret_cast<uintptr_t *>(footer->outVp());
-    else
-        min = reinterpret_cast<uintptr_t *>(footer);
+    if (frames.isFakeExitFrame()) {
+        min = reinterpret_cast<uintptr_t *>(frames.fp());
+    } else {
+        IonExitFrameLayout *exitFrame = frames.exitFrame();
+        IonExitFooterFrame *footer = exitFrame->footer();
+        const VMFunction *f = footer->function();
+        if (exitFrame->isWrapperExit() && f->outParam == Type_Handle)
+            min = reinterpret_cast<uintptr_t *>(footer->outVp());
+        else
+            min = reinterpret_cast<uintptr_t *>(footer);
+    }
 
     while (!frames.done())
         ++frames;
@@ -716,12 +716,8 @@ static void
 MarkIonExitFrame(JSTracer *trc, const IonFrameIterator &frame)
 {
     
-    if (frame.prevType() == IonFrame_Unwound_Rectifier ||
-        frame.prevType() == IonFrame_Unwound_OptimizedJS ||
-        frame.prevType() == IonFrame_Unwound_BaselineStub)
-    {
+    if (frame.isFakeExitFrame())
         return;
-    }
 
     IonExitFooterFrame *footer = frame.exitFrame()->footer();
 
