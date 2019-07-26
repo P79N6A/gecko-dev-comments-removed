@@ -400,7 +400,9 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 {
     LOG(("nsInputStreamPump::OnInputStreamReady [this=%p]\n", this));
 
-    PROFILER_LABEL("Input", "nsInputStreamPump::OnInputStreamReady");
+    PROFILER_LABEL("nsInputStreamPump", "OnInputStreamReady",
+        js::ProfileEntry::Category::NETWORK);
+
     
     
 
@@ -494,7 +496,9 @@ nsInputStreamPump::OnStateStart()
 {
     mMonitor.AssertCurrentThreadIn();
 
-    PROFILER_LABEL("nsInputStreamPump", "OnStateStart");
+    PROFILER_LABEL("nsInputStreamPump", "OnStateStart",
+        js::ProfileEntry::Category::NETWORK);
+
     LOG(("  OnStateStart [this=%p]\n", this));
 
     nsresult rv;
@@ -531,7 +535,9 @@ nsInputStreamPump::OnStateTransfer()
 {
     mMonitor.AssertCurrentThreadIn();
 
-    PROFILER_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
+    PROFILER_LABEL("nsInputStreamPump", "OnStateTransfer",
+        js::ProfileEntry::Category::NETWORK);
+
     LOG(("  OnStateTransfer [this=%p]\n", this));
 
     
@@ -674,7 +680,9 @@ nsInputStreamPump::OnStateStop()
         return STATE_IDLE;
     }
 
-    PROFILER_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
+    PROFILER_LABEL("nsInputStreamPump", "OnStateStop",
+        js::ProfileEntry::Category::NETWORK);
+
     LOG(("  OnStateStop [this=%p status=%x]\n", this, mStatus));
 
     

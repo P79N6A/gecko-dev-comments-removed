@@ -430,7 +430,8 @@ SharedSurface*
 SurfaceStream_TripleBuffer::SwapProducer(SurfaceFactory* factory,
                                          const gfx::IntSize& size)
 {
-    PROFILER_LABEL("SurfaceStream_TripleBuffer", "SwapProducer");
+    PROFILER_LABEL("SurfaceStream_TripleBuffer", "SwapProducer",
+        js::ProfileEntry::Category::GRAPHICS);
 
     MonitorAutoLock lock(mMonitor);
     if (mProducer) {
@@ -480,7 +481,8 @@ SurfaceStream_TripleBuffer_Async::~SurfaceStream_TripleBuffer_Async()
 void
 SurfaceStream_TripleBuffer_Async::WaitForCompositor()
 {
-    PROFILER_LABEL("SurfaceStream_TripleBuffer_Async", "WaitForCompositor");
+    PROFILER_LABEL("SurfaceStream_TripleBuffer_Async", "WaitForCompositor",
+        js::ProfileEntry::Category::GRAPHICS);
 
     
     

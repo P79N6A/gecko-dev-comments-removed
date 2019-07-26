@@ -63,6 +63,18 @@ class ProfileEntry
         FRAME_LABEL_COPY = 0x02
     };
 
+    enum class Category {
+        OTHER    = 0x04,
+        CSS      = 0x08,
+        JS       = 0x16,
+        GC       = 0x32,
+        CC       = 0x64,
+        NETWORK  = 0x128,
+        GRAPHICS = 0x256,
+        STORAGE  = 0x512,
+        EVENTS   = 0x1024
+    };
+
     
     
     
@@ -84,7 +96,7 @@ class ProfileEntry
     void setCppFrame(void *aSp, uint32_t aLine) volatile {
         flags |= IS_CPP_ENTRY;
         spOrScript = aSp;
-        lineOrPc = static_cast<int32_t>(aLine);
+        lineOrPc = aLine;
     }
 
     void setFlag(Flags flag) volatile {
@@ -109,7 +121,7 @@ class ProfileEntry
     }
     uint32_t line() const volatile {
         MOZ_ASSERT(!isJs());
-        return static_cast<uint32_t>(lineOrPc);
+        return lineOrPc;
     }
 
     
