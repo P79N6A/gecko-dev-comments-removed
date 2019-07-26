@@ -383,7 +383,9 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
                 break;
             }
 
-            final ImmutableViewportMetrics geckoMetrics = newMetrics;
+            
+            
+            final ImmutableViewportMetrics geckoMetrics = newMetrics.clamp();
             post(new Runnable() {
                 @Override
                 public void run() {
@@ -591,12 +593,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         synchronized (this) {
             ImmutableViewportMetrics currentMetrics = getViewportMetrics();
 
-            
-            
-            if (FloatUtils.fuzzyEquals(offsetY, pageTop)) {
-                offsetY = -currentMetrics.fixedLayerMarginTop;
-            }
-
             final ImmutableViewportMetrics newMetrics = currentMetrics
                 .setViewportOrigin(offsetX, offsetY)
                 .setZoomFactor(zoom)
@@ -612,7 +608,16 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
                     mGeckoViewport = newMetrics;
                 }
             });
-            setViewportMetrics(newMetrics);
+
+            
+            
+            if (FloatUtils.fuzzyEquals(offsetY, pageTop)
+                  && newMetrics.fixedLayerMarginTop > 0) {
+                setViewportMetrics(newMetrics.setViewportOrigin(offsetX,
+                    -newMetrics.fixedLayerMarginTop));
+            } else {
+                setViewportMetrics(newMetrics);
+            }
 
             Tab tab = Tabs.getInstance().getSelectedTab();
             mView.setBackgroundColor(tab.getBackgroundColor());
