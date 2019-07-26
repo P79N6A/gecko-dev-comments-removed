@@ -939,11 +939,6 @@ class MacroAssembler : public MacroAssemblerSpecific
         return truthy ? Assembler::Zero : Assembler::NonZero;
     }
 
-    void pushCalleeToken(Register callee, ExecutionMode mode);
-    void PushCalleeToken(Register callee, ExecutionMode mode);
-    void tagCallee(Register callee, ExecutionMode mode);
-    void clearCalleeTag(Register callee, ExecutionMode mode);
-
   private:
     
     

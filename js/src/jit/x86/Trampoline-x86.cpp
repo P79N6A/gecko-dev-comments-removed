@@ -353,7 +353,6 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     masm.loadPtr(Address(esp, IonRectifierFrameLayout::offsetOfCalleeToken()), eax);
-    masm.clearCalleeTag(eax, mode);
     masm.movzwl(Operand(eax, offsetof(JSFunction, nargs)), ecx);
     masm.subl(esi, ecx);
 
@@ -406,7 +405,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
     masm.push(edx); 
-    masm.pushCalleeToken(eax, mode);
+    masm.push(eax); 
     masm.push(ebx); 
 
     

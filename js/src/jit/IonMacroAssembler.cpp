@@ -1311,55 +1311,6 @@ MacroAssembler::handleFailure(ExecutionMode executionMode)
         sps_->reenter(*this, InvalidReg);
 }
 
-void
-MacroAssembler::pushCalleeToken(Register callee, ExecutionMode mode)
-{
-    
-    
-    
-    tagCallee(callee, mode);
-    push(callee);
-    clearCalleeTag(callee, mode);
-}
-
-void
-MacroAssembler::PushCalleeToken(Register callee, ExecutionMode mode)
-{
-    tagCallee(callee, mode);
-    Push(callee);
-    clearCalleeTag(callee, mode);
-}
-
-void
-MacroAssembler::tagCallee(Register callee, ExecutionMode mode)
-{
-    switch (mode) {
-      case SequentialExecution:
-        
-        return;
-      case ParallelExecution:
-        orPtr(Imm32(CalleeToken_ParallelFunction), callee);
-        return;
-      default:
-        MOZ_ASSUME_UNREACHABLE("No such execution mode");
-    }
-}
-
-void
-MacroAssembler::clearCalleeTag(Register callee, ExecutionMode mode)
-{
-    switch (mode) {
-      case SequentialExecution:
-        
-        return;
-      case ParallelExecution:
-        andPtr(Imm32(~0x3), callee);
-        return;
-      default:
-        MOZ_ASSUME_UNREACHABLE("No such execution mode");
-    }
-}
-
 static void printf0_(const char *output) {
     printf("%s", output);
 }

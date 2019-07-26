@@ -19,6 +19,7 @@
 #include "jsinferinlines.h"
 
 #include "jit/BaselineFrame-inl.h"
+#include "jit/IonFrames-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/StringObject-inl.h"
 
@@ -31,6 +32,13 @@ namespace jit {
 
 
  VMFunction *VMFunction::functions;
+
+AutoDetectInvalidation::AutoDetectInvalidation(JSContext *cx, Value *rval, IonScript *ionScript)
+  : cx_(cx),
+    ionScript_(ionScript ? ionScript : GetTopIonJSScript(cx)->ionScript()),
+    rval_(rval),
+    disabled_(false)
+{ }
 
 void
 VMFunction::addToFunctions()
