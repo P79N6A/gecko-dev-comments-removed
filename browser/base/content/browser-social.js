@@ -116,7 +116,7 @@ let SocialUI = {
   _activationEventHandler: function SocialUI_activationHandler(e) {
     
     
-    if (Social.active || !Social.provider)
+    if (Social.enabled || !Social.provider)
       return;
 
     let targetDoc = e.target;
