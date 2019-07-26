@@ -44,6 +44,7 @@ const JSPropertySpec SymbolObject::properties[] = {
 
 const JSFunctionSpec SymbolObject::methods[] = {
     JS_FN(js_toString_str, toString, 0, 0),
+    JS_FN(js_valueOf_str, valueOf, 0, 0),
     JS_FS_END
 };
 
@@ -181,6 +182,27 @@ SymbolObject::toString(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     return CallNonGenericMethod<IsSymbol, toString_impl>(cx, args);
+}
+
+
+bool
+SymbolObject::valueOf_impl(JSContext *cx, CallArgs args)
+{
+    
+    HandleValue thisv = args.thisv();
+    MOZ_ASSERT(IsSymbol(thisv));
+    if (thisv.isSymbol())
+        args.rval().set(thisv);
+    else
+        args.rval().setSymbol(thisv.toObject().as<SymbolObject>().unbox());
+    return true;
+}
+
+bool
+SymbolObject::valueOf(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return CallNonGenericMethod<IsSymbol, valueOf_impl>(cx, args);
 }
 
 JSObject *
