@@ -25,7 +25,7 @@ namespace mozilla {
 class InputEvent;
 
 namespace layers {
-class AsyncPanZoomController;
+class APZCTreeManager;
 class GestureEventListener;
 class TargetConfig;
 class LayerTransactionParent;
@@ -134,8 +134,10 @@ private:
   
   
   
-  nsRefPtr<layers::AsyncPanZoomController> mPanZoomController;
+  nsRefPtr<layers::APZCTreeManager> mApzcTreeManager;
   nsRefPtr<RemoteContentController> mContentController;
+
+  layers::APZCTreeManager* GetApzcTreeManager();
 
   
   

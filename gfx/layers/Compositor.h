@@ -402,6 +402,12 @@ public:
 
 
 
+  static void AssertOnCompositorThread();
+
+  
+
+
+
 
 
 

@@ -268,7 +268,7 @@ public:
 
 
 
-  void UpdateScrollOffset(CSSPoint aScrollOffset);
+  void UpdateScrollOffset(const CSSPoint& aScrollOffset);
 
   
 
