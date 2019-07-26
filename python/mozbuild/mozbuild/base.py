@@ -103,14 +103,20 @@ class MozbuildObject(object):
         
         
         
+        
+        
+        
+        
         env = dict(os.environ)
         if path is not None:
-            env['MOZCONFIG'] = path
+            env[str('MOZCONFIG')] = path
 
-        env['CONFIG_GUESS'] = self._config_guess
+        env[str('CONFIG_GUESS')] = self._config_guess
 
-        output = subprocess.check_output([loader, self.topsrcdir],
-            stderr=subprocess.PIPE, cwd=self.topsrcdir, env=env)
+        args = self._normalize_command([loader, self.topsrcdir], True)
+
+        output = subprocess.check_output(args, stderr=subprocess.PIPE,
+            cwd=self.topsrcdir, env=env)
 
         
         
@@ -147,7 +153,8 @@ class MozbuildObject(object):
         if self._config_guess_output is None:
             p = os.path.join(self.topsrcdir, 'build', 'autoconf',
                 'config.guess')
-            self._config_guess_output = subprocess.check_output([p],
+            args = self._normalize_command([p], True)
+            self._config_guess_output = subprocess.check_output(args,
                 cwd=self.topsrcdir).strip()
 
         return self._config_guess_output
@@ -292,20 +299,7 @@ class MozbuildObject(object):
         within a UNIX environment. Basically, if we are on Windows, it will
         execute the command via an appropriate UNIX-like shell.
         """
-        assert isinstance(args, list) and len(args)
-
-        if require_unix_environment and _in_msys:
-            
-            prog = args[0].replace('\\', '/')
-
-            
-            
-
-            
-            
-            
-            cline = subprocess.list2cmdline([prog] + args[1:])
-            args = [_current_shell, '-c', cline]
+        args = self._normalize_command(args, require_unix_environment)
 
         self.log(logging.INFO, 'process', {'args': args}, ' '.join(args))
 
@@ -335,6 +329,32 @@ class MozbuildObject(object):
 
         if status != 0 and not ignore_errors:
             raise Exception('Process executed with non-0 exit code: %s' % args)
+
+    def _normalize_command(self, args, require_unix_environment):
+        """Adjust command arguments to run in the necessary environment.
+
+        This exists mainly to facilitate execution of programs requiring a *NIX
+        shell when running on Windows. The caller specifies whether a shell
+        environment is required. If it is and we are running on Windows but
+        aren't running in the UNIX-like msys environment, then we rewrite the
+        command to execute via a shell.
+        """
+        assert isinstance(args, list) and len(args)
+
+        if not require_unix_environment or not _in_msys:
+            return args
+
+        
+        prog = args[0].replace('\\', '/')
+
+        
+        
+
+        
+        
+        
+        cline = subprocess.list2cmdline([prog] + args[1:])
+        return [_current_shell, '-c', cline]
 
     def _is_windows(self):
         return os.name in ('nt', 'ce')
