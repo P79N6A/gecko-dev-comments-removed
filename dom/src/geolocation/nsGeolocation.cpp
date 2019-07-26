@@ -789,109 +789,12 @@ nsGeolocationService::Observe(nsISupports* aSubject,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition *aSomewhere)
 {
-  
-  
-
-  if (!IsBetterPosition(aSomewhere))
-    return NS_OK;
-
   SetCachedPosition(aSomewhere);
 
   for (uint32_t i = 0; i< mGeolocators.Length(); i++) {
     mGeolocators[i]->Update(aSomewhere);
   }
   return NS_OK;
-}
-
-PRBool
-nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
-{
-  if (!aSomewhere) {
-    return false;
-  }
-  
-  if (mProviders.Count() == 1 || mLastPosition == nullptr) {
-    return true;
-  }
-
-  nsresult rv;
-  DOMTimeStamp oldTime;
-  rv = mLastPosition->GetTimestamp(&oldTime);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  nsCOMPtr<nsIDOMGeoPositionCoords> coords;
-  mLastPosition->GetCoords(getter_AddRefs(coords));
-  if (!coords) {
-    return PR_FALSE;
-  }
-
-  double oldAccuracy;
-  rv = coords->GetAccuracy(&oldAccuracy);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  double oldLat, oldLon;
-  rv = coords->GetLongitude(&oldLon);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  rv = coords->GetLatitude(&oldLat);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  aSomewhere->GetCoords(getter_AddRefs(coords));
-  if (!coords) {
-    return PR_FALSE;
-  }
-
-  double newAccuracy;
-  rv = coords->GetAccuracy(&newAccuracy);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  double newLat, newLon;
-  rv = coords->GetLongitude(&newLon);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  rv = coords->GetLatitude(&newLat);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  
-  
-  
-  double radsInDeg = M_PI / 180.0;
-
-  newLat *= radsInDeg;
-  newLon *= radsInDeg;
-  oldLat *= radsInDeg;
-  oldLon *= radsInDeg;
-
-  
-  
-  double radius = 6378137;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  double delta = acos( (sin(newLat) * sin(oldLat)) +
-                       (cos(newLat) * cos(oldLat) * cos(oldLon - newLon)) ) * radius; 
-
-  
-  
-  
-  double max_accuracy = PR_MAX(oldAccuracy, newAccuracy);
-  if (delta > max_accuracy)
-    return PR_TRUE;
-
-  
-  if (oldAccuracy >= newAccuracy)
-    return PR_TRUE;
-
-  return PR_FALSE;
 }
 
 void
