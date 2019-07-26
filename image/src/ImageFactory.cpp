@@ -88,6 +88,28 @@ ComputeImageFlags(ImageURL* uri, bool isMultiPart)
   return imageFlags;
 }
 
+ bool
+ImageFactory::CanRetargetOnDataAvailable(ImageURL* aURI, bool aIsMultiPart)
+{
+  
+  
+  
+  
+  
+
+  if (aIsMultiPart) {
+    return false;
+  }
+
+  uint32_t imageFlags = ComputeImageFlags(aURI, aIsMultiPart);
+  if (!(imageFlags & Image::INIT_FLAG_DISCARDABLE) &&
+      !(imageFlags & Image::INIT_FLAG_DECODE_ON_DRAW)) {
+    return false;
+  }
+
+  return true;
+}
+
  already_AddRefed<Image>
 ImageFactory::CreateImage(nsIRequest* aRequest,
                           imgStatusTracker* aStatusTracker,
