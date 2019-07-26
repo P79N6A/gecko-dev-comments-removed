@@ -8,6 +8,10 @@ const {Cc, Cu, Ci} = require("chrome");
 const promise = require("sdk/core/promise");
 const IOService = Cc["@mozilla.org/network/io-service;1"]
   .getService(Ci.nsIIOService);
+const {Spectrum} = require("devtools/shared/widgets/Spectrum");
+const EventEmitter = require("devtools/shared/event-emitter");
+const {colorUtils} = require("devtools/css-color");
+const Heritage = require("sdk/core/heritage");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
@@ -16,6 +20,10 @@ const GRADIENT_RE = /\b(repeating-)?(linear|radial)-gradient\(((rgb|hsl)a?\(.+?\
 const BORDERCOLOR_RE = /^border-[-a-z]*color$/ig;
 const BORDER_RE = /^border(-(top|bottom|left|right))?$/ig;
 const BACKGROUND_IMAGE_RE = /url\([\'\"]?(.*?)[\'\"]?\)/;
+const XHTML_NS = "http://www.w3.org/1999/xhtml";
+const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
+const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
+const ENTER_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
 
 
 
@@ -37,24 +45,59 @@ const BACKGROUND_IMAGE_RE = /url\([\'\"]?(.*?)[\'\"]?\)/;
 
 
 
+
+
+
+
+
+
+
+
+function OptionsStore(defaults, options) {
+  this.defaults = defaults || {};
+  this.options = options || {};
+}
+
+OptionsStore.prototype = {
+  
+
+
+
+
+
+  get: function(name) {
+    if (typeof this.options[name] !== "undefined") {
+      return this.options[name];
+    } else {
+      return this.defaults[name];
+    }
+  }
+};
 
 
 
 
 let PanelFactory = {
-  get: function(doc, xulTag="panel") {
+  
+
+
+
+
+
+
+  get: function(doc, options) {
     
-    let panel = doc.createElement(xulTag);
+    let panel = doc.createElement("panel");
     panel.setAttribute("hidden", true);
+    panel.setAttribute("ignorekeys", true);
 
-    if (xulTag === "panel") {
-      
-      panel.setAttribute("consumeoutsideclicks", false);
-      panel.setAttribute("type", "arrow");
-      panel.setAttribute("level", "top");
-    }
+    
+    panel.setAttribute("consumeoutsideclicks", options.get("consumeOutsideClick"));
+    panel.setAttribute("noautofocus", options.get("noAutoFocus"));
+    panel.setAttribute("type", "arrow");
+    panel.setAttribute("level", "top");
 
-    panel.setAttribute("class", "devtools-tooltip devtools-tooltip-" + xulTag);
+    panel.setAttribute("class", "devtools-tooltip theme-tooltip-panel");
     doc.querySelector("window").appendChild(panel);
 
     return panel;
@@ -84,12 +127,54 @@ let PanelFactory = {
 
 
 
-function Tooltip(doc) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Tooltip(doc, options) {
+  EventEmitter.decorate(this);
+
   this.doc = doc;
-  this.panel = PanelFactory.get(doc);
+  this.options = new OptionsStore({
+    consumeOutsideClick: false,
+    closeOnKeys: [ESCAPE_KEYCODE],
+    noAutoFocus: true
+  }, options);
+  this.panel = PanelFactory.get(doc, this.options);
 
   
   this.uid = "tooltip-" + Date.now();
+
+  
+  for (let event of ["shown", "hidden", "showing", "hiding"]) {
+    this["_onPopup" + event] = ((e) => {
+      return () => this.emit(e);
+    })(event);
+    this.panel.addEventListener("popup" + event,
+      this["_onPopup" + event], false);
+  }
+
+  
+  let win = this.doc.querySelector("window");
+  this._onKeyPress = event => {
+    this.emit("keypress", event.keyCode);
+    if (this.options.get("closeOnKeys").indexOf(event.keyCode) !== -1) {
+      this.hide();
+    }
+  };
+  win.addEventListener("keypress", this._onKeyPress, false);
 }
 
 module.exports.Tooltip = Tooltip;
@@ -125,6 +210,10 @@ Tooltip.prototype = {
     this.panel.hidePopup();
   },
 
+  isShown: function() {
+    return this.panel.state !== "closed" && this.panel.state !== "hiding";
+  },
+
   
 
 
@@ -139,6 +228,15 @@ Tooltip.prototype = {
 
   destroy: function () {
     this.hide();
+
+    for (let event of ["shown", "hidden", "showing", "hiding"]) {
+      this.panel.removeEventListener("popup" + event,
+        this["_onPopup" + event], false);
+    }
+
+    let win = this.doc.querySelector("window");
+    win.removeEventListener("keypress", this._onKeyPress, false);
+
     this.content = null;
 
     this.doc = null;
@@ -308,22 +406,20 @@ Tooltip.prototype = {
     vbox.setAttribute("align", "center")
 
     
-    let tiles = createTransparencyTiles(this.doc, vbox);
-
-    
-    let label = this.doc.createElement("label");
-    label.classList.add("devtools-tooltip-caption");
-    label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
-    vbox.appendChild(label);
-
-    
     let image = this.doc.createElement("image");
     image.setAttribute("src", imageUrl);
     if (options.maxDim) {
       image.style.maxWidth = options.maxDim + "px";
       image.style.maxHeight = options.maxDim + "px";
     }
-    tiles.appendChild(image);
+    vbox.appendChild(image);
+
+    
+    let label = this.doc.createElement("label");
+    label.classList.add("devtools-tooltip-caption");
+    label.classList.add("theme-comment");
+    label.textContent = l10n.strings.GetStringFromName("previewTooltip.image.brokenImage");
+    vbox.appendChild(label);
 
     this.content = vbox;
 
@@ -353,55 +449,47 @@ Tooltip.prototype = {
     }
   },
 
-  setCssGradientContent: function(cssGradient) {
-    let tiles = createTransparencyTiles(this.doc);
+  
 
-    let gradientBox = this.doc.createElement("box");
-    gradientBox.width = "100";
-    gradientBox.height = "100";
-    gradientBox.style.background = this.cssGradient;
-    gradientBox.style.borderRadius = "2px";
-    gradientBox.style.boxShadow = "inset 0 0 4px #333";
 
-    tiles.appendChild(gradientBox)
 
-    this.content = tiles;
-  },
 
-  _setSimpleCssPropertiesContent: function(properties, width, height) {
-    let tiles = createTransparencyTiles(this.doc);
+  setColorPickerContent: function(color) {
+    let def = promise.defer();
 
-    let box = this.doc.createElement("box");
-    box.width = width + "";
-    box.height = height + "";
-    properties.forEach(({name, value}) => {
-      box.style[name] = value;
-    });
-    tiles.appendChild(box);
+    
+    let iframe = this.doc.createElementNS(XHTML_NS, "iframe");
+    iframe.setAttribute("transparent", true);
+    iframe.setAttribute("width", "210");
+    iframe.setAttribute("height", "195");
+    iframe.setAttribute("flex", "1");
+    iframe.setAttribute("class", "devtools-tooltip-iframe");
 
-    this.content = tiles;
-  },
+    let panel = this.panel;
+    let xulWin = this.doc.ownerGlobal;
 
-  setCssColorContent: function(cssColor) {
-    this._setSimpleCssPropertiesContent([
-      {name: "background", value: cssColor},
-      {name: "borderRadius", value: "2px"},
-      {name: "boxShadow", value: "inset 0 0 4px #333"},
-    ], 50, 50);
-  },
+    
+    function onLoad() {
+      iframe.removeEventListener("load", onLoad, true);
+      let win = iframe.contentWindow.wrappedJSObject;
 
-  setCssBoxShadowContent: function(cssBoxShadow) {
-    this._setSimpleCssPropertiesContent([
-      {name: "background", value: "white"},
-      {name: "boxShadow", value: cssBoxShadow}
-    ], 80, 80);
-  },
+      let container = win.document.getElementById("spectrum");
+      let spectrum = new Spectrum(container, color);
 
-  setCssBorderContent: function(cssBorder) {
-    this._setSimpleCssPropertiesContent([
-      {name: "background", value: "white"},
-      {name: "border", value: cssBorder}
-    ], 80, 80);
+      
+      panel.addEventListener("popupshown", function shown() {
+        panel.removeEventListener("popupshown", shown, true);
+        spectrum.show();
+        def.resolve(spectrum);
+      }, true);
+    }
+    iframe.addEventListener("load", onLoad, true);
+    iframe.setAttribute("src", SPECTRUM_FRAME);
+
+    
+    this.content = iframe;
+
+    return def.promise;
   }
 };
 
@@ -409,14 +497,200 @@ Tooltip.prototype = {
 
 
 
-function createTransparencyTiles(doc, parentEl) {
-  let tiles = doc.createElement("box");
-  tiles.classList.add("devtools-tooltip-tiles");
-  if (parentEl) {
-    parentEl.appendChild(tiles);
-  }
-  return tiles;
+
+
+function SwatchBasedEditorTooltip(doc) {
+  
+  
+  
+  
+  this.tooltip = new Tooltip(doc, {
+    consumeOutsideClick: true,
+    closeOnKeys: [ESCAPE_KEYCODE, ENTER_KEYCODE],
+    noAutoFocus: false
+  });
+
+  
+  
+  this._onTooltipKeypress = (event, code) => {
+    if (code === ESCAPE_KEYCODE) {
+      this.revert();
+    } else if (code === ENTER_KEYCODE) {
+      this.commit();
+    }
+  };
+  this.tooltip.on("keypress", this._onTooltipKeypress);
+
+  
+  this.swatches = new Map();
+
+  
+  
+  
+  this.activeSwatch = null;
+
+  this._onSwatchClick = this._onSwatchClick.bind(this);
 }
+
+SwatchBasedEditorTooltip.prototype = {
+  show: function() {
+    if (this.activeSwatch) {
+      this.tooltip.show(this.activeSwatch, "topcenter bottomleft");
+    }
+  },
+
+  hide: function() {
+    this.tooltip.hide();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addSwatch: function(swatchEl, callbacks={}, originalValue) {
+    if (!callbacks.onPreview) callbacks.onPreview = function() {};
+    if (!callbacks.onRevert) callbacks.onRevert = function() {};
+    if (!callbacks.onCommit) callbacks.onCommit = function() {};
+
+    this.swatches.set(swatchEl, {
+      callbacks: callbacks,
+      originalValue: originalValue
+    });
+    swatchEl.addEventListener("click", this._onSwatchClick, false);
+  },
+
+  removeSwatch: function(swatchEl) {
+    if (this.swatches.has(swatchEl)) {
+      if (this.activeSwatch === swatchEl) {
+        this.hide();
+        this.activeSwatch = null;
+      }
+      swatchEl.removeEventListener("click", this._onSwatchClick, false);
+      this.swatches.delete(swatchEl);
+    }
+  },
+
+  _onSwatchClick: function(event) {
+    let swatch = this.swatches.get(event.target);
+    if (swatch) {
+      this.activeSwatch = event.target;
+      this.show();
+      event.stopPropagation();
+    }
+  },
+
+  
+
+
+  preview: function(value) {
+    if (this.activeSwatch) {
+      let swatch = this.swatches.get(this.activeSwatch);
+      swatch.callbacks.onPreview(value);
+    }
+  },
+
+  
+
+
+  revert: function() {
+    if (this.activeSwatch) {
+      let swatch = this.swatches.get(this.activeSwatch);
+      swatch.callbacks.onRevert(swatch.originalValue);
+    }
+  },
+
+  
+
+
+  commit: function() {
+    if (this.activeSwatch) {
+      let swatch = this.swatches.get(this.activeSwatch);
+      swatch.callbacks.onCommit();
+    }
+  },
+
+  destroy: function() {
+    this.swatches.clear();
+    this.activeSwatch = null;
+    this.tooltip.off("keypress", this._onTooltipKeypress);
+    this.tooltip.destroy();
+  }
+};
+
+
+
+
+
+
+
+
+
+
+function SwatchColorPickerTooltip(doc) {
+  SwatchBasedEditorTooltip.call(this, doc);
+
+  
+  
+  this.spectrum = this.tooltip.setColorPickerContent([0, 0, 0, 1]);
+  this._onSpectrumColorChange = this._onSpectrumColorChange.bind(this);
+}
+
+module.exports.SwatchColorPickerTooltip = SwatchColorPickerTooltip;
+
+SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.prototype, {
+  
+
+
+
+  show: function() {
+    
+    SwatchBasedEditorTooltip.prototype.show.call(this);
+    
+    if (this.activeSwatch) {
+      let swatch = this.swatches.get(this.activeSwatch);
+      let color = this.activeSwatch.style.backgroundColor;
+      this.spectrum.then(spectrum => {
+        spectrum.off("changed", this._onSpectrumColorChange);
+        spectrum.rgb = this._colorToRgba(color);
+        spectrum.on("changed", this._onSpectrumColorChange);
+        spectrum.updateUI();
+      });
+    }
+  },
+
+  _onSpectrumColorChange: function(event, rgba, cssColor) {
+    if (this.activeSwatch) {
+      this.activeSwatch.style.backgroundColor = cssColor;
+      this.activeSwatch.nextSibling.textContent = cssColor;
+      this.preview(cssColor);
+    }
+  },
+
+  _colorToRgba: function(color) {
+    color = new colorUtils.CssColor(color);
+    let rgba = color._getRGBATuple();
+    return [rgba.r, rgba.g, rgba.b, rgba.a];
+  },
+
+  destroy: function() {
+    SwatchBasedEditorTooltip.prototype.destroy.call(this);
+    this.spectrum.then(spectrum => {
+      spectrum.off("changed", this._onSpectrumColorChange);
+      spectrum.destroy();
+    });
+  }
+});
 
 
 
