@@ -1562,6 +1562,7 @@ RadioInterface.prototype = {
       }
       this._radioOffTimer.initWithCallback(this._fireRadioOffTimer.bind(this),
                                            RADIO_POWER_OFF_TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
+      this._radioOffAfterDataDisconnected = true;
       return;
     }
     this.setRadioEnabled(false);
@@ -2004,7 +2005,7 @@ RadioInterface.prototype = {
     
     
     if (datacall.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
-        this._changingRadioPower) {
+        this._radioOffAfterDataDisconnected) {
       let anyDataConnected = false;
       for each (let apnSetting in this.apnSettings.byApn) {
         for each (let type in apnSetting.types) {
@@ -2019,6 +2020,7 @@ RadioInterface.prototype = {
       }
       if (!anyDataConnected) {
         if (DEBUG) this.debug("All data connections are disconnected, set radio off.");
+        this._radioOffAfterDataDisconnected = false;
         this._cancelRadioOffTimer();
         this.setRadioEnabled(false);
       }
@@ -2281,6 +2283,10 @@ RadioInterface.prototype = {
   
   
   _changingRadioPower: false,
+
+  
+  
+  _radioOffAfterDataDisconnected: false,
 
   
   dataCallSettings: null,
