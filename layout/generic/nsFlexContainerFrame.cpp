@@ -517,6 +517,15 @@ protected:
 
 
 
+class FlexLine {
+public:
+  FlexLine() {}
+
+  nsTArray<FlexItem> mItems; 
+};
+
+
+
 static nscoord
 SumFlexItemMarginBoxMainSizes(const FlexboxAxisTracker& aAxisTracker,
                               const nsTArray<FlexItem>& aItems)
@@ -1975,13 +1984,14 @@ nsFlexContainerFrame::GenerateFlexItems(
   nsPresContext* aPresContext,
   const nsHTMLReflowState& aReflowState,
   const FlexboxAxisTracker& aAxisTracker,
-  nsTArray<FlexItem>& aFlexItems)
+  FlexLine& aFlexLine)
 {
-  MOZ_ASSERT(aFlexItems.IsEmpty(), "Expecting outparam to start out empty");
+  MOZ_ASSERT(aFlexLine.mItems.IsEmpty(),
+             "Expecting outparam to start out empty");
 
-  aFlexItems.SetCapacity(mFrames.GetLength());
+  aFlexLine.mItems.SetCapacity(mFrames.GetLength());
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    FlexItem* item = aFlexItems.AppendElement(
+    FlexItem* item = aFlexLine.mItems.AppendElement(
                        GenerateFlexItemForChild(aPresContext, e.get(),
                                                 aReflowState, aAxisTracker));
 
@@ -2310,9 +2320,9 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   const FlexboxAxisTracker axisTracker(this);
 
   
-  nsTArray<FlexItem> items;
+  FlexLine line;
   nsresult rv = GenerateFlexItems(aPresContext, aReflowState,
-                                  axisTracker, items);
+                                  axisTracker, line);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2328,16 +2338,16 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   const nscoord contentBoxMainSize =
-    ComputeFlexContainerMainSize(aReflowState, axisTracker, items,
+    ComputeFlexContainerMainSize(aReflowState, axisTracker, line.mItems,
                                  availableHeightForContent, aStatus);
 
-  ResolveFlexibleLengths(axisTracker, contentBoxMainSize, items);
+  ResolveFlexibleLengths(axisTracker, contentBoxMainSize, line.mItems);
 
   
   
   
-  for (uint32_t i = 0; i < items.Length(); ++i) {
-    FlexItem& curItem = items[i];
+  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
+    FlexItem& curItem = line.mItems[i];
 
     
     
@@ -2369,7 +2379,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   SingleLineCrossAxisPositionTracker lineCrossAxisPosnTracker(axisTracker);
 
-  lineCrossAxisPosnTracker.ComputeLineCrossSize(items);
+  lineCrossAxisPosnTracker.ComputeLineCrossSize(line.mItems);
   
   
   
@@ -2405,22 +2415,22 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   MainAxisPositionTracker mainAxisPosnTracker(this, axisTracker,
-                                              aReflowState, items,
+                                              aReflowState, line.mItems,
                                               contentBoxMainSize);
-  for (uint32_t i = 0; i < items.Length(); ++i) {
-    PositionItemInMainAxis(mainAxisPosnTracker, items[i]);
+  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
+    PositionItemInMainAxis(mainAxisPosnTracker, line.mItems[i]);
   }
 
   
   
-  for (uint32_t i = 0; i < items.Length(); ++i) {
+  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
     
     nscoord lineCrossSize = lineCrossAxisPosnTracker.GetLineCrossSize();
-    items[i].ResolveStretchedCrossSize(lineCrossSize, axisTracker);
+    line.mItems[i].ResolveStretchedCrossSize(lineCrossSize, axisTracker);
 
     
     PositionItemInCrossAxis(crossAxisPosnTracker.GetPosition(),
-                            lineCrossAxisPosnTracker, items[i]);
+                            lineCrossAxisPosnTracker, line.mItems[i]);
   }
 
   
@@ -2433,8 +2443,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  for (uint32_t i = 0; i < items.Length(); ++i) {
-    FlexItem& curItem = items[i];
+  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
+    FlexItem& curItem = line.mItems[i];
 
     nsPoint physicalPosn = axisTracker.PhysicalPositionFromLogicalPosition(
                              curItem.GetMainPosition(),
@@ -2554,7 +2564,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    NS_WARN_IF_FALSE(items.IsEmpty(),
+    NS_WARN_IF_FALSE(line.mItems.IsEmpty(),
                      "Have flex items but didn't get an ascent - that's odd "
                      "(or there are just gigantic sizes involved)");
     
