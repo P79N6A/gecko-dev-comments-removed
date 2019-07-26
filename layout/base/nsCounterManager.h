@@ -229,6 +229,21 @@ public:
     void Dump();
 #endif
 
+    static int32_t IncrementCounter(int32_t aOldValue, int32_t aIncrement)
+    {
+        int32_t newValue = aOldValue + aIncrement;
+        
+        
+        
+        
+        
+        
+        if ((aIncrement > 0) != (newValue > aOldValue)) {
+          newValue = aOldValue;
+        }
+        return newValue;
+    }
+
 private:
     
     bool AddResetOrIncrement(nsIFrame *aFrame, int32_t aIndex,
