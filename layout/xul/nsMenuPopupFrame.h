@@ -66,14 +66,6 @@ enum FlipStyle {
 };
 
 
-enum FlipType {
-  FlipType_Default = 0,
-  FlipType_None = 1,    
-  FlipType_Both = 2,    
-  FlipType_Slide = 3    
-};
-
-
 
 #define POPUPALIGNMENT_NONE 0
 #define POPUPALIGNMENT_TOPLEFT 1
@@ -467,7 +459,8 @@ protected:
 
   
   int8_t mConsumeRollupEvent;
-  FlipType mFlip; 
+  bool mFlipBoth; 
+  bool mSlide; 
 
   bool mIsOpenChanged; 
   bool mIsContextMenu; 
