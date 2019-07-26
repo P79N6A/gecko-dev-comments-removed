@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/HTMLHRElement.h"
+#include "mozilla/dom/HTMLHRElementBinding.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(HR)
 DOMCI_NODE_DATA(HTMLHRElement, mozilla::dom::HTMLHRElement)
@@ -14,6 +15,7 @@ namespace dom {
 HTMLHRElement::HTMLHRElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  SetIsDOMBinding();
 }
 
 HTMLHRElement::~HTMLHRElement()
@@ -263,6 +265,13 @@ nsMapRuleToAttributesFunc
 HTMLHRElement::GetAttributeMappingFunction() const
 {
   return &MapAttributesIntoRule;
+}
+
+JSObject*
+HTMLHRElement::WrapNode(JSContext* aCx, JSObject* aScope,
+                        bool* aTriedToWrap)
+{
+  return HTMLHRElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
