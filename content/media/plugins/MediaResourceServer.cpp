@@ -322,7 +322,7 @@ ServeResourceEvent::Shutdown()
   
   
   nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(NS_GetCurrentThread());
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(event);
 }
 
 

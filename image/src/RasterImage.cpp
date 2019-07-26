@@ -362,7 +362,7 @@ public:
     
     
     nsRefPtr<DrawRunner> runner = new DrawRunner(mScaleRequest.forget());
-    NS_DispatchToMainThread(runner, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(runner);
 
     return NS_OK;
   }

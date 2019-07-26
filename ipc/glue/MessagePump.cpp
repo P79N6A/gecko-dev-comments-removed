@@ -154,7 +154,7 @@ MessagePump::ScheduleWork()
   else {
     
     
-    NS_DispatchToMainThread(mDoWorkEvent, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(mDoWorkEvent);
   }
   event_.Signal();
 }

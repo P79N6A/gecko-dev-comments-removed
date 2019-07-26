@@ -523,7 +523,7 @@ public:
                                                 aDiscardedResult,
                                                 aOperation,
                                                 aOSError);
-    nsresult rv = NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+    nsresult rv = NS_DispatchToMainThread(event);
     if (NS_FAILED(rv)) {
       
       
@@ -541,7 +541,7 @@ public:
     nsRefPtr<SuccessEvent> event = new SuccessEvent(mOnSuccess.forget(),
                                                     mOnError.forget(),
                                                     aResult);
-    nsresult rv = NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+    nsresult rv = NS_DispatchToMainThread(event);
     if (NS_FAILED(rv)) {
       
       

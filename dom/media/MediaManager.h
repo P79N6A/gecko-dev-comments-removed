@@ -382,7 +382,7 @@ public:
                                               mWindowID, mError.forget());
           
           
-          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+          NS_DispatchToMainThread(event);
         }
         break;
 
@@ -409,7 +409,7 @@ public:
                                               mWindowID);
           
           
-          NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+          NS_DispatchToMainThread(event);
         }
         break;
 

@@ -1070,7 +1070,7 @@ nsGonkCameraControl::StopRecordingImpl()
   }
 
   
-  return NS_DispatchToMainThread(new RecordingComplete(mVideoFile), NS_DISPATCH_NORMAL);
+  return NS_DispatchToMainThread(new RecordingComplete(mVideoFile));
 }
 
 nsresult

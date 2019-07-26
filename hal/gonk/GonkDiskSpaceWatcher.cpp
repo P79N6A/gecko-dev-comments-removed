@@ -206,7 +206,7 @@ GonkDiskSpaceWatcher::DoStop()
 
   
   nsCOMPtr<nsIRunnable> runnable = new DiskSpaceCleaner();
-  NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(runnable);
 }
 
 
@@ -219,7 +219,7 @@ GonkDiskSpaceWatcher::NotifyUpdate()
 
   nsCOMPtr<nsIRunnable> runnable =
     new DiskSpaceNotifier(mIsDiskFull, mFreeSpace);
-  NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(runnable);
 }
 
 void

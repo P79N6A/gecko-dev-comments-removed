@@ -95,7 +95,7 @@ FilePickerParent::FileSizeAndDateRunnable::Run()
   }
 
   
-  if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
+  if (NS_FAILED(NS_DispatchToMainThread(this))) {
     
     
     

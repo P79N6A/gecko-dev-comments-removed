@@ -78,7 +78,7 @@ AsyncFontInfoLoader::Run()
     mFontInfo->Load();
 
     
-    NS_DispatchToMainThread(mCompleteEvent, NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(mCompleteEvent);
     mFontInfo = nullptr;
 
     return NS_OK;

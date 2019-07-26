@@ -165,7 +165,7 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void)
     
     
     
-    NS_DispatchToMainThread(new ShutdownPoolsEvent(), NS_DISPATCH_NORMAL);
+    NS_DispatchToMainThread(new ShutdownPoolsEvent());
   }
   return 0;
 }
