@@ -13,17 +13,33 @@ function test() {
     
     requestLongerTimeout(3);
 
+    
+    
+    
+    let getView = () => aMonitor.panelWin.NetMonitorView;
+    let getController = () => aMonitor.panelWin.NetMonitorController;
+
     let prefsToCheck = {
+      filters: {
+        
+        newValue: ["html", "css"],
+        
+        
+        validateValue: ($) => getView().RequestsMenu._activeFilters,
+        
+        
+        modifyFrontend: ($, aValue) => aValue.forEach(e => getView().RequestsMenu.filterOn(e))
+      },
       networkDetailsWidth: {
         newValue: ~~(Math.random() * 200 + 100),
-        validate: ($) => ~~$("#details-pane").getAttribute("width"),
+        validateValue: ($) => ~~$("#details-pane").getAttribute("width"),
         modifyFrontend: ($, aValue) => $("#details-pane").setAttribute("width", aValue)
       },
       networkDetailsHeight: {
         newValue: ~~(Math.random() * 300 + 100),
-        validate: ($) => ~~$("#details-pane").getAttribute("height"),
+        validateValue: ($) => ~~$("#details-pane").getAttribute("height"),
         modifyFrontend: ($, aValue) => $("#details-pane").setAttribute("height", aValue)
-      },
+      }
       
     };
 
@@ -42,11 +58,11 @@ function test() {
       for (let name in prefsToCheck) {
         let currentValue = aMonitor.panelWin.Prefs[name];
         let firstValue = prefsToCheck[name].firstValue;
-        let validate = prefsToCheck[name].validate;
+        let validateValue = prefsToCheck[name].validateValue;
 
-        is(currentValue, firstValue,
+        is(currentValue.toSource(), firstValue.toSource(),
           "Pref " + name + " should be equal to first value: " + firstValue);
-        is(currentValue, validate(aMonitor.panelWin.$),
+        is(currentValue.toSource(), validateValue(aMonitor.panelWin.$).toSource(),
           "Pref " + name + " should validate: " + currentValue);
       }
     }
@@ -58,17 +74,17 @@ function test() {
         let currentValue = aMonitor.panelWin.Prefs[name];
         let firstValue = prefsToCheck[name].firstValue;
         let newValue = prefsToCheck[name].newValue;
-        let validate = prefsToCheck[name].validate;
+        let validateValue = prefsToCheck[name].validateValue;
         let modifyFrontend = prefsToCheck[name].modifyFrontend;
 
         modifyFrontend(aMonitor.panelWin.$, newValue);
         info("Modified UI element affecting " + name + " to: " + newValue);
 
-        is(currentValue, firstValue,
+        is(currentValue.toSource(), firstValue.toSource(),
           "Pref " + name + " should still be equal to first value: " + firstValue);
-        isnot(currentValue, newValue,
+        isnot(currentValue.toSource(), newValue.toSource(),
           "Pref " + name + " should't yet be equal to second value: " + newValue);
-        is(newValue, validate(aMonitor.panelWin.$),
+        is(newValue.toSource(), validateValue(aMonitor.panelWin.$).toSource(),
           "The UI element affecting " + name + " should validate: " + newValue);
       }
     }
@@ -80,13 +96,13 @@ function test() {
         let currentValue = aMonitor.panelWin.Prefs[name];
         let firstValue = prefsToCheck[name].firstValue;
         let newValue = prefsToCheck[name].newValue;
-        let validate = prefsToCheck[name].validate;
+        let validateValue = prefsToCheck[name].validateValue;
 
-        isnot(currentValue, firstValue,
+        isnot(currentValue.toSource(), firstValue.toSource(),
           "Pref " + name + " should't be equal to first value: " + firstValue);
-        is(currentValue, newValue,
+        is(currentValue.toSource(), newValue.toSource(),
           "Pref " + name + " should now be equal to second value: " + newValue);
-        is(newValue, validate(aMonitor.panelWin.$),
+        is(newValue.toSource(), validateValue(aMonitor.panelWin.$).toSource(),
           "The UI element affecting " + name + " should validate: " + newValue);
       }
     }
@@ -98,17 +114,17 @@ function test() {
         let currentValue = aMonitor.panelWin.Prefs[name];
         let firstValue = prefsToCheck[name].firstValue;
         let newValue = prefsToCheck[name].newValue;
-        let validate = prefsToCheck[name].validate;
+        let validateValue = prefsToCheck[name].validateValue;
         let modifyFrontend = prefsToCheck[name].modifyFrontend;
 
         modifyFrontend(aMonitor.panelWin.$, firstValue);
         info("Modified UI element affecting " + name + " to: " + firstValue);
 
-        isnot(currentValue, firstValue,
+        isnot(currentValue.toSource(), firstValue.toSource(),
           "Pref " + name + " should't yet be equal to first value: " + firstValue);
-        is(currentValue, newValue,
+        is(currentValue.toSource(), newValue.toSource(),
           "Pref " + name + " should still be equal to second value: " + newValue);
-        is(firstValue, validate(aMonitor.panelWin.$),
+        is(firstValue.toSource(), validateValue(aMonitor.panelWin.$).toSource(),
           "The UI element affecting " + name + " should validate: " + firstValue);
       }
     }

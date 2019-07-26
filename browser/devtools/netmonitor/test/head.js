@@ -44,12 +44,16 @@ const TEST_IMAGE = EXAMPLE_URL + "test-image.png";
 waitForExplicitFinish();
 
 
-let gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
+const gEnableLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Services.prefs.setBoolPref("devtools.debugger.log", true);
+
+
+const gDefaultFilters = Services.prefs.getCharPref("devtools.netmonitor.filters");
 
 registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
   Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
+  Services.prefs.setCharPref("devtools.netmonitor.filters", gDefaultFilters);
 });
 
 function addTab(aUrl, aWindow) {
