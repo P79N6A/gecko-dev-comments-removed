@@ -530,6 +530,13 @@ nsresult MediaPipelineTransmit::Init() {
 
   stream_->AddListener(listener_);
 
+  
+  
+  
+  if (domstream_->AddDirectListener(listener_)) {
+    listener_->direct_connect_ = true;
+  }
+
   return MediaPipeline::Init();
 }
 
@@ -647,6 +654,18 @@ nsresult MediaPipeline::PipelineTransport::SendRtcpPacket_s(
                                out_len);
 }
 
+
+void MediaPipelineTransmit::PipelineListener::
+NotifyRealtimeData(MediaStreamGraph* graph, TrackID tid,
+                   TrackRate rate,
+                   TrackTicks offset,
+                   uint32_t events,
+                   const MediaSegment& media) {
+  MOZ_MTLOG(ML_DEBUG, "MediaPipeline::NotifyRealtimeData()");
+
+  NewData(graph, tid, rate, offset, events, media);
+}
+
 void MediaPipelineTransmit::PipelineListener::
 NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
                          TrackRate rate,
@@ -655,6 +674,18 @@ NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
                          const MediaSegment& queued_media) {
   MOZ_MTLOG(ML_DEBUG, "MediaPipeline::NotifyQueuedTrackChanges()");
 
+  
+  if (!direct_connect_) {
+    NewData(graph, tid, rate, offset, events, queued_media);
+  }
+}
+
+void MediaPipelineTransmit::PipelineListener::
+NewData(MediaStreamGraph* graph, TrackID tid,
+        TrackRate rate,
+        TrackTicks offset,
+        uint32_t events,
+        const MediaSegment& media) {
   if (!active_) {
     MOZ_MTLOG(ML_DEBUG, "Discarding packets because transport not ready");
     return;
@@ -663,13 +694,13 @@ NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
   
   
   
-  if (queued_media.GetType() == MediaSegment::AUDIO) {
+  if (media.GetType() == MediaSegment::AUDIO) {
     if (conduit_->type() != MediaSessionConduit::AUDIO) {
       
       return;
     }
     AudioSegment* audio = const_cast<AudioSegment *>(
-        static_cast<const AudioSegment *>(&queued_media));
+        static_cast<const AudioSegment *>(&media));
 
     AudioSegment::ChunkIterator iter(*audio);
     while(!iter.IsEnded()) {
@@ -677,14 +708,14 @@ NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
                         rate, *iter);
       iter.Next();
     }
-  } else if (queued_media.GetType() == MediaSegment::VIDEO) {
+  } else if (media.GetType() == MediaSegment::VIDEO) {
 #ifdef MOZILLA_INTERNAL_API
     if (conduit_->type() != MediaSessionConduit::VIDEO) {
       
       return;
     }
     VideoSegment* video = const_cast<VideoSegment *>(
-        static_cast<const VideoSegment *>(&queued_media));
+        static_cast<const VideoSegment *>(&media));
 
     VideoSegment::ChunkIterator iter(*video);
     while(!iter.IsEnded()) {

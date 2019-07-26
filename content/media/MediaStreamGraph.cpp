@@ -1976,7 +1976,7 @@ SourceMediaStream::AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart,
 }
 
 bool
-SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment)
+SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment, MediaSegment *aRawSegment)
 {
   MutexAutoLock lock(mMutex);
   
@@ -1990,7 +1990,9 @@ SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment)
       
       
 
-      track->mData->AppendFrom(aSegment);
+      
+      NotifyDirectConsumers(track, aRawSegment ? aRawSegment : aSegment);
+      track->mData->AppendFrom(aSegment); 
       appended = true;
     } else {
       aSegment->Clear();
@@ -2000,6 +2002,35 @@ SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment)
     GraphImpl()->EnsureNextIteration();
   }
   return appended;
+}
+
+void
+SourceMediaStream::NotifyDirectConsumers(TrackData *aTrack,
+                                         MediaSegment *aSegment)
+{
+  
+  MOZ_ASSERT(aTrack);
+
+  for (uint32_t j = 0; j < mDirectListeners.Length(); ++j) {
+    MediaStreamDirectListener* l = mDirectListeners[j];
+    TrackTicks offset = 0; 
+    l->NotifyRealtimeData(static_cast<MediaStreamGraph*>(GraphImpl()), aTrack->mID, aTrack->mRate,
+                          offset, aTrack->mCommands, *aSegment);
+  }
+}
+
+void
+SourceMediaStream::AddDirectListener(MediaStreamDirectListener* aListener)
+{
+  MutexAutoLock lock(mMutex);
+  mDirectListeners.AppendElement(aListener);
+}
+
+void
+SourceMediaStream::RemoveDirectListener(MediaStreamDirectListener* aListener)
+{
+  MutexAutoLock lock(mMutex);
+  mDirectListeners.RemoveElement(aListener);
 }
 
 bool

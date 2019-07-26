@@ -296,6 +296,23 @@ public:
   }
 
   
+  virtual bool AddDirectListener(MediaStreamDirectListener *aListener) MOZ_OVERRIDE
+  {
+    if (mSourceStream) {
+      mSourceStream->AddDirectListener(aListener);
+      return true; 
+    }
+    return false;
+  }
+
+  virtual void RemoveDirectListener(MediaStreamDirectListener *aListener) MOZ_OVERRIDE
+  {
+    if (mSourceStream) {
+      mSourceStream->RemoveDirectListener(aListener);
+    }
+  }
+
+  
   
   nsRefPtr<SourceMediaStream> mSourceStream;
   nsRefPtr<MediaInputPort> mPort;

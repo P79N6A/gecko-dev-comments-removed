@@ -39,6 +39,8 @@ class AudioStreamTrack;
 class VideoStreamTrack;
 }
 
+class MediaStreamDirectListener;
+
 
 
 
@@ -73,6 +75,14 @@ public:
   void GetVideoTracks(nsTArray<nsRefPtr<VideoStreamTrack> >& aTracks);
 
   MediaStream* GetStream() const { return mStream; }
+
+  
+
+
+
+
+  virtual bool AddDirectListener(MediaStreamDirectListener *aListener) { return false; }
+  virtual void RemoveDirectListener(MediaStreamDirectListener *aListener) {}
 
   bool IsFinished();
   

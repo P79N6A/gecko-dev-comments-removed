@@ -175,6 +175,30 @@ public:
 
 
 
+class MediaStreamDirectListener : public MediaStreamListener
+{
+public:
+  virtual ~MediaStreamDirectListener() {}
+
+  
+
+
+
+
+
+  virtual void NotifyRealtimeData(MediaStreamGraph* aGraph, TrackID aID,
+                                  TrackRate aTrackRate,
+                                  TrackTicks aTrackOffset,
+                                  uint32_t aTrackEvents,
+                                  const MediaSegment& aMedia) {}
+};
+
+
+
+
+
+
+
 
 
 
@@ -599,6 +623,10 @@ public:
 
 
   void SetPullEnabled(bool aEnabled);
+
+  void AddDirectListener(MediaStreamDirectListener* aListener);
+  void RemoveDirectListener(MediaStreamDirectListener* aListener);
+
   
 
 
@@ -613,7 +641,7 @@ public:
 
 
 
-  bool AppendToTrack(TrackID aID, MediaSegment* aSegment);
+  bool AppendToTrack(TrackID aID, MediaSegment* aSegment, MediaSegment *aRawSegment = nullptr);
   
 
 
@@ -716,6 +744,15 @@ protected:
   }
 
   
+
+
+
+
+
+  void NotifyDirectConsumers(TrackData *aTrack,
+                             MediaSegment *aSegment);
+
+  
   MediaStreamListener::Consumption mLastConsumptionState;
 
   
@@ -724,6 +761,7 @@ protected:
   
   StreamTime mUpdateKnownTracksTime;
   nsTArray<TrackData> mUpdateTracks;
+  nsTArray<nsRefPtr<MediaStreamDirectListener> > mDirectListeners;
   bool mPullEnabled;
   bool mUpdateFinished;
   bool mDestroyed;
