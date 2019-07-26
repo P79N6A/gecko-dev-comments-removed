@@ -4089,20 +4089,6 @@ pref("image.mem.max_decoded_image_kb", 51200);
 
 
 
-pref("image.mem.surfacecache.min_expiration_ms", 60000); 
-
-
-pref("image.mem.surfacecache.max_size_kb", 102400); 
-
-
-
-
-
-
-pref("image.mem.surfacecache.size_factor", 64);
-
-
-
 pref("image.multithreaded_decoding.enabled", true);
 
 
