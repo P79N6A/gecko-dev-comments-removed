@@ -225,6 +225,7 @@ pref("general.autoScroll", true);
 
 
 pref("general.useragent.override.aol.com", "Gecko/[^ ]*#Gecko/20100101");
+pref("general.useragent.complexOverride.moodle", true); 
 
 
 pref("browser.shell.checkDefaultBrowser", true);
