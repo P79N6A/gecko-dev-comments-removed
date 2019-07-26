@@ -226,7 +226,7 @@ this.DownloadsCommon = {
 
 
 
-  summarizeDownloads: function DC_summarizeDownloads(aDownloads)
+  summarizeDownloads: function DC_summarizeDownloads(aDataItems)
   {
     let summary = {
       numActive: 0,
@@ -244,11 +244,9 @@ this.DownloadsCommon = {
       percentComplete: -1
     }
 
-    
-    
-    for (let download of aDownloads) {
+    for (let dataItem of aDataItems) {
       summary.numActive++;
-      switch (download.state) {
+      switch (dataItem.state) {
         case nsIDM.DOWNLOAD_PAUSED:
           summary.numPaused++;
           break;
@@ -257,21 +255,21 @@ this.DownloadsCommon = {
           break;
         case nsIDM.DOWNLOAD_DOWNLOADING:
           summary.numDownloading++;
-          if (download.size > 0 && download.speed > 0) {
-            let sizeLeft = download.size - download.amountTransferred;
+          if (dataItem.maxBytes > 0 && dataItem.speed > 0) {
+            let sizeLeft = dataItem.maxBytes - dataItem.currBytes;
             summary.rawTimeLeft = Math.max(summary.rawTimeLeft,
-                                           sizeLeft / download.speed);
+                                           sizeLeft / dataItem.speed);
             summary.slowestSpeed = Math.min(summary.slowestSpeed,
-                                            download.speed);
+                                            dataItem.speed);
           }
           break;
       }
       
-      if (download.size > 0 &&
-          download.state != nsIDM.DOWNLOAD_CANCELED &&
-          download.state != nsIDM.DOWNLOAD_FAILED) {
-        summary.totalSize += download.size;
-        summary.totalTransferred += download.amountTransferred;
+      if (dataItem.maxBytes > 0 &&
+          dataItem.state != nsIDM.DOWNLOAD_CANCELED &&
+          dataItem.state != nsIDM.DOWNLOAD_FAILED) {
+        summary.totalSize += dataItem.maxBytes;
+        summary.totalTransferred += dataItem.currBytes;
       }
     }
 
@@ -371,7 +369,7 @@ const DownloadsData = {
   {
     
     aDownloadManagerService.addListener(this);
-    Services.obs.addObserver(this, "download-manager-remove-download", false);
+    Services.obs.addObserver(this, "download-manager-remove-download-guid", false);
     Services.obs.addObserver(this, "download-manager-database-type-changed",
                              false);
   },
@@ -385,7 +383,7 @@ const DownloadsData = {
 
     
     Services.obs.removeObserver(this, "download-manager-database-type-changed");
-    Services.obs.removeObserver(this, "download-manager-remove-download");
+    Services.obs.removeObserver(this, "download-manager-remove-download-guid");
     Services.downloads.removeListener(this);
   },
 
@@ -442,7 +440,7 @@ const DownloadsData = {
     let loadedItemsArray = [dataItem
                             for each (dataItem in this.dataItems)
                             if (dataItem)];
-    loadedItemsArray.sort(function(a, b) b.downloadId - a.downloadId);
+    loadedItemsArray.sort(function(a, b) b.startTime - a.startTime);
     loadedItemsArray.forEach(
       function (dataItem) aView.onDataItemAdded(dataItem, false)
     );
@@ -507,21 +505,21 @@ const DownloadsData = {
 
 
 
-  _getOrAddDataItem: function DD_getOrAddDataItem(aSource, aMayReuseId)
+  _getOrAddDataItem: function DD_getOrAddDataItem(aSource, aMayReuseGUID)
   {
-    let downloadId = (aSource instanceof Ci.nsIDownload)
-                     ? aSource.id
-                     : aSource.getResultByName("id");
-    if (downloadId in this.dataItems) {
-      let existingItem = this.dataItems[downloadId];
-      if (existingItem || !aMayReuseId) {
+    let downloadGuid = (aSource instanceof Ci.nsIDownload)
+                       ? aSource.guid
+                       : aSource.getResultByName("guid");
+    if (downloadGuid in this.dataItems) {
+      let existingItem = this.dataItems[downloadGuid];
+      if (existingItem || !aMayReuseGUID) {
         
         return existingItem;
       }
     }
 
     let dataItem = new DownloadsDataItem(aSource);
-    this.dataItems[downloadId] = dataItem;
+    this.dataItems[downloadGuid] = dataItem;
 
     
     let addToStartOfList = aSource instanceof Ci.nsIDownload;
@@ -612,10 +610,10 @@ const DownloadsData = {
         
         
         let statement = Services.downloads.DBConnection.createAsyncStatement(
-          "SELECT id, target, name, source, referrer, state, "
+          "SELECT guid, target, name, source, referrer, state, "
         +        "startTime, endTime, currBytes, maxBytes "
         + "FROM moz_downloads "
-        + "ORDER BY id DESC"
+        + "ORDER BY startTime DESC"
         );
         try {
           this._pendingStatement = statement.executeAsync(this);
@@ -691,10 +689,11 @@ const DownloadsData = {
   observe: function DD_observe(aSubject, aTopic, aData)
   {
     switch (aTopic) {
-      case "download-manager-remove-download":
+      case "download-manager-remove-download-guid":
         
         if (aSubject) {
-          this._removeDataItem(aSubject.QueryInterface(Ci.nsISupportsPRUint32));
+          this._removeDataItem(aSubject.QueryInterface(Ci.nsISupportsCString)
+                                       .data);
           break;
         }
 
@@ -702,11 +701,15 @@ const DownloadsData = {
         
         for each (let dataItem in this.dataItems) {
           if (dataItem) {
-            try {
-              Services.downloads.getDownload(dataItem.downloadId);
-            } catch (ex) {
-              this._removeDataItem(dataItem.downloadId);
-            }
+            
+            
+            let dataItemBinding = dataItem;
+            Services.downloads.getDownloadByGUID(dataItemBinding.downloadGuid,
+                                                 function(aStatus, aResult) {
+              if (aStatus == Components.results.NS_ERROR_NOT_AVAILABLE) {
+                this._removeDataItem(dataItemBinding.downloadGuid);
+              }
+            }.bind(this));
           }
         }
         break;
@@ -761,12 +764,8 @@ const DownloadsData = {
     
     
     
-    
-    
-    let downloadIsGetter = Object.getOwnPropertyDescriptor(dataItem, "download")
-                                 .value === undefined;
-    if (!downloadIsGetter) {
-      dataItem.download = aDownload;
+    if (dataItem._download) {
+      dataItem._download = aDownload;
     }
 
     this._views.forEach(
@@ -884,10 +883,10 @@ DownloadsDataItem.prototype = {
 
   _initFromDownload: function DDI_initFromDownload(aDownload)
   {
-    this.download = aDownload;
+    this._download = aDownload;
 
     
-    this.downloadId = aDownload.id;
+    this.downloadGuid = aDownload.guid;
     this.file = aDownload.target.spec;
     this.target = aDownload.displayName;
     this.uri = aDownload.source.spec;
@@ -917,7 +916,8 @@ DownloadsDataItem.prototype = {
   _initFromDataRow: function DDI_initFromDataRow(aStorageRow)
   {
     
-    this.downloadId = aStorageRow.getResultByName("id");
+    this._download = null;
+    this.downloadGuid = aStorageRow.getResultByName("guid");
     this.file = aStorageRow.getResultByName("target");
     this.target = aStorageRow.getResultByName("name");
     this.uri = aStorageRow.getResultByName("source");
@@ -929,20 +929,21 @@ DownloadsDataItem.prototype = {
     this.maxBytes = aStorageRow.getResultByName("maxBytes");
 
     
-    XPCOMUtils.defineLazyGetter(this, "download", function ()
-                                Services.downloads.getDownload(this.downloadId));
+    
+    
+    
+    
+    
+    
 
     
     
-    
-    
-    
-    
-    
+    this.resumable = true;
+
     if (this.state == nsIDM.DOWNLOAD_DOWNLOADING) {
-      this.resumable = this.download.resumable;
-    } else {
-      this.resumable = true;
+      this.getDownload(function(aDownload) {
+        this.resumable = aDownload.resumable;
+      }.bind(this));
     }
 
     
@@ -950,6 +951,35 @@ DownloadsDataItem.prototype = {
     this.percentComplete = this.maxBytes <= 0
                            ? -1
                            : Math.round(this.currBytes / this.maxBytes * 100);
+  },
+
+  
+
+
+
+
+
+
+
+  getDownload: function DDI_getDownload(aCallback) {
+    if (this._download) {
+      
+      let download = this._download;
+      Services.tm.mainThread.dispatch(function () aCallback(download),
+                                      Ci.nsIThread.DISPATCH_NORMAL);
+    } else {
+      Services.downloads.getDownloadByGUID(this.downloadGuid,
+                                           function(aStatus, aResult) {
+        if (!Components.isSuccessCode(aStatus)) {
+          Cu.reportError(
+            new Components.Exception("Cannot retrieve download for GUID: " +
+                                     this.downloadGuid));
+        } else {
+          this._download = aResult;
+          aCallback(aResult);
+        }
+      }.bind(this));
+    }
   },
 
   
@@ -1457,14 +1487,11 @@ const DownloadsIndicatorData = {
 
 
 
-  _activeDownloads: function DID_activeDownloads()
+  _activeDataItems: function DID_activeDataItems()
   {
-    
-    
-    if (this._itemCount > 0) {
-      let downloads = Services.downloads.activeDownloads;
-      while (downloads.hasMoreElements()) {
-        yield downloads.getNext().QueryInterface(Ci.nsIDownload);
+    for each (let dataItem in DownloadsCommon.data.dataItems) {
+      if (dataItem && dataItem.inProgress) {
+        yield dataItem;
       }
     }
   },
@@ -1475,7 +1502,7 @@ const DownloadsIndicatorData = {
   _refreshProperties: function DID_refreshProperties()
   {
     let summary =
-      DownloadsCommon.summarizeDownloads(this._activeDownloads());
+      DownloadsCommon.summarizeDownloads(this._activeDataItems());
 
     
     this._hasDownloads = (this._itemCount > 0);
@@ -1662,11 +1689,11 @@ DownloadsSummaryData.prototype = {
 
 
 
-  _downloadsForSummary: function DSD_downloadsForSummary()
+  _dataItemsForSummary: function DSD_dataItemsForSummary()
   {
     if (this._dataItems.length > 0) {
       for (let i = this._numToExclude; i < this._dataItems.length; ++i) {
-        yield this._dataItems[i].download;
+        yield this._dataItems[i];
       }
     }
   },
@@ -1678,7 +1705,7 @@ DownloadsSummaryData.prototype = {
   {
     
     let summary =
-      DownloadsCommon.summarizeDownloads(this._downloadsForSummary());
+      DownloadsCommon.summarizeDownloads(this._dataItemsForSummary());
 
     this._description = DownloadsCommon.strings
                                        .otherDownloads(summary.numActive);
