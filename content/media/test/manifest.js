@@ -233,6 +233,7 @@ var gInvalidTests = [
   { name:"invalid-cmap-s0c0.opus", type:"audio/ogg; codecs=opus"},
   { name:"invalid-cmap-s0c2.opus", type:"audio/ogg; codecs=opus"},
   { name:"invalid-cmap-s1c2.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-preskip.webm", type:"audio/webm; codecs=opus"},
 ];
 
 
