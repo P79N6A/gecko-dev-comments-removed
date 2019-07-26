@@ -147,6 +147,9 @@ WebGLTexture::SetImageInfo(GLenum aTarget, GLint aLevel,
     if (aLevel > 0)
         SetCustomMipmap();
 
+    
+    NotifyFBsStatusChanged();
+
     SetFakeBlackStatus(WebGLTextureFakeBlackStatus::Unknown);
 }
 

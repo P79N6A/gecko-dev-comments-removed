@@ -720,6 +720,9 @@ WebGLContext::DeleteRenderbuffer(WebGLRenderbuffer *rbuf)
     if (mBoundFramebuffer)
         mBoundFramebuffer->DetachRenderbuffer(rbuf);
 
+    
+    rbuf->NotifyFBsStatusChanged();
+
     if (mBoundRenderbuffer == rbuf)
         BindRenderbuffer(LOCAL_GL_RENDERBUFFER,
                          static_cast<WebGLRenderbuffer*>(nullptr));
@@ -741,6 +744,9 @@ WebGLContext::DeleteTexture(WebGLTexture *tex)
 
     if (mBoundFramebuffer)
         mBoundFramebuffer->DetachTexture(tex);
+
+    
+    tex->NotifyFBsStatusChanged();
 
     GLuint activeTexture = mActiveTexture;
     for (int32_t i = 0; i < mGLMaxTextureUnits; i++) {
@@ -2662,6 +2668,8 @@ WebGLContext::RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei 
                        height != mBoundRenderbuffer->Height() ||
                        internalformat != mBoundRenderbuffer->InternalFormat();
     if (sizeChanges) {
+        
+        mBoundRenderbuffer->NotifyFBsStatusChanged();
         GetAndFlushUnderlyingGLErrors();
         mBoundRenderbuffer->RenderbufferStorage(internalformatForGL, width, height);
         GLenum error = GetAndFlushUnderlyingGLErrors();
