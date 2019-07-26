@@ -407,6 +407,9 @@ CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32_t *callPointOffset)
 bool
 CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
 {
+    
+    JS_ASSERT(fun.executionMode == gen->info().executionMode());
+
 #ifdef DEBUG
     if (ins->mirRaw()) {
         JS_ASSERT(ins->mirRaw()->isInstruction());

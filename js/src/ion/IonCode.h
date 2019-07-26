@@ -178,7 +178,8 @@ struct IonScript
 
     
     
-    bool hasInvalidatedCallTarget_;
+    
+    bool hasUncompiledCallTarget_;
 
     
     bool hasSPSInstrumentation_;
@@ -376,14 +377,14 @@ struct IonScript
     bool bailoutExpected() const {
         return numBailouts_ > 0;
     }
-    void setHasInvalidatedCallTarget() {
-        hasInvalidatedCallTarget_ = true;
+    void setHasUncompiledCallTarget() {
+        hasUncompiledCallTarget_ = true;
     }
-    void clearHasInvalidatedCallTarget() {
-        hasInvalidatedCallTarget_ = false;
+    void clearHasUncompiledCallTarget() {
+        hasUncompiledCallTarget_ = false;
     }
-    bool hasInvalidatedCallTarget() const {
-        return hasInvalidatedCallTarget_;
+    bool hasUncompiledCallTarget() const {
+        return hasUncompiledCallTarget_;
     }
     void setHasSPSInstrumentation() {
         hasSPSInstrumentation_ = true;

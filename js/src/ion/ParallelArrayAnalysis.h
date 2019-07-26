@@ -19,40 +19,35 @@ namespace ion {
 class MIRGraph;
 class AutoDestroyAllocator;
 
-class ParallelCompileContext
+
+
+
+class ParallelArrayAnalysis
 {
-  private:
-    JSContext *cx_;
+    MIRGenerator *mir_;
+    MIRGraph &graph_;
 
-    
-    AutoScriptVector worklist_;
-
-    
-    bool analyzeAndGrowWorklist(MIRGenerator *mir, MIRGraph &graph);
-
-    bool removeResumePointOperands(MIRGenerator *mir, MIRGraph &graph);
+    bool removeResumePointOperands();
     void replaceOperandsOnResumePoint(MResumePoint *resumePoint, MDefinition *withDef);
 
   public:
-    ParallelCompileContext(JSContext *cx)
-      : cx_(cx),
-        worklist_(cx)
-    { }
+    ParallelArrayAnalysis(MIRGenerator *mir,
+                          MIRGraph &graph)
+      : mir_(mir),
+        graph_(graph)
+    {}
 
-    
-    bool appendToWorklist(HandleScript script);
-
-    ExecutionMode executionMode() {
-        return ParallelExecution;
-    }
-
-    
-    MethodStatus checkScriptSize(JSContext *cx, JSScript *script);
-    MethodStatus compileTransitively();
-    AbortReason compile(IonBuilder *builder, MIRGraph *graph,
-                        ScopedJSDeletePtr<LifoAlloc> &autoDelete);
+    bool analyze();
 };
 
+
+
+
+
+
+
+typedef Vector<JSScript *, 4, IonAllocPolicy> CallTargetVector;
+bool AddPossibleCallees(MIRGraph &graph, CallTargetVector &targets);
 
 } 
 } 

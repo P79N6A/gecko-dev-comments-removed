@@ -27,6 +27,16 @@
 
 var minItemsTestingThreshold = 1024;
 
+
+
+
+
+var MODE_STRINGS = ["compile", "par", "seq"];
+var MODES = MODE_STRINGS.map(s => ({mode: s}));
+
+var INVALIDATE_MODE_STRINGS = ["seq", "compile", "par", "seq"];
+var INVALIDATE_MODES = INVALIDATE_MODE_STRINGS.map(s => ({mode: s}));
+
 function build(n, f) {
   var result = [];
   for (var i = 0; i < n; i++)
@@ -146,79 +156,142 @@ function assertEqParallelArray(a, b) {
   } while (bump(iv));
 }
 
-function assertParallelArrayModesEq(modes, acc, opFunction, cmpFunction, expect) {
-  if (!cmpFunction) { cmpFunction = assertStructuralEq; }
-  if (!expect) { expect = "success"; }
-  modes.forEach(function (mode) {
-    var result = opFunction({ mode: mode, expect: expect });
-    cmpFunction(acc, result);
-  });
+
+
+
+
+
+
+
+
+
+
+
+
+
+function assertParallelExecWillBail(opFunction) {
+  opFunction({mode:"compile"}); 
+  opFunction({mode:"bailout"}); 
 }
 
-function assertParallelArrayModesCommute(modes, opFunction) {
-    var acc = opFunction({ mode: modes[0], expect: "success" });
-    assertParallelArrayModesEq(modes.slice(1), acc, opFunction);
+
+
+
+
+function assertParallelExecWillRecover(opFunction) {
+  opFunction({mode:"compile"}); 
+  opFunction({mode:"recover"}); 
 }
 
-function comparePerformance(opts) {
-    var measurements = [];
-    for (var i = 0; i < opts.length; i++) {
-        var start = new Date();
-        opts[i].func();
-        var end = new Date();
-        var diff = (end.getTime() - start.getTime());
-        measurements.push(diff);
-        print("Option " + opts[i].name + " took " + diff + "ms");
+
+
+
+
+
+
+
+function assertParallelExecSucceeds(opFunction, cmpFunction) {
+  var failures = 0;
+  while (true) {
+    print("Attempting compile #", failures);
+    var result = opFunction({mode:"compile"});
+    cmpFunction(result);
+
+    try {
+      print("Attempting parallel run #", failures);
+      var result = opFunction({mode:"par"});
+      cmpFunction(result);
+      break;
+    } catch (e) {
+      failures++;
+      if (failures > 5) {
+        throw e; 
+      } else {
+        print(e);
+      }
     }
+  }
 
-    for (var i = 1; i < opts.length; i++) {
-        var rel = (measurements[i] - measurements[0]) * 100 / measurements[0];
-        print("Option " + opts[i].name + " relative to option " +
-              opts[0].name + ": " + (rel|0) + "%");
-    }
+  print("Attempting sequential run");
+  var result = opFunction({mode:"seq"});
+  cmpFunction(result);
 }
 
-function compareAgainstArray(jsarray, opname, func, cmpFunction, expect) {
+
+
+
+
+
+
+
+
+
+
+function compareAgainstArray(jsarray, opname, func, cmpFunction) {
+  if (!cmpFunction)
+    cmpFunction = assertStructuralEq;
   var expected = jsarray[opname].apply(jsarray, [func]);
   var parray = new ParallelArray(jsarray);
-
-  
-  
-
-  assertParallelArrayModesEq(["seq", "par", "par"], expected, function(m) {
-    print(m.mode + " " + m.expect);
-    var result = parray[opname].apply(parray, [func, m]);
-    
-    return result;
-  }, cmpFunction, expect);
+  assertParallelExecSucceeds(
+    function(m) {
+      return parray[opname].apply(parray, [func, m]);
+    },
+    function(r) {
+      cmpFunction(expected, r);
+    });
 }
 
-function testFilter(jsarray, func, cmpFunction) {
-  compareAgainstArray(jsarray, "filter", func, cmpFunction);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-}
 
 function testScan(jsarray, func, cmpFunction) {
+  if (!cmpFunction)
+    cmpFunction = assertStructuralEq;
   var expected = seq_scan(jsarray, func);
   var parray = new ParallelArray(jsarray);
 
   
   
 
-  assertParallelArrayModesEq(["seq", "par", "par"], expected, function(m) {
-    print(m.mode + " " + m.expect);
-    var p = parray.scan(func, m);
-    return p;
-  }, cmpFunction);
+  assertParallelExecSucceeds(
+    function(m) {
+      print(m.mode + " " + m.expect);
+      var p = parray.scan(func, m);
+      return p;
+    },
+    function(r) {
+      cmpFunction(expected, r);
+    });
+}
+
+
+
+
+
+function testScatter(opFunction, cmpFunction) {
+  var strategies = ["divide-scatter-version", "divide-output-range"];
+  for (var i in strategies) {
+    assertParallelExecSucceeds(
+      function(m) {
+        var m1 = {mode: m.mode,
+                  strategy: strategies[i]};
+        print(JSON.stringify(m1));
+        return opFunction(m1);
+      },
+      cmpFunction);
+  }
+}
+
+
+
+function assertParallelArrayModesCommute(modes, opFunction) {
+  var expected = undefined;
+  var acc = opFunction(modes[0]);
+  assertParallelExecSucceeds(
+    opFunction,
+    function(r) {
+      if (expected === undefined)
+        expected = r;
+      else
+        assertStructuralEq(expected, r);
+    });
 }

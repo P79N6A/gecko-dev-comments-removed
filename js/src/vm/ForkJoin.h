@@ -178,6 +178,26 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 struct ForkJoinSlice;
@@ -399,6 +419,8 @@ InParallelSection()
 #endif
 }
 
+bool ParallelTestsShouldPass(JSContext *cx);
+
 
 
 
@@ -410,6 +432,9 @@ enum ExecutionStatus {
 
     
     ExecutionSequential,
+
+    
+    ExecutionWarmup,
 
     
     ExecutionParallel

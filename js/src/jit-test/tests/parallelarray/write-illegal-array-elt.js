@@ -9,7 +9,7 @@ function testMap() {
   };
 
   
-  p.map(func, {mode: "par", expect: "disqualified"});
+  assertParallelExecWillBail(m => p.map(func, m));
 }
 
 if (getBuildConfiguration().parallelJS) testMap();

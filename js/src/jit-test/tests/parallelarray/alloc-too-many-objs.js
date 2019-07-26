@@ -1,5 +1,3 @@
-
-
 load(libdir + "parallelarray-helpers.js");
 
 function testMap() {
@@ -14,16 +12,20 @@ function testMap() {
 
   
   
-  
-  pints.map(kernel, {mode: "par", expect: "bailout"});
+  assertParallelExecWillBail(function (m) {
+    pints.map(kernel, m);
+  });
 
   function kernel(v) {
     var x = [];
 
-    for (var i = 0; i < 50; i++) {
-      x[i] = [];
-      for (var j = 0; j < 1024; j++) {
-        x[i][j] = j;
+    if (inParallelSection()) {
+      
+      for (var i = 0; i < 50; i++) {
+        x[i] = [];
+        for (var j = 0; j < 1024; j++) {
+          x[i][j] = j;
+        }
       }
     }
 

@@ -6,7 +6,7 @@
 
 
 #define TRY_PARALLEL(MODE) \
-  ((!MODE || MODE.mode === "par"))
+  ((!MODE || MODE.mode !== "seq"))
 #define ASSERT_SEQUENTIAL_IS_OK(MODE) \
   do { if (MODE) AssertSequentialIsOK(MODE) } while(false)
 
@@ -297,7 +297,7 @@ function ParallelArrayBuild(self, shape, func, mode) {
     var chunks = ComputeNumChunks(length);
     var numSlices = ForkJoinSlices();
     var info = ComputeAllSliceBounds(chunks, numSlices);
-    ForkJoin(constructSlice, CheckParallel(mode));
+    ForkJoin(constructSlice, ForkJoinMode(mode));
     return;
   }
 
@@ -319,6 +319,8 @@ function ParallelArrayBuild(self, shape, func, mode) {
       computefunc(indexStart, indexEnd);
       UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
     }
+
+    return chunkEnd == info[SLICE_END(sliceId)];
   }
 
   function fill1(indexStart, indexEnd) {
@@ -387,7 +389,7 @@ function ParallelArrayMap(func, mode) {
     var chunks = ComputeNumChunks(length);
     var numSlices = ForkJoinSlices();
     var info = ComputeAllSliceBounds(chunks, numSlices);
-    ForkJoin(mapSlice, CheckParallel(mode));
+    ForkJoin(mapSlice, ForkJoinMode(mode));
     return NewParallelArray(ParallelArrayView, [length], buffer, 0);
   }
 
@@ -416,6 +418,8 @@ function ParallelArrayMap(func, mode) {
 
       UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
     }
+
+    return chunkEnd == info[SLICE_END(sliceId)];
   }
 }
 
@@ -446,7 +450,7 @@ function ParallelArrayReduce(func, mode) {
 
     var info = ComputeAllSliceBounds(chunks, numSlices);
     var subreductions = NewDenseArray(numSlices);
-    ForkJoin(reduceSlice, CheckParallel(mode));
+    ForkJoin(reduceSlice, ForkJoinMode(mode));
     var accumulator = subreductions[0];
     for (var i = 1; i < numSlices; i++)
       accumulator = func(accumulator, subreductions[i]);
@@ -492,6 +496,8 @@ function ParallelArrayReduce(func, mode) {
       UnsafeSetElement(subreductions, sliceId, accumulator,
                        info, SLICE_POS(sliceId), ++chunkPos);
     }
+
+    return chunkEnd == info[SLICE_END(sliceId)];
   }
 
   function reduceChunk(accumulator, from, to) {
@@ -533,7 +539,7 @@ function ParallelArrayScan(func, mode) {
     var info = ComputeAllSliceBounds(chunks, numSlices);
 
     
-    ForkJoin(phase1, CheckParallel(mode));
+    ForkJoin(phase1, ForkJoinMode(mode));
 
     
     var intermediates = [];
@@ -553,7 +559,7 @@ function ParallelArrayScan(func, mode) {
     info[SLICE_END(numSlices - 1)] = std_Math_min(info[SLICE_END(numSlices - 1)], length);
 
     
-    ForkJoin(phase2, CheckParallel(mode));
+    ForkJoin(phase2, ForkJoinMode(mode));
     return NewParallelArray(ParallelArrayView, [length], buffer, 0);
   }
 
@@ -616,6 +622,8 @@ function ParallelArrayScan(func, mode) {
       scan(accumulator, indexStart, indexEnd);
       UnsafeSetElement(info, SLICE_POS(sliceId), ++chunkPos);
     }
+
+    return chunkEnd == info[SLICE_END(sliceId)];
   }
 
   
@@ -670,7 +678,7 @@ function ParallelArrayScan(func, mode) {
 
   function phase2(sliceId, numSlices, warmup) {
     if (sliceId == 0)
-      return; 
+      return true; 
 
     var indexPos = info[SLICE_POS(sliceId)];
     var indexEnd = info[SLICE_END(sliceId)];
@@ -683,6 +691,8 @@ function ParallelArrayScan(func, mode) {
       UnsafeSetElement(buffer, indexPos, func(intermediate, buffer[indexPos]),
                        info, SLICE_POS(sliceId), indexPos + 1);
     }
+
+    return indexEnd == info[SLICE_END(sliceId)];
   }
 }
 
@@ -817,7 +827,7 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
       UnsafeSetElement(conflicts, i, false);
     }
 
-    ForkJoin(fill, CheckParallel(mode));
+    ForkJoin(fill, ForkJoinMode(mode));
     return NewParallelArray(ParallelArrayView, [length], buffer, 0);
 
     function fill(sliceId, numSlices, warmup) {
@@ -840,6 +850,8 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
                          conflicts, t, true,
                          checkpoints, sliceId, indexPos + 1);
       }
+
+      return indexEnd == targetsLength;
     }
   }
 
@@ -872,7 +884,7 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
     for (var i = 0; i < length; i++)
       UnsafeSetElement(outputBuffer, i, defaultValue);
 
-    ForkJoin(fill, CheckParallel(mode));
+    ForkJoin(fill, ForkJoinMode(mode));
     mergeBuffers();
     return NewParallelArray(ParallelArrayView, [length], outputBuffer, 0);
 
@@ -893,6 +905,8 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
                          conflicts, t, true,
                          info, SLICE_POS(sliceId), ++indexPos);
       }
+
+      return indexEnd == info[SLICE_END(sliceId)];
     }
 
     
@@ -990,7 +1004,7 @@ function ParallelArrayFilter(func, mode) {
     for (var i = 0; i < numSlices; i++)
       UnsafeSetElement(counts, i, 0);
     var survivors = NewDenseArray(chunks);
-    ForkJoin(findSurvivorsInSlice, CheckParallel(mode));
+    ForkJoin(findSurvivorsInSlice, ForkJoinMode(mode));
 
     
     var count = 0;
@@ -998,7 +1012,7 @@ function ParallelArrayFilter(func, mode) {
       count += counts[i];
     var buffer = NewDenseArray(count);
     if (count > 0)
-      ForkJoin(copySurvivorsInSlice, CheckParallel(mode));
+      ForkJoin(copySurvivorsInSlice, ForkJoinMode(mode));
 
     return NewParallelArray(ParallelArrayView, [count], buffer, 0);
   }
@@ -1020,7 +1034,6 @@ function ParallelArrayFilter(func, mode) {
 
 
   function findSurvivorsInSlice(sliceId, numSlices, warmup) {
-
     var chunkPos = info[SLICE_POS(sliceId)];
     var chunkEnd = info[SLICE_END(sliceId)];
 
@@ -1043,6 +1056,8 @@ function ParallelArrayFilter(func, mode) {
                        counts, sliceId, count,
                        info, SLICE_POS(sliceId), ++chunkPos);
     }
+
+    return chunkEnd == info[SLICE_END(sliceId)];
   }
 
   function copySurvivorsInSlice(sliceId, numSlices, warmup) {
@@ -1050,12 +1065,6 @@ function ParallelArrayFilter(func, mode) {
     
     
     
-
-    
-    
-    
-    if (warmup && sliceId == 0 && numSlices != 1)
-      sliceId = 1;
 
     
     var count = 0;
@@ -1067,7 +1076,7 @@ function ParallelArrayFilter(func, mode) {
     
     var total = count + counts[sliceId];
     if (count == total)
-      return;
+      return true;
 
     
     
@@ -1090,6 +1099,8 @@ function ParallelArrayFilter(func, mode) {
         }
       }
     }
+
+    return true;
   }
 }
 
@@ -1251,29 +1262,21 @@ function AssertSequentialIsOK(mode) {
     ThrowError(JSMSG_WRONG_VALUE, "parallel execution", "sequential was forced");
 }
 
-
-
-
-
-
-
-
-function CheckParallel(mode) {
-  if (!mode || !ParallelTestsShouldPass())
-    return null;
-
-  return function(result, bailouts, causes) {
-    if (!("expect" in mode) || mode.expect === "any") {
-      return; 
-    } else if (mode.expect === "mixed" && result !== "disqualified") {
-      return; 
-    } else if (result === mode.expect) {
-      return;
-    }
-
-    ThrowError(JSMSG_WRONG_VALUE, mode.expect,
-               result+":"+bailouts+":"+causes);
-  };
+function ForkJoinMode(mode) {
+  
+  if (!mode || !mode.mode) {
+    return 0;
+  } else if (mode.mode === "compile") {
+    return 1;
+  } else if (mode.mode === "par") {
+    return 2;
+  } else if (mode.mode === "recover") {
+    return 3;
+  } else if (mode.mode === "bailout") {
+    return 4;
+  } else {
+    ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
+  }
 }
 
 

@@ -512,10 +512,6 @@ class MIRGraph
     
     Vector<JSScript *, 4, IonAllocPolicy> scripts_;
 
-    
-    
-    Vector<JSScript *, 4, IonAllocPolicy> callTargets_;
-
     size_t numBlocks_;
 
   public:
@@ -647,19 +643,6 @@ class MIRGraph
     }
     JSScript **scripts() {
         return scripts_.begin();
-    }
-    bool addCallTarget(JSScript *script) {
-        for (size_t i = 0; i < callTargets_.length(); i++) {
-            if (callTargets_[i] == script)
-                return true;
-        }
-        return callTargets_.append(script);
-    }
-    size_t numCallTargets() const {
-        return callTargets_.length();
-    }
-    JSScript **callTargets() {
-        return callTargets_.begin();
     }
 
     
