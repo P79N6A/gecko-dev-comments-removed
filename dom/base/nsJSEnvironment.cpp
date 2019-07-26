@@ -603,7 +603,7 @@ NS_ScriptErrorReporter(JSContext *cx,
     
     
     nsAutoCString error;
-    error.Assign("JavaScript ");
+    error.AssignLiteral("JavaScript ");
     if (JSREPORT_IS_STRICT(report->flags))
       error.Append("strict ");
     if (JSREPORT_IS_WARNING(report->flags))

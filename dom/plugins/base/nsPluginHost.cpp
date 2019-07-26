@@ -1415,7 +1415,7 @@ nsPluginHost::RegisterPlayPreviewMimeType(const nsACString& mimeType,
   nsAutoCString url(redirectURL);
   if (url.Length() == 0) {
     
-    url.Assign("data:application/x-moz-playpreview;,");
+    url.AssignLiteral("data:application/x-moz-playpreview;,");
     url.Append(mimeType);
   }
 

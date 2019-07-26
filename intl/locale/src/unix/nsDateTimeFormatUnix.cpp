@@ -46,7 +46,7 @@ nsresult nsDateTimeFormatUnix::Initialize(nsILocale* locale)
   }
 
   mCharset.AssignLiteral("windows-1252");
-  mPlatformLocale.Assign("en_US");
+  mPlatformLocale.AssignLiteral("en_US");
 
   
   if (!locale) {

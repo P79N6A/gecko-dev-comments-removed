@@ -32,12 +32,12 @@ nsHtml5MetaScanner::tryCharset(nsString* charset)
   }
   if (encoding.EqualsLiteral("UTF-16BE") ||
       encoding.EqualsLiteral("UTF-16LE")) {
-    mCharset.Assign("UTF-8");
+    mCharset.AssignLiteral("UTF-8");
     return true;
   }
   if (encoding.EqualsLiteral("x-user-defined")) {
     
-    mCharset.Assign("windows-1252");
+    mCharset.AssignLiteral("windows-1252");
     return true;
   }
   mCharset.Assign(encoding);
