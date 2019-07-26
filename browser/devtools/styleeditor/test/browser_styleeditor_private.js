@@ -6,6 +6,8 @@
 
 
 function checkDiskCacheFor(host) {
+  let foundPrivateData = false;
+
   let visitor = {
     visitDevice: function(deviceID, deviceInfo) {
       if (deviceID == "disk")
@@ -15,10 +17,12 @@ function checkDiskCacheFor(host) {
     
     visitEntry: function(deviceID, entryInfo) {
       info(entryInfo.key);
-      is(entryInfo.key.contains(host), false, "web content present in disk cache");
+      foundPrivateData |= entryInfo.key.contains(host);
+      is(foundPrivateData, false, "web content present in disk cache");
     }
   };
   cache.visitEntries(visitor);
+  is(foundPrivateData, false, "private data present in disk cache");
 }
 
 const TEST_HOST = 'mochi.test:8888';

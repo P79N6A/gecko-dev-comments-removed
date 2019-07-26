@@ -1319,7 +1319,8 @@ StyleEditorManager.prototype = {
 
 
 
-  newEditor: function SEM_newEditor(aContentWindow, aSelectedStyleSheet, aLine, aCol) {
+
+  newEditor: function SEM_newEditor(aContentWindow, aChromeWindow, aSelectedStyleSheet, aLine, aCol) {
     const CHROME_URL = "chrome://browser/content/styleeditor.xul";
     const CHROME_WINDOW_FLAGS = "chrome,centerscreen,resizable,dialog=no";
 
@@ -1330,7 +1331,7 @@ StyleEditorManager.prototype = {
       col: aCol
     };
     args.wrappedJSObject = args;
-    let chromeWindow = Services.ww.openWindow(null, CHROME_URL, "_blank",
+    let chromeWindow = Services.ww.openWindow(aChromeWindow, CHROME_URL, "_blank",
                                               CHROME_WINDOW_FLAGS, args);
 
     chromeWindow.onunload = function() {
@@ -1353,12 +1354,12 @@ StyleEditorManager.prototype = {
 
 
 
-  toggleEditor: function SEM_toggleEditor(aContentWindow) {
+  toggleEditor: function SEM_toggleEditor(aContentWindow, aChromeWindow) {
     let editor = this.getEditorForWindow(aContentWindow);
     if (editor) {
       editor.close();
     } else {
-      this.newEditor(aContentWindow);
+      this.newEditor(aContentWindow, aChromeWindow);
     }
   },
 
