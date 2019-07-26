@@ -531,14 +531,6 @@ IonCode::writeBarrierPre(IonCode *code)
 #endif
 }
 
-void
-IonCode::writeBarrierPost(IonCode *code, void *addr)
-{
-#ifdef JSGC_GENERATIONAL
-    
-#endif
-}
-
 IonScript::IonScript()
   : method_(NULL),
     deoptTable_(NULL),
