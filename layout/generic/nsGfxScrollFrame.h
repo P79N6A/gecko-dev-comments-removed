@@ -34,9 +34,7 @@ class nsPresState;
 struct ScrollReflowState;
 
 namespace mozilla {
-namespace layout {
 class ScrollbarActivity;
-}
 }
 
 
@@ -48,7 +46,6 @@ class ScrollbarActivity;
 class nsGfxScrollFrameInner : public nsIReflowCallback {
 public:
   typedef mozilla::gfx::Point Point;
-  typedef mozilla::layout::ScrollbarActivity ScrollbarActivity;
 
   class AsyncScroll;
 
@@ -284,7 +281,7 @@ public:
   nsIFrame* mResizerBox;
   nsContainerFrame* mOuter;
   nsRefPtr<AsyncScroll> mAsyncScroll;
-  nsCOMPtr<ScrollbarActivity> mScrollbarActivity;
+  nsAutoPtr<mozilla::ScrollbarActivity> mScrollbarActivity;
   nsTArray<nsIScrollPositionListener*> mListeners;
   nsRect mScrollPort;
   
@@ -461,11 +458,6 @@ public:
                                         uint32_t aFilter) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
-    return mInner.GetScrollbarBox(aVertical);
-  }
-
-  
   virtual nsIFrame* GetScrolledFrame() const {
     return mInner.GetScrolledFrame();
   }
@@ -532,6 +524,9 @@ public:
   }
   virtual void RemoveScrollPositionListener(nsIScrollPositionListener* aListener) MOZ_OVERRIDE {
     mInner.RemoveScrollPositionListener(aListener);
+  }
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
+    return mInner.GetScrollbarBox(aVertical);
   }
   virtual void CurPosAttributeChanged(nsIContent* aChild) MOZ_OVERRIDE {
     mInner.CurPosAttributeChanged(aChild);
@@ -719,11 +714,6 @@ public:
   static void AdjustReflowStateBack(nsBoxLayoutState& aState, bool aSetBack);
 
   
-  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
-    return mInner.GetScrollbarBox(aVertical);
-  }
-
-  
   virtual nsIFrame* GetScrolledFrame() const {
     return mInner.GetScrolledFrame();
   }
@@ -790,6 +780,9 @@ public:
   }
   virtual void RemoveScrollPositionListener(nsIScrollPositionListener* aListener) MOZ_OVERRIDE {
     mInner.RemoveScrollPositionListener(aListener);
+  }
+  virtual nsIFrame* GetScrollbarBox(bool aVertical) MOZ_OVERRIDE {
+    return mInner.GetScrollbarBox(aVertical);
   }
   virtual void CurPosAttributeChanged(nsIContent* aChild) MOZ_OVERRIDE {
     mInner.CurPosAttributeChanged(aChild);
