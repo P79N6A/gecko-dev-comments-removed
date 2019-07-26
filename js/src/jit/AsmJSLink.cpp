@@ -349,16 +349,24 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     }
 
     {
+        
+        
+        
+        
         AsmJSActivation activation(cx, module);
+
+        
+        
+        
         jit::IonContext ictx(cx, NULL);
         JitActivation jitActivation(cx,  false,  false);
 
         
 #ifdef JS_CPU_ARM
-        if (!func.code()(coercedArgs.begin(), module.globalData()))
+        if (!module.entryTrampoline(func)(coercedArgs.begin(), module.globalData()))
             return false;
 #else
-        if (!func.code()(coercedArgs.begin()))
+        if (!module.entryTrampoline(func)(coercedArgs.begin()))
             return false;
 #endif
     }
