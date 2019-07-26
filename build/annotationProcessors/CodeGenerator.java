@@ -73,7 +73,7 @@ public class CodeGenerator {
                 "    JNIEnv *env = GetJNIForThread();\n\n" +
                 "    if (!env) {\n" +
                 "        ALOG_BRIDGE(\"Aborted: No env - %s\", __PRETTY_FUNCTION__);\n" +
-                "        return NULL;\n" +
+                "        return nullptr;\n" +
                 "    }\n\n" +
                 "    ").append(mCClassName).append("* ret = new ").append(mCClassName).append("(obj, env);\n" +
                 "    env->DeleteLocalRef(obj);\n" +
@@ -407,7 +407,7 @@ public class CodeGenerator {
         
                            .append(argumentContent)
                            .append("), env);\n" +
-                                   "    env->PopLocalFrame(NULL);\n" +
+                                   "    env->PopLocalFrame(nullptr);\n" +
                                    "}\n");
     }
 
@@ -484,7 +484,7 @@ public class CodeGenerator {
                                    "        ALOG_BRIDGE(\"Exceptional exit of: %s\", __PRETTY_FUNCTION__);\n" +
                                    "        env->ExceptionDescribe();\n" +
                                    "        env->ExceptionClear();\n" +
-                                   "        env->PopLocalFrame(NULL);\n" +
+                                   "        env->PopLocalFrame(nullptr);\n" +
                                    "        return").append(Utils.getFailureReturnForType(returnType)).append(";\n" +
                                    "    }\n\n");
 
@@ -498,11 +498,11 @@ public class CodeGenerator {
         } else if (!returnType.getCanonicalName().equals("void")) {
             
             
-            wrapperMethodBodies.append("    env->PopLocalFrame(NULL);\n" +
+            wrapperMethodBodies.append("    env->PopLocalFrame(nullptr);\n" +
                                        "    return temp;\n");
         } else {
             
-            wrapperMethodBodies.append("    env->PopLocalFrame(NULL);\n");
+            wrapperMethodBodies.append("    env->PopLocalFrame(nullptr);\n");
         }
         wrapperMethodBodies.append("}\n");
     }
