@@ -505,6 +505,10 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
 #endif
 
     
+    if (allowGC && !rt->mainThread.suppressGC)
+        JS::AutoAssertOnGC::VerifyIsSafeToGC(rt);
+
+    
     if (!PossiblyFail()) {
         js_ReportOutOfMemory(cx);
         return false;

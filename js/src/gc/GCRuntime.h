@@ -537,6 +537,14 @@ class GCRuntime
     
     js::ScriptAndCountsVector *scriptAndCountsVector;
 
+    
+
+
+
+
+
+    int inUnsafeRegion;
+
   private:
     
     bool                  alwaysPreserveCode;
