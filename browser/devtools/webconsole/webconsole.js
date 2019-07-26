@@ -3115,6 +3115,10 @@ JSTerm.prototype = {
       switch (aEvent.charCode) {
         case 97:
           
+          if (Services.appinfo.OS == "WINNT") {
+            closePopup = true;
+            break;
+          }
           let lineBeginPos = 0;
           if (this.hasMultilineInput()) {
             
@@ -3132,6 +3136,9 @@ JSTerm.prototype = {
           break;
         case 101:
           
+          if (Services.appinfo.OS == "WINNT") {
+            break;
+          }
           let lineEndPos = inputNode.value.length;
           if (this.hasMultilineInput()) {
             
