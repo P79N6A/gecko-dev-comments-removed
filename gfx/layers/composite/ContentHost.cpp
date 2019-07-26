@@ -495,6 +495,7 @@ ContentHostIncremental::EnsureDeprecatedTextureHostIncremental(ISurfaceAllocator
   mUpdateList.AppendElement(new TextureCreationRequest(aTextureInfo,
                                                        aBufferRect));
   mDeAllocator = aAllocator;
+  FlushUpdateQueue();
 }
 
 void
@@ -510,6 +511,20 @@ ContentHostIncremental::UpdateIncremental(TextureIdentifier aTextureId,
                                                      aUpdated,
                                                      aBufferRect,
                                                      aBufferRotation));
+  FlushUpdateQueue();
+}
+
+void
+ContentHostIncremental::FlushUpdateQueue()
+{
+  
+  
+  
+  
+  static const uint32_t kMaxUpdateCount = 6;
+  if (mUpdateList.Length() >= kMaxUpdateCount) {
+    ProcessTextureUpdates();
+  }
 }
 
 void
