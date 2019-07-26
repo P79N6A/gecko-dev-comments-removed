@@ -598,6 +598,8 @@ CodeGeneratorARM::visitDivPowTwoI(LDivPowTwoI *ins)
 
         
         masm.as_mov(output, asr(ScratchRegister, shift));
+    } else {
+        masm.ma_mov(lhs, output);
     }
 
     return true;
