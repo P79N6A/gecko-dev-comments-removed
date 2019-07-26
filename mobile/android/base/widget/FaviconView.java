@@ -64,7 +64,7 @@ public class FaviconView extends ImageView {
     private void formatImage() {
         
         if (mIconBitmap == null) {
-            setImageResource(0);
+            setImageResource(R.drawable.favicon);
             hideBackground();
             return;
         }
@@ -72,6 +72,7 @@ public class FaviconView extends ImageView {
         
         if (mActualWidth == 0 || mActualHeight == 0) {
             hideBackground();
+            setImageResource(R.drawable.favicon);
             return;
         }
 
