@@ -68,15 +68,19 @@ TelephonyListener::NotifyError(int32_t aCallIndex,
                                const nsAString& aError)
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  
-  
-  
-  
-  
-  hfp->HandleCallStateChanged(aCallIndex,
-                              nsITelephonyProvider::CALL_STATE_DISCONNECTED,
-                              EmptyString(), false, true);
-  NS_WARNING("Reset the call state due to call transition ends abnormally");
+
+  if (aCallIndex > 0) {
+    
+    
+    
+    
+    
+    hfp->HandleCallStateChanged(aCallIndex,
+                                nsITelephonyProvider::CALL_STATE_DISCONNECTED,
+                                EmptyString(), false, true);
+    NS_WARNING("Reset the call state due to call transition ends abnormally");
+  }
+
   NS_WARNING(NS_ConvertUTF16toUTF8(aError).get());
   return NS_OK;
 }
