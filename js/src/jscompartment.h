@@ -122,10 +122,13 @@ class WeakMapBase;
 
 struct JSCompartment
 {
-    JS::Zone                     *zone_;
     JS::CompartmentOptions       options_;
 
-    JSRuntime                    *rt;
+  private:
+    JS::Zone                     *zone_;
+    JSRuntime                    *runtime_;
+
+  public:
     JSPrincipals                 *principals;
     bool                         isSystem;
     bool                         marked;
@@ -153,6 +156,17 @@ struct JSCompartment
     const JS::Zone *zone() const { return zone_; }
     JS::CompartmentOptions &options() { return options_; }
     const JS::CompartmentOptions &options() const { return options_; }
+
+    JSRuntime *runtimeFromMainThread() {
+        JS_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
+        return runtime_;
+    }
+
+    
+    
+    JSRuntime *runtimeFromAnyThread() const {
+        return runtime_;
+    }
 
     
 

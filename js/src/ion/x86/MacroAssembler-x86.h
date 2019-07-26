@@ -950,8 +950,8 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        JSCompartment *compartment = GetIonContext()->compartment;
-        movl(StackPointer, Operand(&compartment->rt->mainThread.ionTop));
+        JSRuntime *runtime = GetIonContext()->runtime;
+        movl(StackPointer, Operand(&runtime->mainThread.ionTop));
     }
 
     void callWithExitFrame(IonCode *target, Register dynStack) {

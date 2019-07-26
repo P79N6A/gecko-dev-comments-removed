@@ -378,7 +378,7 @@ Debugger::~Debugger()
     JS_ASSERT(debuggees.empty());
 
     
-    JS_ASSERT(object->compartment()->rt->isHeapBusy());
+    JS_ASSERT(object->runtimeFromMainThread()->isHeapBusy());
 
     
 
@@ -1643,7 +1643,10 @@ Debugger::findCompartmentEdges(Zone *zone, js::gc::ComponentFinder<Zone> &finder
 
 
 
-    for (Debugger *dbg = zone->rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
+    for (Debugger *dbg = zone->runtimeFromMainThread()->debuggerList.getFirst();
+         dbg;
+         dbg = dbg->getNext())
+    {
         Zone *w = dbg->object->zone();
         if (w == zone || !w->isGCMarking())
             continue;
@@ -2214,7 +2217,7 @@ Debugger::removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
                                GlobalObjectSet::Enum *compartmentEnum,
                                GlobalObjectSet::Enum *debugEnum)
 {
-    AutoDebugModeGC dmgc(global->compartment()->rt);
+    AutoDebugModeGC dmgc(fop->runtime());
     return removeDebuggeeGlobal(fop, global, dmgc, compartmentEnum, debugEnum);
 }
 

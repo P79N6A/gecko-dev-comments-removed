@@ -709,7 +709,7 @@ BaselineScript::toggleDebugTraps(JSScript *script, jsbytecode *pc)
 
     SrcNoteLineScanner scanner(script->notes(), script->lineno);
 
-    IonContext ictx(script->compartment(), NULL);
+    IonContext ictx(script->runtimeFromMainThread(), script->compartment(), NULL);
     AutoFlushCache afc("DebugTraps");
 
     for (uint32_t i = 0; i < numPCMappingIndexEntries(); i++) {
@@ -902,7 +902,7 @@ ion::MarkActiveBaselineScripts(Zone *zone)
 {
     
     
-    JitActivationIterator iter(zone->rt);
+    JitActivationIterator iter(zone->runtimeFromMainThread());
     if (iter.done())
         return;
 

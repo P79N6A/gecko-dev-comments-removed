@@ -166,7 +166,7 @@ bool CrossCompartmentWrapper::finalizeInBackground(Value priv)
 
 
 
-    if (IsInsideNursery(priv.toObject().runtime(), &priv.toObject()))
+    if (IsInsideNursery(priv.toObject().runtimeFromMainThread(), &priv.toObject()))
         return false;
     return IsBackgroundFinalized(priv.toObject().tenuredGetAllocKind());
 }

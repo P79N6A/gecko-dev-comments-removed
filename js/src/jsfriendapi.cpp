@@ -218,12 +218,12 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
 
     
     
-    JSPrincipals *trusted = compartment->rt->trustedPrincipals();
+    JSPrincipals *trusted = compartment->runtimeFromMainThread()->trustedPrincipals();
     bool isSystem = principals && principals == trusted;
 
     
     if (compartment->principals) {
-        JS_DropPrincipals(compartment->rt, compartment->principals);
+        JS_DropPrincipals(compartment->runtimeFromMainThread(), compartment->principals);
         compartment->principals = NULL;
         
         
@@ -337,7 +337,7 @@ js::IsSystemZone(Zone *zone)
 JS_FRIEND_API(bool)
 js::IsAtomsCompartment(JSCompartment *comp)
 {
-    return comp == comp->rt->atomsCompartment;
+    return comp == comp->runtimeFromAnyThread()->atomsCompartment;
 }
 
 JS_FRIEND_API(bool)
@@ -920,7 +920,7 @@ JS::IncrementalObjectBarrier(JSObject *obj)
     if (!obj)
         return;
 
-    JS_ASSERT(!obj->zone()->rt->isHeapMajorCollecting());
+    JS_ASSERT(!obj->zone()->runtimeFromMainThread()->isHeapMajorCollecting());
 
     AutoMarkInDeadZone amn(obj->zone());
 
@@ -938,7 +938,7 @@ JS::IncrementalReferenceBarrier(void *ptr, JSGCTraceKind kind)
                  ? static_cast<JSObject *>(cell)->zone()
                  : cell->tenuredZone();
 
-    JS_ASSERT(!zone->rt->isHeapMajorCollecting());
+    JS_ASSERT(!zone->runtimeFromMainThread()->isHeapMajorCollecting());
 
     AutoMarkInDeadZone amn(zone);
 

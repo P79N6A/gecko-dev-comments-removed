@@ -117,9 +117,9 @@ ParallelBailoutRecord::addTrace(JSScript *script,
 }
 
 bool
-js::InSequentialOrExclusiveParallelSection()
+js::InExclusiveParallelSection()
 {
-    return true;
+    return false;
 }
 
 bool
@@ -1453,7 +1453,7 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
 
     
     
-    IonContext icx(cx_->compartment(), NULL);
+    IonContext icx(cx_->runtime(), cx_->compartment(), NULL);
 
     JS_ASSERT(slice.bailoutRecord->topScript == NULL);
 
@@ -2141,9 +2141,9 @@ parallel::SpewBailoutIR(uint32_t bblockId, uint32_t lirId,
 #endif 
 
 bool
-js::InSequentialOrExclusiveParallelSection()
+js::InExclusiveParallelSection()
 {
-    return !InParallelSection() || ForkJoinSlice::Current()->hasAcquiredContext();
+    return InParallelSection() && ForkJoinSlice::Current()->hasAcquiredContext();
 }
 
 bool

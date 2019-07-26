@@ -54,14 +54,14 @@ class CompartmentChecker
 
     
     static void check(JSCompartment *c1, JSCompartment *c2) {
-        JS_ASSERT(c1 != c1->rt->atomsCompartment);
-        JS_ASSERT(c2 != c2->rt->atomsCompartment);
+        JS_ASSERT(c1 != c1->runtimeFromMainThread()->atomsCompartment);
+        JS_ASSERT(c2 != c2->runtimeFromMainThread()->atomsCompartment);
         if (c1 != c2)
             fail(c1, c2);
     }
 
     void check(JSCompartment *c) {
-        if (c && c != compartment->rt->atomsCompartment) {
+        if (c && c != compartment->runtimeFromMainThread()->atomsCompartment) {
             if (!compartment)
                 compartment = c;
             else if (c != compartment)

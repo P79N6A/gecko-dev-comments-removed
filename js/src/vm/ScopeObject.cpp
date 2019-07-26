@@ -1690,7 +1690,7 @@ DebugScopes::ensureCompartmentData(JSContext *cx)
     if (c->debugScopes)
         return c->debugScopes;
 
-    c->debugScopes = c->rt->new_<DebugScopes>(cx);
+    c->debugScopes = cx->runtime()->new_<DebugScopes>(cx);
     if (c->debugScopes && c->debugScopes->init())
         return c->debugScopes;
 
@@ -2026,7 +2026,7 @@ DebugScopes::hasLiveFrame(ScopeObject &scope)
 
 
 
-        if (JSGenerator *gen = frame.maybeSuspendedGenerator(scope.compartment()->rt))
+        if (JSGenerator *gen = frame.maybeSuspendedGenerator(scope.compartment()->runtimeFromMainThread()))
             JSObject::readBarrier(gen->obj);
 
         return frame;
