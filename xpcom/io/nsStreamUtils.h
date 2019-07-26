@@ -8,6 +8,7 @@
 #include "nsCOMPtr.h"
 #include "nsStringFwd.h"
 #include "nsIInputStream.h"
+#include "nsTArray.h"
 
 class nsIOutputStream;
 class nsIInputStreamCallback;
@@ -231,5 +232,22 @@ struct nsWriteSegmentThunk {
   nsWriteSegmentFun  mFun;
   void              *mClosure;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern NS_METHOD
+NS_FillArray(FallibleTArray<char> &aDest, nsIInputStream *aInput,
+             uint32_t aKeep, uint32_t *aNewBytes);
 
 #endif 
