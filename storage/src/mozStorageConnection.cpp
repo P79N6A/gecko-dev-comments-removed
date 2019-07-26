@@ -497,7 +497,7 @@ Connection::~Connection()
              "AsyncClose has not been invoked on this connection!");
 }
 
-NS_IMPL_THREADSAFE_ADDREF(Connection)
+NS_IMPL_ADDREF(Connection)
 
 NS_INTERFACE_MAP_BEGIN(Connection)
   NS_INTERFACE_MAP_ENTRY(mozIStorageAsyncConnection)
@@ -511,7 +511,7 @@ NS_INTERFACE_MAP_END
 NS_IMETHODIMP_(nsrefcnt) Connection::Release(void)
 {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
-  nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);
+  nsrefcnt count = --mRefCnt;
   NS_LOG_RELEASE(this, count, "Connection");
   if (1 == count) {
     
