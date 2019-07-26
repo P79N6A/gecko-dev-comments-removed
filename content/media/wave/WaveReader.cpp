@@ -577,7 +577,7 @@ WaveReader::LoadListChunk(uint32_t aChunkSize,
     uint32_t length = ReadUint32LE(&p);
 
     
-    if (end - p < length) {
+    if (uint32_t(end - p) < length) {
       break;
     }
 
