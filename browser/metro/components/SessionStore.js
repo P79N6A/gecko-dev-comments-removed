@@ -370,8 +370,11 @@ SessionStore.prototype = {
     if (aWindow.Browser.tabs.length > 0) {
       
       
+      
+      
+      
       let data = aBrowser.__SS_data;
-      data.extData = aBrowser.__SS_extdata;
+      try { data.extData = aBrowser.__SS_extdata; } catch (e) { }
 
       this._windows[aWindow.__SSID].closedTabs.unshift(data);
       let length = this._windows[aWindow.__SSID].closedTabs.length;
