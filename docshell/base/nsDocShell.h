@@ -900,6 +900,7 @@ private:
     nsCOMPtr<nsIPrincipal> mParentCharsetPrincipal;
     nsTObserverArray<nsWeakPtr> mPrivacyObservers;
     nsTObserverArray<nsWeakPtr> mReflowObservers;
+    nsTObserverArray<nsWeakPtr> mScrollObservers;
     nsCString         mOriginalUriString;
 
     

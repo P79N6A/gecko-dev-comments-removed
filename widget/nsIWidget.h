@@ -226,6 +226,7 @@ struct nsIMEUpdatePreference {
     NOTIFY_NOTHING                       = 0,
     NOTIFY_SELECTION_CHANGE              = 1 << 0,
     NOTIFY_TEXT_CHANGE                   = 1 << 1,
+    NOTIFY_POSITION_CHANGE               = 1 << 2,
     
     NOTIFY_CHANGES_CAUSED_BY_COMPOSITION = 1 << 6,
     
@@ -262,6 +263,11 @@ struct nsIMEUpdatePreference {
   bool WantTextChange() const
   {
     return !!(mWantUpdates & NOTIFY_TEXT_CHANGE);
+  }
+
+  bool WantPositionChanged() const
+  {
+    return !!(mWantUpdates & NOTIFY_POSITION_CHANGE);
   }
 
   bool WantChanges() const
@@ -492,6 +498,8 @@ enum IMEMessage MOZ_ENUM_TYPE(int8_t)
   NOTIFY_IME_OF_TEXT_CHANGE,
   
   NOTIFY_IME_OF_COMPOSITION_UPDATE,
+  
+  NOTIFY_IME_OF_POSITION_CHANGE,
   
   
   REQUEST_TO_COMMIT_COMPOSITION,
