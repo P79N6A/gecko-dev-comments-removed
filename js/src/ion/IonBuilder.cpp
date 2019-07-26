@@ -4886,7 +4886,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
         
         JSObject *walker = curObj;
         while (walker) {
-            if (walker->getClass()->ops.lookupProperty)
+            if (!walker->isNative() || walker->getClass()->ops.lookupProperty)
                 return true;
             walker = walker->getProto();
         }
@@ -4928,6 +4928,18 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
             foundProto = proto;
         else if (foundProto != proto)
             return true;
+
+        
+        
+        
+        
+        
+        
+        while (curObj != foundProto) {
+            if (curObj->getType(cx)->unknownProperties())
+                return true;
+            curObj = curObj->getProto();
+        }
     }
 
     
@@ -4936,8 +4948,13 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
 
     JS_ASSERT(foundProto);
 
+    
     types->addFreeze(cx);
 
+    
+    
+    
+    
     MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
     current->add(wrapper);
     MGuardShape *guard = MGuardShape::New(wrapper, foundProto->lastProperty());
@@ -4948,9 +4965,9 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     types::TypeObject *curType;
     for (unsigned i = 0; i < types->getObjectCount(); i++) {
         curType = types->getTypeObject(i);
-
+        JSObject *obj = NULL;
         if (!curType) {
-            JSObject *obj = types->getSingleObject(i);
+            obj = types->getSingleObject(i);
             if (!obj)
                 continue;
 
@@ -4959,13 +4976,23 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
 
         
         
-        jsid typeId = types::MakeTypeId(cx, id);
-        types::TypeSet *propSet = curType->getProperty(cx, typeId, false);
-        JS_ASSERT(propSet);
-        while (!propSet->isOwnProperty(cx, curType, false)) {
-            curType = curType->proto->getType(cx);
-            propSet = curType->getProperty(cx, id, false);
-            JS_ASSERT(propSet);
+        if (obj != foundProto) {
+            
+            
+            jsid typeId = types::MakeTypeId(cx, id);
+            while (true) {
+                types::TypeSet *propSet = curType->getProperty(cx, typeId, false);
+                JS_ASSERT(propSet);
+                
+                bool isOwn = propSet->isOwnProperty(cx, curType, false);
+                JS_ASSERT(!isOwn);
+                
+                
+                
+                if (curType->proto == foundProto)
+                    break;
+                curType = curType->proto->getType(cx);
+            }
         }
     }
 
