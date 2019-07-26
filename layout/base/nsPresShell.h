@@ -712,7 +712,7 @@ protected:
   static void MarkImagesInListVisible(const nsDisplayList& aList);
 
   
-  nsTArray< nsCOMPtr<nsIImageLoadingContent > > mVisibleImages;
+  nsTHashtable< nsRefPtrHashKey<nsIImageLoadingContent> > mVisibleImages;
 
 #ifdef DEBUG
   
