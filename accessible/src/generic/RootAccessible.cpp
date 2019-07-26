@@ -258,22 +258,18 @@ RootAccessible::HandleEvent(nsIDOMEvent* aDOMEvent)
   if (!origTargetNode)
     return NS_OK;
 
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eDOMEvents)) {
+    nsAutoString eventType;
+    aDOMEvent->GetType(eventType);
+    logging::DOMEvent("handled", origTargetNode, eventType);
+  }
+#endif
+
   DocAccessible* document =
     GetAccService()->GetDocAccessible(origTargetNode->OwnerDoc());
 
   if (document) {
-#ifdef A11Y_LOG
-    if (logging::IsEnabled(logging::eDOMEvents)) {
-      nsAutoString eventType;
-      aDOMEvent->GetType(eventType);
-
-      logging::MsgBegin("DOMEvents", "event '%s' handled",
-                        NS_ConvertUTF16toUTF8(eventType).get());
-      logging::Node("target", origTargetNode);
-      logging::MsgEnd();
-    }
-#endif
-
     
     
     
@@ -295,6 +291,11 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 
   nsAutoString eventType;
   aDOMEvent->GetType(eventType);
+
+#ifdef A11Y_LOG
+  if (logging::IsEnabled(logging::eDOMEvents))
+    logging::DOMEvent("processed", origTargetNode, eventType);
+#endif
 
   if (eventType.EqualsLiteral("popuphiding")) {
     HandlePopupHidingEvent(origTargetNode);

@@ -153,6 +153,13 @@ void Node(const char* aDescr, nsINode* aNode);
 
 
 void AccessibleNNode(const char* aDescr, Accessible* aAccessible);
+void AccessibleNNode(const char* aDescr, nsINode* aNode);
+
+
+
+
+void DOMEvent(const char* aDescr, nsINode* aOrigTarget,
+              const nsAString& aEventType);
 
 
 
