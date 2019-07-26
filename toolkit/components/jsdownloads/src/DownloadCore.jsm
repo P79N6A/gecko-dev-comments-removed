@@ -67,6 +67,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gExternalHelperAppService",
+           "@mozilla.org/uriloader/external-helper-app-service;1",
+           Ci.nsIExternalHelperAppService);
+
 const BackgroundFileSaverStreamListener = Components.Constructor(
       "@mozilla.org/network/background-file-saver;1?mode=streamlistener",
       "nsIBackgroundFileSaver");
@@ -1406,6 +1410,24 @@ DownloadCopySaver.prototype = {
               
               if (channel.contentLength >= 0) {
                 aSetProgressBytesFn(0, channel.contentLength);
+              }
+
+              
+              
+              
+              
+              if (channel instanceof Ci.nsIEncodedChannel &&
+                  channel.contentEncodings) {
+                let uri = channel.URI;
+                if (uri instanceof Ci.nsIURL && uri.fileExtension) {
+                  
+                  let encoding = channel.contentEncodings.getNext();
+                  if (encoding) {
+                    channel.applyConversion =
+                      gExternalHelperAppService.applyDecodingForExtension(
+                                                uri.fileExtension, encoding);
+                  }
+                }
               }
 
               if (keepPartialData) {

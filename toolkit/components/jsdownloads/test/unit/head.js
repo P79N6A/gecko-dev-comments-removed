@@ -256,6 +256,8 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
 
   
   persist.persistFlags &= ~Ci.nsIWebBrowserPersist.PERSIST_FLAGS_NO_CONVERSION;
+  persist.persistFlags |=
+    Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
   
   
@@ -424,12 +426,14 @@ function promiseVerifyContents(aPath, aExpectedContents)
       do_check_true(Components.isSuccessCode(aStatus));
       let contents = NetUtil.readInputStreamToString(aInputStream,
                                                      aInputStream.available());
-      if (contents.length <= TEST_DATA_SHORT.length * 2) {
-        do_check_eq(contents, aExpectedContents);
-      } else {
+      if (contents.length > TEST_DATA_SHORT.length * 2 ||
+          /[^\x20-\x7E]/.test(contents)) {
         
         do_check_eq(contents.length, aExpectedContents.length);
         do_check_true(contents == aExpectedContents);
+      } else {
+        
+        do_check_eq(contents, aExpectedContents);
       }
       deferred.resolve();
     });
