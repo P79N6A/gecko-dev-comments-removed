@@ -4,18 +4,7 @@
 
 
 const Cu = Components.utils;
-let {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
-
-let loader = new Loader.Loader({
-  paths: {
-    "": "resource://gre/modules/commonjs/",
-    "devtools": "resource:///modules/devtools",
-  },
-  globals: {},
-});
-let require = Loader.Require(loader, { id: "undo-test" })
-
-let {UndoStack} = require("devtools/shared/undo");
+Cu.import("resource:///modules/devtools/Undo.jsm")
 
 const MAX_SIZE = 5;
 

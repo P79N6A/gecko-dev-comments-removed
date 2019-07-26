@@ -2,8 +2,7 @@
 
 
 
-let {devtools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-let TargetFactory = devtools.TargetFactory;
+let TargetFactory = (Cu.import("resource:///modules/devtools/Target.jsm", {})).TargetFactory;
 
 
 

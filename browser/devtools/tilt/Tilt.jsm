@@ -5,14 +5,7 @@
 
 "use strict";
 
-const {Cu} = require("chrome");
-
-let {TiltVisualizer} = require("devtools/tilt/tilt-visualizer");
-let TiltGL = require("devtools/tilt/tilt-gl");
-let TiltUtils = require("devtools/tilt/tilt-utils");
-let EventEmitter = require("devtools/shared/event-emitter");
-
-Cu.import("resource://gre/modules/Services.jsm");
+const Cu = Components.utils;
 
 
 const TILT_NOTIFICATIONS = {
@@ -52,7 +45,15 @@ const TILT_NOTIFICATIONS = {
   NODE_REMOVED: "tilt-node-removed"
 };
 
-let TiltManager = {
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource:///modules/devtools/TiltGL.jsm");
+Cu.import("resource:///modules/devtools/TiltUtils.jsm");
+Cu.import("resource:///modules/devtools/EventEmitter.jsm");
+Cu.import("resource:///modules/devtools/TiltVisualizer.jsm");
+
+this.EXPORTED_SYMBOLS = ["TiltManager"];
+
+this.TiltManager = {
   _instances: new WeakMap(),
   getTiltForBrowser: function(aChromeWindow)
   {
@@ -66,15 +67,13 @@ let TiltManager = {
   },
 }
 
-exports.TiltManager = TiltManager;
 
 
 
 
 
 
-
-function Tilt(aWindow)
+this.Tilt = function Tilt(aWindow)
 {
   
 
