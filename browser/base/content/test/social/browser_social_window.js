@@ -17,6 +17,7 @@ function resetSocial() {
 }
 
 let createdWindows = [];
+let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
 
 function openWindowAndWaitForInit(callback) {
   
@@ -27,7 +28,11 @@ function openWindowAndWaitForInit(callback) {
     Services.obs.removeObserver(providerSet, topic);
     info(topic + " observer was notified - continuing test");
     
-    executeSoon(function() {callback(w)});
+    
+    ss.init(w).then(function () {
+      executeSoon(function() {callback(w);});
+    });
+
   }, topic, false);
 }
 
