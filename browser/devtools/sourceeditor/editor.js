@@ -153,8 +153,8 @@ function Editor(config) {
 
   
   this.config.extraKeys[Editor.keyFor("jumpToLine")] = () => this.jumpToLine();
-  this.config.extraKeys[Editor.keyFor("moveLineUp")] = () => this.moveLineUp();
-  this.config.extraKeys[Editor.keyFor("moveLineDown")] = () => this.moveLineDown();
+  this.config.extraKeys[Editor.keyFor("moveLineUp", { noaccel: true })] = () => this.moveLineUp();
+  this.config.extraKeys[Editor.keyFor("moveLineDown", { noaccel: true })] = () => this.moveLineDown();
   this.config.extraKeys[Editor.keyFor("toggleComment")] = "toggleComment";
 
   
@@ -848,8 +848,9 @@ Editor.accel = function (key, modifiers={}) {
 
 
 
-Editor.keyFor = function (cmd) {
-  return Editor.accel(L10N.GetStringFromName(cmd + ".commandkey"));
+Editor.keyFor = function (cmd, opts={ noaccel: false }) {
+  let key = L10N.GetStringFromName(cmd + ".commandkey");
+  return opts.noaccel ? key : Editor.accel(key);
 };
 
 
