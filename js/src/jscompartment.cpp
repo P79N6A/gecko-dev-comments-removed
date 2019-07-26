@@ -271,12 +271,13 @@ JSCompartment::wrap(JSContext *cx, JSString **strp)
 
     
     JSString *str = *strp;
-    if (str->zone() == zone())
+    if (str->zoneFromAnyThread() == zone())
         return true;
 
     
     if (str->isAtom()) {
-        JS_ASSERT(cx->runtime()->isAtomsZone(str->zone()));
+        JS_ASSERT(str->isPermanentAtom() ||
+                  cx->runtime()->isAtomsZone(str->zone()));
         return true;
     }
 
