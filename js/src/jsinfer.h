@@ -821,13 +821,14 @@ struct TypeNewScript : public TypeObjectAddendum
     HeapPtrFunction fun;
 
     
-    gc::AllocKind allocKind;
-
-    
 
 
 
-    HeapPtrShape  shape;
+
+
+
+
+    HeapPtrObject templateObject;
 
     
 
