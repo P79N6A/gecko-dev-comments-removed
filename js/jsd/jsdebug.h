@@ -385,7 +385,7 @@ JSD_GetScriptPrivate(JSDScript* jsdscript);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsActiveScript(JSDContext* jsdc, JSDScript *jsdscript);
 
 
@@ -425,7 +425,7 @@ JSD_GetScriptLineExtent(JSDContext* jsdc, JSDScript *jsdscript);
 typedef void
 (* JSD_ScriptHookProc)(JSDContext* jsdc,
                        JSDScript*  jsdscript,
-                       JSBool      creating,
+                       bool        creating,
                        void*       callerdata);
 
 
@@ -433,13 +433,13 @@ typedef void
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetScriptHook(JSDContext* jsdc, JSD_ScriptHookProc hook, void* callerdata);
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_GetScriptHook(JSDContext* jsdc, JSD_ScriptHookProc* hook, void** callerdata);
 
 
@@ -468,7 +468,7 @@ JSD_GetClosestLine(JSDContext* jsdc, JSDScript* jsdscript, uintptr_t pc);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_GetLinePCs(JSDContext* jsdc, JSDScript* jsdscript,
                unsigned startLine, unsigned maxLines,
                unsigned* count, unsigned** lines, uintptr_t** pcs);
@@ -575,7 +575,7 @@ JSD_GetSourceURL(JSDContext* jsdc, JSDSourceText* jsdsrc);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_GetSourceText(JSDContext* jsdc, JSDSourceText* jsdsrc,
                   const char** ppBuf, int* pLen);
 
@@ -600,14 +600,14 @@ JSD_GetSourceStatus(JSDContext* jsdc, JSDSourceText* jsdsrc);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsSourceDirty(JSDContext* jsdc, JSDSourceText* jsdsrc);
 
 
 
 
 extern JSD_PUBLIC_API(void)
-JSD_SetSourceDirty(JSDContext* jsdc, JSDSourceText* jsdsrc, JSBool dirty);
+JSD_SetSourceDirty(JSDContext* jsdc, JSDSourceText* jsdsrc, bool dirty);
 
 
 
@@ -685,7 +685,7 @@ JSD_AppendUCSourceText(JSDContext*     jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_AddFullSourceText(JSDContext* jsdc,
                       const char* text,       
                       size_t      length,
@@ -731,7 +731,7 @@ typedef unsigned
 
 
 
-typedef JSBool
+typedef bool
 (* JSD_CallHookProc)(JSDContext*     jsdc,
                      JSDThreadState* jsdthreadstate,
                      unsigned           type,
@@ -741,7 +741,7 @@ typedef JSBool
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetExecutionHook(JSDContext*           jsdc,
                      JSDScript*            jsdscript,
                      uintptr_t             pc,
@@ -751,7 +751,7 @@ JSD_SetExecutionHook(JSDContext*           jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearExecutionHook(JSDContext*          jsdc,
                        JSDScript*           jsdscript,
                        uintptr_t            pc);
@@ -759,14 +759,14 @@ JSD_ClearExecutionHook(JSDContext*          jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearAllExecutionHooksForScript(JSDContext* jsdc, JSDScript* jsdscript);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearAllExecutionHooks(JSDContext* jsdc);
 
 
@@ -776,7 +776,7 @@ JSD_ClearAllExecutionHooks(JSDContext* jsdc);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetInterruptHook(JSDContext*           jsdc,
                      JSD_ExecutionHookProc hook,
                      void*                 callerdata);
@@ -784,20 +784,20 @@ JSD_SetInterruptHook(JSDContext*           jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
-JSD_EnableSingleStepInterrupts(JSDContext* jsdc, JSDScript *jsdscript, JSBool enable);
+extern JSD_PUBLIC_API(bool)
+JSD_EnableSingleStepInterrupts(JSDContext* jsdc, JSDScript *jsdscript, bool enable);
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearInterruptHook(JSDContext* jsdc);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetDebugBreakHook(JSDContext*           jsdc,
                       JSD_ExecutionHookProc hook,
                       void*                 callerdata);
@@ -805,14 +805,14 @@ JSD_SetDebugBreakHook(JSDContext*           jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearDebugBreakHook(JSDContext* jsdc);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetDebuggerHook(JSDContext*           jsdc,
                     JSD_ExecutionHookProc hook,
                     void*                 callerdata);
@@ -820,47 +820,47 @@ JSD_SetDebuggerHook(JSDContext*           jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearDebuggerHook(JSDContext* jsdc);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetThrowHook(JSDContext*           jsdc,
                  JSD_ExecutionHookProc hook,
                  void*                 callerdata);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearThrowHook(JSDContext* jsdc);
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetTopLevelHook(JSDContext*      jsdc,
                     JSD_CallHookProc hook,
                     void*            callerdata);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearTopLevelHook(JSDContext* jsdc);
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetFunctionHook(JSDContext*      jsdc,
                     JSD_CallHookProc hook,
                     void*            callerdata);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_ClearFunctionHook(JSDContext* jsdc);
 
 
@@ -950,7 +950,7 @@ JSD_GetIdForStackFrame(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsStackFrameDebugger(JSDContext* jsdc,
                          JSDThreadState* jsdthreadstate,
                          JSDStackFrameInfo* jsdframe);
@@ -958,7 +958,7 @@ JSD_IsStackFrameDebugger(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsStackFrameConstructing(JSDContext* jsdc,
                              JSDThreadState* jsdthreadstate,
                              JSDStackFrameInfo* jsdframe);
@@ -968,7 +968,7 @@ JSD_IsStackFrameConstructing(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_EvaluateUCScriptInStackFrame(JSDContext* jsdc,
                                  JSDThreadState* jsdthreadstate,
                                  JSDStackFrameInfo* jsdframe,
@@ -979,7 +979,7 @@ JSD_EvaluateUCScriptInStackFrame(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_AttemptUCScriptInStackFrame(JSDContext* jsdc,
                                 JSDThreadState* jsdthreadstate,
                                 JSDStackFrameInfo* jsdframe,
@@ -988,7 +988,7 @@ JSD_AttemptUCScriptInStackFrame(JSDContext* jsdc,
                                 JS::MutableHandleValue rval);
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_EvaluateScriptInStackFrame(JSDContext* jsdc,
                                JSDThreadState* jsdthreadstate,
                                JSDStackFrameInfo* jsdframe,
@@ -998,7 +998,7 @@ JSD_EvaluateScriptInStackFrame(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_AttemptScriptInStackFrame(JSDContext* jsdc,
                               JSDThreadState* jsdthreadstate,
                               JSDStackFrameInfo* jsdframe,
@@ -1027,7 +1027,7 @@ JSD_GetException(JSDContext* jsdc, JSDThreadState* jsdthreadstate);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetException(JSDContext* jsdc, JSDThreadState* jsdthreadstate, 
                  JSDValue* jsdval);
 
@@ -1056,13 +1056,13 @@ typedef unsigned
                       void*           callerdata);
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_SetErrorReporter(JSDContext*       jsdc,
                      JSD_ErrorReporter reporter,
                      void*             callerdata);
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_GetErrorReporter(JSDContext*        jsdc,
                      JSD_ErrorReporter* reporter,
                      void**             callerdata);
@@ -1075,7 +1075,7 @@ struct JSDStaticLock;
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsLockingAndThreadIdSupported();
 
 
@@ -1102,13 +1102,13 @@ JSD_Unlock(JSDStaticLock* lock);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsLocked(JSDStaticLock* lock);
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsUnlocked(JSDStaticLock* lock);
 
 
@@ -1166,77 +1166,77 @@ JSD_RefreshValue(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueObject(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueNumber(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueInt(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueDouble(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueString(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueBoolean(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueNull(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueVoid(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValuePrimitive(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueFunction(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_IsValueNative(JSDContext* jsdc, JSDValue* jsdval);
 
 
@@ -1245,7 +1245,7 @@ JSD_IsValueNative(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
-extern JSD_PUBLIC_API(JSBool)
+extern JSD_PUBLIC_API(bool)
 JSD_GetValueBoolean(JSDContext* jsdc, JSDValue* jsdval);
 
 

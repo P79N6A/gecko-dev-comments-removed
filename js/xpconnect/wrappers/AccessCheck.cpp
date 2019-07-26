@@ -306,7 +306,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapperArg, jsid idArg, Wr
     
     JSAutoCompartment ac(cx, wrappedObject);
 
-    JSBool found = false;
+    bool found = false;
     if (!JS_HasPropertyById(cx, wrappedObject, exposedPropsId, &found))
         return false;
 

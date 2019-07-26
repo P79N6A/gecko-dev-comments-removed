@@ -47,7 +47,7 @@ JS_FindCompilationScope(JSContext *cx, JSObject *obj);
 extern JS_FRIEND_API(JSFunction *)
 JS_GetObjectFunction(JSObject *obj);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_SplicePrototype(JSContext *cx, JSObject *obj, JSObject *proto);
 
 extern JS_FRIEND_API(JSObject *)
@@ -62,7 +62,7 @@ JS_SetProtoCalled(JSContext *cx);
 extern JS_FRIEND_API(size_t)
 JS_GetCustomIteratorCount(JSContext *cx);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
 
 
@@ -71,7 +71,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsDeadWrapper(JSObject *obj);
 
 
@@ -126,8 +126,8 @@ JS_CloneObject(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent);
 extern JS_FRIEND_API(JSString *)
 JS_BasicObjectToString(JSContext *cx, JS::HandleObject obj);
 
-extern JS_FRIEND_API(JSBool)
-js_GetterOnlyPropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JSBool strict,
+extern JS_FRIEND_API(bool)
+js_GetterOnlyPropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict,
                           JS::MutableHandleValue vp);
 
 JS_FRIEND_API(void)
@@ -169,13 +169,13 @@ js_DumpChars(const jschar *s, size_t n);
 extern JS_FRIEND_API(bool)
 JS_CopyPropertiesFrom(JSContext *cx, JSObject *target, JSObject *obj);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_WrapPropertyDescriptor(JSContext *cx, js::PropertyDescriptor *desc);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_WrapAutoIdVector(JSContext *cx, JS::AutoIdVector &props);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_EnumerateState(JSContext *cx, JS::HandleObject obj, JSIterateOp enum_op,
                   js::MutableHandleValue statep, js::MutableHandleId idp);
 
@@ -763,7 +763,7 @@ JS_FRIEND_API(bool)
 HasUnrootedGlobal(const JSContext *cx);
 
 typedef void
-(* ActivityCallback)(void *arg, JSBool active);
+(* ActivityCallback)(void *arg, bool active);
 
 
 
@@ -791,7 +791,7 @@ typedef void
 extern JS_FRIEND_API(AnalysisPurgeCallback)
 SetAnalysisPurgeCallback(JSRuntime *rt, AnalysisPurgeCallback callback);
 
-typedef JSBool
+typedef bool
 (* DOMInstanceClassMatchesProto)(JS::HandleObject protoObject, uint32_t protoID,
                                  uint32_t depth);
 struct JSDOMCallbacks {
@@ -877,7 +877,7 @@ struct CompartmentsWithPrincipals : public CompartmentFilter {
     }
 };
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 NukeCrossCompartmentWrappers(JSContext* cx,
                              const CompartmentFilter& sourceFilter,
                              const CompartmentFilter& targetFilter,
@@ -939,7 +939,7 @@ DOMProxyShadowsCheck GetDOMProxyShadowsCheck();
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 js_DateIsValid(JSObject* obj);
 
 extern JS_FRIEND_API(double)
@@ -1232,7 +1232,7 @@ JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes);
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsTypedArrayObject(JSObject *obj);
 
 
@@ -1242,30 +1242,30 @@ JS_IsTypedArrayObject(JSObject *obj);
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsArrayBufferViewObject(JSObject *obj);
 
 
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsInt8Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsUint8Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsUint8ClampedArray(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsInt16Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsUint16Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsInt32Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsUint32Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsFloat32Array(JSObject *obj);
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsFloat64Array(JSObject *obj);
 
 
@@ -1312,7 +1312,7 @@ JS_GetArrayBufferViewType(JSObject *obj);
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsArrayBufferObject(JSObject *obj);
 
 
@@ -1373,7 +1373,7 @@ JS_GetTypedArrayByteLength(JSObject *obj);
 
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 JS_IsArrayBufferViewObject(JSObject *obj);
 
 
@@ -1429,7 +1429,7 @@ JS_GetArrayBufferViewBuffer(JSObject *obj);
 
 
 
-JS_FRIEND_API(JSBool)
+JS_FRIEND_API(bool)
 JS_IsDataViewObject(JSObject *obj);
 
 
@@ -1654,13 +1654,13 @@ NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
 }
 
 
-static JS_ALWAYS_INLINE JSBool
+static JS_ALWAYS_INLINE bool
 JSID_IS_ATOM(jsid id)
 {
     return JSID_IS_STRING(id);
 }
 
-static JS_ALWAYS_INLINE JSBool
+static JS_ALWAYS_INLINE bool
 JSID_IS_ATOM(jsid id, JSAtom *atom)
 {
     return id == JSID_FROM_BITS((size_t)atom);
@@ -1768,7 +1768,7 @@ JS_FRIEND_API(JSObject *)
 GetObjectMetadata(JSObject *obj);
 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 DefaultValue(JSContext *cx, JS::HandleObject obj, JSType hint, MutableHandleValue vp);
 
 
@@ -1815,11 +1815,11 @@ class AsmJSModuleSourceDesc
 
 } 
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 js_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg,
-                     const js::PropertyDescriptor& descriptor, JSBool *bp);
+                     const js::PropertyDescriptor& descriptor, bool *bp);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(bool)
 js_ReportIsNotFunction(JSContext *cx, const JS::Value& v);
 
 #ifdef JSGC_GENERATIONAL

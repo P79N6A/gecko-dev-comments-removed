@@ -176,7 +176,7 @@ num_parseInt(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-extern JSBool
+extern bool
 js_strtod(js::ThreadSafeContext *cx, const jschar *s, const jschar *send,
           const jschar **ep, double *dp);
 

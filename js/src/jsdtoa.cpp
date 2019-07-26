@@ -112,7 +112,7 @@ js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, 
 
     
     if (decPt != 9999) {
-        JSBool exponentialNotation = false;
+        bool exponentialNotation = false;
         int minNDigits = 0;  
         char *p;
         char *q;

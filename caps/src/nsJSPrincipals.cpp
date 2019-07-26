@@ -20,7 +20,7 @@
 
 #include "mozilla/dom/workers/Workers.h"
 
- JSBool
+ bool
 nsJSPrincipals::Subsume(JSPrincipals *jsprin, JSPrincipals *other)
 {
     bool result;

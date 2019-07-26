@@ -371,13 +371,13 @@ private:
 
     bool SubjectIsPrivileged();
 
-    static JSBool
+    static bool
     CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> obj,
                       JS::Handle<jsid> id, JSAccessMode mode,
                       JS::MutableHandle<JS::Value> vp);
     
     
-    static JSBool
+    static bool
     ContentSecurityPolicyPermitsJSAction(JSContext *cx);
 
     

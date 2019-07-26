@@ -423,7 +423,7 @@ NS_IMPL_ISUPPORTS4(nsScriptSecurityManager,
 
 
 
-JSBool
+bool
 nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 {
     
@@ -483,7 +483,7 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
 }
 
 
-JSBool
+bool
 nsScriptSecurityManager::CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> obj,
                                            JS::Handle<jsid> id, JSAccessMode mode,
                                            JS::MutableHandle<JS::Value> vp)

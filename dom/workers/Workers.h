@@ -164,7 +164,7 @@ struct JSSettings
 };
 
 
-JSBool
+bool
 ResolveWorkerClasses(JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
                      unsigned aFlags, JS::MutableHandle<JSObject*> aObjp);
 

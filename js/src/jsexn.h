@@ -27,7 +27,7 @@ js_InitExceptionClasses(JSContext *cx, js::HandleObject obj);
 
 
 
-extern JSBool
+extern bool
 js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
                     JSErrorCallback callback, void *userRef);
 
@@ -47,7 +47,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
 
-extern JSBool
+extern bool
 js_ReportUncaughtException(JSContext *cx);
 
 extern JSErrorReport *

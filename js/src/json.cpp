@@ -135,9 +135,9 @@ class StringifyContext
     uint32_t depth;
 };
 
-static JSBool Str(JSContext *cx, const Value &v, StringifyContext *scx);
+static bool Str(JSContext *cx, const Value &v, StringifyContext *scx);
 
-static JSBool
+static bool
 WriteIndent(JSContext *cx, StringifyContext *scx, uint32_t limit)
 {
     if (!scx->gap.empty()) {
@@ -265,7 +265,7 @@ IsFilteredValue(const Value &v)
 }
 
 
-static JSBool
+static bool
 JO(JSContext *cx, HandleObject obj, StringifyContext *scx)
 {
     
@@ -355,7 +355,7 @@ JO(JSContext *cx, HandleObject obj, StringifyContext *scx)
 }
 
 
-static JSBool
+static bool
 JA(JSContext *cx, HandleObject obj, StringifyContext *scx)
 {
     
@@ -429,7 +429,7 @@ JA(JSContext *cx, HandleObject obj, StringifyContext *scx)
     return scx->sb.append(']');
 }
 
-static JSBool
+static bool
 Str(JSContext *cx, const Value &v, StringifyContext *scx)
 {
     
@@ -481,7 +481,7 @@ Str(JSContext *cx, const Value &v, StringifyContext *scx)
     RootedObject obj(cx, &v.toObject());
 
     scx->depth++;
-    JSBool ok;
+    bool ok;
     if (ObjectClassIs(obj, ESClass_Array, cx))
         ok = JA(cx, obj, scx);
     else
@@ -492,7 +492,7 @@ Str(JSContext *cx, const Value &v, StringifyContext *scx)
 }
 
 
-JSBool
+bool
 js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value space_,
              StringBuffer &sb)
 {
@@ -691,7 +691,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
 
                 if (newElement.isUndefined()) {
                     
-                    JSBool succeeded;
+                    bool succeeded;
                     if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &succeeded))
                         return false;
                 } else {
@@ -720,7 +720,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
 
                 if (newElement.isUndefined()) {
                     
-                    JSBool succeeded;
+                    bool succeeded;
                     if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &succeeded))
                         return false;
                 } else {

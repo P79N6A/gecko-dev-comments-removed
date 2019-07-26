@@ -125,7 +125,7 @@ ValueHasISupportsPrivate(const JS::Value &v)
 
 
 
-static JSBool
+static bool
 InstallXBLField(JSContext* cx,
                 JS::Handle<JSObject*> callee, JS::Handle<JSObject*> thisObj,
                 JS::MutableHandle<jsid> idp, bool* installed)
@@ -323,7 +323,7 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
   
   
   
-  JSBool found = false;
+  bool found = false;
   if (!JS_AlreadyHasOwnPropertyById(aCx, aTargetClassObject, id, &found))
     return NS_ERROR_FAILURE;
   if (found)

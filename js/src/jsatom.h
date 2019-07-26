@@ -169,7 +169,7 @@ extern const char * const TypeStrings[];
 
 
 
-extern JSBool
+extern bool
 InitAtoms(JSRuntime *rt);
 
 

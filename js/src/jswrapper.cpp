@@ -853,7 +853,7 @@ js::NukeCrossCompartmentWrapper(JSContext *cx, JSObject *wrapper)
 
 
 
-JS_FRIEND_API(JSBool)
+JS_FRIEND_API(bool)
 js::NukeCrossCompartmentWrappers(JSContext* cx,
                                  const CompartmentFilter& sourceFilter,
                                  const CompartmentFilter& targetFilter,

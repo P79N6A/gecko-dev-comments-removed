@@ -730,10 +730,10 @@ enum ErrorArgumentsType {
 } 
 
 #ifdef va_start
-extern JSBool
+extern bool
 js_ReportErrorVA(JSContext *cx, unsigned flags, const char *format, va_list ap);
 
-extern JSBool
+extern bool
 js_ReportErrorNumberVA(JSContext *cx, unsigned flags, JSErrorCallback callback,
                        void *userRef, const unsigned errorNumber,
                        js::ErrorArgumentsType argumentsType, va_list ap);
@@ -744,7 +744,7 @@ js_ReportErrorNumberUCArray(JSContext *cx, unsigned flags, JSErrorCallback callb
                             const jschar **args);
 #endif
 
-extern JSBool
+extern bool
 js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         void *userRef, const unsigned errorNumber,
                         char **message, JSErrorReport *reportp,
@@ -780,7 +780,7 @@ js_ReportIsNotDefined(JSContext *cx, const char *name);
 
 
 
-extern JSBool
+extern bool
 js_ReportIsNullOrUndefined(JSContext *cx, int spindex, js::HandleValue v,
                            js::HandleString fallback);
 
@@ -792,7 +792,7 @@ js_ReportMissingArg(JSContext *cx, js::HandleValue v, unsigned arg);
 
 
 
-extern JSBool
+extern bool
 js_ReportValueErrorFlags(JSContext *cx, unsigned flags, const unsigned errorNumber,
                          int spindex, js::HandleValue v, js::HandleString fallback,
                          const char *arg1, const char *arg2);
@@ -821,7 +821,7 @@ extern const JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-extern JSBool
+extern bool
 js_InvokeOperationCallback(JSContext *cx);
 
 extern bool

@@ -225,6 +225,8 @@ using mozilla::dom::workers::ResolveWorkerClasses;
 #include "nsIDOMConnection.h"
 
 #ifdef MOZ_B2G_RIL
+#include "Telephony.h"
+#include "TelephonyCall.h"
 #include "nsIDOMMozVoicemail.h"
 #include "nsIDOMIccManager.h"
 #include "nsIDOMMozCellBroadcast.h"
@@ -638,6 +640,10 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
 #ifdef MOZ_B2G_RIL
+  NS_DEFINE_CLASSINFO_DATA(Telephony, nsEventTargetSH,
+                           EVENTTARGET_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(TelephonyCall, nsEventTargetSH,
+                           EVENTTARGET_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(MozVoicemail, nsEventTargetSH,
                            EVENTTARGET_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(MozIccManager, nsDOMGenericSH,
@@ -1523,6 +1529,15 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_END
 
 #ifdef MOZ_B2G_RIL
+  DOM_CLASSINFO_MAP_BEGIN(Telephony, nsIDOMTelephony)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMTelephony)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(TelephonyCall, nsIDOMTelephonyCall)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMTelephonyCall)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozVoicemail, nsIDOMMozVoicemail)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozVoicemail)
@@ -2167,7 +2182,7 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * aProto)
   }
 
   
-  JSBool found;
+  bool found;
   if (!::JS_AlreadyHasOwnUCProperty(cx, global, reinterpret_cast<const jschar*>(mData->mNameUTF16),
                                     NS_strlen(mData->mNameUTF16), &found)) {
     return NS_ERROR_FAILURE;
@@ -2331,7 +2346,7 @@ static JSClass sGlobalScopePolluterClass = {
 
 
 
-JSBool
+bool
 nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JS::Handle<JSObject*> obj,
                                            JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp)
 {
@@ -2354,7 +2369,7 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JS::Handle<JSObject*> 
 }
 
 
-static JSBool
+static bool
 ChildWindowGetter(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                   JS::MutableHandle<JS::Value> vp)
 {
@@ -2391,7 +2406,7 @@ GetDocument(JSObject *obj)
 }
 
 
-JSBool
+bool
 nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JS::Handle<JSObject*> obj,
                                           JS::Handle<jsid> id, unsigned flags,
                                           JS::MutableHandle<JSObject*> objp)
@@ -2437,7 +2452,7 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JS::Handle<JSObject*> o
   if (!::JS_GetPrototype(cx, obj, &proto)) {
     return false;
   }
-  JSBool hasProp;
+  bool hasProp;
 
   if (!proto || !::JS_HasPropertyById(cx, proto, id, &hasProp) ||
       hasProp) {
@@ -2488,7 +2503,7 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JS::Handle<JSObject*> o
 }
 
 
-JSBool
+bool
 nsWindowSH::InvalidateGlobalScopePolluter(JSContext *cx,
                                           JS::Handle<JSObject*> aObj)
 {
@@ -2846,7 +2861,7 @@ public:
   {
     JS::Rooted<JS::Value> thisAsVal(cx, aThisAsVal);
     
-    JSBool ok = JS_WrapValue(cx, thisAsVal.address()) &&
+    bool ok = JS_WrapValue(cx, thisAsVal.address()) &&
       ::JS_DefineUCProperty(cx, target,
                             reinterpret_cast<const jschar *>(mClassName),
                             NS_strlen(mClassName), thisAsVal, JS_PropertyStub,
@@ -3748,9 +3763,9 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       return NS_ERROR_UNEXPECTED;
     }
 
-    JSBool ok = ::JS_DefinePropertyById(cx, obj, id, prop_val,
-                                        JS_PropertyStub, JS_StrictPropertyStub,
-                                        JSPROP_ENUMERATE);
+    bool ok = ::JS_DefinePropertyById(cx, obj, id, prop_val,
+                                      JS_PropertyStub, JS_StrictPropertyStub,
+                                      JSPROP_ENUMERATE);
 
     *did_resolve = true;
 
@@ -3835,8 +3850,8 @@ LocationSetterGuts(JSContext *cx, JSObject *obj, jsval *vp)
 }
 
 template<class Interface>
-static JSBool
-LocationSetter(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id, JSBool strict,
+static bool
+LocationSetter(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id, bool strict,
                JS::MutableHandle<JS::Value> vp)
 {
   nsresult rv = LocationSetterGuts<Interface>(cx, obj, vp.address());
@@ -3848,9 +3863,9 @@ LocationSetter(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id, JS
   return true;
 }
 
-static JSBool
+static bool
 LocationSetterUnwrapper(JSContext *cx, JS::Handle<JSObject*> obj_, JS::Handle<jsid> id,
-                        JSBool strict, JS::MutableHandle<JS::Value> vp)
+                        bool strict, JS::MutableHandle<JS::Value> vp)
 {
   JS::RootedObject obj(cx, obj_);
 
@@ -3975,8 +3990,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   if (!xpc::WrapperFactory::IsXrayWrapper(obj)) {
-    JSBool did_resolve = false;
-    JSBool ok = true;
+    bool did_resolve = false;
+    bool ok = true;
     JS::Rooted<JS::Value> exn(cx, JSVAL_VOID);
 
     {
@@ -4053,7 +4068,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                     v.address(), getter_AddRefs(holder));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    JSBool ok = JS_WrapValue(cx, v.address()) &&
+    bool ok = JS_WrapValue(cx, v.address()) &&
                 JS_DefinePropertyById(cx, obj, id, v, JS_PropertyStub,
                                       LocationSetterUnwrapper,
                                       JSPROP_PERMANENT | JSPROP_ENUMERATE);
@@ -4502,7 +4517,7 @@ nsGenericArraySH::Enumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   sCurrentlyEnumerating = true;
 
   JS::Rooted<JS::Value> len_val(cx);
-  JSBool ok = ::JS_GetProperty(cx, obj, "length", &len_val);
+  bool ok = ::JS_GetProperty(cx, obj, "length", &len_val);
 
   if (ok && JSVAL_IS_INT(len_val)) {
     int32_t length = JSVAL_TO_INT(len_val);
@@ -4598,7 +4613,7 @@ JSClass sHTMLDocumentAllClass = {
 
 
 
-JSBool
+bool
 nsHTMLDocumentSH::GetDocumentAllNodeList(JSContext *cx,
                                          JS::Handle<JSObject*> obj,
                                          nsDocument *domdoc,
@@ -4664,7 +4679,7 @@ nsHTMLDocumentSH::GetDocumentAllNodeList(JSContext *cx,
   return *nodeList != nullptr;
 }
 
-JSBool
+bool
 nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JS::Handle<JSObject*> obj_,
                                          JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp)
 {
@@ -4761,7 +4776,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JS::Handle<JSObject*> ob
   return true;
 }
 
-JSBool
+bool
 nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JS::Handle<JSObject*> obj,
                                         JS::Handle<jsid> id, unsigned flags,
                                         JS::MutableHandle<JSObject*> objp)
@@ -4791,7 +4806,7 @@ nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JS::Handle<JSObject*> obj
     }
   }
 
-  JSBool ok = true;
+  bool ok = true;
 
   if (v.get() != JSVAL_VOID) {
     ok = ::JS_DefinePropertyById(cx, obj, id, v, nullptr, nullptr, 0);
@@ -5037,7 +5052,7 @@ nsStorage2SH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   if (!::JS_GetPrototype(cx, realObj, &proto)) {
     return NS_ERROR_FAILURE;
   }
-  JSBool hasProp;
+  bool hasProp;
 
   if (proto &&
       (::JS_HasPropertyById(cx, proto, id, &hasProp) &&
@@ -5283,7 +5298,7 @@ nsDOMConstructorSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx
   
   
   
-  JSBool found;
+  bool found;
   if (!JS_HasPropertyById(cx, nativePropsObj, id, &found)) {
     *_retval = false;
     return NS_OK;

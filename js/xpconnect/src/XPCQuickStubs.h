@@ -46,7 +46,7 @@ struct xpc_qsHashEntry {
     uint16_t chain;
 };
 
-JSBool
+bool
 xpc_qsDefineQuickStubs(JSContext *cx, JSObject *proto, unsigned extraFlags,
                        uint32_t ifacec, const nsIID **interfaces,
                        uint32_t tableSize, const xpc_qsHashEntry *table,
@@ -55,7 +55,7 @@ xpc_qsDefineQuickStubs(JSContext *cx, JSObject *proto, unsigned extraFlags,
                        const char *stringTable);
 
 
-JSBool
+bool
 xpc_qsThrow(JSContext *cx, nsresult rv);
 
 
@@ -71,14 +71,14 @@ xpc_qsThrow(JSContext *cx, nsresult rv);
 
 
 
-JSBool
+bool
 xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
                               JSObject *obj, jsid memberId);
 
-JSBool
+bool
 xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
                               JSObject *obj, const char* memberName);
-JSBool
+bool
 xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
                               JSObject *obj, uint16_t memberIndex);
 
@@ -87,10 +87,10 @@ xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
 
 
 
-JSBool
+bool
 xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv, jsval *vp);
 
-JSBool
+bool
 xpc_qsThrowMethodFailedWithCcx(XPCCallContext &ccx, nsresult rv);
 
 bool
@@ -130,23 +130,23 @@ xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
                           uint16_t name_index);
 
 
-JSBool
+bool
 xpc_qsGetterOnlyPropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                             JSBool strict, JS::MutableHandleValue vp);
+                             bool strict, JS::MutableHandleValue vp);
 
 bool
 xpc_qsGetterOnlyNativeStub(JSContext *cx, unsigned argc, jsval *vp);
 
 
 
-inline JSBool
+inline bool
 xpc_qsInt64ToJsval(JSContext *cx, int64_t i, jsval *rv)
 {
     *rv = JS_NumberValue(static_cast<double>(i));
     return true;
 }
 
-inline JSBool
+inline bool
 xpc_qsUint64ToJsval(JSContext *cx, uint64_t u, jsval *rv)
 {
     *rv = JS_NumberValue(static_cast<double>(u));
@@ -169,7 +169,7 @@ public:
             Ptr()->~implementation_type();
     }
 
-    JSBool IsValid() const { return mValid; }
+    bool IsValid() const { return mValid; }
 
     implementation_type *Ptr()
     {
@@ -222,7 +222,7 @@ protected:
 
 
     void *mBuf[JS_HOWMANY(sizeof(implementation_type), sizeof(void *))];
-    JSBool mValid;
+    bool mValid;
 
     
 
@@ -347,15 +347,15 @@ struct xpc_qsSelfRef
 
 
 
-JSBool
+bool
 xpc_qsJsvalToCharStr(JSContext *cx, jsval v, JSAutoByteString *bytes);
 
-JSBool
+bool
 xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, const PRUnichar **pstr);
 
 
 
-JSBool
+bool
 xpc_qsStringToJsstring(JSContext *cx, nsString &str, JSString **rval);
 
 nsresult
@@ -392,7 +392,7 @@ castNative(JSContext *cx,
 
 
 template <class T>
-inline JSBool
+inline bool
 xpc_qsUnwrapThis(JSContext *cx,
                  JS::HandleObject obj,
                  T **ppThis,
@@ -426,7 +426,7 @@ castNativeFromWrapper(JSContext *cx,
                       jsval *pVal,
                       nsresult *rv);
 
-JSBool
+bool
 xpc_qsUnwrapThisFromCcxImpl(XPCCallContext &ccx,
                             const nsIID &iid,
                             void **ppThis,
@@ -438,7 +438,7 @@ xpc_qsUnwrapThisFromCcxImpl(XPCCallContext &ccx,
 
 
 template <class T>
-inline JSBool
+inline bool
 xpc_qsUnwrapThisFromCcx(XPCCallContext &ccx,
                         T **ppThis,
                         nsISupports **pThisRef,
@@ -526,7 +526,7 @@ xpc_qsGetWrapperCache(void *p)
 
 
 
-JSBool
+bool
 xpc_qsXPCOMObjectToJsval(JSContext *aCx,
                          qsObjectHelper &aHelper,
                          const nsIID *iid,
@@ -536,7 +536,7 @@ xpc_qsXPCOMObjectToJsval(JSContext *aCx,
 
 
 
-JSBool
+bool
 xpc_qsVariantToJsval(JSContext *cx,
                      nsIVariant *p,
                      jsval *rval);
@@ -570,11 +570,11 @@ xpc_qsSameResult(int32_t result1, int32_t result2)
 
 
 template<typename Op>
-inline JSBool ApplyPropertyOp(JSContext *cx, Op op, JS::HandleObject obj, JS::HandleId id,
+inline bool ApplyPropertyOp(JSContext *cx, Op op, JS::HandleObject obj, JS::HandleId id,
                               JS::MutableHandleValue vp);
 
 template<>
-inline JSBool
+inline bool
 ApplyPropertyOp<JSPropertyOp>(JSContext *cx, JSPropertyOp op, JS::HandleObject obj, JS::HandleId id,
                               JS::MutableHandleValue vp)
 {
@@ -582,7 +582,7 @@ ApplyPropertyOp<JSPropertyOp>(JSContext *cx, JSPropertyOp op, JS::HandleObject o
 }
 
 template<>
-inline JSBool
+inline bool
 ApplyPropertyOp<JSStrictPropertyOp>(JSContext *cx, JSStrictPropertyOp op, JS::HandleObject obj,
                                     JS::HandleId id, JS::MutableHandleValue vp)
 {

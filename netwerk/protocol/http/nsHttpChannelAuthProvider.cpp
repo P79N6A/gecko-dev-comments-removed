@@ -1203,8 +1203,6 @@ nsHttpChannelAuthProvider::ConfirmAuth(const nsString &bundleKey,
     bool confirmed;
     if (doYesNoPrompt) {
         int32_t choice;
-        
-        
         bool checkState = false;
         rv = prompt->ConfirmEx(nullptr, msg,
                                nsIPrompt::BUTTON_POS_1_DEFAULT +

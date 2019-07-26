@@ -199,7 +199,7 @@ GC(JSContext *cx, unsigned argc, jsval *vp)
 
 
 
-    JSBool compartment = false;
+    bool compartment = false;
     if (argc == 1) {
         Value arg = vp[2];
         if (arg.isString()) {

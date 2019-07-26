@@ -131,7 +131,7 @@ struct JSStructuredCloneReader {
     
     void *closure;
 
-    friend JSBool JS_ReadTypedArray(JSStructuredCloneReader *r, jsval *vp);
+    friend bool JS_ReadTypedArray(JSStructuredCloneReader *r, jsval *vp);
 };
 
 struct JSStructuredCloneWriter {
@@ -201,7 +201,7 @@ struct JSStructuredCloneWriter {
     JS::RootedValue transferable;
     js::AutoObjectHashSet transferableObjects;
 
-    friend JSBool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
+    friend bool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 };
 
 #endif 

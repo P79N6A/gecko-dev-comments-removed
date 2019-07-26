@@ -250,7 +250,7 @@ typedef JSTrapStatus
 (* JSThrowHook)(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval,
                 void *closure);
 
-typedef JSBool
+typedef bool
 (* JSWatchPointHandler)(JSContext *cx, JSObject *obj, jsid id, jsval old,
                         jsval *newp, void *closure);
 
@@ -291,7 +291,7 @@ typedef JSObject *
 
 
 typedef JSObject *
-(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, JSBool keysonly);
+(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, bool keysonly);
 
 
 #endif 

@@ -516,7 +516,7 @@ class ObjectPrivateVisitor
 
     
     
-    typedef JSBool(*GetISupportsFun)(JSObject *obj, nsISupports **iface);
+    typedef bool(*GetISupportsFun)(JSObject *obj, nsISupports **iface);
     GetISupportsFun getISupports_;
 
     ObjectPrivateVisitor(GetISupportsFun getISupports)

@@ -984,7 +984,7 @@ TryPreserveWrapper(JSObject* obj);
 
 
 
-JSBool
+bool
 InstanceClassHasProtoAtDepth(JS::Handle<JSObject*> protoObject, uint32_t protoID,
                              uint32_t depth);
 
@@ -2093,17 +2093,17 @@ ReparentWrapper(JSContext* aCx, JS::HandleObject aObj);
 
 
 
-JSBool
+bool
 InterfaceHasInstance(JSContext* cx, JS::Handle<JSObject*> obj,
                      JS::Handle<JSObject*> instance,
-                     JSBool* bp);
-JSBool
+                     bool* bp);
+bool
 InterfaceHasInstance(JSContext* cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JS::Value> vp,
-                     JSBool* bp);
-JSBool
+                     bool* bp);
+bool
 InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
                      JS::Handle<JSObject*> instance,
-                     JSBool* bp);
+                     bool* bp);
 
 
 
