@@ -126,6 +126,7 @@ public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef FrameMetrics::ViewID ViewID;
   typedef mozilla::CSSPoint CSSPoint;
+  typedef mozilla::CSSSize CSSSize;
 
   
 
@@ -2099,6 +2100,22 @@ public:
 
   static nsSize
   CalculateCompositionSizeForFrame(nsIFrame* aFrame);
+
+ 
+
+
+
+
+
+
+
+
+
+
+  static CSSSize
+  CalculateRootCompositionSize(nsIFrame* aFrame,
+                               bool aIsRootContentDocRootScrollFrame,
+                               const FrameMetrics& aMetrics);
 
  
 
