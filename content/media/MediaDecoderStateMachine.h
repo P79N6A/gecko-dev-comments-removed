@@ -934,6 +934,16 @@ protected:
 
   
   
+  
+  bool mDispatchedDecodeMetadataTask;
+
+  
+  
+  
+  bool mDispatchedDecodeSeekTask;
+
+  
+  
   MediaInfo mInfo;
 
   mozilla::MediaMetadataManager mMetadataManager;
