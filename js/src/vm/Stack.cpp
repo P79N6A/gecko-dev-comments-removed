@@ -1373,7 +1373,9 @@ StackIter::settleOnNewState()
             containsCall = data_.seg_->contains(data_.calls_);
 
             
-            if (containsFrame && data_.seg_->fp() != data_.fp_) {
+            if (containsFrame &&
+                (data_.seg_->fp() != data_.fp_ || data_.seg_->maybeCalls() != data_.calls_))
+            {
                 
                 StackIter tmp = *this;
                 tmp.startOnSegment(data_.seg_);
