@@ -9367,6 +9367,12 @@ nsDocument::GetTemplateContentsOwner()
     NS_ENSURE_TRUE(mTemplateContentsOwner, nullptr);
 
     mTemplateContentsOwner->SetScriptHandlingObject(scriptObject);
+
+    
+    
+    
+    nsDocument* doc = static_cast<nsDocument*>(mTemplateContentsOwner.get());
+    doc->mTemplateContentsOwner = doc;
   }
 
   return mTemplateContentsOwner;
