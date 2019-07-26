@@ -57,7 +57,7 @@ class nsDOMTokenList;
 class ContentUnbinder;
 struct nsRect;
 
-typedef PRUptrdiff PtrBits;
+typedef uintptr_t PtrBits;
 
 
 

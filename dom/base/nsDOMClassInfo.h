@@ -82,7 +82,7 @@ struct nsExternalDOMClassInfoData : public nsDOMClassInfoData
 };
 
 
-typedef PRUptrdiff PtrBits;
+typedef uintptr_t PtrBits;
 
 
 

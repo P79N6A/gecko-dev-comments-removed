@@ -252,7 +252,7 @@ NS_GFX_(void) ScaleYCbCrToRGB32(const uint8* y_buf,
   
   uint8 yuvbuf[16 + kFilterBufferSize * 3 + 16];
   uint8* ybuf =
-      reinterpret_cast<uint8*>(reinterpret_cast<PRUptrdiff>(yuvbuf + 15) & ~15);
+      reinterpret_cast<uint8*>(reinterpret_cast<uintptr_t>(yuvbuf + 15) & ~15);
   uint8* ubuf = ybuf + kFilterBufferSize;
   uint8* vbuf = ubuf + kFilterBufferSize;
   
