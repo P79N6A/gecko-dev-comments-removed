@@ -29,6 +29,8 @@ using namespace mozilla;
 
 NS_IMPL_ISUPPORTS1(nsDefaultURIFixup, nsIURIFixup)
 
+static bool sFixTypos = true;
+
 nsDefaultURIFixup::nsDefaultURIFixup()
 {
   
@@ -213,6 +215,50 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, uint32_t aFixupF
                          scheme.LowerCaseEqualsLiteral("https") ||
                          scheme.LowerCaseEqualsLiteral("ftp") ||
                          scheme.LowerCaseEqualsLiteral("file"));
+
+    
+    rv = Preferences::AddBoolVarCache(&sFixTypos,
+                                      "browser.fixup.typo.scheme",
+                                      sFixTypos);
+    MOZ_ASSERT(NS_SUCCEEDED(rv),
+              "Failed to observe \"browser.fixup.typo.scheme\"");
+
+    
+    if (sFixTypos && (aFixupFlags & FIXUP_FLAG_FIX_SCHEME_TYPOS)) {
+
+        
+        if (scheme.IsEmpty() ||
+            scheme.LowerCaseEqualsLiteral("http") ||
+            scheme.LowerCaseEqualsLiteral("https") ||
+            scheme.LowerCaseEqualsLiteral("ftp") ||
+            scheme.LowerCaseEqualsLiteral("file")) {
+            
+        } else if (scheme.LowerCaseEqualsLiteral("ttp")) {
+            
+            uriString.Replace(0, 3, "http");
+            scheme.AssignLiteral("http");
+        } else if (scheme.LowerCaseEqualsLiteral("ttps")) {
+            
+            uriString.Replace(0, 4, "https");
+            scheme.AssignLiteral("https");
+        } else if (scheme.LowerCaseEqualsLiteral("tps")) {
+            
+            uriString.Replace(0, 3, "https");
+            scheme.AssignLiteral("https");
+        } else if (scheme.LowerCaseEqualsLiteral("ps")) {
+            
+            uriString.Replace(0, 2, "https");
+            scheme.AssignLiteral("https");
+        } else if (scheme.LowerCaseEqualsLiteral("ile")) {
+            
+            uriString.Replace(0, 3, "file");
+            scheme.AssignLiteral("file");
+        } else if (scheme.LowerCaseEqualsLiteral("le")) {
+            
+            uriString.Replace(0, 2, "file");
+            scheme.AssignLiteral("file");
+        }
+    }
 
     
     
