@@ -12,6 +12,8 @@
 #include "nsVersionComparator.h"
 #include "mozilla/Monitor.h"
 #include "AndroidBridge.h"
+#include "nsIWindowWatcher.h"
+#include "nsServiceManagerUtils.h"
 
 #if defined(MOZ_CRASHREPORTER)
 #include "nsExceptionHandler.h"
@@ -22,7 +24,26 @@
 namespace mozilla {
 namespace widget {
 
-class GfxInfo::GLStrings {
+static bool ExpectGLStringsToEverGetInitialized()
+{
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
+  if (!wwatch) {
+    return false;
+  }
+  bool hasWindowCreator = false;
+  nsresult rv = wwatch->HasWindowCreator(&hasWindowCreator);
+  return NS_SUCCEEDED(rv) && hasWindowCreator;
+}
+
+class GfxInfo::GLStrings
+{
   nsCString mVendor;
   nsCString mRenderer;
   nsCString mVersion;
@@ -70,7 +91,13 @@ public:
       MonitorAutoLock autoLock(mMonitor);
       
       if (!mReady) {
-        mMonitor.Wait();
+        if (ExpectGLStringsToEverGetInitialized()) {
+          mMonitor.Wait();
+        } else {
+          
+          
+          mReady = true;
+        }
       }
     }
   }
