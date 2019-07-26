@@ -753,6 +753,11 @@ bool
 nsTextStateManager::IsManaging(nsPresContext* aPresContext,
                                   nsIContent* aContent)
 {
+  
+  
+  if (!mRootContent || !mRootContent->IsInDoc()) {
+    return false;
+  }
   return mEditableNode == nsIMEStateManager::GetRootEditableNode(aPresContext,
                                                                  aContent);
 }
