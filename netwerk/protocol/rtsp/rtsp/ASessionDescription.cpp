@@ -194,7 +194,7 @@ bool ASessionDescription::findAttribute(
     return true;
 }
 
-void ASessionDescription::getFormatType(
+bool ASessionDescription::getFormatType(
         size_t index, unsigned long *PT,
         AString *desc, AString *params) const {
     AString format;
@@ -213,12 +213,19 @@ void ASessionDescription::getFormatType(
     char key[20];
     sprintf(key, "a=rtpmap:%lu", x);
 
-    CHECK(findAttribute(index, key, desc));
+    if (!findAttribute(index, key, desc)) {
+        
+        
+        
+        return false;
+    }
 
     sprintf(key, "a=fmtp:%lu", x);
     if (!findAttribute(index, key, params)) {
         params->clear();
     }
+
+    return true;
 }
 
 bool ASessionDescription::getDimensions(
