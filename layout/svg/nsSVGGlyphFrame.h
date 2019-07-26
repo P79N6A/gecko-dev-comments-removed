@@ -8,12 +8,12 @@
 
 #include "mozilla/Attributes.h"
 #include "gfxFont.h"
-#include "nsISVGGlyphFragmentNode.h"
+#include "gfxSVGGlyphs.h"
 #include "nsISVGChildFrame.h"
+#include "nsISVGGlyphFragmentNode.h"
 #include "nsSVGGeometryFrame.h"
 #include "nsSVGUtils.h"
 #include "nsTextFragment.h"
-#include "gfxSVGGlyphs.h"
 
 class CharacterIterator;
 class gfxContext;
@@ -26,6 +26,79 @@ class nsSVGTextPathFrame;
 class gfxTextObjectPaint;
 
 struct CharacterPosition;
+
+namespace mozilla {
+
+
+struct SVGTextObjectPaint : public gfxTextObjectPaint {
+  already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
+                                              const gfxMatrix& aCTM);
+  already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
+                                                const gfxMatrix& aCTM);
+
+  void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
+  float GetFillOpacity() { return mFillOpacity; }
+
+  void SetStrokeOpacity(float aOpacity) { mStrokeOpacity = aOpacity; }
+  float GetStrokeOpacity() { return mStrokeOpacity; }
+
+  struct Paint {
+    Paint() {
+      mPatternCache.Init();
+    }
+
+    void SetPaintServer(nsIFrame *aFrame, const gfxMatrix& aContextMatrix,
+                        nsSVGPaintServerFrame *aPaintServerFrame) {
+      mPaintType = eStyleSVGPaintType_Server;
+      mPaintDefinition.mPaintServerFrame = aPaintServerFrame;
+      mFrame = aFrame;
+      mContextMatrix = aContextMatrix;
+    }
+
+    void SetColor(const nscolor &aColor) {
+      mPaintType = eStyleSVGPaintType_Color;
+      mPaintDefinition.mColor = aColor;
+    }
+
+    void SetObjectPaint(gfxTextObjectPaint *aObjectPaint,
+                        nsStyleSVGPaintType aPaintType) {
+      NS_ASSERTION(aPaintType == eStyleSVGPaintType_ObjectFill ||
+                   aPaintType == eStyleSVGPaintType_ObjectStroke,
+                   "Invalid object paint type");
+      mPaintType = aPaintType;
+      mPaintDefinition.mObjectPaint = aObjectPaint;
+    }
+
+    union {
+      nsSVGPaintServerFrame *mPaintServerFrame;
+      gfxTextObjectPaint *mObjectPaint;
+      nscolor mColor;
+    } mPaintDefinition;
+
+    nsIFrame *mFrame;
+    
+    gfxMatrix mContextMatrix;
+    nsStyleSVGPaintType mPaintType;
+
+    
+    gfxMatrix mPatternMatrix;
+    nsRefPtrHashtable<nsFloatHashKey, gfxPattern> mPatternCache;
+
+    already_AddRefed<gfxPattern> GetPattern(float aOpacity,
+                                            nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                            const gfxMatrix& aCTM);
+  };
+
+  Paint mFillPaint;
+  Paint mStrokePaint;
+
+  float mFillOpacity;
+  float mStrokeOpacity;
+};
+
+} 
+
+using namespace mozilla;
 
 typedef gfxFont::DrawMode DrawMode;
 
@@ -184,7 +257,6 @@ public:
   }
 
 private:
-
   
 
 
@@ -270,73 +342,6 @@ private:
   DrawMode SetupCairoState(gfxContext *aContext,
                            gfxTextObjectPaint *aOuterObjectPaint,
                            gfxTextObjectPaint **aThisObjectPaint);
-
-  
-  struct SVGTextObjectPaint : public gfxTextObjectPaint {
-    already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
-                                                const gfxMatrix& aCTM);
-    already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
-                                                  const gfxMatrix& aCTM);
-
-    void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
-    float GetFillOpacity() { return mFillOpacity; }
-
-    void SetStrokeOpacity(float aOpacity) { mStrokeOpacity = aOpacity; }
-    float GetStrokeOpacity() { return mStrokeOpacity; }
-
-    struct Paint {
-      Paint() {
-        mPatternCache.Init();
-      }
-
-      void SetPaintServer(nsIFrame *aFrame, const gfxMatrix& aContextMatrix,
-                          nsSVGPaintServerFrame *aPaintServerFrame) {
-        mPaintType = eStyleSVGPaintType_Server;
-        mPaintDefinition.mPaintServerFrame = aPaintServerFrame;
-        mFrame = aFrame;
-        mContextMatrix = aContextMatrix;
-      }
-
-      void SetColor(const nscolor &aColor) {
-        mPaintType = eStyleSVGPaintType_Color;
-        mPaintDefinition.mColor = aColor;
-      }
-
-      void SetObjectPaint(gfxTextObjectPaint *aObjectPaint,
-                          nsStyleSVGPaintType aPaintType) {
-        NS_ASSERTION(aPaintType == eStyleSVGPaintType_ObjectFill ||
-                     aPaintType == eStyleSVGPaintType_ObjectStroke,
-                     "Invalid object paint type");
-        mPaintType = aPaintType;
-        mPaintDefinition.mObjectPaint = aObjectPaint;
-      }
-
-      union {
-        nsSVGPaintServerFrame *mPaintServerFrame;
-        gfxTextObjectPaint *mObjectPaint;
-        nscolor mColor;
-      } mPaintDefinition;
-
-      nsIFrame *mFrame;
-      
-      gfxMatrix mContextMatrix;
-      nsStyleSVGPaintType mPaintType;
-
-      
-      gfxMatrix mPatternMatrix;
-      nsRefPtrHashtable<nsFloatHashKey, gfxPattern> mPatternCache;
-
-      already_AddRefed<gfxPattern> GetPattern(float aOpacity,
-                                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                                              const gfxMatrix& aCTM);
-    };
-
-    Paint mFillPaint;
-    Paint mStrokePaint;
-
-    float mFillOpacity;
-    float mStrokeOpacity;
-  };
 
   
 

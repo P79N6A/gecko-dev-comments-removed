@@ -56,6 +56,7 @@ typedef struct hb_blob_t hb_blob_t;
 #define NO_FONT_LANGUAGE_OVERRIDE      0
 
 struct FontListSizes;
+struct gfxTextRunDrawCallbacks;
 
 struct THEBES_API gfxFontStyle {
     gfxFontStyle();
@@ -1432,7 +1433,8 @@ public:
 
     virtual void Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
                       gfxContext *aContext, DrawMode aDrawMode, gfxPoint *aBaselineOrigin,
-                      Spacing *aSpacing, gfxTextObjectPaint *aObjectPaint);
+                      Spacing *aSpacing, gfxTextObjectPaint *aObjectPaint,
+                      gfxTextRunDrawCallbacks *aCallbacks);
 
     
 
@@ -1768,6 +1770,10 @@ protected:
 
     bool RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint, DrawMode aDrawMode,
                         uint32_t aGlyphId, gfxTextObjectPaint *aObjectPaint);
+    bool RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint, DrawMode aDrawMode,
+                        uint32_t aGlyphId, gfxTextObjectPaint *aObjectPaint,
+                        gfxTextRunDrawCallbacks *aCallbacks,
+                        bool& aEmittedGlyphs);
 
     
     
@@ -2406,6 +2412,45 @@ private:
 
 
 
+struct gfxTextRunDrawCallbacks {
+
+    
+
+
+
+
+
+
+
+    gfxTextRunDrawCallbacks(bool aShouldPaintSVGGlyphs = false)
+      : mShouldPaintSVGGlyphs(aShouldPaintSVGGlyphs)
+    {
+    }
+
+    
+
+
+
+
+    virtual void NotifyGlyphPathEmitted() = 0;
+
+    
+
+
+    virtual void NotifyBeforeSVGGlyphPainted() { }
+
+    
+
+
+    virtual void NotifyAfterSVGGlyphPainted() { }
+
+    bool mShouldPaintSVGGlyphs;
+};
+
+
+
+
+
 
 
 
@@ -2559,22 +2604,6 @@ public:
 
 
 
-    struct DrawCallbacks {
-
-        
-
-
-
-
-
-
-        virtual void NotifyGlyphPathEmitted() = 0;
-    };
-
-    
-
-
-
 
 
 
@@ -2597,7 +2626,7 @@ public:
               uint32_t aStart, uint32_t aLength,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth, gfxTextObjectPaint *aObjectPaint,
-              DrawCallbacks *aCallbacks = nullptr);
+              gfxTextRunDrawCallbacks *aCallbacks = nullptr);
 
     
 
@@ -2991,7 +3020,7 @@ private:
     void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx,
                              uint32_t aStart, uint32_t aEnd, gfxPoint *aPt,
                              PropertyProvider *aProvider,
-                             DrawCallbacks *aCallbacks);
+                             gfxTextRunDrawCallbacks *aCallbacks);
     
     
     void ShrinkToLigatureBoundaries(uint32_t *aStart, uint32_t *aEnd);
@@ -3017,7 +3046,8 @@ private:
                     gfxFont::DrawMode aDrawMode, gfxPoint *aPt,
                     gfxTextObjectPaint *aObjectPaint, uint32_t aStart,
                     uint32_t aEnd, PropertyProvider *aProvider,
-                    uint32_t aSpacingStart, uint32_t aSpacingEnd);
+                    uint32_t aSpacingStart, uint32_t aSpacingEnd,
+                    gfxTextRunDrawCallbacks *aCallbacks);
 
     
     

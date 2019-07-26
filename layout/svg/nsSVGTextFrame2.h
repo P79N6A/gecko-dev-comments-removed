@@ -6,9 +6,12 @@
 #ifndef NS_SVGTEXTFRAME2_H
 #define NS_SVGTEXTFRAME2_H
 
+#include "gfxFont.h"
 #include "gfxMatrix.h"
 #include "gfxRect.h"
+#include "gfxSVGGlyphs.h"
 #include "nsStubMutationObserver.h"
+#include "nsSVGGlyphFrame.h" 
 #include "nsSVGTextContainerFrame.h"
 
 class nsDisplaySVGText;
@@ -451,13 +454,69 @@ private:
 
 
 
-  bool ShouldRenderAsPath(nsRenderingContext* aContext, nsTextFrame* aFrame);
+
+
+
+  bool ShouldRenderAsPath(nsRenderingContext* aContext, nsTextFrame* aFrame,
+                          bool& aShouldPaintSVGGlyphs);
 
   
   nsIFrame* GetTextPathPathFrame(nsIFrame* aTextPathFrame);
   already_AddRefed<gfxFlattenedPath> GetFlattenedTextPath(nsIFrame* aTextPathFrame);
   gfxFloat GetOffsetScale(nsIFrame* aTextPathFrame);
   gfxFloat GetStartOffset(nsIFrame* aTextPathFrame);
+
+  gfxFont::DrawMode SetupCairoState(gfxContext* aContext,
+                                    nsIFrame* aFrame,
+                                    gfxTextObjectPaint* aOuterObjectPaint,
+                                    gfxTextObjectPaint** aThisObjectPaint);
+
+  
+
+
+
+  bool SetupCairoStroke(gfxContext* aContext,
+                        nsIFrame* aFrame,
+                        gfxTextObjectPaint* aOuterObjectPaint,
+                        SVGTextObjectPaint* aThisObjectPaint);
+
+  
+
+
+
+  bool SetupCairoFill(gfxContext* aContext,
+                      nsIFrame* aFrame,
+                      gfxTextObjectPaint* aOuterObjectPaint,
+                      SVGTextObjectPaint* aThisObjectPaint);
+
+  
+
+
+
+
+  bool SetupObjectPaint(gfxContext* aContext,
+                        nsIFrame* aFrame,
+                        nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                        float& aOpacity,
+                        gfxTextObjectPaint* aObjectPaint);
+
+  
+
+
+
+
+
+
+
+
+
+  void SetupInheritablePaint(gfxContext* aContext,
+                             nsIFrame* aFrame,
+                             float& aOpacity,
+                             gfxTextObjectPaint* aOuterObjectPaint,
+                             SVGTextObjectPaint::Paint& aTargetPaint,
+                             nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                             const FramePropertyDescriptor* aProperty);
 
   
 
