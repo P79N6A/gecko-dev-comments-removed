@@ -453,29 +453,54 @@ BrowserElementChild.prototype = {
   _recvGetScreenshot: function(data) {
     debug("Received getScreenshot message: (" + data.json.id + ")");
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
+    let self = this;
     let maxWidth = data.json.args.width;
     let maxHeight = data.json.args.height;
+    let domRequestID = data.json.id;
+
+    let takeScreenshotClosure = function() {
+      self._takeScreenshot(maxWidth, maxHeight, domRequestID);
+    };
+
+    let maxDelayMS = 2000;
+    try {
+      maxDelayMS = Services.prefs.getIntPref('dom.browserElement.maxScreenshotDelayMS');
+    }
+    catch(e) {}
+
+    
+    
+    
+    Cc['@mozilla.org/message-loop;1'].getService(Ci.nsIMessageLoop).postIdleTask(
+      takeScreenshotClosure, maxDelayMS);
+  },
+
+  
+
+
+
+
+  _takeScreenshot: function(maxWidth, maxHeight, domRequestID) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    debug("Taking a screenshot: maxWidth=" + maxWidth +
+          ", maxHeight=" + maxHeight +
+          ", domRequestID=" + domRequestID + ".");
 
     let scaleWidth = Math.min(1, maxWidth / content.innerWidth);
     let scaleHeight = Math.min(1, maxHeight / content.innerHeight);
@@ -497,7 +522,8 @@ BrowserElementChild.prototype = {
                    "rgb(255,255,255)");
 
     sendAsyncMsg('got-screenshot', {
-      id: data.json.id,
+      id: domRequestID,
+      
       
       
       

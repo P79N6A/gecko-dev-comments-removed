@@ -3811,3 +3811,7 @@ pref("dom.mozApps.maxLocalId", 1000);
 
 
 pref("network.activity.blipIntervalMilliseconds", 0);
+
+
+
+pref("dom.browserElement.maxScreenshotDelayMS", 2000);
