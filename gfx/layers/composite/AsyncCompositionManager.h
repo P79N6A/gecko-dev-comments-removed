@@ -12,6 +12,7 @@
 #include "nsRect.h"
 #include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/layers/LayerTransaction.h" 
@@ -51,7 +52,7 @@ struct ViewTransform {
 
 
 
-class AsyncCompositionManager : public RefCounted<AsyncCompositionManager>
+class AsyncCompositionManager MOZ_FINAL : public RefCounted<AsyncCompositionManager>
 {
   friend class AutoResolveRefLayers;
 public:
