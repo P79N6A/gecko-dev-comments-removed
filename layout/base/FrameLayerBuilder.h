@@ -609,7 +609,7 @@ protected:
 
 
 
-    nsRefPtr<LayerManager> mInactiveLayer;
+    nsRefPtr<LayerManager> mInactiveLayerManager;
 
     Clip mClip;
     uint32_t mContainerLayerGeneration;
