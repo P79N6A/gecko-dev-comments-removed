@@ -596,16 +596,12 @@ class MOZ_STACK_CLASS TokenStream
         return pos.buf - userbuf.base();
     }
 
-    bool hasSourceMap() const {
-        return sourceMap != NULL;
+    bool hasSourceMapURL() const {
+        return sourceMapURL_ != NULL;
     }
 
-    
-    jschar *releaseSourceMap() {
-        JS_ASSERT(hasSourceMap());
-        jschar *sm = sourceMap;
-        sourceMap = NULL;
-        return sm;
+    jschar *sourceMapURL() {
+        return sourceMapURL_;
     }
 
     
@@ -847,7 +843,7 @@ class MOZ_STACK_CLASS TokenStream
     const jschar        *prevLinebase;      
     TokenBuf            userbuf;            
     const char          *filename;          
-    jschar              *sourceMap;         
+    jschar              *sourceMapURL_;     
     CharBuffer          tokenbuf;           
     bool                maybeEOL[256];      
     bool                maybeStrSpecial[256];   
