@@ -892,7 +892,7 @@ js::GetErrorTypeName(JSContext* cx, int16_t exnType)
 
 #if defined ( DEBUG_mccabe ) && defined ( PRINTNAMES )
 
-static struct exnname { char *name; char *exception; } errortoexnname[] = {
+static const struct exnname { char *name; char *exception; } errortoexnname[] = {
 #define MSG_DEF(name, number, count, exception, format) \
     {#name, #exception},
 #include "js.msg"

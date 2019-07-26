@@ -32,7 +32,7 @@ using namespace js::frontend;
 using mozilla::ArrayLength;
 using mozilla::DebugOnly;
 
-char const *js::aopNames[] = {
+char const * const js::aopNames[] = {
     "=",    
     "+=",   
     "-=",   
@@ -47,7 +47,7 @@ char const *js::aopNames[] = {
     "&="    
 };
 
-char const *js::binopNames[] = {
+char const * const js::binopNames[] = {
     "==",         
     "!=",         
     "===",        
@@ -71,7 +71,7 @@ char const *js::binopNames[] = {
     "instanceof", 
 };
 
-char const *js::unopNames[] = {
+char const * const js::unopNames[] = {
     "delete",  
     "-",       
     "+",       
@@ -81,14 +81,14 @@ char const *js::unopNames[] = {
     "void"     
 };
 
-char const *js::nodeTypeNames[] = {
+char const * const js::nodeTypeNames[] = {
 #define ASTDEF(ast, str, method) str,
 #include "jsast.tbl"
 #undef ASTDEF
     NULL
 };
 
-static char const *callbackNames[] = {
+static char const * const callbackNames[] = {
 #define ASTDEF(ast, str, method) method,
 #include "jsast.tbl"
 #undef ASTDEF

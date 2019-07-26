@@ -3275,7 +3275,7 @@ void DEBUG_ReportShadowedMembers(XPCNativeSet* set,
     
     if (si) {
         
-        static const char* skipClasses[] = {
+        static const char* const skipClasses[] = {
             "Window",
             "HTMLDocument",
             "HTMLCollection",

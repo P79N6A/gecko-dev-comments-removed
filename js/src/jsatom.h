@@ -181,7 +181,7 @@ extern const char   js_send_str[];
 
 namespace js {
 
-extern const char * TypeStrings[];
+extern const char * const TypeStrings[];
 
 
 

@@ -3100,10 +3100,10 @@ public:
                                            const char** name,
                                            const char** format);
 
-    static void* IterateNSResults(nsresult* rv,
-                                  const char** name,
-                                  const char** format,
-                                  void** iterp);
+    static const void* IterateNSResults(nsresult* rv,
+                                        const char** name,
+                                        const char** format,
+                                        const void** iterp);
 
     static uint32_t GetNSResultCount();
 
@@ -3589,7 +3589,7 @@ extern char* xpc_CloneAllAccess();
 
 
 
-extern char * xpc_CheckAccessList(const PRUnichar* wideName, const char* list[]);
+extern char * xpc_CheckAccessList(const PRUnichar* wideName, const char* const list[]);
 
 
 

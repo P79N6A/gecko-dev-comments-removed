@@ -51,7 +51,7 @@ namespace gc {
 
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
-extern AllocKind slotsToThingKind[];
+extern const AllocKind slotsToThingKind[];
 
 
 static inline AllocKind
@@ -77,8 +77,6 @@ GetGCObjectKind(Class *clasp)
 static inline AllocKind
 GetGCArrayKind(size_t numSlots)
 {
-    extern AllocKind slotsToThingKind[];
-
     
 
 
@@ -94,8 +92,6 @@ GetGCArrayKind(size_t numSlots)
 static inline AllocKind
 GetGCObjectFixedSlotsKind(size_t numFixedSlots)
 {
-    extern AllocKind slotsToThingKind[];
-
     JS_ASSERT(numFixedSlots < SLOTS_TO_THING_KIND_LIMIT);
     return slotsToThingKind[numFixedSlots];
 }

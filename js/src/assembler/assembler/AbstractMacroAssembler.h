@@ -157,12 +157,12 @@ public:
     
     
     struct AbsoluteAddress {
-        explicit AbsoluteAddress(void* ptr)
+        explicit AbsoluteAddress(const void* ptr)
             : m_ptr(ptr)
         {
         }
 
-        void* m_ptr;
+        const void* m_ptr;
     };
 
     
@@ -408,12 +408,12 @@ public:
         {
         }
         
-        void link(AbstractMacroAssembler<AssemblerType>* masm)
+        void link(AbstractMacroAssembler<AssemblerType>* masm) const
         {
             masm->m_assembler.linkJump(m_jmp, masm->m_assembler.label());
         }
         
-        void linkTo(Label label, AbstractMacroAssembler<AssemblerType>* masm)
+        void linkTo(Label label, AbstractMacroAssembler<AssemblerType>* masm) const
         {
             masm->m_assembler.linkJump(m_jmp, label.m_label);
         }
