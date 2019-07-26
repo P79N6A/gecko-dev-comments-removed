@@ -7,66 +7,98 @@ Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 var gClient;
 var gDebuggee;
 
+const xpcInspector = Cc["@mozilla.org/jsinspector;1"].getService(Ci.nsIJSInspector);
+
 function run_test()
 {
-  DebuggerServer.addActors("resource://test/testactors.js");
-
-  
-  DebuggerServer.init(function () { return true; });
+  initTestDebuggerServer();
   gDebuggee = testGlobal("test-1");
   DebuggerServer.addTestGlobal(gDebuggee);
 
   let transport = DebuggerServer.connectPipe();
   gClient = new DebuggerClient(transport);
   gClient.addListener("connected", function(aEvent, aType, aTraits) {
-    gClient.request({ to: "root", type: "listContexts" }, function(aResponse) {
-      do_check_true('contexts' in aResponse);
-      for each (let context in aResponse.contexts) {
-        if (context.global == "test-1") {
-          test_attach(context);
+    gClient.listTabs((aResponse) => {
+      do_check_true('tabs' in aResponse);
+      for (let tab of aResponse.tabs) {
+        if (tab.title == "test-1") {
+          test_attach_tab(tab.actor);
           return false;
         }
       }
-      do_check_true(false);
+      do_check_true(false); 
     });
   });
+
   gClient.connect();
 
   do_test_pending();
 }
 
-function test_attach(aContext)
-{
-  gClient.request({ to: aContext.actor, type: "attach" }, function(aResponse) {
-    do_check_true(!aResponse.error);
-    do_check_eq(aResponse.type, "paused");
 
-    
-    gClient.request({ to: aContext.actor, type: "resume" }, function() {
-      test_debugger_statement(aContext);
-    });
+function test_attach_tab(aTabActor)
+{
+  gClient.request({ to: aTabActor, type: "attach" }, function(aResponse) {
+    do_check_false("error" in aResponse);
+    do_check_eq(aResponse.from, aTabActor);
+    do_check_eq(aResponse.type, "tabAttached");
+    do_check_true(typeof aResponse.threadActor === "string");
+
+    test_attach_thread(aResponse.threadActor);
   });
 }
 
-function test_debugger_statement(aContext)
+
+function test_attach_thread(aThreadActor)
 {
+  gClient.request({ to: aThreadActor, type: "attach" }, function(aResponse) {
+    do_check_false("error" in aResponse);
+    do_check_eq(aResponse.from, aThreadActor);
+    do_check_eq(aResponse.type, "paused");
+    do_check_true("why" in aResponse);
+    do_check_eq(aResponse.why.type, "attached");
+
+    test_resume_thread(aThreadActor);
+  });
+}
+
+
+
+function test_resume_thread(aThreadActor)
+{
+  
+  gClient.request({ to: aThreadActor, type: "resume" }, function (aResponse) {
+    do_check_false("error" in aResponse);
+    do_check_eq(aResponse.from, aThreadActor);
+    do_check_eq(aResponse.type, "resumed");
+
+    do_check_eq(xpcInspector.eventLoopNestLevel, 0);
+
+    
+    Cu.evalInSandbox("var a = true; var b = false; debugger; var b = true;", gDebuggee);
+    
+    do_check_true(gDebuggee.b);
+  });
+
   gClient.addListener("paused", function(aName, aPacket) {
+    do_check_eq(aName, "paused");
+    do_check_false("error" in aPacket);
+    do_check_eq(aPacket.from, aThreadActor);
+    do_check_eq(aPacket.type, "paused");
+    do_check_true("actor" in aPacket);
+    do_check_true("why" in aPacket)
+    do_check_eq(aPacket.why.type, "debuggerStatement");
+
     
     
     do_check_true(gDebuggee.a);
     do_check_false(gDebuggee.b);
 
-    let xpcInspector = Cc["@mozilla.org/jsinspector;1"].getService(Ci.nsIJSInspector);
     do_check_eq(xpcInspector.eventLoopNestLevel, 1);
 
-    gClient.request({ to: aContext.actor, type: "resume" }, function() {
-      cleanup();
-    });
+    
+    gClient.request({ to: aThreadActor, type: "resume" }, cleanup);
   });
-
-  Cu.evalInSandbox("var a = true; var b = false; debugger; var b = true;", gDebuggee);
-  
-  do_check_true(gDebuggee.b);
 }
 
 function cleanup()

@@ -26,16 +26,25 @@ function run_test()
 function test_pause_frame()
 {
   gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
-    let args = aPacket.frame["arguments"];
+    let bindings = aPacket.frame.environment.bindings;
+    let args = bindings.arguments;
+    let vars = bindings.variables;
+
     do_check_eq(args.length, 6);
-    do_check_eq(args[0], 42);
-    do_check_eq(args[1], true);
-    do_check_eq(args[2], "nasu");
-    do_check_eq(args[3].type, "null");
-    do_check_eq(args[4].type, "undefined");
-    do_check_eq(args[5].type, "object");
-    do_check_eq(args[5].class, "Object");
-    do_check_true(!!args[5].actor);
+    do_check_eq(args[0].aNumber.value, 42);
+    do_check_eq(args[1].aBool.value, true);
+    do_check_eq(args[2].aString.value, "nasu");
+    do_check_eq(args[3].aNull.value.type, "null");
+    do_check_eq(args[4].aUndefined.value.type, "undefined");
+    do_check_eq(args[5].aObject.value.type, "object");
+    do_check_eq(args[5].aObject.value.class, "Object");
+    do_check_true(!!args[5].aObject.value.actor);
+
+    do_check_eq(vars.a.value, 1);
+    do_check_eq(vars.b.value, true);
+    do_check_eq(vars.c.value.type, "object");
+    do_check_eq(vars.c.value.class, "Object");
+    do_check_true(!!vars.c.value.actor);
 
     gThreadClient.resume(function() {
       finishClient(gClient);
@@ -44,6 +53,9 @@ function test_pause_frame()
 
   gDebuggee.eval("(" + function() {
     function stopMe(aNumber, aBool, aString, aNull, aUndefined, aObject) {
+      var a = 1;
+      var b = true;
+      var c = { a: "a" };
       debugger;
     };
     stopMe(42, true, "nasu", null, undefined, { foo: "bar" });
