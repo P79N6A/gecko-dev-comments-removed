@@ -280,6 +280,9 @@ public:
   };
 
   static void GetCacheDirectory(nsIFile** result);
+#if defined(MOZ_WIDGET_ANDROID)
+  static void GetProfilelessCacheDirectory(nsIFile** result);
+#endif
 
   
   
@@ -383,6 +386,13 @@ private:
   bool                                 mShuttingDown;
   nsRefPtr<CacheIOThread>              mIOThread;
   nsCOMPtr<nsIFile>                    mCacheDirectory;
+#if defined(MOZ_WIDGET_ANDROID)
+  
+  
+  
+  
+  nsCOMPtr<nsIFile>                    mCacheProfilelessDirectory;
+#endif
   bool                                 mTreeCreated;
   CacheFileHandles                     mHandles;
   nsTArray<CacheFileHandle *>          mHandlesByLastUsed;
