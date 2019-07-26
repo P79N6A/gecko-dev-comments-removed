@@ -787,7 +787,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   
   unsigned char fingerprint[DTLS_FINGERPRINT_LENGTH];
   size_t fingerprint_length;
-  res = mIdentity->ComputeFingerprint("sha-1",
+  res = mIdentity->ComputeFingerprint("sha-256",
                                       fingerprint,
                                       sizeof(fingerprint),
                                       &fingerprint_length);
@@ -798,7 +798,7 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
     return res;
   }
 
-  mFingerprint = "sha-1 " + mIdentity->FormatFingerprint(fingerprint,
+  mFingerprint = "sha-256 " + mIdentity->FormatFingerprint(fingerprint,
                                                          fingerprint_length);
   if (NS_FAILED(res)) {
     CSFLogError(logTag, "%s: do_GetService failed: %u",
@@ -1342,22 +1342,22 @@ PeerConnectionImpl::RemoveStream(DOMMediaStream& aMediaStream) {
 
 
 
+NS_IMETHODIMP
+PeerConnectionImpl::GetFingerprint(char** fingerprint)
+{
+  MOZ_ASSERT(fingerprint);
 
+  if (!mIdentity) {
+    return NS_ERROR_FAILURE;
+  }
 
+  char* tmp = new char[mFingerprint.size() + 1];
+  std::copy(mFingerprint.begin(), mFingerprint.end(), tmp);
+  tmp[mFingerprint.size()] = '\0';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+  *fingerprint = tmp;
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 PeerConnectionImpl::GetLocalDescription(char** aSDP)
