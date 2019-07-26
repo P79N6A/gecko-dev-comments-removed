@@ -12,6 +12,8 @@ import org.mozilla.gecko.FennecMochitestAssert;
 import org.mozilla.gecko.FennecNativeDriver;
 import org.mozilla.gecko.FennecTalosAssert;
 
+import org.mozilla.gecko.AppConstants;
+
 import android.app.Activity;
 import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
@@ -23,6 +25,25 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
     }
 
     private static final String DEFAULT_ROOT_PATH = "/mnt/sdcard/tests";
+
+    
+
+
+
+
+    public static final Class<? extends Activity> BROWSER_INTENT_CLASS;
+
+    
+    static {
+        Class<? extends Activity> cl;
+        try {
+            cl = (Class<? extends Activity>) Class.forName(AppConstants.BROWSER_INTENT_CLASS_NAME);
+        } catch (ClassNotFoundException e) {
+            
+            cl = Activity.class;
+        }
+        BROWSER_INTENT_CLASS = cl;
+    }
 
     protected Assert mAsserter;
     protected String mLogFile;
@@ -41,7 +62,7 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
 
     @SuppressWarnings("unchecked")
     public BaseRobocopTest() {
-        this((Class<Activity>) TestConstants.BROWSER_INTENT_CLASS);
+        this((Class<Activity>) BROWSER_INTENT_CLASS);
     }
 
     
