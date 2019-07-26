@@ -46,11 +46,6 @@ const TESTS = [
     matchString: "fooBarSVG",
   },
   { 
-    file: "test-bug-595934-canvas.html",
-    category: "Canvas",
-    matchString: "strokeStyle",
-  },
-  { 
     file: "test-bug-595934-css-parser.html",
     category: "CSS Parser",
     matchString: "foobarCssParser",
