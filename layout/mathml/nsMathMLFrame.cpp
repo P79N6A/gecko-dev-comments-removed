@@ -30,32 +30,6 @@ nsMathMLFrame::GetMathMLFrameType()
   return eMathMLFrameType_Ordinary;  
 }
 
-
-
- void
-nsMathMLFrame::FindAttrDisplaystyle(nsIContent*         aContent,
-                                    nsPresentationData& aPresentationData)
-{
-  NS_ASSERTION(aContent->Tag() == nsGkAtoms::mstyle_ ||
-               aContent->Tag() == nsGkAtoms::mtable_ ||
-               aContent->Tag() == nsGkAtoms::math, "bad caller");
-  static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::_false, &nsGkAtoms::_true, nullptr};
-  
-  switch (aContent->FindAttrValueIn(kNameSpaceID_None,
-    nsGkAtoms::displaystyle_, strings, eCaseMatters)) {
-  case 0:
-    aPresentationData.flags &= ~NS_MATHML_DISPLAYSTYLE;
-    aPresentationData.flags |= NS_MATHML_EXPLICIT_DISPLAYSTYLE;
-    break;
-  case 1:
-    aPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
-    aPresentationData.flags |= NS_MATHML_EXPLICIT_DISPLAYSTYLE;
-    break;
-  }
-  
-}
-
 NS_IMETHODIMP
 nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent) 
 {
@@ -73,9 +47,6 @@ nsMathMLFrame::InheritAutomaticData(nsIFrame* aParent)
   nsPresentationData parentData;
   GetPresentationDataFrom(aParent, parentData);
   mPresentationData.mstyle = parentData.mstyle;
-  if (NS_MATHML_IS_DISPLAYSTYLE(parentData.flags)) {
-    mPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
-  }
 
 #if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
   mPresentationData.flags |= NS_MATHML_SHOW_BOUNDING_METRICS;
@@ -88,20 +59,9 @@ NS_IMETHODIMP
 nsMathMLFrame::UpdatePresentationData(uint32_t        aFlagsValues,
                                       uint32_t        aWhichFlags)
 {
-  NS_ASSERTION(NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags) ||
-               NS_MATHML_IS_COMPRESSED(aWhichFlags),
-               "aWhichFlags should only be displaystyle or compression flag"); 
+  NS_ASSERTION(NS_MATHML_IS_COMPRESSED(aWhichFlags),
+               "aWhichFlags should only be compression flag"); 
 
-  
-  if (NS_MATHML_IS_DISPLAYSTYLE(aWhichFlags)) {
-    
-    if (NS_MATHML_IS_DISPLAYSTYLE(aFlagsValues)) {
-      mPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
-    }
-    else {
-      mPresentationData.flags &= ~NS_MATHML_DISPLAYSTYLE;
-    }
-  }
   if (NS_MATHML_IS_COMPRESSED(aWhichFlags)) {
     
     if (NS_MATHML_IS_COMPRESSED(aFlagsValues)) {
@@ -187,11 +147,6 @@ nsMathMLFrame::GetPresentationDataFrom(nsIFrame*           aFrame,
       break;
 
     if (content->Tag() == nsGkAtoms::math) {
-      const nsStyleDisplay* display = frame->StyleDisplay();
-      if (display->mDisplay == NS_STYLE_DISPLAY_BLOCK) {
-        aPresentationData.flags |= NS_MATHML_DISPLAYSTYLE;
-      }
-      FindAttrDisplaystyle(content, aPresentationData);
       aPresentationData.mstyle = frame->FirstContinuation();
       break;
     }

@@ -129,11 +129,6 @@ public:
                           bool                aClimbTree = true);
 
   
-  static void
-  FindAttrDisplaystyle(nsIContent*         aContent,
-                       nsPresentationData& aPresentationData);
-
-  
   
   
   

@@ -162,20 +162,11 @@ public:
 
 
 
-
-
-
-
-
   NS_IMETHOD
   UpdatePresentationData(uint32_t        aFlagsValues,
                          uint32_t        aWhichFlags) = 0;
 
  
-
-
-
-
 
 
 
@@ -267,14 +258,6 @@ struct nsPresentationData {
 
 
 
-
-
-
-
-#define NS_MATHML_DISPLAYSTYLE                        0x00000001U
-
-
-
 #define NS_MATHML_COMPRESSED                          0x00000002U
 
 
@@ -288,11 +271,6 @@ struct nsPresentationData {
 
 
 #define NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY   0x00000008U
-
-
-
-
-#define NS_MATHML_EXPLICIT_DISPLAYSTYLE               0x00000020U
 
 
 #define NS_MATHML_SPACE_LIKE                          0x00000040U
@@ -313,9 +291,6 @@ struct nsPresentationData {
 
 
 
-#define NS_MATHML_IS_DISPLAYSTYLE(_flags) \
-  (NS_MATHML_DISPLAYSTYLE == ((_flags) & NS_MATHML_DISPLAYSTYLE))
-
 #define NS_MATHML_IS_COMPRESSED(_flags) \
   (NS_MATHML_COMPRESSED == ((_flags) & NS_MATHML_COMPRESSED))
 
@@ -324,9 +299,6 @@ struct nsPresentationData {
 
 #define NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(_flags) \
   (NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY == ((_flags) & NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY))
-
-#define NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(_flags) \
-  (NS_MATHML_EXPLICIT_DISPLAYSTYLE == ((_flags) & NS_MATHML_EXPLICIT_DISPLAYSTYLE))
 
 #define NS_MATHML_IS_SPACE_LIKE(_flags) \
   (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
