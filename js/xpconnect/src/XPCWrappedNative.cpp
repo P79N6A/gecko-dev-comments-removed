@@ -345,10 +345,9 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
         return NS_ERROR_FAILURE;
 
     
-    nsRefPtr<XPCWrappedNative> wrapper = new XPCWrappedNative(identity, proto);
-
     
-    nativeHelper.forgetCanonical();
+    nsRefPtr<XPCWrappedNative> wrapper =
+        new XPCWrappedNative(nativeHelper.forgetCanonical(), proto);
 
     
     
@@ -588,9 +587,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
         proto->CacheOffsets(identity);
 
-        wrapper = new XPCWrappedNative(identity, proto);
-        if (!wrapper)
-            return NS_ERROR_FAILURE;
+        wrapper = new XPCWrappedNative(helper.forgetCanonical(), proto);
     } else {
         AutoMarkingNativeInterfacePtr iface(ccx, Interface);
         if (!iface)
@@ -602,16 +599,11 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
         if (!set)
             return NS_ERROR_FAILURE;
 
-        wrapper = new XPCWrappedNative(identity, Scope, set);
-        if (!wrapper)
-            return NS_ERROR_FAILURE;
+        wrapper =
+            new XPCWrappedNative(helper.forgetCanonical(), Scope, set);
 
         DEBUG_ReportShadowedMembers(set, wrapper, nullptr);
     }
-
-    
-    
-    helper.forgetCanonical();
 
     NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(parent),
                  "Xray wrapper being used to parent XPCWrappedNative?");
