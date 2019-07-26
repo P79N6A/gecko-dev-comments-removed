@@ -4546,9 +4546,6 @@ nsDOMClassInfo::Init()
   
   mozilla::dom::oldproxybindings::Register(nameSpaceManager);
 
-  nameSpaceManager->RegisterDefineDOMInterface(NS_LITERAL_STRING("CanvasRenderingContext2D"),
-                                               nullptr, nullptr);
-
   sIsInitialized = true;
 
   return NS_OK;
