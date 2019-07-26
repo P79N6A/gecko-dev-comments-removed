@@ -5,8 +5,8 @@
 
 
 
-#ifndef mozilla_Capabilities_h
-#define mozilla_Capabilities_h
+#ifndef mozilla_AppProcessPermissions_h
+#define mozilla_AppProcessPermissions_h
 
 namespace mozilla {
 
@@ -22,21 +22,24 @@ class PHalParent;
 
 
 
-bool
-AppProcessHasPermissions(mozilla::dom::PBrowserParent* aActor,
-                         const char* aPermission);
-
-
-
 
 
 bool
-AppProcessHasPermission(mozilla::dom::PContentParent* aActor,
-                        const char* aPermission);
+AssertAppProcessPermission(mozilla::dom::PBrowserParent* aActor,
+                           const char* aPermission);
+
+
+
+
+
 
 bool
-AppProcessHasPermission(mozilla::hal_sandbox::PHalParent* aActor,
-                        const char* aPermission);
+AssertAppProcessPermission(mozilla::dom::PContentParent* aActor,
+                           const char* aPermission);
+
+bool
+AssertAppProcessPermission(mozilla::hal_sandbox::PHalParent* aActor,
+                           const char* aPermission);
 
 
 
