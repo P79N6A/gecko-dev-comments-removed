@@ -112,12 +112,6 @@ class MachMsgPortDescriptor : public mach_msg_port_descriptor_t {
   }
 
   
-  
-  operator mach_msg_port_descriptor_t&() {
-    return *this;
-  }
-
-  
   operator mach_port_t() const {
     return GetMachPort();
   }
