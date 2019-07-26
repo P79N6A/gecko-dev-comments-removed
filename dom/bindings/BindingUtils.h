@@ -914,6 +914,25 @@ WrapNativeParent(JSContext* cx, JSObject* scope, const T& p)
   return WrapNativeParent(cx, scope, GetParentPointer(p), GetWrapperCache(p));
 }
 
+template<typename T>
+static inline JSObject*
+WrapCallThisObject(JSContext* cx, JSObject* scope, const T& p)
+{
+  
+  
+  JSObject* obj = WrapNativeParent(cx, scope, p);
+  if (!obj) {
+    return nullptr;
+  }
+
+  
+  if (!JS_WrapObject(cx, &obj)) {
+    return nullptr;
+  }
+
+  return obj;
+}
+
 static inline bool
 InternJSString(JSContext* cx, jsid& id, const char* chars)
 {
