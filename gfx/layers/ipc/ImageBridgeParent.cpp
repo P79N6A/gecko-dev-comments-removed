@@ -139,7 +139,7 @@ ImageBridgeParent::Create(Transport* aTransport, ProcessId aOtherProcess)
   return bridge.get();
 }
 
-bool ImageBridgeParent::RecvStop()
+bool ImageBridgeParent::RecvWillStop()
 {
   
   
@@ -151,6 +151,13 @@ bool ImageBridgeParent::RecvStop()
     RefPtr<TextureHost> tex = TextureHost::AsTextureHost(textures[i]);
     tex->DeallocateDeviceData();
   }
+  return true;
+}
+
+bool ImageBridgeParent::RecvStop()
+{
+  
+  
   return true;
 }
 

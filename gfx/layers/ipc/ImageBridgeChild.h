@@ -135,15 +135,6 @@ public:
 
 
 
-
-
-  static void DestroyBridge();
-
-  
-
-
-
-
   static bool IsCreated();
 
   
@@ -314,6 +305,7 @@ public:
                              uint32_t aFormat, uint32_t aUsage,
                              MaybeMagicGrallocBufferHandle* aHandle,
                              PGrallocBufferChild** aChild);
+  void MarkShutDown();
 protected:
   ImageBridgeChild();
   bool DispatchAllocShmemInternal(size_t aSize,
@@ -329,6 +321,8 @@ protected:
                                                   MaybeMagicGrallocBufferHandle* aHandle) MOZ_OVERRIDE;
 
   virtual void DeallocGrallocBuffer(PGrallocBufferChild* aChild) MOZ_OVERRIDE;
+
+  bool mShuttingDown;
 };
 
 } 

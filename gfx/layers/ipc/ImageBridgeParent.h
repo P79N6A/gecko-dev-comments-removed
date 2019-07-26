@@ -70,7 +70,10 @@ public:
                                               const TextureFlags& aFlags) MOZ_OVERRIDE;
   virtual bool DeallocPTextureParent(PTextureParent* actor) MOZ_OVERRIDE;
 
-  bool RecvStop() MOZ_OVERRIDE;
+  
+  virtual bool RecvWillStop() MOZ_OVERRIDE;
+  
+  virtual bool RecvStop() MOZ_OVERRIDE;
 
   MessageLoop * GetMessageLoop();
 
