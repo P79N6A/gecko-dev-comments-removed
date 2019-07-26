@@ -2297,6 +2297,14 @@ Navigator::HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal)
 }
 
 
+bool
+Navigator::HasPermissionSettingsSupport(JSContext* , JSObject* aGlobal)
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  return CheckPermission(win, "permissions");
+}
+
+
 already_AddRefed<nsPIDOMWindow>
 Navigator::GetWindowFromGlobal(JSObject* aGlobal)
 {
