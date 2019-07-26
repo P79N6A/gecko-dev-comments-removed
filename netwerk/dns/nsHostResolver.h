@@ -291,6 +291,15 @@ private:
     PRIntervalTime mLongIdleTimeout;
     PRIntervalTime mShortIdleTimeout;
 
+#if defined(XP_WIN)
+    
+    void RunExperiment();
+    Mutex mExperimentLock;
+    bool mHasRunExperiment;
+    bool mNetworkExperimentsOK;
+    bool mDnsExperimentOK;
+#endif
+
 public:
     
 
