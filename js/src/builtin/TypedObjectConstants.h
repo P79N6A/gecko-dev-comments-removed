@@ -91,17 +91,33 @@
 
 
 
-#define JS_TYPEDOBJ_SLOT_BYTEOFFSET       0
-#define JS_TYPEDOBJ_SLOT_LENGTH           1 // Length of array (see (*) below)
-#define JS_TYPEDOBJ_SLOT_OWNER            2
-#define JS_TYPEDOBJ_SLOT_NEXT_VIEW        3
 
-#define JS_DATAVIEW_SLOTS                 4 // Number of slots for data views
 
-#define JS_TYPEDOBJ_SLOT_TYPE_DESCR       4 // For typed objects, type descr
+#define JS_BUFVIEW_SLOT_BYTEOFFSET       0
+#define JS_BUFVIEW_SLOT_LENGTH           1 // see (*) below
+#define JS_BUFVIEW_SLOT_OWNER            2
+#define JS_BUFVIEW_SLOT_NEXT_VIEW        3
 
-#define JS_TYPEDOBJ_SLOT_DATA             7 // private slot, based on alloc kind
-#define JS_TYPEDOBJ_SLOTS                 5 // Number of slots for typed objs
+
+#define JS_DATAVIEW_SLOT_DATA            7 // see (**) below
+#define JS_DATAVIEW_SLOTS                4 // Number of slots for data views
+
+
+#define JS_TYPEDARR_SLOT_TYPE            4 // A ScalarTypeDescr::Type constant
+#define JS_TYPEDARR_SLOT_DATA            7 // see (**) below
+#define JS_TYPEDARR_SLOTS                5 // Number of slots for typed arrays
+
+
+#define JS_TYPEDOBJ_SLOT_TYPE_DESCR      4 // A ScalarTypeDescr::Type constant
+#define JS_TYPEDOBJ_SLOT_DATA            7
+#define JS_TYPEDOBJ_SLOTS                5 // Number of slots for typed objs
+
+
+
+
+
+
+
 
 
 
