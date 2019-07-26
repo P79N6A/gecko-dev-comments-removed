@@ -209,6 +209,12 @@ var tests = {
   testBuiltinInstallWithoutManifest: function(next) {
     
     AddonManager.addAddonListener(installListener(next, manifest));
+    let panel = document.getElementById("servicesInstall-notification");
+    PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
+      info("servicesInstall-notification panel opened");
+      panel.button.click();
+    });
 
     let prefname = getManifestPrefname(manifest);
     let activationURL = manifest.origin + "/browser/browser/base/content/test/social/social_activate.html"
@@ -229,6 +235,12 @@ var tests = {
   testBuiltinInstall: function(next) {
     
     AddonManager.addAddonListener(installListener(next, manifest));
+    let panel = document.getElementById("servicesInstall-notification");
+    PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
+      info("servicesInstall-notification panel opened");
+      panel.button.click();
+    });
 
     let prefname = getManifestPrefname(manifest);
     let activationURL = manifest.origin + "/browser/browser/base/content/test/social/social_activate.html"
@@ -248,6 +260,12 @@ var tests = {
   },
   testWhitelistInstall: function(next) {
     AddonManager.addAddonListener(installListener(next, manifest2));
+    let panel = document.getElementById("servicesInstall-notification");
+    PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
+      info("servicesInstall-notification panel opened");
+      panel.button.click();
+    });
 
     let activationURL = manifest2.origin + "/browser/browser/base/content/test/social/social_activate.html"
     addTab(activationURL, function(tab) {
@@ -266,6 +284,12 @@ var tests = {
   },
   testDirectoryInstall: function(next) {
     AddonManager.addAddonListener(installListener(next, manifest2));
+    let panel = document.getElementById("servicesInstall-notification");
+    PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
+      info("servicesInstall-notification panel opened");
+      panel.button.click();
+    });
 
     let activationURL = manifest2.origin + "/browser/browser/base/content/test/social/social_activate.html"
     addTab(activationURL, function(tab) {
@@ -286,6 +310,13 @@ var tests = {
     
     
     let activationURL = manifest2.origin + "/browser/browser/base/content/test/social/social_activate.html"
+    let panel = document.getElementById("servicesInstall-notification");
+    PopupNotifications.panel.addEventListener("popupshown", function onpopupshown() {
+      PopupNotifications.panel.removeEventListener("popupshown", onpopupshown);
+      info("servicesInstall-notification panel opened");
+      panel.button.click();
+    });
+
     addTab(activationURL, function(tab) {
       let doc = tab.linkedBrowser.contentDocument;
       let installFrom = doc.nodePrincipal.origin;
