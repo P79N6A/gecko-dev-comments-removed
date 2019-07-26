@@ -412,7 +412,7 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
     return;
   }
 
-  if (mCopyTarget) {
+  if (mTarget) {
     
     
     mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(IntSize(1,1), SurfaceFormat::B8G8R8A8);
@@ -471,7 +471,9 @@ BasicCompositor::EndFrame()
   
   
   RefPtr<SourceSurface> source = mRenderTarget->mDrawTarget->Snapshot();
-  RefPtr<DrawTarget> dest(mCopyTarget ? mCopyTarget : mDrawTarget);
+  RefPtr<DrawTarget> dest(mTarget ? mTarget : mDrawTarget);
+
+  nsIntPoint offset = mTarget ? mTargetBounds.TopLeft() : nsIntPoint();
   
   
   
@@ -480,9 +482,9 @@ BasicCompositor::EndFrame()
   for (const nsIntRect *r = iter.Next(); r; r = iter.Next()) {
     dest->CopySurface(source,
                       IntRect(r->x - mInvalidRect.x, r->y - mInvalidRect.y, r->width, r->height),
-                      IntPoint(r->x, r->y));
+                      IntPoint(r->x - offset.x, r->y - offset.y));
   }
-  if (!mCopyTarget) {
+  if (!mTarget) {
     mWidget->EndRemoteDrawing();
   }
 

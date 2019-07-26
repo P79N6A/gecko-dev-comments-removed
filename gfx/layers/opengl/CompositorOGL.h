@@ -235,11 +235,6 @@ public:
 
   virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) MOZ_OVERRIDE;
 
-  virtual void SetTargetContext(gfx::DrawTarget* aTarget) MOZ_OVERRIDE
-  {
-    mTarget = aTarget;
-  }
-
   virtual void PrepareViewport(const gfx::IntSize& aSize,
                                const gfx::Matrix& aWorldTransform) MOZ_OVERRIDE;
 
@@ -278,11 +273,6 @@ private:
   {
     return gfx::ToIntSize(mWidgetSize);
   }
-
-  
-
-
-  RefPtr<gfx::DrawTarget> mTarget;
 
   
   nsIWidget *mWidget;
@@ -382,7 +372,7 @@ private:
 
 
 
-  void CopyToTarget(gfx::DrawTarget* aTarget, const gfx::Matrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const nsIntPoint& aTopLeft, const gfx::Matrix& aWorldMatrix);
 
   
 
