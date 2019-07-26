@@ -363,6 +363,16 @@ bool Channel::ChannelImpl::EnqueueHelloMessage() {
   return true;
 }
 
+static void
+ClearAndShrink(std::string& s, size_t capacity)
+{
+  
+  
+  std::string tmp;
+  tmp.reserve(capacity);
+  s.swap(tmp);
+}
+
 bool Channel::ChannelImpl::Connect() {
   if (mode_ == MODE_SERVER && uses_fifo_) {
     if (server_listen_pipe_ == -1) {
@@ -489,7 +499,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
     } else {
       if (input_overflow_buf_.size() >
          static_cast<size_t>(kMaximumMessageSize - bytes_read)) {
-        input_overflow_buf_.clear();
+        ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
         LOG(ERROR) << "IPC message is too big";
         return false;
       }
@@ -573,7 +583,7 @@ bool Channel::ChannelImpl::ProcessIncomingMessages() {
       }
     }
     if (end == p) {
-      input_overflow_buf_.clear();
+      ClearAndShrink(input_overflow_buf_, Channel::kReadBufferSize);
     } else if (!overflowp) {
       
       input_overflow_buf_.assign(p, end - p);
