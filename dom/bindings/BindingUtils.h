@@ -584,15 +584,37 @@ CreateInterfaceObjects(JSContext* cx, JS::Handle<JSObject*> global,
 
 
 
+
+
+
+
+
+
+
+
+
+
+bool
+DefineProperties(JSContext* cx, JS::Handle<JSObject*> obj,
+                 const NativeProperties* properties,
+                 const NativeProperties* chromeOnlyProperties);
+
+
+
+
 bool
 DefineUnforgeableAttributes(JSContext* cx, JS::Handle<JSObject*> obj,
                             const Prefable<const JSPropertySpec>* props);
 
 bool
+DefineWebIDLBindingUnforgeablePropertiesOnXPCObject(JSContext* cx,
+                                                    JS::Handle<JSObject*> obj,
+                                                    const NativeProperties* properties);
+
+bool
 DefineWebIDLBindingPropertiesOnXPCObject(JSContext* cx,
                                          JS::Handle<JSObject*> obj,
-                                         const NativeProperties* properties,
-                                         bool defineUnforgeableAttributes);
+                                         const NativeProperties* properties);
 
 #ifdef _MSC_VER
 #define HAS_MEMBER_CHECK(_name)                                           \
@@ -2660,6 +2682,15 @@ bool
 ConvertExceptionToPromise(JSContext* cx,
                           JSObject* promiseScope,
                           JS::MutableHandle<JS::Value> rval);
+
+
+
+
+inline bool
+GlobalPropertiesAreOwn()
+{
+  return true;
+}
 
 } 
 } 
