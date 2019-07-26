@@ -6134,12 +6134,12 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
 
   RootedObject typeObj(cx, cinfo->typeObj);
   RootedObject thisObj(cx, cinfo->thisObj);
-  RootedObject jsfnObj(cx, cinfo->jsfnObj);
+  RootedValue jsfnVal(cx, ObjectValue(*cinfo->jsfnObj));
 
   JS_AbortIfWrongThread(JS_GetRuntime(cx));
 
   JSAutoRequest ar(cx);
-  JSAutoCompartment ac(cx, jsfnObj);
+  JSAutoCompartment ac(cx, cinfo->jsfnObj);
 
   
   FunctionInfo* fninfo = FunctionType::GetFunctionInfo(typeObj);
@@ -6187,7 +6187,7 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   
   RootedValue rval(cx);
-  bool success = JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj), argv, rval.address());
+  bool success = JS_CallFunctionValue(cx, thisObj, jsfnVal, argv, &rval);
 
   
   
