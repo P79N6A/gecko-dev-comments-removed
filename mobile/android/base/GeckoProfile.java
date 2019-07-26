@@ -163,14 +163,6 @@ public final class GeckoProfile {
 
         try {
             
-            ProfileMigrator profileMigrator = new ProfileMigrator(mContext);
-            if (!GeckoApp.sIsUsingCustomProfile &&
-                !profileMigrator.isProfileMoved()) {
-                Log.i(LOGTAG, "New installation or update, checking for old profiles.");
-                profileMigrator.launchMoveProfile();
-            }
-
-            
             File mozillaDir = ensureMozillaDirectory(mContext);
             mDir = findProfileDir(mozillaDir);
             if (mDir == null) {

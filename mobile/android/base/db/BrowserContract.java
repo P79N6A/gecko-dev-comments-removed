@@ -173,18 +173,6 @@ public class BrowserContract {
         public static final String VERSION = "version";
     }
 
-    public static final class Control {
-        private Control() {}
-
-        public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "control");
-
-        
-        
-        public static final String ENSURE_HISTORY_MIGRATED = "ensure_history_migrated";
-        
-        public static final String ENSURE_BOOKMARKS_MIGRATED = "ensure_bookmarks_migrated";
-    }
-
     public static final class Passwords {
         private Passwords() {}
         public static final Uri CONTENT_URI = Uri.withAppendedPath(PASSWORDS_AUTHORITY_URI, "passwords");
