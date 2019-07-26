@@ -119,6 +119,15 @@ bool CreatePairedMinidumps(ProcessHandle childPid,
                            ThreadId childBlamedThread,
                            nsIFile** childDump);
 
+
+
+
+
+bool CreateAdditionalChildMinidump(ProcessHandle childPid,
+                                   ThreadId childBlamedThread,
+                                   nsIFile* parentMinidump,
+                                   const nsACString& name);
+
 #  if defined(XP_WIN32) || defined(XP_MACOSX)
 
 const char* GetChildNotificationPipe();
