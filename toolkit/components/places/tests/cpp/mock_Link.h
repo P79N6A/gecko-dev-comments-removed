@@ -48,6 +48,7 @@ public:
     return 0;   
   }
 
+protected:
   ~mock_Link() {
     
     if (mRunNextTest) {

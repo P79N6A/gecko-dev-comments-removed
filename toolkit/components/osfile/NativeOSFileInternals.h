@@ -15,6 +15,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSINATIVEOSFILEINTERNALSSERVICE
 private:
+  ~NativeOSFileInternalsService() {}
   
   void operator=(const NativeOSFileInternalsService& other) MOZ_DELETE;
 };

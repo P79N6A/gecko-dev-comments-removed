@@ -84,7 +84,6 @@ public:
   
   PendingLookup(nsIApplicationReputationQuery* aQuery,
                 nsIApplicationReputationCallback* aCallback);
-  ~PendingLookup();
 
   
   
@@ -94,6 +93,8 @@ public:
   nsresult StartLookup();
 
 private:
+  ~PendingLookup();
+
   friend class PendingDBLookup;
 
   
@@ -210,13 +211,15 @@ public:
 
   
   PendingDBLookup(PendingLookup* aPendingLookup);
-  ~PendingDBLookup();
 
   
   
   
   nsresult LookupSpec(const nsACString& aSpec, bool aAllowlistOnly);
+
 private:
+  ~PendingDBLookup();
+
   
   
   enum LIST_TYPES {

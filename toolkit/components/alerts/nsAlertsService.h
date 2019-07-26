@@ -36,9 +36,10 @@ public:
   NS_DECL_ISUPPORTS
 
   nsAlertsService();
-  virtual ~nsAlertsService();
 
 protected:
+  virtual ~nsAlertsService();
+
   bool ShouldShowAlert();
   nsXULAlerts mXULAlerts;
 };

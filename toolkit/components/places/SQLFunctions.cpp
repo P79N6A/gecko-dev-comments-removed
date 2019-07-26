@@ -182,6 +182,10 @@ namespace places {
   
   
 
+  MatchAutoCompleteFunction::~MatchAutoCompleteFunction()
+  {
+  }
+
   
   nsresult
   MatchAutoCompleteFunction::create(mozIStorageConnection *aDBConn)
@@ -416,6 +420,10 @@ namespace places {
   
   
 
+  CalculateFrecencyFunction::~CalculateFrecencyFunction()
+  {
+  }
+
   
   nsresult
   CalculateFrecencyFunction::create(mozIStorageConnection *aDBConn)
@@ -608,6 +616,10 @@ namespace places {
 
 
 
+  GenerateGUIDFunction::~GenerateGUIDFunction()
+  {
+  }
+
   
   
 
@@ -646,6 +658,10 @@ namespace places {
 
 
 
+
+  GetUnreversedHostFunction::~GetUnreversedHostFunction()
+  {
+  }
 
   
   
@@ -701,6 +717,10 @@ namespace places {
 
 
 
+  FixupURLFunction::~FixupURLFunction()
+  {
+  }
+
   
   
 
@@ -751,6 +771,10 @@ namespace places {
 
 
 
+
+  FrecencyNotificationFunction::~FrecencyNotificationFunction()
+  {
+  }
 
   
   nsresult
