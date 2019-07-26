@@ -1305,8 +1305,11 @@ nsHttpConnectionMgr::MakeNewConnection(nsConnectionEntry *ent,
     
     
     
-    if (!(trans->Caps() & NS_HTTP_DISALLOW_SPDY) && RestrictConnections(ent))
+    if (!(trans->Caps() & NS_HTTP_DISALLOW_SPDY) &&
+        (trans->Caps() & NS_HTTP_ALLOW_KEEPALIVE) &&
+        RestrictConnections(ent)) {
         return NS_ERROR_NOT_AVAILABLE;
+    }
 
     
     
@@ -1511,6 +1514,7 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
     
 
     bool attemptedOptimisticPipeline = !(caps & NS_HTTP_ALLOW_PIPELINING);
+    nsRefPtr<nsHttpConnection> unusedSpdyPersistentConnection;
 
     
     
@@ -1519,10 +1523,13 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
     if (!(caps & NS_HTTP_DISALLOW_SPDY) && gHttpHandler->IsSpdyEnabled()) {
         nsRefPtr<nsHttpConnection> conn = GetSpdyPreferredConn(ent);
         if (conn) {
-            LOG(("   dispatch to spdy: [conn=%x]\n", conn.get()));
-            trans->RemoveDispatchedAsBlocking();  
-            DispatchTransaction(ent, trans, conn);
-            return NS_OK;
+            if ((caps & NS_HTTP_ALLOW_KEEPALIVE) || !conn->IsExperienced()) {
+                LOG(("   dispatch to spdy: [conn=%x]\n", conn.get()));
+                trans->RemoveDispatchedAsBlocking();  
+                DispatchTransaction(ent, trans, conn);
+                return NS_OK;
+            }
+            unusedSpdyPersistentConnection = conn;
         }
     }
 
@@ -1652,6 +1659,13 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
     }
 
     
+    if (unusedSpdyPersistentConnection) {
+        
+        
+        
+        unusedSpdyPersistentConnection->DontReuse();
+    }
+
     return NS_ERROR_NOT_AVAILABLE;                
 }
 

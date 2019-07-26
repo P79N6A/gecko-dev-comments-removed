@@ -161,6 +161,11 @@ public:
     void    PrintDiagnostics(nsCString &log);
 
     void    SetTransactionCaps(uint32_t aCaps) { mTransactionCaps = aCaps; }
+
+    
+    
+    bool    IsExperienced() { return mExperienced; }
+
 private:
     
     nsresult ProxyStartSSL();
@@ -229,6 +234,7 @@ private:
     bool                            mLastTransactionExpectedNoContent;
     bool                            mIdleMonitoring;
     bool                            mProxyConnectInProgress;
+    bool                            mExperienced;
 
     
     
