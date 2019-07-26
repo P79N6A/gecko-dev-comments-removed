@@ -197,6 +197,38 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsRect
   nsSVGIntegrationUtils::
     ComputePostEffectsVisualOverflowRect(nsIFrame* aFrame,
@@ -215,38 +247,21 @@ nsRect
     return aPreEffectsOverflowRect;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRUint32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint firstFrameToUserSpace = GetOffsetToUserSpace(firstFrame);
   
-  nsIntRect overrideBBox =
-    GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
-                                     aPreEffectsOverflowRect,
-                                     firstFrameToUserSpace).
-      ToOutsidePixels(appUnitsPerDevPixel);
+  
+  
+  gfxRect overrideBBox =
+    nsLayoutUtils::RectToGfxRect(
+      GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
+                                       aPreEffectsOverflowRect,
+                                       firstFrameToUserSpace),
+      aFrame->PresContext()->AppUnitsPerCSSPixel());
+  overrideBBox.RoundOut();
 
   nsRect overflowRect =
     filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox).
-                   ToAppUnits(appUnitsPerDevPixel);
+                   ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
 
   
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);

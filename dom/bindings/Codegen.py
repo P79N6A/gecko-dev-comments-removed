@@ -2779,29 +2779,6 @@ class CGMethodCall(CGThing):
                 requiredArgs -= 1
             return requiredArgs
 
-        def maxSigLength(signatures):
-            return max([len(s[1]) for s in signatures])
-
-        def signaturesForArgCount(i, signatures):
-            return filter(
-                lambda s: len(s[1]) == i or (len(s[1]) > i and
-                                             s[1][i].optional),
-                    signatures)
-
-        def findDistinguishingIndex(argCount, signatures):
-            def isValidDistinguishingIndex(idx, signatures):
-                for firstSigIndex in range(0, len(signatures)):
-                    for secondSigIndex in range(0, firstSigIndex):
-                        firstType = signatures[firstSigIndex][1][idx].type
-                        secondType = signatures[secondSigIndex][1][idx].type
-                        if not firstType.isDistinguishableFrom(secondType):
-                            return False
-                return True
-            for idx in range(0, argCount):
-                if isValidDistinguishingIndex(idx, signatures):
-                    return idx
-            return -1
-
         def getPerSignatureCall(signature, argConversionStartsAt=0):
             return CGPerSignatureCall(signature[0], argsPre, signature[1],
                                       nativeMethodName, static, descriptor,
@@ -2831,13 +2808,12 @@ class CGMethodCall(CGThing):
             return
 
         
-        maxSigArgs = maxSigLength(signatures)
-        allowedArgCounts = [ i for i in range(0, maxSigArgs+1)
-                             if len(signaturesForArgCount(i, signatures)) != 0 ]
+        maxArgCount = method.maxArgCount
+        allowedArgCounts = method.allowedArgCounts
 
         argCountCases = []
         for argCount in allowedArgCounts:
-            possibleSignatures = signaturesForArgCount(argCount, signatures)
+            possibleSignatures = method.signaturesForArgCount(argCount)
             if len(possibleSignatures) == 1:
                 
                 signature = possibleSignatures[0]
@@ -2850,7 +2826,7 @@ class CGMethodCall(CGThing):
                 if (len(signature[1]) > argCount and
                     signature[1][argCount].optional and
                     (argCount+1) in allowedArgCounts and
-                    len(signaturesForArgCount(argCount+1, signatures)) == 1):
+                    len(method.signaturesForArgCount(argCount+1)) == 1):
                     argCountCases.append(
                         CGCase(str(argCount), None, True))
                 else:
@@ -2858,28 +2834,7 @@ class CGMethodCall(CGThing):
                         CGCase(str(argCount), getPerSignatureCall(signature)))
                 continue
 
-            distinguishingIndex = findDistinguishingIndex(argCount,
-                                                          possibleSignatures)
-            if distinguishingIndex == -1:
-                raise TypeError(("Signatures with %s arguments for " +
-                                 descriptor.interface.identifier.name + "." +
-                                 method.identifier.name +
-                                 " are not distinguishable") % argCount)
-
-            for idx in range(0, distinguishingIndex):
-                firstSigType = possibleSignatures[0][1][idx].type
-                for sigIdx in range(1, len(possibleSignatures)):
-                    if possibleSignatures[sigIdx][1][idx].type != firstSigType:
-                        raise TypeError(("Signatures with %d arguments for " +
-                                         descriptor.interface.identifier.name +
-                                         "." + method.identifier.name +
-                                         " have different types at index %d" +
-                                         " which is before distinguishing" +
-                                         " index %d.  Types are %s and %s") %
-                                        (argCount, idx,
-                                         distinguishingIndex,
-                                         str(possibleSignatures[sigIdx][1][idx].type),
-                                         str(firstSigType)))
+            distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
 
             
             
@@ -3019,7 +2974,7 @@ class CGMethodCall(CGThing):
         overloadCGThings = []
         overloadCGThings.append(
             CGGeneric("unsigned argcount = NS_MIN(argc, %du);" %
-                      maxSigArgs))
+                      maxArgCount))
         overloadCGThings.append(
             CGSwitch("argcount",
                      argCountCases,

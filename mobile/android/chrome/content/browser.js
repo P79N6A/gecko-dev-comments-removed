@@ -1,4 +1,4 @@
-
+50
 
 
 
@@ -1773,15 +1773,25 @@ var SelectionHandler = {
 
 
 var UserAgent = {
+  DESKTOP_UA: null,
+
   init: function ua_init() {
+    Services.obs.addObserver(this, "DesktopMode:Change", false);
     Services.obs.addObserver(this, "http-on-modify-request", false);
+
+    
+    this.DESKTOP_UA = Cc["@mozilla.org/network/protocol;1?name=http"]
+                        .getService(Ci.nsIHttpProtocolHandler).userAgent
+                        .replace(/Android; [a-zA-Z]+/, "X11; Linux x86_64")
+                        .replace(/Gecko\/[0-9\.]+/, "Gecko/20100101");
   },
 
   uninit: function ua_uninit() {
+    Services.obs.removeObserver(this, "DesktopMode:Change");
     Services.obs.removeObserver(this, "http-on-modify-request");
   },
 
-  getRequestLoadContext: function ua_getRequestLoadContext(aRequest) {
+  _getRequestLoadContext: function ua_getRequestLoadContext(aRequest) {
     if (aRequest && aRequest.notificationCallbacks) {
       try {
         return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
@@ -1797,25 +1807,42 @@ var UserAgent = {
     return null;
   },
 
-  getWindowForRequest: function ua_getWindowForRequest(aRequest) {
-    let loadContext = this.getRequestLoadContext(aRequest);
+  _getWindowForRequest: function ua_getWindowForRequest(aRequest) {
+    let loadContext = this._getRequestLoadContext(aRequest);
     if (loadContext)
       return loadContext.associatedWindow;
     return null;
   },
 
   observe: function ua_observe(aSubject, aTopic, aData) {
-    if (!(aSubject instanceof Ci.nsIHttpChannel))
-      return;
+    switch (aTopic) {
+      case "DesktopMode:Change": {
+        let args = JSON.parse(aData);
+        let tab = BrowserApp.getTabForId(args.tabId);
+        if (tab != null)
+          tab.reloadWithMode(args.desktopMode);
+        break;
+      }
+      case "http-on-modify-request": {
+        let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
+        let channelWindow = this._getWindowForRequest(channel);
+        let tab = BrowserApp.getTabForWindow(channelWindow);
+        if (tab == null)
+          break;
 
-    let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
-    let channelWindow = this.getWindowForRequest(channel);
-    if (BrowserApp.getBrowserForWindow(channelWindow)) {
-      if (channel.URI.host.indexOf("youtube") != -1) {
-        let ua = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).userAgent;
+        
+        if (channel.URI.host.indexOf("youtube") != -1) {
+          let ua = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).userAgent;
 #expand let version = "__MOZ_APP_VERSION__";
-        ua += " Fennec/" + version;
-        channel.setRequestHeader("User-Agent", ua, false);
+          ua += " Fennec/" + version;
+          channel.setRequestHeader("User-Agent", ua, false);
+        }
+
+        
+        if (tab.desktopMode && (channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
+          channel.setRequestHeader("User-Agent", this.DESKTOP_UA, false);
+
+        break;
       }
     }
   }
@@ -1939,6 +1966,8 @@ function Tab(aURL, aParams) {
   this.pluginDoorhangerTimeout = null;
   this.shouldShowPluginDoorhanger = true;
   this.clickToPlayPluginsActivated = false;
+  this.desktopMode = false;
+  this.originalURI = null;
 }
 
 Tab.prototype = {
@@ -2029,6 +2058,53 @@ Tab.prototype = {
         dump("Handled load error: " + e)
       }
     }
+  },
+
+  
+
+
+  reloadWithMode: function (aDesktopMode) {
+    
+    if (this.desktopMode != aDesktopMode) {
+      this.desktopMode = aDesktopMode;
+      sendMessageToJava({
+        gecko: {
+          type: "DesktopMode:Changed",
+          desktopMode: aDesktopMode,
+          tabId: this.id
+        }
+      });
+    }
+
+    
+    let currentURI = this.browser.currentURI;
+    if (!currentURI.schemeIs("http") && !currentURI.schemeIs("https"))
+      return;
+
+    let url = currentURI.spec;
+    let flags = Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE;
+    if (this.originalURI && !this.originalURI.equals(currentURI)) {
+      
+      url = this.originalURI.spec;
+      flags |= Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY;
+    } else {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aDesktopMode)
+        url = currentURI.prePath.replace(/([\/\.])m\./g, "$1");
+      else
+        flags |= Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY;
+    }
+
+    this.browser.docShell.loadURI(url, flags, null, null, null);
   },
 
   destroy: function() {
@@ -2634,7 +2710,11 @@ Tab.prototype = {
       let success = false; 
       let uri = "";
       try {
-        uri = aRequest.QueryInterface(Components.interfaces.nsIChannel).originalURI.spec;
+        
+        this.originalURI = aRequest.QueryInterface(Components.interfaces.nsIChannel).originalURI;
+
+        if (this.originalURI != null)
+          uri = this.originalURI.spec;
       } catch (e) { }
       try {
         success = aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded;

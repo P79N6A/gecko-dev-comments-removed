@@ -252,15 +252,6 @@ GlobalObject::create(JSContext *cx, Class *clasp)
 
     if (!global->setSingletonType(cx) || !global->setVarObj(cx))
         return NULL;
-    Rooted<GlobalObject*> obj(cx);
-
-    JSObject *obj_ = NewObjectWithGivenProto(cx, clasp, NULL, NULL);
-    if (!obj_)
-        return NULL;
-    obj = &obj_->asGlobal();
-
-    if (!obj->setSingletonType(cx) || !obj->setVarObj(cx))
-        return NULL;
     if (!obj->setDelegate(cx))
         return NULL;
 
