@@ -78,7 +78,7 @@ class BaselineCompilerShared
         
         if (!icEntries_.append(ICEntry(script->pcToOffset(pc), isForOp)))
             return nullptr;
-        ICEntry &vecEntry = icEntries_[icEntries_.length() - 1];
+        ICEntry &vecEntry = icEntries_.back();
 
         
         vecEntry.setFirstStub(stub);

@@ -694,7 +694,7 @@ BaselineCompiler::emitDebugTrap()
 
 #ifdef DEBUG
     
-    PCMappingEntry &entry = pcMappingEntries_[pcMappingEntries_.length() - 1];
+    PCMappingEntry &entry = pcMappingEntries_.back();
     JS_ASSERT((&offset)->offset() == entry.nativeOffset);
 #endif
 

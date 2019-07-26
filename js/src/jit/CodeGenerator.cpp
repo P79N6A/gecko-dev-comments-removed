@@ -6041,7 +6041,7 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     
     
     
-    if (callTargets.length() != 0)
+    if (!callTargets.empty())
         ionScript->setHasUncompiledCallTarget();
 
     invalidateEpilogueData_.fixup(&masm);
