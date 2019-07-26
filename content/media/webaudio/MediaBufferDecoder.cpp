@@ -132,8 +132,6 @@ private:
     }
   }
 
-  void RunNextPhase();
-
   void Decode();
   void AllocateBuffer();
   void CallbackTheResult();
@@ -207,30 +205,6 @@ MediaDecodeTask::CreateReader()
   return true;
 }
 
-void
-MediaDecodeTask::RunNextPhase()
-{
-  
-  
-  
-  
-  
-  if (!mThreadPool) {
-    Run();
-    return;
-  }
-
-  switch (mPhase) {
-  case PhaseEnum::AllocateBuffer:
-    MOZ_ASSERT(!NS_IsMainThread());
-    NS_DispatchToMainThread(this);
-    break;
-  case PhaseEnum::Decode:
-  case PhaseEnum::Done:
-    MOZ_CRASH("Invalid phase Decode");
-  }
-}
-
 class AutoResampler {
 public:
   AutoResampler()
@@ -259,8 +233,7 @@ private:
 void
 MediaDecodeTask::Decode()
 {
-  MOZ_ASSERT(!mThreadPool == NS_IsMainThread(),
-             "We should be on the main thread only if we don't have a thread pool");
+  MOZ_ASSERT(!NS_IsMainThread());
 
   mBufferDecoder->BeginDecoding(NS_GetCurrentThread());
 
@@ -395,7 +368,7 @@ MediaDecodeTask::Decode()
   }
 
   mPhase = PhaseEnum::AllocateBuffer;
-  RunNextPhase();
+  NS_DispatchToMainThread(this);
 }
 
 void
@@ -490,29 +463,6 @@ MediaBufferDecoder::AsyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
 }
 
 bool
-MediaBufferDecoder::SyncDecodeMedia(const char* aContentType, uint8_t* aBuffer,
-                                    uint32_t aLength,
-                                    WebAudioDecodeJob& aDecodeJob)
-{
-  
-  
-  if (!*aContentType ||
-      strcmp(aContentType, APPLICATION_OCTET_STREAM) == 0) {
-    return false;
-  }
-
-  nsRefPtr<MediaDecodeTask> task =
-    new MediaDecodeTask(aContentType, aBuffer, aLength, aDecodeJob, nullptr);
-  if (!task->CreateReader()) {
-    return false;
-  }
-
-  task->Run();
-  return true;
-}
-
-
-bool
 MediaBufferDecoder::EnsureThreadPoolInitialized()
 {
   if (!mThreadPool) {
@@ -536,14 +486,11 @@ WebAudioDecodeJob::WebAudioDecodeJob(const nsACString& aContentType,
   , mFailureCallback(aFailureCallback)
 {
   MOZ_ASSERT(aContext);
+  MOZ_ASSERT(aSuccessCallback);
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_COUNT_CTOR(WebAudioDecodeJob);
 
   mArrayBuffer = aBuffer.Obj();
-
-  MOZ_ASSERT(aSuccessCallback ||
-             (!aSuccessCallback && !aFailureCallback),
-             "If a success callback is not passed, no failure callback should be passed either");
 
   mozilla::HoldJSObjects(this);
 }
@@ -564,10 +511,8 @@ WebAudioDecodeJob::OnSuccess(ErrorCode aErrorCode)
 
   
   
-  if (mSuccessCallback) {
-    ErrorResult rv;
-    mSuccessCallback->Call(*mOutput, rv);
-  }
+  ErrorResult rv;
+  mSuccessCallback->Call(*mOutput, rv);
 
   mContext->RemoveFromDecodeQueue(this);
 }

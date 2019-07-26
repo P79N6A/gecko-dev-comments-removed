@@ -228,33 +228,6 @@ AudioBuffer::GetThreadSharedChannelsForRate(JSContext* aJSContext)
   return mSharedChannels;
 }
 
-void
-AudioBuffer::MixToMono(JSContext* aJSContext)
-{
-  if (mJSChannels.Length() == 1) {
-    
-    return;
-  }
-
-  
-  nsAutoTArray<const void*, GUESS_AUDIO_CHANNELS> channels;
-  channels.SetLength(mJSChannels.Length());
-  for (uint32_t i = 0; i < mJSChannels.Length(); ++i) {
-    channels[i] = JS_GetFloat32ArrayData(mJSChannels[i]);
-  }
-
-  
-  float* downmixBuffer = new float[mLength];
-
-  
-  AudioChannelsDownMix(channels, &downmixBuffer, 1, mLength);
-
-  
-  mJSChannels.SetLength(1);
-  SetRawChannelContents(aJSContext, 0, downmixBuffer);
-  delete[] downmixBuffer;
-}
-
 size_t
 AudioBuffer::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 {
