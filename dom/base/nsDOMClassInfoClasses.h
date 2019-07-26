@@ -128,6 +128,10 @@ DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
 
 
+
+DOMCI_CLASS(CSSValueList)
+
+
 DOMCI_CLASS(Range)
 DOMCI_CLASS(Selection)
 
