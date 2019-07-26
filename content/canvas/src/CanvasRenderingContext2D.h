@@ -537,6 +537,9 @@ public:
 
   virtual void GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat);
 
+  
+  bool GetHitRegionRect(Element* aElement, nsRect& aRect);
+
 protected:
   nsresult GetImageDataArray(JSContext* aCx, int32_t aX, int32_t aY,
                              uint32_t aWidth, uint32_t aHeight,
@@ -753,25 +756,16 @@ protected:
   
 
 
-
-  struct RegionInfo : public nsStringHashKey
+  struct RegionInfo
   {
-    RegionInfo(const nsAString& aKey) :
-      nsStringHashKey(&aKey)
-    {
-    }
-    RegionInfo(const nsAString *aKey) :
-      nsStringHashKey(aKey)
-    {
-    }
-
+    nsString          mId;
+    
     nsRefPtr<Element> mElement;
+    
+    RefPtr<gfx::Path> mPath;
   };
 
-#ifdef ACCESSIBILITY
-  static PLDHashOperator RemoveHitRegionProperty(RegionInfo* aEntry, void* aData);
-#endif
-  nsTHashtable<RegionInfo> mHitRegionsOptions;
+  nsTArray<RegionInfo> mHitRegionsOptions;
 
   
 

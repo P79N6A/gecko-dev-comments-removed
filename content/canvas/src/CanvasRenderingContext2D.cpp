@@ -606,15 +606,6 @@ CanvasRenderingContext2D::ParseColor(const nsAString& aString,
   return true;
 }
 
-#ifdef ACCESSIBILITY
-PLDHashOperator
-CanvasRenderingContext2D::RemoveHitRegionProperty(RegionInfo* aEntry, void*)
-{
-  aEntry->mElement->DeleteProperty(nsGkAtoms::hitregion);
-  return PL_DHASH_NEXT;
-}
-#endif
-
 nsresult
 CanvasRenderingContext2D::Reset()
 {
@@ -632,10 +623,7 @@ CanvasRenderingContext2D::Reset()
   mStream = nullptr;
 
   
-#ifdef ACCESSIBILITY
-  mHitRegionsOptions.EnumerateEntries(RemoveHitRegionProperty, nullptr);
-#endif
-  mHitRegionsOptions.Clear();
+  mHitRegionsOptions.ClearAndRetainStorage();
 
   
   
@@ -2451,24 +2439,6 @@ void
 CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorResult& error)
 {
   
-  RemoveHitRegion(options.mId);
-
-  
-  if (options.mControl == NULL) {
-    error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return;
-  }
-
-#ifdef ACCESSIBILITY
-  
-  HTMLCanvasElement* canvas = GetCanvas();
-  bool isDescendant = true;
-  if (!canvas || !nsContentUtils::ContentIsDescendantOf(options.mControl, canvas)) {
-    isDescendant = false;
-  }
-#endif
-
-  
   EnsureUserSpacePath(CanvasWindingRule::Nonzero);
   if(!mPath) {
     error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
@@ -2483,35 +2453,66 @@ CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorRes
     return;
   }
 
-#ifdef ACCESSIBILITY
-  if (isDescendant) {
-    nsRect* nsBounds = new nsRect();
-    gfxRect rect(bounds.x, bounds.y, bounds.width, bounds.height);
-    *nsBounds = nsLayoutUtils::RoundGfxRectToAppRect(rect, AppUnitsPerCSSPixel());
-    options.mControl->DeleteProperty(nsGkAtoms::hitregion);
-    options.mControl->SetProperty(nsGkAtoms::hitregion, nsBounds,
-                                  nsINode::DeleteProperty<nsRect>);
-  }
-#endif
-
   
-  if (options.mId.Length() != 0) {
-    mHitRegionsOptions.PutEntry(options.mId)->mElement = options.mControl;
+  RemoveHitRegion(options.mId);
+
+  if (options.mControl) {
+    
+    for (unsigned int x = 0; x < mHitRegionsOptions.Length(); x++) {
+      RegionInfo& info = mHitRegionsOptions[x];
+      if (info.mElement == options.mControl) {
+        mHitRegionsOptions.RemoveElementAt(x);
+        break;
+      }
+    }
+#ifdef ACCESSIBILITY
+  options.mControl->SetProperty(nsGkAtoms::hitregion, new bool(true),
+                                nsINode::DeleteProperty<bool>);
+#endif
   }
+  
+  
+  RegionInfo info;
+  info.mId = options.mId;
+  info.mElement = options.mControl;
+  RefPtr<PathBuilder> pathBuilder = mPath->TransformedCopyToBuilder(mTarget->GetTransform());
+  info.mPath = pathBuilder->Finish();
+
+  mHitRegionsOptions.InsertElementAt(0, info);
 }
 
 void
 CanvasRenderingContext2D::RemoveHitRegion(const nsAString& id)
 {
-  RegionInfo* info = mHitRegionsOptions.GetEntry(id);
-  if (!info) {
-    return;
+  if (id.Length() == 0) {
+     return;
+   }
+
+  for (unsigned int x = 0; x < mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = mHitRegionsOptions[x];
+    if (info.mId == id) {
+      mHitRegionsOptions.RemoveElementAt(x);
+
+      return;
+    }
+  }
+}
+
+bool
+CanvasRenderingContext2D::GetHitRegionRect(Element* aElement, nsRect& aRect)
+{
+  for (unsigned int x = 0; x < mHitRegionsOptions.Length(); x++) {
+    RegionInfo& info = mHitRegionsOptions[x];
+    if (info.mElement == aElement) {
+      mgfx::Rect bounds(info.mPath->GetBounds());
+      gfxRect rect(bounds.x, bounds.y, bounds.width, bounds.height);
+      aRect = nsLayoutUtils::RoundGfxRectToAppRect(rect, AppUnitsPerCSSPixel());
+
+      return true;
+    }
   }
 
-#ifdef ACCESSIBILITY
-  info->mElement->DeleteProperty(nsGkAtoms::hitregion);
-#endif
-  mHitRegionsOptions.RemoveEntry(id);
+  return false;
 }
 
 

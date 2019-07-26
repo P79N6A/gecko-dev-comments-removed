@@ -81,7 +81,9 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/unused.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/dom/CanvasRenderingContext2D.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/TreeWalker.h"
 
 using namespace mozilla;
@@ -920,22 +922,27 @@ Accessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame)
 {
   nsIFrame* frame = GetFrame();
   if (frame && mContent) {
-    nsRect* hitRegionRect = static_cast<nsRect*>(mContent->GetProperty(nsGkAtoms::hitregion));
+    bool* hasHitRegionRect = static_cast<bool*>(mContent->GetProperty(nsGkAtoms::hitregion));
 
-    if (hitRegionRect) {
+    if (hasHitRegionRect && mContent->IsElement()) {
       
       
       nsIFrame* canvasFrame = frame->GetParent();
-      while (canvasFrame && (canvasFrame->GetType() != nsGkAtoms::HTMLCanvasFrame))
-        canvasFrame = canvasFrame->GetParent();
+      if (canvasFrame) {
+        canvasFrame = nsLayoutUtils::GetClosestFrameOfType(canvasFrame, nsGkAtoms::HTMLCanvasFrame);
+      }
 
       
       if (canvasFrame) {
         *aBoundingFrame = canvasFrame;
+        dom::HTMLCanvasElement *canvas =
+          dom::HTMLCanvasElement::FromContent(canvasFrame->GetContent());
 
-        aTotalBounds = *hitRegionRect;
-
-        return;
+        
+        if (canvas && canvas->CountContexts() &&
+          canvas->GetContextAtIndex(0)->GetHitRegionRect(mContent->AsElement(), aTotalBounds)) {
+          return;
+        }
       }
     }
 
