@@ -58,6 +58,31 @@ using mozilla::psm::SharedSSLState;
 extern PRLogModuleInfo* gPIPNSSLog;
 #endif
 
+static nsresult
+attemptToLogInWithDefaultPassword()
+{
+#ifdef NSS_DISABLE_DBM
+  
+  
+  
+  
+  
+  
+  
+  ScopedPK11SlotInfo slot(PK11_GetInternalKeySlot());
+  if (!slot) {
+    return MapSECStatus(SECFailure);
+  }
+  if (PK11_NeedUserInit(slot)) {
+    
+    
+    (void) PK11_InitPin(slot, nullptr, nullptr);
+  }
+#endif
+
+  return NS_OK;
+}
+
 NS_IMPL_ISUPPORTS2(nsNSSCertificateDB, nsIX509CertDB, nsIX509CertDB2)
 
 nsNSSCertificateDB::nsNSSCertificateDB()
@@ -978,6 +1003,11 @@ nsNSSCertificateDB::SetCertTrust(nsIX509Cert *cert,
   }
   insanity::pkix::ScopedCERTCertificate nsscert(pipCert->GetCert());
 
+  rv = attemptToLogInWithDefaultPassword();
+  if (NS_WARN_IF(rv != NS_OK)) {
+    return rv;
+  }
+
   SECStatus srv;
   if (type == nsIX509Cert::CA_CERT) {
     
@@ -1614,6 +1644,11 @@ NS_IMETHODIMP nsNSSCertificateDB::AddCertFromBase64(const char *aBase64, const c
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Created nick \"%s\"\n", nickname.get()));
 
+  rv = attemptToLogInWithDefaultPassword();
+  if (NS_WARN_IF(rv != NS_OK)) {
+    return rv;
+  }
+
   SECStatus srv = __CERT_AddTempCertToPerm(tmpCert.get(),
                                            const_cast<char*>(nickname.get()),
                                            trust.GetTrust());
@@ -1643,6 +1678,12 @@ nsNSSCertificateDB::SetCertTrustFromString(nsIX509Cert3* cert,
     return MapSECStatus(SECFailure);
   }
   insanity::pkix::ScopedCERTCertificate nssCert(cert->GetCert());
+
+  nsresult rv = attemptToLogInWithDefaultPassword();
+  if (NS_WARN_IF(rv != NS_OK)) {
+    return rv;
+  }
+
   srv = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), nssCert.get(), &trust);
   return MapSECStatus(srv);
 }
