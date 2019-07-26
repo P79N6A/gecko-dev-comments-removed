@@ -11,7 +11,6 @@
 #include "npapi.h"
 #include "nsCOMPtr.h"
 #include "nsIPluginInstanceOwner.h"
-#include "nsIPluginTagInfo.h"
 #include "nsIPrivacyTransitionObserver.h"
 #include "nsIDOMEventListener.h"
 #include "nsPluginHost.h"
@@ -46,7 +45,6 @@ class gfxXlibSurface;
 #endif
 
 class nsPluginInstanceOwner : public nsIPluginInstanceOwner,
-                              public nsIPluginTagInfo,
                               public nsIDOMEventListener,
                               public nsIPrivacyTransitionObserver,
                               public nsSupportsWeakReference
@@ -76,7 +74,64 @@ public:
   virtual void SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed) MOZ_OVERRIDE;
 
   
-  NS_DECL_NSIPLUGINTAGINFO
+
+
+
+  NS_IMETHOD GetTagType(nsPluginTagType *aResult);
+
+  
+
+
+
+
+
+  NS_IMETHOD GetParameters(uint16_t& aCount,
+                           const char*const*& aNames,
+                           const char*const*& aValues);
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD GetParameter(const char* aName, const char* *aResult);
+
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD GetAttributes(uint16_t& aCount,
+                           const char*const*& aNames,
+                           const char*const*& aValues);
+
+
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD GetAttribute(const char* aName, const char* *aResult);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD GetDOMElement(nsIDOMElement* * aResult);
   
   
   NS_DECL_NSIDOMEVENTLISTENER
