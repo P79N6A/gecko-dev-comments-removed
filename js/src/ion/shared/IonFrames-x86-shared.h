@@ -113,18 +113,15 @@ class IonBaselineJSFrameLayout : public IonCommonFrameLayout
         
         return reinterpret_cast<size_t>(&base->argv()[1]);
     }
+    static size_t offsetOfActualArg(size_t arg) {
+        return offsetOfActualArgs() + arg * sizeof(Value);
+    }
 
     Value *argv() {
         return (Value *)(this + 1);
     }
     uintptr_t numActualArgs() const {
         return numActualArgs_;
-    }
-
-    
-    
-    uintptr_t *slotRef(uint32 slot) {
-        return (uintptr_t *)((uint8 *)this - (slot * STACK_SLOT_SIZE));
     }
 
     static inline size_t Size() {
