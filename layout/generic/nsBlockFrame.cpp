@@ -3448,14 +3448,10 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   
   
   
-  uint8_t direction;
-  if (StyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
-    FramePropertyTable *propTable = aState.mPresContext->PropertyTable();
-    direction =  NS_PTR_TO_INT32(propTable->Get(aLine->mFirstChild,
-                                                BaseLevelProperty())) & 1;
-  } else {
-    direction = StyleVisibility()->mDirection;
-  }
+  uint8_t direction =
+    (StyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) ?
+      nsBidiPresUtils::GetFrameBaseLevel(aLine->mFirstChild) & 1 :
+      StyleVisibility()->mDirection;
 
   aLineLayout.BeginLineReflow(x, aState.mY,
                               availWidth, availHeight,
