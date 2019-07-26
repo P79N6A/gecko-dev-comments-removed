@@ -311,111 +311,90 @@ IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constr
     return true;
 }
 
-bool
-IonBuilder::canEnterInlinedFunction(JSFunction *target)
+IonBuilder::InliningDecision
+IonBuilder::DontInline(JSScript *targetScript, const char *reason)
 {
-    if (target->isHeavyweight())
-        return false;
+    if (targetScript) {
+        IonSpew(IonSpew_Inlining, "Cannot inline %s:%u: %s",
+                targetScript->filename(), targetScript->lineno, reason);
+    } else {
+        IonSpew(IonSpew_Inlining, "Cannot inline: %s", reason);
+    }
 
-    JSScript *targetScript = target->nonLazyScript();
-
-    if (targetScript->uninlineable)
-        return false;
-
-    if (!targetScript->analyzedArgsUsage())
-        return false;
-
-    if (targetScript->needsArgsObj())
-        return false;
-
-    if (!targetScript->compileAndGo)
-        return false;
-
-    types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
-    if (targetType->unknownProperties())
-        return false;
-
-    return true;
+    return InliningDecision_DontInline;
 }
 
-bool
+IonBuilder::InliningDecision
 IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
 {
-    if (!target->isInterpreted()) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to non-interpreted");
-        return false;
-    }
+    if (!target->isInterpreted())
+        return DontInline(nullptr, "Non-interpreted target");
 
     
     
     if (target->isInterpreted() && info().executionMode() == DefinitePropertiesAnalysis) {
         if (!target->getOrCreateScript(analysisContext))
-            return false;
+            return InliningDecision_Error;
 
         RootedScript script(analysisContext, target->nonLazyScript());
         if (!script->hasBaselineScript() && script->canBaselineCompile()) {
             MethodStatus status = BaselineCompile(analysisContext, script);
+            if (status == Method_Error)
+                return InliningDecision_Error;
             if (status != Method_Compiled)
-                return false;
+                return InliningDecision_DontInline;
         }
     }
 
-    if (!target->hasScript()) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to lack of Non-Lazy script");
-        return false;
-    }
-
-    if (callInfo.constructing() && !target->isInterpretedConstructor()) {
-        IonSpew(IonSpew_Inlining, "Cannot inline because callee is not a constructor");
-        return false;
-    }
+    if (!target->hasScript())
+        return DontInline(nullptr, "Lazy script");
 
     JSScript *inlineScript = target->nonLazyScript();
+    if (callInfo.constructing() && !target->isInterpretedConstructor())
+        return DontInline(inlineScript, "Callee is not a constructor");
+
     ExecutionMode executionMode = info().executionMode();
-    if (!CanIonCompile(inlineScript, executionMode)) {
-        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to disable Ion compilation",
-                                  inlineScript->filename(), inlineScript->lineno);
-        return false;
-    }
+    if (!CanIonCompile(inlineScript, executionMode))
+        return DontInline(inlineScript, "Disabled Ion compilation");
 
     
-    if (!inlineScript->hasBaselineScript()) {
-        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline target with no baseline jitcode",
-                                  inlineScript->filename(), inlineScript->lineno);
-        return false;
-    }
+    if (!inlineScript->hasBaselineScript())
+        return DontInline(inlineScript, "No baseline jitcode");
 
-    if (TooManyArguments(target->nargs)) {
-        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline too many args",
-                                  inlineScript->filename(), inlineScript->lineno);
-        return false;
-    }
+    if (TooManyArguments(target->nargs))
+        return DontInline(inlineScript, "Too many args");
 
-    if (TooManyArguments(callInfo.argc())) {
-        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline too many args",
-                                  inlineScript->filename(), inlineScript->lineno);
-        return false;
-    }
+    if (TooManyArguments(callInfo.argc()))
+        return DontInline(inlineScript, "Too many args");
 
     
     IonBuilder *builder = callerBuilder_;
     while (builder) {
-        if (builder->script() == inlineScript) {
-            IonSpew(IonSpew_Inlining, "%s:%d Not inlining recursive call",
-                                       inlineScript->filename(), inlineScript->lineno);
-            return false;
-        }
+        if (builder->script() == inlineScript)
+            return DontInline(inlineScript, "Recursive call");
         builder = builder->callerBuilder_;
     }
 
-    if (!canEnterInlinedFunction(target)) {
-        IonSpew(IonSpew_Inlining, "%s:%d Cannot inline due to oracle veto %d",
-                                  inlineScript->filename(), inlineScript->lineno,
-                                  script()->lineno);
-        return false;
-    }
+    if (target->isHeavyweight())
+        return DontInline(inlineScript, "Heavyweight function");
 
-    return true;
+    if (inlineScript->uninlineable)
+        return DontInline(inlineScript, "Uninlineable script");
+
+    if (!inlineScript->analyzedArgsUsage())
+        return DontInline(inlineScript, "Script without analyzed args usage");
+
+    if (inlineScript->needsArgsObj())
+        return DontInline(inlineScript, "Script that needs an arguments object");
+
+    if (!inlineScript->compileAndGo)
+        return DontInline(inlineScript, "Non-compileAndGo script");
+
+    types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
+    if (targetType->unknownProperties())
+        return DontInline(inlineScript, "Target type has unknown properties");
+
+    return InliningDecision_Inline;
 }
 
 void
@@ -3989,24 +3968,25 @@ IsSmallFunction(JSScript *script)
     return script->length() <= js_IonOptions.smallFunctionMaxBytecodeLength;
 }
 
-bool
+IonBuilder::InliningDecision
 IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 {
     
     if (!inliningEnabled())
-        return false;
+        return InliningDecision_DontInline;
 
     
     if (target == nullptr)
-        return false;
+        return InliningDecision_DontInline;
 
     
     if (target->isNative())
-        return true;
+        return InliningDecision_Inline;
 
     
-    if (!canInlineTarget(target, callInfo))
-        return false;
+    InliningDecision decision = canInlineTarget(target, callInfo);
+    if (decision != InliningDecision_Inline)
+        return decision;
 
     
     JSScript *targetScript = target->nonLazyScript();
@@ -4015,39 +3995,24 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     if (!targetScript->shouldInline) {
         
         if (IsSmallFunction(targetScript)) {
-            if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth) {
-                IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
-                        targetScript->filename(), targetScript->lineno);
-                return false;
-            }
+            if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth)
+                return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
         } else {
-            if (inliningDepth_ >= js_IonOptions.maxInlineDepth) {
-                IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
-                        targetScript->filename(), targetScript->lineno);
-                return false;
-            }
+            if (inliningDepth_ >= js_IonOptions.maxInlineDepth)
+                return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
 
-            if (targetScript->hasLoops()) {
-                IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: big function that contains a loop",
-                        targetScript->filename(), targetScript->lineno);
-                return false;
-            }
+            if (targetScript->hasLoops())
+                return DontInline(targetScript, "Vetoed: big function that contains a loop");
 
             
-            if (script()->length() >= js_IonOptions.inliningMaxCallerBytecodeLength) {
-                IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller excessively large.",
-                        targetScript->filename(), targetScript->lineno);
-                return false;
-            }
+            if (script()->length() >= js_IonOptions.inliningMaxCallerBytecodeLength)
+                return DontInline(targetScript, "Vetoed: caller excessively large");
         }
 
         
         
-        if (targetScript->length() > js_IonOptions.inlineMaxTotalBytecodeLength) {
-            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee excessively large.",
-                    targetScript->filename(), targetScript->lineno);
-            return false;
-        }
+        if (targetScript->length() > js_IonOptions.inlineMaxTotalBytecodeLength)
+            return DontInline(targetScript, "Vetoed: callee excessively large");
 
         
         
@@ -4055,9 +4020,7 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
         if (targetScript->getUseCount() < js_IonOptions.usesBeforeInlining() &&
             info().executionMode() != DefinitePropertiesAnalysis)
         {
-            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is insufficiently hot.",
-                    targetScript->filename(), targetScript->lineno);
-            return false;
+            return DontInline(targetScript, "Vetoed: callee is insufficiently hot.");
         }
     }
 
@@ -4065,21 +4028,34 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
     targetType->watchStateChangeForInlinedCall(constraints());
 
-    return true;
+    return InliningDecision_Inline;
 }
 
-uint32_t
-IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, BoolVector &choiceSet)
+bool
+IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, BoolVector &choiceSet,
+                                  uint32_t *numInlineable)
 {
+    *numInlineable = 0;
     uint32_t totalSize = 0;
-    uint32_t numInlineable = 0;
 
     
     if (!choiceSet.reserve(targets.length()))
         return false;
+
     for (size_t i = 0; i < targets.length(); i++) {
         JSFunction *target = &targets[i]->as<JSFunction>();
-        bool inlineable = makeInliningDecision(target, callInfo);
+        bool inlineable;
+        InliningDecision decision = makeInliningDecision(target, callInfo);
+        switch (decision) {
+          case InliningDecision_Error:
+            return false;
+          case InliningDecision_DontInline:
+            inlineable = false;
+            break;
+          case InliningDecision_Inline:
+            inlineable = true;
+            break;
+        }
 
         
         if (inlineable && target->isInterpreted()) {
@@ -4090,11 +4066,11 @@ IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, Boo
 
         choiceSet.append(inlineable);
         if (inlineable)
-            numInlineable++;
+            *numInlineable += 1;
     }
 
     JS_ASSERT(choiceSet.length() == targets.length());
-    return numInlineable;
+    return true;
 }
 
 static bool
@@ -4193,8 +4169,15 @@ IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
     
     if (!propCache && targets.length() == 1) {
         JSFunction *target = &targets[0]->as<JSFunction>();
-        if (!makeInliningDecision(target, callInfo))
+        InliningDecision decision = makeInliningDecision(target, callInfo);
+        switch (decision) {
+          case InliningDecision_Error:
+            return InliningStatus_Error;
+          case InliningDecision_DontInline:
             return InliningStatus_NotInlined;
+          case InliningDecision_Inline:
+            break;
+        }
 
         
         
@@ -4216,7 +4199,9 @@ IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
 
     
     BoolVector choiceSet(alloc());
-    uint32_t numInlined = selectInliningTargets(targets, callInfo, choiceSet);
+    uint32_t numInlined;
+    if (!selectInliningTargets(targets, callInfo, choiceSet, &numInlined))
+        return InliningStatus_Error;
     if (numInlined == 0)
         return InliningStatus_NotInlined;
 
@@ -4825,8 +4810,19 @@ IonBuilder::jsop_funcall(uint32_t argc)
         return false;
 
     
-    if (argc > 0 && makeInliningDecision(target, callInfo) && target->isInterpreted())
-        return inlineScriptedCall(callInfo, target);
+    if (argc > 0) {
+        InliningDecision decision = makeInliningDecision(target, callInfo);
+        switch (decision) {
+          case InliningDecision_Error:
+            return false;
+          case InliningDecision_DontInline:
+            break;
+          case InliningDecision_Inline:
+            if (target->isInterpreted())
+                return inlineScriptedCall(callInfo, target);
+            break;
+        }
+    }
 
     
     return makeCall(target, callInfo, false);
@@ -4971,8 +4967,16 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     current->pop();
 
     
-    if (makeInliningDecision(target, callInfo) && target->isInterpreted())
-        return inlineScriptedCall(callInfo, target);
+    InliningDecision decision = makeInliningDecision(target, callInfo);
+    switch (decision) {
+      case InliningDecision_Error:
+        return false;
+      case InliningDecision_DontInline:
+        break;
+      case InliningDecision_Inline:
+        if (target->isInterpreted())
+            return inlineScriptedCall(callInfo, target);
+    }
 
     callInfo.wrapArgs(alloc(), current);
     return makeCall(target, callInfo, false);
@@ -8470,7 +8474,21 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, PropertyName *name,
         return false;
 
     
-    if (makeInliningDecision(commonGetter, callInfo) && commonGetter->isInterpreted()) {
+    bool inlineable = false;
+    if (commonGetter->isInterpreted()) {
+        InliningDecision decision = makeInliningDecision(commonGetter, callInfo);
+        switch (decision) {
+          case InliningDecision_Error:
+            return false;
+          case InliningDecision_DontInline:
+            break;
+          case InliningDecision_Inline:
+            inlineable = true;
+            break;
+        }
+    }
+
+    if (inlineable) {
         if (!inlineScriptedCall(callInfo, commonGetter))
             return false;
     } else {
@@ -8760,12 +8778,19 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
     callInfo.markAsSetter();
 
     
-    if (makeInliningDecision(commonSetter, callInfo) && commonSetter->isInterpreted()) {
-        if (!inlineScriptedCall(callInfo, commonSetter))
+    if (commonSetter->isInterpreted()) {
+        InliningDecision decision = makeInliningDecision(commonSetter, callInfo);
+        switch (decision) {
+          case InliningDecision_Error:
             return false;
-
-        *emitted = true;
-        return true;
+          case InliningDecision_DontInline:
+            break;
+          case InliningDecision_Inline:
+            if (!inlineScriptedCall(callInfo, commonSetter))
+                return false;
+            *emitted = true;
+            return true;
+        }
     }
 
     MCall *call = makeCallHelper(commonSetter, callInfo, false);
