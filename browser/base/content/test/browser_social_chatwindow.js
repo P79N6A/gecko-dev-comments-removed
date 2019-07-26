@@ -434,6 +434,50 @@ var tests = {
     port.postMessage({topic: "test-init"});
   },
 
+  testChatWindowChooser: function(next) {
+    
+    
+    const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+    let chatId = 1;
+    let port = Social.provider.getWorkerPort();
+    port.postMessage({topic: "test-init"});
+
+    function openChat(callback) {
+      port.onmessage = function(e) {
+        if (e.data.topic == "got-chatbox-message")
+          callback();
+      }
+      let url = chatUrl + "?" + (chatId++);
+      port.postMessage({topic: "test-worker-chat", data: url});
+    }
+
+    
+    ok(!window.SocialChatBar.hasChats, "first window should start with no chats");
+    openChat(function() {
+      ok(window.SocialChatBar.hasChats, "first window has the chat");
+      
+      
+      let secondWindow = OpenBrowserWindow();
+      secondWindow.addEventListener("load", function loadListener() {
+        secondWindow.removeEventListener("load", loadListener);
+        ok(!secondWindow.SocialChatBar.hasChats, "second window has no chats");
+        openChat(function() {
+          ok(!secondWindow.SocialChatBar.hasChats, "second window still has no chats");
+          is(window.SocialChatBar.chatbar.childElementCount, 2, "first window now has 2 chats");
+          window.SocialChatBar.chatbar.removeAll();
+          
+          
+          openChat(function() {
+            ok(!window.SocialChatBar.hasChats, "first window has no chats");
+            ok(secondWindow.SocialChatBar.hasChats, "second window has a chat");
+            secondWindow.close();
+            next();
+          });
+        });
+      })
+    });
+  },
+
   
   
   testCloseOnLogout: function(next) {

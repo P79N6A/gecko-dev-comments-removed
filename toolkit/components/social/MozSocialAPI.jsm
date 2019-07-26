@@ -249,12 +249,51 @@ function ensureProviderOrigin(provider, url) {
   return fullURL;
 }
 
+function isWindowGoodForChats(win) {
+  return win.SocialChatBar && win.SocialChatBar.isAvailable;
+}
+
+function findChromeWindowForChats(preferredWindow) {
+  if (preferredWindow && isWindowGoodForChats(preferredWindow))
+    return preferredWindow;
+  
+  
+  
+  let first, best, enumerator;
+  
+  
+  
+  
+  const BROKEN_WM_Z_ORDER = Services.appinfo.OS != "WINNT";
+  if (BROKEN_WM_Z_ORDER) {
+    
+    enumerator = Services.wm.getEnumerator("navigator:browser");
+  } else {
+    
+    
+    enumerator = Services.wm.getZOrderDOMWindowEnumerator("navigator:browser", false);
+  }
+  while (enumerator.hasMoreElements()) {
+    let win = enumerator.getNext();
+    if (win && isWindowGoodForChats(win)) {
+      first = win;
+      if (win.SocialChatBar.hasChats)
+        best = win;
+    }
+  }
+  return best || first;
+}
+
 this.openChatWindow =
  function openChatWindow(chromeWindow, provider, url, callback, mode) {
-  if (!chromeWindow.SocialChatBar)
+  chromeWindow = findChromeWindowForChats(chromeWindow);
+  if (!chromeWindow)
     return;
   let fullURL = ensureProviderOrigin(provider, url);
   if (!fullURL)
     return;
   chromeWindow.SocialChatBar.openChat(provider, fullURL, callback, mode);
+  
+  
+  chromeWindow.getAttention();
 }
