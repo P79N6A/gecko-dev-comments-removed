@@ -145,7 +145,9 @@ class CPPUnittestOptions(OptionParser):
 def extract_unittests_from_args(args, manifest_file):
     """Extract unittests from args, expanding directories as needed"""
     progs = []
-    skipped_progs = set()
+
+    
+    skipped_progs = set(['.mkdir.done', 'remotecppunittests.py', 'runcppunittests.py', 'runcppunittests.pyc'])
 
     if manifest_file:
         skipped_progs.add(os.path.basename(manifest_file))
@@ -162,8 +164,7 @@ def extract_unittests_from_args(args, manifest_file):
         elif p not in skipped_progs:
             progs.append(os.path.abspath(p))
 
-    
-    return filter(lambda x: not x.endswith('.py') and not x.endswith('.pyc'), progs)
+    return progs
 
 def main():
     parser = CPPUnittestOptions()
