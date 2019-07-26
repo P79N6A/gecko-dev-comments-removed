@@ -10,7 +10,7 @@ props = ""
 for [prop, pref] in propList:
     extendedAttrs = ["Throws", "TreatNullAs=EmptyString"]
     if pref is not "":
-        extendedAttrs.append("Pref=%s" % pref)
+        extendedAttrs.append('Pref="%s"' % pref)
     if not prop.startswith("Moz"):
         prop = prop[0].lower() + prop[1:]
     
