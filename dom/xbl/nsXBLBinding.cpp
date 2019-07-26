@@ -159,6 +159,7 @@ nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
 
 nsXBLBinding::nsXBLBinding(ShadowRoot* aShadowRoot, nsXBLPrototypeBinding* aBinding)
   : mMarkedForDeath(false),
+    mUsingXBLScope(false),
     mPrototypeBinding(aBinding),
     mContent(aShadowRoot)
 {
