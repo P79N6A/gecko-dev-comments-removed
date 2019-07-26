@@ -200,6 +200,10 @@ const PanelUI = {
     }
   },
 
+  isReady: function() {
+    return !!this._isReady;
+  },
+
   
 
 
@@ -263,6 +267,7 @@ const PanelUI = {
       }
       this._updateQuitTooltip();
       this.panel.hidden = false;
+      this._isReady = true;
     }.bind(this)).then(null, Cu.reportError);
 
     return this._readyPromise;

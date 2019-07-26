@@ -191,7 +191,9 @@ CustomizeMode.prototype = {
       
       
       
-      yield window.PanelUI.ensureReady(true);
+      if (!window.PanelUI.isReady()) {
+        yield window.PanelUI.ensureReady(true);
+      }
 
       
       this.visiblePalette.hidden = true;
