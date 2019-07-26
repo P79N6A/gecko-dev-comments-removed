@@ -73,6 +73,10 @@
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
 #  endif
+#  if __has_extension(cxx_strong_enums)
+#    define MOZ_HAVE_CXX11_ENUM_TYPE
+#    define MOZ_HAVE_CXX11_STRONG_ENUMS
+#  endif
 #  if __has_attribute(noinline)
 #    define MOZ_HAVE_NEVER_INLINE        __attribute__((noinline))
 #  endif
@@ -94,6 +98,10 @@
 #        define MOZ_HAVE_CXX11_CONSTEXPR
 #      endif
 #      define MOZ_HAVE_CXX11_DELETE
+#      if __GNUC_MINOR__ >= 5
+#        define MOZ_HAVE_CXX11_ENUM_TYPE
+#        define MOZ_HAVE_CXX11_STRONG_ENUMS
+#      endif
 #    endif
 #  else
      
@@ -110,11 +118,13 @@
 #elif defined(_MSC_VER)
 #  if _MSC_VER >= 1700
 #    define MOZ_HAVE_CXX11_FINAL         final
+#    define MOZ_HAVE_CXX11_STRONG_ENUMS
 #  else
      
 #    define MOZ_HAVE_CXX11_FINAL         sealed
 #  endif
 #  define MOZ_HAVE_CXX11_OVERRIDE
+#  define MOZ_HAVE_CXX11_ENUM_TYPE
 #  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
 #  define MOZ_HAVE_NORETURN              __declspec(noreturn)
 #endif
@@ -313,6 +323,170 @@
 #  define MOZ_FINAL             MOZ_HAVE_CXX11_FINAL
 #else
 #  define MOZ_FINAL
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef MOZ_HAVE_CXX11_ENUM_TYPE
+#  define MOZ_ENUM_TYPE(type)   : type
+#else
+#  define MOZ_ENUM_TYPE(type)
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS)
+  
+
+#  define MOZ_BEGIN_ENUM_CLASS(Name, type) enum class Name : type {
+#  define MOZ_END_ENUM_CLASS(Name)         };
+#else
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#  define MOZ_BEGIN_ENUM_CLASS(Name, type) \
+     class Name \
+     { \
+       public: \
+         enum Enum MOZ_ENUM_TYPE(type) \
+         {
+#  define MOZ_END_ENUM_CLASS(Name) \
+         }; \
+         Name() {} \
+         Name(Enum aEnum) : mEnum(aEnum) {} \
+         explicit Name(int num) : mEnum((Enum)num) {} \
+         operator Enum() const { return mEnum; } \
+       private: \
+         Enum mEnum; \
+     }; \
+     inline int operator+(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator+(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator-(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator-(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator*(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator*(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator/(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator/(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator%(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator%(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator+(const Name::Enum&) MOZ_DELETE; \
+     inline int operator-(const Name::Enum&) MOZ_DELETE; \
+     inline int& operator++(Name::Enum&) MOZ_DELETE; \
+     inline int operator++(Name::Enum&, int) MOZ_DELETE; \
+     inline int& operator--(Name::Enum&) MOZ_DELETE; \
+     inline int operator--(Name::Enum&, int) MOZ_DELETE; \
+     inline bool operator==(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator==(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator!=(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator!=(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator>(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator>(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator<(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator<(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator>=(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator>=(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator<=(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator<=(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline bool operator!(const Name::Enum&) MOZ_DELETE; \
+     inline bool operator&&(const bool&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator&&(const Name::Enum&, const bool&) MOZ_DELETE; \
+     inline bool operator||(const bool&, const Name::Enum&) MOZ_DELETE; \
+     inline bool operator||(const Name::Enum&, const bool&) MOZ_DELETE; \
+     inline int operator~(const Name::Enum&) MOZ_DELETE; \
+     inline int operator&(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator&(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator|(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator|(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator^(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator^(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator<<(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator<<(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int operator>>(const int&, const Name::Enum&) MOZ_DELETE; \
+     inline int operator>>(const Name::Enum&, const int&) MOZ_DELETE; \
+     inline int& operator+=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator-=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator*=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator/=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator%=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator&=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator|=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator^=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator<<=(int&, const Name::Enum&) MOZ_DELETE; \
+     inline int& operator>>=(int&, const Name::Enum&) MOZ_DELETE;
 #endif
 
 
