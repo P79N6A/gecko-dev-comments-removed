@@ -2031,7 +2031,7 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument* aNewDocument)
 void
 nsGlobalWindow::SetInitialPrincipalToSubject()
 {
-  FORWARD_TO_OUTER_VOID(SetInitialPrincipalToSubject, ());
+  MOZ_ASSERT(IsOuterWindow());
 
   
   nsCOMPtr<nsIPrincipal> newWindowPrincipal = nsContentUtils::SubjectPrincipal();

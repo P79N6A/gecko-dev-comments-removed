@@ -278,6 +278,7 @@ public:
 
   
   
+  
   virtual void SetInitialPrincipalToSubject() = 0;
 
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
