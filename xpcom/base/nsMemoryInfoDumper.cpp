@@ -613,88 +613,82 @@ namespace mozilla {
       return rv; \
   } while (0)
 
-static nsresult
-DumpReport(nsIGZFileWriter *aWriter, bool aIsFirst,
-  const nsACString &aProcess, const nsACString &aPath, int32_t aKind,
-  int32_t aUnits, int64_t aAmount, const nsACString &aDescription)
-{
-  DUMP(aWriter, aIsFirst ? "[" : ",");
-
-  nsAutoCString process;
-  if (aProcess.IsEmpty()) {
-    
-    
-    
-    
-    
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-      
-      process.AssignLiteral("Main Process");
-    } else if (ContentChild *cc = ContentChild::GetSingleton()) {
-      
-      cc->GetProcessName(process);
-    }
-    ContentChild::AppendProcessId(process);
-
-  } else {
-    
-    
-    process = aProcess;
-  }
-
-  DUMP(aWriter, "\n    {\"process\": \"");
-  DUMP(aWriter, process);
-
-  DUMP(aWriter, "\", \"path\": \"");
-  nsCString path(aPath);
-  path.ReplaceSubstring("\\", "\\\\");    
-  path.ReplaceSubstring("\"", "\\\"");    
-  DUMP(aWriter, path);
-
-  DUMP(aWriter, "\", \"kind\": ");
-  DUMP(aWriter, nsPrintfCString("%d", aKind));
-
-  DUMP(aWriter, ", \"units\": ");
-  DUMP(aWriter, nsPrintfCString("%d", aUnits));
-
-  DUMP(aWriter, ", \"amount\": ");
-  DUMP(aWriter, nsPrintfCString("%lld", aAmount));
-
-  nsCString description(aDescription);
-  description.ReplaceSubstring("\\", "\\\\");    
-  description.ReplaceSubstring("\"", "\\\"");    
-  description.ReplaceSubstring("\n", "\\n");     
-  DUMP(aWriter, ", \"description\": \"");
-  DUMP(aWriter, description);
-  DUMP(aWriter, "\"}");
-
-  return NS_OK;
-}
-
 class DumpReportCallback MOZ_FINAL : public nsIHandleReportCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
-  DumpReportCallback() : mIsFirst(true) {}
+  DumpReportCallback(nsGZFileWriter* aWriter)
+    : mIsFirst(true)
+    , mWriter(aWriter)
+  {}
 
   NS_IMETHOD Callback(const nsACString &aProcess, const nsACString &aPath,
       int32_t aKind, int32_t aUnits, int64_t aAmount,
       const nsACString &aDescription,
       nsISupports *aData)
   {
-    nsCOMPtr<nsIGZFileWriter> writer = do_QueryInterface(aData);
-    if (NS_WARN_IF(!writer))
-      return NS_ERROR_FAILURE;
+    if (mIsFirst) {
+      DUMP(mWriter, "[");
+      mIsFirst = false;
+    } else {
+      DUMP(mWriter, ",");
+    }
 
-    nsresult rv = DumpReport(writer, mIsFirst, aProcess, aPath, aKind, aUnits,
-                             aAmount, aDescription);
-    mIsFirst = false;
-    return rv;
+    nsAutoCString process;
+    if (aProcess.IsEmpty()) {
+      
+      
+      
+      
+      
+      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        
+        process.AssignLiteral("Main Process");
+      } else if (ContentChild *cc = ContentChild::GetSingleton()) {
+        
+        cc->GetProcessName(process);
+      }
+      ContentChild::AppendProcessId(process);
+
+    } else {
+      
+      
+      process = aProcess;
+    }
+
+    DUMP(mWriter, "\n    {\"process\": \"");
+    DUMP(mWriter, process);
+
+    DUMP(mWriter, "\", \"path\": \"");
+    nsCString path(aPath);
+    path.ReplaceSubstring("\\", "\\\\");    
+    path.ReplaceSubstring("\"", "\\\"");    
+    DUMP(mWriter, path);
+
+    DUMP(mWriter, "\", \"kind\": ");
+    DUMP(mWriter, nsPrintfCString("%d", aKind));
+
+    DUMP(mWriter, ", \"units\": ");
+    DUMP(mWriter, nsPrintfCString("%d", aUnits));
+
+    DUMP(mWriter, ", \"amount\": ");
+    DUMP(mWriter, nsPrintfCString("%lld", aAmount));
+
+    nsCString description(aDescription);
+    description.ReplaceSubstring("\\", "\\\\");    
+    description.ReplaceSubstring("\"", "\\\"");    
+    description.ReplaceSubstring("\n", "\\n");     
+    DUMP(mWriter, ", \"description\": \"");
+    DUMP(mWriter, description);
+    DUMP(mWriter, "\"}");
+
+    return NS_OK;
   }
 
 private:
   bool mIsFirst;
+  nsRefPtr<nsGZFileWriter> mWriter;
 };
 
 NS_IMPL_ISUPPORTS1(DumpReportCallback, nsIHandleReportCallback)
@@ -831,7 +825,7 @@ DumpFooter(nsIGZFileWriter* aWriter)
 }
 
 static nsresult
-DumpProcessMemoryReportsToGZFileWriter(nsIGZFileWriter* aWriter)
+DumpProcessMemoryReportsToGZFileWriter(nsGZFileWriter* aWriter)
 {
   nsresult rv = DumpHeader(aWriter);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -842,11 +836,11 @@ DumpProcessMemoryReportsToGZFileWriter(nsIGZFileWriter* aWriter)
   nsCOMPtr<nsIMemoryReporterManager> mgr =
     do_GetService("@mozilla.org/memory-reporter-manager;1");
   mgr->EnumerateReporters(getter_AddRefs(e));
-  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback();
+  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback(aWriter);
   while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
     nsCOMPtr<nsIMemoryReporter> r;
     e->GetNext(getter_AddRefs(r));
-    r->CollectReports(dumpReport, aWriter);
+    r->CollectReports(dumpReport, nullptr);
   }
 
   return DumpFooter(aWriter);
@@ -1103,12 +1097,12 @@ nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
     return rv;
 
   
-  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback();
+  nsRefPtr<DumpReportCallback> dumpReport = new DumpReportCallback(mrWriter);
   nsRefPtr<FinishReportingCallback> finishReporting =
     new FinishReportingCallback(aFinishDumping, aFinishDumpingData);
   nsCOMPtr<nsIMemoryReporterManager> mgr =
     do_GetService("@mozilla.org/memory-reporter-manager;1");
-  return mgr->GetReports(dumpReport, mrWriter, finishReporting, mrWriter);
+  return mgr->GetReports(dumpReport, nullptr, finishReporting, mrWriter);
 }
 
 #undef DUMP
