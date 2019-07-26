@@ -827,9 +827,35 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         perforate();
     }
     void enterNoPool() {
-        if (canNotPlacePool) {
+        if (!canNotPlacePool && !perforation.assigned()) {
             
             
+            
+            
+            
+            
+            
+
+            
+            
+            
+            
+
+            
+            
+
+            
+            
+            
+            
+            
+
+            BufferOffset branch = this->nextOffset();
+            this->markNextAsBranch();
+            this->putBlob(guardSize, NULL);
+            BufferOffset afterPool = this->nextOffset();
+            Asm::writePoolGuard(branch, this->getInst(branch), afterPool);
+            markGuard();
         }
         canNotPlacePool++;
     }

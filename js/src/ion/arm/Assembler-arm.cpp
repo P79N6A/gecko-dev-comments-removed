@@ -2261,12 +2261,55 @@ bool instIsGuard(Instruction *inst, const PoolHeader **ph)
     return *ph != NULL;
 }
 
+bool instIsBNop(Instruction *inst) {
+    
+    
+    
+    
+    Assembler::Condition c;
+    inst->extractCond(&c);
+    if (c != Assembler::Always)
+        return false;
+    if (!inst->is<InstBImm>())
+        return false;
+    InstBImm *b = inst->as<InstBImm>();
+    BOffImm offset;
+    b->extractImm(&offset);
+    return offset.decode() == 4;
+}
+
 bool instIsArtificialGuard(Instruction *inst, const PoolHeader **ph)
 {
     if (!instIsGuard(inst, ph))
         return false;
     return !(*ph)->isNatural();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2284,7 +2327,9 @@ Instruction::next()
     if (instIsGuard(this, &ph)) {
         return ret + ph->size();
     } else if (instIsArtificialGuard(ret, &ph)) {
-            return ret + 1 + ph->size();
+        return ret + 1 + ph->size();
+    } else if (instIsBNop(this)) {
+        return ret + 1;
     }
     return ret;
 }
