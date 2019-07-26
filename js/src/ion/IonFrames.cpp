@@ -412,7 +412,7 @@ ion::HandleException(ResumeFromException *rfe)
 
     
     
-    js_delete(cx->runtime->ionActivation->maybeTakeBailout());
+    js_delete(cx->mainThread().ionActivation->maybeTakeBailout());
 
     
     
@@ -421,7 +421,7 @@ ion::HandleException(ResumeFromException *rfe)
     if (cx->runtime->hasIonReturnOverride())
         cx->runtime->takeIonReturnOverride();
 
-    IonFrameIterator iter(cx->runtime->ionTop);
+    IonFrameIterator iter(cx->mainThread().ionTop);
     while (!iter.isEntry()) {
         if (iter.isOptimizedJS()) {
             
@@ -482,15 +482,15 @@ IonActivationIterator::settle()
 }
 
 IonActivationIterator::IonActivationIterator(JSContext *cx)
-  : top_(cx->runtime->ionTop),
-    activation_(cx->runtime->ionActivation)
+  : top_(cx->mainThread().ionTop),
+    activation_(cx->mainThread().ionActivation)
 {
     settle();
 }
 
 IonActivationIterator::IonActivationIterator(JSRuntime *rt)
-  : top_(rt->ionTop),
-    activation_(rt->ionActivation)
+  : top_(rt->mainThread.ionTop),
+    activation_(rt->mainThread.ionActivation)
 {
     settle();
 }
@@ -824,7 +824,7 @@ ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
     JSRuntime *rt = cx->runtime;
 
     
-    IonFrameIterator it(rt->ionTop);
+    IonFrameIterator it(rt->mainThread.ionTop);
     uint8_t *retAddr = it.returnAddress();
     uint32_t hash = PcScriptCache::Hash(retAddr);
     JS_ASSERT(retAddr != NULL);
