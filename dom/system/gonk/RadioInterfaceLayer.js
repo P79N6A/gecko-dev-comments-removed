@@ -1258,6 +1258,10 @@ RadioInterface.prototype = {
       case "iccmbdn":
         this.handleIccMbdn(message);
         break;
+      case "iccmwis":
+        gMessageManager.sendVoicemailMessage("RIL:VoicemailNotification",
+                                             this.clientId, message.mwi);
+        break;
       case "USSDReceived":
         if (DEBUG) this.debug("USSDReceived " + JSON.stringify(message));
         this.handleUSSDReceived(message);
@@ -2103,11 +2107,6 @@ RadioInterface.prototype = {
                                    null);
       return true;
     }
-
-    
-    
-    
-    
 
     let mwi = message.mwi;
     if (mwi) {

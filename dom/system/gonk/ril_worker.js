@@ -4207,6 +4207,11 @@ let RIL = {
       this.sendChromeMessage(message);
 
       
+      if (message.mwi && ICCUtilsHelper.isICCServiceAvailable("MWIS")) {
+        SimRecordHelper.updateMWIS(message.mwi);
+      }
+
+      
       
       return MOZ_FCS_WAIT_FOR_EXPLICIT_ACK;
     }
@@ -10937,6 +10942,7 @@ let ICCFileHelper = {
         return EF_PATH_MF_SIM + EF_PATH_DF_TELECOM;
       case ICC_EF_AD:
       case ICC_EF_MBDN:
+      case ICC_EF_MWIS:
       case ICC_EF_PLMNsel:
       case ICC_EF_SPN:
       case ICC_EF_SPDI:
@@ -10961,6 +10967,7 @@ let ICCFileHelper = {
       case ICC_EF_AD:
       case ICC_EF_FDN:
       case ICC_EF_MBDN:
+      case ICC_EF_MWIS:
       case ICC_EF_UST:
       case ICC_EF_MSISDN:
       case ICC_EF_SPN:
@@ -11916,6 +11923,13 @@ let SimRecordHelper = {
         if (DEBUG) debug("MDN: MDN service is not available");
       }
 
+      if (ICCUtilsHelper.isICCServiceAvailable("MWIS")) {
+        if (DEBUG) debug("MWIS: MWIS is available");
+        this.readMWIS();
+      } else {
+        if (DEBUG) debug("MWIS: MWIS is not available");
+      }
+
       if (ICCUtilsHelper.isICCServiceAvailable("SPDI")) {
         if (DEBUG) debug("SPDI: SPDI available.");
         this.readSPDI();
@@ -11983,6 +11997,91 @@ let SimRecordHelper = {
 
     ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_MBDN,
                                    callback: callback.bind(this)});
+  },
+
+  
+
+
+
+
+  readMWIS: function readMWIS() {
+    function callback(options) {
+      let strLen = Buf.readInt32();
+      
+      let octetLen = strLen / 2;
+      let mwis = GsmPDUHelper.readHexOctetArray(octetLen);
+      Buf.readStringDelimiter(strLen);
+      if (!mwis) {
+        return;
+      }
+      RIL.iccInfoPrivate.mwis = mwis; 
+
+      let mwi = {};
+      
+      
+      
+      
+      
+      
+      
+      mwi.active = ((mwis[0] & 0x01) != 0);
+
+      if (mwi.active) {
+        
+        
+        
+        
+        
+        
+        
+        
+        mwi.msgCount = (mwis[1] === 0) ? GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN
+                                       : mwis[1];
+      } else {
+        mwi.msgCount = 0;
+      }
+
+      RIL.sendChromeMessage({ rilMessageType: "iccmwis",
+                              mwi: mwi });
+    }
+
+    ICCIOHelper.loadLinearFixedEF({ fileId: ICC_EF_MWIS,
+                                    recordNumber: 1, 
+                                    callback: callback });
+  },
+
+  
+
+
+
+
+  updateMWIS: function updateMWIS(mwi) {
+    if (!RIL.iccInfoPrivate.mwis) {
+      return;
+    }
+
+    function dataWriter(recordSize) {
+      let mwis = RIL.iccInfoPrivate.mwis;
+
+      let msgCount =
+          (mwi.msgCount === GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN) ? 0 : mwi.msgCount;
+
+      [mwis[0], mwis[1]] = (mwi.active) ? [(mwis[0] | 0x01), msgCount]
+                                        : [(mwis[0] & 0xFE), 0];
+
+      let strLen = recordSize * 2;
+      Buf.writeInt32(strLen);
+
+      for (let i = 0; i < mwis.length; i++) {
+        GsmPDUHelper.writeHexOctet(mwis[i]);
+      }
+
+      Buf.writeStringDelimiter(strLen);
+    }
+
+    ICCIOHelper.updateLinearFixedEF({ fileId: ICC_EF_MWIS,
+                                      recordNumber: 1, 
+                                      dataWriter: dataWriter });
   },
 
   
