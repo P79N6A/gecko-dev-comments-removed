@@ -57,12 +57,6 @@ typedef struct JSSubString          JSSubString;
 typedef struct JSSpecializedNative  JSSpecializedNative;
 
 
-
-
-
-
-
-
 class JSDependentString;
 class JSExtensibleString;
 class JSExternalString;
@@ -76,6 +70,7 @@ namespace js {
 struct ArgumentsData;
 struct Class;
 
+class AutoNameVector;
 class RegExpGuard;
 class RegExpObject;
 class RegExpObjectBuilder;
@@ -145,6 +140,8 @@ typedef JSNative             Native;
 typedef JSPropertyOp         PropertyOp;
 typedef JSStrictPropertyOp   StrictPropertyOp;
 typedef JSPropertyDescriptor PropertyDescriptor;
+
+struct SourceCompressionToken;
 
 namespace frontend {
 
