@@ -192,10 +192,11 @@ SettingsDB.prototype = {
     }
 
     
+    let res = {};
     for (let prop in aObject) {
-      aObject[prop] = this.prepareValue(aObject[prop]);
+      res[prop] = this.prepareValue(aObject[prop]);
     }
-    return aObject;
+    return res;
   },
 
   init: function init() {
