@@ -2302,6 +2302,33 @@ public:
   SafeAutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class NS_STACK_CLASS AutoPushJSContext {
+  nsCxPusher mPusher;
+  JSContext* mCx;
+
+public:
+    AutoPushJSContext(JSContext* aCx) : mCx(aCx) {
+      if (mCx && mCx != nsContentUtils::GetCurrentJSContext()) {
+        mPusher.Push(mCx);
+      }
+    }
+    operator JSContext*() { return mCx; }
+};
+
 } 
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
