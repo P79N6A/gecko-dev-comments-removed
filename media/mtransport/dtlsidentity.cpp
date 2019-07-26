@@ -16,7 +16,7 @@
 
 namespace mozilla {
 
-MOZ_MTLOG_MODULE("mtransport");
+MOZ_MTLOG_MODULE("mtransport")
 
 DtlsIdentity::~DtlsIdentity() {
   
