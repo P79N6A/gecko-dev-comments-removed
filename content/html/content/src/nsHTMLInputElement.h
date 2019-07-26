@@ -667,11 +667,9 @@ protected:
 
 
 
-
   double GetMinimum() const;
 
   
-
 
 
 
@@ -774,7 +772,7 @@ protected:
 
   
   static const double kStepScaleFactorDate;
-  static const double kStepScaleFactorNumber;
+  static const double kStepScaleFactorNumberRange;
   static const double kStepScaleFactorTime;
 
   
