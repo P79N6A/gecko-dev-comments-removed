@@ -700,12 +700,13 @@ class ParseNode
 
     bool functionIsHoisted() const {
         JS_ASSERT(pn_arity == PN_CODE && getKind() == PNK_FUNCTION);
-        JS_ASSERT(isOp(JSOP_LAMBDA) ||    
-                  isOp(JSOP_DEFFUN) ||    
-                  isOp(JSOP_NOP) ||       
-                  isOp(JSOP_GETLOCAL) ||  
-                  isOp(JSOP_GETARG));     
-        return !(isOp(JSOP_LAMBDA) || isOp(JSOP_DEFFUN));
+        JS_ASSERT(isOp(JSOP_LAMBDA) ||        
+                  isOp(JSOP_LAMBDA_ARROW) ||  
+                  isOp(JSOP_DEFFUN) ||        
+                  isOp(JSOP_NOP) ||           
+                  isOp(JSOP_GETLOCAL) ||      
+                  isOp(JSOP_GETARG));         
+        return !isOp(JSOP_LAMBDA) && !isOp(JSOP_LAMBDA_ARROW) && !isOp(JSOP_DEFFUN);
     }
 
     

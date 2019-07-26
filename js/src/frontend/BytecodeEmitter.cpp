@@ -4937,8 +4937,13 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     unsigned index = bce->objectList.add(pn->pn_funbox);
 
     
-    if (!pn->functionIsHoisted())
+    if (!pn->functionIsHoisted()) {
+        
+        MOZ_ASSERT(fun->isArrow() == (pn->getOp() == JSOP_LAMBDA_ARROW));
+        if (fun->isArrow() && Emit1(cx, bce, JSOP_THIS) < 0)
+            return false;
         return EmitIndex32(cx, pn->getOp(), index, bce);
+    }
 
     
 
