@@ -74,8 +74,7 @@ ContentPermissionPrompt.prototype = {
         } else if (entityName == "desktopNotification") {
           
           
-          Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION,
-                                          Ci.nsIPermissionManager.EXPIRE_SESSION);
+          Services.perms.addFromPrincipal(request.principal, request.type, Ci.nsIPermissionManager.ALLOW_ACTION, Ci.nsIPermissionManager.EXPIRE_SESSION);
         }
 
         request.allow();
@@ -92,13 +91,11 @@ ContentPermissionPrompt.prototype = {
       }
     }];
 
-    let message = browserBundle.formatStringFromName(entityName + ".ask",
-                                                     [request.principal.URI.host], 1);
+    let requestor = chromeWin.BrowserApp.manifest ? "'" + chromeWin.BrowserApp.manifest.name + "'" : request.principal.URI.host;
+    let message = browserBundle.formatStringFromName(entityName + ".ask", [requestor], 1);
     let options = { checkbox: browserBundle.GetStringFromName(entityName + ".dontAskAgain") };
 
-    chromeWin.NativeWindow.doorhanger.show(message,
-                                           entityName + request.principal.URI.host,
-                                           buttons, tab.id, options);
+    chromeWin.NativeWindow.doorhanger.show(message, entityName + request.principal.URI.host, buttons, tab.id, options);
   }
 };
 

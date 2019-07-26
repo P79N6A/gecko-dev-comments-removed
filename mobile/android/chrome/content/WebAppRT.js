@@ -68,13 +68,15 @@ let WebAppRT = {
         
         
         if (app.manifestURL == aUrl) {
+          BrowserApp.manifest = app.manifest;
           BrowserApp.manifestUrl = aUrl;
           aCallback(manifest.fullLaunchPath());
           return;
         }
-    
+
         
         if (manifest.fullLaunchPath() == aUrl) {
+          BrowserApp.manifest = app.manifest;
           BrowserApp.manifestUrl = app.manifestURL;
           aCallback(aUrl);
           return;
