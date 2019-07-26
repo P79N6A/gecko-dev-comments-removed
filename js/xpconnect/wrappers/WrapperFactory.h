@@ -67,9 +67,6 @@ class WrapperFactory {
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleObject object);
 
     
-    static JSObject *WrapSOWObject(JSContext *cx, JSObject *obj);
-
-    
     static bool XrayWrapperNotShadowing(JSObject *wrapper, jsid id);
 };
 

@@ -121,20 +121,6 @@ public:
     return HasWrapperFlag(WRAPPER_IS_DOM_BINDING);
   }
 
-  void SetHasSystemOnlyWrapper()
-  {
-    MOZ_ASSERT(GetWrapperPreserveColor(),
-               "This flag should be set after wrapper creation.");
-    MOZ_ASSERT(IsDOMBinding(),
-               "This flag should only be set for DOM bindings.");
-    SetWrapperFlags(WRAPPER_HAS_SOW);
-  }
-
-  bool HasSystemOnlyWrapper() const
-  {
-    return HasWrapperFlag(WRAPPER_HAS_SOW);
-  }
-
   
 
 
@@ -300,21 +286,13 @@ private:
 
   enum { WRAPPER_IS_DOM_BINDING = 1 << 1 };
 
-  
-
-
-
-
-  enum { WRAPPER_HAS_SOW = 1 << 2 };
-
-  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING |
-                              WRAPPER_HAS_SOW) };
+  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING) };
 
   JS::Heap<JSObject*> mWrapper;
   uint32_t            mFlags;
 };
 
-enum { WRAPPER_CACHE_FLAGS_BITS_USED = 3 };
+enum { WRAPPER_CACHE_FLAGS_BITS_USED = 2 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsWrapperCache, NS_WRAPPERCACHE_IID)
 

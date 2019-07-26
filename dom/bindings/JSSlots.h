@@ -16,13 +16,7 @@
 
 
 
-
-
-#define DOM_OBJECT_SLOT_SOW 1
-
-
-
-#define DOM_INSTANCE_RESERVED_SLOTS 2
+#define DOM_INSTANCE_RESERVED_SLOTS 1
 
 
 
