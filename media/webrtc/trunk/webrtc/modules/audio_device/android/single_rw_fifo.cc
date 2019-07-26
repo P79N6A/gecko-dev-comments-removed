@@ -10,11 +10,6 @@
 
 #include "webrtc/modules/audio_device/android/single_rw_fifo.h"
 
-#if !defined(__ARMEL__)
-
-#error trying to compile ARM code for non-ARM target
-#endif
-
 static int UpdatePos(int pos, int capacity) {
   return (pos + 1) % capacity;
 }
@@ -23,15 +18,8 @@ namespace webrtc {
 
 namespace subtle {
 
-
-
-
-
 inline void MemoryBarrier() {
-  
-  
-  typedef void (*KernelMemoryBarrierFunc)();
-  ((KernelMemoryBarrierFunc)0xffff0fa0)();
+  __sync_synchronize();
 }
 
 }  
