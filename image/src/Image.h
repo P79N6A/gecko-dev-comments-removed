@@ -76,7 +76,7 @@ public:
 
   
 
-      
+
   virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
   virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
   virtual size_t NonHeapSizeOfDecoded() const = 0;

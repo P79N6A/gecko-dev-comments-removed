@@ -45,7 +45,7 @@ public:
     NS_LOG_ADDREF(this, mRefCnt, "imgCacheEntry", sizeof(*this));
     return mRefCnt;
   }
- 
+
   nsrefcnt Release()
   {
     NS_PRECONDITION(0 != mRefCnt, "dup release");
@@ -57,7 +57,7 @@ public:
       delete this;
       return 0;
     }
-    return mRefCnt;                              
+    return mRefCnt;
   }
 
   uint32_t GetDataSize() const
@@ -175,7 +175,7 @@ private:
 
 class imgCacheQueue
 {
-public: 
+public:
   imgCacheQueue();
   void Remove(imgCacheEntry *);
   void Push(imgCacheEntry *);
@@ -186,7 +186,7 @@ public:
   uint32_t GetSize() const;
   void UpdateSize(int32_t diff);
   uint32_t GetNumElements() const;
-  typedef std::vector<nsRefPtr<imgCacheEntry> > queueContainer;  
+  typedef std::vector<nsRefPtr<imgCacheEntry> > queueContainer;
   typedef queueContainer::iterator iterator;
   typedef queueContainer::const_iterator const_iterator;
 
@@ -315,7 +315,7 @@ public:
 private: 
 
   bool ValidateEntry(imgCacheEntry *aEntry, nsIURI *aKey,
-                       nsIURI *aInitialDocumentURI, nsIURI *aReferrerURI, 
+                       nsIURI *aInitialDocumentURI, nsIURI *aReferrerURI,
                        nsILoadGroup *aLoadGroup,
                        imgINotificationObserver *aObserver, nsISupports *aCX,
                        nsLoadFlags aLoadFlags, bool aCanMakeNewChannel,

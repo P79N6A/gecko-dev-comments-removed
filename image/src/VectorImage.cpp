@@ -117,7 +117,7 @@ public:
   }
 
   ~SVGParseCompleteListener()
-  { 
+  {
     if (mDocument) {
       
       
@@ -750,7 +750,7 @@ VectorImage::Draw(gfxContext* aContext,
                              subimage, sourceRect, imageRect, aFill,
                              gfxASurface::ImageFormatARGB32, aFilter);
 
-  MOZ_ASSERT(mRenderingObserver || mHaveRestrictedRegion, 
+  MOZ_ASSERT(mRenderingObserver || mHaveRestrictedRegion,
       "Should have a rendering observer by now unless ExtractFrame created us");
   if (mRenderingObserver) {
     

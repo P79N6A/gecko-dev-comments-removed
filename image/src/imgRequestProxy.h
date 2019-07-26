@@ -40,8 +40,8 @@ class Image;
 } 
 } 
 
-class imgRequestProxy : public imgIRequest, 
-                        public nsISupportsPriority, 
+class imgRequestProxy : public imgIRequest,
+                        public nsISupportsPriority,
                         public nsISecurityInfoProvider,
                         public nsITimedChannel
 {

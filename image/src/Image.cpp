@@ -33,7 +33,7 @@ ImageResource::SizeOfData()
 {
   if (mError)
     return 0;
-  
+
   
   
   

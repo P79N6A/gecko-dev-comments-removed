@@ -18,7 +18,7 @@ namespace mozilla {
     };
 
 
-#define BFH_LENGTH 14 
+#define BFH_LENGTH 14
 
 
 #define BFH_INTERNAL_LENGTH 18

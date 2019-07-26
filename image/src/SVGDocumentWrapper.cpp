@@ -124,7 +124,7 @@ SVGDocumentWrapper::UpdateViewportBounds(const nsIntSize& aViewportSize)
 
   nsIntRect currentBounds;
   mViewer->GetBounds(currentBounds);
-  
+
   
   if (currentBounds.Size() != aViewportSize) {
     mViewer->SetBounds(nsIntRect(nsIntPoint(0, 0), aViewportSize));

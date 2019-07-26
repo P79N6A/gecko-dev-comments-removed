@@ -673,11 +673,11 @@ private:
 
   
   static void ClearFrame(imgFrame* aFrame, nsIntRect &aRect);
-  
+
   
   static bool CopyFrameImage(imgFrame *aSrcFrame,
                                imgFrame *aDstFrame);
-  
+
   
 
 
@@ -732,17 +732,17 @@ private:
   
   
   nsTArray<imgFrame *>       mFrames;
-  
+
   nsCOMPtr<nsIProperties>    mProperties;
 
   
   
   
   RasterImage::Anim*        mAnim;
-  
+
   
   int32_t                    mLoopCount;
-  
+
   
   uint32_t                   mLockCount;
   DiscardTracker::Node       mDiscardTrackerNode;

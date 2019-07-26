@@ -729,7 +729,7 @@ RasterImage::ExtractFrame(uint32_t aWhichFrame,
 
   if (!ApplyDecodeFlags(aFlags))
     return NS_ERROR_NOT_AVAILABLE;
-  
+
   
   if (aFlags & FLAG_SYNC_DECODE) {
     rv = SyncDecode();
@@ -1167,7 +1167,7 @@ RasterImage::GetCurrentImage()
   ImageFormat cairoFormat = CAIRO_SURFACE;
   nsRefPtr<layers::Image> image = mImageContainer->CreateImage(&cairoFormat, 1);
   NS_ASSERTION(image, "Failed to create Image");
-  
+
   NS_ASSERTION(image->GetFormat() == cairoFormat, "Wrong format");
   static_cast<CairoImage*>(image.get())->SetData(cairoData);
 
@@ -1342,14 +1342,14 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   }
 
   if (mFrames.Length() == 0) {
-    return InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength, 
+    return InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength,
                                   paletteData, paletteLength, aRetFrame);
   }
 
   if (mFrames.Length() == 1) {
     
     EnsureAnimExists();
-    
+
     
     
     
@@ -1363,15 +1363,15 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   
   
   nsIntRect frameRect = frame->GetRect();
-  mAnim->firstFrameRefreshArea.UnionRect(mAnim->firstFrameRefreshArea, 
+  mAnim->firstFrameRefreshArea.UnionRect(mAnim->firstFrameRefreshArea,
                                          frameRect);
-  
+
   rv = InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength,
                               paletteData, paletteLength, aRetFrame);
-  
+
   
   EvaluateAnimation();
-  
+
   return rv;
 }
 
@@ -1457,13 +1457,13 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
 
   
   if (aFrameNum == mFrames.Length())
-    return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
+    return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat,
                             aPaletteDepth, imageData, imageLength,
                             paletteData, paletteLength, aRetFrame);
 
   imgFrame *frame = GetImgFrameNoDecode(aFrameNum);
   if (!frame)
-    return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
+    return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat,
                             aPaletteDepth, imageData, imageLength,
                             paletteData, paletteLength, aRetFrame);
 
@@ -1527,7 +1527,7 @@ RasterImage::FrameUpdated(uint32_t aFrameNum, nsIntRect &aUpdatedRect)
   NS_ABORT_IF_FALSE(frame, "Calling FrameUpdated on frame that doesn't exist!");
 
   frame->ImageUpdated(aUpdatedRect);
-    
+
   if (aFrameNum == GetCurrentImgFrameIndex() &&
       !IsInUpdateImageContainer()) {
     mImageContainer = nullptr;
@@ -1613,7 +1613,7 @@ RasterImage::StartAnimation()
     
     mAnim->currentAnimationFrameTime = TimeStamp::Now();
   }
-  
+
   return NS_OK;
 }
 
@@ -1638,7 +1638,7 @@ RasterImage::ResetAnimation()
   if (mError)
     return NS_ERROR_FAILURE;
 
-  if (mAnimationMode == kDontAnimMode || 
+  if (mAnimationMode == kDontAnimMode ||
       !mAnim || mAnim->currentAnimationFrameIndex == 0)
     return NS_OK;
 
@@ -1893,7 +1893,7 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
                                   uint32_t aCount)
 {
   nsresult rv;
- 
+
   
   
   uint32_t bytesRead;
@@ -1986,7 +1986,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
 
   
   
-  if (isFullPrevFrame && 
+  if (isFullPrevFrame &&
       (prevFrameDisposalMethod == kDisposeClear))
     prevFrameDisposalMethod = kDisposeClearAll;
 
@@ -2003,7 +2003,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
       aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
       return NS_OK;
     }
-  
+
     
     
     if (isFullNextFrame &&
@@ -2096,7 +2096,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
         
         doDisposal = false;
       }
-    }      
+    }
   }
 
   if (doDisposal) {
@@ -2112,17 +2112,17 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
           ClearFrame(mAnim->compositingFrame, prevFrameRect);
         }
         break;
-  
+
       case kDisposeClearAll:
         ClearFrame(mAnim->compositingFrame);
         break;
-  
+
       case kDisposeRestorePrevious:
         
         
         if (mAnim->compositingPrevFrame) {
           CopyFrameImage(mAnim->compositingPrevFrame, mAnim->compositingFrame);
-  
+
           
           if (nextFrameDisposalMethod != kDisposeRestorePrevious)
             mAnim->compositingPrevFrame = nullptr;
@@ -2130,7 +2130,7 @@ RasterImage::DoComposite(nsIntRect* aDirtyRect,
           ClearFrame(mAnim->compositingFrame);
         }
         break;
-      
+
       default:
         
         
@@ -2397,7 +2397,7 @@ RasterImage::DrawFrameTo(imgFrame *aSrc,
   gfxContext dst(dstSurf);
   dst.Translate(gfxPoint(aSrcRect.x, aSrcRect.y));
   dst.Rectangle(gfxRect(0, 0, aSrcRect.width, aSrcRect.height), true);
-  
+
   
   int32_t blendMethod = aSrc->GetBlendMethod();
   if (blendMethod == kBlendSource) {
@@ -2555,7 +2555,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode, bool aIsSynchronous )
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
-  
+
   
   NS_ABORT_IF_FALSE(!mDecoded, "Calling InitDecoder() but already decoded!");
 
