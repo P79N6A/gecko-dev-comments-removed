@@ -479,7 +479,7 @@ ForkJoinActivation::ForkJoinActivation(JSContext *cx)
 
     MinorGC(cx->runtime(), JS::gcreason::API);
 
-    cx->runtime()->gc.helperThread.waitBackgroundSweepEnd();
+    cx->runtime()->gcHelperThread.waitBackgroundSweepEnd();
 
     JS_ASSERT(!cx->runtime()->needsBarrier());
     JS_ASSERT(!cx->zone()->needsBarrier());
@@ -1557,7 +1557,7 @@ ForkJoinShared::setAbortFlagDueToInterrupt(ForkJoinContext &cx)
     
     
     
-    JS_ASSERT(!cx_->runtime()->gc.isNeeded);
+    JS_ASSERT(!cx_->runtime()->gcIsNeeded);
 
     if (!abort_) {
         cx.bailoutRecord->setCause(ParallelBailoutInterrupt);

@@ -45,8 +45,8 @@ struct PcScriptCache
              JSScript **scriptRes, jsbytecode **pcRes)
     {
         
-        if (gcNumber != rt->gc.number) {
-            clear(rt->gc.number);
+        if (gcNumber != rt->gcNumber) {
+            clear(rt->gcNumber);
             return false;
         }
 
