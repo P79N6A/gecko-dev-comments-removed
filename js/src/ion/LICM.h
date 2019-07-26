@@ -46,7 +46,7 @@ class Loop
 
   public:
     
-    Loop(MIRGenerator *mir, MBasicBlock *header, MBasicBlock *footer);
+    Loop(MIRGenerator *mir, MBasicBlock *footer);
 
     
     LoopReturn init();
@@ -56,18 +56,11 @@ class Loop
 
   private:
     
-    
-    MBasicBlock *footer_;
     MBasicBlock *header_;
 
     
     
     MBasicBlock* preLoop_;
-
-    
-    
-    
-    LoopReturn iterateLoopBlocks(MBasicBlock *current);
 
     bool hoistInstructions(InstructionQueue &toHoist);
 

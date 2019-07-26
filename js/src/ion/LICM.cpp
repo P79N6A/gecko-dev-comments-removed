@@ -35,7 +35,7 @@ LICM::analyze()
             continue;
 
         
-        Loop loop(mir, header->backedge(), header);
+        Loop loop(mir, header);
 
         Loop::LoopReturn lr = loop.init();
         if (lr == Loop::LoopReturn_Error)
@@ -54,9 +54,8 @@ LICM::analyze()
     return true;
 }
 
-Loop::Loop(MIRGenerator *mir, MBasicBlock *footer, MBasicBlock *header)
+Loop::Loop(MIRGenerator *mir, MBasicBlock *header)
   : mir(mir),
-    footer_(footer),
     header_(header)
 {
     preLoop_ = header_->getPredecessor(0);
@@ -66,54 +65,62 @@ Loop::LoopReturn
 Loop::init()
 {
     IonSpew(IonSpew_LICM, "Loop identified, headed by block %d", header_->id());
-    IonSpew(IonSpew_LICM, "footer is block %d", footer_->id());
+    IonSpew(IonSpew_LICM, "footer is block %d", header_->backedge()->id());
 
     
     JS_ASSERT(header_->id() > header_->getPredecessor(0)->id());
 
-    LoopReturn lr = iterateLoopBlocks(footer_);
-    if (lr == LoopReturn_Error)
+    
+    
+    
+    Vector<MBasicBlock *, 1, IonAllocPolicy> inlooplist;
+    if (!inlooplist.append(header_->backedge()))
         return LoopReturn_Error;
+    header_->backedge()->mark();
 
-    return lr;
-}
+    while (!inlooplist.empty()) {
+        MBasicBlock *block = inlooplist.back();
 
-Loop::LoopReturn
-Loop::iterateLoopBlocks(MBasicBlock *current)
-{
-    
-    current->mark();
+        
+        
+        
+        
+        
+        
+        if (block->immediateDominator() == block)
+            return LoopReturn_Skip;
 
-    
-    
-    
-    
-    
-    
-    if (current->immediateDominator() == current)
-        return LoopReturn_Skip;
+        
+        if (block != header_) {
+            for (size_t i = 0; i < block->numPredecessors(); i--) {
+                MBasicBlock *pred = block->getPredecessor(i);
+                if (pred->isMarked())
+                    continue;
 
-    
-    
-    if (current != header_) {
-        for (size_t i = 0; i < current->numPredecessors(); i++) {
-            if (current->getPredecessor(i)->isMarked())
-                continue;
-            LoopReturn lr = iterateLoopBlocks(current->getPredecessor(i));
-            if (lr != LoopReturn_Success)
-                return lr;
+                if (!inlooplist.append(pred))
+                    return LoopReturn_Error;
+                pred->mark();
+            }
         }
+
+        
+        if (block != inlooplist.back())
+            continue;
+
+        
+        for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
+            MInstruction *ins = *i;
+
+            if (ins->isMovable() && !ins->isEffectful()) {
+                if (!insertInWorklist(ins))
+                    return LoopReturn_Error;
+            }
+        }
+
+        
+        inlooplist.popBack();
     }
 
-    
-    for (MInstructionIterator i = current->begin(); i != current->end(); i++) {
-        MInstruction *ins = *i;
-
-        if (ins->isMovable() && !ins->isEffectful()) {
-            if (!insertInWorklist(ins))
-                return LoopReturn_Error;
-        }
-    }
     return LoopReturn_Success;
 }
 
