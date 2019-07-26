@@ -21,17 +21,22 @@ function init(aEvent)
       distroIdField.value = distroId + " - " + distroVersion;
       distroIdField.style.display = "block";
 
-      
-      var distroAbout = Services.prefs.getComplexValue("distribution.about",
-        Components.interfaces.nsISupportsString);
-      var distroField = document.getElementById("distribution");
-      distroField.value = distroAbout;
-      distroField.style.display = "block";
+      try {
+        
+        var distroAbout = Services.prefs.getComplexValue("distribution.about",
+          Components.interfaces.nsISupportsString);
+        var distroField = document.getElementById("distribution");
+        distroField.value = distroAbout;
+        distroField.style.display = "block";
+      }
+      catch (ex) {
+        
+        Components.utils.reportError(ex);
+      }
     }
   }
   catch (e) {
     
-    Components.utils.reportError(e);
   }
 
   
