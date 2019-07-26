@@ -65,7 +65,9 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
 
 
 
-    protected String getTitle() {
+
+
+    private String getTitle() {
         final int res = getResource();
         if (res == R.xml.preferences_locale) {
             return getString(R.string.pref_category_language);
@@ -75,21 +77,36 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
             return getString(R.string.settings_title);
         }
 
+        
+        
+        if (res == R.xml.preferences_vendor) {
+            return getString(R.string.pref_category_vendor);
+        }
+
         return null;
     }
 
     private void updateTitle() {
         final String newTitle = getTitle();
-        if (newTitle != null) {
-            final Activity activity = getActivity();
+        if (newTitle == null) {
+            Log.d(LOGTAG, "No new title to show.");
+            return;
+        }
 
-            Log.v(LOGTAG, "Setting activity title to " + newTitle);
-            activity.setTitle(newTitle);
+        final PreferenceActivity activity = (PreferenceActivity) getActivity();
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) && activity.isMultiPane()) {
+            
+            
+            activity.showBreadCrumbs(newTitle, newTitle);
+            return;
+        }
 
-            if (Build.VERSION.SDK_INT >= 14) {
-                final ActionBar actionBar = activity.getActionBar();
-                actionBar.setTitle(newTitle);
-            }
+        Log.v(LOGTAG, "Setting activity title to " + newTitle);
+        activity.setTitle(newTitle);
+
+        if (Build.VERSION.SDK_INT >= 14) {
+            final ActionBar actionBar = activity.getActionBar();
+            actionBar.setTitle(newTitle);
         }
     }
 
@@ -138,7 +155,8 @@ public class GeckoPreferenceFragment extends PreferenceFragment {
             
             Log.e(LOGTAG, "Failed to find resource: " + resourceName + ". Displaying default settings.");
 
-            boolean isMultiPane = ((PreferenceActivity) activity).onIsMultiPane();
+            boolean isMultiPane = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) &&
+                                  ((PreferenceActivity) activity).isMultiPane();
             resid = isMultiPane ? R.xml.preferences_customize_tablet : R.xml.preferences;
         }
 
