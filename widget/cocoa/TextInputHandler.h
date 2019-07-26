@@ -1211,14 +1211,14 @@ protected:
 
 
 
-  ModifierKey*
+  const ModifierKey*
     GetModifierKeyForNativeKeyCode(unsigned short aKeyCode) const;
 
   
 
 
 
-  ModifierKey*
+  const ModifierKey*
     GetModifierKeyForDeviceDependentFlags(NSUInteger aFlags) const;
 
   
