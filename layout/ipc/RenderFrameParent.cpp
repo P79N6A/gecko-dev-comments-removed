@@ -26,8 +26,6 @@
 #include "nsViewportFrame.h"
 #include "RenderFrameParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/CompositorChild.h"
-#include "ClientLayerManager.h"
 
 typedef nsContentView::ViewConfig ViewConfig;
 using namespace mozilla::dom;
@@ -604,7 +602,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
 
   nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
   
-  if (lm && lm->GetBackendType() == LAYERS_CLIENT) {
+  if (lm && lm->AsLayerManagerComposite()) {
     *aTextureFactoryIdentifier = lm->GetTextureFactoryIdentifier();
   } else {
     *aTextureFactoryIdentifier = TextureFactoryIdentifier();
@@ -614,10 +612,6 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     
     
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
-    if (lm && lm->GetBackendType() == LAYERS_CLIENT) {
-      ClientLayerManager *clientManager = static_cast<ClientLayerManager*>(lm.get());
-      clientManager->GetRemoteRenderer()->SendNotifyChildCreated(mLayersId);
-    }
     if (aScrollingBehavior == ASYNC_PAN_ZOOM) {
       mContentController = new RemoteContentController(this);
       mPanZoomController = new AsyncPanZoomController(
