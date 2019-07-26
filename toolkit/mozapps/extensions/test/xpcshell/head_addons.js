@@ -346,6 +346,10 @@ function do_check_icons(aActual, aExpected) {
 
 
 
+let gXPISaveError = null;
+
+
+
 
 
 
@@ -396,26 +400,24 @@ function shutdownManager() {
   if (!gInternalManager)
     return;
 
-  let obs = AM_Cc["@mozilla.org/observer-service;1"].
-            getService(AM_Ci.nsIObserverService);
-
   let xpiShutdown = false;
-  obs.addObserver({
+  Services.obs.addObserver({
     observe: function(aSubject, aTopic, aData) {
       xpiShutdown = true;
-      obs.removeObserver(this, "xpi-provider-shutdown");
+      gXPISaveError = aData;
+      Services.obs.removeObserver(this, "xpi-provider-shutdown");
     }
   }, "xpi-provider-shutdown", false);
 
   let repositoryShutdown = false;
-  obs.addObserver({
+  Services.obs.addObserver({
     observe: function(aSubject, aTopic, aData) {
       repositoryShutdown = true;
-      obs.removeObserver(this, "addon-repository-shutdown");
+      Services.obs.removeObserver(this, "addon-repository-shutdown");
     }
   }, "addon-repository-shutdown", false);
 
-  obs.notifyObservers(null, "quit-application-granted", null);
+  Services.obs.notifyObservers(null, "quit-application-granted", null);
   let scope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
   scope.AddonManagerInternal.shutdown();
   gInternalManager = null;
@@ -428,14 +430,11 @@ function shutdownManager() {
   
   gAppInfo.annotations = {};
 
-  let thr = AM_Cc["@mozilla.org/thread-manager;1"].
-            getService(AM_Ci.nsIThreadManager).
-            mainThread;
+  let thr = Services.tm.mainThread;
 
   
   while (!repositoryShutdown || !xpiShutdown) {
-    if (thr.hasPendingEvents())
-      thr.processNextEvent(false);
+    thr.processNextEvent(true);
   }
 
   
