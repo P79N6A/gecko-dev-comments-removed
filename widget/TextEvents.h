@@ -78,14 +78,17 @@ private:
 public:
   virtual WidgetKeyboardEvent* AsKeyboardEvent() MOZ_OVERRIDE { return this; }
 
-  WidgetKeyboardEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
-    WidgetInputEvent(aIsTrusted, aMessage, aWidget, NS_KEY_EVENT),
-    keyCode(0), charCode(0),
-    location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD),
-    isChar(false), mIsRepeat(false),
-    mKeyNameIndex(mozilla::KEY_NAME_INDEX_Unidentified),
-    mNativeKeyEvent(nullptr),
-    mUniqueId(0)
+  WidgetKeyboardEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
+    : WidgetInputEvent(aIsTrusted, aMessage, aWidget, NS_KEY_EVENT)
+    , keyCode(0)
+    , charCode(0)
+    , location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD)
+    , isChar(false)
+    , mIsRepeat(false)
+    , mIsComposing(false)
+    , mKeyNameIndex(mozilla::KEY_NAME_INDEX_Unidentified)
+    , mNativeKeyEvent(nullptr)
+    , mUniqueId(0)
   {
   }
 
@@ -119,6 +122,10 @@ public:
   
   
   bool mIsRepeat;
+  
+  
+  
+  bool mIsComposing;
   
   KeyNameIndex mKeyNameIndex;
   
@@ -155,6 +162,7 @@ public:
     alternativeCharCodes = aEvent.alternativeCharCodes;
     isChar = aEvent.isChar;
     mIsRepeat = aEvent.mIsRepeat;
+    mIsComposing = aEvent.mIsComposing;
     mKeyNameIndex = aEvent.mKeyNameIndex;
     mKeyValue = aEvent.mKeyValue;
     
