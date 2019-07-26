@@ -3360,6 +3360,9 @@ JS_GetObjectPrototype(JSContext *cx, JSRawObject forObj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSRawObject obj);
 
+extern JS_PUBLIC_API(JSBool)
+JS_IsGlobalObject(JSRawObject obj);
+
 
 
 
