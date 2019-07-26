@@ -40,9 +40,9 @@ function check_telemetry() {
                     .getHistogramById("SSL_CERT_ERROR_OVERRIDES")
                     .snapshot();
   do_check_eq(histogram.counts[ 0], 0);
-  do_check_eq(histogram.counts[ 2], 7 + 1); 
+  do_check_eq(histogram.counts[ 2], 8 + 1); 
   do_check_eq(histogram.counts[ 3], 0 + 2); 
-  do_check_eq(histogram.counts[ 4], 0 + 4); 
+  do_check_eq(histogram.counts[ 4], 0 + 5); 
   do_check_eq(histogram.counts[ 5], 0 + 1); 
   do_check_eq(histogram.counts[ 6], 0 + 1); 
   do_check_eq(histogram.counts[ 7], 0 + 1); 
@@ -147,6 +147,15 @@ function add_simple_tests(useMozillaPKIX) {
                            Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                            getXPCOMStatusFromNSS(SEC_ERROR_INADEQUATE_KEY_USAGE));
   }
+
+  
+  
+  
+  add_cert_override_test("self-signed-end-entity-with-cA-true.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         getXPCOMStatusFromNSS(
+                            useMozillaPKIX ? SEC_ERROR_UNKNOWN_ISSUER
+                                           : SEC_ERROR_UNTRUSTED_ISSUER));
 }
 
 function add_combo_tests(useMozillaPKIX) {
