@@ -1502,9 +1502,7 @@ pref("shumway.disabled", true);
 pref("image.mem.max_decoded_image_kb", 256000);
 
 #ifdef MOZ_LOOP
-
-
-pref("loop.server", "http://loop.dev.mozaws.net");
+pref("loop.server", "https://loop.services.mozilla.com");
 pref("loop.do_not_disturb", false);
 #endif
 
