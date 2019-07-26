@@ -123,7 +123,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
 
     GlobalSharedContext globalsc(cx, scopeChain, StrictModeFromContext(cx));
 
-    ParseContext<FullParseHandler> pc(&parser, &globalsc, staticLevel,  0);
+    ParseContext<FullParseHandler> pc(&parser, NULL, &globalsc, staticLevel,  0);
     if (!pc.init())
         return NULL;
 
@@ -284,7 +284,7 @@ frontend::ParseScript(JSContext *cx, HandleObject scopeChain,
 
     GlobalSharedContext globalsc(cx, scopeChain, StrictModeFromContext(cx));
 
-    ParseContext<SyntaxParseHandler> pc(&parser, &globalsc, 0,  0);
+    ParseContext<SyntaxParseHandler> pc(&parser, NULL, &globalsc, 0,  0);
     if (!pc.init()) {
         cx->clearPendingException();
         return false;

@@ -29,11 +29,23 @@ ParseContext<ParseHandler>::atBodyLevel()
     return !topStmt;
 }
 
+inline
+GenericParseContext::GenericParseContext(GenericParseContext *parent, SharedContext *sc)
+  : parent(parent),
+    sc(sc),
+    funHasReturnExpr(false),
+    funHasReturnVoid(false),
+    parsingForInit(false),
+    parsingWith(parent ? parent->parsingWith : false)
+{
+}
+
 template <typename ParseHandler>
 inline
-ParseContext<ParseHandler>::ParseContext(Parser<ParseHandler> *prs, SharedContext *sc,
-                                      unsigned staticLevel, uint32_t bodyid)
-  : sc(sc),
+ParseContext<ParseHandler>::ParseContext(Parser<ParseHandler> *prs,
+                                         GenericParseContext *parent, SharedContext *sc,
+                                         unsigned staticLevel, uint32_t bodyid)
+  : GenericParseContext(parent, sc),
     bodyid(0),           
     blockidGen(bodyid),  
     topStmt(NULL),
@@ -48,13 +60,9 @@ ParseContext<ParseHandler>::ParseContext(Parser<ParseHandler> *prs, SharedContex
     vars_(prs->context),
     yieldOffset(0),
     parserPC(&prs->pc),
+    oldpc(prs->pc),
     lexdeps(prs->context),
-    parent(prs->pc),
     funcStmts(NULL),
-    funHasReturnExpr(false),
-    funHasReturnVoid(false),
-    parsingForInit(false),
-    parsingWith(prs->pc ? prs->pc->parsingWith : false), 
     inDeclDestructuring(false),
     funBecameStrict(false)
 {
@@ -78,7 +86,7 @@ ParseContext<ParseHandler>::~ParseContext()
     
     
     JS_ASSERT(*parserPC == this);
-    *parserPC = this->parent;
+    *parserPC = this->oldpc;
     js_delete(funcStmts);
 }
 

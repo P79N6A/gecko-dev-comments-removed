@@ -42,6 +42,36 @@ class SharedContext;
 
 typedef Vector<Definition *, 16> DeclVector;
 
+struct GenericParseContext
+{
+    
+    GenericParseContext *parent;
+
+    
+    SharedContext *sc;
+
+    
+    
+
+    
+    bool funHasReturnExpr:1;
+
+    
+    bool funHasReturnVoid:1;
+
+    
+    
+
+    
+    bool parsingForInit:1;
+
+    
+    
+    bool parsingWith:1;
+
+    inline GenericParseContext(GenericParseContext *parent, SharedContext *sc);
+};
+
 
 
 
@@ -51,12 +81,10 @@ typedef Vector<Definition *, 16> DeclVector;
 
 
 template <typename ParseHandler>
-struct ParseContext                 
+struct ParseContext : public GenericParseContext
 {
     typedef StmtInfoPC StmtInfo;
     typedef typename ParseHandler::Node Node;
-
-    SharedContext   *sc;            
 
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
@@ -164,26 +192,14 @@ struct ParseContext
 
 
 
+    
+    
+    ParseContext<ParseHandler> *oldpc;
+
   public:
     OwnedAtomDefnMapPtr lexdeps;    
 
-    ParseContext     *parent;       
-
     FuncStmtSet     *funcStmts;     
-
-
-
-    
-    
-    bool            funHasReturnExpr:1; 
-    bool            funHasReturnVoid:1; 
-
-    
-    
-    bool            parsingForInit:1;   
-
-    bool            parsingWith:1;  
-
 
 
 
@@ -202,7 +218,8 @@ struct ParseContext
     
     bool            funBecameStrict:1;
 
-    inline ParseContext(Parser<ParseHandler> *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
+    inline ParseContext(Parser<ParseHandler> *prs, GenericParseContext *parent,
+                        SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
     inline ~ParseContext();
 
     inline bool init();
@@ -338,7 +355,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
 
 
 
-    JSFunction *newFunction(ParseContext<ParseHandler> *pc, HandleAtom atom, FunctionSyntaxKind kind);
+    JSFunction *newFunction(GenericParseContext *pc, HandleAtom atom, FunctionSyntaxKind kind);
 
     void trace(JSTracer *trc);
 
@@ -438,7 +455,8 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
 
     Node condition();
     Node comprehensionTail(Node kid, unsigned blockid, bool isGenexp,
-                               ParseNodeKind kind = PNK_SEMI, JSOp op = JSOP_NOP);
+                           ParseContext<ParseHandler> *outerpc,
+                           ParseNodeKind kind = PNK_SEMI, JSOp op = JSOP_NOP);
     bool arrayInitializerComprehensionTail(Node pn);
     Node generatorExpr(Node kid);
     bool argumentList(Node listNode);
@@ -510,6 +528,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
     bool checkFinalReturn(Node pn);
 
     bool leaveFunction(Node fn, HandlePropertyName funName,
+                       ParseContext<ParseHandler> *outerpc,
                        FunctionSyntaxKind kind = Expression);
 
     friend class CompExprTransplanter;
