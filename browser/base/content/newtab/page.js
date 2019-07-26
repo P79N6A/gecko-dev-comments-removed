@@ -66,9 +66,12 @@ let gPage = {
   
 
 
-  update: function Page_update() {
+
+
+  update: function Page_update(aOnlyIfHidden=false) {
+    let skipUpdate = aOnlyIfHidden && this.allowBackgroundCaptures;
     
-    if (gGrid.ready) {
+    if (gGrid.ready && !skipUpdate) {
       gGrid.refresh();
     }
   },
@@ -87,10 +90,28 @@ let gPage = {
       if (this.allowBackgroundCaptures) {
         Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
 
+        
+        let directoryCount = {};
+        for (let type of DirectoryLinksProvider.linkTypes) {
+          directoryCount[type] = 0;
+        }
+
         for (let site of gGrid.sites) {
           if (site) {
             site.captureIfMissing();
+            let {type} = site.link;
+            if (type in directoryCount) {
+              directoryCount[type]++;
+            }
           }
+        }
+
+        
+        
+        for (let [type, count] of Iterator(directoryCount)) {
+          let shownId = "NEWTAB_PAGE_DIRECTORY_" + type.toUpperCase() + "_SHOWN";
+          let shownCount = Math.min(10, count);
+          Services.telemetry.getHistogramById(shownId).add(shownCount);
         }
       }
     });
