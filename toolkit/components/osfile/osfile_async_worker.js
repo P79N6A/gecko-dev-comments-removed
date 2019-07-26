@@ -30,33 +30,37 @@ if (this.Components) {
        let data = msg.data;
        LOG("Received message", data);
        let id = data.id;
+
+       let start;
+       let options;
+       if (data.args) {
+         options = data.args[data.args.length - 1];
+       }
+       
+       
+       if (typeof options === "object" && "outExecutionDuration" in options) {
+         start = Date.now();
+       }
+
        let result;
        let exn;
        let durationMs;
        try {
          let method = data.fun;
          LOG("Calling method", method);
-         let start;
-         let options;
-         if (data.args) {
-           options = data.args[data.args.length - 1];
-         }
-         
-         
-         if (typeof options === "object" && "outExecutionDuration" in options) {
-           start = Date.now();
-         }
          result = Agent[method].apply(Agent, data.args);
-         if (start) {
-           
-           durationMs = Date.now() - start;
-           LOG("Method took", durationMs, "MS");
-         }
          LOG("Method", method, "succeeded");
        } catch (ex) {
          exn = ex;
          LOG("Error while calling agent method", exn, exn.stack);
        }
+
+       if (start) {
+         
+         durationMs = Date.now() - start;
+         LOG("Method took", durationMs, "ms");
+       }
+
        
        
        
@@ -73,13 +77,13 @@ if (this.Components) {
        } else if (exn == StopIteration) {
          
          LOG("Sending back StopIteration");
-         self.postMessage({StopIteration: true, id: id});
+         self.postMessage({StopIteration: true, id: id, durationMs: durationMs});
        } else if (exn instanceof exports.OS.File.Error) {
          LOG("Sending back OS.File error", exn, "id is", id);
          
          
          
-         self.postMessage({fail: exports.OS.File.Error.toMsg(exn), id:id});
+         self.postMessage({fail: exports.OS.File.Error.toMsg(exn), id:id, durationMs: durationMs});
        } else {
          LOG("Sending back regular error", exn, exn.stack, "id is", id);
          

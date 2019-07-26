@@ -120,15 +120,16 @@ let worker = new PromiseWorker(
   "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
 let Scheduler = {
   post: function post(...args) {
+    
+    let methodArgs = args[1];
+    let options = methodArgs ? methodArgs[methodArgs.length - 1] : null;
     let promise = worker.post.apply(worker, args);
     return promise.then(
       function onSuccess(data) {
         
-        let methodArgs = args[1];
-        if (!methodArgs) {
+        if (!options) {
           return data.ok;
         }
-        let options = methodArgs[methodArgs.length - 1];
         
         if (typeof options !== "object" ||
           !("outExecutionDuration" in options)) {
@@ -139,7 +140,12 @@ let Scheduler = {
         if (!("durationMs" in data)) {
           return data.ok;
         }
-        options.outExecutionDuration = data.durationMs;
+        
+        if (typeof options.outExecutionDuration == "number") {
+          options.outExecutionDuration += data.durationMs;
+        } else {
+          options.outExecutionDuration = data.durationMs;
+        }
         return data.ok;
       },
       function onError(error) {
