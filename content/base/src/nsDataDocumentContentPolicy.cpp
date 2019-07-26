@@ -62,8 +62,11 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
 
   
   if (doc->IsLoadedAsData()) {
-    *aDecision = nsIContentPolicy::REJECT_TYPE;
-    return NS_OK;
+    
+    if (!doc->IsStaticDocument() || aContentType != nsIContentPolicy::TYPE_FONT) {
+      *aDecision = nsIContentPolicy::REJECT_TYPE;
+      return NS_OK;
+    }
   }
 
   if (doc->IsBeingUsedAsImage()) {

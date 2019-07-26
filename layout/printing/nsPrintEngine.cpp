@@ -18,6 +18,9 @@
 #include "nsITextToSubURI.h"
 #include "nsError.h"
 
+#include "nsView.h"
+#include "nsAsyncDOMEvent.h"
+
 
 #include "nsIPrintSettings.h"
 #include "nsIPrintSettingsService.h"
@@ -209,7 +212,8 @@ protected:
 
 static NS_DEFINE_CID(kViewManagerCID,       NS_VIEW_MANAGER_CID);
 
-NS_IMPL_ISUPPORTS1(nsPrintEngine, nsIObserver)
+NS_IMPL_ISUPPORTS3(nsPrintEngine, nsIWebProgressListener,
+                   nsISupportsWeakReference, nsIObserver)
 
 
 
@@ -225,7 +229,9 @@ nsPrintEngine::nsPrintEngine() :
   mPageSeqFrame(nullptr),
   mPrtPreview(nullptr),
   mOldPrtPreview(nullptr),
-  mDebugFile(nullptr)
+  mDebugFile(nullptr),
+  mLoadCounter(0),
+  mDidLoadDataForPrinting(false)
 {
 }
 
@@ -672,6 +678,23 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
     }
   }
 
+  if (mPrt->mPrintFrameType == nsIPrintSettings::kEachFrameSep) {
+    CheckForChildFrameSets(mPrt->mPrintObject);
+  }
+
+  if (NS_FAILED(EnablePOsForPrinting())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsCOMPtr<nsIWebProgress> webProgress = do_QueryInterface(mPrt->mPrintObject->mDocShell);
+  webProgress->AddProgressListener(
+    static_cast<nsIWebProgressListener*>(this),
+    nsIWebProgress::NOTIFY_STATE_REQUEST);
+
+  mLoadCounter = 0;
+  mDidLoadDataForPrinting = false;
+
   if (aIsPrintPreview) {
     bool notifyOnInit = false;
     ShowPrintProgress(false, notifyOnInit);
@@ -680,19 +703,19 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
     TurnScriptingOn(false);
 
     if (!notifyOnInit) {
-      rv = FinishPrintPreview();
+      InstallPrintPreviewListener();
+      rv = InitPrintDocConstruction(false);
     } else {
       rv = NS_OK;
     }
-    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     bool doNotify;
     ShowPrintProgress(true, doNotify);
     if (!doNotify) {
       
       mPrt->OnStartPrinting();
-      rv = DocumentReadyForPrinting();
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = InitPrintDocConstruction(false);
     }
   }
 
@@ -804,10 +827,19 @@ nsPrintEngine::GetPrintPreviewNumPages(int32_t *aPrintPreviewNumPages)
 {
   NS_ENSURE_ARG_POINTER(aPrintPreviewNumPages);
 
+  nsPrintData* prt = nullptr;
   nsIFrame* seqFrame  = nullptr;
   *aPrintPreviewNumPages = 0;
-  if (!mPrtPreview ||
-      NS_FAILED(GetSeqFrameAndCountPagesInternal(mPrtPreview->mPrintObject, seqFrame, *aPrintPreviewNumPages))) {
+
+  
+  
+  if (mPrtPreview) {
+    prt = mPrtPreview;
+  } else {
+    prt = mPrt;
+  }
+  if ((!prt) ||
+      NS_FAILED(GetSeqFrameAndCountPagesInternal(prt->mPrintObject, seqFrame, *aPrintPreviewNumPages))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1598,39 +1630,81 @@ nsPrintEngine::ShowPrintErrorDialog(nsresult aPrintError, bool aIsPrinting)
 
 
 
+nsresult
+nsPrintEngine::ReconstructAndReflow(bool doSetPixelScale)
+{
+#if (defined(XP_WIN) || defined(XP_OS2)) && defined(EXTENDED_DEBUG_PRINTING)
+  
+  
+  if (kPrintingLogMod && kPrintingLogMod->level == DUMP_LAYOUT_LEVEL) {
+    RemoveFilesInDir(".\\");
+    gDumpFileNameCnt   = 0;
+    gDumpLOFileNameCnt = 0;
+  }
+#endif
+
+  for (uint32_t i = 0; i < mPrt->mPrintDocList.Length(); ++i) {
+    nsPrintObject* po = mPrt->mPrintDocList.ElementAt(i);
+    NS_ASSERTION(po, "nsPrintObject can't be null!");
+
+    if (po->mDontPrint || po->mInvisible) {
+      continue;
+    }
+
+    UpdateZoomRatio(po, doSetPixelScale);
+
+    po->mPresContext->SetPageScale(po->mZoomRatio);
+
+    
+    float printDPI = float(mPrt->mPrintDC->AppUnitsPerCSSInch()) /
+                     float(mPrt->mPrintDC->AppUnitsPerDevPixel());
+    po->mPresContext->SetPrintPreviewScale(mScreenDPI / printDPI);
+
+    po->mPresShell->ReconstructFrames();
+
+    
+    
+    bool documentIsTopLevel = true;
+    if (i != 0) {
+      nsSize adjSize;
+      bool doReturn; 
+      nsresult rv = SetRootView(po, doReturn, documentIsTopLevel, adjSize);
+
+      MOZ_ASSERT(!documentIsTopLevel, "How could this happen?");
+      
+      if (NS_FAILED(rv) || doReturn) {
+        return rv; 
+      }
+    }
+
+    po->mPresShell->FlushPendingNotifications(Flush_Layout);
+
+    nsresult rv = UpdateSelectionAndShrinkPrintObject(po, documentIsTopLevel);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
 
 nsresult
 nsPrintEngine::SetupToPrintContent()
 {
+  nsresult rv;
+
+  bool didReconstruction = false;
   
   
   
-  if (NS_FAILED(EnablePOsForPrinting())) {
-    return NS_ERROR_FAILURE;
+  if (mDidLoadDataForPrinting) {
+    rv = ReconstructAndReflow(DoSetPixelScale());
+    didReconstruction = true;
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  DUMP_DOC_LIST("\nAfter Enable------------------------------------------");
 
   
   
   
-  
-  
-  
-  bool doSetPixelScale = false;
   bool ppIsShrinkToFit = mPrtPreview && mPrtPreview->mShrinkToFit;
-  if (ppIsShrinkToFit) {
-    mPrt->mShrinkRatio = mPrtPreview->mShrinkRatio;
-    doSetPixelScale = true;
-  }
-
-  
-  nsresult rv = ReflowDocList(mPrt->mPrintObject, doSetPixelScale);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
   if (mPrt->mShrinkToFit && !ppIsShrinkToFit) {
     
     if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
@@ -1645,54 +1719,37 @@ nsPrintEngine::SetupToPrintContent()
       mPrt->mShrinkRatio = mPrt->mPrintObject->mShrinkRatio;
     }
 
-    
     if (mPrt->mShrinkRatio < 0.998f) {
-      for (uint32_t i=0;i<mPrt->mPrintDocList.Length();i++) {
-        nsPrintObject* po = mPrt->mPrintDocList.ElementAt(i);
-        NS_ASSERTION(po, "nsPrintObject can't be null!");
-        
-        po->DestroyPresentation();
-      }
-
-#if (defined(XP_WIN) || defined(XP_OS2)) && defined(EXTENDED_DEBUG_PRINTING)
-      
-      
-      if (kPrintingLogMod && kPrintingLogMod->level == DUMP_LAYOUT_LEVEL) {
-        RemoveFilesInDir(".\\");
-        gDumpFileNameCnt   = 0;
-        gDumpLOFileNameCnt = 0;
-      }
-#endif
-
-      
-      
-      
-      if (NS_FAILED(ReflowDocList(mPrt->mPrintObject, true))) {
-        return NS_ERROR_FAILURE;
-      }
+      rv = ReconstructAndReflow(true);
+      didReconstruction = true;
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
 #ifdef PR_LOGGING
-    {
-      float calcRatio = 0.0f;
-      if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
-        nsPrintObject* smallestPO = FindSmallestSTF();
-        NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
-        if (smallestPO) {
-          
-          calcRatio = smallestPO->mShrinkRatio;
-        }
-      } else {
+    float calcRatio = 0.0f;
+    if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
+      nsPrintObject* smallestPO = FindSmallestSTF();
+      NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
+      if (smallestPO) {
         
-        calcRatio = mPrt->mPrintObject->mShrinkRatio;
+        calcRatio = smallestPO->mShrinkRatio;
       }
-      PR_PL(("**************************************************************************\n"));
-      PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
-      PR_PL(("**************************************************************************\n"));
+    } else {
+      
+      calcRatio = mPrt->mPrintObject->mShrinkRatio;
     }
+    PR_PL(("**************************************************************************\n"));
+    PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
+    PR_PL(("**************************************************************************\n"));
 #endif
   }
-
+  
+  
+  
+  if (didReconstruction) {
+    FirePrintPreviewUpdateEvent();
+  }
+  
   DUMP_DOC_LIST(("\nAfter Reflow------------------------------------------"));
   PR_PL(("\n"));
   PR_PL(("-------------------------------------------------------\n"));
@@ -1792,21 +1849,7 @@ nsPrintEngine::ReflowDocList(nsPrintObject* aPO, bool aSetPixelScale)
     }
   }
 
-  
-  
-  if (aSetPixelScale && aPO->mFrameType != eIFrame) {
-    float ratio;
-    if (mPrt->mPrintFrameType == nsIPrintSettings::kFramesAsIs || mPrt->mPrintFrameType == nsIPrintSettings::kNoFrames) {
-      ratio = mPrt->mShrinkRatio - 0.005f; 
-    } else {
-      ratio = aPO->mShrinkRatio - 0.005f; 
-    }
-    aPO->mZoomRatio = ratio;
-  } else if (!mPrt->mShrinkToFit) {
-    double scaling;
-    mPrt->mPrintSettings->GetScaling(&scaling);
-    aPO->mZoomRatio = float(scaling);
-  }
+  UpdateZoomRatio(aPO, aSetPixelScale);
 
   nsresult rv;
   
@@ -1821,21 +1864,240 @@ nsPrintEngine::ReflowDocList(nsPrintObject* aPO, bool aSetPixelScale)
   return NS_OK;
 }
 
-
+void
+nsPrintEngine::FirePrintPreviewUpdateEvent()
+{
+  
+  
+  if (mIsDoingPrintPreview && !mIsDoingPrinting) {
+    nsCOMPtr<nsIContentViewer> cv = do_QueryInterface(mDocViewerPrint);
+    (new nsAsyncDOMEvent(
+       cv->GetDocument(), NS_LITERAL_STRING("printPreviewUpdate"), true, true)
+    )->RunDOMEventWhenSafe();
+  }
+}
 
 nsresult
-nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
+nsPrintEngine::InitPrintDocConstruction(bool aHandleError)
 {
-  NS_ASSERTION(aPO, "Pointer is null!");
-  if (!aPO) return NS_ERROR_FAILURE;
+  nsresult rv;
+  rv = ReflowDocList(mPrt->mPrintObject, DoSetPixelScale());
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsSize adjSize;
-  bool documentIsTopLevel;
-  if (!aPO->IsPrintable())
+  FirePrintPreviewUpdateEvent();
+
+  if (mLoadCounter == 0) {
+    AfterNetworkPrint(aHandleError);
+  }
+  return rv;
+}
+
+nsresult
+nsPrintEngine::AfterNetworkPrint(bool aHandleError)
+{
+  nsCOMPtr<nsIWebProgress> webProgress = do_QueryInterface(mPrt->mPrintObject->mDocShell);
+
+  webProgress->RemoveProgressListener(
+    static_cast<nsIWebProgressListener*>(this));
+
+  nsresult rv;
+  if (mIsDoingPrinting) {
+    rv = DocumentReadyForPrinting();
+  } else {
+    rv = FinishPrintPreview();
+  }
+
+  
+  if (aHandleError && NS_FAILED(rv)) {
+    CleanupOnFailure(rv, !mIsDoingPrinting);
+  }
+
+  return rv;
+}
+
+
+
+
+NS_IMETHODIMP
+nsPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
+                             nsIRequest* aRequest,
+                             uint32_t aStateFlags,
+                             nsresult aStatus)
+{
+  nsAutoCString name;
+  aRequest->GetName(name);
+  if (name.Equals("about:document-onload-blocker")) {
     return NS_OK;
+  }
+  if (aStateFlags & STATE_START) {
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
 
+    ++mLoadCounter;
+  } else if (aStateFlags & STATE_STOP) {
+    mDidLoadDataForPrinting = true;
+    --mLoadCounter;
+   
+    
+    
+    if (mLoadCounter == 0) {
+      AfterNetworkPrint(true);
+    }
+  }
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP
+nsPrintEngine::OnProgressChange(nsIWebProgress* aWebProgress,
+                                 nsIRequest* aRequest,
+                                 int32_t aCurSelfProgress,
+                                 int32_t aMaxSelfProgress,
+                                 int32_t aCurTotalProgress,
+                                 int32_t aMaxTotalProgress)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrintEngine::OnLocationChange(nsIWebProgress* aWebProgress,
+                                nsIRequest* aRequest,
+                                nsIURI* aLocation,
+                                uint32_t aFlags)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrintEngine::OnStatusChange(nsIWebProgress *aWebProgress,
+                              nsIRequest *aRequest,
+                              nsresult aStatus,
+                              const PRUnichar *aMessage)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrintEngine::OnSecurityChange(nsIWebProgress *aWebProgress,
+                                  nsIRequest *aRequest,
+                                  uint32_t aState)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  return NS_OK;
+}
+
+
+
+void
+nsPrintEngine::UpdateZoomRatio(nsPrintObject* aPO, bool aSetPixelScale)
+{
+  
+  
+  if (aSetPixelScale && aPO->mFrameType != eIFrame) {
+    float ratio;
+    if (mPrt->mPrintFrameType == nsIPrintSettings::kFramesAsIs || mPrt->mPrintFrameType == nsIPrintSettings::kNoFrames) {
+      ratio = mPrt->mShrinkRatio - 0.005f; 
+    } else {
+      ratio = aPO->mShrinkRatio - 0.005f; 
+    }
+    aPO->mZoomRatio = ratio;
+  } else if (!mPrt->mShrinkToFit) {
+    double scaling;
+    mPrt->mPrintSettings->GetScaling(&scaling);
+    aPO->mZoomRatio = float(scaling);
+  } 
+}
+
+nsresult
+nsPrintEngine::UpdateSelectionAndShrinkPrintObject(nsPrintObject* aPO,
+                                                   bool aDocumentIsTopLevel)
+{
+  nsCOMPtr<nsIPresShell> displayShell;
+  aPO->mDocShell->GetPresShell(getter_AddRefs(displayShell));
+  
+  nsCOMPtr<nsISelection> selection, selectionPS;
+  
+  if (displayShell) {
+    selection = displayShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
+  }
+  selectionPS = aPO->mPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
+
+  
+  
+  if (selectionPS) {
+    selectionPS->RemoveAllRanges();
+  }
+  if (selection && selectionPS) {
+    int32_t cnt;
+    selection->GetRangeCount(&cnt);
+    int32_t inx;
+    for (inx = 0; inx < cnt; ++inx) {
+      nsCOMPtr<nsIDOMRange> range;
+      if (NS_SUCCEEDED(selection->GetRangeAt(inx, getter_AddRefs(range))))
+        selectionPS->AddRange(range);
+    }
+  }
+
+  
+  
+  
+  
+  
+  if (mPrt->mShrinkToFit && aDocumentIsTopLevel) {
+    nsIPageSequenceFrame* pageSequence = aPO->mPresShell->GetPageSequenceFrame();
+    NS_ENSURE_STATE(pageSequence);
+    pageSequence->GetSTFPercent(aPO->mShrinkRatio);
+  }
+  return NS_OK;
+}
+
+bool
+nsPrintEngine::DoSetPixelScale()
+{
+  
+  
+  
+  
+  
+  
+  bool doSetPixelScale = false;
+  bool ppIsShrinkToFit = mPrtPreview && mPrtPreview->mShrinkToFit;
+  if (ppIsShrinkToFit) {
+    mPrt->mShrinkRatio = mPrtPreview->mShrinkRatio;
+    doSetPixelScale = true;
+  }
+  return doSetPixelScale;
+}
+
+nsIView*
+nsPrintEngine::GetParentViewForRoot()
+{
+  if (mIsCreatingPrintPreview) {
+    nsCOMPtr<nsIContentViewer> cv = do_QueryInterface(mDocViewerPrint);
+    if (cv) {
+      return cv->FindContainerView();
+    }
+  }
+  return nullptr;
+}
+
+nsresult
+nsPrintEngine::SetRootView(
+    nsPrintObject* aPO, 
+    bool& doReturn, 
+    bool& documentIsTopLevel, 
+    nsSize& adjSize
+)
+{
   bool canCreateScrollbars = true;
+
+  nsIView* rootView;
   nsIView* parentView = nullptr;
+
+  doReturn = false;
 
   if (aPO->mParent && aPO->mParent->IsPrintable()) {
     nsIFrame* frame = aPO->mContent ? aPO->mContent->GetPrimaryFrame() : nullptr;
@@ -1843,6 +2105,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
     
     if (!frame) {
       SetPrintPO(aPO, false);
+      doReturn = true;
       return NS_OK;
     }
 
@@ -1867,21 +2130,51 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
     mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
     adjSize = nsSize(pageWidth, pageHeight);
     documentIsTopLevel = true;
-
-    if (mIsCreatingPrintPreview) {
-      nsCOMPtr<nsIContentViewer> cv = do_QueryInterface(mDocViewerPrint);
-      if (cv) {
-        parentView = cv->FindContainerView();
-      }
-    }
+    parentView = GetParentViewForRoot();
   }
 
+  if (aPO->mPresShell->GetViewManager()->GetRootView()) {
+    
+    rootView = aPO->mPresShell->GetRootFrame()->GetView();
+    reinterpret_cast<nsView*>(rootView)->SetParent(reinterpret_cast<nsView*>(parentView));
+  } else {
+    
+    nsRect tbounds = nsRect(nsPoint(0, 0), adjSize);
+    rootView = aPO->mViewManager->CreateView(tbounds, parentView);
+    NS_ENSURE_TRUE(rootView, NS_ERROR_OUT_OF_MEMORY);
+  }
+    
+  if (mIsCreatingPrintPreview && documentIsTopLevel) {
+    aPO->mPresContext->SetPaginatedScrolling(canCreateScrollbars);
+  }
+
+  
+  aPO->mViewManager->SetRootView(rootView);
+
+  return NS_OK;
+}
+
+
+nsresult
+nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
+{
+  NS_ENSURE_STATE(aPO);
+
+  if (!aPO->IsPrintable()) {
+    return NS_OK;
+  }
+  
   NS_ASSERTION(!aPO->mPresContext, "Recreating prescontext");
 
   
-  aPO->mPresContext = new nsPresContext(aPO->mDocument,
-    mIsCreatingPrintPreview ? nsPresContext::eContext_PrintPreview:
-                              nsPresContext::eContext_Print);
+  nsPresContext::nsPresContextType type =
+      mIsCreatingPrintPreview ? nsPresContext::eContext_PrintPreview:
+                                nsPresContext::eContext_Print;
+  nsIView* parentView =
+    aPO->mParent && aPO->mParent->IsPrintable() ? nullptr : GetParentViewForRoot();
+  aPO->mPresContext = parentView ?
+      new nsPresContext(aPO->mDocument, type) :
+      new nsRootPresContext(aPO->mDocument, type);
   NS_ENSURE_TRUE(aPO->mPresContext, NS_ERROR_OUT_OF_MEMORY);
   aPO->mPresContext->SetPrintSettings(mPrt->mPrintSettings);
 
@@ -1917,20 +2210,20 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   
   
 
-  PR_PL(("In DV::ReflowPrintObject PO: %p (%9s) Setting w,h to %d,%d\n", aPO,
-         gFrameTypesStr[aPO->mFrameType], adjSize.width, adjSize.height));
 
-  
-  nsRect tbounds = nsRect(nsPoint(0, 0), adjSize);
-  nsIView* rootView = aPO->mViewManager->CreateView(tbounds, parentView);
-  NS_ENSURE_TRUE(rootView, NS_ERROR_OUT_OF_MEMORY);
+  bool doReturn = false;;
+  bool documentIsTopLevel = false;
+  nsSize adjSize; 
 
-  if (mIsCreatingPrintPreview && documentIsTopLevel) {
-    aPO->mPresContext->SetPaginatedScrolling(canCreateScrollbars);
+  rv = SetRootView(aPO, doReturn, documentIsTopLevel, adjSize);
+
+  if (NS_FAILED(rv) || doReturn) {
+    return rv; 
   }
 
-  
-  aPO->mViewManager->SetRootView(rootView);
+  PR_PL(("In DV::ReflowPrintObject PO: %p pS: %p (%9s) Setting w,h to %d,%d\n", aPO, aPO->mPresShell.get(),
+         gFrameTypesStr[aPO->mFrameType], adjSize.width, adjSize.height));
+
 
   
   
@@ -1961,36 +2254,8 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   
   aPO->mPresShell->FlushPendingNotifications(Flush_Layout);
 
-  nsCOMPtr<nsIPresShell> displayShell;
-  aPO->mDocShell->GetPresShell(getter_AddRefs(displayShell));
-  
-  nsCOMPtr<nsISelection> selection, selectionPS;
-  
-  if (displayShell) {
-    selection = displayShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
-  }
-  selectionPS = aPO->mPresShell->GetCurrentSelection(nsISelectionController::SELECTION_NORMAL);
-  if (selection && selectionPS) {
-    int32_t cnt;
-    selection->GetRangeCount(&cnt);
-    int32_t inx;
-    for (inx=0;inx<cnt;inx++) {
-      nsCOMPtr<nsIDOMRange> range;
-      if (NS_SUCCEEDED(selection->GetRangeAt(inx, getter_AddRefs(range))))
-        selectionPS->AddRange(range);
-    }
-  }
-
-  
-  
-  
-  
-  
-  if (mPrt->mShrinkToFit && documentIsTopLevel) {
-    nsIPageSequenceFrame* pageSequence = aPO->mPresShell->GetPageSequenceFrame();
-    NS_ENSURE_STATE(pageSequence);
-    pageSequence->GetSTFPercent(aPO->mShrinkRatio);
-  }
+  rv = UpdateSelectionAndShrinkPrintObject(aPO, documentIsTopLevel);
+  NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef EXTENDED_DEBUG_PRINTING
     if (kPrintingLogMod && kPrintingLogMod->level == DUMP_LAYOUT_LEVEL) {
@@ -3309,7 +3574,6 @@ nsPrintEngine::FinishPrintPreview()
     mOldPrtPreview = nullptr;
   }
 
-  InstallPrintPreviewListener();
 
   mPrt->OnEndPrinting();
 
@@ -3352,22 +3616,9 @@ nsPrintEngine::Observe(nsISupports *aSubject, const char *aTopic, const PRUnicha
 {
   nsresult rv = NS_ERROR_FAILURE;
 
-  if (mIsDoingPrinting) {
-    rv = DocumentReadyForPrinting();
- 
-    
-    if (NS_FAILED(rv)) {
-      CleanupOnFailure(rv, true);
-    }
-  } else {
-    rv = FinishPrintPreview();
-    if (NS_FAILED(rv)) {
-      CleanupOnFailure(rv, false);
-    }
-    if (mPrtPreview) {
+  rv = InitPrintDocConstruction(true);
+  if (!mIsDoingPrinting && mPrtPreview) {
       mPrtPreview->OnEndPrinting();
-    }
-    rv = NS_OK;
   }
 
   return rv;
