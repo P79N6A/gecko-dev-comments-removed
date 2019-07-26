@@ -8,6 +8,7 @@
 #define DMD_h___
 
 #include <stdarg.h>
+#include <string.h>
 
 #include "mozilla/Types.h"
 
@@ -48,6 +49,21 @@ Dump(Writer aWriter);
 
 MOZ_EXPORT void
 FpWrite(void* aFp, const char* aFmt, va_list aAp);
+
+struct Sizes
+{
+  size_t mStackTraces;
+  size_t mStackTraceTable;
+  size_t mLiveBlockTable;
+  size_t mDoubleReportTable;
+
+  Sizes() { memset(this, 0, sizeof(Sizes)); }
+};
+
+
+
+MOZ_EXPORT void
+SizeOf(Sizes* aSizes);
 
 } 
 } 
