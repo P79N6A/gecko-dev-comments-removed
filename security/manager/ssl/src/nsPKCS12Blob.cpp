@@ -3,6 +3,10 @@
 
 
 
+#include "nsPKCS12Blob.h"
+
+#include "insanity/pkixtypes.h"
+
 #include "prmem.h"
 #include "prprf.h"
 
@@ -13,7 +17,6 @@
 
 #include "nsNSSComponent.h"
 #include "nsNSSHelper.h"
-#include "nsPKCS12Blob.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsXPIDLString.h"
@@ -25,7 +28,6 @@
 #include "nsICertificateDialogs.h"
 #include "nsNSSShutDown.h"
 #include "nsCRT.h"
-#include "ScopedNSSTypes.h"
 
 #include "secerr.h"
 
@@ -356,7 +358,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
 
     nsNSSCertificate *cert = (nsNSSCertificate *)certs[i];
     
-    ScopedCERTCertificate nssCert(cert->GetCert());
+    insanity::pkix::ScopedCERTCertificate nssCert(cert->GetCert());
     if (!nssCert) {
       rv = NS_ERROR_FAILURE;
       goto finish;
@@ -369,7 +371,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
     if (nssCert->slot && !PK11_IsInternal(nssCert->slot)) {
       
       SECKEYPrivateKey *privKey=PK11_FindKeyByDERCert(nssCert->slot,
-                                                      nssCert, this);
+                                                      nssCert.get(), this);
 
       if (privKey) {
         bool privKeyIsExtractable = isExtractable(privKey);
@@ -401,7 +403,7 @@ nsPKCS12Blob::ExportToFile(nsIFile *file,
       goto finish;
     }
     
-    srv = SEC_PKCS12AddCertAndKey(ecx, certSafe, nullptr, nssCert,
+    srv = SEC_PKCS12AddCertAndKey(ecx, certSafe, nullptr, nssCert.get(),
                                   CERT_GetDefaultCertDB(), 
                                   keySafe, nullptr, true, &unicodePw,
                       SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC);
