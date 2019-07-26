@@ -2,7 +2,13 @@
 
 
 
-var TIMEOUT_LENGTH = 10000;
+const TIMEUPDATE_TIMEOUT_LENGTH = 10000;
+const ENDED_TIMEOUT_LENGTH = 10000;
+
+
+
+
+const CANPLAYTHROUGH_TIMEOUT_LENGTH = 60000;
 
 
 
@@ -123,7 +129,7 @@ MediaStreamPlayback.prototype = {
             timeUpdateCallback, false);
           onError("timeUpdate event never fired");
         }
-      }, TIMEOUT_LENGTH);
+      }, TIMEUPDATE_TIMEOUT_LENGTH);
     };
 
     
@@ -142,7 +148,7 @@ MediaStreamPlayback.prototype = {
           canPlayThroughCallback, false);
         onError("canplaythrough event never fired");
       }
-    }, TIMEOUT_LENGTH);
+    }, CANPLAYTHROUGH_TIMEOUT_LENGTH);
   },
 
   
@@ -237,7 +243,7 @@ LocalMediaStreamPlayback.prototype = Object.create(MediaStreamPlayback.prototype
         if (!endedFired) {
           onError("ended event never fired");
         }
-      }, TIMEOUT_LENGTH);
+      }, ENDED_TIMEOUT_LENGTH);
     }
   }
 });
