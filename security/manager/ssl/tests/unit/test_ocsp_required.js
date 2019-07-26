@@ -49,13 +49,9 @@ function add_tests_in_mode(useInsanity)
   });
 
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT));
-  
-  
-  
-  
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT));
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
   add_test(function () {
     
     

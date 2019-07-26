@@ -71,8 +71,10 @@ function add_tests_in_mode(useInsanity, certDB, otherTestCA) {
                         Ci.nsIX509CertDB.TRUSTED_SSL);
     run_next_test();
   });
+  
+  
   add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE),
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT),
                 true);
 
   
