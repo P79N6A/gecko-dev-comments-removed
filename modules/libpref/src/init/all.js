@@ -4070,9 +4070,6 @@ pref("layers.async-video.enabled",false);
 pref("layers.acceleration.disabled", false);
 
 
-pref("layers.use-deprecated-textures", true);
-
-
 #ifdef ANDROID
 
 
@@ -4092,8 +4089,11 @@ pref("layers.max-active", -1);
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
+
+pref("layers.use-deprecated-textures", false);
 #else
 pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.use-deprecated-textures", true);
 #endif
 
 
