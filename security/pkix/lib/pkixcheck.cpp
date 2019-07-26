@@ -47,11 +47,17 @@ CheckTimes(const CERTCertificate* cert, PRTime time)
 
 
 
+
+
+inline uint8_t KeyUsageToBitMask(KeyUsage keyUsage)
+{
+  PR_ASSERT(keyUsage != KeyUsage::noParticularKeyUsageRequired);
+  return 0x80u >> static_cast<uint8_t>(keyUsage);
+}
+
 Result
-CheckKeyUsage(EndEntityOrCA endEntityOrCA,
-              const SECItem* encodedKeyUsage,
-              KeyUsages requiredKeyUsagesIfPresent,
-              PLArenaPool* arena)
+CheckKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedKeyUsage,
+              KeyUsage requiredKeyUsageIfPresent)
 {
   if (!encodedKeyUsage) {
     
@@ -68,39 +74,92 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA,
     return Success;
   }
 
-  SECItem tmpItem;
-  Result rv = MapSECStatus(SEC_QuickDERDecodeItem(arena, &tmpItem,
-                              SEC_ASN1_GET(SEC_BitStringTemplate),
-                              encodedKeyUsage));
-  if (rv != Success) {
-    return rv;
+  der::Input input;
+  if (input.Init(encodedKeyUsage->data, encodedKeyUsage->len) != der::Success) {
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
   }
-
-  
-
-  KeyUsages allowedKeyUsages = tmpItem.data[0];
-  if ((allowedKeyUsages & requiredKeyUsagesIfPresent)
-        != requiredKeyUsagesIfPresent) {
+  der::Input value;
+  if (der::ExpectTagAndGetValue(input, der::BIT_STRING, value) != der::Success) {
     return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
   }
 
-  if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
-   
-   
-   
-   if ((allowedKeyUsages & KU_KEY_CERT_SIGN) == 0) {
+  uint8_t numberOfPaddingBits;
+  if (value.Read(numberOfPaddingBits) != der::Success) {
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+  }
+  if (numberOfPaddingBits > 7) {
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+  }
+
+  uint8_t bits;
+  if (value.Read(bits) != der::Success) {
+    
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (requiredKeyUsageIfPresent != KeyUsage::noParticularKeyUsageRequired) {
+    
+    if ((bits & KeyUsageToBitMask(requiredKeyUsageIfPresent)) == 0) {
       return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
     }
-  } else {
+  }
+
+  if (endEntityOrCA != EndEntityOrCA::MustBeCA) {
     
     
     
     
-    
-    
-    
-    
-    
+    if ((bits & KeyUsageToBitMask(KeyUsage::keyCertSign)) != 0) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+    }
+  }
+
+  
+  while (!value.AtEnd()) {
+    if (value.Read(bits) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
+    }
+  }
+
+  
+  uint8_t paddingMask = static_cast<uint8_t>((1 << numberOfPaddingBits) - 1);
+  if ((bits & paddingMask) != 0) {
+    return Fail(RecoverableError, SEC_ERROR_INADEQUATE_KEY_USAGE);
   }
 
   return Success;
@@ -549,7 +608,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  BackCert& cert,
                                  PRTime time,
                                  EndEntityOrCA endEntityOrCA,
-                                 KeyUsages requiredKeyUsagesIfPresent,
+                                 KeyUsage requiredKeyUsageIfPresent,
                                  KeyPurposeId requiredEKUIfPresent,
                                  const CertPolicyId& requiredPolicy,
                                  unsigned int subCACount,
@@ -584,18 +643,13 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                           !cert.GetNSSCert()->version.len) ? der::Version::v1
                                                            : der::Version::v3;
 
-  PLArenaPool* arena = cert.GetArena();
-  if (!arena) {
-    return FatalError;
-  }
-
   
 
   
 
   
   rv = CheckKeyUsage(endEntityOrCA, cert.encodedKeyUsage,
-                     requiredKeyUsagesIfPresent, arena);
+                     requiredKeyUsageIfPresent);
   if (rv != Success) {
     return rv;
   }

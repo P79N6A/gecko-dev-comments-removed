@@ -142,7 +142,7 @@ static Result BuildForward(TrustDomain& trustDomain,
                            BackCert& subject,
                            PRTime time,
                            EndEntityOrCA endEntityOrCA,
-                           KeyUsages requiredKeyUsagesIfPresent,
+                           KeyUsage requiredKeyUsageIfPresent,
                            KeyPurposeId requiredEKUIfPresent,
                            const CertPolicyId& requiredPolicy,
                             const SECItem* stapledOCSPResponse,
@@ -158,7 +158,7 @@ BuildForwardInner(TrustDomain& trustDomain,
                   const CertPolicyId& requiredPolicy,
                   const SECItem& potentialIssuerDER,
                   unsigned int subCACount,
-                  ScopedCERTCertList& results)
+                   ScopedCERTCertList& results)
 {
   BackCert potentialIssuer(&subject, BackCert::IncludeCN::No);
   Result rv = potentialIssuer.Init(potentialIssuerDER);
@@ -188,9 +188,12 @@ BuildForwardInner(TrustDomain& trustDomain,
     return rv;
   }
 
+  
+  
+  
   rv = BuildForward(trustDomain, potentialIssuer, time, EndEntityOrCA::MustBeCA,
-                    KU_KEY_CERT_SIGN, requiredEKUIfPresent, requiredPolicy,
-                    nullptr, subCACount, results);
+                    KeyUsage::keyCertSign, requiredEKUIfPresent,
+                    requiredPolicy, nullptr, subCACount, results);
   if (rv != Success) {
     return rv;
   }
@@ -210,7 +213,7 @@ BuildForward(TrustDomain& trustDomain,
              BackCert& subject,
              PRTime time,
              EndEntityOrCA endEntityOrCA,
-             KeyUsages requiredKeyUsagesIfPresent,
+             KeyUsage requiredKeyUsageIfPresent,
              KeyPurposeId requiredEKUIfPresent,
              const CertPolicyId& requiredPolicy,
               const SECItem* stapledOCSPResponse,
@@ -225,7 +228,7 @@ BuildForward(TrustDomain& trustDomain,
   
   rv = CheckIssuerIndependentProperties(trustDomain, subject, time,
                                         endEntityOrCA,
-                                        requiredKeyUsagesIfPresent,
+                                        requiredKeyUsageIfPresent,
                                         requiredEKUIfPresent, requiredPolicy,
                                         subCACount, &trustLevel);
   PRErrorCode deferredEndEntityError = 0;
@@ -348,8 +351,8 @@ BuildCertChain(TrustDomain& trustDomain,
                const CERTCertificate* nssCert,
                PRTime time,
                EndEntityOrCA endEntityOrCA,
-                KeyUsages requiredKeyUsagesIfPresent,
-                KeyPurposeId requiredEKUIfPresent,
+               KeyUsage requiredKeyUsageIfPresent,
+               KeyPurposeId requiredEKUIfPresent,
                const CertPolicyId& requiredPolicy,
                 const SECItem* stapledOCSPResponse,
                 ScopedCERTCertList& results)
@@ -375,7 +378,7 @@ BuildCertChain(TrustDomain& trustDomain,
   }
 
   rv = BuildForward(trustDomain, cert, time, endEntityOrCA,
-                    requiredKeyUsagesIfPresent, requiredEKUIfPresent,
+                    requiredKeyUsageIfPresent, requiredEKUIfPresent,
                     requiredPolicy, stapledOCSPResponse, 0, results);
   if (rv != Success) {
     results = nullptr;
