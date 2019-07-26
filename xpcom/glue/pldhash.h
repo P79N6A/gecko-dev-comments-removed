@@ -577,7 +577,7 @@ NS_COM_GLUE size_t
 PL_DHashTableSizeOfExcludingThis(const PLDHashTable *table,
                                  PLDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
                                  mozilla::MallocSizeOf mallocSizeOf,
-                                 void *arg = NULL);
+                                 void *arg = nullptr);
 
 
 
@@ -586,7 +586,7 @@ NS_COM_GLUE size_t
 PL_DHashTableSizeOfIncludingThis(const PLDHashTable *table,
                                  PLDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
                                  mozilla::MallocSizeOf mallocSizeOf,
-                                 void *arg = NULL);
+                                 void *arg = nullptr);
 
 #ifdef DEBUG
 

@@ -121,7 +121,7 @@ private:
     _cid,                                                               \
   };                                                                    \
   mozilla::AlignedStorage2<GenericClassInfo> k##_class##ClassInfoDataPlace;   \
-  nsIClassInfo* NS_CLASSINFO_NAME(_class) = NULL;
+  nsIClassInfo* NS_CLASSINFO_NAME(_class) = nullptr;
 
 #define NS_IMPL_QUERY_CLASSINFO(_class)                                       \
   if ( aIID.Equals(NS_GET_IID(nsIClassInfo)) ) {                              \

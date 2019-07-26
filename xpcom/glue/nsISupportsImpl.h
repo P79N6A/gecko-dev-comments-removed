@@ -43,7 +43,7 @@ ToSupports(nsISupports* p)
 inline nsISupports*
 ToCanonicalSupports(nsISupports* p)
 {
-    return NULL;
+    return nullptr;
 }
 
 

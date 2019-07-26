@@ -111,7 +111,7 @@ public:
   
   
   
-  nsMainThreadPtrHolder(T* ptr, bool strict = true) : mRawPtr(NULL), mStrict(strict) {
+  nsMainThreadPtrHolder(T* ptr, bool strict = true) : mRawPtr(nullptr), mStrict(strict) {
     
     
     MOZ_ASSERT(!mStrict || NS_IsMainThread());
@@ -165,7 +165,7 @@ class nsMainThreadPtrHandle
   nsRefPtr<nsMainThreadPtrHolder<T> > mPtr;
 
   public:
-  nsMainThreadPtrHandle() : mPtr(NULL) {}
+  nsMainThreadPtrHandle() : mPtr(nullptr) {}
   nsMainThreadPtrHandle(nsMainThreadPtrHolder<T> *aHolder) : mPtr(aHolder) {}
   nsMainThreadPtrHandle(const nsMainThreadPtrHandle& aOther) : mPtr(aOther.mPtr) {}
   nsMainThreadPtrHandle& operator=(const nsMainThreadPtrHandle& aOther) {

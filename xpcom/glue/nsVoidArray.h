@@ -112,7 +112,7 @@ public:
   
   size_t SizeOfExcludingThis(
            nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-           mozilla::MallocSizeOf aMallocSizeOf, void* aData = NULL) const;
+           mozilla::MallocSizeOf aMallocSizeOf, void* aData = nullptr) const;
 
 protected:
   bool GrowArrayBy(int32_t aGrowBy);

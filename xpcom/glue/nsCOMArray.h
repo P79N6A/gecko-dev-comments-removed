@@ -169,7 +169,7 @@ public:
     
     size_t SizeOfExcludingThis(
              nsBaseArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
-             mozilla::MallocSizeOf aMallocSizeOf, void* aData = NULL) const;
+             mozilla::MallocSizeOf aMallocSizeOf, void* aData = nullptr) const;
 
 private:
     
@@ -381,7 +381,7 @@ class nsCOMArray : public nsCOMArray_base
     
     size_t SizeOfExcludingThis(
              nsCOMArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis, 
-             mozilla::MallocSizeOf aMallocSizeOf, void *aData = NULL) const {
+             mozilla::MallocSizeOf aMallocSizeOf, void *aData = nullptr) const {
         return nsCOMArray_base::SizeOfExcludingThis(
                  nsBaseArraySizeOfElementIncludingThisFunc(aSizeOfElementIncludingThis),
                  aMallocSizeOf, aData);

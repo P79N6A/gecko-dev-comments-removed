@@ -110,7 +110,7 @@ _mbschr(const unsigned char* stringToSearch, int charToSearchFor)
     } while (*p);
 
     
-    return *p ? (unsigned char*)p : NULL;
+    return *p ? (unsigned char*)p : nullptr;
 }
 
 
@@ -142,7 +142,7 @@ _mbsstr(const unsigned char* stringToSearch, const unsigned char* subString)
     } while (*pStr);
 
     
-    return *pSub ? NULL : (unsigned char*)pStr;
+    return *pSub ? nullptr : (unsigned char*)pStr;
 }
 
 
@@ -159,7 +159,7 @@ _mbsrchr(const unsigned char* stringToSearch, int charToSearchFor)
     } while (p > stringToSearch);
 
     
-    return (*p == charToSearchFor) ? (unsigned char*)p : NULL;
+    return (*p == charToSearchFor) ? (unsigned char*)p : nullptr;
 }
 
 
@@ -563,7 +563,7 @@ nsLocalFile::nsLocalFileConstructor(nsISupports* outer, const nsIID& aIID, void*
     NS_ENSURE_NO_AGGREGATION(outer);
 
     nsLocalFile* inst = new nsLocalFile();
-    if (inst == NULL)
+    if (inst == nullptr)
         return NS_ERROR_OUT_OF_MEMORY;
 
     nsresult rv = inst->QueryInterface(aIID, aInstancePtr);
@@ -765,7 +765,7 @@ nsLocalFile::Create(uint32_t type, uint32_t attributes)
         {
             *slash = '\0';
 
-            rv = CreateDirectoryA(const_cast<char*>(mWorkingPath.get()), NULL);
+            rv = CreateDirectoryA(const_cast<char*>(mWorkingPath.get()), nullptr);
             if (rv) {
                 rv = ConvertOS2Error(rv);
                 if (rv != NS_ERROR_FILE_ALREADY_EXISTS)
@@ -789,7 +789,7 @@ nsLocalFile::Create(uint32_t type, uint32_t attributes)
 
     if (type == DIRECTORY_TYPE)
     {
-        rv = CreateDirectoryA(const_cast<char*>(mWorkingPath.get()), NULL);
+        rv = CreateDirectoryA(const_cast<char*>(mWorkingPath.get()), nullptr);
         if (rv)
             return ConvertOS2Error(rv);
         else
@@ -1391,8 +1391,8 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
             strcat(achProgram, """");
             achProgram[strlen(achProgram) + 1] = '\0';
             achProgram[7] = '\0';
-            DosExecPgm(NULL, 0,
-                       EXEC_SYNC, achProgram, (PSZ)NULL,
+            DosExecPgm(nullptr, 0,
+                       EXEC_SYNC, achProgram, (PSZ)nullptr,
                        &rescResults, achProgram);
             rc = 0; 
 
@@ -1909,7 +1909,7 @@ nsLocalFile::SetFileSize(int64_t aFileSize)
                  FILE_NORMAL,
                  OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
                  OPEN_SHARE_DENYREADWRITE | OPEN_ACCESS_READWRITE,
-                 NULL);
+                 nullptr);
 
     if (rc != NO_ERROR)
     {

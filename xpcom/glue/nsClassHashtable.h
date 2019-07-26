@@ -57,6 +57,7 @@ public:
 
 
 
+
   void RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut);
 };
 
@@ -91,7 +92,7 @@ nsClassHashtable<KeyClass,T>::Get(KeyType aKey) const
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
   if (!ent)
-    return NULL;
+    return nullptr;
 
   return ent->mData;
 }

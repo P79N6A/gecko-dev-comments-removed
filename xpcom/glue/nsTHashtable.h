@@ -265,13 +265,14 @@ public:
 
 
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
-                             mozilla::MallocSizeOf mallocSizeOf, void *userArg = NULL) const
+                             mozilla::MallocSizeOf mallocSizeOf,
+                             void *userArg = nullptr) const
   {
     if (sizeOfEntryExcludingThis) {
       s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
       return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub, mallocSizeOf, &args);
     }
-    return PL_DHashTableSizeOfExcludingThis(&mTable, NULL, mallocSizeOf);
+    return PL_DHashTableSizeOfExcludingThis(&mTable, nullptr, mallocSizeOf);
   }
 
 #ifdef DEBUG
