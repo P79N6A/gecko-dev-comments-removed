@@ -858,10 +858,6 @@ pref("toolkit.crashreporter.pluginHangSubmitURL",
      "https://hang-reports.mozilla.org/submit");
 
 
-pref("toolkit.crashreporter.infoURL",
-     "http://www.mozilla.com/legal/privacy/firefox.html#crash-reporter");
-
-
 pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
