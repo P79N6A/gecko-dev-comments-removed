@@ -789,13 +789,6 @@ public:
 
 
 
-  void DoEffects();
-  
-  
-
-
-
-
   void DoPaint();
 
   
@@ -813,6 +806,15 @@ public:
 
   static nsMargin GetBlurRadiusMargin(nscoord aBlurRadius,
                                       int32_t aAppUnitsPerDevPixel);
+
+  static void BlurRectangle(gfxContext* aDestinationCtx,
+                            const nsRect& aRect,
+                            int32_t aAppUnitsPerDevPixel,
+                            gfxCornerSizes* aCornerRadii,
+                            nscoord aBlurRadius,
+                            const gfxRGBA& aShadowColor,
+                            const nsRect& aDirtyRect,
+                            const gfxRect& aSkipRect);
 
 protected:
   gfxAlphaBoxBlur blur;

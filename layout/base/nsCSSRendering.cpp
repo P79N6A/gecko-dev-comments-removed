@@ -1085,12 +1085,8 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
 
     nsRect shadowRect = frameRect;
     shadowRect.MoveBy(shadowItem->mXOffset, shadowItem->mYOffset);
-    nscoord pixelSpreadRadius;
-    if (nativeTheme) {
-      pixelSpreadRadius = shadowItem->mSpread;
-    } else {
+    if (!nativeTheme) {
       shadowRect.Inflate(shadowItem->mSpread, shadowItem->mSpread);
-      pixelSpreadRadius = 0;
     }
 
     
@@ -1100,31 +1096,9 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     shadowRectPlusBlur.Inflate(
       nsContextBoxBlur::GetBlurRadiusMargin(blurRadius, twipsPerPixel));
 
-    gfxRect shadowGfxRect =
-      nsLayoutUtils::RectToGfxRect(shadowRect, twipsPerPixel);
     gfxRect shadowGfxRectPlusBlur =
       nsLayoutUtils::RectToGfxRect(shadowRectPlusBlur, twipsPerPixel);
-    shadowGfxRect.Round();
     shadowGfxRectPlusBlur.RoundOut();
-
-    gfxContext* renderContext = aRenderingContext.ThebesContext();
-    nsContextBoxBlur blurringArea;
-
-    
-    
-    
-    
-    gfxContext* shadowContext =
-      blurringArea.Init(shadowRect, pixelSpreadRadius,
-                        blurRadius, twipsPerPixel, renderContext, aDirtyRect,
-                        useSkipGfxRect ? &skipGfxRect : nullptr,
-                        nativeTheme ? nsContextBoxBlur::FORCE_MASK : 0);
-    if (!shadowContext)
-      continue;
-
-    
-    MOZ_ASSERT(shadowContext == renderContext ||
-               shadowContext == blurringArea.GetContext());
 
     
     nscolor shadowColor;
@@ -1136,15 +1110,34 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     gfxRGBA gfxShadowColor(shadowColor);
     gfxShadowColor.a *= aOpacity;
 
-    renderContext->Save();
-    renderContext->SetColor(gfxShadowColor);
-
-    
-    
-    
-    
-    
+    gfxContext* renderContext = aRenderingContext.ThebesContext();
     if (nativeTheme) {
+      nsContextBoxBlur blurringArea;
+
+      
+      
+      
+      
+      gfxContext* shadowContext =
+        blurringArea.Init(shadowRect, shadowItem->mSpread,
+                          blurRadius, twipsPerPixel, renderContext, aDirtyRect,
+                          useSkipGfxRect ? &skipGfxRect : nullptr,
+                          nsContextBoxBlur::FORCE_MASK);
+      if (!shadowContext)
+        continue;
+
+      
+      MOZ_ASSERT(shadowContext == blurringArea.GetContext());
+
+      renderContext->Save();
+      renderContext->SetColor(gfxShadowColor);
+
+      
+      
+      
+      
+      
+
       
       
 
@@ -1159,7 +1152,11 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
       nativeRect.IntersectRect(frameRect, aDirtyRect);
       aPresContext->GetTheme()->DrawWidgetBackground(wrapperCtx, aForFrame,
           styleDisplay->mAppearance, aFrameArea, nativeRect);
+
+      blurringArea.DoPaint();
+      renderContext->Restore();
     } else {
+      renderContext->Save();
       
       
       renderContext->NewPath();
@@ -1173,9 +1170,8 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
       renderContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
       renderContext->Clip();
 
-      shadowContext->NewPath();
+      gfxCornerSizes clipRectRadii;
       if (hasBorderRadius) {
-        gfxCornerSizes clipRectRadii;
         gfxFloat spreadDistance = shadowItem->mSpread / twipsPerPixel;
 
         gfxFloat borderSizes[4];
@@ -1187,15 +1183,19 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
 
         nsCSSBorderRenderer::ComputeOuterRadii(borderRadii, borderSizes,
             &clipRectRadii);
-        shadowContext->RoundedRectangle(shadowGfxRect, clipRectRadii);
-      } else {
-        shadowContext->Rectangle(shadowGfxRect);
+
       }
-      shadowContext->Fill();
+      nsContextBoxBlur::BlurRectangle(renderContext,
+                                      shadowRect,
+                                      twipsPerPixel,
+                                      hasBorderRadius ? &clipRectRadii : nullptr,
+                                      blurRadius,
+                                      gfxShadowColor,
+                                      aDirtyRect,
+                                      skipGfxRect);
+      renderContext->Restore();
     }
 
-    blurringArea.DoPaint();
-    renderContext->Restore();
   }
 }
 
@@ -4806,4 +4806,39 @@ nsContextBoxBlur::GetBlurRadiusMargin(nscoord aBlurRadius,
   result.bottom = blurRadius.height * aAppUnitsPerDevPixel;
   result.left   = blurRadius.width  * aAppUnitsPerDevPixel;
   return result;
+}
+
+ void
+nsContextBoxBlur::BlurRectangle(gfxContext* aDestinationCtx,
+                                const nsRect& aRect,
+                                int32_t aAppUnitsPerDevPixel,
+                                gfxCornerSizes* aCornerRadii,
+                                nscoord aBlurRadius,
+                                const gfxRGBA& aShadowColor,
+                                const nsRect& aDirtyRect,
+                                const gfxRect& aSkipRect)
+{
+  nsContextBoxBlur blur;
+  gfxContext *dest = blur.Init(aRect, 0, aBlurRadius, aAppUnitsPerDevPixel,
+                               aDestinationCtx, aDirtyRect, &aSkipRect);
+
+  if (!dest) {
+    return;
+  }
+
+  gfxRect shadowGfxRect =
+    nsLayoutUtils::RectToGfxRect(aRect, aAppUnitsPerDevPixel);
+  shadowGfxRect.Round();
+
+  aDestinationCtx->SetColor(aShadowColor);
+
+  dest->NewPath();
+  if (aCornerRadii) {
+    dest->RoundedRectangle(shadowGfxRect, *aCornerRadii);
+  } else {
+    dest->Rectangle(shadowGfxRect);
+  }
+  dest->Fill();
+
+  blur.DoPaint();
 }
