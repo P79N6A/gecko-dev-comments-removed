@@ -74,7 +74,7 @@ HTMLCanvasPrintState::~HTMLCanvasPrintState()
  JSObject*
 HTMLCanvasPrintState::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
-  return MozCanvasPrintStateBinding::Wrap(aCx, aScope, this);
+  return MozCanvasPrintStateBinding::Wrap(aCx, this);
 }
 
 nsISupports*
@@ -141,7 +141,7 @@ NS_IMPL_ELEMENT_CLONE(HTMLCanvasElement)
  JSObject*
 HTMLCanvasElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
-  return HTMLCanvasElementBinding::Wrap(aCx, aScope, this);
+  return HTMLCanvasElementBinding::Wrap(aCx, this);
 }
 
 nsIntSize

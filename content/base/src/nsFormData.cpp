@@ -103,7 +103,7 @@ nsFormData::Append(const nsAString& aName, nsIVariant* aValue)
  JSObject*
 nsFormData::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
-  return FormDataBinding::Wrap(aCx, aScope, this);
+  return FormDataBinding::Wrap(aCx, this);
 }
 
  already_AddRefed<nsFormData>
