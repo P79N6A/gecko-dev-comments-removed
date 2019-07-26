@@ -883,8 +883,6 @@ GenerateCallGetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
     
     DebugOnly<uint32_t> initialStack = masm.framePushed();
 
-    Label success, exception;
-
     attacher.pushStubCodePointer(masm);
 
     if (callNative) {
@@ -923,7 +921,7 @@ GenerateCallGetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
 
         
-        masm.branchIfFalseBool(ReturnReg, &exception);
+        masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
         masm.loadValue(
@@ -966,7 +964,7 @@ GenerateCallGetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
 
         
-        masm.branchIfFalseBool(ReturnReg, &exception);
+        masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
         masm.loadValue(
@@ -976,14 +974,6 @@ GenerateCallGetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
     
     
-    masm.jump(&success);
-
-    
-    masm.bind(&exception);
-    masm.handleException();
-
-    
-    masm.bind(&success);
     masm.storeCallResultValue(output);
 
     
@@ -1171,23 +1161,13 @@ GetPropertyIC::attachDOMProxyShadowed(JSContext *cx, IonScript *ion, JSObject *o
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::get));
 
     
-    Label exception;
-    masm.branchIfFalseBool(ReturnReg, &exception);
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
     
     masm.loadValue(
         Address(StackPointer, IonOOLProxyGetExitFrameLayout::offsetOfResult()),
         JSReturnOperand);
 
-    Label success;
-    masm.jump(&success);
-
-    
-    masm.bind(&exception);
-    masm.handleException();
-
-    
-    masm.bind(&success);
     masm.storeCallResultValue(output());
 
     
@@ -1874,8 +1854,6 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     
     DebugOnly<uint32_t> initialStack = masm.framePushed();
 
-    Label success, exception;
-
     attacher.pushStubCodePointer(masm);
 
     StrictPropertyOp target = shape->setterOp();
@@ -1918,16 +1896,7 @@ SetPropertyIC::attachSetterCall(JSContext *cx, IonScript *ion,
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target));
 
     
-    masm.branchIfFalseBool(ReturnReg, &exception);
-
-    masm.jump(&success);
-
-    
-    masm.bind(&exception);
-    masm.handleException();
-
-    
-    masm.bind(&success);
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
     
     
