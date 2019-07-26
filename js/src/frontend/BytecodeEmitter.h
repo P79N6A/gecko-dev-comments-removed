@@ -268,10 +268,6 @@ enum SrcNoteType {
 
 
     SRC_CONTINUE    = 5,        
-
-
-
-
     SRC_PCDELTA     = 7,        
 
 
