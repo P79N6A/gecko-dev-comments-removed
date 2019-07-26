@@ -561,7 +561,7 @@ const ContentPanning = {
 ContentPanning.init();
 
 
-const kMinVelocity = 0.4;
+const kMinVelocity = 0.2;
 const kMaxVelocity = 6;
 
 
@@ -591,14 +591,16 @@ const KineticPanning = {
     this.target = target;
 
     
-    let momentums = this.momentums.slice(-kSamples);
+    let momentums = this.momentums;
+    let flick = momentums[momentums.length - 1].time - momentums[0].time < 300;
+
+    
+    momentums = momentums.slice(-kSamples);
 
     let distance = new Point(0, 0);
     momentums.forEach(function(momentum) {
       distance.add(momentum.dx, momentum.dy);
     });
-
-    let elapsed = momentums[momentums.length - 1].time - momentums[0].time;
 
     function clampFromZero(x, min, max) {
       if (x >= 0)
@@ -606,12 +608,22 @@ const KineticPanning = {
       return Math.min(-min, Math.max(-max, x));
     }
 
+    let elapsed = momentums[momentums.length - 1].time - momentums[0].time;
     let velocityX = clampFromZero(distance.x / elapsed, 0, kMaxVelocity);
     let velocityY = clampFromZero(distance.y / elapsed, 0, kMaxVelocity);
 
     let velocity = this._velocity;
-    velocity.set(Math.abs(velocityX) < kMinVelocity ? 0 : velocityX,
-                 Math.abs(velocityY) < kMinVelocity ? 0 : velocityY);
+    if (flick) {
+      
+      
+      
+      
+      
+      velocity.set(velocityX, velocityY);
+    } else {
+      velocity.set(Math.abs(velocityX) < kMinVelocity ? 0 : velocityX,
+                   Math.abs(velocityY) < kMinVelocity ? 0 : velocityY);
+    }
     this.momentums = [];
 
     
