@@ -228,7 +228,7 @@ public:
 
 
   void HandleOverscroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
-                        int aOverscrollHandoffChainIndex);
+                        uint32_t aOverscrollHandoffChainIndex);
 
 protected:
   

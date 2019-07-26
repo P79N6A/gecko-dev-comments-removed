@@ -621,7 +621,7 @@ APZCTreeManager::ClearTree()
 
 void
 APZCTreeManager::HandleOverscroll(AsyncPanZoomController* aPrev, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
-                                  int aOverscrollHandoffChainIndex)
+                                  uint32_t aOverscrollHandoffChainIndex)
 {
   
   

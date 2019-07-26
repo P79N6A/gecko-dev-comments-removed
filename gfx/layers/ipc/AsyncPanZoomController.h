@@ -277,7 +277,7 @@ public:
 
 
   void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
-                     int aOverscrollHandoffChainIndex = 0);
+                     uint32_t aOverscrollHandoffChainIndex = 0);
 
   
 
