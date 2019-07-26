@@ -70,6 +70,8 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString input_, const jschar *ch
     
     RootedObject arr(cx, NewDenseCopiedArrayWithTemplate(cx, elements.length(), elements.begin(),
                                                          templateObject));
+    if (!arr)
+        return false;
 
     
     RootedValue index(cx, Int32Value(matches[0].start));
