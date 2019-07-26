@@ -2138,10 +2138,9 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     }
   }
 
-  child->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
-
-  if (childType != nsGkAtoms::placeholderFrame &&
-      aBuilder->GetSelectedFramesOnly() &&
+  NS_ASSERTION(childType != nsGkAtoms::placeholderFrame,
+               "Should have dealt with placeholders already");
+  if (aBuilder->GetSelectedFramesOnly() &&
       child->IsLeaf() &&
       !aChild->IsSelected()) {
     return;
@@ -2222,6 +2221,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   
+
+  child->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
 
   if (!pseudoStackingContext) {
     
