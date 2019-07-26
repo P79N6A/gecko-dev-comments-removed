@@ -280,7 +280,7 @@ let RIL = {
     
 
 
-    this.cardState = GECKO_CARDSTATE_UNDETECTED;
+    this.cardState = GECKO_CARDSTATE_UNINITIALIZED;
 
     
 
@@ -2988,8 +2988,9 @@ let RIL = {
     this.appType = app.app_type;
     this.iccInfo.iccType = GECKO_CARD_TYPE[this.appType];
     
-    if (this.cardState === GECKO_CARDSTATE_UNDETECTED &&
-        iccStatus.cardState === CARD_STATE_PRESENT) {
+    if (iccStatus.cardState === CARD_STATE_PRESENT &&
+        (this.cardState === GECKO_CARDSTATE_UNINITIALIZED ||
+         this.cardState === GECKO_CARDSTATE_UNDETECTED)) {
       ICCRecordHelper.readICCID();
     }
 
