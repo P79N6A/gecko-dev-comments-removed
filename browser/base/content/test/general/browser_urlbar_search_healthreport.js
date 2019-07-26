@@ -61,9 +61,10 @@ add_task(function* test_healthreport_search_recording() {
   is(newCount, oldCount + 1, "We recorded one new search.");
 
   
-  
   let oldTelemetry = Services.prefs.getBoolPref("toolkit.telemetry.enabled");
   Services.prefs.setBoolPref("toolkit.telemetry.enabled", true);
+
+  m = provider.getMeasurement("engines", 1);
   yield provider.collectDailyData();
   data = yield m.getValues();
 
