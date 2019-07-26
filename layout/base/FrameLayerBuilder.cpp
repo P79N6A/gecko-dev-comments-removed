@@ -1459,7 +1459,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
   return layer.forget();
 }
 
-#ifdef MOZ_DUMP_PAINTING
+#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
 
 
 
