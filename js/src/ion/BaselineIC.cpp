@@ -90,6 +90,16 @@ ICStub::markCode(JSTracer *trc, const char *name)
     MarkIonCodeUnbarriered(trc, &stubIonCode, name);
 }
 
+void
+ICStub::updateCode(IonCode *code)
+{
+    
+#ifdef JSGC_INCREMENTAL
+    IonCode::writeBarrierPre(ionCode());
+#endif
+    stubCode_ = code->raw();
+}
+
  void
 ICStub::trace(JSTracer *trc)
 {
