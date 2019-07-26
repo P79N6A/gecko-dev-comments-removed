@@ -99,7 +99,7 @@ MOZILLA_PKIX_ENUM_CLASS ExtensionCriticality { NotCritical = 0, Critical = 1 };
 
 
 SECItem* CreateEncodedBasicConstraints(PLArenaPool* arena, bool isCA,
-                                       long pathLenConstraint,
+                                        long* pathLenConstraint,
                                        ExtensionCriticality criticality);
 
 
