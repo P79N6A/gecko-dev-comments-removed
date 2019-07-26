@@ -122,7 +122,7 @@
     opacity: 0;
     transform: scale(0, 0);
   }
-
+  
   100% {
     opacity: 1;
     transform: scale(1, 1);
@@ -168,7 +168,7 @@ documenttab[closing] > .documenttab-container {
   font-size: @metro_font_normal@;
   width: @thumbnail_width@;
   padding: 4px @metro_spacing_snormal@ 8px;
-
+  
   background: #000;
   opacity: 0.95;
   color: #fff;
@@ -223,7 +223,7 @@ documenttab[selected] .documenttab-selection {
 }
 
 .selection-overlay {
-  pointer-events: none;
+  pointer-events: none;  
 }
 
 .selection-overlay:-moz-focusring {
@@ -731,14 +731,12 @@ setting[type="radio"] > vbox {
 }
 
 
-#start-container .meta-section {
-  
-  min-width: @grid_double_column_width@;
+#snapped-topsites-grid > richgriditem > .richgrid-item-content {
+  -moz-box-orient: horizontal;
 }
 
-#start-topsites {
-  
-  min-width: calc(3 * @grid_double_column_width@);
+[viewstate="snapped"] .canSnapTiles .richgrid-item-desc {
+ -moz-margin-start: 8px;
 }
 
 
@@ -761,8 +759,8 @@ setting[type="radio"] > vbox {
 
 #start-container[viewstate="snapped"] .meta-section {
   margin: 0px;
-  min-width: @grid_double_column_width@;
 }
+
 
 
 
