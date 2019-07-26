@@ -81,8 +81,7 @@ public:
 
     static void JoinAllSubprocesses();
 
-    static already_AddRefed<ContentParent>
-    GetNewOrUsed(bool aForBrowserElement = false);
+    static ContentParent* GetNewOrUsed(bool aForBrowserElement = false);
 
     
 
