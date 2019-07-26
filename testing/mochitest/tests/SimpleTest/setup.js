@@ -81,6 +81,10 @@ if (params.repeat) {
   TestRunner.repeat = params.repeat;
 } 
 
+if (params.runUntilFailure) {
+  TestRunner.runUntilFailure = true;
+}
+
 
 if (params.closeWhenDone) {
   TestRunner.onComplete = SpecialPowers.quit;
