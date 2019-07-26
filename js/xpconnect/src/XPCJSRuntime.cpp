@@ -1397,6 +1397,19 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
     
     RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
     nsRefPtr<nsGlobalWindow> win = WindowOrNull(global);
+    if (!win && IsSandbox(global)) {
+        
+        
+        
+        JS::Rooted<JSObject*> proto(cx);
+        if (!JS_GetPrototype(cx, global, &proto))
+            return false;
+        if (proto && IsSandboxPrototypeProxy(proto) &&
+            (proto = js::CheckedUnwrap(proto,  false)))
+        {
+            win = WindowGlobalOrNull(proto);
+        }
+    }
     if (!win)
         return true;
 
