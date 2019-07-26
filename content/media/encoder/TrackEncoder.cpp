@@ -208,15 +208,13 @@ VideoTrackEncoder::NotifyEndOfStream()
   mReentrantMonitor.NotifyAll();
 }
 
-
 void
-VideoTrackEncoder::CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer,
-                                    int aFrameWidth, int aFrameHeight)
+VideoTrackEncoder::CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer)
 {
   NS_ENSURE_TRUE_VOID(aOutputBuffer);
 
   
-  int yPlaneLen = aFrameWidth * aFrameHeight;
+  int yPlaneLen = mFrameWidth * mFrameHeight;
   int cbcrPlaneLen = yPlaneLen / 2;
   int frameLen = yPlaneLen + cbcrPlaneLen;
 

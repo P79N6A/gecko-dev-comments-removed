@@ -229,13 +229,6 @@ public:
                                 uint32_t aTrackEvents,
                                 const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
 
-  
-
-
-
-  static void CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer,
-                               int aFrameWidth, int aFrameHeight);
-
 protected:
   
 
@@ -258,6 +251,12 @@ protected:
 
 
   virtual void NotifyEndOfStream() MOZ_OVERRIDE;
+
+  
+
+
+
+  void CreateMutedFrame(nsTArray<uint8_t>* aOutputBuffer);
 
   
 
