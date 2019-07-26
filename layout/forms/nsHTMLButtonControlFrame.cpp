@@ -184,14 +184,11 @@ nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
   
   
   
-  
-  nsMargin focusPadding = mRenderer.GetAddedButtonBorderAndPadding();
-  
+
   
   
   ReflowButtonContents(aPresContext, aDesiredSize,
-                       aReflowState, firstKid,
-                       focusPadding);
+                       aReflowState, firstKid);
 
   ConsiderChildOverflow(aDesiredSize.mOverflowAreas, firstKid);
 
@@ -207,20 +204,23 @@ void
 nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                                                nsHTMLReflowMetrics& aButtonDesiredSize,
                                                const nsHTMLReflowState& aButtonReflowState,
-                                               nsIFrame* aFirstKid,
-                                               nsMargin aFocusPadding)
+                                               nsIFrame* aFirstKid)
 {
+  
+  
+  const nsMargin focusPadding = mRenderer.GetAddedButtonBorderAndPadding();
+
   nsSize availSize(aButtonReflowState.ComputedWidth(), NS_INTRINSICSIZE);
 
   
   
-  availSize.width -= aFocusPadding.LeftRight();
+  availSize.width -= focusPadding.LeftRight();
   
   
   
   
   
-  nscoord xoffset = aFocusPadding.left +
+  nscoord xoffset = focusPadding.left +
     aButtonReflowState.mComputedBorderPadding.left;
   nscoord extrawidth = GetMinWidth(aButtonReflowState.rendContext) -
     aButtonReflowState.ComputedWidth();
@@ -245,7 +245,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   ReflowChild(aFirstKid, aPresContext,
               contentsDesiredSize, contentsReflowState,
               xoffset,
-              aFocusPadding.top + aButtonReflowState.mComputedBorderPadding.top,
+              focusPadding.top + aButtonReflowState.mComputedBorderPadding.top,
               0, contentsReflowStatus);
   MOZ_ASSERT(NS_FRAME_IS_COMPLETE(contentsReflowStatus),
              "We gave button-contents frame unconstrained available height, "
@@ -260,7 +260,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     
     
     buttonContentBoxHeight =
-      contentsDesiredSize.height + aFocusPadding.TopBottom();
+      contentsDesiredSize.height + focusPadding.TopBottom();
 
     
     
@@ -276,14 +276,14 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   
   nscoord extraSpace =
-    buttonContentBoxHeight - aFocusPadding.TopBottom() -
+    buttonContentBoxHeight - focusPadding.TopBottom() -
     contentsDesiredSize.height;
 
   nscoord yoffset = std::max(0, extraSpace / 2);
 
   
   
-  yoffset += aFocusPadding.top + aButtonReflowState.mComputedBorderPadding.top;
+  yoffset += focusPadding.top + aButtonReflowState.mComputedBorderPadding.top;
 
   
   FinishReflowChild(aFirstKid, aPresContext,
