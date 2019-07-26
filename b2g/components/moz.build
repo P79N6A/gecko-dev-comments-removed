@@ -12,6 +12,7 @@ EXTRA_COMPONENTS += [
     'B2GAboutRedirector.js',
     'ContentHandler.js',
     'ContentPermissionPrompt.js',
+    'DebuggerServerController.js',
     'FilePicker.js',
     'HelperAppDialog.js',
     'MailtoProtocolHandler.js',
@@ -25,7 +26,6 @@ EXTRA_COMPONENTS += [
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
     EXTRA_COMPONENTS += [
-      'OopCommandLine.js',
       'SimulatorScreen.js'
     ]
 
