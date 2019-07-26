@@ -1740,6 +1740,15 @@ pref("layout.css.supports-rule.enabled", true);
 pref("layout.css.flexbox.enabled", true);
 
 
+
+
+#ifdef RELEASE_BUILD
+pref("layout.css.font-features.enabled", false);
+#else
+pref("layout.css.font-features.enabled", true);
+#endif
+
+
 pref("layout.css.prefixes.border-image", true);
 pref("layout.css.prefixes.transforms", true);
 pref("layout.css.prefixes.transitions", true);
