@@ -229,6 +229,28 @@ public:
 
   static TimeStamp Now() { return Now(true); }
   static TimeStamp NowLoRes() { return Now(false); }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  static TimeStamp ProcessCreation(bool& aIsInconsistent);
+
+  
+
+
+
+
+  static void RecordProcessRestart();
+
   
 
 
@@ -330,6 +352,19 @@ private:
 
 
   TimeStampValue mValue;
+
+  
+
+
+
+  static TimeStamp sFirstTimeStamp;
+
+  
+
+
+
+
+  static TimeStamp sProcessCreation;
 };
 
 }
