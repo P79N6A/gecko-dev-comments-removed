@@ -39,6 +39,18 @@ class TestAPZCContainerLayer : public ContainerLayer {
   void RepositionChild(Layer* aChild, Layer* aAfter) {}
 };
 
+class TestAsyncPanZoomController : public AsyncPanZoomController {
+public:
+  TestAsyncPanZoomController(MockContentController* mcc)
+    : AsyncPanZoomController(mcc)
+  {}
+
+  void SetFrameMetrics(const FrameMetrics& metrics) {
+    MonitorAutoLock lock(mMonitor);
+    mFrameMetrics = metrics;
+  }
+};
+
 static
 FrameMetrics TestFrameMetrics() {
   FrameMetrics fm;
@@ -90,16 +102,16 @@ void ApzcPan(AsyncPanZoomController* apzc, int& aTime, int aTouchStartY, int aTo
 TEST(AsyncPanZoomController, Constructor) {
   
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
-  apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+  apzc->SetFrameMetrics(TestFrameMetrics());
 }
 
 TEST(AsyncPanZoomController, SimpleTransform) {
   TimeStamp testStartTime = TimeStamp::Now();
   
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
-  apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+  apzc->SetFrameMetrics(TestFrameMetrics());
 
   TestAPZCContainerLayer layer;
   ScreenPoint pointOut;
@@ -131,7 +143,8 @@ TEST(AsyncPanZoomController, ComplexTransform) {
   
 
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+  nsRefPtr<TestAsyncPanZoomController> childApzc = new TestAsyncPanZoomController(mcc);
 
   const char* layerTreeSyntax = "c(c)";
   
@@ -174,39 +187,41 @@ TEST(AsyncPanZoomController, ComplexTransform) {
   
 
   
+  apzc->SetFrameMetrics(metrics);
   apzc->NotifyLayersUpdated(metrics, true);
   apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(), LayoutDeviceToScreenScale(2)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(60, 60), pointOut);
 
-  apzc->NotifyLayersUpdated(childMetrics, true);
-  apzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
+  childApzc->SetFrameMetrics(childMetrics);
+  childApzc->NotifyLayersUpdated(childMetrics, true);
+  childApzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(), LayoutDeviceToScreenScale(2)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(60, 60), pointOut);
 
   
   metrics.mScrollOffset += CSSPoint(5, 0);
-  apzc->NotifyLayersUpdated(metrics, true);
+  apzc->SetFrameMetrics(metrics);
   apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(2)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(90, 60), pointOut);
 
   childMetrics.mScrollOffset += CSSPoint(5, 0);
-  apzc->NotifyLayersUpdated(childMetrics, true);
-  apzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
+  childApzc->SetFrameMetrics(childMetrics);
+  childApzc->SampleContentTransformForFrame(testStartTime, layers[1]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(2)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(90, 60), pointOut);
 
   
   metrics.mZoom.scale *= 1.5f;
-  apzc->NotifyLayersUpdated(metrics, true);
+  apzc->SetFrameMetrics(metrics);
   apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(3)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(135, 90), pointOut);
 
   childMetrics.mZoom.scale *= 1.5f;
-  apzc->NotifyLayersUpdated(childMetrics, true);
-  apzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
+  childApzc->SetFrameMetrics(childMetrics);
+  childApzc->SampleContentTransformForFrame(testStartTime, layers[0]->AsContainerLayer(), &viewTransformOut, pointOut);
   EXPECT_EQ(ViewTransform(LayerPoint(-30, 0), LayoutDeviceToScreenScale(3)), viewTransformOut);
   EXPECT_EQ(ScreenPoint(135, 90), pointOut);
 }
@@ -216,7 +231,9 @@ TEST(AsyncPanZoomController, Pan) {
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+
+  apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_)).Times(4);
@@ -247,7 +264,9 @@ TEST(AsyncPanZoomController, Fling) {
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+
+  apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_)).Times(2);
@@ -275,7 +294,9 @@ TEST(AsyncPanZoomController, OverScrollPanning) {
   AsyncPanZoomController::SetFrameTime(testStartTime);
 
   nsRefPtr<MockContentController> mcc = new MockContentController();
-  nsRefPtr<AsyncPanZoomController> apzc = new AsyncPanZoomController(mcc);
+  nsRefPtr<TestAsyncPanZoomController> apzc = new TestAsyncPanZoomController(mcc);
+
+  apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_)).Times(3);

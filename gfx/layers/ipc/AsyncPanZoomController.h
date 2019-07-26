@@ -45,7 +45,7 @@ class ViewTransform;
 
 
 
-class AsyncPanZoomController MOZ_FINAL {
+class AsyncPanZoomController {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomController)
 
   typedef mozilla::MonitorAutoLock MonitorAutoLock;
@@ -517,9 +517,20 @@ private:
   already_AddRefed<GeckoContentController> GetGeckoContentController();
   already_AddRefed<GestureEventListener> GetGestureEventListener();
 
+protected:
   
   
   FrameMetrics mFrameMetrics;
+
+  
+  
+  
+  
+  
+  
+  Monitor mMonitor;
+
+private:
   
   
   FrameMetrics mLastContentPaintMetrics;
@@ -551,14 +562,6 @@ private:
   bool mAllowZoom;
   float mMinZoom;
   float mMaxZoom;
-
-  
-  
-  
-  
-  
-  
-  Monitor mMonitor;
 
   
   

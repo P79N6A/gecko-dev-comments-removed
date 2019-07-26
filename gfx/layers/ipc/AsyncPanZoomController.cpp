@@ -1216,8 +1216,12 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     mX.CancelTouch();
     mY.CancelTouch();
 
-    mFrameMetrics = aViewportFrame;
+    
+    
+    
+    needContentRepaint |= (mFrameMetrics.IsDefault() && !aViewportFrame.IsDefault());
 
+    mFrameMetrics = aViewportFrame;
     mState = NOTHING;
   } else if (!mFrameMetrics.mScrollableRect.IsEqualEdges(aViewportFrame.mScrollableRect)) {
     mFrameMetrics.mScrollableRect = aViewportFrame.mScrollableRect;
