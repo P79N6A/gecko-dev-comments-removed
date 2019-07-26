@@ -6,6 +6,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = ["CommonUtils"];
 
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm")
@@ -106,6 +107,19 @@ this.CommonUtils = {
       callback = callback.bind(thisObj);
     }
     Services.tm.currentThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  
+
+
+
+
+
+
+  laterTickResolvingPromise: function (value, prototype) {
+    let deferred = Promise.defer(prototype);
+    this.nextTick(deferred.resolve.bind(deferred, value));
+    return deferred.promise;
   },
 
   

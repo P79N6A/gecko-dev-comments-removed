@@ -586,7 +586,7 @@ Provider.prototype = Object.freeze({
 
 
   onInit: function () {
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   
@@ -599,7 +599,7 @@ Provider.prototype = Object.freeze({
 
 
   onShutdown: function () {
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   
@@ -611,7 +611,7 @@ Provider.prototype = Object.freeze({
 
 
   collectConstantData: function () {
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   
@@ -627,7 +627,7 @@ Provider.prototype = Object.freeze({
 
 
   collectDailyData: function () {
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   
