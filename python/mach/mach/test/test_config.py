@@ -8,15 +8,18 @@ import unittest
 
 from tempfile import NamedTemporaryFile
 
-from mozbuild.config import AbsolutePathType
-from mozbuild.config import BooleanType
-from mozbuild.config import ConfigProvider
-from mozbuild.config import ConfigSettings
-from mozbuild.config import IntegerType
-from mozbuild.config import PathType
-from mozbuild.config import PositiveIntegerType
-from mozbuild.config import RelativePathType
-from mozbuild.config import StringType
+from mach.config import (
+    AbsolutePathType,
+    BooleanType,
+    ConfigProvider,
+    ConfigSettings,
+    IntegerType,
+    PathType,
+    PositiveIntegerType,
+    RelativePathType,
+    StringType,
+)
+
 
 if sys.version_info[0] == 3:
     str_type = str
