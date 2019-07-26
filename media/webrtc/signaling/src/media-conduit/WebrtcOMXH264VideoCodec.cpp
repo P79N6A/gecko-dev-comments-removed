@@ -47,6 +47,7 @@ namespace mozilla {
 
 static const uint8_t kNALStartCode[] = { 0x00, 0x00, 0x00, 0x01 };
 enum {
+  kNALTypeIDR = 5,
   kNALTypeSPS = 7,
   kNALTypePPS = 8,
 };
@@ -324,11 +325,19 @@ public:
     memcpy(dst, aEncoded._buffer, aEncoded._length);
     int64_t inputTimeUs = (aEncoded._timeStamp * 1000ll) / 90; 
     
-    uint32_t flags = 0;
-    if (aEncoded._frameType == webrtc::kKeyFrame) {
-      int nalType = dst[sizeof(kNALStartCode)] & 0x1f;
-      flags = (nalType == kNALTypeSPS || nalType == kNALTypePPS) ?
-              MediaCodec::BUFFER_FLAG_CODECCONFIG : MediaCodec::BUFFER_FLAG_SYNCFRAME;
+    uint32_t flags;
+    int nalType = dst[sizeof(kNALStartCode)] & 0x1f;
+    switch (nalType) {
+      case kNALTypeSPS:
+      case kNALTypePPS:
+        flags = MediaCodec::BUFFER_FLAG_CODECCONFIG;
+        break;
+      case kNALTypeIDR:
+        flags = MediaCodec::BUFFER_FLAG_SYNCFRAME;
+        break;
+      default:
+        flags = 0;
+        break;
     }
     CODEC_LOGD("Decoder input: %d bytes (NAL 0x%02x), time %lld (%u), flags 0x%x",
                aEncoded._length, dst[sizeof(kNALStartCode)], inputTimeUs, aEncoded._timeStamp, flags);
@@ -555,7 +564,7 @@ public:
     : OMXOutputDrain()
     , mOMX(aOMX)
     , mCallback(aCallback)
-    , mIsPrevOutputParamSets(false)
+    , mIsPrevFrameParamSets(false)
   {}
 
 protected:
@@ -600,6 +609,7 @@ protected:
       {
         MonitorAutoLock lock(mMonitor);
 #ifdef OMX_OUTPUT_TIMESTAMPS_WORK
+        
         do {
           if (mInputFrames.empty()) {
             
@@ -635,16 +645,22 @@ protected:
       encoded._completeFrame = true;
 
       CODEC_LOGD("Encoded frame: %d bytes, %dx%d, is_param %d, is_iframe %d, timestamp %u, captureTimeMs %u",
-                 output.Length(), encoded._encodedWidth, encoded._encodedHeight,
+                 encoded._length, encoded._encodedWidth, encoded._encodedHeight,
                  isParamSets, isIFrame, encoded._timeStamp, encoded.capture_time_ms_);
       
-      SendEncodedDataToCallback(encoded, isIFrame && !mIsPrevOutputParamSets);
-      mIsPrevOutputParamSets = isParamSets;
+      SendEncodedDataToCallback(encoded, isIFrame && !mIsPrevFrameParamSets);
+      
+      
+      
+      mIsPrevFrameParamSets = isParamSets;
+      if (isParamSets) {
+        
+        mParamSets.Clear();
+        mParamSets.AppendElements(encoded._buffer, encoded._length);
+      }
     }
 
-    
-    
-    return !isParamSets;
+    return !isParamSets; 
   }
 
 private:
@@ -659,13 +675,12 @@ private:
 
     if (aPrependParamSets) {
       
-      nsTArray<uint8_t> paramSets;
-      mOMX->GetCodecConfig(&paramSets);
-      MOZ_ASSERT(paramSets.Length() > 4); 
+      MOZ_ASSERT(mParamSets.Length() > 4); 
+      nalu._length = mParamSets.Length();
+      nalu._buffer = mParamSets.Elements();
       
-      nalu._buffer = paramSets.Elements();
-      nalu._length = paramSets.Length();
-      
+      CODEC_LOGD("Prepending SPS/PPS: %d bytes, timestamp %u, captureTimeMs %u",
+                 nalu._length, nalu._timeStamp, nalu.capture_time_ms_);
       SendEncodedDataToCallback(nalu, false);
     }
 
@@ -683,7 +698,8 @@ private:
 
   OMXVideoEncoder* mOMX;
   webrtc::EncodedImageCallback* mCallback;
-  bool mIsPrevOutputParamSets;
+  bool mIsPrevFrameParamSets;
+  nsTArray<uint8_t> mParamSets;
 };
 
 
@@ -833,6 +849,9 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
         (timeSinceLastIDR < 500 && mBitRateKbps > (mBitRateAtLastIDR * 13)/10) ||
         (timeSinceLastIDR < 1000 && mBitRateKbps > (mBitRateAtLastIDR * 11)/10) ||
         (timeSinceLastIDR >= 1000 && mBitRateKbps > mBitRateAtLastIDR)) {
+      CODEC_LOGD("Requesting IDR for bitrate change from %u to %u (time since last idr %dms)",
+                 mBitRateAtLastIDR, mBitRateKbps, timeSinceLastIDR);
+
       mOMX->RequestIDRFrame();
       mLastIDRTime = now;
       mBitRateAtLastIDR = mBitRateKbps;
