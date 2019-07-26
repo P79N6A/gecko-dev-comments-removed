@@ -22,7 +22,7 @@ const PREF_BRANCH = "browser.newtab.";
 
 
 
-const PRELOADER_INTERVAL_MS = 3000;
+const PRELOADER_INTERVAL_MS = 600;
 
 
 const PRELOADER_INIT_DELAY_MS = 5000;
