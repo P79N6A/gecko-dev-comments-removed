@@ -380,7 +380,8 @@ void StreamingIndexBuffer::reserveSpace(UINT requiredSpace, GLenum type)
 
         mWritePosition = 0;
     }
-    else if (mWritePosition + requiredSpace > mBufferSize)   
+    else if (mWritePosition + requiredSpace > mBufferSize ||
+             mWritePosition + requiredSpace < mWritePosition)   
     {
         void *dummy;
         mIndexBuffer->Lock(0, 1, &dummy, D3DLOCK_DISCARD);
