@@ -3465,7 +3465,7 @@ BeginMarkPhase(JSRuntime *rt)
 }
 
 void
-MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase = gcstats::PHASE_MARK_WEAK)
+MarkWeakReferences(JSRuntime *rt, gcstats::Phase phase)
 {
     GCMarker *gcmarker = &rt->gcMarker;
     JS_ASSERT(gcmarker->isDrained());
@@ -3488,7 +3488,7 @@ MarkGrayReferences(JSRuntime *rt)
     GCMarker *gcmarker = &rt->gcMarker;
 
     {
-        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_MARK_GRAY);
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_MARK_GRAY);
         gcmarker->setMarkColorGray();
         if (gcmarker->hasBufferedGrayRoots()) {
             gcmarker->markBufferedGrayRoots();
@@ -3500,7 +3500,7 @@ MarkGrayReferences(JSRuntime *rt)
         gcmarker->drainMarkStack(budget);
     }
 
-    MarkWeakReferences(rt, gcstats::PHASE_MARK_GRAY_WEAK);
+    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_GRAY_WEAK);
 
     JS_ASSERT(gcmarker->isDrained());
 
@@ -3563,7 +3563,7 @@ ValidateIncrementalMarking(JSRuntime *rt)
     SliceBudget budget;
     rt->gcIncrementalState = MARK;
     rt->gcMarker.drainMarkStack(budget);
-    MarkWeakReferences(rt);
+    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
     MarkGrayReferences(rt);
 
     
@@ -3791,6 +3791,12 @@ MarkIncomingCrossCompartmentPointers(JSRuntime *rt, const uint32_t color)
 {
     JS_ASSERT(color == BLACK || color == GRAY);
 
+    static const gcstats::Phase statsPhases[] = {
+        gcstats::PHASE_SWEEP_MARK_INCOMING_BLACK,
+        gcstats::PHASE_SWEEP_MARK_INCOMING_GRAY
+    };
+    gcstats::AutoPhase ap1(rt->gcStats, statsPhases[color]);
+
     bool unlinkList = color == GRAY;
 
     for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
@@ -3826,42 +3832,38 @@ MarkIncomingCrossCompartmentPointers(JSRuntime *rt, const uint32_t color)
 static void
 EndMarkingCompartmentGroup(JSRuntime *rt)
 {
-    {
-        gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_MARK);
-
-        
+    
 
 
 
 
-        MarkIncomingCrossCompartmentPointers(rt, BLACK);
+    MarkIncomingCrossCompartmentPointers(rt, BLACK);
 
-        MarkWeakReferences(rt);
+    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
 
-        
+    
 
 
 
 
 
-        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT(c->isGCMarkingBlack());
-            c->setGCState(JSCompartment::MarkGray);
-        }
+    for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
+        JS_ASSERT(c->isGCMarkingBlack());
+        c->setGCState(JSCompartment::MarkGray);
+    }
 
-        
-        rt->gcMarker.setMarkColorGray();
-        MarkIncomingCrossCompartmentPointers(rt, GRAY);
-        rt->gcMarker.setMarkColorBlack();
+    
+    rt->gcMarker.setMarkColorGray();
+    MarkIncomingCrossCompartmentPointers(rt, GRAY);
+    rt->gcMarker.setMarkColorBlack();
 
-        
-        MarkGrayReferences(rt);
+    
+    MarkGrayReferences(rt);
 
-        
-        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT(c->isGCMarkingGray());
-            c->setGCState(JSCompartment::Mark);
-        }
+    
+    for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
+        JS_ASSERT(c->isGCMarkingGray());
+        c->setGCState(JSCompartment::Mark);
     }
 
 #ifdef DEBUG
@@ -3871,21 +3873,25 @@ EndMarkingCompartmentGroup(JSRuntime *rt)
 
     JS_ASSERT(rt->gcMarker.isDrained());
 
-    
+    {
+        gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_SWEEP_FIND_BLACK_GRAY);
+
+        
 
 
 
 
 
 
-    for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
-        for (WrapperMap::Enum e(c->crossCompartmentWrappers); !e.empty(); e.popFront()) {
-            Cell *dst = e.front().key.wrapped;
-            Cell *src = ToMarkable(e.front().value);
-            JS_ASSERT(src->compartment() == c);
-            if (IsCellMarked(&src) && !src->isMarked(GRAY) && dst->isMarked(GRAY)) {
-                JS_ASSERT(!dst->compartment()->isCollecting());
-                rt->gcFoundBlackGrayEdges = true;
+        for (GCCompartmentGroupIter c(rt); !c.done(); c.next()) {
+            for (WrapperMap::Enum e(c->crossCompartmentWrappers); !e.empty(); e.popFront()) {
+                Cell *dst = e.front().key.wrapped;
+                Cell *src = ToMarkable(e.front().value);
+                JS_ASSERT(src->compartment() == c);
+                if (IsCellMarked(&src) && !src->isMarked(GRAY) && dst->isMarked(GRAY)) {
+                    JS_ASSERT(!dst->compartment()->isCollecting());
+                    rt->gcFoundBlackGrayEdges = true;
+                }
             }
         }
     }
