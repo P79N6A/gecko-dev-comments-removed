@@ -101,7 +101,7 @@ private:
   bool mInUpdate;
 
   
-  nsTArray<nsCString> mGethashWhitelist;
+  nsTArray<nsCString> mGethashTables;
 
   
   static nsIThread* gDbBackgroundThread;
