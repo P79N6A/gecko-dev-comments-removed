@@ -332,11 +332,6 @@ public:
     mTestAsyncScrollOffset = aPoint;
   }
 
-  
-
-
-  bool IsPannable() const;
-
 protected:
   
   ~AsyncPanZoomController();
