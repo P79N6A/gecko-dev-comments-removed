@@ -420,6 +420,8 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
         
         rt->staticStrings.finish();
 
+        rt->finishSelfHosting();
+
         JS::PrepareForFullGC(rt);
         GC(rt, GC_NORMAL, JS::gcreason::LAST_CONTEXT);
     } else if (mode == DCM_FORCE_GC) {
