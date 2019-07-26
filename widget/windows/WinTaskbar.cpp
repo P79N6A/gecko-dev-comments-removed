@@ -242,6 +242,11 @@ bool
 WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
   
   
+  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
+    return false;
+  }
+  
+  
   bool useProfile =
     Preferences::GetBool("taskbar.grouping.useprofile", false);
   if (useProfile) {

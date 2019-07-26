@@ -22,12 +22,9 @@
 const PRUnichar* kAppShellEventId = L"nsAppShell:EventID";
 const PRUnichar* kTaskbarButtonEventId = L"TaskbarButtonCreated";
 
-
-#define NATIVE_EVENT_STARVATION_LIMIT mozilla::TimeDuration::FromSeconds(1)
-
 static UINT sMsgId;
 
-static UINT sTaskbarButtonCreatedMsg;
+UINT sTaskbarButtonCreatedMsg;
 
 
 UINT nsAppShell::GetTaskbarButtonCreatedMessage() {
@@ -240,6 +237,12 @@ nsAppShell::Run(void)
 }
 
 #endif
+
+NS_IMETHODIMP
+nsAppShell::Exit(void)
+{
+  return nsBaseAppShell::Exit();
+}
 
 void
 nsAppShell::DoProcessMoreGeckoEvents()

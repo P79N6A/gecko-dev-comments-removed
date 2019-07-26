@@ -20,14 +20,6 @@
 
 class nsWindowGfx {
 public:
-  static nsIntRect ToIntRect(const RECT& aRect)
-  {
-    return nsIntRect(aRect.left, aRect.top,
-                     aRect.right - aRect.left, aRect.bottom - aRect.top);
-  }
-
-  static nsIntRegion ConvertHRGNToRegion(HRGN aRgn);
-
   enum IconSizeType {
     kSmallIcon,
     kRegularIcon
@@ -43,4 +35,4 @@ private:
   static HBITMAP          DataToBitmap(uint8_t* aImageData, uint32_t aWidth, uint32_t aHeight, uint32_t aDepth);
 };
 
-#endif 
+#endif

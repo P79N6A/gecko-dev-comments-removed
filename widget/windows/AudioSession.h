@@ -4,6 +4,9 @@
 
 
 
+#include "nsAutoPtr.h"
+#include "nsString.h"
+
 namespace mozilla {
 namespace widget {
 

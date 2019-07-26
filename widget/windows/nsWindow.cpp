@@ -1953,7 +1953,7 @@ nsWindow::ResetLayout()
   
   RECT clientRc = {0};
   GetClientRect(mWnd, &clientRc);
-  nsIntRect evRect(nsWindowGfx::ToIntRect(clientRc));
+  nsIntRect evRect(WinUtils::ToIntRect(clientRc));
   OnResize(evRect);
 
   

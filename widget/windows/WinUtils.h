@@ -11,6 +11,8 @@
 #include <shobjidl.h>
 #include "nsAutoPtr.h"
 #include "nsString.h"
+#include "nsRegion.h"
+#include "nsRect.h"
 
 #include "nsThreadUtils.h"
 #include "nsICryptoHash.h"
@@ -201,6 +203,22 @@ public:
 
   static bool GetShellItemPath(IShellItem* aItem,
                                nsString& aResultString);
+
+  
+
+
+
+
+
+  static nsIntRegion ConvertHRGNToRegion(HRGN aRgn);
+
+  
+
+
+
+
+
+  static nsIntRect ToIntRect(const RECT& aRect);
 
 private:
   typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath,
