@@ -1826,6 +1826,11 @@ protected:
   nsSlots* mSlots;
 };
 
+inline nsIDOMNode* GetAsDOMNode(nsINode* aNode)
+{
+  return aNode ? aNode->AsDOMNode() : nullptr;
+}
+
 
 
 
