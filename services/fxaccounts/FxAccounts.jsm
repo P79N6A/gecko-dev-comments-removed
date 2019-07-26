@@ -17,11 +17,57 @@ Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
+Cu.import("resource://gre/modules/FxAccountsUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "jwcrypto",
-                                  "resource://gre/modules/identity/jwcrypto.jsm");
+  "resource://gre/modules/identity/jwcrypto.jsm");
 
-InternalMethods = function(mock) {
+
+let publicProperties = [
+  "getAccountsURI",
+  "getAssertion",
+  "getKeys",
+  "getSignedInUser",
+  "loadAndPoll",
+  "localtimeOffsetMsec",
+  "now",
+  "promiseAccountsForceSigninURI",
+  "resendVerificationEmail",
+  "setSignedInUser",
+  "signOut",
+  "version",
+  "whenVerified"
+];
+
+
+
+
+this.FxAccounts = function (mockInternal) {
+  let internal = new FxAccountsInternal();
+  let external = {};
+
+  
+  let prototype = FxAccountsInternal.prototype;
+  let options = {keys: publicProperties, bind: internal};
+  FxAccountsUtils.copyObjectProperties(prototype, external, options);
+
+  
+  if (mockInternal && !mockInternal.onlySetInternal) {
+    FxAccountsUtils.copyObjectProperties(mockInternal, internal);
+  }
+
+  if (mockInternal) {
+    
+    external.internal = internal;
+  }
+
+  return Object.freeze(external);
+}
+
+
+
+
+function FxAccountsInternal() {
   this.cert = null;
   this.keyPair = null;
   this.signedInUser = null;
@@ -49,23 +95,23 @@ InternalMethods = function(mock) {
 
   this.fxAccountsClient = new FxAccountsClient();
 
-  if (mock) { 
-    Object.keys(mock).forEach((prop) => {
-      log.debug("InternalMethods: mocking: " + prop);
-      this[prop] = mock[prop];
-    });
-  }
-  if (!this.signedInUserStorage) {
-    
-    
-    
-    this.signedInUserStorage = new JSONStorage({
-      filename: DEFAULT_STORAGE_FILENAME,
-      baseDir: OS.Constants.Path.profileDir,
-    });
-  }
+  
+  
+  this.signedInUserStorage = new JSONStorage({
+    filename: DEFAULT_STORAGE_FILENAME,
+    baseDir: OS.Constants.Path.profileDir,
+  });
 }
-InternalMethods.prototype = {
+
+
+
+
+FxAccountsInternal.prototype = {
+
+  
+
+
+  version: DATA_FORMAT_VERSION,
 
   
 
@@ -100,6 +146,125 @@ InternalMethods.prototype = {
   fetchKeys: function fetchKeys(keyFetchToken) {
     log.debug("fetchKeys: " + keyFetchToken);
     return this.fxAccountsClient.accountKeys(keyFetchToken);
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getSignedInUser: function getSignedInUser() {
+    return this.getUserAccountData().then(data => {
+      if (!data) {
+        return null;
+      }
+      if (!this.isUserEmailVerified(data)) {
+        
+        
+        
+        this.startVerifiedCheck(data);
+      }
+      return data;
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setSignedInUser: function setSignedInUser(credentials) {
+    log.debug("setSignedInUser - aborting any existing flows");
+    this.abortExistingFlow();
+
+    let record = {version: this.version, accountData: credentials};
+    
+    this.signedInUser = JSON.parse(JSON.stringify(record));
+
+    
+    
+    return this.signedInUserStorage.set(record).then(() => {
+      this.notifyObservers(ONLOGIN_NOTIFICATION);
+      if (!this.isUserEmailVerified(credentials)) {
+        this.startVerifiedCheck(credentials);
+      }
+    });
+  },
+
+  
+
+
+
+  getAssertion: function getAssertion(audience) {
+    log.debug("enter getAssertion()");
+    let mustBeValidUntil = this.now() + ASSERTION_LIFETIME;
+    return this.getUserAccountData().then(data => {
+      if (!data) {
+        
+        return null;
+      }
+      if (!this.isUserEmailVerified(data)) {
+        
+        return null;
+      }
+      return this.getKeyPair(mustBeValidUntil).then(keyPair => {
+        return this.getCertificate(data, keyPair, mustBeValidUntil)
+          .then(cert => {
+            return this.getAssertionFromCert(data, keyPair, cert, audience);
+          });
+      });
+    });
+  },
+
+  
+
+
+
+  resendVerificationEmail: function resendVerificationEmail() {
+    return this.getSignedInUser().then(data => {
+      
+      
+      
+      if (data) {
+        this.pollEmailStatus(data.sessionToken, "start");
+        return this.fxAccountsClient.resendVerificationEmail(data.sessionToken);
+      }
+      throw new Error("Cannot resend verification email; no signed-in user");
+    });
   },
 
   
@@ -179,14 +344,14 @@ InternalMethods.prototype = {
     return Task.spawn(function* task() {
       
       if (!keyFetchToken) {
-        yield internal.signOut();
+        yield this.signOut();
         return null;
       }
-      let myGenerationCount = internal.generationCount;
+      let myGenerationCount = this.generationCount;
 
-      let {kA, wrapKB} = yield internal.fetchKeys(keyFetchToken);
+      let {kA, wrapKB} = yield this.fetchKeys(keyFetchToken);
 
-      let data = yield internal.getUserAccountData();
+      let data = yield this.getUserAccountData();
 
       
       if (data.keyFetchToken !== keyFetchToken) {
@@ -208,16 +373,16 @@ InternalMethods.prototype = {
 
       
       
-      if (internal.generationCount !== myGenerationCount) {
+      if (this.generationCount !== myGenerationCount) {
         return null;
       }
 
-      yield internal.setUserAccountData(data);
+      yield this.setUserAccountData(data);
 
       
       
       
-      internal.notifyObservers(ONVERIFIED_NOTIFICATION);
+      this.notifyObservers(ONVERIFIED_NOTIFICATION);
       return data;
     }.bind(this));
   },
@@ -227,8 +392,8 @@ InternalMethods.prototype = {
     let payload = {};
     let d = Promise.defer();
     let options = {
-      localtimeOffsetMsec: internal.localtimeOffsetMsec,
-      now: internal.now()
+      localtimeOffsetMsec: this.localtimeOffsetMsec,
+      now: this.now()
     };
     
     
@@ -252,7 +417,7 @@ InternalMethods.prototype = {
       return Promise.resolve(this.cert.cert);
     }
     
-    let willBeValidUntil = internal.now() + CERT_LIFETIME;
+    let willBeValidUntil = this.now() + CERT_LIFETIME;
     return this.getCertificateSigned(data.sessionToken,
                                      keyPair.serializedPublicKey,
                                      CERT_LIFETIME)
@@ -279,7 +444,7 @@ InternalMethods.prototype = {
       return Promise.resolve(this.keyPair.keyPair);
     }
     
-    let willBeValidUntil = internal.now() + KEY_LIFETIME;
+    let willBeValidUntil = this.now() + KEY_LIFETIME;
     let d = Promise.defer();
     jwcrypto.generateKeyPair("DS160", (err, kp) => {
       if (err) {
@@ -368,18 +533,6 @@ InternalMethods.prototype = {
     return this.whenVerifiedPromise.promise;
   },
 
-  
-
-
-
-
-
-
-  resendVerificationEmail: function(data) {
-    this.pollEmailStatus(data.sessionToken, "start");
-    return this.fxAccountsClient.resendVerificationEmail(data.sessionToken);
-  },
-
   notifyObservers: function(topic) {
     log.debug("Notifying observers of " + topic);
     Services.obs.notifyObservers(null, topic, null);
@@ -445,194 +598,12 @@ InternalMethods.prototype = {
     },
 
   setUserAccountData: function(accountData) {
-    return this.signedInUserStorage.get().then((record) => {
+    return this.signedInUserStorage.get().then(record => {
       record.accountData = accountData;
       this.signedInUser = record;
       return this.signedInUserStorage.set(record)
         .then(() => accountData);
     });
-  }
-};
-
-let internal = null;
-
-
-
-
-
-
-
-
-
-
-
-this.FxAccounts = function(mockInternal) {
-  let mocks = mockInternal;
-  if (mocks && mocks.onlySetInternal) {
-    mocks = null;
-  }
-  internal = new InternalMethods(mocks);
-  if (mockInternal) {
-    
-    this.internal = internal;
-  }
-}
-this.FxAccounts.prototype = Object.freeze({
-  version: DATA_FORMAT_VERSION,
-
-  now: function() {
-    if (this.internal) {
-      return this.internal.now();
-    }
-    return internal.now();
-  },
-
-  get localtimeOffsetMsec() {
-    if (this.internal) {
-      return this.internal.localtimeOffsetMsec;
-    }
-    return internal.localtimeOffsetMsec;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  setSignedInUser: function setSignedInUser(credentials) {
-    log.debug("setSignedInUser - aborting any existing flows");
-    internal.abortExistingFlow();
-
-    let record = {version: this.version, accountData: credentials};
-    
-    internal.signedInUser = JSON.parse(JSON.stringify(record));
-
-    
-    
-    return internal.signedInUserStorage.set(record)
-      .then(() => {
-        internal.notifyObservers(ONLOGIN_NOTIFICATION);
-        if (!internal.isUserEmailVerified(credentials)) {
-          internal.startVerifiedCheck(credentials);
-        }
-      });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  getSignedInUser: function getSignedInUser() {
-    return internal.getUserAccountData()
-      .then((data) => {
-        if (!data) {
-          return null;
-        }
-        if (!internal.isUserEmailVerified(data)) {
-          
-          
-          
-          internal.startVerifiedCheck(data);
-        }
-        return data;
-      });
-  },
-
-  
-
-
-
-  resendVerificationEmail: function resendVerificationEmail() {
-    return this.getSignedInUser().then((data) => {
-      
-      
-      
-      if (data) {
-        return internal.resendVerificationEmail(data);
-      }
-      throw new Error("Cannot resend verification email; no signed-in user");
-    });
-  },
-
-  
-
-
-
-  getAssertion: function getAssertion(audience) {
-    log.debug("enter getAssertion()");
-    let mustBeValidUntil = internal.now() + ASSERTION_LIFETIME;
-    return internal.getUserAccountData()
-      .then((data) => {
-        if (!data) {
-          
-          return null;
-        }
-        if (!internal.isUserEmailVerified(data)) {
-          
-          return null;
-        }
-        return internal.getKeyPair(mustBeValidUntil)
-          .then((keyPair) => {
-            return internal.getCertificate(data, keyPair, mustBeValidUntil)
-              .then((cert) => {
-                return internal.getAssertionFromCert(data, keyPair,
-                                                     cert, audience)
-              });
-          });
-      });
-  },
-
-  getKeys: function() {
-    return internal.getKeys();
-  },
-
-  whenVerified: function(userData) {
-    return internal.whenVerified(userData);
-  },
-
-  
-
-
-
-
-
-  signOut: function signOut() {
-    return internal.signOut();
   },
 
   
@@ -661,8 +632,7 @@ this.FxAccounts.prototype = Object.freeze({
       return url + newQueryPortion;
     });
   }
-
-});
+};
 
 
 
@@ -697,8 +667,7 @@ XPCOMUtils.defineLazyGetter(this, "fxAccounts", function() {
 
   
   
-  internal.loadAndPoll();
+  a.loadAndPoll();
 
   return a;
 });
-

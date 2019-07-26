@@ -102,28 +102,23 @@ MockStorage.prototype = Object.freeze({
 
 
 
-let MockFxAccounts = function() {
-  this._getCertificateSigned_calls = [];
-  this._d_signCertificate = Promise.defer();
-  this._now_is = new Date();
-
-  let mockInternal = {
+function MockFxAccounts() {
+  return new FxAccounts({
+    _getCertificateSigned_calls: [],
+    _d_signCertificate: Promise.defer(),
+    _now_is: new Date(),
     signedInUserStorage: new MockStorage(),
-    now: () => {
+    now: function () {
       return this._now_is;
     },
-    getCertificateSigned: (sessionToken, serializedPublicKey) => {
-      _("mock getCerificateSigned\n");
+    getCertificateSigned: function (sessionToken, serializedPublicKey) {
+      _("mock getCertificateSigned\n");
       this._getCertificateSigned_calls.push([sessionToken, serializedPublicKey]);
       return this._d_signCertificate.promise;
     },
     fxAccountsClient: new MockFxAccountsClient()
-  };
-  FxAccounts.apply(this, [mockInternal]);
-};
-MockFxAccounts.prototype = {
-  __proto__: FxAccounts.prototype,
-};
+  });
+}
 
 add_test(function test_non_https_remote_server_uri() {
   Services.prefs.setCharPref(
@@ -394,15 +389,15 @@ add_task(function test_getAssertion() {
   
   let now = Date.parse("Mon, 13 Jan 2014 21:45:06 GMT");
   let start = now;
-  fxa._now_is = now;
+  fxa.internal._now_is = now;
 
   let d = fxa.getAssertion("audience.example.com");
   
   _("-- back from fxa.getAssertion\n");
-  fxa._d_signCertificate.resolve("cert1");
+  fxa.internal._d_signCertificate.resolve("cert1");
   let assertion = yield d;
-  do_check_eq(fxa._getCertificateSigned_calls.length, 1);
-  do_check_eq(fxa._getCertificateSigned_calls[0][0], "sessionToken");
+  do_check_eq(fxa.internal._getCertificateSigned_calls.length, 1);
+  do_check_eq(fxa.internal._getCertificateSigned_calls[0][0], "sessionToken");
   do_check_neq(assertion, null);
   _("ASSERTION: " + assertion + "\n");
   let pieces = assertion.split("~");
@@ -424,18 +419,18 @@ add_task(function test_getAssertion() {
   do_check_eq(exp, now + TWO_MINUTES_MS);
 
   
-  fxa._d_signCertificate = Promise.defer();
+  fxa.internal._d_signCertificate = Promise.defer();
 
   
   
   assertion = yield fxa.getAssertion("other.example.com");
 
   
-  do_check_eq(fxa._getCertificateSigned_calls.length, 1);
+  do_check_eq(fxa.internal._getCertificateSigned_calls.length, 1);
 
   
   now += ONE_HOUR_MS;
-  fxa._now_is = now;
+  fxa.internal._now_is = now;
 
   
   
@@ -462,12 +457,12 @@ add_task(function test_getAssertion() {
   
   
   now += ONE_DAY_MS;
-  fxa._now_is = now;
+  fxa.internal._now_is = now;
   d = fxa.getAssertion("fourth.example.com");
-  fxa._d_signCertificate.resolve("cert2");
+  fxa.internal._d_signCertificate.resolve("cert2");
   assertion = yield d;
-  do_check_eq(fxa._getCertificateSigned_calls.length, 2);
-  do_check_eq(fxa._getCertificateSigned_calls[1][0], "sessionToken");
+  do_check_eq(fxa.internal._getCertificateSigned_calls.length, 2);
+  do_check_eq(fxa.internal._getCertificateSigned_calls[1][0], "sessionToken");
   pieces = assertion.split("~");
   do_check_eq(pieces[0], "cert2");
   p2 = pieces[1].split(".");
