@@ -241,62 +241,95 @@ enum OwnCharsBehavior
 
 
 JS_ALWAYS_INLINE
-static JSAtom *
-AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
-              InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+static UnrootedAtom
+AtomizeAndTakeOwnership(JSContext *cx, StableCharPtr tbchars, size_t length,
+                           InternBehavior ib)
 {
-    const jschar *chars = *pchars;
+    JS_ASSERT(tbchars[length] == 0);
 
-    if (JSAtom *s = cx->runtime->staticStrings.lookup(chars, length))
+    if (UnrootedAtom s = cx->runtime->staticStrings.lookup(tbchars.get(), length)) {
+        js_free((void*)tbchars.get());
         return s;
+    }
 
-    AtomSet &atoms = cx->runtime->atoms;
-    AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(chars, length));
+    
 
+
+
+
+
+    AtomHasher::Lookup lookup(tbchars.get(), length);
+    AtomSet::AddPtr p = cx->runtime->atoms.lookupForAdd(lookup);
+    SkipRoot skipHash(cx, &p); 
     if (p) {
-        JSAtom *atom = p->asPtr();
+        UnrootedAtom atom = p->asPtr();
+        p->setTagged(bool(ib));
+        js_free((void*)tbchars.get());
+        return atom;
+    }
+
+    AutoEnterAtomsCompartment ac(cx);
+
+    UnrootedFlatString flat = js_NewString(cx, const_cast<jschar*>(tbchars.get()), length);
+    if (!flat) {
+        js_free((void*)tbchars.get());
+        return UnrootedAtom();
+    }
+
+    UnrootedAtom atom = flat->morphAtomizedStringIntoAtom();
+
+    if (!cx->runtime->atoms.relookupOrAdd(p, lookup, AtomStateEntry(atom, bool(ib)))) {
+        JS_ReportOutOfMemory(cx); 
+        return UnrootedAtom();
+    }
+
+    return atom;
+}
+
+
+JS_ALWAYS_INLINE
+static UnrootedAtom
+AtomizeAndCopyStableChars(JSContext *cx, const jschar *tbchars, size_t length, InternBehavior ib)
+{
+    if (UnrootedAtom s = cx->runtime->staticStrings.lookup(tbchars, length))
+         return s;
+
+    
+
+
+
+
+
+    AtomHasher::Lookup lookup(tbchars, length);
+    AtomSet::AddPtr p = cx->runtime->atoms.lookupForAdd(lookup);
+    SkipRoot skipHash(cx, &p); 
+    if (p) {
+        UnrootedAtom atom = p->asPtr();
         p->setTagged(bool(ib));
         return atom;
     }
 
     AutoEnterAtomsCompartment ac(cx);
 
-    SkipRoot skip(cx, &chars);
+    UnrootedFlatString flat = js_NewStringCopyN(cx, tbchars, length);
+    if (!flat)
+        return UnrootedAtom();
 
-    
-    SkipRoot skip2(cx, &p);
+    UnrootedAtom atom = flat->morphAtomizedStringIntoAtom();
 
-    JSFlatString *key;
-    if (ocb == TakeCharOwnership) {
-        key = js_NewString(cx, const_cast<jschar *>(chars), length);
-        *pchars = NULL; 
-    } else {
-        JS_ASSERT(ocb == CopyChars);
-        key = js_NewStringCopyN(cx, chars, length);
-    }
-    if (!key)
-        return NULL;
-
-    
-
-
-
-
-
-
-
-    AtomHasher::Lookup lookup(chars, length);
-    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry((JSAtom *) key, bool(ib)))) {
+    if (!cx->runtime->atoms.relookupOrAdd(p, lookup, AtomStateEntry(atom, bool(ib)))) {
         JS_ReportOutOfMemory(cx); 
-        return NULL;
+        return UnrootedAtom();
     }
 
-    return key->morphAtomizedStringIntoAtom();
+    return atom;
 }
 
-JSAtom *
-js::AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
+UnrootedAtom
+js::AtomizeString(JSContext *cx, JSString *str, js::InternBehavior ib )
 {
+    AssertCanGC();
+
     if (str->isAtom()) {
         JSAtom &atom = str->asAtom();
         
@@ -315,60 +348,53 @@ js::AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
     if (!stable)
         return NULL;
 
-    const jschar *chars = stable->chars().get();
-    size_t length = stable->length();
-    JS_ASSERT(length <= JSString::MAX_LENGTH);
-    return AtomizeInline(cx, &chars, length, ib);
+    JS_ASSERT(stable->length() <= JSString::MAX_LENGTH);
+    return AtomizeAndCopyStableChars(cx, stable->chars().get(), stable->length(), ib);
 }
 
-JSAtom *
+UnrootedAtom
 js::Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib)
 {
+    AssertCanGC();
     CHECK_REQUEST(cx);
 
     if (!JSString::validateLength(cx, length))
         return NULL;
 
-    
-
-
-
-
-
-
+    UnrootedAtom atom;
     static const unsigned ATOMIZE_BUF_MAX = 32;
-    jschar inflated[ATOMIZE_BUF_MAX];
-    size_t inflatedLength = ATOMIZE_BUF_MAX - 1;
-
-    const jschar *chars;
-    OwnCharsBehavior ocb = CopyChars;
     if (length < ATOMIZE_BUF_MAX) {
+        
+
+
+
+
+
+
+        jschar inflated[ATOMIZE_BUF_MAX];
+        size_t inflatedLength = ATOMIZE_BUF_MAX - 1;
         InflateStringToBuffer(cx, bytes, length, inflated, &inflatedLength);
-        inflated[inflatedLength] = 0;
-        chars = inflated;
+        atom = AtomizeAndCopyStableChars(cx, inflated, inflatedLength, ib);
     } else {
-        inflatedLength = length;
-        chars = InflateString(cx, bytes, &inflatedLength);
-        if (!chars)
-            return NULL;
-        ocb = TakeCharOwnership;
+        jschar *tbcharsZ = InflateString(cx, bytes, &length);
+        if (!tbcharsZ)
+            return UnrootedAtom();
+        atom = AtomizeAndTakeOwnership(cx, StableCharPtr(tbcharsZ, length), length, ib);
     }
 
-    JSAtom *atom = AtomizeInline(cx, &chars, inflatedLength, ib, ocb);
-    if (ocb == TakeCharOwnership && chars)
-        js_free((void *)chars);
     return atom;
 }
 
-JSAtom *
+UnrootedAtom
 js::AtomizeChars(JSContext *cx, const jschar *chars, size_t length, InternBehavior ib)
 {
+    AssertCanGC();
     CHECK_REQUEST(cx);
 
     if (!JSString::validateLength(cx, length))
         return NULL;
 
-    return AtomizeInline(cx, &chars, length, ib);
+    return AtomizeAndCopyStableChars(cx, chars, length, ib);
 }
 
 bool
