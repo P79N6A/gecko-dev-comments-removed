@@ -476,6 +476,12 @@ public:
   virtual void FlushRendering() { }
 
   
+
+
+
+  virtual bool NeedsWidgetInvalidation() { return true; }
+
+  
   
   
   

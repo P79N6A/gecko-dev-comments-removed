@@ -25,6 +25,7 @@
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
+#include "mozilla/layers/Compositor.h"
 
 
 
@@ -41,6 +42,8 @@
 
 
 
+
+using namespace mozilla::layers;
 
 #define NSCOORD_NONE      INT32_MIN
 
@@ -330,8 +333,14 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion)
         printf("--COMPOSITE-- %p\n", mPresShell);
       }
 #endif
-      mPresShell->Paint(aView, damageRegion,
-                        nsIPresShell::PAINT_COMPOSITE);
+      uint32_t paintFlags = nsIPresShell::PAINT_COMPOSITE;
+      LayerManager *manager = widget->GetLayerManager();
+      if (!manager->NeedsWidgetInvalidation()) {
+        manager->FlushRendering();
+      } else {
+        mPresShell->Paint(aView, damageRegion,
+                          paintFlags);
+      }
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
         printf("--ENDCOMPOSITE--\n");
