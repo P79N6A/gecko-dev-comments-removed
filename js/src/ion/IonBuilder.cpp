@@ -6264,8 +6264,11 @@ IonBuilder::jsop_getelem()
     if (ElementAccessIsDenseNative(obj, index)) {
         
         
-        if (!ElementAccessHasExtraIndexedProperty(cx, obj) || !failedBoundsCheck_)
-            return jsop_getelem_dense();
+        if (!ElementAccessHasExtraIndexedProperty(cx, obj) || !failedBoundsCheck_) {
+            MDefinition *id = current->pop();
+            MDefinition *obj = current->pop();
+            return jsop_getelem_dense(GetElem_Normal, obj, id);
+        }
     }
 
     int arrayType = TypedArray::TYPE_MAX;
@@ -6330,11 +6333,8 @@ IonBuilder::jsop_getelem()
 }
 
 bool
-IonBuilder::jsop_getelem_dense()
+IonBuilder::jsop_getelem_dense(GetElemSafety safety, MDefinition *obj, MDefinition *id)
 {
-    MDefinition *id = current->pop();
-    MDefinition *obj = current->pop();
-
     types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
 
     if (JSOp(*pc) == JSOP_CALLELEM && !id->mightBeType(MIRType_String) && types->noConstraints()) {
@@ -6351,6 +6351,7 @@ IonBuilder::jsop_getelem_dense()
     
     
     bool readOutOfBounds =
+        safety == GetElem_Normal &&
         types->hasType(types::Type::UndefinedType()) &&
         !ElementAccessHasExtraIndexedProperty(cx, obj);
 
@@ -6387,9 +6388,6 @@ IonBuilder::jsop_getelem_dense()
     if (loadDouble)
         elements = addConvertElementsToDoubles(elements);
 
-    MInitializedLength *initLength = MInitializedLength::New(elements);
-    current->add(initLength);
-
     MInstruction *load;
 
     if (!readOutOfBounds) {
@@ -6397,14 +6395,28 @@ IonBuilder::jsop_getelem_dense()
         
         
         
-        id = addBoundsCheck(id, initLength);
+        switch (safety) {
+          case GetElem_Normal: {
+              MInitializedLength *initLength = MInitializedLength::New(elements);
+              current->add(initLength);
+              id = addBoundsCheck(id, initLength);
+              break;
+          }
 
-        load = MLoadElement::New(elements, id, needsHoleCheck, loadDouble);
+          case GetElem_Unsafe: break;
+          case GetElem_UnsafeImmutable: break;
+        }
+
+        bool knownImmutable = (safety == GetElem_UnsafeImmutable);
+        load = MLoadElement::New(elements, id, needsHoleCheck, loadDouble,
+                                 knownImmutable);
         current->add(load);
     } else {
         
         
         
+        MInitializedLength *initLength = MInitializedLength::New(elements);
+        current->add(initLength);
         load = MLoadElementHole::New(elements, id, initLength, needsHoleCheck);
         current->add(load);
 

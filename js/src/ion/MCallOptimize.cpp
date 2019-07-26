@@ -90,6 +90,10 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
     
     if (native == intrinsic_UnsafeSetElement)
         return inlineUnsafeSetElement(callInfo);
+    if (native == intrinsic_UnsafeGetElement)
+        return inlineUnsafeGetElement(callInfo, GetElem_Unsafe);
+    if (native == intrinsic_UnsafeGetImmutableElement)
+        return inlineUnsafeGetElement(callInfo, GetElem_UnsafeImmutable);
     if (native == intrinsic_NewDenseArray)
         return inlineNewDenseArray(callInfo);
 
@@ -957,6 +961,7 @@ IonBuilder::inlineUnsafeSetElement(CallInfo &callInfo)
 
 
 
+
     for (uint32_t base = 0; base < argc; base += 3) {
         uint32_t arri = base + 0;
         uint32_t idxi = base + 1;
@@ -1051,6 +1056,30 @@ IonBuilder::inlineUnsafeSetTypedArrayElement(CallInfo &callInfo,
         return false;
 
     return true;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineUnsafeGetElement(CallInfo &callInfo,
+                                   GetElemSafety safety)
+{
+    JS_ASSERT(safety != GetElem_Normal);
+
+    uint32_t argc = callInfo.argc();
+    if (argc < 2 || callInfo.constructing())
+        return InliningStatus_NotInlined;
+    const uint32_t obj = 0;
+    const uint32_t index = 1;
+    if (!ElementAccessIsDenseNative(callInfo.getArg(obj),
+                                    callInfo.getArg(index)))
+        return InliningStatus_NotInlined;
+    if (ElementAccessHasExtraIndexedProperty(cx, callInfo.getArg(obj)))
+        return InliningStatus_NotInlined;
+    callInfo.unwrapArgs();
+    if (!jsop_getelem_dense(safety,
+                            callInfo.getArg(obj),
+                            callInfo.getArg(index)))
+        return InliningStatus_Error;
+    return InliningStatus_Inlined;
 }
 
 IonBuilder::InliningStatus
