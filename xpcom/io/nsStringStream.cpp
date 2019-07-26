@@ -294,7 +294,8 @@ nsStringInputStream::SetEOF()
 }
 
 void
-nsStringInputStream::Serialize(InputStreamParams& aParams)
+nsStringInputStream::Serialize(InputStreamParams& aParams,
+                               FileDescriptorArray& )
 {
     StringInputStreamParams params;
     params.data() = PromiseFlatCString(mData);
@@ -302,7 +303,8 @@ nsStringInputStream::Serialize(InputStreamParams& aParams)
 }
 
 bool
-nsStringInputStream::Deserialize(const InputStreamParams& aParams)
+nsStringInputStream::Deserialize(const InputStreamParams& aParams,
+                                 const FileDescriptorArray& )
 {
     if (aParams.type() != InputStreamParams::TStringInputStreamParams) {
         NS_ERROR("Received unknown parameters from the other process!");

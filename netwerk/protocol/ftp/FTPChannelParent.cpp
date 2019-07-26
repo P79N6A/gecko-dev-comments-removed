@@ -124,7 +124,8 @@ FTPChannelParent::DoAsyncOpen(const URIParams& aURI,
   if (NS_FAILED(rv))
     return SendFailedAsyncOpen(rv);
 
-  nsCOMPtr<nsIInputStream> upload = DeserializeInputStream(aUploadStream);
+  nsTArray<mozilla::ipc::FileDescriptor> fds;
+  nsCOMPtr<nsIInputStream> upload = DeserializeInputStream(aUploadStream, fds);
   if (upload) {
     
     rv = mChannel->SetUploadStream(upload, EmptyCString(), 0);
