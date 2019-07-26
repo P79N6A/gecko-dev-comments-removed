@@ -37,12 +37,19 @@ function checkPreferences(prefsWin) {
   });
 }
 
+function checkInContentPreferences(win) {
+  let sel = win.history.state;
+  let doc = win.document;
+  let tab = doc.getElementById("advancedPrefs").selectedTab.id;
+  is(gBrowser.currentURI.spec, "about:preferences", "about:preferences loaded");
+  is(sel, "paneAdvanced", "Advanced pane was selected");
+  is(tab, "networkTab", "Network tab is selected");
+  
+  win.close();
+  finish();
+}
+
 function test() {
-  if (Services.prefs.getBoolPref("browser.preferences.inContent")) {
-    
-    todo(false, "Bug 881576 - this test needs to be updated for inContent prefs");
-    return;
-  }
   waitForExplicitFinish();
   gBrowser.selectedBrowser.addEventListener("load", function onload() {
     gBrowser.selectedBrowser.removeEventListener("load", onload, true);
@@ -55,13 +62,22 @@ function test() {
         
         
         
-        Services.ww.registerNotification(function wwobserver(aSubject, aTopic, aData) {
-          if (aTopic != "domwindowopened")
-            return;
-          Services.ww.unregisterNotification(wwobserver);
-          checkPreferences(aSubject);
-        });
+        if (!Services.prefs.getBoolPref("browser.preferences.inContent")) {
+          Services.ww.registerNotification(function wwobserver(aSubject, aTopic, aData) {
+            if (aTopic != "domwindowopened")
+              return;
+            Services.ww.unregisterNotification(wwobserver);
+            checkPreferences(aSubject);
+          });
+        }
         PopupNotifications.panel.firstElementChild.button.click();
+        if (Services.prefs.getBoolPref("browser.preferences.inContent")) {
+          let newTabBrowser = gBrowser.getBrowserForTab(gBrowser.selectedTab);
+          newTabBrowser.addEventListener("Initialized", function PrefInit() {
+            newTabBrowser.removeEventListener("Initialized", PrefInit, true);
+            checkInContentPreferences(newTabBrowser.contentWindow);
+          }, true);
+        }
       });
     };
     Services.prefs.setIntPref("offline-apps.quota.warn", 1);
