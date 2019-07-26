@@ -1110,41 +1110,51 @@ public class GeckoAppShell
         return intent;
     }
 
-    static SynchronousQueue<String> sClipboardQueue =
-        new SynchronousQueue<String>();
+    
+
+
+    @SuppressWarnings("deprecation")
+    private static String getClipboardTextImpl() {
+        Context context = GeckoApp.mAppContext;
+        if (android.os.Build.VERSION.SDK_INT >= 11) {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm.hasPrimaryClip()) {
+                ClipData clip = cm.getPrimaryClip();
+                if (clip != null) {
+                    ClipData.Item item = clip.getItemAt(0);
+                    return item.coerceToText(context).toString();
+                }
+            }
+        } else {
+            android.text.ClipboardManager cm = (android.text.ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm.hasText()) {
+                return cm.getText().toString();
+            }
+        }
+        return null;
+    }
+
+    private static SynchronousQueue<String> sClipboardQueue = new SynchronousQueue<String>();
     private static String EMPTY_STRING = new String();
 
-    
-    
-    
-    
     static String getClipboardText() {
-        ThreadUtils.postToBackgroundThread(new Runnable() {
+        
+        
+        
+
+        if (ThreadUtils.isOnUiThread() || ThreadUtils.isOnBackgroundThread()) {
+            return getClipboardTextImpl();
+        }
+
+        ThreadUtils.postToBackgroundThread(new Runnable() { 
             @Override
-            @SuppressWarnings("deprecation")
             public void run() {
-                Context context = GeckoApp.mAppContext;
-                String text = null;
-                if (android.os.Build.VERSION.SDK_INT >= 11) {
-                    android.content.ClipboardManager cm = (android.content.ClipboardManager)
-                        context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (cm.hasPrimaryClip()) {
-                        ClipData clip = cm.getPrimaryClip();
-                        if (clip != null) {
-                            ClipData.Item item = clip.getItemAt(0);
-                            text = item.coerceToText(context).toString();
-                        }
-                    }
-                } else {
-                    android.text.ClipboardManager cm = (android.text.ClipboardManager)
-                        context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (cm.hasText())
-                        text = cm.getText().toString();
-                }
+                String text = getClipboardTextImpl();
                 try {
                     sClipboardQueue.put(text != null ? text : EMPTY_STRING);
                 } catch (InterruptedException ie) {}
-            }});
+            }
+        });
         try {
             String ret = sClipboardQueue.take();
             return (EMPTY_STRING.equals(ret) ? null : ret);
@@ -1167,7 +1177,8 @@ public class GeckoAppShell
                         context.getSystemService(Context.CLIPBOARD_SERVICE);
                     cm.setText(text);
                 }
-            }});
+            }
+        });
     }
 
     public static void setNotificationClient(NotificationClient client) {
