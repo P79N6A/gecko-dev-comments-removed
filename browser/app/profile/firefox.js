@@ -58,7 +58,7 @@ pref("extensions.update.autoUpdateDefault", true);
 
 pref("extensions.hotfix.id", "firefox-hotfix@mozilla.org");
 pref("extensions.hotfix.cert.checkAttributes", true);
-pref("extensions.hotfix.certs.1.sha1Fingerprint", "91:53:98:0C:C1:86:DF:47:8F:35:22:9E:11:C9:A7:31:04:49:A1:AA");
+pref("extensions.hotfix.certs.1.sha1Fingerprint", "CA:C4:7D:BF:63:4D:24:E9:DC:93:07:2F:E3:C8:EA:6D:C3:94:6E:89");
 
 
 
@@ -100,14 +100,6 @@ pref("app.update.backgroundMaxErrors", 10);
 
 
 
-#ifdef XP_WIN
-pref("app.update.cert.requireBuiltIn", false);
-pref("app.update.cert.checkAttributes", false);
-#else
-
-
-
-
 pref("app.update.cert.requireBuiltIn", true);
 
 
@@ -136,23 +128,11 @@ pref("app.update.cert.maxErrors", 5);
 
 
 
-
-
-
-#ifndef RELEASE_BUILD
-pref("app.update.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
-pref("app.update.certs.1.commonName", "aus4.mozilla.org");
-
-pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
-pref("app.update.certs.2.commonName", "aus4.mozilla.org");
-#else
-pref("app.update.certs.1.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
+pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
 pref("app.update.certs.1.commonName", "aus3.mozilla.org");
 
-pref("app.update.certs.2.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
+pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
 pref("app.update.certs.2.commonName", "aus3.mozilla.org");
-#endif
-#endif
 
 
 pref("app.update.enabled", true);
@@ -182,11 +162,7 @@ pref("app.update.silent", false);
 pref("app.update.staging.enabled", true);
 
 
-#ifndef RELEASE_BUILD
-pref("app.update.url", "https://aus4.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
-#else
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
-#endif
 
 
 
@@ -241,13 +217,6 @@ pref("xpinstall.whitelist.add", "addons.mozilla.org");
 pref("xpinstall.whitelist.add.180", "marketplace.firefox.com");
 
 pref("lightweightThemes.update.enabled", true);
-
-
-pref("browser.uitour.enabled", true);
-pref("browser.uitour.requireSecure", true);
-pref("browser.uitour.themeOrigin", "https://addons.mozilla.org/%LOCALE%/firefox/themes/");
-pref("browser.uitour.pinnedTabUrl", "https://support.mozilla.org/%LOCALE%/kb/pinned-tabs-keep-favorite-websites-open");
-pref("browser.uitour.whitelist.add.260", "www.mozilla.org,support.mozilla.org");
 
 pref("keyword.enabled", true);
 
@@ -352,9 +321,25 @@ pref("browser.download.debug", false);
 pref("browser.download.saveLinkAsFilenameTimeout", 4000);
 
 pref("browser.download.useDownloadDir", true);
+
 pref("browser.download.folderList", 1);
+pref("browser.download.manager.showAlertOnComplete", true);
+pref("browser.download.manager.showAlertInterval", 2000);
+pref("browser.download.manager.retention", 2);
+pref("browser.download.manager.showWhenStarting", true);
+pref("browser.download.manager.closeWhenDone", false);
+pref("browser.download.manager.focusWhenStarting", false);
+pref("browser.download.manager.flashCount", 2);
 pref("browser.download.manager.addToRecentDocs", true);
+pref("browser.download.manager.quitBehavior", 0);
+pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
+
+
+pref("browser.download.useJSTransfer", true);
+
+
+pref("browser.download.useToolkitUI", false);
 
 
 
@@ -363,9 +348,9 @@ pref("browser.download.animateNotifications", true);
 
 pref("browser.download.panel.shown", false);
 
-#ifndef XP_MACOSX
-pref("browser.helperApps.deleteTempFileOnExit", true);
-#endif
+
+
+pref("browser.download.panel.firstSessionCompleted", false);
 
 
 pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
@@ -444,10 +429,11 @@ pref("browser.tabs.loadDivertedInBackground", false);
 pref("browser.tabs.loadBookmarksInBackground", false);
 pref("browser.tabs.tabClipWidth", 140);
 pref("browser.tabs.animate", true);
-#ifdef UNIX_BUT_NOT_MAC
-pref("browser.tabs.drawInTitlebar", false);
-#else
+pref("browser.tabs.onTop", true);
+#ifdef XP_WIN
 pref("browser.tabs.drawInTitlebar", true);
+#else
+pref("browser.tabs.drawInTitlebar", false);
 #endif
 
 
@@ -655,19 +641,6 @@ pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
 
-#ifdef RELEASE_BUILD
-
-
-pref("plugin.default.state", 2);
-#else
-pref("plugin.default.state", 1);
-#endif
-
-
-
-pref("plugin.state.flash", 2);
-pref("plugin.state.java", 1);
-
 
 pref("plugins.notifyMissingFlash", true);
 
@@ -790,7 +763,7 @@ pref("browser.safebrowsing.enabled", true);
 pref("browser.safebrowsing.malware.enabled", true);
 pref("browser.safebrowsing.debug", false);
 
-pref("browser.safebrowsing.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2&apikey=%GOOGLE_API_KEY%");
+pref("browser.safebrowsing.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 pref("browser.safebrowsing.keyURL", "https://sb-ssl.google.com/safebrowsing/newkey?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 pref("browser.safebrowsing.gethashURL", "http://safebrowsing.clients.google.com/safebrowsing/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 pref("browser.safebrowsing.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/report?");
@@ -800,9 +773,13 @@ pref("browser.safebrowsing.reportPhishURL", "http://%LOCALE%.phish-report.mozill
 pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mozilla.com/?hl=%LOCALE%");
 pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
 
+pref("browser.safebrowsing.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/phishing-protection/");
 pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
+
+
+
 #ifndef MOZILLA_OFFICIAL
-pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download&apikey=%GOOGLE_API_KEY%");
+pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download");
 #endif
 
 #ifdef MOZILLA_OFFICIAL
@@ -819,12 +796,12 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
+pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
+
+
 
 
 pref("urlclassifier.max-complete-age", 2700);
-
-pref("urlclassifier.download_block_table", "goog-badbinurl-shavar");
-pref("urlclassifier.download_allow_table", "goog-downloadwhite-digest256");
 #endif
 
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
@@ -875,8 +852,6 @@ pref("browser.sessionstore.restore_pinned_tabs_on_demand", false);
 pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
 
 pref("browser.sessionstore.debug", false);
-
-pref("browser.sessionstore.async", true);
 
 
 pref("accessibility.blockautorefresh", false);
@@ -1017,6 +992,10 @@ pref("services.sync.prefs.sync.addons.ignoreUserEnabledChanges", true);
 
 
 pref("services.sync.prefs.sync.app.update.mode", true);
+pref("services.sync.prefs.sync.browser.download.manager.closeWhenDone", true);
+pref("services.sync.prefs.sync.browser.download.manager.retention", true);
+pref("services.sync.prefs.sync.browser.download.manager.scanWhenDone", true);
+pref("services.sync.prefs.sync.browser.download.manager.showWhenStarting", true);
 pref("services.sync.prefs.sync.browser.formfill.enable", true);
 pref("services.sync.prefs.sync.browser.link.open_newwindow", true);
 pref("services.sync.prefs.sync.browser.offline-apps.notify", true);
@@ -1084,31 +1063,25 @@ pref("devtools.gcli.allowSet", false);
 pref("devtools.commands.dir", "");
 
 
-pref("devtools.appmanager.enabled", true);
-pref("devtools.appmanager.lastTab", "help");
-pref("devtools.appmanager.manifestEditor.enabled", true);
-
-
 pref("devtools.toolbox.footer.height", 250);
 pref("devtools.toolbox.sidebar.width", 500);
 pref("devtools.toolbox.host", "bottom");
 pref("devtools.toolbox.selectedTool", "webconsole");
-pref("devtools.toolbox.toolbarSpec", '["splitconsole", "paintflashing toggle","tilt toggle","scratchpad","resize toggle"]');
+pref("devtools.toolbox.toolbarSpec", '["paintflashing toggle","tilt toggle","scratchpad","resize toggle"]');
 pref("devtools.toolbox.sideEnabled", true);
-pref("devtools.toolbox.zoomValue", "1");
 
 
 pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
 pref("devtools.inspector.remote", false);
-pref("devtools.inspector.show_pseudo_elements", true);
 
 
-pref("devtools.defaultColorUnit", "hex");
+pref("devtools.layoutview.enabled", true);
+pref("devtools.layoutview.open", false);
 
 
-pref("devtools.responsiveUI.no-reload-notification", false);
+pref("devtools.responsiveUI.enabled", true);
 
 
 pref("devtools.debugger.enabled", true);
@@ -1118,10 +1091,7 @@ pref("devtools.debugger.chrome-debugging-port", 6080);
 pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-timeout", 20000);
 pref("devtools.debugger.pause-on-exceptions", false);
-pref("devtools.debugger.ignore-caught-exceptions", true);
 pref("devtools.debugger.source-maps-enabled", true);
-pref("devtools.debugger.pretty-print-enabled", true);
-pref("devtools.debugger.tracer", false);
 
 
 pref("devtools.debugger.ui.panes-sources-width", 200);
@@ -1150,16 +1120,16 @@ pref("devtools.tilt.intro_transition", true);
 pref("devtools.tilt.outro_transition", true);
 
 
+pref("devtools.scratchpad.enabled", true);
+
+
 
 
 pref("devtools.scratchpad.recentFilesMax", 10);
 
 
 pref("devtools.styleeditor.enabled", true);
-pref("devtools.styleeditor.source-maps-enabled", false);
-
-
-pref("devtools.shadereditor.enabled", false);
+pref("devtools.styleeditor.transitions", true);
 
 
 pref("devtools.chrome.enabled", false);
@@ -1178,8 +1148,7 @@ pref("devtools.webconsole.filter.network", true);
 pref("devtools.webconsole.filter.networkinfo", true);
 pref("devtools.webconsole.filter.netwarn", true);
 pref("devtools.webconsole.filter.csserror", true);
-pref("devtools.webconsole.filter.cssparser", false);
-pref("devtools.webconsole.filter.csslog", false);
+pref("devtools.webconsole.filter.cssparser", true);
 pref("devtools.webconsole.filter.exception", true);
 pref("devtools.webconsole.filter.jswarn", true);
 pref("devtools.webconsole.filter.jslog", true);
@@ -1196,7 +1165,6 @@ pref("devtools.browserconsole.filter.networkinfo", true);
 pref("devtools.browserconsole.filter.netwarn", true);
 pref("devtools.browserconsole.filter.csserror", true);
 pref("devtools.browserconsole.filter.cssparser", true);
-pref("devtools.browserconsole.filter.csslog", false);
 pref("devtools.browserconsole.filter.exception", true);
 pref("devtools.browserconsole.filter.jswarn", true);
 pref("devtools.browserconsole.filter.jslog", true);
@@ -1217,11 +1185,6 @@ pref("devtools.webconsole.persistlog", false);
 
 
 
-
-pref("devtools.webconsole.timestampMessages", false);
-
-
-
 pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
 pref("devtools.hud.loglimit.exception", 200);
@@ -1232,6 +1195,14 @@ pref("devtools.hud.loglimit.console", 200);
 
 pref("devtools.editor.tabsize", 4);
 pref("devtools.editor.expandtab", true);
+
+
+
+
+
+
+
+pref("devtools.editor.component", "orion");
 
 
 pref("devtools.fontinspector.enabled", true);
@@ -1289,11 +1260,6 @@ pref("pdfjs.firstRun", true);
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
-#ifdef NIGHTLY_BUILD
-
-pref("shumway.disabled", true);
-#endif
-
 
 
 
@@ -1329,7 +1295,5 @@ pref("geo.wifi.uri", "https://www.googleapis.com/geolocation/v1/geolocate?key=%G
 pref("network.disable.ipc.security", true);
 
 
-pref("browser.uiCustomization.debug", false);
 
-
-pref("identity.fxaccounts.auth.uri", "https://api-accounts.dev.lcip.org/v1");
+pref("firefox.accounts.remoteUrl", "http://accounts.dev.lcip.org/flow");
