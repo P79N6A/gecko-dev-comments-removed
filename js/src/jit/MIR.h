@@ -513,6 +513,10 @@ class MDefinition : public MNode
     
     bool hasOneDefUse() const;
 
+    
+    
+    bool hasDefUses() const;
+
     bool hasUses() const {
         return !uses_.empty();
     }
@@ -530,11 +534,6 @@ class MDefinition : public MNode
     
     
     virtual bool updateForReplacement(MDefinition *ins) {
-        return true;
-    }
-
-    
-    virtual bool updateForFolding(MDefinition *ins) {
         return true;
     }
 

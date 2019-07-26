@@ -52,13 +52,13 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
         return def;
 
     MDefinition *ins = def->foldsTo(alloc(), useValueNumbers);
-
-    if (ins == def || !ins->updateForFolding(def))
+    if (ins == def)
         return def;
 
     
     if (!ins->valueNumberData())
         ins->setValueNumberData(new(alloc()) ValueNumberData);
+
     if (!ins->block()) {
         
         
@@ -85,7 +85,7 @@ ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
         return def;
 
     MDefinition *repl = def->foldsTo(alloc(), false);
-    if (repl == def || !repl->updateForFolding(def))
+    if (repl == def)
         return def;
 
     
@@ -246,6 +246,15 @@ ValueNumberer::computeValueNumbers()
                     continue;
                 }
 
+                
+                
+                
+                
+                if (!ins->hasDefUses() && (!ins->isMovable() || ins->isEffectful())) {
+                    iter++;
+                    continue;
+                }
+
                 uint32_t value = lookupValue(ins);
 
                 if (!value)
@@ -286,7 +295,8 @@ ValueNumberer::computeValueNumbers()
     for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
         for (MDefinitionIterator iter(*block); iter; iter++) {
             JS_ASSERT(!iter->isInWorklist());
-            JS_ASSERT(iter->valueNumber() != 0);
+            JS_ASSERT_IF(iter->valueNumber() == 0,
+                         !iter->hasDefUses() && (!iter->isMovable() || iter->isEffectful()));
         }
     }
 #endif
