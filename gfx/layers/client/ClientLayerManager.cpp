@@ -109,7 +109,6 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   ScreenOrientation orientation;
-  nsIntRect clientBounds;
   if (TabChild* window = mWidget->GetOwningTabChild()) {
     orientation = window->GetOrientation();
   } else {
@@ -117,7 +116,9 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
     hal::GetCurrentScreenConfiguration(&currentConfig);
     orientation = currentConfig.orientation();
   }
+  nsIntRect clientBounds;
   mWidget->GetClientBounds(clientBounds);
+  clientBounds.x = clientBounds.y = 0;
   ShadowLayerForwarder::BeginTransaction(mTargetBounds, mTargetRotation, clientBounds, orientation);
 
   

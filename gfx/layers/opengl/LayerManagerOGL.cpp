@@ -786,6 +786,7 @@ LayerManagerOGL::Render()
       
       
       mWidget->GetClientBounds(rect);
+      rect.x = rect.y = 0;
     }
   }
   WorldTransformRect(rect);

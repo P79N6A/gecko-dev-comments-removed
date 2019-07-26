@@ -777,7 +777,7 @@ CompositorOGL::BeginFrame(const Rect *aClipRectIn, const gfxMatrix& aTransform,
       
       nsIntRect intRect;
       mWidget->GetClientBounds(intRect);
-      rect = gfxRect(intRect.x, intRect.y, intRect.width, intRect.height);
+      rect = gfxRect(0, 0, intRect.width, intRect.height);
     }
   }
 
