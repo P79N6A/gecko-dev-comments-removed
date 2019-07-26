@@ -82,7 +82,7 @@ class JavaPanZoomController
         WAITING_LISTENERS, 
 
 
-        AUTOSCROLL,     
+        AUTONAV,        
 
 
     }
@@ -366,7 +366,7 @@ class JavaPanZoomController
             mTarget.forceRedraw();
             
         case FLING:
-        case AUTOSCROLL:
+        case AUTONAV:
         case BOUNCE:
         case NOTHING:
         case WAITING_LISTENERS:
@@ -389,7 +389,7 @@ class JavaPanZoomController
 
         switch (mState) {
         case FLING:
-        case AUTOSCROLL:
+        case AUTONAV:
         case BOUNCE:
         case WAITING_LISTENERS:
             
@@ -437,7 +437,7 @@ class JavaPanZoomController
 
         switch (mState) {
         case FLING:
-        case AUTOSCROLL:
+        case AUTONAV:
         case BOUNCE:
         case WAITING_LISTENERS:
             
@@ -520,7 +520,7 @@ class JavaPanZoomController
         float velocityY = normalizeJoystick(event.getY(0), event.getDevice().getMotionRange(MotionEvent.AXIS_Y));
 
         if (velocityX == 0 && velocityY == 0) {
-            if (mState == PanZoomState.AUTOSCROLL) {
+            if (mState == PanZoomState.AUTONAV) {
                 bounce(); 
                 return true;
             }
@@ -528,10 +528,10 @@ class JavaPanZoomController
         }
 
         if (mState == PanZoomState.NOTHING) {
-            setState(PanZoomState.AUTOSCROLL);
-            startAnimationTimer(new AutoscrollRunnable());
+            setState(PanZoomState.AUTONAV);
+            startAnimationTimer(new AutonavRunnable());
         }
-        if (mState == PanZoomState.AUTOSCROLL) {
+        if (mState == PanZoomState.AUTONAV) {
             mX.setAutoscrollVelocity(velocityX);
             mY.setAutoscrollVelocity(velocityY);
             return true;
@@ -746,10 +746,10 @@ class JavaPanZoomController
         }
     }
 
-    private class AutoscrollRunnable extends AnimationRunnable {
+    private class AutonavRunnable extends AnimationRunnable {
         @Override
         protected void animateFrame() {
-            if (mState != PanZoomState.AUTOSCROLL) {
+            if (mState != PanZoomState.AUTONAV) {
                 finishAnimation();
                 return;
             }
