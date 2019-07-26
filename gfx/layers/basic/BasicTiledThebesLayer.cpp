@@ -329,49 +329,44 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
     
     
-    
-    
-    
-    
+    NS_ASSERTION(!regionToPaint.IsEmpty(), "Unexpectedly empty paint region!");
+    nsIntRect paintBounds = regionToPaint.GetBounds();
 
-    
-    
-    
-    
-    nsIntRegionRectIterator it(regionToPaint);
-    const nsIntRect* rect;
-    if ((NS_ABS(scrollDiffY) > NS_ABS(scrollDiffX) && scrollDiffY >= 0)) {
-      rect = it.Next();
-    } else {
-      const nsIntRect* lastRect;
-      while ((lastRect = it.Next())) {
-        rect = lastRect;
-      }
-    }
-
-    
-    
-    
-    
-    int paintTileStartX, paintTileStartY;
+    int startX, incX, startY, incY;
     if (scrollOffset.x >= mLastScrollOffset.x) {
-      paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->x);
+      startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.x);
+      incX = mTiledBuffer.GetTileLength();
     } else {
-      paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->XMost() - 1);
+      startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.XMost() - 1);
+      incX = -mTiledBuffer.GetTileLength();
     }
 
     if (scrollOffset.y >= mLastScrollOffset.y) {
-      paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->y);
+      startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.y);
+      incY = mTiledBuffer.GetTileLength();
     } else {
-      paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->YMost() - 1);
+      startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.YMost() - 1);
+      incY = -mTiledBuffer.GetTileLength();
     }
 
-    nsIntRegion maxPaint(
-      nsIntRect(paintTileStartX, paintTileStartY,
-                mTiledBuffer.GetTileLength(), mTiledBuffer.GetTileLength()));
-
     
-    regionToPaint.And(invalidRegion, maxPaint);
+    nsIntRect tileBounds(startX, startY,
+                         mTiledBuffer.GetTileLength(),
+                         mTiledBuffer.GetTileLength());
+    
+    
+    
+    while (true) {
+      regionToPaint.And(invalidRegion, tileBounds);
+      if (!regionToPaint.IsEmpty()) {
+        break;
+      }
+      if (NS_ABS(scrollDiffY) >= NS_ABS(scrollDiffX)) {
+        tileBounds.x += incX;
+      } else {
+        tileBounds.y += incY;
+      }
+    }
 
     if (!regionToPaint.Contains(invalidRegion)) {
       
