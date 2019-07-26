@@ -1209,8 +1209,10 @@ Promise::RunResolveTask(JS::Handle<JS::Value> aValue,
     mFeature = new PromiseReportRejectFeature(this);
     if (NS_WARN_IF(!worker->AddFeature(worker->GetJSContext(), mFeature))) {
       
+      mFeature = nullptr;
       
-      MaybeReportRejected();
+      
+      MaybeReportRejectedOnce();
     }
   }
 
