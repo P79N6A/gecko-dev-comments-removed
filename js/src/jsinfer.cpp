@@ -827,7 +827,7 @@ TypeObjectKey::unknownProperties()
 }
 
 HeapTypeSetKey
-TypeObjectKey::property(jsid id, JSContext *maybecx )
+TypeObjectKey::property(jsid id)
 {
     JS_ASSERT(!unknownProperties());
 
@@ -837,22 +837,24 @@ TypeObjectKey::property(jsid id, JSContext *maybecx )
     if (TypeObject *type = maybeType())
         property.maybeTypes_ = type->maybeGetProperty(id);
 
+    return property;
+}
+
+void
+TypeObjectKey::ensureTrackedProperty(JSContext *cx, jsid id)
+{
 #ifdef JS_ION
     
     
     
-    if (maybecx && !property.maybeTypes() && !JSID_IS_VOID(id) && !JSID_IS_EMPTY(id)) {
-        JS_ASSERT(CurrentThreadCanAccessRuntime(maybecx->runtime()));
-        JSObject *singleton = isSingleObject() ? asSingleObject() : asTypeObject()->singleton;
-        if (singleton && singleton->isNative() && singleton->nativeLookupPure(id)) {
-            EnsureTrackPropertyTypes(maybecx, singleton, id);
-            if (TypeObject *type = maybeType())
-                property.maybeTypes_ = type->maybeGetProperty(id);
+    if (!JSID_IS_VOID(id) && !JSID_IS_EMPTY(id)) {
+        JS_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
+        if (JSObject *obj = singleton()) {
+            if (obj->isNative() && obj->nativeLookupPure(id))
+                EnsureTrackPropertyTypes(cx, obj, id);
         }
     }
 #endif 
-
-    return property;
 }
 
 bool
