@@ -2542,66 +2542,67 @@ nsHTMLEditor::GetSelectedElement(const nsAString& aTagName, nsIDOMElement** aRet
   return res;
 }
 
+already_AddRefed<Element>
+nsHTMLEditor::CreateElementWithDefaults(const nsAString& aTagName)
+{
+  MOZ_ASSERT(!aTagName.IsEmpty());
+
+  nsAutoString tagName(aTagName);
+  ToLowerCase(tagName);
+  nsAutoString realTagName;
+
+  if (IsLinkTag(tagName) || IsNamedAnchorTag(tagName)) {
+    realTagName.AssignLiteral("a");
+  } else {
+    realTagName = tagName;
+  }
+  
+  
+
+  
+  ErrorResult rv;
+  nsCOMPtr<dom::Element> newElement = CreateHTMLContent(realTagName, rv);
+  if (rv.Failed() || !newElement) {
+    return nullptr;
+  }
+
+  
+  newElement->SetAttribute(NS_LITERAL_STRING("_moz_dirty"), EmptyString(), rv);
+
+  
+  if (tagName.EqualsLiteral("table")) {
+    newElement->SetAttribute(NS_LITERAL_STRING("cellpadding"),
+                             NS_LITERAL_STRING("2"), rv);
+    NS_ENSURE_SUCCESS(rv.ErrorCode(), nullptr);
+    newElement->SetAttribute(NS_LITERAL_STRING("cellspacing"),
+                             NS_LITERAL_STRING("2"), rv);
+    NS_ENSURE_SUCCESS(rv.ErrorCode(), nullptr);
+    newElement->SetAttribute(NS_LITERAL_STRING("border"),
+                             NS_LITERAL_STRING("1"), rv);
+    NS_ENSURE_SUCCESS(rv.ErrorCode(), nullptr);
+  } else if (tagName.EqualsLiteral("td")) {
+    nsresult res = SetAttributeOrEquivalent(
+        static_cast<nsIDOMElement*>(newElement->AsDOMNode()),
+        NS_LITERAL_STRING("valign"), NS_LITERAL_STRING("top"), true);
+    NS_ENSURE_SUCCESS(res, nullptr);
+  }
+  
+
+  return newElement.forget();
+}
+
 NS_IMETHODIMP
 nsHTMLEditor::CreateElementWithDefaults(const nsAString& aTagName, nsIDOMElement** aReturn)
 {
-  nsresult res=NS_ERROR_NOT_INITIALIZED;
-  if (aReturn)
-    *aReturn = nullptr;
-
-
   NS_ENSURE_TRUE(!aTagName.IsEmpty() && aReturn, NS_ERROR_NULL_POINTER);
-    
-  nsAutoString TagName(aTagName);
-  ToLowerCase(TagName);
-  nsAutoString realTagName;
+  *aReturn = nullptr;
 
-  if (IsLinkTag(TagName) || IsNamedAnchorTag(TagName))
-  {
-    realTagName.AssignLiteral("a");
-  } else {
-    realTagName = TagName;
-  }
-  
-  
+  nsCOMPtr<Element> newElement = CreateElementWithDefaults(aTagName);
+  nsCOMPtr<nsIDOMElement> ret = do_QueryInterface(newElement);
+  NS_ENSURE_TRUE(ret, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMElement>newElement;
-  nsCOMPtr<dom::Element> newContent;
-  nsCOMPtr<nsIDOMDocument> doc = do_QueryReferent(mDocWeak);
-  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
-
-  ErrorResult rv;
-  newContent = CreateHTMLContent(realTagName, rv);
-  newElement = do_QueryInterface(newContent);
-  if (rv.Failed() || !newElement) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  newElement->SetAttribute(NS_LITERAL_STRING("_moz_dirty"), EmptyString());
-
-  
-  if (TagName.EqualsLiteral("table")) {
-    res = newElement->SetAttribute(NS_LITERAL_STRING("cellpadding"),NS_LITERAL_STRING("2"));
-    NS_ENSURE_SUCCESS(res, res);
-    res = newElement->SetAttribute(NS_LITERAL_STRING("cellspacing"),NS_LITERAL_STRING("2"));
-    NS_ENSURE_SUCCESS(res, res);
-    res = newElement->SetAttribute(NS_LITERAL_STRING("border"),NS_LITERAL_STRING("1"));
-  } else if (TagName.EqualsLiteral("td"))
-  {
-    res = SetAttributeOrEquivalent(newElement, NS_LITERAL_STRING("valign"),
-                                   NS_LITERAL_STRING("top"), true);
-  }
-  
-
-  if (NS_SUCCEEDED(res))
-  {
-    *aReturn = newElement;
-    
-    NS_ADDREF(*aReturn);
-  }
-
-  return res;
+  ret.forget(aReturn);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
