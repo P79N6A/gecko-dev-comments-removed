@@ -80,7 +80,11 @@ Finder.prototype = {
 
   highlight: function (aHighlight, aWord) {
     this._searchString = aWord;
-    this._highlight(aHighlight, aWord, null);
+    let found = this._highlight(aHighlight, aWord, null);
+    if (found)
+      this._notify(Ci.nsITypeAheadFind.FIND_FOUND, false, false);
+    else
+      this._notify(Ci.nsITypeAheadFind.FIND_NOTFOUND, false, false);
   },
 
   removeSelection: function() {
@@ -178,10 +182,10 @@ Finder.prototype = {
   _highlight: function (aHighlight, aWord, aWindow) {
     let win = aWindow || this._getWindow();
 
-    let result = Ci.nsITypeAheadFind.FIND_NOTFOUND;
+    let found = false;
     for (let i = 0; win.frames && i < win.frames.length; i++) {
       if (this._highlight(aHighlight, aWord, win.frames[i]))
-        result = Ci.nsITypeAheadFind.FIND_FOUND;
+        found = true;
     }
 
     let controller = this._getSelectionController(win);
@@ -189,8 +193,7 @@ Finder.prototype = {
     if (!controller || !doc || !doc.documentElement) {
       
       
-      this._notify(result)
-      return;
+      return found;
     }
 
     let body = (doc instanceof Ci.nsIDOMHTMLDocument && doc.body) ?
@@ -219,7 +222,7 @@ Finder.prototype = {
         startPt = retRange.cloneRange();
         startPt.collapse(false);
 
-        result = Ci.nsITypeAheadFind.FIND_FOUND;
+        found = true;
       }
     } else {
       
@@ -239,10 +242,12 @@ Finder.prototype = {
           }
         }
       }
-      return true;
+
+      
+      found = true;
     }
 
-    this._notify(result);
+    return found;
   },
 
   _highlightRange: function(aRange, aController) {
@@ -290,6 +295,14 @@ Finder.prototype = {
                              .QueryInterface(Ci.nsISelectionController);
     return controller;
   },
+
+  
+
+
+
+
+
+
 
   _getEditableNode: function (aNode) {
     while (aNode) {
