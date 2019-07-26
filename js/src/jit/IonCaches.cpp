@@ -2732,7 +2732,9 @@ CanAttachNativeSetProp(HandleObject obj, HandleId id, ConstantOrRegister val,
 
     
     
-    if (!shape)
+    
+    
+    if (!shape || (obj != holder && shape->hasDefaultSetter() && shape->hasSlot()))
         return SetPropertyIC::MaybeCanAttachAddSlot;
 
     if (IsCacheableSetPropCallPropertyOp(obj, holder, shape) ||
