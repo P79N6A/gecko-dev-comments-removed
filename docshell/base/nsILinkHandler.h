@@ -6,13 +6,13 @@
 #define nsILinkHandler_h___
 
 #include "nsISupports.h"
-#include "nsIContent.h"
 
-class nsIInputStream;
+class nsGUIEvent;
+class nsIContent;
 class nsIDocShell;
+class nsIInputStream;
 class nsIRequest;
 class nsString;
-class nsGUIEvent;
 
 
 #define NS_ILINKHANDLER_IID \

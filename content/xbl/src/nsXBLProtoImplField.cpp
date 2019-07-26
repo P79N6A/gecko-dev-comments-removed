@@ -4,6 +4,7 @@
 
 
 #include "nsIAtom.h"
+#include "nsIContent.h"
 #include "nsString.h"
 #include "nsJSUtils.h"
 #include "jsapi.h"

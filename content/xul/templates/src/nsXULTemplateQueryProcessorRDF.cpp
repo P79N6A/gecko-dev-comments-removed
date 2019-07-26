@@ -4,6 +4,7 @@
 
 
 #include "nsCOMPtr.h"
+#include "nsICollation.h"
 #include "nsIDOMNode.h"
 #include "nsIRDFNode.h"
 #include "nsIRDFObserver.h"

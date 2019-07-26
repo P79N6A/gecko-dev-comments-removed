@@ -4,6 +4,8 @@
 
 
 #include "nsContentCreatorFunctions.h"
+#include "nsIContent.h"
+#include "nsIDOMDocumentFragment.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMHTMLMenuItemElement.h"
 #include "nsXULContextMenuBuilder.h"
