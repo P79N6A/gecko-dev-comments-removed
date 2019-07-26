@@ -2,15 +2,16 @@
 
 
 
+let manifest = { 
+  name: "provider 1",
+  origin: "https://example.com",
+  workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
+  iconURL: "https://example.com/browser/browser/base/content/test/moz.png"
+};
+
 function test() {
   waitForExplicitFinish();
 
-  let manifest = { 
-    name: "provider 1",
-    origin: "https://example.com",
-    workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
-    iconURL: "https://example.com/browser/browser/base/content/test/moz.png"
-  };
   runSocialTestWithProvider(manifest, function (finishcb) {
     runSocialTests(tests, undefined, undefined, finishcb);
   });
@@ -35,14 +36,19 @@ var tests = {
     this.testProfileNone(next, true);
   },
   testProfileSet: function(next) {
+    let statusIcon = document.getElementById("social-provider-button").style.listStyleImage;
+    is(statusIcon, "url(\"" + manifest.iconURL + "\")", "manifest iconURL is showing");
     let profile = {
       portrait: "https://example.com/portrait.jpg",
       userName: "trickster",
       displayName: "Kuma Lisa",
-      profileURL: "http://en.wikipedia.org/wiki/Kuma_Lisa"
+      profileURL: "http://example.com/Kuma_Lisa",
+      iconURL: "https://example.com/browser/browser/base/content/test/social/moz.png"
     }
     Social.provider.updateUserProfile(profile);
     
+    statusIcon = document.getElementById("social-provider-button").style.listStyleImage;
+    is(statusIcon, "url(\"" + profile.iconURL + "\")", "profile iconURL is showing");
     let portrait = document.getElementsByClassName("social-statusarea-user-portrait")[0].getAttribute("src");
     is(profile.portrait, portrait, "portrait is set");
     let userButton = document.getElementsByClassName("social-statusarea-loggedInStatus")[0];
