@@ -318,7 +318,7 @@ NS_InitXPCOM2(nsIServiceManager* *result,
               nsIFile* binDirectory,
               nsIDirectoryServiceProvider* appFileLocationProvider)
 {
-    profiler_init();
+    SAMPLER_INIT();
     nsresult rv = NS_OK;
 
      
@@ -648,7 +648,7 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         moduleLoaders = nullptr;
     }
 
-    PROFILER_MARKER("Shutdown xpcom");
+    SAMPLE_MARKER("Shutdown xpcom");
     
     if (gShutdownChecks != SCM_NOTHING) {
         mozilla::PoisonWrite();

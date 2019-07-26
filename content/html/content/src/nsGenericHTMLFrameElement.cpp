@@ -185,7 +185,7 @@ nsGenericHTMLFrameElement::BindToTree(nsIDocument* aDocument,
     NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                  "Missing a script blocker!");
 
-    PROFILER_LABEL("nsGenericHTMLFrameElement", "BindToTree");
+    SAMPLE_LABEL("nsGenericHTMLFrameElement", "BindToTree");
 
     
     LoadSrc();

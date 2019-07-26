@@ -277,14 +277,14 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 {
     EVLOG("nsAppShell::ProcessNextNativeEvent %d", mayWait);
 
-    PROFILER_LABEL("nsAppShell", "ProcessNextNativeEvent");
+    SAMPLE_LABEL("nsAppShell", "ProcessNextNativeEvent");
     nsAutoPtr<AndroidGeckoEvent> curEvent;
     {
         MutexAutoLock lock(mCondLock);
 
         curEvent = PopNextEvent();
         if (!curEvent && mayWait) {
-            PROFILER_LABEL("nsAppShell::ProcessNextNativeEvent", "Wait");
+            SAMPLE_LABEL("nsAppShell::ProcessNextNativeEvent", "Wait");
             
 #if defined(DEBUG_ANDROID_EVENTS)
             PRTime t0, t1;

@@ -828,7 +828,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     return;
   }
 
-  PROFILER_LABEL("nsRefreshDriver", "Tick");
+  SAMPLE_LABEL("nsRefreshDriver", "Tick");
 
   
   

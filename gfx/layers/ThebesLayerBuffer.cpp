@@ -105,7 +105,7 @@ ThebesLayerBuffer::DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
                                           gfxASurface* aMask,
                                           const gfxMatrix* aMaskTransform)
 {
-  PROFILER_LABEL("ThebesLayerBuffer", "DrawBufferWithRotation");
+  SAMPLE_LABEL("ThebesLayerBuffer", "DrawBufferWithRotation");
   
   
   DrawBufferQuadrant(aTarget, LEFT, TOP, aOpacity, aMask, aMaskTransform);
