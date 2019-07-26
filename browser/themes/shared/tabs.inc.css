@@ -170,14 +170,24 @@
   background-color: transparent;
   background-image: url(chrome://browser/skin/tabbrowser/tab-active-middle.png),
                     @fgTabBackgroundMiddle@;
-  background-size: 100% 100%;
   background-repeat: repeat-x;
+  background-size: 100% 100%;
+}
+
+
+.tab-background-middle[selected=true]:-moz-lwtheme {
+  
+  background-size: 100% 100%, 100% 100%, auto auto;
+}
+
+.tab-background-start[selected=true]:-moz-lwtheme::before,
+.tab-background-end[selected=true]:-moz-lwtheme::before {
+  background-image: @fgTabTextureLWT@;
 }
 
 .tab-background-middle[selected=true]:-moz-lwtheme {
-  background-image: url(chrome://browser/skin/tabbrowser/tab-active-middle.png);
+  background-image: url(chrome://browser/skin/tabbrowser/tab-active-middle-lwtheme.png), @fgTabTextureLWT@;
 }
-
 
 .tab-background-start[selected=true]:-moz-lwtheme::before,
 .tab-background-end[selected=true]:-moz-lwtheme::before,
