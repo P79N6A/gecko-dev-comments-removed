@@ -1184,6 +1184,7 @@ ContentParent::ContentParent(mozIApplication* aApp,
     , mIsForBrowser(aIsForBrowser)
     , mCalledClose(false)
     , mCalledCloseWithError(false)
+    , mCalledKillHard(false)
 {
     
     
@@ -1921,6 +1922,13 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 void
 ContentParent::KillHard()
 {
+    
+    
+    
+    if (mCalledKillHard) {
+        return;
+    }
+    mCalledKillHard = true;
     mForceKillTask = nullptr;
     
     
