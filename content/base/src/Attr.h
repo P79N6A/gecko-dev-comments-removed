@@ -79,6 +79,23 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
+
+  
+  
+
+  void SetValue(const nsAString& aValue, ErrorResult& aRv);
+
+  bool Specified() const;
+
+  
+  
+  
+
+  Element* GetOwnerElement(ErrorResult& aRv);
+
 protected:
   virtual mozilla::dom::Element* GetNameSpaceElement()
   {
