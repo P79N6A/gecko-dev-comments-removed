@@ -28,7 +28,7 @@ class SharedPluginTexture;
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
 
-struct JSObject;
+class JSObject;
 
 class nsPluginStreamListenerPeer; 
 class nsNPAPIPluginStreamListener; 

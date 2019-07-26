@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsIHTMLCollection_h___
 #define nsIHTMLCollection_h___
@@ -10,32 +10,32 @@
 #include "nsWrapperCache.h"
 
 struct JSContext;
-struct JSObject;
+class JSObject;
 class nsINode;
 namespace mozilla {
 class ErrorResult;
 
 namespace dom {
 class Element;
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
-// IID for the nsIHTMLCollection interface
+
 #define NS_IHTMLCOLLECTION_IID \
 { 0x5643235d, 0x9a72, 0x4b6a, \
  { 0xa6, 0x0c, 0x64, 0x63, 0x72, 0xb7, 0x53, 0x4a } }
 
-/**
- * An internal interface
- */
+
+
+
 class nsIHTMLCollection : public nsIDOMHTMLCollection
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IHTMLCOLLECTION_IID)
 
-  /**
-   * Get the root node for this HTML collection.
-   */
+  
+
+
   virtual nsINode* GetParentObject() = 0;
 
   using nsIDOMHTMLCollection::Item;
@@ -82,4 +82,4 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLCollection, NS_IHTMLCOLLECTION_IID)
 
-#endif /* nsIHTMLCollection_h___ */
+#endif 

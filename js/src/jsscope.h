@@ -91,7 +91,7 @@
 
 
 
-struct JSObject;
+class JSObject;
 
 namespace js {
 

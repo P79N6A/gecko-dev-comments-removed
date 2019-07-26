@@ -17,7 +17,7 @@ class nsIScriptGlobalObjectOwner;
 class nsIArray;
 class nsScriptErrorEvent;
 class nsIScriptGlobalObject;
-struct JSObject; 
+class JSObject; 
 
 
 
