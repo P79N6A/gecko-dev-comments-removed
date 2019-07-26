@@ -6,6 +6,7 @@
 
 #include "jit/ParallelFunctions.h"
 
+#include "builtin/TypedObject.h"
 #include "vm/ArrayObject.h"
 
 #include "jsgcinlines.h"
@@ -37,13 +38,84 @@ jit::NewGCThingPar(ForkJoinSlice *slice, gc::AllocKind allocKind)
     return gc::NewGCThing<JSObject, NoGC>(slice, allocKind, thingSize, gc::DefaultHeap);
 }
 
+bool
+jit::ParallelWriteGuard(ForkJoinSlice *slice, JSObject *object)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    JS_ASSERT(ForkJoinSlice::current() == slice);
+
+    if (IsTypedDatum(*object)) {
+        TypedDatum &datum = AsTypedDatum(*object);
+
+        
+        
+        
+        
+        if (IsInTargetRegion(slice, &datum))
+            return true;
+
+        
+        TypedDatum *owner = datum.owner();
+        return owner && slice->isThreadLocal(owner);
+    }
+
+    
+    return slice->isThreadLocal(object);
+}
+
+
+
+
+
+
+
 
 
 bool
-jit::IsThreadLocalObject(ForkJoinSlice *slice, JSObject *object)
+jit::IsInTargetRegion(ForkJoinSlice *slice, TypedDatum *datum)
 {
-    JS_ASSERT(ForkJoinSlice::current() == slice);
-    return slice->isThreadLocal(object);
+    JS_ASSERT(IsTypedDatum(*datum)); 
+    uint8_t *typedMem = datum->typedMem();
+    return (typedMem >= slice->targetRegionStart &&
+            typedMem <  slice->targetRegionEnd);
 }
 
 #ifdef DEBUG

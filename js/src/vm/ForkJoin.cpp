@@ -18,6 +18,8 @@
 #include "jslock.h"
 #include "jsprf.h"
 
+#include "builtin/TypedObject.h"
+
 #ifdef JS_THREADSAFE
 # include "jit/BaselineJIT.h"
 # include "vm/Monitor.h"
@@ -1582,6 +1584,8 @@ ForkJoinSlice::ForkJoinSlice(PerThreadData *perThreadData,
     sliceId(sliceId),
     workerId(workerId),
     bailoutRecord(bailoutRecord),
+    targetRegionStart(nullptr),
+    targetRegionEnd(nullptr),
     shared(shared),
     acquiredContext_(false),
     nogc_(shared->runtime())
@@ -2102,5 +2106,47 @@ js::ParallelTestsShouldPass(JSContext *cx)
            jit::js_JitOptions.baselineUsesBeforeCompile != 0 &&
            cx->runtime()->gcZeal() == 0;
 }
+
+bool
+js::intrinsic_SetForkJoinTargetRegion(JSContext *cx, unsigned argc, Value *vp)
+{
+    
+    
+    
+    return true;
+}
+
+static bool
+intrinsic_SetForkJoinTargetRegionPar(ForkJoinSlice *slice, unsigned argc, Value *vp)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(argc == 3);
+    JS_ASSERT(args[0].isObject() && IsTypedDatum(args[0].toObject()));
+    JS_ASSERT(args[1].isInt32());
+    JS_ASSERT(args[2].isInt32());
+
+    uint8_t *mem = AsTypedDatum(args[0].toObject()).typedMem();
+    int32_t start = args[1].toInt32();
+    int32_t end = args[2].toInt32();
+
+    slice->targetRegionStart = mem + start;
+    slice->targetRegionEnd = mem + end;
+    return true;
+}
+
+const JSJitInfo js::intrinsic_SetForkJoinTargetRegionInfo =
+    JS_JITINFO_NATIVE_PARALLEL(intrinsic_SetForkJoinTargetRegionPar);
 
 #endif 

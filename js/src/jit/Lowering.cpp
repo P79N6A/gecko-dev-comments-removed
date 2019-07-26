@@ -2055,12 +2055,16 @@ LIRGenerator::visitForkJoinSlice(MForkJoinSlice *ins)
 }
 
 bool
-LIRGenerator::visitGuardThreadLocalObject(MGuardThreadLocalObject *ins)
+LIRGenerator::visitGuardThreadExclusive(MGuardThreadExclusive *ins)
 {
-    LGuardThreadLocalObject *lir =
-        new(alloc()) LGuardThreadLocalObject(useFixed(ins->forkJoinSlice(), CallTempReg0),
-                                             useFixed(ins->object(), CallTempReg1),
-                                             tempFixed(CallTempReg2));
+    
+    
+    
+    
+    LGuardThreadExclusive *lir =
+        new(alloc()) LGuardThreadExclusive(useFixed(ins->forkJoinSlice(), CallTempReg0),
+                                           useFixed(ins->object(), CallTempReg1),
+                                           tempFixed(CallTempReg2));
     lir->setMir(ins);
     return add(lir, ins);
 }

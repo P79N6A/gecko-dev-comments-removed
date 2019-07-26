@@ -319,6 +319,23 @@ class ForkJoinSlice : public ThreadSafeContext
     uint32_t maxWorkerId;
 #endif
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    uint8_t *targetRegionStart;
+    uint8_t *targetRegionEnd;
+
     ForkJoinSlice(PerThreadData *perThreadData, uint16_t sliceId, uint32_t workerId,
                   Allocator *allocator, ForkJoinShared *shared,
                   ParallelBailoutRecord *bailoutRecord);
@@ -432,6 +449,9 @@ class LockedJSContext
 bool InExclusiveParallelSection();
 
 bool ParallelTestsShouldPass(JSContext *cx);
+
+bool intrinsic_SetForkJoinTargetRegion(JSContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo intrinsic_SetForkJoinTargetRegionInfo;
 
 
 
