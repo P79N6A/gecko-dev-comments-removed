@@ -425,8 +425,25 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedWidth()),
     nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedHeight()));
 
+  svgFloatSize oldViewportSize = svgElem->GetViewportSize();
+
   uint32_t changeBits = 0;
-  if (newViewportSize != svgElem->GetViewportSize()) {
+  if (newViewportSize != oldViewportSize) {
+    if (oldViewportSize.width <= 0.0f || oldViewportSize.height <= 0.0f) {
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame* anonChild = GetFirstPrincipalChild();
+      anonChild->AddStateBits(NS_FRAME_IS_DIRTY);
+      for (nsIFrame* child = anonChild->GetFirstPrincipalChild(); child;
+           child = child->GetNextSibling()) {
+        child->AddStateBits(NS_FRAME_IS_DIRTY);
+      }
+    }
     changeBits |= COORD_CONTEXT_CHANGED;
     svgElem->SetViewportSize(newViewportSize);
   }
@@ -747,11 +764,17 @@ nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
   nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
 
   if (aFlags & COORD_CONTEXT_CHANGED) {
-    if (content->HasViewBox() || content->ShouldSynthesizeViewBox()) {
+    if (content->HasViewBox()) {
       
       
       
       aFlags = TRANSFORM_CHANGED;
+    }
+    else if (content->ShouldSynthesizeViewBox()) {
+      
+      
+      
+      aFlags |= TRANSFORM_CHANGED;
     }
     else if (mCanvasTM && mCanvasTM->IsSingular()) {
       
