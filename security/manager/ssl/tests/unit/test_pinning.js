@@ -100,7 +100,7 @@ function check_pinning_telemetry() {
   
   
   do_check_eq(prod_histogram.counts[0], 1); 
-  do_check_eq(prod_histogram.counts[1], 3); 
+  do_check_eq(prod_histogram.counts[1], 2); 
   do_check_eq(test_histogram.counts[0], 1); 
   do_check_eq(test_histogram.counts[1], 0); 
 
@@ -113,6 +113,10 @@ function check_pinning_telemetry() {
   do_check_eq(moz_test_histogram.counts[0], 0); 
   do_check_eq(moz_test_histogram.counts[1], 0); 
 
+  let per_host_histogram =
+    service.getHistogramById("CERT_PINNING_MOZ_RESULTS_BY_HOST").snapshot();
+  do_check_eq(per_host_histogram.counts[0], 0); 
+  do_check_eq(per_host_histogram.counts[1], 1); 
   run_next_test();
 }
 
