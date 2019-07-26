@@ -738,6 +738,8 @@ let RIL = {
 
     this.IMEI = null;
     this.IMEISV = null;
+    this.ESN = null;
+    this.MEID = null;
     this.SMSC = null;
 
     
@@ -1497,7 +1499,7 @@ let RIL = {
   },
 
   getDeviceIdentity: function getDeviceIdentity() {
-    Buf.simpleRequest(REQUEST_GET_DEVICE_IDENTITY);
+    Buf.simpleRequest(REQUEST_DEVICE_IDENTITY);
   },
 
   getBasebandVersion: function getBasebandVersion() {
@@ -4847,7 +4849,19 @@ RIL[REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = null;
 RIL[REQUEST_CDMA_SUBSCRIPTION] = null;
 RIL[REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
 RIL[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
-RIL[REQUEST_DEVICE_IDENTITY] = null;
+RIL[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options) {
+  if (options.rilRequestError) {
+    return;
+  }
+
+  let result = Buf.readStringList();
+
+  
+  
+  
+  this.ESN = result[2];
+  this.MEID = result[3];
+};
 RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
 RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   if (options.rilRequestError) {
