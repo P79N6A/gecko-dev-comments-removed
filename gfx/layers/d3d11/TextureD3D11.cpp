@@ -188,6 +188,10 @@ TextureClientD3D11::Unlock()
 {
   MOZ_ASSERT(mIsLocked, "Unlocked called while the texture is not locked!");
   if (mDrawTarget) {
+    
+    
+    
+    
     MOZ_ASSERT(mDrawTarget->refCount() == 1);
     mDrawTarget->Flush();
   }
