@@ -12,7 +12,6 @@
 #include "nsDisplayList.h"
 #include "nsLayoutUtils.h"
 #include "Layers.h"
-#include "ActiveLayerTracker.h"
 
 #include <algorithm>
 
@@ -69,11 +68,10 @@ public:
       return LAYER_INACTIVE;
 
     
-    if (aManager->IsCompositingCheap() ||
-        ActiveLayerTracker::IsContentActive(mFrame))
+    if (aManager->IsCompositingCheap())
       return mozilla::LAYER_ACTIVE;
 
-    return LAYER_INACTIVE;
+    return mFrame->AreLayersMarkedActive() ? LAYER_ACTIVE : LAYER_INACTIVE;
   }
 };
 
@@ -100,7 +98,7 @@ nsHTMLCanvasFrame::Init(nsIContent* aContent,
   
   
   
-  ActiveLayerTracker::NotifyContentChange(this);
+  MarkLayersActive(nsChangeHint(0));
 }
 
 nsHTMLCanvasFrame::~nsHTMLCanvasFrame()
