@@ -147,6 +147,7 @@ public:
   bool IsEqual (const nsRegion& aRegion) const;
   uint32_t GetNumRects () const { return mRectCount; }
   const nsRect& GetBounds () const { return mBoundRect; }
+  uint64_t Area () const;
   
   
   
