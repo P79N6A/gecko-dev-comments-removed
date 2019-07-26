@@ -3418,7 +3418,9 @@ NS_IMETHODIMP nsHTMLMediaElement::GetPlaybackRate(double* aPlaybackRate)
 
 NS_IMETHODIMP nsHTMLMediaElement::SetPlaybackRate(double aPlaybackRate)
 {
-  if (aPlaybackRate < 0) {
+  
+  
+  if (aPlaybackRate < 0 || (mChannels > 2 && aPlaybackRate != 1.0)) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
