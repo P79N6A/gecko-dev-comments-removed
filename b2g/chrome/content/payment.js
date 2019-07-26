@@ -22,77 +22,104 @@ XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
+#ifdef MOZ_B2G_RIL
+XPCOMUtils.defineLazyServiceGetter(this, "mobileConnection",
+                                   "@mozilla.org/ril/content-helper;1",
+                                   "nsIMobileConnectionProvider");
+#endif
+
+
 const kClosePaymentFlowEvent = "close-payment-flow-dialog";
 
-let requestId;
+let _requestId;
 
-function paymentSuccess(aResult) {
-  closePaymentFlowDialog(function notifySuccess() {
-    if (!requestId) {
+let PaymentProvider = {
+
+  __exposedProps__: {
+    paymentSuccess: 'r',
+    paymentFailed: 'r',
+    iccIds: 'r'
+  },
+
+  _closePaymentFlowDialog: function _closePaymentFlowDialog(aCallback) {
+    
+    
+    
+    let id = kClosePaymentFlowEvent + "-" + uuidgen.generateUUID().toString();
+
+    let browser = Services.wm.getMostRecentWindow("navigator:browser");
+    let content = browser.getContentWindow();
+    if (!content) {
       return;
     }
-    cpmm.sendAsyncMessage("Payment:Success", { result: aResult,
-                                               requestId: requestId });
-  });
-}
 
-function paymentFailed(aErrorMsg) {
-  closePaymentFlowDialog(function notifyError() {
-    if (!requestId) {
-      return;
-    }
-    cpmm.sendAsyncMessage("Payment:Failed", { errorMsg: aErrorMsg,
-                                              requestId: requestId });
-  });
-}
+    let detail = {
+      type: kClosePaymentFlowEvent,
+      id: id,
+      requestId: _requestId
+    };
 
-function closePaymentFlowDialog(aCallback) {
-  
-  
-  
-  let randomId = uuidgen.generateUUID().toString();
-  let id = kClosePaymentFlowEvent + "-" + randomId;
+    
+    
+    
+    
+    content.addEventListener("mozContentEvent",
+                             function closePaymentFlowReturn(evt) {
+      if (evt.detail.id == id && aCallback) {
+        aCallback();
+      }
 
-  let browser = Services.wm.getMostRecentWindow("navigator:browser");
-  let content = browser.getContentWindow();
-  if (!content) {
-    return;
-  }
+      content.removeEventListener("mozContentEvent",
+                                  closePaymentFlowReturn);
 
-  let detail = {
-    type: kClosePaymentFlowEvent,
-    id: id,
-    requestId: requestId
-  };
+      let glue = Cc["@mozilla.org/payment/ui-glue;1"]
+                   .createInstance(Ci.nsIPaymentUIGlue);
+      glue.cleanup();
+    });
 
-  
-  
-  
-  
-  content.addEventListener("mozContentEvent",
-                           function closePaymentFlowReturn(evt) {
-    if (evt.detail.id == id && aCallback) {
-      aCallback();
-    }
+    browser.shell.sendChromeEvent(detail);
+  },
 
-    content.removeEventListener("mozContentEvent",
-                                closePaymentFlowReturn);
+  paymentSuccess: function paymentSuccess(aResult) {
+    this._closePaymentFlowDialog(function notifySuccess() {
+      if (!_requestId) {
+        return;
+      }
+      cpmm.sendAsyncMessage("Payment:Success", { result: aResult,
+                                                 requestId: _requestId });
+    });
+  },
 
-    let glue = Cc["@mozilla.org/payment/ui-glue;1"]
-                 .createInstance(Ci.nsIPaymentUIGlue);
-    glue.cleanup();
-  });
+  paymentFailed: function paymentFailed(aErrorMsg) {
+    this._closePaymentFlowDialog(function notifyError() {
+      if (!_requestId) {
+        return;
+      }
+      cpmm.sendAsyncMessage("Payment:Failed", { errorMsg: aErrorMsg,
+                                                requestId: _requestId });
+    });
+  },
 
-  browser.shell.sendChromeEvent(detail);
-}
+  get iccIds() {
+#ifdef MOZ_B2G_RIL
+    
+    
+    
+    
+    return [mobileConnection.iccInfo.iccid];
+#else
+    return null;
+#endif
+  },
+
+};
 
 
 
 addMessageListener("Payment:LoadShim", function receiveMessage(aMessage) {
-  requestId = aMessage.json.requestId;
+  _requestId = aMessage.json.requestId;
 });
 
 addEventListener("DOMWindowCreated", function(e) {
-  content.wrappedJSObject.paymentSuccess = paymentSuccess;
-  content.wrappedJSObject.paymentFailed = paymentFailed;
+  content.wrappedJSObject.mozPaymentProvider = PaymentProvider;
 });
