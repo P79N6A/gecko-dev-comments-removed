@@ -235,7 +235,8 @@ struct TokenPos {
 
 enum DecimalPoint { NoDecimal = false, HasDecimal = true };
 
-struct Token {
+struct Token
+{
     TokenKind           type;           
     TokenPos            pos;            
     union {
@@ -250,6 +251,24 @@ struct Token {
         RegExpFlag      reflags;        
                                         
     } u;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Token()
+      : type(TOK_ERROR),
+        pos(0, 0)
+    {
+    }
 
     
 
