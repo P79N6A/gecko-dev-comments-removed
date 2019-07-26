@@ -24,7 +24,6 @@ namespace mozilla { namespace net {
 
 class SpdyPushedStream3;
 class SpdyStream3;
-class nsHttpTransaction;
 
 class SpdySession3 MOZ_FINAL : public ASpdySession
                              , public nsAHttpConnection
@@ -38,11 +37,10 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
-  SpdySession3(nsISocketTransport *);
+  SpdySession3(nsAHttpTransaction *, nsISocketTransport *, int32_t);
   ~SpdySession3();
 
-  bool AddStream(nsAHttpTransaction *, int32_t,
-                 bool, nsIInterfaceRequestor *);
+  bool AddStream(nsAHttpTransaction *, int32_t);
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
   bool RoomForMoreStreams();
 
@@ -159,6 +157,10 @@ public:
   static nsresult HandleHeaders(SpdySession3 *);
   static nsresult HandleWindowUpdate(SpdySession3 *);
   static nsresult HandleCredential(SpdySession3 *);
+
+  template<typename T>
+  static void EnsureBuffer(nsAutoArrayPtr<T> &,
+                           uint32_t, uint32_t, uint32_t &);
 
   
   static void LogIO(SpdySession3 *, SpdyStream3 *, const char *,
@@ -384,15 +386,6 @@ private:
   
   
   uint64_t        mSerial;
-
-private:
-
-  void DispatchOnTunnel(nsAHttpTransaction *, nsIInterfaceRequestor *);
-  void RegisterTunnel(SpdyStream3 *);
-  void UnRegisterTunnel(SpdyStream3 *);
-  uint32_t FindTunnelCount(nsHttpConnectionInfo *);
-
-  nsDataHashtable<nsCStringHashKey, uint32_t> mTunnelHash;
 };
 
 }} 

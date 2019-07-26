@@ -18,15 +18,6 @@ extern PRLogModuleInfo *gHttpLog;
 
 
 
-
-
-
-
-
-
-
-
-
 namespace mozilla { namespace net {
 
 class nsHttpConnectionInfo
@@ -35,7 +26,7 @@ public:
     nsHttpConnectionInfo(const nsACString &host, int32_t port,
                          const nsACString &username,
                          nsProxyInfo* proxyInfo,
-                         bool endToEndSSL = false);
+                         bool usingSSL=false);
 
     virtual ~nsHttpConnectionInfo()
     {
@@ -53,7 +44,6 @@ public:
 
     
     nsHttpConnectionInfo* Clone() const;
-    nsresult CreateWildCard(nsHttpConnectionInfo **outParam);
 
     const char *ProxyHost() const { return mProxyInfo ? mProxyInfo->Host().get() : nullptr; }
     int32_t     ProxyPort() const { return mProxyInfo ? mProxyInfo->Port() : -1; }
@@ -75,7 +65,10 @@ public:
     int32_t       Port() const           { return mPort; }
     const char   *Username() const       { return mUsername.get(); }
     nsProxyInfo  *ProxyInfo()            { return mProxyInfo; }
-    int32_t       DefaultPort() const    { return mEndToEndSSL ? NS_HTTPS_DEFAULT_PORT : NS_HTTP_DEFAULT_PORT; }
+    bool          UsingHttpProxy() const { return mUsingHttpProxy; }
+    bool          UsingSSL() const       { return mUsingSSL; }
+    bool          UsingConnect() const   { return mUsingConnect; }
+    int32_t       DefaultPort() const    { return mUsingSSL ? NS_HTTPS_DEFAULT_PORT : NS_HTTP_DEFAULT_PORT; }
     void          SetAnonymous(bool anon)
                                          { mHashKey.SetCharAt(anon ? 'A' : '.', 2); }
     bool          GetAnonymous() const   { return mHashKey.CharAt(2) == 'A'; }
@@ -88,21 +81,6 @@ public:
     bool UsingProxy();
 
     
-    bool UsingHttpProxy() const { return mUsingHttpProxy || mUsingHttpsProxy; }
-
-    
-    bool UsingHttpsProxy() const { return mUsingHttpsProxy; }
-
-    
-    bool EndToEndSSL() const { return mEndToEndSSL; }
-
-    
-    bool FirstHopSSL() const { return mEndToEndSSL || mUsingHttpsProxy; }
-
-    
-    bool UsingConnect() const { return mUsingConnect; }
-
-    
     bool HostIsLocalIPLiteral() const;
 
 private:
@@ -112,8 +90,7 @@ private:
     nsCString              mUsername;
     nsCOMPtr<nsProxyInfo>  mProxyInfo;
     bool                   mUsingHttpProxy;
-    bool                   mUsingHttpsProxy;
-    bool                   mEndToEndSSL;
+    bool                   mUsingSSL;
     bool                   mUsingConnect;  
 
 

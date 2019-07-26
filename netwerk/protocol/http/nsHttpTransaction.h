@@ -86,6 +86,7 @@ public:
                   nsIAsyncInputStream  **responseBody);
 
     
+    nsHttpConnectionInfo  *ConnectionInfo() { return mConnInfo; }
     nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nullptr; }
     nsISupports           *SecurityInfo()   { return mSecurityInfo; }
 
@@ -101,14 +102,6 @@ public:
     bool ResponseIsComplete() { return mResponseIsComplete; }
 
     bool      ProxyConnectFailed() { return mProxyConnectFailed; }
-
-    
-    
-    
-    
-    
-    void SetDontRouteViaWildCard(bool var) { mDontRouteViaWildCard = var; }
-    bool DontRouteViaWildCard() { return mDontRouteViaWildCard; }
 
     
     void    SetPriority(int32_t priority) { mPriority = priority; }
@@ -129,8 +122,6 @@ public:
     void SetLoadGroupConnectionInfo(nsILoadGroupConnectionInfo *aLoadGroupCI) { mLoadGroupCI = aLoadGroupCI; }
     void DispatchedAsBlocking();
     void RemoveDispatchedAsBlocking();
-
-    nsHttpTransaction *QueryHttpTransaction() MOZ_OVERRIDE { return this; }
 
 private:
     nsresult Restart();
@@ -255,7 +246,6 @@ private:
     bool                            mPreserveStream;
     bool                            mDispatchedAsBlocking;
     bool                            mResponseTimeoutEnabled;
-    bool                            mDontRouteViaWildCard;
 
     
     

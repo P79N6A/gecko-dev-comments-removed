@@ -7,7 +7,6 @@
 
 #include "nsISupports.h"
 #include "nsTArray.h"
-#include "nsWeakReference.h"
 
 class nsIInterfaceRequestor;
 class nsIEventTarget;
@@ -22,7 +21,6 @@ class nsAHttpSegmentWriter;
 class nsHttpTransaction;
 class nsHttpPipeline;
 class nsHttpRequestHead;
-class nsHttpConnectionInfo;
 
 
 
@@ -33,7 +31,7 @@ class nsHttpConnectionInfo;
 
 
 
-class nsAHttpTransaction : public nsSupportsWeakReference
+class nsAHttpTransaction : public nsISupports
 {
 public:
     
@@ -127,15 +125,7 @@ public:
     virtual bool IsNullTransaction() { return false; }
 
     
-    
-    
-    virtual nsHttpTransaction *QueryHttpTransaction() { return nullptr; }
-
-    
     virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
-
-    
-    virtual nsHttpConnectionInfo *ConnectionInfo() = 0;
 
     
     virtual bool ResponseTimeoutEnabled() const;
@@ -163,17 +153,6 @@ public:
 
         CLASS_MAX
     };
-
-    
-    
-    
-    
-    
-    
-    virtual nsresult GetTransactionSecurityInfo(nsISupports **)
-    {
-        return NS_ERROR_NOT_IMPLEMENTED;
-    }
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -187,12 +166,11 @@ public:
     uint32_t Caps();   \
     void     SetDNSWasRefreshed(); \
     uint64_t Available(); \
-    virtual nsresult ReadSegments(nsAHttpSegmentReader *, uint32_t, uint32_t *); \
-    virtual nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *); \
+    nsresult ReadSegments(nsAHttpSegmentReader *, uint32_t, uint32_t *); \
+    nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *); \
     void     Close(nsresult reason);                                    \
-    nsHttpConnectionInfo *ConnectionInfo();                             \
     void     SetProxyConnectFailed();                                   \
-    virtual nsHttpRequestHead *RequestHead();                                   \
+    nsHttpRequestHead *RequestHead();                                   \
     uint32_t Http1xTransactionCount();                                  \
     nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions); \
     nsresult AddTransaction(nsAHttpTransaction *);                      \
