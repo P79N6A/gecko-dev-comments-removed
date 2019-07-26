@@ -481,7 +481,7 @@ nsSVGUtils::ScheduleReflowSVG(nsIFrame *aFrame)
   
   
 
-  if (aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+  if (aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
     return;
   }
 
@@ -624,7 +624,7 @@ nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(nsIFrame* aFrame, nsRect* aRect)
   nsISVGChildFrame* svg = do_QueryFrame(aFrame);
   if (!svg)
     return nullptr;
-  *aRect = (aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) ?
+  *aRect = (aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY) ?
              nsRect(0, 0, 0, 0) : svg->GetCoveredRegion();
   return GetOuterSVGFrame(aFrame);
 }
@@ -638,7 +638,7 @@ nsSVGUtils::GetCanvasTM(nsIFrame *aFrame, uint32_t aFor)
     return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFrame);
   }
 
-  if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+  if (!(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
     if ((aFor == nsISVGChildFrame::FOR_PAINTING &&
          NS_SVGDisplayListPaintingEnabled()) ||
         (aFor == nsISVGChildFrame::FOR_HIT_TESTING &&
@@ -744,7 +744,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
                                   nsIFrame *aFrame)
 {
   NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
-               (aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) ||
+               (aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY) ||
                aFrame->PresContext()->IsGlyph(),
                "If display lists are enabled, only painting of non-display "
                "SVG should take this code path");
@@ -773,7 +773,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
 
   if (aDirtyRect &&
-      !(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      !(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
     
     
     
@@ -844,7 +844,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   if (opacity != 1.0f || maskFrame || (clipPathFrame && !isTrivialClip)) {
     complexEffects = true;
     gfx->Save();
-    if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    if (!(aFrame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
       
       
       gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);

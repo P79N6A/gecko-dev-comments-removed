@@ -166,7 +166,7 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   
   SVGSVGElement *svg = static_cast<SVGSVGElement*>(aContent);
   if (!svg->PassesConditionalProcessingTests()) {
-    AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
+    AddStateBits(NS_FRAME_IS_NONDISPLAY);
   } else {
     
     
@@ -176,7 +176,7 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
     
     for (nsIFrame* f = aParent; f; f = f->GetParent()) {
       if (f->IsFrameOfType(eSVG)) {
-        AddStateBits(f->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD);
+        AddStateBits(f->GetStateBits() & NS_FRAME_IS_NONDISPLAY);
         break;
       }
     }
@@ -476,7 +476,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   }
   mViewportInitialized = true;
 
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+  if (!(GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
     
     
 
@@ -721,7 +721,7 @@ nsSVGOuterSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
                                      int32_t  aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
-      !(GetStateBits() & (NS_FRAME_FIRST_REFLOW | NS_STATE_SVG_NONDISPLAY_CHILD))) {
+      !(GetStateBits() & (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_NONDISPLAY))) {
     if (aAttribute == nsGkAtoms::viewBox ||
         aAttribute == nsGkAtoms::preserveAspectRatio ||
         aAttribute == nsGkAtoms::transform) {
@@ -772,7 +772,7 @@ nsSVGOuterSVGFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+  if (GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
     return;
   }
 
@@ -863,7 +863,7 @@ nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
     mCanvasTM = nullptr;
 
     if (haveNonFulLZoomTransformChange &&
-        !(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+        !(mState & NS_FRAME_IS_NONDISPLAY)) {
       uint32_t flags = (mState & NS_FRAME_IN_REFLOW) ?
                          SVGSVGElement::eDuringReflow : 0;
       content->ChildrenOnlyTransformChanged(flags);
@@ -910,7 +910,7 @@ nsSVGOuterSVGFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 gfxMatrix
 nsSVGOuterSVGFrame::GetCanvasTM(uint32_t aFor)
 {
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+  if (!(GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
     if ((aFor == FOR_PAINTING && NS_SVGDisplayListPaintingEnabled()) ||
         (aFor == FOR_HIT_TESTING && NS_SVGDisplayListHitTestingEnabled())) {
       return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(this);
