@@ -3942,12 +3942,12 @@ var BrowserEventHandler = {
         
         
         let zoom = BrowserApp.selectedTab._zoom;
-        data.x = Math.round(data.x / zoom);
-        data.y = Math.round(data.y / zoom);
+        let x = Math.round(data.x / zoom);
+        let y = Math.round(data.y / zoom);
 
         if (this._firstScrollEvent) {
           while (this._scrollableElement != null &&
-                 !this._elementCanScroll(this._scrollableElement, data.x, data.y))
+                 !this._elementCanScroll(this._scrollableElement, x, y))
             this._scrollableElement = this._findScrollableElement(this._scrollableElement, false);
 
           let doc = BrowserApp.selectedBrowser.contentDocument;
@@ -3962,8 +3962,8 @@ var BrowserEventHandler = {
         }
 
         
-        if (this._elementCanScroll(this._scrollableElement, data.x, data.y)) {
-          this._scrollElementBy(this._scrollableElement, data.x, data.y);
+        if (this._elementCanScroll(this._scrollableElement, x, y)) {
+          this._scrollElementBy(this._scrollableElement, x, y);
           sendMessageToJava({ gecko: { type: "Gesture:ScrollAck", scrolled: true } });
           SelectionHandler.subdocumentScrolled(this._scrollableElement);
         } else {
@@ -3982,14 +3982,15 @@ var BrowserEventHandler = {
         if (element) {
           try {
             let data = JSON.parse(aData);
+            let [x, y] = [data.x, data.y];
             if (ElementTouchHelper.isElementClickable(element)) {
-              [data.x, data.y] = this._moveClickPoint(element, data.x, data.y);
-              element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
+              [x, y] = this._moveClickPoint(element, x, y);
+              element = ElementTouchHelper.anyElementFromPoint(x, y);
             }
 
-            this._sendMouseEvent("mousemove", element, data.x, data.y);
-            this._sendMouseEvent("mousedown", element, data.x, data.y);
-            this._sendMouseEvent("mouseup",   element, data.x, data.y);
+            this._sendMouseEvent("mousemove", element, x, y);
+            this._sendMouseEvent("mousedown", element, x, y);
+            this._sendMouseEvent("mouseup",   element, x, y);
 
             
             if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
