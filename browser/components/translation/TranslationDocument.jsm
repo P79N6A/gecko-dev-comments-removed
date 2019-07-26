@@ -13,8 +13,8 @@ const SHOW_TEXT = Ci.nsIDOMNodeFilter.SHOW_TEXT;
 const TEXT_NODE = Ci.nsIDOMNode.TEXT_NODE;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Promise.jsm");
-
+Cu.import("resource://services-common/utils.js");
+Cu.import("resource://gre/modules/Task.jsm");
 
 
 
@@ -160,6 +160,46 @@ this.TranslationDocument.prototype = {
 
     str += '</' + localName + '>';
     return str;
+  },
+
+  
+
+
+
+  showTranslation: function() {
+    this._swapDocumentContent("translation");
+  },
+
+  
+
+
+
+  showOriginal: function() {
+    this._swapDocumentContent("original");
+  },
+
+  
+
+
+
+
+
+
+  _swapDocumentContent: function(target) {
+    Task.spawn(function *() {
+      
+      
+      const YIELD_INTERVAL = 100;
+      let count = YIELD_INTERVAL;
+
+      for (let root of this.roots) {
+        root.swapText(target);
+        if (count-- == 0) {
+          count = YIELD_INTERVAL;
+          yield CommonUtils.laterTickResolvingPromise();
+        }
+      }
+    }.bind(this));
   }
 };
 
@@ -257,14 +297,23 @@ TranslationItem.prototype = {
 
 
   getChildById: function(id) {
-    let foundChild = null;
-    for (let child of item.children) {
+    for (let child of this.children) {
       if (("n" + child.id) == id) {
-        foundChild = child;
-        break;
+        return child;
       }
     }
-    return foundChild;
+    return null;
+  },
+
+  
+
+
+
+
+
+
+  swapText: function(target) {
+    swapTextForItem(this, target);
   }
 };
 
@@ -293,6 +342,98 @@ function parseResultNode(item, node) {
       if (translationItemChild) {
         item.translation.push(translationItemChild);
         parseResultNode(translationItemChild, child);
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+function swapTextForItem(item, target) {
+  
+  
+  let visitStack = [ item ];
+  let source = target == "translation" ? "original" : "translation";
+
+  while (visitStack.length > 0) {
+    let curItem = visitStack.shift();
+
+    let domNode = curItem.nodeRef;
+    if (!domNode) {
+      
+      continue;
+    }
+
+    let sourceNodeCount = 0;
+
+    if (!curItem[target]) {
+      
+      
+      
+      
+      
+      continue;
+    }
+
+    
+    
+    
+    for (let child of curItem[target]) {
+      
+      
+      if (child instanceof TranslationItem) {
+        
+        visitStack.push(child);
+        continue;
+      }
+
+      
+      
+      
+      
+      
+      let targetTextNode = getNthNonEmptyTextNodeFromElement(sourceNodeCount++, domNode);
+
+      
+      let preSpace = targetTextNode.nodeValue.startsWith(" ") ? " " : "";
+      let endSpace = targetTextNode.nodeValue.endsWith(" ") ? " " : "";
+      targetTextNode.nodeValue = preSpace + child + endSpace;
+    }
+
+    
+    
+    if (sourceNodeCount > 0) {
+      clearRemainingNonEmptyTextNodesFromElement(sourceNodeCount, domNode);
+    }
+  }
+}
+
+function getNthNonEmptyTextNodeFromElement(n, element) {
+  for (let childNode of element.childNodes) {
+    if (childNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
+        childNode.nodeValue.trim() != "") {
+      if (n-- == 0)
+        return childNode;
+    }
+  }
+
+  
+  return element.appendChild(element.ownerDocument.createTextNode(""));
+}
+
+function clearRemainingNonEmptyTextNodesFromElement(start, element) {
+  let count = 0;
+  for (let childNode of element.childNodes) {
+    if (childNode.nodeType == Ci.nsIDOMNode.TEXT_NODE &&
+        childNode.nodeValue.trim() != "") {
+      if (count++ >= start) {
+        childNode.nodeValue = "";
       }
     }
   }
