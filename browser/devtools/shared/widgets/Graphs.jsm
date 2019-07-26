@@ -17,7 +17,7 @@ const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
 
 
 
-const GRAPH_RESIZE_EVENTS_DRAIN = 20; 
+const GRAPH_RESIZE_EVENTS_DRAIN = 100; 
 const GRAPH_WHEEL_ZOOM_SENSITIVITY = 0.00075;
 const GRAPH_WHEEL_SCROLL_SENSITIVITY = 0.1;
 const GRAPH_WHEEL_MIN_SELECTION_WIDTH = 10; 
