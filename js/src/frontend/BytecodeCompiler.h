@@ -68,7 +68,7 @@ IsKeyword(JSLinearString *str);
 
 
 void
-MarkParser(JSTracer *trc, AutoGCRooter *parser);
+MarkParser(JSTracer *trc, JS::AutoGCRooter *parser);
 
 } 
 } 

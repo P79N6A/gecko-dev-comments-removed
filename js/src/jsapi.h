@@ -74,66 +74,6 @@ inline void AssertArgumentsAreSane(JSContext *cx, JS::HandleValue v) {
 }
 #endif 
 
-class JS_PUBLIC_API(AutoGCRooter) {
-  public:
-    AutoGCRooter(JSContext *cx, ptrdiff_t tag);
-    AutoGCRooter(js::ContextFriendFields *cx, ptrdiff_t tag);
-
-    ~AutoGCRooter() {
-        JS_ASSERT(this == *stackTop);
-        *stackTop = down;
-    }
-
-    
-    inline void trace(JSTracer *trc);
-    static void traceAll(JSTracer *trc);
-    static void traceAllWrappers(JSTracer *trc);
-
-  protected:
-    AutoGCRooter * const down;
-
-    
-
-
-
-
-
-
-    ptrdiff_t tag_;
-
-    enum {
-        VALARRAY =     -2, 
-        PARSER =       -3, 
-        SHAPEVECTOR =  -4, 
-        IDARRAY =      -6, 
-        DESCVECTOR =   -7, 
-        VALVECTOR =   -10, 
-        IDVECTOR =    -13, 
-        OBJVECTOR =   -14, 
-        STRINGVECTOR =-15, 
-        SCRIPTVECTOR =-16, 
-        NAMEVECTOR =  -17, 
-        HASHABLEVALUE=-18, 
-        IONMASM =     -19, 
-        IONALLOC =    -20, 
-        WRAPVECTOR =  -21, 
-        WRAPPER =     -22, 
-        OBJOBJHASHMAP=-23, 
-        OBJU32HASHMAP=-24, 
-        OBJHASHSET =  -25, 
-        JSONPARSER =  -26, 
-        CUSTOM =      -27, 
-        FUNVECTOR =   -28  
-    };
-
-  private:
-    AutoGCRooter ** const stackTop;
-
-    
-    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
-    void operator=(AutoGCRooter &ida) MOZ_DELETE;
-};
-
 
 template <size_t N>
 class AutoValueArray : public AutoGCRooter

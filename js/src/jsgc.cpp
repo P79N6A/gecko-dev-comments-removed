@@ -230,6 +230,8 @@ using mozilla::DebugOnly;
 using mozilla::Maybe;
 using mozilla::Swap;
 
+using JS::AutoGCRooter;
+
 
 static const uint64_t GC_IDLE_FULL_SPAN = 20 * 1000 * 1000;
 
