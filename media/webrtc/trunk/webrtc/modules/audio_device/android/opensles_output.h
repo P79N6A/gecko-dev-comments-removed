@@ -15,7 +15,9 @@
 #include <SLES/OpenSLES_Android.h>
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 
+#if !defined(WEBRTC_GONK)
 #include "webrtc/modules/audio_device/android/audio_manager_jni.h"
+#endif
 #include "webrtc/modules/audio_device/android/low_latency_event.h"
 #include "webrtc/modules/audio_device/android/opensles_common.h"
 #include "webrtc/modules/audio_device/include/audio_device_defines.h"
@@ -181,8 +183,10 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
   
   bool CbThreadImpl();
 
+#if !defined(WEBRTC_GONK)
   
   AudioManagerJni audio_manager_;
+#endif
 
   int id_;
   bool initialized_;
@@ -229,6 +233,22 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
 
   
   uint16_t playout_delay_;
+
+  
+  void *opensles_lib_;
+  typedef SLresult (*slCreateEngine_t)(SLObjectItf *,
+                                       SLuint32,
+                                       const SLEngineOption *,
+                                       SLuint32,
+                                       const SLInterfaceID *,
+                                       const SLboolean *);
+  slCreateEngine_t f_slCreateEngine;
+  SLInterfaceID SL_IID_ENGINE_;
+  SLInterfaceID SL_IID_BUFFERQUEUE_;
+  SLInterfaceID SL_IID_ANDROIDCONFIGURATION_;
+  SLInterfaceID SL_IID_PLAY_;
+  SLInterfaceID SL_IID_ANDROIDSIMPLEBUFFERQUEUE_;
+  SLInterfaceID SL_IID_VOLUME_;
 };
 
 }  

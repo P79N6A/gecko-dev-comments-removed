@@ -72,9 +72,12 @@ void WebRtcAec_ProcessFrame(AecCore* aec,
 int WebRtcAec_MoveFarReadPtr(AecCore* aec, int elements);
 
 
+
 int WebRtcAec_GetDelayMetricsCore(AecCore* self, int* median, int* std);
 
+
 int WebRtcAec_echo_state(AecCore* self);
+
 
 void WebRtcAec_GetEchoStats(AecCore* self, Stats* erl, Stats* erle,
                             Stats* a_nlp);
@@ -82,11 +85,23 @@ void WebRtcAec_GetEchoStats(AecCore* self, Stats* erl, Stats* erle,
 void* WebRtcAec_far_time_buf(AecCore* self);
 #endif
 
+
 void WebRtcAec_SetConfigCore(AecCore* self, int nlp_mode, int metrics_mode,
                              int delay_logging);
 
 
+
+
+
+void WebRtcAec_enable_delay_correction(AecCore* self, int enable);
+
+
+int WebRtcAec_delay_correction_enabled(AecCore* self);
+
+
+
 int WebRtcAec_system_delay(AecCore* self);
+
 
 
 

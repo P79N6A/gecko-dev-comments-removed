@@ -15,6 +15,29 @@
 
 namespace webrtc {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct DelayCorrection {
+  DelayCorrection() : enabled(false) {}
+  DelayCorrection(bool enabled) : enabled(enabled) {}
+
+  bool enabled;
+};
+
 class AudioProcessingImpl;
 class AudioBuffer;
 
@@ -34,6 +57,7 @@ class EchoCancellationImpl : public EchoCancellationImplWrapper {
 
   
   virtual int Initialize() OVERRIDE;
+  
 
  private:
   
@@ -70,6 +94,7 @@ class EchoCancellationImpl : public EchoCancellationImplWrapper {
   bool was_stream_drift_set_;
   bool stream_has_echo_;
   bool delay_logging_enabled_;
+  bool delay_correction_enabled_;
 };
 
 }  

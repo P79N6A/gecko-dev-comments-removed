@@ -16,7 +16,6 @@
 #include "webrtc/video_engine/include/vie_codec.h"
 #include "webrtc/video_engine/include/vie_render.h"
 #include "webrtc/video_engine/include/vie_network.h"
-#include "webrtc/video_engine/include/vie_file.h"
 #include "webrtc/video_engine/include/vie_rtp_rtcp.h"
 
 
@@ -148,7 +147,15 @@ public:
 
   virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int);
 
-  virtual int DeliverFrame(unsigned char*,int, uint32_t , int64_t);
+  virtual int DeliverFrame(unsigned char*,int, uint32_t , int64_t,
+                           void *handle);
+
+  
+
+
+
+
+  virtual bool IsTextureSupported() { return false; }
 
   unsigned short SendingWidth() {
     return mSendingWidth;

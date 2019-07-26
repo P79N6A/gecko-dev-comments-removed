@@ -40,7 +40,8 @@ MediaEngineWebRTCVideoSource::FrameSizeChange(
 
 int
 MediaEngineWebRTCVideoSource::DeliverFrame(
-   unsigned char* buffer, int size, uint32_t time_stamp, int64_t render_time)
+   unsigned char* buffer, int size, uint32_t time_stamp, int64_t render_time,
+   void *handle)
 {
   
   
@@ -399,126 +400,7 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
 nsresult
 MediaEngineWebRTCVideoSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
 {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef MOZ_B2G_CAMERA
-  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-#endif
-  *aFile = nullptr;
-  if (!mInitDone || mState != kAllocated) {
-    return NS_ERROR_FAILURE;
-  }
-#ifdef MOZ_B2G_CAMERA
-  mLastCapture = nullptr;
-
-  NS_DispatchToMainThread(WrapRunnable(this,
-                                       &MediaEngineWebRTCVideoSource::StartImpl,
-                                       mCapability));
-  mCallbackMonitor.Wait();
-  if (mState != kStarted) {
-    return NS_ERROR_FAILURE;
-  }
-
-  NS_DispatchToMainThread(WrapRunnable(this,
-                                       &MediaEngineWebRTCVideoSource::SnapshotImpl));
-  mCallbackMonitor.Wait();
-  if (mLastCapture == nullptr)
-    return NS_ERROR_FAILURE;
-
-  mState = kStopped;
-  NS_DispatchToMainThread(WrapRunnable(this,
-                                       &MediaEngineWebRTCVideoSource::StopImpl));
-
-  
-  
-  *aFile = mLastCapture.get();
-  return NS_OK;
-#else
-  {
-    MonitorAutoLock lock(mMonitor);
-    mInSnapshotMode = true;
-  }
-
-  
-  int error = 0;
-  if (!mInitDone || mState != kAllocated) {
-    return NS_ERROR_FAILURE;
-  }
-  error = mViERender->AddRenderer(mCaptureIndex, webrtc::kVideoI420, (webrtc::ExternalRenderer*)this);
-  if (error == -1) {
-    return NS_ERROR_FAILURE;
-  }
-  error = mViERender->StartRender(mCaptureIndex);
-  if (error == -1) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (mViECapture->StartCapture(mCaptureIndex, mCapability) < 0) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  
-  
-  
-  {
-    MonitorAutoLock lock(mMonitor);
-    while (mInSnapshotMode) {
-      lock.Wait();
-    }
-  }
-
-  
-  webrtc::ViEFile* vieFile = webrtc::ViEFile::GetInterface(mVideoEngine);
-  if (!vieFile) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  
-  NS_DispatchToMainThread(this, NS_DISPATCH_SYNC);
-
-  if (!mSnapshotPath) {
-    return NS_ERROR_FAILURE;
-  }
-
-  NS_ConvertUTF16toUTF8 path(*mSnapshotPath);
-  if (vieFile->GetCaptureDeviceSnapshot(mCaptureIndex, path.get()) < 0) {
-    delete mSnapshotPath;
-    mSnapshotPath = nullptr;
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  mViERender->StopRender(mCaptureIndex);
-  mViERender->RemoveRenderer(mCaptureIndex);
-
-  nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(*mSnapshotPath, false, getter_AddRefs(file));
-
-  delete mSnapshotPath;
-  mSnapshotPath = nullptr;
-
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  NS_ADDREF(*aFile = new nsDOMFileFile(file));
-#endif
-  return NS_OK;
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 

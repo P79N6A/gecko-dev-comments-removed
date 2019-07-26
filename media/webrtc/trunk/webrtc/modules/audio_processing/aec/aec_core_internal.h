@@ -22,6 +22,16 @@
 #define NR_PART 12  // Number of partitions in filter.
 #define PREF_BAND_SIZE 24
 
+
+
+enum { kExtendedNumPartitions = 32 };
+static const int kNormalNumPartitions = 12;
+
+
+
+static const float kExtendedMu = 0.4f;
+static const float kExtendedErrorThreshold = 1.0e-6f;
+
 typedef struct PowerLevel {
   float sfrsum;
   int sfrcounter;
@@ -56,11 +66,12 @@ struct AecCore {
   float dInitMinPow[PART_LEN1];
   float *noisePow;
 
-  float xfBuf[2][NR_PART * PART_LEN1];  
-  float wfBuf[2][NR_PART * PART_LEN1];  
+  float xfBuf[2][kExtendedNumPartitions * PART_LEN1];  
+  float wfBuf[2][kExtendedNumPartitions * PART_LEN1];  
   complex_t sde[PART_LEN1];  
   complex_t sxd[PART_LEN1];  
-  complex_t xfwBuf[NR_PART * PART_LEN1];  
+  
+  complex_t xfwBuf[kExtendedNumPartitions * PART_LEN1];
 
   float sx[PART_LEN1], sd[PART_LEN1], se[PART_LEN1];  
   float hNs[PART_LEN1];
@@ -85,8 +96,8 @@ struct AecCore {
   int sampFreq;
   uint32_t seed;
 
-  float mu;  
-  float errThresh;  
+  float normal_mu;  
+  float normal_error_threshold;  
 
   int noiseEstCtr;
 
@@ -111,6 +122,11 @@ struct AecCore {
   int delay_logging_enabled;
   void* delay_estimator_farend;
   void* delay_estimator;
+
+  
+  int extended_filter_enabled;
+  
+  int num_partitions;
 
 #ifdef WEBRTC_AEC_DEBUG_DUMP
   RingBuffer* far_time_buf;
