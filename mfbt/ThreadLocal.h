@@ -5,8 +5,8 @@
 
 
 
-#ifndef mozilla_TLS_h_
-#define mozilla_TLS_h_
+#ifndef mozilla_ThreadLocal_h_
+#define mozilla_ThreadLocal_h_
 
 #if defined(XP_WIN)
 
@@ -17,8 +17,8 @@
 
 
 extern "C" {
-__declspec(dllimport) void * __stdcall TlsGetValue(unsigned long);
-__declspec(dllimport) int __stdcall TlsSetValue(unsigned long, void *);
+__declspec(dllimport) void* __stdcall TlsGetValue(unsigned long);
+__declspec(dllimport) int __stdcall TlsSetValue(unsigned long, void*);
 __declspec(dllimport) unsigned long __stdcall TlsAlloc();
 }
 #else
@@ -83,7 +83,7 @@ class ThreadLocal
 
     inline T get() const;
 
-    inline bool set(const T value);
+    inline void set(const T value);
 
     bool initialized() const {
       return inited;
@@ -98,7 +98,7 @@ template<typename T>
 inline bool
 ThreadLocal<T>::init()
 {
-  MOZ_STATIC_ASSERT(sizeof(T) <= sizeof(void *),
+  MOZ_STATIC_ASSERT(sizeof(T) <= sizeof(void*),
                     "mozilla::ThreadLocal can't be used for types larger than "
                     "a pointer");
   MOZ_ASSERT(!initialized());
@@ -126,17 +126,20 @@ ThreadLocal<T>::get() const
 }
 
 template<typename T>
-inline bool
+inline void
 ThreadLocal<T>::set(const T value)
 {
   MOZ_ASSERT(initialized());
   Helper h;
   h.value = value;
+  bool succeeded;
 #ifdef XP_WIN
-  return TlsSetValue(key, h.ptr);
+  succeeded = TlsSetValue(key, h.ptr);
 #else
-  return !pthread_setspecific(key, h.ptr);
+  succeeded = !pthread_setspecific(key, h.ptr);
 #endif
+  if (!succeeded)
+    MOZ_CRASH();
 }
 
 } 
