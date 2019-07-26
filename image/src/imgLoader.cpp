@@ -250,7 +250,12 @@ private:
       nsRefPtr<imgRequest> req = entry->GetRequest();
       Image *image = static_cast<Image*>(req->mImage.get());
       if (image) {
-        *n += image->HeapSizeOfDecodedWithComputedFallback(ImagesMallocSizeOf);
+        
+        
+        
+        
+        
+        *n += image->HeapSizeOfDecodedWithComputedFallback(moz_malloc_size_of);
         *n += image->NonHeapSizeOfDecoded();
       }
     }
