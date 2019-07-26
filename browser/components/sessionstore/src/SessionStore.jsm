@@ -2626,15 +2626,6 @@ let SessionStoreInternal = {
       browser.setAttribute("pending", "true");
       tab.setAttribute("pending", "true");
 
-      if (tabData.entries.length == 0) {
-        
-        
-        browser.loadURIWithFlags("about:blank",
-                                 Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
-                                 null, null, null);
-        continue;
-      }
-
       browser.stop(); 
 
       
@@ -2793,7 +2784,7 @@ let SessionStoreInternal = {
     
     browser.webNavigation.setCurrentURI(Utils.makeURI("about:blank"));
     
-    if (activeIndex > -1) {
+    if (tabData.entries.length) {
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
@@ -2811,6 +2802,14 @@ let SessionStoreInternal = {
         
         didStartLoad = false;
       }
+    } else {
+      browser.__SS_restore_data = {};
+      browser.__SS_restore_pageStyle = "";
+      browser.__SS_restore_tab = aTab;
+      browser.loadURIWithFlags("about:blank",
+                               Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
+                               null, null, null);
+      didStartLoad = true;
     }
 
     
