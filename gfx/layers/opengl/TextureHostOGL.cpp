@@ -709,6 +709,7 @@ GrallocTextureHostOGL::GrallocTextureHostOGL()
 : mCompositor(nullptr)
 , mTextureTarget(0)
 , mEGLImage(0)
+, mIsRBSwapped(false)
 {
 }
 
@@ -762,8 +763,10 @@ GrallocTextureHostOGL::SwapTexturesImpl(const SurfaceDescriptor& aImage,
 
   const SurfaceDescriptorGralloc& desc = aImage.get_SurfaceDescriptorGralloc();
   mGraphicBuffer = GrallocBufferActor::GetFrom(desc);
+  mIsRBSwapped = desc.isRBSwapped();
   mFormat = SurfaceFormatForAndroidPixelFormat(mGraphicBuffer->getPixelFormat(),
-                                               desc.isRBSwapped());
+                                               mIsRBSwapped);
+
   mTextureTarget = TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
 
   DeleteTextures();
@@ -860,9 +863,25 @@ LayerRenderState
 GrallocTextureHostOGL::GetRenderState()
 {
   if (mBuffer && IsSurfaceDescriptorValid(*mBuffer)) {
+
+    uint32_t flags = mFlags & NeedsYFlip ? LAYER_RENDER_STATE_Y_FLIPPED : 0;
+
+    
+
+
+
+
+
+
+
+
+    if (mIsRBSwapped) {
+      flags |= LAYER_RENDER_STATE_FORMAT_RB_SWAP;
+    }
+
     return LayerRenderState(mGraphicBuffer.get(),
                             mBuffer->get_SurfaceDescriptorGralloc().size(),
-                            mFlags & NeedsYFlip ? LAYER_RENDER_STATE_Y_FLIPPED : 0);
+                            flags);
   }
 
   return LayerRenderState();

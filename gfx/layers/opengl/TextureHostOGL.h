@@ -652,6 +652,8 @@ private:
   android::sp<android::GraphicBuffer> mGraphicBuffer;
   GLenum mTextureTarget;
   EGLImage mEGLImage;
+  
+  bool mIsRBSwapped;
 };
 #endif
 

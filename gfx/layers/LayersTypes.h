@@ -66,7 +66,9 @@ enum MaskType {
 
 enum LayerRenderStateFlags {
   LAYER_RENDER_STATE_Y_FLIPPED = 1 << 0,
-  LAYER_RENDER_STATE_BUFFER_ROTATION = 1 << 1
+  LAYER_RENDER_STATE_BUFFER_ROTATION = 1 << 1,
+  
+  LAYER_RENDER_STATE_FORMAT_RB_SWAP = 1 << 2
 };
 
 
@@ -93,6 +95,9 @@ struct LayerRenderState {
 
   bool BufferRotated() const
   { return mFlags & LAYER_RENDER_STATE_BUFFER_ROTATION; }
+
+  bool FormatRBSwapped() const
+  { return mFlags & LAYER_RENDER_STATE_FORMAT_RB_SWAP; }
 #endif
 
   void SetOffset(const nsIntPoint& aOffset)
