@@ -122,6 +122,11 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
   virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
+  void PostHandleEventForRangeThumb(nsEventChainPostVisitor& aVisitor);
+  void StartRangeThumbDrag(nsGUIEvent* aEvent);
+  void FinishRangeThumbDrag(nsGUIEvent* aEvent = nullptr);
+  void CancelRangeThumbDrag();
+  void SetValueOfRangeForUserEvent(double aValue);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -771,6 +776,13 @@ protected:
   nsString mFocusedValue;  
 
   
+
+
+
+
+  double mRangeThumbDragStartValue;
+
+  
   static const double kStepScaleFactorDate;
   static const double kStepScaleFactorNumberRange;
   static const double kStepScaleFactorTime;
@@ -804,6 +816,7 @@ protected:
   bool                     mCanShowValidUI      : 1;
   bool                     mCanShowInvalidUI    : 1;
   bool                     mHasRange            : 1;
+  bool                     mIsDraggingRange     : 1;
 
 private:
   struct nsFilePickerFilter {
