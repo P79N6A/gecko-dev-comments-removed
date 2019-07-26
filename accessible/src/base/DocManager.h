@@ -65,6 +65,7 @@ public:
   inline void NotifyOfDocumentShutdown(nsIDocument* aDocument)
   {
     mDocAccessibleCache.Remove(aDocument);
+    RemoveListeners(aDocument);
   }
 
 #ifdef DEBUG
@@ -104,6 +105,7 @@ private:
 
 
   void AddListeners(nsIDocument *aDocument, bool aAddPageShowListener);
+  void RemoveListeners(nsIDocument* aDocument);
 
   
 
