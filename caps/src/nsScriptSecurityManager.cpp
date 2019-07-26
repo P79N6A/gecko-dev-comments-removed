@@ -4,11 +4,13 @@
 
 
 
+#include "nsScriptSecurityManager.h"
+
 #include "mozilla/Util.h"
 
+#include "js/OldDebugAPI.h"
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
-#include "nsScriptSecurityManager.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScriptContext.h"
@@ -24,7 +26,6 @@
 #include "nsCRTGlue.h"
 #include "nsError.h"
 #include "nsDOMCID.h"
-#include "jsdbgapi.h"
 #include "nsIXPConnect.h"
 #include "nsIXPCSecurityManager.h"
 #include "nsTextFormatter.h"

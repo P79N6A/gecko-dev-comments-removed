@@ -4,11 +4,11 @@
 
 
 
-#include "jsdbgapi.h"
 #include "jsfriendapi.h"
 #include "jsd_xpc.h"
 
 #include "js/GCAPI.h"
+#include "js/OldDebugAPI.h"
 
 #include "nsIXPConnect.h"
 #include "mozilla/ModuleUtils.h"

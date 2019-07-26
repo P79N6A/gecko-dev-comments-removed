@@ -45,7 +45,7 @@
 #include "mozilla/Services.h"
 
 
-#include "jsdbgapi.h"
+#include "js/OldDebugAPI.h"
 
 
 

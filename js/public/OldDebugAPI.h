@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsdbgapi_h
-#define jsdbgapi_h
+#ifndef js_OldDebugAPI_h
+#define js_OldDebugAPI_h
 
 
 

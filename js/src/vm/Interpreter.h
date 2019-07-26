@@ -35,8 +35,6 @@ namespace js {
 
 
 
-
-
 extern JSTrapStatus
 ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame);
 

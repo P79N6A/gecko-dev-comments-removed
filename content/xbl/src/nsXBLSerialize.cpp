@@ -4,12 +4,13 @@
 
 
 #include "nsXBLSerialize.h"
+
+#include "jsfriendapi.h"
+#include "js/OldDebugAPI.h"
 #include "nsXBLPrototypeBinding.h"
 #include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
-#include "jsdbgapi.h"
-#include "jsfriendapi.h"
 
 using namespace mozilla;
 

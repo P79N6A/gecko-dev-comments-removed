@@ -7,8 +7,7 @@
 
 
 
-#include "jsdbgapi.h"
-
+#include "js/OldDebugAPI.h"
 #include "jsapi-tests/tests.h"
 
 BEGIN_TEST(test_cloneScript)
