@@ -12,9 +12,6 @@
 
 #include "prlock.h"
 #include "mozilla/RefPtr.h"
-#include "nsWeakPtr.h"
-#include "nsIWeakReferenceUtils.h" 
-#include "IPeerConnection.h"
 #include "sigslot.h"
 #include "nricectx.h"
 #include "nricemediastream.h"
@@ -509,15 +506,25 @@ private:
   
   
   
-  class WeakConcretePtr
+  
+  
+  
+  
+  class WeakReminder
   {
   public:
-    WeakConcretePtr() : mObserver(nullptr) {}
-    void Set(PeerConnectionObserver *aObserver);
-    PeerConnectionObserver *MayGet();
+    WeakReminder() : mObserver(nullptr) {}
+    void Init(PeerConnectionObserver *aObserver) {
+      mObserver = aObserver;
+    }
+    void Close() {
+      mObserver = nullptr;
+    }
+    PeerConnectionObserver *MayGet() {
+      return mObserver;
+    }
   private:
     PeerConnectionObserver *mObserver;
-    nsWeakPtr mWeakPtr;
   } mPCObserver;
   nsCOMPtr<nsPIDOMWindow> mWindow;
 

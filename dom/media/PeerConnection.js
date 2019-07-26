@@ -891,7 +891,6 @@ RTCError.prototype = {
 
 function PeerConnectionObserver() {
   this._dompc = null;
-  this._guard = new WeakReferent(this);
 }
 PeerConnectionObserver.prototype = {
   classDescription: "PeerConnectionObserver",
@@ -1193,21 +1192,7 @@ PeerConnectionObserver.prototype = {
 
   getSupportedConstraints: function(dict) {
     return dict;
-  },
-
-  get weakReferent() {
-    return this._guard;
   }
-};
-
-
-
-function WeakReferent(parent) {
-  this._parent = parent; 
-}
-WeakReferent.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports,
-                                         Ci.nsISupportsWeakReference]),
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(
