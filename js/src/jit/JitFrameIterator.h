@@ -192,6 +192,10 @@ class JitFrameIterator
     }
 
     
+    
+    uint8_t *resumeAddressToFp() const;
+
+    
     inline size_t prevFrameLocalSize() const;
     inline FrameType prevType() const;
     uint8_t *prevFp() const;
