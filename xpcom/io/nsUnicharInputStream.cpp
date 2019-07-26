@@ -20,6 +20,8 @@
 #include <unistd.h>
 #endif
 
+#define STRING_BUFFER_SIZE 8192
+
 class StringUnicharInputStream MOZ_FINAL : public nsIUnicharInputStream
 {
 public:
@@ -159,19 +161,10 @@ UTF8InputStream::UTF8InputStream() :
 nsresult
 UTF8InputStream::Init(nsIInputStream* aStream)
 {
-  
-  
-  static const size_t BufferLength = 8192 - sizeof(nsTArrayHeader);
-
-  
-  
-  if (!mByteData.SetCapacity(BufferLength) ||
-      !mUnicharData.SetCapacity(mByteData.Capacity())) {
+  if (!mByteData.SetCapacity(STRING_BUFFER_SIZE) ||
+      !mUnicharData.SetCapacity(STRING_BUFFER_SIZE)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  
-  MOZ_ASSERT(mByteData.Capacity() == BufferLength);
-
   mInput = aStream;
 
   return NS_OK;
