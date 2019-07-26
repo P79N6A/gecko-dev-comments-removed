@@ -50,6 +50,11 @@ class SystemPageAllocator
   private:
     bool decommitEnabled();
     void *mapAlignedPagesSlow(size_t size, size_t alignment);
+    void *mapAlignedPagesLastDitch(size_t size, size_t alignment);
+    void getNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
+                     size_t size, size_t alignment);
+    bool getNewChunkInner(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
+                          size_t size, size_t alignment, bool addrsGrowDown);
 
     
     
@@ -57,6 +62,16 @@ class SystemPageAllocator
 
     
     size_t              allocGranularity;
+
+#if defined(XP_UNIX)
+    
+    int                 growthDirection;
+#endif
+
+    
+    
+    
+    static const int    MaxLastDitchAttempts = 8;
 };
 
 } 
