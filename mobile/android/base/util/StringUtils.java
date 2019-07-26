@@ -5,6 +5,9 @@
 
 package org.mozilla.gecko.util;
 
+import android.net.Uri;
+import android.text.TextUtils;
+
 public class StringUtils {
     
 
@@ -95,5 +98,41 @@ public class StringUtils {
         }
 
         return host.substring(start);
+    }
+
+    
+
+
+    public static String getQueryParameter(String url, String desiredKey) {
+        if (TextUtils.isEmpty(url) || TextUtils.isEmpty(desiredKey)) {
+            return null;
+        }
+
+        final String[] urlParts = url.split("\\?");
+        if (urlParts.length < 2) {
+            return null;
+        }
+
+        final String query = urlParts[1];
+        for (final String param : query.split("&")) {
+            final String pair[] = param.split("=");
+            final String key = Uri.decode(pair[0]);
+
+            
+            if (TextUtils.isEmpty(key) || !key.equals(desiredKey)) {
+                continue;
+            }
+            
+            if (pair.length < 2) {
+                continue;
+            }
+            final String value = Uri.decode(pair[1]);
+            if (TextUtils.isEmpty(value)) {
+                return null;
+            }
+            return value;
+        }
+
+        return null;
     }
 }
