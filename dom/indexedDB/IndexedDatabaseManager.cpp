@@ -1163,22 +1163,14 @@ IndexedDatabaseManager::GetUsageForURI(
   
   
   if (origin.EqualsLiteral("null")) {
-    rv = NS_DispatchToCurrentThread(runnable);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return NS_OK;
+    return runnable->TakeShortcut();
   }
 
   
-  
-  if (IsClearOriginPending(origin)) {
-    rv = NS_DispatchToCurrentThread(runnable);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return NS_OK;
-  }
-
-  
-  rv = mIOThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+  rv = WaitForOpenAllowed(origin, nsnull, runnable);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  runnable->AdvanceState();
 
   return NS_OK;
 }
@@ -1479,7 +1471,8 @@ IndexedDatabaseManager::AsyncUsageRunnable::AsyncUsageRunnable(
   mCallback(aCallback),
   mUsage(0),
   mFileUsage(0),
-  mCanceled(0)
+  mCanceled(0),
+  mCallbackState(Pending)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aURI, "Null pointer!");
@@ -1509,49 +1502,101 @@ IncrementUsage(PRUint64* aUsage, PRUint64 aDelta)
 }
 
 nsresult
+IndexedDatabaseManager::AsyncUsageRunnable::TakeShortcut()
+{
+  NS_ASSERTION(mCallbackState == Pending, "Huh?");
+
+  nsresult rv = NS_DispatchToCurrentThread(this);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mCallbackState = Shortcut;
+  return NS_OK;
+}
+
+nsresult
 IndexedDatabaseManager::AsyncUsageRunnable::RunInternal()
 {
   IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
   NS_ASSERTION(mgr, "This should never fail!");
 
-  if (NS_IsMainThread()) {
-    
-    if (!mCanceled) {
-      PRUint64 usage = mUsage;
-      IncrementUsage(&usage, mFileUsage);
-      mCallback->OnUsageResult(mURI, usage, mFileUsage);
-    }
-
-    
-    mURI = nsnull;
-    mCallback = nsnull;
-
-    
-    mgr->OnUsageCheckComplete(this);
-
-    return NS_OK;
-  }
-
   if (mCanceled) {
     return NS_OK;
   }
 
-  
-  nsCOMPtr<nsIFile> directory;
-  nsresult rv = mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
-  NS_ENSURE_SUCCESS(rv, rv);
+  switch (mCallbackState) {
+    case Pending: {
+      NS_NOTREACHED("Should never get here without being dispatched!");
+      return NS_ERROR_UNEXPECTED;
+    }
 
-  bool exists;
-  rv = directory->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
+    case OpenAllowed: {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  
-  
-  if (exists && !mCanceled) {
-    rv = GetUsageForDirectory(directory, &mUsage);
-    NS_ENSURE_SUCCESS(rv, rv);
+      AdvanceState();
+
+      if (NS_FAILED(mgr->IOThread()->Dispatch(this, NS_DISPATCH_NORMAL))) {
+        NS_WARNING("Failed to dispatch to the IO thread!");
+      }
+
+      return NS_OK;
+    }
+
+    case IO: {
+      NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+
+      AdvanceState();
+
+      
+      nsCOMPtr<nsIFile> directory;
+      nsresult rv = mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      bool exists;
+      rv = directory->Exists(&exists);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      if (exists && !mCanceled) {
+        rv = GetUsageForDirectory(directory, &mUsage);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      return NS_OK;
+    }
+
+    case Complete: 
+    case Shortcut: {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+      
+      if (!mCanceled) {
+        PRUint64 usage = mUsage;
+        IncrementUsage(&usage, mFileUsage);
+        mCallback->OnUsageResult(mURI, usage, mFileUsage);
+      }
+
+      
+      mURI = nsnull;
+      mCallback = nsnull;
+
+      
+      mgr->OnUsageCheckComplete(this);
+      if (mCallbackState == Complete) {
+        mgr->AllowNextSynchronizedOp(mOrigin, nsnull);
+      }
+
+      return NS_OK;
+    }
+
+    default:
+      NS_ERROR("Unknown state value!");
+      return NS_ERROR_UNEXPECTED;
   }
-  return NS_OK;
+
+  NS_NOTREACHED("Should never get here!");
+  return NS_ERROR_UNEXPECTED;
 }
 
 nsresult
@@ -1627,7 +1672,6 @@ IndexedDatabaseManager::AsyncUsageRunnable::Run()
     }
   }
 
-  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
 
