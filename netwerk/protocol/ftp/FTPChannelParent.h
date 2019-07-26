@@ -8,6 +8,7 @@
 #ifndef mozilla_net_FTPChannelParent_h
 #define mozilla_net_FTPChannelParent_h
 
+#include "ADivertableParentChannel.h"
 #include "mozilla/net/PFTPChannelParent.h"
 #include "mozilla/net/NeckoParent.h"
 #include "nsIParentChannel.h"
@@ -22,6 +23,7 @@ namespace net {
 class FTPChannelParent : public PFTPChannelParent
                        , public nsIParentChannel
                        , public nsIInterfaceRequestor
+                       , public ADivertableParentChannel
 {
 public:
   NS_DECL_ISUPPORTS
@@ -35,7 +37,26 @@ public:
 
   bool Init(const FTPChannelCreationArgs& aOpenArgs);
 
+  
+  void DivertTo(nsIStreamListener *aListener) MOZ_OVERRIDE;
+  nsresult SuspendForDiversion() MOZ_OVERRIDE;
+
+  
+  
+  
+  void StartDiversion();
+
+  
+  
+  void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
+
 protected:
+  
+  nsresult ResumeForDiversion();
+
+  
+  void FailDiversion(nsresult aErrorCode, bool aSkipResume = true);
+
   bool DoAsyncOpen(const URIParams& aURI, const uint64_t& aStartPos,
                    const nsCString& aEntityID,
                    const OptionalInputStreamParams& aUploadStream);
@@ -47,6 +68,11 @@ protected:
   virtual bool RecvCancel(const nsresult& status) MOZ_OVERRIDE;
   virtual bool RecvSuspend() MOZ_OVERRIDE;
   virtual bool RecvResume() MOZ_OVERRIDE;
+  virtual bool RecvDivertOnDataAvailable(const nsCString& data,
+                                         const uint64_t& offset,
+                                         const uint32_t& count) MOZ_OVERRIDE;
+  virtual bool RecvDivertOnStopRequest(const nsresult& statusCode) MOZ_OVERRIDE;
+  virtual bool RecvDivertComplete() MOZ_OVERRIDE;
 
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
@@ -57,6 +83,22 @@ protected:
   nsCOMPtr<nsILoadContext> mLoadContext;
 
   PBOverrideStatus mPBOverride;
+
+  
+  
+  nsCOMPtr<nsIStreamListener> mDivertToListener;
+  
+  nsresult mStatus;
+  
+  
+  
+  bool mDivertingFromChild;
+  
+  bool mDivertedOnStartRequest;
+
+  
+  
+  bool mSuspendedForDiversion;
 };
 
 } 

@@ -220,6 +220,7 @@ nsHttpChannel::nsHttpChannel()
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
     , mDidReval(false)
+    , mForcePending(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
     mChannelCreationTime = PR_Now();
@@ -6198,6 +6199,24 @@ nsHttpChannel::SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks)
         UpdateAggregateCallbacks();
     }
     return rv;
+}
+
+void
+nsHttpChannel::ForcePending(bool aForcePending)
+{
+    
+    
+    
+    
+    mForcePending = aForcePending;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::IsPending(bool *aIsPending)
+{
+    NS_ENSURE_ARG_POINTER(aIsPending);
+    *aIsPending = mIsPending || mForcePending;
+    return NS_OK;
 }
 
 } } 

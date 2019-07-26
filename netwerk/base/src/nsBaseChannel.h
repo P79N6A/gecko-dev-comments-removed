@@ -157,9 +157,9 @@ public:
   }
 
   
-  bool IsPending() const {
+  virtual bool Pending() const {
     return mPump || mWaitingOnAsyncRedirect;
-  }
+ }
 
   
   template <class T> void GetCallback(nsCOMPtr<T> &result) {
