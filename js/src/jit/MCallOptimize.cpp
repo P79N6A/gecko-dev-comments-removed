@@ -940,7 +940,8 @@ IonBuilder::inlineMathFRound(CallInfo &callInfo)
     if (returned->empty()) {
         
         
-        returned->addType(types::Type::DoubleType(), alloc_->lifoAlloc());
+        if (!returned->addType(types::Type::DoubleType(), alloc_->lifoAlloc()))
+            return InliningStatus_Error;
     } else {
         MIRType returnType = getInlineReturnType();
         if (!IsNumberType(returnType))

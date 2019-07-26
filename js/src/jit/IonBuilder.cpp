@@ -617,7 +617,8 @@ IonBuilder::build()
     }
 #endif
 
-    initParameters();
+    if (!initParameters())
+        return false;
 
     
     for (uint32_t i = 0; i < info().nlocals(); i++) {
@@ -909,18 +910,20 @@ IonBuilder::rewriteParameters()
     }
 }
 
-void
+bool
 IonBuilder::initParameters()
 {
     if (!info().funMaybeLazy())
-        return;
+        return true;
 
     
     
     
 
-    if (thisTypes->empty() && baselineFrame_)
-        thisTypes->addType(baselineFrame_->thisType, alloc_->lifoAlloc());
+    if (thisTypes->empty() && baselineFrame_) {
+        if (!thisTypes->addType(baselineFrame_->thisType, alloc_->lifoAlloc()))
+            return false;
+    }
 
     MParameter *param = MParameter::New(alloc(), MParameter::THIS_SLOT, thisTypes);
     current->add(param);
@@ -931,13 +934,16 @@ IonBuilder::initParameters()
         if (types->empty() && baselineFrame_ &&
             !script_->baselineScript()->modifiesArguments())
         {
-            types->addType(baselineFrame_->argTypes[i], alloc_->lifoAlloc());
+            if (!types->addType(baselineFrame_->argTypes[i], alloc_->lifoAlloc()))
+                return false;
         }
 
         param = MParameter::New(alloc(), i, types);
         current->add(param);
         current->initSlot(info().argSlotUnchecked(i), param);
     }
+
+    return true;
 }
 
 bool
@@ -4965,12 +4971,14 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     types::TemporaryTypeSet *observed = bytecodeTypes(pc);
     if (observed->empty()) {
         if (BytecodeFlowsToBitop(pc)) {
-            observed->addType(types::Type::Int32Type(), alloc_->lifoAlloc());
+            if (!observed->addType(types::Type::Int32Type(), alloc_->lifoAlloc()))
+                return false;
         } else if (*GetNextPc(pc) == JSOP_POS) {
             
             
             
-            observed->addType(types::Type::DoubleType(), alloc_->lifoAlloc());
+            if (!observed->addType(types::Type::DoubleType(), alloc_->lifoAlloc()))
+                return false;
         }
     }
 
@@ -7083,7 +7091,8 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
         
         
         
-        AddObjectsForPropertyRead(obj, nullptr, types);
+        if (!AddObjectsForPropertyRead(obj, nullptr, types))
+            return false;
     }
 
     bool barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(), obj, nullptr, types);
@@ -9279,7 +9288,8 @@ IonBuilder::jsop_setarg(uint32_t arg)
                 }
                 if (!otherUses) {
                     JS_ASSERT(op->resultTypeSet() == &argTypes[arg]);
-                    argTypes[arg].addType(types::Type::UnknownType(), alloc_->lifoAlloc());
+                    if (!argTypes[arg].addType(types::Type::UnknownType(), alloc_->lifoAlloc()))
+                        return false;
                     if (val->isMul()) {
                         val->setResultType(MIRType_Double);
                         val->toMul()->setSpecialization(MIRType_Double);
