@@ -212,9 +212,30 @@ UpdatePrompt.prototype = {
       return;
     }
 
+#ifdef MOZ_B2G_RIL
+    let window = Services.wm.getMostRecentWindow("navigator:browser");
+    let pinReq = window.navigator.mozIccManager.getCardLock("pin");
+    pinReq.onsuccess = function(e) {
+      if (e.target.result.enabled) {
+        
+        
+        
+        
+        log("SIM is pin locked. Not starting fallback timer.");
+      } else {
+        
+        
+        this._applyPromptTimer = this.createTimer(this.applyPromptTimeout);
+      }
+    }.bind(this);
+    pinReq.onerror = function(e) {
+      this._applyPromptTimer = this.createTimer(this.applyPromptTimeout);
+    }.bind(this);
+#else
     
     
     this._applyPromptTimer = this.createTimer(this.applyPromptTimeout);
+#endif
   },
 
   _copyProperties: ["appVersion", "buildID", "detailsURL", "displayVersion",
