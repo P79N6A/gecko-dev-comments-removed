@@ -75,7 +75,7 @@ public:
 
 protected:
   
-  nsresult AppendRulesToCssText(nsAString& aCssText);
+  void AppendRulesToCssText(nsAString& aCssText);
 
   
   
