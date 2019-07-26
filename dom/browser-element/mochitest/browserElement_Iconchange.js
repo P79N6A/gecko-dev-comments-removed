@@ -12,8 +12,9 @@ function createHtml(link) {
   return 'data:text/html,<html><head>' + link + '<body></body></html>';
 }
 
-function createLink(name) {
-  return '<link rel="icon" type="image/png" href="http://example.com/' + name + '.png">';
+function createLink(name, sizes) {
+  var s = sizes ? 'sizes="' + sizes + '"' : '';
+  return '<link rel="icon" type="image/png" ' + s + ' href="http://example.com/' + name + '.png">';
 }
 
 function runTest() {
@@ -40,7 +41,7 @@ function runTest() {
     numIconChanges++;
 
     if (numIconChanges == 1) {
-      is(e.detail, 'http://example.com/myicon.png');
+      is(e.detail.href, 'http://example.com/myicon.png');
 
       
       
@@ -57,13 +58,13 @@ function runTest() {
                                      false);
     }
     else if (numIconChanges == 2) {
-      is(e.detail, 'http://example.com/newicon.png');
+      is(e.detail.href, 'http://example.com/newicon.png');
 
       
       iframe1.src = createHtml(createLink('3rdicon'));
     }
     else if (numIconChanges == 3) {
-      is(e.detail, 'http://example.com/3rdicon.png');
+      is(e.detail.href, 'http://example.com/3rdicon.png');
 
       
       
@@ -74,11 +75,11 @@ function runTest() {
       iframe1.src = createHtml(createLink('another') + createLink('icon'));
     }
     else if (numIconChanges == 4) {
-      is(e.detail, 'http://example.com/another.png');
+      is(e.detail.href, 'http://example.com/another.png');
       
     }
     else if (numIconChanges == 5) {
-      is(e.detail, 'http://example.com/icon.png');
+      is(e.detail.href, 'http://example.com/icon.png');
 
       
       SpecialPowers.getBrowserFrameMessageManager(iframe1)
@@ -86,7 +87,12 @@ function runTest() {
                                      false);
     }
     else if (numIconChanges == 6) {
-      is(e.detail, 'http://example.com/ucaseicon.png');
+      is(e.detail.href, 'http://example.com/ucaseicon.png');
+      iframe1.src = createHtml(createLink('testsize', '50x50'));
+    }
+    else if (numIconChanges == 7) {
+      is(e.detail.href, 'http://example.com/testsize.png');
+      is(e.detail.sizes, '50x50');
       SimpleTest.finish();
     } else {
       ok(false, 'Too many iconchange events.');
