@@ -12,12 +12,11 @@
 #include "mozilla/dom/FileModeBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
 #include "nsString.h"
 
 class nsIDOMFile;
 class nsIFile;
-class nsIFileStorage;
+class nsIOfflineStorage;
 class nsPIDOMWindow;
 
 namespace mozilla {
@@ -42,6 +41,7 @@ class FileInfo;
 
 
 
+
 class FileHandle : public DOMEventTargetHelper
 {
   friend class FileService;
@@ -50,15 +50,6 @@ class FileHandle : public DOMEventTargetHelper
   friend class FileHelper;
 
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(FileHandle, DOMEventTargetHelper)
-
-  static already_AddRefed<FileHandle>
-  Create(nsPIDOMWindow* aWindow,
-         nsIFileStorage* aFileStorage,
-         nsIFile* aFile);
-
   const nsAString&
   Name() const
   {
@@ -83,8 +74,32 @@ public:
     return nullptr;
   }
 
+  virtual bool
+  IsShuttingDown();
+
+  virtual bool
+  IsInvalid()
+  {
+    return false;
+  }
+
+  
+  
+  virtual nsIOfflineStorage*
+  Storage() = 0;
+
   virtual already_AddRefed<nsISupports>
   CreateStream(nsIFile* aFile, bool aReadOnly);
+
+  virtual void
+  SetThreadLocals()
+  {
+  }
+
+  virtual void
+  UnsetThreadLocals()
+  {
+  }
 
   virtual already_AddRefed<nsIDOMFile>
   CreateFileObject(LockedFile* aLockedFile, uint32_t aFileSize);
@@ -128,12 +143,12 @@ protected:
 
   virtual ~FileHandle();
 
-  nsCOMPtr<nsIFileStorage> mFileStorage;
-
   nsString mName;
   nsString mType;
 
   nsCOMPtr<nsIFile> mFile;
+
+  nsCString mStorageId;
   nsString mFileName;
 };
 

@@ -2419,7 +2419,7 @@ QuotaManager::Observe(nsISupports* aSubject,
           }
         }
 
-        StorageMatcher<nsTArray<nsCOMPtr<nsIFileStorage> > > liveStorages;
+        StorageMatcher<nsTArray<nsCOMPtr<nsIOfflineStorage>>> liveStorages;
         liveStorages.Find(mLiveStorages, &indexes);
 
         if (!liveStorages.IsEmpty()) {
@@ -2796,7 +2796,7 @@ QuotaManager::RunSynchronizedOp(nsIOfflineStorage* aStorage,
 
   if (service) {
     
-    nsTArray<nsCOMPtr<nsIFileStorage> > array;
+    nsTArray<nsCOMPtr<nsIOfflineStorage>> array;
 
     for (uint32_t index = startIndex; index < endIndex; index++)  {
       if (!storages[index].IsEmpty() &&
