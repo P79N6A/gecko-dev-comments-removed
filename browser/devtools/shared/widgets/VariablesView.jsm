@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
+Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "devtools",
   "resource://gre/modules/devtools/Loader.jsm");
@@ -1122,14 +1123,6 @@ function Scope(aView, aName, aFlags = {}) {
   this.contextMenuId = aView.contextMenuId;
   this.separatorStr = aView.separatorStr;
 
-  
-  
-  
-  XPCOMUtils.defineLazyGetter(this, "_store", () => new Map());
-  XPCOMUtils.defineLazyGetter(this, "_enumItems", () => []);
-  XPCOMUtils.defineLazyGetter(this, "_nonEnumItems", () => []);
-  XPCOMUtils.defineLazyGetter(this, "_batchItems", () => []);
-
   this._init(aName.trim(), aFlags);
 }
 
@@ -2038,6 +2031,14 @@ Scope.prototype = {
   _nonenum: null,
   _throbber: null
 };
+
+
+
+
+DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_store", Map);
+DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_enumItems", Array);
+DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_nonEnumItems", Array);
+DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_batchItems", Array);
 
 
 

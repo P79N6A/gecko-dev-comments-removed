@@ -134,3 +134,35 @@ this.yieldingEach = function yieldingEach(aArray, aFn) {
 
   return deferred.promise;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.defineLazyPrototypeGetter =
+function defineLazyPrototypeGetter(aObject, aKey, aCallback) {
+  Object.defineProperty(aObject, aKey, {
+    configurable: true,
+    get: function() {
+      const value = aCallback.call(this);
+
+      Object.defineProperty(this, aKey, {
+        configurable: true,
+        writable: true,
+        value: value
+      });
+
+      return value;
+    }
+  });
+}
