@@ -32,8 +32,6 @@
 #define HB_UNICODE_PRIVATE_HH
 
 #include "hb-private.hh"
-
-#include "hb-unicode.h"
 #include "hb-object-private.hh"
 
 
@@ -108,7 +106,11 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
   modified_combining_class (hb_codepoint_t unicode)
   {
     
-    if (unicode == 0x1037) unicode = 0x103A;
+    if (unlikely (unicode == 0x1037)) unicode = 0x103A;
+
+    
+
+    if (unlikely (unicode == 0x1A60)) return 254;
 
     return _hb_modified_combining_class[combining_class (unicode)];
   }
@@ -182,9 +184,8 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
 	case 0x20: return hb_in_ranges<hb_codepoint_t> (ch, 0x200B, 0x200F,
 							    0x202A, 0x202E,
 							    0x2060, 0x206F);
-	case 0x31: return unlikely (ch == 0x3164);
 	case 0xFE: return hb_in_range<hb_codepoint_t> (ch, 0xFE00, 0xFE0F) || ch == 0xFEFF;
-	case 0xFF: return hb_in_range<hb_codepoint_t> (ch, 0xFFF0, 0xFFF8) || ch == 0xFFA0;
+	case 0xFF: return hb_in_range<hb_codepoint_t> (ch, 0xFFF0, 0xFFF8);
 	default: return false;
       }
     }

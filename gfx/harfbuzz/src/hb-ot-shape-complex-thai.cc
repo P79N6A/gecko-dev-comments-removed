@@ -369,10 +369,10 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_thai =
   NULL, 
   NULL, 
   preprocess_text_thai,
+  HB_OT_SHAPE_NORMALIZATION_MODE_DEFAULT,
   NULL, 
   NULL, 
   NULL, 
-  NULL, 
-  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_UNICODE_LATE,
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_DEFAULT,
   false,
 };

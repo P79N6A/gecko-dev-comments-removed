@@ -44,7 +44,9 @@ enum hb_ot_shape_zero_width_marks_type_t {
 
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_UNICODE_LATE,
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_EARLY,
-  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
+
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_DEFAULT = HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_UNICODE_LATE
 };
 
 
@@ -52,10 +54,13 @@ enum hb_ot_shape_zero_width_marks_type_t {
 #define HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS \
   HB_COMPLEX_SHAPER_IMPLEMENT (default) /* should be first */ \
   HB_COMPLEX_SHAPER_IMPLEMENT (arabic) \
+  HB_COMPLEX_SHAPER_IMPLEMENT (hangul) \
+  HB_COMPLEX_SHAPER_IMPLEMENT (hebrew) \
   HB_COMPLEX_SHAPER_IMPLEMENT (indic) \
   HB_COMPLEX_SHAPER_IMPLEMENT (myanmar) \
   HB_COMPLEX_SHAPER_IMPLEMENT (sea) \
   HB_COMPLEX_SHAPER_IMPLEMENT (thai) \
+  HB_COMPLEX_SHAPER_IMPLEMENT (tibetan) \
   /* ^--- Add new shapers here */
 
 
@@ -105,12 +110,7 @@ struct hb_ot_complex_shaper_t
 			   hb_font_t                *font);
 
 
-  
-
-
-
-  hb_ot_shape_normalization_mode_t
-  (*normalization_preference) (const hb_segment_properties_t *props);
+  hb_ot_shape_normalization_mode_t normalization_preference;
 
   
 
@@ -189,19 +189,22 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
       return &_hb_ot_complex_shaper_thai;
 
 
-#if 0
-    
-
-
-
-
-
-
     
     case HB_SCRIPT_HANGUL:
 
       return &_hb_ot_complex_shaper_hangul;
-#endif
+
+
+    
+    case HB_SCRIPT_TIBETAN:
+
+      return &_hb_ot_complex_shaper_tibetan;
+
+
+    
+    case HB_SCRIPT_HEBREW:
+
+      return &_hb_ot_complex_shaper_hebrew;
 
 
     
@@ -240,9 +243,6 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
     
     case HB_SCRIPT_LAO:
     case HB_SCRIPT_THAI:
-
-    
-    case HB_SCRIPT_TIBETAN:
 
     
     case HB_SCRIPT_TAGALOG:
