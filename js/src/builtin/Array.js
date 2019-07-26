@@ -927,14 +927,12 @@ function ArrayFilterPar(func, mode) {
     
     
     
-    
-    
-    
     var numSlices = slicesInfo.count;
     var counts = NewDenseArray(numSlices);
     for (var i = 0; i < numSlices; i++)
       UnsafePutElements(counts, i, 0);
-    var survivors = NewDenseArray(computeNum32BitChunks(length));
+
+    var survivors = new Uint8Array(length);
     ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode));
 
     
@@ -961,18 +959,6 @@ function ArrayFilterPar(func, mode) {
   
 
 
-  function computeNum32BitChunks(length) {
-    var chunks = length >>> 5;
-    if (chunks << 5 === length)
-      return chunks;
-    return chunks + 1;
-  }
-
-  
-
-
-
-
 
   function findSurvivorsThread(workerId, sliceStart, sliceEnd) {
     var sliceShift = slicesInfo.shift;
@@ -981,31 +967,26 @@ function ArrayFilterPar(func, mode) {
       var count = 0;
       var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
       var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
-      var chunkStart = computeNum32BitChunks(indexStart);
-      var chunkEnd = computeNum32BitChunks(indexEnd);
-      for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
-        var chunkBits = 0;
-        for (var bit = 0, indexPos = indexStart; bit < 32 && indexPos < indexEnd; bit++, indexPos++) {
-          var keep = !!func(self[indexPos], indexPos, self);
-          chunkBits |= keep << bit;
-          count += keep;
-        }
-        UnsafePutElements(survivors, chunkPos, chunkBits);
+      for (var indexPos = indexStart; indexPos < indexEnd; indexPos++) {
+        var keep = !!func(self[indexPos], indexPos, self);
+        UnsafePutElements(survivors, indexPos, keep);
+        count += keep;
       }
       UnsafePutElements(counts, sliceId, count);
     }
     return sliceId;
   }
 
+  
+
+
+
+
+
   function copySurvivorsThread(workerId, sliceStart, sliceEnd) {
     var sliceShift = slicesInfo.shift;
     var sliceId;
     while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      
-      
-      
-      
-
       
       var total = 0;
       for (var i = 0; i < sliceId + 1; i++)
@@ -1016,30 +997,14 @@ function ArrayFilterPar(func, mode) {
       if (count === total)
         continue;
 
-      
-      
-      
-      
-      
       var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
       var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
-      var chunkStart = computeNum32BitChunks(indexStart);
-      var chunkEnd = computeNum32BitChunks(indexEnd);
-      for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
-        var chunkBits = survivors[chunkPos];
-        if (!chunkBits)
-          continue;
-
-        for (var i = 0; i < 32; i++) {
-          if (chunkBits & (1 << i)) {
-            UnsafePutElements(buffer, count++, self[indexStart + i]);
-            if (count === total)
-              break;
-          }
+      for (var indexPos = indexStart; indexPos < indexEnd; indexPos++) {
+        if (survivors[indexPos]) {
+          UnsafePutElements(buffer, count++, self[indexPos]);
+          if (count == total)
+            break;
         }
-
-        if (count == total)
-          break;
       }
     }
 

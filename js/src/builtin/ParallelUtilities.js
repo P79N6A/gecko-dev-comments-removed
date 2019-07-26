@@ -50,8 +50,6 @@
 
 
 
-
-
 function ComputeSlicesInfo(length) {
   var count = length >>> MAX_SLICE_SHIFT;
   var numWorkers = ForkJoinNumWorkers();
