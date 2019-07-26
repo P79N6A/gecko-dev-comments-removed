@@ -177,6 +177,16 @@ RootActor.prototype = {
   
 
 
+  get isRootActor() true,
+
+  
+
+
+  get window() Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType),
+
+  
+
+
   disconnect: function() {
     
     if (this._parameters.tabList) {

@@ -979,6 +979,7 @@ let RemoteDebugger = {
     if (!DebuggerServer.initialized) {
       
       DebuggerServer.init(this.prompt.bind(this));
+      DebuggerServer.chromeWindowType = "navigator:browser";
       DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
       
       

@@ -131,6 +131,13 @@ var DebuggerServer = {
 
 
 
+  chromeWindowType: null,
+
+  
+
+
+
+
 
 
   _defaultAllowConnection: function DS__defaultAllowConnection() {
@@ -282,6 +289,7 @@ var DebuggerServer = {
 
 
   addBrowserActors: function DS_addBrowserActors() {
+    this.chromeWindowType = "navigator:browser";
     this.addActors("resource://gre/modules/devtools/server/actors/webbrowser.js");
     this.addActors("resource://gre/modules/devtools/server/actors/script.js");
     this.addGlobalActor(this.ChromeDebuggerActor, "chromeDebugger");

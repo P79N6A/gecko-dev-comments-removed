@@ -53,30 +53,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
 function WebConsoleActor(aConnection, aParentActor)
 {
   this.conn = aConnection;
-
-  if (aParentActor.browser instanceof Ci.nsIDOMWindow) {
-    
-    
-    
-    
-    
-    
-    
-    
-    this._window = aParentActor.browser;
-    this._isGlobalActor = true;
-  }
-  else if (aParentActor instanceof BrowserTabActor &&
-           aParentActor.browser instanceof Ci.nsIDOMElement) {
-    
-    
-    this._window = aParentActor.browser.contentWindow;
-  }
-  else {
-    
-    this._window = Services.wm.getMostRecentWindow("navigator:browser");
-    this._isGlobalActor = true;
-  }
+  this.parentActor = aParentActor;
 
   this._actorPool = new ActorPool(this.conn);
   this.conn.addActorPool(this._actorPool);
@@ -93,7 +70,7 @@ function WebConsoleActor(aConnection, aParentActor)
   this._onObserverNotification = this._onObserverNotification.bind(this);
   Services.obs.addObserver(this._onObserverNotification,
                            "inner-window-destroyed", false);
-  if (this._isGlobalActor) {
+  if (this.parentActor.isRootActor) {
     Services.obs.addObserver(this._onObserverNotification,
                              "last-pb-context-exited", false);
   }
@@ -107,13 +84,6 @@ WebConsoleActor.prototype =
 
 
   dbg: null,
-
-  
-
-
-
-
-  _isGlobalActor: false,
 
   
 
@@ -167,9 +137,7 @@ WebConsoleActor.prototype =
 
 
 
-  get window() this._window,
-
-  _window: null,
+  get window() this.parentActor.window,
 
   
 
@@ -237,7 +205,7 @@ WebConsoleActor.prototype =
     this.conn.removeActorPool(this._actorPool);
     Services.obs.removeObserver(this._onObserverNotification,
                                 "inner-window-destroyed");
-    if (this._isGlobalActor) {
+    if (this.parentActor.isRootActor) {
       Services.obs.removeObserver(this._onObserverNotification,
                                   "last-pb-context-exited");
     }
@@ -248,7 +216,7 @@ WebConsoleActor.prototype =
     this._dbgGlobals.clear();
     this.dbg.enabled = false;
     this.dbg = null;
-    this.conn = this._window = null;
+    this.conn = null;
   },
 
   
@@ -386,7 +354,7 @@ WebConsoleActor.prototype =
   onStartListeners: function WCA_onStartListeners(aRequest)
   {
     let startedListeners = [];
-    let window = !this._isGlobalActor ? this.window : null;
+    let window = !this.parentActor.isRootActor ? this.window : null;
 
     while (aRequest.listeners.length > 0) {
       let listener = aRequest.listeners.shift();
@@ -519,7 +487,7 @@ WebConsoleActor.prototype =
             break;
           }
           let cache = this.consoleAPIListener
-                      .getCachedMessages(!this._isGlobalActor);
+                      .getCachedMessages(!this.parentActor.isRootActor);
           cache.forEach((aMessage) => {
             let message = this.prepareConsoleMessageForRemote(aMessage);
             message._type = type;
@@ -532,7 +500,7 @@ WebConsoleActor.prototype =
             break;
           }
           let cache = this.consoleServiceListener
-                      .getCachedMessages(!this._isGlobalActor);
+                      .getCachedMessages(!this.parentActor.isRootActor);
           cache.forEach((aMessage) => {
             let message = null;
             if (aMessage instanceof Ci.nsIScriptError) {
@@ -658,10 +626,10 @@ WebConsoleActor.prototype =
   onClearMessagesCache: function WCA_onClearMessagesCache()
   {
     
-    let windowId = !this._isGlobalActor ?
+    let windowId = !this.parentActor.isRootActor ?
                    WebConsoleUtils.getInnerWindowId(this.window) : null;
     ConsoleAPIStorage.clearEvents(windowId);
-    if (this._isGlobalActor) {
+    if (this.parentActor.isRootActor) {
       Services.console.logStringMessage(null); 
       Services.console.reset();
     }
@@ -1092,7 +1060,7 @@ WebConsoleActor.prototype =
     let details = aMessage.request;
 
     
-    let request = new this._window.XMLHttpRequest();
+    let request = new this.window.XMLHttpRequest();
     request.open(details.method, details.url, true);
 
     for (let {name, value} of details.headers) {

@@ -34,18 +34,7 @@ function StyleEditorActor(aConnection, aParentActor)
   this.conn = aConnection;
   this._onDocumentLoaded = this._onDocumentLoaded.bind(this);
   this._onSheetLoaded = this._onSheetLoaded.bind(this);
-
-  if (aParentActor instanceof BrowserTabActor &&
-      aParentActor.browser instanceof Ci.nsIDOMWindow) {
-    this._window = aParentActor.browser;
-  }
-  else if (aParentActor instanceof BrowserTabActor &&
-           aParentActor.browser instanceof Ci.nsIDOMElement) {
-    this._window = aParentActor.browser.contentWindow;
-  }
-  else {
-    this._window = Services.wm.getMostRecentWindow("navigator:browser");
-  }
+  this.parentActor = aParentActor;
 
   
   this._sheets = new Map();
@@ -68,17 +57,12 @@ StyleEditorActor.prototype = {
   
 
 
-  get win() this._window,
+  get window() this.parentActor.window,
 
   
 
 
-  get doc() this._window.document,
-
-  
-
-
-  _window: null,
+  get document() this.window.document,
 
   actorPrefix: "styleEditor",
 
@@ -101,7 +85,7 @@ StyleEditorActor.prototype = {
 
     this.conn.removeActorPool(this._actorPool);
     this._actorPool = null;
-    this.conn = this._window = null;
+    this.conn = null;
   },
 
   
@@ -120,7 +104,7 @@ StyleEditorActor.prototype = {
 
 
   onGetBaseURI: function() {
-    return { baseURI: this.doc.baseURIObject };
+    return { baseURI: this.document.baseURIObject };
   },
 
   
@@ -133,11 +117,11 @@ StyleEditorActor.prototype = {
 
     
     
-    if (this.doc.readyState == "complete") {
+    if (this.document.readyState == "complete") {
       this._onDocumentLoaded();
     }
     else {
-      this.win.addEventListener("load", this._onDocumentLoaded, false);
+      this.window.addEventListener("load", this._onDocumentLoaded, false);
     }
     return {};
   },
@@ -148,10 +132,10 @@ StyleEditorActor.prototype = {
 
   _onDocumentLoaded: function(event) {
     if (event) {
-      this.win.removeEventListener("load", this._onDocumentLoaded, false);
+      this.window.removeEventListener("load", this._onDocumentLoaded, false);
     }
 
-    let documents = [this.doc];
+    let documents = [this.document];
     var forms = [];
     for (let doc of documents) {
       let sheetForms = this._addStyleSheets(doc.styleSheets);
@@ -267,7 +251,7 @@ StyleEditorActor.prototype = {
 
 
   onGetStyleSheets: function() {
-    let forms = this._addStyleSheets(this.doc.styleSheets);
+    let forms = this._addStyleSheets(this.document.styleSheets);
     return { "styleSheets": forms };
   },
 
@@ -295,12 +279,12 @@ StyleEditorActor.prototype = {
 
 
   onNewStyleSheet: function(request) {
-    let parent = this.doc.documentElement;
-    let style = this.doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
+    let parent = this.document.documentElement;
+    let style = this.document.createElementNS("http://www.w3.org/1999/xhtml", "style");
     style.setAttribute("type", "text/css");
 
     if (request.text) {
-      style.appendChild(this.doc.createTextNode(request.text));
+      style.appendChild(this.document.createTextNode(request.text));
     }
     parent.appendChild(style);
 
@@ -358,16 +342,12 @@ StyleSheetActor.prototype = {
   
 
 
-  get win() {
-    return this.parentActor._window;
-  },
+  get window() this.parentActor.window,
 
   
 
 
-  get doc() {
-    return this.win.document;
-  },
+  get document() this.window.document,
 
   
 
@@ -377,8 +357,8 @@ StyleSheetActor.prototype = {
   get styleSheetIndex()
   {
     if (this._styleSheetIndex == -1) {
-      for (let i = 0; i < this.doc.styleSheets.length; i++) {
-        if (this.doc.styleSheets[i] == this.styleSheet) {
+      for (let i = 0; i < this.document.styleSheets.length; i++) {
+        if (this.document.styleSheets[i] == this.styleSheet) {
           this._styleSheetIndex = i;
           break;
         }
@@ -643,9 +623,10 @@ StyleSheetActor.prototype = {
     };
 
     if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
-      let loadContext = this.win.QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIWebNavigation)
-                          .QueryInterface(Ci.nsILoadContext);
+      let loadContext = this.window
+                            .QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIWebNavigation)
+                            .QueryInterface(Ci.nsILoadContext);
       channel.setPrivate(loadContext.usePrivateBrowsing);
     }
     channel.loadFlags = channel.LOAD_FROM_CACHE;
@@ -684,14 +665,14 @@ StyleSheetActor.prototype = {
     
     if (this._transitionRefCount == 0) {
       this.styleSheet.insertRule(TRANSITION_RULE, this.styleSheet.cssRules.length);
-      this.doc.documentElement.classList.add(TRANSITION_CLASS);
+      this.document.documentElement.classList.add(TRANSITION_CLASS);
     }
 
     this._transitionRefCount++;
 
     
     
-    this.win.setTimeout(this._onTransitionEnd.bind(this),
+    this.window.setTimeout(this._onTransitionEnd.bind(this),
                            Math.floor(TRANSITION_DURATION_MS * 1.1));
   },
 
@@ -702,7 +683,7 @@ StyleSheetActor.prototype = {
   _onTransitionEnd: function()
   {
     if (--this._transitionRefCount == 0) {
-      this.doc.documentElement.classList.remove(TRANSITION_CLASS);
+      this.document.documentElement.classList.remove(TRANSITION_CLASS);
       this.styleSheet.deleteRule(this.styleSheet.cssRules.length - 1);
     }
 

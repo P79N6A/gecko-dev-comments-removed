@@ -18,7 +18,7 @@ addDebuggerToGlobal(this);
 
 
 
-function TraceActor(aConn, aBrowserTabActor)
+function TraceActor(aConn, aParentActor)
 {
   this._attached = false;
   this._activeTraces = new MapStack();
@@ -30,7 +30,7 @@ function TraceActor(aConn, aBrowserTabActor)
   }
   this._sequence = 0;
 
-  this.global = aBrowserTabActor.contentWindow.wrappedJSObject;
+  this.global = aParentActor.window.wrappedJSObject;
 }
 
 TraceActor.prototype = {
