@@ -81,14 +81,21 @@ NtPathToDosPath(const nsAString& aNtPath, nsAString& aDosPath)
     while (*cur++);
   } while (cur != end);
   
-#if defined(DEBUG)
+  
+  NS_NAMED_LITERAL_STRING(uncPrefix, "\\\\");
   NS_NAMED_LITERAL_STRING(deviceMupPrefix, "\\Device\\Mup\\");
-  uint32_t deviceMupPrefixLen = deviceMupPrefix.Length();
-  if (ntPathLen >= deviceMupPrefixLen &&
-      Substring(aNtPath, 0, deviceMupPrefixLen).Equals(deviceMupPrefix)) {
-    NS_WARNING("UNC paths not yet supported in NtPathToDosPath");
+  if (StringBeginsWith(aNtPath, deviceMupPrefix)) {
+    aDosPath = uncPrefix;
+    aDosPath += Substring(aNtPath, deviceMupPrefix.Length());
+    return true;
   }
-#endif 
+  NS_NAMED_LITERAL_STRING(deviceLanmanRedirectorPrefix,
+                          "\\Device\\LanmanRedirector\\");
+  if (StringBeginsWith(aNtPath, deviceLanmanRedirectorPrefix)) {
+    aDosPath = uncPrefix;
+    aDosPath += Substring(aNtPath, deviceLanmanRedirectorPrefix.Length());
+    return true;
+  }
   return false;
 }
 

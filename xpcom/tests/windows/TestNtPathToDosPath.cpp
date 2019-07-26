@@ -178,9 +178,15 @@ int main(int argc, char* argv[])
     result = 1;
   }
   
+  if (!TestNtPathToDosPath(L"\\Device\\Mup\\127.0.0.1\\C$",
+                           L"\\\\127.0.0.1\\C$")) {
+    fail("Unmapped UNC path (\\Device\\Mup\\)");
+    result = 1;
+  }
   
-  if (TestNtPathToDosPath(L"\\Device\\Mup\\127.0.0.1\\C$", nullptr)) {
-    fail("Unmapped UNC path");
+  if (!TestNtPathToDosPath(L"\\Device\\LanmanRedirector\\127.0.0.1\\C$",
+                           L"\\\\127.0.0.1\\C$")) {
+    fail("Unmapped UNC path (\\Device\\LanmanRedirector\\)");
     result = 1;
   }
   DriveMapping drvMapping(NS_LITERAL_STRING("\\\\127.0.0.1\\C$"));
