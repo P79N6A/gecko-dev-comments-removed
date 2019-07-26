@@ -1600,8 +1600,28 @@ DebugScopes::sweep(JSRuntime *rt)
 
 
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
-        if (IsObjectAboutToBeFinalized(e.front().value().unsafeGet()))
+        DebugScopeObject **debugScope = e.front().value().unsafeGet();
+        if (IsObjectAboutToBeFinalized(debugScope)) {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            liveScopes.remove(&(*debugScope)->scope());
             e.removeFront();
+        }
     }
 
     for (LiveScopeMap::Enum e(liveScopes); !e.empty(); e.popFront()) {
