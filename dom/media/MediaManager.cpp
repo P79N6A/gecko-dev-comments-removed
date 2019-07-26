@@ -141,49 +141,34 @@ static nsresult ValidateTrackConstraints(
   return NS_OK;
 }
 
-
-
-
-
-
-class ErrorCallbackRunnable : public nsRunnable
-{
-public:
-  ErrorCallbackRunnable(
-    already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
-    already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    const nsAString& aErrorMsg, uint64_t aWindowID)
-    : mSuccess(aSuccess)
-    , mError(aError)
-    , mErrorMsg(aErrorMsg)
-    , mWindowID(aWindowID)
-    , mManager(MediaManager::GetInstance()) {}
-
-  NS_IMETHOD
-  Run()
-  {
-    
-    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-
-    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
-    nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
-
-    if (!(mManager->IsWindowStillActive(mWindowID))) {
-      return NS_OK;
-    }
-    
-    
-    error->OnError(mErrorMsg);
-    return NS_OK;
+ErrorCallbackRunnable::ErrorCallbackRunnable(
+  already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
+  already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
+  const nsAString& aErrorMsg, uint64_t aWindowID)
+  : mSuccess(aSuccess)
+  , mError(aError)
+  , mErrorMsg(aErrorMsg)
+  , mWindowID(aWindowID)
+  , mManager(MediaManager::GetInstance()) {
   }
 
-private:
-  already_AddRefed<nsIDOMGetUserMediaSuccessCallback> mSuccess;
-  already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
-  const nsString mErrorMsg;
-  uint64_t mWindowID;
-  nsRefPtr<MediaManager> mManager; 
-};
+NS_IMETHODIMP
+ErrorCallbackRunnable::Run()
+{
+  
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
+  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
+
+  if (!(mManager->IsWindowStillActive(mWindowID))) {
+    return NS_OK;
+  }
+  
+  
+  error->OnError(mErrorMsg);
+  return NS_OK;
+}
 
 
 
@@ -593,7 +578,8 @@ public:
     nsRefPtr<MediaOperationRunnable> runnable(
       new MediaOperationRunnable(MEDIA_START, mListener, trackunion,
                                  tracksAvailableCallback,
-                                 mAudioSource, mVideoSource, false, mWindowID));
+                                 mAudioSource, mVideoSource, false, mWindowID,
+                                 mError.forget()));
     mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
 #ifdef MOZ_WEBRTC
@@ -1803,7 +1789,7 @@ GetUserMediaCallbackMediaStreamListener::Invalidate()
   runnable = new MediaOperationRunnable(MEDIA_STOP,
                                         this, nullptr, nullptr,
                                         mAudioSource, mVideoSource,
-                                        mFinished, mWindowID);
+                                        mFinished, mWindowID, nullptr);
   mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
 

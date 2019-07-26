@@ -284,13 +284,16 @@ MediaEngineWebRTCAudioSource::Init()
     return;
   }
 
+#ifndef MOZ_B2G
+  
+  
   bool avail = false;
   ptrVoEHw->GetRecordingDeviceStatus(avail);
   ptrVoEHw->Release();
   if (!avail) {
     return;
   }
-
+#endif 
   
   webrtc::VoECodec* ptrVoECodec;
   webrtc::CodecInst codec;
