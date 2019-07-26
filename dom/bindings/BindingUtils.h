@@ -1154,8 +1154,8 @@ XPCOMObjectToJsval(JSContext* cx, JS::Handle<JSObject*> scope,
 
 
 bool
-VariantToJsval(JSContext* aCx, JS::Handle<JSObject*> aScope,
-               nsIVariant* aVariant, JS::MutableHandle<JS::Value> aRetval);
+VariantToJsval(JSContext* aCx, nsIVariant* aVariant,
+               JS::MutableHandle<JS::Value> aRetval);
 
 
 
@@ -1163,14 +1163,13 @@ VariantToJsval(JSContext* aCx, JS::Handle<JSObject*> aScope,
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, T* p,
-           nsWrapperCache* cache, const nsIID* iid,
+WrapObject(JSContext* cx, T* p, nsWrapperCache* cache, const nsIID* iid,
            JS::MutableHandle<JS::Value> rval)
 {
-  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
   if (xpc_FastGetCachedWrapper(cx, cache, rval))
     return true;
   qsObjectHelper helper(p, cache);
+  JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
   return XPCOMObjectToJsval(cx, scope, helper, iid, true, rval);
 }
 
@@ -1178,13 +1177,13 @@ WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, T* p,
 
 template<>
 inline bool
-WrapObject<nsIVariant>(JSContext* cx, JS::Handle<JSObject*> scope, nsIVariant* p,
+WrapObject<nsIVariant>(JSContext* cx, nsIVariant* p,
                        nsWrapperCache* cache, const nsIID* iid,
                        JS::MutableHandle<JS::Value> rval)
 {
   MOZ_ASSERT(iid);
   MOZ_ASSERT(iid->Equals(NS_GET_IID(nsIVariant)));
-  return VariantToJsval(cx, scope, p, rval);
+  return VariantToJsval(cx, p, rval);
 }
 
 
@@ -1192,10 +1191,10 @@ WrapObject<nsIVariant>(JSContext* cx, JS::Handle<JSObject*> scope, nsIVariant* p
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, T* p, const nsIID* iid,
+WrapObject(JSContext* cx, T* p, const nsIID* iid,
            JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p, GetWrapperCache(p), iid, rval);
+  return WrapObject(cx, p, GetWrapperCache(p), iid, rval);
 }
 
 
@@ -1203,52 +1202,51 @@ WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, T* p, const nsIID* iid,
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, T* p,
-           JS::MutableHandle<JS::Value> rval)
+WrapObject(JSContext* cx, T* p, JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p, nullptr, rval);
+  return WrapObject(cx, p, nullptr, rval);
 }
 
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, const nsCOMPtr<T>& p,
+WrapObject(JSContext* cx, const nsCOMPtr<T>& p,
            const nsIID* iid, JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p.get(), iid, rval);
+  return WrapObject(cx, p.get(), iid, rval);
 }
 
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, const nsCOMPtr<T>& p,
+WrapObject(JSContext* cx, const nsCOMPtr<T>& p,
            JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p, nullptr, rval);
+  return WrapObject(cx, p, nullptr, rval);
 }
 
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, const nsRefPtr<T>& p,
+WrapObject(JSContext* cx, const nsRefPtr<T>& p,
            const nsIID* iid, JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p.get(), iid, rval);
+  return WrapObject(cx, p.get(), iid, rval);
 }
 
 
 template<class T>
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, const nsRefPtr<T>& p,
+WrapObject(JSContext* cx, const nsRefPtr<T>& p,
            JS::MutableHandle<JS::Value> rval)
 {
-  return WrapObject(cx, scope, p, nullptr, rval);
+  return WrapObject(cx, p, nullptr, rval);
 }
 
 
 template<>
 inline bool
-WrapObject<JSObject>(JSContext* cx, JS::Handle<JSObject*> scope, JSObject* p,
+WrapObject<JSObject>(JSContext* cx, JSObject* p,
                      JS::MutableHandle<JS::Value> rval)
 {
   rval.set(JS::ObjectOrNullValue(p));
@@ -1256,8 +1254,7 @@ WrapObject<JSObject>(JSContext* cx, JS::Handle<JSObject*> scope, JSObject* p,
 }
 
 inline bool
-WrapObject(JSContext* cx, JS::Handle<JSObject*> scope, JSObject& p,
-           JS::MutableHandle<JS::Value> rval)
+WrapObject(JSContext* cx, JSObject& p, JS::MutableHandle<JS::Value> rval)
 {
   rval.set(JS::ObjectValue(p));
   return true;

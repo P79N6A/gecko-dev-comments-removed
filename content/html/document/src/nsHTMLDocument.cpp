@@ -2257,15 +2257,11 @@ nsHTMLDocument::NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
   }
 
   JS::Rooted<JS::Value> val(cx);
-  { 
-    JS::Rooted<JSObject*> wrapper(cx, GetWrapper());
-    JSAutoCompartment ac(cx, wrapper);
-    
-    
-    if (!dom::WrapObject(cx, wrapper, supp, cache, nullptr, &val)) {
-      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return nullptr;
-    }
+  
+  
+  if (!dom::WrapObject(cx, supp, cache, nullptr, &val)) {
+    rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return nullptr;
   }
   aFound = true;
   return &val.toObject();

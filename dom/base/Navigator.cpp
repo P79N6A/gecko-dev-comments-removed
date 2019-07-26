@@ -1879,7 +1879,7 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
         
         
         JS::Rooted<JS::Value> wrapped(aCx);
-        if (!dom::WrapObject(aCx, naviObj, existingObject, &wrapped)) {
+        if (!dom::WrapObject(aCx, existingObject, &wrapped)) {
           return false;
         }
         domObject = &wrapped.toObject();
