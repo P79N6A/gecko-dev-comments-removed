@@ -22,6 +22,7 @@
 #include "AudioNodeEngine.h"
 #include "AudioNodeStream.h"
 #include <algorithm>
+#include "DOMMediaStream.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::dom;
@@ -1137,6 +1138,7 @@ public:
   {
     NS_ASSERTION(mGraph->mDetectedNotRunning,
                  "We should know the graph thread control loop isn't running!");
+
     
     if (mGraph->IsEmpty()) {
       
@@ -1144,6 +1146,13 @@ public:
       
       delete mGraph;
     } else {
+      for (uint32_t i = 0; i < mGraph->mStreams.Length(); ++i) {
+        DOMMediaStream* s = mGraph->mStreams[i]->GetWrapper();
+        if (s) {
+          s->NotifyMediaStreamGraphShutdown();
+        }
+      }
+
       NS_ASSERTION(mGraph->mForceShutDown, "Not in forced shutdown?");
       mGraph->mLifecycleState =
         MediaStreamGraphImpl::LIFECYCLE_WAITING_FOR_STREAM_DESTRUCTION;

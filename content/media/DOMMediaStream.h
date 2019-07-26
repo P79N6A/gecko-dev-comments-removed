@@ -12,6 +12,7 @@
 #include "nsWrapperCache.h"
 #include "nsIDOMWindow.h"
 #include "StreamBuffer.h"
+#include "nsIRunnable.h"
 
 class nsXPCClassInfo;
 
@@ -49,6 +50,8 @@ class DOMMediaStream : public nsIDOMMediaStream,
   typedef dom::VideoStreamTrack VideoStreamTrack;
 
 public:
+  typedef uint8_t TrackTypeHints;
+
   DOMMediaStream();
   virtual ~DOMMediaStream();
 
@@ -86,33 +89,63 @@ public:
   
 
 
-  static already_AddRefed<DOMMediaStream>
-  CreateSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
 
-  
+
+  void NotifyMediaStreamGraphShutdown();
+
   
   enum {
-    HINT_CONTENTS_AUDIO = 0x00000001U,
-    HINT_CONTENTS_VIDEO = 0x00000002U
+    HINT_CONTENTS_AUDIO = 1 << 0,
+    HINT_CONTENTS_VIDEO = 1 << 1
   };
-  uint32_t GetHintContents() const { return mHintContents; }
-  void SetHintContents(uint32_t aHintContents) { mHintContents = aHintContents; }
+  TrackTypeHints GetHintContents() const { return mHintContents; }
+  void SetHintContents(TrackTypeHints aHintContents) { mHintContents = aHintContents; }
 
   
 
 
   static already_AddRefed<DOMMediaStream>
-  CreateTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents = 0);
+  CreateSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
 
+  
+
+
+  static already_AddRefed<DOMMediaStream>
+  CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents = 0);
+
+  
   
   MediaStreamTrack* CreateDOMTrack(TrackID aTrackID, MediaSegment::Type aType);
   MediaStreamTrack* GetDOMTrackFor(TrackID aTrackID);
 
+  class OnTracksAvailableCallback {
+  public:
+    OnTracksAvailableCallback(uint8_t aExpectedTracks = 0)
+      : mExpectedTracks(aExpectedTracks) {}
+    virtual ~OnTracksAvailableCallback() {}
+    virtual void NotifyTracksAvailable(DOMMediaStream* aStream) = 0;
+    TrackTypeHints GetExpectedTracks() { return mExpectedTracks; }
+    void SetExpectedTracks(TrackTypeHints aExpectedTracks) { mExpectedTracks = aExpectedTracks; }
+  private:
+    TrackTypeHints mExpectedTracks;
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  void OnTracksAvailable(OnTracksAvailableCallback* aCallback);
+
 protected:
   void Destroy();
-  void InitSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
-  void InitTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
+  void InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
+  void InitTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
   void InitStreamCommon(MediaStream* aStream);
+  void CheckTracksAvailable();
 
   class StreamListener;
   friend class StreamListener;
@@ -130,9 +163,13 @@ protected:
   nsAutoTArray<nsRefPtr<MediaStreamTrack>,2> mTracks;
   nsRefPtr<StreamListener> mListener;
 
+  nsTArray<nsAutoPtr<OnTracksAvailableCallback> > mRunOnTracksAvailable;
+
   
+  uint8_t mHintContents;
   
-  uint32_t mHintContents;
+  uint8_t mTrackTypesAvailable;
+  bool mNotifiedOfMediaStreamGraphShutdown;
 };
 
 class DOMLocalMediaStream : public DOMMediaStream,
@@ -153,13 +190,13 @@ public:
 
 
   static already_AddRefed<DOMLocalMediaStream>
-  CreateSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
+  CreateSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
 
   
 
 
   static already_AddRefed<DOMLocalMediaStream>
-  CreateTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents = 0);
+  CreateTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents = 0);
 };
 
 }
