@@ -2005,14 +2005,20 @@ ContentParent::RecvAddGeolocationListener(const IPC::Principal& aPrincipal)
   }
 #endif
 
-  if (mGeolocationWatchID == -1) {
-    nsCOMPtr<nsIDOMGeoGeolocation> geo = do_GetService("@mozilla.org/geolocation;1");
-    if (!geo) {
-      return true;
-    }
-    jsval dummy = JSVAL_VOID;
-    geo->WatchPosition(this, nullptr, dummy, nullptr, &mGeolocationWatchID);
+  
+  
+  RecvRemoveGeolocationListener();
+
+  nsCOMPtr<nsIDOMGeoGeolocation> geo = do_GetService("@mozilla.org/geolocation;1");
+  if (!geo) {
+    return true;
   }
+
+  nsRefPtr<nsGeolocation> geosvc = static_cast<nsGeolocation*>(geo.get());
+  nsAutoPtr<mozilla::dom::GeoPositionOptions> options(new mozilla::dom::GeoPositionOptions());
+  jsval null = JS::NullValue();
+  options->Init(nullptr, &null);
+  geosvc->WatchPosition(this, nullptr, options.forget(), &mGeolocationWatchID);
   return true;
 }
 
