@@ -20,6 +20,7 @@ class nsIInputStream;
 class nsHostObjectProtocolHandler : public nsIProtocolHandler
 {
 public:
+  virtual ~nsHostObjectProtocolHandler() {}
   NS_DECL_ISUPPORTS
 
   
