@@ -32,7 +32,6 @@ class gfxPattern;
 class nsFrameList;
 class nsIContent;
 class nsIDocument;
-class nsIDOMSVGElement;
 class nsIFrame;
 class nsPresContext;
 class nsRenderingContext;
@@ -45,7 +44,6 @@ class nsSVGGeometryFrame;
 class nsSVGLength2;
 class nsSVGOuterSVGFrame;
 class nsSVGPathGeometryFrame;
-class nsSVGSVGElement;
 class nsTextFrame;
 class gfxTextObjectPaint;
 
@@ -90,27 +88,9 @@ class Element;
 
 #define NS_SVG_OFFSCREEN_MAX_DIMENSION 4096
 
-#define SVG_WSP_DELIM       "\x20\x9\xD\xA"
-#define SVG_COMMA_WSP_DELIM "," SVG_WSP_DELIM
-
 #define SVG_HIT_TEST_FILL        0x01
 #define SVG_HIT_TEST_STROKE      0x02
 #define SVG_HIT_TEST_CHECK_MRECT 0x04
-
-inline bool
-IsSVGWhitespace(char aChar)
-{
-  return aChar == '\x20' || aChar == '\x9' ||
-         aChar == '\xD'  || aChar == '\xA';
-}
-
-inline bool
-IsSVGWhitespace(PRUnichar aChar)
-{
-  return aChar == PRUnichar('\x20') || aChar == PRUnichar('\x9') ||
-         aChar == PRUnichar('\xD')  || aChar == PRUnichar('\xA');
-}
-
 
 
 
@@ -215,54 +195,16 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsISVGFilterProperty, NS_ISVGFILTERPROPERTY_IID)
 
+
+
+
+
+
 class nsSVGUtils
 {
 public:
-  typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
-  typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
   static void Init();
-
-  
-
-
-  static mozilla::dom::Element *GetParentElement(nsIContent *aContent);
-
-  
-
-
-  static nsSVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
-
-  
-
-
-
-
-
-
-
-  static void ActivateByHyperlink(nsIContent *aContent);
-
-  
-
-
-
-
-
-
-  static float GetFontSize(mozilla::dom::Element *aElement);
-  static float GetFontSize(nsIFrame *aFrame);
-  static float GetFontSize(nsStyleContext *aStyleContext);
-  
-
-
-
-
-
-
-  static float GetFontXHeight(mozilla::dom::Element *aElement);
-  static float GetFontXHeight(nsIFrame *aFrame);
-  static float GetFontXHeight(nsStyleContext *aStyleContext);
 
   
 
@@ -292,30 +234,11 @@ public:
   
 
 
-  static nsresult ReportToConsole(nsIDocument* doc,
-                                  const char* aWarning,
-                                  const PRUnichar **aParams,
-                                  uint32_t aParamsLength);
-
-  
-
-
 
 
   static float CoordToFloat(nsPresContext *aPresContext,
                             nsSVGElement *aContent,
                             const nsStyleCoord &aCoord);
-
-  static gfxMatrix GetCTM(nsSVGElement *aElement, bool aScreenCTM);
-
-  
-
-
-
-  static bool EstablishesViewport(nsIContent *aContent);
-
-  static already_AddRefed<nsIDOMSVGElement>
-  GetNearestViewportElement(nsIContent *aContent);
 
   
 
@@ -396,14 +319,6 @@ public:
   static void NotifyAncestorsOfFilterRegionChange(nsIFrame *aFrame);
 
   
-  enum ctxDirection { X, Y, XY };
-
-  
-
-
-  static double ComputeNormalizedHypotenuse(double aWidth, double aHeight);
-
-  
 
 
 
@@ -422,10 +337,6 @@ public:
   static float UserSpace(nsIFrame *aFrame, const nsSVGLength2 *aLength);
 
   
-  static float
-  AngleBisect(float a1, float a2);
-
-  
   static nsSVGOuterSVGFrame *
   GetOuterSVGFrame(nsIFrame *aFrame);
 
@@ -436,22 +347,6 @@ public:
 
   static nsIFrame*
   GetOuterSVGFrameAndCoveredRegion(nsIFrame* aFrame, nsRect* aRect);
-
-  
-
-  static gfxMatrix
-  GetViewBoxTransform(const nsSVGElement* aElement,
-                      float aViewportWidth, float aViewportHeight,
-                      float aViewboxX, float aViewboxY,
-                      float aViewboxWidth, float aViewboxHeight,
-                      const SVGAnimatedPreserveAspectRatio &aPreserveAspectRatio);
-
-  static gfxMatrix
-  GetViewBoxTransform(const nsSVGElement* aElement,
-                      float aViewportWidth, float aViewportHeight,
-                      float aViewboxX, float aViewboxY,
-                      float aViewboxWidth, float aViewboxHeight,
-                      const SVGPreserveAspectRatio &aPreserveAspectRatio);
 
   
 
@@ -629,11 +524,6 @@ public:
 
 
   static nsIFrame* GetFirstNonAAncestorFrame(nsIFrame* aStartFrame);
-
-#ifdef DEBUG
-  static void
-  WritePPM(const char *fname, gfxImageSurface *aSurface);
-#endif
 
   static bool OuterSVGIsCallingReflowSVG(nsIFrame *aFrame);
 

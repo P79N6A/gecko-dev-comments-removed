@@ -4,11 +4,11 @@
 
 
 #include "nsSVGIntegerPair.h"
-#include "nsSVGUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsError.h"
 #include "nsMathUtils.h"
 #include "nsSMILValue.h"
+#include "SVGContentUtils.h"
 #include "SVGIntegerPairSMILType.h"
 
 using namespace mozilla;

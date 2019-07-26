@@ -4,14 +4,14 @@
 
 
 #include "SVGLengthList.h"
-#include "SVGAnimatedLengthList.h"
-#include "SVGLength.h"
-#include "nsSVGElement.h"
+#include "nsCharSeparatedTokenizer.h"
 #include "nsError.h"
 #include "nsString.h"
-#include "nsSVGUtils.h"
-#include "nsCharSeparatedTokenizer.h"
+#include "nsSVGElement.h"
 #include "string.h"
+#include "SVGAnimatedLengthList.h"
+#include "SVGContentUtils.h"
+#include "SVGLength.h"
 
 namespace mozilla {
 
