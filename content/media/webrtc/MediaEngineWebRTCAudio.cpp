@@ -53,49 +53,6 @@ MediaEngineWebRTCAudioSource::Allocate()
     return NS_ERROR_FAILURE;
   }
 
-  mVoEBase->Init();
-
-  mVoERender = webrtc::VoEExternalMedia::GetInterface(mVoiceEngine);
-  if (!mVoERender) {
-    return NS_ERROR_FAILURE;
-  }
-
-  mChannel = mVoEBase->CreateChannel();
-  if (mChannel < 0) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  webrtc::VoEHardware* ptrVoEHw = webrtc::VoEHardware::GetInterface(mVoiceEngine);
-  if (ptrVoEHw->SetRecordingDevice(mCapIndex)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  bool avail = false;
-  ptrVoEHw->GetRecordingDeviceStatus(avail);
-  if (!avail) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  webrtc::VoECodec* ptrVoECodec;
-  webrtc::CodecInst codec;
-  ptrVoECodec = webrtc::VoECodec::GetInterface(mVoiceEngine);
-  if (!ptrVoECodec) {
-    return NS_ERROR_FAILURE;
-  }
-
-  strcpy(codec.plname, ENCODING);
-  codec.channels = CHANNELS;
-  codec.rate = SAMPLE_RATE;
-  codec.plfreq = SAMPLE_FREQUENCY;
-  codec.pacsize = SAMPLE_LENGTH;
-  codec.pltype = 0; 
-
-  if (ptrVoECodec->SetSendCodec(mChannel, codec)) {
-    return NS_ERROR_FAILURE;
-  }
-
   
   
   mVoEBase->SetLocalReceiver(mChannel, DEFAULT_PORT);
@@ -111,9 +68,6 @@ MediaEngineWebRTCAudioSource::Deallocate()
   if (mState != kStopped && mState != kAllocated) {
     return NS_ERROR_FAILURE;
   }
-
-  mVoEBase->Terminate();
-  mVoERender->Release();
 
   mState = kReleased;
   return NS_OK;
@@ -180,6 +134,56 @@ MediaEngineWebRTCAudioSource::Snapshot(uint32_t aDuration, nsIDOMFile** aFile)
    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+void
+MediaEngineWebRTCAudioSource::Init()
+{
+  mVoEBase = webrtc::VoEBase::GetInterface(mVoiceEngine);
+
+  mVoEBase->Init();
+
+  mVoERender = webrtc::VoEExternalMedia::GetInterface(mVoiceEngine);
+  if (!mVoERender) {
+    return;
+  }
+
+  mChannel = mVoEBase->CreateChannel();
+  if (mChannel < 0) {
+    return;
+  }
+
+  
+  webrtc::VoEHardware* ptrVoEHw = webrtc::VoEHardware::GetInterface(mVoiceEngine);
+  if (ptrVoEHw->SetRecordingDevice(mCapIndex)) {
+    return;
+  }
+
+  bool avail = false;
+  ptrVoEHw->GetRecordingDeviceStatus(avail);
+  if (!avail) {
+    return;
+  }
+
+  
+  webrtc::VoECodec* ptrVoECodec;
+  webrtc::CodecInst codec;
+  ptrVoECodec = webrtc::VoECodec::GetInterface(mVoiceEngine);
+  if (!ptrVoECodec) {
+    return;
+  }
+
+  strcpy(codec.plname, ENCODING);
+  codec.channels = CHANNELS;
+  codec.rate = SAMPLE_RATE;
+  codec.plfreq = SAMPLE_FREQUENCY;
+  codec.pacsize = SAMPLE_LENGTH;
+  codec.pltype = 0; 
+
+  if (ptrVoECodec->SetSendCodec(mChannel, codec)) {
+    return;
+  }
+
+  mInitDone = true;
+}
 
 void
 MediaEngineWebRTCAudioSource::Shutdown()
@@ -196,6 +200,8 @@ MediaEngineWebRTCAudioSource::Shutdown()
     Deallocate();
   }
 
+  mVoEBase->Terminate();
+  mVoERender->Release();
   mVoEBase->Release();
 
   mState = kReleased;

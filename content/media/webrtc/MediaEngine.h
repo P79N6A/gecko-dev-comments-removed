@@ -77,7 +77,19 @@ public:
   virtual nsresult Stop() = 0;
 
   
+  bool IsAvailable() {
+    if (mState == kAllocated || mState == kStarted) {
+      return false;
+    } else {
+      return true;
+    }
+  }
 
+  
+
+
+protected:
+  MediaEngineState mState;
 };
 
 

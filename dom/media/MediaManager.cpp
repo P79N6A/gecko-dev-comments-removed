@@ -443,6 +443,7 @@ public:
   nsresult
   SelectDevice()
   {
+    bool found = false;
     uint32_t count;
     if (mPicture || mVideo) {
       nsTArray<nsRefPtr<MediaEngineVideoSource> > videoSources;
@@ -455,7 +456,22 @@ public:
         ));
         return NS_ERROR_FAILURE;
       }
-      mVideoDevice = new MediaDevice(videoSources[0]);
+
+      
+      for (uint32_t i = 0; i < count; i++) {
+        nsRefPtr<MediaEngineVideoSource> vSource = videoSources[i];
+        if (vSource->IsAvailable()) {
+          found = true;
+          mVideoDevice = new MediaDevice(videoSources[i]);
+        }
+      }
+
+      if (!found) {
+        NS_DispatchToMainThread(new ErrorCallbackRunnable(
+          mSuccess, mError, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
+        ));
+        return NS_ERROR_FAILURE;
+      }
       LOG(("Selected video device"));
     }
     if (mAudio) {
@@ -469,7 +485,21 @@ public:
         ));
         return NS_ERROR_FAILURE;
       }
-      mAudioDevice = new MediaDevice(audioSources[0]);
+
+      for (uint32_t i = 0; i < count; i++) {
+        nsRefPtr<MediaEngineAudioSource> aSource = audioSources[i];
+        if (aSource->IsAvailable()) {
+          found = true;
+          mAudioDevice = new MediaDevice(audioSources[i]);
+        }
+      }
+
+      if (!found) {
+        NS_DispatchToMainThread(new ErrorCallbackRunnable(
+          mSuccess, mError, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
+        ));
+        return NS_ERROR_FAILURE;
+      }
       LOG(("Selected audio device"));
     }
 
@@ -596,11 +626,23 @@ public:
     nsTArray<nsCOMPtr<nsIMediaDevice> > *devices =
       new nsTArray<nsCOMPtr<nsIMediaDevice> >;
 
+    
+
+
+
+
+
     for (i = 0; i < videoCount; i++) {
-      devices->AppendElement(new MediaDevice(videoSources[i]));
+      nsRefPtr<MediaEngineVideoSource> vSource = videoSources[i];
+      if (vSource->IsAvailable()) {
+        devices->AppendElement(new MediaDevice(vSource));
+      }
     }
     for (i = 0; i < audioCount; i++) {
-      devices->AppendElement(new MediaDevice(audioSources[i]));
+      nsRefPtr<MediaEngineAudioSource> aSource = audioSources[i];
+      if (aSource->IsAvailable()) {
+        devices->AppendElement(new MediaDevice(aSource));
+      }
     }
 
     NS_DispatchToMainThread(new DeviceSuccessCallbackRunnable(

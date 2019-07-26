@@ -60,9 +60,23 @@ public:
   virtual int FrameSizeChange(unsigned int, unsigned int, unsigned int);
   virtual int DeliverFrame(unsigned char*, int, uint32_t, int64_t);
 
-  MediaEngineWebRTCVideoSource(webrtc::VideoEngine* videoEnginePtr,
-    int index, int aMinFps = DEFAULT_MIN_VIDEO_FPS);
-  ~MediaEngineWebRTCVideoSource();
+  MediaEngineWebRTCVideoSource(webrtc::VideoEngine* aVideoEnginePtr,
+    int aIndex, int aMinFps = DEFAULT_MIN_VIDEO_FPS)
+    : mVideoEngine(aVideoEnginePtr)
+    , mCaptureIndex(aIndex)
+    , mCapabilityChosen(false)
+    , mWidth(640)
+    , mHeight(480)
+    , mMonitor("WebRTCCamera.Monitor")
+    , mFps(DEFAULT_VIDEO_FPS)
+    , mMinFps(aMinFps)
+    , mInitDone(false)
+    , mInSnapshotMode(false)
+    , mSnapshotPath(NULL) {
+    mState = kReleased;
+    Init();
+  }
+  ~MediaEngineWebRTCVideoSource() { Shutdown(); }
 
   virtual void GetName(nsAString&);
   virtual void GetUUID(nsAString&);
@@ -115,7 +129,6 @@ private:
   int mWidth, mHeight;
   TrackID mTrackID;
 
-  MediaEngineState mState;
   mozilla::ReentrantMonitor mMonitor; 
   SourceMediaStream* mSource;
 
@@ -148,15 +161,12 @@ public:
     , mMonitor("WebRTCMic.Monitor")
     , mCapIndex(aIndex)
     , mChannel(-1)
-    , mInitDone(false)
-    , mState(kReleased) {
-
-    mVoEBase = webrtc::VoEBase::GetInterface(mVoiceEngine);
+    , mInitDone(false) {
+    mState = kReleased;
     mDeviceName.Assign(NS_ConvertUTF8toUTF16(name));
     mDeviceUUID.Assign(NS_ConvertUTF8toUTF16(uuid));
-    mInitDone = true;
+    Init();
   }
-
   ~MediaEngineWebRTCAudioSource() { Shutdown(); }
 
   virtual void GetName(nsAString&);
@@ -192,7 +202,6 @@ private:
   int mChannel;
   TrackID mTrackID;
   bool mInitDone;
-  MediaEngineState mState;
 
   nsString mDeviceName;
   nsString mDeviceUUID;
@@ -207,8 +216,10 @@ public:
   : mVideoEngine(NULL)
   , mVoiceEngine(NULL)
   , mVideoEngineInit(false)
-  , mAudioEngineInit(false) {}
-
+  , mAudioEngineInit(false) {
+    mVideoSources.Init();
+    mAudioSources.Init();
+  }
   ~MediaEngineWebRTC() { Shutdown(); }
 
   
@@ -225,6 +236,11 @@ private:
   
   bool mVideoEngineInit;
   bool mAudioEngineInit;
+
+  
+  
+  nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCVideoSource > mVideoSources;
+  nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCAudioSource > mAudioSources;
 };
 
 }

@@ -53,13 +53,20 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     return;
   }
 
+  
+
+
+
+
+
+
+
   int num = ptrViECapture->NumberOfCaptureDevices();
   if (num <= 0) {
     return;
   }
 
   for (int i = 0; i < num; i++) {
-#ifdef DEBUG
     const unsigned int kMaxDeviceNameLength = 128; 
     const unsigned int kMaxUniqueIdLength = 256;
     char deviceName[kMaxDeviceNameLength];
@@ -71,8 +78,10 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     int error = ptrViECapture->GetCaptureDevice(i, deviceName,
                                                 sizeof(deviceName), uniqueId,
                                                 sizeof(uniqueId));
+
+#ifdef DEBUG
     if (error) {
-      LOG((" VieCapture:GetCaptureDevice: Failed %d", 
+      LOG((" VieCapture:GetCaptureDevice: Failed %d",
            ptrViEBase->LastError() ));
       continue;
     }
@@ -82,7 +91,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     int numCaps = ptrViECapture->NumberOfCapabilities(uniqueId, kMaxUniqueIdLength);
     LOG(("Number of Capabilities %d", numCaps));
     for (int j = 0; j < numCaps; j++) {
-      if (ptrViECapture->GetCaptureCapability(uniqueId, kMaxUniqueIdLength, 
+      if (ptrViECapture->GetCaptureCapability(uniqueId, kMaxUniqueIdLength,
                                               j, cap ) != 0 ) {
         break;
       }
@@ -91,8 +100,16 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     }
 #endif
 
-    nsRefPtr<MediaEngineVideoSource> vSource = new MediaEngineWebRTCVideoSource(mVideoEngine, i);
-    aVSources->AppendElement(vSource.forget());
+    nsRefPtr<MediaEngineWebRTCVideoSource> vSource;
+    NS_ConvertUTF8toUTF16 uuid(uniqueId);
+    if (mVideoSources.Get(uuid, getter_AddRefs(vSource))) {
+      
+      aVSources->AppendElement(vSource.get());
+    } else {
+      vSource = new MediaEngineWebRTCVideoSource(mVideoEngine, i);
+      mVideoSources.Put(uuid, vSource); 
+      aVSources->AppendElement(vSource);
+    }
   }
 
   ptrViEBase->Release();
@@ -136,31 +153,41 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
   for (int i = 0; i < nDevices; i++) {
     
     char deviceName[128];
-    char uniqueID[128];
+    char uniqueId[128];
     
     deviceName[0] = '\0';
-    uniqueID[0] = '\0';
+    uniqueId[0] = '\0';
 
-    ptrVoEHw->GetRecordingDeviceName(i, deviceName, uniqueID);
-    nsRefPtr<MediaEngineAudioSource> aSource = new MediaEngineWebRTCAudioSource(
-      mVoiceEngine, i, deviceName, uniqueID
-    );
-    aASources->AppendElement(aSource.forget());
+    ptrVoEHw->GetRecordingDeviceName(i, deviceName, uniqueId);
+
+    nsRefPtr<MediaEngineWebRTCAudioSource> aSource;
+    NS_ConvertUTF8toUTF16 uuid(uniqueId);
+    if (mAudioSources.Get(uuid, getter_AddRefs(aSource))) {
+      
+      aASources->AppendElement(aSource.get());
+    } else {
+      aSource = new MediaEngineWebRTCAudioSource(
+        mVoiceEngine, i, deviceName, uniqueId
+      );
+      mAudioSources.Put(uuid, aSource); 
+      aASources->AppendElement(aSource);
+    }
   }
 
   ptrVoEHw->Release();
   ptrVoEBase->Release();
 }
 
-
 void
 MediaEngineWebRTC::Shutdown()
 {
   if (mVideoEngine) {
+    mVideoSources.Clear();
     webrtc::VideoEngine::Delete(mVideoEngine);
   }
 
   if (mVoiceEngine) {
+    mAudioSources.Clear();
     webrtc::VoiceEngine::Delete(mVoiceEngine);
   }
 
