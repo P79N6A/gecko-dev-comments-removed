@@ -860,6 +860,27 @@ RadioInterface.prototype = {
   
 
 
+
+  isInfoChanged: function isInfoChanged(srcInfo, destInfo) {
+    if (!destInfo) {
+      return true;
+    }
+
+    for (let key in srcInfo) {
+      if (key === 'rilMessageType') {
+        continue;
+      }
+      if (srcInfo[key] !== destInfo[key]) {
+        return true;
+      }
+    }
+
+    return false;
+  },
+
+  
+
+
   receiveMessage: function receiveMessage(msg) {
     switch (msg.name) {
       case "RIL:GetRilContext":
@@ -1128,6 +1149,7 @@ RadioInterface.prototype = {
     let dataMessage = message[RIL.NETWORK_INFO_DATA_REGISTRATION_STATE];
     let operatorMessage = message[RIL.NETWORK_INFO_OPERATOR];
     let selectionMessage = message[RIL.NETWORK_INFO_NETWORK_SELECTION_MODE];
+    let signalMessage = message[RIL.NETWORK_INFO_SIGNAL];
 
     
     if (voiceMessage) {
@@ -1142,17 +1164,21 @@ RadioInterface.prototype = {
       this.handleOperatorChange(operatorMessage, true);
     }
 
+    if (signalMessage) {
+      this.handleSignalStrengthChange(signalMessage, true);
+    }
+
     let voice = this.rilContext.voice;
     let data = this.rilContext.data;
 
     this.checkRoamingBetweenOperators(voice);
     this.checkRoamingBetweenOperators(data);
 
-    if (voiceMessage || operatorMessage) {
+    if (voiceMessage || operatorMessage || signalMessage) {
       gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
                                                   this.clientId, voice);
     }
-    if (dataMessage || operatorMessage) {
+    if (dataMessage || operatorMessage || signalMessage) {
       gMessageManager.sendMobileConnectionMessage("RIL:DataInfoChanged",
                                                   this.clientId, data);
     }
@@ -1335,32 +1361,35 @@ RadioInterface.prototype = {
     }).bind(this));
   },
 
-  handleSignalStrengthChange: function handleSignalStrengthChange(message) {
+  
+
+
+
+
+
+
+  handleSignalStrengthChange: function handleSignalStrengthChange(message, batch) {
     let voiceInfo = this.rilContext.voice;
-    if (voiceInfo.signalStrength != message.voice.signalStrength ||
-        voiceInfo.relSignalStrength != message.voice.relSignalStrength) {
-      voiceInfo.signalStrength = message.voice.signalStrength;
-      voiceInfo.relSignalStrength = message.voice.relSignalStrength;
-      gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
-                                                  this.clientId, voiceInfo);
+    
+    if (voiceInfo.state === RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED &&
+        this.isInfoChanged(message.voice, voiceInfo)) {
+      this.updateInfo(message.voice, voiceInfo);
+      if (!batch) {
+        gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
+                                                    this.clientId, voiceInfo);
+      }
     }
 
     let dataInfo = this.rilContext.data;
-    if (dataInfo.signalStrength != message.data.signalStrength ||
-        dataInfo.relSignalStrength != message.data.relSignalStrength) {
-      dataInfo.signalStrength = message.data.signalStrength;
-      dataInfo.relSignalStrength = message.data.relSignalStrength;
-      gMessageManager.sendMobileConnectionMessage("RIL:DataInfoChanged",
-                                                  this.clientId, dataInfo);
+    
+    if (dataInfo.state === RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED &&
+        this.isInfoChanged(message.data, dataInfo)) {
+      this.updateInfo(message.data, dataInfo);
+      if (!batch) {
+        gMessageManager.sendMobileConnectionMessage("RIL:DataInfoChanged",
+                                                    this.clientId, dataInfo);
+      }
     }
-  },
-
-  networkChanged: function networkChanged(srcNetwork, destNetwork) {
-    return !destNetwork ||
-      destNetwork.longName != srcNetwork.longName ||
-      destNetwork.shortName != srcNetwork.shortName ||
-      destNetwork.mnc != srcNetwork.mnc ||
-      destNetwork.mcc != srcNetwork.mcc;
   },
 
   
@@ -1375,7 +1404,7 @@ RadioInterface.prototype = {
     let voice = this.rilContext.voice;
     let data = this.rilContext.data;
 
-    if (this.networkChanged(message, operatorInfo)) {
+    if (this.isInfoChanged(message, operatorInfo)) {
       this.updateInfo(message, operatorInfo);
 
       

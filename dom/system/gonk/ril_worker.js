@@ -1667,6 +1667,7 @@ let RIL = {
     this.getDataRegistrationState(); 
     this.getOperator();
     this.getNetworkSelectionMode();
+    this.getSignalStrength();
   },
 
   
@@ -3428,7 +3429,6 @@ let RIL = {
 
     
     this.requestNetworkInfo();
-    this.getSignalStrength();
     if (newCardState == GECKO_CARDSTATE_READY) {
       
       
@@ -3671,7 +3671,7 @@ let RIL = {
     }
 
     info.rilMessageType = "signalstrengthchange";
-    this.sendChromeMessage(info);
+    this._sendNetworkInfoMessage(NETWORK_INFO_SIGNAL, info);
 
     if (this.cachedDialRequest && info.voice.signalStrength) {
       
@@ -5284,6 +5284,8 @@ RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length
   }
 };
 RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options) {
+  this._receivedNetworkInfo(NETWORK_INFO_SIGNAL);
+
   if (options.rilRequestError) {
     return;
   }
