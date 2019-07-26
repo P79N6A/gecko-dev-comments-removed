@@ -29,10 +29,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 var ContentAreaObserver = {
   styles: {},
-  _keyboardState: false,
   _shiftAmount: 0,
+  _deckTransitioning: false,
 
   
 
@@ -60,6 +71,10 @@ var ContentAreaObserver = {
 
   get isKeyboardOpened() {
     return MetroUtils.keyboardVisible;
+  },
+
+  get isKeyboardTransitioning() {
+    return this._deckTransitioning;
   },
 
   
@@ -158,10 +173,6 @@ var ContentAreaObserver = {
 
 
   _onKeyboardDisplayChanging: function _onKeyboardDisplayChanging(aNewState) {
-    this._keyboardState = aNewState;
-
-    this._dispatchWindowEvent("KeyboardChanged", aNewState);
-
     this.updateViewableArea();
 
     if (!aNewState) {
@@ -177,7 +188,7 @@ var ContentAreaObserver = {
   },
 
   _onRepositionResponse: function _onRepositionResponse(aJsonMsg) {
-    if (!aJsonMsg.reposition || !this._keyboardState) {
+    if (!aJsonMsg.reposition || !this.isKeyboardOpened) {
       this._shiftBrowserDeck(0);
       return;
     }
@@ -191,6 +202,9 @@ var ContentAreaObserver = {
     switch (aTopic) {
       case "metro_softkeyboard_hidden":
       case "metro_softkeyboard_shown":
+        
+        
+        this._deckTransitioning = true;
         
         
         
@@ -226,6 +240,11 @@ var ContentAreaObserver = {
 
 
   _shiftBrowserDeck: function _shiftBrowserDeck(aAmount) {
+    if (aAmount == 0) {
+      this._deckTransitioning = false;
+      this._dispatchWindowEvent("KeyboardChanged", this.isKeyboardOpened);
+    }
+
     if (this._shiftAmount == aAmount)
       return;
 
@@ -236,7 +255,9 @@ var ContentAreaObserver = {
     let self = this;
     Elements.browsers.addEventListener("transitionend", function () {
       Elements.browsers.removeEventListener("transitionend", arguments.callee, true);
+      self._deckTransitioning = false;
       self._dispatchWindowEvent("MozDeckOffsetChanged", aAmount);
+      self._dispatchWindowEvent("KeyboardChanged", self.isKeyboardOpened);
     }, true);
 
     

@@ -25,16 +25,6 @@ pref("metro.debug.selection.dumpEvents", false);
 pref("layers.offmainthreadcomposition.enabled", false);
 
 
-pref("formhelper.mode", 0);
-
-pref("formhelper.autozoom", true);
-
-pref("formhelper.autozoom.caret", false);
-
-
-pref("browser.formfill.enable", true);
-
-
 pref("intl.enable_tsf_support", true);
 
 pref("general.autoScroll", true);
