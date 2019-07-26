@@ -21,6 +21,9 @@ using namespace mozilla::dom;
 namespace mozilla {
 
 using namespace mozilla::gfx;
+using dom::ConstrainLongRange;
+using dom::ConstrainDoubleRange;
+using dom::MediaTrackConstraintSet;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* GetMediaManagerLog();
@@ -167,41 +170,123 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   }
 }
 
+static bool IsWithin(int32_t n, const ConstrainLongRange& aRange) {
+  return aRange.mMin <= n && n <= aRange.mMax;
+}
+
+static bool IsWithin(double n, const ConstrainDoubleRange& aRange) {
+  return aRange.mMin <= n && n <= aRange.mMax;
+}
+
+static int32_t Clamp(int32_t n, const ConstrainLongRange& aRange) {
+  return std::max(aRange.mMin, std::min(n, aRange.mMax));
+}
+
+static bool
+AreIntersecting(const ConstrainLongRange& aA, const ConstrainLongRange& aB) {
+  return aA.mMax >= aB.mMin && aA.mMin <= aB.mMax;
+}
+
+static bool
+Intersect(ConstrainLongRange& aA, const ConstrainLongRange& aB) {
+  MOZ_ASSERT(AreIntersecting(aA, aB));
+  aA.mMin = std::max(aA.mMin, aB.mMin);
+  aA.mMax = std::min(aA.mMax, aB.mMax);
+  return true;
+}
+
+static bool SatisfyConstraintSet(const MediaTrackConstraintSet &aConstraints,
+                                 const webrtc::CaptureCapability& aCandidate) {
+  if (!IsWithin(aCandidate.width, aConstraints.mWidth) ||
+      !IsWithin(aCandidate.height, aConstraints.mHeight)) {
+    return false;
+  }
+  if (!IsWithin(aCandidate.maxFPS, aConstraints.mFrameRate)) {
+    return false;
+  }
+  return true;
+}
+
 void
 MediaEngineWebRTCVideoSource::ChooseCapability(
     const VideoTrackConstraintsN &aConstraints,
     const MediaEnginePrefs &aPrefs)
 {
 #ifdef MOZ_B2G_CAMERA
-  mCapability.width  = aPrefs.mWidth;
-  mCapability.height = aPrefs.mHeight;
+  return GuessCapability(aConstraints, aPrefs);
 #else
-  int num = mViECapture->NumberOfCapabilities(NS_ConvertUTF16toUTF8(mUniqueId).get(),
-                                              KMaxUniqueIdLength);
-
-  LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps", aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
-
-  int prefWidth = aPrefs.mWidth? aPrefs.mWidth : MediaEngine::DEFAULT_43_VIDEO_WIDTH;
-  int prefHeight = aPrefs.mHeight? aPrefs.mHeight : MediaEngine::DEFAULT_43_VIDEO_HEIGHT;
-
+  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId);
+  int num = mViECapture->NumberOfCapabilities(uniqueId.get(), KMaxUniqueIdLength);
   if (num <= 0) {
     
-    mCapability.width  = prefWidth;
-    mCapability.height = prefHeight;
-    mCapability.maxFPS = MediaEngine::DEFAULT_VIDEO_FPS;
-
-    
-    return;
+    return GuessCapability(aConstraints, aPrefs);
   }
 
   
+
+  LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps",
+       aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
+
+  typedef nsTArray<uint8_t> SourceSet;
+
+  SourceSet candidateSet;
+  for (int i = 0; i < num; i++) {
+    candidateSet.AppendElement(i);
+  }
+
+  
+
+  for (uint32_t i = 0; i < candidateSet.Length();) {
+    webrtc::CaptureCapability cap;
+    mViECapture->GetCaptureCapability(uniqueId.get(), KMaxUniqueIdLength,
+                                      candidateSet[i], cap);
+    if (!SatisfyConstraintSet(aConstraints.mRequired, cap)) {
+      candidateSet.RemoveElementAt(i);
+    } else {
+      ++i;
+    }
+  }
+
+  SourceSet tailSet;
+
+  
+
+  if (aConstraints.mAdvanced.WasPassed()) {
+    auto &array = aConstraints.mAdvanced.Value();
+
+    for (uint32_t i = 0; i < array.Length(); i++) {
+      SourceSet rejects;
+      for (uint32_t j = 0; j < candidateSet.Length();) {
+        webrtc::CaptureCapability cap;
+        mViECapture->GetCaptureCapability(uniqueId.get(), KMaxUniqueIdLength,
+                                          candidateSet[j], cap);
+        if (!SatisfyConstraintSet(array[i], cap)) {
+          rejects.AppendElement(candidateSet[j]);
+          candidateSet.RemoveElementAt(j);
+        } else {
+          ++j;
+        }
+      }
+      (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
+    }
+  }
+
+  if (!candidateSet.Length()) {
+    candidateSet.AppendElement(0);
+  }
+
+  int prefWidth = aPrefs.GetWidth();
+  int prefHeight = aPrefs.GetHeight();
+
   
   
+  
+
   webrtc::CaptureCapability cap;
   bool higher = true;
-  for (int i = 0; i < num; i++) {
+  for (uint32_t i = 0; i < candidateSet.Length(); i++) {
     mViECapture->GetCaptureCapability(NS_ConvertUTF16toUTF8(mUniqueId).get(),
-                                      KMaxUniqueIdLength, i, cap);
+                                      KMaxUniqueIdLength, candidateSet[i], cap);
     if (higher) {
       if (i == 0 ||
           (mCapability.width > cap.width && mCapability.height > cap.height)) {
@@ -223,8 +308,90 @@ MediaEngineWebRTCVideoSource::ChooseCapability(
       }
     }
   }
-  LOG(("chose cap %dx%d @%dfps", mCapability.width, mCapability.height, mCapability.maxFPS));
+  LOG(("chose cap %dx%d @%dfps",
+       mCapability.width, mCapability.height, mCapability.maxFPS));
 #endif
+}
+
+
+
+void
+MediaEngineWebRTCVideoSource::GuessCapability(
+    const VideoTrackConstraintsN &aConstraints,
+    const MediaEnginePrefs &aPrefs)
+{
+  LOG(("GuessCapability: prefs: %dx%d @%d-%dfps",
+       aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
+
+  
+
+  ConstrainLongRange cWidth(aConstraints.mRequired.mWidth);
+  ConstrainLongRange cHeight(aConstraints.mRequired.mHeight);
+
+  if (aConstraints.mAdvanced.WasPassed()) {
+    const auto& advanced = aConstraints.mAdvanced.Value();
+    for (uint32_t i = 0; i < advanced.Length(); i++) {
+      if (AreIntersecting(cWidth, advanced[i].mWidth) &&
+          AreIntersecting(cHeight, advanced[i].mHeight)) {
+        Intersect(cWidth, advanced[i].mWidth);
+        Intersect(cHeight, advanced[i].mHeight);
+      }
+    }
+  }
+  
+  
+  
+  
+  
+
+  bool macHD = ((!aPrefs.mWidth || !aPrefs.mHeight) &&
+                mDeviceName.EqualsASCII("FaceTime HD Camera (Built-in)") &&
+                (aPrefs.GetWidth() < cWidth.mMin ||
+                 aPrefs.GetHeight() < cHeight.mMin) &&
+                !(aPrefs.GetWidth(true) > cWidth.mMax ||
+                  aPrefs.GetHeight(true) > cHeight.mMax));
+  int prefWidth = aPrefs.GetWidth(macHD);
+  int prefHeight = aPrefs.GetHeight(macHD);
+
+  
+
+  if (IsWithin(prefWidth, cWidth) == IsWithin(prefHeight, cHeight)) {
+    
+    
+    
+    mCapability.width = Clamp(prefWidth, cWidth);
+    mCapability.height = Clamp(prefHeight, cHeight);
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (IsWithin(prefWidth, cWidth)) {
+      mCapability.height = Clamp(prefHeight, cHeight);
+      mCapability.width = Clamp((mCapability.height * prefWidth) /
+                                prefHeight, cWidth);
+    } else {
+      mCapability.width = Clamp(prefWidth, cWidth);
+      mCapability.height = Clamp((mCapability.width * prefHeight) /
+                                 prefWidth, cHeight);
+    }
+  }
+  mCapability.maxFPS = MediaEngine::DEFAULT_VIDEO_FPS;
+  LOG(("chose cap %dx%d @%dfps",
+       mCapability.width, mCapability.height, mCapability.maxFPS));
 }
 
 void
