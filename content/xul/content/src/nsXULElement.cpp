@@ -167,8 +167,6 @@ nsXULElement::nsXULElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 {
     XUL_PROTOTYPE_ATTRIBUTE_METER(gNumElements);
 
-    SetIsDOMBinding();
-
     
     if (IsReadWriteTextElement()) {
         AddStatesSilently(NS_EVENT_STATE_MOZ_READWRITE);

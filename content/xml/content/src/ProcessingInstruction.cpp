@@ -55,8 +55,6 @@ ProcessingInstruction::ProcessingInstruction(already_AddRefed<nsINodeInfo> aNode
   SetTextInternal(0, mText.GetLength(),
                   aData.BeginReading(), aData.Length(),
                   false);  
-
-  SetIsDOMBinding();
 }
 
 ProcessingInstruction::~ProcessingInstruction()

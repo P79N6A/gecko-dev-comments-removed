@@ -788,8 +788,6 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   , mHasRange(false)
   , mIsDraggingRange(false)
 {
-  SetIsDOMBinding();
-
   
   mInputData.mState = new nsTextEditorState(this);
 

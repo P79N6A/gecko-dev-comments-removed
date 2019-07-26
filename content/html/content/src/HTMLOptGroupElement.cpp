@@ -28,8 +28,6 @@ namespace dom {
 HTMLOptGroupElement::HTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
-  SetIsDOMBinding();
-
   
   AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }

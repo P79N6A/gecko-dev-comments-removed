@@ -223,8 +223,6 @@ XMLDocument::XMLDocument(const char* aContentType)
 {
   
   
-
-  SetIsDOMBinding();
 }
 
 XMLDocument::~XMLDocument()

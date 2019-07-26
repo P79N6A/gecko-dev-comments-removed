@@ -21,8 +21,6 @@ HTMLOutputElement::HTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
   , mValueModeFlag(eModeDefault)
 {
-  SetIsDOMBinding();
-
   AddMutationObserver(this);
 
   

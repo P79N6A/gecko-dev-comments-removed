@@ -19,8 +19,6 @@ const double HTMLProgressElement::kDefaultMax            =  1.0;
 HTMLProgressElement::HTMLProgressElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
-  SetIsDOMBinding();
-
   
   AddStatesSilently(NS_EVENT_STATE_INDETERMINATE);
 }
