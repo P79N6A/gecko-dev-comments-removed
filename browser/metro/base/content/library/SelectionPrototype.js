@@ -154,9 +154,11 @@ SelectionPrototype.prototype = {
     let containedCoords = this._restrictCoordinateToEditBounds(aX, aY);
     let cp = this._contentWindow.document.caretPositionFromPoint(containedCoords.xPos,
                                                                  containedCoords.yPos);
-    let input = cp.offsetNode;
-    let offset = cp.offset;
-    input.selectionStart = input.selectionEnd = offset;
+    if (cp) {
+      let input = cp.offsetNode;
+      let offset = cp.offset;
+      input.selectionStart = input.selectionEnd = offset;
+    }
   },
 
   
@@ -301,19 +303,18 @@ SelectionPrototype.prototype = {
         this._constrainPointWithinControl(aAdjustedClientPoint);
 
       
+      let cp =
+        this._contentWindow.document.caretPositionFromPoint(constrainedPoint.xPos,
+                                                            constrainedPoint.yPos);
+
       
-      if (Util.isMultilineInput(this._targetElement)) {
+      
+      if (Util.isMultilineInput(this._targetElement) || !cp ||
+          !this._offsetNodeIsValid(cp.offsetNode)) {
         this._adjustSelectionAtPoint(aMarker, constrainedPoint, aEndOfSelection);
         return;
       }
 
-      
-      let cp =
-        this._contentWindow.document.caretPositionFromPoint(constrainedPoint.xPos,
-                                                            constrainedPoint.yPos);
-      if (!cp || !this._offsetNodeIsValid(cp.offsetNode)) {
-        return;
-      }
       if (aMarker == "start") {
         this._targetElement.selectionStart = cp.offset;
       } else {
