@@ -581,7 +581,8 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(WebSocket)
       tmp->mListenerManager->MarkForCC();
     }
     if (!isBlack && tmp->PreservingWrapper()) {
-      xpc_UnmarkGrayObject(tmp->GetWrapperPreserveColor());
+      
+      tmp->GetWrapper();
     }
     return true;
   }

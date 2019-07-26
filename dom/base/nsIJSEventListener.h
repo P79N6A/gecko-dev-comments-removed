@@ -201,7 +201,12 @@ public:
   
   JSObject* GetEventScope() const
   {
-    return xpc_UnmarkGrayObject(mScopeObject);
+    if (!mScopeObject) {
+      return nullptr;
+    }
+
+    JS::ExposeObjectToActiveJS(mScopeObject);
+    return mScopeObject;
   }
 
   const nsEventHandler& GetHandler() const

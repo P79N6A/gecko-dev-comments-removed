@@ -44,9 +44,7 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMCSSAttributeDeclaration)
   if (tmp->mElement && Element::CanSkip(tmp->mElement, true)) {
     if (tmp->PreservingWrapper()) {
       
-      
-      JSObject* o = tmp->GetWrapperPreserveColor();
-      xpc_UnmarkGrayObject(o);
+      tmp->GetWrapper();
     }
     return true;
   }

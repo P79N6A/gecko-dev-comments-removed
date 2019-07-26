@@ -106,7 +106,7 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   
   
   
-  xpc_UnmarkGrayObject(aCallback);
+  JS::ExposeObjectToActiveJS(aCallback);
   mRootedCallable.construct(cx, aCallback);
 
   

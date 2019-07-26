@@ -177,7 +177,9 @@ nsJSUtils::CompileFunction(JSContext* aCx,
   aOptions.setPrincipals(p);
 
   
-  xpc_UnmarkGrayObject(aTarget);
+  if (aTarget) {
+    JS::ExposeObjectToActiveJS(aTarget);
+  }
 
   
   JSFunction* fun = JS::CompileFunction(aCx, aTarget, aOptions,
@@ -238,7 +240,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
     *aRetValue = JSVAL_VOID;
   }
 
-  xpc_UnmarkGrayObject(aScopeObject);
+  JS::ExposeObjectToActiveJS(aScopeObject);
   nsAutoMicroTask mt;
 
   JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetObjectCompartment(aScopeObject));

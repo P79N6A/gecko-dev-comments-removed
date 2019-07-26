@@ -137,23 +137,6 @@ xpc_IsGrayGCThing(void *thing)
 extern bool
 xpc_GCThingIsGrayCCThing(void *thing);
 
-
-MOZ_ALWAYS_INLINE void
-xpc_UnmarkNonNullGrayObject(JSObject *obj)
-{
-    JS::ExposeGCThingToActiveJS(obj, JSTRACE_OBJECT);
-}
-
-
-
-MOZ_ALWAYS_INLINE JSObject *
-xpc_UnmarkGrayObject(JSObject *obj)
-{
-    if (obj)
-        xpc_UnmarkNonNullGrayObject(obj);
-    return obj;
-}
-
 inline JSScript *
 xpc_UnmarkGrayScript(JSScript *script)
 {
