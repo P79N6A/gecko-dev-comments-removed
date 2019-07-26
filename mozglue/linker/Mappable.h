@@ -19,9 +19,6 @@
 
 
 
-
-
-
 class Mappable: public mozilla::RefCounted<Mappable>
 {
 public:

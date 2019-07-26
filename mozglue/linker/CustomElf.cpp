@@ -381,9 +381,10 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
 
   
   Addr align = PageSize();
+  Addr align_offset;
   void *mapped, *where;
   do {
-    Addr align_offset = pt_load->p_vaddr - AlignedPtr(pt_load->p_vaddr, align);
+    align_offset = pt_load->p_vaddr - AlignedPtr(pt_load->p_vaddr, align);
     where = GetPtr(pt_load->p_vaddr - align_offset);
     DEBUG_LOG("%s: Loading segment @%p %c%c%c", GetPath(), where,
                                                 prot & PROT_READ ? 'r' : '-',
@@ -420,7 +421,8 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
   const char *ondemand = getenv("MOZ_LINKER_ONDEMAND");
   if (!ElfLoader::Singleton.hasRegisteredHandler() ||
       (ondemand && !strncmp(ondemand, "0", 2 ))) {
-    for (Addr off = 0; off < pt_load->p_filesz; off += PageSize()) {
+    for (Addr off = 0; off < pt_load->p_filesz + align_offset;
+         off += PageSize()) {
       mappable->ensure(reinterpret_cast<char *>(mapped) + off);
     }
   }
@@ -430,12 +432,17 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
 
 
 
-
-
   if (pt_load->p_memsz > pt_load->p_filesz) {
     Addr file_end = pt_load->p_vaddr + pt_load->p_filesz;
     Addr mem_end = pt_load->p_vaddr + pt_load->p_memsz;
     Addr next_page = PageAlignedEndPtr(file_end);
+    if (next_page > file_end) {
+      
+
+      void *ptr = GetPtr(file_end);
+      mappable->ensure(ptr);
+      memset(ptr, 0, next_page - file_end);
+    }
     if (mem_end > next_page) {
       if (mprotect(GetPtr(next_page), mem_end - next_page, prot) < 0) {
         LOG("%s: Failed to mprotect", GetPath());

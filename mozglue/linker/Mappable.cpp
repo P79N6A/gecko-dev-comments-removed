@@ -35,18 +35,8 @@ MappableFile::mmap(const void *addr, size_t length, int prot, int flags,
   MOZ_ASSERT(!(flags & MAP_SHARED));
   flags |= MAP_PRIVATE;
 
-  MemoryRange mapped = MemoryRange::mmap(const_cast<void *>(addr), length,
-                                         prot, flags, fd, offset);
-  if (mapped == MAP_FAILED)
-    return mapped;
-
-  
-
-  if ((mapped != MAP_FAILED) && (prot & PROT_WRITE) &&
-      (PageAlignedSize(length) > length)) {
-    memset(mapped + length, 0, PageAlignedSize(length) - length);
-  }
-  return mapped;
+  return MemoryRange::mmap(const_cast<void *>(addr), length, prot, flags,
+                           fd, offset);
 }
 
 void
@@ -459,6 +449,7 @@ MappableSeekableZStream::ensure(const void *addr)
 
 
 
+
   size_t length = zStream.GetChunkSize(chunk);
   off_t chunkStart = chunk * zStream.GetChunkSize();
   off_t chunkEnd = chunkStart + length;
@@ -472,6 +463,8 @@ MappableSeekableZStream::ensure(const void *addr)
     --it;
     length = it->endOffset() - chunkStart;
   }
+
+  length = PageAlignedSize(length);
 
   AutoLock lock(&mutex);
 
