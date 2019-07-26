@@ -107,8 +107,8 @@ TestTabActor.prototype = {
   },
 
   
-  _createExtraActors: CommonCreateExtraActors,
-  _appendExtraActors: CommonAppendExtraActors
+  _createExtraActors: createExtraActors,
+  _appendExtraActors: appendExtraActors
 };
 
 TestTabActor.prototype.requestTypes = {

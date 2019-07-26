@@ -12,7 +12,8 @@
 let { Ci, Cc, CC, Cu, Cr } = require("chrome");
 let Debugger = require("Debugger");
 let Services = require("Services");
-let DevToolsUtils = require("devtools/toolkit/DevToolsUtils.js");
+let { ActorPool } = require("devtools/server/actors/common");
+let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dbg_assert } = DevToolsUtils;
 let Services = require("Services");
 let EventEmitter = require("devtools/toolkit/event-emitter");
@@ -30,6 +31,7 @@ this.Cu = Cu;
 this.Cr = Cr;
 this.Debugger = Debugger;
 this.Services = Services;
+this.ActorPool = ActorPool;
 this.DevToolsUtils = DevToolsUtils;
 this.dumpn = dumpn;
 this.dbg_assert = dbg_assert;
@@ -841,96 +843,8 @@ if (this.exports) {
 this.DebuggerServer = DebuggerServer;
 
 
-
-
-
-
-
-
-function ActorPool(aConnection)
-{
-  this.conn = aConnection;
-  this._cleanups = {};
-  this._actors = {};
-}
-
 if (this.exports) {
   exports.ActorPool = ActorPool;
-}
-
-this.ActorPool = ActorPool;
-
-ActorPool.prototype = {
-  
-
-
-
-
-
-
-
-
-  addActor: function AP_addActor(aActor) {
-    aActor.conn = this.conn;
-    if (!aActor.actorID) {
-      let prefix = aActor.actorPrefix;
-      if (typeof aActor == "function") {
-        
-        prefix = aActor.prototype.actorPrefix || aActor.prototype.typeName;
-      }
-      aActor.actorID = this.conn.allocID(prefix || undefined);
-    }
-
-    if (aActor.registeredPool) {
-      aActor.registeredPool.removeActor(aActor);
-    }
-    aActor.registeredPool = this;
-
-    this._actors[aActor.actorID] = aActor;
-    if (aActor.disconnect) {
-      this._cleanups[aActor.actorID] = aActor;
-    }
-  },
-
-  get: function AP_get(aActorID) {
-    return this._actors[aActorID];
-  },
-
-  has: function AP_has(aActorID) {
-    return aActorID in this._actors;
-  },
-
-  
-
-
-  isEmpty: function AP_isEmpty() {
-    return Object.keys(this._actors).length == 0;
-  },
-
-  
-
-
-  removeActor: function AP_remove(aActor) {
-    delete this._actors[aActor.actorID];
-    delete this._cleanups[aActor.actorID];
-  },
-
-  
-
-
-  unmanage: function(aActor) {
-    return this.removeActor(aActor);
-  },
-
-  
-
-
-  cleanup: function AP_cleanup() {
-    for each (let actor in this._cleanups) {
-      actor.disconnect();
-    }
-    this._cleanups = {};
-  }
 }
 
 

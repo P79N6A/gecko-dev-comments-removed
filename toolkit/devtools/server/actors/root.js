@@ -6,78 +6,10 @@
 
 "use strict";
 
+let devtools_ = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+let { createExtraActors, appendExtraActors } = devtools_.require("devtools/server/actors/common");
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function CommonCreateExtraActors(aFactories, aPool) {
-  
-  for (let name in aFactories) {
-    let actor = this._extraActors[name];
-    if (!actor) {
-      actor = aFactories[name].bind(null, this.conn, this);
-      actor.prototype = aFactories[name].prototype;
-      actor.parentID = this.actorID;
-      this._extraActors[name] = actor;
-    }
-    aPool.addActor(actor);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function CommonAppendExtraActors(aObject) {
-  for (let name in this._extraActors) {
-    let actor = this._extraActors[name];
-    aObject[name] = actor.actorID;
-  }
-}
 
 
 
@@ -364,8 +296,8 @@ RootActor.prototype = {
   },
 
   
-  _createExtraActors: CommonCreateExtraActors,
-  _appendExtraActors: CommonAppendExtraActors,
+  _createExtraActors: createExtraActors,
+  _appendExtraActors: appendExtraActors,
 
   
 
