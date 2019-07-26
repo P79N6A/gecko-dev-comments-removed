@@ -1071,7 +1071,9 @@ void
 nsAutoCompleteController::AfterSearches()
 {
   mResultCache.Clear();
-  if (mSearchesFailed == mSearches.Count())
+  
+  
+  if (mSearchesFailed == static_cast<uint32_t>(mSearches.Count()))
     PostSearchCleanup();
 }
 
@@ -1122,7 +1124,9 @@ nsAutoCompleteController::StartSearches()
       return rv;
     StartSearch(nsIAutoCompleteSearchDescriptor::SEARCH_TYPE_IMMEDIATE);
 
-    if (mSearches.Count() == immediateSearchesCount) {
+    
+    
+    if (static_cast<uint32_t>(mSearches.Count()) == immediateSearchesCount) {
       
       
       
