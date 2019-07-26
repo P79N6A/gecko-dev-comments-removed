@@ -10,6 +10,7 @@ import org.mozilla.gecko.tests.UITestContext;
 
 
 
+
 public final class AssertionHelper {
     
     private static final String DIAG_STRING = "";
@@ -44,14 +45,6 @@ public final class AssertionHelper {
 
     public static void assertTrue(final String message, final boolean actual) {
         sAsserter.ok(actual, message, DIAG_STRING);
-    }
-
-    public static void assertIsPixel(final string message, final int actual, final int r, final int g, final int b) {
-	sAsserter.ispixel(actual, r, g, b, message);
-    }
-
-    public static void assertIsNotPixel(final string message, final int actual, final int r, final int g, final int b) {
-	sAsserter.isnotpixel(actual, r, g, b, message);
     }
 
     public static void fail(final String message) {
