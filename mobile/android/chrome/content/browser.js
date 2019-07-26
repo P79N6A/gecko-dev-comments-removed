@@ -1612,14 +1612,18 @@ var BrowserApp = {
 #endif
 
       case "Locale:Changed":
-        
-        
-        console.log("Locale:Changed: " + aData);
+        if (aData) {
+          
+          
+          console.log("Locale:Changed: " + aData);
+          Services.prefs.setCharPref("general.useragent.locale", aData);
+        } else {
+          
+          console.log("Switching to system locale.");
+          Services.prefs.clearUserPref("general.useragent.locale");
+        }
 
-        
-        
-        Services.prefs.setBoolPref("intl.locale.matchOS", false);
-        Services.prefs.setCharPref("general.useragent.locale", aData);
+        Services.prefs.setBoolPref("intl.locale.matchOS", !aData);
         break;
 
       default:

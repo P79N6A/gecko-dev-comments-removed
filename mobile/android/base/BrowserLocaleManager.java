@@ -53,6 +53,7 @@ public class BrowserLocaleManager implements LocaleManager {
     
     
     private volatile Locale currentLocale = null;
+    private volatile Locale systemLocale = Locale.getDefault();
 
     private AtomicBoolean inited = new AtomicBoolean(false);
     private boolean systemLocaleDidChange = false;
@@ -131,6 +132,12 @@ public class BrowserLocaleManager implements LocaleManager {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                
+                
+                
+                
+                
+                systemLocale = context.getResources().getConfiguration().locale;
                 systemLocaleDidChange = true;
             }
         };
@@ -220,6 +227,20 @@ public class BrowserLocaleManager implements LocaleManager {
         return resultant;
     }
 
+    @Override
+    public void resetToSystemLocale(Context context) {
+        
+        final SharedPreferences settings = getSharedPreferences(context);
+        settings.edit().remove(PREF_LOCALE).commit();
+
+        
+        updateLocale(context, systemLocale);
+
+        
+        GeckoEvent ev = GeckoEvent.createBroadcastEvent(EVENT_LOCALE_CHANGED, "");
+        GeckoAppShell.sendEventToGecko(ev);
+    }
+
     
 
 
@@ -284,8 +305,12 @@ public class BrowserLocaleManager implements LocaleManager {
 
         final Locale locale = parseLocaleCode(localeCode);
 
+        return updateLocale(context, locale);
+    }
+
+    private String updateLocale(Context context, final Locale locale) {
         
-        if (defaultLocale.equals(locale)) {
+        if (Locale.getDefault().equals(locale)) {
             return null;
         }
 
