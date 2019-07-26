@@ -253,7 +253,8 @@ class MediaPipelineTransmit : public MediaPipeline {
   class PipelineListener : public MediaStreamListener {
    public:
     PipelineListener(const RefPtr<MediaSessionConduit>& conduit)
-        : conduit_(conduit), active_(false) {}
+      : conduit_(conduit), active_(false), samples_10ms_buffer_(nullptr),  
+        buffer_current_(0), samplenum_10ms_(0){}
 
     
     
@@ -277,6 +278,15 @@ class MediaPipelineTransmit : public MediaPipeline {
 #endif
     RefPtr<MediaSessionConduit> conduit_;
     volatile bool active_;
+
+    
+    
+    
+    nsAutoArrayPtr<int16_t> samples_10ms_buffer_;
+    
+    int64_t buffer_current_;
+    
+    int64_t samplenum_10ms_;
   };
 
  private:
