@@ -16,9 +16,21 @@
 #include "prio.h"
 
 #include "mozilla/Scoped.h"
+#include "nsIFile.h"
 #include <errno.h>
+#include <limits.h>
 
 namespace mozilla {
+
+#if defined(XP_WIN)
+typedef void* filedesc_t;
+typedef const wchar_t* pathstr_t;
+#else
+typedef int filedesc_t;
+typedef const char* pathstr_t;
+#endif
+
+#if !defined(XPCOM_GLUE)
 
 
 
@@ -66,6 +78,62 @@ typedef Scoped<ScopedCloseFDTraits> ScopedClose;
 
 
 NS_COM_GLUE bool fallocate(PRFileDesc *aFD, int64_t aLength);
+
+
+
+
+
+
+NS_COM_GLUE void ReadAheadLib(nsIFile* aFile);
+
+
+
+
+
+
+
+
+
+
+NS_COM_GLUE void ReadAheadFile(nsIFile* aFile, const size_t aOffset = 0,
+                               const size_t aCount = SIZE_MAX,
+                               filedesc_t* aOutFd = nullptr);
+
+#endif 
+
+
+
+
+
+
+NS_COM_GLUE void ReadAheadLib(pathstr_t aFilePath);
+
+
+
+
+
+
+
+
+
+
+NS_COM_GLUE void ReadAheadFile(pathstr_t aFilePath, const size_t aOffset = 0,
+                               const size_t aCount = SIZE_MAX,
+                               filedesc_t* aOutFd = nullptr);
+
+
+
+
+
+
+
+
+
+
+
+NS_COM_GLUE void ReadAhead(filedesc_t aFd, const size_t aOffset = 0,
+                           const size_t aCount = SIZE_MAX);
+
 
 } 
 #endif
