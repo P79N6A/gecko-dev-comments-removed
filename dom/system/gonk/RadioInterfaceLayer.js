@@ -527,6 +527,9 @@ RadioInterfaceLayer.prototype = {
       }
     }
 
+    this.checkRoamingBetweenOperators(voice);
+    this.checkRoamingBetweenOperators(data);
+
     if (voiceMessage || operatorMessage) {
       ppmm.broadcastAsyncMessage("RIL:VoiceInfoChanged", voice);
     }
@@ -537,6 +540,32 @@ RadioInterfaceLayer.prototype = {
     if (selectionMessage) {
       this.updateNetworkSelectionMode(selectionMessage);
     }
+  },
+
+  
+
+
+
+
+
+
+  checkRoamingBetweenOperators: function checkRoamingBetweenOperators(registration) {
+    let icc = this.rilContext.icc;
+    if (!icc || !registration.connected) {
+      return;
+    }
+
+    let spn = icc.spn;
+    let operator = registration.network;
+    let longName = operator.longName;
+    let shortName = operator.shortName;
+
+    let equalsLongName = longName && (spn == longName);
+    let equalsShortName = shortName && (spn == shortName);
+    let equalsMcc = icc.mcc == operator.mcc;
+
+    registration.roaming = registration.roaming &&
+                           !(equalsMcc && (equalsLongName || equalsShortName));
   },
 
   
