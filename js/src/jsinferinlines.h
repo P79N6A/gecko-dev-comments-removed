@@ -573,6 +573,21 @@ MarkIteratorUnknown(JSContext *cx)
         MarkIteratorUnknownSlow(cx);
 }
 
+
+
+
+
+
+
+
+inline bool
+IgnoreTypeChanges(JSContext *cx, JSScript *script)
+{
+    return !script->hasAnalysis() &&
+           !cx->jaegerCompilationAllowed() &&
+           script->analyzedArgsUsage();
+}
+
 void TypeMonitorCallSlow(JSContext *cx, JSObject *callee, const CallArgs &args,
                          bool constructing);
 
@@ -586,6 +601,8 @@ TypeMonitorCall(JSContext *cx, const js::CallArgs &args, bool constructing)
     if (args.callee().isFunction()) {
         JSFunction *fun = args.callee().toFunction();
         if (fun->isInterpreted()) {
+            if (IgnoreTypeChanges(cx, fun->nonLazyScript()))
+                return true;
             if (!fun->nonLazyScript()->ensureRanAnalysis(cx))
                 return false;
             if (cx->typeInferenceEnabled())
