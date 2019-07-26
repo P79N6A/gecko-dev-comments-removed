@@ -255,6 +255,8 @@ AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo)
   AudioChunk outputChunk;
   AudioSegment* segment = track->Get<AudioSegment>();
 
+  outputChunk.SetNull(0);
+
   if (mInCycle) {
     
     outputChunk.SetNull(WEBAUDIO_BLOCK_SIZE);
