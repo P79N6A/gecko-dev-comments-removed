@@ -234,6 +234,10 @@ pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.startup.page",                1);
 pref("browser.startup.homepage",            "chrome://branding/locale/browserconfig.properties");
 
+pref("browser.slowStartup.notificationDisabled", false);
+pref("browser.slowStartup.timeThreshold", 60000);
+pref("browser.slowStartup.maxSamples", 5);
+
 
 
 
