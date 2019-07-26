@@ -87,6 +87,31 @@ void OuterDocDestroy(OuterDocAccessible* OuterDoc);
 
 
 
+void FocusNotificationTarget(const char* aMsg, const char* aTargetDescr,
+                             Accessible* aTarget);
+void FocusNotificationTarget(const char* aMsg, const char* aTargetDescr,
+                             nsINode* aTargetNode);
+void FocusNotificationTarget(const char* aMsg, const char* aTargetDescr,
+                             nsISupports* aTargetThing);
+
+
+
+
+void ActiveItemChangeCausedBy(const char* aMsg, Accessible* aTarget);
+
+
+
+
+void ActiveWidget(Accessible* aWidget);
+
+
+
+
+void FocusDispatched(Accessible* aTarget);
+
+
+
+
 void SelChange(nsISelection* aSelection, DocAccessible* aDocument);
 
 
@@ -96,6 +121,13 @@ void SelChange(nsISelection* aSelection, DocAccessible* aDocument);
 
 void MsgBegin(const char* aTitle, const char* aMsgText, ...);
 void MsgEnd();
+
+
+
+
+
+void SubMsgBegin();
+void SubMsgEnd();
 
 
 
@@ -116,6 +148,11 @@ void Address(const char* aDescr, Accessible* aAcc);
 
 
 void Node(const char* aDescr, nsINode* aNode);
+
+
+
+
+void AccessibleNNode(const char* aDescr, Accessible* aAccessible);
 
 
 
