@@ -424,15 +424,15 @@ public:
       return;
     }
 
-    if (ticks + WEBAUDIO_BLOCK_SIZE < mStart) {
-      
-      ComputeSilence(aOutput);
-      return;
-    }
     if (ticks >= mStop) {
       
       ComputeSilence(aOutput);
       *aFinished = true;
+      return;
+    }
+    if (ticks + WEBAUDIO_BLOCK_SIZE < mStart) {
+      
+      ComputeSilence(aOutput);
       return;
     }
 
