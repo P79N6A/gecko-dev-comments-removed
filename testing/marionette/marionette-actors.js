@@ -1498,6 +1498,11 @@ MarionetteDriverActor.prototype = {
     this.sendOk();
     this.removeMessageManagerListeners(this.globalMessageManager);
     this.switchToGlobalMessageManager();
+    
+    this.curFrame = null;
+    if (this.mainFrame) {
+      this.mainFrame.focus();
+    }
     this.curBrowser = null;
     try {
       this.importedScripts.remove(false);
