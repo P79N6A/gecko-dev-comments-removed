@@ -19,15 +19,20 @@
 
 class nsSharedPageData {
 public:
-  nsSharedPageData();
-  ~nsSharedPageData();
+  
+  
+  nsSharedPageData() :
+    mPageContentXMost(0),
+    mPageContentSize(0)
+  {
+  }
 
   nsString    mDateTimeStr;
-  nsFont *    mHeadFootFont;
   nsString    mPageNumFormat;
   nsString    mPageNumAndTotalsFormat;
   nsString    mDocTitle;
   nsString    mDocURL;
+  nsFont      mHeadFootFont;
 
   nsSize      mReflowSize;
   nsMargin    mReflowMargin;
