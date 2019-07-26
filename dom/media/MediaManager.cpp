@@ -1277,16 +1277,18 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
   if (!unknownConstraintFound.IsEmpty()) {
     
     
+    
+    
+    
+    
+    
+    
 
     LOG(("Unsupported mandatory constraint: %s\n",
           NS_ConvertUTF16toUTF8(unknownConstraintFound).get()));
 
-    nsString errormsg(NS_LITERAL_STRING("NOT_SUPPORTED_ERR: "));
-    errormsg.Append(unknownConstraintFound);
-    NS_DispatchToMainThread(new ErrorCallbackRunnable(onSuccess.forget(),
-                                                      onError.forget(),
-                                                      errormsg, windowID));
-    return NS_OK;
+    
+    
   }
 
   
