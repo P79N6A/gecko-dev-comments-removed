@@ -895,6 +895,7 @@ NS_IMETHODIMP
 TabChild::SetTitle(const PRUnichar* aTitle)
 {
   
+  
   return NS_OK;
 }
 
