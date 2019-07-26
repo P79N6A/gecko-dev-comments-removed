@@ -545,28 +545,32 @@ function todo_check_neq(left, right, stack) {
   _do_check_neq(left, right, stack, true);
 }
 
+function do_report_result(passed, text, stack, todo) {
+  if (passed) {
+    if (todo) {
+      do_throw_todo(text, stack);
+    } else {
+      ++_passedChecks;
+      _dump("TEST-PASS | " + stack.filename + " | [" + stack.name + " : " +
+            stack.lineNumber + "] " + text + "\n");
+    }
+  } else {
+    if (todo) {
+      ++_todoChecks;
+      _dump("TEST-KNOWN-FAIL | " + stack.filename + " | [" + stack.name +
+            " : " + stack.lineNumber + "] " + text +"\n");
+    } else {
+      do_throw(text, stack);
+    }
+  }
+}
+
 function _do_check_eq(left, right, stack, todo) {
   if (!stack)
     stack = Components.stack.caller;
 
   var text = left + " == " + right;
-  if (left != right) {
-    if (!todo) {
-      do_throw(text, stack);
-    } else {
-      ++_todoChecks;
-      _dump("TEST-KNOWN-FAIL | " + stack.filename + " | [" + stack.name +
-            " : " + stack.lineNumber + "] " + text +"\n");
-    }
-  } else {
-    if (!todo) {
-      ++_passedChecks;
-      _dump("TEST-PASS | " + stack.filename + " | [" + stack.name + " : " +
-            stack.lineNumber + "] " + text + "\n");
-    } else {
-      do_throw_todo(text, stack);
-    }
-  }
+  do_report_result(left == right, text, stack, todo);
 }
 
 function do_check_eq(left, right, stack) {
@@ -617,6 +621,157 @@ function do_check_null(condition, stack=Components.stack.caller) {
 
 function todo_check_null(condition, stack=Components.stack.caller) {
   todo_check_eq(condition, null, stack);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function do_check_matches(pattern, value, stack=Components.stack.caller, todo=false) {
+  var matcher = pattern_matcher(pattern);
+  var text = "VALUE: " + uneval(value) + "\nPATTERN: " + uneval(pattern) + "\n";
+  var diagnosis = []
+  if (matcher(value, diagnosis)) {
+    do_report_result(true, "value matches pattern:\n" + text, stack, todo);
+  } else {
+    text = ("value doesn't match pattern:\n" +
+            text +
+            "DIAGNOSIS: " +
+            format_pattern_match_failure(diagnosis[0]) + "\n");
+    do_report_result(false, text, stack, todo);
+  }
+}
+
+function todo_check_matches(pattern, value, stack=Components.stack.caller) {
+  do_check_matches(pattern, value, stack, true);
+}
+
+
+
+
+
+
+
+
+
+function pattern_matcher(pattern) {
+  function explain(diagnosis, reason) {
+    if (diagnosis) {
+      diagnosis[0] = reason;
+    }
+    return false;
+  }
+  if (typeof pattern == "function") {
+    return pattern;
+  } else if (typeof pattern == "object" && pattern) {
+    var matchers = [[p, pattern_matcher(pattern[p])] for (p in pattern)];
+    
+    
+    ld = Object.getOwnPropertyDescriptor(pattern, 'length');
+    if (ld && !ld.enumerable) {
+      matchers.push(['length', pattern_matcher(pattern.length)])
+    }
+    return function (value, diagnosis) {
+      if (!(value && typeof value == "object")) {
+        return explain(diagnosis, "value not object");
+      }
+      for (let [p, m] of matchers) {
+        var element_diagnosis = [];
+        if (!(p in value && m(value[p], element_diagnosis))) {
+          return explain(diagnosis, { property:p,
+                                      diagnosis:element_diagnosis[0] });
+        }
+      }
+      return true;
+    };
+  } else if (pattern === undefined) {
+    return function(value) { return true; };
+  } else {
+    return function (value, diagnosis) {
+      if (value !== pattern) {
+        return explain(diagnosis, "pattern " + uneval(pattern) + " not === to value " + uneval(value));
+      }
+      return true;
+    };
+  }
+}
+
+
+
+function format_pattern_match_failure(diagnosis, indent="") {
+  var a;
+  if (!diagnosis) {
+    a = "Matcher did not explain reason for mismatch.";
+  } else if (typeof diagnosis == "string") {
+    a = diagnosis;
+  } else if (diagnosis.property) {
+    a = "Property " + uneval(diagnosis.property) + " of object didn't match:\n";
+    a += format_pattern_match_failure(diagnosis.diagnosis, indent + "  ");
+  }
+  return indent + a;
 }
 
 function do_test_pending() {
