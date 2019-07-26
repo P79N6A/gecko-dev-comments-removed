@@ -8,8 +8,6 @@
 
 
 
-
-
 function test() {
   let inspector;
   let {
@@ -68,9 +66,12 @@ function test() {
     [':', 'style="display:  inherit; color : ', 33, 33, false],
     ['c', 'style="display:  inherit; color :cadetblue ', 34, 42, true],
     ['VK_DOWN', 'style="display:  inherit; color :chartreuse ', 34, 43, true],
-    ['VK_RETURN', 'style="display:  inherit; color :chartreuse"', -1, -1, false]
+    ['VK_RIGHT', 'style="display:  inherit; color :chartreuse ', 43, 43, false],
+    [' ', 'style="display:  inherit; color :chartreuse  ', 44, 44, false],
+    ['!', 'style="display:  inherit; color :chartreuse !important; ', 45, 55, false],
+    ['VK_RIGHT', 'style="display:  inherit; color :chartreuse !important; ', 55, 55, false],
+    ['VK_RETURN', 'style="display:  inherit; color :chartreuse !important;"', -1, -1, false]
   ];
-
   function startTests() {
     markup = inspector.markup;
     markup.expandAll().then(() => {
@@ -102,7 +103,7 @@ function test() {
         }
         info("inside event listener");
         checkState();
-      }) 
+      })
     }
     else if (/click_[0-9]/.test(key)) {
       editor.once("after-suggest", checkState);
