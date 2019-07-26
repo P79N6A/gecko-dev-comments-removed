@@ -3205,42 +3205,6 @@ nsSVGTextFrame2::MutationObserver::AttributeChanged(
   }
 }
 
-NS_IMETHODIMP
-nsSVGTextFrame2::Reflow(nsPresContext*           aPresContext,
-                        nsHTMLReflowMetrics&     aDesiredSize,
-                        const nsHTMLReflowState& aReflowState,
-                        nsReflowStatus&          aStatus)
-{
-  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "Should not have been called");
-
-  
-  
-  
-  
-  
-  NS_ASSERTION(!(GetStateBits() & NS_FRAME_IS_DIRTY),
-               "Reflowing while a resize is pending is wasteful");
-
-  
-
-  NS_ASSERTION(!aReflowState.parentReflowState,
-               "should only get reflow from being reflow root");
-  NS_ASSERTION(aReflowState.ComputedWidth() == GetSize().width &&
-               aReflowState.ComputedHeight() == GetSize().height,
-               "reflow roots should be reflowed at existing size and "
-               "svg.css should ensure we have no padding/border/margin");
-
-  DoReflow();
-
-  aDesiredSize.width = aReflowState.ComputedWidth();
-  aDesiredSize.height = aReflowState.ComputedHeight();
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  aStatus = NS_FRAME_COMPLETE;
-
-  return NS_OK;
-}
-
 void
 nsSVGTextFrame2::FindCloserFrameForSelection(
                                  nsPoint aPoint,
