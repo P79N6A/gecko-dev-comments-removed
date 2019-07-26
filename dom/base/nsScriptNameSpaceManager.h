@@ -109,8 +109,7 @@ public:
   
   
   
-  nsresult LookupNavigatorName(const nsAString& aName,
-                               const nsGlobalNameStruct **aNameStruct);
+  const nsGlobalNameStruct* LookupNavigatorName(const nsAString& aName);
 
   nsresult RegisterClassName(const char *aClassName,
                              int32_t aDOMClassInfoID,
