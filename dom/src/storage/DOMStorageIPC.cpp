@@ -18,7 +18,7 @@ namespace dom {
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(DOMStorageDBChild)
+NS_IMPL_ADDREF(DOMStorageDBChild)
 
 NS_IMETHODIMP_(nsrefcnt) DOMStorageDBChild::Release(void)
 {
@@ -274,8 +274,8 @@ DOMStorageDBChild::RecvError(const nsresult& aRv)
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(DOMStorageDBParent)
-NS_IMPL_THREADSAFE_RELEASE(DOMStorageDBParent)
+NS_IMPL_ADDREF(DOMStorageDBParent)
+NS_IMPL_RELEASE(DOMStorageDBParent)
 
 void
 DOMStorageDBParent::AddIPDLReference()

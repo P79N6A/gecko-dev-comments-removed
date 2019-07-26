@@ -53,7 +53,7 @@ GetDataSetIndex(const DOMStorage* aStorage)
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(DOMStorageCacheBridge)
+NS_IMPL_ADDREF(DOMStorageCacheBridge)
 
 
 
@@ -61,7 +61,7 @@ NS_IMPL_THREADSAFE_ADDREF(DOMStorageCacheBridge)
 NS_IMETHODIMP_(void) DOMStorageCacheBridge::Release(void)
 {
   MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");
-  nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);
+  nsrefcnt count = --mRefCnt;
   NS_LOG_RELEASE(this, count, "DOMStorageCacheBridge");
   if (0 == count) {
     mRefCnt = 1; 

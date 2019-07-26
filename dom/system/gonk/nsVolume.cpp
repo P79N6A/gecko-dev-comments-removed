@@ -43,7 +43,7 @@ NS_VolumeStateStr(int32_t aState)
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsVolume, nsIVolume)
+NS_IMPL_ISUPPORTS1(nsVolume, nsIVolume)
 
 nsVolume::nsVolume(const Volume* aVolume)
   : mName(NS_ConvertUTF8toUTF16(aVolume->Name())),

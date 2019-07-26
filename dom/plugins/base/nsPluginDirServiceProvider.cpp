@@ -177,8 +177,8 @@ nsPluginDirServiceProvider::~nsPluginDirServiceProvider()
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsPluginDirServiceProvider,
-                              nsIDirectoryServiceProvider)
+NS_IMPL_ISUPPORTS1(nsPluginDirServiceProvider,
+                   nsIDirectoryServiceProvider)
 
 
 

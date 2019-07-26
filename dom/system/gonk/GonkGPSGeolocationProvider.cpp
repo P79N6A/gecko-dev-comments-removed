@@ -44,10 +44,10 @@ static const int kDefaultPeriod = 1000;
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS3(GonkGPSGeolocationProvider,
-                              nsIGeolocationProvider,
-                              nsIRILDataCallback,
-                              nsISettingsServiceCallback)
+NS_IMPL_ISUPPORTS3(GonkGPSGeolocationProvider,
+                   nsIGeolocationProvider,
+                   nsIRILDataCallback,
+                   nsISettingsServiceCallback)
 
  GonkGPSGeolocationProvider* GonkGPSGeolocationProvider::sSingleton = nullptr;
 GpsCallbacks GonkGPSGeolocationProvider::mCallbacks = {

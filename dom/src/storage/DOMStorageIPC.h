@@ -76,7 +76,8 @@ private:
 
   nsTHashtable<nsCStringHashKey>& ScopesHavingData();
 
-  nsAutoRefCnt mRefCnt;
+  ThreadSafeAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
 
   
   nsRefPtr<DOMLocalStorageManager> mManager;
@@ -179,7 +180,8 @@ private:
 private:
   CacheParentBridge* NewCache(const nsACString& aScope);
 
-  nsAutoRefCnt mRefCnt;
+  ThreadSafeAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
 	
 	
   bool mIPCOpen;
