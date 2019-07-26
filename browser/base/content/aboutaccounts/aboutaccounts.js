@@ -81,6 +81,15 @@ function promptForRelink(acctName) {
   return pressed == 0; 
 }
 
+
+
+
+
+
+function shouldAllowRelink(acctName) {
+  return !needRelinkWarning(acctName) || promptForRelink(acctName);
+}
+
 let wrapper = {
   iframe: null,
 
@@ -133,19 +142,19 @@ let wrapper = {
     }
 
     
-    
-    
-    
-    
     let newAccountEmail = accountData.email;
-    if (needRelinkWarning(newAccountEmail) && !promptForRelink(newAccountEmail)) {
+    
+    
+    
+    if (!accountData.verifiedCanLinkAccount && !shouldAllowRelink(newAccountEmail)) {
       
       
       this.injectData("message", { status: "login" });
       
-      window.location.reload();
+      window.location = "about:accounts";
       return;
     }
+    delete accountData.verifiedCanLinkAccount;
 
     
     setPreviousAccountNameHash(newAccountEmail);
@@ -173,6 +182,12 @@ let wrapper = {
       
     }, (err) => this.injectData("message", { status: "error", error: err })
     );
+  },
+
+  onCanLinkAccount: function(accountData) {
+    
+    let ok = shouldAllowRelink(accountData.email);
+    this.injectData("message", { status: "can_link_account", data: { ok: ok } });
   },
 
   
@@ -207,6 +222,9 @@ let wrapper = {
     switch (evt.detail.command) {
       case "login":
         this.onLogin(data);
+        break;
+      case "can_link_account":
+        this.onCanLinkAccount(data);
         break;
       case "session_status":
         this.onSessionStatus(data);
