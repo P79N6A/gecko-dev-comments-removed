@@ -133,7 +133,7 @@ public:
             return nullptr;
         }
         JSContext* const cx = container->mThreadContext;
-        JS::RootedObject object(cx, container->mJSObject);
+        JS::RootedObject object(cx, *container->mJSObject);
         MOZ_ASSERT(object);
 
         JSAutoStructuredCloneBuffer buffer;
@@ -179,9 +179,9 @@ public:
         const jint index = env->GetIntField(object, jObjectIndex);
         if (index < 0) {
             
-            return container->mJSObject;
+            return *container->mJSObject;
         }
-        return container->mRootedObjects[index];
+        return *container->mRootedObjects[index];
     }
 
     static jobject CreateObjectInstance(JNIEnv* env, jobject object,
@@ -197,7 +197,8 @@ public:
             return nullptr;
         }
         size_t newIndex = container->mRootedObjects.length();
-        if (!container->mRootedObjects.append(jsObject)) {
+        PersistentObjectPtr rootedJSObject(new PersistentObject(cx, jsObject));
+        if (!container->mRootedObjects.append(Move(rootedJSObject))) {
             AndroidBridge::ThrowException(env,
                 "java/lang/OutOfMemoryError", "Cannot allocate object");
             return nullptr;
@@ -231,7 +232,7 @@ public:
         MOZ_ASSERT(mBuffer.data());
         MOZ_ALWAYS_TRUE(mBuffer.read(mThreadContext, &value));
         if (value.isObject()) {
-            mJSObject = &value.toObject();
+            mJSObject = new PersistentObject(mThreadContext, &value.toObject());
         }
         if (!mJSObject) {
             AndroidBridge::ThrowException(env,
@@ -278,22 +279,25 @@ private:
         return newObject;
     }
 
+    typedef JS::PersistentRooted<JSObject*>   PersistentObject;
+    typedef ScopedDeletePtr<PersistentObject> PersistentObjectPtr;
+
     
     PRThread* mThread;
     
     JSContext* mThreadContext;
     
-    JS::Heap<JSObject*> mJSObject;
+    PersistentObjectPtr mJSObject;
     
     JSAutoStructuredCloneBuffer mBuffer;
     
-    Vector<JS::Heap<JSObject*>, 4> mRootedObjects;
+    Vector<PersistentObjectPtr, 0> mRootedObjects;
 
     
     NativeJSContainer(JSContext* cx, JS::HandleObject object)
             : mThread(PR_GetCurrentThread())
             , mThreadContext(cx)
-            , mJSObject(object)
+            , mJSObject(new PersistentObject(cx, object))
     {
     }
 
@@ -301,6 +305,7 @@ private:
     NativeJSContainer(JSContext* cx, JSAutoStructuredCloneBuffer&& buffer)
             : mThread(PR_GetCurrentThread())
             , mThreadContext(cx)
+            , mJSObject(nullptr)
             , mBuffer(Forward<JSAutoStructuredCloneBuffer>(buffer))
     {
     }
