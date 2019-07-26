@@ -14,8 +14,7 @@
 
 
 
-
-
+'use strict';
 
 
 
@@ -23,20 +22,26 @@
 
 var exports = {};
 
-const TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testFileparser.js</p>";
+var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testFileparser.js</p>";
 
 function test() {
-  helpers.addTabWithToolbar(TEST_URI, function(options) {
-    return helpers.runTests(options, exports);
-  }).then(finish);
+  return Task.spawn(function() {
+    let options = yield helpers.openTab(TEST_URI);
+    yield helpers.openToolbar(options);
+    gcli.addItems(mockCommands.items);
+
+    yield helpers.runTests(options, exports);
+
+    gcli.removeItems(mockCommands.items);
+    yield helpers.closeToolbar(options);
+    yield helpers.closeTab(options);
+  }).then(finish, helpers.handleError);
 }
 
 
 
-'use strict';
 
-
-var fileparser = require('util/fileparser');
+var fileparser = require('gcli/util/fileparser');
 
 var local = false;
 
@@ -54,5 +59,3 @@ exports.testGetPredictor = function(options) {
               'predict npm');
   });
 };
-
-

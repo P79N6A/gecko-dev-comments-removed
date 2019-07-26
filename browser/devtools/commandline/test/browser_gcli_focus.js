@@ -14,8 +14,7 @@
 
 
 
-
-
+'use strict';
 
 
 
@@ -23,38 +22,34 @@
 
 var exports = {};
 
-const TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testFocus.js</p>";
+var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testFocus.js</p>";
 
 function test() {
-  helpers.addTabWithToolbar(TEST_URI, function(options) {
-    return helpers.runTests(options, exports);
-  }).then(finish);
+  return Task.spawn(function() {
+    let options = yield helpers.openTab(TEST_URI);
+    yield helpers.openToolbar(options);
+    gcli.addItems(mockCommands.items);
+
+    yield helpers.runTests(options, exports);
+
+    gcli.removeItems(mockCommands.items);
+    yield helpers.closeToolbar(options);
+    yield helpers.closeTab(options);
+  }).then(finish, helpers.handleError);
 }
 
 
 
-'use strict';
 
-
-
-
-exports.setup = function(options) {
-  mockCommands.setup();
-};
-
-exports.shutdown = function(options) {
-  mockCommands.shutdown();
-};
 
 exports.testBasic = function(options) {
   return helpers.audit(options, [
     {
-      skipRemainingIf: options.isJsdom,
       name: 'exec setup',
       setup: function() {
         
         helpers.focusInput(options);
-        return helpers.setInput(options, 'help');
+        return helpers.setInput(options, 'echo hi');
       },
       check: { },
       exec: { }
@@ -85,6 +80,3 @@ exports.testBasic = function(options) {
     }
   ]);
 };
-
-
-

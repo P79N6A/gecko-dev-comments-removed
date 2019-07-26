@@ -14,8 +14,7 @@
 
 
 
-
-
+'use strict';
 
 
 
@@ -23,29 +22,26 @@
 
 var exports = {};
 
-const TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testIncomplete.js</p>";
+var TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testIncomplete.js</p>";
 
 function test() {
-  helpers.addTabWithToolbar(TEST_URI, function(options) {
-    return helpers.runTests(options, exports);
-  }).then(finish);
+  return Task.spawn(function() {
+    let options = yield helpers.openTab(TEST_URI);
+    yield helpers.openToolbar(options);
+    gcli.addItems(mockCommands.items);
+
+    yield helpers.runTests(options, exports);
+
+    gcli.removeItems(mockCommands.items);
+    yield helpers.closeToolbar(options);
+    yield helpers.closeTab(options);
+  }).then(finish, helpers.handleError);
 }
 
 
 
-'use strict';
 
 
-
-
-
-exports.setup = function(options) {
-  mockCommands.setup();
-};
-
-exports.shutdown = function(options) {
-  mockCommands.shutdown();
-};
 
 exports.testBasic = function(options) {
   return helpers.audit(options, [
@@ -57,7 +53,7 @@ exports.testBasic = function(options) {
         }
       },
       post: function() {
-        var requisition = options.display.requisition;
+        var requisition = options.requisition;
 
         assert.is(requisition._unassigned.length,
                   1,
@@ -150,7 +146,6 @@ exports.testCompleted = function(options) {
       }
     },
     {
-      skipIf: options.isJsdom,
       setup:    'tsg -<TAB>',
       check: {
         input:  'tsg --txt1 ',
@@ -264,7 +259,7 @@ exports.testIncomplete = function(options) {
         }
       },
       post: function() {
-        var requisition = options.display.requisition;
+        var requisition = options.requisition;
 
         assert.is(requisition._unassigned[0],
                   requisition.getAssignmentAt(5),
@@ -457,5 +452,3 @@ exports.testHidden = function(options) {
     }
   ]);
 };
-
-

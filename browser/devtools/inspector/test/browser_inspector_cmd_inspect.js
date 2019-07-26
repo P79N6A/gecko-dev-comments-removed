@@ -1,7 +1,7 @@
-/* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests that the inspect command works as it should
+
+
+
 
 const TEST_URI = "http://example.com/browser/browser/devtools/inspector/" +
                  "test/browser_inspector_cmd_inspect.html";
@@ -17,7 +17,9 @@ function test() {
           markup: 'VVVVVVV',
           status: 'ERROR',
           args: {
-            selector: { message: '' },
+            selector: {
+              message: 'Value required for \'selector\'.'
+            },
           }
         },
       },

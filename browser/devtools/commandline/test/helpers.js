@@ -14,25 +14,83 @@
 
 
 
+'use strict';
 
 
 
 this.EXPORTED_SYMBOLS = [ 'helpers' ];
 var helpers = {};
 this.helpers = helpers;
-let require = (Cu.import("resource://gre/modules/devtools/Require.jsm", {})).require;
-Components.utils.import("resource://gre/modules/devtools/gcli.jsm", {});
 
-let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
-let TargetFactory = (Cu.import("resource://gre/modules/devtools/Loader.jsm", {})).devtools.TargetFactory;
+var TargetFactory = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.TargetFactory;
+var require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 
-let promise = (Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {})).Promise;
-let assert = { ok: ok, is: is, log: info };
-
-var util = require('util/util');
+var assert = { ok: ok, is: is, log: info };
+var util = require('gcli/util/util');
+var promise = require('gcli/util/promise');
 var cli = require('gcli/cli');
+var KeyEvent = require('gcli/util/util').KeyEvent;
+var gcli = require('gcli/index');
 
-var converters = require('gcli/converters');
+
+
+
+var createFFDisplayAutomator = function(display) {
+  var automator = {
+    setInput: function(typed) {
+      return display.inputter.setInput(typed);
+    },
+
+    setCursor: function(cursor) {
+      return display.inputter.setCursor(cursor);
+    },
+
+    focus: function() {
+      return display.inputter.focus();
+    },
+
+    fakeKey: function(keyCode) {
+      var fakeEvent = {
+        keyCode: keyCode,
+        preventDefault: function() { },
+        timeStamp: new Date().getTime()
+      };
+
+      display.inputter.onKeyDown(fakeEvent);
+
+      if (keyCode === KeyEvent.DOM_VK_BACK_SPACE) {
+        var input = display.inputter.element;
+        input.value = input.value.slice(0, -1);
+      }
+
+      return display.inputter.handleKeyUp(fakeEvent);
+    },
+
+    getInputState: function() {
+      return display.inputter.getInputState();
+    },
+
+    getCompleterTemplateData: function() {
+      return display.completer._getCompleterTemplateData();
+    },
+
+    getErrorMessage: function() {
+      return display.tooltip.errorEle.textContent;
+    }
+  };
+
+  Object.defineProperty(automator, 'focusManager', {
+    get: function() { return display.focusManager; },
+    enumerable: true
+  });
+
+  Object.defineProperty(automator, 'field', {
+    get: function() { return display.tooltip.field; },
+    enumerable: true
+  });
+
+  return automator;
+};
 
 
 
@@ -61,8 +119,6 @@ var converters = require('gcli/converters');
 
 
 helpers.addTab = function(url, callback, options) {
-  var deferred = promise.defer();
-
   waitForExplicitFinish();
 
   options = options || {};
@@ -75,12 +131,15 @@ helpers.addTab = function(url, callback, options) {
   options.browser = tabbrowser.getBrowserForTab(options.tab);
   options.target = TargetFactory.forTab(options.tab);
 
-  var onPageLoad = function() {
-    options.browser.removeEventListener("load", onPageLoad, true);
+  var loaded = helpers.listenOnce(options.browser, "load", true).then(function(ev) {
     options.document = options.browser.contentDocument;
     options.window = options.document.defaultView;
 
-    var cleanUp = function() {
+    var reply = callback.call(null, options);
+
+    return promise.resolve(reply).then(null, function(error) {
+      ok(false, error);
+    }).then(function() {
       tabbrowser.removeTab(options.tab);
 
       delete options.window;
@@ -92,26 +151,28 @@ helpers.addTab = function(url, callback, options) {
 
       delete options.chromeWindow;
       delete options.isFirefox;
-
-      deferred.resolve();
-    };
-
-    var reply = callback(options);
-    promise.resolve(reply).then(cleanUp, function(error) {
-      ok(false, error);
-      cleanUp();
     });
-  };
+  });
 
   options.browser.contentWindow.location = url;
-  options.browser.addEventListener("load", onPageLoad, true);
-
-  return deferred.promise;
+  return loaded;
 };
 
-helpers.openTab = function(url, options) {
-  var deferred = promise.defer();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+helpers.openTab = function(url, options) {
   waitForExplicitFinish();
 
   options = options || {};
@@ -126,18 +187,17 @@ helpers.openTab = function(url, options) {
 
   options.browser.contentWindow.location = url;
 
-  var onPageLoad = function() {
-    options.browser.removeEventListener("load", onPageLoad, true);
+  return helpers.listenOnce(options.browser, "load", true).then(function() {
     options.document = options.browser.contentDocument;
     options.window = options.document.defaultView;
-
-    deferred.resolve(options);
-  };
-
-  options.browser.addEventListener("load", onPageLoad, true);
-
-  return deferred.promise;
+    return options;
+  });
 };
+
+
+
+
+
 
 helpers.closeTab = function(options) {
   options.chromeWindow.gBrowser.removeTab(options.tab);
@@ -155,24 +215,38 @@ helpers.closeTab = function(options) {
   return promise.resolve(undefined);
 };
 
+
+
+
+
+
+
+
+
+
 helpers.openToolbar = function(options) {
-  var deferred = promise.defer();
-
-  options.chromeWindow.DeveloperToolbar.show(true, function() {
-    options.display = options.chromeWindow.DeveloperToolbar.display;
-
-    deferred.resolve(options);
+  return options.chromeWindow.DeveloperToolbar.show(true).then(function() {
+    var display = options.chromeWindow.DeveloperToolbar.display;
+    options.automator = createFFDisplayAutomator(display);
+    options.requisition = display.requisition;
   });
-
-  return deferred.promise;
 };
+
+
+
+
+
 
 helpers.closeToolbar = function(options) {
-  options.chromeWindow.DeveloperToolbar.hide();
-  delete options.display;
-
-  return promise.resolve(undefined);
+  return options.chromeWindow.DeveloperToolbar.hide().then(function() {
+    delete options.automator;
+    delete options.requisition;
+  });
 };
+
+
+
+
 
 helpers.handleError = function(ex) {
   console.error(ex);
@@ -187,28 +261,87 @@ helpers.handleError = function(ex) {
 
 
 
+
+helpers.listenOnce = function(element, event, useCapture) {
+  var deferred = promise.defer();
+  var onEvent = function(ev) {
+    element.removeEventListener(event, onEvent, useCapture);
+    deferred.resolve(ev);
+  };
+  element.addEventListener(event, onEvent, useCapture);
+  return deferred.promise;
+};
+
+
+
+
+
+
+
+
+
+
+helpers.observeOnce = function(topic, ownsWeak=false) {
+  let deferred = promise.defer();
+  let resolver = function(subject) {
+    Services.obs.removeObserver(resolver, topic);
+    deferred.resolve(subject);
+  };
+  Services.obs.addObserver(resolver, topic, ownsWeak);
+  return deferred.promise;
+};
+
+
+
+
+
+helpers.promiseify = function(functionWithLastParamCallback, scope) {
+  return function() {
+    let deferred = promise.defer();
+
+    let args = [].slice.call(arguments);
+    args.push(function(callbackParam) {
+      deferred.resolve(callbackParam);
+    });
+
+    try {
+      functionWithLastParamCallback.apply(scope, args);
+    }
+    catch (ex) {
+      deferred.resolve(ex);
+    }
+
+    return deferred.promise;
+  }
+};
+
+
+
+
+
+
+
+
 helpers.addTabWithToolbar = function(url, callback, options) {
   return helpers.addTab(url, function(innerOptions) {
     var win = innerOptions.chromeWindow;
-    var deferred = promise.defer();
 
-    win.DeveloperToolbar.show(true, function() {
-      innerOptions.display = win.DeveloperToolbar.display;
+    return win.DeveloperToolbar.show(true).then(function() {
+      var display = win.DeveloperToolbar.display;
+      innerOptions.automator = createFFDisplayAutomator(display);
+      innerOptions.requisition = display.requisition;
 
-      var cleanUp = function() {
-        win.DeveloperToolbar.hide();
-        delete innerOptions.display;
-        deferred.resolve();
-      };
+      var reply = callback.call(null, innerOptions);
 
-      var reply = callback(innerOptions);
-      promise.resolve(reply).then(cleanUp, function(error) {
+      return promise.resolve(reply).then(null, function(error) {
         ok(false, error);
         console.error(error);
-        cleanUp();
+      }).then(function() {
+        win.DeveloperToolbar.hide().then(function() {
+          delete innerOptions.automator;
+        });
       });
     });
-    return deferred.promise;
   }, options);
 };
 
@@ -267,18 +400,29 @@ helpers.runTests = function(options, tests) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function checkOptions(options) {
   if (options == null) {
     console.trace();
     throw new Error('Missing options object');
   }
-  if (options.display == null) {
+  if (options.requisition == null) {
     console.trace();
-    throw new Error('options object does not contain a display property');
-  }
-  if (options.display.requisition == null) {
-    console.trace();
-    throw new Error('display object does not contain a requisition');
+    throw new Error('options.requisition == null');
   }
 }
 
@@ -287,48 +431,45 @@ function checkOptions(options) {
 
 helpers._actual = {
   input: function(options) {
-    return options.display.inputter.element.value;
+    return options.automator.getInputState().typed;
   },
 
   hints: function(options) {
-    var templateData = options.display.completer._getCompleterTemplateData();
-    var join = function(directTabText, emptyParameters, arrowTabText) {
-      return (directTabText + emptyParameters.join('') + arrowTabText)
+    return options.automator.getCompleterTemplateData().then(function(data) {
+      var emptyParams = data.emptyParameters.join('');
+      return (data.directTabText + emptyParams + data.arrowTabText)
                 .replace(/\u00a0/g, ' ')
                 .replace(/\u21E5/, '->')
                 .replace(/ $/, '');
-    };
-
-    var promisedJoin = promise.promised(join);
-    return promisedJoin(templateData.directTabText,
-                        templateData.emptyParameters,
-                        templateData.arrowTabText);
+    });
   },
 
   markup: function(options) {
-    var cursor = options.display.inputter.element.selectionStart;
-    var statusMarkup = options.display.requisition.getInputStatusMarkup(cursor);
+    var cursor = helpers._actual.cursor(options);
+    var statusMarkup = options.requisition.getInputStatusMarkup(cursor);
     return statusMarkup.map(function(s) {
       return new Array(s.string.length + 1).join(s.status.toString()[0]);
     }).join('');
   },
 
   cursor: function(options) {
-    return options.display.inputter.element.selectionStart;
+    return options.automator.getInputState().cursor.start;
   },
 
   current: function(options) {
-    return options.display.requisition.getAssignmentAt(helpers._actual.cursor(options)).param.name;
+    var cursor = helpers._actual.cursor(options);
+    return options.requisition.getAssignmentAt(cursor).param.name;
   },
 
   status: function(options) {
-    return options.display.requisition.status.toString();
+    return options.requisition.status.toString();
   },
 
   predictions: function(options) {
-    var cursor = options.display.inputter.element.selectionStart;
-    var assignment = options.display.requisition.getAssignmentAt(cursor);
-    return assignment.getPredictions().then(function(predictions) {
+    var cursor = helpers._actual.cursor(options);
+    var assignment = options.requisition.getAssignmentAt(cursor);
+    var context = options.requisition.executionContext;
+    return assignment.getPredictions(context).then(function(predictions) {
       return predictions.map(function(prediction) {
         return prediction.name;
       });
@@ -336,32 +477,32 @@ helpers._actual = {
   },
 
   unassigned: function(options) {
-    return options.display.requisition._unassigned.map(function(assignment) {
+    return options.requisition._unassigned.map(function(assignment) {
       return assignment.arg.toString();
     }.bind(this));
   },
 
   outputState: function(options) {
-    var outputData = options.display.focusManager._shouldShowOutput();
+    var outputData = options.automator.focusManager._shouldShowOutput();
     return outputData.visible + ':' + outputData.reason;
   },
 
   tooltipState: function(options) {
-    var tooltipData = options.display.focusManager._shouldShowTooltip();
+    var tooltipData = options.automator.focusManager._shouldShowTooltip();
     return tooltipData.visible + ':' + tooltipData.reason;
   },
 
   options: function(options) {
-    if (options.display.tooltip.field.menu == null) {
+    if (options.automator.field.menu == null) {
       return [];
     }
-    return options.display.tooltip.field.menu.items.map(function(item) {
+    return options.automator.field.menu.items.map(function(item) {
       return item.name.textContent ? item.name.textContent : item.name;
     });
   },
 
   message: function(options) {
-    return options.display.tooltip.errorEle.textContent;
+    return options.automator.getErrorMessage();
   }
 };
 
@@ -378,7 +519,7 @@ function outputArray(array) {
 
 helpers._createDebugCheck = function(options) {
   checkOptions(options);
-  var requisition = options.display.requisition;
+  var requisition = options.requisition;
   var command = requisition.commandAssignment.value;
   var cursor = helpers._actual.cursor(options);
   var input = helpers._actual.input(options);
@@ -450,7 +591,6 @@ helpers._createDebugCheck = function(options) {
     output += '    },\n';
     output += '    exec: {\n';
     output += '      output: \'\',\n';
-    output += '      completed: true,\n';
     output += '      type: \'string\',\n';
     output += '      error: false\n';
     output += '    }\n';
@@ -466,7 +606,7 @@ helpers._createDebugCheck = function(options) {
 
 helpers.focusInput = function(options) {
   checkOptions(options);
-  options.display.inputter.focus();
+  options.automator.focus();
 };
 
 
@@ -474,7 +614,7 @@ helpers.focusInput = function(options) {
 
 helpers.pressTab = function(options) {
   checkOptions(options);
-  return helpers.pressKey(options, 9 );
+  return helpers.pressKey(options, KeyEvent.DOM_VK_TAB);
 };
 
 
@@ -482,7 +622,7 @@ helpers.pressTab = function(options) {
 
 helpers.pressReturn = function(options) {
   checkOptions(options);
-  return helpers.pressKey(options, 13 );
+  return helpers.pressKey(options, KeyEvent.DOM_VK_RETURN);
 };
 
 
@@ -490,13 +630,7 @@ helpers.pressReturn = function(options) {
 
 helpers.pressKey = function(options, keyCode) {
   checkOptions(options);
-  var fakeEvent = {
-    keyCode: keyCode,
-    preventDefault: function() { },
-    timeStamp: new Date().getTime()
-  };
-  options.display.inputter.onKeyDown(fakeEvent);
-  return options.display.inputter.handleKeyUp(fakeEvent);
+  return options.automator.fakeKey(keyCode);
 };
 
 
@@ -511,10 +645,13 @@ var ACTIONS = {
     return helpers.pressReturn(options);
   },
   '<UP>': function(options) {
-    return helpers.pressKey(options, 38 );
+    return helpers.pressKey(options, KeyEvent.DOM_VK_UP);
   },
   '<DOWN>': function(options) {
-    return helpers.pressKey(options, 40 );
+    return helpers.pressKey(options, KeyEvent.DOM_VK_DOWN);
+  },
+  '<BACKSPACE>': function(options) {
+    return helpers.pressKey(options, KeyEvent.DOM_VK_BACK_SPACE);
   }
 };
 
@@ -533,14 +670,14 @@ var CHUNKER = /([^<]*)(<[A-Z]+>)/;
 helpers.setInput = function(options, typed, cursor) {
   checkOptions(options);
   var inputPromise;
-  var inputter = options.display.inputter;
+  var automator = options.automator;
   
   
   var chunkLen = 1;
 
   
   if (typed.indexOf('<') === -1) {
-    inputPromise = inputter.setInput(typed);
+    inputPromise = automator.setInput(typed);
   }
   else {
     
@@ -551,7 +688,7 @@ helpers.setInput = function(options, typed, cursor) {
     chunkLen = chunks.length + 1;
 
     
-    inputPromise = inputter.setInput('').then(function() {
+    inputPromise = automator.setInput('').then(function() {
       return util.promiseEach(chunks, function(chunk) {
         if (chunk.charAt(0) === '<') {
           var action = ACTIONS[chunk];
@@ -562,7 +699,7 @@ helpers.setInput = function(options, typed, cursor) {
           return action(options);
         }
         else {
-          return inputter.setInput(inputter.element.value + chunk);
+          return automator.setInput(automator.getInputState().typed + chunk);
         }
       });
     });
@@ -570,20 +707,12 @@ helpers.setInput = function(options, typed, cursor) {
 
   return inputPromise.then(function() {
     if (cursor != null) {
-      options.display.inputter.setCursor({ start: cursor, end: cursor });
-    }
-    else {
-      
-      
-      if (options.isJsdom) {
-        options.display.inputter.setCursor({
-          start: typed.length,
-          end: typed.length
-        });
-      }
+      automator.setCursor({ start: cursor, end: cursor });
     }
 
-    options.display.focusManager.onInputChange();
+    if (automator.focusManager) {
+      automator.focusManager.onInputChange();
+    }
 
     
     if (options.isFirefox) {
@@ -603,6 +732,14 @@ helpers.setInput = function(options, typed, cursor) {
 
 
 helpers._check = function(options, name, checks) {
+  
+  var requisition = options.requisition;
+  requisition._args.forEach(function(arg) {
+    if (arg.assignment == null) {
+      assert.ok(false, 'No assignment for ' + arg);
+    }
+  });
+
   if (checks == null) {
     return promise.resolve();
   }
@@ -610,15 +747,15 @@ helpers._check = function(options, name, checks) {
   var outstanding = [];
   var suffix = name ? ' (for \'' + name + '\')' : '';
 
-  if ('input' in checks) {
+  if (!options.isNoDom && 'input' in checks) {
     assert.is(helpers._actual.input(options), checks.input, 'input' + suffix);
   }
 
-  if ('cursor' in checks) {
+  if (!options.isNoDom && 'cursor' in checks) {
     assert.is(helpers._actual.cursor(options), checks.cursor, 'cursor' + suffix);
   }
 
-  if ('current' in checks) {
+  if (!options.isNoDom && 'current' in checks) {
     assert.is(helpers._actual.current(options), checks.current, 'current' + suffix);
   }
 
@@ -626,18 +763,18 @@ helpers._check = function(options, name, checks) {
     assert.is(helpers._actual.status(options), checks.status, 'status' + suffix);
   }
 
-  if ('markup' in checks) {
+  if (!options.isNoDom && 'markup' in checks) {
     assert.is(helpers._actual.markup(options), checks.markup, 'markup' + suffix);
   }
 
-  if ('hints' in checks) {
+  if (!options.isNoDom && 'hints' in checks) {
     var hintCheck = function(actualHints) {
       assert.is(actualHints, checks.hints, 'hints' + suffix);
     };
     outstanding.push(helpers._actual.hints(options).then(hintCheck));
   }
 
-  if ('predictions' in checks) {
+  if (!options.isNoDom && 'predictions' in checks) {
     var predictionsCheck = function(actualPredictions) {
       helpers.arrayIs(actualPredictions,
                        checks.predictions,
@@ -646,7 +783,7 @@ helpers._check = function(options, name, checks) {
     outstanding.push(helpers._actual.predictions(options).then(predictionsCheck));
   }
 
-  if ('predictionsContains' in checks) {
+  if (!options.isNoDom && 'predictionsContains' in checks) {
     var containsCheck = function(actualPredictions) {
       checks.predictionsContains.forEach(function(prediction) {
         var index = actualPredictions.indexOf(prediction);
@@ -663,40 +800,31 @@ helpers._check = function(options, name, checks) {
                      'unassigned' + suffix);
   }
 
-  if ('tooltipState' in checks) {
-    if (options.isJsdom) {
-      assert.log('Skipped ' + name + '/tooltipState due to jsdom');
-    }
-    else {
-      assert.is(helpers._actual.tooltipState(options),
-                checks.tooltipState,
-                'tooltipState' + suffix);
-    }
+  
+
+
+
+
+
+
+
+  if (!options.isNoDom && 'outputState' in checks) {
+    assert.is(helpers._actual.outputState(options),
+              checks.outputState,
+              'outputState' + suffix);
   }
 
-  if ('outputState' in checks) {
-    if (options.isJsdom) {
-      assert.log('Skipped ' + name + '/outputState due to jsdom');
-    }
-    else {
-      assert.is(helpers._actual.outputState(options),
-                checks.outputState,
-                'outputState' + suffix);
-    }
-  }
-
-  if ('options' in checks) {
+  if (!options.isNoDom && 'options' in checks) {
     helpers.arrayIs(helpers._actual.options(options),
                      checks.options,
                      'options' + suffix);
   }
 
-  if ('error' in checks) {
+  if (!options.isNoDom && 'error' in checks) {
     assert.is(helpers._actual.message(options), checks.error, 'error' + suffix);
   }
 
   if (checks.args != null) {
-    var requisition = options.display.requisition;
     Object.keys(checks.args).forEach(function(paramName) {
       var check = checks.args[paramName];
 
@@ -731,14 +859,9 @@ helpers._check = function(options, name, checks) {
       }
 
       if ('name' in check) {
-        if (options.isJsdom) {
-          assert.log('Skipped arg.' + paramName + '.name due to jsdom');
-        }
-        else {
-          assert.is(assignment.value.name,
-                    check.name,
-                    'arg.' + paramName + '.name' + suffix);
-        }
+        assert.is(assignment.value.name,
+                  check.name,
+                  'arg.' + paramName + '.name' + suffix);
       }
 
       if ('type' in check) {
@@ -759,7 +882,7 @@ helpers._check = function(options, name, checks) {
                   'arg.' + paramName + '.status' + suffix);
       }
 
-      if ('message' in check) {
+      if (!options.isNoDom && 'message' in check) {
         if (typeof check.message.test === 'function') {
           assert.ok(check.message.test(assignment.message),
                     'arg.' + paramName + '.message' + suffix);
@@ -787,7 +910,7 @@ helpers._check = function(options, name, checks) {
 
 
 helpers._exec = function(options, name, expected) {
-  var requisition = options.display.requisition;
+  var requisition = options.requisition;
   if (expected == null) {
     return promise.resolve({});
   }
@@ -797,16 +920,8 @@ helpers._exec = function(options, name, expected) {
     cli.logErrors = false;
   }
 
-  var completed = true;
-
   try {
     return requisition.exec({ hidden: true }).then(function(output) {
-      if ('completed' in expected) {
-        assert.is(completed,
-                  expected.completed,
-                  'output.completed for: ' + name);
-      }
-
       if ('type' in expected) {
         assert.is(output.type,
                   expected.type,
@@ -819,56 +934,52 @@ helpers._exec = function(options, name, expected) {
                   'output.error for: ' + name);
       }
 
-      if (!options.window) {
-        assert.ok(false, 'Missing options.window in \'' + name + '\'. ' +
-                         'Are you assming that helpers.audit is synchronous? ' +
-                         'It returns a promise');
-        return { output: output };
-      }
-
-      if (!options.window.document.createElement) {
-        assert.log('skipping output tests (missing doc.createElement) for ' + name);
-        return { output: output };
-      }
-
       if (!('output' in expected)) {
         return { output: output };
       }
 
       var context = requisition.conversionContext;
-      return output.convert('dom', context).then(function(node) {
-        var actualOutput = node.textContent.trim();
+      var convertPromise;
+      if (options.isNoDom) {
+        convertPromise = output.convert('string', context);
+      }
+      else {
+        convertPromise = output.convert('dom', context).then(function(node) {
+          return node.textContent.trim();
+        });
+      }
 
+      return convertPromise.then(function(textOutput) {
         var doTest = function(match, against) {
           
           if (against.match(match) != null) {
             assert.ok(true, 'html output for \'' + name + '\' ' +
-                            'should match /' + match.source || match + '/');
+                            'should match /' + (match.source || match) + '/');
           } else {
             assert.ok(false, 'html output for \'' + name + '\' ' +
-                             'should match /' + match.source || match + '/. ' +
+                             'should match /' + (match.source || match) + '/. ' +
                              'Actual textContent: "' + against + '"');
           }
         };
 
         if (typeof expected.output === 'string') {
-          assert.is(actualOutput,
+          assert.is(textOutput,
                     expected.output,
                     'html output for ' + name);
         }
         else if (Array.isArray(expected.output)) {
           expected.output.forEach(function(match) {
-            doTest(match, actualOutput);
+            doTest(match, textOutput);
           });
         }
         else {
-          doTest(expected.output, actualOutput);
+          doTest(expected.output, textOutput);
         }
 
         if (expected.error) {
           cli.logErrors = origLogErrors;
         }
-        return { output: output, text: actualOutput };
+        return { output: output, text: textOutput };
       });
     }.bind(this)).then(function(data) {
       if (expected.error) {
@@ -887,34 +998,31 @@ helpers._exec = function(options, name, expected) {
     }
     return promise.resolve({});
   }
-  finally {
-    completed = false;
-  }
 };
 
 
 
 
-helpers._setup = function(options, name, action) {
-  if (typeof action === 'string') {
-    return helpers.setInput(options, action);
+helpers._setup = function(options, name, audit) {
+  if (typeof audit.setup === 'string') {
+    return helpers.setInput(options, audit.setup);
   }
 
-  if (typeof action === 'function') {
-    return promise.resolve(action());
+  if (typeof audit.setup === 'function') {
+    return promise.resolve(audit.setup.call(audit));
   }
 
-  return promise.reject('\'setup\' property must be a string or a function. Is ' + action);
+  return promise.reject('\'setup\' property must be a string or a function. Is ' + audit.setup);
 };
 
 
 
 
-helpers._post = function(name, action, data) {
-  if (typeof action === 'function') {
-    return promise.resolve(action(data.output, data.text));
+helpers._post = function(name, audit, data) {
+  if (typeof audit.post === 'function') {
+    return promise.resolve(audit.post.call(audit, data.output, data.text));
   }
-  return promise.resolve(action);
+  return promise.resolve(audit.post);
 };
 
 
@@ -1022,8 +1130,6 @@ Object.defineProperty(helpers, 'timingSummary', {
 
 
 
-
-
 helpers.audit = function(options, audits) {
   checkOptions(options);
   var skipReason = null;
@@ -1068,11 +1174,17 @@ helpers.audit = function(options, audits) {
 
     var start = new Date().getTime();
 
-    var setupDone = helpers._setup(options, name, audit.setup);
+    var setupDone = helpers._setup(options, name, audit);
     return setupDone.then(function(chunkLen) {
-
       if (typeof chunkLen !== 'number') {
         chunkLen = 1;
+      }
+
+      
+      
+      if (chunkLen === -1) {
+        assert.log('Skipped ' + name + ' ' + skipReason);
+        return promise.resolve(undefined);
       }
 
       if (assert.currentTest) {
@@ -1089,7 +1201,7 @@ helpers.audit = function(options, audits) {
       return checkDone.then(function() {
         var execDone = helpers._exec(options, name, audit.exec);
         return execDone.then(function(data) {
-          return helpers._post(name, audit.post, data).then(function() {
+          return helpers._post(name, audit, data).then(function() {
             if (assert.testLogging) {
               log('- END \'' + name + '\' in ' + assert.currentTest);
             }
@@ -1098,7 +1210,7 @@ helpers.audit = function(options, audits) {
       });
     });
   }).then(function() {
-    return options.display.inputter.setInput('');
+    return options.automator.setInput('');
   });
 };
 
@@ -1131,5 +1243,3 @@ function log(message) {
     console.log(message);
   }
 }
-
-

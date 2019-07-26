@@ -804,7 +804,7 @@ pref("browser.safebrowsing.reportMalwareURL", "http://%LOCALE%.malware-report.mo
 pref("browser.safebrowsing.reportMalwareErrorURL", "http://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%");
 
 pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
-pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download?key=%GOOGLE_API_KEY%");
+pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download&key=%GOOGLE_API_KEY%");
 
 #ifdef MOZILLA_OFFICIAL
 
@@ -1097,7 +1097,6 @@ pref("devtools.errorconsole.enabled", false);
 
 pref("devtools.toolbar.enabled", true);
 pref("devtools.toolbar.visible", false);
-pref("devtools.gcli.allowSet", false);
 pref("devtools.commands.dir", "");
 
 
@@ -1385,6 +1384,9 @@ pref("identity.fxaccounts.remote.signin.uri", "https://accounts.firefox.com/sign
 
 
 pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings");
+
+
+pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
 
 
 #ifdef MOZ_WIDGET_GTK

@@ -8,8 +8,8 @@
 this.EXPORTED_SYMBOLS = [ ];
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
-Components.utils.import("resource://gre/modules/devtools/gcli.jsm");
-Components.utils.import("resource://gre/modules/devtools/Loader.jsm");
+const { devtools } = Components.utils.import("resource://gre/modules/devtools/Loader.jsm", {});
+const gcli = devtools.require("gcli/index");
 
 
 
