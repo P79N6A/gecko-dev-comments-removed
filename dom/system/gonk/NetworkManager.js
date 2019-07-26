@@ -399,7 +399,8 @@ NetworkManager.prototype = {
     if (this.active &&
         this.active.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED &&
         this.active.type == this._preferredNetworkType) {
-      debug("Active network is already our preferred type. Not doing anything.");
+      debug("Active network is already our preferred type.");
+      this.setDefaultRouteAndDNS(oldActive);
       return;
     }
 
