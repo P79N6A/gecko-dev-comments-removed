@@ -86,7 +86,7 @@ public:
   
   void SetElementVisibility(bool aIsVisible);
 
-  void ChangeState(MediaDecoder::PlayState aState);
+  status_t ChangeState(MediaDecoder::PlayState aState);
 
   void SetVolume(double aVolume);
 
@@ -96,6 +96,9 @@ public:
   MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
 
   void TimeUpdate();
+
+  
+  void Reset();
 
 private:
   
@@ -121,6 +124,12 @@ private:
   
   
   bool mSeekDuringPause;
+
+  
+  
+  
+  
+  bool mDispatchSeekEvents;
 
   
   
@@ -175,10 +184,17 @@ private:
   MediaOmxDecoder* mObserver;
 
   TimeStamp mLastFireUpdateTime;
+
   
   nsCOMPtr<nsITimer> mTimeUpdateTimer;
 
+  
+  
+  
+  nsCOMPtr<nsITimer> mResetTimer;
+
   int64_t GetMediaTimeUs();
+
   
   
   int64_t GetOutputPlayPositionUs_l() const;
@@ -204,10 +220,8 @@ private:
   
   
   
-  status_t SeekTo(int64_t aTimeUs);
-
   
-  void Reset();
+  status_t SeekTo(int64_t aTimeUs, bool aDispatchSeekEvents = false);
 
   
   
