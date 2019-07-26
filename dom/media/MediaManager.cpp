@@ -162,8 +162,11 @@ public:
 
     int32_t len = mDevices.Length();
     if (len == 0) {
-      devices->SetAsEmptyArray();
-      success->OnSuccess(devices);
+      
+      
+      
+      
+      error->OnError(NS_LITERAL_STRING("NO_DEVICES_FOUND"));
       return NS_OK;
     }
 
