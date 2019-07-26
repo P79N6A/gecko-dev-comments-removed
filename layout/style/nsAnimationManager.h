@@ -70,12 +70,14 @@ struct ElementAnimations MOZ_FINAL
   
   
   
-  static double GetPositionInIteration(TimeDuration aElapsedDuration,
-                                       const mozilla::AnimationTiming& aTiming,
-                                       mozilla::ElementAnimation* aAnimation =
-                                         nullptr,
-                                       ElementAnimations* aEa = nullptr,
-                                       EventArray* aEventsToDispatch = nullptr);
+  
+  
+  static mozilla::ComputedTiming GetPositionInIteration(
+    TimeDuration aElapsedDuration,
+    const mozilla::AnimationTiming& aTiming,
+    mozilla::ElementAnimation* aAnimation = nullptr,
+    ElementAnimations* aEa = nullptr,
+    EventArray* aEventsToDispatch = nullptr);
 
   void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
   void GetEventsAt(TimeStamp aRefreshTime, EventArray &aEventsToDispatch);

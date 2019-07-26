@@ -49,7 +49,7 @@ ElementAnimationsPropertyDtor(void           *aObject,
   delete ea;
 }
 
-double
+ComputedTiming
 ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
                                           const AnimationTiming& aTiming,
                                           ElementAnimation* aAnimation,
@@ -59,10 +59,14 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   MOZ_ASSERT(!aAnimation == !aEa && !aAnimation == !aEventsToDispatch);
 
   
+  ComputedTiming result;
+
+  
   
   double currentIterationCount = aElapsedDuration / aTiming.mIterationDuration;
   bool dispatchStartOrIteration = false;
   if (currentIterationCount >= aTiming.mIterationCount) {
+    result.mPhase = ComputedTiming::AnimationPhase_After;
     if (aAnimation) {
       
       if (aAnimation->mLastNotification !=
@@ -75,30 +79,45 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
     }
     if (!aTiming.FillsForwards()) {
       
-      return -1;
+      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
+      return result;
     }
     currentIterationCount = aTiming.mIterationCount;
   } else if (currentIterationCount < 0.0) {
+    result.mPhase = ComputedTiming::AnimationPhase_Before;
     if (!aTiming.FillsBackwards()) {
       
-      return -1;
+      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
+      return result;
     }
     currentIterationCount = 0.0;
   } else {
+    result.mPhase = ComputedTiming::AnimationPhase_Active;
     dispatchStartOrIteration = aAnimation && !aAnimation->IsPaused();
   }
 
   
   
   NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
-  double whichIteration = floor(currentIterationCount);
-  if (whichIteration == aTiming.mIterationCount && whichIteration != 0.0) {
+  double positionInIteration = fmod(currentIterationCount, 1);
+
+  
+  
+  
+  
+  
+  uint64_t whichIteration = static_cast<uint64_t>(currentIterationCount);
+
+  
+  if (whichIteration != 0 &&
+      result.mPhase == ComputedTiming::AnimationPhase_After &&
+      aTiming.mIterationCount == floor(aTiming.mIterationCount)) {
     
     
     
-    whichIteration -= 1.0;
+    whichIteration -= 1;
+    positionInIteration = 1.0;
   }
-  double positionInIteration = currentIterationCount - whichIteration;
 
   bool thisIterationReverse = false;
   switch (aTiming.mDirection) {
@@ -113,11 +132,11 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
       
       
       
-      thisIterationReverse = (uint64_t(whichIteration) & 1) == 1;
+      thisIterationReverse = (whichIteration & 1) == 1;
       break;
     case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
       
-      thisIterationReverse = (uint64_t(whichIteration) & 1) == 0;
+      thisIterationReverse = (whichIteration & 1) == 0;
       break;
   }
   if (thisIterationReverse) {
@@ -143,7 +162,9 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
     aEventsToDispatch->AppendElement(ei);
   }
 
-  return positionInIteration;
+  result.mTimeFraction = positionInIteration;
+  result.mCurrentIteration = whichIteration;
+  return result;
 }
 
 void
@@ -174,21 +195,15 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       AnimationTiming timing = anim->mTiming;
       timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
-      double positionInIteration =
+      ComputedTiming computedTiming =
         GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime), timing);
 
       
       
       
       
-      
-      
-      
-      
-      
-      
       if (!anim->mIsRunningOnCompositor ||
-          (positionInIteration >= 1.0 &&
+          (computedTiming.mPhase == ComputedTiming::AnimationPhase_After &&
            anim->mLastNotification != ElementAnimation::LAST_NOTIFICATION_END))
       {
         aIsThrottled = false;
@@ -225,26 +240,24 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      double positionInIteration =
+      ComputedTiming computedTiming =
         GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
                                anim->mTiming);
-      
-      
-      
-      
-      
-      if (positionInIteration <= 1 && !anim->IsPaused()) {
+
+      if ((computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
+           computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) &&
+          !anim->IsPaused()) {
         mNeedsRefreshes = true;
       }
 
       
       
-      if (positionInIteration == -1)
+      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction)
         continue;
 
-      NS_ABORT_IF_FALSE(0.0 <= positionInIteration &&
-                          positionInIteration <= 1.0,
-                        "position should be in [0-1]");
+      NS_ABORT_IF_FALSE(0.0 <= computedTiming.mTimeFraction &&
+                        computedTiming.mTimeFraction <= 1.0,
+                        "timing fraction should be in [0-1]");
 
       for (uint32_t propIdx = 0, propEnd = anim->mProperties.Length();
            propIdx != propEnd; ++propIdx)
@@ -270,12 +283,12 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
         
         const AnimationPropertySegment *segment = prop.mSegments.Elements(),
                                *segmentEnd = segment + prop.mSegments.Length();
-        while (segment->mToKey < positionInIteration) {
+        while (segment->mToKey < computedTiming.mTimeFraction) {
           NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
                             "incorrect keys");
           ++segment;
           if (segment == segmentEnd) {
-            NS_ABORT_IF_FALSE(false, "incorrect positionInIteration");
+            NS_ABORT_IF_FALSE(false, "incorrect time fraction");
             break; 
           }
           NS_ABORT_IF_FALSE(segment->mFromKey == (segment-1)->mToKey,
@@ -296,8 +309,9 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
           mStyleRule = new css::AnimValuesStyleRule();
         }
 
-        double positionInSegment = (positionInIteration - segment->mFromKey) /
-                                   (segment->mToKey - segment->mFromKey);
+        double positionInSegment =
+          (computedTiming.mTimeFraction - segment->mFromKey) /
+          (segment->mToKey - segment->mFromKey);
         double valuePosition =
           segment->mTimingFunction.GetValue(positionInSegment);
 
