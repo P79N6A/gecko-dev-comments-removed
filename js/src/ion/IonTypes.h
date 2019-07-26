@@ -59,6 +59,27 @@ enum BailoutKind
     Bailout_CachedShapeGuard
 };
 
+
+
+
+enum MIRType
+{
+    MIRType_Undefined,
+    MIRType_Null,
+    MIRType_Boolean,
+    MIRType_Int32,
+    MIRType_Double,
+    MIRType_String,
+    MIRType_Object,
+    MIRType_Magic,
+    MIRType_Value,
+    MIRType_None,       
+    MIRType_Slots,      
+    MIRType_Elements,   
+    MIRType_StackFrame, 
+    MIRType_Shape       
+};
+
 #ifdef DEBUG
 
 #define TRACK_SNAPSHOTS 1
