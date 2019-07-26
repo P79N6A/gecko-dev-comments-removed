@@ -351,14 +351,17 @@ StackUses(JSScript *script, jsbytecode *pc);
 extern unsigned
 StackDefs(JSScript *script, jsbytecode *pc);
 
+#ifdef DEBUG
+
+
+
+
+
+extern bool
+ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc, uint32_t *depth);
+#endif
+
 }  
-
-
-
-
-
-extern unsigned
-js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 #ifdef _MSC_VER
 #pragma warning(pop)

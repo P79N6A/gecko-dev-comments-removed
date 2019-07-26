@@ -279,25 +279,28 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
 
 #ifdef DEBUG
         if (GetIonContext()->cx) {
-            uint32_t stackDepth = js_ReconstructStackDepth(GetIonContext()->cx, script, bailPC);
-            if (JSOp(*bailPC) == JSOP_FUNCALL) {
-                
-                
-                
-                JS_ASSERT(stackDepth - exprStack <= 1);
-            } else if (JSOp(*bailPC) != JSOP_FUNAPPLY &&
-                       !IsGetPropPC(bailPC) && !IsSetPropPC(bailPC))
-            {
-                
-                
-                
-                
+            uint32_t stackDepth;
+            if (ReconstructStackDepth(GetIonContext()->cx, script, bailPC, &stackDepth)) {
+                if (JSOp(*bailPC) == JSOP_FUNCALL) {
+                    
+                    
+                    
+                    JS_ASSERT(stackDepth - exprStack <= 1);
+                } else if (JSOp(*bailPC) != JSOP_FUNAPPLY &&
+                           !IsGetPropPC(bailPC) && !IsSetPropPC(bailPC))
+                {
+                    
+                    
+                    
+                    
 
-                
-                
-                
-                
-                JS_ASSERT(exprStack == stackDepth);
+                    
+                    
+                    
+                    
+                    
+                    JS_ASSERT(exprStack == stackDepth);
+                }
             }
         }
 #endif

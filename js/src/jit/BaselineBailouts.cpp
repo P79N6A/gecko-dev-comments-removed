@@ -795,30 +795,31 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     BaselineScript *baselineScript = script->baselineScript();
 
 #ifdef DEBUG
-    uint32_t expectedDepth = js_ReconstructStackDepth(cx, script,
-                                                      resumeAfter ? GetNextPc(pc) : pc);
-    if (op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter) {
-        if (op == JSOP_FUNCALL) {
-            
-            
-            
-            JS_ASSERT(expectedDepth - exprStackSlots <= 1);
-        } else if (iter.moreFrames() && (IsGetPropPC(pc) || IsSetPropPC(pc))) {
-            
-            
-            
-            
-            
-            
-            
-            
-            JS_ASSERT(exprStackSlots - expectedDepth == 1);
-        } else {
-            
-            
-            
-            
-            JS_ASSERT(exprStackSlots == expectedDepth);
+    uint32_t expectedDepth;
+    if (ReconstructStackDepth(cx, script, resumeAfter ? GetNextPc(pc) : pc, &expectedDepth)) {
+        if (op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter) {
+            if (op == JSOP_FUNCALL) {
+                
+                
+                
+                JS_ASSERT(expectedDepth - exprStackSlots <= 1);
+            } else if (iter.moreFrames() && (IsGetPropPC(pc) || IsSetPropPC(pc))) {
+                
+                
+                
+                
+                
+                
+                
+                
+                JS_ASSERT(exprStackSlots - expectedDepth == 1);
+            } else {
+                
+                
+                
+                
+                JS_ASSERT(exprStackSlots == expectedDepth);
+            }
         }
     }
 
