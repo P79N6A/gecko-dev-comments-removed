@@ -5,7 +5,6 @@
 
 #include "mozilla/dom/PCrashReporterParent.h"
 #include "mozilla/dom/TabMessageUtils.h"
-#include "nsXULAppAPI.h"
 #include "nsIFile.h"
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"

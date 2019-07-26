@@ -4,8 +4,7 @@
 
 
 #include "CrashReporterParent.h"
-
-#include "base/process_util.h"
+#include "nsXULAppAPI.h"
 
 #include <time.h>
 
