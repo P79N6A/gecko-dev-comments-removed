@@ -6,15 +6,15 @@
 
 
 
-
-const kOnClickMargin = 3;
-
 var NavButtonSlider = {
   _back: document.getElementById("overlay-back"),
   _plus: document.getElementById("overlay-plus"),
-  _mouseMoveStarted: false,
-  _mouseDown: false,
+  _dragging: false,
   _yPos: -1,
+
+  get dragging() {
+    return this._dragging;
+  },
 
   
 
@@ -29,10 +29,12 @@ var NavButtonSlider = {
   },
 
   dragStart: function dragStart(aX, aY, aTarget, aScroller) {
+    this._dragging = true;
     return true;
   },
 
   dragStop: function dragStop(aDx, aDy, aScroller) {
+    this._dragging = false;
     return true;
   },
 
@@ -43,7 +45,7 @@ var NavButtonSlider = {
       return false;
     }
     
-    this._updatePosition(aClientY);
+    this._update(aClientY);
 
     
     
@@ -59,12 +61,6 @@ var NavButtonSlider = {
     this._back.customDragger = this;
     this._plus.customDragger = this;
     Elements.browsers.addEventListener("ContentSizeChanged", this, true);
-    let events = ["mousedown", "mouseup", "mousemove", "click"];
-    events.forEach(function (value) {
-      this._back.addEventListener(value, this, true);
-      this._plus.addEventListener(value, this, true);
-    }, this);
-
     this._updateStops();
   },
 
@@ -82,27 +78,15 @@ var NavButtonSlider = {
     }
   },
 
-  _getPosition: function _getPosition() {
-    this._yPos = parseInt(getComputedStyle(this._back).top);
-  },
-
   _setPosition: function _setPosition() {
     this._back.style.top = this._yPos + "px";
     this._plus.style.top = this._yPos + "px";
   },
 
-  _updatePosition: function (aClientY) {
+  _update: function (aClientY) {
     if (this._topStop > aClientY || this._bottomStop < aClientY)
       return;
     this._yPos = aClientY;
-    this._setPosition();
-  },
-
-  _updateOffset: function (aOffset) {
-    let newPos = this._yPos + aOffset;
-    if (this._topStop > newPos || this._bottomStop < newPos)
-      return;
-    this._yPos = newPos;
     this._setPosition();
   },
 
@@ -114,46 +98,6 @@ var NavButtonSlider = {
     switch (aEvent.type) {
       case "ContentSizeChanged":
         this._updateStops();
-        break;
-      case "mousedown":
-        this._getPosition();
-        this._mouseDown = true;
-        this._mouseMoveStarted = false;
-        this._mouseY = aEvent.clientY;
-        aEvent.originalTarget.setCapture();
-        this._back.setAttribute("mousedrag", true);
-        this._plus.setAttribute("mousedrag", true);
-        break;
-      case "mouseup":
-        this._mouseDown = false;
-        this._back.removeAttribute("mousedrag");
-        this._plus.removeAttribute("mousedrag");
-        break;
-      case "mousemove":
-        
-        if (!this._mouseDown) {
-          return;
-        }
-        
-        let dy = aEvent.clientY - this._mouseY;
-        if (!this._mouseMoveStarted && Math.abs(dy) < kOnClickMargin) {
-          return;
-        }
-        
-        this._mouseMoveStarted = true;
-        this._mouseY = aEvent.clientY;
-        this._updateOffset(dy);
-        break;
-      case "click":
-        
-        if (this._mouseMoveStarted) {
-          return;
-        }
-        if (aEvent.originalTarget == this._back) {
-           CommandUpdater.doCommand('cmd_back');
-        } else {
-           CommandUpdater.doCommand('cmd_newTab');
-        }
         break;
     }
   },
