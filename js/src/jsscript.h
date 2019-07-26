@@ -241,7 +241,7 @@ class ScriptCounts
     jit::IonScriptCounts *ionCounts;
 
  public:
-    ScriptCounts() : pcCountsVector(NULL), ionCounts(NULL) { }
+    ScriptCounts() : pcCountsVector(nullptr), ionCounts(nullptr) { }
 
     inline void destroy(FreeOp *fop);
 
@@ -320,15 +320,15 @@ class ScriptSource
       : refs(0),
         length_(0),
         compressedLength_(0),
-        filename_(NULL),
-        sourceURL_(NULL),
-        sourceMapURL_(NULL),
+        filename_(nullptr),
+        sourceURL_(nullptr),
+        sourceMapURL_(nullptr),
         originPrincipals_(originPrincipals),
         sourceRetrievable_(false),
         argumentsNotIncluded_(false),
         ready_(true)
     {
-        data.source = NULL;
+        data.source = nullptr;
         if (originPrincipals_)
             JS_HoldPrincipals(originPrincipals_);
     }
@@ -372,12 +372,12 @@ class ScriptSource
     
     bool setSourceURL(ExclusiveContext *cx, const jschar *sourceURL);
     const jschar *sourceURL();
-    bool hasSourceURL() const { return sourceURL_ != NULL; }
+    bool hasSourceURL() const { return sourceURL_ != nullptr; }
 
     
     bool setSourceMapURL(ExclusiveContext *cx, const jschar *sourceMapURL);
     const jschar *sourceMapURL();
-    bool hasSourceMapURL() const { return sourceMapURL_ != NULL; }
+    bool hasSourceMapURL() const { return sourceMapURL_ != nullptr; }
 
     JSPrincipals *originPrincipals() const { return originPrincipals_; }
 
@@ -851,7 +851,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     
     JSObject *enclosingStaticScope() const {
         if (isCallsiteClone)
-            return NULL;
+            return nullptr;
         return enclosingScopeOrOriginalFunction_;
     }
 
@@ -1035,7 +1035,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     js::BreakpointSite *getBreakpointSite(jsbytecode *pc)
     {
         JS_ASSERT(size_t(pc - code) < length);
-        return hasDebugScript ? debugScript()->breakpoints[pc - code] : NULL;
+        return hasDebugScript ? debugScript()->breakpoints[pc - code] : nullptr;
     }
 
     js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc);
@@ -1364,7 +1364,7 @@ struct SharedScriptData
 
     HeapPtrAtom *atoms() {
         if (!natoms)
-            return NULL;
+            return nullptr;
         return reinterpret_cast<HeapPtrAtom *>(data + length - sizeof(JSAtom *) * natoms);
     }
 
@@ -1439,11 +1439,11 @@ js_GetScriptLineExtent(JSScript *script);
 namespace js {
 
 extern unsigned
-PCToLineNumber(JSScript *script, jsbytecode *pc, unsigned *columnp = NULL);
+PCToLineNumber(JSScript *script, jsbytecode *pc, unsigned *columnp = nullptr);
 
 extern unsigned
 PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc,
-               unsigned *columnp = NULL);
+               unsigned *columnp = nullptr);
 
 
 
