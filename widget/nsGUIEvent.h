@@ -768,6 +768,20 @@ public:
   int32_t           lineNr;
   const PRUnichar*  errorMsg;
   const PRUnichar*  fileName;
+
+  
+  void AssignScriptErrorEventData(const nsScriptErrorEvent& aEvent,
+                                  bool aCopyTargets)
+  {
+    AssignEventData(aEvent, aCopyTargets);
+
+    lineNr = aEvent.lineNr;
+
+    
+    
+    errorMsg = nullptr;
+    fileName = nullptr;
+  }
 };
 
 
