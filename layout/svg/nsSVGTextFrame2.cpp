@@ -3024,7 +3024,12 @@ nsSVGTextFrame2::AttributeChanged(int32_t aNameSpaceID,
     
     
 
-    NotifySVGChanged(TRANSFORM_CHANGED);
+    if (!(mState & NS_FRAME_FIRST_REFLOW) &&
+        mCanvasTM && mCanvasTM->IsSingular()) {
+      
+      NotifyGlyphMetricsChange();
+    }
+    mCanvasTM = nullptr;
   } else if (IsGlyphPositioningAttribute(aAttribute)) {
     NotifyGlyphMetricsChange();
   }
