@@ -1493,7 +1493,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindowB2G)
 #endif 
 #ifdef MOZ_WEBSPEECH
-  NS_INTERFACE_MAP_ENTRY(nsIDOMSpeechSynthesisGetter)
+  NS_INTERFACE_MAP_ENTRY(nsISpeechSynthesisGetter)
 #endif 
   NS_INTERFACE_MAP_ENTRY(nsIDOMJSWindow)
   if (aIID.Equals(NS_GET_IID(nsIDOMWindowInternal))) {

@@ -73,7 +73,7 @@
 #endif 
 
 #ifdef MOZ_WEBSPEECH
-#include "nsIDOMSpeechSynthesisGetter.h"
+#include "nsISpeechSynthesisGetter.h"
 #endif 
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
@@ -271,7 +271,7 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
                      , public nsIDOMWindowB2G
 #endif 
 #ifdef MOZ_WEBSPEECH
-                     , public nsIDOMSpeechSynthesisGetter
+                     , public nsISpeechSynthesisGetter
 #endif 
 {
 public:
@@ -329,7 +329,7 @@ public:
 
 #ifdef MOZ_WEBSPEECH
   
-  NS_DECL_NSIDOMSPEECHSYNTHESISGETTER
+  NS_DECL_NSISPEECHSYNTHESISGETTER
 #endif 
 
   
