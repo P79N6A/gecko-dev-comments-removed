@@ -2485,6 +2485,8 @@ XULDocument::PrepareToWalk()
         
         
         BlockOnload();
+
+        nsContentSink::NotifyDocElementCreated(this);
     }
 
     
