@@ -62,7 +62,8 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
     
     
     if (allowGC) {
-        JSObject *obj = js::gc::AllocateObjectForCacheHit<allowGC>(cx, entry->kind, heap);
+        mozilla::DebugOnly<JSObject *> obj =
+            js::gc::AllocateObjectForCacheHit<allowGC>(cx, entry->kind, heap);
         JS_ASSERT(!obj);
         return nullptr;
     }
