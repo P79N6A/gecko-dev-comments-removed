@@ -1618,9 +1618,6 @@ var NativeWindow = {
           }
         }
 
-        
-        if (this.linkOpenableContext.matches(element) || this.textContext.matches(element))
-          break;
         element = element.parentNode;
       }
 
