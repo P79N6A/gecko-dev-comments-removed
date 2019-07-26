@@ -505,7 +505,7 @@ protected:
 
 
 
-  void TimeoutTouchListeners();
+  void TimeoutContentResponse();
 
   
 
@@ -517,22 +517,23 @@ protected:
 
 private:
   enum PanZoomState {
-    NOTHING,        
-    FLING,          
-    TOUCHING,       
+    NOTHING,                  
+    FLING,                    
+    TOUCHING,                 
 
-    PANNING,           
-    PANNING_LOCKED_X,  
-    PANNING_LOCKED_Y,  
+    PANNING,                  
+    PANNING_LOCKED_X,         
+    PANNING_LOCKED_Y,         
 
-    CROSS_SLIDING_X,   
+    CROSS_SLIDING_X,          
 
 
-    CROSS_SLIDING_Y,   
+    CROSS_SLIDING_Y,          
 
-    PINCHING,       
-    ANIMATING_ZOOM, 
-    WAITING_LISTENERS, 
+    PINCHING,                 
+    ANIMATING_ZOOM,           
+    WAITING_CONTENT_RESPONSE, 
+
 
 
   };
@@ -543,6 +544,15 @@ private:
 
 
   TouchBehaviorFlags GetTouchBehavior(uint32_t touchIndex);
+
+  
+
+
+
+
+
+
+  void CheckContentResponse();
 
   
 
@@ -621,7 +631,7 @@ private:
 
   nsTArray<MultiTouchInput> mTouchQueue;
 
-  CancelableTask* mTouchListenerTimeoutTask;
+  CancelableTask* mContentResponseTimeoutTask;
 
   AxisX mX;
   AxisY mY;
@@ -673,6 +683,16 @@ private:
   
   
   nsTArray<TouchBehaviorFlags> mAllowedTouchBehaviors;
+
+  
+  bool mAllowedTouchBehaviorSet;
+
+  
+  
+  bool mPreventDefault;
+
+  
+  bool mPreventDefaultSet;
 
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 
