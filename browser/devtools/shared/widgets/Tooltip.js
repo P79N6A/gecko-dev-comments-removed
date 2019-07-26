@@ -412,9 +412,11 @@ Tooltip.prototype = {
 
 
 
-  setTextContent: function(messages,
-    messagesClass = "default-tooltip-simple-text-colors",
-    containerClass = "default-tooltip-simple-text-colors") {
+
+
+  setTextContent: function({ messages, messagesClass, containerClass, isAlertTooltip }) {
+    messagesClass = messagesClass || "default-tooltip-simple-text-colors";
+    containerClass = containerClass || "default-tooltip-simple-text-colors";
 
     let vbox = this.doc.createElement("vbox");
     vbox.className = "devtools-tooltip-simple-text-container " + containerClass;
@@ -428,7 +430,18 @@ Tooltip.prototype = {
       vbox.appendChild(description);
     }
 
-    this.content = vbox;
+    if (isAlertTooltip) {
+      let hbox = this.doc.createElement("hbox");
+      hbox.setAttribute("align", "start");
+
+      let alertImg = this.doc.createElement("image");
+      alertImg.className = "devtools-tooltip-alert-icon";
+      hbox.appendChild(alertImg);
+      hbox.appendChild(vbox);
+      this.content = hbox;
+    } else {
+      this.content = vbox;
+    }
   },
 
   
@@ -511,7 +524,7 @@ Tooltip.prototype = {
   setImageContent: function(imageUrl, options={}) {
     
     let vbox = this.doc.createElement("vbox");
-    vbox.setAttribute("align", "center")
+    vbox.setAttribute("align", "center");
 
     
     let image = this.doc.createElement("image");
