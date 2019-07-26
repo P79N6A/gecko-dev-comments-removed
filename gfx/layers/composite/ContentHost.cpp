@@ -510,7 +510,7 @@ DeprecatedContentHostBase::Dump(FILE* aFile,
 
 #endif
 
-void
+bool
 ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
                                         const nsIntRegion& aUpdated,
                                         const nsIntRegion& aOldValidRegionBack,
@@ -520,8 +520,8 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   if (!mTextureHost) {
     mInitialised = false;
-    return;
-  }
+    return true; 
+  }              
 
   
   nsIntRegion destRegion(aUpdated);
@@ -537,10 +537,12 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   
   
-  MOZ_ASSERT((destBounds.x % size.width) + destBounds.width <= size.width,
-               "updated region lies across rotation boundaries!");
-  MOZ_ASSERT((destBounds.y % size.height) + destBounds.height <= size.height,
-               "updated region lies across rotation boundaries!");
+  if((destBounds.x % size.width) + destBounds.width > size.width ||
+     (destBounds.y % size.height) + destBounds.height > size.height)
+  {
+    NS_ERROR("updated region lies across rotation boundaries!");
+    return false;
+  }
 
   mTextureHost->Updated(&destRegion);
   if (mTextureHostOnWhite) {
@@ -550,6 +552,8 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   mBufferRect = aData.rect();
   mBufferRotation = aData.rotation();
+
+  return true;
 }
 
 DeprecatedContentHostSingleBuffered::~DeprecatedContentHostSingleBuffered()
@@ -594,7 +598,7 @@ DeprecatedContentHostSingleBuffered::DestroyTextures()
   
 }
 
-void
+bool
 DeprecatedContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
                                         const nsIntRegion& aUpdated,
                                         const nsIntRegion& aOldValidRegionBack,
@@ -604,7 +608,7 @@ DeprecatedContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   if (!mDeprecatedTextureHost && !mNewFrontHost) {
     mInitialised = false;
-    return;
+    return true;
   }
 
   if (mNewFrontHost) {
@@ -634,10 +638,12 @@ DeprecatedContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   
   
-  MOZ_ASSERT((destBounds.x % size.width) + destBounds.width <= size.width,
-               "updated region lies across rotation boundaries!");
-  MOZ_ASSERT((destBounds.y % size.height) + destBounds.height <= size.height,
-               "updated region lies across rotation boundaries!");
+  if((destBounds.x % size.width) + destBounds.width > size.width ||
+     (destBounds.y % size.height) + destBounds.height > size.height)
+  {
+    NS_ERROR("updated region lies across rotation boundaries!");
+    return false;
+  }
 
   mDeprecatedTextureHost->Update(*mDeprecatedTextureHost->LockSurfaceDescriptor(), &destRegion);
   if (mDeprecatedTextureHostOnWhite) {
@@ -647,9 +653,11 @@ DeprecatedContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
 
   mBufferRect = aData.rect();
   mBufferRotation = aData.rotation();
+
+  return true;
 }
 
-void
+bool
 ContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
                                         const nsIntRegion& aUpdated,
                                         const nsIntRegion& aOldValidRegionBack,
@@ -659,7 +667,7 @@ ContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
     mInitialised = false;
 
     *aUpdatedRegionBack = aUpdated;
-    return;
+    return true;
   }
 
   
@@ -684,6 +692,8 @@ ContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
   
   
   mValidRegionForNextBackBuffer = aOldValidRegionBack;
+
+  return true;
 }
 
 DeprecatedContentHostDoubleBuffered::~DeprecatedContentHostDoubleBuffered()
@@ -759,7 +769,7 @@ DeprecatedContentHostDoubleBuffered::DestroyTextures()
   
 }
 
-void
+bool
 DeprecatedContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
                                         const nsIntRegion& aUpdated,
                                         const nsIntRegion& aOldValidRegionBack,
@@ -769,7 +779,7 @@ DeprecatedContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
     mInitialised = false;
 
     *aUpdatedRegionBack = aUpdated;
-    return;
+    return true;
   }
 
   if (mNewFrontHost) {
@@ -813,6 +823,8 @@ DeprecatedContentHostDoubleBuffered::UpdateThebes(const ThebesBufferData& aData,
   
   
   mValidRegionForNextBackBuffer = aOldValidRegionBack;
+
+  return true;
 }
 
 void

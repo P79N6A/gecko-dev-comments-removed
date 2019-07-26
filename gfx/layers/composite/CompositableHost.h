@@ -130,12 +130,13 @@ public:
 
 
 
-  virtual void UpdateThebes(const ThebesBufferData& aData,
+  virtual bool UpdateThebes(const ThebesBufferData& aData,
                             const nsIntRegion& aUpdated,
                             const nsIntRegion& aOldValidRegionBack,
                             nsIntRegion* aUpdatedRegionBack)
   {
-    MOZ_ASSERT(false, "should be implemented or not used");
+    NS_ERROR("should be implemented or not used");
+    return false;
   }
 
   
