@@ -104,7 +104,7 @@ StyleEditorActor.prototype = {
 
 
   onGetBaseURI: function() {
-    return { baseURI: this.document.baseURIObject };
+    return { baseURI: this.document.baseURIObject.spec };
   },
 
   
