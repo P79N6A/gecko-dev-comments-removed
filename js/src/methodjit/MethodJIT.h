@@ -795,6 +795,13 @@ struct JITScript
 
     uint32_t        ionCalls;
 
+    
+
+
+
+
+    bool mustDestroyEntryChunk;
+
 #ifdef JS_MONOIC
     
     JSC::CodeLocationLabel argsCheckStub;

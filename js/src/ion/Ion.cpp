@@ -912,12 +912,6 @@ TestCompiler(IonBuilder *builder, MIRGraph *graph, AutoDestroyAllocator &autoDes
     if (!codegen.generate())
         return false;
 
-    if (builder->script->hasIonScript()) {
-        
-        
-        mjit::ReleaseScriptCodeFromVM(cx, builder->script);
-    }
-
     IonSpewEndFunction();
 
     return true;
