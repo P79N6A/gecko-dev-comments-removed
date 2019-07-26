@@ -350,6 +350,67 @@ WebConsole.prototype = {
 
 
 
+
+
+
+  viewSourceInDebugger:
+  function WC_viewSourceInDebugger(aSourceURL, aSourceLine)
+  {
+    let self = this;
+    let panelWin = null;
+    let debuggerWasOpen = true;
+    let toolbox = gDevTools.getToolbox(this.target);
+
+    if (!toolbox.getPanel("jsdebugger")) {
+      debuggerWasOpen = false;
+      let toolboxWin = toolbox.doc.defaultView;
+      toolboxWin.addEventListener("Debugger:AfterSourcesAdded",
+                                  function afterSourcesAdded() {
+        toolboxWin.removeEventListener("Debugger:AfterSourcesAdded",
+                                       afterSourcesAdded);
+        loadScript();
+      });
+    }
+
+    toolbox.selectTool("jsdebugger").then(function onDebuggerOpen(dbg) {
+      panelWin = dbg.panelWin;
+      if (debuggerWasOpen) {
+        loadScript();
+      }
+    });
+
+    function loadScript() {
+      let debuggerView = panelWin.DebuggerView;
+      if (!debuggerView.Sources.containsValue(aSourceURL)) {
+        toolbox.selectTool("webconsole");
+        self.viewSource(aSourceURL, aSourceLine);
+        return;
+      }
+      if (debuggerWasOpen && debuggerView.Sources.selectedValue == aSourceURL) {
+        debuggerView.editor.setCaretPosition(aSourceLine - 1);
+        return;
+      }
+
+      panelWin.addEventListener("Debugger:SourceShown", onSource, false);
+      debuggerView.Sources.preferredSource = aSourceURL;
+    }
+
+    function onSource(aEvent) {
+      if (aEvent.detail.url != aSourceURL) {
+        return;
+      }
+      panelWin.removeEventListener("Debugger:SourceShown", onSource, false);
+      panelWin.DebuggerView.editor.setCaretPosition(aSourceLine - 1);
+    }
+  },
+
+  
+
+
+
+
+
+
   destroy: function WC_destroy()
   {
     if (this._destroyer) {
