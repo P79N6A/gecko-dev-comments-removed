@@ -64,8 +64,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(!mShuttingDownOnIOThread);
 
-    RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-
+    Close(); 
     mShuttingDownOnIOThread = true;
   }
 
@@ -643,7 +642,7 @@ void
 UnixSocketImpl::OnSocketCanReceiveWithoutBlocking()
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED);
+  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
 
   
   while (true) {
@@ -691,7 +690,7 @@ void
 UnixSocketImpl::OnSocketCanSendWithoutBlocking()
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED);
+  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); 
 
   
   
