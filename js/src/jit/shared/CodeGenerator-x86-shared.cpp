@@ -2012,7 +2012,7 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
 
     
     masm.bind(&noMoreWork);
-    masm.move32(Imm32(-1), output);
+    masm.move32(Imm32(ThreadPool::MAX_SLICE_ID), output);
     masm.pop(cxReg);
     masm.ret();
 
