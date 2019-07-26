@@ -51,7 +51,10 @@
 #endif
 #include "ion/Ion.h"
 #include "ion/BaselineJIT.h"
+
+#ifdef JS_ION
 #include "ion/IonFrames-inl.h"
+#endif
 
 #include "jsatominlines.h"
 #include "jsboolinlines.h"
@@ -3512,11 +3515,11 @@ js::Lambda(JSContext *cx, HandleFunction fun, HandleObject parent)
     if (fun->isArrow()) {
         
         
-        AbstractFramePtr frame = NullFramePtr();
+        AbstractFramePtr frame = cx->fp();
+#ifdef JS_ION
         if (cx->fp()->runningInIon())
             frame = ion::GetTopBaselineFrame(cx);
-        else
-            frame = cx->fp();
+#endif
 
         if (!ComputeThis(cx, frame))
             return NULL;
