@@ -4,6 +4,9 @@
 
 
 
+#ifndef nsNSSDialogHelper_h
+#define nsNSSDialogHelper_h
+
 #include "nsIDOMWindow.h"
 
 
@@ -24,3 +27,4 @@ public:
                   bool modal = true);
 };
 
+#endif
