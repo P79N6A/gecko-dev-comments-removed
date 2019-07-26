@@ -964,10 +964,10 @@ let PlacesToolbarHelper = {
     
     
     
-    let toolbar = viewElt.parentNode.parentNode;
-    if (toolbar.localName != "toolbar" || toolbar.collapsed ||
-        getComputedStyle(toolbar, "").display == "none" ||
-        this._isCustomizing)
+    
+    let toolbar = this._getParentToolbar(viewElt);
+    if (!toolbar || toolbar.collapsed || this._isCustomizing ||
+        getComputedStyle(toolbar, "").display == "none")
       return;
 
     new PlacesToolbar(this._place);
@@ -995,6 +995,16 @@ let PlacesToolbarHelper = {
         widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
       PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
     }
+  },
+
+  _getParentToolbar: function(element) {
+    while (element) {
+      if (element.localName == "toolbar") {
+        return element;
+      }
+      element = element.parentNode;
+    }
+    return null;
   }
 };
 
