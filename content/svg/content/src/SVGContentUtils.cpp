@@ -431,11 +431,11 @@ ParseNumber(RangedPtr<const PRUnichar>& aIter,
       expSign = *expIter == '-' ? -1 : 1;
       if (*expIter == '-' || *expIter == '+') {
         ++expIter;
-        if (expIter != aEnd && SVGContentUtils::IsDigit(*expIter)) {
-          
-          
-          gotE = true;
-        }
+      }
+      if (expIter != aEnd && SVGContentUtils::IsDigit(*expIter)) {
+        
+        
+        gotE = true;
       }
     }
 
