@@ -70,8 +70,8 @@ bool WebGLContext::DrawArrays_check(GLint first, GLsizei count, GLsizei primcoun
     }
 
     
-    
     if (!mCurrentProgram) {
+        ErrorInvalidOperation("%s: null CURRENT_PROGRAM", info);
         return false;
     }
 
@@ -211,8 +211,8 @@ WebGLContext::DrawElements_check(GLsizei count, GLenum type,
     }
 
     
-    
     if (!mCurrentProgram) {
+        ErrorInvalidOperation("%s: null CURRENT_PROGRAM", info);
         return false;
     }
 
