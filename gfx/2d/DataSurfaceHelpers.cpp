@@ -3,11 +3,8 @@
 
 
 
-#include <cstring>
-
 #include "2D.h"
 #include "DataSurfaceHelpers.h"
-#include "Tools.h"
 
 namespace mozilla {
 namespace gfx {
@@ -138,31 +135,6 @@ SurfaceToPackedBGR(DataSourceSurface *aSurface)
   aSurface->Unmap();
 
   return imageBuffer;
-}
-
-void
-ClearDataSourceSurface(DataSourceSurface *aSurface)
-{
-  DataSourceSurface::MappedSurface map;
-  if (!aSurface->Map(DataSourceSurface::MapType::WRITE, &map)) {
-    MOZ_ASSERT(false, "Failed to map DataSourceSurface");
-    return;
-  }
-
-  
-  
-
-  uint32_t width = aSurface->GetSize().width;
-  uint32_t bytesPerRow = width * BytesPerPixel(aSurface->GetFormat());
-  uint8_t* row = map.mData;
-  uint8_t* end = row + map.mStride * aSurface->GetSize().height;
-
-  while (row != end) {
-    memset(row, 0, bytesPerRow);
-    row += map.mStride;
-  }
-
-  aSurface->Unmap();
 }
 
 }

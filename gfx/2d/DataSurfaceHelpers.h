@@ -45,13 +45,6 @@ SurfaceToPackedBGRA(DataSourceSurface *aSurface);
 uint8_t*
 SurfaceToPackedBGR(DataSourceSurface *aSurface);
 
-
-
-
-
-void
-ClearDataSourceSurface(DataSourceSurface *aSurface);
-
 }
 }
 
