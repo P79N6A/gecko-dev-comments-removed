@@ -1243,7 +1243,8 @@ nsXULTemplateBuilder::LoadDataSources(nsIDocument* aDocument,
     if (!mRoot->IsXUL()) {
         
         
-        InitHTMLTemplateRoot();
+        rv = InitHTMLTemplateRoot();
+        NS_ENSURE_SUCCESS(rv, rv);
     }
   
     return NS_OK;
