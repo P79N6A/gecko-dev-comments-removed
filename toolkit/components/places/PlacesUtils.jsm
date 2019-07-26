@@ -2208,7 +2208,7 @@ PlacesCreateLivemarkTransaction.prototype = {
     
     
     PlacesUtils.livemarks.getLivemark({ id: this.item.id })
-      .then(null, () => {
+      .then(null, null).then( () => {
         PlacesUtils.bookmarks.removeItem(this.item.id);
       });
   }
