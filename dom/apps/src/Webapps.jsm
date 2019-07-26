@@ -2439,16 +2439,16 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         
         this.broadcastMessage("Webapps:Install:Return:OK", aData);
       }
+      if (!aData.isPackage) {
+        this.updateAppHandlers(null, app.manifest, app);
+        if (aInstallSuccessCallback) {
+          aInstallSuccessCallback(app.manifest);
+        }
+      }
       Services.obs.notifyObservers(null, "webapps-installed",
         JSON.stringify({ manifestURL: app.manifestURL }));
     });
 
-    if (!aData.isPackage) {
-      this.updateAppHandlers(null, app.manifest, app);
-      if (aInstallSuccessCallback) {
-        aInstallSuccessCallback(app.manifest);
-      }
-    }
     let dontNeedNetwork = false;
     if (manifest.package_path) {
       
@@ -3086,8 +3086,8 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
   _openSignedPackage: function(aZipFile, aCertDb) {
     let deferred = Promise.defer();
 
-    aCertDb.openSignedAppFileAsync(
-       Ci.nsIX509CertDB.AppMarketplaceProdPublicRoot, aZipFile,
+    aCertDb.openSignedJARFileAsync(
+       aZipFile,
        function(aRv, aZipReader) {
          deferred.resolve([aRv, aZipReader]);
        }
