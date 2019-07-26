@@ -88,6 +88,12 @@ public class AwesomeBar extends GeckoActivity
 
         setContentView(R.layout.awesomebar);
 
+        
+        
+        if (Build.VERSION.SDK_INT >= 11) {
+            getActionBar().hide();
+        }
+
         mGoButton = (ImageButton) findViewById(R.id.awesomebar_button);
         mText = (CustomEditText) findViewById(R.id.awesomebar_text);
 
