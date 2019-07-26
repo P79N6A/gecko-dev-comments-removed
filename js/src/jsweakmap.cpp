@@ -165,7 +165,7 @@ ObjectValueMap::findZoneEdges()
 
 
 
-    JS::AutoSuppressGCAnalysis nogc;
+    JS::AutoAssertNoGC nogc;
     Zone *mapZone = compartment->zone();
     for (Range r = all(); !r.empty(); r.popFront()) {
         JSObject *key = r.front().key();

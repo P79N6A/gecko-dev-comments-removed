@@ -188,7 +188,6 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsobj.h"
-#include "jsprf.h"
 #include "jsscript.h"
 #include "jstypes.h"
 #include "jsutil.h"
@@ -1115,14 +1114,13 @@ GCRuntime::GCRuntime(JSRuntime *rt) :
     mallocBytes(0),
     mallocGCTriggered(false),
     scriptAndCountsVector(nullptr),
-    helperState(rt),
     alwaysPreserveCode(false),
 #ifdef DEBUG
     noGCOrAllocationCheck(0),
 #endif
     lock(nullptr),
     lockOwner(nullptr),
-    inUnsafeRegion(0)
+    helperState(rt)
 {
 }
 
@@ -4334,9 +4332,6 @@ AutoGCSession::AutoGCSession(GCRuntime *gc)
     
     
     JS_ASSERT(!gc->rt->mainThread.suppressGC);
-
-    
-    JS::AutoAssertOnGC::VerifyIsSafeToGC(gc->rt);
 }
 
 AutoGCSession::~AutoGCSession()
@@ -5626,9 +5621,8 @@ JS::GetGCNumber()
         return 0;
     return rt->gc.number;
 }
-#endif
 
-JS::AutoAssertOnGC::AutoAssertOnGC()
+JS::AutoAssertNoGC::AutoAssertNoGC()
   : runtime(nullptr), gcNumber(0)
 {
     js::PerThreadData *data = js::TlsPerThreadData.get();
@@ -5640,36 +5634,19 @@ JS::AutoAssertOnGC::AutoAssertOnGC()
 
 
         runtime = data->runtimeIfOnOwnerThread();
-        if (runtime) {
+        if (runtime)
             gcNumber = runtime->gc.number;
-            ++runtime->gc.inUnsafeRegion;
-        }
     }
 }
 
-JS::AutoAssertOnGC::AutoAssertOnGC(JSRuntime *rt)
+JS::AutoAssertNoGC::AutoAssertNoGC(JSRuntime *rt)
   : runtime(rt), gcNumber(rt->gc.number)
 {
-    ++rt->gc.inUnsafeRegion;
 }
 
-JS::AutoAssertOnGC::~AutoAssertOnGC()
+JS::AutoAssertNoGC::~AutoAssertNoGC()
 {
-    if (runtime) {
-        --runtime->gc.inUnsafeRegion;
-        MOZ_ASSERT(runtime->gc.inUnsafeRegion >= 0);
-
-        
-
-
-
-        MOZ_ASSERT(gcNumber == runtime->gc.number, "GC ran inside an AutoAssertOnGC scope.");
-    }
+    if (runtime)
+        MOZ_ASSERT(gcNumber == runtime->gc.number, "GC ran inside an AutoAssertNoGC scope.");
 }
-
- void
-JS::AutoAssertOnGC::VerifyIsSafeToGC(JSRuntime *rt)
-{
-    if (rt->gc.inUnsafeRegion > 0)
-        MOZ_CRASH("[AutoAssertOnGC] possible GC in GC-unsafe region");
-}
+#endif

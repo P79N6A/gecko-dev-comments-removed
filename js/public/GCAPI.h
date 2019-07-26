@@ -372,55 +372,31 @@ ShrinkGCBuffers(JSRuntime *rt);
 
 
 
-class JS_PUBLIC_API(AutoAssertOnGC)
+
+
+
+
+
+
+
+
+
+class JS_PUBLIC_API(AutoAssertNoGC)
 {
+#ifdef JS_DEBUG
     JSRuntime *runtime;
     size_t gcNumber;
 
   public:
-    AutoAssertOnGC();
-    explicit AutoAssertOnGC(JSRuntime *rt);
-    ~AutoAssertOnGC();
-
-    static void VerifyIsSafeToGC(JSRuntime *rt);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class JS_PUBLIC_API(AutoSuppressGCAnalysis) : public AutoAssertOnGC
-{
+    AutoAssertNoGC();
+    AutoAssertNoGC(JSRuntime *rt);
+    ~AutoAssertNoGC();
+#else
   public:
-    AutoSuppressGCAnalysis() : AutoAssertOnGC() {}
-    explicit AutoSuppressGCAnalysis(JSRuntime *rt) : AutoAssertOnGC(rt) {}
-};
-
-
-
-
-
-
-
-
-
-
-
-class JS_PUBLIC_API(AutoCheckCannotGC) : public AutoAssertOnGC
-{
-  public:
-    AutoCheckCannotGC() : AutoAssertOnGC() {}
-    explicit AutoCheckCannotGC(JSRuntime *rt) : AutoAssertOnGC(rt) {}
+    
+    AutoAssertNoGC() {}
+    explicit AutoAssertNoGC(JSRuntime *) {}
+#endif
 };
 
 class JS_PUBLIC_API(ObjectPtr)

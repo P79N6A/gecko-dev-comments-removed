@@ -426,7 +426,7 @@ class ForkJoinContext : public ThreadSafeContext
 
     
     
-    JS::AutoSuppressGCAnalysis nogc_;
+    JS::AutoAssertNoGC nogc_;
 };
 
 
