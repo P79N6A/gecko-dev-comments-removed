@@ -4232,6 +4232,7 @@ MacroAssemblerARMCompat::ceil(FloatRegister input, Register output, Label *bail)
     
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
+    ma_b(bail, Zero);
 
     bind(&fin);
 }
@@ -4283,6 +4284,7 @@ MacroAssemblerARMCompat::ceilf(FloatRegister input, Register output, Label *bail
     
     ma_mov(output, output, SetCond);
     ma_b(bail, Signed);
+    ma_b(bail, Zero);
 
     bind(&fin);
 }
