@@ -121,8 +121,7 @@ nsXBLJSClass::Destroy()
                "referenced nsXBLJSClass is on LRU list already!?");
 
   if (nsXBLService::gClassTable) {
-    nsCStringKey key(mKey);
-    (nsXBLService::gClassTable)->Remove(&key);
+    nsXBLService::gClassTable->Remove(mKey);
     mKey.Truncate();
   }
 
@@ -141,14 +140,7 @@ nsXBLJSClass::Destroy()
 nsXBLJSClass*
 nsXBLService::getClass(const nsCString& k)
 {
-  nsCStringKey key(k);
-  return getClass(&key);
-}
-
-nsXBLJSClass*
-nsXBLService::getClass(nsCStringKey *k)
-{
-  return static_cast<nsXBLJSClass*>(nsXBLService::gClassTable->Get(k));
+  return nsXBLService::gClassTable->Get(k);
 }
 
 
@@ -995,9 +987,8 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
     
     *aNew = true;
 
-    nsCStringKey key(xblKey);
     if (!c) {
-      c = nsXBLService::getClass(&key);
+      c = nsXBLService::getClass(xblKey);
     }
     if (c) {
       
@@ -1015,8 +1006,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
         nsXBLService::gClassLRUListLength--;
 
         
-        nsCStringKey oldKey(c->Key());
-        (nsXBLService::gClassTable)->Remove(&oldKey);
+        nsXBLService::gClassTable->Remove(c->Key());
 
         
         nsMemory::Free((void*) c->name);
@@ -1025,7 +1015,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
       }
 
       
-      (nsXBLService::gClassTable)->Put(&key, (void*)c);
+      nsXBLService::gClassTable->Put(xblKey, c);
     }
 
     
@@ -1046,7 +1036,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
       
       
 
-      (nsXBLService::gClassTable)->Remove(&key);
+      nsXBLService::gClassTable->Remove(xblKey);
 
       c->Drop();
 

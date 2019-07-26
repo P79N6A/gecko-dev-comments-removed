@@ -14,8 +14,9 @@
 #include "nsWeakReference.h"
 #include "js/Class.h"           
 #include "nsTArray.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
 
-class nsCStringKey;
 class nsXBLBinding;
 class nsXBLDocumentInfo;
 class nsXBLJSClass;
@@ -24,7 +25,6 @@ class nsIDocument;
 class nsString;
 class nsIURI;
 class nsIPrincipal;
-class nsHashtable;
 
 namespace mozilla {
 namespace dom {
@@ -123,7 +123,8 @@ protected:
 public:
   static bool gDisableChromeCache;
 
-  static nsHashtable* gClassTable;           
+  typedef nsDataHashtable<nsCStringHashKey, nsXBLJSClass*> ClassTable;
+  static ClassTable* gClassTable;           
 
   static mozilla::LinkedList<nsXBLJSClass>* gClassLRUList;
                                              
@@ -135,7 +136,6 @@ public:
 
   
   static nsXBLJSClass *getClass(const nsCString &key);
-  static nsXBLJSClass *getClass(nsCStringKey *key);
 };
 
 class nsXBLJSClass : public mozilla::LinkedListElement<nsXBLJSClass>
