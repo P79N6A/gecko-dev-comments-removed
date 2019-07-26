@@ -107,9 +107,16 @@ public class testClearPrivateData extends PixelTest {
 
     
     public void checkOption(String option, String button) {
-        final View toolbarView = mSolo.getView("browser_toolbar");
-        mSolo.clickLongOnView(toolbarView);
-        mAsserter.ok(waitForText(StringHelper.CONTEXT_MENU_ITEMS_IN_URL_BAR[2]), "Waiting for the pop-up to open", "Pop up was openend");
+        if (mDevice.version.equals("2.x")) {
+            
+            final View toolbarView = mSolo.getView("browser_toolbar");
+            mSolo.clickLongOnView(toolbarView);
+            mAsserter.ok(waitForText(StringHelper.CONTEXT_MENU_ITEMS_IN_URL_BAR[2]), "Waiting for the pop-up to open", "Pop up was opened");
+        } else {
+            
+            selectMenuItem(StringHelper.PAGE_LABEL);
+            mAsserter.ok(waitForText(StringHelper.CONTEXT_MENU_ITEMS_IN_URL_BAR[2]), "Waiting for the submenu to open", "Submenu was opened");
+        }
         mSolo.clickOnText(StringHelper.CONTEXT_MENU_ITEMS_IN_URL_BAR[2]);
         mAsserter.ok(waitForText(option), "Verify that the option: " + option + " is in the list", "The option is in the list. There are settings to clear");
         mSolo.clickOnButton(button);
