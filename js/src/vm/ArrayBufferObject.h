@@ -132,6 +132,24 @@ class ArrayBufferObject : public JSObject
     static bool saveArrayBufferList(JSCompartment *c, ArrayBufferVector &vector);
     static void restoreArrayBufferLists(ArrayBufferVector &vector);
 
+    bool hasStealableContents() const {
+        
+        if (!hasDynamicElements())
+            return false;
+
+        
+        
+        if (isAsmJSArrayBuffer())
+            return false;
+
+        
+        
+        
+        
+        
+        return !isNeutered();
+    }
+
     static bool stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer, void **contents,
                               uint8_t **data);
 
@@ -179,7 +197,13 @@ class ArrayBufferObject : public JSObject
 
 
 
-    void neuter(JSContext *cx);
+
+
+
+
+
+
+    void neuter(ObjectElements *newHeader, JSContext *cx);
 
     
 

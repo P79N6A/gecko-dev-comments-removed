@@ -473,23 +473,28 @@ ArrayBufferObject::changeContents(JSContext *cx, ObjectElements *newHeader)
 }
 
 void
-ArrayBufferObject::neuter(JSContext *cx)
+ArrayBufferObject::neuter(ObjectElements *newHeader, JSContext *cx)
 {
-    JS_ASSERT(!isSharedArrayBuffer());
+    MOZ_ASSERT(!isSharedArrayBuffer());
 
-    JS_ASSERT(cx);
-    if (hasDynamicElements() && !isAsmJSArrayBuffer()) {
+    if (hasStealableContents()) {
+        MOZ_ASSERT(newHeader);
+
         ObjectElements *oldHeader = getElementsHeader();
-        changeContents(cx, ObjectElements::fromElements(fixedElements()));
+        MOZ_ASSERT(newHeader != oldHeader);
+
+        changeContents(cx, newHeader);
 
         FreeOp fop(cx->runtime(), false);
         fop.free_(oldHeader);
+    } else {
+        elements = newHeader->elements();
     }
 
     uint32_t byteLen = 0;
-    updateElementsHeader(getElementsHeader(), byteLen);
+    updateElementsHeader(newHeader, byteLen);
 
-    getElementsHeader()->setIsNeuteredBuffer();
+    newHeader->setIsNeuteredBuffer();
 }
 
  bool
@@ -756,19 +761,20 @@ ArrayBufferObject::createDataViewForThis(JSContext *cx, unsigned argc, Value *vp
 ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffer, void **contents,
                                  uint8_t **data)
 {
-    
-    
+    uint32_t byteLen = buffer->byteLength();
+
     
     
     ObjectElements *transferableHeader;
-    bool stolen;
-    if (buffer->hasDynamicElements() && !buffer->isAsmJSArrayBuffer()) {
-        stolen = true;
+    ObjectElements *newHeader;
+    bool stolen = buffer->hasStealableContents();
+    if (stolen) {
         transferableHeader = buffer->getElementsHeader();
-    } else {
-        stolen = false;
 
-        uint32_t byteLen = buffer->byteLength();
+        newHeader = AllocateArrayBufferContents(cx, byteLen);
+        if (!newHeader)
+            return false;
+    } else {
         transferableHeader = AllocateArrayBufferContents(cx, byteLen);
         if (!transferableHeader)
             return false;
@@ -776,6 +782,9 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
         initElementsHeader(transferableHeader, byteLen);
         void *headerDataPointer = reinterpret_cast<void*>(transferableHeader->elements());
         memcpy(headerDataPointer, buffer->dataPointer(), byteLen);
+
+        
+        newHeader = buffer->getElementsHeader();
     }
 
     JS_ASSERT(!IsInsideNursery(cx->runtime(), transferableHeader));
@@ -793,7 +802,7 @@ ArrayBufferObject::stealContents(JSContext *cx, Handle<ArrayBufferObject*> buffe
     if (stolen)
         buffer->changeContents(cx, ObjectElements::fromElements(buffer->fixedElements()));
 
-    buffer->neuter(cx);
+    buffer->neuter(newHeader, cx);
     return true;
 }
 
@@ -1270,9 +1279,33 @@ JS_NeuterArrayBuffer(JSContext *cx, HandleObject obj)
     }
 
     Rooted<ArrayBufferObject*> buffer(cx, &obj->as<ArrayBufferObject>());
-    if (!ArrayBufferObject::neuterViews(cx, buffer))
+
+    ObjectElements *newHeader;
+    if (buffer->hasStealableContents()) {
+        
+        
+        
+        
+        
+        newHeader = AllocateArrayBufferContents(cx, buffer->byteLength());
+        if (!newHeader)
+            return false;
+    } else {
+        
+        
+        newHeader = buffer->getElementsHeader();
+    }
+
+    
+    if (!ArrayBufferObject::neuterViews(cx, buffer)) {
+        if (buffer->hasStealableContents()) {
+            FreeOp fop(cx->runtime(), false);
+            fop.free_(newHeader);
+        }
         return false;
-    buffer->neuter(cx);
+    }
+
+    buffer->neuter(newHeader, cx);
     return true;
 }
 
