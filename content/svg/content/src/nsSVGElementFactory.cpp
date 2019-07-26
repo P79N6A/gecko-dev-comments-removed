@@ -215,13 +215,6 @@ nsresult
 NS_NewSVGElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
                  FromParser aFromParser)
 {
-  static const char kSVGStyleSheetURI[] = "resource://gre/res/svg.css";
-
-  
-  nsIDocument *doc = aNodeInfo.get()->GetDocument();
-  if (doc)
-    doc->EnsureCatalogStyleSheet(kSVGStyleSheetURI);
-
   nsIAtom *name = aNodeInfo.get()->NameAtom();
   
   if (name == nsGkAtoms::a)
