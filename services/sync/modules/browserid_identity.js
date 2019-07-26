@@ -478,14 +478,12 @@ BrowserIDClusterManager.prototype = {
     let promiseClusterURL = function() {
       return fxAccounts.getSignedInUser().then(userData => {
         return this.identity._fetchTokenForUser(userData).then(token => {
-          let endpoint = token.endpoint;
           
           
           
-          if (!endpoint.endsWith("/")) {
-            endpoint += "/";
-          }
-          return endpoint;
+          let clusterURI = Services.io.newURI(token.endpoint, null, null);
+          clusterURI.path = "/";
+          return clusterURI.spec;
         });
       });
     }.bind(this);
@@ -499,13 +497,4 @@ BrowserIDClusterManager.prototype = {
     });
     return cb.wait();
   },
-
-  getUserBaseURL: function() {
-    
-    
-    
-    
-    
-    return this.service.clusterURL;
-  }
 }

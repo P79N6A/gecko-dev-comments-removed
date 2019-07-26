@@ -91,21 +91,5 @@ ClusterManager.prototype = {
 
     return true;
   },
-
-  getUserBaseURL: function getUserBaseURL() {
-    
-    
-    
-    
-    
-
-    
-    
-    if (!this.service.clusterURL) {
-      return undefined;
-    }
-    let storageAPI = this.service.clusterURL + SYNC_API_VERSION + "/";
-    return storageAPI + this.identity.username + "/";
-  }
 };
 Object.freeze(ClusterManager.prototype);
