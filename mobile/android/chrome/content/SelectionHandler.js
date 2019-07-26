@@ -305,9 +305,6 @@ var SelectionHandler = {
     this._initTargetInfo(aElement, this.TYPE_SELECTION);
 
     
-    this._contentWindow.getSelection().removeAllRanges();
-
-    
     if (!this._performSelection(aOptions)) {
       this._deactivate();
       return false;
