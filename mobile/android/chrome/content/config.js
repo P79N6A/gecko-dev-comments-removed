@@ -157,6 +157,9 @@ var NewPrefDialog = {
         break;
     }
 
+    
+    Services.prefs.savePrefFile(null);
+
     this.hide();
   },
 
@@ -217,9 +220,6 @@ var AboutConfig = {
   uninit: function AC_uninit() {
     
     Services.prefs.removeObserver("", this);
-
-    
-    Services.prefs.savePrefFile(null);
   },
 
   
@@ -423,6 +423,9 @@ var AboutConfig = {
     
     let pref = this._getPrefForNode(node);
     pref.reset();
+
+    
+    Services.prefs.savePrefFile(null);
   },
 
   
@@ -539,6 +542,9 @@ Pref.prototype = {
       default:
         Services.prefs.setCharPref(this.name, aPrefValue);
     }
+
+    
+    Services.prefs.savePrefFile(null);
   },
 
   get default() {
