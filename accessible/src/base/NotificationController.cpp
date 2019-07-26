@@ -378,21 +378,6 @@ NotificationController::CoalesceEvents()
       }
     } break; 
 
-    case AccEvent::eRemoveDupes:
-    {
-      
-      
-      for (uint32_t index = tail - 1; index < tail; index--) {
-        AccEvent* accEvent = mEvents[index];
-        if (accEvent->mEventType == tailEvent->mEventType &&
-            accEvent->mEventRule == tailEvent->mEventRule &&
-            accEvent->mAccessible == tailEvent->mAccessible) {
-          tailEvent->mEventRule = AccEvent::eDoNotEmit;
-          return;
-        }
-      }
-    } break; 
-
     case AccEvent::eCoalesceSelectionChange:
     {
       AccSelChangeEvent* tailSelChangeEvent = downcast_accEvent(tailEvent);
@@ -410,6 +395,43 @@ NotificationController::CoalesceEvents()
         }
       }
 
+    } break; 
+
+    case AccEvent::eCoalesceStateChange:
+    {
+      
+      
+      
+      for (uint32_t index = tail - 1; index < tail; index--) {
+        AccEvent* thisEvent = mEvents[index];
+        if (thisEvent->mEventRule != AccEvent::eDoNotEmit &&
+            thisEvent->mEventType == tailEvent->mEventType &&
+            thisEvent->mAccessible == tailEvent->mAccessible) {
+          AccStateChangeEvent* thisSCEvent = downcast_accEvent(thisEvent);
+          AccStateChangeEvent* tailSCEvent = downcast_accEvent(tailEvent);
+          if (thisSCEvent->mState == tailSCEvent->mState) {
+            thisEvent->mEventRule = AccEvent::eDoNotEmit;
+            if (thisSCEvent->mIsEnabled != tailSCEvent->mIsEnabled)
+              tailEvent->mEventRule = AccEvent::eDoNotEmit;
+          }
+        }
+      }
+      break; 
+    }
+
+    case AccEvent::eRemoveDupes:
+    {
+      
+      
+      for (uint32_t index = tail - 1; index < tail; index--) {
+        AccEvent* accEvent = mEvents[index];
+        if (accEvent->mEventType == tailEvent->mEventType &&
+          accEvent->mEventRule == tailEvent->mEventRule &&
+          accEvent->mAccessible == tailEvent->mAccessible) {
+          tailEvent->mEventRule = AccEvent::eDoNotEmit;
+          return;
+        }
+      }
     } break; 
 
     default:
