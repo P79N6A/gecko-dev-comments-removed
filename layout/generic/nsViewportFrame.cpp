@@ -250,18 +250,20 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
     
     
-    nscoord width = reflowState.ComputedWidth();
-    nscoord height = reflowState.ComputedHeight();
+    nsRect rect(0, 0, reflowState.ComputedWidth(), reflowState.ComputedHeight());
     if (aPresContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
       nsSize size = aPresContext->PresShell()->
         GetScrollPositionClampingScrollPortSize();
-      width = size.width;
-      height = size.height;
+      rect.width = size.width;
+      rect.height = size.height;
     }
 
     
+    rect.Deflate(aPresContext->PresShell()->GetContentDocumentFixedPositionMargins());
+
+    
     rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
-                                              width, height,
+                                              rect,
                                               false, true, true, 
                                               &aDesiredSize.mOverflowAreas);
   }
