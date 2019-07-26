@@ -161,6 +161,13 @@ class RegExpCode
 
 
 
+
+
+
+
+
+
+
 class RegExpShared
 {
     friend class RegExpCompartment;
@@ -251,8 +258,20 @@ class RegExpCompartment
         }
     };
 
+    
+
+
+
     typedef HashMap<Key, RegExpShared *, Key, RuntimeAllocPolicy> Map;
     Map map_;
+
+    
+
+
+
+
+    typedef HashSet<RegExpShared *, DefaultHasher<RegExpShared*>, RuntimeAllocPolicy> PendingSet;
+    PendingSet inUse_;
 
     bool get(JSContext *cx, JSAtom *key, JSAtom *source, RegExpFlag flags, Type type,
              RegExpGuard *g);

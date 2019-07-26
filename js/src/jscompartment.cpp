@@ -562,6 +562,10 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
 #endif
 
         
+
+
+
+
         regExps.sweep(rt);
     }
 
