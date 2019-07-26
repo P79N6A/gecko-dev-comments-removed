@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 
@@ -11,7 +12,7 @@
 
 
 
-
+loadHelperScript("helper_attributes_test_runner.js");
 
 let TEST_URL = "data:text/html,<div>markup-view attributes addition test</div>";
 let TEST_DATA = [{
