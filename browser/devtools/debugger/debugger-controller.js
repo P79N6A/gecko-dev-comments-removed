@@ -1050,6 +1050,7 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("SourceScripts is disconnecting...");
+    window.clearTimeout(this._newScriptTimeout);
     this.debuggerClient.removeListener("newScript", this._onNewScript);
     this.debuggerClient.removeListener("newGlobal", this._onNewGlobal);
   },
@@ -1062,6 +1063,7 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("Handling tab navigation in the SourceScripts");
+    window.clearTimeout(this._newScriptTimeout);
 
     
     
@@ -1095,7 +1097,8 @@ SourceScripts.prototype = {
     }
     
     else {
-      window.setTimeout(function() {
+      window.clearTimeout(this._newScriptTimeout);
+      this._newScriptTimeout = window.setTimeout(function() {
         
         
         if (!container.selectedValue) {
