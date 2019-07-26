@@ -100,7 +100,15 @@ nsThreadPool::PutEvent(nsIRunnable *event)
   }
   LOG(("THRD-P(%p) put [%p kill=%d]\n", this, thread.get(), killThread));
   if (killThread) {
-    thread->Shutdown();
+    
+    
+    
+    
+    
+
+    nsRefPtr<nsIRunnable> r = NS_NewRunnableMethod(thread,
+                                                   &nsIThread::Shutdown);
+    NS_DispatchToCurrentThread(r);
   } else {
     thread->Dispatch(this, NS_DISPATCH_NORMAL);
   }
