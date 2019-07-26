@@ -276,17 +276,6 @@ public:
 
 
 
-
-  static void GetAPZCAtPoint(const ContainerLayer& aLayerTree,
-                             const ScreenIntPoint& aPoint,
-                             AsyncPanZoomController** aApzcOut,
-                             LayerIntPoint* aRelativePointOut);
-
-  
-
-
-
-
   void UpdateScrollOffset(const CSSPoint& aScrollOffset);
 
   
@@ -649,6 +638,23 @@ public:
 private:
   nsRefPtr<AsyncPanZoomController> mLastChild;
   nsRefPtr<AsyncPanZoomController> mPrevSibling;
+
+  
+
+
+
+public:
+  void SetVisibleRegion(gfxRect rect) { mVisibleRegion = rect; }
+
+  bool VisibleRegionContains(const gfxPoint& aPoint) const {
+    return mVisibleRegion.Contains(aPoint.x, aPoint.y);
+  }
+
+private:
+  
+
+
+  gfxRect mVisibleRegion;
 };
 
 }

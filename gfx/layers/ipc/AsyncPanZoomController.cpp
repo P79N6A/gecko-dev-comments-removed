@@ -1465,55 +1465,6 @@ void AsyncPanZoomController::SendAsyncScrollEvent() {
   controller->SendAsyncScrollDOMEvent(contentRect, scrollableSize);
 }
 
-static void GetAPZCAtPointOnSubtree(const ContainerLayer& aLayerIn,
-                    const gfxPoint& aPoint,
-                    AsyncPanZoomController** aApzcOut,
-                    LayerIntPoint* aRelativePointOut)
-{
-  
-  
-  
-  ContainerLayer& aLayer = const_cast<ContainerLayer&>(aLayerIn);
-  gfx3DMatrix transform = aLayer.GetLocalTransform().Inverse();
-  gfxPoint layerPoint = transform.Transform(aPoint);
-
-  
-  Layer* currLayer = aLayer.GetLastChild();
-  while (currLayer) {
-    if (currLayer->AsContainerLayer()) {
-      GetAPZCAtPointOnSubtree(*currLayer->AsContainerLayer(), layerPoint, aApzcOut, aRelativePointOut);
-    }
-    if (*aApzcOut) {
-        return;
-    }
-    currLayer = currLayer->GetPrevSibling();
-  }
-
-  if (aLayer.GetFrameMetrics().IsScrollable()) {
-    const FrameMetrics& frame = aLayer.GetFrameMetrics();
-    LayerRect layerViewport = frame.mViewport * frame.LayersPixelsPerCSSPixel();
-    bool intersect = layerViewport.Contains(layerPoint.x, layerPoint.y);
-
-    if (intersect) {
-      *aApzcOut = aLayer.GetAsyncPanZoomController();
-      *aRelativePointOut = LayerIntPoint(NS_lround(layerPoint.x), NS_lround(layerPoint.y));
-    }
-  }
-
-}
-
-void AsyncPanZoomController::GetAPZCAtPoint(const ContainerLayer& aLayerTree,
-                    const ScreenIntPoint& aPoint,
-                    AsyncPanZoomController** aApzcOut,
-                    LayerIntPoint* aRelativePointOut)
-{
-  *aApzcOut = nullptr;
-
-  gfxPoint point(aPoint.x, aPoint.y);
-
-  GetAPZCAtPointOnSubtree(aLayerTree, point, aApzcOut, aRelativePointOut);
-}
-
 void AsyncPanZoomController::UpdateScrollOffset(const CSSPoint& aScrollOffset)
 {
   MonitorAutoLock monitor(mMonitor);
