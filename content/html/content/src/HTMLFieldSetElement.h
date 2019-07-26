@@ -3,25 +3,27 @@
 
 
 
-#ifndef nsHTMLFieldSetElement_h___
-#define nsHTMLFieldSetElement_h___
+#ifndef mozilla_dom_HTMLFieldSetElement_h
+#define mozilla_dom_HTMLFieldSetElement_h
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIConstraintValidation.h"
 
+namespace mozilla {
+namespace dom {
 
-class nsHTMLFieldSetElement : public nsGenericHTMLFormElement,
-                              public nsIDOMHTMLFieldSetElement,
-                              public nsIConstraintValidation
+class HTMLFieldSetElement : public nsGenericHTMLFormElement,
+                            public nsIDOMHTMLFieldSetElement,
+                            public nsIConstraintValidation
 {
 public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLFieldSetElement();
+  HTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~HTMLFieldSetElement();
 
-  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(nsHTMLFieldSetElement, fieldset)
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLFieldSetElement, fieldset)
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -66,7 +68,7 @@ public:
     mDependentElements.RemoveElement(aElement);
   }
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLFieldSetElement,
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLFieldSetElement,
                                            nsGenericHTMLFormElement)
 private:
 
@@ -88,6 +90,9 @@ private:
 
   nsIContent* mFirstLegend;
 };
+
+} 
+} 
 
 #endif 
 
