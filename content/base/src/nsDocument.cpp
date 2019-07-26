@@ -2421,14 +2421,11 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   
   
   
-  
-  
-  
-  
-  if (!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) {
-    bool specCompliantEnabled =
-      Preferences::GetBool("security.csp.speccompliant");
+  bool specCompliantEnabled =
+    Preferences::GetBool("security.csp.speccompliant");
 
+  if ((!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) &&
+       !specCompliantEnabled) {
     
     
     if (!specCompliantEnabled) {
@@ -2523,7 +2520,8 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
 
     if (appCSP)
-      csp->RefinePolicy(appCSP, chanURI, true);
+      
+      csp->RefinePolicy(appCSP, chanURI, specCompliantEnabled);
   }
 
   
