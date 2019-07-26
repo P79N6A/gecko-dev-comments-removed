@@ -100,7 +100,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         
         
     case eColorID_WindowBackground:
-        aColor = mSystemColors.colorBackground;
+        aColor = NS_RGB(0xFF, 0xFF, 0xFF);
         break;
     case eColorID_WindowForeground:
         aColor = mSystemColors.textColorPrimary;
