@@ -1602,6 +1602,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
   
   
   bool requestAnimationFrame = false;
+  Vector<Task*> deferredTasks;
 
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
@@ -1616,12 +1617,19 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
               ParentLayerSize(mFrameMetrics.mCompositionBounds.Size()) / mFrameMetrics.GetZoomToParent()));
 
     mCurrentAsyncScrollOffset = mFrameMetrics.GetScrollOffset();
+
+    
+    
+    
+    
+    
+    if (mAnimation) {
+      deferredTasks = mAnimation->TakeDeferredTasks();
+    }
   }
 
-  
-  
-  if (mAnimation) {
-    mAnimation->ExecuteDeferredTasks();
+  for (uint32_t i = 0; i < deferredTasks.length(); ++i) {
+    deferredTasks[i]->Run();
   }
 
   

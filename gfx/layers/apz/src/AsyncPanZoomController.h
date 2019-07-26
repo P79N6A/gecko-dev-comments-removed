@@ -951,11 +951,11 @@ public:
 
 
 
-  void ExecuteDeferredTasks() {
-    for (uint32_t i = 0; i < mDeferredTasks.length(); ++i) {
-      mDeferredTasks[i]->Run();
-    }
-    mDeferredTasks.clear();
+
+  Vector<Task*> TakeDeferredTasks() {
+    Vector<Task*> result;
+    mDeferredTasks.swap(result);
+    return result;
   }
 
   
