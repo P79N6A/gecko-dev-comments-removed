@@ -87,6 +87,9 @@ let RILQUIRKS_EXTRA_UINT32_2ND_CALL = libcutils.property_get("ro.moz.ril.extra_i
 let RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = libcutils.property_get("ro.moz.ril.query_icc_count", "false") == "true";
 
 
+let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = libcutils.property_get("ro.moz.ril.send_stk_profile_dl", "false") == "true";
+
+
 let PENDING_NETWORK_TYPE = {};
 
 let Buf = {
@@ -3014,10 +3017,14 @@ let RIL = {
         ICCRecordHelper.readICCPhase();
         ICCRecordHelper.fetchICCRecords();
       } else if (this.appType == CARD_APPTYPE_USIM) {
-        this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+        if (RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD) {
+          this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+        }
         ICCRecordHelper.fetchICCRecords();
       } else if (this.appType == CARD_APPTYPE_RUIM) {
-        this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+        if (RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD) {
+          this.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
+        }
         RuimRecordHelper.fetchRuimRecords();
       }
       this.reportStkServiceIsRunning();
@@ -11026,7 +11033,8 @@ let ICCRecordHelper = {
       let phase = GsmPDUHelper.readHexOctet();
       
       
-      if (phase >= ICC_PHASE_2_PROFILE_DOWNLOAD_REQUIRED) {
+      if (RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD &&
+          phase >= ICC_PHASE_2_PROFILE_DOWNLOAD_REQUIRED) {
         RIL.sendStkTerminalProfile(STK_SUPPORTED_TERMINAL_PROFILE);
       }
 
