@@ -79,7 +79,7 @@ DocAccessible::
   mVirtualCursor(nullptr),
   mPresShell(aPresShell)
 {
-  mFlags |= eDocAccessible;
+  mGenericTypes |= eDocument;
   mStateFlags |= eNotNodeMapEntry;
 
   MOZ_ASSERT(mPresShell, "should have been given a pres shell");
@@ -92,7 +92,7 @@ DocAccessible::
 
   
   if (mDocumentNode && mDocumentNode->IsXUL())
-    mFlags &= ~eHyperTextAccessible;
+    mGenericTypes &= ~eHyperText;
 
   
   if (!mDocumentNode)
