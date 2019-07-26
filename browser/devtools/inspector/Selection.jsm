@@ -57,6 +57,7 @@ this.EXPORTED_SYMBOLS = ["Selection"];
 
 
 
+
 this.Selection = function Selection(node=null, track={attributes:true,detached:true}) {
   EventEmitter.decorate(this);
   this._onMutations = this._onMutations.bind(this);
@@ -126,6 +127,7 @@ Selection.prototype = {
   setNode: function SN_setNode(value, reason="unknown") {
     this.reason = reason;
     if (value !== this._node) {
+      this.emit("before-new-node", value, reason);
       let previousNode = this._node;
       this._detachEvents();
       this._node = value;

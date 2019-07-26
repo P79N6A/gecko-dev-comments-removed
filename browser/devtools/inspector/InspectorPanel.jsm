@@ -65,6 +65,8 @@ InspectorPanel.prototype = {
     this._selection = new Selection();
     this.onNewSelection = this.onNewSelection.bind(this);
     this.selection.on("new-node", this.onNewSelection);
+    this.onBeforeNewSelection = this.onBeforeNewSelection.bind(this);
+    this.selection.on("before-new-node", this.onBeforeNewSelection);
     this.onDetached = this.onDetached.bind(this);
     this.selection.on("detached", this.onDetached);
 
@@ -322,6 +324,17 @@ InspectorPanel.prototype = {
   
 
 
+  onBeforeNewSelection: function InspectorPanel_onBeforeNewSelection(event,
+                                                                     node) {
+    if (this.breadcrumbs.indexOf(node) == -1) {
+      
+      this.clearPseudoClasses();
+    }
+  },
+
+  
+
+
   onDetached: function InspectorPanel_onDetached(event, parentNode) {
     this.cancelLayoutChange();
     this.breadcrumbs.cutAfter(this.breadcrumbs.indexOf(parentNode));
@@ -367,6 +380,7 @@ InspectorPanel.prototype = {
     this.nodemenu.removeEventListener("popuphiding", this._resetNodeMenu, true);
     this.breadcrumbs.destroy();
     this.selection.off("new-node", this.onNewSelection);
+    this.selection.off("before-new-node", this.onBeforeNewSelection);
     this.selection.off("detached", this.onDetached);
     this._destroyMarkup();
     this._selection.destroy();
@@ -498,6 +512,15 @@ InspectorPanel.prototype = {
       }
     }
     this.selection.emit("pseudoclass");
+  },
+
+  
+
+
+  clearPseudoClasses: function InspectorPanel_clearPseudoClasses() {
+    this.breadcrumbs.nodeHierarchy.forEach(function(crumb) {
+      DOMUtils.clearPseudoClassLocks(crumb.node);
+    });
   },
 
   
