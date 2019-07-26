@@ -48,6 +48,8 @@ protected:
 
   void GetSelection(nsIPresShell *aPresShell, nsISelectionController **aSelCon, 
                     nsISelection **aDomSel);
+  
+  
   bool IsRangeVisible(nsIPresShell *aPresShell, nsPresContext *aPresContext,
                         nsIDOMRange *aRange, bool aMustBeVisible, 
                         bool aGetTopVisibleLeaf, nsIDOMRange **aNewRange,

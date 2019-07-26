@@ -389,8 +389,6 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
           (mStartLinksOnlyPref && aIsLinksOnly && !isStartingLink)) {
         
         
-        returnRange->CloneRange(getter_AddRefs(mStartPointRange));
-
         
         mStartPointRange->Collapse(aFindPrev);
 
@@ -1138,7 +1136,6 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
       (*aFirstVisibleRange)->SelectNode(firstVisibleNode);
       frame->GetOffsets(startFrameOffset, endFrameOffset);
       (*aFirstVisibleRange)->SetStart(firstVisibleNode, startFrameOffset);
-      (*aFirstVisibleRange)->Collapse(true);  
     }
   }
 
