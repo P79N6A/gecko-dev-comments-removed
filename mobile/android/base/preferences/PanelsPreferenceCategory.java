@@ -86,8 +86,10 @@ public class PanelsPreferenceCategory extends CustomListCategory {
 
     private void displayHomeConfig(HomeConfig.State configState) {
         for (PanelConfig panelConfig : configState) {
+            final boolean isRemovable = panelConfig.isDynamic();
+
             
-            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this);
+            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this, isRemovable);
             pref.setTitle(panelConfig.getTitle());
             pref.setKey(panelConfig.getId());
             
