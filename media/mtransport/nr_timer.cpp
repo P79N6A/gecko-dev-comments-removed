@@ -43,7 +43,8 @@ protected:
   void *cb_arg_;
 };
 
-NS_IMPL_ISUPPORTS1(nrappkitTimerCallback, nsITimerCallback)
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nrappkitTimerCallback, nsITimerCallback)
 
 NS_IMETHODIMP nrappkitTimerCallback::Notify(nsITimer *timer) {
   r_log(LOG_GENERIC, LOG_DEBUG, "Timer callback fired");
@@ -79,6 +80,9 @@ int NR_async_timer_set(int timeout, NR_async_cb cb, void *arg, char *func,
 
   if (handle)
     *handle = timer.get();
+  
+  
+  
 
   return 0;
 }
