@@ -1137,14 +1137,14 @@ nsresult HTMLMediaElement::LoadResource()
       ReportLoadError("MediaLoadInvalidURI", params, ArrayLength(params));
       return rv;
     }
+    mMediaSource = source.forget();
     nsRefPtr<MediaSourceDecoder> decoder = new MediaSourceDecoder(this);
-    if (!source->Attach(decoder)) {
+    if (!mMediaSource->Attach(decoder)) {
       
       
       
       return NS_ERROR_FAILURE;
     }
-    mMediaSource = source.forget();
     nsRefPtr<MediaResource> resource = new MediaSourceResource();
     return FinishDecoderSetup(decoder, resource, nullptr, nullptr);
   }
