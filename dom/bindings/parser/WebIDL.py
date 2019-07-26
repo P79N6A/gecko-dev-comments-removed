@@ -779,7 +779,7 @@ class IDLInterface(IDLObjectWithScope):
         return self._callback
 
     def isSingleOperationInterface(self):
-        assert self.isCallback()
+        assert self.isCallback() or self.isJSImplemented()
         return (
             
             not self.parent and
