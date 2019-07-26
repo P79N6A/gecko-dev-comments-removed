@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsAppFileLocationProvider_h
+#define nsAppFileLocationProvider_h
+
 #include "nsIDirectoryService.h"
 #include "nsIFile.h"
 #include "mozilla/Attributes.h"
@@ -45,3 +48,5 @@ protected:
 
    nsCOMPtr<nsIFile> mMozBinDirectory;
 };
+
+#endif

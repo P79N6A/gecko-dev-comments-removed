@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsSample_h
+#define nsSample_h
+
 
 
 
@@ -96,3 +99,5 @@ private:
 
     char* mValue;
 };
+
+#endif

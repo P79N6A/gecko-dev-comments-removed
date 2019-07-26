@@ -4,6 +4,9 @@
 
 
 
+#ifndef nsGZFileWriter_h
+#define nsGZFileWriter_h
+
 #include "nsIGZFileWriter.h"
 #include "zlib.h"
 
@@ -39,3 +42,5 @@ private:
   bool mFinished;
   gzFile mGZFile;
 };
+
+#endif
