@@ -24,6 +24,8 @@
 
 #include "gfxCrashReporterUtils.h"
 
+#include "nsMathUtils.h"
+
 #include "GeckoProfiler.h"
 #include <algorithm>
 
@@ -546,10 +548,10 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
   
   
   
-  IntRect texCoordRect = IntRect(roundf(aTexCoordRect.x * aTexture->GetSize().width),
-                                 roundf(aTexCoordRect.y * aTexture->GetSize().height),
-                                 roundf(aTexCoordRect.width * aTexture->GetSize().width),
-                                 roundf(aTexCoordRect.height * aTexture->GetSize().height));
+  IntRect texCoordRect = IntRect(NS_roundf(aTexCoordRect.x * aTexture->GetSize().width),
+                                 NS_roundf(aTexCoordRect.y * aTexture->GetSize().height),
+                                 NS_roundf(aTexCoordRect.width * aTexture->GetSize().width),
+                                 NS_roundf(aTexCoordRect.height * aTexture->GetSize().height));
 
   
   
