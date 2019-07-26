@@ -116,6 +116,8 @@ DeclMarker(TypeObject, types::TypeObject)
 #undef DeclMarker
 
 
+
+
 JS_ALWAYS_INLINE bool
 IsNullTaggedPointer(void *p)
 {
@@ -366,7 +368,7 @@ ToMarkable(const Value &v)
 {
     if (v.isMarkable())
         return (Cell *)v.toGCThing();
-    return NULL;
+    return nullptr;
 }
 
 inline Cell *

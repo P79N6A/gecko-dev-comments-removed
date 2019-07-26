@@ -126,7 +126,7 @@ JS_PUBLIC_API(void)
 JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc, void *thing,
                      JSGCTraceKind kind, bool details)
 {
-    const char *name = NULL; 
+    const char *name = nullptr; 
     size_t n;
 
     if (bufsize == 0)

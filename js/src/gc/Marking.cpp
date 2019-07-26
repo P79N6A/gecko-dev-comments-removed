@@ -25,9 +25,9 @@ using namespace js::gc;
 
 using mozilla::DebugOnly;
 
-void * const js::NullPtr::constNullValue = NULL;
+void * const js::NullPtr::constNullValue = nullptr;
 
-JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = NULL;
+JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = nullptr;
 
 
 
@@ -194,8 +194,8 @@ MarkInternal(JSTracer *trc, T **thingp)
         JS_UNSET_TRACING_LOCATION(trc);
     }
 
-    trc->debugPrinter = NULL;
-    trc->debugPrintArg = NULL;
+    trc->debugPrinter = nullptr;
+    trc->debugPrintArg = nullptr;
 }
 
 #define JS_ROOT_MARKING_ASSERT(trc)                                     \
@@ -964,7 +964,7 @@ ScanRope(GCMarker *gcmarker, JSRope *rope)
         JS_DIAGNOSTICS_ASSERT(rope->JSString::isRope());
         JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, rope);
         JS_ASSERT(rope->isMarked());
-        JSRope *next = NULL;
+        JSRope *next = nullptr;
 
         JSString *right = rope->rightChild();
         if (right->markIfUnmarked()) {
@@ -1113,7 +1113,7 @@ MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent
 void
 gc::MarkCycleCollectorChildren(JSTracer *trc, Shape *shape)
 {
-    JSObject *prevParent = NULL;
+    JSObject *prevParent = nullptr;
     do {
         MarkCycleCollectorChildren(trc, shape->base(), &prevParent);
         MarkId(trc, &shape->propidRef(), "propid");
@@ -1611,14 +1611,14 @@ struct UnmarkGrayTracer : public JSTracer
 
 
     UnmarkGrayTracer(JSRuntime *rt)
-      : tracingShape(false), previousShape(NULL), unmarkedAny(false)
+      : tracingShape(false), previousShape(nullptr), unmarkedAny(false)
     {
         JS_TracerInit(this, rt, UnmarkGrayChildren);
         eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
     }
 
     UnmarkGrayTracer(JSTracer *trc, bool tracingShape)
-      : tracingShape(tracingShape), previousShape(NULL), unmarkedAny(false)
+      : tracingShape(tracingShape), previousShape(nullptr), unmarkedAny(false)
     {
         JS_TracerInit(this, trc->runtime, UnmarkGrayChildren);
         eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
@@ -1713,7 +1713,7 @@ UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
         JS_ASSERT(!JS::GCThingIsMarkedGray(thing));
         JS_TraceChildren(&childTracer, thing, JSTRACE_SHAPE);
         thing = childTracer.previousShape;
-        childTracer.previousShape = NULL;
+        childTracer.previousShape = nullptr;
     } while (thing);
     tracer->unmarkedAny |= childTracer.unmarkedAny;
 }

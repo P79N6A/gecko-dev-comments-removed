@@ -41,7 +41,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
 
     
     if (alignment == rt->gcSystemAllocGranularity) {
-        return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     }
 
     
@@ -50,7 +50,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
 
 
 
-    void *p = NULL;
+    void *p = nullptr;
     while (!p) {
         
 
@@ -60,9 +60,9 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
 
 
 
-        p = VirtualAlloc(NULL, size * 2, MEM_RESERVE, PAGE_READWRITE);
+        p = VirtualAlloc(nullptr, size * 2, MEM_RESERVE, PAGE_READWRITE);
         if (!p)
-            return NULL;
+            return nullptr;
         void *chunkStart = (void *)(uintptr_t(p) + (alignment - (uintptr_t(p) % alignment)));
         UnmapPages(rt, p, size * 2);
         p = VirtualAlloc(chunkStart, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -146,7 +146,7 @@ static void *
 MapAlignedPagesRecursively(JSRuntime *rt, size_t size, size_t alignment, int& recursions)
 {
     if (++recursions >= OS2_MAX_RECURSIONS)
-        return NULL;
+        return nullptr;
 
     void *tmp;
     if (DosAllocMem(&tmp, size,
@@ -267,7 +267,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
 
     void *p = mmap((caddr_t)alignment, size, prot, flags, -1, 0);
     if (p == MAP_FAILED)
-        return NULL;
+        return nullptr;
     return p;
 }
 
@@ -339,7 +339,7 @@ MapMemory(size_t length, int prot, int flags, int fd, off_t offset)
     }
     return region;
 #else
-    return mmap(NULL, length, prot, flags, fd, offset);
+    return mmap(nullptr, length, prot, flags, fd, offset);
 #endif
 }
 
@@ -358,7 +358,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
     if (alignment == rt->gcSystemAllocGranularity) {
         void *region = MapMemory(size, prot, flags, -1, 0);
         if (region == MAP_FAILED)
-            return NULL;
+            return nullptr;
         return region;
     }
 
@@ -366,7 +366,7 @@ gc::MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment)
     size_t reqSize = Min(size + 2 * alignment, 2 * size);
     void *region = MapMemory(reqSize, prot, flags, -1, 0);
     if (region == MAP_FAILED)
-        return NULL;
+        return nullptr;
 
     uintptr_t regionEnd = uintptr_t(region) + reqSize;
     uintptr_t offset = uintptr_t(region) % alignment;
