@@ -1056,7 +1056,7 @@ private:
       mIsText(false), mIsGeneratedContent(false),
       mIsRootPopupgroup(false), mIsAllInline(false), mIsBlock(false),
       mHasInlineEnds(false), mIsPopup(false),
-      mIsLineParticipant(false)
+      mIsLineParticipant(false), mIsForSVGAElement(false)
     {}
     ~FrameConstructionItem() {
       if (mIsGeneratedContent) {
@@ -1134,6 +1134,8 @@ private:
     bool mIsPopup;
     
     bool mIsLineParticipant;
+    
+    bool mIsForSVGAElement;
 
     
     FrameConstructionItemList mChildItems;
@@ -1284,6 +1286,10 @@ private:
   
 #define ITEM_IS_GENERATED_CONTENT 0x4
   
+#define ITEM_IS_WITHIN_SVG_TEXT 0x8
+  
+#define ITEM_ALLOWS_TEXT_PATH_CHILD 0x10
+  
   
   
   void AddFrameConstructionItemsInternal(nsFrameConstructorState& aState,
@@ -1392,6 +1398,8 @@ private:
                                                   nsIAtom* aTag,
                                                   int32_t aNameSpaceID,
                                                   nsIFrame* aParentFrame,
+                                                  bool aIsWithinSVGText,
+                                                  bool aAllowsTextPathChild,
                                                   nsStyleContext* aStyleContext);
 
   
@@ -1645,7 +1653,9 @@ private:
 
 
   void BuildInlineChildItems(nsFrameConstructorState& aState,
-                             FrameConstructionItem& aParentItem);
+                             FrameConstructionItem& aParentItem,
+                             bool aItemIsWithinSVGText,
+                             bool aItemAllowsTextPathChild);
 
   
   
