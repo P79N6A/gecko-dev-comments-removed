@@ -67,6 +67,8 @@ function sendShutdownEvent() {
   }
 }
 
+exports.sendShutdownEvent = sendShutdownEvent;
+
 
 
 
@@ -668,12 +670,6 @@ TabActor.prototype = {
       return;
     }
 
-    
-    
-    if (this._attached) {
-      this.threadActor._tabClosed = true;
-    }
-
     if (this._detach()) {
       this.conn.send({ from: this.actorID,
                        type: "tabDetached" });
@@ -1155,6 +1151,8 @@ BrowserTabActor.prototype.exit = function() {
   this._tabbrowser = null;
 };
 
+exports.BrowserTabActor = BrowserTabActor;
+
 
 
 
@@ -1230,6 +1228,8 @@ BrowserAddonList.prototype.onUninstalled = function (aAddon) {
   this._actorByAddonId.delete(aAddon.id);
   this._onListChanged();
 };
+
+exports.BrowserAddonList = BrowserAddonList;
 
 function BrowserAddonActor(aConnection, aAddon) {
   this.conn = aConnection;
