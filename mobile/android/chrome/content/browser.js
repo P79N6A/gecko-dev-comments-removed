@@ -1918,8 +1918,7 @@ var NativeWindow = {
   },
   contextmenus: {
     items: {}, 
-    _nativeItemsSeparator: 0, 
-    _contextId: 0, 
+    DEFAULT_HTML5_ORDER: -1, 
 
     init: function() {
       Services.obs.addObserver(this, "Gesture:LongPress", false);
@@ -1929,27 +1928,26 @@ var NativeWindow = {
       Services.obs.removeObserver(this, "Gesture:LongPress");
     },
 
-    add: function(aName, aSelector, aCallback) {
-      if (!aName)
+    add: function() {
+      let args;
+      if (arguments.length == 1) {
+        args = arguments[0];
+      } else if (arguments.length == 3) {
+        args = {
+          label : arguments[0],
+          selector: arguments[1],
+          callback: arguments[2]
+        };
+      } else {
+        throw "Incorrect number of parameters";
+      }
+
+      if (!args.label)
         throw "Menu items must have a name";
 
-      let item = {
-        name: aName,
-        context: aSelector,
-        callback: aCallback,
-        matches: function(aElt, aX, aY) {
-          return this.context.matches(aElt, aX, aY);
-        },
-        getValue: function(aElt) {
-          return {
-            label: (typeof this.name == "function") ? this.name(aElt) : this.name,
-            id: this.id
-          }
-        }
-      };
-      item.id = this._contextId++;
-      this.items[item.id] = item;
-      return item.id;
+      let cmItem = new ContextMenuItem(args);
+      this.items[cmItem.id] = cmItem;
+      return cmItem.id;
     },
 
     remove: function(aId) {
@@ -2114,127 +2112,126 @@ var NativeWindow = {
       else this._targetRef = null;
     },
 
-    _addHTMLContextMenuItems: function cm_addContextMenuItems(aMenu, aParent) {
-      for (let i = 0; i < aMenu.childNodes.length; i++) {
-        let item = aMenu.childNodes[i];
-        if (!item.label)
+    _addHTMLContextMenuItemsForElement: function(element) {
+      let htmlMenu = element.contextMenu;
+      if (!htmlMenu)
+        return;
+
+      htmlMenu.QueryInterface(Components.interfaces.nsIHTMLMenu);
+      htmlMenu.sendShowEvent();
+
+      this._addHTMLContextMenuItemsForMenu(htmlMenu, element);
+    },
+
+    _addHTMLContextMenuItemsForMenu: function(menu, target) {
+      for (let i = 0; i < menu.childNodes.length; i++) {
+        let elt = menu.childNodes[i];
+        if (!elt.label)
           continue;
 
-        let id = this._contextId++;
-        let menuitem = {
-          id: id,
-          isGroup: false,
-          callback: (function(aTarget, aX, aY) {
-            
-            if (item instanceof Ci.nsIDOMHTMLMenuElement) {
-              this.menuitems = [];
-              this._nativeItemsSeparator = 0;
-
-              this._addHTMLContextMenuItems(item, id);
-              this._innerShow(aTarget, aX, aY);
-            } else {
-              
-              item.click();
-            }
-          }).bind(this),
-
-          getValue: function(aElt) {
-            if (item.hasAttribute("hidden"))
-              return null;
-
-            return {
-              icon: item.icon,
-              label: item.label,
-              id: id,
-              disabled: item.disabled,
-              parent: item instanceof Ci.nsIDOMHTMLMenuElement
-            }
-          }
-        };
-
-        this.menuitems.splice(this._nativeItemsSeparator, 0, menuitem);
-        this._nativeItemsSeparator++;
+        this.menuitems.push(new HTMLContextMenuItem(elt, target));
       }
     },
 
-    _getMenuItemForId: function(aId) {
+    _containsItem: function(aId) {
       if (!this.menuitems)
         return null;
 
-      for (let i = 0; i < this.menuitems.length; i++) {
-        if (this.menuitems[i].id == aId)
-          return this.menuitems[i];
+      let menu = this.menuitems;
+      for (let i = 0; i < menu.length; i++) {
+        if (menu[i].id == aId)
+          return menu[i];
       }
+
       return null;
+    },
+
+    shouldShow: function() {
+      return this.menuitems.length > 0;
+    },
+
+    _addNativeContextMenuItems: function(element, x, y) {
+      for (let itemId of Object.keys(this.items)) {
+        let item = this.items[itemId];
+
+        if (!this._containsItem(item.id) && item.matches(element, x, y)) {
+          this.menuitems.push(item);
+        }
+      }
     },
 
     
     
     
-    _sendToContent: function(aX, aY) {
-      
-      
-      
-      let target = BrowserEventHandler._highlightElement || ElementTouchHelper.elementFromPoint(aX, aY);
+    _sendToContent: function(x, y) {
+      let target = BrowserEventHandler._highlightElement || ElementTouchHelper.elementFromPoint(x, y);
       if (!target)
-        target = ElementTouchHelper.anyElementFromPoint(aX, aY);
+        target = ElementTouchHelper.anyElementFromPoint(x, y);
 
       if (!target)
         return;
 
-      
       this._target = target;
 
-      this.menuitems = [];
-      let menuitemsSet = false;
-
       Services.obs.notifyObservers(null, "before-build-contextmenu", "");
+      this._buildMenu(x, y);
 
       
-      let element = target;
-      this._nativeItemsSeparator = 0;
-      while (element) {
-        
-        let contextmenu = element.contextMenu;
-        if (contextmenu) {
-          
-          contextmenu.QueryInterface(Components.interfaces.nsIHTMLMenu);
-          contextmenu.sendShowEvent();
-          this._addHTMLContextMenuItems(contextmenu, null);
-        }
-
-        
-        for (let itemId of Object.keys(this.items)) {
-          let item = this.items[itemId];
-          if (!this._getMenuItemForId(item.id) && item.matches(element, aX, aY)) {
-            this.menuitems.push(item);
-          }
-        }
-
-        element = element.parentNode;
-      }
-
-      
-      if (this.menuitems.length > 0) {
+      if (this.shouldShow()) {
         let event = target.ownerDocument.createEvent("MouseEvent");
-        event.initMouseEvent("contextmenu", true, true, content,
-                             0, aX, aY, aX, aY, false, false, false, false,
+        event.initMouseEvent("contextmenu", true, true, target.defaultView,
+                             0, x, y, x, y, false, false, false, false,
                              0, null);
         target.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
         target.dispatchEvent(event);
       } else {
-        this._target = null;
-        BrowserEventHandler._cancelTapHighlight();
+        this.menuitems = null;
+        Services.obs.notifyObservers({target: target, x: x, y: y}, "context-menu-not-shown", "");
 
         if (SelectionHandler.canSelect(target)) {
           if (!SelectionHandler.startSelection(target, {
-              mode: SelectionHandler.SELECT_AT_POINT,
-              x: aX,
-              y: aY
-            })) {
+            mode: SelectionHandler.SELECT_AT_POINT,
+            x: x,
+            y: y
+          })) { 
             SelectionHandler.attachCaret(target);
           }
         }
+      }
+    },
+
+    _getTitle: function(node) {
+      if (node.hasAttribute && node.hasAttribute("title")) {
+        return node.getAttribute("title");
+      }
+      return this._getUrl(node);
+    },
+
+    _getUrl: function(node) {
+      if ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
+                 (node instanceof Ci.nsIDOMHTMLAreaElement && node.href)) {
+        return this._getLinkURL(node);
+      } else if (node instanceof Ci.nsIImageLoadingContent && node.currentURI) {
+        return node.currentURI.spec;
+      } else if (node instanceof Ci.nsIDOMHTMLMediaElement) {
+        return (node.currentSrc || node.src);
+      }
+      return "";
+    },
+
+    _buildMenu: function(x, y) {
+      
+      let element = this._target;
+      this.menuitems = [];
+
+      while (element) {
+        
+        this._addHTMLContextMenuItemsForElement(element);
+        
+        this._addNativeContextMenuItems(element, x, y);
+
+        
+        element = element.parentNode;
       }
     },
 
@@ -2249,69 +2246,83 @@ var NativeWindow = {
       this._innerShow(popupNode, aEvent.clientX, aEvent.clientY);
     },
 
-    _innerShow: function(aTarget, aX, aY) {
+    _findTitle: function(node) {
+      let title = "";
+      while(node && !title) {
+        title = this._getTitle(node);
+        node = node.parentNode;
+      }
+      return title;
+    },
+
+    _getItems: function(target) {
+      return this._getItemsInList(target, this.menuitems);
+    },
+
+    _getItemsInList: function(target, list) {
+      let itemArray = [];
+      for (let i = 0; i < list.length; i++) {
+        let t = target;
+        while(t) {
+          if (list[i].matches(t)) {
+            let val = list[i].getValue(t);
+
+            
+            if (val) {
+              itemArray.push(val);
+              break;
+            }
+          }
+
+          t = t.parentNode;
+        }
+      }
+      return itemArray;
+    },
+
+    _innerShow: function(target, x, y) {
       Haptic.performSimpleAction(Haptic.LongPress);
 
       
-      let node = aTarget;
-      let title ="";
-      while(node && !title) {
-        if (node.hasAttribute && node.hasAttribute("title")) {
-          title = node.getAttribute("title");
-        } else if ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
-                (node instanceof Ci.nsIDOMHTMLAreaElement && node.href)) {
-          title = this._getLinkURL(node);
-        } else if (node instanceof Ci.nsIImageLoadingContent && node.currentURI) {
-          title = node.currentURI.spec;
-        } else if (node instanceof Ci.nsIDOMHTMLMediaElement) {
-          title = (node.currentSrc || node.src);
-        }
-        node = node.parentNode;
+      let title = this._findTitle(target);
+
+      this.menuitems.sort((a,b) => {
+        if (a.order == b.order) return 0;
+        return (a.order > b.order) ? 1 : -1;
+      });
+
+      let prompt = new Prompt({
+        window: target.ownerDocument.defaultView,
+        title: title
+      });
+
+      let items = this._getItems(target);
+      prompt.setSingleChoiceItems(items);
+      prompt.show(this._promptDone.bind(this, target, x, y, items));
+    },
+
+    _promptDone: function(target, x, y, items, data) {
+      if (data.button == -1) {
+        
+        return;
+      }
+
+      let selectedItemId = items[data.list[0]].id;
+      let selectedItem = this._containsItem(selectedItemId);
+      this.menuitems = null;
+
+      if (!selectedItem || !selectedItem.matches || !selectedItem.callback) {
+        return;
       }
 
       
-      let itemArray = [];
-      for (let i = 0; i < this.menuitems.length; i++) {
-        let val = this.menuitems[i].getValue(aTarget);
-
-        
-        if (val)
-          itemArray.push(val);
+      while (target) {
+        if (selectedItem.matches(target, x, y)) {
+          selectedItem.callback(target, x, y);
+          break;
+        }
+        target = target.parentNode;
       }
-
-      if (itemArray.length == 0)
-        return;
-
-      let prompt = new Prompt({
-        window: aTarget.ownerDocument.defaultView,
-        title: title
-      }).setSingleChoiceItems(itemArray)
-      .show((function(data) {
-        if (data.button == -1) {
-          
-          return;
-        }
-
-        let selectedId = itemArray[data.button].id;
-        let selectedItem = this._getMenuItemForId(selectedId);
-
-        this.menuitems = null;
-        if (selectedItem && selectedItem.callback) {
-          if (selectedItem.matches) {
-            
-            while (aTarget) {
-              if (selectedItem.matches(aTarget, aX, aY)) {
-                selectedItem.callback.call(selectedItem, aTarget, aX, aY);
-                break;
-              }
-              aTarget = aTarget.parentNode;
-            }
-          } else {
-            
-            selectedItem.callback.call(selectedItem, aTarget, aX, aY);
-          }
-        }
-      }).bind(this));
     },
 
     handleEvent: function(aEvent) {
@@ -2343,7 +2354,7 @@ var NativeWindow = {
           aElement instanceof Ci.nsIDOMHTMLLinkElement ||
           aElement.getAttributeNS(kXLinkNamespace, "type") == "simple")) {
         try {
-          let url = NativeWindow.contextmenus._getLinkURL(aElement);
+          let url = this._getLinkURL(aElement);
           return Services.io.newURI(url, null, null);
         } catch (e) {}
       }
@@ -8264,3 +8275,108 @@ var Tabs = {
     }
   },
 };
+
+function ContextMenuItem(args) {
+  this.id = uuidgen.generateUUID().toString();
+  this.args = args;
+}
+
+ContextMenuItem.prototype = {
+  get order() {
+    return this.args.order || 0;
+  },
+
+  matches: function(elt, x, y) {
+    return this.args.selector.matches(elt, x, y);
+  },
+
+  callback: function(elt) {
+    this.args.callback(elt);
+  },
+
+  addVal: function(name, elt, defaultValue) {
+    if (!(name in this.args))
+      return defaultValue;
+
+    if (typeof this.args[name] == "function")
+      return this.args[name](elt);
+
+    return this.args[name];
+  },
+
+  getValue: function(elt) {
+    return {
+      id: this.id,
+      label: this.addVal("label", elt),
+      shareData: this.addVal("shareData", elt),
+      icon: this.addVal("icon", elt),
+      isGroup: this.addVal("isGroup", elt, false),
+      inGroup: this.addVal("inGroup", elt, false),
+      disabled: this.addVal("disabled", elt, false),
+      selected: this.addVal("selected", elt, false),
+      isParent: this.addVal("isParent", elt, false),
+    };
+  }
+}
+
+function HTMLContextMenuItem(elt, target) {
+  ContextMenuItem.call(this, { });
+
+  this.menuElementRef = Cu.getWeakReference(elt);
+  this.targetElementRef = Cu.getWeakReference(target);
+}
+
+HTMLContextMenuItem.prototype = Object.create(ContextMenuItem.prototype, {
+  order: {
+    value: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER
+  },
+
+  matches: {
+    value: function(target) {
+      let t = this.targetElementRef.get();
+      return t === target;
+    },
+  },
+
+  callback: {
+    value: function(target) {
+      let elt = this.menuElementRef.get();
+      if (!elt) {
+        return;
+      }
+
+      
+      if (elt instanceof Ci.nsIDOMHTMLMenuElement) {
+        try {
+          NativeWindow.contextmenus.menuitems = [];
+          NativeWindow.contextmenus._addHTMLContextMenuItemsForMenu(elt, target);
+          NativeWindow.contextmenus._innerShow(target);
+        } catch(ex) {
+          Cu.reportError(ex);
+        }
+      } else {
+        
+        elt.click();
+      }
+    },
+  },
+
+  getValue: {
+    value: function(target) {
+      let elt = this.menuElementRef.get();
+      if (!elt)
+        return null;
+
+      if (elt.hasAttribute("hidden"))
+        return null;
+
+      return {
+        id: this.id,
+        icon: elt.icon,
+        label: elt.label,
+        disabled: elt.disabled,
+        menu: elt instanceof Ci.nsIDOMHTMLMenuElement
+      };
+    }
+  },
+});
