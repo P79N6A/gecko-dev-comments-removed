@@ -79,7 +79,15 @@ NetworkStatsDB.prototype = {
         
         
         
-        db.deleteObjectStore(DEPRECATED_STORE_NAME);
+
+        
+        
+        let stores = db.objectStoreNames;
+        if(stores.contains("net_stats_v2")) {
+          db.deleteObjectStore("net_stats_v2");
+        } else {
+          db.deleteObjectStore(STATS_STORE_NAME);
+        }
 
         objectStore = db.createObjectStore(DEPRECATED_STORE_NAME, { keyPath: ["appId", "network", "timestamp"] });
         objectStore.createIndex("appId", "appId", { unique: false });
