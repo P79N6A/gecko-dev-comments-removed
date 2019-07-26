@@ -13,8 +13,6 @@
 
 
 
-
-
 function test1(index, a) {
   if (index < 0)
     index = -index
