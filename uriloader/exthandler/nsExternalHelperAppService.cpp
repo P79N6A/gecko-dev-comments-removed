@@ -127,9 +127,6 @@ using namespace mozilla;
 using namespace mozilla::ipc;
 
 
-#define BUFFERED_OUTPUT_SIZE (1024 * 32)
-
-
 #define NS_PREF_DOWNLOAD_DIR        "browser.download.dir"
 #define NS_PREF_DOWNLOAD_FOLDERLIST "browser.download.folderList"
 enum {
