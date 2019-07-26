@@ -354,13 +354,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    void FirePluginError(FallbackType aFallbackType);
-
-    
-
-
-
-
 
 
 

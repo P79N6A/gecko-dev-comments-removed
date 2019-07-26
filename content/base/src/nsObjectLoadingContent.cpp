@@ -165,59 +165,25 @@ InDocCheckEvent::Run()
 
 
 
-class nsPluginErrorEvent : public nsRunnable {
+class nsPluginOutdatedEvent : public nsRunnable {
 public:
-  nsPluginErrorEvent(nsIContent* aContent,
-                     nsObjectLoadingContent::FallbackType aFallbackType)
-    : mContent(aContent),
-      mFallbackType(aFallbackType) {}
+  nsPluginOutdatedEvent(nsIContent* aContent) : mContent(aContent) {}
 
-  ~nsPluginErrorEvent() {}
+  ~nsPluginOutdatedEvent() {}
 
   NS_IMETHOD Run();
 
 private:
   nsCOMPtr<nsIContent> mContent;
-  nsObjectLoadingContent::FallbackType mFallbackType;
 };
 
 NS_IMETHODIMP
-nsPluginErrorEvent::Run()
+nsPluginOutdatedEvent::Run()
 {
-  nsString type;
-  switch (mFallbackType) {
-    case nsObjectLoadingContent::eFallbackVulnerableUpdatable:
-      type = NS_LITERAL_STRING("PluginVulnerableUpdatable");
-      break;
-    case nsObjectLoadingContent::eFallbackVulnerableNoUpdate:
-      type = NS_LITERAL_STRING("PluginVulnerableNoUpdate");
-      break;
-    case nsObjectLoadingContent::eFallbackClickToPlay:
-      type = NS_LITERAL_STRING("PluginClickToPlay");
-      break;
-    case nsObjectLoadingContent::eFallbackPlayPreview:
-      type = NS_LITERAL_STRING("PluginPlayPreview");
-      break;
-    case nsObjectLoadingContent::eFallbackUnsupported:
-      type = NS_LITERAL_STRING("PluginNotFound");
-      break;
-    case nsObjectLoadingContent::eFallbackDisabled:
-      type = NS_LITERAL_STRING("PluginDisabled");
-      break;
-    case nsObjectLoadingContent::eFallbackBlocklisted:
-      type = NS_LITERAL_STRING("PluginBlocklisted");
-      break;
-    case nsObjectLoadingContent::eFallbackOutdated:
-      type = NS_LITERAL_STRING("PluginOutdated");
-      break;
-    default:
-      return NS_OK;
-  }
-  LOG(("OBJLC [%p]: nsPluginErrorEvent firing '%s'",
-       mContent.get(), NS_ConvertUTF16toUTF8(type).get()));
+  LOG(("OBJLC [%p]: nsPluginOutdatedEvent firing", mContent.get()));
   nsContentUtils::DispatchTrustedEvent(mContent->GetDocument(), mContent,
-                                       type, true, true);
-
+                                       NS_LITERAL_STRING("PluginOutdated"),
+                                       true, true);
   return NS_OK;
 }
 
@@ -780,8 +746,16 @@ nsObjectLoadingContent::InstantiatePluginInstance()
       uint32_t blockState = nsIBlocklistService::STATE_NOT_BLOCKED;
       blocklist->GetPluginBlocklistState(pluginTag, EmptyString(),
                                          EmptyString(), &blockState);
-      if (blockState == nsIBlocklistService::STATE_OUTDATED)
-        FirePluginError(eFallbackOutdated);
+      if (blockState == nsIBlocklistService::STATE_OUTDATED) {
+        
+        LOG(("OBJLC [%p]: Dispatching nsPluginOutdatedEvent for content %p\n",
+             this));
+        nsCOMPtr<nsIRunnable> ev = new nsPluginOutdatedEvent(thisContent);
+        nsresult rv = NS_DispatchToCurrentThread(ev);
+        if (NS_FAILED(rv)) {
+          NS_WARNING("failed to dispatch nsPluginOutdatedEvent");
+        }
+      }
     }
   }
 
@@ -1862,14 +1836,6 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   
   NotifyStateChanged(oldType, oldState, false, aNotify);
-  
-  if (mType == eType_Null && !mContentType.IsEmpty() &&
-      mFallbackType != eFallbackAlternate) {
-    
-    
-    
-    FirePluginError(mFallbackType);
-  }
 
   
   
@@ -2101,23 +2067,6 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
     if (shell) {
       shell->RecreateFramesFor(thisContent);
     }
-  }
-}
-
-void
-nsObjectLoadingContent::FirePluginError(FallbackType aFallbackType)
-{
-  nsCOMPtr<nsIContent> thisContent = 
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  NS_ASSERTION(thisContent, "must be a content");
-
-  LOG(("OBJLC [%p]: Dispatching nsPluginErrorEvent for content %p\n",
-       this));
-
-  nsCOMPtr<nsIRunnable> ev = new nsPluginErrorEvent(thisContent, aFallbackType);
-  nsresult rv = NS_DispatchToCurrentThread(ev);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("failed to dispatch nsPluginErrorEvent");
   }
 }
 
@@ -2355,21 +2304,11 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
   mFallbackType = aType;
 
   
-  
-  
   if (!aNotify) {
     return; 
   }
 
   NotifyStateChanged(oldType, oldState, false, true);
-
-  if (mFallbackType != eFallbackCrashed &&
-      mFallbackType != eFallbackAlternate)
-  {
-    
-    
-    FirePluginError(mFallbackType);
-  }
 }
 
 void
