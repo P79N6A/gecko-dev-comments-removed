@@ -10,14 +10,18 @@ this.EXPORTED_SYMBOLS = [
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
                                   "resource://gre/modules/AsyncShutdown.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Log",
+                                  "resource://gre/modules/Log.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils",
                                   "resource://services-common/utils.js");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
@@ -30,6 +34,70 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 let connectionCounters = new Map();
 
+
+
+
+let isClosed = false;
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
+  let Barriers = {
+    
+
+
+
+
+
+    shutdown: new AsyncShutdown.Barrier("Sqlite.jsm: wait until all clients have completed their task"),
+
+    
+
+
+
+
+    connections: new AsyncShutdown.Barrier("Sqlite.jsm: wait until all connections are closed"),
+  };
+
+  
+
+
+
+
+
+  AsyncShutdown.profileBeforeChange.addBlocker("Sqlite.jsm shutdown blocker",
+    Task.async(function* () {
+      yield Barriers.shutdown.wait();
+      
+      
+      
+
+      
+      isClosed = true;
+
+      
+      yield Barriers.connections.wait();
+    }),
+
+    function status() {
+      if (isClosed) {
+        
+        
+        return { description: "Waiting for connections to close",
+                 status: Barriers.connections.status };
+      }
+
+      
+      
+      
+      return { description: "Waiting for the barrier to be lifted",
+               status: Barriers.shutdown.status };
+  });
+
+  return Barriers;
+});
 
 
 
@@ -71,6 +139,11 @@ function openConnection(options) {
   if (!options.path) {
     throw new Error("path not specified in connection options.");
   }
+
+  if (isClosed) {
+    throw new Error("Sqlite.jsm has been shutdown. Cannot open connection to: " + options.path);
+  }
+
 
   
   let path = OS.Path.join(OS.Constants.Path.profileDir, options.path);
@@ -161,7 +234,11 @@ function cloneStorageConnection(options) {
     throw new TypeError("connection not specified in clone options.");
   }
   if (!source instanceof Ci.mozIStorageAsyncConnection) {
-    throw new TypeError("Connection must be a valid Storage connection.")
+    throw new TypeError("Connection must be a valid Storage connection.");
+  }
+
+  if (isClosed) {
+    throw new Error("Sqlite.jsm has been shutdown. Cannot close connection to: " + source.database.path);
   }
 
   let openedOptions = {};
@@ -279,6 +356,13 @@ function OpenedConnection(connection, basename, number, options) {
     
     
   }
+
+  this._deferredClose = Promise.defer();
+
+  Barriers.connections.client.addBlocker(
+    this._connectionIdentifier + ": waiting for shutdown",
+    this._deferredClose.promise
+  );
 }
 
 OpenedConnection.prototype = Object.freeze({
@@ -333,27 +417,22 @@ OpenedConnection.prototype = Object.freeze({
 
 
 
+
   close: function () {
     if (!this._connection) {
-      return Promise.resolve();
+      return this._deferredClose.promise;
     }
 
     this._log.debug("Request to close connection.");
     this._clearIdleShrinkTimer();
-    let deferred = Promise.defer();
-
-    AsyncShutdown.profileBeforeChange.addBlocker(
-      "Sqlite.jsm: " + this._connectionIdentifier,
-      deferred.promise
-    );
 
     
     
     
     
     if (!this._inProgressTransaction) {
-      this._finalize(deferred);
-      return deferred.promise;
+      this._finalize(this._deferredClose);
+      return this._deferredClose.promise;
     }
 
     
@@ -361,13 +440,13 @@ OpenedConnection.prototype = Object.freeze({
     
     this._log.warn("Transaction in progress at time of close. Rolling back.");
 
-    let onRollback = this._finalize.bind(this, deferred);
+    let onRollback = this._finalize.bind(this, this._deferredClose);
 
     this.execute("ROLLBACK TRANSACTION").then(onRollback, onRollback);
     this._inProgressTransaction.reject(new Error("Connection being closed."));
     this._inProgressTransaction = null;
 
-    return deferred.promise;
+    return this._deferredClose.promise;
   },
 
   
@@ -430,6 +509,9 @@ OpenedConnection.prototype = Object.freeze({
       complete: function () {
         this._log.info("Closed");
         this._connection = null;
+        
+        
+        Barriers.connections.client.removeBlocker(deferred.promise);
         deferred.resolve();
       }.bind(this),
     });
@@ -940,5 +1022,14 @@ OpenedConnection.prototype = Object.freeze({
 
 this.Sqlite = {
   openConnection: openConnection,
-  cloneStorageConnection: cloneStorageConnection
+  cloneStorageConnection: cloneStorageConnection,
+  
+
+
+
+
+
+  get shutdown() {
+    return Barriers.shutdown.client;
+  }
 };
