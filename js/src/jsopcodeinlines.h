@@ -13,6 +13,78 @@
 
 namespace js {
 
+static inline unsigned
+GetDefCount(JSScript *script, unsigned offset)
+{
+    JS_ASSERT(offset < script->length);
+    jsbytecode *pc = script->code + offset;
+
+    
+
+
+
+    switch (JSOp(*pc)) {
+      case JSOP_OR:
+      case JSOP_AND:
+        return 1;
+      case JSOP_PICK:
+        
+
+
+
+
+
+        return (pc[1] + 1);
+      default:
+        return StackDefs(script, pc);
+    }
+}
+
+static inline unsigned
+GetUseCount(JSScript *script, unsigned offset)
+{
+    JS_ASSERT(offset < script->length);
+    jsbytecode *pc = script->code + offset;
+
+    if (JSOp(*pc) == JSOP_PICK)
+        return (pc[1] + 1);
+    if (js_CodeSpec[*pc].nuses == -1)
+        return StackUses(script, pc);
+    return js_CodeSpec[*pc].nuses;
+}
+
+static inline bool
+IsJumpOpcode(JSOp op)
+{
+    uint32_t type = JOF_TYPE(js_CodeSpec[op].format);
+
+    
+
+
+
+    return type == JOF_JUMP && op != JSOP_LABEL;
+}
+
+static inline bool
+BytecodeFallsThrough(JSOp op)
+{
+    switch (op) {
+      case JSOP_GOTO:
+      case JSOP_DEFAULT:
+      case JSOP_RETURN:
+      case JSOP_STOP:
+      case JSOP_RETRVAL:
+      case JSOP_THROW:
+      case JSOP_TABLESWITCH:
+        return false;
+      case JSOP_GOSUB:
+        
+        return true;
+      default:
+        return true;
+    }
+}
+
 static inline PropertyName *
 GetNameFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc, JSOp op)
 {

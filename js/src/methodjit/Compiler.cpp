@@ -837,7 +837,7 @@ MakeJITScript(JSContext *cx, JSScript *script)
                     return NULL;
 
                 
-                if (!BytecodeNoFallThrough(op)) {
+                if (BytecodeFallsThrough(op)) {
                     CrossChunkEdge edge;
                     edge.source = offset;
                     edge.target = nextOffset;

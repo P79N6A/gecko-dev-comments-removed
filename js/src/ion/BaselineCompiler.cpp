@@ -29,6 +29,9 @@ BaselineCompiler::BaselineCompiler(JSContext *cx, HandleScript script)
 bool
 BaselineCompiler::init()
 {
+    if (!analysis_.init())
+        return false;
+
     if (!labels_.init(script->length))
         return false;
 
@@ -64,8 +67,12 @@ BaselineCompiler::compile()
     IonSpew(IonSpew_BaselineScripts, "Baseline compiling script %s:%d (%p)",
             script->filename(), script->lineno, script.get());
 
-    if (!script->ensureRanAnalysis(cx))
-        return Method_Error;
+    
+    
+    if (script->argumentsHasVarBinding()) {
+        if (!script->ensureRanAnalysis(cx))
+            return Method_Error;
+    }
 
     
     types::AutoEnterAnalysis autoEnterAnalysis(cx);
@@ -537,10 +544,10 @@ BaselineCompiler::emitBody()
         IonSpew(IonSpew_BaselineOp, "Compiling op @ %d: %s",
                 int(pc - script->code), js_CodeName[op]);
 
-        analyze::Bytecode *code = script->analysis()->maybeCode(pc);
+        BytecodeInfo *info = analysis_.maybeInfo(pc);
 
         
-        if (!code) {
+        if (!info) {
             if (op == JSOP_STOP)
                 break;
             pc += GetBytecodeLength(pc);
@@ -549,9 +556,9 @@ BaselineCompiler::emitBody()
         }
 
         
-        if (code->jumpTarget) {
+        if (info->jumpTarget) {
             frame.syncStack(0);
-            frame.setStackDepth(code->stackDepth);
+            frame.setStackDepth(info->stackDepth);
         }
 
         
@@ -2419,7 +2426,7 @@ BaselineCompiler::emit_JSOP_ARGUMENTS()
     frame.syncStack(0);
 
     Label done;
-    if (!script->needsArgsObj()) {
+    if (!script->argumentsHasVarBinding() || !script->needsArgsObj()) {
         
         
         
