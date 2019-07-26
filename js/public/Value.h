@@ -1882,13 +1882,6 @@ PRIVATE_TO_JSVAL(void *ptr)
     return IMPL_TO_JSVAL(PRIVATE_PTR_TO_JSVAL_IMPL(ptr));
 }
 
-static inline void *
-JSVAL_TO_PRIVATE(jsval v)
-{
-    MOZ_ASSERT(v.isDouble());
-    return JSVAL_TO_PRIVATE_PTR_IMPL(JSVAL_TO_IMPL(v));
-}
-
 
 
 
