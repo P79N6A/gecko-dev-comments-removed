@@ -393,6 +393,8 @@ protected:
       }
     }
 #elif defined(_M_X64)
+    byteptr_t directJmpAddr;
+
     while (nBytes < 13) {
 
       
@@ -478,9 +480,22 @@ protected:
           }
         } else if (origBytes[nBytes] == 0xc7) {
           
-          if (origBytes[nBytes + 1] & 0xf8 == 0x40) {
+          if ((origBytes[nBytes + 1] & 0xf8) == 0x40) {
             nBytes += 6;
           } else {
+            return;
+          }
+        } else if (origBytes[nBytes] == 0xff) {
+          pJmp32 = nBytes - 1;
+          
+          if ((origBytes[nBytes+1] & 0xc0) == 0x0 &&
+              (origBytes[nBytes+1] & 0x07) == 0x5) {
+            
+            
+            directJmpAddr = (byteptr_t)*((uint64_t*)(origBytes + nBytes + 6 + (*((uint32_t*)(origBytes + nBytes + 2)))));
+            nBytes += 6;
+          } else {
+            
             return;
           }
         } else {
@@ -501,6 +516,8 @@ protected:
         nBytes++;
       } else if (origBytes[nBytes] == 0xe9) {
         pJmp32 = nBytes;
+        
+        directJmpAddr = origBytes + pJmp32 + 5 + (*((uint32_t*)(origBytes + pJmp32 + 1)));
         
         nBytes += 5;
       } else if (origBytes[nBytes] == 0xff) {
@@ -547,8 +564,6 @@ protected:
 #elif defined(_M_X64)
     
     if (pJmp32 >= 0) {
-      
-      byteptr_t directJmpAddr = origBytes + pJmp32 + 5 + (*((LONG*)(origBytes+pJmp32+1)));
       
       tramp[pJmp32]   = 0x49;
       tramp[pJmp32+1] = 0xbb;
