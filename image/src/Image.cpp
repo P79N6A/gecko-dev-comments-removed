@@ -3,6 +3,8 @@
 
 
 
+#include "nsMimeTypes.h"
+
 #include "Image.h"
 
 namespace mozilla {
@@ -49,39 +51,39 @@ Image::GetDecoderType(const char *aMimeType)
   eDecoderType rv = eDecoderType_unknown;
 
   
-  if (!strcmp(aMimeType, "image/png"))
+  if (!strcmp(aMimeType, IMAGE_PNG))
     rv = eDecoderType_png;
-  else if (!strcmp(aMimeType, "image/x-png"))
+  else if (!strcmp(aMimeType, IMAGE_X_PNG))
     rv = eDecoderType_png;
 
   
-  else if (!strcmp(aMimeType, "image/gif"))
+  else if (!strcmp(aMimeType, IMAGE_GIF))
     rv = eDecoderType_gif;
 
 
   
-  else if (!strcmp(aMimeType, "image/jpeg"))
+  else if (!strcmp(aMimeType, IMAGE_JPEG))
     rv = eDecoderType_jpeg;
-  else if (!strcmp(aMimeType, "image/pjpeg"))
+  else if (!strcmp(aMimeType, IMAGE_PJPEG))
     rv = eDecoderType_jpeg;
-  else if (!strcmp(aMimeType, "image/jpg"))
+  else if (!strcmp(aMimeType, IMAGE_JPG))
     rv = eDecoderType_jpeg;
 
   
-  else if (!strcmp(aMimeType, "image/bmp"))
+  else if (!strcmp(aMimeType, IMAGE_BMP))
     rv = eDecoderType_bmp;
-  else if (!strcmp(aMimeType, "image/x-ms-bmp"))
+  else if (!strcmp(aMimeType, IMAGE_BMP_MS))
     rv = eDecoderType_bmp;
 
 
   
-  else if (!strcmp(aMimeType, "image/x-icon"))
+  else if (!strcmp(aMimeType, IMAGE_ICO))
     rv = eDecoderType_ico;
-  else if (!strcmp(aMimeType, "image/vnd.microsoft.icon"))
+  else if (!strcmp(aMimeType, IMAGE_ICO_MS))
     rv = eDecoderType_ico;
 
   
-  else if (!strcmp(aMimeType, "image/icon"))
+  else if (!strcmp(aMimeType, IMAGE_ICON_MS))
     rv = eDecoderType_icon;
 
   return rv;
