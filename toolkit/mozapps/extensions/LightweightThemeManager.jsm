@@ -195,6 +195,10 @@ this.LightweightThemeManager = {
     req.mozBackgroundRequest = true;
     req.overrideMimeType("text/plain");
     req.open("GET", theme.updateURL, true);
+    
+    req.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
+    
+    req.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
 
     var self = this;
     req.addEventListener("load", function loadEventListener() {
