@@ -31,8 +31,8 @@ void MacroAssemblerX86Common::setSSECheckState()
 {
     
     
-    volatile int flags_edx = 0;
-    volatile int flags_ecx = 0;
+    int flags_edx = 0;
+    int flags_ecx = 0;
 #if WTF_COMPILER_MSVC
 #if WTF_CPU_X86_64
     int cpuinfo[4];
@@ -52,26 +52,21 @@ void MacroAssemblerX86Common::setSSECheckState()
 #if WTF_CPU_X86_64
     asm (
          "movl $0x1, %%eax;"
-         "pushq %%rbx;"
          "cpuid;"
-         "popq %%rbx;"
-         "movl %%ecx, %0;"
-         "movl %%edx, %1;"
-         : "=g" (flags_ecx), "=g" (flags_edx)
+         : "=c" (flags_ecx), "=d" (flags_edx)
          :
-         : "%eax", "%ecx", "%edx"
+         : "%eax", "%ebx"
          );
 #else
+    
     asm (
          "movl $0x1, %%eax;"
          "pushl %%ebx;"
          "cpuid;"
          "popl %%ebx;"
-         "movl %%ecx, %0;"
-         "movl %%edx, %1;"
-         : "=g" (flags_ecx), "=g" (flags_edx)
+         : "=c" (flags_ecx), "=d" (flags_edx)
          :
-         : "%eax", "%ecx", "%edx"
+         : "%eax"
          );
 #endif
 #elif WTF_COMPILER_SUNCC
