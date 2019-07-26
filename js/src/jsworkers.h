@@ -72,6 +72,9 @@ class WorkerThreadState
     Vector<ParseTask*, 0, SystemAllocPolicy> parseWorklist, parseFinishedList;
 
     
+    Vector<ParseTask*, 0, SystemAllocPolicy> parseWaitingOnGC;
+
+    
     Vector<SourceCompressionTask *, 0, SystemAllocPolicy> compressionWorklist;
 
     WorkerThreadState(JSRuntime *rt) {
@@ -241,6 +244,13 @@ bool
 StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &options,
                           const jschar *chars, size_t length, HandleObject scopeChain,
                           JS::OffThreadCompileCallback callback, void *callbackData);
+
+
+
+
+
+void
+EnqueuePendingParseTasksAfterGC(JSRuntime *rt);
 
 
 void

@@ -4503,13 +4503,6 @@ JS::CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options)
     if (!cx->runtime()->useHelperThreadsForParsing())
         return false;
 
-    
-    
-    
-    
-    if (cx->runtime()->activeGCInAtomsZone())
-        return false;
-
     return true;
 #else
     return false;
