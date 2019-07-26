@@ -141,3 +141,7 @@ user_pref("media.webaudio.legacy.AudioParam", true);
 user_pref("media.webaudio.legacy.BiquadFilterNode", true);
 user_pref("media.webaudio.legacy.PannerNode", true);
 user_pref("media.webaudio.legacy.OscillatorNode", true);
+
+
+
+user_pref("geo.provider.testing", true);
