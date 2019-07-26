@@ -1113,7 +1113,6 @@ protected:
   nsRefPtr<nsDOMWindowUtils>    mWindowUtils;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
-  
   nsGlobalWindowObserver*       mObserver;
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
 
