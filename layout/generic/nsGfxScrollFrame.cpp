@@ -2279,7 +2279,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     dirtyRect = ExpandRect(dirtyRect);
   }
 
-  nsDisplayListCollection set;
+  nsDisplayListCollection scrolledContent;
   {
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
@@ -2303,7 +2303,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       }
     }
 
-    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, aLists);
+    mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, scrolledContent);
   }
 
   
@@ -2337,7 +2337,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       
-      wrapper.WrapListsInPlace(aBuilder, mOuter, aLists);
+      wrapper.WrapListsInPlace(aBuilder, mOuter, scrolledContent);
     }
 
     
@@ -2345,8 +2345,9 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
       aBuilder, mScrolledFrame, mOuter);
-    aLists.BorderBackground()->AppendNewToBottom(layerItem);
+    scrolledContent.BorderBackground()->AppendNewToBottom(layerItem);
   }
+  scrolledContent.MoveTo(aLists);
 
   
   AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
