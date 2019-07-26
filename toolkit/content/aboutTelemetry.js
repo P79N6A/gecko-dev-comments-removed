@@ -13,11 +13,14 @@ Cu.import("resource://gre/modules/Services.jsm");
 const Telemetry = Services.telemetry;
 const bundle = Services.strings.createBundle(
   "chrome://global/locale/aboutTelemetry.properties");
+const brandBundle = Services.strings.createBundle(
+  "chrome://branding/locale/brand.properties");
 const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].
   getService(Ci.nsIObserver);
 
 
 const MAX_BAR_HEIGHT = 18;
+const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
 const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
@@ -601,6 +604,19 @@ function toggleSection(aEvent) {
 
 
 
+function setupPageHeader()
+{
+  let serverOwner = getPref(PREF_TELEMETRY_SERVER_OWNER, "Mozilla");
+  let brandName = brandBundle.GetStringFromName("brandFullName");
+  let subtitleText = bundle.formatStringFromName(
+    "pageSubtitle", [serverOwner, brandName], 2);
+
+  let subtitleElement = document.getElementById("page-subtitle");
+  subtitleElement.appendChild(document.createTextNode(subtitleText));
+}
+
+
+
 
 function setupListeners() {
   Services.prefs.addObserver(PREF_TELEMETRY_ENABLED, observer, false);
@@ -644,6 +660,9 @@ function setupListeners() {
 
 function onLoad() {
   window.removeEventListener("load", onLoad);
+
+  
+  setupPageHeader();
 
   
   setupListeners();
