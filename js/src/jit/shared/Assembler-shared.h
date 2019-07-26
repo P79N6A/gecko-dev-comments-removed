@@ -210,7 +210,8 @@ struct ImmMaybeNurseryPtr : public ImmGCPtr
 
 
 
-struct AbsoluteAddress {
+struct AbsoluteAddress
+{
     void *addr;
 
     explicit AbsoluteAddress(const void *addr)
@@ -228,7 +229,8 @@ struct AbsoluteAddress {
 
 
 
-struct PatchedAbsoluteAddress {
+struct PatchedAbsoluteAddress
+{
     void *addr;
 
     explicit PatchedAbsoluteAddress()
