@@ -591,6 +591,7 @@ nsGlobalWindow*
 WindowOrNull(JSObject *aObj)
 {
     MOZ_ASSERT(aObj);
+    MOZ_ASSERT(!js::IsWrapper(aObj));
 
     
     
@@ -1389,15 +1390,12 @@ XPCJSRuntime::InterruptCallback(JSContext *cx)
     
     
     RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    nsCOMPtr<nsPIDOMWindow> win;
-    if (IS_WN_REFLECTOR(global))
-        win = do_QueryWrappedNative(XPCWrappedNative::Get(global));
+    nsRefPtr<nsGlobalWindow> win = WindowOrNull(global);
     if (!win)
         return true;
 
     
-    nsGlobalWindow::SlowScriptResponse response =
-      static_cast<nsGlobalWindow*>(win.get())->ShowSlowScriptDialog();
+    nsGlobalWindow::SlowScriptResponse response = win->ShowSlowScriptDialog();
     if (response == nsGlobalWindow::KillSlowScript)
         return false;
 
