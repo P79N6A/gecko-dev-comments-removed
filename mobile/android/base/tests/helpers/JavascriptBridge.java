@@ -67,6 +67,8 @@ public final class JavascriptBridge {
     private JSONObject mSavedAsyncMessage;
     
     private int mCallStackDepth;
+    
+    private boolean mJavaBridgeLoaded;
 
      static void init(final UITestContext context) {
         sActions = context.getActions();
@@ -181,7 +183,15 @@ public final class JavascriptBridge {
         } while (result != MessageStatus.QUEUE_EMPTY);
     }
 
+    private void ensureJavaBridgeLoaded() {
+        while (!mJavaBridgeLoaded) {
+            processPendingMessage();
+        }
+    }
+
     private void sendMessage(final String innerType, final String method, final Object[] args) {
+        ensureJavaBridgeLoaded();
+
         
         final JSONObject message = new JSONObject();
         final JSONArray jsonArgs = new JSONArray();
@@ -215,6 +225,10 @@ public final class JavascriptBridge {
             if ("progress".equals(type)) {
                 
                 mLogParser.logMessage(message.getString("message"));
+                return MessageStatus.PROCESSED;
+
+            } else if ("notify-loaded".equals(type)) {
+                mJavaBridgeLoaded = true;
                 return MessageStatus.PROCESSED;
 
             } else if ("sync-reply".equals(type)) {
