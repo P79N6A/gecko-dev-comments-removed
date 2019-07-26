@@ -13936,8 +13936,8 @@ ICCUtilsHelperObject.prototype = {
       }
     } else {
       
-      let operatorMnc = RIL.operator.mnc;
-      let operatorMcc = RIL.operator.mcc;
+      let operatorMnc = RIL.operator ? RIL.operator.mnc : -1;
+      let operatorMcc = RIL.operator ? RIL.operator.mcc : -1;
 
       
       
