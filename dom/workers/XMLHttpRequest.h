@@ -88,7 +88,7 @@ public:
   {
     
     MozXMLHttpRequestParameters params;
-    if (!params.Init(aGlobal.GetContext(), JS::NullHandleValue)) {
+    if (!params.Init(aGlobal.Context(), JS::NullHandleValue)) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }

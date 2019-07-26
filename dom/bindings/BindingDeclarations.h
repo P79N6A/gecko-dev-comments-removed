@@ -70,7 +70,7 @@ public:
   
   
   
-  JSContext* GetContext() const
+  JSContext* Context() const
   {
     return mCx;
   }
