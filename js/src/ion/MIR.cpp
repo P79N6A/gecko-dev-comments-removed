@@ -2311,6 +2311,10 @@ ion::PropertyReadNeedsTypeBarrier(JSContext *cx, types::TypeObject *object, Prop
     if (!property)
         return true;
 
+    
+    
+    
+    
     if (!property->hasPropagatedProperty())
         object->getFromPrototypes(cx, id, property);
 
