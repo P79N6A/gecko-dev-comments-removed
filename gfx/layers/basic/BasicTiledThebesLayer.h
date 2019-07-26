@@ -163,6 +163,7 @@ public:
   BasicTiledThebesLayer(BasicShadowLayerManager* const aManager)
     : ThebesLayer(aManager, static_cast<BasicImplData*>(this))
     , mLastScrollOffset(0, 0)
+    , mFirstPaint(true)
   {
     MOZ_COUNT_CTOR(BasicTiledThebesLayer);
   }
@@ -213,8 +214,38 @@ private:
   { NS_RUNTIMEABORT("Not reached."); }
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool ComputeProgressiveUpdateRegion(const nsIntRegion& aInvalidRegion,
+                                      const nsIntRegion& aOldValidRegion,
+                                      nsIntRegion& aRegionToPaint,
+                                      const gfx3DMatrix& aTransform,
+                                      const gfx::Point& aScrollOffset,
+                                      const gfxSize& aResolution,
+                                      bool aIsRepeated);
+
+  
   BasicTiledLayerBuffer mTiledBuffer;
   gfx::Point mLastScrollOffset;
+  bool mFirstPaint;
 };
 
 } 

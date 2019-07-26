@@ -229,6 +229,138 @@ BasicTiledThebesLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   aAttrs = ThebesLayerAttributes(GetValidRegion());
 }
 
+static nsIntRect
+RoundedTransformViewportBounds(const gfx::Rect& aViewport,
+                               const gfx::Point& aScrollOffset,
+                               const gfxSize& aResolution,
+                               float aScaleX,
+                               float aScaleY,
+                               const gfx3DMatrix& aTransform)
+{
+  gfxRect transformedViewport(aViewport.x - (aScrollOffset.x * aResolution.width),
+                              aViewport.y - (aScrollOffset.y * aResolution.height),
+                              aViewport.width, aViewport.height);
+  transformedViewport.Scale((aScaleX / aResolution.width) / aResolution.width,
+                            (aScaleY / aResolution.height) / aResolution.height);
+  transformedViewport = aTransform.TransformBounds(transformedViewport);
+
+  return nsIntRect((int32_t)floor(transformedViewport.x),
+                   (int32_t)floor(transformedViewport.y),
+                   (int32_t)ceil(transformedViewport.width),
+                   (int32_t)ceil(transformedViewport.height));
+}
+
+bool
+BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInvalidRegion,
+                                                      const nsIntRegion& aOldValidRegion,
+                                                      nsIntRegion& aRegionToPaint,
+                                                      const gfx3DMatrix& aTransform,
+                                                      const gfx::Point& aScrollOffset,
+                                                      const gfxSize& aResolution,
+                                                      bool aIsRepeated)
+{
+  aRegionToPaint = aInvalidRegion;
+
+  
+  nsIntRegion freshRegion;
+  if (!mFirstPaint) {
+    freshRegion.And(aInvalidRegion, aOldValidRegion);
+    freshRegion.Sub(aInvalidRegion, freshRegion);
+  }
+
+  
+  
+  
+  gfx::Rect viewport;
+  float scaleX, scaleY;
+  if (BasicManager()->ProgressiveUpdateCallback(!freshRegion.IsEmpty(), viewport, scaleX, scaleY)) {
+    aRegionToPaint.SetEmpty();
+    return aIsRepeated;
+  }
+
+  
+  nsIntRect roundedTransformedViewport =
+    RoundedTransformViewportBounds(viewport, aScrollOffset, aResolution,
+                                   scaleX, scaleY, aTransform);
+
+  
+  bool drawingStale = freshRegion.IsEmpty();
+  if (!drawingStale) {
+    aRegionToPaint = freshRegion;
+  }
+
+  
+  bool paintVisible = false;
+  if (aRegionToPaint.Intersects(roundedTransformedViewport)) {
+    aRegionToPaint.And(aRegionToPaint, roundedTransformedViewport);
+    paintVisible = true;
+  }
+
+  
+  
+  NS_ASSERTION(!aRegionToPaint.IsEmpty(), "Unexpectedly empty paint region!");
+  nsIntRect paintBounds = aRegionToPaint.GetBounds();
+
+  int startX, incX, startY, incY;
+  if (aScrollOffset.x >= mLastScrollOffset.x) {
+    startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.x);
+    incX = mTiledBuffer.GetTileLength();
+  } else {
+    startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.XMost() - 1);
+    incX = -mTiledBuffer.GetTileLength();
+  }
+
+  if (aScrollOffset.y >= mLastScrollOffset.y) {
+    startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.y);
+    incY = mTiledBuffer.GetTileLength();
+  } else {
+    startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.YMost() - 1);
+    incY = -mTiledBuffer.GetTileLength();
+  }
+
+  
+  nsIntRect tileBounds(startX, startY,
+                       mTiledBuffer.GetTileLength(),
+                       mTiledBuffer.GetTileLength());
+  int32_t scrollDiffX = aScrollOffset.x - mLastScrollOffset.x;
+  int32_t scrollDiffY = aScrollOffset.y - mLastScrollOffset.y;
+  
+  
+  
+  while (true) {
+    aRegionToPaint.And(aInvalidRegion, tileBounds);
+    if (!aRegionToPaint.IsEmpty()) {
+      break;
+    }
+    if (NS_ABS(scrollDiffY) >= NS_ABS(scrollDiffX)) {
+      tileBounds.x += incX;
+    } else {
+      tileBounds.y += incY;
+    }
+  }
+
+  bool repeatImmediately = false;
+  if (!aRegionToPaint.Contains(aInvalidRegion)) {
+    
+    
+
+    
+    
+    
+    
+    if (paintVisible && drawingStale) {
+      repeatImmediately = true;
+    } else {
+      BasicManager()->SetRepeatTransaction();
+    }
+  } else {
+    
+    mLastScrollOffset = aScrollOffset;
+  }
+
+  return repeatImmediately;
+}
+
 void
 BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
                                    Layer* aMaskLayer,
@@ -254,7 +386,6 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   invalidRegion.Sub(invalidRegion, mValidRegion);
   if (invalidRegion.IsEmpty())
     return;
-  nsIntRegion regionToPaint = invalidRegion;
 
   gfxSize resolution(1, 1);
   for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
@@ -264,36 +395,8 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   }
 
   
-  
-  gfx::Point scrollOffset(0, 0);
-  Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
-  if (primaryScrollable) {
-    const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
-    scrollOffset = metrics.mScrollOffset;
-  }
-  int32_t scrollDiffX = scrollOffset.x - mLastScrollOffset.x;
-  int32_t scrollDiffY = scrollOffset.y - mLastScrollOffset.y;
-
-  
   if (gfxPlatform::UseProgressiveTilePainting() &&
-      mTiledBuffer.GetResolution() == resolution &&
-      (scrollDiffX != 0 || scrollDiffY != 0)) {
-    
-    nsIntRegion freshRegion = mTiledBuffer.GetValidRegion();
-    freshRegion.And(freshRegion, invalidRegion);
-    freshRegion.Sub(invalidRegion, freshRegion);
-
-    
-    
-    
-    gfx::Rect viewport;
-    float scaleX, scaleY;
-    if (BasicManager()->ProgressiveUpdateCallback(!freshRegion.IsEmpty(), viewport, scaleX, scaleY)) {
-      return;
-    }
-
-    
-
+      mTiledBuffer.GetResolution() == resolution) {
     
     gfx3DMatrix transform = GetEffectiveTransform();
     
@@ -307,90 +410,64 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     transform.Invert();
 
     
-    gfxRect transformedViewport(viewport.x - (scrollOffset.x * resolution.width),
-                                viewport.y - (scrollOffset.y * resolution.height),
-                                viewport.width, viewport.height);
-    transformedViewport.Scale((scaleX / resolution.width) / resolution.width,
-                              (scaleY / resolution.height) / resolution.height);
-    transformedViewport = transform.TransformBounds(transformedViewport);
-
-    nsIntRect roundedTransformedViewport((int32_t)floor(transformedViewport.x),
-                                         (int32_t)floor(transformedViewport.y),
-                                         (int32_t)ceil(transformedViewport.width),
-                                         (int32_t)ceil(transformedViewport.height));
-
-    
-    if (!freshRegion.IsEmpty()) {
-      regionToPaint = freshRegion;
-    }
-    if (regionToPaint.Intersects(roundedTransformedViewport)) {
-      regionToPaint.And(regionToPaint, roundedTransformedViewport);
-    }
+    nsIntRegion oldValidRegion = mTiledBuffer.GetValidRegion();
+    mTiledBuffer.ClearPaintedRegion();
 
     
     
-    NS_ASSERTION(!regionToPaint.IsEmpty(), "Unexpectedly empty paint region!");
-    nsIntRect paintBounds = regionToPaint.GetBounds();
-
-    int startX, incX, startY, incY;
-    if (scrollOffset.x >= mLastScrollOffset.x) {
-      startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.x);
-      incX = mTiledBuffer.GetTileLength();
-    } else {
-      startX = mTiledBuffer.RoundDownToTileEdge(paintBounds.XMost() - 1);
-      incX = -mTiledBuffer.GetTileLength();
-    }
-
-    if (scrollOffset.y >= mLastScrollOffset.y) {
-      startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.y);
-      incY = mTiledBuffer.GetTileLength();
-    } else {
-      startY = mTiledBuffer.RoundDownToTileEdge(paintBounds.YMost() - 1);
-      incY = -mTiledBuffer.GetTileLength();
-    }
-
-    
-    nsIntRect tileBounds(startX, startY,
-                         mTiledBuffer.GetTileLength(),
-                         mTiledBuffer.GetTileLength());
-    
-    
-    
-    while (true) {
-      regionToPaint.And(invalidRegion, tileBounds);
-      if (!regionToPaint.IsEmpty()) {
-        break;
-      }
-      if (NS_ABS(scrollDiffY) >= NS_ABS(scrollDiffX)) {
-        tileBounds.x += incX;
-      } else {
-        tileBounds.y += incY;
-      }
-    }
-
-    if (!regionToPaint.Contains(invalidRegion)) {
-      
-      
-      BasicManager()->SetRepeatTransaction();
-
-      
+    if (!BasicManager()->IsRepeatTransaction()) {
       mValidRegion.And(mValidRegion, mVisibleRegion);
-    } else {
-      
-      mLastScrollOffset = scrollOffset;
     }
 
     
-    mValidRegion.Or(mValidRegion, regionToPaint);
+    gfx::Point scrollOffset(0, 0);
+    Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
+    if (primaryScrollable) {
+      const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
+      scrollOffset = metrics.mScrollOffset;
+    }
+
+    bool repeat = false;
+    do {
+      
+      
+      nsIntRegion regionToPaint;
+      repeat = ComputeProgressiveUpdateRegion(invalidRegion,
+                                              oldValidRegion,
+                                              regionToPaint,
+                                              transform,
+                                              scrollOffset,
+                                              resolution,
+                                              repeat);
+
+      
+      
+      if (regionToPaint.IsEmpty()) {
+        if (repeat) {
+          break;
+        } else {
+          return;
+        }
+      }
+
+      
+      mValidRegion.Or(mValidRegion, regionToPaint);
+
+      
+      mTiledBuffer.PaintThebes(this, mValidRegion, regionToPaint, aCallback, aCallbackData);
+      invalidRegion.Sub(invalidRegion, regionToPaint);
+    } while (repeat);
   } else {
+    mTiledBuffer.ClearPaintedRegion();
     mTiledBuffer.SetResolution(resolution);
     mValidRegion = mVisibleRegion;
+    mTiledBuffer.PaintThebes(this, mValidRegion, invalidRegion, aCallback, aCallbackData);
   }
 
-  mTiledBuffer.PaintThebes(this, mValidRegion, regionToPaint, aCallback, aCallbackData);
-
   mTiledBuffer.ReadLock();
-  if (aMaskLayer) {
+
+  
+  if (aMaskLayer && !BasicManager()->IsRepeatTransaction()) {
     static_cast<BasicImplData*>(aMaskLayer->ImplData())
       ->Paint(aContext, nullptr);
   }
@@ -402,6 +479,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mTiledBuffer);
 
   BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), heapCopy);
+  mFirstPaint = false;
 }
 
 } 

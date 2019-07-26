@@ -272,6 +272,8 @@ public:
 
   void SetRepeatTransaction() { mRepeatTransaction = true; }
 
+  bool IsRepeatTransaction() { return mIsRepeatTransaction; }
+
   
 
 
@@ -307,6 +309,7 @@ private:
   
   
   bool mRepeatTransaction;
+  bool mIsRepeatTransaction;
 };
 
 class BasicShadowableThebesLayer;
