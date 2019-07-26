@@ -360,7 +360,9 @@ function checkUpdateApplied() {
   
   if (gUpdateManager.activeUpdate.state != STATE_APPLIED_PLATFORM) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be applied, current state is: " + gUpdateManager.activeUpdate.state);
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be " +
+               "applied, current state is: " +
+               gUpdateManager.activeUpdate.state);
     else
       do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
@@ -443,6 +445,7 @@ function checkUpdateApplied() {
   log.append(FILE_LAST_LOG);
   if (IS_WIN) {
     
+    
     logTestInfo("testing " + log.path + " should exist");
     do_check_true(log.exists());
   } else {
@@ -498,7 +501,8 @@ function checkUpdateFinished() {
     let status = readStatusFile();
     if (status != STATE_SUCCEEDED) {
       if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to change to succeeded, current status: " + status);
+        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to " +
+                 "change to succeeded, current status: " + status);
       else
         do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
       return;
@@ -587,5 +591,5 @@ function checkUpdateFinished() {
   logTestInfo("testing " + updatesDir.path + " should exist");
   do_check_true(updatesDir.exists());
 
-  removeCallbackCopy();
+  waitForFilesInUse();
 }
