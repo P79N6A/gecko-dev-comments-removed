@@ -130,7 +130,6 @@ DOMCI_CLASS(CSSGroupRuleRuleList)
 DOMCI_CLASS(MediaList)
 DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
-DOMCI_CLASS(CSSStyleDeclaration)
 DOMCI_CLASS(ROCSSPrimitiveValue)
 
 
@@ -414,7 +413,6 @@ DOMCI_CLASS(DataErrorEvent)
 
 
 DOMCI_CLASS(CSSFontFaceRule)
-DOMCI_CLASS(CSSFontFaceStyleDecl)
 
 #if defined(MOZ_MEDIA)
 
