@@ -689,7 +689,7 @@ Debugger::wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue rv
         }
 
         CrossCompartmentKey key(CrossCompartmentKey::DebuggerEnvironment, object, env);
-        if (!object->compartment()->putWrapper(cx, key, ObjectValue(*envobj))) {
+        if (!object->compartment()->putWrapper(key, ObjectValue(*envobj))) {
             environments.remove(env);
             js_ReportOutOfMemory(cx);
             return false;
@@ -733,7 +733,7 @@ Debugger::wrapDebuggeeValue(JSContext *cx, MutableHandleValue vp)
 
             if (obj->compartment() != object->compartment()) {
                 CrossCompartmentKey key(CrossCompartmentKey::DebuggerObject, object, obj);
-                if (!object->compartment()->putWrapper(cx, key, ObjectValue(*dobj))) {
+                if (!object->compartment()->putWrapper(key, ObjectValue(*dobj))) {
                     objects.remove(obj);
                     js_ReportOutOfMemory(cx);
                     return false;
@@ -1635,7 +1635,7 @@ Debugger::sweepAll(FreeOp *fop)
         }
     }
 
-    for (gc::GCCompartmentGroupIter comp(rt); !comp.done(); comp.next()) {
+    for (gc::GCCompartmentsIter comp(rt); !comp.done(); comp.next()) {
         
         GlobalObjectSet &debuggees = comp->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
@@ -2321,8 +2321,8 @@ class Debugger::ScriptQuery {
   public:
     
     ScriptQuery(JSContext *cx, Debugger *dbg):
-        cx(cx), debugger(dbg), compartments(cx->runtime()), url(cx),
-        innermostForCompartment(cx->runtime())
+        cx(cx), debugger(dbg), compartments(cx->runtime()), url(cx), sourceURL(cx),
+        sourceURLChars(nullptr), innermostForCompartment(cx->runtime())
     {}
 
     
@@ -2419,6 +2419,16 @@ class Debugger::ScriptQuery {
             }
         }
 
+        
+        if (!JSObject::getProperty(cx, query, query, cx->names().displayURL, &sourceURL))
+            return false;
+        if (!sourceURL.isUndefined() && !sourceURL.isString()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+                                 "query object's 'displayURL' property",
+                                 "neither undefined nor a string");
+            return false;
+        }
+
         return true;
     }
 
@@ -2427,6 +2437,7 @@ class Debugger::ScriptQuery {
         url.setUndefined();
         hasLine = false;
         innermost = false;
+        sourceURLChars = nullptr;
         return matchAllDebuggeeGlobals();
     }
 
@@ -2489,6 +2500,14 @@ class Debugger::ScriptQuery {
 
     
     JSAutoByteString urlCString;
+
+    
+
+    RootedValue sourceURL;
+
+    
+    const jschar *sourceURLChars;
+    size_t sourceURLLength;
 
     
     bool hasLine;
@@ -2558,8 +2577,16 @@ class Debugger::ScriptQuery {
 
     bool prepareQuery() {
         
+
         if (url.isString()) {
             if (!urlCString.encodeLatin1(cx, url.toString()))
+                return false;
+        }
+        if (sourceURL.isString()) {
+            JSString *s = sourceURL.toString();
+            sourceURLChars = s->getChars(cx);
+            sourceURLLength = s->length();
+            if (!sourceURLChars)
                 return false;
         }
 
@@ -2590,6 +2617,15 @@ class Debugger::ScriptQuery {
             if (line < script->lineno() || script->lineno() + js_GetScriptLineExtent(script) < line)
                 return;
         }
+        if (sourceURLChars) {
+            if (!script->scriptSource() || !script->scriptSource()->hasSourceURL())
+                return;
+            const jschar *s = script->scriptSource()->sourceURL();
+            if (CompareChars(s, js_strlen(s), sourceURLChars, sourceURLLength) != 0) {
+                return;
+            }
+        }
+
         if (innermost) {
             
 
@@ -2792,7 +2828,7 @@ Debugger::newDebuggerScript(JSContext *cx, HandleScript script)
 
     JSObject *proto = &object->getReservedSlot(JSSLOT_DEBUG_SCRIPT_PROTO).toObject();
     JS_ASSERT(proto);
-    JSObject *scriptobj = NewObjectWithGivenProto(cx, &DebuggerScript_class, proto, nullptr, TenuredObject);
+    JSObject *scriptobj = NewObjectWithGivenProto(cx, &DebuggerScript_class, proto, nullptr);
     if (!scriptobj)
         return nullptr;
     scriptobj->setReservedSlot(JSSLOT_DEBUGSCRIPT_OWNER, ObjectValue(*object));
@@ -2818,7 +2854,7 @@ Debugger::wrapScript(JSContext *cx, HandleScript script)
         }
 
         CrossCompartmentKey key(CrossCompartmentKey::DebuggerScript, object, script);
-        if (!object->compartment()->putWrapper(cx, key, ObjectValue(*scriptobj))) {
+        if (!object->compartment()->putWrapper(key, ObjectValue(*scriptobj))) {
             scripts.remove(script);
             js_ReportOutOfMemory(cx);
             return nullptr;
@@ -3685,7 +3721,7 @@ Debugger::newDebuggerSource(JSContext *cx, HandleScriptSource source)
 
     JSObject *proto = &object->getReservedSlot(JSSLOT_DEBUG_SOURCE_PROTO).toObject();
     JS_ASSERT(proto);
-    JSObject *sourceobj = NewObjectWithGivenProto(cx, &DebuggerSource_class, proto, nullptr, TenuredObject);
+    JSObject *sourceobj = NewObjectWithGivenProto(cx, &DebuggerSource_class, proto, nullptr);
     if (!sourceobj)
         return nullptr;
     sourceobj->setReservedSlot(JSSLOT_DEBUGSOURCE_OWNER, ObjectValue(*object));
@@ -3711,7 +3747,7 @@ Debugger::wrapSource(JSContext *cx, HandleScriptSource source)
         }
 
         CrossCompartmentKey key(CrossCompartmentKey::DebuggerSource, object, source);
-        if (!object->compartment()->putWrapper(cx, key, ObjectValue(*sourceobj))) {
+        if (!object->compartment()->putWrapper(key, ObjectValue(*sourceobj))) {
             sources.remove(source);
             js_ReportOutOfMemory(cx);
             return nullptr;
