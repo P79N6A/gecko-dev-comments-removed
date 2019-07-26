@@ -555,6 +555,8 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   mYPos = aYPos;
   mAdjustOffsetForContextMenu = false;
   mPosition = POPUPPOSITION_UNKNOWN;
+  mVFlip = false;
+  mHFlip = false;
 
   
   
@@ -1184,11 +1186,18 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
     
     
-    if (IsDirectionRTL())
-      screenPoint.x -= presContext->CSSPixelsToAppUnits(mXPos);
-    else
-      screenPoint.x += presContext->CSSPixelsToAppUnits(mXPos);
-    screenPoint.y += presContext->CSSPixelsToAppUnits(mYPos);
+    
+    nscoord anchorXOffset = presContext->CSSPixelsToAppUnits(mXPos);
+    if (IsDirectionRTL()) {
+      screenPoint.x -= anchorXOffset;
+      anchorRect.x -= anchorXOffset;
+    } else {
+      screenPoint.x += anchorXOffset;
+      anchorRect.x += anchorXOffset;
+    }
+    nscoord anchorYOffset = presContext->CSSPixelsToAppUnits(mYPos);
+    screenPoint.y += anchorYOffset;
+    anchorRect.y += anchorYOffset;
 
     
     
