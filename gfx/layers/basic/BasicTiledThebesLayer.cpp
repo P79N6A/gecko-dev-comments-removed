@@ -269,6 +269,7 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
                                                       const nsIntRegion& aOldValidRegion,
                                                       nsIntRegion& aRegionToPaint,
                                                       const gfx3DMatrix& aTransform,
+                                                      const nsIntRect& aCompositionBounds,
                                                       const gfx::Point& aScrollOffset,
                                                       const gfxSize& aResolution,
                                                       bool aIsRepeated)
@@ -281,18 +282,16 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
   bool drawingLowPrecision = aTiledBuffer.IsLowPrecision();
 
   
-  nsIntRegion freshRegion;
-  if (!mFirstPaint) {
-    freshRegion.And(aInvalidRegion, aOldValidRegion);
-    freshRegion.Sub(aInvalidRegion, freshRegion);
-  }
+  nsIntRegion staleRegion;
+  staleRegion.And(aInvalidRegion, aOldValidRegion);
 
   
   
   
   gfx::Rect viewport;
   float scaleX, scaleY;
-  if (BasicManager()->ProgressiveUpdateCallback(!freshRegion.IsEmpty(), viewport,
+  if (BasicManager()->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
+                                                viewport,
                                                 scaleX, scaleY, !drawingLowPrecision)) {
     SAMPLE_MARKER("Abort painting");
     aRegionToPaint.SetEmpty();
@@ -305,9 +304,15 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
                                    scaleX, scaleY, aTransform);
 
   
-  bool drawingStale = freshRegion.IsEmpty();
+  
+  
+  
+  nsIntRect criticalViewportRect = roundedTransformedViewport.Intersect(aCompositionBounds);
+  aRegionToPaint.And(aInvalidRegion, criticalViewportRect);
+  aRegionToPaint.Or(aRegionToPaint, staleRegion);
+  bool drawingStale = !aRegionToPaint.IsEmpty();
   if (!drawingStale) {
-    aRegionToPaint = freshRegion;
+    aRegionToPaint = aInvalidRegion;
   }
 
   
@@ -316,6 +321,10 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
     aRegionToPaint.And(aRegionToPaint, roundedTransformedViewport);
     paintVisible = true;
   }
+
+  
+  
+  bool paintInSingleTransaction = paintVisible && (drawingStale || mFirstPaint);
 
   
   
@@ -368,7 +377,8 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
     
     
     
-    if (!drawingLowPrecision && paintVisible && drawingStale) {
+    
+    if (!drawingLowPrecision && paintInSingleTransaction) {
       repeatImmediately = true;
     } else {
       BasicManager()->SetRepeatTransaction();
@@ -384,6 +394,7 @@ BasicTiledThebesLayer::ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
                                          nsIntRegion& aInvalidRegion,
                                          const nsIntRegion& aOldValidRegion,
                                          const gfx3DMatrix& aTransform,
+                                         const nsIntRect& aCompositionBounds,
                                          const gfx::Point& aScrollOffset,
                                          const gfxSize& aResolution,
                                          LayerManager::DrawThebesLayerCallback aCallback,
@@ -399,6 +410,7 @@ BasicTiledThebesLayer::ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
                                             aOldValidRegion,
                                             regionToPaint,
                                             aTransform,
+                                            aCompositionBounds,
                                             aScrollOffset,
                                             aResolution,
                                             repeat);
@@ -498,11 +510,19 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   }
 
   
+  
+  nsIntRect compositionBounds;
   gfx::Point scrollOffset(0, 0);
   Layer* primaryScrollable = BasicManager()->GetPrimaryScrollableLayer();
   if (primaryScrollable) {
     const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
     scrollOffset = metrics.mScrollOffset;
+    gfxRect transformedViewport = transform.TransformBounds(
+      gfxRect(metrics.mCompositionBounds.x, metrics.mCompositionBounds.y,
+              metrics.mCompositionBounds.width, metrics.mCompositionBounds.height));
+    transformedViewport.RoundOut();
+    compositionBounds = nsIntRect(transformedViewport.x, transformedViewport.y,
+                                  transformedViewport.width, transformedViewport.height);
   }
 
   
@@ -528,8 +548,8 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     }
 
     if (!ProgressiveUpdate(mTiledBuffer, mValidRegion, invalidRegion,
-                           oldValidRegion, transform, scrollOffset, resolution,
-                           aCallback, aCallbackData))
+                           oldValidRegion, transform, compositionBounds,
+                           scrollOffset, resolution, aCallback, aCallbackData))
       return;
   } else {
     mTiledBuffer.SetFrameResolution(resolution);
@@ -594,7 +614,8 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       updatedLowPrecision =
         ProgressiveUpdate(mLowPrecisionTiledBuffer, mLowPrecisionValidRegion,
                           lowPrecisionInvalidRegion, oldValidRegion, transform,
-                          scrollOffset, resolution, aCallback, aCallbackData);
+                          compositionBounds, scrollOffset, resolution, aCallback,
+                          aCallbackData);
     }
 
     

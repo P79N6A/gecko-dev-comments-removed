@@ -412,18 +412,6 @@ public class GeckoLayerClient
             return mProgressiveUpdateData;
         }
 
-        
-        
-        
-        
-        
-        
-        if (!aHasPendingNewThebesContent) {
-            Log.d(LOGTAG, "Aborting update due to more relevant display-port in event queue");
-            mProgressiveUpdateData.abort = true;
-            return mProgressiveUpdateData;
-        }
-
         return mProgressiveUpdateData;
     }
 

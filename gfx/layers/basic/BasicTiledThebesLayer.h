@@ -238,11 +238,14 @@ private:
 
 
 
+
+
   bool ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTiledBuffer,
                                       const nsIntRegion& aInvalidRegion,
                                       const nsIntRegion& aOldValidRegion,
                                       nsIntRegion& aRegionToPaint,
                                       const gfx3DMatrix& aTransform,
+                                      const nsIntRect& aCompositionBounds,
                                       const gfx::Point& aScrollOffset,
                                       const gfxSize& aResolution,
                                       bool aIsRepeated);
@@ -250,11 +253,13 @@ private:
   
 
 
+
   bool ProgressiveUpdate(BasicTiledLayerBuffer& aTiledBuffer,
                          nsIntRegion& aValidRegion,
                          nsIntRegion& aInvalidRegion,
                          const nsIntRegion& aOldValidRegion,
                          const gfx3DMatrix& aTransform,
+                         const nsIntRect& aCompositionBounds,
                          const gfx::Point& aScrollOffset,
                          const gfxSize& aResolution,
                          LayerManager::DrawThebesLayerCallback aCallback,
