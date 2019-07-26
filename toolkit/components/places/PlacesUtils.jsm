@@ -1523,7 +1523,31 @@ this.PlacesUtils = {
         }
       });
     return deferred.promise;
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  promiseItemGUID: function (aItemId) GUIDHelper.getItemGUID(aItemId),
+
+  
+
+
+
+
+
+
+
+
+
+  promiseItemId: function (aGUID) GUIDHelper.getItemId(aGUID)
 };
 
 
@@ -1639,6 +1663,138 @@ XPCOMUtils.defineLazyGetter(this, "bundle", function() {
 XPCOMUtils.defineLazyServiceGetter(this, "focusManager",
                                    "@mozilla.org/focus-manager;1",
                                    "nsIFocusManager");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const REASON_FINISHED = Ci.mozIStorageStatementCallback.REASON_FINISHED;
+let GUIDHelper = {
+  
+  GUIDsForIds: new Map(),
+  idsForGUIDs: new Map(),
+
+  getItemId: function (aGUID) {
+    if (this.idsForGUIDs.has(aGUID))
+      return Promise.resolve(this.idsForGUIDs.get(aGUID));
+
+    let deferred = Promise.defer();
+    let itemId = -1;
+
+    this._getIDStatement.params.guid = aGUID;
+    this._getIDStatement.executeAsync({
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        if (row)
+          itemId = row.getResultByIndex(0);
+      },
+      handleCompletion: function (aReason) {
+        if (aReason == REASON_FINISHED && itemId != -1) {
+          deferred.resolve(itemId);
+
+          this.ensureObservingRemovedItems();
+          this.idsForGUIDs.set(aGUID, itemId);
+        }
+        else if (itemId != -1) {
+          deferred.reject("no item found for the given guid");
+        }
+        else {
+          deferred.reject("SQLite Error: " + aReason);
+        }
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  getItemGUID: function (aItemId) {
+    if (this.GUIDsForIds.has(aItemId))
+      return Promise.resolve(this.GUIDsForIds.has(aItemId));
+
+    let deferred = Promise.defer();
+    let guid = "";
+
+    this._getGUIDStatement.params.id = aItemId;
+    this._getGUIDStatement.executeAsync({
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        if (row) {
+          guid = row.getResultByIndex(1);
+        }
+      },
+      handleCompletion: function (aReason) {
+        if (aReason == REASON_FINISHED && guid) {
+          deferred.resolve(guid);
+
+          this.ensureObservingRemovedItems();
+          this.GUIDsForIds.set(aItemId, guid);
+        }
+        else if (!guid) {
+          deferred.reject("no item found for the given itemId");
+        }
+        else {
+          deferred.reject("SQLite Error: " + aReason);
+        }
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  ensureObservingRemovedItems: function () {
+    if (!("observer" in this)) {
+      
+
+
+
+
+
+
+      this.observer = {
+        onItemAdded: (aItemId, aParentId, aIndex, aItemType, aURI, aTitle,
+                      aDateAdded, aGUID, aParentGUID) => {
+          this.GUIDsForIds.set(aItemId, aGUID);
+          this.GUIDsForIds.set(aParentId, aParentGUID);
+        },
+        onItemRemoved:
+        (aItemId, aParentId, aIndex, aItemTyep, aURI, aGUID, aParentGUID) => {
+          this.GUIDsForIds.delete(aItemId);
+          this.idsForGUIDs.delete(aGUID);
+          this.GUIDsForIds.set(aParentId, aParentGUID);
+        },
+
+        QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
+        __noSuchMethod__: () => {}, 
+      };
+      PlacesUtils.bookmarks.addObserver(this.observer, false);
+      PlacesUtils.registerShutdownFunction(() => {
+        PlacesUtils.bookmarks.removeObserver(this.observer);
+      });
+    }
+  }
+};
+XPCOMUtils.defineLazyGetter(GUIDHelper, "_getIDStatement", () => {
+  let s = PlacesUtils.history.DBConnection.createAsyncStatement(
+    "SELECT b.id, b.guid from moz_bookmarks b WHERE b.guid = :guid");
+  PlacesUtils.registerShutdownFunction( () => s.finalize() );
+  return s;
+});
+XPCOMUtils.defineLazyGetter(GUIDHelper, "_getGUIDStatement", () => {
+  let s = PlacesUtils.history.DBConnection.createAsyncStatement(
+    "SELECT b.id, b.guid from moz_bookmarks b WHERE b.id = :id");
+  PlacesUtils.registerShutdownFunction( () => s.finalize() );
+  return s;
+});
 
 
 

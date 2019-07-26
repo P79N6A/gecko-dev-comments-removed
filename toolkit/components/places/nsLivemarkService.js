@@ -126,9 +126,9 @@ LivemarkService.prototype = {
     stmt.finalize();
   },
 
-  _onCacheReady: function LS__onCacheReady(aCallback, aWaitForAsyncWrites)
+  _onCacheReady: function LS__onCacheReady(aCallback)
   {
-    if (this._pendingStmt || aWaitForAsyncWrites) {
+    if (this._pendingStmt) {
       
       
       
@@ -235,9 +235,7 @@ LivemarkService.prototype = {
                               });
       if (this._itemAdded && this._itemAdded.id == livemark.id) {
         livemark.index = this._itemAdded.index;
-        if (!aLivemarkInfo.guid) {
-          livemark.guid = this._itemAdded.guid;
-        }
+        livemark.guid = this._itemAdded.guid;
         if (!aLivemarkInfo.lastModified) {
           livemark.lastModified = this._itemAdded.lastModified;
         }
@@ -246,7 +244,7 @@ LivemarkService.prototype = {
       
       
       this._livemarks[livemark.id] = livemark;
-      this._guids[aLivemarkInfo.guid] = livemark.id;
+      this._guids[livemark.guid] = livemark.id;
     }
     catch (ex) {
       addLivemarkEx = ex;
@@ -272,7 +270,7 @@ LivemarkService.prototype = {
           }
           deferred.resolve(livemark);
         }
-      }, true);
+      });
     }
 
     return deferred.promise;
@@ -558,11 +556,9 @@ function Livemark(aLivemarkInfo)
     
     this.id = PlacesUtils.bookmarks.createFolder(aLivemarkInfo.parentId,
                                                  aLivemarkInfo.title,
-                                                 aLivemarkInfo.index);
+                                                 aLivemarkInfo.index,
+                                                 aLivemarkInfo.guid);
     PlacesUtils.bookmarks.setFolderReadonly(this.id, true);
-    if (aLivemarkInfo.guid) {
-      this.writeGuid(aLivemarkInfo.guid);
-    }
     this.writeFeedURI(aLivemarkInfo.feedURI);
     if (aLivemarkInfo.siteURI) {
       this.writeSiteURI(aLivemarkInfo.siteURI);
@@ -628,31 +624,6 @@ Livemark.prototype = {
 
     this._setAnno(PlacesUtils.LMANNO_SITEURI, aSiteURI.spec)
     this.siteURI = aSiteURI;
-  },
-
-  writeGuid: function LM_writeGuid(aGUID)
-  {
-    
-    
-    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                                .DBConnection;
-    let stmt = db.createAsyncStatement("UPDATE moz_bookmarks " +
-                                       "SET guid = :guid " +
-                                       "WHERE id = :item_id");
-    stmt.params.guid = aGUID;
-    stmt.params.item_id = this.id;
-    let livemark = this;
-    stmt.executeAsync({
-      handleError: function () {},
-      handleResult: function () {},
-      handleCompletion: function ETAT_handleCompletion(aReason)
-      {
-        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
-          livemark._guid = aGUID;
-        }
-      }
-    });
-    stmt.finalize();
   },
 
   set guid(aGUID) {
