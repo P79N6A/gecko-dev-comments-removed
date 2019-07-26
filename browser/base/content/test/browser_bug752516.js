@@ -31,6 +31,8 @@ function test() {
 function tabLoad() {
   
   
+  
+  gTestBrowser.contentDocument.getElementById('test').clientTop;
   executeSoon(actualTest);
 }
 

@@ -25,6 +25,8 @@ function test() {
 function pageLoad(aEvent) {
   
   
+  
+  gTestBrowser.contentDocument.getElementById('test').clientTop;
   executeSoon(actualTest);
 }
 

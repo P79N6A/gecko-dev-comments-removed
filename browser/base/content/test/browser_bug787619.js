@@ -21,6 +21,10 @@ function test() {
 }
 
 function pageLoad() {
+  
+  
+  
+  gTestBrowser.contentDocument.getElementById('plugin').clientTop;
   executeSoon(part1);
 }
 

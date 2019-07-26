@@ -21,7 +21,14 @@ function test() {
   gTestBrowser.addEventListener("load", pageLoad, true);
   setAndUpdateBlocklist(gHttpTestRoot + "blockPluginVulnerableUpdatable.xml",
   function() {
-    prepareTest(testPart1, gHttpTestRoot + "plugin_test.html");
+    prepareTest(function() {
+        
+        
+        
+        gTestBrowser.contentDocument.getElementById('test').clientTop;
+        testPart1();
+      },
+      gHttpTestRoot + "plugin_test.html");
   });
 }
 

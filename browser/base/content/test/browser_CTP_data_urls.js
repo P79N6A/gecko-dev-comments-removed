@@ -96,6 +96,22 @@ function prepareTest(nextTest, url) {
 }
 
 
+
+
+
+function runAfterPluginBindingAttached(func) {
+  let doc = gTestBrowser.contentDocument;
+  return function() {
+    let elems = doc.getElementsByTagName('embed');
+    if (elems.length < 1) {
+      elems = doc.getElementsByTagName('object');
+    }
+    elems[0].clientTop;
+    executeSoon(func);
+  };
+}
+
+
 function test1a() {
   let popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(popupNotification, "Test 1a, Should have a click-to-play notification");
@@ -104,7 +120,7 @@ function test1a() {
   let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 1a, Plugin should not be activated");
 
-  gNextTest = test1b;
+  gNextTest = runAfterPluginBindingAttached(test1b);
   gTestBrowser.contentDocument.getElementById("data-link-1").click();
 }
 
@@ -126,7 +142,7 @@ function test1b() {
 
 function test1c() {
   clearAllPluginPermissions();
-  prepareTest(test2a, gHttpTestRoot + "plugin_data_url.html");
+  prepareTest(runAfterPluginBindingAttached(test2a), gHttpTestRoot + "plugin_data_url.html");
 }
 
 
@@ -137,7 +153,7 @@ function test2a() {
   let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 2a, Plugin should not be activated");
 
-  gNextTest = test2b;
+  gNextTest = runAfterPluginBindingAttached(test2b);
   gTestBrowser.contentDocument.getElementById("data-link-2").click();
 }
 
@@ -184,7 +200,7 @@ function test2c() {
   ok(objLoadingContent.activated, "Test 2c, Plugin should be activated");
 
   clearAllPluginPermissions();
-  prepareTest(test3a, gHttpTestRoot + "plugin_data_url.html");
+  prepareTest(runAfterPluginBindingAttached(test3a), gHttpTestRoot + "plugin_data_url.html");
 }
 
 
@@ -214,7 +230,8 @@ function test3c() {
   ok(objLoadingContent.activated, "Test 3c, Plugin should be activated");
 
   clearAllPluginPermissions();
-  prepareTest(test4b, 'data:text/html,<embed id="test" style="width: 200px; height: 200px" type="application/x-test"/>');
+  prepareTest(runAfterPluginBindingAttached(test4b),
+              'data:text/html,<embed id="test" style="width: 200px; height: 200px" type="application/x-test"/>');
 }
 
 
