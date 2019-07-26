@@ -1842,7 +1842,8 @@ DataChannelConnection::Open(const nsACString& label, const nsACString& protocol,
     return nullptr;
   }
 
-  if (aStream != INVALID_STREAM && mStreams[aStream]) {
+  
+  if (aStream != INVALID_STREAM && aStream < mStreams.Length() && mStreams[aStream]) {
     LOG(("ERROR: external negotiation of already-open channel %u", aStream));
     
     
@@ -1873,55 +1874,96 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   
   
   uint16_t stream = channel->mStream;
+  bool queue = false;
 
   mLock.AssertCurrentThreadOwns();
 
-  if (stream == INVALID_STREAM || mState != OPEN) {
-    if (mState == OPEN) { 
-      
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (mState == OPEN) {
+    if (stream == INVALID_STREAM) {
       stream = FindFreeStream(); 
-      if (stream == INVALID_STREAM) {
-        if (!RequestMoreStreams()) {
-          channel->mState = CLOSED;
-          if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
-            
-            NS_ERROR("Failed to request more streams");
-            NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
-                                      DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
-                                      channel));
-            return channel.forget();
-          }
-          
-          
-          
-          return nullptr;
-        }
+    }
+    if (stream == INVALID_STREAM || stream >= mStreams.Length()) {
+      
+      
+      int32_t more_needed = (stream == INVALID_STREAM) ? 16 :
+                            (stream-((int32_t)mStreams.Length())) + 16;
+      if (!RequestMoreStreams(more_needed)) {
+        
+        goto request_error_cleanup;
       }
-      
+      queue = true;
     }
-    if (stream != INVALID_STREAM) {
-      
-      mStreams[stream] = channel; 
-      channel->mStream = stream;
-    }
-
-    LOG(("Finishing open: channel %p, stream = %u", channel.get(), stream));
-
-    if (stream == INVALID_STREAM || mState != OPEN) {
-      
-
-      LOG(("Queuing channel %p (%u) to finish open", channel.get(), stream));
-      
-      channel->mFlags |= DATA_CHANNEL_FLAGS_FINISH_OPEN;
-      channel->AddRef(); 
-      mPending.Push(channel);
-      return channel.forget();
-    } 
   } else {
     
-    mStreams[stream] = channel;
-    mStreams[stream] = channel; 
+    if (stream != INVALID_STREAM && stream >= mStreams.Length() &&
+        mState == CLOSED) {
+      
+      struct sctp_initmsg initmsg;
+      socklen_t len = sizeof(initmsg);
+      int32_t total_needed = stream+16;
+
+      memset(&initmsg, 0, sizeof(initmsg));
+      if (usrsctp_getsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, &len) < 0) {
+        LOG(("*** failed getsockopt SCTP_INITMSG"));
+        goto request_error_cleanup;
+      }
+      LOG(("Setting number of SCTP streams to %u, was %u/%u", total_needed,
+           initmsg.sinit_num_ostreams, initmsg.sinit_max_instreams));
+      initmsg.sinit_num_ostreams  = total_needed;
+      initmsg.sinit_max_instreams = MAX_NUM_STREAMS;
+      if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg,
+                             (socklen_t)sizeof(initmsg)) < 0) {
+        LOG(("*** failed setsockopt SCTP_INITMSG, errno %d", errno));
+        goto request_error_cleanup;
+      }
+
+      int32_t old_len = mStreams.Length();
+      mStreams.AppendElements(total_needed - old_len);
+      for (int32_t i = old_len; i < total_needed; ++i) {
+        mStreams[i] = nullptr;
+      }
+    }
+    
+    
+    queue = true;
   }
+  if (queue) {
+    LOG(("Queuing channel %p (%u) to finish open", channel.get(), stream));
+    
+    channel->mFlags |= DATA_CHANNEL_FLAGS_FINISH_OPEN;
+    channel->AddRef(); 
+    mPending.Push(channel);
+    return channel.forget();
+  }
+
+  MOZ_ASSERT(stream != INVALID_STREAM);
+  
+  mStreams[stream] = channel; 
+  channel->mStream = stream;
 
 #ifdef TEST_QUEUED_DATA
   
@@ -1970,6 +2012,21 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
                             channel));
 
   return channel.forget();
+
+request_error_cleanup:
+  channel->mState = CLOSED;
+  if (channel->mFlags & DATA_CHANNEL_FLAGS_FINISH_OPEN) {
+    
+    NS_ERROR("Failed to request more streams");
+    NS_DispatchToMainThread(new DataChannelOnMessageAvailable(
+                              DataChannelOnMessageAvailable::ON_CHANNEL_CLOSED, this,
+                              channel));
+    return channel.forget();
+  }
+  
+  
+  
+  return nullptr;
 }
 
 int32_t
