@@ -5,12 +5,12 @@
 
 #include "GfxInfo.h"
 #include "GLContext.h"
+#include "GLContextProvider.h"
 #include "nsUnicharUtils.h"
 #include "prenv.h"
 #include "prprf.h"
 #include "nsHashKeys.h"
 #include "nsVersionComparator.h"
-#include "mozilla/Monitor.h"
 #include "AndroidBridge.h"
 #include "nsIWindowWatcher.h"
 #include "nsServiceManagerUtils.h"
@@ -24,36 +24,16 @@
 namespace mozilla {
 namespace widget {
 
-static bool ExpectGLStringsToEverGetInitialized()
-{
-  
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
-  if (!wwatch) {
-    return false;
-  }
-  bool hasWindowCreator = false;
-  nsresult rv = wwatch->HasWindowCreator(&hasWindowCreator);
-  return NS_SUCCEEDED(rv) && hasWindowCreator;
-}
-
 class GfxInfo::GLStrings
 {
   nsCString mVendor;
   nsCString mRenderer;
   nsCString mVersion;
   bool mReady;
-  Monitor mMonitor;
 
 public:
   GLStrings()
     : mReady(false)
-    , mMonitor("GfxInfo::mGLStringsMonitor")
   {}
 
   const nsCString& Vendor() {
@@ -88,44 +68,30 @@ public:
 
   void EnsureInitialized() {
     if (!mReady) {
-      MonitorAutoLock autoLock(mMonitor);
-      
-      if (!mReady) {
-        if (ExpectGLStringsToEverGetInitialized()) {
-          mMonitor.Wait();
-        } else {
-          
-          
-          mReady = true;
-        }
-      }
+      nsRefPtr<gl::GLContext> gl = gl::GLContextProvider::CreateOffscreen(
+        gfxIntSize(1, 1),
+        gfx::SurfaceCaps::ForRGB());
+
+      gl->MakeCurrent();
+
+      const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_GL_VENDOR");
+      if (spoofedVendor)
+          mVendor.Assign(spoofedVendor);
+      else
+          mVendor.Assign((const char*)gl->fGetString(LOCAL_GL_VENDOR));
+      const char *spoofedRenderer = PR_GetEnv("MOZ_GFX_SPOOF_GL_RENDERER");
+      if (spoofedRenderer)
+          mRenderer.Assign(spoofedRenderer);
+      else
+          mRenderer.Assign((const char*)gl->fGetString(LOCAL_GL_RENDERER));
+      const char *spoofedVersion = PR_GetEnv("MOZ_GFX_SPOOF_GL_VERSION");
+      if (spoofedVersion)
+          mVersion.Assign(spoofedVersion);
+      else
+          mVersion.Assign((const char*)gl->fGetString(LOCAL_GL_VERSION));
+
+      mReady = true;
     }
-  }
-
-  void Initialize(gl::GLContext *gl) {
-    MonitorAutoLock autoLock(mMonitor);
-    MOZ_ASSERT(!mReady); 
-
-    gl->MakeCurrent();
-
-    const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_GL_VENDOR");
-    if (spoofedVendor)
-        mVendor.Assign(spoofedVendor);
-    else
-        mVendor.Assign((const char*)gl->fGetString(LOCAL_GL_VENDOR));
-    const char *spoofedRenderer = PR_GetEnv("MOZ_GFX_SPOOF_GL_RENDERER");
-    if (spoofedRenderer)
-        mRenderer.Assign(spoofedRenderer);
-    else
-        mRenderer.Assign((const char*)gl->fGetString(LOCAL_GL_RENDERER));
-    const char *spoofedVersion = PR_GetEnv("MOZ_GFX_SPOOF_GL_VERSION");
-    if (spoofedVersion)
-        mVersion.Assign(spoofedVersion);
-    else
-        mVersion.Assign((const char*)gl->fGetString(LOCAL_GL_VERSION));
-
-    mReady = true;
-    mMonitor.Notify();
   }
 };
 
@@ -165,11 +131,6 @@ NS_IMETHODIMP
 GfxInfo::GetCleartypeParameters(nsAString & aCleartypeParams)
 {
   return NS_ERROR_FAILURE;
-}
-
-void GfxInfo::InitializeGLStrings(gl::GLContext* gl)
-{
-  mGLStrings->Initialize(gl);
 }
 
 void
@@ -402,8 +363,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
   if (aOS)
     *aOS = os;
 
-  
-  
   
   
   
