@@ -334,6 +334,9 @@ public:
   
   bool mShouldBuildLayer:1;
 
+  
+  bool mHasBeenScrolled:1;
+
 protected:
   void ScrollToWithOrigin(nsPoint aScrollPosition,
                           nsIScrollableFrame::ScrollMode aMode,

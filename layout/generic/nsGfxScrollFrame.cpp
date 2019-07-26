@@ -1455,6 +1455,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
   , mUpdateScrollbarAttributes(false)
   , mCollapsedResizer(false)
   , mShouldBuildLayer(false)
+  , mHasBeenScrolled(false)
 {
   mScrollingActive = IsAlwaysActive();
 
@@ -1743,8 +1744,20 @@ bool nsGfxScrollFrameInner::IsAlwaysActive() const
   
   
   
+  if (!(mIsRoot && mOuter->PresContext()->IsRootContentDocument())) {
+     return false;
+  }
+
   
-  return mIsRoot && mOuter->PresContext()->IsRootContentDocument();
+  if (mHasBeenScrolled) {
+   return true;
+  }
+ 
+  
+  
+  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+  return (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN &&
+          styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
 }
 
 void nsGfxScrollFrameInner::MarkInactive()
@@ -1774,6 +1787,12 @@ void nsGfxScrollFrameInner::MarkActive()
 
 void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
 {
+  
+  
+  
+  
+  mHasBeenScrolled = true;
+
   AdjustViews(mScrolledFrame);
   
   
