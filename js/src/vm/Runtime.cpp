@@ -169,6 +169,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     checkRequestDepth(0),
 # endif
 #endif
+    gcInitialized(false),
     gcSystemAvailableChunkListHead(nullptr),
     gcUserAvailableChunkListHead(nullptr),
     gcBytes(0),
@@ -404,16 +405,19 @@ JSRuntime::init(uint32_t maxbytes)
     if (!InitAtoms(this))
         return false;
 
-    if (!InitRuntimeNumberState(this))
-        return false;
-
-    dateTimeInfo.updateTimeZoneAdjustment();
-
     if (!scriptDataTable_.init())
         return false;
 
     if (!evalCache.init())
         return false;
+
+    
+    gcInitialized = true;
+
+    if (!InitRuntimeNumberState(this))
+        return false;
+
+    dateTimeInfo.updateTimeZoneAdjustment();
 
 #ifdef JS_ARM_SIMULATOR
     simulatorRuntime_ = js::jit::CreateSimulatorRuntime();
@@ -435,43 +439,45 @@ JSRuntime::~JSRuntime()
 {
     JS_ASSERT(!isHeapBusy());
 
-    
-    sourceHook = nullptr;
+    if (gcInitialized) {
+        
+        sourceHook = nullptr;
 
-    
-
-
-
+        
 
 
-    for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next())
-        CancelOffThreadIonCompile(comp, nullptr);
-    CancelOffThreadParses(this);
 
-    
-    FinishCommonNames(this);
 
-    
-    for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next()) {
-        comp->clearTraps(defaultFreeOp());
-        if (WatchpointMap *wpmap = comp->watchpointMap)
-            wpmap->clear();
+
+        for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next())
+            CancelOffThreadIonCompile(comp, nullptr);
+        CancelOffThreadParses(this);
+
+        
+        FinishCommonNames(this);
+
+        
+        for (CompartmentsIter comp(this, SkipAtoms); !comp.done(); comp.next()) {
+            comp->clearTraps(defaultFreeOp());
+            if (WatchpointMap *wpmap = comp->watchpointMap)
+                wpmap->clear();
+        }
+
+        
+        staticStrings.finish();
+
+        
+
+
+
+        beingDestroyed_ = true;
+
+        
+        profilingScripts = false;
+
+        JS::PrepareForFullGC(this);
+        GC(this, GC_NORMAL, JS::gcreason::DESTROY_RUNTIME);
     }
-
-    
-    staticStrings.finish();
-
-    
-
-
-
-    beingDestroyed_ = true;
-
-    
-    profilingScripts = false;
-
-    JS::PrepareForFullGC(this);
-    GC(this, GC_NORMAL, JS::gcreason::DESTROY_RUNTIME);
 
     
 

@@ -1017,6 +1017,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     
 
     
+    bool                gcInitialized;
+
+    
 
 
 
