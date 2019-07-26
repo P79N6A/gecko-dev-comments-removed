@@ -526,8 +526,6 @@ private:
             if (AsyncPanZoomController* apzc = state->mController) {
               referent->SetUserData(&sPanZoomUserDataKey,
                                     new PanZoomUserData(apzc));
-            } else {
-              CompensateForContentScrollOffset(ref, referent);
             }
           } else {
             ref->DetachReferentLayer(referent);
@@ -540,31 +538,6 @@ private:
          child; child = child->GetNextSibling()) {
       WalkTheTree<OP>(child, aLayer);
     }
-  }
-
-  
-  void CompensateForContentScrollOffset(Layer* aContainer,
-                                        Layer* aShadowContent)
-  {
-    ContainerLayer* c = aShadowContent->AsContainerLayer();
-    if (!c) {
-      return;
-    }
-    const FrameMetrics& fm = c->GetFrameMetrics();
-    gfx3DMatrix m(aContainer->GetTransform());
-    m.Translate(gfxPoint3D(-fm.GetScrollOffsetInLayerPixels().x,
-                           -fm.GetScrollOffsetInLayerPixels().y, 0));
-
-    
-    
-    
-    m.Scale(1.0f/c->GetPreXScale(),
-            1.0f/c->GetPreYScale(),
-            1);
-    m.ScalePost(1.0f/c->GetPostXScale(),
-                1.0f/c->GetPostYScale(),
-                1);
-    aContainer->AsShadowLayer()->SetShadowTransform(m);
   }
 
   bool IsSameDimension(ScreenOrientation o1, ScreenOrientation o2) {
