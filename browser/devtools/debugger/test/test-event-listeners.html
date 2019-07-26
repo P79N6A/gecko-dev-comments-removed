@@ -6,7 +6,8 @@
     
 
     <script type="text/javascript">
-      window.addEventListener("load", function() {
+      window.addEventListener("load", function onload() {
+        window.removeEventListener("load", onload);
         function initialSetup(event) {
           debugger;
           var button = document.querySelector("button");
