@@ -29,10 +29,6 @@ CountArgSlots(JSScript *script, JSFunction *fun)
 }
 
 
-
-static const unsigned NumExecutionModes = ParallelExecution + 1;
-
-
 class CompileInfo
 {
   public:

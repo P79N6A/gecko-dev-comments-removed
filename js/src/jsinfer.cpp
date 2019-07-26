@@ -259,7 +259,7 @@ types::TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &val
 
 
 
-        TypeSet *types = obj->maybeGetProperty(cx, id);
+        TypeSet *types = obj->maybeGetProperty(id);
         if (!types)
             return true;
 
@@ -710,7 +710,7 @@ TypeObjectKey::property(jsid id)
 }
 
 bool
-types::FinishCompilation(JSContext *cx, JSScript *script, jit::ExecutionMode executionMode,
+types::FinishCompilation(JSContext *cx, JSScript *script, ExecutionMode executionMode,
                          CompilerConstraintList *constraints, RecompileInfo *precompileInfo)
 {
     if (constraints->failed())
@@ -1009,7 +1009,7 @@ ObjectStateChange(ExclusiveContext *cxArg, TypeObject *object, bool markingUnkno
         return;
 
     
-    TypeSet *types = object->maybeGetProperty(cxArg, JSID_EMPTY);
+    TypeSet *types = object->maybeGetProperty(JSID_EMPTY);
 
     
     if (markingUnknown)
@@ -2524,7 +2524,7 @@ TypeObject::markStateChange(ExclusiveContext *cxArg)
         return;
 
     AutoEnterAnalysis enter(cxArg);
-    TypeSet *types = maybeGetProperty(cxArg, JSID_EMPTY);
+    TypeSet *types = maybeGetProperty(JSID_EMPTY);
     if (types) {
         if (JSContext *cx = cxArg->maybeJSContext()) {
             TypeConstraint *constraint = types->constraintList;

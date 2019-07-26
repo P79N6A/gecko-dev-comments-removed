@@ -102,22 +102,71 @@ class RootedBase<TaggedProto> : public TaggedProtoOperations<Rooted<TaggedProto>
 
 class CallObject;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum ExecutionMode {
+    
+    SequentialExecution,
+
+    
+
+
+
+    ParallelExecution,
+
+    
+
+
+
+
+    
+
+
+
+    DefinitePropertiesAnalysis
+};
+
+
+
+
+
+static const unsigned NumExecutionModes = ParallelExecution + 1;
+
+template <ExecutionMode mode>
+struct ExecutionModeTraits
+{
+};
+
+template <> struct ExecutionModeTraits<SequentialExecution>
+{
+    typedef JSContext * ContextType;
+    typedef ExclusiveContext * ExclusiveContextType;
+
+    static inline JSContext *toContextType(ExclusiveContext *cx);
+};
+
+template <> struct ExecutionModeTraits<ParallelExecution>
+{
+    typedef ForkJoinSlice * ContextType;
+    typedef ForkJoinSlice * ExclusiveContextType;
+
+    static inline ForkJoinSlice *toContextType(ForkJoinSlice *cx) { return cx; }
+};
+
 namespace jit {
     struct IonScript;
     class IonAllocPolicy;
-
-    enum ExecutionMode {
-        
-        SequentialExecution,
-
-        
-        
-        ParallelExecution,
-
-        
-        
-        DefinitePropertiesAnalysis
-    };
 }
 
 namespace analyze {
@@ -960,7 +1009,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     inline HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id);
 
     
-    inline HeapTypeSet *maybeGetProperty(ExclusiveContext *cx, jsid id);
+    inline HeapTypeSet *maybeGetProperty(jsid id);
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
@@ -1235,22 +1284,22 @@ class CompilerOutput
     
     
     JSScript *script_;
-    unsigned mode_ : 2;
+    ExecutionMode mode_ : 2;
 
     
     bool pendingInvalidation_ : 1;
 
   public:
     CompilerOutput()
-      : script_(nullptr), mode_(0), pendingInvalidation_(false)
+      : script_(nullptr), mode_(SequentialExecution), pendingInvalidation_(false)
     {}
 
-    CompilerOutput(JSScript *script, jit::ExecutionMode mode)
+    CompilerOutput(JSScript *script, ExecutionMode mode)
       : script_(script), mode_(mode), pendingInvalidation_(false)
     {}
 
     JSScript *script() const { return script_; }
-    inline jit::ExecutionMode mode() const { return static_cast<jit::ExecutionMode>(mode_); }
+    inline ExecutionMode mode() const { return mode_; }
 
     inline jit::IonScript *ion() const;
 
