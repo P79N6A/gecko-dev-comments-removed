@@ -2,9 +2,9 @@
 
 
 
-function test() {
-  let pb = Cc["@mozilla.org/privatebrowsing;1"].getService(Ci.nsIPrivateBrowsingService);
+Components.utils.import("resource://gre/modules/ClearRecentHistory.jsm");
 
+function test() {
   
   function countClosedTabsByTitle(aClosedTabList, aTitle)
     aClosedTabList.filter(function (aData) aData.title == aTitle).length;
@@ -79,7 +79,7 @@ function test() {
   ss.setBrowserState(JSON.stringify(testState));
 
   
-  pb.removeDataFromDomain("mozilla.org");
+  ClearRecentHistory.removeDataFromDomain("mozilla.org");
 
   let closedWindowData = JSON.parse(ss.getClosedWindowData());
 

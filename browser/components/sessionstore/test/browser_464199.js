@@ -2,6 +2,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/ClearRecentHistory.jsm");
+
 function test() {
   
 
@@ -56,9 +58,7 @@ function test() {
     is(countByTitle(closedTabs, REMEMBER), remember_count,
        "Everything is set up.");
 
-    let pb = Cc["@mozilla.org/privatebrowsing;1"].
-             getService(Ci.nsIPrivateBrowsingService);
-    pb.removeDataFromDomain("example.net");
+    ClearRecentHistory.removeDataFromDomain("example.net");
 
     closedTabs = JSON.parse(ss.getClosedTabData(newWin));
     is(closedTabs.length, remember_count,
