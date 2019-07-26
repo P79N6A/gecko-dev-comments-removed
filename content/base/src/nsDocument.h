@@ -943,14 +943,17 @@ public:
   virtual Element* GetFullScreenElement();
   virtual void AsyncRequestFullScreen(Element* aElement);
   virtual void RestorePreviousFullScreenState();
+  virtual bool IsFullscreenLeaf();
   virtual bool IsFullScreenDoc();
   virtual void SetApprovedForFullscreen(bool aIsApproved);
   virtual nsresult RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement,
                                                 const nsAString& aNewOrigin);
 
   virtual nsresult RemoteFrameFullscreenReverted();
+  virtual nsIDocument* GetFullscreenRoot();
+  virtual void SetFullscreenRoot(nsIDocument* aRoot);
 
-  static void ExitFullScreen();
+  static void ExitFullscreen(nsIDocument* aDoc);
 
   
   
@@ -1165,17 +1168,6 @@ protected:
 
   
   
-  static nsWeakPtr sFullScreenDoc;
-
-  
-  
-  
-  
-  
-  static nsWeakPtr sFullScreenRootDoc;
-
-  
-  
   static nsWeakPtr sPendingPointerLockDoc;
 
   
@@ -1187,6 +1179,10 @@ protected:
   
   
   nsTArray<nsWeakPtr> mFullScreenStack;
+
+  
+  
+  nsWeakPtr mFullscreenRoot;
 
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

@@ -102,8 +102,8 @@ template<typename> class Sequence;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x4e6f7d97, 0x091e, 0x4eda, \
-  { 0xb7, 0xd6, 0xfe, 0xb0, 0xb8, 0x01, 0x2a, 0x93 } }
+{ 0x45ce048f, 0x5970, 0x411e, \
+  { 0xaa, 0x99, 0x12, 0xed, 0x3a, 0x55, 0xc9, 0xc3 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -908,6 +908,25 @@ public:
 
 
 
+  virtual bool IsFullscreenLeaf() = 0;
+
+  
+
+
+
+
+  virtual nsIDocument* GetFullscreenRoot() = 0;
+
+  
+
+
+
+  virtual void SetFullscreenRoot(nsIDocument* aRoot) = 0;
+
+  
+
+
+
 
 
   virtual void SetApprovedForFullscreen(bool aIsApproved) = 0;
@@ -917,8 +936,10 @@ public:
 
 
 
-  static void ExitFullScreen(bool aRunAsync);
 
+
+
+  static void ExitFullscreen(nsIDocument* aDocument, bool aRunAsync);
 
   virtual void RequestPointerLock(Element* aElement) = 0;
 

@@ -4731,7 +4731,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
   GetFullScreen(&rootWinFullScreen);
   
   
-  if (aFullScreen == rootWinFullScreen || 
+  if (aFullScreen == rootWinFullScreen ||
       (aRequireTrust && !nsContentUtils::IsCallerChrome())) {
     return NS_OK;
   }
@@ -4792,7 +4792,8 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
     
     
     
-    nsIDocument::ExitFullScreen(false);
+    nsCOMPtr<nsIDocument> doc(do_QueryInterface(mDocument));
+    nsIDocument::ExitFullscreen(doc,  false);
   }
 
   if (!mWakeLock && mFullScreen) {

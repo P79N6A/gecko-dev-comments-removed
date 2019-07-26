@@ -6637,9 +6637,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           aEvent->mFlags.mOnlyChromeDispatch = true;
 
           if (aEvent->message == NS_KEY_UP) {
-             
-             
-            nsIDocument::ExitFullScreen(true);
+            
+            
+            
+            nsIDocument::ExitFullscreen(nullptr,  true);
           }
         }
         
