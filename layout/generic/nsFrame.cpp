@@ -1056,7 +1056,7 @@ nsIFrame::HasPerspective() const
     return false;
   }
   const nsStyleDisplay* parentDisp = nullptr;
-  nsStyleContext* parentStyleContext = GetStyleContext()->GetParent();
+  nsStyleContext* parentStyleContext = StyleContext()->GetParent();
   if (parentStyleContext) {
     parentDisp = parentStyleContext->GetStyleDisplay();
   }
@@ -1072,7 +1072,7 @@ nsIFrame::HasPerspective() const
 bool
 nsIFrame::ChildrenHavePerspective() const
 {
-  const nsStyleDisplay *disp = GetStyleContext()->GetStyleDisplay();
+  const nsStyleDisplay *disp = StyleContext()->GetStyleDisplay();
   if (disp &&
       disp->mChildPerspective.GetUnit() == eStyleUnit_Coord &&
       disp->mChildPerspective.GetCoordValue() > 0.0) {
@@ -5352,7 +5352,7 @@ nsFrame::IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
 bool
 nsIFrame::IsBlockWrapper() const
 {
-  nsIAtom *pseudoType = GetStyleContext()->GetPseudo();
+  nsIAtom *pseudoType = StyleContext()->GetPseudo();
   return (pseudoType == nsCSSAnonBoxes::mozAnonymousBlock ||
           pseudoType == nsCSSAnonBoxes::mozAnonymousPositionedBlock ||
           pseudoType == nsCSSAnonBoxes::cellContent);
@@ -6079,7 +6079,7 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
 
   
   if (aFrame->HasTerminalNewline() &&
-      aFrame->GetStyleContext()->GetStyleText()->NewlineIsSignificant()) {
+      aFrame->StyleContext()->GetStyleText()->NewlineIsSignificant()) {
     int32_t startOffset, endOffset;
     aFrame->GetOffsets(startOffset, endOffset);
     result.mContent = aFrame->GetContent();
@@ -7022,13 +7022,13 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     if (Preserves3DChildren()) {
       ComputePreserve3DChildrenOverflow(aOverflowAreas, newBounds);
     } else if (sizeChanged && ChildrenHavePerspective()) {
-      RecomputePerspectiveChildrenOverflow(this->GetStyleContext(), &newBounds);
+      RecomputePerspectiveChildrenOverflow(this->StyleContext(), &newBounds);
     }
   } else {
     Properties().Delete(nsIFrame::PreTransformOverflowAreasProperty());
     if (ChildrenHavePerspective() && sizeChanged) {
       nsRect newBounds(nsPoint(0, 0), aNewSize);
-      RecomputePerspectiveChildrenOverflow(this->GetStyleContext(), &newBounds);
+      RecomputePerspectiveChildrenOverflow(this->StyleContext(), &newBounds);
     }
   }
 
@@ -7074,8 +7074,8 @@ nsIFrame::RecomputePerspectiveChildrenOverflow(const nsStyleContext* aStartStyle
           boundsOverflow.SetAllTo(bounds);
           child->FinishAndStoreOverflow(boundsOverflow, bounds.Size());
         }
-      } else if (child->GetStyleContext()->GetParent() == aStartStyle ||
-                 child->GetStyleContext() == aStartStyle) {
+      } else if (child->StyleContext()->GetParent() == aStartStyle ||
+                 child->StyleContext() == aStartStyle) {
         
         
         
@@ -7217,7 +7217,7 @@ GetIBSpecialSiblingForAnonymousBlock(const nsIFrame* aFrame)
   NS_ASSERTION(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL,
                "GetIBSpecialSibling should not be called on a non-special frame");
 
-  nsIAtom* type = aFrame->GetStyleContext()->GetPseudo();
+  nsIAtom* type = aFrame->StyleContext()->GetPseudo();
   if (type != nsCSSAnonBoxes::mozAnonymousBlock &&
       type != nsCSSAnonBoxes::mozAnonymousPositionedBlock) {
     
@@ -7259,9 +7259,9 @@ GetCorrectedParent(const nsIFrame* aFrame)
   
   
   
-  nsIAtom* pseudo = aFrame->GetStyleContext()->GetPseudo();
+  nsIAtom* pseudo = aFrame->StyleContext()->GetPseudo();
   if (pseudo == nsCSSAnonBoxes::tableOuter) {
-    pseudo = aFrame->GetFirstPrincipalChild()->GetStyleContext()->GetPseudo();
+    pseudo = aFrame->GetFirstPrincipalChild()->StyleContext()->GetPseudo();
   }
   return nsFrame::CorrectStyleParentFrame(parent, pseudo);
 }
@@ -7299,7 +7299,7 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
       }
     }
       
-    nsIAtom* parentPseudo = parent->GetStyleContext()->GetPseudo();
+    nsIAtom* parentPseudo = parent->StyleContext()->GetPseudo();
     if (!parentPseudo ||
         (!nsCSSAnonBoxes::IsAnonBox(parentPseudo) &&
          
@@ -7313,7 +7313,7 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
     parent = parent->GetParent();
   } while (parent);
 
-  if (aProspectiveParent->GetStyleContext()->GetPseudo() ==
+  if (aProspectiveParent->StyleContext()->GetPseudo() ==
       nsCSSAnonBoxes::viewportScroll) {
     
     
@@ -7332,7 +7332,7 @@ nsIFrame*
 nsFrame::DoGetParentStyleContextFrame() const
 {
   if (mContent && !mContent->GetParent() &&
-      !GetStyleContext()->GetPseudo()) {
+      !StyleContext()->GetPseudo()) {
     
     return nullptr;
   }
@@ -7522,7 +7522,7 @@ nsIFrame::VerticalAlignEnum() const
   }
 
   const nsStyleCoord& verticalAlign =
-    GetStyleContext()->GetStyleTextReset()->mVerticalAlign;
+    StyleContext()->GetStyleTextReset()->mVerticalAlign;
   if (verticalAlign.GetUnit() == eStyleUnit_Enumerated) {
     return verticalAlign.GetIntValue();
   }

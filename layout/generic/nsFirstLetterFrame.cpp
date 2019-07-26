@@ -326,7 +326,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
   
   
   
-  nsStyleContext* parentSC = this->GetStyleContext()->GetParent();
+  nsStyleContext* parentSC = this->StyleContext()->GetParent();
   if (parentSC) {
     nsRefPtr<nsStyleContext> newSC;
     newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);

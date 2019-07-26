@@ -568,7 +568,7 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
 {
   
   if (!aContext) {
-    aContext = aFrame->GetStyleContext();
+    aContext = aFrame->StyleContext();
   }
 
   if (!aParentContext) {
@@ -579,7 +579,7 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
     
     nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
     if (providerFrame)
-      aParentContext = providerFrame->GetStyleContext();
+      aParentContext = providerFrame->StyleContext();
     
   }
 
@@ -633,7 +633,7 @@ static void
 VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
                 nsStyleContext* aParentContext)
 {
-  nsStyleContext*  context = aFrame->GetStyleContext();
+  nsStyleContext*  context = aFrame->StyleContext();
   VerifyContextParent(aPresContext, aFrame, context, nullptr);
 
   nsIFrame::ChildListIterator lists(aFrame);
@@ -682,7 +682,7 @@ void
 nsFrameManager::DebugVerifyStyleTree(nsIFrame* aFrame)
 {
   if (aFrame) {
-    nsStyleContext* context = aFrame->GetStyleContext();
+    nsStyleContext* context = aFrame->StyleContext();
     nsStyleContext* parentContext = context->GetParent();
     VerifyStyleTree(GetPresContext(), aFrame, parentContext);
   }
@@ -792,7 +792,7 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
 
   
   
-  nsStyleContext* oldContext = aFrame->GetStyleContext();
+  nsStyleContext* oldContext = aFrame->StyleContext();
   
   if (oldContext) {
     nsRefPtr<nsStyleContext> newContext;
@@ -802,10 +802,10 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
     nsIFrame* providerChild = nullptr;
     if (isChild) {
       ReparentStyleContext(providerFrame);
-      newParentContext = providerFrame->GetStyleContext();
+      newParentContext = providerFrame->StyleContext();
       providerChild = providerFrame;
     } else if (providerFrame) {
-      newParentContext = providerFrame->GetStyleContext();
+      newParentContext = providerFrame->StyleContext();
     } else {
       NS_NOTREACHED("Reparenting something that has no usable parent? "
                     "Shouldn't happen!");
@@ -829,7 +829,7 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
       nsIFrame *nextContinuation = aFrame->GetNextContinuation();
       if (nextContinuation) {
         nsStyleContext *nextContinuationContext =
-          nextContinuation->GetStyleContext();
+          nextContinuation->StyleContext();
         NS_ASSERTION(oldContext == nextContinuationContext ||
                      oldContext->GetPseudo() !=
                        nextContinuationContext->GetPseudo() ||
@@ -845,7 +845,7 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
     nsStyleContext *prevContinuationContext;
     bool copyFromContinuation =
       prevContinuation &&
-      (prevContinuationContext = prevContinuation->GetStyleContext())
+      (prevContinuationContext = prevContinuation->StyleContext())
         ->GetPseudo() == oldContext->GetPseudo() &&
        prevContinuationContext->GetParent() == newParentContext;
     if (copyFromContinuation) {
@@ -1054,7 +1054,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 
   nsChangeHint assumeDifferenceHint = NS_STYLE_HINT_NONE;
   
-  nsStyleContext* oldContext = aFrame->GetStyleContext();
+  nsStyleContext* oldContext = aFrame->StyleContext();
   nsStyleSet* styleSet = aPresContext->StyleSet();
 
   
@@ -1102,7 +1102,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
     if (!isChild) {
       if (providerFrame)
-        parentContext = providerFrame->GetStyleContext();
+        parentContext = providerFrame->StyleContext();
       else
         parentContext = nullptr;
     }
@@ -1133,7 +1133,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 
       
       
-      parentContext = providerFrame->GetStyleContext();
+      parentContext = providerFrame->StyleContext();
       
       
       resolvedChild = providerFrame;
@@ -1159,7 +1159,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       nsIFrame *nextContinuation = aFrame->GetNextContinuation();
       if (nextContinuation) {
         nsStyleContext *nextContinuationContext =
-          nextContinuation->GetStyleContext();
+          nextContinuation->StyleContext();
         NS_ASSERTION(oldContext == nextContinuationContext ||
                      oldContext->GetPseudo() !=
                        nextContinuationContext->GetPseudo() ||
@@ -1180,7 +1180,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         }
         if (nextIBSibling) {
           nsStyleContext *nextIBSiblingContext =
-            nextIBSibling->GetStyleContext();
+            nextIBSibling->StyleContext();
           NS_ASSERTION(oldContext == nextIBSiblingContext ||
                        oldContext->GetPseudo() !=
                          nextIBSiblingContext->GetPseudo() ||
@@ -1200,7 +1200,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     nsStyleContext *prevContinuationContext;
     bool copyFromContinuation =
       prevContinuation &&
-      (prevContinuationContext = prevContinuation->GetStyleContext())
+      (prevContinuationContext = prevContinuation->StyleContext())
         ->GetPseudo() == oldContext->GetPseudo() &&
        prevContinuationContext->GetParent() == parentContext;
     if (copyFromContinuation) {

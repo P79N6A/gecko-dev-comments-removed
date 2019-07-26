@@ -1556,7 +1556,7 @@ nsSVGUtils::SetupCairoFillPaint(nsIFrame *aFrame, gfxContext* aContext,
   
   
   
-  SetupFallbackOrPaintColor(aContext, aFrame->GetStyleContext(),
+  SetupFallbackOrPaintColor(aContext, aFrame->StyleContext(),
                             &nsStyleSVG::mFill, opacity);
 
   return true;
@@ -1587,7 +1587,7 @@ nsSVGUtils::SetupCairoStrokePaint(nsIFrame *aFrame, gfxContext* aContext,
   
   
   
-  SetupFallbackOrPaintColor(aContext, aFrame->GetStyleContext(),
+  SetupFallbackOrPaintColor(aContext, aFrame->StyleContext(),
                             &nsStyleSVG::mStroke, opacity);
 
   return true;

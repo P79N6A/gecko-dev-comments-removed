@@ -275,7 +275,7 @@ struct nsCSSRendering {
     
     
     
-    return aForFrame->GetStyleContext();
+    return aForFrame->StyleContext();
   }
 
   

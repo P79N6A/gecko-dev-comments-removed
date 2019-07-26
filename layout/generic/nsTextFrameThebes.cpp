@@ -1543,7 +1543,7 @@ BuildTextRunsScanner::ContinueTextRunAcrossFrames(nsTextFrame* aFrame1, nsTextFr
        NS_GET_PARAGRAPH_DEPTH(aFrame1) != NS_GET_PARAGRAPH_DEPTH(aFrame2)))
     return false;
 
-  nsStyleContext* sc1 = aFrame1->GetStyleContext();
+  nsStyleContext* sc1 = aFrame1->StyleContext();
   const nsStyleText* textStyle1 = sc1->GetStyleText();
   
   
@@ -1565,7 +1565,7 @@ BuildTextRunsScanner::ContinueTextRunAcrossFrames(nsTextFrame* aFrame1, nsTextFr
     return false;
   }
 
-  nsStyleContext* sc2 = aFrame2->GetStyleContext();
+  nsStyleContext* sc2 = aFrame2->StyleContext();
   const nsStyleText* textStyle2 = sc2->GetStyleText();
   if (sc1 == sc2)
     return true;
@@ -1594,7 +1594,7 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
       
       
       
-      if (mLastFrame->GetStyleContext() == aFrame->GetStyleContext() &&
+      if (mLastFrame->StyleContext() == aFrame->StyleContext() &&
           !HasTerminalNewline(mLastFrame)) {
         AccumulateRunInfo(static_cast<nsTextFrame*>(aFrame));
         return;
@@ -1849,7 +1849,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     MappedFlow* mappedFlow = &mMappedFlows[i];
     nsTextFrame* f = mappedFlow->mStartFrame;
 
-    lastStyleContext = f->GetStyleContext();
+    lastStyleContext = f->StyleContext();
     
     textStyle = f->GetStyleText();
     if (NS_STYLE_TEXT_TRANSFORM_NONE != textStyle->mTextTransform) {
@@ -2017,7 +2017,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
         uint32_t offset = iter.GetSkippedOffset();
         iter.AdvanceOriginal(f->GetContentLength());
         uint32_t end = iter.GetSkippedOffset();
-        nsStyleContext* sc = f->GetStyleContext();
+        nsStyleContext* sc = f->StyleContext();
         uint32_t j;
         for (j = offset; j < end; ++j) {
           styles.AppendElement(sc);
@@ -3676,7 +3676,7 @@ nsTextPaintStyle::InitSelectionColorsAndShadow()
     sc = mPresContext->StyleSet()->
       ProbePseudoElementStyle(selectionElement,
                               nsCSSPseudoElements::ePseudo_mozSelection,
-                              mFrame->GetStyleContext());
+                              mFrame->StyleContext());
     
     if (sc) {
       mSelectionBGColor =
@@ -4060,7 +4060,7 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
   mContentOffset = prev->GetContentOffset() + prev->GetContentLengthHint();
   NS_ASSERTION(mContentOffset < int32_t(aContent->GetText()->GetLength()),
                "Creating ContinuingTextFrame, but there is no more content");
-  if (prev->GetStyleContext() != GetStyleContext()) {
+  if (prev->StyleContext() != StyleContext()) {
     
     
     prev->ClearTextRuns();
@@ -4129,7 +4129,7 @@ nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
       (!mPrevContinuation &&
        !(GetStateBits() & TEXT_STYLE_MATCHES_PREV_CONTINUATION)) ||
       (mPrevContinuation &&
-       mPrevContinuation->GetStyleContext() != GetStyleContext())) {
+       mPrevContinuation->StyleContext() != StyleContext())) {
     ClearTextRuns();
     
     
@@ -4646,7 +4646,7 @@ GetGeneratedContentOwner(nsIFrame* aFrame, bool* aIsBefore)
 {
   *aIsBefore = false;
   while (aFrame && (aFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT)) {
-    if (aFrame->GetStyleContext()->GetPseudo() == nsCSSPseudoElements::before) {
+    if (aFrame->StyleContext()->GetPseudo() == nsCSSPseudoElements::before) {
       *aIsBefore = true;
     }
     aFrame = aFrame->GetParent();
@@ -4744,7 +4744,7 @@ nsTextFrame::GetTextDecorations(
        fChild = f,
        f = nsLayoutUtils::GetParentOrPlaceholderFor(f))
   {
-    nsStyleContext *const context = f->GetStyleContext();
+    nsStyleContext *const context = f->StyleContext();
     if (!context->HasTextDecorationLines()) {
       break;
     }
@@ -4861,7 +4861,7 @@ nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
     
     
     nsIFrame* firstLetterFrame = aBlockReflowState.frame;
-    uint8_t decorationStyle = firstLetterFrame->GetStyleContext()->
+    uint8_t decorationStyle = firstLetterFrame->StyleContext()->
                                 GetStyleTextReset()->GetDecorationStyle();
     
     
@@ -5008,7 +5008,7 @@ ComputeDescentLimitForSelectionUnderline(nsPresContext* aPresContext,
 {
   gfxFloat app = aPresContext->AppUnitsPerDevPixel();
   nscoord lineHeightApp =
-    nsHTMLReflowState::CalcLineHeight(aFrame->GetStyleContext(), NS_AUTOHEIGHT,
+    nsHTMLReflowState::CalcLineHeight(aFrame->StyleContext(), NS_AUTOHEIGHT,
                                       aFrame->GetFontSizeInflation());
   gfxFloat lineHeight = gfxFloat(lineHeightApp) / app;
   if (lineHeight <= aFontMetrics.maxHeight) {
@@ -7357,7 +7357,7 @@ RoundOut(const gfxRect& aRect)
 nsRect
 nsTextFrame::ComputeTightBounds(gfxContext* aContext) const
 {
-  if (GetStyleContext()->HasTextDecorationLines() ||
+  if (StyleContext()->HasTextDecorationLines() ||
       (GetStateBits() & TEXT_HYPHEN_BREAK)) {
     
     return GetVisualOverflowRect();
@@ -7557,7 +7557,7 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
       
       
       
-      if (f->GetStyleContext() == f->GetPrevContinuation()->GetStyleContext()) {
+      if (f->StyleContext() == f->GetPrevContinuation()->StyleContext()) {
         f->AddStateBits(TEXT_STYLE_MATCHES_PREV_CONTINUATION);
       }
     } else if (framesToRemove) {

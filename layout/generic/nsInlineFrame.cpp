@@ -223,7 +223,7 @@ nsRect
 nsInlineFrame::ComputeTightBounds(gfxContext* aContext) const
 {
   
-  if (GetStyleContext()->HasTextDecorationLines()) {
+  if (StyleContext()->HasTextDecorationLines()) {
     return GetVisualOverflowRect();
   }
   return ComputeSimpleTightBounds(aContext);
@@ -1055,7 +1055,7 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
     if (mStyleContext == first->mStyleContext) {
       
       
-      nsStyleContext* parentContext = first->GetParent()->GetStyleContext();
+      nsStyleContext* parentContext = first->GetParent()->StyleContext();
       if (parentContext) {
         
         

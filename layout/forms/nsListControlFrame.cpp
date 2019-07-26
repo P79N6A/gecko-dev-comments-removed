@@ -1621,7 +1621,7 @@ nsListControlFrame::AboutToDropDown()
   
   
   nsIFrame* comboboxFrame = do_QueryFrame(mComboboxFrame);
-  nsStyleContext* context = comboboxFrame->GetStyleContext()->GetParent();
+  nsStyleContext* context = comboboxFrame->StyleContext()->GetParent();
   mLastDropdownBackstopColor = NS_RGBA(0,0,0,0);
   while (NS_GET_A(mLastDropdownBackstopColor) < 255 && context) {
     mLastDropdownBackstopColor =

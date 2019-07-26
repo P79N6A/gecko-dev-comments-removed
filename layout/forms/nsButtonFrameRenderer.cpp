@@ -241,7 +241,7 @@ nsButtonFrameRenderer::PaintBorderAndBackground(nsPresContext* aPresContext,
   nsRect buttonRect;
   GetButtonRect(aRect, buttonRect);
 
-  nsStyleContext* context = mFrame->GetStyleContext();
+  nsStyleContext* context = mFrame->StyleContext();
 
   nsCSSRendering::PaintBackground(aPresContext, aRenderingContext, mFrame,
                                   aDirtyRect, buttonRect, aBGFlags);
@@ -343,7 +343,7 @@ void
 nsButtonFrameRenderer::ReResolveStyles(nsPresContext* aPresContext)
 {
   
-  nsStyleContext* context = mFrame->GetStyleContext();
+  nsStyleContext* context = mFrame->StyleContext();
   nsStyleSet *styleSet = aPresContext->StyleSet();
 
   

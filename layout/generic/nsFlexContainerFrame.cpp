@@ -477,7 +477,7 @@ GetContentForComparison(const nsIFrame* aFrame)
   MOZ_ASSERT(aFrame->IsFlexItem(), "only intended for flex items");
 
   while (true) {
-    nsIAtom* pseudoTag = aFrame->GetStyleContext()->GetPseudo();
+    nsIAtom* pseudoTag = aFrame->StyleContext()->GetPseudo();
 
     
     if (!pseudoTag ||                                 
@@ -805,7 +805,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
   
   if (mAlignSelf == NS_STYLE_ALIGN_SELF_AUTO) {
     mAlignSelf =
-      mFrame->GetStyleContext()->GetParent()->GetStylePosition()->mAlignItems;
+      mFrame->StyleContext()->GetParent()->GetStylePosition()->mAlignItems;
   }
 
   
@@ -1127,7 +1127,7 @@ nsFlexContainerFrame::SanityCheckAnonymousFlexItems() const
     MOZ_ASSERT(!FrameWantsToBeInAnonymousFlexItem(child),
                "frame wants to be inside an anonymous flex item, "
                "but it isn't");
-    if (child->GetStyleContext()->GetPseudo() ==
+    if (child->StyleContext()->GetPseudo() ==
         nsCSSAnonBoxes::anonymousFlexItem) {
       MOZ_ASSERT(!prevChildWasAnonFlexItem,
                  "two anon flex items in a row (shouldn't happen)");

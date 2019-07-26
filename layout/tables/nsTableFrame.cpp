@@ -136,7 +136,7 @@ nsTableFrame::GetParentStyleContextFrame() const
   
 
   NS_PRECONDITION(mParent, "table constructed without outer table");
-  if (!mContent->GetParent() && !GetStyleContext()->GetPseudo()) {
+  if (!mContent->GetParent() && !StyleContext()->GetPseudo()) {
     
     return nullptr;
   }
@@ -664,7 +664,7 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
     
     
     iContent = aColGroupFrame->GetContent();
-    parentStyleContext = aColGroupFrame->GetStyleContext();
+    parentStyleContext = aColGroupFrame->StyleContext();
     styleContext = shell->StyleSet()->
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::tableCol, parentStyleContext);
     
@@ -2022,7 +2022,7 @@ nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     return;
 
   if (IsBorderCollapse() &&
-      BCRecalcNeeded(aOldStyleContext, GetStyleContext())) {
+      BCRecalcNeeded(aOldStyleContext, StyleContext())) {
     SetFullBCDamageArea();
   }
 
@@ -4433,7 +4433,7 @@ GetColorAndStyle(const nsIFrame*  aFrame,
       (NS_STYLE_BORDER_STYLE_HIDDEN == aStyle)) {
     return;
   }
-  aColor = aFrame->GetStyleContext()->GetVisitedDependentColor(
+  aColor = aFrame->StyleContext()->GetVisitedDependentColor(
              nsCSSProps::SubpropertyEntryFor(eCSSProperty_border_color)[aSide]);
 }
 

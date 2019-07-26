@@ -1376,7 +1376,7 @@ GetInterFrameSpacingFor(int32_t         aScriptLevel,
       prevFrameType, childFrameType, &fromFrameType, &carrySpace);
     if (aChildFrame == childFrame) {
       
-      nsStyleContext* parentContext = aParentFrame->GetStyleContext();
+      nsStyleContext* parentContext = aParentFrame->StyleContext();
       nscoord thinSpace = GetThinSpace(parentContext->GetStyleFont());
       
       return space * thinSpace;

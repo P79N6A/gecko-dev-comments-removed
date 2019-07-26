@@ -656,7 +656,7 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
   
   nsIFrame* bgFrame = nsCSSRendering::FindNonTransparentBackgroundFrame
     (aForFrame, compatMode == eCompatibility_NavQuirks ? true : false);
-  nsStyleContext* bgContext = bgFrame->GetStyleContext();
+  nsStyleContext* bgContext = bgFrame->StyleContext();
   nscolor bgColor =
     bgContext->GetVisitedDependentColor(eCSSProperty_background_color);
 
@@ -791,7 +791,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
 
   nsIFrame* bgFrame = nsCSSRendering::FindNonTransparentBackgroundFrame
     (aForFrame, false);
-  nsStyleContext* bgContext = bgFrame->GetStyleContext();
+  nsStyleContext* bgContext = bgFrame->StyleContext();
   nscolor bgColor =
     bgContext->GetVisitedDependentColor(eCSSProperty_background_color);
 
@@ -803,7 +803,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   nsIFrame *frameForArea = aForFrame;
   do {
-    nsIAtom *pseudoType = frameForArea->GetStyleContext()->GetPseudo();
+    nsIAtom *pseudoType = frameForArea->StyleContext()->GetPseudo();
     if (pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
       break;
@@ -1111,7 +1111,7 @@ nsCSSRendering::FindBackgroundStyleFrame(nsIFrame* aForFrame)
 nsStyleContext*
 nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
 {
-  return FindBackgroundStyleFrame(aForFrame)->GetStyleContext();
+  return FindBackgroundStyleFrame(aForFrame)->StyleContext();
 }
 
 inline bool
@@ -1123,7 +1123,7 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
     return false;
   }
 
-  *aBackgroundSC = aForFrame->GetStyleContext();
+  *aBackgroundSC = aForFrame->StyleContext();
 
   
   
@@ -1134,7 +1134,7 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
   
   
 
-  if (aForFrame->GetStyleContext()->GetPseudo())
+  if (aForFrame->StyleContext()->GetPseudo())
     return true; 
 
   
@@ -1563,7 +1563,7 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
       return;
     }
 
-    sc = aForFrame->GetStyleContext();
+    sc = aForFrame->StyleContext();
   }
 
   PaintBackgroundWithSC(aPresContext, aRenderingContext, aForFrame,
@@ -1600,7 +1600,7 @@ nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
       return;
     }
 
-    sc = aForFrame->GetStyleContext();
+    sc = aForFrame->StyleContext();
   }
 
   PaintBackgroundColorWithSC(aPresContext, aRenderingContext, aForFrame,
@@ -2620,7 +2620,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   
-  if (aBackgroundSC != aForFrame->GetStyleContext()) {
+  if (aBackgroundSC != aForFrame->StyleContext()) {
     ImageLoader* loader = aPresContext->Document()->StyleImageLoader();
 
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT_WITH_RANGE(i, bg, startLayer, nLayers) {

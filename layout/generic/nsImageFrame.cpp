@@ -1704,7 +1704,7 @@ nsImageFrame::GetCursor(const nsPoint& aPoint,
       
       nsRefPtr<nsStyleContext> areaStyle = 
         PresContext()->PresShell()->StyleSet()->
-          ResolveStyleFor(area->AsElement(), GetStyleContext());
+          ResolveStyleFor(area->AsElement(), StyleContext());
       if (areaStyle) {
         FillCursorInformationFromStyle(areaStyle->GetStyleUserInterface(),
                                        aCursor);
@@ -2027,7 +2027,7 @@ IsInAutoWidthTableCellForQuirk(nsIFrame *aFrame)
     return false;
   
   nsBlockFrame *ancestor = nsLayoutUtils::FindNearestBlockAncestor(aFrame);
-  if (ancestor->GetStyleContext()->GetPseudo() == nsCSSAnonBoxes::cellContent) {
+  if (ancestor->StyleContext()->GetPseudo() == nsCSSAnonBoxes::cellContent) {
     
     nsFrame *grandAncestor = static_cast<nsFrame*>(ancestor->GetParent());
     return grandAncestor &&

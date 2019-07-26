@@ -104,7 +104,7 @@ private:
     
     
     
-    NS_ASSERTION(aFrame->GetParent()->GetStyleContext()->GetPseudo() ==
+    NS_ASSERTION(aFrame->GetParent()->StyleContext()->GetPseudo() ==
                    nsCSSAnonBoxes::mozAnonymousBlock,
                  "How did we getting here, then?");
     NS_ASSERTION(!aFrame->Properties().Get(
