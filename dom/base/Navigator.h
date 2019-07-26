@@ -256,6 +256,7 @@ public:
   
   static bool HasBatterySupport(JSContext* , JSObject* );
   static bool HasPowerSupport(JSContext* , JSObject* aGlobal);
+  static bool HasPhoneNumberSupport(JSContext* , JSObject* aGlobal);
   static bool HasIdleSupport(JSContext* , JSObject* aGlobal);
   static bool HasWakeLockSupport(JSContext* , JSObject* );
   static bool HasDesktopNotificationSupport(JSContext* ,
