@@ -780,18 +780,6 @@ var gBrowserInit = {
 
     
     
-    if ("arguments" in window && window.arguments.length > 1 && window.arguments[1]) {
-      if (window.arguments[1].startsWith("charset=")) {
-        var arrayArgComponents = window.arguments[1].split("=");
-        if (arrayArgComponents) {
-          
-          getMarkupDocumentViewer().defaultCharacterSet = arrayArgComponents[1];
-        }
-      }
-    }
-
-    
-    
     
     
     
