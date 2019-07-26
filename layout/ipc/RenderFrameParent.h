@@ -55,20 +55,17 @@ class RenderFrameParent : public PRenderFrameParent,
 public:
   typedef std::map<ViewID, nsRefPtr<nsContentView> > ViewMap;
 
+
   
-  RenderFrameParent();
+
+
+
+
+  RenderFrameParent(nsFrameLoader* aFrameLoader,
+                    ScrollingBehavior aScrollingBehavior,
+                    TextureFactoryIdentifier* aTextureFactoryIdentifier,
+                    uint64_t* aId, bool* aSuccess);
   virtual ~RenderFrameParent();
-
-  
-
-
-
-
-  void
-  Init(nsFrameLoader* aFrameLoader,
-       ScrollingBehavior aScrollingBehavior,
-       TextureFactoryIdentifier* aTextureFactoryIdentifier,
-       uint64_t* aId);
 
   void Destroy();
 
