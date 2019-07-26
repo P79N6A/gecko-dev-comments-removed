@@ -7,6 +7,7 @@ Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
+Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 
@@ -192,22 +193,30 @@ add_test(function test_client_mock() {
 
 
 
+
 add_test(function test_verification_poll() {
   do_test_pending();
 
   let fxa = new MockFxAccounts();
   let test_user = getTestUser("francine");
+  let login_notification_received = false;
 
-  makeObserver("fxaccounts:onlogin", function() {
-    log.debug("test_verification_poll observed onlogin");
+  makeObserver(ONVERIFIED_NOTIFICATION, function() {
+    log.debug("test_verification_poll observed onverified");
     
     fxa.internal.getUserAccountData().then(user => {
       
       do_check_eq(user.verified, true);
       do_check_eq(user.email, test_user.email);
+      do_check_true(login_notification_received);
       do_test_finished();
       run_next_test();
     });
+  });
+
+  makeObserver(ONLOGIN_NOTIFICATION, function() {
+    log.debug("test_verification_poll observer onlogin");
+    login_notification_received = true;
   });
 
   fxa.setSignedInUser(test_user).then(() => {
@@ -239,7 +248,7 @@ add_test(function test_polling_timeout() {
   let fxa = new MockFxAccounts();
   let test_user = getTestUser("carol");
 
-  let removeObserver = makeObserver("fxaccounts:onlogin", function() {
+  let removeObserver = makeObserver(ONVERIFIED_NOTIFICATION, function() {
     do_throw("We should not be getting a login event!");
   });
 
@@ -304,7 +313,7 @@ add_test(function test_getKeys_no_token() {
   let user = getTestUser("lettuce.protheroe");
   delete user.keyFetchToken
 
-  makeObserver("fxaccounts:onlogout", function() {
+  makeObserver(ONLOGOUT_NOTIFICATION, function() {
     log.debug("test_getKeys_no_token observed logout");
     fxa.internal.getUserAccountData().then(user => {
       do_test_finished();
@@ -329,8 +338,8 @@ add_test(function test_overlapping_signins() {
   let alice = getTestUser("alice");
   let bob = getTestUser("bob");
 
-  makeObserver("fxaccounts:onlogin", function() {
-    log.debug("test_overlapping_signins observed onlogin");
+  makeObserver(ONVERIFIED_NOTIFICATION, function() {
+    log.debug("test_overlapping_signins observed onverified");
     
     fxa.internal.getUserAccountData().then(user => {
       do_check_eq(user.email, bob.email);

@@ -198,7 +198,7 @@ InternalMethods.prototype = {
       
       
       
-      internal.notifyObservers(ONLOGIN_NOTIFICATION);
+      internal.notifyObservers(ONVERIFIED_NOTIFICATION);
       return data;
     }.bind(this));
   },
@@ -495,6 +495,7 @@ this.FxAccounts.prototype = Object.freeze({
     
     return internal.signedInUserStorage.set(record)
       .then(() => {
+        internal.notifyObservers(ONLOGIN_NOTIFICATION);
         if (!internal.isUserEmailVerified(credentials)) {
           internal.startVerifiedCheck(credentials);
         }

@@ -127,7 +127,7 @@ WeaveService.prototype = {
       let os = Cc["@mozilla.org/observer-service;1"].
                getService(Ci.nsIObserverService);
       os.addObserver(this, "final-ui-startup", true);
-      os.addObserver(this, "fxaccounts:onlogin", true);
+      os.addObserver(this, "fxaccounts:onverified", true);
       os.addObserver(this, "fxaccounts:onlogout", true);
       break;
 
@@ -161,7 +161,7 @@ WeaveService.prototype = {
       }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
       break;
 
-    case 'fxaccounts:onlogin':
+    case 'fxaccounts:onverified':
         
         
         
