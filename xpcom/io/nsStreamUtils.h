@@ -143,8 +143,19 @@ NS_ConsumeStream(nsIInputStream *aSource, uint32_t aMaxCount,
 
 
 
+
+
+
+
+
 extern bool
 NS_InputStreamIsBuffered(nsIInputStream *aInputStream);
+
+
+
+
+
+
 
 
 
