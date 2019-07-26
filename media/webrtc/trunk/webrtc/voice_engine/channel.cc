@@ -3954,7 +3954,8 @@ int
 Channel::GetRTPStatistics(
         unsigned int& averageJitterMs,
         unsigned int& maxJitterMs,
-        unsigned int& discardedPackets)
+        unsigned int& discardedPackets,
+        unsigned int& cumulativeLost)
 {
     
     
@@ -3975,6 +3976,7 @@ Channel::GetRTPStatistics(
         
         maxJitterMs = statistics.max_jitter / (playoutFrequency / 1000);
         averageJitterMs = statistics.jitter / (playoutFrequency / 1000);
+        cumulativeLost = statistics.cumulative_lost;
     }
 
     discardedPackets = _numberOfDiscardedPackets;
