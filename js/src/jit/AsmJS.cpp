@@ -1427,22 +1427,22 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
 #if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
-    bool trackProfiledFunction(const Func &func, unsigned endCodeOffset) {
+    bool addProfiledFunction(const Func &func, unsigned endCodeOffset) {
         unsigned lineno = 0U, columnIndex = 0U;
         tokenStream().srcCoords.lineNumAndColumnIndex(func.srcOffset(), &lineno, &columnIndex);
         unsigned startCodeOffset = func.code()->offset();
-        return module_->trackProfiledFunction(func.name(), startCodeOffset, endCodeOffset,
-                                              lineno, columnIndex);
+        return module_->addProfiledFunction(func.name(), startCodeOffset, endCodeOffset,
+                                            lineno, columnIndex);
     }
 #endif
 
 #ifdef JS_ION_PERF
-    bool trackPerfProfiledBlocks(AsmJSPerfSpewer &perfSpewer, const Func &func, unsigned endCodeOffset) {
+    bool addPerfProfiledBlocks(AsmJSPerfSpewer &perfSpewer, const Func &func, unsigned endCodeOffset) {
         unsigned startCodeOffset = func.code()->offset();
         perfSpewer.noteBlocksOffsets();
         unsigned endInlineCodeOffset = perfSpewer.endInlineCode.offset();
-        return module_->trackPerfProfiledBlocks(func.name(), startCodeOffset, endInlineCodeOffset,
-                                                endCodeOffset, perfSpewer.basicBlocks());
+        return module_->addPerfProfiledBlocks(func.name(), startCodeOffset, endInlineCodeOffset,
+                                              endCodeOffset, perfSpewer.basicBlocks());
     }
 #endif
 
@@ -1450,11 +1450,15 @@ class MOZ_STACK_CLASS ModuleCompiler
         return module_->addFunctionCounts(counts);
     }
 
+    void startFunctionBodies() {
+        JS_ASSERT(masm_.size() == 0);
+        module_->startFunctionBodies();
+    }
     void finishFunctionBodies() {
         JS_ASSERT(!finishedFunctionBodies_);
         masm_.align(AsmJSPageSize);
         finishedFunctionBodies_ = true;
-        module_->initFunctionBytes(masm_.size());
+        module_->finishFunctionBodies(masm_.size());
     }
 
     void setInterpExitOffset(unsigned exitIndex) {
@@ -5393,7 +5397,7 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
     
     
     
-    if (!m.trackProfiledFunction(func, m.masm().size()))
+    if (!m.addProfiledFunction(func, m.masm().size()))
         return false;
 #endif
 
@@ -5401,7 +5405,7 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
     
     
     if (PerfBlockEnabled()) {
-        if (!m.trackPerfProfiledBlocks(mir.perfSpewer(), func, m.masm().size()))
+        if (!m.addPerfProfiledBlocks(mir.perfSpewer(), func, m.masm().size()))
             return false;
     }
 #endif
@@ -6016,7 +6020,7 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
-    masm.loadPtr(Address(IntArgReg1, m.module().heapOffset()), HeapReg);
+    masm.loadPtr(Address(IntArgReg1, AsmJSModule::heapGlobalDataOffset()), HeapReg);
 #endif
 
     
@@ -6808,10 +6812,10 @@ GenerateInterruptExit(ModuleCompiler &m, Label *throwLabel)
 
     
     
-    JS_ASSERT(Imm16::isInSignedRange(m.module().heapOffset()));
+    JS_ASSERT(Imm16::isInSignedRange(AsmJSModule::heapGlobalDataOffset()));
     masm.pop(HeapReg);
     masm.as_jr(HeapReg);
-    masm.loadPtr(Address(GlobalReg, m.module().heapOffset()), HeapReg);
+    masm.loadPtr(Address(GlobalReg, AsmJSModule::heapGlobalDataOffset()), HeapReg);
 #elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   
@@ -6976,6 +6980,8 @@ CheckModule(ExclusiveContext *cx, AsmJSParser &parser, ParseNode *stmtList,
 
     if (!CheckModuleGlobals(m))
         return false;
+
+    m.startFunctionBodies();
 
 #ifdef JS_THREADSAFE
     if (!CheckFunctionsParallel(m))
