@@ -78,8 +78,6 @@ public class GeckoPreferences
     private int mPrefsRequestId = 0;
 
     
-    private static String PREFS_SEARCH_RESTORE_DEFAULTS = NON_PREF_PREFIX + "search.restore_defaults";
-
     private static String PREFS_ANNOUNCEMENTS_ENABLED = NON_PREF_PREFIX + "privacy.announcements.enabled";
     private static String PREFS_DATA_REPORTING_PREFERENCES = NON_PREF_PREFIX + "datareporting.preferences";
     private static String PREFS_TELEMETRY_ENABLED = "datareporting.telemetry.enabled";
@@ -391,14 +389,6 @@ public class GeckoPreferences
                     preferences.removePreference(pref);
                     i--;
                     continue;
-                } else if (PREFS_SEARCH_RESTORE_DEFAULTS.equals(key)) {
-                    pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-                        @Override
-                        public boolean onPreferenceClick(Preference preference) {
-                            GeckoPreferences.this.restoreDefaultSearchEngines();
-                            return true;
-                        }
-                    });
                 }
 
                 
@@ -414,30 +404,13 @@ public class GeckoPreferences
         }
     }
 
-    
-
-
-    protected void restoreDefaultSearchEngines() {
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:RestoreDefaults", null));
-
-        
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
-    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
-        switch (itemId) {
+        switch (item.getItemId()) {
             case android.R.id.home:
                 finish();
                 return true;
         }
-
-        
-        if (itemId == R.id.restore_defaults) {
-            restoreDefaultSearchEngines();
-            return true;
-       }
 
         return super.onOptionsItemSelected(item);
     }
