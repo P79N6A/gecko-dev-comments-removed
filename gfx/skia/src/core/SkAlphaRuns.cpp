@@ -126,7 +126,7 @@ int SkAlphaRuns::add(int x, U8CPU startAlpha, int middleCount, U8CPU stopAlpha,
         lastAlpha = alpha;
     }
 
-    return lastAlpha - fAlpha;  
+    return SkToS32(lastAlpha - fAlpha);  
 }
 
 #ifdef SK_DEBUG
@@ -176,4 +176,3 @@ int SkAlphaRuns::add(int x, U8CPU startAlpha, int middleCount, U8CPU stopAlpha,
         SkASSERT(count == fWidth);
     }
 #endif
-

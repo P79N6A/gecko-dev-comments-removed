@@ -12,7 +12,7 @@
 
 #if defined(SK_BUILD_FOR_ANDROID)
 
-#if defined(SK_BUILD_FOR_ANDROID_NDK)
+#if !defined(SK_BUILD_FOR_ANDROID_FRAMEWORK)
 
 #include <stdint.h>
 
@@ -61,13 +61,14 @@ static inline __attribute__((always_inline)) void sk_membar_aquire__after_atomic
 #define sk_atomic_inc(addr)         android_atomic_inc(addr)
 #define sk_atomic_add(addr, inc)    android_atomic_add(inc, addr)
 #define sk_atomic_dec(addr)         android_atomic_dec(addr)
-void sk_membar_aquire__after_atomic_dec() {
+
+static inline __attribute__((always_inline)) void sk_membar_aquire__after_atomic_dec() {
     
     
     
     
 }
-int32_t sk_atomic_conditional_inc(int32_t* addr) {
+static inline __attribute__((always_inline)) int32_t sk_atomic_conditional_inc(int32_t* addr) {
     while (true) {
         int32_t value = *addr;
         if (value == 0) {
@@ -78,7 +79,7 @@ int32_t sk_atomic_conditional_inc(int32_t* addr) {
         }
     }
 }
-void sk_membar_aquire__after_atomic_conditional_inc() {
+static inline __attribute__((always_inline)) void sk_membar_aquire__after_atomic_conditional_inc() {
     
     
     
@@ -157,7 +158,7 @@ struct SkBaseMutex {
 
 
 
-class SkMutex : public SkBaseMutex, SkNoncopyable {
+class SK_API SkMutex : public SkBaseMutex, SkNoncopyable {
 public:
     SkMutex();
     ~SkMutex();
@@ -168,7 +169,7 @@ public:
 
 
 
-class SkMutex : SkNoncopyable {
+class SK_API SkMutex : SkNoncopyable {
 public:
     SkMutex();
     ~SkMutex();

@@ -6,16 +6,28 @@
 
 
 
-
 #include "SkImageDecoder.h"
 #include "SkBitmap.h"
+#include "SkImagePriv.h"
 #include "SkPixelRef.h"
 #include "SkStream.h"
 #include "SkTemplates.h"
+#include "SkCanvas.h"
 
 SK_DEFINE_INST_COUNT(SkImageDecoder::Peeker)
 SK_DEFINE_INST_COUNT(SkImageDecoder::Chooser)
 SK_DEFINE_INST_COUNT(SkImageDecoderFactory)
+
+const char *SkImageDecoder::sFormatName[] = {
+    "Unknown Format",
+    "BMP",
+    "GIF",
+    "ICO",
+    "JPEG",
+    "PNG",
+    "WBMP",
+    "WEBP",
+};
 
 static SkBitmap::Config gDeviceConfig = SkBitmap::kNo_Config;
 
@@ -34,7 +46,7 @@ void SkImageDecoder::SetDeviceConfig(SkBitmap::Config config)
 SkImageDecoder::SkImageDecoder()
     : fPeeker(NULL), fChooser(NULL), fAllocator(NULL), fSampleSize(1),
       fDefaultPref(SkBitmap::kNo_Config), fDitherImage(true),
-      fUsePrefTable(false) {
+      fUsePrefTable(false),fPreferQualityOverSpeed(false) {
 }
 
 SkImageDecoder::~SkImageDecoder() {
@@ -45,6 +57,11 @@ SkImageDecoder::~SkImageDecoder() {
 
 SkImageDecoder::Format SkImageDecoder::getFormat() const {
     return kUnknown_Format;
+}
+
+const char* SkImageDecoder::getFormatName() const {
+    SkASSERT(SK_ARRAY_COUNT(sFormatName) == kLastKnownFormat);
+    return sFormatName[this->getFormat()];
 }
 
 SkImageDecoder::Peeker* SkImageDecoder::setPeeker(Peeker* peeker) {
@@ -129,21 +146,76 @@ SkBitmap::Config SkImageDecoder::getPrefConfig(SrcDepth srcDepth,
 }
 
 bool SkImageDecoder::decode(SkStream* stream, SkBitmap* bm,
-                            SkBitmap::Config pref, Mode mode) {
-    
-    
-    SkBitmap    tmp;
-
+                            SkBitmap::Config pref, Mode mode, bool reuseBitmap) {
     
     fShouldCancelDecode = false;
     
     fDefaultPref = pref;
 
+    if (reuseBitmap) {
+        SkAutoLockPixels alp(*bm);
+        if (NULL != bm->getPixels()) {
+            return this->onDecode(stream, bm, mode);
+        }
+    }
+
+    
+    
+    SkBitmap    tmp;
     if (!this->onDecode(stream, &tmp, mode)) {
         return false;
     }
     bm->swap(tmp);
     return true;
+}
+
+bool SkImageDecoder::decodeRegion(SkBitmap* bm, const SkIRect& rect,
+                                  SkBitmap::Config pref) {
+    
+    fShouldCancelDecode = false;
+    
+    fDefaultPref = pref;
+
+    return this->onDecodeRegion(bm, rect);
+}
+
+bool SkImageDecoder::buildTileIndex(SkStream* stream,
+                                int *width, int *height) {
+    
+    fShouldCancelDecode = false;
+
+    return this->onBuildTileIndex(stream, width, height);
+}
+
+void SkImageDecoder::cropBitmap(SkBitmap *dst, SkBitmap *src, int sampleSize,
+                int dstX, int dstY, int width, int height,
+                int srcX, int srcY) {
+    int w = width / sampleSize;
+    int h = height / sampleSize;
+    
+    if (dst->isNull()) {
+        dst->setConfig(src->getConfig(), w, h);
+        dst->setIsOpaque(src->isOpaque());
+
+        if (!this->allocPixelRef(dst, NULL)) {
+            SkDEBUGF(("failed to allocate pixels needed to crop the bitmap"));
+            return;
+        }
+    }
+    
+    
+    
+    SkASSERT(dst->width() >= w && dst->height() >= h);
+
+    
+    
+    SkPaint paint;
+    paint.setXfermodeMode(SkXfermode::kSrc_Mode);
+
+    SkCanvas canvas(*dst);
+    canvas.drawSprite(*src, (srcX - dstX) / sampleSize,
+                            (srcY - dstY) / sampleSize,
+                            &paint);
 }
 
 
@@ -153,9 +225,9 @@ bool SkImageDecoder::DecodeFile(const char file[], SkBitmap* bm,
     SkASSERT(file);
     SkASSERT(bm);
 
-    SkFILEStream    stream(file);
-    if (stream.isValid()) {
-        if (SkImageDecoder::DecodeStream(&stream, bm, pref, mode, format)) {
+    SkAutoTUnref<SkStream> stream(SkStream::NewFromFile(file));
+    if (stream.get()) {
+        if (SkImageDecoder::DecodeStream(stream, bm, pref, mode, format)) {
             bm->pixelRef()->setURI(file);
             return true;
         }
@@ -174,6 +246,69 @@ bool SkImageDecoder::DecodeMemory(const void* buffer, size_t size, SkBitmap* bm,
     return SkImageDecoder::DecodeStream(&stream, bm, pref, mode, format);
 }
 
+class TargetAllocator : public SkBitmap::Allocator {
+
+public:
+    TargetAllocator(void* target)
+        : fTarget(target) {}
+
+    virtual bool allocPixelRef(SkBitmap* bm, SkColorTable* ct) SK_OVERRIDE {
+        
+        SkASSERT(NULL == ct);
+        bm->setPixels(fTarget);
+        return true;
+    }
+
+private:
+    void* fTarget;
+};
+
+bool SkImageDecoder::DecodeMemoryToTarget(const void* buffer, size_t size,
+                                          SkImage::Info* info,
+                                          const SkBitmapFactory::Target* target) {
+    if (NULL == info) {
+        return false;
+    }
+    
+    
+    SkBitmap bm;
+    SkMemoryStream stream(buffer, size);
+    SkAutoTDelete<SkImageDecoder> decoder(SkImageDecoder::Factory(&stream));
+    if (decoder.get() != NULL && decoder->decode(&stream, &bm, kDecodeBounds_Mode)) {
+        
+        if (!SkBitmapToImageInfo(bm, info)) {
+            return false;
+        }
+
+        
+        
+        
+        SkASSERT(bm.config() != SkBitmap::kIndex8_Config);
+
+        if (NULL == target) {
+            return true;
+        }
+
+        if (target->fRowBytes != (uint32_t) bm.rowBytes()) {
+            if (target->fRowBytes < SkImageMinRowBytes(*info)) {
+                SkASSERT(!"Desired row bytes is too small");
+                return false;
+            }
+            bm.setConfig(bm.config(), bm.width(), bm.height(), target->fRowBytes);
+        }
+
+        TargetAllocator allocator(target->fAddr);
+        decoder->setAllocator(&allocator);
+        stream.rewind();
+        bool success = decoder->decode(&stream, &bm, kDecodePixels_Mode);
+        
+        decoder->setAllocator(NULL);
+        return success;
+    }
+    return false;
+}
+
+
 bool SkImageDecoder::DecodeStream(SkStream* stream, SkBitmap* bm,
                           SkBitmap::Config pref, Mode mode, Format* format) {
     SkASSERT(stream);
@@ -191,4 +326,3 @@ bool SkImageDecoder::DecodeStream(SkStream* stream, SkBitmap* bm,
     }
     return success;
 }
-

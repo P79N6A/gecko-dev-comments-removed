@@ -11,7 +11,17 @@
 #ifndef GrTHashCache_DEFINED
 #define GrTHashCache_DEFINED
 
-#include "GrTDArray.h"
+#include "GrTypes.h"
+#include "SkTDArray.h"
+
+
+
+
+template <typename T> class GrTDefaultFindFunctor {
+public:
+    
+    bool operator()(const T*) const { return true; }
+};
 
 
 
@@ -29,6 +39,7 @@ public:
 
     int count() const { return fSorted.count(); }
     T*  find(const Key&) const;
+    template <typename FindFuncType> T*  find(const Key&, const FindFuncType&) const;
     
     bool insert(const Key&, T*);
     void remove(const Key&, const T*);
@@ -48,7 +59,8 @@ public:
 #endif
 
     
-    const GrTDArray<T*>& getArray() const { return fSorted; }
+    const SkTDArray<T*>& getArray() const { return fSorted; }
+    SkTDArray<T*>& getArray() { return fSorted; }
 private:
     enum {
         kHashCount = 1 << kHashBits,
@@ -63,7 +75,7 @@ private:
     }
 
     mutable T* fHash[kHashCount];
-    GrTDArray<T*> fSorted;
+    SkTDArray<T*> fSorted;
 
     
     
@@ -109,20 +121,43 @@ int GrTHashTable<T, Key, kHashBits>::searchArray(const Key& key) const {
 
 template <typename T, typename Key, size_t kHashBits>
 T* GrTHashTable<T, Key, kHashBits>::find(const Key& key) const {
+    GrTDefaultFindFunctor<T> find;
+
+    return this->find(key, find);
+}
+
+template <typename T, typename Key, size_t kHashBits>
+template <typename FindFuncType>
+T* GrTHashTable<T, Key, kHashBits>::find(const Key& key, const FindFuncType& findFunc) const {
+
     int hashIndex = hash2Index(key.getHash());
     T* elem = fHash[hashIndex];
 
-    if (NULL == elem || !Key::EQ(*elem, key)) {
-        
-        int index = this->searchArray(key);
-        if (index < 0) {
-            return NULL;
-        }
-        elem = fSorted[index];
-        
-        fHash[hashIndex] = elem;
+    if (NULL != elem && Key::EQ(*elem, key) && findFunc(elem)) {
+        return elem;
     }
-    return elem;
+
+    
+    int index = this->searchArray(key);
+    if (index < 0) {
+        return NULL;
+    }
+
+    const T* const* array = fSorted.begin();
+
+    
+    
+    GrAssert(0 == index || Key::LT(*array[index - 1], key));
+
+    for ( ; index < count() && Key::EQ(*array[index], key); ++index) {
+        if (findFunc(fSorted[index])) {
+            
+            fHash[hashIndex] = fSorted[index];
+            return fSorted[index];
+        }
+    }
+
+    return NULL;
 }
 
 template <typename T, typename Key, size_t kHashBits>
@@ -193,13 +228,6 @@ void GrTHashTable<T, Key, kHashBits>::unrefAll() {
 #if GR_DEBUG
 template <typename T, typename Key, size_t kHashBits>
 void GrTHashTable<T, Key, kHashBits>::validate() const {
-    for (size_t i = 0; i < GR_ARRAY_COUNT(fHash); i++) {
-        if (fHash[i]) {
-            unsigned hashIndex = hash2Index(Key::GetHash(*fHash[i]));
-            GrAssert(hashIndex == i);
-        }
-    }
-
     int count = fSorted.count();
     for (int i = 1; i < count; i++) {
         GrAssert(Key::LT(*fSorted[i - 1], *fSorted[i]) ||
@@ -216,4 +244,3 @@ bool GrTHashTable<T, Key, kHashBits>::contains(T* elem) const {
 #endif
 
 #endif
-

@@ -18,6 +18,7 @@
 #include "SkTemplates.h"
 #include "SkTDArray.h"
 
+struct SkDeviceProperties;
 class SkPaint;
 
 class SkGlyphCache_Globals;
@@ -134,7 +135,7 @@ public:
 
 
 
-    static SkGlyphCache* VisitCache(const SkDescriptor* desc,
+    static SkGlyphCache* VisitCache(SkTypeface*, const SkDescriptor* desc,
                                     bool (*proc)(const SkGlyphCache*, void*),
                                     void* context);
 
@@ -153,8 +154,9 @@ public:
 
 
 
-    static SkGlyphCache* DetachCache(const SkDescriptor* desc) {
-        return VisitCache(desc, DetachProc, NULL);
+    static SkGlyphCache* DetachCache(SkTypeface* typeface,
+                                     const SkDescriptor* desc) {
+        return VisitCache(typeface, desc, DetachProc, NULL);
     }
 
 #ifdef SK_DEBUG
@@ -183,7 +185,7 @@ public:
     };
 
 private:
-    SkGlyphCache(const SkDescriptor*);
+    SkGlyphCache(SkTypeface*, const SkDescriptor*);
     ~SkGlyphCache();
 
     enum MetricsType {
@@ -272,11 +274,13 @@ private:
 class SkAutoGlyphCache {
 public:
     SkAutoGlyphCache(SkGlyphCache* cache) : fCache(cache) {}
-    SkAutoGlyphCache(const SkDescriptor* desc) {
-        fCache = SkGlyphCache::DetachCache(desc);
+    SkAutoGlyphCache(SkTypeface* typeface, const SkDescriptor* desc) {
+        fCache = SkGlyphCache::DetachCache(typeface, desc);
     }
-    SkAutoGlyphCache(const SkPaint& paint, const SkMatrix* matrix) {
-        fCache = paint.detachCache(matrix);
+    SkAutoGlyphCache(const SkPaint& paint,
+                     const SkDeviceProperties* deviceProperties,
+                     const SkMatrix* matrix) {
+        fCache = paint.detachCache(deviceProperties, matrix);
     }
     ~SkAutoGlyphCache() {
         if (fCache) {
@@ -300,4 +304,3 @@ private:
 };
 
 #endif
-

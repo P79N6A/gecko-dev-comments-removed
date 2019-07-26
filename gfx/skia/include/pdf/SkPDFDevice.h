@@ -17,6 +17,7 @@
 #include "SkRect.h"
 #include "SkRefCnt.h"
 #include "SkStream.h"
+#include "SkTDArray.h"
 #include "SkTScopedPtr.h"
 
 class SkPDFArray;
@@ -29,10 +30,12 @@ class SkPDFGraphicState;
 class SkPDFObject;
 class SkPDFShader;
 class SkPDFStream;
+template <typename T> class SK_API SkTSet;
 
 
 struct ContentEntry;
 struct GraphicStateEntry;
+struct NamedDestination;
 
 
 
@@ -80,6 +83,9 @@ public:
     virtual void drawPath(const SkDraw&, const SkPath& origpath,
                           const SkPaint& paint, const SkMatrix* prePathMatrix,
                           bool pathIsMutable) SK_OVERRIDE;
+    virtual void drawBitmapRect(const SkDraw& draw, const SkBitmap& bitmap,
+                                const SkRect* src, const SkRect& dst,
+                                const SkPaint& paint) SK_OVERRIDE;
     virtual void drawBitmap(const SkDraw&, const SkBitmap& bitmap,
                             const SkIRect* srcRectOrNull,
                             const SkMatrix& matrix, const SkPaint&) SK_OVERRIDE;
@@ -132,7 +138,14 @@ public:
 
 
 
-    SK_API void getResources(SkTDArray<SkPDFObject*>* resourceList,
+
+
+
+
+
+
+    SK_API void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                             SkTSet<SkPDFObject*>* newResourceObjects,
                              bool recursive) const;
 
     
@@ -141,11 +154,18 @@ public:
 
     
 
-    SK_API SkRefPtr<SkPDFArray> getMediaBox() const;
+
+
+    void appendDestinations(SkPDFDict* dict, SkPDFObject* page);
 
     
 
-    SK_API SkRefPtr<SkPDFArray> getAnnotations() const;
+
+    SK_API SkPDFArray* copyMediaBox() const;
+
+    
+
+    SK_API SkPDFArray* getAnnotations() const { return fAnnotations; }
 
     
 
@@ -185,8 +205,9 @@ private:
     SkMatrix fInitialTransform;
     SkClipStack fExistingClipStack;
     SkRegion fExistingClipRegion;
-    SkRefPtr<SkPDFArray> fAnnotations;
-    SkRefPtr<SkPDFDict> fResourceDict;
+    SkPDFArray* fAnnotations;
+    SkPDFDict* fResourceDict;
+    SkTDArray<NamedDestination*> fNamedDestinations;
 
     SkTDArray<SkPDFGraphicState*> fGraphicStateResources;
     SkTDArray<SkPDFObject*> fXObjectResources;
@@ -220,7 +241,7 @@ private:
 
     void init();
     void cleanUp(bool clearFontUsage);
-    void createFormXObjectFromDevice(SkRefPtr<SkPDFFormXObject>* xobject);
+    SkPDFFormXObject* createFormXObjectFromDevice();
 
     
     void clearClipFromContent(const SkClipStack* clipStack,
@@ -239,7 +260,7 @@ private:
                                     const SkMatrix& matrix,
                                     const SkPaint& paint,
                                     bool hasText,
-                                    SkRefPtr<SkPDFFormXObject>* dst);
+                                    SkPDFFormXObject** dst);
     void finishContentEntry(SkXfermode::Mode xfermode,
                             SkPDFFormXObject* dst);
     bool isContentEmpty();
@@ -269,8 +290,17 @@ private:
 
     void copyContentEntriesToData(ContentEntry* entry, SkWStream* data) const;
 
-    bool handleAnnotations(const SkRect& r, const SkMatrix& matrix,
-                           const SkPaint& paint);
+    bool handleRectAnnotation(const SkRect& r, const SkMatrix& matrix,
+                              const SkPaint& paint);
+    bool handlePointAnnotation(const SkPoint* points, size_t count,
+                               const SkMatrix& matrix, const SkPaint& paint);
+    SkPDFDict* createLinkAnnotation(const SkRect& r, const SkMatrix& matrix);
+    void handleLinkToURL(SkData* urlData, const SkRect& r,
+                         const SkMatrix& matrix);
+    void handleLinkToNamedDest(SkData* nameData, const SkRect& r,
+                               const SkMatrix& matrix);
+    void defineNamedDestination(SkData* nameData, const SkPoint& point,
+                                const SkMatrix& matrix);
 
     typedef SkDevice INHERITED;
 };

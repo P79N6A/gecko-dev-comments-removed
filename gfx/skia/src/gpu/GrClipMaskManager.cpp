@@ -7,21 +7,25 @@
 
 
 #include "GrClipMaskManager.h"
-#include "GrGpu.h"
-#include "GrRenderTarget.h"
-#include "GrStencilBuffer.h"
-#include "GrPathRenderer.h"
-#include "GrPaint.h"
-#include "SkRasterClip.h"
 #include "GrAAConvexPathRenderer.h"
 #include "GrAAHairLinePathRenderer.h"
+#include "GrDrawTargetCaps.h"
+#include "GrGpu.h"
+#include "GrPaint.h"
+#include "GrPathRenderer.h"
+#include "GrRenderTarget.h"
+#include "GrStencilBuffer.h"
 #include "GrSWMaskHelper.h"
-#include "GrCacheID.h"
+#include "effects/GrTextureDomainEffect.h"
+#include "SkRasterClip.h"
+#include "SkStrokeRec.h"
+#include "SkTLazy.h"
 
-GR_DEFINE_RESOURCE_CACHE_DOMAIN(GrClipMaskManager, GetAlphaMaskDomain)
+#define GR_AA_CLIP 1
 
+typedef SkClipStack::Element Element;
 
-
+using namespace GrReducedClip;
 
 
 namespace {
@@ -33,104 +37,73 @@ void setup_drawstate_aaclip(GrGpu* gpu,
     GrDrawState* drawState = gpu->drawState();
     GrAssert(drawState);
 
-    static const int maskStage = GrPaint::kTotalStages+1;
+    static const int kMaskStage = GrPaint::kTotalStages+1;
 
-    GrMatrix mat;
+    SkMatrix mat;
+    
+    
+    
     mat.setIDiv(result->width(), result->height());
     mat.preTranslate(SkIntToScalar(-devBound.fLeft),
                      SkIntToScalar(-devBound.fTop));
     mat.preConcat(drawState->getViewMatrix());
 
-    drawState->sampler(maskStage)->reset(mat);
-
-    drawState->createTextureEffect(maskStage, result);
+    SkIRect domainTexels = SkIRect::MakeWH(devBound.width(), devBound.height());
+    
+    drawState->setEffect(kMaskStage,
+                         GrTextureDomainEffect::Create(result,
+                                      mat,
+                                      GrTextureDomainEffect::MakeTexelDomain(result, domainTexels),
+                                      GrTextureDomainEffect::kDecal_WrapMode,
+                                      false,
+                                      GrEffect::kPosition_CoordsType))->unref();
 }
 
 bool path_needs_SW_renderer(GrContext* context,
                             GrGpu* gpu,
-                            const SkPath& path,
-                            GrPathFill fill,
+                            const SkPath& origPath,
+                            const SkStrokeRec& stroke,
                             bool doAA) {
     
-    return NULL == context->getPathRenderer(path, fill, gpu, doAA, false);
-}
-
-GrPathFill get_path_fill(const SkPath& path) {
-    switch (path.getFillType()) {
-        case SkPath::kWinding_FillType:
-            return kWinding_GrPathFill;
-        case SkPath::kEvenOdd_FillType:
-            return  kEvenOdd_GrPathFill;
-        case SkPath::kInverseWinding_FillType:
-            return kInverseWinding_GrPathFill;
-        case SkPath::kInverseEvenOdd_FillType:
-            return kInverseEvenOdd_GrPathFill;
-        default:
-            GrCrash("Unsupported path fill in clip.");
-            return kWinding_GrPathFill; 
+    SkTCopyOnFirstWrite<SkPath> path(origPath);
+    if (path->isInverseFillType()) {
+        path.writable()->toggleInverseFillType();
     }
+    
+    GrPathRendererChain::DrawType type = doAA ?
+                                         GrPathRendererChain::kColorAntiAlias_DrawType :
+                                         GrPathRendererChain::kColor_DrawType;
+
+    return NULL == context->getPathRenderer(*path, stroke, gpu, false, type);
+}
+
 }
 
 
 
 
-bool requires_AA(const SkClipStack& clipIn) {
 
-    SkClipStack::Iter iter;
-    iter.reset(clipIn, SkClipStack::Iter::kBottom_IterStart);
 
-    const SkClipStack::Iter::Clip* clip = NULL;
-    for (clip = iter.skipToTopmost(SkRegion::kReplace_Op);
-         NULL != clip;
-         clip = iter.next()) {
+bool GrClipMaskManager::useSWOnlyPath(const ElementList& elements) {
 
-        if (clip->fDoAA) {
+    
+    
+    
+    SkStrokeRec stroke(SkStrokeRec::kFill_InitStyle);
+
+    for (ElementList::Iter iter(elements.headIter()); iter.get(); iter.next()) {
+        const Element* element = iter.get();
+        
+        
+        if (Element::kPath_Type == element->getType() &&
+            path_needs_SW_renderer(this->getContext(), fGpu,
+                                   element->getPath(),
+                                   stroke,
+                                   element->isAA())) {
             return true;
         }
     }
-
     return false;
-}
-
-}
-
-
-
-
-
-
-bool GrClipMaskManager::useSWOnlyPath(const SkClipStack& clipIn) {
-
-    
-    
-    
-    bool useSW = false;
-
-    SkClipStack::Iter iter(clipIn, SkClipStack::Iter::kBottom_IterStart);
-    const SkClipStack::Iter::Clip* clip = NULL;
-
-    for (clip = iter.skipToTopmost(SkRegion::kReplace_Op);
-         NULL != clip;
-         clip = iter.next()) {
-
-        if (SkRegion::kReplace_Op == clip->fOp) {
-            
-            
-            useSW = false;
-        }
-
-        
-        
-        if (NULL != clip->fPath &&
-            path_needs_SW_renderer(this->getContext(), fGpu,
-                                   *clip->fPath,
-                                   get_path_fill(*clip->fPath),
-                                   clip->fDoAA)) {
-            useSW = true;
-        }
-    }
-
-    return useSW;
 }
 
 
@@ -139,76 +112,81 @@ bool GrClipMaskManager::useSWOnlyPath(const SkClipStack& clipIn) {
 bool GrClipMaskManager::setupClipping(const GrClipData* clipDataIn) {
     fCurrClipMaskType = kNone_ClipMaskType;
 
+    ElementList elements(16);
+    InitialState initialState;
+    SkIRect clipSpaceIBounds;
+    bool requiresAA;
+    bool isRect = false;
+
     GrDrawState* drawState = fGpu->drawState();
-    if (!drawState->isClipState() || clipDataIn->fClipStack->isWideOpen()) {
+
+    const GrRenderTarget* rt = drawState->getRenderTarget();
+    
+    GrAssert(NULL != rt);
+
+    bool ignoreClip = !drawState->isClipState() || clipDataIn->fClipStack->isWideOpen();
+
+    if (!ignoreClip) {
+        SkIRect clipSpaceRTIBounds = SkIRect::MakeWH(rt->width(), rt->height());
+        clipSpaceRTIBounds.offset(clipDataIn->fOrigin);
+        ReduceClipStack(*clipDataIn->fClipStack,
+                        clipSpaceRTIBounds,
+                        &elements,
+                        &initialState,
+                        &clipSpaceIBounds,
+                        &requiresAA);
+        if (elements.isEmpty()) {
+            if (kAllIn_InitialState == initialState) {
+                ignoreClip = clipSpaceIBounds == clipSpaceRTIBounds;
+                isRect = true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    if (ignoreClip) {
         fGpu->disableScissor();
         this->setGpuStencil();
         return true;
     }
 
-    GrRenderTarget* rt = drawState->getRenderTarget();
-    
-    GrAssert(NULL != rt);
-
-    GrIRect devClipBounds;
-    bool isIntersectionOfRects = false;
-
-    clipDataIn->getConservativeBounds(rt, &devClipBounds,
-                                      &isIntersectionOfRects);
-    if (devClipBounds.isEmpty()) {
-        return false;
-    }
-
-#if GR_SW_CLIP
-    bool requiresAA = requires_AA(*clipDataIn->fClipStack);
-
-    
-    
-    
-    
-    if (0 == rt->numSamples() &&
-        requiresAA &&
-        this->useSWOnlyPath(*clipDataIn->fClipStack)) {
-        
-        
-        GrTexture* result = NULL;
-        GrIRect devBound;
-        if (this->createSoftwareClipMask(*clipDataIn, &result, &devBound)) {
-            setup_drawstate_aaclip(fGpu, result, devBound);
-            fGpu->disableScissor();
-            this->setGpuStencil();
-            return true;
-        }
-
-        
-        
-    }
-#endif 
-
 #if GR_AA_CLIP
     
+
     
     if (0 == rt->numSamples() && requiresAA) {
-        
-        
-        
-        
+        int32_t genID = clipDataIn->fClipStack->getTopmostGenID();
         GrTexture* result = NULL;
-        GrIRect devBound;
-        if (this->createAlphaClipMask(*clipDataIn, &result, &devBound)) {
-            setup_drawstate_aaclip(fGpu, result, devBound);
+
+        if (this->useSWOnlyPath(elements)) {
+            
+            
+            result = this->createSoftwareClipMask(genID,
+                                                  initialState,
+                                                  elements,
+                                                  clipSpaceIBounds);
+        } else {
+            result = this->createAlphaClipMask(genID,
+                                               initialState,
+                                               elements,
+                                               clipSpaceIBounds);
+        }
+
+        if (NULL != result) {
+            
+            
+            SkIRect rtSpaceMaskBounds = clipSpaceIBounds;
+            rtSpaceMaskBounds.offset(-clipDataIn->fOrigin);
+            setup_drawstate_aaclip(fGpu, result, rtSpaceMaskBounds);
             fGpu->disableScissor();
             this->setGpuStencil();
             return true;
         }
-
-        
         
     }
 #endif 
 
-    
-    
     
     
     
@@ -218,24 +196,27 @@ bool GrClipMaskManager::setupClipping(const GrClipData* clipDataIn) {
 
     
     
-    if (isIntersectionOfRects) {
-        fGpu->enableScissor(devClipBounds);
+    if (isRect) {
+        SkIRect clipRect = clipSpaceIBounds;
+        clipRect.offset(-clipDataIn->fOrigin);
+        fGpu->enableScissor(clipRect);
         this->setGpuStencil();
         return true;
     }
 
     
-    bool useStencil = !clipDataIn->fClipStack->isWideOpen() &&
-                      !devClipBounds.isEmpty();
+    SkIPoint clipSpaceToStencilSpaceOffset = -clipDataIn->fOrigin;
+    this->createStencilClipMask(initialState,
+                                elements,
+                                clipSpaceIBounds,
+                                clipSpaceToStencilSpaceOffset);
 
-    if (useStencil) {
-        this->createStencilClipMask(*clipDataIn, devClipBounds);
-    }
     
     
     
-    
-    fGpu->enableScissor(devClipBounds);
+    SkIRect scissorSpaceIBounds(clipSpaceIBounds);
+    scissorSpaceIBounds.offset(clipSpaceToStencilSpaceOffset);
+    fGpu->enableScissor(scissorSpaceIBounds);
     this->setGpuStencil();
     return true;
 }
@@ -243,132 +224,12 @@ bool GrClipMaskManager::setupClipping(const GrClipData* clipDataIn) {
 #define VISUALIZE_COMPLEX_CLIP 0
 
 #if VISUALIZE_COMPLEX_CLIP
-    #include "GrRandom.h"
-    GrRandom gRandom;
+    #include "SkRandom.h"
+    SkRandom gRandom;
     #define SET_RANDOM_COLOR drawState->setColor(0xff000000 | gRandom.nextU());
 #else
     #define SET_RANDOM_COLOR
 #endif
-
-namespace {
-
-
-
-
-
-
-bool contains(const SkRect& canvContainer,
-              const SkIRect& devContainee,
-              const SkIPoint& origin) {
-    return  !devContainee.isEmpty() && !canvContainer.isEmpty() &&
-            canvContainer.fLeft <= SkIntToScalar(devContainee.fLeft+origin.fX) &&
-            canvContainer.fTop <= SkIntToScalar(devContainee.fTop+origin.fY) &&
-            canvContainer.fRight >= SkIntToScalar(devContainee.fRight+origin.fX) &&
-            canvContainer.fBottom >= SkIntToScalar(devContainee.fBottom+origin.fY);
-}
-
-
-
-
-
-const SkClipStack::Iter::Clip* process_initial_clip_elements(
-                                  SkClipStack::Iter* iter,
-                                  const GrIRect& devBounds,
-                                  bool* clearToInside,
-                                  SkRegion::Op* firstOp,
-                                  const GrClipData& clipData) {
-
-    GrAssert(NULL != iter && NULL != clearToInside && NULL != firstOp);
-
-    
-    
-    
-    
-    
-    bool done = false;
-    *clearToInside = true;
-
-    const SkClipStack::Iter::Clip* clip = NULL;
-
-    for (clip = iter->skipToTopmost(SkRegion::kReplace_Op);
-         NULL != clip && !done;
-         clip = iter->next()) {
-        switch (clip->fOp) {
-            case SkRegion::kReplace_Op:
-                
-                *firstOp = SkRegion::kReplace_Op;
-                *clearToInside = false;
-                done = true;
-                break;
-            case SkRegion::kIntersect_Op:
-                
-                
-                if (NULL != clip->fRect &&
-                    contains(*clip->fRect, devBounds, clipData.fOrigin)) {
-                    break;
-                }
-                
-                
-                
-                if (*clearToInside) {
-                    *firstOp = SkRegion::kReplace_Op;
-                    *clearToInside = false;
-                    done = true;
-                }
-                break;
-                
-            case SkRegion::kUnion_Op:
-                
-                
-                
-                if (!*clearToInside) {
-                    *firstOp = SkRegion::kReplace_Op;
-                    done = true;
-                }
-                break;
-            case SkRegion::kXOR_Op:
-                
-                
-                if (*clearToInside) {
-                    *firstOp = SkRegion::kDifference_Op;
-                } else {
-                    *firstOp = SkRegion::kReplace_Op;
-                }
-                done = true;
-                break;
-            case SkRegion::kDifference_Op:
-                
-                
-                
-                if (*clearToInside) {
-                    *firstOp = SkRegion::kDifference_Op;
-                    done = true;
-                }
-                break;
-            case SkRegion::kReverseDifference_Op:
-                
-                
-                if (*clearToInside) {
-                    *clearToInside = false;
-                } else {
-                    *firstOp = SkRegion::kReplace_Op;
-                    done = true;
-                }
-                break;
-            default:
-                GrCrash("Unknown set op.");
-        }
-
-        if (done) {
-            
-            
-            break;
-        }
-    }
-    return clip;
-}
-
-}
 
 namespace {
 
@@ -402,114 +263,113 @@ void setup_boolean_blendcoeffs(GrDrawState* drawState, SkRegion::Op op) {
     }
 }
 
-
-bool draw_path_in_software(GrContext* context,
-                           GrGpu* gpu,
-                           const SkPath& path,
-                           GrPathFill fill,
-                           bool doAA,
-                           const GrIRect& resultBounds) {
-
-    SkAutoTUnref<GrTexture> texture(
-                GrSWMaskHelper::DrawPathMaskToTexture(context, path,
-                                                      resultBounds, fill,
-                                                      doAA, NULL));
-    if (NULL == texture) {
-        return false;
-    }
-
-    
-    GrIRect rect = GrIRect::MakeWH(resultBounds.width(), resultBounds.height());
-
-    GrSWMaskHelper::DrawToTargetWithPathMask(texture, gpu, rect);
-
-    GrAssert(!GrIsFillInverted(fill));
-    return true;
 }
 
 
-
-bool draw_path(GrContext* context,
-               GrGpu* gpu,
-               const SkPath& path,
-               GrPathFill fill,
-               bool doAA,
-               const GrIRect& resultBounds) {
-
-    GrPathRenderer* pr = context->getPathRenderer(path, fill, gpu, doAA, false);
-    if (NULL == pr) {
-        return draw_path_in_software(context, gpu, path, fill, doAA, resultBounds);
-    }
-
-    pr->drawPath(path, fill, NULL, gpu, doAA);
-    return true;
-}
-
-
-void device_to_canvas(SkRect* rect, const SkIPoint& origin) {
-    GrAssert(NULL != rect);
-
-    rect->fLeft   += SkIntToScalar(origin.fX);
-    rect->fTop    += SkIntToScalar(origin.fY);
-    rect->fRight  += SkIntToScalar(origin.fX);
-    rect->fBottom += SkIntToScalar(origin.fY);
-}
-
-}
-
-
-bool GrClipMaskManager::drawClipShape(GrTexture* target,
-                                      const SkClipStack::Iter::Clip* clip,
-                                      const GrIRect& resultBounds) {
+bool GrClipMaskManager::drawElement(GrTexture* target,
+                                    const SkClipStack::Element* element,
+                                    GrPathRenderer* pr) {
     GrDrawState* drawState = fGpu->drawState();
-    GrAssert(NULL != drawState);
 
     drawState->setRenderTarget(target->asRenderTarget());
 
-    if (NULL != clip->fRect) {
-        if (clip->fDoAA) {
-            getContext()->getAARectRenderer()->fillAARect(fGpu, fGpu,
-                                                          *clip->fRect,
-                                                          true);
-        } else {
-            fGpu->drawSimpleRect(*clip->fRect, NULL);
+    switch (element->getType()) {
+        case Element::kRect_Type:
+            
+            
+            if (element->isAA()) {
+                getContext()->getAARectRenderer()->fillAARect(fGpu,
+                                                              fGpu,
+                                                              element->getRect(),
+                                                              false);
+            } else {
+                fGpu->drawSimpleRect(element->getRect(), NULL);
+            }
+            return true;
+        case Element::kPath_Type: {
+            SkTCopyOnFirstWrite<SkPath> path(element->getPath());
+            if (path->isInverseFillType()) {
+                path.writable()->toggleInverseFillType();
+            }
+            SkStrokeRec stroke(SkStrokeRec::kFill_InitStyle);
+            if (NULL == pr) {
+                GrPathRendererChain::DrawType type;
+                type = element->isAA() ? GrPathRendererChain::kColorAntiAlias_DrawType :
+                                         GrPathRendererChain::kColor_DrawType;
+                pr = this->getContext()->getPathRenderer(*path, stroke, fGpu, false, type);
+            }
+            if (NULL == pr) {
+                return false;
+            }
+            pr->drawPath(element->getPath(), stroke, fGpu, element->isAA());
+            break;
         }
-    } else if (NULL != clip->fPath) {
-        return draw_path(this->getContext(), fGpu,
-                         *clip->fPath,
-                         get_path_fill(*clip->fPath),
-                         clip->fDoAA,
-                         resultBounds);
+        default:
+            
+            GrCrash("Unexpected element type");
+            return false;
     }
     return true;
 }
 
-void GrClipMaskManager::drawTexture(GrTexture* target,
-                                    GrTexture* texture) {
+bool GrClipMaskManager::canStencilAndDrawElement(GrTexture* target,
+                                                 const SkClipStack::Element* element,
+                                                 GrPathRenderer** pr) {
     GrDrawState* drawState = fGpu->drawState();
-    GrAssert(NULL != drawState);
-
-    
     drawState->setRenderTarget(target->asRenderTarget());
 
-    GrMatrix sampleM;
-    sampleM.setIDiv(texture->width(), texture->height());
+    switch (element->getType()) {
+        case Element::kRect_Type:
+            return true;
+        case Element::kPath_Type: {
+            SkTCopyOnFirstWrite<SkPath> path(element->getPath());
+            if (path->isInverseFillType()) {
+                path.writable()->toggleInverseFillType();
+            }
+            SkStrokeRec stroke(SkStrokeRec::kFill_InitStyle);
+            GrPathRendererChain::DrawType type = element->isAA() ?
+                GrPathRendererChain::kStencilAndColorAntiAlias_DrawType :
+                GrPathRendererChain::kStencilAndColor_DrawType;
+            *pr = this->getContext()->getPathRenderer(*path, stroke, fGpu, false, type);
+            return NULL != *pr;
+        }
+        default:
+            
+            GrCrash("Unexpected element type");
+            return false;
+    }
+}
 
-    drawState->sampler(0)->reset(sampleM);
-    drawState->createTextureEffect(0, texture);
+void GrClipMaskManager::mergeMask(GrTexture* dstMask,
+                                  GrTexture* srcMask,
+                                  SkRegion::Op op,
+                                  const GrIRect& dstBound,
+                                  const GrIRect& srcBound) {
+    GrDrawState* drawState = fGpu->drawState();
+    SkMatrix oldMatrix = drawState->getViewMatrix();
+    drawState->viewMatrix()->reset();
 
-    GrRect rect = GrRect::MakeWH(SkIntToScalar(target->width()),
-                                 SkIntToScalar(target->height()));
+    drawState->setRenderTarget(dstMask->asRenderTarget());
 
-    fGpu->drawSimpleRect(rect, NULL);
+    setup_boolean_blendcoeffs(drawState, op);
+
+    SkMatrix sampleM;
+    sampleM.setIDiv(srcMask->width(), srcMask->height());
+    drawState->setEffect(0,
+        GrTextureDomainEffect::Create(srcMask,
+                                      sampleM,
+                                      GrTextureDomainEffect::MakeTexelDomain(srcMask, srcBound),
+                                      GrTextureDomainEffect::kDecal_WrapMode,
+                                      false))->unref();
+    fGpu->drawSimpleRect(SkRect::MakeFromIRect(dstBound), NULL);
 
     drawState->disableStage(0);
+    drawState->setViewMatrix(oldMatrix);
 }
 
 
 
-void GrClipMaskManager::getTemp(const GrIRect& bounds,
-                                GrAutoScratchTexture* temp) {
+void GrClipMaskManager::getTemp(int width, int height, GrAutoScratchTexture* temp) {
     if (NULL != temp->texture()) {
         
         return;
@@ -517,194 +377,196 @@ void GrClipMaskManager::getTemp(const GrIRect& bounds,
 
     GrTextureDesc desc;
     desc.fFlags = kRenderTarget_GrTextureFlagBit|kNoStencil_GrTextureFlagBit;
-    desc.fWidth = bounds.width();
-    desc.fHeight = bounds.height();
+    desc.fWidth = width;
+    desc.fHeight = height;
     desc.fConfig = kAlpha_8_GrPixelConfig;
 
     temp->set(this->getContext(), desc);
 }
 
 
-void GrClipMaskManager::setupCache(const SkClipStack& clipIn,
-                                   const GrIRect& bounds) {
-    
-    
-    fAACache.reset();
-
-    GrTextureDesc desc;
-    desc.fFlags = kRenderTarget_GrTextureFlagBit|kNoStencil_GrTextureFlagBit;
-    desc.fWidth = bounds.width();
-    desc.fHeight = bounds.height();
-    desc.fConfig = kAlpha_8_GrPixelConfig;
-
-    fAACache.acquireMask(clipIn, desc, bounds);
-}
 
 
 
+bool GrClipMaskManager::getMaskTexture(int32_t clipStackGenID,
+                                       const SkIRect& clipSpaceIBounds,
+                                       GrTexture** result) {
+    bool cached = fAACache.canReuse(clipStackGenID, clipSpaceIBounds);
+    if (!cached) {
 
+        
+        
+        
+        fAACache.reset();
 
+        GrTextureDesc desc;
+        desc.fFlags = kRenderTarget_GrTextureFlagBit;
+        desc.fWidth = clipSpaceIBounds.width();
+        desc.fHeight = clipSpaceIBounds.height();
+        desc.fConfig = kRGBA_8888_GrPixelConfig;
+        if (this->getContext()->isConfigRenderable(kAlpha_8_GrPixelConfig)) {
+            
+            desc.fConfig = kAlpha_8_GrPixelConfig;
+        }
 
-bool GrClipMaskManager::clipMaskPreamble(const GrClipData& clipDataIn,
-                                         GrTexture** result,
-                                         GrIRect* devResultBounds) {
-    GrDrawState* origDrawState = fGpu->drawState();
-    GrAssert(origDrawState->isClipState());
-
-    GrRenderTarget* rt = origDrawState->getRenderTarget();
-    GrAssert(NULL != rt);
-
-    
-    
-    
-    clipDataIn.getConservativeBounds(rt, devResultBounds);
-
-    
-    
-    devResultBounds->outset(1, 1);
-
-    
-
-    if (fAACache.canReuse(*clipDataIn.fClipStack,
-                          devResultBounds->width(),
-                          devResultBounds->height())) {
-        *result = fAACache.getLastMask();
-        fAACache.getLastBound(devResultBounds);
-        return true;
+        fAACache.acquireMask(clipStackGenID, desc, clipSpaceIBounds);
     }
 
-    this->setupCache(*clipDataIn.fClipStack, *devResultBounds);
-    return false;
+    *result = fAACache.getLastMask();
+    return cached;
 }
 
 
 
-bool GrClipMaskManager::createAlphaClipMask(const GrClipData& clipDataIn,
-                                            GrTexture** result,
-                                            GrIRect *devResultBounds) {
-    GrAssert(NULL != devResultBounds);
+GrTexture* GrClipMaskManager::createAlphaClipMask(int32_t clipStackGenID,
+                                                  InitialState initialState,
+                                                  const ElementList& elements,
+                                                  const SkIRect& clipSpaceIBounds) {
     GrAssert(kNone_ClipMaskType == fCurrClipMaskType);
 
-    if (this->clipMaskPreamble(clipDataIn, result, devResultBounds)) {
+    GrTexture* result;
+    if (this->getMaskTexture(clipStackGenID, clipSpaceIBounds, &result)) {
         fCurrClipMaskType = kAlpha_ClipMaskType;
-        return true;
+        return result;
     }
 
-    
-
-    GrTexture* accum = fAACache.getLastMask();
-    if (NULL == accum) {
+    if (NULL == result) {
         fAACache.reset();
-        return false;
+        return NULL;
     }
 
-    GrDrawTarget::AutoStateRestore asr(fGpu, GrDrawTarget::kReset_ASRInit);
+    GrDrawTarget::AutoGeometryAndStatePush agasp(fGpu, GrDrawTarget::kReset_ASRInit);
     GrDrawState* drawState = fGpu->drawState();
 
-    GrDrawTarget::AutoGeometryPush agp(fGpu);
+    
+    SkVector clipToMaskOffset = {
+        SkIntToScalar(-clipSpaceIBounds.fLeft),
+        SkIntToScalar(-clipSpaceIBounds.fTop)
+    };
+    
+    
+    SkIRect maskSpaceIBounds = SkIRect::MakeWH(clipSpaceIBounds.width(), clipSpaceIBounds.height());
 
-    if (0 != devResultBounds->fTop || 0 != devResultBounds->fLeft ||
-        0 != clipDataIn.fOrigin.fX || 0 != clipDataIn.fOrigin.fY) {
-        
-        
-        drawState->viewMatrix()->setTranslate(
-                SkIntToScalar(-devResultBounds->fLeft-clipDataIn.fOrigin.fX),
-                SkIntToScalar(-devResultBounds->fTop-clipDataIn.fOrigin.fY));
-    }
+    
+    drawState->enableState(GrDrawState::kCoverageDrawing_StateBit);
 
-    bool clearToInside;
-    SkRegion::Op firstOp = SkRegion::kReplace_Op; 
+    
+    drawState->viewMatrix()->setTranslate(clipToMaskOffset);
 
-    SkClipStack::Iter iter(*clipDataIn.fClipStack,
-                           SkClipStack::Iter::kBottom_IterStart);
-    const SkClipStack::Iter::Clip* clip = process_initial_clip_elements(&iter,
-                                                              *devResultBounds,
-                                                              &clearToInside,
-                                                              &firstOp,
-                                                              clipDataIn);
+    
+    
+    fGpu->clear(&maskSpaceIBounds,
+                kAllIn_InitialState == initialState ? 0xffffffff : 0x00000000,
+                result->asRenderTarget());
 
-    fGpu->clear(NULL,
-                clearToInside ? 0xffffffff : 0x00000000,
-                accum->asRenderTarget());
+    
+    
+    
+    
+    GrDrawTarget::AutoClipRestore acr(fGpu, maskSpaceIBounds);
+    drawState->enableState(GrDrawState::kClip_StateBit);
 
     GrAutoScratchTexture temp;
-    bool first = true;
     
-    for ( ; NULL != clip; clip = iter.next()) {
+    for (ElementList::Iter iter = elements.headIter(); iter.get(); iter.next()) {
+        const Element* element = iter.get();
+        SkRegion::Op op = element->getOp();
+        bool invert = element->isInverseFilled();
 
-        SkRegion::Op op = clip->fOp;
-        if (first) {
-            first = false;
-            op = firstOp;
-        }
-
-        if (SkRegion::kReplace_Op == op) {
+        if (invert || SkRegion::kIntersect_Op == op || SkRegion::kReverseDifference_Op == op) {
+            GrPathRenderer* pr = NULL;
+            bool useTemp = !this->canStencilAndDrawElement(result, element, &pr);
+            GrTexture* dst;
             
-            fGpu->clear(NULL, 0x00000000, accum->asRenderTarget());
-
-            setup_boolean_blendcoeffs(drawState, op);
-            this->drawClipShape(accum, clip, *devResultBounds);
-
-        } else if (SkRegion::kReverseDifference_Op == op ||
-                   SkRegion::kIntersect_Op == op) {
             
-            if (SkRegion::kIntersect_Op == op && NULL != clip->fRect &&
-                contains(*clip->fRect, *devResultBounds, clipDataIn.fOrigin)) {
-                continue;
+            
+            
+            GrIRect maskSpaceElementIBounds;
+
+            if (useTemp) {
+                if (invert) {
+                    maskSpaceElementIBounds = maskSpaceIBounds;
+                } else {
+                    GrRect elementBounds = element->getBounds();
+                    elementBounds.offset(clipToMaskOffset);
+                    elementBounds.roundOut(&maskSpaceElementIBounds);
+                }
+
+                this->getTemp(maskSpaceIBounds.fRight, maskSpaceIBounds.fBottom, &temp);
+                if (NULL == temp.texture()) {
+                    fAACache.reset();
+                    return NULL;
+                }
+                dst = temp.texture();
+                
+                fGpu->clear(&maskSpaceElementIBounds,
+                            invert ? 0xffffffff : 0x00000000,
+                            dst->asRenderTarget());
+                setup_boolean_blendcoeffs(drawState, SkRegion::kReplace_Op);
+
+            } else {
+                
+                
+                dst = result;
+                GR_STATIC_CONST_SAME_STENCIL(kStencilInElement,
+                                             kReplace_StencilOp,
+                                             kReplace_StencilOp,
+                                             kAlways_StencilFunc,
+                                             0xffff,
+                                             0xffff,
+                                             0xffff);
+                drawState->setStencil(kStencilInElement);
+                setup_boolean_blendcoeffs(drawState, op);
             }
 
-            getTemp(*devResultBounds, &temp);
-            if (NULL == temp.texture()) {
+            drawState->setAlpha(invert ? 0x00 : 0xff);
+
+            if (!this->drawElement(dst, element, pr)) {
                 fAACache.reset();
-                return false;
+                return NULL;
             }
 
-            
-            fGpu->clear(NULL, 0x00000000, temp.texture()->asRenderTarget());
-
-            setup_boolean_blendcoeffs(drawState, SkRegion::kReplace_Op);
-            this->drawClipShape(temp.texture(), clip, *devResultBounds);
-
-            
-            
-            
-            if (0 != devResultBounds->fTop || 0 != devResultBounds->fLeft ||
-                0 != clipDataIn.fOrigin.fX || 0 != clipDataIn.fOrigin.fY) {
+            if (useTemp) {
                 
                 
-                drawState->viewMatrix()->reset();
+                this->mergeMask(result,
+                                temp.texture(),
+                                op,
+                                maskSpaceIBounds,
+                                maskSpaceElementIBounds);
+            } else {
+                
+                drawState->setAlpha(invert ? 0xff : 0x00);
+                GR_STATIC_CONST_SAME_STENCIL(kDrawOutsideElement,
+                                             kZero_StencilOp,
+                                             kZero_StencilOp,
+                                             kEqual_StencilFunc,
+                                             0xffff,
+                                             0x0000,
+                                             0xffff);
+                drawState->setStencil(kDrawOutsideElement);
+                fGpu->drawSimpleRect(clipSpaceIBounds);
+                drawState->disableStencil();
             }
-
-            
-            
-            setup_boolean_blendcoeffs(drawState, op);
-            this->drawTexture(accum, temp.texture());
-
-            if (0 != devResultBounds->fTop || 0 != devResultBounds->fLeft ||
-                0 != clipDataIn.fOrigin.fX || 0 != clipDataIn.fOrigin.fY) {
-                drawState->viewMatrix()->setTranslate(
-                  SkIntToScalar(-devResultBounds->fLeft-clipDataIn.fOrigin.fX),
-                  SkIntToScalar(-devResultBounds->fTop-clipDataIn.fOrigin.fY));
-            }
-
         } else {
             
-            
+            drawState->setAlpha(0xff);
             setup_boolean_blendcoeffs(drawState, op);
-            this->drawClipShape(accum, clip, *devResultBounds);
+            this->drawElement(result, element);
         }
     }
 
-    *result = accum;
     fCurrClipMaskType = kAlpha_ClipMaskType;
-    return true;
+    return result;
 }
 
 
 
 
-bool GrClipMaskManager::createStencilClipMask(const GrClipData& clipDataIn,
-                                              const GrIRect& devClipBounds) {
+bool GrClipMaskManager::createStencilClipMask(InitialState initialState,
+                                              const ElementList& elements,
+                                              const SkIRect& clipSpaceIBounds,
+                                              const SkIPoint& clipSpaceToStencilOffset) {
 
     GrAssert(kNone_ClipMaskType == fCurrClipMaskType);
 
@@ -719,151 +581,118 @@ bool GrClipMaskManager::createStencilClipMask(const GrClipData& clipDataIn,
     if (NULL == stencilBuffer) {
         return false;
     }
+    int32_t genID = elements.tail()->getGenID();
 
-    if (stencilBuffer->mustRenderClip(clipDataIn, rt->width(), rt->height())) {
+    if (stencilBuffer->mustRenderClip(genID, clipSpaceIBounds, clipSpaceToStencilOffset)) {
 
-        stencilBuffer->setLastClip(clipDataIn, rt->width(), rt->height());
+        stencilBuffer->setLastClip(genID, clipSpaceIBounds, clipSpaceToStencilOffset);
 
-        
-        
-        
-        
-        const GrClipData* oldClipData = fGpu->getClip();
-
-        
-        
-        SkClipStack newClipStack(devClipBounds);
-        GrClipData newClipData;
-        newClipData.fClipStack = &newClipStack;
-
-        fGpu->setClip(&newClipData);
-
-        GrDrawTarget::AutoStateRestore asr(fGpu, GrDrawTarget::kReset_ASRInit);
+        GrDrawTarget::AutoGeometryAndStatePush agasp(fGpu, GrDrawTarget::kReset_ASRInit);
         drawState = fGpu->drawState();
         drawState->setRenderTarget(rt);
-        GrDrawTarget::AutoGeometryPush agp(fGpu);
 
-        if (0 != clipDataIn.fOrigin.fX || 0 != clipDataIn.fOrigin.fY) {
-            
-            
-            drawState->viewMatrix()->setTranslate(
-                           SkIntToScalar(-clipDataIn.fOrigin.fX),
-                           SkIntToScalar(-clipDataIn.fOrigin.fY));
-        }
+        
+        SkIRect stencilSpaceIBounds(clipSpaceIBounds);
+        stencilSpaceIBounds.offset(clipSpaceToStencilOffset);
+        GrDrawTarget::AutoClipRestore acr(fGpu, stencilSpaceIBounds);
+        drawState->enableState(GrDrawState::kClip_StateBit);
+
+        
+        SkVector translate = {
+            SkIntToScalar(clipSpaceToStencilOffset.fX),
+            SkIntToScalar(clipSpaceToStencilOffset.fY)
+        };
+        drawState->viewMatrix()->setTranslate(translate);
 
 #if !VISUALIZE_COMPLEX_CLIP
         drawState->enableState(GrDrawState::kNoColorWrites_StateBit);
 #endif
 
         int clipBit = stencilBuffer->bits();
-        SkASSERT((clipBit <= 16) &&
-                    "Ganesh only handles 16b or smaller stencil buffers");
+        SkASSERT((clipBit <= 16) && "Ganesh only handles 16b or smaller stencil buffers");
         clipBit = (1 << (clipBit-1));
 
-        GrIRect devRTRect = GrIRect::MakeWH(rt->width(), rt->height());
-
-        bool clearToInside;
-        SkRegion::Op firstOp = SkRegion::kReplace_Op; 
-
-        SkClipStack::Iter iter(*oldClipData->fClipStack,
-                               SkClipStack::Iter::kBottom_IterStart);
-        const SkClipStack::Iter::Clip* clip = process_initial_clip_elements(&iter,
-                                                  devRTRect,
-                                                  &clearToInside,
-                                                  &firstOp,
-                                                  clipDataIn);
-
-        fGpu->clearStencilClip(devClipBounds, clearToInside);
-        bool first = true;
+        fGpu->clearStencilClip(stencilSpaceIBounds, kAllIn_InitialState == initialState);
 
         
         
-        for ( ; NULL != clip; clip = iter.next()) {
-            GrPathFill fill;
+        for (ElementList::Iter iter(elements.headIter()); NULL != iter.get(); iter.next()) {
+            const Element* element = iter.get();
             bool fillInverted = false;
             
             drawState->disableState(GrGpu::kModifyStencilClip_StateBit);
             
             if (rt->isMultisampled()) {
-                if (clip->fDoAA) {
-                    drawState->enableState(GrDrawState::kHWAntialias_StateBit);
-                } else {
-                    drawState->disableState(GrDrawState::kHWAntialias_StateBit);
-                }
+                drawState->setState(GrDrawState::kHWAntialias_StateBit, element->isAA());
             }
 
             
             
-            
-            bool canRenderDirectToStencil = false;
+            GrPathRenderer::StencilSupport stencilSupport;
 
-            SkRegion::Op op = clip->fOp;
-            if (first) {
-                first = false;
-                op = firstOp;
-            }
+            SkStrokeRec stroke(SkStrokeRec::kFill_InitStyle);
+
+            SkRegion::Op op = element->getOp();
 
             GrPathRenderer* pr = NULL;
-            const SkPath* clipPath = NULL;
-            if (NULL != clip->fRect) {
-                canRenderDirectToStencil = true;
-                fill = kEvenOdd_GrPathFill;
+            SkTCopyOnFirstWrite<SkPath> clipPath;
+            if (Element::kRect_Type == element->getType()) {
+                stencilSupport = GrPathRenderer::kNoRestriction_StencilSupport;
                 fillInverted = false;
-                
-                
-                if (SkRegion::kIntersect_Op == op &&
-                    contains(*clip->fRect, devRTRect, oldClipData->fOrigin)) {
-                    continue;
-                }
             } else {
-                GrAssert(NULL != clip->fPath);
-                fill = get_path_fill(*clip->fPath);
-                fillInverted = GrIsFillInverted(fill);
-                fill = GrNonInvertedFill(fill);
-                clipPath = clip->fPath;
-                pr = this->getContext()->getPathRenderer(*clipPath, fill, fGpu, false, true);
+                GrAssert(Element::kPath_Type == element->getType());
+                clipPath.init(element->getPath());
+                fillInverted = clipPath->isInverseFillType();
+                if (fillInverted) {
+                    clipPath.writable()->toggleInverseFillType();
+                }
+                pr = this->getContext()->getPathRenderer(*clipPath,
+                                                         stroke,
+                                                         fGpu,
+                                                         false,
+                                                         GrPathRendererChain::kStencilOnly_DrawType,
+                                                         &stencilSupport);
                 if (NULL == pr) {
-                    fGpu->setClip(oldClipData);
                     return false;
                 }
-                canRenderDirectToStencil =
-                    !pr->requiresStencilPass(*clipPath, fill, fGpu);
             }
 
             int passes;
             GrStencilSettings stencilSettings[GrStencilSettings::kMaxStencilClipPasses];
 
+            bool canRenderDirectToStencil =
+                GrPathRenderer::kNoRestriction_StencilSupport == stencilSupport;
             bool canDrawDirectToClip; 
-                                        
-                                        
-                                        
-            canDrawDirectToClip =
-                GrStencilSettings::GetClipPasses(op,
-                                                 canRenderDirectToStencil,
-                                                 clipBit,
-                                                 fillInverted,
-                                                 &passes,
-                                                 stencilSettings);
+                                      
+                                      
+                                      
+            canDrawDirectToClip = GrStencilSettings::GetClipPasses(op,
+                                                                   canRenderDirectToStencil,
+                                                                   clipBit,
+                                                                   fillInverted,
+                                                                   &passes,
+                                                                   stencilSettings);
 
             
             if (!canDrawDirectToClip) {
                 GR_STATIC_CONST_SAME_STENCIL(gDrawToStencil,
-                    kIncClamp_StencilOp,
-                    kIncClamp_StencilOp,
-                    kAlways_StencilFunc,
-                    0xffff,
-                    0x0000,
-                    0xffff);
+                                             kIncClamp_StencilOp,
+                                             kIncClamp_StencilOp,
+                                             kAlways_StencilFunc,
+                                             0xffff,
+                                             0x0000,
+                                             0xffff);
                 SET_RANDOM_COLOR
-                if (NULL != clip->fRect) {
+                if (Element::kRect_Type == element->getType()) {
                     *drawState->stencil() = gDrawToStencil;
-                    fGpu->drawSimpleRect(*clip->fRect, NULL);
+                    fGpu->drawSimpleRect(element->getRect(), NULL);
                 } else {
+                    GrAssert(Element::kPath_Type == element->getType());
                     if (canRenderDirectToStencil) {
                         *drawState->stencil() = gDrawToStencil;
-                        pr->drawPath(*clipPath, fill, NULL, fGpu, false);
+                        pr->drawPath(*clipPath, stroke, fGpu, false);
                     } else {
-                        pr->drawPathToStencil(*clipPath, fill, fGpu);
+                        pr->stencilPath(*clipPath, stroke, fGpu);
                     }
                 }
             }
@@ -874,28 +703,22 @@ bool GrClipMaskManager::createStencilClipMask(const GrClipData& clipDataIn,
             for (int p = 0; p < passes; ++p) {
                 *drawState->stencil() = stencilSettings[p];
                 if (canDrawDirectToClip) {
-                    if (NULL != clip->fRect) {
+                    if (Element::kRect_Type == element->getType()) {
                         SET_RANDOM_COLOR
-                        fGpu->drawSimpleRect(*clip->fRect, NULL);
+                        fGpu->drawSimpleRect(element->getRect(), NULL);
                     } else {
+                        GrAssert(Element::kPath_Type == element->getType());
                         SET_RANDOM_COLOR
-                        pr->drawPath(*clipPath, fill, NULL, fGpu, false);
+                        pr->drawPath(*clipPath, stroke, fGpu, false);
                     }
                 } else {
                     SET_RANDOM_COLOR
                     
                     
-                    
-                    
-                    GrRect canvClipBounds;
-                    canvClipBounds.set(devClipBounds);
-                    device_to_canvas(&canvClipBounds, clipDataIn.fOrigin);
-                    fGpu->drawSimpleRect(canvClipBounds, NULL);
+                    fGpu->drawSimpleRect(SkRect::MakeFromIRect(clipSpaceIBounds), NULL);
                 }
             }
         }
-        
-        fGpu->setClip(oldClipData);
     }
     
     GrAssert(kNone_ClipMaskType == fCurrClipMaskType);
@@ -1001,9 +824,8 @@ void GrClipMaskManager::setGpuStencil() {
         stencilBits = stencilBuffer->bits();
     }
 
-    GrAssert(fGpu->getCaps().stencilWrapOpsSupport() ||
-             !settings.usesWrapOp());
-    GrAssert(fGpu->getCaps().twoSidedStencilSupport() || !settings.isTwoSided());
+    GrAssert(fGpu->caps()->stencilWrapOpsSupport() || !settings.usesWrapOp());
+    GrAssert(fGpu->caps()->twoSidedStencilSupport() || !settings.isTwoSided());
     this->adjustStencilParams(&settings, clipMode, stencilBits);
     fGpu->setStencilSettings(settings);
 }
@@ -1023,7 +845,7 @@ void GrClipMaskManager::adjustStencilParams(GrStencilSettings* settings,
     unsigned int userBits = clipBit - 1;
 
     GrStencilSettings::Face face = GrStencilSettings::kFront_Face;
-    bool twoSided = fGpu->getCaps().twoSidedStencilSupport();
+    bool twoSided = fGpu->caps()->twoSidedStencilSupport();
 
     bool finished = false;
     while (!finished) {
@@ -1090,102 +912,69 @@ void GrClipMaskManager::adjustStencilParams(GrStencilSettings* settings,
 }
 
 
-
-namespace {
-
-GrPathFill invert_fill(GrPathFill fill) {
-    static const GrPathFill gInvertedFillTable[] = {
-        kInverseWinding_GrPathFill, 
-        kInverseEvenOdd_GrPathFill, 
-        kWinding_GrPathFill,        
-        kEvenOdd_GrPathFill,        
-        kHairLine_GrPathFill,       
-    };
-    GR_STATIC_ASSERT(0 == kWinding_GrPathFill);
-    GR_STATIC_ASSERT(1 == kEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(2 == kInverseWinding_GrPathFill);
-    GR_STATIC_ASSERT(3 == kInverseEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(4 == kHairLine_GrPathFill);
-    GR_STATIC_ASSERT(5 == kGrPathFillCount);
-    return gInvertedFillTable[fill];
-}
-
-}
-
-bool GrClipMaskManager::createSoftwareClipMask(const GrClipData& clipDataIn,
-                                               GrTexture** result,
-                                               GrIRect* devResultBounds) {
+GrTexture* GrClipMaskManager::createSoftwareClipMask(int32_t clipStackGenID,
+                                                     GrReducedClip::InitialState initialState,
+                                                     const GrReducedClip::ElementList& elements,
+                                                     const SkIRect& clipSpaceIBounds) {
     GrAssert(kNone_ClipMaskType == fCurrClipMaskType);
 
-    if (this->clipMaskPreamble(clipDataIn, result, devResultBounds)) {
-        return true;
+    GrTexture* result;
+    if (this->getMaskTexture(clipStackGenID, clipSpaceIBounds, &result)) {
+        return result;
     }
 
-    GrTexture* accum = fAACache.getLastMask();
-    if (NULL == accum) {
+    if (NULL == result) {
         fAACache.reset();
-        return false;
+        return NULL;
     }
+
+    
+    
+    SkIRect maskSpaceIBounds = SkIRect::MakeWH(clipSpaceIBounds.width(), clipSpaceIBounds.height());
 
     GrSWMaskHelper helper(this->getContext());
 
-    GrMatrix matrix;
-    matrix.setTranslate(SkIntToScalar(-clipDataIn.fOrigin.fX),
-                        SkIntToScalar(-clipDataIn.fOrigin.fY));
-    helper.init(*devResultBounds, &matrix);
+    SkMatrix matrix;
+    matrix.setTranslate(SkIntToScalar(-clipSpaceIBounds.fLeft),
+                        SkIntToScalar(-clipSpaceIBounds.fTop));
+    helper.init(maskSpaceIBounds, &matrix);
 
-    bool clearToInside;
-    SkRegion::Op firstOp = SkRegion::kReplace_Op; 
+    helper.clear(kAllIn_InitialState == initialState ? 0xFF : 0x00);
 
-    SkClipStack::Iter iter(*clipDataIn.fClipStack,
-                           SkClipStack::Iter::kBottom_IterStart);
-    const SkClipStack::Iter::Clip* clip = process_initial_clip_elements(&iter,
-                                              *devResultBounds,
-                                              &clearToInside,
-                                              &firstOp,
-                                              clipDataIn);
+    SkStrokeRec stroke(SkStrokeRec::kFill_InitStyle);
 
-    helper.clear(clearToInside ? 0xFF : 0x00);
+    for (ElementList::Iter iter(elements.headIter()) ; NULL != iter.get(); iter.next()) {
 
-    bool first = true;
-    for ( ; NULL != clip; clip = iter.next()) {
+        const Element* element = iter.get();
+        SkRegion::Op op = element->getOp();
 
-        SkRegion::Op op = clip->fOp;
-        if (first) {
-            first = false;
-            op = firstOp;
-        }
-
-        if (SkRegion::kIntersect_Op == op ||
-            SkRegion::kReverseDifference_Op == op) {
-            
-            
+        if (SkRegion::kIntersect_Op == op || SkRegion::kReverseDifference_Op == op) {
             
             
             
             
             if (SkRegion::kReverseDifference_Op == op) {
-                SkRect temp;
-                temp.set(*devResultBounds);
-
+                SkRect temp = SkRect::MakeFromIRect(clipSpaceIBounds);
                 
                 helper.draw(temp, SkRegion::kXOR_Op, false, 0xFF);
             }
 
-            if (NULL != clip->fRect) {
-
+            if (Element::kRect_Type == element->getType()) {
                 
                 SkPath temp;
-                temp.addRect(*clip->fRect);
+                temp.addRect(element->getRect());
+                temp.setFillType(SkPath::kInverseEvenOdd_FillType);
 
-                helper.draw(temp, SkRegion::kReplace_Op,
-                            kInverseEvenOdd_GrPathFill, clip->fDoAA,
+                helper.draw(temp, stroke, SkRegion::kReplace_Op,
+                            element->isAA(),
                             0x00);
-            } else if (NULL != clip->fPath) {
-                helper.draw(*clip->fPath,
+            } else {
+                GrAssert(Element::kPath_Type == element->getType());
+                SkPath clipPath = element->getPath();
+                clipPath.toggleInverseFillType();
+                helper.draw(clipPath, stroke,
                             SkRegion::kReplace_Op,
-                            invert_fill(get_path_fill(*clip->fPath)),
-                            clip->fDoAA,
+                            element->isAA(),
                             0x00);
             }
 
@@ -1194,42 +983,26 @@ bool GrClipMaskManager::createSoftwareClipMask(const GrClipData& clipDataIn,
 
         
         
-        if (NULL != clip->fRect) {
-
-            helper.draw(*clip->fRect,
-                        op,
-                        clip->fDoAA, 0xFF);
-
-        } else if (NULL != clip->fPath) {
-            helper.draw(*clip->fPath,
-                        op,
-                        get_path_fill(*clip->fPath),
-                        clip->fDoAA, 0xFF);
+        if (Element::kRect_Type == element->getType()) {
+            helper.draw(element->getRect(), op, element->isAA(), 0xFF);
+        } else {
+            GrAssert(Element::kPath_Type == element->getType());
+            helper.draw(element->getPath(), stroke, op, element->isAA(), 0xFF);
         }
     }
 
-    
-    
-    
-
-    
-    
-    GrDrawState* drawState = fGpu->drawState();
-    GrAssert(NULL != drawState);
-    GrRenderTarget* temp = drawState->getRenderTarget();
-    fGpu->clear(NULL, 0x00000000, accum->asRenderTarget());
-    
-    drawState->setRenderTarget(temp);
-
-    helper.toTexture(accum, clearToInside ? 0xFF : 0x00);
-
-    *result = accum;
+    helper.toTexture(result, kAllIn_InitialState == initialState ? 0xFF : 0x00);
 
     fCurrClipMaskType = kAlpha_ClipMaskType;
-    return true;
+    return result;
 }
 
 
 void GrClipMaskManager::releaseResources() {
     fAACache.releaseResources();
+}
+
+void GrClipMaskManager::setGpu(GrGpu* gpu) {
+    fGpu = gpu;
+    fAACache.setContext(gpu->getContext());
 }

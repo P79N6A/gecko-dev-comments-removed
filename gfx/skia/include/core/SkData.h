@@ -92,6 +92,12 @@ public:
 
 
 
+    static SkData* NewFromMMap(const void* data, size_t length);
+
+    
+
+
+
     static SkData* NewSubset(const SkData* src, size_t offset, size_t length);
 
     

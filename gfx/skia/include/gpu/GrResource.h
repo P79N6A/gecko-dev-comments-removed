@@ -12,7 +12,7 @@
 
 #include "GrRefCnt.h"
 
-#include "SkTDLinkedList.h"
+#include "SkTInternalLList.h"
 
 class GrGpu;
 class GrContext;
@@ -57,7 +57,7 @@ public:
 
     virtual size_t sizeInBytes() const = 0;
 
-     
+    
 
 
 
@@ -69,8 +69,16 @@ public:
     void setCacheEntry(GrResourceEntry* cacheEntry) { fCacheEntry = cacheEntry; }
     GrResourceEntry* getCacheEntry() { return fCacheEntry; }
 
+    void incDeferredRefCount() const { GrAssert(fDeferredRefCount >= 0); ++fDeferredRefCount; }
+    void decDeferredRefCount() const { GrAssert(fDeferredRefCount > 0); --fDeferredRefCount; }
+
 protected:
-    explicit GrResource(GrGpu* gpu);
+    
+
+
+
+
+    GrResource(GrGpu* gpu, bool isWrapped);
     virtual ~GrResource();
 
     GrGpu* getGpu() const { return fGpu; }
@@ -81,22 +89,27 @@ protected:
     virtual void onAbandon() {};
 
     bool isInCache() const { return NULL != fCacheEntry; }
+    bool isWrapped() const { return kWrapped_Flag & fFlags; }
 
 private:
-
 #if GR_DEBUG
     friend class GrGpu; 
 #endif
 
-    GrGpu*      fGpu;       
-                            
-                            
-                            
-
     
-    SK_DEFINE_DLINKEDLIST_INTERFACE(GrResource);
+    SK_DECLARE_INTERNAL_LLIST_INTERFACE(GrResource);
 
-    GrResourceEntry* fCacheEntry;  
+    GrGpu*              fGpu;               
+                                            
+                                            
+                                            
+    GrResourceEntry*    fCacheEntry;        
+    mutable int         fDeferredRefCount;  
+
+    enum Flags {
+        kWrapped_Flag = 0x1,
+    };
+    uint32_t         fFlags;
 
     typedef GrRefCnt INHERITED;
 };

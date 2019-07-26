@@ -136,4 +136,3 @@ bool SkXMLPullParser::onEntityReplacement(const char name[],
     
     return false;
 }
-

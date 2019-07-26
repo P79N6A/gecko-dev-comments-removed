@@ -11,7 +11,7 @@
 
 #include "GrGLIRect.h"
 #include "GrRenderTarget.h"
-#include "GrScalar.h"
+#include "SkScalar.h"
 
 class GrGpuGL;
 class GrGLTexture;
@@ -25,12 +25,13 @@ public:
     enum { kUnresolvableFBOID = 0 };
 
     struct Desc {
-        GrGLuint      fRTFBOID;
-        GrGLuint      fTexFBOID;
-        GrGLuint      fMSColorRenderbufferID;
-        bool          fOwnIDs;
-        GrPixelConfig fConfig;
-        int           fSampleCnt;
+        GrGLuint         fRTFBOID;
+        GrGLuint         fTexFBOID;
+        GrGLuint         fMSColorRenderbufferID;
+        bool             fIsWrapped;
+        GrPixelConfig    fConfig;
+        int              fSampleCnt;
+        GrSurfaceOrigin  fOrigin;
     };
 
     
@@ -59,10 +60,10 @@ public:
     GrGLuint textureFBOID() const { return fTexFBOID; }
 
     
-    virtual intptr_t getRenderTargetHandle() const {
+    virtual GrBackendObject getRenderTargetHandle() const {
         return this->renderFBOID();
     }
-    virtual intptr_t getRenderTargetResolvedHandle() const {
+    virtual GrBackendObject getRenderTargetResolvedHandle() const {
         return this->textureFBOID();
     }
     virtual ResolveType getResolveType() const {
@@ -88,10 +89,6 @@ private:
     GrGLuint      fTexFBOID;
 
     GrGLuint      fMSColorRenderbufferID;
-
-    
-    
-    bool        fOwnIDs;
 
     
     

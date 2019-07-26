@@ -5,16 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 #include "FontHostConfiguration_android.h"
 #include "SkString.h"
 #include "SkTDArray.h"
@@ -38,13 +28,17 @@
 
 
 struct FamilyData {
-    FamilyData(XML_Parser *parserRef, SkTDArray<FontFamily*> &familiesRef) :
-            parser(parserRef), families(familiesRef), currentTag(NO_TAG) {};
+    FamilyData(XML_Parser *parserRef, SkTDArray<FontFamily*> &familiesRef, const AndroidLocale &localeRef) :
+            parser(parserRef), families(familiesRef), currentTag(NO_TAG),
+            locale(localeRef), currentFamilyLangMatch(false), familyLangMatchCount(0) {}
 
     XML_Parser *parser;                
     SkTDArray<FontFamily*> &families;  
     FontFamily *currentFamily;         
     int currentTag;                    
+    const AndroidLocale &locale;       
+    bool currentFamilyLangMatch;       
+    int familyLangMatchCount;          
 };
 
 
@@ -88,7 +82,6 @@ void startElementHandler(void *data, const char *tag, const char **atts) {
         
         
         for (int i = 0; atts[i] != NULL; i += 2) {
-            const char* attribute = atts[i];
             const char* valueString = atts[i+1];
             int value;
             int len = sscanf(valueString, "%d", &value);
@@ -100,10 +93,28 @@ void startElementHandler(void *data, const char *tag, const char **atts) {
         familyData->currentTag = NAMESET_TAG;
     } else if (len == 7 && strncmp(tag, "fileset", len) == 0) {
         familyData->currentTag = FILESET_TAG;
-    } else if ((strncmp(tag, "name", len) == 0 && familyData->currentTag == NAMESET_TAG) ||
-            (strncmp(tag, "file", len) == 0 && familyData->currentTag == FILESET_TAG)) {
-        
+    } else if (strncmp(tag, "name", len) == 0 && familyData->currentTag == NAMESET_TAG) {
         XML_SetCharacterDataHandler(*familyData->parser, textHandler);
+    } else if (strncmp(tag, "file", len) == 0 && familyData->currentTag == FILESET_TAG) {
+        
+        
+        bool includeTheEntry = true;
+        for (int i = 0; atts[i] != NULL; i += 2) {
+            const char* attribute = atts[i];
+            const char* value = atts[i+1];
+            if (strncmp(attribute, "lang", 4) == 0) {
+                if (strcmp(value, familyData->locale.language) == 0) {
+                    
+                    familyData->currentFamilyLangMatch = true;
+                } else {
+                    
+                    includeTheEntry = false;
+                }
+            }
+        }
+        if (includeTheEntry) {
+            XML_SetCharacterDataHandler(*familyData->parser, textHandler);
+        }
     }
 }
 
@@ -116,7 +127,12 @@ void endElementHandler(void *data, const char *tag) {
     int len = strlen(tag);
     if (strncmp(tag, "family", len)== 0) {
         
-        *familyData->families.append() = familyData->currentFamily;
+        if (familyData->currentFamilyLangMatch) {
+            *familyData->families.insert(familyData->familyLangMatchCount++) = familyData->currentFamily;
+            familyData->currentFamilyLangMatch = false;
+        } else {
+            *familyData->families.append() = familyData->currentFamily;
+        }
         familyData->currentFamily = NULL;
     } else if (len == 7 && strncmp(tag, "nameset", len)== 0) {
         familyData->currentTag = NO_TAG;
@@ -160,18 +176,16 @@ void getLocale(AndroidLocale &locale)
 
 
 
-FILE* openLocalizedFile(const char* origname) {
+FILE* openLocalizedFile(const char* origname, const AndroidLocale& locale) {
     FILE* file = 0;
     SkString basename;
     SkString filename;
-    AndroidLocale locale;
 
     basename.set(origname);
     
     if (basename.endsWith(".xml")) {
         basename.resize(basename.size()-4);
     }
-    getLocale(locale);
     
     filename.printf("%s-%s-%s.xml", basename.c_str(), locale.language, locale.region);
     file = fopen(filename.c_str(), "r");
@@ -193,11 +207,13 @@ FILE* openLocalizedFile(const char* origname) {
 
 
 void parseConfigFile(const char *filename, SkTDArray<FontFamily*> &families) {
+    AndroidLocale locale;
+    getLocale(locale);
     XML_Parser parser = XML_ParserCreate(NULL);
-    FamilyData *familyData = new FamilyData(&parser, families);
-    XML_SetUserData(parser, familyData);
+    FamilyData familyData(&parser, families, locale);
+    XML_SetUserData(parser, &familyData);
     XML_SetElementHandler(parser, startElementHandler, endElementHandler);
-    FILE *file = openLocalizedFile(filename);
+    FILE *file = openLocalizedFile(filename, locale);
     
     
     if (file == NULL) {
@@ -213,6 +229,8 @@ void parseConfigFile(const char *filename, SkTDArray<FontFamily*> &families) {
         }
         XML_Parse(parser, buffer, len, done);
     }
+    fclose(file);
+    XML_ParserFree(parser);
 }
 
 void getSystemFontFamilies(SkTDArray<FontFamily*> &fontFamilies) {

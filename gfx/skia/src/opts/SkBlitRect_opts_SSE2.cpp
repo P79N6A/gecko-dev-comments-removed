@@ -118,7 +118,8 @@ void ColorRect32_SSE2(SkPMColor* destination,
         return;
     }
     unsigned colorA = SkGetPackedA32(color);
-    if (false && 255 == colorA) { 
+    colorA = 0; 
+    if (255 == colorA) {
         if (width < 31) {
             BlitRect32_OpaqueNarrow_SSE2(destination, width, height,
                                          rowBytes, color);
@@ -130,4 +131,3 @@ void ColorRect32_SSE2(SkPMColor* destination,
         SkBlitRow::ColorRect32(destination, width, height, rowBytes, color);
     }
 }
-

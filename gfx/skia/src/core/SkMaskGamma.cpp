@@ -11,45 +11,61 @@
 #include "SkFloatingPoint.h"
 #include "SkMaskGamma.h"
 
-SkScalar SkSRGBLuminance::toLuma(SkScalar luminance) const {
-    
-    
-    if (luminance <= SkFloatToScalar(0.04045f)) {
-        return luminance / SkFloatToScalar(12.92f);
+class SkLinearColorSpaceLuminance : public SkColorSpaceLuminance {
+    virtual SkScalar toLuma(SkScalar SkDEBUGCODE(gamma), SkScalar luminance) const SK_OVERRIDE {
+        SkASSERT(SK_Scalar1 == gamma);
+        return luminance;
     }
-    return SkScalarPow((luminance + SkFloatToScalar(0.055f)) / SkFloatToScalar(1.055f),
-                       SkFloatToScalar(2.4f));
-}
-
-SkScalar SkSRGBLuminance::fromLuma(SkScalar luma) const {
-    
-    
-    if (luma <= SkFloatToScalar(0.0031308f)) {
-        return luma * SkFloatToScalar(12.92f);
+    virtual SkScalar fromLuma(SkScalar SkDEBUGCODE(gamma), SkScalar luma) const SK_OVERRIDE {
+        SkASSERT(SK_Scalar1 == gamma);
+        return luma;
     }
-    return SkFloatToScalar(1.055f) * SkScalarPow(luma, SkScalarInvert(SkFloatToScalar(2.4f)))
-           - SkFloatToScalar(0.055f);
-}
+};
 
-SkGammaLuminance::SkGammaLuminance(SkScalar gamma)
-    : fGamma(gamma)
-    , fGammaInverse(SkScalarInvert(gamma)) {
-}
+class SkGammaColorSpaceLuminance : public SkColorSpaceLuminance {
+    virtual SkScalar toLuma(SkScalar gamma, SkScalar luminance) const SK_OVERRIDE {
+        return SkScalarPow(luminance, gamma);
+    }
+    virtual SkScalar fromLuma(SkScalar gamma, SkScalar luma) const SK_OVERRIDE {
+        return SkScalarPow(luma, SkScalarInvert(gamma));
+    }
+};
 
-SkScalar SkGammaLuminance::toLuma(SkScalar luminance) const {
-    return SkScalarPow(luminance, fGamma);
-}
+class SkSRGBColorSpaceLuminance : public SkColorSpaceLuminance {
+    virtual SkScalar toLuma(SkScalar SkDEBUGCODE(gamma), SkScalar luminance) const SK_OVERRIDE {
+        SkASSERT(0 == gamma);
+        
+        
+        if (luminance <= SkFloatToScalar(0.04045f)) {
+            return luminance / SkFloatToScalar(12.92f);
+        }
+        return SkScalarPow((luminance + SkFloatToScalar(0.055f)) / SkFloatToScalar(1.055f),
+                        SkFloatToScalar(2.4f));
+    }
+    virtual SkScalar fromLuma(SkScalar SkDEBUGCODE(gamma), SkScalar luma) const SK_OVERRIDE {
+        SkASSERT(0 == gamma);
+        
+        
+        if (luma <= SkFloatToScalar(0.0031308f)) {
+            return luma * SkFloatToScalar(12.92f);
+        }
+        return SkFloatToScalar(1.055f) * SkScalarPow(luma, SkScalarInvert(SkFloatToScalar(2.4f)))
+               - SkFloatToScalar(0.055f);
+    }
+};
 
-SkScalar SkGammaLuminance::fromLuma(SkScalar luma) const {
-    return SkScalarPow(luma, fGammaInverse);
-}
+ const SkColorSpaceLuminance& SkColorSpaceLuminance::Fetch(SkScalar gamma) {
+    static SkLinearColorSpaceLuminance gSkLinearColorSpaceLuminance;
+    static SkGammaColorSpaceLuminance gSkGammaColorSpaceLuminance;
+    static SkSRGBColorSpaceLuminance gSkSRGBColorSpaceLuminance;
 
-SkScalar SkLinearLuminance::toLuma(SkScalar luminance) const {
-    return luminance;
-}
-
-SkScalar SkLinearLuminance::fromLuma(SkScalar luma) const {
-    return luma;
+    if (0 == gamma) {
+        return gSkSRGBColorSpaceLuminance;
+    } else if (SK_Scalar1 == gamma) {
+        return gSkLinearColorSpaceLuminance;
+    } else {
+        return gSkGammaColorSpaceLuminance;
+    }
 }
 
 static float apply_contrast(float srca, float contrast) {
@@ -57,16 +73,16 @@ static float apply_contrast(float srca, float contrast) {
 }
 
 void SkTMaskGamma_build_correcting_lut(uint8_t table[256], U8CPU srcI, SkScalar contrast,
-                                       const SkColorSpaceLuminance& srcConvert,
-                                       const SkColorSpaceLuminance& dstConvert) {
+                                       const SkColorSpaceLuminance& srcConvert, SkScalar srcGamma,
+                                       const SkColorSpaceLuminance& dstConvert, SkScalar dstGamma) {
     const float src = (float)srcI / 255.0f;
-    const float linSrc = srcConvert.toLuma(src);
+    const float linSrc = srcConvert.toLuma(srcGamma, src);
     
     
     
     
     const float dst = 1.0f - src;
-    const float linDst = dstConvert.toLuma(dst);
+    const float linDst = dstConvert.toLuma(dstGamma, dst);
 
     
     const float adjustedContrast = SkScalarToFloat(contrast) * linDst;
@@ -96,7 +112,7 @@ void SkTMaskGamma_build_correcting_lut(uint8_t table[256], U8CPU srcI, SkScalar 
             
             float linOut = (linSrc * srca + dsta * linDst);
             SkASSERT(linOut <= 1.0f);
-            float out = dstConvert.fromLuma(linOut);
+            float out = dstConvert.fromLuma(dstGamma, linOut);
 
             
             float result = (out - dst) / (src - dst);

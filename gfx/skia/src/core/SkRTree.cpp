@@ -261,8 +261,7 @@ int SkRTree::distributeChildren(Branch* children) {
 
         
         for (int j = 0; j < 2; ++j) {
-
-            SkQSort(sorts[i][j], children, children + fMaxChildren, &RectLessThan);
+            SkTQSort(children, children + fMaxChildren, RectLessThan(sorts[i][j]));
 
             
             for (int32_t k = 1; k <= fMaxChildren - 2 * fMinChildren + 2; ++k) {
@@ -299,7 +298,7 @@ int SkRTree::distributeChildren(Branch* children) {
     
     
     if (!(axis == 1 && sortSide == 1)) {
-        SkQSort(sorts[axis][sortSide], children, children + fMaxChildren, &RectLessThan);
+        SkTQSort(children, children + fMaxChildren, RectLessThan(sorts[axis][sortSide]));
     }
 
     return fMinChildren - 1 + k;
@@ -325,7 +324,7 @@ SkRTree::Branch SkRTree::bulkLoad(SkTDArray<Branch>* branches, int level) {
         return out;
     } else {
         
-        SkQSort<int, Branch>(level, branches->begin(), branches->end() - 1, &RectLessY);
+        SkTQSort(branches->begin(), branches->end() - 1, RectLessY());
 
         int numBranches = branches->count() / fMaxChildren;
         int remainder = branches->count() % fMaxChildren;
@@ -357,8 +356,7 @@ SkRTree::Branch SkRTree::bulkLoad(SkTDArray<Branch>* branches, int level) {
             }
 
             
-            SkQSort<int, Branch>(level, branches->begin() + begin, branches->begin() + end - 1,
-                                 &RectLessX);
+            SkTQSort(branches->begin() + begin, branches->begin() + end - 1, RectLessX());
 
             for (int j = 0; j < numTiles && currentBranch < branches->count(); ++j) {
                 int incrementBy = fMaxChildren;
@@ -436,6 +434,14 @@ int SkRTree::validateSubtree(Node* root, SkIRect bounds, bool isRoot) {
     }
 }
 
+void SkRTree::rewindInserts() {
+    SkASSERT(this->isEmpty()); 
+    while (!fDeferredInserts.isEmpty() &&
+           fClient->shouldRewind(fDeferredInserts.top().fChild.data)) {
+        fDeferredInserts.pop();
+    }
+}
+
 
 
 static inline uint32_t get_area(const SkIRect& rect) {
@@ -473,4 +479,3 @@ static inline void join_no_empty_check(const SkIRect& joinWith, SkIRect* out) {
     if (joinWith.fRight > out->fRight) { out->fRight = joinWith.fRight; }
     if (joinWith.fBottom > out->fBottom) { out->fBottom = joinWith.fBottom; }
 }
-

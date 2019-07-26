@@ -12,11 +12,7 @@
 #include "SkMaskGamma.h"
 #include "SkMatrix.h"
 #include "SkPaint.h"
-
-#ifdef SK_BUILD_FOR_ANDROID
-    
-    #include "SkTypeface.h"
-#endif
+#include "SkTypeface.h"
 
 struct SkGlyph;
 class SkDescriptor;
@@ -74,7 +70,7 @@ struct SkScalerContextRec {
 
 
     void ignorePreBlend() {
-        setLuminanceColor(0x00000000);
+        setLuminanceColor(SK_ColorTRANSPARENT);
         setPaintGamma(SK_Scalar1);
         setDeviceGamma(SK_Scalar1);
         setContrast(0);
@@ -149,8 +145,10 @@ public:
     };
 
 
-    SkScalerContext(const SkDescriptor* desc);
+    SkScalerContext(SkTypeface*, const SkDescriptor*);
     virtual ~SkScalerContext();
+
+    SkTypeface* getTypeface() const { return fTypeface.get(); }
 
     SkMask::Format getMaskFormat() const {
         return (SkMask::Format)fRec.fMaskFormat;
@@ -190,22 +188,13 @@ public:
 
     
     
-    SkFontID findTypefaceIdForChar(SkUnichar uni) {
-        SkScalerContext* ctx = this;
-        while (NULL != ctx) {
-            if (ctx->generateCharToGlyph(uni)) {
-                return ctx->fRec.fFontID;
-            }
-            ctx = ctx->getNextContext();
-        }
-        return 0;
-    }
+    SkFontID findTypefaceIdForChar(SkUnichar uni);
 #endif
 
-    static inline void MakeRec(const SkPaint&, const SkMatrix*, Rec* rec);
+    static inline void MakeRec(const SkPaint&, const SkDeviceProperties* deviceProperties,
+                               const SkMatrix*, Rec* rec);
     static inline void PostMakeRec(const SkPaint&, Rec*);
 
-    static SkScalerContext* Create(const SkDescriptor*);
     static SkMaskGamma::PreBlend GetMaskPreBlend(const Rec& rec);
 
 protected:
@@ -216,7 +205,7 @@ protected:
     virtual uint16_t generateCharToGlyph(SkUnichar) = 0;
     virtual void generateAdvance(SkGlyph*) = 0;
     virtual void generateMetrics(SkGlyph*) = 0;
-    virtual void generateImage(const SkGlyph&, SkMaskGamma::PreBlend* maskPreBlend) = 0;
+    virtual void generateImage(const SkGlyph&) = 0;
     virtual void generatePath(const SkGlyph&, SkPath*) = 0;
     virtual void generateFontMetrics(SkPaint::FontMetrics* mX,
                                      SkPaint::FontMetrics* mY) = 0;
@@ -226,6 +215,10 @@ protected:
     void forceGenerateImageFromPath() { fGenerateImageFromPath = true; }
 
 private:
+    
+    SkAutoTUnref<SkTypeface> fTypeface;
+
+    
     SkPathEffect*   fPathEffect;
     SkMaskFilter*   fMaskFilter;
     SkRasterizer*   fRasterizer;
@@ -238,6 +231,10 @@ private:
                          SkPath* devPath, SkMatrix* fillToDevMatrix);
 
     
+    
+    SkScalerContext* allocNextContext() const;
+
+    
     SkScalerContext* getNextContext();
 
     
@@ -245,10 +242,21 @@ private:
     SkScalerContext* getGlyphContext(const SkGlyph& glyph);
 
     
+    
+    
+    SkScalerContext* getContextFromChar(SkUnichar uni, uint16_t* glyphID);
+
+    
     SkScalerContext* fNextContext;
 
     
-    SkMaskGamma::PreBlend fMaskPreBlend;
+protected:
+    
+    const SkMaskGamma::PreBlend fPreBlend;
+private:
+    
+    
+    const SkMaskGamma::PreBlend fPreBlendForFilter;
 };
 
 #define kRec_SkDescriptorTag            SkSetFourByteTag('s', 'r', 'e', 'c')
@@ -287,4 +295,3 @@ void SkScalerContextRec::setHinting(SkPaint::Hinting hinting) {
 
 
 #endif
-

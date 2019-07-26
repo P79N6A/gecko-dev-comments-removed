@@ -1254,28 +1254,49 @@ static bool quad_pt2OffCurve(const SkPoint quad[3], SkScalar x, SkScalar y, SkPo
     return false;
 }
 
+#ifdef SK_SCALAR_IS_FLOAT
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SK_ScalarRoot2Over2_QuadCircle    0.7072f
+
+#else
+    #define SK_ScalarRoot2Over2_QuadCircle    SK_FixedRoot2Over2
+#endif
+
+
 static const SkPoint gQuadCirclePts[kSkBuildQuadArcStorage] = {
-    { SK_Scalar1,           0               },
-    { SK_Scalar1,           SK_ScalarTanPIOver8 },
-    { SK_ScalarRoot2Over2,  SK_ScalarRoot2Over2 },
-    { SK_ScalarTanPIOver8,  SK_Scalar1          },
+    { SK_Scalar1,                      0                                  },
+    { SK_Scalar1,                      SK_ScalarTanPIOver8                },
+    { SK_ScalarRoot2Over2_QuadCircle,  SK_ScalarRoot2Over2_QuadCircle     },
+    { SK_ScalarTanPIOver8,             SK_Scalar1                         },
 
-    { 0,                    SK_Scalar1      },
-    { -SK_ScalarTanPIOver8, SK_Scalar1  },
-    { -SK_ScalarRoot2Over2, SK_ScalarRoot2Over2 },
-    { -SK_Scalar1,          SK_ScalarTanPIOver8 },
+    { 0,                               SK_Scalar1                         },
+    { -SK_ScalarTanPIOver8,            SK_Scalar1                         },
+    { -SK_ScalarRoot2Over2_QuadCircle, SK_ScalarRoot2Over2_QuadCircle     },
+    { -SK_Scalar1,                     SK_ScalarTanPIOver8                },
 
-    { -SK_Scalar1,          0               },
-    { -SK_Scalar1,          -SK_ScalarTanPIOver8    },
-    { -SK_ScalarRoot2Over2, -SK_ScalarRoot2Over2    },
-    { -SK_ScalarTanPIOver8, -SK_Scalar1     },
+    { -SK_Scalar1,                     0                                  },
+    { -SK_Scalar1,                     -SK_ScalarTanPIOver8               },
+    { -SK_ScalarRoot2Over2_QuadCircle, -SK_ScalarRoot2Over2_QuadCircle    },
+    { -SK_ScalarTanPIOver8,            -SK_Scalar1                        },
 
-    { 0,                    -SK_Scalar1     },
-    { SK_ScalarTanPIOver8,  -SK_Scalar1     },
-    { SK_ScalarRoot2Over2,  -SK_ScalarRoot2Over2    },
-    { SK_Scalar1,           -SK_ScalarTanPIOver8    },
+    { 0,                               -SK_Scalar1                        },
+    { SK_ScalarTanPIOver8,             -SK_Scalar1                        },
+    { SK_ScalarRoot2Over2_QuadCircle,  -SK_ScalarRoot2Over2_QuadCircle    },
+    { SK_Scalar1,                      -SK_ScalarTanPIOver8               },
 
-    { SK_Scalar1,           0   }
+    { SK_Scalar1,                      0                                  }
 };
 
 int SkBuildQuadArc(const SkVector& uStart, const SkVector& uStop,
@@ -1359,4 +1380,3 @@ int SkBuildQuadArc(const SkVector& uStart, const SkVector& uStop,
     matrix.mapPoints(quadPoints, pointCount);
     return pointCount;
 }
-

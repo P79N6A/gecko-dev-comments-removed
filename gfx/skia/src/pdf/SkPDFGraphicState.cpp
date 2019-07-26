@@ -5,8 +5,6 @@
 
 
 
-
-
 #include "SkPDFFormXObject.h"
 #include "SkPDFGraphicState.h"
 #include "SkPDFUtils.h"
@@ -16,6 +14,8 @@
 static const char* blend_mode_from_xfermode(SkXfermode::Mode mode) {
     switch (mode) {
         case SkXfermode::kSrcOver_Mode:    return "Normal";
+        
+        case SkXfermode::kModulate_Mode:
         case SkXfermode::kMultiply_Mode:   return "Multiply";
         case SkXfermode::kScreen_Mode:     return "Screen";
         case SkXfermode::kOverlay_Mode:    return "Overlay";
@@ -27,6 +27,10 @@ static const char* blend_mode_from_xfermode(SkXfermode::Mode mode) {
         case SkXfermode::kSoftLight_Mode:  return "SoftLight";
         case SkXfermode::kDifference_Mode: return "Difference";
         case SkXfermode::kExclusion_Mode:  return "Exclusion";
+        case SkXfermode::kHue_Mode:        return "Hue";
+        case SkXfermode::kSaturation_Mode: return "Saturation";
+        case SkXfermode::kColor_Mode:      return "Color";
+        case SkXfermode::kLuminosity_Mode: return "Luminosity";
 
         
         case SkXfermode::kClear_Mode:
@@ -60,8 +64,10 @@ SkPDFGraphicState::~SkPDFGraphicState() {
     fResources.unrefAll();
 }
 
-void SkPDFGraphicState::getResources(SkTDArray<SkPDFObject*>* resourceList) {
-    GetResourcesHelper(&fResources, resourceList);
+void SkPDFGraphicState::getResources(
+        const SkTSet<SkPDFObject*>& knownResourceObjects,
+        SkTSet<SkPDFObject*>* newResourceObjects) {
+    GetResourcesHelper(&fResources, knownResourceObjects, newResourceObjects);
 }
 
 void SkPDFGraphicState::emitObject(SkWStream* stream, SkPDFCatalog* catalog,
@@ -113,16 +119,14 @@ SkPDFObject* SkPDFGraphicState::GetInvertFunction() {
     if (!invertFunction) {
         
         
-        SkRefPtr<SkPDFArray> domainAndRange = new SkPDFArray;
-        domainAndRange->unref();  
+        SkAutoTUnref<SkPDFArray> domainAndRange(new SkPDFArray);
         domainAndRange->reserve(2);
         domainAndRange->appendInt(0);
         domainAndRange->appendInt(1);
 
         static const char psInvert[] = "{1 exch sub}";
-        SkRefPtr<SkMemoryStream> psInvertStream =
-            new SkMemoryStream(&psInvert, strlen(psInvert), true);
-        psInvertStream->unref();  
+        SkAutoTUnref<SkMemoryStream> psInvertStream(
+            new SkMemoryStream(&psInvert, strlen(psInvert), true));
 
         invertFunction = new SkPDFStream(psInvertStream.get());
         invertFunction->insertInt("FunctionType", 4);
@@ -139,8 +143,7 @@ SkPDFGraphicState* SkPDFGraphicState::GetSMaskGraphicState(
     
     SkAutoMutexAcquire lock(CanonicalPaintsMutex());
 
-    SkRefPtr<SkPDFDict> sMaskDict = new SkPDFDict("Mask");
-    sMaskDict->unref();  
+    SkAutoTUnref<SkPDFDict> sMaskDict(new SkPDFDict("Mask"));
     sMaskDict->insertName("S", "Alpha");
     sMaskDict->insert("G", new SkPDFObjRef(sMask))->unref();
 
@@ -200,9 +203,8 @@ void SkPDFGraphicState::populateDict() {
         fPopulated = true;
         insertName("Type", "ExtGState");
 
-        SkRefPtr<SkPDFScalar> alpha =
-            new SkPDFScalar(SkScalarDiv(fPaint.getAlpha(), 0xFF));
-        alpha->unref();  
+        SkAutoTUnref<SkPDFScalar> alpha(
+            new SkPDFScalar(SkScalarDiv(fPaint.getAlpha(), 0xFF)));
         insert("CA", alpha.get());
         insert("ca", alpha.get());
 

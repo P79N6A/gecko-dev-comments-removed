@@ -15,6 +15,8 @@
 #include "SkXfermode.h"
 
 class SkBitmap;
+class GrEffectRef;
+class GrContext;
 
 class SK_API SkColorFilter : public SkFlattenable {
 public:
@@ -25,14 +27,14 @@ public:
 
 
 
-    virtual bool asColorMode(SkColor* color, SkXfermode::Mode* mode);
+    virtual bool asColorMode(SkColor* color, SkXfermode::Mode* mode) const;
 
     
 
 
 
 
-    virtual bool asColorMatrix(SkScalar matrix[20]);
+    virtual bool asColorMatrix(SkScalar matrix[20]) const;
 
     
 
@@ -50,7 +52,7 @@ public:
 
 
 
-    virtual bool asComponentTable(SkBitmap* table);
+    virtual bool asComponentTable(SkBitmap* table) const;
 
     
 
@@ -60,7 +62,7 @@ public:
 
 
     virtual void filterSpan(const SkPMColor src[], int count,
-                            SkPMColor result[]) = 0;
+                            SkPMColor result[]) const = 0;
     
 
 
@@ -69,7 +71,7 @@ public:
 
 
     virtual void filterSpan16(const uint16_t shader[], int count,
-                              uint16_t result[]);
+                              uint16_t result[]) const;
 
     enum Flags {
         
@@ -85,7 +87,7 @@ public:
     
 
 
-    virtual uint32_t getFlags() { return 0; }
+    virtual uint32_t getFlags() const { return 0; }
 
     
 
@@ -93,7 +95,7 @@ public:
 
 
 
-    SkColor filterColor(SkColor);
+    SkColor filterColor(SkColor) const;
 
     
 
@@ -112,6 +114,11 @@ public:
 
 
     static SkColorFilter* CreateLightingFilter(SkColor mul, SkColor add);
+
+    
+
+
+    virtual GrEffectRef* asNewEffect(GrContext*) const;
 
     SK_DECLARE_FLATTENABLE_REGISTRAR_GROUP()
 protected:

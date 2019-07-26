@@ -13,6 +13,7 @@
 
 #include "SkTypes.h"
 #include "GrConfig.h"
+#include "SkMath.h"
 
 
 
@@ -139,11 +140,6 @@ static inline void Gr_bzero(void* dst, size_t size) {
 
 
 
-extern int Gr_clz(uint32_t n);
-
-
-
-
 static inline bool GrIsPow2(unsigned n) {
     return n && 0 == (n & (n - 1));
 }
@@ -152,12 +148,12 @@ static inline bool GrIsPow2(unsigned n) {
 
 
 static inline uint32_t GrNextPow2(uint32_t n) {
-    return n ? (1 << (32 - Gr_clz(n - 1))) : 1;
+    return n ? (1 << (32 - SkCLZ(n - 1))) : 1;
 }
 
 static inline int GrNextPow2(int n) {
     GrAssert(n >= 0); 
-    return n ? (1 << (32 - Gr_clz(n - 1))) : 1;
+    return n ? (1 << (32 - SkCLZ(n - 1))) : 1;
 }
 
 
@@ -186,24 +182,17 @@ static inline int16_t GrToS16(intptr_t x) {
 
 
 
-enum GrEngine {
-    kOpenGL_Shaders_GrEngine,
-    kOpenGL_Fixed_GrEngine,
+enum GrBackend {
+    kOpenGL_GrBackend,
 };
 
 
 
 
 
-typedef intptr_t GrPlatform3DContext;
+typedef intptr_t GrBackendContext;
 
 
-
-
-
-
-
-typedef int GrVertexLayout;
 
 
 
@@ -295,50 +284,24 @@ enum GrPixelConfig {
 
     kBGRA_8888_GrPixelConfig,
 
-    kGrPixelConfigCount
+    kLast_GrPixelConfig = kBGRA_8888_GrPixelConfig
 };
+static const int kGrPixelConfigCnt = kLast_GrPixelConfig + 1;
 
 
 #ifndef SK_CPU_LENDIAN
     #error "Skia gpu currently assumes little endian"
 #endif
-#if 24 == SK_A32_SHIFT && 16 == SK_R32_SHIFT && \
-     8 == SK_G32_SHIFT &&  0 == SK_B32_SHIFT
+#if SK_PMCOLOR_BYTE_ORDER(B,G,R,A)
     static const GrPixelConfig kSkia8888_GrPixelConfig = kBGRA_8888_GrPixelConfig;
-#elif 24 == SK_A32_SHIFT && 16 == SK_B32_SHIFT && \
-       8 == SK_G32_SHIFT &&  0 == SK_R32_SHIFT
+#elif SK_PMCOLOR_BYTE_ORDER(R,G,B,A)
     static const GrPixelConfig kSkia8888_GrPixelConfig = kRGBA_8888_GrPixelConfig;
 #else
     #error "SK_*32_SHIFT values must correspond to GL_BGRA or GL_RGBA format."
 #endif
 
 
-static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kSkia8888_GrPixelConfig;
-
-
-
-static inline bool GrPixelConfigIsRGBA8888(GrPixelConfig config) {
-    switch (config) {
-        case kRGBA_8888_GrPixelConfig:
-            return true;
-        default:
-            return false;
-    }
-}
-
-
-
-static inline bool GrPixelConfigIsBGRA8888(GrPixelConfig config) {
-    switch (config) {
-        case kBGRA_8888_GrPixelConfig:
-            return true;
-        default:
-            return false;
-    }
-}
-
-
-static inline bool GrPixelConfigIs32Bit(GrPixelConfig config) {
+static inline bool GrPixelConfigIs8888(GrPixelConfig config) {
     switch (config) {
         case kRGBA_8888_GrPixelConfig:
         case kBGRA_8888_GrPixelConfig:
@@ -434,9 +397,22 @@ enum {
 
 
 
+
+
+
+enum GrSurfaceOrigin {
+    kDefault_GrSurfaceOrigin,         
+    kTopLeft_GrSurfaceOrigin,
+    kBottomLeft_GrSurfaceOrigin,
+};
+
+
+
+
 struct GrTextureDesc {
     GrTextureDesc()
     : fFlags(kNone_GrTextureFlags)
+    , fOrigin(kDefault_GrSurfaceOrigin)
     , fWidth(0)
     , fHeight(0)
     , fConfig(kUnknown_GrPixelConfig)
@@ -444,6 +420,7 @@ struct GrTextureDesc {
     }
 
     GrTextureFlags         fFlags;  
+    GrSurfaceOrigin        fOrigin; 
     int                    fWidth;  
     int                    fHeight; 
 
@@ -468,40 +445,51 @@ struct GrTextureDesc {
 
 
 
-struct GrCacheData {
+
+struct GrCacheID {
+public:
+    typedef uint8_t  Domain;
+
+    struct Key {
+        union {
+            uint8_t  fData8[16];
+            uint32_t fData32[4];
+            uint64_t fData64[2];
+        };
+    };
+
     
 
 
-    static const uint64_t kScratch_CacheID = 0xBBBBBBBB;
+    GrCacheID() { fDomain = kInvalid_Domain; }
 
     
 
 
+    GrCacheID(Domain domain, const Key& key) {
+        GrAssert(kInvalid_Domain != domain);
+        this->reset(domain, key);
+    }
 
-    static const uint8_t kScratch_ResourceDomain = 0;
-
-
-    
-    
-    
-    GrCacheData(uint64_t key)
-    : fClientCacheID(key)
-    , fResourceDomain(kScratch_ResourceDomain) {
+    void reset(Domain domain, const Key& key) {
+        fDomain = domain;
+        memcpy(&fKey, &key, sizeof(Key));
     }
 
     
+    bool isValid() const { return kInvalid_Domain != fDomain; }
 
-
-
-
-
-    uint64_t               fClientCacheID;
+    const Key& getKey() const { GrAssert(this->isValid()); return fKey; }
+    Domain getDomain() const { GrAssert(this->isValid()); return fDomain; }
 
     
+    static Domain GenerateDomain();
 
+private:
+    Key             fKey;
+    Domain          fDomain;
 
-
-    uint8_t                fResourceDomain;
+    static const Domain kInvalid_Domain = 0;
 };
 
 
@@ -548,54 +536,7 @@ static int inline NumPathCmdPoints(GrPathCmd cmd) {
 
 
 
-enum GrPathFill {
-    kWinding_GrPathFill,
-    kEvenOdd_GrPathFill,
-    kInverseWinding_GrPathFill,
-    kInverseEvenOdd_GrPathFill,
-    kHairLine_GrPathFill,
-
-    kGrPathFillCount
-};
-
-static inline GrPathFill GrNonInvertedFill(GrPathFill fill) {
-    static const GrPathFill gNonInvertedFills[] = {
-        kWinding_GrPathFill, 
-        kEvenOdd_GrPathFill, 
-        kWinding_GrPathFill, 
-        kEvenOdd_GrPathFill, 
-        kHairLine_GrPathFill,
-    };
-    GR_STATIC_ASSERT(0 == kWinding_GrPathFill);
-    GR_STATIC_ASSERT(1 == kEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(2 == kInverseWinding_GrPathFill);
-    GR_STATIC_ASSERT(3 == kInverseEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(4 == kHairLine_GrPathFill);
-    GR_STATIC_ASSERT(5 == kGrPathFillCount);
-    return gNonInvertedFills[fill];
-}
-
-static inline bool GrIsFillInverted(GrPathFill fill) {
-    static const bool gIsFillInverted[] = {
-        false, 
-        false, 
-        true,  
-        true,  
-        false, 
-    };
-    GR_STATIC_ASSERT(0 == kWinding_GrPathFill);
-    GR_STATIC_ASSERT(1 == kEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(2 == kInverseWinding_GrPathFill);
-    GR_STATIC_ASSERT(3 == kInverseEvenOdd_GrPathFill);
-    GR_STATIC_ASSERT(4 == kHairLine_GrPathFill);
-    GR_STATIC_ASSERT(5 == kGrPathFillCount);
-    return gIsFillInverted[fill];
-}
-
-
-
-
-typedef intptr_t GrPlatform3DObject;
+typedef intptr_t GrBackendObject;
 
 
 
@@ -618,11 +559,11 @@ typedef intptr_t GrPlatform3DObject;
 
 
 
-enum GrPlatformTextureFlags {
+enum GrBackendTextureFlags {
     
 
 
-    kNone_GrPlatformTextureFlag              = kNone_GrTextureFlags,
+    kNone_GrBackendTextureFlag             = kNone_GrTextureFlags,
     
 
 
@@ -630,13 +571,14 @@ enum GrPlatformTextureFlags {
 
 
 
-    kRenderTarget_GrPlatformTextureFlag      = kRenderTarget_GrTextureFlagBit,
+    kRenderTarget_GrBackendTextureFlag     = kRenderTarget_GrTextureFlagBit,
 };
-GR_MAKE_BITFIELD_OPS(GrPlatformTextureFlags)
+GR_MAKE_BITFIELD_OPS(GrBackendTextureFlags)
 
-struct GrPlatformTextureDesc {
-    GrPlatformTextureDesc() { memset(this, 0, sizeof(*this)); }
-    GrPlatformTextureFlags          fFlags;
+struct GrBackendTextureDesc {
+    GrBackendTextureDesc() { memset(this, 0, sizeof(*this)); }
+    GrBackendTextureFlags           fFlags;
+    GrSurfaceOrigin                 fOrigin;
     int                             fWidth;         
     int                             fHeight;        
     GrPixelConfig                   fConfig;        
@@ -649,7 +591,7 @@ struct GrPlatformTextureDesc {
 
 
 
-    GrPlatform3DObject              fTextureHandle;
+    GrBackendObject                 fTextureHandle;
 };
 
 
@@ -664,11 +606,12 @@ struct GrPlatformTextureDesc {
 
 
 
-struct GrPlatformRenderTargetDesc {
-    GrPlatformRenderTargetDesc() { memset(this, 0, sizeof(*this)); }
+struct GrBackendRenderTargetDesc {
+    GrBackendRenderTargetDesc() { memset(this, 0, sizeof(*this)); }
     int                             fWidth;         
     int                             fHeight;        
     GrPixelConfig                   fConfig;        
+    GrSurfaceOrigin                 fOrigin;        
     
 
 
@@ -682,13 +625,9 @@ struct GrPlatformRenderTargetDesc {
 
 
 
-    GrPlatform3DObject              fRenderTargetHandle;
+    GrBackendObject                 fRenderTargetHandle;
 };
 
 
-
-
-
-#include "GrInstanceCounter.h"
 
 #endif

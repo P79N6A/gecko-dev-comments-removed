@@ -29,13 +29,15 @@ enum DrawType {
     CLIP_PATH,
     CLIP_REGION,
     CLIP_RECT,
+    CLIP_RRECT,
     CONCAT,
     DRAW_BITMAP,
     DRAW_BITMAP_MATRIX,
     DRAW_BITMAP_NINE,
-    DRAW_BITMAP_RECT,
+    DRAW_BITMAP_RECT_TO_RECT,
     DRAW_CLEAR,
     DRAW_DATA,
+    DRAW_OVAL,
     DRAW_PAINT,
     DRAW_PATH,
     DRAW_PICTURE,
@@ -45,6 +47,7 @@ enum DrawType {
     DRAW_POS_TEXT_H,
     DRAW_POS_TEXT_H_TOP_BOTTOM, 
     DRAW_RECT,
+    DRAW_RRECT,
     DRAW_SPRITE,
     DRAW_TEXT,
     DRAW_TEXT_ON_PATH,
@@ -58,9 +61,13 @@ enum DrawType {
     SET_MATRIX,
     SKEW,
     TRANSLATE,
+    NOOP,
 
-    LAST_DRAWTYPE_ENUM = TRANSLATE
+    LAST_DRAWTYPE_ENUM = NOOP
 };
+
+
+static const int kDRAW_BITMAP_FLAVOR = LAST_DRAWTYPE_ENUM+1;
 
 enum DrawVertexFlags {
     DRAW_VERTICES_HAS_TEXS    = 0x01,
@@ -329,8 +336,38 @@ public:
         return !memcmp(a.dataToCompare(), b.dataToCompare(), N);
     }
 
+    
+    bool isTopBotWritten() const {
+        return !SkScalarIsNaN(fTopBot[0]);
+    }
+
+    
+    
+    SkScalar* writableTopBot() const {
+        SkASSERT(!this->isTopBotWritten());
+        return fTopBot;
+    }
+
+    
+    const SkScalar* topBot() const {
+        SkASSERT(this->isTopBotWritten());
+        return fTopBot;
+    }
+
 private:
+    
     int fIndex;
+
+    
+    
+    
+    
+    mutable SkScalar fTopBot[2];
+
+    
+    void setTopBotUnwritten() {
+        this->fTopBot[0] = SK_ScalarNaN; 
+    }
 
     
     
@@ -369,17 +406,22 @@ public:
         
         fNextIndex = 1;
         sk_bzero(fHash, sizeof(fHash));
+        
+        fIndexedData.push(NULL);
     }
 
     virtual ~SkFlatDictionary() {
         fController->unref();
     }
 
-    int count() const { return fData.count(); }
+    int count() const {
+        SkASSERT(fIndexedData.count() == fSortedData.count()+1);
+        return fSortedData.count();
+    }
 
     const SkFlatData*  operator[](int index) const {
-        SkASSERT(index >= 0 && index < fData.count());
-        return fData[index];
+        SkASSERT(index >= 0 && index < fSortedData.count());
+        return fSortedData[index];
     }
 
     
@@ -387,7 +429,10 @@ public:
 
 
     void reset() {
-        fData.reset();
+        fSortedData.reset();
+        fIndexedData.rewind();
+        
+        fIndexedData.push(NULL);
         fNextIndex = 1;
         sk_bzero(fHash, sizeof(fHash));
     }
@@ -403,21 +448,24 @@ public:
                                      const SkFlatData* toReplace, bool* added,
                                      bool* replaced) {
         SkASSERT(added != NULL && replaced != NULL);
-        int oldCount = fData.count();
+        int oldCount = fSortedData.count();
         const SkFlatData* flat = this->findAndReturnFlat(element);
-        *added = fData.count() == oldCount + 1;
+        *added = fSortedData.count() == oldCount + 1;
         *replaced = false;
         if (*added && toReplace != NULL) {
             
-            int indexToReplace = fData.find(toReplace);
+            int indexToReplace = fSortedData.find(toReplace);
             if (indexToReplace >= 0) {
                 
                 
                 
+                int oldIndex = flat->index();
                 const_cast<SkFlatData*>(flat)->setIndex(toReplace->index());
+                fIndexedData[toReplace->index()] = flat;
                 fNextIndex--;
                 
-                fData.remove(indexToReplace);
+                fSortedData.remove(indexToReplace);
+                fIndexedData.remove(oldIndex);
                 
                 int oldHash = ChecksumToHashIndex(toReplace->checksum());
                 if (fHash[oldHash] == toReplace) {
@@ -426,6 +474,7 @@ public:
                 
                 fController->unalloc((void*)toReplace);
                 *replaced = true;
+                SkASSERT(fIndexedData.count() == fSortedData.count()+1);
             }
         }
         return flat;
@@ -451,22 +500,8 @@ public:
 
 
 
-
-    int unflattenDictionary(T*& array) const {
-        int elementCount = fData.count();
-        if (elementCount > 0) {
-            array = SkNEW_ARRAY(T, elementCount);
-            this->unflattenIntoArray(array);
-        }
-        return elementCount;
-    }
-
-    
-
-
-
     SkTRefArray<T>* unflattenToArray() const {
-        int count = fData.count();
+        int count = fSortedData.count();
         SkTRefArray<T>* array = NULL;
         if (count > 0) {
             array = SkTRefArray<T>::Create(count);
@@ -475,28 +510,18 @@ public:
         return array;
     }
 
-protected:
-    void (*fFlattenProc)(SkOrderedWriteBuffer&, const void*);
-    void (*fUnflattenProc)(SkOrderedReadBuffer&, void*);
+    
 
-private:
-    void unflattenIntoArray(T* array) const {
-        const int count = fData.count();
-        const SkFlatData** iter = fData.begin();
-        for (int i = 0; i < count; ++i) {
-            const SkFlatData* element = iter[i];
-            int index = element->index() - 1;
-            SkASSERT((unsigned)index < (unsigned)count);
-            element->unflatten(&array[index], fUnflattenProc,
-                               fController->getBitmapHeap(),
-                               fController->getTypefacePlayback());
-        }
+
+    T* unflatten(int index) const {
+        SkASSERT(fIndexedData.count() == fSortedData.count()+1);
+        const SkFlatData* element = fIndexedData[index];
+        SkASSERT(index == element->index());
+
+        T* dst = new T;
+        this->unflatten(dst, element);
+        return dst;
     }
-
-
-    SkFlatController * const     fController;
-    int                          fNextIndex;
-    SkTDArray<const SkFlatData*> fData;
 
     const SkFlatData* findAndReturnFlat(const T& element) {
         SkFlatData* flat = SkFlatData::Create(fController, &element, fNextIndex, fFlattenProc);
@@ -508,24 +533,60 @@ private:
             return candidate;
         }
 
-        int index = SkTSearch<SkFlatData>((const SkFlatData**) fData.begin(),
-                                          fData.count(), flat, sizeof(flat),
+        int index = SkTSearch<SkFlatData>((const SkFlatData**) fSortedData.begin(),
+                                          fSortedData.count(), flat, sizeof(flat),
                                           &SkFlatData::Compare);
         if (index >= 0) {
             fController->unalloc(flat);
-            fHash[hashIndex] = fData[index];
-            return fData[index];
+            fHash[hashIndex] = fSortedData[index];
+            return fSortedData[index];
         }
 
         index = ~index;
-        *fData.insert(index) = flat;
-        SkASSERT(fData.count() == fNextIndex);
+        *fSortedData.insert(index) = flat;
+        *fIndexedData.insert(flat->index()) = flat;
+        SkASSERT(fSortedData.count() == fNextIndex);
         fNextIndex++;
         flat->setSentinelInCache();
         fHash[hashIndex] = flat;
+        SkASSERT(fIndexedData.count() == fSortedData.count()+1);
         return flat;
     }
 
+protected:
+    void (*fFlattenProc)(SkOrderedWriteBuffer&, const void*);
+    void (*fUnflattenProc)(SkOrderedReadBuffer&, void*);
+
+private:
+    void unflatten(T* dst, const SkFlatData* element) const {
+        element->unflatten(dst, fUnflattenProc,
+                           fController->getBitmapHeap(),
+                           fController->getTypefacePlayback());
+    }
+
+    void unflattenIntoArray(T* array) const {
+        const int count = fSortedData.count();
+        SkASSERT(fIndexedData.count() == fSortedData.count()+1);
+        const SkFlatData* const* iter = fSortedData.begin();
+        for (int i = 0; i < count; ++i) {
+            const SkFlatData* element = iter[i];
+            int index = element->index() - 1;
+            SkASSERT((unsigned)index < (unsigned)count);
+            unflatten(&array[index], element);
+        }
+    }
+
+    SkFlatController * const     fController;
+    int                          fNextIndex;
+
+    
+    
+    
+    
+    
+    SkTDArray<const SkFlatData*> fIndexedData;
+    
+    SkTDArray<const SkFlatData*> fSortedData;
 
     enum {
         

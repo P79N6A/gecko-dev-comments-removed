@@ -18,14 +18,16 @@ typedef signed char SK_OT_CHAR;
 #else
 typedef int8_t SK_OT_CHAR;
 #endif
-typedef int16_t SK_OT_SHORT;
+typedef uint16_t SK_OT_SHORT;
 typedef uint16_t SK_OT_USHORT;
 typedef uint32_t SK_OT_ULONG;
-typedef int32_t SK_OT_LONG;
+typedef uint32_t SK_OT_LONG;
 
 typedef int32_t SK_OT_Fixed;
 
-typedef int16_t SK_OT_FWORD;
+typedef uint16_t SK_OT_F2DOT14;
+
+typedef uint16_t SK_OT_FWORD;
 typedef uint16_t SK_OT_UFWORD;
 
 typedef uint64_t SK_OT_LONGDATETIME;

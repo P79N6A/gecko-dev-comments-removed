@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkUtils_DEFINED
 #define SkUtils_DEFINED
 
@@ -116,21 +114,4 @@ private:
     const char* fLabel;
 };
 
-
-
-class SkAutoMemoryUsageProbe {
-public:
-    
-
-
-
-
-    SkAutoMemoryUsageProbe(const char label[]);
-    ~SkAutoMemoryUsageProbe();
-private:
-    const char* fLabel;
-    size_t      fBytesAllocated;
-};
-
 #endif
-

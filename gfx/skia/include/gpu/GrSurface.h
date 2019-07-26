@@ -33,6 +33,11 @@ public:
 
     int height() const { return fDesc.fHeight; }
 
+    GrSurfaceOrigin origin() const {
+        GrAssert(kTopLeft_GrSurfaceOrigin == fDesc.fOrigin || kBottomLeft_GrSurfaceOrigin == fDesc.fOrigin);
+        return fDesc.fOrigin;
+    }
+
     
 
 
@@ -99,12 +104,12 @@ public:
                              uint32_t pixelOpsFlags = 0) = 0;
 
 protected:
-    GrTextureDesc fDesc;
-
-    GrSurface(GrGpu* gpu, const GrTextureDesc& desc)
-    : INHERITED(gpu)
+    GrSurface(GrGpu* gpu, bool isWrapped, const GrTextureDesc& desc)
+    : INHERITED(gpu, isWrapped)
     , fDesc(desc) {
     }
+
+    GrTextureDesc fDesc;
 
 private:
     typedef GrResource INHERITED;

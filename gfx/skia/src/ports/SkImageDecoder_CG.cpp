@@ -6,6 +6,7 @@
 
 
 
+#include "SkColorPriv.h"
 
 #include "SkImageDecoder.h"
 #include "SkImageEncoder.h"
@@ -20,6 +21,8 @@
 
 #ifdef SK_BUILD_FOR_IOS
 #include <CoreGraphics/CoreGraphics.h>
+#include <ImageIO/ImageIO.h>
+#include <MobileCoreServices/MobileCoreServices.h>
 #endif
 
 static void malloc_release_proc(void* info, const void* data, size_t size) {
@@ -75,15 +78,32 @@ bool SkImageDecoder_CG::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     }
 
     bm->lockPixels();
-    bm->eraseColor(0);
+    bm->eraseColor(SK_ColorTRANSPARENT);
 
     
     CGColorSpaceRef cs = CGImageGetColorSpace(image);
-    CGContextRef cg = CGBitmapContextCreate(bm->getPixels(), width, height,
-                                            8, bm->rowBytes(), cs, BITMAP_INFO);
+    CGContextRef cg = CGBitmapContextCreate(bm->getPixels(), width, height, 8, bm->rowBytes(), cs, BITMAP_INFO);
+    if (NULL == cg) {
+        
+        cs = CGColorSpaceCreateDeviceRGB();
+        cg = CGBitmapContextCreate(bm->getPixels(), width, height, 8, bm->rowBytes(), cs, BITMAP_INFO);
+        CFRelease(cs);
+    }
     CGContextDrawImage(cg, CGRectMake(0, 0, width, height), image);
     CGContextRelease(cg);
 
+    CGImageAlphaInfo info = CGImageGetAlphaInfo(image);
+    switch (info) {
+        case kCGImageAlphaNone:
+        case kCGImageAlphaNoneSkipLast:
+        case kCGImageAlphaNoneSkipFirst:
+            SkASSERT(SkBitmap::ComputeIsOpaque(*bm));
+            bm->setIsOpaque(true);
+            break;
+        default:
+            
+            bm->computeAndSetOpaquePredicate();
+    }
     bm->unlockPixels();
     return true;
 }
@@ -148,12 +168,25 @@ private:
 
 bool SkImageEncoder_CG::onEncode(SkWStream* stream, const SkBitmap& bm,
                                  int quality) {
+    
+    const SkBitmap* bmPtr = &bm;
+    SkBitmap bitmap8888;
+
     CFStringRef type;
     switch (fType) {
         case kJPEG_Type:
             type = kUTTypeJPEG;
             break;
         case kPNG_Type:
+            
+            
+            
+            
+            
+            if (bm.getConfig() == SkBitmap::kARGB_4444_Config) {
+                bm.copyTo(&bitmap8888, SkBitmap::kARGB_8888_Config);
+                bmPtr = &bitmap8888;
+            }
             type = kUTTypePNG;
             break;
         default:
@@ -166,7 +199,7 @@ bool SkImageEncoder_CG::onEncode(SkWStream* stream, const SkBitmap& bm,
     }
     SkAutoTCallVProc<const void, CFRelease> ardst(dst);
 
-    CGImageRef image = SkCreateCGImageRef(bm);
+    CGImageRef image = SkCreateCGImageRef(*bmPtr);
     if (NULL == image) {
         return false;
     }
@@ -186,4 +219,3 @@ SkImageEncoder* SkImageEncoder::Create(Type t) {
     }
     return SkNEW_ARGS(SkImageEncoder_CG, (t));
 }
-

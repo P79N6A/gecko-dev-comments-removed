@@ -5,7 +5,6 @@
 
 
 
-
 #ifndef SkGradientShaderPriv_DEFINED
 #define SkGradientShaderPriv_DEFINED
 
@@ -20,11 +19,7 @@
 #include "SkBitmapCache.h"
 #include "SkShader.h"
 
-#ifndef SK_DISABLE_DITHER_32BIT_GRADIENT
-    #define USE_DITHER_32BIT_GRADIENT
-#endif
-
-static void sk_memset32_dither(uint32_t dst[], uint32_t v0, uint32_t v1,
+static inline void sk_memset32_dither(uint32_t dst[], uint32_t v0, uint32_t v1,
                                int count) {
     if (count > 0) {
         if (v0 == v1) {
@@ -44,9 +39,32 @@ static void sk_memset32_dither(uint32_t dst[], uint32_t v0, uint32_t v1,
 
 
 
-SkFixed clamp_tileproc(SkFixed x);
-SkFixed mirror_tileproc(SkFixed x);
-SkFixed repeat_tileproc(SkFixed x);
+static inline SkFixed clamp_tileproc(SkFixed x) {
+    return SkClampMax(x, 0xFFFF);
+}
+
+
+
+static inline SkFixed repeat_tileproc(SkFixed x) {
+    return x & 0xFFFF;
+}
+
+
+
+
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1600)
+#pragma optimize("", off)
+#endif
+
+static inline SkFixed mirror_tileproc(SkFixed x) {
+    int s = x << 15 >> 31;
+    return (x ^ s) & 0xFFFF;
+}
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1600)
+#pragma optimize("", on)
+#endif
 
 
 
@@ -68,7 +86,6 @@ public:
                 int colorCount, SkShader::TileMode mode, SkUnitMapper* mapper);
     virtual ~SkGradientShaderBase();
 
-    
     virtual bool setContext(const SkBitmap&, const SkPaint&, const SkMatrix&) SK_OVERRIDE;
     virtual uint32_t getFlags() SK_OVERRIDE { return fFlags; }
     virtual bool isOpaque() const SK_OVERRIDE;
@@ -79,47 +96,28 @@ public:
         
         
         kCache16Bits    = 8,
-        kGradient16Length = (1 << kCache16Bits),
-        
-        
-        
-        
-        
-        kCache16Count   = kGradient16Length + 1,
+        kCache16Count = (1 << kCache16Bits),
         kCache16Shift   = 16 - kCache16Bits,
         kSqrt16Shift    = 8 - kCache16Bits,
 
         
         
         kCache32Bits    = 8,
-        kGradient32Length = (1 << kCache32Bits),
-        
-        
-        
-        
-        
-        kCache32Count   = kGradient32Length + 1,
+        kCache32Count   = (1 << kCache32Bits),
         kCache32Shift   = 16 - kCache32Bits,
         kSqrt32Shift    = 8 - kCache32Bits,
 
         
         
-#ifdef USE_DITHER_32BIT_GRADIENT
         kDitherStride32 = kCache32Count,
-#else
-        kDitherStride32 = 0,
-#endif
         kDitherStride16 = kCache16Count,
-        kLerpRemainderMask32 = (1 << (16 - kCache32Bits)) - 1,
-
-        kCache32ClampLower = -1,
-        kCache32ClampUpper = kCache32Count * 2
     };
 
 
 protected:
     SkGradientShaderBase(SkFlattenableReadBuffer& );
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+    SK_DEVELOPER_TO_STRING()
 
     SkUnitMapper* fMapper;
     SkMatrix    fPtsToUnit;     
@@ -168,14 +166,33 @@ private:
     typedef SkShader INHERITED;
 };
 
+static inline int init_dither_toggle(int x, int y) {
+    x &= 1;
+    y = (y & 1) << 1;
+    return (x | y) * SkGradientShaderBase::kDitherStride32;
+}
+
+static inline int next_dither_toggle(int toggle) {
+    return toggle ^ SkGradientShaderBase::kDitherStride32;
+}
+
+static inline int init_dither_toggle16(int x, int y) {
+    return ((x ^ y) & 1) * SkGradientShaderBase::kDitherStride16;
+}
+
+static inline int next_dither_toggle16(int toggle) {
+    return toggle ^ SkGradientShaderBase::kDitherStride16;
+}
+
 
 
 #if SK_SUPPORT_GPU
 
-#include "gl/GrGLProgramStage.h"
+#include "gl/GrGLEffect.h"
+#include "gl/GrGLEffectMatrix.h"
 
-class GrSamplerState;
-class GrProgramStageFactory;
+class GrEffectStage;
+class GrBackendEffectFactory;
 
 
 
@@ -203,26 +220,21 @@ class GrProgramStageFactory;
  class GrTextureStripAtlas;
 
 
-class GrGradientEffect : public GrCustomStage {
+class GrGradientEffect : public GrEffect {
 public:
 
-    GrGradientEffect(GrContext* ctx, const SkGradientShaderBase& shader,
-                     GrSamplerState* sampler);
+    GrGradientEffect(GrContext* ctx,
+                     const SkGradientShaderBase& shader,
+                     const SkMatrix& matrix,
+                     SkShader::TileMode tileMode);
 
     virtual ~GrGradientEffect();
 
-    virtual int numTextures() const SK_OVERRIDE;
-    virtual const GrTextureAccess& textureAccess(int index) const SK_OVERRIDE;
-
-    bool useTexture() const { return fUseTexture; }
     bool useAtlas() const { return SkToBool(-1 != fRow); }
-    GrScalar getYCoord() const { GrAssert(fUseTexture); return fYCoord; };
+    SkScalar getYCoord() const { return fYCoord; };
+    const SkMatrix& getMatrix() const { return fMatrix;}
 
-    virtual bool isEqual(const GrCustomStage& stage) const SK_OVERRIDE {
-        const GrGradientEffect& s = static_cast<const GrGradientEffect&>(stage);
-        return INHERITED::isEqual(stage) && this->useAtlas() == s.useAtlas() &&
-               fYCoord == s.getYCoord();
-    }
+    virtual void getConstantColorComponents(GrColor* color, uint32_t* validFlags) const SK_OVERRIDE;
 
 protected:
 
@@ -234,37 +246,71 @@ protected:
 
 
     static const int kMaxRandomGradientColors = 4;
-    static int RandomGradientParams(SkRandom* r,
+    static int RandomGradientParams(SkMWCRandom* r,
                                     SkColor colors[kMaxRandomGradientColors],
                                     SkScalar** stops,
                                     SkShader::TileMode* tm);
 
+    virtual bool onIsEqual(const GrEffect& effect) const SK_OVERRIDE;
+
 private:
+
     GrTextureAccess fTextureAccess;
-    bool fUseTexture;
-    GrScalar fYCoord;
+    SkScalar fYCoord;
     GrTextureStripAtlas* fAtlas;
     int fRow;
+    SkMatrix fMatrix;
+    bool fIsOpaque;
 
-    typedef GrCustomStage INHERITED;
+    typedef GrEffect INHERITED;
 
 };
 
 
 
 
-class GrGLGradientStage : public GrGLProgramStage {
+class GrGLGradientEffect : public GrGLEffect {
 public:
+    GrGLGradientEffect(const GrBackendEffectFactory& factory);
+    virtual ~GrGLGradientEffect();
 
-    GrGLGradientStage(const GrProgramStageFactory& factory);
-    virtual ~GrGLGradientStage();
+    virtual void setData(const GrGLUniformManager&, const GrDrawEffect&) SK_OVERRIDE;
 
-    virtual void setupVariables(GrGLShaderBuilder* builder) SK_OVERRIDE;
-    virtual void setData(const GrGLUniformManager&,
-                         const GrCustomStage&,
-                         const GrRenderTarget*,
-                         int stageNum) SK_OVERRIDE;
+protected:
+    
 
+
+
+    enum {
+        kMatrixKeyBitCnt = GrGLEffectMatrix::kKeyBits,
+        kMatrixKeyMask = (1 << kMatrixKeyBitCnt) - 1,
+    };
+
+    
+
+
+
+    static EffectKey GenMatrixKey(const GrDrawEffect&);
+
+    
+
+
+
+
+
+
+
+    void setupMatrix(GrGLShaderBuilder* builder,
+                     EffectKey key,
+                     const char** fsCoordName,
+                     const char** vsVaryingName = NULL,
+                     GrSLType* vsVaryingType = NULL);
+
+    
+    
+    void emitYCoordUniform(GrGLShaderBuilder* builder);
+
+    
     
     
     void emitColorLookup(GrGLShaderBuilder* builder,
@@ -274,14 +320,15 @@ public:
                          const GrGLShaderBuilder::TextureSampler&);
 
 private:
+    static const GrEffect::CoordsType kCoordsType = GrEffect::kLocal_CoordsType;
 
-    GrScalar fCachedYCoord;
+    SkScalar fCachedYCoord;
     GrGLUniformManager::UniformHandle fFSYUni;
+    GrGLEffectMatrix fEffectMatrix;
 
-    typedef GrGLProgramStage INHERITED;
+    typedef GrGLEffect INHERITED;
 };
 
 #endif
 
 #endif
-

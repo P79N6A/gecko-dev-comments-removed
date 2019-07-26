@@ -13,6 +13,10 @@
 #include "SkFlattenable.h"
 #include "SkColor.h"
 
+class GrContext;
+class GrEffectRef;
+class SkString;
+
 
 
 
@@ -28,13 +32,13 @@ public:
     SkXfermode() {}
 
     virtual void xfer32(SkPMColor dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]);
+                        const SkAlpha aa[]) const;
     virtual void xfer16(uint16_t dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]);
+                        const SkAlpha aa[]) const;
     virtual void xfer4444(uint16_t dst[], const SkPMColor src[], int count,
-                          const SkAlpha aa[]);
+                          const SkAlpha aa[]) const;
     virtual void xferA8(SkAlpha dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]);
+                        const SkAlpha aa[]) const;
 
     
 
@@ -68,13 +72,13 @@ public:
 
 
 
-    virtual bool asCoeff(Coeff* src, Coeff* dst);
+    virtual bool asCoeff(Coeff* src, Coeff* dst) const;
 
     
 
 
 
-    static bool AsCoeff(SkXfermode*, Coeff* src, Coeff* dst);
+    static bool AsCoeff(const SkXfermode*, Coeff* src, Coeff* dst);
 
     
 
@@ -97,16 +101,15 @@ public:
         kSrcATop_Mode,  
         kDstATop_Mode,  
         kXor_Mode,      
-
-        
-        
-        kPlus_Mode,
+        kPlus_Mode,     
+        kModulate_Mode, 
 
         
         kCoeffModesCnt,
 
-        kMultiply_Mode = kCoeffModesCnt,
-        kScreen_Mode,
+        
+        
+        kScreen_Mode = kCoeffModesCnt,
         kOverlay_Mode,
         kDarken_Mode,
         kLighten_Mode,
@@ -116,6 +119,8 @@ public:
         kSoftLight_Mode,
         kDifference_Mode,
         kExclusion_Mode,
+        kMultiply_Mode,
+
         kHue_Mode,
         kSaturation_Mode,
         kColor_Mode,
@@ -127,27 +132,32 @@ public:
     
 
 
-
-
-    virtual bool asMode(Mode* mode);
-
-    
-
-
-
-    static bool AsMode(SkXfermode*, Mode* mode);
+    static const char* ModeName(Mode);
 
     
 
 
 
 
+    virtual bool asMode(Mode* mode) const;
+
+    
+
+
+
+    static bool AsMode(const SkXfermode*, Mode* mode);
+
+    
 
 
 
 
 
-    static bool IsMode(SkXfermode* xfer, Mode mode);
+
+
+
+
+    static bool IsMode(const SkXfermode* xfer, Mode mode);
 
     
 
@@ -174,10 +184,35 @@ public:
     static bool ModeAsCoeff(Mode mode, Coeff* src, Coeff* dst);
 
     
-    static bool IsMode(SkXfermode* xfer, Mode* mode) {
+    static bool IsMode(const SkXfermode* xfer, Mode* mode) {
         return AsMode(xfer, mode);
     }
 
+    
+
+
+
+
+
+
+
+
+    virtual bool asNewEffectOrCoeff(GrContext*,
+                                    GrEffectRef** effect,
+                                    Coeff* src,
+                                    Coeff* dst) const;
+
+    
+
+
+
+    static bool AsNewEffectOrCoeff(SkXfermode*,
+                                   GrContext*,
+                                   GrEffectRef** effect,
+                                   Coeff* src,
+                                   Coeff* dst);
+
+    SkDEVCODE(virtual void toString(SkString* str) const = 0;)
     SK_DECLARE_FLATTENABLE_REGISTRAR_GROUP()
 protected:
     SkXfermode(SkFlattenableReadBuffer& rb) : SkFlattenable(rb) {}
@@ -190,7 +225,7 @@ protected:
 
 
 
-    virtual SkPMColor xferColor(SkPMColor src, SkPMColor dst);
+    virtual SkPMColor xferColor(SkPMColor src, SkPMColor dst) const;
 
 private:
     enum {
@@ -212,14 +247,15 @@ public:
 
     
     virtual void xfer32(SkPMColor dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]) SK_OVERRIDE;
+                        const SkAlpha aa[]) const SK_OVERRIDE;
     virtual void xfer16(uint16_t dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]) SK_OVERRIDE;
+                        const SkAlpha aa[]) const SK_OVERRIDE;
     virtual void xfer4444(uint16_t dst[], const SkPMColor src[], int count,
-                          const SkAlpha aa[]) SK_OVERRIDE;
+                          const SkAlpha aa[]) const SK_OVERRIDE;
     virtual void xferA8(SkAlpha dst[], const SkPMColor src[], int count,
-                        const SkAlpha aa[]) SK_OVERRIDE;
+                        const SkAlpha aa[]) const SK_OVERRIDE;
 
+    SK_DEVELOPER_TO_STRING()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkProcXfermode)
 
 protected:

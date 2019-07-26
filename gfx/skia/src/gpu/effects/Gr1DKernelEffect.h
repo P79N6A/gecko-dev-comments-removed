@@ -9,6 +9,8 @@
 #define Gr1DKernelEffect_DEFINED
 
 #include "GrSingleTextureEffect.h"
+#include "SkMatrix.h"
+
 
 
 
@@ -29,7 +31,7 @@ public:
     Gr1DKernelEffect(GrTexture* texture,
                      Direction direction,
                      int radius)
-        : GrSingleTextureEffect(texture)
+        : GrSingleTextureEffect(texture, MakeDivByTextureWHMatrix(texture))
         , fDirection(direction)
         , fRadius(radius) {}
 

@@ -18,6 +18,20 @@
 
 
 
+
+
+#if defined(SK_BUILD_FOR_ANDROID) && defined(SK_BUILD_FOR_CHROMIUM)
+#  define USE_ANDROID_NDK_CPU_FEATURES 1
+#else
+#  define USE_ANDROID_NDK_CPU_FEATURES 0
+#endif
+
+#if USE_ANDROID_NDK_CPU_FEATURES
+#  include <cpu-features.h>
+#endif
+
+
+
 #ifdef SK_DEBUG
 #  define NEON_DEBUG  1
 #else
@@ -62,10 +76,16 @@ static bool sk_cpu_arm_check_neon(void) {
     SkDebugf("Running dynamic CPU feature detection\n");
 #endif
 
+#if USE_ANDROID_NDK_CPU_FEATURES
 
+  result = (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0;
 
+#else  
 
-
+    
+    
+    
+    
 
 
 
@@ -150,6 +170,8 @@ static bool sk_cpu_arm_check_neon(void) {
         result = true;
 
     } while (0);
+
+#endif  
 
     if (result) {
         SkDebugf("Device supports ARM NEON instructions!\n");

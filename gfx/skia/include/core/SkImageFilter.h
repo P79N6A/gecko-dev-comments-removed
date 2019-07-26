@@ -11,12 +11,13 @@
 #include "SkFlattenable.h"
 
 class SkBitmap;
+class SkColorFilter;
 class SkDevice;
 class SkMatrix;
 struct SkIPoint;
 struct SkIRect;
-struct SkRect;
-class GrCustomStage;
+class SkShader;
+class GrEffectRef;
 class GrTexture;
 
 
@@ -89,7 +90,10 @@ public:
 
 
 
-    virtual bool asNewCustomStage(GrCustomStage** stage, GrTexture*) const;
+
+
+
+    virtual bool asNewEffect(GrEffectRef** effect, GrTexture*) const;
 
     
 
@@ -106,11 +110,46 @@ public:
 
 
 
-    virtual GrTexture* onFilterImageGPU(GrTexture* texture, const SkRect& rect);
+    virtual bool filterImageGPU(Proxy*, const SkBitmap& src, SkBitmap* result);
+
+    
+
+
+
+
+
+
+    virtual bool asColorFilter(SkColorFilter** filterPtr) const;
+
+    
+
+
+
+    int countInputs() const { return fInputCount; }
+
+    
+
+
+
+    SkImageFilter* getInput(int i) const {
+        SkASSERT(i < fInputCount);
+        return fInputs[i];
+    }
 
 protected:
-    SkImageFilter() {}
-    explicit SkImageFilter(SkFlattenableReadBuffer& rb) : INHERITED(rb) {}
+    SkImageFilter(int inputCount, SkImageFilter** inputs);
+
+    
+    explicit SkImageFilter(SkImageFilter* input);
+
+    
+    SkImageFilter(SkImageFilter* input1, SkImageFilter* input2);
+
+    virtual ~SkImageFilter();
+
+    explicit SkImageFilter(SkFlattenableReadBuffer& rb);
+
+    virtual void flatten(SkFlattenableWriteBuffer& wb) const SK_OVERRIDE;
 
     
     virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
@@ -118,8 +157,15 @@ protected:
     
     virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*);
 
+    
+    
+    SkBitmap getInputResult(int index, Proxy*, const SkBitmap& src, const SkMatrix&,
+                            SkIPoint*);
+
 private:
     typedef SkFlattenable INHERITED;
+    int fInputCount;
+    SkImageFilter** fInputs;
 };
 
 #endif

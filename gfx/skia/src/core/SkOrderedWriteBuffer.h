@@ -12,11 +12,12 @@
 #include "SkFlattenableBuffers.h"
 
 #include "SkRefCnt.h"
-#include "SkBitmap.h"
 #include "SkBitmapHeap.h"
 #include "SkPath.h"
+#include "SkPicture.h"
 #include "SkWriter32.h"
 
+class SkBitmap;
 class SkFlattenable;
 class SkFactorySet;
 class SkNamedFactorySet;
@@ -74,9 +75,23 @@ public:
     SkRefCntSet* getTypefaceRecorder() const { return fTFSet; }
     SkRefCntSet* setTypefaceRecorder(SkRefCntSet*);
 
-    void setBitmapHeap(SkBitmapHeap* bitmapHeap) {
-        SkRefCnt_SafeAssign(fBitmapHeap, bitmapHeap);
-    }
+    
+
+
+
+
+
+    void setBitmapHeap(SkBitmapHeap*);
+
+    
+
+
+
+
+
+
+
+    void setBitmapEncoder(SkPicture::EncodeBitmap);
 
 private:
     SkFactorySet* fFactorySet;
@@ -85,6 +100,8 @@ private:
 
     SkBitmapHeap* fBitmapHeap;
     SkRefCntSet* fTFSet;
+
+    SkPicture::EncodeBitmap fBitmapEncoder;
 
     typedef SkFlattenableWriteBuffer INHERITED;
 };

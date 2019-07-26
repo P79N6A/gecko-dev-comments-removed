@@ -15,7 +15,22 @@
 #include "SkString.h"
 #include "SkFlattenable.h"
 
+#ifdef SK_DEBUG
+    
+
+
+
+
+
+
+
+
+
+
+#endif
+
 class SkColorTable;
+class SkData;
 struct SkIRect;
 class SkMutex;
 
@@ -49,6 +64,8 @@ public:
 
 
     bool isLocked() const { return fLockCount > 0; }
+
+    SkDEBUGCODE(int getLockCount() const { return fLockCount; })
 
     
 
@@ -115,6 +132,18 @@ public:
 
     
 
+
+
+
+
+
+
+    SkData* refEncodedData() {
+        return this->onRefEncodedData();
+    }
+
+    
+
     virtual SkGpuTexture* getTexture() { return NULL; }
 
     bool readPixels(SkBitmap* dst, const SkIRect* subset = NULL);
@@ -123,7 +152,14 @@ public:
 
 
 
-    virtual SkPixelRef* deepCopy(SkBitmap::Config config) { return NULL; }
+
+
+
+
+
+    virtual SkPixelRef* deepCopy(SkBitmap::Config config, const SkIRect* subset = NULL) {
+        return NULL;
+    }
 
 #ifdef SK_BUILD_FOR_ANDROID
     
@@ -164,6 +200,9 @@ protected:
     virtual bool onReadPixels(SkBitmap* dst, const SkIRect* subsetOrNull);
 
     
+    virtual SkData* onRefEncodedData();
+
+    
 
 
     SkBaseMutex* mutex() const { return fMutex; }
@@ -176,13 +215,6 @@ protected:
     
     
     void setPreLocked(void* pixels, SkColorTable* ctable);
-
-    
-
-
-
-
-    void useDefaultMutex() { this->setMutex(NULL); }
 
 private:
 

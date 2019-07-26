@@ -25,7 +25,9 @@ class SkBounder;
 class SkDevice;
 class SkDraw;
 class SkDrawFilter;
+class SkMetaData;
 class SkPicture;
+class SkRRect;
 class SkSurface_Base;
 
 
@@ -62,6 +64,8 @@ public:
     explicit SkCanvas(const SkBitmap& bitmap);
     virtual ~SkCanvas();
 
+    SkMetaData& getMetaData();
+
     
 
     
@@ -86,12 +90,6 @@ public:
 
 
 
-    virtual SkDevice* setDevice(SkDevice* device);
-
-    
-
-
-
 
 
 
@@ -102,12 +100,6 @@ public:
 
 
     SkDevice* getTopDevice(bool updateMatrixClip = false) const;
-
-    
-
-
-
-    SkDevice* setBitmapDevice(const SkBitmap& bitmap);
 
     
 
@@ -353,6 +345,8 @@ public:
 
 
 
+
+
     virtual bool clipRect(const SkRect& rect,
                           SkRegion::Op op = SkRegion::kIntersect_Op,
                           bool doAntiAlias = false);
@@ -362,9 +356,30 @@ public:
 
 
 
+
+
+    virtual bool clipRRect(const SkRRect& rrect,
+                           SkRegion::Op op = SkRegion::kIntersect_Op,
+                           bool doAntiAlias = false);
+
+    
+
+
+
+
+
+
     virtual bool clipPath(const SkPath& path,
                           SkRegion::Op op = SkRegion::kIntersect_Op,
                           bool doAntiAlias = false);
+
+    
+
+
+
+    void setAllowSoftClip(bool allow) {
+        fAllowSoftClip = allow;
+    }
 
     
 
@@ -578,7 +593,16 @@ public:
 
 
 
-    void drawOval(const SkRect& oval, const SkPaint&);
+    virtual void drawOval(const SkRect& oval, const SkPaint&);
+
+    
+
+
+
+
+
+
+    virtual void drawRRect(const SkRRect& rrect, const SkPaint& paint);
 
     
 
@@ -644,8 +668,25 @@ public:
 
 
 
-    virtual void drawBitmapRect(const SkBitmap& bitmap, const SkIRect* src,
-                                const SkRect& dst, const SkPaint* paint = NULL);
+    virtual void drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
+                                      const SkRect& dst,
+                                      const SkPaint* paint);
+
+    void drawBitmapRect(const SkBitmap& bitmap, const SkRect& dst,
+                        const SkPaint* paint) {
+        this->drawBitmapRectToRect(bitmap, NULL, dst, paint);
+    }
+
+    void drawBitmapRect(const SkBitmap& bitmap, const SkIRect* isrc,
+                        const SkRect& dst, const SkPaint* paint = NULL) {
+        SkRect realSrcStorage;
+        SkRect* realSrcPtr = NULL;
+        if (isrc) {
+            realSrcStorage.set(*isrc);
+            realSrcPtr = &realSrcStorage;
+        }
+        this->drawBitmapRectToRect(bitmap, realSrcPtr, dst, paint);
+    }
 
     virtual void drawBitmapMatrix(const SkBitmap& bitmap, const SkMatrix& m,
                                   const SkPaint* paint = NULL);
@@ -766,9 +807,6 @@ public:
 
 
 
-
-
-
     virtual void drawPicture(SkPicture& picture);
 
     enum VertexMode {
@@ -879,8 +917,6 @@ public:
         return &fClipStack;
     }
 
-    void setExternalMatrix(const SkMatrix* = NULL);
-
     class ClipVisitor {
     public:
         virtual ~ClipVisitor();
@@ -955,6 +991,17 @@ protected:
     
     void predrawNotify();
 
+    
+
+
+
+
+
+
+
+
+    virtual SkDevice* setDevice(SkDevice* device);
+
 private:
     class MCRec;
 
@@ -966,8 +1013,9 @@ private:
     uint32_t    fMCRecStorage[32];
 
     SkBounder*  fBounder;
-    SkDevice*   fLastDeviceToGainFocus;
     int         fSaveLayerCount;    
+
+    SkMetaData* fMetaData;
 
     SkSurface_Base*  fSurfaceBase;
     SkSurface_Base* getSurfaceBase() const { return fSurfaceBase; }
@@ -975,8 +1023,6 @@ private:
         fSurfaceBase = sb;
     }
     friend class SkSurface_Base;
-
-    void prepareForDeviceDraw(SkDevice*, const SkMatrix&, const SkRegion&);
 
     bool fDeviceCMDirty;            
     void updateDeviceCMCache();
@@ -993,7 +1039,7 @@ private:
     
     void internalDrawBitmap(const SkBitmap&, const SkIRect*, const SkMatrix& m,
                                   const SkPaint* paint);
-    void internalDrawBitmapRect(const SkBitmap& bitmap, const SkIRect* src,
+    void internalDrawBitmapRect(const SkBitmap& bitmap, const SkRect* src,
                                 const SkRect& dst, const SkPaint* paint);
     void internalDrawBitmapNine(const SkBitmap& bitmap, const SkIRect& center,
                                 const SkRect& dst, const SkPaint* paint);
@@ -1016,6 +1062,7 @@ private:
 
     mutable SkRectCompareType fLocalBoundsCompareType;
     mutable bool              fLocalBoundsCompareTypeDirty;
+    bool fAllowSoftClip;
 
     const SkRectCompareType& getLocalClipBoundsCompareType() const {
         if (fLocalBoundsCompareTypeDirty) {
@@ -1025,9 +1072,6 @@ private:
         return fLocalBoundsCompareType;
     }
     void computeLocalClipBoundsCompareType() const;
-
-    SkMatrix    fExternalMatrix, fExternalInverse;
-    bool        fUseExternalMatrix;
 
     class AutoValidateClip : ::SkNoncopyable {
     public:
@@ -1063,7 +1107,20 @@ public:
         }
     }
     ~SkAutoCanvasRestore() {
-        fCanvas->restoreToCount(fSaveCount);
+        if (fCanvas) {
+            fCanvas->restoreToCount(fSaveCount);
+        }
+    }
+
+    
+
+
+
+    void restore() {
+        if (fCanvas) {
+            fCanvas->restoreToCount(fSaveCount);
+            fCanvas = NULL;
+        }
     }
 
 private:

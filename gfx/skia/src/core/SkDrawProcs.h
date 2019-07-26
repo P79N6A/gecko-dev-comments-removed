@@ -21,10 +21,18 @@ struct SkDraw1Glyph {
     SkBlitter* fBlitter;
     SkGlyphCache* fCache;
     SkIRect fClipBounds;
+    
+    SkFixed fHalfSampleX;
+    
+    SkFixed fHalfSampleY;
 
     
-    
-    
+
+
+
+
+
+
     typedef void (*Proc)(const SkDraw1Glyph&, SkFixed x, SkFixed y, const SkGlyph&);
 
     Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache);
@@ -43,4 +51,3 @@ struct SkDrawProcs {
 bool SkDrawTreatAsHairline(const SkPaint&, const SkMatrix&, SkScalar* coverage);
 
 #endif
-

@@ -28,6 +28,11 @@ class SkWriter32;
 class SkAutoPathBoundsUpdate;
 class SkString;
 class SkPathRef;
+class SkRRect;
+
+#ifndef SK_DEBUG_PATH_REF
+    #define SK_DEBUG_PATH_REF 0
+#endif
 
 
 
@@ -84,7 +89,7 @@ public:
     }
 
     
-    bool isInverseFillType() const { return (fFillType & 2) != 0; }
+    bool isInverseFillType() const { return IsInverseFillType((FillType)fFillType); }
 
     
 
@@ -105,12 +110,12 @@ public:
 
 
 
-
     Convexity getConvexity() const {
-        if (kUnknown_Convexity == fConvexity) {
-            fConvexity = (uint8_t)ComputeConvexity(*this);
+        if (kUnknown_Convexity != fConvexity) {
+            return static_cast<Convexity>(fConvexity);
+        } else {
+            return this->internalGetConvexity();
         }
-        return (Convexity)fConvexity;
     }
 
     
@@ -131,20 +136,6 @@ public:
 
 
     void setConvexity(Convexity);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    static Convexity ComputeConvexity(const SkPath&);
 
     
 
@@ -257,6 +248,16 @@ public:
 
     
 
+
+
+
+
+
+
+    bool isNestedRects(SkRect rect[2]) const;
+
+    
+
     int countPoints() const;
 
     
@@ -310,6 +311,14 @@ public:
         
         this->getBounds();
     }
+
+    
+
+
+
+
+
+    bool conservativelyContainsRect(const SkRect& rect) const;
 
     
 
@@ -495,12 +504,58 @@ public:
 
     enum Direction {
         
+        kUnknown_Direction,
+        
         kCW_Direction,
         
-        kCCW_Direction
+        kCCW_Direction,
     };
 
     
+
+
+
+    static Direction OppositeDirection(Direction dir) {
+        static const Direction gOppositeDir[] = {
+            kUnknown_Direction, kCCW_Direction, kCW_Direction
+        };
+        return gOppositeDir[dir];
+    }
+
+    
+
+
+
+
+
+
+
+    static bool IsInverseFillType(FillType fill) {
+        SK_COMPILE_ASSERT(0 == kWinding_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(1 == kEvenOdd_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(2 == kInverseWinding_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(3 == kInverseEvenOdd_FillType, fill_type_mismatch);
+        return (fill & 2) != 0;
+    }
+
+    
+
+
+
+
+
+
+
+    static FillType ConvertToNonInverseFillType(FillType fill) {
+        SK_COMPILE_ASSERT(0 == kWinding_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(1 == kEvenOdd_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(2 == kInverseWinding_FillType, fill_type_mismatch);
+        SK_COMPILE_ASSERT(3 == kInverseEvenOdd_FillType, fill_type_mismatch);
+        return (FillType)(fill & 1);
+    }
+
+    
+
 
 
 
@@ -513,18 +568,35 @@ public:
 
 
 
+
     bool cheapIsDirection(Direction dir) const {
-        Direction computedDir;
-        return this->cheapComputeDirection(&computedDir) && computedDir == dir;
+        Direction computedDir = kUnknown_Direction;
+        (void)this->cheapComputeDirection(&computedDir);
+        return computedDir == dir;
     }
 
     
 
 
 
+
+
+
+
+
+    bool isRect(bool* isClosed, Direction* direction) const;
+
+    
+
+
+
+
+
     void    addRect(const SkRect& rect, Direction dir = kCW_Direction);
 
     
+
+
 
 
 
@@ -544,9 +616,13 @@ public:
 
 
 
+
+
     void addOval(const SkRect& oval, Direction dir = kCW_Direction);
 
     
+
+
 
 
 
@@ -573,6 +649,8 @@ public:
 
 
 
+
+
     void    addRoundRect(const SkRect& rect, SkScalar rx, SkScalar ry,
                          Direction dir = kCW_Direction);
 
@@ -583,8 +661,21 @@ public:
 
 
 
+
+
+
+
+
     void addRoundRect(const SkRect& rect, const SkScalar radii[],
                       Direction dir = kCW_Direction);
+
+    
+
+
+
+
+
+    void addRRect(const SkRRect& rrect, Direction dir = kCW_Direction);
 
     
 
@@ -823,20 +914,46 @@ public:
 
 private:
     enum SerializationOffsets {
-        kIsFinite_SerializationShift = 25,
-        kIsOval_SerializationShift = 24,
-        kConvexity_SerializationShift = 16,
-        kFillType_SerializationShift = 8,
-        kSegmentMask_SerializationShift = 0
+        kDirection_SerializationShift = 26, 
+        kIsFinite_SerializationShift = 25,  
+        kIsOval_SerializationShift = 24,    
+        kConvexity_SerializationShift = 16, 
+        kFillType_SerializationShift = 8,   
+        kSegmentMask_SerializationShift = 0 
     };
 
-    SkAutoTUnref<SkPathRef>   fPathRef;
+#if SK_DEBUG_PATH_REF
+public:
+    
+
+    class PathRefDebugRef {
+    public:
+        PathRefDebugRef(SkPath* owner);
+        PathRefDebugRef(SkPathRef* pr, SkPath* owner);
+        ~PathRefDebugRef();
+        void reset(SkPathRef* ref);
+        void swap(PathRefDebugRef* other);
+        SkPathRef* get() const;
+        SkAutoTUnref<SkPathRef>::BlockRefType *operator->() const;
+        operator SkPathRef*();
+    private:
+        SkAutoTUnref<SkPathRef>   fPathRef;
+        SkPath*                   fOwner;
+    };
+
+private:
+    PathRefDebugRef     fPathRef;
+#else
+    SkAutoTUnref<SkPathRef> fPathRef;
+#endif
+
     mutable SkRect      fBounds;
     int                 fLastMoveToIndex;
     uint8_t             fFillType;
     uint8_t             fSegmentMask;
     mutable uint8_t     fBoundsIsDirty;
     mutable uint8_t     fConvexity;
+    mutable uint8_t     fDirection;
     mutable SkBool8     fIsFinite;    
     mutable SkBool8     fIsOval;
 #ifdef SK_BUILD_FOR_ANDROID
@@ -872,8 +989,14 @@ private:
 
     inline bool hasOnlyMoveTos() const;
 
+    Convexity internalGetConvexity() const;
+
+    bool isRectContour(bool allowPartial, int* currVerb, const SkPoint** pts,
+                       bool* isClosed, Direction* direction) const;
+
     friend class SkAutoPathBoundsUpdate;
     friend class SkAutoDisableOvalCheck;
+    friend class SkAutoDisableDirectionCheck;
     friend class SkBench_AddPathTest; 
 };
 

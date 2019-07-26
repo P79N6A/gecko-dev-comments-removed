@@ -14,6 +14,9 @@
 #include "SkFDot6.h"
 #include "SkMath.h"
 
+
+#define SkEdge_Compute_DY(top, y0)  ((top << 6) + 32 - (y0))
+
 struct SkEdge {
     enum Type {
         kLine_Type,
@@ -118,8 +121,9 @@ int SkEdge::setLine(const SkPoint& p0, const SkPoint& p1, int shift) {
     }
 
     SkFixed slope = SkFDot6Div(x1 - x0, y1 - y0);
+    const int dy  = SkEdge_Compute_DY(top, y0);
 
-    fX          = SkFDot6ToFixed(x0 + SkFixedMul(slope, (32 - y0) & 63));   
+    fX          = SkFDot6ToFixed(x0 + SkFixedMul(slope, dy));   
     fDX         = slope;
     fFirstY     = top;
     fLastY      = bot - 1;

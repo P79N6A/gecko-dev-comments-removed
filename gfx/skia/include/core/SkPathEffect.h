@@ -11,86 +11,13 @@
 #define SkPathEffect_DEFINED
 
 #include "SkFlattenable.h"
-#include "SkPaint.h"
+#include "SkPath.h"
+#include "SkPoint.h"
+#include "SkRect.h"
+#include "SkStrokeRec.h"
+#include "SkTDArray.h"
 
 class SkPath;
-
-class SkStrokeRec {
-public:
-    enum InitStyle {
-        kHairline_InitStyle,
-        kFill_InitStyle
-    };
-    SkStrokeRec(InitStyle style);
-
-    SkStrokeRec(const SkStrokeRec&);
-    explicit SkStrokeRec(const SkPaint&);
-
-    enum Style {
-        kHairline_Style,
-        kFill_Style,
-        kStroke_Style,
-        kStrokeAndFill_Style
-    };
-
-    Style getStyle() const;
-    SkScalar getWidth() const { return fWidth; }
-    SkScalar getMiter() const { return fMiterLimit; }
-    SkPaint::Cap getCap() const { return fCap; }
-    SkPaint::Join getJoin() const { return fJoin; }
-
-    bool isHairlineStyle() const {
-        return kHairline_Style == this->getStyle();
-    }
-
-    bool isFillStyle() const {
-        return kFill_Style == this->getStyle();
-    }
-
-    void setFillStyle();
-    void setHairlineStyle();
-    
-
-
-
-
-
-    void setStrokeStyle(SkScalar width, bool strokeAndFill = false);
-
-    void setStrokeParams(SkPaint::Cap cap, SkPaint::Join join, SkScalar miterLimit) {
-        fCap = cap;
-        fJoin = join;
-        fMiterLimit = miterLimit;
-    }
-
-    
-
-
-
-    bool needToApply() const {
-        Style style = this->getStyle();
-        return (kStroke_Style == style) || (kStrokeAndFill_Style == style);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    bool applyToPath(SkPath* dst, const SkPath& src) const;
-
-private:
-    SkScalar        fWidth;
-    SkScalar        fMiterLimit;
-    SkPaint::Cap    fCap;
-    SkPaint::Join   fJoin;
-    bool            fStrokeAndFill;
-};
 
 
 
@@ -121,13 +48,63 @@ public:
 
 
 
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) = 0;
+    virtual bool filterPath(SkPath* dst, const SkPath& src,
+                            SkStrokeRec*, const SkRect* cullR) const = 0;
 
     
 
 
 
-    virtual void computeFastBounds(SkRect* dst, const SkRect& src);
+    virtual void computeFastBounds(SkRect* dst, const SkRect& src) const;
+
+    
+
+
+
+
+    class PointData {
+    public:
+        PointData()
+            : fFlags(0)
+            , fPoints(NULL)
+            , fNumPoints(0) {
+            fSize.set(SK_Scalar1, SK_Scalar1);
+            
+            
+        };
+        ~PointData() {
+            delete [] fPoints;
+        }
+
+        
+        
+        
+
+        
+        enum PointFlags {
+            kCircles_PointFlag            = 0x01,   
+            kUsePath_PointFlag            = 0x02,   
+            kUseClip_PointFlag            = 0x04,   
+        };
+
+        uint32_t           fFlags;      
+        SkPoint*           fPoints;     
+        int                fNumPoints;  
+        SkVector           fSize;       
+        SkRect             fClipRect;   
+        SkPath             fPath;       
+
+        SkPath             fFirst;      
+        SkPath             fLast;       
+    };
+
+    
+
+
+
+    virtual bool asPoints(PointData* results, const SkPath& src,
+                          const SkStrokeRec&, const SkMatrix&,
+                          const SkRect* cullR) const;
 
 protected:
     SkPathEffect(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
@@ -177,7 +154,8 @@ public:
     SkComposePathEffect(SkPathEffect* outer, SkPathEffect* inner)
         : INHERITED(outer, inner) {}
 
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
+    virtual bool filterPath(SkPath* dst, const SkPath& src,
+                            SkStrokeRec*, const SkRect*) const SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkComposePathEffect)
 
@@ -207,7 +185,8 @@ public:
     SkSumPathEffect(SkPathEffect* first, SkPathEffect* second)
         : INHERITED(first, second) {}
 
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
+    virtual bool filterPath(SkPath* dst, const SkPath& src,
+                            SkStrokeRec*, const SkRect*) const SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkSumPathEffect)
 
@@ -223,4 +202,3 @@ private:
 };
 
 #endif
-

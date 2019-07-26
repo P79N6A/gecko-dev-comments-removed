@@ -34,4 +34,11 @@
 
 #define GR_GL_CHECK_FBO_STATUS_ONCE_PER_FORMAT      1
 
+
+#define GR_GL_MUST_USE_VBO                          1
+
+
+
+#define GR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE       1
+
 #endif

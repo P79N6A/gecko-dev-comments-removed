@@ -9,7 +9,7 @@
 #include "SkColorPriv.h"
 #include "SkMath.h"
 
-#if defined(SK_BUILD_FOR_MAC) && !defined(SK_USE_WXWIDGETS)
+#if defined(SK_BUILD_FOR_MAC)
 
 #include <ApplicationServices/ApplicationServices.h>
 

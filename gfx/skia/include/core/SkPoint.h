@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkPoint_DEFINED
 #define SkPoint_DEFINED
 
@@ -339,7 +337,10 @@ struct SK_API SkPoint {
 
     
 
-    bool equals(SkScalar x, SkScalar y) const { return fX == x && fY == y; }
+
+    bool equals(SkScalar x, SkScalar y) const {
+        return fX == x && fY == y;
+    }
 
     friend bool operator==(const SkPoint& a, const SkPoint& b) {
         return a.fX == b.fX && a.fY == b.fY;
@@ -503,6 +504,11 @@ struct SK_API SkPoint {
             fY = -tmp;
         }
     }
+
+    
+
+
+    const SkScalar* asScalars() const { return &fX; }
 };
 
 typedef SkPoint SkVector;

@@ -35,6 +35,11 @@ public:
 
 
 
+
+
+
+
+
     static uint32_t Compute(const uint32_t* data, size_t size) {
         SkASSERT(SkIsAlign4(size));
 
@@ -83,4 +88,3 @@ public:
 };
 
 #endif
-

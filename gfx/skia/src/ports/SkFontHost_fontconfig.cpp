@@ -5,349 +5,229 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#include <map>
-#include <string>
-
-#include <fontconfig/fontconfig.h>
-
+#include "SkFontConfigInterface.h"
+#include "SkFontDescriptor.h"
 #include "SkFontHost.h"
+#include "SkFontHost_FreeType_common.h"
+#include "SkFontStream.h"
 #include "SkStream.h"
+#include "SkTypeface.h"
+#include "SkTypefaceCache.h"
 
+SK_DECLARE_STATIC_MUTEX(gFontConfigInterfaceMutex);
+static SkFontConfigInterface* gFontConfigInterface;
 
-SkTypeface::Style find_name_and_style(SkStream* stream, SkString* name);
+SkFontConfigInterface* SkFontConfigInterface::RefGlobal() {
+    SkAutoMutexAcquire ac(gFontConfigInterfaceMutex);
 
-
-
-
-
-
-
-
-
-
-
-
-SK_DECLARE_STATIC_MUTEX(global_fc_map_lock);
-static std::map<std::string, unsigned> global_fc_map;
-static std::map<unsigned, std::string> global_fc_map_inverted;
-static std::map<uint32_t, SkTypeface *> global_fc_typefaces;
-static unsigned global_fc_map_next_id = 0;
-
-static unsigned UniqueIdToFileId(unsigned uniqueid)
-{
-    return uniqueid >> 8;
+    return SkSafeRef(gFontConfigInterface);
 }
 
-static SkTypeface::Style UniqueIdToStyle(unsigned uniqueid)
-{
-    return static_cast<SkTypeface::Style>(uniqueid & 0xff);
-}
+SkFontConfigInterface* SkFontConfigInterface::SetGlobal(SkFontConfigInterface* fc) {
+    SkAutoMutexAcquire ac(gFontConfigInterfaceMutex);
 
-static unsigned FileIdAndStyleToUniqueId(unsigned fileid,
-                                         SkTypeface::Style style)
-{
-    SkASSERT((style & 0xff) == style);
-    return (fileid << 8) | static_cast<int>(style);
+    SkRefCnt_SafeAssign(gFontConfigInterface, fc);
+    return fc;
 }
 
 
 
 
 
+extern SkFontConfigInterface* SkCreateDirectFontConfigInterface();
 
-
-static bool IsFallbackFontAllowed(const char* request)
-{
-    return strcmp(request, "Sans") == 0 ||
-           strcmp(request, "Serif") == 0 ||
-           strcmp(request, "Monospace") == 0;
+static SkFontConfigInterface* RefFCI() {
+    for (;;) {
+        SkFontConfigInterface* fci = SkFontConfigInterface::RefGlobal();
+        if (fci) {
+            return fci;
+        }
+        fci = SkFontConfigInterface::GetSingletonDirectInterface();
+        SkFontConfigInterface::SetGlobal(fci)->unref();
+    }
 }
 
-class FontConfigTypeface : public SkTypeface {
+class FontConfigTypeface : public SkTypeface_FreeType {
+    SkFontConfigInterface::FontIdentity fIdentity;
+    SkString fFamilyName;
+    SkStream* fLocalStream;
+
 public:
-    FontConfigTypeface(Style style, uint32_t id)
-        : SkTypeface(style, id)
-    { }
+    FontConfigTypeface(Style style,
+                       const SkFontConfigInterface::FontIdentity& fi,
+                       const SkString& familyName)
+            : INHERITED(style, SkTypefaceCache::NewFontID(), false)
+            , fIdentity(fi)
+            , fFamilyName(familyName)
+            , fLocalStream(NULL) {}
+
+    FontConfigTypeface(Style style, SkStream* localStream)
+            : INHERITED(style, SkTypefaceCache::NewFontID(), false) {
+        
+        fLocalStream = localStream;
+        SkSafeRef(localStream);
+    }
+
+    virtual ~FontConfigTypeface() {
+        SkSafeUnref(fLocalStream);
+    }
+
+    const SkFontConfigInterface::FontIdentity& getIdentity() const {
+        return fIdentity;
+    }
+
+    const char* getFamilyName() const { return fFamilyName.c_str(); }
+    SkStream*   getLocalStream() const { return fLocalStream; }
+
+    bool isFamilyName(const char* name) const {
+        return fFamilyName.equals(name);
+    }
+
+protected:
+    friend class SkFontHost;    
+
+    virtual int onGetTableTags(SkFontTableTag tags[]) const SK_OVERRIDE;
+    virtual size_t onGetTableData(SkFontTableTag, size_t offset,
+                                  size_t length, void* data) const SK_OVERRIDE;
+    virtual void onGetFontDescriptor(SkFontDescriptor*, bool*) const SK_OVERRIDE;
+    virtual SkStream* onOpenStream(int* ttcIndex) const SK_OVERRIDE;
+
+private:
+    typedef SkTypeface_FreeType INHERITED;
 };
 
 
 
+struct FindRec {
+    FindRec(const char* name, SkTypeface::Style style)
+        : fFamilyName(name)  
+        , fStyle(style) {}
 
+    const char* fFamilyName;
+    SkTypeface::Style fStyle;
+};
 
+static bool find_proc(SkTypeface* face, SkTypeface::Style style, void* ctx) {
+    FontConfigTypeface* fci = (FontConfigTypeface*)face;
+    const FindRec* rec = (const FindRec*)ctx;
 
-
-
-
-
-
-static FcPattern* FontMatch(const char* type, FcType vtype, const void* value,
-                            ...)
-{
-    va_list ap;
-    va_start(ap, value);
-
-    FcPattern* pattern = FcPatternCreate();
-    const char* family_requested = NULL;
-
-    for (;;) {
-        FcValue fcvalue;
-        fcvalue.type = vtype;
-        switch (vtype) {
-            case FcTypeString:
-                fcvalue.u.s = (FcChar8*) value;
-                break;
-            case FcTypeInteger:
-                fcvalue.u.i = (int)(intptr_t)value;
-                break;
-            default:
-                SkDEBUGFAIL("FontMatch unhandled type");
-        }
-        FcPatternAdd(pattern, type, fcvalue, 0);
-
-        if (vtype == FcTypeString && strcmp(type, FC_FAMILY) == 0)
-            family_requested = (const char*) value;
-
-        type = va_arg(ap, const char *);
-        if (!type)
-            break;
-        
-        vtype = static_cast<FcType>(va_arg(ap, int));
-        value = va_arg(ap, const void *);
-    };
-    va_end(ap);
-
-    FcConfigSubstitute(0, pattern, FcMatchPattern);
-    FcDefaultSubstitute(pattern);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    FcChar8* post_config_family;
-    FcPatternGetString(pattern, FC_FAMILY, 0, &post_config_family);
-
-    FcResult result;
-    FcPattern* match = FcFontMatch(0, pattern, &result);
-    if (!match) {
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-
-    FcChar8* post_match_family;
-    FcPatternGetString(match, FC_FAMILY, 0, &post_match_family);
-    const bool family_names_match =
-        !family_requested ?
-        true :
-        strcasecmp((char *)post_config_family, (char *)post_match_family) == 0;
-
-    FcPatternDestroy(pattern);
-
-    if (!family_names_match && !IsFallbackFontAllowed(family_requested)) {
-        FcPatternDestroy(match);
-        return NULL;
-    }
-
-    return match;
+    return rec->fStyle == style && fci->isFamilyName(rec->fFamilyName);
 }
-
-
-
-
-
-static unsigned FileIdFromFilename(const char* filename)
-{
-    SkAutoMutexAcquire ac(global_fc_map_lock);
-
-    std::map<std::string, unsigned>::const_iterator i =
-        global_fc_map.find(filename);
-    if (i == global_fc_map.end()) {
-        const unsigned fileid = global_fc_map_next_id++;
-        global_fc_map[filename] = fileid;
-        global_fc_map_inverted[fileid] = filename;
-        return fileid;
-    } else {
-        return i->second;
-    }
-}
-
 
 SkTypeface* SkFontHost::CreateTypeface(const SkTypeface* familyFace,
                                        const char familyName[],
-                                       SkTypeface::Style style)
-{
-    const char* resolved_family_name = NULL;
-    FcPattern* face_match = NULL;
-
-    {
-        SkAutoMutexAcquire ac(global_fc_map_lock);
-        FcInit();
+                                       SkTypeface::Style style) {
+    SkAutoTUnref<SkFontConfigInterface> fci(RefFCI());
+    if (NULL == fci.get()) {
+        return NULL;
     }
 
     if (familyFace) {
+        FontConfigTypeface* fct = (FontConfigTypeface*)familyFace;
+        familyName = fct->getFamilyName();
+    }
+
+    FindRec rec(familyName, style);
+    SkTypeface* face = SkTypefaceCache::FindByProcAndRef(find_proc, &rec);
+    if (face) {
+
+        return face;
+    }
+
+    SkFontConfigInterface::FontIdentity indentity;
+    SkString                            outFamilyName;
+    SkTypeface::Style                   outStyle;
+
+    if (!fci->matchFamilyName(familyName, style,
+                              &indentity, &outFamilyName, &outStyle)) {
+        return NULL;
+    }
+
+    face = SkNEW_ARGS(FontConfigTypeface, (outStyle, indentity, outFamilyName));
+    SkTypefaceCache::Add(face, style);
+
+    return face;
+}
+
+SkTypeface* SkFontHost::CreateTypefaceFromStream(SkStream* stream) {
+    if (!stream) {
+        return NULL;
+    }
+    const size_t length = stream->getLength();
+    if (!length) {
+        return NULL;
+    }
+    if (length >= 1024 * 1024 * 1024) {
+        return NULL;  
+    }
+
+    
+    SkTypeface::Style style = SkTypeface::kNormal;
+    SkTypeface* face = SkNEW_ARGS(FontConfigTypeface, (style, stream));
+    SkTypefaceCache::Add(face, style);
+    return face;
+}
+
+SkTypeface* SkFontHost::CreateTypefaceFromFile(const char path[]) {
+    SkAutoTUnref<SkStream> stream(SkStream::NewFromFile(path));
+    return stream.get() ? CreateTypefaceFromStream(stream) : NULL;
+}
+
+
+
+SkStream* FontConfigTypeface::onOpenStream(int* ttcIndex) const {
+    SkStream* stream = this->getLocalStream();
+    if (stream) {
         
         
         
-        SkAutoMutexAcquire ac(global_fc_map_lock);
-
-        const unsigned fileid = UniqueIdToFileId(familyFace->uniqueID());
-        std::map<unsigned, std::string>::const_iterator i =
-            global_fc_map_inverted.find(fileid);
-        if (i == global_fc_map_inverted.end())
-            return NULL;
-
-        FcInit();
-        face_match = FontMatch(FC_FILE, FcTypeString, i->second.c_str(),
-                               NULL);
-
-        if (!face_match)
-            return NULL;
-        FcChar8* family;
-        if (FcPatternGetString(face_match, FC_FAMILY, 0, &family)) {
-            FcPatternDestroy(face_match);
+        
+        
+        
+        stream->rewind();
+        stream->ref();
+        
+        *ttcIndex = 0;
+    } else {
+        SkAutoTUnref<SkFontConfigInterface> fci(RefFCI());
+        if (NULL == fci.get()) {
             return NULL;
         }
-        
-        
-
-        resolved_family_name = reinterpret_cast<char*>(family);
-    } else if (familyName) {
-        resolved_family_name = familyName;
-    } else {
-        return NULL;
+        stream = fci->openStream(this->getIdentity());
+        *ttcIndex = this->getIdentity().fTTCIndex;
     }
+    return stream;
+}
 
-    
-    SkASSERT(resolved_family_name);
+int FontConfigTypeface::onGetTableTags(SkFontTableTag tags[]) const {
+    int ttcIndex;
+    SkAutoTUnref<SkStream> stream(this->openStream(&ttcIndex));
+    return stream.get()
+                ? SkFontStream::GetTableTags(stream, ttcIndex, tags)
+                : 0;
+}
 
-    const int bold = style & SkTypeface::kBold ?
-                     FC_WEIGHT_BOLD : FC_WEIGHT_NORMAL;
-    const int italic = style & SkTypeface::kItalic ?
-                       FC_SLANT_ITALIC : FC_SLANT_ROMAN;
-    FcPattern* match = FontMatch(FC_FAMILY, FcTypeString, resolved_family_name,
-                                 FC_WEIGHT, FcTypeInteger, bold,
-                                 FC_SLANT, FcTypeInteger, italic,
-                                 NULL);
-    if (face_match)
-        FcPatternDestroy(face_match);
+size_t FontConfigTypeface::onGetTableData(SkFontTableTag tag, size_t offset,
+                                  size_t length, void* data) const {
+    int ttcIndex;
+    SkAutoTUnref<SkStream> stream(this->openStream(&ttcIndex));
+    return stream.get()
+                ? SkFontStream::GetTableData(stream, ttcIndex,
+                                             tag, offset, length, data)
+                : 0;
+}
 
-    if (!match)
-        return NULL;
-
-    FcChar8* filename;
-    if (FcPatternGetString(match, FC_FILE, 0, &filename) != FcResultMatch) {
-        FcPatternDestroy(match);
-        return NULL;
-    }
-    
-
-    const unsigned fileid = FileIdFromFilename(reinterpret_cast<char*>(filename));
-    const unsigned id = FileIdAndStyleToUniqueId(fileid, style);
-    SkTypeface* typeface = SkNEW_ARGS(FontConfigTypeface, (style, id));
-    FcPatternDestroy(match);
-
-    {
-        SkAutoMutexAcquire ac(global_fc_map_lock);
-        global_fc_typefaces[id] = typeface;
-    }
-
-    return typeface;
+void FontConfigTypeface::onGetFontDescriptor(SkFontDescriptor* desc,
+                                             bool* isLocalStream) const {
+    desc->setFamilyName(this->getFamilyName());
+    *isLocalStream = SkToBool(this->getLocalStream());
 }
 
 
-SkTypeface* SkFontHost::CreateTypefaceFromStream(SkStream* stream)
-{
-    SkDEBUGFAIL("SkFontHost::CreateTypefaceFromStream unimplemented");
+
+#include "SkFontMgr.h"
+
+SkFontMgr* SkFontMgr::Factory() {
+    
     return NULL;
 }
-
-
-SkTypeface* SkFontHost::CreateTypefaceFromFile(const char path[])
-{
-    SkDEBUGFAIL("SkFontHost::CreateTypefaceFromFile unimplemented");
-    return NULL;
-}
-
-
-SkStream* SkFontHost::OpenStream(uint32_t id)
-{
-    SkAutoMutexAcquire ac(global_fc_map_lock);
-    const unsigned fileid = UniqueIdToFileId(id);
-
-    std::map<unsigned, std::string>::const_iterator i =
-        global_fc_map_inverted.find(fileid);
-    if (i == global_fc_map_inverted.end())
-        return NULL;
-
-    return SkNEW_ARGS(SkFILEStream, (i->second.c_str()));
-}
-
-size_t SkFontHost::GetFileName(SkFontID fontID, char path[], size_t length,
-                               int32_t* index) {
-    SkAutoMutexAcquire ac(global_fc_map_lock);
-    const unsigned fileid = UniqueIdToFileId(fontID);
-
-    std::map<unsigned, std::string>::const_iterator i =
-    global_fc_map_inverted.find(fileid);
-    if (i == global_fc_map_inverted.end()) {
-        return 0;
-    }
-
-    const std::string& str = i->second;
-    if (path) {
-        memcpy(path, str.c_str(), SkMin32(str.size(), length));
-    }
-    if (index) {    
-        *index = 0;
-    }
-    return str.size();
-}
-
-void SkFontHost::Serialize(const SkTypeface*, SkWStream*) {
-    SkDEBUGFAIL("SkFontHost::Serialize unimplemented");
-}
-
-SkTypeface* SkFontHost::Deserialize(SkStream* stream) {
-    SkDEBUGFAIL("SkFontHost::Deserialize unimplemented");
-    return NULL;
-}
-
-SkFontID SkFontHost::NextLogicalFont(SkFontID currFontID, SkFontID origFontID) {
-    
-    return 0;
-}
-

@@ -5,7 +5,6 @@
 
 
 
-
 #ifndef SkBitmapSource_DEFINED
 #define SkBitmapSource_DEFINED
 
@@ -30,4 +29,3 @@ private:
 };
 
 #endif
-

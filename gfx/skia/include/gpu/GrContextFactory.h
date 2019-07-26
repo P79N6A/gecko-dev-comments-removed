@@ -28,7 +28,7 @@
 
 
 
-class GrContextFactory  : GrNoncopyable {
+class GrContextFactory : GrNoncopyable {
 public:
     
 
@@ -43,16 +43,54 @@ public:
 #endif
       kNull_GLContextType,
       kDebug_GLContextType,
+
+      kLastGLContextType = kDebug_GLContextType
     };
+
+    static const int kGLContextTypeCnt = kLastGLContextType + 1;
+
+    static bool IsRenderingGLContext(GLContextType type) {
+        switch (type) {
+            case kNull_GLContextType:
+            case kDebug_GLContextType:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    static const char* GLContextTypeName(GLContextType type) {
+        switch (type) {
+            case kNative_GLContextType:
+                return "native";
+            case kNull_GLContextType:
+                return "null";
+#if SK_ANGLE
+            case kANGLE_GLContextType:
+                return "angle";
+#endif
+#if SK_MESA
+            case kMESA_GLContextType:
+                return "mesa";
+#endif
+            case kDebug_GLContextType:
+                return "debug";
+            default:
+                GrCrash("Unknown GL Context type.");
+        }
+    }
 
     GrContextFactory() {
     }
 
-    ~GrContextFactory() {
+    ~GrContextFactory() { this->destroyContexts(); }
+
+    void destroyContexts() {
         for (int i = 0; i < fContexts.count(); ++i) {
             fContexts[i].fGrContext->unref();
             fContexts[i].fGLContext->unref();
         }
+        fContexts.reset();
     }
 
     
@@ -62,10 +100,11 @@ public:
 
         for (int i = 0; i < fContexts.count(); ++i) {
             if (fContexts[i].fType == type) {
+                fContexts[i].fGLContext->makeCurrent();
                 return fContexts[i].fGrContext;
             }
         }
-        SkAutoTUnref<SkGLContext> glCtx;
+        SkAutoTUnref<SkGLContextHelper> glCtx;
         SkAutoTUnref<GrContext> grCtx;
         switch (type) {
             case kNative_GLContextType:
@@ -95,9 +134,8 @@ public:
         if (!glCtx.get()->init(kBogusSize, kBogusSize)) {
             return NULL;
         }
-        GrPlatform3DContext p3dctx =
-            reinterpret_cast<GrPlatform3DContext>(glCtx.get()->gl());
-        grCtx.reset(GrContext::Create(kOpenGL_Shaders_GrEngine, p3dctx));
+        GrBackendContext p3dctx = reinterpret_cast<GrBackendContext>(glCtx.get()->gl());
+        grCtx.reset(GrContext::Create(kOpenGL_GrBackend, p3dctx));
         if (!grCtx.get()) {
             return NULL;
         }
@@ -112,7 +150,7 @@ public:
 
     
     
-    SkGLContext* getGLContext(GLContextType type) {
+    SkGLContextHelper* getGLContext(GLContextType type) {
         for (int i = 0; i < fContexts.count(); ++i) {
             if (fContexts[i].fType == type) {
                 return fContexts[i].fGLContext;
@@ -125,7 +163,7 @@ public:
 private:
     struct GPUContext {
         GLContextType             fType;
-        SkGLContext*              fGLContext;
+        SkGLContextHelper*        fGLContext;
         GrContext*                fGrContext;
     };
     SkTArray<GPUContext, true> fContexts;

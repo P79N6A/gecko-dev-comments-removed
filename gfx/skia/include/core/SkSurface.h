@@ -35,8 +35,7 @@ public:
 
 
 
-    static SkSurface* NewRasterDirect(const SkImage::Info&, SkColorSpace*,
-                                      void* pixels, size_t rowBytes);
+    static SkSurface* NewRasterDirect(const SkImage::Info&, void* pixels, size_t rowBytes);
 
     
 
@@ -45,7 +44,7 @@ public:
 
 
 
-    static SkSurface* NewRaster(const SkImage::Info&, SkColorSpace*);
+    static SkSurface* NewRaster(const SkImage::Info&);
 
     
 
@@ -63,8 +62,7 @@ public:
 
 
 
-    static SkSurface* NewRenderTarget(GrContext*, const SkImage::Info&,
-                                      SkColorSpace*, int sampleCount = 0);
+    static SkSurface* NewRenderTarget(GrContext*, const SkImage::Info&, int sampleCount = 0);
 
     int width() const { return fWidth; }
     int height() const { return fHeight; }
@@ -107,7 +105,7 @@ public:
 
 
 
-    SkSurface* newSurface(const SkImage::Info&, SkColorSpace*);
+    SkSurface* newSurface(const SkImage::Info&);
 
     
 

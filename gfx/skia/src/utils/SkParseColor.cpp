@@ -537,4 +537,3 @@ void SkParse::TestColor() {
 
 }
 #endif
-

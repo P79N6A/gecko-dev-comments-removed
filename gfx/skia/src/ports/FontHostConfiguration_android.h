@@ -5,15 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #ifndef FONTHOSTCONFIGURATION_ANDROID_H_
 #define FONTHOSTCONFIGURATION_ANDROID_H_
 

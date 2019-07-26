@@ -10,7 +10,7 @@
 #define GrTexture_DEFINED
 
 #include "GrSurface.h"
-#include "GrCacheID.h"
+#include "SkPoint.h"
 
 class GrRenderTarget;
 class GrResourceKey;
@@ -20,8 +20,6 @@ class GrTexture : public GrSurface {
 
 public:
     SK_DECLARE_INST_COUNT(GrTexture)
-    GR_DECLARE_RESOURCE_CACHE_TYPE()
-
     
     
 
@@ -113,7 +111,7 @@ public:
 
 
 
-    virtual intptr_t getTextureHandle() const = 0;
+    virtual GrBackendObject getTextureHandle() const = 0;
 
     
 
@@ -130,15 +128,12 @@ public:
 #else
     void validate() const {}
 #endif
-
     static GrResourceKey ComputeKey(const GrGpu* gpu,
-                                    const GrTextureParams* sampler,
+                                    const GrTextureParams* params,
                                     const GrTextureDesc& desc,
-                                    const GrCacheData& cacheData,
-                                    bool scratch);
-
+                                    const GrCacheID& cacheID);
+    static GrResourceKey ComputeScratchKey(const GrTextureDesc& desc);
     static bool NeedsResizing(const GrResourceKey& key);
-    static bool IsScratchTexture(const GrResourceKey& key);
     static bool NeedsFiltering(const GrResourceKey& key);
 
 protected:
@@ -146,13 +141,13 @@ protected:
                                    
                                    
 
-    GrTexture(GrGpu* gpu, const GrTextureDesc& desc)
-    : INHERITED(gpu, desc)
+    GrTexture(GrGpu* gpu, bool isWrapped, const GrTextureDesc& desc)
+    : INHERITED(gpu, isWrapped, desc)
     , fRenderTarget(NULL) {
 
         
-        fShiftFixedX = 31 - Gr_clz(fDesc.fWidth);
-        fShiftFixedY = 31 - Gr_clz(fDesc.fHeight);
+        fShiftFixedX = 31 - SkCLZ(fDesc.fWidth);
+        fShiftFixedY = 31 - SkCLZ(fDesc.fHeight);
     }
 
     
@@ -172,5 +167,42 @@ private:
     typedef GrSurface INHERITED;
 };
 
-#endif
 
+
+
+class GrDeviceCoordTexture {
+public:
+    GrDeviceCoordTexture() { fOffset.set(0, 0); }
+
+    GrDeviceCoordTexture(const GrDeviceCoordTexture& other) {
+        *this = other;
+    }
+
+    GrDeviceCoordTexture(GrTexture* texture, const SkIPoint& offset)
+        : fTexture(SkSafeRef(texture))
+        , fOffset(offset) {
+    }
+
+    GrDeviceCoordTexture& operator=(const GrDeviceCoordTexture& other) {
+        fTexture.reset(SkSafeRef(other.fTexture.get()));
+        fOffset = other.fOffset;
+        return *this;
+    }
+
+    const SkIPoint& offset() const { return fOffset; }
+
+    void setOffset(const SkIPoint& offset) { fOffset = offset; }
+    void setOffset(int ox, int oy) { fOffset.set(ox, oy); }
+
+    GrTexture* texture() const { return fTexture.get(); }
+
+    GrTexture* setTexture(GrTexture* texture) {
+        fTexture.reset(SkSafeRef(texture));
+        return texture;
+    }
+private:
+    SkAutoTUnref<GrTexture> fTexture;
+    SkIPoint                fOffset;
+};
+
+#endif

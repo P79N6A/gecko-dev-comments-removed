@@ -126,8 +126,12 @@ typedef unsigned __int64 uint64_t;
 
 
 
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_CONSTANT_MACROS
 #define __STDC_CONSTANT_MACROS
+#endif
 #include <stdint.h>
 #endif
 
@@ -311,27 +315,6 @@ inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
     #endif
 #endif
 
-#if !defined(GR_SCALAR_IS_FLOAT)
-    #define GR_SCALAR_IS_FLOAT   0
-#endif
-#if !defined(GR_SCALAR_IS_FIXED)
-    #define GR_SCALAR_IS_FIXED   0
-#endif
-
-#if !defined(GR_TEXT_SCALAR_TYPE_IS_USHORT)
-    #define GR_TEXT_SCALAR_TYPE_IS_USHORT  0
-#endif
-#if !defined(GR_TEXT_SCALAR_TYPE_IS_FLOAT)
-    #define GR_TEXT_SCALAR_TYPE_IS_FLOAT   0
-#endif
-#if !defined(GR_TEXT_SCALAR_TYPE_IS_FIXED)
-    #define GR_TEXT_SCALAR_TYPE_IS_FIXED   0
-#endif
-
-#ifndef GR_DUMP_TEXTURE_UPLOAD
-    #define GR_DUMP_TEXTURE_UPLOAD  0
-#endif
-
 
 
 
@@ -345,28 +328,27 @@ inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
 
 
 
-#if !defined(GR_DISABLE_DRAW_BUFFERING)
-    #define GR_DISABLE_DRAW_BUFFERING 0
-#endif
-
-
-
-
-
-
-
-#if !defined(GR_AGGRESSIVE_SHADER_OPTS)
-    #define GR_AGGRESSIVE_SHADER_OPTS 1
-#endif
-
-
-
-
-
 
 
 #if !defined(GR_GEOM_BUFFER_LOCK_THRESHOLD)
     #define GR_GEOM_BUFFER_LOCK_THRESHOLD (1 << 15)
+#endif
+
+
+
+
+
+
+#if !defined(GR_DEFAULT_TEXTURE_CACHE_MB_LIMIT)
+    #define GR_DEFAULT_TEXTURE_CACHE_MB_LIMIT 96
+#endif
+
+
+
+
+
+#if !defined(GR_STROKE_PATH_RENDERING)
+    #define GR_STROKE_PATH_RENDERING                 0
 #endif
 
 
@@ -385,21 +367,6 @@ inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
     #error "Missing a GR_BUILD define"
 #elif 1 != GR_BUILD_SUM
     #error "More than one GR_BUILD defined"
-#endif
-
-
-#if !GR_SCALAR_IS_FLOAT && !GR_SCALAR_IS_FIXED
-    #undef  GR_SCALAR_IS_FLOAT
-    #define GR_SCALAR_IS_FLOAT              1
-    #pragma message GR_WARN("Scalar type not defined, defaulting to float")
-#endif
-
-#if !GR_TEXT_SCALAR_IS_FLOAT && \
-    !GR_TEXT_SCALAR_IS_FIXED && \
-    !GR_TEXT_SCALAR_IS_USHORT
-    #undef  GR_TEXT_SCALAR_IS_FLOAT
-    #define GR_TEXT_SCALAR_IS_FLOAT         1
-    #pragma message GR_WARN("Text scalar type not defined, defaulting to float")
 #endif
 
 #if 0
@@ -424,4 +391,3 @@ inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
 #endif
 
 #endif
-

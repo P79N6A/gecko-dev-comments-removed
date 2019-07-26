@@ -62,7 +62,37 @@ SK_API FallbackScripts SkGetFallbackScriptFromID(const char* id);
 
 
 
+SK_API SkTypeface* SkCreateFallbackTypefaceForChar(SkUnichar uni,
+                                                   SkTypeface::Style style);
+
+
+
+
+
+SK_API bool SkGetFallbackFamilyNameForChar(SkUnichar uni, SkString* name);
+
+
+
+
+
 SK_API void SkUseTestFontConfigFile(const char* mainconf, const char* fallbackconf,
                                     const char* fontsdir);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SkTypeface* SkAndroidNextLogicalTypeface(SkFontID currFontID, SkFontID origFontID);
 
 #endif

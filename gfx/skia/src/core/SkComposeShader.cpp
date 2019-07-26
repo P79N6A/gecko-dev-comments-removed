@@ -13,6 +13,7 @@
 #include "SkColorShader.h"
 #include "SkFlattenableBuffers.h"
 #include "SkXfermode.h"
+#include "SkString.h"
 
 
 
@@ -43,18 +44,6 @@ SkComposeShader::~SkComposeShader() {
     fShaderA->unref();
 }
 
-void SkComposeShader::beginSession() {
-    this->INHERITED::beginSession();
-    fShaderA->beginSession();
-    fShaderB->beginSession();
-}
-
-void SkComposeShader::endSession() {
-    fShaderA->endSession();
-    fShaderB->endSession();
-    this->INHERITED::endSession();
-}
-
 class SkAutoAlphaRestore {
 public:
     SkAutoAlphaRestore(SkPaint* paint, uint8_t newAlpha) {
@@ -82,6 +71,9 @@ void SkComposeShader::flatten(SkFlattenableWriteBuffer& buffer) const {
 
 
 
+
+
+
 bool SkComposeShader::setContext(const SkBitmap& device,
                                  const SkPaint& paint,
                                  const SkMatrix& matrix) {
@@ -94,13 +86,29 @@ bool SkComposeShader::setContext(const SkBitmap& device,
 
     SkMatrix tmpM;
 
-    (void)this->getLocalMatrix(&tmpM);
-    tmpM.setConcat(matrix, tmpM);
+    tmpM.setConcat(matrix, this->getLocalMatrix());
 
     SkAutoAlphaRestore  restore(const_cast<SkPaint*>(&paint), 0xFF);
 
-    return  fShaderA->setContext(device, paint, tmpM) &&
-            fShaderB->setContext(device, paint, tmpM);
+    bool setContextA = fShaderA->setContext(device, paint, tmpM);
+    bool setContextB = fShaderB->setContext(device, paint, tmpM);
+    if (!setContextA || !setContextB) {
+        if (setContextB) {
+            fShaderB->endContext();
+        }
+        else if (setContextA) {
+            fShaderA->endContext();
+        }
+        this->INHERITED::endContext();
+        return false;
+    }
+    return true;
+}
+
+void SkComposeShader::endContext() {
+    fShaderB->endContext();
+    fShaderA->endContext();
+    this->INHERITED::endContext();
 }
 
 
@@ -166,5 +174,19 @@ void SkComposeShader::shadeSpan(int x, int y, SkPMColor result[], int count) {
     }
 }
 
-SK_DEFINE_FLATTENABLE_REGISTRAR(SkComposeShader)
+#ifdef SK_DEVELOPER
+void SkComposeShader::toString(SkString* str) const {
+    str->append("SkComposeShader: (");
 
+    str->append("ShaderA: ");
+    fShaderA->toString(str);
+    str->append(" ShaderB: ");
+    fShaderB->toString(str);
+    str->append(" Xfermode: ");
+    fMode->toString(str);
+
+    this->INHERITED::toString(str);
+
+    str->append(")");
+}
+#endif

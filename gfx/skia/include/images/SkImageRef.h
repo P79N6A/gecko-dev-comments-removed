@@ -34,7 +34,7 @@ public:
 
 
 
-    SkImageRef(SkStream*, SkBitmap::Config config, int sampleSize = 1);
+    SkImageRef(SkStream*, SkBitmap::Config config, int sampleSize = 1, SkBaseMutex* mutex = NULL);
     virtual ~SkImageRef();
 
     
@@ -73,9 +73,9 @@ protected:
 
     virtual void* onLockPixels(SkColorTable**);
     
-    virtual void onUnlockPixels();
+    virtual void onUnlockPixels() {}
 
-    SkImageRef(SkFlattenableReadBuffer&);
+    SkImageRef(SkFlattenableReadBuffer&, SkBaseMutex* mutex = NULL);
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 
     SkBitmap fBitmap;

@@ -41,7 +41,6 @@ private:
     const char*     fStop;
     SkMeasureCacheProc fGlyphCacheProc;
 
-    const SkPath*   fPath;      
     SkScalar        fXPos;      
     SkAutoKern      fAutoKern;
     int             fXYIndex;   

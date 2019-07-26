@@ -11,6 +11,9 @@
 #define SkImageDecoder_DEFINED
 
 #include "SkBitmap.h"
+#include "SkBitmapFactory.h"
+#include "SkImage.h"
+#include "SkRect.h"
 #include "SkRefCnt.h"
 
 class SkStream;
@@ -23,6 +26,7 @@ class SkImageDecoder {
 public:
     virtual ~SkImageDecoder();
 
+    
     enum Format {
         kUnknown_Format,
         kBMP_Format,
@@ -31,13 +35,18 @@ public:
         kJPEG_Format,
         kPNG_Format,
         kWBMP_Format,
+        kWEBP_Format,
 
-        kLastKnownFormat = kWBMP_Format
+        kLastKnownFormat = kWEBP_Format
     };
 
     
 
     virtual Format getFormat() const;
+
+    
+
+    const char* getFormatName() const;
 
     
 
@@ -48,6 +57,20 @@ public:
 
 
     void setDitherImage(bool dither) { fDitherImage = dither; }
+
+    
+
+
+
+    bool getPreferQualityOverSpeed() const { return fPreferQualityOverSpeed; }
+
+    
+
+
+
+    void setPreferQualityOverSpeed(bool qualityOverSpeed) {
+        fPreferQualityOverSpeed = qualityOverSpeed;
+    }
 
     
 
@@ -173,10 +196,28 @@ public:
 
 
 
-    bool decode(SkStream*, SkBitmap* bitmap, SkBitmap::Config pref, Mode);
-    bool decode(SkStream* stream, SkBitmap* bitmap, Mode mode) {
-        return this->decode(stream, bitmap, SkBitmap::kNo_Config, mode);
+    bool decode(SkStream*, SkBitmap* bitmap, SkBitmap::Config pref, Mode, bool reuseBitmap = false);
+    bool decode(SkStream* stream, SkBitmap* bitmap, Mode mode, bool reuseBitmap = false) {
+        return this->decode(stream, bitmap, SkBitmap::kNo_Config, mode, reuseBitmap);
     }
+
+    
+
+
+
+
+
+
+    bool buildTileIndex(SkStream*, int *width, int *height);
+
+    
+
+
+
+
+
+
+    bool decodeRegion(SkBitmap* bitmap, const SkIRect& rect, SkBitmap::Config pref);
 
     
 
@@ -223,6 +264,34 @@ public:
         return DecodeMemory(buffer, size, bitmap, SkBitmap::kNo_Config,
                             kDecodePixels_Mode, NULL);
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static bool DecodeMemoryToTarget(const void* buffer, size_t size, SkImage::Info* info,
+                                     const SkBitmapFactory::Target* target);
+
     
 
 
@@ -258,13 +327,41 @@ public:
 
     static void SetDeviceConfig(SkBitmap::Config);
 
-  
-    SkDEBUGCODE(static void UnitTest();)
-  
-
 protected:
     
     virtual bool onDecode(SkStream*, SkBitmap* bitmap, Mode) = 0;
+
+    
+    
+    virtual bool onBuildTileIndex(SkStream*, int *width, int *height) {
+        return false;
+    }
+
+    
+    
+    virtual bool onDecodeRegion(SkBitmap* bitmap, const SkIRect& rect) {
+        return false;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void cropBitmap(SkBitmap *dst, SkBitmap *src, int sampleSize,
+                    int dstX, int dstY, int width, int height,
+                    int srcX, int srcY);
+
+
 
     
 
@@ -316,6 +413,14 @@ private:
     bool                    fDitherImage;
     bool                    fUsePrefTable;
     mutable bool            fShouldCancelDecode;
+    bool                    fPreferQualityOverSpeed;
+
+    
+
+
+
+
+    static const char* sFormatName[];
 
     
     SkImageDecoder(const SkImageDecoder&);
@@ -366,5 +471,6 @@ DECLARE_DECODER_CREATOR(ICOImageDecoder);
 DECLARE_DECODER_CREATOR(JPEGImageDecoder);
 DECLARE_DECODER_CREATOR(PNGImageDecoder);
 DECLARE_DECODER_CREATOR(WBMPImageDecoder);
+DECLARE_DECODER_CREATOR(WEBPImageDecoder);
 
 #endif

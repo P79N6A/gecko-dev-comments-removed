@@ -74,6 +74,24 @@ struct SK_API SkIRect {
     
 
 
+
+
+
+
+    int centerX() const { return (fRight + fLeft) >> 1; }
+
+    
+
+
+
+
+
+
+    int centerY() const { return (fBottom + fTop) >> 1; }
+
+    
+
+
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
 
     friend bool operator==(const SkIRect& a, const SkIRect& b) {
@@ -140,6 +158,16 @@ struct SK_API SkIRect {
 
     void offset(const SkIPoint& delta) {
         this->offset(delta.fX, delta.fY);
+    }
+
+    
+
+
+    void offsetTo(int32_t newX, int32_t newY) {
+        fRight += newX - fLeft;
+        fBottom += newY - fTop;
+        fLeft = newX;
+        fTop = newY;
     }
 
     
@@ -357,6 +385,25 @@ struct SK_API SkRect {
     }
 
     
+    static SkRect SK_WARN_UNUSED_RESULT MakeFromIRect(const SkIRect& irect) {
+        SkRect r;
+        r.set(SkIntToScalar(irect.fLeft),
+              SkIntToScalar(irect.fTop),
+              SkIntToScalar(irect.fRight),
+              SkIntToScalar(irect.fBottom));
+        return r;
+    }
+
+    static SkRect SK_WARN_UNUSED_RESULT Make(const SkIRect& irect) {
+        SkRect r;
+        r.set(SkIntToScalar(irect.fLeft),
+              SkIntToScalar(irect.fTop),
+              SkIntToScalar(irect.fRight),
+              SkIntToScalar(irect.fBottom));
+        return r;
+    }
+
+    
 
 
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
@@ -401,11 +448,11 @@ struct SK_API SkRect {
     SkScalar    centerY() const { return SkScalarHalf(fTop + fBottom); }
 
     friend bool operator==(const SkRect& a, const SkRect& b) {
-        return 0 == memcmp(&a, &b, sizeof(a));
+        return SkScalarsEqual((SkScalar*)&a, (SkScalar*)&b, 4);
     }
 
     friend bool operator!=(const SkRect& a, const SkRect& b) {
-        return 0 != memcmp(&a, &b, sizeof(a));
+        return !SkScalarsEqual((SkScalar*)&a, (SkScalar*)&b, 4);
     }
 
     
@@ -448,6 +495,16 @@ struct SK_API SkRect {
 
 
 
+    void isetWH(int width, int height) {
+        fLeft = fTop = 0;
+        fRight = SkIntToScalar(width);
+        fBottom = SkIntToScalar(height);
+    }
+
+    
+
+
+
     void set(const SkPoint pts[], int count) {
         
         
@@ -481,6 +538,13 @@ struct SK_API SkRect {
         fBottom = y + height;
     }
 
+    void setWH(SkScalar width, SkScalar height) {
+        fLeft = 0;
+        fTop = 0;
+        fRight = width;
+        fBottom = height;
+    }
+
     
 
 
@@ -510,6 +574,16 @@ struct SK_API SkRect {
 
     void offset(const SkPoint& delta) {
         this->offset(delta.fX, delta.fY);
+    }
+
+    
+
+
+    void offsetTo(SkScalar newX, SkScalar newY) {
+        fRight += newX - fLeft;
+        fBottom += newY - fTop;
+        fLeft = newX;
+        fTop = newY;
     }
 
     
@@ -649,8 +723,8 @@ struct SK_API SkRect {
 
     void round(SkIRect* dst) const {
         SkASSERT(dst);
-        dst->set(SkScalarRound(fLeft), SkScalarRound(fTop),
-                 SkScalarRound(fRight), SkScalarRound(fBottom));
+        dst->set(SkScalarRoundToInt(fLeft), SkScalarRoundToInt(fTop),
+                 SkScalarRoundToInt(fRight), SkScalarRoundToInt(fBottom));
     }
 
     
@@ -659,8 +733,8 @@ struct SK_API SkRect {
 
     void roundOut(SkIRect* dst) const {
         SkASSERT(dst);
-        dst->set(SkScalarFloor(fLeft), SkScalarFloor(fTop),
-                 SkScalarCeil(fRight), SkScalarCeil(fBottom));
+        dst->set(SkScalarFloorToInt(fLeft), SkScalarFloorToInt(fTop),
+                 SkScalarCeilToInt(fRight), SkScalarCeilToInt(fBottom));
     }
 
     
@@ -681,8 +755,25 @@ struct SK_API SkRect {
 
 
 
+    void roundIn(SkIRect* dst) const {
+        SkASSERT(dst);
+        dst->set(SkScalarCeilToInt(fLeft), SkScalarCeilToInt(fTop),
+                 SkScalarFloorToInt(fRight), SkScalarFloorToInt(fBottom));
+    }
+
+
+    
+
+
+
+
+
     void sort();
+
+    
+
+
+    const SkScalar* asScalars() const { return &fLeft; }
 };
 
 #endif
-

@@ -10,7 +10,7 @@
 
 
 
-static void unref_data_proc(void* info, const void* addr, size_t size) {
+static void unref_proc(void* info, const void* addr, size_t size) {
     SkASSERT(info);
     ((SkRefCnt*)info)->unref();
 }
@@ -43,7 +43,7 @@ CGDataProviderRef SkCreateDataProviderFromStream(SkStream* stream) {
     if (addr) {
         
         return CGDataProviderCreateWithData(stream, addr, stream->getLength(),
-                                            unref_data_proc);
+                                            unref_proc);
     }
 
     CGDataProviderSequentialCallbacks rec;
@@ -57,3 +57,11 @@ CGDataProviderRef SkCreateDataProviderFromStream(SkStream* stream) {
 }
 
 
+
+#include "SkData.h"
+
+CGDataProviderRef SkCreateDataProviderFromData(SkData* data) {
+    data->ref();
+    return CGDataProviderCreateWithData(data, data->data(), data->size(),
+                                            unref_proc);
+}

@@ -10,11 +10,13 @@
 #define SkOrderedReadBuffer_DEFINED
 
 #include "SkRefCnt.h"
-#include "SkBitmap.h"
 #include "SkBitmapHeap.h"
 #include "SkFlattenableBuffers.h"
-#include "SkReader32.h"
 #include "SkPath.h"
+#include "SkPicture.h"
+#include "SkReader32.h"
+
+class SkBitmap;
 
 class SkOrderedReadBuffer : public SkFlattenableReadBuffer {
 public:
@@ -97,6 +99,15 @@ public:
         fFactoryCount = 0;
     }
 
+    
+
+
+
+
+    void setBitmapDecoder(SkPicture::InstallPixelRefProc bitmapDecoder) {
+        fBitmapDecoder = bitmapDecoder;
+    }
+
 private:
     SkReader32 fReader;
     void* fMemoryPtr;
@@ -108,6 +119,8 @@ private:
     SkTDArray<SkFlattenable::Factory>* fFactoryTDArray;
     SkFlattenable::Factory* fFactoryArray;
     int                     fFactoryCount;
+
+    SkPicture::InstallPixelRefProc fBitmapDecoder;
 
     typedef SkFlattenableReadBuffer INHERITED;
 };

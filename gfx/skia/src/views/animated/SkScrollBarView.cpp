@@ -122,12 +122,12 @@ void SkScrollBarView::adjust()
     int total = fTotalLength;
     int start = fStartPoint;
     int shown = fShownLength;
-    int hideBar = 0;
+
 
     if (total <= 0 || shown <= 0 || shown >= total)    
     {
         total = 1;        
-        hideBar = 1;    
+
     }
     else
     {
@@ -143,4 +143,3 @@ void SkScrollBarView::adjust()
 
     fAnim.doUserEvent(e);
 }
-

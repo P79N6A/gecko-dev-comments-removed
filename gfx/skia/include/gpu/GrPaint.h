@@ -10,11 +10,31 @@
 #ifndef GrPaint_DEFINED
 #define GrPaint_DEFINED
 
-#include "GrTexture.h"
 #include "GrColor.h"
-#include "GrSamplerState.h"
+#include "GrEffectStage.h"
 
 #include "SkXfermode.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -24,117 +44,130 @@
 class GrPaint {
 public:
     enum {
-        kMaxTextures = 2,
-        kMaxMasks    = 1,
+        kMaxColorStages     = 3,
+        kMaxCoverageStages  = 1,
     };
 
-    
-    GrBlendCoeff                fSrcBlendCoeff;
-    GrBlendCoeff                fDstBlendCoeff;
-    bool                        fAntiAlias;
-    bool                        fDither;
-    bool                        fColorMatrixEnabled;
+    GrPaint() { this->reset(); }
 
-    GrColor                     fColor;
-    uint8_t                     fCoverage;
-
-    GrColor                     fColorFilterColor;
-    SkXfermode::Mode            fColorFilterXfermode;
-    float                       fColorMatrix[20];
-
-    GrSamplerState* textureSampler(int i) {
-        GrAssert((unsigned)i < kMaxTextures);
-        return fTextureSamplers + i;
-    }
-
-    const GrSamplerState& getTextureSampler(int i) const {
-        GrAssert((unsigned)i < kMaxTextures);
-        return fTextureSamplers[i];
-    }
-
-    bool isTextureStageEnabled(int i) const {
-        GrAssert((unsigned)i < kMaxTextures);
-        return (NULL != fTextureSamplers[i].getCustomStage());
-    }
-
-
-    
-    
-    GrSamplerState* maskSampler(int i) {
-        GrAssert((unsigned)i < kMaxMasks);
-        return fMaskSamplers + i;
-    }
-
-    const GrSamplerState& getMaskSampler(int i) const {
-        GrAssert((unsigned)i < kMaxMasks);
-        return fMaskSamplers[i];
-    }
-
-    bool isMaskStageEnabled(int i) const {
-        GrAssert((unsigned)i < kMaxTextures);
-        return (NULL != fMaskSamplers[i].getCustomStage());
-    }
-
-    bool hasMask() const {
-        for (int i = 0; i < kMaxMasks; ++i) {
-            if (this->isMaskStageEnabled(i)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasTexture() const {
-        for (int i = 0; i < kMaxTextures; ++i) {
-            if (this->isTextureStageEnabled(i)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasTextureOrMask() const { return this->hasTexture() || this->hasMask(); }
-
-    
-
-
-
-
-    bool preConcatSamplerMatricesWithInverse(const GrMatrix& matrix) {
-        GrMatrix inv;
-        bool computed = false;
-        for (int i = 0; i < kMaxTextures; ++i) {
-            if (this->isTextureStageEnabled(i)) {
-                if (!computed && !matrix.invert(&inv)) {
-                    return false;
-                } else {
-                    computed = true;
-                }
-                fTextureSamplers[i].preConcatMatrix(inv);
-            }
-        }
-        for (int i = 0; i < kMaxMasks; ++i) {
-            if (this->isMaskStageEnabled(i)) {
-                if (!computed && !matrix.invert(&inv)) {
-                    return false;
-                } else {
-                    computed = true;
-                }
-                fMaskSamplers[i].preConcatMatrix(inv);
-            }
-        }
-        return true;
-    }
-
-    
-    GrPaint() {
-    }
-
-    GrPaint(const GrPaint& paint) {
-        *this = paint;
-    }
+    GrPaint(const GrPaint& paint) { *this = paint; }
 
     ~GrPaint() {}
+
+    
+
+
+
+    void setBlendFunc(GrBlendCoeff srcCoeff, GrBlendCoeff dstCoeff) {
+        fSrcBlendCoeff = srcCoeff;
+        fDstBlendCoeff = dstCoeff;
+    }
+    GrBlendCoeff getSrcBlendCoeff() const { return fSrcBlendCoeff; }
+    GrBlendCoeff getDstBlendCoeff() const { return fDstBlendCoeff; }
+
+    
+
+
+    void setColor(GrColor color) { fColor = color; }
+    GrColor getColor() const { return fColor; }
+
+    
+
+
+    void setCoverage(uint8_t coverage) { fCoverage = coverage; }
+    uint8_t getCoverage() const { return fCoverage; }
+
+    
+
+
+    void setAntiAlias(bool aa) { fAntiAlias = aa; }
+    bool isAntiAlias() const { return fAntiAlias; }
+
+    
+
+
+    void setDither(bool dither) { fDither = dither; }
+    bool isDither() const { return fDither; }
+
+    
+
+
+
+
+
+    void setXfermodeColorFilter(SkXfermode::Mode mode, GrColor color) {
+        fColorFilterColor = color;
+        fColorFilterXfermode = mode;
+    }
+    SkXfermode::Mode getColorFilterMode() const { return fColorFilterXfermode; }
+    GrColor getColorFilterColor() const { return fColorFilterColor; }
+
+    
+
+
+    void resetColorFilter() {
+        fColorFilterXfermode = SkXfermode::kDst_Mode;
+        fColorFilterColor = GrColorPackRGBA(0xff, 0xff, 0xff, 0xff);
+    }
+
+    
+
+
+
+
+    GrEffectStage* colorStage(int i) {
+        GrAssert((unsigned)i < kMaxColorStages);
+        return fColorStages + i;
+    }
+
+    const GrEffectStage& getColorStage(int i) const {
+        GrAssert((unsigned)i < kMaxColorStages);
+        return fColorStages[i];
+    }
+
+    bool isColorStageEnabled(int i) const {
+        GrAssert((unsigned)i < kMaxColorStages);
+        return (NULL != fColorStages[i].getEffect());
+    }
+
+    
+
+
+
+    GrEffectStage* coverageStage(int i) {
+        GrAssert((unsigned)i < kMaxCoverageStages);
+        return fCoverageStages + i;
+    }
+
+    const GrEffectStage& getCoverageStage(int i) const {
+        GrAssert((unsigned)i < kMaxCoverageStages);
+        return fCoverageStages[i];
+    }
+
+    bool isCoverageStageEnabled(int i) const {
+        GrAssert((unsigned)i < kMaxCoverageStages);
+        return (NULL != fCoverageStages[i].getEffect());
+    }
+
+    bool hasCoverageStage() const {
+        for (int i = 0; i < kMaxCoverageStages; ++i) {
+            if (this->isCoverageStageEnabled(i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasColorStage() const {
+        for (int i = 0; i < kMaxColorStages; ++i) {
+            if (this->isColorStageEnabled(i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasStage() const { return this->hasColorStage() || this->hasCoverageStage(); }
 
     GrPaint& operator=(const GrPaint& paint) {
         fSrcBlendCoeff = paint.fSrcBlendCoeff;
@@ -147,54 +180,101 @@ public:
 
         fColorFilterColor = paint.fColorFilterColor;
         fColorFilterXfermode = paint.fColorFilterXfermode;
-        fColorMatrixEnabled = paint.fColorMatrixEnabled;
-        if (fColorMatrixEnabled) {
-            memcpy(fColorMatrix, paint.fColorMatrix, sizeof(fColorMatrix));
-        }
 
-        for (int i = 0; i < kMaxTextures; ++i) {
-            if (paint.isTextureStageEnabled(i)) {
-                fTextureSamplers[i] = paint.fTextureSamplers[i];
+        for (int i = 0; i < kMaxColorStages; ++i) {
+            if (paint.isColorStageEnabled(i)) {
+                fColorStages[i] = paint.fColorStages[i];
             }
         }
-        for (int i = 0; i < kMaxMasks; ++i) {
-            if (paint.isMaskStageEnabled(i)) {
-                fMaskSamplers[i] = paint.fMaskSamplers[i];
+        for (int i = 0; i < kMaxCoverageStages; ++i) {
+            if (paint.isCoverageStageEnabled(i)) {
+                fCoverageStages[i] = paint.fCoverageStages[i];
             }
         }
         return *this;
     }
 
     
+
+
     void reset() {
         this->resetBlend();
         this->resetOptions();
         this->resetColor();
         this->resetCoverage();
-        this->resetTextures();
+        this->resetStages();
         this->resetColorFilter();
-        this->resetMasks();
-    }
-
-    void resetColorFilter() {
-        fColorFilterXfermode = SkXfermode::kDst_Mode;
-        fColorFilterColor = GrColorPackRGBA(0xff, 0xff, 0xff, 0xff);
-        fColorMatrixEnabled = false;
     }
 
     
     
     
     enum {
-        kFirstTextureStage = 0,
-        kFirstMaskStage = kMaxTextures,
-        kTotalStages = kMaxTextures + kMaxMasks,
+        kFirstColorStage = 0,
+        kFirstCoverageStage = kMaxColorStages,
+        kTotalStages = kFirstColorStage + kMaxColorStages + kMaxCoverageStages,
     };
 
 private:
+    
 
-    GrSamplerState              fTextureSamplers[kMaxTextures];
-    GrSamplerState              fMaskSamplers[kMaxMasks];
+
+
+
+    void localCoordChange(const SkMatrix& oldToNew) {
+        for (int i = 0; i < kMaxColorStages; ++i) {
+            if (this->isColorStageEnabled(i)) {
+                fColorStages[i].localCoordChange(oldToNew);
+            }
+        }
+        for (int i = 0; i < kMaxCoverageStages; ++i) {
+            if (this->isCoverageStageEnabled(i)) {
+                fCoverageStages[i].localCoordChange(oldToNew);
+            }
+        }
+    }
+
+    bool localCoordChangeInverse(const SkMatrix& newToOld) {
+        SkMatrix oldToNew;
+        bool computed = false;
+        for (int i = 0; i < kMaxColorStages; ++i) {
+            if (this->isColorStageEnabled(i)) {
+                if (!computed && !newToOld.invert(&oldToNew)) {
+                    return false;
+                } else {
+                    computed = true;
+                }
+                fColorStages[i].localCoordChange(oldToNew);
+            }
+        }
+        for (int i = 0; i < kMaxCoverageStages; ++i) {
+            if (this->isCoverageStageEnabled(i)) {
+                if (!computed && !newToOld.invert(&oldToNew)) {
+                    return false;
+                } else {
+                    computed = true;
+                }
+                fCoverageStages[i].localCoordChange(oldToNew);
+            }
+        }
+        return true;
+    }
+
+    friend class GrContext; 
+
+    GrEffectStage               fColorStages[kMaxColorStages];
+    GrEffectStage               fCoverageStages[kMaxCoverageStages];
+
+    GrBlendCoeff                fSrcBlendCoeff;
+    GrBlendCoeff                fDstBlendCoeff;
+    bool                        fAntiAlias;
+    bool                        fDither;
+
+    GrColor                     fColor;
+    uint8_t                     fCoverage;
+
+    GrColor                     fColorFilterColor;
+    SkXfermode::Mode            fColorFilterXfermode;
 
     void resetBlend() {
         fSrcBlendCoeff = kOne_GrBlendCoeff;
@@ -214,15 +294,12 @@ private:
         fCoverage = 0xff;
     }
 
-    void resetTextures() {
-        for (int i = 0; i < kMaxTextures; ++i) {
-            fTextureSamplers[i].reset();
+    void resetStages() {
+        for (int i = 0; i < kMaxColorStages; ++i) {
+            fColorStages[i].reset();
         }
-    }
-
-    void resetMasks() {
-        for (int i = 0; i < kMaxMasks; ++i) {
-            fMaskSamplers[i].reset();
+        for (int i = 0; i < kMaxCoverageStages; ++i) {
+            fCoverageStages[i].reset();
         }
     }
 };

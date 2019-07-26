@@ -31,7 +31,7 @@ class SkRasterClip;
 
 
 
-class SkMaskFilter : public SkFlattenable {
+class SK_API SkMaskFilter : public SkFlattenable {
 public:
     SK_DECLARE_INST_COUNT(SkMaskFilter)
 
@@ -40,7 +40,7 @@ public:
     
 
 
-    virtual SkMask::Format getFormat() = 0;
+    virtual SkMask::Format getFormat() const = 0;
 
     
 
@@ -56,7 +56,7 @@ public:
 
 
     virtual bool filterMask(SkMask* dst, const SkMask& src, const SkMatrix&,
-                            SkIPoint* margin);
+                            SkIPoint* margin) const;
 
     enum BlurType {
         kNone_BlurType,    
@@ -91,11 +91,45 @@ public:
 
 
 
-    virtual void computeFastBounds(const SkRect& src, SkRect* dest);
+    virtual void computeFastBounds(const SkRect& src, SkRect* dest) const;
+
+    SkDEVCODE(virtual void toString(SkString* str) const = 0;)
 
 protected:
     
     SkMaskFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
+
+    enum FilterReturn {
+        kFalse_FilterReturn,
+        kTrue_FilterReturn,
+        kUnimplemented_FilterReturn
+    };
+
+    struct NinePatch {
+        SkMask      fMask;      
+        SkIRect     fOuterRect; 
+        SkIPoint    fCenter;    
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual FilterReturn filterRectsToNine(const SkRect[], int count,
+                                           const SkMatrix&,
+                                           const SkIRect& clipBounds,
+                                           NinePatch*) const;
 
 private:
     friend class SkDraw;
@@ -107,10 +141,9 @@ private:
 
     bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
                     const SkRasterClip&, SkBounder*, SkBlitter* blitter,
-                    SkPaint::Style style);
+                    SkPaint::Style style) const;
 
     typedef SkFlattenable INHERITED;
 };
 
 #endif
-

@@ -18,8 +18,7 @@
 
 class SkPath;
 class GrContext;
-class GrCustomStage;
-class GrSamplerState;
+class GrEffectRef;
 
 
 
@@ -41,20 +40,23 @@ public:
     
 
 
+    bool hasLocalMatrix() const { return !fLocalMatrix.isIdentity(); }
+
+    
 
 
-    bool getLocalMatrix(SkMatrix* localM) const;
+    const SkMatrix& getLocalMatrix() const { return fLocalMatrix; }
 
     
 
 
 
-    void setLocalMatrix(const SkMatrix& localM);
+    void setLocalMatrix(const SkMatrix& localM) { fLocalMatrix = localM; }
 
     
 
 
-    void resetLocalMatrix();
+    void resetLocalMatrix() { fLocalMatrix.reset(); }
 
     enum TileMode {
         
@@ -138,6 +140,11 @@ public:
 
 
 
+
+
+
+
+
     virtual bool setContext(const SkBitmap& device, const SkPaint& paint,
                             const SkMatrix& matrix);
 
@@ -146,7 +153,22 @@ public:
 
 
 
+
+
+
+    virtual void endContext();
+
+    SkDEBUGCODE(bool setContextHasBeenCalled() const { return SkToBool(fInSetContext); })
+
+    
+
+
+
+
     virtual void shadeSpan(int x, int y, SkPMColor[], int count) = 0;
+
+    typedef void (*ShadeProc)(void* ctx, int x, int y, SkPMColor[], int count);
+    virtual ShadeProc asAShadeProc(void** ctx);
 
     
 
@@ -175,14 +197,6 @@ public:
     static bool CanCallShadeSpan16(uint32_t flags) {
         return (flags & kHasSpan16_Flag) != 0;
     }
-
-    
-
-
-
-
-    virtual void beginSession();
-    virtual void endSession();
 
     
 
@@ -307,10 +321,7 @@ public:
 
 
 
-
-
-    virtual GrCustomStage* asNewCustomStage(GrContext* context,
-                                            GrSamplerState* sampler) const;
+    virtual GrEffectRef* asNewEffect(GrContext* context, const SkPaint& paint) const;
 
     
     
@@ -329,6 +340,8 @@ public:
     static SkShader* CreateBitmapShader(const SkBitmap& src,
                                         TileMode tmx, TileMode tmy);
 
+    SkDEVCODE(virtual void toString(SkString* str) const;)
+
 protected:
     enum MatrixClass {
         kLinear_MatrixClass,            
@@ -346,12 +359,12 @@ protected:
     SkShader(SkFlattenableReadBuffer& );
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 private:
-    SkMatrix*           fLocalMatrix;
+    SkMatrix            fLocalMatrix;
     SkMatrix            fTotalInverse;
     uint8_t             fPaintAlpha;
     uint8_t             fDeviceConfig;
     uint8_t             fTotalInverseClass;
-    SkDEBUGCODE(SkBool8 fInSession;)
+    SkDEBUGCODE(SkBool8 fInSetContext;)
 
     static SkShader* CreateBitmapShader(const SkBitmap& src,
                                         TileMode, TileMode,
@@ -361,4 +374,3 @@ private:
 };
 
 #endif
-

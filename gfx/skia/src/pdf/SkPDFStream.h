@@ -62,8 +62,8 @@ private:
     State fState;
 
     
-    SkRefPtr<SkStream> fData;
-    SkRefPtr<SkPDFStream> fSubstitute;
+    SkAutoTUnref<SkStream> fData;
+    SkAutoTUnref<SkPDFStream> fSubstitute;
 
     typedef SkPDFDict INHERITED;
 

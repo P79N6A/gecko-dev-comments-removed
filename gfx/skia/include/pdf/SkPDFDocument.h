@@ -21,6 +21,7 @@ class SkPDFDict;
 class SkPDFPage;
 class SkPDFObject;
 class SkWStream;
+template <typename T> class SK_API SkTSet;
 
 
 
@@ -30,6 +31,9 @@ class SkPDFDocument {
 public:
     enum Flags {
         kNoCompression_Flags = 0x01,  
+        kFavorSpeedOverSize_Flags = 0x01,  
+                                           
+                                           
         kNoLinks_Flags       = 0x02,  
 
         kDraftMode_Flags     = 0x01,
@@ -75,12 +79,13 @@ private:
 
     SkTDArray<SkPDFPage*> fPages;
     SkTDArray<SkPDFDict*> fPageTree;
-    SkRefPtr<SkPDFDict> fDocCatalog;
-    SkTDArray<SkPDFObject*> fPageResources;
+    SkPDFDict* fDocCatalog;
+    SkTSet<SkPDFObject*>* fFirstPageResources;
+    SkTSet<SkPDFObject*>* fOtherPageResources;
     SkTDArray<SkPDFObject*> fSubstitutes;
     int fSecondPageFirstResourceIndex;
 
-    SkRefPtr<SkPDFDict> fTrailerDict;
+    SkPDFDict* fTrailerDict;
 
     
 

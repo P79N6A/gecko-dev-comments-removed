@@ -31,19 +31,22 @@ public:
         }
     }
 
-    bool canReuse(const SkClipStack& clip, int width, int height) {
+    bool canReuse(int32_t clipGenID, const SkIRect& bounds) {
 
-        if (fStack.empty()) {
-            GrAssert(false);
+        SkASSERT(clipGenID != SkClipStack::kWideOpenGenID);
+        SkASSERT(clipGenID != SkClipStack::kEmptyGenID);
+
+        if (SkClipStack::kInvalidGenID == clipGenID) {
             return false;
         }
 
         GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
 
+        
+        
         if (back->fLastMask.texture() &&
-            back->fLastMask.texture()->width() >= width &&
-            back->fLastMask.texture()->height() >= height &&
-            clip == back->fLastClip) {
+            back->fLastBound == bounds &&
+            back->fLastClipGenID == clipGenID) {
             return true;
         }
 
@@ -80,17 +83,13 @@ public:
         }
     }
 
-    void getLastClip(SkClipStack* clip) const {
+    int32_t getLastClipGenID() const {
 
         if (fStack.empty()) {
-            GrAssert(false);
-            clip->reset();
-            return;
+            return SkClipStack::kInvalidGenID;
         }
 
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        *clip = back->fLastClip;
+        return ((GrClipStackFrame*) fStack.back())->fLastClipGenID;
     }
 
     GrTexture* getLastMask() {
@@ -117,7 +116,7 @@ public:
         return back->fLastMask.texture();
     }
 
-    void acquireMask(const SkClipStack& clip,
+    void acquireMask(int32_t clipGenID,
                      const GrTextureDesc& desc,
                      const GrIRect& bound) {
 
@@ -128,7 +127,7 @@ public:
 
         GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
 
-        back->acquireMask(fContext, clip, desc, bound);
+        back->acquireMask(fContext, clipGenID, desc, bound);
     }
 
     int getLastMaskWidth() const {
@@ -194,20 +193,19 @@ public:
         }
     }
 
-protected:
 private:
     struct GrClipStackFrame {
 
         GrClipStackFrame() {
-            reset();
+            this->reset();
         }
 
         void acquireMask(GrContext* context,
-                         const SkClipStack& clip,
+                         int32_t clipGenID,
                          const GrTextureDesc& desc,
                          const GrIRect& bound) {
 
-            fLastClip = clip;
+            fLastClipGenID = clipGenID;
 
             fLastMask.set(context, desc);
 
@@ -215,7 +213,7 @@ private:
         }
 
         void reset () {
-            fLastClip.reset();
+            fLastClipGenID = SkClipStack::kInvalidGenID;
 
             GrTextureDesc desc;
 
@@ -223,11 +221,10 @@ private:
             fLastBound.setEmpty();
         }
 
-        SkClipStack             fLastClip;
+        int32_t                 fLastClipGenID;
         
         
         GrAutoScratchTexture    fLastMask;
-        
         
         
         GrIRect                 fLastBound;

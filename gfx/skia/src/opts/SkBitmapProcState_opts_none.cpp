@@ -21,5 +21,3 @@
 
 
 void SkBitmapProcState::platformProcs() {}
-
-

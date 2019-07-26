@@ -112,16 +112,39 @@ inline void operator delete(void* p) {
     #define SkAssertResult(cond)        cond
 #endif
 
-namespace {
+#ifdef SK_DEVELOPER
+    #define SkDEVCODE(code)             code
+    
+    
+    #define SK_DEVELOPER_TO_STRING()    virtual void toString(SkString* str) const SK_OVERRIDE;
+#else
+    #define SkDEVCODE(code)
+    #define SK_DEVELOPER_TO_STRING()
+#endif
 
 template <bool>
 struct SkCompileAssert {
 };
 
-}  
-
 #define SK_COMPILE_ASSERT(expr, msg) \
     typedef SkCompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
+
+
+
+
+
+
+
+#define SK_MACRO_CONCAT(X, Y)           SK_MACRO_CONCAT_IMPL_PRIV(X, Y)
+#define SK_MACRO_CONCAT_IMPL_PRIV(X, Y)  X ## Y
+
+
+
+
+
+
+
+#define SK_MACRO_APPEND_LINE(name)  SK_MACRO_CONCAT(name, __LINE__)
 
 
 
@@ -185,10 +208,10 @@ typedef uint8_t SkBool8;
 #define SK_MaxU16   0xFFFF
 #define SK_MinU16   0
 #define SK_MaxS32   0x7FFFFFFF
-#define SK_MinS32   0x80000001
+#define SK_MinS32   -SK_MaxS32
 #define SK_MaxU32   0xFFFFFFFF
 #define SK_MinU32   0
-#define SK_NaN32    0x80000000
+#define SK_NaN32    (1 << 31)
 
 
 
@@ -253,6 +276,8 @@ static inline int Sk32ToBool(uint32_t n) {
     return (n | (0-n)) >> 31;
 }
 
+
+
 template <typename T> inline void SkTSwap(T& a, T& b) {
     T c(a);
     a = b;
@@ -268,6 +293,13 @@ static inline int32_t SkAbs32(int32_t value) {
     int32_t mask = value >> 31;
     return (value ^ mask) - mask;
 #endif
+}
+
+template <typename T> inline T SkTAbs(T value) {
+    if (value < 0) {
+        value = -value;
+    }
+    return value;
 }
 
 static inline int32_t SkMax32(int32_t a, int32_t b) {

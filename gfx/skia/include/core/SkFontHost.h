@@ -56,6 +56,49 @@ public:
 
 
 
+
+
+    enum LCDOrientation {
+        kHorizontal_LCDOrientation = 0,    
+        kVertical_LCDOrientation   = 1
+    };
+
+    
+    static void SetSubpixelOrientation(LCDOrientation orientation);
+    
+    static LCDOrientation GetSubpixelOrientation();
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    enum LCDOrder {
+        kRGB_LCDOrder = 0,    
+        kBGR_LCDOrder = 1,
+        kNONE_LCDOrder = 2
+    };
+
+    
+    static void SetSubpixelOrder(LCDOrder order);
+    
+    static LCDOrder GetSubpixelOrder();
+
+private:
+    
+
+
+
+
+
+
     static SkTypeface* CreateTypeface(const SkTypeface* familyFace,
                                       const char familyName[],
                                       SkTypeface::Style style);
@@ -81,206 +124,8 @@ public:
 
     
 
-    
-
-
-
-    static SkStream* OpenStream(SkFontID uniqueID);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static size_t GetFileName(SkFontID fontID, char path[], size_t length,
-                              int32_t* index);
-
-    
-
-    
-
-
-
-
-
-    static void Serialize(const SkTypeface*, SkWStream*);
-
-    
-
-
-
-
-    static SkTypeface* Deserialize(SkStream*);
-
-    
-
-    
-
-    static SkScalerContext* CreateScalerContext(const SkDescriptor* desc);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static SkFontID NextLogicalFont(SkFontID currFontID, SkFontID origFontID);
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-    static void FilterRec(SkScalerContextRec* rec);
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-    static SkAdvancedTypefaceMetrics* GetAdvancedTypefaceMetrics(
-            SkFontID fontID,
-            SkAdvancedTypefaceMetrics::PerGlyphInfo perGlyphInfo,
-            const uint32_t* glyphIDs,
-            uint32_t glyphIDsCount);
-
-    
-
-    static int CountTables(SkFontID);
-
-    
-
-
-
-    static int GetTableTags(SkFontID, SkFontTableTag[]);
-
-    
-
-    static size_t GetTableSize(SkFontID, SkFontTableTag);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static size_t GetTableData(SkFontID fontID, SkFontTableTag tag,
-                               size_t offset, size_t length, void* data);
-
-    
-
-    
-
-
-
-
-
-
-    enum LCDOrientation {
-        kHorizontal_LCDOrientation = 0,    
-        kVertical_LCDOrientation   = 1
-    };
-
-    static void SetSubpixelOrientation(LCDOrientation orientation);
-    static LCDOrientation GetSubpixelOrientation();
-
-    
-
-
-
-
-
-
-
-
-
-    enum LCDOrder {
-        kRGB_LCDOrder = 0,    
-        kBGR_LCDOrder = 1,
-        kNONE_LCDOrder = 2
-    };
-
-    static void SetSubpixelOrder(LCDOrder order);
-    static LCDOrder GetSubpixelOrder();
-
-#ifdef SK_BUILD_FOR_ANDROID
-    
-
-    
-
-
-
-
-
-    static uint32_t GetUnitsPerEm(SkFontID fontID);
-#endif
-
-    
-
-
-
-
-
-    static void EnsureTypefaceAccessible(const SkTypeface& typeface);
+    friend class SkScalerContext;
+    friend class SkTypeface;
 };
 
 #endif

@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkEmbossMaskFilter_DEFINED
 #define SkEmbossMaskFilter_DEFINED
 
@@ -16,7 +14,7 @@
 
 
 
-class SkEmbossMaskFilter : public SkMaskFilter {
+class SK_API SkEmbossMaskFilter : public SkMaskFilter {
 public:
     struct Light {
         SkScalar    fDirection[3];  
@@ -29,11 +27,12 @@ public:
 
     
     
-    virtual SkMask::Format getFormat();
+    virtual SkMask::Format getFormat() const SK_OVERRIDE;
     
     virtual bool filterMask(SkMask* dst, const SkMask& src, const SkMatrix&,
-                            SkIPoint* margin);
+                            SkIPoint* margin) const SK_OVERRIDE;
 
+    SkDEVCODE(virtual void toString(SkString* str) const SK_OVERRIDE;)
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkEmbossMaskFilter)
 
 protected:
@@ -48,4 +47,3 @@ private:
 };
 
 #endif
-

@@ -32,6 +32,16 @@ public:
 
 
 
+    bool isCPUBacked() const { return fCPUBacked; }
+
+    
+
+
+
+
+
+
+
 
 
 
@@ -76,14 +86,16 @@ public:
     virtual size_t sizeInBytes() const { return fSizeInBytes; }
 
 protected:
-    GrGeometryBuffer(GrGpu* gpu, size_t sizeInBytes, bool dynamic)
-        : INHERITED(gpu)
+    GrGeometryBuffer(GrGpu* gpu, bool isWrapped, size_t sizeInBytes, bool dynamic, bool cpuBacked)
+        : INHERITED(gpu, isWrapped)
         , fSizeInBytes(sizeInBytes)
-        , fDynamic(dynamic) {}
+        , fDynamic(dynamic)
+        , fCPUBacked(cpuBacked) {}
 
 private:
     size_t   fSizeInBytes;
     bool     fDynamic;
+    bool     fCPUBacked;
 
     typedef GrResource INHERITED;
 };

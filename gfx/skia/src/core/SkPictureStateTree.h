@@ -36,7 +36,7 @@ public:
         SkMatrix* fMatrix;
         Node* fNode;
         uint32_t fOffset;
-        bool operator<(const Draw& other) { return fOffset < other.fOffset; }
+        bool operator<(const Draw& other) const { return fOffset < other.fOffset; }
     };
 
     class Iterator;
@@ -65,13 +65,20 @@ public:
     
 
 
+
+
+    void saveCollapsed();
+
+    
+
+
     class Iterator {
     public:
         
         uint32_t draw();
         static const uint32_t kDrawComplete = SK_MaxU32;
         Iterator() : fPlaybackMatrix(), fValid(false) { }
-        bool isValid() { return fValid; }
+        bool isValid() const { return fValid; }
     private:
         Iterator(const SkTDArray<void*>& draws, SkCanvas* canvas, Node* root);
         
@@ -109,6 +116,10 @@ private:
 
     SkChunkAlloc fAlloc;
     Node* fRoot;
+    
+    
+    
+    Node* fLastRestoredNode;
 
     
     Draw fCurrentState;
@@ -133,4 +144,3 @@ private:
 };
 
 #endif
-

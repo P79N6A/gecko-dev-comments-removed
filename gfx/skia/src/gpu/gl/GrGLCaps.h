@@ -9,9 +9,10 @@
 #ifndef GrGLCaps_DEFINED
 #define GrGLCaps_DEFINED
 
+#include "GrDrawTargetCaps.h"
+#include "GrGLStencilBuffer.h"
 #include "SkTArray.h"
 #include "SkTDArray.h"
-#include "GrGLStencilBuffer.h"
 
 class GrGLContextInfo;
 
@@ -20,8 +21,10 @@ class GrGLContextInfo;
 
 
 
-class GrGLCaps {
+class GrGLCaps : public GrDrawTargetCaps {
 public:
+    SK_DECLARE_INST_COUNT(GrGLCaps)
+
     typedef GrGLStencilBuffer::Format StencilFormat;
 
     
@@ -62,6 +65,10 @@ public:
 
 
         kAppleES_MSFBOType,
+        
+
+
+        kImaginationES_MSFBOType,
     };
 
     enum CoverageAAType {
@@ -89,13 +96,13 @@ public:
     
 
 
-    void reset();
+    virtual void reset() SK_OVERRIDE;
 
     
 
 
 
-    void init(const GrGLContextInfo& ctxInfo);
+    void init(const GrGLContextInfo& ctxInfo, const GrGLInterface* interface);
 
     
 
@@ -140,11 +147,6 @@ public:
     
 
 
-    int maxSampleCount() const { return fMaxSampleCount; }
-
-    
-
-
     CoverageAAType coverageAAType() const { return fCoverageAAType; }
 
     
@@ -159,7 +161,7 @@ public:
     
 
 
-    void print() const;
+    virtual void print() const SK_OVERRIDE;
 
     
 
@@ -217,9 +219,22 @@ public:
     bool imagingSupport() const { return fImagingSupport; }
 
     
+    bool fragCoordConventionsSupport() const { return fFragCoordsConventionSupport; }
+
+    
+    bool vertexArrayObjectSupport() const { return fVertexArrayObjectSupport; }
+
+    
+    bool useNonVBOVertexAndIndexDynamicData() const {
+        return fUseNonVBOVertexAndIndexDynamicData;
+    }
+
+    
     bool readPixelsSupported(const GrGLInterface* intf,
                              GrGLenum format,
                              GrGLenum type) const;
+
+    bool isCoreProfile() const { return fIsCoreProfile; }
 
 private:
     
@@ -237,7 +252,7 @@ private:
             }
         }
 
-        static const int kNumUints = (kGrPixelConfigCount  + 31) / 32;
+        static const int kNumUints = (kGrPixelConfigCnt  + 31) / 32;
         uint32_t fVerifiedColorConfigs[kNumUints];
 
         void markVerified(GrPixelConfig config) {
@@ -259,7 +274,7 @@ private:
         }
     };
 
-    void initFSAASupport(const GrGLContextInfo& ctxInfo);
+    void initFSAASupport(const GrGLContextInfo& ctxInfo, const GrGLInterface* gli);
     void initStencilFormats(const GrGLContextInfo& ctxInfo);
 
     
@@ -276,7 +291,6 @@ private:
     int fMaxVertexAttributes;
 
     MSFBOType fMSFBOType;
-    int fMaxSampleCount;
     CoverageAAType fCoverageAAType;
     SkTDArray<MSAACoverageMode> fMSAACoverageModes;
 
@@ -293,6 +307,12 @@ private:
     bool fTextureRedSupport : 1;
     bool fImagingSupport  : 1;
     bool fTwoFormatLimit : 1;
+    bool fFragCoordsConventionSupport : 1;
+    bool fVertexArrayObjectSupport : 1;
+    bool fUseNonVBOVertexAndIndexDynamicData : 1;
+    bool fIsCoreProfile : 1;
+
+    typedef GrDrawTargetCaps INHERITED;
 };
 
 #endif

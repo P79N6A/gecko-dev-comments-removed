@@ -14,6 +14,7 @@ class SkData;
 class SkDataSet;
 class SkStream;
 class SkWStream;
+struct SkPoint;
 
 
 
@@ -64,6 +65,18 @@ public:
 
 
     static const char* URL_Key();
+
+    
+
+
+
+    static const char* Define_Named_Dest_Key();
+
+    
+
+
+
+    static const char* Link_Named_Dest_Key();
 };
 
 
@@ -85,5 +98,31 @@ class SkCanvas;
 
 
 SK_API void SkAnnotateRectWithURL(SkCanvas*, const SkRect&, SkData*);
+
+
+
+
+
+
+
+
+
+
+
+SK_API void SkAnnotateNamedDestination(SkCanvas*, const SkPoint&, SkData*);
+
+
+
+
+
+
+
+
+
+
+
+
+SK_API void SkAnnotateLinkToDestination(SkCanvas*, const SkRect&, SkData*);
+
 
 #endif

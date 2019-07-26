@@ -30,6 +30,14 @@
     #define SK_SCALAR_IS_FLOAT
 #endif
 
+#if defined(SK_MSCALAR_IS_DOUBLE) && defined(SK_MSCALAR_IS_FLOAT)
+    #error "cannot define both SK_MSCALAR_IS_DOUBLE and SK_MSCALAR_IS_FLOAT"
+#elif !defined(SK_MSCALAR_IS_DOUBLE) && !defined(SK_MSCALAR_IS_FLOAT)
+    
+    
+    #define SK_MSCALAR_IS_DOUBLE
+#endif
+
 #if defined(SK_CPU_LENDIAN) && defined(SK_CPU_BENDIAN)
     #error "cannot define both SK_CPU_LENDIAN and SK_CPU_BENDIAN"
 #elif !defined(SK_CPU_LENDIAN) && !defined(SK_CPU_BENDIAN)
@@ -68,8 +76,8 @@
 
 #if !defined(SkNO_RETURN_HINT)
     #if SK_HAS_COMPILER_FEATURE(attribute_analyzer_noreturn)
-        inline void SkNO_RETURN_HINT() __attribute__((analyzer_noreturn));
-        inline void SkNO_RETURN_HINT() {}
+        static inline void SkNO_RETURN_HINT() __attribute__((analyzer_noreturn));
+        static inline void SkNO_RETURN_HINT() {}
     #else
         #define SkNO_RETURN_HINT() do {} while (false)
     #endif
@@ -84,14 +92,14 @@
 
 
 #ifndef SkNEW
-    #define SkNEW(type_name)                new type_name
-    #define SkNEW_ARGS(type_name, args)     new type_name args
-    #define SkNEW_ARRAY(type_name, count)   new type_name[count]
-    #define SkNEW_PLACEMENT(buf, type_name) new (buf) type_name
+    #define SkNEW(type_name)                (new type_name)
+    #define SkNEW_ARGS(type_name, args)     (new type_name args)
+    #define SkNEW_ARRAY(type_name, count)   (new type_name[(count)])
+    #define SkNEW_PLACEMENT(buf, type_name) (new (buf) type_name)
     #define SkNEW_PLACEMENT_ARGS(buf, type_name, args) \
-                                            new (buf) type_name args
-    #define SkDELETE(obj)                   delete obj
-    #define SkDELETE_ARRAY(array)           delete[] array
+                                            (new (buf) type_name args)
+    #define SkDELETE(obj)                   (delete (obj))
+    #define SkDELETE_ARRAY(array)           (delete[] (array))
 #endif
 
 #ifndef SK_CRASH
@@ -100,6 +108,17 @@
 #else
     #define SK_CRASH() do { SkNO_RETURN_HINT(); } while (true)
 #endif
+#endif
+
+
+
+
+#ifndef SK_ENABLE_INST_COUNT
+    #ifdef SK_DEBUG
+        #define SK_ENABLE_INST_COUNT 1
+    #else
+        #define SK_ENABLE_INST_COUNT 0
+    #endif
 #endif
 
 
@@ -138,10 +157,6 @@
         #define SK_B32_SHIFT 0
     #endif
 
-#elif defined(SK_BUILD_FOR_MAC)
-    #ifndef SK_DEBUGBREAK
-        #define SK_DEBUGBREAK(cond)     do { if (!(cond)) SK_CRASH(); } while (false)
-    #endif
 #else
     #ifdef SK_DEBUG
         #include <stdio.h>
@@ -170,6 +185,28 @@
         #define SK_B32_SHIFT    16
         #define SK_A32_SHIFT    24
     #endif
+#endif
+
+
+
+
+
+
+
+
+
+#ifdef SK_CPU_BENDIAN
+    #define SK_PMCOLOR_BYTE_ORDER(C0, C1, C2, C3)     \
+        (SK_ ## C3 ## 32_SHIFT == 0  &&             \
+         SK_ ## C2 ## 32_SHIFT == 8  &&             \
+         SK_ ## C1 ## 32_SHIFT == 16 &&             \
+         SK_ ## C0 ## 32_SHIFT == 24)
+#else
+    #define SK_PMCOLOR_BYTE_ORDER(C0, C1, C2, C3)     \
+        (SK_ ## C0 ## 32_SHIFT == 0  &&             \
+         SK_ ## C1 ## 32_SHIFT == 8  &&             \
+         SK_ ## C2 ## 32_SHIFT == 16 &&             \
+         SK_ ## C3 ## 32_SHIFT == 24)
 #endif
 
 
@@ -283,7 +320,7 @@
 #ifndef SK_OVERRIDE
     #if defined(_MSC_VER)
         #define SK_OVERRIDE override
-    #elif defined(__clang__)
+    #elif defined(__clang__) && !defined(SK_BUILD_FOR_IOS)
         #if __has_feature(cxx_override_control)
             
             
@@ -323,49 +360,4 @@
 
 #ifndef SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
 #define SK_ALLOW_STATIC_GLOBAL_INITIALIZERS 1
-#endif
-
-
-
-
-#if defined(__GNUC__) && defined(__arm__)
-
-#  define SK_ARM_ARCH 3
-
-#  if defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__) \
-   || defined(_ARM_ARCH_4)
-#    undef SK_ARM_ARCH
-#    define SK_ARM_ARCH 4
-#  endif
-
-#  if defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_5T__) \
-   || defined(__ARM_ARCH_5E__) || defined(__ARM_ARCH_5TE__) \
-   || defined(__ARM_ARCH_5TEJ__) || defined(_ARM_ARCH_5)
-#    undef SK_ARM_ARCH
-#    define SK_ARM_ARCH 5
-#  endif
-
-#  if defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
-   || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) \
-   || defined(__ARM_ARCH_6ZK__) || defined(__ARM_ARCH_6T2__) \
-   || defined(__ARM_ARCH_6M__) || defined(_ARM_ARCH_6)
-#    undef SK_ARM_ARCH
-#    define SK_ARM_ARCH 6
-#  endif
-
-#  if defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
-   || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
-   || defined(__ARM_ARCH_7EM__) || defined(_ARM_ARCH_7)
-#    undef SK_ARM_ARCH
-#    define SK_ARM_ARCH 7
-#  endif
-
-#  undef SK_ARM_HAS_EDSP
-#  if defined(__thumb2__) && (SK_ARM_ARCH >= 6) \
-   || !defined(__thumb__) \
-   && ((SK_ARM_ARCH > 5) || defined(__ARM_ARCH_5E__) \
-       || defined(__ARM_ARCH_5TE__) || defined(__ARM_ARCH_5TEJ__))
-#    define SK_ARM_HAS_EDSP 1
-#  endif
-
 #endif

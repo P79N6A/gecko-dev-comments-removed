@@ -8,34 +8,66 @@
 #ifndef GrSingleTextureEffect_DEFINED
 #define GrSingleTextureEffect_DEFINED
 
-#include "GrCustomStage.h"
+#include "GrEffect.h"
+#include "SkMatrix.h"
 
-class GrGLSingleTextureEffect;
+class GrTexture;
 
 
 
 
-class GrSingleTextureEffect : public GrCustomStage {
 
+class GrSingleTextureEffect : public GrEffect {
 public:
-    GrSingleTextureEffect(GrTexture* texture);
     virtual ~GrSingleTextureEffect();
 
-    virtual int numTextures() const SK_OVERRIDE;
-    virtual const GrTextureAccess& textureAccess(int index) const SK_OVERRIDE;
+    const SkMatrix& getMatrix() const { return fMatrix; }
 
-    static const char* Name() { return "Single Texture"; }
+    
+    CoordsType coordsType() const { return fCoordsType; }
 
-    typedef GrGLSingleTextureEffect GLProgramStage;
+protected:
+    
+    GrSingleTextureEffect(GrTexture*, const SkMatrix&, CoordsType = kLocal_CoordsType);
+    
+    GrSingleTextureEffect(GrTexture*, const SkMatrix&, bool bilerp, CoordsType = kLocal_CoordsType);
+    GrSingleTextureEffect(GrTexture*,
+                          const SkMatrix&,
+                          const GrTextureParams&,
+                          CoordsType = kLocal_CoordsType);
 
-    virtual const GrProgramStageFactory& getFactory() const SK_OVERRIDE;
+    
+
+
+    bool hasSameTextureParamsMatrixAndCoordsType(const GrSingleTextureEffect& other) const {
+        const GrTextureAccess& otherAccess = other.fTextureAccess;
+        
+        return fTextureAccess.getTexture() == otherAccess.getTexture() &&
+               fTextureAccess.getParams() == otherAccess.getParams() &&
+               this->getMatrix().cheapEqualTo(other.getMatrix()) &&
+               fCoordsType == other.fCoordsType;
+    }
+
+    
+
+
+
+
+    void updateConstantColorComponentsForModulation(GrColor* color, uint32_t* validFlags) const {
+        if ((*validFlags & kA_GrColorComponentFlag) && 0xFF == GrColorUnpackA(*color) &&
+            GrPixelConfigIsOpaque(this->texture(0)->config())) {
+            *validFlags = kA_GrColorComponentFlag;
+        } else {
+            *validFlags = 0;
+        }
+    }
 
 private:
-    GR_DECLARE_CUSTOM_STAGE_TEST;
-
     GrTextureAccess fTextureAccess;
+    SkMatrix        fMatrix;
+    CoordsType      fCoordsType;
 
-    typedef GrCustomStage INHERITED;
+    typedef GrEffect INHERITED;
 };
 
 #endif

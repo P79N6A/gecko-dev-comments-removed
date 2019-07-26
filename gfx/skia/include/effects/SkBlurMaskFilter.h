@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkBlurMaskFilter_DEFINED
 #define SkBlurMaskFilter_DEFINED
 
@@ -61,4 +59,3 @@ private:
 };
 
 #endif
-

@@ -9,7 +9,7 @@
 #define GrSWMaskHelper_DEFINED
 
 #include "GrColor.h"
-#include "GrMatrix.h"
+#include "SkMatrix.h"
 #include "GrNoncopyable.h"
 #include "SkBitmap.h"
 #include "SkDraw.h"
@@ -21,6 +21,7 @@ class GrAutoScratchTexture;
 class GrContext;
 class GrTexture;
 class SkPath;
+class SkStrokeRec;
 class GrDrawTarget;
 
 
@@ -47,15 +48,15 @@ public:
     
     
     
-    bool init(const GrIRect& resultBounds, const GrMatrix* matrix);
+    bool init(const GrIRect& resultBounds, const SkMatrix* matrix);
 
     
     void draw(const GrRect& rect, SkRegion::Op op,
               bool antiAlias, uint8_t alpha);
 
     
-    void draw(const SkPath& path, SkRegion::Op op,
-              GrPathFill fill, bool antiAlias, uint8_t alpha);
+    void draw(const SkPath& path, const SkStrokeRec& stroke, SkRegion::Op op,
+              bool antiAlias, uint8_t alpha);
 
     
     
@@ -74,10 +75,10 @@ public:
     
     static GrTexture* DrawPathMaskToTexture(GrContext* context,
                                             const SkPath& path,
+                                            const SkStrokeRec& stroke,
                                             const GrIRect& resultBounds,
-                                            GrPathFill fill,
                                             bool antiAlias,
-                                            GrMatrix* matrix);
+                                            SkMatrix* matrix);
 
     
     
@@ -96,7 +97,7 @@ public:
 protected:
 private:
     GrContext*      fContext;
-    GrMatrix        fMatrix;
+    SkMatrix        fMatrix;
     SkBitmap        fBM;
     SkDraw          fDraw;
     SkRasterClip    fRasterClip;

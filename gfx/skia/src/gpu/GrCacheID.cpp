@@ -5,40 +5,30 @@
 
 
 
-#include "GrCacheID.h"
+#include "GrTypes.h"
 #include "SkThread.h"       
 
-uint8_t GrCacheID::GetNextDomain() {
-    
-    static int32_t gNextDomain = 1;
+
+
+#if 0
+
+
+
+static inline void dummy_function_to_avoid_unused_var_warning() {
+    GrCacheID::Key kAssertKey;
+    GR_STATIC_ASSERT(sizeof(kAssertKey.fData8) == sizeof(kAssertKey.fData32));
+    GR_STATIC_ASSERT(sizeof(kAssertKey.fData8) == sizeof(kAssertKey.fData64));
+    GR_STATIC_ASSERT(sizeof(kAssertKey.fData8) == sizeof(kAssertKey));
+}
+#endif
+
+GrCacheID::Domain GrCacheID::GenerateDomain() {
+    static int32_t gNextDomain = kInvalid_Domain + 1;
 
     int32_t domain = sk_atomic_inc(&gNextDomain);
-    if (domain >= 256) {
+    if (domain >= 1 << (8 * sizeof(Domain))) {
         GrCrash("Too many Cache Domains");
     }
 
-    return (uint8_t) domain;
-}
-
-uint8_t GrCacheID::GetNextResourceType() {
-    
-    static int32_t gNextResourceType = 1;
-
-    int32_t type = sk_atomic_inc(&gNextResourceType);
-    if (type >= 256) {
-        GrCrash("Too many Cache Resource Types");
-    }
-
-    return (uint8_t) type;
-}
-
-void GrCacheID::toRaw(uint32_t v[4]) {
-    GrAssert(4*sizeof(uint32_t) == sizeof(GrCacheID));
-
-    v[0] = (uint32_t) (fPublicID & 0xffffffffUL);
-    v[1] = (uint32_t) ((fPublicID >> 32) & 0xffffffffUL);
-    v[2] = fResourceSpecific32;
-    v[3] = fDomain << 24 |
-           fResourceType << 16 |
-           fResourceSpecific16;
+    return static_cast<Domain>(domain);
 }

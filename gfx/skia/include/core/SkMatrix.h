@@ -85,6 +85,11 @@ public:
                         kPerspective_Mask);
     }
 
+    
+
+
+    bool isSimilarity(SkScalar tol = SK_ScalarNearlyZero) const;
+
     enum {
         kMScaleX,
         kMSkewX,
@@ -173,6 +178,8 @@ public:
     
 
     void setTranslate(SkScalar dx, SkScalar dy);
+    void setTranslate(const SkVector& v) { this->setTranslate(v.fX, v.fY); }
+
     
 
 
@@ -337,7 +344,16 @@ public:
 
 
 
-    bool SK_WARN_UNUSED_RESULT invert(SkMatrix* inverse) const;
+    bool SK_WARN_UNUSED_RESULT invert(SkMatrix* inverse) const {
+        
+        if (this->isIdentity()) {
+            if (NULL != inverse) {
+                inverse->reset();
+            }
+            return true;
+        }
+        return this->invertNonIdentity(inverse);
+    }
 
     
 
@@ -516,8 +532,8 @@ public:
     
     uint32_t readFromMemory(const void* buffer);
 
-    void dump() const;
-    void toDumpString(SkString*) const;
+    SkDEVCODE(void dump() const;)
+    SkDEVCODE(void toString(SkString*) const;)
 
     
 
@@ -617,6 +633,8 @@ private:
         }
         return ((fTypeMask & 0xF) == 0);
     }
+
+    bool SK_WARN_UNUSED_RESULT invertNonIdentity(SkMatrix* inverse) const;
 
     static bool Poly2Proc(const SkPoint[], SkMatrix*, const SkPoint& scale);
     static bool Poly3Proc(const SkPoint[], SkMatrix*, const SkPoint& scale);

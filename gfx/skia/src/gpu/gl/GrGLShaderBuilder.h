@@ -9,12 +9,17 @@
 #define GrGLShaderBuilder_DEFINED
 
 #include "GrAllocator.h"
-#include "GrCustomStage.h"
-#include "gl/GrGLShaderVar.h"
+#include "GrBackendEffectFactory.h"
+#include "GrColor.h"
+#include "GrEffect.h"
 #include "gl/GrGLSL.h"
 #include "gl/GrGLUniformManager.h"
 
+#include <stdarg.h>
+
 class GrGLContextInfo;
+class GrEffectStage;
+class GrGLProgramDesc;
 
 
 
@@ -28,42 +33,67 @@ public:
     class TextureSampler {
     public:
         TextureSampler()
-            : fTextureAccess(NULL)
-            , fSamplerUniform(GrGLUniformManager::kInvalidUniformHandle) {}
+            : fConfigComponentMask(0)
+            , fSamplerUniform(GrGLUniformManager::kInvalidUniformHandle) {
+            
+            
+            fSwizzle[4] = '\0';
+        }
 
         TextureSampler(const TextureSampler& other) { *this = other; }
 
         TextureSampler& operator= (const TextureSampler& other) {
-            GrAssert(NULL == fTextureAccess);
+            GrAssert(0 == fConfigComponentMask);
             GrAssert(GrGLUniformManager::kInvalidUniformHandle == fSamplerUniform);
 
-            fTextureAccess = other.fTextureAccess;
+            fConfigComponentMask = other.fConfigComponentMask;
             fSamplerUniform = other.fSamplerUniform;
             return *this;
         }
 
-        const GrTextureAccess* textureAccess() const { return fTextureAccess; }
+        
+        uint32_t configComponentMask() const { return fConfigComponentMask; }
+
+        const char* swizzle() const { return fSwizzle; }
+
+        bool isInitialized() const { return 0 != fConfigComponentMask; }
 
     private:
-        void init(GrGLShaderBuilder* builder, const GrTextureAccess* access) {
-            GrAssert(NULL == fTextureAccess);
+        
+        
+        void init(GrGLShaderBuilder* builder,
+                  uint32_t configComponentMask,
+                  const char* swizzle,
+                  int idx) {
+            GrAssert(!this->isInitialized());
+            GrAssert(0 != configComponentMask);
             GrAssert(GrGLUniformManager::kInvalidUniformHandle == fSamplerUniform);
 
             GrAssert(NULL != builder);
-            GrAssert(NULL != access);
+            SkString name;
+            name.printf("Sampler%d_", idx);
             fSamplerUniform = builder->addUniform(GrGLShaderBuilder::kFragment_ShaderType,
                                                   kSampler2D_GrSLType,
-                                                  "Sampler");
+                                                  name.c_str());
             GrAssert(GrGLUniformManager::kInvalidUniformHandle != fSamplerUniform);
 
-            fTextureAccess = access;
+            fConfigComponentMask = configComponentMask;
+            memcpy(fSwizzle, swizzle, 4);
         }
 
-        const GrTextureAccess*            fTextureAccess;
+        void init(GrGLShaderBuilder* builder, const GrTextureAccess* access, int idx) {
+            GrAssert(NULL != access);
+            this->init(builder,
+                       GrPixelConfigComponentMask(access->getTexture()->config()),
+                       access->getSwizzle(),
+                       idx);
+        }
+
+        uint32_t                          fConfigComponentMask;
+        char                              fSwizzle[5];
         GrGLUniformManager::UniformHandle fSamplerUniform;
 
         friend class GrGLShaderBuilder; 
-        friend class GrGLProgram;       
     };
 
     typedef SkTArray<TextureSampler> TextureSamplerArray;
@@ -74,40 +104,77 @@ public:
         kFragment_ShaderType = 0x4,
     };
 
-    GrGLShaderBuilder(const GrGLContextInfo&, GrGLUniformManager&);
+    GrGLShaderBuilder(const GrGLContextInfo&, GrGLUniformManager&, const GrGLProgramDesc&);
 
     
 
 
-    void setupTextureAccess(const char* varyingFSName, GrSLType varyingType);
+
+    enum GLSLFeature {
+        kStandardDerivatives_GLSLFeature = 0,
+
+        kLastGLSLFeature = kStandardDerivatives_GLSLFeature
+    };
 
     
 
+
+
+    bool enableFeature(GLSLFeature);
+
+    
+
+
+    void vsCodeAppendf(const char format[], ...) SK_PRINTF_LIKE(2, 3) {
+        va_list args;
+        va_start(args, format);
+        this->codeAppendf(kVertex_ShaderType, format, args);
+        va_end(args);
+    }
+
+    void gsCodeAppendf(const char format[], ...) SK_PRINTF_LIKE(2, 3) {
+        va_list args;
+        va_start(args, format);
+        this->codeAppendf(kGeometry_ShaderType, format, args);
+        va_end(args);
+    }
+
+    void fsCodeAppendf(const char format[], ...) SK_PRINTF_LIKE(2, 3) {
+        va_list args;
+        va_start(args, format);
+        this->codeAppendf(kFragment_ShaderType, format, args);
+        va_end(args);
+    }
+
+    void vsCodeAppend(const char* str) { this->codeAppend(kVertex_ShaderType, str); }
+    void gsCodeAppend(const char* str) { this->codeAppend(kGeometry_ShaderType, str); }
+    void fsCodeAppend(const char* str) { this->codeAppend(kFragment_ShaderType, str); }
+
+    
 
 
     void appendTextureLookup(SkString* out,
                              const TextureSampler&,
-                             const char* coordName = NULL,
+                             const char* coordName,
                              GrSLType coordType = kVec2f_GrSLType) const;
 
     
 
+    void appendTextureLookup(ShaderType,
+                             const TextureSampler&,
+                             const char* coordName,
+                             GrSLType coordType = kVec2f_GrSLType);
 
 
-    void appendTextureLookupAndModulate(SkString* out,
+    
+
+
+
+    void appendTextureLookupAndModulate(ShaderType,
                                         const char* modulation,
                                         const TextureSampler&,
-                                        const char* coordName = NULL,
-                                        GrSLType coordType = kVec2f_GrSLType) const;
-
-    
-    const char* defaultTexCoordsName() const { return fDefaultTexCoordsName.c_str(); }
-
-    
-
-    bool defaultTextureMatrixIsPerspective() const {
-        return fTexCoordVaryingType == kVec3f_GrSLType;
-    }
+                                        const char* coordName,
+                                        GrSLType coordType = kVec2f_GrSLType);
 
     
 
@@ -122,8 +189,15 @@ public:
     
 
 
-    static GrCustomStage::StageKey KeyForTextureAccess(const GrTextureAccess& access,
-                                                       const GrGLCaps& caps);
+    static GrBackendEffectFactory::EffectKey KeyForTextureAccess(const GrTextureAccess&,
+                                                                 const GrGLCaps&);
+
+    typedef uint8_t DstReadKey;
+
+    
+
+
+    static DstReadKey KeyForDstRead(const GrTexture* dstCopy, const GrGLCaps&);
 
     
 
@@ -157,7 +231,11 @@ public:
         return this->getUniformVariable(u).c_str();
     }
 
-    
+   
+
+    bool addAttribute(GrSLType type, const char* name);
+
+   
 
 
     void addVarying(GrSLType type,
@@ -166,21 +244,79 @@ public:
                     const char** fsInName = NULL);
 
     
+
+    const char* fragmentPosition();
+
+    
+
+
+    const GrGLShaderVar& positionAttribute() const { return *fPositionVar; }
+
+    
+
+
+    const GrGLShaderVar& localCoordsAttribute() const { return *fLocalCoordsVar; }
+
+    
+
+    const char* dstColor() const;
+
+    
+
+
+    bool hasExplicitLocalCoords() const { return (fLocalCoordsVar != fPositionVar); }
+
+    
+
+
+
+
+
+    
     void getShader(ShaderType, SkString*) const;
 
+    void setCurrentStage(int stageIdx) { fCurrentStageIdx = stageIdx; }
+    void setNonStage() { fCurrentStageIdx = kNonStageIdx; }
     
+    
+    GrGLEffect* createAndEmitGLEffect(
+                                const GrEffectStage& stage,
+                                GrBackendEffectFactory::EffectKey key,
+                                const char* fsInColor, 
+                                const char* fsOutColor,
+                                SkTArray<GrGLUniformManager::UniformHandle, true>* samplerHandles);
 
+    GrGLUniformManager::UniformHandle getRTHeightUniform() const { return fRTHeightUniform; }
+    GrGLUniformManager::UniformHandle getDstCopyTopLeftUniform() const {
+        return fDstCopyTopLeftUniform;
+    }
+    GrGLUniformManager::UniformHandle getDstCopyScaleUniform() const {
+        return fDstCopyScaleUniform;
+    }
+    GrGLUniformManager::UniformHandle getDstCopySamplerUniform() const {
+        return fDstCopySampler.fSamplerUniform;
+    }
 
+    struct AttributePair {
+        void set(int index, const SkString& name) {
+            fIndex = index; fName = name;
+        }
+        int      fIndex;
+        SkString fName;
+    };
+    const SkTArray<AttributePair, true>& getEffectAttributes() const {
+        return fEffectAttributes;
+    }
+    const SkString* getEffectAttributeName(int attributeIndex) const;
+
+    
     void finished(GrGLuint programID);
 
-    
-
-
-
-    void setCurrentStage(int stage) { fCurrentStage = stage; }
-    void setNonStage() { fCurrentStage = kNonStageIdx; }
+    const GrGLContextInfo& ctxInfo() const { return fCtxInfo; }
 
 private:
+    void codeAppendf(ShaderType type, const char format[], va_list args);
+    void codeAppend(ShaderType type, const char* str);
 
     typedef GrTAllocator<GrGLShaderVar> VarArray;
 
@@ -193,7 +329,6 @@ private:
     
 public:
 
-    SkString    fHeader; 
     VarArray    fVSAttrs;
     VarArray    fVSOutputs;
     VarArray    fGSInputs;
@@ -201,27 +336,56 @@ public:
     VarArray    fFSInputs;
     SkString    fGSHeader; 
     VarArray    fFSOutputs;
-    SkString    fVSCode;
-    SkString    fGSCode;
-    SkString    fFSCode;
-    bool        fUsesGS;
 
 private:
     enum {
         kNonStageIdx = -1,
     };
 
-    const GrGLContextInfo&  fContext;
-    GrGLUniformManager&     fUniformManager;
-    int                     fCurrentStage;
-    SkString                fFSFunctions;
+    
+
+
+    enum GLSLPrivateFeature {
+        kFragCoordConventions_GLSLPrivateFeature = kLastGLSLFeature + 1
+    };
+    bool enablePrivateFeature(GLSLPrivateFeature);
 
     
     
-    GrSLType         fTexCoordVaryingType;  
-                                            
-    SkString         fDefaultTexCoordsName; 
+    void addFSFeature(uint32_t featureBit, const char* extensionName);
+
     
+    enum {
+        kNoDstRead_DstReadKey         = 0,
+        kYesDstRead_DstReadKeyBit     = 0x1, 
+        kUseAlphaConfig_DstReadKeyBit = 0x2, 
+        kTopLeftOrigin_DstReadKeyBit  = 0x4, 
+    };
+
+    const GrGLContextInfo&              fCtxInfo;
+    GrGLUniformManager&                 fUniformManager;
+    int                                 fCurrentStageIdx;
+    uint32_t                            fFSFeaturesAddedMask;
+    SkString                            fFSFunctions;
+    SkString                            fFSExtensions;
+
+    bool                                fUsesGS;
+
+    SkString                            fFSCode;
+    SkString                            fVSCode;
+    SkString                            fGSCode;
+
+    bool                                fSetupFragPosition;
+    TextureSampler                      fDstCopySampler;
+
+    GrGLUniformManager::UniformHandle   fRTHeightUniform;
+    GrGLUniformManager::UniformHandle   fDstCopyTopLeftUniform;
+    GrGLUniformManager::UniformHandle   fDstCopyScaleUniform;
+
+    SkSTArray<10, AttributePair, true>  fEffectAttributes;
+
+    GrGLShaderVar*                      fPositionVar;
+    GrGLShaderVar*                      fLocalCoordsVar;
 
 };
 

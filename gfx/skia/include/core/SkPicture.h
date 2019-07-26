@@ -10,9 +10,10 @@
 #ifndef SkPicture_DEFINED
 #define SkPicture_DEFINED
 
+#include "SkBitmap.h"
 #include "SkRefCnt.h"
 
-class SkBitmap;
+class SkBBoxHierarchy;
 class SkCanvas;
 class SkPicturePlayback;
 class SkPictureRecord;
@@ -37,11 +38,37 @@ public:
 
 
     SkPicture(const SkPicture& src);
+
     
 
 
 
+
     explicit SkPicture(SkStream*);
+
+    
+
+
+
+
+
+
+
+
+
+
+    typedef bool (*InstallPixelRefProc)(const void* src, size_t length, SkBitmap* dst);
+
+    
+
+
+
+
+
+
+
+    SkPicture(SkStream*, bool* success, InstallPixelRefProc proc);
+
     virtual ~SkPicture();
 
     
@@ -115,11 +142,6 @@ public:
     
 
 
-    bool hasRecorded() const;
-
-    
-
-
 
     void draw(SkCanvas* surface);
 
@@ -137,18 +159,56 @@ public:
 
     int height() const { return fHeight; }
 
-    void serialize(SkWStream*) const;
+    
+
+
+
+
+
+
+    typedef bool (*EncodeBitmap)(SkWStream*, const SkBitmap&);
 
     
 
 
 
+    void serialize(SkWStream*, EncodeBitmap encoder = NULL) const;
+
+#ifdef SK_BUILD_FOR_ANDROID
+    
+
+
+
+
     void abortPlayback();
+#endif
+
+protected:
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static const uint32_t PICTURE_VERSION = 10;
+
+    
+    
+    
+    SkPicturePlayback* fPlayback;
+    SkPictureRecord* fRecord;
+    int fWidth, fHeight;
+
+    
+    
+    virtual SkBBoxHierarchy* createBBoxHierarchy() const;
 
 private:
-    int fWidth, fHeight;
-    SkPictureRecord* fRecord;
-    SkPicturePlayback* fPlayback;
+    void initFromStream(SkStream*, bool* success, InstallPixelRefProc);
 
     friend class SkFlatPicture;
     friend class SkPicturePlayback;

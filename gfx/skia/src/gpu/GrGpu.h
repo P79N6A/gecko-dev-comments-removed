@@ -15,6 +15,8 @@
 #include "GrRefCnt.h"
 #include "GrClipMaskManager.h"
 
+#include "SkPath.h"
+
 class GrContext;
 class GrIndexBufferAllocPool;
 class GrPath;
@@ -48,21 +50,15 @@ public:
 
 
 
-    static GrGpu* Create(GrEngine, GrPlatform3DContext context3D);
+    static GrGpu* Create(GrBackend, GrBackendContext, GrContext* context);
 
     
 
-    GrGpu();
+    GrGpu(GrContext* context);
     virtual ~GrGpu();
 
-    
-    void setContext(GrContext* context) {
-        GrAssert(NULL == fContext);
-        fContext = context;
-        fClipMaskManager.setContext(context);
-    }
-    GrContext* getContext() { return fContext; }
-    const GrContext* getContext() const { return fContext; }
+    GrContext* getContext() { return this->INHERITED::getContext(); }
+    const GrContext* getContext() const { return this->INHERITED::getContext(); }
 
     
 
@@ -98,12 +94,12 @@ public:
     
 
 
-    GrTexture* createPlatformTexture(const GrPlatformTextureDesc& desc);
+    GrTexture* wrapBackendTexture(const GrBackendTextureDesc&);
 
     
 
 
-    GrRenderTarget* createPlatformRenderTarget(const GrPlatformRenderTargetDesc& desc);
+    GrRenderTarget* wrapBackendRenderTarget(const GrBackendRenderTargetDesc&);
 
     
 
@@ -167,20 +163,14 @@ public:
 
 
 
-
-
-    virtual GrPixelConfig preferredReadPixelsConfig(GrPixelConfig config)
-                                                                        const {
-        return config;
-    }
+    virtual GrPixelConfig preferredReadPixelsConfig(GrPixelConfig config) const { return config; }
+    virtual GrPixelConfig preferredWritePixelsConfig(GrPixelConfig config) const { return config; }
 
     
 
 
-    virtual GrPixelConfig preferredWritePixelsConfig(GrPixelConfig config)
-                                                                        const {
-        return config;
-    }
+
+    virtual bool canWriteTexturePixels(const GrTexture*, GrPixelConfig srcConfig) const = 0;
 
     
 
@@ -233,8 +223,7 @@ public:
 
     bool readPixels(GrRenderTarget* renderTarget,
                     int left, int top, int width, int height,
-                    GrPixelConfig config, void* buffer, size_t rowBytes,
-                    bool invertY);
+                    GrPixelConfig config, void* buffer, size_t rowBytes);
 
     
 
@@ -248,7 +237,7 @@ public:
 
 
 
-    void writeTexturePixels(GrTexture* texture,
+    bool writeTexturePixels(GrTexture* texture,
                             int left, int top, int width, int height,
                             GrPixelConfig config, const void* buffer,
                             size_t rowBytes);
@@ -310,7 +299,7 @@ public:
 
 
     bool isConfigRenderable(GrPixelConfig config) const {
-        GrAssert(kGrPixelConfigCount > config);
+        GrAssert(kGrPixelConfigCnt > config);
         return fConfigRenderSupport[config];
     }
 
@@ -377,7 +366,7 @@ protected:
     }
 
     
-    bool setupClipAndFlushState(DrawType);
+    bool setupClipAndFlushState(DrawType, const GrDeviceCoordTexture* dstCopy);
 
     
     
@@ -414,45 +403,38 @@ protected:
 
     
     
-    bool    fConfigRenderSupport[kGrPixelConfigCount];
-
-    
-    virtual bool onReserveVertexSpace(GrVertexLayout vertexLayout,
-                                      int vertexCount,
-                                      void** vertices) SK_OVERRIDE;
-    virtual bool onReserveIndexSpace(int indexCount,
-                                     void** indices) SK_OVERRIDE;
-    virtual void releaseReservedVertexSpace() SK_OVERRIDE;
-    virtual void releaseReservedIndexSpace() SK_OVERRIDE;
-    virtual void onSetVertexSourceToArray(const void* vertexArray,
-                                          int vertexCount) SK_OVERRIDE;
-    virtual void onSetIndexSourceToArray(const void* indexArray,
-                                         int indexCount) SK_OVERRIDE;
-    virtual void releaseVertexArray() SK_OVERRIDE;
-    virtual void releaseIndexArray() SK_OVERRIDE;
-    virtual void geometrySourceWillPush() SK_OVERRIDE;
-    virtual void geometrySourceWillPop(
-        const GeometrySrcState& restoredState) SK_OVERRIDE;
+    bool    fConfigRenderSupport[kGrPixelConfigCnt];
 
     
     void finalizeReservedVertices();
     void finalizeReservedIndices();
 
+private:
+    
+    virtual bool onReserveVertexSpace(size_t vertexSize, int vertexCount, void** vertices) SK_OVERRIDE;
+    virtual bool onReserveIndexSpace(int indexCount, void** indices) SK_OVERRIDE;
+    virtual void releaseReservedVertexSpace() SK_OVERRIDE;
+    virtual void releaseReservedIndexSpace() SK_OVERRIDE;
+    virtual void onSetVertexSourceToArray(const void* vertexArray, int vertexCount) SK_OVERRIDE;
+    virtual void onSetIndexSourceToArray(const void* indexArray, int indexCount) SK_OVERRIDE;
+    virtual void releaseVertexArray() SK_OVERRIDE;
+    virtual void releaseIndexArray() SK_OVERRIDE;
+    virtual void geometrySourceWillPush() SK_OVERRIDE;
+    virtual void geometrySourceWillPop(const GeometrySrcState& restoredState) SK_OVERRIDE;
+
+
     
     
     virtual void onResetContext() = 0;
-
 
     
     virtual GrTexture* onCreateTexture(const GrTextureDesc& desc,
                                        const void* srcData,
                                        size_t rowBytes) = 0;
-    virtual GrTexture* onCreatePlatformTexture(const GrPlatformTextureDesc& desc) = 0;
-    virtual GrRenderTarget* onCreatePlatformRenderTarget(const GrPlatformRenderTargetDesc& desc) = 0;
-    virtual GrVertexBuffer* onCreateVertexBuffer(uint32_t size,
-                                                 bool dynamic) = 0;
-    virtual GrIndexBuffer* onCreateIndexBuffer(uint32_t size,
-                                               bool dynamic) = 0;
+    virtual GrTexture* onWrapBackendTexture(const GrBackendTextureDesc&) = 0;
+    virtual GrRenderTarget* onWrapBackendRenderTarget(const GrBackendRenderTargetDesc&) = 0;
+    virtual GrVertexBuffer* onCreateVertexBuffer(uint32_t size, bool dynamic) = 0;
+    virtual GrIndexBuffer* onCreateIndexBuffer(uint32_t size, bool dynamic) = 0;
     virtual GrPath* onCreatePath(const SkPath& path) = 0;
 
     
@@ -460,24 +442,16 @@ protected:
     virtual void onClear(const GrIRect* rect, GrColor color) = 0;
 
     
-    virtual void onGpuDrawIndexed(GrPrimitiveType type,
-                                  uint32_t startVertex,
-                                  uint32_t startIndex,
-                                  uint32_t vertexCount,
-                                  uint32_t indexCount) = 0;
-
-    virtual void onGpuDrawNonIndexed(GrPrimitiveType type,
-                                     uint32_t vertexCount,
-                                     uint32_t numVertices) = 0;
+    virtual void onGpuDraw(const DrawInfo&) = 0;
     
     
     
     
     virtual void setStencilPathSettings(const GrPath&,
-                                        GrPathFill,
+                                        SkPath::FillType,
                                         GrStencilSettings* settings) = 0;
     
-    virtual void onGpuStencilPath(const GrPath*, GrPathFill) = 0;
+    virtual void onGpuStencilPath(const GrPath*, SkPath::FillType) = 0;
 
     
     virtual void onForceRenderTargetFlush() = 0;
@@ -487,11 +461,10 @@ protected:
                               int left, int top, int width, int height,
                               GrPixelConfig,
                               void* buffer,
-                              size_t rowBytes,
-                              bool invertY) = 0;
+                              size_t rowBytes) = 0;
 
     
-    virtual void onWriteTexturePixels(GrTexture* texture,
+    virtual bool onWriteTexturePixels(GrTexture* texture,
                                       int left, int top, int width, int height,
                                       GrPixelConfig config, const void* buffer,
                                       size_t rowBytes) = 0;
@@ -502,74 +475,27 @@ protected:
     
     
     
-    virtual void setupGeometry(int* startVertex,
-                               int* startIndex,
-                               int vertexCount,
-                               int indexCount) = 0;
+    virtual bool createStencilBufferForRenderTarget(GrRenderTarget*, int width, int height) = 0;
 
     
-    
-    
-    virtual bool createStencilBufferForRenderTarget(GrRenderTarget* rt,
-                                                    int width,
-                                                    int height) = 0;
-
-    
-    virtual bool attachStencilBufferToRenderTarget(GrStencilBuffer* sb,
-                                                   GrRenderTarget* rt) = 0;
+    virtual bool attachStencilBufferToRenderTarget(GrStencilBuffer*, GrRenderTarget*) = 0;
 
     
     
     
     
-    virtual bool flushGraphicsState(DrawType) = 0;
+    virtual bool flushGraphicsState(DrawType, const GrDeviceCoordTexture* dstCopy) = 0;
 
     
     virtual void clearStencil() = 0;
-
-private:
-    GrContext*                  fContext; 
-
-    ResetTimestamp              fResetTimestamp;
-
-    GrVertexBufferAllocPool*    fVertexPool;
-
-    GrIndexBufferAllocPool*     fIndexPool;
-
-    
-    int                         fVertexPoolUseCnt;
-    int                         fIndexPoolUseCnt;
-
-    enum {
-        kPreallocGeomPoolStateStackCnt = 4,
-    };
-    SkSTArray<kPreallocGeomPoolStateStackCnt,
-              GeometryPoolState, true>              fGeomPoolStateStack;
-
-    mutable GrIndexBuffer*      fQuadIndexBuffer; 
-                                                  
-
-    mutable GrVertexBuffer*     fUnitSquareVertexBuffer; 
-                                                         
-
-    bool                        fContextIsDirty;
-
-    typedef SkTDLinkedList<GrResource> ResourceList;
-    ResourceList                fResourceList;
 
     
     bool attachStencilBufferToRenderTarget(GrRenderTarget* target);
 
     
-    virtual void onDrawIndexed(GrPrimitiveType type,
-                               int startVertex,
-                               int startIndex,
-                               int vertexCount,
-                               int indexCount) SK_OVERRIDE;
-    virtual void onDrawNonIndexed(GrPrimitiveType type,
-                                  int startVertex,
-                                  int vertexCount) SK_OVERRIDE;
-    virtual void onStencilPath(const GrPath* path, GrPathFill fill) SK_OVERRIDE;
+    virtual void onDraw(const DrawInfo&) SK_OVERRIDE;
+    virtual void onStencilPath(const GrPath* path, const SkStrokeRec& stroke,
+                               SkPath::FillType) SK_OVERRIDE;
 
     
     void prepareVertexPool();
@@ -590,6 +516,23 @@ private:
             fContextIsDirty = false;
         }
     }
+
+    enum {
+        kPreallocGeomPoolStateStackCnt = 4,
+    };
+    typedef SkTInternalLList<GrResource> ResourceList;
+    SkSTArray<kPreallocGeomPoolStateStackCnt, GeometryPoolState, true>  fGeomPoolStateStack;
+    ResetTimestamp                                                      fResetTimestamp;
+    GrVertexBufferAllocPool*                                            fVertexPool;
+    GrIndexBufferAllocPool*                                             fIndexPool;
+    
+    int                                                                 fVertexPoolUseCnt;
+    int                                                                 fIndexPoolUseCnt;
+    
+    mutable GrVertexBuffer*                                             fUnitSquareVertexBuffer;
+    mutable GrIndexBuffer*                                              fQuadIndexBuffer;
+    bool                                                                fContextIsDirty;
+    ResourceList                                                        fResourceList;
 
     typedef GrDrawTarget INHERITED;
 };

@@ -9,6 +9,8 @@
 #include "GrDrawState.h"
 #include "GrGpu.h"
 
+#include "SkStrokeRec.h"
+
 
 #include "GrContext.h"
 
@@ -20,7 +22,7 @@ SkXfermode::Mode op_to_mode(SkRegion::Op op) {
 
     static const SkXfermode::Mode modeMap[] = {
         SkXfermode::kDstOut_Mode,   
-        SkXfermode::kMultiply_Mode, 
+        SkXfermode::kModulate_Mode, 
         SkXfermode::kSrcOver_Mode,  
         SkXfermode::kXor_Mode,      
         SkXfermode::kClear_Mode,    
@@ -28,23 +30,6 @@ SkXfermode::Mode op_to_mode(SkRegion::Op op) {
     };
 
     return modeMap[op];
-}
-
-
-SkPath::FillType gr_fill_to_sk_fill(GrPathFill fill) {
-    switch (fill) {
-        case kWinding_GrPathFill:
-            return SkPath::kWinding_FillType;
-        case kEvenOdd_GrPathFill:
-            return SkPath::kEvenOdd_FillType;
-        case kInverseWinding_GrPathFill:
-            return SkPath::kInverseWinding_FillType;
-        case kInverseEvenOdd_GrPathFill:
-            return SkPath::kInverseEvenOdd_FillType;
-        default:
-            GrCrash("Unexpected fill.");
-            return SkPath::kWinding_FillType;
-    }
 }
 
 }
@@ -70,37 +55,37 @@ void GrSWMaskHelper::draw(const GrRect& rect, SkRegion::Op op,
 
 
 
-void GrSWMaskHelper::draw(const SkPath& path, SkRegion::Op op,
-                          GrPathFill fill, bool antiAlias, uint8_t alpha) {
+void GrSWMaskHelper::draw(const SkPath& path, const SkStrokeRec& stroke, SkRegion::Op op,
+                          bool antiAlias, uint8_t alpha) {
 
     SkPaint paint;
-    SkPath tmpPath;
-    const SkPath* pathToDraw = &path;
-    if (kHairLine_GrPathFill == fill) {
+    if (stroke.isHairlineStyle()) {
         paint.setStyle(SkPaint::kStroke_Style);
         paint.setStrokeWidth(SK_Scalar1);
     } else {
-        paint.setStyle(SkPaint::kFill_Style);
-        SkPath::FillType skfill = gr_fill_to_sk_fill(fill);
-        if (skfill != pathToDraw->getFillType()) {
-            tmpPath = *pathToDraw;
-            tmpPath.setFillType(skfill);
-            pathToDraw = &tmpPath;
+        if (stroke.isFillStyle()) {
+            paint.setStyle(SkPaint::kFill_Style);
+        } else {
+            paint.setStyle(SkPaint::kStroke_Style);
+            paint.setStrokeJoin(stroke.getJoin());
+            paint.setStrokeCap(stroke.getCap());
+            paint.setStrokeWidth(stroke.getWidth());
         }
     }
+
     SkXfermode* mode = SkXfermode::Create(op_to_mode(op));
 
     paint.setXfermode(mode);
     paint.setAntiAlias(antiAlias);
     paint.setColor(SkColorSetARGB(alpha, alpha, alpha, alpha));
 
-    fDraw.drawPath(*pathToDraw, paint);
+    fDraw.drawPath(path, paint);
 
     SkSafeUnref(mode);
 }
 
 bool GrSWMaskHelper::init(const GrIRect& resultBounds,
-                          const GrMatrix* matrix) {
+                          const SkMatrix* matrix) {
     if (NULL != matrix) {
         fMatrix = *matrix;
     } else {
@@ -159,7 +144,7 @@ void GrSWMaskHelper::toTexture(GrTexture *texture, uint8_t alpha) {
     GrDrawState::AutoRenderTargetRestore artr(fContext->getGpu()->drawState(),
                                               texture->asRenderTarget());
 
-    fContext->getGpu()->clear(NULL, SkColorSetARGB(alpha, alpha, alpha, alpha));
+    fContext->getGpu()->clear(NULL, GrColorPackRGBA(alpha, alpha, alpha, alpha));
 
     texture->writePixels(0, 0, fBM.width(), fBM.height(),
                          kAlpha_8_GrPixelConfig,
@@ -174,10 +159,10 @@ void GrSWMaskHelper::toTexture(GrTexture *texture, uint8_t alpha) {
 
 GrTexture* GrSWMaskHelper::DrawPathMaskToTexture(GrContext* context,
                                                  const SkPath& path,
+                                                 const SkStrokeRec& stroke,
                                                  const GrIRect& resultBounds,
-                                                 GrPathFill fill,
                                                  bool antiAlias,
-                                                 GrMatrix* matrix) {
+                                                 SkMatrix* matrix) {
     GrAutoScratchTexture ast;
 
     GrSWMaskHelper helper(context);
@@ -186,7 +171,7 @@ GrTexture* GrSWMaskHelper::DrawPathMaskToTexture(GrContext* context,
         return NULL;
     }
 
-    helper.draw(path, SkRegion::kReplace_Op, fill, antiAlias, 0xFF);
+    helper.draw(path, stroke, SkRegion::kReplace_Op, antiAlias, 0xFF);
 
     if (!helper.getTexture(&ast)) {
         return NULL;
@@ -202,31 +187,39 @@ void GrSWMaskHelper::DrawToTargetWithPathMask(GrTexture* texture,
                                               const GrIRect& rect) {
     GrDrawState* drawState = target->drawState();
 
-    GrDrawTarget::AutoDeviceCoordDraw adcd(target);
+    GrDrawState::AutoDeviceCoordDraw adcd(drawState);
     if (!adcd.succeeded()) {
         return;
     }
     enum {
         
         
+        
         kPathMaskStage = GrPaint::kTotalStages,
     };
-    GrAssert(!drawState->isStageEnabled(kPathMaskStage));
-    drawState->sampler(kPathMaskStage)->reset();
-    drawState->createTextureEffect(kPathMaskStage, texture);
-    GrScalar w = GrIntToScalar(rect.width());
-    GrScalar h = GrIntToScalar(rect.height());
-    GrRect maskRect = GrRect::MakeWH(w / texture->width(),
-                                     h / texture->height());
 
-    const GrRect* srcRects[GrDrawState::kNumStages] = { NULL };
-    srcRects[kPathMaskStage] = &maskRect;
     GrRect dstRect = GrRect::MakeLTRB(
                             SK_Scalar1 * rect.fLeft,
                             SK_Scalar1 * rect.fTop,
                             SK_Scalar1 * rect.fRight,
                             SK_Scalar1 * rect.fBottom);
-    target->drawRect(dstRect, NULL, srcRects, NULL);
+
+    
+    
+    
+    
+    SkMatrix maskMatrix;
+    maskMatrix.setIDiv(texture->width(), texture->height());
+    maskMatrix.preTranslate(SkIntToScalar(-rect.fLeft), SkIntToScalar(-rect.fTop));
+    maskMatrix.preConcat(drawState->getViewMatrix());
+
+    GrAssert(!drawState->isStageEnabled(kPathMaskStage));
+    drawState->setEffect(kPathMaskStage,
+                         GrSimpleTextureEffect::Create(texture,
+                                                       maskMatrix,
+                                                       false,
+                                                       GrEffect::kPosition_CoordsType))->unref();
+
+    target->drawSimpleRect(dstRect);
     drawState->disableStage(kPathMaskStage);
 }
-

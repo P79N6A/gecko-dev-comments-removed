@@ -27,20 +27,29 @@ class GrTextContext;
 
 class SK_API SkGpuDevice : public SkDevice {
 public:
+
+    
+
+
+
+    static SkGpuDevice* Create(GrSurface* surface);
+
     
 
 
 
 
 
-    SkGpuDevice(GrContext*, SkBitmap::Config, int width, int height);
+    SkGpuDevice(GrContext*, SkBitmap::Config, int width, int height, int sampleCount = 0);
 
     
+
 
 
     SkGpuDevice(GrContext*, GrRenderTarget*);
 
     
+
 
 
 
@@ -51,12 +60,6 @@ public:
 
     GrContext* context() const { return fContext; }
 
-    
-
-
-
-    virtual void gainFocus(const SkMatrix&, const SkRegion&) SK_OVERRIDE;
-
     virtual SkGpuRenderTarget* accessRenderTarget() SK_OVERRIDE;
 
     
@@ -65,13 +68,12 @@ public:
     virtual void writePixels(const SkBitmap& bitmap, int x, int y,
                              SkCanvas::Config8888 config8888) SK_OVERRIDE;
 
-    virtual void setMatrixClip(const SkMatrix& matrix, const SkRegion& clip,
-                               const SkClipStack&) SK_OVERRIDE;
-
     virtual void drawPaint(const SkDraw&, const SkPaint& paint) SK_OVERRIDE;
     virtual void drawPoints(const SkDraw&, SkCanvas::PointMode mode, size_t count,
                             const SkPoint[], const SkPaint& paint) SK_OVERRIDE;
     virtual void drawRect(const SkDraw&, const SkRect& r,
+                          const SkPaint& paint) SK_OVERRIDE;
+    virtual void drawOval(const SkDraw&, const SkRect& oval,
                           const SkPaint& paint) SK_OVERRIDE;
     virtual void drawPath(const SkDraw&, const SkPath& path,
                           const SkPaint& paint, const SkMatrix* prePathMatrix,
@@ -79,6 +81,9 @@ public:
     virtual void drawBitmap(const SkDraw&, const SkBitmap& bitmap,
                             const SkIRect* srcRectOrNull,
                             const SkMatrix&, const SkPaint&) SK_OVERRIDE;
+    virtual void drawBitmapRect(const SkDraw&, const SkBitmap&,
+                                const SkRect* srcOrNull, const SkRect& dst,
+                                const SkPaint& paint) SK_OVERRIDE;
     virtual void drawSprite(const SkDraw&, const SkBitmap& bitmap,
                             int x, int y, const SkPaint& paint);
     virtual void drawText(const SkDraw&, const void* text, size_t len,
@@ -116,9 +121,6 @@ public:
     class SkAutoCachedTexture; 
 
 protected:
-    bool isBitmapInTextureCache(const SkBitmap& bitmap,
-                                const GrTextureParams& params) const;
-
     
     virtual bool onReadPixels(const SkBitmap& bitmap,
                               int x, int y,
@@ -134,7 +136,6 @@ private:
     
     GrRenderTarget*     fRenderTarget;
     bool                fNeedClear;
-    bool                fNeedPrepareRenderTarget;
 
     
     void initFromRenderTarget(GrContext*, GrRenderTarget*, bool cached);
@@ -151,13 +152,36 @@ private:
     SkDrawProcs* initDrawForText(GrTextContext*);
     bool bindDeviceAsTexture(GrPaint* paint);
 
-    void prepareRenderTarget(const SkDraw&);
+    
+    
+    void prepareDraw(const SkDraw&, bool forceIdentity);
+
+    
+
+
+    void drawBitmapCommon(const SkDraw&,
+                          const SkBitmap& bitmap,
+                          const SkRect* srcRectPtr,
+                          const SkMatrix&,
+                          const SkPaint&);
+
+    
+
+
+
     bool shouldTileBitmap(const SkBitmap& bitmap,
                           const GrTextureParams& sampler,
-                          const SkIRect* srcRectPtr,
-                          int* tileSize) const;
-    void internalDrawBitmap(const SkDraw&, const SkBitmap&,
-                            const SkIRect&, const SkMatrix&, GrPaint* grPaint);
+                          const SkRect* srcRectPtr) const;
+    void internalDrawBitmap(const SkBitmap&,
+                            const SkRect&,
+                            const SkMatrix&,
+                            const GrTextureParams& params,
+                            GrPaint* grPaint);
+    void drawTiledBitmap(const SkBitmap& bitmap,
+                         const SkRect& srcRect,
+                         const SkMatrix& m,
+                         const GrTextureParams& params,
+                         GrPaint* grPaint);
 
     
 
@@ -168,4 +192,3 @@ private:
 };
 
 #endif
-

@@ -14,6 +14,7 @@
 #include "SkScalar.h"
 #include "SkString.h"
 #include "SkTDArray.h"
+#include "SkTSet.h"
 #include "SkTypes.h"
 
 class SkPDFCatalog;
@@ -44,7 +45,10 @@ public:
 
 
 
-    virtual void getResources(SkTDArray<SkPDFObject*>* resourceList);
+
+
+    virtual void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                              SkTSet<SkPDFObject*>* newResourceObjects);
 
     
 
@@ -76,8 +80,14 @@ public:
 
 
 
-    static void GetResourcesHelper(SkTDArray<SkPDFObject*>* resources,
-                                   SkTDArray<SkPDFObject*>* result);
+
+
+
+
+    static void GetResourcesHelper(
+            const SkTDArray<SkPDFObject*>* resources,
+            const SkTSet<SkPDFObject*>& knownResourceObjects,
+            SkTSet<SkPDFObject*>* newResourceObjects);
 
 protected:
     
@@ -112,7 +122,7 @@ public:
     virtual size_t getOutputSize(SkPDFCatalog* catalog, bool indirect);
 
 private:
-    SkRefPtr<SkPDFObject> fObj;
+    SkAutoTUnref<SkPDFObject> fObj;
 
     typedef SkPDFObject INHERITED;
 };
@@ -419,8 +429,8 @@ public:
         SkPDFName* next(SkPDFObject** value);
 
     private:
-        Rec* fIter;
-        Rec* fStop;
+        const Rec* fIter;
+        const Rec* fStop;
     };
 
 private:

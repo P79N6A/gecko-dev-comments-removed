@@ -19,6 +19,7 @@
 #endif
 
 class SkBitmap;
+class SkData;
 class SkStream;
 
 
@@ -60,5 +61,7 @@ bool SkPDFDocumentToBitmap(SkStream* stream, SkBitmap* output);
 
 
 CGDataProviderRef SkCreateDataProviderFromStream(SkStream*);
+
+CGDataProviderRef SkCreateDataProviderFromData(SkData*);
 
 #endif

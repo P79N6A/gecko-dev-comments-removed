@@ -19,6 +19,7 @@ class SkAnnotation;
 class SkAutoGlyphCache;
 class SkColorFilter;
 class SkDescriptor;
+struct SkDeviceProperties;
 class SkFlattenableReadBuffer;
 class SkFlattenableWriteBuffer;
 struct SkGlyph;
@@ -290,8 +291,9 @@ public:
         kFill_Style,            
         kStroke_Style,          
         kStrokeAndFill_Style,   
-
-        kStyleCount
+    };
+    enum {
+        kStyleCount = kStrokeAndFill_Style + 1
     };
 
     
@@ -434,7 +436,11 @@ public:
 
 
 
-    bool getFillPath(const SkPath& src, SkPath* dst) const;
+
+
+
+    bool getFillPath(const SkPath& src, SkPath* dst,
+                     const SkRect* cullRect = NULL) const;
 
     
 
@@ -844,11 +850,12 @@ public:
                         const SkPoint pos[], SkPath* path) const;
 
 #ifdef SK_BUILD_FOR_ANDROID
-    const SkGlyph& getUnicharMetrics(SkUnichar);
-    const SkGlyph& getGlyphMetrics(uint16_t);
-    const void* findImage(const SkGlyph&);
+    const SkGlyph& getUnicharMetrics(SkUnichar, const SkMatrix*);
+    const SkGlyph& getGlyphMetrics(uint16_t, const SkMatrix*);
+    const void* findImage(const SkGlyph&, const SkMatrix*);
 
     uint32_t getGenerationID() const;
+    void setGenerationID(uint32_t generationID);
 
     
 
@@ -919,6 +926,8 @@ public:
     const SkRect& doComputeFastBounds(const SkRect& orig, SkRect* storage,
                                       Style) const;
 
+    SkDEVCODE(void toString(SkString*) const;)
+
 private:
     SkTypeface*     fTypeface;
     SkScalar        fTextSize;
@@ -962,10 +971,10 @@ private:
     SkScalar measure_text(SkGlyphCache*, const char* text, size_t length,
                           int* count, SkRect* bounds) const;
 
-    SkGlyphCache*   detachCache(const SkMatrix*) const;
+    SkGlyphCache* detachCache(const SkDeviceProperties* deviceProperties, const SkMatrix*) const;
 
-    void descriptorProc(const SkMatrix* deviceMatrix,
-                        void (*proc)(const SkDescriptor*, void*),
+    void descriptorProc(const SkDeviceProperties* deviceProperties, const SkMatrix* deviceMatrix,
+                        void (*proc)(SkTypeface*, const SkDescriptor*, void*),
                         void* context, bool ignoreGamma = false) const;
 
     static void Term();
@@ -988,4 +997,3 @@ private:
 };
 
 #endif
-

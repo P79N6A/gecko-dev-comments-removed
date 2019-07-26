@@ -47,7 +47,6 @@ void decal_nofilter_scale_neon(uint32_t dst[], SkFixed fx, SkFixed dx, int count
 
         
         SkFixed fx1, fx2, fx3;
-        int32x2_t lower, upper;
         int32x4_t lbase, hbase;
         uint16_t *dst16 = (uint16_t *)dst;
 

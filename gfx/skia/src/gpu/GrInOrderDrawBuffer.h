@@ -17,13 +17,12 @@
 #include "GrPath.h"
 
 #include "SkClipStack.h"
+#include "SkStrokeRec.h"
 #include "SkTemplates.h"
 
 class GrGpu;
 class GrIndexBufferAllocPool;
 class GrVertexBufferAllocPool;
-
-
 
 
 
@@ -47,20 +46,11 @@ public:
 
 
 
-
-
-    GrInOrderDrawBuffer(const GrGpu* gpu,
+    GrInOrderDrawBuffer(GrGpu* gpu,
                         GrVertexBufferAllocPool* vertexPool,
                         GrIndexBufferAllocPool* indexPool);
 
     virtual ~GrInOrderDrawBuffer();
-
-    
-
-
-
-
-    void setQuadIndexBuffer(const GrIndexBuffer* indexBuffer);
 
     
 
@@ -76,66 +66,24 @@ public:
 
 
 
+    bool flush();
 
-
-
-
-    bool playback(GrDrawTarget* target);
+    bool isFlushing() const { return fFlushing; }
 
     
-
-
-
-    void flushTo(GrDrawTarget* target) {
-        if (fFlushing) {
-            
-            
-            
-            
-            return;
-        }
-
-        fFlushing = true;
-        if (this->playback(target)) {
-            this->reset();
-        }
-        fFlushing = false;
-    }
-
-    
-
-
-
-
-
-
-
-    void setAutoFlushTarget(GrDrawTarget* target);
-
-    
-    virtual void drawRect(const GrRect& rect,
-                          const GrMatrix* matrix = NULL,
-                          const GrRect* srcRects[] = NULL,
-                          const GrMatrix* srcMatrices[] = NULL) SK_OVERRIDE;
-
-    virtual void drawIndexedInstances(GrPrimitiveType type,
-                                      int instanceCount,
-                                      int verticesPerInstance,
-                                      int indicesPerInstance)
-                                      SK_OVERRIDE;
-
-    virtual bool geometryHints(GrVertexLayout vertexLayout,
-                               int* vertexCount,
+    virtual bool geometryHints(int* vertexCount,
                                int* indexCount) const SK_OVERRIDE;
-
     virtual void clear(const GrIRect* rect,
                        GrColor color,
                        GrRenderTarget* renderTarget = NULL) SK_OVERRIDE;
+    virtual void drawRect(const GrRect& rect,
+                          const SkMatrix* matrix,
+                          const GrRect* localRect,
+                          const SkMatrix* localMatrix) SK_OVERRIDE;
 
 protected:
-    virtual void willReserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
-                                                int vertexCount,
-                                                int indexCount) SK_OVERRIDE;
+    virtual void clipWillBeSet(const GrClipData* newClip) SK_OVERRIDE;
+
 private:
     enum Cmd {
         kDraw_Cmd           = 1,
@@ -145,20 +93,19 @@ private:
         kClear_Cmd          = 5,
     };
 
-    struct Draw {
-        GrPrimitiveType         fPrimitiveType;
-        int                     fStartVertex;
-        int                     fStartIndex;
-        int                     fVertexCount;
-        int                     fIndexCount;
-        GrVertexLayout          fVertexLayout;
+    class DrawRecord : public DrawInfo {
+    public:
+        DrawRecord(const DrawInfo& info) : DrawInfo(info) {}
         const GrVertexBuffer*   fVertexBuffer;
         const GrIndexBuffer*    fIndexBuffer;
     };
 
     struct StencilPath {
+        StencilPath();
+
         SkAutoTUnref<const GrPath>  fPath;
-        GrPathFill                  fFill;
+        SkStrokeRec                 fStroke;
+        SkPath::FillType            fFill;
     };
 
     struct Clear {
@@ -171,16 +118,9 @@ private:
     };
 
     
-    virtual void onDrawIndexed(GrPrimitiveType primitiveType,
-                               int startVertex,
-                               int startIndex,
-                               int vertexCount,
-                               int indexCount) SK_OVERRIDE;
-    virtual void onDrawNonIndexed(GrPrimitiveType primitiveType,
-                                  int startVertex,
-                                  int vertexCount) SK_OVERRIDE;
-    virtual void onStencilPath(const GrPath*, GrPathFill) SK_OVERRIDE;
-    virtual bool onReserveVertexSpace(GrVertexLayout layout,
+    virtual void onDraw(const DrawInfo&) SK_OVERRIDE;
+    virtual void onStencilPath(const GrPath*, const SkStrokeRec& stroke, SkPath::FillType) SK_OVERRIDE;
+    virtual bool onReserveVertexSpace(size_t vertexSize,
                                       int vertexCount,
                                       void** vertices) SK_OVERRIDE;
     virtual bool onReserveIndexSpace(int indexCount,
@@ -194,9 +134,14 @@ private:
     virtual void releaseVertexArray() SK_OVERRIDE;
     virtual void releaseIndexArray() SK_OVERRIDE;
     virtual void geometrySourceWillPush() SK_OVERRIDE;
-    virtual void geometrySourceWillPop(
-        const GeometrySrcState& restoredState) SK_OVERRIDE;
-    virtual void clipWillBeSet(const GrClipData* newClip) SK_OVERRIDE;
+    virtual void geometrySourceWillPop(const GeometrySrcState& restoredState) SK_OVERRIDE;
+    virtual void willReserveVertexAndIndexSpace(int vertexCount,
+                                                int indexCount) SK_OVERRIDE;
+    bool quickInsideClip(const SkRect& devBounds);
+
+    
+    
+    int concatInstancedDraw(const DrawInfo& info);
 
     
     
@@ -205,16 +150,10 @@ private:
 
     
     void            recordState();
-    void            recordDefaultState();
     void            recordClip();
-    void            recordDefaultClip();
-    Draw*           recordDraw();
+    DrawRecord*     recordDraw(const DrawInfo&);
     StencilPath*    recordStencilPath();
     Clear*          recordClear();
-
-    
-    
-    void resetDrawTracking();
 
     enum {
         kCmdPreallocCnt          = 32,
@@ -226,38 +165,30 @@ private:
         kGeoPoolStatePreAllocCnt = 4,
     };
 
-    SkSTArray<kCmdPreallocCnt, uint8_t, true>           fCmds;
-    GrSTAllocator<kDrawPreallocCnt, Draw>               fDraws;
-    GrSTAllocator<kStatePreallocCnt, StencilPath>       fStencilPaths;
-    GrSTAllocator<kStatePreallocCnt, GrDrawState>       fStates;
-    GrSTAllocator<kClearPreallocCnt, Clear>             fClears;
+    SkSTArray<kCmdPreallocCnt, uint8_t, true>                          fCmds;
+    GrSTAllocator<kDrawPreallocCnt, DrawRecord>                        fDraws;
+    GrSTAllocator<kStatePreallocCnt, StencilPath>                      fStencilPaths;
+    GrSTAllocator<kStatePreallocCnt, GrDrawState::DeferredState>       fStates;
+    GrSTAllocator<kClearPreallocCnt, Clear>                            fClears;
 
     GrSTAllocator<kClipPreallocCnt, SkClipStack>        fClips;
     GrSTAllocator<kClipPreallocCnt, SkIPoint>           fClipOrigins;
 
-    GrDrawTarget*                   fAutoFlushTarget;
+    GrDrawTarget*                   fDstGpu;
 
     bool                            fClipSet;
+
+    enum ClipProxyState {
+        kUnknown_ClipProxyState,
+        kValid_ClipProxyState,
+        kInvalid_ClipProxyState
+    };
+    ClipProxyState                  fClipProxyState;
+    SkRect                          fClipProxy;
 
     GrVertexBufferAllocPool&        fVertexPool;
 
     GrIndexBufferAllocPool&         fIndexPool;
-
-    
-    GrVertexLayout                  fLastRectVertexLayout;
-    const GrIndexBuffer*            fQuadIndexBuffer;
-    int                             fMaxQuads;
-    int                             fCurrQuad;
-
-    
-    struct {
-        int            fVerticesPerInstance;
-        int            fIndicesPerInstance;
-        void reset() {
-            fVerticesPerInstance = 0;
-            fIndicesPerInstance = 0;
-        }
-    } fInstancedDrawTracker;
 
     struct GeometryPoolState {
         const GrVertexBuffer*           fPoolVertexBuffer;

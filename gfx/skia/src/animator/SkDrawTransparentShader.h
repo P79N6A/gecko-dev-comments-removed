@@ -18,4 +18,3 @@ class SkDrawTransparentShader : public SkDrawShader {
 };
 
 #endif 
-

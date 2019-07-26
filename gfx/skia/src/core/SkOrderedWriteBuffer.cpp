@@ -7,7 +7,11 @@
 
 
 #include "SkOrderedWriteBuffer.h"
+#include "SkBitmap.h"
+#include "SkData.h"
+#include "SkPixelRef.h"
 #include "SkPtrRecorder.h"
+#include "SkStream.h"
 #include "SkTypeface.h"
 
 SkOrderedWriteBuffer::SkOrderedWriteBuffer(size_t minSize)
@@ -16,7 +20,8 @@ SkOrderedWriteBuffer::SkOrderedWriteBuffer(size_t minSize)
     , fNamedFactorySet(NULL)
     , fWriter(minSize)
     , fBitmapHeap(NULL)
-    , fTFSet(NULL) {
+    , fTFSet(NULL)
+    , fBitmapEncoder(NULL) {
 }
 
 SkOrderedWriteBuffer::SkOrderedWriteBuffer(size_t minSize, void* storage, size_t storageSize)
@@ -25,7 +30,8 @@ SkOrderedWriteBuffer::SkOrderedWriteBuffer(size_t minSize, void* storage, size_t
     , fNamedFactorySet(NULL)
     , fWriter(minSize, storage, storageSize)
     , fBitmapHeap(NULL)
-    , fTFSet(NULL) {
+    , fTFSet(NULL)
+    , fBitmapEncoder(NULL) {
 }
 
 SkOrderedWriteBuffer::~SkOrderedWriteBuffer() {
@@ -126,7 +132,12 @@ void SkOrderedWriteBuffer::writePath(const SkPath& path) {
 }
 
 size_t SkOrderedWriteBuffer::writeStream(SkStream* stream, size_t length) {
-    return fWriter.readFromStream(stream, length);
+    fWriter.write32(length);
+    size_t bytesWritten = fWriter.readFromStream(stream, length);
+    if (bytesWritten < length) {
+        fWriter.reservePad(length - bytesWritten);
+    }
+    return bytesWritten;
 }
 
 bool SkOrderedWriteBuffer::writeToStream(SkWStream* stream) {
@@ -134,9 +145,71 @@ bool SkOrderedWriteBuffer::writeToStream(SkWStream* stream) {
 }
 
 void SkOrderedWriteBuffer::writeBitmap(const SkBitmap& bitmap) {
-    if (fBitmapHeap) {
-        fWriter.write32(fBitmapHeap->insert(bitmap));
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (fBitmapHeap != NULL) {
+        SkASSERT(NULL == fBitmapEncoder);
+        
+        this->writeUInt(0);
+        int32_t slot = fBitmapHeap->insert(bitmap);
+        fWriter.write32(slot);
+        
+        
+        
+        
+        
+        
+        fWriter.write32(bitmap.getGenerationID());
+        return;
+    }
+    bool encoded = false;
+    
+    
+    SkPixelRef* ref = bitmap.pixelRef();
+    if (ref != NULL) {
+        SkAutoDataUnref data(ref->refEncodedData());
+        if (data.get() != NULL) {
+            
+            
+            
+            this->writeUInt(data->size());
+            fWriter.writePad(data->data(), data->size());
+            encoded = true;
+        }
+    }
+    if (fBitmapEncoder != NULL && !encoded) {
+        SkASSERT(NULL == fBitmapHeap);
+        SkDynamicMemoryWStream stream;
+        if (fBitmapEncoder(&stream, bitmap)) {
+            uint32_t offset = fWriter.bytesWritten();
+            
+            
+            
+            size_t length = stream.getOffset();
+            this->writeUInt(length);
+            if (stream.read(fWriter.reservePad(length), 0, length)) {
+                encoded = true;
+            } else {
+                
+                fWriter.rewindToOffset(offset);
+            }
+        }
+    }
+    if (encoded) {
+        
+        this->writeInt(bitmap.width());
+        this->writeInt(bitmap.height());
     } else {
+        
+        this->writeUInt(0);
         bitmap.flatten(*this);
     }
 }
@@ -170,6 +243,23 @@ SkNamedFactorySet* SkOrderedWriteBuffer::setNamedFactoryRecorder(SkNamedFactoryS
 SkRefCntSet* SkOrderedWriteBuffer::setTypefaceRecorder(SkRefCntSet* rec) {
     SkRefCnt_SafeAssign(fTFSet, rec);
     return rec;
+}
+
+void SkOrderedWriteBuffer::setBitmapHeap(SkBitmapHeap* bitmapHeap) {
+    SkRefCnt_SafeAssign(fBitmapHeap, bitmapHeap);
+    if (bitmapHeap != NULL) {
+        SkASSERT(NULL == fBitmapEncoder);
+        fBitmapEncoder = NULL;
+    }
+}
+
+void SkOrderedWriteBuffer::setBitmapEncoder(SkPicture::EncodeBitmap bitmapEncoder) {
+    fBitmapEncoder = bitmapEncoder;
+    if (bitmapEncoder != NULL) {
+        SkASSERT(NULL == fBitmapHeap);
+        SkSafeUnref(fBitmapHeap);
+        fBitmapHeap = NULL;
+    }
 }
 
 void SkOrderedWriteBuffer::writeFlattenable(SkFlattenable* flattenable) {

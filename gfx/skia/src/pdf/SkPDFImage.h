@@ -15,7 +15,6 @@
 #include "SkRefCnt.h"
 
 class SkBitmap;
-class SkPaint;
 class SkPDFCatalog;
 struct SkIRect;
 
@@ -37,8 +36,7 @@ public:
 
 
     static SkPDFImage* CreateImage(const SkBitmap& bitmap,
-                                   const SkIRect& srcRect,
-                                   const SkPaint& paint);
+                                   const SkIRect& srcRect);
 
     virtual ~SkPDFImage();
 
@@ -49,7 +47,8 @@ public:
     SkPDFImage* addSMask(SkPDFImage* mask);
 
     
-    virtual void getResources(SkTDArray<SkPDFObject*>* resourceList);
+    virtual void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                              SkTSet<SkPDFObject*>* newResourceObjects);
 
 private:
     SkTDArray<SkPDFObject*> fResources;
@@ -64,7 +63,7 @@ private:
 
 
     SkPDFImage(SkStream* imageData, const SkBitmap& bitmap,
-               const SkIRect& srcRect, bool alpha, const SkPaint& paint);
+               const SkIRect& srcRect, bool alpha);
 };
 
 #endif

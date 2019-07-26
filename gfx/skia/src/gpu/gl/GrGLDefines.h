@@ -11,6 +11,11 @@
 #define GrGLDefines_DEFINED
 
 
+#define GR_GL_CONTEXT_PROFILE_MASK              0x9126
+#define GR_GL_CONTEXT_CORE_PROFILE_BIT          0x00000001
+#define GR_GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
+
+
 
 
 #define GR_GL_DEPTH_BUFFER_BIT               0x00000100
@@ -357,6 +362,9 @@
 #define GR_GL_EXTENSIONS                     0x1F03
 
 
+#define GR_GL_NUM_EXTENSIONS                 0x821D
+
+
 #define GR_GL_UNPACK_ROW_LENGTH              0x0CF2
 #define GR_GL_PACK_ROW_LENGTH                0x0D02
 
@@ -650,6 +658,8 @@
 #define GR_GL_DEPTH24_STENCIL8               0x88F0
 
 #define GR_GL_MAX_SAMPLES                    0x8D57
+
+#define GR_GL_MAX_SAMPLES_IMG                0x9135
 
 #define GR_GL_RENDERBUFFER_WIDTH             0x8D42
 #define GR_GL_RENDERBUFFER_HEIGHT            0x8D43

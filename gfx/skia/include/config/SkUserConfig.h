@@ -138,7 +138,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
 #define SK_ALLOW_OVER_32K_BITMAPS
+
+
+
+
+
+
 
 
 
@@ -184,20 +199,6 @@
 
 
 
-#ifdef USE_SKIA_GPU
-    #define SK_SUPPORT_GPU 1
-#else
-    #define SK_SUPPORT_GPU 0
-#endif
 
-
-
-#define SK_DISABLE_DITHER_32BIT_GRADIENT
-
-
-
-#ifdef SK_BUILD_FOR_WIN32 
-    #define SK_IGNORE_STDINT_DOT_H 
-#endif 
 
 #endif

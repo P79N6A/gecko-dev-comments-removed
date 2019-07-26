@@ -34,11 +34,16 @@ public:
         kReadAtom_Status
     };
 
+    enum PlaybackFlags {
+        kReadAtom_PlaybackFlag = 0x1, 
+        kSilent_PlaybackFlag   = 0x2, 
+    };
+
     void setCanvas(SkCanvas*);
     
     
-    Status playback(const void* data, size_t length, size_t* bytesRead = NULL,
-                    bool readAtom = false);
+    Status playback(const void* data, size_t length, uint32_t playbackFlags = 0,
+                    size_t* bytesRead = NULL);
 private:
     SkCanvas*           fCanvas;
     class SkGPipeState* fState;

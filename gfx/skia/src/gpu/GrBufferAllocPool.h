@@ -12,9 +12,9 @@
 #define GrBufferAllocPool_DEFINED
 
 #include "GrNoncopyable.h"
-#include "GrTDArray.h"
 
 #include "SkTArray.h"
+#include "SkTDArray.h"
 
 class GrGeometryBuffer;
 class GrGpu;
@@ -170,7 +170,7 @@ private:
     GrGpu*                          fGpu;
     bool                            fGpuIsReffed;
     bool                            fFrequentResetHint;
-    GrTDArray<GrGeometryBuffer*>    fPreallocBuffers;
+    SkTDArray<GrGeometryBuffer*>    fPreallocBuffers;
     size_t                          fMinBlockSize;
     BufferType                      fBufferType;
 
@@ -230,7 +230,7 @@ public:
 
 
 
-    void* makeSpace(GrVertexLayout layout,
+    void* makeSpace(size_t vertexSize,
                     int vertexCount,
                     const GrVertexBuffer** buffer,
                     int* startVertex);
@@ -238,7 +238,7 @@ public:
     
 
 
-    bool appendVertices(GrVertexLayout layout,
+    bool appendVertices(size_t vertexSize,
                         int vertexCount,
                         const void* vertices,
                         const GrVertexBuffer** buffer,
@@ -254,7 +254,7 @@ public:
 
 
 
-    int currentBufferVertices(GrVertexLayout layout) const;
+    int currentBufferVertices(size_t vertexSize) const;
 
     
 
@@ -265,7 +265,7 @@ public:
 
 
 
-    int preallocatedBufferVertices(GrVertexLayout layout) const;
+    int preallocatedBufferVertices(size_t vertexSize) const;
 
 private:
     typedef GrBufferAllocPool INHERITED;

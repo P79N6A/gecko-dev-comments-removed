@@ -10,7 +10,8 @@
 #define GrGLProgram_DEFINED
 
 #include "GrDrawState.h"
-#include "GrGLContextInfo.h"
+#include "GrGLContext.h"
+#include "GrGLProgramDesc.h"
 #include "GrGLSL.h"
 #include "GrGLTexture.h"
 #include "GrGLUniformManager.h"
@@ -19,12 +20,8 @@
 #include "SkXfermode.h"
 
 class GrBinHashKeyBuilder;
-class GrGLProgramStage;
+class GrGLEffect;
 class GrGLShaderBuilder;
-
-
-
-#define GR_GL_EXPERIMENTAL_GS GR_DEBUG
 
 
 
@@ -39,15 +36,15 @@ class GrGLProgram : public GrRefCnt {
 public:
     SK_DECLARE_INST_COUNT(GrGLProgram)
 
-    struct Desc;
-
-    static GrGLProgram* Create(const GrGLContextInfo& gl,
-                               const Desc& desc,
-                               const GrCustomStage** customStages);
+    static GrGLProgram* Create(const GrGLContext& gl,
+                               const GrGLProgramDesc& desc,
+                               const GrEffectStage* stages[]);
 
     virtual ~GrGLProgram();
 
     
+
+
     void abandon();
 
     
@@ -55,138 +52,80 @@ public:
 
     void overrideBlend(GrBlendCoeff* srcCoeff, GrBlendCoeff* dstCoeff) const;
 
-    const Desc& getDesc() { return fDesc; }
+    const GrGLProgramDesc& getDesc() { return fDesc; }
 
     
 
 
-    static int PositionAttributeIdx() { return 0; }
-    static int TexCoordAttributeIdx(int tcIdx) { return 1 + tcIdx; }
-    static int ColorAttributeIdx() { return 1 + GrDrawState::kMaxTexCoords; }
-    static int CoverageAttributeIdx() {
-        return 2 + GrDrawState::kMaxTexCoords;
-    }
-    static int EdgeAttributeIdx() { return 3 + GrDrawState::kMaxTexCoords; }
-
-    static int ViewMatrixAttributeIdx() {
-        return 4 + GrDrawState::kMaxTexCoords;
-    }
-    static int TextureMatrixAttributeIdx(int stage) {
-        return 7 + GrDrawState::kMaxTexCoords + 3 * stage;
-    }
+    GrGLuint programID() const { return fProgramID; }
 
     
-    
-    
-    struct Desc {
-        Desc() {
-            
-            
-            memset(this, 0, sizeof(Desc));
+
+
+
+
+
+    struct SharedGLState {
+        GrColor fConstAttribColor;
+        int     fConstAttribColorIndex;
+        GrColor fConstAttribCoverage;
+        int     fConstAttribCoverageIndex;
+
+        SharedGLState() { this->invalidate(); }
+        void invalidate() {
+            fConstAttribColor = GrColor_ILLEGAL;
+            fConstAttribColorIndex = -1;
+            fConstAttribCoverage = GrColor_ILLEGAL;
+            fConstAttribCoverageIndex = -1;
         }
-
-        
-        const uint32_t* asKey() const {
-            return reinterpret_cast<const uint32_t*>(this);
-        }
-
-        struct StageDesc {
-            enum OptFlagBits {
-                kNoPerspective_OptFlagBit       = 1 << 0,
-                kIdentityMatrix_OptFlagBit      = 1 << 1,
-                kIsEnabled_OptFlagBit           = 1 << 7
-            };
-
-            uint8_t fOptFlags;
-
-            
-
-            GrProgramStageFactory::StageKey fCustomStageKey;
-
-            inline bool isEnabled() const {
-                return SkToBool(fOptFlags & kIsEnabled_OptFlagBit);
-            }
-            inline void setEnabled(bool newValue) {
-                if (newValue) {
-                    fOptFlags |= kIsEnabled_OptFlagBit;
-                } else {
-                    fOptFlags &= ~kIsEnabled_OptFlagBit;
-                }
-            }
-        };
-
-        
-        
-        enum ColorInput {
-            kSolidWhite_ColorInput,
-            kTransBlack_ColorInput,
-            kAttribute_ColorInput,
-            kUniform_ColorInput,
-
-            kColorInputCnt
-        };
-        
-        
-        
-        enum DualSrcOutput {
-            kNone_DualSrcOutput,
-            kCoverage_DualSrcOutput,
-            kCoverageISA_DualSrcOutput,
-            kCoverageISC_DualSrcOutput,
-
-            kDualSrcOutputCnt
-        };
-
-        GrDrawState::VertexEdgeType fVertexEdgeType;
-
-        
-        GrVertexLayout fVertexLayout;
-
-        StageDesc fStages[GrDrawState::kNumStages];
-
-        
-        
-#if GR_GL_EXPERIMENTAL_GS
-        bool fExperimentalGS;
-#endif
-
-        uint8_t fColorInput;        
-        uint8_t fCoverageInput;     
-        uint8_t fDualSrcOutput;     
-        int8_t fFirstCoverageStage;
-        SkBool8 fEmitsPointSize;
-        SkBool8 fColorMatrixEnabled;
-
-        uint8_t fColorFilterXfermode;  
     };
-    GR_STATIC_ASSERT(!(sizeof(Desc) % 4));
 
     
-    typedef Desc::StageDesc StageDesc;
+
+
+
+
+
+    struct MatrixState {
+        SkMatrix        fViewMatrix;
+        SkISize         fRenderTargetSize;
+        GrSurfaceOrigin fRenderTargetOrigin;
+
+        MatrixState() { this->invalidate(); }
+        void invalidate() {
+            fViewMatrix = SkMatrix::InvalidMatrix();
+            fRenderTargetSize.fWidth = -1;
+            fRenderTargetSize.fHeight = -1;
+            fRenderTargetOrigin = (GrSurfaceOrigin) -1;
+        }
+    };
+
+    
+
+
+
+
+
+
+    void setData(GrGpuGL*,
+                 GrColor color,
+                 GrColor coverage,
+                 const GrDeviceCoordTexture* dstCopy, 
+                 SharedGLState*);
 
 private:
-    struct StageUniforms;
-
-    GrGLProgram(const GrGLContextInfo& gl,
-                const Desc& desc,
-                const GrCustomStage** customStages);
+    GrGLProgram(const GrGLContext& gl,
+                const GrGLProgramDesc& desc,
+                const GrEffectStage* stages[]);
 
     bool succeeded() const { return 0 != fProgramID; }
 
     
 
 
-    bool genProgram(const GrCustomStage** customStages);
+    bool genProgram(const GrEffectStage* stages[]);
 
     void genInputColor(GrGLShaderBuilder* builder, SkString* inColor);
-
-    static GrGLProgramStage* GenStageCode(const GrCustomStage* stage,
-                                          const StageDesc& desc, 
-                                          StageUniforms* stageUniforms, 
-                                          const char* fsInColor, 
-                                          const char* fsOutColor,
-                                          const char* vsInCoord,
-                                          GrGLShaderBuilder* builder);
 
     void genGeometryShader(GrGLShaderBuilder* segments) const;
 
@@ -195,12 +134,7 @@ private:
     void genUniformCoverage(GrGLShaderBuilder* segments, SkString* inOutCoverage);
 
     
-    
-    
-    bool genEdgeCoverage(SkString* coverageVar, GrGLShaderBuilder* builder) const;
-
-    
-    bool bindOutputsAttribsAndLinkProgram(SkString texCoordAttrNames[GrDrawState::kMaxTexCoords],
+    bool bindOutputsAttribsAndLinkProgram(const GrGLShaderBuilder& builder,
                                           bool bindColorOut,
                                           bool bindDualSrcOut);
 
@@ -211,62 +145,68 @@ private:
 
     const char* adjustInColor(const SkString& inColor) const;
 
-    struct StageUniforms {
-        UniformHandle fTextureMatrixUni;
-        SkTArray<UniformHandle, true> fSamplerUniforms;
-        StageUniforms() {
-            fTextureMatrixUni = GrGLUniformManager::kInvalidUniformHandle;
-        }
-    };
+    
+    
+    void setColor(const GrDrawState&, GrColor color, SharedGLState*);
 
-    struct Uniforms {
-        UniformHandle fViewMatrixUni;
-        UniformHandle fColorUni;
-        UniformHandle fCoverageUni;
-        UniformHandle fColorFilterUni;
-        UniformHandle fColorMatrixUni;
-        UniformHandle fColorMatrixVecUni;
-        StageUniforms fStages[GrDrawState::kNumStages];
-        Uniforms() {
+    
+    
+    void setCoverage(const GrDrawState&, GrColor coverage, SharedGLState*);
+
+    
+    void setMatrixAndRenderTargetHeight(const GrDrawState&);
+
+    typedef SkSTArray<4, UniformHandle, true> SamplerUniSArray;
+
+    struct UniformHandles {
+        UniformHandle       fViewMatrixUni;
+        UniformHandle       fColorUni;
+        UniformHandle       fCoverageUni;
+        UniformHandle       fColorFilterUni;
+
+        
+        
+        UniformHandle       fRTHeightUni;
+
+        
+        UniformHandle       fDstCopyTopLeftUni;
+        UniformHandle       fDstCopyScaleUni;
+        UniformHandle       fDstCopySamplerUni;
+
+        
+        SamplerUniSArray    fEffectSamplerUnis[GrDrawState::kNumStages];
+
+        UniformHandles() {
             fViewMatrixUni = GrGLUniformManager::kInvalidUniformHandle;
             fColorUni = GrGLUniformManager::kInvalidUniformHandle;
             fCoverageUni = GrGLUniformManager::kInvalidUniformHandle;
             fColorFilterUni = GrGLUniformManager::kInvalidUniformHandle;
-            fColorMatrixUni = GrGLUniformManager::kInvalidUniformHandle;
-            fColorMatrixVecUni = GrGLUniformManager::kInvalidUniformHandle;
+            fRTHeightUni = GrGLUniformManager::kInvalidUniformHandle;
+            fDstCopyTopLeftUni = GrGLUniformManager::kInvalidUniformHandle;
+            fDstCopyScaleUni = GrGLUniformManager::kInvalidUniformHandle;
+            fDstCopySamplerUni = GrGLUniformManager::kInvalidUniformHandle;
         }
     };
 
     
-    GrGLuint    fVShaderID;
-    GrGLuint    fGShaderID;
-    GrGLuint    fFShaderID;
-    GrGLuint    fProgramID;
+    GrGLuint                    fVShaderID;
+    GrGLuint                    fGShaderID;
+    GrGLuint                    fFShaderID;
+    GrGLuint                    fProgramID;
 
     
-    
-    GrMatrix  fViewMatrix;
-    SkISize   fViewportSize;
-
-    
-    
+    MatrixState                 fMatrixState;
     GrColor                     fColor;
     GrColor                     fCoverage;
     GrColor                     fColorFilterColor;
-    
-    
-    GrMatrix                    fTextureMatrices[GrDrawState::kNumStages];
-    GrGLTexture::Orientation    fTextureOrientation[GrDrawState::kNumStages];
 
-    GrGLProgramStage*           fProgramStage[GrDrawState::kNumStages];
+    GrGLEffect*                 fEffects[GrDrawState::kNumStages];
 
-    Desc fDesc;
-    const GrGLContextInfo&      fContextInfo;
+    GrGLProgramDesc             fDesc;
+    const GrGLContext&          fContext;
 
     GrGLUniformManager          fUniformManager;
-    Uniforms                    fUniforms;
-
-    friend class GrGpuGL; 
+    UniformHandles              fUniformHandles;
 
     typedef GrRefCnt INHERITED;
 };

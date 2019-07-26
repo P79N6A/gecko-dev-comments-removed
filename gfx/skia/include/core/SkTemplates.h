@@ -11,12 +11,19 @@
 #define SkTemplates_DEFINED
 
 #include "SkTypes.h"
+#include <new>
 
 
 
 
 
 
+
+
+
+
+
+template<typename T> inline void sk_ignore_unused_variable(const T&) { }
 
 
 
@@ -76,18 +83,34 @@ private:
 
 template <typename T> class SkAutoTDelete : SkNoncopyable {
 public:
-    SkAutoTDelete(T* obj, bool deleteWhenDone = true) : fObj(obj) {
-        fDeleteWhenDone = deleteWhenDone;
-    }
-    ~SkAutoTDelete() { if (fDeleteWhenDone) delete fObj; }
+    SkAutoTDelete(T* obj) : fObj(obj) {}
+    ~SkAutoTDelete() { delete fObj; }
 
-    T*      get() const { return fObj; }
-    void    free() { delete fObj; fObj = NULL; }
-    T*      detach() { T* obj = fObj; fObj = NULL; return obj; }
+    T* get() const { return fObj; }
+    T& operator*() const { SkASSERT(fObj); return *fObj; }
+    T* operator->() const { SkASSERT(fObj); return fObj; }
+
+    
+
+
+    void free() {
+        delete fObj;
+        fObj = NULL;
+    }
+
+    
+
+
+
+
+    T* detach() {
+        T* obj = fObj;
+        fObj = NULL;
+        return obj;
+    }
 
 private:
     T*  fObj;
-    bool fDeleteWhenDone;
 };
 
 template <typename T> class SkAutoTDeleteArray : SkNoncopyable {
@@ -333,4 +356,3 @@ private:
 };
 
 #endif
-

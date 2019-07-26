@@ -43,10 +43,15 @@ struct GrGLIRect {
                        int leftOffset,
                        int topOffset,
                        int width,
-                       int height) {
+                       int height,
+                       GrSurfaceOrigin origin) {
         fLeft = glRect.fLeft + leftOffset;
         fWidth = width;
-        fBottom = glRect.fBottom + (glRect.fHeight - topOffset - height);
+        if (kBottomLeft_GrSurfaceOrigin == origin) {
+            fBottom = glRect.fBottom + (glRect.fHeight - topOffset - height);
+        } else {
+            fBottom = glRect.fBottom + topOffset;
+        }
         fHeight = height;
 
         GrAssert(fLeft >= 0);

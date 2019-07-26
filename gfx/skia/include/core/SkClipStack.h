@@ -9,11 +9,11 @@
 #define SkClipStack_DEFINED
 
 #include "SkDeque.h"
+#include "SkPath.h"
+#include "SkRect.h"
 #include "SkRegion.h"
 #include "SkTDArray.h"
 
-struct SkRect;
-class SkPath;
 
 
 
@@ -23,6 +23,239 @@ class SkPath;
 
 class SK_API SkClipStack {
 public:
+    enum BoundsType {
+        
+        kNormal_BoundsType,
+        
+        
+        
+        
+        
+        kInsideOut_BoundsType
+    };
+
+    class Element {
+    public:
+        enum Type {
+            
+            kEmpty_Type,
+            
+            kRect_Type,
+            
+            kPath_Type,
+        };
+
+        Element() {
+            this->initCommon(0, SkRegion::kReplace_Op, false);
+            this->setEmpty();
+        }
+
+        Element(const SkRect& rect, SkRegion::Op op, bool doAA) {
+            this->initRect(0, rect, op, doAA);
+        }
+
+        Element(const SkPath& path, SkRegion::Op op, bool doAA) {
+            this->initPath(0, path, op, doAA);
+        }
+
+        bool operator== (const Element& element) const {
+            if (this == &element) {
+                return true;
+            }
+            if (fOp != element.fOp ||
+                fType != element.fType ||
+                fDoAA != element.fDoAA ||
+                fSaveCount != element.fSaveCount) {
+                return false;
+            }
+            switch (fType) {
+                case kPath_Type:
+                    return fPath == element.fPath;
+                case kRect_Type:
+                    return fRect == element.fRect;
+                case kEmpty_Type:
+                    return true;
+                default:
+                    SkDEBUGFAIL("Unexpected type.");
+                    return false;
+            }
+        }
+        bool operator!= (const Element& element) const { return !(*this == element); }
+
+        
+        Type getType() const { return fType; }
+
+        
+        const SkPath& getPath() const { return fPath; }
+
+        
+        const SkRect& getRect() const { return fRect; }
+
+        
+        SkRegion::Op getOp() const { return fOp; }
+
+        
+
+        bool isAA() const { return fDoAA; }
+
+        
+        void invertShapeFillType();
+
+        
+        void setOp(SkRegion::Op op) { fOp = op; }
+
+        
+
+
+
+
+        int32_t getGenID() const { return fGenID; }
+
+        
+
+
+
+        const SkRect& getBounds() const {
+            static const SkRect kEmpty = { 0, 0, 0, 0 };
+            switch (fType) {
+                case kRect_Type:
+                    return fRect;
+                case kPath_Type:
+                    return fPath.getBounds();
+                case kEmpty_Type:
+                    return kEmpty;
+                default:
+                    SkDEBUGFAIL("Unexpected type.");
+                    return kEmpty;
+            }
+        }
+
+        
+
+
+
+        bool contains(const SkRect& rect) const {
+            switch (fType) {
+                case kRect_Type:
+                    return fRect.contains(rect);
+                case kPath_Type:
+                    return fPath.conservativelyContainsRect(rect);
+                case kEmpty_Type:
+                    return false;
+                default:
+                    SkDEBUGFAIL("Unexpected type.");
+                    return false;
+            }
+        }
+
+        
+
+
+        bool isInverseFilled() const {
+            return kPath_Type == fType && fPath.isInverseFillType();
+        }
+
+    private:
+        friend class SkClipStack;
+
+        SkPath          fPath;
+        SkRect          fRect;
+        int             fSaveCount; 
+        SkRegion::Op    fOp;
+        Type            fType;
+        bool            fDoAA;
+
+        
+
+
+
+
+
+
+
+
+
+        SkClipStack::BoundsType fFiniteBoundType;
+        SkRect                  fFiniteBound;
+
+        
+        
+        bool                    fIsIntersectionOfRects;
+
+        int                     fGenID;
+
+        Element(int saveCount) {
+            this->initCommon(saveCount, SkRegion::kReplace_Op, false);
+            this->setEmpty();
+        }
+
+        Element(int saveCount, const SkRect& rect, SkRegion::Op op, bool doAA) {
+            this->initRect(saveCount, rect, op, doAA);
+        }
+
+        Element(int saveCount, const SkPath& path, SkRegion::Op op, bool doAA) {
+            this->initPath(saveCount, path, op, doAA);
+        }
+
+        void initCommon(int saveCount, SkRegion::Op op, bool doAA) {
+            fSaveCount = saveCount;
+            fOp = op;
+            fDoAA = doAA;
+            
+            
+            fFiniteBoundType = kInsideOut_BoundsType;
+            fFiniteBound.setEmpty();
+            fIsIntersectionOfRects = false;
+            fGenID = kInvalidGenID;
+        }
+
+        void initRect(int saveCount, const SkRect& rect, SkRegion::Op op, bool doAA) {
+            fRect = rect;
+            fType = kRect_Type;
+            this->initCommon(saveCount, op, doAA);
+        }
+
+        void initPath(int saveCount, const SkPath& path, SkRegion::Op op, bool doAA) {
+            fPath = path;
+            fType = kPath_Type;
+            this->initCommon(saveCount, op, doAA);
+        }
+
+        void setEmpty() {
+            fType = kEmpty_Type;
+            fFiniteBound.setEmpty();
+            fFiniteBoundType = kNormal_BoundsType;
+            fIsIntersectionOfRects = false;
+            fRect.setEmpty();
+            fPath.reset();
+            fGenID = kEmptyGenID;
+        }
+
+        
+        inline void checkEmpty() const;
+        inline bool canBeIntersectedInPlace(int saveCount, SkRegion::Op op) const;
+        
+
+
+        bool rectRectIntersectAllowed(const SkRect& newR, bool newAA) const;
+        
+
+        void updateBoundAndGenID(const Element* prior);
+        
+        enum FillCombo {
+            kPrev_Cur_FillCombo,
+            kPrev_InvCur_FillCombo,
+            kInvPrev_Cur_FillCombo,
+            kInvPrev_InvCur_FillCombo
+        };
+        
+        inline void combineBoundsDiff(FillCombo combination, const SkRect& prevFinite);
+        inline void combineBoundsXOR(int combination, const SkRect& prevFinite);
+        inline void combineBoundsUnion(int combination, const SkRect& prevFinite);
+        inline void combineBoundsIntersection(int combination, const SkRect& prevFinite);
+        inline void combineBoundsRevDiff(int combination, const SkRect& prevFinite);
+    };
+
     SkClipStack();
     SkClipStack(const SkClipStack& b);
     explicit SkClipStack(const SkRect& r);
@@ -39,17 +272,6 @@ public:
     void save();
     void restore();
 
-    enum BoundsType {
-        
-        kNormal_BoundsType,
-        
-        
-        
-        
-        
-        kInsideOut_BoundsType
-    };
-
     
 
 
@@ -62,6 +284,20 @@ public:
     void getBounds(SkRect* canvFiniteBound,
                    BoundsType* boundType,
                    bool* isIntersectionOfRects = NULL) const;
+
+    
+
+
+
+
+    bool intersectRectWithClip(SkRect* devRect) const;
+
+    
+
+
+
+
+    bool quickContains(const SkRect& devRect) const;
 
     void clipDevRect(const SkIRect& ir, SkRegion::Op op) {
         SkRect r;
@@ -104,9 +340,6 @@ public:
 
     int32_t getTopmostGenID() const;
 
-private:
-    struct Rec;
-
 public:
     class Iter {
     public:
@@ -122,36 +355,18 @@ public:
 
         Iter(const SkClipStack& stack, IterStart startLoc);
 
-        struct Clip {
-            Clip() : fRect(NULL), fPath(NULL), fOp(SkRegion::kIntersect_Op),
-                     fDoAA(false) {}
-            friend bool operator==(const Clip& a, const Clip& b);
-            friend bool operator!=(const Clip& a, const Clip& b);
-            const SkRect*   fRect;  
-            const SkPath*   fPath;  
-            SkRegion::Op    fOp;
-            bool            fDoAA;
-            int32_t         fGenID;
-        };
+        
+
+
+
+        const Element* next();
+        const Element* prev();
 
         
 
 
 
-
-
-
-
-
-        const Clip* next();
-        const Clip* prev();
-
-        
-
-
-
-
-        const Clip* skipToTopmost(SkRegion::Op op);
+        const Element* skipToTopmost(SkRegion::Op op);
 
         
 
@@ -160,14 +375,7 @@ public:
 
     private:
         const SkClipStack* fStack;
-        Clip               fClip;
         SkDeque::Iter      fIter;
-
-        
-
-
-
-        const Clip* updateClip(const SkClipStack::Rec* rec);
     };
 
     
@@ -186,7 +394,6 @@ public:
         : INHERITED(stack, kBottom_IterStart) {
         }
 
-        using Iter::Clip;
         using Iter::next;
 
         
@@ -248,7 +455,7 @@ private:
     
 
 
-    void purgeClip(Rec* rec);
+    void purgeClip(Element* element);
 
     
 
@@ -257,4 +464,3 @@ private:
 };
 
 #endif
-

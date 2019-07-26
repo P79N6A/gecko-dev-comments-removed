@@ -25,6 +25,8 @@ struct SkOTTableOS2 {
     static const SK_OT_ULONG TAG = SkOTTableTAG<SkOTTableOS2>::value;
 
     union Version {
+        SK_OT_USHORT version;
+
         
         struct VA : SkOTTableOS2_VA { } vA;
         struct V0 : SkOTTableOS2_V0 { } v0;

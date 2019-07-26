@@ -57,7 +57,7 @@ private:
 
     
     char*   fDstRow; 
-    int     fDstRowBytes;
+    size_t  fDstRowBytes;
     int     fCurrY; 
     int     fSrcPixelSize;  
     RowProc fRowProc;

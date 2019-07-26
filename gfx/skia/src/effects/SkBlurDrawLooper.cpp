@@ -8,10 +8,12 @@
 #include "SkBlurDrawLooper.h"
 #include "SkBlurMaskFilter.h"
 #include "SkCanvas.h"
-#include "SkFlattenableBuffers.h"
-#include "SkPaint.h"
-#include "SkMaskFilter.h"
 #include "SkColorFilter.h"
+#include "SkFlattenableBuffers.h"
+#include "SkMaskFilter.h"
+#include "SkPaint.h"
+#include "SkString.h"
+#include "SkStringUtils.h"
 
 SkBlurDrawLooper::SkBlurDrawLooper(SkScalar radius, SkScalar dx, SkScalar dy,
                                    SkColor color, uint32_t flags)
@@ -72,7 +74,7 @@ void SkBlurDrawLooper::flatten(SkFlattenableWriteBuffer& buffer) const {
     buffer.writeUInt(fBlurFlags);
 }
 
-void SkBlurDrawLooper::init(SkCanvas* canvas) {
+void SkBlurDrawLooper::init(SkCanvas*) {
     fState = kBeforeEdge;
 }
 
@@ -116,7 +118,34 @@ bool SkBlurDrawLooper::next(SkCanvas* canvas, SkPaint* paint) {
     }
 }
 
+#ifdef SK_DEVELOPER
+void SkBlurDrawLooper::toString(SkString* str) const {
+    str->append("SkBlurDrawLooper: ");
 
+    str->append("dx: ");
+    str->appendScalar(fDx);
 
-SK_DEFINE_FLATTENABLE_REGISTRAR(SkBlurDrawLooper)
+    str->append(" dy: ");
+    str->appendScalar(fDy);
 
+    str->append(" color: ");
+    str->appendHex(fBlurColor);
+
+    str->append(" flags: (");
+    if (kNone_BlurFlag == fBlurFlags) {
+        str->append("None");
+    } else {
+        bool needsSeparator = false;
+        SkAddFlagToString(str, SkToBool(kIgnoreTransform_BlurFlag & fBlurFlags), "IgnoreTransform",
+                          &needsSeparator);
+        SkAddFlagToString(str, SkToBool(kOverrideColor_BlurFlag & fBlurFlags), "OverrideColor",
+                          &needsSeparator);
+        SkAddFlagToString(str, SkToBool(kHighQuality_BlurFlag & fBlurFlags), "HighQuality",
+                          &needsSeparator);
+    }
+    str->append(")");
+
+    
+    
+}
+#endif

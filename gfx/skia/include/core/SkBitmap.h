@@ -21,6 +21,7 @@ struct SkRect;
 class SkPaint;
 class SkPixelRef;
 class SkRegion;
+class SkString;
 
 
 class SkGpuTexture;
@@ -111,7 +112,7 @@ public:
     int height() const { return fHeight; }
     
 
-    int rowBytes() const { return fRowBytes; }
+    size_t rowBytes() const { return fRowBytes; }
 
     
 
@@ -205,7 +206,7 @@ public:
     
 
 
-    static int ComputeRowBytes(Config c, int width);
+    static size_t ComputeRowBytes(Config c, int width);
 
     
 
@@ -225,6 +226,24 @@ public:
     
 
 
+
+
+
+
+
+
+    static bool ComputeIsOpaque(const SkBitmap&);
+
+    
+
+
+    void computeAndSetOpaquePredicate() {
+        this->setIsOpaque(ComputeIsOpaque(*this));
+    }
+
+    
+
+
     void getBounds(SkRect* bounds) const;
     void getBounds(SkIRect* bounds) const;
 
@@ -232,7 +251,7 @@ public:
 
 
 
-    void setConfig(Config, int width, int height, int rowBytes = 0);
+    void setConfig(Config, int width, int height, size_t rowBytes = 0);
     
 
 
@@ -263,9 +282,8 @@ public:
 
 
 
-    bool copyPixelsTo(void* const dst, size_t dstSize, int dstRowBytes = -1,
-                      bool preserveDstPad = false)
-         const;
+    bool copyPixelsTo(void* const dst, size_t dstSize, size_t dstRowBytes = 0,
+                      bool preserveDstPad = false) const;
 
     
 
@@ -524,6 +542,20 @@ public:
 
     int extractMipLevel(SkBitmap* dst, SkFixed sx, SkFixed sy);
 
+#ifdef SK_BUILD_FOR_ANDROID
+    bool hasHardwareMipMap() const {
+        return (fFlags & kHasHardwareMipMap_Flag) != 0;
+    }
+
+    void setHasHardwareMipMap(bool hasHardwareMipMap) {
+        if (hasHardwareMipMap) {
+            fFlags |= kHasHardwareMipMap_Flag;
+        } else {
+            fFlags &= ~kHasHardwareMipMap_Flag;
+        }
+    }
+#endif
+
     bool extractAlpha(SkBitmap* dst) const {
         return this->extractAlpha(dst, NULL, NULL, NULL);
     }
@@ -607,6 +639,8 @@ public:
         int       fHeight;
     };
 
+    SkDEVCODE(void toString(SkString* str) const;)
+
 private:
     struct MipMap;
     mutable MipMap* fMipMap;
@@ -622,7 +656,14 @@ private:
     enum Flags {
         kImageIsOpaque_Flag     = 0x01,
         kImageIsVolatile_Flag   = 0x02,
-        kImageIsImmutable_Flag  = 0x04
+        kImageIsImmutable_Flag  = 0x04,
+#ifdef SK_BUILD_FOR_ANDROID
+        
+
+
+
+        kHasHardwareMipMap_Flag = 0x08,
+#endif
     };
 
     uint32_t    fRowBytes;
@@ -634,14 +675,14 @@ private:
 
     
 
-    static Sk64 ComputeSafeSize64(Config config,
+    static Sk64 ComputeSafeSize64(Config   config,
                                   uint32_t width,
                                   uint32_t height,
-                                  uint32_t rowBytes);
+                                  size_t   rowBytes);
     static size_t ComputeSafeSize(Config   config,
                                   uint32_t width,
                                   uint32_t height,
-                                  uint32_t rowBytes);
+                                  size_t   rowBytes);
 
     
 

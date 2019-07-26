@@ -19,14 +19,14 @@ class GrGLTexID : public GrRefCnt {
 public:
     SK_DECLARE_INST_COUNT(GrGLTexID)
 
-    GrGLTexID(const GrGLInterface* gl, GrGLuint texID, bool ownsID)
+    GrGLTexID(const GrGLInterface* gl, GrGLuint texID, bool isWrapped)
         : fGL(gl)
         , fTexID(texID)
-        , fOwnsID(ownsID) {
+        , fIsWrapped(isWrapped) {
     }
 
     virtual ~GrGLTexID() {
-        if (0 != fTexID && fOwnsID) {
+        if (0 != fTexID && !fIsWrapped) {
             GR_GL_CALL(fGL, DeleteTextures(1, &fTexID));
         }
     }
@@ -37,7 +37,7 @@ public:
 private:
     const GrGLInterface* fGL;
     GrGLuint             fTexID;
-    bool                 fOwnsID;
+    bool                 fIsWrapped;
 
     typedef GrRefCnt INHERITED;
 };
@@ -48,11 +48,6 @@ private:
 class GrGLTexture : public GrTexture {
 
 public:
-    enum Orientation {
-        kBottomUp_Orientation,
-        kTopDown_Orientation,
-    };
-
     struct TexParams {
         GrGLenum fFilter;
         GrGLenum fWrapS;
@@ -63,8 +58,7 @@ public:
 
     struct Desc : public GrTextureDesc {
         GrGLuint        fTextureID;
-        bool            fOwnsID;
-        Orientation     fOrientation;
+        bool            fIsWrapped;
     };
 
     
@@ -79,7 +73,7 @@ public:
 
     virtual ~GrGLTexture() { this->release(); }
 
-    virtual intptr_t getTextureHandle() const SK_OVERRIDE;
+    virtual GrBackendObject getTextureHandle() const SK_OVERRIDE;
 
     virtual void invalidateCachedState() SK_OVERRIDE { fTexParams.invalidate(); }
 
@@ -95,16 +89,6 @@ public:
     }
     GrGLuint textureID() const { return fTexIDObj->id(); }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    Orientation orientation() const { return fOrientation; }
-
 protected:
 
     
@@ -115,7 +99,6 @@ private:
     TexParams                       fTexParams;
     GrGpu::ResetTimestamp           fTexParamsTimestamp;
     GrGLTexID*                      fTexIDObj;
-    Orientation                     fOrientation;
 
     void init(GrGpuGL* gpu,
               const Desc& textureDesc,

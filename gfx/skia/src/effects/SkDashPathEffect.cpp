@@ -88,10 +88,81 @@ SkDashPathEffect::~SkDashPathEffect() {
     sk_free(fIntervals);
 }
 
+static void outset_for_stroke(SkRect* rect, const SkStrokeRec& rec) {
+    SkScalar radius = SkScalarHalf(rec.getWidth());
+    if (0 == radius) {
+        radius = SK_Scalar1;    
+    }
+    if (SkPaint::kMiter_Join == rec.getJoin()) {
+        radius = SkScalarMul(radius, rec.getMiter());
+    }
+    rect->outset(radius, radius);
+}
+
+
+
+static bool cull_path(const SkPath& srcPath, const SkStrokeRec& rec,
+                      const SkRect* cullRect, SkScalar intervalLength,
+                      SkPath* dstPath) {
+    if (NULL == cullRect) {
+        return false;
+    }
+
+    SkPoint pts[2];
+    if (!srcPath.isLine(pts)) {
+        return false;
+    }
+
+    SkRect bounds = *cullRect;
+    outset_for_stroke(&bounds, rec);
+
+    SkScalar dx = pts[1].x() - pts[0].x();
+    SkScalar dy = pts[1].y() - pts[0].y();
+
+    
+    if (dy) {
+        return false;
+    }
+
+    SkScalar minX = pts[0].fX;
+    SkScalar maxX = pts[1].fX;
+
+    if (maxX < bounds.fLeft || minX > bounds.fRight) {
+        return false;
+    }
+
+    if (dx < 0) {
+        SkTSwap(minX, maxX);
+    }
+
+    
+    
+    
+
+    if (minX < bounds.fLeft) {
+        minX = bounds.fLeft - SkScalarMod(bounds.fLeft - minX,
+                                          intervalLength);
+    }
+    if (maxX > bounds.fRight) {
+        maxX = bounds.fRight + SkScalarMod(maxX - bounds.fRight,
+                                           intervalLength);
+    }
+
+    SkASSERT(maxX >= minX);
+    if (dx < 0) {
+        SkTSwap(minX, maxX);
+    }
+    pts[0].fX = minX;
+    pts[1].fX = maxX;
+
+    dstPath->moveTo(pts[0]);
+    dstPath->lineTo(pts[1]);
+    return true;
+}
+
 class SpecialLineRec {
 public:
     bool init(const SkPath& src, SkPath* dst, SkStrokeRec* rec,
-              SkScalar pathLength,
               int intervalCount, SkScalar intervalLength) {
         if (rec->isHairlineStyle() || !src.isLine(fPts)) {
             return false;
@@ -101,6 +172,8 @@ public:
         if (SkPaint::kButt_Cap != rec->getCap()) {
             return false;
         }
+
+        SkScalar pathLength = SkPoint::Distance(fPts[0], fPts[1]);
 
         fTangent = fPts[1] - fPts[0];
         if (fTangent.isZero()) {
@@ -156,18 +229,25 @@ private:
 };
 
 bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
-                                  SkStrokeRec* rec) {
+                              SkStrokeRec* rec, const SkRect* cullRect) const {
     
     if (rec->isFillStyle() || fInitialDashLength < 0) {
         return false;
     }
 
-    SkPathMeasure   meas(src, false);
     const SkScalar* intervals = fIntervals;
+    SkScalar        dashCount = 0;
+
+    SkPath cullPathStorage;
+    const SkPath* srcPtr = &src;
+    if (cull_path(src, *rec, cullRect, fIntervalLength, &cullPathStorage)) {
+        srcPtr = &cullPathStorage;
+    }
 
     SpecialLineRec lineRec;
-    const bool specialLine = lineRec.init(src, dst, rec, meas.getLength(),
-                                          fCount >> 1, fIntervalLength);
+    bool specialLine = lineRec.init(*srcPtr, dst, rec, fCount >> 1, fIntervalLength);
+
+    SkPathMeasure   meas(*srcPtr, false);
 
     do {
         bool        skipFirstSegment = meas.isClosed();
@@ -175,6 +255,21 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
         SkScalar    length = meas.getLength();
         int         index = fInitialDashIndex;
         SkScalar    scale = SK_Scalar1;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        static const SkScalar kMaxDashCount = 1000000;
+        dashCount += length * (fCount >> 1) / fIntervalLength;
+        if (dashCount > kMaxDashCount) {
+            dst->reset();
+            return false;
+        }
 
         if (fScaleToFit) {
             if (fIntervalLength >= length) {
@@ -186,8 +281,10 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
             }
         }
 
-        SkScalar    distance = 0;
-        SkScalar    dlen = SkScalarMul(fInitialDashLength, scale);
+        
+        
+        double  distance = 0;
+        double  dlen = SkScalarMul(fInitialDashLength, scale);
 
         while (distance < length) {
             SkASSERT(dlen >= 0);
@@ -196,9 +293,13 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
                 addedSegment = true;
 
                 if (specialLine) {
-                    lineRec.addSegment(distance, distance + dlen, dst);
+                    lineRec.addSegment(SkDoubleToScalar(distance),
+                                       SkDoubleToScalar(distance + dlen),
+                                       dst);
                 } else {
-                    meas.getSegment(distance, distance + dlen, dst, true);
+                    meas.getSegment(SkDoubleToScalar(distance),
+                                    SkDoubleToScalar(distance + dlen),
+                                    dst, true);
                 }
             }
             distance += dlen;
@@ -223,6 +324,199 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
             meas.getSegment(0, SkScalarMul(fInitialDashLength, scale), dst, !addedSegment);
         }
     } while (meas.nextContour());
+
+    return true;
+}
+
+
+
+
+
+bool SkDashPathEffect::asPoints(PointData* results,
+                                const SkPath& src,
+                                const SkStrokeRec& rec,
+                                const SkMatrix& matrix,
+                                const SkRect* cullRect) const {
+    
+    if (fInitialDashLength < 0 || 0 >= rec.getWidth()) {
+        return false;
+    }
+
+    
+    
+    
+    
+    
+    if (fCount != 2 ||
+        !SkScalarNearlyEqual(fIntervals[0], fIntervals[1]) ||
+        !SkScalarIsInt(fIntervals[0]) ||
+        !SkScalarIsInt(fIntervals[1])) {
+        return false;
+    }
+
+    
+    
+    
+    if (fScaleToFit) {
+        return false;
+    }
+
+    SkPoint pts[2];
+
+    if (!src.isLine(pts)) {
+        return false;
+    }
+
+    
+    if (SkPaint::kButt_Cap != rec.getCap()) {
+        return false;
+    }
+
+    
+    if (!matrix.rectStaysRect()) {
+        return false;
+    }
+
+    SkScalar        length = SkPoint::Distance(pts[1], pts[0]);
+
+    SkVector tangent = pts[1] - pts[0];
+    if (tangent.isZero()) {
+        return false;
+    }
+
+    tangent.scale(SkScalarInvert(length));
+
+    
+    bool isXAxis = true;
+    if (SK_Scalar1 == tangent.fX || -SK_Scalar1 == tangent.fX) {
+        results->fSize.set(SkScalarHalf(fIntervals[0]), SkScalarHalf(rec.getWidth()));
+    } else if (SK_Scalar1 == tangent.fY || -SK_Scalar1 == tangent.fY) {
+        results->fSize.set(SkScalarHalf(rec.getWidth()), SkScalarHalf(fIntervals[0]));
+        isXAxis = false;
+    } else if (SkPaint::kRound_Cap != rec.getCap()) {
+        
+        return false;
+    }
+
+    if (NULL != results) {
+        results->fFlags = 0;
+        SkScalar clampedInitialDashLength = SkMinScalar(length, fInitialDashLength);
+
+        if (SkPaint::kRound_Cap == rec.getCap()) {
+            results->fFlags |= PointData::kCircles_PointFlag;
+        }
+
+        results->fNumPoints = 0;
+        SkScalar len2 = length;
+        if (clampedInitialDashLength > 0 || 0 == fInitialDashIndex) {
+            SkASSERT(len2 >= clampedInitialDashLength);
+            if (0 == fInitialDashIndex) {
+                if (clampedInitialDashLength > 0) {
+                    if (clampedInitialDashLength >= fIntervals[0]) {
+                        ++results->fNumPoints;  
+                    }
+                    len2 -= clampedInitialDashLength;
+                }
+                len2 -= fIntervals[1];  
+                if (len2 < 0) {
+                    len2 = 0;
+                }
+            } else {
+                len2 -= clampedInitialDashLength; 
+            }
+        }
+        int numMidPoints = SkScalarFloorToInt(SkScalarDiv(len2, fIntervalLength));
+        results->fNumPoints += numMidPoints;
+        len2 -= numMidPoints * fIntervalLength;
+        bool partialLast = false;
+        if (len2 > 0) {
+            if (len2 < fIntervals[0]) {
+                partialLast = true;
+            } else {
+                ++numMidPoints;
+                ++results->fNumPoints;
+            }
+        }
+
+        results->fPoints = new SkPoint[results->fNumPoints];
+
+        SkScalar    distance = 0;
+        int         curPt = 0;
+
+        if (clampedInitialDashLength > 0 || 0 == fInitialDashIndex) {
+            SkASSERT(clampedInitialDashLength <= length);
+
+            if (0 == fInitialDashIndex) {
+                if (clampedInitialDashLength > 0) {
+                    
+                    SkASSERT(SkPaint::kRound_Cap != rec.getCap()); 
+                    SkScalar x = pts[0].fX + SkScalarMul(tangent.fX, SkScalarHalf(clampedInitialDashLength));
+                    SkScalar y = pts[0].fY + SkScalarMul(tangent.fY, SkScalarHalf(clampedInitialDashLength));
+                    SkScalar halfWidth, halfHeight;
+                    if (isXAxis) {
+                        halfWidth = SkScalarHalf(clampedInitialDashLength);
+                        halfHeight = SkScalarHalf(rec.getWidth());
+                    } else {
+                        halfWidth = SkScalarHalf(rec.getWidth());
+                        halfHeight = SkScalarHalf(clampedInitialDashLength);
+                    }
+                    if (clampedInitialDashLength < fIntervals[0]) {
+                        
+                        results->fFirst.addRect(x - halfWidth, y - halfHeight,
+                                                x + halfWidth, y + halfHeight);
+                    } else {
+                        SkASSERT(curPt < results->fNumPoints);
+                        results->fPoints[curPt].set(x, y);
+                        ++curPt;
+                    }
+
+                    distance += clampedInitialDashLength;
+                }
+
+                distance += fIntervals[1];  
+            } else {
+                distance += clampedInitialDashLength;
+            }
+        }
+
+        if (0 != numMidPoints) {
+            distance += SkScalarHalf(fIntervals[0]);
+
+            for (int i = 0; i < numMidPoints; ++i) {
+                SkScalar x = pts[0].fX + SkScalarMul(tangent.fX, distance);
+                SkScalar y = pts[0].fY + SkScalarMul(tangent.fY, distance);
+
+                SkASSERT(curPt < results->fNumPoints);
+                results->fPoints[curPt].set(x, y);
+                ++curPt;
+
+                distance += fIntervalLength;
+            }
+
+            distance -= SkScalarHalf(fIntervals[0]);
+        }
+
+        if (partialLast) {
+            
+            SkASSERT(SkPaint::kRound_Cap != rec.getCap()); 
+            SkScalar temp = length - distance;
+            SkASSERT(temp < fIntervals[0]);
+            SkScalar x = pts[0].fX + SkScalarMul(tangent.fX, distance + SkScalarHalf(temp));
+            SkScalar y = pts[0].fY + SkScalarMul(tangent.fY, distance + SkScalarHalf(temp));
+            SkScalar halfWidth, halfHeight;
+            if (isXAxis) {
+                halfWidth = SkScalarHalf(temp);
+                halfHeight = SkScalarHalf(rec.getWidth());
+            } else {
+                halfWidth = SkScalarHalf(rec.getWidth());
+                halfHeight = SkScalarHalf(temp);
+            }
+            results->fLast.addRect(x - halfWidth, y - halfHeight,
+                                   x + halfWidth, y + halfHeight);
+        }
+
+        SkASSERT(curPt == results->fNumPoints);
+    }
 
     return true;
 }
@@ -256,7 +550,3 @@ SkDashPathEffect::SkDashPathEffect(SkFlattenableReadBuffer& buffer) : INHERITED(
     fIntervals = (SkScalar*)sk_malloc_throw(sizeof(SkScalar) * fCount);
     buffer.readScalarArray(fIntervals);
 }
-
-
-
-SK_DEFINE_FLATTENABLE_REGISTRAR(SkDashPathEffect)

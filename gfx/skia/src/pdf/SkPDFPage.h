@@ -45,8 +45,15 @@ public:
 
 
 
+
     void finalizePage(SkPDFCatalog* catalog, bool firstPage,
-                      SkTDArray<SkPDFObject*>* resourceObjects);
+                      const SkTSet<SkPDFObject*>& knownResourceObjects,
+                      SkTSet<SkPDFObject*>* newResourceObjects);
+
+    
+
+
+    void appendDestinations(SkPDFDict* dict);
 
     
 
@@ -91,10 +98,10 @@ public:
 
 private:
     
-    SkRefPtr<SkPDFDevice> fDevice;
+    SkAutoTUnref<SkPDFDevice> fDevice;
 
     
-    SkRefPtr<SkPDFStream> fContentStream;
+    SkAutoTUnref<SkPDFStream> fContentStream;
 };
 
 #endif

@@ -8,6 +8,18 @@
 
 #include "SkBBoxRecord.h"
 
+void SkBBoxRecord::drawOval(const SkRect& rect, const SkPaint& paint) {
+    if (this->transformBounds(rect, &paint)) {
+        INHERITED::drawOval(rect, paint);
+    }
+}
+
+void SkBBoxRecord::drawRRect(const SkRRect& rrect, const SkPaint& paint) {
+    if (this->transformBounds(rrect.rect(), &paint)) {
+        INHERITED::drawRRect(rrect, paint);
+    }
+}
+
 void SkBBoxRecord::drawRect(const SkRect& rect, const SkPaint& paint) {
     if (this->transformBounds(rect, &paint)) {
         INHERITED::drawRect(rect, paint);
@@ -15,7 +27,15 @@ void SkBBoxRecord::drawRect(const SkRect& rect, const SkPaint& paint) {
 }
 
 void SkBBoxRecord::drawPath(const SkPath& path, const SkPaint& paint) {
-    if (this->transformBounds(path.getBounds(), &paint)) {
+    if (path.isInverseFillType()) {
+        
+        
+        SkIRect clipBounds;
+        if (this->getClipDeviceBounds(&clipBounds)) {
+            this->handleBBox(SkRect::MakeFromIRect(clipBounds));
+            INHERITED::drawPath(path, paint);
+        }
+    } else if (this->transformBounds(path.getBounds(), &paint)) {
         INHERITED::drawPath(path, paint);
     }
 }
@@ -24,6 +44,18 @@ void SkBBoxRecord::drawPoints(PointMode mode, size_t count, const SkPoint pts[],
                               const SkPaint& paint) {
     SkRect bbox;
     bbox.set(pts, count);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static const SkScalar kMinWidth = SkFloatToScalar(0.01f);
+    SkScalar halfStrokeWidth = SkMaxScalar(paint.getStrokeWidth(), kMinWidth) / 2;
+    bbox.outset(halfStrokeWidth, halfStrokeWidth);
     if (this->transformBounds(bbox, &paint)) {
         INHERITED::drawPoints(mode, count, pts, paint);
     }
@@ -101,10 +133,10 @@ void SkBBoxRecord::drawBitmap(const SkBitmap& bitmap, SkScalar left, SkScalar to
     }
 }
 
-void SkBBoxRecord::drawBitmapRect(const SkBitmap& bitmap, const SkIRect* src,
+void SkBBoxRecord::drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
                                   const SkRect& dst, const SkPaint* paint) {
     if (this->transformBounds(dst, paint)) {
-        INHERITED::drawBitmapRect(bitmap, src, dst, paint);
+        INHERITED::drawBitmapRectToRect(bitmap, src, dst, paint);
     }
 }
 
@@ -179,9 +211,10 @@ void SkBBoxRecord::drawPosTextH(const void* text, size_t byteLength, const SkSca
 
 void SkBBoxRecord::drawSprite(const SkBitmap& bitmap, int left, int top,
                               const SkPaint* paint) {
-    SkRect bbox = {SkIntToScalar(left), SkIntToScalar(top), SkIntToScalar(left + bitmap.width()), SkIntToScalar(top + bitmap.height())};
+    SkRect bbox;
+    bbox.set(SkIRect::MakeXYWH(left, top, bitmap.width(), bitmap.height()));
     this->handleBBox(bbox); 
-    INHERITED::drawBitmap(bitmap, left, top, paint);
+    INHERITED::drawSprite(bitmap, left, top, paint);
 }
 
 void SkBBoxRecord::drawTextOnPath(const void* text, size_t byteLength,
@@ -225,12 +258,13 @@ void SkBBoxRecord::drawPicture(SkPicture& picture) {
 
 bool SkBBoxRecord::transformBounds(const SkRect& bounds, const SkPaint* paint) {
     SkRect outBounds = bounds;
+    outBounds.sort();
 
     if (paint) {
         
         if (paint->canComputeFastBounds()) {
             SkRect temp;
-            outBounds = paint->computeFastBounds(bounds, &temp);
+            outBounds = paint->computeFastBounds(outBounds, &temp);
         } else {
             
             if (!this->getClipBounds(&outBounds)) {
@@ -240,9 +274,7 @@ bool SkBBoxRecord::transformBounds(const SkRect& bounds, const SkPaint* paint) {
         }
     }
 
-    SkRect clip;
-
-    if (this->getClipBounds(&clip) && outBounds.intersect(clip)) {
+    if (!outBounds.isEmpty() && !this->quickReject(outBounds)) {
         this->getTotalMatrix().mapRect(&outBounds);
         this->handleBBox(outBounds);
         return true;
@@ -250,4 +282,3 @@ bool SkBBoxRecord::transformBounds(const SkRect& bounds, const SkPaint* paint) {
 
     return false;
 }
-

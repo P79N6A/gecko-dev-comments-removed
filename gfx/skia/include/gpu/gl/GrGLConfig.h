@@ -98,6 +98,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #if !defined(GR_GL_LOG_CALLS)
     #define GR_GL_LOG_CALLS                             GR_DEBUG
 #endif
@@ -144,6 +152,14 @@
 
 #if !defined(GR_GL_USE_NV_PATH_RENDERING)
     #define GR_GL_USE_NV_PATH_RENDERING                 0
+#endif
+
+#if !defined(GR_GL_MUST_USE_VBO)
+    #define GR_GL_MUST_USE_VBO                          0
+#endif
+
+#if !defined(GR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE)
+    #define GR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE       0
 #endif
 
 

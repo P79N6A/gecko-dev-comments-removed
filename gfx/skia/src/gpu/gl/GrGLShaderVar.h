@@ -8,7 +8,7 @@
 #ifndef GrGLShaderVar_DEFINED
 #define GrGLShaderVar_DEFINED
 
-#include "GrGLContextInfo.h"
+#include "GrGLContext.h"
 #include "GrGLSL.h"
 #include "SkString.h"
 
@@ -47,11 +47,20 @@ public:
     
 
 
+    enum Origin {
+        kDefault_Origin,        
+        kUpperLeft_Origin,      
+    };
+
+    
+
+
     GrGLShaderVar() {
         fType = kFloat_GrSLType;
         fTypeModifier = kNone_TypeModifier;
         fCount = kNonArray;
         fPrecision = kDefault_Precision;
+        fOrigin = kDefault_Origin;
         fUseUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS;
     }
 
@@ -61,6 +70,7 @@ public:
         fTypeModifier = kNone_TypeModifier;
         fCount = arrayCount;
         fPrecision = kDefault_Precision;
+        fOrigin = kDefault_Origin;
         fUseUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS;
         fName = name;
     }
@@ -71,6 +81,7 @@ public:
         , fName(var.fName)
         , fCount(var.fCount)
         , fPrecision(var.fPrecision)
+        , fOrigin(var.fOrigin)
         , fUseUniformFloatArrays(var.fUseUniformFloatArrays) {
         GrAssert(kVoid_GrSLType != var.fType);
     }
@@ -90,6 +101,7 @@ public:
              TypeModifier typeModifier,
              const SkString& name,
              Precision precision = kDefault_Precision,
+             Origin origin = kDefault_Origin,
              bool useUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS) {
         GrAssert(kVoid_GrSLType != type);
         fType = type;
@@ -97,6 +109,7 @@ public:
         fName = name;
         fCount = kNonArray;
         fPrecision = precision;
+        fOrigin = origin;
         fUseUniformFloatArrays = useUniformFloatArrays;
     }
 
@@ -107,6 +120,7 @@ public:
              TypeModifier typeModifier,
              const char* name,
              Precision precision = kDefault_Precision,
+             Origin origin = kDefault_Origin,
              bool useUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS) {
         GrAssert(kVoid_GrSLType != type);
         fType = type;
@@ -114,6 +128,7 @@ public:
         fName = name;
         fCount = kNonArray;
         fPrecision = precision;
+        fOrigin = origin;
         fUseUniformFloatArrays = useUniformFloatArrays;
     }
 
@@ -125,6 +140,7 @@ public:
              const SkString& name,
              int count,
              Precision precision = kDefault_Precision,
+             Origin origin = kDefault_Origin,
              bool useUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS) {
         GrAssert(kVoid_GrSLType != type);
         fType = type;
@@ -132,6 +148,7 @@ public:
         fName = name;
         fCount = count;
         fPrecision = precision;
+        fOrigin = origin;
         fUseUniformFloatArrays = useUniformFloatArrays;
     }
 
@@ -143,6 +160,7 @@ public:
              const char* name,
              int count,
              Precision precision = kDefault_Precision,
+             Origin origin = kDefault_Origin,
              bool useUniformFloatArrays = USE_UNIFORM_FLOAT_ARRAYS) {
         GrAssert(kVoid_GrSLType != type);
         fType = type;
@@ -150,6 +168,7 @@ public:
         fName = name;
         fCount = count;
         fPrecision = precision;
+        fOrigin = origin;
         fUseUniformFloatArrays = useUniformFloatArrays;
     }
 
@@ -223,13 +242,28 @@ public:
     
 
 
-    void appendDecl(const GrGLContextInfo& gl, SkString* out) const {
+    Origin getOrigin() const { return fOrigin; }
+
+    
+
+
+    void setOrigin(Origin origin) { fOrigin = origin; }
+
+    
+
+
+    void appendDecl(const GrGLContextInfo& ctxInfo, SkString* out) const {
+        if (kUpperLeft_Origin == fOrigin) {
+            
+            
+            out->append("layout(origin_upper_left) ");
+        }
         if (this->getTypeModifier() != kNone_TypeModifier) {
            out->append(TypeModifierString(this->getTypeModifier(),
-                                          gl.glslGeneration()));
+                                          ctxInfo.glslGeneration()));
            out->append(" ");
         }
-        out->append(PrecisionString(fPrecision, gl.binding()));
+        out->append(PrecisionString(fPrecision, ctxInfo.binding()));
         GrSLType effectiveType = this->getType();
         if (this->isArray()) {
             if (this->isUnsizedArray()) {
@@ -331,6 +365,7 @@ private:
     SkString        fName;
     int             fCount;
     Precision       fPrecision;
+    Origin          fOrigin;
     
     
     bool            fUseUniformFloatArrays;

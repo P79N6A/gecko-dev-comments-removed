@@ -14,6 +14,7 @@
 #include "SkBitmap.h"
 #include "SkCanvas.h"
 #include "SkColor.h"
+#include "SkDeviceProperties.h"
 
 class SkClipStack;
 class SkDraw;
@@ -41,6 +42,13 @@ public:
 
 
 
+    SkDevice(const SkBitmap& bitmap, const SkDeviceProperties& deviceProperties);
+
+    
+
+
+
+
 
 
 
@@ -50,6 +58,23 @@ public:
 
 
     SkDevice(SkBitmap::Config config, int width, int height, bool isOpaque = false);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    SkDevice(SkBitmap::Config config, int width, int height, bool isOpaque,
+             const SkDeviceProperties& deviceProperties);
 
     virtual ~SkDevice();
 
@@ -83,6 +108,12 @@ public:
     
 
     virtual int height() const { return fBitmap.height(); }
+
+    
+    virtual const SkDeviceProperties& getDeviceProperties() const {
+        
+        return fLeakyProperties;
+    }
 
     
 
@@ -144,7 +175,7 @@ public:
 
 
 
-    virtual void onAttachToCanvas(SkCanvas* canvas) {
+    virtual void onAttachToCanvas(SkCanvas*) {
         SkASSERT(!fAttachedToCanvas);
         this->lockPixels();
 #ifdef SK_DEBUG
@@ -199,15 +230,12 @@ protected:
 
 
 
-    virtual void setMatrixClip(const SkMatrix&, const SkRegion&,
-                               const SkClipStack&);
-
-    
 
 
-    virtual void gainFocus(const SkMatrix&, const SkRegion&) {
-        SkASSERT(fAttachedToCanvas);
-    }
+
+
+     virtual void setMatrixClip(const SkMatrix&, const SkRegion&,
+                                const SkClipStack&);
 
     
 
@@ -229,6 +257,8 @@ protected:
                             const SkPoint[], const SkPaint& paint);
     virtual void drawRect(const SkDraw&, const SkRect& r,
                           const SkPaint& paint);
+    virtual void drawOval(const SkDraw&, const SkRect& oval,
+                          const SkPaint& paint);
     
 
 
@@ -249,6 +279,15 @@ protected:
                             const SkMatrix& matrix, const SkPaint& paint);
     virtual void drawSprite(const SkDraw&, const SkBitmap& bitmap,
                             int x, int y, const SkPaint& paint);
+
+    
+
+
+
+    virtual void drawBitmapRect(const SkDraw&, const SkBitmap&,
+                                const SkRect* srcOrNull, const SkRect& dst,
+                                const SkPaint& paint);
+
     
 
 
@@ -380,7 +419,7 @@ private:
     friend class SkDraw;
     friend class SkDrawIter;
     friend class SkDeviceFilteredPaint;
-    friend class DeviceImageFilterProxy;
+    friend class SkDeviceImageFilterProxy;
 
     friend class SkSurface_Raster;
     
@@ -410,6 +449,13 @@ private:
     SkBitmap    fBitmap;
     SkIPoint    fOrigin;
     SkMetaData* fMetaData;
+    
+
+
+
+
+
+    SkDeviceProperties fLeakyProperties;
 
 #ifdef SK_DEBUG
     bool        fAttachedToCanvas;

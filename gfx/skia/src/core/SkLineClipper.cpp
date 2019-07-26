@@ -168,6 +168,7 @@ static bool is_between_unsorted(SkScalar value,
 #endif
 
 #ifdef SK_SCALAR_IS_FLOAT
+#ifdef SK_DEBUG
 
 
 
@@ -180,6 +181,7 @@ static void sect_with_horizontal_test_for_pin_results() {
     float x = sect_with_horizontal(pts, 0);
     SkASSERT(is_between_unsorted(x, pts[0].fX, pts[1].fX));
 }
+#endif
 #endif
 
 int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
@@ -293,4 +295,3 @@ int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
     }
     return lineCount;
 }
-

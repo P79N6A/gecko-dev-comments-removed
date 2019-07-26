@@ -5,16 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 #ifndef GrRenderTarget_DEFINED
 #define GrRenderTarget_DEFINED
 
@@ -70,7 +60,7 @@ public:
 
 
 
-    virtual intptr_t getRenderTargetHandle() const = 0;
+    virtual GrBackendObject getRenderTargetHandle() const = 0;
 
     
 
@@ -78,7 +68,7 @@ public:
 
 
 
-    virtual intptr_t getRenderTargetResolvedHandle() const = 0;
+    virtual GrBackendObject getRenderTargetResolvedHandle() const = 0;
 
     
 
@@ -149,9 +139,10 @@ public:
 
 protected:
     GrRenderTarget(GrGpu* gpu,
+                   bool isWrapped,
                    GrTexture* texture,
                    const GrTextureDesc& desc)
-        : INHERITED(gpu, desc)
+        : INHERITED(gpu, isWrapped, desc)
         , fStencilBuffer(NULL)
         , fTexture(texture) {
         fResolveRect.setLargestInverted();

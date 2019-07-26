@@ -9,13 +9,15 @@
 
 #include "GrStencilAndCoverPathRenderer.h"
 #include "GrContext.h"
+#include "GrDrawTargetCaps.h"
 #include "GrGpu.h"
 #include "GrPath.h"
+#include "SkStrokeRec.h"
 
 GrPathRenderer* GrStencilAndCoverPathRenderer::Create(GrContext* context) {
     GrAssert(NULL != context);
     GrAssert(NULL != context->getGpu());
-    if (context->getGpu()->getCaps().pathStencilingSupport()) {
+    if (context->getGpu()->caps()->pathStencilingSupport()) {
         return SkNEW_ARGS(GrStencilAndCoverPathRenderer, (context->getGpu()));
     } else {
         return NULL;
@@ -23,7 +25,7 @@ GrPathRenderer* GrStencilAndCoverPathRenderer::Create(GrContext* context) {
 }
 
 GrStencilAndCoverPathRenderer::GrStencilAndCoverPathRenderer(GrGpu* gpu) {
-    GrAssert(gpu->getCaps().pathStencilingSupport());
+    GrAssert(gpu->caps()->pathStencilingSupport());
     fGpu = gpu;
     gpu->ref();
 }
@@ -33,55 +35,53 @@ GrStencilAndCoverPathRenderer::~GrStencilAndCoverPathRenderer() {
 }
 
 bool GrStencilAndCoverPathRenderer::canDrawPath(const SkPath& path,
-                                                GrPathFill fill,
+                                                const SkStrokeRec& stroke,
                                                 const GrDrawTarget* target,
                                                 bool antiAlias) const {
-    return kHairLine_GrPathFill != fill &&
+    return stroke.isFillStyle() &&
            !antiAlias && 
            target->getDrawState().getStencil().isDisabled();
 }
 
-bool GrStencilAndCoverPathRenderer::requiresStencilPass(const SkPath& path,
-                                                        GrPathFill fill,
-                                                        const GrDrawTarget* target) const {
-    return true;
+GrPathRenderer::StencilSupport GrStencilAndCoverPathRenderer::onGetStencilSupport(
+                                                        const SkPath&,
+                                                        const SkStrokeRec& ,
+                                                        const GrDrawTarget*) const {
+    return GrPathRenderer::kStencilOnly_StencilSupport;
 }
 
-void GrStencilAndCoverPathRenderer::drawPathToStencil(const SkPath& path,
-                                                      GrPathFill fill,
-                                                      GrDrawTarget* target) {
-    GrAssert(kEvenOdd_GrPathFill == fill || kWinding_GrPathFill == fill);
+void GrStencilAndCoverPathRenderer::onStencilPath(const SkPath& path,
+                                                  const SkStrokeRec& stroke,
+                                                  GrDrawTarget* target) {
+    GrAssert(!path.isInverseFillType());
     SkAutoTUnref<GrPath> p(fGpu->createPath(path));
-    target->stencilPath(p, fill);
+    target->stencilPath(p, stroke, path.getFillType());
 }
 
 bool GrStencilAndCoverPathRenderer::onDrawPath(const SkPath& path,
-                                               GrPathFill fill,
-                                               const GrVec* translate,
+                                               const SkStrokeRec& stroke,
                                                GrDrawTarget* target,
-                                               bool antiAlias){
+                                               bool antiAlias) {
     GrAssert(!antiAlias);
-    GrAssert(kHairLine_GrPathFill != fill);
+    GrAssert(!stroke.isHairlineStyle());
 
     GrDrawState* drawState = target->drawState();
     GrAssert(drawState->getStencil().isDisabled());
 
     SkAutoTUnref<GrPath> p(fGpu->createPath(path));
-    GrDrawState::AutoViewMatrixRestore avmr;
-    if (translate) {
-        avmr.set(drawState);
-        drawState->viewMatrix()->postTranslate(translate->fX, translate->fY);
-    }
-    GrPathFill nonInvertedFill = GrNonInvertedFill(fill);
-    target->stencilPath(p, nonInvertedFill);
+
+    SkPath::FillType nonInvertedFill = SkPath::ConvertToNonInverseFillType(path.getFillType());
+    target->stencilPath(p, stroke, nonInvertedFill);
 
     
     
 
     
     GrRect bounds = p->getBounds();
-    GrScalar bloat = drawState->getViewMatrix().getMaxStretch() * GR_ScalarHalf;
-    if (nonInvertedFill == fill) {
+    SkScalar bloat = drawState->getViewMatrix().getMaxStretch() * SK_ScalarHalf;
+    GrDrawState::AutoDeviceCoordDraw adcd;
+
+    if (nonInvertedFill == path.getFillType()) {
         GR_STATIC_CONST_SAME_STENCIL(kStencilPass,
             kZero_StencilOp,
             kZero_StencilOp,
@@ -101,24 +101,17 @@ bool GrStencilAndCoverPathRenderer::onDrawPath(const SkPath& path,
             0xffff,
             0x0000,
             0xffff);
-        GrMatrix vmi;
+        SkMatrix vmi;
         bounds.setLTRB(0, 0,
-                       GrIntToScalar(drawState->getRenderTarget()->width()),
-                       GrIntToScalar(drawState->getRenderTarget()->height()));
+                       SkIntToScalar(drawState->getRenderTarget()->width()),
+                       SkIntToScalar(drawState->getRenderTarget()->height()));
         
         if (!drawState->getViewMatrix().hasPerspective() && drawState->getViewInverse(&vmi)) {
             vmi.mapRect(&bounds);
             
             
         } else {
-            if (!drawState->preConcatSamplerMatricesWithInverse(drawState->getViewMatrix())) {
-                GrPrintf("Could not invert matrix.\n");
-                return false;
-            }
-            if (avmr.isSet()) {
-                avmr.set(drawState);
-            }
-            drawState->viewMatrix()->reset();
+            adcd.set(drawState);
             bloat = 0;
         }
         *drawState->stencil() = kInvertedStencilPass;

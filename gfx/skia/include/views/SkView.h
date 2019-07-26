@@ -15,6 +15,7 @@
 #include "SkDOM.h"
 #include "SkTDict.h"
 #include "SkMatrix.h"
+#include "SkMetaData.h"
 
 class SkCanvas;
 class SkLayerView;
@@ -155,6 +156,9 @@ public:
         SkIPoint    fIOrig, fIPrev, fICurr;
         State       fState;
         void*       fOwner;
+        unsigned    fModifierKeys;
+
+        SkMetaData  fMeta;
     private:
         SkEventSinkID   fTargetID;
         char*           fType;
@@ -164,11 +168,11 @@ public:
 
         friend class SkView;
     };
-    Click*  findClickHandler(SkScalar x, SkScalar y);
+    Click*  findClickHandler(SkScalar x, SkScalar y, unsigned modifierKeys);
 
-    static void DoClickDown(Click*, int x, int y);
-    static void DoClickMoved(Click*, int x, int y);
-    static void DoClickUp(Click*, int x, int y);
+    static void DoClickDown(Click*, int x, int y, unsigned modi);
+    static void DoClickMoved(Click*, int x, int y, unsigned modi);
+    static void DoClickUp(Click*, int x, int y, unsigned modi);
 
     
 
@@ -342,13 +346,13 @@ protected:
 
     
 
-    virtual Click* onFindClickHandler(SkScalar x, SkScalar y);
+    virtual Click* onFindClickHandler(SkScalar x, SkScalar y, unsigned modi);
     
 
 
 
 
-    virtual bool onSendClickToChildren(SkScalar x, SkScalar y);
+    virtual bool onSendClickToChildren(SkScalar x, SkScalar y, unsigned modi);
     
 
 
@@ -393,4 +397,3 @@ private:
 };
 
 #endif
-

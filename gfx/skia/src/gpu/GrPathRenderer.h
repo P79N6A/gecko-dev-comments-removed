@@ -12,7 +12,9 @@
 
 #include "GrDrawTarget.h"
 #include "GrPathRendererChain.h"
+#include "GrStencil.h"
 
+#include "SkStrokeRec.h"
 #include "SkTArray.h"
 
 class SkPath;
@@ -39,11 +41,7 @@ public:
 
 
 
-
-
-    static void AddPathRenderers(GrContext* context,
-                                 GrPathRendererChain::UsageFlags flags,
-                                 GrPathRendererChain* prChain);
+    static void AddPathRenderers(GrContext* context, GrPathRendererChain* prChain);
 
 
     GrPathRenderer();
@@ -67,14 +65,30 @@ public:
 
 
 
-    virtual bool requiresStencilPass(const SkPath& path,
-                                     GrPathFill fill,
-                                     const GrDrawTarget* target) const {
-        return false;
-    }
+    typedef GrPathRendererChain::StencilSupport StencilSupport;
+    static const StencilSupport kNoSupport_StencilSupport =
+        GrPathRendererChain::kNoSupport_StencilSupport;
+    static const StencilSupport kStencilOnly_StencilSupport =
+        GrPathRendererChain::kStencilOnly_StencilSupport;
+    static const StencilSupport kNoRestriction_StencilSupport =
+        GrPathRendererChain::kNoRestriction_StencilSupport;
 
     
 
+
+
+
+
+
+
+    StencilSupport getStencilSupport(const SkPath& path,
+                                     const SkStrokeRec& stroke,
+                                     const GrDrawTarget* target) const {
+        GrAssert(!path.isInverseFillType());
+        return this->onGetStencilSupport(path, stroke, target);
+    }
+
+    
 
 
 
@@ -87,7 +101,7 @@ public:
 
 
     virtual bool canDrawPath(const SkPath& path,
-                             GrPathFill fill,
+                             const SkStrokeRec& rec,
                              const GrDrawTarget* target,
                              bool antiAlias) const = 0;
     
@@ -99,16 +113,14 @@ public:
 
 
 
-
-
-
-    virtual bool drawPath(const SkPath& path,
-                          GrPathFill fill,
-                          const GrVec* translate,
-                          GrDrawTarget* target,
-                          bool antiAlias) {
-        GrAssert(this->canDrawPath(path, fill, target, antiAlias));
-        return this->onDrawPath(path, fill, translate, target, antiAlias);
+    bool drawPath(const SkPath& path,
+                  const SkStrokeRec& stroke,
+                  GrDrawTarget* target,
+                  bool antiAlias) {
+        GrAssert(this->canDrawPath(path, stroke, target, antiAlias));
+        GrAssert(target->drawState()->getStencil().isDisabled() ||
+                 kNoRestriction_StencilSupport == this->getStencilSupport(path, stroke, target));
+        return this->onDrawPath(path, stroke, target, antiAlias);
     }
 
     
@@ -119,32 +131,47 @@ public:
 
 
 
-
-
-
-
-    virtual void drawPathToStencil(const SkPath& path,
-                                   GrPathFill fill,
-                                   GrDrawTarget* target) {
-        GrCrash("Unexpected call to drawPathToStencil.");
+    void stencilPath(const SkPath& path, const SkStrokeRec& stroke, GrDrawTarget* target) {
+        GrAssert(kNoSupport_StencilSupport != this->getStencilSupport(path, stroke, target));
+        this->onStencilPath(path, stroke, target);
     }
 
 protected:
     
 
 
+    virtual StencilSupport onGetStencilSupport(const SkPath&,
+                                               const SkStrokeRec&,
+                                               const GrDrawTarget*) const {
+        return kNoRestriction_StencilSupport;
+    }
 
-
-
-
-
+    
 
 
     virtual bool onDrawPath(const SkPath& path,
-                            GrPathFill fill,
-                            const GrVec* translate,
+                            const SkStrokeRec& stroke,
                             GrDrawTarget* target,
                             bool antiAlias) = 0;
+
+    
+
+
+
+    virtual void onStencilPath(const SkPath& path,  const SkStrokeRec& stroke, GrDrawTarget* target) {
+        GrDrawTarget::AutoStateRestore asr(target, GrDrawTarget::kPreserve_ASRInit);
+        GrDrawState* drawState = target->drawState();
+        GR_STATIC_CONST_SAME_STENCIL(kIncrementStencil,
+                                     kReplace_StencilOp,
+                                     kReplace_StencilOp,
+                                     kAlways_StencilFunc,
+                                     0xffff,
+                                     0xffff,
+                                     0xffff);
+        drawState->setStencil(kIncrementStencil);
+        drawState->enableState(GrDrawState::kNoColorWrites_StateBit);
+        this->drawPath(path, stroke, target, false);
+    }
 
 private:
 
@@ -152,4 +179,3 @@ private:
 };
 
 #endif
-

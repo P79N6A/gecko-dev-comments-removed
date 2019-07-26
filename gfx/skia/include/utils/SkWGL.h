@@ -106,4 +106,12 @@ private:
     CreateContextAttribsProc fCreateContextAttribs;
 };
 
+
+
+
+
+
+
+HGLRC SkCreateWGLContext(HDC dc, int msaaSampleCount, bool preferCoreProfile);
+
 #endif

@@ -17,6 +17,13 @@ class SkData;
 
 class SK_API SkStream : public SkRefCnt {
 public:
+    
+
+
+
+
+    static SkStream* NewFromFile(const char path[]);
+
     SK_DECLARE_INST_COUNT(SkStream)
 
     
@@ -108,6 +115,14 @@ public:
 
     bool writeStream(SkStream* input, size_t length);
 
+    
+
+
+
+
+
+
+
     bool writeData(const SkData*);
 };
 
@@ -120,7 +135,7 @@ struct SkFILE;
 
 
 
-class SkFILEStream : public SkStream {
+class SK_API SkFILEStream : public SkStream {
 public:
     SK_DECLARE_INST_COUNT(SkFILEStream)
 
@@ -151,7 +166,7 @@ private:
 
 
 
-class SkFDStream : public SkStream {
+class SK_API SkFDStream : public SkStream {
 public:
     SK_DECLARE_INST_COUNT(SkFDStream)
 
@@ -177,7 +192,7 @@ private:
     typedef SkStream INHERITED;
 };
 
-class SkMemoryStream : public SkStream {
+class SK_API SkMemoryStream : public SkStream {
 public:
     SK_DECLARE_INST_COUNT(SkMemoryStream)
 
@@ -188,6 +203,13 @@ public:
     
 
     SkMemoryStream(const void* data, size_t length, bool copyData = false);
+
+    
+
+
+
+    SkMemoryStream(SkData*);
+
     virtual ~SkMemoryStream();
 
     
@@ -235,7 +257,7 @@ private:
 
 
 
-class SkBufferStream : public SkStream {
+class SK_API SkBufferStream : public SkStream {
 public:
     SK_DECLARE_INST_COUNT(SkBufferStream)
 
@@ -357,7 +379,7 @@ private:
 };
 
 
-class SkDebugWStream : public SkWStream {
+class SK_API SkDebugWStream : public SkWStream {
 public:
     SK_DECLARE_INST_COUNT(SkDebugWStream)
 

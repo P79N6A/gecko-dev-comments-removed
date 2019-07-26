@@ -13,6 +13,7 @@
 #include "GrTHashCache.h"
 #include "SkGr.h"
 #include "SkTDArray.h"
+#include "GrBinHashKey.h"
 
 
 
@@ -20,8 +21,6 @@
 
 class GrTextureStripAtlas {
 public:
-    GR_DECLARE_RESOURCE_CACHE_DOMAIN(GetTextureStripAtlasDomain)
-
     
 
 
@@ -65,8 +64,8 @@ public:
 
 
 
-    GrScalar getYOffset(int row) const { return SkIntToScalar(row) / fNumRows; }
-    GrScalar getVerticalScaleFactor() const { return SkIntToScalar(fDesc.fRowHeight) / fDesc.fHeight; }
+    SkScalar getYOffset(int row) const { return SkIntToScalar(row) / fNumRows; }
+    SkScalar getVerticalScaleFactor() const { return SkIntToScalar(fDesc.fRowHeight) / fDesc.fHeight; }
 
     GrContext* getContext() const { return fDesc.fContext; }
     GrTexture* getTexture() const { return fTexture; }
@@ -130,11 +129,33 @@ private:
 #endif
 
     
+
+
+
+    static void CleanUp(const GrContext* context, void* info);
+
+    
+    class AtlasEntry;
+    typedef GrTBinHashKey<AtlasEntry, sizeof(GrTextureStripAtlas::Desc)> AtlasHashKey;
+    class AtlasEntry : public ::GrNoncopyable {
+    public:
+        AtlasEntry() : fAtlas(NULL) {}
+        ~AtlasEntry() { SkDELETE(fAtlas); }
+        int compare(const AtlasHashKey& key) const { return fKey.compare(key); }
+        AtlasHashKey fKey;
+        GrTextureStripAtlas* fAtlas;
+    };
+
+    static GrTHashTable<AtlasEntry, AtlasHashKey, 8>* gAtlasCache;
+
+    static GrTHashTable<AtlasEntry, AtlasHashKey, 8>* GetCache();
+
+    
     static int32_t gCacheCount;
 
     
     
-    const uint64_t fCacheID;
+    const int32_t fCacheKey;
 
     
     int32_t fLockedRows;
@@ -158,4 +179,3 @@ private:
 };
 
 #endif
-

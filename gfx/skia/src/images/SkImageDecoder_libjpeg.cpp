@@ -15,7 +15,10 @@
 #include "SkScaledBitmapSampler.h"
 #include "SkStream.h"
 #include "SkTemplates.h"
+#include "SkTime.h"
 #include "SkUtils.h"
+#include "SkRect.h"
+#include "SkCanvas.h"
 
 #include <stdio.h>
 extern "C" {
@@ -29,40 +32,105 @@ extern "C" {
 
 
 
+
+
+
+
+
+
 #define WE_CONVERT_TO_YUV
 
 
 
 
+
+
+
+static void overwrite_mem_buffer_size(j_decompress_ptr cinfo) {
+#ifdef SK_BUILD_FOR_ANDROID
+    
+
+
+#ifdef ANDROID_LARGE_MEMORY_DEVICE
+    cinfo->mem->max_memory_to_use = 30 * 1024 * 1024;
+#else
+    cinfo->mem->max_memory_to_use = 5 * 1024 * 1024;
+#endif
+#endif 
+}
+
+
+
+
+class SkJPEGImageIndex {
+public:
+    SkJPEGImageIndex(SkStream* stream, SkImageDecoder* decoder)
+        : fSrcMgr(stream, decoder, true) {}
+
+    ~SkJPEGImageIndex() {
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+        jpeg_destroy_huffman_index(&fHuffmanIndex);
+#endif
+        jpeg_finish_decompress(&fCInfo);
+        jpeg_destroy_decompress(&fCInfo);
+    }
+
+    
+
+
+
+    void initializeInfo() {
+        jpeg_create_decompress(&fCInfo);
+        overwrite_mem_buffer_size(&fCInfo);
+        fCInfo.src = &fSrcMgr;
+    }
+
+    jpeg_decompress_struct* cinfo() { return &fCInfo; }
+
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    huffman_index* huffmanIndex() { return &fHuffmanIndex; }
+#endif
+
+private:
+    skjpeg_source_mgr  fSrcMgr;
+    jpeg_decompress_struct fCInfo;
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    huffman_index fHuffmanIndex;
+#endif
+};
+
 class SkJPEGImageDecoder : public SkImageDecoder {
 public:
+    SkJPEGImageDecoder() {
+        fImageIndex = NULL;
+        fImageWidth = 0;
+        fImageHeight = 0;
+    }
+
+    virtual ~SkJPEGImageDecoder() {
+        SkDELETE(fImageIndex);
+    }
+
     virtual Format getFormat() const {
         return kJPEG_Format;
     }
 
 protected:
-    virtual bool onDecode(SkStream* stream, SkBitmap* bm, Mode);
-};
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    virtual bool onBuildTileIndex(SkStream *stream, int *width, int *height) SK_OVERRIDE;
+    virtual bool onDecodeRegion(SkBitmap* bitmap, const SkIRect& rect) SK_OVERRIDE;
+#endif
+    virtual bool onDecode(SkStream* stream, SkBitmap* bm, Mode) SK_OVERRIDE;
 
-
-
-#include "SkTime.h"
-
-class AutoTimeMillis {
-public:
-    AutoTimeMillis(const char label[]) : fLabel(label) {
-        if (!fLabel) {
-            fLabel = "";
-        }
-        fNow = SkTime::GetMSecs();
-    }
-    ~AutoTimeMillis() {
-        SkDebugf("---- Time (ms): %s %d\n", fLabel, SkTime::GetMSecs() - fNow);
-    }
 private:
-    const char* fLabel;
-    SkMSec      fNow;
+    SkJPEGImageIndex* fImageIndex;
+    int fImageWidth;
+    int fImageHeight;
+
+    typedef SkImageDecoder INHERITED;
 };
+
+
 
 
 class JPEGAutoClean {
@@ -79,24 +147,6 @@ public:
 private:
     jpeg_decompress_struct* cinfo_ptr;
 };
-
-#ifdef SK_BUILD_FOR_ANDROID
-
-
-
-
-
-
-
-static void overwrite_mem_buffer_size(j_decompress_ptr cinfo) {
-#ifdef ANDROID_LARGE_MEMORY_DEVICE
-    cinfo->mem->max_memory_to_use = 30 * 1024 * 1024;
-#else
-    cinfo->mem->max_memory_to_use = 5 * 1024 * 1024;
-#endif
-}
-#endif
-
 
 
 
@@ -116,26 +166,39 @@ static bool valid_output_dimensions(const jpeg_decompress_struct& cinfo) {
     
 
 
-    return cinfo.output_width != 0 && cinfo.output_height != 0;
+    return 0 != cinfo.output_width && 0 != cinfo.output_height;
 }
 
-static bool skip_src_rows(jpeg_decompress_struct* cinfo, void* buffer,
-                          int count) {
+static bool skip_src_rows(jpeg_decompress_struct* cinfo, void* buffer, int count) {
     for (int i = 0; i < count; i++) {
         JSAMPLE* rowptr = (JSAMPLE*)buffer;
         int row_count = jpeg_read_scanlines(cinfo, &rowptr, 1);
-        if (row_count != 1) {
+        if (1 != row_count) {
             return false;
         }
     }
     return true;
 }
 
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+static bool skip_src_rows_tile(jpeg_decompress_struct* cinfo,
+                               huffman_index *index, void* buffer, int count) {
+    for (int i = 0; i < count; i++) {
+        JSAMPLE* rowptr = (JSAMPLE*)buffer;
+        int row_count = jpeg_read_tile_scanline(cinfo, index, &rowptr);
+        if (1 != row_count) {
+            return false;
+        }
+    }
+    return true;
+}
+#endif
+
 
 
 static bool return_false(const jpeg_decompress_struct& cinfo,
                          const SkBitmap& bm, const char msg[]) {
-#if 0
+#ifdef SK_DEBUG
     SkDebugf("libjpeg error %d <%s> from %s [%d %d]", cinfo.err->msg_code,
              cinfo.err->jpeg_message_table[cinfo.err->msg_code], msg,
              bm.width(), bm.height());
@@ -168,34 +231,31 @@ static void convert_CMYK_to_RGB(uint8_t* scanline, unsigned int width) {
 
 bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 #ifdef TIME_DECODE
-    AutoTimeMillis atm("JPEG Decode");
+    SkAutoTime atm("JPEG Decode");
 #endif
 
-    SkAutoMalloc  srcStorage;
     JPEGAutoClean autoClean;
 
     jpeg_decompress_struct  cinfo;
-    skjpeg_error_mgr        sk_err;
-    skjpeg_source_mgr       sk_stream(stream, this, false);
+    skjpeg_error_mgr        errorManager;
+    skjpeg_source_mgr       srcManager(stream, this, false);
 
-    cinfo.err = jpeg_std_error(&sk_err);
-    sk_err.error_exit = skjpeg_error_exit;
+    cinfo.err = jpeg_std_error(&errorManager);
+    errorManager.error_exit = skjpeg_error_exit;
 
     
     
-    if (setjmp(sk_err.fJmpBuf)) {
+    if (setjmp(errorManager.fJmpBuf)) {
         return return_false(cinfo, *bm, "setjmp");
     }
 
     jpeg_create_decompress(&cinfo);
     autoClean.set(&cinfo);
 
-#ifdef SK_BUILD_FOR_ANDROID
     overwrite_mem_buffer_size(&cinfo);
-#endif
 
     
-    cinfo.src = &sk_stream;
+    cinfo.src = &srcManager;
 
     int status = jpeg_read_header(&cinfo, true);
     if (status != JPEG_HEADER_OK) {
@@ -208,7 +268,12 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
     int sampleSize = this->getSampleSize();
 
-    cinfo.dct_method = JDCT_IFAST;
+    if (this->getPreferQualityOverSpeed()) {
+        cinfo.dct_method = JDCT_ISLOW;
+    } else {
+        cinfo.dct_method = JDCT_IFAST;
+    }
+
     cinfo.scale_num = 1;
     cinfo.scale_denom = sampleSize;
 
@@ -250,7 +315,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     }
 #endif
 
-    if (sampleSize == 1 && mode == SkImageDecoder::kDecodeBounds_Mode) {
+    if (1 == sampleSize && SkImageDecoder::kDecodeBounds_Mode == mode) {
         bm->setConfig(config, cinfo.image_width, cinfo.image_height);
         bm->setIsOpaque(true);
         return true;
@@ -270,8 +335,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
 
 
-        if (SkImageDecoder::kDecodeBounds_Mode == mode &&
-                valid_output_dimensions(cinfo)) {
+        if (SkImageDecoder::kDecodeBounds_Mode == mode && valid_output_dimensions(cinfo)) {
             SkScaledBitmapSampler smpl(cinfo.output_width, cinfo.output_height,
                                        recompute_sampleSize(sampleSize, cinfo));
             bm->setConfig(config, smpl.scaledWidth(), smpl.scaledHeight());
@@ -284,10 +348,37 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     sampleSize = recompute_sampleSize(sampleSize, cinfo);
 
     
-    if (!this->chooseFromOneChoice(config, cinfo.output_width,
-                                   cinfo.output_height)) {
+    if (!this->chooseFromOneChoice(config, cinfo.output_width, cinfo.output_height)) {
         return return_false(cinfo, *bm, "chooseFromOneChoice");
     }
+
+    SkScaledBitmapSampler sampler(cinfo.output_width, cinfo.output_height, sampleSize);
+
+    bm->lockPixels();
+    JSAMPLE* rowptr = (JSAMPLE*)bm->getPixels();
+    bm->unlockPixels();
+    bool reuseBitmap = (rowptr != NULL);
+
+    if (reuseBitmap) {
+        if (sampler.scaledWidth() != bm->width() ||
+            sampler.scaledHeight() != bm->height()) {
+            
+            return false;
+        } else if (SkImageDecoder::kDecodeBounds_Mode == mode) {
+            return true;
+        }
+    } else {
+        bm->setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
+        bm->setIsOpaque(true);
+        if (SkImageDecoder::kDecodeBounds_Mode == mode) {
+            return true;
+        }
+        if (!this->allocPixelRef(bm, NULL)) {
+            return return_false(cinfo, *bm, "allocPixelRef");
+        }
+    }
+
+    SkAutoLockPixels alp(*bm);
 
 #ifdef ANDROID_RGB
     
@@ -299,16 +390,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         (config == SkBitmap::kRGB_565_Config &&
                 cinfo.out_color_space == JCS_RGB_565)))
     {
-        bm->setConfig(config, cinfo.output_width, cinfo.output_height);
-        bm->setIsOpaque(true);
-        if (SkImageDecoder::kDecodeBounds_Mode == mode) {
-            return true;
-        }
-        if (!this->allocPixelRef(bm, NULL)) {
-            return return_false(cinfo, *bm, "allocPixelRef");
-        }
-        SkAutoLockPixels alp(*bm);
-        JSAMPLE* rowptr = (JSAMPLE*)bm->getPixels();
+        rowptr = (JSAMPLE*)bm->getPixels();
         INT32 const bpr =  bm->rowBytes();
 
         while (cinfo.output_scanline < cinfo.output_height) {
@@ -322,6 +404,9 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
                 return return_false(cinfo, *bm, "shouldCancelDecode");
             }
             rowptr += bpr;
+        }
+        if (reuseBitmap) {
+            bm->notifyPixelsChanged();
         }
         jpeg_finish_decompress(&cinfo);
         return true;
@@ -348,27 +433,13 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         return return_false(cinfo, *bm, "jpeg colorspace");
     }
 
-    SkScaledBitmapSampler sampler(cinfo.output_width, cinfo.output_height,
-                                  sampleSize);
-
-    bm->setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
-    
-    bm->setIsOpaque(true);
-
-    if (SkImageDecoder::kDecodeBounds_Mode == mode) {
-        return true;
-    }
-    if (!this->allocPixelRef(bm, NULL)) {
-        return return_false(cinfo, *bm, "allocPixelRef");
-    }
-
-    SkAutoLockPixels alp(*bm);
     if (!sampler.begin(bm, sc, this->getDitherImage())) {
         return return_false(cinfo, *bm, "sampler.begin");
     }
 
     
-    uint8_t* srcRow = (uint8_t*)srcStorage.reset(cinfo.output_width * 4);
+    SkAutoMalloc srcStorage(cinfo.output_width * 4);
+    uint8_t* srcRow = (uint8_t*)srcStorage.get();
 
     
     if (!skip_src_rows(&cinfo, srcRow, sampler.srcY0())) {
@@ -406,11 +477,278 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
                        cinfo.output_height - cinfo.output_scanline)) {
         return return_false(cinfo, *bm, "skip rows");
     }
+    if (reuseBitmap) {
+        bm->notifyPixelsChanged();
+    }
     jpeg_finish_decompress(&cinfo);
-
 
     return true;
 }
+
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+bool SkJPEGImageDecoder::onBuildTileIndex(SkStream* stream, int *width, int *height) {
+
+    SkJPEGImageIndex* imageIndex = SkNEW_ARGS(SkJPEGImageIndex, (stream, this));
+    jpeg_decompress_struct* cinfo = imageIndex->cinfo();
+    huffman_index* huffmanIndex = imageIndex->huffmanIndex();
+
+    skjpeg_error_mgr sk_err;
+    cinfo->err = jpeg_std_error(&sk_err);
+    sk_err.error_exit = skjpeg_error_exit;
+
+    
+    
+    if (setjmp(sk_err.fJmpBuf)) {
+        return false;
+    }
+
+    
+    imageIndex->initializeInfo();
+    cinfo->do_fancy_upsampling = 0;
+    cinfo->do_block_smoothing = 0;
+
+    int status = jpeg_read_header(cinfo, true);
+    if (JPEG_HEADER_OK != status) {
+        SkDELETE(imageIndex);
+        return false;
+    }
+
+    jpeg_create_huffman_index(cinfo, huffmanIndex);
+    cinfo->scale_num = 1;
+    cinfo->scale_denom = 1;
+    if (!jpeg_build_huffman_index(cinfo, huffmanIndex)) {
+        SkDELETE(imageIndex);
+        return false;
+    }
+
+    
+    jpeg_destroy_decompress(cinfo);
+
+    
+    imageIndex->initializeInfo();
+
+    status = jpeg_read_header(cinfo, true);
+    if (JPEG_HEADER_OK != status) {
+        SkDELETE(imageIndex);
+        return false;
+    }
+
+    cinfo->out_color_space = JCS_RGBA_8888;
+    cinfo->do_fancy_upsampling = 0;
+    cinfo->do_block_smoothing = 0;
+
+    
+    jpeg_start_tile_decompress(cinfo);
+
+    cinfo->scale_num = 1;
+    *height = cinfo->output_height;
+    *width = cinfo->output_width;
+    fImageWidth = *width;
+    fImageHeight = *height;
+
+    SkDELETE(fImageIndex);
+    fImageIndex = imageIndex;
+
+    return true;
+}
+
+bool SkJPEGImageDecoder::onDecodeRegion(SkBitmap* bm, const SkIRect& region) {
+    if (NULL == fImageIndex) {
+        return false;
+    }
+    jpeg_decompress_struct* cinfo = fImageIndex->cinfo();
+
+    SkIRect rect = SkIRect::MakeWH(fImageWidth, fImageHeight);
+    if (!rect.intersect(region)) {
+        
+        return false;
+    }
+
+
+    skjpeg_error_mgr errorManager;
+    cinfo->err = jpeg_std_error(&errorManager);
+    errorManager.error_exit = skjpeg_error_exit;
+    if (setjmp(errorManager.fJmpBuf)) {
+        return false;
+    }
+
+    int requestedSampleSize = this->getSampleSize();
+    cinfo->scale_denom = requestedSampleSize;
+
+    if (this->getPreferQualityOverSpeed()) {
+        cinfo->dct_method = JDCT_ISLOW;
+    } else {
+        cinfo->dct_method = JDCT_IFAST;
+    }
+
+    SkBitmap::Config config = this->getPrefConfig(k32Bit_SrcDepth, false);
+    if (config != SkBitmap::kARGB_8888_Config &&
+        config != SkBitmap::kARGB_4444_Config &&
+        config != SkBitmap::kRGB_565_Config) {
+        config = SkBitmap::kARGB_8888_Config;
+    }
+
+    
+    cinfo->out_color_space = JCS_RGB;
+
+#ifdef ANDROID_RGB
+    cinfo->dither_mode = JDITHER_NONE;
+    if (SkBitmap::kARGB_8888_Config == config) {
+        cinfo->out_color_space = JCS_RGBA_8888;
+    } else if (SkBitmap::kRGB_565_Config == config) {
+        cinfo->out_color_space = JCS_RGB_565;
+        if (this->getDitherImage()) {
+            cinfo->dither_mode = JDITHER_ORDERED;
+        }
+    }
+#endif
+
+    int startX = rect.fLeft;
+    int startY = rect.fTop;
+    int width = rect.width();
+    int height = rect.height();
+
+    jpeg_init_read_tile_scanline(cinfo, fImageIndex->huffmanIndex(),
+                                 &startX, &startY, &width, &height);
+    int skiaSampleSize = recompute_sampleSize(requestedSampleSize, *cinfo);
+    int actualSampleSize = skiaSampleSize * (DCTSIZE / cinfo->min_DCT_scaled_size);
+
+    SkScaledBitmapSampler sampler(width, height, skiaSampleSize);
+
+    SkBitmap bitmap;
+    bitmap.setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
+    bitmap.setIsOpaque(true);
+
+    
+    
+    
+    
+    int w = rect.width() / actualSampleSize;
+    int h = rect.height() / actualSampleSize;
+    bool swapOnly = (rect == region) && bm->isNull() &&
+                    (w == bitmap.width()) && (h == bitmap.height()) &&
+                    ((startX - rect.x()) / actualSampleSize == 0) &&
+                    ((startY - rect.y()) / actualSampleSize == 0);
+    if (swapOnly) {
+        if (!this->allocPixelRef(&bitmap, NULL)) {
+            return return_false(*cinfo, bitmap, "allocPixelRef");
+        }
+    } else {
+        if (!bitmap.allocPixels()) {
+            return return_false(*cinfo, bitmap, "allocPixels");
+        }
+    }
+
+    SkAutoLockPixels alp(bitmap);
+
+#ifdef ANDROID_RGB
+    
+
+
+    if (skiaSampleSize == 1 &&
+        ((config == SkBitmap::kARGB_8888_Config &&
+                cinfo->out_color_space == JCS_RGBA_8888) ||
+        (config == SkBitmap::kRGB_565_Config &&
+                cinfo->out_color_space == JCS_RGB_565)))
+    {
+        JSAMPLE* rowptr = (JSAMPLE*)bitmap.getPixels();
+        INT32 const bpr = bitmap.rowBytes();
+        int rowTotalCount = 0;
+
+        while (rowTotalCount < height) {
+            int rowCount = jpeg_read_tile_scanline(cinfo,
+                                                   fImageIndex->huffmanIndex(),
+                                                   &rowptr);
+            
+            
+            if (0 == rowCount) {
+                return return_false(*cinfo, bitmap, "read_scanlines");
+            }
+            if (this->shouldCancelDecode()) {
+                return return_false(*cinfo, bitmap, "shouldCancelDecode");
+            }
+            rowTotalCount += rowCount;
+            rowptr += bpr;
+        }
+
+        if (swapOnly) {
+            bm->swap(bitmap);
+        } else {
+            cropBitmap(bm, &bitmap, actualSampleSize, region.x(), region.y(),
+                       region.width(), region.height(), startX, startY);
+        }
+        return true;
+    }
+#endif
+
+    
+    SkScaledBitmapSampler::SrcConfig sc;
+    if (JCS_CMYK == cinfo->out_color_space) {
+        
+        sc = SkScaledBitmapSampler::kRGBX;
+    } else if (3 == cinfo->out_color_components && JCS_RGB == cinfo->out_color_space) {
+        sc = SkScaledBitmapSampler::kRGB;
+#ifdef ANDROID_RGB
+    } else if (JCS_RGBA_8888 == cinfo->out_color_space) {
+        sc = SkScaledBitmapSampler::kRGBX;
+    } else if (JCS_RGB_565 == cinfo->out_color_space) {
+        sc = SkScaledBitmapSampler::kRGB_565;
+#endif
+    } else if (1 == cinfo->out_color_components &&
+               JCS_GRAYSCALE == cinfo->out_color_space) {
+        sc = SkScaledBitmapSampler::kGray;
+    } else {
+        return return_false(*cinfo, *bm, "jpeg colorspace");
+    }
+
+    if (!sampler.begin(&bitmap, sc, this->getDitherImage())) {
+        return return_false(*cinfo, bitmap, "sampler.begin");
+    }
+
+    
+    SkAutoMalloc  srcStorage(width * 4);
+    uint8_t* srcRow = (uint8_t*)srcStorage.get();
+
+    
+    if (!skip_src_rows_tile(cinfo, fImageIndex->huffmanIndex(), srcRow, sampler.srcY0())) {
+        return return_false(*cinfo, bitmap, "skip rows");
+    }
+
+    
+    for (int y = 0;; y++) {
+        JSAMPLE* rowptr = (JSAMPLE*)srcRow;
+        int row_count = jpeg_read_tile_scanline(cinfo, fImageIndex->huffmanIndex(), &rowptr);
+        if (0 == row_count) {
+            return return_false(*cinfo, bitmap, "read_scanlines");
+        }
+        if (this->shouldCancelDecode()) {
+            return return_false(*cinfo, bitmap, "shouldCancelDecode");
+        }
+
+        if (JCS_CMYK == cinfo->out_color_space) {
+            convert_CMYK_to_RGB(srcRow, width);
+        }
+
+        sampler.next(srcRow);
+        if (bitmap.height() - 1 == y) {
+            
+            break;
+        }
+
+        if (!skip_src_rows_tile(cinfo, fImageIndex->huffmanIndex(), srcRow,
+                                sampler.srcDY() - 1)) {
+            return return_false(*cinfo, bitmap, "skip rows");
+        }
+    }
+    if (swapOnly) {
+        bm->swap(bitmap);
+    } else {
+        cropBitmap(bm, &bitmap, actualSampleSize, region.x(), region.y(),
+                   region.width(), region.height(), startX, startY);
+    }
+    return true;
+}
+#endif
 
 
 
@@ -582,7 +920,7 @@ class SkJPEGImageEncoder : public SkImageEncoder {
 protected:
     virtual bool onEncode(SkWStream* stream, const SkBitmap& bm, int quality) {
 #ifdef TIME_ENCODE
-        AutoTimeMillis atm("JPEG Encode");
+        SkAutoTime atm("JPEG Encode");
 #endif
 
         const WriteScanline writer = ChooseWriter(bm);
@@ -679,4 +1017,3 @@ static SkImageEncoder* sk_libjpeg_efactory(SkImageEncoder::Type t) {
 
 static SkTRegistry<SkImageDecoder*, SkStream*> gDReg(sk_libjpeg_dfactory);
 static SkTRegistry<SkImageEncoder*, SkImageEncoder::Type> gEReg(sk_libjpeg_efactory);
-

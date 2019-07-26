@@ -64,7 +64,7 @@ public:
 
 
 
-    void playback(SkCanvas*);
+    void draw(SkCanvas*);
 private:
     enum {
         kMinBlockSize = 4096

@@ -17,9 +17,28 @@
 
 
 
+
+class SkBBoxHierarchyClient {
+public:
+    virtual ~SkBBoxHierarchyClient() {}
+
+    
+
+
+
+
+    virtual bool shouldRewind(void* data) = 0;
+};
+
+
+
+
+
 class SkBBoxHierarchy : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(SkBBoxHierarchy)
+
+    SkBBoxHierarchy() : fClient(NULL) {}
 
     
 
@@ -49,9 +68,21 @@ public:
 
     virtual int getCount() const = 0;
 
+    
+
+
+
+
+
+    virtual void rewindInserts() = 0;
+
+    void setClient(SkBBoxHierarchyClient* client) { fClient = client; }
+
+protected:
+    SkBBoxHierarchyClient* fClient;
+
 private:
     typedef SkRefCnt INHERITED;
 };
 
 #endif
-

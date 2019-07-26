@@ -16,7 +16,6 @@
 #include "SkMatrix.h"
 #include "SkPaint.h"
 #include "SkRect.h"
-#include "SkAutoKern.h"
 
 class SkBounder;
 class SkClipStack;
@@ -76,7 +75,7 @@ public:
 
 
     static bool DrawToMask(const SkPath& devPath, const SkIRect* clipBounds,
-                           SkMaskFilter* filter, const SkMatrix* filterMatrix,
+                           const SkMaskFilter*, const SkMatrix* filterMatrix,
                            SkMask* mask, SkMask::CreateMode mode,
                            SkPaint::Style style);
 
@@ -104,6 +103,17 @@ private:
     void    drawDevMask(const SkMask& mask, const SkPaint&) const;
     void    drawBitmapAsMask(const SkBitmap&, const SkPaint&) const;
 
+    
+
+
+
+
+
+
+
+    bool SK_WARN_UNUSED_RESULT
+    computeConservativeLocalClipBounds(SkRect* bounds) const;
+
 public:
     const SkBitmap* fBitmap;        
     const SkMatrix* fMatrix;        
@@ -115,9 +125,6 @@ public:
     SkBounder*      fBounder;       
     SkDrawProcs*    fProcs;         
 
-    const SkMatrix* fMVMatrix;      
-    const SkMatrix* fExtMatrix;     
-
 #ifdef SK_DEBUG
     void validate() const;
 #else
@@ -126,5 +133,3 @@ public:
 };
 
 #endif
-
-

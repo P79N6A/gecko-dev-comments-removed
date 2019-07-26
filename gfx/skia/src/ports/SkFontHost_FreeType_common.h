@@ -11,6 +11,8 @@
 
 #include "SkGlyph.h"
 #include "SkScalerContext.h"
+#include "SkTypeface.h"
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -26,19 +28,38 @@
 
 
 class SkScalerContext_FreeType_Base : public SkScalerContext {
-public:
+protected:
     
     
     static const FT_Pos kBitmapEmboldenStrength = 1 << 6;
 
-    SkScalerContext_FreeType_Base(const SkDescriptor *desc)
-        : SkScalerContext(desc)
+    SkScalerContext_FreeType_Base(SkTypeface* typeface, const SkDescriptor *desc)
+    : INHERITED(typeface, desc)
     {}
 
-protected:
-    void generateGlyphImage(FT_Face face, const SkGlyph& glyph, SkMaskGamma::PreBlend* maskPreBlend);
-    void generateGlyphPath(FT_Face face, const SkGlyph& glyph, SkPath* path);
+    void generateGlyphImage(FT_Face face, const SkGlyph& glyph);
+    void generateGlyphPath(FT_Face face, SkPath* path);
     void emboldenOutline(FT_Face face, FT_Outline* outline);
+
+private:
+    typedef SkScalerContext INHERITED;
+};
+
+class SkTypeface_FreeType : public SkTypeface {
+protected:
+    SkTypeface_FreeType(Style style, SkFontID uniqueID, bool isFixedPitch)
+        : INHERITED(style, uniqueID, isFixedPitch) {}
+
+    virtual SkScalerContext* onCreateScalerContext(
+                                        const SkDescriptor*) const SK_OVERRIDE;
+    virtual void onFilterRec(SkScalerContextRec*) const SK_OVERRIDE;
+    virtual SkAdvancedTypefaceMetrics* onGetAdvancedTypefaceMetrics(
+                                SkAdvancedTypefaceMetrics::PerGlyphInfo,
+                                const uint32_t*, uint32_t) const SK_OVERRIDE;
+    virtual int onGetUPEM() const SK_OVERRIDE;
+
+private:
+    typedef SkTypeface INHERITED;
 };
 
 #endif 

@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkDiscretePathEffect_DEFINED
 #define SkDiscretePathEffect_DEFINED
 
@@ -16,7 +14,7 @@
 
 
 
-class SkDiscretePathEffect : public SkPathEffect {
+class SK_API SkDiscretePathEffect : public SkPathEffect {
 public:
     
 
@@ -24,7 +22,8 @@ public:
 
     SkDiscretePathEffect(SkScalar segLength, SkScalar deviation);
 
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
+    virtual bool filterPath(SkPath* dst, const SkPath& src,
+                            SkStrokeRec*, const SkRect*) const SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkDiscretePathEffect)
 
@@ -39,4 +38,3 @@ private:
 };
 
 #endif
-

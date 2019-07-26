@@ -55,4 +55,14 @@ static inline size_t SkImageMinRowBytes(const SkImage::Info& info) {
 
 extern SkPixelRef* SkBitmapImageGetPixelRef(SkImage* rasterImage);
 
+
+
+
+extern GrTexture* SkTextureImageGetTexture(SkImage* rasterImage);
+
+
+
+
+extern void SkTextureImageSetTexture(SkImage* image, GrTexture* texture);
+
 #endif

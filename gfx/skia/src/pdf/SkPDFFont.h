@@ -49,7 +49,7 @@ public:
     class F2BIter {
     public:
         explicit F2BIter(const SkPDFGlyphSetMap& map);
-        FontGlyphSetPair* next() const;
+        const FontGlyphSetPair* next() const;
         void reset(const SkPDFGlyphSetMap& map);
 
     private:
@@ -81,7 +81,8 @@ class SkPDFFont : public SkPDFDict {
 public:
     virtual ~SkPDFFont();
 
-    virtual void getResources(SkTDArray<SkPDFObject*>* resourceList);
+    virtual void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                              SkTSet<SkPDFObject*>* newResourceObjects);
 
     
 
@@ -133,7 +134,7 @@ public:
 protected:
     
     SkPDFFont(SkAdvancedTypefaceMetrics* fontInfo, SkTypeface* typeface,
-              uint16_t glyphID, bool descendantFont);
+              SkPDFDict* relatedFontDescriptor);
 
     
     SkAdvancedTypefaceMetrics* fontInfo();
@@ -164,7 +165,7 @@ protected:
     
     static SkPDFFont* Create(SkAdvancedTypefaceMetrics* fontInfo,
                              SkTypeface* typeface, uint16_t glyphID,
-                             SkPDFDict* fontDescriptor);
+                             SkPDFDict* relatedFontDescriptor);
 
     static bool Find(uint32_t fontID, uint16_t glyphID, int* index);
 
@@ -180,7 +181,7 @@ private:
         FontRec(SkPDFFont* font, uint32_t fontID, uint16_t fGlyphID);
     };
 
-    SkRefPtr<SkTypeface> fTypeface;
+    SkAutoTUnref<SkTypeface> fTypeface;
 
     
     
@@ -188,9 +189,9 @@ private:
     uint16_t fLastGlyphID;
     
     
-    SkRefPtr<SkAdvancedTypefaceMetrics> fFontInfo;
+    SkAutoTUnref<SkAdvancedTypefaceMetrics> fFontInfo;
     SkTDArray<SkPDFObject*> fResources;
-    SkRefPtr<SkPDFDict> fDescriptor;
+    SkAutoTUnref<SkPDFDict> fDescriptor;
 
     SkAdvancedTypefaceMetrics::FontType fFontType;
 

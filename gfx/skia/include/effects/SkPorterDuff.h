@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkPorterDuff_DEFINED
 #define SkPorterDuff_DEFINED
 
@@ -17,7 +15,7 @@ class SkXfermode;
 
 
 
-class SkPorterDuff {
+class SK_API SkPorterDuff {
 public:
     
 
@@ -42,7 +40,7 @@ public:
         kXor_Mode,      
         kDarken_Mode,   
         kLighten_Mode,  
-        kMultiply_Mode, 
+        kModulate_Mode, 
         kScreen_Mode,   
         kAdd_Mode,      
 #ifdef SK_BUILD_FOR_ANDROID
@@ -81,4 +79,3 @@ public:
 };
 
 #endif
-

@@ -15,6 +15,7 @@
 class SkCanvas;
 class SkPaint;
 struct SkRect;
+class SkString;
 
 
 
@@ -61,6 +62,8 @@ public:
     virtual bool canComputeFastBounds(const SkPaint& paint);
     virtual void computeFastBounds(const SkPaint& paint,
                                    const SkRect& src, SkRect* dst);
+
+    SkDEVCODE(virtual void toString(SkString* str) const = 0;)
 
 protected:
     SkDrawLooper() {}
