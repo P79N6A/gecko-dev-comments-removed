@@ -7126,6 +7126,37 @@ class CGRegisterProtos(CGAbstractMethod):
     def definition_body(self):
         return self._defineMacro() + self._registerProtos() + self._undefineMacro()
 
+def dependencySortObjects(objects, dependencyGetter, nameGetter):
+    """
+    Sort IDL objects with dependencies on each other such that if A
+    depends on B then B will come before A.  This is needed for
+    declaring C++ classes in the right order, for example.  Objects
+    that have no dependencies are just sorted by name.
+
+    objects should be something that can produce a set of objects
+    (e.g. a set, iterator, list, etc).
+
+    dependencyGetter is something that, given an object, should return
+    the set of objects it depends on.
+    """
+    
+    
+    
+    
+    sortedObjects = []
+    objects = set(objects)
+    while len(objects) != 0:
+        
+        
+        toMove = [o for o in objects if
+                  len(dependencyGetter(o) & objects) == 0]
+        if len(toMove) == 0:
+            raise TypeError("Loop in dependency graph\n" +
+                            "\n".join(o.location for o in objects))
+        objects = objects - set(toMove)
+        sortedObjects.extend(sorted(toMove, key=nameGetter))
+    return sortedObjects
+
 class CGBindingRoot(CGThing):
     """
     Root codegen class for binding generation. Instantiate the class, and call
@@ -7270,30 +7301,16 @@ class CGBindingRoot(CGThing):
         
         
         
-        
-        
-        
-        
-        
-        def sortDictionaries(dictionaries):
-            reSortedDictionaries = []
-            dictionaries = set(dictionaries)
-            while len(dictionaries) != 0:
-                
-                
-                toMove = [d for d in dictionaries if
-                          len(CGDictionary.getDictionaryDependencies(d) &
-                              dictionaries) == 0]
-                if len(toMove) == 0:
-                    raise TypeError("Loop in dictionary dependency graph")
-                dictionaries = dictionaries - set(toMove)
-                reSortedDictionaries.extend(toMove)
-            return reSortedDictionaries
-
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider(True))
-                         for d in sortDictionaries(workerDictionaries)])
+                         for d in
+                         dependencySortObjects(workerDictionaries,
+                                               CGDictionary.getDictionaryDependencies,
+                                               lambda d: d.identifier.name)])
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider(False))
-                         for d in sortDictionaries(mainDictionaries)])
+                         for d in
+                         dependencySortObjects(mainDictionaries,
+                                               CGDictionary.getDictionaryDependencies,
+                                               lambda d: d.identifier.name)])
 
         
         
