@@ -188,19 +188,24 @@ public:
 
 
 
-
-
-
-
-    size_t anon_mapping_length = length + 2 * PAGE_SIZE;
+#if defined(__arm__)
+    void *buf = ::mmap(NULL, length + PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (buf != MAP_FAILED) {
+      ::mmap(AlignedEndPtr(reinterpret_cast<char *>(buf) + length, PAGE_SIZE),
+             PAGE_SIZE, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+      DEBUG_LOG("Decompression buffer of size 0x%x in ashmem \"%s\", mapped @%p",
+                length, str, buf);
+      return new _MappableBuffer(fd.forget(), buf, length);
+    }
+#elif defined(__i386__)
+    size_t anon_mapping_length = length + PAGE_SIZE;
     void *buf = ::mmap(NULL, anon_mapping_length, PROT_NONE,
                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buf != MAP_FAILED) {
       char *first_page = reinterpret_cast<char *>(buf);
       char *map_page = first_page + PAGE_SIZE;
-      char *last_page = map_page + ((length + PAGE_SIZE - 1) & PAGE_MASK);
 
-      void *actual_buf = ::mmap(map_page, last_page - map_page, PROT_READ | PROT_WRITE,
+      void *actual_buf = ::mmap(map_page, length, PROT_READ | PROT_WRITE,
                                 MAP_FIXED | MAP_SHARED, fd, 0);
       if (actual_buf == MAP_FAILED) {
         ::munmap(buf, anon_mapping_length);
@@ -212,6 +217,9 @@ public:
                 length, str, actual_buf);
       return new _MappableBuffer(fd.forget(), actual_buf, length);
     }
+#else
+#error need to add a case for your CPU
+#endif
 #else
     
 
@@ -251,7 +259,13 @@ public:
 #ifdef ANDROID
   ~_MappableBuffer() {
     
-    ::munmap(*this - PAGE_SIZE, GetLength() + 2 * PAGE_SIZE);
+#if defined(__arm__)
+    ::munmap(AlignedEndPtr(*this + GetLength(), PAGE_SIZE), PAGE_SIZE);
+#elif defined(__i386__)
+    ::munmap(*this - PAGE_SIZE, GetLength() + PAGE_SIZE);
+#else
+#error need to add a case for your CPU
+#endif
   }
 #endif
 
