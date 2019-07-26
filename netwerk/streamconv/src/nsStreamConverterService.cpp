@@ -51,13 +51,12 @@ struct BFSState {
 
 
 struct SCTableData {
-    nsCStringKey *key;
     union _data {
         BFSState *state;
         nsCOMArray<nsIAtom> *edges;
     } data;
 
-    SCTableData(nsCStringKey* aKey) : key(aKey) {
+    SCTableData() {
         data.state = nullptr;
     }
 };
@@ -96,8 +95,7 @@ nsStreamConverterService::~nsStreamConverterService() {
 
 static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
     SCTableData *entry = (SCTableData*)aData;
-    NS_ASSERTION(entry->key && entry->data.edges, "malformed adjacency list entry");
-    delete entry->key;
+    NS_ASSERTION(entry->data.edges, "malformed adjacency list entry");
     delete entry->data.edges;
     delete entry;
     return true;
@@ -183,30 +181,27 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
     SCTableData *fromEdges = (SCTableData*)mAdjacencyList->Get(&fromKey);
     if (!fromEdges) {
         
-
-        nsCStringKey *newFromKey = new nsCStringKey(ToNewCString(fromStr), fromStr.Length(), nsCStringKey::OWN);
-        SCTableData *data = new SCTableData(newFromKey);
+        SCTableData *data = new SCTableData();
         nsCOMArray<nsIAtom>* edgeArray = new nsCOMArray<nsIAtom>;
         data->data.edges = edgeArray;
 
-        mAdjacencyList->Put(newFromKey, data);
+        mAdjacencyList->Put(&fromKey, data);
         fromEdges = data;
     }
 
     nsCStringKey toKey(toStr);
     if (!mAdjacencyList->Get(&toKey)) {
         
-        nsCStringKey *newToKey = new nsCStringKey(ToNewCString(toStr), toStr.Length(), nsCStringKey::OWN);
-        SCTableData *data = new SCTableData(newToKey);
+        SCTableData *data = new SCTableData();
         nsCOMArray<nsIAtom>* edgeArray = new nsCOMArray<nsIAtom>;
         data->data.edges = edgeArray;
-        mAdjacencyList->Put(newToKey, data);
+        mAdjacencyList->Put(&toKey, data);
     }
 
     
     
 
-    nsCOMPtr<nsIAtom> vertex = do_GetAtom(toStr); 
+    nsCOMPtr<nsIAtom> vertex = do_GetAtom(toStr);
     if (!vertex) return NS_ERROR_OUT_OF_MEMORY;
 
     NS_ASSERTION(fromEdges, "something wrong in adjacency list construction");
