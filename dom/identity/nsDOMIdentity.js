@@ -172,11 +172,10 @@ nsDOMIdentity.prototype = {
     
     
     
-    
-    
 
     if (!aOptions._internal &&
-        this._appStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+        this._appStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED &&
+        this._appStatus !== Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
 
       
       
