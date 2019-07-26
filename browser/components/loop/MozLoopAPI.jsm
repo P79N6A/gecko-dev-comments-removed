@@ -86,6 +86,27 @@ function injectLoopAPI(targetWindow) {
       value: function(callback) {
         return MozLoopService.register(callback);
       }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    noteCallUrlExpiry: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: function(expiryTimeSeconds) {
+        MozLoopService.noteCallUrlExpiry(expiryTimeSeconds);
+      }
     }
   };
 

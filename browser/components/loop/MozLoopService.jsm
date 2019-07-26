@@ -155,31 +155,89 @@ let MozLoopServiceInternal = {
   loopServerUri: Services.prefs.getCharPref("loop.server"),
 
   
-
-
-
-
-
-  initialRegistrationDelay: 100,
+  registrationCallbacks: [],
 
   
 
 
 
-  initialize: function() {
-    if (this.initialized)
+  get initialRegistrationDelayMilliseconds() {
+    
+    let initialDelay = 5000;
+    try {
+      
+      initialDelay = Services.prefs.getIntPref("loop.initialDelay");
+    } catch (x) {
+      
+    }
+    return initialDelay;
+  },
+
+  
+
+
+
+
+  get expiryTimeSeconds() {
+    let expiryTimeSeconds = 0;
+    try {
+      expiryTimeSeconds = Services.prefs.getIntPref("loop.urlsExpiryTimeSeconds");
+    } catch (x) {
+      
+    }
+
+    return expiryTimeSeconds;
+  },
+
+  
+
+
+
+  set expiryTimeSeconds(time) {
+    if (time > this.expiryTimeSeconds) {
+      Services.prefs.setIntPref("loop.urlsExpiryTimeSeconds", time);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  initialize: function(callback) {
+    if (this.registeredPushServer || this.initalizeTimer || this.registrationInProgress) {
+      if (callback)
+        callback(this.registeredPushServer ? null : false);
       return;
+    }
 
-    this.initialized = true;
+    function secondsToMilli(value) {
+      return value * 1000;
+    }
 
     
-    
-    
-    this.initializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this.initializeTimer.initWithCallback(function() {
-        this.registerWithServers();
+    if (secondsToMilli(this.expiryTimeSeconds) > Date.now()) {
+      
+      
+      
+      this.initializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this.initializeTimer.initWithCallback(function() {
+        this.registerWithServers(callback);
+        this.initializeTimer = null;
       }.bind(this),
-      this.initialRegistrationDelay, Ci.nsITimer.TYPE_ONE_SHOT);
+      this.initialRegistrationDelayMilliseconds, Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+    else if (callback) {
+      
+      callback(false);
+    }
   },
 
   
@@ -200,7 +258,7 @@ let MozLoopServiceInternal = {
     }
 
     
-    this.registrationCompleteCallback = callback;
+    this.registrationCallbacks.push(callback);
 
     
     if (this.registrationInProgress) {
@@ -223,10 +281,10 @@ let MozLoopServiceInternal = {
     this.registrationInProgress = false;
 
     
-    if (this.registrationCompleteCallback) {
-      this.registrationCompleteCallback(err);
-      this.registrationCompleteCallback = null;
-    }
+    this.registrationCallbacks.forEach(function(callback) {
+      callback(err);
+    });
+    this.registrationCallbacks.length = 0;
   },
 
   
@@ -369,8 +427,16 @@ this.MozLoopService = {
 
 
 
-  initialize: function() {
-    MozLoopServiceInternal.initialize();
+
+
+
+
+
+
+
+
+  initialize: function(callback) {
+    MozLoopServiceInternal.initialize(callback);
   },
 
   
@@ -384,6 +450,22 @@ this.MozLoopService = {
 
   register: function(callback) {
     MozLoopServiceInternal.registerWithServers(callback);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  noteCallUrlExpiry: function(expiryTimeSeconds) {
+    MozLoopServiceInternal.expiryTimeSeconds = expiryTimeSeconds;
   },
 
   
