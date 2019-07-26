@@ -173,16 +173,6 @@ private:
 
 
   uint32_t mOwnAppId;
-  
-
-
-
-
-
-
-
-
-  nsCOMPtr<mozIApplication> mOwnApp;
 
   
 
@@ -191,8 +181,6 @@ private:
 
 
   uint32_t mContainingAppId;
-  
-  nsCOMPtr<mozIApplication> mContainingApp;
 
   
 
