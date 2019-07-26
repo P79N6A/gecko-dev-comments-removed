@@ -5254,7 +5254,7 @@ int32_t nsFrame::ContentIndexInContainer(const nsIFrame* aFrame)
 void
 DebugListFrameTree(nsIFrame* aFrame)
 {
-  ((nsFrame*)aFrame)->List(stdout);
+  ((nsFrame*)aFrame)->List(stderr);
 }
 
 void
@@ -5384,13 +5384,13 @@ nsFrame::MakeFrameName(const nsAString& aType, nsAString& aResult) const
 void
 nsIFrame::DumpFrameTree()
 {
-  RootFrameList(PresContext(), stdout);
+  RootFrameList(PresContext(), stderr);
 }
 
 void
 nsIFrame::DumpFrameTreeLimited()
 {
-  List(stdout);
+  List(stderr);
 }
 
 void
