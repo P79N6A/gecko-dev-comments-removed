@@ -750,7 +750,7 @@ pref("dom.sysmsg.enabled", false);
 
 pref("dom.webapps.useCurrentProfile", false);
 
-pref("dom.cycle_collector.incremental", false);
+pref("dom.cycle_collector.incremental", true);
 
 
 #ifndef XP_WIN
