@@ -1779,11 +1779,6 @@ function WifiWorker() {
   WifiManager.onsupplicantconnection = function() {
     debug("Connected to supplicant");
     WifiManager.enabled = true;
-    WifiManager.getMacAddress(function (mac) {
-      self.macAddress = mac;
-      debug("Got mac: " + mac);
-    });
-
     self._reloadConfiguredNetworks(function(ok) {
       
       if (!ok)
@@ -1807,7 +1802,12 @@ function WifiWorker() {
     self._notifyAfterStateChange(true, true);
 
     
-    self._fireEvent("wifiUp", {});
+    WifiManager.getMacAddress(function (mac) {
+      self.macAddress = mac;
+      debug("Got mac: " + mac);
+      self._fireEvent("wifiUp", { macAddress: mac });
+    });
+
     if (WifiManager.state === "SCANNING")
       startScanStuckTimer();
   };
