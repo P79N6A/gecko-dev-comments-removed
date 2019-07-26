@@ -181,11 +181,6 @@ StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame, nsRect* aStick,
   }
 
   nsIFrame* scrolledFrame = mScrollFrame->GetScrolledFrame();
-  
-  
-  
-  
-  
   nsIFrame* cbFrame = aFrame->GetContainingBlock();
   NS_ASSERTION(cbFrame == scrolledFrame ||
     nsLayoutUtils::IsProperAncestorFrame(scrolledFrame, cbFrame),
