@@ -324,13 +324,8 @@ class DataSourceSurface : public SourceSurface
 public:
   virtual SurfaceType GetType() const { return SURFACE_DATA; }
   
-
-
-
   virtual uint8_t *GetData() = 0;
-
   
-
 
 
 
