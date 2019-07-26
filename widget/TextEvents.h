@@ -328,7 +328,7 @@ public:
   
   
   
-  nsTextRangeArray rangeArray;
+  TextRangeArray rangeArray;
   
   
   
@@ -535,7 +535,6 @@ public:
 
 
 typedef mozilla::TextRange               nsTextRange;
-typedef mozilla::TextRangeArray          nsTextRangeArray;
 typedef mozilla::WidgetTextEvent         nsTextEvent;
 typedef mozilla::WidgetCompositionEvent  nsCompositionEvent;
 typedef mozilla::WidgetQueryContentEvent nsQueryContentEvent;
