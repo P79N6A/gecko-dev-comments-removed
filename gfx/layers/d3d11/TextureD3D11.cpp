@@ -343,7 +343,7 @@ DataTextureSourceD3D11::Update(DataSourceSurface* aSurface,
   
   
   
-  MOZ_ASSERT(!aDestRegion && !aSrcOffset);
+  MOZ_ASSERT(!aSrcOffset);
   MOZ_ASSERT(aSurface);
 
   if (!mCompositor || !mCompositor->GetDevice()) {
