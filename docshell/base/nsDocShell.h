@@ -747,6 +747,10 @@ protected:
 
     
     
+    nsCOMPtr<nsIChannel>       mMixedContentChannel;
+
+    
+    
     
 
     nsIDocShellTreeOwner *     mTreeOwner; 

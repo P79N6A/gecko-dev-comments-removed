@@ -874,11 +874,15 @@ nsSHistory::Reload(uint32_t aReloadFlags)
   {
     loadType = nsIDocShellLoadInfo::loadReloadCharsetChange;
   }
+  else if (aReloadFlags & nsIWebNavigation::LOAD_FLAGS_ALLOW_MIXED_CONTENT)
+  {
+    loadType = nsIDocShellLoadInfo::loadMixedContent;
+  }
   else
   {
     loadType = nsIDocShellLoadInfo::loadReloadNormal;
   }
-  
+
   
   
   

@@ -21,6 +21,9 @@
 #include "nsIHttpChannel.h"
 #include "mozilla/Preferences.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsISecureBrowserUI.h"
+#include "nsIDocumentLoader.h"
+#include "nsLoadGroup.h"
 
 #include "prlog.h"
 
@@ -324,11 +327,77 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   
+
   
+  nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(aRequestingContext);
+  NS_ENSURE_TRUE(docShell, NS_OK);
+  bool rootHasSecureConnection = false;
+  bool allowMixedContent = false;
+  rv = docShell->GetAllowMixedContentAndConnectionData(&rootHasSecureConnection, &allowMixedContent);
+  if (NS_FAILED(rv)) {
+     return rv;
+  }
+
   
-  if ( (sBlockMixedDisplay && classification == eMixedDisplay) || (sBlockMixedScript && classification == eMixedScript) ) {
-     *aDecision = nsIContentPolicy::REJECT_REQUEST;
+  nsCOMPtr<nsIDocShellTreeItem> currentDocShellTreeItem(do_QueryInterface(docShell));
+  NS_ASSERTION(currentDocShellTreeItem, "No DocShellTreeItem from docshell");  
+  nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+  currentDocShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+  NS_ASSERTION(sameTypeRoot, "No document shell root tree item from document shell tree item!");
+  nsCOMPtr<nsIDocument> rootDoc = do_GetInterface(sameTypeRoot);
+  NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
+
+  
+  if (sBlockMixedDisplay && classification == eMixedDisplay) {
+     if (allowMixedContent) {
+       *aDecision = nsIContentPolicy::ACCEPT;
+       rootDoc->SetHasMixedActiveContentLoaded(true);
+     } else {
+       *aDecision = nsIContentPolicy::REJECT_REQUEST;
+     }
      return NS_OK;
+  } else if (sBlockMixedScript && classification == eMixedScript) {
+    
+    
+    if (allowMixedContent) {
+       *aDecision = nsIContentPolicy::ACCEPT;
+       rootDoc->SetHasMixedActiveContentLoaded(true);
+    } else {
+       *aDecision = nsIContentPolicy::REJECT_REQUEST;
+       rootDoc->SetHasMixedActiveContentBlocked(true);
+    }
+
+    
+    nsCOMPtr<nsISecurityEventSink> eventSink = do_QueryInterface(docShell);
+    if (eventSink) {
+      if (!allowMixedContent) {
+        
+        
+        nsCOMPtr<nsIDocShell> rootShell = do_GetInterface(sameTypeRoot);
+        NS_ASSERTION(rootShell, "No root docshell from document shell root tree item.");
+        uint32_t State;
+        nsCOMPtr<nsISecureBrowserUI> SecurityUI;
+        rootShell->GetSecurityUI(getter_AddRefs(SecurityUI));
+        if (SecurityUI) {
+          nsresult rv = SecurityUI->GetState(&State);
+          if (NS_SUCCEEDED(rv)) {
+            eventSink->OnSecurityChange(aRequestingContext, State);
+          }
+        }
+        return NS_OK;
+      } else if (rootHasSecureConnection) {
+          
+          eventSink->OnSecurityChange(aRequestingContext, nsIWebProgressListener::STATE_IS_BROKEN);
+          return NS_OK;
+      } else if (!rootHasSecureConnection) {
+        
+        
+        
+        
+        return NS_OK;
+      }
+    }
+
   } else {
     
 

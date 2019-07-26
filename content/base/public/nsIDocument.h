@@ -102,8 +102,8 @@ template<typename> class Sequence;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x2df7f766, 0xf70b, 0x4de4, \
- { 0xb0, 0xba, 0x78, 0x25, 0x07, 0x41, 0xd6, 0xce } }
+{ 0x4e6f7d97, 0x091e, 0x4eda, \
+  { 0xb7, 0xd6, 0xfe, 0xb0, 0xb8, 0x01, 0x2a, 0x93 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -446,6 +446,21 @@ public:
     mHasMixedActiveContentLoaded = aHasMixedActiveContentLoaded;
   }
 
+  
+
+
+  bool GetHasMixedActiveContentBlocked()
+  {
+    return mHasMixedActiveContentBlocked;
+  }
+
+  
+
+
+  void SetHasMixedActiveContentBlocked(bool aHasMixedActiveContentBlocked)
+  {
+    mHasMixedActiveContentBlocked = aHasMixedActiveContentBlocked;
+  }
 
   
 
@@ -2165,6 +2180,9 @@ protected:
 
   
   bool mHasMixedActiveContentLoaded;
+
+  
+  bool mHasMixedActiveContentBlocked;
 
   
   bool mBFCacheDisallowed;
