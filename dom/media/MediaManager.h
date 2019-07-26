@@ -72,8 +72,7 @@ typedef enum {
   MEDIA_STOP
 } MediaOperation;
 
-
-
+class GetUserMediaCallbackMediaStreamListener;
 
 
 
@@ -108,7 +107,9 @@ public:
     
     if (mStream) {
       nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-      NS_ProxyRelease(mainThread,mStream,false);
+      nsDOMMediaStream *stream;
+      mStream.forget(&stream);
+      NS_ProxyRelease(mainThread, stream, true);
     }
   }
 
@@ -170,6 +171,10 @@ public:
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
         }
         break;
+
+      default:
+        MOZ_ASSERT(false,"invalid MediaManager operation");
+        break;
     }
     return NS_OK;
   }
@@ -199,6 +204,18 @@ public:
     , mVideoSource(aVideoSource)
     , mStream(aStream) {}
 
+  ~GetUserMediaCallbackMediaStreamListener()
+  {
+    
+    if (mStream) {
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+      nsDOMMediaStream *stream;
+      mStream.forget(&stream);
+      
+      NS_ProxyRelease(mainThread, stream, false);
+    }
+  }
+
   void
   Invalidate()
   {
@@ -208,12 +225,25 @@ public:
     
     
     
-    runnable = new MediaOperationRunnable(MEDIA_STOP, 
+    
+    
+    
+    
+    
+    runnable = new MediaOperationRunnable(MEDIA_STOP,
                                           mStream->GetStream()->AsSourceStream(),
                                           mAudioSource, mVideoSource);
     mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
     return;
+  }
+
+  void
+  Remove()
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+    
+    mStream->GetStream()->RemoveListener(this);
   }
 
   
@@ -234,6 +264,7 @@ public:
   NotifyFinished(MediaStreamGraph* aGraph)
   {
     Invalidate();
+    
   }
 
 private:
