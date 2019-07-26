@@ -14,10 +14,12 @@
 #include "jscntxt.h"
 #include "jsstr.h"
 
+namespace js {
 
 
 
-class JSONParser
+
+class JSONParser : private AutoGCRooter
 {
   public:
     enum ErrorHandling { RaiseError, NoError };
@@ -27,10 +29,10 @@ class JSONParser
     
 
     JSContext * const cx;
-    JS::StableCharPtr current;
-    const JS::StableCharPtr end;
+    StableCharPtr current;
+    const StableCharPtr end;
 
-    js::Value v;
+    Value v;
 
     const ParsingMode parsingMode;
     const ErrorHandling errorHandling;
@@ -40,6 +42,70 @@ class JSONParser
                  ObjectOpen, ObjectClose,
                  Colon, Comma,
                  OOM, Error };
+
+    
+    
+    
+    
+    
+    
+
+    
+    
+    typedef Vector<Value, 20> ElementVector;
+
+    
+    
+    typedef Vector<IdValuePair, 10> PropertyVector;
+
+    
+    enum ParserState {
+        
+        FinishArrayElement,
+
+        
+        FinishObjectMember,
+
+        
+        JSONValue
+    };
+
+    
+    struct StackEntry {
+        ElementVector &elements() {
+            JS_ASSERT(state == FinishArrayElement);
+            return * static_cast<ElementVector *>(vector);
+        }
+
+        PropertyVector &properties() {
+            JS_ASSERT(state == FinishObjectMember);
+            return * static_cast<PropertyVector *>(vector);
+        }
+
+        StackEntry(ElementVector *elements)
+          : state(FinishArrayElement), vector(elements)
+        {}
+
+        StackEntry(PropertyVector *properties)
+          : state(FinishObjectMember), vector(properties)
+        {}
+
+        ParserState state;
+
+      private:
+        void *vector;
+    };
+
+    
+    
+    Vector<StackEntry, 10> stack;
+
+    
+    
+    
+    Vector<ElementVector*, 5> freeElements;
+    Vector<PropertyVector*, 5> freeProperties;
+
 #ifdef DEBUG
     Token lastToken;
 #endif
@@ -58,17 +124,23 @@ class JSONParser
     JSONParser(JSContext *cx, JS::StableCharPtr data, size_t length,
                ParsingMode parsingMode = StrictJSON,
                ErrorHandling errorHandling = RaiseError)
-      : cx(cx),
+      : AutoGCRooter(cx, JSONPARSER),
+        cx(cx),
         current(data),
         end((data + length).get(), data.get(), length),
         parsingMode(parsingMode),
-        errorHandling(errorHandling)
+        errorHandling(errorHandling),
+        stack(cx),
+        freeElements(cx),
+        freeProperties(cx)
 #ifdef DEBUG
       , lastToken(Error)
 #endif
     {
         JS_ASSERT(current <= end);
     }
+
+    ~JSONParser();
 
     
 
@@ -95,10 +167,9 @@ class JSONParser
         return v;
     }
 
-    js::Value atomValue() const {
+    JSAtom *atomValue() const {
         js::Value strval = stringValue();
-        JS_ASSERT(strval.toString()->isAtom());
-        return strval;
+        return &strval.toString()->asAtom();
     }
 
     Token token(Token t) {
@@ -141,9 +212,18 @@ class JSONParser
     void error(const char *msg);
     bool errorReturn();
 
+    JSObject *createFinishedObject(PropertyVector &properties);
+    bool finishObject(MutableHandleValue vp, PropertyVector &properties);
+    bool finishArray(MutableHandleValue vp, ElementVector &elements);
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    void trace(JSTracer *trc);
+
   private:
     JSONParser(const JSONParser &other) MOZ_DELETE;
     void operator=(const JSONParser &other) MOZ_DELETE;
 };
 
-#endif
+} 
+
+#endif 
