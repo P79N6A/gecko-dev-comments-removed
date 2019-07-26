@@ -97,29 +97,21 @@ nsXPConnect::~nsXPConnect()
 {
     mRuntime->DeleteJunkScope();
 
-    JSContext *cx = nullptr;
-    if (mRuntime) {
-        
-        
-        
-        cx = JS_NewContext(mRuntime->Runtime(), 8192);
-    }
-
     
     
     mRuntime->DestroyJSContextStack();
 
     mShuttingDown = true;
-    if (cx) {
-        
-        XPCWrappedNativeScope::SystemIsBeingShutDown();
+    XPCWrappedNativeScope::SystemIsBeingShutDown();
+    mRuntime->SystemIsBeingShutDown();
 
-        mRuntime->SystemIsBeingShutDown();
-        JS_DestroyContext(cx);
-    }
+    
+    
+    
+    
+    JS_GC(mRuntime->Runtime());
 
     NS_IF_RELEASE(mDefaultSecurityManager);
-
     gScriptSecurityManager = nullptr;
 
     
