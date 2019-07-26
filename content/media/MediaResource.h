@@ -251,6 +251,12 @@ public:
   
   
   
+  virtual nsresult ReadAt(int64_t aOffset, char* aBuffer,
+                          uint32_t aCount, uint32_t* aBytes) = 0;
+  
+  
+  
+  
   
   
   
@@ -518,6 +524,8 @@ public:
   virtual void     SetReadMode(MediaCacheStream::ReadMode aMode);
   virtual void     SetPlaybackRate(uint32_t aBytesPerSecond);
   virtual nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
+  virtual nsresult ReadAt(int64_t offset, char* aBuffer,
+                          uint32_t aCount, uint32_t* aBytes);
   virtual nsresult Seek(int32_t aWhence, int64_t aOffset);
   virtual void     StartSeekingForMetadata();
   virtual void     EndSeekingForMetadata();

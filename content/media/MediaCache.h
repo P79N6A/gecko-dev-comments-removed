@@ -345,7 +345,10 @@ public:
   
   
   nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
-
+  
+  
+  nsresult ReadAt(int64_t aOffset, char* aBuffer,
+                  uint32_t aCount, uint32_t* aBytes);
 private:
   friend class MediaCache;
 
