@@ -19,6 +19,8 @@ const EventEmitter = require("devtools/toolkit/event-emitter");
 
 
 
+
+
 function TreeWidget(node, options={}) {
   EventEmitter.decorate(this);
 
@@ -26,9 +28,9 @@ function TreeWidget(node, options={}) {
   this.window = this.document.defaultView;
   this._parent = node;
 
-  let {emptyText, defaultType} = options;
-  this.emptyText = emptyText || "";
-  this.defaultType = defaultType;
+  this.emptyText = options.emptyText || "";
+  this.defaultType = options.defaultType;
+  this.sorted = options.sorted !== false;
 
   this.setupRoot();
 
@@ -245,7 +247,7 @@ TreeWidget.prototype = {
 
 
   add: function(items) {
-    this.root.add(items, this.defaultType);
+    this.root.add(items, this.defaultType, this.sorted);
     for (let i = 0; i < items.length; i++) {
       if (items[i].attachment) {
         this.attachments.set(JSON.stringify(
@@ -460,7 +462,10 @@ TreeItem.prototype = {
 
 
 
-  add: function(items, defaultType) {
+
+
+
+  add: function(items, defaultType, sorted) {
     if (items.length == this.level) {
       
       return;
@@ -470,7 +475,7 @@ TreeItem.prototype = {
     if (this.items.has(id)) {
       
       
-      this.items.get(id).add(items, defaultType);
+      this.items.get(id).add(items, defaultType, sorted);
       return;
     }
     
@@ -486,19 +491,27 @@ TreeItem.prototype = {
     }
     let treeItem = new TreeItem(this.document, this, node || label,
                                 items[this.level].type || defaultType);
-    let nextSibling = [...this.items.values()].find(child => {
-      return child.label.textContent >= label;
-    });
-    treeItem.add(items, defaultType);
+
+    treeItem.add(items, defaultType, sorted);
     treeItem.node.setAttribute("data-id", JSON.stringify(
       items.slice(0, this.level + 1).map(item => item.id || item)
     ));
-    
-    if (nextSibling) {
-      this.children.insertBefore(treeItem.node, nextSibling.node);
+
+    if (sorted) {
+      
+      let nextSibling = [...this.items.values()].find(child => {
+        return child.label.textContent >= label;
+      });
+
+      if (nextSibling) {
+        this.children.insertBefore(treeItem.node, nextSibling.node);
+      } else {
+        this.children.appendChild(treeItem.node);
+      }
     } else {
       this.children.appendChild(treeItem.node);
     }
+
     if (this.label) {
       this.label.removeAttribute("empty");
     }
