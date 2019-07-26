@@ -163,7 +163,7 @@ static bool sBlocklistInitFailed;
 static bool sUser32BeforeBlocklist;
 
 
-static void
+void
 printf_stderr(const char *fmt, ...)
 {
   if (IsDebuggerPresent()) {
@@ -368,7 +368,7 @@ DllBlockSet::Write(HANDLE file)
 
   
   
-  __try {
+  MOZ_SEH_TRY {
     for (DllBlockSet* b = gFirst; b; b = b->mNext) {
       
       WriteFile(file, b->mName, strlen(b->mName), &nBytes, nullptr);
@@ -391,7 +391,7 @@ DllBlockSet::Write(HANDLE file)
       WriteFile(file, ";", 1, &nBytes, nullptr);
     }
   }
-  __except (EXCEPTION_EXECUTE_HANDLER) { }
+  MOZ_SEH_EXCEPT (EXCEPTION_EXECUTE_HANDLER) { }
 }
 
 static
