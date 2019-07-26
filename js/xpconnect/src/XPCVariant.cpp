@@ -60,7 +60,7 @@ XPCTraceableVariant::~XPCTraceableVariant()
 
     
     
-    if (!JSVAL_IS_STRING(val))
+    if (!val.isString())
         nsVariant::Cleanup(&mData);
 
     if (!val.isNull())
