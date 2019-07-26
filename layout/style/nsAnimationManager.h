@@ -126,8 +126,6 @@ struct ElementAnimations MOZ_FINAL
   
   
   bool mNeedsRefreshes;
-
-  mozilla::ElementAnimationPtrArray mAnimations;
 };
 
 class nsAnimationManager MOZ_FINAL

@@ -89,11 +89,6 @@ struct ElementTransitions MOZ_FINAL
   
   
   virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
-
-  typedef InfallibleTArray<nsRefPtr<ElementPropertyTransition> >
-          TransitionPtrArray;
-  
-  TransitionPtrArray mPropertyTransitions;
 };
 
 

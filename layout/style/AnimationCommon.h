@@ -363,6 +363,8 @@ struct CommonElementAnimationData : public PRCList
 
   CommonAnimationManager *mManager;
 
+  mozilla::ElementAnimationPtrArray mAnimations;
+
   
   
   
