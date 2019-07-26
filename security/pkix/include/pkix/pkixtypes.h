@@ -25,11 +25,11 @@
 #ifndef mozilla_pkix__pkixtypes_h
 #define mozilla_pkix__pkixtypes_h
 
+#include "cert.h"
 #include "pkix/enumclass.h"
 #include "pkix/ScopedPtr.h"
-#include "plarena.h"
-#include "cert.h"
-#include "keyhi.h"
+#include "seccomon.h"
+#include "secport.h"
 #include "stdint.h"
 
 namespace mozilla { namespace pkix {
@@ -92,6 +92,34 @@ MOZILLA_PKIX_ENUM_CLASS TrustLevel {
 
 
 
+
+
+
+
+
+
+
+struct CertID
+{
+public:
+  CertID(const SECItem& issuer, const SECItem& issuerSubjectPublicKeyInfo,
+         const SECItem& serialNumber)
+    : issuer(issuer)
+    , issuerSubjectPublicKeyInfo(issuerSubjectPublicKeyInfo)
+    , serialNumber(serialNumber)
+  {
+  }
+  const SECItem& issuer;
+  const SECItem& issuerSubjectPublicKeyInfo;
+  const SECItem& serialNumber;
+private:
+  void operator=(const CertID&) ;
+};
+
+
+
+
+
 class TrustDomain
 {
 public:
@@ -136,10 +164,9 @@ public:
   
   
   virtual SECStatus CheckRevocation(EndEntityOrCA endEntityOrCA,
-                                    const CERTCertificate* cert,
-                           CERTCertificate* issuerCertToDup,
-                                    PRTime time,
-                        const SECItem* stapledOCSPresponse) = 0;
+                                    const CertID& certID, PRTime time,
+                        const SECItem* stapledOCSPresponse,
+                        const SECItem* aiaExtension) = 0;
 
   
   

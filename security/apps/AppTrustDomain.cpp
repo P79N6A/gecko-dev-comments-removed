@@ -170,10 +170,8 @@ AppTrustDomain::VerifySignedData(const CERTSignedData* signedData,
 }
 
 SECStatus
-AppTrustDomain::CheckRevocation(EndEntityOrCA,
-                                const CERTCertificate*,
-                                 CERTCertificate*,
-                                PRTime time,
+AppTrustDomain::CheckRevocation(EndEntityOrCA, const CertID&, PRTime time,
+                                 const SECItem*,
                                  const SECItem*)
 {
   

@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "keyhi.h"
 #include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
 #include "pkix/ScopedPtr.h"
@@ -128,11 +129,11 @@ public:
 class OCSPResponseContext
 {
 public:
-  OCSPResponseContext(PLArenaPool* arena, CERTCertificate* cert, PRTime time);
+  OCSPResponseContext(PLArenaPool* arena, const CertID& certID, PRTime time);
 
   PLArenaPool* arena;
+  const CertID& certID;
   
-  pkix::ScopedCERTCertificate cert; 
 
   
 
@@ -160,8 +161,6 @@ public:
   bool skipResponseBytes; 
 
   
-  const SECItem* issuerNameDER; 
-  const CERTSubjectPublicKeyInfo* issuerSPKI; 
   const SECItem* signerNameDER; 
                                 
                                 

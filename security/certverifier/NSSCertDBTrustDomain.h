@@ -75,10 +75,10 @@ public:
                                      const SECItem& subjectPublicKeyInfo);
 
   virtual SECStatus CheckRevocation(mozilla::pkix::EndEntityOrCA endEntityOrCA,
-                                    const CERTCertificate* cert,
-                           CERTCertificate* issuerCert,
+                                    const mozilla::pkix::CertID& certID,
                                     PRTime time,
-                        const SECItem* stapledOCSPResponse);
+                        const SECItem* stapledOCSPResponse,
+                        const SECItem* aiaExtension);
 
   virtual SECStatus IsChainValid(const CERTCertList* certChain);
 
@@ -89,8 +89,8 @@ private:
   };
   static const PRTime ServerFailureDelay = 5 * 60 * PR_USEC_PER_SEC;
   SECStatus VerifyAndMaybeCacheEncodedOCSPResponse(
-    const CERTCertificate* cert, CERTCertificate* issuerCert, PRTime time,
-    uint16_t maxLifetimeInDays, const SECItem* encodedResponse,
+    const mozilla::pkix::CertID& certID, PRTime time,
+    uint16_t maxLifetimeInDays, const SECItem& encodedResponse,
     EncodedResponseSource responseSource,  bool& expired);
 
   const SECTrustType mCertDBTrustType;

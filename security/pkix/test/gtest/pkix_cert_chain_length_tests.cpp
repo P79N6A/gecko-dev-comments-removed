@@ -142,8 +142,8 @@ private:
                                              nullptr);
   }
 
-  SECStatus CheckRevocation(EndEntityOrCA, const CERTCertificate*,
-                             CERTCertificate*, PRTime,
+  SECStatus CheckRevocation(EndEntityOrCA, const CertID&, PRTime,
+                             const SECItem*,
                              const SECItem*)
   {
     return SECSuccess;

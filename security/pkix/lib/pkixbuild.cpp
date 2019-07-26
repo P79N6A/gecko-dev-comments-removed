@@ -69,7 +69,6 @@ BackCert::Init(const SECItem& certDER)
 
   const SECItem* dummyEncodedSubjectKeyIdentifier = nullptr;
   const SECItem* dummyEncodedAuthorityKeyIdentifier = nullptr;
-  const SECItem* dummyEncodedAuthorityInfoAccess = nullptr;
   const SECItem* dummyEncodedSubjectAltName = nullptr;
 
   for (const CERTCertExtension* ext = *exts; ext; ext = *++exts) {
@@ -104,7 +103,7 @@ BackCert::Init(const SECItem& certDER)
       
       
       
-      out = &dummyEncodedAuthorityInfoAccess;
+      out = &encodedAuthorityInfoAccess;
     }
 
     
@@ -283,7 +282,7 @@ BuildForward(TrustDomain& trustDomain,
   
   
   ScopedCERTCertList candidates;
-  if (trustDomain.FindPotentialIssuers(&subject.GetNSSCert()->derIssuer, time,
+  if (trustDomain.FindPotentialIssuers(&subject.GetIssuer(), time,
                                        candidates) != SECSuccess) {
     return MapSECStatus(SECFailure);
   }
@@ -305,10 +304,12 @@ BuildForward(TrustDomain& trustDomain,
         return Fail(FatalError, deferredEndEntityError);
       }
 
-      SECStatus srv = trustDomain.CheckRevocation(endEntityOrCA,
-                                                  subject.GetNSSCert(),
-                                                  n->cert, time,
-                                                  stapledOCSPResponse);
+      CertID certID(subject.GetIssuer(), n->cert->derPublicKey,
+                    subject.GetSerialNumber());
+      SECStatus srv = trustDomain.CheckRevocation(
+                                    endEntityOrCA, certID, time,
+                                    stapledOCSPResponse,
+                                    subject.encodedAuthorityInfoAccess);
       if (srv != SECSuccess) {
         return MapSECStatus(SECFailure);
       }

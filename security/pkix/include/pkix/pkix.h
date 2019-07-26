@@ -105,9 +105,7 @@ SECStatus VerifySignedData(const CERTSignedData* sd,
                            void* pkcs11PinArg);
 
 
-SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena,
-                                  const CERTCertificate* cert,
-                                  const CERTCertificate* issuerCert);
+SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena, const CertID& certID);
 
 
 
@@ -121,14 +119,12 @@ SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena,
 
 
 SECStatus VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
-                                    const CERTCertificate* cert,
-                                    CERTCertificate* issuerCert,
-                                    PRTime time,
+                                    const CertID& certID, PRTime time,
                                     uint16_t maxLifetimeInDays,
-                                    const SECItem* encodedResponse,
+                                    const SECItem& encodedResponse,
                            bool& expired,
-                  PRTime* thisUpdate,
-                  PRTime* validThrough);
+                  PRTime* thisUpdate = nullptr,
+                  PRTime* validThrough = nullptr);
 
 } } 
 
