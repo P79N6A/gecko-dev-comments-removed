@@ -103,6 +103,20 @@ this.UtteranceGenerator = {
 
 
 
+  genForAnnouncement: function genForAnnouncement(aAnnouncement) {
+    try {
+      return [gStringBundle.GetStringFromName(aAnnouncement)];
+    } catch (x) {
+      return [aAnnouncement];
+    }
+  },
+
+  
+
+
+
+
+
 
 
   genForTabStateChange: function genForTabStateChange(aObject, aTabState) {
@@ -309,7 +323,7 @@ this.UtteranceGenerator = {
 
     return stateUtterances;
   },
-  
+
   _getListUtterance: function _getListUtterance(aAccessible, aRoleStr, aFlags, aItemCount) {
     let name = (aFlags & INCLUDE_NAME) ? (aAccessible.name || '') : '';
     let desc = [];
