@@ -334,7 +334,6 @@ waitFor(
         qemu_args = self.args[:]
         if self.copy_userdata:
             
-            
             self._tmp_userdata = tempfile.mktemp(prefix='marionette')
             shutil.copyfile(self.dataImg, self._tmp_userdata)
             qemu_args[qemu_args.index('-data') + 1] = self._tmp_userdata
@@ -376,32 +375,6 @@ waitFor(
         self.logcat_proc.waitForFinish()
         self.logcat_proc = None
 
-    def _restart_b2g(self, marionette):
-        self.dm.shellCheckOutput(['stop', 'b2g'])
-
-        
-        for i in range(0, 10):
-            time.sleep(1)
-            if self.dm.processExist('b2g') is None:
-                break
-        else:
-            raise TimeoutException("Timeout waiting for the b2g process to terminate")
-
-        self.dm.shellCheckOutput(['start', 'b2g'])
-
-        
-        for i in range(0, 10):
-            time.sleep(1)
-            if self.dm.processExist('b2g') is not None:
-                break
-        else:
-            raise TimeoutException("Timeout waiting for the b2g process to start")
-
-        if not self.wait_for_port():
-            raise TimeoutException("Timeout waiting for marionette on port '%s'" % self.marionette_port)
-        self.wait_for_system_message(marionette)
-
-
     def install_gecko(self, gecko_path, marionette):
         """
         Install gecko into the emulator using adb push.  Restart b2g after the
@@ -412,7 +385,6 @@ waitFor(
         
         
         push_attempts = 10
-        restart_attempts = 10
 
         print 'installing gecko binaries...'
         
@@ -430,14 +402,17 @@ waitFor(
                         if retry == push_attempts:
                             raise
 
-        for retry in range(1, restart_attempts+1):
-            print 'restarting B2G (attempt %s of %s)' % (retry, restart_attempts)
-            try:
-                self._restart_b2g(marionette)
-                break
-            except MarionetteException, TimeoutException:
-                if retry == restart_attempts:
-                    raise
+        print 'restarting B2G'
+        
+        time.sleep(5)
+        self.dm.shellCheckOutput(['stop', 'b2g'])
+        time.sleep(10)
+        self.dm.shellCheckOutput(['start', 'b2g'])
+        time.sleep(5)
+
+        if not self.wait_for_port():
+            raise TimeoutException("Timeout waiting for marionette on port '%s'" % self.marionette_port)
+        self.wait_for_system_message(marionette)
 
 
     def rotate_log(self, srclog, index=1):
