@@ -49,6 +49,8 @@ typedef bool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w
 typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32_t errorid);
 
 
+
+
 #define JS_STRUCTURED_CLONE_VERSION 2
 
 struct JSStructuredCloneCallbacks {
