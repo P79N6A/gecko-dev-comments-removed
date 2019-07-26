@@ -185,11 +185,10 @@ public:
 NS_IMPL_CYCLE_COLLECTION_CLASS(Promise)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Promise)
-  tmp->MaybeReportRejected();
+  tmp->MaybeReportRejectedOnce();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mResolveCallbacks);
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRejectCallbacks);
-  tmp->mResult = JS::UndefinedValue();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -229,8 +228,7 @@ Promise::Promise(nsIGlobalObject* aGlobal)
 
 Promise::~Promise()
 {
-  MaybeReportRejected();
-  mResult = JS::UndefinedValue();
+  MaybeReportRejectedOnce();
   mozilla::DropJSObjects(this);
 }
 
@@ -822,6 +820,9 @@ Promise::AppendCallbacks(PromiseCallback* aResolveCallback,
   if (aRejectCallback) {
     mHadRejectCallback = true;
     mRejectCallbacks.AppendElement(aRejectCallback);
+
+    
+    RemoveFeature();
   }
 
   
@@ -1058,7 +1059,45 @@ Promise::RunResolveTask(JS::Handle<JS::Value> aValue,
 
   SetResult(aValue);
   SetState(aState);
+
+  
+  
+  if (aState == PromiseState::Rejected &&
+      !mHadRejectCallback &&
+      !NS_IsMainThread()) {
+    WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(worker);
+    worker->AssertIsOnWorkerThread();
+
+    mFeature = new PromiseReportRejectFeature(this);
+    if (NS_WARN_IF(!worker->AddFeature(worker->GetJSContext(), mFeature))) {
+      
+      
+      MaybeReportRejected();
+    }
+  }
+
   RunTask();
+}
+
+void
+Promise::RemoveFeature()
+{
+  if (mFeature) {
+    WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(worker);
+    worker->RemoveFeature(worker->GetJSContext(), mFeature);
+    mFeature = nullptr;
+  }
+}
+
+bool
+PromiseReportRejectFeature::Notify(JSContext* aCx, workers::Status aStatus)
+{
+  MOZ_ASSERT(aStatus > workers::Running);
+  mPromise->MaybeReportRejectedOnce();
+  mPromise = nullptr;
+  return true;
 }
 
 bool
