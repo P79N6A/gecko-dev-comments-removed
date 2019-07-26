@@ -14,18 +14,20 @@ let ColorUtils = {
 
 
 
-  getForegroundAndBackgroundIconColors: function getForegroundAndBackgroundIconColors(aIconURI, aSuccessCallback) {
+  getForegroundAndBackgroundIconColors: function getForegroundAndBackgroundIconColors(aIconURI, aSuccessCallback, aErrorCallback) {
     if (!aIconURI) {
       return;
     }
-
     let that = this;
     let wrappedIcon = aIconURI;
     ColorAnalyzer.findRepresentativeColor(wrappedIcon, function (success, color) {
-      let foregroundColor = that.bestTextColorForContrast(color);
-      let backgroundColor = that.convertDecimalToRgbColor(color);
-      
-      aSuccessCallback(foregroundColor, backgroundColor);
+      if (!success) {
+        aErrorCallback();
+      } else {
+        let foregroundColor = that.bestTextColorForContrast(color);
+        let backgroundColor = that.convertDecimalToRgbColor(color);
+        aSuccessCallback(foregroundColor, backgroundColor);
+      }
     }, this);
   },
   
