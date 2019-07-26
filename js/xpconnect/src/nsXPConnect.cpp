@@ -1374,41 +1374,6 @@ nsXPConnect::GetNativeOfWrapper(JSContext * aJSContext,
 
 
 NS_IMETHODIMP
-nsXPConnect::GetJSObjectOfWrapper(JSContext * aJSContext,
-                                  JSObject * aJSObj,
-                                  JSObject **_retval)
-{
-    NS_ASSERTION(aJSContext, "bad param");
-    NS_ASSERTION(aJSObj, "bad param");
-    NS_ASSERTION(_retval, "bad param");
-
-    XPCCallContext ccx(NATIVE_CALLER, aJSContext);
-    if (!ccx.IsValid())
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
-    JSObject* obj2 = nullptr;
-    nsIXPConnectWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(aJSContext, aJSObj, nullptr,
-                                                     &obj2);
-    if (wrapper) {
-        wrapper->GetJSObject(_retval);
-        return NS_OK;
-    }
-    if (obj2) {
-        *_retval = obj2;
-        return NS_OK;
-    }
-    if (mozilla::dom::IsDOMObject(aJSObj)) {
-        *_retval = aJSObj;
-        return NS_OK;
-    }
-    
-    *_retval = nullptr;
-    return NS_ERROR_FAILURE;
-}
-
-
-NS_IMETHODIMP
 nsXPConnect::GetWrappedNativeOfNativeObject(JSContext * aJSContext,
                                             JSObject * aScope,
                                             nsISupports *aCOMObj,
