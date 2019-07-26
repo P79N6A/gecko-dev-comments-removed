@@ -12,22 +12,14 @@ DOMCI_CLASS(MimeType)
 DOMCI_CLASS(MimeTypeArray)
 DOMCI_CLASS(BarProp)
 DOMCI_CLASS(History)
-DOMCI_CLASS(Screen)
 DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 
 
 DOMCI_CLASS(XMLDocument)
-DOMCI_CLASS(DocumentType)
 DOMCI_CLASS(DOMException)
-DOMCI_CLASS(DocumentFragment)
 DOMCI_CLASS(Element)
 DOMCI_CLASS(Attr)
-DOMCI_CLASS(Text)
-DOMCI_CLASS(Comment)
-DOMCI_CLASS(CDATASection)
-DOMCI_CLASS(ProcessingInstruction)
-DOMCI_CLASS(NodeList)
 DOMCI_CLASS(NamedNodeMap)
 
 
@@ -50,69 +42,15 @@ DOMCI_CLASS(DeviceRotationRate)
 
 
 DOMCI_CLASS(HTMLDocument)
-DOMCI_CLASS(HTMLOptionsCollection)
-DOMCI_CLASS(HTMLCollection)
 
 
-DOMCI_CLASS(HTMLElement)
-DOMCI_CLASS(HTMLAnchorElement)
 DOMCI_CLASS(HTMLAppletElement)
-DOMCI_CLASS(HTMLAreaElement)
-DOMCI_CLASS(HTMLBRElement)
-DOMCI_CLASS(HTMLBaseElement)
-DOMCI_CLASS(HTMLBodyElement)
-DOMCI_CLASS(HTMLButtonElement)
-DOMCI_CLASS(HTMLDataListElement)
-DOMCI_CLASS(HTMLDListElement)
-DOMCI_CLASS(HTMLDirectoryElement)
-DOMCI_CLASS(HTMLDivElement)
 DOMCI_CLASS(HTMLEmbedElement)
-DOMCI_CLASS(HTMLFieldSetElement)
-DOMCI_CLASS(HTMLFontElement)
 DOMCI_CLASS(HTMLFormElement)
-DOMCI_CLASS(HTMLFrameElement)
-DOMCI_CLASS(HTMLFrameSetElement)
-DOMCI_CLASS(HTMLHRElement)
-DOMCI_CLASS(HTMLHeadElement)
-DOMCI_CLASS(HTMLHeadingElement)
-DOMCI_CLASS(HTMLHtmlElement)
 DOMCI_CLASS(HTMLIFrameElement)
-DOMCI_CLASS(HTMLImageElement)
 DOMCI_CLASS(HTMLInputElement)
-DOMCI_CLASS(HTMLLIElement)
-DOMCI_CLASS(HTMLLabelElement)
-DOMCI_CLASS(HTMLLegendElement)
-DOMCI_CLASS(HTMLLinkElement)
-DOMCI_CLASS(HTMLMapElement)
-DOMCI_CLASS(HTMLMenuElement)
-DOMCI_CLASS(HTMLMenuItemElement)
-DOMCI_CLASS(HTMLMetaElement)
-DOMCI_CLASS(HTMLMeterElement)
-DOMCI_CLASS(HTMLModElement)
-DOMCI_CLASS(HTMLOListElement)
 DOMCI_CLASS(HTMLObjectElement)
-DOMCI_CLASS(HTMLOptGroupElement)
-DOMCI_CLASS(HTMLOptionElement)
-DOMCI_CLASS(HTMLOutputElement)
-DOMCI_CLASS(HTMLParagraphElement)
-DOMCI_CLASS(HTMLParamElement)
-DOMCI_CLASS(HTMLPreElement)
-DOMCI_CLASS(HTMLProgressElement)
-DOMCI_CLASS(HTMLQuoteElement)
-DOMCI_CLASS(HTMLScriptElement)
 DOMCI_CLASS(HTMLSelectElement)
-DOMCI_CLASS(HTMLSpanElement)
-DOMCI_CLASS(HTMLStyleElement)
-DOMCI_CLASS(HTMLTableCaptionElement)
-DOMCI_CLASS(HTMLTableCellElement)
-DOMCI_CLASS(HTMLTableColElement)
-DOMCI_CLASS(HTMLTableElement)
-DOMCI_CLASS(HTMLTableRowElement)
-DOMCI_CLASS(HTMLTableSectionElement)
-DOMCI_CLASS(HTMLTextAreaElement)
-DOMCI_CLASS(HTMLTitleElement)
-DOMCI_CLASS(HTMLUListElement)
-DOMCI_CLASS(HTMLUnknownElement)
 DOMCI_CLASS(ValidityState)
 
 
@@ -128,17 +66,12 @@ DOMCI_CLASS(StyleSheetList)
 DOMCI_CLASS(CSSStyleSheet)
 
 
-
-DOMCI_CLASS(CSSValueList)
-
-
 DOMCI_CLASS(Range)
 DOMCI_CLASS(Selection)
 
 
 #ifdef MOZ_XUL
 DOMCI_CLASS(XULDocument)
-DOMCI_CLASS(XULElement)
 DOMCI_CLASS(XULCommandDispatcher)
 #endif
 DOMCI_CLASS(XULControllers)
@@ -162,12 +95,6 @@ DOMCI_CLASS(CSSRect)
 
 
 DOMCI_CLASS(ChromeWindow)
-
-
-DOMCI_CLASS(ContentList)
-
-
-DOMCI_CLASS(XMLStylesheetProcessingInstruction)
 
 DOMCI_CLASS(ImageDocument)
 
@@ -203,10 +130,6 @@ DOMCI_CLASS(SVGFEDiffuseLightingElement)
 DOMCI_CLASS(SVGFEDisplacementMapElement)
 DOMCI_CLASS(SVGFEDistantLightElement)
 DOMCI_CLASS(SVGFEFloodElement)
-DOMCI_CLASS(SVGFEFuncAElement)
-DOMCI_CLASS(SVGFEFuncBElement)
-DOMCI_CLASS(SVGFEFuncGElement)
-DOMCI_CLASS(SVGFEFuncRElement)
 DOMCI_CLASS(SVGFEGaussianBlurElement)
 DOMCI_CLASS(SVGFEImageElement)
 DOMCI_CLASS(SVGFEMergeElement)
@@ -223,7 +146,6 @@ DOMCI_CLASS(SVGUnknownElement)
 
 DOMCI_CLASS(SVGAnimatedEnumeration)
 DOMCI_CLASS(SVGAnimatedInteger)
-DOMCI_CLASS(SVGAnimatedLength)
 DOMCI_CLASS(SVGAnimatedNumber)
 DOMCI_CLASS(SVGAnimatedRect)
 DOMCI_CLASS(SVGAnimatedString)
@@ -261,13 +183,11 @@ DOMCI_CLASS(StorageItem)
 DOMCI_CLASS(XMLHttpProgressEvent)
 
 DOMCI_CLASS(ClientRect)
-DOMCI_CLASS(ClientRectList)
 
 DOMCI_CLASS(XULCommandEvent)
 DOMCI_CLASS(CommandEvent)
 DOMCI_CLASS(OfflineResourceList)
 
-DOMCI_CLASS(FileList)
 DOMCI_CLASS(Blob)
 DOMCI_CLASS(File)
 DOMCI_CLASS(FileReader)
@@ -315,8 +235,6 @@ DOMCI_CLASS(CSSFontFaceRule)
 #if defined(MOZ_MEDIA)
 
 DOMCI_CLASS(HTMLVideoElement)
-DOMCI_CLASS(HTMLSourceElement)
-DOMCI_CLASS(MediaError)
 DOMCI_CLASS(HTMLAudioElement)
 DOMCI_CLASS(TimeRanges)
 #endif
@@ -331,11 +249,6 @@ DOMCI_CLASS(NotifyPaintEvent)
 DOMCI_CLASS(NotifyAudioAvailableEvent)
 
 DOMCI_CLASS(SimpleGestureEvent)
-
-DOMCI_CLASS(MathMLElement)
-
-DOMCI_CLASS(PaintRequest)
-DOMCI_CLASS(PaintRequestList)
 
 DOMCI_CLASS(ScrollAreaEvent)
 
@@ -403,7 +316,6 @@ DOMCI_CLASS(DOMCursor)
 DOMCI_CLASS(OpenWindowEventDetail)
 DOMCI_CLASS(AsyncScrollEventDetail)
 
-DOMCI_CLASS(DOMFileHandle)
 DOMCI_CLASS(FileRequest)
 DOMCI_CLASS(LockedFile)
 

@@ -2002,8 +2002,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 
 
-DOMCI_DATA(HTMLOptionsCollection, nsHTMLOptionCollection)
-
 
 NS_INTERFACE_TABLE_HEAD(nsHTMLOptionCollection)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -2012,7 +2010,6 @@ NS_INTERFACE_TABLE_HEAD(nsHTMLOptionCollection)
                       nsIDOMHTMLOptionsCollection,
                       nsIDOMHTMLCollection)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsHTMLOptionCollection)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(HTMLOptionsCollection)
 NS_INTERFACE_MAP_END
 
 

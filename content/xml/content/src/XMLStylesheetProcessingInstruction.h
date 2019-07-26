@@ -50,8 +50,6 @@ public:
   
   NS_IMETHOD GetCharset(nsAString& aCharset);
 
-  virtual nsXPCClassInfo* GetClassInfo();
-
 protected:
   nsCOMPtr<nsIURI> mOverriddenBaseURI;
 
