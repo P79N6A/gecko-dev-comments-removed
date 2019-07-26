@@ -489,6 +489,40 @@ function ArrayFindIndex(predicate) {
     return -1;
 }
 
+
+function ArrayFill(value, start = 0, end = undefined) {
+    
+    var O = ToObject(this);
+
+    
+    
+    var len = ToInteger(O.length);
+
+    
+    var relativeStart = ToInteger(start);
+
+    
+    var k = relativeStart < 0
+            ? std_Math_max(len + relativeStart, 0)
+            : std_Math_min(relativeStart, len);
+
+    
+    var relativeEnd = end === undefined ? len : ToInteger(end);
+
+    
+    var final = relativeEnd < 0
+                ? std_Math_max(len + relativeEnd, 0)
+                : std_Math_min(relativeEnd, len);
+
+    
+    for (; k < final; k++) {
+        O[k] = value;
+    }
+
+    
+    return O;
+}
+
 #define ARRAY_ITERATOR_SLOT_ITERATED_OBJECT 0
 #define ARRAY_ITERATOR_SLOT_NEXT_INDEX 1
 #define ARRAY_ITERATOR_SLOT_ITEM_KIND 2
