@@ -540,7 +540,11 @@ var BrowserUI = {
   },
 
   blurNavBar: function blurNavBar() {
-    this._edit.blur();
+    if (this._edit.focused) {
+      this._edit.blur();
+      return true;
+    }
+    return false;
   },
 
   
@@ -1494,7 +1498,11 @@ var StartUI = {
   onClick: function onClick(aEvent) {
     
     
-    BrowserUI.blurNavBar();
+    if (BrowserUI.blurNavBar()) {
+      
+      
+      ContentAreaObserver.navBarWillBlur();
+    }
   },
 
   handleEvent: function handleEvent(aEvent) {

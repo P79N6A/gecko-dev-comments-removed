@@ -160,20 +160,33 @@ var ContentAreaObserver = {
     this.styles["viewable-width"].width = newWidth + "px";
     this.styles["viewable-width"].maxWidth = newWidth + "px";
 
-    
-    let navBar = document.getElementById("navbar");
-    let contextAppBar = document.getElementById("contextappbar");
-    let findBar = document.getElementById("content-navigator");
-    let keyboardHeight = MetroUtils.keyboardHeight;
-    navBar.style.bottom = keyboardHeight + "px";
-    contextAppBar.style.bottom = keyboardHeight + "px";
-    findBar.style.bottom = keyboardHeight + "px";
+    this.updateAppBarPosition();
 
     
     
     BrowserUI._updateButtons();
 
     this._disatchBrowserEvent("ViewableSizeChanged");
+  },
+
+  updateAppBarPosition: function updateAppBarPosition(aForceDown) {
+    
+    let navBar = document.getElementById("navbar");
+    let contextAppBar = document.getElementById("contextappbar");
+    let findBar = document.getElementById("content-navigator");
+    let keyboardHeight = aForceDown ? 0 : MetroUtils.keyboardHeight;
+    navBar.style.bottom = keyboardHeight + "px";
+    contextAppBar.style.bottom = keyboardHeight + "px";
+    findBar.style.bottom = keyboardHeight + "px";
+  },
+
+  
+
+
+
+
+  navBarWillBlur: function navBarWillBlur() {
+    this.updateAppBarPosition(true);
   },
 
   onBrowserCreated: function onBrowserCreated(aBrowser) {
