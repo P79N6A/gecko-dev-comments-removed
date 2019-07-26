@@ -801,60 +801,6 @@ SocialProvider.prototype = {
   
   
   
-  _pageMarkInfo: null,
-  get pageMarkInfo() {
-    return this._pageMarkInfo;
-  },
-  set pageMarkInfo(data) {
-    
-    let promptImages = {};
-    let promptMessages = {};
-    let self = this;
-    function reportError(reason) {
-      Cu.reportError("Invalid page-mark data from provider: " + reason + ": marking is disabled for this provider");
-      
-      
-      self._pageMarkInfo = null;
-      Services.obs.notifyObservers(null, "social:page-mark-config", self.origin);
-    }
-    if (!data ||
-        !data.images || typeof data.images != "object" ||
-        !data.messages || typeof data.messages != "object") {
-      reportError("data is missing valid 'images' or 'messages' elements");
-      return;
-    }
-    for (let sub of ["marked", "unmarked"]) {
-      let url = data.images[sub];
-      if (!url || typeof url != "string" || url.length == 0) {
-        reportError('images["' + sub + '"] is not a valid string');
-        return;
-      }
-      
-      
-      
-      
-      let imgUri = this.resolveUri(url);
-      if (!imgUri) {
-        reportError('images["' + sub + '"] is an invalid URL');
-        return;
-      }
-      promptImages[sub] = imgUri.spec;
-    }
-    for (let sub of ["markedTooltip", "unmarkedTooltip", "markedLabel", "unmarkedLabel"]) {
-      if (typeof data.messages[sub] != "string" || data.messages[sub].length == 0) {
-        reportError('messages["' + sub + '"] is not a valid string');
-        return;
-      }
-      promptMessages[sub] = data.messages[sub];
-    }
-    this._pageMarkInfo = {images: promptImages, messages: promptMessages};
-    Services.obs.notifyObservers(null, "social:page-mark-config", this.origin);
-  },
-
-  
-  
-  
-  
   ambientNotificationIcons: null,
 
   
