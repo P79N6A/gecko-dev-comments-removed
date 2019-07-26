@@ -506,8 +506,6 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
     return nullptr;
   }
 
-  SECStatus srv;
-
   PLArenaPool* log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
   PLArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
   if (!log_arena) {
@@ -523,17 +521,17 @@ CreateCertErrorRunnable(CertVerifier& certVerifier,
   CERTVerifyLogContentsCleaner verify_log_cleaner(verify_log);
   verify_log->arena = log_arena;
 
-  
-  
-  srv = certVerifier.VerifyCert(cert, stapledOCSPResponse,
-                                certificateUsageSSLServer, now,
-                                infoObject, 0, nullptr, nullptr, verify_log);
 
   
   
   
   
   
+  
+  
+  certVerifier.VerifyCert(cert, stapledOCSPResponse,
+                          certificateUsageSSLServer, now,
+                          infoObject, 0, nullptr, nullptr, verify_log);
 
   PRErrorCode errorCodeMismatch = 0;
   PRErrorCode errorCodeTrust = 0;
