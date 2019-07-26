@@ -43,8 +43,10 @@ protected:
 private:
   
   
-  SMILStringType()  {}
+  MOZ_CONSTEXPR SMILStringType() {}
+#ifdef DEBUG
   ~SMILStringType() {}
+#endif
 };
 
 } 

@@ -45,8 +45,10 @@ protected:
 private:
   
   
-  SVGIntegerPairSMILType()  {}
+  MOZ_CONSTEXPR SVGIntegerPairSMILType() {}
+#ifdef DEBUG
   ~SVGIntegerPairSMILType() {}
+#endif
 };
 
 } 

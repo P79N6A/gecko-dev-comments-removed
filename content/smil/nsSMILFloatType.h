@@ -41,8 +41,10 @@ protected:
 private:
   
   
-  nsSMILFloatType()  {}
+  MOZ_CONSTEXPR nsSMILFloatType() {}
+#ifdef DEBUG
   ~nsSMILFloatType() {}
+#endif
 };
 
 #endif 

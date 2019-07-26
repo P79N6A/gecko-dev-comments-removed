@@ -47,8 +47,10 @@ protected:
 private:
   
   
-  SVGNumberListSMILType() {}
+  MOZ_CONSTEXPR SVGNumberListSMILType() {}
+#ifdef DEBUG
   ~SVGNumberListSMILType() {}
+#endif
 };
 
 } 

@@ -42,8 +42,10 @@ protected:
 private:
   
   
-  SMILBoolType()  {}
+  MOZ_CONSTEXPR SMILBoolType() {}
+#ifdef DEBUG
   ~SMILBoolType() {}
+#endif
 };
 
 } 

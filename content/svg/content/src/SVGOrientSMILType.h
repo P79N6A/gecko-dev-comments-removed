@@ -60,8 +60,10 @@ protected:
 private:
   
   
-  SVGOrientSMILType()  {}
+  MOZ_CONSTEXPR SVGOrientSMILType() {}
+#ifdef DEBUG
   ~SVGOrientSMILType() {}
+#endif
 };
 
 } 
