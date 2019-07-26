@@ -47,6 +47,9 @@ ConcatStrings(JSContext *cx,
               typename MaybeRooted<JSString*, allowGC>::HandleType left,
               typename MaybeRooted<JSString*, allowGC>::HandleType right);
 
+extern JSString *
+ConcatStringsPure(ThreadSafeContext *cx, JSString *left, JSString *right);
+
 
 static inline const jschar *
 SkipSpace(const jschar *s, const jschar *end)

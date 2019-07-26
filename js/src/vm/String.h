@@ -271,6 +271,23 @@ class JSString : public js::gc::Cell
 
     
 
+
+
+    inline const jschar *maybeChars();
+    inline const jschar *maybeCharsZ();
+
+    
+
+
+
+
+    inline bool getCharsNonDestructive(js::ThreadSafeContext *cx,
+                                       js::ScopedJSFreePtr<jschar> &out) const;
+    inline bool getCharsZNonDestructive(js::ThreadSafeContext *cx,
+                                        js::ScopedJSFreePtr<jschar> &out) const;
+
+    
+
     inline JSLinearString *ensureLinear(JSContext *cx);
     inline JSFlatString *ensureFlat(JSContext *cx);
     inline JSStableString *ensureStable(JSContext *cx);
@@ -434,6 +451,15 @@ class JSString : public js::gc::Cell
 
 class JSRope : public JSString
 {
+    bool getCharsNonDestructiveInternal(js::ThreadSafeContext *cx,
+                                        js::ScopedJSFreePtr<jschar> &out,
+                                        bool nullTerminate) const;
+
+    bool getCharsNonDestructive(js::ThreadSafeContext *cx,
+                                js::ScopedJSFreePtr<jschar> &out) const;
+    bool getCharsZNonDestructive(js::ThreadSafeContext *cx,
+                                 js::ScopedJSFreePtr<jschar> &out) const;
+
     enum UsingBarrier { WithIncrementalBarrier, NoBarrier };
     template<UsingBarrier b>
     JSFlatString *flattenInternal(JSContext *cx);
@@ -498,6 +524,9 @@ JS_STATIC_ASSERT(sizeof(JSLinearString) == sizeof(JSString));
 
 class JSDependentString : public JSLinearString
 {
+    bool getCharsZNonDestructive(js::ThreadSafeContext *cx,
+                                 js::ScopedJSFreePtr<jschar> &out) const;
+
     friend class JSString;
     JSFlatString *undepend(JSContext *cx);
 
@@ -933,6 +962,42 @@ JSString::getCharsZ(JSContext *cx)
     if (JSFlatString *str = ensureFlat(cx))
         return str->chars();
     return NULL;
+}
+
+JS_ALWAYS_INLINE const jschar *
+JSString::maybeChars()
+{
+    if (isLinear())
+        return asLinear().chars();
+    return NULL;
+}
+
+JS_ALWAYS_INLINE const jschar *
+JSString::maybeCharsZ()
+{
+    if (isFlat())
+        return asFlat().chars();
+    return NULL;
+}
+
+JS_ALWAYS_INLINE bool
+JSString::getCharsNonDestructive(js::ThreadSafeContext *cx,
+                                 js::ScopedJSFreePtr<jschar> &out) const
+{
+    
+    JS_ASSERT(!isLinear());
+    return asRope().getCharsNonDestructive(cx, out);
+}
+
+JS_ALWAYS_INLINE bool
+JSString::getCharsZNonDestructive(js::ThreadSafeContext *cx,
+                                  js::ScopedJSFreePtr<jschar> &out) const
+{
+    
+    JS_ASSERT(!isFlat());
+    if (isDependent())
+        return asDependent().getCharsZNonDestructive(cx, out);
+    return asRope().getCharsZNonDestructive(cx, out);
 }
 
 JS_ALWAYS_INLINE JSLinearString *
