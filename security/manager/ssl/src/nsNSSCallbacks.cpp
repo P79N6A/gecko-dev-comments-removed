@@ -3,12 +3,12 @@
 
 
 
-#include "nsNSSComponent.h"
+
 #include "nsNSSCallbacks.h"
 
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
-
+#include "nsNSSComponent.h"
 #include "nsNSSIOLayer.h"
 #include "nsIWebProgressListener.h"
 #include "nsProtectedAuthThread.h"
@@ -19,6 +19,7 @@
 #include "nsIPrompt.h"
 #include "nsProxyRelease.h"
 #include "PSMRunnable.h"
+#include "ScopedNSSTypes.h"
 #include "nsIConsoleService.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsCRT.h"
@@ -880,10 +881,9 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   }
 
 
-  CERTCertificate *peerCert = SSL_PeerCertificate(fd);
+  ScopedCERTCertificate serverCert(SSL_PeerCertificate(fd));
   const char* caName = nullptr; 
-  char* certOrgName = CERT_GetOrgName(&peerCert->issuer);
-  CERT_DestroyCertificate(peerCert);
+  char* certOrgName = CERT_GetOrgName(&serverCert->issuer);
   caName = certOrgName ? certOrgName : signer;
 
   const char* verisignName = "Verisign, Inc.";
@@ -917,12 +917,8 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     RememberCertErrorsTable::GetInstance().LookupCertErrorBits(infoObject,
                                                                status);
 
-    CERTCertificate *serverCert = SSL_PeerCertificate(fd);
     if (serverCert) {
       RefPtr<nsNSSCertificate> nssc(nsNSSCertificate::Create(serverCert));
-      CERT_DestroyCertificate(serverCert);
-      serverCert = nullptr;
-
       nsCOMPtr<nsIX509Cert> prevcert;
       infoObject->GetPreviousCert(getter_AddRefs(prevcert));
 
