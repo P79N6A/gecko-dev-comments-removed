@@ -389,6 +389,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
       
       nsCSSProperty property = t.GetProperty();
       if (property == eCSSPropertyExtra_no_properties ||
+          property == eCSSPropertyExtra_variable ||
           property == eCSSProperty_UNKNOWN) {
         
       } else if (property == eCSSPropertyExtra_all_properties) {
@@ -429,6 +430,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
         
         nsCSSProperty property = t.GetProperty();
         if (property == eCSSPropertyExtra_no_properties ||
+            property == eCSSPropertyExtra_variable ||
             property == eCSSProperty_UNKNOWN) {
           
         } else if (property == eCSSPropertyExtra_all_properties) {
