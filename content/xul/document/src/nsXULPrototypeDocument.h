@@ -18,11 +18,16 @@ class nsIAtom;
 class nsIPrincipal;
 class nsIURI;
 class nsNodeInfoManager;
-class nsXULDocument;
 class nsXULPrototypeElement;
 class nsXULPrototypePI;
 class nsXULPDGlobalObject;
 struct JSTracer;
+
+namespace mozilla {
+namespace dom {
+class XULDocument;
+} 
+} 
 
 
 
@@ -96,7 +101,7 @@ public:
 
 
 
-    nsresult AwaitLoadDone(nsXULDocument* aDocument, bool* aResult);
+    nsresult AwaitLoadDone(mozilla::dom::XULDocument* aDocument, bool* aResult);
 
     
 
@@ -130,7 +135,7 @@ protected:
     nsRefPtr<nsXULPDGlobalObject> mGlobalObject;
 
     bool mLoaded;
-    nsTArray< nsRefPtr<nsXULDocument> > mPrototypeWaiters;
+    nsTArray< nsRefPtr<mozilla::dom::XULDocument> > mPrototypeWaiters;
 
     nsRefPtr<nsNodeInfoManager> mNodeInfoManager;
 

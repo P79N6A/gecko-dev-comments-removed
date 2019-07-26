@@ -199,7 +199,11 @@ public:
     nsXULPrototypeAttribute* mAttributes;         
 };
 
-class nsXULDocument;
+namespace mozilla {
+namespace dom {
+class XULDocument;
+} 
+} 
 
 class nsXULPrototypeScript : public nsXULPrototypeNode
 {
@@ -242,7 +246,7 @@ public:
     uint32_t                 mLineNo;
     bool                     mSrcLoading;
     bool                     mOutOfLine;
-    nsXULDocument*           mSrcLoadWaiters;   
+    mozilla::dom::XULDocument* mSrcLoadWaiters;   
     uint32_t                 mLangVersion;
 private:
     JSScript*                mScriptObject;
