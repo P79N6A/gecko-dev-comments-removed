@@ -23,6 +23,22 @@ using namespace js::gc;
 
 int js::sWrapperFamily;
 
+
+
+
+
+
+
+
+bool
+Wrapper::defaultValue(JSContext *cx, HandleObject proxy, JSType hint, MutableHandleValue vp)
+{
+    vp.set(ObjectValue(*proxy->as<ProxyObject>().target()));
+    if (hint == JSTYPE_VOID)
+        return ToPrimitive(cx, vp);
+    return ToPrimitive(cx, hint, vp);
+}
+
 JSObject *
 Wrapper::New(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent, Wrapper *handler)
 {
