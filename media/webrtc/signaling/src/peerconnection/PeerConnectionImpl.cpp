@@ -371,6 +371,14 @@ PeerConnectionImpl::Initialize(IPeerConnectionObserver* aObserver,
   MOZ_ASSERT(aObserver);
   mPCObserver = aObserver;
 
+  nsresult res;
+
+#ifdef MOZILLA_INTERNAL_API
+  
+  nsCOMPtr<nsISupports> nssDummy = do_GetService("@mozilla.org/psm;1", &res);
+  NS_ENSURE_SUCCESS(res, res);
+#endif
+
 #ifdef MOZILLA_INTERNAL_API
   
   
@@ -396,7 +404,7 @@ PeerConnectionImpl::Initialize(IPeerConnectionObserver* aObserver,
   mMedia->SignalIceCompleted.connect(this, &PeerConnectionImpl::IceCompleted);
 
   
-  nsresult res = mMedia->Init();
+  res = mMedia->Init();
   if (NS_FAILED(res)) {
     CSFLogErrorS(logTag, __FUNCTION__ << ": Couldn't initialize media object");
     return res;
