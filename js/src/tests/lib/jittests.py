@@ -139,14 +139,8 @@ class Test:
                         test.valgrind = options.valgrind
                     elif name == 'tz-pacific':
                         test.tz_pacific = True
-                    elif name == 'mjitalways':
-                        test.jitflags.append('--always-mjit')
                     elif name == 'debug':
                         test.jitflags.append('--debugjit')
-                    elif name == 'mjit':
-                        test.jitflags.append('--jm')
-                    elif name == 'no-jm':
-                        test.jitflags.append('--no-jm')
                     elif name == 'ion-eager':
                         test.jitflags.append('--ion-eager')
                     elif name == 'no-ion':

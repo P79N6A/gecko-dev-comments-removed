@@ -1,7 +1,6 @@
 
 
 
-
 function add_xors_1() {
     var res = 0;
     var step = 4;
