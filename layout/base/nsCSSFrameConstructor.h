@@ -1323,11 +1323,11 @@ private:
 
 
 
-  nsresult FlushAccumulatedBlock(nsFrameConstructorState& aState,
-                                 nsIContent* aContent,
-                                 nsIFrame* aParentFrame,
-                                 nsFrameItems& aBlockItems,
-                                 nsFrameItems& aNewItems);
+  void FlushAccumulatedBlock(nsFrameConstructorState& aState,
+                             nsIContent* aContent,
+                             nsIFrame* aParentFrame,
+                             nsFrameItems& aBlockItems,
+                             nsFrameItems& aNewItems);
 
   
   

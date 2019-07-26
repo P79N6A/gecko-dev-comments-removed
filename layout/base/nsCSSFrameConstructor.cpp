@@ -3715,10 +3715,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       while ((f = childItems.FirstChild()) != nullptr) {
         bool wrapFrame = IsInlineFrame(f) || IsFrameSpecial(f);
         if (!wrapFrame) {
-          rv = FlushAccumulatedBlock(aState, content, newFrame,
-                                     currentBlockItems, newItems);
-          if (NS_FAILED(rv))
-            break;
+          FlushAccumulatedBlock(aState, content, newFrame,
+                                currentBlockItems, newItems);
         }
 
         childItems.RemoveFrame(f);
@@ -3728,8 +3726,8 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
           newItems.AddChild(f);
         }
       }
-      rv = FlushAccumulatedBlock(aState, content, newFrame,
-                                 currentBlockItems, newItems);
+      FlushAccumulatedBlock(aState, content, newFrame,
+                            currentBlockItems, newItems);
 
       if (childItems.NotEmpty()) {
         
@@ -4546,7 +4544,7 @@ nsCSSFrameConstructor::ResolveStyleContext(nsStyleContext* aParentStyleContext,
 }
 
 
-nsresult
+void
 nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
                                              nsIContent* aContent,
                                              nsIFrame* aParentFrame,
@@ -4555,7 +4553,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
 {
   if (aBlockItems.IsEmpty()) {
     
-    return NS_OK;
+    return;
   }
 
   nsIAtom* anonPseudo = nsCSSAnonBoxes::mozMathMLAnonymousBlock;
@@ -4584,7 +4582,6 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
   NS_ASSERTION(aBlockItems.IsEmpty(), "What happened?");
   aBlockItems.Clear();
   aNewItems.AddChild(blockFrame);
-  return NS_OK;
 }
 
 
