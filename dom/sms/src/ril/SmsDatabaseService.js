@@ -485,6 +485,88 @@ SmsDatabaseService.prototype = {
     }
   },
 
+  
+
+
+
+
+  onNextMessageInMultiFiltersGot: function onNextMessageInMultiFiltersGot(
+      aRequest, aObjectStore, aMessageList, aWhich, aMessageId, aTimestamp) {
+
+    if (DEBUG) {
+      debug("onNextMessageInMultiFiltersGot: "
+            + aWhich + ", " + aMessageId + ", " + aTimestamp);
+    }
+    let filters = aMessageList.filters;
+
+    if (!aMessageId) {
+      filters[aWhich].processing = false;
+      for (let i = 0; i < filters.length; i++) {
+        if (filters[i].processing) {
+          return false;
+        }
+      }
+
+      this.onNextMessageInListGot(aRequest, aObjectStore, aMessageList, 0);
+      return false;
+    }
+
+    
+    
+    
+    
+    
+    for (let i = 0; i < filters.length; i++) {
+      if (i == aWhich) continue;
+
+      let ctx = filters[i];
+      let results = ctx.results;
+      let found = false;
+      for (let j = 0; j < results.length; j++) {
+        let result = results[j];
+        if (result.id == aMessageId) {
+          found = true;
+          break;
+        }
+        if ((!aMessageList.reverse && (result.timestamp > aTimestamp)) ||
+            (aMessageList.reverse && (result.timestamp < aTimestamp))) {
+          
+          return true;
+        }
+      }
+
+      if (!found) {
+        if (!ctx.processing) {
+          
+          if (results.length) {
+            let lastResult = results[results.length - 1];
+            if ((!aMessageList.reverse && (lastResult.timestamp >= aTimestamp)) ||
+                (aMessageList.reverse && (lastResult.timestamp <= aTimestamp))) {
+              
+              return true;
+            }
+          }
+
+          
+          
+          return this.onNextMessageInMultiFiltersGot(aRequest, aObjectStore,
+                                                     aMessageList, aWhich, 0, 0);
+        }
+
+        
+        filters[aWhich].results.push({
+          id: aMessageId,
+          timestamp: aTimestamp
+        });
+        return true;
+      }
+    }
+
+    
+    this.onNextMessageInListGot(aRequest, aObjectStore, aMessageList, aMessageId);
+    return true;
+  },
+
   saveMessage: function saveMessage(message) {
     this.lastKey += 1;
     message.id = this.lastKey;
@@ -824,10 +906,11 @@ SmsDatabaseService.prototype = {
 
       let messageList = {
         listId: -1,
+        reverse: reverse,
         processing: true,
         stop: false,
         
-        contexts: [],
+        filters: [],
         
         
         waitCount: 1,
@@ -867,6 +950,33 @@ SmsDatabaseService.prototype = {
       
       
       if (filter.delivery || filter.numbers || filter.read != undefined) {
+        let multiFiltersGotCb = self.onNextMessageInMultiFiltersGot
+                                    .bind(self, aRequest, store, messageList);
+
+        let multiFiltersSuccessCb = function onMultiFiltersSuccess(which, event) {
+          if (messageList.stop) {
+            return;
+          }
+
+          let cursor = event.target.result;
+          if (cursor) {
+            if (multiFiltersGotCb(which, cursor.primaryKey, cursor.key[1])) {
+              cursor.continue();
+            }
+          } else {
+            multiFiltersGotCb(which, 0, 0);
+          }
+        };
+
+        let multiFiltersErrorCb = function onMultiFiltersError(which, event) {
+          if (messageList.stop) {
+            return;
+          }
+
+          
+          multiFiltersGotCb(which, 0, 0);
+        };
+
         
         
         let startDate = 0, endDate = "";
@@ -885,33 +995,60 @@ SmsDatabaseService.prototype = {
           if (filter.read != undefined) numFilterTargets++;
           singleFilter = numFilterTargets == 1;
         }
-        if (!singleFilter) {
-          
-          aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
-          return;
-        }
+
+        let which = 0;
+
+        let createRangedRequest = function createRangedRequest(indexName, key) {
+          let range = IDBKeyRange.bound([key, startDate], [key, endDate]);
+          return store.index(indexName).openKeyCursor(range, direction);
+        };
+
+        let createSimpleRangedRequest =
+            function createSimpleRangedRequest(indexName, key) {
+          let request = createRangedRequest(indexName, key);
+          if (singleFilter) {
+            request.onsuccess = singleFilterSuccessCb;
+            request.onerror = singleFilterErrorCb;
+          } else {
+            let me = which++;
+            messageList.filters.push({
+              processing: true,
+              results: []
+            });
+            request.onsuccess = multiFiltersSuccessCb.bind(null, me);
+            request.onerror = multiFiltersErrorCb.bind(null, me);
+          }
+        };
 
         
         
         if (filter.delivery) {
           if (DEBUG) debug("filter.delivery " + filter.delivery);
-          let range = IDBKeyRange.bound([filter.delivery, startDate],
-                                        [filter.delivery, endDate]);
-          let request = store.index("delivery").openKeyCursor(range, direction);
-          request.onsuccess = singleFilterSuccessCb;
-          request.onerror = singleFilterErrorCb;
+          createSimpleRangedRequest("delivery", filter.delivery);
         }
 
         
         
         if (filter.numbers) {
           if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
+          let me = which++;
+
+          let ctx = {};
+          if (!singleFilter) {
+            ctx.processing = true;
+            ctx.results = [];
+          }
+          messageList.filters.push(ctx);
+
           for (let i = 0; i < filter.numbers.length; i++) {
-            let range = IDBKeyRange.bound([filter.numbers[i], startDate],
-                                          [filter.numbers[i], endDate]);
-            let request = store.index("number").openKeyCursor(range, direction);
-            request.onsuccess = singleFilterSuccessCb;
-            request.onerror = singleFilterErrorCb;
+            let request = createRangedRequest("number", filter.numbers[i]);
+            if (singleFilter) {
+              request.onsuccess = singleFilterSuccessCb;
+              request.onerror = singleFilterErrorCb;
+            } else {
+              request.onsuccess = multiFiltersSuccessCb.bind(null, me);
+              request.onerror = multiFiltersErrorCb.bind(null, me);
+            }
           }
         }
 
@@ -920,11 +1057,7 @@ SmsDatabaseService.prototype = {
         if (filter.read != undefined) {
           let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
           if (DEBUG) debug("filter.read " + read);
-          let range = IDBKeyRange.bound([read, startDate],
-                                        [read, endDate]);
-          let request = store.index("read").openKeyCursor(range, direction);
-          request.onsuccess = singleFilterSuccessCb;
-          request.onerror = singleFilterErrorCb;
+          createSimpleRangedRequest("read", read);
         }
       } else {
         
