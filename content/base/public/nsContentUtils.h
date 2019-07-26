@@ -41,6 +41,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Assertions.h"
 
 struct nsNativeKeyEvent; 
 
@@ -1302,13 +1303,17 @@ public:
                               nsWrapperCache* aCache)
   {
     if (!aCache->PreservingWrapper()) {
+      nsISupports *ccISupports;
+      aScriptObjectHolder->QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
+                                          reinterpret_cast<void**>(&ccISupports));
+      MOZ_ASSERT(ccISupports);
       nsXPCOMCycleCollectionParticipant* participant;
-      CallQueryInterface(aScriptObjectHolder, &participant);
-      HoldJSObjects(aScriptObjectHolder, participant);
+      CallQueryInterface(ccISupports, &participant);
+      HoldJSObjects(ccISupports, participant);
       aCache->SetPreservingWrapper(true);
 #ifdef DEBUG
       
-      CheckCCWrapperTraversal(aScriptObjectHolder, aCache);
+      CheckCCWrapperTraversal(ccISupports, aCache);
 #endif
     }
   }
