@@ -53,47 +53,76 @@ typedef void (*BluetoothProfileControllerCallback)();
 class BluetoothProfileController : public RefCounted<BluetoothProfileController>
 {
 public:
-  BluetoothProfileController(const nsAString& aDeviceAddress,
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  BluetoothProfileController(bool aConnect,
+                             const nsAString& aDeviceAddress,
                              BluetoothReplyRunnable* aRunnable,
-                             BluetoothProfileControllerCallback aCallback);
+                             BluetoothProfileControllerCallback aCallback,
+                             uint16_t aServiceUuid,
+                             uint32_t aCod = 0);
   ~BluetoothProfileController();
 
   
-  void Connect(BluetoothServiceClass aClass);
+
+
+
+  void Start();
 
   
-  void Connect(uint32_t aCod);
-
-  
 
 
-
-
-  void Disconnect(BluetoothServiceClass aClass = BluetoothServiceClass::UNKNOWN);
 
   void OnConnect(const nsAString& aErrorStr);
+
+  
+
+
+
   void OnDisconnect(const nsAString& aErrorStr);
 
-  uint32_t GetCod() const
-  {
-    return mCod;
-  }
-
 private:
-  void ConnectNext();
-  void DisconnectNext();
-  bool AddProfile(BluetoothProfileManagerBase* aProfile,
-                  bool aCheckConnected = false);
-  bool AddProfileWithServiceClass(BluetoothServiceClass aClass);
+  
+  void SetupProfiles(bool aAssignServiceClass);
 
+  
+  void AddProfile(BluetoothProfileManagerBase* aProfile,
+                  bool aCheckConnected = false);
+
+  
+  void AddProfileWithServiceClass(BluetoothServiceClass aClass);
+
+  
+  void Next();
+
+  const bool mConnect;
+  nsString mDeviceAddress;
+  nsRefPtr<BluetoothReplyRunnable> mRunnable;
+  BluetoothProfileControllerCallback mCallback;
+
+  bool mSuccess;
   int8_t mProfilesIndex;
   nsTArray<BluetoothProfileManagerBase*> mProfiles;
 
-  BluetoothProfileControllerCallback mCallback;
-  uint32_t mCod;
-  nsString mDeviceAddress;
-  nsRefPtr<BluetoothReplyRunnable> mRunnable;
-  bool mSuccess;
+  
+  union {
+    uint32_t cod;
+    BluetoothServiceClass service;
+  } mTarget;
 };
 
 END_BLUETOOTH_NAMESPACE
