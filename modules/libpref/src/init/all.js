@@ -1784,6 +1784,7 @@ pref("dom.archivereader.enabled", false);
 
 pref("hangmonitor.timeout", 0);
 
+pref("plugins.load_appdir_plugins", false);
 
 pref("plugins.click_to_play", false);
 
