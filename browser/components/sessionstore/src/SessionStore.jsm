@@ -678,8 +678,6 @@ let SessionStoreInternal = {
         debug("received unknown message '" + aMessage.name + "'");
         break;
     }
-
-    this._clearRestoringWindows();
   },
 
   
@@ -3399,6 +3397,15 @@ let SessionStoreInternal = {
 #endif
     this._closedWindows.splice(spliceTo, this._closedWindows.length);
   },
+
+  
+
+
+
+
+
+
+
 
   _clearRestoringWindows: function ssi_clearRestoringWindows() {
     for (let i = 0; i < this._closedWindows.length; i++) {
