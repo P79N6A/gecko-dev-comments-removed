@@ -14,10 +14,11 @@
 #include "nsXPCOMPrivate.h"
 #include "nsXPCOMCIDInternal.h"
 
-#include "prlink.h"
-
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/AsyncTransactionTracker.h"
+
+#include "prlink.h"
 
 #include "nsCycleCollector.h"
 #include "nsObserverList.h"
@@ -788,6 +789,15 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
                                     nullptr);
             }
         }
+
+        
+        
+        layers::ImageBridgeChild::ShutDown();
+#ifdef MOZ_WIDGET_GONK
+        layers::SharedBufferManagerChild::ShutDown();
+#endif
+        layers::CompositorParent::ShutDown();
+        layers::AsyncTransactionTracker::Finalize();
 
         NS_ProcessPendingEvents(thread);
         mozilla::scache::StartupCache::DeleteSingleton();

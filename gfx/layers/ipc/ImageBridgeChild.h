@@ -134,15 +134,6 @@ public:
 
 
 
-
-
-  static void DestroyBridge();
-
-  
-
-
-
-
   static bool IsCreated();
 
   
@@ -307,6 +298,7 @@ public:
 
   void SendPendingAsyncMessge();
 
+  void MarkShutDown();
 protected:
   ImageBridgeChild();
   bool DispatchAllocShmemInternal(size_t aSize,
@@ -315,6 +307,7 @@ protected:
                                   bool aUnsafe);
 
   CompositableTransaction* mTxn;
+  bool mShuttingDown;
 };
 
 } 
