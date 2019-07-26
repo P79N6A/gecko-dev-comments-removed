@@ -98,10 +98,6 @@ this.Social = {
   providers: [],
   _disabledForSafeMode: false,
 
-  get allowMultipleWorkers() {
-    return Services.prefs.getBoolPref("social.allowMultipleWorkers");
-  },
-
   get _currentProviderPref() {
     try {
       return Services.prefs.getComplexValue("social.provider.current",
@@ -129,11 +125,6 @@ this.Social = {
   _setProvider: function (provider) {
     if (this._provider == provider)
       return;
-
-    
-    
-    if (this._provider && !Social.allowMultipleWorkers)
-      this._provider.enabled = false;
 
     this._provider = provider;
 
@@ -208,10 +199,6 @@ this.Social = {
   },
 
   _updateWorkerState: function(enable) {
-    
-    
-    if (enable && !Social.allowMultipleWorkers)
-      return;
     [p.enabled = enable for (p of Social.providers) if (p.enabled != enable)];
   },
 

@@ -4,10 +4,6 @@
 
 function run_test() {
   
-  Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
-  do_register_cleanup(function() {
-    Services.prefs.clearUserPref("social.allowMultipleWorkers");
-  });
   do_test_pending();
   add_test(testStartupEnabled);
   add_test(testDisableAfterStartup);

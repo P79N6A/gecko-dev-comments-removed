@@ -40,12 +40,10 @@ function openWindowAndWaitForInit(callback) {
 function test() {
   waitForExplicitFinish();
 
-  Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
   runSocialTestWithProvider(manifest, function (finishcb) {
     runSocialTests(tests, undefined, undefined, function () {
       Services.prefs.clearUserPref("social.remote-install.enabled");
       
-      Services.prefs.clearUserPref("social.allowMultipleWorkers");
       Services.prefs.clearUserPref("social.whitelist");
       ok(CustomizableUI.inDefaultState, "Should be in the default state when we finish");
       CustomizableUI.reset();
