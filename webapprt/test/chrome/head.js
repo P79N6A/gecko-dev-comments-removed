@@ -6,8 +6,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-Services.scriptloader.loadSubScript("chrome://webapprt/content/mochitest.js",
-                                    this);
+Services.scriptloader
+        .loadSubScript("chrome://webapprt/content/mochitest-shared.js", this);
 
 const MANIFEST_URL_BASE = Services.io.newURI(
   "http://test/webapprtChrome/webapprt/test/chrome/", null, null);

@@ -6,7 +6,6 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-Cu.import("resource://webapprt/modules/Startup.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -49,10 +48,6 @@ let progressListener = {
 function onLoad() {
   window.removeEventListener("load", onLoad, false);
 
-  let args = window.arguments && window.arguments[0] ?
-             window.arguments[0].QueryInterface(Ci.nsIPropertyBag2) :
-             null;
-
   gAppBrowser.addProgressListener(progressListener,
                                   Ci.nsIWebProgress.NOTIFY_LOCATION |
                                   Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
@@ -63,14 +58,6 @@ function onLoad() {
   
   
   gAppBrowser.addEventListener("click", onContentClick, false, true);
-
-  
-  
-  
-  if (args && args.hasKey("url")) {
-    gAppBrowser.setAttribute("src", args.get("url"));
-  }
-
 }
 window.addEventListener("load", onLoad, false);
 

@@ -17,9 +17,6 @@ pref("extensions.installDistroAddons", false);
 pref("extensions.showMismatchUI", false);
 
 
-pref("webapprt.firstrun", false);
-
-
 pref("breakpad.reportURL", "https://crash-stats.mozilla.com/report/index/");
 
 

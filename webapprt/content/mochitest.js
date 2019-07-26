@@ -2,71 +2,37 @@
 
 
 
-
-
-
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://webapprt/modules/WebappRT.jsm");
+
+Services.scriptloader
+        .loadSubScript("chrome://webapprt/content/mochitest-shared.js", this);
 
 
 
 
 
+WebappRT.config = {
+  registryDir: Services.dirsvc.get("ProfD", Ci.nsIFile).path,
+};
 
-Services.ww.registerNotification({
-  observe: function(win, topic) {
-    if (topic == "domwindowopened") {
-      
-      win.addEventListener("load", function onLoadWindow() {
-        win.removeEventListener("load", onLoadWindow, false);
-        if (win.location == "chrome://global/content/commonDialog.xul" &&
-            win.opener == window) {
-          win.close();
-        }
-      }, false);
+
+Cu.import("resource://gre/modules/Webapps.jsm");
+
+DOMApplicationRegistry.allAppsLaunchable = true;
+
+becomeWebapp("http://mochi.test:8888/tests/webapprt/test/content/test.webapp",
+             undefined, function onBecome() {
+  if (window.arguments && window.arguments[0]) {
+    let testUrl = window.arguments[0].QueryInterface(Ci.nsIPropertyBag2).get("url");
+
+    if (testUrl) {
+      let win = Services.wm.getMostRecentWindow("webapprt:webapp");
+      win.document.getElementById("content").setAttribute("src", testUrl);
     }
   }
+
+  window.close();
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function becomeWebapp(manifestURL, parameters, onBecome) {
-  function observeInstall(subj, topic, data) {
-    Services.obs.removeObserver(observeInstall, "webapps-ask-install");
-
-    
-    
-    
-
-    let scope = {};
-    Cu.import("resource://gre/modules/Webapps.jsm", scope);
-    scope.DOMApplicationRegistry.confirmInstall(JSON.parse(data));
-
-    let installRecord = JSON.parse(data);
-    installRecord.mm = subj;
-    installRecord.registryDir = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
-    WebappRT.config = installRecord;
-
-    onBecome();
-  }
-  Services.obs.addObserver(observeInstall, "webapps-ask-install", false);
-
-  
-  let url = Services.io.newURI(manifestURL, null, null);
-  navigator.mozApps.install(url.spec, parameters);
-}
