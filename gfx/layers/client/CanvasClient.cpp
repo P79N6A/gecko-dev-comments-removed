@@ -176,7 +176,7 @@ CanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 
     if (mBuffer && CompositorChild::ChildProcessHasCompositor()) {
       
-      RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker(this);
+      RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
       
       tracker->SetTextureClient(mBuffer);
       mBuffer->SetRemoveFromCompositableTracker(tracker);
