@@ -82,8 +82,16 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
                 ins = ins->toPassArg()->getArgument();
             JS_ASSERT(!ins->isPassArg());
 
+            if (ins->isBox())
+                ins = ins->toBox()->getOperand(0);
+
             
             JS_ASSERT_IF(ins->isUnused(), !ins->isGuard());
+
+            
+            
+            
+            JS_ASSERT_IF(!ins->isConstant(), !ins->isEmittedAtUses());
 
             
             
@@ -97,8 +105,6 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
                 *type = LConstantIndex::Bogus();
                 *payload = use(ins, LUse::KEEPALIVE);
             } else {
-                if (!ensureDefined(ins))
-                    return NULL;
                 *type = useType(ins, LUse::KEEPALIVE);
                 *payload = usePayload(ins, LUse::KEEPALIVE);
             }
@@ -129,6 +135,18 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
 
             if (def->isPassArg())
                 def = def->toPassArg()->getArgument();
+            JS_ASSERT(!def->isPassArg());
+
+            if (def->isBox())
+                def = def->toBox()->getOperand(0);
+
+            
+            JS_ASSERT_IF(def->isUnused(), !def->isGuard());
+
+            
+            
+            
+            JS_ASSERT_IF(!def->isConstant(), !def->isEmittedAtUses());
 
             LAllocation *a = snapshot->getEntry(i);
 
