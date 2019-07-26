@@ -1450,16 +1450,12 @@ nsGlobalWindow::EnsureScriptEnvironment()
   nsresult rv = NS_GetJSRuntime(getter_AddRefs(scriptRuntime));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIScriptContext> context = scriptRuntime->CreateContext();
+  nsCOMPtr<nsIScriptContext> context = scriptRuntime->CreateContext(this);
 
   NS_ASSERTION(!mContext, "Will overwrite mContext!");
 
   
   context->WillInitializeContext();
-
-  
-  
-  context->SetGlobalObject(this);
 
   rv = context->InitContext();
   NS_ENSURE_SUCCESS(rv, rv);
