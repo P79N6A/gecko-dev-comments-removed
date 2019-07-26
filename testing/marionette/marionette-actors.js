@@ -1665,6 +1665,21 @@ MarionetteDriverActor.prototype = {
 
 
 
+
+  getElementValueOfCssProperty: function MDA_getElementValueOfCssProperty(aRequest){
+    let command_id = this.command_id = this.getCommandId();
+    this.sendAsync("getElementValueOfCssProperty",
+                   {element: aRequest.element, propertyName: aRequest.propertyName},
+                   command_id);
+  },
+
+  
+
+
+
+
+
+
   isElementEnabled: function MDA_isElementEnabled(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context == "chrome") {
@@ -2194,6 +2209,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "getElementText": MarionetteDriverActor.prototype.getElementText,
   "getElementTagName": MarionetteDriverActor.prototype.getElementTagName,
   "isElementDisplayed": MarionetteDriverActor.prototype.isElementDisplayed,
+  "getElementValueOfCssProperty": MarionetteDriverActor.prototype.getElementValueOfCssProperty,
   "getElementSize": MarionetteDriverActor.prototype.getElementSize,
   "isElementEnabled": MarionetteDriverActor.prototype.isElementEnabled,
   "isElementSelected": MarionetteDriverActor.prototype.isElementSelected,
