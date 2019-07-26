@@ -73,7 +73,7 @@ public final class OrderedBroadcastHelper
             }
 
             
-            final Object token = (message.has("token") && !message.isNull("token")) ?
+            final JSONObject token = (message.has("token") && !message.isNull("token")) ?
                 message.getJSONObject("token") : null;
 
             
@@ -105,6 +105,12 @@ public final class OrderedBroadcastHelper
             };
 
             Intent intent = new Intent(action);
+            
+            
+            if (token != null && token.has("data")) {
+                intent.putExtra("token", token.getString("data"));
+            }
+
             mContext.sendOrderedBroadcast(intent,
                                           permission,
                                           resultReceiver,
