@@ -3277,9 +3277,7 @@ Tab.prototype = {
           tabID: this.id
         });
 
-        
-        
-        if (BrowserApp.isOnLowMemoryPlatform && !Services.prefs.getBoolPref("reader.force_allow"))
+        if (!Reader.isEnabledForParseOnLoad)
           return;
 
         
@@ -6600,12 +6598,18 @@ let Reader = {
   
   MAX_ELEMS_TO_PARSE: 3000,
 
+  isEnabledForParseOnLoad: false,
+
   init: function Reader_init() {
     this.log("Init()");
     this._requests = {};
 
+    this.isEnabledForParseOnLoad = this.getStateForParseOnLoad();
+
     Services.obs.addObserver(this, "Reader:Add", false);
     Services.obs.addObserver(this, "Reader:Remove", false);
+
+    Services.prefs.addObserver("reader.parse-on-load.", this, false);
   },
 
   observe: function(aMessage, aTopic, aData) {
@@ -6681,7 +6685,22 @@ let Reader = {
         }.bind(this));
         break;
       }
+
+      case "nsPref:changed": {
+        if (aData.startsWith("reader.parse-on-load.")) {
+          this.isEnabledForParseOnLoad = this.getStateForParseOnLoad();
+        }
+        break;
+      }
     }
+  },
+
+  getStateForParseOnLoad: function Reader_getStateForParseOnLoad() {
+    let isEnabled = Services.prefs.getBoolPref("reader.parse-on-load.enabled");
+    let isForceEnabled = Services.prefs.getBoolPref("reader.parse-on-load.force-enabled");
+    
+    
+    return isForceEnabled || (isEnabled && !BrowserApp.isOnLowMemoryPlatform);
   },
 
   parseDocumentFromURL: function Reader_parseDocumentFromURL(url, callback) {
@@ -6845,6 +6864,8 @@ let Reader = {
   },
 
   uninit: function Reader_uninit() {
+    Services.prefs.removeObserver("reader.parse-on-load.", this);
+
     Services.obs.removeObserver(this, "Reader:Add");
     Services.obs.removeObserver(this, "Reader:Remove");
 
