@@ -12,6 +12,7 @@
 
 #include "mozilla/Attributes.h"           
 #include "nsCOMPtr.h"                     
+#include "nsAutoPtr.h"                    
 #include "nsCycleCollectionParticipant.h" 
 #include "plhash.h"                       
 
@@ -132,9 +133,7 @@ private:
   nsINodeInfo *mTextNodeInfo; 
   nsINodeInfo *mCommentNodeInfo; 
   nsINodeInfo *mDocumentNodeInfo; 
-  nsBindingManager* mBindingManager; 
-                                     
-                                     
+  nsRefPtr<nsBindingManager> mBindingManager;
 };
 
 #endif 
