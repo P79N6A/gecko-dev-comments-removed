@@ -48,6 +48,7 @@ public:
     , mInSelection(false)
     , mStartOffsetWasIncremented(false)
     , mEndOffsetWasIncremented(false)
+    , mEnableGravitationOnElementRemoval(true)
 #ifdef DEBUG
     , mAssertNextInsertOrAppendIndex(-1)
     , mAssertNextInsertOrAppendNode(nullptr)
@@ -71,6 +72,20 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsRange, nsIDOMRange)
+
+  
+
+
+
+
+
+
+
+
+  void SetEnableGravitationOnElementRemoval(bool aEnable)
+  {
+    mEnableGravitationOnElementRemoval = aEnable;
+  }
 
   
   NS_DECL_NSIDOMRANGE
@@ -299,6 +314,7 @@ protected:
   bool mInSelection;
   bool mStartOffsetWasIncremented;
   bool mEndOffsetWasIncremented;
+  bool mEnableGravitationOnElementRemoval;
 #ifdef DEBUG
   int32_t  mAssertNextInsertOrAppendIndex;
   nsINode* mAssertNextInsertOrAppendNode;

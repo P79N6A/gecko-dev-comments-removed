@@ -662,6 +662,11 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
     gravitateEnd = true;
   }
 
+  if (!mEnableGravitationOnElementRemoval) {
+    
+    return;
+  }
+
   if (gravitateStart || gravitateEnd) {
     DoSetRange(gravitateStart ? container : mStartParent.get(),
                gravitateStart ? aIndexInContainer : mStartOffset,
