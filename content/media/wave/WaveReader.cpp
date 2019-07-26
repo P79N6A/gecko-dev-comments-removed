@@ -579,8 +579,10 @@ WaveReader::LoadListChunk(uint32_t aChunkSize,
       break;
     }
 
+    
+    
     nsCString val(p, length);
-    if (val[length - 1] == '\0') {
+    if (length > 0 && val[length - 1] == '\0') {
       val.SetLength(length - 1);
     }
 
