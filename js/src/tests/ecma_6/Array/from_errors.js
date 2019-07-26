@@ -130,5 +130,16 @@ assertThrowsValue(() => Array.from.call(C, arrayish, () => { throw exc; }), exc)
 assertEq(log, "lC0");
 assertEq(obj instanceof C, true);
 
+
+for (var primitive of [undefined, null, 17]) {
+    assertThrowsInstanceOf(
+        () => Array.from({
+            "@@iterator": () => {
+                next: () => primitive
+            }
+        }),
+        TypeError);
+}
+
 if (typeof reportCompare === 'function')
     reportCompare(0, 0);
