@@ -300,6 +300,8 @@ public:
   static bool HasPushNotificationsSupport(JSContext* ,
                                           JSObject* aGlobal);
 
+  static bool HasInputMethodSupport(JSContext* , JSObject* aGlobal);
+
   nsPIDOMWindow* GetParentObject() const
   {
     return GetWindow();
