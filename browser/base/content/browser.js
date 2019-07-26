@@ -7145,6 +7145,9 @@ let gPrivateBrowsingUI = {
 
 
   get privateWindow() {
+    if (!gBrowser)
+      return false;
+
     return gBrowser.docShell.QueryInterface(Ci.nsILoadContext)
                             .usePrivateBrowsing;
   }
