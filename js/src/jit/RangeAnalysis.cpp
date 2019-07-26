@@ -389,8 +389,17 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *emptyRange)
     
     
     
-    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_)
+    if (lhs->canHaveFractionalPart_ != rhs->canHaveFractionalPart_) {
         refineInt32BoundsByExponent(newExponent, &newLower, &newUpper);
+
+        
+        
+        
+        if (newLower > newUpper) {
+            *emptyRange = true;
+            return nullptr;
+        }
+    }
 
     return new Range(newLower, newHasInt32LowerBound, newUpper, newHasInt32UpperBound,
                      newFractional, newExponent);
