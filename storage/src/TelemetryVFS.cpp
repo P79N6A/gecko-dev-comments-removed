@@ -14,7 +14,6 @@
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
 #include "mozilla/IOInterposer.h"
-#include "mozilla/SQLiteInterposer.h"
 
 
 
