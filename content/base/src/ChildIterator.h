@@ -25,15 +25,17 @@ namespace dom {
 
 
 
+
+
 class ExplicitChildIterator
 {
 public:
-  ExplicitChildIterator(nsIContent* aParent)
+  ExplicitChildIterator(nsIContent* aParent, bool aStartAtBeginning = true)
     : mParent(aParent),
       mChild(nullptr),
       mDefaultChild(nullptr),
       mIndexInInserted(0),
-      mIsFirst(true)
+      mIsFirst(aStartAtBeginning)
   {
   }
 
@@ -57,6 +59,15 @@ public:
     return child == aChildToFind;
   }
 
+  
+  
+  
+  nsIContent* Get();
+
+  
+  
+  nsIContent* GetPreviousChild();
+
 protected:
   
   
@@ -78,6 +89,11 @@ protected:
   
   
   
+  nsAutoPtr<ExplicitChildIterator> mShadowIterator;
+
+  
+  
+  
   
   uint32_t mIndexInInserted;
 
@@ -92,15 +108,6 @@ class FlattenedChildIterator : public ExplicitChildIterator
 {
 public:
   FlattenedChildIterator(nsIContent* aParent);
-
-  
-  
-  
-  nsIContent* Get();
-
-  
-  
-  nsIContent* GetPreviousChild();
 
   bool XBLInvolved() { return mXBLInvolved; }
 

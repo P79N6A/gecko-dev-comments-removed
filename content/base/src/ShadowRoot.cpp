@@ -14,6 +14,7 @@
 #include "nsIStyleSheetLinkingElement.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLContentElement.h"
+#include "mozilla/dom/HTMLShadowElement.h"
 #include "nsXBLPrototypeBinding.h"
 
 using namespace mozilla;
@@ -32,19 +33,23 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(ShadowRoot)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ShadowRoot,
                                                   DocumentFragment)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHost)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPoolHost)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStyleSheetList)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOlderShadow)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mYoungerShadow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAssociatedBinding)
   tmp->mIdentifierMap.EnumerateEntries(IdentifierMapEntryTraverse, &cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(ShadowRoot,
                                                 DocumentFragment)
-  if (tmp->mHost) {
-    tmp->mHost->RemoveMutationObserver(tmp);
+  if (tmp->mPoolHost) {
+    tmp->mPoolHost->RemoveMutationObserver(tmp);
   }
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mHost)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mPoolHost)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mStyleSheetList)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mOlderShadow)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mYoungerShadow)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAssociatedBinding)
   tmp->mIdentifierMap.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -62,8 +67,9 @@ NS_IMPL_RELEASE_INHERITED(ShadowRoot, DocumentFragment)
 ShadowRoot::ShadowRoot(nsIContent* aContent,
                        already_AddRefed<nsINodeInfo> aNodeInfo,
                        nsXBLPrototypeBinding* aProtoBinding)
-  : DocumentFragment(aNodeInfo), mHost(aContent),
-    mProtoBinding(aProtoBinding), mInsertionPointChanged(false)
+  : DocumentFragment(aNodeInfo), mPoolHost(aContent),
+    mProtoBinding(aProtoBinding), mShadowElement(nullptr),
+    mInsertionPointChanged(false)
 {
   SetHost(aContent);
   SetFlags(NODE_IS_IN_SHADOW_TREE);
@@ -75,14 +81,15 @@ ShadowRoot::ShadowRoot(nsIContent* aContent,
   
   
   
-  mHost->AddMutationObserver(this);
+  mPoolHost->AddMutationObserver(this);
 }
 
 ShadowRoot::~ShadowRoot()
 {
-  if (mHost) {
+  if (mPoolHost) {
     
-    mHost->RemoveMutationObserver(this);
+    
+    mPoolHost->RemoveMutationObserver(this);
   }
 
   ClearInDocument();
@@ -233,16 +240,6 @@ ShadowRoot::PrefEnabled()
   return Preferences::GetBool("dom.webcomponents.enabled", false);
 }
 
-class TreeOrderComparator {
-public:
-  bool Equals(nsINode* aElem1, nsINode* aElem2) const {
-    return aElem1 == aElem2;
-  }
-  bool LessThan(nsINode* aElem1, nsINode* aElem2) const {
-    return nsContentUtils::PositionIsBefore(aElem1, aElem2);
-  }
-};
-
 void
 ShadowRoot::AddInsertionPoint(HTMLContentElement* aInsertionPoint)
 {
@@ -257,12 +254,26 @@ ShadowRoot::RemoveInsertionPoint(HTMLContentElement* aInsertionPoint)
 }
 
 void
+ShadowRoot::SetYoungerShadow(ShadowRoot* aYoungerShadow)
+{
+  mYoungerShadow = aYoungerShadow;
+  mYoungerShadow->mOlderShadow = this;
+
+  ChangePoolHost(mYoungerShadow->GetShadowElement());
+}
+
+void
 ShadowRoot::DistributeSingleNode(nsIContent* aContent)
 {
   
   HTMLContentElement* insertionPoint = nullptr;
   for (uint32_t i = 0; i < mInsertionPoints.Length(); i++) {
     if (mInsertionPoints[i]->Match(aContent)) {
+      if (mInsertionPoints[i]->MatchedNodes().Contains(aContent)) {
+        
+        return;
+      }
+
       
       if (mInsertionPoints[i]->MatchedNodes().IsEmpty() &&
           static_cast<nsINode*>(mInsertionPoints[i])->GetFirstChild()) {
@@ -283,7 +294,8 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
     
     
     bool isIndexFound = false;
-    ExplicitChildIterator childIterator(GetHost());
+    MOZ_ASSERT(mPoolHost, "Where did the content come from if there is no pool host?");
+    ExplicitChildIterator childIterator(mPoolHost);
     for (uint32_t i = 0; i < matchedNodes.Length(); i++) {
       
       
@@ -306,9 +318,28 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
     
     
     
+    
+    if (insertionPoint->GetParent() == this &&
+        mYoungerShadow && mYoungerShadow->GetShadowElement()) {
+      mYoungerShadow->GetShadowElement()->DistributeSingleNode(aContent);
+    }
+
+    
+    
+    
     ShadowRoot* parentShadow = insertionPoint->GetParent()->GetShadowRoot();
     if (parentShadow) {
       parentShadow->DistributeSingleNode(aContent);
+    }
+
+    
+    
+    
+    if (mShadowElement && mShadowElement == insertionPoint->GetParent()) {
+      ShadowRoot* olderShadow = mShadowElement->GetOlderShadowRoot();
+      if (olderShadow) {
+        olderShadow->DistributeSingleNode(aContent);
+      }
     }
   }
 }
@@ -334,9 +365,28 @@ ShadowRoot::RemoveDistributedNode(nsIContent* aContent)
       
       
       
+      if (mInsertionPoints[i]->GetParent() == this) {
+        if (mYoungerShadow && mYoungerShadow->GetShadowElement()) {
+          mYoungerShadow->GetShadowElement()->RemoveDistributedNode(aContent);
+        }
+      }
+
+      
+      
+      
       ShadowRoot* parentShadow = mInsertionPoints[i]->GetParent()->GetShadowRoot();
       if (parentShadow) {
         parentShadow->RemoveDistributedNode(aContent);
+      }
+
+      
+      
+      
+      if (mShadowElement && mShadowElement == mInsertionPoints[i]->GetParent()) {
+        ShadowRoot* olderShadow = mShadowElement->GetOlderShadowRoot();
+        if (olderShadow) {
+          olderShadow->RemoveDistributedNode(aContent);
+        }
       }
 
       break;
@@ -349,12 +399,19 @@ ShadowRoot::DistributeAllNodes()
 {
   
   nsTArray<nsIContent*> nodePool;
-  ExplicitChildIterator childIterator(GetHost());
-  for (nsIContent* content = childIterator.GetNextChild();
-       content;
-       content = childIterator.GetNextChild()) {
-    nodePool.AppendElement(content);
+
+  
+  
+  if (mPoolHost) {
+    ExplicitChildIterator childIterator(mPoolHost);
+    for (nsIContent* content = childIterator.GetNextChild();
+         content;
+         content = childIterator.GetNextChild()) {
+      nodePool.AppendElement(content);
+    }
   }
+
+  nsTArray<ShadowRoot*> shadowsToUpdate;
 
   for (uint32_t i = 0; i < mInsertionPoints.Length(); i++) {
     mInsertionPoints[i]->ClearMatchedNodes();
@@ -366,11 +423,9 @@ ShadowRoot::DistributeAllNodes()
         nodePool.RemoveElementAt(j--);
       }
     }
-  }
 
-  
-  
-  for (uint32_t i = 0; i < mInsertionPoints.Length(); i++) {
+    
+    
     nsIContent* insertionParent = mInsertionPoints[i]->GetParent();
     MOZ_ASSERT(insertionParent, "The only way for an insertion point to be in the"
                                 "mInsertionPoints array is to be a descendant of a"
@@ -380,9 +435,27 @@ ShadowRoot::DistributeAllNodes()
     
     
     ShadowRoot* parentShadow = insertionParent->GetShadowRoot();
-    if (parentShadow) {
-      parentShadow->DistributeAllNodes();
+    if (parentShadow && !shadowsToUpdate.Contains(parentShadow)) {
+      shadowsToUpdate.AppendElement(parentShadow);
     }
+  }
+
+  
+  
+  
+  if (mShadowElement && mOlderShadow) {
+    mOlderShadow->DistributeAllNodes();
+  }
+
+  
+  
+  
+  if (mYoungerShadow && mYoungerShadow->GetShadowElement()) {
+    mYoungerShadow->GetShadowElement()->DistributeAllNodes();
+  }
+
+  for (uint32_t i = 0; i < shadowsToUpdate.Length(); i++) {
+    shadowsToUpdate[i]->DistributeAllNodes();
   }
 }
 
@@ -427,16 +500,70 @@ ShadowRoot::StyleSheets()
   return mStyleSheetList;
 }
 
-
-
-
-
-
-
-static bool
-IsPooledNode(nsIContent* aContent, nsIContent* aContainer, nsIContent* aHost)
+void
+ShadowRoot::SetShadowElement(HTMLShadowElement* aShadowElement)
 {
-  if (nsContentUtils::IsContentInsertionPoint(aContent)) {
+  
+  
+  
+  if (mShadowElement) {
+    mShadowElement->SetProjectedShadow(nullptr);
+  }
+
+  if (mOlderShadow) {
+    
+    mOlderShadow->ChangePoolHost(aShadowElement);
+  }
+
+  
+  
+  mShadowElement = aShadowElement;
+  if (mShadowElement) {
+    mShadowElement->SetProjectedShadow(mOlderShadow);
+  }
+}
+
+void
+ShadowRoot::ChangePoolHost(nsIContent* aNewHost)
+{
+  if (mPoolHost) {
+    mPoolHost->RemoveMutationObserver(this);
+  }
+
+  
+  
+  for (uint32_t i = 0; i < mInsertionPoints.Length(); i++) {
+    mInsertionPoints[i]->ClearMatchedNodes();
+  }
+
+  mPoolHost = aNewHost;
+  if (mPoolHost) {
+    mPoolHost->AddMutationObserver(this);
+  }
+}
+
+bool
+ShadowRoot::IsShadowInsertionPoint(nsIContent* aContent)
+{
+  if (aContent && aContent->IsHTML(nsGkAtoms::shadow)) {
+    HTMLShadowElement* shadowElem = static_cast<HTMLShadowElement*>(aContent);
+    return shadowElem->IsInsertionPoint();
+  }
+  return false;
+}
+
+
+
+
+
+
+
+bool
+ShadowRoot::IsPooledNode(nsIContent* aContent, nsIContent* aContainer,
+                         nsIContent* aHost)
+{
+  if (nsContentUtils::IsContentInsertionPoint(aContent) ||
+      IsShadowInsertionPoint(aContent)) {
     
     return false;
   }
@@ -463,9 +590,7 @@ ShadowRoot::AttributeChanged(nsIDocument* aDocument,
                              nsIAtom* aAttribute,
                              int32_t aModType)
 {
-  
-  
-  if (!IsPooledNode(aElement, aElement->GetParent(), mHost)) {
+  if (!IsPooledNode(aElement, aElement->GetParent(), mPoolHost)) {
     return;
   }
 
@@ -490,7 +615,7 @@ ShadowRoot::ContentAppended(nsIDocument* aDocument,
   
   nsIContent* currentChild = aFirstNewContent;
   while (currentChild) {
-    if (IsPooledNode(currentChild, aContainer, mHost)) {
+    if (IsPooledNode(currentChild, aContainer, mPoolHost)) {
       DistributeSingleNode(currentChild);
     }
     currentChild = currentChild->GetNextSibling();
@@ -511,7 +636,7 @@ ShadowRoot::ContentInserted(nsIDocument* aDocument,
 
   
   
-  if (IsPooledNode(aChild, aContainer, mHost)) {
+  if (IsPooledNode(aChild, aContainer, mPoolHost)) {
     DistributeSingleNode(aChild);
   }
 }
@@ -531,7 +656,7 @@ ShadowRoot::ContentRemoved(nsIDocument* aDocument,
 
   
   
-  if (IsPooledNode(aChild, aContainer, mHost)) {
+  if (IsPooledNode(aChild, aContainer, mPoolHost)) {
     RemoveDistributedNode(aChild);
   }
 }

@@ -753,7 +753,16 @@ Element::CreateShadowRoot(ErrorResult& aError)
 
   nsRefPtr<ShadowRoot> shadowRoot = new ShadowRoot(this, nodeInfo.forget(),
                                                    protoBinding);
+
+  
+  
+  
+  
+  ShadowRoot* olderShadow = GetShadowRoot();
   SetShadowRoot(shadowRoot);
+  if (olderShadow) {
+    olderShadow->SetYoungerShadow(shadowRoot);
+  }
 
   
   nsRefPtr<nsXBLBinding> xblBinding = new nsXBLBinding(shadowRoot, protoBinding);

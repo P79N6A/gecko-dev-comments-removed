@@ -25,6 +25,7 @@ namespace dom {
 
 class Element;
 class HTMLContentElement;
+class HTMLShadowElement;
 class ShadowRootStyleSheetList;
 
 class ShadowRoot : public DocumentFragment,
@@ -53,6 +54,24 @@ public:
   bool ApplyAuthorStyles();
   void SetApplyAuthorStyles(bool aApplyAuthorStyles);
   nsIDOMStyleSheetList* StyleSheets();
+  HTMLShadowElement* GetShadowElement() { return mShadowElement; }
+
+  
+
+
+
+  void SetShadowElement(HTMLShadowElement* aShadowElement);
+
+  
+
+
+
+
+
+
+
+
+  void ChangePoolHost(nsIContent* aNewHost);
 
   
 
@@ -75,23 +94,24 @@ public:
   void AddInsertionPoint(HTMLContentElement* aInsertionPoint);
   void RemoveInsertionPoint(HTMLContentElement* aInsertionPoint);
 
+  void SetYoungerShadow(ShadowRoot* aYoungerShadow);
+  ShadowRoot* GetOlderShadow() { return mOlderShadow; }
+  ShadowRoot* GetYoungerShadow() { return mYoungerShadow; }
   void SetInsertionPointChanged() { mInsertionPointChanged = true; }
 
-  void SetAssociatedBinding(nsXBLBinding* aBinding)
-  {
-    mAssociatedBinding = aBinding;
-  }
+  void SetAssociatedBinding(nsXBLBinding* aBinding) { mAssociatedBinding = aBinding; }
 
-  nsISupports* GetParentObject() const
-  {
-    return mHost;
-  }
+  nsISupports* GetParentObject() const { return mPoolHost; }
 
-  nsIContent* GetHost() { return mHost; }
+  nsIContent* GetPoolHost() { return mPoolHost; }
+  nsTArray<HTMLShadowElement*>& ShadowDescendants() { return mShadowDescendants; }
 
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
+  static bool IsPooledNode(nsIContent* aChild, nsIContent* aContainer,
+                           nsIContent* aHost);
   static ShadowRoot* FromNode(nsINode* aNode);
+  static bool IsShadowInsertionPoint(nsIContent* aContent);
 
   
   Element* GetElementById(const nsAString& aElementId);
@@ -107,7 +127,9 @@ public:
 protected:
   void Restyle();
 
-  nsCOMPtr<nsIContent> mHost;
+  
+  
+  nsCOMPtr<nsIContent> mPoolHost;
 
   
   
@@ -115,6 +137,10 @@ protected:
   
   
   nsTArray<HTMLContentElement*> mInsertionPoints;
+
+  
+  
+  nsTArray<HTMLShadowElement*> mShadowDescendants;
 
   nsTHashtable<nsIdentifierMapEntry> mIdentifierMap;
   nsXBLPrototypeBinding* mProtoBinding;
@@ -125,6 +151,17 @@ protected:
   nsRefPtr<nsXBLBinding> mAssociatedBinding;
 
   nsRefPtr<ShadowRootStyleSheetList> mStyleSheetList;
+
+  
+  HTMLShadowElement* mShadowElement;
+
+  
+  
+  nsRefPtr<ShadowRoot> mOlderShadow;
+
+  
+  
+  nsRefPtr<ShadowRoot> mYoungerShadow;
 
   
   

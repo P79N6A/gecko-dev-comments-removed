@@ -8,6 +8,8 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/XBLChildrenElement.h"
 #include "mozilla/dom/HTMLContentElement.h"
+#include "mozilla/dom/HTMLShadowElement.h"
+#include "mozilla/dom/ShadowRoot.h"
 
 namespace mozilla {
 namespace dom {
@@ -73,6 +75,17 @@ ExplicitChildIterator::GetNextChild()
     }
     mIndexInInserted = 0;
     mChild = mChild->GetNextSibling();
+  } else if (mShadowIterator) {
+    
+    
+    
+    nsIContent* nextChild = mShadowIterator->GetNextChild();
+    if (nextChild) {
+      return nextChild;
+    }
+
+    mShadowIterator = nullptr;
+    mChild = mChild->GetNextSibling();
   } else if (mDefaultChild) {
     
     MOZ_ASSERT(mChild);
@@ -93,24 +106,49 @@ ExplicitChildIterator::GetNextChild()
 
   
   
-  while (mChild && nsContentUtils::IsContentInsertionPoint(mChild)) {
-    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
-    if (!assignedChildren.IsEmpty()) {
+  while (mChild) {
+    
+    
+    if (ShadowRoot::IsShadowInsertionPoint(mChild)) {
       
-      mIndexInInserted = 1;
-      return assignedChildren[0];
-    }
+      
+      HTMLShadowElement* shadowElem = static_cast<HTMLShadowElement*>(mChild);
+      ShadowRoot* projectedShadow = shadowElem->GetOlderShadowRoot();
+      if (projectedShadow) {
+        mShadowIterator = new ExplicitChildIterator(projectedShadow);
+        nsIContent* nextChild = mShadowIterator->GetNextChild();
+        if (nextChild) {
+          return nextChild;
+        }
+        mShadowIterator = nullptr;
+      }
+      mChild = mChild->GetNextSibling();
+    } else if (nsContentUtils::IsContentInsertionPoint(mChild)) {
+      
+      
+      
+      MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
+      if (!assignedChildren.IsEmpty()) {
+        
+        mIndexInInserted = 1;
+        return assignedChildren[0];
+      }
 
-    
-    
-    mDefaultChild = mChild->GetFirstChild();
-    if (mDefaultChild) {
-      return mDefaultChild;
-    }
+      
+      
+      mDefaultChild = mChild->GetFirstChild();
+      if (mDefaultChild) {
+        return mDefaultChild;
+      }
 
-    
-    
-    mChild = mChild->GetNextSibling();
+      
+      
+      mChild = mChild->GetNextSibling();
+    } else {
+      
+      
+      break;
+    }
   }
 
   return mChild;
@@ -146,18 +184,22 @@ FlattenedChildIterator::FlattenedChildIterator(nsIContent* aParent)
   }
 }
 
-nsIContent* FlattenedChildIterator::Get()
+nsIContent*
+ExplicitChildIterator::Get()
 {
   MOZ_ASSERT(!mIsFirst);
 
   if (mIndexInInserted) {
     XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
     return point->mInsertedChildren[mIndexInInserted - 1];
+  } else if (mShadowIterator)  {
+    return mShadowIterator->Get();
   }
   return mDefaultChild ? mDefaultChild : mChild;
 }
 
-nsIContent* FlattenedChildIterator::GetPreviousChild()
+nsIContent*
+ExplicitChildIterator::GetPreviousChild()
 {
   
   if (mIndexInInserted) {
@@ -167,6 +209,13 @@ nsIContent* FlattenedChildIterator::GetPreviousChild()
     if (--mIndexInInserted) {
       return assignedChildren[mIndexInInserted - 1];
     }
+    mChild = mChild->GetPreviousSibling();
+  } else if (mShadowIterator) {
+    nsIContent* previousChild = mShadowIterator->GetPreviousChild();
+    if (previousChild) {
+      return previousChild;
+    }
+    mShadowIterator = nullptr;
     mChild = mChild->GetPreviousSibling();
   } else if (mDefaultChild) {
     
@@ -186,19 +235,43 @@ nsIContent* FlattenedChildIterator::GetPreviousChild()
 
   
   
-  while (mChild && nsContentUtils::IsContentInsertionPoint(mChild)) {
-    MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
-    if (!assignedChildren.IsEmpty()) {
-      mIndexInInserted = assignedChildren.Length();
-      return assignedChildren[mIndexInInserted - 1];
-    }
+  while (mChild) {
+    if (ShadowRoot::IsShadowInsertionPoint(mChild)) {
+      
+      
+      HTMLShadowElement* shadowElem = static_cast<HTMLShadowElement*>(mChild);
+      ShadowRoot* projectedShadow = shadowElem->GetOlderShadowRoot();
+      if (projectedShadow) {
+        
+        mShadowIterator = new ExplicitChildIterator(projectedShadow, false);
+        nsIContent* previousChild = mShadowIterator->GetPreviousChild();
+        if (previousChild) {
+          return previousChild;
+        }
+        mShadowIterator = nullptr;
+      }
+      mChild = mChild->GetPreviousSibling();
+    } else if (nsContentUtils::IsContentInsertionPoint(mChild)) {
+      
+      
+      
+      MatchedNodes assignedChildren = GetMatchedNodesForPoint(mChild);
+      if (!assignedChildren.IsEmpty()) {
+        mIndexInInserted = assignedChildren.Length();
+        return assignedChildren[mIndexInInserted - 1];
+      }
 
-    mDefaultChild = mChild->GetLastChild();
-    if (mDefaultChild) {
-      return mDefaultChild;
-    }
+      mDefaultChild = mChild->GetLastChild();
+      if (mDefaultChild) {
+        return mDefaultChild;
+      }
 
-    mChild = mChild->GetPreviousSibling();
+      mChild = mChild->GetPreviousSibling();
+    } else {
+      
+      
+      break;
+    }
   }
 
   if (!mChild) {
