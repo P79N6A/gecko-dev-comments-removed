@@ -415,7 +415,7 @@ protected:
     mozilla::dom::ParentObject p(aNativeParent);
     
     
-    p.mUseXBLScope = IsInAnonymousSubtree();
+    p.mUseXBLScope = IsInAnonymousSubtree() && !IsAnonymousContentInSVGUseSubtree();
     return p;
   }
 
@@ -1011,6 +1011,9 @@ public:
   }
 
   bool IsInAnonymousSubtree() const;
+
+  
+  bool IsAnonymousContentInSVGUseSubtree() const;
 
   
   
