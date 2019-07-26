@@ -2502,27 +2502,28 @@ nsDocument::InitCSP(nsIChannel* aChannel)
 
   
   bool applyAppDefaultCSP = false;
+  bool applyAppManifestCSP = false;
+
   nsIPrincipal* principal = NodePrincipal();
-  uint16_t appStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+
   bool unknownAppId;
+  uint16_t appStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
+  nsAutoString appManifestCSP;
   if (NS_SUCCEEDED(principal->GetUnknownAppId(&unknownAppId)) &&
       !unknownAppId &&
       NS_SUCCEEDED(principal->GetAppStatus(&appStatus))) {
     applyAppDefaultCSP = ( appStatus == nsIPrincipal::APP_STATUS_PRIVILEGED ||
                            appStatus == nsIPrincipal::APP_STATUS_CERTIFIED);
 
-    
-    
-    
-    if (applyAppDefaultCSP || appStatus == nsIPrincipal::APP_STATUS_INSTALLED) {
-      nsCOMPtr<nsIAppsService> appsService =
-        do_GetService(APPS_SERVICE_CONTRACTID);
-
-      if (appsService)  {
-        uint32_t appId;
-
-        if ( NS_SUCCEEDED(principal->GetAppId(&appId)) ) {
-          appsService->GetCSPByLocalId(appId, cspHeaderValue);
+    if (appStatus != nsIPrincipal::APP_STATUS_NOT_INSTALLED) {
+      nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+      if (appsService) {
+        uint32_t appId = 0;
+        if (NS_SUCCEEDED(principal->GetAppId(&appId))) {
+          appsService->GetCSPByLocalId(appId, appManifestCSP);
+          if (!appManifestCSP.IsEmpty()) {
+            applyAppManifestCSP = true;
+          }
         }
       }
     }
@@ -2534,6 +2535,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
 
   
   if (!applyAppDefaultCSP &&
+      !applyAppManifestCSP &&
       cspHeaderValue.IsEmpty() &&
       cspROHeaderValue.IsEmpty() &&
       cspOldHeaderValue.IsEmpty() &&
@@ -2573,6 +2575,12 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   csp->ScanRequestData(httpChannel);
 
   
+  
+  
+  
+  
+  
+
   if (applyAppDefaultCSP) {
     nsAdoptingString appCSP;
     if (appStatus ==  nsIPrincipal::APP_STATUS_PRIVILEGED) {
@@ -2586,6 +2594,11 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     if (appCSP)
       
       csp->RefinePolicy(appCSP, chanURI, specCompliantEnabled);
+  }
+
+  if (applyAppManifestCSP) {
+    
+    csp->RefinePolicy(appManifestCSP, chanURI, specCompliantEnabled);
   }
 
   
@@ -6854,7 +6867,7 @@ nsDocument::GetViewportInfo(uint32_t aDisplayWidth,
     mWidthStrEmpty = widthStr.IsEmpty();
     mValidScaleFloat = !scaleStr.IsEmpty() && NS_SUCCEEDED(scaleErrorCode);
     mValidMaxScale = !maxScaleStr.IsEmpty() && NS_SUCCEEDED(scaleMaxErrorCode);
-  
+
     mViewportType = Specified;
   }
   case Specified:
