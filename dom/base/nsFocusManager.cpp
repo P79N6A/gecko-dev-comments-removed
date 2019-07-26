@@ -377,12 +377,11 @@ NS_IMETHODIMP nsFocusManager::SetFocusedWindow(nsIDOMWindow* aWindowToFocus)
 
   windowToFocus = windowToFocus->GetOuterWindow();
 
-  nsCOMPtr<nsIContent> frameContent =
-    do_QueryInterface(windowToFocus->GetFrameElementInternal());
-  if (frameContent) {
+  nsCOMPtr<Element> frameElement = windowToFocus->GetFrameElementInternal();
+  if (frameElement) {
     
     
-    SetFocusInner(frameContent, 0, false, true);
+    SetFocusInner(frameElement, 0, false, true);
   }
   else {
     
@@ -1348,8 +1347,7 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
   while (window) {
     
     
-    nsCOMPtr<nsIContent> frameContent =
-      do_QueryInterface(window->GetFrameElementInternal());
+    nsCOMPtr<Element> frameElement = window->GetFrameElementInternal();
 
     nsCOMPtr<nsIDocShellTreeItem> dsti = window->GetDocShell();
     if (!dsti) 
@@ -1374,7 +1372,7 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
       if (aCheckPermission && !nsContentUtils::CanCallerAccess(window))
         break;
 
-      window->SetFocusedNode(frameContent);
+      window->SetFocusedNode(frameElement);
     }
   }
 }
@@ -2084,10 +2082,10 @@ nsFocusManager::UpdateCaret(bool aMoveCaretToFocus,
   
   
   if (!browseWithCaret) {
-    nsCOMPtr<nsIContent> docContent =
-      do_QueryInterface(mFocusedWindow->GetFrameElementInternal());
-    if (docContent)
-      browseWithCaret = docContent->AttrValueIs(kNameSpaceID_None,
+    nsCOMPtr<Element> docElement =
+      mFocusedWindow->GetFrameElementInternal();
+    if (docElement)
+      browseWithCaret = docElement->AttrValueIs(kNameSpaceID_None,
                                                 nsGkAtoms::showcaret,
                                                 NS_LITERAL_STRING("true"),
                                                 eCaseMatters);
@@ -2601,7 +2599,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
       presShell = doc->GetShell();
 
       rootContent = doc->GetRootElement();
-      startContent = do_QueryInterface(piWindow->GetFrameElementInternal());
+      startContent = piWindow->GetFrameElementInternal();
       if (startContent) {
         nsIFrame* frame = startContent->GetPrimaryFrame();
         if (!frame)
@@ -2980,14 +2978,13 @@ nsFocusManager::GetRootForFocus(nsPIDOMWindow* aWindow,
   
   
   if (aIsForDocNavigation) {
-    nsCOMPtr<nsIContent> docContent =
-      do_QueryInterface(aWindow->GetFrameElementInternal());
+    nsCOMPtr<Element> docElement = aWindow->GetFrameElementInternal();
     
-    if (docContent) {
-      if (docContent->Tag() == nsGkAtoms::iframe)
+    if (docElement) {
+      if (docElement->Tag() == nsGkAtoms::iframe)
         return nullptr;
 
-      nsIFrame* frame = docContent->GetPrimaryFrame();
+      nsIFrame* frame = docElement->GetPrimaryFrame();
       if (!frame || !frame->IsFocusable(nullptr, 0))
         return nullptr;
     }
