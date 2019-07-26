@@ -65,7 +65,6 @@ const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
 
 
 const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
-const TextureFlags TEXTURE_DEALLOCATE_HOST    = 1 << 26;
 
 
 
@@ -80,8 +79,7 @@ const TextureFlags TEXTURE_IMMEDIATE_UPLOAD   = 1 << 28;
 const TextureFlags TEXTURE_DOUBLE_BUFFERED    = 1 << 29;
 
 
-const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_DEALLOCATE_HOST
-                                         | TEXTURE_FRONT;
+const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_FRONT;
 
 static inline bool
 TextureRequiresLocking(TextureFlags aFlags)

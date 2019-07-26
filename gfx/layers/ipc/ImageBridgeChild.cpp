@@ -122,16 +122,16 @@ ImageBridgeChild::RemoveTexture(CompositableClient* aCompositable,
                                 uint64_t aTexture,
                                 TextureFlags aFlags)
 {
-  if (aFlags & TEXTURE_DEALLOCATE_HOST) {
+  if (aFlags & TEXTURE_DEALLOCATE_CLIENT) {
     
     
-    mTxn->AddNoSwapEdit(OpRemoveTexture(nullptr, aCompositable->GetIPDLActor(),
-                                        aTexture,
-                                        aFlags));
-  } else {
     mTxn->AddEdit(OpRemoveTexture(nullptr, aCompositable->GetIPDLActor(),
                                   aTexture,
                                   aFlags));
+  } else {
+    mTxn->AddNoSwapEdit(OpRemoveTexture(nullptr, aCompositable->GetIPDLActor(),
+                                        aTexture,
+                                        aFlags));
   }
 }
 
