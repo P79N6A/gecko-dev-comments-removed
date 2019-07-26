@@ -747,7 +747,7 @@ public class SUTAgentAndroid extends Activity
             return sHWID;
 
         
-        if (android.os.Build.VERSION.SDK_INT >= 8) {
+        if (android.os.Build.VERSION.SDK_INT > 8) {
             sHWID = android.os.Build.SERIAL;
         }
 
