@@ -104,6 +104,13 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
     
     if (strcmp(name, "/dev/ashmem/dalvik-jit-code-cache") != 0)
       continue;
+#else
+    if (strcmp(perm, "r-xp") != 0) {
+      
+      
+      
+      continue;
+    }
 #endif
     SharedLibrary shlib(start, end, offset, "", name);
     info.AddSharedLibrary(shlib);
