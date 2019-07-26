@@ -38,4 +38,10 @@ public @interface WrapElementForJNI {
 
 
     boolean allowMultithread() default false;
+
+    
+
+
+
+    boolean noThrow() default false;
 }

@@ -159,6 +159,33 @@ public:
         return sBridge && sBridge->mJNIEnv;
     }
 
+    static bool ThrowException(JNIEnv *aEnv, const char *aClass,
+                               const char *aMessage) {
+        MOZ_ASSERT(aEnv, "Invalid thread JNI env");
+        jclass cls = aEnv->FindClass(aClass);
+        MOZ_ASSERT(cls, "Cannot find exception class");
+        bool ret = !aEnv->ThrowNew(cls, aMessage);
+        aEnv->DeleteLocalRef(cls);
+        return ret;
+    }
+
+    static bool ThrowException(JNIEnv *aEnv, const char *aMessage) {
+        return ThrowException(aEnv, "java/lang/Exception", aMessage);
+    }
+
+    static void HandleUncaughtException(JNIEnv *aEnv) {
+        MOZ_ASSERT(aEnv);
+        if (!aEnv->ExceptionCheck()) {
+            return;
+        }
+        jthrowable e = aEnv->ExceptionOccurred();
+        MOZ_ASSERT(e);
+        aEnv->ExceptionClear();
+        GeckoAppShell::HandleUncaughtException(nullptr, e);
+        
+        MOZ_CRASH("Failed to handle uncaught exception");
+    }
+
     
     
     
