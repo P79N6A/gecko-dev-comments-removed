@@ -524,11 +524,17 @@
                         Type.size_t,
                       Type.unsigned_int); 
 
+       libc.declareLazyFFI(SysFile,  "statfs",
+                               "statfs", ctypes.default_abi,
+                     Type.negativeone_or_nothing,
+                       Type.path,
+                        Type.statvfs.out_ptr); 
+
        libc.declareLazyFFI(SysFile,  "statvfs",
                                "statvfs", ctypes.default_abi,
                      Type.negativeone_or_nothing,
                        Type.path,
-                        Type.statvfs.out_ptr);
+                        Type.statvfs.out_ptr); 
 
        libc.declareLazyFFI(SysFile,  "symlink",
                                "symlink", ctypes.default_abi,

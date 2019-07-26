@@ -33,6 +33,9 @@
 #if defined(XP_WIN)
 #include <windows.h>
 #include <accctrl.h>
+
+#define PATH_MAX MAX_PATH
+
 #endif 
 
 #include "jsapi.h"
@@ -539,6 +542,8 @@ static const dom::ConstantSpec gLibcProperties[] =
   INT_CONSTANT(S_IFLNK),
   INT_CONSTANT(S_IFSOCK),
 #endif 
+
+  INT_CONSTANT(PATH_MAX),
 
   
   

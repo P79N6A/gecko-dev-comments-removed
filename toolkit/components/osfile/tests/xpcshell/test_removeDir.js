@@ -93,6 +93,11 @@ add_task(function* test_unix_symlink() {
     return;
   }
 
+  
+  if (OS.Constants.Sys.Name == "Android") {
+    return;
+  }
+
   let file = OS.Path.join(OS.Constants.Path.profileDir, "file");
   let dir = OS.Path.join(OS.Constants.Path.profileDir, "directory");
   let file1 = OS.Path.join(dir, "file1");

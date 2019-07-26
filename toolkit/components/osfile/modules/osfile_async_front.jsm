@@ -29,8 +29,6 @@ Cu.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", SharedAl
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
 
-XPCOMUtils.defineLazyModuleGetter(this, 'Deprecated',
-  'resource://gre/modules/Deprecated.jsm');
 
 
 let LOG = SharedAll.LOG.bind(SharedAll, "Controller");
@@ -684,20 +682,6 @@ File.prototype = {
 
 
 
-  setDates: function setDates(accessDate, modificationDate) {
-    return Scheduler.post("File_prototype_setDates",
-                          [this._fdmsg, accessDate, modificationDate], this);
-  },
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -826,6 +810,27 @@ File.prototype = {
       [this._fdmsg]);
   }
 };
+
+
+if (SharedAll.Constants.Sys.Name != "Android") {
+  
+
+
+
+
+
+
+
+
+
+
+
+  File.prototype.setDates = function(accessDate, modificationDate) {
+    return Scheduler.post("File_prototype_setDates",
+      [this._fdmsg, accessDate, modificationDate], this);
+  };
+}
+
 
 
 
@@ -1234,6 +1239,7 @@ File.Info.prototype = SysAll.AbstractInfo.prototype;
 
 Object.defineProperty(File.Info.prototype, "creationDate", {
   get: function creationDate() {
+    let {Deprecated} = Cu.import("resource://gre/modules/Deprecated.jsm", {});
     Deprecated.warning("Field 'creationDate' is deprecated.", "https://developer.mozilla.org/en-US/docs/JavaScript_OS.File/OS.File.Info#Cross-platform_Attributes");
     return this._deprecatedCreationDate;
   }
