@@ -30,15 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #ifndef OPUS_DEFINES_H
 #define OPUS_DEFINES_H
 
@@ -72,17 +63,55 @@ extern "C" {
 
 
 
-#if defined(WIN32)
-# ifdef OPUS_BUILD
+#ifndef OPUS_EXPORT
+# if defined(WIN32)
+#  ifdef OPUS_BUILD
 #   define OPUS_EXPORT __declspec(dllexport)
+#  else
+#   define OPUS_EXPORT
+#  endif
+# elif defined(__GNUC__) && defined(OPUS_BUILD)
+#  define OPUS_EXPORT __attribute__ ((visibility ("default")))
 # else
-#   define OPUS_EXPORT __declspec(dllimport)
+#  define OPUS_EXPORT
 # endif
-#elif defined(__GNUC__) && defined(OPUS_BUILD)
-# define OPUS_EXPORT __attribute__ ((visibility ("default")))
-#else
-# define OPUS_EXPORT
 #endif
+
+# if !defined(OPUS_GNUC_PREREQ)
+#  if defined(__GNUC__)&&defined(__GNUC_MINOR__)
+#   define OPUS_GNUC_PREREQ(_maj,_min) \
+ ((__GNUC__<<16)+__GNUC_MINOR__>=((_maj)<<16)+(_min))
+#  else
+#   define OPUS_GNUC_PREREQ(_maj,_min) 0
+#  endif
+# endif
+
+#if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+# if OPUS_GNUC_PREREQ(3,0)
+#  define OPUS_RESTRICT __restrict__
+# elif (defined(_MSC_VER) && _MSC_VER >= 1400)
+#  define OPUS_RESTRICT __restrict
+# else
+#  define OPUS_RESTRICT
+# endif
+#else
+# define OPUS_RESTRICT restrict
+#endif
+
+
+
+
+#if defined(__GNUC__) && OPUS_GNUC_PREREQ(3, 4)
+# define OPUS_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
+#else
+# define OPUS_WARN_UNUSED_RESULT
+#endif
+#if !defined(OPUS_BUILD) && defined(__GNUC__) && OPUS_GNUC_PREREQ(3, 4)
+# define OPUS_ARG_NONNULL(_x)  __attribute__ ((__nonnull__(_x)))
+#else
+# define OPUS_ARG_NONNULL(_x)
+#endif
+
 
 
 
@@ -112,13 +141,24 @@ extern "C" {
 #define OPUS_GET_SIGNAL_REQUEST              4025
 #define OPUS_GET_LOOKAHEAD_REQUEST           4027
 
+#define OPUS_GET_SAMPLE_RATE_REQUEST         4029
 #define OPUS_GET_FINAL_RANGE_REQUEST         4031
 #define OPUS_GET_PITCH_REQUEST               4033
+#define OPUS_SET_GAIN_REQUEST                4034
+#define OPUS_GET_GAIN_REQUEST                4045 /* Should have been 4035 */
+#define OPUS_SET_LSB_DEPTH_REQUEST           4036
+#define OPUS_GET_LSB_DEPTH_REQUEST           4037
+#define OPUS_GET_LAST_PACKET_DURATION_REQUEST 4039
+#define OPUS_SET_EXPERT_FRAME_DURATION_REQUEST 4040
+#define OPUS_GET_EXPERT_FRAME_DURATION_REQUEST 4041
+
+
 
 
 #define __opus_check_int(x) (((void)((x) == (opus_int32)0)), (opus_int32)(x))
 #define __opus_check_int_ptr(ptr) ((ptr) + ((ptr) - (opus_int32*)(ptr)))
 #define __opus_check_uint_ptr(ptr) ((ptr) + ((ptr) - (opus_uint32*)(ptr)))
+#define __opus_check_val16_ptr(ptr) ((ptr) + ((ptr) - (opus_val16*)(ptr)))
 
 
 
@@ -141,11 +181,21 @@ extern "C" {
 
 #define OPUS_SIGNAL_VOICE                    3001 /**< Signal being encoded is voice */
 #define OPUS_SIGNAL_MUSIC                    3002 /**< Signal being encoded is music */
-#define OPUS_BANDWIDTH_NARROWBAND            1101 /**< 4kHz bandpass @hideinitializer*/
-#define OPUS_BANDWIDTH_MEDIUMBAND            1102 /**< 6kHz bandpass @hideinitializer*/
-#define OPUS_BANDWIDTH_WIDEBAND              1103 /**< 8kHz bandpass @hideinitializer*/
-#define OPUS_BANDWIDTH_SUPERWIDEBAND         1104 /**<12kHz bandpass @hideinitializer*/
-#define OPUS_BANDWIDTH_FULLBAND              1105 /**<20kHz bandpass @hideinitializer*/
+#define OPUS_BANDWIDTH_NARROWBAND            1101 /**< 4 kHz bandpass @hideinitializer*/
+#define OPUS_BANDWIDTH_MEDIUMBAND            1102 /**< 6 kHz bandpass @hideinitializer*/
+#define OPUS_BANDWIDTH_WIDEBAND              1103 /**< 8 kHz bandpass @hideinitializer*/
+#define OPUS_BANDWIDTH_SUPERWIDEBAND         1104 /**<12 kHz bandpass @hideinitializer*/
+#define OPUS_BANDWIDTH_FULLBAND              1105 /**<20 kHz bandpass @hideinitializer*/
+
+#define OPUS_FRAMESIZE_ARG                   5000 /**< Select frame size from the argument (default) */
+#define OPUS_FRAMESIZE_2_5_MS                5001 /**< Use 2.5 ms frames */
+#define OPUS_FRAMESIZE_5_MS                  5002 /**< Use 5 ms frames */
+#define OPUS_FRAMESIZE_10_MS                 5003 /**< Use 10 ms frames */
+#define OPUS_FRAMESIZE_20_MS                 5004 /**< Use 20 ms frames */
+#define OPUS_FRAMESIZE_40_MS                 5005 /**< Use 40 ms frames */
+#define OPUS_FRAMESIZE_60_MS                 5006 /**< Use 60 ms frames */
+#define OPUS_FRAMESIZE_VARIABLE              5010 /**< Optimize the frame size dynamically */
+
 
 
 
@@ -183,6 +233,8 @@ extern "C" {
 
 
 
+
+
 #define OPUS_GET_COMPLEXITY(x) OPUS_GET_COMPLEXITY_REQUEST, __opus_check_int_ptr(x)
 
 
@@ -193,7 +245,14 @@ extern "C" {
 
 
 
+
+
+
 #define OPUS_SET_BITRATE(x) OPUS_SET_BITRATE_REQUEST, __opus_check_int(x)
+
+
+
+
 
 
 
@@ -208,7 +267,19 @@ extern "C" {
 
 
 
+
+
+
+
+
 #define OPUS_SET_VBR(x) OPUS_SET_VBR_REQUEST, __opus_check_int(x)
+
+
+
+
+
+
+
 
 
 
@@ -225,7 +296,18 @@ extern "C" {
 
 
 
+
+
+
+
+
 #define OPUS_SET_VBR_CONSTRAINT(x) OPUS_SET_VBR_CONSTRAINT_REQUEST, __opus_check_int(x)
+
+
+
+
+
+
 
 
 
@@ -236,11 +318,32 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
 #define OPUS_SET_FORCE_CHANNELS(x) OPUS_SET_FORCE_CHANNELS_REQUEST, __opus_check_int(x)
 
 
 
+
+
+
+
+
+
 #define OPUS_GET_FORCE_CHANNELS(x) OPUS_GET_FORCE_CHANNELS_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+
 
 
 
@@ -256,7 +359,22 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
 #define OPUS_GET_MAX_BANDWIDTH(x) OPUS_GET_MAX_BANDWIDTH_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+
 
 
 
@@ -278,7 +396,14 @@ extern "C" {
 
 
 
+
+
 #define OPUS_SET_SIGNAL(x) OPUS_SET_SIGNAL_REQUEST, __opus_check_int(x)
+
+
+
+
+
 
 
 
@@ -295,12 +420,34 @@ extern "C" {
 
 
 
+
+
+
+
+
 #define OPUS_SET_APPLICATION(x) OPUS_SET_APPLICATION_REQUEST, __opus_check_int(x)
 
 
 
 
+
+
+
+
+
+
+
+
+
 #define OPUS_GET_APPLICATION(x) OPUS_GET_APPLICATION_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+
+#define OPUS_GET_SAMPLE_RATE(x) OPUS_GET_SAMPLE_RATE_REQUEST, __opus_check_int_ptr(x)
 
 
 
@@ -322,7 +469,15 @@ extern "C" {
 
 
 
+
+
+
+
 #define OPUS_SET_INBAND_FEC(x) OPUS_SET_INBAND_FEC_REQUEST, __opus_check_int(x)
+
+
+
+
 
 
 
@@ -341,7 +496,12 @@ extern "C" {
 
 
 
+
 #define OPUS_GET_PACKET_LOSS_PERC(x) OPUS_GET_PACKET_LOSS_PERC_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
 
 
 
@@ -353,7 +513,68 @@ extern "C" {
 
 
 
+
+
+
+
 #define OPUS_GET_DTX(x) OPUS_GET_DTX_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+#define OPUS_SET_LSB_DEPTH(x) OPUS_SET_LSB_DEPTH_REQUEST, __opus_check_int(x)
+
+
+
+
+
+#define OPUS_GET_LSB_DEPTH(x) OPUS_GET_LSB_DEPTH_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+#define OPUS_GET_LAST_PACKET_DURATION(x) OPUS_GET_LAST_PACKET_DURATION_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OPUS_SET_EXPERT_FRAME_DURATION(x) OPUS_SET_EXPERT_FRAME_DURATION_REQUEST, __opus_check_int(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OPUS_GET_EXPERT_FRAME_DURATION(x) OPUS_GET_EXPERT_FRAME_DURATION_REQUEST, __opus_check_int_ptr(x)
+
 
 
 
@@ -422,7 +643,40 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
+
 #define OPUS_GET_BANDWIDTH(x) OPUS_GET_BANDWIDTH_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OPUS_SET_GAIN(x) OPUS_SET_GAIN_REQUEST, __opus_check_int(x)
+
+
+
+
+#define OPUS_GET_GAIN(x) OPUS_GET_GAIN_REQUEST, __opus_check_int_ptr(x)
 
 
 

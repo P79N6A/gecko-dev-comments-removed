@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main.h"
+#include "stack_alloc.h"
 
 static inline void silk_nsq_scale_states(
     const silk_encoder_state *psEncC,           
@@ -92,11 +89,12 @@ void silk_NSQ(
     opus_int            k, lag, start_idx, LSF_interpolation_flag;
     const opus_int16    *A_Q12, *B_Q14, *AR_shp_Q13;
     opus_int16          *pxq;
-    opus_int32          sLTP_Q15[ 2 * MAX_FRAME_LENGTH ];
-    opus_int16          sLTP[     2 * MAX_FRAME_LENGTH ];
+    VARDECL( opus_int32, sLTP_Q15 );
+    VARDECL( opus_int16, sLTP );
     opus_int32          HarmShapeFIRPacked_Q14;
     opus_int            offset_Q10;
-    opus_int32          x_sc_Q10[ MAX_SUB_FRAME_LENGTH ];
+    VARDECL( opus_int32, x_sc_Q10 );
+    SAVE_STACK;
 
     NSQ->rand_seed = psIndices->Seed;
 
@@ -113,6 +111,10 @@ void silk_NSQ(
         LSF_interpolation_flag = 1;
     }
 
+    ALLOC( sLTP_Q15,
+           psEncC->ltp_mem_length + psEncC->frame_length, opus_int32 );
+    ALLOC( sLTP, psEncC->ltp_mem_length + psEncC->frame_length, opus_int16 );
+    ALLOC( x_sc_Q10, psEncC->subfr_length, opus_int32 );
     
     NSQ->sLTP_shp_buf_idx = psEncC->ltp_mem_length;
     NSQ->sLTP_buf_idx     = psEncC->ltp_mem_length;
@@ -164,6 +166,7 @@ void silk_NSQ(
     
     silk_memmove( NSQ->xq,           &NSQ->xq[           psEncC->frame_length ], psEncC->ltp_mem_length * sizeof( opus_int16 ) );
     silk_memmove( NSQ->sLTP_shp_Q14, &NSQ->sLTP_shp_Q14[ psEncC->frame_length ], psEncC->ltp_mem_length * sizeof( opus_int32 ) );
+    RESTORE_STACK;
 }
 
 
@@ -392,7 +395,7 @@ static inline void silk_nsq_scale_states(
     if( Gains_Q16[ subfr ] != NSQ->prev_gain_Q16 ) {
         gain_adj_Q16 =  silk_DIV32_varQ( NSQ->prev_gain_Q16, Gains_Q16[ subfr ], 16 );
     } else {
-        gain_adj_Q16 = 1 << 16;
+        gain_adj_Q16 = (opus_int32)1 << 16;
     }
 
     
@@ -417,7 +420,7 @@ static inline void silk_nsq_scale_states(
     }
 
     
-    if( gain_adj_Q16 != 1 << 16 ) {
+    if( gain_adj_Q16 != (opus_int32)1 << 16 ) {
         
         for( i = NSQ->sLTP_shp_buf_idx - psEncC->ltp_mem_length; i < NSQ->sLTP_shp_buf_idx; i++ ) {
             NSQ->sLTP_shp_Q14[ i ] = silk_SMULWW( gain_adj_Q16, NSQ->sLTP_shp_Q14[ i ] );

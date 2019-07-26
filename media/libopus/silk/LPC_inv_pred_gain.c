@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -53,7 +49,7 @@ static opus_int32 LPC_inverse_pred_gain_QA(
 
     Anew_QA = A_QA[ order & 1 ];
 
-    invGain_Q30 = 1 << 30;
+    invGain_Q30 = (opus_int32)1 << 30;
     for( k = order - 1; k > 0; k-- ) {
         
         if( ( Anew_QA[ k ] > A_LIMIT ) || ( Anew_QA[ k ] < -A_LIMIT ) ) {

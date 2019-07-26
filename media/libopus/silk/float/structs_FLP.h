@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_STRUCTS_FLP_H
 #define SILK_STRUCTS_FLP_H
 

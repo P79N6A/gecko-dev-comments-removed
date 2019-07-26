@@ -31,14 +31,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -83,10 +75,15 @@ opus_val32 frac_div32(opus_val32 a, opus_val32 b)
    b = VSHR32(b,shift);
    
    rcp = ROUND16(celt_rcp(ROUND16(b,16)),3);
-   result = SHL32(MULT16_32_Q15(rcp, a),2);
-   rem = a-MULT32_32_Q31(result, b);
-   result += SHL32(MULT16_32_Q15(rcp, rem),2);
-   return result;
+   result = MULT16_32_Q15(rcp, a);
+   rem = PSHR32(a,2)-MULT32_32_Q31(result, b);
+   result = ADD32(result, SHL32(MULT16_32_Q15(rcp, rem),2));
+   if (result >= 536870912)       
+      return 2147483647;          
+   else if (result <= -536870912) 
+      return -2147483647;         
+   else
+      return SHL32(result, 2);
 }
 
 
@@ -126,6 +123,8 @@ opus_val32 celt_sqrt(opus_val32 x)
    static const opus_val16 C[5] = {23175, 11561, -3011, 1699, -664};
    if (x==0)
       return 0;
+   else if (x>=1073741824)
+      return 32767;
    k = (celt_ilog2(x)>>1)-7;
    x = VSHR32(x, 2*k);
    n = x-32768;

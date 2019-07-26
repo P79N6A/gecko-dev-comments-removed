@@ -26,14 +26,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifndef RATE_H
 #define RATE_H
 
@@ -74,12 +66,12 @@ static inline int bits2pulses(const CELTMode *m, int band, int LM, int bits)
    {
       int mid = (lo+hi+1)>>1;
       
-      if (cache[mid] >= bits)
+      if ((int)cache[mid] >= bits)
          hi = mid;
       else
          lo = mid;
    }
-   if (bits- (lo == 0 ? -1 : cache[lo]) <= cache[hi]-bits)
+   if (bits- (lo == 0 ? -1 : (int)cache[lo]) <= (int)cache[hi]-bits)
       return lo;
    else
       return hi;
@@ -104,6 +96,6 @@ static inline int pulses2bits(const CELTMode *m, int band, int LM, int pulses)
 
 
 int compute_allocation(const CELTMode *m, int start, int end, const int *offsets, const int *cap, int alloc_trim, int *intensity, int *dual_stero,
-      opus_int32 total, opus_int32 *balance, int *pulses, int *ebits, int *fine_priority, int C, int LM, ec_ctx *ec, int encode, int prev);
+      opus_int32 total, opus_int32 *balance, int *pulses, int *ebits, int *fine_priority, int C, int LM, ec_ctx *ec, int encode, int prev, int signalBandwidth);
 
 #endif

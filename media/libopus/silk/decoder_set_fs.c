@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -39,7 +35,7 @@
 opus_int silk_decoder_set_fs(
     silk_decoder_state          *psDec,                         
     opus_int                    fs_kHz,                         
-    opus_int                    fs_API_Hz                       
+    opus_int32                  fs_API_Hz                       
 )
 {
     opus_int frame_length, ret = 0;

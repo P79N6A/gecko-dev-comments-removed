@@ -25,15 +25,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -42,6 +33,11 @@
 #include "arch.h"
 
 #if !defined(EC_CLZ)
+
+
+
+
+
 int ec_ilog(opus_uint32 _v){
   
 

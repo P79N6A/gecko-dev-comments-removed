@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_SIGPROC_FIX_H
 #define SILK_SIGPROC_FIX_H
 
@@ -41,7 +37,6 @@ extern "C"
 
 #define SILK_MAX_ORDER_LPC            16            /* max order of the LPC analysis in schur() and k2a() */
 
-#include <stdlib.h>                                 
 #include <string.h>                                 
 #include "typedef.h"
 #include "resampler_structs.h"
@@ -174,12 +169,6 @@ opus_int32 silk_log2lin(
 );
 
 
-opus_int16 silk_int16_array_maxabs(                 
-    const opus_int16            *vec,               
-    const opus_int32            len                 
-);
-
-
 
 void silk_sum_sqr_shift(
     opus_int32                  *energy,            
@@ -257,7 +246,7 @@ opus_int silk_pitch_analysis_core(
     opus_int                    *LTPCorr_Q15,       
     opus_int                    prevLag,            
     const opus_int32            search_thres1_Q16,  
-    const opus_int              search_thres2_Q15,  
+    const opus_int              search_thres2_Q13,  
     const opus_int              Fs_kHz,             
     const opus_int              complexity,         
     const opus_int              nb_subfr            
@@ -487,8 +476,6 @@ static inline opus_int32 silk_ROR32( opus_int32 a32, opus_int rot )
 #define silk_RSHIFT(a, shift)               silk_RSHIFT32(a, shift)                         /* shift >= 0, shift < 32 */
 
 
-#define silk_LSHIFT_SAT16(a, shift)         (silk_LSHIFT16( silk_LIMIT( (a), silk_RSHIFT16( silk_int16_MIN, (shift) ), \
-                                                    silk_RSHIFT16( silk_int16_MAX, (shift) ) ), (shift) ))
 #define silk_LSHIFT_SAT32(a, shift)         (silk_LSHIFT32( silk_LIMIT( (a), silk_RSHIFT32( silk_int32_MIN, (shift) ), \
                                                     silk_RSHIFT32( silk_int32_MAX, (shift) ) ), (shift) ))
 
@@ -570,8 +557,6 @@ static inline opus_int64 silk_max_64(opus_int64 a, opus_int64 b)
 
 #define silk_sign(a)                        ((a) > 0 ? 1 : ( (a) < 0 ? -1 : 0 ))
 
-#define silk_sqrt(a)                        (sqrt(a))
-
 
 
 
@@ -590,6 +575,14 @@ static inline opus_int64 silk_max_64(opus_int64 a, opus_int64 b)
 #include "Inlines.h"
 #include "MacroCount.h"
 #include "MacroDebug.h"
+
+#ifdef ARMv4_ASM
+#include "arm/SigProc_FIX_armv4.h"
+#endif
+
+#ifdef ARMv5E_ASM
+#include "arm/SigProc_FIX_armv5e.h"
+#endif
 
 #ifdef  __cplusplus
 }

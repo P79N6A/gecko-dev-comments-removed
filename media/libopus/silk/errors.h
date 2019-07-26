@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_ERRORS_H
 #define SILK_ERRORS_H
 

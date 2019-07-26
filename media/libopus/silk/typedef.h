@@ -25,38 +25,15 @@
 
 
 
-
-
-
-
 #ifndef SILK_TYPEDEF_H
 #define SILK_TYPEDEF_H
 
 #include "opus_types.h"
 
-#ifndef silk_USE_DOUBLE_PRECISION_FLOATS
-#define silk_USE_DOUBLE_PRECISION_FLOATS     0
-#endif
-
-#include <float.h>
-#if defined( __GNUC__ )
-#include <stdint.h>
-#endif
-
-#define silk_int_ptr_size intptr_t
-
-#if silk_USE_DOUBLE_PRECISION_FLOATS
-# define silk_float      double
-# define silk_float_MAX  DBL_MAX
-#else
+#ifndef FIXED_POINT
+# include <float.h>
 # define silk_float      float
 # define silk_float_MAX  FLT_MAX
-#endif
-
-#ifdef _WIN32
-# define silk_STR_CASEINSENSITIVE_COMPARE(x, y) _stricmp(x, y)
-#else
-# define silk_STR_CASEINSENSITIVE_COMPARE(x, y) strcasecmp(x, y)
 #endif
 
 #define silk_int64_MAX   ((opus_int64)0x7FFFFFFFFFFFFFFFLL)   /*  2^63 - 1 */
@@ -67,13 +44,7 @@
 #define silk_int16_MIN   ((opus_int16)0x8000)                 /* -2^15     = -32768 */
 #define silk_int8_MAX    0x7F                                 /*  2^7 - 1  =  127 */
 #define silk_int8_MIN    ((opus_int8)0x80)                    /* -2^7      = -128 */
-
-#define silk_uint32_MAX  0xFFFFFFFF  /* 2^32 - 1 = 4294967295 */
-#define silk_uint32_MIN  0x00000000
-#define silk_uint16_MAX  0xFFFF      /* 2^16 - 1 = 65535 */
-#define silk_uint16_MIN  0x0000
-#define silk_uint8_MAX   0xFF        /*  2^8 - 1 = 255 */
-#define silk_uint8_MIN   0x00
+#define silk_uint8_MAX   0xFF                                 /*  2^8 - 1 = 255 */
 
 #define silk_TRUE        1
 #define silk_FALSE       0

@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main_FIX.h"
+#include "stack_alloc.h"
 #include "tuning_parameters.h"
 
 
@@ -83,11 +80,13 @@ void silk_solve_LDL_FIX(
     opus_int32                      *x_Q16                                  
 )
 {
-    opus_int32 L_Q16[  MAX_MATRIX_SIZE * MAX_MATRIX_SIZE ];
+    VARDECL( opus_int32, L_Q16 );
     opus_int32 Y[      MAX_MATRIX_SIZE ];
     inv_D_t   inv_D[  MAX_MATRIX_SIZE ];
+    SAVE_STACK;
 
     silk_assert( M <= MAX_MATRIX_SIZE );
+    ALLOC( L_Q16, M * M, opus_int32 );
 
     
 
@@ -111,6 +110,7 @@ void silk_solve_LDL_FIX(
 
 
     silk_LS_SolveLast_FIX( L_Q16, M, Y, x_Q16 );
+    RESTORE_STACK;
 }
 
 static inline void silk_LDL_factorize_FIX(
@@ -155,7 +155,7 @@ static inline void silk_LDL_factorize_FIX(
             
             one_div_diag_Q36 = silk_INVERSE32_varQ( tmp_32, 36 );                    
             one_div_diag_Q40 = silk_LSHIFT( one_div_diag_Q36, 4 );                   
-            err = silk_SUB32( 1 << 24, silk_SMULWW( tmp_32, one_div_diag_Q40 ) );     
+            err = silk_SUB32( (opus_int32)1 << 24, silk_SMULWW( tmp_32, one_div_diag_Q40 ) );     
             one_div_diag_Q48 = silk_SMULWW( err, one_div_diag_Q40 );                 
 
             

@@ -23,13 +23,6 @@
 
 
 
-
-
-
-
-
-
-
 #ifndef KISS_FFT_GUTS_H
 #define KISS_FFT_GUTS_H
 
@@ -55,7 +48,6 @@
 #include "arch.h"
 
 
-# define SAMPPROD long long
 #define SAMP_MAX 2147483647
 #define TWID_MAX 32767
 #define TRIG_UPSCALE 1
@@ -74,8 +66,8 @@
           (m).i = SUB32(S_MUL((a).i,(b).r) , S_MUL((a).r,(b).i)); }while(0)
 
 #   define C_MUL4(m,a,b) \
-      do{ (m).r = SHR(SUB32(S_MUL((a).r,(b).r) , S_MUL((a).i,(b).i)),2); \
-          (m).i = SHR(ADD32(S_MUL((a).r,(b).i) , S_MUL((a).i,(b).r)),2); }while(0)
+      do{ (m).r = SHR32(SUB32(S_MUL((a).r,(b).r) , S_MUL((a).i,(b).i)),2); \
+          (m).i = SHR32(ADD32(S_MUL((a).r,(b).i) , S_MUL((a).i,(b).r)),2); }while(0)
 
 #   define C_MULBYSCALAR( c, s ) \
       do{ (c).r =  S_MUL( (c).r , s ) ;\
@@ -101,6 +93,14 @@
 #define C_SUBFROM( res , a)\
     do {(res).r = ADD32((res).r,(a).r);  (res).i = SUB32((res).i,(a).i); \
     }while(0)
+
+#if defined(ARMv4_ASM)
+#include "arm/kiss_fft_armv4.h"
+#endif
+
+#if defined(ARMv5E_ASM)
+#include "arm/kiss_fft_armv5e.h"
+#endif
 
 #else  
 

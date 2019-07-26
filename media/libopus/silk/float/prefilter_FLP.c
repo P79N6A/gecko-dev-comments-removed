@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -51,7 +47,7 @@ static inline void silk_prefilt_FLP(
     opus_int                    length              
 );
 
-void silk_warped_LPC_analysis_filter_FLP(
+static void silk_warped_LPC_analysis_filter_FLP(
           silk_float                 state[],            
           silk_float                 res[],              
     const silk_float                 coef[],             

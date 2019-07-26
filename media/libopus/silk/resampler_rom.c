@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -39,17 +35,9 @@
 #include "resampler_private.h"
 
 
-const opus_int16 silk_resampler_down2_0 = 9872;
-const opus_int16 silk_resampler_down2_1 = 39809 - 65536;
-
-
-const opus_int16 silk_resampler_up2_hq_0[ 3 ] = { 1746, 14986, 39083 - 65536 };
-const opus_int16 silk_resampler_up2_hq_1[ 3 ] = { 6854, 25769, 55542 - 65536 };
 
 
 
-
-const opus_int16 silk_resampler_up2_hq_notch[ 4 ] = { 9634,  -7012,   7209,  30474 };
 
 
 silk_DWORD_ALIGN const opus_int16 silk_Resampler_3_4_COEFS[ 2 + 3 * RESAMPLER_DOWN_ORDER_FIR0 / 2 ] = {

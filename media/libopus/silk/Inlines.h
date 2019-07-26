@@ -29,10 +29,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_FIX_INLINES_H
 #define SILK_FIX_INLINES_H
 
@@ -166,7 +162,7 @@ static inline opus_int32 silk_INVERSE32_varQ(
     result = silk_LSHIFT(b32_inv, 16);                                          
 
     
-    err_Q32 = silk_LSHIFT( (1<<29) - silk_SMULWB(b32_nrm, b32_inv), 3 );        
+    err_Q32 = silk_LSHIFT( ((opus_int32)1<<29) - silk_SMULWB(b32_nrm, b32_inv), 3 );        
 
     
     result = silk_SMLAWW(result, err_Q32, b32_inv);                             

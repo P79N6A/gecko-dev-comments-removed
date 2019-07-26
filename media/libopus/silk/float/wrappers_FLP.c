@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -159,7 +155,7 @@ void silk_NSQ_wrapper_FLP(
 
     
     for( i = 0; i < psEnc->sCmn.frame_length; i++ ) {
-        x_Q3[ i ] = silk_float2int( 8.0 * x[ i ] );
+        x_Q3[ i ] = silk_float2int( 8.0f * x[ i ] );
     }
 
     

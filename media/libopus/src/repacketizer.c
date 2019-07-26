@@ -25,15 +25,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -67,7 +58,7 @@ void opus_repacketizer_destroy(OpusRepacketizer *rp)
    opus_free(rp);
 }
 
-int opus_repacketizer_cat(OpusRepacketizer *rp, const unsigned char *data, int len)
+int opus_repacketizer_cat(OpusRepacketizer *rp, const unsigned char *data, opus_int32 len)
 {
    unsigned char tmp_toc;
    int curr_nb_frames,ret;
@@ -107,7 +98,7 @@ opus_int32 opus_repacketizer_out_range_impl(OpusRepacketizer *rp, int begin, int
 {
    int i, count;
    opus_int32 tot_size;
-   short *len;
+   opus_int16 *len;
    const unsigned char **frames;
 
    if (begin<0 || begin>=end || end>rp->nb_frames)

@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -39,21 +35,22 @@
 #include "main_FLP.h"
 #define silk_encoder_state_Fxx      silk_encoder_state_FLP
 #endif
+#include "stack_alloc.h"
 #include "tuning_parameters.h"
 #include "pitch_est_defines.h"
 
-opus_int silk_setup_resamplers(
+static opus_int silk_setup_resamplers(
     silk_encoder_state_Fxx          *psEnc,             
     opus_int                        fs_kHz              
 );
 
-opus_int silk_setup_fs(
+static opus_int silk_setup_fs(
     silk_encoder_state_Fxx          *psEnc,             
     opus_int                        fs_kHz,             
     opus_int                        PacketSize_ms       
 );
 
-opus_int silk_setup_complexity(
+static opus_int silk_setup_complexity(
     silk_encoder_state              *psEncC,            
     opus_int                        Complexity          
 );
@@ -135,13 +132,13 @@ opus_int silk_control_encoder(
     return ret;
 }
 
-opus_int silk_setup_resamplers(
+static opus_int silk_setup_resamplers(
     silk_encoder_state_Fxx          *psEnc,             
     opus_int                         fs_kHz              
 )
 {
     opus_int   ret = SILK_NO_ERROR;
-    opus_int32 nSamples_temp;
+    SAVE_STACK;
 
     if( psEnc->sCmn.fs_kHz != fs_kHz || psEnc->sCmn.prev_API_fs_Hz != psEnc->sCmn.API_fs_Hz )
     {
@@ -149,48 +146,58 @@ opus_int silk_setup_resamplers(
             
             ret += silk_resampler_init( &psEnc->sCmn.resampler_state, psEnc->sCmn.API_fs_Hz, fs_kHz * 1000, 1 );
         } else {
-            
-            opus_int16 x_buf_API_fs_Hz[ ( 2 * MAX_FRAME_LENGTH_MS + LA_SHAPE_MS ) * MAX_API_FS_KHZ ];
-            silk_resampler_state_struct  temp_resampler_state;
+            VARDECL( opus_int16, x_buf_API_fs_Hz );
+            VARDECL( silk_resampler_state_struct, temp_resampler_state );
 #ifdef FIXED_POINT
             opus_int16 *x_bufFIX = psEnc->x_buf;
 #else
-            opus_int16 x_bufFIX[ 2 * MAX_FRAME_LENGTH + LA_SHAPE_MAX ];
+            VARDECL( opus_int16, x_bufFIX );
+            opus_int32 new_buf_samples;
 #endif
+            opus_int32 api_buf_samples;
+            opus_int32 old_buf_samples;
+            opus_int32 buf_length_ms;
 
-            nSamples_temp = silk_LSHIFT( psEnc->sCmn.frame_length, 1 ) + LA_SHAPE_MS * psEnc->sCmn.fs_kHz;
+            buf_length_ms = silk_LSHIFT( psEnc->sCmn.nb_subfr * 5, 1 ) + LA_SHAPE_MS;
+            old_buf_samples = buf_length_ms * psEnc->sCmn.fs_kHz;
 
 #ifndef FIXED_POINT
-            silk_float2short_array( x_bufFIX, psEnc->x_buf, nSamples_temp );
+            new_buf_samples = buf_length_ms * fs_kHz;
+            ALLOC( x_bufFIX, silk_max( old_buf_samples, new_buf_samples ),
+                   opus_int16 );
+            silk_float2short_array( x_bufFIX, psEnc->x_buf, old_buf_samples );
 #endif
 
             
-            ret += silk_resampler_init( &temp_resampler_state, silk_SMULBB( psEnc->sCmn.fs_kHz, 1000 ), psEnc->sCmn.API_fs_Hz, 0 );
+            ALLOC( temp_resampler_state, 1, silk_resampler_state_struct );
+            ret += silk_resampler_init( temp_resampler_state, silk_SMULBB( psEnc->sCmn.fs_kHz, 1000 ), psEnc->sCmn.API_fs_Hz, 0 );
 
             
-            ret += silk_resampler( &temp_resampler_state, x_buf_API_fs_Hz, x_bufFIX, nSamples_temp );
+            api_buf_samples = buf_length_ms * silk_DIV32_16( psEnc->sCmn.API_fs_Hz, 1000 );
 
             
-            nSamples_temp = silk_DIV32_16( nSamples_temp * psEnc->sCmn.API_fs_Hz, silk_SMULBB( psEnc->sCmn.fs_kHz, 1000 ) );
+            ALLOC( x_buf_API_fs_Hz, api_buf_samples, opus_int16 );
+            ret += silk_resampler( temp_resampler_state, x_buf_API_fs_Hz, x_bufFIX, old_buf_samples );
 
             
             ret += silk_resampler_init( &psEnc->sCmn.resampler_state, psEnc->sCmn.API_fs_Hz, silk_SMULBB( fs_kHz, 1000 ), 1 );
 
             
-            ret += silk_resampler( &psEnc->sCmn.resampler_state, x_bufFIX, x_buf_API_fs_Hz, nSamples_temp );
+            ret += silk_resampler( &psEnc->sCmn.resampler_state, x_bufFIX, x_buf_API_fs_Hz, api_buf_samples );
 
 #ifndef FIXED_POINT
-            silk_short2float_array( psEnc->x_buf, x_bufFIX, ( 2 * MAX_FRAME_LENGTH_MS + LA_SHAPE_MS ) * fs_kHz );
+            silk_short2float_array( psEnc->x_buf, x_bufFIX, new_buf_samples);
 #endif
         }
     }
 
     psEnc->sCmn.prev_API_fs_Hz = psEnc->sCmn.API_fs_Hz;
 
+    RESTORE_STACK;
     return ret;
 }
 
-opus_int silk_setup_fs(
+static opus_int silk_setup_fs(
     silk_encoder_state_Fxx          *psEnc,             
     opus_int                        fs_kHz,             
     opus_int                        PacketSize_ms       
@@ -303,7 +310,7 @@ opus_int silk_setup_fs(
     return ret;
 }
 
-opus_int silk_setup_complexity(
+static opus_int silk_setup_complexity(
     silk_encoder_state              *psEncC,            
     opus_int                        Complexity          
 )
@@ -407,7 +414,7 @@ static inline opus_int silk_setup_LBRR(
         if( TargetRate_bps > LBRR_rate_thres_bps ) {
             
             psEncC->LBRR_enabled = 1;
-            psEncC->LBRR_GainIncreases = silk_max_int( 7 - silk_SMULWB( psEncC->PacketLoss_perc, SILK_FIX_CONST( 0.4, 16 ) ), 2 );
+            psEncC->LBRR_GainIncreases = silk_max_int( 7 - silk_SMULWB( (opus_int32)psEncC->PacketLoss_perc, SILK_FIX_CONST( 0.4, 16 ) ), 2 );
         }
     }
 

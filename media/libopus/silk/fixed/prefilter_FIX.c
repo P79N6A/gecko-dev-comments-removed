@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main_FIX.h"
+#include "stack_alloc.h"
 #include "tuning_parameters.h"
 
 
@@ -105,14 +102,17 @@ void silk_prefilter_FIX(
     opus_int32 *pxw_Q3;
     opus_int   HarmShapeGain_Q12, Tilt_Q14;
     opus_int32 HarmShapeFIRPacked_Q12, LF_shp_Q14;
-    opus_int32 x_filt_Q12[ MAX_SUB_FRAME_LENGTH ];
-    opus_int32 st_res_Q2[ MAX_SUB_FRAME_LENGTH + MAX_LPC_ORDER ];
+    VARDECL( opus_int32, x_filt_Q12 );
+    VARDECL( opus_int32, st_res_Q2 );
     opus_int16 B_Q10[ 2 ];
+    SAVE_STACK;
 
     
     px  = x;
     pxw_Q3 = xw_Q3;
     lag = P->lagPrev;
+    ALLOC( x_filt_Q12, psEnc->sCmn.subfr_length, opus_int32 );
+    ALLOC( st_res_Q2, psEnc->sCmn.subfr_length, opus_int32 );
     for( k = 0; k < psEnc->sCmn.nb_subfr; k++ ) {
         
         if( psEnc->sCmn.indices.signalType == TYPE_VOICED ) {
@@ -120,7 +120,7 @@ void silk_prefilter_FIX(
         }
 
         
-        HarmShapeGain_Q12 = silk_SMULWB( psEncCtrl->HarmShapeGain_Q14[ k ], 16384 - psEncCtrl->HarmBoost_Q14[ k ] );
+        HarmShapeGain_Q12 = silk_SMULWB( (opus_int32)psEncCtrl->HarmShapeGain_Q14[ k ], 16384 - psEncCtrl->HarmBoost_Q14[ k ] );
         silk_assert( HarmShapeGain_Q12 >= 0 );
         HarmShapeFIRPacked_Q12  =                          silk_RSHIFT( HarmShapeGain_Q12, 2 );
         HarmShapeFIRPacked_Q12 |= silk_LSHIFT( (opus_int32)silk_RSHIFT( HarmShapeGain_Q12, 1 ), 16 );
@@ -139,9 +139,9 @@ void silk_prefilter_FIX(
         tmp_32 = silk_SMULWB( tmp_32, -psEncCtrl->GainsPre_Q14[ k ] );                                                
         tmp_32 = silk_RSHIFT_ROUND( tmp_32, 14 );                                                                     
         B_Q10[ 1 ]= silk_SAT16( tmp_32 );
-        x_filt_Q12[ 0 ] = silk_SMLABB( silk_SMULBB( st_res_Q2[ 0 ], B_Q10[ 0 ] ), P->sHarmHP_Q2, B_Q10[ 1 ] );
+        x_filt_Q12[ 0 ] = silk_MLA( silk_MUL( st_res_Q2[ 0 ], B_Q10[ 0 ] ), P->sHarmHP_Q2, B_Q10[ 1 ] );
         for( j = 1; j < psEnc->sCmn.subfr_length; j++ ) {
-            x_filt_Q12[ j ] = silk_SMLABB( silk_SMULBB( st_res_Q2[ j ], B_Q10[ 0 ] ), st_res_Q2[ j - 1 ], B_Q10[ 1 ] );
+            x_filt_Q12[ j ] = silk_MLA( silk_MUL( st_res_Q2[ j ], B_Q10[ 0 ] ), st_res_Q2[ j - 1 ], B_Q10[ 1 ] );
         }
         P->sHarmHP_Q2 = st_res_Q2[ psEnc->sCmn.subfr_length - 1 ];
 
@@ -152,6 +152,7 @@ void silk_prefilter_FIX(
     }
 
     P->lagPrev = psEncCtrl->pitchL[ psEnc->sCmn.nb_subfr - 1 ];
+    RESTORE_STACK;
 }
 
 

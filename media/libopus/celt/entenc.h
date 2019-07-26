@@ -25,15 +25,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #if !defined(_entenc_H)
 # define _entenc_H (1)
 # include <stddef.h>

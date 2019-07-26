@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main.h"
+#include "stack_alloc.h"
 #include "PLC.h"
 
 
@@ -48,12 +45,16 @@ opus_int silk_decode_frame(
     opus_int                    condCoding                      
 )
 {
-    silk_decoder_control sDecCtrl;
+    VARDECL( silk_decoder_control, psDecCtrl );
     opus_int         L, mv_len, ret = 0;
-    opus_int         pulses[ MAX_FRAME_LENGTH ];
+    VARDECL( opus_int, pulses );
+    SAVE_STACK;
 
     L = psDec->frame_length;
-    sDecCtrl.LTP_scale_Q14 = 0;
+    ALLOC( psDecCtrl, 1, silk_decoder_control );
+    ALLOC( pulses, (L + SHELL_CODEC_FRAME_LENGTH - 1) &
+                   ~(SHELL_CODEC_FRAME_LENGTH - 1), opus_int );
+    psDecCtrl->LTP_scale_Q14 = 0;
 
     
     silk_assert( L > 0 && L <= MAX_FRAME_LENGTH );
@@ -75,20 +76,17 @@ opus_int silk_decode_frame(
         
         
         
-        silk_decode_parameters( psDec, &sDecCtrl, condCoding );
-
-        
-        L = psDec->frame_length;
+        silk_decode_parameters( psDec, psDecCtrl, condCoding );
 
         
         
         
-        silk_decode_core( psDec, &sDecCtrl, pOut, pulses );
+        silk_decode_core( psDec, psDecCtrl, pOut, pulses );
 
         
         
         
-        silk_PLC( psDec, &sDecCtrl, pOut, 0 );
+        silk_PLC( psDec, psDecCtrl, pOut, 0 );
 
         psDec->lossCnt = 0;
         psDec->prevSignalType = psDec->indices.signalType;
@@ -98,7 +96,7 @@ opus_int silk_decode_frame(
         psDec->first_frame_after_reset = 0;
     } else {
         
-        silk_PLC( psDec, &sDecCtrl, pOut, 1 );
+        silk_PLC( psDec, psDecCtrl, pOut, 1 );
     }
 
     
@@ -117,13 +115,14 @@ opus_int silk_decode_frame(
     
     
     
-    silk_CNG( psDec, &sDecCtrl, pOut, L );
+    silk_CNG( psDec, psDecCtrl, pOut, L );
 
     
-    psDec->lagPrev = sDecCtrl.pitchL[ psDec->nb_subfr - 1 ];
+    psDec->lagPrev = psDecCtrl->pitchL[ psDec->nb_subfr - 1 ];
 
     
     *pN = L;
 
+    RESTORE_STACK;
     return ret;
 }

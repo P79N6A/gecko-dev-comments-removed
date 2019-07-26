@@ -27,14 +27,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -353,6 +345,14 @@ CELTMode *opus_custom_mode_create(opus_int32 Fs, int frame_size, int *error)
    mode->eBands = compute_ebands(Fs, mode->shortMdctSize, res, &mode->nbEBands);
    if (mode->eBands==NULL)
       goto failure;
+#if !defined(SMALL_FOOTPRINT)
+   
+
+   if ((mode->eBands[mode->nbEBands] - mode->eBands[mode->nbEBands-1])<<LM >
+    208) {
+       goto failure;
+   }
+#endif
 
    mode->effEBands = mode->nbEBands;
    while (mode->eBands[mode->effEBands] > mode->shortMdctSize)

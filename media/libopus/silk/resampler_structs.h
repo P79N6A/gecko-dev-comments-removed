@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_RESAMPLER_STRUCTS_H
 #define SILK_RESAMPLER_STRUCTS_H
 
@@ -41,7 +37,10 @@ extern "C" {
 
 typedef struct _silk_resampler_state_struct{
     opus_int32       sIIR[ SILK_RESAMPLER_MAX_IIR_ORDER ]; 
-    opus_int32       sFIR[ SILK_RESAMPLER_MAX_FIR_ORDER ];
+    union{
+        opus_int32   i32[ SILK_RESAMPLER_MAX_FIR_ORDER ];
+        opus_int16   i16[ SILK_RESAMPLER_MAX_FIR_ORDER ];
+    }                sFIR;
     opus_int16       delayBuf[ 48 ];
     opus_int         resampler_function;
     opus_int         batchSize;

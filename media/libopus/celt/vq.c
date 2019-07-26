@@ -26,14 +26,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -117,7 +109,7 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K, int 
 
 
 
-static void normalise_residual(int * restrict iy, celt_norm * restrict X,
+static void normalise_residual(int * OPUS_RESTRICT iy, celt_norm * OPUS_RESTRICT X,
       int N, opus_val32 Ryy, opus_val16 gain)
 {
    int i;

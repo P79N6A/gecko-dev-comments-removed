@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_API_H
 #define SILK_API_H
 
@@ -74,14 +70,6 @@ opus_int silk_InitEncoder(
 
 
 
-opus_int silk_QueryEncoder(                             
-    const void                      *encState,          
-    silk_EncControlStruct           *encStatus          
-);
-
-
-
-
 
 
 opus_int silk_Encode(                                   
@@ -90,7 +78,7 @@ opus_int silk_Encode(
     const opus_int16                *samplesIn,         
     opus_int                        nSamplesIn,         
     ec_enc                          *psRangeEnc,        
-    opus_int                        *nBytesOut,         
+    opus_int32                      *nBytesOut,         
     const opus_int                  prefillFlag         
 );
 
@@ -125,6 +113,7 @@ opus_int silk_Decode(
     opus_int32                      *nSamplesOut        
 );
 
+#if 0
 
 
 
@@ -134,6 +123,7 @@ opus_int silk_get_TOC(
     const opus_int                  nFramesPerPayload,  
     silk_TOC_struct                 *Silk_TOC           
 );
+#endif
 
 #ifdef __cplusplus
 }

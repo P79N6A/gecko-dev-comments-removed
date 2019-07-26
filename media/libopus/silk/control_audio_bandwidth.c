@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -84,6 +80,8 @@ opus_int silk_control_audio_bandwidth(
                 } else {
                    if( psEncC->sLP.transition_frame_no <= 0 ) {
                        encControl->switchReady = 1;
+                       
+                       encControl->maxBits -= encControl->maxBits * 5 / ( encControl->payloadSize_ms + 5 );
                    } else {
                        
                        psEncC->sLP.mode = -2;
@@ -110,11 +108,16 @@ opus_int silk_control_audio_bandwidth(
                 } else {
                    if( psEncC->sLP.mode == 0 ) {
                        encControl->switchReady = 1;
+                       
+                       encControl->maxBits -= encControl->maxBits * 5 / ( encControl->payloadSize_ms + 5 );
                    } else {
                        
                        psEncC->sLP.mode = 1;
                    }
                 }
+            } else {
+               if (psEncC->sLP.mode<0)
+                  psEncC->sLP.mode = 1;
             }
         }
     }

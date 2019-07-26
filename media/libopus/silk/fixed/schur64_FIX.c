@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -61,6 +57,17 @@ opus_int32 silk_schur64(
 
     for( k = 0; k < order; k++ ) {
         
+        if (silk_abs_int32(C[ k + 1 ][ 0 ]) >= C[ 0 ][ 1 ]) {
+           if ( C[ k + 1 ][ 0 ] > 0 ) {
+              rc_Q16[ k ] = -SILK_FIX_CONST( .99f, 16 );
+           } else {
+              rc_Q16[ k ] = SILK_FIX_CONST( .99f, 16 );
+           }
+           k++;
+           break;
+        }
+
+        
         rc_tmp_Q31 = silk_DIV32_varQ( -C[ k + 1 ][ 0 ], C[ 0 ][ 1 ], 31 );
 
         
@@ -77,5 +84,9 @@ opus_int32 silk_schur64(
         }
     }
 
-    return( C[ 0 ][ 1 ] );
+    for(; k < order; k++ ) {
+       rc_Q16[ k ] = 0;
+    }
+
+    return silk_max_32( 1, C[ 0 ][ 1 ] );
 }

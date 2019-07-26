@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -36,6 +32,7 @@
 #include "SigProc_FIX.h"
 #include "define.h"
 #include "tuning_parameters.h"
+#include "pitch.h"
 
 #define MAX_FRAME_SIZE              384             /* subfr_length * nb_subfr = ( 0.005 * 16000 + 16 ) * 4 = 384 */
 
@@ -64,6 +61,7 @@ void silk_burg_modified(
     opus_int32       Af_QA[       SILK_MAX_ORDER_LPC ];
     opus_int32       CAf[ SILK_MAX_ORDER_LPC + 1 ];
     opus_int32       CAb[ SILK_MAX_ORDER_LPC + 1 ];
+    opus_int32       xcorr[ SILK_MAX_ORDER_LPC ];
 
     silk_assert( subfr_length * nb_subfr <= MAX_FRAME_SIZE );
 
@@ -97,10 +95,17 @@ void silk_burg_modified(
         }
     } else {
         for( s = 0; s < nb_subfr; s++ ) {
+            int i;
+            opus_int32 d;
             x_ptr = x + s * subfr_length;
+            celt_pitch_xcorr(x_ptr, x_ptr + 1, xcorr, subfr_length - D, D );
             for( n = 1; n < D + 1; n++ ) {
-                C_first_row[ n - 1 ] += silk_LSHIFT32(
-                    silk_inner_prod_aligned( x_ptr, x_ptr + n, subfr_length - n ), -rshifts );
+               for ( i = n + subfr_length - D, d = 0; i < subfr_length; i++ )
+                  d = MAC16_16( d, x_ptr[ i ], x_ptr[ i - n ] );
+               xcorr[ n - 1 ] += d;
+            }
+            for( n = 1; n < D + 1; n++ ) {
+                C_first_row[ n - 1 ] += silk_LSHIFT32( xcorr[ n - 1 ], -rshifts );
             }
         }
     }
@@ -109,7 +114,7 @@ void silk_burg_modified(
     
     CAb[ 0 ] = CAf[ 0 ] = C0 + silk_SMMUL( SILK_FIX_CONST( FIND_LPC_COND_FAC, 32 ), C0 ) + 1;                                
 
-    invGain_Q30 = 1 << 30;
+    invGain_Q30 = (opus_int32)1 << 30;
     reached_max_gain = 0;
     for( n = 0; n < D; n++ ) {
         
@@ -196,7 +201,7 @@ void silk_burg_modified(
         tmp1 = silk_LSHIFT( silk_SMMUL( invGain_Q30, tmp1 ), 2 );
         if( tmp1 <= minInvGain_Q30 ) {
             
-            tmp2 = ( 1 << 30 ) - silk_DIV32_varQ( minInvGain_Q30, invGain_Q30, 30 );            
+            tmp2 = ( (opus_int32)1 << 30 ) - silk_DIV32_varQ( minInvGain_Q30, invGain_Q30, 30 );            
             rc_Q31 = silk_SQRT_APPROX( tmp2 );                                                  
             
             rc_Q31 = silk_RSHIFT32( rc_Q31 + silk_DIV32( tmp2, rc_Q31 ), 1 );                   
@@ -260,14 +265,14 @@ void silk_burg_modified(
     } else {
         
         nrg  = CAf[ 0 ];                                                                            
-        tmp1 = 1 << 16;                                                                             
+        tmp1 = (opus_int32)1 << 16;                                                                             
         for( k = 0; k < D; k++ ) {
             Atmp1 = silk_RSHIFT_ROUND( Af_QA[ k ], QA - 16 );                                       
             nrg  = silk_SMLAWW( nrg, CAf[ k + 1 ], Atmp1 );                                         
             tmp1 = silk_SMLAWW( tmp1, Atmp1, Atmp1 );                                               
             A_Q16[ k ] = -Atmp1;
         }
-        *res_nrg = silk_SMLAWW( nrg, silk_SMMUL( FIND_LPC_COND_FAC, C0 ), -tmp1 );                  
+        *res_nrg = silk_SMLAWW( nrg, silk_SMMUL( SILK_FIX_CONST( FIND_LPC_COND_FAC, 32 ), C0 ), -tmp1 );
         *res_nrg_Q = -rshifts;
     }
 }

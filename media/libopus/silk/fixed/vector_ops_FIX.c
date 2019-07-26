@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -97,35 +93,4 @@ opus_int64 silk_inner_prod16_aligned_64(
         sum = silk_SMLALBB( sum, inVec1[ i ], inVec2[ i ] );
     }
     return sum;
-}
-
-
-opus_int16 silk_int16_array_maxabs(                 
-    const opus_int16            *vec,               
-    const opus_int32            len                 
-)
-{
-    opus_int32 max = 0, i, lvl = 0, ind;
-    if( len == 0 ) return 0;
-
-    ind = len - 1;
-    max = silk_SMULBB( vec[ ind ], vec[ ind ] );
-    for( i = len - 2; i >= 0; i-- ) {
-        lvl = silk_SMULBB( vec[ i ], vec[ i ] );
-        if( lvl > max ) {
-            max = lvl;
-            ind = i;
-        }
-    }
-
-    
-    if( max >= 1073676289 ) {           
-        return( silk_int16_MAX );
-    } else {
-        if( vec[ ind ] < 0 ) {
-            return( -vec[ ind ] );
-        } else {
-            return(  vec[ ind ] );
-        }
-    }
 }

@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_RESAMPLER_PRIVATE_H
 #define SILK_RESAMPLER_PRIVATE_H
 

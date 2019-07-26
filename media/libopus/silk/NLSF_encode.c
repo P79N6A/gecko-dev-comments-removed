@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main.h"
+#include "stack_alloc.h"
 
 
 
@@ -50,10 +47,10 @@ opus_int32 silk_NLSF_encode(
 {
     opus_int         i, s, ind1, bestIndex, prob_Q8, bits_q7;
     opus_int32       W_tmp_Q9;
-    opus_int32       err_Q26[      NLSF_VQ_MAX_VECTORS ];
-    opus_int32       RD_Q25[       NLSF_VQ_MAX_SURVIVORS ];
-    opus_int         tempIndices1[ NLSF_VQ_MAX_SURVIVORS ];
-    opus_int8        tempIndices2[ NLSF_VQ_MAX_SURVIVORS * MAX_LPC_ORDER ];
+    VARDECL( opus_int32, err_Q26 );
+    VARDECL( opus_int32, RD_Q25 );
+    VARDECL( opus_int, tempIndices1 );
+    VARDECL( opus_int8, tempIndices2 );
     opus_int16       res_Q15[      MAX_LPC_ORDER ];
     opus_int16       res_Q10[      MAX_LPC_ORDER ];
     opus_int16       NLSF_tmp_Q15[ MAX_LPC_ORDER ];
@@ -62,6 +59,7 @@ opus_int32 silk_NLSF_encode(
     opus_uint8       pred_Q8[      MAX_LPC_ORDER ];
     opus_int16       ec_ix[        MAX_LPC_ORDER ];
     const opus_uint8 *pCB_element, *iCDF_ptr;
+    SAVE_STACK;
 
     silk_assert( nSurvivors <= NLSF_VQ_MAX_SURVIVORS );
     silk_assert( signalType >= 0 && signalType <= 2 );
@@ -71,10 +69,15 @@ opus_int32 silk_NLSF_encode(
     silk_NLSF_stabilize( pNLSF_Q15, psNLSF_CB->deltaMin_Q15, psNLSF_CB->order );
 
     
+    ALLOC( err_Q26, psNLSF_CB->nVectors, opus_int32 );
     silk_NLSF_VQ( err_Q26, pNLSF_Q15, psNLSF_CB->CB1_NLSF_Q8, psNLSF_CB->nVectors, psNLSF_CB->order );
 
     
+    ALLOC( tempIndices1, nSurvivors, opus_int );
     silk_insertion_sort_increasing( err_Q26, tempIndices1, psNLSF_CB->nVectors, nSurvivors );
+
+    ALLOC( RD_Q25, nSurvivors, opus_int32 );
+    ALLOC( tempIndices2, nSurvivors * MAX_LPC_ORDER, opus_int8 );
 
     
     for( s = 0; s < nSurvivors; s++ ) {
@@ -128,5 +131,6 @@ opus_int32 silk_NLSF_encode(
     
     silk_NLSF_decode( pNLSF_Q15, NLSFIndices, psNLSF_CB );
 
+    RESTORE_STACK;
     return RD_Q25[ 0 ];
 }

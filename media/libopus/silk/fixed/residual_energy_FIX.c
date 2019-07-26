@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main_FIX.h"
+#include "stack_alloc.h"
 
 
 
@@ -49,14 +46,18 @@ void silk_residual_energy_FIX(
 )
 {
     opus_int         offset, i, j, rshift, lz1, lz2;
-    opus_int16       *LPC_res_ptr, LPC_res[ ( MAX_FRAME_LENGTH + MAX_NB_SUBFR * MAX_LPC_ORDER ) / 2 ];
+    opus_int16       *LPC_res_ptr;
+    VARDECL( opus_int16, LPC_res );
     const opus_int16 *x_ptr;
     opus_int32       tmp32;
+    SAVE_STACK;
 
     x_ptr  = x;
     offset = LPC_order + subfr_length;
 
     
+    ALLOC( LPC_res, ( MAX_NB_SUBFR >> 1 ) * offset, opus_int16 );
+    silk_assert( ( nb_subfr >> 1 ) * ( MAX_NB_SUBFR >> 1 ) == nb_subfr );
     for( i = 0; i < nb_subfr >> 1; i++ ) {
         
         silk_LPC_analysis_filter( LPC_res, x_ptr, a_Q12[ i ], ( MAX_NB_SUBFR >> 1 ) * offset, LPC_order );
@@ -92,4 +93,5 @@ void silk_residual_energy_FIX(
         nrgs[ i ] = silk_SMMUL( tmp32, silk_LSHIFT32( nrgs[ i ], lz1 ) ); 
         nrgsQ[ i ] += lz1 + 2 * lz2 - 32 - 32;
     }
+    RESTORE_STACK;
 }

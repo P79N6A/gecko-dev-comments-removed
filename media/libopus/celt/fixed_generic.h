@@ -30,14 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifndef FIXED_GENERIC_H
 #define FIXED_GENERIC_H
 
@@ -46,6 +38,9 @@
 
 
 #define MULT16_32_Q16(a,b) ADD32(MULT16_16((a),SHR((b),16)), SHR(MULT16_16SU((a),((b)&0x0000ffff)),16))
+
+
+#define MULT16_32_P16(a,b) ADD32(MULT16_16((a),SHR((b),16)), PSHR(MULT16_16((a),((b)&0x0000ffff)),16))
 
 
 #define MULT16_32_Q15(a,b) ADD32(SHL(MULT16_16((a),SHR((b),16)),1), SHR(MULT16_16SU((a),((b)&0x0000ffff)),15))
@@ -89,6 +84,8 @@
 #define PSHR(a,shift) (SHR((a)+((EXTEND32(1)<<((shift))>>1)),shift))
 #define SATURATE(x,a) (((x)>(a) ? (a) : (x)<-(a) ? -(a) : (x)))
 
+#define SATURATE16(x) (EXTRACT16((x)>32767 ? 32767 : (x)<-32768 ? -32768 : (x)))
+
 
 #define ROUND16(x,a) (EXTRACT16(PSHR32((x),(a))))
 
@@ -113,6 +110,8 @@
 
 
 #define MAC16_16(c,a,b) (ADD32((c),MULT16_16((a),(b))))
+
+
 
 #define MAC16_32_Q15(c,a,b) ADD32(c,ADD32(MULT16_16((a),SHR((b),15)), SHR(MULT16_16((a),((b)&0x00007fff)),15)))
 

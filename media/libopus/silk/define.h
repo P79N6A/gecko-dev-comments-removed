@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_DEFINE_H
 #define SILK_DEFINE_H
 
@@ -182,11 +178,6 @@ extern "C"
 #else
 # define NSQ_LPC_BUF_LENGTH                     DECISION_DELAY
 #endif
-
-
-
-
-#define HIGH_PASS_INPUT                         1
 
 
 

@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main_FIX.h"
+#include "stack_alloc.h"
 #include "tuning_parameters.h"
 
 
@@ -77,7 +74,7 @@ static inline void limit_warped_coefs(
         coefs_ana_Q24[ i - 1 ] = silk_SMLAWB( coefs_ana_Q24[ i - 1 ], coefs_ana_Q24[ i ], lambda_Q16 );
     }
     lambda_Q16 = -lambda_Q16;
-    nom_Q16  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 16 ), -lambda_Q16,        lambda_Q16 );
+    nom_Q16  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 16 ), -(opus_int32)lambda_Q16,        lambda_Q16 );
     den_Q24  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 24 ), coefs_syn_Q24[ 0 ], lambda_Q16 );
     gain_syn_Q16 = silk_DIV32_varQ( nom_Q16, den_Q24, 24 );
     den_Q24  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 24 ), coefs_ana_Q24[ 0 ], lambda_Q16 );
@@ -128,7 +125,7 @@ static inline void limit_warped_coefs(
             coefs_ana_Q24[ i - 1 ] = silk_SMLAWB( coefs_ana_Q24[ i - 1 ], coefs_ana_Q24[ i ], lambda_Q16 );
         }
         lambda_Q16 = -lambda_Q16;
-        nom_Q16  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 16 ), -lambda_Q16,        lambda_Q16 );
+        nom_Q16  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 16 ), -(opus_int32)lambda_Q16,        lambda_Q16 );
         den_Q24  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 24 ), coefs_syn_Q24[ 0 ], lambda_Q16 );
         gain_syn_Q16 = silk_DIV32_varQ( nom_Q16, den_Q24, 24 );
         den_Q24  = silk_SMLAWB( SILK_FIX_CONST( 1.0, 24 ), coefs_ana_Q24[ 0 ], lambda_Q16 );
@@ -160,8 +157,9 @@ void silk_noise_shape_analysis_FIX(
     opus_int32   refl_coef_Q16[ MAX_SHAPE_LPC_ORDER ];
     opus_int32   AR1_Q24[       MAX_SHAPE_LPC_ORDER ];
     opus_int32   AR2_Q24[       MAX_SHAPE_LPC_ORDER ];
-    opus_int16   x_windowed[    SHAPE_LPC_WIN_MAX ];
+    VARDECL( opus_int16, x_windowed );
     const opus_int16 *x_ptr, *pitch_res_ptr;
+    SAVE_STACK;
 
     
     x_ptr = x - psEnc->sCmn.la_shape;
@@ -254,7 +252,7 @@ void silk_noise_shape_analysis_FIX(
 
     if( psEnc->sCmn.warping_Q16 > 0 ) {
         
-        warping_Q16 = silk_SMLAWB( psEnc->sCmn.warping_Q16, psEncCtrl->coding_quality_Q14, SILK_FIX_CONST( 0.01, 18 ) );
+        warping_Q16 = silk_SMLAWB( psEnc->sCmn.warping_Q16, (opus_int32)psEncCtrl->coding_quality_Q14, SILK_FIX_CONST( 0.01, 18 ) );
     } else {
         warping_Q16 = 0;
     }
@@ -262,6 +260,7 @@ void silk_noise_shape_analysis_FIX(
     
     
     
+    ALLOC( x_windowed, psEnc->sCmn.shapeWinLength, opus_int16 );
     for( k = 0; k < psEnc->sCmn.nb_subfr; k++ ) {
         
         opus_int shift, slope_part, flat_part;
@@ -315,9 +314,10 @@ void silk_noise_shape_analysis_FIX(
             
             gain_mult_Q16 = warped_gain( AR2_Q24, warping_Q16, psEnc->sCmn.shapingLPCOrder );
             silk_assert( psEncCtrl->Gains_Q16[ k ] >= 0 );
-            psEncCtrl->Gains_Q16[ k ] = silk_SMULWW( psEncCtrl->Gains_Q16[ k ], gain_mult_Q16 );
-            if( psEncCtrl->Gains_Q16[ k ] < 0 ) {
-                psEncCtrl->Gains_Q16[ k ] = silk_int32_MAX;
+            if ( silk_SMULWW( silk_RSHIFT_ROUND( psEncCtrl->Gains_Q16[ k ], 1 ), gain_mult_Q16 ) >= ( silk_int32_MAX >> 1 ) ) {
+               psEncCtrl->Gains_Q16[ k ] = silk_int32_MAX;
+            } else {
+               psEncCtrl->Gains_Q16[ k ] = silk_SMULWW( psEncCtrl->Gains_Q16[ k ], gain_mult_Q16 );
             }
         }
 
@@ -440,4 +440,5 @@ void silk_noise_shape_analysis_FIX(
         psEncCtrl->HarmShapeGain_Q14[ k ] = ( opus_int )silk_RSHIFT_ROUND( psShapeSt->HarmShapeGain_smth_Q16, 2 );
         psEncCtrl->Tilt_Q14[ k ]          = ( opus_int )silk_RSHIFT_ROUND( psShapeSt->Tilt_smth_Q16,          2 );
     }
+    RESTORE_STACK;
 }

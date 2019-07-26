@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_TUNING_PARAMETERS_H
 #define SILK_TUNING_PARAMETERS_H
 
@@ -48,7 +44,7 @@ extern "C"
 #define FIND_PITCH_WHITE_NOISE_FRACTION                 1e-3f
 
 
-#define FIND_PITCH_BANDWITH_EXPANSION                   0.99f
+#define FIND_PITCH_BANDWIDTH_EXPANSION                  0.99f
 
 
 

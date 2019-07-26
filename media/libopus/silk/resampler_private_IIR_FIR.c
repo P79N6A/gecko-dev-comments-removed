@@ -25,16 +25,13 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "SigProc_FIX.h"
 #include "resampler_private.h"
+#include "stack_alloc.h"
 
 static inline opus_int16 *silk_resampler_private_IIR_FIR_INTERPOL(
     opus_int16  *out,
@@ -75,10 +72,13 @@ void silk_resampler_private_IIR_FIR(
     silk_resampler_state_struct *S = (silk_resampler_state_struct *)SS;
     opus_int32 nSamplesIn;
     opus_int32 max_index_Q16, index_increment_Q16;
-    opus_int16 buf[ RESAMPLER_MAX_BATCH_SIZE_IN + RESAMPLER_ORDER_FIR_12 ];
+    VARDECL( opus_int16, buf );
+    SAVE_STACK;
+
+    ALLOC( buf, 2 * S->batchSize + RESAMPLER_ORDER_FIR_12, opus_int16 );
 
     
-    silk_memcpy( buf, S->sFIR, RESAMPLER_ORDER_FIR_12 * sizeof( opus_int32 ) );
+    silk_memcpy( buf, S->sFIR.i16, RESAMPLER_ORDER_FIR_12 * sizeof( opus_int16 ) );
 
     
     index_increment_Q16 = S->invRatio_Q16;
@@ -95,13 +95,13 @@ void silk_resampler_private_IIR_FIR(
 
         if( inLen > 0 ) {
             
-            silk_memcpy( buf, &buf[ nSamplesIn << 1 ], RESAMPLER_ORDER_FIR_12 * sizeof( opus_int32 ) );
+            silk_memcpy( buf, &buf[ nSamplesIn << 1 ], RESAMPLER_ORDER_FIR_12 * sizeof( opus_int16 ) );
         } else {
             break;
         }
     }
 
     
-    silk_memcpy( S->sFIR, &buf[ nSamplesIn << 1 ], RESAMPLER_ORDER_FIR_12 * sizeof( opus_int32 ) );
+    silk_memcpy( S->sFIR.i16, &buf[ nSamplesIn << 1 ], RESAMPLER_ORDER_FIR_12 * sizeof( opus_int16 ) );
+    RESTORE_STACK;
 }
-

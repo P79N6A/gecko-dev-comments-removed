@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -83,7 +79,7 @@ void silk_process_NLSFs(
         
         i_sqr_Q15 = silk_LSHIFT( silk_SMULBB( psEncC->indices.NLSFInterpCoef_Q2, psEncC->indices.NLSFInterpCoef_Q2 ), 11 );
         for( i = 0; i < psEncC->predictLPCOrder; i++ ) {
-            pNLSFW_QW[ i ] = silk_SMLAWB( silk_RSHIFT( pNLSFW_QW[ i ], 1 ), pNLSFW0_temp_QW[ i ], i_sqr_Q15 );
+            pNLSFW_QW[ i ] = silk_SMLAWB( silk_RSHIFT( pNLSFW_QW[ i ], 1 ), (opus_int32)pNLSFW0_temp_QW[ i ], i_sqr_Q15 );
             silk_assert( pNLSFW_QW[ i ] >= 1 );
         }
     }

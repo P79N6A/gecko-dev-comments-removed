@@ -25,16 +25,8 @@
 
 
 
-
-
-
-
 #ifndef SILK_DEBUG_H
 #define SILK_DEBUG_H
-
-#ifdef _WIN32
-#define _CRT_SECURE_NO_DEPRECATE    1
-#endif
 
 #include "typedef.h"
 #include <stdio.h>      
@@ -73,7 +65,6 @@ unsigned long GetHighResolutionTime(void);
 
 #if (defined(_WIN32) || defined(_WINCE))
 #include <windows.h>    
-#pragma warning( disable : 4996 )       /* stop bitching about strcpy in TIC()*/
 #else   
 #include <sys/time.h>
 #endif
@@ -272,9 +263,6 @@ extern int silk_debug_store_count;
         fclose( silk_debug_store_fp[ i ] );                         \
     }                                                               \
 }
-
-
-#define silk_GETTIME(void)       time = (opus_int64) silk_GetHighResolutionTime();
 
 #else 
 

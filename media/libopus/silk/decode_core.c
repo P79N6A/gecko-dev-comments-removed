@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main.h"
+#include "stack_alloc.h"
 
 
 
@@ -47,14 +44,20 @@ void silk_decode_core(
 {
     opus_int   i, k, lag = 0, start_idx, sLTP_buf_idx, NLSF_interpolation_flag, signalType;
     opus_int16 *A_Q12, *B_Q14, *pxq, A_Q12_tmp[ MAX_LPC_ORDER ];
-    opus_int16 sLTP[ MAX_FRAME_LENGTH ];
-    opus_int32 sLTP_Q15[ 2 * MAX_FRAME_LENGTH ];
+    VARDECL( opus_int16, sLTP );
+    VARDECL( opus_int32, sLTP_Q15 );
     opus_int32 LTP_pred_Q13, LPC_pred_Q10, Gain_Q10, inv_gain_Q31, gain_adj_Q16, rand_seed, offset_Q10;
     opus_int32 *pred_lag_ptr, *pexc_Q14, *pres_Q14;
-    opus_int32 res_Q14[ MAX_SUB_FRAME_LENGTH ];
-    opus_int32 sLPC_Q14[ MAX_SUB_FRAME_LENGTH + MAX_LPC_ORDER ];
+    VARDECL( opus_int32, res_Q14 );
+    VARDECL( opus_int32, sLPC_Q14 );
+    SAVE_STACK;
 
     silk_assert( psDec->prev_gain_Q16 != 0 );
+
+    ALLOC( sLTP, psDec->ltp_mem_length, opus_int16 );
+    ALLOC( sLTP_Q15, psDec->ltp_mem_length + psDec->frame_length, opus_int32 );
+    ALLOC( res_Q14, psDec->subfr_length, opus_int32 );
+    ALLOC( sLPC_Q14, psDec->subfr_length + MAX_LPC_ORDER, opus_int32 );
 
     offset_Q10 = silk_Quantization_Offsets_Q10[ psDec->indices.signalType >> 1 ][ psDec->indices.quantOffsetType ];
 
@@ -111,7 +114,7 @@ void silk_decode_core(
                 sLPC_Q14[ i ] = silk_SMULWW( gain_adj_Q16, sLPC_Q14[ i ] );
             }
         } else {
-            gain_adj_Q16 = 1 << 16;
+            gain_adj_Q16 = (opus_int32)1 << 16;
         }
 
         
@@ -156,7 +159,7 @@ void silk_decode_core(
                 }
             } else {
                 
-                if( gain_adj_Q16 != 1 << 16 ) {
+                if( gain_adj_Q16 != (opus_int32)1 << 16 ) {
                     for( i = 0; i < lag + LTP_ORDER/2; i++ ) {
                         sLTP_Q15[ sLTP_buf_idx - i - 1 ] = silk_SMULWW( gain_adj_Q16, sLTP_Q15[ sLTP_buf_idx - i - 1 ] );
                     }
@@ -231,4 +234,5 @@ void silk_decode_core(
 
     
     silk_memcpy( psDec->sLPC_Q14_buf, sLPC_Q14, MAX_LPC_ORDER * sizeof( opus_int32 ) );
+    RESTORE_STACK;
 }

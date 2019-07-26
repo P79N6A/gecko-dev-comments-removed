@@ -25,15 +25,12 @@
 
 
 
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "main_FIX.h"
+#include "stack_alloc.h"
 #include "tuning_parameters.h"
 
 
@@ -88,9 +85,7 @@ opus_int silk_encode_frame_FIX(
 {
     silk_encoder_control_FIX sEncCtrl;
     opus_int     i, iter, maxIter, found_upper, found_lower, ret = 0;
-    opus_int16   *x_frame, *res_pitch_frame;
-    opus_int32   xfw_Q3[ MAX_FRAME_LENGTH ];
-    opus_int16   res_pitch[ 2 * MAX_FRAME_LENGTH + LA_PITCH_MAX ];
+    opus_int16   *x_frame;
     ec_enc       sRangeEnc_copy, sRangeEnc_copy2;
     silk_nsq_state sNSQ_copy, sNSQ_copy2;
     opus_int32   seed_copy, nBits, nBits_lower, nBits_upper, gainMult_lower, gainMult_upper;
@@ -99,7 +94,7 @@ opus_int silk_encode_frame_FIX(
     opus_int16   ec_prevLagIndex_copy;
     opus_int     ec_prevSignalType_copy;
     opus_int8    LastGainIndex_copy2;
-    opus_uint8   ec_buf_copy[ 1275 ];
+    SAVE_STACK;
 
     
     LastGainIndex_copy2 = nBits_lower = nBits_upper = gainMult_lower = gainMult_upper = 0;
@@ -110,8 +105,7 @@ opus_int silk_encode_frame_FIX(
     
     
     
-    x_frame         = psEnc->x_buf + psEnc->sCmn.ltp_mem_length;    
-    res_pitch_frame = res_pitch    + psEnc->sCmn.ltp_mem_length;    
+    x_frame = psEnc->x_buf + psEnc->sCmn.ltp_mem_length;
 
     
     
@@ -124,6 +118,17 @@ opus_int silk_encode_frame_FIX(
     silk_memcpy( x_frame + LA_SHAPE_MS * psEnc->sCmn.fs_kHz, psEnc->sCmn.inputBuf + 1, psEnc->sCmn.frame_length * sizeof( opus_int16 ) );
 
     if( !psEnc->sCmn.prefillFlag ) {
+        VARDECL( opus_int32, xfw_Q3 );
+        VARDECL( opus_int16, res_pitch );
+        VARDECL( opus_uint8, ec_buf_copy );
+        opus_int16 *res_pitch_frame;
+
+        ALLOC( res_pitch,
+               psEnc->sCmn.la_pitch + psEnc->sCmn.frame_length
+                   + psEnc->sCmn.ltp_mem_length, opus_int16 );
+        
+        res_pitch_frame = res_pitch + psEnc->sCmn.ltp_mem_length;
+
         
         
         
@@ -147,6 +152,7 @@ opus_int silk_encode_frame_FIX(
         
         
         
+        ALLOC( xfw_Q3, psEnc->sCmn.frame_length, opus_int32 );
         silk_prefilter_FIX( psEnc, &sEncCtrl, xfw_Q3, x_frame );
 
         
@@ -168,6 +174,7 @@ opus_int silk_encode_frame_FIX(
         seed_copy = psEnc->sCmn.indices.Seed;
         ec_prevLagIndex_copy = psEnc->sCmn.ec_prevLagIndex;
         ec_prevSignalType_copy = psEnc->sCmn.ec_prevSignalType;
+        ALLOC( ec_buf_copy, 1275, opus_uint8 );
         for( iter = 0; ; iter++ ) {
             if( gainsID == gainsID_lower ) {
                 nBits = nBits_lower;
@@ -280,7 +287,7 @@ opus_int silk_encode_frame_FIX(
             for( i = 0; i < psEnc->sCmn.nb_subfr; i++ ) {
                 sEncCtrl.Gains_Q16[ i ] = silk_LSHIFT_SAT32( silk_SMULWB( sEncCtrl.GainsUnq_Q16[ i ], gainMult_Q8 ), 8 );
             }
-
+ 
             
             psEnc->sShape.LastGainIndex = sEncCtrl.lastGainIndexPrev;
             silk_gains_quant( psEnc->sCmn.indices.GainsIndices, sEncCtrl.Gains_Q16,
@@ -303,6 +310,7 @@ opus_int silk_encode_frame_FIX(
     if( psEnc->sCmn.prefillFlag ) {
         
         *pnBytesOut = 0;
+        RESTORE_STACK;
         return ret;
     }
 
@@ -313,6 +321,7 @@ opus_int silk_encode_frame_FIX(
     
     *pnBytesOut = silk_RSHIFT( ec_tell( psRangeEnc ) + 7, 3 );
 
+    RESTORE_STACK;
     return ret;
 }
 

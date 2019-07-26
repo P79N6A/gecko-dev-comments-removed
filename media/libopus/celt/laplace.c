@@ -26,14 +26,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -48,11 +40,12 @@
 
 #define LAPLACE_NMIN (16)
 
+
 static unsigned ec_laplace_get_freq1(unsigned fs0, int decay)
 {
    unsigned ft;
    ft = 32768 - LAPLACE_MINP*(2*LAPLACE_NMIN) - fs0;
-   return ft*(16384-decay)>>15;
+   return ft*(opus_int32)(16384-decay)>>15;
 }
 
 void ec_laplace_encode(ec_enc *enc, int *value, unsigned fs, int decay)

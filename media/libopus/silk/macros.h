@@ -25,10 +25,6 @@
 
 
 
-
-
-
-
 #ifndef SILK_MACROS_H
 #define SILK_MACROS_H
 
@@ -72,69 +68,45 @@
 #define silk_SMLAWW(a32, b32, c32)       silk_MLA(silk_SMLAWB((a32), (b32), (c32)), (b32), silk_RSHIFT_ROUND((c32), 16))
 
 
-#define silk_ADD_SAT32(a, b)             ((((a) + (b)) & 0x80000000) == 0 ?                              \
+#define silk_ADD_SAT32(a, b)             ((((opus_uint32)(a) + (opus_uint32)(b)) & 0x80000000) == 0 ?                              \
                                         ((((a) & (b)) & 0x80000000) != 0 ? silk_int32_MIN : (a)+(b)) :   \
                                         ((((a) | (b)) & 0x80000000) == 0 ? silk_int32_MAX : (a)+(b)) )
 
-#define silk_SUB_SAT32(a, b)             ((((a)-(b)) & 0x80000000) == 0 ?                                        \
+#define silk_SUB_SAT32(a, b)             ((((opus_uint32)(a)-(opus_uint32)(b)) & 0x80000000) == 0 ?                                        \
                                         (( (a) & ((b)^0x80000000) & 0x80000000) ? silk_int32_MIN : (a)-(b)) :    \
                                         ((((a)^0x80000000) & (b)  & 0x80000000) ? silk_int32_MAX : (a)-(b)) )
 
+#include "ecintrin.h"
+
 static inline opus_int32 silk_CLZ16(opus_int16 in16)
 {
-    opus_int32 out32 = 0;
-    if( in16 == 0 ) {
-        return 16;
-    }
-    
-    if( in16 & 0xFF00 ) {
-        if( in16 & 0xF000 ) {
-            in16 >>= 12;
-        } else {
-            out32 += 4;
-            in16 >>= 8;
-        }
-    } else {
-        if( in16 & 0xFFF0 ) {
-            out32 += 8;
-            in16 >>= 4;
-        } else {
-            out32 += 12;
-        }
-    }
-    
-    if( in16 & 0xC ) {
-        if( in16 & 0x8 )
-            return out32 + 0;
-        else
-            return out32 + 1;
-    } else {
-        if( in16 & 0xE )
-            return out32 + 2;
-        else
-            return out32 + 3;
-    }
+    return 32 - EC_ILOG(in16<<16|0x8000);
 }
 
 static inline opus_int32 silk_CLZ32(opus_int32 in32)
 {
-    
-    if( in32 & 0xFFFF0000 ) {
-        return silk_CLZ16((opus_int16)(in32 >> 16));
-    } else {
-        return silk_CLZ16((opus_int16)in32) + 16;
-    }
+    return in32 ? 32 - EC_ILOG(in32) : 32;
 }
 
 
-#define matrix_ptr(Matrix_base_adr, row, column, N)         *(Matrix_base_adr + ((row)*(N)+(column)))
-#define matrix_adr(Matrix_base_adr, row, column, N)          (Matrix_base_adr + ((row)*(N)+(column)))
+#define matrix_ptr(Matrix_base_adr, row, column, N) \
+    (*((Matrix_base_adr) + ((row)*(N)+(column))))
+#define matrix_adr(Matrix_base_adr, row, column, N) \
+      ((Matrix_base_adr) + ((row)*(N)+(column)))
 
 
 #ifndef matrix_c_ptr
-#   define matrix_c_ptr(Matrix_base_adr, row, column, M)    *(Matrix_base_adr + ((row)+(M)*(column)))
+#   define matrix_c_ptr(Matrix_base_adr, row, column, M) \
+    (*((Matrix_base_adr) + ((row)+(M)*(column))))
 #endif
-#define matrix_c_adr(Matrix_base_adr, row, column, M)        (Matrix_base_adr + ((row)+(M)*(column)))
+
+#ifdef ARMv4_ASM
+#include "arm/macros_armv4.h"
+#endif
+
+#ifdef ARMv5E_ASM
+#include "arm/macros_armv5e.h"
+#endif
 
 #endif 
 
