@@ -1270,6 +1270,7 @@ Breakpoints.prototype = {
 
   _added: new Map(),
   _removing: new Map(),
+  _disabled: new Map(),
 
   
 
@@ -1362,7 +1363,7 @@ Breakpoints.prototype = {
 
 
   updateEditorBreakpoints: function() {
-    for (let [, breakpointPromise] of this._added) {
+    for (let breakpointPromise of this._addedOrDisabled) {
       breakpointPromise.then(aBreakpointClient => {
         let currentSourceUrl = DebuggerView.Sources.selectedValue;
         let breakpointUrl = aBreakpointClient.location.url;
@@ -1382,7 +1383,7 @@ Breakpoints.prototype = {
 
 
   updatePaneBreakpoints: function() {
-    for (let [, breakpointPromise] of this._added) {
+    for (let breakpointPromise of this._addedOrDisabled) {
       breakpointPromise.then(aBreakpointClient => {
         let container = DebuggerView.Sources;
         let breakpointUrl = aBreakpointClient.location.url;
@@ -1445,7 +1446,7 @@ Breakpoints.prototype = {
       if (aResponse.actualLocation) {
         
         let oldIdentifier = identifier;
-        let newIdentifier = this.getIdentifier(aResponse.actualLocation);
+        let newIdentifier = identifier = this.getIdentifier(aResponse.actualLocation);
         this._added.delete(oldIdentifier);
         this._added.set(newIdentifier, deferred.promise);
 
@@ -1454,6 +1455,11 @@ Breakpoints.prototype = {
         aBreakpointClient.requestedLocation = aLocation;
         aBreakpointClient.location = aResponse.actualLocation;
       }
+
+      
+      
+      
+      this._disabled.delete(identifier);
 
       
       
@@ -1522,6 +1528,15 @@ Breakpoints.prototype = {
         }
 
         
+        
+        
+        
+        if (aOptions.rememberDisabled) {
+          aBreakpointClient.disabled = true;
+          this._disabled.set(identifier, promise.resolve(aBreakpointClient));
+        }
+
+        
         this._added.delete(identifier);
         this._removing.delete(identifier);
 
@@ -1580,12 +1595,13 @@ Breakpoints.prototype = {
 
 
 
+
   _showBreakpoint: function(aBreakpointData, aOptions = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let location = aBreakpointData.location;
 
     
-    if (!aOptions.noEditorUpdate) {
+    if (!aOptions.noEditorUpdate && !aBreakpointData.disabled) {
       if (location.url == currentSourceUrl) {
         DebuggerView.editor.addBreakpoint(location.line - 1);
       }
@@ -1619,6 +1635,16 @@ Breakpoints.prototype = {
     if (!aOptions.noPaneUpdate) {
       DebuggerView.Sources.removeBreakpoint(aLocation);
     }
+  },
+
+  
+
+
+
+
+  get _addedOrDisabled() {
+    for (let [, value] of this._added) yield value;
+    for (let [, value] of this._disabled) yield value;
   },
 
   

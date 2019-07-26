@@ -139,13 +139,14 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+
   addBreakpoint: function(aBreakpointData, aOptions = {}) {
-    let location = aBreakpointData.location;
+    let { location, disabled } = aBreakpointData;
 
     
     
     if (this.getBreakpoint(location)) {
-      this.enableBreakpoint(location);
+      this[disabled ? "disableBreakpoint" : "enableBreakpoint"](location);
       return;
     }
 
@@ -322,7 +323,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     return DebuggerController.Breakpoints.removeBreakpoint(aLocation, {
       
       
-      noPaneUpdate: true
+      noPaneUpdate: true,
+      
+      
+      rememberDisabled: true
     });
   },
 
@@ -450,12 +454,13 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+
   _createBreakpointView: function(aOptions) {
-    let { location, text } = aOptions;
+    let { location, disabled, text } = aOptions;
     let identifier = DebuggerController.Breakpoints.getIdentifier(location);
 
     let checkbox = document.createElement("checkbox");
-    checkbox.setAttribute("checked", "true");
+    checkbox.setAttribute("checked", !disabled);
     checkbox.className = "dbg-breakpoint-checkbox";
 
     let lineNumberNode = document.createElement("label");
@@ -502,8 +507,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+
   _createContextMenu: function(aOptions) {
-    let location = aOptions.location;
+    let { location, disabled } = aOptions;
     let identifier = DebuggerController.Breakpoints.getIdentifier(location);
 
     let commandset = document.createElement("commandset");
@@ -511,8 +517,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     commandset.id = "bp-cSet-" + identifier;
     menupopup.id = "bp-mPop-" + identifier;
 
-    createMenuItem.call(this, "enableSelf", true);
-    createMenuItem.call(this, "disableSelf");
+    createMenuItem.call(this, "enableSelf", !disabled);
+    createMenuItem.call(this, "disableSelf", disabled);
     createMenuItem.call(this, "deleteSelf");
     createMenuSeparator();
     createMenuItem.call(this, "setConditional");
