@@ -397,6 +397,13 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       if (ignoreViewportScrolling) {
         savedIgnoreScrollFrame = aBuilder->GetIgnoreScrollFrame();
         aBuilder->SetIgnoreScrollFrame(rootScrollFrame);
+
+        if (aBuilder->IsForImageVisibility()) {
+          
+          
+          nsIScrollableFrame* rootScrollableFrame = do_QueryFrame(rootScrollFrame);
+          dirty = rootScrollableFrame->ExpandRect(dirty);
+        }
       }
     }
 

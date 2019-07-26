@@ -5738,8 +5738,23 @@ PresShell::UpdateImageVisibility()
 
   
   
-  nsRect updateRect(nsPoint(0, 0), rootFrame->GetSize());
   nsDisplayListBuilder builder(rootFrame, nsDisplayListBuilder::IMAGE_VISIBILITY, true);
+  nsRect updateRect(nsPoint(0, 0), rootFrame->GetSize());
+  nsIFrame* rootScroll = GetRootScrollFrame();
+  if (rootScroll) {
+    nsIContent* content = rootScroll->GetContent();
+    if (content) {
+      nsLayoutUtils::GetDisplayPort(content, &updateRect);
+    }
+
+    if (IgnoringViewportScrolling()) {
+      builder.SetIgnoreScrollFrame(rootScroll);
+      
+      
+      nsIScrollableFrame* rootScrollable = do_QueryFrame(rootScroll);
+      updateRect = rootScrollable->ExpandRect(updateRect);
+    }
+  }
   builder.IgnorePaintSuppression();
   builder.EnterPresShell(rootFrame, updateRect);
   nsDisplayList list;

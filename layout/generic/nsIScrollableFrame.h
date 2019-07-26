@@ -286,6 +286,11 @@ public:
 
 
   virtual bool IsRectNearlyVisible(const nsRect& aRect) = 0;
+ 
+
+
+
+  virtual nsRect ExpandRect(const nsRect& aRect) const = 0;
   
 
 
