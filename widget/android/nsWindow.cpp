@@ -188,7 +188,7 @@ nsWindow::~nsWindow()
     if (mLayerManager == sLayerManager) {
         
         
-        SetCompositor(NULL, NULL, NULL);
+        SetCompositor(nullptr, nullptr, nullptr);
     }
 }
 
@@ -1156,7 +1156,7 @@ nsWindow::GetNativeData(uint32_t aDataType)
     switch (aDataType) {
         
         case NS_NATIVE_DISPLAY:
-            return NULL;
+            return nullptr;
 
         case NS_NATIVE_WIDGET:
             return (void *) this;
@@ -1619,7 +1619,7 @@ nsWindow::InitKeyEvent(WidgetKeyboardEvent& event, AndroidGeckoEvent& key,
         event.isChar = (charCode >= ' ');
         event.charCode = event.isChar ? charCode : 0;
         event.keyCode = (event.charCode > 0) ? 0 : domKeyCode;
-        event.pluginEvent = NULL;
+        event.pluginEvent = nullptr;
     } else {
 #ifdef DEBUG
         if (event.message != NS_KEY_DOWN && event.message != NS_KEY_UP) {
