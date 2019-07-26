@@ -243,13 +243,6 @@ inline Type GetValueType(const Value &val);
 
 
 
-
-
-
-
-
-
-
 class TypeConstraint
 {
 public:
@@ -309,18 +302,20 @@ enum {
 
     
 
-    
-
-
-
-    TYPE_FLAG_PURGED              = 0x00020000,
-
-    
 
 
 
 
-    TYPE_FLAG_CONSTRAINTS_PURGED  = 0x00040000,
+
+
+
+
+
+
+
+
+    TYPE_FLAG_STACK_SET           = 0x00020000,
+    TYPE_FLAG_HEAP_SET            = 0x00040000,
 
     
 
@@ -430,10 +425,12 @@ typedef uint32_t TypeObjectFlags;
 
 class StackTypeSet;
 class HeapTypeSet;
+class TemporaryTypeSet;
 
 
 class TypeSet
 {
+  protected:
     
     TypeFlags flags;
 
@@ -446,10 +443,8 @@ class TypeSet
     TypeConstraint *constraintList;
 
     TypeSet()
-        : flags(0), objectSet(NULL), constraintList(NULL)
+      : flags(0), objectSet(NULL), constraintList(NULL)
     {}
-
-    TypeSet(Type type);
 
     void print();
 
@@ -480,13 +475,7 @@ class TypeSet
     }
 
     
-
-
-
-    StackTypeSet *clone(LifoAlloc *alloc) const;
-
-    
-    static StackTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
+    static TemporaryTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
 
     
 
@@ -496,12 +485,6 @@ class TypeSet
 
     
     inline void setOwnProperty(ExclusiveContext *cx, bool configured);
-
-    
-
-
-
-    bool addObject(TypeObjectKey *key, LifoAlloc *alloc);
 
     
 
@@ -527,11 +510,12 @@ class TypeSet
     bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
     void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
-    bool constraintsPurged() { return !!(flags & TYPE_FLAG_CONSTRAINTS_PURGED); }
-    void setConstraintsPurged() { flags |= TYPE_FLAG_CONSTRAINTS_PURGED; }
-
-    bool purged() { return !!(flags & TYPE_FLAG_PURGED); }
-    void setPurged() { flags |= TYPE_FLAG_PURGED | TYPE_FLAG_CONSTRAINTS_PURGED; }
+    bool isStackSet() {
+        return flags & TYPE_FLAG_STACK_SET;
+    }
+    bool isHeapSet() {
+        return flags & TYPE_FLAG_HEAP_SET;
+    }
 
     
 
@@ -539,11 +523,20 @@ class TypeSet
 
     bool isSubset(TypeSet *other);
 
-    inline StackTypeSet *toStackTypeSet();
-    inline HeapTypeSet *toHeapTypeSet();
+    
+    void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
 
-    inline void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
-    inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
+    
+    void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
+
+    inline StackTypeSet *toStackSet();
+    inline HeapTypeSet *toHeapSet();
+
+    
+
+
+
+    TemporaryTypeSet *clone(LifoAlloc *alloc) const;
 
   protected:
     uint32_t baseObjectCount() const {
@@ -554,28 +547,78 @@ class TypeSet
     inline void clearObjects();
 };
 
-
-
-
-
-
-
-
 class StackTypeSet : public TypeSet
 {
   public:
-
-    StackTypeSet() : TypeSet() {}
-    StackTypeSet(Type type) : TypeSet(type) {}
-
-    
-
-
-
-    static StackTypeSet *make(JSContext *cx, const char *name);
+    StackTypeSet() { flags |= TYPE_FLAG_STACK_SET; }
 
     
     void addSubset(JSContext *cx, StackTypeSet *target);
+};
+
+class HeapTypeSet : public TypeSet
+{
+  public:
+    HeapTypeSet() { flags |= TYPE_FLAG_HEAP_SET; }
+
+    
+    void addSubset(JSContext *cx, HeapTypeSet *target);
+
+    
+    void addFreeze(JSContext *cx);
+
+    
+
+
+
+
+    static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
+
+    
+    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
+
+    
+
+
+
+
+
+
+    bool isOwnProperty(JSContext *cx, TypeObject *object, bool configurable);
+
+    
+    bool knownNonEmpty(JSContext *cx);
+
+    
+    bool knownSubset(JSContext *cx, HeapTypeSet *other);
+
+    
+    JSObject *getSingleton(JSContext *cx);
+
+    
+
+
+
+    bool needsBarrier(JSContext *cx);
+
+    
+    JSValueType getKnownTypeTag(JSContext *cx);
+};
+
+class TemporaryTypeSet : public TypeSet
+{
+  public:
+    TemporaryTypeSet() {}
+    TemporaryTypeSet(Type type);
+
+    TemporaryTypeSet(uint32_t flags, TypeObjectKey **objectSet) {
+        this->flags = flags;
+        this->objectSet = objectSet;
+        JS_ASSERT(!isStackSet() && !isHeapSet());
+    }
+
+    
+    bool addObject(TypeObjectKey *key, LifoAlloc *alloc);
 
     
 
@@ -638,7 +681,7 @@ class StackTypeSet : public TypeSet
 
 
 
-    bool filtersType(const StackTypeSet *other, Type type) const;
+    bool filtersType(const TemporaryTypeSet *other, Type type) const;
 
     enum DoubleConversion {
         
@@ -661,71 +704,17 @@ class StackTypeSet : public TypeSet
     DoubleConversion convertDoubleElements(JSContext *cx);
 };
 
-
-
-
-
-
-
-class HeapTypeSet : public TypeSet
-{
-  public:
-
-    
-    void addSubset(JSContext *cx, HeapTypeSet *target);
-
-    
-    void addFreeze(JSContext *cx);
-
-    
-
-
-
-
-    static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
-
-    
-    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
-
-    
-
-
-
-
-
-
-    bool isOwnProperty(JSContext *cx, TypeObject *object, bool configurable);
-
-    
-    bool knownNonEmpty(JSContext *cx);
-
-    
-    bool knownSubset(JSContext *cx, TypeSet *other);
-
-    
-    JSObject *getSingleton(JSContext *cx);
-
-    
-
-
-
-    bool needsBarrier(JSContext *cx);
-
-    
-    JSValueType getKnownTypeTag(JSContext *cx);
-};
-
 inline StackTypeSet *
-TypeSet::toStackTypeSet()
+TypeSet::toStackSet()
 {
-    JS_ASSERT(constraintsPurged());
+    JS_ASSERT(isStackSet());
     return (StackTypeSet *) this;
 }
 
 inline HeapTypeSet *
-TypeSet::toHeapTypeSet()
+TypeSet::toHeapSet()
 {
-    JS_ASSERT(!constraintsPurged());
+    JS_ASSERT(isHeapSet());
     return (HeapTypeSet *) this;
 }
 
@@ -1236,34 +1225,7 @@ ArrayPrototypeHasIndexedProperty(JSContext *cx, HandleScript script);
 
 
 bool
-TypeCanHaveExtraIndexedProperties(JSContext *cx, StackTypeSet *types);
-
-
-
-
-
-
-struct TypeCallsite
-{
-    JSScript *script;
-    jsbytecode *pc;
-
-    
-    bool isNew;
-
-    
-    unsigned argumentCount;
-    StackTypeSet **argumentTypes;
-
-    
-    StackTypeSet *thisTypes;
-
-    
-    StackTypeSet *returnTypes;
-
-    inline TypeCallsite(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        bool isNew, unsigned argumentCount);
-};
+TypeCanHaveExtraIndexedProperties(JSContext *cx, TemporaryTypeSet *types);
 
 
 class TypeScript
@@ -1295,12 +1257,8 @@ class TypeScript
 
     static inline unsigned NumTypeSets(JSScript *script);
 
-    static inline HeapTypeSet  *ReturnTypes(JSScript *script);
     static inline StackTypeSet *ThisTypes(JSScript *script);
     static inline StackTypeSet *ArgTypes(JSScript *script, unsigned i);
-
-    
-    static inline StackTypeSet *SlotTypes(JSScript *script, unsigned slot);
 
     
     static inline StackTypeSet *BytecodeTypes(JSScript *script, jsbytecode *pc);

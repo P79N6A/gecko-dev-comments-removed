@@ -1951,7 +1951,7 @@ LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
     
     
 
-    const types::StackTypeSet *types = ins->resultTypeSet();
+    const types::TemporaryTypeSet *types = ins->resultTypeSet();
     bool needTemp = !types->unknownObject() && types->getObjectCount() > 0;
 
     MIRType inputType = ins->getOperand(0)->type();
@@ -2002,7 +2002,7 @@ LIRGenerator::visitMonitorTypes(MMonitorTypes *ins)
     
     
 
-    const types::StackTypeSet *types = ins->typeSet();
+    const types::TemporaryTypeSet *types = ins->typeSet();
     bool needTemp = !types->unknownObject() && types->getObjectCount() > 0;
     LDefinition tmp = needTemp ? temp() : tempToUnbox();
 

@@ -420,12 +420,6 @@ ExclusiveContext::typeLifoAlloc()
 
 }  
 
-inline js::LifoAlloc &
-JSContext::analysisLifoAlloc()
-{
-    return compartment()->analysisLifoAlloc;
-}
-
 inline void
 JSContext::setPendingException(js::Value v) {
     JS_ASSERT(!IsPoisonedValue(v));
