@@ -124,7 +124,11 @@ struct BaselineScript
 
         
         
-        ACTIVE         = 1 << 1
+        ACTIVE = 1 << 1,
+
+        
+        
+        MODIFIES_ARGUMENTS = 1 << 2
     };
 
   private:
@@ -179,6 +183,13 @@ struct BaselineScript
 
     void setNeedsArgsObj() {
         flags_ |= NEEDS_ARGS_OBJ;
+    }
+
+    void setModifiesArguments() {
+        flags_ |= MODIFIES_ARGUMENTS;
+    }
+    bool modifiesArguments() {
+        return flags_ & MODIFIES_ARGUMENTS;
     }
 
     uint32_t prologueOffset() const {

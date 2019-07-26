@@ -185,6 +185,9 @@ class BaselineCompiler : public BaselineCompilerSpecific
     
     CodeOffsetLabel prologueOffset_;
 
+    
+    bool modifiesArguments_;
+
     Label *labelOf(jsbytecode *pc) {
         return &labels_[pc - script->code];
     }

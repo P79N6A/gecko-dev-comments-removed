@@ -803,13 +803,27 @@ IonBuilder::initParameters()
     if (!info().fun())
         return true;
 
-    MParameter *param = MParameter::New(MParameter::THIS_SLOT,
-                                        cloneTypeSet(types::TypeScript::ThisTypes(script())));
+    
+    
+    
+
+    types::StackTypeSet *thisTypes = types::TypeScript::ThisTypes(script());
+    if (thisTypes->empty() && baselineFrame_)
+        thisTypes->addType(cx, types::GetValueType(cx, baselineFrame_->thisValue()));
+
+    MParameter *param = MParameter::New(MParameter::THIS_SLOT, cloneTypeSet(thisTypes));
     current->add(param);
     current->initSlot(info().thisSlot(), param);
 
     for (uint32_t i = 0; i < info().nargs(); i++) {
-        param = MParameter::New(i, cloneTypeSet(types::TypeScript::ArgTypes(script(), i)));
+        types::StackTypeSet *argTypes = types::TypeScript::ArgTypes(script(), i);
+        if (argTypes->empty() && baselineFrame_ &&
+            !script_->baselineScript()->modifiesArguments())
+        {
+            argTypes->addType(cx, types::GetValueType(cx, baselineFrame_->argv()[i]));
+        }
+
+        param = MParameter::New(i, cloneTypeSet(argTypes));
         current->add(param);
         current->initSlot(info().argSlotUnchecked(i), param);
     }
@@ -1279,7 +1293,35 @@ IonBuilder::inspectOpcode(JSOp op)
             
             if (info().hasArguments())
                 return abort("NYI: arguments & setarg.");
-            current->setArg(GET_SLOTNO(pc));
+
+            int32_t arg = GET_SLOTNO(pc);
+
+            
+            
+            
+            
+            MDefinition *value = current->peek(-1);
+            if (graph().numBlocks() == 1 &&
+                (value->isBitOr() || value->isBitAnd() || value->isMul() ))
+             {
+                 for (size_t i = 0; i < value->numOperands(); i++) {
+                    MDefinition *op = value->getOperand(i);
+                    if (op->isParameter() &&
+                        op->toParameter()->index() == arg &&
+                        op->resultTypeSet() &&
+                        op->resultTypeSet()->empty())
+                    {
+                        types::TypeSet *argTypes = types::TypeScript::ArgTypes(script(), arg);
+
+                        
+                        
+                        argTypes->addType(cx, types::Type::UnknownType());
+                        op->resultTypeSet()->addType(cx, types::Type::UnknownType());
+                    }
+                }
+            }
+
+            current->setArg(arg);
         }
         return true;
 
