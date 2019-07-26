@@ -31,6 +31,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 Cu.import("resource:///modules/source-editor.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
@@ -38,11 +39,11 @@ Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/commonjs/sdk/core/promise.js");
-
 XPCOMUtils.defineLazyModuleGetter(this, "Parser",
   "resource:///modules/devtools/Parser.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "NetworkHelper",
+  "resource://gre/modules/devtools/NetworkHelper.jsm");
 
 
 
@@ -75,12 +76,12 @@ let DebuggerController = {
 
   startupDebugger: function DC_startupDebugger() {
     if (this._isInitialized) {
-      return;
+      return this._startup.promise;
     }
     this._isInitialized = true;
     window.removeEventListener("DOMContentLoaded", this.startupDebugger, true);
 
-    let deferred = Promise.defer();
+    let deferred = this._startup = Promise.defer();
 
     DebuggerView.initialize(() => {
       DebuggerView._isInitialized = true;
@@ -103,13 +104,14 @@ let DebuggerController = {
 
 
   shutdownDebugger: function DC__shutdownDebugger() {
-    if (this._isDestroyed || !DebuggerView._isInitialized) {
-      return;
+    if (this._isDestroyed) {
+      return this._shutdown.promise;
     }
     this._isDestroyed = true;
+    this._startup = null;
     window.removeEventListener("unload", this.shutdownDebugger, true);
 
-    let deferred = Promise.defer();
+    let deferred = this._shutdown = Promise.defer();
 
     DebuggerView.destroy(() => {
       DebuggerView._isDestroyed = true;
@@ -134,8 +136,15 @@ let DebuggerController = {
 
 
 
+
+
+
   connect: function DC_connect() {
-    let deferred = Promise.defer();
+    if (this._connection) {
+      return this._connection.promise;
+    }
+
+    let deferred = this._connection = Promise.defer();
 
     if (!window._isChromeDebugger) {
       let target = this._target;
@@ -187,6 +196,7 @@ let DebuggerController = {
       this.client.close();
     }
 
+    this._connection = null;
     this.client = null;
     this.tabClient = null;
     this.activeThread = null;
@@ -315,7 +325,16 @@ let DebuggerController = {
       return;
     }
     Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-  }
+  },
+
+  _isInitialized: false,
+  _isDestroyed: false,
+  _startup: null,
+  _shutdown: null,
+  _connection: null,
+  client: null,
+  tabClient: null,
+  activeThread: null
 };
 
 
@@ -911,7 +930,7 @@ StackFrames.prototype = {
   _addFrame: function SF__addFrame(aFrame) {
     let depth = aFrame.depth;
     let { url, line } = aFrame.where;
-    let frameLocation = SourceUtils.convertToUnicode(window.unescape(url));
+    let frameLocation = NetworkHelper.convertToUnicode(unescape(url));
     let frameTitle = StackFrameUtils.getFrameTitle(aFrame);
 
     DebuggerView.StackFrames.addFrame(frameTitle, frameLocation, line, depth);
@@ -1191,7 +1210,7 @@ SourceScripts.prototype = {
 
 
   clearCache: function SS_clearCache() {
-    this._cache = new Map();
+    this._cache.clear();
   },
 
   
@@ -1631,100 +1650,31 @@ Breakpoints.prototype = {
 
 
 
-let L10N = {
-  
+let L10N = new ViewHelpers.L10N(DBG_STRINGS_URI);
 
 
 
 
-
-  getStr: function L10N_getStr(aName) {
-    return this.stringBundle.GetStringFromName(aName);
-  },
-
-  
-
-
-
-
-
-
-  getFormatStr: function L10N_getFormatStr(aName, aArray) {
-    return this.stringBundle.formatStringFromName(aName, aArray, aArray.length);
-  }
-};
-
-XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
-  return Services.strings.createBundle(DBG_STRINGS_URI);
+let Prefs = new ViewHelpers.Prefs("devtools.debugger", {
+  chromeDebuggingHost: ["Char", "chrome-debugging-host"],
+  chromeDebuggingPort: ["Int", "chrome-debugging-port"],
+  windowX: ["Int", "ui.win-x"],
+  windowY: ["Int", "ui.win-y"],
+  windowWidth: ["Int", "ui.win-width"],
+  windowHeight: ["Int", "ui.win-height"],
+  sourcesWidth: ["Int", "ui.panes-sources-width"],
+  instrumentsWidth: ["Int", "ui.panes-instruments-width"],
+  pauseOnExceptions: ["Bool", "ui.pause-on-exceptions"],
+  panesVisibleOnStartup: ["Bool", "ui.panes-visible-on-startup"],
+  variablesSortingEnabled: ["Bool", "ui.variables-sorting-enabled"],
+  variablesOnlyEnumVisible: ["Bool", "ui.variables-only-enum-visible"],
+  variablesSearchboxVisible: ["Bool", "ui.variables-searchbox-visible"],
+  remoteHost: ["Char", "remote-host"],
+  remotePort: ["Int", "remote-port"],
+  remoteAutoConnect: ["Bool", "remote-autoconnect"],
+  remoteConnectionRetries: ["Int", "remote-connection-retries"],
+  remoteTimeout: ["Int", "remote-timeout"]
 });
-
-XPCOMUtils.defineLazyGetter(L10N, "ellipsis", function() {
-  return Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
-});
-
-
-
-
-let Prefs = {
-  
-
-
-
-
-
-
-  _get: function P__get(aType, aPrefName) {
-    if (this[aPrefName] === undefined) {
-      this[aPrefName] = Services.prefs["get" + aType + "Pref"](aPrefName);
-    }
-    return this[aPrefName];
-  },
-
-  
-
-
-
-
-
-
-  _set: function P__set(aType, aPrefName, aValue) {
-    Services.prefs["set" + aType + "Pref"](aPrefName, aValue);
-    this[aPrefName] = aValue;
-  },
-
-  
-
-
-
-
-
-
-  map: function P_map(aType, aPropertyName, aPrefName) {
-    Object.defineProperty(this, aPropertyName, {
-      get: function() this._get(aType, aPrefName),
-      set: function(aValue) this._set(aType, aPrefName, aValue)
-    });
-  }
-};
-
-Prefs.map("Char", "chromeDebuggingHost", "devtools.debugger.chrome-debugging-host");
-Prefs.map("Int", "chromeDebuggingPort", "devtools.debugger.chrome-debugging-port");
-Prefs.map("Int", "windowX", "devtools.debugger.ui.win-x");
-Prefs.map("Int", "windowY", "devtools.debugger.ui.win-y");
-Prefs.map("Int", "windowWidth", "devtools.debugger.ui.win-width");
-Prefs.map("Int", "windowHeight", "devtools.debugger.ui.win-height");
-Prefs.map("Int", "sourcesWidth", "devtools.debugger.ui.panes-sources-width");
-Prefs.map("Int", "instrumentsWidth", "devtools.debugger.ui.panes-instruments-width");
-Prefs.map("Bool", "pauseOnExceptions", "devtools.debugger.ui.pause-on-exceptions");
-Prefs.map("Bool", "panesVisibleOnStartup", "devtools.debugger.ui.panes-visible-on-startup");
-Prefs.map("Bool", "variablesSortingEnabled", "devtools.debugger.ui.variables-sorting-enabled");
-Prefs.map("Bool", "variablesOnlyEnumVisible", "devtools.debugger.ui.variables-only-enum-visible");
-Prefs.map("Bool", "variablesSearchboxVisible", "devtools.debugger.ui.variables-searchbox-visible");
-Prefs.map("Char", "remoteHost", "devtools.debugger.remote-host");
-Prefs.map("Int", "remotePort", "devtools.debugger.remote-port");
-Prefs.map("Bool", "remoteAutoConnect", "devtools.debugger.remote-autoconnect");
-Prefs.map("Int", "remoteConnectionRetries", "devtools.debugger.remote-connection-retries");
-Prefs.map("Int", "remoteTimeout", "devtools.debugger.remote-timeout");
 
 
 

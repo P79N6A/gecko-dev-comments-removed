@@ -9,6 +9,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
+const LAZY_EMPTY_DELAY = 150; 
 const LAZY_EXPAND_DELAY = 50; 
 const LAZY_APPEND_DELAY = 100; 
 const LAZY_APPEND_BATCH = 100; 
@@ -20,8 +21,11 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this,
-  "WebConsoleUtils", "resource://gre/modules/devtools/WebConsoleUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetworkHelper",
+  "resource://gre/modules/devtools/NetworkHelper.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
+  "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
 this.EXPORTED_SYMBOLS = ["VariablesView"];
 
@@ -43,7 +47,10 @@ const STR = Services.strings.createBundle(DBG_STRINGS_URI);
 
 
 
-this.VariablesView = function VariablesView(aParentNode) {
+
+
+
+this.VariablesView = function VariablesView(aParentNode, aFlags = {}) {
   this._store = new Map();
   this._itemsByElement = new WeakMap();
   this._prevHierarchy = new Map();
@@ -63,6 +70,10 @@ this.VariablesView = function VariablesView(aParentNode) {
   this._list.addEventListener("keypress", this._onViewKeyPress, false);
   this._parent.appendChild(this._list);
   this._boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+
+  for (let name in aFlags) {
+    this[name] = aFlags[name];
+  }
 };
 
 VariablesView.prototype = {
@@ -123,8 +134,8 @@ VariablesView.prototype = {
       list.removeChild(firstChild);
     }
 
-    this._store = new Map();
-    this._itemsByElement = new WeakMap();
+    this._store.clear();
+    this._itemsByElement.clear();
 
     this._appendEmptyNotice();
     this._toggleSearchVisibility(false);
@@ -149,8 +160,8 @@ VariablesView.prototype = {
     let prevList = this._list;
     let currList = this._list = this.document.createElement("scrollbox");
 
-    this._store = new Map();
-    this._itemsByElement = new WeakMap();
+    this._store.clear();
+    this._itemsByElement.clear();
 
     this._emptyTimeout = this.window.setTimeout(function() {
       this._emptyTimeout = null;
@@ -173,7 +184,7 @@ VariablesView.prototype = {
   
 
 
-  lazyEmptyDelay: 150,
+  lazyEmptyDelay: LAZY_EMPTY_DELAY,
 
   
 
@@ -213,6 +224,12 @@ VariablesView.prototype = {
 
 
   delete: null,
+
+  
+
+
+
+  preventDisableOnChage: false,
 
   
 
@@ -1086,8 +1103,10 @@ Scope.prototype = {
 
 
 
-  addVar: function S_addVar(aName = "", aDescriptor = {}) {
-    if (this._store.has(aName)) {
+
+
+  addVar: function S_addVar(aName = "", aDescriptor = {}, aRelaxed = false) {
+    if (this._store.has(aName) && !aRelaxed) {
       return null;
     }
 
@@ -1858,8 +1877,10 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
-  addProperty: function V_addProperty(aName = "", aDescriptor = {}) {
-    if (this._store.has(aName)) {
+
+
+  addProperty: function V_addProperty(aName = "", aDescriptor = {}, aRelaxed = false) {
+    if (this._store.has(aName) && !aRelaxed) {
       return null;
     }
 
@@ -1919,6 +1940,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
+
   populate: function V_populate(aObject, aOptions = {}) {
     
     if (this._fetched) {
@@ -1937,9 +1959,15 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     for (let name of propertyNames) {
       let descriptor = Object.getOwnPropertyDescriptor(aObject, name);
       if (descriptor.get || descriptor.set) {
-        this._addRawNonValueProperty(name, descriptor);
+        let prop = this._addRawNonValueProperty(name, descriptor);
+        if (aOptions.expanded) {
+          prop.expanded = true;
+        }
       } else {
-        this._addRawValueProperty(name, descriptor, aObject[name]);
+        let prop = this._addRawValueProperty(name, descriptor, aObject[name]);
+        if (aOptions.expanded) {
+          prop.expanded = true;
+        }
       }
     }
     
@@ -1973,6 +2001,8 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
+
+
   _addRawValueProperty: function V__addRawValueProperty(aName, aDescriptor, aValue) {
     let descriptor = Object.create(aDescriptor);
     descriptor.value = VariablesView.getGrip(aValue);
@@ -1985,9 +2015,12 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     if (!VariablesView.isPrimitive(descriptor)) {
       propertyItem.onexpand = this._populateTarget;
     }
+    return propertyItem;
   },
 
   
+
+
 
 
 
@@ -2001,7 +2034,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     descriptor.get = VariablesView.getGrip(aDescriptor.get);
     descriptor.set = VariablesView.getGrip(aDescriptor.set);
 
-    this.addProperty(aName, descriptor);
+    return this.addProperty(aName, descriptor);
   },
 
   
@@ -2048,7 +2081,7 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
   setGrip: function V_setGrip(aGrip) {
     
-    if (!this._nameString) {
+    if (!this._nameString || aGrip === undefined || aGrip === null) {
       return;
     }
     
@@ -2057,11 +2090,9 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
       return;
     }
 
-    if (aGrip === undefined) {
-      aGrip = { type: "undefined" };
-    }
-    if (aGrip === null) {
-      aGrip = { type: "null" };
+    
+    if (typeof aGrip == "string") {
+      aGrip = NetworkHelper.convertToUnicode(unescape(aGrip));
     }
 
     let prevGrip = this._valueGrip;
@@ -2256,13 +2287,13 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     if (this.ownerView.eval) {
       this._target.setAttribute("editable", "");
     }
-    if (!descriptor.configurable) {
+    if (!descriptor.null && !descriptor.configurable) {
       this._target.setAttribute("non-configurable", "");
     }
-    if (!descriptor.enumerable) {
+    if (!descriptor.null && !descriptor.enumerable) {
       this._target.setAttribute("non-enumerable", "");
     }
-    if (!descriptor.writable && !this.ownerView.getter && !this.ownerView.setter) {
+    if (!descriptor.null && !descriptor.writable && !this.ownerView.getter && !this.ownerView.setter) {
       this._target.setAttribute("non-writable", "");
     }
     if (name == "this") {
@@ -2341,6 +2372,8 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
 
   _deactivateInput: function V__deactivateInput(aLabel, aInput, aCallbacks) {
     aInput.parentNode.replaceChild(aLabel, aInput);
+    this._variablesView._boxObject.scrollBy(-this._target.clientWidth, 0);
+
     aInput.removeEventListener("keypress", aCallbacks.onKeypress, false);
     aInput.removeEventListener("blur", aCallbacks.onBlur, false);
 
@@ -2454,8 +2487,10 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     this._deactivateNameInput(e);
 
     if (initialString != currentString) {
-      this._disable();
-      this._name.value = currentString;
+      if (!this._variablesView.preventDisableOnChage) {
+        this._disable();
+        this._name.value = currentString;
+      }
       this.ownerView.switch(this, currentString);
     }
   },
@@ -2470,7 +2505,9 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
     this._deactivateValueInput(e);
 
     if (initialString != currentString) {
-      this._disable();
+      if (!this._variablesView.preventDisableOnChage) {
+        this._disable();
+      }
       this.ownerView.eval(this.evaluationMacro(this, currentString.trim()));
     }
   },
@@ -2635,8 +2672,8 @@ Property.prototype.__iterator__ = function VV_iterator() {
 
 
 VariablesView.prototype.clearHierarchy = function VV_clearHierarchy() {
-  this._prevHierarchy = new Map();
-  this._currHierarchy = new Map();
+  this._prevHierarchy.clear();
+  this._currHierarchy.clear();
 };
 
 
@@ -2645,7 +2682,7 @@ VariablesView.prototype.clearHierarchy = function VV_clearHierarchy() {
 
 VariablesView.prototype.createHierarchy = function VV_createHierarchy() {
   this._prevHierarchy = this._currHierarchy;
-  this._currHierarchy = new Map();
+  this._currHierarchy = new Map(); 
 };
 
 

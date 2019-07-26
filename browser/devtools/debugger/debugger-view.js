@@ -12,7 +12,6 @@ const STACK_FRAMES_SOURCE_URL_TRIM_SECTION = "center";
 const STACK_FRAMES_POPUP_SOURCE_URL_MAX_LENGTH = 32; 
 const STACK_FRAMES_POPUP_SOURCE_URL_TRIM_SECTION = "center";
 const STACK_FRAMES_SCROLL_DELAY = 100; 
-const PANES_APPEARANCE_DELAY = 50; 
 const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000; 
 const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "before_start";
 const BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X = 7; 
@@ -416,7 +415,7 @@ let DebuggerView = {
 
 
   get instrumentsPaneHidden()
-    this._instrumentsPaneToggleButton.hasAttribute("toggled"),
+    this._instrumentsPane.hasAttribute("pane-collapsed"),
 
   
 
@@ -428,55 +427,18 @@ let DebuggerView = {
 
 
 
-  toggleInstrumentsPane: function DV__toggleInstrumentsPane(aFlags = {}) {
-    
-    if (aFlags.visible == !this.instrumentsPaneHidden) {
-      if (aFlags.callback) aFlags.callback();
-      return;
-    }
+  toggleInstrumentsPane: function DV__toggleInstrumentsPane(aFlags) {
+    let pane = this._instrumentsPane;
+    let button = this._instrumentsPaneToggleButton;
 
-    
-    function set() {
-      if (aFlags.visible) {
-        this._instrumentsPane.style.marginLeft = "0";
-        this._instrumentsPane.style.marginRight = "0";
-        this._instrumentsPaneToggleButton.removeAttribute("toggled");
-        this._instrumentsPaneToggleButton.setAttribute("tooltiptext", this._collapsePaneString);
-      } else {
-        let margin = ~~(this._instrumentsPane.getAttribute("width")) + 1;
-        this._instrumentsPane.style.marginLeft = -margin + "px";
-        this._instrumentsPane.style.marginRight = -margin + "px";
-        this._instrumentsPaneToggleButton.setAttribute("toggled", "true");
-        this._instrumentsPaneToggleButton.setAttribute("tooltiptext", this._expandPaneString);
-      }
+    ViewHelpers.togglePane(aFlags, pane);
 
-      if (aFlags.animated) {
-        
-        
-        
-        window.addEventListener("transitionend", function onEvent() {
-          window.removeEventListener("transitionend", onEvent, false);
-          DebuggerView.updateEditor();
-
-          
-          if (aFlags.callback) aFlags.callback();
-        }, false);
-      } else {
-        
-        if (aFlags.callback) aFlags.callback();
-      }
-    }
-
-    if (aFlags.animated) {
-      this._instrumentsPane.setAttribute("animated", "");
+    if (aFlags.visible) {
+      button.removeAttribute("pane-collapsed");
+      button.setAttribute("tooltiptext", this._collapsePaneString);
     } else {
-      this._instrumentsPane.removeAttribute("animated");
-    }
-
-    if (aFlags.delayed) {
-      window.setTimeout(set.bind(this), PANES_APPEARANCE_DELAY);
-    } else {
-      set.call(this);
+      button.setAttribute("pane-collapsed", "");
+      button.setAttribute("tooltiptext", this._expandPaneString);
     }
   },
 

@@ -959,7 +959,7 @@ create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
 
 
 let SourceUtils = {
-  _labelsCache: new Map(),
+  _labelsCache: new Map(), 
   _groupsCache: new Map(),
 
   
@@ -968,8 +968,8 @@ let SourceUtils = {
 
 
   clearCache: function SU_clearCache() {
-    this._labelsCache = new Map();
-    this._groupsCache = new Map();
+    this._labelsCache.clear();
+    this._groupsCache.clear();
   },
 
   
@@ -987,7 +987,7 @@ let SourceUtils = {
     }
 
     let sourceLabel = this.trimUrl(aUrl);
-    let unicodeLabel = this.convertToUnicode(window.unescape(sourceLabel));
+    let unicodeLabel = NetworkHelper.convertToUnicode(unescape(sourceLabel));
     this._labelsCache.set(aUrl, unicodeLabel);
     return unicodeLabel;
   },
@@ -1036,7 +1036,7 @@ let SourceUtils = {
     }
 
     let groupLabel = group.join(" ");
-    let unicodeLabel = this.convertToUnicode(window.unescape(groupLabel));
+    let unicodeLabel = NetworkHelper.convertToUnicode(unescape(groupLabel));
     this._groupsCache.set(aUrl, unicodeLabel)
     return unicodeLabel;
   },
@@ -1181,31 +1181,6 @@ let SourceUtils = {
     }
     
     return aUrl.spec;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  convertToUnicode: function SU_convertToUnicode(aString, aCharset) {
-    
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-        .createInstance(Ci.nsIScriptableUnicodeConverter);
-
-    try {
-      if (aCharset) {
-        converter.charset = aCharset;
-      }
-      return converter.ConvertToUnicode(aString);
-    } catch(e) {
-      return aString;
-    }
   }
 };
 

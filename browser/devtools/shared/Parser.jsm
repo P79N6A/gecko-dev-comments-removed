@@ -90,7 +90,7 @@ Parser.prototype = {
 
 
   clearCache: function P_clearCache() {
-    this._cache = new Map();
+    this._cache.clear();
   },
 
   _cache: null
