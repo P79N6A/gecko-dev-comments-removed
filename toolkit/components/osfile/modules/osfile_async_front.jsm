@@ -172,7 +172,7 @@ let Scheduler = {
           throw OS.File.Error.fromMsg(error.data);
         }
         
-        if (typeof error == "object" && error && error.constructor.name == "WorkerErrorEvent") {
+        if (error instanceof ErrorEvent) {
           let message = error.message;
           if (message == "uncaught exception: [object StopIteration]") {
             throw StopIteration;
