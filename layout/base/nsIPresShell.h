@@ -1515,11 +1515,4 @@ protected:
   nscoord mMaxLineBoxWidth;
 };
 
-
-
-
-
-nsresult
-NS_NewPresShell(nsIPresShell** aInstancePtrResult);
-
 #endif
