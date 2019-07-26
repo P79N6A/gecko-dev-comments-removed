@@ -128,7 +128,7 @@ FrameWorker.prototype = {
     let workerAPI = ['WebSocket', 'localStorage', 'atob', 'btoa',
                      'clearInterval', 'clearTimeout', 'dump',
                      'setInterval', 'setTimeout', 'XMLHttpRequest',
-                     'MozBlobBuilder', 'FileReader', 'Blob',
+                     'FileReader', 'Blob',
                      'location'];
     
     
