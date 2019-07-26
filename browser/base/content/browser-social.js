@@ -1366,6 +1366,7 @@ SocialSidebar = {
       
       if (sbrowser.getAttribute("src") != Social.provider.sidebarURL) {
         sbrowser.setAttribute("src", Social.provider.sidebarURL);
+        PopupNotifications.locationChange(sbrowser);
       }
 
       
