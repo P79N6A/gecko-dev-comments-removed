@@ -383,12 +383,13 @@ nsHttpChannel::Connect()
 
         bool isStsHost = false;
         uint32_t flags = mPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-        rv = sss->IsStsURI(mURI, flags, &isStsHost);
+        rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
+                              &isStsHost);
 
         
         
         NS_ASSERTION(NS_SUCCEEDED(rv),
-                     "Something is wrong with STS: IsStsURI failed.");
+                     "Something is wrong with SSS: IsSecureURI failed.");
 
         if (NS_SUCCEEDED(rv) && isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
@@ -1155,7 +1156,7 @@ nsHttpChannel::ProcessSTSHeader()
     
     
     bool tlsIsBroken = false;
-    rv = sss->ShouldIgnoreStsHeader(mSecurityInfo, &tlsIsBroken);
+    rv = sss->ShouldIgnoreHeader(mSecurityInfo, &tlsIsBroken);
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
     
@@ -1166,7 +1167,8 @@ nsHttpChannel::ProcessSTSHeader()
     bool wasAlreadySTSHost;
     uint32_t flags =
       NS_UsePrivateBrowsing(this) ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-    rv = sss->IsStsURI(mURI, flags, &wasAlreadySTSHost);
+    rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
+                          &wasAlreadySTSHost);
     
     
     NS_ENSURE_SUCCESS(rv, NS_OK);
@@ -1194,7 +1196,8 @@ nsHttpChannel::ProcessSTSHeader()
     
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = sss->ProcessStsHeader(mURI, stsHeader.get(), flags, NULL, NULL);
+    rv = sss->ProcessHeader(nsISiteSecurityService::HEADER_HSTS, mURI,
+                            stsHeader.get(), flags, NULL, NULL);
     if (NS_FAILED(rv)) {
         AddSecurityMessage(NS_LITERAL_STRING("InvalidSTSHeaders"),
                 NS_LITERAL_STRING("Invalid HSTS Headers"));
