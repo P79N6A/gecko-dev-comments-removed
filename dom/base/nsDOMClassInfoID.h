@@ -93,8 +93,7 @@ class EventTarget;
 
 
 
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 2) || \
-    _MSC_FULL_VER >= 140050215
+#if defined(__GNUC__) || _MSC_FULL_VER >= 140050215
 
 
 
