@@ -128,7 +128,8 @@ nsTreeBodyFrame::nsTreeBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aCont
  mHasFixedRowCount(false),
  mVerticalOverflow(false),
  mHorizontalOverflow(false),
- mReflowCallbackPosted(false)
+ mReflowCallbackPosted(false),
+ mCheckingOverflow(false)
 {
   mColumns = new nsTreeColumns(this);
 }
@@ -916,8 +917,11 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
       }
     }
   }
- 
+
+  nsWeakFrame weakFrame(this);
+
   nsRefPtr<nsPresContext> presContext = PresContext();
+  nsCOMPtr<nsIPresShell> presShell = presContext->GetPresShell();
   nsCOMPtr<nsIContent> content = mContent;
 
   if (verticalOverflowChanged) {
@@ -934,6 +938,23 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
     event.orient = nsScrollPortEvent::horizontal;
     nsEventDispatcher::Dispatch(content, presContext, &event);
   }
+
+  
+  
+  
+  if (!weakFrame.IsAlive()) {
+    fprintf(stderr, "FRAME DEAD 1!\n");
+    return;
+  }
+  mCheckingOverflow = true;
+  fprintf(stderr, "BEGIN FlushPendingNotifications\n");
+  presShell->FlushPendingNotifications(Flush_Layout);
+  fprintf(stderr, "END FlushPendingNotifications\n");
+  if (!weakFrame.IsAlive()) {
+    fprintf(stderr, "FRAME DEAD 2!\n");
+    return;
+  }
+  mCheckingOverflow = false;
 }
 
 void
@@ -4645,7 +4666,17 @@ nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
   }
   InvalidateScrollbars(parts, weakColumnsFrame);
   NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
-  nsContentUtils::AddScriptRunner(new nsOverflowChecker(this));
+
+  
+  
+  
+  
+  nsRefPtr<nsOverflowChecker> checker = new nsOverflowChecker(this);
+  if (mCheckingOverflow) {
+    NS_DispatchToCurrentThread(checker);
+  } else {
+    nsContentUtils::AddScriptRunner(checker);
+  }
   return weakFrame.IsAlive();
 }
 

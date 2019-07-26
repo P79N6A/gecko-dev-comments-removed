@@ -617,6 +617,8 @@ protected:
 
   bool mReflowCallbackPosted;
 
+  bool mCheckingOverflow;
+
   
   
   nsTHashtable<nsPtrHashKey<nsTreeImageListener> > mCreatedListeners;

@@ -1237,6 +1237,13 @@ nsBoxFrame::AttributeChanged(int32_t aNameSpaceID,
   else if (aAttribute == nsGkAtoms::accesskey) {
     RegUnregAccessKey(true);
   }
+  else if (aAttribute == nsGkAtoms::rows &&
+           tag == nsGkAtoms::tree) {
+    
+    
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+  }
 
   return rv;
 }
