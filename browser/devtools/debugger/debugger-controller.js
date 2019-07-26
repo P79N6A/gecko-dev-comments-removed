@@ -1212,20 +1212,6 @@ Breakpoints.prototype = {
 
 
 
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _skipEditorBreakpointCallbacks: false,
   _added: new Map(),
   _removing: new Map(),
 
@@ -1264,13 +1250,8 @@ Breakpoints.prototype = {
 
 
   _onEditorBreakpointChange: function(aEvent) {
-    if (this._skipEditorBreakpointCallbacks) {
-      return;
-    }
-    this._skipEditorBreakpointCallbacks = true;
     aEvent.added.forEach(this._onEditorBreakpointAdd, this);
     aEvent.removed.forEach(this._onEditorBreakpointRemove, this);
-    this._skipEditorBreakpointCallbacks = false;
   },
 
   
@@ -1545,9 +1526,7 @@ Breakpoints.prototype = {
     
     if (!aFlags.noEditorUpdate) {
       if (location.url == currentSourceUrl) {
-        this._skipEditorBreakpointCallbacks = true;
         DebuggerView.editor.addBreakpoint(location.line - 1);
-        this._skipEditorBreakpointCallbacks = false;
       }
     }
 
@@ -1581,9 +1560,7 @@ Breakpoints.prototype = {
     
     if (!aFlags.noEditorUpdate) {
       if (aLocation.url == currentSourceUrl) {
-        this._skipEditorBreakpointCallbacks = true;
         DebuggerView.editor.removeBreakpoint(aLocation.line - 1);
-        this._skipEditorBreakpointCallbacks = false;
       }
     }
     
