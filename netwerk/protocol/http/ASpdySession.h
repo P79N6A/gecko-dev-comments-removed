@@ -36,7 +36,7 @@ public:
     return true;
   }
 
-  const static uint32_t kSendingChunkSize = 4096;
+  const static uint32_t kSendingChunkSize = 4095;
   const static uint32_t kTCPSendBufferSize = 131072;
 
   
@@ -62,7 +62,7 @@ public:
   SpdyInformation();
   ~SpdyInformation() {}
 
-  static const uint32_t kCount = 2;
+  static const uint32_t kCount = 3;
 
   
   bool ProtocolEnabled(uint32_t index);

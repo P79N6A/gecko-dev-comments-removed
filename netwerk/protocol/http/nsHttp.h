@@ -26,10 +26,18 @@ namespace net {
     enum {
         SPDY_VERSION_2_REMOVED = 2,
         SPDY_VERSION_3 = 3,
-        SPDY_VERSION_31 = 4
+        SPDY_VERSION_31 = 4,
+
+        
+        
+        
+        HTTP2_VERSION_DRAFT08 = 26
     };
 
 typedef uint8_t nsHttpVersion;
+
+#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT08
+#define NS_HTTP2_DRAFT_TOKEN "HTTP-draft-08/2.0"
 
 
 

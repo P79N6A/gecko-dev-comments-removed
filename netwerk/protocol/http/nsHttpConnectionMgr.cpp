@@ -23,6 +23,7 @@
 #include "nsITransport.h"
 #include "nsISocketTransportService.h"
 #include <algorithm>
+#include "Http2Compression.h"
 
 
 extern PRThread *gSocketThread;
@@ -153,6 +154,7 @@ nsHttpConnectionMgr::Shutdown()
     
     while (!shutdown)
         NS_ProcessNextEvent(NS_GetCurrentThread());
+    Http2CompressionCleanup();
 
     return NS_OK;
 }

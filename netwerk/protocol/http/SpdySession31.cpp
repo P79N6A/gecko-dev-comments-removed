@@ -746,7 +746,7 @@ SpdySession31::GenerateSettings()
   
   
 
-  if (!gHttpHandler->AllowSpdyPush()) {
+  if (!gHttpHandler->AllowPush()) {
     
     
     packet[15 + 8 * numberOfEntries] = SETTINGS_TYPE_MAX_CONCURRENT;
@@ -803,7 +803,7 @@ SpdySession31::GenerateSettings()
 
   LOG3(("Session Window increase at start of session %p %u\n",
         this, PR_ntohl(sessionWindowBump)));
-  LogIO(this, nullptr, "Session Window Bump ", packet, 12);
+  LogIO(this, nullptr, "Session Window Bump ", packet, 16);
 
 generateSettings_complete:
   FlushOutputQueue();
@@ -1017,7 +1017,7 @@ SpdySession31::HandleSynStream(SpdySession31 *self)
     LOG3(("SpdySession31::HandleSynStream %p associated ID of 0 failed.\n", self));
     self->GenerateRstStream(RST_PROTOCOL_ERROR, streamID);
 
-  } else if (!gHttpHandler->AllowSpdyPush()) {
+  } else if (!gHttpHandler->AllowPush()) {
     
     
     

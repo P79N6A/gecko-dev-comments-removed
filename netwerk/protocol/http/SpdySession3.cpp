@@ -735,7 +735,7 @@ SpdySession3::GenerateSettings()
   
   
 
-  if (!gHttpHandler->AllowSpdyPush()) {
+  if (!gHttpHandler->AllowPush()) {
   
   
     packet[15 + 8 * numberOfEntries] = SETTINGS_TYPE_MAX_CONCURRENT;
@@ -980,7 +980,7 @@ SpdySession3::HandleSynStream(SpdySession3 *self)
     LOG3(("SpdySession3::HandleSynStream %p associated ID of 0 failed.\n", self));
     self->GenerateRstStream(RST_PROTOCOL_ERROR, streamID);
 
-  } else if (!gHttpHandler->AllowSpdyPush()) {
+  } else if (!gHttpHandler->AllowPush()) {
     
     
     
