@@ -212,6 +212,12 @@ var BrowserApp = {
     return this.isTablet = sysInfo.get("tablet");
   },
 
+  get isOnLowMemoryPlatform() {
+    let memory = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
+    delete this.isOnLowMemoryPlatform;
+    return this.isOnLowMemoryPlatform = memory.isLowMemoryPlatform();
+  },
+
   deck: null,
 
   startup: function startup() {
@@ -3218,7 +3224,7 @@ Tab.prototype = {
 
         
         
-        if (Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory).isLowMemoryPlatform())
+        if (BrowserApp.isOnLowMemoryPlatform)
           return;
 
         
@@ -7206,7 +7212,7 @@ var Tabs = {
   init: function() {
     
     
-    if (Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory).isLowMemoryPlatform()) {
+    if (BrowserApp.isOnLowMemoryPlatform) {
       this._enableTabExpiration = true;
     } else {
       Services.obs.addObserver(this, "memory-pressure", false);
