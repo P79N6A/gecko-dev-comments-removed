@@ -110,7 +110,7 @@ public:
     bool           AllowSpdyPush()   { return mAllowSpdyPush; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
-    bool           CritialRequestPrioritization() { return mCritialRequestPrioritization; }
+    bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
     double         BypassCacheLockThreshold() { return mBypassCacheLockThreshold; }
 
     bool           UseRequestTokenBucket() { return mRequestTokenBucketEnabled; }
@@ -453,7 +453,7 @@ private:
 
     
     
-    bool           mCritialRequestPrioritization;
+    bool           mCriticalRequestPrioritization;
 
     
     
