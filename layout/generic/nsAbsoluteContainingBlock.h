@@ -12,14 +12,11 @@
 #define nsAbsoluteContainingBlock_h___
 
 #include "nsFrameList.h"
-#include "nsHTMLReflowState.h"
-#include "nsGkAtoms.h"
-#include "nsContainerFrame.h"
+#include "nsIFrame.h"
 
-class nsIAtom;
-class nsIFrame;
+class nsContainerFrame;
+class nsHTMLReflowState;
 class nsPresContext;
-
 
 
 
@@ -44,20 +41,16 @@ public:
     : mChildListID(aChildListID)
 #endif
   {
-    NS_ASSERTION(mChildListID == nsIFrame::kAbsoluteList ||
-                 mChildListID == nsIFrame::kFixedList,
-                 "should either represent position:fixed or absolute content");
+    MOZ_ASSERT(mChildListID == nsIFrame::kAbsoluteList ||
+               mChildListID == nsIFrame::kFixedList,
+               "should either represent position:fixed or absolute content");
   }
-
-#ifdef DEBUG
-  ChildListID GetChildListID() const { return mChildListID; }
-#endif
 
   const nsFrameList& GetChildList() const { return mAbsoluteFrames; }
   void AppendChildList(nsTArray<nsIFrame::ChildList>* aLists,
                        ChildListID aListID) const
   {
-    NS_ASSERTION(aListID == GetChildListID(), "wrong list ID");
+    NS_ASSERTION(aListID == mChildListID, "wrong list ID");
     GetChildList().AppendIfNonempty(aLists, aListID);
   }
 
@@ -76,17 +69,19 @@ public:
                    nsIFrame*      aOldFrame);
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult Reflow(nsContainerFrame*        aDelegatingFrame,
                   nsPresContext*           aPresContext,
                   const nsHTMLReflowState& aReflowState,
@@ -102,24 +97,30 @@ public:
   void DestroyFrames(nsIFrame* aDelegatingFrame,
                      nsIFrame* aDestructRoot);
 
-  bool    HasAbsoluteFrames() {return mAbsoluteFrames.NotEmpty();}
+  bool HasAbsoluteFrames() const { return mAbsoluteFrames.NotEmpty(); }
 
   
-  
+
+
+
   void MarkSizeDependentFramesDirty();
 
   
+
+
   void MarkAllFramesDirty();
 
 protected:
   
-  
-  
-  bool FrameDependsOnContainer(nsIFrame* f, bool aCBWidthChanged,
-                                 bool aCBHeightChanged);
+
+
+
+
+  bool FrameDependsOnContainer(nsIFrame* aFrame, bool aCBWidthChanged,
+                               bool aCBHeightChanged);
 
   nsresult ReflowAbsoluteFrame(nsIFrame*                aDelegatingFrame,
-                               nsPresContext*          aPresContext,
+                               nsPresContext*           aPresContext,
                                const nsHTMLReflowState& aReflowState,
                                nscoord                  aContainingBlockWidth,
                                nscoord                  aContainingBlockHeight,
@@ -129,8 +130,11 @@ protected:
                                nsOverflowAreas*         aOverflowAreas);
 
   
-  
-  
+
+
+
+
+
   void DoMarkFramesDirty(bool aMarkAllDirty);
 
 protected:
@@ -138,12 +142,7 @@ protected:
 
 #ifdef DEBUG
   ChildListID const mChildListID; 
-
-  
-  void PrettyUC(nscoord aSize,
-                char*   aBuf);
 #endif
 };
 
 #endif 
-
