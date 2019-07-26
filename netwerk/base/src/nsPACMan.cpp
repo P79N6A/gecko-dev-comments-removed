@@ -369,6 +369,7 @@ nsPACMan::LoadPACFromURI(const nsCString &spec)
   if (!spec.IsEmpty()) {
     mPACURISpec = spec;
     mPACURIRedirectSpec.Truncate();
+    mNormalPACURISpec.Truncate(); 
     mLoadFailureCount = 0;  
   }
 
@@ -399,6 +400,7 @@ nsPACMan::StartLoading()
 
       
       if (pacURI) {
+        pacURI->GetSpec(mNormalPACURISpec);
         ios->NewChannelFromURI(pacURI, getter_AddRefs(channel));
       }
       else {

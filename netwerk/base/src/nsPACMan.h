@@ -136,7 +136,8 @@ public:
 
   bool IsPACURI(const nsACString &spec)
   {
-    return mPACURISpec.Equals(spec) || mPACURIRedirectSpec.Equals(spec);
+    return mPACURISpec.Equals(spec) || mPACURIRedirectSpec.Equals(spec) ||
+      mNormalPACURISpec.Equals(spec);
   }
 
   bool IsPACURI(nsIURI *uri) {
@@ -206,8 +207,13 @@ private:
 
   mozilla::LinkedList<PendingPACQuery> mPendingQ; 
 
-  nsCString                    mPACURISpec; 
+  
+  
+  
+  nsCString                    mPACURISpec;
   nsCString                    mPACURIRedirectSpec;
+  nsCString                    mNormalPACURISpec;
+
   nsCOMPtr<nsIStreamLoader>    mLoader;
   bool                         mLoadPending;
   bool                         mShutdown;
