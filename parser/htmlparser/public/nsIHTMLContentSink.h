@@ -54,8 +54,7 @@
 #include "nsHTMLTags.h"
 
 #define NS_IHTML_CONTENT_SINK_IID \
-{ 0xb6d6ae00, 0x0884, 0x4a30, \
-  { 0xa8, 0xb4, 0xce, 0xca, 0x57, 0x27, 0x1a, 0x3e } }
+  {0xb08b0f29, 0xe61c, 0x4647, {0xaf, 0x1e, 0x05, 0x1a, 0x75, 0x2f, 0xe6, 0x3d}}
 
 
 
@@ -71,54 +70,7 @@ public:
 
 
 
-
-  NS_IMETHOD OpenHead() = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD BeginContext(int32_t aPosition) = 0;
-  
-  
-
-
-
-
-
-
-  NS_IMETHOD EndContext(int32_t aPosition) = 0;
-  
-  
-
-
-
   NS_IMETHOD IsEnabled(int32_t aTag, bool* aReturn) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD DidProcessTokens() = 0;
-
-  
-
-
-
-  NS_IMETHOD WillProcessAToken(void) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD DidProcessAToken(void) = 0;
 
     
 
@@ -135,28 +87,6 @@ public:
 
      
   NS_IMETHOD CloseContainer(const nsHTMLTag aTag) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD CloseMalformedContainer(const nsHTMLTag aTag)
-  {
-    return CloseContainer(aTag);
-  }
-
-  
-
-
-
-
-
-
-     
-  NS_IMETHOD AddLeaf(const nsIParserNode& aNode) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLContentSink, NS_IHTML_CONTENT_SINK_IID)
