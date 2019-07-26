@@ -3797,24 +3797,16 @@ let RIL = {
   },
 
   _handleChangedEmergencyCbMode: function _handleChangedEmergencyCbMode(active) {
-    if (this._isInEmergencyCbMode === active) {
-      return;
-    }
-
-    if (active) {
-      
-      let ril = this;
-      this._cancelEmergencyCbModeTimeout();
-      this._exitEmergencyCbModeTimeoutID = setTimeout(function() {
-          ril.exitEmergencyCbMode();
-      }, EMERGENCY_CB_MODE_TIMEOUT_MS);
-    } else {
-      
-      this._cancelEmergencyCbModeTimeout();
-    }
+    this._isInEmergencyCbMode = active;
 
     
-    this._isInEmergencyCbMode = active;
+    this._cancelEmergencyCbModeTimeout();
+
+    
+    if (active) {
+      this._exitEmergencyCbModeTimeoutID = setTimeout(
+          this.exitEmergencyCbMode.bind(this), EMERGENCY_CB_MODE_TIMEOUT_MS);
+    }
 
     let message = {rilMessageType: "emergencyCbModeChange",
                    active: active,
