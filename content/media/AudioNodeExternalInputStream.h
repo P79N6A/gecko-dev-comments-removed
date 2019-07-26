@@ -58,6 +58,17 @@ private:
                           float aVolume);
 
     
+    
+    TrackTicks mEndOfConsumedInputTicks;
+    
+    
+    
+    StreamTime mEndOfLastInputIntervalInInputStream;
+    
+    
+    
+    StreamTime mEndOfLastInputIntervalInOutputStream;
+    
 
 
     TrackTicks mSamplesPassedToResampler;
