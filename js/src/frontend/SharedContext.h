@@ -141,6 +141,30 @@ class FunctionContextFlags
 class GlobalSharedContext;
 
 
+class Directives
+{
+    bool strict_;
+
+  public:
+    explicit Directives(bool strict) : strict_(strict) {}
+    template <typename ParseHandler> explicit Directives(ParseContext<ParseHandler> *parent);
+
+    void setStrict() { strict_ = true; }
+    bool strict() const { return strict_; }
+
+    Directives &operator=(Directives rhs) {
+        strict_ = rhs.strict_;
+        return *this;
+    }
+    bool operator==(const Directives &rhs) const {
+        return strict_ == rhs.strict_;
+    }
+    bool operator!=(const Directives &rhs) const {
+        return strict_ != rhs.strict_;
+    }
+};
+
+
 
 
 
@@ -156,10 +180,10 @@ class SharedContext
 
     
     
-    SharedContext(ExclusiveContext *cx, bool strict, bool extraWarnings)
+    SharedContext(ExclusiveContext *cx, Directives directives, bool extraWarnings)
       : context(cx),
         anyCxFlags(),
-        strict(strict),
+        strict(directives.strict()),
         extraWarnings(extraWarnings)
     {}
 
@@ -192,8 +216,8 @@ class GlobalSharedContext : public SharedContext
 
   public:
     GlobalSharedContext(ExclusiveContext *cx, JSObject *scopeChain,
-                        bool strict, bool extraWarnings)
-      : SharedContext(cx, strict, extraWarnings),
+                        Directives directives, bool extraWarnings)
+      : SharedContext(cx, directives, extraWarnings),
         scopeChain_(cx, scopeChain)
     {}
 
@@ -249,8 +273,8 @@ class FunctionBox : public ObjectBox, public SharedContext
 
     template <typename ParseHandler>
     FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunction *fun,
-                ParseContext<ParseHandler> *pc,
-                bool strict, bool extraWarnings);
+                ParseContext<ParseHandler> *pc, Directives directives,
+                bool extraWarnings);
 
     ObjectBox *toObjectBox() { return this; }
     JSFunction *function() const { return &object->as<JSFunction>(); }

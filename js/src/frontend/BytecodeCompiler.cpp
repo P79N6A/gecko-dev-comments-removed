@@ -205,8 +205,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
                                     canLazilyParse ? &syntaxParser.ref() : NULL, NULL);
     parser.sct = sct;
 
-    GlobalSharedContext globalsc(cx, scopeChain,
-                                 options.strictOption, options.extraWarningsOption);
+    Directives directives(options.strictOption);
+    GlobalSharedContext globalsc(cx, scopeChain, directives, options.extraWarningsOption);
 
     bool savedCallerFun =
         options.compileAndGo &&
@@ -240,7 +240,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
     
     Maybe<ParseContext<FullParseHandler> > pc;
 
-    pc.construct(&parser, (GenericParseContext *) NULL, &globalsc, staticLevel,  0);
+    pc.construct(&parser, (GenericParseContext *) NULL, &globalsc, (Directives *) NULL,
+                 staticLevel,  0);
     if (!pc.ref().init())
         return NULL;
 
@@ -267,7 +268,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
 
 
             JSFunction *fun = evalCaller->functionOrCallerFunction();
-            ObjectBox *funbox = parser.newFunctionBox(fun, pc.addr(), fun->strict());
+            Directives directives( fun->strict());
+            ObjectBox *funbox = parser.newFunctionBox(fun, pc.addr(), directives);
             if (!funbox)
                 return NULL;
             bce.objectList.add(funbox);
@@ -305,7 +307,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
 
                 pc.destroy();
                 pc.construct(&parser, (GenericParseContext *) NULL, &globalsc,
-                             staticLevel,  0);
+                             (Directives *) NULL, staticLevel,  0);
                 if (!pc.ref().init())
                     return NULL;
                 JS_ASSERT(parser.pc == pc.addr());
@@ -465,13 +467,16 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
     
     
     
-    ParseNode *fn;
+    
+    Directives directives(options.strictOption);
+
     TokenStream::Position start(parser.keepAtoms);
     parser.tokenStream.tell(&start);
-    bool strict = options.strictOption;
-    bool becameStrict;
+
+    ParseNode *fn;
     while (true) {
-        fn = parser.standaloneFunctionBody(fun, formals, strict, &becameStrict);
+        Directives newDirectives = directives;
+        fn = parser.standaloneFunctionBody(fun, formals, directives, &newDirectives);
         if (fn)
             break;
 
@@ -481,10 +486,12 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
             
             parser.clearAbortedSyntaxParse();
         } else {
-            
-            if (strict || !becameStrict || parser.tokenStream.hadError())
+            if (parser.tokenStream.hadError() || directives == newDirectives)
                 return false;
-            strict = true;
+
+            
+            JS_ASSERT_IF(directives.strict(), newDirectives.strict());
+            directives = newDirectives;
         }
 
         parser.tokenStream.seek(start);

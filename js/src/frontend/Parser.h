@@ -219,18 +219,22 @@ struct ParseContext : public GenericParseContext
     
     
     
+    Directives *newDirectives;
+
+    
+    
+    
+    
+    
     
     
     
     
     bool            inDeclDestructuring:1;
 
-    
-    
-    bool            funBecameStrict:1;
-
     ParseContext(Parser<ParseHandler> *prs, GenericParseContext *parent,
-                 SharedContext *sc, unsigned staticLevel, uint32_t bodyid)
+                 SharedContext *sc, Directives *newDirectives,
+                 unsigned staticLevel, uint32_t bodyid)
       : GenericParseContext(parent, sc),
         bodyid(0),           
         blockidGen(bodyid),  
@@ -250,8 +254,8 @@ struct ParseContext : public GenericParseContext
         lexdeps(prs->context),
         funcStmts(NULL),
         innerFunctions(prs->context),
-        inDeclDestructuring(false),
-        funBecameStrict(false)
+        newDirectives(newDirectives),
+        inDeclDestructuring(false)
     {
         prs->pc = this;
     }
@@ -287,6 +291,12 @@ struct ParseContext : public GenericParseContext
         return sc->isFunctionBox() && sc->asFunctionBox()->useAsmOrInsideUseAsm();
     }
 };
+
+template <typename ParseHandler>
+inline
+Directives::Directives(ParseContext<ParseHandler> *parent)
+  : strict_(parent->sc->strict)
+{}
 
 template <typename ParseHandler>
 struct BindData;
@@ -369,7 +379,8 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
     ObjectBox *newObjectBox(JSObject *obj);
     ModuleBox *newModuleBox(Module *module, ParseContext<ParseHandler> *pc);
-    FunctionBox *newFunctionBox(JSFunction *fun, ParseContext<ParseHandler> *pc, bool strict);
+    FunctionBox *newFunctionBox(JSFunction *fun, ParseContext<ParseHandler> *pc,
+                                Directives directives);
 
     
 
@@ -402,7 +413,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
     
     Node standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals,
-                                bool strict, bool *becameStrict);
+                                Directives inheritedDirectives, Directives *newDirectives);
 
     
     
@@ -416,7 +427,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     Node functionBody(FunctionSyntaxKind kind, FunctionBodyType type);
 
     bool functionArgsAndBodyGeneric(Node pn, HandleFunction fun, FunctionType type,
-                                    FunctionSyntaxKind kind, bool *becameStrict);
+                                    FunctionSyntaxKind kind, Directives *newDirectives);
 
     virtual bool strictMode() { return pc->sc->strict; }
 
@@ -487,7 +498,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
                      FunctionType type, FunctionSyntaxKind kind);
     bool functionArgsAndBody(Node pn, HandleFunction fun,
                              FunctionType type, FunctionSyntaxKind kind,
-                             bool strict, bool *becameStrict = NULL);
+                             Directives inheritedDirectives, Directives *newDirectives);
 
     Node unaryOpExpr(ParseNodeKind kind, JSOp op, uint32_t begin);
 

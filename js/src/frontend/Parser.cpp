@@ -453,9 +453,10 @@ Parser<ParseHandler>::newObjectBox(JSObject *obj)
 
 template <typename ParseHandler>
 FunctionBox::FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunction *fun,
-                         ParseContext<ParseHandler> *outerpc, bool strict, bool extraWarnings)
+                         ParseContext<ParseHandler> *outerpc, Directives directives,
+                         bool extraWarnings)
   : ObjectBox(fun, traceListHead),
-    SharedContext(cx, strict, extraWarnings),
+    SharedContext(cx, directives, extraWarnings),
     bindings(),
     bufStart(0),
     bufEnd(0),
@@ -516,8 +517,8 @@ FunctionBox::FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunct
 
 template <typename ParseHandler>
 FunctionBox *
-Parser<ParseHandler>::newFunctionBox(JSFunction *fun,
-                                     ParseContext<ParseHandler> *outerpc, bool strict)
+Parser<ParseHandler>::newFunctionBox(JSFunction *fun, ParseContext<ParseHandler> *outerpc,
+                                     Directives inheritedDirectives)
 {
     JS_ASSERT(fun && !IsPoisonedPtr(fun));
 
@@ -530,7 +531,7 @@ Parser<ParseHandler>::newFunctionBox(JSFunction *fun,
 
     FunctionBox *funbox =
         alloc.new_<FunctionBox>(context, traceListHead, fun, outerpc,
-                                strict, options().extraWarningsOption);
+                                inheritedDirectives, options().extraWarningsOption);
     if (!funbox) {
         js_ReportOutOfMemory(context);
         return NULL;
@@ -544,7 +545,7 @@ Parser<ParseHandler>::newFunctionBox(JSFunction *fun,
 ModuleBox::ModuleBox(ExclusiveContext *cx, ObjectBox *traceListHead, Module *module,
                      ParseContext<FullParseHandler> *pc, bool extraWarnings)
   : ObjectBox(module, traceListHead),
-    SharedContext(cx, true, extraWarnings)
+      SharedContext(cx, Directives( true), extraWarnings)
 {
 }
 
@@ -602,9 +603,11 @@ Parser<ParseHandler>::parse(JSObject *chain)
 
 
 
-    GlobalSharedContext globalsc(context, chain,
-                                 options().strictOption, options().extraWarningsOption);
-    ParseContext<ParseHandler> globalpc(this, NULL, &globalsc,  0,  0);
+    Directives directives(options().strictOption);
+    GlobalSharedContext globalsc(context, chain, directives, options().extraWarningsOption);
+    ParseContext<ParseHandler> globalpc(this,  NULL, &globalsc,
+                                         NULL,  0,
+                                         0);
     if (!globalpc.init())
         return null();
 
@@ -843,11 +846,9 @@ Parser<ParseHandler>::checkStrictBinding(PropertyName *name, Node pn)
 template <>
 ParseNode *
 Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals,
-                                                 bool strict, bool *becameStrict)
+                                                 Directives inheritedDirectives,
+                                                 Directives *newDirectives)
 {
-    if (becameStrict)
-        *becameStrict = false;
-
     Node fn = handler.newFunctionDefinition();
     if (!fn)
         return null();
@@ -859,12 +860,13 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoN
     argsbody->makeEmpty();
     fn->pn_body = argsbody;
 
-    FunctionBox *funbox = newFunctionBox(fun,  NULL, strict);
+    FunctionBox *funbox = newFunctionBox(fun,  NULL, inheritedDirectives);
     if (!funbox)
         return null();
     handler.setFunctionBox(fn, funbox);
 
-    ParseContext<FullParseHandler> funpc(this, pc, funbox,  0,  0);
+    ParseContext<FullParseHandler> funpc(this, pc, funbox, newDirectives,
+                                          0,  0);
     if (!funpc.init())
         return null();
 
@@ -874,11 +876,8 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoN
     }
 
     ParseNode *pn = functionBody(Statement, StatementListBody);
-    if (!pn) {
-        if (becameStrict && pc->funBecameStrict)
-            *becameStrict = true;
+    if (!pn)
         return null();
-    }
 
     if (!tokenStream.matchToken(TOK_EOF)) {
         report(ParseError, false, null(), JSMSG_SYNTAX_ERROR);
@@ -1798,7 +1797,7 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
     
     if (LazyScript *lazyOuter = handler.lazyOuterFunction()) {
         JSFunction *fun = handler.nextLazyInnerFunction();
-        FunctionBox *funbox = newFunctionBox(fun, pc,  false);
+        FunctionBox *funbox = newFunctionBox(fun, pc, Directives( false));
         if (!funbox)
             return false;
         handler.setFunctionBox(pn, funbox);
@@ -1936,24 +1935,26 @@ Parser<ParseHandler>::functionDef(HandlePropertyName funName, const TokenStream:
     
     
     
-    bool initiallyStrict = pc->sc->strict;
-    bool becameStrict;
-    if (!functionArgsAndBody(pn, fun, type, kind, initiallyStrict,
-                             &becameStrict))
-    {
-        if (initiallyStrict || !becameStrict || tokenStream.hadError())
+    
+    Directives directives(pc);
+    Directives newDirectives = directives;
+
+    while (true) {
+        if (functionArgsAndBody(pn, fun, type, kind, directives, &newDirectives))
+            break;
+        if (tokenStream.hadError() || directives == newDirectives)
             return null();
 
         
+        JS_ASSERT_IF(directives.strict(), newDirectives.strict());
+        directives = newDirectives;
+
         tokenStream.seek(start);
         if (funName && tokenStream.getToken() == TOK_ERROR)
             return null();
 
         
         handler.setFunctionBody(pn, null());
-
-        if (!functionArgsAndBody(pn, fun, type, kind, true))
-            return null();
     }
 
     return pn;
@@ -2054,14 +2055,13 @@ template <>
 bool
 Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
                                               FunctionType type, FunctionSyntaxKind kind,
-                                              bool strict, bool *becameStrict)
+                                              Directives inheritedDirectives,
+                                              Directives *newDirectives)
 {
-    if (becameStrict)
-        *becameStrict = false;
     ParseContext<FullParseHandler> *outerpc = pc;
 
     
-    FunctionBox *funbox = newFunctionBox(fun, pc, strict);
+    FunctionBox *funbox = newFunctionBox(fun, pc, inheritedDirectives);
     if (!funbox)
         return false;
 
@@ -2077,13 +2077,13 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
             tokenStream.tell(&position);
             parser->tokenStream.seek(position, tokenStream);
 
-            ParseContext<SyntaxParseHandler> funpc(parser, outerpc, funbox,
+            ParseContext<SyntaxParseHandler> funpc(parser, outerpc, funbox, newDirectives,
                                                    outerpc->staticLevel + 1, outerpc->blockidGen);
             if (!funpc.init())
                 return false;
 
             if (!parser->functionArgsAndBodyGeneric(SyntaxParseHandler::NodeGeneric,
-                                                    fun, type, kind, becameStrict))
+                                                    fun, type, kind, newDirectives))
             {
                 if (parser->hadAbortedSyntaxParse()) {
                     
@@ -2111,12 +2111,12 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
     } while (false);
 
     
-    ParseContext<FullParseHandler> funpc(this, pc, funbox,
+    ParseContext<FullParseHandler> funpc(this, pc, funbox, newDirectives,
                                          outerpc->staticLevel + 1, outerpc->blockidGen);
     if (!funpc.init())
         return false;
 
-    if (!functionArgsAndBodyGeneric(pn, fun, type, kind, becameStrict))
+    if (!functionArgsAndBodyGeneric(pn, fun, type, kind, newDirectives))
         return false;
 
     if (!leaveFunction(pn, outerpc, kind))
@@ -2138,24 +2138,23 @@ template <>
 bool
 Parser<SyntaxParseHandler>::functionArgsAndBody(Node pn, HandleFunction fun,
                                                 FunctionType type, FunctionSyntaxKind kind,
-                                                bool strict, bool *becameStrict)
+                                                Directives inheritedDirectives,
+                                                Directives *newDirectives)
 {
-    if (becameStrict)
-        *becameStrict = false;
     ParseContext<SyntaxParseHandler> *outerpc = pc;
 
     
-    FunctionBox *funbox = newFunctionBox(fun, pc, strict);
+    FunctionBox *funbox = newFunctionBox(fun, pc, inheritedDirectives);
     if (!funbox)
         return false;
 
     
-    ParseContext<SyntaxParseHandler> funpc(this, pc, funbox,
+    ParseContext<SyntaxParseHandler> funpc(this, pc, funbox, newDirectives,
                                            outerpc->staticLevel + 1, outerpc->blockidGen);
     if (!funpc.init())
         return false;
 
-    if (!functionArgsAndBodyGeneric(pn, fun, type, kind, becameStrict))
+    if (!functionArgsAndBodyGeneric(pn, fun, type, kind, newDirectives))
         return false;
 
     if (!leaveFunction(pn, outerpc, kind))
@@ -2177,17 +2176,23 @@ Parser<FullParseHandler>::standaloneLazyFunction(HandleFunction fun, unsigned st
     if (!pn)
         return null();
 
-    FunctionBox *funbox = newFunctionBox(fun,  NULL, strict);
+    Directives directives( strict);
+    FunctionBox *funbox = newFunctionBox(fun,  NULL, directives);
     if (!funbox)
         return null();
     handler.setFunctionBox(pn, funbox);
 
-    ParseContext<FullParseHandler> funpc(this, NULL, funbox, staticLevel, 0);
+    Directives newDirectives = directives;
+    ParseContext<FullParseHandler> funpc(this,  NULL, funbox,
+                                         &newDirectives, staticLevel,  0);
     if (!funpc.init())
         return null();
 
-    if (!functionArgsAndBodyGeneric(pn, fun, Normal, Statement, NULL))
+    if (!functionArgsAndBodyGeneric(pn, fun, Normal, Statement, &newDirectives)) {
+        JS_ASSERT(directives == newDirectives);
         return null();
+    }
+
 
     if (fun->isNamedLambda()) {
         if (AtomDefnPtr p = pc->lexdeps->lookup(fun->name())) {
@@ -2208,7 +2213,8 @@ Parser<FullParseHandler>::standaloneLazyFunction(HandleFunction fun, unsigned st
 template <typename ParseHandler>
 bool
 Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, FunctionType type,
-                                                 FunctionSyntaxKind kind, bool *becameStrict)
+                                                 FunctionSyntaxKind kind,
+                                                 Directives *newDirectives)
 {
     
     
@@ -2254,12 +2260,8 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
     }
 
     Node body = functionBody(kind, bodyType);
-    if (!body) {
-        
-        if (becameStrict && pc->funBecameStrict)
-            *becameStrict = true;
+    if (!body)
         return false;
-    }
 
     if (!yieldGuard.empty() && !yieldGuard.ref().checkValidBody(body, JSMSG_YIELD_IN_ARROW))
         return false;
@@ -2312,7 +2314,8 @@ Parser<FullParseHandler>::moduleDecl()
         return NULL;
     pn->pn_modulebox = modulebox;
 
-    ParseContext<FullParseHandler> modulepc(this, pc, modulebox, pc->staticLevel + 1, pc->blockidGen);
+    ParseContext<FullParseHandler> modulepc(this, pc, modulebox,  NULL,
+                                            pc->staticLevel + 1, pc->blockidGen);
     if (!modulepc.init())
         return NULL;
     MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_MODULE);
@@ -2441,7 +2444,7 @@ Parser<ParseHandler>::maybeParseDirective(Node pn, bool *cont)
             if (!pc->sc->strict) {
                 if (pc->sc->isFunctionBox()) {
                     
-                    pc->funBecameStrict = true;
+                    pc->newDirectives->setStrict();
                     return false;
                 } else {
                     
@@ -5984,11 +5987,12 @@ Parser<FullParseHandler>::generatorExpr(ParseNode *kid)
             return null();
 
         
-        FunctionBox *genFunbox = newFunctionBox(fun, outerpc, outerpc->sc->strict);
+        Directives directives( outerpc->sc->strict);
+        FunctionBox *genFunbox = newFunctionBox(fun, outerpc, directives);
         if (!genFunbox)
             return null();
 
-        ParseContext<FullParseHandler> genpc(this, outerpc, genFunbox,
+        ParseContext<FullParseHandler> genpc(this, outerpc, genFunbox,  NULL,
                                              outerpc->staticLevel + 1, outerpc->blockidGen);
         if (!genpc.init())
             return null();
