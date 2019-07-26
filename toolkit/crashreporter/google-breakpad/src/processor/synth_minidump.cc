@@ -126,7 +126,10 @@ void Memory::CiteMemoryIn(test_assembler::Section *section) const {
 Context::Context(const Dump &dump, const MDRawContextX86 &context)
   : Section(dump) {
   
-  assert(context.context_flags & MD_CONTEXT_X86);
+  
+  
+  assert(((context.context_flags & MD_CONTEXT_CPU_MASK) == 0) ||
+         (context.context_flags & MD_CONTEXT_X86));
   
   assert(dump.endianness() == kLittleEndian);
   D32(context.context_flags);

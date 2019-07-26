@@ -57,6 +57,10 @@
 
   
   
+  BOOL started_;
+
+  
+  
   int uploadIntervalInSeconds_;
 }
 

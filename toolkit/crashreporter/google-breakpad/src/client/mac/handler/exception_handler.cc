@@ -27,18 +27,31 @@
 
 
 
-#include <map>
 #include <mach/exc.h>
 #include <mach/mig.h>
 #include <pthread.h>
 #include <signal.h>
 #include <TargetConditionals.h>
 
+#include <map>
+
 #include "client/mac/handler/exception_handler.h"
 #include "client/mac/handler/minidump_generator.h"
 #include "common/mac/macho_utilities.h"
 #include "common/mac/scoped_task_suspend-inl.h"
 #include "google_breakpad/common/minidump_exception_mac.h"
+
+#ifndef __EXCEPTIONS
+
+
+
+
+
+#undef try
+#define try       if (true)
+#undef catch
+#define catch(X)  if (false)
+#endif  
 
 #ifndef USE_PROTECTED_ALLOCATIONS
 #if TARGET_OS_IPHONE

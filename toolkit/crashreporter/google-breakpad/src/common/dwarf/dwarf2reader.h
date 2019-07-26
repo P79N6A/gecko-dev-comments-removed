@@ -342,8 +342,7 @@ class Dwarf2Handler {
 
   
   
-  virtual bool StartDIE(uint64 offset, enum DwarfTag tag,
-                        const AttributeList& attrs) { return false; }
+  virtual bool StartDIE(uint64 offset, enum DwarfTag tag) { return false; }
 
   
   

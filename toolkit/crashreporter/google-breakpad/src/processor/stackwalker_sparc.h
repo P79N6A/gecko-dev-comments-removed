@@ -53,22 +53,21 @@ class StackwalkerSPARC : public Stackwalker {
   
   
   
-  StackwalkerSPARC(const SystemInfo *system_info,
-                   const MDRawContextSPARC *context,
-                   MemoryRegion *memory,
-                   const CodeModules *modules,
-                   SymbolSupplier *supplier,
-                   SourceLineResolverInterface *resolver);
+  StackwalkerSPARC(const SystemInfo* system_info,
+                   const MDRawContextSPARC* context,
+                   MemoryRegion* memory,
+                   const CodeModules* modules,
+                   StackFrameSymbolizer* frame_symbolizer);
 
  private:
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack *stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack);
 
   
   
-  const MDRawContextSPARC *context_;
+  const MDRawContextSPARC* context_;
 };
 
 

@@ -85,6 +85,26 @@ struct StackFrame {
 
   
   
+  virtual u_int64_t ReturnAddress() const { return instruction; }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   

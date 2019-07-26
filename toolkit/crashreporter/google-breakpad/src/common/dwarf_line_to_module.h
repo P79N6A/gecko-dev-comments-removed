@@ -120,8 +120,10 @@ class DwarfLineToModule: public dwarf2reader::LineInfoHandler {
   
   
   
-  DwarfLineToModule(Module *module, vector<Module::Line> *lines)
+  DwarfLineToModule(Module *module, const string& compilation_dir,
+                    vector<Module::Line> *lines)
       : module_(module),
+        compilation_dir_(compilation_dir),
         lines_(lines),
         highest_file_number_(-1),
         omitted_line_end_(0),
@@ -145,6 +147,10 @@ class DwarfLineToModule: public dwarf2reader::LineInfoHandler {
   
   
   Module *module_;
+
+  
+  
+  string compilation_dir_;
 
   
   

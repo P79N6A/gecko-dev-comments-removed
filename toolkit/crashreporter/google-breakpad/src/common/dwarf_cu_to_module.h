@@ -50,7 +50,6 @@
 
 namespace google_breakpad {
 
-using dwarf2reader::AttributeList;
 using dwarf2reader::DwarfAttribute;
 using dwarf2reader::DwarfForm;
 using dwarf2reader::DwarfLanguage;
@@ -97,17 +96,23 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
   
   
   
-  class LineToModuleFunctor {
+  class LineToModuleHandler {
    public:
-    LineToModuleFunctor() { }
-    virtual ~LineToModuleFunctor() { }
+    LineToModuleHandler() { }
+    virtual ~LineToModuleHandler() { }
 
     
     
     
     
-    virtual void operator()(const char *program, uint64 length,
-                            Module *module, vector<Module::Line> *lines) = 0;
+    virtual void StartCompilationUnit(const string& compilation_dir) = 0;
+
+    
+    
+    
+    
+    virtual void ReadProgram(const char *program, uint64 length,
+                             Module *module, vector<Module::Line> *lines) = 0;
   };
 
   
@@ -187,7 +192,7 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
   
   
   DwarfCUToModule(FileContext *file_context,
-                  LineToModuleFunctor *line_reader,
+                  LineToModuleHandler *line_reader,
                   WarningReporter *reporter);
   ~DwarfCUToModule();
 
@@ -201,8 +206,7 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
                               enum DwarfForm form,
                               const string &data);
   bool EndAttributes();
-  DIEHandler *FindChildHandler(uint64 offset, enum DwarfTag tag,
-                               const AttributeList &attrs);
+  DIEHandler *FindChildHandler(uint64 offset, enum DwarfTag tag);
 
   
   
@@ -211,8 +215,7 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
   bool StartCompilationUnit(uint64 offset, uint8 address_size,
                             uint8 offset_size, uint64 cu_length,
                             uint8 dwarf_version);
-  bool StartRootDIE(uint64 offset, enum DwarfTag tag,
-                    const AttributeList& attrs);
+  bool StartRootDIE(uint64 offset, enum DwarfTag tag);
 
  private:
 
@@ -251,7 +254,7 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
   
 
   
-  LineToModuleFunctor *line_reader_;
+  LineToModuleHandler *line_reader_;
 
   
   CUContext *cu_context_;

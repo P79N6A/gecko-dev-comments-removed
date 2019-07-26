@@ -135,8 +135,7 @@ class CUFunctionInfoHandler: public Dwarf2Handler {
 
   
   
-  virtual bool StartDIE(uint64 offset, enum DwarfTag tag,
-                        const AttributeList& attrs);
+  virtual bool StartDIE(uint64 offset, enum DwarfTag tag);
 
   
   

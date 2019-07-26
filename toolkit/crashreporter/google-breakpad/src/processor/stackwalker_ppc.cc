@@ -43,15 +43,14 @@
 namespace google_breakpad {
 
 
-StackwalkerPPC::StackwalkerPPC(const SystemInfo *system_info,
-                               const MDRawContextPPC *context,
-                               MemoryRegion *memory,
-                               const CodeModules *modules,
-                               SymbolSupplier *supplier,
-                               SourceLineResolverInterface *resolver)
-    : Stackwalker(system_info, memory, modules, supplier, resolver),
+StackwalkerPPC::StackwalkerPPC(const SystemInfo* system_info,
+                               const MDRawContextPPC* context,
+                               MemoryRegion* memory,
+                               const CodeModules* modules,
+                               StackFrameSymbolizer* resolver_helper)
+    : Stackwalker(system_info, memory, modules, resolver_helper),
       context_(context) {
-  if (memory_->GetBase() + memory_->GetSize() - 1 > 0xffffffff) {
+  if (memory_ && memory_->GetBase() + memory_->GetSize() - 1 > 0xffffffff) {
     
     
     
@@ -64,12 +63,12 @@ StackwalkerPPC::StackwalkerPPC(const SystemInfo *system_info,
 
 
 StackFrame* StackwalkerPPC::GetContextFrame() {
-  if (!context_ || !memory_) {
-    BPLOG(ERROR) << "Can't get context frame without context or memory";
+  if (!context_) {
+    BPLOG(ERROR) << "Can't get context frame without context";
     return NULL;
   }
 
-  StackFramePPC *frame = new StackFramePPC();
+  StackFramePPC* frame = new StackFramePPC();
 
   
   
@@ -82,7 +81,7 @@ StackFrame* StackwalkerPPC::GetContextFrame() {
 }
 
 
-StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack *stack) {
+StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack* stack) {
   if (!memory_ || !stack) {
     BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;
@@ -97,7 +96,7 @@ StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack *stack) {
   
   
 
-  StackFramePPC *last_frame = static_cast<StackFramePPC*>(
+  StackFramePPC* last_frame = static_cast<StackFramePPC*>(
       stack->frames()->back());
 
   
@@ -121,7 +120,7 @@ StackFrame* StackwalkerPPC::GetCallerFrame(const CallStack *stack) {
     return NULL;
   }
 
-  StackFramePPC *frame = new StackFramePPC();
+  StackFramePPC* frame = new StackFramePPC();
 
   frame->context = last_frame->context;
   frame->context.srr0 = instruction;

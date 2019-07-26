@@ -43,24 +43,23 @@
 namespace google_breakpad {
 
 
-StackwalkerSPARC::StackwalkerSPARC(const SystemInfo *system_info,
-                                   const MDRawContextSPARC *context,
-                                   MemoryRegion *memory,
-                                   const CodeModules *modules,
-                                   SymbolSupplier *supplier,
-                                   SourceLineResolverInterface *resolver)
-    : Stackwalker(system_info, memory, modules, supplier, resolver),
+StackwalkerSPARC::StackwalkerSPARC(const SystemInfo* system_info,
+                                   const MDRawContextSPARC* context,
+                                   MemoryRegion* memory,
+                                   const CodeModules* modules,
+                                   StackFrameSymbolizer* resolver_helper)
+    : Stackwalker(system_info, memory, modules, resolver_helper),
       context_(context) {
 }
 
 
 StackFrame* StackwalkerSPARC::GetContextFrame() {
-  if (!context_ || !memory_) {
-    BPLOG(ERROR) << "Can't get context frame without context or memory";
+  if (!context_) {
+    BPLOG(ERROR) << "Can't get context frame without context";
     return NULL;
   }
 
-  StackFrameSPARC *frame = new StackFrameSPARC();
+  StackFrameSPARC* frame = new StackFrameSPARC();
 
   
   
@@ -73,13 +72,13 @@ StackFrame* StackwalkerSPARC::GetContextFrame() {
 }
 
 
-StackFrame* StackwalkerSPARC::GetCallerFrame(const CallStack *stack) {
+StackFrame* StackwalkerSPARC::GetCallerFrame(const CallStack* stack) {
   if (!memory_ || !stack) {
     BPLOG(ERROR) << "Can't get caller frame without memory or stack";
     return NULL;
   }
 
-  StackFrameSPARC *last_frame = static_cast<StackFrameSPARC*>(
+  StackFrameSPARC* last_frame = static_cast<StackFrameSPARC*>(
       stack->frames()->back());
 
   
@@ -111,12 +110,12 @@ StackFrame* StackwalkerSPARC::GetCallerFrame(const CallStack *stack) {
     return NULL;
   }
 
-  StackFrameSPARC *frame = new StackFrameSPARC();
+  StackFrameSPARC* frame = new StackFrameSPARC();
 
   frame->context = last_frame->context;
   frame->context.g_r[14] = stack_pointer;
   frame->context.g_r[30] = stack_base;
-  
+
   
   
   
@@ -131,7 +130,7 @@ StackFrame* StackwalkerSPARC::GetCallerFrame(const CallStack *stack) {
                             StackFrameSPARC::CONTEXT_VALID_SP |
                             StackFrameSPARC::CONTEXT_VALID_FP;
   frame->trust = StackFrame::FRAME_TRUST_FP;
-                            
+
   return frame;
 }
 

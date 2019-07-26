@@ -57,8 +57,7 @@ bool DIEDispatcher::StartCompilationUnit(uint64 offset, uint8 address_size,
                                              dwarf_version);
 }
 
-bool DIEDispatcher::StartDIE(uint64 offset, enum DwarfTag tag,
-                             const AttributeList& attrs) {
+bool DIEDispatcher::StartDIE(uint64 offset, enum DwarfTag tag) {
   
   HandlerStack *parent = die_handlers_.empty() ? NULL : &die_handlers_.top();
 
@@ -82,7 +81,7 @@ bool DIEDispatcher::StartDIE(uint64 offset, enum DwarfTag tag,
   if (parent) {
     if (parent->handler_)
       
-      handler = parent->handler_->FindChildHandler(offset, tag, attrs);
+      handler = parent->handler_->FindChildHandler(offset, tag);
     else
       
       
@@ -92,7 +91,7 @@ bool DIEDispatcher::StartDIE(uint64 offset, enum DwarfTag tag,
     
     
     
-    if (root_handler_->StartRootDIE(offset, tag, attrs))
+    if (root_handler_->StartRootDIE(offset, tag))
       handler = root_handler_;
     else
       handler = NULL;

@@ -54,13 +54,12 @@ class StackwalkerARM : public Stackwalker {
   
   
   
-  StackwalkerARM(const SystemInfo *system_info,
-                 const MDRawContextARM *context,
+  StackwalkerARM(const SystemInfo* system_info,
+                 const MDRawContextARM* context,
                  int fp_register,
-                 MemoryRegion *memory,
-                 const CodeModules *modules,
-                 SymbolSupplier *supplier,
-                 SourceLineResolverInterface *resolver);
+                 MemoryRegion* memory,
+                 const CodeModules* modules,
+                 StackFrameSymbolizer* frame_symbolizer);
 
   
   
@@ -70,25 +69,25 @@ class StackwalkerARM : public Stackwalker {
  private:
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack *stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack);
 
   
   
   
-  StackFrameARM *GetCallerByCFIFrameInfo(const vector<StackFrame *> &frames,
-                                         CFIFrameInfo *cfi_frame_info);
+  StackFrameARM* GetCallerByCFIFrameInfo(const vector<StackFrame*> &frames,
+                                         CFIFrameInfo* cfi_frame_info);
 
   
   
-  StackFrameARM *GetCallerByFramePointer(const vector<StackFrame *> &frames);
+  StackFrameARM* GetCallerByFramePointer(const vector<StackFrame*> &frames);
 
   
   
-  StackFrameARM *GetCallerByStackScan(const vector<StackFrame *> &frames);
+  StackFrameARM* GetCallerByStackScan(const vector<StackFrame*> &frames);
 
   
   
-  const MDRawContextARM *context_;
+  const MDRawContextARM* context_;
 
   
   

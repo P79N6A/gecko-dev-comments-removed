@@ -53,23 +53,22 @@ class StackwalkerPPC : public Stackwalker {
   
   
   
-  StackwalkerPPC(const SystemInfo *system_info,
-                 const MDRawContextPPC *context,
-                 MemoryRegion *memory,
-                 const CodeModules *modules,
-                 SymbolSupplier *supplier,
-                 SourceLineResolverInterface *resolver);
+  StackwalkerPPC(const SystemInfo* system_info,
+                 const MDRawContextPPC* context,
+                 MemoryRegion* memory,
+                 const CodeModules* modules,
+                 StackFrameSymbolizer* frame_symbolizer);
 
  private:
   
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack *stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack);
 
   
   
-  const MDRawContextPPC *context_;
+  const MDRawContextPPC* context_;
 };
 
 

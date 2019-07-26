@@ -46,8 +46,8 @@
 
 
 
-#ifndef PROCESSOR_SCOPED_PTR_H__
-#define PROCESSOR_SCOPED_PTR_H__
+#ifndef COMMON_SCOPED_PTR_H_
+#define COMMON_SCOPED_PTR_H_
 
 #include <cstddef>            
 #include <assert.h>           

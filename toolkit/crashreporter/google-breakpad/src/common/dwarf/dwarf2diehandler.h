@@ -242,9 +242,7 @@ class DIEHandler {
   
   
   
-  
-  virtual DIEHandler *FindChildHandler(uint64 offset, enum DwarfTag tag,
-                                       const AttributeList &attrs) {
+  virtual DIEHandler *FindChildHandler(uint64 offset, enum DwarfTag tag) {
     return NULL;
   }
 
@@ -280,8 +278,7 @@ class RootDIEHandler: public DIEHandler {
   
   
   
-  virtual bool StartRootDIE(uint64 offset, enum DwarfTag tag,
-                            const AttributeList& attrs) { return true; }
+  virtual bool StartRootDIE(uint64 offset, enum DwarfTag tag) { return true; }
 };
 
 class DIEDispatcher: public Dwarf2Handler {
@@ -296,8 +293,7 @@ class DIEDispatcher: public Dwarf2Handler {
   bool StartCompilationUnit(uint64 offset, uint8 address_size,
                             uint8 offset_size, uint64 cu_length,
                             uint8 dwarf_version);
-  bool StartDIE(uint64 offset, enum DwarfTag tag,
-                const AttributeList &attrs);
+  bool StartDIE(uint64 offset, enum DwarfTag tag);
   void ProcessAttributeUnsigned(uint64 offset,
                                 enum DwarfAttribute attr,
                                 enum DwarfForm form,

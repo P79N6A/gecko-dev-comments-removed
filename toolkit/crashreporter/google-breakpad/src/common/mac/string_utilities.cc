@@ -27,7 +27,7 @@
 
 
 
-#include "processor/scoped_ptr.h"
+#include "common/scoped_ptr.h"
 #include "common/mac/string_utilities.h"
 
 namespace MacStringUtils {

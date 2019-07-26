@@ -79,7 +79,7 @@ class StaticRangeMap {
                             const;
 
   
-  inline unsigned int GetCount() const { return map_.size(); }
+  inline int GetCount() const { return map_.size(); }
 
  private:
   friend class ModuleComparer;

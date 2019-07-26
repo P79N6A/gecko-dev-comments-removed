@@ -38,6 +38,7 @@
 #ifndef PROCESSOR_STACKWALKER_AMD64_H__
 #define PROCESSOR_STACKWALKER_AMD64_H__
 
+#include <vector>
 
 #include "google_breakpad/common/breakpad_types.h"
 #include "google_breakpad/common/minidump_format.h"
@@ -55,12 +56,11 @@ class StackwalkerAMD64 : public Stackwalker {
   
   
   
-  StackwalkerAMD64(const SystemInfo *system_info,
-                   const MDRawContextAMD64 *context,
-                   MemoryRegion *memory,
-                   const CodeModules *modules,
-                   SymbolSupplier *supplier,
-                   SourceLineResolverInterface *resolver);
+  StackwalkerAMD64(const SystemInfo* system_info,
+                   const MDRawContextAMD64* context,
+                   MemoryRegion* memory,
+                   const CodeModules* modules,
+                   StackFrameSymbolizer* frame_symbolizer);
 
  private:
   
@@ -69,21 +69,21 @@ class StackwalkerAMD64 : public Stackwalker {
   
   
   virtual StackFrame* GetContextFrame();
-  virtual StackFrame* GetCallerFrame(const CallStack *stack);
+  virtual StackFrame* GetCallerFrame(const CallStack* stack);
 
   
   
   
-  StackFrameAMD64 *GetCallerByCFIFrameInfo(const vector<StackFrame *> &frames,
-                                           CFIFrameInfo *cfi_frame_info);
+  StackFrameAMD64* GetCallerByCFIFrameInfo(const vector<StackFrame*> &frames,
+                                           CFIFrameInfo* cfi_frame_info);
 
   
   
-  StackFrameAMD64 *GetCallerByStackScan(const vector<StackFrame *> &frames);
+  StackFrameAMD64* GetCallerByStackScan(const vector<StackFrame*> &frames);
 
   
   
-  const MDRawContextAMD64 *context_;
+  const MDRawContextAMD64* context_;
 
   
   static const CFIWalker::RegisterSet cfi_register_map_[];

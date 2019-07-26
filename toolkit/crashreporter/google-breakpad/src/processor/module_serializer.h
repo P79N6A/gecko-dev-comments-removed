@@ -106,7 +106,7 @@ class ModuleSerializer {
       FastSourceLineResolver *fast_resolver);
 
   
-  static const u_int32_t kNumberMaps_ =
+  static const int32_t kNumberMaps_ =
       FastSourceLineResolver::Module::kNumberMaps_;
 
   

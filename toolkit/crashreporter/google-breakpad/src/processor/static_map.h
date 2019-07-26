@@ -126,7 +126,7 @@ class StaticMap {
   const char* raw_data_;
 
   
-  u_int32_t num_nodes_;
+  int32_t num_nodes_;
 
   
   

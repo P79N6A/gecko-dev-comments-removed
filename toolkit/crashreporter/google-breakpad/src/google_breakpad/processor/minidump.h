@@ -190,30 +190,12 @@ class MinidumpContext : public MinidumpStream {
   const MDRawContextPPC*   GetContextPPC() const;
   const MDRawContextSPARC* GetContextSPARC() const;
   const MDRawContextX86*   GetContextX86() const;
- 
+
   
   void Print();
 
- private:
-  friend class MinidumpThread;
-  friend class MinidumpException;
-
+ protected:
   explicit MinidumpContext(Minidump* minidump);
-
-  bool Read(u_int32_t expected_size);
-
-  
-  void FreeContext();
-
-  
-  
-  
-  
-  
-  bool CheckAgainstSystemInfo(u_int32_t context_cpu_type);
-
-  
-  u_int32_t context_flags_;
 
   
   union {
@@ -226,6 +208,25 @@ class MinidumpContext : public MinidumpStream {
     MDRawContextSPARC* ctx_sparc;
     MDRawContextARM*   arm;
   } context_;
+
+  
+  u_int32_t context_flags_;
+
+ private:
+  friend class MinidumpThread;
+  friend class MinidumpException;
+
+  bool Read(u_int32_t expected_size);
+
+  
+  void FreeContext();
+
+  
+  
+  
+  
+  
+  bool CheckAgainstSystemInfo(u_int32_t context_cpu_type);
 };
 
 
@@ -268,11 +269,12 @@ class MinidumpMemoryRegion : public MinidumpObject,
   
   void Print();
 
+ protected:
+  explicit MinidumpMemoryRegion(Minidump* minidump);
+
  private:
   friend class MinidumpThread;
   friend class MinidumpMemoryList;
-
-  explicit MinidumpMemoryRegion(Minidump* minidump);
 
   
   
@@ -300,28 +302,34 @@ class MinidumpMemoryRegion : public MinidumpObject,
 
 
 
+
+
 class MinidumpThread : public MinidumpObject {
  public:
   virtual ~MinidumpThread();
 
   const MDRawThread* thread() const { return valid_ ? &thread_ : NULL; }
-  MinidumpMemoryRegion* GetMemory();
-  MinidumpContext* GetContext();
+  
+  
+  virtual MinidumpMemoryRegion* GetMemory();
+  
+  virtual MinidumpContext* GetContext();
 
   
   
   
   
-  bool GetThreadID(u_int32_t *thread_id) const;
+  virtual bool GetThreadID(u_int32_t *thread_id) const;
 
   
   void Print();
 
+ protected:
+  explicit MinidumpThread(Minidump* minidump);
+
  private:
   
   friend class MinidumpThreadList;
-
-  explicit MinidumpThread(Minidump* minidump);
 
   
   
@@ -345,18 +353,21 @@ class MinidumpThreadList : public MinidumpStream {
   }
   static u_int32_t max_threads() { return max_threads_; }
 
-  unsigned int thread_count() const {
+  virtual unsigned int thread_count() const {
     return valid_ ? thread_count_ : 0;
   }
 
   
-  MinidumpThread* GetThreadAtIndex(unsigned int index) const;
+  virtual MinidumpThread* GetThreadAtIndex(unsigned int index) const;
 
   
   MinidumpThread* GetThreadByID(u_int32_t thread_id);
 
   
   void Print();
+
+ protected:
+  explicit MinidumpThreadList(Minidump* aMinidump);
 
  private:
   friend class Minidump;
@@ -365,8 +376,6 @@ class MinidumpThreadList : public MinidumpStream {
   typedef vector<MinidumpThread> MinidumpThreads;
 
   static const u_int32_t kStreamType = MD_THREAD_LIST_STREAM;
-
-  explicit MinidumpThreadList(Minidump* aMinidump);
 
   bool Read(u_int32_t aExpectedSize);
 
@@ -526,14 +535,15 @@ class MinidumpModuleList : public MinidumpStream,
   
   void Print();
 
+ protected:
+  explicit MinidumpModuleList(Minidump* minidump);
+
  private:
   friend class Minidump;
 
   typedef vector<MinidumpModule> MinidumpModules;
 
   static const u_int32_t kStreamType = MD_MODULE_LIST_STREAM;
-
-  explicit MinidumpModuleList(Minidump* minidump);
 
   bool Read(u_int32_t expected_size);
 
@@ -722,20 +732,20 @@ class MinidumpSystemInfo : public MinidumpStream {
   
   void Print();
 
- private:
-  friend class Minidump;
-
-  static const u_int32_t kStreamType = MD_SYSTEM_INFO_STREAM;
-
+ protected:
   explicit MinidumpSystemInfo(Minidump* minidump);
-
-  bool Read(u_int32_t expected_size);
-
   MDRawSystemInfo system_info_;
 
   
   
   const string* csd_version_;
+
+ private:
+  friend class Minidump;
+
+  static const u_int32_t kStreamType = MD_SYSTEM_INFO_STREAM;
+
+  bool Read(u_int32_t expected_size);
 
   
   const string* cpu_vendor_;
@@ -902,6 +912,16 @@ class Minidump {
   
   
   
+  
+  
+  
+  
+  bool GetContextCPUFlagsFromSystemInfo(u_int32_t* context_cpu_flags);
+
+  
+  
+  
+  
   virtual bool Read();
 
   
@@ -913,7 +933,7 @@ class Minidump {
   MinidumpMemoryList* GetMemoryList();
   MinidumpException* GetException();
   MinidumpAssertion* GetAssertion();
-  MinidumpSystemInfo* GetSystemInfo();
+  virtual MinidumpSystemInfo* GetSystemInfo();
   MinidumpMiscInfo* GetMiscInfo();
   MinidumpBreakpadInfo* GetBreakpadInfo();
   MinidumpMemoryInfoList* GetMemoryInfoList();

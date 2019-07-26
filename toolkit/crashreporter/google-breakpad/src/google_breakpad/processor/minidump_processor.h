@@ -40,6 +40,7 @@ namespace google_breakpad {
 
 class Minidump;
 class ProcessState;
+class StackFrameSymbolizer;
 class SourceLineResolverInterface;
 class SymbolSupplier;
 struct SystemInfo;
@@ -72,15 +73,6 @@ enum ProcessResult {
                                               
                                               
 
-  PROCESS_ERROR_NO_MEMORY_FOR_THREAD,         
-                                              
-
-  PROCESS_ERROR_NO_STACKWALKER_FOR_THREAD,    
-                                              
-                                              
-                                              
-                                              
-
   PROCESS_SYMBOL_SUPPLIER_INTERRUPTED         
                                               
                                               
@@ -92,47 +84,54 @@ class MinidumpProcessor {
  public:
   
   
-  MinidumpProcessor(SymbolSupplier *supplier,
-                    SourceLineResolverInterface *resolver);
+  MinidumpProcessor(SymbolSupplier* supplier,
+                    SourceLineResolverInterface* resolver);
 
   
   
   
-  MinidumpProcessor(SymbolSupplier *supplier,
-                    SourceLineResolverInterface *resolver,
+  MinidumpProcessor(SymbolSupplier* supplier,
+                    SourceLineResolverInterface* resolver,
+                    bool enable_exploitability);
+
+  
+  
+  
+  
+  MinidumpProcessor(StackFrameSymbolizer* stack_frame_symbolizer,
                     bool enable_exploitability);
 
   ~MinidumpProcessor();
 
   
   ProcessResult Process(const string &minidump_file,
-                        ProcessState *process_state);
+                        ProcessState* process_state);
 
   
   
-  ProcessResult Process(Minidump *minidump,
-                        ProcessState *process_state);
+  ProcessResult Process(Minidump* minidump,
+                        ProcessState* process_state);
   
   
   
   
-  static bool GetCPUInfo(Minidump *dump, SystemInfo *info);
-
-  
-  
-  
-  
-  static bool GetOSInfo(Minidump *dump, SystemInfo *info);
+  static bool GetCPUInfo(Minidump* dump, SystemInfo* info);
 
   
   
   
   
+  static bool GetOSInfo(Minidump* dump, SystemInfo* info);
+
   
   
   
   
-  static string GetCrashReason(Minidump *dump, u_int64_t *address);
+  
+  
+  
+  
+  static string GetCrashReason(Minidump* dump, u_int64_t* address);
 
   
   
@@ -152,11 +151,12 @@ class MinidumpProcessor {
   
   
   
-  static string GetAssertion(Minidump *dump);
+  static string GetAssertion(Minidump* dump);
 
  private:
-  SymbolSupplier *supplier_;
-  SourceLineResolverInterface *resolver_;
+  StackFrameSymbolizer* frame_symbolizer_;
+  
+  bool own_frame_symbolizer_;
 
   
   

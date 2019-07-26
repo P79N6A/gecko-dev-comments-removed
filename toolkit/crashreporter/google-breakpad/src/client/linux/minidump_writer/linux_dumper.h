@@ -72,10 +72,7 @@ struct ThreadInfo {
   pid_t tgid;   
   pid_t ppid;   
 
-  
-  
-  const void* stack;  
-  size_t stack_len;  
+  uintptr_t stack_pointer;  
 
 
 #if defined(__i386) || defined(__x86_64)

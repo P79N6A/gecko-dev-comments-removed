@@ -229,6 +229,8 @@ class Context: public Section {
   Context(const Dump &dump, const MDRawContextX86 &context);
   Context(const Dump &dump, const MDRawContextARM &context);
   
+  Context(const Dump &dump) : Section(dump) {}
+  
 };
 
 class Thread: public Section {

@@ -35,11 +35,12 @@
 
 #include <string>
 
-#include "../../../breakpad_googletest_includes.h"
-#include "../../../../common/windows/string_utils-inl.h"
-#include "../crash_generation/crash_generation_server.h"
-#include "../handler/exception_handler.h"
-#include "../../../../google_breakpad/processor/minidump.h"
+#include "breakpad_googletest_includes.h"
+#include "client/windows/crash_generation/crash_generation_server.h"
+#include "client/windows/handler/exception_handler.h"
+#include "client/windows/unittests/exception_handler_test.h"
+#include "common/windows/string_utils-inl.h"
+#include "google_breakpad/processor/minidump.h"
 
 namespace {
 
@@ -122,6 +123,10 @@ TEST_F(ExceptionHandlerDeathTest, InProcTest) {
     new google_breakpad::ExceptionHandler(
     temp_path_, NULL, &MinidumpWrittenCallback, NULL,
     google_breakpad::ExceptionHandler::HANDLER_ALL);
+
+  
+  testing::DisableExceptionHandlerInScope disable_exception_handler;
+
   int *i = NULL;
   ASSERT_DEATH((*i)++, kSuccessIndicator);
   delete exc;
@@ -141,6 +146,10 @@ void ExceptionHandlerDeathTest::DoCrashAccessViolation() {
     temp_path_, NULL, NULL, NULL,
     google_breakpad::ExceptionHandler::HANDLER_ALL, MiniDumpNormal, kPipeName,
     NULL);
+
+  
+  testing::DisableExceptionHandlerInScope disable_exception_handler;
+
   
   
   
@@ -253,6 +262,9 @@ TEST_F(ExceptionHandlerDeathTest, InstructionPointerMemory) {
           google_breakpad::ExceptionHandler::HANDLER_ALL);
 
   
+  testing::DisableExceptionHandlerInScope disable_exception_handler;
+
+  
   const u_int32_t kMemorySize = 256;  
   const int kOffset = kMemorySize / 2;
   
@@ -333,6 +345,9 @@ TEST_F(ExceptionHandlerDeathTest, InstructionPointerMemoryMinBound) {
       new google_breakpad::ExceptionHandler(
           temp_path_, NULL, NULL, NULL,
           google_breakpad::ExceptionHandler::HANDLER_ALL);
+
+  
+  testing::DisableExceptionHandlerInScope disable_exception_handler;
 
   SYSTEM_INFO sSysInfo;         
   GetSystemInfo(&sSysInfo);     
@@ -420,6 +435,9 @@ TEST_F(ExceptionHandlerDeathTest, InstructionPointerMemoryMaxBound) {
       new google_breakpad::ExceptionHandler(
           temp_path_, NULL, NULL, NULL,
           google_breakpad::ExceptionHandler::HANDLER_ALL);
+
+  
+  testing::DisableExceptionHandlerInScope disable_exception_handler;
 
   SYSTEM_INFO sSysInfo;         
   GetSystemInfo(&sSysInfo);     
