@@ -211,7 +211,8 @@ public:
 
 
 
-  nsresult ProcessOffThreadRequest(void **aOffThreadToken);
+  nsresult ProcessOffThreadRequest(nsScriptLoadRequest *aRequest,
+                                   void **aOffThreadToken);
 
 private:
   
@@ -316,7 +317,6 @@ private:
   };
   nsTArray<PreloadInfo> mPreloads;
 
-  nsCOMPtr<nsScriptLoadRequest> mOffThreadScriptRequest;
   nsCOMPtr<nsIScriptElement> mCurrentScript;
   nsCOMPtr<nsIScriptElement> mCurrentParserInsertedScript;
   
