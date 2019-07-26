@@ -21,7 +21,9 @@
 
 "use strict";
 
-if (!navigator.platform.startsWith("Win")) {
+if (navigator.platform.startsWith("Win")) {
+  SimpleTest.expectAssertions(0, 34);
+} else {
   SimpleTest.expectAssertions(0, 1);
 }
 
