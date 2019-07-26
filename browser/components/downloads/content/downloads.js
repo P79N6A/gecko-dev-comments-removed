@@ -71,6 +71,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
                                   "resource://gre/modules/DownloadUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadsCommon",
                                   "resource:///modules/DownloadsCommon.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -551,6 +553,14 @@ const DownloadsPanel = {
         DownloadsButton.releaseAnchor();
         this._state = this.kStateHidden;
         return;
+      }
+
+      
+      
+      
+      
+      for each (let viewItem in DownloadsView._viewItems) {
+        viewItem.verifyTargetExists();
       }
 
       if (aAnchor) {
@@ -1074,6 +1084,7 @@ function DownloadsViewItem(aDataItem, aElement)
   
   this._updateProgress();
   this._updateStatusLine();
+  this.verifyTargetExists();
 }
 
 DownloadsViewItem.prototype = {
@@ -1111,6 +1122,12 @@ DownloadsViewItem.prototype = {
     if (aOldState != Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
         aOldState != this.dataItem.state) {
       this._element.setAttribute("image", this.image + "&state=normal");
+
+      
+      
+      
+      
+      this._element.setAttribute("exists", "true");
     }
 
     
@@ -1252,7 +1269,33 @@ DownloadsViewItem.prototype = {
     }
     let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
     return DownloadsCommon.strings.sizeWithUnits(size, unit);
-  }
+  },
+
+  
+  
+
+  
+
+
+
+
+
+
+  verifyTargetExists: function DVI_verifyTargetExists() {
+    
+    if (!this.dataItem.openable) {
+      return;
+    }
+
+    OS.File.exists(this.dataItem.localFile.path).then(
+      function DVI_RTE_onSuccess(aExists) {
+        if (aExists) {
+          this._element.setAttribute("exists", "true");
+        } else {
+          this._element.removeAttribute("exists");
+        }
+      }.bind(this), Cu.reportError);
+  },
 };
 
 
