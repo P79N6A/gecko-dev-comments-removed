@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/dom/Element.h"
 #include "nsIDOMLinkStyle.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsIDocument.h"
@@ -58,6 +59,7 @@ protected:
   void GetStyleSheetInfo(nsAString& aTitle,
                          nsAString& aType,
                          nsAString& aMedia,
+                         bool* aIsScoped,
                          bool* aIsAlternate);
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const;
@@ -178,11 +180,13 @@ void
 nsXMLStylesheetPI::GetStyleSheetInfo(nsAString& aTitle,
                                      nsAString& aType,
                                      nsAString& aMedia,
+                                     bool* aIsScoped,
                                      bool* aIsAlternate)
 {
   aTitle.Truncate();
   aType.Truncate();
   aMedia.Truncate();
+  *aIsScoped = false;
   *aIsAlternate = false;
 
   

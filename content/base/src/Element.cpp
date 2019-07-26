@@ -1155,6 +1155,9 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
                
                ELEMENT_ALL_RESTYLE_FLAGS);
+
+    
+    SetIsElementInStyleScope(mParent->IsElementInStyleScope());
   } else {
     
     SetSubtreeRootPointer(aParent->SubtreeRoot());

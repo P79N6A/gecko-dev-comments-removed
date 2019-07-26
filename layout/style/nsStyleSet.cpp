@@ -743,7 +743,7 @@ nsStyleSet::AssertNoCSSRules(nsRuleNode* aCurrLevelNode,
 
 void
 nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc, 
-                      RuleProcessorData* aData, nsIContent* aContent,
+                      RuleProcessorData* aData, Element* aElement,
                       nsRuleWalker* aRuleWalker)
 {
   SAMPLE_LABEL("nsStyleSet", "FileRules");
@@ -775,7 +775,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
   aRuleWalker->SetLevel(eUserSheet, false, true);
   bool skipUserStyles =
-    aContent && aContent->IsInNativeAnonymousSubtree();
+    aElement && aElement->IsInNativeAnonymousSubtree();
   if (!skipUserStyles && mRuleProcessors[eUserSheet]) 
     (*aCollectorFunc)(mRuleProcessors[eUserSheet], aData);
   nsRuleNode* lastUserRN = aRuleWalker->CurrentNode();
@@ -788,7 +788,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   
   aRuleWalker->SetLevel(eDocSheet, false, true);
   bool cutOffInheritance = false;
-  if (mBindingManager && aContent) {
+  if (mBindingManager && aElement) {
     
     mBindingManager->WalkRules(aCollectorFunc,
                                static_cast<ElementDependentRuleProcessorData*>(aData),

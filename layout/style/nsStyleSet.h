@@ -346,7 +346,7 @@ class nsStyleSet
   
   
   void FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
-                 RuleProcessorData* aData, nsIContent* aContent,
+                 RuleProcessorData* aData, mozilla::dom::Element* aElement,
                  nsRuleWalker* aRuleWalker);
 
   
