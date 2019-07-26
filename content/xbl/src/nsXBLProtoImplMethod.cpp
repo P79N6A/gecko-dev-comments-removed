@@ -372,6 +372,9 @@ nsXBLProtoImplAnonymousMethod::Write(nsIObjectOutputStream* aStream,
     nsresult rv = aStream->Write8(aType);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    rv = aStream->WriteWStringZ(mName);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
     
     

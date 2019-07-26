@@ -135,6 +135,8 @@ protected:
   bool mIsChromeOrResource; 
   bool mFoundFirstBinding;
 
+  nsString mCurrentBindingID;
+
   nsXBLPrototypeBinding* mBinding;
   nsXBLPrototypeHandler* mHandler; 
   nsXBLProtoImpl* mImplementation;
