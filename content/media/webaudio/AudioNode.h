@@ -60,6 +60,13 @@ public:
     }
   }
 
+  
+  
+  virtual bool SupportsMediaStreams() const
+  {
+    return false;
+  }
+
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(AudioNode)
 
