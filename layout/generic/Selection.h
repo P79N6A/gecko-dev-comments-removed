@@ -19,7 +19,6 @@ class nsAutoScrollTimer;
 class nsIContentIterator;
 class nsIFrame;
 struct SelectionDetails;
-class nsSelectionIterator;
 
 struct RangeData
 {
@@ -142,7 +141,6 @@ public:
   nsresult     NotifySelectionListeners();
 
 private:
-  friend class ::nsSelectionIterator;
 
   class ScrollSelectionIntoViewEvent;
   friend class ScrollSelectionIntoViewEvent;
@@ -221,31 +219,5 @@ private:
 };
 
 } 
-
-class nsSelectionIterator : public nsIBidirectionalEnumerator
-{
-public:
-
-
-
-  NS_DECL_ISUPPORTS
-
-  NS_DECL_NSIENUMERATOR
-
-  NS_DECL_NSIBIDIRECTIONALENUMERATOR
-
-
-
-  nsRange* CurrentItem();
-
-
-  nsSelectionIterator(mozilla::Selection*);
-  virtual ~nsSelectionIterator();
-
-private:
-  int32_t             mIndex;
-  mozilla::Selection* mDomSelection;
-};
-
 
 #endif 

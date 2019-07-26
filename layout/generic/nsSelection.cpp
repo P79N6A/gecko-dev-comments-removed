@@ -327,123 +327,6 @@ IsValidSelectionPoint(nsFrameSelection *aFrameSel, nsINode *aNode)
 }
 
 
-NS_IMPL_ADDREF(nsSelectionIterator)
-NS_IMPL_RELEASE(nsSelectionIterator)
-
-NS_INTERFACE_MAP_BEGIN(nsSelectionIterator)
-  NS_INTERFACE_MAP_ENTRY(nsIEnumerator)
-  NS_INTERFACE_MAP_ENTRY(nsIBidirectionalEnumerator)
-NS_INTERFACE_MAP_END_AGGREGATED(mDomSelection)
-
-
-
-
-nsSelectionIterator::nsSelectionIterator(Selection* aList)
-:mIndex(0)
-{
-  if (!aList)
-  {
-    NS_NOTREACHED("nsFrameSelection");
-    return;
-  }
-  mDomSelection = aList;
-}
-
-
-
-nsSelectionIterator::~nsSelectionIterator()
-{
-}
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsSelectionIterator::Next()
-{
-  mIndex++;
-  int32_t cnt = mDomSelection->mRanges.Length();
-  if (mIndex < cnt)
-    return NS_OK;
-  return NS_ERROR_FAILURE;
-}
-
-
-
-NS_IMETHODIMP
-nsSelectionIterator::Prev()
-{
-  mIndex--;
-  if (mIndex >= 0 )
-    return NS_OK;
-  return NS_ERROR_FAILURE;
-}
-
-
-
-NS_IMETHODIMP
-nsSelectionIterator::First()
-{
-  if (!mDomSelection)
-    return NS_ERROR_NULL_POINTER;
-  mIndex = 0;
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP
-nsSelectionIterator::Last()
-{
-  if (!mDomSelection)
-    return NS_ERROR_NULL_POINTER;
-  mIndex = mDomSelection->mRanges.Length() - 1;
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP 
-nsSelectionIterator::CurrentItem(nsISupports **aItem)
-{
-  *aItem = static_cast<nsIDOMRange*>(CurrentItem());
-  if (!*aItem) {
-    return NS_ERROR_FAILURE;
-  }
-
-  NS_ADDREF(*aItem);
-  return NS_OK;
-}
-
-nsRange*
-nsSelectionIterator::CurrentItem()
-{
-  return mDomSelection->mRanges.SafeElementAt(mIndex, sEmptyData).mRange;
-}
-
-
-
-NS_IMETHODIMP
-nsSelectionIterator::IsDone()
-{
-  int32_t cnt = mDomSelection->mRanges.Length();
-  if (mIndex >= 0 && mIndex < cnt) {
-    
-    
-    return (nsresult)NS_ENUMERATOR_FALSE;
-  }
-  return NS_OK;
-}
-
-
-
-
-
 
 
 nsFrameSelection::nsFrameSelection()
@@ -3047,18 +2930,12 @@ nsFrameSelection::DeleteFromDocument()
     return NS_OK;
   }
 
-  
-  nsSelectionIterator iter(mDomSelections[index]);
-  res = iter.First();
-  if (NS_FAILED(res))
-    return res;
-
-  while (iter.IsDone() == static_cast<nsresult>(NS_ENUMERATOR_FALSE)) {
-    nsRefPtr<nsRange> range = iter.CurrentItem();
+  uint32_t rangeCount = mDomSelections[index]->GetRangeCount();
+  for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
+    nsRefPtr<nsRange> range = mDomSelections[index]->GetRangeAt(rangeIdx);
     res = range->DeleteContents();
     if (NS_FAILED(res))
       return res;
-    iter.Next();
   }
 
   
@@ -4353,14 +4230,6 @@ Selection::DoAutoScroll(nsIFrame* aFrame, nsPoint& aPoint)
 
   return NS_OK;
 }
-
-NS_IMETHODIMP
-Selection::GetEnumerator(nsIEnumerator** aIterator)
-{
-  NS_ADDREF(*aIterator = new nsSelectionIterator(this));
-  return NS_OK;
-}
-
 
 
 
