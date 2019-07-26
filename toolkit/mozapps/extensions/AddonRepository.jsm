@@ -224,11 +224,6 @@ AddonSearchResult.prototype = {
   
 
 
-  learnmoreURL: null,
-
-  
-
-
   supportURL: null,
 
   
@@ -1078,8 +1073,7 @@ this.AddonRepository = {
           }
           break;
         case "learnmore":
-          addon.learnmoreURL = this._getTextContent(node);
-          addon.homepageURL = addon.homepageURL || addon.learnmoreURL;
+          addon.homepageURL = addon.homepageURL || this._getTextContent(node);
           break;
         case "contribution_data":
           let meetDevelopers = this._getDescendantTextContent(node, "meet_developers");

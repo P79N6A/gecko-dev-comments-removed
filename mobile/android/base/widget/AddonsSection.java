@@ -204,9 +204,7 @@ public class AddonsSection extends AboutHomeSection {
         String iconUrl = addonJSON.getString("iconURL");
         String pageUrl = getPageUrlFromIconUrl(iconUrl);
 
-        
-        
-        final String homepageUrl = jsonobj.getString("learnmoreURL");
+        final String homepageUrl = addonJSON.getString("homepageURL");
         row.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
