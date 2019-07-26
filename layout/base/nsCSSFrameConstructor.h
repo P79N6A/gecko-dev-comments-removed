@@ -288,14 +288,6 @@ private:
   
   
   
-  void ConstructFrame(nsFrameConstructorState& aState,
-                      nsIContent*              aContent,
-                      nsIFrame*                aParentFrame,
-                      nsFrameItems&            aFrameItems);
-
-  
-  
-  
   
   
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
@@ -1028,7 +1020,6 @@ private:
   };
 
   
-
 
 
 
