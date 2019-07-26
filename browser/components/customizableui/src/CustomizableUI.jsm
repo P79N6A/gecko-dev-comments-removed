@@ -2055,6 +2055,7 @@ let CustomizableUIInternal = {
     
     gPlacements = new Map();
     gDirtyAreaCache = new Set();
+    gSeenWidgets = new Set();
     
     gSavedState = null;
     
