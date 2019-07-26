@@ -21,6 +21,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsITelemetry.h"
+#include "nsIJSContextStack.h"
 #include "jsapi.h"
 #include "prio.h"
 
@@ -397,19 +398,6 @@ TestEarlyShutdown() {
 }
 
 bool
-SetupJS(JSContext **cxp)
-{
-  JSRuntime *rt = JS_NewRuntime(32 * 1024 * 1024, JS_NO_HELPER_THREADS);
-  if (!rt)
-    return false;
-  JSContext *cx = JS_NewContext(rt, 8192);
-  if (!cx)
-    return false;
-  *cxp = cx;
-  return true;
-}
-
-bool
 GetHistogramCounts(const char *testmsg, const nsACString &histogram_id,
                    JSContext *cx, JS::Value *counts)
 {
@@ -506,11 +494,23 @@ int main(int argc, char** argv)
   
   int rv = 0;
   
-  JSContext *cx;
-  bool use_js = true;
-  if (!SetupJS(&cx))
-    use_js = false;
+  JSContext *cx = nullptr;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIThreadJSContextStack> stack =
+    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
+  if (stack)
+    cx = stack->GetSafeJSContext();
+
+  bool use_js = !!cx;
   JSAutoRequest req(cx);
   static JSClass global_class = {
     "global", JSCLASS_NEW_RESOLVE | JSCLASS_GLOBAL_FLAGS | JSCLASS_HAS_PRIVATE,
