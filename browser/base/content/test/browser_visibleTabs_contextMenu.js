@@ -33,6 +33,7 @@ function test() {
   
   updateTabContextMenu(testTab);
   is(document.getElementById("context_closeOtherTabs").disabled, true, "Close Other Tabs is disabled");
+  is(document.getElementById("context_closeTabsToTheEnd").disabled, true, "Close Tabs To The End is disabled");
 
   
   let allTabs = [tab for each (tab in gBrowser.tabs)];
@@ -41,7 +42,13 @@ function test() {
   
   updateTabContextMenu(testTab);
   is(document.getElementById("context_closeOtherTabs").disabled, false, "Close Other Tabs is enabled");
+  is(document.getElementById("context_closeTabsToTheEnd").disabled, true, "Close Tabs To The End is disabled");
   
+  
+  
+  updateTabContextMenu(origTab);
+  is(document.getElementById("context_closeTabsToTheEnd").disabled, false, "Close Tabs To The End is enabled");
+
   gBrowser.removeTab(testTab);
   gBrowser.removeTab(pinned);
 }

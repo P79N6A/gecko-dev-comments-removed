@@ -697,7 +697,8 @@ BrowserGlue.prototype = {
         
         
         mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(true);
+        let allTabs = mostRecentBrowserWindow.gBrowser.closingTabsEnum.ALL;
+        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(allTabs)
       }
       return;
     }

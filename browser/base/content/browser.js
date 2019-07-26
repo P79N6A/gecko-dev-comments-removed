@@ -5998,7 +5998,7 @@ function warnAboutClosingWindow() {
   
   let isPBWindow = PrivateBrowsingUtils.isWindowPrivate(window);
   if (!isPBWindow && !toolbar.visible)
-    return gBrowser.warnAboutClosingTabs(true);
+    return gBrowser.warnAboutClosingTabs(gBrowser.closingTabsEnum.ALL);
 
   
   let e = Services.wm.getEnumerator("navigator:browser");
@@ -6033,7 +6033,7 @@ function warnAboutClosingWindow() {
   }
 
   if (nonPopupPresent) {
-    return isPBWindow || gBrowser.warnAboutClosingTabs(true);
+    return isPBWindow || gBrowser.warnAboutClosingTabs(gBrowser.closingTabsEnum.ALL);
   }
 
   let os = Services.obs;
@@ -6051,7 +6051,7 @@ function warnAboutClosingWindow() {
   
   
   
-  return isPBWindow || gBrowser.warnAboutClosingTabs(true);
+  return isPBWindow || gBrowser.warnAboutClosingTabs(gBrowser.closingTabsEnum.ALL);
 #else
   return true;
 #endif
@@ -6952,6 +6952,13 @@ var TabContextMenu = {
     
     document.getElementById("context_pinTab").hidden = this.contextTab.pinned;
     document.getElementById("context_unpinTab").hidden = !this.contextTab.pinned;
+
+    
+    
+    
+    document.getElementById("context_closeTabsToTheEnd").disabled =
+      gBrowser.getTabsToTheEndFrom(this.contextTab).length == 0;
+    document.getElementById("context_closeTabsToTheEnd").hidden = this.contextTab.pinned;
 
     
     
