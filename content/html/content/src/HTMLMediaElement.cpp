@@ -7,8 +7,8 @@
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
 #include "mozilla/dom/ElementInlines.h"
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/MathAlgorithms.h"
+#include "mozilla/Util.h"
 
 #include "base/basictypes.h"
 #include "nsIDOMHTMLMediaElement.h"
@@ -1763,7 +1763,29 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded)
   }
 
   OutputMediaStream* out = mOutputStreams.AppendElement();
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  uint8_t hints = 0;
+  if (Preferences::GetBool("media.capturestream_hints.enabled")) {
+    nsCOMPtr<nsIDOMHTMLVideoElement> video = do_QueryObject(this);
+    if (video && GetVideoFrameContainer()) {
+      hints = DOMMediaStream::HINT_CONTENTS_VIDEO | DOMMediaStream::HINT_CONTENTS_AUDIO;
+    } else {
+      hints = DOMMediaStream::HINT_CONTENTS_AUDIO;
+    }
+  }
+  out->mStream = DOMMediaStream::CreateTrackUnionStream(window, hints);
+#else
   out->mStream = DOMMediaStream::CreateTrackUnionStream(window);
+#endif
   nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
   out->mStream->CombineWithPrincipal(principal);
   out->mFinishWhenEnded = aFinishWhenEnded;
