@@ -16,16 +16,8 @@ Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-common/preferences.js");
-Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/util.js");
-
-const DEFAULT_LOAD_FLAGS =
-  
-  Ci.nsIRequest.LOAD_BYPASS_CACHE |
-  Ci.nsIRequest.INHIBIT_CACHING |
-  
-  Ci.nsIRequest.LOAD_ANONYMOUS;
 
 
 
@@ -104,9 +96,6 @@ AsyncResource.prototype = {
   setHeader: function Res_setHeader(header, value) {
     this._headers[header.toLowerCase()] = value;
   },
-  get headerNames() {
-    return Object.keys(this.headers);
-  },
 
   
   
@@ -150,11 +139,12 @@ AsyncResource.prototype = {
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
 
-    channel.loadFlags |= DEFAULT_LOAD_FLAGS;
+    
+    channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
+    channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
 
     
-    let listener = new ChannelNotificationListener(this.headerNames);
-    channel.notificationCallbacks = listener;
+    channel.notificationCallbacks = new ChannelNotificationListener();
 
     
     if (Svc.Prefs.get("sendVersionInfo", true)) {
@@ -164,12 +154,8 @@ AsyncResource.prototype = {
 
     let headers = this.headers;
 
-    let authenticator = this.authenticator;
-    if (!authenticator) {
-      authenticator = Identity.getResourceAuthenticator();
-    }
-    if (authenticator) {
-      let result = authenticator(this, method);
+    if (this.authenticator) {
+      let result = this.authenticator(this, method);
       if (result && result.headers) {
         for (let [k, v] in Iterator(result.headers)) {
           headers[k.toLowerCase()] = v;
@@ -524,7 +510,7 @@ ChannelListener.prototype = {
                      " bytes from " + siStream + ".");
       throw ex;
     }
-    
+
     try {
       this._onProgress();
     } catch (ex) {
@@ -534,7 +520,7 @@ ChannelListener.prototype = {
       this._log.trace("Rethrowing; expect a failure code from the HTTP channel.");
       throw ex;
     }
-    
+
     this.delayAbort();
   },
 
@@ -564,19 +550,9 @@ ChannelListener.prototype = {
 
 
 
-
-
-
-
-function ChannelNotificationListener(headersToCopy) {
-  this._headersToCopy = headersToCopy;
-
-  this._log = Log4Moz.repository.getLogger(this._logName);
-  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.network.resources")];
+function ChannelNotificationListener() {
 }
 ChannelNotificationListener.prototype = {
-  _logName: "Sync.Resource",
-
   getInterface: function(aIID) {
     return this.QueryInterface(aIID);
   },
@@ -601,25 +577,6 @@ ChannelNotificationListener.prototype = {
 
   asyncOnChannelRedirect:
     function asyncOnChannelRedirect(oldChannel, newChannel, flags, callback) {
-
-    this._log.debug("Channel redirect: " + oldChannel.URI.spec + ", " +
-                    newChannel.URI.spec + ", " + flags);
-
-    
-    try {
-      if ((flags & Ci.nsIChannelEventSink.REDIRECT_INTERNAL) &&
-          newChannel.URI.equals(oldChannel.URI)) {
-        this._log.trace("Copying headers for safe internal redirect.");
-        for (let header of this._headersToCopy) {
-          let value = oldChannel.getRequestHeader(header);
-          if (value) {
-            newChannel.setRequestHeader(header, value);
-          }
-        }
-      }
-    } catch (ex) {
-      this._log.error("Error copying headers: " + CommonUtils.exceptionStr(ex));
-    }
 
     
     callback.onRedirectVerifyCallback(Cr.NS_OK);

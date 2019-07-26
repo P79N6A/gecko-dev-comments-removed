@@ -9,7 +9,6 @@ const {utils: Cu} = Components;
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/policies.js");
-Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
 
@@ -38,8 +37,8 @@ ClusterManager.prototype = {
     
     
     let fail;
-    let res = new Resource(this.service.userAPIURI + this.identity.username +
-                           "/node/weave");
+    let url = this.service.userAPIURI + this.identity.username + "/node/weave";
+    let res = this.service.resource(url);
     try {
       let node = res.get();
       switch (node.status) {

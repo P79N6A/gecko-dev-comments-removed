@@ -750,7 +750,7 @@ SyncEngine.prototype = {
 
     
     let batchSize = Infinity;
-    let newitems = new Collection(this.engineURL, this._recordObj);
+    let newitems = new Collection(this.engineURL, this._recordObj, this.service);
     let isMobile = (Svc.Prefs.get("client.type") == "mobile");
 
     if (isMobile) {
@@ -909,8 +909,8 @@ SyncEngine.prototype = {
 
     
     if (handled.length == newitems.limit) {
-      let guidColl = new Collection(this.engineURL);
-      
+      let guidColl = new Collection(this.engineURL, null, this.service);
+
       
       guidColl.limit = this.downloadLimit;
       guidColl.newer = this.lastSync;
@@ -1203,7 +1203,7 @@ SyncEngine.prototype = {
                       " outgoing records");
 
       
-      let up = new Collection(this.engineURL);
+      let up = new Collection(this.engineURL, null, this.service);
       let count = 0;
 
       
@@ -1269,7 +1269,7 @@ SyncEngine.prototype = {
     this._tracker.resetScore();
 
     let doDelete = Utils.bind2(this, function(key, val) {
-      let coll = new Collection(this.engineURL, this._recordObj);
+      let coll = new Collection(this.engineURL, this._recordObj, this.service);
       coll[key] = val;
       coll.delete();
     });
@@ -1320,7 +1320,7 @@ SyncEngine.prototype = {
     let canDecrypt = false;
 
     
-    let test = new Collection(this.engineURL, this._recordObj);
+    let test = new Collection(this.engineURL, this._recordObj, this.service);
     test.limit = 1;
     test.sort = "newest";
     test.full = true;
@@ -1348,7 +1348,7 @@ SyncEngine.prototype = {
   },
 
   wipeServer: function wipeServer() {
-    let response = new Resource(this.engineURL).delete();
+    let response = this.service.resource(this.engineURL).delete();
     if (response.status != 200 && response.status != 404) {
       throw response;
     }
