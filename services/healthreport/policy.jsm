@@ -115,9 +115,12 @@ Object.freeze(NotifyPolicyRequest.prototype);
 
 
 
-function DataSubmissionRequest(promise, expiresDate) {
+
+
+function DataSubmissionRequest(promise, expiresDate, isDelete) {
   this.promise = promise;
   this.expiresDate = expiresDate;
+  this.isDelete = isDelete;
 
   this.state = null;
   this.reason = null;
@@ -132,12 +135,19 @@ DataSubmissionRequest.prototype = {
   
 
 
+
+
+
+
   onNoDataAvailable: function onNoDataAvailable() {
     this.state = this.NO_DATA_AVAILABLE;
     this.promise.resolve(this);
   },
 
   
+
+
+
 
 
 
@@ -182,6 +192,11 @@ DataSubmissionRequest.prototype = {
 };
 
 Object.freeze(DataSubmissionRequest.prototype);
+
+
+
+
+
 
 
 
@@ -321,7 +336,11 @@ HealthReportPolicy.prototype = {
   STATE_NOTIFY_WAIT: "waiting",
   STATE_NOTIFY_COMPLETE: "ok",
 
-  REQUIRED_LISTENERS: ["onRequestDataSubmission", "onNotifyDataPolicy"],
+  REQUIRED_LISTENERS: [
+    "onRequestDataUpload",
+    "onRequestRemoteDelete",
+    "onNotifyDataPolicy",
+  ],
 
   
 
@@ -412,6 +431,22 @@ HealthReportPolicy.prototype = {
 
   set dataSubmissionEnabled(value) {
     this._prefs.set("dataSubmissionEnabled", !!value);
+  },
+
+  
+
+
+
+
+
+
+  get dataUploadEnabled() {
+    
+    return this._prefs.get("dataUploadEnabled", true);
+  },
+
+  set dataUploadEnabled(value) {
+    this._prefs.set("dataUploadEnabled", !!value);
   },
 
   
@@ -548,6 +583,21 @@ HealthReportPolicy.prototype = {
 
 
 
+  get pendingDeleteRemoteData() {
+    return !!this._prefs.get("pendingDeleteRemoteData", false);
+  },
+
+  set pendingDeleteRemoteData(value) {
+    this._prefs.set("pendingDeleteRemoteData", !!value);
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -576,6 +626,25 @@ HealthReportPolicy.prototype = {
     this.dataSubmissionPolicyResponseDate = this.now();
     this.dataSubmissionPolicyResponseType = "rejected-" + reason;
     this.dataSubmissionPolicyAccepted = false;
+  },
+
+  
+
+
+
+
+
+
+
+  deleteRemoteData: function deleteRemoteData(reason="no-reason") {
+    this._log.info("Remote data deletion requested: " + reason);
+
+    this.pendingDeleteRemoteData = true;
+
+    
+    
+    this.nextDataSubmissionDate = this.now();
+    this.checkStateAndTrigger();
   },
 
   
@@ -658,6 +727,28 @@ HealthReportPolicy.prototype = {
     }
 
     
+    if (this._processInProgressSubmission()) {
+      return;
+    }
+
+    
+    if (this.pendingDeleteRemoteData) {
+      if (nowT < nextSubmissionDate.getTime()) {
+        this._log.debug("Deletion request is scheduled for the future: " +
+                        nextSubmissionDate);
+        return;
+      }
+
+      this._dispatchSubmissionRequest("onRequestRemoteDelete", true);
+      return;
+    }
+
+    if (!this.dataUploadEnabled) {
+      this._log.debug("Data upload is disabled. Doing nothing.");
+      return;
+    }
+
+    
     if (!this.ensureNotifyResponse(now)) {
       return;
     }
@@ -677,53 +768,7 @@ HealthReportPolicy.prototype = {
       return;
     }
 
-    if (this._inProgressSubmissionRequest) {
-      if (this._inProgressSubmissionRequest.expiresDate.getTime() > nowT) {
-        this._log.info("Waiting on in-progress submission request to finish.");
-        return;
-      }
-
-      this._log.warn("Old submission request has expired from no activity.");
-      this._inProgressSubmissionRequest.promise.reject(new Error("Request has expired."));
-      this._inProgressSubmissionRequest = null;
-      if (!this._handleSubmissionFailure()) {
-        return;
-      }
-    }
-
-    
-    this.lastDataSubmissionRequestedDate = now;
-    let deferred = Promise.defer();
-    let requestExpiresDate =
-      this._futureDate(this.SUBMISSION_REQUEST_EXPIRE_INTERVAL_MSEC);
-    this._inProgressSubmissionRequest = new DataSubmissionRequest(deferred,
-                                                                  requestExpiresDate);
-
-    let onSuccess = function onSuccess(result) {
-      this._inProgressSubmissionRequest = null;
-      this._handleSubmissionResult(result);
-    }.bind(this);
-
-    let onError = function onError(error) {
-      this._log.error("Error when handling data submission result: " +
-                      CommonUtils.exceptionStr(result));
-      this._inProgressSubmissionRequest = null;
-      this._handleSubmissionFailure();
-    }.bind(this);
-
-    deferred.promise.then(onSuccess, onError);
-
-    this._log.info("Requesting data submission. Will expire at " +
-                   requestExpiresDate);
-    try {
-      this._listener.onRequestDataSubmission(this._inProgressSubmissionRequest);
-    } catch (ex) {
-      this._log.warn("Exception when calling onRequestDataSubmission: " +
-                     CommonUtils.exceptionStr(ex));
-      this._inProgressSubmissionRequest = null;
-      this._handleSubmissionFailure();
-      return;
-    }
+    this._dispatchSubmissionRequest("onRequestDataUpload", false);
   },
 
   
@@ -797,25 +842,108 @@ HealthReportPolicy.prototype = {
     return true;
   },
 
+  _processInProgressSubmission: function _processInProgressSubmission() {
+    if (!this._inProgressSubmissionRequest) {
+      return false;
+    }
+
+    let now = this.now().getTime();
+    if (this._inProgressSubmissionRequest.expiresDate.getTime() > now) {
+      this._log.info("Waiting on in-progress submission request to finish.");
+      return true;
+    }
+
+    this._log.warn("Old submission request has expired from no activity.");
+    this._inProgressSubmissionRequest.promise.reject(new Error("Request has expired."));
+    this._inProgressSubmissionRequest = null;
+    this._handleSubmissionFailure();
+
+    return false;
+  },
+
+  _dispatchSubmissionRequest: function _dispatchSubmissionRequest(handler, isDelete) {
+    let now = this.now();
+
+    
+    this.lastDataSubmissionRequestedDate = now;
+    let deferred = Promise.defer();
+    let requestExpiresDate =
+      this._futureDate(this.SUBMISSION_REQUEST_EXPIRE_INTERVAL_MSEC);
+    this._inProgressSubmissionRequest = new DataSubmissionRequest(deferred,
+                                                                  requestExpiresDate,
+                                                                  isDelete);
+
+    let onSuccess = function onSuccess(result) {
+      this._inProgressSubmissionRequest = null;
+      this._handleSubmissionResult(result);
+    }.bind(this);
+
+    let onError = function onError(error) {
+      this._log.error("Error when handling data submission result: " +
+                      CommonUtils.exceptionStr(result));
+      this._inProgressSubmissionRequest = null;
+      this._handleSubmissionFailure();
+    }.bind(this);
+
+    deferred.promise.then(onSuccess, onError);
+
+    this._log.info("Requesting data submission. Will expire at " +
+                   requestExpiresDate);
+    try {
+      this._listener[handler](this._inProgressSubmissionRequest);
+    } catch (ex) {
+      this._log.warn("Exception when calling " + handler + ": " +
+                     CommonUtils.exceptionStr(ex));
+      this._inProgressSubmissionRequest = null;
+      this._handleSubmissionFailure();
+      return;
+    }
+  },
+
   _handleSubmissionResult: function _handleSubmissionResult(request) {
     let state = request.state;
     let reason = request.reason || "no reason";
     this._log.info("Got submission request result: " + state);
 
     if (state == request.SUBMISSION_SUCCESS) {
-      this._log.info("Successful data submission reported.");
+      if (request.isDelete) {
+        this.pendingDeleteRemoteData = false;
+        this._log.info("Successful data delete reported.");
+      } else {
+        this._log.info("Successful data upload reported.");
+      }
+
       this.lastDataSubmissionSuccessfulDate = request.submissionDate;
-      this.nextDataSubmissionDate =
+
+      let nextSubmissionDate =
         new Date(request.submissionDate.getTime() + MILLISECONDS_PER_DAY);
+
+      
+      
+      
+      if (this.pendingDeleteRemoteData) {
+        nextSubmissionDate = this.now();
+      }
+
+      this.nextDataSubmissionDate = nextSubmissionDate;
       this.currentDaySubmissionFailureCount = 0;
       return;
     }
 
     if (state == request.NO_DATA_AVAILABLE) {
+      if (request.isDelete) {
+        this._log.info("Remote data delete requested but no remote data was stored.");
+        this.pendingDeleteRemoteData = false;
+        return;
+      }
+
       this._log.info("No data was available to submit. May try later.");
       this._handleSubmissionFailure();
       return;
     }
+
+    
+    
 
     if (state == request.SUBMISSION_FAILURE_SOFT) {
       this._log.warn("Soft error submitting data: " + reason);
@@ -862,3 +990,4 @@ HealthReportPolicy.prototype = {
 };
 
 Object.freeze(HealthReportPolicy.prototype);
+
