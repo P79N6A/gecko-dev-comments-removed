@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Observer.h"
 #include "Types.h"
+#include "mozilla/dom/NetworkInformationBinding.h"
 
 namespace mozilla {
 
@@ -44,11 +45,9 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
 
-  double Bandwidth() const;
+  ConnectionType Type() const { return mType; }
 
-  bool Metered() const;
-
-  IMPL_EVENT_HANDLER(change)
+  IMPL_EVENT_HANDLER(typechange)
 
 private:
   
@@ -60,12 +59,7 @@ private:
   
 
 
-  bool mCanBeMetered;
-
-  
-
-
-  double mBandwidth;
+  ConnectionType mType;
 
   
 
@@ -76,9 +70,6 @@ private:
 
 
   uint32_t mDHCPGateway;
-
-  static const char* sMeteredPrefName;
-  static const bool  sMeteredDefaultValue;
 };
 
 } 
