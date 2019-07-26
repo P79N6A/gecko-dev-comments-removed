@@ -482,12 +482,25 @@ ParticularProcessPriorityManager::Init()
 ParticularProcessPriorityManager::~ParticularProcessPriorityManager()
 {
   LOGP("Destroying ParticularProcessPriorityManager.");
-  UnregisterWakeLockObserver(this);
+
+  
+  
+  
+  
+
+  if (mContentParent) {
+    UnregisterWakeLockObserver(this);
+  }
 }
 
  void
 ParticularProcessPriorityManager::Notify(const WakeLockInformation& aInfo)
 {
+  if (!mContentParent) {
+    
+    return;
+  }
+
   bool* dest = nullptr;
   if (aInfo.topic().EqualsLiteral("cpu")) {
     dest = &mHoldsCPUWakeLock;
@@ -804,6 +817,8 @@ void
 ParticularProcessPriorityManager::ShutDown()
 {
   MOZ_ASSERT(mContentParent);
+
+  UnregisterWakeLockObserver(this);
 
   if (mResetPriorityTimer) {
     mResetPriorityTimer->Cancel();
