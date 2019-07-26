@@ -8,7 +8,7 @@
 #include "nsXULAppAPI.h"
 
 
-#if !defined(XP_WIN)
+#if !defined(OS_WIN)
 #include <unistd.h>
 #endif
 
