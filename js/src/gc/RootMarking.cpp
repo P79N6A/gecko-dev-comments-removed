@@ -87,35 +87,6 @@ MarkExactStackRoots(JSTracer *trc)
 }
 #endif 
 
-static inline bool
-InFreeList(ArenaHeader *aheader, uintptr_t addr)
-{
-    if (!aheader->hasFreeThings())
-        return false;
-
-    FreeSpan firstSpan(aheader->getFirstFreeSpan());
-
-    for (const FreeSpan *span = &firstSpan;;) {
-        
-        if (addr < span->first)
-            return false;
-
-        
-
-
-
-
-        if (addr <= span->last)
-            return true;
-
-        
-
-
-
-        span = span->nextSpan();
-    }
-}
-
 enum ConservativeGCTest
 {
     CGCT_VALID,
@@ -240,7 +211,7 @@ MarkIfGCThingWord(JSTracer *trc, uintptr_t w)
 
 
 
-    if (InFreeList(aheader, uintptr_t(thing)))
+    if (InFreeList(aheader, thing))
         return CGCT_NOTLIVE;
 
     JSGCTraceKind traceKind = MapAllocToTraceKind(thingKind);

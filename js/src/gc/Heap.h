@@ -988,6 +988,36 @@ Cell::isAligned() const
 }
 #endif
 
+inline bool
+InFreeList(ArenaHeader *aheader, void *thing)
+{
+    if (!aheader->hasFreeThings())
+        return false;
+
+    FreeSpan firstSpan(aheader->getFirstFreeSpan());
+    uintptr_t addr = reinterpret_cast<uintptr_t>(thing);
+
+    for (const FreeSpan *span = &firstSpan;;) {
+        
+        if (addr < span->first)
+            return false;
+
+        
+
+
+
+
+        if (addr <= span->last)
+            return true;
+
+        
+
+
+
+        span = span->nextSpan();
+    }
+}
+
 } 
 } 
 

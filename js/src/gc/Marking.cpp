@@ -144,7 +144,14 @@ CheckMarkedThing(JSTracer *trc, T *thing)
                  thing->compartment()->isGCMarkingGray() ||
                  thing->compartment() == rt->atomsCompartment);
 
-    JS_ASSERT(!IsThingPoisoned(thing));
+    
+
+
+
+
+
+    JS_ASSERT_IF(IsThingPoisoned(thing) && rt->isHeapBusy(),
+                 !InFreeList(thing->arenaHeader(), thing));
 }
 
 static GCMarker *

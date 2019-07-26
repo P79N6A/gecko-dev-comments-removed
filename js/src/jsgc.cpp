@@ -267,7 +267,7 @@ ArenaHeader::checkSynchronizedWithFreeList() const
 
 
 
-    if (!compartment->rt->isHeapBusy())
+    if (IsBackgroundFinalized(getAllocKind()) && !compartment->rt->isHeapBusy())
         return;
 
     FreeSpan firstSpan = FreeSpan::decodeOffsets(arenaAddress(), firstFreeSpanOffsets);
