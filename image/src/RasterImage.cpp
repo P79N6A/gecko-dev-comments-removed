@@ -1669,7 +1669,9 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   if (!StoringSourceData() && mHasSize) {
+    mDecoder->SetSynchronous(true);
     rv = WriteToDecoder(aBuffer, aCount);
+    mDecoder->SetSynchronous(false);
     CONTAINER_ENSURE_SUCCESS(rv);
 
     
