@@ -6,6 +6,7 @@
 #include "mozilla/layers/TextureClient.h"
 #include <stdint.h>                     
 #include "Layers.h"                     
+#include "gfx2DGlue.h"
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
 #include "gfxPoint.h"                   
@@ -506,8 +507,8 @@ BufferTextureClient::UpdateYCbCr(const PlanarYCbCrData& aData)
   YCbCrImageDataSerializer serializer(GetBuffer());
   MOZ_ASSERT(serializer.IsValid());
   if (!serializer.CopyData(aData.mYChannel, aData.mCbChannel, aData.mCrChannel,
-                           aData.mYSize, aData.mYStride,
-                           aData.mCbCrSize, aData.mCbCrStride,
+                           ThebesIntSize(aData.mYSize), aData.mYStride,
+                           ThebesIntSize(aData.mCbCrSize), aData.mCbCrStride,
                            aData.mYSkip, aData.mCbSkip)) {
     NS_WARNING("Failed to copy image data!");
     return false;
@@ -858,8 +859,8 @@ AutoLockYCbCrClient::Update(PlanarYCbCrImage* aImage)
 
   YCbCrImageDataSerializer serializer(shmem.get<uint8_t>());
   if (!serializer.CopyData(data->mYChannel, data->mCbChannel, data->mCrChannel,
-                           data->mYSize, data->mYStride,
-                           data->mCbCrSize, data->mCbCrStride,
+                           ThebesIntSize(data->mYSize), data->mYStride,
+                           ThebesIntSize(data->mCbCrSize), data->mCbCrStride,
                            data->mYSkip, data->mCbSkip)) {
     NS_WARNING("Failed to copy image data!");
     return false;
@@ -886,8 +887,8 @@ bool AutoLockYCbCrClient::EnsureDeprecatedTextureClient(PlanarYCbCrImage* aImage
   } else {
     ipc::Shmem& shmem = mDescriptor->get_YCbCrImage().data();
     YCbCrImageDataSerializer serializer(shmem.get<uint8_t>());
-    if (serializer.GetYSize() != data->mYSize ||
-        serializer.GetCbCrSize() != data->mCbCrSize) {
+    if (ToIntSize(serializer.GetYSize()) != data->mYSize ||
+        ToIntSize(serializer.GetCbCrSize()) != data->mCbCrSize) {
       needsAllocation = true;
     }
   }

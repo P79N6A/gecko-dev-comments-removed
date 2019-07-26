@@ -86,7 +86,7 @@ ConvertYCbCrToRGB(const layers::PlanarYCbCrData& aData,
                  aData.mCbCrSize.height);
 
   
-  if (aDestSize != ToIntSize(aData.mPicSize)) {
+  if (aDestSize != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == FORMAT_R5G6B5) {
       ScaleYCbCrToRGB565(aData.mYChannel,

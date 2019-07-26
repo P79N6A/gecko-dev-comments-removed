@@ -698,7 +698,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
   
   
   bool prescale = aSuggestedSize.width > 0 && aSuggestedSize.height > 0 &&
-                    aSuggestedSize != aData.mPicSize;
+                    ToIntSize(aSuggestedSize) != aData.mPicSize;
 
   if (aSuggestedFormat == gfxImageFormatRGB16_565) {
 #if defined(HAVE_YCBCR_TO_RGB565)
@@ -734,7 +734,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
       prescale = false;
   }
   if (!prescale) {
-    aSuggestedSize = aData.mPicSize;
+    ToIntSize(aSuggestedSize) = aData.mPicSize;
   }
 }
 
@@ -758,7 +758,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
                       aData.mCbCrSize.height);
 
   
-  if (aDestSize != aData.mPicSize) {
+  if (ToIntSize(aDestSize) != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (aDestFormat == gfxImageFormatRGB16_565) {
       ScaleYCbCrToRGB565(aData.mYChannel,
