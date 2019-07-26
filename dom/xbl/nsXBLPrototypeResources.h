@@ -40,7 +40,7 @@ public:
 
 private:
   
-  nsXBLResourceLoader* mLoader;
+  nsRefPtr<nsXBLResourceLoader> mLoader;
 
 public:
   
