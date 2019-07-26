@@ -524,7 +524,25 @@ Provider.prototype = Object.freeze({
 
 
 
+
+
   collectConstantData: function () {
+    return Promise.resolve();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  collectDailyData: function () {
     return Promise.resolve();
   },
 
