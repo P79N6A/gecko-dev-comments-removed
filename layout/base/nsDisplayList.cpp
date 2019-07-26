@@ -1014,6 +1014,9 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
     layerManager = new BasicLayerManager();
   }
 
+  
+  FrameLayerBuilder *oldBuilder = layerManager->GetLayerBuilder();
+
   FrameLayerBuilder *layerBuilder = new FrameLayerBuilder();
   layerBuilder->Init(aBuilder, layerManager);
 
@@ -1050,13 +1053,13 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ContainerLayer> root = layerBuilder->
     BuildContainerLayerFor(aBuilder, layerManager, aForFrame, nullptr, *this,
                            containerParameters, nullptr);
-  
+
   if (widgetTransaction) {
     aForFrame->ClearInvalidationStateBits();
   }
 
   if (!root) {
-    layerManager->RemoveUserData(&gLayerManagerLayerBuilder);
+    layerManager->SetUserData(&gLayerManagerLayerBuilder, oldBuilder);
     return;
   }
   
@@ -1135,7 +1138,7 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   }
 
   nsCSSRendering::DidPaint();
-  layerManager->RemoveUserData(&gLayerManagerLayerBuilder);
+  layerManager->SetUserData(&gLayerManagerLayerBuilder, oldBuilder);
 }
 
 uint32_t nsDisplayList::Count() const {
