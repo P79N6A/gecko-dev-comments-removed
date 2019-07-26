@@ -57,6 +57,7 @@ public class GeckoPreferences
 
     private static boolean sIsCharEncodingEnabled = false;
     private boolean mInitialized = false;
+    private int mPrefsRequestId = 0;
 
     
     private static String PREFS_ANNOUNCEMENTS_ENABLED = NON_PREF_PREFIX + "privacy.announcements.enabled";
@@ -134,7 +135,7 @@ public class GeckoPreferences
         mInitialized = true;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
             PreferenceScreen screen = getPreferenceScreen();
-            setupPreferences(screen);
+            mPrefsRequestId = setupPreferences(screen);
         }
     }
 
@@ -142,6 +143,9 @@ public class GeckoPreferences
     protected void onDestroy() {
         super.onDestroy();
         unregisterEventListener("Sanitize:Finished");
+        if (mPrefsRequestId > 0) {
+            PrefsHelper.removeObserver(mPrefsRequestId);
+        }
     }
 
     @Override
@@ -181,11 +185,28 @@ public class GeckoPreferences
         }
     }
 
-    public void setupPreferences(PreferenceGroup prefs) {
+    
+
+
+
+
+
+
+    public int setupPreferences(PreferenceGroup prefs) {
         ArrayList<String> list = new ArrayList<String>();
         setupPreferences(prefs, list);
-        getGeckoPreferences(prefs, list);
+        return getGeckoPreferences(prefs, list);
     }
+
+    
+
+
+
+
+
+
+
+
 
     private void setupPreferences(PreferenceGroup preferences, ArrayList<String> prefs) {
         for (int i = 0; i < preferences.getPreferenceCount(); i++) {
@@ -505,10 +526,10 @@ public class GeckoPreferences
     }
 
     
-    private void getGeckoPreferences(final PreferenceGroup screen, ArrayList<String> prefs) {
+    private int getGeckoPreferences(final PreferenceGroup screen, ArrayList<String> prefs) {
         JSONArray jsonPrefs = new JSONArray(prefs);
 
-        PrefsHelper.getPrefs(jsonPrefs, new PrefsHelper.PrefHandlerBase() {
+        return PrefsHelper.getPrefs(jsonPrefs, new PrefsHelper.PrefHandlerBase() {
             private Preference getField(String prefName) {
                 return screen.findPreference(prefName);
             }
@@ -580,6 +601,11 @@ public class GeckoPreferences
                         }
                     });
                 }
+            }
+
+            @Override
+            public boolean isObserver() {
+                return true;
             }
 
             @Override
