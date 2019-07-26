@@ -1534,13 +1534,6 @@ nsContentUtils::Shutdown()
 }
 
 
-bool
-nsContentUtils::CallerHasUniversalXPConnect()
-{
-  return IsCallerChrome();
-}
-
-
 
 
 
@@ -1614,7 +1607,7 @@ nsContentUtils::CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
 
   
   
-  return CallerHasUniversalXPConnect();
+  return IsCallerChrome();
 }
 
 
@@ -1789,13 +1782,13 @@ nsContentUtils::IsCallerChrome()
 bool
 nsContentUtils::IsCallerTrustedForRead()
 {
-  return CallerHasUniversalXPConnect();
+  return IsCallerChrome();
 }
 
 bool
 nsContentUtils::IsCallerTrustedForWrite()
 {
-  return CallerHasUniversalXPConnect();
+  return IsCallerChrome();
 }
 
 bool

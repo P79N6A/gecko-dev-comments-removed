@@ -207,11 +207,6 @@ public:
 
   static bool     IsCallerTrustedForWrite();
 
-  
-
-
-  static bool     CallerHasUniversalXPConnect();
-
   static bool     IsImageSrcSetDisabled();
 
   

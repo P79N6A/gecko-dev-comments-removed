@@ -990,7 +990,7 @@ nsHTMLInputElement::GetValueInternal(nsAString& aValue) const
       return NS_OK;
 
     case VALUE_MODE_FILENAME:
-      if (nsContentUtils::CallerHasUniversalXPConnect()) {
+      if (nsContentUtils::IsCallerChrome()) {
         if (mFiles.Count()) {
           return mFiles[0]->GetMozFullPath(aValue);
         }
@@ -1052,7 +1052,7 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
   
   if (mType == NS_FORM_INPUT_FILE) {
     if (!aValue.IsEmpty()) {
-      if (!nsContentUtils::CallerHasUniversalXPConnect()) {
+      if (!nsContentUtils::IsCallerChrome()) {
         
         
         return NS_ERROR_DOM_SECURITY_ERR;
@@ -1270,7 +1270,7 @@ nsHTMLInputElement::StepUp(int32_t n, uint8_t optional_argc)
 NS_IMETHODIMP 
 nsHTMLInputElement::MozGetFileNameArray(uint32_t *aLength, PRUnichar ***aFileNames)
 {
-  if (!nsContentUtils::CallerHasUniversalXPConnect()) {
+  if (!nsContentUtils::IsCallerChrome()) {
     
     
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -1297,8 +1297,7 @@ nsHTMLInputElement::MozGetFileNameArray(uint32_t *aLength, PRUnichar ***aFileNam
 NS_IMETHODIMP 
 nsHTMLInputElement::MozSetFileNameArray(const PRUnichar **aFileNames, uint32_t aLength)
 {
-  if (!nsContentUtils::CallerHasUniversalXPConnect()) {
-    
+  if (!nsContentUtils::IsCallerChrome()) {
     
     return NS_ERROR_DOM_SECURITY_ERR;
   }

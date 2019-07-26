@@ -540,7 +540,7 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName,
   
   
   NS_ABORT_IF_FALSE(!mExposeVisitedStyle ||
-                    nsContentUtils::CallerHasUniversalXPConnect(),
+                    nsContentUtils::IsCallerChrome(),
                     "mExposeVisitedStyle set incorrectly");
   if (mExposeVisitedStyle && mStyleContextHolder->RelevantLinkVisited()) {
     nsStyleContext *styleIfVisited = mStyleContextHolder->GetStyleIfVisited();

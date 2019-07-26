@@ -147,7 +147,7 @@ nsDOMFileBase::GetMozFullPath(nsAString &aFileName)
   
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (nsContentUtils::CallerHasUniversalXPConnect()) {
+  if (nsContentUtils::IsCallerChrome()) {
     return GetMozFullPathInternal(aFileName);
   }
   aFileName.Truncate();

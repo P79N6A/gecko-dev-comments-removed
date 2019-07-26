@@ -970,7 +970,7 @@ mozJSComponentLoader::Import(const nsACString& registryLocation,
     JS::Value targetVal = targetVal_;
     JSObject *targetObject = NULL;
 
-    MOZ_ASSERT(nsContentUtils::CallerHasUniversalXPConnect());
+    MOZ_ASSERT(nsContentUtils::IsCallerChrome());
     if (optionalArgc) {
         
         if (targetVal.isObject()) {

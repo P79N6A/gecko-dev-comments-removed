@@ -451,7 +451,7 @@ nsDOMDataTransfer::MozGetDataAt(const nsAString& aFormat,
   nsIPrincipal* principal = nullptr;
   if (mIsCrossDomainSubFrameDrop ||
       (mEventType != NS_DRAGDROP_DROP && mEventType != NS_DRAGDROP_DRAGDROP &&
-       !nsContentUtils::CallerHasUniversalXPConnect())) {
+       !nsContentUtils::IsCallerChrome())) {
     nsresult rv = NS_OK;
     principal = GetCurrentPrincipal(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -520,7 +520,7 @@ nsDOMDataTransfer::MozSetDataAt(const nsAString& aFormat,
   
   if ((aFormat.EqualsLiteral("application/x-moz-file-promise") ||
        aFormat.EqualsLiteral("application/x-moz-file")) &&
-       !nsContentUtils::CallerHasUniversalXPConnect()) {
+       !nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
