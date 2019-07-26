@@ -9,6 +9,7 @@
 
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/gfx/ScaleFactor.h"
 #include "nsDeviceContext.h"
 
 namespace mozilla {
@@ -37,6 +38,13 @@ typedef gfx::SizeTyped<ScreenPixel> ScreenSize;
 typedef gfx::IntSizeTyped<ScreenPixel> ScreenIntSize;
 typedef gfx::RectTyped<ScreenPixel> ScreenRect;
 typedef gfx::IntRectTyped<ScreenPixel> ScreenIntRect;
+
+typedef gfx::ScaleFactor<CSSPixel, LayerPixel> CSSToLayerScale;
+typedef gfx::ScaleFactor<LayerPixel, CSSPixel> LayerToCSSScale;
+typedef gfx::ScaleFactor<CSSPixel, ScreenPixel> CSSToScreenScale;
+typedef gfx::ScaleFactor<ScreenPixel, CSSPixel> ScreenToCSSScale;
+typedef gfx::ScaleFactor<LayerPixel, ScreenPixel> LayerToScreenScale;
+typedef gfx::ScaleFactor<ScreenPixel, LayerPixel> ScreenToLayerScale;
 
 
 
@@ -101,11 +109,6 @@ struct LayerPixel {
 
   
 
-  static LayerPoint FromCSSPoint(const CSSPoint& aPoint, float aResolutionX, float aResolutionY) {
-    return LayerPoint(aPoint.x * aResolutionX,
-                      aPoint.y * aResolutionY);
-  }
-
   static LayerIntPoint FromCSSPointRounded(const CSSPoint& aPoint, float aResolutionX, float aResolutionY) {
     return LayerIntPoint(NS_lround(aPoint.x * aResolutionX),
                          NS_lround(aPoint.y * aResolutionY));
@@ -136,24 +139,26 @@ struct ScreenPixel {
 
   
 
-  static ScreenPoint FromCSSPoint(const CSSPoint& aPoint, float aResolutionX, float aResolutionY) {
-    return ScreenPoint(aPoint.x * aResolutionX,
-                       aPoint.y * aResolutionY);
-  }
-
-  
-
-  static CSSPoint ToCSSPoint(const ScreenPoint& aPoint, float aResolutionX, float aResolutionY) {
-    return CSSPoint(aPoint.x * aResolutionX,
-                    aPoint.y * aResolutionY);
-  }
-
   static CSSIntRect ToCSSIntRectRoundIn(const ScreenIntRect& aRect, float aResolutionX, float aResolutionY) {
     CSSIntRect ret(aRect.x, aRect.y, aRect.width, aRect.height);
     ret.ScaleInverseRoundIn(aResolutionX, aResolutionY);
     return ret;
   }
 };
+
+
+
+template<class src, class dst>
+gfx::PointTyped<dst> operator*(const gfx::PointTyped<src>& aPoint, const gfx::ScaleFactor<src, dst>& aScale) {
+  return gfx::PointTyped<dst>(aPoint.x * aScale.scale,
+                              aPoint.y * aScale.scale);
+}
+
+template<class src, class dst>
+gfx::PointTyped<dst> operator/(const gfx::PointTyped<src>& aPoint, const gfx::ScaleFactor<dst, src>& aScale) {
+  return gfx::PointTyped<dst>(aPoint.x / aScale.scale,
+                              aPoint.y / aScale.scale);
+}
 
 };
 
