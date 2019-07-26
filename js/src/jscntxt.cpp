@@ -274,12 +274,15 @@ js::CloneFunctionAtCallsite(JSContext *cx, HandleFunction fun, HandleScript scri
         return p->value;
 
     RootedObject parent(cx, fun->environment());
-    RootedFunction clone(cx, CloneFunctionObject(cx, fun, parent,
-                                                 JSFunction::ExtendedFinalizeKind));
+    RootedFunction clone(cx, CloneFunctionObject(cx, fun, parent));
     if (!clone)
         return NULL;
 
     
+
+
+
+    clone->nonLazyScript()->shouldCloneAtCallsite = false;
     clone->nonLazyScript()->isCallsiteClone = true;
     clone->nonLazyScript()->setOriginalFunctionObject(fun);
 
