@@ -453,9 +453,7 @@ nsBrowserContentHandler.prototype = {
     if (chromeParam) {
 
       
-      if (chromeParam == "chrome://browser/content/pref/pref.xul" ||
-          (Services.prefs.getBoolPref("browser.preferences.inContent") &&
-           chromeParam == "chrome://browser/content/preferences/preferences.xul")) {
+      if (chromeParam == "chrome://browser/content/pref/pref.xul") {
         openPreferences();
         cmdLine.preventDefault = true;
       } else try {
