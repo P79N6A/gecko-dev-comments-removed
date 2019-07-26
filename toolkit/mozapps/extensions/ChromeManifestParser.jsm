@@ -152,7 +152,7 @@ var ChromeManifestParser = {
 
 
   hasType: function CMP_hasType(aManifest, aType) {
-    return aManifest.some(function(aEntry) {
+    return aManifest.some(function hasType_matchEntryType(aEntry) {
       return aEntry.type == aType;
     });
   }

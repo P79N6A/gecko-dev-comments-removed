@@ -48,7 +48,7 @@ function createInstallTrigger(window) {
     
 
 
-    enabled: function() {
+    enabled: function createInstallTrigger_enabled() {
       return sendSyncMessage(MSG_INSTALL_ENABLED, {
         mimetype: "application/x-xpinstall", referer: this.url.spec
       })[0];
@@ -57,14 +57,14 @@ function createInstallTrigger(window) {
     
 
 
-    updateEnabled: function() {
+    updateEnabled: function createInstallTrigger_updateEnabled() {
       return this.enabled();
     },
 
     
 
 
-    install: function(aArgs, aCallback) {
+    install: function createInstallTrigger_install(aArgs, aCallback) {
       if (!aArgs || typeof aArgs != "object")
         throw Components.Exception("Incorrect arguments passed to InstallTrigger.install()",
                                    Cr.NS_ERROR_INVALID_ARGS);
@@ -113,7 +113,7 @@ function createInstallTrigger(window) {
     
 
 
-    startSoftwareUpdate: function(aUrl, aFlags) {
+    startSoftwareUpdate: function createInstallTrigger_startSoftwareUpdate(aUrl, aFlags) {
       var url = gIoService.newURI(aUrl, null, null)
                           .QueryInterface(Ci.nsIURL).filename;
       var object = {};
@@ -124,7 +124,7 @@ function createInstallTrigger(window) {
     
 
 
-    installChrome: function(aType, aUrl, aSkin) {
+    installChrome: function createInstallTrigger_installChrome(aType, aUrl, aSkin) {
       return this.startSoftwareUpdate(aUrl);
     },
 
@@ -137,7 +137,7 @@ function createInstallTrigger(window) {
 
 
 
-    resolveURL: function(aUrl) {
+    resolveURL: function createInstallTrigger_resolveURL(aUrl) {
       return gIoService.newURI(aUrl, null, this.url);
     },
 
@@ -146,7 +146,7 @@ function createInstallTrigger(window) {
 
 
 
-    checkLoadURIFromScript: function(aUri) {
+    checkLoadURIFromScript: function createInstallTrigger_checkLoadURIFromScript(aUri) {
       var secman = Cc["@mozilla.org/scriptsecuritymanager;1"].
                    getService(Ci.nsIScriptSecurityManager);
       var principal = this.window.document.nodePrincipal;
@@ -204,7 +204,7 @@ function InstallTriggerManager() {
     
     if (Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).processType !== Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
       
-      addMessageListener(MSG_JAR_FLUSH, function(msg) {
+      addMessageListener(MSG_JAR_FLUSH, function jar_flushMessageListener(msg) {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
         file.initWithPath(msg.json);
         Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService)
@@ -218,17 +218,17 @@ function InstallTriggerManager() {
   addEventListener("DOMWindowCreated", this, false);
 
   var self = this;
-  addEventListener("unload", function() {
+  addEventListener("unload", function unloadEventListener() {
     
     self.callbacks = null;
   }, false);
 }
 
 InstallTriggerManager.prototype = {
-  handleEvent: function handleEvent(aEvent) {
+  handleEvent: function ITM_handleEvent(aEvent) {
     var window = aEvent.target.defaultView;
 
-    window.wrappedJSObject.__defineGetter__("InstallTrigger", function() {
+    window.wrappedJSObject.__defineGetter__("InstallTrigger", function installTriggerGetter() {
       
       
       
@@ -255,7 +255,7 @@ InstallTriggerManager.prototype = {
 
 
 
-  addCallback: function(aCallback, aUrls) {
+  addCallback: function ITM_addCallback(aCallback, aUrls) {
     if (!aCallback || typeof aCallback != "function")
       return -1;
     var callbackId = 0;
@@ -279,7 +279,7 @@ InstallTriggerManager.prototype = {
 
 
 
-  receiveMessage: function(aMessage) {
+  receiveMessage: function ITM_receiveMessage(aMessage) {
     var payload = aMessage.json;
     var callbackId = payload.callbackId;
     var url = payload.url;
