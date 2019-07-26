@@ -677,7 +677,7 @@ void
 Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileAndGoGlobal)
 {
     JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal);
-    JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal == &script->global());
+    JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal == &script->uninlinedGlobal());
     
     
     JS_ASSERT_IF(!script->compartment()->options().invisibleToDebugger &&
