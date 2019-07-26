@@ -417,6 +417,21 @@ var gSyncSetup = {
     }
   },
 
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+  _securelyStoreForMetroSync: function(weaveEmail, weavePassword, weaveKey) {
+    try {
+      let metroUtils = Cc["@mozilla.org/windows-metroutils;1"].
+                       createInstance(Ci.nsIWinMetroUtils);
+      if (!metroUtils)
+          return;
+      metroUtils.storeSyncInfo(weaveEmail, weavePassword, weaveKey);
+    } catch (ex) {
+    }
+  },
+#endif
+#endif
+
   onWizardAdvance: function () {
     
     
@@ -471,6 +486,13 @@ var gSyncSetup = {
           Weave.Service.identity.syncKey = Weave.Utils.generatePassphrase();
           this._handleNoScript(false);
           Weave.Svc.Prefs.set("firstSync", "newAccount");
+#ifdef XP_WIN
+#ifdef MOZ_METRO
+          if (document.getElementById("metroSetupCheckbox").checked) {
+            this._securelyStoreForMetroSync(email, password, Weave.Service.identity.syncKey);
+          }
+#endif
+#endif
           this.wizardFinish();
           return false;
         }
