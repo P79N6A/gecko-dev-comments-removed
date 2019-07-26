@@ -623,6 +623,22 @@ JS_JITINFO_NATIVE_PARALLEL(intrinsic_InParallelSection_jitInfo,
 
 
 
+bool
+js::intrinsic_ObjectIsTransparentTypedObject(JSContext *cx, unsigned argc, Value *vp)
+{
+    return js::ObjectIsTransparentTypedObject(cx, argc, vp);
+}
+
+bool
+js::intrinsic_ObjectIsOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp)
+{
+    return js::ObjectIsOpaqueTypedObject(cx, argc, vp);
+}
+
+
+
+
+
 static bool
 intrinsic_RuntimeDefaultLocale(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -699,13 +715,13 @@ static const JSFunctionSpec intrinsic_functions[] = {
               JSNativeThreadSafeWrapper<js::ObjectIsTypeDescr>,
               &js::ObjectIsTypeDescrJitInfo, 5, 0),
     JS_FNINFO("ObjectIsTransparentTypedObject",
-              JSNativeThreadSafeWrapper<js::ObjectIsTransparentTypedObject>,
+              intrinsic_ObjectIsTransparentTypedObject,
               &js::ObjectIsTransparentTypedObjectJitInfo, 5, 0),
     JS_FNINFO("TypedObjectIsAttached",
               JSNativeThreadSafeWrapper<js::TypedObjectIsAttached>,
               &js::TypedObjectIsAttachedJitInfo, 1, 0),
     JS_FNINFO("ObjectIsOpaqueTypedObject",
-              JSNativeThreadSafeWrapper<js::ObjectIsOpaqueTypedObject>,
+              intrinsic_ObjectIsOpaqueTypedObject,
               &js::ObjectIsOpaqueTypedObjectJitInfo, 5, 0),
     JS_FNINFO("ClampToUint8",
               JSNativeThreadSafeWrapper<js::ClampToUint8>,
