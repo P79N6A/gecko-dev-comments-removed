@@ -431,11 +431,12 @@ CanSkipWrappedJS(nsXPCWrappedJS *wrappedJS)
     
     
     
+    bool isRootWrappedJS = wrappedJS->GetRootWrapper() == wrappedJS;
     if (nsCCUncollectableMarker::sGeneration &&
         (!obj || !xpc_IsGrayGCThing(obj)) &&
         !wrappedJS->IsSubjectToFinalization() &&
-        wrappedJS->GetRootWrapper() == wrappedJS) {
-        if (!wrappedJS->IsAggregatedToNative()) {
+        (isRootWrappedJS || CanSkipWrappedJS(wrappedJS->GetRootWrapper()))) {
+        if (!wrappedJS->IsAggregatedToNative() || !isRootWrappedJS) {
             return true;
         } else {
             nsISupports* agg = wrappedJS->GetAggregatedNativeObject();
