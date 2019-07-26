@@ -180,7 +180,7 @@ TextureClientD3D11::Lock(OpenMode aMode)
   mIsLocked = true;
 
   if (mNeedsClear) {
-    mDrawTarget = GetAsDrawTarget();
+    mDrawTarget = BorrowDrawTarget();
     mDrawTarget->ClearRect(Rect(0, 0, GetSize().width, GetSize().height));
     mNeedsClear = false;
   }
@@ -208,10 +208,10 @@ TextureClientD3D11::Unlock()
   mIsLocked = false;
 }
 
-TemporaryRef<DrawTarget>
-TextureClientD3D11::GetAsDrawTarget()
+DrawTarget*
+TextureClientD3D11::BorrowDrawTarget()
 {
-  MOZ_ASSERT(mIsLocked, "Calling TextureClient::GetAsDrawTarget without locking :(");
+  MOZ_ASSERT(mIsLocked, "Calling TextureClient::BorrowDrawTarget without locking :(");
 
   if (!mTexture) {
     return nullptr;

@@ -294,7 +294,7 @@ ImageClientSingle::UpdateImageInternal(ImageContainer* aContainer,
 
     {
       
-      RefPtr<DrawTarget> dt = mFrontBuffer->GetAsDrawTarget();
+      DrawTarget* dt = mFrontBuffer->BorrowDrawTarget();
       MOZ_ASSERT(surface.get());
       dt->CopySurface(surface, IntRect(IntPoint(), surface->GetSize()), IntPoint());
     }

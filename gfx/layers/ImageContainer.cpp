@@ -644,7 +644,7 @@ CairoImage::GetTextureClient(CompositableClient *aClient)
   TextureClientAutoUnlock autoUnolck(textureClient);
   {
     
-    RefPtr<DrawTarget> dt = textureClient->GetAsDrawTarget();
+    DrawTarget* dt = textureClient->BorrowDrawTarget();
     if (!dt) {
       return nullptr;
     }

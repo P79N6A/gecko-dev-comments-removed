@@ -90,7 +90,7 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   {
     
     RefPtr<DrawTarget> target =
-      mBuffer->GetAsDrawTarget();
+      mBuffer->BorrowDrawTarget();
     if (target) {
       aLayer->UpdateTarget(target);
       updated = true;

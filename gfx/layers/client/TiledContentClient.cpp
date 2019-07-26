@@ -772,7 +772,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   
   
   
-  RefPtr<DrawTarget> drawTarget = backBuffer->GetAsDrawTarget();
+  RefPtr<DrawTarget> drawTarget = backBuffer->BorrowDrawTarget();
   drawTarget->SetTransform(Matrix());
 
   RefPtr<gfxContext> ctxt = new gfxContext(drawTarget);
