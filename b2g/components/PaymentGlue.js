@@ -11,7 +11,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-const kPaymentShimFile = "chrome://browser/content/payment.js";
+const kPaymentShimFile = "chrome://b2g/content/payment.js";
 
 
 const kOpenPaymentConfirmationEvent = "open-payment-confirmation-dialog";

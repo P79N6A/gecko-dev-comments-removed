@@ -100,7 +100,7 @@ try {
 
 
 
-const kIdentityShimFile = "chrome://browser/content/identity.js";
+const kIdentityShimFile = "chrome://b2g/content/identity.js";
 
 
 const kOpenIdentityDialog = "id-dialog-open";
