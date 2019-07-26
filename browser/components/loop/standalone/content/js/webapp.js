@@ -5,7 +5,7 @@
 
 
 var loop = loop || {};
-loop.webapp = (function($, OT, webl10n) {
+loop.webapp = (function($, _, OT) {
   "use strict";
 
   
@@ -19,9 +19,7 @@ loop.webapp = (function($, OT, webl10n) {
       sharedViews = loop.shared.views,
       
       
-      baseServerUrl = "http://localhost:5000",
-      
-      __ = webl10n.get;
+      baseServerUrl = "http://localhost:5000";
 
   
 
@@ -207,4 +205,4 @@ loop.webapp = (function($, OT, webl10n) {
     init: init,
     WebappRouter: WebappRouter
   };
-})(jQuery, window.OT, document.webL10n);
+})(jQuery, _, window.OT);

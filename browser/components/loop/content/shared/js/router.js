@@ -16,7 +16,35 @@ loop.shared.router = (function(l10n) {
 
 
   var BaseRouter = Backbone.Router.extend({
-    activeView: undefined,
+    
+
+
+
+    _activeView: undefined,
+
+    
+
+
+
+    _notifier: undefined,
+
+    
+
+
+
+
+
+
+
+    constructor: function(options) {
+      options = options || {};
+      if (!options.notifier) {
+        throw new Error("missing required notifier");
+      }
+      this._notifier = options.notifier;
+
+      Backbone.Router.apply(this, arguments);
+    },
 
     
 
@@ -24,11 +52,11 @@ loop.shared.router = (function(l10n) {
 
 
     loadView : function(view) {
-      if (this.activeView) {
-        this.activeView.remove();
+      if (this._activeView) {
+        this._activeView.remove();
       }
-      this.activeView = view.render().show();
-      this.updateView(this.activeView.$el);
+      this._activeView = view.render().show();
+      this.updateView(this._activeView.$el);
     },
 
     
@@ -56,13 +84,6 @@ loop.shared.router = (function(l10n) {
 
 
 
-    _notifier: undefined,
-
-    
-
-
-
-
 
 
 
@@ -75,11 +96,6 @@ loop.shared.router = (function(l10n) {
         throw new Error("missing required conversation");
       }
       this._conversation = options.conversation;
-
-      if (!options.notifier) {
-        throw new Error("missing required notifier");
-      }
-      this._notifier = options.notifier;
 
       this.listenTo(this._conversation, "session:ready", this._onSessionReady);
       this.listenTo(this._conversation, "session:ended", this._onSessionEnded);
