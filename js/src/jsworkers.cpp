@@ -927,7 +927,8 @@ WorkerThread::threadLoop()
     }
 }
 
-AutoPauseWorkersForGC::AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+AutoPauseWorkersForTracing::AutoPauseWorkersForTracing(JSRuntime *rt
+                                                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
   : runtime(rt), needsUnpause(false), oldExclusiveThreadsPaused(rt->exclusiveThreadsPaused)
 {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -961,7 +962,7 @@ AutoPauseWorkersForGC::AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTI
     }
 }
 
-AutoPauseWorkersForGC::~AutoPauseWorkersForGC()
+AutoPauseWorkersForTracing::~AutoPauseWorkersForTracing()
 {
     runtime->exclusiveThreadsPaused = oldExclusiveThreadsPaused;
 
@@ -1086,12 +1087,13 @@ ScriptSource::getOffThreadCompressionChars(ExclusiveContext *cx)
     return nullptr;
 }
 
-AutoPauseWorkersForGC::AutoPauseWorkersForGC(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
+AutoPauseWorkersForTracing::AutoPauseWorkersForTracing(JSRuntime *rt
+                                                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 }
 
-AutoPauseWorkersForGC::~AutoPauseWorkersForGC()
+AutoPauseWorkersForTracing::~AutoPauseWorkersForTracing()
 {
 }
 
