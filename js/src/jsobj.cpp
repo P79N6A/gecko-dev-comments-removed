@@ -921,6 +921,23 @@ DefinePropertyOnArray(JSContext *cx, HandleObject obj, HandleId id, const PropDe
 
     
     if (id == NameToId(cx->names().length)) {
+        
+        
+        
+        
+        
+        
+        
+        RootedValue v(cx);
+        if (desc.hasValue()) {
+            uint32_t newLen;
+            if (!CanonicalizeArrayLengthValue(cx, desc.value(), &newLen))
+                return false;
+            v.setNumber(newLen);
+        } else {
+            v.setNumber(obj->getArrayLength());
+        }
+
         if (desc.hasConfigurable() && desc.configurable())
             return Reject(cx, id, JSMSG_CANT_REDEFINE_PROP, throwError, rval);
         if (desc.hasEnumerable() && desc.enumerable())
@@ -930,16 +947,9 @@ DefinePropertyOnArray(JSContext *cx, HandleObject obj, HandleId id, const PropDe
             return Reject(cx, id, JSMSG_CANT_REDEFINE_PROP, throwError, rval);
 
         unsigned attrs = obj->nativeLookup(cx, id)->attributes();
-
-        RootedValue v(cx, desc.hasValue() ? desc.value() : NumberValue(obj->getArrayLength()));
         if (!obj->arrayLengthIsWritable()) {
             if (desc.hasWritable() && desc.writable())
                 return Reject(cx, id, JSMSG_CANT_REDEFINE_PROP, throwError, rval);
-
-            if (desc.hasValue()) {
-                if (obj->getArrayLength() != desc.value().toNumber())
-                    return Reject(cx, id, JSMSG_CANT_REDEFINE_PROP, throwError, rval);
-            }
         } else {
             if (desc.hasWritable() && !desc.writable())
                 attrs = attrs | JSPROP_READONLY;

@@ -420,6 +420,22 @@ struct ReverseIndexComparator
     }
 };
 
+bool
+js::CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *newLen)
+{
+    if (!ToUint32(cx, v, newLen))
+        return false;
+
+    double d;
+    if (!ToNumber(cx, v, &d))
+        return false;
+    if (d == *newLen)
+        return true;
+
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_ARRAY_LENGTH);
+    return false;
+}
+
 
 bool
 js::ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs,
@@ -434,17 +450,8 @@ js::ArraySetLength(JSContext *cx, HandleObject obj, HandleId id, unsigned attrs,
 
     
     uint32_t newLen;
-    if (!ToUint32(cx, value, &newLen))
+    if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
         return false;
-
-    
-    double d;
-    if (!ToNumber(cx, value, &d))
-        return false;
-    if (d != newLen) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_ARRAY_LENGTH);
-        return false;
-    }
 
     
     bool lengthIsWritable = obj->arrayLengthIsWritable();

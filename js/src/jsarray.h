@@ -81,6 +81,13 @@ WouldDefinePastNonwritableLength(JSContext *cx, HandleObject obj, uint32_t index
                                  bool *definesPast);
 
 
+
+
+
+extern bool
+CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *canonicalized);
+
+
 extern RawShape
 GetDenseArrayShape(JSContext *cx, HandleObject globalObj);
 
