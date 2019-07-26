@@ -9107,7 +9107,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     
     
-    if (!bIsJavascript) {
+    if (!bIsJavascript && aFileName.IsVoid()) {
         
         
         
