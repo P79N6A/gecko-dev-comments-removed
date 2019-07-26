@@ -24,8 +24,15 @@
  #endif
 #elif defined(WEBRTC_ANDROID_OPENSLES)
     #include <stdlib.h>
+    #include <dlfcn.h>
     #include "audio_device_utility_android.h"
-    #include "audio_device_opensles_android.h"
+    #include "audio_device_opensles.h"
+    #include "audio_device_jni_android.h"
+#elif defined(WEBRTC_GONK)
+    #include <stdlib.h>
+    #include <dlfcn.h>
+    #include "audio_device_utility_linux.h"
+    #include "audio_device_opensles.h"
 #elif defined(WEBRTC_ANDROID)
     #include <stdlib.h>
     #include "audio_device_utility_android.h"
@@ -258,38 +265,47 @@ int32_t AudioDeviceModuleImpl::CreatePlatformSpecificObjects()
 
     
     
-#if defined(WEBRTC_ANDROID_OPENSLES)
-    if (audioLayer == kPlatformDefaultAudio)
-    {
+#if defined(WEBRTC_ANDROID_OPENSLES) || defined(WEBRTC_GONK)
+    
+    void* opensles_lib = dlopen("libOpenSLES.so", RTLD_LAZY);
+    if (opensles_lib) {
         
-        ptrAudioDevice = new AudioDeviceAndroidOpenSLES(Id());
-        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                     "Android OpenSLES Audio APIs will be utilized");
+        dlclose(opensles_lib);
+        if (audioLayer == kPlatformDefaultAudio)
+        {
+            
+            ptrAudioDevice = new AudioDeviceAndroidOpenSLES(Id());
+            WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
+                         "Android OpenSLES Audio APIs will be utilized");
+        }
     }
 
+#if !defined(WEBRTC_GONK)
     if (ptrAudioDevice != NULL)
     {
         
         ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
     }
-    
+#endif
 
+#endif
+#if defined(WEBRTC_ANDROID_OPENSLES) or defined(WEBRTC_ANDROID)
     
-    
-#elif defined(WEBRTC_ANDROID)
-    if (audioLayer == kPlatformDefaultAudio)
-    {
+    if (ptrAudioDevice == NULL) {
         
-        ptrAudioDevice = new AudioDeviceAndroidJni(Id());
-        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "Android JNI Audio APIs will be utilized");
-    }
+        if (audioLayer == kPlatformDefaultAudio)
+        {
+            
+            ptrAudioDevice = new AudioDeviceAndroidJni(Id());
+            WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "Android JNI Audio APIs will be utilized");
+        }
 
-    if (ptrAudioDevice != NULL)
-    {
-        
-        ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
+        if (ptrAudioDevice != NULL)
+        {
+            
+            ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
+        }
     }
-    
 
     
     

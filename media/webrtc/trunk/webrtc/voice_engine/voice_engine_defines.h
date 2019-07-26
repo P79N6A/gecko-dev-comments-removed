@@ -314,11 +314,18 @@ inline int VoEChannelId(int moduleId)
 
   
   #undef WEBRTC_CODEC_ISAC
-  #undef WEBRTC_VOE_EXTERNAL_REC_AND_PLAYOUT
+  
+  
+  
+  
   #undef WEBRTC_CONFERENCING
   #undef WEBRTC_TYPING_DETECTION
 
-  #define ANDROID_NOT_SUPPORTED(stat) NOT_SUPPORTED(stat)
+  
+  
+  
+  #define ANDROID_NOT_SUPPORTED(stat)
+
 
 #else 
 
@@ -337,9 +344,11 @@ inline int VoEChannelId(int moduleId)
 
 
 
-#ifdef WEBRTC_MAC
+#if defined(WEBRTC_BSD) || defined(WEBRTC_MAC)
 
+#if !defined(WEBRTC_BSD)
 #include <AudioUnit/AudioUnit.h>
+#endif
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -355,13 +364,14 @@ inline int VoEChannelId(int moduleId)
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#if !defined(WEBRTC_IOS)
+#if !defined(WEBRTC_BSD) && !defined(WEBRTC_IOS)
   #include <CoreServices/CoreServices.h>
   #include <CoreAudio/CoreAudio.h>
   #include <AudioToolbox/DefaultAudioOutput.h>
   #include <AudioToolbox/AudioConverter.h>
   #include <CoreAudio/HostTime.h>
 #endif
+
 
 #define DWORD unsigned long int
 #define WINAPI

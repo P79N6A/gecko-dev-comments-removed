@@ -11,7 +11,6 @@
 #ifndef SRC_MODULES_AUDIO_DEVICE_ANDROID_AUDIO_DEVICE_OPENSLES_ANDROID_H_
 #define SRC_MODULES_AUDIO_DEVICE_ANDROID_AUDIO_DEVICE_OPENSLES_ANDROID_H_
 
-#include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -27,36 +26,6 @@
 namespace webrtc {
 
 class EventWrapper;
-
-const uint32_t N_MAX_INTERFACES = 3;
-const uint32_t N_MAX_OUTPUT_DEVICES = 6;
-const uint32_t N_MAX_INPUT_DEVICES = 3;
-
-const uint32_t N_REC_SAMPLES_PER_SEC = 16000;  
-const uint32_t N_PLAY_SAMPLES_PER_SEC = 16000;  
-
-const uint32_t N_REC_CHANNELS = 1;
-const uint32_t N_PLAY_CHANNELS = 1;
-
-const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480;
-const uint32_t PLAY_BUF_SIZE_IN_SAMPLES = 480;
-
-const uint32_t REC_MAX_TEMP_BUF_SIZE_PER_10ms =
-    N_REC_CHANNELS * REC_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
-
-const uint32_t PLAY_MAX_TEMP_BUF_SIZE_PER_10ms =
-    N_PLAY_CHANNELS * PLAY_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
-
-
-const uint16_t N_PLAY_QUEUE_BUFFERS = 8;
-
-
-const uint16_t N_REC_QUEUE_BUFFERS = 8;
-
-
-
-
-
 
 class ThreadWrapper;
 
@@ -210,6 +179,36 @@ class AudioDeviceAndroidOpenSLES: public AudioDeviceGeneric {
   virtual int32_t SetLoudspeakerStatus(bool enable);
   virtual int32_t GetLoudspeakerStatus(bool& enable) const;  
 
+  static const uint32_t N_MAX_INTERFACES = 3;
+  static const uint32_t N_MAX_OUTPUT_DEVICES = 6;
+  static const uint32_t N_MAX_INPUT_DEVICES = 3;
+
+  static const uint32_t N_REC_SAMPLES_PER_SEC = 16000;  
+  static const uint32_t N_PLAY_SAMPLES_PER_SEC = 16000;  
+
+  static const uint32_t N_REC_CHANNELS = 1;
+  static const uint32_t N_PLAY_CHANNELS = 1;
+
+  static const uint32_t REC_BUF_SIZE_IN_SAMPLES = 480;
+  static const uint32_t PLAY_BUF_SIZE_IN_SAMPLES = 480;
+
+  static const uint32_t REC_MAX_TEMP_BUF_SIZE_PER_10ms =
+      N_REC_CHANNELS * REC_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
+
+  static const uint32_t PLAY_MAX_TEMP_BUF_SIZE_PER_10ms =
+      N_PLAY_CHANNELS * PLAY_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
+
+  
+  static const uint16_t N_PLAY_QUEUE_BUFFERS = 8;
+  
+  
+  static const uint16_t N_REC_QUEUE_BUFFERS = 8;
+  
+  
+  
+  
+  
+
  private:
   
   void Lock() {
@@ -309,6 +308,15 @@ class AudioDeviceAndroidOpenSLES: public AudioDeviceGeneric {
   std::queue<int8_t*> play_queue_;
   int8_t play_buf_[N_PLAY_QUEUE_BUFFERS][
       N_PLAY_CHANNELS * sizeof(int16_t) * PLAY_BUF_SIZE_IN_SAMPLES];
+
+  
+  void *opensles_lib_;
+  SLInterfaceID SL_IID_ENGINE_;
+  SLInterfaceID SL_IID_BUFFERQUEUE_;
+  SLInterfaceID SL_IID_ANDROIDCONFIGURATION_;
+  SLInterfaceID SL_IID_PLAY_;
+  SLInterfaceID SL_IID_ANDROIDSIMPLEBUFFERQUEUE_;
+  SLInterfaceID SL_IID_RECORD_;
 };
 
 }  
