@@ -905,10 +905,7 @@ nsContextMenu.prototype = {
   reload: function(event) {
     if (this.onSocial) {
       
-      Social.enabled = false;
-      Services.tm.mainThread.dispatch(function() {
-        Social.enabled = true;
-      }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+      Social.provider.reload();
     } else {
       BrowserReloadOrDuplicate(event);
     }

@@ -91,6 +91,11 @@ this.Social = {
   providers: [],
   _disabledForSafeMode: false,
 
+  get allowMultipleWorkers() {
+    return Services.prefs.prefHasUserValue("social.allowMultipleWorkers") &&
+           Services.prefs.getBoolPref("social.allowMultipleWorkers");
+  },
+
   get _currentProviderPref() {
     try {
       return Services.prefs.getComplexValue("social.provider.current",
@@ -115,14 +120,13 @@ this.Social = {
   },
 
   
-  
   _setProvider: function (provider) {
     if (this._provider == provider)
       return;
 
     
     
-    if (this._provider)
+    if (this._provider && !Social.allowMultipleWorkers)
       this._provider.enabled = false;
 
     this._provider = provider;
@@ -134,7 +138,6 @@ this.Social = {
     let enabled = !!provider;
     if (enabled != SocialService.enabled) {
       SocialService.enabled = enabled;
-      Services.prefs.setBoolPref("social.enabled", enabled);
     }
 
     let origin = this._provider && this._provider.origin;
@@ -159,15 +162,18 @@ this.Social = {
     if (SocialService.enabled) {
       
       SocialService.getOrderedProviderList(function (providers) {
-        this._updateProviderCache(providers);
-      }.bind(this));
+        Social._updateProviderCache(providers);
+        Social._updateWorkerState(true);
+      });
     }
 
     
     SocialService.registerProviderListener(function providerListener(topic, data) {
       
+      
       if (topic == "provider-added" || topic == "provider-removed") {
-        this._updateProviderCache(data);
+        Social._updateProviderCache(data);
+        Social._updateWorkerState(true);
         Services.obs.notifyObservers(null, "social:providers-changed", null);
         return;
       }
@@ -175,15 +181,21 @@ this.Social = {
         
         
         let provider = data;
-        
-        if (provider.enabled) {
-          Social.enabled = false;
-          Services.tm.mainThread.dispatch(function() {
-            Social.enabled = true;
-          }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-        }
+        SocialService.getOrderedProviderList(function(providers) {
+          Social._updateProviderCache(providers);
+          provider.reload();
+          Services.obs.notifyObservers(null, "social:providers-changed", null);
+        });
       }
-    }.bind(this));
+    });
+  },
+
+  _updateWorkerState: function(enable) {
+    
+    
+    if (enable && !Social.allowMultipleWorkers)
+      return;
+    [p.enabled = enable for (p of Social.providers) if (p.enabled != enable)];
   },
 
   
@@ -203,6 +215,9 @@ this.Social = {
   set enabled(val) {
     
     
+
+    this._updateWorkerState(val);
+
     if (val) {
       if (!this.provider)
         this.provider = this.defaultProvider;
@@ -210,6 +225,7 @@ this.Social = {
       this.provider = null;
     }
   },
+
   get enabled() {
     return this.provider != null;
   },
@@ -227,10 +243,6 @@ this.Social = {
   toggleNotifications: function SocialNotifications_toggle() {
     let prefValue = Services.prefs.getBoolPref("social.toast-notifications.enabled");
     Services.prefs.setBoolPref("social.toast-notifications.enabled", !prefValue);
-  },
-
-  haveLoggedInUser: function () {
-    return !!(this.provider && this.provider.profile && this.provider.profile.userName);
   },
 
   setProviderByOrigin: function (origin) {

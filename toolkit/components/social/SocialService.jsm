@@ -34,7 +34,13 @@ XPCOMUtils.defineLazyServiceGetter(this, "etld",
 
 
 let SocialServiceInternal = {
-  enabled: Services.prefs.getBoolPref("social.enabled"),
+  _enabled: Services.prefs.getBoolPref("social.enabled"),
+  get enabled() this._enabled,
+  set enabled(val) {
+    this._enabled = !!val;
+    Services.prefs.setBoolPref("social.enabled", !!val);
+  },
+
   get providerArray() {
     return [p for ([, p] of Iterator(this.providers))];
   },
@@ -362,7 +368,6 @@ this.SocialService = {
 
     SocialServiceInternal.enabled = enable;
     MozSocialAPI.enabled = enable;
-    Services.obs.notifyObservers(null, "social:pref-changed", enable ? "enabled" : "disabled");
     Services.telemetry.getHistogramById("SOCIAL_TOGGLED").add(enable);
   },
 
@@ -723,6 +728,12 @@ function SocialProvider(input) {
 }
 
 SocialProvider.prototype = {
+  reload: function() {
+    this._terminate();
+    this._activate();
+    Services.obs.notifyObservers(null, "social:provider-reload", this.origin);
+  },
+
   
   
   _enabled: false,
@@ -866,6 +877,10 @@ SocialProvider.prototype = {
     Services.obs.notifyObservers(null, "social:profile-changed", this.origin);
     if (accountChanged)
       closeAllChatWindows(this);
+  },
+
+  haveLoggedInUser: function () {
+    return !!(this.profile && this.profile.userName);
   },
 
   

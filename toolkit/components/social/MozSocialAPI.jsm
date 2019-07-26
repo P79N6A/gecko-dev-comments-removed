@@ -49,7 +49,7 @@ function injectController(doc, topic, data) {
       return;
     }
 
-    var containingBrowser = window.QueryInterface(Ci.nsIInterfaceRequestor)
+    let containingBrowser = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                   .getInterface(Ci.nsIWebNavigation)
                                   .QueryInterface(Ci.nsIDocShell)
                                   .chromeEventHandler;
@@ -67,7 +67,7 @@ function injectController(doc, topic, data) {
     }
 
     SocialService.getProvider(doc.nodePrincipal.origin, function(provider) {
-      if (provider && provider.workerURL && provider.enabled) {
+      if (provider && provider.enabled) {
         attachToWindow(provider, window);
       }
     });
@@ -88,7 +88,7 @@ function attachToWindow(provider, targetWindow) {
     return;
   }
 
-  var port = provider.getWorkerPort(targetWindow);
+  let port = provider.workerURL ? provider.getWorkerPort(targetWindow) : null;
 
   let mozSocialObj = {
     
@@ -206,12 +206,14 @@ function attachToWindow(provider, targetWindow) {
     return targetWindow.navigator.wrappedJSObject.mozSocial = contentObj;
   });
 
-  targetWindow.addEventListener("unload", function () {
-    
-    
-    
-    schedule(function () { port.close(); });
-  });
+  if (port) {
+    targetWindow.addEventListener("unload", function () {
+      
+      
+      
+      schedule(function () { port.close(); });
+    });
+  }
 
   
   
