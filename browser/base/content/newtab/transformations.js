@@ -156,7 +156,7 @@ let gTransformation = {
       finish();
     } else {
       this.setSitePosition(aSite, targetPosition);
-      this._whenTransitionEnded(aSite.node, finish);
+      this._whenTransitionEnded(aSite.node, ["left", "top"], finish);
     }
   },
 
@@ -204,13 +204,17 @@ let gTransformation = {
 
 
 
-  _whenTransitionEnded:
-    function Transformation_whenTransitionEnded(aNode, aCallback) {
 
-    aNode.addEventListener("transitionend", function onEnd() {
-      aNode.removeEventListener("transitionend", onEnd, false);
-      aCallback();
-    }, false);
+  _whenTransitionEnded:
+    function Transformation_whenTransitionEnded(aNode, aProperties, aCallback) {
+
+    let props = new Set(aProperties);
+    aNode.addEventListener("transitionend", function onEnd(e) {
+      if (props.has(e.propertyName)) {
+        aNode.removeEventListener("transitionend", onEnd);
+        aCallback();
+      }
+    });
   },
 
   
@@ -236,8 +240,9 @@ let gTransformation = {
       if (aCallback)
         aCallback();
     } else {
-      if (aCallback)
-        this._whenTransitionEnded(aNode, aCallback);
+      if (aCallback) {
+        this._whenTransitionEnded(aNode, ["opacity"], aCallback);
+      }
 
       aNode.style.opacity = aOpacity;
     }

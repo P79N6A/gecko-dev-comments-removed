@@ -23,27 +23,53 @@ let gDropTargetShim = {
   
 
 
-  init: function DropTargetShim_init() {
-    let node = gGrid.node;
-
-    
-    node.addEventListener("dragstart", this, true);
-    node.addEventListener("dragend", this, true);
+  init: function () {
+    gGrid.node.addEventListener("dragstart", this, true);
   },
 
   
 
 
-  handleEvent: function DropTargetShim_handleEvent(aEvent) {
+  _addEventListeners: function () {
+    gGrid.node.addEventListener("dragend", this);
+
+    let docElement = document.documentElement;
+    docElement.addEventListener("dragover", this);
+    docElement.addEventListener("dragenter", this);
+    docElement.addEventListener("drop", this);
+  },
+
+  
+
+
+  _removeEventListeners: function () {
+    gGrid.node.removeEventListener("dragend", this);
+
+    let docElement = document.documentElement;
+    docElement.removeEventListener("dragover", this);
+    docElement.removeEventListener("dragenter", this);
+    docElement.removeEventListener("drop", this);
+  },
+
+  
+
+
+  handleEvent: function (aEvent) {
     switch (aEvent.type) {
       case "dragstart":
-        this._start(aEvent);
+        this._dragstart(aEvent);
+        break;
+      case "dragenter":
+        aEvent.preventDefault();
         break;
       case "dragover":
         this._dragover(aEvent);
         break;
+      case "drop":
+        this._drop(aEvent);
+        break;
       case "dragend":
-        this._end(aEvent);
+        this._dragend(aEvent);
         break;
     }
   },
@@ -52,12 +78,10 @@ let gDropTargetShim = {
 
 
 
-  _start: function DropTargetShim_start(aEvent) {
+  _dragstart: function (aEvent) {
     if (aEvent.target.classList.contains("newtab-link")) {
       gGrid.lock();
-
-      
-      document.documentElement.addEventListener("dragover", this, false);
+      this._addEventListeners();
     }
   },
 
@@ -65,7 +89,65 @@ let gDropTargetShim = {
 
 
 
-  _drag: function DropTargetShim_drag(aEvent) {
+  _dragover: function (aEvent) {
+    
+    
+    let sourceNode = aEvent.dataTransfer.mozSourceNode.parentNode;
+    gDrag.drag(sourceNode._newtabSite, aEvent);
+
+    
+    this._updateDropTarget(aEvent);
+
+    
+    
+    if (this._lastDropTarget) {
+      aEvent.preventDefault();
+    }
+  },
+
+  
+
+
+
+  _drop: function (aEvent) {
+    
+    aEvent.preventDefault();
+
+    
+    
+    this._updateDropTarget(aEvent);
+
+    
+    this._dispatchEvent(aEvent, "drop", this._lastDropTarget);
+  },
+
+  
+
+
+
+  _dragend: function (aEvent) {
+    if (this._lastDropTarget) {
+      if (aEvent.dataTransfer.mozUserCancelled) {
+        
+        this._dispatchEvent(aEvent, "dragexit", this._lastDropTarget);
+        this._dispatchEvent(aEvent, "dragleave", this._lastDropTarget);
+      }
+
+      
+      this._lastDropTarget = null;
+      this._cellPositions = null;
+    }
+
+    gGrid.unlock();
+    this._removeEventListeners();
+  },
+
+  
+
+
+
+
+  _updateDropTarget: function (aEvent) {
     
     let target = this._findDropTarget(aEvent);
 
@@ -91,49 +173,7 @@ let gDropTargetShim = {
 
 
 
-  _dragover: function DropTargetShim_dragover(aEvent) {
-    let sourceNode = aEvent.dataTransfer.mozSourceNode.parentNode;
-    gDrag.drag(sourceNode._newtabSite, aEvent);
-
-    this._drag(aEvent);
-  },
-
-  
-
-
-
-  _end: function DropTargetShim_end(aEvent) {
-    
-    
-    this._drag(aEvent);
-
-    if (this._lastDropTarget) {
-      if (aEvent.dataTransfer.mozUserCancelled) {
-        
-        this._dispatchEvent(aEvent, "dragexit", this._lastDropTarget);
-        this._dispatchEvent(aEvent, "dragleave", this._lastDropTarget);
-      } else {
-        
-        this._dispatchEvent(aEvent, "drop", this._lastDropTarget);
-      }
-
-      
-      this._lastDropTarget = null;
-      this._cellPositions = null;
-    }
-
-    gGrid.unlock();
-
-    
-    document.documentElement.removeEventListener("dragover", this, false);
-  },
-
-  
-
-
-
-
-  _findDropTarget: function DropTargetShim_findDropTarget() {
+  _findDropTarget: function () {
     
     
     let minWidth = gDrag.cellWidth / 2;
@@ -174,13 +214,12 @@ let gDropTargetShim = {
 
 
 
-  _dispatchEvent:
-    function DropTargetShim_dispatchEvent(aEvent, aType, aTarget) {
-
+  _dispatchEvent: function (aEvent, aType, aTarget) {
     let node = aTarget.node;
     let event = document.createEvent("DragEvents");
 
-    event.initDragEvent(aType, true, true, window, 0, 0, 0, 0, 0, false, false,
+    
+    event.initDragEvent(aType, false, true, window, 0, 0, 0, 0, 0, false, false,
                         false, false, 0, node, aEvent.dataTransfer);
 
     node.dispatchEvent(event);
