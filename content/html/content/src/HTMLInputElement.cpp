@@ -3242,6 +3242,8 @@ HTMLInputElement::NeedToInitializeEditorForEvent(
   case NS_MOUSE_EXIT:
   case NS_MOUSE_ENTER_SYNTH:
   case NS_MOUSE_EXIT_SYNTH:
+  case NS_SCROLLPORT_UNDERFLOW:
+  case NS_SCROLLPORT_OVERFLOW:
     return false;
   default:
     return true;
