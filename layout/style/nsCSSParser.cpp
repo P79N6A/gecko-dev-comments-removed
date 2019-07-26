@@ -7767,22 +7767,38 @@ CSSParserImpl::ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames)
 
     rowsItem->mNext = new nsCSSValueList;
     rowsItem = rowsItem->mNext;
-    if (ParseGridLineNames(rowsItem->mValue) == CSSParseResult::Error) {
+    result = ParseGridLineNames(rowsItem->mValue);
+    if (result == CSSParseResult::Error) {
       return false;
     }
-
-    if (CheckEndProperty()) {
-      break;
+    if (result == CSSParseResult::Ok) {
+      
+      result = ParseGridLineNames(rowsItem->mValue);
+      if (result == CSSParseResult::Error) {
+        return false;
+      }
+      if (result == CSSParseResult::Ok) {
+        
+        
+        if (!GetToken(true)) {
+          return false;
+        }
+        if (eCSSToken_String != mToken.mType) {
+          UngetToken();
+          return false;
+        }
+        continue;
+      }
     }
 
     
-    if (ParseGridLineNames(rowsItem->mValue) == CSSParseResult::Error ||
-        !GetToken(true)) {
-      return false;
+    
+    if (!GetToken(true)) {
+      break;
     }
     if (eCSSToken_String != mToken.mType) {
       UngetToken();
-      return false;
+      break;
     }
   }
 
