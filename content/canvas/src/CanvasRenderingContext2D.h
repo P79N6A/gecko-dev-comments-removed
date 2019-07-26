@@ -902,11 +902,11 @@ protected:
   friend class AdjustedTarget;
 
   
-  void GetAppUnitsValues(uint32_t *perDevPixel, uint32_t *perCSSPixel)
+  void GetAppUnitsValues(int32_t *perDevPixel, int32_t *perCSSPixel)
   {
     
-    uint32_t devPixel = 60;
-    uint32_t cssPixel = 60;
+    int32_t devPixel = 60;
+    int32_t cssPixel = 60;
 
     nsIPresShell *ps = GetPresShell();
     nsPresContext *pc;
