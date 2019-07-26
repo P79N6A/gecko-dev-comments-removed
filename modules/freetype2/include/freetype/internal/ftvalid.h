@@ -76,6 +76,14 @@ FT_BEGIN_HEADER
   } FT_ValidationLevel;
 
 
+#if defined( _MSC_VER )      
+  
+  
+  
+#pragma warning( push )
+#pragma warning( disable : 4324 )
+#endif 
+
   
   typedef struct  FT_ValidatorRec_
   {
@@ -88,8 +96,11 @@ FT_BEGIN_HEADER
 
   } FT_ValidatorRec;
 
+#if defined( _MSC_VER )
+#pragma warning( pop )
+#endif
 
-#define FT_VALIDATOR( x )  ((FT_Validator)( x ))
+#define FT_VALIDATOR( x )  ( (FT_Validator)( x ) )
 
 
   FT_BASE( void )

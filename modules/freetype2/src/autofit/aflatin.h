@@ -27,7 +27,7 @@ FT_BEGIN_HEADER
 
   
 
-  AF_DECLARE_SCRIPT_CLASS(af_latin_script_class)
+  AF_DECLARE_SCRIPT_CLASS( af_latin_script_class )
 
 
   
@@ -133,8 +133,7 @@ FT_BEGIN_HEADER
 
   FT_LOCAL( void )
   af_latin_metrics_init_widths( AF_LatinMetrics  metrics,
-                                FT_Face          face,
-                                FT_ULong         charcode );
+                                FT_Face          face );
 
   FT_LOCAL( void )
   af_latin_metrics_check_digits( AF_LatinMetrics  metrics,
@@ -181,17 +180,9 @@ FT_BEGIN_HEADER
   af_latin_hints_compute_segments( AF_GlyphHints  hints,
                                    AF_Dimension   dim );
 
-  
-
-
-
   FT_LOCAL( void )
   af_latin_hints_link_segments( AF_GlyphHints  hints,
                                 AF_Dimension   dim );
-
-  
-
-
 
   FT_LOCAL( FT_Error )
   af_latin_hints_compute_edges( AF_GlyphHints  hints,

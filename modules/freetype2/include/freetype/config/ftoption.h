@@ -225,6 +225,20 @@ FT_BEGIN_HEADER
   
   
   
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -580,31 +594,53 @@ FT_BEGIN_HEADER
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
 
@@ -727,6 +763,25 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+
+
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+  
+  
+  
 #define AF_CONFIG_OPTION_CJK
 
 
@@ -756,33 +811,6 @@ FT_BEGIN_HEADER
 
 
 
-
-
-
-
-
-#define FT_CONFIG_OPTION_OLD_INTERNALS
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-#define FT_MAX_CHARMAP_CACHEABLE 15
-#endif
 
 
   

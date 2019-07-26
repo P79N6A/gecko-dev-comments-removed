@@ -23,8 +23,29 @@
 #include FT_INTERNAL_OBJECTS_H
 #include FT_MODULE_H
 
+#include "afloader.h"
+
 
 FT_BEGIN_HEADER
+
+
+  
+
+
+
+
+
+
+  typedef struct  AF_ModuleRec_
+  {
+    FT_ModuleRec  root;
+
+    FT_UInt       fallback_script;
+
+    AF_LoaderRec  loader[1];
+
+  } AF_ModuleRec;
+
 
 FT_DECLARE_MODULE(autofit_module_class)
 

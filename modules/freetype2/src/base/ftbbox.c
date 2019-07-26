@@ -25,6 +25,8 @@
 
 
 #include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
+
 #include FT_BBOX_H
 #include FT_IMAGE_H
 #include FT_OUTLINE_H
@@ -222,65 +224,100 @@
                     FT_Pos*  min,
                     FT_Pos*  max )
   {
-    FT_Pos  stack[32*3 + 1], *arc;
+    FT_Pos  q1, q2, q3, q4;
 
 
-    arc = stack;
+    q1 = p1;
+    q2 = p2;
+    q3 = p3;
+    q4 = p4;
 
-    arc[0] = p1;
-    arc[1] = p2;
-    arc[2] = p3;
-    arc[3] = p4;
-
-    do
+    
+    
+    while ( q2 > *max || q3 > *max )
     {
-      FT_Pos  y1 = arc[0];
-      FT_Pos  y2 = arc[1];
-      FT_Pos  y3 = arc[2];
-      FT_Pos  y4 = arc[3];
-
-
-      if ( y1 == y4 )
+      
+      if ( q1 + q2 > q3 + q4 ) 
       {
-        if ( y1 == y2 && y1 == y3 )                         
-          goto Test;
+        q4 = q4 + q3;
+        q3 = q3 + q2;
+        q2 = q2 + q1;
+        q4 = q4 + q3;
+        q3 = q3 + q2;
+        q4 = ( q4 + q3 ) / 8;
+        q3 = q3 / 4;
+        q2 = q2 / 2;
       }
-      else if ( y1 < y4 )
+      else                     
       {
-        if ( y2 >= y1 && y2 <= y4 && y3 >= y1 && y3 <= y4 ) 
-          goto Test;
-      }
-      else
-      {
-        if ( y2 >= y4 && y2 <= y1 && y3 >= y4 && y3 <= y1 ) 
-        {
-          y2 = y1;
-          y1 = y4;
-          y4 = y2;
-          goto Test;
-        }
+        q1 = q1 + q2;
+        q2 = q2 + q3;
+        q3 = q3 + q4;
+        q1 = q1 + q2;
+        q2 = q2 + q3;
+        q1 = ( q1 + q2 ) / 8;
+        q2 = q2 / 4;
+        q3 = q3 / 2;
       }
 
       
-      arc[6] = y4;
-      arc[1] = y1 = ( y1 + y2 ) / 2;
-      arc[5] = y4 = ( y4 + y3 ) / 2;
-      y2 = ( y2 + y3 ) / 2;
-      arc[2] = y1 = ( y1 + y2 ) / 2;
-      arc[4] = y4 = ( y4 + y2 ) / 2;
-      arc[3] = ( y1 + y4 ) / 2;
+      if ( q1 == q2 && q1 >= q3 )
+      {
+        *max = q1;
+        break;
+      }
+      if ( q3 == q4 && q2 <= q4 )
+      {
+        *max = q4;
+        break;
+      }
+    }
 
-      arc += 3;
-      goto Suite;
+    q1 = p1;
+    q2 = p2;
+    q3 = p3;
+    q4 = p4;
 
-   Test:
-      if ( y1 < *min ) *min = y1;
-      if ( y4 > *max ) *max = y4;
-      arc -= 3;
+    
+    
+    while ( q2 < *min || q3 < *min )
+    {
+      
+      if ( q1 + q2 < q3 + q4 ) 
+      {
+        q4 = q4 + q3;
+        q3 = q3 + q2;
+        q2 = q2 + q1;
+        q4 = q4 + q3;
+        q3 = q3 + q2;
+        q4 = ( q4 + q3 ) / 8;
+        q3 = q3 / 4;
+        q2 = q2 / 2;
+      }
+      else                     
+      {
+        q1 = q1 + q2;
+        q2 = q2 + q3;
+        q3 = q3 + q4;
+        q1 = q1 + q2;
+        q2 = q2 + q3;
+        q1 = ( q1 + q2 ) / 8;
+        q2 = q2 / 4;
+        q3 = q3 / 2;
+      }
 
-    Suite:
-      ;
-    } while ( arc >= stack );
+      
+      if ( q1 == q2 && q1 <= q3 )
+      {
+        *min = q1;
+        break;
+      }
+      if ( q3 == q4 && q2 >= q4 )
+      {
+        *min = q4;
+        break;
+      }
+    }
   }
 
 #else
@@ -359,12 +396,14 @@
     }
 
     
+    
     {
       FT_Pos    a = y4 - 3*y3 + 3*y2 - y1;
       FT_Pos    b = y3 - 2*y2 + y1;
       FT_Pos    c = y2 - y1;
       FT_Pos    d;
       FT_Fixed  t;
+      FT_Int    shift;
 
 
       
@@ -376,89 +415,37 @@
       
       
       
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
+      shift = FT_MSB( FT_ABS( a ) | FT_ABS( b ) | FT_ABS( c ) );
+
+      if ( shift > 22 )
       {
-        FT_ULong  t1, t2;
-        int       shift = 0;
-
+        shift -= 22;
 
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        a >>= shift;
+        b >>= shift;
+        c >>= shift;
+      }
+      else
+      {
+        shift = 22 - shift;
 
-        t1  = (FT_ULong)( ( a >= 0 ) ? a : -a );
-        t2  = (FT_ULong)( ( b >= 0 ) ? b : -b );
-        t1 |= t2;
-        t2  = (FT_ULong)( ( c >= 0 ) ? c : -c );
-        t1 |= t2;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        if ( t1 == 0 )  
-          return;
-
-        if ( t1 > 0x7FFFFFUL )
-        {
-          do
-          {
-            shift++;
-            t1 >>= 1;
-
-          } while ( t1 > 0x7FFFFFUL );
-
-          
-          
-          a >>= shift;
-          b >>= shift;
-          c >>= shift;
-        }
-        else if ( t1 < 0x400000UL )
-        {
-          do
-          {
-            shift++;
-            t1 <<= 1;
-
-          } while ( t1 < 0x400000UL );
-
-          a <<= shift;
-          b <<= shift;
-          c <<= shift;
-        }
+        a <<= shift;
+        b <<= shift;
+        c <<= shift;
       }
 
       
@@ -581,10 +568,10 @@ FT_DEFINE_OUTLINE_FUNCS(bbox_interface,
 
 
     if ( !abbox )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     if ( !outline )
-      return FT_Err_Invalid_Outline;
+      return FT_THROW( Invalid_Outline );
 
     
     if ( outline->n_points == 0 || outline->n_contours <= 0 )

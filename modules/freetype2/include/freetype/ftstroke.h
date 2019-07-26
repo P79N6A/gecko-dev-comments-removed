@@ -683,6 +683,11 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
   FT_EXPORT( FT_Error )
   FT_Glyph_Stroke( FT_Glyph    *pglyph,
                    FT_Stroker   stroker,
@@ -690,6 +695,11 @@ FT_BEGIN_HEADER
 
 
   
+
+
+
+
+
 
 
 

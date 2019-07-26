@@ -25,11 +25,24 @@
 
 FT_BEGIN_HEADER
 
-  typedef struct AF_LoaderRec_
+  typedef struct AF_ModuleRec_*  AF_Module;
+
+  
+
+
+
+
+
+
+
+  typedef struct  AF_LoaderRec_
   {
-    FT_Face           face;           
-    AF_FaceGlobals    globals;        
-    FT_GlyphLoader    gloader;        
+    
+    FT_Face           face;
+    AF_FaceGlobals    globals;
+
+    
+    FT_GlyphLoader    gloader;
     AF_GlyphHintsRec  hints;
     AF_ScriptMetrics  metrics;
     FT_Bool           transformed;
@@ -43,21 +56,20 @@ FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
-  af_loader_init( AF_Loader  loader,
-                  FT_Memory  memory );
+  af_loader_init( AF_Module  module );
 
 
   FT_LOCAL( FT_Error )
-  af_loader_reset( AF_Loader  loader,
+  af_loader_reset( AF_Module  module,
                    FT_Face    face );
 
 
   FT_LOCAL( void )
-  af_loader_done( AF_Loader  loader );
+  af_loader_done( AF_Module  module );
 
 
   FT_LOCAL( FT_Error )
-  af_loader_load_glyph( AF_Loader  loader,
+  af_loader_load_glyph( AF_Module  module,
                         FT_Face    face,
                         FT_UInt    gindex,
                         FT_Int32   load_flags );

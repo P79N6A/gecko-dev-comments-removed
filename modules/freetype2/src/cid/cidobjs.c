@@ -131,7 +131,7 @@
   cid_size_init( FT_Size  cidsize )     
   {
     CID_Size           size  = (CID_Size)cidsize;
-    FT_Error           error = CID_Err_Ok;
+    FT_Error           error = FT_Err_Ok;
     PSH_Globals_Funcs  funcs = cid_size_get_globals_funcs( size );
 
 
@@ -169,7 +169,7 @@
                         size->metrics.y_scale,
                         0, 0 );
 
-    return CID_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -302,7 +302,7 @@
       if ( !psaux )
       {
         FT_ERROR(( "cid_face_init: cannot access `psaux' module\n" ));
-        error = CID_Err_Missing_Module;
+        error = FT_THROW( Missing_Module );
         goto Exit;
       }
 
@@ -337,7 +337,7 @@
     if ( face_index != 0 )
     {
       FT_ERROR(( "cid_face_init: invalid face index\n" ));
-      error = CID_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -466,7 +466,7 @@
   {
     FT_UNUSED( driver );
 
-    return CID_Err_Ok;
+    return FT_Err_Ok;
   }
 
 

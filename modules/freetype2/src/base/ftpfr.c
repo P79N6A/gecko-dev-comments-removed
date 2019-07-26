@@ -16,6 +16,8 @@
 
 
 #include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
+
 #include FT_INTERNAL_OBJECTS_H
 #include FT_SERVICE_PFR_H
 
@@ -48,7 +50,7 @@
 
 
     if ( !face )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     service = ft_pfr_check( face );
     if ( service )
@@ -84,7 +86,7 @@
       if ( ametrics_y_scale )
         *ametrics_y_scale = y_scale;
 
-      error = FT_Err_Unknown_File_Format;
+      error = FT_THROW( Unknown_File_Format );
     }
 
     return error;
@@ -104,7 +106,7 @@
 
 
     if ( !face )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     service = ft_pfr_check( face );
     if ( service )
@@ -135,7 +137,7 @@
     }
     else
       
-      error = FT_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
 
     return error;
   }

@@ -188,6 +188,7 @@ FT_BEGIN_HEADER
   
   
   
+  
 
 #ifdef FT_DEBUG_LEVEL_ERROR
 
@@ -199,9 +200,17 @@ FT_BEGIN_HEADER
                         __LINE__, __FILE__ );                       \
           } while ( 0 )
 
+#define FT_THROW( e )                                   \
+          ( FT_Throw( FT_ERR_CAT( FT_ERR_PREFIX, e ),   \
+                      __LINE__,                         \
+                      __FILE__ )                      | \
+            FT_ERR_CAT( FT_ERR_PREFIX, e )            )
+
 #else 
 
 #define FT_ASSERT( condition )  do { } while ( 0 )
+
+#define FT_THROW( e )  FT_ERR_CAT( FT_ERR_PREFIX, e )
 
 #endif 
 
@@ -226,21 +235,17 @@ FT_BEGIN_HEADER
   FT_Panic( const char*  fmt,
             ... );
 
+  
+  FT_BASE( int )
+  FT_Throw( FT_Error     error,
+            int          line,
+            const char*  file );
+
 #endif 
 
 
   FT_BASE( void )
   ft_debug_init( void );
-
-
-#if defined( _MSC_VER )      
-
-  
-  
-#pragma warning( disable : 4127 )
-
-#endif 
-
 
 FT_END_HEADER
 

@@ -33,6 +33,7 @@
 #undef  FT_COMPONENT
 #define FT_COMPONENT  trace_synth
 
+
   
   
   
@@ -62,7 +63,7 @@
     transform.xx = 0x10000L;
     transform.yx = 0x00000L;
 
-    transform.xy = 0x06000L;
+    transform.xy = 0x0366AL;
     transform.yy = 0x10000L;
 
     FT_Outline_Transform( outline, &transform );
@@ -101,12 +102,7 @@
     if ( slot->format == FT_GLYPH_FORMAT_OUTLINE )
     {
       
-      (void)FT_Outline_Embolden( &slot->outline, xstr );
-
-      
-      
-      xstr = xstr * 2;
-      ystr = xstr;
+      (void)FT_Outline_EmboldenXY( &slot->outline, xstr, ystr );
     }
     else 
     {
@@ -143,13 +139,10 @@
     if ( slot->advance.y )
       slot->advance.y += ystr;
 
-    slot->metrics.width        += xstr;
-    slot->metrics.height       += ystr;
-    slot->metrics.horiBearingY += ystr;
-    slot->metrics.horiAdvance  += xstr;
-    slot->metrics.vertBearingX -= xstr / 2;
-    slot->metrics.vertBearingY += ystr;
-    slot->metrics.vertAdvance  += ystr;
+    slot->metrics.width       += xstr;
+    slot->metrics.height      += ystr;
+    slot->metrics.horiAdvance += xstr;
+    slot->metrics.vertAdvance += ystr;
 
     
     if ( slot->format == FT_GLYPH_FORMAT_BITMAP )

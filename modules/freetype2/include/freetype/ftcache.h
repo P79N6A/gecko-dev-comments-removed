@@ -214,17 +214,6 @@ FT_BEGIN_HEADER
 
  
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-
-#define FT_POINTER_TO_ULONG( p )  ( (FT_ULong)(FT_Pointer)(p) )
-
-#define FTC_FACE_ID_HASH( i )                                \
-          ((FT_UInt32)(( FT_POINTER_TO_ULONG( i ) >> 3 ) ^   \
-                       ( FT_POINTER_TO_ULONG( i ) << 7 ) ) )
-
-#endif 
 
   
   
@@ -705,17 +694,6 @@ FT_BEGIN_HEADER
             (d1)->width   == (d2)->width   && \
             (d1)->flags   == (d2)->flags   )
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-
-#define FTC_IMAGE_TYPE_HASH( d )                          \
-          (FT_UFast)( FTC_FACE_ID_HASH( (d)->face_id )  ^ \
-                      ( (d)->width << 8 ) ^ (d)->height ^ \
-                      ( (d)->flags << 4 )               )
-
-#endif 
-
 
   
   
@@ -1067,67 +1045,6 @@ FT_BEGIN_HEADER
                               FT_UInt        gindex,
                               FTC_SBit      *sbit,
                               FTC_Node      *anode );
-
-
- 
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef struct  FTC_FontRec_
-  {
-    FTC_FaceID  face_id;
-    FT_UShort   pix_width;
-    FT_UShort   pix_height;
-
-  } FTC_FontRec;
-
-
-  
-
-
-#define FTC_FONT_COMPARE( f1, f2 )                  \
-          ( (f1)->face_id    == (f2)->face_id    && \
-            (f1)->pix_width  == (f2)->pix_width  && \
-            (f1)->pix_height == (f2)->pix_height )
-
-  
-#define FTC_FONT_HASH( f )                              \
-          (FT_UInt32)( FTC_FACE_ID_HASH((f)->face_id) ^ \
-                       ((f)->pix_width << 8)          ^ \
-                       ((f)->pix_height)              )
-
-  typedef FTC_FontRec*  FTC_Font;
-
-
-  FT_EXPORT( FT_Error )
-  FTC_Manager_Lookup_Face( FTC_Manager  manager,
-                           FTC_FaceID   face_id,
-                           FT_Face     *aface );
-
-  FT_EXPORT( FT_Error )
-  FTC_Manager_Lookup_Size( FTC_Manager  manager,
-                           FTC_Font     font,
-                           FT_Face     *aface,
-                           FT_Size     *asize );
-
-#endif 
 
 
  

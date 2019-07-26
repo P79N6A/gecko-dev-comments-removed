@@ -16,7 +16,6 @@
 
 
 
-
   
   
   
@@ -169,6 +168,15 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef enum  FT_Pixel_Mode_
   {
     FT_PIXEL_MODE_NONE = 0,
@@ -178,6 +186,7 @@ FT_BEGIN_HEADER
     FT_PIXEL_MODE_GRAY4,
     FT_PIXEL_MODE_LCD,
     FT_PIXEL_MODE_LCD_V,
+    FT_PIXEL_MODE_BGRA,
 
     FT_PIXEL_MODE_MAX      
 

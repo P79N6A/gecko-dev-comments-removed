@@ -120,8 +120,8 @@ re_source_block_formats = [re_source_block_format1, re_source_block_format2]
 
 
 
-re_markup_tag1 = re.compile( r'''\s*<(\w*)>''' )  
-re_markup_tag2 = re.compile( r'''\s*@(\w*):''' )  
+re_markup_tag1 = re.compile( r'''\s*<((?:\w|-)*)>''' )  
+re_markup_tag2 = re.compile( r'''\s*@((?:\w|-)*):''' )  
 
 
 
@@ -132,7 +132,7 @@ re_markup_tags = [re_markup_tag1, re_markup_tag2]
 
 
 
-re_crossref = re.compile( r'@(\w*)(.*)' )
+re_crossref = re.compile( r'@((?:\w|-)*)(.*)' )
 
 
 

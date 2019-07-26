@@ -119,10 +119,10 @@
 
     if ( !FT_FRAME_ENTER( header_length ) )
     {
-      error = T1_Err_Ok;
+      error = FT_Err_Ok;
 
       if ( ft_memcmp( stream->cursor, header_string, header_length ) != 0 )
-        error = T1_Err_Unknown_File_Format;
+        error = FT_THROW( Unknown_File_Format );
 
       FT_FRAME_EXIT();
     }
@@ -158,7 +158,7 @@
     error = check_type1_format( stream, "%!PS-AdobeFont", 14 );
     if ( error )
     {
-      if ( error != T1_Err_Unknown_File_Format )
+      if ( FT_ERR_NEQ( error, Unknown_File_Format ) )
         goto Exit;
 
       error = check_type1_format( stream, "%!FontType", 10 );
@@ -263,7 +263,7 @@
   {
     FT_Stream  stream = parser->stream;
     FT_Memory  memory = parser->root.memory;
-    FT_Error   error  = T1_Err_Ok;
+    FT_Error   error  = FT_Err_Ok;
     FT_ULong   size;
 
 
@@ -299,7 +299,7 @@
       {
         FT_ERROR(( "T1_Get_Private_Dict:"
                    " invalid private dictionary section\n" ));
-        error = T1_Err_Invalid_File_Format;
+        error = FT_THROW( Invalid_File_Format );
         goto Fail;
       }
 
@@ -313,7 +313,7 @@
         error = read_pfb_tag( stream, &tag, &size );
         if ( error || tag != 0x8002U )
         {
-          error = T1_Err_Ok;
+          error = FT_Err_Ok;
           break;
         }
 
@@ -355,7 +355,7 @@
         {
           FT_ERROR(( "T1_Get_Private_Dict:"
                      " could not find `eexec' keyword\n" ));
-          error = T1_Err_Invalid_File_Format;
+          error = FT_THROW( Invalid_File_Format );
           goto Exit;
         }
       }
@@ -364,7 +364,8 @@
       
 
       parser->root.cursor = parser->base_dict;
-      parser->root.limit  = cur + 9;
+      
+      parser->root.limit  = cur + 10;
 
       cur   = parser->root.cursor;
       limit = parser->root.limit;
@@ -396,7 +397,8 @@
       parser->root.limit = parser->base_dict + parser->base_len;
 
       T1_Skip_PS_Token( parser );
-      cur = parser->root.cursor;
+      cur   = parser->root.cursor;
+      limit = parser->root.limit;
 
       
       
@@ -412,11 +414,11 @@
       {
         FT_ERROR(( "T1_Get_Private_Dict:"
                    " `eexec' not properly terminated\n" ));
-        error = T1_Err_Invalid_File_Format;
+        error = FT_THROW( Invalid_File_Format );
         goto Exit;
       }
 
-      size = parser->base_len - ( cur - parser->base_dict );
+      size = (FT_ULong)( parser->base_len - ( cur - parser->base_dict ) );
 
       if ( parser->in_memory )
       {
@@ -441,7 +443,8 @@
       
       
 
-      if ( ft_isxdigit( cur[0] ) && ft_isxdigit( cur[1] ) &&
+      if ( cur + 3 < limit                                &&
+           ft_isxdigit( cur[0] ) && ft_isxdigit( cur[1] ) &&
            ft_isxdigit( cur[2] ) && ft_isxdigit( cur[3] ) )
       {
         
@@ -471,7 +474,7 @@
     {
       FT_ERROR(( "T1_Get_Private_Dict:"
                  " invalid private dictionary section\n" ));
-      error = T1_Err_Invalid_File_Format;
+      error = FT_THROW( Invalid_File_Format );
       goto Fail;
     }
 

@@ -200,6 +200,30 @@ FT_BEGIN_HEADER
   
   typedef unsigned XXX  FT_UInt32;
 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  typedef signed XXX  FT_Int64;
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  typedef unsigned XXX  FT_UInt64;
+
   
 
 #endif
@@ -239,13 +263,15 @@ FT_BEGIN_HEADER
 
   
 #define FT_LONG64
-#define FT_INT64  long
+#define FT_INT64   long
+#define FT_UINT64  unsigned long
 
 #elif defined( _MSC_VER ) && _MSC_VER >= 900  
 
   
 #define FT_LONG64
-#define FT_INT64  __int64
+#define FT_INT64   __int64
+#define FT_UINT64  unsigned __int64
 
 #elif defined( __BORLANDC__ )  
 
@@ -254,7 +280,8 @@ FT_BEGIN_HEADER
 
   
 #define FT_LONG64
-#define FT_INT64  __int64
+#define FT_INT64   __int64
+#define FT_UINT64  unsigned __int64
 
 #elif defined( __WATCOMC__ )   
 
@@ -263,13 +290,15 @@ FT_BEGIN_HEADER
 #elif defined( __MWERKS__ )    
 
 #define FT_LONG64
-#define FT_INT64  long long int
+#define FT_INT64   long long int
+#define FT_UINT64  unsigned long long int
 
 #elif defined( __GNUC__ )
 
   
 #define FT_LONG64
-#define FT_INT64  long long int
+#define FT_INT64   long long int
+#define FT_UINT64  unsigned long long int
 
 #endif 
 
@@ -292,6 +321,11 @@ FT_BEGIN_HEADER
 #endif 
 
 #endif 
+
+#ifdef FT_LONG64
+  typedef FT_INT64   FT_Int64;
+  typedef FT_UINT64  FT_UInt64;
+#endif
 
 
 #define FT_BEGIN_STMNT  do {
@@ -355,7 +389,8 @@ FT_BEGIN_HEADER
       "mov    %0, %1, lsr #16\n\t"      
       "orr    %0, %0, %2, lsl #16\n\t"  
       : "=r"(a), "=&r"(t2), "=&r"(t)
-      : "r"(a), "r"(b) );
+      : "r"(a), "r"(b)
+      : "cc" );
     return a;
   }
 

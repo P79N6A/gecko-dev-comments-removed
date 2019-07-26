@@ -270,6 +270,9 @@ FT_BEGIN_HEADER
     FT_String*       registry;
     FT_String*       ordering;
 
+    
+    FT_Generic       cf2_instance;
+
   } CFF_FontRec, *CFF_Font;
 
 

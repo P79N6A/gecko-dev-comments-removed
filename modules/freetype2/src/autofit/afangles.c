@@ -255,7 +255,7 @@
     {
       for ( j = i; j > 0; j-- )
       {
-        if ( table[j] > table[j - 1] )
+        if ( table[j] >= table[j - 1] )
           break;
 
         swap         = table[j];
@@ -267,18 +267,26 @@
 
 
   FT_LOCAL_DEF( void )
-  af_sort_widths( FT_UInt   count,
-                  AF_Width  table )
+  af_sort_and_quantize_widths( FT_UInt*  count,
+                               AF_Width  table,
+                               FT_Pos    threshold )
   {
     FT_UInt      i, j;
+    FT_UInt      cur_idx;
+    FT_Pos       cur_val;
+    FT_Pos       sum;
     AF_WidthRec  swap;
 
 
-    for ( i = 1; i < count; i++ )
+    if ( *count == 1 )
+      return;
+
+    
+    for ( i = 1; i < *count; i++ )
     {
       for ( j = i; j > 0; j-- )
       {
-        if ( table[j].org > table[j - 1].org )
+        if ( table[j].org >= table[j - 1].org )
           break;
 
         swap         = table[j];
@@ -286,6 +294,51 @@
         table[j - 1] = swap;
       }
     }
+
+    cur_idx = 0;
+    cur_val = table[cur_idx].org;
+
+    
+    
+    
+    
+    for ( i = 1; i < *count; i++ )
+    {
+      if ( table[i].org - cur_val > threshold ||
+           i == *count - 1                    )
+      {
+        sum = 0;
+
+        
+        if ( table[i].org - cur_val <= threshold &&
+             i == *count - 1                     )
+          i++;
+
+        for ( j = cur_idx; j < i; j++ )
+        {
+          sum         += table[j].org;
+          table[j].org = 0;
+        }
+        table[cur_idx].org = sum / j;
+
+        if ( i < *count - 1 )
+        {
+          cur_idx = i + 1;
+          cur_val = table[cur_idx].org;
+        }
+      }
+    }
+
+    cur_idx = 1;
+
+    
+    for ( i = 1; i < *count; i++ )
+    {
+      if ( table[i].org )
+        table[cur_idx++] = table[i];
+    }
+
+    *count = cur_idx;
   }
 
 

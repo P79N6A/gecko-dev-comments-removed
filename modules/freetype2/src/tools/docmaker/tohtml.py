@@ -549,7 +549,7 @@ class  HtmlFormatter( Formatter ):
                 if block.source.filename.find( f ) >= 0:
                     header = self.headers[f] + ' (' + f + ')'
                     break;
-                
+
 
 
 

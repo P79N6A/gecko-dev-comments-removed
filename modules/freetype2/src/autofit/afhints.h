@@ -297,8 +297,8 @@ FT_BEGIN_HEADER
     FT_Byte     flags;      
     FT_Char     dir;        
     FT_Fixed    scale;      
-    AF_Width    blue_edge;  
 
+    AF_Width    blue_edge;  
     AF_Edge     link;       
     AF_Edge     serif;      
     FT_Short    num_linked; 

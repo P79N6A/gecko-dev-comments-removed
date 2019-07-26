@@ -205,10 +205,6 @@ FT_BEGIN_HEADER
     FT_CharMapRec   charmaprecs[2];
     FT_CharMap      charmaps[2];
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    PS_Unicodes     unicode_map;
-#endif
-
     
     PS_Blend        blend;
 

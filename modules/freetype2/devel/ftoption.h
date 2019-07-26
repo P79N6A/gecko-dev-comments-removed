@@ -214,6 +214,20 @@ FT_BEGIN_HEADER
 
 
 
+#define FT_CONFIG_OPTION_USE_PNG
+
+
+
+
+
+
+
+
+
+
+
+
+
   
   
   
@@ -577,6 +591,28 @@ FT_BEGIN_HEADER
 
 
 
+#define TT_CONFIG_OPTION_SUBPIXEL_HINTING
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -727,6 +763,25 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+#define CFF_CONFIG_OPTION_OLD_ENGINE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define AF_CONFIG_OPTION_CJK
 
 
@@ -756,33 +811,6 @@ FT_BEGIN_HEADER
 
 
 
-
-
-
-
-
-#define FT_CONFIG_OPTION_OLD_INTERNALS
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-#define FT_MAX_CHARMAP_CACHEABLE 15
-#endif
 
 
   

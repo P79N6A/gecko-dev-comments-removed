@@ -117,7 +117,9 @@ FT_BEGIN_HEADER
   typedef struct  CFF_DriverRec_
   {
     FT_DriverRec  root;
-    void*         extension_component;
+
+    FT_UInt  hinting_engine;
+    FT_Bool  no_stem_darkening;
 
   } CFF_DriverRec;
 
@@ -167,10 +169,10 @@ FT_BEGIN_HEADER
   
   
   FT_LOCAL( FT_Error )
-  cff_driver_init( FT_Module  module );
+  cff_driver_init( FT_Module  module );         
 
   FT_LOCAL( void )
-  cff_driver_done( FT_Module  module );
+  cff_driver_done( FT_Module  module );         
 
 
 FT_END_HEADER

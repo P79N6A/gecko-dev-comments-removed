@@ -98,7 +98,7 @@
     
     if ( head[0] != 0x1f ||
          head[1] != 0x9d )
-      error = LZW_Err_Invalid_File_Format;
+      error = FT_THROW( Invalid_File_Format );
 
   Exit:
     return error;
@@ -111,7 +111,7 @@
                     FT_Stream   source )
   {
     FT_LzwState  lzw   = &zip->lzw;
-    FT_Error     error = LZW_Err_Ok;
+    FT_Error     error;
 
 
     zip->stream = stream;
@@ -172,7 +172,7 @@
   {
     FT_LzwState  lzw = &zip->lzw;
     FT_ULong     count;
-    FT_Error     error = LZW_Err_Ok;
+    FT_Error     error = FT_Err_Ok;
 
 
     zip->cursor = zip->buffer;
@@ -182,7 +182,7 @@
     zip->limit = zip->cursor + count;
 
     if ( count == 0 )
-      error = LZW_Err_Invalid_Stream_Operation;
+      error = FT_THROW( Invalid_Stream_Operation );
 
     return error;
   }
@@ -193,7 +193,7 @@
   ft_lzw_file_skip_output( FT_LZWFile  zip,
                            FT_ULong    count )
   {
-    FT_Error  error = LZW_Err_Ok;
+    FT_Error  error = FT_Err_Ok;
 
 
     
@@ -224,7 +224,7 @@
       if ( numread < delta )
       {
         
-        error = LZW_Err_Invalid_Stream_Operation;
+        error = FT_THROW( Invalid_Stream_Operation );
         break;
       }
 
@@ -403,7 +403,7 @@
     FT_UNUSED( stream );
     FT_UNUSED( source );
 
-    return LZW_Err_Unimplemented_Feature;
+    return FT_THROW( Unimplemented_Feature );
   }
 
 

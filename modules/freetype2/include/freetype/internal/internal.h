@@ -48,4 +48,16 @@
 #define FT_INTERNAL_AUTOHINT_H            <freetype/internal/autohint.h>
 
 
+#if defined( _MSC_VER )      
+
+  
+  
+  
+  
+  
+#pragma warning( disable : 4127 )
+
+#endif 
+
+
 

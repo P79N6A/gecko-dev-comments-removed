@@ -17,6 +17,7 @@
 
 
 #include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_OBJECTS_H
 #include FT_OUTLINE_H
 #include "ftrend1.h"
@@ -37,7 +38,7 @@
                                                library->raster_pool,
                                                library->raster_pool_size );
 
-    return Raster_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -61,12 +62,12 @@
                         const FT_Matrix*  matrix,
                         const FT_Vector*  delta )
   {
-    FT_Error error = Raster_Err_Ok;
+    FT_Error error = FT_Err_Ok;
 
 
     if ( slot->format != render->glyph_format )
     {
-      error = Raster_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -114,7 +115,7 @@
     
     if ( slot->format != render->glyph_format )
     {
-      error = Raster_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -124,13 +125,13 @@
     {
       
       if ( render->clazz == &ft_raster1_renderer_class )
-        return Raster_Err_Cannot_Render_Glyph;
+        return FT_THROW( Cannot_Render_Glyph );
     }
     else
     {
       
       if ( render->clazz == &ft_raster5_renderer_class )
-        return Raster_Err_Cannot_Render_Glyph;
+        return FT_THROW( Cannot_Render_Glyph );
     }
 #else 
     
@@ -142,13 +143,13 @@
     {
       
       if ( render->clazz->root.module_name[6] == '1' )
-        return Raster_Err_Cannot_Render_Glyph;
+        return FT_THROW( Cannot_Render_Glyph );
     }
     else
     {
       
       if ( render->clazz->root.module_name[6] == '5' )
-        return Raster_Err_Cannot_Render_Glyph;
+        return FT_THROW( Cannot_Render_Glyph );
     }
 #endif 
 
@@ -179,7 +180,7 @@
 
     if ( width > FT_USHORT_MAX || height > FT_USHORT_MAX )
     {
-      error = Raster_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 

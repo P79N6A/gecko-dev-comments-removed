@@ -80,25 +80,36 @@ FT_BEGIN_HEADER
   } ft_raccess_guess_rec;
 
 #ifndef FT_CONFIG_OPTION_PIC
+
   
-#define CONST_FT_RFORK_RULE_ARRAY_BEGIN( name, type ) \
-        const type name[] = {
-#define CONST_FT_RFORK_RULE_ARRAY_ENTRY( func_suffix, type_suffix ) \
-        { raccess_guess_##func_suffix, FT_RFork_Rule_##type_suffix },
-#define CONST_FT_RFORK_RULE_ARRAY_END };
+#define CONST_FT_RFORK_RULE_ARRAY_BEGIN( name, type )  \
+          const type name[] = {
+#define CONST_FT_RFORK_RULE_ARRAY_ENTRY( func_suffix, type_suffix )  \
+          { raccess_guess_ ## func_suffix,                           \
+            FT_RFork_Rule_ ## type_suffix },
+#define CONST_FT_RFORK_RULE_ARRAY_END  };
+
 #else 
+
   
-#define CONST_FT_RFORK_RULE_ARRAY_BEGIN( name, type ) \
-        void FT_Init_##name ( type* storage ) {       \
-          type *local = storage;                      \
-          int i = 0;
-#define CONST_FT_RFORK_RULE_ARRAY_ENTRY( func_suffix, type_suffix ) \
-        local[i].func = raccess_guess_##func_suffix;                \
-        local[i].type = FT_RFork_Rule_##type_suffix;                \
-        i++;
-#define CONST_FT_RFORK_RULE_ARRAY_END }
+#define CONST_FT_RFORK_RULE_ARRAY_BEGIN( name, type )  \
+          void                                         \
+          FT_Init_ ## name( type*  storage )           \
+          {                                            \
+            type*  local = storage;                    \
+                                                       \
+                                                       \
+            int  i = 0;
+#define CONST_FT_RFORK_RULE_ARRAY_ENTRY( func_suffix, type_suffix )  \
+          local[i].func = raccess_guess_ ## func_suffix;             \
+          local[i].type = FT_RFork_Rule_ ## type_suffix;             \
+          i++;
+#define CONST_FT_RFORK_RULE_ARRAY_END  }
+
 #endif 
+
 #endif 
+
 
   
   

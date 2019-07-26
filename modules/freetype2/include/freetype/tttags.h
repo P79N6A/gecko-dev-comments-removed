@@ -40,6 +40,8 @@ FT_BEGIN_HEADER
 #define TTAG_bhed  FT_MAKE_TAG( 'b', 'h', 'e', 'd' )
 #define TTAG_bloc  FT_MAKE_TAG( 'b', 'l', 'o', 'c' )
 #define TTAG_bsln  FT_MAKE_TAG( 'b', 's', 'l', 'n' )
+#define TTAG_CBDT  FT_MAKE_TAG( 'C', 'B', 'D', 'T' )
+#define TTAG_CBLC  FT_MAKE_TAG( 'C', 'B', 'L', 'C' )
 #define TTAG_CFF   FT_MAKE_TAG( 'C', 'F', 'F', ' ' )
 #define TTAG_CID   FT_MAKE_TAG( 'C', 'I', 'D', ' ' )
 #define TTAG_cmap  FT_MAKE_TAG( 'c', 'm', 'a', 'p' )

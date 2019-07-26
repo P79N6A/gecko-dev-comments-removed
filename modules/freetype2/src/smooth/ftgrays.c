@@ -95,6 +95,11 @@
 
 
   
+#define FT_ERR_XCAT( x, y )  x ## y
+#define FT_ERR_CAT( x, y )   FT_ERR_XCAT( x, y )
+
+
+  
 
 
 
@@ -154,6 +159,21 @@ typedef ptrdiff_t  FT_PtrDist;
     va_end( ap );
   }
 
+
+  
+  int
+  FT_Throw( int          error,
+            int          line,
+            const char*  file )
+  {
+    FT_UNUSED( error );
+    FT_UNUSED( line );
+    FT_UNUSED( file );
+
+    return 0;
+  }
+
+
   
 #ifndef FT_TRACE5
 #define FT_TRACE5( varformat )  FT_Message varformat
@@ -165,11 +185,19 @@ typedef ptrdiff_t  FT_PtrDist;
 #define FT_ERROR( varformat )   FT_Message varformat
 #endif
 
+#define FT_THROW( e )                               \
+          ( FT_Throw( FT_ERR_CAT( ErrRaster, e ),   \
+                      __LINE__,                     \
+                      __FILE__ )                  | \
+            FT_ERR_CAT( ErrRaster, e )            )
+
 #else 
 
 #define FT_TRACE5( x )  do { } while ( 0 )     /* nothing */
 #define FT_TRACE7( x )  do { } while ( 0 )     /* nothing */
 #define FT_ERROR( x )   do { } while ( 0 )     /* nothing */
+#define FT_THROW( e )   FT_ERR_CAT( ErrRaster_, e )
+
 
 #endif 
 
@@ -202,6 +230,7 @@ typedef ptrdiff_t  FT_PtrDist;
             raster_done_                                          \
          };
 
+
 #else 
 
 
@@ -215,12 +244,13 @@ typedef ptrdiff_t  FT_PtrDist;
 
 #include "ftspic.h"
 
-#define ErrRaster_Invalid_Mode      Smooth_Err_Cannot_Render_Glyph
-#define ErrRaster_Invalid_Outline   Smooth_Err_Invalid_Outline
+#define Smooth_Err_Invalid_Mode     Smooth_Err_Cannot_Render_Glyph
+#define Smooth_Err_Memory_Overflow  Smooth_Err_Out_Of_Memory
 #define ErrRaster_Memory_Overflow   Smooth_Err_Out_Of_Memory
-#define ErrRaster_Invalid_Argument  Smooth_Err_Invalid_Argument
+
 
 #endif 
+
 
 #ifndef FT_MEM_SET
 #define FT_MEM_SET( d, s, c )  ft_memset( d, s, c )
@@ -328,6 +358,14 @@ typedef ptrdiff_t  FT_PtrDist;
   } TCell;
 
 
+#if defined( _MSC_VER )      
+  
+  
+  
+#pragma warning( push )
+#pragma warning( disable : 4324 )
+#endif 
+
   typedef struct  gray_TWorker_
   {
     TCoord  ex, ey;
@@ -374,6 +412,10 @@ typedef ptrdiff_t  FT_PtrDist;
     TPos       ycount;
 
   } gray_TWorker, *gray_PWorker;
+
+#if defined( _MSC_VER )
+#pragma warning( pop )
+#endif
 
 
 #ifndef FT_STATIC_RASTER
@@ -600,7 +642,7 @@ typedef ptrdiff_t  FT_PtrDist;
                                  TPos    x2,
                                  TCoord  y2 )
   {
-    TCoord  ex1, ex2, fx1, fx2, delta, mod, lift, rem;
+    TCoord  ex1, ex2, fx1, fx2, delta, mod;
     long    p, first, dx;
     int     incr;
 
@@ -661,6 +703,9 @@ typedef ptrdiff_t  FT_PtrDist;
 
     if ( ex1 != ex2 )
     {
+      TCoord  lift, rem;
+
+
       p    = ONE_PIXEL * ( y2 - y1 + delta );
       lift = (TCoord)( p / dx );
       rem  = (TCoord)( p % dx );
@@ -1092,10 +1137,10 @@ typedef ptrdiff_t  FT_PtrDist;
           goto Split;
 
         
-        if ( dy * dy1 + dx * dx1 < 0                                     ||
-             dy * dy2 + dx * dx2 < 0                                     ||
-             dy * (arc[3].y - arc[1].y) + dx * (arc[3].x - arc[1].x) < 0 ||
-             dy * (arc[3].y - arc[2].y) + dx * (arc[3].x - arc[2].x) < 0 )
+
+
+        if ( dx1 * ( dx1 - dx ) + dy1 * ( dy1 - dy ) > 0 ||
+             dx2 * ( dx2 - dx ) + dy2 * ( dy2 - dy ) > 0 )
           goto Split;
 
         
@@ -1227,9 +1272,7 @@ typedef ptrdiff_t  FT_PtrDist;
                        TPos    area,
                        TCoord  acount )
   {
-    FT_Span*  span;
-    int       count;
-    int       coverage;
+    int  coverage;
 
 
     
@@ -1271,6 +1314,10 @@ typedef ptrdiff_t  FT_PtrDist;
 
     if ( coverage )
     {
+      FT_Span*  span;
+      int       count;
+
+
       
       count = ras.num_gray_spans;
       span  = ras.gray_spans + count - 1;
@@ -1400,7 +1447,26 @@ typedef ptrdiff_t  FT_PtrDist;
       ras.render_span( ras.span_y, ras.num_gray_spans,
                        ras.gray_spans, ras.render_span_data );
 
+#ifdef FT_DEBUG_LEVEL_TRACE
+
+    if ( ras.num_gray_spans > 0 )
+    {
+      FT_Span*  span;
+      int       n;
+
+
+      FT_TRACE7(( "y = %3d ", ras.span_y ));
+      span = ras.gray_spans;
+      for ( n = 0; n < ras.num_gray_spans; n++, span++ )
+        FT_TRACE7(( "[%d..%d]:%02x ",
+                    span->x, span->x + span->len - 1, span->coverage ));
+      FT_TRACE7(( "\n" ));
+    }
+
     FT_TRACE7(( "gray_sweep: end\n" ));
+
+#endif 
+
   }
 
 
@@ -1467,7 +1533,7 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
     if ( !outline || !func_interface )
-      return ErrRaster_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     shift = func_interface->shift;
     delta = func_interface->delta;
@@ -1680,7 +1746,7 @@ typedef ptrdiff_t  FT_PtrDist;
     return error;
 
   Invalid_Outline:
-    return ErrRaster_Invalid_Outline;
+    return FT_THROW( Invalid_Outline );
   }
 
 #endif 
@@ -1718,7 +1784,7 @@ typedef ptrdiff_t  FT_PtrDist;
       gray_record_cell( RAS_VAR );
     }
     else
-      error = ErrRaster_Memory_Overflow;
+      error = FT_THROW( Memory_Overflow );
 
     return error;
   }
@@ -1871,21 +1937,21 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
     if ( !raster || !raster->buffer || !raster->buffer_size )
-      return ErrRaster_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     if ( !outline )
-      return ErrRaster_Invalid_Outline;
+      return FT_THROW( Invalid_Outline );
 
     
     if ( outline->n_points == 0 || outline->n_contours <= 0 )
       return 0;
 
     if ( !outline->contours || !outline->points )
-      return ErrRaster_Invalid_Outline;
+      return FT_THROW( Invalid_Outline );
 
     if ( outline->n_points !=
            outline->contours[outline->n_contours - 1] + 1 )
-      return ErrRaster_Invalid_Outline;
+      return FT_THROW( Invalid_Outline );
 
     worker = raster->worker;
 
@@ -1893,19 +1959,19 @@ typedef ptrdiff_t  FT_PtrDist;
     if ( !( params->flags & FT_RASTER_FLAG_DIRECT ) )
     {
       if ( !target_map )
-        return ErrRaster_Invalid_Argument;
+        return FT_THROW( Invalid_Argument );
 
       
       if ( !target_map->width || !target_map->rows )
         return 0;
 
       if ( !target_map->buffer )
-        return ErrRaster_Invalid_Argument;
+        return FT_THROW( Invalid_Argument );
     }
 
     
     if ( !( params->flags & FT_RASTER_FLAG_AA ) )
-      return ErrRaster_Invalid_Mode;
+      return FT_THROW( Invalid_Mode );
 
     
     if ( !( params->flags & FT_RASTER_FLAG_DIRECT ) )

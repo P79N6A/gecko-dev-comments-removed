@@ -42,7 +42,7 @@
   cid_get_offset( FT_Byte*  *start,
                   FT_Byte    offsize )
   {
-    FT_Long   result;
+    FT_ULong  result;
     FT_Byte*  p = *start;
 
 
@@ -53,7 +53,7 @@
     }
 
     *start = p;
-    return result;
+    return (FT_Long)result;
   }
 
 
@@ -114,7 +114,7 @@
         {
           FT_ERROR(( "cid_load_keyword: invalid use of `%s'\n",
                      keyword->ident ));
-          error = CID_Err_Syntax_Error;
+          error = FT_THROW( Syntax_Error );
           goto Exit;
         }
 
@@ -171,8 +171,8 @@
       
       
       
-      root->units_per_EM = (FT_UShort)( FT_DivFix( 0x10000L,
-                                        FT_DivFix( temp_scale, 1000 ) ) );
+
+      root->units_per_EM = (FT_UShort)FT_DivFix( 1000, temp_scale );
 
       
       if ( temp_scale != 0x10000L )
@@ -195,7 +195,7 @@
       offset->y  = temp[5] >> 16;
     }
 
-    return CID_Err_Ok;      
+    return FT_Err_Ok;      
                             
   }
 
@@ -206,7 +206,7 @@
   {
     CID_FaceInfo  cid    = &face->cid;
     FT_Memory     memory = face->root.memory;
-    FT_Error      error  = CID_Err_Ok;
+    FT_Error      error  = FT_Err_Ok;
     FT_Long       num_dicts;
 
 
@@ -257,7 +257,7 @@
       dict->private_dict.expansion_factor = dict->expansion_factor;
     }
 
-    return CID_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -286,7 +286,7 @@
 
     parser->root.cursor = base;
     parser->root.limit  = base + size;
-    parser->root.error  = CID_Err_Ok;
+    parser->root.error  = FT_Err_Ok;
 
     {
       FT_Byte*  cur   = base;
@@ -416,7 +416,7 @@
       
       if ( num_subrs == FT_UINT_MAX )
       {
-        error = CID_Err_Syntax_Error;
+        error = FT_THROW( Syntax_Error );
         goto Fail;
       }
 
@@ -428,7 +428,7 @@
 
         if ( new_max <= max_offsets )
         {
-          error = CID_Err_Syntax_Error;
+          error = FT_THROW( Syntax_Error );
           goto Fail;
         }
 
@@ -571,7 +571,7 @@
 
         if ( size == 0 )
         {
-          error = CID_Err_Syntax_Error;
+          error = FT_THROW( Syntax_Error );
           goto Exit;
         }
 
@@ -604,7 +604,7 @@
       }
       else
       {
-        error = CID_Err_Syntax_Error;
+        error = FT_THROW( Syntax_Error );
         goto Exit;
       }
 
@@ -624,7 +624,7 @@
       p++;
     }
 
-    error = CID_Err_Ok;
+    error = FT_Err_Ok;
 
   Exit:
     return error;

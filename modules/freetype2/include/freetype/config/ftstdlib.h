@@ -159,7 +159,7 @@
                                 
 
 #define ft_longjmp     longjmp
-#define ft_setjmp( b ) setjmp( *(jmp_buf*) &(b) )    /* same thing here */
+#define ft_setjmp( b ) setjmp( *(ft_jmp_buf*) &(b) ) /* same thing here */
 
 
   

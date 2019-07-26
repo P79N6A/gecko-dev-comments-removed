@@ -28,7 +28,7 @@
   {
     af_glyph_hints_rescale( hints,
                             metrics );
-    return AF_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -39,13 +39,14 @@
     FT_UNUSED( hints );
     FT_UNUSED( outline );
 
-    return AF_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
   AF_DEFINE_SCRIPT_CLASS( af_dummy_script_class,
-    AF_SCRIPT_NONE,
+    AF_SCRIPT_DUMMY,
     NULL,
+    0,
 
     sizeof ( AF_ScriptMetricsRec ),
 

@@ -173,11 +173,13 @@ FT_BEGIN_HEADER
   
   typedef struct  TT_DefRecord_
   {
-    FT_Int   range;      
-    FT_Long  start;      
-    FT_Long  end;        
-    FT_UInt  opc;        
-    FT_Bool  active;     
+    FT_Int    range;          
+    FT_Long   start;          
+    FT_Long   end;            
+    FT_UInt   opc;            
+    FT_Bool   active;         
+    FT_Bool   inline_delta;   
+    FT_ULong  sph_fdef_flags; 
 
   } TT_DefRecord, *TT_DefArray;
 
@@ -345,11 +347,12 @@ FT_BEGIN_HEADER
   
   typedef struct  TT_DriverRec_
   {
-    FT_DriverRec     root;
+    FT_DriverRec  root;
+
     TT_ExecContext   context;  
     TT_GlyphZoneRec  zone;     
 
-    void*            extension_component;
+    FT_UInt  interpreter_version;
 
   } TT_DriverRec;
 
@@ -425,6 +428,10 @@ FT_BEGIN_HEADER
   
   FT_LOCAL( FT_Error )
   tt_slot_init( FT_GlyphSlot  slot );
+
+
+  
+#define IS_HINTED( flags )  ( ( flags & FT_LOAD_NO_HINTING ) == 0 )
 
 
 FT_END_HEADER

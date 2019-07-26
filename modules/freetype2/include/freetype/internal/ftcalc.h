@@ -48,37 +48,12 @@ FT_BEGIN_HEADER
   FT_SqrtFixed( FT_Int32  x );
 
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  FT_EXPORT( FT_Int32 )
-  FT_Sqrt32( FT_Int32  x );
-
-#endif 
-
-
   
   
   
   
   
 
-
-#ifdef TT_USE_BYTECODE_INTERPRETER
 
   
   
@@ -108,8 +83,6 @@ FT_BEGIN_HEADER
                       FT_Long  b,
                       FT_Long  c );
 
-#endif 
-
 
   
 
@@ -126,7 +99,6 @@ FT_BEGIN_HEADER
 
 
   
-
 
 
 
@@ -158,6 +130,22 @@ FT_BEGIN_HEADER
                      FT_Pos  in_y,
                      FT_Pos  out_x,
                      FT_Pos  out_y );
+
+
+  
+
+
+  FT_BASE( FT_Int )
+  FT_MSB( FT_UInt32  z );
+
+
+  
+
+
+
+  FT_BASE( FT_Fixed )
+  FT_Hypot( FT_Fixed  x,
+            FT_Fixed  y );
 
 
 #define INT_TO_F26DOT6( x )    ( (FT_Long)(x) << 6  )

@@ -205,7 +205,13 @@
     if ( decoder->seac )
     {
       FT_ERROR(( "t1operator_seac: invalid nested seac\n" ));
-      return PSaux_Err_Syntax_Error;
+      return FT_THROW( Syntax_Error );
+    }
+
+    if ( decoder->builder.metrics_only )
+    {
+      FT_ERROR(( "t1operator_seac: unexpected seac\n" ));
+      return FT_THROW( Syntax_Error );
     }
 
     
@@ -222,7 +228,7 @@
     {
       FT_ERROR(( "t1operator_seac:"
                  " glyph names table not available in this font\n" ));
-      return PSaux_Err_Syntax_Error;
+      return FT_THROW( Syntax_Error );
     }
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
@@ -243,7 +249,7 @@
     {
       FT_ERROR(( "t1operator_seac:"
                  " invalid seac character code arguments\n" ));
-      return PSaux_Err_Syntax_Error;
+      return FT_THROW( Syntax_Error );
     }
 
     
@@ -409,7 +415,7 @@
     limit = zone->limit  = charstring_base + charstring_len;
     ip    = zone->cursor = zone->base;
 
-    error = PSaux_Err_Ok;
+    error = FT_Err_Ok;
 
     x = orig_x = builder->pos_x;
     y = orig_y = builder->pos_y;
@@ -559,10 +565,10 @@
           goto Syntax_Error;
         }
 
-        value = (FT_Int32)( ( (FT_Long)ip[0] << 24 ) |
-                            ( (FT_Long)ip[1] << 16 ) |
-                            ( (FT_Long)ip[2] << 8  ) |
-                                       ip[3]         );
+        value = (FT_Int32)( ( (FT_UInt32)ip[0] << 24 ) |
+                            ( (FT_UInt32)ip[1] << 16 ) |
+                            ( (FT_UInt32)ip[2] << 8  ) |
+                              (FT_UInt32)ip[3]         );
         ip += 4;
 
         
@@ -585,7 +591,7 @@
         else
         {
           if ( !large_int )
-            value <<= 16;
+            value = (FT_Int32)( (FT_UInt32)value << 16 );
         }
 
         break;
@@ -605,13 +611,13 @@
             }
 
             if ( ip[-2] < 251 )
-              value =  ( ( (FT_Int32)ip[-2] - 247 ) << 8 ) + ip[-1] + 108;
+              value =    ( ( ip[-2] - 247 ) * 256 ) + ip[-1] + 108;
             else
-              value = -( ( ( (FT_Int32)ip[-2] - 251 ) << 8 ) + ip[-1] + 108 );
+              value = -( ( ( ip[-2] - 251 ) * 256 ) + ip[-1] + 108 );
           }
 
           if ( !large_int )
-            value <<= 16;
+            value = (FT_Int32)( (FT_UInt32)value << 16 );
         }
         else
         {
@@ -750,9 +756,9 @@
           decoder->flex_state        = 1;
           decoder->num_flex_vectors  = 0;
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok                                   ||
+                 != FT_Err_Ok                                   ||
                ( error = t1_builder_check_points( builder, 6 ) )
-                 != PSaux_Err_Ok                                   )
+                 != FT_Err_Ok                                   )
             goto Fail;
           break;
 
@@ -1123,7 +1129,7 @@
           FT_TRACE4(( "\n" ));
 
           
-          return PSaux_Err_Ok;
+          return FT_Err_Ok;
 
         case op_hsbw:
           FT_TRACE4(( " hsbw" ));
@@ -1143,7 +1149,7 @@
           
           
           if ( builder->metrics_only )
-            return PSaux_Err_Ok;
+            return FT_Err_Ok;
 
           break;
 
@@ -1172,7 +1178,7 @@
           
           
           if ( builder->metrics_only )
-            return PSaux_Err_Ok;
+            return FT_Err_Ok;
 
           break;
 
@@ -1191,7 +1197,7 @@
           FT_TRACE4(( " hlineto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok )
+                 != FT_Err_Ok )
             goto Fail;
 
           x += top[0];
@@ -1213,9 +1219,9 @@
           FT_TRACE4(( " hvcurveto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok                                   ||
+                 != FT_Err_Ok                                   ||
                ( error = t1_builder_check_points( builder, 3 ) )
-                 != PSaux_Err_Ok                                   )
+                 != FT_Err_Ok                                   )
             goto Fail;
 
           x += top[0];
@@ -1231,7 +1237,7 @@
           FT_TRACE4(( " rlineto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok )
+                 != FT_Err_Ok )
             goto Fail;
 
           x += top[0];
@@ -1239,7 +1245,7 @@
 
         Add_Line:
           if ( ( error = t1_builder_add_point1( builder, x, y ) )
-                 != PSaux_Err_Ok )
+                 != FT_Err_Ok )
             goto Fail;
           break;
 
@@ -1260,9 +1266,9 @@
           FT_TRACE4(( " rrcurveto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok                                   ||
+                 != FT_Err_Ok                                   ||
                ( error = t1_builder_check_points( builder, 3 ) )
-                 != PSaux_Err_Ok                                   )
+                 != FT_Err_Ok                                   )
             goto Fail;
 
           x += top[0];
@@ -1282,9 +1288,9 @@
           FT_TRACE4(( " vhcurveto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok                                   ||
+                 != FT_Err_Ok                                   ||
                ( error = t1_builder_check_points( builder, 3 ) )
-                 != PSaux_Err_Ok                                   )
+                 != FT_Err_Ok                                   )
             goto Fail;
 
           y += top[0];
@@ -1300,7 +1306,7 @@
           FT_TRACE4(( " vlineto" ));
 
           if ( ( error = t1_builder_start_point( builder, x, y ) )
-                 != PSaux_Err_Ok )
+                 != FT_Err_Ok )
             goto Fail;
 
           y += top[0];
@@ -1539,10 +1545,10 @@
     return error;
 
   Syntax_Error:
-    return PSaux_Err_Syntax_Error;
+    return FT_THROW( Syntax_Error );
 
   Stack_Underflow:
-    return PSaux_Err_Stack_Underflow;
+    return FT_THROW( Stack_Underflow );
   }
 
 
@@ -1579,7 +1585,7 @@
       {
         FT_ERROR(( "t1_decoder_init:"
                    " the `psnames' module is not available\n" ));
-        return PSaux_Err_Unimplemented_Feature;
+        return FT_THROW( Unimplemented_Feature );
       }
 
       decoder->psnames = psnames;
@@ -1599,7 +1605,7 @@
 
     decoder->funcs          = t1_decoder_funcs;
 
-    return PSaux_Err_Ok;
+    return FT_Err_Ok;
   }
 
 

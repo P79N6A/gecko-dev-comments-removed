@@ -46,7 +46,7 @@
       face->charmap = NULL;
     else
     {
-      af_cjk_metrics_init_widths( metrics, face, 0x7530 );
+      af_cjk_metrics_init_widths( metrics, face );
 #if 0
       
       af_cjk_metrics_init_blues( metrics, face, af_cjk_blue_chars );
@@ -56,7 +56,7 @@
 
     FT_Set_Charmap( face, oldmap );
 
-    return AF_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -116,6 +116,7 @@
   AF_DEFINE_SCRIPT_CLASS( af_indic_script_class,
     AF_SCRIPT_INDIC,
     af_indic_uniranges,
+    'o', 
 
     sizeof ( AF_CJKMetricsRec ),
 
@@ -138,6 +139,7 @@
   AF_DEFINE_SCRIPT_CLASS( af_indic_script_class,
     AF_SCRIPT_INDIC,
     af_indic_uniranges,
+    0,
 
     sizeof ( AF_CJKMetricsRec ),
 

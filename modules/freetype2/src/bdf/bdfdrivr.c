@@ -72,7 +72,7 @@
     cmap->num_encodings = face->bdffont->glyphs_used;
     cmap->encodings     = face->en_table;
 
-    return BDF_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -198,7 +198,7 @@
   static FT_Error
   bdf_interpret_style( BDF_Face  bdf )
   {
-    FT_Error         error  = BDF_Err_Ok;
+    FT_Error         error  = FT_Err_Ok;
     FT_Face          face   = FT_FACE( bdf );
     FT_Memory        memory = face->memory;
     bdf_font_t*      font   = bdf->bdffont;
@@ -342,7 +342,7 @@
                  FT_Int         num_params,
                  FT_Parameter*  params )
   {
-    FT_Error       error  = BDF_Err_Ok;
+    FT_Error       error  = FT_Err_Ok;
     BDF_Face       face   = (BDF_Face)bdfface;
     FT_Memory      memory = FT_FACE_MEMORY( face );
 
@@ -365,7 +365,7 @@
     options.font_spacing    = BDF_PROPORTIONAL;
 
     error = bdf_load_font( stream, memory, &options, &font );
-    if ( error == BDF_Err_Missing_Startfont_Field )
+    if ( FT_ERR_EQ( error, Missing_Startfont_Field ) )
     {
       FT_TRACE2(( "  not a BDF file\n" ));
       goto Fail;
@@ -591,7 +591,7 @@
 
   Fail:
     BDF_Face_Done( bdfface );
-    return BDF_Err_Unknown_File_Format;
+    return FT_THROW( Unknown_File_Format );
   }
 
 
@@ -608,7 +608,7 @@
     size->metrics.descender   = -bdffont->font_descent << 6;
     size->metrics.max_advance = bdffont->bbx.width << 6;
 
-    return BDF_Err_Ok;
+    return FT_Err_Ok;
   }
 
 
@@ -619,7 +619,7 @@
     FT_Face          face    = size->face;
     FT_Bitmap_Size*  bsize   = face->available_sizes;
     bdf_font_t*      bdffont = ( (BDF_Face)face )->bdffont;
-    FT_Error         error   = BDF_Err_Invalid_Pixel_Size;
+    FT_Error         error   = FT_ERR( Invalid_Pixel_Size );
     FT_Long          height;
 
 
@@ -630,17 +630,17 @@
     {
     case FT_SIZE_REQUEST_TYPE_NOMINAL:
       if ( height == ( ( bsize->y_ppem + 32 ) >> 6 ) )
-        error = BDF_Err_Ok;
+        error = FT_Err_Ok;
       break;
 
     case FT_SIZE_REQUEST_TYPE_REAL_DIM:
       if ( height == ( bdffont->font_ascent +
                        bdffont->font_descent ) )
-        error = BDF_Err_Ok;
+        error = FT_Err_Ok;
       break;
 
     default:
-      error = BDF_Err_Unimplemented_Feature;
+      error = FT_THROW( Unimplemented_Feature );
       break;
     }
 
@@ -660,7 +660,7 @@
   {
     BDF_Face     bdf    = (BDF_Face)FT_SIZE_FACE( size );
     FT_Face      face   = FT_FACE( bdf );
-    FT_Error     error  = BDF_Err_Ok;
+    FT_Error     error  = FT_Err_Ok;
     FT_Bitmap*   bitmap = &slot->bitmap;
     bdf_glyph_t  glyph;
     int          bpp    = bdf->bdffont->bpp;
@@ -670,7 +670,7 @@
 
     if ( !face || glyph_index >= (FT_UInt)face->num_glyphs )
     {
-      error = BDF_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -786,7 +786,7 @@
     }
 
   Fail:
-    return BDF_Err_Invalid_Argument;
+    return FT_THROW( Invalid_Argument );
   }
 
 
@@ -864,10 +864,6 @@
     0,                          
     0,                          
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    ft_stub_set_char_sizes,
-    ft_stub_set_pixel_sizes,
-#endif
     BDF_Glyph_Load,
 
     0,                          

@@ -28,7 +28,7 @@ FT_BEGIN_HEADER
 
   
 
-  AF_DECLARE_SCRIPT_CLASS(af_cjk_script_class)
+  AF_DECLARE_SCRIPT_CLASS( af_cjk_script_class )
 
   
 
@@ -103,6 +103,7 @@ FT_BEGIN_HEADER
   } AF_CJKMetricsRec, *AF_CJKMetrics;
 
 
+#ifdef AF_CONFIG_OPTION_CJK
   FT_LOCAL( FT_Error )
   af_cjk_metrics_init( AF_CJKMetrics  metrics,
                        FT_Face        face );
@@ -127,8 +128,8 @@ FT_BEGIN_HEADER
 
   FT_LOCAL( void )
   af_cjk_metrics_init_widths( AF_CJKMetrics  metrics,
-                              FT_Face        face,
-                              FT_ULong       charcode );
+                              FT_Face        face );
+#endif 
 
 
 

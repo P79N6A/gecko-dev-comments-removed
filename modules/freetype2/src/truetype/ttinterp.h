@@ -107,6 +107,48 @@ FT_BEGIN_HEADER
   } TT_CallRec, *TT_CallStack;
 
 
+#ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+
+  
+  
+  
+  
+  
+
+#define SPH_MAX_NAME_SIZE      32
+#define SPH_MAX_CLASS_MEMBERS  100
+
+  typedef struct  SPH_TweakRule_
+  {
+    const char      family[SPH_MAX_NAME_SIZE];
+    const FT_UInt   ppem;
+    const char      style[SPH_MAX_NAME_SIZE];
+    const FT_ULong  glyph;
+
+  } SPH_TweakRule;
+
+
+  typedef struct  SPH_ScaleRule_
+  {
+    const char      family[SPH_MAX_NAME_SIZE];
+    const FT_UInt   ppem;
+    const char      style[SPH_MAX_NAME_SIZE];
+    const FT_ULong  glyph;
+    const FT_ULong  scale;
+
+  } SPH_ScaleRule;
+
+
+  typedef struct  SPH_Font_Class_
+  {
+    const char  name[SPH_MAX_NAME_SIZE];
+    const char  member[SPH_MAX_CLASS_MEMBERS][SPH_MAX_NAME_SIZE];
+
+  } SPH_Font_Class;
+
+#endif 
+
+
   
   
   
@@ -218,12 +260,43 @@ FT_BEGIN_HEADER
 
     FT_Bool            grayscale;      
 
+#ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+    TT_Round_Func      func_round_sphn;   
+
+    FT_Bool            grayscale_hinting; 
+    FT_Bool            subpixel_hinting;  
+    FT_Bool            native_hinting;    
+    FT_Bool            ignore_x_mode;     
+                                          
+                                          
+
+    
+    
+    FT_Bool            compatible_widths;     
+    FT_Bool            symmetrical_smoothing; 
+    FT_Bool            bgr;                   
+    FT_Bool            subpixel_positioned;   
+                                              
+
+    FT_Int             rasterizer_version;    
+
+    FT_Bool            iup_called;            
+
+    FT_ULong           sph_tweak_flags;       
+                                              
+
+    FT_ULong           sph_in_func_flags;     
+                                              
+
+#endif 
+
   } TT_ExecContextRec;
 
 
   extern const TT_GraphicsState  tt_default_graphics_state;
 
 
+#ifdef TT_USE_BYTECODE_INTERPRETER
   FT_LOCAL( FT_Error )
   TT_Goto_CodeRange( TT_ExecContext  exec,
                      FT_Int          range,
@@ -246,6 +319,7 @@ FT_BEGIN_HEADER
               FT_Long    multiplier,
               void*      _pbuff,
               FT_ULong   new_max );
+#endif 
 
 
   
@@ -270,6 +344,8 @@ FT_BEGIN_HEADER
   FT_EXPORT( TT_ExecContext )
   TT_New_Context( TT_Driver  driver );
 
+
+#ifdef TT_USE_BYTECODE_INTERPRETER
   FT_LOCAL( FT_Error )
   TT_Done_Context( TT_ExecContext  exec );
 
@@ -285,6 +361,7 @@ FT_BEGIN_HEADER
   FT_LOCAL( FT_Error )
   TT_Run_Context( TT_ExecContext  exec,
                   FT_Bool         debug );
+#endif 
 
 
   

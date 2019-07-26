@@ -16,6 +16,10 @@
 
 
 
+#ifndef __FREETYPE_H__
+#define __FREETYPE_H__
+
+
 #ifndef FT_FREETYPE_H
 #error "`ft2build.h' hasn't been included yet!"
 #error "Please always use macros to include FreeType header files."
@@ -25,14 +29,10 @@
 #endif
 
 
-#ifndef __FREETYPE_H__
-#define __FREETYPE_H__
-
-
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include FT_ERRORS_H
 #include FT_TYPES_H
+#include FT_ERRORS_H
 
 
 FT_BEGIN_HEADER
@@ -237,6 +237,10 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
   typedef struct  FT_Glyph_Metrics_
   {
     FT_Pos  width;
@@ -312,6 +316,8 @@ FT_BEGIN_HEADER
   
   
 
+  
+  
   
   
   
@@ -767,6 +773,9 @@ FT_BEGIN_HEADER
   typedef struct FT_Face_InternalRec_*  FT_Face_Internal;
 
 
+  
+  
+  
   
   
   
@@ -1671,6 +1680,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Init_FreeType( FT_Library  *alibrary );
 
@@ -1840,6 +1852,10 @@ FT_BEGIN_HEADER
   } FT_Open_Args;
 
 
+  
+  
+  
+  
   
   
   
@@ -2227,6 +2243,12 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Request_Size( FT_Face          face,
                    FT_Size_Request  req );
@@ -2276,6 +2298,11 @@ FT_BEGIN_HEADER
                     FT_UInt     vert_resolution );
 
 
+  
+  
+  
+  
+  
   
   
   
@@ -2508,6 +2535,33 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define FT_LOAD_DEFAULT                      0x0
 #define FT_LOAD_NO_SCALE                     ( 1L << 0 )
 #define FT_LOAD_NO_HINTING                   ( 1L << 1 )
@@ -2523,6 +2577,8 @@ FT_BEGIN_HEADER
 #define FT_LOAD_MONOCHROME                   ( 1L << 12 )
 #define FT_LOAD_LINEAR_DESIGN                ( 1L << 13 )
 #define FT_LOAD_NO_AUTOHINT                  ( 1L << 15 )
+  
+#define FT_LOAD_COLOR                        ( 1L << 20 )
 
   
 
@@ -2532,6 +2588,7 @@ FT_BEGIN_HEADER
 
 
   
+
 
 
 
@@ -3085,6 +3142,12 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
   FT_EXPORT( FT_UInt )
   FT_Get_Char_Index( FT_Face   face,
                      FT_ULong  charcode );
@@ -3361,6 +3424,10 @@ FT_BEGIN_HEADER
   FT_Get_FSType_Flags( FT_Face  face );
 
 
+  
+  
+  
+  
   
   
   
@@ -3833,8 +3900,8 @@ FT_BEGIN_HEADER
 
 
 #define FREETYPE_MAJOR  2
-#define FREETYPE_MINOR  4
-#define FREETYPE_PATCH  9
+#define FREETYPE_MINOR  5
+#define FREETYPE_PATCH  0
 
 
   

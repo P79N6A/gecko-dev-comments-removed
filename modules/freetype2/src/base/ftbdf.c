@@ -33,7 +33,7 @@
     const char*  registry = NULL;
 
 
-    error = FT_Err_Invalid_Argument;
+    error = FT_ERR( Invalid_Argument );
 
     if ( face )
     {
@@ -66,7 +66,7 @@
     FT_Error  error;
 
 
-    error = FT_Err_Invalid_Argument;
+    error = FT_ERR( Invalid_Argument );
 
     aproperty->type = BDF_PROPERTY_TYPE_NONE;
 

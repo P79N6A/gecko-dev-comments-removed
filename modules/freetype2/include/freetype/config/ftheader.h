@@ -325,6 +325,45 @@
 
 
 
+#define FT_AUTOHINTER_H  <freetype/ftautoh.h>
+
+
+  
+
+
+
+
+
+
+
+
+
+#define FT_CFF_DRIVER_H  <freetype/ftcffdrv.h>
+
+
+  
+
+
+
+
+
+
+
+
+
+#define FT_TRUETYPE_DRIVER_H  <freetype/ftttdrv.h>
+
+
+  
+
+
+
+
+
+
+
+
+
 #define FT_TYPE1_TABLES_H  <freetype/t1tables.h>
 
 

@@ -522,6 +522,28 @@
   }
 
 
+  
+  static FT_Short
+  psh_calc_max_height( FT_UInt          num,
+                       const FT_Short*  values,
+                       FT_Short         cur_max )
+  {
+    FT_UInt  count;
+
+
+    for ( count = 0; count < num; count += 2 )
+    {
+      FT_Short  cur_height = values[count + 1] - values[count];
+
+
+      if ( cur_height > cur_max )
+        cur_max = cur_height;
+    }
+
+    return cur_max;
+  }
+
+
   FT_LOCAL_DEF( void )
   psh_blues_snap_stem( PSH_Blues      blues,
                        FT_Int         stem_top,
@@ -684,7 +706,32 @@
                            priv->family_blues, priv->num_family_other_blues,
                            priv->family_other_blues, priv->blue_fuzz, 1 );
 
-      globals->blues.blue_scale = priv->blue_scale;
+      
+      {
+        FT_Fixed  max_scale;
+        FT_Short  max_height = 1;
+
+
+        max_height = psh_calc_max_height( priv->num_blue_values,
+                                          priv->blue_values,
+                                          max_height );
+        max_height = psh_calc_max_height( priv->num_other_blues,
+                                          priv->other_blues,
+                                          max_height );
+        max_height = psh_calc_max_height( priv->num_family_blues,
+                                          priv->family_blues,
+                                          max_height );
+        max_height = psh_calc_max_height( priv->num_family_other_blues,
+                                          priv->family_other_blues,
+                                          max_height );
+
+        
+        max_scale = FT_DivFix( 1000, max_height );
+        globals->blues.blue_scale = priv->blue_scale < max_scale
+                                      ? priv->blue_scale
+                                      : max_scale;
+      }
+
       globals->blues.blue_shift = priv->blue_shift;
       globals->blues.blue_fuzz  = priv->blue_fuzz;
 

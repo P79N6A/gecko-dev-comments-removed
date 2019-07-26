@@ -52,6 +52,43 @@
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
 #ifndef __FTMODERR_H__
@@ -124,6 +161,7 @@
   FT_MODERRDEF( Type1,    0x1300, "Type 1 module" )
   FT_MODERRDEF( Type42,   0x1400, "Type 42 module" )
   FT_MODERRDEF( Winfonts, 0x1500, "Windows FON/FNT module" )
+  FT_MODERRDEF( GXvalid,  0x1600, "GX validation module" )
 
 
 #ifdef FT_MODERR_END_LIST

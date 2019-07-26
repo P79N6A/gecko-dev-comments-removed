@@ -38,6 +38,7 @@ FT_TRACE_DEF( smooth )
 FT_TRACE_DEF( mm )        
 FT_TRACE_DEF( raccess )   
 FT_TRACE_DEF( synth )     
+FT_TRACE_DEF( bitmap )    
 
   
 FT_TRACE_DEF( cache )     
@@ -73,6 +74,7 @@ FT_TRACE_DEF( t1parse )
   
 FT_TRACE_DEF( t1decode )
 FT_TRACE_DEF( psobjs )
+FT_TRACE_DEF( psconv )
 
   
 FT_TRACE_DEF( pshrec )
@@ -85,6 +87,10 @@ FT_TRACE_DEF( cffgload )
 FT_TRACE_DEF( cffload )
 FT_TRACE_DEF( cffobjs )
 FT_TRACE_DEF( cffparse )
+
+FT_TRACE_DEF( cf2blues )
+FT_TRACE_DEF( cf2hints )
+FT_TRACE_DEF( cf2interp )
 
   
 FT_TRACE_DEF( t42 )
@@ -136,6 +142,8 @@ FT_TRACE_DEF( gxvprop )
 FT_TRACE_DEF( gxvlcar )
 
   
+FT_TRACE_DEF( afmodule )
+FT_TRACE_DEF( afhints )
 FT_TRACE_DEF( afcjk )
 FT_TRACE_DEF( aflatin )
 FT_TRACE_DEF( aflatin2 )

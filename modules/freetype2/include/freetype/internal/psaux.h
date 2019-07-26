@@ -114,6 +114,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   typedef struct  PS_TableRec_
   {
     FT_Byte*           block;          
@@ -183,6 +186,7 @@ FT_BEGIN_HEADER
     T1_FIELD_TYPE_STRING,
     T1_FIELD_TYPE_KEY,
     T1_FIELD_TYPE_BBOX,
+    T1_FIELD_TYPE_MM_BBOX,
     T1_FIELD_TYPE_INTEGER_ARRAY,
     T1_FIELD_TYPE_FIXED_ARRAY,
     T1_FIELD_TYPE_CALLBACK,

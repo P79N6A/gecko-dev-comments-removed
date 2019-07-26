@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include "ftcmanag.h"
 #include FT_INTERNAL_OBJECTS_H
@@ -270,11 +269,7 @@
 
 
   
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-  FT_BASE_DEF( void )
-#else
   FT_LOCAL_DEF( void )
-#endif
   ftc_node_destroy( FTC_Node     node,
                     FTC_Manager  manager )
   {
@@ -493,14 +488,14 @@
     FTC_Node*  bucket;
     FTC_Node*  pnode;
     FTC_Node   node;
-    FT_Error   error        = FTC_Err_Ok;
+    FT_Error   error        = FT_Err_Ok;
     FT_Bool    list_changed = FALSE;
 
     FTC_Node_CompareFunc  compare = cache->clazz.node_compare;
 
 
     if ( cache == NULL || anode == NULL )
-      return FTC_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     
     bucket = pnode = FTC_NODE__TOP_FOR_HASH( cache, hash );

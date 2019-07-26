@@ -76,6 +76,7 @@ FT_BEGIN_HEADER
   
   
   
+  
 
 
   
@@ -110,6 +111,8 @@ FT_BEGIN_HEADER
                         void*                    user );
 
 
+  
+  
   
   
   
@@ -348,6 +351,23 @@ FT_BEGIN_HEADER
   FT_EXPORT( FT_Error )
   FT_Outline_Embolden( FT_Outline*  outline,
                        FT_Pos       strength );
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  FT_EXPORT( FT_Error )
+  FT_Outline_EmboldenXY( FT_Outline*  outline,
+                         FT_Pos       xstrength,
+                         FT_Pos       ystrength );
 
 
   

@@ -161,6 +161,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Get_Advances( FT_Face    face,
                    FT_UInt    start,

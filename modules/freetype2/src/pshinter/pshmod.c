@@ -93,14 +93,15 @@
   }
 
 
-  FT_DEFINE_PSHINTER_INTERFACE(pshinter_interface,
+  FT_DEFINE_PSHINTER_INTERFACE(
+    pshinter_interface,
     pshinter_get_globals_funcs,
     pshinter_get_t1_funcs,
-    pshinter_get_t2_funcs
-  )
+    pshinter_get_t2_funcs )
 
 
-  FT_DEFINE_MODULE(pshinter_module_class,
+  FT_DEFINE_MODULE(
+    pshinter_module_class,
 
     0,
     sizeof ( PS_Hinter_ModuleRec ),
@@ -108,11 +109,11 @@
     0x10000L,
     0x20000L,
 
-    &FTPSHINTER_INTERFACE_GET,            
+    &PSHINTER_INTERFACE_GET,              
 
     (FT_Module_Constructor)ps_hinter_init,
     (FT_Module_Destructor) ps_hinter_done,
-    (FT_Module_Requester)  0        
-  )
+    (FT_Module_Requester)  NULL )   
+
 
 

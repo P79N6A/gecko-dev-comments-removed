@@ -116,7 +116,7 @@
     if ( (FT_UInt)(gindex - gnode->gindex) >= snode->count )
     {
       FT_ERROR(( "ftc_snode_load: invalid glyph index" ));
-      return FTC_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
     }
 
     sbit  = snode->sbits + ( gindex - gnode->gindex );
@@ -189,13 +189,13 @@
     
     
     
-    if ( error && error != FTC_Err_Out_Of_Memory )
+    if ( error && FT_ERR_NEQ( error, Out_Of_Memory ) )
     {
     BadGlyph:
       sbit->width  = 255;
       sbit->height = 0;
       sbit->buffer = NULL;
-      error        = FTC_Err_Ok;
+      error        = FT_Err_Ok;
       if ( asize )
         *asize = 0;
     }
@@ -223,7 +223,7 @@
     total = clazz->family_get_count( family, cache->manager );
     if ( total == 0 || gindex >= total )
     {
-      error = FTC_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 

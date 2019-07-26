@@ -56,6 +56,8 @@
                 "array allocation size too large" )
   FT_ERRORDEF_( Missing_Module,                              0x0B, \
                 "missing module" )
+  FT_ERRORDEF_( Missing_Property,                            0x0C, \
+                "missing property" )
 
   
 
@@ -215,6 +217,8 @@
                 "ignore" )
   FT_ERRORDEF_( No_Unicode_Glyph_Name,                       0xA3, \
                 "no Unicode glyph name found" )
+  FT_ERRORDEF_( Glyph_Too_Big,                               0xA4, \
+                "glyph to big for hinting" )
 
   
 

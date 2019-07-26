@@ -789,13 +789,13 @@
   FT_Stroker_New( FT_Library   library,
                   FT_Stroker  *astroker )
   {
-    FT_Error    error;
+    FT_Error    error;           
     FT_Memory   memory;
     FT_Stroker  stroker = NULL;
 
 
     if ( !library )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     memory = library->memory;
 
@@ -1126,9 +1126,8 @@
           middle.y += stroker->center.y;
 
           
-          length = FT_MulFix( radius,
-                              FT_DivFix( 0x10000L - sigma,
-                                         ft_pos_abs( FT_Sin( theta ) ) ) );
+          length = FT_MulDiv( radius, 0x10000L - sigma,
+                              ft_pos_abs( FT_Sin( theta ) ) );
 
           FT_Vector_From_Polar( &delta, length, phi + rotate );
           delta.x += middle.x;
@@ -1495,7 +1494,7 @@
               sinA = ft_pos_abs( FT_Sin( alpha1 - gamma ) );
               sinB = ft_pos_abs( FT_Sin( beta - gamma ) );
 
-              alen = FT_DivFix( FT_MulFix( blen, sinA ), sinB );
+              alen = FT_MulDiv( blen, sinA, sinB );
 
               FT_Vector_From_Polar( &delta, alen, beta );
               delta.x += start.x;
@@ -1702,7 +1701,7 @@
               sinA = ft_pos_abs( FT_Sin( alpha1 - gamma ) );
               sinB = ft_pos_abs( FT_Sin( beta - gamma ) );
 
-              alen = FT_DivFix( FT_MulFix( blen, sinA ), sinB );
+              alen = FT_MulDiv( blen, sinA, sinB );
 
               FT_Vector_From_Polar( &delta, alen, beta );
               delta.x += start.x;
@@ -1955,7 +1954,7 @@
 
     if ( !stroker || border > 1 )
     {
-      error = FT_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -2061,7 +2060,7 @@
 
 
     if ( !outline || !stroker )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     FT_Stroker_Rewind( stroker );
 
@@ -2239,7 +2238,7 @@
     return error;
 
   Invalid_Outline:
-    return FT_Err_Invalid_Outline;
+    return FT_THROW( Invalid_Outline );
   }
 
 
@@ -2259,7 +2258,7 @@
                    FT_Stroker   stroker,
                    FT_Bool      destroy )
   {
-    FT_Error    error   = FT_Err_Invalid_Argument;
+    FT_Error    error   = FT_ERR( Invalid_Argument );
     FT_Glyph    glyph   = NULL;
     FT_Library  library = stroker->library;
 
@@ -2335,7 +2334,7 @@
                          FT_Bool      inside,
                          FT_Bool      destroy )
   {
-    FT_Error    error   = FT_Err_Invalid_Argument;
+    FT_Error    error   = FT_ERR( Invalid_Argument );
     FT_Glyph    glyph   = NULL;
     FT_Library  library = stroker->library;
 

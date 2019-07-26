@@ -30,44 +30,6 @@
 #define FT_COMPONENT  trace_cache
 
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-
-
-
-  typedef struct  FTC_OldFontRec_
-  {
-    FTC_FaceID  face_id;
-    FT_UShort   pix_width;
-    FT_UShort   pix_height;
-
-  } FTC_OldFontRec, *FTC_OldFont;
-
-
-  typedef struct  FTC_OldImageDescRec_
-  {
-    FTC_OldFontRec  font;
-    FT_UInt32       flags;
-
-  } FTC_OldImageDescRec, *FTC_OldImageDesc;
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-#endif 
-
-
   
 
 
@@ -226,7 +188,7 @@
           }
         }
         else
-          error = FTC_Err_Invalid_Argument;
+          error = FT_THROW( Invalid_Argument );
       }
     }
 
@@ -328,33 +290,13 @@
     
     if ( !aglyph )
     {
-      error = FTC_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
     *aglyph = NULL;
     if ( anode )
       *anode  = NULL;
-
-#if defined( FT_CONFIG_OPTION_OLD_INTERNALS ) && ( FT_INT_MAX > 0xFFFFU )
-
-    
-
-
-
-    if ( (FT_ULong)type->width >= 0x10000L )
-    {
-      FTC_OldImageDesc  desc = (FTC_OldImageDesc)type;
-
-
-      query.attrs.scaler.face_id = desc->font.face_id;
-      query.attrs.scaler.width   = desc->font.pix_width;
-      query.attrs.scaler.height  = desc->font.pix_height;
-      query.attrs.load_flags     = desc->flags;
-    }
-    else
-
-#endif 
 
     {
       if ( (FT_ULong)(type->flags - FT_INT_MIN) > FT_UINT_MAX )
@@ -424,7 +366,7 @@
     
     if ( !aglyph || !scaler )
     {
-      error = FTC_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
@@ -467,138 +409,7 @@
   }
 
 
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
   
-  typedef struct  FTC_OldImage_Desc_
-  {
-    FTC_FontRec  font;
-    FT_UInt      image_type;
-
-  } FTC_OldImage_Desc;
-
-
-#define FTC_OLD_IMAGE_FORMAT( x )  ( (x) & 7 )
-
-
-#define ftc_old_image_format_bitmap    0x0000
-#define ftc_old_image_format_outline   0x0001
-
-#define ftc_old_image_format_mask      0x000F
-
-#define ftc_old_image_flag_monochrome  0x0010
-#define ftc_old_image_flag_unhinted    0x0020
-#define ftc_old_image_flag_autohinted  0x0040
-#define ftc_old_image_flag_unscaled    0x0080
-#define ftc_old_image_flag_no_sbits    0x0100
-
-  
-#define ftc_old_image_mono             ftc_old_image_format_bitmap   | \
-                                       ftc_old_image_flag_monochrome
-
-  
-#define ftc_old_image_grays            ftc_old_image_format_bitmap
-
-  
-#define ftc_old_image_outline          ftc_old_image_format_outline
-
-
-  static void
-  ftc_image_type_from_old_desc( FTC_ImageType       typ,
-                                FTC_OldImage_Desc*  desc )
-  {
-    typ->face_id = desc->font.face_id;
-    typ->width   = desc->font.pix_width;
-    typ->height  = desc->font.pix_height;
-
-    
-    {
-      FT_UInt  load_flags = FT_LOAD_DEFAULT;
-      FT_UInt  type       = desc->image_type;
-
-
-      
-      
-
-      if ( FTC_OLD_IMAGE_FORMAT( type ) == ftc_old_image_format_bitmap )
-      {
-        if ( type & ftc_old_image_flag_monochrome )
-          load_flags |= FT_LOAD_MONOCHROME;
-
-        
-        if ( type & ftc_old_image_flag_no_sbits )
-          load_flags |= FT_LOAD_NO_BITMAP;
-      }
-      else
-      {
-        
-        load_flags |= FT_LOAD_NO_BITMAP;
-
-        if ( type & ftc_old_image_flag_unscaled )
-          load_flags |= FT_LOAD_NO_SCALE;
-      }
-
-      
-      load_flags |= FT_LOAD_RENDER;
-
-      if ( type & ftc_old_image_flag_unhinted )
-        load_flags |= FT_LOAD_NO_HINTING;
-
-      if ( type & ftc_old_image_flag_autohinted )
-        load_flags |= FT_LOAD_FORCE_AUTOHINT;
-
-      typ->flags = load_flags;
-    }
-  }
-
-
-  FT_EXPORT( FT_Error )
-  FTC_Image_Cache_New( FTC_Manager      manager,
-                       FTC_ImageCache  *acache );
-
-  FT_EXPORT( FT_Error )
-  FTC_Image_Cache_Lookup( FTC_ImageCache      icache,
-                          FTC_OldImage_Desc*  desc,
-                          FT_UInt             gindex,
-                          FT_Glyph           *aglyph );
-
-
-  FT_EXPORT_DEF( FT_Error )
-  FTC_Image_Cache_New( FTC_Manager      manager,
-                       FTC_ImageCache  *acache )
-  {
-    return FTC_ImageCache_New( manager, (FTC_ImageCache*)acache );
-  }
-
-
-
-  FT_EXPORT_DEF( FT_Error )
-  FTC_Image_Cache_Lookup( FTC_ImageCache      icache,
-                          FTC_OldImage_Desc*  desc,
-                          FT_UInt             gindex,
-                          FT_Glyph           *aglyph )
-  {
-    FTC_ImageTypeRec  type0;
-
-
-    if ( !desc )
-      return FTC_Err_Invalid_Argument;
-
-    ftc_image_type_from_old_desc( &type0, desc );
-
-    return FTC_ImageCache_Lookup( (FTC_ImageCache)icache,
-                                   &type0,
-                                   gindex,
-                                   aglyph,
-                                   NULL );
-  }
-
-#endif 
-
-
- 
-
 
 
 
@@ -668,28 +479,9 @@
 
     
     if ( !ansbit )
-      return FTC_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     *ansbit = NULL;
-
-#if defined( FT_CONFIG_OPTION_OLD_INTERNALS ) && ( FT_INT_MAX > 0xFFFFU )
-
-    
-
-
-    if ( (FT_ULong)type->width >= 0x10000L )
-    {
-      FTC_OldImageDesc  desc = (FTC_OldImageDesc)type;
-
-
-      query.attrs.scaler.face_id = desc->font.face_id;
-      query.attrs.scaler.width   = desc->font.pix_width;
-      query.attrs.scaler.height  = desc->font.pix_height;
-      query.attrs.load_flags     = desc->flags;
-    }
-    else
-
-#endif 
 
     {
       if ( (FT_ULong)(type->flags - FT_INT_MIN) > FT_UINT_MAX )
@@ -765,7 +557,7 @@
 
     
     if ( !ansbit || !scaler )
-        return FTC_Err_Invalid_Argument;
+        return FT_THROW( Invalid_Argument );
 
     *ansbit = NULL;
 
@@ -805,51 +597,6 @@
   Exit:
     return error;
   }
-
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  FT_EXPORT( FT_Error )
-  FTC_SBit_Cache_New( FTC_Manager     manager,
-                      FTC_SBitCache  *acache );
-
-  FT_EXPORT( FT_Error )
-  FTC_SBit_Cache_Lookup( FTC_SBitCache       cache,
-                         FTC_OldImage_Desc*  desc,
-                         FT_UInt             gindex,
-                         FTC_SBit           *ansbit );
-
-
-  FT_EXPORT_DEF( FT_Error )
-  FTC_SBit_Cache_New( FTC_Manager     manager,
-                      FTC_SBitCache  *acache )
-  {
-    return FTC_SBitCache_New( manager, (FTC_SBitCache*)acache );
-  }
-
-
-  FT_EXPORT_DEF( FT_Error )
-  FTC_SBit_Cache_Lookup( FTC_SBitCache       cache,
-                         FTC_OldImage_Desc*  desc,
-                         FT_UInt             gindex,
-                         FTC_SBit           *ansbit )
-  {
-    FTC_ImageTypeRec  type0;
-
-
-    if ( !desc )
-      return FTC_Err_Invalid_Argument;
-
-    ftc_image_type_from_old_desc( &type0, desc );
-
-    return FTC_SBitCache_Lookup( (FTC_SBitCache)cache,
-                                  &type0,
-                                  gindex,
-                                  ansbit,
-                                  NULL );
-  }
-
-#endif 
 
 
 

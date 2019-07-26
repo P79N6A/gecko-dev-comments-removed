@@ -22,30 +22,29 @@
 #include "ttpic.h"
 #include "tterrors.h"
 
+
 #ifdef FT_CONFIG_OPTION_PIC
 
   
   FT_Error
   FT_Create_Class_tt_services( FT_Library           library,
                                FT_ServiceDescRec**  output_class );
-
   void
   FT_Destroy_Class_tt_services( FT_Library          library,
                                 FT_ServiceDescRec*  clazz );
-
   void
   FT_Init_Class_tt_service_gx_multi_masters(
     FT_Service_MultiMastersRec*  sv_mm );
-
   void
   FT_Init_Class_tt_service_truetype_glyf(
     FT_Service_TTGlyfRec*  sv_ttglyf );
+
 
   void
   tt_driver_class_pic_free( FT_Library  library )
   {
     FT_PIC_Container*  pic_container = &library->pic_container;
-    FT_Memory  memory = library->memory;
+    FT_Memory          memory        = library->memory;
 
 
     if ( pic_container->truetype )
@@ -66,17 +65,18 @@
   tt_driver_class_pic_init( FT_Library  library )
   {
     FT_PIC_Container*  pic_container = &library->pic_container;
-    FT_Error           error         = TT_Err_Ok;
-    TTModulePIC*       container;
+    FT_Error           error         = FT_Err_Ok;
+    TTModulePIC*       container     = NULL;
     FT_Memory          memory        = library->memory;
 
 
     
-    if ( FT_ALLOC ( container, sizeof ( *container ) ) )
+    if ( FT_ALLOC( container, sizeof ( *container ) ) )
       return error;
     FT_MEM_SET( container, 0, sizeof ( *container ) );
     pic_container->truetype = container;
 
+    
     
     error = FT_Create_Class_tt_services( library,
                                          &container->tt_services );
@@ -88,7 +88,8 @@
 #endif
     FT_Init_Class_tt_service_truetype_glyf(
       &container->tt_service_truetype_glyf );
-Exit:
+
+  Exit:
     if ( error )
       tt_driver_class_pic_free( library );
     return error;

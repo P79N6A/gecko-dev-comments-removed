@@ -311,87 +311,6 @@ FT_BEGIN_HEADER
   } TT_GaspRec;
 
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef struct  TT_HdmxEntryRec_
-  {
-    FT_Byte   ppem;
-    FT_Byte   max_width;
-    FT_Byte*  widths;
-
-  } TT_HdmxEntryRec, *TT_HdmxEntry;
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef struct  TT_HdmxRec_
-  {
-    FT_UShort     version;
-    FT_Short      num_records;
-    TT_HdmxEntry  records;
-
-  } TT_HdmxRec, *TT_Hdmx;
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef struct  TT_Kern0_PairRec_
-  {
-    FT_UShort  left;   
-    FT_UShort  right;  
-    FT_FWord   value;  
-
-  } TT_Kern0_PairRec, *TT_Kern0_Pair;
-
-#endif 
-
-
   
   
   
@@ -1269,9 +1188,6 @@ FT_BEGIN_HEADER
     TT_HoriHeader         horizontal;   
 
     TT_MaxProfile         max_profile;
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    FT_ULong              max_components;  
-#endif
 
     FT_Bool               vertical_info;
     TT_VertHeader         vertical;     
@@ -1309,22 +1225,12 @@ FT_BEGIN_HEADER
     
 
     
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    TT_HdmxRec            hdmx;
-#endif
-
-    
     TT_GaspRec            gasp;                 
 
     
     TT_PCLT               pclt;
 
     
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    FT_ULong              num_sbit_strikes;
-    TT_SBit_Strike        sbit_strikes;
-#endif
-
     FT_ULong              num_sbit_scales;
     TT_SBit_Scale         sbit_scales;
 
@@ -1339,12 +1245,6 @@ FT_BEGIN_HEADER
     
 
     
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    FT_UShort             num_locations_stub;
-    FT_Long*              glyph_locations_stub;
-#endif
-
-    
     FT_ULong              font_program_size;
     FT_Byte*              font_program;
 
@@ -1355,13 +1255,6 @@ FT_BEGIN_HEADER
     
     FT_ULong              cvt_size;
     FT_Short*             cvt;
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-    
-    FT_Int                num_kern_pairs;
-    FT_Int                kern_table_index;
-    TT_Kern0_Pair         kern_pairs;
-#endif
 
     
     
@@ -1383,11 +1276,8 @@ FT_BEGIN_HEADER
 
     const char*           postscript_name;
 
-    
-    
     FT_ULong              glyf_len;
 
-    
 #ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT
     FT_Bool               doblend;
     GX_Blend              blend;
@@ -1427,6 +1317,13 @@ FT_BEGIN_HEADER
     
     FT_ULong              horz_metrics_offset;
     FT_ULong              vert_metrics_offset;
+
+#ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+    
+    FT_ULong              sph_found_func_flags; 
+                                                
+    FT_Bool               sph_compatibility_mode;
+#endif 
 
   } TT_FaceRec;
 

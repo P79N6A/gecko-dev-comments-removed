@@ -303,8 +303,6 @@
 #ifdef GXV_LOAD_UNUSED_VARS
       kernAction = FT_NEXT_USHORT( p );
       kernValue  = FT_NEXT_USHORT( p );
-#else
-      p += 4;
 #endif
     }
   }

@@ -79,7 +79,6 @@
   
   
   
-  
 
 
 #ifndef __FTERRORS_H__
@@ -100,12 +99,6 @@
 
 
 #undef  FT_NEED_EXTERN_C
-
-#undef  FT_ERR_XCAT
-#undef  FT_ERR_CAT
-
-#define FT_ERR_XCAT( x, y )  x ## y
-#define FT_ERR_CAT( x, y )   FT_ERR_XCAT( x, y )
 
 
   
@@ -150,11 +143,11 @@
 
 
   
-#define FT_ERRORDEF_( e, v, s )   \
+#define FT_ERRORDEF_( e, v, s )                                             \
           FT_ERRORDEF( FT_ERR_CAT( FT_ERR_PREFIX, e ), v + FT_ERR_BASE, s )
 
   
-#define FT_NOERRORDEF_( e, v, s ) \
+#define FT_NOERRORDEF_( e, v, s )                             \
           FT_ERRORDEF( FT_ERR_CAT( FT_ERR_PREFIX, e ), v, s )
 
 
@@ -195,10 +188,8 @@
 #undef FT_ERR_BASE
 
   
-#ifndef FT_KEEP_ERR_PREFIX
+#ifndef FT2_BUILD_LIBRARY
 #undef FT_ERR_PREFIX
-#else
-#undef FT_KEEP_ERR_PREFIX
 #endif
 
 #endif 

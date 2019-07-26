@@ -58,8 +58,8 @@
 
 
     error = FT_Load_Sfnt_Table( face, tag, 0, NULL, table_len );
-    if ( error == GXV_Err_Table_Missing )
-      return GXV_Err_Ok;
+    if ( FT_ERR_EQ( error, Table_Missing ) )
+      return FT_Err_Ok;
     if ( error )
       goto Exit;
 
@@ -112,7 +112,7 @@
   {
     FT_Memory volatile        memory = FT_FACE_MEMORY( face );
 
-    FT_Error                  error = GXV_Err_Ok;
+    FT_Error                  error = FT_Err_Ok;
     FT_ValidatorRec volatile  valid;
 
     FT_UInt  i;
@@ -200,7 +200,7 @@
     
     
     
-    FT_Error volatile         error = GXV_Err_Ok;
+    FT_Error volatile         error;
     FT_ValidatorRec volatile  valid;
 
 

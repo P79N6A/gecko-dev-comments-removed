@@ -51,7 +51,8 @@
   
 
   FT_BASE_DEF( void )
-  FT_Message( const char*  fmt, ... )
+  FT_Message( const char*  fmt,
+              ... )
   {
     va_list  ap;
 
@@ -65,7 +66,8 @@
   
 
   FT_BASE_DEF( void )
-  FT_Panic( const char*  fmt, ... )
+  FT_Panic( const char*  fmt,
+            ... )
   {
     va_list  ap;
 
@@ -75,6 +77,21 @@
     va_end( ap );
 
     exit( EXIT_FAILURE );
+  }
+
+
+  
+
+  FT_BASE_DEF( int )
+  FT_Throw( FT_Error     error,
+            int          line,
+            const char*  file )
+  {
+    FT_UNUSED( error );
+    FT_UNUSED( line );
+    FT_UNUSED( file );
+
+    return 0;
   }
 
 #endif 
@@ -164,6 +181,9 @@
         while ( *p && *p != ':' )
           p++;
 
+        if ( !*p )
+          break;
+
         if ( *p == ':' && p > q )
         {
           FT_Int  n, i, len = (FT_Int)( p - q );
@@ -192,7 +212,7 @@
           p++;
           if ( *p )
           {
-            level = *p++ - '0';
+            level = *p - '0';
             if ( level < 0 || level > 7 )
               level = -1;
           }

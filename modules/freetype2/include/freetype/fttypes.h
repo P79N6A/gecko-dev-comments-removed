@@ -571,14 +571,24 @@ FT_BEGIN_HEADER
   
 
 #define FT_IS_EMPTY( list )  ( (list).head == 0 )
+#define FT_BOOL( x )  ( (FT_Bool)( x ) )
 
   
+#define FT_ERR_XCAT( x, y )  x ## y
+#define FT_ERR_CAT( x, y )   FT_ERR_XCAT( x, y )
+
+  
+
+#define FT_ERR( e )  FT_ERR_CAT( FT_ERR_PREFIX, e )
+
 #define FT_ERROR_BASE( x )    ( (x) & 0xFF )
-
-  
 #define FT_ERROR_MODULE( x )  ( (x) & 0xFF00U )
 
-#define FT_BOOL( x )  ( (FT_Bool)( x ) )
+#define FT_ERR_EQ( x, e )                                        \
+          ( FT_ERROR_BASE( x ) == FT_ERROR_BASE( FT_ERR( e ) ) )
+#define FT_ERR_NEQ( x, e )                                       \
+          ( FT_ERROR_BASE( x ) != FT_ERROR_BASE( FT_ERR( e ) ) )
+
 
 FT_END_HEADER
 

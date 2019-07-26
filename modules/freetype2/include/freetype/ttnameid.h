@@ -322,6 +322,7 @@ FT_BEGIN_HEADER
   
   
   
+  
 #define TT_MAC_LANGID_ENGLISH                       0
 #define TT_MAC_LANGID_FRENCH                        1
 #define TT_MAC_LANGID_GERMAN                        2
@@ -455,17 +456,6 @@ FT_BEGIN_HEADER
 #define TT_MAC_LANGID_AZERBAIJANI_ROMAN_SCRIPT    150
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   

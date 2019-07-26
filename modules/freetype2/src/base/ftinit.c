@@ -156,7 +156,7 @@
   {
     FT_Error           error;
     FT_Memory          memory;
-    FT_Module_Class*  *classes;
+    FT_Module_Class*  *classes = NULL;
     FT_Module_Class*   clazz;
     FT_UInt            i;
     BasePIC*           pic_container = (BasePIC*)library->pic_container.base;
@@ -166,7 +166,7 @@
 
     pic_container->default_module_classes = 0;
 
-    if ( FT_ALLOC( classes, sizeof ( FT_Module_Class* ) * 
+    if ( FT_ALLOC( classes, sizeof ( FT_Module_Class* ) *
                               ( FT_NUM_MODULE_CLASSES + 1 ) ) )
       return error;
 
@@ -242,7 +242,7 @@
     if ( !memory )
     {
       FT_ERROR(( "FT_Init_FreeType: cannot find memory manager\n" ));
-      return FT_Err_Unimplemented_Feature;
+      return FT_THROW( Unimplemented_Feature );
     }
 
     

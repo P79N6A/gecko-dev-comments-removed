@@ -21,14 +21,22 @@
 #include FT_INTERNAL_OBJECTS_H
 #include "basepic.h"
 
+
 #ifdef FT_CONFIG_OPTION_PIC
 
   
-  void FT_Init_Class_ft_outline_glyph_class( FT_Glyph_Class*  clazz );
-  void FT_Init_Class_ft_bitmap_glyph_class( FT_Glyph_Class*  clazz );
+  void
+  FT_Init_Class_ft_outline_glyph_class( FT_Glyph_Class*  clazz );
 
+  void
+  FT_Init_Class_ft_bitmap_glyph_class( FT_Glyph_Class*  clazz );
+
+#ifdef FT_CONFIG_OPTION_MAC_FONTS
   
-  void FT_Init_Table_raccess_guess_table( ft_raccess_guess_rec*  record );
+  
+  void
+  FT_Init_Table_raccess_guess_table( ft_raccess_guess_rec*  record );
+#endif
 
   
   FT_Error
@@ -37,13 +45,17 @@
   void
   ft_destroy_default_module_classes( FT_Library  library );
 
+
   void
   ft_base_pic_free( FT_Library  library )
   {
     FT_PIC_Container*  pic_container = &library->pic_container;
-    FT_Memory          memory = library->memory;
+    FT_Memory          memory        = library->memory;
+
+
     if ( pic_container->base )
     {
+      
       
       ft_destroy_default_module_classes( library );
 
@@ -57,12 +69,13 @@
   ft_base_pic_init( FT_Library  library )
   {
     FT_PIC_Container*  pic_container = &library->pic_container;
-    FT_Error           error = FT_Err_Ok;
-    BasePIC*           container;
-    FT_Memory          memory = library->memory;
+    FT_Error           error         = FT_Err_Ok;
+    BasePIC*           container     = NULL;
+    FT_Memory          memory        = library->memory;
+
 
     
-    if ( FT_ALLOC ( container, sizeof ( *container ) ) )
+    if ( FT_ALLOC( container, sizeof ( *container ) ) )
       return error;
     FT_MEM_SET( container, 0, sizeof ( *container ) );
     pic_container->base = container;
@@ -73,19 +86,21 @@
       goto Exit;
 
     
+    
     FT_Init_Class_ft_outline_glyph_class(
       &container->ft_outline_glyph_class );
     FT_Init_Class_ft_bitmap_glyph_class(
       &container->ft_bitmap_glyph_class );
+#ifdef FT_CONFIG_OPTION_MAC_FONTS
     FT_Init_Table_raccess_guess_table(
-      (ft_raccess_guess_rec*)&container->ft_raccess_guess_table);
+      (ft_raccess_guess_rec*)&container->ft_raccess_guess_table );
+#endif
 
-Exit:
-    if( error )
+  Exit:
+    if ( error )
       ft_base_pic_free( library );
     return error;
   }
-
 
 #endif 
 

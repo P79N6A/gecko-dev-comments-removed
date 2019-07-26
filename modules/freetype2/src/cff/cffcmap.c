@@ -16,6 +16,8 @@
 
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
 #include "cffcmap.h"
 #include "cffload.h"
 
@@ -145,7 +147,7 @@
     
     
     if ( !charset->sids )
-      return CFF_Err_No_Unicode_Glyph_Name;
+      return FT_THROW( No_Unicode_Glyph_Name );
 
     return psnames->unicodes_init( memory,
                                    unicodes,

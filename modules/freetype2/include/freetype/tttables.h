@@ -600,6 +600,16 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   FT_EXPORT( void* )
   FT_Get_Sfnt_Table( FT_Face      face,
                      FT_Sfnt_Tag  tag );
@@ -705,6 +715,7 @@ FT_BEGIN_HEADER
 
 
 
+
   FT_EXPORT( FT_Error )
   FT_Sfnt_Table_Info( FT_Face    face,
                       FT_UInt    table_index,
@@ -712,6 +723,9 @@ FT_BEGIN_HEADER
                       FT_ULong  *length );
 
 
+  
+  
+  
   
   
   

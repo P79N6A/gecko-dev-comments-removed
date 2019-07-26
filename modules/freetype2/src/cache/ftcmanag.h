@@ -94,8 +94,8 @@ FT_BEGIN_HEADER
     FT_Memory           memory;
 
     FTC_Node            nodes_list;
-    FT_ULong            max_weight;
-    FT_ULong            cur_weight;
+    FT_Offset           max_weight;
+    FT_Offset           cur_weight;
     FT_UInt             num_nodes;
 
     FTC_Cache           caches[FTC_MAX_CACHES];

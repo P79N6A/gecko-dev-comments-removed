@@ -16,7 +16,6 @@
 
 
 
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_CACHE_H
@@ -30,43 +29,6 @@
 
 #undef  FT_COMPONENT
 #define FT_COMPONENT  trace_cache
-
-
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  typedef enum  FTC_OldCMapType_
-  {
-    FTC_OLD_CMAP_BY_INDEX    = 0,
-    FTC_OLD_CMAP_BY_ENCODING = 1,
-    FTC_OLD_CMAP_BY_ID       = 2
-
-  } FTC_OldCMapType;
-
-
-  typedef struct  FTC_OldCMapIdRec_
-  {
-    FT_UInt  platform;
-    FT_UInt  encoding;
-
-  } FTC_OldCMapIdRec, *FTC_OldCMapId;
-
-
-  typedef struct  FTC_OldCMapDescRec_
-  {
-    FTC_FaceID       face_id;
-    FTC_OldCMapType  type;
-
-    union
-    {
-      FT_UInt           index;
-      FT_Encoding       encoding;
-      FTC_OldCMapIdRec  id;
-
-    } u;
-
-  } FTC_OldCMapDescRec, *FTC_OldCMapDesc;
-
-#endif 
 
 
   
@@ -121,7 +83,7 @@
 
   
   
-#define FTC_CMAP_UNKNOWN  ( (FT_UInt16)-1 )
+#define FTC_CMAP_UNKNOWN  (FT_UInt16)~0
 
 
   
@@ -267,21 +229,6 @@
   }
 
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-  
-
-
-
-
-
-
-
-
-
-#endif
-
-
   
 
   FT_EXPORT_DEF( FT_UInt )
@@ -316,57 +263,9 @@
       return 0;
     }
 
-#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
-
-    
-
-
-
-
-    if ( cmap_index > FT_MAX_CHARMAP_CACHEABLE && !no_cmap_change )
-    {
-      FTC_OldCMapDesc  desc = (FTC_OldCMapDesc) face_id;
-
-
-      char_code     = (FT_UInt32)cmap_index;
-      query.face_id = desc->face_id;
-
-
-      switch ( desc->type )
-      {
-      case FTC_OLD_CMAP_BY_INDEX:
-        query.cmap_index = desc->u.index;
-        query.char_code  = (FT_UInt32)cmap_index;
-        break;
-
-      case FTC_OLD_CMAP_BY_ENCODING:
-        {
-          FT_Face  face;
-
-
-          error = FTC_Manager_LookupFace( cache->manager, desc->face_id,
-                                          &face );
-          if ( error )
-            return 0;
-
-          FT_Select_Charmap( face, desc->u.encoding );
-
-          return FT_Get_Char_Index( face, char_code );
-        }
-
-      default:
-        return 0;
-      }
-    }
-    else
-
-#endif 
-
-    {
-      query.face_id    = face_id;
-      query.cmap_index = (FT_UInt)cmap_index;
-      query.char_code  = char_code;
-    }
+    query.face_id    = face_id;
+    query.cmap_index = (FT_UInt)cmap_index;
+    query.char_code  = char_code;
 
     hash = FTC_CMAP_HASH( face_id, cmap_index, char_code );
 
