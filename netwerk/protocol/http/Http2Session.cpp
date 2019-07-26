@@ -1142,17 +1142,14 @@ Http2Session::ResponseHeadersComplete()
   
   if (mInputFrameDataStream->AllHeadersReceived())
     return NS_OK;
-  nsresult rv = mInputFrameDataStream->SetAllHeadersReceived(true);
-
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  mInputFrameDataStream->SetAllHeadersReceived();
 
   
   
   
   
 
+  nsresult rv;
   mFlatHTTPResponseHeadersOut = 0;
   rv = mInputFrameDataStream->ConvertResponseHeaders(&mDecompressor,
                                                      mDecompressBuffer,
@@ -1167,8 +1164,7 @@ Http2Session::ResponseHeadersComplete()
     CleanupStream(mInputFrameDataStream, rv, CANCEL_ERROR);
     ResetDownstreamState();
     return NS_OK;
-  }
-  else if (NS_FAILED(rv)) {
+  } else if (NS_FAILED(rv)) {
     return rv;
   }
 

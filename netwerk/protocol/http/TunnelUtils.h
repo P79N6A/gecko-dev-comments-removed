@@ -209,8 +209,13 @@ private:
   uint32_t             mOutputDataOffset;
 
   TimeStamp                      mTimestampSyn;
-  nsRefPtr<nsHttpConnection>     mTunneledConn;
   nsRefPtr<nsHttpConnectionInfo> mConnInfo;
+
+  
+  
+  
+  
+  nsRefPtr<nsHttpConnection>     mTunneledConn;
   nsRefPtr<SocketTransportShim>  mTunnelTransport;
   nsRefPtr<InputStreamShim>      mTunnelStreamIn;
   nsRefPtr<OutputStreamShim>     mTunnelStreamOut;
