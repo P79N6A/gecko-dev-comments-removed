@@ -10,6 +10,7 @@
 #include "nsNameSpaceManager.h"
 #include "nsRenderingContext.h"
 #include "nsCSSRendering.h"
+#include "nsMathMLElement.h"
 
 #include "nsTArray.h"
 #include "nsTableFrame.h"
@@ -229,6 +230,38 @@ ApplyBorderToStyle(const nsMathMLmtdFrame* aFrame,
   }
 }
 
+static nsMargin
+ComputeBorderOverflow(nsMathMLmtdFrame* aFrame, nsStyleBorder aStyleBorder)
+{
+  nsMargin overflow;
+  int32_t rowIndex;
+  int32_t columnIndex;
+  nsMathMLmtableFrame* mathMLmtableFrame =
+    static_cast<nsMathMLmtableFrame*>(nsTableFrame::GetTableFrame(aFrame));
+  aFrame->GetCellIndexes(rowIndex, columnIndex);
+  if (!columnIndex) {
+    overflow.left = mathMLmtableFrame->GetCellSpacingX(-1);
+    overflow.right = mathMLmtableFrame->GetCellSpacingX(0) / 2;
+  } else if (columnIndex == mathMLmtableFrame->GetColCount() - 1) {
+    overflow.left = mathMLmtableFrame->GetCellSpacingX(columnIndex - 1) / 2;
+    overflow.right =  mathMLmtableFrame->GetCellSpacingX(columnIndex + 1);
+  } else {
+    overflow.left = mathMLmtableFrame->GetCellSpacingX(columnIndex - 1) / 2;
+    overflow.right = mathMLmtableFrame->GetCellSpacingX(columnIndex) / 2;
+  }
+  if (!rowIndex) {
+    overflow.top = mathMLmtableFrame->GetCellSpacingY(-1);
+    overflow.bottom = mathMLmtableFrame->GetCellSpacingY(0) / 2;
+  } else if (rowIndex == mathMLmtableFrame->GetRowCount() - 1) {
+    overflow.top = mathMLmtableFrame->GetCellSpacingY(rowIndex - 1) / 2;
+    overflow.bottom = mathMLmtableFrame->GetCellSpacingY(rowIndex + 1);
+  } else {
+    overflow.top = mathMLmtableFrame->GetCellSpacingY(rowIndex - 1) / 2;
+    overflow.bottom = mathMLmtableFrame->GetCellSpacingY(rowIndex) / 2;
+  }
+  return overflow;
+}
+
 
 
 
@@ -244,20 +277,27 @@ public:
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE
   {
     nsStyleBorder styleBorder = *mFrame->StyleBorder();
-    ApplyBorderToStyle(static_cast<nsMathMLmtdFrame*>(mFrame), styleBorder);
-    return CalculateBounds(styleBorder);
+    nsMathMLmtdFrame* frame = static_cast<nsMathMLmtdFrame*>(mFrame);
+    ApplyBorderToStyle(frame, styleBorder);
+    nsRect bounds = CalculateBounds(styleBorder);
+    nsMargin overflow = ComputeBorderOverflow(frame, styleBorder);
+    bounds.Inflate(overflow);
+    return bounds;
   }
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) MOZ_OVERRIDE
   {
     nsStyleBorder styleBorder = *mFrame->StyleBorder();
-    ApplyBorderToStyle(static_cast<nsMathMLmtdFrame*>(mFrame), styleBorder);
+    nsMathMLmtdFrame* frame = static_cast<nsMathMLmtdFrame*>(mFrame);
+    ApplyBorderToStyle(frame, styleBorder);
 
-    nsPoint offset = ToReferenceFrame();
+    nsRect bounds = nsRect(ToReferenceFrame(), mFrame->GetSize());
+    nsMargin overflow = ComputeBorderOverflow(frame, styleBorder);
+    bounds.Inflate(overflow);
+
     nsCSSRendering::PaintBorderWithStyleBorder(mFrame->PresContext(), *aCtx,
                                                mFrame, mVisibleRect,
-                                               nsRect(offset,
-                                                      mFrame->GetSize()),
+                                               bounds,
                                                styleBorder,
                                                mFrame->StyleContext(),
                                                mFrame->GetSkipSides());
@@ -299,8 +339,202 @@ ParseFrameAttribute(nsIFrame* aFrame, nsIAtom* aAttribute,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const float kDefaultRowspacingEx = 1.0f;
+static const float kDefaultColumnspacingEm = 0.8f;
+static const float kDefaultFramespacingArg0Em = 0.4f;
+static const float kDefaultFramespacingArg1Ex = 0.5f;
+
 static void
-MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
+ExtractSpacingValues(const nsAString&   aString,
+                     nsIAtom*           aAttribute,
+                     nsTArray<nscoord>& aSpacingArray,
+                     nsIFrame*          aFrame,
+                     nscoord            aDefaultValue0,
+                     nscoord            aDefaultValue1)
+{
+  nsPresContext* presContext = aFrame->PresContext();
+  nsStyleContext* styleContext = aFrame->StyleContext();
+
+  const char16_t* start = aString.BeginReading();
+  const char16_t* end = aString.EndReading();
+
+  int32_t startIndex = 0;
+  int32_t count = 0;
+  int32_t elementNum = 0;
+
+  while (start < end) {
+    
+    while ((start < end) && nsCRT::IsAsciiSpace(*start)) {
+      start++;
+      startIndex++;
+    }
+
+    
+    while ((start < end) && !nsCRT::IsAsciiSpace(*start)) {
+      start++;
+      count++;
+    }
+
+    
+    if (count > 0) {
+      const nsAString& str = Substring(aString, startIndex, count);
+      nsAutoString valueString;
+      valueString.Assign(str);
+      nscoord newValue;
+      if (aAttribute == nsGkAtoms::framespacing_ && elementNum) {
+        newValue = aDefaultValue1;
+      } else {
+        newValue = aDefaultValue0;
+      }
+      nsMathMLFrame::ParseNumericValue(valueString, &newValue,
+                                       nsMathMLElement::PARSE_ALLOW_UNITLESS,
+                                       presContext, styleContext);
+      aSpacingArray.AppendElement(newValue);
+
+      startIndex += count;
+      count = 0;
+      elementNum++;
+    }
+  }
+}
+
+static void
+ParseSpacingAttribute(nsMathMLmtableFrame* aFrame, nsIAtom* aAttribute)
+{
+  NS_ASSERTION(aAttribute == nsGkAtoms::rowspacing_ ||
+               aAttribute == nsGkAtoms::columnspacing_ ||
+               aAttribute == nsGkAtoms::framespacing_,
+               "Non spacing attribute passed");
+
+  nsAutoString attrValue;
+  nsIContent* frameContent = aFrame->GetContent();
+  frameContent->GetAttr(kNameSpaceID_None, aAttribute, attrValue);
+
+  if (nsGkAtoms::framespacing_ == aAttribute) {
+    nsAutoString frame;
+    frameContent->GetAttr(kNameSpaceID_None, nsGkAtoms::frame, frame);
+    if (frame.IsEmpty() || frame.EqualsLiteral("none")) {
+      aFrame->SetFrameSpacing(0, 0);
+      return;
+    }
+  }
+
+  nscoord value;
+  nscoord value2;
+  
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm));
+  if (nsGkAtoms::rowspacing_ == aAttribute) {
+    value = kDefaultRowspacingEx * fm->XHeight();
+    value2 = 0;
+  } else if (nsGkAtoms::columnspacing_ == aAttribute) {
+    value = kDefaultColumnspacingEm * fm->EmHeight();
+    value2 = 0;
+  } else {
+    value = kDefaultFramespacingArg0Em * fm->EmHeight();
+    value2 = kDefaultFramespacingArg1Ex * fm->XHeight();
+  }
+
+  nsTArray<nscoord> valueList;
+  ExtractSpacingValues(attrValue, aAttribute, valueList, aFrame, value, value2);
+  if (valueList.Length() == 0) {
+    if (frameContent->HasAttr(kNameSpaceID_None, aAttribute)) {
+      ReportParseError(aFrame, aAttribute->GetUTF16String(),
+                       attrValue.get());
+    }
+    valueList.AppendElement(value);
+  }
+  if (aAttribute == nsGkAtoms::framespacing_) {
+    if (valueList.Length() == 1) {
+      if(frameContent->HasAttr(kNameSpaceID_None, aAttribute)) {
+        ReportParseError(aFrame, aAttribute->GetUTF16String(),
+                         attrValue.get());
+      }
+      valueList.AppendElement(value2);
+    } else if (valueList.Length() != 2) {
+      ReportParseError(aFrame, aAttribute->GetUTF16String(),
+                       attrValue.get());
+    }
+  }
+
+  if (aAttribute == nsGkAtoms::rowspacing_) {
+    aFrame->SetRowSpacingArray(valueList);
+  } else if (aAttribute == nsGkAtoms::columnspacing_) {
+    aFrame->SetColSpacingArray(valueList);
+  } else {
+      aFrame->SetFrameSpacing(valueList.ElementAt(0),
+                              valueList.ElementAt(1));
+  }
+}
+
+static void ParseSpacingAttributes(nsMathMLmtableFrame* aTableFrame)
+{
+  ParseSpacingAttribute(aTableFrame, nsGkAtoms::rowspacing_);
+  ParseSpacingAttribute(aTableFrame, nsGkAtoms::columnspacing_);
+  ParseSpacingAttribute(aTableFrame, nsGkAtoms::framespacing_);
+  aTableFrame->SetUseCSSSpacing();
+}
+
+
+
+static void
+MapAllAttributesIntoCSS(nsMathMLmtableFrame* aTableFrame)
 {
   
   ParseFrameAttribute(aTableFrame, nsGkAtoms::rowalign_, true);
@@ -309,6 +543,9 @@ MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
   
   ParseFrameAttribute(aTableFrame, nsGkAtoms::columnalign_, true);
   ParseFrameAttribute(aTableFrame, nsGkAtoms::columnlines_, true);
+
+  
+  ParseSpacingAttributes(aTableFrame);
 
   
   nsIFrame* rgFrame = aTableFrame->GetFirstPrincipalChild();
@@ -483,22 +720,28 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
 
   
 
-  
-  if (aAttribute != nsGkAtoms::rowalign_ &&
-      aAttribute != nsGkAtoms::rowlines_ &&
-      aAttribute != nsGkAtoms::columnalign_ &&
-      aAttribute != nsGkAtoms::columnlines_) {
+  nsPresContext* presContext = tableFrame->PresContext();
+  if (aAttribute == nsGkAtoms::rowspacing_ ||
+      aAttribute == nsGkAtoms::columnspacing_ ||
+      aAttribute == nsGkAtoms::framespacing_ ) {
+    nsMathMLmtableFrame* mathMLmtableFrame = do_QueryFrame(tableFrame);
+    if (mathMLmtableFrame) {
+      ParseSpacingAttribute(mathMLmtableFrame, aAttribute);
+      mathMLmtableFrame->SetUseCSSSpacing();
+    }
+  } else if (aAttribute == nsGkAtoms::rowalign_ ||
+             aAttribute == nsGkAtoms::rowlines_ ||
+             aAttribute == nsGkAtoms::columnalign_ ||
+             aAttribute == nsGkAtoms::columnlines_) {
+    
+    presContext->PropertyTable()->
+      Delete(tableFrame, AttributeToProperty(aAttribute));
+    
+    ParseFrameAttribute(tableFrame, aAttribute, true);
+  } else {
+    
     return NS_OK;
   }
-
-  nsPresContext* presContext = tableFrame->PresContext();
-
-  
-  presContext->PropertyTable()->
-    Delete(tableFrame, AttributeToProperty(aAttribute));
-
-  
-  ParseFrameAttribute(tableFrame, aAttribute, true);
 
   
   presContext->PresShell()->
@@ -682,6 +925,139 @@ nsMathMLmtableFrame::RestyleTable()
                      nsChangeHint_AllReflowHints);
 }
 
+nscoord
+nsMathMLmtableFrame::GetCellSpacingX(int32_t aColIndex)
+{
+  if (mUseCSSSpacing) {
+    return nsTableFrame::GetCellSpacingX(aColIndex);
+  }
+  if (!mColSpacing.Length()) {
+    NS_ERROR("mColSpacing should not be empty");
+    return 0;
+  }
+  if (aColIndex < 0 || aColIndex >= GetColCount()) {
+    NS_ASSERTION(aColIndex == -1 || aColIndex == GetColCount(),
+                 "Desired column beyond bounds of table and border");
+    return mFrameSpacingX;
+  }
+  if ((uint32_t) aColIndex >= mColSpacing.Length()) {
+    return mColSpacing.LastElement();
+  }
+  return mColSpacing.ElementAt(aColIndex);
+}
+
+nscoord
+nsMathMLmtableFrame::GetCellSpacingX(int32_t aStartColIndex,
+                                     int32_t aEndColIndex)
+{
+  if (mUseCSSSpacing) {
+    return nsTableFrame::GetCellSpacingX(aStartColIndex, aEndColIndex);
+  }
+  if (aStartColIndex == aEndColIndex) {
+    return 0;
+  }
+  if (!mColSpacing.Length()) {
+    NS_ERROR("mColSpacing should not be empty");
+    return 0;
+  }
+  nscoord space = 0;
+  if (aStartColIndex < 0) {
+    NS_ASSERTION(aStartColIndex == -1,
+                 "Desired column beyond bounds of table and border");
+    space += mFrameSpacingX;
+    aStartColIndex = 0;
+  }
+  if (aEndColIndex >= GetColCount()) {
+    NS_ASSERTION(aEndColIndex == GetColCount(),
+                 "Desired column beyond bounds of table and border");
+    space += mFrameSpacingX;
+    aEndColIndex = GetColCount();
+  }
+  
+  int32_t min = std::min(aEndColIndex, (int32_t) mColSpacing.Length());
+  for (int32_t i = aStartColIndex; i < min; i++) {
+    space += mColSpacing.ElementAt(i);
+  }
+  
+  
+  
+  space += (aEndColIndex - min) * mColSpacing.LastElement();
+  return space;
+}
+
+nscoord
+nsMathMLmtableFrame::GetCellSpacingY(int32_t aRowIndex)
+{
+  if (mUseCSSSpacing) {
+    return nsTableFrame::GetCellSpacingY(aRowIndex);
+  }
+  if (!mRowSpacing.Length()) {
+    NS_ERROR("mRowSpacing should not be empty");
+    return 0;
+  }
+  if (aRowIndex < 0 || aRowIndex >= GetRowCount()) {
+    NS_ASSERTION(aRowIndex == -1 || aRowIndex == GetRowCount(),
+                 "Desired row beyond bounds of table and border");
+    return mFrameSpacingY;
+  }
+  if ((uint32_t) aRowIndex >= mRowSpacing.Length()) {
+    return mRowSpacing.LastElement();
+  }
+  return mRowSpacing.ElementAt(aRowIndex);
+}
+
+nscoord
+nsMathMLmtableFrame::GetCellSpacingY(int32_t aStartRowIndex,
+                                     int32_t aEndRowIndex)
+{
+  if (mUseCSSSpacing) {
+    return nsTableFrame::GetCellSpacingY(aStartRowIndex, aEndRowIndex);
+  }
+  if (aStartRowIndex == aEndRowIndex) {
+    return 0;
+  }
+  if (!mRowSpacing.Length()) {
+    NS_ERROR("mRowSpacing should not be empty");
+    return 0;
+  }
+  nscoord space = 0;
+  if (aStartRowIndex < 0) {
+    NS_ASSERTION(aStartRowIndex == -1,
+                 "Desired row beyond bounds of table and border");
+    space += mFrameSpacingY;
+    aStartRowIndex = 0;
+  }
+  if (aEndRowIndex >= GetRowCount()) {
+    NS_ASSERTION(aEndRowIndex == GetRowCount(),
+                 "Desired row beyond bounds of table and border");
+    space += mFrameSpacingY;
+    aEndRowIndex = GetRowCount();
+  }
+  
+  int32_t min = std::min(aEndRowIndex, (int32_t) mRowSpacing.Length());
+  for (int32_t i = aStartRowIndex; i < min; i++) {
+    space += mRowSpacing.ElementAt(i);
+  }
+  
+  
+  
+  space += (aEndRowIndex - min) * mRowSpacing.LastElement();
+  return space;
+}
+
+void
+nsMathMLmtableFrame::SetUseCSSSpacing()
+{
+  mUseCSSSpacing =
+    !(mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::rowspacing_) ||
+      mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::columnspacing_) ||
+      mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::framespacing_));
+}
+
+NS_QUERYFRAME_HEAD(nsMathMLmtableFrame)
+  NS_QUERYFRAME_ENTRY(nsMathMLmtableFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsTableFrame)
+
 
 
 
@@ -856,6 +1232,15 @@ nsMathMLmtdFrame::GetBorderWidth(nsMargin& aBorder) const
   ApplyBorderToStyle(this, styleBorder);
   aBorder = styleBorder.GetComputedBorder();
   return &aBorder;
+}
+
+nsMargin
+nsMathMLmtdFrame::GetBorderOverflow()
+{
+  nsStyleBorder styleBorder = *StyleBorder();
+  ApplyBorderToStyle(this, styleBorder);
+  nsMargin overflow = ComputeBorderOverflow(this, styleBorder);
+  return overflow;
 }
 
 
