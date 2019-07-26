@@ -1806,6 +1806,7 @@ struct JSContext : js::ThreadSafeContext,
 
 
 
+
     JSVersion findVersion() const;
 
     void setOptions(unsigned opts) {
