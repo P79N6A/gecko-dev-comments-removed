@@ -70,6 +70,25 @@ LIRGeneratorShared::getRecoverInfo(MResumePoint *rp)
     return recoverInfo;
 }
 
+#ifdef DEBUG
+bool
+LRecoverInfo::OperandIter::canOptimizeOutIfUnused()
+{
+    MDefinition *ins = **this;
+
+    
+    
+    
+    if ((ins->isUnused() || ins->type() == MIRType_MagicOptimizedOut) &&
+        (*it_)->isResumePoint())
+    {
+        return (*it_)->block()->info().canOptimizeOutSlot(op_);
+    }
+
+    return true;
+}
+#endif
+
 #ifdef JS_NUNBOX32
 LSnapshot *
 LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind)
@@ -86,7 +105,11 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
     LRecoverInfo::OperandIter it(recoverInfo->begin());
     LRecoverInfo::OperandIter end(recoverInfo->end());
     for (; it != end; ++it) {
+        
+        MOZ_ASSERT(it.canOptimizeOutIfUnused());
+
         MDefinition *ins = *it;
+
         if (ins->isRecoveredOnBailout())
             continue;
 
@@ -98,12 +121,12 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
             ins = ins->toBox()->getOperand(0);
 
         
-        JS_ASSERT_IF(ins->isUnused(), !ins->isGuard());
+        MOZ_ASSERT_IF(ins->isUnused(), !ins->isGuard());
 
         
         
         
-        JS_ASSERT_IF(!ins->isConstant(), !ins->isEmittedAtUses());
+        MOZ_ASSERT_IF(!ins->isConstant(), !ins->isEmittedAtUses());
 
         
         
@@ -142,6 +165,9 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
     LRecoverInfo::OperandIter it(recoverInfo->begin());
     LRecoverInfo::OperandIter end(recoverInfo->end());
     for (; it != end; ++it) {
+        
+        MOZ_ASSERT(it.canOptimizeOutIfUnused());
+
         MDefinition *def = *it;
 
         if (def->isRecoveredOnBailout())
@@ -151,12 +177,12 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
             def = def->toBox()->getOperand(0);
 
         
-        JS_ASSERT_IF(def->isUnused(), !def->isGuard());
+        MOZ_ASSERT_IF(def->isUnused(), !def->isGuard());
 
         
         
         
-        JS_ASSERT_IF(!def->isConstant(), !def->isEmittedAtUses());
+        MOZ_ASSERT_IF(!def->isConstant(), !def->isEmittedAtUses());
 
         LAllocation *a = snapshot->getEntry(index++);
 

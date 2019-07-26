@@ -401,6 +401,15 @@ class CompileInfo
         return executionMode_ == ParallelExecution;
     }
 
+    bool canOptimizeOutSlot(uint32_t i) const {
+        if (script()->strict())
+            return true;
+
+        
+        
+        return !(firstArgSlot() <= i && i - firstArgSlot() < nargs());
+    }
+
   private:
     unsigned nimplicit_;
     unsigned nargs_;

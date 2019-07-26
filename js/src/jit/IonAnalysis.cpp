@@ -145,14 +145,10 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 
                 
                 
-                CompileInfo &info = block->info();
-                if (!info.script()->strict()) {
-                    uint32_t slot = uses->index();
-                    uint32_t firstArgSlot = info.firstArgSlot();
-                    if (firstArgSlot <= slot && slot - firstArgSlot < info.nargs()) {
-                        uses++;
-                        continue;
-                    }
+                
+                if (!block->info().canOptimizeOutSlot(uses->index())) {
+                    uses++;
+                    continue;
                 }
 
                 
@@ -256,16 +252,9 @@ IsPhiObservable(MPhi *phi, Observability observe)
 
     
     
-    
-    if (fun && info.hasArguments()) {
-        uint32_t first = info.firstArgSlot();
-        if (first <= slot && slot - first < info.nargs()) {
-            
-            if (info.argsObjAliasesFormals())
-                return false;
-            return true;
-        }
-    }
+    if (fun && !info.canOptimizeOutSlot(slot))
+        return true;
+
     return false;
 }
 
