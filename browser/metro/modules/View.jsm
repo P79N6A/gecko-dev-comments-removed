@@ -58,6 +58,13 @@ View.prototype = {
     let successAction = function(foreground, background) {
       aItem.style.color = foreground; 
       aItem.setAttribute("customColor", background);
+      let matteColor =  0xffffff; 
+      let alpha = 0.04; 
+      let [,r,g,b] = background.match(/rgb\((\d+),(\d+),(\d+)/);
+      
+      let tintColor = ColorUtils.addRgbColors(matteColor, ColorUtils.createDecimalColorWord(r,g,b,alpha));
+      aItem.setAttribute("tintColor", ColorUtils.convertDecimalToRgbColor(tintColor));
+
       if (aItem.refresh) {
         aItem.refresh();
       }
