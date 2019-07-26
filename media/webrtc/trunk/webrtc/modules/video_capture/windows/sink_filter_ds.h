@@ -11,9 +11,10 @@
 #ifndef WEBRTC_MODULES_VIDEO_CAPTURE_MAIN_SOURCE_WINDOWS_SINK_FILTER_DS_H_
 #define WEBRTC_MODULES_VIDEO_CAPTURE_MAIN_SOURCE_WINDOWS_SINK_FILTER_DS_H_
 
-#include <Streams.h> 
-
 #include "video_capture_defines.h"
+#include "BaseInputPin.h"
+#include "BaseFilter.h"
+#include "MediaType.h"
 
 namespace webrtc
 {
@@ -26,7 +27,7 @@ class CaptureSinkFilter;
 
 
 
-class CaptureInputPin: public CBaseInputPin
+class CaptureInputPin: public mozilla::media::BaseInputPin
 {
 public:
     WebRtc_Word32 _moduleId;
@@ -38,18 +39,18 @@ public:
     CaptureInputPin ( WebRtc_Word32 moduleId,
                       IN TCHAR* szName,
                       IN CaptureSinkFilter* pFilter,
-                      IN CCritSec * pLock,
+                      IN mozilla::CriticalSection * pLock,
                       OUT HRESULT * pHr,
                       IN LPCWSTR pszName);
     virtual ~CaptureInputPin();
 
-    HRESULT GetMediaType (IN int iPos, OUT CMediaType * pmt);
-    HRESULT CheckMediaType (IN const CMediaType * pmt);
+    HRESULT GetMediaType (IN int iPos, OUT mozilla::media::MediaType * pmt);
+    HRESULT CheckMediaType (IN const mozilla::media::MediaType * pmt);
     STDMETHODIMP Receive (IN IMediaSample *);
     HRESULT SetMatchingMediaType(const VideoCaptureCapability& capability);
 };
 
-class CaptureSinkFilter: public CBaseFilter
+class CaptureSinkFilter: public mozilla::media::BaseFilter
 {
 
 public:
@@ -66,34 +67,55 @@ public:
     void ProcessCapturedFrame(unsigned char* pBuffer, WebRtc_Word32 length,
                               const VideoCaptureCapability& frameInfo);
     
-    void LockReceive()  { m_crtRecv.Lock();}
-    void UnlockReceive() {m_crtRecv.Unlock();}
+    void LockReceive()  { m_crtRecv.Enter();}
+    void UnlockReceive() {m_crtRecv.Leave();}
+
     
-    void LockFilter() {m_crtFilter.Lock();}
-    void UnlockFilter() { m_crtFilter.Unlock(); }
+    void LockFilter() {m_crtFilter.Enter();}
+    void UnlockFilter() { m_crtFilter.Leave(); }
     void SetFilterGraph(IGraphBuilder* graph); 
 
     
     
-DECLARE_IUNKNOWN    ;
+    STDMETHODIMP QueryInterface(REFIID aIId, void **aInterface)
+    {
+      return mozilla::media::BaseFilter::QueryInterface(aIId, aInterface);
+    }
+    STDMETHODIMP_(ULONG) AddRef()
+    {
+      return ::InterlockedIncrement(&mRefCnt);
+    }
+
+    STDMETHODIMP_(ULONG) Release()
+    {
+      unsigned long newRefCnt = ::InterlockedDecrement(&mRefCnt);
+
+      if (!newRefCnt) {
+        delete this;
+      }
+
+      return newRefCnt;
+    }
+
     STDMETHODIMP SetMatchingMediaType(const VideoCaptureCapability& capability);
 
     
     
     int GetPinCount ();
-    CBasePin * GetPin ( IN int Index);
+    mozilla::media::BasePin * GetPin ( IN int Index);
     STDMETHODIMP Pause ();
     STDMETHODIMP Stop ();
     STDMETHODIMP GetClassID ( OUT CLSID * pCLSID);
     
     
-    static CUnknown * CreateInstance (IN LPUNKNOWN punk, OUT HRESULT * phr);
+    static IUnknown * CreateInstance (IN LPUNKNOWN punk, OUT HRESULT * phr);
 private:
-    CCritSec m_crtFilter; 
-    CCritSec m_crtRecv;  
+    mozilla::CriticalSection m_crtFilter; 
+    mozilla::CriticalSection m_crtRecv;  
     CaptureInputPin * m_pInput;
     VideoCaptureExternal& _captureObserver;
     WebRtc_Word32 _moduleId;
+    unsigned long mRefCnt;
 };
 } 
 } 
