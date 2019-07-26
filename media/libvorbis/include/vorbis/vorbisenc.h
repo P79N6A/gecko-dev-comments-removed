@@ -1,0 +1,436 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _OV_ENC_H_
+#define _OV_ENC_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include "codec.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_init(vorbis_info *vi,
+                              long channels,
+                              long rate,
+
+                              long max_bitrate,
+                              long nominal_bitrate,
+                              long min_bitrate);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_setup_managed(vorbis_info *vi,
+                                       long channels,
+                                       long rate,
+
+                                       long max_bitrate,
+                                       long nominal_bitrate,
+                                       long min_bitrate);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_setup_vbr(vorbis_info *vi,
+                                  long channels,
+                                  long rate,
+
+                                  float quality
+                                  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_init_vbr(vorbis_info *vi,
+                                  long channels,
+                                  long rate,
+
+                                  float base_quality
+                                  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_setup_init(vorbis_info *vi);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern int vorbis_encode_ctl(vorbis_info *vi,int number,void *arg);
+
+
+
+
+
+
+
+
+
+
+
+
+struct ovectl_ratemanage_arg {
+  int    management_active; 
+
+
+  long   bitrate_hard_min;
+
+
+  long   bitrate_hard_max;
+
+
+  double bitrate_hard_window;
+
+
+  long   bitrate_av_lo;
+
+
+  long   bitrate_av_hi;
+
+
+  double bitrate_av_window;
+
+
+
+
+
+  double bitrate_av_window_center;
+};
+
+
+
+
+
+
+
+
+
+
+struct ovectl_ratemanage2_arg {
+  int    management_active; 
+
+  long   bitrate_limit_min_kbps;
+
+  long   bitrate_limit_max_kbps;
+  long   bitrate_limit_reservoir_bits; 
+
+
+
+
+
+  double bitrate_limit_reservoir_bias;
+
+  long   bitrate_average_kbps;
+
+
+
+
+  double bitrate_average_damping;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE2_GET      0x14
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE2_SET      0x15
+
+
+
+
+
+
+
+#define OV_ECTL_LOWPASS_GET          0x20
+
+
+
+
+
+
+
+#define OV_ECTL_LOWPASS_SET          0x21
+
+
+
+
+
+
+
+#define OV_ECTL_IBLOCK_GET           0x30
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_IBLOCK_SET           0x31
+
+
+
+
+
+
+
+#define OV_ECTL_COUPLING_GET         0x40
+
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_COUPLING_SET         0x41
+
+  
+
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE_GET       0x10
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE_SET       0x11
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE_AVG       0x12
+
+
+
+
+
+
+
+
+
+
+#define OV_ECTL_RATEMANAGE_HARD      0x13
+
+
+
+
+
+#ifdef __cplusplus
+}
+#endif 
+
+#endif
