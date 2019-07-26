@@ -59,6 +59,10 @@ class CGConstList {
 
 struct StmtInfoBCE;
 
+
+
+typedef Vector<jssrcnote, 0> SrcNotesVector;
+
 struct BytecodeEmitter
 {
     typedef StmtInfoBCE StmtInfo;
@@ -69,18 +73,24 @@ struct BytecodeEmitter
 
     Rooted<JSScript*> script;       
 
-    struct {
+    struct EmitSection {
         jsbytecode  *base;          
         jsbytecode  *limit;         
         jsbytecode  *next;          
-        jssrcnote   *notes;         
-        unsigned    noteCount;      
-        unsigned    noteLimit;      
+        SrcNotesVector notes;       
         ptrdiff_t   lastNoteOffset; 
         unsigned    currentLine;    
         unsigned    lastColumn;     
 
-    } prolog, main, *current;
+
+        EmitSection(JSContext *cx, unsigned lineno)
+          : base(NULL), limit(NULL), next(NULL), notes(cx), lastNoteOffset(0),
+            currentLine(lineno), lastColumn(0)
+        {
+            notes.reserve(1024);
+        }
+    };
+    EmitSection prolog, main, *current;
 
     Parser          *const parser;  
 
@@ -176,9 +186,7 @@ struct BytecodeEmitter
     void switchToMain() { current = &main; }
     void switchToProlog() { current = &prolog; }
 
-    jssrcnote *notes() const { return current->notes; }
-    unsigned noteCount() const { return current->noteCount; }
-    unsigned noteLimit() const { return current->noteLimit; }
+    SrcNotesVector &notes() const { return current->notes; }
     ptrdiff_t lastNoteOffset() const { return current->lastNoteOffset; }
     unsigned currentLine() const { return current->currentLine; }
     unsigned lastColumn() const { return current->lastColumn; }
@@ -380,9 +388,7 @@ NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t off
                ptrdiff_t offset2);
 
 
-
-
-jssrcnote *
+bool
 AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
 
 bool
@@ -402,14 +408,14 @@ inline ptrdiff_t
 BytecodeEmitter::countFinalSourceNotes()
 {
     ptrdiff_t diff = prologOffset() - prolog.lastNoteOffset;
-    ptrdiff_t cnt = prolog.noteCount + main.noteCount + 1;
-    if (prolog.noteCount && prolog.currentLine != firstLine) {
+    ptrdiff_t cnt = prolog.notes.length() + main.notes.length() + 1;
+    if (prolog.notes.length() && prolog.currentLine != firstLine) {
         if (diff > SN_DELTA_MASK)
             cnt += JS_HOWMANY(diff - SN_DELTA_MASK, SN_XDELTA_MASK);
         cnt += 2 + ((firstLine > SN_3BYTE_OFFSET_MASK) << 1);
     } else if (diff > 0) {
-        if (main.noteCount) {
-            jssrcnote *sn = main.notes;
+        if (main.notes.length()) {
+            jssrcnote *sn = main.notes.begin();
             diff -= SN_IS_XDELTA(sn)
                     ? SN_XDELTA_MASK - (*sn & SN_XDELTA_MASK)
                     : SN_DELTA_MASK - (*sn & SN_DELTA_MASK);
