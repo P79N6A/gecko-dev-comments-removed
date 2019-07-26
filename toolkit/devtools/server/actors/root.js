@@ -10,7 +10,6 @@ const { Ci } = require("chrome");
 const Services = require("Services");
 const { ActorPool, appendExtraActors, createExtraActors } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
-const { dumpProtocolSpec } = require("devtools/server/protocol");
 
 
 
@@ -294,7 +293,9 @@ RootActor.prototype = {
     return JSON.parse(JSON.stringify(aRequest));
   },
 
-  onProtocolDescription: dumpProtocolSpec,
+  onProtocolDescription: function (aRequest) {
+    return protocol.dumpProtocolSpec()
+  },
 
   
   _createExtraActors: createExtraActors,
