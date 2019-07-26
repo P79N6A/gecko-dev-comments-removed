@@ -643,7 +643,7 @@ public class BrowserSearch extends Fragment implements AdapterView.OnItemClickLi
             case FAVICONS_LOADER_ID:
                 
                 
-                mList.requestLayout();
+                mAdapter.notifyDataSetChanged();
                 break;
             }
         }
