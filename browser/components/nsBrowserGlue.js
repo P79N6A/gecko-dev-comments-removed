@@ -562,7 +562,9 @@ BrowserGlue.prototype = {
     
     
     
-    
+
+    if (aQuitType == "restart")
+      return;
 
     var windowcount = 0;
     var pagecount = 0;
@@ -586,10 +588,8 @@ BrowserGlue.prototype = {
     if (!aQuitType)
       aQuitType = "quit";
 
-    var showPrompt = false;
     var mostRecentBrowserWindow;
 
-    
     
     
     
@@ -601,19 +601,15 @@ BrowserGlue.prototype = {
 
     
     
-    if (aQuitType != "restart" && Services.prefs.getBoolPref("browser.showQuitWarning")) {
-      showPrompt = true;
-    }
-    else if (aQuitType == "restart" && Services.prefs.getBoolPref("browser.warnOnRestart")) {
-      showPrompt = true;
-    }
-    else if (aQuitType == "lastwindow") {
-      
-      
-      
-      
-      mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-      aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(true);
+    if (!Services.prefs.getBoolPref("browser.showQuitWarning")) {
+      if (aQuitType == "lastwindow") {
+        
+        
+        
+        
+        mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(true);
+      }
       return;
     }
 
@@ -621,21 +617,15 @@ BrowserGlue.prototype = {
     if (allWindowsPrivate)
       return;
 
-    if (!showPrompt)
-      return;
-
     var quitBundle = Services.strings.createBundle("chrome://browser/locale/quitDialog.properties");
     var brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
 
     var appName = brandBundle.GetStringFromName("brandShortName");
-    var quitTitleString = (aQuitType == "restart" ? "restart" : "quit") + "DialogTitle";
+    var quitTitleString = "quitDialogTitle";
     var quitDialogTitle = quitBundle.formatStringFromName(quitTitleString, [appName], 1);
 
     var message;
-    if (aQuitType == "restart")
-      message = quitBundle.formatStringFromName("messageRestart",
-                                                [appName], 1);
-    else if (windowcount == 1)
+    if (windowcount == 1)
       message = quitBundle.formatStringFromName("messageNoWindows",
                                                 [appName], 1);
     else
@@ -646,20 +636,14 @@ BrowserGlue.prototype = {
 
     var flags = promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_0 +
                 promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_1 +
+                promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_2 +
                 promptService.BUTTON_POS_0_DEFAULT;
 
     var neverAsk = {value:false};
-    var button0Title, button2Title;
+    var button0Title = quitBundle.GetStringFromName("saveTitle");
     var button1Title = quitBundle.GetStringFromName("cancelTitle");
+    var button2Title = quitBundle.GetStringFromName("quitTitle");
     var neverAskText = quitBundle.GetStringFromName("neverAsk");
-
-    if (aQuitType == "restart")
-      button0Title = quitBundle.GetStringFromName("restartTitle");
-    else {
-      flags += promptService.BUTTON_TITLE_IS_STRING * promptService.BUTTON_POS_2;
-      button0Title = quitBundle.GetStringFromName("saveTitle");
-      button2Title = quitBundle.GetStringFromName("quitTitle");
-    }
 
     
     
@@ -682,12 +666,8 @@ BrowserGlue.prototype = {
     case 0: 
       this._saveSession = true;
       if (neverAsk.value) {
-        if (aQuitType == "restart")
-          Services.prefs.setBoolPref("browser.warnOnRestart", false);
-        else {
-          
-          Services.prefs.setIntPref("browser.startup.page", 3);
-        }
+        
+        Services.prefs.setIntPref("browser.startup.page", 3);
       }
       break;
     }
