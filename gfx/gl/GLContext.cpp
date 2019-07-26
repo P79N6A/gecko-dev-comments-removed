@@ -493,7 +493,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 "Adreno (TM) 320",
                 "PowerVR SGX 530",
                 "PowerVR SGX 540",
-                "NVIDIA Tegra"
+                "NVIDIA Tegra",
+                "Android Emulator"
         };
 
         mRenderer = RendererOther;
@@ -1041,6 +1042,14 @@ GLContext::InitExtensions()
 
         
         MarkExtensionSupported(OES_EGL_sync);
+    }
+
+    if (WorkAroundDriverBugs() &&
+        Renderer() == RendererAndroidEmulator) {
+        
+        
+        
+        MarkExtensionSupported(OES_rgb8_rgba8);
     }
 
 #ifdef DEBUG
