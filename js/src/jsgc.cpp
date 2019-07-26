@@ -4286,7 +4286,7 @@ BudgetIncrementalGC(JSRuntime *rt, int64_t *budget)
     }
 
     if (reset)
-        ResetIncrementalGC(rt, "compartment change");
+        ResetIncrementalGC(rt, "zone change");
 }
 
 
