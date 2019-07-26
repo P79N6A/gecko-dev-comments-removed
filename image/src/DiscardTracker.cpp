@@ -24,6 +24,7 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
  PRLock * DiscardTracker::sAllocationLock = nullptr;
  mozilla::Mutex* DiscardTracker::sNodeListMutex = nullptr;
+ Atomic<uint32_t> DiscardTracker::sShutdown(0);
 
 
 
@@ -82,6 +83,10 @@ DiscardTracker::Reset(Node *node)
 void
 DiscardTracker::Remove(Node *node)
 {
+  if (sShutdown) {
+    
+    return;
+  }
   MutexAutoLock lock(*sNodeListMutex);
 
   if (node->isInList())
@@ -97,6 +102,8 @@ DiscardTracker::Remove(Node *node)
 void
 DiscardTracker::Shutdown()
 {
+  sShutdown = true;
+
   if (sTimer) {
     sTimer->Cancel();
     sTimer = nullptr;

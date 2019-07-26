@@ -122,6 +122,7 @@ class DiscardTracker
     
     static PRLock *sAllocationLock;
     static mozilla::Mutex* sNodeListMutex;
+    static Atomic<uint32_t> sShutdown;
 };
 
 } 
