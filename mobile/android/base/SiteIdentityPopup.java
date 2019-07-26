@@ -70,6 +70,11 @@ public class SiteIdentityPopup extends PopupWindow {
     private void init() {
         setBackgroundDrawable(new BitmapDrawable());
         setOutsideTouchable(true);
+
+        
+        
+        setFocusable(true);
+
         setWindowLayoutMode(HardwareUtils.isTablet() ? LayoutParams.WRAP_CONTENT : LayoutParams.FILL_PARENT,
                 LayoutParams.WRAP_CONTENT);
 
