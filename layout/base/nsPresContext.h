@@ -848,8 +848,7 @@ public:
   
   
   
-  
-  bool EnsureSafeToHandOutCSSRules();
+  void EnsureSafeToHandOutCSSRules();
 
   void NotifyInvalidation(uint32_t aFlags);
   void NotifyInvalidation(const nsRect& aRect, uint32_t aFlags);
