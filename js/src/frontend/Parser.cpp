@@ -4478,6 +4478,8 @@ template <>
 ParseNode *
 Parser<FullParseHandler>::withStatement()
 {
+    
+    
     if (handler.syntaxParser) {
         handler.disableSyntaxParser();
         abortedSyntaxParse = true;
