@@ -145,9 +145,16 @@ private:
   
   
   
+  
+  
+  
+  
+  
+  
   void
   ProcessArguments(JSContext* aCx, const nsTArray<JS::Heap<JS::Value>>& aData,
-                   Sequence<JS::Value>& aSequence);
+                   Sequence<JS::Value>& aSequence,
+                   Sequence<JS::Value>& aStyles);
 
   void
   MakeFormatString(nsCString& aFormat, int32_t aInteger, int32_t aMantissa,
