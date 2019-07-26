@@ -1077,7 +1077,7 @@ nsresult AppCallbacks::CreateBrowserWindow(uint32_t aChromeFlags,
 
   
   
-  CallQueryInterface(static_cast<nsIWebBrowserChrome*>(chrome), aNewWindow);
+  *aNewWindow = static_cast<nsIWebBrowserChrome*>(chrome);
   
   
   NS_ADDREF(*aNewWindow);
