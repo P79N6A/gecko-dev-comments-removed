@@ -150,10 +150,6 @@ private:
 
   
   
-  bool HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const;
-
-  
-  
   int32_t Priority() const;
 
   
