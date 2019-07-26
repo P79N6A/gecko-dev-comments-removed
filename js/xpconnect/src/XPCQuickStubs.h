@@ -37,6 +37,7 @@ struct xpc_qsHashEntry {
     uint16_t n_props;
     uint16_t func_index;
     uint16_t n_funcs;
+    const mozilla::dom::NativeProperties* newBindingProperties;
     
     
     uint16_t parentInterface;

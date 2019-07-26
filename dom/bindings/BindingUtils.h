@@ -398,6 +398,9 @@ bool
 DefineUnforgeableAttributes(JSContext* cx, JSObject* obj,
                             Prefable<JSPropertySpec>* props);
 
+bool
+DefineWebIDLBindingPropertiesOnXPCProto(JSContext* cx, JSObject* proto, const NativeProperties* properties);
+
 
 
 
