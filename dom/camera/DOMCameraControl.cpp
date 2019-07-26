@@ -757,11 +757,7 @@ nsDOMCameraControl::OnCreatedFileDescriptor(bool aSucceeded)
       return;
     }
   }
-  
-  
-  
-  int fd = mDSFileDescriptor->mFileDescriptor.PlatformHandle();
-  ScopedClose autoClose(fd);
+
   OnError(CameraControlListener::kInStartRecording, NS_LITERAL_STRING("FAILURE"));
 }
 
