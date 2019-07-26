@@ -175,6 +175,13 @@ CustomizeMode.prototype = {
       window.PanelUI.beginBatchUpdate();
 
       
+      
+      
+      
+      
+      yield window.PanelUI.ensureReady(true);
+
+      
       this.visiblePalette.hidden = true;
 
       
@@ -199,13 +206,6 @@ CustomizeMode.prototype = {
 
       
       this.dispatchToolboxEvent("customizationstarting");
-
-      
-      
-      
-      
-      
-      yield window.PanelUI.ensureReady(true);
 
       this._mainViewContext = mainView.getAttribute("context");
       if (this._mainViewContext) {
