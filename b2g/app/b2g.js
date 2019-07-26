@@ -865,6 +865,9 @@ pref("dom.mozDownloads.enabled", true);
 pref("dom.downloads.max_retention_days", 7);
 
 
+pref("dom.mozDownloads.enabled", true);
+
+
 pref("osfile.reset_worker_delay", 5000);
 
 

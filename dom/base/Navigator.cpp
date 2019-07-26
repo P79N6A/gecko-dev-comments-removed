@@ -1539,6 +1539,13 @@ Navigator::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
         }
       }
 
+      if (name.EqualsLiteral("mozDownloadManager")) {
+        if (!CheckPermission("downloads")) {
+          FillPropertyDescriptor(aDesc, aObject, JS::NullValue(), false);
+          return true;
+        }
+      }
+
       domObject = construct(aCx, naviObj);
       if (!domObject) {
         return Throw(aCx, NS_ERROR_FAILURE);
@@ -1905,23 +1912,6 @@ Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
   }
 
   return status == nsIPrincipal::APP_STATUS_CERTIFIED;
-}
-
-
-bool
-Navigator::HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal)
-{
-  
-  
-  if (ThreadsafeCheckIsChrome(aCx, aGlobal)) {
-    return true;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-
-  return win &&
-         CheckPermission(win, "downloads")  &&
-         Preferences::GetBool("dom.mozDownloads.enabled");
 }
 
 
