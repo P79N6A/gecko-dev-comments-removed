@@ -325,9 +325,10 @@ function openLinkIn(url, where, params) {
   
   
   
+  
   var fm = Components.classes["@mozilla.org/focus-manager;1"].
              getService(Components.interfaces.nsIFocusManager);
-  if (window == fm.activeWindow)
+  if (window == fm.activeWindow || isBlankPageURL(url))
     w.focus();
   w.gBrowser.selectedBrowser.focus();
 
