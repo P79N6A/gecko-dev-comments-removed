@@ -135,6 +135,8 @@ class FunctionContextFlags {
 struct SharedContext {
     JSContext       *const context;
 
+    const bool isFunction;          
+
   private:
     FunctionBox *const funbox_;     
 
@@ -176,10 +178,8 @@ struct SharedContext {
     void setExplicitUseStrict()           { anyCxFlags.hasExplicitUseStrict        = true; }
     void setBindingsAccessedDynamically() { anyCxFlags.bindingsAccessedDynamically = true; }
 
-    bool inFunction() const { return !!funbox_; }
-
-    FunctionBox *funbox()  const { JS_ASSERT(inFunction());  return funbox_; }
-    JSObject *scopeChain() const { JS_ASSERT(!inFunction()); return scopeChain_; }
+    FunctionBox *funbox()  const { JS_ASSERT(isFunction);  return funbox_; }
+    JSObject *scopeChain() const { JS_ASSERT(!isFunction); return scopeChain_; }
 
     
     inline bool needStrictChecks();
