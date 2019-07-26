@@ -343,16 +343,6 @@ HTMLTableRowAccessible::NativeRole()
 
 
 
-HTMLTableAccessible::
-  HTMLTableAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc), xpcAccessibleTable(this)
-{
-  mGenericTypes |= eTable;
-}
-
-
-
-
 NS_IMPL_ISUPPORTS_INHERITED1(HTMLTableAccessible, Accessible,
                              nsIAccessibleTable)
 

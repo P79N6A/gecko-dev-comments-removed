@@ -1423,7 +1423,9 @@ nsAccessibilityService::CreateAccessibleByFrameType(nsIFrame* aFrame,
       break;
     case eHTMLTableCellType:
       
-      if (aContext->IsHTMLTableRow())
+      
+      
+      if (aContext->IsHTMLTableRow() || aContext->IsHTMLTable())
         newAcc = new HTMLTableCellAccessibleWrap(aContent, document);
       break;
 
