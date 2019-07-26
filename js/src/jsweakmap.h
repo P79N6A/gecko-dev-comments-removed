@@ -184,21 +184,11 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
             if (gc::IsAboutToBeFinalized(&k))
                 e.removeFront();
         }
-
-#if DEBUG
         
 
 
 
-        for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            Key k(r.front().key);
-            Value v(r.front().value);
-            JS_ASSERT(!gc::IsAboutToBeFinalized(&k));
-            JS_ASSERT(!gc::IsAboutToBeFinalized(&v));
-            JS_ASSERT(k == r.front().key);
-            JS_ASSERT(v == r.front().value);
-        }
-#endif
+        assertEntriesNotAboutToBeFinalized();
     }
 
     
@@ -212,6 +202,20 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
                                  value, gc::TraceKind(r.front().value));
             }
         }
+    }
+
+protected:
+    void assertEntriesNotAboutToBeFinalized() {
+#if DEBUG
+        for (Range r = Base::all(); !r.empty(); r.popFront()) {
+            Key k(r.front().key);
+            Value v(r.front().value);
+            JS_ASSERT(!gc::IsAboutToBeFinalized(&k));
+            JS_ASSERT(!gc::IsAboutToBeFinalized(&v));
+            JS_ASSERT(k == r.front().key);
+            JS_ASSERT(v == r.front().value);
+        }
+#endif
     }
 };
 

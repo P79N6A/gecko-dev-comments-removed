@@ -19,10 +19,144 @@
 #include "jswrapper.h"
 
 #include "gc/Barrier.h"
+#include "gc/FindSCCs.h"
 #include "js/HashTable.h"
 #include "vm/GlobalObject.h"
 
 namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class Key, class Value>
+class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
+{
+  private:
+    typedef HashMap<JSCompartment *,
+                    uintptr_t,
+                    DefaultHasher<JSCompartment *>,
+                    RuntimeAllocPolicy> CountMap;
+
+    JSCompartment *valueCompartment;
+    CountMap compartmentCounts;
+
+  public:
+    typedef WeakMap<Key, Value, DefaultHasher<Key> > Base;
+    explicit DebuggerWeakMap(JSRuntime *rt)
+        : Base(rt), valueCompartment(NULL), compartmentCounts(rt) { }
+    explicit DebuggerWeakMap(JSContext *cx)
+        : Base(cx), valueCompartment(NULL), compartmentCounts(cx) { }
+
+  public:
+    
+
+    typedef typename Base::Ptr Ptr;
+    typedef typename Base::AddPtr AddPtr;
+    typedef typename Base::Range Range;
+    typedef typename Base::Enum Enum;
+    typedef typename Base::Lookup Lookup;
+
+    bool init(uint32_t len = 16) {
+        return Base::init(len) && compartmentCounts.init();
+    }
+
+    AddPtr lookupForAdd(const Lookup &l) const {
+        return Base::lookupForAdd(l);
+    }
+
+    template<typename KeyInput, typename ValueInput>
+    bool relookupOrAdd(AddPtr &p, const KeyInput &k, const ValueInput &v) {
+        if (!valueCompartment)
+            valueCompartment = v->compartment();
+        JS_ASSERT(v->compartment() == valueCompartment);
+        if (!incCompartmentCount(k->compartment()))
+            return false;
+        bool ok = Base::relookupOrAdd(p, k, v);
+        if (!ok)
+            decCompartmentCount(k->compartment());
+        return ok;
+    }
+
+    Range all() const {
+        return Base::all();
+    }
+
+    void remove(const Lookup &l) {
+        Base::remove(l);
+        decCompartmentCount(l->compartment());
+        if (Base::count() == 0)
+            valueCompartment = NULL;
+    }
+
+  public:
+    
+    void trace(JSTracer *tracer) {
+        Base::trace(tracer);
+    }
+
+  public:
+    void markKeys(JSTracer *tracer) {
+        for (Range r = all(); !r.empty(); r.popFront()) {
+            Key key = r.front().key;
+            gc::Mark(tracer, &key, "cross-compartment WeakMap key");
+            JS_ASSERT(key == r.front().key);
+        }
+    }
+
+    void findCompartmentEdges(JSCompartment *v, js::gc::ComponentFinder &finder) {
+        if (!valueCompartment || valueCompartment == v || !valueCompartment->isGCMarking())
+            return;
+        CountMap::Ptr p = compartmentCounts.lookup(v);
+        if (!p)
+            return;
+        JS_ASSERT(p->value > 0);
+        finder.addEdgeTo(valueCompartment);
+    }
+
+  private:
+    
+    void sweep(JSTracer *trc) {
+        for (Enum e(*static_cast<Base *>(this)); !e.empty(); e.popFront()) {
+            Key k(e.front().key);
+            Value v(e.front().value);
+            if (gc::IsAboutToBeFinalized(&k)) {
+                e.removeFront();
+                decCompartmentCount(k->compartment());
+            }
+        }
+        Base::assertEntriesNotAboutToBeFinalized();
+    }
+
+    bool incCompartmentCount(JSCompartment *c) {
+        CountMap::Ptr p = compartmentCounts.lookupWithDefault(c, 0);
+        if (!p)
+            return false;
+        ++p->value;
+        return true;
+    }
+
+    void decCompartmentCount(JSCompartment *c) {
+        CountMap::Ptr p = compartmentCounts.lookup(c);
+        JS_ASSERT(p);
+        JS_ASSERT(p->value > 0);
+        --p->value;
+        if (p->value == 0)
+            compartmentCounts.remove(c);
+    }
+};
 
 class Debugger {
     friend class Breakpoint;
@@ -86,11 +220,11 @@ class Debugger {
     FrameMap frames;
 
     
-    typedef WeakMap<EncapsulatedPtrScript, RelocatablePtrObject> ScriptWeakMap;
+    typedef DebuggerWeakMap<EncapsulatedPtrScript, RelocatablePtrObject> ScriptWeakMap;
     ScriptWeakMap scripts;
 
     
-    typedef WeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
+    typedef DebuggerWeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
     ObjectWeakMap objects;
 
     
@@ -253,6 +387,7 @@ class Debugger {
     static void detachAllDebuggersFromGlobal(FreeOp *fop, GlobalObject *global,
                                              GlobalObjectSet::Enum *compartmentEnum);
     static unsigned gcGrayLinkSlot();
+    static void findCompartmentEdges(JSCompartment *v, js::gc::ComponentFinder &finder);
 
     static inline JSTrapStatus onEnterFrame(JSContext *cx, Value *vp);
     static inline bool onLeaveFrame(JSContext *cx, bool ok);

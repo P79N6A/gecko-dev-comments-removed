@@ -1355,29 +1355,9 @@ Debugger::markKeysInCompartment(JSTracer *tracer)
 
 
 
-    ObjectWeakMap::Base &objStorage = objects;
-    for (ObjectWeakMap::Base::Range r = objStorage.all(); !r.empty(); r.popFront()) {
-        const EncapsulatedPtrObject key = r.front().key;
-        HeapPtrObject tmp(key);
-        gc::MarkObject(tracer, &tmp, "cross-compartment WeakMap key");
-        JS_ASSERT(tmp == key);
-    }
-
-    ObjectWeakMap::Base &envStorage = environments;
-    for (ObjectWeakMap::Base::Range r = envStorage.all(); !r.empty(); r.popFront()) {
-        const EncapsulatedPtrObject &key = r.front().key;
-        HeapPtrObject tmp(key);
-        js::gc::MarkObject(tracer, &tmp, "cross-compartment WeakMap key");
-        JS_ASSERT(tmp == key);
-    }
-
-    const ScriptWeakMap::Base &scriptStorage = scripts;
-    for (ScriptWeakMap::Base::Range r = scriptStorage.all(); !r.empty(); r.popFront()) {
-        const EncapsulatedPtrScript &key = r.front().key;
-        HeapPtrScript tmp(key);
-        gc::MarkScript(tracer, &tmp, "cross-compartment WeakMap key");
-        JS_ASSERT(tmp == key);
-    }
+    objects.markKeys(tracer);
+    environments.markKeys(tracer);
+    scripts.markKeys(tracer);
 }
 
 
@@ -1574,6 +1554,24 @@ Debugger::detachAllDebuggersFromGlobal(FreeOp *fop, GlobalObject *global,
     JS_ASSERT(!debuggers->empty());
     while (!debuggers->empty())
         debuggers->back()->removeDebuggeeGlobal(fop, global, compartmentEnum, NULL);
+}
+
+ void
+Debugger::findCompartmentEdges(JSCompartment *comp, js::gc::ComponentFinder &finder)
+{
+    
+
+
+
+
+
+    JSRuntime *rt = comp->rt;
+    for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
+        Debugger *dbg = Debugger::fromLinks(p);
+        dbg->scripts.findCompartmentEdges(comp, finder);
+        dbg->objects.findCompartmentEdges(comp, finder);
+        dbg->environments.findCompartmentEdges(comp, finder);
+    }
 }
 
 void
