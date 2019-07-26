@@ -169,3 +169,64 @@ add_test(function test_read_cdmaspn() {
 
   run_next_test();
 });
+
+
+
+
+add_test(function test_cdma_spn_display_condition() {
+  let worker = newWorker({
+    postRILMessage: function fakePostRILMessage(data) {
+      
+    },
+    postMessage: function fakePostMessage(message) {
+      
+    }
+  });
+  let RIL = worker.RIL;
+  let ICCUtilsHelper = worker.ICCUtilsHelper;
+
+  
+  RIL._isCdma = true;
+
+  
+  do_check_eq(ICCUtilsHelper.updateDisplayCondition(), true);
+  do_check_eq(RIL.iccInfo.isDisplayNetworkNameRequired, true);
+  do_check_eq(RIL.iccInfo.isDisplaySpnRequired, false);
+
+  
+  function testDisplayCondition(ruimDisplayCondition,
+                                homeSystemIds, homeNetworkIds,
+                                currentSystemId, currentNetworkId,
+                                expectUpdateDisplayCondition,
+                                expectIsDisplaySPNRequired) {
+    RIL.iccInfoPrivate.SPN = {
+      spnDisplayCondition: ruimDisplayCondition
+    };
+    RIL.cdmaHome = {
+      systemId: homeSystemIds,
+      networkId: homeNetworkIds
+    };
+    RIL.cdmaSubscription = {
+      systemId: currentSystemId,
+      networkId: currentNetworkId
+    };
+
+    do_check_eq(ICCUtilsHelper.updateDisplayCondition(), expectUpdateDisplayCondition);
+    do_check_eq(RIL.iccInfo.isDisplayNetworkNameRequired, false);
+    do_check_eq(RIL.iccInfo.isDisplaySpnRequired, expectIsDisplaySPNRequired);
+  };
+
+  
+  testDisplayCondition(false, [123], [345], 123, 345, true, false);
+
+  
+  testDisplayCondition(true, [123], [345], 123, 345, true, true);
+
+  
+  testDisplayCondition(true, [123], [65535], 123, 345, false, true);
+
+  
+  testDisplayCondition(true, [123], [456], 123, 345, true, false);
+
+  run_next_test();
+});
