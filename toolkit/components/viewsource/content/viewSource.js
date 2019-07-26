@@ -263,13 +263,10 @@ function onClickContent(event) {
         } catch (e) {
           Components.utils.reportError("Couldn't get malware report URL: " + e);
         }
-      } else { 
-        try {
-          var infoURL = Services.urlFormatter.formatURLPref("browser.safebrowsing.warning.infoURL", true);
-          openURL(infoURL);
-        } catch (e) {
-          Components.utils.reportError("Couldn't get phishing info URL: " + e);
-        }
+      } else {
+        
+        let url = Services.urlFormatter.formatURLPref("app.support.baseURL");
+        openURL(url + "phishing-malware");
       }
     } else if (target == errorDoc.getElementById('ignoreWarningButton')) {
       
