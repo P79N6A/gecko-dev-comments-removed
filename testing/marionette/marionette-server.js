@@ -180,7 +180,7 @@ MarionetteServerConnection.prototype = {
 
   onClosed: function MSC_onClosed(aStatus) {
     this.server._connectionClosed(this);
-    this.deleteSession();
+    this.sessionTearDown();
   },
 
   
@@ -1928,7 +1928,8 @@ MarionetteServerConnection.prototype = {
 
       
       if (numOpenWindows === 1){
-        this.deleteSession();
+        this.sessionTearDown();
+        this.sendOk(command_id);
         return;
       }
 
@@ -1953,8 +1954,7 @@ MarionetteServerConnection.prototype = {
 
 
 
-  deleteSession: function MDA_deleteSession() {
-    let command_id = this.command_id = this.getCommandId();
+  sessionTearDown: function MDA_sessionTearDown() {
     if (this.curBrowser != null) {
       if (appName == "B2G") {
         this.globalMessageManager.broadcastAsyncMessage(
@@ -1978,7 +1978,6 @@ MarionetteServerConnection.prototype = {
         winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
       }
     }
-    this.sendOk(command_id);
     this.removeMessageManagerListeners(this.globalMessageManager);
     this.switchToGlobalMessageManager();
     
@@ -1992,6 +1991,16 @@ MarionetteServerConnection.prototype = {
     }
     catch (e) {
     }
+  },
+
+  
+
+
+
+  deleteSession: function MDA_sessionTearDown() {
+    let command_id = this.command_id = this.getCommandId();
+    this.sessionTearDown();
+    this.sendOk(command_id);
   },
 
   
