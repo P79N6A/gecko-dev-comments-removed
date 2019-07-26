@@ -922,6 +922,22 @@ public:
 
   NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, bool aValue);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  float FontSizeInflation();
+
 protected:
   
 

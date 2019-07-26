@@ -184,8 +184,8 @@ function fuzzyEquals(a, b) {
 
 
 
-function convertFromPxToTwips(aSize) {
-  return (20.0 * 12.0 * (aSize/16.0));
+function convertFromTwipsToPx(aSize) {
+  return aSize/240 * 16.0;
 }
 
 #ifdef MOZ_CRASHREPORTER
@@ -2635,12 +2635,11 @@ Tab.prototype = {
   
 
 
-  getFontSizeInTwipsFor: function(aElement) {
+  getInflatedFontSizeFor: function(aElement) {
     
     let fontSizeStr = this.window.getComputedStyle(aElement)['fontSize'];
     let fontSize = fontSizeStr.slice(0, -2);
-    
-    return convertFromPxToTwips(fontSize);
+    return aElement.fontSizeInflation * fontSize;
   },
 
   
@@ -2649,14 +2648,12 @@ Tab.prototype = {
 
 
   getZoomToMinFontSize: function(aElement) {
-    let currentZoom = this._zoom;
-    let minFontSize = Services.prefs.getIntPref("browser.zoom.reflowZoom.minFontSizeTwips");
-    let curFontSize = this.getFontSizeInTwipsFor(aElement);
-    if (!fuzzyEquals(curFontSize*(currentZoom), minFontSize)) {
-      return 1.0 + minFontSize / curFontSize;
-    }
-
-    return 1.0;
+    
+    
+    
+    
+    let minFontSize = convertFromTwipsToPx(Services.prefs.getIntPref("font.size.inflation.minTwips"));
+    return minFontSize / this.getInflatedFontSizeFor(aElement);
   },
 
   performReflowOnZoom: function(aViewport) {
@@ -4237,8 +4234,8 @@ var BrowserEventHandler = {
     if (BrowserEventHandler.mReflozPref) {
       let zoomFactor = BrowserApp.selectedTab.getZoomToMinFontSize(aElement);
 
-      bRect.width = zoomFactor == 1.0 ? bRect.width : gScreenWidth / zoomFactor;
-      bRect.height = zoomFactor == 1.0 ? bRect.height : bRect.height / zoomFactor;
+      bRect.width = zoomFactor <= 1.0 ? bRect.width : gScreenWidth / zoomFactor;
+      bRect.height = zoomFactor <= 1.0 ? bRect.height : bRect.height / zoomFactor;
       if (zoomFactor == 1.0 || this._isRectZoomedIn(bRect, viewport)) {
         if (aCanZoomOut) {
           this._zoomOut();
