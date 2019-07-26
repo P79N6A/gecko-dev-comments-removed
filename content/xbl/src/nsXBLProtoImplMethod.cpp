@@ -135,7 +135,7 @@ nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
 
 nsresult 
 nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString& aClassStr,
-                                    JSObject* aClassObject)
+                                    JS::Handle<JSObject*> aClassObject)
 {
   NS_PRECONDITION(!IsCompiled(),
                   "Trying to compile an already-compiled method");
@@ -196,7 +196,6 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
     functionUri.Truncate(hash);
   }
 
-  JSObject* methodObject = nullptr;
   AutoPushJSContext cx(aContext->GetNativeContext());
   JSAutoRequest ar(cx);
   JSAutoCompartment ac(cx, aClassObject);
@@ -206,10 +205,11 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
          .setVersion(JSVERSION_LATEST)
          .setUserBit(true); 
   JS::RootedObject rootedNull(cx, nullptr); 
+  JS::RootedObject methodObject(cx);
   nsresult rv = nsJSUtils::CompileFunction(cx, rootedNull, options, cname,
                                            paramCount,
                                            const_cast<const char**>(args),
-                                           body, &methodObject);
+                                           body, methodObject.address());
 
   
   delete uncompiledMethod;
