@@ -2265,7 +2265,7 @@ this.DOMApplicationRegistry = {
 
     let deviceStorage = Services.wm.getMostRecentWindow("navigator:browser")
                                 .navigator.getDeviceStorage("apps");
-    let req = deviceStorage.stat();
+    let req = deviceStorage.freeSpace();
     req.onsuccess = req.onerror = function statResult(e) {
       
       
@@ -2274,7 +2274,7 @@ this.DOMApplicationRegistry = {
         return;
       }
 
-      let freeBytes = e.target.result.freeBytes;
+      let freeBytes = e.target.result;
       if (freeBytes) {
         debug("Free storage: " + freeBytes + ". Download size: " +
               aApp.downloadSize);
