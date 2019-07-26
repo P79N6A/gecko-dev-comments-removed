@@ -805,7 +805,7 @@ abstract public class BrowserApp extends GeckoApp
 
         
         
-        if (aMetrics.getPageHeight() < aMetrics.getHeight()) {
+        if (aMetrics.getPageHeight() <= aMetrics.getHeight()) {
             if (mDynamicToolbarCanScroll) {
                 mDynamicToolbarCanScroll = false;
                 if (!mBrowserToolbar.isVisible()) {
