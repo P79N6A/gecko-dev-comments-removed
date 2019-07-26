@@ -235,7 +235,8 @@ nsPrintEngine::nsPrintEngine() :
   mLoadCounter(0),
   mDidLoadDataForPrinting(false),
   mIsDestroying(false),
-  mDisallowSelectionPrint(false)
+  mDisallowSelectionPrint(false),
+  mNoMarginBoxes(false)
 {
 }
 
@@ -473,6 +474,21 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
 
   mPrt->mPrintSettings->SetIsCancelled(false);
   mPrt->mPrintSettings->GetShrinkToFit(&mPrt->mShrinkToFit);
+
+  
+  
+  mPrt->mPrintSettings->SetPersistMarginBoxSettings(!mNoMarginBoxes);
+
+  if (mNoMarginBoxes) {
+    
+    const PRUnichar* emptyString = EmptyString().get();
+    mPrt->mPrintSettings->SetHeaderStrLeft(emptyString);
+    mPrt->mPrintSettings->SetHeaderStrCenter(emptyString);
+    mPrt->mPrintSettings->SetHeaderStrRight(emptyString);
+    mPrt->mPrintSettings->SetFooterStrLeft(emptyString);
+    mPrt->mPrintSettings->SetFooterStrCenter(emptyString);
+    mPrt->mPrintSettings->SetFooterStrRight(emptyString);
+  }
 
   if (aIsPrintPreview) {
     SetIsCreatingPrintPreview(true);
