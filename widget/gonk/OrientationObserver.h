@@ -62,8 +62,10 @@ private:
   
   static const PRTime sMinUpdateInterval = 200 * PR_USEC_PER_MSEC;
   static const uint32_t sDefaultOrientations =
-      mozilla::dom::eScreenOrientation_Portrait |
-      mozilla::dom::eScreenOrientation_Landscape;
+      mozilla::dom::eScreenOrientation_PortraitPrimary |
+      mozilla::dom::eScreenOrientation_PortraitSecondary |
+      mozilla::dom::eScreenOrientation_LandscapePrimary |
+      mozilla::dom::eScreenOrientation_LandscapeSecondary;
 };
 
 #endif

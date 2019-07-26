@@ -14,7 +14,6 @@
 #include "nsWindow.h"
 #include "mozilla/dom/ScreenOrientation.h"
 
-#undef LOG
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GeckoPlugins" , ## args)
 #define ASSIGN(obj, name)   (obj)->name = anp_window_##name
 
@@ -64,6 +63,8 @@ anp_window_showKeyboard(NPP instance, bool value)
 void
 anp_window_requestFullScreen(NPP instance)
 {
+  nsNPAPIPluginInstance* pinst = static_cast<nsNPAPIPluginInstance*>(instance->ndata);
+
   nsRefPtr<nsPluginInstanceOwner> owner;
   if (NS_FAILED(GetOwner(instance, getter_AddRefs(owner)))) {
     return;
@@ -75,6 +76,8 @@ anp_window_requestFullScreen(NPP instance)
 void
 anp_window_exitFullScreen(NPP instance)
 {
+  nsNPAPIPluginInstance* pinst = static_cast<nsNPAPIPluginInstance*>(instance->ndata);
+
   nsRefPtr<nsPluginInstanceOwner> owner;
   if (NS_FAILED(GetOwner(instance, getter_AddRefs(owner)))) {
     return;
@@ -117,10 +120,12 @@ void anp_window_requestFullScreenOrientation(NPP instance, ANPScreenOrientation 
       newOrientation = eScreenOrientation_PortraitPrimary;
       break;
     case kLandscape_ANPScreenOrientation:
-      newOrientation = eScreenOrientation_Landscape;
+      newOrientation = eScreenOrientation_LandscapePrimary |
+                       eScreenOrientation_LandscapeSecondary;
       break;
     case kPortrait_ANPScreenOrientation:
-      newOrientation = eScreenOrientation_Portrait;
+      newOrientation = eScreenOrientation_PortraitPrimary |
+                       eScreenOrientation_PortraitSecondary;
       break;
     default:
       newOrientation = eScreenOrientation_None;

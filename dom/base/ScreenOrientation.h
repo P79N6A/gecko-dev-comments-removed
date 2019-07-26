@@ -16,12 +16,10 @@ namespace dom {
 typedef uint32_t ScreenOrientation;
 
 static const ScreenOrientation eScreenOrientation_None               = 0;
-static const ScreenOrientation eScreenOrientation_PortraitPrimary    = 1;  
-static const ScreenOrientation eScreenOrientation_PortraitSecondary  = 2;  
-static const ScreenOrientation eScreenOrientation_Portrait           = 3;  
-static const ScreenOrientation eScreenOrientation_LandscapePrimary   = 4;  
-static const ScreenOrientation eScreenOrientation_LandscapeSecondary = 8;  
-static const ScreenOrientation eScreenOrientation_Landscape          = 12; 
+static const ScreenOrientation eScreenOrientation_PortraitPrimary    = PR_BIT(0);
+static const ScreenOrientation eScreenOrientation_PortraitSecondary  = PR_BIT(1);
+static const ScreenOrientation eScreenOrientation_LandscapePrimary   = PR_BIT(2);
+static const ScreenOrientation eScreenOrientation_LandscapeSecondary = PR_BIT(3);
 
 } 
 } 
