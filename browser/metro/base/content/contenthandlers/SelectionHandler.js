@@ -120,11 +120,22 @@ var SelectionHandler = {
 
     
     
-    let framePoint = this._clientPointToFramePoint({ xPos: aX, yPos: aY });
-    if (!this._domWinUtils.selectAtPoint(framePoint.xPos, framePoint.yPos,
-                                         Ci.nsIDOMWindowUtils.SELECT_CHARACTER)) {
-      this._onFail("failed to set selection at point");
-      return;
+    
+    
+    if(Util.isEditableContent(this._targetElement)) {
+      
+      
+      let framePoint = this._clientPointToFramePoint({ xPos: aX, yPos: aY });
+      if (!this._domWinUtils.selectAtPoint(framePoint.xPos, framePoint.yPos,
+                                           Ci.nsIDOMWindowUtils.SELECT_CHARACTER)) {
+        this._onFail("failed to set selection at point");
+        return;
+      }
+    } else if (this._targetElement.selectionStart == 0 || aMarker == "end") {
+      
+      this._targetElement.selectionEnd++;
+    } else {
+      this._targetElement.selectionStart--;
     }
 
     
