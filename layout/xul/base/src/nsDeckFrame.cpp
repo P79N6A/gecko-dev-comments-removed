@@ -150,7 +150,7 @@ nsDeckFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsDisplayListSet& aLists)
 {
   
-  if (!GetStyleVisibility()->mVisible)
+  if (!StyleVisibility()->mVisible)
     return;
     
   nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);

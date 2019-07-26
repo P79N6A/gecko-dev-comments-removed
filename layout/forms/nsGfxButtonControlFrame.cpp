@@ -204,7 +204,7 @@ nsGfxButtonControlFrame::GetLabel(nsXPIDLString& aLabel)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!GetStyleText()->WhiteSpaceIsSignificant()) {
+  if (!StyleText()->WhiteSpaceIsSignificant()) {
     aLabel.CompressWhitespace();
   } else if (aLabel.Length() > 2 && aLabel.First() == ' ' &&
              aLabel.CharAt(aLabel.Length() - 1) == ' ') {
@@ -278,7 +278,7 @@ nsGfxButtonControlFrame::HandleEvent(nsPresContext* aPresContext,
   
 
   
-  const nsStyleUserInterface* uiStyle = GetStyleUserInterface();
+  const nsStyleUserInterface* uiStyle = StyleUserInterface();
   if (uiStyle->mUserInput == NS_STYLE_USER_INPUT_NONE || uiStyle->mUserInput == NS_STYLE_USER_INPUT_DISABLED)
     return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   

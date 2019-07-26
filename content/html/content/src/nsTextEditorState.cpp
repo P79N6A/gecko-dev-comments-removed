@@ -1603,7 +1603,7 @@ nsTextEditorState::InitializeRootNode()
     
     
     
-    const nsStyleDisplay* disp = mBoundFrame->GetStyleDisplay();
+    const nsStyleDisplay* disp = mBoundFrame->StyleDisplay();
     if (disp->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE &&
         disp->mOverflowX != NS_STYLE_OVERFLOW_CLIP) {
       classValue.AppendLiteral(" inherit-overflow");

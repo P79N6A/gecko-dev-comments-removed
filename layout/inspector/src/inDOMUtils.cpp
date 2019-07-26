@@ -71,7 +71,7 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
   
   nsIFrame* frame = content->GetPrimaryFrame();
   if (frame) {
-    const nsStyleText* text = frame->GetStyleText();
+    const nsStyleText* text = frame->StyleText();
     *aReturn = !text->WhiteSpaceIsSignificant();
   }
   else {

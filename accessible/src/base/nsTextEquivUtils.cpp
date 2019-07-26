@@ -101,7 +101,7 @@ nsTextEquivUtils::AppendTextEquivFromContent(Accessible* aInitiatorAcc,
   
   
   nsIFrame *frame = aContent->GetPrimaryFrame();
-  bool isVisible = frame && frame->GetStyleVisibility()->IsVisible();
+  bool isVisible = frame && frame->StyleVisibility()->IsVisible();
 
   nsresult rv = NS_ERROR_FAILURE;
   bool goThroughDOMSubtree = true;
@@ -136,7 +136,7 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
         
         
         
-        const nsStyleDisplay* display = frame->GetStyleDisplay();
+        const nsStyleDisplay* display = frame->StyleDisplay();
         if (display->IsBlockOutsideStyle() ||
             display->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL) {
           isHTMLBlock = true;

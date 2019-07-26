@@ -795,13 +795,13 @@ public:
 
 #ifdef _IMPL_NS_LAYOUT
   #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                      \
-    const nsStyle##name_ * GetStyle##name_ () const {                         \
+    const nsStyle##name_ * Style##name_ () const {                            \
       NS_ASSERTION(mStyleContext, "No style context found!");                 \
-      return mStyleContext->GetStyle##name_ ();                               \
+      return mStyleContext->Style##name_ ();                                  \
     }
 #else
   #define STYLE_STRUCT(name_, checkdata_cb_, ctor_args_)                      \
-    const nsStyle##name_ * GetStyle##name_ () const {                         \
+    const nsStyle##name_ * Style##name_ () const {                            \
       return static_cast<const nsStyle##name_*>(                              \
                             GetStyleDataExternal(eStyleStruct_##name_));      \
     }
@@ -1178,7 +1178,7 @@ public:
 
  
   bool IsThemed(nsITheme::Transparency* aTransparencyState = nullptr) const {
-    return IsThemed(GetStyleDisplay(), aTransparencyState);
+    return IsThemed(StyleDisplay(), aTransparencyState);
   }
   bool IsThemed(const nsStyleDisplay* aDisp,
                   nsITheme::Transparency* aTransparencyState = nullptr) const {
@@ -2576,7 +2576,7 @@ public:
 
 
   bool IsPseudoStackingContextFromStyle() {
-    const nsStyleDisplay* disp = GetStyleDisplay();
+    const nsStyleDisplay* disp = StyleDisplay();
     return disp->mOpacity != 1.0f ||
            disp->IsPositioned(this) ||
            disp->IsFloating(this);
@@ -3268,49 +3268,49 @@ FrameLinkEnumerator(const nsFrameList& aList, nsIFrame* aPrevFrame)
 bool
 nsIFrame::IsFloating() const
 {
-  return GetStyleDisplay()->IsFloating(this);
+  return StyleDisplay()->IsFloating(this);
 }
 
 bool
 nsIFrame::IsPositioned() const
 {
-  return GetStyleDisplay()->IsPositioned(this);
+  return StyleDisplay()->IsPositioned(this);
 }
 
 bool
 nsIFrame::IsRelativelyPositioned() const
 {
-  return GetStyleDisplay()->IsRelativelyPositioned(this);
+  return StyleDisplay()->IsRelativelyPositioned(this);
 }
 
 bool
 nsIFrame::IsAbsolutelyPositioned() const
 {
-  return GetStyleDisplay()->IsAbsolutelyPositioned(this);
+  return StyleDisplay()->IsAbsolutelyPositioned(this);
 }
 
 bool
 nsIFrame::IsBlockInside() const
 {
-  return GetStyleDisplay()->IsBlockInside(this);
+  return StyleDisplay()->IsBlockInside(this);
 }
 
 bool
 nsIFrame::IsBlockOutside() const
 {
-  return GetStyleDisplay()->IsBlockOutside(this);
+  return StyleDisplay()->IsBlockOutside(this);
 }
 
 bool
 nsIFrame::IsInlineOutside() const
 {
-  return GetStyleDisplay()->IsInlineOutside(this);
+  return StyleDisplay()->IsInlineOutside(this);
 }
 
 uint8_t
 nsIFrame::GetDisplay() const
 {
-  return GetStyleDisplay()->GetDisplay(this);
+  return StyleDisplay()->GetDisplay(this);
 }
 
 #endif 

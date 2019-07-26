@@ -743,7 +743,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
   
   
-  if (!frame || !frame->GetStyleVisibility()->IsVisible()) {
+  if (!frame || !frame->StyleVisibility()->IsVisible()) {
     if (aIsSubtreeHidden && !frame)
       *aIsSubtreeHidden = true;
 

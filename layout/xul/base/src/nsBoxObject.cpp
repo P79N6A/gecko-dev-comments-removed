@@ -184,12 +184,12 @@ nsBoxObject::GetOffsetRect(nsIntRect& aRect)
     }
   
     
-    const nsStyleBorder* border = frame->GetStyleBorder();
+    const nsStyleBorder* border = frame->StyleBorder();
     origin.x += border->GetComputedBorderWidth(NS_SIDE_LEFT);
     origin.y += border->GetComputedBorderWidth(NS_SIDE_TOP);
 
     
-    const nsStyleBorder* parentBorder = parent->GetStyleBorder();
+    const nsStyleBorder* parentBorder = parent->StyleBorder();
     origin.x -= parentBorder->GetComputedBorderWidth(NS_SIDE_LEFT);
     origin.y -= parentBorder->GetComputedBorderWidth(NS_SIDE_TOP);
 

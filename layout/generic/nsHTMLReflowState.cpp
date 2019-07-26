@@ -104,7 +104,7 @@ FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
   float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
   if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
     const nsBlockFrame* blockFrame = static_cast<const nsBlockFrame*>(aFrame);
-    const nsStyleList* styleList = aFrame->GetStyleList();
+    const nsStyleList* styleList = aFrame->StyleList();
 
     
     
@@ -300,13 +300,13 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
 
-  mStylePosition = frame->GetStylePosition();
-  mStyleDisplay = frame->GetStyleDisplay();
-  mStyleVisibility = frame->GetStyleVisibility();
-  mStyleBorder = frame->GetStyleBorder();
-  mStyleMargin = frame->GetStyleMargin();
-  mStylePadding = frame->GetStylePadding();
-  mStyleText = frame->GetStyleText();
+  mStylePosition = frame->StylePosition();
+  mStyleDisplay = frame->StyleDisplay();
+  mStyleVisibility = frame->StyleVisibility();
+  mStyleBorder = frame->StyleBorder();
+  mStyleMargin = frame->StyleMargin();
+  mStylePadding = frame->StylePadding();
+  mStyleText = frame->StyleText();
 
   nsIAtom* type = frame->GetType();
 
@@ -322,7 +322,7 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
   if (parent &&
       (parent->GetStateBits() & NS_FRAME_IN_CONSTRAINED_HEIGHT) &&
       !(parent->GetType() == nsGkAtoms::scrollFrame &&
-        parent->GetStyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
+        parent->StyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
     frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
   } else if (type == nsGkAtoms::svgForeignObjectFrame) {
     
@@ -340,7 +340,7 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
     
     nsIFrame* containingBlk = frame;
     while (containingBlk) {
-      const nsStylePosition* stylePos = containingBlk->GetStylePosition();
+      const nsStylePosition* stylePos = containingBlk->StylePosition();
       if ((stylePos->mHeight.IsCoordPercentCalcUnit() &&
            !stylePos->mHeight.HasPercent()) ||
           (stylePos->mMaxHeight.IsCoordPercentCalcUnit() &&
@@ -662,10 +662,10 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
     return;
   }
 
-  NS_ASSERTION(frame->GetStyleDisplay()->IsAbsolutelyPositionedStyle() ==
+  NS_ASSERTION(frame->StyleDisplay()->IsAbsolutelyPositionedStyle() ==
                  disp->IsAbsolutelyPositionedStyle(),
                "Unexpected position style");
-  NS_ASSERTION(frame->GetStyleDisplay()->IsFloatingStyle() ==
+  NS_ASSERTION(frame->StyleDisplay()->IsFloatingStyle() ==
                  disp->IsFloatingStyle(), "Unexpected float style");
   if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
     if (disp->IsAbsolutelyPositioned(frame)) {
@@ -741,7 +741,7 @@ nsHTMLReflowState::ComputeRelativeOffsets(uint8_t aCBDirection,
                                           nscoord aContainingBlockHeight,
                                           nsMargin& aComputedOffsets)
 {
-  const nsStylePosition* position = aFrame->GetStylePosition();
+  const nsStylePosition* position = aFrame->StylePosition();
 
   
   
@@ -1086,7 +1086,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   }
   
   
-  const nsStyleVisibility* blockVis = aContainingBlock->GetStyleVisibility();
+  const nsStyleVisibility* blockVis = aContainingBlock->StyleVisibility();
 
   
   
@@ -1327,7 +1327,7 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     
     
     if (NS_STYLE_DIRECTION_LTR == placeholderFrame->GetContainingBlock()
-                                    ->GetStyleVisibility()->mDirection) {
+                                    ->StyleVisibility()->mDirection) {
       NS_ASSERTION(hypotheticalBox.mLeftIsExact, "should always have "
                    "exact value on containing block's start side");
       mComputedOffsets.left = hypotheticalBox.mLeft;
@@ -1802,7 +1802,7 @@ IsSideCaption(nsIFrame* aFrame, const nsStyleDisplay* aStyleDisplay)
 {
   if (aStyleDisplay->mDisplay != NS_STYLE_DISPLAY_TABLE_CAPTION)
     return false;
-  uint8_t captionSide = aFrame->GetStyleTableBorder()->mCaptionSide;
+  uint8_t captionSide = aFrame->StyleTableBorder()->mCaptionSide;
   return captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
          captionSide == NS_STYLE_CAPTION_SIDE_RIGHT;
 }
@@ -2086,7 +2086,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
   
   mFlags.mBlinks = (parentReflowState && parentReflowState->mFlags.mBlinks);
   if (!mFlags.mBlinks && BlinkIsAllowed()) {
-    const nsStyleTextReset* st = frame->GetStyleTextReset();
+    const nsStyleTextReset* st = frame->StyleTextReset();
     mFlags.mBlinks = (st->mTextBlink != NS_STYLE_TEXT_BLINK_NONE);
   }
 }
@@ -2136,7 +2136,7 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
                mComputedMargin);
 
 
-  const nsStyleDisplay *disp = frame->GetStyleDisplay();
+  const nsStyleDisplay *disp = frame->StyleDisplay();
   bool isThemed = frame->IsThemed(disp);
   bool needPaddingProp;
   nsIntMargin widget;
@@ -2156,7 +2156,7 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
   }
   else if (aPadding) { 
     mComputedPadding = *aPadding;
-    needPaddingProp = frame->GetStylePadding()->IsWidthDependent();
+    needPaddingProp = frame->StylePadding()->IsWidthDependent();
   }
   else {
     needPaddingProp = ComputePadding(aContainingBlockWidth, aFrameType);
@@ -2183,7 +2183,7 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
     mComputedBorderPadding = *aBorder;
   }
   else {
-    mComputedBorderPadding = frame->GetStyleBorder()->GetComputedBorder();
+    mComputedBorderPadding = frame->StyleBorder()->GetComputedBorder();
   }
   mComputedBorderPadding += mComputedPadding;
 
@@ -2356,7 +2356,7 @@ ComputeLineHeight(nsStyleContext* aStyleContext,
                   nscoord aBlockHeight,
                   float aFontSizeInflation)
 {
-  const nsStyleCoord& lhCoord = aStyleContext->GetStyleText()->mLineHeight;
+  const nsStyleCoord& lhCoord = aStyleContext->StyleText()->mLineHeight;
 
   if (lhCoord.GetUnit() == eStyleUnit_Coord) {
     nscoord result = lhCoord.GetCoordValue();
@@ -2371,7 +2371,7 @@ ComputeLineHeight(nsStyleContext* aStyleContext,
     
     
     return NSToCoordRound(lhCoord.GetFactorValue() * aFontSizeInflation *
-                          aStyleContext->GetStyleFont()->mFont.size);
+                          aStyleContext->StyleFont()->mFont.size);
 
   NS_ASSERTION(lhCoord.GetUnit() == eStyleUnit_Normal ||
                lhCoord.GetUnit() == eStyleUnit_Enumerated,
@@ -2427,7 +2427,7 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
   }
 
   
-  const nsStyleMargin *styleMargin = frame->GetStyleMargin();
+  const nsStyleMargin *styleMargin = frame->StyleMargin();
   bool isWidthDependent = !styleMargin->GetMargin(mComputedMargin);
   if (isWidthDependent) {
     
@@ -2453,7 +2453,7 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
   nscoord marginAdjustment = FontSizeInflationListMarginAdjustment(frame);
 
   if (marginAdjustment > 0) {
-    const nsStyleVisibility* visibility = frame->GetStyleVisibility();
+    const nsStyleVisibility* visibility = frame->StyleVisibility();
     if (visibility->mDirection == NS_STYLE_DIRECTION_RTL) {
       mComputedMargin.right = mComputedMargin.right + marginAdjustment;
     } else {
@@ -2468,7 +2468,7 @@ bool
 nsCSSOffsetState::ComputePadding(nscoord aContainingBlockWidth, nsIAtom* aFrameType)
 {
   
-  const nsStylePadding *stylePadding = frame->GetStylePadding();
+  const nsStylePadding *stylePadding = frame->StylePadding();
   bool isWidthDependent = !stylePadding->GetPadding(mComputedPadding);
   
   

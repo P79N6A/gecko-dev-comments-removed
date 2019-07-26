@@ -2107,7 +2107,7 @@ nsEditor::GetPreferredIMEState(IMEState *aState)
   nsIFrame* frame = content->GetPrimaryFrame();
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
-  switch (frame->GetStyleUIReset()->mIMEMode) {
+  switch (frame->StyleUIReset()->mIMEMode) {
     case NS_STYLE_IME_MODE_AUTO:
       if (IsPasswordEditor())
         aState->mEnabled = IMEState::PASSWORD;
@@ -3653,7 +3653,7 @@ IsElementVisible(dom::Element* aElement)
     nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
                                                          nullptr, nullptr);
   if (styleContext) {
-    return styleContext->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_NONE;
+    return styleContext->StyleDisplay()->mDisplay != NS_STYLE_DISPLAY_NONE;
   }
   return false;
 }
@@ -3969,7 +3969,7 @@ nsEditor::IsPreformatted(nsIDOMNode *aNode, bool *aResult)
     return NS_OK;
   }
 
-  const nsStyleText* styleText = elementStyle->GetStyleText();
+  const nsStyleText* styleText = elementStyle->StyleText();
 
   *aResult = styleText->WhiteSpaceIsSignificant();
   return NS_OK;
@@ -5056,7 +5056,7 @@ nsEditor::DetermineCurrentDirection()
 
     
     
-    if (frame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    if (frame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
       mFlags |= nsIPlaintextEditor::eEditorRightToLeft;
     } else {
       mFlags |= nsIPlaintextEditor::eEditorLeftToRight;

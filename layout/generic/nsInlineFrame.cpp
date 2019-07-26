@@ -102,9 +102,9 @@ nsInlineFrame::IsSelfEmpty()
     return false;
   }
 #endif
-  const nsStyleMargin* margin = GetStyleMargin();
-  const nsStyleBorder* border = GetStyleBorder();
-  const nsStylePadding* padding = GetStylePadding();
+  const nsStyleMargin* margin = StyleMargin();
+  const nsStyleBorder* border = StyleBorder();
+  const nsStylePadding* padding = StylePadding();
   
   
   
@@ -119,7 +119,7 @@ nsInlineFrame::IsSelfEmpty()
   if (haveLeft || haveRight) {
     if (GetStateBits() & NS_FRAME_IS_SPECIAL) {
       bool haveStart, haveEnd;
-      if (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection) {
+      if (NS_STYLE_DIRECTION_LTR == StyleVisibility()->mDirection) {
         haveStart = haveLeft;
         haveEnd = haveRight;
       } else {
@@ -886,7 +886,7 @@ nsInlineFrame::GetSkipSides() const
     
     
     
-    bool ltr = (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection);
+    bool ltr = (NS_STYLE_DIRECTION_LTR == StyleVisibility()->mDirection);
     int startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
     int endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
     if (((startBit | endBit) & skip) != (startBit | endBit)) {

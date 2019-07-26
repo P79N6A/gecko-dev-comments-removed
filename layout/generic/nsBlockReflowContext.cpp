@@ -158,7 +158,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
                                                availSpace);
             
             
-            if (kid->GetStyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
+            if (kid->StyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
               *aMayNeedRetry = true;
             }
             if (ComputeCollapsedTopMargin(innerReflowState, aMargin, aClearanceFrame, aMayNeedRetry, &isEmpty)) {
@@ -400,7 +400,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
                          mMetrics.width, mMetrics.height);
   
   
-  const nsStyleDisplay* styleDisp = mFrame->GetStyleDisplay();
+  const nsStyleDisplay* styleDisp = mFrame->StyleDisplay();
   if (NS_STYLE_POSITION_RELATIVE == styleDisp->mPosition) {
     x += aReflowState.mComputedOffsets.left;
     y += aReflowState.mComputedOffsets.top;

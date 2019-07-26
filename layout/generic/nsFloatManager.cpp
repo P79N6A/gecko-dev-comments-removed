@@ -201,7 +201,7 @@ nsFloatManager::GetFlowArea(nscoord aYOffset, BandInfoType aInfoType,
       }
 
       
-      if (fi.mFrame->GetStyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
+      if (fi.mFrame->StyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
         
         nscoord rightEdge = fi.mRect.XMost();
         if (rightEdge > left) {
@@ -245,7 +245,7 @@ nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const nsRect& aMarginRect)
     info.mLeftYMost = nscoord_MIN;
     info.mRightYMost = nscoord_MIN;
   }
-  uint8_t floatStyle = aFloatFrame->GetStyleDisplay()->mFloats;
+  uint8_t floatStyle = aFloatFrame->StyleDisplay()->mFloats;
   NS_ASSERTION(floatStyle == NS_STYLE_FLOAT_LEFT ||
                floatStyle == NS_STYLE_FLOAT_RIGHT, "unexpected float");
   nscoord& sideYMost = (floatStyle == NS_STYLE_FLOAT_LEFT) ? info.mLeftYMost
@@ -272,7 +272,7 @@ nsFloatManager::CalculateRegionFor(nsIFrame*       aFloat,
   
   
   
-  const nsStyleDisplay* display = aFloat->GetStyleDisplay();
+  const nsStyleDisplay* display = aFloat->StyleDisplay();
   region -= aFloat->GetRelativeOffset(display);
 
   

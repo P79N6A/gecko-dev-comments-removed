@@ -1058,7 +1058,7 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
 
 
   mFixedPosIsAbsPos = aNewAbsoluteContainingBlock &&
-    aNewAbsoluteContainingBlock->GetStyleDisplay()->HasTransform(aNewAbsoluteContainingBlock);
+    aNewAbsoluteContainingBlock->StyleDisplay()->HasTransform(aNewAbsoluteContainingBlock);
 
   if (aNewAbsoluteContainingBlock) {
     aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
@@ -1138,7 +1138,7 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
 {
   NS_PRECONDITION(!aNewFrame->GetNextSibling(), "Shouldn't happen");
   
-  const nsStyleDisplay* disp = aNewFrame->GetStyleDisplay();
+  const nsStyleDisplay* disp = aNewFrame->StyleDisplay();
   
   
   
@@ -1577,7 +1577,7 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsFrameConstructorState& aState,
 {
   
   const nsStyleContentData &data =
-    aStyleContext->GetStyleContent()->ContentAt(aContentIndex);
+    aStyleContext->StyleContent()->ContentAt(aContentIndex);
   nsStyleContentType type = data.mType;
 
   if (eStyleContentType_Image == type) {
@@ -1779,7 +1779,7 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
     return;
   }
 
-  uint32_t contentCount = pseudoStyleContext->GetStyleContent()->ContentCount();
+  uint32_t contentCount = pseudoStyleContext->StyleContent()->ContentCount();
   for (uint32_t contentIndex = 0; contentIndex < contentCount; contentIndex++) {
     nsCOMPtr<nsIContent> content =
       CreateGeneratedContent(aState, aParentContent, pseudoStyleContext,
@@ -1890,7 +1890,7 @@ nsCSSFrameConstructor::AdjustParentFrame(nsIFrame* &                  aParentFra
 
   bool tablePart = ((aFCData->mBits & FCDATA_IS_TABLE_PART) != 0);
 
-  if (tablePart && aStyleContext->GetStyleDisplay()->mDisplay ==
+  if (tablePart && aStyleContext->StyleDisplay()->mDisplay ==
       NS_STYLE_DISPLAY_TABLE_CAPTION) {
     aParentFrame = AdjustCaptionParentFrame(aParentFrame);
   }
@@ -1947,7 +1947,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
     newFrame = NS_NewTableOuterFrame(mPresShell, outerStyleContext);
 
   nsIFrame* geometricParent =
-    aState.GetGeometricParent(outerStyleContext->GetStyleDisplay(),
+    aState.GetGeometricParent(outerStyleContext->StyleDisplay(),
                               aParentFrame);
 
   
@@ -1981,7 +1981,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
 
   
   nsFrameConstructorSaveState absoluteSaveState;
-  const nsStyleDisplay* display = outerStyleContext->GetStyleDisplay();
+  const nsStyleDisplay* display = outerStyleContext->StyleDisplay();
 
   
   newFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
@@ -2265,7 +2265,7 @@ nsCSSFrameConstructor::PropagateScrollToViewport()
   if (!rootStyle) {
     return nullptr;
   }
-  if (CheckOverflow(presContext, rootStyle->GetStyleDisplay())) {
+  if (CheckOverflow(presContext, rootStyle->StyleDisplay())) {
     
     return docElement;
   }
@@ -2297,7 +2297,7 @@ nsCSSFrameConstructor::PropagateScrollToViewport()
     return nullptr;
   }
 
-  if (CheckOverflow(presContext, bodyStyle->GetStyleDisplay())) {
+  if (CheckOverflow(presContext, bodyStyle->StyleDisplay())) {
     
     return bodyElement;
   }
@@ -2354,7 +2354,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   styleContext = mPresShell->StyleSet()->ResolveStyleFor(aDocElement,
                                                          nullptr);
 
-  const nsStyleDisplay* display = styleContext->GetStyleDisplay();
+  const nsStyleDisplay* display = styleContext->StyleDisplay();
 
   
   if (display->mBinding) {
@@ -2383,7 +2383,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     if (resolveStyle) {
       styleContext = mPresShell->StyleSet()->ResolveStyleFor(aDocElement,
                                                              nullptr);
-      display = styleContext->GetStyleDisplay();
+      display = styleContext->StyleDisplay();
     }
   }
 
@@ -2460,7 +2460,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
 
       nsFrameItems frameItems;
       rv = ConstructOuterSVG(state, item, mDocElementContainingBlock,
-                             styleContext->GetStyleDisplay(),
+                             styleContext->StyleDisplay(),
                              frameItems, &contentFrame);
       if (NS_FAILED(rv))
         return rv;
@@ -2491,7 +2491,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
       nsFrameItems frameItems;
       
       rv = ConstructTable(state, item, mDocElementContainingBlock,
-                          styleContext->GetStyleDisplay(),
+                          styleContext->StyleDisplay(),
                           frameItems, &contentFrame);
       if (NS_FAILED(rv))
         return rv;
@@ -3074,7 +3074,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
                                              PendingBinding*          aPendingBinding,
                                              nsFrameItems&            aFrameItems)
 {
-  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
+  const nsStyleDisplay* display = aStyleContext->StyleDisplay();
 
   
   nsIFrame* geometricParent = aState.GetGeometricParent(display, aParentFrame);
@@ -3384,8 +3384,8 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
           nsCSSAnonBoxes::fieldsetContent) ||
        !aElement->GetParent() ||
        !aElement->GetParent()->IsHTML(nsGkAtoms::fieldset) ||
-       aStyleContext->GetStyleDisplay()->IsFloatingStyle() ||
-       aStyleContext->GetStyleDisplay()->IsAbsolutelyPositionedStyle())) {
+       aStyleContext->StyleDisplay()->IsFloatingStyle() ||
+       aStyleContext->StyleDisplay()->IsAbsolutelyPositionedStyle())) {
     
     
     
@@ -3612,7 +3612,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   }
 
   nsStyleContext* const styleContext = aItem.mStyleContext;
-  const nsStyleDisplay* display = styleContext->GetStyleDisplay();
+  const nsStyleDisplay* display = styleContext->StyleDisplay();
   nsIContent* const content = aItem.mContent;
 
   
@@ -3708,7 +3708,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       
       
       
-      const nsStyleDisplay* blockDisplay = blockContext->GetStyleDisplay();
+      const nsStyleDisplay* blockDisplay = blockContext->StyleDisplay();
       if (blockDisplay->IsPositioned(blockFrame)) {
         maybeAbsoluteContainingBlockDisplay = blockDisplay;
         maybeAbsoluteContainingBlock = blockFrame;
@@ -4161,7 +4161,7 @@ const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindXULListBoxBodyData(Element* aElement,
                                               nsStyleContext* aStyleContext)
 {
-  if (aStyleContext->GetStyleDisplay()->mDisplay !=
+  if (aStyleContext->StyleDisplay()->mDisplay !=
         NS_STYLE_DISPLAY_GRID_GROUP) {
     return nullptr;
   }
@@ -4176,7 +4176,7 @@ const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindXULListItemData(Element* aElement,
                                            nsStyleContext* aStyleContext)
 {
-  if (aStyleContext->GetStyleDisplay()->mDisplay !=
+  if (aStyleContext->StyleDisplay()->mDisplay !=
         NS_STYLE_DISPLAY_GRID_LINE) {
     return nullptr;
   }
@@ -4241,7 +4241,7 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
     
     
     
-    if (IsXULDisplayType(aContentStyle->GetStyleDisplay())) {
+    if (IsXULDisplayType(aContentStyle->StyleDisplay())) {
       gfxScrollFrame = NS_NewXULScrollFrame(mPresShell, contentStyle, aIsRoot);
     } else {
       gfxScrollFrame = NS_NewHTMLScrollFrame(mPresShell, contentStyle, aIsRoot);
@@ -4488,7 +4488,7 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
 
   nsFrameItems blockItem;
   nsresult rv = ConstructBlock(aState,
-                               scrolledContentStyle->GetStyleDisplay(), content,
+                               scrolledContentStyle->StyleDisplay(), content,
                                *aNewFrame, *aNewFrame, scrolledContentStyle,
                                &scrolledFrame, blockItem,
                                aDisplay->IsPositioned(scrolledFrame),
@@ -4694,7 +4694,7 @@ nsCSSFrameConstructor::FindMathMLData(Element* aElement,
     
     
     
-    if (aStyleContext->GetStyleDisplay()->IsBlockOutsideStyle()) {
+    if (aStyleContext->StyleDisplay()->IsBlockOutsideStyle()) {
       static const FrameConstructionData sBlockMathData =
         FCDATA_DECL(FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
                     FCDATA_WRAP_KIDS_IN_BLOCKS,
@@ -4765,7 +4765,7 @@ nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
   nsIFrame* newFrame = NS_NewSVGOuterSVGFrame(mPresShell, styleContext);
 
   nsIFrame* geometricParent =
-    aState.GetGeometricParent(styleContext->GetStyleDisplay(),
+    aState.GetGeometricParent(styleContext->StyleDisplay(),
                               aParentFrame);
 
   InitAndRestoreFrame(aState, content, geometricParent, nullptr, newFrame);
@@ -5092,7 +5092,7 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::pageBreak,
                                aMainStyleContext->GetParent());
 
-  NS_ASSERTION(pseudoStyle->GetStyleDisplay()->mDisplay ==
+  NS_ASSERTION(pseudoStyle->StyleDisplay()->mDisplay ==
                  NS_STYLE_DISPLAY_BLOCK, "Unexpected display");
 
   static const FrameConstructionData sPageBreakData =
@@ -5221,7 +5221,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   
   
   
-  const nsStyleDisplay* display = aStyleContext->GetStyleDisplay();
+  const nsStyleDisplay* display = aStyleContext->StyleDisplay();
   nsRefPtr<nsStyleContext> styleContext(aStyleContext);
   PendingBinding* pendingBinding = nullptr;
   if ((aFlags & ITEM_ALLOW_XBL_BASE) && display->mBinding)
@@ -5252,7 +5252,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     if (resolveStyle) {
       styleContext =
         ResolveStyleContext(styleContext->GetParent(), aContent, &aState);
-      display = styleContext->GetStyleDisplay();
+      display = styleContext->StyleDisplay();
       aStyleContext = styleContext;
     }
 
@@ -5435,7 +5435,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
       
       ((bits & FCDATA_IS_TABLE_PART) &&
        (!aParentFrame || 
-        aParentFrame->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE)) ||
+        aParentFrame->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE)) ||
       
       (aParentFrame ? display->IsInlineOutside(aParentFrame) :
                       display->IsInlineOutsideStyle()) ||
@@ -5584,7 +5584,7 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     if (AtLineBoundary(aIter) &&
-        !styleContext->GetStyleText()->WhiteSpaceOrNewlineIsSignificant() &&
+        !styleContext->StyleText()->WhiteSpaceOrNewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
         (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
@@ -5696,7 +5696,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame,
     
     
     if (!frame->IsPositioned() ||
-        (aType == FIXED_POS && !frame->GetStyleDisplay()->HasTransform(frame))) {
+        (aType == FIXED_POS && !frame->StyleDisplay()->HasTransform(frame))) {
       continue;
     }
     nsIFrame* absPosCBCandidate = nullptr;
@@ -5912,7 +5912,7 @@ nsCSSFrameConstructor::AppendFramesToParent(nsFrameConstructorState&       aStat
     }
 
     if (!aFrameList.IsEmpty()) {
-      const nsStyleDisplay* parentDisplay = aParentFrame->GetStyleDisplay();
+      const nsStyleDisplay* parentDisplay = aParentFrame->StyleDisplay();
       bool positioned =
         parentDisplay->mPosition == NS_STYLE_POSITION_RELATIVE &&
         !aParentFrame->IsSVGText();
@@ -5982,7 +5982,7 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
       
       styleContext = ResolveStyleContext(styleParent, aContent, nullptr);
       if (!styleContext) return false;
-      const nsStyleDisplay* display = styleContext->GetStyleDisplay();
+      const nsStyleDisplay* display = styleContext->StyleDisplay();
       aDisplay = display->mDisplay;
     }
     if (nsGkAtoms::menuFrame == parentType) {
@@ -7941,7 +7941,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   
   NS_ASSERTION(!(aChange & nsChangeHint_UpdateTransformLayer) ||
                aFrame->IsTransformed() ||
-               aFrame->GetStyleDisplay()->HasTransformStyle(),
+               aFrame->StyleDisplay()->HasTransformStyle(),
                "Unexpected UpdateTransformLayer hint");
 
   nsIPresShell *shell = aPresContext->PresShell();
@@ -8154,7 +8154,7 @@ FrameHasPositionedPlaceholderDescendants(nsIFrame* aFrame, uint32_t aPositionMas
           
           NS_ASSERTION(!outOfFlow->IsSVGText(),
                        "SVG text frames can't be out of flow");
-          if (aPositionMask & (1 << outOfFlow->GetStyleDisplay()->mPosition)) {
+          if (aPositionMask & (1 << outOfFlow->StyleDisplay()->mPosition)) {
             return true;
           }
         }
@@ -8431,8 +8431,8 @@ nsCSSFrameConstructor::RestyleElement(Element        *aElement,
     if (!oldContext->GetParent()) { 
       nsRefPtr<nsStyleContext> newContext = mPresShell->StyleSet()->
         ResolveStyleFor(aElement, nullptr );
-      if (oldContext->GetStyleFont()->mFont.size !=
-          newContext->GetStyleFont()->mFont.size) {
+      if (oldContext->StyleFont()->mFont.size !=
+          newContext->StyleFont()->mFont.size) {
         
         newContext = nullptr;
         DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0));
@@ -8490,7 +8490,7 @@ nsCSSFrameConstructor::ContentStateChanged(nsIContent* aContent,
                                          NS_EVENT_STATE_LOADING)) {
       hint = nsChangeHint_ReconstructFrame;
     } else {
-      uint8_t app = primaryFrame->GetStyleDisplay()->mAppearance;
+      uint8_t app = primaryFrame->StyleDisplay()->mAppearance;
       if (app) {
         nsITheme *theme = presContext->GetTheme();
         if (theme && theme->ThemeSupportsWidget(presContext,
@@ -8597,7 +8597,7 @@ nsCSSFrameConstructor::AttributeChanged(Element* aElement,
 
   if (primaryFrame) {
     
-    const nsStyleDisplay* disp = primaryFrame->GetStyleDisplay();
+    const nsStyleDisplay* disp = primaryFrame->StyleDisplay();
     if (disp->mAppearance) {
       nsPresContext* presContext = mPresShell->GetPresContext();
       nsITheme *theme = presContext->GetTheme();
@@ -9204,7 +9204,7 @@ nsCSSFrameConstructor::MaybeRecreateFramesForElement(Element* aElement)
     ResolveStyleFor(aElement, oldContext->GetParent());
 
   ChangeUndisplayedContent(aElement, newContext);
-  const nsStyleDisplay* disp = newContext->GetStyleDisplay();
+  const nsStyleDisplay* disp = newContext->StyleDisplay();
   if (disp->mDisplay == NS_STYLE_DISPLAY_NONE) {
     
     
@@ -9737,7 +9737,7 @@ nsCSSFrameConstructor::CreateNeededAnonFlexItems(
                                 true);
 
     newItem->mIsAllInline = newItem->mHasInlineEnds =
-      newItem->mStyleContext->GetStyleDisplay()->IsInlineOutsideStyle();
+      newItem->mStyleContext->StyleDisplay()->IsInlineOutsideStyle();
     newItem->mIsBlock = !newItem->mIsAllInline;
 
     NS_ABORT_IF_FALSE(!newItem->mIsAllInline && newItem->mIsBlock,
@@ -9923,7 +9923,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     nsIContent* parentContent = aParentFrame->GetContent();
 
     if (pseudoType == nsCSSAnonBoxes::table &&
-        parentStyle->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE) {
+        parentStyle->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE) {
       pseudoType = nsCSSAnonBoxes::inlineTable;
     }
 
@@ -9950,7 +9950,7 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     
     
     newItem->mIsAllInline = newItem->mHasInlineEnds =
-      newItem->mStyleContext->GetStyleDisplay()->IsInlineOutsideStyle();
+      newItem->mStyleContext->StyleDisplay()->IsInlineOutsideStyle();
 
     
     
@@ -10174,7 +10174,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     nsDependentAtomString parentTag(aContent->Tag()), kidTag(badKid->Tag());
     const PRUnichar* params[] = { parentTag.get(), kidTag.get() };
     nsStyleContext *frameStyleContext = aFrame->StyleContext();
-    const nsStyleDisplay *display = frameStyleContext->GetStyleDisplay();
+    const nsStyleDisplay *display = frameStyleContext->StyleDisplay();
     const char *message =
       (display->mDisplay == NS_STYLE_DISPLAY_INLINE_BOX)
         ? "NeededToWrapXULInlineBox" : "NeededToWrapXUL";
@@ -10556,7 +10556,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   
   nsIContent* letterContent = aTextContent->GetParent();
   nsIFrame* containingBlock = aState.GetGeometricParent(
-    aStyleContext->GetStyleDisplay(), aParentFrame);
+    aStyleContext->StyleDisplay(), aParentFrame);
   InitAndRestoreFrame(aState, letterContent, containingBlock, nullptr,
                       letterFrame);
 
@@ -10668,7 +10668,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
                                   aBlockContinuation);
 
     
-    const nsStyleDisplay* display = sc->GetStyleDisplay();
+    const nsStyleDisplay* display = sc->StyleDisplay();
     if (display->IsFloating(aParentFrame)) {
       
       CreateFloatingLetterFrame(state, aBlockFrame, aTextContent, textFrame,
@@ -11061,7 +11061,7 @@ nsCSSFrameConstructor::CreateListBoxContent(nsPresContext* aPresContext,
 
     
     
-    const nsStyleDisplay* display = styleContext->GetStyleDisplay();
+    const nsStyleDisplay* display = styleContext->StyleDisplay();
 
     if (NS_STYLE_DISPLAY_NONE == display->mDisplay) {
       *aNewFrame = nullptr;
@@ -11126,7 +11126,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   NS_ASSERTION(blockFrame->GetType() == nsGkAtoms::blockFrame, "not a block frame?");
   nsIFrame* parent = aParentFrame;
   nsRefPtr<nsStyleContext> blockStyle = aStyleContext;
-  const nsStyleColumn* columns = aStyleContext->GetStyleColumn();
+  const nsStyleColumn* columns = aStyleContext->StyleColumn();
 
   if (columns->mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO
       || columns->mColumnWidth.GetUnit() != eStyleUnit_Auto) {
@@ -12452,7 +12452,7 @@ nsCSSFrameConstructor::FrameConstructionItem::
   }
 
   if (!(mFCData->mBits & FCDATA_DISALLOW_OUT_OF_FLOW) &&
-      aState.GetGeometricParent(mStyleContext->GetStyleDisplay(), nullptr)) {
+      aState.GetGeometricParent(mStyleContext->StyleDisplay(), nullptr)) {
     
     
     
@@ -12616,7 +12616,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
     return false;
   }
 
-  const nsStyleDisplay* display = aFrame->GetStyleDisplay();
+  const nsStyleDisplay* display = aFrame->StyleDisplay();
   
   if (display->mPosition == NS_STYLE_POSITION_STATIC) {
     return true;
@@ -12633,7 +12633,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
 
     
     nsHTMLReflowState::ComputeRelativeOffsets(
-        cb->GetStyleVisibility()->mDirection,
+        cb->StyleVisibility()->mDirection,
         aFrame, size.width, size.height, newOffsets);
     NS_ASSERTION(newOffsets.left == -newOffsets.right &&
                  newOffsets.top == -newOffsets.bottom,
@@ -12652,7 +12652,7 @@ nsCSSFrameConstructor::RecomputePosition(nsIFrame* aFrame)
   
   
   
-  const nsStylePosition* position = aFrame->GetStylePosition();
+  const nsStylePosition* position = aFrame->StylePosition();
   if (position->mWidth.GetUnit() != eStyleUnit_Auto &&
       position->mHeight.GetUnit() != eStyleUnit_Auto) {
     

@@ -449,7 +449,7 @@ IsBreakElement(nsINode* aNode)
 
   
   
-  return element->GetPrimaryFrame()->GetStyleDisplay()->mDisplay !=
+  return element->GetPrimaryFrame()->StyleDisplay()->mDisplay !=
     NS_STYLE_DISPLAY_INLINE;
 }
 

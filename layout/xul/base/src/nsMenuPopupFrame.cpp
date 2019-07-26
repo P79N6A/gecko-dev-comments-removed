@@ -316,11 +316,11 @@ nsMenuPopupFrame::CreateWidgetForView(nsView* aView)
 uint8_t
 nsMenuPopupFrame::GetShadowStyle()
 {
-  uint8_t shadow = GetStyleUIReset()->mWindowShadow;
+  uint8_t shadow = StyleUIReset()->mWindowShadow;
   if (shadow != NS_STYLE_WINDOW_SHADOW_DEFAULT)
     return shadow;
 
-  switch (GetStyleDisplay()->mAppearance) {
+  switch (StyleDisplay()->mAppearance) {
     case NS_THEME_TOOLTIP:
       return NS_STYLE_WINDOW_SHADOW_TOOLTIP;
     case NS_THEME_MENUPOPUP:
@@ -918,7 +918,7 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
   
   
   nsMargin margin(0, 0, 0, 0);
-  GetStyleMargin()->GetMargin(margin);
+  StyleMargin()->GetMargin(margin);
   switch (popupAlign) {
     case POPUPALIGNMENT_TOPRIGHT:
       pnt.MoveBy(-mRect.width - margin.right, margin.top);
@@ -1143,7 +1143,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
   FlipStyle hFlip = FlipStyle_None, vFlip = FlipStyle_None;
 
   nsMargin margin(0, 0, 0, 0);
-  GetStyleMargin()->GetMargin(margin);
+  StyleMargin()->GetMargin(margin);
 
   
   nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
@@ -1848,7 +1848,7 @@ nsMenuPopupFrame::MoveTo(int32_t aLeft, int32_t aTop, bool aUpdateAttrs)
   
   
   nsMargin margin(0, 0, 0, 0);
-  GetStyleMargin()->GetMargin(margin);
+  StyleMargin()->GetMargin(margin);
 
   
   if (mAdjustOffsetForContextMenu) {

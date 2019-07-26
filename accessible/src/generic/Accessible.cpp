@@ -620,7 +620,7 @@ Accessible::VisibilityState()
 
   
   
-  if (!frame->GetStyleVisibility()->IsVisible())
+  if (!frame->StyleVisibility()->IsVisible())
     return states::INVISIBLE;
 
   nsIFrame* curFrame = frame;
@@ -660,7 +660,7 @@ Accessible::VisibilityState()
 
     if (!parentFrame) {
       parentFrame = nsLayoutUtils::GetCrossDocParentFrame(curFrame);
-      if (parentFrame && !parentFrame->GetStyleVisibility()->IsVisible())
+      if (parentFrame && !parentFrame->StyleVisibility()->IsVisible())
         return states::INVISIBLE;
     }
 
@@ -717,7 +717,7 @@ Accessible::NativeState()
     
     
     if (HasOwnContent() && mContent->IsXUL() && frame->IsBoxFrame()) {
-      const nsStyleXUL* xulStyle = frame->GetStyleXUL();
+      const nsStyleXUL* xulStyle = frame->StyleXUL();
       if (xulStyle && frame->IsBoxFrame()) {
         
         if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL)
@@ -1537,7 +1537,7 @@ Accessible::State()
   if (!frame)
     return state;
 
-  const nsStyleDisplay* display = frame->GetStyleDisplay();
+  const nsStyleDisplay* display = frame->StyleDisplay();
   if (display && display->mOpacity == 1.0f &&
       !(state & states::INVISIBLE)) {
     state |= states::OPAQUE1;

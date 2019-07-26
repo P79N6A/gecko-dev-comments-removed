@@ -308,7 +308,7 @@ nsBox::GetBorder(nsMargin& aMargin)
 {
   aMargin.SizeTo(0,0,0,0);
     
-  const nsStyleDisplay* disp = GetStyleDisplay();
+  const nsStyleDisplay* disp = StyleDisplay();
   if (disp->mAppearance && gTheme) {
     
     nsPresContext *context = PresContext();
@@ -324,7 +324,7 @@ nsBox::GetBorder(nsMargin& aMargin)
     }
   }
 
-  aMargin = GetStyleBorder()->GetComputedBorder();
+  aMargin = StyleBorder()->GetComputedBorder();
 
   return NS_OK;
 }
@@ -332,7 +332,7 @@ nsBox::GetBorder(nsMargin& aMargin)
 NS_IMETHODIMP
 nsBox::GetPadding(nsMargin& aMargin)
 {
-  const nsStyleDisplay *disp = GetStyleDisplay();
+  const nsStyleDisplay *disp = StyleDisplay();
   if (disp->mAppearance && gTheme) {
     
     nsPresContext *context = PresContext();
@@ -354,7 +354,7 @@ nsBox::GetPadding(nsMargin& aMargin)
   }
 
   aMargin.SizeTo(0,0,0,0);
-  GetStylePadding()->GetPadding(aMargin);
+  StylePadding()->GetPadding(aMargin);
 
   return NS_OK;
 }
@@ -363,7 +363,7 @@ NS_IMETHODIMP
 nsBox::GetMargin(nsMargin& aMargin)
 {
   aMargin.SizeTo(0,0,0,0);
-  GetStyleMargin()->GetMargin(aMargin);
+  StyleMargin()->GetMargin(aMargin);
 
   return NS_OK;
 }
@@ -466,7 +466,7 @@ nsBox::GetFlex(nsBoxLayoutState& aState)
 uint32_t
 nsIFrame::GetOrdinal()
 {
-  uint32_t ordinal = GetStyleXUL()->mBoxOrdinal;
+  uint32_t ordinal = StyleXUL()->mBoxOrdinal;
 
   
   nsIContent* content = GetContent();
@@ -495,7 +495,7 @@ nsBox::GetBoxAscent(nsBoxLayoutState& aState)
 bool
 nsBox::IsCollapsed()
 {
-  return GetStyleVisibility()->mVisible == NS_STYLE_VISIBILITY_COLLAPSE;
+  return StyleVisibility()->mVisible == NS_STYLE_VISIBILITY_COLLAPSE;
 }
 
 nsresult
@@ -518,7 +518,7 @@ nsIFrame::Layout(nsBoxLayoutState& aState)
 bool
 nsBox::DoesClipChildren()
 {
-  const nsStyleDisplay* display = GetStyleDisplay();
+  const nsStyleDisplay* display = StyleDisplay();
   NS_ASSERTION((display->mOverflowY == NS_STYLE_OVERFLOW_CLIP) ==
                (display->mOverflowX == NS_STYLE_OVERFLOW_CLIP),
                "If one overflow is clip, the other should be too");
@@ -603,7 +603,7 @@ nsIFrame::AddCSSPrefSize(nsIFrame* aBox, nsSize& aSize, bool &aWidthSet, bool &a
     aHeightSet = false;
 
     
-    const nsStylePosition* position = aBox->GetStylePosition();
+    const nsStylePosition* position = aBox->StylePosition();
 
     
     
@@ -679,7 +679,7 @@ nsIFrame::AddCSSMinSize(nsBoxLayoutState& aState, nsIFrame* aBox, nsSize& aSize,
     bool canOverride = true;
 
     
-    const nsStyleDisplay* display = aBox->GetStyleDisplay();
+    const nsStyleDisplay* display = aBox->StyleDisplay();
     if (display->mAppearance) {
       nsITheme *theme = aState.PresContext()->GetTheme();
       if (theme && theme->ThemeSupportsWidget(aState.PresContext(), aBox, display->mAppearance)) {
@@ -701,7 +701,7 @@ nsIFrame::AddCSSMinSize(nsBoxLayoutState& aState, nsIFrame* aBox, nsSize& aSize,
     }
 
     
-    const nsStylePosition* position = aBox->GetStylePosition();
+    const nsStylePosition* position = aBox->StylePosition();
 
     
     
@@ -786,7 +786,7 @@ nsIFrame::AddCSSMaxSize(nsIFrame* aBox, nsSize& aSize, bool &aWidthSet, bool &aH
     aHeightSet = false;
 
     
-    const nsStylePosition* position = aBox->GetStylePosition();
+    const nsStylePosition* position = aBox->StylePosition();
 
     
     
@@ -844,7 +844,7 @@ nsIFrame::AddCSSFlex(nsBoxLayoutState& aState, nsIFrame* aBox, nscoord& aFlex)
     bool flexSet = false;
 
     
-    aFlex = aBox->GetStyleXUL()->mBoxFlex;
+    aFlex = aBox->StyleXUL()->mBoxFlex;
 
     
     nsIContent* content = aBox->GetContent();

@@ -413,7 +413,7 @@ public:
 
   bool ShouldAvoidBreakInside(const nsHTMLReflowState& aReflowState) const {
     return !aReflowState.mFlags.mIsTopOfPage &&
-           NS_STYLE_PAGE_BREAK_AVOID == GetStyleDisplay()->mBreakInside &&
+           NS_STYLE_PAGE_BREAK_AVOID == StyleDisplay()->mBreakInside &&
            !GetPrevInFlow();
   }
 

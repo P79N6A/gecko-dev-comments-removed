@@ -325,7 +325,7 @@ nsBoxFrame::GetInitialHAlignment(nsBoxFrame::Halignment& aHalign)
   
   
   
-  const nsStyleXUL* boxInfo = GetStyleXUL();
+  const nsStyleXUL* boxInfo = StyleXUL();
   if (IsHorizontal()) {
     switch (boxInfo->mBoxPack) {
       case NS_STYLE_BOX_PACK_START:
@@ -400,7 +400,7 @@ nsBoxFrame::GetInitialVAlignment(nsBoxFrame::Valignment& aValign)
   
   
   
-  const nsStyleXUL* boxInfo = GetStyleXUL();
+  const nsStyleXUL* boxInfo = StyleXUL();
   if (IsHorizontal()) {
     switch (boxInfo->mBoxAlign) {
       case NS_STYLE_BOX_ALIGN_START:
@@ -446,7 +446,7 @@ nsBoxFrame::GetInitialOrientation(bool& aIsHorizontal)
     return;
 
   
-  const nsStyleXUL* boxInfo = GetStyleXUL();
+  const nsStyleXUL* boxInfo = StyleXUL();
   if (boxInfo->mBoxOrient == NS_STYLE_BOX_ORIENT_HORIZONTAL)
     aIsHorizontal = true;
   else 
@@ -472,13 +472,13 @@ nsBoxFrame::GetInitialDirection(bool& aIsNormal)
   if (IsHorizontal()) {
     
     
-    aIsNormal = (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR); 
+    aIsNormal = (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR); 
   }
   else
     aIsNormal = true; 
 
   
-  const nsStyleXUL* boxInfo = GetStyleXUL();
+  const nsStyleXUL* boxInfo = StyleXUL();
   if (boxInfo->mBoxDirection == NS_STYLE_BOX_DIRECTION_REVERSE)
     aIsNormal = !aIsNormal; 
   
@@ -536,7 +536,7 @@ nsBoxFrame::GetInitialAutoStretch(bool& aStretch)
   }
 
   
-  const nsStyleXUL* boxInfo = GetStyleXUL();
+  const nsStyleXUL* boxInfo = StyleXUL();
   aStretch = (boxInfo->mBoxAlign == NS_STYLE_BOX_ALIGN_STRETCH);
 
   return true;
@@ -1224,7 +1224,7 @@ nsBoxFrame::AttributeChanged(int32_t aNameSpaceID,
     
     
     if (parent && !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-        GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_POPUP) {
+        StyleDisplay()->mDisplay != NS_STYLE_DISPLAY_POPUP) {
       parent->RelayoutChildAtOrdinal(state, this);
       
       PresContext()->PresShell()->
@@ -1301,7 +1301,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (GetContent()->IsXUL()) {
-      const nsStyleDisplay* styles = GetStyleDisplay();
+      const nsStyleDisplay* styles = StyleDisplay();
       if (styles && styles->mAppearance == NS_THEME_WIN_EXCLUDE_GLASS) {
         nsRect rect = nsRect(aBuilder->ToReferenceFrame(this), GetSize());
         aBuilder->AddExcludedGlassRegion(rect);

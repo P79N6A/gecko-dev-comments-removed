@@ -312,7 +312,7 @@ nsBlockFrame::GetLineIterator()
   if (!it)
     return nullptr;
 
-  const nsStyleVisibility* visibility = GetStyleVisibility();
+  const nsStyleVisibility* visibility = StyleVisibility();
   nsresult rv = it->Init(mLines, visibility->mDirection == NS_STYLE_DIRECTION_RTL);
   if (NS_FAILED(rv)) {
     delete it;
@@ -739,7 +739,7 @@ nsBlockFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
           
           
           
-          const nsStyleCoord &indent = GetStyleText()->mTextIndent;
+          const nsStyleCoord &indent = StyleText()->mTextIndent;
           if (indent.ConvertsToLength())
             data.currentLine += nsRuleNode::ComputeCoordPercentCalc(indent, 0);
         }
@@ -819,7 +819,7 @@ nsBlockFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
           
           
           
-          const nsStyleCoord &indent = GetStyleText()->mTextIndent;
+          const nsStyleCoord &indent = StyleText()->mTextIndent;
           if (indent.ConvertsToLength())
             data.currentLine += nsRuleNode::ComputeCoordPercentCalc(indent, 0);
         }
@@ -1595,12 +1595,12 @@ IsAlignedLeft(uint8_t aAlignment,
 nsresult
 nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
 {
-  const nsStyleText* styleText = GetStyleText();
-  const nsStyleTextReset* styleTextReset = GetStyleTextReset();
+  const nsStyleText* styleText = StyleText();
+  const nsStyleTextReset* styleTextReset = StyleTextReset();
   
   bool tryAndSkipLines =
     
-    GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR &&
+    StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR &&
     
     IsAlignedLeft(styleText->mTextAlign, 
                   aState.mReflowState.mStyleVisibility->mDirection,
@@ -1608,7 +1608,7 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
                   this) &&
     
     
-    !GetStylePadding()->mPadding.GetLeft().HasPercent();
+    !StylePadding()->mPadding.GetLeft().HasPercent();
 
 #ifdef DEBUG
   if (gDisableResizeOpt) {
@@ -2716,7 +2716,7 @@ nsBlockFrame::AttributeChanged(int32_t         aNameSpaceID,
     }
   }
   else if (nsGkAtoms::value == aAttribute) {
-    const nsStyleDisplay* styleDisplay = GetStyleDisplay();
+    const nsStyleDisplay* styleDisplay = StyleDisplay();
     if (NS_STYLE_DISPLAY_LIST_ITEM == styleDisplay->mDisplay) {
       
       
@@ -2767,14 +2767,14 @@ nsBlockFrame::IsSelfEmpty()
   if (GetStateBits() & NS_BLOCK_MARGIN_ROOT)
     return false;
 
-  const nsStylePosition* position = GetStylePosition();
+  const nsStylePosition* position = StylePosition();
 
   if (IsNonAutoNonZeroHeight(position->mMinHeight) ||
       IsNonAutoNonZeroHeight(position->mHeight))
     return false;
 
-  const nsStyleBorder* border = GetStyleBorder();
-  const nsStylePadding* padding = GetStylePadding();
+  const nsStyleBorder* border = StyleBorder();
+  const nsStylePadding* padding = StylePadding();
   if (border->GetComputedBorderWidth(NS_SIDE_TOP) != 0 ||
       border->GetComputedBorderWidth(NS_SIDE_BOTTOM) != 0 ||
       !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetTop()) ||
@@ -2883,7 +2883,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   }
 
   
-  const nsStyleDisplay* display = frame->GetStyleDisplay();
+  const nsStyleDisplay* display = frame->StyleDisplay();
   nsBlockReflowContext brc(aState.mPresContext, aState.mReflowState);
 
   uint8_t breakType = display->mBreakType;
@@ -3499,12 +3499,12 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   
   
   uint8_t direction;
-  if (GetStyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
+  if (StyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
     FramePropertyTable *propTable = aState.mPresContext->PropertyTable();
     direction =  NS_PTR_TO_INT32(propTable->Get(aLine->mFirstChild,
                                                 BaseLevelProperty())) & 1;
   } else {
-    direction = GetStyleVisibility()->mDirection;
+    direction = StyleVisibility()->mDirection;
   }
 
   aLineLayout.BeginLineReflow(x, aState.mY,
@@ -3930,10 +3930,10 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
   
   NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
 
-  if (aFloat->GetStyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
+  if (aFloat->StyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
     aState.mFloatManager->SetSplitLeftFloatAcrossBreak();
   } else {
-    NS_ABORT_IF_FALSE(aFloat->GetStyleDisplay()->mFloats ==
+    NS_ABORT_IF_FALSE(aFloat->StyleDisplay()->mFloats ==
                         NS_STYLE_FLOAT_RIGHT, "unexpected float side");
     aState.mFloatManager->SetSplitRightFloatAcrossBreak();
   }
@@ -4164,7 +4164,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   
   
-  const nsStyleText* styleText = GetStyleText();
+  const nsStyleText* styleText = StyleText();
 
   
 
@@ -4188,7 +4188,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   if (aState.mPresContext->BidiEnabled()) {
     if (!aState.mPresContext->IsVisualMode() ||
-        GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+        StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
       nsBidiPresUtils::ReorderFrames(aLine->mFirstChild, aLine->GetChildCount());
     } 
   } 
@@ -4842,7 +4842,7 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
     return true;
   if (type == nsGkAtoms::textFrame)
     return aLastFrame->HasTerminalNewline() &&
-           aLastFrame->GetStyleText()->NewlineIsSignificant();
+           aLastFrame->StyleText()->NewlineIsSignificant();
   return false;
 }
 
@@ -5749,7 +5749,7 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
   
   
   nscoord availWidth;
-  const nsStyleDisplay* floatDisplay = aFloatFrame->GetStyleDisplay();
+  const nsStyleDisplay* floatDisplay = aFloatFrame->StyleDisplay();
 
   if (NS_STYLE_DISPLAY_TABLE != floatDisplay->mDisplay ||
       eCompatibility_NavQuirks != aState.mPresContext->CompatibilityMode() ) {
@@ -6547,10 +6547,10 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
       possibleListItem = parent;
     }
     if (NS_STYLE_DISPLAY_LIST_ITEM ==
-          possibleListItem->GetStyleDisplay()->mDisplay &&
+          possibleListItem->StyleDisplay()->mDisplay &&
         !GetPrevInFlow()) {
       
-      const nsStyleList* styleList = GetStyleList();
+      const nsStyleList* styleList = StyleList();
       nsCSSPseudoElements::Type pseudoType;
       switch (styleList->mListStyleType) {
         case NS_STYLE_LIST_STYLE_DISC:
@@ -6601,10 +6601,10 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
 bool
 nsBlockFrame::BulletIsEmpty() const
 {
-  NS_ASSERTION(mContent->GetPrimaryFrame()->GetStyleDisplay()->mDisplay ==
+  NS_ASSERTION(mContent->GetPrimaryFrame()->StyleDisplay()->mDisplay ==
                  NS_STYLE_DISPLAY_LIST_ITEM && HasOutsideBullet(),
                "should only care when we have an outside bullet");
-  const nsStyleList* list = GetStyleList();
+  const nsStyleList* list = StyleList();
   return list->mListStyleType == NS_STYLE_LIST_STYLE_NONE &&
          !list->GetListStyleImage();
 }
@@ -6614,7 +6614,7 @@ nsBlockFrame::GetBulletText(nsAString& aText) const
 {
   aText.Truncate();
 
-  const nsStyleList* myList = GetStyleList();
+  const nsStyleList* myList = StyleList();
   if (myList->GetListStyleImage() ||
       myList->mListStyleType == NS_STYLE_LIST_STYLE_DISC) {
     aText.Assign(kDiscCharacter);
@@ -6746,7 +6746,7 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
 
   
   nsIFrame* kid = nsPlaceholderFrame::GetRealFrameFor(aKid);
-  const nsStyleDisplay* display = kid->GetStyleDisplay();
+  const nsStyleDisplay* display = kid->StyleDisplay();
 
   
   kid = kid->GetContentInsertionFrame();

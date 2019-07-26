@@ -148,7 +148,7 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
   
   
   
-  const nsStyleSVGReset *style = aFrame->GetStyleSVGReset();
+  const nsStyleSVGReset *style = aFrame->StyleSVGReset();
   return (style->mFilter || style->mClipPath || style->mMask);
 }
 
@@ -432,7 +432,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
     }
   }
 
-  float opacity = aFrame->GetStyleDisplay()->mOpacity;
+  float opacity = aFrame->StyleDisplay()->mOpacity;
   if (opacity == 0.0f) {
     return;
   }

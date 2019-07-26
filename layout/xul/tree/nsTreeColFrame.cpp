@@ -87,7 +87,7 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder, const
   }
 
   
-  if (mFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+  if (mFrame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
     bool tmp = left;
     left = right;
     right = tmp;

@@ -246,11 +246,11 @@ nsImageBoxFrame::UpdateImage()
   } else {
     
     
-    uint8_t appearance = GetStyleDisplay()->mAppearance;
+    uint8_t appearance = StyleDisplay()->mAppearance;
     if (!(appearance && nsBox::gTheme &&
           nsBox::gTheme->ThemeSupportsWidget(nullptr, this, appearance))) {
       
-      imgRequestProxy *styleRequest = GetStyleList()->GetListStyleImage();
+      imgRequestProxy *styleRequest = StyleList()->GetListStyleImage();
       if (styleRequest) {
         styleRequest->Clone(mListener, getter_AddRefs(mImageRequest));
       }
@@ -421,14 +421,14 @@ nsImageBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   nsLeafBoxFrame::DidSetStyleContext(aOldStyleContext);
 
   
-  const nsStyleList* myList = GetStyleList();
+  const nsStyleList* myList = StyleList();
   mSubRect = myList->mImageRegion; 
 
   if (mUseSrcAttr || mSuppressStyleCheck)
     return; 
 
   
-  const nsStyleDisplay* disp = GetStyleDisplay();
+  const nsStyleDisplay* disp = StyleDisplay();
   if (disp->mAppearance && nsBox::gTheme &&
       nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->mAppearance))
     return;

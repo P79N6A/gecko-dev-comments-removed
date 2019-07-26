@@ -2484,7 +2484,7 @@ GetParentFrameToScroll(nsIFrame* aFrame)
   if (!aFrame)
     return nullptr;
 
-  if (aFrame->GetStyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
+  if (aFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED &&
       nsLayoutUtils::IsReallyFixedPos(aFrame))
     return aFrame->PresContext()->GetPresShell()->GetRootScrollFrame();
 
@@ -3130,7 +3130,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         bool suppressBlur = false;
         if (mCurrentTarget) {
           mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(newFocus));
-          const nsStyleUserInterface* ui = mCurrentTarget->GetStyleUserInterface();
+          const nsStyleUserInterface* ui = mCurrentTarget->StyleUserInterface();
           suppressBlur = (ui->mUserFocus == NS_STYLE_USER_FOCUS_IGNORE);
           activeContent = mCurrentTarget->GetContent();
         }
@@ -3165,7 +3165,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         while (currFrame) {
           
           
-          const nsStyleDisplay* display = currFrame->GetStyleDisplay();
+          const nsStyleDisplay* display = currFrame->StyleDisplay();
           if (display->mDisplay == NS_STYLE_DISPLAY_POPUP) {
             newFocus = nullptr;
             break;
@@ -4790,7 +4790,7 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
     
     if (mCurrentTarget)
     {
-      const nsStyleUserInterface* ui = mCurrentTarget->GetStyleUserInterface();
+      const nsStyleUserInterface* ui = mCurrentTarget->StyleUserInterface();
       if (ui->mUserInput == NS_STYLE_USER_INPUT_NONE)
         return false;
     }

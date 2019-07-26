@@ -368,7 +368,7 @@ nsMathMLmoFrame::ProcessOperatorData()
       
       
       
-      if (GetStyleFont()->mScriptLevel > 0) {
+      if (StyleFont()->mScriptLevel > 0) {
         if (NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags)) {
           
           mEmbellishData.leadingSpace = 0;

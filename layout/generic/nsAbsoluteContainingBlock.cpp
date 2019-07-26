@@ -196,7 +196,7 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
                                                    bool aCBWidthChanged,
                                                    bool aCBHeightChanged)
 {
-  const nsStylePosition* pos = f->GetStylePosition();
+  const nsStylePosition* pos = f->StylePosition();
   
   
   
@@ -218,8 +218,8 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     
     return false;
   }
-  const nsStylePadding* padding = f->GetStylePadding();
-  const nsStyleMargin* margin = f->GetStyleMargin();
+  const nsStylePadding* padding = f->StylePadding();
+  const nsStyleMargin* margin = f->StyleMargin();
   if (aCBWidthChanged) {
     
     
@@ -242,7 +242,7 @@ nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
         !IsFixedMarginSize(margin->mMargin.GetRight())) {
       return true;
     }
-    if (f->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    if (f->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
       
       
       

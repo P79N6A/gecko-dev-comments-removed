@@ -1205,7 +1205,7 @@ public:
     InitMetricsForChild();
 
     
-    const nsStyleFont* font = mParentFrame->GetStyleFont();
+    const nsStyleFont* font = mParentFrame->StyleFont();
     nscoord space =
       GetInterFrameSpacing(font->mScriptLevel,
                            prevFrameType, mChildFrameType,
@@ -1375,7 +1375,7 @@ GetInterFrameSpacingFor(int32_t         aScriptLevel,
     if (aChildFrame == childFrame) {
       
       nsStyleContext* parentContext = aParentFrame->StyleContext();
-      nscoord thinSpace = GetThinSpace(parentContext->GetStyleFont());
+      nscoord thinSpace = GetThinSpace(parentContext->StyleFont());
       
       return space * thinSpace;
     }
@@ -1397,7 +1397,7 @@ nsMathMLContainerFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
   nsIAtom *parentTag = parentContent->Tag();
   if (parentContent->GetNameSpaceID() == kNameSpaceID_MathML && 
       (parentTag == nsGkAtoms::math || parentTag == nsGkAtoms::mtd_)) {
-    gap = GetInterFrameSpacingFor(GetStyleFont()->mScriptLevel, mParent, this);
+    gap = GetInterFrameSpacingFor(StyleFont()->mScriptLevel, mParent, this);
     
     nscoord leftCorrection = 0, italicCorrection = 0;
     GetItalicCorrection(mBoundingMetrics, leftCorrection, italicCorrection);

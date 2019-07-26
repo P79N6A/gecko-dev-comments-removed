@@ -8694,7 +8694,7 @@ void ReflowCountMgr::PaintCount(const char*     aName,
       aPresContext->DeviceContext()->GetMetricsFor(font,
         
         aPresContext->GetPresShell()->GetRootFrame()->
-          GetStyleFont()->mLanguage,
+          StyleFont()->mLanguage,
         aPresContext->GetUserFontSet(), *getter_AddRefs(fm));
 
       aRenderingContext->SetFont(fm);
