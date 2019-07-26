@@ -9,6 +9,10 @@
   min-width: 50px;
 }
 
+#sources-pane > tabs {
+  -moz-border-end: 1px solid #222426; 
+}
+
 #sources-and-editor-splitter {
   -moz-border-start-color: transparent;
 }
@@ -20,7 +24,7 @@
   -moz-border-end: 1px solid #222426; 
 }
 
-#sources-toolbar .devtools-toolbarbutton {
+#sources-toolbar > #sources-controls > .devtools-toolbarbutton {
   min-width: 32px;
 }
 
@@ -116,19 +120,50 @@
 
 
 
+.breadcrumbs-widget-item {
+  max-width: none;
+}
+
 .dbg-stackframe-details {
   -moz-padding-start: 4px;
 }
 
-.dbg-stackframe-menuitem[checked] {
-  margin-top: 3px;
-  margin-bottom: 3px;
-  outline: 1px solid #eee;
-  font-weight: 600;
+
+
+.dbg-classic-stackframe {
+  display: block;
+  padding: 4px;
 }
 
-.dbg-stackframe-menuitem-details {
-  -moz-padding-start: 16px;
+.dbg-classic-stackframe-title {
+  font-weight: 600;
+  color: #046;
+}
+
+.dbg-classic-stackframe-details:-moz-locale-dir(ltr) {
+  float: right;
+}
+
+.dbg-classic-stackframe-details:-moz-locale-dir(rtl) {
+  float: left;
+}
+
+.dbg-classic-stackframe-details-url {
+  max-width: 90%;
+  text-align: end;
+  color: #666;
+}
+
+.dbg-classic-stackframe-details-sep {
+  color: #aaa;
+}
+
+.dbg-classic-stackframe-details-line {
+  color: #58b;
+}
+
+#callstack-list .side-menu-widget-item.selected label {
+  color: #fff;
 }
 
 
@@ -188,6 +223,11 @@
   padding: 0 !important;
 }
 
+#instruments-pane .side-menu-widget-container,
+#instruments-pane .side-menu-widget-empty-notice-container {
+  box-shadow: none !important;
+}
+
 
 
 #expressions {
@@ -230,6 +270,10 @@
 
 .dbg-event-listener-location {
   color: #666;
+}
+
+#event-listeners .side-menu-widget-item.selected {
+  background: none !important;
 }
 
 
@@ -385,6 +429,11 @@
 
 
 
+.devtools-sidebar-tabs > tabs > tab {
+  min-height: 25px !important;
+  padding: 0 !important;
+}
+
 #resumption-panel-desc {
   width: 200px;
 }
@@ -473,12 +522,17 @@
   max-height: 80vh;
 }
 
+#body[layout=vertical] #sources-pane > tabs {
+  -moz-border-end: none;
+}
+
 #body[layout=vertical] #instruments-pane {
   margin: 0 !important;
   
 }
 
-#body[layout=vertical] .side-menu-widget-container {
+#body[layout=vertical] .side-menu-widget-container,
+#body[layout=vertical] .side-menu-widget-empty-notice-container {
   box-shadow: none !important;
 }
 

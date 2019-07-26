@@ -6,12 +6,7 @@
 
 
 
-#globalsearch {
-  overflow: auto;
-}
-
-
-
+#sources-pane > tabpanels > tabpanel,
 #instruments-pane > tabpanels > tabpanel {
   -moz-box-orient: vertical;
 }
@@ -19,6 +14,10 @@
 #expressions {
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+#globalsearch {
+  overflow: auto;
 }
 
 

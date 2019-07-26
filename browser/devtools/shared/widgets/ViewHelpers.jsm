@@ -733,6 +733,7 @@ this.WidgetMethods = {
     }
     this._widget.removeChild(aItem._target);
     this._untangleItem(aItem);
+    if (!this.itemCount) this.empty();
   },
 
   
@@ -1009,7 +1010,9 @@ this.WidgetMethods = {
     
     if (targetElement != prevElement) {
       this._widget.selectedItem = targetElement;
-      ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
+      let dispTarget = targetElement || prevElement;
+      let dispName = this.suppressSelectionEvents ? "suppressed-select" : "select";
+      ViewHelpers.dispatchEvent(dispTarget, dispName, aItem);
     }
 
     
@@ -1043,6 +1046,15 @@ this.WidgetMethods = {
 
   set selectedValue(aValue)
     this.selectedItem = this._itemsByValue.get(aValue),
+
+  
+
+
+
+
+
+
+  suppressSelectionEvents: false,
 
   
 
@@ -1303,6 +1315,14 @@ this.WidgetMethods = {
       }
     }
     return null;
+  },
+
+  
+
+
+
+  getItemForAttachment: function(aPredicate, aOwner = this) {
+    return this.getItemForPredicate(e => aPredicate(e.attachment));
   },
 
   
