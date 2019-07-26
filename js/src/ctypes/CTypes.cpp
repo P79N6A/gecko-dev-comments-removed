@@ -1579,7 +1579,7 @@ jsvalToBool(JSContext* cx, jsval val, bool* result)
     *result = val.toBoolean();
     return true;
   }
-  if (JSVAL_IS_INT(val)) {
+  if (val.isInt32()) {
     int32_t i = JSVAL_TO_INT(val);
     *result = i != 0;
     return i == 0 || i == 1;
@@ -1603,7 +1603,7 @@ jsvalToInteger(JSContext* cx, jsval val, IntegerType* result)
 {
   JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
-  if (JSVAL_IS_INT(val)) {
+  if (val.isInt32()) {
     
     
     int32_t i = JSVAL_TO_INT(val);
@@ -1696,7 +1696,7 @@ jsvalToFloat(JSContext *cx, jsval val, FloatType* result)
   
   
   
-  if (JSVAL_IS_INT(val)) {
+  if (val.isInt32()) {
     *result = FloatType(JSVAL_TO_INT(val));
     return true;
   }
@@ -1808,7 +1808,7 @@ jsvalToBigInteger(JSContext* cx,
 {
   JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
-  if (JSVAL_IS_INT(val)) {
+  if (val.isInt32()) {
     
     
     int32_t i = JSVAL_TO_INT(val);
@@ -1971,7 +1971,7 @@ jsvalToIntegerExplicit(jsval val, IntegerType* result)
 static bool
 jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
 {
-  if (JSVAL_IS_INT(val)) {
+  if (val.isInt32()) {
     
     
     int32_t i = JSVAL_TO_INT(val);
@@ -3481,7 +3481,7 @@ CType::GetSafeSize(JSObject* obj, size_t* result)
 
   
   
-  if (JSVAL_IS_INT(size)) {
+  if (size.isInt32()) {
     *result = JSVAL_TO_INT(size);
     return true;
   }
@@ -3506,7 +3506,7 @@ CType::GetSize(JSObject* obj)
   
   
   
-  if (JSVAL_IS_INT(size))
+  if (size.isInt32())
     return JSVAL_TO_INT(size);
   return Convert<size_t>(size.toDouble());
 }
@@ -3520,7 +3520,7 @@ CType::IsSizeDefined(JSObject* obj)
 
   
   
-  JS_ASSERT(JSVAL_IS_INT(size) || size.isDouble() || size.isUndefined());
+  JS_ASSERT(size.isInt32() || size.isDouble() || size.isUndefined());
   return !size.isUndefined();
 }
 
