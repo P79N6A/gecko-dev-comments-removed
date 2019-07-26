@@ -30,12 +30,12 @@
 
 
 
-class gfxMatrix {
-public:
+struct gfxMatrix {
     double _11; double _12;
     double _21; double _22;
     double _31; double _32;
 
+public:
     
 
 

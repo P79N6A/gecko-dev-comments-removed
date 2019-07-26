@@ -23,6 +23,7 @@
 class gfxContext;
 class nsSVGPathDataParser; 
 
+struct gfxMatrix;
 struct nsSVGMark;
 
 namespace mozilla {
