@@ -38,9 +38,21 @@ GetNativePropertiesObject(JSContext *cx, JSObject *wrapper);
 
 }
 
+class XrayTraits;
 class XPCWrappedNativeXrayTraits;
 class ProxyXrayTraits;
 class DOMXrayTraits;
+
+
+enum XrayType {
+    XrayForDOMObject,
+    XrayForDOMProxyObject,
+    XrayForWrappedNative,
+    NotXray
+};
+
+XrayType GetXrayType(JSObject *obj);
+XrayTraits* GetXrayTraits(JSObject *obj);
 
 
 template <typename Base, typename Traits = XPCWrappedNativeXrayTraits >
