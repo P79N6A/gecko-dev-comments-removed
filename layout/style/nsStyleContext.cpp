@@ -440,7 +440,19 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   
   
   bool compare = mRuleNode != aOther->mRuleNode;
-  DebugOnly<int> styleStructCount = 0;
+
+  
+  
+  
+  const nsStyleVariables* thisVariables = PeekStyleVariables();
+  if (thisVariables) {
+    const nsStyleVariables* otherVariables = aOther->StyleVariables();
+    if (thisVariables->mVariables != otherVariables->mVariables) {
+      compare = true;
+    }
+  }
+
+  DebugOnly<int> styleStructCount = 1;  
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
   PR_BEGIN_MACRO                                                              \
@@ -490,7 +502,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   DO_STRUCT_DIFFERENCE(TextReset);
   DO_STRUCT_DIFFERENCE(Background);
   DO_STRUCT_DIFFERENCE(Color);
-  DO_STRUCT_DIFFERENCE(Variables);
 
 #undef DO_STRUCT_DIFFERENCE
 

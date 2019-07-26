@@ -26,6 +26,10 @@ public:
 #endif
   CSSVariableValues& operator=(const CSSVariableValues& aOther);
 
+  bool operator==(const CSSVariableValues& aOther) const;
+  bool operator!=(const CSSVariableValues& aOther) const
+    { return !(*this == aOther); }
+
   
 
 
