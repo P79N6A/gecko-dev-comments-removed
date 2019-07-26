@@ -10,6 +10,7 @@
 #include "nsISupportsImpl.h"
 #include "nsIThread.h"
 #include "nsAutoPtr.h"
+#include "AudioSampleFormat.h"
 
 
 
@@ -18,15 +19,6 @@
 class nsAudioStream : public nsISupports
 {
 public:
-
-  enum SampleFormat
-  {
-    
-    FORMAT_S16,
-    
-    FORMAT_FLOAT32
-  };
-
   nsAudioStream()
     : mRate(0),
       mChannels(0)
@@ -107,11 +99,11 @@ public:
   int GetRate() { return mRate; }
   int GetChannels() { return mChannels; }
 
-  static SampleFormat Format() {
+  static mozilla::AudioSampleFormat Format() {
 #ifdef MOZ_SAMPLE_TYPE_S16
-    return nsAudioStream::FORMAT_S16;
+    return mozilla::AUDIO_FORMAT_S16;
 #else
-    return nsAudioStream::FORMAT_FLOAT32;
+    return mozilla::AUDIO_FORMAT_FLOAT32;
 #endif
   }
 
