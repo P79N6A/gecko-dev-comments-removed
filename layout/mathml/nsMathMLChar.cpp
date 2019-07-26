@@ -679,14 +679,6 @@ nsGlyphTableList::GetGlyphTableFor(const nsAString& aFamily)
 
 
 
-static bool
-MathFontEnumCallback(const nsString& aFamily, bool aGeneric, void *aData)
-{
-  if (!gGlyphTableList->AddGlyphTable(aFamily))
-    return false; 
-  return true; 
-}
-
 static nsresult
 InitGlobals(nsPresContext* aPresContext)
 {
@@ -705,34 +697,20 @@ InitGlobals(nsPresContext* aPresContext)
     return rv;
   }
   
-
-
-
-
-
-  nsAutoCString key;
-  nsAutoString value;
-  nsCOMPtr<nsIPersistentProperties> mathfontProp;
-
   
   
   
+  if (!gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("MathJax_Main")) ||
+      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("STIXNonUnicode")) ||
+      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("STIXSizeOneSym")) ||
+      !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("Standard Symbols L"))
+#ifdef XP_WIN
+      || !gGlyphTableList->AddGlyphTable(NS_LITERAL_STRING("Symbol"))
+#endif
+      ) {
+    rv = NS_ERROR_OUT_OF_MEMORY;
+  }
 
-  
-  value.Truncate();
-  rv = LoadProperties(value, mathfontProp);
-  if (NS_FAILED(rv)) return rv;
-
-  
-  
-  
-  
-  nsFont font("", 0, 0, 0, 0, 0, 0);
-  NS_NAMED_LITERAL_CSTRING(defaultKey, "font.mathfont-glyph-tables");
-  rv = mathfontProp->GetStringProperty(defaultKey, font.name);
-  if (NS_FAILED(rv)) return rv;
-
-  font.EnumerateFamilies(MathFontEnumCallback, nullptr);
   return rv;
 }
 
