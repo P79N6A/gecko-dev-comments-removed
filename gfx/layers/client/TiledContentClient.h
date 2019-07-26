@@ -265,13 +265,6 @@ struct BasicTiledLayerPaintData {
 
 
 
-  gfx3DMatrix mTransformDisplayPortToLayer;
-
-  
-
-
-
-
 
   gfx3DMatrix mTransformToCompBounds;
 

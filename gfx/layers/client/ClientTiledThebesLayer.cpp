@@ -150,10 +150,8 @@ ClientTiledThebesLayer::BeginPaint()
 
   
   
-  gfx3DMatrix transformToDisplayPort =
-    GetTransformToAncestorsParentLayer(this, displayPortAncestor);
-
-  mPaintData.mTransformDisplayPortToLayer = transformToDisplayPort.Inverse();
+  gfx3DMatrix transformDisplayPortToLayer =
+    GetTransformToAncestorsParentLayer(this, displayPortAncestor).Inverse();
 
   
   
@@ -167,7 +165,7 @@ ClientTiledThebesLayer::BeginPaint()
     (displayportMetrics.mCriticalDisplayPort * displayportMetrics.GetZoomToParent())
     + displayportMetrics.mCompositionBounds.TopLeft();
   mPaintData.mCriticalDisplayPort = RoundedOut(
-    ApplyParentLayerToLayerTransform(mPaintData.mTransformDisplayPortToLayer, criticalDisplayPort));
+    ApplyParentLayerToLayerTransform(transformDisplayPortToLayer, criticalDisplayPort));
   TILING_PRLOG_OBJ(("TILING 0x%p: Critical displayport %s\n", this, tmpstr.get()), mPaintData.mCriticalDisplayPort);
 
   
