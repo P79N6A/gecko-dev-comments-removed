@@ -289,8 +289,6 @@ BaselineCompiler::emitPrologue()
     else
         masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
 
-    masm.storePtr(ImmPtr(nullptr), frame.addressOfBlockChain());
-
     
     
     

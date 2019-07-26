@@ -178,7 +178,6 @@ class AbstractFramePtr
 
     inline JSCompartment *compartment() const;
 
-    inline StaticBlockObject *maybeBlockChain() const;
     inline bool hasCallObj() const;
     inline bool isGeneratorFrame() const;
     inline bool isYielding() const;
@@ -337,7 +336,6 @@ class StackFrame
     } u;
     mutable JSObject    *scopeChain_;   
     Value               rval_;          
-    StaticBlockObject   *blockChain_;   
     ArgumentsObject     *argsObj_;      
 
     
@@ -593,19 +591,6 @@ class StackFrame
 
 
 
-
-    bool hasBlockChain() const {
-        return blockChain_;
-    }
-
-    StaticBlockObject *maybeBlockChain() {
-        return blockChain_;
-    }
-
-    StaticBlockObject &blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return *blockChain_;
-    }
 
     bool pushBlock(JSContext *cx, StaticBlockObject &block);
     void popBlock(JSContext *cx);
