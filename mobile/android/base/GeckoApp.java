@@ -1511,7 +1511,9 @@ abstract public class GeckoApp
                 savedInstanceState.getBoolean(SAVED_STATE_IN_BACKGROUND, false);
             Log.i(LOGTAG, "Was in background: " + wasInBackground);
 
-            if (!wasInBackground) {
+            
+            
+            if (!wasInBackground && !mIsRestoringActivity) {
                 Telemetry.HistogramAdd("OUT_OF_MEMORY_KILLED", 1);
             }
         }
