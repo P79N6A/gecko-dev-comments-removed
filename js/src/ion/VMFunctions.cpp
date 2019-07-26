@@ -52,10 +52,25 @@ using namespace js::ion;
 namespace js {
 namespace ion {
 
+static inline bool
+ShouldMonitorReturnType(JSFunction *fun)
+{
+    return fun->isInterpreted() &&
+           (!fun->script()->hasAnalysis() ||
+            !fun->script()->analysis()->ranInference());
+}
+
 bool
 InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *rval)
 {
     Value fval = ObjectValue(*fun);
+
+    
+    
+    
+    
+    
+    bool needsMonitor = ShouldMonitorReturnType(fun);
 
     
     Value thisv = argv[0];
@@ -63,7 +78,7 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
 
     
     bool ok = Invoke(cx, thisv, fval, argc, argvWithoutThis, rval);
-    if (ok)
+    if (ok && needsMonitor)
         types::TypeScript::Monitor(cx, *rval);
 
     return ok;
@@ -75,10 +90,13 @@ InvokeConstructorFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *ar
     Value fval = ObjectValue(*fun);
 
     
+    bool needsMonitor = ShouldMonitorReturnType(fun);
+
+    
     Value *argvWithoutThis = argv + 1;
 
     bool ok = InvokeConstructor(cx, fval, argc, argvWithoutThis, rval);
-    if (ok)
+    if (ok && needsMonitor)
         types::TypeScript::Monitor(cx, *rval);
 
     return ok;
