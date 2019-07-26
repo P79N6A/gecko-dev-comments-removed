@@ -1192,19 +1192,92 @@ let CustomizableUIInternal = {
 
 
   _isOnInteractiveElement: function(aEvent) {
+    function getMenuPopupForDescendant(aNode) {
+      let lastPopup = null;
+      while (aNode && aNode.parentNode &&
+             aNode.parentNode.localName.startsWith("menu")) {
+        lastPopup = aNode.localName == "menupopup" ? aNode : lastPopup;
+        aNode = aNode.parentNode;
+      }
+      return lastPopup;
+    }
+
     let target = aEvent.originalTarget;
     let panel = this._getPanelForNode(aEvent.currentTarget);
+    
+    
     let inInput = false;
+    
     let inMenu = false;
+    
     let inItem = false;
-    while (!inInput && !inMenu && !inItem && target != panel) {
+    
+    let menuitemCloseMenu = "auto";
+    
+    let closemenu = "auto";
+
+    
+    
+    
+    while (true) {
       let tagName = target.localName;
-      inInput = tagName == "input";
-      inMenu = target.type == "menu";
+      inInput = tagName == "input" || tagName == "textbox";
       inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
-      target = target.parentNode;
+      let isMenuItem = tagName == "menuitem";
+      inMenu = inMenu || isMenuItem;
+      if (inItem && target.hasAttribute("closemenu")) {
+        let closemenuVal = target.getAttribute("closemenu");
+        closemenu = (closemenuVal == "single" || closemenuVal == "none") ?
+                    closemenuVal : "auto";
+      }
+
+      if (isMenuItem && target.hasAttribute("closemenu")) {
+        let closemenuVal = target.getAttribute("closemenu");
+        menuitemCloseMenu = (closemenuVal == "single" || closemenuVal == "none") ?
+                            closemenuVal : "auto";
+      }
+      
+      
+      if (inInput || inItem || target == panel) {
+        break;
+      }
+      
+      
+      if (isMenuItem) {
+        let topmostMenuPopup = getMenuPopupForDescendant(target);
+        target = (topmostMenuPopup && topmostMenuPopup.triggerNode) ||
+                 target.parentNode;
+      } else {
+        target = target.parentNode;
+      }
     }
-    return inMenu || inInput || !inItem;
+    
+    if (inMenu) {
+      
+      
+      if (inInput || menuitemCloseMenu != "auto") {
+        return true;
+      }
+      
+      return false;
+    }
+    
+    
+    if (inItem && target.getAttribute("type") == "menu") {
+      return true;
+    }
+    
+    
+    if (inItem && target.getAttribute("type") == "menu-button") {
+      
+      if (target.getAttribute("anonid") == "button") {
+        return closemenu != "none";
+      }
+      
+      
+      return true;
+    }
+    return inInput || !inItem;
   },
 
   hidePanelForNode: function(aNode) {
