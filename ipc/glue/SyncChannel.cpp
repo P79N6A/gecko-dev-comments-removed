@@ -102,7 +102,13 @@ SyncChannel::ProcessUrgentMessages()
 bool
 SyncChannel::Send(Message* _msg, Message* reply)
 {
-    MOZ_ASSERT(!mPendingReply);
+    if (mPendingReply) {
+        
+        
+        
+        NS_ERROR("Nested sync messages are not supported");
+        return false;
+    }
 
     nsAutoPtr<Message> msg(_msg);
 
