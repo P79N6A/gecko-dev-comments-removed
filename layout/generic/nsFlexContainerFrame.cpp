@@ -1982,6 +1982,8 @@ nsresult
 nsFlexContainerFrame::GenerateFlexLines(
   nsPresContext* aPresContext,
   const nsHTMLReflowState& aReflowState,
+  nscoord aContentBoxMainSize,
+  nscoord aAvailableHeightForContent,
   const FlexboxAxisTracker& aAxisTracker,
   nsTArray<FlexLine>& aLines)
 {
@@ -2001,13 +2003,26 @@ nsFlexContainerFrame::GenerateFlexLines(
     curLine->mItems.SetCapacity(mFrames.GetLength());
   } else {
     
+    wrapThreshold = aContentBoxMainSize;
+
     
     
     
+    if (wrapThreshold == NS_UNCONSTRAINEDSIZE) {
+      const nscoord flexContainerMaxMainSize =
+        GET_MAIN_COMPONENT(aAxisTracker,
+                           aReflowState.mComputedMaxWidth,
+                           aReflowState.mComputedMaxHeight);
+
+      wrapThreshold = flexContainerMaxMainSize;
+    }
+
     
-    wrapThreshold = GET_MAIN_COMPONENT(aAxisTracker,
-                      aReflowState.ComputedWidth(),
-                      GetEffectiveComputedHeight(aReflowState));
+    
+    if (!IsAxisHorizontal(aAxisTracker.GetMainAxis()) &&
+        aAvailableHeightForContent != NS_UNCONSTRAINEDSIZE) {
+      wrapThreshold = std::min(wrapThreshold, aAvailableHeightForContent);
+    }
   }
 
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
@@ -2055,13 +2070,12 @@ nsFlexContainerFrame::GenerateFlexLines(
 }
 
 
+
+
 nscoord
-nsFlexContainerFrame::ComputeFlexContainerMainSize(
+nsFlexContainerFrame::GetMainSizeFromReflowState(
   const nsHTMLReflowState& aReflowState,
-  const FlexboxAxisTracker& aAxisTracker,
-  const FlexLine& aLine,
-  nscoord aAvailableHeightForContent,
-  nsReflowStatus& aStatus)
+  const FlexboxAxisTracker& aAxisTracker)
 {
   if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
     
@@ -2069,16 +2083,35 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
     return aReflowState.ComputedWidth();
   }
 
-  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState);
-  if (effectiveComputedHeight != NS_INTRINSICSIZE) {
+  return GetEffectiveComputedHeight(aReflowState);
+}
+
+
+
+static nscoord
+ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
+                           const FlexboxAxisTracker& aAxisTracker,
+                           nscoord aUnclampedMainSize,
+                           nscoord aAvailableHeightForContent,
+                           const FlexLine& aLine,
+                           nsReflowStatus& aStatus)
+{
+  if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
+    
+    
+    
+    return aUnclampedMainSize;
+  }
+
+  if (aUnclampedMainSize != NS_INTRINSICSIZE) {
     
     if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
-        effectiveComputedHeight < aAvailableHeightForContent) {
+        aUnclampedMainSize < aAvailableHeightForContent) {
       
       
       
       
-      return effectiveComputedHeight;
+      return aUnclampedMainSize;
     }
 
     
@@ -2093,7 +2126,7 @@ nsFlexContainerFrame::ComputeFlexContainerMainSize(
     if (sumOfChildHeights <= aAvailableHeightForContent) {
       return aAvailableHeightForContent;
     }
-    return std::min(effectiveComputedHeight, sumOfChildHeights);
+    return std::min(aUnclampedMainSize, sumOfChildHeights);
   }
 
   
@@ -2378,14 +2411,8 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   const FlexboxAxisTracker axisTracker(this);
 
-  
-  nsAutoTArray<FlexLine, 1> lines;
-  nsresult rv = GenerateFlexLines(aPresContext, aReflowState,
-                                  axisTracker, lines);
-  NS_ENSURE_SUCCESS(rv, rv);
-  FlexLine& line = lines[0]; 
-                             
-                             
+  nscoord contentBoxMainSize = GetMainSizeFromReflowState(aReflowState,
+                                                          axisTracker);
 
   
   
@@ -2399,9 +2426,20 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     availableHeightForContent = std::max(availableHeightForContent, 0);
   }
 
-  const nscoord contentBoxMainSize =
-    ComputeFlexContainerMainSize(aReflowState, axisTracker, line,
-                                 availableHeightForContent, aStatus);
+  
+  nsAutoTArray<FlexLine, 1> lines;
+  nsresult rv = GenerateFlexLines(aPresContext, aReflowState,
+                                  contentBoxMainSize, availableHeightForContent,
+                                  axisTracker, lines);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  FlexLine& line = lines[0]; 
+                             
+                             
+  contentBoxMainSize =
+    ClampFlexContainerMainSize(aReflowState, axisTracker,
+                               contentBoxMainSize, availableHeightForContent,
+                               line, aStatus);
 
   line.ResolveFlexibleLengths(contentBoxMainSize);
 
