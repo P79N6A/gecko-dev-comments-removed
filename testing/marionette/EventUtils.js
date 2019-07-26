@@ -322,6 +322,8 @@ function _computeKeyCodeFromChar(aChar)
     case '?':
     case '/':
       return nsIDOMKeyEvent.DOM_VK_SLASH;
+    case '\n':
+      return nsIDOMKeyEvent.DOM_VK_RETURN;
     default:
       return 0;
   }
@@ -647,4 +649,25 @@ function synthesizeQuerySelectedText(aWindow)
   }
 
   return utils.sendQueryContentEvent(utils.QUERY_SELECTED_TEXT, 0, 0, 0, 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function synthesizeSelectionSet(aOffset, aLength, aReverse, aWindow)
+{
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils) {
+    return false;
+  }
+  return utils.sendSelectionSetEvent(aOffset, aLength, aReverse);
 }

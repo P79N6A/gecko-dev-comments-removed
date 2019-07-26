@@ -120,27 +120,6 @@ function synthesizeCharAtPoint(aX, aY, aWindow)
 
 
 
-function synthesizeSelectionSet(aOffset, aLength, aReverse, aWindow)
-{
-  var utils = _getDOMWindowUtils(aWindow);
-  if (!utils) {
-    return false;
-  }
-  return utils.sendSelectionSetEvent(aOffset, aLength, aReverse);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
