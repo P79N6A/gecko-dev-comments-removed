@@ -454,7 +454,7 @@ LIRGenerator::visitCompare(MCompare *comp)
         
         
         if (comp->specialization() == MIRType_String) {
-            LCompareS *lir = new LCompareS(useRegister(left), useRegister(right));
+            LCompareS *lir = new LCompareS(useRegister(left), useRegister(right), temp());
             if (!define(lir, comp))
                 return false;
             return assignSafepoint(lir, comp);
