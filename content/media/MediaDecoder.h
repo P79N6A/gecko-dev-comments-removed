@@ -395,7 +395,8 @@ public:
                       int64_t aInitialTime, SourceMediaStream* aStream);
     ~DecodedStreamData();
 
-    StreamTime GetLastOutputTime() { return mListener->GetLastOutputTime(); }
+    
+    int64_t GetLastOutputTime() { return mListener->GetLastOutputTime(); }
     bool IsFinished() { return mListener->IsFinishedOnMainThread(); }
 
     
@@ -444,7 +445,7 @@ public:
 
     void DoNotifyFinished();
 
-    StreamTime GetLastOutputTime()
+    int64_t GetLastOutputTime() 
     {
       MutexAutoLock lock(mMutex);
       return mLastOutputTime;
@@ -477,7 +478,7 @@ public:
     
     nsRefPtr<MediaStream> mStream;
     
-    StreamTime mLastOutputTime;
+    int64_t mLastOutputTime; 
     
     bool mStreamFinishedOnMainThread;
   };

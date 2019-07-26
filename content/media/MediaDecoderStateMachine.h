@@ -732,7 +732,7 @@ protected:
   
   
   
-  StreamTime mSyncPointInMediaStream;
+  int64_t mSyncPointInMediaStream; 
   int64_t mSyncPointInDecodedStream; 
 
   
