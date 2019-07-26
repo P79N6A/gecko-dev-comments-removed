@@ -5,8 +5,8 @@
 
 
 
-#ifndef nsDOMMediaQueryList_h_
-#define nsDOMMediaQueryList_h_
+#ifndef mozilla_dom_MediaQueryList_h
+#define mozilla_dom_MediaQueryList_h
 
 #include "nsIDOMMediaQueryList.h"
 #include "nsCycleCollectionParticipant.h"
@@ -19,25 +19,28 @@
 class nsPresContext;
 class nsMediaList;
 
-class nsDOMMediaQueryList MOZ_FINAL : public nsIDOMMediaQueryList,
-                                      public PRCList
+namespace mozilla {
+namespace dom {
+
+class MediaQueryList MOZ_FINAL : public nsIDOMMediaQueryList,
+                                 public PRCList
 {
 public:
   
   
-  nsDOMMediaQueryList(nsPresContext *aPresContext,
-                      const nsAString &aMediaQueryList);
+  MediaQueryList(nsPresContext *aPresContext,
+                 const nsAString &aMediaQueryList);
 private:
-  ~nsDOMMediaQueryList();
+  ~MediaQueryList();
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMMediaQueryList)
+  NS_DECL_CYCLE_COLLECTION_CLASS(MediaQueryList)
 
   NS_DECL_NSIDOMMEDIAQUERYLIST
 
   struct HandleChangeData {
-    nsRefPtr<nsDOMMediaQueryList> mql;
+    nsRefPtr<MediaQueryList> mql;
     nsCOMPtr<nsIDOMMediaQueryListListener> listener;
   };
 
@@ -75,5 +78,8 @@ private:
   bool mMatchesValid;
   ListenerList mListeners;
 };
+
+} 
+} 
 
 #endif 
