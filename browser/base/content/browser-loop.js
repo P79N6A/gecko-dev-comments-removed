@@ -23,6 +23,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/l
       let anchor = event.target;
       let iframe = document.getElementById("loop-panel-frame");
 
+      if (!iframe) {
+        
+        iframe = document.createElement("iframe");
+        iframe.setAttribute("id", "loop-panel-frame");
+        iframe.setAttribute("type", "content");
+        iframe.setAttribute("class", "loop-frame social-panel-frame");
+        iframe.setAttribute("flex", "1");
+        panel.appendChild(iframe);
+      }
+
       
       iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
         iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
