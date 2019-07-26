@@ -3,7 +3,7 @@
 
 
 
-#include "nsAccDocManager.h"
+#include "DocManager.h"
 
 #include "Accessible-inl.h"
 #include "ApplicationAccessible.h"
@@ -40,7 +40,7 @@ using namespace mozilla::a11y;
 
 
 DocAccessible*
-nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
+DocManager::GetDocAccessible(nsIDocument* aDocument)
 {
   if (!aDocument)
     return nullptr;
@@ -56,7 +56,7 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
 }
 
 Accessible*
-nsAccDocManager::FindAccessibleInCache(nsINode* aNode) const
+DocManager::FindAccessibleInCache(nsINode* aNode) const
 {
   nsSearchAccessibleInCacheArg arg;
   arg.mNode = aNode;
@@ -69,7 +69,7 @@ nsAccDocManager::FindAccessibleInCache(nsINode* aNode) const
 
 #ifdef DEBUG
 bool
-nsAccDocManager::IsProcessingRefreshDriverNotification() const
+DocManager::IsProcessingRefreshDriverNotification() const
 {
   bool isDocRefreshing = false;
   mDocAccessibleCache.EnumerateRead(SearchIfDocIsRefreshing,
@@ -84,7 +84,7 @@ nsAccDocManager::IsProcessingRefreshDriverNotification() const
 
 
 bool
-nsAccDocManager::Init()
+DocManager::Init()
 {
   mDocAccessibleCache.Init(4);
 
@@ -101,7 +101,7 @@ nsAccDocManager::Init()
 }
 
 void
-nsAccDocManager::Shutdown()
+DocManager::Shutdown()
 {
   nsCOMPtr<nsIWebProgress> progress =
     do_GetService(NS_DOCUMENTLOADER_SERVICE_CONTRACTID);
@@ -115,7 +115,7 @@ nsAccDocManager::Shutdown()
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS3(nsAccDocManager,
+NS_IMPL_THREADSAFE_ISUPPORTS3(DocManager,
                               nsIWebProgressListener,
                               nsIDOMEventListener,
                               nsISupportsWeakReference)
@@ -124,9 +124,9 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsAccDocManager,
 
 
 NS_IMETHODIMP
-nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
-                               nsIRequest *aRequest, uint32_t aStateFlags,
-                               nsresult aStatus)
+DocManager::OnStateChange(nsIWebProgress* aWebProgress,
+                          nsIRequest* aRequest, uint32_t aStateFlags,
+                          nsresult aStatus)
 {
   NS_ASSERTION(aStateFlags & STATE_IS_DOCUMENT, "Other notifications excluded");
 
@@ -203,39 +203,39 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
 }
 
 NS_IMETHODIMP
-nsAccDocManager::OnProgressChange(nsIWebProgress *aWebProgress,
-                                  nsIRequest *aRequest,
-                                  int32_t aCurSelfProgress,
-                                  int32_t aMaxSelfProgress,
-                                  int32_t aCurTotalProgress,
-                                  int32_t aMaxTotalProgress)
+DocManager::OnProgressChange(nsIWebProgress* aWebProgress,
+                             nsIRequest* aRequest,
+                             int32_t aCurSelfProgress,
+                             int32_t aMaxSelfProgress,
+                             int32_t aCurTotalProgress,
+                             int32_t aMaxTotalProgress)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsAccDocManager::OnLocationChange(nsIWebProgress *aWebProgress,
-                                  nsIRequest *aRequest, nsIURI *aLocation,
-                                  uint32_t aFlags)
+DocManager::OnLocationChange(nsIWebProgress* aWebProgress,
+                             nsIRequest* aRequest, nsIURI* aLocation,
+                             uint32_t aFlags)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsAccDocManager::OnStatusChange(nsIWebProgress *aWebProgress,
-                                nsIRequest *aRequest, nsresult aStatus,
-                                const PRUnichar *aMessage)
+DocManager::OnStatusChange(nsIWebProgress* aWebProgress,
+                           nsIRequest* aRequest, nsresult aStatus,
+                           const PRUnichar* aMessage)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsAccDocManager::OnSecurityChange(nsIWebProgress *aWebProgress,
-                                  nsIRequest *aRequest,
-                                  uint32_t aState)
+DocManager::OnSecurityChange(nsIWebProgress* aWebProgress,
+                             nsIRequest* aRequest,
+                             uint32_t aState)
 {
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
@@ -245,7 +245,7 @@ nsAccDocManager::OnSecurityChange(nsIWebProgress *aWebProgress,
 
 
 NS_IMETHODIMP
-nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
+DocManager::HandleEvent(nsIDOMEvent* aEvent)
 {
   nsAutoString type;
   aEvent->GetType(type);
@@ -306,8 +306,8 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
 
 
 void
-nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
-                                       uint32_t aLoadEventType)
+DocManager::HandleDOMDocumentLoad(nsIDocument* aDocument,
+                                  uint32_t aLoadEventType)
 {
   
   
@@ -322,8 +322,8 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
 }
 
 void
-nsAccDocManager::AddListeners(nsIDocument *aDocument,
-                              bool aAddDOMContentLoadedListener)
+DocManager::AddListeners(nsIDocument* aDocument,
+                         bool aAddDOMContentLoadedListener)
 {
   nsPIDOMWindow *window = aDocument->GetWindow();
   nsIDOMEventTarget *target = window->GetChromeEventHandler();
@@ -347,7 +347,7 @@ nsAccDocManager::AddListeners(nsIDocument *aDocument,
 }
 
 DocAccessible*
-nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
+DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 {
   
   
@@ -422,9 +422,9 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
 
 PLDHashOperator
-nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
-                                         DocAccessible* aDocAccessible,
-                                         void* aUserArg)
+DocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
+                                    DocAccessible* aDocAccessible,
+                                    void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
                "No doc accessible for the object in doc accessible cache!");
@@ -434,7 +434,7 @@ nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
 }
 
 void
-nsAccDocManager::ClearDocCache()
+DocManager::ClearDocCache()
 {
   DocAccessible* docAcc = nullptr;
   while (mDocAccessibleCache.EnumerateRead(GetFirstEntryInDocCache, static_cast<void*>(&docAcc))) {
@@ -444,9 +444,9 @@ nsAccDocManager::ClearDocCache()
 }
 
 PLDHashOperator
-nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
-                                            DocAccessible* aDocAccessible,
-                                            void* aUserArg)
+DocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
+                                       DocAccessible* aDocAccessible,
+                                       void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
                "No doc accessible for the object in doc accessible cache!");
@@ -464,9 +464,9 @@ nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
 
 #ifdef DEBUG
 PLDHashOperator
-nsAccDocManager::SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                                         DocAccessible* aDocAccessible,
-                                         void* aUserArg)
+DocManager::SearchIfDocIsRefreshing(const nsIDocument* aKey,
+                                    DocAccessible* aDocAccessible,
+                                    void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
                "No doc accessible for the object in doc accessible cache!");

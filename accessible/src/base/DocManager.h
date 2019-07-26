@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsAccDocManager_h_
-#define nsAccDocManager_h_
+#ifndef mozilla_a11_DocManager_h_
+#define mozilla_a11_DocManager_h_
 
 #include "nsIDocument.h"
 #include "nsIDOMEventListener.h"
@@ -19,21 +19,15 @@ namespace a11y {
 class Accessible;
 class DocAccessible;
 
-} 
-} 
 
 
 
-
-class nsAccDocManager : public nsIWebProgressListener,
-                        public nsIDOMEventListener,
-                        public nsSupportsWeakReference
+class DocManager : public nsIWebProgressListener,
+                   public nsIDOMEventListener,
+                   public nsSupportsWeakReference
 {
 public:
-  typedef mozilla::a11y::Accessible Accessible;
-  typedef mozilla::a11y::DocAccessible DocAccessible;
-
-  virtual ~nsAccDocManager() { }
+  virtual ~DocManager() { }
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIWEBPROGRESSLISTENER
@@ -86,7 +80,7 @@ public:
 #endif
 
 protected:
-  nsAccDocManager() { }
+  DocManager() { }
 
   
 
@@ -99,8 +93,8 @@ protected:
   void Shutdown();
 
 private:
-  nsAccDocManager(const nsAccDocManager&);
-  nsAccDocManager& operator =(const nsAccDocManager&);
+  DocManager(const DocManager&);
+  DocManager& operator =(const DocManager&);
 
 private:
   
@@ -159,5 +153,8 @@ private:
 
   DocAccessibleHashtable mDocAccessibleCache;
 };
+
+} 
+} 
 
 #endif 

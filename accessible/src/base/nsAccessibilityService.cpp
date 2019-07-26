@@ -125,7 +125,7 @@ ApplicationAccessible* nsAccessibilityService::gApplicationAccessible = nullptr;
 bool nsAccessibilityService::gIsShutdown = true;
 
 nsAccessibilityService::nsAccessibilityService() :
-  nsAccDocManager(), FocusManager()
+  DocManager(), FocusManager()
 {
 }
 
@@ -139,7 +139,7 @@ nsAccessibilityService::~nsAccessibilityService()
 
 
 NS_IMPL_ISUPPORTS_INHERITED3(nsAccessibilityService,
-                             nsAccDocManager,
+                             DocManager,
                              nsIAccessibilityService,
                              nsIAccessibleRetrieval,
                              nsIObserver)
@@ -975,7 +975,7 @@ bool
 nsAccessibilityService::Init()
 {
   
-  if (!nsAccDocManager::Init())
+  if (!DocManager::Init())
     return false;
 
   
@@ -1026,7 +1026,7 @@ nsAccessibilityService::Shutdown()
   }
 
   
-  nsAccDocManager::Shutdown();
+  DocManager::Shutdown();
 
   
   
