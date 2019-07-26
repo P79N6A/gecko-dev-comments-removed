@@ -892,7 +892,7 @@ ion::ToggleBaselineSPS(JSRuntime *runtime, bool enable)
 }
 
 static void
-MarkActiveBaselineScripts(JSContext *cx, const JitActivationIterator &activation)
+MarkActiveBaselineScripts(JSRuntime *rt, const JitActivationIterator &activation)
 {
     for (ion::IonFrameIterator iter(activation); !iter.done(); ++iter) {
         switch (iter.type()) {
@@ -903,7 +903,7 @@ MarkActiveBaselineScripts(JSContext *cx, const JitActivationIterator &activation
             
             
             iter.script()->baselineScript()->setActive();
-            for (InlineFrameIterator inlineIter(cx, &iter); inlineIter.more(); ++inlineIter)
+            for (InlineFrameIterator inlineIter(rt, &iter); inlineIter.more(); ++inlineIter)
                 inlineIter.script()->baselineScript()->setActive();
             break;
           }
@@ -915,19 +915,9 @@ MarkActiveBaselineScripts(JSContext *cx, const JitActivationIterator &activation
 void
 ion::MarkActiveBaselineScripts(Zone *zone)
 {
-    
-    
-    JitActivationIterator iter(zone->runtimeFromMainThread());
-    if (iter.done())
-        return;
-
-    
-    JSContext *cx = GetIonContext()->cx;
-    if (!ion::IsBaselineEnabled(cx))
-        return;
-
-    for (; !iter.done(); ++iter) {
+    JSRuntime *rt = zone->runtimeFromMainThread();
+    for (JitActivationIterator iter(rt); !iter.done(); ++iter) {
         if (iter.activation()->compartment()->zone() == zone)
-            MarkActiveBaselineScripts(cx, iter);
+            MarkActiveBaselineScripts(rt, iter);
     }
 }
