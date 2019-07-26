@@ -163,7 +163,7 @@ public:
     NS_DECL_NSIDOMXULDOCUMENT
 
     
-    NS_IMETHOD StyleSheetLoaded(CSSStyleSheet* aSheet,
+    NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet,
                                 bool aWasAlternate,
                                 nsresult aStatus) MOZ_OVERRIDE;
 
@@ -336,7 +336,7 @@ protected:
 
 
 
-    nsTArray<nsRefPtr<CSSStyleSheet>> mOverlaySheets;
+    nsTArray<nsRefPtr<nsCSSStyleSheet> > mOverlaySheets;
 
     nsCOMPtr<nsIDOMXULCommandDispatcher>     mCommandDispatcher; 
 

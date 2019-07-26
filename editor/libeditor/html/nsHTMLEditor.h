@@ -329,8 +329,8 @@ public:
   NS_IMETHOD GetRootElement(nsIDOMElement **aRootElement);
 
   
-  NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
-                              bool aWasAlternate, nsresult aStatus);
+  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet*aSheet, bool aWasAlternate,
+                              nsresult aStatus);
 
   
   NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction);
@@ -375,13 +375,12 @@ public:
 
   
   NS_IMETHOD GetStyleSheetForURL(const nsAString &aURL,
-                                 mozilla::CSSStyleSheet** _retval);
-  NS_IMETHOD GetURLForStyleSheet(mozilla::CSSStyleSheet* aStyleSheet,
-                                 nsAString& aURL);
+                                 nsCSSStyleSheet **_retval);
+  NS_IMETHOD GetURLForStyleSheet(nsCSSStyleSheet *aStyleSheet, nsAString &aURL);
 
   
   nsresult AddNewStyleSheetToList(const nsAString &aURL,
-                                  mozilla::CSSStyleSheet* aStyleSheet);
+                                  nsCSSStyleSheet *aStyleSheet);
 
   nsresult RemoveStyleSheetFromList(const nsAString &aURL);
 
@@ -775,7 +774,7 @@ protected:
 
   
   nsTArray<nsString> mStyleSheetURLs;
-  nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> mStyleSheets;
+  nsTArray<nsRefPtr<nsCSSStyleSheet> > mStyleSheets;
   
   
   nsTArray<PropItem*> mDefaultStyles;

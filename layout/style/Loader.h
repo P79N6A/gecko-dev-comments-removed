@@ -23,6 +23,7 @@
 
 class nsIAtom;
 class nsICSSLoaderObserver;
+class nsCSSStyleSheet;
 class nsIContent;
 class nsIDocument;
 class nsCSSParser;
@@ -31,7 +32,6 @@ class nsIStyleSheetLinkingElement;
 class nsCycleCollectionTraversalCallback;
 
 namespace mozilla {
-class CSSStyleSheet;
 namespace dom {
 class Element;
 }
@@ -222,7 +222,7 @@ public:
 
 
 
-  nsresult LoadChildSheet(CSSStyleSheet* aParentSheet,
+  nsresult LoadChildSheet(nsCSSStyleSheet* aParentSheet,
                           nsIURI* aURL,
                           nsMediaList* aMedia,
                           ImportRule* aRule);
@@ -256,12 +256,12 @@ public:
 
   nsresult LoadSheetSync(nsIURI* aURL, bool aEnableUnsafeRules,
                          bool aUseSystemPrincipal,
-                         CSSStyleSheet** aSheet);
+                         nsCSSStyleSheet** aSheet);
 
   
 
 
-  nsresult LoadSheetSync(nsIURI* aURL, CSSStyleSheet** aSheet) {
+  nsresult LoadSheetSync(nsIURI* aURL, nsCSSStyleSheet** aSheet) {
     return LoadSheetSync(aURL, false, false, aSheet);
   }
 
@@ -289,7 +289,7 @@ public:
                      nsIPrincipal* aOriginPrincipal,
                      const nsCString& aCharset,
                      nsICSSLoaderObserver* aObserver,
-                     CSSStyleSheet** aSheet);
+                     nsCSSStyleSheet** aSheet);
 
   
 
@@ -385,7 +385,7 @@ private:
 
   static PLDHashOperator
   RemoveEntriesWithURI(URIPrincipalAndCORSModeHashKey* aKey,
-                       nsRefPtr<CSSStyleSheet>& aSheet,
+                       nsRefPtr<nsCSSStyleSheet> &aSheet,
                        void* aUserData);
 
   
@@ -408,24 +408,24 @@ private:
                        const nsAString& aTitle,
                        StyleSheetState& aSheetState,
                        bool *aIsAlternate,
-                       CSSStyleSheet** aSheet);
+                       nsCSSStyleSheet** aSheet);
 
   
   
   
-  void PrepareSheet(CSSStyleSheet* aSheet,
+  void PrepareSheet(nsCSSStyleSheet* aSheet,
                     const nsAString& aTitle,
                     const nsAString& aMediaString,
                     nsMediaList* aMediaList,
                     dom::Element* aScopeElement,
                     bool isAlternate);
 
-  nsresult InsertSheetInDoc(CSSStyleSheet* aSheet,
+  nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
                             nsIContent* aLinkingContent,
                             nsIDocument* aDocument);
 
-  nsresult InsertChildSheet(CSSStyleSheet* aSheet,
-                            CSSStyleSheet* aParentSheet,
+  nsresult InsertChildSheet(nsCSSStyleSheet* aSheet,
+                            nsCSSStyleSheet* aParentSheet,
                             ImportRule* aParentRule);
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
@@ -433,7 +433,7 @@ private:
                                         bool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
                                         const nsCString& aCharset,
-                                        CSSStyleSheet** aSheet,
+                                        nsCSSStyleSheet** aSheet,
                                         nsICSSLoaderObserver* aObserver,
                                         CORSMode aCORSMode = CORS_NONE);
 
@@ -445,7 +445,7 @@ private:
   
   
   nsresult PostLoadEvent(nsIURI* aURI,
-                         CSSStyleSheet* aSheet,
+                         nsCSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
                          bool aWasAlternate,
                          nsIStyleSheetLinkingElement* aElement);
@@ -479,7 +479,7 @@ private:
                        LoadDataArray& aDatasToNotify);
 
   struct Sheets {
-    nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, CSSStyleSheet>
+    nsRefPtrHashtable<URIPrincipalAndCORSModeHashKey, nsCSSStyleSheet>
                       mCompleteSheets;
     nsDataHashtable<URIPrincipalAndCORSModeHashKey, SheetLoadData*>
                       mLoadingDatas; 

@@ -29,6 +29,7 @@
 class imgIRequest;
 class nsAString;
 class nsBindingManager;
+class nsCSSStyleSheet;
 class nsIDocShell;
 class nsDocShell;
 class nsDOMNavigationTiming;
@@ -82,7 +83,6 @@ class nsIGlobalObject;
 struct nsCSSSelectorList;
 
 namespace mozilla {
-class CSSStyleSheet;
 class ErrorResult;
 class EventStates;
 
@@ -779,7 +779,7 @@ public:
 
 
 
-  virtual void EnsureOnDemandBuiltInUASheet(mozilla::CSSStyleSheet* aSheet) = 0;
+  virtual void EnsureOnDemandBuiltInUASheet(nsCSSStyleSheet* aSheet) = 0;
 
   
 
@@ -1836,7 +1836,7 @@ public:
 
 
   virtual nsresult LoadChromeSheetSync(nsIURI* aURI, bool aIsAgentSheet,
-                                       mozilla::CSSStyleSheet** aSheet) = 0;
+                                       nsCSSStyleSheet** aSheet) = 0;
 
   
 

@@ -16,10 +16,7 @@ class nsIURI;
  { 0xb2, 0xe9, 0x63, 0x52, 0x8c, 0x87, 0x99, 0x7a } }
 
 class nsIStyleSheet;
-
-namespace mozilla {
-class CSSStyleSheet;
-} 
+class nsCSSStyleSheet;
 
 class nsIStyleSheetLinkingElement : public nsISupports {
 public:
@@ -32,7 +29,7 @@ public:
 
 
 
-  NS_IMETHOD SetStyleSheet(mozilla::CSSStyleSheet* aStyleSheet) = 0;
+  NS_IMETHOD SetStyleSheet(nsCSSStyleSheet* aStyleSheet) = 0;
 
   
 

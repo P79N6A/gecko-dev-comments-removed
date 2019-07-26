@@ -39,6 +39,7 @@
 
 class nsRange;
 class nsIDragService;
+class nsCSSStyleSheet;
 
 struct RangePaintInfo;
 struct nsCallbackEventRequest;
@@ -48,10 +49,6 @@ class ReflowCountMgr;
 
 class nsPresShellEventCB;
 class nsAutoCauseReflowNotifier;
-
-namespace mozilla {
-class CSSStyleSheet;
-} 
 
 
 
@@ -757,7 +754,7 @@ protected:
   nsPoint                   mMouseLocation;
 
   
-  nsRefPtr<mozilla::CSSStyleSheet> mPrefStyleSheet;
+  nsRefPtr<nsCSSStyleSheet> mPrefStyleSheet;
 
   
   

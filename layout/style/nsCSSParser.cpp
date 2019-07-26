@@ -22,7 +22,7 @@
 #include "nsCSSRules.h"
 #include "mozilla/css/NameSpaceRule.h"
 #include "nsTArray.h"
-#include "mozilla/CSSStyleSheet.h"
+#include "nsCSSStyleSheet.h"
 #include "mozilla/css/Declaration.h"
 #include "nsStyleConsts.h"
 #include "nsNetUtil.h"
@@ -102,7 +102,7 @@ public:
   CSSParserImpl();
   ~CSSParserImpl();
 
-  nsresult SetStyleSheet(CSSStyleSheet* aSheet);
+  nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
 
   nsresult SetQuirkMode(bool aQuirkMode);
 
@@ -279,7 +279,7 @@ public:
                                            nsIURI* aDocURL,
                                            nsIURI* aBaseURL,
                                            nsIPrincipal* aDocPrincipal,
-                                           CSSStyleSheet* aSheet,
+                                           nsCSSStyleSheet* aSheet,
                                            uint32_t aLineNumber,
                                            uint32_t aLineOffset);
 
@@ -971,7 +971,7 @@ protected:
   nsCOMPtr<nsIPrincipal> mSheetPrincipal;
 
   
-  nsRefPtr<CSSStyleSheet> mSheet;
+  nsRefPtr<nsCSSStyleSheet> mSheet;
 
   
   mozilla::css::Loader* mChildLoader; 
@@ -1124,7 +1124,7 @@ CSSParserImpl::~CSSParserImpl()
 }
 
 nsresult
-CSSParserImpl::SetStyleSheet(CSSStyleSheet* aSheet)
+CSSParserImpl::SetStyleSheet(nsCSSStyleSheet* aSheet)
 {
   if (aSheet != mSheet) {
     
@@ -2313,7 +2313,7 @@ CSSParserImpl::ParsePropertyWithVariableReferences(
                                             nsIURI* aDocURL,
                                             nsIURI* aBaseURL,
                                             nsIPrincipal* aDocPrincipal,
-                                            CSSStyleSheet* aSheet,
+                                            nsCSSStyleSheet* aSheet,
                                             uint32_t aLineNumber,
                                             uint32_t aLineOffset)
 {
@@ -14505,7 +14505,7 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
 static CSSParserImpl* gFreeList = nullptr;
 
 nsCSSParser::nsCSSParser(mozilla::css::Loader* aLoader,
-                         CSSStyleSheet* aSheet)
+                         nsCSSStyleSheet* aSheet)
 {
   CSSParserImpl *impl = gFreeList;
   if (impl) {
@@ -14551,7 +14551,7 @@ nsCSSParser::Shutdown()
 
 
 nsresult
-nsCSSParser::SetStyleSheet(CSSStyleSheet* aSheet)
+nsCSSParser::SetStyleSheet(nsCSSStyleSheet* aSheet)
 {
   return static_cast<CSSParserImpl*>(mImpl)->
     SetStyleSheet(aSheet);
@@ -14766,7 +14766,7 @@ nsCSSParser::ParsePropertyWithVariableReferences(
                                             nsIURI* aDocURL,
                                             nsIURI* aBaseURL,
                                             nsIPrincipal* aDocPrincipal,
-                                            CSSStyleSheet* aSheet,
+                                            nsCSSStyleSheet* aSheet,
                                             uint32_t aLineNumber,
                                             uint32_t aLineOffset)
 {

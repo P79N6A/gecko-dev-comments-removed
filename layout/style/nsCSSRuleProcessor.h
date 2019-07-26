@@ -28,11 +28,8 @@ struct TreeMatchContext;
 class nsCSSKeyframesRule;
 class nsCSSPageRule;
 class nsCSSFontFeatureValuesRule;
+class nsCSSStyleSheet;
 class nsCSSCounterStyleRule;
-
-namespace mozilla {
-class CSSStyleSheet;
-} 
 
 
 
@@ -47,7 +44,7 @@ class CSSStyleSheet;
 
 class nsCSSRuleProcessor: public nsIStyleRuleProcessor {
 public:
-  typedef nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> sheet_array_type;
+  typedef nsTArray<nsRefPtr<nsCSSStyleSheet> > sheet_array_type;
 
   
   
@@ -176,8 +173,7 @@ public:
   };
 
 private:
-  static bool CascadeSheet(mozilla::CSSStyleSheet* aSheet,
-                           CascadeEnumData* aData);
+  static bool CascadeSheet(nsCSSStyleSheet* aSheet, CascadeEnumData* aData);
 
   RuleCascadeData* GetRuleCascade(nsPresContext* aPresContext);
   void RefreshRuleCascade(nsPresContext* aPresContext);
