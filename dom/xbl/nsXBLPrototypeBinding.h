@@ -96,7 +96,7 @@ public:
                      bool* aNew);
 
   nsresult ConstructInterfaceTable(const nsAString& aImpls);
-  
+
   void SetImplementation(nsXBLProtoImpl* aImpl) { mImplementation = aImpl; }
   nsXBLProtoImpl* GetImplementation() { return mImplementation; }
   nsresult InstallImplementation(nsXBLBinding* aBinding);
@@ -111,13 +111,13 @@ public:
 
   nsXBLDocumentInfo* XBLDocumentInfo() const { return mXBLDocInfoWeak; }
   bool IsChrome() { return mXBLDocInfoWeak->IsChrome(); }
-  
+
   void SetInitialAttributes(nsIContent* aBoundElement, nsIContent* aAnonymousContent);
 
   nsIStyleRuleProcessor* GetRuleProcessor();
   nsXBLPrototypeResources::sheet_array_type* GetOrCreateStyleSheets();
   nsXBLPrototypeResources::sheet_array_type* GetStyleSheets();
-  
+
   bool HasStyleSheets() {
     return mResources && mResources->mStyleSheetList.Length() > 0;
   }
@@ -273,9 +273,9 @@ protected:
   bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;
   bool mChromeOnlyContent;
- 
+
   nsXBLPrototypeResources* mResources; 
-                                      
+
   nsXBLDocumentInfo* mXBLDocInfoWeak; 
 
   nsObjectHashtable* mAttributeTable; 
