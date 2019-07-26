@@ -4,7 +4,6 @@
 
 
 #include "nscore.h"
-#include "prtypes.h"
 
 #define EXPORT_CDECL(type)   NS_EXPORT type
 #define EXPORT_STDCALL(type) NS_EXPORT type NS_STDCALL

@@ -4,7 +4,6 @@
 
 
 #include "nscore.h"
-#include "prtypes.h"
 #include "jspubtd.h"
 
 #define EXPORT_CDECL(type)   NS_EXPORT type

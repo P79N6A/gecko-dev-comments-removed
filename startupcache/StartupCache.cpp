@@ -5,7 +5,6 @@
 
 
 #include "prio.h"
-#include "prtypes.h"
 #include "pldhash.h"
 #include "nsXPCOMStrings.h"
 #include "mozilla/MemoryReporting.h"
