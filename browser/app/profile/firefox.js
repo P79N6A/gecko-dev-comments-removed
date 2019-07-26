@@ -1121,6 +1121,14 @@ pref("devtools.toolbox.sideEnabled", true);
 pref("devtools.toolbox.zoomValue", "1");
 
 
+pref("devtools.command-button-pick.enabled", true);
+pref("devtools.command-button-splitconsole.enabled", true);
+pref("devtools.command-button-paintflashing.enabled", false);
+pref("devtools.command-button-tilt.enabled", false);
+pref("devtools.command-button-scratchpad.enabled", false);
+pref("devtools.command-button-responsive.enabled", true);
+
+
 
 pref("devtools.inspector.enabled", true);
 

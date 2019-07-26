@@ -543,6 +543,7 @@ Toolbox.prototype = {
                                              this.doc, this._requisition);
     let container = this.doc.getElementById("toolbox-buttons");
     buttons.forEach(container.appendChild.bind(container));
+    this.setToolboxButtonsVisibility();
   },
 
   
@@ -560,6 +561,57 @@ Toolbox.prototype = {
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
     this._pickerButton.addEventListener("command", this._togglePicker, false);
+  },
+
+  
+
+
+
+  get toolboxButtons() {
+    
+    
+    return [
+      "command-button-pick",
+      "command-button-splitconsole",
+      "command-button-responsive",
+      "command-button-paintflashing",
+      "command-button-tilt",
+      "command-button-scratchpad"
+    ].map(id => {
+      let button = this.doc.getElementById(id);
+      
+      if (!button) {
+        return false;
+      }
+      return {
+        id: id,
+        button: button,
+        label: button.getAttribute("tooltiptext"),
+        visibilityswitch: "devtools." + id + ".enabled"
+      }
+    }).filter(button=>button);
+  },
+
+  
+
+
+
+  setToolboxButtonsVisibility: function() {
+    this.toolboxButtons.forEach(buttonSpec => {
+      let {visibilityswitch, id, button}=buttonSpec;
+      let on = true;
+      try {
+        on = Services.prefs.getBoolPref(visibilityswitch);
+      } catch (ex) { }
+
+      if (button) {
+        if (on) {
+          button.removeAttribute("hidden");
+        } else {
+          button.setAttribute("hidden", "true");
+        }
+      }
+    });
   },
 
   
