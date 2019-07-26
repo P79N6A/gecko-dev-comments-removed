@@ -100,13 +100,14 @@ protected:
   void SetMimeType(const nsString &aMimeType);
 
   MediaRecorder(const MediaRecorder& x) MOZ_DELETE; 
-
+  
+  void RemoveSession(Session* aSession);
   
   nsRefPtr<DOMMediaStream> mStream;
   
   RecordingState mState;
   
-  nsRefPtr<Session> mSession;
+  nsTArray<Session*> mSessions;
   
   Mutex mMutex;
   
