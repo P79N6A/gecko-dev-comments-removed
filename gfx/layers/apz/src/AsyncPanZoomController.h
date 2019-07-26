@@ -278,13 +278,6 @@ public:
 
   bool Matches(const ScrollableLayerGuid& aGuid);
 
-  
-
-
-
-
-  static void SetFrameTime(const TimeStamp& aMilliseconds);
-
   void StartAnimation(AsyncPanZoomAnimation* aAnimation);
 
   
@@ -319,14 +312,6 @@ public:
 
 
   bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
-
-  
-
-
-  void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
-  {
-    mTestAsyncScrollOffset = aPoint;
-  }
 
   
 
@@ -757,9 +742,6 @@ private:
   
   TouchBlockState mTouchBlockState;
 
-  
-  CSSPoint mTestAsyncScrollOffset;
-
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
@@ -937,6 +919,37 @@ private:
 
 
   void ShareCompositorFrameMetrics();
+
+
+  
+
+
+
+public:
+  
+
+
+
+
+  static void SetFrameTime(const TimeStamp& aMilliseconds);
+  
+
+
+
+
+  static void SetThreadAssertionsEnabled(bool aEnabled);
+  static bool GetThreadAssertionsEnabled();
+  
+
+
+  void SetTestAsyncScrollOffset(const CSSPoint& aPoint)
+  {
+    mTestAsyncScrollOffset = aPoint;
+  }
+
+private:
+  
+  CSSPoint mTestAsyncScrollOffset;
 };
 
 class AsyncPanZoomAnimation {

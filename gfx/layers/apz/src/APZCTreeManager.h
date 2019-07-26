@@ -287,12 +287,6 @@ protected:
   
 
 
-
-  virtual void AssertOnCompositorThread();
-
-  
-
-
   void BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
 public:
   
