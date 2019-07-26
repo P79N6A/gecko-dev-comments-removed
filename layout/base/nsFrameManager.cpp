@@ -472,6 +472,14 @@ nsFrameManager::RemoveFrame(ChildListID     aListID,
   bool wasDestroyingFrames = mIsDestroyingFrames;
   mIsDestroyingFrames = true;
 
+  
+  
+  
+  
+  
+  
+  aOldFrame->InvalidateFrameForRemoval();
+
   NS_ASSERTION(!aOldFrame->GetPrevContinuation() ||
                
                aOldFrame->GetType() == nsGkAtoms::textFrame,

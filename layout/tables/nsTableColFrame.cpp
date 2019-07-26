@@ -191,10 +191,20 @@ nsTableColFrame::GetSplittableType() const
 }
 
 void
-nsTableColFrame::InvalidateFrame()
+nsTableColFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 {
-  nsIFrame::InvalidateFrame();
-  nsTableFrame *tableFrame = nsTableFrame::GetTableFrame(this);
-  tableFrame->InvalidateFrame();
+  nsIFrame::InvalidateFrame(aDisplayItemKey);
+  GetParent()->InvalidateFrameWithRect(GetVisualOverflowRect() + GetPosition(), aDisplayItemKey);
+}
+
+void
+nsTableColFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
+{
+  nsIFrame::InvalidateFrameWithRect(aRect, aDisplayItemKey);
+
+  
+  
+  
+  GetParent()->InvalidateFrameWithRect(aRect + GetPosition(), aDisplayItemKey);
 }
 

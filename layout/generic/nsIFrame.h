@@ -2203,6 +2203,12 @@ public:
 
 
   void InvalidateFrameSubtree();
+
+  
+
+
+
+  virtual void InvalidateFrameForRemoval() {}
   
   
 
