@@ -2619,7 +2619,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     
     def handleJSObjectType(type, isMember, failureCode):
         if not isMember:
-            declType = CGGeneric("JS::Rooted<JSObject*>")
+            if isOptional:
+                
+                
+                declType = CGGeneric("JS::Handle<JSObject*>")
+            else:
+                declType = CGGeneric("JS::Rooted<JSObject*>")
         else:
             assert (isMember == "Sequence" or isMember == "Variadic" or
                     isMember == "Dictionary")
@@ -3328,7 +3333,12 @@ for (uint32_t i = 0; i < length; ++i) {
             declType = "JS::Value"
         else:
             assert not isMember
-            declType = "JS::Rooted<JS::Value>"
+            if isOptional:
+                
+                
+                declType = "JS::Handle<JS::Value>"
+            else:
+                declType = "JS::Rooted<JS::Value>"
             declArgs = "cx"
 
         templateBody = "${declName} = ${val};"
@@ -8482,8 +8492,6 @@ class CGNativeMember(ClassMethod):
             
             if isMember:
                 declType = "JS::Value"
-            elif optional:
-                declType = "JS::Rooted<JS::Value>"
             else:
                 declType = "JS::Handle<JS::Value>"
             return declType, False, False
@@ -8491,8 +8499,6 @@ class CGNativeMember(ClassMethod):
         if type.isObject():
             if isMember:
                 declType = "JSObject*"
-            elif optional:
-                declType = "JS::Rooted<JSObject*>"
             else:
                 declType = "JS::Handle<JSObject*>"
             return declType, False, False
