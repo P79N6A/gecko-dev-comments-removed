@@ -1135,6 +1135,12 @@ public:
     return NS_OK;
   }
 
+  
+
+
+
+  static bool ShouldExposeUserData(JSContext* aCx, JSObject* );
+
   void LookupPrefix(const nsAString& aNamespace, nsAString& aResult);
   bool IsDefaultNamespace(const nsAString& aNamespaceURI)
   {
