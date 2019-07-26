@@ -4037,9 +4037,16 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
         if (aLoadFlags & LOAD_FLAGS_URI_IS_UTF8) {
           fixupFlags |= nsIURIFixup::FIXUP_FLAG_USE_UTF8;
         }
+        nsCOMPtr<nsIInputStream> fixupStream;
         rv = sURIFixup->CreateFixupURI(uriString, fixupFlags,
-                                       getter_AddRefs(postStream),
+                                       getter_AddRefs(fixupStream),
                                        getter_AddRefs(uri));
+        if (fixupStream) {
+            
+            
+            
+            postStream = fixupStream;
+        }
     }
     
     
