@@ -36,11 +36,7 @@ let gPage = {
 
 
   get allowBackgroundCaptures() {
-    
-    
-    
-    return inPrivateBrowsingMode() ||
-           document.documentElement.getAttribute("allow-background-captures") ==
+    return document.documentElement.getAttribute("allow-background-captures") ==
            "true";
   },
 
@@ -70,12 +66,9 @@ let gPage = {
   
 
 
-
-
-  update: function Page_update(aOnlyIfHidden=false) {
-    let skipUpdate = aOnlyIfHidden && this.allowBackgroundCaptures;
+  update: function Page_update() {
     
-    if (gGrid.ready && !skipUpdate) {
+    if (gGrid.ready) {
       gGrid.refresh();
     }
   },
