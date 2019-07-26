@@ -211,11 +211,12 @@ WindowNamedPropertiesHandler::Install(JSContext* aCx,
   
   
   JS::Rooted<JSObject*> gsp(aCx);
+  js::ProxyOptions options;
+  options.setSingleton(true);
   gsp = js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
                            JS::NullHandleValue, protoProto,
                            js::GetGlobalForObjectCrossCompartment(aProto),
-                           js::ProxyNotCallable,
-                            true);
+                           options);
   if (!gsp) {
     return;
   }
