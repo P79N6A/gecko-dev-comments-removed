@@ -270,7 +270,8 @@ this.PhoneNumber = (function (dataBase) {
       for (var n = 0; n < entry.length; ++n) {
         if (typeof entry[n] == "string")
           entry[n] = ParseMetaData(countryCode, entry[n]);
-        if (ret = ParseNationalNumber(number, entry[n]))
+        ret = ParseNationalNumber(number, entry[n])
+        if (ret)
           return ret;
       }
       return null;
@@ -312,7 +313,8 @@ this.PhoneNumber = (function (dataBase) {
     
     if (md.internationalPrefix.test(number)) {
       var possibleNumber = number.replace(md.internationalPrefix, "");
-      if (ret = ParseInternationalNumber(possibleNumber))
+      ret = ParseInternationalNumber(possibleNumber)
+      if (ret)
         return ret;
     }
 
@@ -323,7 +325,8 @@ this.PhoneNumber = (function (dataBase) {
       
       var withoutPrefix = number.replace(md.nationalPrefixForParsing,
                                          md.nationalPrefixTransformRule);
-      if (ret = ParseNationalNumber(withoutPrefix, md))
+      ret = ParseNationalNumber(withoutPrefix, md)
+      if (ret)
         return ret;
     } else {
       
@@ -334,7 +337,8 @@ this.PhoneNumber = (function (dataBase) {
         return ret;
       }
     }
-    if (ret = ParseNationalNumber(number, md))
+    ret = ParseNationalNumber(number, md)
+    if (ret)
       return ret;
 
     
@@ -344,7 +348,8 @@ this.PhoneNumber = (function (dataBase) {
 
     
     
-    if (ret = ParseInternationalNumber(number))
+    ret = ParseInternationalNumber(number)
+    if (ret)
       return ret;
 
     
