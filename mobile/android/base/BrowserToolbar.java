@@ -532,6 +532,27 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         }
     }
 
+    
+
+
+
+
+
+
+    public void animateVisibilityWithVelocityBias(boolean show, float velocity) {
+        
+        
+        
+        float defaultVelocity =
+            mLayout.getHeight() / ((VISIBILITY_ANIMATION_DURATION / 1000.0f) * 60);
+
+        if (Math.abs(velocity) > defaultVelocity) {
+            show = (velocity > 0) ? false : true;
+        }
+
+        animateVisibility(show, 0);
+    }
+
     public void cancelVisibilityAnimation() {
         mVisibility = ToolbarVisibility.INCONSISTENT;
         if (mDelayedVisibilityTask != null) {

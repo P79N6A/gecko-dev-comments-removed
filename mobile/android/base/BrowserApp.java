@@ -280,8 +280,9 @@ abstract public class BrowserApp extends GeckoApp
                        action == MotionEvent.ACTION_CANCEL) {
                 
                 
-                mBrowserToolbar.animateVisibility(
-                    toolbarView.getScrollY() > toolbarHeight / 2 ? false : true, 0);
+                mBrowserToolbar.animateVisibilityWithVelocityBias(
+                    toolbarView.getScrollY() > toolbarHeight / 2 ? false : true,
+                    mLayerView.getPanZoomController().getVelocityVector().y);
             }
         }
 
