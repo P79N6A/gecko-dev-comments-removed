@@ -342,7 +342,7 @@ public:
   
   static void
   PropagateFrameFlagFor(nsIFrame* aFrame,
-                        nsFrameState aFlags);
+                        uint64_t  aFlags);
 
   
   
@@ -411,7 +411,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   friend nsIFrame* NS_NewMathMLmathBlockFrame(nsIPresShell* aPresShell,
-          nsStyleContext* aContext, nsFrameState aFlags);
+          nsStyleContext* aContext, uint32_t aFlags);
 
   
   
