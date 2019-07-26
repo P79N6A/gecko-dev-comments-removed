@@ -1,12 +1,12 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * PR hash table package.
+ */
 
 #include "jshash.h"
 
@@ -24,22 +24,22 @@ using namespace js;
 using mozilla::CeilingLog2Size;
 using mozilla::RotateLeft;
 
-
+/* Compute the number of buckets in ht */
 #define NBUCKETS(ht)    JS_BIT(JS_HASH_BITS - (ht)->shift)
 
-
+/* The smallest table has 16 buckets */
 #define MINBUCKETSLOG2  4
 #define MINBUCKETS      JS_BIT(MINBUCKETSLOG2)
 
-
+/* Compute the maximum entries given n buckets that we will tolerate, ~90% */
 #define OVERLOADED(n)   ((n) - ((n) >> 3))
 
-
+/* Compute the number of entries below which we shrink the table by half */
 #define UNDERLOADED(n)  (((n) > MINBUCKETS) ? ((n) >> 2) : 0)
 
-
-
-
+/*
+** Stubs for default hash allocator ops.
+*/
 static void *
 DefaultAllocTable(void *pool, size_t size)
 {
@@ -136,9 +136,9 @@ JS_HashTableDestroy(JSHashTable *ht)
     allocOps->freeTable(allocPriv, ht, sizeof *ht);
 }
 
-
-
-
+/*
+ * Multiplicative hash, from Knuth 6.4.
+ */
 #define BUCKET_HEAD(ht, keyHash)                                              \
     (&(ht)->buckets[((keyHash) * JS_GOLDEN_RATIO) >> (ht)->shift])
 
@@ -153,7 +153,7 @@ JS_HashTableRawLookup(JSHashTable *ht, JSHashNumber keyHash, const void *key)
     hep = hep0 = BUCKET_HEAD(ht, keyHash);
     while ((he = *hep) != nullptr) {
         if (he->keyHash == keyHash && ht->keyCompare(key, he->key)) {
-            
+            /* Move to front of chain if not already there */
             if (hep != hep0) {
                 *hep = he->next;
                 he->next = *hep0;
@@ -176,11 +176,11 @@ Resize(JSHashTable *ht, uint32_t newshift)
     JSHashEntry **oldbuckets, *he, *next, **hep;
     size_t nold = NBUCKETS(ht);
 
-    JS_ASSERT(newshift < JS_HASH_BITS);
+    MOZ_ASSERT(newshift < JS_HASH_BITS);
 
     nb = (size_t)1 << (JS_HASH_BITS - newshift);
 
-    
+    /* Integer overflow protection. */
     if (nb > (size_t)-1 / sizeof(JSHashEntry*))
         return false;
     nb *= sizeof(JSHashEntry*);
@@ -198,15 +198,15 @@ Resize(JSHashTable *ht, uint32_t newshift)
 
     for (i = 0; nentries != 0; i++) {
         for (he = oldbuckets[i]; he; he = next) {
-            JS_ASSERT(nentries != 0);
+            MOZ_ASSERT(nentries != 0);
             --nentries;
             next = he->next;
             hep = BUCKET_HEAD(ht, he->keyHash);
 
-            
-
-
-
+            /*
+             * We do not require unique entries, instead appending he to the
+             * chain starting at hep.
+             */
             while (*hep)
                 hep = &(*hep)->next;
             he->next = nullptr;
@@ -228,7 +228,7 @@ JS_HashTableRawAdd(JSHashTable *ht, JSHashEntry **&hep,
     uint32_t n;
     JSHashEntry *he;
 
-    
+    /* Grow the table if it is overloaded */
     n = NBUCKETS(ht);
     if (ht->nentries >= OVERLOADED(n)) {
         if (!Resize(ht, ht->shift - 1))
@@ -239,7 +239,7 @@ JS_HashTableRawAdd(JSHashTable *ht, JSHashEntry **&hep,
         hep = JS_HashTableRawLookup(ht, keyHash, key);
     }
 
-    
+    /* Make a new key value entry */
     he = ht->allocOps->allocEntry(ht->allocPriv, key);
     if (!he)
         return nullptr;
@@ -261,9 +261,9 @@ JS_HashTableAdd(JSHashTable *ht, const void *key, void *value)
     keyHash = ht->keyHash(key);
     hep = JS_HashTableRawLookup(ht, keyHash, key);
     if ((he = *hep) != nullptr) {
-        
+        /* Hit; see if values match */
         if (ht->valueCompare(he->value, value)) {
-            
+            /* key,value pair is already present in table */
             return he;
         }
         if (he->value)
@@ -282,7 +282,7 @@ JS_HashTableRawRemove(JSHashTable *ht, JSHashEntry **hep, JSHashEntry *he)
     *hep = he->next;
     ht->allocOps->freeEntry(ht->allocPriv, he, HT_FREE_ENTRY);
 
-    
+    /* Shrink table if it's underloaded */
     n = NBUCKETS(ht);
     if (--ht->nentries < UNDERLOADED(n)) {
         Resize(ht, ht->shift + 1);
@@ -303,7 +303,7 @@ JS_HashTableRemove(JSHashTable *ht, const void *key)
     if ((he = *hep) == nullptr)
         return false;
 
-    
+    /* Hit; remove element */
     JS_HashTableRawRemove(ht, hep, he);
     return true;
 }
@@ -322,11 +322,11 @@ JS_HashTableLookup(JSHashTable *ht, const void *key)
     return nullptr;
 }
 
-
-
-
-
-
+/*
+** Iterate over the entries in the hash table calling func for each
+** entry found. Stop if "f" says to (return value & JS_ENUMERATE_STOP).
+** Return a count of the number of elements scanned.
+*/
 int
 JS_HashTableEnumerateEntries(JSHashTable *ht, JSHashEnumerator f, void *arg)
 {
@@ -339,7 +339,7 @@ JS_HashTableEnumerateEntries(JSHashTable *ht, JSHashEnumerator f, void *arg)
     for (bucket = ht->buckets; n != nlimit; ++bucket) {
         hep = bucket;
         while ((he = *hep) != nullptr) {
-            JS_ASSERT(n < nlimit);
+            MOZ_ASSERT(n < nlimit);
             rv = f(he, n, arg);
             n++;
             if (rv & HT_ENUMERATE_REMOVE) {
@@ -356,17 +356,17 @@ JS_HashTableEnumerateEntries(JSHashTable *ht, JSHashEnumerator f, void *arg)
     }
 
 out:
-    
+    /* Shrink table if removal of entries made it underloaded */
     if (ht->nentries != nlimit) {
-        JS_ASSERT(ht->nentries < nlimit);
+        MOZ_ASSERT(ht->nentries < nlimit);
         nbuckets = NBUCKETS(ht);
         if (MINBUCKETS < nbuckets && ht->nentries < UNDERLOADED(nbuckets)) {
             newlog2 = CeilingLog2Size(ht->nentries);
             if (newlog2 < MINBUCKETSLOG2)
                 newlog2 = MINBUCKETSLOG2;
 
-            
-            JS_ASSERT(JS_HASH_BITS - ht->shift > newlog2);
+            /*  Check that we really shrink the table. */
+            MOZ_ASSERT(JS_HASH_BITS - ht->shift > newlog2);
             Resize(ht, JS_HASH_BITS - newlog2);
         }
     }
@@ -420,7 +420,7 @@ JS_HashTableDumpMeter(JSHashTable *ht, JSHashEnumerator dump, FILE *fp)
         if (dump(he, i, fp) != HT_ENUMERATE_NEXT)
             break;
 }
-#endif 
+#endif /* JS_HASHMETER */
 
 int
 JS_HashTableDump(JSHashTable *ht, JSHashEnumerator dump, FILE *fp)
