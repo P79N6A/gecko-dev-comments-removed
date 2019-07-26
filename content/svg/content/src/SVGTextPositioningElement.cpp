@@ -45,26 +45,11 @@ SVGTextPositioningElement::GetNumberListInfo()
 
 
 
-
-
-NS_IMETHODIMP SVGTextPositioningElement::GetX(nsISupports * *aX)
-{
-  *aX = X().get();
-  return NS_OK;
-}
-
 already_AddRefed<DOMSVGAnimatedLengthList>
 SVGTextPositioningElement::X()
 {
   return DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[ATTR_X],
                                                  this, ATTR_X, SVGContentUtils::X);
-}
-
-
-NS_IMETHODIMP SVGTextPositioningElement::GetY(nsISupports * *aY)
-{
-  *aY = Y().get();
-  return NS_OK;
 }
 
 already_AddRefed<DOMSVGAnimatedLengthList>
@@ -74,13 +59,6 @@ SVGTextPositioningElement::Y()
                                                  this, ATTR_Y, SVGContentUtils::Y);
 }
 
-
-NS_IMETHODIMP SVGTextPositioningElement::GetDx(nsISupports * *aDx)
-{
-  *aDx = Dx().get();
-  return NS_OK;
-}
-
 already_AddRefed<DOMSVGAnimatedLengthList>
 SVGTextPositioningElement::Dx()
 {
@@ -88,25 +66,11 @@ SVGTextPositioningElement::Dx()
                                                  this, ATTR_DX, SVGContentUtils::X);
 }
 
-
-NS_IMETHODIMP SVGTextPositioningElement::GetDy(nsISupports * *aDy)
-{
-  *aDy = Dy().get();
-  return NS_OK;
-}
-
 already_AddRefed<DOMSVGAnimatedLengthList>
 SVGTextPositioningElement::Dy()
 {
   return DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[ATTR_DY],
                                                  this, ATTR_DY, SVGContentUtils::Y);
-}
-
-
-NS_IMETHODIMP SVGTextPositioningElement::GetRotate(nsISupports * *aRotate)
-{
-  *aRotate = Rotate().get();
-  return NS_OK;
 }
 
 already_AddRefed<DOMSVGAnimatedNumberList>
