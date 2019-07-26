@@ -115,6 +115,15 @@ Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
     if (NS_SUCCEEDED(existingException->GetResult(&nr)) && 
         aRv == nr) {
       
+
+      
+      runtime->SetPendingException(nullptr);
+
+      if (!ThrowExceptionObject(aCx, existingException)) {
+        
+        
+        JS_ReportOutOfMemory(aCx);
+      }
       return false;
     }
   }
