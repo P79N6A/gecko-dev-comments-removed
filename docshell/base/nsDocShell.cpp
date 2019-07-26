@@ -9552,9 +9552,20 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     if (mLoadType == LOAD_RELOAD_ALLOW_MIXED_CONTENT) {
           rv = SetMixedContentChannel(channel);
           NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-          rv = SetMixedContentChannel(nullptr);
-          NS_ENSURE_SUCCESS(rv, rv);
+    } else if (mMixedContentChannel) {
+      
+
+
+
+
+
+
+
+
+      rv = nsContentUtils::CheckSameOrigin(mMixedContentChannel, channel);
+      if (NS_FAILED(rv) || NS_FAILED(SetMixedContentChannel(channel))) {
+        SetMixedContentChannel(nullptr);
+      }
     }
 
     
