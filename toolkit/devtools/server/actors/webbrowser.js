@@ -698,6 +698,30 @@ BrowserTabActor.prototype = {
   
 
 
+  onReload: function(aRequest) {
+    
+    
+    Services.tm.currentThread.dispatch(makeInfallible(() => {
+      this.contentWindow.location.reload();
+    }, "BrowserTabActor.prototype.onReload's delayed body"), 0);
+    return {};
+  },
+
+  
+
+
+  onNavigateTo: function(aRequest) {
+    
+    
+    Services.tm.currentThread.dispatch(makeInfallible(() => {
+      this.contentWindow.location = aRequest.url;
+    }, "BrowserTabActor.prototype.onNavigateTo's delayed body"), 0);
+    return {};
+  },
+
+  
+
+
   preNest: function BTA_preNest() {
     if (!this.browser) {
       
@@ -784,7 +808,9 @@ BrowserTabActor.prototype = {
 
 BrowserTabActor.prototype.requestTypes = {
   "attach": BrowserTabActor.prototype.onAttach,
-  "detach": BrowserTabActor.prototype.onDetach
+  "detach": BrowserTabActor.prototype.onDetach,
+  "reload": BrowserTabActor.prototype.onReload,
+  "navigateTo": BrowserTabActor.prototype.onNavigateTo
 };
 
 

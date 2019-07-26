@@ -923,6 +923,28 @@ TabClient.prototype = {
     },
     telemetry: "TABDETACH"
   }),
+
+  
+
+
+  reload: DebuggerClient.requester({
+    type: "reload"
+  }, {
+    telemetry: "RELOAD"
+  }),
+
+  
+
+
+
+
+
+  navigateTo: DebuggerClient.requester({
+    type: "navigateTo",
+    url: args(0)
+  }, {
+    telemetry: "NAVIGATETO"
+  }),
 };
 
 eventSource(TabClient.prototype);
