@@ -871,6 +871,9 @@ LayerManagerOGL::Render()
   if (mIsRenderingToEGLSurface) {
     rect = nsIntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
+    
+    
+    
     mWidget->GetClientBounds(rect);
   }
   WorldTransformRect(rect);
@@ -1186,7 +1189,7 @@ LayerManagerOGL::CopyToTarget(gfxContext *aTarget)
   if (mIsRenderingToEGLSurface) {
     rect = nsIntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
-    mWidget->GetClientBounds(rect);
+    rect = nsIntRect(0, 0, mWidgetSize.width, mWidgetSize.height);
   }
   GLint width = rect.width;
   GLint height = rect.height;
@@ -1219,9 +1222,15 @@ LayerManagerOGL::CopyToTarget(gfxContext *aTarget)
 
   mGLContext->ReadPixelsIntoImageSurface(imageSurface);
 
+  
+  gfxMatrix glToCairoTransform = mWorldMatrix;
+  glToCairoTransform.Invert();
+  glToCairoTransform.Scale(1.0, -1.0);
+  glToCairoTransform.Translate(-gfxPoint(0.0, height));
+
+  gfxContextAutoSaveRestore restore(aTarget);
   aTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
-  aTarget->Scale(1.0, -1.0);
-  aTarget->Translate(-gfxPoint(0.0, height));
+  aTarget->SetMatrix(glToCairoTransform);
   aTarget->SetSource(imageSurface);
   aTarget->Paint();
 }
