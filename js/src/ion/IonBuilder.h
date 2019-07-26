@@ -402,6 +402,10 @@ class IonBuilder : public MIRGenerator
     };
 
     
+    bool makeInliningDecision(JSFunction *target, CallInfo &callInfo);
+    uint32_t selectInliningTargets(AutoObjectVector &targets, CallInfo &callInfo, Vector<bool> &choiceSet);
+
+    
     types::StackTypeSet *getInlineReturnTypeSet();
     MIRType getInlineReturnType();
     types::StackTypeSet *getInlineThisTypeSet(CallInfo &callInfo);
@@ -454,13 +458,23 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineThrowError(CallInfo &callInfo);
     InliningStatus inlineDump(CallInfo &callInfo);
 
+    
     InliningStatus inlineNativeCall(CallInfo &callInfo, JSNative native);
+    bool inlineScriptedCall(CallInfo &callInfo, JSFunction *target);
+    InliningStatus inlineSingleCall(CallInfo &callInfo, JSFunction *target);
 
     
-    bool inlineScriptedCalls(AutoObjectVector &targets, AutoObjectVector &originals,
-                             CallInfo &callInfo);
-    bool inlineScriptedCall(HandleFunction target, CallInfo &callInfo);
-    bool makeInliningDecision(AutoObjectVector &targets, CallInfo &callInfo);
+    InliningStatus inlineCallsite(AutoObjectVector &targets, AutoObjectVector &originals,
+                                  CallInfo &callInfo);
+    bool inlineCalls(CallInfo &callInfo, AutoObjectVector &targets, AutoObjectVector &originals,
+                     Vector<bool> &choiceSet, MGetPropertyCache *maybeCache);
+
+    
+    bool inlineGenericFallback(JSFunction *target, CallInfo &callInfo, MBasicBlock *dispatchBlock,
+                               bool clonedAtCallsite);
+    bool inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBlock,
+                                  MTypeObjectDispatch *dispatch, MGetPropertyCache *cache,
+                                  MBasicBlock **fallbackTarget);
 
     bool anyFunctionIsCloneAtCallsite(types::StackTypeSet *funTypes);
     MDefinition *makeCallsiteClone(HandleFunction target, MDefinition *fun);

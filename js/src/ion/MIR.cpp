@@ -590,13 +590,28 @@ MPhi::congruentTo(MDefinition *const &ins) const
 }
 
 bool
-MPhi::initLength(size_t length)
+MPhi::reserveLength(size_t length)
 {
     
     
     
     JS_ASSERT(numOperands() == 0);
-    return inputs_.resizeUninitialized(length);
+#if DEBUG
+    capacity_ = length;
+#endif
+    return inputs_.reserve(length);
+}
+
+void
+MPhi::addInput(MDefinition *ins)
+{
+    
+    
+    JS_ASSERT(inputs_.length() < capacity_);
+
+    uint32_t index = inputs_.length();
+    inputs_.append(MUse());
+    MPhi::setOperand(index, ins);
 }
 
 bool
@@ -1933,6 +1948,27 @@ MLoadSlot::mightAlias(MDefinition *store)
 }
 
 void
+InlinePropertyTable::trimTo(AutoObjectVector &targets, Vector<bool> &choiceSet)
+{
+    for (size_t i = 0; i < targets.length(); i++) {
+        
+        if (choiceSet[i])
+            continue;
+
+        JSFunction *target = targets[i]->toFunction();
+
+        
+        size_t j = 0;
+        while (j < numEntries()) {
+            if (entries_[j]->func == target)
+                entries_.erase(&entries_[j]);
+            else
+                j++;
+        }
+    }
+}
+
+void
 InlinePropertyTable::trimToAndMaybePatchTargets(AutoObjectVector &targets,
                                                 AutoObjectVector &originals)
 {
@@ -1960,6 +1996,16 @@ InlinePropertyTable::trimToAndMaybePatchTargets(AutoObjectVector &targets,
 
     IonSpew(IonSpew_Inlining, "%d inlineable cases left after trimming to %d targets",
             (int)numEntries(), (int)targets.length());
+}
+
+bool
+InlinePropertyTable::hasFunction(JSFunction *func) const
+{
+    for (size_t i = 0; i < numEntries(); i++) {
+        if (entries_[i]->func == func)
+            return true;
+    }
+    return false;
 }
 
 MDefinition *

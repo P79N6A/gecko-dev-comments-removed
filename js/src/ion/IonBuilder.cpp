@@ -2931,7 +2931,7 @@ class AutoAccumulateExits
 };
 
 bool
-IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
+IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
 {
     JS_ASSERT(target->isInterpreted());
     JS_ASSERT(callInfo.hasCallType());
@@ -2950,7 +2950,8 @@ IonBuilder::inlineScriptedCall(HandleFunction target, CallInfo &callInfo)
 
     
     if (callInfo.constructing()) {
-        MDefinition *thisDefn = createThis(target, callInfo.fun());
+        RootedFunction targetRoot(cx, target);
+        MDefinition *thisDefn = createThis(targetRoot, callInfo.fun());
         if (!thisDefn)
             return false;
         callInfo.setThis(thisDefn);
@@ -3151,86 +3152,128 @@ IonBuilder::patchInlinedReturns(CallInfo &callInfo, MIRGraphExits &exits, MBasic
 
     
     MPhi *phi = MPhi::New(bottom->stackDepth());
-    phi->initLength(exits.length());
+    if (!phi->reserveLength(exits.length()))
+        return NULL;
 
     for (size_t i = 0; i < exits.length(); i++) {
         MDefinition *rdef = patchInlinedReturn(callInfo, exits[i], bottom);
         if (!rdef)
             return NULL;
-        phi->setOperand(i, rdef);
+        phi->addInput(rdef);
     }
 
     bottom->addPhi(phi);
     return phi;
 }
 
+static bool
+IsSmallFunction(JSScript *script)
+{
+    return script->length <= js_IonOptions.smallFunctionMaxBytecodeLength;
+}
+
 bool
-IonBuilder::makeInliningDecision(AutoObjectVector &targets, CallInfo &callInfo)
+IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 {
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    uint32_t callerUses = script()->getUseCount();
-
-    uint32_t totalSize = 0;
-    uint32_t maxInlineDepth = js_IonOptions.maxInlineDepth;
-    bool allFunctionsAreSmall = true;
-    for (size_t i = 0; i < targets.length(); i++) {
-        JSFunction *target = targets[i]->toFunction();
-        if (!target->isInterpreted())
-            return false;
-
-        JSScript *targetScript = target->nonLazyScript();
-        uint32_t calleeUses = targetScript->getUseCount();
-
-        totalSize += targetScript->length;
-        if (totalSize > js_IonOptions.inlineMaxTotalBytecodeLength)
-            return false;
-
-        if (targetScript->length > js_IonOptions.smallFunctionMaxBytecodeLength)
-            allFunctionsAreSmall = false;
-
-        if (targetScript->length > 1 && 
-            calleeUses * js_IonOptions.inlineUseCountRatio < callerUses)
-        {
-            IonSpew(IonSpew_Inlining, "Not inlining, callee is not hot");
-            return false;
-        }
-    }
-    if (allFunctionsAreSmall)
-        maxInlineDepth = js_IonOptions.smallFunctionMaxInlineDepth;
-
-    if (inliningDepth_ >= maxInlineDepth)
+    if (!inliningEnabled())
         return false;
 
-    if (script()->getUseCount() < js_IonOptions.usesBeforeInlining()) {
-        IonSpew(IonSpew_Inlining, "Not inlining, caller is not hot");
+    
+    if (target == NULL)
         return false;
-    }
 
+    
+    if (target->isNative())
+        return true;
+
+    
+    if (!canInlineTarget(target, callInfo))
+        return false;
+
+    
     RootedScript scriptRoot(cx, script());
+    JSScript *targetScript = target->nonLazyScript();
     if (!oracle->canInlineCall(scriptRoot, pc)) {
-        IonSpew(IonSpew_Inlining, "Cannot inline due to uninlineable call site");
+        IonSpew(IonSpew_Inlining, "%s:%d - Cannot inline due to uninlineable call site",
+                                  targetScript->filename(), targetScript->lineno);
         return false;
     }
 
-    for (size_t i = 0; i < targets.length(); i++) {
-        JSFunction *target = targets[i]->toFunction();
-        if (!canInlineTarget(target, callInfo)) {
-            IonSpew(IonSpew_Inlining, "Decided not to inline");
+    
+
+    
+    if (IsSmallFunction(targetScript)) {
+        if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth) {
+            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
+                                      targetScript->filename(), targetScript->lineno);
             return false;
         }
+    } else {
+        if (inliningDepth_ >= js_IonOptions.maxInlineDepth) {
+            IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",
+                                      targetScript->filename(), targetScript->lineno);
+            return false;
+        }
+     }
+
+    
+    if (targetScript->length == 1)
+        return true;
+
+    
+    
+    if (targetScript->length > js_IonOptions.inlineMaxTotalBytecodeLength) {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee excessively large.",
+                                  targetScript->filename(), targetScript->lineno);
+        return false;
+    }
+
+    
+    uint32_t callerUses = script()->getUseCount();
+    if (callerUses < js_IonOptions.usesBeforeInlining()) {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: caller is insufficiently hot.",
+                                  targetScript->filename(), targetScript->lineno);
+        return false;
+    }
+
+    
+    if (targetScript->getUseCount() * js_IonOptions.inlineUseCountRatio < callerUses) {
+        IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: callee is not hot.",
+                                  targetScript->filename(), targetScript->lineno);
+        return false;
     }
 
     return true;
+}
+
+uint32_t
+IonBuilder::selectInliningTargets(AutoObjectVector &targets, CallInfo &callInfo, Vector<bool> &choiceSet)
+{
+    uint32_t totalSize = 0;
+    uint32_t numInlineable = 0;
+
+    
+    if (!choiceSet.reserve(targets.length()))
+        return false;
+    for (size_t i = 0; i < targets.length(); i++) {
+        JSFunction *target = targets[i]->toFunction();
+        bool inlineable = makeInliningDecision(target, callInfo);
+
+        
+        if (inlineable && target->isInterpreted()) {
+            totalSize += target->nonLazyScript()->length;
+            if (totalSize > js_IonOptions.inlineMaxTotalBytecodeLength)
+                inlineable = false;
+        }
+
+        choiceSet.append(inlineable);
+        if (inlineable)
+            numInlineable++;
+    }
+
+    JS_ASSERT(choiceSet.length() == targets.length());
+    return numInlineable;
 }
 
 static bool
@@ -3240,7 +3283,7 @@ CanInlineGetPropertyCache(MGetPropertyCache *cache, MDefinition *thisDef)
     if (cache->object() != thisDef)
         return false;
 
-    InlinePropertyTable *table = cache->inlinePropertyTable();
+    InlinePropertyTable *table = cache->propTable();
     if (!table)
         return false;
     if (table->numEntries() == 0)
@@ -3257,6 +3300,10 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
     MDefinition *thisDef = callInfo.thisArg();
     if (thisDef->type() != MIRType_Object)
         return NULL;
+
+    
+    if (thisDef->isPassArg())
+        thisDef = thisDef->toPassArg()->getArgument();
 
     MDefinition *funcDef = callInfo.fun();
     if (funcDef->type() != MIRType_Object)
@@ -3309,7 +3356,7 @@ IonBuilder::makePolyInlineDispatch(JSContext *cx, CallInfo &callInfo,
     if (!getPropCache)
         return MPolyInlineDispatch::New(callInfo.fun());
 
-    InlinePropertyTable *inlinePropTable = getPropCache->inlinePropertyTable();
+    InlinePropertyTable *inlinePropTable = getPropCache->propTable();
 
     
     
@@ -3417,260 +3464,398 @@ IonBuilder::makePolyInlineDispatch(JSContext *cx, CallInfo &callInfo,
                                     fallbackEndBlock);
 }
 
-bool
-IonBuilder::inlineScriptedCalls(AutoObjectVector &targets, AutoObjectVector &originals,
-                                CallInfo &callInfo)
+IonBuilder::InliningStatus
+IonBuilder::inlineSingleCall(CallInfo &callInfo, JSFunction *target)
 {
-    JS_ASSERT(callInfo.hasTypeInfo());
+    
+    JS_ASSERT(callInfo.fun()->isConstant());
 
     
-    JS_ASSERT(callInfo.isWrapped());
-    callInfo.unwrapArgs();
-    callInfo.pushFormals(current);
+    if (target->isNative())
+        return inlineNativeCall(callInfo, target->native());
 
-    DebugOnly<uint32_t> origStackDepth = current->stackDepth();
+    if (!inlineScriptedCall(callInfo, target))
+        return InliningStatus_Error;
+    return InliningStatus_Inlined;
+}
 
-    IonSpew(IonSpew_Inlining, "Inlining %d targets", (int) targets.length());
-    JS_ASSERT(targets.length() > 0);
+IonBuilder::InliningStatus
+IonBuilder::inlineCallsite(AutoObjectVector &targets, AutoObjectVector &originals,
+                           CallInfo &callInfo)
+{
+    if (!inliningEnabled())
+        return InliningStatus_NotInlined;
 
-    
-    MBasicBlock *top = current;
-
-    
-    
-    MGetPropertyCache *getPropCache = getInlineableGetPropertyCache(callInfo);
-    if (getPropCache) {
-        InlinePropertyTable *table = getPropCache->inlinePropertyTable();
-        table->trimToAndMaybePatchTargets(targets, originals);
-        if (table->numEntries() == 0)
-            getPropCache = NULL;
-    }
+    if (targets.length() == 0)
+        return InliningStatus_NotInlined;
 
     
     
     
-    
-    
-    
-    
-    
-    
-    if (getPropCache == NULL && targets.length() == 1) {
+    MGetPropertyCache *propCache = getInlineableGetPropertyCache(callInfo);
 
-        
-        callInfo.popFormals(current);
+    
+    
+    if (!propCache && targets.length() == 1) {
+        JSFunction *target = targets[0]->toFunction();
+        if (!makeInliningDecision(target, callInfo))
+            return InliningStatus_NotInlined;
 
         
         callInfo.fun()->setFoldedUnchecked();
-        JSFunction *func = targets[0]->toFunction();
-        MConstant *constFun = MConstant::New(ObjectValue(*func));
+        MConstant *constFun = MConstant::New(ObjectValue(*target));
         current->add(constFun);
         callInfo.setFun(constFun);
 
-        
-        RootedFunction target(cx, func);
-        return inlineScriptedCall(target, callInfo);
+        return inlineSingleCall(callInfo, target);
     }
 
+    
+    Vector<bool> choiceSet(cx);
+    uint32_t numInlined = selectInliningTargets(targets, callInfo, choiceSet);
+    if (numInlined == 0)
+        return InliningStatus_NotInlined;
+
+    
+    if (!inlineCalls(callInfo, targets, originals, choiceSet, propCache))
+        return InliningStatus_Error;
+
+    return InliningStatus_Inlined;
+}
+
+bool
+IonBuilder::inlineGenericFallback(JSFunction *target, CallInfo &callInfo, MBasicBlock *dispatchBlock,
+                                  bool clonedAtCallsite)
+{
+    
+    MBasicBlock *fallbackBlock = newBlock(dispatchBlock, pc);
+    if (!fallbackBlock)
+        return false;
+
+    
+    CallInfo fallbackInfo(cx, callInfo.constructing());
+    if (!fallbackInfo.init(callInfo))
+        return false;
+    fallbackInfo.popFormals(fallbackBlock);
+    fallbackInfo.wrapArgs(fallbackBlock);
+
+    
+    current = fallbackBlock;
+    RootedFunction targetRooted(cx, target);
+    types::StackTypeSet *calleeTypes = oracle->getCallTarget(script(), callInfo.argc(), pc);
+    if (!makeCallBarrier(targetRooted, fallbackInfo, calleeTypes, clonedAtCallsite))
+        return false;
+
+    
+    return true;
+}
+
+bool
+IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBlock,
+                                     MTypeObjectDispatch *dispatch, MGetPropertyCache *cache,
+                                     MBasicBlock **fallbackTarget)
+{
+    
+    
+    
+    JS_ASSERT(callInfo.fun()->isGetPropertyCache() || callInfo.fun()->isUnbox());
+
+    
+    JS_ASSERT(dispatch->numCases() > 0);
+
+    
+    
+    JS_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), cache->useCount() == 0);
+    JS_ASSERT_IF(callInfo.fun()->isUnbox(), cache->useCount() == 1);
+
+    
+    
+    
+
+    
+    CallInfo fallbackInfo(cx, callInfo.constructing());
+    if (!fallbackInfo.init(callInfo))
+        return false;
+
+    
+    MResumePoint *preCallResumePoint =
+        MResumePoint::New(dispatchBlock, pc, callerResumePoint_, MResumePoint::ResumeAt);
+    if (!preCallResumePoint)
+        return false;
+
+    DebugOnly<size_t> preCallFuncIndex = preCallResumePoint->numOperands() - callInfo.numFormals();
+    JS_ASSERT(preCallResumePoint->getOperand(preCallFuncIndex) == fallbackInfo.fun());
+
+    
+    MConstant *undefined = MConstant::New(UndefinedValue());
+    dispatchBlock->add(undefined);
+    dispatchBlock->rewriteAtDepth(-int(callInfo.numFormals()), undefined);
+
+    
+    
+    MBasicBlock *prepBlock = newBlock(dispatchBlock, pc);
+    if (!prepBlock)
+        return false;
+    fallbackInfo.popFormals(prepBlock);
+
+    
+    
+    InlinePropertyTable *propTable = cache->propTable();
+    JS_ASSERT(propTable->pc() != NULL);
+    JS_ASSERT(propTable->priorResumePoint() != NULL);
+    MBasicBlock *getPropBlock = newBlock(prepBlock, propTable->pc(), propTable->priorResumePoint());
+    if (!getPropBlock)
+        return false;
+
+    prepBlock->end(MGoto::New(getPropBlock));
+
+    
+    
+    DebugOnly<MDefinition *> checkObject = getPropBlock->pop();
+    JS_ASSERT(checkObject == cache->object());
+
+    
+    if (fallbackInfo.fun()->isGetPropertyCache()) {
+        JS_ASSERT(fallbackInfo.fun()->toGetPropertyCache() == cache);
+        getPropBlock->addFromElsewhere(cache);
+        getPropBlock->push(cache);
+    } else {
+        MUnbox *unbox = callInfo.fun()->toUnbox();
+        JS_ASSERT(unbox->input()->isTypeBarrier());
+        JS_ASSERT(unbox->type() == MIRType_Object);
+        JS_ASSERT(unbox->mode() == MUnbox::Infallible);
+
+        MTypeBarrier *typeBarrier = unbox->input()->toTypeBarrier();
+        JS_ASSERT(typeBarrier->input()->isGetPropertyCache());
+        JS_ASSERT(typeBarrier->input()->toGetPropertyCache() == cache);
+
+        getPropBlock->addFromElsewhere(cache);
+        getPropBlock->addFromElsewhere(typeBarrier);
+        getPropBlock->addFromElsewhere(unbox);
+        getPropBlock->push(unbox);
+    }
+
+    
+    MBasicBlock *preCallBlock = newBlock(getPropBlock, pc, preCallResumePoint);
+    if (!preCallBlock)
+        return false;
+    getPropBlock->end(MGoto::New(preCallBlock));
+
+    
+    if (!inlineGenericFallback(NULL, fallbackInfo, preCallBlock, false))
+        return false;
+
+    
+    preCallBlock->end(MGoto::New(current));
+    *fallbackTarget = prepBlock;
+    return true;
+}
+
+bool
+IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
+                        AutoObjectVector &originals, Vector<bool> &choiceSet,
+                        MGetPropertyCache *maybeCache)
+{
     
     JS_ASSERT(types::IsInlinableCall(pc));
-    jsbytecode *postCall = GetNextPc(pc);
-    MBasicBlock *bottom = newBlock(NULL, postCall);
-    if (!bottom)
-        return false;
-    bottom->setCallerResumePoint(callerResumePoint_);
+    JS_ASSERT(choiceSet.length() == targets.length());
+    JS_ASSERT_IF(!maybeCache, targets.length() >= 2);
+    JS_ASSERT_IF(maybeCache, targets.length() >= 1);
 
-    Vector<MDefinition *, 8, IonAllocPolicy> retvalDefns;
-    
+    MBasicBlock *dispatchBlock = current;
 
     
-    MPolyInlineDispatch *disp =
-        makePolyInlineDispatch(cx, callInfo, getPropCache, bottom, retvalDefns);
-    if (!disp)
-        return false;
-
-    
-    for (size_t i = 0; i < targets.length(); i++) {
-        
-        
-        
-        
-        JSFunction *func = originals[i]->toFunction();
-        MConstant *constFun = MConstant::New(ObjectValue(*func));
-        top->add(constFun);
-
-        
-        MBasicBlock *entryBlock = newBlock(current, pc);
-        if (!entryBlock)
-            return false;
-
-        
-        int funIndex = entryBlock->entryResumePoint()->numOperands();
-        funIndex -= ((int) callInfo.argc() + 2);
-        entryBlock->entryResumePoint()->replaceOperand(funIndex, constFun);
-
-        
-        disp->addCallee(constFun, entryBlock);
-    }
-    top->end(disp);
+    JS_ASSERT(callInfo.hasTypeInfo());
+    JS_ASSERT(callInfo.isWrapped());
+    callInfo.unwrapArgs();
+    callInfo.pushFormals(dispatchBlock);
 
     
     
     
     
-    
-    
-    
-    MBasicBlock *inlineBottom = bottom;
-    if (instrumentedProfiling() && disp->inlinePropertyTable()) {
-        inlineBottom = newBlock(NULL, pc);
-        if (inlineBottom == NULL)
-            return false;
+    if (maybeCache) {
+        InlinePropertyTable *propTable = maybeCache->propTable();
+        propTable->trimToAndMaybePatchTargets(targets, originals);
+        if (propTable->numEntries() == 0)
+            maybeCache = NULL;
     }
 
-    for (size_t i = 0; i < disp->numCallees(); i++) {
-        
-        RootedFunction target(cx, disp->getFunction(i));
-
-        
-        MConstant *constFun = disp->getFunctionConstant(i);
+    
+    MDispatchInstruction *dispatch;
+    if (maybeCache) {
+        dispatch = MTypeObjectDispatch::New(maybeCache->object(), maybeCache->propTable());
         callInfo.fun()->setFoldedUnchecked();
-        callInfo.setFun(constFun);
+    } else {
+        dispatch = MFunctionDispatch::New(callInfo.fun());
+    }
+
+    
+    jsbytecode *postCall = GetNextPc(pc);
+    MBasicBlock *returnBlock = newBlock(NULL, postCall);
+    if (!returnBlock)
+        return false;
+    returnBlock->setCallerResumePoint(callerResumePoint_);
+
+    
+    returnBlock->inheritSlots(dispatchBlock);
+    callInfo.popFormals(returnBlock);
+
+    MPhi *retPhi = MPhi::New(returnBlock->stackDepth());
+    returnBlock->addPhi(retPhi);
+    returnBlock->push(retPhi);
+
+    
+    returnBlock->initEntrySlots();
+
+    
+    
+    uint32_t count = 1; 
+    for (uint32_t i = 0; i < targets.length(); i++) {
+        if (choiceSet[i])
+            count++;
+    }
+    retPhi->reserveLength(count);
+
+    
+    JS_ASSERT(targets.length() == originals.length());
+    for (uint32_t i = 0; i < targets.length(); i++) {
+        JSFunction *target = targets[i]->toFunction();
 
         
-        MBasicBlock *inlineBlock = disp->getSuccessor(i);
-        graph().moveBlockToEnd(inlineBlock);
+        if (!choiceSet[i])
+            continue;
 
         
-        callInfo.popFormals(inlineBlock);
+        if (maybeCache && !maybeCache->propTable()->hasFunction(target)) {
+            choiceSet[i] = false;
+            continue;
+        }
+
+        MBasicBlock *inlineBlock = newBlock(dispatchBlock, pc);
+        if (!inlineBlock)
+            return false;
+
+        
+        
+        
+        JSFunction *original = originals[i]->toFunction();
+        MConstant *funcDef = MConstant::New(ObjectValue(*original));
+        funcDef->setFoldedUnchecked();
+        dispatchBlock->add(funcDef);
+
+        
+        int funIndex = inlineBlock->entryResumePoint()->numOperands() - callInfo.numFormals();
+        inlineBlock->entryResumePoint()->replaceOperand(funIndex, funcDef);
+        inlineBlock->rewriteSlot(funIndex, funcDef);
+
+        
+        CallInfo inlineInfo(cx, callInfo.constructing());
+        if (!inlineInfo.init(callInfo))
+            return false;
+        inlineInfo.popFormals(inlineBlock);
+        inlineInfo.setFun(funcDef);
+        inlineInfo.wrapArgs(inlineBlock);
 
         
         current = inlineBlock;
-        if (!inlineScriptedCall(target, callInfo))
+        InliningStatus status = inlineSingleCall(inlineInfo, target);
+        if (status == InliningStatus_Error)
             return false;
 
         
-        MBasicBlock *returnBlock = current;
-        MDefinition *retvalDefn = returnBlock->peek(-1);
-        if (!retvalDefns.append(retvalDefn))
-            return false;
-
-        
-        returnBlock->end(MGoto::New(inlineBottom));
-        if (!inlineBottom->addPredecessorWithoutPhis(returnBlock))
-            return false;
-
-    }
-
-    
-    
-    
-    
-    if (inlineBottom != bottom) {
-        graph().moveBlockToEnd(inlineBottom);
-        inlineBottom->inheritSlots(top);
-        if (!inlineBottom->initEntrySlots())
-            return false;
-
-        
-        if (retvalDefns.length() > 1) {
+        if (status == InliningStatus_NotInlined) {
+            JS_ASSERT(target->isNative());
+            JS_ASSERT(current == inlineBlock);
             
-            
-            MPhi *phi = MPhi::New(inlineBottom->stackDepth() - callInfo.argc() - 2);
-            inlineBottom->addPhi(phi);
-
-            if (!phi->initLength(retvalDefns.length()))
-                return false;
-
-            size_t index = 0;
-            MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end();
-            for (; it != end; it++, index++)
-                phi->setOperand(index, *it);
-
-            JS_ASSERT(index == retvalDefns.length());
-
-            
-            retvalDefns.clear();
-            if (!retvalDefns.append(phi))
-                return false;
+            inlineInfo.unwrapArgs();
+            inlineBlock->entryResumePoint()->replaceOperand(funIndex, callInfo.fun());
+            inlineBlock->rewriteSlot(funIndex, callInfo.fun());
+            inlineBlock->discard(funcDef);
+            graph().removeBlock(inlineBlock);
+            choiceSet[i] = false;
+            continue;
         }
 
-        inlineBottom->end(MGoto::New(bottom));
-        if (!bottom->addPredecessorWithoutPhis(inlineBottom))
-            return false;
-    }
-
-    
-    
-    
-    if (disp->inlinePropertyTable()) {
-        graph().moveBlockToEnd(disp->fallbackPrepBlock());
-        graph().moveBlockToEnd(disp->fallbackMidBlock());
-        graph().moveBlockToEnd(disp->fallbackEndBlock());
+        
+        MBasicBlock *inlineReturnBlock = current;
+        current = dispatchBlock;
 
         
-        MBasicBlock *fallbackEndBlock = disp->fallbackEndBlock();
-        MDefinition *fallbackResult = fallbackEndBlock->pop();
-        if (!retvalDefns.append(fallbackResult))
-            return false;
-        fallbackEndBlock->end(MGoto::New(bottom));
-        if (!bottom->addPredecessorWithoutPhis(fallbackEndBlock))
+        dispatch->addCase(original, inlineBlock);
+
+        MDefinition *retVal = inlineReturnBlock->peek(-1);
+        retPhi->addInput(retVal);
+        inlineReturnBlock->end(MGoto::New(returnBlock));
+        if (!returnBlock->addPredecessorWithoutPhis(inlineReturnBlock))
             return false;
     }
 
-    graph().moveBlockToEnd(bottom);
-
-    bottom->inheritSlots(top);
-
     
-    
-    
-    callInfo.popFormals(bottom);
+    if (maybeCache) {
+        InlinePropertyTable *propTable = maybeCache->propTable();
+        propTable->trimTo(targets, choiceSet);
 
-    MDefinition *retvalDefn;
-    if (retvalDefns.length() > 1) {
         
-        MPhi *phi = MPhi::New(bottom->stackDepth());
-        bottom->addPhi(phi);
-
-        if (!phi->initLength(retvalDefns.length()))
-            return false;
-
-        size_t index = 0;
-        MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end();
-        for (; it != end; it++, index++)
-            phi->setOperand(index, *it);
-
-        JS_ASSERT(index == retvalDefns.length());
-
-        retvalDefn = phi;
-    } else {
-        retvalDefn = retvalDefns.back();
+        if (propTable->numEntries() == 0) {
+            JS_ASSERT(dispatch->numCases() == 0);
+            maybeCache = NULL;
+        }
     }
 
-    bottom->push(retvalDefn);
+    
+    
+    if (maybeCache || dispatch->numCases() < targets.length()) {
+        
+        if (maybeCache) {
+            MBasicBlock *fallbackTarget;
+            if (!inlineTypeObjectFallback(callInfo, dispatchBlock, (MTypeObjectDispatch *)dispatch,
+                                          maybeCache, &fallbackTarget))
+            {
+                return false;
+            }
+            dispatch->addFallback(fallbackTarget);
+        } else {
+            JSFunction *remaining = NULL;
+            bool clonedAtCallsite = false;
+
+            
+            
+            if (dispatch->numCases() + 1 == originals.length()) {
+                for (uint32_t i = 0; i < originals.length(); i++) {
+                    if (choiceSet[i])
+                        continue;
+
+                    remaining = targets[i]->toFunction();
+                    clonedAtCallsite = targets[i] != originals[i];
+                    break;
+                }
+            }
+
+            if (!inlineGenericFallback(remaining, callInfo, dispatchBlock, clonedAtCallsite))
+                return false;
+            dispatch->addFallback(current);
+        }
+
+        MBasicBlock *fallbackReturnBlock = current;
+
+        
+        MDefinition *retVal = fallbackReturnBlock->peek(-1);
+        retPhi->addInput(retVal);
+        fallbackReturnBlock->end(MGoto::New(returnBlock));
+        if (!returnBlock->addPredecessorWithoutPhis(fallbackReturnBlock))
+            return false;
+    }
 
     
-    if (!bottom->initEntrySlots())
-        return false;
+    
+    dispatchBlock->end(dispatch);
 
     
-    
-    
-    
-    
-    MBasicBlock *bottom2 = newBlock(bottom, postCall);
-    if (!bottom2)
-        return false;
+    JS_ASSERT(returnBlock->stackDepth() == dispatchBlock->stackDepth() - callInfo.numFormals() + 1);
 
-    bottom->end(MGoto::New(bottom2));
-    current = bottom2;
-
-    
-    
-    
-    
-    JS_ASSERT(current->stackDepth() == origStackDepth - callInfo.argc() - 1);
+    graph().moveBlockToEnd(returnBlock);
+    current = returnBlock;
     return true;
 }
 
@@ -4075,13 +4260,8 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     callInfo.setTypeInfo(types, barrier);
 
     
-    if (target != NULL) {
-        AutoObjectVector targets(cx);
-        targets.append(target);
-
-        if (makeInliningDecision(targets, callInfo))
-            return inlineScriptedCall(target, callInfo);
-    }
+    if (makeInliningDecision(target, callInfo) && target->isInterpreted())
+        return inlineScriptedCall(callInfo, target);
 
     callInfo.wrapArgs(current);
     return makeCallBarrier(target, callInfo, funTypes, false);
@@ -4123,28 +4303,15 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     types::StackTypeSet *barrier;
     types::StackTypeSet *types = oracle->returnTypeSet(script(), pc, &barrier);
     callInfo.setTypeInfo(types, barrier);
-
-    
-    if (inliningEnabled() && targets.length() == 1 && targets[0]->toFunction()->isNative()) {
-        InliningStatus status = inlineNativeCall(callInfo, targets[0]->toFunction()->native());
-        switch (status) {
-          case InliningStatus_Error:
-            return false;
-          case InliningStatus_Inlined:
-            callInfo.fun()->setFoldedUnchecked();
-            return true;
-          case InliningStatus_NotInlined:
-            break;
-          default:
-            JS_NOT_REACHED("Invalid status");
-        }
-    }
-
-    
     if (!callInfo.initCallType(oracle, scriptRoot, pc))
         return false;
-    if (inliningEnabled() && targets.length() > 0 && makeInliningDecision(targets, callInfo))
-        return inlineScriptedCalls(targets, originals, callInfo);
+
+    
+    InliningStatus status = inlineCallsite(targets, originals, callInfo);
+    if (status == InliningStatus_Inlined)
+        return true;
+    if (status == InliningStatus_Error)
+        return false;
 
     
     RootedFunction target(cx, NULL);

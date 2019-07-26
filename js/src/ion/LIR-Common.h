@@ -1228,6 +1228,47 @@ class LTestVAndBranch : public LInstructionHelper<0, BOX_PIECES, 3>
     }
 };
 
+
+
+class LFunctionDispatch : public LInstructionHelper<0, 1, 0>
+{
+    
+    
+
+  public:
+    LIR_HEADER(FunctionDispatch);
+
+    LFunctionDispatch(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    MFunctionDispatch *mir() {
+        return mir_->toFunctionDispatch();
+    }
+};
+
+class LTypeObjectDispatch : public LInstructionHelper<0, 1, 1>
+{
+    
+    
+
+  public:
+    LIR_HEADER(TypeObjectDispatch);
+
+    LTypeObjectDispatch(const LAllocation &in, const LDefinition &temp) {
+        setOperand(0, in);
+        setTemp(0, temp);
+    }
+
+    const LDefinition *temp() {
+        return getTemp(0);
+    }
+
+    MTypeObjectDispatch *mir() {
+        return mir_->toTypeObjectDispatch();
+    }
+};
+
 class LPolyInlineDispatch : public LInstructionHelper<0, 1, 1>
 {
   
