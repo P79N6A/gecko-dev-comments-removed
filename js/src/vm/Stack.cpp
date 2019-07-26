@@ -660,7 +660,6 @@ StackSpace::mark(JSTracer *trc)
 
 
         Value *slotsEnd = nextSegEnd;
-        jsbytecode *pc = seg->maybepc();
         for (StackFrame *fp = seg->maybefp(); (Value *)fp > (Value *)seg; fp = fp->prev()) {
             
             markFrame(trc, fp, slotsEnd);
@@ -669,7 +668,7 @@ StackSpace::mark(JSTracer *trc)
             slotsEnd = (Value *)fp;
 
             InlinedSite *site;
-            pc = fp->prevpc(&site);
+            fp->prevpc(&site);
             JS_ASSERT_IF(fp->prev(), !site);
         }
         gc::MarkValueRootRange(trc, seg->slotsBegin(), slotsEnd, "vm_stack");
