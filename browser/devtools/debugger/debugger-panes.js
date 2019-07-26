@@ -3,7 +3,12 @@
 
 
 
+
 "use strict";
+
+
+const SAMPLE_SIZE = 30; 
+const INDENT_COUNT_THRESHOLD = 20; 
 
 
 
@@ -769,8 +774,19 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     if (!sourceItem) {
       return;
     }
+    const { source } = sourceItem.attachment;
+    const sourceClient = gThreadClient.source(source);
+
     
     DebuggerView.setEditorLocation(sourceItem.value);
+
+    if (Prefs.autoPrettyPrint && !sourceClient.isPrettyPrinted) {
+      DebuggerController.SourceScripts.getText(source).then(([, aText]) => {
+        if (SourceUtils.isMinified(sourceClient, aText)) {
+          this.togglePrettyPrint();
+        }
+      }).then(null, e => DevToolsUtils.reportException("_onSourceSelect", e));
+    }
 
     
     
@@ -1432,6 +1448,7 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 let SourceUtils = {
   _labelsCache: new Map(), 
   _groupsCache: new Map(),
+  _minifiedCache: new WeakMap(),
 
   
 
@@ -1450,9 +1467,49 @@ let SourceUtils = {
 
 
 
+
+
+
+
+  isMinified: function(sourceClient, aText){
+    if (this._minifiedCache.has(sourceClient)) {
+      return this._minifiedCache.get(sourceClient);
+    }
+
+    let isMinified;
+    let lineEndIndex = 0;
+    let lineStartIndex = 0;
+    let lines = 0;
+    let indentCount = 0;
+
+    
+    aText = aText.replace(/\/\*[\S\s]*?\*\/|\/\/(.+|\n)/g, "");
+
+    while (lines++ < SAMPLE_SIZE) {
+      lineEndIndex = aText.indexOf("\n", lineStartIndex);
+      if (lineEndIndex == -1) {
+         break;
+      }
+      if (/^\s+/.test(aText.slice(lineStartIndex, lineEndIndex))) {
+        indentCount++;
+      }
+      lineStartIndex = lineEndIndex + 1;
+    }
+    isMinified = ((indentCount / lines ) * 100) < INDENT_COUNT_THRESHOLD;
+
+    this._minifiedCache.set(sourceClient, isMinified);
+    return isMinified;
+  },
+
+  
+
+
+
+
   clearCache: function() {
     this._labelsCache.clear();
     this._groupsCache.clear();
+    this._minifiedCache.clear();
   },
 
   
