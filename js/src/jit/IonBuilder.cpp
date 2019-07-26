@@ -3717,11 +3717,6 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     returnBlock->pop();
 
     
-    
-    if (!callInfo.fun()->isConstant())
-        returnBlock->add(MForceUse::New(callInfo.fun()));
-
-    
     MIRGraphExits &exits = *inlineBuilder.graph().exitAccumulator();
     if (exits.length() == 0) {
         

@@ -80,7 +80,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     
     bool visitParameter(MParameter *param);
     bool visitCallee(MCallee *callee);
-    bool visitForceUse(MForceUse *forceUse);
     bool visitGoto(MGoto *ins);
     bool visitTableSwitch(MTableSwitch *tableswitch);
     bool visitNewSlots(MNewSlots *ins);
