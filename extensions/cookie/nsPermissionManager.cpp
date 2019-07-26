@@ -87,9 +87,14 @@ GetPrincipal(const nsACString& aHost, uint32_t aAppId, bool aIsInBrowserElement,
   NS_ENSURE_TRUE(secMan, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIURI> uri;
-  
-  
-  NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("http://") + aHost);
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aHost);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("http://") + aHost);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return secMan->GetAppCodebasePrincipal(uri, aAppId, aIsInBrowserElement, aPrincipal);
 }
@@ -120,11 +125,17 @@ GetHostForPrincipal(nsIPrincipal* aPrincipal, nsACString& aHost)
   NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 
   rv = uri->GetAsciiHost(aHost);
-  if (NS_FAILED(rv) || aHost.IsEmpty()) {
-    return NS_ERROR_UNEXPECTED;
+  if (NS_SUCCEEDED(rv) && !aHost.IsEmpty()) {
+    return NS_OK;
   }
 
-  return NS_OK;
+  
+  rv = aPrincipal->GetOrigin(getter_Copies(aHost));
+  if (NS_SUCCEEDED(rv) && !aHost.IsEmpty()) {
+    return NS_OK;
+  }
+
+  return NS_ERROR_UNEXPECTED;
 }
 
 nsCString
@@ -1018,26 +1029,9 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
   
   *aPermission = nsIPermissionManager::UNKNOWN_ACTION;
 
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = aPrincipal->GetURI(getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsAutoCString host;
-  rv = GetHostForPrincipal(aPrincipal, host);
-
-  
-  
-  if (NS_FAILED(rv)) {
-    bool isFile;
-    rv = uri->SchemeIs("file", &isFile);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (isFile) {
-      host.AssignLiteral("<file>");
-    }
-    else {
-      return NS_OK;
-    }
-  }
+  nsresult rv = GetHostForPrincipal(aPrincipal, host);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   int32_t typeIndex = GetTypeIndex(aType, false);
   
@@ -1104,14 +1098,32 @@ nsPermissionManager::GetPermissionHashKey(const nsACString& aHost,
     }
   }
 
-  if (!entry && !aExactHostMatch) {
+  if (entry) {
+    return entry;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (StringBeginsWith(aHost, NS_LITERAL_CSTRING("file://"))) {
+    return GetPermissionHashKey(NS_LITERAL_CSTRING("<file>"), aAppId, aIsInBrowserElement, aType, true);
+  }
+
+  if (!aExactHostMatch) {
     nsCString domain = GetNextSubDomainForHost(aHost);
     if (!domain.IsEmpty()) {
       return GetPermissionHashKey(domain, aAppId, aIsInBrowserElement, aType, aExactHostMatch);
     }
   }
 
-  return entry;
+  
+  return nullptr;
 }
 
 
