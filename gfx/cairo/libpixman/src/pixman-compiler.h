@@ -97,6 +97,10 @@
 #endif
 
 
+#define CONTAINER_OF(type, member, data)				\
+    ((type *)(((uint8_t *)data) - offsetof (type, member)))
+
+
 #if defined(PIXMAN_NO_TLS)
 
 #   define PIXMAN_DEFINE_THREAD_LOCAL(type, name)			\
