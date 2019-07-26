@@ -37,10 +37,10 @@ protected:
 };
 
 
-class DeprecatedImageHostSingle : public ImageHost
+class ImageHostSingle : public ImageHost
 {
 public:
-  DeprecatedImageHostSingle(const TextureInfo& aTextureInfo)
+  ImageHostSingle(const TextureInfo& aTextureInfo)
     : ImageHost(aTextureInfo)
     , mDeprecatedTextureHost(nullptr)
     , mHasPictureRect(false)
@@ -115,11 +115,11 @@ protected:
 
 
 
-class DeprecatedImageHostBuffered : public DeprecatedImageHostSingle
+class ImageHostBuffered : public ImageHostSingle
 {
 public:
-  DeprecatedImageHostBuffered(const TextureInfo& aTextureInfo)
-    : DeprecatedImageHostSingle(aTextureInfo)
+  ImageHostBuffered(const TextureInfo& aTextureInfo)
+    : ImageHostSingle(aTextureInfo)
   {}
 
   virtual bool Update(const SurfaceDescriptor& aImage,

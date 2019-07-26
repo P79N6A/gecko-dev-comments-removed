@@ -72,12 +72,12 @@ protected:
 
 
 
-class DeprecatedImageClientSingle : public ImageClient
+class ImageClientSingle : public ImageClient
 {
 public:
-  DeprecatedImageClientSingle(CompositableForwarder* aFwd,
-                              TextureFlags aFlags,
-                              CompositableType aType);
+  ImageClientSingle(CompositableForwarder* aFwd,
+                     TextureFlags aFlags,
+                     CompositableType aType);
 
   virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
 
