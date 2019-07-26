@@ -79,8 +79,8 @@
 
 
 
-#define JS_TYPEDOBJ_SLOT_TYPE_OBJ 0  // Type object for a given typed object
-#define JS_TYPEDOBJ_SLOT_OWNER    1  // Owner of data (if null, this is owner)
-#define JS_TYPEDOBJ_SLOTS         2  // Number of slots for typed objs
+#define JS_DATUM_SLOT_TYPE_OBJ 0  // Type object for a given typed object
+#define JS_DATUM_SLOT_OWNER    1  // Owner of data (if null, this is owner)
+#define JS_DATUM_SLOTS         2  // Number of slots for typed objs
 
 #endif
