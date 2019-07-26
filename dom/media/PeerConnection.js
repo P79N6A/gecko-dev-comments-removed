@@ -807,18 +807,32 @@ PeerConnectionObserver.prototype = {
         let file = stack[1];
         let line = parseInt(stack[3].split(" ")[1]);
 
-        let scriptError = Cc["@mozilla.org/scripterror;1"].
-            createInstance(Ci.nsIScriptError);
+        let scriptErrorClass = Cc["@mozilla.org/scripterror;1"];
+        let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
         scriptError.initWithWindowID(msg, file, null, line, 0,
                                      Ci.nsIScriptError.exceptionFlag,
                                      "content javascript",
                                      this._dompc._winID);
-        Cc["@mozilla.org/consoleservice;1"].
-            getService(Ci.nsIConsoleService).logMessage(scriptError);
+        let console = Cc["@mozilla.org/consoleservice;1"].
+            getService(Ci.nsIConsoleService);
+        console.logMessage(scriptError);
 
         
-        if (typeof this._dompc._win.onerror === "function") {
-          this._dompc._win.onerror(msg, file, line);
+        try {
+          if (typeof this._dompc._win.onerror === "function") {
+            this._dompc._win.onerror(msg, file, line);
+          }
+        } catch(e) {
+          
+          try {
+            let scriptError = scriptErrorClass.createInstance(Ci.nsIScriptError);
+            scriptError.initWithWindowID(e.message, e.fileName, null,
+                                         e.lineNumber, 0,
+                                         Ci.nsIScriptError.exceptionFlag,
+                                         "content javascript",
+                                         this._dompc._winID);
+            console.logMessage(scriptError);
+          } catch(e) {}
         }
       }
     }
