@@ -2749,6 +2749,20 @@ void Assembler::updateBoundsCheck(uint32_t heapSize, Instruction *inst)
     
 }
 
+static uintptr_t
+PageStart(uintptr_t p)
+{
+    static const size_t PageSize = 4096;
+    return p & ~(PageSize - 1);
+}
+
+static bool
+OnSamePage(uintptr_t start1, uintptr_t stop1, uintptr_t start2, uintptr_t stop2)
+{
+    
+    return PageStart(stop1) == PageStart(start2) || PageStart(stop2) == PageStart(start1);
+}
+
 void
 AutoFlushCache::update(uintptr_t newStart, size_t len)
 {
@@ -2761,12 +2775,16 @@ AutoFlushCache::update(uintptr_t newStart, size_t len)
         return;
     }
 
-    if (newStop < start_ - 4096 || newStart > stop_ + 4096) {
+    if (!OnSamePage(start_, stop_, newStart, newStop)) {
+        
+        
+        
         
         IonSpewCont(IonSpew_CacheFlush, "*");
         JSC::ExecutableAllocator::cacheFlush((void*)newStart, len);
         return;
     }
+
     start_ = Min(start_, newStart);
     stop_ = Max(stop_, newStop);
     IonSpewCont(IonSpew_CacheFlush, ".");
