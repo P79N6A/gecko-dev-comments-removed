@@ -26,6 +26,16 @@
 # error "Unknown platform"
 #endif
 
+#if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+# include "mozilla/Types.h"
+# include "ElfLoader.h"
+# include <dlfcn.h>
+# include <sys/mman.h>
+# include "nsString.h"
+# include "nsDirectoryServiceUtils.h"
+# include "nsDirectoryServiceDefs.h"
+#endif
+
 #include "local_debug_info_symbolizer.h"
 
 namespace google_breakpad {
@@ -39,6 +49,98 @@ LocalDebugInfoSymbolizer::~LocalDebugInfoSymbolizer() {
   }
 # endif
 }
+
+#if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+
+
+
+
+static char* get_installation_lib_dir ( void )
+{
+  nsCOMPtr<nsIProperties>
+    directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+  if (!directoryService) return NULL;
+  nsCOMPtr<nsIFile> greDir;
+  nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile),
+                                      getter_AddRefs(greDir));
+  if (NS_FAILED(rv)) return NULL;
+  nsCString path;
+  rv = greDir->GetNativePath(path);
+  if (NS_FAILED(rv)) return NULL;
+  return strdup(path.get());
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool ReadSymbolData_ANDROID(const string& obj_filename,
+                                   const std::vector<string>& debug_dirs,
+                                   SymbolData symbol_data,
+                                   Module** module)
+{
+  string obj_file_to_use = obj_filename;
+
+  
+  if (obj_file_to_use == "libmozglue.so") {
+    char* libdir = get_installation_lib_dir();
+    if (libdir) {
+      obj_file_to_use = string(libdir) + "/lib/" + obj_file_to_use;
+      free(libdir);
+    }
+  }
+
+  
+  
+  
+  void* hdl = dlopen(obj_file_to_use.c_str(), RTLD_GLOBAL | RTLD_LAZY);
+  if (!hdl) {
+    BPLOG(INFO) << "ReadSymbolData_APK: Failed to get handle for ELF file \'"
+                << obj_file_to_use << "\'";
+    return false;
+  }
+
+  size_t sz = __dl_get_mappable_length(hdl);
+  if (sz == 0) {
+    dlclose(hdl);
+    BPLOG(INFO) << "ReadSymbolData_APK: Unable to get size for ELF file \'"
+                << obj_file_to_use << "\'";
+    return false;
+  }
+
+  void* image = __dl_mmap(hdl, NULL, sz, 0);
+  if (image == MAP_FAILED) {
+    dlclose(hdl);
+    BPLOG(INFO) << "ReadSymbolData_APK: Failed to mmap ELF file \'"
+                << obj_file_to_use << "\'";
+    return false;
+  }
+
+  bool ok = ReadSymbolDataInternal((const uint8_t*)image,
+                                   obj_file_to_use, debug_dirs,
+                                   symbol_data, module);
+  __dl_munmap(hdl, image, sz);
+  dlclose(hdl);
+
+  return ok;
+}
+#endif 
+
 
 StackFrameSymbolizer::SymbolizerResult
 LocalDebugInfoSymbolizer::FillSourceLineInfo(const CodeModules* modules,
@@ -61,10 +163,17 @@ LocalDebugInfoSymbolizer::FillSourceLineInfo(const CodeModules* modules,
         no_symbol_modules_.end()) {
       return kNoError;
     }
-    if (!ReadSymbolData(module->code_file(),
-                        debug_dirs_,
-                        ONLY_CFI,
-                        &debug_info_module)) {
+
+    bool ok = false;
+#   if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
+    ok = ReadSymbolData_ANDROID(module->code_file(), debug_dirs_,
+                                ONLY_CFI, &debug_info_module);
+#   else
+    ok = ReadSymbolData(module->code_file(), debug_dirs_,
+                        ONLY_CFI, &debug_info_module);
+#   endif
+
+    if (!ok) {
       if (debug_info_module)
         delete debug_info_module;
       no_symbol_modules_.insert(module->code_file());
