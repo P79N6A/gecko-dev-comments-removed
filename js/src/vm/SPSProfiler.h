@@ -292,7 +292,6 @@ class SPSInstrumentation
     
     bool enabled() { return profiler_ && profiler_->enabled(); }
     SPSProfiler *profiler() { JS_ASSERT(enabled()); return profiler_; }
-    bool slowAssertions() { return enabled() && profiler_->slowAssertionsEnabled(); }
 
     
     void leaveInlineFrame() {
