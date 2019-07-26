@@ -8,6 +8,7 @@
 
 
 
+var msPerYear =  31536000000;
 var msPerDay =   86400000;
 var HoursPerDay =  24;
 var MinutesPerHour = 60;
@@ -15,11 +16,19 @@ var SecondsPerMinute = 60;
 var msPerSecond =  1000;
 var msPerMinute =  60000;  
 var msPerHour =   3600000; 
-var TZ_DIFF = getTimeZoneDiff();  
-var TZ_ADJUST  = TZ_DIFF * msPerHour;
+
 var TZ_PST = -8;  
+var TZ_DIFF_RAW = GetRawTimezoneOffset();  
+var TZ_DIFF = GetTimezoneOffset();  
+var PST_DIFF_RAW = TZ_DIFF_RAW - TZ_PST;  
 var PST_DIFF = TZ_DIFF - TZ_PST;  
+var TZ_ADJUST  = TZ_DIFF_RAW * msPerHour;
 var PST_ADJUST = TZ_PST * msPerHour;
+
+var DST_PERIOD = DaylightSavingPeriod();  
+var DST_1970 = DaylightSavingObserved(1970);  
+var DST_1971 = DaylightSavingObserved(1971);  
+
 var TIME_0000  = (function ()
   { 
     for ( var time = 0, year = 1969; year >= 0; year-- ) {
@@ -43,9 +52,71 @@ var TIME_NOW = now.valueOf();
 
 
 
-function getTimeZoneDiff()
+function GetRawTimezoneOffset()
 {
-  return -((new Date(2000, 1, 1)).getTimezoneOffset())/60;
+  var t1 = new Date(2000, 1, 1).getTimezoneOffset();
+  var t2 = new Date(2000, 1 + 6, 1).getTimezoneOffset();
+  if ((t1 - t2) >= 0) {
+    
+    
+    return -t1 / MinutesPerHour;
+  } else {
+    
+    return -t2 / MinutesPerHour;
+  }
+}
+
+
+
+
+
+
+function GetTimezoneOffset()
+{
+  return -(new Date(2000, 1, 1).getTimezoneOffset()) / MinutesPerHour;
+}
+
+
+
+
+function DaylightSavingPeriod()
+{
+  var t1 = new Date(2000, 1, 1).getTimezoneOffset();
+  var t2 = new Date(2000, 1 + 6, 1).getTimezoneOffset();
+  if (t1 == t2) {
+    
+    return 0;
+  } else if ((t1 - t2) > 0) {
+    
+    return 1;
+  } else {
+    
+    return -1;
+  }
+}
+
+
+
+
+function DaylightSavingObserved(y)
+{
+  var t1 = new Date(y, 1, 1).getTimezoneOffset();
+  var t2 = new Date(y, 1 + 6, 1).getTimezoneOffset();
+  return (t1 != t2);
+}
+
+
+
+
+function IgnoreDaylightSaving(t)
+{
+  if ((0 <= t && t < msPerYear) && !DST_1970) {
+    return true;
+  }
+  if ((msPerYear <= t && t < 2*msPerYear) && !DST_1971) {
+    return true;
+  }
+  return false;
 }
 
 
@@ -74,14 +145,18 @@ function adjustResultArray(ResultArray, msMode)
   {
     
     
-    var t = ResultArray[TIME]  +  TZ_DIFF*msPerHour;
+    if (IgnoreDaylightSaving(ResultArray[TIME])) {
+      var t = ResultArray[TIME]  +  TZ_DIFF_RAW*msPerHour;
+    } else {
+      var t = ResultArray[TIME]  +  TZ_DIFF*msPerHour;
+    }
 
     
     ResultArray[HOURS] = HourFromTime(t);
     ResultArray[DAY] = WeekDay(t);
     ResultArray[DATE] = DateFromTime(t);
     ResultArray[MONTH] = MonthFromTime(t);
-    ResultArray[YEAR] = YearFromTime(t); 
+    ResultArray[YEAR] = YearFromTime(t);
   }
   else
   {
@@ -295,7 +370,7 @@ function msFromTime( t ) {
   return ( (ms < 0 ) ? msPerSecond + ms : ms );
 }
 function LocalTZA() {
-  return ( TZ_DIFF * msPerHour );
+  return ( TZ_DIFF_RAW * msPerHour );
 }
 function UTC( t ) {
   return ( t - LocalTZA() - DaylightSavingTA(t - LocalTZA()) );
@@ -304,13 +379,27 @@ function LocalTime( t ) {
   return ( t + LocalTZA() + DaylightSavingTA(t) );
 }
 function DaylightSavingTA( t ) {
-  t = t - LocalTZA();
+  if (IgnoreDaylightSaving(t)) {
+    return 0;
+  }
 
-  var dst_start = GetDSTStart(t);
-  var dst_end   = GetDSTEnd(t);
+  if (DST_PERIOD > 0) {
+    
+    var dst_start = GetDSTStart(t);
+    var dst_end   = GetDSTEnd(t);
 
-  if ( t >= dst_start && t < dst_end )
-    return msPerHour;
+    if ( t >= dst_start && t < dst_end )
+      return msPerHour;
+  } else if (DST_PERIOD < 0) {
+    
+    var dst_start = GetDSTStart_Southern(t);
+    var dst_end   = GetDSTEnd_Southern(t);
+
+    if ( t >= dst_start && t < GetDSTEnd_Southern(t + msPerYear) )
+      return msPerHour;
+    if ( t < dst_end && t >= GetDSTEnd_Southern(t - msPerYear) )
+      return msPerHour;
+  }
 
   return 0;
 }
@@ -414,6 +503,21 @@ function GetOldDSTStart( t )
 function GetOldDSTEnd( t )
 {
   return (GetLastSundayInMonth(t, 9) + 2*msPerHour - LocalTZA());
+}
+
+
+
+
+
+
+function GetDSTStart_Southern( t )
+{
+  return (GetFirstSundayInMonth(t, 9) + 2*msPerHour - LocalTZA());
+}
+
+function GetDSTEnd_Southern( t )
+{
+  return (GetFirstSundayInMonth(t, 3) + 2*msPerHour - LocalTZA());
 }
 
 function MakeTime( hour, min, sec, ms ) {
