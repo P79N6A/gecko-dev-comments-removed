@@ -298,7 +298,7 @@ fun_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
 
 
 
-        if (fun->isNative() || fun->isFunctionPrototype())
+        if (fun->isBuiltin() || fun->isFunctionPrototype())
             return true;
 
         if (!ResolveInterpretedFunctionPrototype(cx, fun))
