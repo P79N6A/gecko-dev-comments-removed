@@ -533,7 +533,4 @@ public:
 
 } 
 
-
-typedef mozilla::WidgetSelectionEvent    nsSelectionEvent;
-
 #endif 
