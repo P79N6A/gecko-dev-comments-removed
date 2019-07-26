@@ -1373,13 +1373,6 @@ public:
 
 
 
-  static mozilla::WidgetEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
-
-  
-
-
-
-
 
 
   static void GetAccelKeyCandidates(nsIDOMKeyEvent* aDOMKeyEvent,

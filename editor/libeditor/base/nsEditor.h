@@ -7,7 +7,6 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         
-#include "mozilla/EventForwards.h"      
 #include "mozilla/TypedEnum.h"          
 #include "nsAutoPtr.h"                  
 #include "nsCOMArray.h"                 
@@ -404,8 +403,6 @@ protected:
 
 
   bool GetDesiredSpellCheckState();
-
-  mozilla::WidgetKeyboardEvent* GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent);
 
   bool CanEnableSpellCheck()
   {
