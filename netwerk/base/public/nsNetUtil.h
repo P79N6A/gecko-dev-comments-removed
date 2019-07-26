@@ -2006,9 +2006,7 @@ NS_GetContentDispositionFromToken(const nsAString& aDispToken)
       
       
       
-      StringHead(aDispToken, 8).LowerCaseEqualsLiteral("filename") ||
-      
-      StringHead(aDispToken, 4).LowerCaseEqualsLiteral("name"))
+      StringHead(aDispToken, 8).LowerCaseEqualsLiteral("filename"))
     return nsIChannel::DISPOSITION_INLINE;
 
   return nsIChannel::DISPOSITION_ATTACHMENT;
@@ -2077,11 +2075,6 @@ NS_GetFilenameFromDisposition(nsAString& aFilename,
   rv = mimehdrpar->GetParameter(aDisposition, "filename",
                                 fallbackCharset, true, nullptr,
                                 aFilename);
-  if (NS_FAILED(rv) || aFilename.IsEmpty()) {
-    
-    rv = mimehdrpar->GetParameter(aDisposition, "name", fallbackCharset,
-                                  true, nullptr, aFilename);
-  }
 
   if (NS_FAILED(rv)) {
     aFilename.Truncate();
