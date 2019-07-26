@@ -282,8 +282,9 @@ CompositorOGL::Initialize()
       LOCAL_GL_NONE
     };
 
-    if (mGLContext->IsGLES2()) {
-        textureTargets[1] = LOCAL_GL_TEXTURE_RECTANGLE_ARB;
+    if (!mGLContext->IsGLES2()) {
+      
+      textureTargets[1] = LOCAL_GL_TEXTURE_RECTANGLE_ARB;
     }
 
     mFBOTextureTarget = LOCAL_GL_NONE;
@@ -605,17 +606,13 @@ CalculatePOTSize(const IntSize& aSize, GLContext* gl)
 }
 
 void
-CompositorOGL::clearFBRect(const gfx::Rect* aRect)
+CompositorOGL::ClearRect(const gfx::Rect& aRect)
 {
-  if (!aRect) {
-    return;
-  }
-
   
-  GLint y = mHeight - (aRect->y + aRect->height);
+  GLint y = mHeight - (aRect.y + aRect.height);
 
   ScopedGLState scopedScissorTestState(mGLContext, LOCAL_GL_SCISSOR_TEST, true);
-  ScopedScissorRect autoScissorRect(mGLContext, aRect->x, y, aRect->width, aRect->height);
+  ScopedScissorRect autoScissorRect(mGLContext, aRect.x, y, aRect.width, aRect.height);
   mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
   mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
 }
@@ -1193,13 +1190,21 @@ CompositorOGL::EndFrame()
   
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE0);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  if (!mGLContext->IsGLES2()) {
+    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  }
+
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE1);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  if (!mGLContext->IsGLES2()) {
+    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  }
+
   mGLContext->fActiveTexture(LOCAL_GL_TEXTURE2);
   mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
-  mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  if (!mGLContext->IsGLES2()) {
+    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, 0);
+  }
 }
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
@@ -1280,6 +1285,10 @@ CompositorOGL::AbortFrame()
   mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
   mFrameInProgress = false;
   mCurrentRenderTarget = nullptr;
+
+  if (mTexturePool) {
+    mTexturePool->EndFrame();
+  }
 }
 
 void

@@ -327,7 +327,7 @@ public:
   
 
 
-  virtual void clearFBRect(const gfx::Rect* aRect) { }
+  virtual void ClearRect(const gfx::Rect& aRect) { }
 
   
 
