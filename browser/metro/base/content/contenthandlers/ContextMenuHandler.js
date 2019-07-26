@@ -13,41 +13,16 @@ var ContextMenuHandler = {
     
     addEventListener("contextmenu", this, false);
     addEventListener("pagehide", this, false);
-    addEventListener("select", this, false);
 
     
+    
     addMessageListener("Browser:ContextCommand", this, false);
+    
+    
+    
+    addMessageListener("Browser:InvokeContextAtPoint", this, false);
 
     this.popupNode = null;
-  },
-
-  _getLinkURL: function ch_getLinkURL(aLink) {
-    let href = aLink.href;
-    if (href)
-      return href;
-
-    href = aLink.getAttributeNS(kXLinkNamespace, "href");
-    if (!href || !href.match(/\S/)) {
-      
-      
-      throw "Empty href";
-    }
-
-    return Util.makeURLAbsolute(aLink.baseURI, href);
-  },
-
-  _getURI: function ch_getURI(aURL) {
-    try {
-      return Util.makeURI(aURL);
-    } catch (ex) { }
-
-    return null;
-  },
-
-  _getProtocol: function ch_getProtocol(aURI) {
-    if (aURI)
-      return aURI.scheme;
-    return null;
   },
 
   handleEvent: function ch_handleEvent(aEvent) {
@@ -58,12 +33,25 @@ var ContextMenuHandler = {
       case "pagehide":
         this.reset();
         break;
-      case "select":
-        break;
     }
   },
 
   receiveMessage: function ch_receiveMessage(aMessage) {
+    switch (aMessage.name) {
+      case "Browser:ContextCommand":
+        this._onContextCommand(aMessage);
+      break;
+      case "Browser:InvokeContextAtPoint":
+        this._onContextAtPoint(aMessage);
+      break;
+    }
+  },
+
+  
+
+
+
+  _onContextCommand: function _onContextCommand(aMessage) {
     let node = this.popupNode;
     let command = aMessage.json.command;
 
@@ -100,6 +88,17 @@ var ContextMenuHandler = {
   
 
 
+  _onContextAtPoint: function _onContextCommand(aMessage) {
+    
+    
+    let elem = elementFromPoint(aMessage.json.xPos, aMessage.json.yPos);
+    this._processPopupNode(elem, aMessage.json.xPos, aMessage.json.yPos,
+                           Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
+  },
+
+  
+
+
 
   reset: function ch_reset() {
     this.popupNode = null;
@@ -115,6 +114,58 @@ var ContextMenuHandler = {
     aEvent.stopPropagation();
     aEvent.preventDefault();
 
+    this._processPopupNode(aEvent.originalTarget, aEvent.clientX,
+                           aEvent.clientY, aEvent.mozInputSource);
+  },
+
+  
+
+
+
+  _onSelectAll: function _onSelectAll() {
+    if (this._isTextInput(this._target)) {
+      
+      this._target.select();
+    } else {
+      
+      content.getSelection().selectAllChildren(content.document);
+    }
+    this.reset();
+  },
+
+  _onPaste: function _onPaste() {
+    
+    if (this._isTextInput(this._target)) {
+      let edit = this._target.QueryInterface(Ci.nsIDOMNSEditableElement);
+      if (edit) {
+        edit.editor.paste(Ci.nsIClipboard.kGlobalClipboard);
+      } else {
+        Util.dumpLn("error: target element does not support nsIDOMNSEditableElement");
+      }
+    }
+    this.reset();
+  },
+
+  _onCopyImage: function _onCopyImage() {
+    Util.copyImageToClipboard(this._target);
+  },
+
+  
+
+
+
+  
+
+
+
+
+
+  _processPopupNode: function _processPopupNode(aPopupNode, aX, aY, aInputSrc) {
+    if (!aPopupNode)
+      return;
+    let popupNode = this.popupNode = aPopupNode;
+    let imageUrl = "";
+
     let state = {
       types: [],
       label: "",
@@ -122,12 +173,7 @@ var ContextMenuHandler = {
       linkTitle: "",
       linkProtocol: null,
       mediaURL: "",
-      x: aEvent.x,
-      y: aEvent.y
     };
-
-    let popupNode = this.popupNode = aEvent.originalTarget;
-    let imageUrl = "";
 
     
     if (popupNode.nodeType == Ci.nsIDOMNode.ELEMENT_NODE) {
@@ -248,9 +294,9 @@ var ContextMenuHandler = {
     }
 
     
-    state.xPos = aEvent.clientX;
-    state.yPos = aEvent.clientY;
-    state.source = aEvent.mozInputSource;
+    state.xPos = aX;
+    state.yPos = aY;
+    state.source = aInputSrc;
 
     for (let i = 0; i < this._types.length; i++)
       if (this._types[i].handler(state, popupNode))
@@ -258,39 +304,6 @@ var ContextMenuHandler = {
 
     sendAsyncMessage("Content:ContextMenu", state);
   },
-
-  _onSelectAll: function _onSelectAll() {
-    if (this._isTextInput(this._target)) {
-      
-      this._target.select();
-    } else {
-      
-      content.getSelection().selectAllChildren(content.document);
-    }
-    this.reset();
-  },
-
-  _onPaste: function _onPaste() {
-    
-    if (this._isTextInput(this._target)) {
-      let edit = this._target.QueryInterface(Ci.nsIDOMNSEditableElement);
-      if (edit) {
-        edit.editor.paste(Ci.nsIClipboard.kGlobalClipboard);
-      } else {
-        Util.dumpLn("error: target element does not support nsIDOMNSEditableElement");
-      }
-    }
-    this.reset();
-  },
-
-  _onCopyImage: function _onCopyImage() {
-    Util.copyImageToClipboard(this._target);
-  },
-
-  
-
-
-
 
   _isTextInput: function _isTextInput(element) {
     return ((element instanceof Ci.nsIDOMHTMLInputElement &&
@@ -313,6 +326,35 @@ var ContextMenuHandler = {
             element instanceof Ci.nsIDOMHTMLHeadingElement ||
             element instanceof Ci.nsIDOMHTMLTableCellElement ||
             element instanceof Ci.nsIDOMHTMLBodyElement);
+  },
+
+  _getLinkURL: function ch_getLinkURL(aLink) {
+    let href = aLink.href;
+    if (href)
+      return href;
+
+    href = aLink.getAttributeNS(kXLinkNamespace, "href");
+    if (!href || !href.match(/\S/)) {
+      
+      
+      throw "Empty href";
+    }
+
+    return Util.makeURLAbsolute(aLink.baseURI, href);
+  },
+
+  _getURI: function ch_getURI(aURL) {
+    try {
+      return Util.makeURI(aURL);
+    } catch (ex) { }
+
+    return null;
+  },
+
+  _getProtocol: function ch_getProtocol(aURI) {
+    if (aURI)
+      return aURI.scheme;
+    return null;
   },
 
   
