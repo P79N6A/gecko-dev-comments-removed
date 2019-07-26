@@ -333,6 +333,26 @@ DOMError.prototype = {
 
 
 
+
+let manifestCache = {
+  _cache: { },
+
+  
+  get : function mcache_get(aManifestURL, aManifest, aWindow) {
+    if (!(aManifestURL in this._cache)) {
+      this._cache[aManifestURL] = ObjectWrapper.wrap(aManifest, aWindow);
+    }
+    return this._cache[aManifestURL];
+  },
+
+  
+  evict: function mcache_evict(aManifestURL) {
+    if (aManifestURL in this._cache) {
+      delete this._cache[aManifestURL];
+    }
+  }
+}
+
 function createApplicationObject(aWindow, aApp) {
   let app = Cc["@mozilla.org/webapps/application;1"].createInstance(Ci.mozIDOMApplication);
   app.wrappedJSObject.init(aWindow, aApp);
@@ -387,7 +407,7 @@ WebappsApplication.prototype = {
   },
 
   get manifest() {
-    return this.manifest = ObjectWrapper.wrap(this._manifest, this._window);
+    return manifestCache.get(this.manifestURL, this._manifest, this._window);
   },
 
   get updateManifest() {
@@ -572,6 +592,7 @@ WebappsApplication.prototype = {
             this._fireEvent("downloadprogress", this._onprogress);
             break;
           case "installed":
+            manifestCache.evict(this.manifestURL);
             this._manifest = msg.manifest;
             this._fireEvent("downloadsuccess", this._ondownloadsuccess);
             this._fireEvent("downloadapplied", this._ondownloadapplied);
@@ -580,11 +601,13 @@ WebappsApplication.prototype = {
             
             
             if (msg.manifest) {
+              manifestCache.evict(this.manifestURL);
               this._manifest = msg.manifest;
             }
             this._fireEvent("downloadsuccess", this._ondownloadsuccess);
             break;
           case "applied":
+            manifestCache.evict(this.manifestURL);
             this._manifest = msg.manifest;
             this._fireEvent("downloadapplied", this._ondownloadapplied);
             break;
