@@ -5,21 +5,36 @@
 
 
 #include "mozilla/AvailableMemoryTracker.h"
-#include "nsThread.h"
-#include "nsIObserverService.h"
-#include "mozilla/Services.h"
-#include "mozilla/Preferences.h"
-#include "nsWindowsDllInterceptor.h"
+
 #include "prinrval.h"
 #include "pratom.h"
 #include "prenv.h"
+
 #include "nsIMemoryReporter.h"
+#include "nsIObserver.h"
+#include "nsIObserverService.h"
+#include "nsIRunnable.h"
+#include "nsISupports.h"
 #include "nsPrintfCString.h"
-#include <windows.h>
+#include "nsThread.h"
+
+#include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
+
+#if defined(XP_WIN)
+#   include "nsWindowsDllInterceptor.h"
+#   include <windows.h>
+#endif
+
+#if defined(MOZ_MEMORY)
+#   include "jemalloc.h"
+#endif  
 
 using namespace mozilla;
 
 namespace {
+
+#if defined(XP_WIN)
 
 
 
@@ -461,6 +476,86 @@ public:
 
 NS_IMPL_ISUPPORTS1(NumLowPhysicalMemoryEventsMemoryReporter, nsIMemoryReporter)
 
+#endif 
+
+
+
+
+
+
+
+class nsJemallocFreeDirtyPagesRunnable MOZ_FINAL : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+};
+
+NS_IMPL_ISUPPORTS1(nsJemallocFreeDirtyPagesRunnable, nsIRunnable)
+
+NS_IMETHODIMP
+nsJemallocFreeDirtyPagesRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+#if defined(MOZ_JEMALLOC)
+  mallctl("arenas.purge", nullptr, 0, nullptr, 0);
+#elif defined(MOZ_MEMORY)
+  jemalloc_free_dirty_pages();
+#endif
+
+  return NS_OK;
+}
+
+
+
+
+
+
+class nsMemoryPressureWatcher MOZ_FINAL : public nsIObserver
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  void Init();
+};
+
+NS_IMPL_ISUPPORTS1(nsMemoryPressureWatcher, nsIObserver)
+
+
+
+
+
+
+void
+nsMemoryPressureWatcher::Init()
+{
+  nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+
+  if (os) {
+    os->AddObserver(this, "memory-pressure",  false);
+  }
+}
+
+
+
+
+
+
+NS_IMETHODIMP
+nsMemoryPressureWatcher::Observe(nsISupports *subject, const char *topic,
+                                 const PRUnichar *data)
+{
+  MOZ_ASSERT(!strcmp(topic, "memory-pressure"), "Unknown topic");
+
+  nsRefPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
+
+  NS_DispatchToMainThread(runnable);
+
+  return NS_OK;
+}
+
 } 
 
 namespace mozilla {
@@ -468,7 +563,7 @@ namespace AvailableMemoryTracker {
 
 void Activate()
 {
-#if defined(_M_IX86)
+#if defined(_M_IX86) && defined(XP_WIN)
   MOZ_ASSERT(sInitialized);
   MOZ_ASSERT(!sHooksActive);
 
@@ -496,6 +591,12 @@ void Activate()
   }
   sHooksActive = true;
 #endif
+
+  if (Preferences::GetBool("memory.free_dirty_pages", false)) {
+    
+    nsRefPtr<nsMemoryPressureWatcher> watcher = new nsMemoryPressureWatcher();
+    watcher->Init();
+  }
 }
 
 void Init()
@@ -509,7 +610,7 @@ void Init()
   
   
 
-#if defined(_M_IX86)
+#if defined(_M_IX86) && defined(XP_WIN)
   
   
   

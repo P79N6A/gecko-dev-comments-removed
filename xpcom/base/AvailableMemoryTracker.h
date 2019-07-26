@@ -21,14 +21,8 @@ namespace AvailableMemoryTracker {
 
 
 
-
-#if defined(XP_WIN)
 void Init();
 void Activate();
-#else
-void Init() {}
-void Activate() {}
-#endif
 
 } 
 } 

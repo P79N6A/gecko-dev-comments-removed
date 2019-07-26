@@ -587,3 +587,7 @@ pref("general.useragent.override.facebook.com", "\(Mobile#(Android; Mobile");
 pref("general.useragent.override.youtube.com", "\(Mobile#(Android; Mobile");
 
 pref("jsloader.reuseGlobal", true);
+
+
+
+pref("memory.free_dirty_pages", true);
