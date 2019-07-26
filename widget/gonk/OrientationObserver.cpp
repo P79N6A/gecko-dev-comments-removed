@@ -200,7 +200,7 @@ OrientationObserver::Notify(const hal::SensorData& aSensorData)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aSensorData.sensor() == hal::SensorType::SENSOR_ORIENTATION);
 
-  InfallibleTArray<float> values = aSensorData.values();
+  const InfallibleTArray<float>& values = aSensorData.values();
   
   
   float pitch = values[1];
