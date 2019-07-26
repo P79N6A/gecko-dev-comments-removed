@@ -2543,28 +2543,25 @@ Proxy::set(JSContext *cx, HandleObject proxy, HandleObject receiver, HandleId id
     AutoEnterPolicy policy(cx, handler, proxy, id, BaseProxyHandler::SET, true);
     if (!policy.allowed())
         return policy.returnValue();
-    if (handler->hasPrototype()) {
-        
-        
-        bool hasOwn;
-        if (!handler->hasOwn(cx, proxy, id, &hasOwn))
-            return false;
-        if (!hasOwn) {
-            RootedObject proto(cx);
-            
-            
-            if (!JSObject::getProto(cx, proxy, &proto))
-                return false;
-            if (proto) {
-                Rooted<PropertyDescriptor> desc(cx);
-                if (!JS_GetPropertyDescriptorById(cx, proto, id, 0, &desc))
-                    return false;
-                if (desc.object() && desc.setter())
-                    return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
-            }
-        }
-    }
-    return handler->set(cx, proxy, receiver, id, strict, vp);
+
+    
+    
+    if (!handler->hasPrototype())
+        return handler->set(cx, proxy, receiver, id, strict, vp);
+
+    
+    
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!Proxy::getPropertyDescriptor(cx, proxy, id, &desc, JSRESOLVE_ASSIGNING))
+        return false;
+    if (desc.object() && desc.setter() && desc.setter() != JS_StrictPropertyStub)
+        return CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), desc.shortid(), strict, vp);
+
+    
+    
+    Rooted<PropertyDescriptor> newDesc(cx);
+    newDesc.value().set(vp);
+    return handler->defineProperty(cx, receiver, id, &newDesc);
 }
 
 bool
