@@ -865,7 +865,7 @@ public:
 };
 
 
-class LiveBlock
+class Block
 {
   const void*  mPtr;
   const size_t mReqSize;    
@@ -888,8 +888,8 @@ class LiveBlock
   mutable TaggedPtr<const StackTrace*> mReportStackTrace_mReportedOnAlloc[2];
 
 public:
-  LiveBlock(const void* aPtr, size_t aReqSize,
-            const StackTrace* aAllocStackTrace, bool aSampled)
+  Block(const void* aPtr, size_t aReqSize, const StackTrace* aAllocStackTrace,
+        bool aSampled)
     : mPtr(aPtr),
       mReqSize(aReqSize),
       mAllocStackTrace_mSampled(aAllocStackTrace, aSampled),
@@ -985,15 +985,14 @@ public:
     return mozilla::HashGeneric(aPtr);
   }
 
-  static bool match(const LiveBlock& aB, const void* const& aPtr)
+  static bool match(const Block& aB, const void* const& aPtr)
   {
     return aB.mPtr == aPtr;
   }
 };
 
-
-typedef js::HashSet<LiveBlock, LiveBlock, InfallibleAllocPolicy> LiveBlockTable;
-static LiveBlockTable* gLiveBlockTable = nullptr;
+typedef js::HashSet<Block, Block, InfallibleAllocPolicy> BlockTable;
+static BlockTable* gBlockTable = nullptr;
 
 
 
@@ -1025,14 +1024,13 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
     if (gSmallBlockActualSizeCounter >= gSampleBelowSize) {
       gSmallBlockActualSizeCounter -= gSampleBelowSize;
 
-      LiveBlock b(aPtr, gSampleBelowSize, StackTrace::Get(aT),
-                   true);
-      (void)gLiveBlockTable->putNew(aPtr, b);
+      Block b(aPtr, gSampleBelowSize, StackTrace::Get(aT),  true);
+      (void)gBlockTable->putNew(aPtr, b);
     }
   } else {
     
-    LiveBlock b(aPtr, aReqSize, StackTrace::Get(aT),  false);
-    (void)gLiveBlockTable->putNew(aPtr, b);
+    Block b(aPtr, aReqSize, StackTrace::Get(aT),  false);
+    (void)gBlockTable->putNew(aPtr, b);
   }
 }
 
@@ -1048,7 +1046,7 @@ FreeCallback(void* aPtr, Thread* aT)
   AutoLockState lock;
   AutoBlockIntercepts block(aT);
 
-  gLiveBlockTable->remove(aPtr);
+  gBlockTable->remove(aPtr);
 }
 
 
@@ -1205,7 +1203,7 @@ protected:
   const StackTrace* const mReportStackTrace2; 
 
 public:
-  BlockGroupKey(const LiveBlock& aB)
+  BlockGroupKey(const Block& aB)
     : mAllocStackTrace(aB.AllocStackTrace()),
       mReportStackTrace1(aB.ReportStackTrace1()),
       mReportStackTrace2(aB.ReportStackTrace2())
@@ -1253,7 +1251,7 @@ public:
 
   bool IsSampled() const { return mSampled; }
 
-  void Add(const LiveBlock& aB)
+  void Add(const Block& aB)
   {
     mReq  += aB.ReqSize();
     mSlop += aB.SlopSize();
@@ -1305,7 +1303,7 @@ public:
   const GroupSize& GetGroupSize() const { return mGroupSize; }
 
   
-  void Add(const LiveBlock& aB) const
+  void Add(const Block& aB) const
   {
     mNumBlocks++;
     mGroupSize.Add(aB);
@@ -1674,8 +1672,8 @@ Init(const malloc_table_t* aMallocTable)
   gStackTraceTable = InfallibleAllocPolicy::new_<StackTraceTable>();
   gStackTraceTable->init(8192);
 
-  gLiveBlockTable = InfallibleAllocPolicy::new_<LiveBlockTable>();
-  gLiveBlockTable->init(8192);
+  gBlockTable = InfallibleAllocPolicy::new_<BlockTable>();
+  gBlockTable->init(8192);
 
   if (gMode == Test) {
     
@@ -1721,7 +1719,7 @@ ReportHelper(const void* aPtr, bool aReportedOnAlloc)
   AutoBlockIntercepts block(t);
   AutoLockState lock;
 
-  if (LiveBlockTable::Ptr p = gLiveBlockTable->lookup(aPtr)) {
+  if (BlockTable::Ptr p = gBlockTable->lookup(aPtr)) {
     p->Report(t, aReportedOnAlloc);
   } else {
     
@@ -1873,7 +1871,7 @@ SizeOf(Sizes* aSizes)
   aSizes->mStackTraceTable =
     gStackTraceTable->sizeOfIncludingThis(MallocSizeOf);
 
-  aSizes->mLiveBlockTable = gLiveBlockTable->sizeOfIncludingThis(MallocSizeOf);
+  aSizes->mBlockTable = gBlockTable->sizeOfIncludingThis(MallocSizeOf);
 }
 
 static void
@@ -1881,9 +1879,7 @@ ClearGlobalState()
 {
   
   
-  for (LiveBlockTable::Range r = gLiveBlockTable->all();
-       !r.empty();
-       r.popFront()) {
+  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
     r.front().UnreportIfNotReportedOnAlloc();
   }
 }
@@ -1920,10 +1916,8 @@ Dump(Writer aWriter)
 
   bool anyBlocksSampled = false;
 
-  for (LiveBlockTable::Range r = gLiveBlockTable->all();
-       !r.empty();
-       r.popFront()) {
-    const LiveBlock& b = r.front();
+  for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
+    const Block& b = r.front();
 
     BlockGroupTable* table;
     uint32_t numReports = b.NumReports();
@@ -2005,10 +1999,10 @@ Dump(Writer aWriter)
       Show(gStackTraceTable->capacity(), gBuf2, kBufLen),
       Show(gStackTraceTable->count(),    gBuf3, kBufLen));
 
-    W("  Live block table:     %10s bytes (%s entries, %s used)\n",
-      Show(sizes.mLiveBlockTable,       gBuf1, kBufLen),
-      Show(gLiveBlockTable->capacity(), gBuf2, kBufLen),
-      Show(gLiveBlockTable->count(),    gBuf3, kBufLen));
+    W("  Block table:          %10s bytes (%s entries, %s used)\n",
+      Show(sizes.mBlockTable,       gBuf1, kBufLen),
+      Show(gBlockTable->capacity(), gBuf2, kBufLen),
+      Show(gBlockTable->count(),    gBuf3, kBufLen));
 
     W("\nData structures that are destroyed after Dump() ends:\n");
 
@@ -2234,7 +2228,7 @@ RunTestMode(FILE* fp)
   
 
   
-  gLiveBlockTable->clear();
+  gBlockTable->clear();
 
   
   
