@@ -525,52 +525,6 @@ gfxASurface::BytePerPixelFromFormat(gfxImageFormat format)
     return 0;
 }
 
-void
-gfxASurface::FastMovePixels(const nsIntRect& aSourceRect,
-                            const nsIntPoint& aDestTopLeft)
-{
-    
-    nsIntRect dest(aDestTopLeft, aSourceRect.Size());
-    
-    nsRefPtr<gfxContext> ctx = new gfxContext(this);
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    nsIntPoint srcOrigin = dest.TopLeft() - aSourceRect.TopLeft();
-    ctx->SetSource(this, gfxPoint(srcOrigin.x, srcOrigin.y));
-    ctx->Rectangle(gfxRect(dest.x, dest.y, dest.width, dest.height));
-    ctx->Fill();
-}
-
-void
-gfxASurface::MovePixels(const nsIntRect& aSourceRect,
-                        const nsIntPoint& aDestTopLeft)
-{
-    
-    
-    nsRefPtr<gfxASurface> tmp = 
-      CreateSimilarSurface(GetContentType(), 
-                           nsIntSize(aSourceRect.width, aSourceRect.height));
-    
-    
-    
-    NS_WARN_IF_FALSE(tmp, "Must have temporary surface to move pixels!");
-    if (!tmp) {
-        return;
-    }
-    nsRefPtr<gfxContext> ctx = new gfxContext(tmp);
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->SetSource(this, gfxPoint(-aSourceRect.x, -aSourceRect.y));
-    ctx->Paint();
-
-    ctx = new gfxContext(this);
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->SetSource(tmp, gfxPoint(aDestTopLeft.x, aDestTopLeft.y));
-    ctx->Rectangle(gfxRect(aDestTopLeft.x, 
-                           aDestTopLeft.y, 
-                           aSourceRect.width, 
-                           aSourceRect.height));
-    ctx->Fill();
-}
-
 
 
 static const char *sDefaultSurfaceDescription =

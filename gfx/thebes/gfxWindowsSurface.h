@@ -67,12 +67,6 @@ public:
 
     const gfxIntSize GetSize() const;
 
-    void MovePixels(const nsIntRect& aSourceRect,
-                    const nsIntPoint& aDestTopLeft)
-    {
-        FastMovePixels(aSourceRect, aDestTopLeft);
-    }
-
     
     
     virtual gfxMemoryLocation GetMemoryLocation() const;

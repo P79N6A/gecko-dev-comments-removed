@@ -212,19 +212,6 @@ public:
     
 
 
-
-
-
-
-
-
-
-    virtual void MovePixels(const nsIntRect& aSourceRect,
-                            const nsIntPoint& aDestTopLeft);
-
-    
-
-
     void SetAllowUseAsSource(bool aAllow) { mAllowUseAsSource = aAllow; }
     bool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
@@ -235,14 +222,6 @@ protected:
 
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
-
-    
-
-
-
-
-    void FastMovePixels(const nsIntRect& aSourceRect,
-                        const nsIntPoint& aDestTopLeft);
 
     
     
