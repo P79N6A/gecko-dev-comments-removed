@@ -1759,14 +1759,11 @@ nsHttpConnection::MakeConnectString(nsAHttpTransaction *trans,
     request->SetHeader(nsHttp::Proxy_Connection, NS_LITERAL_CSTRING("keep-alive"));
     request->SetHeader(nsHttp::Connection, NS_LITERAL_CSTRING("keep-alive"));
 
-    const char *val = trans->RequestHead()->PeekHeader(nsHttp::Host);
-    if (val) {
-        
-        
-        request->SetHeader(nsHttp::Host, nsDependentCString(val));
-    }
+    
+    
+    request->SetHeader(nsHttp::Host, result);
 
-    val = trans->RequestHead()->PeekHeader(nsHttp::Proxy_Authorization);
+    const char *val = trans->RequestHead()->PeekHeader(nsHttp::Proxy_Authorization);
     if (val) {
         
         
