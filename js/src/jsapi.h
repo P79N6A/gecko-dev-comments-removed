@@ -3410,6 +3410,7 @@ JS_realloc(JSContext *cx, void *p, size_t nbytes);
 
 
 
+
 extern JS_PUBLIC_API(void)
 JS_free(JSContext *cx, void *p);
 
@@ -4620,8 +4621,12 @@ JS_NewArrayBufferWithContents(JSContext *cx, void *contents);
 
 
 
+
+
+
 extern JS_PUBLIC_API(JSBool)
-JS_StealArrayBufferContents(JSContext *cx, JSObject *obj, void **contents);
+JS_StealArrayBufferContents(JSContext *cx, JSObject *obj, void **contents,
+                            uint8_t **data);
 
 
 
