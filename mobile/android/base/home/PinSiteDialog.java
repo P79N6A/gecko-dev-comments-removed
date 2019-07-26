@@ -14,6 +14,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.CursorAdapter;
 import android.text.Editable;
@@ -37,9 +38,6 @@ class PinSiteDialog extends DialogFragment {
 
     
     private static final int LOADER_ID_SEARCH = 0;
-
-    
-    private static final int LOADER_ID_FAVICONS = 1;
 
     
     private String mSearchTerm;
@@ -125,15 +123,14 @@ class PinSiteDialog extends DialogFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        final Activity activity = getActivity();
         final LoaderManager manager = getLoaderManager();
 
         
-        mAdapter = new SearchAdapter(activity);
+        mAdapter = new SearchAdapter(getActivity());
         mList.setAdapter(mAdapter);
 
         
-        mLoaderCallbacks = new CursorLoaderCallbacks(activity, manager);
+        mLoaderCallbacks = new CursorLoaderCallbacks();
 
         
         manager.initLoader(LOADER_ID_SEARCH, null, mLoaderCallbacks);
@@ -179,42 +176,20 @@ class PinSiteDialog extends DialogFragment {
         }
     }
 
-    private class CursorLoaderCallbacks extends HomeCursorLoaderCallbacks {
-        public CursorLoaderCallbacks(Context context, LoaderManager loaderManager) {
-            super(context, loaderManager);
-        }
-
+    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            if (id == LOADER_ID_SEARCH) {
-                return SearchLoader.createInstance(getActivity(), args);
-            } else {
-                return super.onCreateLoader(id, args);
-            }
+            return SearchLoader.createInstance(getActivity(), args);
         }
 
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
-            if (loader.getId() == LOADER_ID_SEARCH) {
-                mAdapter.swapCursor(c);
-                loadFavicons(c);
-            } else {
-                super.onLoadFinished(loader, c);
-            }
+            mAdapter.swapCursor(c);
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
-            if (loader.getId() == LOADER_ID_SEARCH) {
-                mAdapter.swapCursor(null);
-            } else {
-                super.onLoaderReset(loader);
-            }
-        }
-
-        @Override
-        public void onFaviconsLoaded() {
-            mAdapter.notifyDataSetChanged();
+            mAdapter.swapCursor(null);
         }
     }
 }
