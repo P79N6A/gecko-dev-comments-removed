@@ -227,6 +227,35 @@ nsGenericHTMLFrameElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     
     
     LoadSrc();
+  } else if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::name) {
+    
+    
+    nsIDocShell *docShell = mFrameLoader ? mFrameLoader->GetExistingDocShell()
+                                         : nullptr;
+    if (docShell) {
+      docShell->SetName(PromiseFlatString(aValue).get());
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsGenericHTMLFrameElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
+                                     bool aNotify)
+{
+  
+  nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::name) {
+    
+    
+    nsIDocShell *docShell = mFrameLoader ? mFrameLoader->GetExistingDocShell()
+                                         : nullptr;
+    if (docShell) {
+      docShell->SetName(EmptyString().get());
+    }
   }
 
   return NS_OK;
