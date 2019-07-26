@@ -554,9 +554,6 @@ pref("toolkit.asyncshutdown.timeout.crash", 60000);
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
-pref("devtools.chrome.enabled", false);
-
-
 pref("devtools.debugger.log", false);
 
 pref("devtools.debugger.remote-enabled", false);
@@ -4407,3 +4404,9 @@ pref("identity.fxaccounts.auth.uri", "https://api.accounts.firefox.com/v1");
 
 
 pref("image.mozsamplesize.enabled", false);
+
+
+
+#ifndef MOZ_WIDGET_GONK
+pref("beacon.enabled", true);
+#endif
