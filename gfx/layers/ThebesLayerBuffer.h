@@ -130,7 +130,6 @@ public:
 
   ThebesLayerBuffer(BufferSizePolicy aBufferSizePolicy)
     : mBufferProvider(nullptr)
-    , mTextureClientForBuffer(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
     MOZ_COUNT_CTOR(ThebesLayerBuffer);
@@ -149,7 +148,6 @@ public:
     mBuffer = nullptr;
     mDTBuffer = nullptr;
     mBufferProvider = nullptr;
-    mTextureClientForBuffer = nullptr;
     mBufferRect.SetEmpty();
   }
 
@@ -251,32 +249,17 @@ protected:
 
 
 
-  void SetBufferProvider(AutoOpenSurface* aProvider)
+  void SetBufferProvider(TextureClient* aClient)
   {
-    NS_ASSERTION(!mTextureClientForBuffer, "Can't have a TextureClient and a buffer provider");
-    mBufferProvider = aProvider;
+    
+    
+    MOZ_ASSERT(!aClient || (!mBuffer && !mDTBuffer));
+
+    mBufferProvider = aClient;
     if (!mBufferProvider) {
       mBuffer = nullptr;
-    } else {
-      
-      
-      MOZ_ASSERT(!mBuffer);
-    }
-  }
-
-  
-  void SetTextureClientForBuffer(TextureClient* aClient)
-  {
-    NS_ASSERTION(!mBufferProvider, "Can't have a TextureClient and a buffer provider");
-    mTextureClientForBuffer = aClient;
-    if (!mTextureClientForBuffer) {
-      mBuffer = nullptr;
       mDTBuffer = nullptr;
-    } else {
-      
-      
-      MOZ_ASSERT(!mBuffer && !mDTBuffer);
-    }
+    } 
   }
 
   
@@ -313,8 +296,7 @@ protected:
 
 
 
-  AutoOpenSurface* mBufferProvider;
-  TextureClient* mTextureClientForBuffer;
+  TextureClient* mBufferProvider;
 
   BufferSizePolicy      mBufferSizePolicy;
 };

@@ -86,7 +86,7 @@ ContentClientRemote::BeginPaint()
   
   
   if (mTextureClient) {
-    SetTextureClientForBuffer(mTextureClient);
+    SetBufferProvider(mTextureClient);
   }
 }
 
@@ -95,7 +95,7 @@ ContentClientRemote::EndPaint()
 {
   
   
-  SetTextureClientForBuffer(nullptr);
+  SetBufferProvider(nullptr);
   mOldTextures.Clear();
 
   if (mTextureClient) {
