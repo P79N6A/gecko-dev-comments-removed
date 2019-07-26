@@ -18,10 +18,6 @@ extern const JSFunctionSpec object_static_methods[];
 extern bool
 obj_construct(JSContext *cx, unsigned argc, js::Value *vp);
 
-
-extern bool
-obj_toSource(JSContext *cx, unsigned argc, js::Value *vp);
-
 } 
 
 #endif 
