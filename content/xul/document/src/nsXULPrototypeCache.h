@@ -93,11 +93,6 @@ public:
     
 
 
-    void RemoveFromCacheSet(nsIURI* aDocumentURI);
-
-    
-
-
 
     nsresult WritePrototype(nsXULPrototypeDocument* aPrototypeDocument);
 
