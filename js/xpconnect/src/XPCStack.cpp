@@ -17,10 +17,10 @@ public:
     static nsresult CreateStack(JSContext* cx, JSStackFrame* fp,
                                 XPCJSStackFrame** stack);
 
-    static nsresult CreateStackFrameLocation(uint32_t aLanguage,
+    static nsresult CreateStackFrameLocation(PRUint32 aLanguage,
                                              const char* aFilename,
                                              const char* aFunctionName,
-                                             int32_t aLineNumber,
+                                             PRInt32 aLineNumber,
                                              nsIStackFrame* aCaller,
                                              XPCJSStackFrame** stack);
 
@@ -35,8 +35,8 @@ private:
 
     char* mFilename;
     char* mFunname;
-    int32_t mLineno;
-    uint32_t mLanguage;
+    PRInt32 mLineno;
+    PRUint32 mLanguage;
 };
 
 
@@ -57,10 +57,10 @@ XPCJSStack::CreateStack(JSContext* cx, nsIStackFrame** stack)
 
 
 nsresult
-XPCJSStack::CreateStackFrameLocation(uint32_t aLanguage,
+XPCJSStack::CreateStackFrameLocation(PRUint32 aLanguage,
                                      const char* aFilename,
                                      const char* aFunctionName,
-                                     int32_t aLineNumber,
+                                     PRInt32 aLineNumber,
                                      nsIStackFrame* aCaller,
                                      nsIStackFrame** stack)
 {
@@ -76,8 +76,8 @@ XPCJSStack::CreateStackFrameLocation(uint32_t aLanguage,
 
 
 XPCJSStackFrame::XPCJSStackFrame()
-    :   mFilename(nullptr),
-        mFunname(nullptr),
+    :   mFilename(nsnull),
+        mFunname(nsnull),
         mLineno(0),
         mLanguage(nsIProgrammingLanguage::UNKNOWN)
 {
@@ -103,36 +103,42 @@ XPCJSStackFrame::CreateStack(JSContext* cx, JSStackFrame* fp,
     nsRefPtr<XPCJSStackFrame> first = new XPCJSStackFrame();
     nsRefPtr<XPCJSStackFrame> self = first;
     while (fp && self) {
-        self->mLanguage = nsIProgrammingLanguage::JAVASCRIPT;
-        JSScript* script = JS_GetFrameScript(cx, fp);
-        jsbytecode* pc = JS_GetFramePC(cx, fp);
-        if (script && pc) {
-            JSAutoCompartment ac(cx, fp);
-            const char* filename = JS_GetScriptFilename(cx, script);
-            if (filename) {
-                self->mFilename = (char*)
-                    nsMemory::Clone(filename,
-                                    sizeof(char)*(strlen(filename)+1));
-            }
+        if (!JS_IsScriptFrame(cx, fp)) {
+            self->mLanguage = nsIProgrammingLanguage::CPLUSPLUS;
+        } else {
+            self->mLanguage = nsIProgrammingLanguage::JAVASCRIPT;
+            JSScript* script = JS_GetFrameScript(cx, fp);
+            jsbytecode* pc = JS_GetFramePC(cx, fp);
+            if (script && pc) {
+                JS::AutoEnterFrameCompartment ac;
+                if (ac.enter(cx, fp)) {
+                    const char* filename = JS_GetScriptFilename(cx, script);
+                    if (filename) {
+                        self->mFilename = (char*)
+                            nsMemory::Clone(filename,
+                                            sizeof(char)*(strlen(filename)+1));
+                    }
 
-            self->mLineno = (int32_t) JS_PCToLineNumber(cx, script, pc);
+                    self->mLineno = (PRInt32) JS_PCToLineNumber(cx, script, pc);
 
-            JSFunction* fun = JS_GetFrameFunction(cx, fp);
-            if (fun) {
-                JSString *funid = JS_GetFunctionId(fun);
-                if (funid) {
-                    size_t length = JS_GetStringEncodingLength(cx, funid);
-                    if (length != size_t(-1)) {
-                        self->mFunname = static_cast<char *>(nsMemory::Alloc(length + 1));
-                        if (self->mFunname) {
-                            JS_EncodeStringToBuffer(funid, self->mFunname, length);
-                            self->mFunname[length] = '\0';
+                    JSFunction* fun = JS_GetFrameFunction(cx, fp);
+                    if (fun) {
+                        JSString *funid = JS_GetFunctionId(fun);
+                        if (funid) {
+                            size_t length = JS_GetStringEncodingLength(cx, funid);
+                            if (length != size_t(-1)) {
+                                self->mFunname = static_cast<char *>(nsMemory::Alloc(length + 1));
+                                if (self->mFunname) {
+                                    JS_EncodeStringToBuffer(funid, self->mFunname, length);
+                                    self->mFunname[length] = '\0';
+                                }
+                            }
                         }
                     }
                 }
+            } else {
+                self->mLanguage = nsIProgrammingLanguage::CPLUSPLUS;
             }
-        } else {
-            self->mLanguage = nsIProgrammingLanguage::CPLUSPLUS;
         }
 
         if (++numFrames > MAX_FRAMES) {
@@ -150,10 +156,10 @@ XPCJSStackFrame::CreateStack(JSContext* cx, JSStackFrame* fp,
 
 
 nsresult
-XPCJSStackFrame::CreateStackFrameLocation(uint32_t aLanguage,
+XPCJSStackFrame::CreateStackFrameLocation(PRUint32 aLanguage,
                                           const char* aFilename,
                                           const char* aFunctionName,
-                                          int32_t aLineNumber,
+                                          PRInt32 aLineNumber,
                                           nsIStackFrame* aCaller,
                                           XPCJSStackFrame** stack)
 {
@@ -198,7 +204,7 @@ XPCJSStackFrame::CreateStackFrameLocation(uint32_t aLanguage,
 }
 
 
-NS_IMETHODIMP XPCJSStackFrame::GetLanguage(uint32_t *aLanguage)
+NS_IMETHODIMP XPCJSStackFrame::GetLanguage(PRUint32 *aLanguage)
 {
     *aLanguage = mLanguage;
     return NS_OK;
@@ -232,7 +238,7 @@ NS_IMETHODIMP XPCJSStackFrame::GetName(char * *aFunction)
 }
 
 
-NS_IMETHODIMP XPCJSStackFrame::GetLineNumber(int32_t *aLineNumber)
+NS_IMETHODIMP XPCJSStackFrame::GetLineNumber(PRInt32 *aLineNumber)
 {
     *aLineNumber = mLineno;
     return NS_OK;
@@ -241,7 +247,7 @@ NS_IMETHODIMP XPCJSStackFrame::GetLineNumber(int32_t *aLineNumber)
 
 NS_IMETHODIMP XPCJSStackFrame::GetSourceLine(char * *aSourceLine)
 {
-    *aSourceLine = nullptr;
+    *aSourceLine = nsnull;
     return NS_OK;
 }
 
