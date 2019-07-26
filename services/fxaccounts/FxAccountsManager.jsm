@@ -152,8 +152,82 @@ this.FxAccountsManager = {
     );
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  _handleGetAssertionError: function(reason, aAudience) {
+    let errno = (reason ? reason.errno : NaN) || NaN;
+    
+    if (errno == ERRNO_INVALID_AUTH_TOKEN) {
+      return this._fxAccounts.accountStatus().then(
+        (exists) => {
+          
+          
+          if (exists) {
+            return this.getAccount().then(
+              (user) => {
+                return this._refreshAuthentication(aAudience, user.email);
+              }
+            );
+          
+          } else {
+            return this._localSignOut().then(
+              () => {
+                return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
+              },
+              (reason) => { 
+                log.error("Signing out in response to server error threw: " + reason);
+                return this._error(reason);
+              }
+            );
+          }
+        }
+      );
+    }
+    return rejection;
+  },
+
   _getAssertion: function(aAudience) {
-    return this._fxAccounts.getAssertion(aAudience);
+    return this._fxAccounts.getAssertion(aAudience).then(
+      (result) => {
+        return result;
+      },
+      (reason) => {
+        return this._handleGetAssertionError(reason, aAudience);
+      }
+    );
+  },
+
+  _refreshAuthentication: function(aAudience, aEmail) {
+    this._refreshing = true;
+    return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
+                           aAudience, aEmail).then(
+      (assertion) => {
+        this._refreshing = false;
+        return assertion;
+      },
+      (reason) => {
+        this._refreshing = false;
+        return this._signOut().then(
+          () => {
+            return this._error(reason);
+          }
+        );
+      }
+    );
+  },
+
+  _localSignOut: function() {
+    return this._fxAccounts.signOut(true);
   },
 
   _signOut: function() {
@@ -167,7 +241,7 @@ this.FxAccountsManager = {
     
     let sessionToken = this._activeSession.sessionToken;
 
-    return this._fxAccounts.signOut(true).then(
+    return this._localSignOut().then(
       () => {
         
 
@@ -372,15 +446,21 @@ this.FxAccountsManager = {
 
 
 
+
+
+
+
+
+
+
+
   getAssertion: function(aAudience, aOptions) {
     if (!aAudience) {
       return this._error(ERROR_INVALID_AUDIENCE);
     }
-
     if (Services.io.offline) {
       return this._error(ERROR_OFFLINE);
     }
-
     return this.getAccount().then(
       user => {
         if (user) {
@@ -390,7 +470,6 @@ this.FxAccountsManager = {
               user: user
             });
           }
-
           
           if (aOptions &&
               (typeof(aOptions.refreshAuthentication) != "undefined")) {
@@ -403,40 +482,20 @@ this.FxAccountsManager = {
             if (aOptions.silent) {
               return this._error(ERROR_NO_SILENT_REFRESH_AUTH);
             }
-            if ((Date.now() / 1000) - this._activeSession.authAt > gracePeriod) {
-              
-              
-              
-              this._refreshing = true;
-              return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
-                                     aAudience, user.email).then(
-                (assertion) => {
-                  this._refreshing = false;
-                  return assertion;
-                },
-                (reason) => {
-                  this._refreshing = false;
-                  return this._signOut().then(
-                    () => {
-                      return this._error(reason);
-                    }
-                  );
-                }
-              );
+            let secondsSinceAuth = (Date.now() / 1000) - this._activeSession.authAt;
+            if (secondsSinceAuth > gracePeriod) {
+              return this._refreshAuthentication(aAudience, user.email);
             }
           }
-
+          
+          
+          
           return this._getAssertion(aAudience);
         }
-
         log.debug("No signed in user");
-
         if (aOptions && aOptions.silent) {
           return Promise.resolve(null);
         }
-
-        
-        
         return this._uiRequest(UI_REQUEST_SIGN_IN_FLOW, aAudience);
       }
     );

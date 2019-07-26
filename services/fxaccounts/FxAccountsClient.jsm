@@ -243,6 +243,9 @@ this.FxAccountsClient.prototype = {
 
 
 
+
+
+
   signCertificate: function (sessionTokenHex, serializedPublicKey, lifetime) {
     let creds = this._deriveHawkCredentials(sessionTokenHex, "sessionToken");
 
