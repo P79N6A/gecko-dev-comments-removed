@@ -3829,8 +3829,8 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
 
     JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
     if (flags != 0 && obj->isNative()) {
-        return !!DefineNativeProperty(cx, obj, id, value, getter, setter,
-                                      attrs, flags, tinyid);
+        return DefineNativeProperty(cx, obj, id, value, getter, setter,
+                                    attrs, flags, tinyid);
     }
     return JSObject::defineGeneric(cx, obj, id, value, getter, setter, attrs);
 }
@@ -4477,15 +4477,15 @@ JS_DeleteProperty(JSContext *cx, JSObject *objArg, const char *name)
     return JS_DeleteProperty2(cx, objArg, name, &junk);
 }
 
-static Shape *
+static UnrootedShape
 LastConfigurableShape(JSObject *obj)
 {
     for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
-        Shape *shape = &r.front();
+        UnrootedShape shape = &r.front();
         if (shape->configurable())
             return shape;
     }
-    return NULL;
+    return UnrootedShape(NULL);
 }
 
 JS_PUBLIC_API(void)
@@ -4502,18 +4502,20 @@ JS_ClearNonGlobalObject(JSContext *cx, JSObject *objArg)
         return;
 
     
-    while (Shape *shape = LastConfigurableShape(obj)) {
+    RootedShape shape(cx);
+    while ((shape = LastConfigurableShape(obj))) {
         if (!obj->removeProperty(cx, shape->propid()))
             return;
     }
 
     
     for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
-        Shape *shape = &r.front();
+        UnrootedShape shape = &r.front();
         if (shape->isDataDescriptor() &&
             shape->writable() &&
             shape->hasDefaultSetter() &&
-            shape->hasSlot()) {
+            shape->hasSlot())
+        {
             obj->nativeSetSlot(shape->slot(), UndefinedValue());
         }
     }
@@ -4588,7 +4590,7 @@ prop_iter_trace(JSTracer *trc, RawObject obj)
 
 
 
-        Shape *tmp = (Shape *)pdata;
+        UnrootedShape tmp = static_cast<RawShape>(pdata);
         MarkShapeUnbarriered(trc, &tmp, "prop iter shape");
         obj->setPrivateUnbarriered(tmp);
     } else {
@@ -4653,18 +4655,15 @@ JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
 {
     RootedObject iterobj(cx, iterobjArg);
     AutoAssertNoGC nogc;
-    int32_t i;
-    Shape *shape;
-    JSIdArray *ida;
 
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, iterobj);
-    i = iterobj->getSlot(JSSLOT_ITER_INDEX).toInt32();
+    int32_t i = iterobj->getSlot(JSSLOT_ITER_INDEX).toInt32();
     if (i < 0) {
         
         JS_ASSERT(iterobj->getParent()->isNative());
-        shape = (Shape *) iterobj->getPrivate();
+        UnrootedShape shape = static_cast<RawShape>(iterobj->getPrivate());
 
         while (shape->previous() && !shape->enumerable())
             shape = shape->previous();
@@ -4673,12 +4672,12 @@ JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
             JS_ASSERT(shape->isEmptyShape());
             *idp = JSID_VOID;
         } else {
-            iterobj->setPrivateGCThing(const_cast<Shape *>(shape->previous().get()));
+            iterobj->setPrivateGCThing(const_cast<RawShape>(shape->previous().get()));
             *idp = shape->propid();
         }
     } else {
         
-        ida = (JSIdArray *) iterobj->getPrivate();
+        JSIdArray *ida = (JSIdArray *) iterobj->getPrivate();
         JS_ASSERT(i <= ida->length);
         STATIC_ASSUME(i <= ida->length);
         if (i == 0) {

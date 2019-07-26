@@ -76,7 +76,7 @@ extern JSObject *
 NewSlowEmptyArray(JSContext *cx);
 
 
-extern Shape *
+extern UnrootedShape
 GetDenseArrayShape(JSContext *cx, HandleObject globalObj);
 
 extern JSBool

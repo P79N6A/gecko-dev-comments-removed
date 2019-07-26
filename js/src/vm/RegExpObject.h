@@ -405,7 +405,7 @@ class RegExpObject : public JSObject
 
 
 
-    Shape *assignInitialShape(JSContext *cx);
+    UnrootedShape assignInitialShape(JSContext *cx);
 
     inline bool init(JSContext *cx, HandleAtom source, RegExpFlag flags);
 

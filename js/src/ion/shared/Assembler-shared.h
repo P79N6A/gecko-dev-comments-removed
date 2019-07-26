@@ -98,6 +98,12 @@ struct ImmGCPtr
 
     explicit ImmGCPtr(const gc::Cell *ptr) : value(reinterpret_cast<uintptr_t>(ptr))
     { }
+
+    
+    template <typename T>
+    explicit ImmGCPtr(Unrooted<T> ptr)
+      : value(reinterpret_cast<uintptr_t>(static_cast<T>(ptr)))
+    { }
 };
 
 
