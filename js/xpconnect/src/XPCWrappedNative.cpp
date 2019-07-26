@@ -1993,7 +1993,7 @@ class CallMethodHelper
                               nsID* result) const;
 
     JS_ALWAYS_INLINE JSBool
-    GetOutParamSource(uint8_t paramIndex, jsval* srcp) const;
+    GetOutParamSource(uint8_t paramIndex, MutableHandleValue srcp) const;
 
     JS_ALWAYS_INLINE JSBool
     GatherAndConvertResults();
@@ -2249,7 +2249,7 @@ CallMethodHelper::GetInterfaceTypeFromParam(uint8_t paramIndex,
 }
 
 JSBool
-CallMethodHelper::GetOutParamSource(uint8_t paramIndex, jsval* srcp) const
+CallMethodHelper::GetOutParamSource(uint8_t paramIndex, MutableHandleValue srcp) const
 {
     const nsXPTParamInfo& paramInfo = mMethodInfo->GetParam(paramIndex);
 
@@ -2529,7 +2529,7 @@ CallMethodHelper::ConvertIndependentParam(uint8_t i)
     
     
     RootedValue src(mCallContext);
-    if (!GetOutParamSource(i, src.address()))
+    if (!GetOutParamSource(i, &src))
         return false;
 
     
@@ -2634,7 +2634,7 @@ CallMethodHelper::ConvertDependentParam(uint8_t i)
     
     
     RootedValue src(mCallContext);
-    if (!GetOutParamSource(i, src.address()))
+    if (!GetOutParamSource(i, &src))
         return false;
 
     
