@@ -649,9 +649,6 @@ class IonBuilder : public MIRGenerator
 
     
     const CallInfo *inlineCallInfo_;
-
-    
-    MDefinition *retval_;
 };
 
 class CallInfo
