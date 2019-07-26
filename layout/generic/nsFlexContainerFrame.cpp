@@ -1401,6 +1401,8 @@ FreezeOrRestoreEachFlexibleSize(
 
         item.Freeze();
       } else if (MOZ_UNLIKELY(aFinalIteration)) {
+        
+        
         NS_ERROR("Final iteration still has unfrozen items, this shouldn't"
                  " happen unless there was nscoord under/overflow.");
         item.Freeze();
