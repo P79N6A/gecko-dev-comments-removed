@@ -771,12 +771,14 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             if (ae->Type() == AndroidGeckoEvent::FORCED_RESIZE || nw != gAndroidBounds.width ||
                 nh != gAndroidBounds.height) {
 
+#ifdef MOZ_ANDROID_OMTC
                 if (sCompositorParent != 0 && gAndroidBounds.width == 0) {
                     
                     
                     
                     ScheduleResumeComposition(nw, nh);
                 }
+#endif
 
                 gAndroidBounds.width = nw;
                 gAndroidBounds.height = nh;
