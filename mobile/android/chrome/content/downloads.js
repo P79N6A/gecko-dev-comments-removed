@@ -197,11 +197,14 @@ AlertDownloadProgressListener.prototype = {
             this._privateDownloads.splice(index, 1);
           }
         }
+        
+        
+        let existsAvailableHandler = (aDownload.MIMEInfo && aDownload.MIMEInfo.possibleApplicationHandlers.length > 1);
 
         
         
         if (state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
-            !(aDownload.MIMEInfo.hasDefaultHandler && Downloads.isForeground)) {
+            !(existsAvailableHandler && Downloads.isForeground)) {
           Downloads.showAlert(aDownload, Strings.browser.GetStringFromName("alertDownloadsDone2"),
                               aDownload.displayName);
         }
