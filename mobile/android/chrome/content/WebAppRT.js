@@ -67,7 +67,9 @@ let WebAppRT = {
 
 #ifdef MOZ_ANDROID_SYNTHAPKS
     
-    if (sendMessageToJava({ type: "NativeApp:IsDebuggable" })) {
+    
+    
+    if (sendMessageToJava({ type: "NativeApp:IsDebuggable" }) === "true") {
       this._enableRemoteDebugger(aUrl);
     }
 #endif
