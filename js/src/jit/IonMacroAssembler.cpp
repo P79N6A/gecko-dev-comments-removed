@@ -478,6 +478,10 @@ MacroAssembler::loadFromTypedArray(int arrayType, const T &src, AnyRegister dest
             convertUInt32ToDouble(temp, dest.fpu());
         } else {
             load32(src, dest.gpr());
+
+            
+            
+            
             test32(dest.gpr(), dest.gpr());
             j(Assembler::Signed, fail);
         }

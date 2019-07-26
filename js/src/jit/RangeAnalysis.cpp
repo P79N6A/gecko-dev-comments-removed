@@ -1265,18 +1265,19 @@ static Range *GetTypedArrayRange(int type)
 void
 MLoadTypedArrayElement::computeRange()
 {
-    if (Range *range = GetTypedArrayRange(arrayType())) {
-        if (type() == MIRType_Int32 && !range->hasInt32UpperBound())
-            range->extendUInt32ToInt32Min();
-        setRange(range);
-    }
+    
+    
+    setRange(GetTypedArrayRange(arrayType()));
 }
 
 void
 MLoadTypedArrayElementStatic::computeRange()
 {
-    if (Range *range = GetTypedArrayRange(typedArray_->type()))
-        setRange(range);
+    
+    
+    JS_ASSERT(typedArray_->type() != ScalarTypeRepresentation::TYPE_UINT32);
+
+    setRange(GetTypedArrayRange(typedArray_->type()));
 }
 
 void
