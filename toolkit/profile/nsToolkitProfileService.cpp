@@ -609,7 +609,7 @@ static void SaltProfileName(nsACString& aName)
     double fpTime = double(PR_Now());
 
     
-    srand((uint)(fpTime * 1e-6 + 0.5));
+    srand((unsigned int)(fpTime * 1e-6 + 0.5));
 
     char salt[9];
 

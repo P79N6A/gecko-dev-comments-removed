@@ -6,7 +6,6 @@
 #ifndef tmreader_h___
 #define tmreader_h___
 
-#include "prtypes.h"
 #include "plhash.h"
 #include "nsTraceMalloc.h"
 #include "plarena.h"
@@ -27,7 +26,7 @@ typedef struct tmmethodnode tmmethodnode;
 
 struct tmevent {
     char            type;
-    uint32_t          serial;
+    uint32_t        serial;
     union {
         char        *libname;
         char        *srcname;
@@ -35,7 +34,7 @@ struct tmevent {
             uint32_t  library;
             uint32_t  filename;
             uint32_t  linenumber;
-            char    *name;
+            char      *name;
         } method;
         struct {
             uint32_t  parent;
@@ -86,7 +85,7 @@ struct tmgraphnode {
 struct tmmethodnode {
     tmgraphnode   graphnode;
     char          *sourcefile;
-    uint32_t        linenumber;
+    uint32_t      linenumber;
 };
 
 #define tmgraphnode_name(node)  ((char*) (node)->entry.value)
@@ -126,7 +125,7 @@ struct tmcallsite {
     tmcallsite      *siblings;  
     tmcallsite      *kids;      
     tmmethodnode    *method;    
-    uint32_t          offset;     
+    uint32_t        offset;     
     tmallcounts     allocs;
     tmallcounts     frees;
     void            *data;      
@@ -144,7 +143,7 @@ struct tmreader {
     PLHashTable     *callsites;
     PLArenaPool     arena;
     tmcallsite      calltree_root;
-    uint32_t          ticksPerSec;
+    uint32_t        ticksPerSec;
 };
 
 typedef void (*tmeventhandler)(tmreader *tmr, tmevent *event);
