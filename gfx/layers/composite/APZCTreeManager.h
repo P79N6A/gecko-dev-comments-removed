@@ -121,19 +121,6 @@ public:
 
 
 
-
-  nsEventStatus ReceiveInputEvent(const WidgetInputEvent& aEvent,
-                                  ScrollableLayerGuid* aOutTargetGuid,
-                                  WidgetInputEvent* aOutEvent);
-
-  
-
-
-
-
-
-
-
   nsEventStatus ReceiveInputEvent(WidgetInputEvent& aEvent,
                                   ScrollableLayerGuid* aOutTargetGuid);
 
@@ -287,9 +274,9 @@ private:
   already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
   already_AddRefed<AsyncPanZoomController> RootAPZCForLayersId(AsyncPanZoomController* aApzc);
   already_AddRefed<AsyncPanZoomController> GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent);
-  nsEventStatus ProcessTouchEvent(const WidgetTouchEvent& touchEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetTouchEvent* aOutEvent);
-  nsEventStatus ProcessMouseEvent(const WidgetMouseEvent& mouseEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetMouseEvent* aOutEvent);
-  nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetInputEvent* aOutEvent);
+  nsEventStatus ProcessTouchEvent(WidgetTouchEvent& touchEvent, ScrollableLayerGuid* aOutTargetGuid);
+  nsEventStatus ProcessMouseEvent(WidgetMouseEvent& mouseEvent, ScrollableLayerGuid* aOutTargetGuid);
+  nsEventStatus ProcessEvent(WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid);
   void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
                                         const ZoomConstraints& aConstraints);
 

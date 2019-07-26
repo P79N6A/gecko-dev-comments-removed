@@ -371,9 +371,9 @@ private:
     
     
     
-    void MaybeForwardEventToRenderFrame(const WidgetInputEvent& aEvent,
-                                        ScrollableLayerGuid* aOutTargetGuid,
-                                        WidgetInputEvent* aOutEvent);
+    
+    void MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
+                                        ScrollableLayerGuid* aOutTargetGuid);
     
     
     

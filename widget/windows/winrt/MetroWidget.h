@@ -221,9 +221,6 @@ public:
   
   nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent,
                                      ScrollableLayerGuid* aOutTargetGuid);
-  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aInEvent,
-                                     ScrollableLayerGuid* aOutTargetGuid,
-                                     mozilla::WidgetInputEvent* aOutEvent);
 
 protected:
   friend class FrameworkView;
