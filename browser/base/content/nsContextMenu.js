@@ -915,7 +915,7 @@ nsContextMenu.prototype = {
   reload: function(event) {
     if (this.onSocial) {
       
-      Social.provider.reload();
+      Social._getProviderFromOrigin(this.browser.getAttribute("origin")).reload();
     } else {
       BrowserReloadOrDuplicate(event);
     }
