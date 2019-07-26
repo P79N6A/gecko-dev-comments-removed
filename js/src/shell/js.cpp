@@ -95,16 +95,14 @@ typedef enum JSShellExitCode {
 size_t gStackChunkSize = 8192;
 
 
-#if (defined(DEBUG) && defined(__SUNPRO_CC))  || defined(JS_CPU_SPARC)
 
 
-#define DEFAULT_MAX_STACK_SIZE 5000000
+
+#if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
+size_t gMaxStackSize = 2 * 128 * sizeof(size_t) * 1024;
 #else
-#define DEFAULT_MAX_STACK_SIZE 500000
+size_t gMaxStackSize = 128 * sizeof(size_t) * 1024;
 #endif
-
-size_t gMaxStackSize = DEFAULT_MAX_STACK_SIZE;
-
 
 #ifdef JS_THREADSAFE
 static unsigned gStackBaseThreadIndex;

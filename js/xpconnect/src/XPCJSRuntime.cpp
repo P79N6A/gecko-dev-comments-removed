@@ -2496,10 +2496,12 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     
     JS_SetGCParameter(mJSRuntime, JSGC_MAX_BYTES, 0xffffffff);
-#ifdef MOZ_ASAN
+#if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
+    
+    
     
     JS_SetNativeStackQuota(mJSRuntime, 2 * 128 * sizeof(size_t) * 1024);
-#else  
+#else
     JS_SetNativeStackQuota(mJSRuntime, 128 * sizeof(size_t) * 1024);
 #endif
     JS_SetContextCallback(mJSRuntime, ContextCallback);
