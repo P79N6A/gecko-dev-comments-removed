@@ -52,7 +52,7 @@ function run_test()
   
   cu.evalInSandbox('var createXHR = ' + createXHR.toString(), sb);
   var res = cu.evalInSandbox('var sync = createXHR("4444/simple"); sync.send(null); sync', sb);
-  do_check_true(checkResults(res));
+  checkResults(res);
 
   
   try {
