@@ -295,6 +295,11 @@ RTCPeerConnection.prototype = {
     this._pc = Cc["@mozilla.org/peerconnection;1"].
              createInstance(Ci.IPeerConnection);
     this._observer = new PeerConnectionObserver(this);
+    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+
+    
+    _globalPCList.addPC(this);
 
     
     this._queueOrRun({
@@ -302,12 +307,6 @@ RTCPeerConnection.prototype = {
       args: [this._observer, this._win, rtcConfig, Services.tm.currentThread],
       wait: true
     });
-
-    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-
-    
-    _globalPCList.addPC(this);
   },
 
   _getPC: function() {
