@@ -235,6 +235,17 @@ public:
 
   void ClearTree();
 
+  
+
+
+
+  static void SetDPI(float aDpiValue) { sDPI = aDpiValue; }
+
+  
+
+
+  static float GetDPI() { return sDPI; }
+
 protected:
   
 
@@ -292,6 +303,8 @@ private:
 
 
   nsRefPtr<AsyncPanZoomController> mApzcForInputBlock;
+
+  static float sDPI;
 };
 
 }

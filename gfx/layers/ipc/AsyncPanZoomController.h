@@ -212,19 +212,6 @@ public:
 
 
 
-  void SetDPI(int aDPI);
-
-  
-
-
-
-  int GetDPI();
-
-  
-
-
-
-
 
   static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
@@ -589,8 +576,6 @@ private:
   
   
   CancelableTask* mAsyncScrollTimeoutTask;
-
-  int mDPI;
 
   
   
