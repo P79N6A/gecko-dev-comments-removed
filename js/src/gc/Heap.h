@@ -1115,7 +1115,7 @@ InFreeList(ArenaHeader *aheader, void *thing)
 
 
 
-class AutoThreadSafeAccess
+class MOZ_STACK_CLASS AutoThreadSafeAccess
 {
 public:
 #if defined(DEBUG) && defined(JS_CPU_X64) && !defined(XP_WIN)
