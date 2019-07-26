@@ -1712,6 +1712,21 @@ PeerConnectionWrapper.prototype = {
 
 
 
+  logIceConnectionState: function PCW_logIceConnectionState() {
+    var self = this;
+
+    function logIceConState () {
+      self.iceConnectionLog.push(self._pc.iceConnectionState);
+    }
+
+    self.iceConnectionLog = [self._pc.iceConnectionState];
+    self.ice_connection_callbacks.logIceStatus = logIceConState;
+  },
+
+  
+
+
+
 
 
 
