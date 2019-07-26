@@ -121,6 +121,10 @@ class ParallelArrayObject : public JSObject {
 
         
         
+        inline bool bump();
+
+        
+        
         inline uint32_t scalarLengthOfDimensions();
 
         
@@ -321,9 +325,6 @@ class ParallelArrayObject : public JSObject {
 
     static inline bool DenseArrayToIndexVector(JSContext *cx, HandleObject obj,
                                                IndexVector &indices);
-
-    bool toStringBufferImpl(JSContext *cx, IndexInfo &iv, bool useLocale,
-                            HandleObject buffer, StringBuffer &sb);
 
     static bool create(JSContext *cx, MutableHandleValue vp);
     static bool create(JSContext *cx, HandleObject buffer, MutableHandleValue vp);
