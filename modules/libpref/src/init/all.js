@@ -250,6 +250,12 @@ pref("media.peerconnection.use_document_iceservers", true);
 
 
 
+
+pref("media.peerconnection.identity.enabled", false);
+pref("media.peerconnection.identity.timeout", 5000);
+
+
+
 pref("media.peerconnection.turn.disable", false);
 pref("media.peerconnection.aec_enabled", true);
 pref("media.peerconnection.aec", 1);

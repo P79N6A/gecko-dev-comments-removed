@@ -47,7 +47,7 @@ IdpChannel.prototype = {
       return callback(new Error("IdP channel already open"));
     }
 
-    var ready = this._sandboxReady.bind(this, callback);
+    let ready = this._sandboxReady.bind(this, callback);
     this.sandbox = new Sandbox(this.source, ready);
   },
 
@@ -193,6 +193,9 @@ IdpProxy.prototype = {
 
 
 
+
+
+
   send: function(message, callback) {
     this.start();
     if (this.ready) {
@@ -212,7 +215,7 @@ IdpProxy.prototype = {
     if (!message) {
       return;
     }
-    if (message.type === "READY") {
+    if (!this.ready && message.type === "READY") {
       this.ready = true;
       this.pending.forEach(function(p) {
         this.send(p.message, p.callback);
@@ -239,17 +242,21 @@ IdpProxy.prototype = {
     }
 
     
-    
-    let error = { type: "ERROR" };
-    Object.keys(this.tracking).forEach(function(k) {
-      this.tracking[k](error);
-    }, this);
-    this.pending.forEach(function(p) {
-      p.callback(error);
-    }, this);
+    let trackingCopy = this.tracking;
+    let pendingCopy = this.pending;
 
     this.channel.close();
     this._reset();
+
+    
+    
+    let error = { type: "ERROR", message: "IdP closed" };
+    Object.keys(trackingCopy).forEach(function(k) {
+      this.trackingCopy[k](error);
+    }, this);
+    pendingCopy.forEach(function(p) {
+      p.callback(error);
+    }, this);
   },
 
   toString: function() {
