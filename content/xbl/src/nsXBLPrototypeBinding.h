@@ -48,7 +48,7 @@ public:
   
   bool CompareBindingURI(nsIURI* aURI) const;
 
-  bool GetAllowScripts();
+  bool GetAllowScripts() const;
 
   nsresult BindingAttached(nsIContent* aBoundElement);
   nsresult BindingDetached(nsIContent* aBoundElement);
