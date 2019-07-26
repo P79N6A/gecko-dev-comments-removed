@@ -670,7 +670,7 @@ CacheFile::OpenOutputStream(CacheOutputCloseListener *aCloseListener, nsIOutputS
 nsresult
 CacheFile::SetMemoryOnly()
 {
-  LOG(("CacheFile::SetMemoryOnly() aMemoryOnly=%d [this=%p]",
+  LOG(("CacheFile::SetMemoryOnly() mMemoryOnly=%d [this=%p]",
        mMemoryOnly, this));
 
   if (mMemoryOnly)
@@ -729,6 +729,16 @@ CacheFile::ThrowMemoryCachedData()
   CacheFileAutoLock lock(this);
 
   LOG(("CacheFile::ThrowMemoryCachedData() [this=%p]", this));
+
+  if (mMemoryOnly) {
+    
+    
+    
+    LOG(("CacheFile::ThrowMemoryCachedData() - Ignoring request because the "
+         "entry is memory-only. [this=%p]", this));
+
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   if (mOpeningFile) {
     
@@ -958,6 +968,15 @@ CacheFile::GetChunkLocked(uint32_t aIndex, bool aWriter,
   if (off < mDataSize) {
     
     MOZ_ASSERT(!mMemoryOnly);
+    if (mMemoryOnly) {
+      
+      
+      LOG(("CacheFile::GetChunkLocked() - Unexpected state! Offset < mDataSize "
+           "for memory-only entry. [this=%p, off=%lld, mDataSize=%lld]",
+           this, off, mDataSize));
+
+      return NS_ERROR_UNEXPECTED;
+    }
 
     chunk = new CacheFileChunk(this, aIndex);
     mChunks.Put(aIndex, chunk);
