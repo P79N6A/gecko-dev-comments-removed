@@ -4017,8 +4017,6 @@ var XULBrowserWindow = {
   
   status: "",
   defaultStatus: "",
-  jsStatus: "",
-  jsDefaultStatus: "",
   overLink: "",
   startTime: 0,
   statusText: "",
@@ -4076,14 +4074,12 @@ var XULBrowserWindow = {
     delete this.statusText;
   },
 
-  setJSStatus: function (status) {
-    this.jsStatus = status;
-    this.updateStatusField();
+  setJSStatus: function () {
+    
   },
 
-  setJSDefaultStatus: function (status) {
-    this.jsDefaultStatus = status;
-    this.updateStatusField();
+  setJSDefaultStatus: function () {
+    
   },
 
   setDefaultStatus: function (status) {
@@ -4108,7 +4104,7 @@ var XULBrowserWindow = {
     var text, type, types = ["overLink"];
     if (this._busyUI)
       types.push("status");
-    types.push("jsStatus", "jsDefaultStatus", "defaultStatus");
+    types.push("defaultStatus");
     for (type of types) {
       text = this[type];
       if (text)
