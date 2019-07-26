@@ -1939,11 +1939,6 @@ TextRenderedRunIterator::Next()
 
     
     
-    pt = Root()->mPositions[mTextElementCharIndex].mPosition;
-    rotate = Root()->mPositions[mTextElementCharIndex].mAngle;
-
-    
-    
     
     uint32_t runStart, runEnd;  
     runStart = mTextElementCharIndex;
@@ -1982,6 +1977,11 @@ TextRenderedRunIterator::Next()
       frame->GetTrimmedOffsets(frame->GetContent()->GetText(), true);
     TrimOffsets(offset, length, trimmedOffsets);
     charIndex += offset - untrimmedOffset;
+
+    
+    
+    pt = Root()->mPositions[charIndex].mPosition;
+    rotate = Root()->mPositions[charIndex].mAngle;
 
     
     bool skip = !mFrameIterator.IsWithinSubtree() ||
