@@ -172,7 +172,7 @@ class RTCStatsQuery {
     explicit RTCStatsQuery(bool internalStats);
     ~RTCStatsQuery();
 
-    mozilla::dom::RTCStatsReportInternal report;
+    nsAutoPtr<mozilla::dom::RTCStatsReportInternal> report;
     std::string error;
     
     mozilla::TimeStamp iceStartTime;
