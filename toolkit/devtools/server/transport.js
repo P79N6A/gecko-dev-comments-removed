@@ -66,8 +66,9 @@ DebuggerTransport.prototype = {
 
 
   send: function DT_send(aPacket) {
-    
-    let data = JSON.stringify(aPacket, null, 2);
+    let data = wantLogging
+      ? JSON.stringify(aPacket, null, 2)
+      : JSON.stringify(aPacket);
     data = this._converter.ConvertFromUnicode(data);
     data = data.length + ':' + data;
     this._outgoing += data;
