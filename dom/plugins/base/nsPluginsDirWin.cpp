@@ -27,6 +27,41 @@
 #include "nsIFile.h"
 #include "nsUnicharUtils.h"
 
+#include <shlwapi.h>
+#define SHOCKWAVE_BASE_FILENAME L"np32dsw"
+
+
+
+
+
+
+bool
+ShouldProtectPluginCurrentDirectory(LPCWSTR pluginFilePath)
+{
+  LPCWSTR passedInFilename = PathFindFileName(pluginFilePath);
+  if (!passedInFilename) {
+    return true;
+  }
+
+  
+  
+  if (!wcsicmp(passedInFilename, SHOCKWAVE_BASE_FILENAME L".dll")) {
+    return false;
+  }
+
+  
+  const uint64_t kFixedShockwaveVersion = 1202122;
+  uint64_t version;
+  int found = swscanf(passedInFilename, SHOCKWAVE_BASE_FILENAME L"_%llu.dll",
+                      &version);
+  if (found && version < kFixedShockwaveVersion) {
+    return false;
+  }
+
+  
+  return true;
+}
+
 using namespace mozilla;
 
 
@@ -245,17 +280,13 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 
   bool protectCurrentDirectory = true;
 
-  nsAutoString pluginFolderPath;
-  mPlugin->GetPath(pluginFolderPath);
+  nsAutoString pluginFilePath;
+  mPlugin->GetPath(pluginFilePath);
+  protectCurrentDirectory =
+    ShouldProtectPluginCurrentDirectory(pluginFilePath.BeginReading());
 
-  int32_t idx = pluginFolderPath.RFindChar('\\');
-  if (kNotFound == idx)
-    return NS_ERROR_FILE_INVALID_PATH;
-
-  if (Substring(pluginFolderPath, idx).LowerCaseEqualsLiteral("\\np32dsw.dll")) {
-    protectCurrentDirectory = false;
-  }
-
+  nsAutoString pluginFolderPath = pluginFilePath;
+  int32_t idx = pluginFilePath.RFindChar('\\');
   pluginFolderPath.SetLength(idx);
 
   BOOL restoreOrigDir = FALSE;
