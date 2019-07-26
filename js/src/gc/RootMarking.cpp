@@ -793,13 +793,18 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 
     
     if (JSTraceDataOp op = rt->gcGrayRootsTraceOp) {
-        if (IS_GC_MARKING_TRACER(trc)) {
-            GCMarker *gcmarker = static_cast<GCMarker *>(trc);
-            gcmarker->startBufferingGrayRoots();
+        if (!IS_GC_MARKING_TRACER(trc))
             (*op)(trc, rt->gcGrayRootsData);
-            gcmarker->endBufferingGrayRoots();
-        } else {
-            (*op)(trc, rt->gcGrayRootsData);
-        }
+    }
+}
+
+void
+js::gc::BufferGrayRoots(GCMarker *gcmarker)
+{
+    JSRuntime *rt = gcmarker->runtime;
+    if (JSTraceDataOp op = rt->gcGrayRootsTraceOp) {
+        gcmarker->startBufferingGrayRoots();
+        (*op)(gcmarker, rt->gcGrayRootsData);
+        gcmarker->endBufferingGrayRoots();
     }
 }

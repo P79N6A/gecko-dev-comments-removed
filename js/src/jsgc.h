@@ -902,6 +902,19 @@ struct SliceBudget {
 
 static const size_t MARK_STACK_LENGTH = 32768;
 
+struct GrayRoot {
+    void *thing;
+    JSGCTraceKind kind;
+#ifdef DEBUG
+    JSTraceNamePrinter debugPrinter;
+    const void *debugPrintArg;
+    size_t debugPrintIndex;
+#endif
+
+    GrayRoot(void *thing, JSGCTraceKind kind)
+        : thing(thing), kind(kind) {}
+};
+
 struct GCMarker : public JSTracer {
   private:
     
@@ -1006,11 +1019,12 @@ struct GCMarker : public JSTracer {
 
 
 
+
     bool hasBufferedGrayRoots() const;
     void startBufferingGrayRoots();
     void endBufferingGrayRoots();
+    void resetBufferedGrayRoots();
     void markBufferedGrayRoots();
-    void markBufferedGrayRootCompartmentsAlive();
 
     static void GrayCallback(JSTracer *trc, void **thing, JSGCTraceKind kind);
 
@@ -1070,21 +1084,7 @@ struct GCMarker : public JSTracer {
     
     mozilla::DebugOnly<size_t> markLaterArenas;
 
-    struct GrayRoot {
-        void *thing;
-        JSGCTraceKind kind;
-#ifdef DEBUG
-        JSTraceNamePrinter debugPrinter;
-        const void *debugPrintArg;
-        size_t debugPrintIndex;
-#endif
-
-        GrayRoot(void *thing, JSGCTraceKind kind)
-          : thing(thing), kind(kind) {}
-    };
-
     bool grayFailed;
-    Vector<GrayRoot, 0, SystemAllocPolicy> grayRoots;
 };
 
 void

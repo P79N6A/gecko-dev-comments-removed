@@ -375,6 +375,9 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     
     js::WeakMapBase              *gcWeakMapList;
 
+    
+    js::Vector<js::GrayRoot, 0, js::SystemAllocPolicy> gcGrayRoots;
+
   private:
     
 
