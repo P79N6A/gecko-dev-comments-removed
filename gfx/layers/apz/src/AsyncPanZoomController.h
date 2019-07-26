@@ -597,12 +597,7 @@ private:
   
 
 
-  bool TouchActionAllowPinchZoom();
-
-  
-
-
-  bool TouchActionAllowDoubleTapZoom();
+  bool TouchActionAllowZoom();
 
   
 
