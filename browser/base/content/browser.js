@@ -1435,7 +1435,6 @@ var gBrowserInit = {
     }
 
     
-    window.XULBrowserWindow.destroy();
     window.XULBrowserWindow = null;
     window.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(Ci.nsIWebNavigation)
@@ -3688,14 +3687,6 @@ var XULBrowserWindow = {
     
     var securityUI = gBrowser.securityUI;
     this.onSecurityChange(null, null, securityUI.state);
-  },
-
-  destroy: function () {
-    
-    delete this.throbberElement;
-    delete this.stopCommand;
-    delete this.reloadCommand;
-    delete this.statusText;
   },
 
   setJSStatus: function () {
