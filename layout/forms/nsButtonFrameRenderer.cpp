@@ -185,11 +185,18 @@ nsButtonFrameRenderer::DisplayButton(nsDisplayListBuilder* aBuilder,
       nsDisplayButtonBoxShadowOuter(aBuilder, this));
   }
 
+  
+  
   aBackground->AppendNewToTop(new (aBuilder)
     nsDisplayButtonBorderBackground(aBuilder, this));
 
-  aForeground->AppendNewToTop(new (aBuilder)
-    nsDisplayButtonForeground(aBuilder, this));
+  
+  
+  if ((mOuterFocusStyle && mOuterFocusStyle->StyleBorder()->HasBorder()) ||
+      (mInnerFocusStyle && mInnerFocusStyle->StyleBorder()->HasBorder())) {
+    aForeground->AppendNewToTop(new (aBuilder)
+      nsDisplayButtonForeground(aBuilder, this));
+  }
   return NS_OK;
 }
 
