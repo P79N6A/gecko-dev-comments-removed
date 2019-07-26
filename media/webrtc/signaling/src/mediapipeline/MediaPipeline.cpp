@@ -442,10 +442,13 @@ nsresult MediaPipelineTransmit::Init() {
              "audio" : "video") <<
             " hints=" << stream_->GetHintContents());
 
-  return RUN_ON_THREAD(main_thread_, WrapRunnable(stream_->GetStream(),
+  
+  
+  nsRefPtr<MediaStream> stream (stream_->GetStream());
+  return RUN_ON_THREAD(main_thread_, WrapRunnable(stream,
                                                   &MediaStream::AddListener,
                                                   listener_),
-                       NS_DISPATCH_SYNC);
+                       NS_DISPATCH_NORMAL);
 }
 
 nsresult MediaPipeline::PipelineTransport::SendRtpPacket(
@@ -665,10 +668,14 @@ void MediaPipelineTransmit::ProcessVideoChunk(VideoSessionConduit *conduit,
 
 nsresult MediaPipelineReceiveAudio::Init() {
   MOZ_MTLOG(PR_LOG_DEBUG, __FUNCTION__);
-  return RUN_ON_THREAD(main_thread_, WrapRunnable(stream_->GetStream(),
-                                           &MediaStream::AddListener,
-                                           listener_),
-                       NS_DISPATCH_SYNC);
+
+  
+  
+  nsRefPtr<MediaStream> stream (stream_->GetStream());
+  return RUN_ON_THREAD(main_thread_, WrapRunnable(stream,
+                                                  &MediaStream::AddListener,
+                                                  listener_),
+                       NS_DISPATCH_NORMAL);
 }
 
 void MediaPipelineReceiveAudio::PipelineListener::

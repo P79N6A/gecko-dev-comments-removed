@@ -21,8 +21,10 @@ namespace sipcc {
 
 
 
+
 class PeerConnectionCtx : public CSF::CC_Observer {
  public:
+  static nsresult InitializeGlobal(nsIThread *mainThread);
   static PeerConnectionCtx* GetInstance();
   static void Destroy();
 
@@ -37,7 +39,14 @@ class PeerConnectionCtx : public CSF::CC_Observer {
 
   PeerConnectionImpl::SipccState sipcc_state() { return mSipccState; }
 
+  
+  friend class PeerConnectionImpl;
+  friend class PeerConnectionWrapper;
+
  private:
+  
+  std::map<const std::string, PeerConnectionImpl *> mPeerConnections;
+
   PeerConnectionCtx() :  mSipccState(PeerConnectionImpl::kIdle),
                          mCCM(NULL), mDevice(NULL) {}
   
@@ -52,12 +61,17 @@ class PeerConnectionCtx : public CSF::CC_Observer {
     mSipccState = aState;
   }
 
+  virtual void onCallEvent_m(ccapi_call_event_e callEvent,
+			     CSF::CC_CallPtr call,
+			     CSF::CC_CallInfoPtr info);
+
   
   PeerConnectionImpl::SipccState mSipccState;  
   CSF::CallControlManagerPtr mCCM;
   CSF::CC_DevicePtr mDevice;
 
-  static PeerConnectionCtx *instance;
+  static PeerConnectionCtx *gInstance;
+  static nsIThread *gMainThread;
 };
 
 }  

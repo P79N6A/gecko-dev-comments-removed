@@ -42,6 +42,8 @@ using namespace mozilla;
 
 namespace sipcc {
 
+class PeerConnectionWrapper;
+
 struct ConstraintInfo {
   std::string  value;
   bool         mandatory;
@@ -59,6 +61,17 @@ private:
 };
 
 class PeerConnectionWrapper;
+
+
+
+#define PC_AUTO_ENTER_API_CALL(assert_ice_ready) \
+    do { \
+      /* do/while prevents res from conflicting with locals */    \
+      nsresult res = CheckApiState(assert_ice_ready);             \
+      if (NS_FAILED(res)) return res; \
+    } while(0)
+#define PC_AUTO_ENTER_API_CALL_NO_CHECK() CheckThread()
+
 
 class PeerConnectionImpl MOZ_FINAL : public IPeerConnection,
 #ifdef MOZILLA_INTERNAL_API
@@ -103,8 +116,16 @@ public:
 
   static PeerConnectionImpl* CreatePeerConnection();
   static void Shutdown();
+  static nsresult ConvertConstraints(
+    const JS::Value& aConstraints, MediaConstraints* aObj, JSContext* aCx);
+  static nsresult MakeMediaStream(uint32_t aHint, nsIDOMMediaStream** aStream);
+  static nsresult MakeRemoteSource(nsDOMMediaStream* aStream, RemoteSourceStreamInfo** aInfo);
 
-  Role GetRole() const { return mRole; }
+  Role GetRole() const {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mRole;
+  }
+
   nsresult CreateRemoteSourceStreamInfo(uint32_t aHint, RemoteSourceStreamInfo** aInfo);
 
   
@@ -120,11 +141,12 @@ public:
   void NotifyDataChannel(mozilla::DataChannel *aChannel);
 
   
-  const nsRefPtr<PeerConnectionMedia>& media() const { return mMedia; }
+  const nsRefPtr<PeerConnectionMedia>& media() const {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mMedia;
+  }
 
   
-  static PeerConnectionWrapper *AcquireInstance(const std::string& aHandle);
-  virtual void ReleaseInstance();
   virtual const std::string& GetHandle();
 
   
@@ -136,23 +158,33 @@ public:
   static void ConnectThread(void *aData);
 
   
-  nsCOMPtr<nsIThread> GetMainThread() { return mThread; }
+  nsCOMPtr<nsIThread> GetMainThread() {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mThread;
+  }
 
   
-  nsCOMPtr<nsIEventTarget> GetSTSThread() { return mSTSThread; }
+  nsCOMPtr<nsIEventTarget> GetSTSThread() {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mSTSThread;
+  }
 
   
-  mozilla::RefPtr<DtlsIdentity> const GetIdentity() { return mIdentity; }
+  mozilla::RefPtr<DtlsIdentity> const GetIdentity() {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mIdentity;
+  }
 
   
   nsresult CreateFakeMediaStream(uint32_t hint, nsIDOMMediaStream** retval);
 
-  nsPIDOMWindow* GetWindow() const { return mWindow; }
+  nsPIDOMWindow* GetWindow() const {
+    PC_AUTO_ENTER_API_CALL_NO_CHECK();
+    return mWindow;
+  }
 
   
   
-  nsresult ConvertConstraints(
-    const JS::Value& aConstraints, MediaConstraints* aObj, JSContext* aCx);
   NS_IMETHODIMP CreateOffer(MediaConstraints& aConstraints);
   NS_IMETHODIMP CreateAnswer(MediaConstraints& aConstraints);
 
@@ -160,16 +192,33 @@ private:
   PeerConnectionImpl(const PeerConnectionImpl&rhs);
   PeerConnectionImpl& operator=(PeerConnectionImpl);
 
+  NS_IMETHODIMP CreateOfferInt(MediaConstraints& constraints);
+  NS_IMETHODIMP CreateAnswerInt(MediaConstraints& constraints);
+
+  nsresult CloseInt(bool aIsSynchronous);
   void ChangeReadyState(ReadyState aReadyState);
-  void CheckIceState() {
-    PR_ASSERT(mIceState != kIceGathering);
+  nsresult CheckApiState(bool assert_ice_ready) const;
+  void CheckThread() const {
+    NS_ABORT_IF_FALSE(CheckThreadInt(), "Wrong thread");
+  }
+  bool CheckThreadInt() const {
+#ifdef MOZILLA_INTERNAL_API
+    
+    
+    
+    bool on;
+    NS_ENSURE_SUCCESS(mThread->IsOnCurrentThread(&on), false);
+    NS_ENSURE_TRUE(on, false);
+#endif
+    return true;
   }
 
   
   void ShutdownMedia(bool isSynchronous);
 
-  nsresult MakeMediaStream(uint32_t aHint, nsIDOMMediaStream** aStream);
-  nsresult MakeRemoteSource(nsDOMMediaStream* aStream, RemoteSourceStreamInfo** aInfo);
+  
+  void IceGatheringCompleted_m(NrIceCtx *aCtx);
+  void IceCompleted_m(NrIceCtx *aCtx);
 
   
   Role mRole;
@@ -212,9 +261,6 @@ private:
 
   nsRefPtr<PeerConnectionMedia> mMedia;
 
-  
-  static std::map<const std::string, PeerConnectionImpl *> peerconnections;
-
 public:
   
   unsigned short listenPort;
@@ -225,17 +271,12 @@ public:
 
 class PeerConnectionWrapper {
  public:
-  PeerConnectionWrapper(PeerConnectionImpl *impl) : impl_(impl) {}
-
-  ~PeerConnectionWrapper() {
-    if (impl_)
-      impl_->ReleaseInstance();
-  }
+  PeerConnectionWrapper(const std::string& handle);
 
   PeerConnectionImpl *impl() { return impl_; }
 
  private:
-  PeerConnectionImpl *impl_;
+  nsRefPtr<PeerConnectionImpl> impl_;
 };
 
 }  

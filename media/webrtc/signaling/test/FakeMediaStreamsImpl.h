@@ -38,6 +38,7 @@ nsresult Fake_SourceMediaStream::Start() {
 }
 
 nsresult Fake_SourceMediaStream::Stop() {
+  mozilla::MutexAutoLock lock(mMutex);
   if (mTimer)
     mTimer->Cancel();
   mPeriodic->Detach();
@@ -45,6 +46,7 @@ nsresult Fake_SourceMediaStream::Stop() {
 }
 
 void Fake_SourceMediaStream::Periodic() {
+  mozilla::MutexAutoLock lock(mMutex);
   
   
   
@@ -69,6 +71,10 @@ nsresult Fake_MediaStreamBase::Start() {
 }
 
 nsresult Fake_MediaStreamBase::Stop() {
+  
+  
+  
+  mozilla::MutexAutoLock lock(mMutex);
   mTimer->Cancel();
 
   return NS_OK;
@@ -76,6 +82,7 @@ nsresult Fake_MediaStreamBase::Stop() {
 
 
 void Fake_AudioStreamSource::Periodic() {
+  mozilla::MutexAutoLock lock(mMutex);
   
   if(mStop) {
     return;
