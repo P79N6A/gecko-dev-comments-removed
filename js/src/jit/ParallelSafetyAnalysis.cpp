@@ -490,8 +490,9 @@ ParallelSafetyVisitor::convertToBailout(MBasicBlock *block, MInstruction *ins)
 
         
         MBasicBlock *bailBlock = MBasicBlock::NewAbortPar(graph_, block->info(), pred,
-                                                               block->pc(),
-                                                               block->entryResumePoint());
+                                                          BytecodeSite(block->trackedTree(),
+                                                                       block->pc()),
+                                                          block->entryResumePoint());
         if (!bailBlock)
             return false;
 

@@ -849,6 +849,11 @@ class IonBuilder : public MIRGenerator
     MBasicBlock *current;
     uint32_t loopDepth_;
 
+    BytecodeSite bytecodeSite(jsbytecode *pc) {
+        JS_ASSERT(info().inlineScriptTree()->script()->containsPC(pc));
+        return BytecodeSite(info().inlineScriptTree(), pc);
+    }
+
     
     MResumePoint *callerResumePoint_;
     jsbytecode *callerPC() {
