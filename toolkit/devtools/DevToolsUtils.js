@@ -7,7 +7,7 @@
 
 
 
-function safeErrorString(aError) {
+this.safeErrorString = function safeErrorString(aError) {
   try {
     var s = aError.toString();
     if (typeof s === "string")
@@ -20,7 +20,7 @@ function safeErrorString(aError) {
 
 
 
-function reportException(aWho, aException) {
+this.reportException = function reportException(aWho, aException) {
   let msg = aWho + " threw an exception: " + safeErrorString(aException);
   if (aException.stack) {
     msg += "\nCall stack:\n" + aException.stack;
@@ -52,7 +52,7 @@ function reportException(aWho, aException) {
 
 
 
-function makeInfallible(aHandler, aName) {
+this.makeInfallible = function makeInfallible(aHandler, aName) {
   if (!aName)
     aName = aHandler.name;
 
