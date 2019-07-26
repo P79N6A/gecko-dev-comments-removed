@@ -52,16 +52,24 @@ Decoder::Init()
 
   
   InitInternal();
+
   mInitialized = true;
 }
 
 
 
 void
-Decoder::InitSharedDecoder()
+Decoder::InitSharedDecoder(uint8_t* imageData, uint32_t imageDataLength,
+                           uint32_t* colormap, uint32_t colormapSize)
 {
   
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
+  NS_ABORT_IF_FALSE(mObserver, "Need an observer!");
+
+  mImageData = imageData;
+  mImageDataLength = imageDataLength;
+  mColormap = colormap;
+  mColormapSize = colormapSize;
 
   
   InitInternal();
@@ -81,35 +89,26 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   if (HasDataError())
     return;
 
+  nsresult rv = NS_OK;
+
+  
+  if (mNeedsNewFrame) {
+    rv = AllocateFrame();
+    if (NS_FAILED(rv)) {
+      PostDataError();
+      return;
+    }
+  }
+
   
   WriteInternal(aBuffer, aCount);
 
   
   
   while (mNeedsNewFrame && !HasDataError()) {
-    nsresult rv;
-    if (mNewFrameData.mPaletteDepth) {
-      rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
-                              mNewFrameData.mOffsetY, mNewFrameData.mWidth,
-                              mNewFrameData.mHeight, mNewFrameData.mFormat,
-                              mNewFrameData.mPaletteDepth,
-                              &mImageData, &mImageDataLength,
-                              &mColormap, &mColormapSize);
-    } else {
-      rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
-                              mNewFrameData.mOffsetY, mNewFrameData.mWidth,
-                              mNewFrameData.mHeight, mNewFrameData.mFormat,
-                              &mImageData, &mImageDataLength);
-    }
-
-    
-    
-    mNeedsNewFrame = false;
+    nsresult rv = AllocateFrame();
 
     if (NS_SUCCEEDED(rv)) {
-      
-      PostFrameStart();
-
       
       WriteInternal(nullptr, 0);
     } else {
@@ -187,6 +186,37 @@ Decoder::FinishSharedDecoder()
   if (!HasError()) {
     FinishInternal();
   }
+}
+
+nsresult
+Decoder::AllocateFrame()
+{
+  MOZ_ASSERT(mNeedsNewFrame);
+
+  nsresult rv;
+  if (mNewFrameData.mPaletteDepth) {
+    rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
+                            mNewFrameData.mOffsetY, mNewFrameData.mWidth,
+                            mNewFrameData.mHeight, mNewFrameData.mFormat,
+                            mNewFrameData.mPaletteDepth,
+                            &mImageData, &mImageDataLength,
+                            &mColormap, &mColormapSize);
+  } else {
+    rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
+                            mNewFrameData.mOffsetY, mNewFrameData.mWidth,
+                            mNewFrameData.mHeight, mNewFrameData.mFormat,
+                            &mImageData, &mImageDataLength);
+  }
+
+  if (NS_SUCCEEDED(rv)) {
+    PostFrameStart();
+  }
+
+  
+  
+  mNeedsNewFrame = false;
+
+  return rv;
 }
 
 void

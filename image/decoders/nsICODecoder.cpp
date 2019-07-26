@@ -315,7 +315,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
       mContainedDecoder = new nsPNGDecoder(mImage);
       mContainedDecoder->SetObserver(mObserver);
       mContainedDecoder->SetSizeDecode(IsSizeDecode());
-      mContainedDecoder->InitSharedDecoder();
+      mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
+                                           mColormap, mColormapSize);
       if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
       }
@@ -384,7 +385,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     bmpDecoder->SetUseAlphaData(true);
     mContainedDecoder->SetObserver(mObserver);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
-    mContainedDecoder->InitSharedDecoder();
+    mContainedDecoder->InitSharedDecoder(mImageData, mImageDataLength,
+                                         mColormap, mColormapSize);
 
     
     

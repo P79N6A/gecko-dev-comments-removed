@@ -174,12 +174,7 @@ nsWBMPDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
             return;
           }
 
-          
-          nsresult rv = mImage.EnsureFrame(0, 0, 0, mWidth, mHeight,
-                                           gfxASurface::ImageFormatRGB24,
-                                           (uint8_t**)&mImageData, &mImageDataLength);
-
-          if (NS_FAILED(rv) || !mImageData) {
+          if (!mImageData) {
             PostDecoderError(NS_ERROR_FAILURE);
             mState = DecodingFailed;
             return;
@@ -192,9 +187,6 @@ nsWBMPDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
             mState = DecodingFailed;
             return;
           }
-
-          
-          PostFrameStart();
 
           mState = DecodingImageData;
 

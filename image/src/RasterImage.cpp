@@ -2618,6 +2618,13 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   mDecoder->SetObserver(mDecodeRequest->mStatusTracker->GetDecoderObserver());
   mDecoder->SetSizeDecode(aDoSizeDecode);
   mDecoder->SetDecodeFlags(mFrameDecodeFlags);
+  if (!aDoSizeDecode) {
+    
+    
+    
+    mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
+                           gfxASurface::ImageFormatARGB32);
+  }
   mDecoder->Init();
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 

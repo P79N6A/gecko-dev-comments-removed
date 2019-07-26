@@ -34,7 +34,8 @@ public:
 
 
 
-  void InitSharedDecoder();
+  void InitSharedDecoder(uint8_t* imageData, uint32_t imageDataLength,
+                         uint32_t* colormap, uint32_t colormapSize);
 
   
 
@@ -134,6 +135,18 @@ public:
 
   ImageMetadata& GetImageMetadata() { return mImageMetadata; }
 
+  
+  
+  
+  
+  
+  
+  
+  void NeedNewFrame(uint32_t frameNum, uint32_t x_offset, uint32_t y_offset,
+                    uint32_t width, uint32_t height,
+                    gfxASurface::gfxImageFormat format,
+                    uint8_t palette_depth = 0);
+
 protected:
 
   
@@ -186,12 +199,7 @@ protected:
 
   
   
-  
-  
-  void NeedNewFrame(uint32_t frameNum, uint32_t x_offset, uint32_t y_offset,
-                    uint32_t width, uint32_t height,
-                    gfxASurface::gfxImageFormat format,
-                    uint8_t palette_depth = 0);
+  nsresult AllocateFrame();
 
   
 

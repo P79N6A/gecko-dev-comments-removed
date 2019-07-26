@@ -139,7 +139,11 @@ nsBMPDecoder::FinishInternal()
         nsIntRect r(0, 0, mBIH.width, GetHeight());
         PostInvalidation(r);
 
-        PostFrameStop();
+        if (mUseAlphaData) {
+          PostFrameStop(RasterImage::kFrameHasAlpha);
+        } else {
+          PostFrameStop(RasterImage::kFrameOpaque);
+        }
         PostDecodeDone();
     }
 }
@@ -193,7 +197,6 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     if (!aCount || !mCurLine)
         return;
 
-    nsresult rv;
     if (mPos < BFH_INTERNAL_LENGTH) { 
         uint32_t toCopy = BFH_INTERNAL_LENGTH - mPos;
         if (toCopy > aCount)
@@ -308,34 +311,19 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
           return;
         }
 
-        uint32_t imageLength;
-        if (mBIH.compression == BI_RLE8 || mBIH.compression == BI_RLE4 || 
-            mBIH.compression == BI_ALPHABITFIELDS) {
-            rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
-                                    gfxASurface::ImageFormatARGB32,
-                                    (uint8_t**)&mImageData, &imageLength);
-        } else {
+        if (mBIH.compression != BI_RLE8 && mBIH.compression != BI_RLE4 &&
+            mBIH.compression != BI_ALPHABITFIELDS) {
             
             mRow = (uint8_t*)moz_malloc((mBIH.width * mBIH.bpp) / 8 + 4);
             
             
             
             if (!mRow) {
-                PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
-                return;
-            }
-
-            if (mUseAlphaData) {
-              rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
-                                      gfxASurface::ImageFormatARGB32,
-                                      (uint8_t**)&mImageData, &imageLength);
-            } else {
-              rv = mImage.EnsureFrame(0, 0, 0, mBIH.width, real_height, 
-                                      gfxASurface::ImageFormatRGB24,
-                                      (uint8_t**)&mImageData, &imageLength);
+              PostDataError();
+              return;
             }
         }
-        if (NS_FAILED(rv) || !mImageData) {
+        if (!mImageData) {
             PostDecoderError(NS_ERROR_FAILURE);
             return;
         }
@@ -343,11 +331,8 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
         
         if ((mBIH.compression == BI_RLE8) || (mBIH.compression == BI_RLE4)) {
             
-            memset(mImageData, 0, imageLength);
+            memset(mImageData, 0, mImageDataLength);
         }
-
-        
-        PostFrameStart();
     }
 
     if (mColors && mPos >= mLOH) {

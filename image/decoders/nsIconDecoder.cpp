@@ -37,7 +37,6 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
   
   
   uint32_t bytesToRead = 0;
-  nsresult rv;
 
   
   while (aCount > 0) {
@@ -72,17 +71,10 @@ nsIconDecoder::WriteInternal(const char *aBuffer, uint32_t aCount)
           break;
         }
 
-        
-        rv = mImage.EnsureFrame(0, 0, 0, mWidth, mHeight,
-                                gfxASurface::ImageFormatARGB32,
-                                &mImageData, &mImageDataLength);
-        if (NS_FAILED(rv)) {
-          PostDecoderError(rv);
+        if (!mImageData) {
+          PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
           return;
         }
-
-        
-        PostFrameStart();
 
         
         aBuffer++;
