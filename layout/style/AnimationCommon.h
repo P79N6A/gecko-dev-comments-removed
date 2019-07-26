@@ -363,6 +363,7 @@ struct CommonElementAnimationData : public PRCList
   
   
   
+  
   uint64_t mAnimationGeneration;
   
   void UpdateAnimationGeneration(nsPresContext* aPresContext);
