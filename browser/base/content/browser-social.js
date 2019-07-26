@@ -289,7 +289,18 @@ let SocialFlyout = {
 
     sizeSocialPanelToContent(iframe);
     let anchor = document.getElementById("social-sidebar-browser");
-    panel.openPopup(anchor, "start_before", 0, yOffset, false, false);
+    if (panel.state == "open") {
+      
+      
+      
+      
+      let yAdjust = yOffset - this.yOffset;
+      let box = panel.boxObject;
+      panel.moveTo(box.screenX, box.screenY + yAdjust);
+    } else {
+      panel.openPopup(anchor, "start_before", 0, yOffset, false, false);
+    }
+    this.yOffset = yOffset;
   }
 }
 
