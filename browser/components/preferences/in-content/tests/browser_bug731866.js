@@ -27,17 +27,6 @@ function runTest(win) {
   }
 
   
-  win.gotoPref("paneTabs");
-  for (let element of elements) {
-    let attributeValue = element.getAttribute("data-category");
-    if (attributeValue == "paneTabs") {
-      is_element_visible(element, "Tab elements should be visible");
-    } else {
-      is_element_hidden(element, "Non-Tab elements should be hidden");
-    }
-  }
-
-  
   win.gotoPref("paneContent");
   for (let element of elements) {
     let attributeValue = element.getAttribute("data-category");
