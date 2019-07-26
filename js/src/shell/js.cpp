@@ -3501,14 +3501,15 @@ Parent(JSContext *cx, unsigned argc, jsval *vp)
     }
 
     Rooted<JSObject*> parent(cx, JS_GetParent(&v.toObject()));
-    args.rval().setObjectOrNull(parent);
 
     
     if (parent) {
-        if (js::ObjectOp op = parent->getClass()->ext.outerObject)
-            args.rval().setObjectOrNull(op(cx, parent));
+        parent = GetOuterObject(cx, parent);
+        if (!parent)
+            return false;
     }
 
+    args.rval().setObjectOrNull(parent);
     return true;
 }
 
