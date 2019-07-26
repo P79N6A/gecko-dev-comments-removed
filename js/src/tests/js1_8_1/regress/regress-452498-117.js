@@ -36,7 +36,11 @@ function test()
 
 
 
-  (function(){ var x; eval("var x; x = null"); })();
+  (function(){ var x; eval("var x; x = null"); })()
+
+
+
+    function this ({x}) { function x(){} }
 
 
 
