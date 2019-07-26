@@ -141,7 +141,7 @@ GetJSValFromKeyPathString(JSContext* aCx,
         
         
         if (aOptions == DoNotCreateProperties) {
-          return NS_OK;
+          return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
         }
 
         targetObject = obj;
