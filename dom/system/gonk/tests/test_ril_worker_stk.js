@@ -771,7 +771,6 @@ add_test(function test_stk_proactive_command_open_channel() {
   let pduHelper = worker.GsmPDUHelper;
   let berHelper = worker.BerTlvHelper;
   let stkHelper = worker.StkProactiveCmdHelper;
-  let cmdFactory = worker.StkCommandParamsFactory;
 
   
   let open_channel = [
@@ -779,7 +778,7 @@ add_test(function test_stk_proactive_command_open_channel() {
     0x0F,
     0x81, 0x03, 0x01, 0x16, 0x00,
     0x82, 0x02, 0x81, 0x82,
-    0x85, 0x04, 0x54, 0x65, 0x78, 0x74 
+    0x85, 0x04, 0x4F, 0x70, 0x65, 0x6E 
   ];
 
   for (let i = 0; i < open_channel.length; i++) {
@@ -794,7 +793,76 @@ add_test(function test_stk_proactive_command_open_channel() {
   do_check_eq(tlv.value.commandQualifier, 0x00);
 
   tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
-  do_check_eq(tlv.value.identifier, "Text");
+  do_check_eq(tlv.value.identifier, "Open");
+
+  
+  let close_channel = [
+    0xD0,
+    0x10,
+    0x81, 0x03, 0x01, 0x17, 0x00,
+    0x82, 0x02, 0x81, 0x82,
+    0x85, 0x05, 0x43, 0x6C, 0x6F, 0x73, 0x65 
+  ];
+
+  for (let i = 0; i < close_channel.length; i++) {
+    pduHelper.writeHexOctet(close_channel[i]);
+  }
+
+  berTlv = berHelper.decode(close_channel.length);
+  ctlvs = berTlv.value;
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_COMMAND_DETAILS, ctlvs);
+  do_check_eq(tlv.value.commandNumber, 0x01);
+  do_check_eq(tlv.value.typeOfCommand, STK_CMD_CLOSE_CHANNEL);
+  do_check_eq(tlv.value.commandQualifier, 0x00);
+
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
+  do_check_eq(tlv.value.identifier, "Close");
+
+  
+  let receive_data = [
+    0XD0,
+    0X12,
+    0x81, 0x03, 0x01, 0x18, 0x00,
+    0x82, 0x02, 0x81, 0x82,
+    0x85, 0x07, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65 
+  ];
+
+  for (let i = 0; i < receive_data.length; i++) {
+    pduHelper.writeHexOctet(receive_data[i]);
+  }
+
+  berTlv = berHelper.decode(receive_data.length);
+  ctlvs = berTlv.value;
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_COMMAND_DETAILS, ctlvs);
+  do_check_eq(tlv.value.commandNumber, 0x01);
+  do_check_eq(tlv.value.typeOfCommand, STK_CMD_RECEIVE_DATA);
+  do_check_eq(tlv.value.commandQualifier, 0x00);
+
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
+  do_check_eq(tlv.value.identifier, "Receive");
+
+  
+  let send_data = [
+    0xD0,
+    0x0F,
+    0x81, 0x03, 0x01, 0x19, 0x00,
+    0x82, 0x02, 0x81, 0x82,
+    0x85, 0x04, 0x53, 0x65, 0x6E, 0x64 
+  ];
+
+  for (let i = 0; i < send_data.length; i++) {
+    pduHelper.writeHexOctet(send_data[i]);
+  }
+
+  berTlv = berHelper.decode(send_data.length);
+  ctlvs = berTlv.value;
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_COMMAND_DETAILS, ctlvs);
+  do_check_eq(tlv.value.commandNumber, 0x01);
+  do_check_eq(tlv.value.typeOfCommand, STK_CMD_SEND_DATA);
+  do_check_eq(tlv.value.commandQualifier, 0x00);
+
+  tlv = stkHelper.searchForTag(COMPREHENSIONTLV_TAG_ALPHA_ID, ctlvs);
+  do_check_eq(tlv.value.identifier, "Send");
 
   run_next_test();
 });
