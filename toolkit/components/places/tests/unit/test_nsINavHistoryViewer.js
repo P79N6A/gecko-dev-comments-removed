@@ -63,6 +63,7 @@ var resultObserver = {
   },
   inBatchMode: false,
   batching: function(aToggleMode) {
+    do_check_neq(this.inBatchMode, aToggleMode);
     this.inBatchMode = aToggleMode;
   },
   result: null,
@@ -80,35 +81,13 @@ var resultObserver = {
   }
 };
 
-function promiseBatch(aResult) {
-  let query = PlacesUtils.asQuery(aResult.root).getQueries()[0];
-  return Task.spawn(function() {
-    let deferred = Promise.defer();
-    aResult.addObserver({
-      batching: function (aStatus) {
-        if (!aStatus) {
-          deferred.resolve();
-          aResult.removeObserver(this);
-        }
-      }
-    }, false);
-    for (let i = 0; i < 10; i++) {
-      if (query.onlyBookmarked)
-        bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, testURI, bmsvc.DEFAULT_INDEX, "foo");
-      else
-        yield promiseAddVisits(testURI);
-    }
-    yield deferred.promise;
-  });
-}
-
 var testURI = uri("http://mozilla.com");
 
 function run_test() {
   run_next_test();
 }
 
-add_task(function check_history_query() {
+add_test(function check_history_query() {
   var options = histsvc.getNewQueryOptions();
   options.sortingMode = options.SORT_BY_DATE_DESCENDING;
   options.resultType = options.RESULTS_AS_VISIT;
@@ -122,51 +101,65 @@ add_task(function check_history_query() {
   do_check_neq(resultObserver.openedContainer, null);
 
   
-  yield promiseAddVisits(testURI);
-  do_check_eq(testURI.spec, resultObserver.insertedNode.uri);
-
   
-  
-  do_check_eq(root.uri, resultObserver.nodeChangedByHistoryDetails.uri);
+  promiseAddVisits(testURI).then(function() {
+    do_check_eq(testURI.spec, resultObserver.insertedNode.uri);
 
-  
-  yield promiseAddVisits({ uri: testURI, title: "baz" });
+    
+    
+    do_check_eq(root.uri, resultObserver.nodeChangedByHistoryDetails.uri);
 
-  do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
+    
+    promiseAddVisits({ uri: testURI, title: "baz" }).then(function () {
+      do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
 
-  
-  var removedURI = uri("http://google.com");
-  yield promiseAddVisits(removedURI);
-  bhist.removePage(removedURI);
-  do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
+      
+      var removedURI = uri("http://google.com");
+      promiseAddVisits(removedURI).then(function() {
+        bhist.removePage(removedURI);
+        do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
 
-  
-  resultObserver.invalidatedContainer = null;
-  result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
-  do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
-  do_check_eq(resultObserver.invalidatedContainer, result.root);
+        
+        bhist.removePagesFromHost("mozilla.com", false);
+        do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
-  
-  bhist.removeAllPages();
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+        
+        resultObserver.invalidatedContainer = null;
+        result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
+        do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
+        do_check_eq(resultObserver.invalidatedContainer, result.root);
 
-  
-  do_check_false(resultObserver.inBatchMode);
-  yield promiseBatch(result);
+        
+        bhist.removeAllPages();
+        do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
-  
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+        
+        do_check_false(resultObserver.inBatchMode);
+        histsvc.runInBatchMode({
+          runBatched: function (aUserData) {
+            do_check_true(resultObserver.inBatchMode);
+          }
+        }, null);
+        do_check_false(resultObserver.inBatchMode);
+        bmsvc.runInBatchMode({
+          runBatched: function (aUserData) {
+            do_check_true(resultObserver.inBatchMode);
+          }
+        }, null);
+        do_check_false(resultObserver.inBatchMode);
 
-  
-  root.containerOpen = false;
-  do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
-  result.removeObserver(resultObserver);
-  resultObserver.reset();
-
-  yield promiseAsyncUpdates();
+        
+        root.containerOpen = false;
+        do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
+        result.removeObserver(resultObserver);
+        resultObserver.reset();
+        promiseAsyncUpdates().then(run_next_test);
+      });
+    });
+  });
 });
 
-add_task(function check_bookmarks_query() {
+add_test(function check_bookmarks_query() {
   var options = histsvc.getNewQueryOptions();
   var query = histsvc.getNewQuery();
   query.setFolders([bmsvc.bookmarksMenuFolder], 1);
@@ -202,6 +195,8 @@ add_task(function check_bookmarks_query() {
   do_check_eq(testBookmark2, resultObserver.removedNode.itemId);
 
   
+
+  
   resultObserver.invalidatedContainer = null;
   result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
   do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
@@ -209,21 +204,28 @@ add_task(function check_bookmarks_query() {
 
   
   do_check_false(resultObserver.inBatchMode);
-  yield promiseBatch(result);
-
-  
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+  histsvc.runInBatchMode({
+    runBatched: function (aUserData) {
+      do_check_true(resultObserver.inBatchMode);
+    }
+  }, null);
+  do_check_false(resultObserver.inBatchMode);
+  bmsvc.runInBatchMode({
+    runBatched: function (aUserData) {
+      do_check_true(resultObserver.inBatchMode);
+    }
+  }, null);
+  do_check_false(resultObserver.inBatchMode);
 
   
   root.containerOpen = false;
   do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
   result.removeObserver(resultObserver);
   resultObserver.reset();
-
-  yield promiseAsyncUpdates();
+  promiseAsyncUpdates().then(run_next_test);
 });
 
-add_task(function check_mixed_query() {
+add_test(function check_mixed_query() {
   var options = histsvc.getNewQueryOptions();
   var query = histsvc.getNewQuery();
   query.onlyBookmarked = true;
@@ -237,16 +239,23 @@ add_task(function check_mixed_query() {
 
   
   do_check_false(resultObserver.inBatchMode);
-  yield promiseBatch(result);
-
-  
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+  histsvc.runInBatchMode({
+    runBatched: function (aUserData) {
+      do_check_true(resultObserver.inBatchMode);
+    }
+  }, null);
+  do_check_false(resultObserver.inBatchMode);
+  bmsvc.runInBatchMode({
+    runBatched: function (aUserData) {
+      do_check_true(resultObserver.inBatchMode);
+    }
+  }, null);
+  do_check_false(resultObserver.inBatchMode);
 
   
   root.containerOpen = false;
   do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
   result.removeObserver(resultObserver);
   resultObserver.reset();
-
-  yield promiseAsyncUpdates();
+  promiseAsyncUpdates().then(run_next_test);
 });
