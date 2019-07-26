@@ -1007,7 +1007,7 @@ TabParent::SendCompositionEvent(nsCompositionEvent& event)
 
 
 bool
-TabParent::SendTextEvent(nsTextEvent& event)
+TabParent::SendTextEvent(WidgetTextEvent& event)
 {
   if (mIsDestroyed) {
     return false;
