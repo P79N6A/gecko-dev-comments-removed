@@ -16,6 +16,29 @@ let Promise = Cu.import("resource://gre/modules/Promise.jsm").Promise;
 
 
 
+
+
+function pushPrefEnv(aPrefs) {
+  let deferred = Promise.defer();
+
+  SpecialPowers.pushPrefEnv(aPrefs, function() {
+    deferred.resolve();
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 let manager;
 function ensureMobileMessage() {
   let deferred = Promise.defer();
@@ -57,13 +80,21 @@ function ensureMobileMessage() {
 
 
 
-function waitForManagerEvent(aEventName) {
+
+
+
+function waitForManagerEvent(aEventName, aMatchFunc) {
   let deferred = Promise.defer();
 
   manager.addEventListener(aEventName, function onevent(aEvent) {
-    manager.removeEventListener(aEventName, onevent);
+    if (aMatchFunc && !aMatchFunc(aEvent)) {
+      ok(true, "MobileMessageManager event '" + aEventName + "' got" +
+               " but is not interested.");
+      return;
+    }
 
     ok(true, "MobileMessageManager event '" + aEventName + "' got.");
+    manager.removeEventListener(aEventName, onevent);
     deferred.resolve(aEvent);
   });
 
@@ -182,6 +213,24 @@ function sendMmsWithFailure(aMmsParameters, aSendParameters) {
   return Promise.all(promises)
     .then((aResults) => { return { message: aResults[0],
                                    error: aResults[1] }; });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getMessage(aId) {
+  let request = manager.getMessage(aId);
+  return wrapDomRequestAsPromise(request)
+    .then((aEvent) => { return aEvent.target.result; });
 }
 
 
@@ -398,9 +447,34 @@ function runEmulatorCmdSafe(aCommand) {
 
 
 
+
+
+
+
+
 function sendTextSmsToEmulator(aFrom, aText) {
   let command = "sms send " + aFrom + " " + aText;
   return runEmulatorCmdSafe(command);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function sendTextSmsToEmulatorAndWait(aFrom, aText) {
+  let promises = [];
+  promises.push(waitForManagerEvent("received"));
+  promises.push(sendTextSmsToEmulator(aFrom, aText));
+  return Promise.all(promises).then(aResults => aResults[0].message);
 }
 
 
@@ -467,13 +541,32 @@ function messagesToIds(aMessages) {
 
 
 
+function compareSmsMessage(aFrom, aTo) {
+  const FIELDS = ["id", "threadId", "iccId", "body", "delivery",
+                  "deliveryStatus", "read", "receiver", "sender",
+                  "messageClass", "timestamp", "deliveryTimestamp",
+                  "sentTimestamp"];
+
+  for (let field of FIELDS) {
+    is(aFrom[field], aTo[field], "message." + field);
+  }
+}
+
+
+
+
 function cleanUp() {
+  ok(true, ":: CLEANING UP ::");
+
   waitFor(function() {
     SpecialPowers.flushPermissions(function() {
-      
       ok(true, "permissions flushed");
 
-      finish();
+      SpecialPowers.flushPrefEnv(function() {
+        ok(true, "preferences flushed");
+
+        finish();
+      })
     });
   }, function() {
     return pendingEmulatorCmdCount === 0;
