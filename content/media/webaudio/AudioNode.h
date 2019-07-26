@@ -16,6 +16,7 @@
 #include "MediaStreamGraph.h"
 #include "WebAudioUtils.h"
 #include "mozilla/MemoryReporting.h"
+#include "nsWeakReference.h"
 
 namespace mozilla {
 
@@ -82,7 +83,8 @@ private:
 
 
 
-class AudioNode : public DOMEventTargetHelper
+class AudioNode : public DOMEventTargetHelper,
+                  public nsSupportsWeakReference
 {
 protected:
   
@@ -132,6 +134,8 @@ public:
   
   virtual uint16_t NumberOfInputs() const { return 1; }
   virtual uint16_t NumberOfOutputs() const { return 1; }
+
+  uint32_t Id() const { return mId; }
 
   uint32_t ChannelCount() const { return mChannelCount; }
   virtual void SetChannelCount(uint32_t aChannelCount, ErrorResult& aRv)
@@ -266,6 +270,12 @@ private:
   uint32_t mChannelCount;
   ChannelCountMode mChannelCountMode;
   ChannelInterpretation mChannelInterpretation;
+  const uint32_t mId;
+#ifdef DEBUG
+  
+  
+  bool mDemiseNotified;
+#endif
 };
 
 }
