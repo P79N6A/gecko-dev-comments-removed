@@ -31,7 +31,7 @@ addPageBook(4, 0, 0);
 addPageBook(5, 0, 0); 
 
 
-markTyped([2,3,5]);
+markTyped([2,3,5], 0);
 
 removePages([4,5]);
 

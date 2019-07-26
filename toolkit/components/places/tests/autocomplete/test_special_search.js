@@ -52,7 +52,8 @@ addPageBook(11, 1, 1, [1]);
 
 removePages([4,6,7,8,9,11]);
 
-markTyped([0,3,10]);
+markTyped([0,10], 0);
+markTyped([3], 1);
 
 
 

@@ -161,6 +161,9 @@ let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 let gPages = [];
 
 
+let gNextTestSetupTasks = [];
+
+
 
 
 
@@ -191,6 +194,11 @@ let gPages = [];
 
 function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
 {
+  gNextTestSetupTasks.push([task_addPageBook, arguments]);
+}
+
+function task_addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit)
+{
   
   gPages[aURI] = [aURI, aBook != undefined ? aBook : aTitle, aTags];
 
@@ -203,11 +211,12 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType, aNoVisit
 
   
   if (!aNoVisit) {
-    let tt = aTransitionType || TRANSITION_LINK;
-    let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
-                     tt == TRANSITION_REDIRECT_TEMPORARY;
-    histsvc.addVisit(uri, gDate, null, tt, isRedirect, 0);
-    setPageTitle(uri, title);
+    yield promiseAddVisits({
+      uri: uri,
+      transition: aTransitionType || TRANSITION_LINK,
+      visitDate: gDate,
+      title: title
+    });
     out.push("\nwith visit");
   }
 
@@ -254,24 +263,49 @@ function run_test() {
   if (func)
     func();
 
-  
-  
-  
-  promiseAsyncUpdates().then(function () ensure_results(search, expected));
+  Task.spawn(function () {
+    
+    for (let [, [fn, args]] in Iterator(gNextTestSetupTasks)) {
+      yield fn.apply(this, args);
+    };
+
+    
+    gNextTestSetupTasks = [];
+
+    
+    
+    
+    yield promiseAsyncUpdates();
+
+  }).then(function () ensure_results(search, expected),
+          do_report_unexpected_exception);
 }
 
 
 function removePages(aURIs)
+{
+  gNextTestSetupTasks.push([do_removePages, arguments]);
+}
+
+function do_removePages(aURIs)
 {
   for each (let uri in aURIs)
     histsvc.removePage(toURI(kURIs[uri]));
 }
 
 
-function markTyped(aURIs)
+function markTyped(aURIs, aTitle)
 {
-  for each (let uri in aURIs)
-    histsvc.addVisit(toURI(kURIs[uri]), Date.now() * 1000, null,
-      histsvc.TRANSITION_TYPED, false, 0);
+  gNextTestSetupTasks.push([task_markTyped, arguments]);
 }
 
+function task_markTyped(aURIs, aTitle)
+{
+  for (let uri of aURIs) {
+    yield promiseAddVisits({
+      uri: toURI(kURIs[uri]),
+      transition: TRANSITION_TYPED,
+      title: kTitles[aTitle]
+    });
+  }
+}
