@@ -2030,7 +2030,18 @@ static bool SelectorMatches(Element* aElement,
         break;
 
       case nsCSSPseudoClasses::ePseudoClass_scope:
-        if (aTreeMatchContext.HasSpecifiedScope()) {
+        if (aTreeMatchContext.mForScopedStyle) {
+          if (aTreeMatchContext.mCurrentStyleScope) {
+            
+            
+            
+            
+            
+            
+            
+            return false;
+          }
+        } else if (aTreeMatchContext.HasSpecifiedScope()) {
           if (!aTreeMatchContext.IsScopeElement(aElement)) {
             return false;
           }
