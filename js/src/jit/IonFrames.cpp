@@ -364,6 +364,11 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
           case JSTRY_CATCH:
             if (cx->isExceptionPending()) {
                 
+                
+                
+                script->resetUseCount();
+
+                
                 jsbytecode *catchPC = script->main() + tn->start + tn->length;
 
                 ExceptionBailoutInfo excInfo;
@@ -477,6 +482,11 @@ HandleExceptionBaseline(JSContext *cx, const IonFrameIterator &frame, ResumeFrom
         switch (tn->kind) {
           case JSTRY_CATCH:
             if (cx->isExceptionPending()) {
+                
+                
+                
+                script->resetUseCount();
+
                 
                 rfe->kind = ResumeFromException::RESUME_CATCH;
                 jsbytecode *catchPC = script->main() + tn->start + tn->length;

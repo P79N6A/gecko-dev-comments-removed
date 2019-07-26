@@ -192,10 +192,6 @@ struct IonScript
 
     
     
-    uint32_t numExceptionBailouts_;
-
-    
-    
     
     bool hasUncompiledCallTarget_;
 
@@ -411,12 +407,6 @@ struct IonScript
     }
     bool bailoutExpected() const {
         return numBailouts_ > 0;
-    }
-    void incNumExceptionBailouts() {
-        numExceptionBailouts_++;
-    }
-    uint32_t numExceptionBailouts() const {
-        return numExceptionBailouts_;
     }
     void setHasUncompiledCallTarget() {
         hasUncompiledCallTarget_ = true;
