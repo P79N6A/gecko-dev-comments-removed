@@ -594,7 +594,6 @@ pref("javascript.options.mem.gc_decommit_threshold_mb", 1);
 
 
 pref("ui.showHideScrollbars", 1);
-pref("ui.useOverlayScrollbars", 1);
 
 
 
