@@ -83,7 +83,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
 
     
     RootedObject wrapperProto(cx);
-    if (!JS_GetPrototype(cx, wrapper, wrapperProto.address()))
+    if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
       return false;
     if (desc->obj || !wrapperProto)
         return true;
@@ -107,7 +107,7 @@ ChromeObjectWrapper::has(JSContext *cx, HandleObject wrapper,
 
     
     RootedObject wrapperProto(cx);
-    if (!JS_GetPrototype(cx, wrapper, wrapperProto.address()))
+    if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
         return false;
     if (*bp || !wrapperProto)
         return true;
@@ -145,7 +145,7 @@ ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
 
     
     RootedObject wrapperProto(cx);
-    if (!JS_GetPrototype(cx, wrapper, wrapperProto.address()))
+    if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
         return false;
     if (!wrapperProto)
         return true;
