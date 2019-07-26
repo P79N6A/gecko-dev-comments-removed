@@ -62,6 +62,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
+                                  "resource://gre/modules/PlacesBackups.jsm");
+
+
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
@@ -931,7 +935,7 @@ BrowserGlue.prototype = {
       
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        var bookmarksBackupFile = PlacesUtils.backups.getMostRecent("json");
+        var bookmarksBackupFile = PlacesBackups.getMostRecent("json");
         if (bookmarksBackupFile) {
           
           yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
@@ -1102,12 +1106,12 @@ BrowserGlue.prototype = {
 
 
   _shouldBackupBookmarks: function BG__shouldBackupBookmarks() {
-    let lastBackupFile = PlacesUtils.backups.getMostRecent();
+    let lastBackupFile = PlacesBackups.getMostRecent();
 
     
     
     return (!lastBackupFile ||
-            new Date() - PlacesUtils.backups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
+            new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
   },
 
   
@@ -1123,7 +1127,7 @@ BrowserGlue.prototype = {
       }
       catch(ex) {  }
 
-      yield PlacesUtils.backups.create(maxBackups); 
+      yield PlacesBackups.create(maxBackups); 
     });
   },
 
