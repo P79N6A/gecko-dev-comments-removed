@@ -13,6 +13,8 @@ XPCOMUtils.defineLazyModuleGetter(this,
   "LoginManagerContent", "resource://gre/modules/LoginManagerContent.jsm");
 XPCOMUtils.defineLazyModuleGetter(this,
   "InsecurePasswordUtils", "resource://gre/modules/InsecurePasswordUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
+  "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 
@@ -54,6 +56,126 @@ if (Services.prefs.getBoolPref("browser.tabs.remote")) {
     LoginManagerContent.onUsernameInput(event);
   });
 }
+
+let AboutHomeListener = {
+  init: function(chromeGlobal) {
+    addMessageListener("AboutHome:Update", this);
+
+    let self = this;
+    chromeGlobal.addEventListener('AboutHomeLoad', function(e) { self.onPageLoad(); }, false, true);
+  },
+
+  receiveMessage: function(aMessage) {
+    switch (aMessage.name) {
+    case "AboutHome:Update":
+      this.onUpdate(aMessage.data);
+      break;
+    }
+  },
+
+  onUpdate: function(aData) {
+    let doc = content.document;
+    if (doc.documentURI.toLowerCase() != "about:home")
+      return;
+
+    if (aData.showRestoreLastSession && !PrivateBrowsingUtils.isWindowPrivate(content))
+      doc.getElementById("launcher").setAttribute("session", "true");
+
+    
+    let docElt = doc.documentElement;
+    
+    
+    docElt.setAttribute("snippetsURL", aData.snippetsURL);
+    if (aData.showKnowYourRights)
+      docElt.setAttribute("showKnowYourRights", "true");
+    docElt.setAttribute("snippetsVersion", aData.snippetsVersion);
+
+    let engine = aData.defaultSearchEngine;
+    docElt.setAttribute("searchEngineName", engine.name);
+    docElt.setAttribute("searchEnginePostData", engine.postDataString || "");
+    
+    
+    docElt.setAttribute("searchEngineURL", engine.searchURL);
+  },
+
+  onPageLoad: function() {
+    let doc = content.document;
+    if (doc.documentURI.toLowerCase() != "about:home" ||
+        doc.documentElement.hasAttribute("hasBrowserHandlers")) {
+      return;
+    }
+
+    doc.documentElement.setAttribute("hasBrowserHandlers", "true");
+    addEventListener("click", this.onClick, true);
+    addEventListener("pagehide", function onPageHide(event) {
+      if (event.target.defaultView.frameElement)
+        return;
+      removeEventListener("click", this.onClick, true);
+      removeEventListener("pagehide", onPageHide, true);
+      if (event.target.documentElement)
+        event.target.documentElement.removeAttribute("hasBrowserHandlers");
+    }, true);
+
+    
+    
+    if (Services.prefs.getPrefType("browser.aboutHome.apps") == Services.prefs.PREF_BOOL &&
+        Services.prefs.getBoolPref("browser.aboutHome.apps"))
+      doc.getElementById("apps").removeAttribute("hidden");
+
+    sendAsyncMessage("AboutHome:RequestUpdate");
+
+    doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
+      sendAsyncMessage("AboutHome:Search", { engineName: e.detail });
+    }, true, true);
+  },
+
+  onClick: function(aEvent) {
+    if (!aEvent.isTrusted || 
+        aEvent.button == 2 || aEvent.target.localName != "button") {
+      return;
+    }
+
+    let originalTarget = aEvent.originalTarget;
+    let ownerDoc = originalTarget.ownerDocument;
+    let elmId = originalTarget.getAttribute("id");
+
+    switch (elmId) {
+      case "restorePreviousSession":
+        sendAsyncMessage("AboutHome:RestorePreviousSession");
+        ownerDoc.getElementById("launcher").removeAttribute("session");
+        break;
+
+      case "downloads":
+        sendAsyncMessage("AboutHome:Downloads");
+        break;
+
+      case "bookmarks":
+        sendAsyncMessage("AboutHome:Bookmarks");
+        break;
+
+      case "history":
+        sendAsyncMessage("AboutHome:History");
+        break;
+
+      case "apps":
+        sendAsyncMessage("AboutHome:Apps");
+        break;
+
+      case "addons":
+        sendAsyncMessage("AboutHome:Addons");
+        break;
+
+      case "sync":
+        sendAsyncMessage("AboutHome:Sync");
+        break;
+
+      case "settings":
+        sendAsyncMessage("AboutHome:Settings");
+        break;
+    }
+  },
+};
+AboutHomeListener.init(this);
 
 
 var global = this;

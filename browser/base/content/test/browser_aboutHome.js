@@ -7,7 +7,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AboutHomeUtils",
-  "resource:///modules/AboutHomeUtils.jsm");
+  "resource:///modules/AboutHome.jsm");
 
 let gRightsVersion = Services.prefs.getIntPref("browser.rights.version");
 
@@ -106,14 +106,17 @@ let gTests = [
     let doc = gBrowser.contentDocument;
     let engineName = doc.documentElement.getAttribute("searchEngineName");
 
-    
-    
     doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
       is(e.detail, engineName, "Detail is search engine name");
 
-      getNumberOfSearches(engineName).then(num => {
-        is(num, numSearchesBefore + 1, "One more search recorded.");
-        deferred.resolve();
+      
+      
+      
+      executeSoon(function () {
+        getNumberOfSearches(engineName).then(num => {
+          is(num, numSearchesBefore + 1, "One more search recorded.");
+          deferred.resolve();
+        });
       });
     }, true, true);
 
@@ -275,19 +278,35 @@ let gTests = [
       if (engine.name != "POST Search")
         return;
 
+      
+      let needle = "Search for something awesome.";
+      let document = gBrowser.selectedTab.linkedBrowser.contentDocument;
+      let searchText = document.getElementById("searchText");
+
+      
+      
+      let mutationObserver = new MutationObserver(function (mutations) {
+        for (let mutation of mutations) {
+          if (mutation.attributeName == "searchEngineURL") {
+            searchText.value = needle;
+            searchText.focus();
+            EventUtils.synthesizeKey("VK_RETURN", {});
+          }
+        }
+      });
+      mutationObserver.observe(document.documentElement, { attributes: true });
+
+      
       Services.search.defaultEngine = engine;
 
       registerCleanupFunction(function() {
+        mutationObserver.disconnect();
         Services.search.removeEngine(engine);
         Services.search.defaultEngine = currEngine;
       });
 
 
       
-      let needle = "Search for something awesome.";
-      let document = gBrowser.selectedTab.linkedBrowser.contentDocument;
-      let searchText = document.getElementById("searchText");
-
       waitForLoad(function() {
         let loadedText = gBrowser.contentDocument.body.textContent;
         ok(loadedText, "search page loaded");
@@ -295,10 +314,6 @@ let gTests = [
            "Search text should arrive correctly");
         deferred.resolve();
       });
-
-      searchText.value = needle;
-      searchText.focus();
-      EventUtils.synthesizeKey("VK_RETURN", {});
     };
     Services.obs.addObserver(searchObserver, "browser-search-engine-modified", false);
     registerCleanupFunction(function () {
