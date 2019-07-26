@@ -86,6 +86,7 @@ abstract class Axis {
 
     static final float MS_PER_FRAME = 1000.0f / 60.0f;
     private static final float FRAMERATE_MULTIPLIER = (1000f/60f) / MS_PER_FRAME;
+    private static final int FLING_VELOCITY_POINTS = 8;
 
     
     
@@ -131,6 +132,8 @@ abstract class Axis {
     private float mTouchPos;                
     private float mLastTouchPos;            
     private float mVelocity;                
+    private float[] mRecentVelocities;      
+    private int mRecentVelocityCount;       
     private boolean mScrollingDisabled;     
     private boolean mDisableSnap;           
     private float mDisplacement;
@@ -145,6 +148,7 @@ abstract class Axis {
     Axis(SubdocumentScrollHelper subscroller) {
         mSubscroller = subscroller;
         mOverscrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS;
+        mRecentVelocities = new float[FLING_VELOCITY_POINTS];
     }
 
     public void setOverScrollMode(int overscrollMode) {
@@ -167,6 +171,7 @@ abstract class Axis {
         mVelocity = 0.0f;
         mScrollingDisabled = false;
         mFirstTouchPos = mTouchPos = mLastTouchPos = pos;
+        mRecentVelocityCount = 0;
     }
 
     float panDistance(float currentPos) {
@@ -183,6 +188,9 @@ abstract class Axis {
 
     void updateWithTouchAt(float pos, float timeDelta) {
         float newVelocity = (mTouchPos - pos) / timeDelta * MS_PER_FRAME;
+
+        mRecentVelocities[mRecentVelocityCount % FLING_VELOCITY_POINTS] = newVelocity;
+        mRecentVelocityCount++;
 
         
         
@@ -273,12 +281,25 @@ abstract class Axis {
         mFlingState = FlingStates.PANNING;
     }
 
+    private float calculateFlingVelocity() {
+        int usablePoints = Math.min(mRecentVelocityCount, FLING_VELOCITY_POINTS);
+        if (usablePoints <= 1) {
+            return mVelocity;
+        }
+        float average = 0;
+        for (int i = 0; i < usablePoints; i++) {
+            average += mRecentVelocities[i];
+        }
+        return average / usablePoints;
+    }
+
     void startFling(boolean stopped) {
         mDisableSnap = mSubscroller.scrolling();
 
         if (stopped) {
             mFlingState = FlingStates.STOPPED;
         } else {
+            mVelocity = calculateFlingVelocity();
             mFlingState = FlingStates.FLINGING;
         }
     }
