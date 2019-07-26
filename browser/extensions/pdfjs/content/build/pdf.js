@@ -16,8 +16,8 @@
 
 
 var PDFJS = {};
-PDFJS.version = '0.7.390';
-PDFJS.build = '921f321';
+PDFJS.version = '0.7.423';
+PDFJS.build = 'aa22bef';
 
 (function pdfjsWrapper() {
   
@@ -957,13 +957,19 @@ var Util = PDFJS.Util = (function UtilClosure() {
 })();
 
 var PageViewport = PDFJS.PageViewport = (function PageViewportClosure() {
-  function PageViewport(viewBox, scale, rotate, offsetX, offsetY) {
+  function PageViewport(viewBox, scale, rotation, offsetX, offsetY) {
+    this.viewBox = viewBox;
+    this.scale = scale;
+    this.rotation = rotation;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+
     
     
     var centerX = (viewBox[2] + viewBox[0]) / 2;
     var centerY = (viewBox[3] + viewBox[1]) / 2;
     var rotateA, rotateB, rotateC, rotateD;
-    switch (rotate % 360) {
+    switch (rotation % 360) {
       case -180:
       case 180:
         rotateA = -1; rotateB = 0; rotateC = 0; rotateD = 1;
@@ -1007,13 +1013,18 @@ var PageViewport = PDFJS.PageViewport = (function PageViewportClosure() {
       offsetCanvasY - rotateB * scale * centerX - rotateD * scale * centerY
     ];
 
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
     this.width = width;
     this.height = height;
     this.fontScale = scale;
   }
   PageViewport.prototype = {
+    clone: function PageViewPort_clone(args) {
+      args = args || {};
+      var scale = 'scale' in args ? args.scale : this.scale;
+      var rotation = 'rotation' in args ? args.rotation : this.rotation;
+      return new PageViewport(this.viewBox.slice(), scale, rotation,
+                              this.offsetX, this.offsetY);
+    },
     convertToViewportPoint: function PageViewport_convertToViewportPoint(x, y) {
       return Util.applyTransform([x, y], this.transform);
     },
@@ -1725,11 +1736,11 @@ var PDFPageProxy = (function PDFPageProxyClosure() {
       var stats = this.stats;
       stats.time('Rendering');
 
-      gfx.beginDrawing(viewport);
+      var operatorList = this.operatorList;
+      gfx.beginDrawing(viewport, operatorList.transparency);
 
       var startIdx = 0;
-      var length = this.operatorList.fnArray.length;
-      var operatorList = this.operatorList;
+      var length = operatorList.fnArray.length;
       var stepper = null;
       if (PDFJS.pdfBug && 'StepperManager' in globalScope &&
           globalScope['StepperManager'].enabled) {
@@ -2467,7 +2478,24 @@ var CanvasGraphics = (function CanvasGraphicsClosure() {
       'shadingFill': true
     },
 
-    beginDrawing: function CanvasGraphics_beginDrawing(viewport) {
+    beginDrawing: function CanvasGraphics_beginDrawing(viewport, transparency) {
+      
+      
+      
+      
+      
+      var width = this.ctx.canvas.width;
+      var height = this.ctx.canvas.height;
+      if (transparency) {
+        this.ctx.clearRect(0, 0, width, height);
+      } else {
+        this.ctx.mozOpaque = true;
+        this.ctx.save();
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        this.ctx.fillRect(0, 0, width, height);
+        this.ctx.restore();
+      }
+
       var transform = viewport.transform;
       this.ctx.save();
       this.ctx.transform.apply(this.ctx, transform);
@@ -12630,8 +12658,35 @@ var ColorSpace = (function ColorSpaceClosure() {
       if (this.isPassthrough(bits)) {
         return src.subarray(srcOffset);
       }
-      var destLength = this.getOutputLength(count * this.numComps);
-      var dest = new Uint8Array(destLength);
+      var dest = new Uint8Array(count * 3);
+      var numComponentColors = 1 << bits;
+      
+      
+      
+      
+      
+      if (this.numComps === 1 && count > numComponentColors &&
+          this.name !== 'DeviceGray' && this.name !== 'DeviceRGB') {
+        
+        
+        
+        var allColors = bits <= 8 ? new Uint8Array(numComponentColors) :
+                                    new Uint16Array(numComponentColors);
+        for (var i = 0; i < numComponentColors; i++) {
+          allColors[i] = i;
+        }
+        var colorMap = new Uint8Array(numComponentColors * 3);
+        this.getRgbBuffer(allColors, 0, numComponentColors, colorMap, 0, bits);
+
+        var destOffset = 0;
+        for (var i = 0; i < count; ++i) {
+          var key = src[srcOffset++] * 3;
+          dest[destOffset++] = colorMap[key];
+          dest[destOffset++] = colorMap[key + 1];
+          dest[destOffset++] = colorMap[key + 2];
+        }
+        return dest;
+      }
       this.getRgbBuffer(src, srcOffset, count, dest, 0, bits);
       return dest;
     }
@@ -13034,7 +13089,7 @@ var DeviceRgbCS = (function DeviceRgbCSClosure() {
       var scale = 255 / ((1 << bits) - 1);
       var j = srcOffset, q = destOffset;
       for (var i = 0; i < length; ++i) {
-        dest[q++] = (scale * input[j++]) | 0;
+        dest[q++] = (scale * src[j++]) | 0;
       }
     },
     getOutputLength: function DeviceRgbCS_getOutputLength(inputLength) {
@@ -14909,8 +14964,11 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           }, handler, xref, resources, image, inline);
       }
 
-      if (!queue)
-        queue = {};
+      if (!queue) {
+        queue = {
+          transparency: false
+        };
+      }
 
       if (!queue.argsArray) {
         queue.argsArray = [];
@@ -15080,7 +15138,6 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                     case 'FL':
                     case 'CA':
                     case 'ca':
-                    case 'BM':
                       gsStateObj.push([key, value]);
                       break;
                     case 'Font':
@@ -15089,6 +15146,12 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                         handleSetFont(null, value[0]),
                         value[1]
                       ]);
+                      break;
+                    case 'BM':
+                      if (!isName(value) || value.name !== 'Normal') {
+                        queue.transparency = true;
+                      }
+                      gsStateObj.push([key, value]);
                       break;
                     case 'SMask':
                       
@@ -18173,6 +18236,10 @@ var Font = (function FontClosure() {
         
         
         data = this.checkAndRepair(name, file, properties);
+        if (!data) {
+          
+          warn('Font is not a TrueType font');
+        }
         break;
 
       default:
@@ -19519,6 +19586,8 @@ var Font = (function FontClosure() {
             prep = table;
           else if (table.tag == 'cvt ')
             cvt = table;
+          else if (table.tag == 'CFF ')
+            return null; 
           else 
             continue;
         }
@@ -21152,6 +21221,7 @@ Type1Font.prototype = {
   getOrderedCharStrings: function Type1Font_getOrderedCharStrings(glyphs,
                                                             properties) {
     var charstrings = [];
+    var usedUnicodes = [];
     var i, length, glyphName;
     var unusedUnicode = CMAP_GLYPH_OFFSET;
     for (i = 0, length = glyphs.length; i < length; i++) {
@@ -21159,6 +21229,10 @@ Type1Font.prototype = {
       var glyphName = item.glyph;
       var unicode = glyphName in GlyphsUnicode ?
         GlyphsUnicode[glyphName] : unusedUnicode++;
+      while (usedUnicodes[unicode]) {
+        unicode = unusedUnicode++;
+      }
+      usedUnicodes[unicode] = true;
       charstrings.push({
         glyph: glyphName,
         unicode: unicode,
