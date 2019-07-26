@@ -4,6 +4,7 @@
 
 import datetime
 import mozlog
+import moznetwork
 import select
 import socket
 import time
@@ -12,7 +13,7 @@ import re
 import posixpath
 import subprocess
 import StringIO
-from devicemanager import DeviceManager, DMError, NetworkTools, _pop_last_line
+from devicemanager import DeviceManager, DMError, _pop_last_line
 import errno
 from distutils.version import StrictVersion
 
@@ -731,10 +732,6 @@ class DeviceManagerSUT(DeviceManager):
         self._runCmds([{ 'cmd': 'unzp %s %s' % (filePath, destDir)}])
 
     def _getRebootServerSocket(self, ipAddr):
-        
-        
-        
-        
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         serverSocket.settimeout(60.0)
@@ -790,8 +787,7 @@ class DeviceManagerSUT(DeviceManager):
         
         if wait:
             if not ipAddr:
-                nettools = NetworkTools()
-                ipAddr = nettools.getLanIp()
+                ipAddr = moznetwork.get_ip()
             serverSocket = self._getRebootServerSocket(ipAddr)
             
             
@@ -889,8 +885,7 @@ class DeviceManagerSUT(DeviceManager):
 
         if wait:
             if not ipAddr:
-                nettools = NetworkTools()
-                ipAddr = nettools.getLanIp()
+                ipAddr = moznetwork.get_ip()
             serverSocket = self._getRebootServerSocket(ipAddr)
             cmd += " %s %s" % serverSocket.getsockname()
 
