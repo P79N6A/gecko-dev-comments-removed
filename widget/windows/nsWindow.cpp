@@ -7426,24 +7426,6 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
   
   if (consumeRollupEvent && nativeMessage != WM_RBUTTONDOWN) {
     *aResult = MA_ACTIVATE;
-
-    
-    if (nativeMessage == WM_MOUSEACTIVATE) {
-      nsWindow* activateWindow = WinUtils::GetNSWindowPtr(aWnd);
-      if (activateWindow && activateWindow->mWindowType == eWindowType_popup &&
-          activateWindow->PopupType() == ePopupTypePanel) {
-        *aResult = popupsToRollup != UINT32_MAX ? MA_NOACTIVATEANDEAT :
-                                                  MA_NOACTIVATE;
-      }
-    }
-    return true;
-  }
-
-  
-  
-  
-  if (popupsToRollup != UINT32_MAX && nativeMessage == WM_MOUSEACTIVATE) {
-    *aResult = MA_NOACTIVATEANDEAT;
     return true;
   }
 
