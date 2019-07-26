@@ -11,6 +11,8 @@ const Cu = Components.utils;
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const LAZY_EMPTY_DELAY = 150; 
 const LAZY_EXPAND_DELAY = 50; 
+const SCROLL_PAGE_SIZE_DEFAULT = 0;
+const APPEND_PAGE_SIZE_DEFAULT = 500;
 const PAGE_SIZE_SCROLL_HEIGHT_RATIO = 100;
 const PAGE_SIZE_MAX_JUMPS = 30;
 const SEARCH_ACTION_MAX_DELAY = 300; 
@@ -227,6 +229,19 @@ VariablesView.prototype = {
 
 
   lazySearch: true,
+
+  
+
+
+
+
+  scrollPageSize: SCROLL_PAGE_SIZE_DEFAULT,
+
+  
+
+
+
+  appendPageSize: APPEND_PAGE_SIZE_DEFAULT,
 
   
 
@@ -807,14 +822,14 @@ VariablesView.prototype = {
 
       case e.DOM_VK_PAGE_UP:
         
-        this.focusItemAtDelta(-(this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+        this.focusItemAtDelta(-(this.scrollPageSize || Math.min(Math.floor(this._list.scrollHeight /
           PAGE_SIZE_SCROLL_HEIGHT_RATIO),
           PAGE_SIZE_MAX_JUMPS)));
         return;
 
       case e.DOM_VK_PAGE_DOWN:
         
-        this.focusItemAtDelta(+(this.pageSize || Math.min(Math.floor(this._list.scrollHeight /
+        this.focusItemAtDelta(+(this.scrollPageSize || Math.min(Math.floor(this._list.scrollHeight /
           PAGE_SIZE_SCROLL_HEIGHT_RATIO),
           PAGE_SIZE_MAX_JUMPS)));
         return;
@@ -867,13 +882,6 @@ VariablesView.prototype = {
       }
     }
   },
-
-  
-
-
-
-
-  pageSize: 0,
 
   
 
@@ -1190,6 +1198,8 @@ function Scope(aView, aName, aFlags = {}) {
 
   
   
+  this.scrollPageSize = aView.scrollPageSize;
+  this.appendPageSize = aView.appendPageSize;
   this.eval = aView.eval;
   this.switch = aView.switch;
   this.delete = aView.delete;
@@ -1211,6 +1221,11 @@ Scope.prototype = {
 
 
   shouldPrefetch: true,
+
+  
+
+
+  allowPaginate: false,
 
   
 
@@ -1290,13 +1305,83 @@ Scope.prototype = {
 
 
 
-  addItems: function(aItems, aOptions = {}) {
+
+
+
+  addItems: function(aItems, aOptions = {}, aKeysType = "") {
     let names = Object.keys(aItems);
 
     
-    if (aOptions.sorted) {
+    
+    
+    let exceedsThreshold = names.length >= this.appendPageSize;
+    let shouldPaginate = exceedsThreshold && aKeysType != "just-strings";
+    if (shouldPaginate && this.allowPaginate) {
+      
+      
+      if (aKeysType == "just-numbers") {
+        var numberKeys = names;
+        var stringKeys = [];
+      } else {
+        var numberKeys = [];
+        var stringKeys = [];
+        for (let name of names) {
+          
+          let coerced = +name;
+          if (Number.isInteger(coerced) && coerced > -1) {
+            numberKeys.push(name);
+          } else {
+            stringKeys.push(name);
+          }
+        }
+      }
+
+      
+      
+      if (numberKeys.length < this.appendPageSize) {
+        this.addItems(aItems, aOptions, "just-strings");
+        return;
+      }
+
+      
+      let paginate = (aArray, aBegin = 0, aEnd = aArray.length) => {
+        let store = {}
+        for (let i = aBegin; i < aEnd; i++) {
+          let name = aArray[i];
+          store[name] = aItems[name];
+        }
+        return store;
+      };
+
+      
+      
+      let createRangeExpander = (aArray, aBegin, aEnd, aOptions, aKeyTypes) => {
+        let rangeVar = this.addItem(aArray[aBegin] + Scope.ellipsis + aArray[aEnd - 1]);
+        rangeVar.onexpand = () => {
+          let pageItems = paginate(aArray, aBegin, aEnd);
+          rangeVar.addItems(pageItems, aOptions, aKeyTypes);
+        }
+        rangeVar.showArrow();
+        rangeVar.target.setAttribute("pseudo-item", "");
+      };
+
+      
+      let page = +Math.round(numberKeys.length / 4).toPrecision(1);
+      createRangeExpander(numberKeys, 0, page, aOptions, "just-numbers");
+      createRangeExpander(numberKeys, page, page * 2, aOptions, "just-numbers");
+      createRangeExpander(numberKeys, page * 2, page * 3, aOptions, "just-numbers");
+      createRangeExpander(numberKeys, page * 3, numberKeys.length, aOptions, "just-numbers");
+
+      
+      this.addItems(paginate(stringKeys), aOptions, "just-strings");
+      return;
+    }
+
+    
+    if (aOptions.sorted && aKeysType != "just-numbers") {
       names.sort();
     }
+
     
     for (let name of names) {
       let descriptor = aItems[name];
@@ -2018,6 +2103,10 @@ DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_enumItems", Array);
 DevToolsUtils.defineLazyPrototypeGetter(Scope.prototype, "_nonEnumItems", Array);
 
 
+XPCOMUtils.defineLazyGetter(Scope, "ellipsis", () =>
+  Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data);
+
+
 
 
 
@@ -2050,8 +2139,15 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
   
 
 
-  get shouldPrefetch(){
+  get shouldPrefetch() {
     return this.name == "window" || this.name == "this";
+  },
+
+  
+
+
+  get allowPaginate() {
+    return this.name != "window" && this.name != "this";
   },
 
   
@@ -3113,7 +3209,6 @@ let generateId = (function() {
     return aName.toLowerCase().trim().replace(/\s+/g, "-") + (++count);
   };
 })();
-
 
 
 
