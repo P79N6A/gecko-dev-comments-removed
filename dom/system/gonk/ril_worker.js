@@ -270,6 +270,21 @@ let Buf = {
     return this.readUint8Unchecked();
   },
 
+  readUint8Array: function readUint8Array(length) {
+    
+    let last = this.currentParcelSize - this.readAvailable;
+    last += (length - 1);
+    this.ensureIncomingAvailable(last);
+
+    let array = new Uint8Array(length);
+    for (let i = 0; i < length; i++) {
+      array[i] = this.readUint8Unchecked();
+    }
+
+    this.readAvailable -= length;
+    return array;
+  },
+
   readUint16: function readUint16() {
     return this.readUint8() | this.readUint8() << 8;
   },
@@ -6434,7 +6449,7 @@ let GsmPDUHelper = {
 
   readDataCodingScheme: function readDataCodingScheme(msg) {
     let dcs = this.readHexOctet();
-    if (DEBUG) debug("PDU: read dcs: " + dcs);
+    if (DEBUG) debug("PDU: read SMS dcs: " + dcs);
 
     
     let messageClass = PDU_DCS_MSG_CLASS_NORMAL;
@@ -6965,6 +6980,122 @@ let GsmPDUHelper = {
 
   readCbMessageIdentifier: function readCbMessageIdentifier(msg) {
     msg.messageId = Buf.readUint8() << 8 | Buf.readUint8();
+
+    if ((msg.format != CB_FORMAT_ETWS)
+        && (msg.messageId >= CB_GSM_MESSAGEID_ETWS_BEGIN)
+        && (msg.messageId <= CB_GSM_MESSAGEID_ETWS_END)) {
+      
+      
+      
+      msg.etws = {
+        emergencyUserAlert: msg.messageCode & 0x0200 ? true : false,
+        popup:              msg.messageCode & 0x0100 ? true : false
+      };
+
+      let warningType = msg.messageId - CB_GSM_MESSAGEID_ETWS_BEGIN;
+      if (warningType < CB_ETWS_WARNING_TYPE_NAMES.length) {
+        msg.etws.warningType = warningType;
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  readCbDataCodingScheme: function readCbDataCodingScheme(msg) {
+    let dcs = Buf.readUint8();
+    if (DEBUG) debug("PDU: read CBS dcs: " + dcs);
+
+    let language = null, hasLanguageIndicator = false;
+    
+    
+    let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+    let messageClass = PDU_DCS_MSG_CLASS_NORMAL;
+
+    switch (dcs & PDU_DCS_CODING_GROUP_BITS) {
+      case 0x00: 
+        language = CB_DCS_LANG_GROUP_1[dcs & 0x0F];
+        break;
+
+      case 0x10: 
+        switch (dcs & 0x0F) {
+          case 0x00:
+            hasLanguageIndicator = true;
+            break;
+          case 0x01:
+            encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
+            hasLanguageIndicator = true;
+            break;
+        }
+        break;
+
+      case 0x20: 
+        language = CB_DCS_LANG_GROUP_2[dcs & 0x0F];
+        break;
+
+      case 0x40: 
+      case 0x50:
+      
+      
+      case 0x90: 
+        encoding = (dcs & 0x0C);
+        if (encoding == 0x0C) {
+          encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+        }
+        messageClass = (dcs & PDU_DCS_MSG_CLASS_BITS);
+        break;
+
+      case 0xF0:
+        encoding = (dcs & 0x04) ? PDU_DCS_MSG_CODING_8BITS_ALPHABET
+                                : PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+        switch(dcs & PDU_DCS_MSG_CLASS_BITS) {
+          case 0x01: messageClass = PDU_DCS_MSG_CLASS_USER_1; break;
+          case 0x02: messageClass = PDU_DCS_MSG_CLASS_USER_2; break;
+          case 0x03: messageClass = PDU_DCS_MSG_CLASS_3; break;
+        }
+        break;
+
+      case 0x30: 
+      case 0x80: 
+      case 0xA0: 
+      case 0xB0:
+      case 0xC0:
+        break;
+
+      default:
+        throw new Error("Unsupported CBS data coding scheme: " + dcs);
+    }
+
+    msg.dcs = dcs;
+    msg.encoding = encoding;
+    msg.language = language;
+    msg.messageClass = GECKO_SMS_MESSAGE_CLASSES[messageClass];
+    msg.hasLanguageIndicator = hasLanguageIndicator;
+  },
+
+  
+
+
+
+
+
+
+
+  readCbPageParameter: function readCbPageParameter(msg) {
+    let octet = Buf.readUint8();
+    msg.pageIndex = (octet >>> 4) & 0x0F;
+    msg.numPages = octet & 0x0F;
+    if (!msg.pageIndex || !msg.numPages) {
+      
+      
+      
+      msg.pageIndex = msg.numPages = 1;
+    }
   },
 
   
@@ -6990,17 +7121,74 @@ let GsmPDUHelper = {
 
 
 
+
+
+
+
+  readGsmCbData: function readGsmCbData(msg, length) {
+    let bufAdapter = {
+      readHexOctet: function readHexOctet() {
+        return Buf.readUint8();
+      }
+    };
+
+    msg.body = null;
+    msg.data = null;
+    switch (msg.encoding) {
+      case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
+        msg.body = this.readSeptetsToString.call(bufAdapter,
+                                                 (length * 8 / 7), 0,
+                                                 PDU_NL_IDENTIFIER_DEFAULT,
+                                                 PDU_NL_IDENTIFIER_DEFAULT);
+        if (msg.hasLanguageIndicator) {
+          msg.language = msg.body.substring(0, 2);
+          msg.body = msg.body.substring(3);
+        }
+        break;
+
+      case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
+        msg.data = Buf.readUint8Array(length);
+        break;
+
+      case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
+        if (msg.hasLanguageIndicator) {
+          msg.language = this.readSeptetsToString.call(bufAdapter, 2, 0,
+                                                       PDU_NL_IDENTIFIER_DEFAULT,
+                                                       PDU_NL_IDENTIFIER_DEFAULT);
+          length -= 2;
+        }
+        msg.body = this.readUCS2String.call(bufAdapter, length);
+        break;
+    }
+  },
+
+  
+
+
+
+
+
   readCbMessage: function readCbMessage(pduLength) {
     
     let msg = {
       
       updateNumber:         null,                              
       format:               null,                              
+      dcs:                  0x0F,                              
+      encoding:             PDU_DCS_MSG_CODING_7BITS_ALPHABET, 
+      hasLanguageIndicator: false,                             
+      data:                 null,                              
+      body:                 null,                              
+      pageIndex:            1,                                 
+      numPages:             1,                                 
 
       
       geographicalScope:    null,                              
       messageCode:          null,                              
       messageId:            null,                              
+      language:             null,                              
+      fullBody:             null,                              
+      fullData:             null,                              
       messageClass:         GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL], 
       etws:                 null                               
       
@@ -7015,7 +7203,34 @@ let GsmPDUHelper = {
       return this.readEtwsCbMessage(msg);
     }
 
+    if (pduLength <= CB_MESSAGE_SIZE_GSM) {
+      msg.format = CB_FORMAT_GSM;
+      return this.readGsmCbMessage(msg, pduLength);
+    }
+
     return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  readGsmCbMessage: function readGsmCbMessage(msg, pduLength) {
+    this.readCbSerialNumber(msg);
+    this.readCbMessageIdentifier(msg);
+    this.readCbDataCodingScheme(msg);
+    this.readCbPageParameter(msg);
+
+    
+    this.readGsmCbData(msg, pduLength - 6);
+
+    return msg;
   },
 
   
