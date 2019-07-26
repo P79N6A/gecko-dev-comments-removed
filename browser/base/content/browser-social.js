@@ -49,6 +49,9 @@ XPCOMUtils.defineLazyGetter(this, "CreateSocialMarkWidget", function() {
   return tmp.CreateSocialMarkWidget;
 });
 
+XPCOMUtils.defineLazyModuleGetter(this, "UITour",
+  "resource:///modules/UITour.jsm");
+
 SocialUI = {
   _initialized: false,
 
@@ -180,6 +183,37 @@ SocialUI = {
 
   
   
+  _highlight: function(elId) {
+    let node = document.getElementById(elId);
+    if (node._highlightTarget)
+      return;
+
+    function _hide(aEvent, aNode) {
+      if (!aNode) {
+        aNode = aEvent.target;
+      }
+      clearTimeout(aNode._highlightTarget.timeout);
+      aNode.removeEventListener("click", aNode._highlightTarget.fnHide);
+      UITour.hideHighlight(window);
+      delete aNode._highlightTarget;
+    }
+
+    let target = {
+      targetName: elId,
+      node: node,
+    };
+
+    
+    
+    let _highlightTarget = {
+      timeout: setTimeout(_hide, 5000, null, node),
+      fnHide: _hide
+    };
+    node.addEventListener("click", _highlightTarget.fnHide);
+    node._highlightTarget = _highlightTarget;
+
+    UITour.showHighlight(target, "wobble");
+  },
   _activationEventHandler: function SocialUI_activationHandler(e) {
     let targetDoc;
     let node;
@@ -226,13 +260,33 @@ SocialUI = {
         return;
       }
     }
-    Social.installProvider(targetDoc, data, function(manifest) {
-      Social.activateFromOrigin(manifest.origin, function(provider) {
+
+    Social.installProvider(targetDoc, data, (manifest) => {
+      Social.activateFromOrigin(manifest.origin, (provider) => {
         if (provider.sidebarURL) {
           SocialSidebar.show(provider.origin);
         }
         if (provider.postActivationURL) {
           openUILinkIn(provider.postActivationURL, "tab");
+        }
+        
+        
+        
+        if (provider.shareURL) {
+          this._highlight("social-share-button");
+          
+          
+          SocialShare._createFrame();
+          SocialShare.iframe.setAttribute('src', 'about:blank');
+          SocialShare.iframe.setAttribute('origin', provider.origin);
+          
+          SocialShare.populateProviderMenu();
+        } else if (provider.statusURL) {
+          let targetName = SocialStatus._toolbarHelper.idFromOrigin(provider.origin);
+          this._highlight(targetName);
+        } else if (provider.markURL) {
+          let targetName = SocialMarks._toolbarHelper.idFromOrigin(provider.origin);
+          this._highlight(targetName);
         }
       });
     });
