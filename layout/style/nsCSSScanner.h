@@ -142,6 +142,15 @@ class nsCSSScanner {
   }
 
   
+  void ClearSeenBadToken() {
+    mSeenBadToken = false;
+  }
+
+  bool SeenBadToken() const {
+    return mSeenBadToken;
+  }
+
+  
   
   uint32_t GetLineNumber() const { return mTokenLineNumber; }
 
@@ -221,6 +230,7 @@ protected:
   
   bool mSVGMode;
   bool mRecording;
+  bool mSeenBadToken;
 };
 
 #endif 
