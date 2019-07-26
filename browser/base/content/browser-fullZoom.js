@@ -8,10 +8,6 @@
 
 
 
-const MOUSE_SCROLL_ZOOM = 3;
-
-
-
 
 var FullZoom = {
   
@@ -22,6 +18,10 @@ var FullZoom = {
 
   
   updateBackgroundTabs: undefined,
+
+  
+  
+  ACTION_ZOOM: 3,
 
   
   
@@ -116,7 +116,7 @@ var FullZoom = {
     
     var isZoomEvent = false;
     try {
-      isZoomEvent = (gPrefService.getIntPref(pref) == MOUSE_SCROLL_ZOOM);
+      isZoomEvent = (gPrefService.getIntPref(pref) == this.ACTION_ZOOM);
     } catch (e) {}
     if (!isZoomEvent)
       return;
