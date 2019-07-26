@@ -105,8 +105,8 @@ class GlobalObject : public JSObject
     static const unsigned NUMBER_FORMAT_PROTO     = COLLATOR_PROTO + 1;
     static const unsigned DATE_TIME_FORMAT_PROTO  = NUMBER_FORMAT_PROTO + 1;
     static const unsigned REGEXP_STATICS          = DATE_TIME_FORMAT_PROTO + 1;
-    static const unsigned FUNCTION_NS             = REGEXP_STATICS + 1;
-    static const unsigned RUNTIME_CODEGEN_ENABLED = FUNCTION_NS + 1;
+    static const unsigned WARNED_WATCH_DEPRECATED = REGEXP_STATICS + 1;
+    static const unsigned RUNTIME_CODEGEN_ENABLED = WARNED_WATCH_DEPRECATED + 1;
     static const unsigned DEBUGGERS               = RUNTIME_CODEGEN_ENABLED + 1;
     static const unsigned INTRINSICS              = DEBUGGERS + 1;
     static const unsigned ARRAY_TYPE              = INTRINSICS + 1;
@@ -114,14 +114,13 @@ class GlobalObject : public JSObject
     
     static const unsigned RESERVED_SLOTS = ARRAY_TYPE + 1;
 
-    void staticAsserts() {
-        
+    
 
 
 
 
-        JS_STATIC_ASSERT(JSCLASS_GLOBAL_SLOT_COUNT == RESERVED_SLOTS);
-    }
+    static_assert(JSCLASS_GLOBAL_SLOT_COUNT == RESERVED_SLOTS,
+                  "global object slot counts are inconsistent");
 
     friend JSObject *
     ::js_InitObjectClass(JSContext *cx, js::HandleObject);
@@ -574,6 +573,10 @@ class GlobalObject : public JSObject
     }
 
     static bool isRuntimeCodeGenEnabled(JSContext *cx, Handle<GlobalObject*> global);
+
+    
+    
+    static bool warnOnceAboutWatch(JSContext *cx, HandleObject obj);
 
     const Value &getOriginalEval() const {
         JS_ASSERT(getSlot(EVAL).isObject());
