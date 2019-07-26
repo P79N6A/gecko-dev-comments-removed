@@ -265,6 +265,12 @@ class Proxy
     static JSObject * const LazyProto;
 };
 
+
+
+extern JS_FRIEND_DATA(js::Class* const) FunctionProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) ObjectProxyClassPtr;
+extern JS_FRIEND_DATA(js::Class* const) OuterWindowProxyClassPtr;
+
 inline bool IsObjectProxyClass(const Class *clasp)
 {
     return clasp == js::ObjectProxyClassPtr || clasp == js::OuterWindowProxyClassPtr;
