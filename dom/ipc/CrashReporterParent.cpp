@@ -4,6 +4,7 @@
 
 
 #include "CrashReporterParent.h"
+#include "mozilla/dom/ContentParent.h"
 #include "nsXULAppAPI.h"
 
 #include <time.h>
@@ -27,6 +28,29 @@ CrashReporterParent::RecvAppendAppNotes(const nsCString& data)
 {
     mAppNotes.Append(data);
     return true;
+}
+
+mozilla::ipc::IProtocol*
+CrashReporterParent::CloneProtocol(Channel* aChannel,
+                                   mozilla::ipc::ProtocolCloneContext* aCtx)
+{
+    ContentParent* contentParent = aCtx->GetContentParent();
+    CrashReporter::ThreadId childThreadId = contentParent->Pid();
+    GeckoProcessType childProcessType =
+        contentParent->Process()->GetProcessType();
+
+    nsAutoPtr<PCrashReporterParent> actor(
+        contentParent->AllocPCrashReporterParent(childThreadId,
+                                                 childProcessType)
+    );
+    if (!actor ||
+        !contentParent->RecvPCrashReporterConstructor(actor,
+                                                      childThreadId,
+                                                      childThreadId)) {
+      return nullptr;
+    }
+
+    return actor.forget();
 }
 
 CrashReporterParent::CrashReporterParent()
