@@ -25,7 +25,13 @@ extern PRLogModuleInfo* GetMediaManagerLog();
 
 
 
+#ifndef MOZ_B2G_CAMERA
 NS_IMPL_ISUPPORTS1(MediaEngineWebRTCVideoSource, nsIRunnable)
+#else
+NS_IMPL_QUERY_INTERFACE1(MediaEngineWebRTCVideoSource, nsIRunnable)
+NS_IMPL_ADDREF_INHERITED(MediaEngineWebRTCVideoSource, CameraControlListener)
+NS_IMPL_RELEASE_INHERITED(MediaEngineWebRTCVideoSource, CameraControlListener)
+#endif
 
 
 #ifndef MOZ_B2G_CAMERA
@@ -495,6 +501,10 @@ MediaEngineWebRTCVideoSource::AllocImpl() {
   MOZ_ASSERT(NS_IsMainThread());
 
   mCameraControl = ICameraControl::Create(mCaptureIndex, nullptr);
+
+  
+  
+  
   mCameraControl->AddListener(this);
 }
 
@@ -539,7 +549,6 @@ MediaEngineWebRTCVideoSource::OnHardwareStateChange(HardwareState aState)
     mState = kAllocated;
   } else {
     mState = kReleased;
-    mCameraControl->RemoveListener(this);
   }
   mCallbackMonitor.Notify();
 }
