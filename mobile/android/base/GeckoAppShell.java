@@ -20,15 +20,16 @@ import java.net.Proxy;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
@@ -122,8 +123,8 @@ public class GeckoAppShell
     private static boolean restartScheduled = false;
     private static GeckoEditableListener editableListener = null;
 
-    private static final LinkedList<GeckoEvent> PENDING_EVENTS = new LinkedList<GeckoEvent>();
-    private static final HashMap<String, String> ALERT_COOKIES = new HashMap<String, String>();
+    private static final Queue<GeckoEvent> PENDING_EVENTS = new ConcurrentLinkedQueue<GeckoEvent>();
+    private static final Map<String, String> ALERT_COOKIES = new ConcurrentHashMap<String, String>();
 
     private static volatile boolean locationHighAccuracyEnabled;
 
@@ -357,21 +358,42 @@ public class GeckoAppShell
     static void sendPendingEventsToGecko() {
         try {
             while (!PENDING_EVENTS.isEmpty()) {
-                GeckoEvent e = PENDING_EVENTS.removeFirst();
+                final GeckoEvent e = PENDING_EVENTS.poll();
                 notifyGeckoOfEvent(e);
             }
         } catch (NoSuchElementException e) {}
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @RobocopTarget
     public static void sendEventToGecko(GeckoEvent e) {
+        if (e == null) {
+            throw new IllegalArgumentException("e cannot be null.");
+        }
+
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             notifyGeckoOfEvent(e);
             
             e.recycle();
-        } else {
-            PENDING_EVENTS.addLast(e);
+            return;
         }
+
+        
+        PENDING_EVENTS.add(e);
     }
 
     
