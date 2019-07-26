@@ -144,7 +144,14 @@ nsPopupBoxObject::SizeTo(int32_t aWidth, int32_t aHeight)
   height.AppendInt(aHeight);
 
   nsCOMPtr<nsIContent> content = mContent;
-  content->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, false);
+
+  
+  
+  
+  
+  bool heightSame = content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::height, height, eCaseMatters);
+
+  content->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, heightSame);
   content->SetAttr(kNameSpaceID_None, nsGkAtoms::height, height, true);
 
   return NS_OK;
