@@ -98,6 +98,20 @@ public final class GeckoJarReader {
         return new NativeZip(fileUrl.getPath());
     }
 
+    
+    public static InputStream getStream(String url) {
+        Stack<String> jarUrls = parseUrl(url);
+        try {
+            NativeZip zip = getZipFile(jarUrls.pop());
+            return getStream(zip, jarUrls, url);
+        } catch (Exception ex) {
+            
+            
+            
+            return null;
+        }
+    }
+
     private static InputStream getStream(NativeZip zip, Stack<String> jarUrls, String origUrl) {
         InputStream inputStream = null;
 
