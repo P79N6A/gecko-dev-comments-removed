@@ -228,10 +228,32 @@
          return fd.dispose();
        };
 
-       UnixFile.free =
-         libc.declare("free", ctypes.default_abi,
-                        ctypes.void_t,
-                           ctypes.voidptr_t);
+       {
+         
+         
+         let default_lib = libc;
+         try {
+           
+           
+           
+           default_lib = ctypes.open("a.out");
+
+           UnixFile.free =
+             default_lib.declare("free", ctypes.default_abi,
+              ctypes.void_t,
+                 ctypes.voidptr_t);
+
+         } catch (ex) {
+           
+           
+
+           UnixFile.free =
+             libc.declare("free", ctypes.default_abi,
+              ctypes.void_t,
+                 ctypes.voidptr_t);
+         }
+      }
+
 
        
        UnixFile.access =
