@@ -4152,6 +4152,16 @@ pref("snav.enabled", false);
 pref("touchcaret.enabled", false);
 
 
+
+
+pref("touchcaret.distance.threshold", 1500);
+
+
+
+
+pref("touchcaret.expiration.time", 3000);
+
+
 pref("dom.wakelock.enabled", false);
 
 
