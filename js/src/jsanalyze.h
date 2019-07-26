@@ -509,6 +509,9 @@ class LoopAnalysis
     uint32_t lastBlock;
 
     
+    uint16_t depth;
+
+    
 
 
 

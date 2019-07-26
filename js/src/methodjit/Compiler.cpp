@@ -3225,15 +3225,16 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_HOLE)
 
           BEGIN_CASE(JSOP_LOOPHEAD)
-          {
-            if (analysis->jumpTarget(PC)) {
+            if (analysis->jumpTarget(PC))
                 interruptCheckHelper();
-                recompileCheckHelper();
-            }
-          }
           END_CASE(JSOP_LOOPHEAD)
 
           BEGIN_CASE(JSOP_LOOPENTRY)
+            
+            
+            
+            if (loop)
+                recompileCheckHelper();
           END_CASE(JSOP_LOOPENTRY)
 
           BEGIN_CASE(JSOP_DEBUGGER)
@@ -3927,23 +3928,32 @@ mjit::Compiler::recompileCheckHelper()
     if (inlining() || debugMode() || !globalObj || !cx->typeInferenceEnabled())
         return;
 
+    bool maybeIonCompileable = MaybeIonCompileable(cx, outerScript);
+
     
     
     
-    if (!MaybeIonCompileable(cx, outerScript) && !analysis->hasFunctionCalls())
+    if (!maybeIonCompileable && !analysis->hasFunctionCalls())
         return;
+
+    uint32_t minUses = USES_BEFORE_INLINING;
+
+#ifdef JS_ION
+    if (maybeIonCompileable)
+        minUses = ion::UsesBeforeIonRecompile(outerScript, PC);
+#endif
 
     uint32_t *addr = script->addressOfUseCount();
     masm.add32(Imm32(1), AbsoluteAddress(addr));
 #if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
     Jump jump = masm.branch32(Assembler::GreaterThanOrEqual, AbsoluteAddress(addr),
-                              Imm32(USES_BEFORE_INLINING));
+                              Imm32(minUses));
 #else
     
     RegisterID reg = frame.allocReg();
     masm.move(ImmPtr(addr), reg);
     Jump jump = masm.branch32(Assembler::GreaterThanOrEqual, Address(reg, 0),
-                              Imm32(USES_BEFORE_INLINING));
+                              Imm32(minUses));
     frame.freeReg(reg);
 #endif
     stubcc.linkExit(jump, Uses(0));
