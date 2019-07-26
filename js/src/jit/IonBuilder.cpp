@@ -5853,8 +5853,7 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool 
 
             
             
-            uint32_t var = i - info().firstLocalSlot();
-            if (var >= info().nlocals())
+            if (i >= info().firstStackSlot())
                 continue;
 
             MPhi *phi = block->getSlot(i)->toPhi();
@@ -5862,6 +5861,7 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool 
             
             Value existingValue;
             uint32_t arg = i - info().firstArgSlot();
+            uint32_t var = i - info().firstLocalSlot();
             if (info().fun() && i == info().thisSlot())
                 existingValue = baselineFrame_->thisValue();
             else if (arg < info().nargs())
