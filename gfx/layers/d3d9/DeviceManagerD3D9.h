@@ -11,6 +11,7 @@
 #include "d3d9.h"
 #include "nsTArray.h"
 #include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/RefPtr.h"
 
 struct nsIntRect;
 
@@ -21,6 +22,7 @@ class DeviceManagerD3D9;
 class LayerD3D9;
 class Nv3DVUtils;
 class Layer;
+class TextureSourceD3D9;
 
 
 const int CBmLayerTransform = 0;
@@ -173,6 +175,24 @@ public:
 
   int32_t GetMaxTextureSize() { return mMaxTextureSize; }
 
+  
+  void RemoveTextureListHead(TextureSourceD3D9* aHost);
+
+  
+
+
+
+
+  TemporaryRef<IDirect3DTexture9> CreateTexture(const gfx::IntSize &aSize,
+                                                _D3DFORMAT aFormat,
+                                                D3DPOOL aPool,
+                                                TextureSourceD3D9* aTextureHostIDirect3DTexture9);
+#ifdef DEBUG
+  
+  
+  bool DeviceManagerD3D9::IsInTextureHostList(TextureSourceD3D9* aFind);
+#endif
+
   static uint32_t sMaskQuadRegister;
 
 private:
@@ -192,6 +212,15 @@ private:
 
 
   bool CreateVertexBuffer();
+
+  
+
+
+  void ReleaseTextureResources();
+  
+
+
+  void RegisterTextureHost(TextureSourceD3D9* aHost);
 
   
   nsTArray<SwapChainD3D9*> mSwapChains;
@@ -245,6 +274,14 @@ private:
 
   
   nsRefPtr<IDirect3DVertexDeclaration9> mVD;
+
+  
+
+
+
+
+
+  TextureSourceD3D9* mTextureHostList;
 
   
 
