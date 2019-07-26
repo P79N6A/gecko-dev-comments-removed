@@ -1358,6 +1358,7 @@ class nsIWidget : public nsISupports {
     
 
 
+
     virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint) = 0;
 
     

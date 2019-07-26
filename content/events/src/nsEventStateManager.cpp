@@ -4090,6 +4090,7 @@ nsEventStateManager::NotifyMouseOver(nsGUIEvent* aEvent, nsIContent* aContent)
 
 
 
+
 static nsIntPoint
 GetWindowInnerRectCenter(nsPIDOMWindow* aWindow,
                          nsIWidget* aWidget,
@@ -4142,7 +4143,8 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
           
           
           
-          aEvent->widget->SynthesizeNativeMouseMove(center);
+          aEvent->widget->SynthesizeNativeMouseMove(
+            center + aEvent->widget->WidgetToScreenOffset());
         }
       } else {
         aEvent->lastRefPoint = sLastRefPoint;
@@ -4214,7 +4216,8 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
     sLastRefPoint = GetWindowInnerRectCenter(aElement->OwnerDoc()->GetWindow(),
                                              aWidget,
                                              mPresContext);
-    aWidget->SynthesizeNativeMouseMove(sLastRefPoint);
+    aWidget->SynthesizeNativeMouseMove(
+      sLastRefPoint + aWidget->WidgetToScreenOffset());
 
     
     nsIPresShell::SetCapturingContent(aElement, CAPTURE_POINTERLOCK);
@@ -4229,7 +4232,8 @@ nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
     
     
     sLastRefPoint = mPreLockPoint;
-    aWidget->SynthesizeNativeMouseMove(mPreLockPoint);
+    aWidget->SynthesizeNativeMouseMove(
+      mPreLockPoint + aWidget->WidgetToScreenOffset());
 
     
     nsIPresShell::SetCapturingContent(nullptr, CAPTURE_POINTERLOCK);
