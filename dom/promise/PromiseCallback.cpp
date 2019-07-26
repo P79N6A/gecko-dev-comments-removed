@@ -74,7 +74,13 @@ void
 ResolvePromiseCallback::Call(const Optional<JS::Handle<JS::Value> >& aValue)
 {
   
-  AutoJSContext cx;
+  JSContext *cx = nsContentUtils::GetDefaultJSContextForThread();
+
+  Maybe<AutoCxPusher> pusher;
+  if (NS_IsMainThread()) {
+    pusher.construct(cx);
+  }
+
   Maybe<JSAutoCompartment> ac;
   EnterCompartment(ac, cx, aValue);
 
@@ -109,7 +115,13 @@ void
 RejectPromiseCallback::Call(const Optional<JS::Handle<JS::Value> >& aValue)
 {
   
-  AutoJSContext cx;
+  JSContext *cx = nsContentUtils::GetDefaultJSContextForThread();
+
+  Maybe<AutoCxPusher> pusher;
+  if (NS_IsMainThread()) {
+    pusher.construct(cx);
+  }
+
   Maybe<JSAutoCompartment> ac;
   EnterCompartment(ac, cx, aValue);
 
@@ -145,7 +157,17 @@ WrapperPromiseCallback::~WrapperPromiseCallback()
 void
 WrapperPromiseCallback::Call(const Optional<JS::Handle<JS::Value> >& aValue)
 {
-  AutoJSContext cx;
+  
+  
+  
+  
+  JSContext* cx = nsContentUtils::GetDefaultJSContextForThread();
+
+  Maybe<AutoCxPusher> pusher;
+  if (NS_IsMainThread()) {
+    pusher.construct(cx);
+  }
+
   Maybe<JSAutoCompartment> ac;
   EnterCompartment(ac, cx, aValue);
 
