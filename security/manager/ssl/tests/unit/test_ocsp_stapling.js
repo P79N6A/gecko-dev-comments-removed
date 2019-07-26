@@ -77,7 +77,9 @@ function run_test() {
   add_ocsp_test("ocsp-stapling-unknown.example.com", getXPCOMStatusFromNSS(126), true);
   add_ocsp_test("ocsp-stapling-good-other.example.com", getXPCOMStatusFromNSS(126), true);
   
-  add_ocsp_test("ocsp-stapling-none.example.com", getXPCOMStatusFromNSS(129), true);
+  add_ocsp_test("ocsp-stapling-none.example.com", Cr.NS_OK, true);
+  
+  add_ocsp_test("ocsp-stapling-empty.example.com", getXPCOMStatusFromNSS(129), true);
   
   add_ocsp_test("ocsp-stapling-expired.example.com", getXPCOMStatusFromNSS(132), true);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", getXPCOMStatusFromNSS(132), true);

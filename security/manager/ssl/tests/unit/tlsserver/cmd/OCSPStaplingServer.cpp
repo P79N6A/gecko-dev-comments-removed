@@ -31,6 +31,7 @@ enum OCSPStapleResponseType
   OSRTExpired,          
   OSRTExpiredFreshCA,   
   OSRTNone,             
+  OSRTEmpty,            
   OSRTMalformed,        
   OSRTSrverr,           
   OSRTTryLater,         
@@ -54,6 +55,7 @@ const OCSPHost sOCSPHosts[] =
   { "ocsp-stapling-expired.example.com", OSRTExpired },
   { "ocsp-stapling-expired-fresh-ca.example.com", OSRTExpiredFreshCA },
   { "ocsp-stapling-none.example.com", OSRTNone },
+  { "ocsp-stapling-empty.example.com", OSRTEmpty },
   { "ocsp-stapling-malformed.example.com", OSRTMalformed },
   { "ocsp-stapling-srverr.example.com", OSRTSrverr },
   { "ocsp-stapling-trylater.example.com", OSRTTryLater },
@@ -66,6 +68,14 @@ SECItemArray *
 GetOCSPResponseForType(OCSPStapleResponseType aOSRT, CERTCertificate *aCert,
                        PLArenaPool *aArena)
 {
+  if (aOSRT == OSRTNone) {
+    if (gDebugLevel >= DEBUG_WARNINGS) {
+      fprintf(stderr, "GetOCSPResponseForType called with type OSRTNone, "
+                      "which makes no sense.\n");
+    }
+    return nullptr;
+  }
+
   PRTime now = PR_Now();
   ScopedCERTOCSPCertID id(CERT_CreateOCSPCertID(aCert, now));
   if (!id) {
@@ -137,7 +147,7 @@ GetOCSPResponseForType(OCSPStapleResponseType aOSRT, CERTCertificate *aCert,
       otherID.forget(); 
       break;
     }
-    case OSRTNone:
+    case OSRTEmpty:
     case OSRTMalformed:
     case OSRTSrverr:
     case OSRTTryLater:
@@ -148,7 +158,7 @@ GetOCSPResponseForType(OCSPStapleResponseType aOSRT, CERTCertificate *aCert,
       if (gDebugLevel >= DEBUG_ERRORS) {
         fprintf(stderr, "bad ocsp response type: %d\n", aOSRT);
       }
-      break;
+      return nullptr;
   }
 
   ScopedCERTCertificate ca;
@@ -215,7 +225,7 @@ GetOCSPResponseForType(OCSPStapleResponseType aOSRT, CERTCertificate *aCert,
         return nullptr;
       }
       break;
-    case OSRTNone:
+    case OSRTEmpty:
       break;
     default:
       
@@ -261,6 +271,11 @@ DoSNISocketConfig(PRFileDesc *aFd, const SECItem *aSrvNameArr,
   if (SECSuccess != ConfigSecureServerWithNamedCert(aFd, DEFAULT_CERT_NICKNAME,
                                                     &cert, &certKEA)) {
     return SSL_SNI_SEND_ALERT;
+  }
+
+  
+  if (host->mOSRT == OSRTNone) {
+    return 0;
   }
 
   PLArenaPool *arena = PORT_NewArena(1024);
