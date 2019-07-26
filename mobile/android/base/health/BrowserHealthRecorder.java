@@ -487,6 +487,84 @@ public class BrowserHealthRecorder implements GeckoEventListener {
         "bartext",
     };
 
+    
+    
+    private static final String[] SEARCH_PROVIDERS = {
+        "amazon-co-uk",
+        "amazon-de",
+        "amazon-en-GB",
+        "amazon-france",
+        "amazon-it",
+        "amazon-jp",
+        "amazondotcn",
+        "amazondotcom",
+        "amazondotcom-de",
+
+        "aol-en-GB",
+        "aol-web-search",
+
+        "bing",
+
+        "eBay",
+        "eBay-de",
+        "eBay-en-GB",
+        "eBay-es",
+        "eBay-fi",
+        "eBay-france",
+        "eBay-hu",
+        "eBay-in",
+        "eBay-it",
+
+        "google",
+        "google-jp",
+        "google-ku",
+        "google-maps-zh-TW",
+
+        "mailru",
+
+        "mercadolibre-ar",
+        "mercadolibre-cl",
+        "mercadolibre-mx",
+
+        "seznam-cz",
+
+        "twitter",
+        "twitter-de",
+        "twitter-ja",
+
+        "wikipedia",            
+
+        "yahoo",
+        "yahoo-NO",
+        "yahoo-answer-zh-TW",
+        "yahoo-ar",
+        "yahoo-bid-zh-TW",
+        "yahoo-br",
+        "yahoo-ch",
+        "yahoo-cl",
+        "yahoo-de",
+        "yahoo-en-GB",
+        "yahoo-es",
+        "yahoo-fi",
+        "yahoo-france",
+        "yahoo-fy-NL",
+        "yahoo-id",
+        "yahoo-in",
+        "yahoo-it",
+        "yahoo-jp",
+        "yahoo-jp-auctions",
+        "yahoo-mx",
+        "yahoo-sv-SE",
+        "yahoo-zh-TW",
+
+        "yandex",
+        "yandex-ru",
+        "yandex-slovari",
+        "yandex-tr",
+        "yandex.by",
+        "yandex.ru-be",
+    };
+
     private void initializeSearchProvider() {
         this.storage.ensureMeasurementInitialized(
             MEASUREMENT_NAME_SEARCH_COUNTS,
@@ -519,6 +597,23 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
 
 
+
+    protected String getEngineKey(final String engine) {
+        if (engine == null) {
+            return "other";
+        }
+
+        
+        boolean found = (0 <= java.util.Arrays.binarySearch(SEARCH_PROVIDERS, engine));
+        return found ? engine : "other";
+    }
+
+    
+
+
+
+
+
     public void recordSearch(final String engine, final String location) {
         if (this.state != State.INITIALIZED) {
             Log.d(LOG_TAG, "Not initialized: not recording search. (" + this.state + ")");
@@ -531,7 +626,7 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
         final int day = storage.getDay();
         final int env = this.env;
-        final String key = ((engine == null) ? "other" : engine);
+        final String key = getEngineKey(engine);
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
