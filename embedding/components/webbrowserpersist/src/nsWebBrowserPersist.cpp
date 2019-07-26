@@ -197,6 +197,7 @@ nsWebBrowserPersist::nsWebBrowserPersist() :
     mStartSaving(false),
     mReplaceExisting(true),
     mSerializingOutput(false),
+    mIsPrivate(false),
     mPersistFlags(kDefaultPersistFlags),
     mPersistResult(NS_OK),
     mTotalCurrentProgress(0),
@@ -333,7 +334,14 @@ NS_IMETHODIMP nsWebBrowserPersist::SetProgressListener(
 
 
 NS_IMETHODIMP nsWebBrowserPersist::SaveURI(
-    nsIURI *aURI, nsISupports *aCacheKey, nsIURI *aReferrer, nsIInputStream *aPostData, const char *aExtraHeaders, nsISupports *aFile)
+    nsIURI *aURI, nsISupports *aCacheKey, nsIURI *aReferrer, nsIInputStream *aPostData, const char *aExtraHeaders, nsISupports *aFile, nsILoadContext* aPrivacyContext)
+{
+    return SavePrivacyAwareURI(aURI, aCacheKey, aReferrer, aPostData, aExtraHeaders, aFile,
+                               aPrivacyContext && aPrivacyContext->UsePrivateBrowsing());
+}
+
+NS_IMETHODIMP nsWebBrowserPersist::SavePrivacyAwareURI(
+    nsIURI *aURI, nsISupports *aCacheKey, nsIURI *aReferrer, nsIInputStream *aPostData, const char *aExtraHeaders, nsISupports *aFile, bool aIsPrivate)
 {
     NS_ENSURE_TRUE(mFirstAndOnlyUse, NS_ERROR_FAILURE);
     mFirstAndOnlyUse = false; 
@@ -345,7 +353,7 @@ NS_IMETHODIMP nsWebBrowserPersist::SaveURI(
 
     
     mPersistFlags |= PERSIST_FLAGS_FAIL_ON_BROKEN_LINKS;
-    rv = SaveURIInternal(aURI, aCacheKey, aReferrer, aPostData, aExtraHeaders, fileAsURI, false);
+    rv = SaveURIInternal(aURI, aCacheKey, aReferrer, aPostData, aExtraHeaders, fileAsURI, false, aIsPrivate);
     return NS_FAILED(rv) ? rv : NS_OK;
 }
 
@@ -384,6 +392,10 @@ NS_IMETHODIMP nsWebBrowserPersist::SaveDocument(
     nsCOMPtr<nsIURI> fileAsURI;
     nsCOMPtr<nsIURI> datapathAsURI;
     nsresult rv;
+
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
+    nsCOMPtr<nsILoadContext> privacyContext = doc ? doc->GetLoadContext() : nullptr;
+    mIsPrivate = privacyContext && privacyContext->UsePrivateBrowsing();
 
     rv = GetValidURIFromObject(aFile, getter_AddRefs(fileAsURI));
     NS_ENSURE_SUCCESS(rv, NS_ERROR_INVALID_ARG);
@@ -1165,7 +1177,7 @@ nsresult nsWebBrowserPersist::AppendPathToURI(nsIURI *aURI, const nsAString & aP
 nsresult nsWebBrowserPersist::SaveURIInternal(
     nsIURI *aURI, nsISupports *aCacheKey, nsIURI *aReferrer,
     nsIInputStream *aPostData, const char *aExtraHeaders,
-    nsIURI *aFile, bool aCalcFileExt)
+    nsIURI *aFile, bool aCalcFileExt, bool aIsPrivate)
 {
     NS_ENSURE_ARG_POINTER(aURI);
     NS_ENSURE_ARG_POINTER(aFile);
@@ -1219,6 +1231,12 @@ nsresult nsWebBrowserPersist::SaveURIInternal(
     rv = NS_NewChannel(getter_AddRefs(inputChannel), aURI,
             nullptr, nullptr, static_cast<nsIInterfaceRequestor *>(this),
             loadFlags);
+
+    nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(inputChannel);
+    if (pbChannel)
+    {
+        pbChannel->SetPrivate(aIsPrivate);
+    }
     
     if (NS_FAILED(rv) || inputChannel == nullptr)
     {
@@ -2511,7 +2529,8 @@ nsWebBrowserPersist::EnumPersistURIs(nsHashKey *aKey, void *aData, void* closure
     rv = pthis->AppendPathToURI(fileAsURI, data->mFilename);
     NS_ENSURE_SUCCESS(rv, false);
 
-    rv = pthis->SaveURIInternal(uri, nullptr, nullptr, nullptr, nullptr, fileAsURI, true);
+    rv = pthis->SaveURIInternal(uri, nullptr, nullptr, nullptr, nullptr, fileAsURI, true,
+                                pthis->mIsPrivate);
     
     
     NS_ENSURE_SUCCESS(rv, false);
