@@ -106,8 +106,16 @@ RemoteWebProgress.prototype = {
       break;
 
     case "Content:SecurityChange":
+      
+      
+      
+      void this._browser.securityUI;
+      this._browser._securityUI._update(aMessage.json.state, aMessage.json.status);
+
+      
+      
       for each (let p in this._progressListeners) {
-        p.onSecurityChange(this, req, aMessage.json.state);
+        p.onSecurityChange(this, req, this._browser.securityUI.state);
       }
       break;
 
