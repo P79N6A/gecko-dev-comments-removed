@@ -106,13 +106,12 @@ class AndroidEclipseBackend(CommonBackend):
 
     def _Element_for_extra_jar(self, name):
         """Turn a referenced JAR name into an XML Element, like:
-        <classpathentry kind="lib" path="libs/robotium-solo-4.3.1.jar"/>
+        <classpathentry exported="true" kind="lib" path="/Users/nalexander/Mozilla/gecko-dev/build/mobile/robocop/robotium-solo-4.3.1.jar"/>
         """
         e = ET.Element('classpathentry')
         e.set('kind', 'lib')
-         
-         
-        e.set('path', 'libs/' + name)
+        e.set('exported', 'true')
+        e.set('path', name)
         return e
 
     def _manifest_for_project(self, srcdir, project):
@@ -135,11 +134,12 @@ class AndroidEclipseBackend(CommonBackend):
         
         
         
+        
+        
+        
+        
         if project.libs:
             manifest.add_pattern_copy(mozpath.join(srcdir, project.libs), '**', 'libs')
-
-        for extra_jar in sorted(project.extra_jars):
-            manifest.add_copy(mozpath.join(srcdir, extra_jar), mozpath.join('libs', os.path.basename(extra_jar)))
 
         return manifest
 
@@ -166,7 +166,7 @@ class AndroidEclipseBackend(CommonBackend):
             classpathentries.append(ET.tostring(e))
 
         for name in sorted(data.extra_jars):
-            e = self._Element_for_extra_jar(os.path.basename(name))
+            e = self._Element_for_extra_jar(mozpath.join(srcdir, name))
             classpathentries.append(ET.tostring(e))
 
         defines = {}
