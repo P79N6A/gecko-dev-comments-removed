@@ -48,7 +48,7 @@ function ArrayStaticIndexOf(list, searchElement) {
     if (arguments.length < 1)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.indexOf');
     var fromIndex = arguments.length > 2 ? arguments[2] : 0;
-    return _CallFunction(list, searchElement, fromIndex, ArrayIndexOf);
+    return callFunction(ArrayIndexOf, list, searchElement, fromIndex);
 }
 
 
@@ -96,7 +96,7 @@ function ArrayStaticLastIndexOf(list, searchElement) {
         var len = TO_UINT32(O.length);
         fromIndex = len - 1;
     }
-    return _CallFunction(list, searchElement, fromIndex, ArrayLastIndexOf);
+    return callFunction(ArrayLastIndexOf, list, searchElement, fromIndex);
 }
 
 
@@ -111,7 +111,7 @@ function ArrayEvery(callbackfn) {
     if (arguments.length === 0)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.every');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(0, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var T = arguments.length > 1 ? arguments[1] : void 0;
@@ -122,7 +122,7 @@ function ArrayEvery(callbackfn) {
         
         if (k in O) {
             
-            if (!_CallFunction(T, O[k], k, O, callbackfn))
+            if (!callFunction(callbackfn, T, O[k], k, O))
                 return false;
         }
     }
@@ -135,9 +135,9 @@ function ArrayStaticEvery(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.every');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(1, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
     var T = arguments.length > 2 ? arguments[2] : void 0;
-    return _CallFunction(list, callbackfn, T, ArrayEvery);
+    return callFunction(ArrayEvery, list, callbackfn, T);
 }
 
 
@@ -152,7 +152,7 @@ function ArraySome(callbackfn) {
     if (arguments.length === 0)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.some');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(0, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var T = arguments.length > 1 ? arguments[1] : void 0;
@@ -163,7 +163,7 @@ function ArraySome(callbackfn) {
         
         if (k in O) {
             
-            if (_CallFunction(T, O[k], k, O, callbackfn))
+            if (callFunction(callbackfn, T, O[k], k, O))
                 return true;
         }
     }
@@ -176,9 +176,9 @@ function ArrayStaticSome(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.some');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(1, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
     var T = arguments.length > 2 ? arguments[2] : void 0;
-    return _CallFunction(list, callbackfn, T, ArraySome);
+    return callFunction(ArraySome, list, callbackfn, T);
 }
 
 
@@ -193,7 +193,7 @@ function ArrayForEach(callbackfn) {
     if (arguments.length === 0)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.forEach');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(0, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var T = arguments.length > 1 ? arguments[1] : void 0;
@@ -204,7 +204,7 @@ function ArrayForEach(callbackfn) {
         
         if (k in O) {
             
-            _CallFunction(T, O[k], k, O, callbackfn);
+            callFunction(callbackfn, T, O[k], k, O);
         }
     }
 
@@ -216,9 +216,9 @@ function ArrayStaticForEach(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.forEach');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(1, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
     var T = arguments.length > 2 ? arguments[2] : void 0;
-    _CallFunction(list, callbackfn, T, ArrayForEach);
+    callFunction(ArrayForEach, list, callbackfn, T);
 }
 
 
@@ -233,7 +233,7 @@ function ArrayReduce(callbackfn) {
     if (arguments.length === 0)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.reduce');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(0, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var k = 0;
@@ -277,11 +277,11 @@ function ArrayStaticReduce(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.reduce');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(1, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
     if (arguments.length > 2)
-        return _CallFunction(list, callbackfn, arguments[2], ArrayReduce);
+        return callFunction(ArrayReduce, list, callbackfn, arguments[2]);
     else
-        return _CallFunction(list, callbackfn, ArrayReduce);
+        return callFunction(ArrayReduce, list, callbackfn);
 }
 
 
@@ -296,7 +296,7 @@ function ArrayReduceRight(callbackfn) {
     if (arguments.length === 0)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.reduce');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(0, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     
     var k = len - 1;
@@ -340,9 +340,9 @@ function ArrayStaticReduceRight(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.reduceRight');
     if (!IsCallable(callbackfn))
-        ThrowError(JSMSG_NOT_FUNCTION, _DecompileArg(1, callbackfn));
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
     if (arguments.length > 2)
-        return _CallFunction(list, callbackfn, arguments[2], ArrayReduceRight);
+        return callFunction(ArrayReduceRight, list, callbackfn, arguments[2]);
     else
-        return _CallFunction(list, callbackfn, ArrayReduceRight);
+        return callFunction(ArrayReduceRight, list, callbackfn);
 }
