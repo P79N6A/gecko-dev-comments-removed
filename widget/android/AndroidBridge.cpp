@@ -1658,16 +1658,18 @@ AndroidBridge::SetURITitle(const nsAString& aURI, const nsAString& aTitle)
 
 nsresult
 AndroidBridge::GetSegmentInfoForText(const nsAString& aText,
-                                     dom::mobilemessage::SmsSegmentInfoData* aData)
+                                     nsIMobileMessageCallback* aRequest)
 {
 #ifndef MOZ_WEBSMS_BACKEND
     return NS_ERROR_FAILURE;
 #else
     ALOG_BRIDGE("AndroidBridge::GetSegmentInfoForText");
 
-    aData->segments() = 0;
-    aData->charsPerSegment() = 0;
-    aData->charsAvailableInLastSegment() = 0;
+    dom::mobilemessage::SmsSegmentInfoData data;
+
+    data.segments() = 0;
+    data.charsPerSegment() = 0;
+    data.charsAvailableInLastSegment() = 0;
 
     JNIEnv *env = GetJNIEnv();
     if (!env)
@@ -1686,13 +1688,17 @@ AndroidBridge::GetSegmentInfoForText(const nsAString& aText,
 
     jint* info = env->GetIntArrayElements(arr, JNI_FALSE);
 
-    aData->segments() = info[0]; 
-    aData->charsPerSegment() = info[2]; 
+    data.segments() = info[0]; 
+    data.charsPerSegment() = info[2]; 
     
-    aData->charsAvailableInLastSegment() = (info[1] + info[2]) / info[0];
+    data.charsAvailableInLastSegment() = (info[1] + info[2]) / info[0];
 
     env->ReleaseIntArrayElements(arr, info, JNI_ABORT);
-    return NS_OK;
+
+    
+    
+    nsCOMPtr<nsIDOMMozSmsSegmentInfo> info = new SmsSegmentInfo(data);
+    return aRequest->NotifySegmentInfoForTextGot(info);
 #endif
 }
 
