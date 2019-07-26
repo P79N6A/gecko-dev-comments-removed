@@ -727,9 +727,7 @@ CompositorParent::ForceComposeToTarget(DrawTarget* aTarget, const nsIntRect* aRe
 bool
 CompositorParent::CanComposite()
 {
-  return mLayerManager &&
-         mLayerManager->GetRoot() &&
-         !mPaused;
+  return !(mPaused || !mLayerManager || !mLayerManager->GetRoot());
 }
 
 
