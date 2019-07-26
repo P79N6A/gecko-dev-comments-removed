@@ -1358,6 +1358,7 @@ var NativeWindow = {
 var SelectionHandler = {
   
   cache: null,
+  _active: false,
 
   
   get _view() {
@@ -1410,14 +1411,14 @@ var SelectionHandler = {
   observe: function sh_observe(aSubject, aTopic, aData) {
     let data = JSON.parse(aData);
 
-    if (this._view)
+    if (this._active)
       this.endSelection(data.x, data.y);
   },
 
   
   startSelection: function sh_startSelection(aElement, aX, aY) {
     
-    if (this._view)
+    if (this._active)
       this.endSelection(0, 0);
 
     
@@ -1465,6 +1466,7 @@ var SelectionHandler = {
     this.updateCacheOffset();
 
     this.showHandles();
+    this._active = true;
   },
 
   
@@ -1616,6 +1618,7 @@ var SelectionHandler = {
     this._isRTL = false;
     this._view = null;
     this.cache = null;
+    this._active = false;
   },
 
   
