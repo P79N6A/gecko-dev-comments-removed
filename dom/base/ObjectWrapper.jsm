@@ -8,11 +8,11 @@ const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const EXPORTED_SYMBOLS = ["ObjectWrapper"];
+this.EXPORTED_SYMBOLS = ["ObjectWrapper"];
 
 
 
-let ObjectWrapper = {
+this.ObjectWrapper = {
   getObjectKind: function objWrapper_getobjectkind(aObject) {
     if (!aObject) {
       return "null";

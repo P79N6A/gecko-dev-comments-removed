@@ -225,4 +225,4 @@ LoginManagerCrypto_SDR.prototype = {
 }; 
 
 let component = [LoginManagerCrypto_SDR];
-var NSGetFactory = XPCOMUtils.generateNSGetFactory(component);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);

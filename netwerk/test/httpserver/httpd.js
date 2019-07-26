@@ -5236,7 +5236,7 @@ Request.prototype =
 
 
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsHttpServer]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsHttpServer]);
 
 
 

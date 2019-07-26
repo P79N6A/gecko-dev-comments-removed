@@ -2,12 +2,12 @@
 
 
  
-let EXPORTED_SYMBOLS = ["OfflineAppCacheHelper"];
+this.EXPORTED_SYMBOLS = ["OfflineAppCacheHelper"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-let OfflineAppCacheHelper = {
+this.OfflineAppCacheHelper = {
   clear: function() {
     var cacheService = Cc["@mozilla.org/network/cache-service;1"].
                        getService(Ci.nsICacheService);

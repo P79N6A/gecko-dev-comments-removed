@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Log4Moz'];
+this.EXPORTED_SYMBOLS = ['Log4Moz'];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -16,7 +16,7 @@ const PR_UINT32_MAX = 0xffffffff;
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
-let Log4Moz = {
+this.Log4Moz = {
   Level: {
     Fatal:  70,
     Error:  60,

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const EXPORTED_SYMBOLS = ["AitcClient"];
+this.EXPORTED_SYMBOLS = ["AitcClient"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -32,7 +32,7 @@ const DEFAULT_REQUEST_FAILURE_THRESHOLD = 3;
 
 
 
-function AitcClient(token, state) {
+this.AitcClient = function AitcClient(token, state) {
   this.updateToken(token);
 
   this._log = Log4Moz.repository.getLogger("Service.AITC.Client");

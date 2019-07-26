@@ -3,7 +3,8 @@
 
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
-let EXPORTED_SYMBOLS = [ ];
+
+this.EXPORTED_SYMBOLS = [ ];
 
 Cu.import("resource:///modules/devtools/gcli.jsm");
 

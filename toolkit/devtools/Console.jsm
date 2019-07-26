@@ -20,7 +20,7 @@
 
 
 
-const EXPORTED_SYMBOLS = [ "console" ];
+this.EXPORTED_SYMBOLS = [ "console" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -345,7 +345,7 @@ function createMultiLineDumper(aLevel) {
 
 
 
-const console = {
+this.console = {
   debug: createMultiLineDumper("debug"),
   log: createDumper("log"),
   info: createDumper("info"),

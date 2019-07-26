@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["MockFilePicker"];
+this.EXPORTED_SYMBOLS = ["MockFilePicker"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -30,7 +30,7 @@ var newFactory = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
 };
 
-var MockFilePicker = {
+this.MockFilePicker = {
   returnOK: Ci.nsIFilePicker.returnOK,
   returnCancel: Ci.nsIFilePicker.returnCancel,
   returnReplace: Ci.nsIFilePicker.returnReplace,

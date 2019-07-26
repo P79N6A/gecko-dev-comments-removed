@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["WeaveCrypto"];
+this.EXPORTED_SYMBOLS = ["WeaveCrypto"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -26,7 +26,7 @@ const KEYSIZE_AES_256           = 32;
 const KEY_DERIVATION_ITERATIONS = 4096;   
 const INITIAL_BUFFER_SIZE       = 1024;
 
-function WeaveCrypto() {
+this.WeaveCrypto = function WeaveCrypto() {
     this.init();
 }
 

@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["StringBundle"];
+this.EXPORTED_SYMBOLS = ["StringBundle"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -30,7 +30,7 @@ const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 
 
-function StringBundle(url) {
+this.StringBundle = function StringBundle(url) {
   this.url = url;
 }
 

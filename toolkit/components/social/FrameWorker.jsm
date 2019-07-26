@@ -17,14 +17,15 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/MessagePortBase.jsm");
 
-const EXPORTED_SYMBOLS = ["getFrameWorkerHandle"];
+this.EXPORTED_SYMBOLS = ["getFrameWorkerHandle"];
 
 var workerCache = {}; 
 var _nextPortId = 1;
 
 
 
-function getFrameWorkerHandle(url, clientWindow, name) {
+this.getFrameWorkerHandle =
+ function getFrameWorkerHandle(url, clientWindow, name) {
   
   
   let portid = _nextPortId++;

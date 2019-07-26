@@ -41,7 +41,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["AeroPeek"];
+this.EXPORTED_SYMBOLS = ["AeroPeek"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -558,7 +558,7 @@ TabWindow.prototype = {
 
 
 
-var AeroPeek = {
+this.AeroPeek = {
   available: false,
   
   _prefenabled: true,

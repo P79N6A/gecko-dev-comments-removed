@@ -2,7 +2,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['FormEngine', 'FormRec'];
+this.EXPORTED_SYMBOLS = ['FormEngine', 'FormRec'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -18,7 +18,7 @@ Cu.import("resource://services-common/log4moz.js");
 
 const FORMS_TTL = 5184000; 
 
-function FormRec(collection, id) {
+this.FormRec = function FormRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
 }
 FormRec.prototype = {
@@ -151,7 +151,7 @@ let FormWrapper = {
 
 };
 
-function FormEngine(service) {
+this.FormEngine = function FormEngine(service) {
   SyncEngine.call(this, "Forms", service);
 }
 FormEngine.prototype = {

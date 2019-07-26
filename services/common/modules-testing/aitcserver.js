@@ -6,7 +6,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-const EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "AITCServer10User",
   "AITCServer10Server",
 ];
@@ -22,7 +22,7 @@ Cu.import("resource://services-common/utils.js");
 
 
 
-function AITCServer10User() {
+this.AITCServer10User = function AITCServer10User() {
   this._log = Log4Moz.repository.getLogger("Services.Common.AITCServer");
   this.apps = {};
 }
@@ -127,7 +127,7 @@ AITCServer10User.prototype = {
 
 
 
-function AITCServer10Server() {
+this.AITCServer10Server = function AITCServer10Server() {
   this._log = Log4Moz.repository.getLogger("Services.Common.AITCServer");
 
   this.server = new HttpServer();

@@ -8,7 +8,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["NS_ASSERT"];
+this.EXPORTED_SYMBOLS = ["NS_ASSERT"];
 
 var gTraceOnAssert = true;
 
@@ -29,7 +29,7 @@ var gTraceOnAssert = true;
 
 
 
-function NS_ASSERT(condition, message) {
+this.NS_ASSERT = function NS_ASSERT(condition, message) {
   if (condition)
     return;
 

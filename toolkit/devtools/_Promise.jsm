@@ -5,7 +5,7 @@
 
 
 
-var EXPORTED_SYMBOLS = [ "Promise" ];
+this.EXPORTED_SYMBOLS = [ "Promise" ];
 
 
 
@@ -14,7 +14,7 @@ var EXPORTED_SYMBOLS = [ "Promise" ];
 
 
 
-function Promise(aTrace) {
+this.Promise = function Promise(aTrace) {
   this._status = Promise.PENDING;
   this._value = undefined;
   this._onSuccessHandlers = [];

@@ -4,7 +4,7 @@
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["ForgetAboutSite"];
+this.EXPORTED_SYMBOLS = ["ForgetAboutSite"];
 
 
 
@@ -35,7 +35,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-var ForgetAboutSite = {
+this.ForgetAboutSite = {
   removeDataFromDomain: function CRH_removeDataFromDomain(aDomain)
   {
     

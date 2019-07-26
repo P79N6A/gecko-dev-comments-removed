@@ -13,11 +13,11 @@ Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 Cu.import('resource://gre/modules/accessibility/UtteranceGenerator.jsm');
 Cu.import('resource://gre/modules/Geometry.jsm');
 
-var EXPORTED_SYMBOLS = ['VisualPresenter',
-                        'AndroidPresenter',
-                        'DummyAndroidPresenter',
-                        'SpeechPresenter',
-                        'PresenterContext'];
+this.EXPORTED_SYMBOLS = ['VisualPresenter',
+                         'AndroidPresenter',
+                         'DummyAndroidPresenter',
+                         'SpeechPresenter',
+                         'PresenterContext'];
 
 
 
@@ -111,7 +111,7 @@ Presenter.prototype = {
 
 
 
-function VisualPresenter() {}
+this.VisualPresenter = function VisualPresenter() {}
 
 VisualPresenter.prototype = {
   __proto__: Presenter.prototype,
@@ -179,7 +179,7 @@ VisualPresenter.prototype = {
 
 
 
-function AndroidPresenter() {}
+this.AndroidPresenter = function AndroidPresenter() {}
 
 AndroidPresenter.prototype = {
   __proto__: Presenter.prototype,
@@ -332,7 +332,7 @@ AndroidPresenter.prototype = {
 
 
 
-function SpeechPresenter() {}
+this.SpeechPresenter = function SpeechPresenter() {}
 
 SpeechPresenter.prototype = {
   __proto__: Presenter.prototype,
@@ -376,7 +376,7 @@ SpeechPresenter.prototype = {
 
 
 
-function PresenterContext(aAccessible, aOldAccessible) {
+this.PresenterContext = function PresenterContext(aAccessible, aOldAccessible) {
   this._accessible = aAccessible;
   this._oldAccessible =
     this._isDefunct(aOldAccessible) ? null : aOldAccessible;

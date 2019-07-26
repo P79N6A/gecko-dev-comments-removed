@@ -2,9 +2,9 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Weave'];
+this.EXPORTED_SYMBOLS = ['Weave'];
 
-let Weave = {};
+this.Weave = {};
 Components.utils.import("resource://services-sync/constants.js", Weave);
 let lazies = {
   "jpakeclient.js":       ["JPAKEClient", "SendCredentialsController"],

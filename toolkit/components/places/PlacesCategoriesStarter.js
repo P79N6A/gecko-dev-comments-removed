@@ -109,4 +109,4 @@ PlacesCategoriesStarter.prototype = {
 
 
 let components = [PlacesCategoriesStarter];
-var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

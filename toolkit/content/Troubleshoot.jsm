@@ -2,7 +2,7 @@
 
 
 
-let EXPORTED_SYMBOLS = [
+this.EXPORTED_SYMBOLS = [
   "Troubleshoot",
 ];
 
@@ -73,7 +73,7 @@ const PREFS_BLACKLIST = [
   /[.]print_to_filename$/,
 ];
 
-let Troubleshoot = {
+this.Troubleshoot = {
 
   
 

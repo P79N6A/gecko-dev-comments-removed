@@ -56,7 +56,7 @@ Cu.import("resource:///modules/devtools/TiltMath.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 Cu.import("resource:///modules/devtools/TiltVisualizerStyle.jsm");
 
-let EXPORTED_SYMBOLS = ["TiltVisualizer"];
+this.EXPORTED_SYMBOLS = ["TiltVisualizer"];
 
 
 
@@ -70,7 +70,7 @@ let EXPORTED_SYMBOLS = ["TiltVisualizer"];
 
 
 
-function TiltVisualizer(aProperties)
+this.TiltVisualizer = function TiltVisualizer(aProperties)
 {
   
   aProperties = aProperties || {};

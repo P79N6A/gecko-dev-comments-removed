@@ -59,6 +59,10 @@ InitAndSealPerfMeasurementClass(JSContext* cx, JSObject* global)
     return false;
 
   
+  if (Preferences::GetBool("jsloader.reuseGlobal"))
+    return true;
+
+  
   
   if (!SealObjectAndPrototype(cx, global, "Object") ||
       !SealObjectAndPrototype(cx, global, "Function") ||

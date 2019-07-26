@@ -1,6 +1,8 @@
-var EXPORTED_SYMBOLS = ["EventEmitter"];
 
-function EventEmitter() {
+
+this.EXPORTED_SYMBOLS = ["EventEmitter"];
+
+this.EventEmitter = function EventEmitter() {
 }
 
 EventEmitter.prototype = {

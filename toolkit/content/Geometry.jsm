@@ -2,14 +2,14 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Point", "Rect"];
+this.EXPORTED_SYMBOLS = ["Point", "Rect"];
 
 
 
 
 
 
-function Point(x, y) {
+this.Point = function Point(x, y) {
   this.set(x, y);
 }
 
@@ -84,7 +84,7 @@ Point.prototype = {
 
 
 
-function Rect(x, y, w, h) {
+this.Rect = function Rect(x, y, w, h) {
   this.left = x;
   this.top = y;
   this.right = x + w;

@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["SafeBrowsing"];
+this.EXPORTED_SYMBOLS = ["SafeBrowsing"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -23,7 +23,7 @@ function log(...stuff) {
   dump(msg + "\n");
 }
 
-var SafeBrowsing = {
+this.SafeBrowsing = {
 
   init: function() {
     if (this.initialized) {

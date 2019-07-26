@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -139,4 +107,4 @@ nsLoginInfo.prototype = {
 
 }; 
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsLoginInfo]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsLoginInfo]);

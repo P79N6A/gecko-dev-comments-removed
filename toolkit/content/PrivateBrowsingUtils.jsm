@@ -2,7 +2,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["PrivateBrowsingUtils"];
+this.EXPORTED_SYMBOLS = ["PrivateBrowsingUtils"];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -11,7 +11,7 @@ const kAutoStartPref = "browser.components.autostart";
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-var PrivateBrowsingUtils = {
+this.PrivateBrowsingUtils = {
   isWindowPrivate: function pbu_isWindowPrivate(aWindow) {
     return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
   },

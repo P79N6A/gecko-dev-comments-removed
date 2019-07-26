@@ -4,12 +4,12 @@
 
 "use strict";
 
-let EXPORTED_SYMBOLS = ["TelURIParser"];
+this.EXPORTED_SYMBOLS = ["TelURIParser"];
 
 
 
 
-let TelURIParser = {
+this.TelURIParser = {
   parseURI: function(scheme, uri) {
     
     if (uri.indexOf('*') != -1 || uri.indexOf('#') != -1) {

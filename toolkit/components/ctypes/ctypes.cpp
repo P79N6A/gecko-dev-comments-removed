@@ -91,6 +91,10 @@ InitAndSealCTypesClass(JSContext* cx, JSObject* global)
   JS_SetCTypesCallbacks(JSVAL_TO_OBJECT(ctypes), &sCallbacks);
 
   
+  if (Preferences::GetBool("jsloader.reuseGlobal"))
+    return true;
+
+  
   
   
   if (!SealObjectAndPrototype(cx, global, "Object") ||

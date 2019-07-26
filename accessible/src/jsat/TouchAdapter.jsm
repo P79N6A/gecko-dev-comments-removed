@@ -9,7 +9,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-var EXPORTED_SYMBOLS = ['TouchAdapter', 'AndroidTouchAdapter'];
+this.EXPORTED_SYMBOLS = ['TouchAdapter', 'AndroidTouchAdapter'];
 
 Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 
@@ -17,7 +17,7 @@ Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 
 const EXPLORE_THROTTLE = 100;
 
-var TouchAdapter = {
+this.TouchAdapter = {
   
   SWIPE_MIN_DISTANCE: 0.4,
 
@@ -366,7 +366,7 @@ var Mouse2Touch = {
   }
 };
 
-var AndroidTouchAdapter = {
+this.AndroidTouchAdapter = {
   attach: function AndroidTouchAdapter_attach(aWindow) {
     if (this.chromeWin)
       return;

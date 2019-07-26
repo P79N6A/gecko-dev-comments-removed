@@ -6,7 +6,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["EngineSynchronizer"];
+this.EXPORTED_SYMBOLS = ["EngineSynchronizer"];
 
 const {utils: Cu} = Components;
 
@@ -21,7 +21,7 @@ Cu.import("resource://services-sync/util.js");
 
 
 
-function EngineSynchronizer(service) {
+this.EngineSynchronizer = function EngineSynchronizer(service) {
   this._log = Log4Moz.repository.getLogger("Sync.Synchronizer");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.synchronizer")];
 

@@ -2,9 +2,9 @@
 
 
 
-let EXPORTED_SYMBOLS = ["XPathGenerator"];
+this.EXPORTED_SYMBOLS = ["XPathGenerator"];
 
-let XPathGenerator = {
+this.XPathGenerator = {
   
   namespaceURIs:     { "xhtml": "http://www.w3.org/1999/xhtml" },
   namespacePrefixes: { "http://www.w3.org/1999/xhtml": "xhtml" },
