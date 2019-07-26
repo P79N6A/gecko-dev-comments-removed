@@ -1966,12 +1966,63 @@ nsWindow::UserActivity()
 }
 
 NS_IMETHODIMP
-nsWindow::ResetInputState()
+nsWindow::NotifyIME(NotificationToIME aNotification)
 {
-    
-    RemoveIMEComposition();
-    AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_RESETINPUTSTATE, 0);
-    return NS_OK;
+    switch (aNotification) {
+        case REQUEST_TO_COMMIT_COMPOSITION:
+            
+            RemoveIMEComposition();
+            AndroidBridge::NotifyIME(
+                AndroidBridge::NOTIFY_IME_RESETINPUTSTATE, 0);
+            return NS_OK;
+        case REQUEST_TO_CANCEL_COMPOSITION:
+            ALOGIME("IME: REQUEST_TO_CANCEL_COMPOSITION");
+
+            
+            if (mIMEComposing) {
+                nsRefPtr<nsWindow> kungFuDeathGrip(this);
+
+                nsTextEvent textEvent(true, NS_TEXT_TEXT, this);
+                InitEvent(textEvent, nullptr);
+                DispatchEvent(&textEvent);
+
+                nsCompositionEvent compEvent(true, NS_COMPOSITION_END, this);
+                InitEvent(compEvent, nullptr);
+                DispatchEvent(&compEvent);
+            }
+
+            AndroidBridge::NotifyIME(
+                AndroidBridge::NOTIFY_IME_CANCELCOMPOSITION, 0);
+            return NS_OK;
+        case NOTIFY_IME_OF_FOCUS:
+            ALOGIME("IME: NOTIFY_IME_OF_FOCUS");
+            AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_FOCUSCHANGE, 1);
+            return NS_OK;
+        case NOTIFY_IME_OF_BLUR:
+            ALOGIME("IME: NOTIFY_IME_OF_BLUR");
+
+            
+            
+            
+            mIMEMaskEventsCount++;
+            mIMEComposing = false;
+            mIMEComposingText.Truncate();
+
+            AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_FOCUSCHANGE, 0);
+            return NS_OK;
+        case NOTIFY_IME_OF_SELECTION_CHANGE:
+            if (mIMEMaskSelectionUpdate) {
+                return NS_OK;
+            }
+
+            ALOGIME("IME: NOTIFY_IME_OF_SELECTION_CHANGE");
+
+            PostFlushIMEChanges();
+            mIMESelectionChanged = true;
+            return NS_OK;
+        default:
+            return NS_ERROR_NOT_IMPLEMENTED;
+    }
 }
 
 NS_IMETHODIMP_(void)
@@ -2022,48 +2073,6 @@ nsWindow::GetInputContext()
     
     mInputContext.mNativeIMEContext = nullptr;
     return mInputContext;
-}
-
-NS_IMETHODIMP
-nsWindow::CancelIMEComposition()
-{
-    ALOGIME("IME: CancelIMEComposition");
-
-    
-    if (mIMEComposing) {
-        nsRefPtr<nsWindow> kungFuDeathGrip(this);
-
-        nsTextEvent textEvent(true, NS_TEXT_TEXT, this);
-        InitEvent(textEvent, nullptr);
-        DispatchEvent(&textEvent);
-
-        nsCompositionEvent compEvent(true, NS_COMPOSITION_END, this);
-        InitEvent(compEvent, nullptr);
-        DispatchEvent(&compEvent);
-    }
-
-    AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_CANCELCOMPOSITION, 0);
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::OnIMEFocusChange(bool aFocus)
-{
-    ALOGIME("IME: OnIMEFocusChange: f=%d", aFocus);
-
-    if (!aFocus) {
-        
-        
-        
-        mIMEMaskEventsCount++;
-        mIMEComposing = false;
-        mIMEComposingText.Truncate();
-    }
-
-    AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_FOCUSCHANGE,
-                             int(aFocus));
-
-    return NS_OK;
 }
 
 void
@@ -2127,7 +2136,7 @@ nsWindow::OnIMETextChange(uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd)
 
     
     mIMESelectionChanged = false;
-    OnIMESelectionChange();
+    NotifyIME(NOTIFY_IME_OF_SELECTION_CHANGE);
     PostFlushIMEChanges();
 
     mIMETextChanges.AppendElement(IMEChange(aStart, aOldEnd, aNewEnd));
@@ -2186,19 +2195,6 @@ nsWindow::OnIMETextChange(uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd)
         
         srcIndex = dstIndex;
     }
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::OnIMESelectionChange(void)
-{
-    if (mIMEMaskSelectionUpdate)
-        return NS_OK;
-
-    ALOGIME("IME: OnIMESelectionChange");
-
-    PostFlushIMEChanges();
-    mIMESelectionChanged = true;
     return NS_OK;
 }
 
