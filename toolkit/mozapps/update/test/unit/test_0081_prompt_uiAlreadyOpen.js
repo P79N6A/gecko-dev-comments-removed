@@ -7,9 +7,13 @@
 
 
 
+const TEST_ID = "0081";
+
 function run_test() {
   do_test_pending();
   do_register_cleanup(end_test);
+
+  adjustGeneralPaths();
 
   logTestInfo("testing nsIUpdatePrompt notifications should not be seen when " +
               "there is already an application update window open");

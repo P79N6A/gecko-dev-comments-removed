@@ -11,6 +11,8 @@
 
 
 
+const TEST_ID = "0050";
+
 var gNextRunFunc;
 var gExpectedStatusCode;
 var gExpectedStatusText;
@@ -18,6 +20,9 @@ var gExpectedStatusText;
 function run_test() {
   do_test_pending();
   do_register_cleanup(end_test);
+
+  adjustGeneralPaths();
+
   removeUpdateDirsAndFiles();
   setUpdateURLOverride();
   standardInit();

@@ -5,7 +5,7 @@
 
 
 
-const TEST_ID = "0114";
+const TEST_ID = "0114-PCC";
 
 
 
@@ -17,6 +17,8 @@ function run_test() {
   if (!IS_MAR_CHECKS_ENABLED) {
     return;
   }
+
+  adjustGeneralPaths();
 
   
   do_register_cleanup(cleanupUpdaterTest);

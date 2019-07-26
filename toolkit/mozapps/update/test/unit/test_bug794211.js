@@ -5,12 +5,16 @@
 
 
 
+const TEST_ID = "bug794211";
+
 
 const NETWORK_ERROR_OFFLINE = 111;
 
 function run_test() {
   do_test_pending();
   do_register_cleanup(end_test);
+
+  adjustGeneralPaths();
 
   logTestInfo("test when an update check fails because the network is " +
               "offline that we check again when the network comes online. " +

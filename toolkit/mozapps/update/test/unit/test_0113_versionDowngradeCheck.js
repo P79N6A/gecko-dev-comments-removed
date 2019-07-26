@@ -5,7 +5,7 @@
 
 
 
-const TEST_ID = "0113";
+const TEST_ID = "0113-VDC";
 
 
 
@@ -20,6 +20,9 @@ function run_test() {
 
   
   do_register_cleanup(cleanupUpdaterTest);
+
+  adjustGeneralPaths();
+
   setupUpdaterTest(MAR_OLD_VERSION_FILE);
 
   

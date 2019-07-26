@@ -3,9 +3,11 @@
 
 
 
+
+
 Components.utils.import("resource://gre/modules/ctypes.jsm")
 
-
+const TEST_ID = "0040";
 
 const URL_PREFIX = URL_HOST + URL_PATH + "/";
 
@@ -14,6 +16,9 @@ var gAppInfo;
 function run_test() {
   do_test_pending();
   do_register_cleanup(end_test);
+
+  adjustGeneralPaths();
+
   removeUpdateDirsAndFiles();
   
   overrideXHR(callHandleEvent);
