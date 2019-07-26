@@ -8,6 +8,7 @@
 #ifndef nsFrame_h___
 #define nsFrame_h___
 
+#include "mozilla/Attributes.h"
 #include "nsBox.h"
 #include "nsRect.h"
 #include "nsString.h"
@@ -379,13 +380,13 @@ public:
   
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
-  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
+  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
   virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState);
-  virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState);
+  virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
 
   
   
-  virtual bool ComputesOwnOverflowArea() { return true; }
+  virtual bool ComputesOwnOverflowArea() MOZ_OVERRIDE { return true; }
 
   
   
@@ -636,10 +637,10 @@ protected:
   
   static void FillCursorInformationFromStyle(const nsStyleUserInterface* ui,
                                              nsIFrame::Cursor& aCursor);
-  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
+  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
 
 #ifdef DEBUG_LAYOUT
-  virtual void GetBoxName(nsAutoString& aName);
+  virtual void GetBoxName(nsAutoString& aName) MOZ_OVERRIDE;
 #endif
 
   void InitBoxMetrics(bool aClear);

@@ -11,6 +11,7 @@
 #ifndef nsSplittableFrame_h___
 #define nsSplittableFrame_h___
 
+#include "mozilla/Attributes.h"
 #include "nsFrame.h"
 
 
@@ -21,7 +22,7 @@ public:
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
+                  nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
   
   virtual nsSplittableType GetSplittableType() const;
 
@@ -36,12 +37,12 @@ public:
 
   
   
-  virtual nsIFrame* GetPrevContinuation() const;
-  virtual nsIFrame* GetNextContinuation() const;
+  virtual nsIFrame* GetPrevContinuation() const MOZ_OVERRIDE;
+  virtual nsIFrame* GetNextContinuation() const MOZ_OVERRIDE;
 
   
-  NS_IMETHOD SetPrevContinuation(nsIFrame*);
-  NS_IMETHOD SetNextContinuation(nsIFrame*);
+  NS_IMETHOD SetPrevContinuation(nsIFrame*) MOZ_OVERRIDE;
+  NS_IMETHOD SetNextContinuation(nsIFrame*) MOZ_OVERRIDE;
 
   
   virtual nsIFrame* GetFirstContinuation() const;
@@ -57,12 +58,12 @@ public:
   nsIFrame* GetPrevInFlow() const;
   nsIFrame* GetNextInFlow() const;
 
-  virtual nsIFrame* GetPrevInFlowVirtual() const { return GetPrevInFlow(); }
-  virtual nsIFrame* GetNextInFlowVirtual() const { return GetNextInFlow(); }
+  virtual nsIFrame* GetPrevInFlowVirtual() const MOZ_OVERRIDE { return GetPrevInFlow(); }
+  virtual nsIFrame* GetNextInFlowVirtual() const MOZ_OVERRIDE { return GetNextInFlow(); }
   
   
-  NS_IMETHOD  SetPrevInFlow(nsIFrame*);
-  NS_IMETHOD  SetNextInFlow(nsIFrame*);
+  NS_IMETHOD  SetPrevInFlow(nsIFrame*) MOZ_OVERRIDE;
+  NS_IMETHOD  SetNextInFlow(nsIFrame*) MOZ_OVERRIDE;
 
   
   virtual nsIFrame* GetFirstInFlow() const;
@@ -76,7 +77,7 @@ protected:
   nsSplittableFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
 
 #ifdef DEBUG
-  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent);
+  virtual void DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent) MOZ_OVERRIDE;
 #endif
 
   nsIFrame*   mPrevContinuation;

@@ -5,6 +5,7 @@
 #ifndef nsTableCellFrame_h__
 #define nsTableCellFrame_h__
 
+#include "mozilla/Attributes.h"
 #include "nsITableCellLayout.h"
 #include "nscore.h"
 #include "nsContainerFrame.h"
@@ -68,12 +69,12 @@ public:
   
   
   NS_IMETHOD AppendFrames(ChildListID     aListID,
-                          nsFrameList&    aFrameList);
+                          nsFrameList&    aFrameList) MOZ_OVERRIDE;
   NS_IMETHOD InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
-                          nsFrameList&    aFrameList);
+                          nsFrameList&    aFrameList) MOZ_OVERRIDE;
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
-                         nsIFrame*       aOldFrame);
+                         nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
   virtual nsIFrame* GetContentInsertionFrame() {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
@@ -83,7 +84,7 @@ public:
 
   virtual void NotifyPercentHeight(const nsHTMLReflowState& aReflowState);
 
-  virtual bool NeedsToObserve(const nsHTMLReflowState& aReflowState);
+  virtual bool NeedsToObserve(const nsHTMLReflowState& aReflowState) MOZ_OVERRIDE;
 
   
 
@@ -94,7 +95,7 @@ public:
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
+                              const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   void PaintCellBackground(nsRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, nsPoint aPt,
@@ -164,7 +165,7 @@ public:
   NS_IMETHOD GetCellIndexes(int32_t &aRowIndex, int32_t &aColIndex);
 
   
-  virtual nsresult GetRowIndex(int32_t &aRowIndex) const;
+  virtual nsresult GetRowIndex(int32_t &aRowIndex) const MOZ_OVERRIDE;
 
   
 
@@ -175,7 +176,7 @@ public:
   virtual int32_t GetColSpan();
 
   
-  virtual nsresult GetColIndex(int32_t &aColIndex) const;
+  virtual nsresult GetColIndex(int32_t &aColIndex) const MOZ_OVERRIDE;
   void SetColIndex(int32_t aColIndex);
 
   
@@ -286,13 +287,13 @@ public:
 
   ~nsBCTableCellFrame();
 
-  virtual nsIAtom* GetType() const;
+  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
   virtual nsMargin GetUsedBorder() const;
   virtual bool GetBorderRadii(nscoord aRadii[8]) const;
 
   
-  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const;
+  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const MOZ_OVERRIDE;
 
   
   BCPixelSize GetBorderWidth(mozilla::css::Side aSide) const;
@@ -300,16 +301,16 @@ public:
   
   void SetBorderWidth(mozilla::css::Side aSide, BCPixelSize aPixelValue);
 
-  virtual nsMargin GetBorderOverflow();
+  virtual nsMargin GetBorderOverflow() MOZ_OVERRIDE;
 
 #ifdef DEBUG
-  NS_IMETHOD GetFrameName(nsAString& aResult) const;
+  NS_IMETHOD GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
 #endif
 
   virtual void PaintBackground(nsRenderingContext& aRenderingContext,
                                const nsRect&        aDirtyRect,
                                nsPoint              aPt,
-                               uint32_t             aFlags);
+                               uint32_t             aFlags) MOZ_OVERRIDE;
 
 private:
 

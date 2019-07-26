@@ -5,6 +5,7 @@
 #ifndef nsTableRowGroupFrame_h__
 #define nsTableRowGroupFrame_h__
 
+#include "mozilla/Attributes.h"
 #include "nscore.h"
 #include "nsContainerFrame.h"
 #include "nsIAtom.h"
@@ -79,14 +80,14 @@ public:
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
   
   NS_IMETHOD AppendFrames(ChildListID     aListID,
-                          nsFrameList&    aFrameList);
+                          nsFrameList&    aFrameList) MOZ_OVERRIDE;
   
   NS_IMETHOD InsertFrames(ChildListID     aListID,
                           nsIFrame*       aPrevFrame,
-                          nsFrameList&    aFrameList);
+                          nsFrameList&    aFrameList) MOZ_OVERRIDE;
 
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
-                         nsIFrame*       aOldFrame);
+                         nsIFrame*       aOldFrame) MOZ_OVERRIDE;
 
   virtual nsMargin GetUsedMargin() const;
   virtual nsMargin GetUsedBorder() const;
@@ -94,7 +95,7 @@ public:
 
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
-                              const nsDisplayListSet& aLists);
+                              const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
    
 
@@ -185,7 +186,7 @@ public:
 
 
 public:
-  virtual void DisposeLineIterator() { }
+  virtual void DisposeLineIterator() MOZ_OVERRIDE { }
 
   
   
@@ -197,12 +198,12 @@ public:
   
 
 
-  virtual int32_t GetNumLines();
+  virtual int32_t GetNumLines() MOZ_OVERRIDE;
 
   
 
 
-  virtual bool GetDirection();
+  virtual bool GetDirection() MOZ_OVERRIDE;
   
   
 
@@ -220,7 +221,7 @@ public:
                      nsIFrame** aFirstFrameOnLine,
                      int32_t* aNumFramesOnLine,
                      nsRect& aLineBounds,
-                     uint32_t* aLineFlags);
+                     uint32_t* aLineFlags) MOZ_OVERRIDE;
   
   
 
@@ -229,7 +230,7 @@ public:
 
 
 
-  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0);
+  virtual int32_t FindLineContaining(nsIFrame* aFrame, int32_t aStartLine = 0) MOZ_OVERRIDE;
 
   
 
@@ -246,7 +247,7 @@ public:
                          nscoord aX,
                          nsIFrame** aFrameFound,
                          bool* aXIsBeforeFirstFrame,
-                         bool* aXIsAfterLastFrame);
+                         bool* aXIsAfterLastFrame) MOZ_OVERRIDE;
 
 #ifdef IBMBIDI
    
@@ -260,7 +261,7 @@ public:
   NS_IMETHOD CheckLineOrder(int32_t                  aLine,
                             bool                     *aIsReordered,
                             nsIFrame                 **aFirstVisual,
-                            nsIFrame                 **aLastVisual);
+                            nsIFrame                 **aLastVisual) MOZ_OVERRIDE;
 #endif
 
   
@@ -268,7 +269,7 @@ public:
 
 
   
-  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber);
+  NS_IMETHOD GetNextSiblingOnLine(nsIFrame*& aFrame, int32_t aLineNumber) MOZ_OVERRIDE;
 
   
   

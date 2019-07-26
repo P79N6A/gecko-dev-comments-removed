@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "nsGridRowLeafFrame.h"
 
 nsIFrame* NS_NewListItemFrame(nsIPresShell* aPresShell,
@@ -22,7 +23,7 @@ public:
                                          const nsRect&           aDirtyRect,
                                          const nsDisplayListSet& aLists);
 
-  virtual nsSize GetPrefSize(nsBoxLayoutState& aState);
+  virtual nsSize GetPrefSize(nsBoxLayoutState& aState) MOZ_OVERRIDE;
 
 protected:
   nsListItemFrame(nsIPresShell* aPresShell,
