@@ -68,6 +68,8 @@ class IonExitFrameLayout;
 class IonActivation;
 class IonActivationIterator;
 
+class BaselineFrame;
+
 class IonFrameIterator
 {
   protected:
@@ -186,10 +188,6 @@ class IonFrameIterator
     const SafepointIndex *safepoint() const;
 
     
-    size_t numBaselineStackValues() const;
-    Value baselineStackValue(size_t index) const;
-
-    
     
     const OsiIndex *osiIndex() const;
 
@@ -200,6 +198,8 @@ class IonFrameIterator
     inline void forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const;
 
     void dump() const;
+
+    inline BaselineFrame *baselineFrame() const;
 };
 
 class IonActivationIterator
