@@ -903,19 +903,100 @@ KEY_MAP_QT      (BrowserStop, Qt::Key_Stop)
 
 
 
-KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
 
 
+KEY_MAP_QT      (AudioBassBoostDown, Qt::Key_BassDown)
 
 
-KEY_MAP_ANDROID (Info, AKEYCODE_INFO)
+KEY_MAP_QT      (AudioBassBoostUp, Qt::Key_BassUp)
+
+
+KEY_MAP_ANDROID (ChannelDown, AKEYCODE_CHANNEL_DOWN)
+
+
+KEY_MAP_ANDROID (ChannelUp, AKEYCODE_CHANNEL_UP)
+
+
+KEY_MAP_GTK     (Red, GDK_Red)
+KEY_MAP_ANDROID (Red, AKEYCODE_PROG_RED)
+
+
+KEY_MAP_GTK     (Green, GDK_Green)
+KEY_MAP_ANDROID (Green, AKEYCODE_PROG_GREEN)
+
+
+KEY_MAP_GTK     (Yellow, GDK_Yellow)
+KEY_MAP_ANDROID (Yellow, AKEYCODE_PROG_YELLOW)
+
+
+KEY_MAP_GTK     (Blue, GDK_Blue)
+KEY_MAP_ANDROID (Blue, AKEYCODE_PROG_BLUE)
+
+
+KEY_MAP_GTK     (Dimmer, GDK_BrightnessAdjust)
+KEY_MAP_QT      (Dimmer, Qt::Key_BrightnessAdjust)
 
 
 KEY_MAP_ANDROID (Exit, AKEYCODE_HOME)
 
 
+KEY_MAP_ANDROID (Guide, AKEYCODE_GUIDE)
+
+
+KEY_MAP_ANDROID (Info, AKEYCODE_INFO)
+
+
+KEY_MAP_ANDROID (Live, AKEYCODE_TV)
+
+
+KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
+
+
+KEY_MAP_QT      (FastFwd, Qt::Key_AudioForward)
+KEY_MAP_ANDROID (FastFwd, AKEYCODE_MEDIA_FAST_FORWARD)
+
+
+KEY_MAP_QT      (MediaLast, Qt::Key_MediaLast)
+
+
+KEY_MAP_GTK     (MediaPause, GDK_AudioPause)
+KEY_MAP_QT      (MediaPause, Qt::Key_MediaPause)
+KEY_MAP_ANDROID (MediaPause, AKEYCODE_MEDIA_PAUSE)
+
+
+KEY_MAP_GTK     (MediaPlay, GDK_AudioPlay)
+KEY_MAP_QT      (MediaPlay, Qt::Key_MediaPlay)
+KEY_MAP_ANDROID (MediaPlay, AKEYCODE_MEDIA_PLAY)
+
+
+KEY_MAP_GTK     (MediaRecord, GDK_AudioRecord)
+KEY_MAP_QT      (MediaRecord, Qt::Key_MediaRecord)
+KEY_MAP_ANDROID (MediaRecord, AKEYCODE_MEDIA_RECORD)
+
+
+KEY_MAP_GTK     (MediaRewind, GDK_AudioRewind)
+KEY_MAP_QT      (MediaRewind, Qt::Key_AudioRewind)
+KEY_MAP_ANDROID (MediaRewind, AKEYCODE_MEDIA_REWIND)
+
+
+KEY_MAP_ANDROID (PinPToggle, AKEYCODE_WINDOW)
+
+
+KEY_MAP_GTK     (RandomToggle, GDK_AudioRandomPlay)
+KEY_MAP_QT      (RandomToggle, Qt::Key_AudioRandomPlay)
+
+
+KEY_MAP_ANDROID (Settings, AKEYCODE_SETTINGS)
+
+
+KEY_MAP_GTK     (Subtitle, GDK_Subtitle)
+KEY_MAP_QT      (Subtitle, Qt::Key_Subtitle)
+KEY_MAP_ANDROID (Subtitle, AKEYCODE_CAPTIONS)
+
+
 KEY_MAP_WIN     (Zoom, VK_ZOOM)
 KEY_MAP_QT      (Zoom, Qt::Key_Zoom)
+
 
 
 
@@ -996,168 +1077,6 @@ KEY_MAP_QT      (DeadSemivoicedSound, Qt::Key_Dead_Semivoiced_Sound)
 
 
 
-
-
-KEY_MAP_QT      (AudioBassBoostDown, Qt::Key_BassDown)
-
-
-KEY_MAP_QT      (AudioBassBoostUp, Qt::Key_BassUp)
-
-
-KEY_MAP_GTK     (MediaPause, GDK_AudioPause)
-KEY_MAP_QT      (MediaPause, Qt::Key_MediaPause)
-KEY_MAP_ANDROID (MediaPause, AKEYCODE_MEDIA_PAUSE)
-
-
-KEY_MAP_GTK     (MediaPlay, GDK_AudioPlay)
-KEY_MAP_QT      (MediaPlay, Qt::Key_MediaPlay)
-KEY_MAP_ANDROID (MediaPlay, AKEYCODE_MEDIA_PLAY)
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (Blue, GDK_Blue)
-KEY_MAP_ANDROID (Blue, AKEYCODE_PROG_BLUE)
-
-
-
-
-KEY_MAP_ANDROID (ChannelDown, AKEYCODE_CHANNEL_DOWN)
-
-
-KEY_MAP_ANDROID (ChannelUp, AKEYCODE_CHANNEL_UP)
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (Dimmer, GDK_BrightnessAdjust)
-KEY_MAP_QT      (Dimmer, Qt::Key_BrightnessAdjust)
-
-
-
-
-KEY_MAP_QT      (FastFwd, Qt::Key_AudioForward)
-KEY_MAP_ANDROID (FastFwd, AKEYCODE_MEDIA_FAST_FORWARD)
-
-
-KEY_MAP_GTK     (Green, GDK_Green)
-KEY_MAP_ANDROID (Green, AKEYCODE_PROG_GREEN)
-
-
-
-
-KEY_MAP_ANDROID (Guide, AKEYCODE_GUIDE)
-
-
-
-
-KEY_MAP_QT      (MediaLast, Qt::Key_MediaLast)
-
-
-
-
-KEY_MAP_ANDROID (Live, AKEYCODE_TV)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_ANDROID (PinPToggle, AKEYCODE_WINDOW)
-
-
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (RandomToggle, GDK_AudioRandomPlay)
-KEY_MAP_QT      (RandomToggle, Qt::Key_AudioRandomPlay)
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (MediaRecord, GDK_AudioRecord)
-KEY_MAP_QT      (MediaRecord, Qt::Key_MediaRecord)
-KEY_MAP_ANDROID (MediaRecord, AKEYCODE_MEDIA_RECORD)
-
-
-
-
-KEY_MAP_GTK     (Red, GDK_Red)
-KEY_MAP_ANDROID (Red, AKEYCODE_PROG_RED)
-
-
-KEY_MAP_GTK     (MediaRewind, GDK_AudioRewind)
-KEY_MAP_QT      (MediaRewind, Qt::Key_AudioRewind)
-KEY_MAP_ANDROID (MediaRewind, AKEYCODE_MEDIA_REWIND)
-
-
-
-
-
-
-
-
-KEY_MAP_ANDROID (Settings, AKEYCODE_SETTINGS)
-
-
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (Subtitle, GDK_Subtitle)
-KEY_MAP_QT      (Subtitle, Qt::Key_Subtitle)
-KEY_MAP_ANDROID (Subtitle, AKEYCODE_CAPTIONS)
-
-
-
-
-
-
-
-
-
-
-
-
-KEY_MAP_GTK     (Yellow, GDK_Yellow)
-KEY_MAP_ANDROID (Yellow, AKEYCODE_PROG_YELLOW)
 
 #undef KEY_MAP_WIN
 #undef KEY_MAP_WIN_JPN
