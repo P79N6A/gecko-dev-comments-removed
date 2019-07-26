@@ -3647,17 +3647,21 @@ WebGLContext::TexImage2D_base(GLenum target, GLint level, GLenum internalformat,
     if (border != 0)
         return ErrorInvalidValue("texImage2D: border must be 0");
 
-    if (format == LOCAL_GL_DEPTH_COMPONENT || format == LOCAL_GL_DEPTH_STENCIL) {
+    const bool isDepthTexture = format == LOCAL_GL_DEPTH_COMPONENT ||
+                                format == LOCAL_GL_DEPTH_STENCIL;
+
+    if (isDepthTexture) {
         if (IsExtensionEnabled(WEBGL_depth_texture)) {
             if (target != LOCAL_GL_TEXTURE_2D || data != nullptr || level != 0)
                 return ErrorInvalidOperation("texImage2D: "
-                                             "with format of DEPTH_COMPONENT or DEPTH_STENCIL "
+                                             "with format of DEPTH_COMPONENT or DEPTH_STENCIL, "
                                              "target must be TEXTURE_2D, "
                                              "data must be nullptr, "
-                                             "level must be zero");
+                                             "level must be zero"); 
+        } else {
+            return ErrorInvalidEnum("texImage2D: attempt to create a depth texture "
+                                    "without having enabled the WEBGL_depth_texture extension.");
         }
-        else
-            return ErrorInvalidEnumInfo("texImage2D: internal format", internalformat);
     }
 
     uint32_t dstTexelSize = 0;
@@ -3727,17 +3731,75 @@ WebGLContext::TexImage2D_base(GLenum target, GLint level, GLenum internalformat,
                                       width, height, border, format, type, convertedData);
         }
     } else {
-        
-        
-        
-        void *tempZeroData = calloc(1, bytesNeeded);
-        if (!tempZeroData)
-            return ErrorOutOfMemory("texImage2D: could not allocate %d bytes (for zero fill)", bytesNeeded);
+        if (isDepthTexture && !gl->IsSupported(GLFeature::depth_texture)) {
+            
+            
+            
 
-        error = CheckedTexImage2D(target, level, internalformat,
-                                  width, height, border, format, type, tempZeroData);
+            
+            MOZ_ASSERT(gl->IsExtensionSupported(GLContext::ANGLE_depth_texture));
+            
+            
+            MOZ_ASSERT(target == LOCAL_GL_TEXTURE_2D && level == 0 && data == nullptr);
 
-        free(tempZeroData);
+            
+            
+            error = CheckedTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalformat, width, height,
+                                      border, format, type, nullptr);
+
+            
+            
+            
+            
+
+            bool success = false;
+            GLuint fb = 0;
+
+            
+            do {
+                gl->fGenFramebuffers(1, &fb);
+                if (!fb)
+                    break;
+
+                ScopedBindFramebuffer autoBindFB(gl, fb);
+
+                gl->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
+                                          LOCAL_GL_DEPTH_ATTACHMENT,
+                                          LOCAL_GL_TEXTURE_2D,
+                                          tex->GLName(),
+                                          0);
+                if (format == LOCAL_GL_DEPTH_STENCIL) {
+                    gl->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
+                                              LOCAL_GL_STENCIL_ATTACHMENT,
+                                              LOCAL_GL_TEXTURE_2D,
+                                              tex->GLName(),
+                                              0);
+                }
+                if (gl->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) != LOCAL_GL_FRAMEBUFFER_COMPLETE)
+                    break;
+
+                gl->ClearSafely();
+                success = true;
+            } while(false);
+
+            gl->fDeleteFramebuffers(1, &fb);
+
+            if (!success) {
+                return ErrorOutOfMemory("texImage2D: sorry, ran out of ways to initialize a depth texture.");
+            }
+        } else {
+            
+            
+            
+            void *tempZeroData = calloc(1, bytesNeeded);
+            if (!tempZeroData)
+                return ErrorOutOfMemory("texImage2D: could not allocate %d bytes (for zero fill)", bytesNeeded);
+
+            error = CheckedTexImage2D(target, level, internalformat,
+                                      width, height, border, format, type, tempZeroData);
+
+            free(tempZeroData);
+        }
     }
 
     if (error) {

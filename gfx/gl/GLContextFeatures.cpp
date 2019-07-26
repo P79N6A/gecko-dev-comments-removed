@@ -53,6 +53,8 @@ static const FeatureInfo sFeatureInfoArr[] = {
         {
             GLContext::ARB_depth_texture,
             GLContext::OES_depth_texture,
+            
+            
             GLContext::Extensions_End
         }
     },
