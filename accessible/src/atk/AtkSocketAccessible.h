@@ -17,6 +17,9 @@ extern "C" typedef void (*AtkSocketEmbedType) (AtkSocket*, gchar*);
 extern "C" typedef void (*AtkSocketEmbedType) (void*, void*);
 #endif
 
+namespace mozilla {
+namespace a11y {
+
 
 
 
@@ -48,5 +51,8 @@ public:
   
   NS_IMETHODIMP GetNativeInterface(void** aOutAccessible);
 };
+
+} 
+} 
 
 #endif

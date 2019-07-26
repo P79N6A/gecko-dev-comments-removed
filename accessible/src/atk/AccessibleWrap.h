@@ -41,6 +41,9 @@ struct AtkPropertyChange {
   void *newvalue;
 };
 
+namespace mozilla {
+namespace a11y {
+
 class MaiHyperlink;
 
 
@@ -109,5 +112,8 @@ private:
 
   uint16_t CreateMaiInterfaces(void);
 };
+
+} 
+} 
 
 #endif

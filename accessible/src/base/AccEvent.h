@@ -10,8 +10,12 @@
 
 #include "mozilla/a11y/Accessible.h"
 
-class nsAccEvent;
+namespace mozilla {
+namespace a11y {
+
 class DocAccessible;
+
+class nsAccEvent;
 
 
 enum EIsFromUserInput
@@ -485,6 +489,9 @@ public:
 private:
   AccEvent* mRawPtr;
 };
+
+} 
+} 
 
 #endif
 

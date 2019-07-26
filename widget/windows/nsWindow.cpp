@@ -5138,7 +5138,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       DWORD objId = static_cast<DWORD>(lParam);
       if (objId == OBJID_CLIENT) { 
-        Accessible* rootAccessible = GetRootAccessible(); 
+        a11y::Accessible* rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
@@ -7467,7 +7467,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 
 #ifdef DEBUG_WMGETOBJECT
 #define NS_LOG_WMGETOBJECT_WNDACC(aWnd)                                        \
-  Accessible* acc = aWnd ? aWind->GetAccessible() : nullptr;                   \
+  a11y::Accessible* acc = aWnd ? aWind->GetAccessible() : nullptr;             \
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("     acc: %p", acc));                   \
   if (acc) {                                                                   \
     nsAutoString name;                                                         \
@@ -7505,7 +7505,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 #define NS_LOG_WMGETOBJECT_WND(aMsg, aHwnd)
 #endif 
 
-Accessible*
+a11y::Accessible*
 nsWindow::GetRootAccessible()
 {
   

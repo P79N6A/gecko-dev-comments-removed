@@ -13,23 +13,19 @@
 #include "nsIAccessibleTypes.h"
 #include "nsINode.h"
 
-class nsAccessNode;
-class DocAccessible;
-class nsIAccessibleDocument;
 class nsIContent;
+class nsIDocShellTreeItem;
+class nsIFrame;
+class nsIPresShell;
+class nsPresContext;
 
 namespace mozilla {
 namespace a11y {
+
+class DocAccessible;
 class RootAccessible;
-}
-}
 
-class nsIPresShell;
-class nsPresContext;
-class nsIFrame;
-class nsIDocShellTreeItem;
-
-class nsAccessNode: public nsISupports
+class nsAccessNode : public nsISupports
 {
 public:
 
@@ -47,7 +43,7 @@ public:
   
 
 
-  mozilla::a11y::RootAccessible* RootAccessible() const;
+  a11y::RootAccessible* RootAccessible() const;
 
   
 
@@ -58,6 +54,7 @@ public:
 
 
   virtual nsIFrame* GetFrame() const;
+
   
 
 
@@ -102,6 +99,9 @@ private:
   nsAccessNode(const nsAccessNode&) MOZ_DELETE;
   nsAccessNode& operator =(const nsAccessNode&) MOZ_DELETE;
 };
+
+} 
+} 
 
 #endif
 

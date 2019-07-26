@@ -5822,7 +5822,7 @@ nsWindow::DispatchEventToRootAccessible(uint32_t aEventType)
     }
 
     
-    Accessible *acc = GetAccessible();
+    a11y::Accessible* acc = GetAccessible();
     if (acc) {
         accService->FireAccessibleEvent(aEventType, acc);
     }

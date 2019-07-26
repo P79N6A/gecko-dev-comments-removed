@@ -20,7 +20,7 @@ public:
   
 
 
-  static void FireEvent(AccEvent* aEvent);
+  static void FireEvent(mozilla::a11y::AccEvent* aEvent);
 
   
 
@@ -28,8 +28,9 @@ public:
 
 
 
-  static void FireEvent(uint32_t aEventType, Accessible* aAccessible,
-                        EIsFromUserInput aIsFromUserInput = eAutoDetect);
+  static void FireEvent(uint32_t aEventType,
+                        mozilla::a11y::Accessible* aAccessible,
+                        mozilla::a11y::EIsFromUserInput aIsFromUserInput = mozilla::a11y::eAutoDetect);
 
   
 

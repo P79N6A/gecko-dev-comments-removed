@@ -36,7 +36,7 @@ GetNativeFromGeckoAccessible(nsIAccessible* aAccessible)
   
 
 
-  AccessibleWrap* mGeckoAccessible;
+  mozilla::a11y::AccessibleWrap* mGeckoAccessible;
   
   
 
@@ -55,7 +55,7 @@ GetNativeFromGeckoAccessible(nsIAccessible* aAccessible)
 }
 
 
-- (id)initWithAccessible:(AccessibleWrap*)geckoParent;
+- (id)initWithAccessible:(mozilla::a11y::AccessibleWrap*)geckoParent;
 
 
 - (id <mozAccessible>)parent;
@@ -116,7 +116,7 @@ GetNativeFromGeckoAccessible(nsIAccessible* aAccessible)
 
 
 
-- (void)appendChild:(Accessible*)aAccessible;
+- (void)appendChild:(mozilla::a11y::Accessible*)aAccessible;
 
 
 

@@ -269,17 +269,17 @@ protected:
                                          nsresult *aError = nullptr) const;
 };
 
-} 
-} 
 
 
 
 
-inline mozilla::a11y::XULTreeAccessible*
+inline XULTreeAccessible*
 Accessible::AsXULTree()
 {
-  return IsXULTree() ?
-    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nullptr;
+  return IsXULTree() ? static_cast<XULTreeAccessible*>(this) : nullptr;
 }
+
+} 
+} 
 
 #endif

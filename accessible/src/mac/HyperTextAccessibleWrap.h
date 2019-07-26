@@ -8,7 +8,13 @@
 
 #include "HyperTextAccessible.h"
 
+namespace mozilla {
+namespace a11y {
+
 typedef class HyperTextAccessible HyperTextAccessibleWrap;
+
+} 
+} 
 
 #endif
 

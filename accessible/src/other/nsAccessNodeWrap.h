@@ -12,6 +12,9 @@
 
 #include "nsAccessNode.h"
 
+namespace mozilla {
+namespace a11y {
+
 class nsAccessNodeWrap :  public nsAccessNode
 {
 public: 
@@ -21,6 +24,9 @@ public:
     static void InitAccessibility();
     static void ShutdownAccessibility();
 };
+
+} 
+} 
 
 #endif
 

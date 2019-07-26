@@ -38,18 +38,19 @@ protected:
   nsString mText;
 };
 
-} 
-} 
 
 
 
 
-inline mozilla::a11y::TextLeafAccessible*
+inline TextLeafAccessible*
 Accessible::AsTextLeaf()
 {
   return mFlags & eTextLeafAccessible ?
-    static_cast<mozilla::a11y::TextLeafAccessible*>(this) : nullptr;
+    static_cast<TextLeafAccessible*>(this) : nullptr;
 }
+
+} 
+} 
 
 #endif
 

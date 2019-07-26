@@ -10,6 +10,9 @@
 
 #include "AccEvent.h"
 
+namespace mozilla {
+namespace a11y {
+
 
 
 
@@ -150,6 +153,9 @@ private:
   nsAccVirtualCursorChangeEvent(const nsAccVirtualCursorChangeEvent&) MOZ_DELETE;
   nsAccVirtualCursorChangeEvent& operator =(const nsAccVirtualCursorChangeEvent&) MOZ_DELETE;
 };
+
+} 
+} 
 
 #endif
 

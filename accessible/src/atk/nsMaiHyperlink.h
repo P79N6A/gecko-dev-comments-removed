@@ -13,6 +13,9 @@
 struct _AtkHyperlink;
 typedef struct _AtkHyperlink                      AtkHyperlink;
 
+namespace mozilla {
+namespace a11y {
+
 
 
 
@@ -34,4 +37,8 @@ protected:
 public:
   static nsresult Initialize(AtkHyperlink *aObj, MaiHyperlink *aClass);
 };
+
+} 
+} 
+
 #endif 

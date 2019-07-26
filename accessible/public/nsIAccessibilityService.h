@@ -12,7 +12,14 @@
 
 #include "nsAutoPtr.h"
 
+namespace mozilla {
+namespace a11y {
+
 class Accessible;
+
+} 
+} 
+
 class nsINode;
 class nsIContent;
 class nsIFrame;
@@ -37,15 +44,17 @@ public:
 
 
 
-  virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                bool aCanCreate) = 0;
+  virtual mozilla::a11y::Accessible*
+    GetRootDocumentAccessible(nsIPresShell* aPresShell, bool aCanCreate) = 0;
 
    
 
 
 
-  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
-  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) = 0;
+  virtual mozilla::a11y::Accessible*
+    AddNativeRootAccessible(void* aAtkAccessible) = 0;
+  virtual void
+    RemoveNativeRootAccessible(mozilla::a11y::Accessible* aRootAccessible) = 0;
 
   
 
@@ -53,7 +62,8 @@ public:
 
 
 
-  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget) = 0;
+  virtual void FireAccessibleEvent(uint32_t aEvent,
+                                   mozilla::a11y::Accessible* aTarget) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAccessibilityService,

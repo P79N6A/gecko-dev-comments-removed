@@ -7,13 +7,14 @@
 
 #include "mozilla/StandardInteger.h"
 
-class Accessible;
-
 
 
 
 namespace mozilla {
 namespace a11y {
+
+class Accessible;
+
 namespace filters {
 
 enum EResult {

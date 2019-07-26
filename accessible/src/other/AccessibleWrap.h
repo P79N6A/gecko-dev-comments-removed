@@ -7,11 +7,14 @@
 
 
 
-#ifndef _AccessibleWrap_H_
-#define _AccessibleWrap_H_
+#ifndef mozilla_a11y_AccessibleWrap_h_
+#define mozilla_a11y_AccessibleWrap_h_
 
 #include "nsCOMPtr.h"
 #include "Accessible.h"
+
+namespace mozilla {
+namespace a11y {
 
 class AccessibleWrap : public Accessible
 {
@@ -25,5 +28,8 @@ public:
       return NS_OK;
     }
 };
+
+} 
+} 
 
 #endif

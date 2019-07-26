@@ -40,6 +40,7 @@ public:
 protected:
   mozilla::a11y::TableCellAccessible* mTableCell;
 };
+
 } 
 } 
 
