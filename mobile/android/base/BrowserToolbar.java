@@ -43,6 +43,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimerTask;
 
+import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
+
 public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                                        Tabs.OnTabsChangedListener,
                                        GeckoMenu.ActionItemBarPresenter,
@@ -485,6 +487,23 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         }
     }
 
+    private boolean canToolbarHide() {
+        
+        
+        ImmutableViewportMetrics metrics = GeckoApp.mAppContext.getLayerView().
+            getLayerClient().getViewportMetrics();
+        return (metrics.getPageHeight() >= metrics.getHeight());
+    }
+
+    private void startVisibilityAnimation() {
+        
+        
+        if (mVisibility == ToolbarVisibility.VISIBLE ||
+            canToolbarHide()) {
+            mVisibilityAnimator.start();
+        }
+    }
+
     public void animateVisibility(boolean show, long delay) {
         
         
@@ -503,13 +522,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         if (delay > 0) {
             mDelayedVisibilityTask = new TimerTask() {
                 public void run() {
-                    mVisibilityAnimator.start();
+                    startVisibilityAnimation();
                     mDelayedVisibilityTask = null;
                 }
             };
             mLayout.postDelayed(mDelayedVisibilityTask, delay);
         } else {
-            mVisibilityAnimator.start();
+            startVisibilityAnimation();
         }
     }
 
