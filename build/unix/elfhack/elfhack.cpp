@@ -768,7 +768,7 @@ void undo_file(const char *name, bool backup = false)
     ElfSegment *second = elf.getSegmentByType(PT_LOAD, first);
     ElfSegment *filler = nullptr;
     
-    if (!second->isElfHackFillerSegment()) {
+    if (second->isElfHackFillerSegment()) {
         filler = second;
         second = elf.getSegmentByType(PT_LOAD, filler);
     }
