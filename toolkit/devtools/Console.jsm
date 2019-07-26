@@ -52,6 +52,8 @@ let gTimerRegistry = new Map();
 
 
 
+
+
 function fmt(aStr, aMaxLen, aMinLen, aOptions) {
   if (aMinLen == null) {
     aMinLen = aMaxLen;
@@ -74,7 +76,8 @@ function fmt(aStr, aMaxLen, aMinLen, aOptions) {
     }
   }
   if (aStr.length < aMinLen) {
-    return Array(aMinLen - aStr.length + 1).join(" ") + aStr;
+    let padding = Array(aMinLen - aStr.length + 1).join(" ");
+    aStr = (aOptions.align === "end") ? padding + aStr : aStr + padding;
   }
   return aStr;
 }
@@ -379,7 +382,7 @@ function formatTrace(aTrace) {
   aTrace.forEach(function(frame) {
     reply += fmt(frame.filename, 20, 20, { truncate: "start" }) + " " +
              fmt(frame.lineNumber, 5, 5) + " " +
-             fmt(frame.functionName, 75, 75, { truncate: "center" }) + "\n";
+             fmt(frame.functionName, 0, 75, { truncate: "center" }) + "\n";
   });
   return reply;
 }
