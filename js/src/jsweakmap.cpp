@@ -108,14 +108,7 @@ GetKeyArg(JSContext *cx, CallArgs &args)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
         return NULL;
     }
-    JSObject &key = vp->toObject();
-
-    
-    
-    
-    
-    
-    return JS_UnwrapObject(&key);
+    return &vp->toObject();
 }
 
 JS_ALWAYS_INLINE bool
@@ -251,7 +244,7 @@ WeakMap_set_impl(JSContext *cx, CallArgs args)
 
     
     if (key->getClass()->ext.isWrappedNative) {
-        MOZ_ASSERT(cx->runtime->preserveWrapperCallback, "wrapped native weak map key needs preserveWrapperCallback");
+        JS_ASSERT(cx->runtime->preserveWrapperCallback);
         if (!cx->runtime->preserveWrapperCallback(cx, key)) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_WEAKMAP_KEY);
             return false;
@@ -288,12 +281,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret)
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         for (ObjectValueMap::Base::Range r = map->all(); !r.empty(); r.popFront()) {
-            RootedObject key(cx, r.front().key);
-            
-            if (!JS_WrapObject(cx, key.address()))
-                return false;
-
-            if (!js_NewbornArrayPush(cx, arr, ObjectValue(*key)))
+            if (!js_NewbornArrayPush(cx, arr, ObjectValue(*r.front().key)))
                 return false;
         }
     }

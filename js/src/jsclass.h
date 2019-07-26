@@ -255,9 +255,22 @@ struct ClassExtension
 
 
     bool                isWrappedNative;
+
+    
+
+
+
+
+
+
+
+
+
+
+    JSWeakmapKeyDelegateOp weakmapKeyDelegateOp;
 };
 
-#define JS_NULL_CLASS_EXT   {NULL,NULL,NULL,NULL,NULL,false}
+#define JS_NULL_CLASS_EXT   {NULL,NULL,NULL,NULL,NULL,false,NULL}
 
 struct ObjectOps
 {

@@ -33,38 +33,6 @@ namespace js {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static WeakMapBase * const WeakMapNotInList = reinterpret_cast<WeakMapBase *>(1);
 
 typedef Vector<WeakMapBase *, 0, SystemAllocPolicy> WeakMapVector;
@@ -170,6 +138,23 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
             markValue(trc, &r.front().value);
     }
 
+    bool keyNeedsMark(JSObject *key) {
+        if (JSWeakmapKeyDelegateOp op = key->getClass()->ext.weakmapKeyDelegateOp) {
+            JSObject *delegate = op(key);
+            
+
+
+
+
+            return delegate && gc::IsObjectMarked(&delegate);
+        }
+        return false;
+    }
+
+    bool keyNeedsMark(gc::Cell *cell) {
+        return false;
+    }
+
     bool markIteratively(JSTracer *trc) {
         bool markedAny = false;
         for (Enum e(*this); !e.empty(); e.popFront()) {
@@ -180,6 +165,12 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
                     markedAny = true;
                 if (prior != e.front().key)
                     e.rekeyFront(e.front().key);
+            } else if (keyNeedsMark(e.front().key)) {
+                gc::Mark(trc, const_cast<Key *>(&e.front().key), "proxy-preserved WeakMap key");
+                if (prior != e.front().key)
+                    e.rekeyFront(e.front().key);
+                gc::Mark(trc, &e.front().value, "WeakMap entry");
+                markedAny = true;
             }
         }
         return markedAny;
