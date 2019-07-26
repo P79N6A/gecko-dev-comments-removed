@@ -36,7 +36,7 @@ NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 NS_IMPL_ADDREF_INHERITED(OscillatorNode, AudioNode)
 NS_IMPL_RELEASE_INHERITED(OscillatorNode, AudioNode)
 
-static const float sLeak = 0.995f;
+static const float sLeak = 0.995;
 
 class DCBlocker
 {
@@ -158,14 +158,14 @@ public:
         
         
         
-        mPhase = (float)(M_PI / 2);
+        mPhase = M_PI / 2;
         mSquare = 0.5;
         mTriangle = 0.0;
         break;
       case OscillatorType::Sawtooth:
         
 
-        mPhase = (float)(M_PI / 2);
+        mPhase = M_PI / 2;
         
         mSaw = 0.0;
         break;
