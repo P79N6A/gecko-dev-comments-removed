@@ -4329,6 +4329,13 @@ Downloader.prototype = {
       this._update.statusText = getStatusTextFromCode(status,
                                                       Cr.NS_BINDING_FAILED);
 
+#ifdef MOZ_WIDGET_GONK
+      
+      
+      
+      this._update.selectedPatch.selected = false;
+#endif
+
       
       cleanUpUpdatesDir();
 
