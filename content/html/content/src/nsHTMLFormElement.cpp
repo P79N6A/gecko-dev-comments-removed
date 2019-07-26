@@ -54,6 +54,9 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "nsSandboxFlags.h"
 
+
+#include "mozilla/dom/HTMLImageElement.h"
+
 using namespace mozilla::dom;
 
 static const int NS_FORM_CONTROL_LIST_HASHTABLE_SIZE = 16;
@@ -104,6 +107,8 @@ public:
 
   nsresult AddElementToTable(nsGenericHTMLFormElement* aChild,
                              const nsAString& aName);
+  nsresult AddImageElementToTable(HTMLImageElement* aChild,
+                                  const nsAString& aName);
   nsresult RemoveElementFromTable(nsGenericHTMLFormElement* aChild,
                                   const nsAString& aName);
   nsresult IndexOfControl(nsIFormControl* aControl,
@@ -241,6 +246,7 @@ nsHTMLFormElement::nsHTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mInvalidElementsCount(0),
     mEverTriedInvalidSubmit(false)
 {
+  mImageNameLookupTable.Init(NS_FORM_CONTROL_LIST_HASHTABLE_SIZE);
 }
 
 nsHTMLFormElement::~nsHTMLFormElement()
@@ -248,6 +254,8 @@ nsHTMLFormElement::~nsHTMLFormElement()
   if (mControls) {
     mControls->DropFormReference();
   }
+
+  Clear();
 }
 
 nsresult
@@ -290,8 +298,14 @@ ElementTraverser(const nsAString& key, nsIDOMHTMLInputElement* element,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLFormElement,
                                                   nsGenericHTMLElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mControls)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mImageNameLookupTable)
   tmp->mSelectedRadioButtons.EnumerateRead(ElementTraverser, &cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHTMLFormElement,
+                                                nsGenericHTMLElement)
+  tmp->Clear();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(nsHTMLFormElement, Element)
 NS_IMPL_RELEASE_INHERITED(nsHTMLFormElement, Element)
@@ -455,8 +469,9 @@ nsHTMLFormElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return rv;
 }
 
+template<typename T>
 static void
-MarkOrphans(const nsTArray<nsGenericHTMLFormElement*>& aArray)
+MarkOrphans(const nsTArray<T*>& aArray)
 {
   uint32_t length = aArray.Length();
   for (uint32_t i = 0; i < length; ++i) {
@@ -480,7 +495,6 @@ CollectOrphans(nsINode* aRemovalRoot,
   for (uint32_t i = length; i > 0; --i) {
     nsGenericHTMLFormElement* node = aArray[i-1];
 
-    
     
     
     
@@ -511,6 +525,46 @@ CollectOrphans(nsINode* aRemovalRoot,
   }
 }
 
+static void
+CollectOrphans(nsINode* aRemovalRoot,
+               const nsTArray<HTMLImageElement*>& aArray
+#ifdef DEBUG
+               , nsIDOMHTMLFormElement* aThisForm
+#endif
+               )
+{
+  
+  uint32_t length = aArray.Length();
+  for (uint32_t i = length; i > 0; --i) {
+    HTMLImageElement* node = aArray[i-1];
+
+    
+    
+    
+    
+#ifdef DEBUG
+    bool removed = false;
+#endif
+    if (node->HasFlag(MAYBE_ORPHAN_FORM_ELEMENT)) {
+      node->UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
+      if (!nsContentUtils::ContentIsDescendantOf(node, aRemovalRoot)) {
+        node->ClearForm(true);
+
+#ifdef DEBUG
+        removed = true;
+#endif
+      }
+    }
+
+#ifdef DEBUG
+    if (!removed) {
+      nsCOMPtr<nsIDOMHTMLFormElement> form = node->GetForm();
+      NS_ASSERTION(form == aThisForm, "How did that happen?");
+    }
+#endif 
+  }
+}
+
 void
 nsHTMLFormElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
@@ -519,6 +573,7 @@ nsHTMLFormElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   MarkOrphans(mControls->mElements);
   MarkOrphans(mControls->mNotInElements);
+  MarkOrphans(mImageElements);
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 
@@ -535,17 +590,22 @@ nsHTMLFormElement::UnbindFromTree(bool aDeep, bool aNullParent)
   CollectOrphans(ancestor, mControls->mElements
 #ifdef DEBUG
                  , this
-#endif                 
+#endif
                  );
   CollectOrphans(ancestor, mControls->mNotInElements
 #ifdef DEBUG
                  , this
-#endif                 
+#endif
+                 );
+  CollectOrphans(ancestor, mImageElements
+#ifdef DEBUG
+                 , this
+#endif
                  );
 
   if (oldDocument) {
     oldDocument->RemovedForm();
-  }     
+  }
   ForgetCurrentSubmission();
 }
 
@@ -1034,18 +1094,17 @@ nsHTMLFormElement::GetElementAt(int32_t aIndex) const
 
 
 static inline int32_t
-CompareFormControlPosition(nsGenericHTMLFormElement *aControl1,
-                           nsGenericHTMLFormElement *aControl2,
+CompareFormControlPosition(Element *aElement1, Element *aElement2,
                            const nsIContent* aForm)
 {
-  NS_ASSERTION(aControl1 != aControl2, "Comparing a form control to itself");
+  NS_ASSERTION(aElement1 != aElement2, "Comparing a form control to itself");
 
   
   
-  NS_ASSERTION((aControl1->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
-                aControl1->GetParent()) &&
-               (aControl2->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
-                aControl2->GetParent()),
+  NS_ASSERTION((aElement1->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+                aElement1->GetParent()) &&
+               (aElement2->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+                aElement2->GetParent()),
                "Form controls should always have parents");
 
   
@@ -1054,15 +1113,15 @@ CompareFormControlPosition(nsGenericHTMLFormElement *aControl1,
   
 #ifdef DEBUG
   nsLayoutUtils::gPreventAssertInCompareTreePosition = true;
-  int32_t rVal = nsLayoutUtils::CompareTreePosition(aControl1, aControl2, aForm);
+  int32_t rVal = nsLayoutUtils::CompareTreePosition(aElement1, aElement2, aForm);
   nsLayoutUtils::gPreventAssertInCompareTreePosition = false;
 
   return rVal;
 #else 
-  return nsLayoutUtils::CompareTreePosition(aControl1, aControl2, aForm);
+  return nsLayoutUtils::CompareTreePosition(aElement1, aElement2, aForm);
 #endif 
 }
- 
+
 #ifdef DEBUG
 
 
@@ -1106,6 +1165,57 @@ nsHTMLFormElement::PostPasswordEvent()
   event->PostDOMEvent();
 }
 
+
+
+template<typename ElementType>
+static bool
+AddElementToList(nsTArray<ElementType*>& aList, ElementType* aChild,
+                 nsHTMLFormElement* aForm)
+{
+  NS_ASSERTION(aList.IndexOf(aChild) == aList.NoIndex,
+               "aChild already in aList");
+
+  uint32_t count = aList.Length();
+  ElementType* element;
+  bool lastElement = false;
+
+  
+  int32_t position = -1;
+  if (count > 0) {
+    element = aList[count - 1];
+    position = CompareFormControlPosition(aChild, element, aForm);
+  }
+
+  
+  
+  
+  if (position >= 0 || count == 0) {
+    
+    aList.AppendElement(aChild);
+    lastElement = true;
+  }
+  else {
+    int32_t low = 0, mid, high;
+    high = count - 1;
+
+    while (low <= high) {
+      mid = (low + high) / 2;
+
+      element = aList[mid];
+      position = CompareFormControlPosition(aChild, element, aForm);
+      if (position >= 0)
+        low = mid + 1;
+      else
+        high = mid - 1;
+    }
+
+    
+    aList.InsertElementAt(low, aChild);
+  }
+
+  return lastElement;
+}
+
 nsresult
 nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
                               bool aUpdateValidity, bool aNotify)
@@ -1121,47 +1231,8 @@ nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
   bool childInElements = ShouldBeInElements(aChild);
   nsTArray<nsGenericHTMLFormElement*>& controlList = childInElements ?
       mControls->mElements : mControls->mNotInElements;
-  
-  NS_ASSERTION(controlList.IndexOf(aChild) == controlList.NoIndex,
-               "Form control already in form");
 
-  uint32_t count = controlList.Length();
-  nsGenericHTMLFormElement* element;
-  
-  
-  bool lastElement = false;
-  int32_t position = -1;
-  if (count > 0) {
-    element = controlList[count - 1];
-    position = CompareFormControlPosition(aChild, element, this);
-  }
-
-  
-  
-  
-  if (position >= 0 || count == 0) {
-    
-    controlList.AppendElement(aChild);
-    lastElement = true;
-  }
-  else {
-    int32_t low = 0, mid, high;
-    high = count - 1;
-      
-    while (low <= high) {
-      mid = (low + high) / 2;
-        
-      element = controlList[mid];
-      position = CompareFormControlPosition(aChild, element, this);
-      if (position >= 0)
-        low = mid + 1;
-      else
-        high = mid - 1;
-    }
-      
-    
-    controlList.InsertElementAt(low, aChild);
-  }
+  bool lastElement = AddElementToList(controlList, aChild, this);
 
 #ifdef DEBUG
   AssertDocumentOrder(controlList, this);
@@ -1359,6 +1430,55 @@ nsHTMLFormElement::HandleDefaultSubmitRemoval()
   }
 }
 
+static nsresult
+RemoveElementFromTableInternal(
+  nsInterfaceHashtable<nsStringHashKey,nsISupports>& aTable,
+  nsIContent* aChild, const nsAString& aName)
+{
+  nsCOMPtr<nsISupports> supports;
+
+  if (!aTable.Get(aName, getter_AddRefs(supports)))
+    return NS_OK;
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(supports));
+
+  if (content) {
+    
+    
+    if (content == aChild) {
+      aTable.Remove(aName);
+    }
+
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDOMNodeList> nodeList(do_QueryInterface(supports));
+  NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
+
+  
+  nsBaseContentList *list = static_cast<nsBaseContentList*>(nodeList.get());
+
+  list->RemoveElement(aChild);
+
+  uint32_t length = 0;
+  list->GetLength(&length);
+
+  if (!length) {
+    
+    
+    aTable.Remove(aName);
+  } else if (length == 1) {
+    
+    
+    nsIContent* node = list->Item(0);
+    if (node) {
+      aTable.Put(aName, node);
+    }
+  }
+
+  return NS_OK;
+}
+
 nsresult
 nsHTMLFormElement::RemoveElementFromTable(nsGenericHTMLFormElement* aElement,
                                           const nsAString& aName)
@@ -1377,13 +1497,13 @@ nsHTMLFormElement::FindNamedItem(const nsAString& aName,
     return result.forget();
   }
 
-  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(GetCurrentDoc());
-  if (!htmlDoc) {
+  result = mImageNameLookupTable.GetWeak(aName);
+  if (result) {
     *aCache = nullptr;
-    return nullptr;
+    return result.forget();
   }
 
-  return htmlDoc->ResolveName(aName, this, aCache);
+  return nullptr;
 }
 
 already_AddRefed<nsISupports>
@@ -1910,7 +2030,7 @@ nsHTMLFormElement::OnSecurityChange(nsIWebProgress* aWebProgress,
   NS_NOTREACHED("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
- 
+
 NS_IMETHODIMP_(int32_t)
 nsHTMLFormElement::IndexOfControl(nsIFormControl* aControl)
 {
@@ -2141,6 +2261,16 @@ nsHTMLFormElement::IntrinsicState() const
   return state;
 }
 
+void
+nsHTMLFormElement::Clear()
+{
+  for (int32_t i = mImageElements.Length() - 1; i >= 0; i--) {
+    mImageElements[i]->ClearForm(false);
+  }
+  mImageElements.Clear();
+  mImageNameLookupTable.Clear();
+}
+
 
 
 
@@ -2229,7 +2359,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsFormControlList)
 
 
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsFormControlList::GetLength(uint32_t* aLength)
 {
   FlushPendingNotifications();
@@ -2298,20 +2428,17 @@ nsFormControlList::NamedItemInternal(const nsAString& aName,
   return mNameLookupTable.GetWeak(aName);
 }
 
-nsresult
-nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
-                                     const nsAString& aName)
+static nsresult
+AddElementToTableInternal(
+  nsInterfaceHashtable<nsStringHashKey,nsISupports>& aTable,
+  nsIContent* aChild, const nsAString& aName, nsHTMLFormElement* aForm)
 {
-  if (!ShouldBeInElements(aChild)) {
-    return NS_OK;
-  }
-
   nsCOMPtr<nsISupports> supports;
-  mNameLookupTable.Get(aName, getter_AddRefs(supports));
+  aTable.Get(aName, getter_AddRefs(supports));
 
   if (!supports) {
     
-    mNameLookupTable.Put(aName, NS_ISUPPORTS_CAST(nsIContent*, aChild));
+    aTable.Put(aName, aChild);
   } else {
     
     nsCOMPtr<nsIContent> content = do_QueryInterface(supports);
@@ -2327,7 +2454,7 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
 
       
       
-      nsSimpleContentList *list = new nsSimpleContentList(mForm);
+      nsSimpleContentList *list = new nsSimpleContentList(aForm);
 
       
       
@@ -2337,14 +2464,14 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
       
       bool newFirst = nsContentUtils::PositionIsBefore(aChild, content);
 
-      list->AppendElement(newFirst ? aChild : content);
-      list->AppendElement(newFirst ? content : aChild);
+      list->AppendElement(newFirst ? aChild : content.get());
+      list->AppendElement(newFirst ? content.get() : aChild);
 
 
       nsCOMPtr<nsISupports> listSupports = do_QueryObject(list);
 
       
-      mNameLookupTable.Put(aName, listSupports);
+      aTable.Put(aName, listSupports);
     } else {
       
       nsCOMPtr<nsIDOMNodeList> nodeList = do_QueryInterface(supports);
@@ -2396,6 +2523,17 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
 }
 
 nsresult
+nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
+                                     const nsAString& aName)
+{
+  if (!ShouldBeInElements(aChild)) {
+    return NS_OK;
+  }
+
+  return AddElementToTableInternal(mNameLookupTable, aChild, aName, mForm);
+}
+
+nsresult
 nsFormControlList::IndexOfControl(nsIFormControl* aControl,
                                   int32_t* aIndex)
 {
@@ -2416,48 +2554,7 @@ nsFormControlList::RemoveElementFromTable(nsGenericHTMLFormElement* aChild,
     return NS_OK;
   }
 
-  nsCOMPtr<nsISupports> supports;
-
-  if (!mNameLookupTable.Get(aName, getter_AddRefs(supports)))
-    return NS_OK;
-
-  nsCOMPtr<nsIFormControl> fctrl(do_QueryInterface(supports));
-
-  if (fctrl) {
-    
-    
-    if (fctrl == aChild) {
-      mNameLookupTable.Remove(aName);
-    }
-
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIDOMNodeList> nodeList(do_QueryInterface(supports));
-  NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
-
-  
-  nsBaseContentList *list = static_cast<nsBaseContentList*>(nodeList.get());
-
-  list->RemoveElement(aChild);
-
-  uint32_t length = 0;
-  list->GetLength(&length);
-
-  if (!length) {
-    
-    
-    mNameLookupTable.Remove(aName);
-  } else if (length == 1) {
-    
-    
-    nsIContent* node = list->Item(0);
-    if (node) {
-      mNameLookupTable.Put(aName, node);
-    }
-  }
-
-  return NS_OK;
+  return RemoveElementFromTableInternal(mNameLookupTable, aChild, aName);
 }
 
 nsresult
@@ -2581,3 +2678,35 @@ nsFormControlList::GetSupportedNames(nsTArray<nsString>& aNames)
   
   mNameLookupTable.EnumerateRead(CollectNames, &aNames);
 }
+
+nsresult
+nsHTMLFormElement::AddImageElement(HTMLImageElement* aChild)
+{
+  AddElementToList(mImageElements, aChild, this);
+  return NS_OK;
+}
+
+nsresult
+nsHTMLFormElement::AddImageElementToTable(HTMLImageElement* aChild,
+                                          const nsAString& aName)
+{
+  return AddElementToTableInternal(mImageNameLookupTable, aChild, aName, this);
+}
+
+nsresult
+nsHTMLFormElement::RemoveImageElement(HTMLImageElement* aChild)
+{
+  uint32_t index = mImageElements.IndexOf(aChild);
+  NS_ENSURE_STATE(index != mImageElements.NoIndex);
+
+  mImageElements.RemoveElementAt(index);
+  return NS_OK;
+}
+
+nsresult
+nsHTMLFormElement::RemoveImageElementFromTable(HTMLImageElement* aElement,
+                                               const nsAString& aName)
+{
+  return RemoveElementFromTableInternal(mImageNameLookupTable, aElement, aName);
+}
+

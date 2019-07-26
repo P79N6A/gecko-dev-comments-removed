@@ -510,17 +510,6 @@ public:
   static nsresult GuessCharset(const char *aData, uint32_t aDataLen,
                                nsACString &aCharset);
 
-  
-
-
-
-
-
-
-
-  static bool BelongsInForm(nsIContent *aForm,
-                              nsIContent *aContent);
-
   static nsresult CheckQName(const nsAString& aQualifiedName,
                              bool aNamespaceAware = true,
                              const PRUnichar** aColon = nullptr);

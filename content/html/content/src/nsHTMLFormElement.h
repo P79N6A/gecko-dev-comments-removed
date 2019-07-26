@@ -32,6 +32,12 @@ class nsFormControlList;
 class nsIMutableArray;
 class nsIURI;
 
+namespace mozilla {
+namespace dom {
+class HTMLImageElement;
+}
+}
+
 class nsHTMLFormElement : public nsGenericHTMLElement,
                           public nsIDOMHTMLFormElement,
                           public nsIWebProgressListener,
@@ -121,8 +127,8 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLFormElement,
-                                                     nsGenericHTMLElement)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLFormElement,
+                                           nsGenericHTMLElement)
 
   
 
@@ -168,6 +174,46 @@ public:
 
   nsresult AddElementToTable(nsGenericHTMLFormElement* aChild,
                              const nsAString& aName);
+
+  
+
+
+
+
+
+  nsresult RemoveImageElement(mozilla::dom::HTMLImageElement* aElement);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult RemoveImageElementFromTable(mozilla::dom::HTMLImageElement* aElement,
+                                      const nsAString& aName);
+  
+
+
+
+
+
+  nsresult AddImageElement(mozilla::dom::HTMLImageElement* aElement);
+
+  
+
+
+
+
+
+
+  nsresult AddImageElementToTable(mozilla::dom::HTMLImageElement* aChild,
+                                 const nsAString& aName);
+
    
 
 
@@ -363,6 +409,9 @@ protected:
 
   bool CheckFormValidity(nsIMutableArray* aInvalidElements) const;
 
+  
+  void Clear();
+
 public:
   
 
@@ -416,6 +465,20 @@ protected:
 
   
   nsGenericHTMLFormElement* mFirstSubmitNotInElements;
+
+  
+  
+  
+
+  nsTArray<mozilla::dom::HTMLImageElement*> mImageElements;  
+
+  
+  
+  
+  
+  
+
+  nsInterfaceHashtable<nsStringHashKey,nsISupports> mImageNameLookupTable;
 
   
 

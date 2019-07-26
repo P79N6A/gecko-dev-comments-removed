@@ -141,26 +141,6 @@ nsSimpleContentList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
 }
 
 
-
-nsFormContentList::nsFormContentList(nsIContent *aForm,
-                                     nsBaseContentList& aContentList)
-  : nsSimpleContentList(aForm)
-{
-
-  
-
-  uint32_t i, length = 0;
-  aContentList.GetLength(&length);
-
-  for (i = 0; i < length; i++) {
-    nsIContent *c = aContentList.Item(i);
-    if (c && nsContentUtils::BelongsInForm(aForm, c)) {
-      AppendElement(c);
-    }
-  }
-}
-
-
 static PLDHashTable gContentListHashTable;
 
 struct ContentListHashEntry : public PLDHashEntryHdr
