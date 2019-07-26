@@ -233,11 +233,13 @@ tests.push(function test_interestingColorPreferenceNotTooLenient() {
   }, 0xFF0000, "interestingColorPreferenceNotTooLenient analysis returns red");
 });
 
+let maxPixels = 144; 
+
 
 tests.push(function test_imageTooLarge() {
-  canvasTest(129, 129, function(ctx) {
+  canvasTest(1+maxPixels, 1+maxPixels, function(ctx) {
     ctx.fillStyle = "red";
-    ctx.fillRect(0, 0, 129, 129);
+    ctx.fillRect(0, 0, 1+maxPixels, 1+maxPixels);
   }, null, "imageTooLarge analysis fails");
 });
 
