@@ -81,6 +81,36 @@ char* nsCRT::strtok(char* string, const char* delims, char* *newStr)
 
 
 
+int32_t nsCRT::strcmp(const PRUnichar* s1, const PRUnichar* s2) {
+  if(s1 && s2) {
+    for (;;) {
+      PRUnichar c1 = *s1++;
+      PRUnichar c2 = *s2++;
+      if (c1 != c2) {
+        if (c1 < c2) return -1;
+        return 1;
+      }
+      if ((0==c1) || (0==c2)) break;
+    }
+  }
+  else {
+    if (s1)                     
+      return -1;
+    if (s2)                     
+      return 1;
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
 int32_t nsCRT::strncmp(const PRUnichar* s1, const PRUnichar* s2, uint32_t n) {
   if(s1 && s2) { 
     if(n != 0) {
