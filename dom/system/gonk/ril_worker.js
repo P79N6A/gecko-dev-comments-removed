@@ -8343,8 +8343,13 @@ let ICCIOHelper = {
     }
 
     
-    options.recordSize = GsmPDUHelper.readHexOctet();
-    options.totalRecords = options.fileSize / options.recordSize;
+    
+    if (efType == EF_TYPE_LINEAR_FIXED || efType == EF_TYPE_CYCLIC) {
+      options.recordSize = GsmPDUHelper.readHexOctet();
+      options.totalRecords = options.fileSize / options.recordSize;
+    } else {
+      Buf.seekIncoming(1 * PDU_HEX_OCTET_SIZE);
+    }
 
     Buf.readStringDelimiter(length);
 
