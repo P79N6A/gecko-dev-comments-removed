@@ -117,10 +117,10 @@ DocManager::Shutdown()
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS3(DocManager,
-                              nsIWebProgressListener,
-                              nsIDOMEventListener,
-                              nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS3(DocManager,
+                   nsIWebProgressListener,
+                   nsIDOMEventListener,
+                   nsISupportsWeakReference)
 
 
 
