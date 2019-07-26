@@ -1512,13 +1512,10 @@ Simulator::writeW(int32_t addr, int value, SimInstruction *instr)
 uint16_t
 Simulator::readHU(int32_t addr, SimInstruction *instr)
 {
-    if ((addr & 1) == 0) {
-        uint16_t *ptr = reinterpret_cast<uint16_t*>(addr);
-        return *ptr;
-    }
-    printf("Unaligned unsigned halfword read at 0x%08x, pc=%p\n", addr, instr);
-    MOZ_CRASH();
-    return 0;
+    
+    
+    uint16_t *ptr = reinterpret_cast<uint16_t*>(addr);
+    return *ptr;
 }
 
 int16_t
