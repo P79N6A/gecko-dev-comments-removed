@@ -713,7 +713,7 @@ CastToJSFreeOp(FreeOp *fop)
 
 
 extern JS_FRIEND_API(const jschar*)
-GetErrorTypeName(JSContext* cx, int16_t exnType);
+GetErrorTypeName(JSRuntime* rt, int16_t exnType);
 
 #ifdef DEBUG
 extern JS_FRIEND_API(unsigned)
