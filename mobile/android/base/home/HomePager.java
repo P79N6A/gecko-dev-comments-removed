@@ -27,6 +27,7 @@ public class HomePager extends ViewPager {
 
     
     private enum Page {
+        VISITED,
         BOOKMARKS
     }
 
@@ -56,6 +57,7 @@ public class HomePager extends ViewPager {
         TabsAdapter adapter = new TabsAdapter(fm);
 
         
+        adapter.addTab(Page.VISITED, VisitedPage.class, null, getContext().getString(R.string.visited_title));
         adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, null, getContext().getString(R.string.bookmarks_title));
 
         setAdapter(adapter);
