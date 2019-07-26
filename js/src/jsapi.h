@@ -142,8 +142,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
         WRAPPER =     -31, 
         OBJOBJHASHMAP=-32, 
         OBJU32HASHMAP=-33, 
-        OBJHASHSET =  -34, 
-        BASELINECOMPILER=-35 
+        OBJHASHSET =  -34  
     };
 
   private:

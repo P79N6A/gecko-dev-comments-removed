@@ -23,8 +23,7 @@ using namespace js::ion;
 
 BaselineCompiler::BaselineCompiler(JSContext *cx, HandleScript script)
   : BaselineCompilerSpecific(cx, script),
-    return_(new HeapLabel()),
-    autoRooter_(cx, this)
+    return_(new HeapLabel())
 {
 }
 
@@ -160,22 +159,6 @@ BaselineCompiler::compile()
         baselineScript->toggleBarriers(true);
 
     return Method_Compiled;
-}
-
-void
-BaselineCompiler::trace(JSTracer *trc)
-{
-    
-    
-    for (size_t i = 0; i < icEntries_.length(); i++) {
-        ICEntry &entry = icEntries_[i];
-        if (!entry.hasStub())
-            continue;
-        JS_ASSERT(entry.firstStub() != NULL);
-        JS_ASSERT(entry.firstStub()->isFallback());
-        JS_ASSERT(entry.firstStub()->next() == NULL);
-        entry.firstStub()->trace(trc);
-    }
 }
 
 #ifdef DEBUG
