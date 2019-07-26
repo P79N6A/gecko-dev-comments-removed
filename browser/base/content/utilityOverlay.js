@@ -529,6 +529,7 @@ function openTroubleshootingPage()
   openUILinkIn("about:support", "tab");
 }
 
+#ifdef MOZ_SERVICES_HEALTHREPORT
 
 
 
@@ -537,7 +538,7 @@ function openHealthReport()
 {
   openUILinkIn("about:healthreport", "tab");
 }
-
+#endif
 
 
 
