@@ -112,6 +112,11 @@ public:
   
 
 
+  void ClearOverscroll();
+
+  
+
+
 
 
   float PanDistance();

@@ -1033,6 +1033,9 @@ public:
                       const TimeDuration& aDelta) = 0;
 
   
+  virtual void Cancel() {}
+
+  
 
 
 

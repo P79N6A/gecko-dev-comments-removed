@@ -505,6 +505,16 @@ public:
     return continueX || continueY;
   }
 
+  virtual void Cancel() MOZ_OVERRIDE
+  {
+    
+    
+    
+    
+    mApzc.mX.ClearOverscroll();
+    mApzc.mY.ClearOverscroll();
+  }
+
 private:
   AsyncPanZoomController& mApzc;
 };
@@ -1684,7 +1694,12 @@ void AsyncPanZoomController::StartAnimation(AsyncPanZoomAnimation* aAnimation)
 void AsyncPanZoomController::CancelAnimation() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   SetState(NOTHING);
-  mAnimation = nullptr;
+  if (mAnimation) {
+    mAnimation->Cancel();
+    mAnimation = nullptr;
+    
+    RequestContentRepaint();
+  }
 }
 
 void AsyncPanZoomController::SetCompositorParent(CompositorParent* aCompositorParent) {
