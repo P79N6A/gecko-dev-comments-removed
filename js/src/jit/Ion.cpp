@@ -613,7 +613,7 @@ JitCompartment::mark(JSTracer *trc, JSCompartment *compartment)
             
             
             if (ShouldPreserveParallelJITCode(trc->runtime(), script,  true)) {
-                MarkScript(trc, const_cast<EncapsulatedPtrScript *>(&e.front()), "par-script");
+                MarkScript(trc, const_cast<PreBarrieredScript *>(&e.front()), "par-script");
                 MOZ_ASSERT(script == e.front());
             }
         }

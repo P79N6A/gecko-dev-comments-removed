@@ -169,10 +169,10 @@ struct IonScript
 {
   private:
     
-    EncapsulatedPtrJitCode method_;
+    PreBarrieredJitCode method_;
 
     
-    EncapsulatedPtrJitCode deoptTable_;
+    PreBarrieredJitCode deoptTable_;
 
     
     jsbytecode *osrPc_;
@@ -305,8 +305,8 @@ struct IonScript
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *) &bottomBuffer()[bailoutTable_];
     }
-    EncapsulatedValue *constants() {
-        return (EncapsulatedValue *) &bottomBuffer()[constantTable_];
+    PreBarrieredValue *constants() {
+        return (PreBarrieredValue *) &bottomBuffer()[constantTable_];
     }
     const SafepointIndex *safepointIndices() const {
         return const_cast<IonScript *>(this)->safepointIndices();
@@ -496,7 +496,7 @@ struct IonScript
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
         return mallocSizeOf(this);
     }
-    EncapsulatedValue &getConstant(size_t index) {
+    PreBarrieredValue &getConstant(size_t index) {
         JS_ASSERT(index < numConstants());
         return constants()[index];
     }

@@ -1563,7 +1563,7 @@ js_IsDebugScopeSlow(ProxyObject *proxy)
 
  MOZ_ALWAYS_INLINE void
 DebugScopes::proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
-                                           const EncapsulatedPtrObject &key)
+                                           const PreBarrieredObject &key)
 {
 #ifdef JSGC_GENERATIONAL
     

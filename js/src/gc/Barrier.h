@@ -451,12 +451,12 @@ class BarrieredPtr : public HeapBase<T>
 
 
 template <class T>
-class EncapsulatedPtr : public BarrieredPtr<T>
+class PreBarriered : public BarrieredPtr<T>
 {
   public:
-    EncapsulatedPtr() : BarrieredPtr<T>(GCMethods<T>::initial()) {}
-    EncapsulatedPtr(T v) : BarrieredPtr<T>(v) {}
-    explicit EncapsulatedPtr(const EncapsulatedPtr<T> &v)
+    PreBarriered() : BarrieredPtr<T>(GCMethods<T>::initial()) {}
+    PreBarriered(T v) : BarrieredPtr<T>(v) {}
+    explicit PreBarriered(const PreBarriered<T> &v)
       : BarrieredPtr<T>(v.value) {}
 
     
@@ -465,14 +465,14 @@ class EncapsulatedPtr : public BarrieredPtr<T>
         this->value = nullptr;
     }
 
-    EncapsulatedPtr<T> &operator=(T v) {
+    PreBarriered<T> &operator=(T v) {
         this->pre();
         JS_ASSERT(!GCMethods<T>::poisoned(v));
         this->value = v;
         return *this;
     }
 
-    EncapsulatedPtr<T> &operator=(const EncapsulatedPtr<T> &v) {
+    PreBarriered<T> &operator=(const PreBarriered<T> &v) {
         this->pre();
         JS_ASSERT(!GCMethods<T>::poisoned(v.value));
         this->value = v.value;
@@ -695,9 +695,9 @@ struct TypeObjectAddendum;
 typedef BarrieredPtr<JSObject*> BarrieredPtrObject;
 typedef BarrieredPtr<JSScript*> BarrieredPtrScript;
 
-typedef EncapsulatedPtr<JSObject*> EncapsulatedPtrObject;
-typedef EncapsulatedPtr<JSScript*> EncapsulatedPtrScript;
-typedef EncapsulatedPtr<jit::JitCode*> EncapsulatedPtrJitCode;
+typedef PreBarriered<JSObject*> PreBarrieredObject;
+typedef PreBarriered<JSScript*> PreBarrieredScript;
+typedef PreBarriered<jit::JitCode*> PreBarrieredJitCode;
 
 typedef RelocatablePtr<JSObject*> RelocatablePtrObject;
 typedef RelocatablePtr<JSScript*> RelocatablePtrScript;
@@ -720,12 +720,12 @@ typedef HeapPtr<types::TypeObjectAddendum*> HeapPtrTypeObjectAddendum;
 typedef HeapPtr<jit::JitCode*> HeapPtrJitCode;
 
 typedef BarrieredPtr<Value> BarrieredValue;
-typedef EncapsulatedPtr<Value> EncapsulatedValue;
+typedef PreBarriered<Value> PreBarrieredValue;
 typedef RelocatablePtr<Value> RelocatableValue;
 typedef HeapPtr<Value> HeapValue;
 
 typedef BarrieredPtr<jsid> BarrieredId;
-typedef EncapsulatedPtr<jsid> EncapsulatedId;
+typedef PreBarriered<jsid> PreBarrieredId;
 typedef RelocatablePtr<jsid> RelocatableId;
 typedef HeapPtr<jsid> HeapId;
 
@@ -748,9 +748,9 @@ template <class T>
 struct DefaultHasher< HeapPtr<T> > : HeapPtrHasher<T> { };
 
 template <class T>
-struct EncapsulatedPtrHasher
+struct PreBarrieredHasher
 {
-    typedef EncapsulatedPtr<T> Key;
+    typedef PreBarriered<T> Key;
     typedef T Lookup;
 
     static HashNumber hash(Lookup obj) { return DefaultHasher<T>::hash(obj); }
@@ -759,7 +759,7 @@ struct EncapsulatedPtrHasher
 };
 
 template <class T>
-struct DefaultHasher< EncapsulatedPtr<T> > : EncapsulatedPtrHasher<T> { };
+struct DefaultHasher< PreBarriered<T> > : PreBarrieredHasher<T> { };
 
 
 
@@ -949,11 +949,11 @@ class ReadBarrieredValue
 
 
 template <typename T> struct Unbarriered {};
-template <typename S> struct Unbarriered< EncapsulatedPtr<S> > { typedef S *type; };
+template <typename S> struct Unbarriered< PreBarriered<S> > { typedef S *type; };
 template <typename S> struct Unbarriered< RelocatablePtr<S> > { typedef S *type; };
-template <> struct Unbarriered<EncapsulatedValue> { typedef Value type; };
+template <> struct Unbarriered<PreBarrieredValue> { typedef Value type; };
 template <> struct Unbarriered<RelocatableValue> { typedef Value type; };
-template <typename S> struct Unbarriered< DefaultHasher< EncapsulatedPtr<S> > > {
+template <typename S> struct Unbarriered< DefaultHasher< PreBarriered<S> > > {
     typedef DefaultHasher<S *> type;
 };
 
