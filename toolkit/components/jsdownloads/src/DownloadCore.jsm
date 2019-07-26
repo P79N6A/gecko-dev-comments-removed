@@ -2043,10 +2043,16 @@ this.DownloadLegacySaver.prototype = {
             Cu.reportError(e2);
           }
         }
+        
+        
+        this.deferCanceled.resolve();
         throw ex;
       } finally {
         
+        
+        
         this.request = null;
+        this.deferCanceled = null;
         
         this.firstExecutionFinished = true;
       }
@@ -2064,7 +2070,11 @@ this.DownloadLegacySaver.prototype = {
     }
 
     
-    this.deferCanceled.resolve();
+    
+    
+    if (this.deferCanceled) {
+      this.deferCanceled.resolve();
+    }
   },
 
   
