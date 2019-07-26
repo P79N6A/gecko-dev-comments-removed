@@ -26,90 +26,30 @@ APZCCallbackHelper::HasValidPresShellId(nsIDOMWindowUtils* aUtils,
     return NS_SUCCEEDED(rv) && aMetrics.mPresShellId == presShellId;
 }
 
-
-
-
-
-static CSSRect ExpandDisplayPortToTileBoundaries(
-  const CSSRect& aDisplayPort,
-  const CSSToLayerScale& aLayerPixelsPerCSSPixel)
-{
-  
-  
-  LayerRect displayPortInLayerSpace = aDisplayPort * aLayerPixelsPerCSSPixel;
-
-  
-  
-  
-  
-  displayPortInLayerSpace.Inflate(1);
-
-  
-  int32_t tileWidth = gfxPrefs::LayersTileWidth();
-  int32_t tileHeight = gfxPrefs::LayersTileHeight();
-  gfxFloat left = tileWidth * floor(displayPortInLayerSpace.x / tileWidth);
-  gfxFloat right = tileWidth * ceil(displayPortInLayerSpace.XMost() / tileWidth);
-  gfxFloat top = tileHeight * floor(displayPortInLayerSpace.y / tileHeight);
-  gfxFloat bottom = tileHeight * ceil(displayPortInLayerSpace.YMost() / tileHeight);
-
-  displayPortInLayerSpace = LayerRect(left, top, right - left, bottom - top);
-  CSSRect displayPort = displayPortInLayerSpace / aLayerPixelsPerCSSPixel;
-
-  return displayPort;
-}
-
 static void
-MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
-                              const CSSPoint& aActualScrollOffset)
+AdjustDisplayPortForScrollDelta(mozilla::layers::FrameMetrics& aFrameMetrics,
+                                const CSSPoint& aActualScrollOffset)
 {
-  
-  
-  if (!aFrameMetrics.GetUseDisplayPortMargins()) {
-      CSSRect& displayPort = aFrameMetrics.mDisplayPort;
-      displayPort += aFrameMetrics.GetScrollOffset() - aActualScrollOffset;
-
-      
-      
-      if (gfxPrefs::LayersTilesEnabled()) {
-        
-        
-        displayPort =
-          ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
-                                            aFrameMetrics.GetZoom() *
-                                            ScreenToLayerScale(1.0))
-          - aActualScrollOffset;
-      }
-
-      
-      CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
-      displayPort = scrollableRect.Intersect(displayPort + aActualScrollOffset)
-        - aActualScrollOffset;
-  } else {
-      LayerPoint shift =
-          (aFrameMetrics.GetScrollOffset() - aActualScrollOffset) *
-          aFrameMetrics.LayersPixelsPerCSSPixel();
-      LayerMargin margins = aFrameMetrics.GetDisplayPortMargins();
-      margins.left -= shift.x;
-      margins.right += shift.x;
-      margins.top -= shift.y;
-      margins.bottom += shift.y;
-      aFrameMetrics.SetDisplayPortMargins(margins);
-  }
+    
+    
+    LayerPoint shift =
+        (aFrameMetrics.GetScrollOffset() - aActualScrollOffset) *
+        aFrameMetrics.LayersPixelsPerCSSPixel();
+    LayerMargin margins = aFrameMetrics.GetDisplayPortMargins();
+    margins.left -= shift.x;
+    margins.right += shift.x;
+    margins.top -= shift.y;
+    margins.bottom += shift.y;
+    aFrameMetrics.SetDisplayPortMargins(margins);
 }
 
 static void
 RecenterDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics)
 {
-    if (!aFrameMetrics.GetUseDisplayPortMargins()) {
-        CSSSize compositionSize = aFrameMetrics.CalculateCompositedSizeInCssPixels();
-        aFrameMetrics.mDisplayPort.x = (compositionSize.width - aFrameMetrics.mDisplayPort.width) / 2;
-        aFrameMetrics.mDisplayPort.y = (compositionSize.height - aFrameMetrics.mDisplayPort.height) / 2;
-    } else {
-        LayerMargin margins = aFrameMetrics.GetDisplayPortMargins();
-        margins.right = margins.left = margins.LeftRight() / 2;
-        margins.top = margins.bottom = margins.TopBottom() / 2;
-        aFrameMetrics.SetDisplayPortMargins(margins);
-    }
+    LayerMargin margins = aFrameMetrics.GetDisplayPortMargins();
+    margins.right = margins.left = margins.LeftRight() / 2;
+    margins.top = margins.bottom = margins.TopBottom() / 2;
+    aFrameMetrics.SetDisplayPortMargins(margins);
 }
 
 static CSSPoint
@@ -161,6 +101,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 {
     
     MOZ_ASSERT(aUtils);
+    MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
     if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
         return;
     }
@@ -183,8 +124,7 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     if (scrollUpdated) {
         
         
-        
-        MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+        AdjustDisplayPortForScrollDelta(aMetrics, actualScrollOffset);
     } else {
         
         
@@ -221,31 +161,24 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     if (!element) {
         return;
     }
-    if (!aMetrics.GetUseDisplayPortMargins()) {
-        aUtils->SetDisplayPortForElement(aMetrics.mDisplayPort.x,
-                                         aMetrics.mDisplayPort.y,
-                                         aMetrics.mDisplayPort.width,
-                                         aMetrics.mDisplayPort.height,
-                                         element, 0);
-    } else {
-        gfx::IntSize alignment = gfxPrefs::LayersTilesEnabled()
-            ? gfx::IntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()) :
-              gfx::IntSize(0, 0);
-        LayerMargin margins = aMetrics.GetDisplayPortMargins();
-        aUtils->SetDisplayPortMarginsForElement(margins.left,
-                                                margins.top,
-                                                margins.right,
-                                                margins.bottom,
-                                                alignment.width,
-                                                alignment.height,
-                                                element, 0);
-        CSSRect baseCSS = aMetrics.mCompositionBounds / aMetrics.GetZoomToParent();
-        nsRect base(baseCSS.x * nsPresContext::AppUnitsPerCSSPixel(),
-                    baseCSS.y * nsPresContext::AppUnitsPerCSSPixel(),
-                    baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
-                    baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
-        nsLayoutUtils::SetDisplayPortBaseIfNotSet(content, base);
-    }
+
+    gfx::IntSize alignment = gfxPrefs::LayersTilesEnabled()
+        ? gfx::IntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()) :
+          gfx::IntSize(0, 0);
+    LayerMargin margins = aMetrics.GetDisplayPortMargins();
+    aUtils->SetDisplayPortMarginsForElement(margins.left,
+                                            margins.top,
+                                            margins.right,
+                                            margins.bottom,
+                                            alignment.width,
+                                            alignment.height,
+                                            element, 0);
+    CSSRect baseCSS = aMetrics.mCompositionBounds / aMetrics.GetZoomToParent();
+    nsRect base(baseCSS.x * nsPresContext::AppUnitsPerCSSPixel(),
+                baseCSS.y * nsPresContext::AppUnitsPerCSSPixel(),
+                baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
+                baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
+    nsLayoutUtils::SetDisplayPortBaseIfNotSet(content, base);
 }
 
 void
@@ -254,6 +187,7 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
 {
     
     MOZ_ASSERT(aContent);
+    MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
     if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
         return;
     }
@@ -273,35 +207,27 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
     if (element) {
         if (scrollUpdated) {
-            MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+            AdjustDisplayPortForScrollDelta(aMetrics, actualScrollOffset);
         } else {
             RecenterDisplayPort(aMetrics);
         }
-        if (!aMetrics.GetUseDisplayPortMargins()) {
-            utils->SetDisplayPortForElement(aMetrics.mDisplayPort.x,
-                                            aMetrics.mDisplayPort.y,
-                                            aMetrics.mDisplayPort.width,
-                                            aMetrics.mDisplayPort.height,
-                                            element, 0);
-        } else {
-            gfx::IntSize alignment = gfxPrefs::LayersTilesEnabled()
-                ? gfx::IntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()) :
-                  gfx::IntSize(0, 0);
-            LayerMargin margins = aMetrics.GetDisplayPortMargins();
-            utils->SetDisplayPortMarginsForElement(margins.left,
-                                                   margins.top,
-                                                   margins.right,
-                                                   margins.bottom,
-                                                   alignment.width,
-                                                   alignment.height,
-                                                   element, 0);
-            CSSRect baseCSS = aMetrics.mCompositionBounds / aMetrics.GetZoomToParent();
-            nsRect base(baseCSS.x * nsPresContext::AppUnitsPerCSSPixel(),
-                        baseCSS.y * nsPresContext::AppUnitsPerCSSPixel(),
-                        baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
-                        baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
-            nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
-        }
+        gfx::IntSize alignment = gfxPrefs::LayersTilesEnabled()
+            ? gfx::IntSize(gfxPrefs::LayersTileWidth(), gfxPrefs::LayersTileHeight()) :
+              gfx::IntSize(0, 0);
+        LayerMargin margins = aMetrics.GetDisplayPortMargins();
+        utils->SetDisplayPortMarginsForElement(margins.left,
+                                               margins.top,
+                                               margins.right,
+                                               margins.bottom,
+                                               alignment.width,
+                                               alignment.height,
+                                               element, 0);
+        CSSRect baseCSS = aMetrics.mCompositionBounds / aMetrics.GetZoomToParent();
+        nsRect base(baseCSS.x * nsPresContext::AppUnitsPerCSSPixel(),
+                    baseCSS.y * nsPresContext::AppUnitsPerCSSPixel(),
+                    baseCSS.width * nsPresContext::AppUnitsPerCSSPixel(),
+                    baseCSS.height * nsPresContext::AppUnitsPerCSSPixel());
+        nsLayoutUtils::SetDisplayPortBaseIfNotSet(aContent, base);
     }
 
     aMetrics.SetScrollOffset(actualScrollOffset);
