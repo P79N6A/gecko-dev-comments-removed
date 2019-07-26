@@ -9,6 +9,7 @@
 #ifndef nscore_h___
 #include "nscore.h"  
 #endif
+#include "mozilla/Attributes.h"
 
 
 
