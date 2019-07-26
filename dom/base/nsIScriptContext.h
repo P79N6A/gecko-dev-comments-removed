@@ -130,8 +130,8 @@ public:
 
 
   virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
-                                            JSObject* aScope,
-                                            JSObject* aHandler,
+                                            JS::Handle<JSObject*> aScope,
+                                            JS::Handle<JSObject*> aHandler,
                                             JS::MutableHandle<JSObject*> aBoundHandler) = 0;
 
   
@@ -217,7 +217,8 @@ public:
 
   
   
-  virtual nsresult SetProperty(JSObject* aTarget, const char* aPropName, nsISupports* aVal) = 0;
+  virtual nsresult SetProperty(JS::Handle<JSObject*> aTarget,
+                               const char* aPropName, nsISupports* aVal) = 0;
   
 
 
@@ -236,7 +237,7 @@ public:
 
 
 
-  virtual nsresult InitClasses(JSObject* aGlobalObj) = 0;
+  virtual nsresult InitClasses(JS::Handle<JSObject*> aGlobalObj) = 0;
 
   
 
