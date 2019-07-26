@@ -153,11 +153,6 @@ var FeedHandler = {
   },
 
   addFeed: function(link, browserForLink) {
-    if (!browserForLink) {
-      
-      return;
-    }
-
     if (!browserForLink.feeds)
       browserForLink.feeds = [];
 
