@@ -18,6 +18,8 @@
 
 #define MAX_DROPPED_FRAMES 25
 
+#define MAX_VIDEO_DECODE_SECONDS 3.0
+
 using namespace android;
 
 namespace mozilla {
@@ -156,8 +158,10 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
     aTimeThreshold = mVideoSeekTimeUs;
   }
 
+  TimeStamp start = TimeStamp::Now();
+
   
-  while (true) {
+  while ((TimeStamp::Now() - start) < TimeDuration::FromSeconds(MAX_VIDEO_DECODE_SECONDS)) {
     MPAPI::VideoFrame frame;
     frame.mGraphicBuffer = nullptr;
     frame.mShouldSkip = false;
@@ -165,22 +169,23 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
       mVideoQueue.Finish();
       return false;
     }
+    doSeek = false;
 
     
     if (frame.mSize == 0 && !frame.mGraphicBuffer) {
-      return true;
+      continue;
     }
 
     parsed++;
     if (frame.mShouldSkip && mSkipCount < MAX_DROPPED_FRAMES) {
       mSkipCount++;
-      return true;
+      continue;
     }
 
     mSkipCount = 0;
 
     mVideoSeekTimeUs = -1;
-    doSeek = aKeyframeSkip = false;
+    aKeyframeSkip = false;
 
     nsIntRect picture = mPicture;
     if (frame.Y.mWidth != mInitialFrame.width ||
