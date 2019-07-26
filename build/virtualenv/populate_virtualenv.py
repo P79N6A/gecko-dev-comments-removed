@@ -193,7 +193,8 @@ class VirtualenvManager(object):
         
         
         
-        IGNORE_ENV_VARIABLES = ('CC', 'CXX', 'CFLAGS', 'CXXFLAGS', 'LDFLAGS')
+        IGNORE_ENV_VARIABLES = ('CC', 'CXX', 'CFLAGS', 'CXXFLAGS', 'LDFLAGS',
+            'PYTHONDONTWRITEBYTECODE')
 
         try:
             old_target = os.environ.get('MACOSX_DEPLOYMENT_TARGET', None)
