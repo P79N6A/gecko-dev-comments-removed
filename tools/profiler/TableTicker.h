@@ -38,7 +38,7 @@ class TableTicker: public Sampler {
     
     mJankOnly = hasFeature(aFeatures, aFeatureCount, "jank");
     mProfileJS = hasFeature(aFeatures, aFeatureCount, "js");
-    mProfileThreads = hasFeature(aFeatures, aFeatureCount, "threads");
+    mProfileThreads = true || hasFeature(aFeatures, aFeatureCount, "threads");
     mAddLeafAddresses = hasFeature(aFeatures, aFeatureCount, "leaf");
 
     {
