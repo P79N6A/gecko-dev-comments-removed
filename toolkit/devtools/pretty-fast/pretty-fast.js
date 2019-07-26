@@ -228,6 +228,30 @@
 
 
 
+
+
+
+
+
+  function isGetterOrSetter(token, lastToken, stack) {
+    return stack[stack.length - 1] == "{"
+      && lastToken
+      && lastToken.type.type == "name"
+      && (lastToken.value == "get" || lastToken.value == "set")
+      && token.type.type == "name";
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   function isLineDelimiter(token, stack) {
     if (token.isArrayLiteral) {
       return true;
@@ -359,12 +383,13 @@
     var ttk = token.type.keyword;
     var ttt = token.type.type;
     var newlineAdded = addedNewline;
+    var ltt = lastToken ? lastToken.type.type : null;
 
     
     
     
     
-    if (lastToken && lastToken.type.type == "}") {
+    if (lastToken && ltt == "}") {
       if (ttk == "while" && stack[stack.length - 1] == "do") {
         write(" ",
               lastToken.startLoc.line,
@@ -387,13 +412,19 @@
       }
     }
 
+    if (isGetterOrSetter(token, lastToken, stack)) {
+      write(" ",
+            lastToken.startLoc.line,
+            lastToken.startLoc.column);
+    }
+
     if (ttt == ":" && stack[stack.length - 1] == "?") {
       write(" ",
             lastToken.startLoc.line,
             lastToken.startLoc.column);
     }
 
-    if (lastToken && lastToken.type.type != "}" && ttk == "else") {
+    if (lastToken && ltt != "}" && ttk == "else") {
       write(" ",
             lastToken.startLoc.line,
             lastToken.startLoc.column);
