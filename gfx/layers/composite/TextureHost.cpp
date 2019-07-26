@@ -61,6 +61,12 @@ TextureHost::CreateIPDLActor(ISurfaceAllocator* aAllocator,
                              const SurfaceDescriptor& aSharedData,
                              TextureFlags aFlags)
 {
+  if (aSharedData.type() == SurfaceDescriptor::TSurfaceDescriptorMemory &&
+      !aAllocator->IsSameProcess())
+  {
+    NS_ERROR("A client process is trying to peek at our address space using a MemoryTexture!");
+    return nullptr;
+  }
   TextureParent* actor = new TextureParent(aAllocator);
   DebugOnly<bool> status = actor->Init(aSharedData, aFlags);
   MOZ_ASSERT(status);
@@ -87,12 +93,6 @@ TextureHost*
 TextureHost::AsTextureHost(PTextureParent* actor)
 {
   return actor? static_cast<TextureParent*>(actor)->mTextureHost : nullptr;
-}
-
-PTextureParent*
-TextureHost::GetIPDLActor()
-{
-  return mActor;
 }
 
 
@@ -248,8 +248,7 @@ TextureHost::SetCompositableBackendSpecificData(CompositableBackendSpecificData*
 
 
 TextureHost::TextureHost(TextureFlags aFlags)
-    : mActor(nullptr)
-    , mFlags(aFlags)
+    : mFlags(aFlags)
 {}
 
 TextureHost::~TextureHost()
@@ -730,7 +729,6 @@ TextureParent::Init(const SurfaceDescriptor& aSharedData,
   mTextureHost = TextureHost::Create(aSharedData,
                                      mAllocator,
                                      aFlags);
-  mTextureHost->mActor = this;
   return !!mTextureHost;
 }
 
@@ -768,8 +766,6 @@ TextureParent::ActorDestroy(ActorDestroyReason why)
   if (mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_CLIENT) {
     mTextureHost->ForgetSharedData();
   }
-
-  mTextureHost->mActor = nullptr;
   mTextureHost = nullptr;
 }
 
