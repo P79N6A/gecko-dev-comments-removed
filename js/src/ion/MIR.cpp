@@ -43,6 +43,7 @@
 #include "LICM.h" 
 #include "MIR.h"
 #include "MIRGraph.h"
+#include "RangeAnalysis.h"
 #include "jsnum.h"
 #include "jstypedarrayinlines.h" 
 
@@ -187,7 +188,18 @@ MDefinition::foldsTo(bool useValueNumbers)
 }
 
 void
-MDefinition::analyzeRange()
+MDefinition::analyzeRangeForward()
+{
+    return;
+}
+
+void
+MDefinition::analyzeRangeBackward()
+{
+    return;
+}
+void
+MDefinition::analyzeTruncateBackward()
 {
     return;
 }
@@ -677,7 +689,8 @@ MDiv::foldsTo(bool useValueNumbers)
 }
 
 void
-MDiv::analyzeRange() {
+MDiv::analyzeRangeForward()
+{
     
     if (specialization_ != MIRType_Int32)
         return;
@@ -705,11 +718,33 @@ MDiv::analyzeRange() {
         if (val.isInt32() && val.toInt32() >= 0)
             canBeNegativeZero_ = false;
     }
+}
 
+void
+MDiv::analyzeRangeBackward()
+{
     if (canBeNegativeZero_)
         canBeNegativeZero_ = NeedNegativeZeroCheck(this);
 }
 
+void
+MDiv::analyzeTruncateBackward()
+{
+    if (!isTruncated())
+        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+}
+
+bool
+MDiv::updateForReplacement(MDefinition *ins_)
+{
+    JS_ASSERT(ins_->isDiv());
+    MDiv *ins = ins_->toDiv();
+    
+    
+    if (isTruncated())
+        setTruncated(ins->isTruncated());
+    return true;
+}
 
 static inline MDefinition *
 TryFold(MDefinition *original, MDefinition *replacement)
@@ -768,6 +803,40 @@ MMod::foldsTo(bool useValueNumbers)
     return this;
 }
 
+void
+MAdd::analyzeTruncateBackward()
+{
+    if (!isTruncated())
+        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+}
+
+bool
+MAdd::updateForReplacement(MDefinition *ins_)
+{
+    JS_ASSERT(ins_->isAdd());
+    MAdd *ins = ins_->toAdd();
+    if (isTruncated())
+        setTruncated(ins->isTruncated());
+    return true;
+}
+
+void
+MSub::analyzeTruncateBackward()
+{
+    if (!isTruncated())
+        setTruncated(js::ion::RangeAnalysis::AllUsesTruncate(this));
+}
+
+bool
+MSub::updateForReplacement(MDefinition *ins_)
+{
+    JS_ASSERT(ins_->isSub());
+    MSub *ins = ins_->toSub();
+    if (isTruncated())
+        setTruncated(ins->isTruncated());
+    return true;
+}
+
 MDefinition *
 MMul::foldsTo(bool useValueNumbers)
 {
@@ -785,7 +854,7 @@ MMul::foldsTo(bool useValueNumbers)
 }
 
 void
-MMul::analyzeRange()
+MMul::analyzeRangeForward()
 {
     
     
@@ -806,8 +875,19 @@ MMul::analyzeRange()
             canBeNegativeZero_ = false;
     }
 
+}
+
+void
+MMul::analyzeRangeBackward()
+{
     if (canBeNegativeZero_)
         canBeNegativeZero_ = NeedNegativeZeroCheck(this);
+}
+
+bool
+MMul::updateForReplacement(MDefinition *ins)
+{
+    return true;
 }
 
 void
@@ -1065,7 +1145,7 @@ MToInt32::foldsTo(bool useValueNumbers)
 }
 
 void
-MToInt32::analyzeRange()
+MToInt32::analyzeRangeBackward()
 {
     canBeNegativeZero_ = NeedNegativeZeroCheck(this);
 }

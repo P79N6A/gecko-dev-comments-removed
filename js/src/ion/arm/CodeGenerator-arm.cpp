@@ -527,9 +527,11 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     masm.passABIArg(rhs);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     
-    masm.ma_cmp(r1, Imm32(0));
-    if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
-        return false;
+    if (!mir->isTruncated()) {
+        masm.ma_cmp(r1, Imm32(0));
+        if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
+            return false;
+    }
     return true;
 }
 
