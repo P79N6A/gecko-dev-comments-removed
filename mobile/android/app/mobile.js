@@ -655,6 +655,9 @@ pref("ui.scrolling.axis_lock_mode", "standard");
 pref("ui.scrolling.negate_wheel_scrollY", true);
 
 
+pref("ui.scrolling.gamepad_dead_zone", 10);
+
+
 
 pref("accessibility.accessfu.activate", 2);
 pref("accessibility.accessfu.quicknav_modes", "Link,Heading,FormElement,Landmark,ListItem");
