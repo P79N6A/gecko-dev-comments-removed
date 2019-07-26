@@ -137,17 +137,16 @@ nsresult
 OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
 {
   
-  if (aChannels <= 0 || aChannels > MAX_CHANNELS) {
-    LOG("[Opus] Fail to create the AudioTrackEncoder! The input has"
-        " %d channel(s), but expects no more than %d.", aChannels, MAX_CHANNELS);
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  
   
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-  mChannels = aChannels;
+  
+  
+  
+  mChannels = aChannels > 2 ? 2 : aChannels;
 
+  if (aChannels <= 0) {
+    return NS_ERROR_FAILURE;
+  }
   
   
   
@@ -326,10 +325,6 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   
   if (mSourceSegment->GetDuration() == 0 && mEndOfStream) {
     mDoneEncoding = true;
-    if (mResampler) {
-      speex_resampler_destroy(mResampler);
-      mResampler = nullptr;
-    }
     LOG("[Opus] Done encoding.");
   }
 
@@ -357,6 +352,12 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
 
   if (result < 0) {
     LOG("[Opus] Fail to encode data! Result: %s.", opus_strerror(result));
+  }
+  if (mDoneEncoding) {
+    if (mResampler) {
+      speex_resampler_destroy(mResampler);
+      mResampler = nullptr;
+    }
   }
 
   audiodata->SetFrameData(&frameData);
