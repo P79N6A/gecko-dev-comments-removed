@@ -375,6 +375,20 @@ File.prototype = {
 
 
 
+  setDates: function setDates(accessDate, modificationDate) {
+    return Scheduler.post("File_prototype_setDates",
+                          [this._fdmsg, accessDate, modificationDate], this);
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -562,6 +576,22 @@ File.stat = function stat(path) {
   return Scheduler.post(
     "stat", [Type.path.toMsg(path)],
     path).then(File.Info.fromMsg);
+};
+
+
+
+
+
+
+
+
+
+
+
+File.setDates = function setDates(path, accessDate, modificationDate) {
+  return Scheduler.post("setDates",
+                        [Type.path.toMsg(path), accessDate, modificationDate],
+                        this);
 };
 
 
