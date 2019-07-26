@@ -284,18 +284,44 @@ public:
 
 
 
+  nsresult SetEventHandler(nsIAtom* aEventName,
+                           mozilla::dom::EventHandlerNonNull* aHandler);
+  nsresult SetEventHandler(mozilla::dom::OnErrorEventHandlerNonNull* aHandler);
+  nsresult SetEventHandler(mozilla::dom::BeforeUnloadEventHandlerNonNull* aHandler);
 
-
-
-  nsresult SetEventHandlerToJsval(nsIAtom* aEventName, JSContext* cx,
-                                  JSObject* aScope, const jsval& v);
   
 
 
 
-  void GetEventHandler(nsIAtom *aEventName, jsval *vp);
+
+
+
+
+
+  mozilla::dom::EventHandlerNonNull* GetEventHandler(nsIAtom *aEventName)
+  {
+    const nsEventHandler* handler = GetEventHandlerInternal(aEventName);
+    return handler ? handler->EventHandler() : nullptr;
+  }
+  mozilla::dom::OnErrorEventHandlerNonNull* GetOnErrorEventHandler()
+  {
+    const nsEventHandler* handler = GetEventHandlerInternal(nsGkAtoms::onerror);
+    return handler ? handler->OnErrorEventHandler() : nullptr;
+  }
+  mozilla::dom::BeforeUnloadEventHandlerNonNull* GetOnBeforeUnloadEventHandler()
+  {
+    const nsEventHandler* handler =
+      GetEventHandlerInternal(nsGkAtoms::onbeforeunload);
+    return handler ? handler->BeforeUnloadEventHandler() : nullptr;
+  }
 
 protected:
+  
+
+
+
+  const nsEventHandler* GetEventHandlerInternal(nsIAtom* aEventName);
+
   void AddEventListener(nsIDOMEventListener *aListener, 
                         uint32_t aType,
                         nsIAtom* aTypeAtom,
