@@ -1100,6 +1100,9 @@ pref("devtools.styleeditor.transitions", true);
 pref("devtools.chrome.enabled", false);
 
 
+pref("devtools.theme", "light");
+
+
 pref("devtools.gcli.hideIntro", false);
 
 
