@@ -23,7 +23,6 @@ class nsIAtom;
 class nsIDocument;
 class nsIScriptContext;
 class nsSupportsHashtable;
-class nsFixedSizeAllocator;
 class nsXBLProtoImplField;
 class nsXBLBinding;
 class nsCSSStyleSheet;
@@ -283,11 +282,6 @@ public:
   void Traverse(nsCycleCollectionTraversalCallback &cb) const;
   void UnlinkJSObjects();
   void Trace(TraceCallback aCallback, void *aClosure) const;
-
-
-  static uint32_t gRefCnt;
- 
-  static nsFixedSizeAllocator* kAttrPool;
 
 
 
