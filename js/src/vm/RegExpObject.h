@@ -15,7 +15,9 @@
 #include "jsobj.h"
 
 #include "js/TemplateLib.h"
+#include "vm/MatchPairs.h"
 
+#include "yarr/MatchResult.h"
 #include "yarr/Yarr.h"
 #if ENABLE_YARR_JIT
 #include "yarr/YarrJIT.h"
@@ -156,7 +158,7 @@ class RegExpShared
 
     
     RegExpRunStatus execute(JSContext *cx, StableCharPtr chars, size_t length,
-                            size_t *lastIndex, MatchPairs **matches);
+                            size_t *lastIndex, MatchPairs &matches);
 
     
 
@@ -286,21 +288,6 @@ class RegExpObject : public JSObject
 
     static RegExpObject *
     createNoStatics(JSContext *cx, HandleAtom atom, RegExpFlag flags, frontend::TokenStream *ts);
-
-    
-
-
-
-
-
-
-
-
-
-
-    RegExpRunStatus
-    execute(JSContext *cx, StableCharPtr chars, size_t length, size_t *lastIndex,
-            MatchPairs **output);
 
     
 

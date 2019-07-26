@@ -23,70 +23,144 @@ struct MatchPair
     int start;
     int limit;
 
-    MatchPair(int start, int limit) : start(start), limit(limit) {}
+    MatchPair()
+      : start(-1), limit(-1)
+    { }
 
-    size_t length() const {
-        JS_ASSERT(!isUndefined());
-        return limit - start;
+    MatchPair(int start, int limit)
+      : start(start), limit(limit)
+    { }
+
+    size_t length()      const { JS_ASSERT(!isUndefined()); return limit - start; }
+    bool isEmpty()       const { return length() == 0; }
+    bool isUndefined()   const { return start < 0; }
+
+    void displace(size_t amount) {
+        start += (start < 0) ? 0 : amount;
+        limit += (limit < 0) ? 0 : amount;
     }
 
-    bool isUndefined() const {
-        return start == -1;
-    }
-
-    void check() const {
+    inline bool check() const {
         JS_ASSERT(limit >= start);
-        JS_ASSERT_IF(!isUndefined(), start >= 0);
+        JS_ASSERT_IF(start < 0, start == -1);
+        JS_ASSERT_IF(limit < 0, limit == -1);
+        return true;
     }
 };
 
+
 class MatchPairs
 {
-    size_t  pairCount_;
-    int     buffer_[1];
+  protected:
+    size_t     pairCount_;   
+    MatchPair *pairs_;       
 
-    explicit MatchPairs(size_t pairCount) : pairCount_(pairCount) {
-        initPairValues();
-    }
+  protected:
+    
+    MatchPairs()
+      : pairCount_(0), pairs_(NULL)
+    { }
 
-    void initPairValues() {
-        for (int *it = buffer_; it < buffer_ + 2 * pairCount_; ++it)
-            *it = -1;
-    }
-
-    static size_t calculateSize(size_t backingPairCount) {
-        return sizeof(MatchPairs) - sizeof(int) + sizeof(int) * backingPairCount;
-    }
-
-    int *buffer() { return buffer_; }
-
+  protected:
+    
     friend class RegExpShared;
+    friend class RegExpStatics;
+
+    
+    virtual bool allocOrExpandArray(size_t pairCount) = 0;
+
+    bool initArray(size_t pairCount);
+    bool initArrayFrom(MatchPairs &copyFrom);
+    void forgetArray() { pairs_ = NULL; }
+
+    void displace(size_t disp);
+    inline void checkAgainst(size_t length);
 
   public:
     
+    bool   empty() const           { return pairCount_ == 0; }
+    size_t pairCount() const       { JS_ASSERT(pairCount_ > 0); return pairCount_; }
+    size_t parenCount() const      { return pairCount_ - 1; }
 
+  public:
+    unsigned *rawBuf() const { return reinterpret_cast<unsigned *>(pairs_); }
+    size_t length() const { return pairCount_; }
 
-
-    static MatchPairs *create(LifoAlloc &alloc, size_t pairCount, size_t backingPairCount);
-
-    size_t pairCount() const { return pairCount_; }
-
-    MatchPair pair(size_t i) {
-        JS_ASSERT(i < pairCount());
-        return MatchPair(buffer_[2 * i], buffer_[2 * i + 1]);
+    
+    const MatchPair &pair(size_t i) const {
+        JS_ASSERT(pairCount_ && i < pairCount_);
+        JS_ASSERT(pairs_);
+        return pairs_[i];
     }
 
-    void displace(size_t amount) {
-        if (!amount)
-            return;
+    const MatchPair &operator[](size_t i) const { return pair(i); }
+};
 
-        for (int *it = buffer_; it < buffer_ + 2 * pairCount_; ++it)
-            *it = (*it < 0) ? -1 : *it + amount;
+
+class ScopedMatchPairs : public MatchPairs
+{
+    LifoAlloc *lifoAlloc_;
+    void      *mark_;        
+
+  public:
+    
+    ScopedMatchPairs(LifoAlloc *lifoAlloc)
+      : lifoAlloc_(lifoAlloc),
+        mark_(lifoAlloc->mark())
+    { }
+
+    ~ScopedMatchPairs() {
+        lifoAlloc_->release(mark_);
     }
 
-    inline void checkAgainst(size_t length);
+    const MatchPair &operator[](size_t i) const { return pair(i); }
+
+  protected:
+    bool allocOrExpandArray(size_t pairCount);
+};
+
+
+
+
+
+class VectorMatchPairs : public MatchPairs
+{
+    Vector<MatchPair, 10, SystemAllocPolicy> vec_;
+
+  public:
+    VectorMatchPairs() {
+        vec_.clear();
+    }
+
+    const MatchPair &operator[](size_t i) const { return pair(i); }
+
+  protected:
+    friend class RegExpStatics;
+    bool allocOrExpandArray(size_t pairCount);
+};
+
+
+
+
+
+struct MatchConduit
+{
+    union {
+        MatchPair  *pair;
+        MatchPairs *pairs;
+    } u;
+    bool isPair;
+
+    explicit MatchConduit(MatchPair *pair) {
+        isPair = true;
+        u.pair = pair;
+    }
+    explicit MatchConduit(MatchPairs *pairs) {
+        isPair = false;
+        u.pairs = pairs;
+    }
 };
 
 } 
 
-#endif
+#endif 
