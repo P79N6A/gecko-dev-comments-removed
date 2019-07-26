@@ -223,6 +223,7 @@ MediaConduitErrorCode WebrtcVideoConduit::Init()
     return kMediaConduitKeyFrameRequestError;
   }
   
+  
   if (mPtrRTP->SetNACKStatus(mChannel, true) != 0)
   {
     CSFLogError(logTag,  "%s NACKStatus Failed %d ", __FUNCTION__,
@@ -602,7 +603,9 @@ int WebrtcVideoConduit::SendRTCPPacket(int channel, const void* data, int len)
 {
   CSFLogError(logTag,  "%s : channel %d , len %d ", __FUNCTION__, channel,len);
 
-  if(mTransport && (mTransport->SendRtcpPacket(data, len) == NS_OK))
+  
+  
+  if(mEngineReceiving && mTransport && (mTransport->SendRtcpPacket(data, len) == NS_OK))
    {
       CSFLogDebug(logTag, "%s Sent RTCP Packet ", __FUNCTION__);
       return len;
