@@ -73,10 +73,8 @@ public:
 private:
   
   
-  MOZ_CONSTEXPR SVGMotionSMILType() {}
-#ifdef DEBUG
+  SVGMotionSMILType()  {}
   ~SVGMotionSMILType() {}
-#endif
 };
 
 } 

@@ -93,10 +93,8 @@ protected:
 private:
   
   
-  MOZ_CONSTEXPR SVGLengthListSMILType() {}
-#ifdef DEBUG
+  SVGLengthListSMILType() {}
   ~SVGLengthListSMILType() {}
-#endif
 };
 
 } 

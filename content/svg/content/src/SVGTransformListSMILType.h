@@ -123,10 +123,8 @@ public:
 private:
   
   
-  MOZ_CONSTEXPR SVGTransformListSMILType() {}
-#ifdef DEBUG
+  SVGTransformListSMILType() {}
   ~SVGTransformListSMILType() {}
-#endif
 };
 
 } 

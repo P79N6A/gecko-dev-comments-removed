@@ -40,10 +40,8 @@ protected:
 private:
   
   
-  MOZ_CONSTEXPR SVGNumberPairSMILType() {}
-#ifdef DEBUG
+  SVGNumberPairSMILType()  {}
   ~SVGNumberPairSMILType() {}
-#endif
 };
 
 } 

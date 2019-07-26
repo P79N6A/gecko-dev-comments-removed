@@ -44,10 +44,8 @@ protected:
 private:
   
   
-  MOZ_CONSTEXPR nsSMILNullType() {}
-#ifdef DEBUG
+  nsSMILNullType()  {}
   ~nsSMILNullType() {}
-#endif
 };
 
 #endif 

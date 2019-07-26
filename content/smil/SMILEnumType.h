@@ -43,10 +43,8 @@ protected:
 private:
   
   
-  MOZ_CONSTEXPR SMILEnumType() {}
-#ifdef DEBUG
+  SMILEnumType()  {}
   ~SMILEnumType() {}
-#endif
 };
 
 } 

@@ -51,10 +51,8 @@ protected:
 private:
   
   
-  MOZ_CONSTEXPR SVGPathSegListSMILType() {}
-#ifdef DEBUG
+  SVGPathSegListSMILType() {}
   ~SVGPathSegListSMILType() {}
-#endif
 };
 
 } 

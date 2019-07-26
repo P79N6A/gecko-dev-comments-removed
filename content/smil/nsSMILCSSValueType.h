@@ -100,10 +100,8 @@ public:
 private:
   
   
-  MOZ_CONSTEXPR nsSMILCSSValueType() {}
-#ifdef DEBUG
+  nsSMILCSSValueType()  {}
   ~nsSMILCSSValueType() {}
-#endif
 };
 
 #endif 
