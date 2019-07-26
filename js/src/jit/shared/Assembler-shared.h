@@ -102,15 +102,41 @@ struct ImmWord
 
     explicit ImmWord(uintptr_t value) : value(value)
     { }
-    explicit ImmWord(const void *ptr) : value(reinterpret_cast<uintptr_t>(ptr))
+};
+
+
+struct ImmPtr
+{
+    void *value;
+
+    explicit ImmPtr(const void *value) : value(const_cast<void*>(value))
     { }
 
-    
-    explicit ImmWord(gc::Cell *cell);
+    template <class R>
+    explicit ImmPtr(R (*pf)())
+      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+    { }
 
-    void *asPointer() {
-        return reinterpret_cast<void *>(value);
-    }
+    template <class R, class A1>
+    explicit ImmPtr(R (*pf)(A1))
+      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+    { }
+
+    template <class R, class A1, class A2>
+    explicit ImmPtr(R (*pf)(A1, A2))
+      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+    { }
+
+    template <class R, class A1, class A2, class A3>
+    explicit ImmPtr(R (*pf)(A1, A2, A3))
+      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+    { }
+
+    template <class R, class A1, class A2, class A3, class A4>
+    explicit ImmPtr(R (*pf)(A1, A2, A3, A4))
+      : value(JS_FUNC_TO_DATA_PTR(void *, pf))
+    { }
+
 };
 
 
@@ -137,6 +163,7 @@ struct ImmMaybeNurseryPtr : public ImmGCPtr
         JS_ASSERT(!IsPoisonedPtr(ptr));
     }
 };
+
 
 
 struct AbsoluteAddress {
