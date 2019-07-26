@@ -1084,8 +1084,11 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
       return GetText(*aStartOffset, *aEndOffset, aText);
 
     case BOUNDARY_WORD_END:
-      *aStartOffset = FindWordBoundary(offset, eDirPrevious, eEndWord);
-      *aEndOffset = FindWordBoundary(*aStartOffset, eDirNext, eEndWord);
+      
+      
+      
+      *aEndOffset = FindWordBoundary(offset, eDirNext, eEndWord);
+      *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eEndWord);
       return GetText(*aStartOffset, *aEndOffset, aText);
 
     case BOUNDARY_LINE_START:
