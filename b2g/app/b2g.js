@@ -178,6 +178,8 @@ pref("content.sink.perf_parse_time", 50000000);
 
 pref("dom.max_chrome_script_run_time", 0); 
 
+pref("dom.use_watchdog", false);
+
 
 pref("plugin.disable", true);
 pref("dom.ipc.plugins.enabled", true);
