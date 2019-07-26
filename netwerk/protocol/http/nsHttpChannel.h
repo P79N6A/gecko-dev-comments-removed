@@ -240,6 +240,7 @@ private:
     void     HandleAsyncRedirectChannelToHttps();
     nsresult AsyncRedirectChannelToHttps();
     nsresult ContinueAsyncRedirectChannelToHttps(nsresult rv);
+    nsresult OpenRedirectChannel(nsresult rv);
 
     
 

@@ -1596,7 +1596,8 @@ nsHttpChannel::AsyncRedirectChannelToHttps()
 nsresult
 nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
 {
-    AutoRedirectVetoNotifier notifier(this);
+    if (NS_SUCCEEDED(rv))
+        rv = OpenRedirectChannel(rv);
 
     if (NS_FAILED(rv)) {
         
@@ -1613,8 +1614,15 @@ nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
         
         
         DoNotifyListener();
-        return rv;
     }
+
+    return rv;
+}
+
+nsresult
+nsHttpChannel::OpenRedirectChannel(nsresult rv)
+{
+    AutoRedirectVetoNotifier notifier(this);
 
     
     mRedirectChannel->SetOriginalURI(mOriginalURI);
@@ -1627,8 +1635,6 @@ nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
         
         rv = httpEventSink->OnRedirect(this, mRedirectChannel);
         if (NS_FAILED(rv)) {
-            mStatus = rv;
-            DoNotifyListener();
             return rv;
         }
     }
@@ -1636,8 +1642,6 @@ nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
     
     rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
     if (NS_FAILED(rv)) {
-        mStatus = rv;
-        DoNotifyListener();
         return rv;
     }
 
@@ -1653,7 +1657,7 @@ nsHttpChannel::ContinueAsyncRedirectChannelToHttps(nsresult rv)
     mCallbacks = nullptr;
     mProgressSink = nullptr;
 
-    return rv;
+    return NS_OK;
 }
 
 nsresult
