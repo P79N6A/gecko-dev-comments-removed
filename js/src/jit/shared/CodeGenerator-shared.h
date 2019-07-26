@@ -145,11 +145,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     int32_t frameDepth_;
 
     
-    
-    
-    int32_t frameInitialAdjustment_;
-
-    
     FrameSizeClass frameClass_;
 
     
@@ -166,7 +161,7 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     inline int32_t SlotToStackOffset(int32_t slot) const {
         JS_ASSERT(slot > 0 && slot <= int32_t(graph.localSlotCount()));
-        int32_t offset = masm.framePushed() - frameInitialAdjustment_ - slot;
+        int32_t offset = masm.framePushed() - slot;
         JS_ASSERT(offset >= 0);
         return offset;
     }
@@ -177,7 +172,7 @@ class CodeGeneratorShared : public LInstructionVisitor
         
         
         
-        return masm.framePushed() - frameInitialAdjustment_ - offset;
+        return masm.framePushed() - offset;
     }
 
     
