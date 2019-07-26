@@ -17,11 +17,15 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.Iterator;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
+import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
+import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.FaviconView;
 
@@ -125,7 +129,55 @@ public class SearchEnginePreference extends Preference implements View.OnLongCli
         final String iconURI = geckoEngineJSON.getString("iconURI");
         
         try {
-            mIconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
+
+            
+            
+
+            LoadFaviconResult result = FaviconDecoder.decodeDataURI(iconURI);
+            if (result == null) {
+                
+                Log.w(LOGTAG, "Unable to decode icon URI.");
+                return;
+            }
+
+            Iterator<Bitmap> bitmaps = result.getBitmaps();
+            if (!bitmaps.hasNext()) {
+                Log.w(LOGTAG, "No bitmaps in decoded icon.");
+                return;
+            }
+
+            mIconBitmap = bitmaps.next();
+
+            if (!bitmaps.hasNext()) {
+                
+                return;
+            }
+
+            
+            final int desiredWidth;
+            if (mFaviconView != null) {
+                desiredWidth = mFaviconView.getWidth();
+            } else {
+                
+                
+                
+                if (Favicons.sLargestFaviconSize == 0) {
+                    desiredWidth = 128;
+                } else {
+                    desiredWidth = Favicons.sLargestFaviconSize;
+                }
+            }
+
+            int currentWidth = mIconBitmap.getWidth();
+            while ((currentWidth < desiredWidth) &&
+                   bitmaps.hasNext()) {
+                Bitmap b = bitmaps.next();
+                if (b.getWidth() > currentWidth) {
+                    currentWidth = b.getWidth();
+                    mIconBitmap = b;
+                }
+            }
+
         } catch (IllegalArgumentException e) {
             Log.e(LOGTAG, "IllegalArgumentException creating Bitmap. Most likely a zero-length bitmap.", e);
         } catch (NullPointerException e) {
