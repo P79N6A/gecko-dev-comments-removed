@@ -42,7 +42,7 @@ function initial_font_family_is_sans_serif()
 	
 	
 	var div = document.createElement("div");
-	div.setAttribute("style", "font: -moz-initial");
+	div.setAttribute("style", "font: initial");
 	return getComputedStyle(div, "").fontFamily == "sans-serif";
 }
 var gInitialFontFamilyIsSansSerif = initial_font_family_is_sans_serif();
