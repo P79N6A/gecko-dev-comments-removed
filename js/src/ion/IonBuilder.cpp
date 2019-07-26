@@ -4824,9 +4824,11 @@ IonBuilder::makeCallsiteClone(HandleFunction target, MDefinition *fun)
     
     
     
+    
     if (target) {
         MConstant *constant = MConstant::New(ObjectValue(*target));
         current->add(constant);
+        fun->setFoldedUnchecked();
         return constant;
     }
 
