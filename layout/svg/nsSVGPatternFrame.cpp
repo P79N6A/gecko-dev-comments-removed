@@ -315,6 +315,9 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   gfxRect bbox = GetPatternRect(patternUnits, callerBBox, ToMatrix(aContextMatrix), aSource);
+  if (bbox.Width() <= 0.0 || bbox.Height() <= 0.0) {
+    return NS_ERROR_FAILURE;
+  }
 
   
   gfxMatrix patternTransform = GetPatternTransform();
