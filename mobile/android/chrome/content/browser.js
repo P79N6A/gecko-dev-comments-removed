@@ -4320,10 +4320,14 @@ var BrowserEventHandler = {
 
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
+    let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
 
     
+    
+    
     if (BrowserEventHandler.mReflozPref &&
-       !BrowserApp.selectedTab._mReflozPoint) {
+       !BrowserApp.selectedTab._mReflozPoint &&
+       !this._shouldSuppressReflowOnZoom(element)) {
      let data = JSON.parse(aData);
      let zoomPointX = data.x;
      let zoomPointY = data.y;
@@ -4333,8 +4337,6 @@ var BrowserEventHandler = {
        BrowserApp.selectedTab.probablyNeedRefloz = true;
     }
 
-    let zoom = BrowserApp.selectedTab._zoom;
-    let element = ElementTouchHelper.anyElementFromPoint(data.x, data.y);
     if (!element) {
       this._zoomOut();
       return;
@@ -4348,6 +4350,28 @@ var BrowserEventHandler = {
     } else {
       this._zoomToElement(element, data.y);
     }
+  },
+
+  
+
+
+
+
+
+
+  _shouldSuppressReflowOnZoom: function(aElement) {
+    if (aElement instanceof Ci.nsIDOMHTMLVideoElement ||
+        aElement instanceof Ci.nsIDOMHTMLObjectElement ||
+        aElement instanceof Ci.nsIDOMHTMLEmbedElement ||
+        aElement instanceof Ci.nsIDOMHTMLAppletElement ||
+        aElement instanceof Ci.nsIDOMHTMLCanvasElement ||
+        aElement instanceof Ci.nsIDOMHTMLImageElement ||
+        aElement instanceof Ci.nsIDOMHTMLMediaElement ||
+        aElement instanceof Ci.nsIDOMHTMLPreElement) {
+      return true;
+    }
+
+    return false;
   },
 
   
