@@ -191,9 +191,6 @@ AudioNodeStream::ObtainInputBlock(AudioChunk* aTmpChunk)
       continue;
     }
     AudioChunk* chunk = &a->mLastChunk;
-    
-    
-    
     MOZ_ASSERT(chunk);
     if (chunk->IsNull()) {
       continue;

@@ -32,6 +32,15 @@ struct WebAudioUtils {
 
 
 
+  static double ComputeSmoothingRate(double aDuration, double aSampleRate)
+  {
+    return 1.0 - std::exp(-1.0 / (aDuration * aSampleRate));
+  }
+
+  
+
+
+
 
 
 
