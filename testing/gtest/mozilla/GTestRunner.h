@@ -1,0 +1,10 @@
+
+
+
+
+
+namespace mozilla {
+
+int RunGTest();
+
+}
