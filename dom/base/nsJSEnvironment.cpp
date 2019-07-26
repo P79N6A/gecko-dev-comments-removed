@@ -509,7 +509,8 @@ NS_ScriptErrorReporter(JSContext *cx,
   
   if (!JSREPORT_IS_WARNING(report->flags)) {
     nsIXPConnect* xpc = nsContentUtils::XPConnect();
-    if (JS_DescribeScriptedCaller(cx, nullptr, nullptr)) {
+    JS::RootedScript script(cx);
+    if (JS_DescribeScriptedCaller(cx, &script, nullptr)) {
       xpc->MarkErrorUnreported(cx);
       return;
     }
