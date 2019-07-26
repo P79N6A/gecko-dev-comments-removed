@@ -891,7 +891,12 @@ nsHttpChannel::CallOnStartRequest()
     
     if (mCacheEntry && mChannelIsForDownload) {
         mCacheEntry->AsyncDoom(nullptr);
-        CloseCacheEntry(false);
+
+        
+        
+        
+        if (!mCachedContentIsPartial && !mConcurentCacheAccess)
+            CloseCacheEntry(false);
     }
 
     if (!mCanceled) {
