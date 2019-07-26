@@ -109,12 +109,21 @@ function docToTestOutput(doc) {
 
 
 
+function createFragmentWalker(elt) {
+  return elt.ownerDocument.createTreeWalker(elt, NodeFilter.SHOW_ALL,
+    function (node) {
+      return elt == node ? NodeFilter.FILTER_SKIP : NodeFilter.FILTER_ACCEPT;
+    });
+}
+
+
+
+
+
+
 
 function fragmentToTestOutput(elt) {
-  var walker = elt.ownerDocument.createTreeWalker(elt, NodeFilter.SHOW_ALL, 
-    function (node) { return elt == node ? 
-                        NodeFilter.FILTER_SKIP : 
-                        NodeFilter.FILTER_ACCEPT; });
+  var walker = createFragmentWalker(elt);
   return addLevels(walker, "", "| ").slice(0,-1); 
 }
 
@@ -184,6 +193,15 @@ function addLevels(walker, buf, indent) {
           break;
       }
       buf += "\n";
+      
+      
+      
+      if (walker.currentNode instanceof HTMLTemplateElement) {
+        buf += indent + "  content\n";
+        
+        var templateWalker = createFragmentWalker(walker.currentNode.content);
+        buf = addLevels(templateWalker, buf, indent + "    ");
+      }
       buf = addLevels(walker, buf, indent + "  ");
     } while(walker.nextSibling());
     walker.parentNode();
