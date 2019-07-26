@@ -18,6 +18,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.json.simple.JSONArray;
 import org.json.simple.parser.ParseException;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.sync.crypto.CryptoException;
@@ -374,6 +375,7 @@ public class GlobalSession implements PrefsSource, HttpResponseObserver {
   }
 
   public void updateMetaGlobalInPlace() {
+    config.metaGlobal.declined = this.declinedEngineNames();
     ExtendedJSONObject engines = config.metaGlobal.getEngines();
     for (Entry<String, EngineSettings> pair : enginesToUpdate.entrySet()) {
       if (pair.getValue() == null) {
@@ -651,6 +653,38 @@ public class GlobalSession implements PrefsSource, HttpResponseObserver {
             Utils.toCommaSeparatedString(config.enabledEngineNames) + "' from meta/global.");
       }
     }
+
+    
+    
+    
+    
+    
+    final HashSet<String> allDeclined = new HashSet<String>();
+
+    final Set<String> newRemoteDeclined = global.getDeclinedEngineNames();
+    final Set<String> oldLocalDeclined = config.declinedEngineNames;
+
+    allDeclined.addAll(newRemoteDeclined);
+    allDeclined.addAll(oldLocalDeclined);
+
+    if (config.userSelectedEngines != null) {
+      for (Entry<String, Boolean> selection : config.userSelectedEngines.entrySet()) {
+        if (selection.getValue()) {
+          allDeclined.remove(selection.getKey());
+        }
+      }
+    }
+
+    config.declinedEngineNames = allDeclined;
+    if (config.declinedEngineNames.isEmpty()) {
+      Logger.debug(LOG_TAG, "meta/global reported no declined engine names, and we have none declined locally.");
+    } else {
+      if (Logger.shouldLogVerbose(LOG_TAG)) {
+        Logger.trace(LOG_TAG, "Persisting declined engine names '" +
+            Utils.toCommaSeparatedString(config.declinedEngineNames) + "' from meta/global.");
+      }
+    }
+
     config.persistToPrefs();
     advance();
   }
@@ -912,6 +946,27 @@ public class GlobalSession implements PrefsSource, HttpResponseObserver {
 
 
 
+  @SuppressWarnings("unchecked")
+  protected JSONArray declinedEngineNames() {
+    final JSONArray declined = new JSONArray();
+    for (String engine : config.declinedEngineNames) {
+      declined.add(engine);
+    };
+
+    return declined;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   protected Set<String> enabledEngineNames() {
     if (config.enabledEngineNames != null) {
       return config.enabledEngineNames;
@@ -982,6 +1037,10 @@ public class GlobalSession implements PrefsSource, HttpResponseObserver {
     metaGlobal.setSyncID(newSyncID);
     metaGlobal.setStorageVersion(STORAGE_VERSION);
     metaGlobal.setEngines(engines);
+
+    
+    
+    metaGlobal.setDeclinedEngineNames(this.declinedEngineNames());
 
     return metaGlobal;
   }

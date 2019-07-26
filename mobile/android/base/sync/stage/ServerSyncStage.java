@@ -515,7 +515,9 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
       if (!isEnabled) {
         
         session.removeEngineFromMetaGlobal(name);
+        session.config.declinedEngineNames.add(name);
       } else {
+        session.config.declinedEngineNames.remove(name);
         
         String newSyncID = Utils.generateGuid();
         session.recordForMetaGlobalUpdate(name, new EngineSettings(newSyncID, this.getStorageVersion()));
