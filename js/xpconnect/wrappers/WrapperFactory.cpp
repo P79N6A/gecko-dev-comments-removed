@@ -675,18 +675,23 @@ GetNativeForGlobal(JSObject *obj)
         return nullptr;
 
     
-    MOZ_ASSERT(GetObjectClass(obj)->flags & (JSCLASS_PRIVATE_IS_NSISUPPORTS |
-                                             JSCLASS_HAS_PRIVATE));
-    nsISupports *native =
-        static_cast<nsISupports *>(js::GetObjectPrivate(obj));
-    MOZ_ASSERT(native);
+    
+    MOZ_ASSERT((GetObjectClass(obj)->flags & (JSCLASS_PRIVATE_IS_NSISUPPORTS |
+                                             JSCLASS_HAS_PRIVATE)) ||
+               dom::UnwrapDOMObjectToISupports(obj));
 
-    
-    
-    
-    
-    if (nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(native)) {
-        native = wn->Native();
+    nsISupports *native = dom::UnwrapDOMObjectToISupports(obj);
+    if (!native) {
+        native = static_cast<nsISupports *>(js::GetObjectPrivate(obj));
+        MOZ_ASSERT(native);
+
+        
+        
+        
+        
+        if (nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(native)) {
+            native = wn->Native();
+        }
     }
 
     nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(native);
