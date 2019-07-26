@@ -467,14 +467,6 @@ public:
   
   virtual void OnDecodeThreadFinish() {}
 
-  
-  
-  
-  void SetIgnoreAudioOutputFormat()
-  {
-    mIgnoreAudioOutputFormat = true;
-  }
-
 protected:
   
   
@@ -551,11 +543,6 @@ protected:
 
   
   VideoInfo mInfo;
-
-  
-  
-  
-  bool mIgnoreAudioOutputFormat;
 };
 
 } 

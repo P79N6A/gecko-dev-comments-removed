@@ -62,7 +62,6 @@ static const uint16_t WAVE_FORMAT_CHUNK_SIZE = 16;
 static const uint16_t WAVE_FORMAT_ENCODING_PCM = 1;
 
 
-
 static const uint8_t MAX_CHANNELS = 2;
 
 namespace {
@@ -432,13 +431,11 @@ WaveReader::LoadFormatChunk(uint32_t aChunkSize)
   
   
   
-  
   unsigned int actualFrameSize = sampleFormat == 8 ? 1 : 2 * channels;
   if (rate < 100 || rate > 96000 ||
-      (((channels < 1 || channels > MAX_CHANNELS) ||
-       (frameSize != 1 && frameSize != 2 && frameSize != 4)) &&
-       !mIgnoreAudioBackendFormat) ||
-       (sampleFormat != 8 && sampleFormat != 16) ||
+      channels < 1 || channels > MAX_CHANNELS ||
+      (frameSize != 1 && frameSize != 2 && frameSize != 4) ||
+      (sampleFormat != 8 && sampleFormat != 16) ||
       frameSize != actualFrameSize) {
     NS_WARNING("Invalid WAVE metadata");
     return false;
