@@ -68,13 +68,7 @@
 
 
 #define PREF_FIXED_LIMIT "dom.quotaManager.temporaryStorage.fixedLimit"
-
-
-#define PREF_SMART_LIMIT_PREFIX "dom.quotaManager.temporaryStorage.smartLimit."
-#define PREF_SMART_LIMIT_MIN PREF_SMART_LIMIT_PREFIX "min"
-#define PREF_SMART_LIMIT_MAX PREF_SMART_LIMIT_PREFIX "max"
-#define PREF_SMART_LIMIT_CHUNK PREF_SMART_LIMIT_PREFIX "chunk"
-#define PREF_SMART_LIMIT_RATIO PREF_SMART_LIMIT_PREFIX "ratio"
+#define PREF_CHUNK_SIZE "dom.quotaManager.temporaryStorage.chunkSize"
 
 
 #define PREF_TESTING_FEATURES "dom.quotaManager.testing"
@@ -87,6 +81,10 @@
 #define METADATA_FILE_NAME ".metadata"
 
 #define PERMISSION_DEFAUT_PERSISTENT_STORAGE "default-persistent-storage"
+
+#define KB * 1024ULL
+#define MB * 1024ULL KB
+#define GB * 1024ULL MB
 
 USING_QUOTA_NAMESPACE
 using namespace mozilla::dom;
@@ -481,32 +479,16 @@ namespace {
 static const int32_t  kDefaultQuotaMB =             50;
 
 
-static const int32_t  kDefaultFixedLimitKB =        -1;
-#ifdef ANDROID
-
-
-
-static const uint32_t kDefaultSmartLimitMinKB =     10 * 1024;
-static const uint32_t kDefaultSmartLimitMaxKB =    200 * 1024;
-static const uint32_t kDefaultSmartLimitChunkKB =    2 * 1024;
-static const float    kDefaultSmartLimitRatio =     .2f;
-#else
-static const uint64_t kDefaultSmartLimitMinKB =     50 * 1024;
-static const uint64_t kDefaultSmartLimitMaxKB =   1024 * 1024;
-static const uint32_t kDefaultSmartLimitChunkKB =   10 * 1024;
-static const float    kDefaultSmartLimitRatio =     .4f;
-#endif
-
 QuotaManager* gInstance = nullptr;
 mozilla::Atomic<bool> gShutdown(false);
 
 int32_t gStorageQuotaMB = kDefaultQuotaMB;
 
+
+static const int32_t kDefaultFixedLimitKB = -1;
+static const uint32_t kDefaultChunkSizeKB = 10 * 1024;
 int32_t gFixedLimitKB = kDefaultFixedLimitKB;
-uint32_t gSmartLimitMinKB = kDefaultSmartLimitMinKB;
-uint32_t gSmartLimitMaxKB = kDefaultSmartLimitMaxKB;
-uint32_t gSmartLimitChunkKB = kDefaultSmartLimitChunkKB;
-float gSmartLimitRatio = kDefaultSmartLimitRatio;
+uint32_t gChunkSizeKB = kDefaultChunkSizeKB;
 
 bool gTestingEnabled = false;
 
@@ -858,11 +840,6 @@ MaybeUpgradeOriginDirectory(nsIFile* aDirectory)
 
 
 
-
-
-
-
-
 nsresult
 GetTemporaryStorageLimit(nsIFile* aDirectory, uint64_t aCurrentUsage,
                          uint64_t* aLimit)
@@ -880,52 +857,12 @@ GetTemporaryStorageLimit(nsIFile* aDirectory, uint64_t aCurrentUsage,
   
   
   
-  availableKB = (availableKB / gSmartLimitChunkKB) * gSmartLimitChunkKB;
+  availableKB = (availableKB / gChunkSizeKB) * gChunkSizeKB;
 
   
-  
-  
-  
-  
+  uint64_t resultKB = availableKB * .50;
 
-  static const uint64_t _25GB = 25 * 1024 * 1024;
-  static const uint64_t _7GB = 7 * 1024 * 1024;
-  static const uint64_t _500MB = 500 * 1024;
-
-#define PERCENTAGE(a, b, c) ((a - b) * c)
-
-  uint64_t resultKB;
-  if (availableKB > _25GB) {
-    resultKB = static_cast<uint64_t>(
-      PERCENTAGE(availableKB, _25GB, .005) +
-      PERCENTAGE(_25GB, _7GB, .01) +
-      PERCENTAGE(_7GB, _500MB, .05) +
-      PERCENTAGE(_500MB, 0, gSmartLimitRatio)
-    );
-  }
-  else if (availableKB > _7GB) {
-    resultKB = static_cast<uint64_t>(
-      PERCENTAGE(availableKB, _7GB, .01) +
-      PERCENTAGE(_7GB, _500MB, .05) +
-      PERCENTAGE(_500MB, 0, gSmartLimitRatio)
-    );
-  }
-  else if (availableKB > _500MB) {
-    resultKB = static_cast<uint64_t>(
-      PERCENTAGE(availableKB, _500MB, .05) +
-      PERCENTAGE(_500MB, 0, gSmartLimitRatio)
-    );
-  }
-  else {
-    resultKB = static_cast<uint64_t>(
-      PERCENTAGE(availableKB, 0, gSmartLimitRatio)
-    );
-  }
-
-#undef PERCENTAGE
-
-  *aLimit = 1024 * mozilla::clamped<uint64_t>(resultKB, gSmartLimitMinKB,
-                                              gSmartLimitMaxKB);
+  *aLimit = resultKB * 1024;
   return NS_OK;
 }
 
@@ -1082,19 +1019,10 @@ QuotaManager::Init()
   }
 
   if (NS_FAILED(Preferences::AddIntVarCache(&gFixedLimitKB, PREF_FIXED_LIMIT,
-                                             kDefaultFixedLimitKB)) ||
-      NS_FAILED(Preferences::AddUintVarCache(&gSmartLimitMinKB,
-                                             PREF_SMART_LIMIT_MIN,
-                                             kDefaultSmartLimitMinKB)) ||
-      NS_FAILED(Preferences::AddUintVarCache(&gSmartLimitMaxKB,
-                                             PREF_SMART_LIMIT_MAX,
-                                             kDefaultSmartLimitMaxKB)) ||
-      NS_FAILED(Preferences::AddUintVarCache(&gSmartLimitChunkKB,
-                                             PREF_SMART_LIMIT_CHUNK,
-                                             kDefaultSmartLimitChunkKB)) ||
-      NS_FAILED(Preferences::AddFloatVarCache(&gSmartLimitRatio,
-                                              PREF_SMART_LIMIT_RATIO,
-                                              kDefaultSmartLimitRatio))) {
+                                            kDefaultFixedLimitKB)) ||
+      NS_FAILED(Preferences::AddUintVarCache(&gChunkSizeKB,
+                                             PREF_CHUNK_SIZE,
+                                             kDefaultChunkSizeKB))) {
     NS_WARNING("Unable to respond to temp storage pref changes!");
   }
 
@@ -1941,9 +1869,9 @@ QuotaManager::EnsureOriginIsInitialized(PersistenceType aPersistenceType,
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    CheckTemporaryStorageLimits();
-
     mTemporaryStorageInitialized = true;
+
+    CheckTemporaryStorageLimits();
   }
 
   bool created;
@@ -2007,6 +1935,22 @@ QuotaManager::GetClient(Client::Type aClientType)
 {
   nsRefPtr<Client> client = mClients.SafeElementAt(aClientType);
   return client.forget();
+}
+
+uint64_t
+QuotaManager::GetGroupLimit() const
+{
+  MOZ_ASSERT(mTemporaryStorageInitialized);
+
+  
+  
+  
+  uint64_t x = std::min<uint64_t>(mTemporaryStorageLimit * .20, 2 GB);
+
+  
+  
+  return std::min<uint64_t>(mTemporaryStorageLimit,
+                            std::max<uint64_t>(x, 10 MB));
 }
 
 
