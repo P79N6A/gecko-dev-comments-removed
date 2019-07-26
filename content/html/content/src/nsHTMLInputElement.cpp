@@ -1218,7 +1218,7 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
     }
   }
   else {
-    if (IsSingleLineTextControl(false)) {
+    if (MayFireChangeOnBlur()) {
       
       
       
@@ -1948,7 +1948,7 @@ nsHTMLInputElement::FireChangeEventIfNeeded()
   nsString value;
   GetValueInternal(value);
 
-  if (!IsSingleLineTextControl(false) || mFocusedValue.Equals(value)) {
+  if (!MayFireChangeOnBlur() || mFocusedValue.Equals(value)) {
     return;
   }
 
@@ -2577,17 +2577,31 @@ nsHTMLInputElement::FinishRangeThumbDrag(nsGUIEvent* aEvent)
     SetValueOfRangeForUserEvent(rangeFrame->GetValueAtEventPoint(aEvent));
   }
   mIsDraggingRange = false;
+  FireChangeEventIfNeeded();
 }
 
 void
-nsHTMLInputElement::CancelRangeThumbDrag()
+nsHTMLInputElement::CancelRangeThumbDrag(bool aIsForUserEvent)
 {
   MOZ_ASSERT(mIsDraggingRange);
 
   if (nsIPresShell::GetCapturingContent() == this) {
     nsIPresShell::SetCapturingContent(nullptr, 0); 
   }
-  SetValueOfRangeForUserEvent(mRangeThumbDragStartValue);
+  if (aIsForUserEvent) {
+    SetValueOfRangeForUserEvent(mRangeThumbDragStartValue);
+  } else {
+    
+    
+    
+    nsAutoString val;
+    ConvertNumberToString(mRangeThumbDragStartValue, val);
+    SetValueInternal(val, true, true);
+    nsRangeFrame* frame = do_QueryFrame(GetPrimaryFrame());
+    if (frame) {
+      frame->UpdateThumbPositionForValueChange();
+    }
+  }
   mIsDraggingRange = false;
 }
 
@@ -2603,6 +2617,10 @@ nsHTMLInputElement::SetValueOfRangeForUserEvent(double aValue)
   if (frame) {
     frame->UpdateThumbPositionForValueChange();
   }
+  nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
+                                       static_cast<nsIDOMHTMLInputElement*>(this),
+                                       NS_LITERAL_STRING("input"), true,
+                                       false);
 }
 
 static bool
@@ -2644,7 +2662,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
       aVisitor.mEvent->message == NS_BLUR_CONTENT) {
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT && 
-        IsSingleLineTextControl(false)) {
+        MayFireChangeOnBlur()) {
       GetValueInternal(mFocusedValue);
     }
 
@@ -3248,7 +3266,7 @@ void
 nsHTMLInputElement::HandleTypeChange(uint8_t aNewType)
 {
   if (mType == NS_FORM_INPUT_RANGE && mIsDraggingRange) {
-    CancelRangeThumbDrag();
+    CancelRangeThumbDrag(false);
   }
 
   ValueModeType aOldValueMode = GetValueMode();
@@ -3307,8 +3325,7 @@ nsHTMLInputElement::HandleTypeChange(uint8_t aNewType)
   
   
   
-  if (IsSingleLineTextControl(mType, false) &&
-      !IsSingleLineTextControl(oldType, false)) {
+  if (MayFireChangeOnBlur(mType) && !MayFireChangeOnBlur(oldType)) {
     GetValueInternal(mFocusedValue);
   } else if (!IsSingleLineTextControl(mType, false) &&
              IsSingleLineTextControl(oldType, false)) {
