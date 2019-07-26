@@ -21,6 +21,7 @@ var DQUOTE = '"';
 
 
 
+
 var tests = [
   
   ["attachment;",
@@ -57,22 +58,22 @@ var tests = [
   
   ["attachment; filename*0=foo; filename*1=bar",
    "attachment", "foobar",
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   ],
 
   
   ["attachment; filename*0=first; filename*0=wrong; filename=basic",
    "attachment", "first",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename*0=first; filename*1=second; filename*0=wrong",
    "attachment", "firstsecond",
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   ],
 
   
   ["attachment; filename=basic; filename*0=foo; filename*1=bar",
    "attachment", "foobar",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -88,19 +89,19 @@ var tests = [
   
   ["attachment; filename*0=foo; filename*2=bar",
    "attachment", "foo",
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   ],
 
   
   ["attachment; filename*0=foo; filename*01=bar",
    "attachment", "foo",
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''multi;\r\n"
     + " filename*1=line;\r\n" 
     + " filename*2*=%20extended",
    "attachment", "multiline extended",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -108,7 +109,7 @@ var tests = [
     + " filename*1=line;\r\n" 
     + " filename*3*=%20extended",
    "attachment", "multiline",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -118,7 +119,7 @@ var tests = [
     + " filename*1=bad;\r\n"
     + " filename*2=evil",
    "attachment", "multiline",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -132,13 +133,13 @@ var tests = [
   ["attachment; filename*0=UTF-8''unescaped;\r\n"
     + " filename*1*=%20so%20includes%20UTF-8''%20in%20value", 
    "attachment", "UTF-8''unescaped so includes UTF-8'' in value",
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   ],
 
   
   ["attachment; filename=basic; filename*0=UTF-8''unescaped;\r\n"
     + " filename*1*=%20so%20includes%20UTF-8''%20in%20value", 
    "attachment", "UTF-8''unescaped so includes UTF-8'' in value",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -153,7 +154,7 @@ var tests = [
     + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
     + " filename*11=b; filename*12=c;filename*13=d;filename*14=e;filename*15=f\r\n",
    "attachment", "0123456789abcdef",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
@@ -161,7 +162,7 @@ var tests = [
     + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
     + " filename*11=b; filename*12=c;filename*14=e\r\n",
    "attachment", "0123456789abc",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -195,38 +196,38 @@ var tests = [
     + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
     + " filename*11=b; filename*12=c;filename*13=d;filename*15=f;filename*14=e;\r\n",
    "attachment", "0123456789abcdef",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
     + " filename*1a=1\r\n",
    "attachment", "0",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
     + " filename*0=bad; filename*1=1;\r\n",
    "attachment", "0",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
     + " filename*11111111111111111111111111111111111111111111111111111111111=1",
    "attachment", "0",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
     + " filename*-1=1",
    "attachment", "0",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename*0=\"0\";\r\n"
     + " filename*1=1;\r\n"
     + " filename*2*=%32",
    "attachment", "012",
-   "attachment", "basic"],
+   ],
 
   
   ["attachment; filename=basic; filename**=UTF-8''0\r\n",
@@ -261,7 +262,20 @@ var tests = [
   
   ["attachment; filename=", 
    "attachment", ""],    
+
   
+  ["attachment; filename==?ISO-8859-1?Q?foo-=E4.html?=",
+   "attachment", "foo-\u00e4.html",
+   "attachment", "=?ISO-8859-1?Q?foo-=E4.html?="],
+
+  ["attachment; filename=\"=?ISO-8859-1?Q?foo-=E4.html?=\"",
+   "attachment", "foo-\u00e4.html",
+   "attachment", "=?ISO-8859-1?Q?foo-=E4.html?="],
+
+  
+  ["attachment; filename=\"=?ISO-8859-1?Q?foo-=E4.html?=\"; filename*=UTF-8''5987",
+   "attachment", "5987"],
+
   
   
   
@@ -389,12 +403,12 @@ var tests = [
 
   ['attachment; filename=basic; filename*0="foo"; filename*1="\\b\\a\\r.html"', 
    "attachment", "foobar.html",
-   "attachment", "basic"],
+   ],
 
   
   ['attachment; filename=basic; filename*0="foo"; filename*1="\\b\\a\\', 
    "attachment", "fooba\\",
-   "attachment", "basic"],
+   ],
 
   
   
@@ -469,7 +483,7 @@ function do_tests(whichRFC)
       if (whichRFC == 0)
         result = mhp.getParameter(tests[i][0], "", "UTF-8", true, unused);
       else 
-        result = mhp.getParameter5987(tests[i][0], "", "UTF-8", true, unused);
+        result = mhp.getParameterHTTP(tests[i][0], "", "UTF-8", true, unused);
 
       do_check_eq(result, expectedDt);
     } 
@@ -493,7 +507,7 @@ function do_tests(whichRFC)
       if (whichRFC == 0)
         result = mhp.getParameter(tests[i][0], "filename", "UTF-8", true, unused);
       else 
-        result = mhp.getParameter5987(tests[i][0], "filename", "UTF-8", true, unused);
+        result = mhp.getParameterHTTP(tests[i][0], "filename", "UTF-8", true, unused);
 
       do_check_eq(result, expectedFn);
     } 

@@ -16,11 +16,9 @@ public:
   nsMIMEHeaderParamImpl() {}
   virtual ~nsMIMEHeaderParamImpl() {}
 private:
-  
-  
   enum ParamDecoding {
-    RFC_2231_DECODING = 1,
-    RFC_5987_DECODING
+    MIME_FIELD_ENCODING = 1,
+    HTTP_FIELD_ENCODING
   }; 
 
   nsresult DoGetParameter(const nsACString& aHeaderVal, 

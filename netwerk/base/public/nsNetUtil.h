@@ -2045,8 +2045,8 @@ NS_GetContentDispositionFromHeader(const nsACString& aHeader, nsIChannel *aChan 
   }
 
   nsAutoString dispToken;
-  rv = mimehdrpar->GetParameter(aHeader, "", fallbackCharset, true, nullptr,
-                                dispToken);
+  rv = mimehdrpar->GetParameterHTTP(aHeader, "", fallbackCharset, true, nullptr,
+                                    dispToken);
 
   if (NS_FAILED(rv)) {
     
@@ -2083,9 +2083,9 @@ NS_GetFilenameFromDisposition(nsAString& aFilename,
   if (url)
     url->GetOriginCharset(fallbackCharset);
   
-  rv = mimehdrpar->GetParameter(aDisposition, "filename",
-                                fallbackCharset, true, nullptr,
-                                aFilename);
+  rv = mimehdrpar->GetParameterHTTP(aDisposition, "filename",
+                                    fallbackCharset, true, nullptr,
+                                    aFilename);
 
   if (NS_FAILED(rv)) {
     aFilename.Truncate();
