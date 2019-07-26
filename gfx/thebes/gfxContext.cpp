@@ -1404,7 +1404,48 @@ gfxContext::Mask(gfxPattern *pattern)
   if (mCairo) {
     cairo_mask(mCairo, pattern->CairoPattern());
   } else {
+    bool needsClip = false;
+    if (pattern->Extend() == gfxPattern::EXTEND_NONE) {
+      
+      
+      
+      Rect surfaceSourceRect;
+      if (!pattern->IsAzure() &&
+          pattern->GetType() == gfxPattern::PATTERN_SURFACE)
+      {
+        needsClip = true;
+
+        nsRefPtr<gfxASurface> surf = pattern->GetSurface();
+        gfxPoint offset = surf->GetDeviceOffset();
+
+        surfaceSourceRect = Rect(-offset.x, -offset.y, surf->GetSize().width, surf->GetSize().height);
+      } else if (pattern->IsAzure()) {
+        
+        
+        
+        
+        
+        needsClip = true;
+
+        RefPtr<SourceSurface> surf = pattern->GetAzureSurface();
+        surfaceSourceRect = Rect(0, 0, surf->GetSize().width, surf->GetSize().height);
+      }
+
+      if (needsClip) {
+        Matrix mat = ToMatrix(pattern->GetMatrix());
+        mat.Invert();
+        mat = mat * GetDTTransform();
+
+        mDT->SetTransform(mat);
+        mDT->PushClipRect(surfaceSourceRect);
+        mDT->SetTransform(GetDTTransform());
+      }
+    }
     mDT->Mask(GeneralPattern(this), *pattern->GetPattern(mDT), DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+
+    if (needsClip) {
+      mDT->PopClip();
+    }
   }
 }
 
@@ -1420,10 +1461,14 @@ gfxContext::Mask(gfxASurface *surface, const gfxPoint& offset)
       gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(mDT, surface);
 
     gfxPoint pt = surface->GetDeviceOffset();
+
+    
+    mDT->PushClipRect(Rect(offset.x - pt.x, offset.y - pt.y, sourceSurf->GetSize().width, sourceSurf->GetSize().height));
     mDT->Mask(GeneralPattern(this), 
               SurfacePattern(sourceSurf, EXTEND_CLAMP,
                              Matrix(1.0f, 0, 0, 1.0f, Float(offset.x - pt.x), Float(offset.y - pt.y))),
               DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+    mDT->PopClip();
   }
 }
 
