@@ -23,7 +23,7 @@ function test() {
     Task.spawn(function* () {
       try {
 
-        yield waitForSourceShown(gPanel, CODE_URL);
+        yield ensureSourceIs(gPanel, CODE_URL, true);
 
         
         yield doInterrupt();
