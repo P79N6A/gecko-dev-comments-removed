@@ -369,7 +369,8 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 {
   
   
-  if (aDocument->IsInitialDocument() || !aDocument->IsVisible() ||
+  if (aDocument->IsInitialDocument() ||
+      !aDocument->IsVisibleConsideringAncestors() ||
       aDocument->IsResourceDoc() || !aDocument->IsActive())
     return nullptr;
 

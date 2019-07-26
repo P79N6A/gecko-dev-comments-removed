@@ -1551,6 +1551,13 @@ public:
 
 
   bool IsVisible() const { return mVisible; }
+
+  
+
+
+
+  bool IsVisibleConsideringAncestors() const;
+
   
 
 
