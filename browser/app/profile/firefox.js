@@ -1110,9 +1110,6 @@ pref("devtools.gcli.hideIntro", false);
 pref("devtools.gcli.eagerHelper", 2);
 
 
-pref("devtools.gcli.allowSet", false);
-
-
 pref("devtools.webconsole.filter.network", true);
 pref("devtools.webconsole.filter.networkinfo", true);
 pref("devtools.webconsole.filter.csserror", true);
