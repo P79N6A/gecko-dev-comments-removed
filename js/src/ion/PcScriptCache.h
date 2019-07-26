@@ -41,9 +41,24 @@ struct PcScriptCache
     }
 
     
-    
     bool get(JSRuntime *rt, uint32_t hash, uint8_t *addr,
-             JSScript **scriptRes, jsbytecode **pcRes);
+             JSScript **scriptRes, jsbytecode **pcRes)
+    {
+        
+        if (gcNumber != rt->gcNumber) {
+            clear(rt->gcNumber);
+            return false;
+        }
+
+        if (entries[hash].returnAddress != addr)
+            return false;
+
+        *scriptRes = entries[hash].script;
+        if (pcRes)
+            *pcRes = entries[hash].pc;
+
+        return true;
+    }
 
     void add(uint32_t hash, uint8_t *addr, jsbytecode *pc, JSScript *script) {
         entries[hash].returnAddress = addr;
