@@ -15,6 +15,10 @@ Components.utils.import("resource://services-sync/main.js");
 
 
 
+
+
+
+
 function RemoteTabsView(aSet, aSetUIAccess) {
   this._set = aSet;
   this._set.controller = this;
@@ -22,13 +26,10 @@ function RemoteTabsView(aSet, aSetUIAccess) {
 
   
   
-  Weave.Svc.Obs.add("weave:service:setup-complete", this);
   Weave.Svc.Obs.add("weave:service:sync:finish", this);
   Weave.Svc.Obs.add("weave:service:start-over", this);
   if (this.isSyncEnabled() ) {
-    this.populateTabs();
     this.populateGrid();
-    this.setUIAccessVisible(true);
   }
   else {
     this.setUIAccessVisible(false);
@@ -46,10 +47,6 @@ RemoteTabsView.prototype = {
 
   observe: function(subject, topic, data) {
     switch (topic) {
-      case "weave:service:setup-complete":
-        this.populateTabs();
-        this.setUIAccessVisible(true);
-        break;
       case "weave:service:sync:finish":
         this.populateGrid();
         break;
@@ -72,7 +69,7 @@ RemoteTabsView.prototype = {
     
     
     this._set.clearAll();
-
+    let show = false;
     for (let [guid, client] in Iterator(tabsEngine.getAllClients())) {
       client.tabs.forEach(function({title, urlHistory, icon}) {
         let url = urlHistory[0];
@@ -80,6 +77,7 @@ RemoteTabsView.prototype = {
           return;
         }
         seenURLs.add(url);
+        show = true;
 
         
         
@@ -90,14 +88,10 @@ RemoteTabsView.prototype = {
 
       }, this);
     }
-  },
-
-  populateTabs: function populateTabs() {
-    Weave.Service.scheduler.scheduleNextSync(0);
+    this.setUIAccessVisible(show);
   },
 
   destruct: function destruct() {
-    Weave.Svc.Obs.remove("weave:service:setup-complete", this);
     Weave.Svc.Obs.remove("weave:engine:sync:finish", this);
     Weave.Svc.Obs.remove("weave:service:logout:start-over", this);
   },

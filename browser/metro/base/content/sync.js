@@ -39,6 +39,7 @@ let Sync = {
 
     if (service.ready) {
       this._init();
+      Weave.Service.scheduler.scheduleNextSync(10*1000); 
     } else {
       Services.obs.addObserver(this, "weave:service:ready", false);
       service.ensureLoaded();
