@@ -3,6 +3,10 @@
 
 
 
+#toolbar-labels {
+  overflow: hidden;
+}
+
 #details-pane-toggle[disabled] {
   visibility: hidden;
 }

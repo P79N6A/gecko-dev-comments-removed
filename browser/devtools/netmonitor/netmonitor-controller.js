@@ -533,6 +533,14 @@ let Prefs = new ViewHelpers.Prefs("devtools.netmonitor", {
 
 
 
+
+XPCOMUtils.defineLazyGetter(window, "isRTL", function() {
+  return window.getComputedStyle(document.documentElement, null).direction == "rtl";
+});
+
+
+
+
 EventEmitter.decorate(this);
 
 
