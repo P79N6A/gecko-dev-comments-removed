@@ -46,7 +46,7 @@
 #include "ion/IonSpewer.h"
 namespace js {
 namespace ion {
-typedef SegmentedVector<BufferOffset, 512> LoadOffsets;
+typedef Vector<BufferOffset, 512, IonAllocPolicy> LoadOffsets;
 
 struct Pool {
     const int maxOffset;
@@ -85,7 +85,7 @@ struct Pool {
           bias(bias_), alignment(alignment_),
           isBackref(isBackref_), canDedup(canDedup_), other(other_),
           poolData(static_cast<uint8 *>(malloc(8*immSize))), numEntries(0),
-          buffSize(8), limitingUser(), limitingUsee(INT_MIN)
+          buffSize(8), limitingUser(), limitingUsee(INT_MIN), loadOffsets()
     {
     }
     static const int garbage=0xa5a5a5a5;
@@ -312,7 +312,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     
     const int footerSize;
     
-    const int numPoolKinds;
+    static const int numPoolKinds = 1 << poolKindBits;
 
     Pool *pools;
 
@@ -358,9 +358,9 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         return tmp;
     }
   public:
-    AssemblerBufferWithConstantPool(int guardSize_, int headerSize_, int footerSize_, int numPoolKinds_, Pool *pools_, int instBufferAlign_)
+    AssemblerBufferWithConstantPool(int guardSize_, int headerSize_, int footerSize_, Pool *pools_, int instBufferAlign_)
         : guardSize(guardSize_), headerSize(headerSize_),
-          footerSize(footerSize_), numPoolKinds(numPoolKinds_),
+          footerSize(footerSize_),
           pools(pools_),
           instBufferAlign(instBufferAlign_), numDumps(0),
           poolInfo(static_cast<PoolInfo*>(calloc(sizeof(PoolInfo), 1 << logBasePoolInfo))),
@@ -650,9 +650,6 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                 return;
             }
         }
-        poolInfo[numDumps] = newPoolInfo;
-        poolSize += poolInfo[numDumps].size;
-        numDumps++;
 
         
         
@@ -664,12 +661,20 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             poolOffset=pools[poolIdx].align(poolOffset);
             poolOffset+=pools[poolIdx].numEntries * pools[poolIdx].immSize;
         }
+        LoadOffsets outcasts[1 << poolKindBits];
+        uint8 *outcastEntries[1 << poolKindBits];
         
         
+        int skippedBytes = 0;
         for (int poolIdx = numPoolKinds-1; poolIdx >= 0; poolIdx--) {
             Pool *p =  pools[poolIdx].other;
             JS_ASSERT(p != NULL);
-            int idx = 0;
+            int idx = p->numEntries-1;
+            
+            
+            
+            outcastEntries[poolIdx] = new uint8[p->getPoolSize()];
+            bool *preservedEntries = new bool[p->numEntries];
             
             
             
@@ -682,9 +687,10 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             
             
             poolOffset = p->align(poolOffset);
+            int numSkips = 0;
             int fakePoolOffset = poolOffset - pools[poolIdx].numEntries * pools[poolIdx].immSize;
-            for (LoadOffsets::Iterator iter = p->loadOffsets.begin();
-                 iter != p->loadOffsets.end(); ++iter, ++idx)
+            for (BufferOffset *iter = p->loadOffsets.end()-1;
+                 iter != p->loadOffsets.begin()-1; --iter, --idx)
             {
 
                 IonSpew(IonSpew_Pools, "Linking entry %d in pool %d", idx, poolIdx);
@@ -693,15 +699,45 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
                 Inst * inst = this->getInst(*iter);
                 
                 
-                int codeOffset = fakePoolOffset - iter->getOffset() - newPoolInfo.size;
+                int codeOffset = fakePoolOffset - iter->getOffset() - newPoolInfo.size + numSkips * p->immSize - skippedBytes;
                 
                 
                 
                 
                 IonSpew(IonSpew_Pools, "Fixing offset to %d", codeOffset - magicAlign);
-                Asm::patchConstantPoolLoad(inst, (uint8*)inst + codeOffset - magicAlign);
+                if (!Asm::patchConstantPoolLoad(inst, (uint8*)inst + codeOffset - magicAlign)) {
+                    
+                    
+                    
+                    
+                    
+                    
+                    IonSpew(IonSpew_Pools, "***Offset was still out of range!***", codeOffset - magicAlign);
+                    outcasts[poolIdx].append(iter->getOffset());
+                    memcpy(&outcastEntries[poolIdx][numSkips * p->immSize], &p->poolData[idx * p->immSize], p->immSize);
+                    numSkips++;
+                } else {
+                    preservedEntries[idx] = true;
+                }
+            }
+            
+            int idxDest;
+            
+            if (numSkips != 0) {
+                for (idx = 0; idx < p->numEntries; idx++) {
+                    if (preservedEntries[idx]) {
+                        if (idx != idxDest) {
+                            memcpy(&p->poolData[idxDest * p->immSize],
+                                   &p->poolData[idx * p->immSize],
+                                   p->immSize);
+                        }
+                        idxDest++;
+                    }
+                }
+                p->numEntries -= numSkips;
             }
             poolOffset += p->numEntries * p->immSize;
+            delete[] preservedEntries;
         }
         
         Pool **tmp = &perforatedNode->data;
@@ -710,6 +746,13 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             this->fail_oom();
             return;
         }
+        
+        
+        newPoolInfo = getPoolData();
+        poolInfo[numDumps] = newPoolInfo;
+        poolSize += poolInfo[numDumps].size;
+        numDumps++;
+
         memcpy(*tmp, pools, sizeof(Pool) * numPoolKinds);
 
         
@@ -722,6 +765,45 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         new (&perforation) BufferOffset();
         perforatedNode = NULL;
         inBackref = false;
+
+        
+        
+        
+        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
+            
+            
+            
+            
+            int idx = outcasts[poolIdx].length();
+            for (BufferOffset *iter = outcasts[poolIdx].end()-1;
+                 iter != outcasts[poolIdx].begin()-1;
+                 --iter, --idx) {
+                pools[poolIdx].updateLimiter(*iter);
+                Inst *inst = this->getInst(*iter);
+                Asm::insertTokenIntoTag(pools[poolIdx].instSize, (uint8*)inst, outcasts[poolIdx].end()-1-iter);
+                pools[poolIdx].insertEntry(&outcastEntries[poolIdx][idx*pools[poolIdx].immSize], *iter);
+            }
+            delete[] outcastEntries[poolIdx];
+        }
+        
+        
+        
+        
+        poolOffset = this->size() + guardSize * 2;
+        poolOffset += headerSize;
+        for (int poolIdx = 0; poolIdx < numPoolKinds; poolIdx++) {
+            
+            
+            
+            
+            poolOffset = pools[poolIdx].align(poolOffset);
+            if (pools[poolIdx].checkFull(poolOffset)) {
+                
+                dumpPool();
+                break;
+            }
+            poolOffset += pools[poolIdx].getPoolSize();
+        }
     }
 
     void dumpPool() {
@@ -764,7 +846,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             
             
             int idx = 0;
-            for (LoadOffsets::Iterator iter = p->loadOffsets.begin();
+            for (BufferOffset *iter = p->loadOffsets.begin();
                  iter != p->loadOffsets.end(); ++iter, ++idx)
             {
                 if (iter->getOffset() >= perforation.getOffset()) {

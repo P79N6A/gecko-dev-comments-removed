@@ -1230,7 +1230,7 @@ class Assembler
     Assembler()
       : dataBytesNeeded_(0),
         enoughMemory_(true),
-        m_buffer(4, 4, 0, 2, &pools_[0], 8),
+        m_buffer(4, 4, 0, &pools_[0], 8),
         int32Pool(m_buffer.getPool(1)),
         doublePool(m_buffer.getPool(0)),
         isFinished(false),
@@ -1656,15 +1656,17 @@ class Assembler
     };
 
     
-    static uint32 patchConstantPoolLoad(uint32 load, int32 value);
+    
     static void insertTokenIntoTag(uint32 size, uint8 *load, int32 token);
     
     
-    static void patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
+    static bool patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
     
     
     
     static uint32 placeConstantPoolBarrier(int offset);
+    
+
     
     
     
