@@ -14,7 +14,7 @@ using JS::PerfMeasurement;
 
 
 
-static PerfMeasurement* GetPM(JSContext* cx, JSHandleObject obj, const char* fname);
+static PerfMeasurement* GetPM(JSContext* cx, JS::HandleObject obj, const char* fname);
 static PerfMeasurement* GetPMFromThis(JSContext* cx, jsval* vp);
 
 
@@ -197,7 +197,7 @@ pm_finalize(JSFreeOp* fop, JSObject* obj)
 
 
 static PerfMeasurement*
-GetPM(JSContext* cx, JSHandleObject obj, const char* fname)
+GetPM(JSContext* cx, JS::HandleObject obj, const char* fname)
 {
     PerfMeasurement* p = (PerfMeasurement*)
         JS_GetInstancePrivate(cx, obj, &pm_class, 0);

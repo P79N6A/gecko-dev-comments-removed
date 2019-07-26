@@ -284,18 +284,18 @@ typedef void
 
 
 typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JSHandleObject obj);
+(* JSObjectOp)(JSContext *cx, JS::Handle<JSObject*> obj);
 
 
 typedef JSObject *
-(* JSClassInitializerOp)(JSContext *cx, JSHandleObject obj);
+(* JSClassInitializerOp)(JSContext *cx, JS::HandleObject obj);
 
 
 
 
 
 typedef JSObject *
-(* JSIteratorOp)(JSContext *cx, JSHandleObject obj, JSBool keysonly);
+(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, JSBool keysonly);
 
 
 #endif 

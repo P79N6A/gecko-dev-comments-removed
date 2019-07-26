@@ -598,7 +598,7 @@ JSStructuredCloneWriter::writeTypedArray(HandleObject arr)
 }
 
 bool
-JSStructuredCloneWriter::writeArrayBuffer(JSHandleObject obj)
+JSStructuredCloneWriter::writeArrayBuffer(HandleObject obj)
 {
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
     return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, buffer.byteLength()) &&
@@ -606,7 +606,7 @@ JSStructuredCloneWriter::writeArrayBuffer(JSHandleObject obj)
 }
 
 bool
-JSStructuredCloneWriter::startObject(JSHandleObject obj, bool *backref)
+JSStructuredCloneWriter::startObject(HandleObject obj, bool *backref)
 {
     
     CloneMemory::AddPtr p = memory.lookupForAdd(obj);
@@ -625,7 +625,7 @@ JSStructuredCloneWriter::startObject(JSHandleObject obj, bool *backref)
 }
 
 bool
-JSStructuredCloneWriter::traverseObject(JSHandleObject obj)
+JSStructuredCloneWriter::traverseObject(HandleObject obj)
 {
     
 
