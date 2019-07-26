@@ -137,6 +137,35 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     bool SrcStreamLoading() { return mSrcStreamLoading; }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+    virtual JSObject* GetCanonicalPrototype(JSContext* aCx, JSObject* aGlobal);
+
+    
+    void SetupProtoChain(JSContext* aCx, JSObject* aObject);
+
+    
+    bool DoNewResolve(JSContext* aCx, JSHandleObject aObject, JSHandleId aId,
+                      unsigned aFlags, JSMutableHandleObject aObjp);
+
   protected:
     
 
