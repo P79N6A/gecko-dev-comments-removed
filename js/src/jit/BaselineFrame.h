@@ -39,9 +39,6 @@ class BaselineFrame
         HAS_RVAL         = 1 << 0,
 
         
-        HAS_BLOCKCHAIN   = 1 << 1,
-
-        
         HAS_CALL_OBJ     = 1 << 2,
 
         
@@ -213,7 +210,7 @@ class BaselineFrame
     }
 
     bool hasBlockChain() const {
-        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+        return blockChain_;
     }
     StaticBlockObject &blockChain() const {
         JS_ASSERT(hasBlockChain());
@@ -223,11 +220,9 @@ class BaselineFrame
         return hasBlockChain() ? blockChain_ : nullptr;
     }
     void setBlockChain(StaticBlockObject &block) {
-        flags_ |= HAS_BLOCKCHAIN;
         blockChain_ = &block;
     }
     void setBlockChainNull() {
-        JS_ASSERT(!hasBlockChain());
         blockChain_ = nullptr;
     }
     StaticBlockObject **addressOfBlockChain() {
@@ -409,6 +404,6 @@ JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 
 } 
 } 
 
-#endif
+#endif 
 
-#endif
+#endif 

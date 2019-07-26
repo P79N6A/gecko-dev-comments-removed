@@ -311,7 +311,6 @@ class StackFrame
         HAS_HOOK_DATA      =      0x400,  
         HAS_RVAL           =      0x800,  
         HAS_SCOPECHAIN     =     0x1000,  
-        HAS_BLOCKCHAIN     =     0x2000,  
 
         
         PREV_UP_TO_DATE    =     0x4000,  
@@ -605,11 +604,11 @@ class StackFrame
 
 
     bool hasBlockChain() const {
-        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+        return blockChain_;
     }
 
     StaticBlockObject *maybeBlockChain() {
-        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : nullptr;
+        return blockChain_;
     }
 
     StaticBlockObject &blockChain() const {
