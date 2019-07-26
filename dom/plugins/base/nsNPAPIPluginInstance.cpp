@@ -865,7 +865,7 @@ void nsNPAPIPluginInstance::NotifyFullScreen(bool aFullScreen)
   SendLifecycleEvent(this, mFullScreen ? kEnterFullScreen_ANPLifecycleAction : kExitFullScreen_ANPLifecycleAction);
 
   if (mFullScreen && mFullScreenOrientation != dom::eScreenOrientation_None) {
-    AndroidBridge::Bridge()->LockScreenOrientation(mFullScreenOrientation);
+    GeckoAppShell::LockScreenOrientation(mFullScreenOrientation);
   }
 }
 
@@ -922,11 +922,11 @@ void nsNPAPIPluginInstance::SetFullScreenOrientation(uint32_t orientation)
     
 
     if (mFullScreenOrientation != dom::eScreenOrientation_None) {
-      AndroidBridge::Bridge()->LockScreenOrientation(mFullScreenOrientation);
+      GeckoAppShell::LockScreenOrientation(mFullScreenOrientation);
     } else if (oldOrientation != dom::eScreenOrientation_None) {
       
       
-      AndroidBridge::Bridge()->UnlockScreenOrientation();
+      GeckoAppShell::UnlockScreenOrientation();
     }
   }
 }
