@@ -6392,13 +6392,26 @@ nsGlobalWindow*
 nsGlobalWindow::CallerInnerWindow()
 {
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  if (!cx) {
-    NS_ERROR("Please don't call this method from C++!");
-
-    return nullptr;
-  }
-
+  NS_ENSURE_TRUE(cx, nullptr);
   JSObject *scope = CallerGlobal();
+
+  
+  
+  
+  
+  
+  
+  {
+    JSAutoCompartment ac(cx, scope);
+    JSObject *scopeProto;
+    bool ok = JS_GetPrototype(cx, scope, &scopeProto);
+    NS_ENSURE_TRUE(ok, nullptr);
+    if (scopeProto && xpc::IsSandboxPrototypeProxy(scopeProto) &&
+        (scopeProto = js::UnwrapObjectChecked(scopeProto,  false)))
+    {
+      scope = scopeProto;
+    }
+  }
   JSAutoCompartment ac(cx, scope);
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
