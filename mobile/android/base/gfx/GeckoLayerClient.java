@@ -76,7 +76,9 @@ public class GeckoLayerClient
 
     
     private final ProgressiveUpdateData mProgressiveUpdateData;
-    private RectF mProgressiveUpdateDisplayPort;
+    private DisplayPortMetrics mProgressiveUpdateDisplayPort;
+    private boolean mLastProgressiveUpdateWasLowPrecision;
+    private boolean mProgressiveUpdateWasInDanger;
 
     
     private volatile boolean mCompositorCreated;
@@ -116,7 +118,9 @@ public class GeckoLayerClient
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
         mProgressiveUpdateData = new ProgressiveUpdateData();
-        mProgressiveUpdateDisplayPort = new RectF();
+        mProgressiveUpdateDisplayPort = new DisplayPortMetrics();
+        mLastProgressiveUpdateWasLowPrecision = false;
+        mProgressiveUpdateWasInDanger = false;
         mCompositorCreated = false;
 
         mForceRedraw = true;
@@ -364,6 +368,18 @@ public class GeckoLayerClient
                                                            float x, float y, float width, float height,
                                                            float resolution, boolean lowPrecision) {
         
+        if (lowPrecision && !mProgressiveUpdateWasInDanger) {
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
+        }
+
+        
+        if (!lowPrecision && mLastProgressiveUpdateWasLowPrecision) {
+            mProgressiveUpdateWasInDanger = false;
+        }
+        mLastProgressiveUpdateWasLowPrecision = lowPrecision;
+
+        
         
         DisplayPortMetrics displayPort = mDisplayPort;
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
@@ -380,6 +396,19 @@ public class GeckoLayerClient
 
         
         
+        if (!lowPrecision) {
+            if (!FloatUtils.fuzzyEquals(resolution, mProgressiveUpdateDisplayPort.resolution) ||
+                !FloatUtils.fuzzyEquals(x, mProgressiveUpdateDisplayPort.getLeft()) ||
+                !FloatUtils.fuzzyEquals(y, mProgressiveUpdateDisplayPort.getTop()) ||
+                !FloatUtils.fuzzyEquals(x + width, mProgressiveUpdateDisplayPort.getRight()) ||
+                !FloatUtils.fuzzyEquals(y + height, mProgressiveUpdateDisplayPort.getBottom())) {
+                mProgressiveUpdateDisplayPort =
+                    new DisplayPortMetrics(x, y, x+width, y+height, resolution);
+            }
+        }
+
+        
+        
         
         
         
@@ -388,14 +417,20 @@ public class GeckoLayerClient
         
         
         
-        if (!lowPrecision) {
-            mProgressiveUpdateDisplayPort.set(x, y, x + width, y + height);
-        }
-        if (Math.abs(displayPort.getLeft() - mProgressiveUpdateDisplayPort.left) <= 2 &&
-            Math.abs(displayPort.getTop() - mProgressiveUpdateDisplayPort.top) <= 2 &&
-            Math.abs(displayPort.getBottom() - mProgressiveUpdateDisplayPort.bottom) <= 2 &&
-            Math.abs(displayPort.getRight() - mProgressiveUpdateDisplayPort.right) <= 2) {
+        if (Math.abs(displayPort.getLeft() - mProgressiveUpdateDisplayPort.getLeft()) <= 2 &&
+            Math.abs(displayPort.getTop() - mProgressiveUpdateDisplayPort.getTop()) <= 2 &&
+            Math.abs(displayPort.getBottom() - mProgressiveUpdateDisplayPort.getBottom()) <= 2 &&
+            Math.abs(displayPort.getRight() - mProgressiveUpdateDisplayPort.getRight()) <= 2) {
             return mProgressiveUpdateData;
+        }
+
+        if (!lowPrecision && !mProgressiveUpdateWasInDanger) {
+            
+            
+            if (DisplayPortCalculator.aboutToCheckerboard(viewportMetrics,
+                  mPanZoomController.getVelocityVector(), mProgressiveUpdateDisplayPort)) {
+                mProgressiveUpdateWasInDanger = true;
+            }
         }
 
         
