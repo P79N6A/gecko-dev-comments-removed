@@ -3,6 +3,9 @@
 
 
 
+#ifndef EffectiveTLDService_h
+#define EffectiveTLDService_h
+
 #include "nsIEffectiveTLDService.h"
 
 #include "nsIMemoryReporter.h"
@@ -124,3 +127,5 @@ private:
   nsTHashtable<nsDomainEntry> mHash;
   nsCOMPtr<nsIIDNService>     mIDNService;
 };
+
+#endif 
