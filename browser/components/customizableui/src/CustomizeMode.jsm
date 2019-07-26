@@ -1051,7 +1051,6 @@ CustomizeMode.prototype = {
       
       
       if (this._customizing && !this._transitioning) {
-        item.removeAttribute("dragstarting");
         item.hidden = true;
         this._showPanelCustomizationPlaceholders();
         DragPositionManager.start(this.window);
@@ -1062,8 +1061,6 @@ CustomizeMode.prototype = {
       this._initializeDragAfterMove = null;
       this.window.clearTimeout(this._dragInitializeTimeout);
     }.bind(this);
-    item.setAttribute("dragstarting", true);
-    item.clientTop; 
     this._dragInitializeTimeout = this.window.setTimeout(this._initializeDragAfterMove, 0);
   },
 
