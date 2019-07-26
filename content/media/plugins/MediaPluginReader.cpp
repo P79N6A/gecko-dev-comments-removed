@@ -26,8 +26,7 @@ MediaPluginReader::MediaPluginReader(AbstractMediaDecoder *aDecoder,
   mHasAudio(false),
   mHasVideo(false),
   mVideoSeekTimeUs(-1),
-  mAudioSeekTimeUs(-1),
-  mLastVideoFrame(nullptr)
+  mAudioSeekTimeUs(-1)
 {
 }
 
@@ -104,7 +103,6 @@ nsresult MediaPluginReader::ReadMetadata(MediaInfo* aInfo,
 nsresult MediaPluginReader::ResetDecode()
 {
   if (mLastVideoFrame) {
-    delete mLastVideoFrame;
     mLastVideoFrame = nullptr;
   }
   if (mPlugin) {
@@ -116,7 +114,7 @@ nsresult MediaPluginReader::ResetDecode()
 }
 
 bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
-                                           int64_t aTimeThreshold)
+                                         int64_t aTimeThreshold)
 {
   
   
@@ -125,7 +123,6 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
 
   
   if (mLastVideoFrame && mVideoSeekTimeUs != -1) {
-    delete mLastVideoFrame;
     mLastVideoFrame = nullptr;
   }
 
@@ -142,10 +139,11 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
       if (mLastVideoFrame) {
         int64_t durationUs;
         mPlugin->GetDuration(mPlugin, &durationUs);
-        mLastVideoFrame->mEndTime = (durationUs > mLastVideoFrame->mTime)
-                                  ? durationUs
-                                  : mLastVideoFrame->mTime;
-        mVideoQueue.Push(mLastVideoFrame);
+        if (durationUs < mLastVideoFrame->mTime) {
+          durationUs = 0;
+        }
+        mVideoQueue.Push(VideoData::ShallowCopyUpdateDuration(mLastVideoFrame,
+                                                              durationUs));
         mLastVideoFrame = nullptr;
       }
       return false;
@@ -172,7 +170,7 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
     int64_t pos = mDecoder->GetResource()->Tell();
     nsIntRect picture = mPicture;
  
-    VideoData *v;
+    nsAutoPtr<VideoData> v;
     if (currentImage) {
       gfxIntSize frameSize = currentImage->GetSize();
       if (frameSize.width != mInitialFrame.width ||
@@ -190,7 +188,7 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
                                      mDecoder->GetImageContainer(),
                                      pos,
                                      frame.mTimeUs,
-                                     frame.mTimeUs+1, 
+                                     1, 
                                      currentImage,
                                      frame.mKeyFrame,
                                      -1,
@@ -236,7 +234,7 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
                             mDecoder->GetImageContainer(),
                             pos,
                             frame.mTimeUs,
-                            frame.mTimeUs+1, 
+                            1, 
                             b,
                             frame.mKeyFrame,
                             -1,
@@ -259,18 +257,21 @@ bool MediaPluginReader::DecodeVideoFrame(bool &aKeyframeSkip,
       continue;
     }
 
-    mLastVideoFrame->mEndTime = v->mTime;
+    
+    
+    
+    int64_t duration = v->mTime - mLastVideoFrame->mTime;
+    mLastVideoFrame = VideoData::ShallowCopyUpdateDuration(mLastVideoFrame, duration);
 
     
     
     
-    if (mLastVideoFrame->mEndTime < aTimeThreshold) {
-      delete mLastVideoFrame;
+    if (mLastVideoFrame->GetEndTime() < aTimeThreshold) {
       mLastVideoFrame = nullptr;
       continue;
     }
 
-    mVideoQueue.Push(mLastVideoFrame);
+    mVideoQueue.Push(mLastVideoFrame.forget());
 
     
     mLastVideoFrame = v;

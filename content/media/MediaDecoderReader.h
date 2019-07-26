@@ -95,7 +95,44 @@ public:
 };
 
 
-class AudioData {
+class MediaData {
+public:
+
+  enum Type {
+    AUDIO_SAMPLES = 0,
+    VIDEO_FRAME = 1
+  };
+
+  MediaData(Type aType,
+            int64_t aOffset,
+            int64_t aTimestamp,
+            int64_t aDuration)
+    : mType(aType),
+      mOffset(aOffset),
+      mTime(aTimestamp),
+      mDuration(aDuration)
+  {}
+
+  virtual ~MediaData() {}
+
+  
+  const Type mType;
+
+  
+  const int64_t mOffset;
+
+  
+  const int64_t mTime;
+
+  
+  const int64_t mDuration;
+
+  int64_t GetEndTime() const { return mTime + mDuration; }
+
+};
+
+
+class AudioData : public MediaData {
 public:
 
   AudioData(int64_t aOffset,
@@ -104,9 +141,7 @@ public:
             uint32_t aFrames,
             AudioDataValue* aData,
             uint32_t aChannels)
-  : mOffset(aOffset),
-    mTime(aTime),
-    mDuration(aDuration),
+  : MediaData(AUDIO_SAMPLES, aOffset, aTime, aDuration),
     mFrames(aFrames),
     mChannels(aChannels),
     mAudioData(aData)
@@ -122,14 +157,6 @@ public:
   
   void EnsureAudioBuffer();
 
-  int64_t GetEnd() { return mTime + mDuration; }
-
-  
-  
-  const int64_t mOffset;
-
-  int64_t mTime; 
-  const int64_t mDuration; 
   const uint32_t mFrames;
   const uint32_t mChannels;
   
@@ -144,7 +171,7 @@ class GraphicBufferLocked;
 }
 
 
-class VideoData {
+class VideoData : public MediaData {
 public:
   typedef layers::ImageContainer ImageContainer;
   typedef layers::Image Image;
@@ -179,7 +206,7 @@ public:
                            Image* aImage,
                            int64_t aOffset,
                            int64_t aTime,
-                           int64_t aEndTime,
+                           int64_t aDuration,
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
@@ -190,7 +217,7 @@ public:
                            ImageContainer* aContainer,
                            int64_t aOffset,
                            int64_t aTime,
-                           int64_t aEndTime,
+                           int64_t aDuration,
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
@@ -201,7 +228,7 @@ public:
                            Image* aImage,
                            int64_t aOffset,
                            int64_t aTime,
-                           int64_t aEndTime,
+                           int64_t aDuration,
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
@@ -211,7 +238,7 @@ public:
                            ImageContainer* aContainer,
                            int64_t aOffset,
                            int64_t aTime,
-                           int64_t aEndTime,
+                           int64_t aDuration,
                            layers::GraphicBufferLocked* aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
@@ -221,7 +248,7 @@ public:
                                     ImageContainer* aContainer,
                                     int64_t aOffset,
                                     int64_t aTime,
-                                    int64_t aEndTime,
+                                    int64_t aDuration,
                                     const nsRefPtr<Image>& aImage,
                                     bool aKeyframe,
                                     int64_t aTimecode,
@@ -230,50 +257,52 @@ public:
   
   
   
+  
+  
+  
+  
+  static VideoData* ShallowCopyUpdateDuration(VideoData* aOther,
+                                              int64_t aDuration);
+
+  
+  
+  
   static VideoData* CreateDuplicate(int64_t aOffset,
                                     int64_t aTime,
-                                    int64_t aEndTime,
+                                    int64_t aDuration,
                                     int64_t aTimecode)
   {
-    return new VideoData(aOffset, aTime, aEndTime, aTimecode);
+    return new VideoData(aOffset, aTime, aDuration, aTimecode);
   }
 
   ~VideoData();
 
-  int64_t GetEnd() { return mEndTime; }
+  
+  
+  
+  const nsIntSize mDisplay;
 
   
   
-  
-  nsIntSize mDisplay;
-
-  
-  int64_t mOffset;
-
-  
-  int64_t mTime;
-
-  
-  int64_t mEndTime;
-
-  
-  
-  int64_t mTimecode;
+  const int64_t mTimecode;
 
   
   nsRefPtr<Image> mImage;
 
   
   
-  bool mDuplicate;
-  bool mKeyframe;
+  const bool mDuplicate;
+  const bool mKeyframe;
 
 public:
-  VideoData(int64_t aOffset, int64_t aTime, int64_t aEndTime, int64_t aTimecode);
+  VideoData(int64_t aOffset,
+            int64_t aTime,
+            int64_t aDuration,
+            int64_t aTimecode);
 
   VideoData(int64_t aOffset,
             int64_t aTime,
-            int64_t aEndTime,
+            int64_t aDuration,
             bool aKeyframe,
             int64_t aTimecode,
             nsIntSize aDisplay);
@@ -400,7 +429,7 @@ template <class T> class MediaQueue : private nsDeque {
     int32_t i;
     for (i = GetSize() - 1; i > 0; --i) {
       T* v = static_cast<T*>(ObjectAt(i));
-      if (v->GetEnd() < aTime)
+      if (v->GetEndTime() < aTime)
         break;
     }
     
