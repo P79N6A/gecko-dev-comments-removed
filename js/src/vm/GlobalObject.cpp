@@ -517,7 +517,7 @@ GlobalObject::warnOnceAboutWatch(JSContext *cx, HandleObject obj)
     HeapSlot &v = global->getSlotRef(WARNED_WATCH_DEPRECATED);
     if (v.isUndefined()) {
         
-        if (!JS_ReportErrorFlagsAndNumber(cx, JSREPORT_WARNING, js_GetErrorMessage, NULL,
+        if (!JS_ReportErrorFlagsAndNumber(cx, JSREPORT_WARNING, js_GetErrorMessage, nullptr,
                                           JSMSG_OBJECT_WATCH_DEPRECATED))
         {
             return false;
