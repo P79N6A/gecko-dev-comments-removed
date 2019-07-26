@@ -16,9 +16,7 @@ var gPrevCharset = null;
 var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
-var gDownloadMgr = null;
 var gContextMenu = null; 
-var gStartupRan = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -993,6 +991,7 @@ var gBrowserInit = {
 
     
     gBrowser.addEventListener("PluginBindingAttached", gPluginHandler, true, true);
+    gBrowser.addEventListener("PluginScripted",        gPluginHandler, true);
     gBrowser.addEventListener("PluginCrashed",         gPluginHandler, true);
     gBrowser.addEventListener("PluginOutdated",        gPluginHandler, true);
 
@@ -1181,7 +1180,7 @@ var gBrowserInit = {
     this._boundDelayedStartup = this._delayedStartup.bind(this, uriToLoad, mustLoadSidebar);
     window.addEventListener("MozAfterPaint", this._boundDelayedStartup);
 
-    gStartupRan = true;
+    this._loadHandled = true;
   },
 
   _cancelDelayedStartup: function () {
@@ -1319,13 +1318,16 @@ var gBrowserInit = {
 #endif
 
     
-    try {
-      Cc["@mozilla.org/browser/sessionstore;1"]
-        .getService(Ci.nsISessionStore)
-        .init(window);
-    } catch (ex) {
-      dump("nsSessionStore could not be initialized: " + ex + "\n");
-    }
+    let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+    ss.init(window);
+
+    
+    if (ss.canRestoreLastSession
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+        && !PrivateBrowsingUtils.isWindowPrivate(window)
+#endif
+        )
+      goSetCommandEnabled("Browser:RestoreLastSession", true);
 
     PlacesToolbarHelper.init();
 
@@ -1339,8 +1341,7 @@ var gBrowserInit = {
     
     
     setTimeout(function() {
-      gDownloadMgr = Cc["@mozilla.org/download-manager;1"].
-                     getService(Ci.nsIDownloadManager);
+      Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
 
 #ifdef XP_WIN
       if (Win7Features) {
@@ -1502,7 +1503,7 @@ var gBrowserInit = {
     
     
     
-    if (!gStartupRan)
+    if (!this._loadHandled)
       return;
 
     gDevToolsBrowser.forgetBrowserWindow(window);
@@ -1663,8 +1664,6 @@ var gBrowserInit = {
     
     gSyncUI.init();
 #endif
-
-    gStartupRan = true;
   },
 
   nonBrowserWindowShutdown: function() {
@@ -2462,7 +2461,11 @@ function BrowserOnAboutPageLoad(document) {
 
     let ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
              getService(Components.interfaces.nsISessionStore);
-    if (ss.canRestoreLastSession)
+    if (ss.canRestoreLastSession
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+        && !PrivateBrowsingUtils.isWindowPrivate(window)
+#endif
+        )
       document.getElementById("launcher").setAttribute("session", "true");
 
     
@@ -4522,6 +4525,7 @@ var TabsProgressListener = {
         
         aBrowser._clickToPlayDoorhangerShown = false;
         aBrowser._clickToPlayPluginsActivated = false;
+        aBrowser._pluginScriptedState = PLUGIN_SCRIPTED_STATE_NONE;
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
@@ -6869,140 +6873,6 @@ var gIdentityHandler = {
     dt.setData("text/html", htmlString);
     dt.setDragImage(gProxyFavIcon, 16, 16);
   }
-};
-
-let DownloadMonitorPanel = {
-  
-  
-
-  _panel: null,
-  _activeStr: null,
-  _pausedStr: null,
-  _lastTime: Infinity,
-  _listening: false,
-
-  get DownloadUtils() {
-    delete this.DownloadUtils;
-    Cu.import("resource://gre/modules/DownloadUtils.jsm", this);
-    return this.DownloadUtils;
-  },
-
-  
-  
-
-  
-
-
-  init: function DMP_init() {
-    
-    this._panel = document.getElementById("download-monitor");
-
-    
-    this._activeStr = gNavigatorBundle.getString("activeDownloads1");
-    this._pausedStr = gNavigatorBundle.getString("pausedDownloads1");
-
-    gDownloadMgr.addListener(this);
-    this._listening = true;
-
-    this.updateStatus();
-  },
-
-  uninit: function DMP_uninit() {
-    if (this._listening)
-      gDownloadMgr.removeListener(this);
-  },
-
-  inited: function DMP_inited() {
-    return this._panel != null;
-  },
-
-  
-
-
-  updateStatus: function DMP_updateStatus() {
-    if (!this.inited())
-      return;
-
-    let numActive = gDownloadMgr.activeDownloadCount;
-
-    
-    if (numActive == 0) {
-      this._panel.hidden = true;
-      this._lastTime = Infinity;
-
-      return;
-    }
-
-    
-    let numPaused = 0;
-    let maxTime = -Infinity;
-    let dls = gDownloadMgr.activeDownloads;
-    while (dls.hasMoreElements()) {
-      let dl = dls.getNext();
-      if (dl.state == gDownloadMgr.DOWNLOAD_DOWNLOADING) {
-        
-        if (dl.speed > 0 && dl.size > 0)
-          maxTime = Math.max(maxTime, (dl.size - dl.amountTransferred) / dl.speed);
-        else
-          maxTime = -1;
-      }
-      else if (dl.state == gDownloadMgr.DOWNLOAD_PAUSED)
-        numPaused++;
-    }
-
-    
-    let timeLeft;
-    [timeLeft, this._lastTime] =
-      this.DownloadUtils.getTimeLeft(maxTime, this._lastTime);
-
-    
-    let numDls = numActive - numPaused;
-    let status = this._activeStr;
-
-    
-    if (numDls == 0) {
-      numDls = numPaused;
-      status = this._pausedStr;
-    }
-
-    
-    
-    status = PluralForm.get(numDls, status);
-    status = status.replace("#1", numDls);
-    status = status.replace("#2", timeLeft);
-
-    
-    this._panel.label = status;
-    this._panel.hidden = false;
-  },
-
-  
-  
-
-  
-
-
-  onProgressChange: function() {
-    this.updateStatus();
-  },
-
-  
-
-
-  onDownloadStateChange: function() {
-    this.updateStatus();
-  },
-
-  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus, aDownload) {
-  },
-
-  onSecurityChange: function(aWebProgress, aRequest, aState, aDownload) {
-  },
-
-  
-  
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadProgressListener]),
 };
 
 function getNotificationBox(aWindow) {
