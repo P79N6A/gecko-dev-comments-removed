@@ -184,5 +184,16 @@
 
 
 
+#define SK_SUPPORT_GPU 0
+
+
+
+#define SK_DISABLE_DITHER_32BIT_GRADIENT
+
+
+
+#ifdef SK_BUILD_FOR_WIN32 
+    #define SK_IGNORE_STDINT_DOT_H 
+#endif 
 
 #endif
