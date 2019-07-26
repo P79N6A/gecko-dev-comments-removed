@@ -3432,6 +3432,10 @@ EvalInSandbox(JSContext *cx, JS::HandleObject sandbox, const nsAString& source,
               JSVersion jsVersion, bool returnStringOnly,
               JS::MutableHandleValue rval);
 
+nsresult
+GetSandboxAddonId(JSContext *cx, JS::HandleObject sandboxArg,
+                  JS::MutableHandleValue rval);
+
 
 
 nsresult
