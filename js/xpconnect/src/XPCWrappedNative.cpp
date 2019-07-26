@@ -1373,16 +1373,39 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
             }
         }
 
-            
-            
-            
-            
-            
+        
+        
+        
+        
+        
 
-            RootedObject newobj(cx, JS_CloneObject(cx, flat,
-                                                   newProto->GetJSProtoObject(),
-                                                   aNewParent));
-            if (!newobj)
+        RootedObject newobj(cx, JS_CloneObject(cx, flat,
+                                               newProto->GetJSProtoObject(),
+                                               aNewParent));
+        if (!newobj)
+            return NS_ERROR_FAILURE;
+
+        
+        
+        
+        
+        
+        
+        
+        RootedObject propertyHolder(cx);
+        {
+            AutoClonePrivateGuard cloneGuard(cx, flat, newobj);
+
+            propertyHolder = JS_NewObjectWithGivenProto(cx, NULL, NULL, aNewParent);
+            if (!propertyHolder)
+                return NS_ERROR_OUT_OF_MEMORY;
+            if (!JS_CopyPropertiesFrom(cx, propertyHolder, flat))
+                return NS_ERROR_FAILURE;
+
+            
+            
+            SetWNExpandoChain(newobj, nullptr);
+            if (!XrayUtils::CloneExpandoChain(cx, newobj, flat))
                 return NS_ERROR_FAILURE;
 
             
@@ -1391,111 +1414,88 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
             
             
             
+            JS_SetPrivate(flat, nullptr);
+        }
+
+        
+        
+        
+        {
+            JSAutoCompartment innerAC(cx, aOldScope->GetGlobalJSObject());
+            if (!wrapper->GetSameCompartmentSecurityWrapper(cx))
+                return NS_ERROR_FAILURE;
+        }
+
+        
+        
+        {   
+            Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
+            Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
+            XPCAutoLock lock(aOldScope->GetRuntime()->GetMapLock());
+
+            oldMap->Remove(wrapper);
+
+            if (wrapper->HasProto())
+                wrapper->SetProto(newProto);
+
             
-            RootedObject propertyHolder(cx);
-            {
-                AutoClonePrivateGuard cloneGuard(cx, flat, newobj);
+            
+            
 
-                propertyHolder = JS_NewObjectWithGivenProto(cx, NULL, NULL, aNewParent);
-                if (!propertyHolder)
-                    return NS_ERROR_OUT_OF_MEMORY;
-                if (!JS_CopyPropertiesFrom(cx, propertyHolder, flat))
-                    return NS_ERROR_FAILURE;
+            if (wrapper->mScriptableInfo &&
+                wrapper->mScriptableInfo == oldProto->GetScriptableInfo()) {
+                
+                
+                
+                
 
-                
-                
-                SetWNExpandoChain(newobj, nullptr);
-                if (!XrayUtils::CloneExpandoChain(cx, newobj, flat))
-                    return NS_ERROR_FAILURE;
+                NS_ASSERTION(oldProto->GetScriptableInfo()->GetScriptableShared() ==
+                             newProto->GetScriptableInfo()->GetScriptableShared(),
+                             "Changing proto is also changing JSObject Classname or "
+                             "helper's nsIXPScriptable flags. This is not allowed!");
 
-                
-                
-                
-                
-                
-                
-                JS_SetPrivate(flat, nullptr);
+                wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
             }
 
             
-            
-            
-            {
-                JSAutoCompartment innerAC(cx, aOldScope->GetGlobalJSObject());
-                if (!wrapper->GetSameCompartmentSecurityWrapper(cx))
-                    return NS_ERROR_FAILURE;
-            }
-
-            
-            
-            {   
-                Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
-                Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
-                XPCAutoLock lock(aOldScope->GetRuntime()->GetMapLock());
-
-                oldMap->Remove(wrapper);
-
-                if (wrapper->HasProto())
-                    wrapper->SetProto(newProto);
-
-                
-                
-                
-
-                if (wrapper->mScriptableInfo &&
-                    wrapper->mScriptableInfo == oldProto->GetScriptableInfo()) {
-                    
-                    
-                    
-                    
-
-                    NS_ASSERTION(oldProto->GetScriptableInfo()->GetScriptableShared() ==
-                                 newProto->GetScriptableInfo()->GetScriptableShared(),
-                                 "Changing proto is also changing JSObject Classname or "
-                                 "helper's nsIXPScriptable flags. This is not allowed!");
-
-                    wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
-                }
-
-                
-                if (newMap->Find(wrapper->GetIdentityObject()))
-                    MOZ_CRASH();
-
-                if (!newMap->Add(wrapper))
-                    MOZ_CRASH();
-            }
-
-            JSObject *ww = wrapper->GetWrapper();
-            if (ww) {
-                JSObject *newwrapper;
-                MOZ_ASSERT(wrapper->NeedsSOW(), "weird wrapper wrapper");
-                newwrapper = xpc::WrapperFactory::WrapSOWObject(cx, newobj);
-                if (!newwrapper)
-                    MOZ_CRASH();
-
-                
-                ww = xpc::TransplantObjectWithWrapper(cx, flat, ww, newobj,
-                                                      newwrapper);
-                if (!ww)
-                    MOZ_CRASH();
-
-                flat = newobj;
-                wrapper->SetWrapper(ww);
-            } else {
-                flat = xpc::TransplantObject(cx, flat, newobj);
-                if (!flat)
-                    MOZ_CRASH();
-            }
-
-            wrapper->mFlatJSObject = flat;
-            if (cache) {
-                bool preserving = cache->PreservingWrapper();
-                cache->SetPreservingWrapper(false);
-                cache->SetWrapper(flat);
-                cache->SetPreservingWrapper(preserving);
-            }
-            if (!JS_CopyPropertiesFrom(cx, flat, propertyHolder))
+            if (newMap->Find(wrapper->GetIdentityObject()))
                 MOZ_CRASH();
+
+            if (!newMap->Add(wrapper))
+                MOZ_CRASH();
+        }
+
+        JSObject *ww = wrapper->GetWrapper();
+        if (ww) {
+            JSObject *newwrapper;
+            MOZ_ASSERT(wrapper->NeedsSOW(), "weird wrapper wrapper");
+            newwrapper = xpc::WrapperFactory::WrapSOWObject(cx, newobj);
+            if (!newwrapper)
+                MOZ_CRASH();
+
+            
+            ww = xpc::TransplantObjectWithWrapper(cx, flat, ww, newobj,
+                                                  newwrapper);
+            if (!ww)
+                MOZ_CRASH();
+
+            flat = newobj;
+            wrapper->SetWrapper(ww);
+        } else {
+            flat = xpc::TransplantObject(cx, flat, newobj);
+            if (!flat)
+                MOZ_CRASH();
+        }
+
+        wrapper->mFlatJSObject = flat;
+        if (cache) {
+            bool preserving = cache->PreservingWrapper();
+            cache->SetPreservingWrapper(false);
+            cache->SetWrapper(flat);
+            cache->SetPreservingWrapper(preserving);
+        }
+        if (!JS_CopyPropertiesFrom(cx, flat, propertyHolder))
+            MOZ_CRASH();
 
         
         XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
