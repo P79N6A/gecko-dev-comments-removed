@@ -155,8 +155,7 @@ public:
 
 
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
-                                 ParentLayerRect& aCompositionBounds,
-                                 CSSToParentLayerScale& aZoom,
+                                 FrameMetrics& aMetrics,
                                  bool aDrawingCritical);
 
   bool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }

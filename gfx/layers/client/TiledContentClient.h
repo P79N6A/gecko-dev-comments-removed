@@ -330,13 +330,6 @@ public:
 
 
 
-  ViewTransform ComputeViewTransform(const FrameMetrics& aContentMetrics,
-                                     const FrameMetrics& aCompositorMetrics);
-
-  
-
-
-
 
 
 
