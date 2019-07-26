@@ -1456,7 +1456,7 @@ public:
 
 
 
-  static bool MaybeAllowOfflineAppByDefault(nsIPrincipal *aPrincipal, nsIDOMWindow *aWindow);
+  static bool MaybeAllowOfflineAppByDefault(nsIPrincipal *aPrincipal);
 
   
 
