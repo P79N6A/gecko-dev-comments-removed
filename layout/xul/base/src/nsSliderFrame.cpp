@@ -298,11 +298,13 @@ nsSliderFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (aBuilder->IsForEventDelivery() && isDraggingThumb()) {
     
     
-    return aLists.Outlines()->AppendNewToTop(new (aBuilder)
-        nsDisplayEventReceiver(aBuilder, this));
+    aLists.Outlines()->AppendNewToTop(new (aBuilder)
+      nsDisplayEventReceiver(aBuilder, this));
+    return NS_OK;
   }
   
-  return nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+  return NS_OK;
 }
 
 NS_IMETHODIMP

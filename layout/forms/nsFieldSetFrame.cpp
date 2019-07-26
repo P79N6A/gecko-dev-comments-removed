@@ -187,19 +187,16 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   if (IsVisibleForPainting(aBuilder)) {
     if (GetStyleBorder()->mBoxShadow) {
-      nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayBoxShadowOuter(aBuilder, this));
-      NS_ENSURE_SUCCESS(rv, rv);
+      aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+        nsDisplayBoxShadowOuter(aBuilder, this));
     }
 
     
     
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayFieldSetBorderBackground(aBuilder, this));
-    NS_ENSURE_SUCCESS(rv, rv);
+    aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+      nsDisplayFieldSetBorderBackground(aBuilder, this));
   
-    rv = DisplayOutlineUnconditional(aBuilder, aLists);
-    NS_ENSURE_SUCCESS(rv, rv);
+    DisplayOutlineUnconditional(aBuilder, aLists);
 
     DO_GLOBAL_REFLOW_COUNT_DSP("nsFieldSetFrame");
   }
@@ -212,16 +209,14 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    nsresult rv = BuildDisplayListForChild(aBuilder, mContentFrame, aDirtyRect,
-                                           contentDisplayItems);
-    NS_ENSURE_SUCCESS(rv, rv);
+    BuildDisplayListForChild(aBuilder, mContentFrame, aDirtyRect,
+                             contentDisplayItems);
   }
   if (mLegendFrame) {
     
     
     nsDisplayListSet set(aLists, aLists.BlockBorderBackgrounds());
-    nsresult rv = BuildDisplayListForChild(aBuilder, mLegendFrame, aDirtyRect, set);
-    NS_ENSURE_SUCCESS(rv, rv);
+    BuildDisplayListForChild(aBuilder, mLegendFrame, aDirtyRect, set);
   }
   
   

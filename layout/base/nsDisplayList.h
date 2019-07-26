@@ -307,7 +307,8 @@ public:
     if (aFrame != frame) {
       return NS_OK;
     }
-    return frame->DisplayCaret(this, aDirtyRect, aList);
+    frame->DisplayCaret(this, aDirtyRect, aList);
+    return NS_OK;
   }
   
 

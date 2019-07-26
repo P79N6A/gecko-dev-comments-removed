@@ -631,16 +631,15 @@ nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (!IsVisibleForPainting(aBuilder))
       return NS_OK;
 
-    return aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayMathMLError(aBuilder, this));
+    aLists.Content()->AppendNewToTop(
+      new (aBuilder) nsDisplayMathMLError(aBuilder, this));
+    return NS_OK;
   }
 
-  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  DisplayBorderBackgroundOutline(aBuilder, aLists);
 
-  rv = BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists,
-                                           DISPLAY_CHILD_INLINE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists,
+                                      DISPLAY_CHILD_INLINE);
 
 #if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
   
@@ -649,9 +648,9 @@ nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  rv = DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
+  DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
 #endif
-  return rv;
+  return NS_OK;
 }
 
 
