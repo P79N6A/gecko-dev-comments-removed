@@ -159,6 +159,15 @@ enum OpenMode {
   OPEN_READ_WRITE
 };
 
+
+
+enum MaskType {
+  MaskNone = 0,   
+  Mask2d,         
+  Mask3d,         
+  NumMaskTypes
+};
+
 } 
 } 
 

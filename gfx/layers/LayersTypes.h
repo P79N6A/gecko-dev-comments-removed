@@ -54,15 +54,6 @@ enum BufferMode {
 
 
 
-enum MaskType {
-  MaskNone = 0,   
-  Mask2d,         
-  Mask3d,         
-  NumMaskTypes
-};
-
-
-
 
 enum LayerRenderStateFlags {
   LAYER_RENDER_STATE_Y_FLIPPED = 1 << 0,
