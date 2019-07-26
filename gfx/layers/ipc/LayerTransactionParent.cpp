@@ -569,27 +569,40 @@ LayerTransactionParent::RecvGetOpacity(PLayerParent* aParent,
 }
 
 bool
-LayerTransactionParent::RecvGetTransform(PLayerParent* aParent,
-                                         gfx3DMatrix* aTransform)
+LayerTransactionParent::RecvGetAnimationTransform(PLayerParent* aParent,
+                                                  MaybeTransform* aTransform)
 {
   if (mDestroyed || !layer_manager() || layer_manager()->IsDestroyed()) {
     return false;
   }
 
-  
-  
-  
-
   Layer* layer = cast(aParent)->AsLayer();
   if (!layer) {
     return false;
   }
-  gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform(), *aTransform);
+
+  
+  
+  
+  
+  
+  
+  if (!layer->AsLayerComposite()->GetShadowTransformSetByAnimation()) {
+    *aTransform = mozilla::void_t();
+    return true;
+  }
+
+  
+  
+  
+
+  gfx3DMatrix transform;
+  gfx::To3DMatrix(layer->AsLayerComposite()->GetShadowTransform(), transform);
   if (ContainerLayer* c = layer->AsContainerLayer()) {
     
-    aTransform->ScalePost(1.0f/c->GetInheritedXScale(),
-                          1.0f/c->GetInheritedYScale(),
-                          1.0f);
+    transform.ScalePost(1.0f/c->GetInheritedXScale(),
+                        1.0f/c->GetInheritedYScale(),
+                        1.0f);
   }
   float scale = 1;
   gfxPoint3D scaledOrigin;
@@ -611,23 +624,23 @@ LayerTransactionParent::RecvGetTransform(PLayerParent* aParent,
 
   
   
-  aTransform->Translate(-scaledOrigin);
+  transform.Translate(-scaledOrigin);
 
   
   
-  *aTransform =
-    nsLayoutUtils::ChangeMatrixBasis(-scaledOrigin - transformOrigin,
-                                     *aTransform);
+  transform = nsLayoutUtils::ChangeMatrixBasis(-scaledOrigin - transformOrigin,
+                                               transform);
 
   
   
   
   double devPerCss =
     double(scale) / double(nsDeviceContext::AppUnitsPerCSSPixel());
-  aTransform->_41 *= devPerCss;
-  aTransform->_42 *= devPerCss;
-  aTransform->_43 *= devPerCss;
+  transform._41 *= devPerCss;
+  transform._42 *= devPerCss;
+  transform._43 *= devPerCss;
 
+  *aTransform = transform;
   return true;
 }
 
