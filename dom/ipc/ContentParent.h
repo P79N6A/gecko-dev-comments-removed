@@ -8,6 +8,7 @@
 #define mozilla_dom_ContentParent_h
 
 #include "mozilla/dom/PContentParent.h"
+#include "mozilla/dom/nsIContentParent.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/Attributes.h"
@@ -63,9 +64,9 @@ class TabContext;
 class PFileDescriptorSetParent;
 
 class ContentParent : public PContentParent
+                    , public nsIContentParent
                     , public nsIObserver
                     , public nsIDOMGeoPositionCallback
-                    , public mozilla::dom::ipc::MessageManagerCallback
                     , public mozilla::LinkedListElement<ContentParent>
 {
     typedef mozilla::ipc::GeckoChildProcessHost GeckoChildProcessHost;
@@ -75,6 +76,7 @@ class ContentParent : public PContentParent
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
 
 public:
+    virtual bool IsContentParent() MOZ_OVERRIDE { return true; }
     
 
 
@@ -174,8 +176,6 @@ public:
         return mSendDataStoreInfos;
     }
 
-    BlobParent* GetOrCreateActorForBlob(nsIDOMBlob* aBlob);
-
     
 
 
@@ -183,7 +183,7 @@ public:
 
     void KillHard();
 
-    uint64_t ChildID() { return mChildID; }
+    uint64_t ChildID() MOZ_OVERRIDE { return mChildID; }
     const nsString& AppManifestURL() const { return mAppManifestURL; }
 
     bool IsPreallocated();
@@ -240,6 +240,10 @@ public:
     bool CycleCollectWithLogs(bool aDumpAllTraces,
                               nsICycleCollectorLogSink* aSink,
                               nsIDumpGCAndCCLogsCallback* aCallback);
+
+    virtual PBlobParent* SendPBlobConstructor(
+        PBlobParent* aActor,
+        const BlobConstructorParams& aParams) MOZ_OVERRIDE;
 
 protected:
     void OnChannelConnected(int32_t pid) MOZ_OVERRIDE;
@@ -603,8 +607,6 @@ private:
 
 
     nsString mAppName;
-
-    nsRefPtr<nsFrameMessageManager> mMessageManager;
 
     
     
