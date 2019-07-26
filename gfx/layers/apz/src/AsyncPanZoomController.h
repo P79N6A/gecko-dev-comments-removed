@@ -319,6 +319,29 @@ public:
   bool IsPannable() const;
 
 protected:
+  enum PanZoomState {
+    NOTHING,                  
+    FLING,                    
+    TOUCHING,                 
+
+    PANNING,                  
+    PANNING_LOCKED_X,         
+    PANNING_LOCKED_Y,         
+
+    CROSS_SLIDING_X,          
+
+
+    CROSS_SLIDING_Y,          
+
+    PINCHING,                 
+    ANIMATING_ZOOM,           
+    WAITING_CONTENT_RESPONSE, 
+
+
+
+    SNAP_BACK,                
+  };
+
   
   ~AsyncPanZoomController();
 
@@ -519,29 +542,6 @@ protected:
   void FireAsyncScrollOnTimeout();
 
 private:
-  enum PanZoomState {
-    NOTHING,                  
-    FLING,                    
-    TOUCHING,                 
-
-    PANNING,                  
-    PANNING_LOCKED_X,         
-    PANNING_LOCKED_Y,         
-
-    CROSS_SLIDING_X,          
-
-
-    CROSS_SLIDING_Y,          
-
-    PINCHING,                 
-    ANIMATING_ZOOM,           
-    WAITING_CONTENT_RESPONSE, 
-
-
-
-    SNAP_BACK,                
-  };
-
   
   struct TouchBlockState {
 
@@ -690,6 +690,10 @@ protected:
   
   bool mTouchActionPropertyEnabled;
 
+  
+  
+  PanZoomState mState;
+
 private:
   
   
@@ -731,10 +735,6 @@ private:
   
   
   ParentLayerPoint mLastZoomFocus;
-
-  
-  
-  PanZoomState mState;
 
   
   
