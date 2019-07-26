@@ -637,7 +637,7 @@ protected:
 
 
 
-    static mozilla::gfx::BackendType GetContentBackendPref(uint32_t aBackendBitmask);
+    static mozilla::gfx::BackendType GetContentBackendPref(uint32_t &aBackendBitmask);
 
     
 
@@ -645,9 +645,11 @@ protected:
 
 
 
+
+
     static mozilla::gfx::BackendType GetBackendPref(const char* aEnabledPrefName,
                                                     const char* aBackendPrefName,
-                                                    uint32_t aBackendBitmask);
+                                                    uint32_t &aBackendBitmask);
     
 
 
