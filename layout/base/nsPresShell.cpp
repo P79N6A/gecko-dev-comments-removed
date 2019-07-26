@@ -2428,27 +2428,10 @@ PresShell::EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 void
 PresShell::RestoreRootScrollPosition()
 {
-  
-  nsCOMPtr<nsILayoutHistoryState> historyState =
-    mDocument->GetLayoutHistoryState();
-  
-  
-  
-  
-  nsAutoScriptBlocker scriptBlocker;
-  ++mChangeNestCount;
-
-  if (historyState) {
-    nsIFrame* scrollFrame = GetRootScrollFrame();
-    if (scrollFrame) {
-      nsIScrollableFrame* scrollableFrame = do_QueryFrame(scrollFrame);
-      if (scrollableFrame) {
-        scrollableFrame->ScrollToRestoredPosition();
-      }
-    }
+  nsIScrollableFrame* scrollableFrame = GetRootScrollFrameAsScrollable();
+  if (scrollableFrame) {
+    scrollableFrame->ScrollToRestoredPosition();
   }
-
-  --mChangeNestCount;
 }
 
 void
@@ -3538,7 +3521,7 @@ nsIPresShell::ClearMouseCapture(nsIFrame* aFrame)
 }
 
 nsresult
-PresShell::CaptureHistoryState(nsILayoutHistoryState** aState, bool aLeavingPage)
+PresShell::CaptureHistoryState(nsILayoutHistoryState** aState)
 {
   nsresult rv = NS_OK;
 
@@ -3578,15 +3561,6 @@ PresShell::CaptureHistoryState(nsILayoutHistoryState** aState, bool aLeavingPage
   
   nsIFrame* rootFrame = mFrameConstructor->GetRootFrame();
   if (!rootFrame) return NS_OK;
-  
-  
-  
-  
-  if (aLeavingPage) {
-    nsIFrame* scrollFrame = GetRootScrollFrame();
-    if (scrollFrame) {
-    }
-  }
 
   mFrameConstructor->CaptureFrameState(rootFrame, historyState);  
  
