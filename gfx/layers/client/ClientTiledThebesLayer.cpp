@@ -70,6 +70,12 @@ GetTransformToAncestorsParentLayer(Layer* aStart, Layer* aAncestor)
   gfx::Matrix4x4 transform;
   Layer* ancestorParent = aAncestor->GetParent();
   for (Layer* iter = aStart; iter != ancestorParent; iter = iter->GetParent()) {
+    if (iter->AsContainerLayer()) {
+      
+      
+      const FrameMetrics& metrics = iter->AsContainerLayer()->GetFrameMetrics();
+      transform = transform * gfx::Matrix4x4().Scale(metrics.mResolution.scale, metrics.mResolution.scale, 1.f);
+    }
     transform = transform * iter->GetTransform();
   }
   gfx3DMatrix ret;
@@ -133,11 +139,14 @@ ClientTiledThebesLayer::BeginPaint()
   
   gfx3DMatrix transformToDisplayPort =
     GetTransformToAncestorsParentLayer(this, displayPortAncestor);
-  transformToDisplayPort.ScalePost(scrollMetrics.mCumulativeResolution.scale,
-                                   scrollMetrics.mCumulativeResolution.scale,
-                                   1.f);
 
   mPaintData.mTransformDisplayPortToLayer = transformToDisplayPort.Inverse();
+
+  
+  
+  
+  
+  
 
   
   
@@ -165,9 +174,8 @@ ClientTiledThebesLayer::BeginPaint()
   
   gfx3DMatrix transformToCompBounds =
     GetTransformToAncestorsParentLayer(this, scrollAncestor);
-  mPaintData.mCompositionBounds = TransformTo<LayerPixel>(
-    transformToCompBounds.Inverse(),
-    scrollMetrics.mCompositionBounds / scrollMetrics.GetParentResolution());
+  mPaintData.mCompositionBounds = ApplyParentLayerToLayerTransform(
+    transformToCompBounds.Inverse(), ParentLayerRect(scrollMetrics.mCompositionBounds));
   TILING_PRLOG_OBJ(("TILING 0x%p: Composition bounds %s\n", this, tmpstr.get()), mPaintData.mCompositionBounds);
 
   
