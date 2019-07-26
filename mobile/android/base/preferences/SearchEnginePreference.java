@@ -195,6 +195,7 @@ public class SearchEnginePreference extends Preference implements View.OnLongCli
         if (mPromptIcon == null && mIconBitmap != null) {
             mPromptIcon = new BitmapDrawable(getContext().getResources(), mFaviconView.getBitmap());
         }
+        builder.setIcon(mPromptIcon);
 
         
         
