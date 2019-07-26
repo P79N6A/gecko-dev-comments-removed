@@ -1613,7 +1613,18 @@ ForkJoinShared::executeFromMainThread(ThreadPoolWorker *worker)
 
     
     
-    thisThread.jitStackLimit = oldData->jitStackLimit;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    thisThread.jitStackLimit = GetNativeStackLimit(cx_);
     executePortion(&thisThread, worker);
     TlsPerThreadData.set(oldData);
 

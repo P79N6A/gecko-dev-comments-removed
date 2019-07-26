@@ -134,11 +134,6 @@ jit::CheckOverRecursedPar(ForkJoinContext *cx)
     
     
     
-    
-    
-    
-    
-    
 
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     if (Simulator::Current()->overRecursed()) {
@@ -147,13 +142,7 @@ jit::CheckOverRecursedPar(ForkJoinContext *cx)
     }
 #endif
 
-    uintptr_t realStackLimit;
-    if (cx->isMainThread())
-        realStackLimit = GetNativeStackLimit(cx);
-    else
-        realStackLimit = cx->perThreadData->jitStackLimit;
-
-    if (!JS_CHECK_STACK_SIZE(realStackLimit, &stackDummy_)) {
+    if (!JS_CHECK_STACK_SIZE(cx->perThreadData->jitStackLimit, &stackDummy_)) {
         cx->bailoutRecord->joinCause(ParallelBailoutOverRecursed);
         return false;
     }
