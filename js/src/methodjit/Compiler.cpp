@@ -3983,6 +3983,12 @@ mjit::Compiler::ionCompileHelper()
     
     
     
+    if (isConstructing)
+        return;
+
+    
+    
+    
     if (!recompileCheckForIon)
         return;
 
