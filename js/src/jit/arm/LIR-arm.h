@@ -95,12 +95,23 @@ class LUnboxFloatingPoint : public LInstructionHelper<1, 2, 0>
 };
 
 
-class LUInt32ToDouble : public LInstructionHelper<1, 1, 0>
+class LAsmJSUInt32ToDouble : public LInstructionHelper<1, 1, 0>
 {
   public:
-    LIR_HEADER(UInt32ToDouble)
+    LIR_HEADER(AsmJSUInt32ToDouble)
 
-    LUInt32ToDouble(const LAllocation &input) {
+    LAsmJSUInt32ToDouble(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
+
+class LAsmJSUInt32ToFloat32 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(AsmJSUInt32ToFloat32)
+
+    LAsmJSUInt32ToFloat32(const LAllocation &input) {
         setOperand(0, input);
     }
 };

@@ -401,6 +401,21 @@ CodeGeneratorX86::visitAsmJSUInt32ToDouble(LAsmJSUInt32ToDouble *lir)
     return true;
 }
 
+bool
+CodeGeneratorX86::visitAsmJSUInt32ToFloat32(LAsmJSUInt32ToFloat32 *lir)
+{
+    Register input = ToRegister(lir->input());
+    Register temp = ToRegister(lir->temp());
+    FloatRegister output = ToFloatRegister(lir->output());
+
+    if (input != temp)
+        masm.mov(input, temp);
+
+    
+    masm.convertUInt32ToFloat32(temp, output);
+    return true;
+}
+
 
 
 class jit::OutOfLineLoadTypedArrayOutOfBounds : public OutOfLineCodeBase<CodeGeneratorX86>

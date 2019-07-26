@@ -87,6 +87,17 @@ class LAsmJSUInt32ToDouble : public LInstructionHelper<1, 1, 0>
     }
 };
 
+
+class LAsmJSUInt32ToFloat32 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(AsmJSUInt32ToFloat32)
+
+    LAsmJSUInt32ToFloat32(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
 class LAsmJSLoadFuncPtr : public LInstructionHelper<1, 1, 1>
 {
   public:
