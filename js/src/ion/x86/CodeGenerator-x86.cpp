@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "mozilla/DebugOnly.h"
 
@@ -108,9 +108,9 @@ CodeGeneratorX86::visitBox(LBox *box)
     DebugOnly<const LAllocation *> a = box->getOperand(0);
     JS_ASSERT(!a->isConstant());
 
-    // On x86, the input operand and the output payload have the same
-    // virtual register. All that needs to be written is the type tag for
-    // the type definition.
+    
+    
+    
     masm.movl(Imm32(MIRTypeToTag(box->type())), ToRegister(type));
     return true;
 }
@@ -128,8 +128,8 @@ CodeGeneratorX86::visitBoxDouble(LBoxDouble *box)
 bool
 CodeGeneratorX86::visitUnbox(LUnbox *unbox)
 {
-    // Note that for unbox, the type and payload indexes are switched on the
-    // inputs.
+    
+    
     MUnbox *mir = unbox->mir();
 
     if (mir->fallible()) {
@@ -181,11 +181,11 @@ CodeGeneratorX86::visitStoreSlotT(LStoreSlotT *store)
         return true;
     }
 
-    // Store the type tag if needed.
+    
     if (valueType != store->mir()->slotType())
         masm.storeTypeTag(ImmType(ValueTypeFromMIRType(valueType)), Operand(base, offset));
 
-    // Store the payload.
+    
     if (value->isConstant())
         masm.storePayload(*value->toConstant(), Operand(base, offset));
     else
@@ -233,11 +233,11 @@ CodeGeneratorX86::storeElementTyped(const LAllocation *value, MIRType valueType,
         return;
     }
 
-    // Store the type tag if needed.
+    
     if (valueType != elementType)
         masm.storeTypeTag(ImmType(ValueTypeFromMIRType(valueType)), dest);
 
-    // Store the payload.
+    
     if (value->isConstant())
         masm.storePayload(*value->toConstant(), dest);
     else
@@ -250,12 +250,12 @@ CodeGeneratorX86::visitImplicitThis(LImplicitThis *lir)
     Register callee = ToRegister(lir->callee());
     const ValueOperand out = ToOutValue(lir);
 
-    // The implicit |this| is always |undefined| if the function's environment
-    // is the current global.
+    
+    
     GlobalObject *global = &gen->info().script()->global();
     masm.cmpPtr(Operand(callee, JSFunction::offsetOfEnvironment()), ImmGCPtr(global));
 
-    // TODO: OOL stub path.
+    
     if (!bailoutIf(Assembler::NotEqual, lir->snapshot()))
         return false;
 
@@ -394,13 +394,13 @@ CodeGeneratorX86::visitUInt32ToDouble(LUInt32ToDouble *lir)
     if (input != temp)
         masm.mov(input, temp);
 
-    // Beware: convertUInt32ToDouble clobbers input.
+    
     masm.convertUInt32ToDouble(temp, ToFloatRegister(lir->output()));
     return true;
 }
 
-// Load a NaN or zero into a register for an out of bounds AsmJS or static
-// typed array load.
+
+
 class ion::OutOfLineLoadTypedArrayOutOfBounds : public OutOfLineCodeBase<CodeGeneratorX86>
 {
     AnyRegister dest_;
@@ -467,9 +467,9 @@ CodeGeneratorX86::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic 
 bool
 CodeGeneratorX86::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
 {
-    // This is identical to LoadTypedArrayElementStatic, except that the
-    // array's base and length are not known ahead of time and can be patched
-    // later on, and the instruction is always infallible.
+    
+    
+    
     const MAsmJSLoadHeap *mir = ins->mir();
     ArrayBufferView::ViewType vt = mir->viewType();
 
@@ -558,9 +558,9 @@ CodeGeneratorX86::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStati
 bool
 CodeGeneratorX86::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
 {
-    // This is identical to StoreTypedArrayElementStatic, except that the
-    // array's base and length are not known ahead of time and can be patched
-    // later on.
+    
+    
+    
     MAsmJSStoreHeap *mir = ins->mir();
     ArrayBufferView::ViewType vt = mir->viewType();
 
@@ -655,10 +655,18 @@ CodeGeneratorX86::postAsmJSCall(LAsmJSCall *lir)
 }
 
 void
+DispatchIonCache::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
+{
+    
+    
+    MOZ_ASSUME_UNREACHABLE("x86 needs manual assignment of dispatchScratch");
+}
+
+void
 ParallelGetPropertyIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
 {
-    // We don't have a scratch register, but only use the temp if we needed
-    // one, it's BogusTemp otherwise.
+    
+    
     JS_ASSERT(ins->isGetPropertyCacheV() || ins->isGetPropertyCacheT());
     if (ins->isGetPropertyCacheV() || ins->toGetPropertyCacheT()->temp()->isBogusTemp())
         addState->dispatchScratch = output_.scratchReg().gpr();
@@ -686,8 +694,8 @@ class OutOfLineTruncate : public OutOfLineCodeBase<CodeGeneratorX86>
     }
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
 bool
 CodeGeneratorX86::visitTruncateDToInt32(LTruncateDToInt32 *ins)
@@ -714,7 +722,7 @@ CodeGeneratorX86::visitOutOfLineTruncate(OutOfLineTruncate *ool)
     Label fail;
 
     if (Assembler::HasSSE3()) {
-        // Push double.
+        
         masm.subl(Imm32(sizeof(double)), esp);
         masm.movsd(input, Operand(esp, 0));
 
@@ -722,17 +730,17 @@ CodeGeneratorX86::visitOutOfLineTruncate(OutOfLineTruncate *ool)
         static const uint32_t EXPONENT_SHIFT = DoubleExponentShift - 32;
         static const uint32_t TOO_BIG_EXPONENT = (DoubleExponentBias + 63) << EXPONENT_SHIFT;
 
-        // Check exponent to avoid fp exceptions.
+        
         Label failPopDouble;
         masm.movl(Operand(esp, 4), output);
         masm.and32(Imm32(EXPONENT_MASK), output);
         masm.branch32(Assembler::GreaterThanOrEqual, output, Imm32(TOO_BIG_EXPONENT), &failPopDouble);
 
-        // Load double, perform 64-bit truncation.
+        
         masm.fld(Operand(esp, 0));
         masm.fisttp(Operand(esp, 0));
 
-        // Load low word, pop double and jump back.
+        
         masm.movl(Operand(esp, 0), output);
         masm.addl(Imm32(sizeof(double)), esp);
         masm.jump(ool->rejoin());
@@ -743,10 +751,10 @@ CodeGeneratorX86::visitOutOfLineTruncate(OutOfLineTruncate *ool)
     } else {
         FloatRegister temp = ToFloatRegister(ins->tempFloat());
 
-        // Try to convert doubles representing integers within 2^32 of a signed
-        // integer, by adding/subtracting 2^32 and then trying to convert to int32.
-        // This has to be an exact conversion, as otherwise the truncation works
-        // incorrectly on the modified value.
+        
+        
+        
+        
         masm.xorpd(ScratchFloatReg, ScratchFloatReg);
         masm.ucomisd(input, ScratchFloatReg);
         masm.j(Assembler::Parity, &fail);
