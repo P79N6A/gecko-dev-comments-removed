@@ -4003,6 +4003,23 @@ Tab.prototype = {
     
     
     
+    
+    
+    
+    
+    let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
+    let zoom = (aInitialLoad && metadata.defaultZoom) ? metadata.defaultZoom : this.clampZoom(this._zoom * zoomScale);
+    this.setResolution(zoom, false);
+    this.setScrollClampingSize(zoom);
+
+    
+    
+    
+    
+    
+    
+    
+    
     if (!this.contentDocumentIsDisplayed) {
       return;
     }
@@ -4031,29 +4048,20 @@ Tab.prototype = {
     }
     minScale = this.clampZoom(minScale);
     viewportH = Math.max(viewportH, screenH / minScale);
+
+    
+    
+    
+    
+    
     this.setBrowserSize(viewportW, viewportH);
+    this.setScrollClampingSize(zoom);
 
     
     let win = this.browser.contentWindow;
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
-    let zoom = (aInitialLoad && metadata.defaultZoom) ? metadata.defaultZoom : this.clampZoom(this._zoom * zoomScale);
-    this.setResolution(zoom, false);
-    this.setScrollClampingSize(zoom);
     this.sendViewportUpdate();
 
     
