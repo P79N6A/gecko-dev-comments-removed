@@ -240,7 +240,7 @@ protected:
                             nsTableCellReflowState& aReflowState);
   
   
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
   
 

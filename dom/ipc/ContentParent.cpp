@@ -13,11 +13,14 @@
 # include <sys/resource.h>
 #endif
 
+#include "chrome/common/process_watcher.h"
+
 #include "CrashReporterParent.h"
 #include "History.h"
 #include "IDBFactory.h"
 #include "IndexedDBParent.h"
 #include "IndexedDatabaseManager.h"
+#include "mozIApplication.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -47,8 +50,10 @@
 #include "nsFrameMessageManager.h"
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
+#include "nsIAppsService.h"
 #include "nsIClipboard.h"
 #include "nsIConsoleService.h"
+#include "nsIDOMApplicationRegistry.h"
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMWindow.h"
 #include "nsIFilePicker.h"
@@ -57,6 +62,7 @@
 #include "nsIPresShell.h"
 #include "nsIRemoteBlob.h"
 #include "nsIScriptError.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIWindowWatcher.h"
 #include "nsMemoryReporterManager.h"
@@ -147,7 +153,7 @@ nsTArray<ContentParent*>* ContentParent::gPrivateContent;
 
 static PRUint64 gContentChildID = 1;
 
-ContentParent*
+ ContentParent*
 ContentParent::GetNewOrUsed()
 {
     if (!gNonAppContentParents)
@@ -163,7 +169,7 @@ ContentParent::GetNewOrUsed()
         NS_ASSERTION(p->IsAlive(), "Non-alive contentparent in gNonAppContentParents?");
         return p;
     }
-        
+
     nsRefPtr<ContentParent> p =
         new ContentParent( EmptyString());
     p->Init();
@@ -171,11 +177,20 @@ ContentParent::GetNewOrUsed()
     return p;
 }
 
-ContentParent*
-ContentParent::GetForApp(const nsAString& aAppManifestURL)
+ TabParent*
+ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
 {
-    if (aAppManifestURL.IsEmpty()) {
-        return GetNewOrUsed();
+    if (!aApp) {
+        if (ContentParent* cp = GetNewOrUsed()) {
+            nsRefPtr<TabParent> tp(new TabParent(aApp, aIsBrowserElement));
+            return static_cast<TabParent*>(
+                cp->SendPBrowserConstructor(
+                    
+                    tp.forget().get(),
+                    0,
+                    aIsBrowserElement, nsIScriptSecurityManager::NO_APP_ID));
+        }
+        return nullptr;
     }
 
     if (!gAppContentParents) {
@@ -185,14 +200,39 @@ ContentParent::GetForApp(const nsAString& aAppManifestURL)
     }
 
     
-    ContentParent* p = gAppContentParents->Get(aAppManifestURL);
-    if (!p) {
-        p = new ContentParent(aAppManifestURL);
-        p->Init();
-        gAppContentParents->Put(aAppManifestURL, p);
+    nsAutoString manifestURL;
+    if (NS_FAILED(aApp->GetManifestURL(manifestURL))) {
+        NS_ERROR("Failed to get manifest URL");
+        return nullptr;
     }
 
-    return p;
+    nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+    if (!appsService) {
+        NS_ERROR("Failed to get apps service");
+        return nullptr;
+    }
+
+    
+    
+    PRUint32 appId;
+    if (NS_FAILED(appsService->GetAppLocalIdByManifestURL(manifestURL, &appId))) {
+        NS_ERROR("Failed to get local app ID");
+        return nullptr;
+    }
+
+    ContentParent* p = gAppContentParents->Get(manifestURL);
+    if (!p) {
+        p = new ContentParent(manifestURL);
+        p->Init();
+        gAppContentParents->Put(manifestURL, p);
+    }
+
+    nsRefPtr<TabParent> tp(new TabParent(aApp, aIsBrowserElement));
+    return static_cast<TabParent*>(
+        
+        p->SendPBrowserConstructor(tp.forget().get(),
+                                   0,
+                                   aIsBrowserElement, appId));
 }
 
 static PLDHashOperator
@@ -332,6 +372,26 @@ ContentParent::OnChannelConnected(int32 pid)
     }
 }
 
+void
+ContentParent::ProcessingError(Result what)
+{
+    if (MsgDropped == what) {
+        
+        return;
+    }
+    
+    
+    
+    
+    if (!KillProcess(OtherProcess(), 1, false)) {
+        NS_WARNING("failed to kill subprocess!");
+    }
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
+                            OtherProcess(), true));
+}
+
 namespace {
 
 void
@@ -431,12 +491,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     
     
     NS_DispatchToCurrentThread(new DelayedDeleteContentParentTask(this));
-}
-
-TabParent*
-ContentParent::CreateTab(PRUint32 aChromeFlags, bool aIsBrowserElement, PRUint32 aAppId)
-{
-  return static_cast<TabParent*>(SendPBrowserConstructor(aChromeFlags, aIsBrowserElement, aAppId));
 }
 
 void
@@ -840,22 +894,40 @@ ContentParent::AllocPCompositor(mozilla::ipc::Transport* aTransport,
 
 PBrowserParent*
 ContentParent::AllocPBrowser(const PRUint32& aChromeFlags,
-                             const bool& aIsBrowserElement,
-                             const PRUint32& aAppId)
+                             const bool& aIsBrowserElement, const AppId& aApp)
 {
-  TabParent* parent = new TabParent();
-  if (parent){
+    
+    
+    
+    
+    
+    if (AppId::TPBrowserParent != aApp.type()) {
+        NS_ERROR("Content process attempting to forge app ID");
+        return nullptr;
+    }
+    TabParent* opener = static_cast<TabParent*>(aApp.get_PBrowserParent());
+
+    
+    
+    
+    if (opener && opener->IsBrowserElement() && !aIsBrowserElement) {
+        NS_ERROR("Content process attempting to escalate data access privileges");
+        return nullptr;
+    }
+
+    TabParent* parent = new TabParent(opener ? opener->GetApp() : nullptr,
+                                      aIsBrowserElement);
+    
     NS_ADDREF(parent);
-  }
-  return parent;
+    return parent;
 }
 
 bool
 ContentParent::DeallocPBrowser(PBrowserParent* frame)
 {
-  TabParent* parent = static_cast<TabParent*>(frame);
-  NS_RELEASE(parent);
-  return true;
+    TabParent* parent = static_cast<TabParent*>(frame);
+    NS_RELEASE(parent);
+    return true;
 }
 
 PDeviceStorageRequestParent*

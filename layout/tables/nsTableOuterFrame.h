@@ -157,7 +157,7 @@ protected:
   
 
 
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
   PRUint8 GetCaptionSide(); 
 
@@ -226,7 +226,7 @@ private:
   nsFrameList   mCaptionFrames;
 };
 
-inline PRIntn nsTableOuterFrame::GetSkipSides() const
+inline int nsTableOuterFrame::GetSkipSides() const
 { return 0; }
 
 #endif

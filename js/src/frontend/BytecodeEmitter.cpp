@@ -278,8 +278,8 @@ frontend::Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1,
                     jsbytecode op2)
 {
     
-    JS_ASSERT(JOF_OPTYPE(op) != JOF_QARG);
-    JS_ASSERT(JOF_OPTYPE(op) != JOF_LOCAL);
+    JS_ASSERT(!IsArgOp(op));
+    JS_ASSERT(!IsLocalOp(op));
 
     ptrdiff_t offset = EmitCheck(cx, bce, 3);
 
@@ -816,12 +816,6 @@ EmitAtomIncDec(JSContext *cx, JSAtom *atom, JSOp op, BytecodeEmitter *bce)
 }
 
 static bool
-EmitFunctionOp(JSContext *cx, JSOp op, uint32_t index, BytecodeEmitter *bce)
-{
-    return EmitIndex32(cx, op, index, bce);
-}
-
-static bool
 EmitObjectOp(JSContext *cx, ObjectBox *objbox, JSOp op, BytecodeEmitter *bce)
 {
     JS_ASSERT(JOF_OPTYPE(op) == JOF_OBJECT);
@@ -917,11 +911,11 @@ EmitAliasedVarOp(JSContext *cx, JSOp op, ParseNode *pn, BytecodeEmitter *bce)
     }
 
     ScopeCoordinate sc;
-    if (JOF_OPTYPE(pn->getOp()) == JOF_QARG) {
+    if (IsArgOp(pn->getOp())) {
         sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
         sc.slot = bceOfDef->sc->bindings.formalIndexToSlot(pn->pn_cookie.slot());
     } else {
-        JS_ASSERT(JOF_OPTYPE(pn->getOp()) == JOF_LOCAL || pn->isKind(PNK_FUNCTION));
+        JS_ASSERT(IsLocalOp(pn->getOp()) || pn->isKind(PNK_FUNCTION));
         unsigned local = pn->pn_cookie.slot();
         if (local < bceOfDef->sc->bindings.numVars()) {
             sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
@@ -946,7 +940,7 @@ static bool
 EmitVarOp(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
 {
     JS_ASSERT(pn->isKind(PNK_FUNCTION) || pn->isKind(PNK_NAME));
-    JS_ASSERT_IF(pn->isKind(PNK_NAME), JOF_OPTYPE(op) == JOF_QARG || JOF_OPTYPE(op) == JOF_LOCAL);
+    JS_ASSERT_IF(pn->isKind(PNK_NAME), IsArgOp(op) || IsLocalOp(op));
     JS_ASSERT(!pn->pn_cookie.isFree());
 
     if (!bce->isAliasedName(pn)) {
@@ -970,7 +964,7 @@ static bool
 EmitVarIncDec(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
 {
     JS_ASSERT(pn->isKind(PNK_NAME));
-    JS_ASSERT(JOF_OPTYPE(op) == JOF_QARG || JOF_OPTYPE(op) == JOF_LOCAL);
+    JS_ASSERT(IsArgOp(op) || IsLocalOp(op));
     JS_ASSERT(js_CodeSpec[op].format & (JOF_INC | JOF_DEC));
     JS_ASSERT(!pn->pn_cookie.isFree());
 
@@ -1034,8 +1028,7 @@ BytecodeEmitter::noteClosedVar(ParseNode *pn)
 #ifdef DEBUG
     JS_ASSERT(shouldNoteClosedName(pn));
     Definition *dn = (Definition *)pn;
-    JS_ASSERT(dn->kind() == Definition::VAR || dn->kind() == Definition::CONST ||
-              dn->kind() == Definition::FUNCTION);
+    JS_ASSERT(dn->kind() == Definition::VAR || dn->kind() == Definition::CONST);
     JS_ASSERT(pn->pn_cookie.slot() < sc->bindings.numVars());
     for (size_t i = 0; i < closedVars.length(); ++i)
         JS_ASSERT(closedVars[i] != pn->pn_cookie.slot());
@@ -1211,12 +1204,14 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(pn->isKind(PNK_NAME) || pn->isKind(PNK_INTRINSICNAME));
 
+    JS_ASSERT_IF(pn->isKind(PNK_FUNCTION), pn->isBound());
+
     
-    JSOp op = pn->getOp();
-    if (pn->isBound() || pn->isDeoptimized() || op == JSOP_NOP)
+    if (pn->isBound() || pn->isDeoptimized())
         return true;
 
     
+    JSOp op = pn->getOp();
     JS_ASSERT(op != JSOP_CALLEE);
     JS_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
 
@@ -1235,8 +1230,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     } else {
         return true;
     }
-
-    JS_ASSERT_IF(dn->kind() == Definition::CONST, pn->pn_dflags & PND_CONST);
 
     
 
@@ -1331,9 +1324,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
     switch (dn->kind()) {
-      case Definition::UNKNOWN:
-        return true;
-
       case Definition::ARG:
         switch (op) {
           case JSOP_NAME:     op = JSOP_GETARG; break;
@@ -1348,55 +1338,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case Definition::VAR:
-        if (dn->isOp(JSOP_CALLEE)) {
-            JS_ASSERT(op != JSOP_CALLEE);
-
-            
-
-
-
-            if (dn->pn_cookie.level() != bce->script->staticLevel)
-                return true;
-
-            JS_ASSERT(bce->sc->fun()->flags & JSFUN_LAMBDA);
-            JS_ASSERT(pn->pn_atom == bce->sc->fun()->atom);
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (!bce->sc->funIsHeavyweight()) {
-                op = JSOP_CALLEE;
-                pn->pn_dflags |= PND_CONST;
-            }
-
-            pn->setOp(op);
-            pn->pn_dflags |= PND_BOUND;
-            return true;
-        }
-        
-
-      case Definition::FUNCTION:
       case Definition::CONST:
       case Definition::LET:
         switch (op) {
@@ -1411,8 +1352,55 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
         break;
 
-      default:
-        JS_NOT_REACHED("unexpected dn->kind()");
+      case Definition::NAMED_LAMBDA:
+        JS_ASSERT(dn->isOp(JSOP_CALLEE));
+        JS_ASSERT(op != JSOP_CALLEE);
+
+        
+
+
+
+        if (dn->pn_cookie.level() != bce->script->staticLevel)
+            return true;
+
+        JS_ASSERT(bce->sc->fun()->flags & JSFUN_LAMBDA);
+        JS_ASSERT(pn->pn_atom == bce->sc->fun()->atom);
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (!bce->sc->funIsHeavyweight()) {
+            op = JSOP_CALLEE;
+            pn->pn_dflags |= PND_CONST;
+        }
+
+        pn->setOp(op);
+        pn->pn_dflags |= PND_BOUND;
+        return true;
+
+      case Definition::PLACEHOLDER:
+        return true;
     }
 
     
@@ -2707,7 +2695,7 @@ MaybeEmitVarDecl(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, ParseNode *
     }
 
     if (bce->sc->inFunction() &&
-        JOF_OPTYPE(pn->getOp()) == JOF_LOCAL &&
+        IsLocalOp(pn->getOp()) &&
         !pn->isLet() &&
         bce->shouldNoteClosedName(pn))
     {
@@ -4860,7 +4848,7 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-        JS_ASSERT(pn->isOp(JSOP_NOP));
+        JS_ASSERT(pn->functionIsHoisted());
         JS_ASSERT(bce->sc->inFunction());
         return EmitFunctionDefNop(cx, bce, pn->pn_index);
     }
@@ -4904,11 +4892,11 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     unsigned index = bce->objectList.add(pn->pn_funbox);
 
     
-    if (pn->getOp() != JSOP_NOP) {
+    if (!pn->functionIsHoisted()) {
         if (pn->pn_funbox->inGenexpLambda && NewSrcNote(cx, bce, SRC_GENEXP) < 0)
             return false;
 
-        return EmitFunctionOp(cx, pn->getOp(), index, bce);
+        return EmitIndex32(cx, pn->getOp(), index, bce);
     }
 
     
@@ -4921,16 +4909,15 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
     if (!bce->sc->inFunction()) {
-        JS_ASSERT(!bce->topStmt);
         JS_ASSERT(pn->pn_cookie.isFree());
-        if (pn->pn_cookie.isFree()) {
-            bce->switchToProlog();
-            if (!EmitFunctionOp(cx, JSOP_DEFFUN, index, bce))
-                return false;
-            if (!UpdateLineNumberNotes(cx, bce, pn->pn_pos.begin.lineno))
-                return false;
-            bce->switchToMain();
-        }
+        JS_ASSERT(pn->getOp() == JSOP_NOP);
+        JS_ASSERT(!bce->topStmt);
+        bce->switchToProlog();
+        if (!EmitIndex32(cx, JSOP_DEFFUN, index, bce))
+            return false;
+        if (!UpdateLineNumberNotes(cx, bce, pn->pn_pos.begin.lineno))
+            return false;
+        bce->switchToMain();
 
         
         if (!EmitFunctionDefNop(cx, bce, index))
@@ -4938,18 +4925,29 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     } else {
 #ifdef DEBUG
         BindingIter bi(cx, bce->sc->bindings.lookup(cx, fun->atom->asPropertyName()));
-        JS_ASSERT(bi->kind == VARIABLE || bi->kind == CONSTANT);
+        JS_ASSERT(bi->kind == VARIABLE || bi->kind == CONSTANT || bi->kind == ARGUMENT);
         JS_ASSERT(bi.frameIndex() < JS_BIT(20));
 #endif
         pn->pn_index = index;
-        if (bce->shouldNoteClosedName(pn) && !bce->noteClosedVar(pn))
-            return false;
+        if (bce->shouldNoteClosedName(pn)) {
+            Definition::Kind kind = ((Definition *)pn)->kind();
+            if (kind == Definition::ARG) {
+                if (!bce->noteClosedArg(pn))
+                    return false;
+            } else {
+                JS_ASSERT(kind == Definition::VAR);
+                if (!bce->noteClosedVar(pn))
+                    return false;
+            }
+        }
 
         if (NewSrcNote(cx, bce, SRC_CONTINUE) < 0)
             return false;
         if (!EmitIndexOp(cx, JSOP_LAMBDA, index, bce))
             return false;
-        if (!EmitVarOp(cx, pn, JSOP_SETLOCAL, bce))
+        JS_ASSERT(pn->getOp() == JSOP_GETLOCAL || pn->getOp() == JSOP_GETARG);
+        JSOp setOp = pn->getOp() == JSOP_GETLOCAL ? JSOP_SETLOCAL : JSOP_SETARG;
+        if (!EmitVarOp(cx, pn, setOp, bce))
             return false;
         if (Emit1(cx, bce, JSOP_POP) < 0)
             return false;
@@ -6085,17 +6083,9 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             
             
             for (ParseNode *pn2 = pnchild; pn2; pn2 = pn2->pn_next) {
-                if (pn2->isKind(PNK_FUNCTION)) {
-                    if (pn2->isOp(JSOP_NOP)) {
-                        if (!EmitTree(cx, bce, pn2))
-                            return false;
-                    } else {
-                        
-                        
-                        
-                        
-                        JS_ASSERT(pn2->isOp(JSOP_DEFFUN));
-                    }
+                if (pn2->isKind(PNK_FUNCTION) && pn2->functionIsHoisted()) {
+                    if (!EmitTree(cx, bce, pn2))
+                        return false;
                 }
             }
         }
@@ -6146,7 +6136,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 continue;
             if (!BindNameToSlot(cx, bce, pn2))
                 return false;
-            if (JOF_OPTYPE(pn2->getOp()) == JOF_QARG && bce->shouldNoteClosedName(pn2)) {
+            if (IsArgOp(pn2->getOp()) && bce->shouldNoteClosedName(pn2)) {
                 if (!bce->noteClosedArg(pn2))
                     return false;
             }
@@ -6533,13 +6523,6 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_NAME:
-        
-
-
-
-
-        if (pn->isOp(JSOP_NOP))
-            break;
         if (!EmitNameOp(cx, bce, pn, false))
             return false;
         break;
@@ -6661,6 +6644,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
         break;
 #endif 
+
+      case PNK_NOP:
+        JS_ASSERT(pn->getArity() == PN_NULLARY);
+        break;
 
       default:
         JS_ASSERT(0);

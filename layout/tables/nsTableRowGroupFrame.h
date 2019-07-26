@@ -332,7 +332,7 @@ protected:
                             nsHTMLReflowState& aReflowState);
   
   
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,

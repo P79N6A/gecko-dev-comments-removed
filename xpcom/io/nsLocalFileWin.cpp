@@ -576,7 +576,7 @@ struct PRFilePrivate {
     bool nonblocking;
     _PRTriStateBool inheritable;
     PRFileDesc *next;
-    PRIntn lockCount;   
+    int lockCount;      
 
 
     bool    appendMode; 
@@ -594,7 +594,7 @@ struct PRFilePrivate {
 
 
 static nsresult
-OpenFile(const nsAFlatString &name, PRIntn osflags, PRIntn mode,
+OpenFile(const nsAFlatString &name, int osflags, int mode,
          PRFileDesc **fd)
 {
     

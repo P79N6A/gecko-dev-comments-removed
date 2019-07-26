@@ -214,7 +214,7 @@ NS_NewNativeLocalFile(const nsACString &path,
 
 
 XPCOM_API(void*)
-NS_Alloc(PRSize size);
+NS_Alloc(size_t size);
 
 
 
@@ -232,7 +232,7 @@ NS_Alloc(PRSize size);
 
 
 XPCOM_API(void*)
-NS_Realloc(void* ptr, PRSize size);
+NS_Realloc(void* ptr, size_t size);
 
 
 

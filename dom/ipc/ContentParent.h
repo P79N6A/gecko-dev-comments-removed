@@ -26,6 +26,7 @@
 #include "nsInterfaceHashtable.h"
 #include "nsHashKeys.h"
 
+class mozIApplication;
 class nsFrameMessageManager;
 class nsIDOMBlob;
 
@@ -66,7 +67,10 @@ public:
 
 
 
-    static ContentParent* GetForApp(const nsAString& aManifestURL);
+
+    static TabParent* CreateBrowser(mozIApplication* aApp,
+                                    bool aIsBrowserFrame);
+
     static void GetAll(nsTArray<ContentParent*>& aArray);
 
     NS_DECL_ISUPPORTS
@@ -74,14 +78,6 @@ public:
     NS_DECL_NSITHREADOBSERVER
     NS_DECL_NSIDOMGEOPOSITIONCALLBACK
 
-    
-
-
-
-
-
-
-    TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserElement, PRUint32 aAppId);
     
     void NotifyTabDestroyed(PBrowserParent* aTab);
 
@@ -143,7 +139,9 @@ private:
     PCompositorParent* AllocPCompositor(mozilla::ipc::Transport* aTransport,
                                         base::ProcessId aOtherProcess) MOZ_OVERRIDE;
 
-    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserElement, const PRUint32& aAppId);
+    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags,
+                                          const bool& aIsBrowserElement,
+                                          const AppId& aApp);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PDeviceStorageRequestParent* AllocPDeviceStorageRequest(const DeviceStorageParams&);
@@ -261,6 +259,8 @@ private:
 
     virtual bool RecvAddFileWatch(const nsString& root);
     virtual bool RecvRemoveFileWatch(const nsString& root);
+
+    virtual void ProcessingError(Result what) MOZ_OVERRIDE;
 
     GeckoChildProcessHost* mSubprocess;
 

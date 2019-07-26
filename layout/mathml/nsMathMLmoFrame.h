@@ -65,7 +65,7 @@ protected:
   nsMathMLmoFrame(nsStyleContext* aContext) : nsMathMLTokenFrame(aContext) {}
   virtual ~nsMathMLmoFrame();
   
-  virtual PRIntn GetSkipSides() const { return 0; }
+  virtual int GetSkipSides() const { return 0; }
 
   nsMathMLChar     mMathMLChar; 
   nsOperatorFlags  mFlags;

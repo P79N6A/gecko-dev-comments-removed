@@ -840,10 +840,10 @@ nsInlineFrame::PushFrames(nsPresContext* aPresContext,
 
 
 
-PRIntn
+int
 nsInlineFrame::GetSkipSides() const
 {
-  PRIntn skip = 0;
+  int skip = 0;
   if (!IsLeftMost()) {
     nsInlineFrame* prev = (nsInlineFrame*) GetPrevContinuation();
     if ((GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET) ||
@@ -878,8 +878,8 @@ nsInlineFrame::GetSkipSides() const
     
     
     bool ltr = (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection);
-    PRIntn startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
-    PRIntn endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
+    int startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
+    int endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
     if (((startBit | endBit) & skip) != (startBit | endBit)) {
       
       

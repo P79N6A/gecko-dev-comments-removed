@@ -497,66 +497,6 @@ ReportBadParameter(JSContext *cx, Parser *parser, JSAtom *name, unsigned errorNu
            parser->reportStrictModeError(dn, errorNumber, bytes.ptr());
 }
 
-
-
-
-
-
-
-static bool
-CheckStrictParameters(JSContext *cx, Parser *parser)
-{
-    SharedContext *sc = parser->tc->sc;
-    JS_ASSERT(sc->inFunction());
-
-    if (!sc->needStrictChecks() || sc->bindings.numArgs() == 0)
-        return true;
-
-    JSAtom *argumentsAtom = cx->runtime->atomState.argumentsAtom;
-    JSAtom *evalAtom = cx->runtime->atomState.evalAtom;
-
-    
-    HashMap<JSAtom *, bool> parameters(cx);
-    if (!parameters.init(sc->bindings.numArgs()))
-        return false;
-
-    
-    for (BindingIter bi(cx, sc->bindings); bi; bi++) {
-        PropertyName *name = bi->maybeName;
-        if (!name)
-            continue;
-
-        if (name == argumentsAtom || name == evalAtom) {
-            if (!ReportBadParameter(cx, parser, name, JSMSG_BAD_BINDING))
-                return false;
-        }
-
-        if (FindKeyword(name->charsZ(), name->length())) {
-            
-
-
-
-            if (!ReportBadParameter(cx, parser, name, JSMSG_RESERVED_ID))
-                return false;
-        }
-
-        
-
-
-
-        if (HashMap<JSAtom *, bool>::AddPtr p = parameters.lookupForAdd(name)) {
-            if (!p->value && !ReportBadParameter(cx, parser, name, JSMSG_DUPLICATE_FORMAL))
-                return false;
-            p->value = true;
-        } else {
-            if (!parameters.add(p, name, false))
-                return false;
-        }
-    }
-
-    return true;
-}
-
 static bool
 BindLocalVariable(JSContext *cx, TreeContext *tc, ParseNode *pn, BindingKind kind)
 {
@@ -625,13 +565,6 @@ Parser::functionBody(FunctionBodyType type)
             pn = NULL;
         }
     }
-
-    
-
-
-
-    if (!CheckStrictParameters(context, this))
-        return NULL;
 
     Rooted<PropertyName*> arguments(context, context->runtime->atomState.argumentsAtom);
 
@@ -850,38 +783,31 @@ MakeAssignment(ParseNode *pn, ParseNode *rhs, Parser *parser)
     return lhs;
 }
 
-static ParseNode *
+
+static bool
 MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
 {
+    TreeContext *tc = parser->tc;
+
     
 
 
 
 
-    if (dn->canHaveInitializer()) {
-        ParseNode *rhs = dn->expr();
-        if (rhs) {
-            ParseNode *lhs = MakeAssignment(dn, rhs, parser);
-            if (!lhs)
-                return NULL;
-            
-            dn = (Definition *) lhs;
-        }
-
-        dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME);
-    } else if (dn->kind() == Definition::FUNCTION) {
-        JS_ASSERT(dn->isOp(JSOP_NOP));
-        parser->prepareNodeForMutation(dn);
-        dn->setKind(PNK_NAME);
-        dn->setArity(PN_NAME);
-        dn->pn_atom = atom;
+    if (tc->sc->inFunction()) {
+        JS_ASSERT(!dn->pn_cookie.isFree());
+        JS_ASSERT(dn->isBound());
+        pn->pn_cookie = dn->pn_cookie;
+        JS_ASSERT(JOF_OPTYPE(dn->getOp()) == JOF_QARG || JOF_OPTYPE(dn->getOp()) == JOF_LOCAL);
+        pn->setOp(JOF_OPTYPE(dn->getOp()) == JOF_QARG ? JSOP_GETARG : JSOP_GETLOCAL);
+        pn->pn_dflags |= PND_BOUND;
     }
 
     
-    JS_ASSERT(dn->isKind(PNK_NAME));
-    JS_ASSERT(dn->isArity(PN_NAME));
-    JS_ASSERT(dn->pn_atom == atom);
+    parser->tc->decls.updateFirst(atom, (Definition *) pn);
+    pn->setDefn(true);
 
+    
     for (ParseNode *pnu = dn->dn_uses; pnu; pnu = pnu->pn_link) {
         JS_ASSERT(pnu->isUsed());
         JS_ASSERT(!pnu->isDefn());
@@ -891,38 +817,56 @@ MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
     pn->pn_dflags |= dn->pn_dflags & PND_USE2DEF_FLAGS;
     pn->dn_uses = dn;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (dn->getKind() == PNK_FUNCTION) {
+        JS_ASSERT(dn->functionIsHoisted());
+        pn->dn_uses = dn->pn_link;
+        parser->prepareNodeForMutation(dn);
+        dn->setKind(PNK_NOP);
+        dn->setArity(PN_NULLARY);
+        return true;
+    }
+
+    
+
+
+
+
+    if (dn->canHaveInitializer()) {
+        if (ParseNode *rhs = dn->expr()) {
+            ParseNode *lhs = MakeAssignment(dn, rhs, parser);
+            if (!lhs)
+                return false;
+            pn->dn_uses = lhs;
+            dn->pn_link = NULL;
+            dn = (Definition *) lhs;
+        }
+    }
+
+    
+    JS_ASSERT(dn->isKind(PNK_NAME));
+    JS_ASSERT(dn->isArity(PN_NAME));
+    JS_ASSERT(dn->pn_atom == atom);
+    dn->setOp((js_CodeSpec[dn->getOp()].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME);
     dn->setDefn(false);
     dn->setUsed(true);
     dn->pn_lexdef = (Definition *) pn;
     dn->pn_cookie.makeFree();
     dn->pn_dflags &= ~PND_BOUND;
-    return dn;
-}
-
-bool
-frontend::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser)
-{
-    
-
-
-
-
-    ParseNode *argpn = NameNode::create(PNK_NAME, atom, parser, parser->tc);
-    if (!argpn)
-        return false;
-    JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
-
-    
-    if (!Define(argpn, atom, parser->tc))
-        return false;
-
-    ParseNode *argsbody = pn->pn_body;
-    argsbody->append(argpn);
-
-    argpn->setOp(JSOP_GETARG);
-    if (!argpn->pn_cookie.set(parser->context, parser->tc->staticLevel, i))
-        return false;
-    argpn->pn_dflags |= PND_BOUND;
     return true;
 }
 
@@ -971,51 +915,6 @@ struct frontend::BindData {
         this->binder = BindVarOrConst;
     }
 };
-
-#if JS_HAS_DESTRUCTURING
-static bool
-BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
-{
-    TreeContext *tc = parser->tc;
-    JS_ASSERT(tc->sc->inFunction());
-
-    
-
-
-
-
-    if (tc->decls.lookupFirst(atom)) {
-        parser->reportError(NULL, JSMSG_DESTRUCT_DUP_ARG);
-        return false;
-    }
-
-    ParseNode *pn = data->pn;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    pn->setOp(JSOP_SETLOCAL);
-    pn->pn_dflags |= PND_BOUND;
-
-    return Define(pn, atom, tc);
-}
-#endif 
 
 JSFunction *
 Parser::newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
@@ -1124,6 +1023,7 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
                     return false;
                 dn->pn_dflags |= PND_BOUND;
                 foundCallee = 1;
+                JS_ASSERT(dn->kind() == Definition::NAMED_LAMBDA);
                 continue;
             }
 
@@ -1233,6 +1133,96 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
     return true;
 }
+
+
+
+
+
+bool
+frontend::DefineArg(ParseNode *pn, PropertyName *name, unsigned i, Parser *parser)
+{
+    JSContext *cx = parser->context;
+    TreeContext *tc = parser->tc;
+    SharedContext *sc = tc->sc;
+
+    
+
+
+
+
+    ParseNode *argpn = NameNode::create(PNK_NAME, name, parser, tc);
+    if (!argpn)
+        return false;
+    JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
+
+    if (sc->needStrictChecks() && tc->decls.lookupFirst(name)) {
+        if (!ReportBadParameter(cx, parser, name, JSMSG_DUPLICATE_FORMAL))
+            return false;
+    }
+
+    if (!CheckStrictBinding(cx, parser, name, argpn))
+        return false;
+
+    
+    if (!Define(argpn, name, tc))
+        return false;
+
+    ParseNode *argsbody = pn->pn_body;
+    argsbody->append(argpn);
+
+    argpn->setOp(JSOP_GETARG);
+    if (!argpn->pn_cookie.set(cx, tc->staticLevel, i))
+        return false;
+    argpn->pn_dflags |= PND_BOUND;
+    return true;
+}
+
+#if JS_HAS_DESTRUCTURING
+static bool
+BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
+{
+    TreeContext *tc = parser->tc;
+    JS_ASSERT(tc->sc->inFunction());
+
+    
+
+
+
+
+    if (tc->decls.lookupFirst(atom)) {
+        parser->reportError(NULL, JSMSG_DESTRUCT_DUP_ARG);
+        return false;
+    }
+
+    ParseNode *pn = data->pn;
+    if (!CheckStrictBinding(cx, parser, atom->asPropertyName(), pn))
+        return false;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    pn->setOp(JSOP_SETLOCAL);
+    pn->pn_dflags |= PND_BOUND;
+
+    return Define(pn, atom, tc);
+}
+#endif 
 
 bool
 Parser::functionArguments(ParseNode **listp, bool &hasRest)
@@ -1439,41 +1429,41 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
     pn->pn_dflags = 0;
 
     
-
-
-
     bool bodyLevel = tc->atBodyLevel();
     if (kind == Statement) {
-        if (Definition *dn = tc->decls.lookupFirst(funName)) {
-            Definition::Kind dn_kind = dn->kind();
+        
 
+
+
+        if (Definition *dn = tc->decls.lookupFirst(funName)) {
             JS_ASSERT(!dn->isUsed());
             JS_ASSERT(dn->isDefn());
 
-            if (context->hasStrictOption() || dn_kind == Definition::CONST) {
+            if (context->hasStrictOption() || dn->kind() == Definition::CONST) {
                 JSAutoByteString name;
-                Reporter reporter = (dn_kind != Definition::CONST)
+                Reporter reporter = (dn->kind() != Definition::CONST)
                                     ? &Parser::reportStrictWarning
                                     : &Parser::reportError;
                 if (!js_AtomToPrintableString(context, funName, &name) ||
-                    !(this->*reporter)(NULL, JSMSG_REDECLARED_VAR, Definition::kindString(dn_kind),
+                    !(this->*reporter)(NULL, JSMSG_REDECLARED_VAR, Definition::kindString(dn->kind()),
                                        name.ptr()))
                 {
                     return NULL;
                 }
             }
 
-            if (bodyLevel) {
-                tc->decls.updateFirst(funName, (Definition *) pn);
-                pn->setDefn(true);
-                pn->dn_uses = dn; 
-
-                if (!MakeDefIntoUse(dn, pn, funName, this))
-                    return NULL;
-            }
-        } else if (bodyLevel) {
             
 
+
+
+
+
+
+
+            if (bodyLevel && !MakeDefIntoUse(dn, pn, funName, this))
+                return NULL;
+        } else if (bodyLevel) {
+            
 
 
 
@@ -1483,11 +1473,6 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
                 fn->setKind(PNK_FUNCTION);
                 fn->setArity(PN_FUNC);
                 fn->pn_pos.begin = pn->pn_pos.begin;
-
-                
-
-
-
                 fn->pn_pos.end = pn->pn_pos.end;
 
                 fn->pn_body = NULL;
@@ -1500,6 +1485,23 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
             if (!Define(pn, funName, tc))
                 return NULL;
+
+            
+
+
+
+
+
+
+
+            if (tc->sc->inFunction()) {
+                unsigned varIndex = tc->sc->bindings.numVars();
+                if (!tc->sc->bindings.addVariable(context, funName))
+                    return NULL;
+                if (!pn->pn_cookie.set(context, tc->staticLevel, varIndex))
+                    return NULL;
+                pn->setOp(JSOP_GETLOCAL);
+            }
         }
 
         
@@ -1509,32 +1511,38 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
 
 
+        if (bodyLevel) {
+            JS_ASSERT(pn->functionIsHoisted());
+            JS_ASSERT_IF(tc->sc->inFunction(), !pn->pn_cookie.isFree());
+            JS_ASSERT_IF(!tc->sc->inFunction(), pn->pn_cookie.isFree());
+        } else {
+            JS_ASSERT(tc->sc->strictModeState != StrictMode::STRICT);
+            JS_ASSERT(pn->pn_cookie.isFree());
+            tc->sc->setFunMightAliasLocals();
+            tc->sc->setFunHasExtensibleScope();
+            tc->sc->setFunIsHeavyweight();
+            pn->setOp(JSOP_DEFFUN);
 
-        if (bodyLevel && tc->sc->inFunction()) {
             
 
 
 
 
 
-
-            BindingIter bi(context, tc->sc->bindings.lookup(context, funName));
-            if (!bi || bi->kind != CONSTANT) {
-                unsigned varIndex;
-                if (!bi || bi->kind == ARGUMENT) {
-                    varIndex = tc->sc->bindings.numVars();
-                    if (!tc->sc->bindings.addVariable(context, funName))
-                        return NULL;
-                } else {
-                    JS_ASSERT(bi->kind == VARIABLE);
-                    varIndex = bi.frameIndex();
-                }
-
-                if (!pn->pn_cookie.set(context, tc->staticLevel, varIndex))
+            if (!tc->funcStmts) {
+                tc->funcStmts = context->new_<FuncStmtSet>(context);
+                if (!tc->funcStmts || !tc->funcStmts->init())
                     return NULL;
-                pn->pn_dflags |= PND_BOUND;
             }
+            if (!tc->funcStmts->put(funName))
+                return NULL;
         }
+
+        
+        pn->pn_dflags |= PND_BOUND;
+    } else {
+        
+        pn->setOp(JSOP_LAMBDA);
     }
 
     TreeContext *outertc = tc;
@@ -1695,47 +1703,10 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         outertc->sc->setFunIsHeavyweight();
     }
 
-    JSOp op = JSOP_NOP;
-    if (kind == Expression) {
-        op = JSOP_LAMBDA;
-    } else {
-        if (!bodyLevel) {
-            
-
-
-
-
-
-            JS_ASSERT(outertc->sc->strictModeState != StrictMode::STRICT);
-            op = JSOP_DEFFUN;
-            outertc->sc->setFunMightAliasLocals();
-            outertc->sc->setFunHasExtensibleScope();
-            outertc->sc->setFunIsHeavyweight();
-
-            
-
-
-
-
-
-            if (!outertc->funcStmts) {
-                outertc->funcStmts = context->new_<FuncStmtSet>(context);
-                if (!outertc->funcStmts || !outertc->funcStmts->init())
-                    return NULL;
-            }
-            if (!outertc->funcStmts->put(funName))
-                return NULL;
-        }
-    }
 
     pn->pn_funbox = funbox;
-    pn->setOp(op);
     pn->pn_body->append(body);
     pn->pn_body->pn_pos = body->pn_pos;
-
-    JS_ASSERT_IF(!outertc->sc->inFunction() && bodyLevel && kind == Statement,
-                 pn->pn_cookie.isFree());
-
     pn->pn_blockid = outertc->blockid();
 
     if (!LeaveFunction(pn, this, funName, kind))
@@ -6925,7 +6896,7 @@ Parser::primaryExpr(TokenKind tt, bool afterDoubleDot)
                     if (!js_AtomToPrintableString(context, atom, &name))
                         return NULL;
 
-                    Reporter reporter = 
+                    Reporter reporter =
                         (oldAssignType == VALUE && assignType == VALUE && !tc->sc->needStrictChecks())
                         ? &Parser::reportWarning
                         : (tc->sc->needStrictChecks() ? &Parser::reportStrictModeError : &Parser::reportError);

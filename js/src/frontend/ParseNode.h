@@ -69,6 +69,7 @@ class UpvarCookie
 
 
 enum ParseNodeKind {
+    PNK_NOP,
     PNK_SEMI,
     PNK_COMMA,
     PNK_CONDITIONAL,
@@ -209,6 +210,7 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
 
 
 
@@ -774,6 +776,16 @@ struct ParseNode {
     unsigned frameSlot() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
         return pn_cookie.slot();
+    }
+
+    bool functionIsHoisted() const {
+        JS_ASSERT(pn_arity == PN_FUNC);
+        JS_ASSERT(isOp(JSOP_LAMBDA) ||    
+                  isOp(JSOP_DEFFUN) ||    
+                  isOp(JSOP_NOP) ||       
+                  isOp(JSOP_GETLOCAL) ||  
+                  isOp(JSOP_GETARG));     
+        return !(isOp(JSOP_LAMBDA) || isOp(JSOP_DEFFUN));
     }
 
     inline bool test(unsigned flag) const;
@@ -1357,18 +1369,23 @@ struct Definition : public ParseNode
         return pn_cookie.isFree();
     }
 
-    enum Kind { VAR, CONST, LET, FUNCTION, ARG, UNKNOWN };
+    enum Kind { VAR, CONST, LET, ARG, NAMED_LAMBDA, PLACEHOLDER };
 
-    bool canHaveInitializer() { return int(kind()) <= int(LET) || kind() == ARG; }
+    bool canHaveInitializer() { return int(kind()) <= int(ARG); }
 
     static const char *kindString(Kind kind);
 
     Kind kind() {
-        if (getKind() == PNK_FUNCTION)
-            return FUNCTION;
+        if (getKind() == PNK_FUNCTION) {
+            if (isOp(JSOP_GETARG))
+                return ARG;
+            return VAR;
+        }
         JS_ASSERT(getKind() == PNK_NAME);
-        if (isOp(JSOP_NOP))
-            return UNKNOWN;
+        if (isOp(JSOP_CALLEE))
+            return NAMED_LAMBDA;
+        if (isPlaceholder())
+            return PLACEHOLDER;
         if (isOp(JSOP_GETARG))
             return ARG;
         if (isConst())
@@ -1408,27 +1425,13 @@ ParseNode::test(unsigned flag) const
     return !!(pn_dflags & flag);
 }
 
-
-
-
-
-
-
-
-
-
 inline Definition *
 ParseNode::resolve()
 {
-    ParseNode *pn = this;
-    while (!pn->isDefn()) {
-        if (pn->isAssignment()) {
-            pn = pn->pn_left;
-            continue;
-        }
-        pn = pn->lexdef();
-    }
-    return (Definition *) pn;
+    if (isDefn())
+        return (Definition *)this;
+    JS_ASSERT(lexdef()->isDefn());
+    return (Definition *)lexdef();
 }
 
 inline void

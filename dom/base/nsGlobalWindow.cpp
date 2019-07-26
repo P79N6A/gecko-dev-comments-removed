@@ -1956,6 +1956,17 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         if (newInnerWindow->mNavigator) {
           newInnerWindow->mNavigator->SetWindow(newInnerWindow);
         }
+
+        
+        
+        
+        currentInner->CreatePerformanceObjectIfNeeded();
+        if (currentInner->mPerformance) {
+          newInnerWindow->mPerformance =
+            new nsPerformance(newInnerWindow,
+                              currentInner->mPerformance->GetDOMTiming(),
+                              currentInner->mPerformance->GetChannel());
+        }
       }
 
       
@@ -2931,25 +2942,29 @@ nsGlobalWindow::GetPerformance(nsISupports** aPerformance)
   *aPerformance = nullptr;
 
   if (nsGlobalWindow::HasPerformanceSupport()) {
-    if (!mPerformance) {
-      if (!mDoc) {
-        return NS_OK;
-      }
-      nsRefPtr<nsDOMNavigationTiming> timing = mDoc->GetNavigationTiming();
-      nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(mDoc->GetChannel()));
-      bool timingEnabled = false;
-      if (!timedChannel ||
-          !NS_SUCCEEDED(timedChannel->GetTimingEnabled(&timingEnabled)) ||
-          !timingEnabled) {
-        timedChannel = nullptr;
-      }
-      if (timing) {
-        mPerformance = new nsPerformance(this, timing, timedChannel);
-      }
-    }
+    CreatePerformanceObjectIfNeeded();
     NS_IF_ADDREF(*aPerformance = mPerformance);
   }
   return NS_OK;
+}
+
+void
+nsGlobalWindow::CreatePerformanceObjectIfNeeded()
+{
+  if (mPerformance || !mDoc) {
+    return;
+  }
+  nsRefPtr<nsDOMNavigationTiming> timing = mDoc->GetNavigationTiming();
+  nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(mDoc->GetChannel()));
+  bool timingEnabled = false;
+  if (!timedChannel ||
+      !NS_SUCCEEDED(timedChannel->GetTimingEnabled(&timingEnabled)) ||
+      !timingEnabled) {
+    timedChannel = nullptr;
+  }
+  if (timing) {
+    mPerformance = new nsPerformance(this, timing, timedChannel);
+  }
 }
 
 
@@ -3070,6 +3085,14 @@ nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
   return NS_OK;
 }
 
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetContentForCompat(nsIDOMWindow** aContent)
+{
+  return GetContent(aContent);
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
 {
@@ -3114,7 +3137,7 @@ nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
   }
 
   nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(primaryContent));
-  NS_IF_ADDREF(*aContent = domWindow);
+  domWindow.forget(aContent);
 
   return NS_OK;
 }

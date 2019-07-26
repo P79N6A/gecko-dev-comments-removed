@@ -71,7 +71,7 @@ struct nsCSSBorderRenderer {
                       gfxCornerSizes& aBorderRadii,
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
-                      PRIntn aSkipSides,
+                      int aSkipSides,
                       nscolor aBackgroundColor);
 
   gfxCornerSizes mBorderCornerDimensions;
@@ -98,7 +98,7 @@ struct nsCSSBorderRenderer {
   PRInt32 mAUPP;
 
   
-  PRIntn mSkipSides;
+  int mSkipSides;
   nscolor mBackgroundColor;
 
   
@@ -151,7 +151,7 @@ struct nsCSSBorderRenderer {
                        const gfxRect& aInnerRect,
                        const gfxCornerSizes& aBorderRadii,
                        const gfxFloat *aBorderSizes,
-                       PRIntn aSides,
+                       int aSides,
                        const gfxRGBA& aColor);
 
   
@@ -160,10 +160,10 @@ struct nsCSSBorderRenderer {
 
   
   
-  void DrawBorderSides (PRIntn aSides);
+  void DrawBorderSides (int aSides);
 
   
-  void DrawBorderSidesCompositeColors(PRIntn aSides, const nsBorderColors *compositeColors);
+  void DrawBorderSidesCompositeColors(int aSides, const nsBorderColors *compositeColors);
 
   
   void DrawDashedSide (mozilla::css::Side aSide);

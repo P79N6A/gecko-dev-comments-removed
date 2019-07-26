@@ -202,7 +202,7 @@ protected:
                         const nsFrameList::Slice& aCols);
 
   
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
   
   PRInt32 mColCount;

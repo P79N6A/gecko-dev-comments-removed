@@ -6055,16 +6055,18 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
         channel->GetURI(getter_AddRefs(uri));
         nsCAutoString aURI;
         uri->GetAsciiSpec(aURI);
-        if (this == aProgress){
+
+        nsCOMPtr<nsIWyciwygChannel>  wcwgChannel(do_QueryInterface(aRequest));
+        nsCOMPtr<nsIWebProgress> webProgress =
+            do_QueryInterface(GetAsSupports(this));
+
+        
+        if (this == aProgress && !wcwgChannel){
             rv = MaybeInitTiming();
             if (mTiming) {
                 mTiming->NotifyFetchStart(uri, ConvertLoadTypeToNavigationType(mLoadType));
             } 
         }
-
-        nsCOMPtr<nsIWyciwygChannel>  wcwgChannel(do_QueryInterface(aRequest));
-        nsCOMPtr<nsIWebProgress> webProgress =
-            do_QueryInterface(GetAsSupports(this));
 
         
         if (wcwgChannel && !mLSHE && (mItemType == typeContent) && aProgress == webProgress.get()) {
