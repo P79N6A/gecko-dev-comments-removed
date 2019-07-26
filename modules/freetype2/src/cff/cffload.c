@@ -414,7 +414,7 @@
       cur_offset = idx->offsets[0] - 1;
 
       
-      if ( cur_offset >= idx->data_size )
+      if ( cur_offset != 0 )
       {
         FT_TRACE0(( "cff_index_get_pointers:"
                     " invalid first offset value %d set to zero\n",
@@ -433,10 +433,10 @@
 
 
         
-        if ( next_offset == 0                                    ||
-             next_offset < cur_offset                            ||
-             ( next_offset >= idx->data_size && n < idx->count ) )
+        if ( next_offset < cur_offset )
           next_offset = cur_offset;
+        else if ( next_offset > idx->data_size )
+          next_offset = idx->data_size;
 
         if ( !pool )
           t[n] = org_bytes + next_offset;

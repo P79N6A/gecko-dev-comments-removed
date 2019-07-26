@@ -268,15 +268,6 @@ class  DocMarkup:
         except:
             return None
 
-    def  get_start( self ):
-        try:
-            result = ""
-            for word in self.fields[0].items[0].words:
-                result = result + " " + word
-            return result[1:]
-        except:
-            return "ERROR"
-
     def  dump( self, margin ):
         print " " * margin + "<" + self.tag + ">"
         for f in self.fields:
@@ -554,14 +545,6 @@ class  DocBlock:
             if m.tag == string.lower( tag_name ):
                 return m
         return None
-
-    def  get_markup_name( self, tag_name ):
-        """return the name of a given primary markup in a block"""
-        try:
-            m = self.get_markup( tag_name )
-            return m.get_name()
-        except:
-            return None
 
     def  get_markup_words( self, tag_name ):
         try:

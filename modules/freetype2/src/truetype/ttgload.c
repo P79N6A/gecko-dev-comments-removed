@@ -87,49 +87,34 @@
   
   
   
-  
-  
-  
-  
-  
   FT_LOCAL_DEF( void )
   TT_Get_VMetrics( TT_Face     face,
                    FT_UInt     idx,
+                   FT_Pos      yMax,
                    FT_Short*   tsb,
                    FT_UShort*  ah )
   {
     if ( face->vertical_info )
       ( (SFNT_Service)face->sfnt )->get_metrics( face, 1, idx, tsb, ah );
 
-#if 1             
-
-    else
-    {
-      *tsb = 0;
-      *ah  = face->root.units_per_EM;
-    }
-
-#else      
-
     else if ( face->os2.version != 0xFFFFU )
     {
-      *tsb = face->os2.sTypoAscender;
+      *tsb = face->os2.sTypoAscender - yMax;
       *ah  = face->os2.sTypoAscender - face->os2.sTypoDescender;
     }
+
     else
     {
-      *tsb = face->horizontal.Ascender;
+      *tsb = face->horizontal.Ascender - yMax;
       *ah  = face->horizontal.Ascender - face->horizontal.Descender;
     }
-
-#endif
 
     FT_TRACE5(( "  advance height (font units): %d\n", *ah ));
     FT_TRACE5(( "  top side bearing (font units): %d\n", *tsb ));
   }
 
 
-  static void
+  static FT_Error
   tt_get_metrics( TT_Loader  loader,
                   FT_UInt    glyph_index )
   {
@@ -138,16 +123,27 @@
     TT_Driver  driver = (TT_Driver)FT_FACE_DRIVER( face );
 #endif
 
+    FT_Error   error;
+    FT_Stream  stream = loader->stream;
+
     FT_Short   left_bearing = 0, top_bearing = 0;
     FT_UShort  advance_width = 0, advance_height = 0;
+
+    
+    
+    FT_ULong  pos = FT_STREAM_POS();
 
 
     TT_Get_HMetrics( face, glyph_index,
                      &left_bearing,
                      &advance_width );
     TT_Get_VMetrics( face, glyph_index,
+                     loader->bbox.yMax,
                      &top_bearing,
                      &advance_height );
+
+    if ( FT_STREAM_SEEK( pos ) )
+      return error;
 
     loader->left_bearing = left_bearing;
     loader->advance      = advance_width;
@@ -171,6 +167,8 @@
       loader->linear_def = 1;
       loader->linear     = advance_width;
     }
+
+    return FT_Err_Ok;
   }
 
 
@@ -350,9 +348,9 @@
     FT_GlyphLoader  gloader    = load->gloader;
     FT_Int          n_contours = load->n_contours;
     FT_Outline*     outline;
-    TT_Face         face       = (TT_Face)load->face;
     FT_UShort       n_ins;
     FT_Int          n_points;
+    FT_ULong        tmp;
 
     FT_Byte         *flag, *flag_limit;
     FT_Byte         c, count;
@@ -418,14 +416,7 @@
 
     FT_TRACE5(( "  Instructions size: %u\n", n_ins ));
 
-    if ( n_ins > face->max_profile.maxSizeOfInstructions )
-    {
-      FT_TRACE0(( "TT_Load_Simple_Glyph: too many instructions (%d)\n",
-                  n_ins ));
-      error = FT_THROW( Too_Many_Hints );
-      goto Fail;
-    }
-
+    
     if ( ( limit - p ) < n_ins )
     {
       FT_TRACE0(( "TT_Load_Simple_Glyph: instruction count mismatch\n" ));
@@ -437,6 +428,20 @@
 
     if ( IS_HINTED( load->load_flags ) )
     {
+      
+      
+
+      tmp   = load->exec->glyphSize;
+      error = Update_Max( load->exec->memory,
+                          &tmp,
+                          sizeof ( FT_Byte ),
+                          (void*)&load->exec->glyphIns,
+                          n_ins );
+
+      load->exec->glyphSize = (FT_UShort)tmp;
+      if ( error )
+        return error;
+
       load->glyph->control_len  = n_ins;
       load->glyph->control_data = load->exec->glyphIns;
 
@@ -745,8 +750,8 @@
 #ifdef TT_USE_BYTECODE_INTERPRETER
     if ( loader->glyph->control_len > 0xFFFFL )
     {
-      FT_TRACE1(( "TT_Hint_Glyph: too long instructions " ));
-      FT_TRACE1(( "(0x%lx byte) is truncated\n",
+      FT_TRACE1(( "TT_Hint_Glyph: too long instructions" ));
+      FT_TRACE1(( " (0x%lx byte) is truncated\n",
                  loader->glyph->control_len ));
     }
     n_ins = (FT_UInt)( loader->glyph->control_len );
@@ -784,8 +789,12 @@
 #endif
 
     
+    zone->cur[zone->n_points - 4].x =
+      FT_PIX_ROUND( zone->cur[zone->n_points - 4].x );
     zone->cur[zone->n_points - 3].x =
       FT_PIX_ROUND( zone->cur[zone->n_points - 3].x );
+    zone->cur[zone->n_points - 2].y =
+      FT_PIX_ROUND( zone->cur[zone->n_points - 2].y );
     zone->cur[zone->n_points - 1].y =
       FT_PIX_ROUND( zone->cur[zone->n_points - 1].y );
 
@@ -823,13 +832,10 @@
 #endif
 
     
-    if ( !loader->preserve_pps )
-    {
-      loader->pp1 = zone->cur[zone->n_points - 4];
-      loader->pp2 = zone->cur[zone->n_points - 3];
-      loader->pp3 = zone->cur[zone->n_points - 2];
-      loader->pp4 = zone->cur[zone->n_points - 1];
-    }
+    loader->pp1 = zone->cur[zone->n_points - 4];
+    loader->pp2 = zone->cur[zone->n_points - 3];
+    loader->pp3 = zone->cur[zone->n_points - 2];
+    loader->pp4 = zone->cur[zone->n_points - 1];
 
 #ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
     if ( driver->interpreter_version == TT_INTERPRETER_VERSION_38 )
@@ -1219,20 +1225,22 @@
       if ( n_ins > max_ins )
       {
         
+        
         if ( (FT_Int)n_ins > loader->byte_len )
         {
-          FT_TRACE1(( "TT_Process_Composite_Glyph: "
-                      "too many instructions (%d) for glyph with length %d\n",
+          FT_TRACE1(( "TT_Process_Composite_Glyph:"
+                      " too many instructions (%d) for glyph with length %d\n",
                       n_ins, loader->byte_len ));
           return FT_THROW( Too_Many_Hints );
         }
 
-        tmp = loader->exec->glyphSize;
+        tmp   = loader->exec->glyphSize;
         error = Update_Max( loader->exec->memory,
                             &tmp,
                             sizeof ( FT_Byte ),
                             (void*)&loader->exec->glyphIns,
                             n_ins );
+
         loader->exec->glyphSize = (FT_UShort)tmp;
         if ( error )
           return error;
@@ -1254,7 +1262,7 @@
 
     
     
-    for ( i = start_point; i < loader->zone.n_points; i++ )
+    for ( i = 0; i < loader->zone.n_points; i++ )
       loader->zone.tags[i] &= ~FT_CURVE_TAG_TOUCH_BOTH;
 
     loader->zone.n_points += 4;
@@ -1264,19 +1272,129 @@
 
 
   
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+
 #define TT_LOADER_SET_PP( loader )                                          \
-          do {                                                              \
+          do                                                                \
+          {                                                                 \
+            FT_Bool  subpixel_  = loader->exec                              \
+                                    ? loader->exec->subpixel_hinting        \
+                                    : 0;                                    \
+            FT_Bool  grayscale_ = loader->exec                              \
+                                    ? loader->exec->grayscale_hinting       \
+                                    : 0;                                    \
+            FT_Bool  use_aw_2_  = (FT_Bool)( subpixel_ && grayscale_ );     \
+                                                                            \
+                                                                            \
+            (loader)->pp1.x = (loader)->bbox.xMin - (loader)->left_bearing; \
+            (loader)->pp1.y = 0;                                            \
+            (loader)->pp2.x = (loader)->pp1.x + (loader)->advance;          \
+            (loader)->pp2.y = 0;                                            \
+            (loader)->pp3.x = use_aw_2_ ? (loader)->advance / 2 : 0;        \
+            (loader)->pp3.y = (loader)->bbox.yMax + (loader)->top_bearing;  \
+            (loader)->pp4.x = use_aw_2_ ? (loader)->advance / 2 : 0;        \
+            (loader)->pp4.y = (loader)->pp3.y - (loader)->vadvance;         \
+          } while ( 0 )
+
+#else 
+
+#define TT_LOADER_SET_PP( loader )                                          \
+          do                                                                \
+          {                                                                 \
             (loader)->pp1.x = (loader)->bbox.xMin - (loader)->left_bearing; \
             (loader)->pp1.y = 0;                                            \
             (loader)->pp2.x = (loader)->pp1.x + (loader)->advance;          \
             (loader)->pp2.y = 0;                                            \
             (loader)->pp3.x = 0;                                            \
-            (loader)->pp3.y = (loader)->top_bearing + (loader)->bbox.yMax;  \
+            (loader)->pp3.y = (loader)->bbox.yMax + (loader)->top_bearing;  \
             (loader)->pp4.x = 0;                                            \
             (loader)->pp4.y = (loader)->pp3.y - (loader)->vadvance;         \
           } while ( 0 )
+
+#endif 
 
 
   
@@ -1341,8 +1459,6 @@
       y_scale = 0x10000L;
     }
 
-    tt_get_metrics( loader, glyph_index );
-
     
     
     
@@ -1402,7 +1518,17 @@
 
       
       error = face->read_glyph_header( loader );
-      if ( error || header_only )
+      if ( error )
+        goto Exit;
+
+      
+      
+      
+      error = tt_get_metrics( loader, glyph_index );
+      if ( error )
+        goto Exit;
+
+      if ( header_only )
         goto Exit;
     }
 
@@ -1412,6 +1538,10 @@
       loader->bbox.xMax = 0;
       loader->bbox.yMin = 0;
       loader->bbox.yMax = 0;
+
+      error = tt_get_metrics( loader, glyph_index );
+      if ( error )
+        goto Exit;
 
       if ( header_only )
         goto Exit;
@@ -2203,6 +2333,8 @@
 
 
     error = FT_Err_Ok;
+
+    FT_TRACE1(( "TT_Load_Glyph: glyph index %d\n", glyph_index ));
 
 #ifdef TT_CONFIG_OPTION_EMBEDDED_BITMAPS
 

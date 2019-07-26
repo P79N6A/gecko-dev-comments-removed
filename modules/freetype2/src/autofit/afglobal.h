@@ -28,13 +28,28 @@
 FT_BEGIN_HEADER
 
 
+  FT_LOCAL_ARRAY( AF_WritingSystemClass )
+  af_writing_system_classes[];
+
+  FT_LOCAL_ARRAY( AF_ScriptClass )
+  af_script_classes[];
+
+#ifdef FT_DEBUG_LEVEL_TRACE
+  FT_LOCAL_ARRAY( char* )
+  af_script_names[];
+#endif
+
   
 
 
 
 
   
-#define AF_SCRIPT_FALLBACK  2
+#ifdef AF_CONFIG_OPTION_CJK
+#define AF_SCRIPT_FALLBACK  AF_SCRIPT_HANI
+#else
+#define AF_SCRIPT_FALLBACK  AF_SCRIPT_DFLT
+#endif
   
 #define AF_SCRIPT_NONE      0x7F
   

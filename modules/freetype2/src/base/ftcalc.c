@@ -816,6 +816,8 @@
   }
 
 
+#if 0
+
   
 
   FT_BASE_DEF( FT_Int32 )
@@ -849,6 +851,8 @@
 
     return (FT_Int32)root;
   }
+
+#endif 
 
 
   
@@ -945,11 +949,27 @@
     FT_Pos  d_in, d_out, d_corner;
 
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     if ( ax < 0 )
       ax = -ax;
     if ( ay < 0 )
       ay = -ay;
-    d_in = ax + ay;
+    d_in = ax + ay;  
 
     ax = out_x;
     if ( ax < 0 )
@@ -957,7 +977,7 @@
     ay = out_y;
     if ( ay < 0 )
       ay = -ay;
-    d_out = ax + ay;
+    d_out = ax + ay;  
 
     ax = out_x + in_x;
     if ( ax < 0 )
@@ -965,7 +985,11 @@
     ay = out_y + in_y;
     if ( ay < 0 )
       ay = -ay;
-    d_corner = ax + ay;
+    d_corner = ax + ay;  
+
+    
+    
+    
 
     return ( d_in + d_out - d_corner ) < ( d_corner >> 4 );
   }

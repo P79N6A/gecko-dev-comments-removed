@@ -204,6 +204,7 @@ FT_BEGIN_HEADER
 #endif
 
     FT_Bool  pathIsOpen;     
+    FT_Bool  pathIsClosing;  
     FT_Bool  darken;         
     FT_Bool  moveIsPending;  
 
@@ -229,7 +230,8 @@ FT_BEGIN_HEADER
     FT_Vector  currentCS;
     
     FT_Vector  currentDS;
-    FT_Vector  start;         
+    
+    FT_Vector  start;
 
     
     FT_Bool  elemIsQueued;

@@ -596,7 +596,7 @@
     indexInsert = 0;
     for ( ; indexInsert < hintmap->count; indexInsert++ )
     {
-      if ( hintmap->edge[indexInsert].csCoord > firstHintEdge->csCoord )
+      if ( hintmap->edge[indexInsert].csCoord >= firstHintEdge->csCoord )
         break;
     }
 
@@ -606,12 +606,21 @@
 
 
 
+
+
+
+
+
     if ( indexInsert < hintmap->count )
     {
       
       
-      if ( isPair                                                       &&
-           hintmap->edge[indexInsert].csCoord < secondHintEdge->csCoord )
+      if ( hintmap->edge[indexInsert].csCoord == firstHintEdge->csCoord )
+        return; 
+
+      
+      if ( isPair                                                        &&
+           hintmap->edge[indexInsert].csCoord <= secondHintEdge->csCoord )
         return; 
 
       
@@ -646,7 +655,26 @@
     }
 
     
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if ( indexInsert > 0 )
     {
       
@@ -1035,6 +1063,7 @@
 
     glyphpath->moveIsPending = TRUE;
     glyphpath->pathIsOpen    = FALSE;
+    glyphpath->pathIsClosing = FALSE;
     glyphpath->elemIsQueued  = FALSE;
   }
 
@@ -1191,6 +1220,10 @@
 
 
 
+
+
+
+
   static void
   cf2_glyphpath_pushPrevElem( CF2_GlyphPath  glyphpath,
                               CF2_HintMap    hintmap,
@@ -1250,16 +1283,32 @@
       params.op = CF2_PathOpLineTo;
 
       
-      cf2_glyphpath_hintPoint( glyphpath,
-                               hintmap,
-                               &params.pt1,
-                               glyphpath->prevElemP1.x,
-                               glyphpath->prevElemP1.y );
 
-      glyphpath->callbacks->lineTo( glyphpath->callbacks, &params );
+      if ( close )
+      {
+        
+        cf2_glyphpath_hintPoint( glyphpath,
+                                 &glyphpath->firstHintMap,
+                                 &params.pt1,
+                                 glyphpath->prevElemP1.x,
+                                 glyphpath->prevElemP1.y );
+      }
+      else
+      {
+        cf2_glyphpath_hintPoint( glyphpath,
+                                 hintmap,
+                                 &params.pt1,
+                                 glyphpath->prevElemP1.x,
+                                 glyphpath->prevElemP1.y );
+      }
 
-      glyphpath->currentDS = params.pt1;
+      
+      if ( params.pt0.x != params.pt1.x || params.pt0.y != params.pt1.y )
+      {
+        glyphpath->callbacks->lineTo( glyphpath->callbacks, &params );
 
+        glyphpath->currentDS = params.pt1;
+      }
       break;
 
     case CF2_PathOpCubeTo:
@@ -1296,11 +1345,24 @@
       
       
 
-      cf2_glyphpath_hintPoint( glyphpath,
-                               hintmap,
-                               &params.pt1,
-                               nextP0->x,
-                               nextP0->y );
+      if ( close )
+      {
+        
+        
+        cf2_glyphpath_hintPoint( glyphpath,
+                                 &glyphpath->firstHintMap,
+                                 &params.pt1,
+                                 nextP0->x,
+                                 nextP0->y );
+      }
+      else
+      {
+        cf2_glyphpath_hintPoint( glyphpath,
+                                 hintmap,
+                                 &params.pt1,
+                                 nextP0->x,
+                                 nextP0->y );
+      }
 
       if ( params.pt1.x != glyphpath->currentDS.x ||
            params.pt1.y != glyphpath->currentDS.y )
@@ -1511,6 +1573,16 @@
   }
 
 
+  
+
+
+
+
+
+
+
+
+
   FT_LOCAL_DEF( void )
   cf2_glyphpath_moveTo( CF2_GlyphPath  glyphpath,
                         CF2_Fixed      x,
@@ -1548,10 +1620,46 @@
   {
     CF2_Fixed  xOffset, yOffset;
     FT_Vector  P0, P1;
+    FT_Bool    newHintMap;
+
+    
+
+
+
+
 
 
     
-    if ( glyphpath->currentCS.x == x && glyphpath->currentCS.y == y )
+    newHintMap = cf2_hintmask_isNew( glyphpath->hintMask ) &&
+                 !glyphpath->pathIsClosing;
+
+    
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+    if ( glyphpath->currentCS.x == x &&
+         glyphpath->currentCS.y == y &&
+         !newHintMap                 )
+      
+
+
+
+
+
+
       return;
 
     cf2_glyphpath_computeOffset( glyphpath,
@@ -1597,7 +1705,7 @@
     glyphpath->prevElemP1   = P1;
 
     
-    if ( cf2_hintmask_isNew( glyphpath->hintMask ) )
+    if ( newHintMap )
       cf2_hintmap_build( &glyphpath->hintMap,
                          glyphpath->hStemHintArray,
                          glyphpath->vStemHintArray,
@@ -1703,29 +1811,29 @@
   {
     if ( glyphpath->pathIsOpen )
     {
-      FT_ASSERT( cf2_hintmap_isValid( &glyphpath->firstHintMap ) );
+      
 
-      
-      
+
+
+
+      glyphpath->pathIsClosing = TRUE;
+
       cf2_glyphpath_lineTo( glyphpath,
                             glyphpath->start.x,
                             glyphpath->start.y );
 
       
-      
-      
-      
-      FT_ASSERT( glyphpath->elemIsQueued );
-
-      cf2_glyphpath_pushPrevElem( glyphpath,
-                                  &glyphpath->firstHintMap,
-                                  &glyphpath->offsetStart0,
-                                  glyphpath->offsetStart1,
-                                  TRUE );
+      if ( glyphpath->elemIsQueued )
+        cf2_glyphpath_pushPrevElem( glyphpath,
+                                    &glyphpath->hintMap,
+                                    &glyphpath->offsetStart0,
+                                    glyphpath->offsetStart1,
+                                    TRUE );
 
       
       glyphpath->moveIsPending = TRUE;
       glyphpath->pathIsOpen    = FALSE;
+      glyphpath->pathIsClosing = FALSE;
       glyphpath->elemIsQueued  = FALSE;
     }
   }

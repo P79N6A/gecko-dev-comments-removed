@@ -183,7 +183,7 @@
                        FT_UInt  right_glyph )
   {
     FT_Int    result = 0;
-    FT_UInt   count, mask = 1;
+    FT_UInt   count, mask;
     FT_Byte*  p       = face->kern_table;
     FT_Byte*  p_limit = p + face->kern_table_size;
 
@@ -196,7 +196,7 @@
           count--, mask <<= 1 )
     {
       FT_Byte* base     = p;
-      FT_Byte* next     = base;
+      FT_Byte* next;
       FT_UInt  version  = FT_NEXT_USHORT( p );
       FT_UInt  length   = FT_NEXT_USHORT( p );
       FT_UInt  coverage = FT_NEXT_USHORT( p );

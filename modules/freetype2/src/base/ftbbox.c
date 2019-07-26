@@ -108,30 +108,19 @@
                     FT_Pos*  min,
                     FT_Pos*  max )
   {
-    if ( y1 <= y3 && y2 == y1 )     
-      goto Suite;
+    
+    
+    
+    
 
-    if ( y1 < y3 )
-    {
-      if ( y2 >= y1 && y2 <= y3 )   
-        goto Suite;
-    }
-    else
-    {
-      if ( y2 >= y3 && y2 <= y1 )   
-      {
-        y2 = y1;
-        y1 = y3;
-        y3 = y2;
-        goto Suite;
-      }
-    }
+    y1 -= y2;
+    y3 -= y2;
+    y2 += FT_MulDiv( y1, y3, y1 + y3 );
 
-    y1 = y3 = y1 - FT_MulDiv( y2 - y1, y2 - y1, y1 - 2*y2 + y3 );
-
-  Suite:
-    if ( y1 < *min ) *min = y1;
-    if ( y3 > *max ) *max = y3;
+    if ( y2 < *min )
+      *min = y2;
+    if ( y2 > *max )
+      *max = y2;
   }
 
 
@@ -213,28 +202,16 @@
   
   
   
-
-#if 0
-
-  static void
-  BBox_Cubic_Check( FT_Pos   p1,
-                    FT_Pos   p2,
-                    FT_Pos   p3,
-                    FT_Pos   p4,
-                    FT_Pos*  min,
-                    FT_Pos*  max )
+  static FT_Pos
+  update_cubic_max( FT_Pos  q1,
+                    FT_Pos  q2,
+                    FT_Pos  q3,
+                    FT_Pos  q4,
+                    FT_Pos  max )
   {
-    FT_Pos  q1, q2, q3, q4;
-
-
-    q1 = p1;
-    q2 = p2;
-    q3 = p3;
-    q4 = p4;
-
     
     
-    while ( q2 > *max || q3 > *max )
+    while ( q2 > max || q3 > max )
     {
       
       if ( q1 + q2 > q3 + q4 ) 
@@ -263,228 +240,88 @@
       
       if ( q1 == q2 && q1 >= q3 )
       {
-        *max = q1;
+        max = q1;
         break;
       }
       if ( q3 == q4 && q2 <= q4 )
       {
-        *max = q4;
+        max = q4;
         break;
       }
     }
 
-    q1 = p1;
-    q2 = p2;
-    q3 = p3;
-    q4 = p4;
-
-    
-    
-    while ( q2 < *min || q3 < *min )
-    {
-      
-      if ( q1 + q2 < q3 + q4 ) 
-      {
-        q4 = q4 + q3;
-        q3 = q3 + q2;
-        q2 = q2 + q1;
-        q4 = q4 + q3;
-        q3 = q3 + q2;
-        q4 = ( q4 + q3 ) / 8;
-        q3 = q3 / 4;
-        q2 = q2 / 2;
-      }
-      else                     
-      {
-        q1 = q1 + q2;
-        q2 = q2 + q3;
-        q3 = q3 + q4;
-        q1 = q1 + q2;
-        q2 = q2 + q3;
-        q1 = ( q1 + q2 ) / 8;
-        q2 = q2 / 4;
-        q3 = q3 / 2;
-      }
-
-      
-      if ( q1 == q2 && q1 <= q3 )
-      {
-        *min = q1;
-        break;
-      }
-      if ( q3 == q4 && q2 >= q4 )
-      {
-        *min = q4;
-        break;
-      }
-    }
-  }
-
-#else
-
-  static void
-  test_cubic_extrema( FT_Pos    y1,
-                      FT_Pos    y2,
-                      FT_Pos    y3,
-                      FT_Pos    y4,
-                      FT_Fixed  u,
-                      FT_Pos*   min,
-                      FT_Pos*   max )
-  {
- 
-    FT_Pos    b = y3 - 2*y2 + y1;
-    FT_Pos    c = y2 - y1;
-    FT_Pos    d = y1;
-    FT_Pos    y;
-    FT_Fixed  uu;
-
-    FT_UNUSED ( y4 );
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    if ( u > 0 && u < 0x10000L )
-    {
-      uu = FT_MulFix( u, u );
-      y  = d + FT_MulFix( c, 2*u ) + FT_MulFix( b, uu );
-
-      if ( y < *min ) *min = y;
-      if ( y > *max ) *max = y;
-    }
+    return max;
   }
 
 
   static void
-  BBox_Cubic_Check( FT_Pos   y1,
-                    FT_Pos   y2,
-                    FT_Pos   y3,
-                    FT_Pos   y4,
+  BBox_Cubic_Check( FT_Pos   p1,
+                    FT_Pos   p2,
+                    FT_Pos   p3,
+                    FT_Pos   p4,
                     FT_Pos*  min,
                     FT_Pos*  max )
   {
-    
-    if      ( y1 < *min )  *min = y1;
-    else if ( y1 > *max )  *max = y1;
+    FT_Pos  nmin, nmax;
+    FT_Int  shift;
 
-    if      ( y4 < *min )  *min = y4;
-    else if ( y4 > *max )  *max = y4;
 
     
-    if ( y1 <= y4 )
+    
+    
+    
+    
+    
+    
+    
+    
+
+    shift = 27 - FT_MSB( FT_ABS( p2 ) | FT_ABS( p3 ) );
+
+    if ( shift > 0 )
     {
       
-      if ( y1 <= y2 && y2 <= y4 && y1 <= y3 && y3 <= y4 )
-        return;
+      if ( shift > 2 )
+        shift = 2;
+
+      p1 <<=  shift;
+      p2 <<=  shift;
+      p3 <<=  shift;
+      p4 <<=  shift;
+      nmin = *min << shift;
+      nmax = *max << shift;
     }
-    else 
+    else
     {
-      
-      if ( y1 >= y2 && y2 >= y4 && y1 >= y3 && y3 >= y4 )
-        return;
+      p1 >>= -shift;
+      p2 >>= -shift;
+      p3 >>= -shift;
+      p4 >>= -shift;
+      nmin = *min >> -shift;
+      nmax = *max >> -shift;
     }
+
+    nmax =  update_cubic_max(  p1,  p2,  p3,  p4,  nmax );
 
     
-    
+    nmin = -update_cubic_max( -p1, -p2, -p3, -p4, -nmin );
+
+    if ( shift > 0 )
     {
-      FT_Pos    a = y4 - 3*y3 + 3*y2 - y1;
-      FT_Pos    b = y3 - 2*y2 + y1;
-      FT_Pos    c = y2 - y1;
-      FT_Pos    d;
-      FT_Fixed  t;
-      FT_Int    shift;
-
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      shift = FT_MSB( FT_ABS( a ) | FT_ABS( b ) | FT_ABS( c ) );
-
-      if ( shift > 22 )
-      {
-        shift -= 22;
-
-        
-        
-        a >>= shift;
-        b >>= shift;
-        c >>= shift;
-      }
-      else
-      {
-        shift = 22 - shift;
-
-        a <<= shift;
-        b <<= shift;
-        c <<= shift;
-      }
-
-      
-      if ( a == 0 )
-      {
-        if ( b != 0 )
-        {
-          t = - FT_DivFix( c, b ) / 2;
-          test_cubic_extrema( y1, y2, y3, y4, t, min, max );
-        }
-      }
-      else
-      {
-        
-        d = FT_MulFix( b, b ) - FT_MulFix( a, c );
-        if ( d < 0 )
-          return;
-
-        if ( d == 0 )
-        {
-          
-          t = - FT_DivFix( b, a );
-          test_cubic_extrema( y1, y2, y3, y4, t, min, max );
-        }
-        else
-        {
-          
-          d = FT_SqrtFixed( (FT_Int32)d );
-          t = - FT_DivFix( b - d, a );
-          test_cubic_extrema( y1, y2, y3, y4, t, min, max );
-
-          t = - FT_DivFix( b + d, a );
-          test_cubic_extrema( y1, y2, y3, y4, t, min, max );
-        }
-      }
+      nmin >>=  shift;
+      nmax >>=  shift;
     }
+    else
+    {
+      nmin <<= -shift;
+      nmax <<= -shift;
+    }
+
+    if ( nmin < *min )
+      *min = nmin;
+    if ( nmax > *max )
+      *max = nmax;
   }
-
-#endif
 
 
   
@@ -521,6 +358,7 @@
                  FT_Vector*  to,
                  TBBox_Rec*  user )
   {
+    
     
     
 

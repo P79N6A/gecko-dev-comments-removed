@@ -1437,8 +1437,107 @@
 
 #undef PACK
 
-#if 1
 
+#ifndef FT_CONFIG_OPTION_NO_ASSEMBLER
+
+#if defined( __arm__ )                                 && \
+    ( defined( __thumb2__ ) || !defined( __thumb__ ) )
+
+#define TT_MulFix14  TT_MulFix14_arm
+
+  static FT_Int32
+  TT_MulFix14_arm( FT_Int32  a,
+                   FT_Int    b )
+  {
+    register FT_Int32  t, t2;
+
+
+#if defined( __CC_ARM ) || defined( __ARMCC__ )
+
+    __asm
+    {
+      smull t2, t,  b,  a           
+      mov   a,  t,  asr #31         
+      add   a,  a,  #0x2000         
+      adds  t2, t2, a               
+      adc   t,  t,  #0              
+      mov   a,  t2, lsr #14         
+      orr   a,  a,  t,  lsl #18     
+    }
+
+#elif defined( __GNUC__ )
+
+    __asm__ __volatile__ (
+      "smull  %1, %2, %4, %3\n\t"       
+      "mov    %0, %2, asr #31\n\t"      
+#ifdef __clang__
+      "add.w  %0, %0, #0x2000\n\t"      
+#else
+      "add    %0, %0, #0x2000\n\t"      
+#endif
+      "adds   %1, %1, %0\n\t"           
+      "adc    %2, %2, #0\n\t"           
+      "mov    %0, %1, lsr #14\n\t"      
+      "orr    %0, %0, %2, lsl #18\n\t"  
+      : "=r"(a), "=&r"(t2), "=&r"(t)
+      : "r"(a), "r"(b)
+      : "cc" );
+
+#endif
+
+    return a;
+  }
+
+#endif 
+
+#endif
+
+
+#if defined( __GNUC__ )                              && \
+    ( defined( __i386__ ) || defined( __x86_64__ ) )
+
+#define TT_MulFix14  TT_MulFix14_long_long
+
+  
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wlong-long"
+
+  
+  
+  
+  static __attribute__(( noinline ))
+         __attribute__(( pure )) FT_Int32
+  TT_MulFix14_long_long( FT_Int32  a,
+                         FT_Int    b )
+  {
+
+    long long  ret = (long long)a * b;
+
+    
+    
+    
+    long long  tmp = ret >> 63;
+
+
+    ret += 0x2000 + tmp;
+
+    return (FT_Int32)( ret >> 14 );
+  }
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic pop
+#endif
+
+#endif 
+
+
+#ifndef TT_MulFix14
+
+  
+  
+  
   static FT_Int32
   TT_MulFix14( FT_Int32  a,
                FT_Int    b )
@@ -1470,37 +1569,50 @@
     return sign >= 0 ? (FT_Int32)mid : -(FT_Int32)mid;
   }
 
-#else
+#endif  
 
-  
-  static FT_Int32
-  TT_MulFix14( FT_Int32  a,
-               FT_Int    b )
+
+#if defined( __GNUC__ )        && \
+    ( defined( __i386__ )   ||    \
+      defined( __x86_64__ ) ||    \
+      defined( __arm__ )    )
+
+#define TT_DotFix14  TT_DotFix14_long_long
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wlong-long"
+
+  static __attribute__(( pure )) FT_Int32
+  TT_DotFix14_long_long( FT_Int32  ax,
+                         FT_Int32  ay,
+                         FT_Int    bx,
+                         FT_Int    by )
   {
-    FT_Int32   m, s, hi;
-    FT_UInt32  l, lo;
-
-
     
-    l  = (FT_UInt32)( ( a & 0xFFFFU ) * b );
-    m  = ( a >> 16 ) * b;
-
-    lo = l + ( (FT_UInt32)m << 16 );
-    hi = ( m >> 16 ) + ( (FT_Int32)l >> 31 ) + ( lo < l );
-
     
-    s   = hi >> 31;
-    l   = lo + (FT_UInt32)s;
-    hi += s + ( l < lo );
-    lo  = l;
 
-    l   = lo + 0x2000U;
-    hi += l < lo;
+    long long  temp1 = (long long)ax * bx;
+    long long  temp2 = (long long)ay * by;
 
-    return (FT_Int32)( ( (FT_UInt32)hi << 18 ) | ( l >> 14 ) );
+
+    temp1 += temp2;
+    temp2  = temp1 >> 63;
+    temp1 += 0x2000 + temp2;
+
+    return (FT_Int32)( temp1 >> 14 );
+
   }
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic pop
 #endif
 
+#endif 
+
+
+#ifndef TT_DotFix14
 
   
   static FT_Int32
@@ -1542,6 +1654,8 @@
 
     return (FT_Int32)( ( (FT_UInt32)hi << 18 ) | ( l >> 14 ) );
   }
+
+#endif 
 
 
   
@@ -3037,42 +3151,42 @@
   }
 
 
-#define DO_JROT                                                   \
-    if ( args[1] != 0 )                                           \
-    {                                                             \
-      if ( args[0] == 0 && CUR.args == 0 )                        \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.IP += args[0];                                          \
-      if ( CUR.IP < 0                                          || \
-           ( CUR.callTop > 0                                 &&   \
-             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.step_ins = FALSE;                                       \
+#define DO_JROT                                                    \
+    if ( args[1] != 0 )                                            \
+    {                                                              \
+      if ( args[0] == 0 && CUR.args == 0 )                         \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.IP += args[0];                                           \
+      if ( CUR.IP < 0                                           || \
+           ( CUR.callTop > 0                                  &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.step_ins = FALSE;                                        \
     }
 
 
-#define DO_JMPR                                                 \
-    if ( args[0] == 0 && CUR.args == 0 )                        \
-      CUR.error = FT_THROW( Bad_Argument );                     \
-    CUR.IP += args[0];                                          \
-    if ( CUR.IP < 0                                          || \
-         ( CUR.callTop > 0                                 &&   \
-           CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-      CUR.error = FT_THROW( Bad_Argument );                     \
+#define DO_JMPR                                                  \
+    if ( args[0] == 0 && CUR.args == 0 )                         \
+      CUR.error = FT_THROW( Bad_Argument );                      \
+    CUR.IP += args[0];                                           \
+    if ( CUR.IP < 0                                           || \
+         ( CUR.callTop > 0                                  &&   \
+           CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+      CUR.error = FT_THROW( Bad_Argument );                      \
     CUR.step_ins = FALSE;
 
 
-#define DO_JROF                                                   \
-    if ( args[1] == 0 )                                           \
-    {                                                             \
-      if ( args[0] == 0 && CUR.args == 0 )                        \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.IP += args[0];                                          \
-      if ( CUR.IP < 0                                          || \
-           ( CUR.callTop > 0                                 &&   \
-             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.step_ins = FALSE;                                       \
+#define DO_JROF                                                    \
+    if ( args[1] == 0 )                                            \
+    {                                                              \
+      if ( args[0] == 0 && CUR.args == 0 )                         \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.IP += args[0];                                           \
+      if ( CUR.IP < 0                                           || \
+           ( CUR.callTop > 0                                  &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.step_ins = FALSE;                                        \
     }
 
 
@@ -4788,7 +4902,7 @@
     if ( pRec->Cur_Count > 0 )
     {
       CUR.callTop++;
-      CUR.IP = pRec->Cur_Restart;
+      CUR.IP = pRec->Def->start;
     }
     else
       
@@ -4878,8 +4992,7 @@
     pCrec->Caller_Range = CUR.curRange;
     pCrec->Caller_IP    = CUR.IP + 1;
     pCrec->Cur_Count    = 1;
-    pCrec->Cur_Restart  = def->start;
-    pCrec->Cur_End      = def->end;
+    pCrec->Def          = def;
 
     CUR.callTop++;
 
@@ -4967,8 +5080,7 @@
       pCrec->Caller_Range = CUR.curRange;
       pCrec->Caller_IP    = CUR.IP + 1;
       pCrec->Cur_Count    = (FT_Int)args[0];
-      pCrec->Cur_Restart  = def->start;
-      pCrec->Cur_End      = def->end;
+      pCrec->Def          = def;
 
       CUR.callTop++;
 
@@ -7716,18 +7828,15 @@
       if ( ( args[0] & 32 ) != 0 && CUR.grayscale_hinting )
         K |= 1 << 12;
 
-      
-      
-      
-      
-      
-      if ( ( args[0] & 64 ) != 0        &&
-           CUR.subpixel_hinting         &&
-           CUR.rasterizer_version >= 37 )
+      if ( CUR.rasterizer_version >= 37 )
       {
-        K |= 1 << 13;
-
         
+        
+        
+        
+        
+        if ( ( args[0] & 64 ) != 0 && CUR.subpixel_hinting )
+          K |= 1 << 13;
 
         
         
@@ -7803,8 +7912,7 @@
         call->Caller_Range = CUR.curRange;
         call->Caller_IP    = CUR.IP + 1;
         call->Cur_Count    = 1;
-        call->Cur_Restart  = def->start;
-        call->Cur_End      = def->end;
+        call->Def          = def;
 
         INS_Goto_CodeRange( def->range, def->start );
 
@@ -8860,8 +8968,7 @@
                 callrec->Caller_Range = CUR.curRange;
                 callrec->Caller_IP    = CUR.IP + 1;
                 callrec->Cur_Count    = 1;
-                callrec->Cur_Restart  = def->start;
-                callrec->Cur_End      = def->end;
+                callrec->Def          = def;
 
                 if ( INS_Goto_CodeRange( def->range, def->start ) == FAILURE )
                   goto LErrorLabel_;
@@ -8942,7 +9049,7 @@
   }
 
 
-#endif 
+#endif
 
 
 

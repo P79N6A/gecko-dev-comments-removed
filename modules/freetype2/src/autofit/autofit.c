@@ -20,6 +20,7 @@
 #include <ft2build.h>
 #include "afpic.c"
 #include "afangles.c"
+#include "afblue.c"
 #include "afglobal.c"
 #include "afhints.c"
 

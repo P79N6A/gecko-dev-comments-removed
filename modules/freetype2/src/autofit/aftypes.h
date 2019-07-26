@@ -29,9 +29,6 @@
 
 
 
-
-
-
 #ifndef __AFTYPES_H__
 #define __AFTYPES_H__
 
@@ -41,6 +38,8 @@
 #include FT_OUTLINE_H
 #include FT_INTERNAL_OBJECTS_H
 #include FT_INTERNAL_DEBUG_H
+
+#include "afblue.h"
 
 
 FT_BEGIN_HEADER
@@ -207,50 +206,15 @@ extern void*  _af_debug_hints;
   
 
   
+  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  typedef enum  AF_Script_
-  {
-    AF_SCRIPT_DUMMY = 0,
-    AF_SCRIPT_LATIN = 1,
-    AF_SCRIPT_CJK   = 2,
-    AF_SCRIPT_INDIC = 3,
-#ifdef FT_OPTION_AUTOFIT2
-    AF_SCRIPT_LATIN2 = 4,
-#endif
-
-    
-    
-
-    AF_SCRIPT_MAX   
-
-  } AF_Script;
-
-
-  typedef struct AF_ScriptClassRec_ const*  AF_ScriptClass;
-  typedef struct AF_FaceGlobalsRec_*        AF_FaceGlobals;
+  typedef struct AF_WritingSystemClassRec_ const*  AF_WritingSystemClass;
+  typedef struct AF_ScriptClassRec_ const*         AF_ScriptClass;
+  typedef struct AF_FaceGlobalsRec_*               AF_FaceGlobals;
 
   typedef struct  AF_ScriptMetricsRec_
   {
-    AF_ScriptClass  clazz;
+    AF_ScriptClass  script_class;
     AF_ScalerRec    scaler;
     FT_Bool         digits_have_same_width;
 
@@ -284,23 +248,54 @@ extern void*  _af_debug_hints;
                                AF_ScriptMetrics  metrics );
 
 
-  typedef struct  AF_Script_UniRangeRec_
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define __AFWRTSYS_H__
+#undef  WRITING_SYSTEM
+#define WRITING_SYSTEM( ws, WS )    \
+          AF_WRITING_SYSTEM_ ## WS,
+
+  
+  typedef enum  AF_WritingSystem_
   {
-    FT_UInt32  first;
-    FT_UInt32  last;
 
-  } AF_Script_UniRangeRec;
+#include "afwrtsys.h"
 
-#define AF_UNIRANGE_REC( a, b ) { (FT_UInt32)(a), (FT_UInt32)(b) }
+    AF_WRITING_SYSTEM_MAX   
 
-  typedef const AF_Script_UniRangeRec  *AF_Script_UniRange;
+  } AF_WritingSystem;
+
+#undef  __AFWRTSYS_H__
 
 
-  typedef struct  AF_ScriptClassRec_
+  typedef struct  AF_WritingSystemClassRec_
   {
-    AF_Script           script;
-    AF_Script_UniRange  script_uni_ranges; 
-    FT_UInt32           standard_char;     
+    AF_WritingSystem  writing_system;
 
     FT_Offset                   script_metrics_size;
     AF_Script_InitMetricsFunc   script_metrics_init;
@@ -310,59 +305,167 @@ extern void*  _af_debug_hints;
     AF_Script_InitHintsFunc     script_hints_init;
     AF_Script_ApplyHintsFunc    script_hints_apply;
 
+  } AF_WritingSystemClassRec;
+
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+#undef  SCRIPT
+#define SCRIPT( s, S, d ) \
+          AF_SCRIPT_ ## S,
+
+  
+  typedef enum  AF_Script_
+  {
+
+#include "afscript.h"
+
+    AF_SCRIPT_MAX   
+
+  } AF_Script;
+
+
+  typedef struct  AF_Script_UniRangeRec_
+  {
+    FT_UInt32  first;
+    FT_UInt32  last;
+
+  } AF_Script_UniRangeRec;
+
+#define AF_UNIRANGE_REC( a, b ) { (FT_UInt32)(a), (FT_UInt32)(b) }
+
+  typedef const AF_Script_UniRangeRec*  AF_Script_UniRange;
+
+
+  typedef struct  AF_ScriptClassRec_
+  {
+    AF_Script          script;
+    AF_Blue_Stringset  blue_stringset;
+    AF_WritingSystem   writing_system;
+
+    AF_Script_UniRange  script_uni_ranges; 
+    FT_UInt32           standard_char;     
+
   } AF_ScriptClassRec;
 
 
   
 #ifndef FT_CONFIG_OPTION_PIC
 
+#define AF_DECLARE_WRITING_SYSTEM_CLASS( writing_system_class ) \
+  FT_CALLBACK_TABLE const AF_WritingSystemClassRec              \
+  writing_system_class;
+
+#define AF_DEFINE_WRITING_SYSTEM_CLASS(                  \
+          writing_system_class,                          \
+          system,                                        \
+          m_size,                                        \
+          m_init,                                        \
+          m_scale,                                       \
+          m_done,                                        \
+          h_init,                                        \
+          h_apply )                                      \
+  FT_CALLBACK_TABLE_DEF                                  \
+  const AF_WritingSystemClassRec  writing_system_class = \
+  {                                                      \
+    system,                                              \
+                                                         \
+    m_size,                                              \
+                                                         \
+    m_init,                                              \
+    m_scale,                                             \
+    m_done,                                              \
+                                                         \
+    h_init,                                              \
+    h_apply                                              \
+  };
+
+
 #define AF_DECLARE_SCRIPT_CLASS( script_class ) \
   FT_CALLBACK_TABLE const AF_ScriptClassRec     \
   script_class;
 
-#define AF_DEFINE_SCRIPT_CLASS( script_class, script_, ranges, def_char,   \
-                                m_size,                                    \
-                                m_init, m_scale, m_done, h_init, h_apply ) \
-  FT_CALLBACK_TABLE_DEF const AF_ScriptClassRec  script_class =            \
-  {                                                                        \
-    script_,                                                               \
-    ranges,                                                                \
-    def_char,                                                              \
-                                                                           \
-    m_size,                                                                \
-                                                                           \
-    m_init,                                                                \
-    m_scale,                                                               \
-    m_done,                                                                \
-                                                                           \
-    h_init,                                                                \
-    h_apply                                                                \
+#define AF_DEFINE_SCRIPT_CLASS(           \
+          script_class,                   \
+          script_,                        \
+          blue_stringset_,                \
+          writing_system_,                \
+          ranges,                         \
+          std_char )                      \
+  FT_CALLBACK_TABLE_DEF                   \
+  const AF_ScriptClassRec  script_class = \
+  {                                       \
+    script_,                              \
+    blue_stringset_,                      \
+    writing_system_,                      \
+    ranges,                               \
+    std_char                              \
   };
 
 #else 
+
+#define AF_DECLARE_WRITING_SYSTEM_CLASS( writing_system_class )            \
+  FT_LOCAL( void )                                                         \
+  FT_Init_Class_ ## writing_system_class( AF_WritingSystemClassRec*  ac );
+
+#define AF_DEFINE_WRITING_SYSTEM_CLASS(                                   \
+          writing_system_class,                                           \
+          system,                                                         \
+          m_size,                                                         \
+          m_init,                                                         \
+          m_scale,                                                        \
+          m_done,                                                         \
+          h_init,                                                         \
+          h_apply )                                                       \
+  FT_LOCAL_DEF( void )                                                    \
+  FT_Init_Class_ ## writing_system_class( AF_WritingSystemClassRec*  ac ) \
+  {                                                                       \
+    ac->writing_system       = system;                                    \
+                                                                          \
+    ac->script_metrics_size  = m_size;                                    \
+                                                                          \
+    ac->script_metrics_init  = m_init;                                    \
+    ac->script_metrics_scale = m_scale;                                   \
+    ac->script_metrics_done  = m_done;                                    \
+                                                                          \
+    ac->script_hints_init    = h_init;                                    \
+    ac->script_hints_apply   = h_apply;                                   \
+  }
+
 
 #define AF_DECLARE_SCRIPT_CLASS( script_class )             \
   FT_LOCAL( void )                                          \
   FT_Init_Class_ ## script_class( AF_ScriptClassRec*  ac );
 
-#define AF_DEFINE_SCRIPT_CLASS( script_class, script_, ranges, def_char,   \
-                                m_size,                                    \
-                                m_init, m_scale, m_done, h_init, h_apply ) \
-  FT_LOCAL_DEF( void )                                                     \
-  FT_Init_Class_ ## script_class( AF_ScriptClassRec*  ac )                 \
-  {                                                                        \
-    ac->script               = script_;                                    \
-    ac->script_uni_ranges    = ranges;                                     \
-    ac->default_char         = def_char;                                   \
-                                                                           \
-    ac->script_metrics_size  = m_size;                                     \
-                                                                           \
-    ac->script_metrics_init  = m_init;                                     \
-    ac->script_metrics_scale = m_scale;                                    \
-    ac->script_metrics_done  = m_done;                                     \
-                                                                           \
-    ac->script_hints_init    = h_init;                                     \
-    ac->script_hints_apply   = h_apply;                                    \
+#define AF_DEFINE_SCRIPT_CLASS(                            \
+          script_class,                                    \
+          script_,                                         \
+          blue_string_set_,                                \
+          writing_system_,                                 \
+          ranges,                                          \
+          std_char )                                       \
+  FT_LOCAL_DEF( void )                                     \
+  FT_Init_Class_ ## script_class( AF_ScriptClassRec*  ac ) \
+  {                                                        \
+    ac->script            = script_;                       \
+    ac->blue_stringset    = blue_stringset_;               \
+    ac->writing_system    = writing_system_;               \
+    ac->script_uni_ranges = ranges;                        \
+    ac->standard_char     = std_char;                      \
   }
 
 #endif 

@@ -139,10 +139,11 @@
     if ( slot->advance.y )
       slot->advance.y += ystr;
 
-    slot->metrics.width       += xstr;
-    slot->metrics.height      += ystr;
-    slot->metrics.horiAdvance += xstr;
-    slot->metrics.vertAdvance += ystr;
+    slot->metrics.width        += xstr;
+    slot->metrics.height       += ystr;
+    slot->metrics.horiAdvance  += xstr;
+    slot->metrics.vertAdvance  += ystr;
+    slot->metrics.horiBearingY += ystr;
 
     
     if ( slot->format == FT_GLYPH_FORMAT_BITMAP )

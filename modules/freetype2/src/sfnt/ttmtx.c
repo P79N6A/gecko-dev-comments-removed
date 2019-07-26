@@ -198,6 +198,9 @@
   
   
   
+  
+  
+  
   FT_LOCAL_DEF( FT_Error )
   tt_face_get_metrics( TT_Face     face,
                        FT_Bool     vertical,

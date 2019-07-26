@@ -85,6 +85,8 @@ FT_BEGIN_HEADER
                              
     FT_Bool  stemDarkened;
 
+    FT_Int  darkenParams[8];              
+
     
     CF2_Fixed  stdVW;     
     CF2_Fixed  stdHW;     

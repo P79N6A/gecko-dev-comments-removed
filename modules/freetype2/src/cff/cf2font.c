@@ -51,8 +51,57 @@
                         CF2_Fixed   stemWidth,
                         CF2_Fixed*  darkenAmount,
                         CF2_Fixed   boldenAmount,
-                        FT_Bool     stemDarkened )
+                        FT_Bool     stemDarkened,
+                        FT_Int*     darkenParams )
   {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
     
     
     CF2_Fixed  stemWidthPer1000, scaledStem;
@@ -69,6 +118,16 @@
 
     if ( stemDarkened )
     {
+      FT_Int  x1 = darkenParams[0];
+      FT_Int  y1 = darkenParams[1];
+      FT_Int  x2 = darkenParams[2];
+      FT_Int  y2 = darkenParams[3];
+      FT_Int  x3 = darkenParams[4];
+      FT_Int  y3 = darkenParams[5];
+      FT_Int  x4 = darkenParams[6];
+      FT_Int  y4 = darkenParams[7];
+
+
       
       
 
@@ -81,7 +140,7 @@
            stemWidthPer1000 <= ( stemWidth + boldenAmount ) )
       {
         stemWidthPer1000 = 0;                      
-        scaledStem       = cf2_intToFixed( 2333 );
+        scaledStem       = cf2_intToFixed( x4 );
       }
       else
       {
@@ -89,39 +148,70 @@
 
         if ( ppem > CF2_FIXED_ONE           &&
              scaledStem <= stemWidthPer1000 )
-          scaledStem = cf2_intToFixed( 2333 );
+          scaledStem = cf2_intToFixed( x4 );
       }
 
       
 
+      if ( scaledStem < cf2_intToFixed( x1 ) )
+        *darkenAmount = FT_DivFix( cf2_intToFixed( y1 ), ppem );
+
+      else if ( scaledStem < cf2_intToFixed( x2 ) )
+      {
+        FT_Int  xdelta = x2 - x1;
+        FT_Int  ydelta = y2 - y1;
+        FT_Int  x      = stemWidthPer1000 -
+                           FT_DivFix( cf2_intToFixed( x1 ), ppem );
 
 
+        if ( !xdelta )
+          goto Try_x3;
+
+        *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+                          FT_DivFix( cf2_intToFixed( y1 ), ppem );
+      }
+
+      else if ( scaledStem < cf2_intToFixed( x3 ) )
+      {
+      Try_x3:
+        {
+          FT_Int  xdelta = x3 - x2;
+          FT_Int  ydelta = y3 - y2;
+          FT_Int  x      = stemWidthPer1000 -
+                             FT_DivFix( cf2_intToFixed( x2 ), ppem );
 
 
+          if ( !xdelta )
+            goto Try_x4;
+
+          *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+                            FT_DivFix( cf2_intToFixed( y2 ), ppem );
+        }
+      }
+
+      else if ( scaledStem < cf2_intToFixed( x4 ) )
+      {
+      Try_x4:
+        {
+          FT_Int  xdelta = x4 - x3;
+          FT_Int  ydelta = y4 - y3;
+          FT_Int  x      = stemWidthPer1000 -
+                             FT_DivFix( cf2_intToFixed( x3 ), ppem );
 
 
+          if ( !xdelta )
+            goto Use_y4;
 
+          *darkenAmount = FT_MulFix( x, FT_DivFix( ydelta, xdelta ) ) +
+                            FT_DivFix( cf2_intToFixed( y3 ), ppem );
+        }
+      }
 
-
-
-
-
-
-      if ( scaledStem < cf2_intToFixed( 500 ) )
-        *darkenAmount = FT_DivFix( cf2_intToFixed( 400 ), ppem );
-
-      else if ( scaledStem < cf2_intToFixed( 1000 ) )
-        *darkenAmount = FT_DivFix( cf2_intToFixed( 525 ), ppem ) -
-                          FT_MulFix( stemWidthPer1000,
-                                     cf2_floatToFixed( .25 ) );
-
-      else if ( scaledStem < cf2_intToFixed( 1667 ) )
-        *darkenAmount = FT_DivFix( cf2_intToFixed( 275 ), ppem );
-
-      else if ( scaledStem < cf2_intToFixed( 2333 ) )
-        *darkenAmount = FT_DivFix( cf2_intToFixed( 963 ), ppem ) -
-                          FT_MulFix( stemWidthPer1000,
-                                     cf2_floatToFixed( .413 ) );
+      else
+      {
+      Use_y4:
+        *darkenAmount = FT_DivFix( cf2_intToFixed( y4 ), ppem );
+      }
 
       
       
@@ -268,7 +358,8 @@
                               font->stdVW,
                               &font->darkenX,
                               boldenX,
-                              FALSE );
+                              FALSE,
+                              font->darkenParams );
       }
       else
         cf2_computeDarkening( emRatio,
@@ -276,7 +367,8 @@
                               font->stdVW,
                               &font->darkenX,
                               0,
-                              font->stemDarkened );
+                              font->stemDarkened,
+                              font->darkenParams );
 
 #if 0
       
@@ -303,7 +395,8 @@
                             font->stdHW,
                             &font->darkenY,
                             boldenY,
-                            font->stemDarkened );
+                            font->stemDarkened,
+                            font->darkenParams );
 
       if ( font->darkenX != 0 || font->darkenY != 0 )
         font->darkened = TRUE;

@@ -101,8 +101,8 @@ FT_BEGIN_HEADER
     FT_Int   Caller_Range;
     FT_Long  Caller_IP;
     FT_Long  Cur_Count;
-    FT_Long  Cur_Restart;
-    FT_Long  Cur_End;
+
+    TT_DefRecord  *Def; 
 
   } TT_CallRec, *TT_CallStack;
 

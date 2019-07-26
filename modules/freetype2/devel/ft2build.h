@@ -16,7 +16,6 @@
 
 
 
-
  
 
 
@@ -28,12 +27,12 @@
 
 
 
-#ifndef __FT2_BUILD_DEVEL_H__
-#define __FT2_BUILD_DEVEL_H__
+#ifndef __FT2BUILD_H__
+#define __FT2BUILD_H__
 
-#define  FT_CONFIG_OPTIONS_H   <ftoption.h>
+#define FT_CONFIG_OPTIONS_H  <ftoption.h>
 
-#include <freetype/config/ftheader.h>
+#include <config/ftheader.h>
 
 #endif 
 

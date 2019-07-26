@@ -200,6 +200,16 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
+
+
+
+
+
   
   typedef enum  AF_Flags_
   {
@@ -226,7 +236,10 @@ FT_BEGIN_HEADER
     AF_FLAG_WEAK_INTERPOLATION = 1 << 8,
 
     
-    AF_FLAG_INFLECTION = 1 << 9
+    AF_FLAG_INFLECTION = 1 << 9,
+
+    
+    AF_FLAG_NEAR = 1 << 10
 
   } AF_Flags;
 

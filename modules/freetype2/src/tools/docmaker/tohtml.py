@@ -176,25 +176,6 @@ def  html_quote( line ):
 
 
 
-def  html_quote0( line ):
-    return string.replace( line, "&", "&amp;" )
-
-
-def  dump_html_code( lines, prefix = "" ):
-    
-    l = len( self.lines )
-    while l > 0 and string.strip( self.lines[l - 1] ) == "":
-        l = l - 1
-
-    
-    
-    print prefix + code_header,
-    for line in self.lines[0 : l + 1]:
-        print '\n' + prefix + html_quote( line ),
-    print prefix + code_footer,
-
-
-
 class  HtmlFormatter( Formatter ):
 
     def  __init__( self, processor, project_title, file_prefix ):
@@ -242,16 +223,6 @@ class  HtmlFormatter( Formatter ):
     def  make_block_url( self, block ):
         return self.make_section_url( block.section ) + "#" + block.name
 
-    def  make_html_words( self, words ):
-        """ convert a series of simple words into some HTML text """
-        line = ""
-        if words:
-            line = html_quote( words[0] )
-            for w in words[1:]:
-                line = line + " " + html_quote( w )
-
-        return line
-
     def  make_html_word( self, word ):
         """analyze a simple word to detect cross-references and styling"""
         
@@ -291,6 +262,8 @@ class  HtmlFormatter( Formatter ):
             line = self.make_html_word( words[0] )
             for word in words[1:]:
                 line = line + " " + self.make_html_word( word )
+            
+            line = re_url.sub( r'<a href="\1">\1</a>', line )
             
             line = re.sub( r"(^|\W)`(.*?)'(\W|$)",  \
                            r'\1&lsquo;\2&rsquo;\3', \

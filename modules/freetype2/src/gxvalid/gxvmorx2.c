@@ -317,7 +317,9 @@
 
     gxv_XStateTable_validate( p, limit, valid );
 
+#if 0
     p += valid->subtable_length;
+#endif
     gxv_morx_subtable_type2_ligatureTable_validate( table, valid );
 
     GXV_EXIT;
