@@ -3116,11 +3116,13 @@ IonBuilder::filterTypesAtTest(MTest *test)
                 return false;
 
             replace = ensureDefiniteTypeSet(subject, type);
-            
-            
-            
-            
-            replace->setDependency(test);
+            if (replace != subject) {
+                
+                
+                
+                
+                replace->setDependency(test);
+            }
         }
 
         current->setSlot(i, replace);
@@ -6406,6 +6408,12 @@ IonBuilder::ensureDefiniteTypeSet(MDefinition *def, types::TemporaryTypeSet *typ
     if (replace != def) {
         replace->setResultTypeSet(types);
         return replace;
+    }
+
+    
+    if (def->type() != types->getKnownMIRType()) {
+        MOZ_ASSERT(types->getKnownMIRType() == MIRType_Value);
+        return def;
     }
 
     
