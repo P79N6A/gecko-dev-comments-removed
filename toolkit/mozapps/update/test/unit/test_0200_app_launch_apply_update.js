@@ -198,10 +198,6 @@ function end_test() {
   if (IS_UNIX) {
     
     getLaunchScript();
-    if (IS_MACOSX) {
-      
-      getVersionScriptAndFile();
-    }
   }
 
   cleanUp();
