@@ -15,6 +15,7 @@
 #include "mozilla/Mutex.h"              
 #include "mozilla/ReentrantMonitor.h"   
 #include "mozilla/TimeStamp.h"          
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
@@ -147,7 +148,7 @@ public:
   void* GetImplData() { return mImplData; }
 
   virtual already_AddRefed<gfxASurface> GetAsSurface() = 0;
-  virtual gfxIntSize GetSize() = 0;
+  virtual gfx::IntSize GetSize() = 0;
   virtual nsIntRect GetPictureRect()
   {
     return nsIntRect(0, 0, GetSize().width, GetSize().height);
@@ -262,7 +263,7 @@ protected:
 
   virtual already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
                                               uint32_t aNumFormats,
-                                              const gfxIntSize &aScaleHint,
+                                              const gfx::IntSize &aScaleHint,
                                               BufferRecycleBin *aRecycleBin);
 
 };
@@ -483,7 +484,7 @@ public:
 
 
 
-  already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult);
+  already_AddRefed<gfxASurface> GetCurrentAsSurface(gfx::IntSize* aSizeResult);
 
   
 
@@ -493,7 +494,7 @@ public:
 
 
 
-  already_AddRefed<gfxASurface> LockCurrentAsSurface(gfxIntSize* aSizeResult,
+  already_AddRefed<gfxASurface> LockCurrentAsSurface(gfx::IntSize* aSizeResult,
                                                      Image** aCurrentImage = nullptr);
 
   
@@ -501,7 +502,7 @@ public:
 
 
 
-  gfxIntSize GetCurrentSize();
+  gfx::IntSize GetCurrentSize();
 
   
 
@@ -673,7 +674,7 @@ public:
   ~AutoLockImage() { if (mContainer) { mContainer->UnlockCurrentImage(); } }
 
   Image* GetImage() { return mImage; }
-  const gfxIntSize &GetSize() { return mSize; }
+  const gfx::IntSize &GetSize() { return mSize; }
 
   void Unlock() { 
     if (mContainer) {
@@ -698,7 +699,7 @@ public:
 private:
   ImageContainer *mContainer;
   nsRefPtr<Image> mImage;
-  gfxIntSize mSize;
+  gfx::IntSize mSize;
 };
 
 struct PlanarYCbCrData {
@@ -819,7 +820,7 @@ public:
 
   virtual bool IsValid() { return !!mBufferSize; }
 
-  virtual gfxIntSize GetSize() { return mSize; }
+  virtual gfx::IntSize GetSize() { return mSize; }
 
   PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
 
@@ -849,7 +850,7 @@ protected:
   nsAutoArrayPtr<uint8_t> mBuffer;
   uint32_t mBufferSize;
   Data mData;
-  gfxIntSize mSize;
+  gfx::IntSize mSize;
   gfxImageFormat mOffscreenFormat;
   nsCountedRef<nsMainThreadSurfaceRef> mSurface;
   nsRefPtr<BufferRecycleBin> mRecycleBin;
@@ -885,7 +886,7 @@ public:
     return surface.forget();
   }
 
-  gfxIntSize GetSize() { return mSize; }
+  gfx::IntSize GetSize() { return mSize; }
 
   CairoImage() : Image(nullptr, CAIRO_SURFACE) {}
 
@@ -899,7 +900,7 @@ public:
 
   already_AddRefed<gfxASurface> GetAsSurface();
 
-  gfxIntSize GetSize() { return mSize; }
+  gfx::IntSize GetSize() { return mSize; }
 
   unsigned char *mData;
   int mStride;

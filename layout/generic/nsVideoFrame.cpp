@@ -179,7 +179,7 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   
   
-  gfxIntSize frameSize = container->GetCurrentSize();
+  mozilla::gfx::IntSize frameSize = container->GetCurrentSize();
   if (frameSize.width == 0 || frameSize.height == 0) {
     
     return nullptr;

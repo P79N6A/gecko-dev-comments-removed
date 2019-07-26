@@ -44,7 +44,7 @@ public:
   
   HANDLE GetShareHandle();
 
-  gfxIntSize GetSize() MOZ_OVERRIDE;
+  gfx::IntSize GetSize() MOZ_OVERRIDE;
 
   already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
 
@@ -54,7 +54,7 @@ private:
   
   void EnsureSynchronized();
 
-  gfxIntSize mSize;
+  gfx::IntSize mSize;
   RefPtr<IDirect3DTexture9> mTexture;
   RefPtr<IDirect3DQuery9> mQuery;
   HANDLE mShareHandle;

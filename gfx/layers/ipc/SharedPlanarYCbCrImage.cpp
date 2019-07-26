@@ -7,7 +7,6 @@
 #include <stddef.h>                     
 #include <stdio.h>                      
 #include "ISurfaceAllocator.h"          
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/ipc/SharedMemory.h"   

@@ -5,7 +5,6 @@
 #include "OGLShaderProgram.h"
 #include <stdint.h>                     
 #include "gfxMatrix.h"                  
-#include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "mozilla/DebugOnly.h"          
 #include "nsAString.h"

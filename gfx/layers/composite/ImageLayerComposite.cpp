@@ -8,7 +8,6 @@
 #include "Layers.h"                     
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
-#include "gfxPoint.h"                   
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
 #include "mozilla/Assertions.h"         

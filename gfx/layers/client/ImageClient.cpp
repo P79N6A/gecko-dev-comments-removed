@@ -11,7 +11,6 @@
 #include "gfx2DGlue.h"                  
 #include "gfxASurface.h"                
 #include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/BaseSize.h"       
