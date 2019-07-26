@@ -369,9 +369,6 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
       (mState == NOTHING || mState == TOUCHING || IsPanningState(mState))) {
     const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
     if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
-      
-      
-      
       SetState(WAITING_LISTENERS);
     }
   }
@@ -1369,9 +1366,6 @@ void AsyncPanZoomController::UpdateCompositionBounds(const ScreenIntRect& aCompo
 
 void AsyncPanZoomController::CancelDefaultPanZoom() {
   mDisableNextTouchBatch = true;
-  mDelayPanning = false;
-  mTouchQueue.Clear();
-  SetState(NOTHING);
   nsRefPtr<GestureEventListener> listener = GetGestureEventListener();
   if (listener) {
     listener->CancelGesture();
@@ -1472,12 +1466,7 @@ void AsyncPanZoomController::ContentReceivedTouch(bool aPreventDefault) {
   }
 
   if (mState == WAITING_LISTENERS) {
-    if (aPreventDefault) {
-      
-      
-      CancelDefaultPanZoom();
-      return;
-    } else {
+    if (!aPreventDefault) {
       
       if (mDelayPanning) {
         SetState(TOUCHING);
