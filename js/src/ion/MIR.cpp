@@ -948,26 +948,65 @@ MBinaryArithInstruction::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
     setResultType(rval);
 }
 
+static bool
+SafelyCoercesToDouble(JSContext *cx, types::TypeSet *types)
+{
+    types::TypeFlags flags = types->baseFlags();
+
+    
+    
+    types::TypeFlags converts = types::TYPE_FLAG_UNDEFINED | types::TYPE_FLAG_DOUBLE |
+                                types::TYPE_FLAG_INT32 | types::TYPE_FLAG_BOOLEAN;
+
+    if ((flags & converts) == flags) {
+        types->addFreeze(cx); 
+        return true;
+    }
+
+    return false;
+}
+
 void
 MCompare::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
 {
-    
     if (!b.lhsTypes || !b.rhsTypes)
         return;
 
     MIRType lhs = MIRTypeFromValueType(b.lhsTypes->getKnownTypeTag(cx));
     MIRType rhs = MIRTypeFromValueType(b.rhsTypes->getKnownTypeTag(cx));
 
+    
     if ((lhs == MIRType_Int32 && rhs == MIRType_Int32) ||
         (lhs == MIRType_Boolean && rhs == MIRType_Boolean))
     {
         specialization_ = MIRType_Int32;
         return;
     }
+
+    
+    if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE &&
+        (lhs == MIRType_Int32 || lhs == MIRType_Boolean) &&
+        (rhs == MIRType_Int32 || rhs == MIRType_Boolean))
+    {
+        specialization_ = MIRType_Int32;
+        return;
+    }
+
+    
     if (IsNumberType(lhs) && IsNumberType(rhs)) {
         specialization_ = MIRType_Double;
         return;
     }
+
+    
+    if (jsop() != JSOP_STRICTEQ && jsop() != JSOP_STRICTNE &&
+        ((lhs == MIRType_Double && SafelyCoercesToDouble(cx, b.rhsTypes)) ||
+         (rhs == MIRType_Double && SafelyCoercesToDouble(cx, b.lhsTypes))))
+    {
+        specialization_ = MIRType_Double;
+        return;
+    }
+
     if (jsop() == JSOP_STRICTEQ || jsop() == JSOP_EQ ||
         jsop() == JSOP_STRICTNE || jsop() == JSOP_NE)
     {
