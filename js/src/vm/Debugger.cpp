@@ -3398,13 +3398,13 @@ Debugger::handleBaselineOsr(JSContext *cx, StackFrame *from, ion::BaselineFrame 
         frameobj->setPrivate(data);
 
         
+        r.removeFrontFrame();
+
+        
         if (!dbg->frames.putNew(to, frameobj)) {
             js_ReportOutOfMemory(cx);
             return false;
         }
-
-        
-        r.removeFrontFrame();
     }
 
     return true;
