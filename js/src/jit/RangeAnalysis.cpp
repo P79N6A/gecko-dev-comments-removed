@@ -450,21 +450,16 @@ Range::and_(const Range *lhs, const Range *rhs)
 {
     JS_ASSERT(lhs->isInt32());
     JS_ASSERT(rhs->isInt32());
-    int64_t lower;
-    int64_t upper;
 
     
-    if (lhs->lower() < 0 && rhs->lower() < 0) {
-        lower = INT_MIN;
-        upper = Max(lhs->upper(), rhs->upper());
-        return Range::NewInt32Range(lower, upper);
-    }
+    if (lhs->lower() < 0 && rhs->lower() < 0)
+        return Range::NewInt32Range(INT32_MIN, Max(lhs->upper(), rhs->upper()));
 
     
     
     
-    lower = 0;
-    upper = Min(lhs->upper(), rhs->upper());
+    int32_t lower = 0;
+    int32_t upper = Min(lhs->upper(), rhs->upper());
 
     
     
@@ -506,25 +501,27 @@ Range::or_(const Range *lhs, const Range *rhs)
     JS_ASSERT_IF(lhs->upper() < 0, lhs->lower() != -1);
     JS_ASSERT_IF(rhs->upper() < 0, rhs->lower() != -1);
 
-    int64_t lower = INT32_MIN;
-    int64_t upper = INT32_MAX;
+    int32_t lower = INT32_MIN;
+    int32_t upper = INT32_MAX;
 
     if (lhs->lower() >= 0 && rhs->lower() >= 0) {
         
         lower = Max(lhs->lower(), rhs->lower());
         
-        upper = UINT32_MAX >> Min(CountLeadingZeroes32(lhs->upper()),
-                                  CountLeadingZeroes32(rhs->upper()));
+        
+        
+        upper = int32_t(UINT32_MAX >> Min(CountLeadingZeroes32(lhs->upper()),
+                                          CountLeadingZeroes32(rhs->upper())));
     } else {
         
         if (lhs->upper() < 0) {
             unsigned leadingOnes = CountLeadingZeroes32(~lhs->lower());
-            lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
+            lower = Max(lower, ~int32_t(UINT32_MAX >> leadingOnes));
             upper = -1;
         }
         if (rhs->upper() < 0) {
             unsigned leadingOnes = CountLeadingZeroes32(~rhs->lower());
-            lower = Max(lower, int64_t(~int32_t(UINT32_MAX >> leadingOnes)));
+            lower = Max(lower, ~int32_t(UINT32_MAX >> leadingOnes));
             upper = -1;
         }
     }
@@ -1794,8 +1791,8 @@ Range::clampToInt32()
 {
     if (isInt32())
         return;
-    int64_t l = hasInt32LowerBound() ? lower() : JSVAL_INT_MIN;
-    int64_t h = hasInt32UpperBound() ? upper() : JSVAL_INT_MAX;
+    int32_t l = hasInt32LowerBound() ? lower() : JSVAL_INT_MIN;
+    int32_t h = hasInt32UpperBound() ? upper() : JSVAL_INT_MAX;
     set(l, h);
 }
 
