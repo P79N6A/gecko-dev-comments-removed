@@ -1966,6 +1966,25 @@ void MediaDecoderStateMachine::DecodeSeek()
         video = mReader->FindStartTime(nextSampleStartTime);
       }
 
+      if (seekTime > mediaTime &&
+          nextSampleStartTime < mediaTime &&
+          mSeekTarget.mType == SeekTarget::PrevSyncPoint) {
+        
+        
+        
+        
+        
+        
+        ResetPlayback();
+        {
+          ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+          res = mReader->DecodeToTarget(seekTime);
+          if (NS_SUCCEEDED(res)) {
+            video = mReader->FindStartTime(nextSampleStartTime);
+          }
+        }
+      }
+
       
       if (seekTime == mEndTime) {
         newCurrentTime = mAudioStartTime = seekTime;
