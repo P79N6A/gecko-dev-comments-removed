@@ -829,10 +829,6 @@ pref("capability.policy.default.XMLHttpRequest.open-uri", "allAccess");
 pref("capability.policy.default.DOMParser.parseFromStream", "noAccess");
 
 
-pref("capability.policy.default.Clipboard.cutcopy", "noAccess");
-pref("capability.policy.default.Clipboard.paste", "noAccess");
-
-
 pref("dom.disable_image_src_set",           false);
 pref("dom.disable_window_flip",             false);
 pref("dom.disable_window_move_resize",      false);
