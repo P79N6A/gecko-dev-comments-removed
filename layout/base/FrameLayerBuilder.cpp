@@ -1990,6 +1990,58 @@ PaintInactiveLayer(nsDisplayListBuilder* aBuilder,
 
 
 
+static bool IsFrameAncestorOf(const nsIFrame *aAncestor, const nsIFrame *aFrame)
+{
+  if (!aFrame) {
+    return false;
+  }
+  for (const nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+    if (f == aAncestor) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+
+static bool ChooseActiveScrolledRoot(nsDisplayListBuilder *aBuilder,
+                                     const nsDisplayList& aList,
+                                     const nsIFrame **aActiveScrolledRoot)
+{
+  for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
+    nsDisplayItem::Type type = item->GetType();
+    if (type == nsDisplayItem::TYPE_CLIP ||
+        type == nsDisplayItem::TYPE_CLIP_ROUNDED_RECT) {
+      if (!ChooseActiveScrolledRoot(aBuilder,
+                                    *item->GetSameCoordinateSystemChildren(),
+                                    aActiveScrolledRoot)) {
+        return false;
+      }
+      continue;
+    }
+
+    if (!*aActiveScrolledRoot) {
+      
+      
+      aBuilder->IsFixedItem(item, aActiveScrolledRoot);
+    } else if (!IsFrameAncestorOf(*aActiveScrolledRoot, item->GetUnderlyingFrame())) {
+      
+      
+      return false;
+    }
+  }
+  if (!*aActiveScrolledRoot) {
+    return false;
+  }
+  return true;
+}
+
+
+
+
 
 
 
@@ -2010,6 +2062,17 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
   const nsIFrame* lastActiveScrolledRoot = nullptr;
   nsPoint topLeft;
+
+  
+  
+  
+  if (aFlags & NO_COMPONENT_ALPHA) {
+    if (!ChooseActiveScrolledRoot(mBuilder, aList, &lastActiveScrolledRoot)) {
+      lastActiveScrolledRoot = mContainerReferenceFrame;
+    }
+
+    topLeft = lastActiveScrolledRoot->GetOffsetToCrossDoc(mContainerReferenceFrame);
+  }
 
   for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
     nsDisplayItem::Type type = item->GetType();
@@ -2046,12 +2109,8 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     bool forceInactive;
     const nsIFrame* activeScrolledRoot;
     if (aFlags & NO_COMPONENT_ALPHA) {
-      
-      
-      
       forceInactive = true;
-      activeScrolledRoot = mContainerReferenceFrame;
-      topLeft = nsPoint(0, 0);
+      activeScrolledRoot = lastActiveScrolledRoot;
       isFixed = mBuilder->IsFixedItem(item, nullptr, activeScrolledRoot);
     } else {
       forceInactive = false;
