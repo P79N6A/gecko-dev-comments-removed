@@ -64,7 +64,6 @@ function NetworkService() {
         self.handleWorkerMessage(event);
       }
     };
-    this.worker = gNetworkWorker;
     gNetworkWorker.start(networkListener);
   }
   
@@ -80,13 +79,7 @@ NetworkService.prototype = {
                                     contractID: NETWORKSERVICE_CONTRACTID,
                                     classDescription: "Network Service",
                                     interfaces: [Ci.nsINetworkService]}),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkService,
-                                         Ci.nsISupportsWeakReference,
-                                         Ci.nsIWorkerHolder]),
-
-  
-
-  worker: null,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkService]),
 
   
 
@@ -551,6 +544,10 @@ NetworkService.prototype = {
         debug("NetworkService shutdown");
         this.shutdown = true;
         Services.obs.removeObserver(this, "xpcom-shutdown");
+        if (gNetworkWorker) {
+          gNetworkWorker.shutdown();
+          gNetworkWorker = null;
+        }
         break;
     }
   },
