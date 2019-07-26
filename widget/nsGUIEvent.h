@@ -115,9 +115,6 @@ enum nsEventStructType {
 #define NS_EVENT_FLAG_NO_CONTENT_DISPATCH 0x0100
 #define NS_EVENT_FLAG_SYSTEM_EVENT        0x0200
 
-#define NS_EVENT_DISPATCHED               0x0400
-#define NS_EVENT_FLAG_DISPATCHING         0x0800
-
 
 
 
@@ -538,6 +535,12 @@ public:
   
   
   bool    mMultipleActionsPrevented : 1;
+  
+  
+  bool    mIsBeingDispatched : 1;
+  
+  
+  bool    mDispatchedAtLeastOnce : 1;
 
   
   bool InTargetPhase() const
@@ -1827,20 +1830,6 @@ enum nsDragDropEventStatus {
 #define NS_IS_NON_RETARGETED_PLUGIN_EVENT(evnt) \
        (NS_IS_PLUGIN_EVENT(evnt) && \
         !(static_cast<nsPluginEvent*>(evnt)->retargetToFocusedDocument))
-
-
-#define NS_MARK_EVENT_DISPATCH_STARTED(event) \
-  (event)->flags |= NS_EVENT_FLAG_DISPATCHING;
-
-#define NS_IS_EVENT_IN_DISPATCH(event) \
-  (((event)->flags & NS_EVENT_FLAG_DISPATCHING) != 0)
-
-
-#define NS_MARK_EVENT_DISPATCH_DONE(event) \
-  NS_ASSERTION(NS_IS_EVENT_IN_DISPATCH(event), \
-               "Event never got marked for dispatch!"); \
-  (event)->flags &= ~NS_EVENT_FLAG_DISPATCHING; \
-  (event)->flags |= NS_EVENT_DISPATCHED;
 
 
 
