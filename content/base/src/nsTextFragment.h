@@ -112,14 +112,14 @@ public:
 
 
 
-  bool SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi);
+  void SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi);
 
   
 
 
 
 
-  bool Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi);
+  void Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi);
 
   
 

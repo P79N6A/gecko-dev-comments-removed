@@ -84,7 +84,7 @@ void
 nsTextFragment::ReleaseText()
 {
   if (mState.mLength && m1b && mState.mInHeap) {
-    moz_free(m2b); 
+    nsMemory::Free(m2b); 
   }
 
   m1b = nullptr;
@@ -104,20 +104,9 @@ nsTextFragment::operator=(const nsTextFragment& aOther)
       m1b = aOther.m1b; 
     }
     else {
-      size_t m2bSize = aOther.mState.mLength *
-        (aOther.mState.mIs2b ? sizeof(PRUnichar) : sizeof(char));
-
-      m2b = static_cast<PRUnichar*>(moz_malloc(m2bSize));
-      if (m2b) {
-        memcpy(m2b, aOther.m2b, m2bSize);
-      } else {
-        
-        m2b = static_cast<PRUnichar*>(moz_xmalloc(sizeof(PRUnichar)));
-        m2b[0] = 0xFFFD; 
-        mState.mIs2b = true;
-        mState.mInHeap = true;
-        mState.mLength = 1;
-      }
+      m2b = static_cast<PRUnichar*>
+                       (nsMemory::Clone(aOther.m2b, aOther.mState.mLength *
+                                    (aOther.mState.mIs2b ? sizeof(PRUnichar) : sizeof(char))));
     }
 
     if (m1b) {
@@ -190,13 +179,13 @@ FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
   return FirstNon8BitUnvectorized(str, end);
 }
 
-bool
+void
 nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi)
 {
   ReleaseText();
 
   if (aLength == 0) {
-    return true;
+    return;
   }
   
   PRUnichar firstChar = *aBuffer;
@@ -206,7 +195,7 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
     mState.mIs2b = false;
     mState.mLength = 1;
 
-    return true;
+    return;
   }
 
   const PRUnichar *ucp = aBuffer;
@@ -245,7 +234,7 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
       mState.mIs2b = false;
       mState.mLength = aLength;
 
-      return true;        
+      return;        
     }
   }
 
@@ -254,12 +243,11 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
 
   if (first16bit != -1) { 
     
-    size_t m2bSize = aLength * sizeof(PRUnichar);
-    m2b = (PRUnichar *)moz_malloc(m2bSize);
+    m2b = (PRUnichar *)nsMemory::Clone(aBuffer,
+                                       aLength * sizeof(PRUnichar));
     if (!m2b) {
-      return false;
+      return;
     }
-    memcpy(m2b, aBuffer, m2bSize);
 
     mState.mIs2b = true;
     if (aUpdateBidi) {
@@ -268,9 +256,9 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
 
   } else {
     
-    char* buff = (char *)moz_malloc(aLength * sizeof(char));
+    char* buff = (char *)nsMemory::Alloc(aLength * sizeof(char));
     if (!buff) {
-      return false;
+      return;
     }
 
     
@@ -283,8 +271,6 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBid
   
   mState.mInHeap = true;
   mState.mLength = aLength;
-
-  return true;
 }
 
 void
@@ -313,22 +299,24 @@ nsTextFragment::CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount)
   }
 }
 
-bool
+void
 nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi)
 {
   
   
   if (mState.mLength == 0) {
-    return SetTo(aBuffer, aLength, aUpdateBidi);
+    SetTo(aBuffer, aLength, aUpdateBidi);
+
+    return;
   }
 
   
 
   if (mState.mIs2b) {
     
-    PRUnichar* buff = (PRUnichar*)moz_realloc(m2b, (mState.mLength + aLength) * sizeof(PRUnichar));
+    PRUnichar* buff = (PRUnichar*)nsMemory::Realloc(m2b, (mState.mLength + aLength) * sizeof(PRUnichar));
     if (!buff) {
-      return false;
+      return;
     }
 
     memcpy(buff + mState.mLength, aBuffer, aLength * sizeof(PRUnichar));
@@ -339,7 +327,7 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
       UpdateBidiFlag(aBuffer, aLength);
     }
 
-    return true;
+    return;
   }
 
   
@@ -348,10 +336,10 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
   if (first16bit != -1) { 
     
     
-    PRUnichar* buff = (PRUnichar*)moz_malloc((mState.mLength + aLength) *
+    PRUnichar* buff = (PRUnichar*)nsMemory::Alloc((mState.mLength + aLength) *
                                                   sizeof(PRUnichar));
     if (!buff) {
-      return false;
+      return;
     }
 
     
@@ -363,7 +351,7 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
     mState.mIs2b = true;
 
     if (mState.mInHeap) {
-      moz_free(m2b);
+      nsMemory::Free(m2b);
     }
     m2b = buff;
 
@@ -373,22 +361,22 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
       UpdateBidiFlag(aBuffer + first16bit, aLength - first16bit);
     }
 
-    return true;
+    return;
   }
 
   
   char* buff;
   if (mState.mInHeap) {
-    buff = (char*)moz_realloc(const_cast<char*>(m1b),
+    buff = (char*)nsMemory::Realloc(const_cast<char*>(m1b),
                                     (mState.mLength + aLength) * sizeof(char));
     if (!buff) {
-      return false;
+      return;
     }
   }
   else {
-    buff = (char*)moz_malloc((mState.mLength + aLength) * sizeof(char));
+    buff = (char*)nsMemory::Alloc((mState.mLength + aLength) * sizeof(char));
     if (!buff) {
-      return false;
+      return;
     }
 
     memcpy(buff, m1b, mState.mLength);
@@ -402,7 +390,6 @@ nsTextFragment::Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateB
   m1b = buff;
   mState.mLength += aLength;
 
-  return true;
 }
 
  size_t

@@ -313,13 +313,11 @@ nsGenericDOMDataNode::SetTextInternal(uint32_t aOffset, uint32_t aCount,
   if (aOffset == 0 && endOffset == textLength) {
     
     
-    bool ok = mText.SetTo(aBuffer, aLength, !document || !document->GetBidiEnabled());
-    NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+    mText.SetTo(aBuffer, aLength, !document || !document->GetBidiEnabled());
   }
   else if (aOffset == textLength) {
     
-    bool ok = mText.Append(aBuffer, aLength, !document || !document->GetBidiEnabled());
-    NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+    mText.Append(aBuffer, aLength, !document || !document->GetBidiEnabled());
   }
   else {
     
@@ -340,11 +338,10 @@ nsGenericDOMDataNode::SetTextInternal(uint32_t aOffset, uint32_t aCount,
       mText.CopyTo(to + aOffset + aLength, endOffset, textLength - endOffset);
     }
 
-    bool ok = mText.SetTo(to, newLength, !document || !document->GetBidiEnabled());
+    
+    mText.SetTo(to, newLength, !document || !document->GetBidiEnabled());
 
     delete [] to;
-
-    NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   }
 
   UnsetFlags(NS_CACHED_TEXT_IS_ONLY_WHITESPACE);
