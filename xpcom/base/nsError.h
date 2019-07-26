@@ -662,6 +662,10 @@ typedef enum tag_nsresult
   NS_ERROR_TYPE_ERR                        = FAILURE(26),
   NS_ERROR_RANGE_ERR                       = FAILURE(27),
   
+  NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR  = FAILURE(28),
+  NS_ERROR_DOM_ENCODING_NOT_UTF_ERR        = FAILURE(29),
+  NS_ERROR_DOM_ENCODING_DECODE_ERR         = FAILURE(30),
+  
   NS_ERROR_DOM_SECMAN_ERR                  = FAILURE(1001),
   NS_ERROR_DOM_WRONG_TYPE_ERR              = FAILURE(1002),
   NS_ERROR_DOM_NOT_OBJECT_ERR              = FAILURE(1003),
