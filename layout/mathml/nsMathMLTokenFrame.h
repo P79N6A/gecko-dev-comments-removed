@@ -58,25 +58,9 @@ public:
         bool                 aPlaceOrigin,
         nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
 
-  virtual void MarkIntrinsicWidthsDirty() MOZ_OVERRIDE;
-
-  virtual nsresult
-  ChildListChanged(int32_t aModType) MOZ_OVERRIDE
-  {
-    ProcessTextData();
-    return nsMathMLContainerFrame::ChildListChanged(aModType);
-  }
-
 protected:
   nsMathMLTokenFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLTokenFrame();
-
-  
-  virtual void ProcessTextData();
-
-  
-  
-  bool SetTextStyle();
 
   void MarkTextFramesAsTokenMathML();
 };

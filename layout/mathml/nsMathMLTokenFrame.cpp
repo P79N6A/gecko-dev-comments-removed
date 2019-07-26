@@ -28,8 +28,6 @@ nsMathMLTokenFrame::InheritAutomaticData(nsIFrame* aParent)
   
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
 
-  ProcessTextData();
-
   return NS_OK;
 }
 
@@ -41,40 +39,16 @@ nsMathMLTokenFrame::GetMathMLFrameType()
     return eMathMLFrameType_Ordinary;
   }
 
-  
-  nsAutoString style;
-  
-  
-  mContent->GetAttr(kNameSpaceID_None,
-                    nsGkAtoms::_moz_math_fontstyle_, style) ||
-    GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::mathvariant_,
-                 style) ||
-    GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::fontstyle_,
-                 style);
-
-  if (style.EqualsLiteral("italic") || style.EqualsLiteral("bold-italic") ||
-      style.EqualsLiteral("script") || style.EqualsLiteral("bold-script") ||
-      style.EqualsLiteral("sans-serif-italic") ||
-      style.EqualsLiteral("sans-serif-bold-italic")) {
+  uint8_t mathVariant = StyleFont()->mMathVariant;
+  if ((mathVariant == NS_MATHML_MATHVARIANT_NONE &&
+       (StyleFont()->mFont.style == NS_STYLE_FONT_STYLE_ITALIC ||
+        HasAnyStateBits(TEXT_IS_IN_SINGLE_CHAR_MI))) ||
+      mathVariant == NS_MATHML_MATHVARIANT_ITALIC ||
+      mathVariant == NS_MATHML_MATHVARIANT_ITALIC ||
+      mathVariant == NS_MATHML_MATHVARIANT_BOLD_ITALIC ||
+      mathVariant == NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC ||
+      mathVariant == NS_MATHML_MATHVARIANT_SANS_SERIF_BOLD_ITALIC) {
     return eMathMLFrameType_ItalicIdentifier;
-  }
-  else if(style.EqualsLiteral("invariant")) {
-    nsAutoString data;
-    nsContentUtils::GetNodeTextContent(mContent, false, data);
-    data.CompressWhitespace();
-    eMATHVARIANT variant = nsMathMLOperators::LookupInvariantChar(data);
-
-    switch (variant) {
-    case eMATHVARIANT_italic:
-    case eMATHVARIANT_bold_italic:
-    case eMATHVARIANT_script:
-    case eMATHVARIANT_bold_script:
-    case eMATHVARIANT_sans_serif_italic:
-    case eMATHVARIANT_sans_serif_bold_italic:
-      return eMathMLFrameType_ItalicIdentifier;
-    default:
-      ; 
-    }
   }
   return eMathMLFrameType_UprightIdentifier;
 }
@@ -82,6 +56,11 @@ nsMathMLTokenFrame::GetMathMLFrameType()
 void
 nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
 {
+  nsIFrame* child = nullptr;
+  uint32_t childCount = 0;
+
+  
+  
   
   
   for (nsIFrame* childFrame = GetFirstPrincipalChild(); childFrame;
@@ -90,7 +69,22 @@ nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
          childFrame2; childFrame2 = childFrame2->GetNextSibling()) {
       if (childFrame2->GetType() == nsGkAtoms::textFrame) {
         childFrame2->AddStateBits(TEXT_IS_IN_TOKEN_MATHML);
+        child = childFrame2;
+        childCount++;
       }
+    }
+  }
+  if (mContent->Tag() == nsGkAtoms::mi_ && childCount == 1) {
+    nsAutoString data;
+    nsContentUtils::GetNodeTextContent(mContent, false, data);
+    data.CompressWhitespace();
+    int32_t length = data.Length();
+
+    bool isSingleCharacter = length == 1 ||
+      (length == 2 && NS_IS_HIGH_SURROGATE(data[0]));
+
+    if (isSingleCharacter) {
+      child->AddStateBits(TEXT_IS_IN_SINGLE_CHAR_MI);
     }
   }
 }
@@ -106,7 +100,6 @@ nsMathMLTokenFrame::SetInitialChildList(ChildListID     aListID,
 
   MarkTextFramesAsTokenMathML();
 
-  ProcessTextData();
   return rv;
 }
 
@@ -232,120 +225,3 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
   return NS_OK;
 }
 
- void
-nsMathMLTokenFrame::MarkIntrinsicWidthsDirty()
-{
-  
-  
-  ProcessTextData();
-
-  nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
-}
-
-void
-nsMathMLTokenFrame::ProcessTextData()
-{
-  
-  if (!SetTextStyle())
-    return;
-
-  
-  PresContext()->RestyleManager()->
-    PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree, NS_STYLE_HINT_NONE);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-nsMathMLTokenFrame::SetTextStyle()
-{
-  if (mContent->Tag() != nsGkAtoms::mi_)
-    return false;
-
-  if (!mFrames.FirstChild())
-    return false;
-
-  
-  nsAutoString data;
-  nsContentUtils::GetNodeTextContent(mContent, false, data);
-  data.CompressWhitespace();
-  int32_t length = data.Length();
-  if (!length)
-    return false;
-
-  nsAutoString fontstyle;
-  bool isSingleCharacter =
-    length == 1 ||
-    (length == 2 && NS_IS_HIGH_SURROGATE(data[0]));
-  if (isSingleCharacter &&
-      nsMathMLOperators::LookupInvariantChar(data) != eMATHVARIANT_NONE) {
-    
-    fontstyle.AssignLiteral("invariant");
-  }
-  else {
-    
-    nsAutoString value;
-    if (!(GetAttribute(mContent, mPresentationData.mstyle,
-                       nsGkAtoms::mathvariant_, value) ||
-          GetAttribute(mContent, mPresentationData.mstyle,
-                       nsGkAtoms::fontstyle_, value))) {
-      if (!isSingleCharacter) {
-        fontstyle.AssignLiteral("normal");
-      }
-      else if (length == 1 && 
-               !nsMathMLOperators::
-                TransformVariantChar(data[0], eMATHVARIANT_italic).
-                Equals(data)) {
-        
-        
-        fontstyle.AssignLiteral("italic");
-      }
-      
-      
-      
-    }
-  }
-
-  
-  if (fontstyle.IsEmpty()) {
-    if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_fontstyle_)) {
-      mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_fontstyle_,
-                          false);
-      return true;
-    }
-  }
-  else if (!mContent->AttrValueIs(kNameSpaceID_None,
-                                  nsGkAtoms::_moz_math_fontstyle_,
-                                  fontstyle, eCaseMatters)) {
-    mContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_fontstyle_,
-                      fontstyle, false);
-    return true;
-  }
-
-  return false;
-}
