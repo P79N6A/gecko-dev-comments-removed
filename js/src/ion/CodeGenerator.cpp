@@ -6243,7 +6243,8 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
     masm.checkStackAlignment();
 
     
-    masm.adjustStack(-int32_t(sizeof(Value)));
+    
+    masm.Push(UndefinedValue());
     masm.movePtr(StackPointer, ValueReg);
 
     masm.Push(ObjectReg);
