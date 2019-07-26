@@ -18,8 +18,8 @@ class nsTextControlFrame;
 
 
 #define NS_ITEXTCONTROLELEMENT_IID    \
-{ 0x669bd7ca, 0x42af, 0x4f1e, \
-  { 0xa6, 0xe2, 0x86, 0xc4, 0x0a, 0x14, 0x73, 0x4e } }
+{ 0x3dd53b59, 0x9d8f, 0x40a3, \
+  { 0x81, 0xd7, 0xb3, 0x43, 0xa0, 0x51, 0xfc, 0xb5 } }
 
 
 
@@ -153,7 +153,7 @@ public:
   
 
 
-  NS_IMETHOD_(void) SetPlaceholderVisibility(bool aVisible, bool aNotify) = 0;
+  NS_IMETHOD_(void) UpdatePlaceholderVisibility(bool aNotify) = 0;
 
   
 
