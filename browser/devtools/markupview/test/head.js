@@ -68,7 +68,6 @@ function openInspector() {
 function getContainerForRawNode(markupView, rawNode) {
   let front = markupView.walker.frontForRawNode(rawNode);
   let container = markupView.getContainer(front);
-  ok(container, "A markup-container object was found");
   return container;
 }
 
@@ -239,4 +238,27 @@ function redoChange(inspector) {
   let mutated = inspector.once("markupmutation");
   inspector.markup.undo.redo();
   return mutated;
+}
+
+
+
+
+
+function getSelectorSearchBox(inspector) {
+  return inspector.panelWin.document.getElementById("inspector-searchbox");
+}
+
+
+
+
+
+
+
+
+function searchUsingSelectorSearch(selector, inspector) {
+  info("Entering \"" + selector + "\" into the selector-search input field");
+  let field = getSelectorSearchBox(inspector);
+  field.focus();
+  field.value = selector;
+  EventUtils.sendKey("return", inspector.panelWin);
 }

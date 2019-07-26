@@ -4,7 +4,6 @@
 
 "use strict";
 
-const EventEmitter = require("devtools/shared/event-emitter");
 const promise = require("sdk/core/promise");
 
 loader.lazyGetter(this, "AutocompletePopup", () => require("devtools/shared/autocomplete-popup").AutocompletePopup);
@@ -23,12 +22,8 @@ const MAX_SUGGESTIONS = 15;
 
 
 
-
-
-
-function SelectorSearch(aInspector, aContentDocument, aInputNode) {
+function SelectorSearch(aInspector, aInputNode) {
   this.inspector = aInspector;
-  this.doc = aContentDocument;
   this.searchBox = aInputNode;
   this.panelDoc = this.searchBox.ownerDocument;
 
@@ -55,7 +50,7 @@ function SelectorSearch(aInspector, aContentDocument, aInputNode) {
     direction: "ltr",
     theme: "auto",
     onClick: this._onListBoxKeypress,
-    onKeypress: this._onListBoxKeypress,
+    onKeypress: this._onListBoxKeypress
   };
   this.searchPopup = new AutocompletePopup(this.panelDoc, options);
 
@@ -66,8 +61,6 @@ function SelectorSearch(aInspector, aContentDocument, aInputNode) {
   
   
   this._lastQuery = promise.resolve(null);
-
-  EventEmitter.decorate(this);
 }
 
 exports.SelectorSearch = SelectorSearch;
@@ -165,23 +158,21 @@ SelectorSearch.prototype = {
   
 
 
-  destroy: function SelectorSearch_destroy() {
+  destroy: function() {
     
     this.searchBox.removeEventListener("command", this._onHTMLSearch, true);
     this.searchBox.removeEventListener("keypress", this._onSearchKeypress, true);
     this.searchPopup.destroy();
     this.searchPopup = null;
     this.searchBox = null;
-    this.doc = null;
     this.panelDoc = null;
     this._searchResults = null;
     this._searchSuggestions = null;
-    EventEmitter.decorate(this);
   },
 
   _selectResult: function(index) {
     return this._searchResults.item(index).then(node => {
-      this.emit("node-selected", node);
+      this.inspector.selection.setNodeFront(node, "selectorsearch");
     });
   },
 
@@ -189,7 +180,7 @@ SelectorSearch.prototype = {
 
 
 
-  _onHTMLSearch: function SelectorSearch__onHTMLSearch() {
+  _onHTMLSearch: function() {
     let query = this.searchBox.value;
     if (query == this._lastSearched) {
       return;
@@ -256,7 +247,7 @@ SelectorSearch.prototype = {
         }
         return this._selectResult(0).then(() => {
           this.searchBox.classList.remove("devtools-no-search-result");
-        }).then( () => this.showSuggestions());
+        }).then(() => this.showSuggestions());
       }
       if (query.match(/[\s>+]$/)) {
         this._lastValidSearch = query + "*";
@@ -273,7 +264,7 @@ SelectorSearch.prototype = {
   
 
 
-  _onSearchKeypress: function SelectorSearch__onSearchKeypress(aEvent) {
+  _onSearchKeypress: function(aEvent) {
     let query = this.searchBox.value;
     switch(aEvent.keyCode) {
       case aEvent.DOM_VK_RETURN:
@@ -348,7 +339,7 @@ SelectorSearch.prototype = {
   
 
 
-  _onListBoxKeypress: function SelectorSearch__onListBoxKeypress(aEvent) {
+  _onListBoxKeypress: function(aEvent) {
     switch(aEvent.keyCode || aEvent.button) {
       case aEvent.DOM_VK_RETURN:
       case aEvent.DOM_VK_TAB:
@@ -405,10 +396,9 @@ SelectorSearch.prototype = {
   },
 
   
-  
 
 
-  _showPopup: function SelectorSearch__showPopup(aList, aFirstPart) {
+  _showPopup: function(aList, aFirstPart) {
     let total = 0;
     let query = this.searchBox.value;
     let toLowerCase = false;
@@ -458,7 +448,7 @@ SelectorSearch.prototype = {
 
 
 
-  showSuggestions: function SelectorSearch_showSuggestions() {
+  showSuggestions: function() {
     let query = this.searchBox.value;
     let firstPart = "";
     if (this.state == this.States.TAG) {
@@ -498,5 +488,5 @@ SelectorSearch.prototype = {
       }
       this._showPopup(result.suggestions, firstPart);
     });
-  },
+  }
 };

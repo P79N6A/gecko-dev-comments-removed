@@ -262,25 +262,13 @@ InspectorPanel.prototype = {
 
 
   setupSearchBox: function InspectorPanel_setupSearchBox() {
-    let searchDoc;
-    if (this.target.isLocalTab) {
-      searchDoc = this.browser.contentDocument;
-    } else if (this.target.window) {
-      searchDoc = this.target.window.document;
-    } else {
-      searchDoc = null;
-    }
     
-    let setNodeFunction = function(eventName, node) {
-      this.selection.setNodeFront(node, "selectorsearch");
-    }.bind(this);
     if (this.searchSuggestions) {
       this.searchSuggestions.destroy();
       this.searchSuggestions = null;
     }
     this.searchBox = this.panelDoc.getElementById("inspector-searchbox");
-    this.searchSuggestions = new SelectorSearch(this, searchDoc, this.searchBox);
-    this.searchSuggestions.on("node-selected", setNodeFunction);
+    this.searchSuggestions = new SelectorSearch(this, this.searchBox);
   },
 
   
