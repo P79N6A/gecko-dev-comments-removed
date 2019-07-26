@@ -791,9 +791,17 @@ LiveRangeAllocator<VREG>::buildLivenessInfo()
                     break;
 
                 
-                do {
+                while (!loopWorkList.empty()) {
                     loopBlock = loopWorkList.popCopy();
-                } while (loopBlock->lir() == graph.osrBlock());
+                    if (loopBlock->lir() != graph.osrBlock())
+                        break;
+                }
+
+                
+                if (loopBlock->lir() == graph.osrBlock()) {
+                    JS_ASSERT(loopWorkList.empty());
+                    break;
+                }
             }
 
             
