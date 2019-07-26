@@ -7,8 +7,6 @@ package org.mozilla.gecko.sync.setup;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.sync.CredentialException;
@@ -23,8 +21,6 @@ import org.mozilla.gecko.sync.repositories.android.RepoUtils;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.AccountManagerCallback;
-import android.accounts.AccountManagerFuture;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -58,34 +54,6 @@ public class SyncAccounts {
 
   public static Account[] syncAccounts(final Context c) {
     return AccountManager.get(c).getAccountsByType(GlobalConstants.ACCOUNTTYPE_SYNC);
-  }
-
-  
-
-
-
-
-
-  public static void invalidateAuthToken(final AccountManager accountManager, final Account account) {
-    if (account == null) {
-      return;
-    }
-
-    
-    ThreadPool.run(new Runnable() {
-      @Override
-      public void run() {
-        String authToken;
-        try {
-          authToken = accountManager.blockingGetAuthToken(account, Constants.AUTHTOKEN_TYPE_PLAIN, true);
-        } catch (Exception e) {
-          Logger.warn(LOG_TAG, "Got exception while invalidating auth token.", e);
-          return;
-        }
-
-        accountManager.invalidateAuthToken(GlobalConstants.ACCOUNTTYPE_SYNC, authToken);
-      }
-    });
   }
 
   
@@ -488,40 +456,8 @@ public class SyncAccounts {
     return intent;
   }
 
-  protected static class SyncAccountVersion0Callback implements AccountManagerCallback<Bundle> {
-    protected final Context context;
-    protected final CountDownLatch latch;
-
-    public String authToken = null;
-
-    public SyncAccountVersion0Callback(final Context context, final CountDownLatch latch) {
-      this.context = context;
-      this.latch = latch;
-    }
-
-    @Override
-    public void run(AccountManagerFuture<Bundle> future) {
-      try {
-        Bundle bundle = future.getResult(60L, TimeUnit.SECONDS);
-        if (bundle.containsKey(AccountManager.KEY_INTENT)) {
-          throw new IllegalStateException("KEY_INTENT included in AccountManagerFuture bundle.");
-        }
-        if (bundle.containsKey(AccountManager.KEY_ERROR_MESSAGE)) {
-          throw new IllegalStateException("KEY_ERROR_MESSAGE (= " + bundle.getString(AccountManager.KEY_ERROR_MESSAGE) + ") "
-              + " included in AccountManagerFuture bundle.");
-        }
-
-        authToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-      } catch (Exception e) {
-        
-        Logger.warn(LOG_TAG, "Got exception fetching auth token; ignoring and returning null auth token instead.", e);
-      } finally {
-        latch.countDown();
-      }
-    }
-  }
-
   
+
 
 
 
@@ -537,24 +473,6 @@ public class SyncAccounts {
 
   public static SyncAccountParameters blockingFromAndroidAccountV0(final Context context, final AccountManager accountManager, final Account account)
       throws CredentialException {
-    final CountDownLatch latch = new CountDownLatch(1);
-    final SyncAccountVersion0Callback callback = new SyncAccountVersion0Callback(context, latch);
-
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        
-        accountManager.getAuthToken(account, Constants.AUTHTOKEN_TYPE_PLAIN, true, callback, null);
-      }
-    }).start();
-
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      Logger.warn(LOG_TAG, "Got exception waiting for Sync account parameters; throwing.");
-      throw new CredentialException.MissingAllCredentialsException(e);
-    }
-
     String username;
     try {
       username = Utils.usernameFromAccount(account.name);
@@ -564,17 +482,17 @@ public class SyncAccounts {
       throw new CredentialException.MissingCredentialException("username");
     }
 
-    final String password = callback.authToken;
-
     
 
 
 
 
 
+    String password;
     String syncKey;
     String serverURL;
     try {
+      password = accountManager.getPassword(account);
       syncKey = accountManager.getUserData(account, Constants.OPTION_SYNCKEY);
       serverURL = accountManager.getUserData(account, Constants.OPTION_SERVER);
     } catch (SecurityException e) {
@@ -609,5 +527,57 @@ public class SyncAccounts {
       Logger.warn(LOG_TAG, "Got exception fetching Sync account parameters; throwing.");
       throw new CredentialException.MissingAllCredentialsException(e);
     }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static Intent makeSyncAccountDeletedIntent(final Context context, final AccountManager accountManager, final Account account) {
+    final Intent intent = new Intent(GlobalConstants.SYNC_ACCOUNT_DELETED_ACTION);
+
+    intent.putExtra(Constants.JSON_KEY_VERSION, Long.valueOf(GlobalConstants.SYNC_ACCOUNT_DELETED_INTENT_VERSION));
+    intent.putExtra(Constants.JSON_KEY_TIMESTAMP, Long.valueOf(System.currentTimeMillis()));
+    intent.putExtra(Constants.JSON_KEY_ACCOUNT, account.name);
+
+    SyncAccountParameters accountParameters = null;
+    try {
+      accountParameters = SyncAccounts.blockingFromAndroidAccountV0(context, accountManager, account);
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Caught exception fetching account parameters.", e);
+    }
+
+    if (accountParameters != null) {
+      ExtendedJSONObject json = accountParameters.asJSON();
+      json.put(Constants.JSON_KEY_SYNCKEY, ""); 
+      intent.putExtra(Constants.JSON_KEY_PAYLOAD, json.toJSONString());
+    }
+
+    return intent;
   }
 }

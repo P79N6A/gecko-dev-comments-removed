@@ -97,9 +97,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
   protected void processException(final GlobalSession globalSession, final Exception e) {
     try {
-      
-      SyncAccounts.invalidateAuthToken(AccountManager.get(mContext), localAccount);
-
       if (e instanceof SQLiteConstraintException) {
         Logger.error(LOG_TAG, "Constraint exception. Aborting sync.", e);
         syncResult.stats.numParseExceptions++;       
