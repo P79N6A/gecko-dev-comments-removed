@@ -25,6 +25,10 @@ bool CheckInterruptPar(ForkJoinSlice *slice);
 JSObject *ExtendArrayPar(ForkJoinSlice *slice, JSObject *array, uint32_t length);
 
 
+ParallelResult SetElementPar(ForkJoinSlice *slice, HandleObject obj, HandleValue index,
+                             HandleValue value, bool strict);
+
+
 
 ParallelResult ConcatStringsPar(ForkJoinSlice *slice, HandleString left, HandleString right,
                                 MutableHandleString out);
