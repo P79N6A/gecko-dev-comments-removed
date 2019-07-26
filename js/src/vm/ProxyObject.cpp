@@ -88,9 +88,10 @@ NukeSlot(ProxyObject *proxy, uint32_t slot)
 void
 ProxyObject::nuke(BaseProxyHandler *handler)
 {
-    NukeSlot(this, PRIVATE_SLOT);
+    
+    unsigned numSlots = JSCLASS_RESERVED_SLOTS(getClass());
+    for (unsigned i = 0; i < numSlots; i++)
+        NukeSlot(this, i);
+    
     setHandler(handler);
-
-    NukeSlot(this, EXTRA_SLOT + 0);
-    NukeSlot(this, EXTRA_SLOT + 1);
 }
