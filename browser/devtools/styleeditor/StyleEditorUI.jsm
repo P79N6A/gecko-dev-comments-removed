@@ -38,6 +38,7 @@ const STYLE_EDITOR_TEMPLATE = "stylesheet";
 
 
 
+
 function StyleEditorUI(debuggee, panelDoc) {
   EventEmitter.decorate(this);
 
@@ -340,6 +341,8 @@ StyleEditorUI.prototype = {
     });
 
     this._view.activeSummary = editor.summary;
+
+    this.emit("editor-selected", editor);
   },
 
   
