@@ -137,8 +137,10 @@ public:
   
   
   
+  
+  
   virtual nsTransparencyMode GetTransparencyMode() MOZ_OVERRIDE
-  { return eTransparencyOpaque; }
+  { return eTransparencyTransparent; }
 
   virtual LayerManager*
   GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
