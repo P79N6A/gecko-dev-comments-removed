@@ -3064,6 +3064,14 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
     return;
   }
 
+  
+  
+  
+  if (aNextFrame == MediaDecoderOwner::NEXT_FRAME_WAIT_FOR_MSE_DATA) {
+    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_METADATA);
+    return;
+  }
+
   if (mReadyState > nsIDOMHTMLMediaElement::HAVE_METADATA &&
       mDownloadSuspendedByCache &&
       mDecoder &&
