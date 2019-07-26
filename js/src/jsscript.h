@@ -537,7 +537,6 @@ class JSScript : public js::gc::Cell
     bool            hasBeenCloned:1;  
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
-    bool            uninlineable:1;   
 
     
     bool directlyInsideEval:1;

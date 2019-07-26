@@ -106,12 +106,6 @@ struct IonOptions
     
     
     
-    uint32_t usesBeforeCompileNoJaeger;
-
-    
-    
-    
-    
     double usesBeforeInliningFactor;
 
     
@@ -183,7 +177,7 @@ struct IonOptions
 
     void setEagerCompilation() {
         eagerCompilation = true;
-        usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
+        usesBeforeCompile = 0;
         baselineUsesBeforeCompile = 0;
 
         parallelCompilation = false;
@@ -204,7 +198,6 @@ struct IonOptions
         parallelCompilation(false),
         baselineUsesBeforeCompile(10),
         usesBeforeCompile(1000),
-        usesBeforeCompileNoJaeger(40),
         usesBeforeInliningFactor(.125),
         osrPcMismatchesBeforeRecompile(6000),
         frequentBailoutThreshold(10),

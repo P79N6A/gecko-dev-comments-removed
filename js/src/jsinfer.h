@@ -384,7 +384,8 @@ enum {
     OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x00080000,
+
+
 
     
     OBJECT_FLAG_ITERATED              = 0x00100000,
