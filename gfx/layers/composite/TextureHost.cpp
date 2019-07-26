@@ -87,6 +87,12 @@ TemporaryRef<TextureHost> CreateTextureHostOGL(uint64_t aID,
                                                TextureFlags aFlags);
 
 
+TemporaryRef<TextureHost> CreateTextureHostBasic(uint64_t aID,
+                                               const SurfaceDescriptor& aDesc,
+                                               ISurfaceAllocator* aDeallocator,
+                                               TextureFlags aFlags);
+
+
 TemporaryRef<TextureHost>
 TextureHost::Create(uint64_t aID,
                     const SurfaceDescriptor& aDesc,
@@ -97,10 +103,7 @@ TextureHost::Create(uint64_t aID,
     case LAYERS_OPENGL:
       return CreateTextureHostOGL(aID, aDesc, aDeallocator, aFlags);
     case LAYERS_BASIC:
-      return CreateBackendIndependentTextureHost(aID,
-                                                 aDesc,
-                                                 aDeallocator,
-                                                 aFlags);
+      return CreateTextureHostBasic(aID, aDesc, aDeallocator, aFlags);
 #ifdef XP_WIN
     case LAYERS_D3D11:
     case LAYERS_D3D9:
