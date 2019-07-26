@@ -1474,19 +1474,7 @@ public:
     
 
 
-    SFE_NO_PREMULTIPLY_ALPHA = 1 << 4,
-    
-
-    SFE_NO_RASTERIZING_VECTORS = 1 << 5
-  };
-
-  struct DirectDrawInfo {
-    
-    nsCOMPtr<imgIContainer> mImgContainer;
-    
-    uint32_t mWhichFrame;
-    
-    uint32_t mDrawingFlags;
+    SFE_NO_PREMULTIPLY_ALPHA = 1 << 4
   };
 
   struct SurfaceFromElementResult {
@@ -1496,8 +1484,6 @@ public:
 
     
     nsRefPtr<gfxASurface> mSurface;
-    
-    DirectDrawInfo mDrawInfo;
     
     gfxIntSize mSize;
     
