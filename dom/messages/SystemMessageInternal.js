@@ -48,11 +48,6 @@ function debug(aMsg) {
 }
 
 
-const MSG_SENT_SUCCESS = 0;
-const MSG_SENT_FAILURE_PERM_DENIED = 1;
-const MSG_SENT_FAILURE_APP_NOT_RUNNING = 2;
-
-
 
 function SystemMessageInternal() {
   
@@ -163,16 +158,13 @@ SystemMessageInternal.prototype = {
     debug("Sending " + aType + " " + JSON.stringify(aMessage) +
       " for " + aPageURI.spec + " @ " + aManifestURI.spec);
 
-    let result = this._sendMessageCommon(aType,
-                                         aMessage,
-                                         messageID,
-                                         aPageURI.spec,
-                                         aManifestURI.spec);
-    debug("Returned status of sending message: " + result);
-
     
     
-    if (result === MSG_SENT_FAILURE_PERM_DENIED) {
+    if (!this._sendMessageCommon(aType,
+                                 aMessage,
+                                 messageID,
+                                 aPageURI.spec,
+                                 aManifestURI.spec)) {
       return;
     }
 
@@ -181,10 +173,8 @@ SystemMessageInternal.prototype = {
       
       this._queueMessage(page, aMessage, messageID);
 
-        if (result === MSG_SENT_FAILURE_APP_NOT_RUNNING) {
-          
-          this._openAppPage(page, aMessage);
-        }
+      
+      this._openAppPage(page, aMessage);
     }
   },
 
@@ -206,27 +196,21 @@ SystemMessageInternal.prototype = {
     
     this._pages.forEach(function(aPage) {
       if (aPage.type == aType) {
-        let result = this._sendMessageCommon(aType,
-                                             aMessage,
-                                             messageID,
-                                             aPage.uri,
-                                             aPage.manifest);
-        debug("Returned status of sending message: " + result);
-
-
         
         
-        if (result === MSG_SENT_FAILURE_PERM_DENIED) {
+        if (!this._sendMessageCommon(aType,
+                                     aMessage,
+                                     messageID,
+                                     aPage.uri,
+                                     aPage.manifest)) {
           return;
         }
 
         
         this._queueMessage(aPage, aMessage, messageID);
 
-        if (result === MSG_SENT_FAILURE_APP_NOT_RUNNING) {
-          
-          this._openAppPage(aPage, aMessage);
-        }
+        
+        this._openAppPage(aPage, aMessage);
       }
     }, this);
   },
@@ -541,7 +525,7 @@ SystemMessageInternal.prototype = {
           .isSystemMessagePermittedToSend(aType,
                                           aPageURI,
                                           aManifestURI)) {
-      return MSG_SENT_FAILURE_PERM_DENIED;
+      return false;
     }
 
     let appPageIsRunning = false;
@@ -587,11 +571,9 @@ SystemMessageInternal.prototype = {
       
       
       this._acquireCpuWakeLock(pageKey);
-      return MSG_SENT_FAILURE_APP_NOT_RUNNING;
-    } else {
-      return MSG_SENT_SUCCESS;
     }
 
+    return true;
   },
 
   classID: Components.ID("{70589ca5-91ac-4b9e-b839-d6a88167d714}"),
