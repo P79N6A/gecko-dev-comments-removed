@@ -49,6 +49,9 @@ public class MostRecentPage extends HomeFragment {
     private ListView mList;
 
     
+    private TextView mTitle;
+
+    
     private View mEmptyView;
 
     
@@ -90,6 +93,11 @@ public class MostRecentPage extends HomeFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
+        mTitle = (TextView) view.findViewById(R.id.title);
+        if (mTitle != null) {
+            mTitle.setText(R.string.home_most_recent_title);
+        }
+
         mList = (ListView) view.findViewById(R.id.list);
         mList.setTag(HomePager.LIST_TAG_MOST_RECENT);
 
@@ -112,6 +120,7 @@ public class MostRecentPage extends HomeFragment {
     public void onDestroyView() {
         super.onDestroyView();
         mList = null;
+        mTitle = null;
         mEmptyView = null;
     }
 
@@ -150,10 +159,18 @@ public class MostRecentPage extends HomeFragment {
 
     private void updateUiFromCursor(Cursor c) {
         if (c != null && c.getCount() > 0) {
+            if (mTitle != null) {
+                mTitle.setVisibility(View.VISIBLE);
+            }
             return;
         }
 
         
+        
+        if (mTitle != null) {
+            mTitle.setVisibility(View.GONE);
+        }
+
         if (mEmptyView == null) {
             
             final ViewStub emptyViewStub = (ViewStub) getView().findViewById(R.id.home_empty_view_stub);
