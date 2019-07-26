@@ -240,8 +240,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
     
     Maybe<ParseContext<FullParseHandler> > pc;
 
-    pc.construct(&parser, (GenericParseContext *) NULL, &globalsc, (Directives *) NULL,
-                 staticLevel,  0);
+    pc.construct(&parser, (GenericParseContext *) NULL, (ParseNode *) NULL, &globalsc,
+                 (Directives *) NULL, staticLevel,  0);
     if (!pc.ref().init())
         return NULL;
 
@@ -306,8 +306,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
                     return NULL;
 
                 pc.destroy();
-                pc.construct(&parser, (GenericParseContext *) NULL, &globalsc,
-                             (Directives *) NULL, staticLevel,  0);
+                pc.construct(&parser, (GenericParseContext *) NULL, (ParseNode *) NULL,
+                             &globalsc, (Directives *) NULL, staticLevel,  0);
                 if (!pc.ref().init())
                     return NULL;
                 JS_ASSERT(parser.pc == pc.addr());

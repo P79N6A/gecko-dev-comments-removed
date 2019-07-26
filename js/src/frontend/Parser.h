@@ -99,6 +99,7 @@ struct ParseContext : public GenericParseContext
     StmtInfoPC      *topStmt;       
     StmtInfoPC      *topScopeStmt;  
     Rooted<StaticBlockObject *> blockChain;
+    Node            maybeFunction;  
                                     
 
     const unsigned  staticLevel;    
@@ -233,7 +234,8 @@ struct ParseContext : public GenericParseContext
     bool            inDeclDestructuring:1;
 
     ParseContext(Parser<ParseHandler> *prs, GenericParseContext *parent,
-                 SharedContext *sc, Directives *newDirectives,
+                 Node maybeFunction, SharedContext *sc,
+                 Directives *newDirectives,
                  unsigned staticLevel, uint32_t bodyid)
       : GenericParseContext(parent, sc),
         bodyid(0),           
