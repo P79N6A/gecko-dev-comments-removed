@@ -233,6 +233,10 @@ public:
 
 
   virtual void ResetScrollPositionForLayerPixelAlignment() = 0;
+  
+
+
+  virtual bool DidHistoryRestore() = 0;
 };
 
 #endif
