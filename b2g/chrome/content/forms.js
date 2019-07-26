@@ -1029,6 +1029,9 @@ function replaceSurroundingText(element, text, selectionStart, beforeLength,
 
   if (text) {
     
+    
+    text = text.replace(/\r/g, '\n');
+    
     editor.insertText(text);
   }
 }
