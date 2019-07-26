@@ -180,6 +180,9 @@ public:
     virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
       CreateDrawTargetForSurface(gfxASurface *aSurface, const mozilla::gfx::IntSize& aSize);
 
+    virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
+      CreateDrawTargetForUpdateSurface(gfxASurface *aSurface, const mozilla::gfx::IntSize& aSize);
+
     
 
 

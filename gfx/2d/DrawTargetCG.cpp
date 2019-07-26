@@ -1030,13 +1030,23 @@ DrawTargetCG::Init(CGContextRef cgContext, const IntSize &aSize)
   mData = nullptr;
 
   assert(mCg);
-  
-  
-  CGContextTranslateCTM(mCg, 0, mSize.height);
-  CGContextScaleCTM(mCg, 1, -1);
 
   
+  
+  
+  
+  
+  
+  
+
   mFormat = FORMAT_B8G8R8A8;
+  if (GetContextType(mCg) == CG_CONTEXT_TYPE_BITMAP) {
+    CGColorSpaceRef colorspace;
+    colorspace = CGBitmapContextGetColorSpace (mCg);
+    if (CGColorSpaceGetNumberOfComponents(colorspace) == 1) {
+        mFormat = FORMAT_A8;
+    }
+  }
 
   return true;
 }

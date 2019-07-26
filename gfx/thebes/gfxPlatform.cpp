@@ -23,6 +23,7 @@
 #include "gfxD2DSurface.h"
 #elif defined(XP_MACOSX)
 #include "gfxPlatformMac.h"
+#include "gfxQuartzSurface.h"
 #elif defined(MOZ_WIDGET_GTK)
 #include "gfxPlatformGtk.h"
 #elif defined(MOZ_WIDGET_QT)
@@ -545,6 +546,24 @@ gfxPlatform::CreateDrawTargetForSurface(gfxASurface *aSurface, const IntSize& aS
   aSurface->SetData(&kDrawTarget, drawTarget, NULL);
   return drawTarget;
 }
+
+
+
+
+RefPtr<DrawTarget>
+gfxPlatform::CreateDrawTargetForUpdateSurface(gfxASurface *aSurface, const IntSize& aSize)
+{
+#ifdef XP_MACOSX
+  
+  
+  if (aSurface->GetType() == gfxASurface::SurfaceTypeQuartz) {
+    return Factory::CreateDrawTargetForCairoCGContext(static_cast<gfxQuartzSurface*>(aSurface)->GetCGContext(), aSize);
+  }
+#endif
+  MOZ_CRASH();
+  return nullptr;
+}
+
 
 cairo_user_data_key_t kSourceSurface;
 
