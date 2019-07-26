@@ -630,6 +630,11 @@ RetrieveTransaction.prototype = {
   
 
 
+  timer: null,
+
+  
+
+
 
 
   run: function run(callback) {
@@ -638,12 +643,15 @@ RetrieveTransaction.prototype = {
     this.retrieve((function retryCallback(mmsStatus, msg) {
       if (MMS.MMS_PDU_STATUS_DEFERRED == mmsStatus &&
           that.retryCount < PREF_RETRIEVAL_RETRY_COUNT) {
-        let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        timer.initWithCallback((function (){
-                                 this.retrieve(retryCallback);
-                               }).bind(that),
-                               PREF_RETRIEVAL_RETRY_INTERVALS[that.retryCount],
-                               Ci.nsITimer.TYPE_ONE_SHOT);
+        if (that.timer == null) {
+          that.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        }
+
+        that.timer.initWithCallback((function (){
+                                      this.retrieve(retryCallback);
+                                    }).bind(that),
+                                    PREF_RETRIEVAL_RETRY_INTERVALS[that.retryCount],
+                                    Ci.nsITimer.TYPE_ONE_SHOT);
         that.retryCount++;
         return;
       }
@@ -752,6 +760,11 @@ function SendTransaction(msg) {
   this.msg = msg;
 }
 SendTransaction.prototype = {
+  
+
+
+  timer: null,
+
   istreamComposed: false,
 
   
@@ -829,12 +842,15 @@ SendTransaction.prototype = {
       if ((MMS.MMS_PDU_ERROR_TRANSIENT_FAILURE == mmsStatus ||
             MMS.MMS_PDU_ERROR_PERMANENT_FAILURE == mmsStatus) &&
           this.retryCount < PREF_SEND_RETRY_COUNT) {
+        if (this.timer == null) {
+          this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        }
+
         this.retryCount++;
 
-        let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        timer.initWithCallback(this.send.bind(this, retryCallback),
-                               PREF_SEND_RETRY_INTERVAL,
-                               Ci.nsITimer.TYPE_ONE_SHOT);
+        this.timer.initWithCallback(this.send.bind(this, retryCallback),
+                                    PREF_SEND_RETRY_INTERVAL,
+                                    Ci.nsITimer.TYPE_ONE_SHOT);
         return;
       }
 
