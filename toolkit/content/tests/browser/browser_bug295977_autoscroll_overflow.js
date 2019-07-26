@@ -9,7 +9,7 @@ function test()
   const expectScrollBoth = 3;
 
   var allTests = [
-    {dataUri: 'data:text/html,<body><style type="text/css">div { display: inline-block; }</style>\
+    {dataUri: 'data:text/html,<html><head><meta charset="utf-8"></head><body><style type="text/css">div { display: inline-block; }</style>\
       <div id="a" style="width: 100px; height: 100px; overflow: hidden;"><div style="width: 200px; height: 200px;"></div></div>\
       <div id="b" style="width: 100px; height: 100px; overflow: auto;"><div style="width: 200px; height: 200px;"></div></div>\
       <div id="c" style="width: 100px; height: 100px; overflow-x: auto; overflow-y: hidden;"><div style="width: 200px; height: 200px;"></div></div>\
@@ -23,7 +23,7 @@ function test()
       <div id="g" style="width: 99px; height: 99px; border: 10px solid black; margin: 10px; overflow: auto;"><div style="width: 100px; height: 100px;"></div></div>\
       <div id="h" style="width: 100px; height: 100px; overflow: -moz-hidden-unscrollable;"><div style="width: 200px; height: 200px;"></div></div>\
       <iframe id="iframe" style="display: none;"></iframe>\
-      </body>'},
+      </body></html>'},
     {elem: 'a', expected: expectScrollNone},
     {elem: 'b', expected: expectScrollBoth},
     {elem: 'c', expected: expectScrollHori},
@@ -32,11 +32,11 @@ function test()
     {elem: 'f', expected: expectScrollNone},
     {elem: 'g', expected: expectScrollBoth},
     {elem: 'h', expected: expectScrollNone},
-    {dataUri: 'data:text/html,<html><body id="i" style="overflow-y: scroll"><div style="height: 2000px"></div>\
+    {dataUri: 'data:text/html,<html><head><meta charset="utf-8"></head><body id="i" style="overflow-y: scroll"><div style="height: 2000px"></div>\
       <iframe id="iframe" style="display: none;"></iframe>\
       </body></html>'},
     {elem: 'i', expected: expectScrollVert}, 
-    {dataUri: 'data:text/html,<html><style>html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: scroll; }</style>\
+    {dataUri: 'data:text/html,<html><head><meta charset="utf-8"></head><style>html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: scroll; }</style>\
       <body id="j"><div style="height: 2000px"></div>\
       <iframe id="iframe" style="display: none;"></iframe>\
       </body></html>'},
@@ -58,14 +58,35 @@ function test()
     }
 
     var elem = doc.getElementById(test.elem);
-    
-    
-    var skipFrames = 1;
-    var checkScroll = function () {
-      if (skipFrames--) {
+
+    let firstTimestamp = undefined;
+    function checkScroll(timestamp) {
+      if (firstTimestamp === undefined) {
+        firstTimestamp = timestamp;
+      }
+
+      
+      
+      
+      
+      let timeCompensation = (timestamp - firstTimestamp) / 20;
+      info("timestamp=" + timestamp + " firstTimestamp=" + firstTimestamp +
+           " timeCompensation=" + timeCompensation);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      if (timeCompensation < 1) {
         window.mozRequestAnimationFrame(checkScroll);
         return;
       }
+
+      
       EventUtils.synthesizeKey("VK_ESCAPE", {}, gBrowser.contentWindow);
       var scrollVert = test.expected & expectScrollVert;
       ok((scrollVert && elem.scrollTop > 0) ||
@@ -83,6 +104,8 @@ function test()
     EventUtils.synthesizeMouse(elem, 50, 50, { button: 1 },
                                gBrowser.contentWindow);
 
+    
+    
     var iframe = gBrowser.contentDocument.getElementById("iframe");
     var e = iframe.contentDocument.createEvent("pagetransition");
     e.initPageTransitionEvent("pagehide", true, true, false);
@@ -92,11 +115,8 @@ function test()
     EventUtils.synthesizeMouse(elem, 100, 100,
                                { type: "mousemove", clickCount: "0" },
                                gBrowser.contentWindow);
+
     
-
-
-
-
     window.mozRequestAnimationFrame(checkScroll);
   }
 
