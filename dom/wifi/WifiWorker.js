@@ -647,6 +647,48 @@ var WifiManager = (function() {
     });
   }
 
+  var httpProxyConfig = Object.create(null);
+
+  
+
+
+
+
+
+
+
+  function configureHttpProxy(network, info, callback) {
+    if (!network)
+      return;
+
+    let networkKey = getNetworkKey(network);
+
+    if (!info || info.httpProxyHost === "") {
+      delete httpProxyConfig[networkKey];
+    } else {
+      httpProxyConfig[networkKey] = network;
+      httpProxyConfig[networkKey].httpProxyHost = info.httpProxyHost;
+      httpProxyConfig[networkKey].httpProxyPort = info.httpProxyPort;
+    }
+
+    callback(true);
+  }
+
+  function getHttpProxyNetwork(network) {
+    if (!network)
+      return null;
+
+    let networkKey = getNetworkKey(network);
+    return ((networkKey in httpProxyConfig) ? httpProxyConfig : null);
+  }
+
+  function setHttpProxy(network) {
+    if (!network)
+      return;
+
+    gNetworkManager.setNetworkProxy(network);
+  }
+
   var staticIpConfig = Object.create(null);
   function setStaticIpMode(network, info, callback) {
     let setNetworkKey = getNetworkKey(network);
@@ -1548,6 +1590,9 @@ var WifiManager = (function() {
   manager.setPowerMode = (sdkVersion >= 16)
                          ? setPowerModeCommandJB
                          : setPowerModeCommandICS;
+  manager.getHttpProxyNetwork = getHttpProxyNetwork;
+  manager.setHttpProxy = setHttpProxy;
+  manager.configureHttpProxy = configureHttpProxy;
   manager.setSuspendOptimizations = setSuspendOptimizationsCommand;
   manager.setStaticIpMode = setStaticIpMode;
   manager.getRssiApprox = getRssiApproxCommand;
@@ -1851,6 +1896,7 @@ function WifiWorker() {
                     "WifiManager:associate", "WifiManager:forget",
                     "WifiManager:wps", "WifiManager:getState",
                     "WifiManager:setPowerSavingMode",
+                    "WifiManager:setHttpProxy",
                     "WifiManager:setStaticIpMode",
                     "child-process-shutdown"];
 
@@ -2161,6 +2207,11 @@ function WifiWorker() {
         }
 
         
+        let netConnect = WifiManager.getHttpProxyNetwork(self.currentNetwork);
+        if (netConnect)
+          WifiManager.setHttpProxy(netConnect);
+
+        
         WifiManager.authenticationFailuresCount = 0;
         WifiManager.loopDetectionCount = 0;
         self._startConnectionInfoTimer();
@@ -2182,6 +2233,23 @@ function WifiWorker() {
         }
 
         self._fireEvent("ondisconnect", {});
+
+        
+        
+        let netDisconnect = WifiManager.getHttpProxyNetwork(self.currentNetwork);
+        if (netDisconnect) {
+          let prehttpProxyHostSetting = netDisconnect.httpProxyHost;
+          let prehttpProxyPortSetting = netDisconnect.httpProxyPort;
+
+          netDisconnect.httpProxyHost = "";
+          netDisconnect.httpProxyPort = 0;
+
+          WifiManager.setHttpProxy(netDisconnect);
+
+          netDisconnect.httpProxyHost = prehttpProxyHostSetting;
+          netDisconnect.httpProxyPort = prehttpProxyPortSetting;
+        }
+
         self.currentNetwork = null;
         self.ipAddress = "";
 
@@ -2716,6 +2784,9 @@ WifiWorker.prototype = {
       case "WifiManager:setPowerSavingMode":
         this.setPowerSavingMode(msg);
         break;
+      case "WifiManager:setHttpProxy":
+        this.setHttpProxy(msg);
+        break;
       case "WifiManager:setStaticIpMode":
         this.setStaticIpMode(msg);
         break;
@@ -3207,6 +3278,30 @@ WifiWorker.prototype = {
           self._sendMessage(message, false, "Set power saving mode failed", msg);
         }
       });
+    });
+  },
+
+  setHttpProxy: function(msg) {
+    const message = "WifiManager:setHttpProxy:Return";
+    let self = this;
+    let network = msg.data.network;
+    let info = msg.data.info;
+
+    netFromDOM(network, null);
+
+    WifiManager.configureHttpProxy(network, info, function(ok) {
+      if (ok) {
+        
+        
+        let setNetworkKey = getNetworkKey(network);
+        let curNetworkKey = self.currentNetwork ? getNetworkKey(self.currentNetwork) : null;
+        if (setNetworkKey === curNetworkKey)
+          WifiManager.setHttpProxy(network);
+
+        self._sendMessage(message, true, true, msg);
+      } else {
+        self._sendMessage(message, false, "Set http proxy failed", msg);
+      }
     });
   },
 
