@@ -262,6 +262,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     uint16_t        ndefaults;
     bool            inWith:1;               
     bool            inGenexpLambda:1;       
+    bool            hasDestructuringArgs:1; 
     bool            useAsm:1;               
     bool            insideUseAsm:1;         
 
