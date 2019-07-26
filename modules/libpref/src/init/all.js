@@ -550,9 +550,6 @@ pref("accessibility.typeaheadfind.matchesCountLimit", 100);
 pref("gfx.use_text_smoothing_setting", false);
 
 
-pref("browser.frames.enabled", true);
-
-
 pref("toolkit.autocomplete.richBoundaryCutoff", 200);
 
 
