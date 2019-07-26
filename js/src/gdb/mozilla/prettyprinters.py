@@ -16,7 +16,7 @@ import re
 
 def check_for_reused_pretty_printer(fn):
     if hasattr(fn, 'enabled'):
-        raise RuntimeError, ("pretty-printer function %r registered more than once" % fn)
+        raise RuntimeError("pretty-printer function %r registered more than once" % fn)
 
 
 printers_by_tag = {}
@@ -107,7 +107,7 @@ def clear_module_printers(module_name):
         
         
         to_delete = []
-        for (k, v) in d.iteritems():
+        for (k, v) in d.items():
             if v.__module__ == module_name:
                 to_delete.append(k)
                 remove_from_subprinter_list(v)
