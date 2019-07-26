@@ -946,6 +946,11 @@ nsLookAndFeel::Init()
     GdkRGBA color;
     GtkStyleContext *style;
 
+    
+    
+    
+    (void)gtk_settings_get_for_screen(gdk_screen_get_default());
+
     GtkWidgetPath *path = gtk_widget_path_new();
     gtk_widget_path_append_type(path, GTK_TYPE_WINDOW);
 
