@@ -189,6 +189,13 @@ Site.prototype = {
     }
     Services.telemetry.getHistogramById("NEWTAB_PAGE_SITE_CLICKED")
                       .add(aIndex);
+
+    
+    let typeIndex = DirectoryLinksProvider.linkTypes.indexOf(this.link.type);
+    if (typeIndex != -1) {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_DIRECTORY_TYPE_CLICKED")
+                        .add(typeIndex);
+    }
   },
 
   
