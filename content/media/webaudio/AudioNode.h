@@ -105,10 +105,10 @@ public:
     return mContext;
   }
 
-  void Connect(AudioNode& aDestination, uint32_t aOutput,
-               uint32_t aInput, ErrorResult& aRv);
+  virtual void Connect(AudioNode& aDestination, uint32_t aOutput,
+                       uint32_t aInput, ErrorResult& aRv);
 
-  void Disconnect(uint32_t aOutput, ErrorResult& aRv);
+  virtual void Disconnect(uint32_t aOutput, ErrorResult& aRv);
 
   
   
