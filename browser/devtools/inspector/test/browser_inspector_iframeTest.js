@@ -35,9 +35,7 @@ function createDocument() {
       
       openInspector(aInspector => {
         inspector = aInspector;
-        inspector.once("inspector-updated", () => {
-          inspector.toolbox.highlighterUtils.startPicker().then(runTests);
-        });
+        inspector.toolbox.highlighterUtils.startPicker().then(runTests);
       });
     }, false);
 

@@ -41,12 +41,152 @@ SimpleTest.registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
 });
 
-function openInspector(callback)
-{
+
+
+
+
+
+
+function getNode(nodeOrSelector) {
+  return typeof nodeOrSelector === "string" ?
+    content.document.querySelector(nodeOrSelector) :
+    nodeOrSelector;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function selectNode(nodeOrSelector, inspector, reason="test") {
+  info("Selecting the node " + nodeOrSelector);
+  let node = getNode(nodeOrSelector);
+  let updated = inspector.once("inspector-updated");
+  inspector.selection.setNode(node, reason);
+  return updated;
+}
+
+
+
+
+
+
+
+let openInspector = Task.async(function*(cb) {
+  info("Opening the inspector");
   let target = TargetFactory.forTab(gBrowser.selectedTab);
-  gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    callback(toolbox.getCurrentPanel(), toolbox);
-  }).then(null, console.error);
+
+  let inspector, toolbox;
+
+  
+  
+  
+  toolbox = gDevTools.getToolbox(target);
+  if (toolbox) {
+    inspector = toolbox.getPanel("inspector");
+    if (inspector) {
+      info("Toolbox and inspector already open");
+      if (cb) {
+        return cb(inspector, toolbox);
+      } else {
+        return {
+          toolbox: toolbox,
+          inspector: inspector
+        };
+      }
+    }
+  }
+
+  info("Opening the toolbox");
+  toolbox = yield gDevTools.showToolbox(target, "inspector");
+  yield waitForToolboxFrameFocus(toolbox);
+  inspector = toolbox.getPanel("inspector");
+
+  info("Waiting for the inspector to update");
+  yield inspector.once("inspector-updated");
+
+  if (cb) {
+    return cb(inspector, toolbox);
+  } else {
+    return {
+      toolbox: toolbox,
+      inspector: inspector
+    };
+  }
+});
+
+
+
+
+
+
+function waitForToolboxFrameFocus(toolbox) {
+  info("Making sure that the toolbox's frame is focused");
+  let def = promise.defer();
+  let win = toolbox.frame.contentWindow;
+  waitForFocus(def.resolve, win);
+  return def.promise;
+}
+
+
+
+
+
+
+
+let openInspectorSideBar = Task.async(function*(id) {
+  let {toolbox, inspector} = yield openInspector();
+
+  if (!hasSideBarTab(inspector, id)) {
+    info("Waiting for the " + id + " sidebar to be ready");
+    yield inspector.sidebar.once(id + "-ready");
+  }
+
+  info("Selecting the " + id + " sidebar");
+  inspector.sidebar.select(id);
+
+  return {
+    toolbox: toolbox,
+    inspector: inspector,
+    view: inspector.sidebar.getWindowForTab(id)[id].view
+  };
+});
+
+
+
+
+
+
+
+function openComputedView() {
+  return openInspectorSideBar("computedview");
+}
+
+
+
+
+
+
+
+function openRuleView() {
+  return openInspectorSideBar("ruleview");
+}
+
+
+
+
+
+
+
+
+function hasSideBarTab(inspector, id) {
+  return !!inspector.sidebar.getWindowForTab(id);
 }
 
 function getActiveInspector()
