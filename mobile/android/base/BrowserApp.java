@@ -2175,9 +2175,6 @@ abstract public class BrowserApp extends GeckoApp
         
         if (Intent.ACTION_VIEW.equals(action)) {
             dismissEditingMode();
-
-            
-            mBrowserToolbar.setTitle(intent.getDataString());
             return;
         }
 
