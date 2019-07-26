@@ -320,7 +320,9 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
     case MULTITOUCH_INPUT: {
       const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_START) {
-        mTouchCount++;
+        
+        
+        mTouchCount = multiTouchInput.mTouches.Length();
         mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint));
         if (multiTouchInput.mTouches.Length() == 1) {
           
@@ -363,6 +365,7 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
       if (multiTouchInput.mType == MultiTouchInput::MULTITOUCH_CANCEL ||
           multiTouchInput.mType == MultiTouchInput::MULTITOUCH_END) {
         if (mTouchCount >= multiTouchInput.mTouches.Length()) {
+          
           mTouchCount -= multiTouchInput.mTouches.Length();
         } else {
           NS_WARNING("Got an unexpected touchend/touchcancel");
@@ -438,7 +441,9 @@ APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
     return ret;
   }
   if (aEvent.message == NS_TOUCH_START) {
-    mTouchCount++;
+    
+    
+    mTouchCount = aEvent.touches.Length();
     mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent);
     if (mApzcForInputBlock) {
       
@@ -477,6 +482,7 @@ APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
   if (aEvent.message == NS_TOUCH_CANCEL ||
       aEvent.message == NS_TOUCH_END) {
     if (mTouchCount >= aEvent.touches.Length()) {
+      
       mTouchCount -= aEvent.touches.Length();
     } else {
       NS_WARNING("Got an unexpected touchend/touchcancel");
