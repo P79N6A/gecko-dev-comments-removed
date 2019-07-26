@@ -118,17 +118,21 @@ add_task(function test_collect() {
   recorder = new SessionRecorder("testing.collect.sessions.");
   recorder.onStartup();
 
-  yield provider.collectConstantData();
+  
   let sessions = recorder.getPreviousSessions();
+  do_check_eq(Object.keys(sessions).length, 6);
+  yield provider.collectConstantData();
+  sessions = recorder.getPreviousSessions();
   do_check_eq(Object.keys(sessions).length, 0);
 
+  
   let daily = provider.getMeasurement("previous", 3);
   let values = yield daily.getValues();
   do_check_true(values.days.hasDay(now));
   do_check_eq(values.days.size, 1);
-
   let day = values.days.getDay(now);
   do_check_eq(day.size, 5);
+  let previousStorageCount = day.get("main").length;
 
   for (let field of ["cleanActiveTicks", "cleanTotalTime", "main", "firstPaint", "sessionRestored"]) {
     do_check_true(day.has(field));
@@ -137,8 +141,10 @@ add_task(function test_collect() {
   }
 
   let lastIndex = yield provider.getState("lastSession");
-  do_check_eq(lastIndex, "5"); 
+  do_check_eq(lastIndex, "" + (previousStorageCount - 1)); 
 
+  
+  
   
   let recorder2 = new SessionRecorder("testing.collect.sessions.");
   recorder2.onStartup();
@@ -148,7 +154,8 @@ add_task(function test_collect() {
 
   values = yield daily.getValues();
   day = values.days.getDay(now);
-  do_check_eq(day.size, 7);
+  do_check_eq(day.size, previousStorageCount + 1);
+  previousStorageCount = day.get("main").length;
   for (let field of ["abortedActiveTicks", "abortedTotalTime"]) {
     do_check_true(day.has(field));
     do_check_true(Array.isArray(day.get(field)));
@@ -156,25 +163,27 @@ add_task(function test_collect() {
   }
 
   lastIndex = yield provider.getState("lastSession");
-  do_check_eq(lastIndex, "6");
+  do_check_eq(lastIndex, "" + (previousStorageCount - 1));
 
+  recorder.onShutdown();
   recorder2.onShutdown();
 
   
-  let recorder3 = new SessionRecorder("testing.collect.sessions.");
-  recorder3._currentIndex = recorder2._currentIndex - 4;
-  recorder3._prunedIndex = recorder3._currentIndex;
-  recorder3.onStartup();
+  recorder = new SessionRecorder("testing.collect.sessions.");
+  recorder._currentIndex = recorder._currentIndex - 1;
+  recorder._prunedIndex = recorder._currentIndex;
+  recorder.onStartup();
   
-  do_check_eq(Object.keys(recorder.getPreviousSessions()).length, 1);
+  sessions = recorder.getPreviousSessions();
+  do_check_eq(Object.keys(sessions).length, 1);
+  do_check_true(previousStorageCount - 1 in sessions);
   yield provider.collectConstantData();
   lastIndex = yield provider.getState("lastSession");
-  do_check_eq(lastIndex, "6");
+  do_check_eq(lastIndex, "" + (previousStorageCount - 1));
   values = yield daily.getValues();
   day = values.days.getDay(now);
-  do_check_eq(day.size, 7); 
-  recorder3.onShutdown();
-
+  
+  do_check_eq(day.get("main").length, previousStorageCount);
   recorder.onShutdown();
 
   yield provider.shutdown();
