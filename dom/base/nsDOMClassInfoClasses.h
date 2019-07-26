@@ -158,7 +158,6 @@ DOMCI_CLASS(OfflineResourceList)
 
 DOMCI_CLASS(Blob)
 DOMCI_CLASS(File)
-DOMCI_CLASS(FileReader)
 
 
 DOMCI_CLASS(ModalContentWindow)
