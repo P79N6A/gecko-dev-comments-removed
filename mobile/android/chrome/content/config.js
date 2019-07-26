@@ -87,12 +87,6 @@ var NewPrefDialog = {
     }
 
     
-    if (/^capability\./.test(aPrefName)) {
-      this._positiveButton.textContent = "Private";
-      return;
-    }
-
-    
     let item = document.querySelector(".pref-item[name=" + aPrefName.quote() + "]");
     if (item) {
       this._positiveButton.textContent = gStringBundle.GetStringFromName("newPref.changeButton");
@@ -207,10 +201,7 @@ var AboutConfig = {
     this._prefsContainer = document.getElementById("prefs-container");
     this._loadingContainer = document.getElementById("loading-container");
 
-    let list = Services.prefs.getChildList("", {}).filter(function(aElement) {
-      
-      return !(/^capability\./.test(aElement));
-    });
+    let list = Services.prefs.getChildList("");
     this._list = list.sort().map( function AC_getMapPref(aPref) {
       return new Pref(aPref);
     }, this);
@@ -464,7 +455,7 @@ var AboutConfig = {
     let pref = new Pref(aPrefName);
 
     
-    if ((aTopic != "nsPref:changed") || /^capability\./.test(pref.name)) {
+    if (aTopic != "nsPref:changed") {
       return;
     }
 
