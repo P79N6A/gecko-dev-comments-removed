@@ -4,6 +4,7 @@
 
 from __future__ import print_function, unicode_literals
 
+import json
 import logging
 import mozpack.path
 import multiprocessing
@@ -25,6 +26,36 @@ from .mozconfig import (
     MozconfigLoader,
 )
 
+def ancestors(path):
+    """Emit the parent directories of a path."""
+    while path:
+        yield path
+        newpath = os.path.dirname(path)
+        if newpath == path:
+            break
+        path = newpath
+
+def samepath(path1, path2):
+    if hasattr(os.path, "samepath"):
+        return os.path.samepath(path1, path2)
+    return os.path.normpath(path1) == os.path.normpath(path2)
+
+class BadEnvironmentException(Exception):
+    """Base class for errors raised when the build environment is not sane."""
+
+
+class BuildEnvironmentNotFoundException(BadEnvironmentException):
+    """Raised when we could not find a build environment."""
+
+
+class ObjdirMismatchException(BadEnvironmentException):
+    """Raised when the current dir is an objdir and doesn't match the mozconfig."""
+    def __init__(self, objdir1, objdir2):
+        self.objdir1 = objdir1
+        self.objdir2 = objdir2
+
+    def __str__(self):
+        return "Objdir mismatch: %s != %s" % (self.objdir1, self.objdir2)
 
 class MozbuildObject(ProcessExecutionMixin):
     """Base class providing basic functionality useful to many modules.
@@ -53,6 +84,90 @@ class MozbuildObject(ProcessExecutionMixin):
         self._mozconfig = None
         self._config_guess_output = None
         self._config_environment = None
+
+    @classmethod
+    def from_environment(cls):
+        """Create a MozbuildObject by detecting the proper one from the env.
+
+        This examines environment state like the current working directory and
+        creates a MozbuildObject from the found source directory, mozconfig, etc.
+
+        The role of this function is to identify a topsrcdir, topobjdir, and
+        mozconfig file.
+
+        If the current working directory is inside a known objdir, we always
+        use the topsrcdir and mozconfig associated with that objdir. If no
+        mozconfig is associated with that objdir, we fall back to looking for
+        the mozconfig in the usual places.
+
+        If the current working directory is inside a known srcdir, we use that
+        topsrcdir and look for mozconfigs using the default mechanism, which
+        looks inside environment variables.
+
+        If the current Python interpreter is running from a virtualenv inside
+        an objdir, we use that as our objdir.
+
+        If we're not inside a srcdir or objdir, an exception is raised.
+        """
+
+        topsrcdir = None
+        topobjdir = None
+        mozconfig = None
+
+        def load_mozinfo(path):
+            info = json.load(open(path, 'rt'))
+            topsrcdir = info.get('topsrcdir')
+            topobjdir = os.path.dirname(path)
+            mozconfig = info.get('mozconfig')
+            return topsrcdir, topobjdir, mozconfig
+
+        for dir_path in ancestors(os.getcwd()):
+            
+            mozinfo_path = os.path.join(dir_path, 'mozinfo.json')
+            if os.path.isfile(mozinfo_path):
+                topsrcdir, topobjdir, mozconfig = load_mozinfo(mozinfo_path)
+                break
+
+            
+            
+            our_path = os.path.join(dir_path, 'python', 'mozbuild', 'mozbuild', 'base.py')
+            if os.path.isfile(our_path):
+                topsrcdir = dir_path
+                break
+
+        if not topsrcdir:
+            
+            mozinfo_path = os.path.join(os.path.dirname(sys.prefix), "mozinfo.json")
+            if os.path.isfile(mozinfo_path):
+                topsrcdir, topobjdir, mozconfig = load_mozinfo(mozinfo_path)
+
+        
+        
+        if not topsrcdir:
+            raise BuildEnvironmentNotFoundException(
+                'Could not find Mozilla source tree or build environment.')
+
+        
+        
+        
+        
+        loader = MozconfigLoader(topsrcdir)
+        config = loader.read_mozconfig(mozconfig)
+
+        
+        
+        
+        
+        if topobjdir and config['topobjdir'] \
+            and not samepath(topobjdir, config['topobjdir']):
+
+            raise ObjdirMismatchException(topobjdir, config['topobjdir'])
+
+        topobjdir = os.path.normpath(config['topobjdir'] or topobjdir)
+
+        
+        
+        return cls(topsrcdir, None, None, topobjdir=topobjdir)
 
     @property
     def topobjdir(self):
