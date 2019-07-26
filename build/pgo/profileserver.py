@@ -65,7 +65,15 @@ if __name__ == '__main__':
                            cmdargs=cmdargs,
                            env=env)
     runner.start(debug_args=debug_args, interactive=interactive)
-    runner.wait()
+    status = runner.wait()
     httpd.stop()
+    if status != 0:
+        status = 1      
+
+    
+    
+    
+    
+    sys.exit(status)
   finally:
     shutil.rmtree(profilePath)
