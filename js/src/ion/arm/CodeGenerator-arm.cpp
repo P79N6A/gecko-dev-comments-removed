@@ -576,6 +576,8 @@ CodeGeneratorARM::visitModI(LModI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
     Register callTemp = ToRegister(ins->getTemp(2));
+    MMod *mir = ins->mir();
+    Label done;
     
     JS_ASSERT(callTemp.code() > r3.code() && callTemp.code() < r12.code());
     masm.ma_mov(lhs, callTemp);
@@ -583,8 +585,18 @@ CodeGeneratorARM::visitModI(LModI *ins)
     
     masm.ma_cmp(lhs, Imm32(INT_MIN)); 
     masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-        return false;
+    if (mir->isTruncated()) {
+        
+        Label skip;
+        masm.ma_b(&skip, Assembler::NotEqual);
+        masm.ma_mov(Imm32(0), r1);
+        masm.ma_b(&done);
+        masm.bind(&skip);
+    } else {
+        JS_ASSERT(mir->fallible());
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+    }
     
     
     
@@ -600,21 +612,35 @@ CodeGeneratorARM::visitModI(LModI *ins)
     
     masm.ma_cmp(rhs, Imm32(0));
     masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
-    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-        return false;
+    if (mir->isTruncated()) {
+        
+        Label skip;
+        masm.ma_b(&skip, Assembler::NotEqual);
+        masm.ma_mov(Imm32(0), r1);
+        masm.ma_b(&done);
+        masm.bind(&skip);
+    } else {
+        JS_ASSERT(mir->fallible());
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+    }
     masm.setupAlignedABICall(2);
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     
-    Label join;
     
     masm.ma_cmp(r1, Imm32(0));
-    masm.ma_b(&join, Assembler::NotEqual);
-    masm.ma_cmp(callTemp, Imm32(0));
-    if (!bailoutIf(Assembler::Signed, ins->snapshot()))
-        return false;
-    masm.bind(&join);
+    if (mir->isTruncated()) {
+        
+    } else {
+        JS_ASSERT(mir->fallible());
+        masm.ma_b(&done, Assembler::NotEqual);
+        masm.ma_cmp(callTemp, Imm32(0));
+        if (!bailoutIf(Assembler::Signed, ins->snapshot()))
+            return false;
+    }
+    masm.bind(&done);
     return true;
 }
 
@@ -623,6 +649,7 @@ CodeGeneratorARM::visitModPowTwoI(LModPowTwoI *ins)
 {
     Register in = ToRegister(ins->getOperand(0));
     Register out = ToRegister(ins->getDef(0));
+    MMod *mir = ins->mir();
     Label fin;
     
     masm.ma_mov(in, out, SetCond);
@@ -630,8 +657,13 @@ CodeGeneratorARM::visitModPowTwoI(LModPowTwoI *ins)
     masm.ma_rsb(Imm32(0), out, NoSetCond, Assembler::Signed);
     masm.ma_and(Imm32((1<<ins->shift())-1), out);
     masm.ma_rsb(Imm32(0), out, SetCond, Assembler::Signed);
-    if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-        return false;
+    if (!mir->isTruncated()) {
+        JS_ASSERT(mir->fallible());
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false;
+    } else {
+        
+    }
     masm.bind(&fin);
     return true;
 }
@@ -642,9 +674,15 @@ CodeGeneratorARM::visitModMaskI(LModMaskI *ins)
     Register src = ToRegister(ins->getOperand(0));
     Register dest = ToRegister(ins->getDef(0));
     Register tmp = ToRegister(ins->getTemp(0));
+    MMod *mir = ins->mir();
     masm.ma_mod_mask(src, dest, tmp, ins->shift());
-    if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-        return false;
+    if (!mir->isTruncated()) {
+        JS_ASSERT(mir->fallible());
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false;
+    } else {
+        
+    }
     return true;
 }
 bool
