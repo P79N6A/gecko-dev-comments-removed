@@ -556,8 +556,9 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
   }
 
   
-  float mPixelScale = 1.0f;
+  float pixelScale = 96.0 / GetDeviceCaps(aHDC, LOGPIXELSY);
 
+  
   
   
   
@@ -579,7 +580,7 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
     ::DeleteObject(hFont);
     pixelHeight = tm.tmAscent;
   }
-  pixelHeight *= mPixelScale;
+  pixelHeight *= pixelScale;
 
   
   
@@ -619,6 +620,8 @@ nsLookAndFeel::GetFontImpl(FontID anID, nsString &aFontName,
   HDC tdc = GetDC(NULL);
   bool status = GetSysFontInfo(tdc, anID, aFontName, aFontStyle);
   ReleaseDC(NULL, tdc);
+  
+  aFontStyle.size *= aDevPixPerCSSPixel;
   return status;
 }
 
