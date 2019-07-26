@@ -45,13 +45,6 @@ struct CSSPixel {
 
   
 
-  static CSSIntPoint RoundToInt(const CSSPoint& aPoint) {
-    return CSSIntPoint(NS_lround(aPoint.x),
-                       NS_lround(aPoint.y));
-  }
-
-  
-
   static CSSPoint FromAppUnits(const nsPoint& aPoint) {
     return CSSPoint(NSAppUnitsToFloatPixels(aPoint.x, float(nsDeviceContext::AppUnitsPerCSSPixel())),
                     NSAppUnitsToFloatPixels(aPoint.y, float(nsDeviceContext::AppUnitsPerCSSPixel())));
@@ -108,15 +101,6 @@ struct LayerPixel {
 
   
 
-  static LayerIntRect RoundToInt(const LayerRect& aRect) {
-    return LayerIntRect(NS_lround(aRect.x),
-                        NS_lround(aRect.y),
-                        NS_lround(aRect.width),
-                        NS_lround(aRect.height));
-  }
-
-  
-
   static LayerPoint FromCSSPoint(const CSSPoint& aPoint, float aResolutionX, float aResolutionY) {
     return LayerPoint(aPoint.x * aResolutionX,
                       aPoint.y * aResolutionY);
@@ -135,7 +119,7 @@ struct LayerPixel {
   }
 
   static LayerIntRect FromCSSRectRounded(const CSSRect& aRect, float aResolutionX, float aResolutionY) {
-    return RoundToInt(FromCSSRect(aRect, aResolutionX, aResolutionY));
+    return gfx::RoundedToInt(FromCSSRect(aRect, aResolutionX, aResolutionY));
   }
 };
 
