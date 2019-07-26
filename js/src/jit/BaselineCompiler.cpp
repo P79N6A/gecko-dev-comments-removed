@@ -854,10 +854,16 @@ BaselineCompiler::emit_JSOP_POPN()
 }
 
 bool
-BaselineCompiler::emit_JSOP_POPNV()
+BaselineCompiler::emit_JSOP_DUPAT()
 {
-    frame.popRegsAndSync(1);
-    frame.popn(GET_UINT16(pc));
+    frame.syncStack(0);
+
+    
+    
+    
+
+    int depth = -(GET_UINT24(pc) + 1);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(depth)), R0);
     frame.push(R0);
     return true;
 }
@@ -2290,17 +2296,7 @@ BaselineCompiler::emit_JSOP_INITELEM_SETTER()
 bool
 BaselineCompiler::emit_JSOP_GETLOCAL()
 {
-    uint32_t local = GET_LOCALNO(pc);
-
-    if (local >= frame.nlocals()) {
-        
-        frame.syncStack(0);
-        masm.loadValue(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfLocal(local)), R0);
-        frame.push(R0);
-        return true;
-    }
-
-    frame.pushLocal(local);
+    frame.pushLocal(GET_LOCALNO(pc));
     return true;
 }
 
