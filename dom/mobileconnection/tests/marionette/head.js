@@ -57,24 +57,17 @@ function runEmulatorCmdSafe(aCommand) {
 
 
 
-
-
-
-
-
-
-
-function getSettings(aKey, aAllowError) {
+function wrapDomRequestAsPromise(aRequest) {
   let deferred = Promise.defer();
 
-  let request = navigator.mozSettings.createLock().get(aKey);
-  request.addEventListener("success", function(aEvent) {
-    ok(true, "getSettings(" + aKey + ") - success");
-    deferred.resolve(aEvent.target.result[aKey]);
+  ok(aRequest instanceof DOMRequest,
+     "aRequest is instanceof " + aRequest.constructor);
+
+  aRequest.addEventListener("success", function(aEvent) {
+    deferred.resolve(aEvent);
   });
-  request.addEventListener("error", function() {
-    ok(aAllowError, "getSettings(" + aKey + ") - error");
-    deferred.reject();
+  aRequest.addEventListener("error", function(aEvent) {
+    deferred.reject(aEvent);
   });
 
   return deferred.promise;
@@ -96,20 +89,43 @@ function getSettings(aKey, aAllowError) {
 
 
 
+
+
+function getSettings(aKey, aAllowError) {
+  let request = navigator.mozSettings.createLock().get(aKey);
+  return wrapDomRequestAsPromise(request)
+    .then(function resolve(aEvent) {
+      ok(true, "getSettings(" + aKey + ") - success");
+      return aEvent.target.result[aKey];
+    }, function reject(aEvent) {
+      ok(aAllowError, "getSettings(" + aKey + ") - error");
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function setSettings(aSettings, aAllowError) {
-  let deferred = Promise.defer();
-
   let request = navigator.mozSettings.createLock().set(aSettings);
-  request.addEventListener("success", function() {
-    ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
-    deferred.resolve();
-  });
-  request.addEventListener("error", function() {
-    ok(aAllowError, "setSettings(" + JSON.stringify(aSettings) + ")");
-    deferred.reject();
-  });
-
-  return deferred.promise;
+  return wrapDomRequestAsPromise(request)
+    .then(function resolve() {
+      ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
+    }, function reject() {
+      ok(aAllowError, "setSettings(" + JSON.stringify(aSettings) + ")");
+    });
 }
 
 
