@@ -2369,18 +2369,16 @@ bool AudioDeviceLinuxALSA::RecThreadProcess()
 
 
 bool AudioDeviceLinuxALSA::KeyPressed() const{
-
+#ifdef USE_X11
   char szKey[32];
   unsigned int i = 0;
   char state = 0;
 
-#ifdef USE_X11
   if (!_XDisplay)
     return false;
 
   
   XQueryKeymap(_XDisplay, szKey);
-#endif
 
   
   for (i = 0; i < sizeof(szKey); i++)
@@ -2389,5 +2387,8 @@ bool AudioDeviceLinuxALSA::KeyPressed() const{
   
   memcpy((char*)_oldKeyState, (char*)szKey, sizeof(_oldKeyState));
   return (state != 0);
+#else
+  return false;
+#endif
 }
 }  
