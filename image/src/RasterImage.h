@@ -33,6 +33,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
+#include "mozilla/RefPtr.h"
 #include "gfx2DGlue.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
@@ -374,7 +375,9 @@ private:
 
 
 
-  struct DecodeRequest : public LinkedListElement<DecodeRequest>
+
+  struct DecodeRequest : public LinkedListElement<DecodeRequest>,
+                         public RefCounted<DecodeRequest>
   {
     DecodeRequest(RasterImage* aImage)
       : mImage(aImage)
@@ -382,7 +385,7 @@ private:
     {
     }
 
-    RasterImage* const mImage;
+    RasterImage* mImage;
 
     
 
@@ -480,6 +483,10 @@ private:
 
     nsresult DecodeSomeOfImage(RasterImage* aImg,
                                DecodeType aDecodeType = DECODE_TYPE_NORMAL);
+
+    
+
+    void CreateRequestForImage(RasterImage* aImg);
 
   private: 
 
@@ -667,7 +674,7 @@ private:
 
   
   nsRefPtr<Decoder>              mDecoder;
-  DecodeRequest                  mDecodeRequest;
+  nsRefPtr<DecodeRequest>        mDecodeRequest;
   uint32_t                       mBytesDecoded;
 
   
