@@ -1516,6 +1516,12 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
         outOffset += outGrainTypeSize;
       }
 
+      
+      
+      
+      if (outGrainTypeIsTransparent)
+        ClearThreadLocalArenas();
+
       MARK_SLICE_DONE(slicesInfo, sliceId);
       if (warmup)
         return;

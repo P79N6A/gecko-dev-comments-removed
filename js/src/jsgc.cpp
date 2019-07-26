@@ -420,6 +420,16 @@ Arena::staticAsserts()
     static_assert(JS_ARRAY_LENGTH(FirstThingOffsets) == FINALIZE_LIMIT, "We have defined all offsets.");
 }
 
+void
+Arena::setAsFullyUnused(AllocKind thingKind)
+{
+    FreeSpan entireList;
+    entireList.first = thingsStart(thingKind);
+    uintptr_t arenaAddr = aheader.arenaAddress();
+    entireList.last = arenaAddr | ArenaMask;
+    aheader.setFirstFreeSpan(&entireList);
+}
+
 template<typename T>
 inline bool
 Arena::finalize(FreeOp *fop, AllocKind thingKind, size_t thingSize)
@@ -481,7 +491,8 @@ Arena::finalize(FreeOp *fop, AllocKind thingKind, size_t thingSize)
 
     if (allClear) {
         JS_ASSERT(newListTail == &newListHead);
-        JS_ASSERT(newFreeSpanStart == thingsStart(thingKind));
+        JS_ASSERT(!newFreeSpanStart ||
+                  newFreeSpanStart == thingsStart(thingKind));
         return true;
     }
 
@@ -533,15 +544,25 @@ FinalizeTypedArenas(FreeOp *fop,
 
 
 
+    
+
+
+
+
+    bool releaseArenas = !InParallelSection();
+
     size_t thingSize = Arena::thingSize(thingKind);
 
     while (ArenaHeader *aheader = *src) {
         *src = aheader->next;
         bool allClear = aheader->getArena()->finalize<T>(fop, thingKind, thingSize);
-        if (allClear)
+        if (!allClear)
+            dest.insert(aheader);
+        else if (releaseArenas)
             aheader->chunk()->releaseArena(aheader);
         else
-            dest.insert(aheader);
+            aheader->chunk()->recycleArena(aheader, dest, thingKind);
+
         budget.step(Arena::thingsPerArena(thingSize));
         if (budget.isOverBudget())
             return false;
@@ -939,6 +960,13 @@ Chunk::addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader)
     ++info.numArenasFreeCommitted;
     ++info.numArenasFree;
     ++rt->gcNumArenasFreeCommitted;
+}
+
+void
+Chunk::recycleArena(ArenaHeader *aheader, ArenaList &dest, AllocKind thingKind)
+{
+    aheader->getArena()->setAsFullyUnused(thingKind);
+    dest.insert(aheader);
 }
 
 void
@@ -1408,7 +1436,9 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind)
 
 
 
-            JS_ASSERT(!aheader->isEmpty());
+
+
+            JS_ASSERT(!aheader->isEmpty() || InParallelSection());
             al->cursor = &aheader->next;
 
             
@@ -1480,9 +1510,50 @@ ArenaLists::allocateFromArena(JS::Zone *zone, AllocKind thingKind)
 }
 
 void
+ArenaLists::wipeDuringParallelExecution(JSRuntime *rt)
+{
+    JS_ASSERT(InParallelSection());
+
+    
+    
+    
+    
+    
+    
+    
+    
+    for (unsigned i = 0; i < FINALIZE_LAST; i++) {
+        AllocKind thingKind = AllocKind(i);
+        if (!IsBackgroundFinalized(thingKind) && arenaLists[thingKind].head)
+            return;
+    }
+
+    
+    
+    FreeOp fop(rt, false);
+    for (unsigned i = 0; i < FINALIZE_OBJECT_LAST; i++) {
+        AllocKind thingKind = AllocKind(i);
+
+        if (!IsBackgroundFinalized(thingKind))
+            continue;
+
+        if (arenaLists[i].head) {
+            purge(thingKind);
+            forceFinalizeNow(&fop, thingKind);
+        }
+    }
+}
+
+void
 ArenaLists::finalizeNow(FreeOp *fop, AllocKind thingKind)
 {
     JS_ASSERT(!IsBackgroundFinalized(thingKind));
+    forceFinalizeNow(fop, thingKind);
+}
+
+void
+ArenaLists::forceFinalizeNow(FreeOp *fop, AllocKind thingKind)
+{
     JS_ASSERT(backgroundFinalizeState[thingKind] == BFS_DONE);
 
     ArenaHeader *arenas = arenaLists[thingKind].head;
@@ -5479,11 +5550,19 @@ ArenaLists::adoptArenas(JSRuntime *rt, ArenaLists *fromArenaLists)
         ArenaList *fromList = &fromArenaLists->arenaLists[thingKind];
         ArenaList *toList = &arenaLists[thingKind];
         while (fromList->head != nullptr) {
+            
             ArenaHeader *fromHeader = fromList->head;
             fromList->head = fromHeader->next;
             fromHeader->next = nullptr;
 
-            toList->insert(fromHeader);
+            
+            
+            
+            
+            if (fromHeader->isEmpty())
+                fromHeader->chunk()->releaseArena(fromHeader);
+            else
+                toList->insert(fromHeader);
         }
         fromList->cursor = &fromList->head;
     }
