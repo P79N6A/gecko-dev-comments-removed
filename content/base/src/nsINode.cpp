@@ -103,6 +103,7 @@
 #include <algorithm>
 #include "nsGlobalWindow.h"
 #include "nsDOMMutationObserver.h"
+#include "GeometryUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1138,6 +1139,14 @@ nsINode::PreHandleEvent(EventChainPreVisitor& aVisitor)
   
   NS_ABORT();
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+void
+nsINode::GetBoxQuads(const BoxQuadOptions& aOptions,
+                     nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                     mozilla::ErrorResult& aRv)
+{
+  mozilla::GetBoxQuads(this, aOptions, aResult, aRv);
 }
 
 nsresult
