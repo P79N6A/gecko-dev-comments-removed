@@ -71,6 +71,7 @@ var ignoreCallees = {
     "js::ion::LInstruction.getDef" : true, 
     "js::ion::IonCache.kind" : true, 
     "icu_50::UObject.__deleting_dtor" : true, 
+    "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
 };
 
 function fieldCallCannotGC(csu, fullfield)
