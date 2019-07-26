@@ -157,6 +157,22 @@ struct nsCSSToken {
 };
 
 
+class nsCSSScannerPosition {
+  friend class nsCSSScanner;
+public:
+  nsCSSScannerPosition() : mInitialized(false) { }
+
+private:
+  uint32_t mOffset;
+  uint32_t mLineNumber;
+  uint32_t mLineOffset;
+  uint32_t mTokenLineNumber;
+  uint32_t mTokenLineOffset;
+  uint32_t mTokenOffset;
+  bool mInitialized;
+};
+
+
 
 
 class nsCSSScanner {
@@ -235,6 +251,12 @@ class nsCSSScanner {
 #ifdef DEBUG
   bool IsRecording() const;
 #endif
+
+  
+  void SavePosition(nsCSSScannerPosition& aState);
+
+  
+  void RestoreSavedPosition(const nsCSSScannerPosition& aState);
 
   enum EOFCharacters {
     eEOFCharacters_None =                    0x0000,
