@@ -458,6 +458,24 @@ exports["test Panel Text Color"] = function(assert, done) {
 };
 
 
+exports["test watch event name"] = function(assert, done) {
+  const { Panel } = require('sdk/panel');
+
+  let html = "<html><head><style>body {color: yellow}</style></head>" +
+             "<body><p>Foo</p></body></html>";
+
+  let panel = Panel({
+    contentURL: "data:text/html;charset=utf-8," + encodeURI(html),
+    contentScript: "self.port.emit('watch', 'test');"
+  });
+  panel.port.on("watch", function (msg) {
+    assert.equal(msg, "test", 'watch event name works');
+    panel.destroy();
+    done();
+  });
+}
+
+
 exports["test Change Content URL"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
 

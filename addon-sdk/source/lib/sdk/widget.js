@@ -604,6 +604,42 @@ BrowserWindow.prototype = {
     let palette = toolbox.palette;
     palette.appendChild(node);
 
+    if (this.window.CustomizableUI) {
+      let placement = this.window.CustomizableUI.getPlacementOfWidget(node.id);
+      if (!placement) {
+        placement = {area: 'nav-bar', position: undefined};
+      }
+      this.window.CustomizableUI.addWidgetToArea(node.id, placement.area, placement.position);
+
+      
+      
+      if (node.parentNode != palette) {
+        return;
+      }
+      
+      let container = this.doc.getElementById(placement.area);
+      if (container.customizationTarget) {
+        container = container.customizationTarget;
+      }
+
+      if (placement.position !== undefined) {
+        
+        let items = this.window.CustomizableUI.getWidgetIdsInArea(placement.area);
+        let itemIndex = placement.position;
+        for (let l = items.length; itemIndex < l; itemIndex++) {
+          let realItems = container.getElementsByAttribute("id", items[itemIndex]);
+          if (realItems[0]) {
+            container.insertBefore(node, realItems[0]);
+            break;
+          }
+        }
+      }
+      if (node.parentNode != container) {
+        container.appendChild(node);
+      }
+      return;
+    }
+
     
     let container = null;
     let toolbars = this.doc.getElementsByTagName("toolbar");

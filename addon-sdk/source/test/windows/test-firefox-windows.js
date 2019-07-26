@@ -281,12 +281,6 @@ exports.testOnOpenOnCloseListeners = function(test) {
 
 
 
-
-
-
-
-
-
 exports.testTrackWindows = function(test) {
   test.waitUntilDone();
 
