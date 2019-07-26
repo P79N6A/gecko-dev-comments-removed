@@ -466,6 +466,7 @@ abstract public class BrowserApp extends GeckoApp
                         } else {
                             
                             
+                            mAboutHomeContent.setPadding(0, 0, 0, 0);
                             mBrowserToolbar.cancelVisibilityAnimation();
                             mBrowserToolbar.getLayout().scrollTo(0, 0);
                         }
@@ -475,6 +476,13 @@ abstract public class BrowserApp extends GeckoApp
                         ((BrowserToolbarLayout)mBrowserToolbar.getLayout()).refreshMargins();
                     }
                 });
+            }
+
+            @Override
+            public boolean isObserver() {
+                
+                
+                return true;
             }
         });
     }
