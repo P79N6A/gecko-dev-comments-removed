@@ -3402,7 +3402,7 @@ Selection::SubtractRange(RangeData* aRange, nsRange* aSubtract,
   if (cmp2 > 0) {
     
     
-    nsRange* postOverlap = new nsRange();
+    nsRefPtr<nsRange> postOverlap = new nsRange();
 
     rv =
       postOverlap->SetStart(aSubtract->GetEndParent(), aSubtract->EndOffset());
@@ -3420,7 +3420,7 @@ Selection::SubtractRange(RangeData* aRange, nsRange* aSubtract,
   if (cmp < 0) {
     
     
-    nsRange* preOverlap = new nsRange();
+    nsRefPtr<nsRange> preOverlap = new nsRange();
 
     nsresult rv =
      preOverlap->SetStart(range->GetStartParent(), range->StartOffset());
