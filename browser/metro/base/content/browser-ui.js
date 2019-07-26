@@ -105,6 +105,7 @@ var BrowserUI = {
     }
     FlyoutPanelsUI.init();
     PageThumbs.init();
+    SettingsCharm.init();
 
     
     BrowserUI._adjustDOMforViewState();
@@ -153,11 +154,6 @@ var BrowserUI = {
 #endif
       } catch(ex) {
         Util.dumpLn("Exception in delay load module:", ex.message);
-      }
-
-      try {
-        SettingsCharm.init();
-      } catch (ex) {
       }
 
       try {
@@ -1734,8 +1730,13 @@ var SettingsCharm = {
 
 
   addEntry: function addEntry(aEntry) {
-    let id = MetroUtils.addSettingsPanelEntry(aEntry.label);
-    this._entries.set(id, aEntry);
+    try {
+      let id = MetroUtils.addSettingsPanelEntry(aEntry.label);
+      this._entries.set(id, aEntry);
+    } catch (e) {
+      
+      Cu.reportError(e);
+    }
   },
 
   init: function SettingsCharm_init() {
