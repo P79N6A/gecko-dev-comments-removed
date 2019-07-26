@@ -32,8 +32,9 @@ class CacheObserver : public nsIObserver
     { return sUseDiskCache; }
   static bool const UseMemoryCache()
     { return sUseMemoryCache; }
-  static uint32_t const MemoryLimit() 
-    { return std::max(512U, std::min(1048576U, sMemoryLimit)) << 10; }
+  static uint32_t const MetadataMemoryLimit() 
+    { return sMetadataMemoryLimit << 10; }
+  static uint32_t const MemoryCacheCapacity(); 
   static uint32_t const DiskCacheCapacity() 
     { return sDiskCacheCapacity << 10; }
   static uint32_t const MaxMemoryEntrySize() 
@@ -57,9 +58,11 @@ private:
   void SchduleAutoDelete();
 
   static uint32_t sUseNewCache;
-  static bool sUseDiskCache;
   static bool sUseMemoryCache;
-  static uint32_t sMemoryLimit;
+  static bool sUseDiskCache;
+  static uint32_t sMetadataMemoryLimit;
+  static int32_t sMemoryCacheCapacity;
+  static int32_t sAutoMemoryCacheCapacity;
   static uint32_t sDiskCacheCapacity;
   static uint32_t sMaxMemoryEntrySize;
   static uint32_t sMaxDiskEntrySize;

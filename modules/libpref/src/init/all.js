@@ -64,7 +64,7 @@ pref("browser.cache.disk_cache_ssl",        true);
 pref("browser.cache.check_doc_frequency",   3);
 
 
-pref("browser.cache.memory_limit", 51200); 
+pref("browser.cache.disk.metadata_memory_limit", 250); 
 
 pref("browser.cache.offline.enable",           true);
 

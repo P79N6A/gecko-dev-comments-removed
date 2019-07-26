@@ -50,7 +50,7 @@ CacheEntryHandle::CacheEntryHandle(CacheEntry* aEntry)
   MOZ_COUNT_CTOR(CacheEntryHandle);
 
 #ifdef DEBUG
-  if (!mEntry->mHandlersCount) {
+  if (!mEntry->HandlesCount()) {
     
     
     
@@ -58,14 +58,14 @@ CacheEntryHandle::CacheEntryHandle(CacheEntry* aEntry)
   }
 #endif
 
-  ++mEntry->mHandlersCount;
+  mEntry->AddHandleRef();
 
   LOG(("New CacheEntryHandle %p for entry %p", this, aEntry));
 }
 
 CacheEntryHandle::~CacheEntryHandle()
 {
-  --mEntry->mHandlersCount;
+  mEntry->ReleaseHandleRef();
   mEntry->OnHandleClosed(this);
 
   MOZ_COUNT_DTOR(CacheEntryHandle);
@@ -88,8 +88,8 @@ CacheEntry::Callback::Callback(CacheEntry* aEntry,
 
   
   
-  MOZ_ASSERT(mEntry->mHandlersCount);
-  ++mEntry->mHandlersCount;
+  MOZ_ASSERT(mEntry->HandlesCount());
+  mEntry->AddHandleRef();
 }
 
 CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
@@ -105,15 +105,15 @@ CacheEntry::Callback::Callback(CacheEntry::Callback const &aThat)
 
   
   
-  MOZ_ASSERT(mEntry->mHandlersCount);
-  ++mEntry->mHandlersCount;
+  MOZ_ASSERT(mEntry->HandlesCount());
+  mEntry->AddHandleRef();
 }
 
 CacheEntry::Callback::~Callback()
 {
   ProxyRelease(mCallback, mTargetThread);
 
-  --mEntry->mHandlersCount;
+  mEntry->ReleaseHandleRef();
   MOZ_COUNT_DTOR(CacheEntry::Callback);
 }
 
@@ -124,9 +124,9 @@ void CacheEntry::Callback::ExchangeEntry(CacheEntry* aEntry)
 
   
   
-  MOZ_ASSERT(aEntry->mHandlersCount);
-  ++aEntry->mHandlersCount;
-  --mEntry->mHandlersCount;
+  MOZ_ASSERT(aEntry->HandlesCount());
+  aEntry->AddHandleRef();
+  mEntry->ReleaseHandleRef();
   mEntry = aEntry;
 }
 
@@ -812,11 +812,11 @@ void CacheEntry::OnOutputClosed()
   InvokeCallbacks();
 }
 
-bool CacheEntry::UsingDisk() const
+bool CacheEntry::IsUsingDiskLocked() const
 {
   CacheStorageService::Self()->Lock().AssertCurrentThreadOwns();
 
-  return mUseDisk;
+  return IsUsingDisk();
 }
 
 bool CacheEntry::SetUsingDisk(bool aUsingDisk)
@@ -842,7 +842,7 @@ bool CacheEntry::IsReferenced() const
 
   
   
-  return mHandlersCount > 0;
+  return mHandlesCount > 0;
 }
 
 bool CacheEntry::IsFileDoomed()
@@ -1350,6 +1350,15 @@ bool CacheEntry::Purge(uint32_t aWhat)
     
     
     LOG(("  state=%s, frecency=%1.10f", StateString(mState), mFrecency));
+    return false;
+  }
+
+  if (NS_SUCCEEDED(mFileStatus) && mFile->IsWriteInProgress()) {
+    
+    
+    
+    
+    LOG(("  file still under use"));
     return false;
   }
 

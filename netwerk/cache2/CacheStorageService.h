@@ -8,6 +8,7 @@
 #include "nsICacheStorageService.h"
 #include "nsIMemoryReporter.h"
 
+#include "nsITimer.h"
 #include "nsClassHashtable.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -37,19 +38,39 @@ class CacheMemoryConsumer
 {
 private:
   friend class CacheStorageService;
-  uint32_t mReportedMemoryConsumption;
+  uint32_t mReportedMemoryConsumption : 30;
+  uint32_t mFlags : 2;
+
+private:
+  CacheMemoryConsumer() MOZ_DELETE;
+
 protected:
-  CacheMemoryConsumer();
+  enum {
+    
+    NORMAL = 0,
+    
+    
+    MEMORY_ONLY = 1 << 0,
+    
+    
+    
+    DONT_REPORT = 1 << 1
+  };
+
+  CacheMemoryConsumer(uint32_t aFlags);
+  ~CacheMemoryConsumer() { DoMemoryReport(0); }
   void DoMemoryReport(uint32_t aCurrentSize);
 };
 
 class CacheStorageService : public nsICacheStorageService
                           , public nsIMemoryReporter
+                          , public nsITimerCallback
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICACHESTORAGESERVICE
   NS_DECL_NSIMEMORYREPORTER
+  NS_DECL_NSITIMERCALLBACK
 
   CacheStorageService();
 
@@ -168,34 +189,21 @@ private:
 
   void OnMemoryConsumptionChange(CacheMemoryConsumer* aConsumer,
                                  uint32_t aCurrentMemoryConsumption);
-  void PurgeOverMemoryLimit();
-
-private:
-  class PurgeFromMemoryRunnable : public nsRunnable
-  {
-  public:
-    PurgeFromMemoryRunnable(CacheStorageService* aService, uint32_t aWhat)
-      : mService(aService), mWhat(aWhat) { }
-
-  private:
-    virtual ~PurgeFromMemoryRunnable() { }
-
-    NS_IMETHOD Run() {
-      mService->PurgeAll(mWhat);
-      return NS_OK;
-    }
-
-    nsRefPtr<CacheStorageService> mService;
-    uint32_t mWhat;
-  };
 
   
 
 
-  void PurgeByFrecency(bool &aFrecencyNeedsSort, uint32_t aWhat);
-  void PurgeExpired();
-  void PurgeAll(uint32_t aWhat);
 
+  void SchedulePurgeOverMemoryLimit();
+
+  
+
+
+
+
+  void PurgeOverMemoryLimit();
+
+private:
   nsresult DoomStorageEntries(nsCSubstring const& aContextKey,
                               bool aDiskStorage,
                               nsICacheEntryDoomCallback* aCallback);
@@ -214,10 +222,70 @@ private:
   bool mShutdown;
 
   
-  nsTArray<nsRefPtr<CacheEntry> > mFrecencyArray;
-  nsTArray<nsRefPtr<CacheEntry> > mExpirationArray;
-  mozilla::Atomic<uint32_t> mMemorySize;
-  bool mPurging;
+  class MemoryPool
+  {
+  public:
+    enum EType
+    {
+      DISK,
+      MEMORY,
+    } mType;
+
+    MemoryPool(EType aType);
+    ~MemoryPool();
+
+    nsTArray<nsRefPtr<CacheEntry> > mFrecencyArray;
+    nsTArray<nsRefPtr<CacheEntry> > mExpirationArray;
+    mozilla::Atomic<uint32_t> mMemorySize;
+
+    bool OnMemoryConsumptionChange(uint32_t aSavedMemorySize,
+                                   uint32_t aCurrentMemoryConsumption);
+    
+
+
+    void PurgeOverMemoryLimit();
+    void PurgeExpired();
+    void PurgeByFrecency(bool &aFrecencyNeedsSort, uint32_t aWhat);
+    void PurgeAll(uint32_t aWhat);
+
+  private:
+    uint32_t const Limit() const;
+    MemoryPool() MOZ_DELETE;
+  };
+
+  MemoryPool mDiskPool;
+  MemoryPool mMemoryPool;
+  MemoryPool& Pool(bool aUsingDisk)
+  {
+    return aUsingDisk ? mDiskPool : mMemoryPool;
+  }
+  MemoryPool const& Pool(bool aUsingDisk) const
+  {
+    return aUsingDisk ? mDiskPool : mMemoryPool;
+  }
+
+  nsCOMPtr<nsITimer> mPurgeTimer;
+
+  class PurgeFromMemoryRunnable : public nsRunnable
+  {
+  public:
+    PurgeFromMemoryRunnable(CacheStorageService* aService, uint32_t aWhat)
+      : mService(aService), mWhat(aWhat) { }
+
+  private:
+    virtual ~PurgeFromMemoryRunnable() { }
+
+    NS_IMETHOD Run()
+    {
+      
+      mService->Pool(true).PurgeAll(mWhat);
+      mService->Pool(false).PurgeAll(mWhat);
+      return NS_OK;
+    }
+
+    nsRefPtr<CacheStorageService> mService;
+    uint32_t mWhat;
+  };
 };
 
 template<class T>

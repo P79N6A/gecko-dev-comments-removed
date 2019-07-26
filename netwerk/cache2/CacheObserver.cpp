@@ -13,15 +13,14 @@
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "nsServiceManagerUtils.h"
+#include "prsystem.h"
 #include <time.h>
+#include <math.h>
 
 namespace mozilla {
 namespace net {
 
 CacheObserver* CacheObserver::sSelf = nullptr;
-
-static uint32_t const kDefaultMemoryLimit = 50 * 1024; 
-uint32_t CacheObserver::sMemoryLimit = kDefaultMemoryLimit;
 
 static uint32_t const kDefaultUseNewCache = 0; 
 uint32_t CacheObserver::sUseNewCache = kDefaultUseNewCache;
@@ -42,6 +41,14 @@ bool CacheObserver::sUseDiskCache = kDefaultUseDiskCache;
 
 static bool const kDefaultUseMemoryCache = true;
 bool CacheObserver::sUseMemoryCache = kDefaultUseMemoryCache;
+
+static uint32_t const kDefaultMetadataMemoryLimit = 250; 
+uint32_t CacheObserver::sMetadataMemoryLimit = kDefaultMetadataMemoryLimit;
+
+static int32_t const kDefaultMemoryCacheCapacity = -1; 
+int32_t CacheObserver::sMemoryCacheCapacity = kDefaultMemoryCacheCapacity;
+
+int32_t CacheObserver::sAutoMemoryCacheCapacity = -1;
 
 static uint32_t const kDefaultDiskCacheCapacity = 250 * 1024; 
 uint32_t CacheObserver::sDiskCacheCapacity = kDefaultDiskCacheCapacity;
@@ -116,15 +123,17 @@ CacheObserver::AttachToPreferences()
     &sUseMemoryCache, "browser.cache.memory.enable", kDefaultUseMemoryCache);
 
   mozilla::Preferences::AddUintVarCache(
-    &sMemoryLimit, "browser.cache.memory_limit", kDefaultMemoryLimit);
+    &sMetadataMemoryLimit, "browser.cache.disk.metadata_memory_limit", kDefaultMetadataMemoryLimit);
 
   mozilla::Preferences::AddUintVarCache(
     &sDiskCacheCapacity, "browser.cache.disk.capacity", kDefaultDiskCacheCapacity);
+  mozilla::Preferences::AddIntVarCache(
+    &sMemoryCacheCapacity, "browser.cache.memory.capacity", kDefaultMemoryCacheCapacity);
 
   mozilla::Preferences::AddUintVarCache(
-    &sMaxMemoryEntrySize, "browser.cache.memory.max_entry_size", kDefaultMaxMemoryEntrySize);
-  mozilla::Preferences::AddUintVarCache(
     &sMaxDiskEntrySize, "browser.cache.disk.max_entry_size", kDefaultMaxDiskEntrySize);
+  mozilla::Preferences::AddUintVarCache(
+    &sMaxMemoryEntrySize, "browser.cache.memory.max_entry_size", kDefaultMaxMemoryEntrySize);
 
   
   mozilla::Preferences::AddUintVarCache(
@@ -179,6 +188,44 @@ CacheObserver::AttachToPreferences()
       "browser.cache.frecency_half_life_hours", kDefaultHalfLifeHours)));
     break;
   }
+}
+
+
+uint32_t const CacheObserver::MemoryCacheCapacity()
+{
+  if (sMemoryCacheCapacity >= 0)
+    return sMemoryCacheCapacity << 10;
+
+  if (sAutoMemoryCacheCapacity != -1)
+    return sAutoMemoryCacheCapacity;
+
+  static uint64_t bytes = PR_GetPhysicalMemorySize();
+  
+  
+  
+  if (bytes == 0)
+    bytes = 32 * 1024 * 1024;
+
+  
+  
+  
+  if (bytes > INT64_MAX)
+    bytes = INT64_MAX;
+
+  uint64_t kbytes = bytes >> 10;
+  double kBytesD = double(kbytes);
+  double x = log(kBytesD)/log(2.0) - 14;
+
+  int32_t capacity = 0;
+  if (x > 0) {
+    capacity = (int32_t)(x * x / 3.0 + x + 2.0 / 3 + 0.1); 
+    if (capacity > 32)
+      capacity = 32;
+    capacity <<= 20;
+  }
+
+  
+  return sAutoMemoryCacheCapacity = capacity;
 }
 
 void CacheObserver::SchduleAutoDelete()
@@ -322,8 +369,8 @@ bool const CacheObserver::EntryIsTooBig(int64_t aSize, bool aUsingDisk)
   
   
   int64_t derivedLimit = aUsingDisk
-    ? (static_cast<int64_t>(sDiskCacheCapacity) << 7) 
-    : (static_cast<int64_t>(sMemoryLimit) << 7);
+    ? (static_cast<int64_t>(DiskCacheCapacity() >> 3))
+    : (static_cast<int64_t>(MemoryCacheCapacity() >> 3));
 
   if (aSize > derivedLimit)
     return true;

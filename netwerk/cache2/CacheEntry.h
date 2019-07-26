@@ -67,7 +67,10 @@ public:
   nsCString const &GetStorageID() const { return mStorageID; }
   nsCString const &GetEnhanceID() const { return mEnhanceID; }
   nsIURI* GetURI() const { return mURI; }
-  bool UsingDisk() const;
+  
+  bool IsUsingDiskLocked() const;
+  
+  bool IsUsingDisk() const { return mUseDisk; }
   bool SetUsingDisk(bool aUsingDisk);
   bool IsReferenced() const;
   bool IsFileDoomed();
@@ -222,9 +225,18 @@ private:
   void OnHandleClosed(CacheEntryHandle const* aHandle);
 
 private:
+  friend class CacheEntryHandle;
+  
+  void AddHandleRef() { ++mHandlesCount; }
+  void ReleaseHandleRef() { --mHandlesCount; }
+  
+  uint32_t HandlesCount() const { return mHandlesCount; }
+
+private:
   friend class CacheOutputCloseListener;
   void OnOutputClosed();
 
+private:
   
   
   
@@ -241,8 +253,7 @@ private:
   mozilla::Mutex mLock;
 
   
-  friend class CacheEntryHandle;
-  ::mozilla::ThreadSafeAutoRefCnt mHandlersCount;
+  ::mozilla::ThreadSafeAutoRefCnt mHandlesCount;
 
   nsTArray<Callback> mCallbacks;
   nsCOMPtr<nsICacheEntryDoomCallback> mDoomCallback;
