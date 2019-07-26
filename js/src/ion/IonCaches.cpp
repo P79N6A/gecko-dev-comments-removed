@@ -1193,8 +1193,13 @@ IsIdempotentAndMaybeHasHooks(IonCache &cache, JSObject *obj)
     return cache.idempotent() && !obj->hasIdempotentProtoChain();
 }
 
+
+
+
+
+
 static bool
-DetermineGetPropKind(JSContext *cx, IonCache &cache,
+DetermineGetPropKind(JSContext *cx, IonCache &cache, JSObject *receiver,
                      JSObject *checkObj, JSObject *holder, HandleShape shape,
                      TypedOrValueRegister output, bool allowGetters,
                      bool *readSlot, bool *callGetter)
@@ -1209,7 +1214,7 @@ DetermineGetPropKind(JSContext *cx, IonCache &cache,
     cache.getScriptedLocation(&script, &pc);
 
     if (IsCacheableGetPropReadSlot(checkObj, holder, shape) ||
-        IsCacheableNoProperty(checkObj, holder, shape, pc, output))
+        IsCacheableNoProperty(receiver, holder, shape, pc, output))
     {
         
         
@@ -1288,7 +1293,7 @@ TryAttachNativeGetPropStub(JSContext *cx, IonScript *ion,
 
     bool readSlot;
     bool callGetter;
-    if (!DetermineGetPropKind(cx, cache, checkObj, holder, shape, cache.output(),
+    if (!DetermineGetPropKind(cx, cache, obj, checkObj, holder, shape, cache.output(),
                               cache.allowGetters(), &readSlot, &callGetter))
     {
         return true;
@@ -1468,7 +1473,7 @@ ParallelGetPropertyIC::canAttachReadSlot(LockedJSContext &cx, JSObject *obj,
     
     bool readSlot;
     bool callGetter;
-    if (!DetermineGetPropKind(cx, *this, obj, holder, shape, output(), false,
+    if (!DetermineGetPropKind(cx, *this, obj, obj, holder, shape, output(), false,
                               &readSlot, &callGetter) || !readSlot)
     {
         return false;
