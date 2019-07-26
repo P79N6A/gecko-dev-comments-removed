@@ -123,6 +123,13 @@ public:
     return result;
   }
 
+  static float GetFloat(const char* aPref, float aDefault = 0)
+  {
+    float result = aDefault;
+    GetFloat(aPref, &result);
+    return result;
+  }
+
   
 
 
@@ -263,6 +270,9 @@ public:
   static nsresult AddUintVarCache(uint32_t* aVariable,
                                   const char* aPref,
                                   uint32_t aDefault = 0);
+  static nsresult AddFloatVarCache(float* aVariable,
+                                   const char* aPref,
+                                   float aDefault = 0.0f);
 
   
 
@@ -334,6 +344,7 @@ public:
   static void SetPreference(const PrefSetting& aPref);
 
   static int64_t GetPreferencesMemoryUsed();
+  static nsresult SetFloat(const char* aPref, float aValue);
 
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
