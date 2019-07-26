@@ -26,6 +26,7 @@
 #include "nsThemeConstants.h"
 #include "nsLayoutUtils.h"
 #include "nsDisplayListInvalidation.h"
+#include "DisplayListClipState.h"
 
 #include "mozilla/StandardInteger.h"
 
@@ -481,12 +482,14 @@ public:
 
 
 
+
   class AutoBuildingDisplayList;
   friend class AutoBuildingDisplayList;
   class AutoBuildingDisplayList {
   public:
     AutoBuildingDisplayList(nsDisplayListBuilder* aBuilder, bool aIsRoot)
       : mBuilder(aBuilder),
+        mPrevClipState(aBuilder->mClipState),
         mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
         mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
         mPrevCachedOffset(aBuilder->mCachedOffset),
@@ -497,6 +500,7 @@ public:
                             nsIFrame* aForChild, bool aIsRoot,
                             bool aIsInFixedPosition)
       : mBuilder(aBuilder),
+        mPrevClipState(aBuilder->mClipState),
         mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
         mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
         mPrevCachedOffset(aBuilder->mCachedOffset),
@@ -517,6 +521,7 @@ public:
       }
     }
     ~AutoBuildingDisplayList() {
+      mBuilder->mClipState = mPrevClipState;
       mBuilder->mCachedOffsetFrame = mPrevCachedOffsetFrame;
       mBuilder->mCachedReferenceFrame = mPrevCachedReferenceFrame;
       mBuilder->mCachedOffset = mPrevCachedOffset;
@@ -525,6 +530,7 @@ public:
     }
   private:
     nsDisplayListBuilder* mBuilder;
+    DisplayListClipState  mPrevClipState;
     const nsIFrame*       mPrevCachedOffsetFrame;
     const nsIFrame*       mPrevCachedReferenceFrame;
     nsPoint               mPrevCachedOffset;
