@@ -202,7 +202,6 @@ public:
   nsresult KeyPress(nsIDOMEvent* aKeyEvent);
 
   mozInlineSpellChecker();
-  virtual ~mozInlineSpellChecker();
 
   
   nsresult SpellCheckBetweenNodes(nsIDOMNode *aStartNode,
@@ -259,6 +258,7 @@ public:
   nsresult ResumeCheck(mozInlineSpellStatus* aStatus);
 
 protected:
+  virtual ~mozInlineSpellChecker();
 
   
   nsresult EditorSpellCheckInited();

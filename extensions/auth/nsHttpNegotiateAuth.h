@@ -21,6 +21,8 @@ public:
     NS_DECL_NSIHTTPAUTHENTICATOR
 
 private:
+    ~nsHttpNegotiateAuth() {}
+
     
     bool TestBoolPref(const char *pref);
 
