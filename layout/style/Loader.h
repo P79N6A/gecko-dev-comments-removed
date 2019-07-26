@@ -29,6 +29,7 @@ class nsIDocument;
 class nsCSSParser;
 class nsMediaList;
 class nsIStyleSheetLinkingElement;
+class nsCycleCollectionTraversalCallback;
 
 namespace mozilla {
 
@@ -350,6 +351,14 @@ public:
   bool IsAlternate(const nsAString& aTitle, bool aHasAlternateRel);
 
   typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
+
+  
+  
+  void TraverseCachedSheets(nsCycleCollectionTraversalCallback& cb);
+
+  
+  
+  void UnlinkCachedSheets();
 
 private:
   friend class SheetLoadData;
