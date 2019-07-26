@@ -46,44 +46,7 @@ this.ObjectWrapper = {
   },
 
   wrap: function objWrapper_wrap(aObject, aCtxt) {
-    
-    let kind = this.getObjectKind(aObject);
-    if (kind == "array") {
-      let res = Cu.createArrayIn(aCtxt);
-      aObject.forEach(function(aObj) {
-        res.push(this.wrap(aObj, aCtxt));
-      }, this);
-      return res;
-    } else if (TypedArrayThings.indexOf(kind) !== -1) {
-      
-      
-      
-      return new aCtxt[kind](aObject);
-    } else if (kind == "file") {
-      return new aCtxt.File(aObject,
-                            { name: aObject.name,
-                              type: aObject.type });
-    } else if (kind == "blob") {
-      return new aCtxt.Blob([aObject], { type: aObject.type });
-    } else if (kind == "date") {
-      return Cu.createDateIn(aCtxt, aObject.getTime());
-    } else if (kind == "primitive") {
-      return aObject;
-    }
-
-    
-    let res = Cu.createObjectIn(aCtxt);
-    let propList = { };
-    for (let prop in aObject) {
-      propList[prop] = {
-        enumerable: true,
-        configurable: true,
-        writable: true,
-        value: this.wrap(aObject[prop], aCtxt)
-      }
-    }
-    Object.defineProperties(res, propList);
-    Cu.makeObjectPropsNormal(res);
-    return res;
+    dump("-*- ObjectWrapper is deprecated. Use Components.utils.cloneInto() instead.\n");
+    return Cu.cloneInto(aObject, aCtxt, { cloneFunctions: true });
   }
 }
