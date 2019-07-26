@@ -1856,7 +1856,7 @@ NewUDateFormat(JSContext *cx, HandleObject dateTimeFormat)
 
     
     
-    UCalendar *cal = (UCalendar *) udat_getCalendar(df);
+    UCalendar *cal = const_cast<UCalendar*>(udat_getCalendar(df));
     ucal_setGregorianChange(cal, StartOfTime, &status);
 
     
