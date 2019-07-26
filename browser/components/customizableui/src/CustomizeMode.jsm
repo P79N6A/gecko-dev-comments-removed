@@ -777,8 +777,9 @@ CustomizeMode.prototype = {
       aEvent.dataTransfer.mozGetDataAt(kDragDataTypePrefix + documentId, 0);
     let draggedWrapper = document.getElementById("wrapper-" + draggedItemId);
     let originArea = this._getCustomizableParent(draggedWrapper);
-    if (this._dragWidthMap)
-      this._dragWidthMap.clear()
+    if (this._dragWidthMap) {
+      this._dragWidthMap.clear();
+    }
     
     if (!targetArea || !originArea) {
       return;
