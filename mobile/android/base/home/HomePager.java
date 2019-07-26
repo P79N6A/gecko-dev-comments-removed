@@ -254,6 +254,10 @@ public class HomePager extends ViewPager {
     }
 
     public void onToolbarFocusChange(boolean hasFocus) {
+        if (mHomeBanner == null) {
+            return;
+        }
+
         
         final boolean active = !hasFocus && getCurrentItem() == mDefaultPageIndex;
         mHomeBanner.setActive(active);
