@@ -1951,7 +1951,7 @@ protected:
     
     
     
-    virtual bool ProvidesGlyphWidths() {
+    virtual bool ProvidesGlyphWidths() const {
         return false;
     }
 
