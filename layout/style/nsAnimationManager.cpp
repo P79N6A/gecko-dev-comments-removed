@@ -171,17 +171,30 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       ElementAnimation &anim = mAnimations[animIdx];
 
       if (anim.mProperties.Length() == 0 ||
-          anim.mIterationDuration.ToMilliseconds() <= 0.0 ||
-          anim.IsPaused()) {
+          anim.mIterationDuration.ToMilliseconds() <= 0.0) {
         continue;
       }
+
+      uint32_t oldLastNotification = anim.mLastNotification;
 
       
       
       
       
-      if ((aRefreshTime - anim.mStartTime) / anim.mIterationDuration >= anim.mIterationCount && 
-          anim.mLastNotification != ElementAnimation::LAST_NOTIFICATION_END) {
+      GetPositionInIteration(anim.ElapsedDurationAt(aRefreshTime),
+                             anim.mIterationDuration, anim.mIterationCount,
+                             anim.mDirection, IsForElement(),
+                             &anim, this, &aEventsToDispatch);
+
+      
+      
+      
+      
+      
+      
+      
+      if (anim.mLastNotification == ElementAnimation::LAST_NOTIFICATION_END &&
+          anim.mLastNotification != oldLastNotification) {
         aIsThrottled = false;
         break;
       }
