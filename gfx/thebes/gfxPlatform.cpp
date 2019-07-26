@@ -48,6 +48,7 @@
 #include "harfbuzz/hb.h"
 #include "gfxGraphiteShaper.h"
 #include "gfx2DGlue.h"
+#include "gfxGradientCache.h"
 
 #include "nsUnicodeRange.h"
 #include "nsServiceManagerUtils.h"
@@ -503,6 +504,7 @@ gfxPlatform::Shutdown()
     
     gfxFontCache::Shutdown();
     gfxFontGroup::Shutdown();
+    gfxGradientCache::Shutdown();
     gfxGraphiteShaper::Shutdown();
 #if defined(XP_MACOSX) || defined(XP_WIN) 
     gfxPlatformFontList::Shutdown();

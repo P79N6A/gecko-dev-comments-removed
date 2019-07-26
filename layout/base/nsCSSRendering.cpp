@@ -49,10 +49,12 @@
 #include "mozilla/Telemetry.h"
 #include "gfxUtils.h"
 #include "gfxColor.h"
+#include "gfxGradientCache.h"
 #include <algorithm>
 
 using namespace mozilla;
 using namespace mozilla::css;
+using namespace mozilla::gfx;
 using mozilla::image::ImageOps;
 using mozilla::CSSSizeOrRatio;
 
@@ -294,164 +296,6 @@ struct ColorStop {
   gfxRGBA mColor;
 };
 
-struct GradientCacheKey : public PLDHashEntryHdr {
-  typedef const GradientCacheKey& KeyType;
-  typedef const GradientCacheKey* KeyTypePointer;
-  enum { ALLOW_MEMMOVE = true };
-  const nsTArray<gfx::GradientStop> mStops;
-  const bool mRepeating;
-  const gfx::BackendType mBackendType;
-
-  GradientCacheKey(const nsTArray<gfx::GradientStop>& aStops, const bool aRepeating, const gfx::BackendType aBackendType)
-    : mStops(aStops), mRepeating(aRepeating), mBackendType(aBackendType)
-  { }
-
-  GradientCacheKey(const GradientCacheKey* aOther)
-    : mStops(aOther->mStops), mRepeating(aOther->mRepeating), mBackendType(aOther->mBackendType)
-  { }
-
-  union FloatUint32
-  {
-    float    f;
-    uint32_t u;
-  };
-
-  static PLDHashNumber
-  HashKey(const KeyTypePointer aKey)
-  {
-    PLDHashNumber hash = 0;
-    FloatUint32 convert;
-    hash = AddToHash(hash, aKey->mBackendType);
-    hash = AddToHash(hash, aKey->mRepeating);
-    for (uint32_t i = 0; i < aKey->mStops.Length(); i++) {
-      hash = AddToHash(hash, aKey->mStops[i].color.ToABGR());
-      
-      convert.f = aKey->mStops[i].offset;
-      hash = AddToHash(hash, convert.f ? convert.u : 0);
-    }
-    return hash;
-  }
-
-  bool KeyEquals(KeyTypePointer aKey) const
-  {
-    bool sameStops = true;
-    if (aKey->mStops.Length() != mStops.Length()) {
-      sameStops = false;
-    } else {
-      for (uint32_t i = 0; i < mStops.Length(); i++) {
-        if (mStops[i].color.ToABGR() != aKey->mStops[i].color.ToABGR() ||
-            mStops[i].offset != aKey->mStops[i].offset) {
-          sameStops = false;
-          break;
-        }
-      }
-    }
-
-    return sameStops &&
-           (aKey->mBackendType == mBackendType) &&
-           (aKey->mRepeating == mRepeating);
-  }
-  static KeyTypePointer KeyToPointer(KeyType aKey)
-  {
-    return &aKey;
-  }
-};
-
-
-
-
-
-struct GradientCacheData {
-  GradientCacheData(mozilla::gfx::GradientStops* aStops, const GradientCacheKey& aKey)
-    : mStops(aStops),
-      mKey(aKey)
-  {}
-
-  GradientCacheData(const GradientCacheData& aOther)
-    : mStops(aOther.mStops),
-      mKey(aOther.mKey)
-  { }
-
-  nsExpirationState *GetExpirationState() {
-    return &mExpirationState;
-  }
-
-  nsExpirationState mExpirationState;
-  const mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
-  GradientCacheKey mKey;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
-{
-  public:
-    GradientCache()
-      : nsExpirationTracker<GradientCacheData, 4>(MAX_GENERATION_MS)
-    {
-      srand(time(nullptr));
-      mTimerPeriod = rand() % MAX_GENERATION_MS + 1;
-      Telemetry::Accumulate(Telemetry::GRADIENT_RETENTION_TIME, mTimerPeriod);
-    }
-
-    virtual void NotifyExpired(GradientCacheData* aObject)
-    {
-      
-      RemoveObject(aObject);
-      mHashEntries.Remove(aObject->mKey);
-    }
-
-    GradientCacheData* Lookup(const nsTArray<gfx::GradientStop>& aStops, bool aRepeating, gfx::BackendType aBackendType)
-    {
-      GradientCacheData* gradient =
-        mHashEntries.Get(GradientCacheKey(aStops, aRepeating, aBackendType));
-
-      if (gradient) {
-        MarkUsed(gradient);
-      }
-
-      return gradient;
-    }
-
-    
-    
-    bool RegisterEntry(GradientCacheData* aValue)
-    {
-      nsresult rv = AddObject(aValue);
-      if (NS_FAILED(rv)) {
-        
-        
-        
-        
-        
-        return false;
-      }
-      mHashEntries.Put(aValue->mKey, aValue);
-      return true;
-    }
-
-  protected:
-    uint32_t mTimerPeriod;
-    static const uint32_t MAX_GENERATION_MS = 10000;
-    
-
-
-
-    nsClassHashtable<GradientCacheKey, GradientCacheData> mHashEntries;
-};
-
 
 static void DrawBorderImage(nsPresContext* aPresContext,
                             nsRenderingContext& aRenderingContext,
@@ -477,14 +321,12 @@ static nscolor MakeBevelColor(mozilla::css::Side whichSide, uint8_t style,
                               nscolor aBorderColor);
 
 static InlineBackgroundData* gInlineBGData = nullptr;
-static GradientCache* gGradientCache = nullptr;
 
 
 void nsCSSRendering::Init()
 {
   NS_ASSERTION(!gInlineBGData, "Init called twice");
   gInlineBGData = new InlineBackgroundData();
-  gGradientCache = new GradientCache();
   nsCSSBorderRenderer::Init();
 }
 
@@ -493,8 +335,6 @@ void nsCSSRendering::Shutdown()
 {
   delete gInlineBGData;
   gInlineBGData = nullptr;
-  delete gGradientCache;
-  gGradientCache = nullptr;
   nsCSSBorderRenderer::Shutdown();
 }
 
@@ -2160,15 +2000,6 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
   bool cellContainsFill = aOneCellArea.Contains(aFillArea);
 
-  gfx::BackendType backendType = gfx::BACKEND_NONE;
-  if (ctx->IsCairo()) {
-    backendType = gfx::BACKEND_CAIRO;
-  } else {
-    gfx::DrawTarget* dt = ctx->GetDrawTarget();
-    NS_ASSERTION(dt, "If we are not using Cairo, we should have a draw target.");
-    backendType = dt->GetType();
-  }
-
   
   gfxPoint lineStart, lineEnd;
   double radiusX = 0, radiusY = 0; 
@@ -2443,18 +2274,12 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     rawStops.SetLength(stops.Length());
     for(uint32_t i = 0; i < stops.Length(); i++) {
       rawStops[i].color = gfx::Color(stops[i].mColor.r, stops[i].mColor.g, stops[i].mColor.b, stops[i].mColor.a);
-      rawStops[i].offset =  stopScale * (stops[i].mPosition - stopOrigin);
+      rawStops[i].offset = stopScale * (stops[i].mPosition - stopOrigin);
     }
-    GradientCacheData* cached = gGradientCache->Lookup(rawStops, isRepeat, backendType);
-    mozilla::RefPtr<mozilla::gfx::GradientStops> gs = cached ? cached->mStops : nullptr;
-    if (!gs) {
-      
-      gs = ctx->GetDrawTarget()->CreateGradientStops(rawStops.Elements(), stops.Length(), isRepeat ? gfx::EXTEND_REPEAT : gfx::EXTEND_CLAMP);
-      cached = new GradientCacheData(gs, GradientCacheKey(rawStops, isRepeat, backendType));
-      if (!gGradientCache->RegisterEntry(cached)) {
-        delete cached;
-      }
-    }
+    mozilla::RefPtr<mozilla::gfx::GradientStops> gs =
+      gfxGradientCache::GetOrCreateGradientStops(ctx->GetDrawTarget(),
+                                                 rawStops,
+                                                 isRepeat ? gfx::EXTEND_REPEAT : gfx::EXTEND_CLAMP);
     gradientPattern->SetColorStops(gs);
   } else {
     for (uint32_t i = 0; i < stops.Length(); i++) {
