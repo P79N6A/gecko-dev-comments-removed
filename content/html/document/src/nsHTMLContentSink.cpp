@@ -216,7 +216,6 @@ protected:
   nsresult OpenBody(nsHTMLTag aNodeType);
   nsresult CloseBody();
 
-  nsresult OpenHeadContext();
   void CloseHeadContext();
 
   
@@ -1461,37 +1460,6 @@ NS_IMETHODIMP
 HTMLContentSink::WillResume()
 {
   return WillResumeImpl();
-}
-
-nsresult
-HTMLContentSink::OpenHeadContext()
-{
-  if (mCurrentContext && mCurrentContext->IsCurrentContainer(eHTMLTag_head))
-    return NS_OK;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mCurrentContext && (mCurrentContext != mHeadContext)) {
-    mCurrentContext->FlushTags();
-  }
-
-  if (!mHeadContext) {
-    mHeadContext = new SinkContext(this);
-
-    nsresult rv = mHeadContext->Begin(eHTMLTag_head, mHead, 0, -1);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  mContextStack.AppendElement(mCurrentContext);
-  mCurrentContext = mHeadContext;
-
-  return NS_OK;
 }
 
 void
