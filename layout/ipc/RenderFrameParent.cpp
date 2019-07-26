@@ -119,15 +119,22 @@ GetFrameMetrics(Layer* aLayer)
   return container ? &container->GetFrameMetrics() : NULL;
 }
 
+
+
+
+
+
 static nsIntPoint
-GetRootFrameOffset(nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuilder)
+GetContentRectLayerOffset(nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuilder)
 {
   nscoord auPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
 
   
-  nsPoint frameOffset =
-    (aBuilder->ToReferenceFrame(aContainerFrame->GetParent()) +
-     aContainerFrame->GetContentRect().TopLeft());
+  
+  
+  
+  nsPoint frameOffset = aBuilder->ToReferenceFrame(aContainerFrame) +
+    (aContainerFrame->GetContentRect().TopLeft() - aContainerFrame->GetPosition());
 
   return frameOffset.ToNearestPixels(auPerDevPixel);
 }
@@ -279,9 +286,9 @@ TransformShadowTree(nsDisplayListBuilder* aBuilder, nsFrameLoader* aFrameLoader,
     layerTransform = viewTransform;
     if (metrics->IsRootScrollable()) {
       
-      nsIntPoint rootFrameOffset = GetRootFrameOffset(aFrame, aBuilder);
+      nsIntPoint offset = GetContentRectLayerOffset(aFrame, aBuilder);
       shadowTransform = shadowTransform *
-          gfx3DMatrix::Translation(float(rootFrameOffset.x), float(rootFrameOffset.y), 0.0);
+          gfx3DMatrix::Translation(float(offset.x), float(offset.y), 0.0);
     }
   }
 
@@ -660,13 +667,13 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     }
     static_cast<RefLayer*>(layer.get())->SetReferentId(id);
     layer->SetVisibleRegion(aVisibleRect);
-    nsIntPoint rootFrameOffset = GetRootFrameOffset(aFrame, aBuilder);
+    nsIntPoint offset = GetContentRectLayerOffset(aFrame, aBuilder);
     
     
     
     MOZ_ASSERT(aContainerParameters.mOffset == nsIntPoint());
     gfx3DMatrix m =
-      gfx3DMatrix::Translation(rootFrameOffset.x, rootFrameOffset.y, 0.0);
+      gfx3DMatrix::Translation(offset.x, offset.y, 0.0);
     
     
     m.Scale(aContainerParameters.mXScale, aContainerParameters.mYScale, 1.0);
@@ -887,7 +894,7 @@ RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   ContainerLayer* container = GetRootLayer();
   if (aBuilder->IsForEventDelivery() && container) {
     ViewTransform offset =
-      ViewTransform(GetRootFrameOffset(aFrame, aBuilder), 1, 1);
+      ViewTransform(GetContentRectLayerOffset(aFrame, aBuilder), 1, 1);
     BuildListForLayer(container, mFrameLoader, offset,
                       aBuilder, shadowTree, aFrame);
   } else {
