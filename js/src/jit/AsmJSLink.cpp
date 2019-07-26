@@ -324,6 +324,26 @@ DynamicallyLinkModule(JSContext *cx, CallArgs args, AsmJSModule &module)
 static const unsigned ASM_MODULE_SLOT = 0;
 static const unsigned ASM_EXPORT_INDEX_SLOT = 1;
 
+static unsigned
+FunctionToExportedFunctionIndex(HandleFunction fun)
+{
+    Value v = fun->getExtendedSlot(ASM_EXPORT_INDEX_SLOT);
+    return v.toInt32();
+}
+
+static const AsmJSModule::ExportedFunction &
+FunctionToExportedFunction(HandleFunction fun, AsmJSModule &module)
+{
+    unsigned funIndex = FunctionToExportedFunctionIndex(fun);
+    return module.exportedFunction(funIndex);
+}
+
+static AsmJSModule &
+FunctionToEnclosingModule(HandleFunction fun)
+{
+    return fun->getExtendedSlot(ASM_MODULE_SLOT).toObject().as<AsmJSModuleObject>().module();
+}
+
 
 
 static bool
@@ -335,14 +355,12 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     
-    RootedObject moduleObj(cx, &callee->getExtendedSlot(ASM_MODULE_SLOT).toObject());
-    AsmJSModule &module = moduleObj->as<AsmJSModuleObject>().module();
+    AsmJSModule &module = FunctionToEnclosingModule(callee);
 
     
     
     
-    unsigned exportIndex = callee->getExtendedSlot(ASM_EXPORT_INDEX_SLOT).toInt32();
-    const AsmJSModule::ExportedFunction &func = module.exportedFunction(exportIndex);
+    const AsmJSModule::ExportedFunction &func = FunctionToExportedFunction(callee, module);
 
     
     
@@ -390,6 +408,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
         
         
         
+        unsigned exportIndex = FunctionToExportedFunctionIndex(callee);
         AsmJSActivation activation(cx, module, exportIndex);
         JitActivation jitActivation(cx,  false,  false);
 
@@ -819,4 +838,38 @@ js::IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
     bool rval = args.hasDefined(0) && IsMaybeWrappedNativeFunction(args[0], CallAsmJS);
     args.rval().set(BooleanValue(rval));
     return true;
+}
+
+bool
+js::IsAsmJSFunction(HandleFunction fun)
+{
+    return fun->isNative() && fun->maybeNative() == CallAsmJS;
+}
+
+JSString *
+js::AsmJSFunctionToString(JSContext *cx, HandleFunction fun)
+{
+    AsmJSModule &module = FunctionToEnclosingModule(fun);
+    const AsmJSModule::ExportedFunction &f = FunctionToExportedFunction(fun, module);
+    uint32_t begin = module.funcStart() + f.startOffsetInModule();
+    uint32_t end = module.funcStart() + f.endOffsetInModule();
+
+    ScriptSource *source = module.scriptSource();
+    StringBuffer out(cx);
+
+    
+    
+    JS_ASSERT(!(begin == 0 && end == source->length() && source->argumentsNotIncluded()));
+
+    if (!out.append("function "))
+        return nullptr;
+
+    Rooted<JSFlatString*> src(cx, source->substring(cx, begin, end));
+    if (!src)
+        return nullptr;
+
+    if (!out.append(src->chars(), src->length()))
+        return nullptr;
+
+    return out.finishString();
 }

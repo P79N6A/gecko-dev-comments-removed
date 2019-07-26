@@ -41,6 +41,11 @@ IsAsmJSModuleLoadedFromCache(JSContext *cx, unsigned argc, Value *vp);
 
 extern bool
 IsAsmJSFunction(JSContext *cx, unsigned argc, JS::Value *vp);
+extern bool
+IsAsmJSFunction(HandleFunction fun);
+
+extern JSString *
+AsmJSFunctionToString(JSContext *cx, HandleFunction fun);
 
 #else 
 
