@@ -19,6 +19,10 @@ gTests.push({
   desc: "Bug 489351 - Date containers under History in Library cannot be deleted/cut",
   run: function() {
     function addVisitsCallback() {
+      var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+      
+      ok(bhist.isVisited(PlacesUtils._uri(TEST_URI)), "Visit has been added");
+
       
       var PO = gLibrary.PlacesOrganizer;
       PO.selectLeftPaneQuery('History');
@@ -52,20 +56,16 @@ gTests.push({
 
       
       PO._places.controller.doCommand("cmd_delete");
+      ok(!bhist.isVisited(PlacesUtils._uri(TEST_URI)), "Visit has been removed");
 
       
       is(historyNode.childCount, 0, "History node has no more children");
 
       historyNode.containerOpen = false;
-
-      let testURI = NetUtil.newURI(TEST_URI);
-      PlacesUtils.asyncHistory.isURIVisited(testURI, function(aURI, aIsVisited) {
-        ok(!aIsVisited, "Visit has been removed");
-        nextTest();
-      });
+      nextTest();
     }
     addVisits(
-      {uri: NetUtil.newURI(TEST_URI), visitDate: Date.now() * 1000,
+      {uri: PlacesUtils._uri(TEST_URI), visitDate: Date.now() * 1000,
         transition: PlacesUtils.history.TRANSITION_TYPED},
       window,
       addVisitsCallback);
@@ -97,7 +97,7 @@ gTests.push({
 
     
     PlacesUtils.bookmarks.insertBookmark(PlacesUtils.toolbarFolderId,
-                                         NetUtil.newURI("place:sort=4"),
+                                         PlacesUtils._uri("place:sort=4"),
                                          0, 
                                          "special_query");
     

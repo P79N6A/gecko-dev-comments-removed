@@ -77,11 +77,11 @@ var gAllTests = [
         wh.checkPrefCheckbox("history", false);
 
         wh.cancelDialog();
-        yield promiseHistoryClearedState(uris, false);
+        ensureHistoryClearedState(uris, false);
 
         
         blankSlate();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
       });
     });
   },
@@ -133,16 +133,16 @@ var gAllTests = [
         
         wh.checkPrefCheckbox("history", true);
         wh.acceptDialog();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
 
         
-        yield promiseHistoryClearedState(olderURIs, false);
+        ensureHistoryClearedState(olderURIs, false);
         ensureDownloadsClearedState(olderDownloadIDs, false);
 
         
         blankSlate();
-        yield promiseHistoryClearedState(olderURIs, true);
+        ensureHistoryClearedState(olderURIs, true);
         ensureDownloadsClearedState(olderDownloadIDs, true);
       });
     });
@@ -187,13 +187,13 @@ var gAllTests = [
         wh.acceptDialog();
 
         
-        yield promiseHistoryClearedState(uris, false);
+        ensureHistoryClearedState(uris, false);
         ensureDownloadsClearedState(downloadIDs, false);
         ensureFormEntriesClearedState(formEntries, true);
 
         
         blankSlate();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
       });
     });
@@ -222,7 +222,7 @@ var gAllTests = [
         wh.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
         wh.checkPrefCheckbox("history", true);
         wh.acceptDialog();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
       });
     });
   }
@@ -509,6 +509,45 @@ function blankSlate() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+function waitForAsyncUpdates(aCallback, aScope, aArguments)
+{
+  let scope = aScope || this;
+  let args = aArguments || [];
+  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                              .DBConnection;
+  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
+  begin.executeAsync();
+  begin.finalize();
+
+  let commit = db.createAsyncStatement("COMMIT");
+  commit.executeAsync({
+    handleResult: function() {},
+    handleError: function() {},
+    handleCompletion: function(aReason)
+    {
+      aCallback.apply(scope, args);
+    }
+  });
+  commit.finalize();
+}
+
+
+
+
+
+
+
+
 function downloadExists(aID)
 {
   let db = dm.DBConnection;
@@ -577,6 +616,22 @@ function ensureFormEntriesClearedState(aFormEntries, aShouldBeCleared) {
 
 
 
+
+
+function ensureHistoryClearedState(aURIs, aShouldBeCleared) {
+  let niceStr = aShouldBeCleared ? "no longer" : "still";
+  aURIs.forEach(function (aURI) {
+    is(PlacesUtils.bhistory.isVisited(aURI), !aShouldBeCleared,
+       "history visit " + aURI.spec + " should " + niceStr + " exist");
+  });
+}
+
+
+
+
+
+
+
 function openWindow(aOnloadCallback) {
   function windowObserver(aSubject, aTopic, aData) {
     if (aTopic != "domwindowopened")
@@ -590,11 +645,8 @@ function openWindow(aOnloadCallback) {
         
         
         try {
-          Task.spawn(function() {
-            aOnloadCallback(win);
-          }).then(function() {
-            waitForAsyncUpdates(doNextTest);
-          });
+          aOnloadCallback(win);
+          waitForAsyncUpdates(doNextTest);
         }
         catch (exc) {
           win.close();

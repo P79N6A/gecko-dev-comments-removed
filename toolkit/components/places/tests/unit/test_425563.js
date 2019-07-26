@@ -43,10 +43,10 @@ add_task(function test_execute()
 
   
   count_visited_URIs.forEach(function (visited_uri) {
-    do_check_true(yield promiseIsURIVisited(uri(visited_uri)));
+    do_check_eq(PlacesUtils.bhistory.isVisited(uri(visited_uri)), true);
   });
   notcount_visited_URIs.forEach(function (visited_uri) {
-    do_check_true(yield promiseIsURIVisited(uri(visited_uri)));
+    do_check_eq(PlacesUtils.bhistory.isVisited(uri(visited_uri)), true);
   });
 
   

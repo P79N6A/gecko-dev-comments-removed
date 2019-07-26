@@ -937,12 +937,17 @@ function addVisits(aPlaceInfo, aCallback, aStack)
 
 
 
-function promiseIsURIVisited(aURI) {
-  let deferred = Promise.defer();
 
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+
+function promiseIsURIVisited(aURI)
+{
+  let deferred = Promise.defer();
+  let history = Cc["@mozilla.org/browser/history;1"]
+                  .getService(Ci.mozIAsyncHistory);
+  history.isURIVisited(aURI, function(aURI, aIsVisited) {
     deferred.resolve(aIsVisited);
   });
 
   return deferred.promise;
 }
+

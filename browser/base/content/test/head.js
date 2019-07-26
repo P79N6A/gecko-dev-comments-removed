@@ -1,12 +1,3 @@
-var Cu = Components.utils;
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/commonjs/promise/core.js");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
-
 function whenDelayedStartupFinished(aWindow, aCallback) {
   Services.obs.addObserver(function observer(aSubject, aTopic) {
     if (aWindow == aSubject) {
@@ -139,88 +130,6 @@ function whenNewWindowLoaded(aOptions, aCallback) {
     win.removeEventListener("load", onLoad, false);
     aCallback(win);
   }, false);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function waitForAsyncUpdates(aCallback, aScope, aArguments) {
-  let scope = aScope || this;
-  let args = aArguments || [];
-  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                              .DBConnection;
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
-    handleResult: function() {},
-    handleError: function() {},
-    handleCompletion: function(aReason) {
-      aCallback.apply(scope, args);
-    }
-  });
-  commit.finalize();
-}
-
-
-
-
-
-
-
-
-
-
-function promiseIsURIVisited(aURI, aExpectedValue) {
-  let deferred = Promise.defer();
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
-    deferred.resolve(aIsVisited);
-  });
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-function promiseHistoryClearedState(aURIs, aShouldBeCleared) {
-  let deferred = Promise.defer();
-  let callbackCount = 0;
-  let niceStr = aShouldBeCleared ? "no longer" : "still";
-  function callbackDone() {
-    if (++callbackCount == aURIs.length)
-      deferred.resolve();
-  }
-  aURIs.forEach(function (aURI) {
-    PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
-      is(aIsVisited, !aShouldBeCleared,
-         "history visit " + aURI.spec + " should " + niceStr + " exist");
-      callbackDone();
-    });
-  });
-
-  return deferred.promise;
 }
 
 function addVisits(aPlaceInfo, aCallback) {

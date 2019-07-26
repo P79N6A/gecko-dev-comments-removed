@@ -77,11 +77,10 @@ var gAllTests = [
         this.toggleDetails();
         this.checkDetails(false);
         this.cancelDialog();
-      };
-      wh.onunload = function () {
-        yield promiseHistoryClearedState(uris, false);
+
+        ensureHistoryClearedState(uris, false);
         blankSlate();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
       };
       wh.open();
     });
@@ -137,19 +136,18 @@ var gAllTests = [
         boolPrefIs("cpd.downloads", true,
                    "downloads pref should be true after accepting dialog with " +
                    "history checkbox checked");
-      };
-      wh.onunload = function () {
+
         
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
 
         
-        yield promiseHistoryClearedState(olderURIs, false);
+        ensureHistoryClearedState(olderURIs, false);
         ensureDownloadsClearedState(olderDownloadIDs, false);
 
         
         blankSlate();
-        yield promiseHistoryClearedState(olderURIs, true);
+        ensureHistoryClearedState(olderURIs, true);
         ensureDownloadsClearedState(olderDownloadIDs, true);
       };
       wh.open();
@@ -202,16 +200,15 @@ var gAllTests = [
         boolPrefIs("cpd.downloads", false,
                    "downloads pref should be false after accepting dialog with " +
                    "history checkbox unchecked");
-      };
-      wh.onunload = function () {
+
         
-        yield promiseHistoryClearedState(uris, false);
+        ensureHistoryClearedState(uris, false);
         ensureDownloadsClearedState(downloadIDs, false);
         ensureFormEntriesClearedState(formEntries, true);
 
         
         blankSlate();
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
         ensureDownloadsClearedState(downloadIDs, true);
       };
       wh.open();
@@ -256,9 +253,7 @@ var gAllTests = [
         intPrefIs("sanitize.timeSpan", Sanitizer.TIMESPAN_EVERYTHING,
                   "timeSpan pref should be everything after accepting dialog " +
                   "with everything selected");
-      };
-      wh.onunload = function () {
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
       };
       wh.open();
     });
@@ -293,9 +288,7 @@ var gAllTests = [
         intPrefIs("sanitize.timeSpan", Sanitizer.TIMESPAN_EVERYTHING,
                   "timeSpan pref should be everything after accepting dialog " +
                   "with everything selected");
-      };
-      wh.onunload = function () {
-        yield promiseHistoryClearedState(uris, true);
+        ensureHistoryClearedState(uris, true);
       };
       wh.open();
     });
@@ -328,9 +321,8 @@ var gAllTests = [
 
         this.checkAllCheckboxes();
         this.acceptDialog();
-      };
-      wh.onunload = function () {
-        yield promiseHistoryClearedState(uris, true);
+
+        ensureHistoryClearedState(uris, true);
         ensureFormEntriesClearedState(formEntries, true);
       };
       wh.open();
@@ -381,8 +373,6 @@ var gAllTests = [
          "the pref.");
 
       this.acceptDialog();
-    };
-    wh.onunload = function () {
       ensureFormEntriesClearedState(formEntries, true);
     };
     wh.open();
@@ -793,13 +783,9 @@ WindowHelper.prototype = {
           
           
           try {
-            if (wh.onunload) {
-              Task.spawn(wh.onunload).then(function() {
-                waitForAsyncUpdates(doNextTest);
-              });
-            } else {
-              waitForAsyncUpdates(doNextTest);
-            }
+            if (wh.onunload)
+              wh.onunload();
+            waitForAsyncUpdates(doNextTest);
           }
           catch (exc) {
             win.close();
@@ -925,6 +911,45 @@ function blankSlate() {
 
 
 
+
+
+
+
+
+
+
+function waitForAsyncUpdates(aCallback, aScope, aArguments)
+{
+  let scope = aScope || this;
+  let args = aArguments || [];
+  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                              .DBConnection;
+  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
+  begin.executeAsync();
+  begin.finalize();
+
+  let commit = db.createAsyncStatement("COMMIT");
+  commit.executeAsync({
+    handleResult: function() {},
+    handleError: function() {},
+    handleCompletion: function(aReason)
+    {
+      aCallback.apply(scope, args);
+    }
+  });
+  commit.finalize();
+}
+
+
+
+
+
+
+
+
+
+
+
 function boolPrefIs(aPrefName, aExpectedVal, aMsg) {
   is(gPrefService.getBoolPref("privacy." + aPrefName), aExpectedVal, aMsg);
 }
@@ -995,6 +1020,22 @@ function ensureFormEntriesClearedState(aFormEntries, aShouldBeCleared) {
   aFormEntries.forEach(function (entry) {
     is(formhist.nameExists(entry), !aShouldBeCleared,
        "form entry " + entry + " should " + niceStr + " exist");
+  });
+}
+
+
+
+
+
+
+
+
+
+function ensureHistoryClearedState(aURIs, aShouldBeCleared) {
+  let niceStr = aShouldBeCleared ? "no longer" : "still";
+  aURIs.forEach(function (aURI) {
+    is(PlacesUtils.bhistory.isVisited(aURI), !aShouldBeCleared,
+       "history visit " + aURI.spec + " should " + niceStr + " exist");
   });
 }
 

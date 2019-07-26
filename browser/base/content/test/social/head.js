@@ -2,13 +2,6 @@
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/commonjs/promise/core.js");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-  "resource://gre/modules/PlacesUtils.jsm");
-
 function waitForCondition(condition, nextTest, errorMsg) {
   var tries = 0;
   var interval = setInterval(function() {
@@ -26,17 +19,12 @@ function waitForCondition(condition, nextTest, errorMsg) {
 
 
 
-function promiseSocialUrlNotRemembered(url) {
-  let deferred = Promise.defer();
+function ensureSocialUrlNotRemembered(url) {
+  let gh = Cc["@mozilla.org/browser/global-history;2"]
+           .getService(Ci.nsIGlobalHistory2);
   let uri = Services.io.newURI(url, null, null);
-  PlacesUtils.asyncHistory.isURIVisited(uri, function(aURI, aIsVisited) {
-    ok(!aIsVisited, "social URL " + url + " should not be in global history");
-    deferred.resolve();
-  });
-  return deferred.promise;
+  ok(!gh.isVisited(uri), "social URL " + url + " should not be in global history");
 }
-
-let gURLsNotRemembered = [];
 
 function runSocialTestWithProvider(manifest, callback) {
   let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
@@ -44,20 +32,15 @@ function runSocialTestWithProvider(manifest, callback) {
   let manifests = Array.isArray(manifest) ? manifest : [manifest];
 
   
-  function finishCleanUp() {
-    for (let i = 0; i < manifests.length; i++) {
-      let m = manifests[i];
+  registerCleanupFunction(function () {
+    manifests.forEach(function (m) {
       for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
         if (m[what]) {
-          yield promiseSocialUrlNotRemembered(m[what]);
+          ensureSocialUrlNotRemembered(m[what]);
         }
-      };
-    }
-    for (let i = 0; i < gURLsNotRemembered.length; i++) {
-      yield promiseSocialUrlNotRemembered(gURLsNotRemembered[i]);
-    }
-    gURLsNotRemembered = [];
-  }
+      }
+    });
+  });
 
   info("runSocialTestWithProvider: " + manifests.toSource());
 
@@ -65,7 +48,7 @@ function runSocialTestWithProvider(manifest, callback) {
   function finishIfDone(callFinish) {
     finishCount++;
     if (finishCount == manifests.length)
-      Task.spawn(finishCleanUp).then(finish);
+      finish();
   }
   function removeAddedProviders(cleanup) {
     manifests.forEach(function (m) {
