@@ -294,7 +294,12 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
     def setupUtilities(self):
         if (not self.device.dirExists(self.remoteBinDir)):
             
-            self.device.shellCheckOutput(["mkdir", self.remoteBinDir]);
+            try:
+                self.device.shellCheckOutput(["mkdir", self.remoteBinDir]);
+            except devicemanager.DMError:
+                
+                self.device.shellCheckOutput(["mkdir", self.remoteBinDir], root=True);
+                self.device.shellCheckOutput(["chmod", "777", self.remoteBinDir], root=True);
 
         remotePrefDir = remoteJoin(self.remoteBinDir, "defaults/pref")
         if (self.device.dirExists(self.remoteTmpDir)):
