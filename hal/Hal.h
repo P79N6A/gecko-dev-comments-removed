@@ -50,7 +50,8 @@ class WindowIdentifier;
 extern PRLogModuleInfo *sHalLog;
 #define HAL_LOG(msg) PR_LOG(mozilla::hal::sHalLog, PR_LOG_DEBUG, msg)
 
-typedef Observer<SystemTimeChange> SystemTimeObserver;
+typedef Observer<int64_t> SystemClockChangeObserver;
+typedef Observer<SystemTimezoneChangeInformation> SystemTimezoneChangeObserver;
 
 } 
 
@@ -261,19 +262,42 @@ nsCString GetTimezone();
 
 
 
-void RegisterSystemTimeChangeObserver(hal::SystemTimeObserver* aObserver);
+void RegisterSystemClockChangeObserver(
+  hal::SystemClockChangeObserver* aObserver);
 
 
 
 
 
-void UnregisterSystemTimeChangeObserver(hal::SystemTimeObserver* aObserver);
+void UnregisterSystemClockChangeObserver(
+  hal::SystemClockChangeObserver* aObserver);
 
 
 
 
 
-void NotifySystemTimeChange(const hal::SystemTimeChange& aReason);
+void NotifySystemClockChange(const int64_t& aClockDeltaMS);
+
+
+
+
+
+void RegisterSystemTimezoneChangeObserver(
+  hal::SystemTimezoneChangeObserver* aObserver);
+
+
+
+
+
+void UnregisterSystemTimezoneChangeObserver(
+  hal::SystemTimezoneChangeObserver* aObserver);
+
+
+
+
+
+void NotifySystemTimezoneChange(
+  const hal::SystemTimezoneChangeInformation& aSystemTimezoneChangeInfo);
 
 
 

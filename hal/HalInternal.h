@@ -77,12 +77,22 @@ void DisableAlarm();
 
 
 
-void EnableSystemTimeChangeNotifications();
+void EnableSystemClockChangeNotifications();
 
 
 
 
-void DisableSystemTimeChangeNotifications();
+void DisableSystemClockChangeNotifications();
+
+
+
+
+void EnableSystemTimezoneChangeNotifications();
+
+
+
+
+void DisableSystemTimezoneChangeNotifications();
 
 bool IsHalChildLive();
 } 

@@ -25,13 +25,24 @@ GetTimezone()
 }
 
 void
-EnableSystemTimeChangeNotifications()
+EnableSystemClockChangeNotifications()
 {
 }
 
 void
-DisableSystemTimeChangeNotifications()
+DisableSystemClockChangeNotifications()
 {
 }
+
+void
+EnableSystemTimezoneChangeNotifications()
+{
+}
+
+void
+DisableSystemTimezoneChangeNotifications()
+{
+}
+
 } 
 } 
