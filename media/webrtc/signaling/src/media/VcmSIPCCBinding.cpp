@@ -2625,8 +2625,28 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
                               rtcp ? 2 : 1));
 
     ScopedDeletePtr<TransportLayerDtls> dtls(new TransportLayerDtls());
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     dtls->SetRole(pc->GetRole() == sipcc::PeerConnectionImpl::kRoleOfferer ?
-                  TransportLayerDtls::CLIENT : TransportLayerDtls::SERVER);
+                  TransportLayerDtls::SERVER : TransportLayerDtls::CLIENT);
     dtls->SetIdentity(pc->GetIdentity());
 
     unsigned char remote_digest[TransportLayerDtls::kMaxDigestLength];
