@@ -5180,18 +5180,15 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         }
       }
       break;
-      
+
     case WM_MOUSEACTIVATE:
-      if (mWindowType == eWindowType_popup) {
-        
-        
-        
-        
-        HWND owner = ::GetWindow(mWnd, GW_OWNER);
-        if (owner && owner == ::GetForegroundWindow()) {
-          *aRetValue = MA_NOACTIVATE;
-          result = true;
-        }
+      
+      
+      
+      
+      if (IsPopup() && IsOwnerForegroundWindow()) {
+        *aRetValue = MA_NOACTIVATE;
+        result = true;
       }
       break;
 
@@ -7311,6 +7308,7 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
 {
   NS_ASSERTION(aResult, "Bad outResult");
 
+  
   *aResult = MA_NOACTIVATE;
 
   if (!::IsWindowVisible(aWnd)) {
