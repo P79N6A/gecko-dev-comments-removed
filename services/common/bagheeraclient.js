@@ -23,6 +23,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 #endif
 
 Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-common/utils.js");
@@ -117,7 +118,14 @@ BagheeraClient.prototype = Object.freeze({
 
 
 
-  uploadJSON: function uploadJSON(namespace, id, payload, deleteOldID=null) {
+
+
+
+
+
+
+
+  uploadJSON: function uploadJSON(namespace, id, payload, options={}) {
     if (!namespace) {
       throw new Error("namespace argument must be defined.");
     }
@@ -128,6 +136,11 @@ BagheeraClient.prototype = Object.freeze({
 
     if (!payload) {
       throw new Error("payload argument must be defined.");
+    }
+
+    if (options && typeof(options) != "object") {
+      throw new Error("Unexpected type for options argument. Expected object. " +
+                      "Got: " + typeof(options));
     }
 
     let uri = this._submitURI(namespace, id);
@@ -148,13 +161,23 @@ BagheeraClient.prototype = Object.freeze({
     request.loadFlags = this._loadFlags;
     request.timeout = this.DEFAULT_TIMEOUT_MSEC;
 
-    if (deleteOldID) {
-      request.setHeader("X-Obsolete-Document", deleteOldID);
+    if (options.deleteID) {
+      request.setHeader("X-Obsolete-Document", options.deleteID);
     }
 
     let deferred = Promise.defer();
 
     data = CommonUtils.convertString(data, "uncompressed", "deflate");
+    if (options.telemetryCompressed) {
+      try {
+        let h = Services.telemetry.getHistogramById(options.telemetryCompressed);
+        h.add(data.length);
+      } catch (ex) {
+        this._log.warn("Unable to record telemetry for compressed payload size: " +
+                       CommonUtils.exceptionStr(ex));
+      }
+    }
+
     
     request.setHeader("Content-Type", "application/json+zlib; charset=utf-8");
 
