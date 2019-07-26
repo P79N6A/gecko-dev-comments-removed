@@ -1726,13 +1726,11 @@ nsDOMDeviceStorageCursor::Continue(ErrorResult& aRv)
     return;
   }
 
-  if (mRooted) {
+  if (mResult != JSVAL_VOID) {
     
     
     mResult = JSVAL_VOID;
-    NS_DROP_JS_OBJECTS(this, nsDOMDeviceStorageCursor);
     mDone = false;
-    mRooted = false;
   }
 
   nsCOMPtr<ContinueCursorEvent> event = new ContinueCursorEvent(this);
