@@ -235,7 +235,13 @@ let FormAssistant = {
 
     this._documentEncoder = null;
     if (this._editor) {
-      this._editor.removeEditorObserver(this);
+      
+      
+      
+      
+      try {
+        this._editor.removeEditorObserver(this);
+      } catch (e) {}
       this._editor = null;
     }
 
