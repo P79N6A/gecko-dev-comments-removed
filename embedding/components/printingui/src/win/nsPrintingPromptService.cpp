@@ -42,9 +42,6 @@ static const char *kPrtPrvProgressDialogURL = "chrome://global/content/printPrev
 static const char *kPageSetupDialogURL      = "chrome://global/content/printPageSetup.xul";
 
 
-static HINSTANCE gInstance;
-
-
 
 
 
@@ -96,7 +93,6 @@ HWND
 nsPrintingPromptService::GetHWNDForDOMWindow(nsIDOMWindow *aWindow)
 {
     nsCOMPtr<nsIWebBrowserChrome> chrome;
-    HWND hWnd = NULL;
 
     
     if (mWatcher) {
