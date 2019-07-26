@@ -3,22 +3,22 @@
 
 
 
-#ifndef nsUDPServerSocket_h__
-#define nsUDPServerSocket_h__
+#ifndef nsUDPSocket_h__
+#define nsUDPSocket_h__
 
-#include "nsIUDPServerSocket.h"
+#include "nsIUDPSocket.h"
 #include "mozilla/Mutex.h"
 #include "nsIOutputStream.h"
 #include "nsAutoPtr.h"
 
 
 
-class nsUDPServerSocket : public nsASocketHandler
-                        , public nsIUDPServerSocket
+class nsUDPSocket : public nsASocketHandler
+                  , public nsIUDPSocket
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIUDPSERVERSOCKET
+  NS_DECL_NSIUDPSOCKET
 
   
   virtual void OnSocketReady(PRFileDesc* fd, int16_t outFlags);
@@ -30,10 +30,10 @@ public:
 
   void AddOutputBytes(uint64_t aBytes);
 
-  nsUDPServerSocket();
+  nsUDPSocket();
 
   
-  virtual ~nsUDPServerSocket();
+  virtual ~nsUDPSocket();
 
 private:
   void OnMsgClose();
@@ -47,7 +47,7 @@ private:
   mozilla::Mutex                       mLock;
   PRFileDesc                           *mFD;
   mozilla::net::NetAddr                mAddr;
-  nsCOMPtr<nsIUDPServerSocketListener> mListener;
+  nsCOMPtr<nsIUDPSocketListener>       mListener;
   nsCOMPtr<nsIEventTarget>             mListenerTarget;
   bool                                 mAttached;
   nsRefPtr<nsSocketTransportService>   mSts;
@@ -85,13 +85,13 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOUTPUTSTREAM
 
-  nsUDPOutputStream(nsUDPServerSocket* aServer,
+  nsUDPOutputStream(nsUDPSocket* aSocket,
                     PRFileDesc* aFD,
                     PRNetAddr& aPrClientAddr);
   virtual ~nsUDPOutputStream();
 
 private:
-  nsRefPtr<nsUDPServerSocket> mServer;
+  nsRefPtr<nsUDPSocket>       mSocket;
   PRFileDesc                  *mFD;
   PRNetAddr                   mPrClientAddr;
   bool                        mIsClosed;
