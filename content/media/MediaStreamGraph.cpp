@@ -1798,9 +1798,8 @@ MediaStream::Destroy()
     { Run(); }
   };
   mWrapper = nullptr;
-  mMainThreadDestroyed = true;
   GraphImpl()->AppendMessage(new Message(this));
-  
+  mMainThreadDestroyed = true;
 }
 
 void
