@@ -886,7 +886,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
     for (let header of aResponse.headers) {
       let headerVar = headersScope.addVar(header.name, { null: true }, true);
-      headerVar.setGrip(header.value);
+      gNetwork.getString(header.value).then((aString) => headerVar.setGrip(aString));
     }
   },
 
@@ -929,7 +929,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
     for (let cookie of aResponse.cookies) {
       let cookieVar = cookiesScope.addVar(cookie.name, { null: true }, true);
-      cookieVar.setGrip(cookie.value);
+      gNetwork.getString(cookie.value).then((aString) => cookieVar.setGrip(aString));
 
       
       
@@ -961,12 +961,7 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
     let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
     let query = uri.query;
     if (query) {
-      this._addParams(this._paramsQueryString, query.split("&").map((e) =>
-        let (param = e.split("=")) {
-          name: param[0],
-          value: NetworkHelper.convertToUnicode(unescape(param[1]))
-        }
-      ));
+      this._addParams(this._paramsQueryString, query);
     }
   },
 
@@ -985,27 +980,28 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
     let contentType = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
     let text = aPostResponse.postData.text;
 
-    if (contentType.value.contains("x-www-form-urlencoded")) {
-      this._addParams(this._paramsFormData, text.replace(/^[?&]/, "").split("&").map((e) =>
-        let (param = e.split("=")) {
-          name: param[0],
-          value: NetworkHelper.convertToUnicode(unescape(param[1]))
-        }
-      ));
-    } else {
+    gNetwork.getString(text).then((aString) => {
       
+      if (contentType.value.contains("x-www-form-urlencoded")) {
+        this._addParams(this._paramsFormData, aString);
+      }
       
-      
-      $("#request-params-box").removeAttribute("flex");
-      let paramsScope = this._params.addScope(this._paramsPostPayload);
-      paramsScope.expanded = true;
-      paramsScope.locked = true;
+      else {
+        
+        
+        
+        $("#request-params-box").removeAttribute("flex");
+        let paramsScope = this._params.addScope(this._paramsPostPayload);
+        paramsScope.expanded = true;
+        paramsScope.locked = true;
 
-      $("#request-post-data-textarea-box").hidden = false;
-      NetMonitorView.editor("#request-post-data-textarea").then((aEditor) => {
-        aEditor.setText(text);
-      });
-    }
+        $("#request-post-data-textarea-box").hidden = false;
+        NetMonitorView.editor("#request-post-data-textarea").then((aEditor) => {
+          aEditor.setText(aString);
+        });
+      }
+      window.emit("NetMonitor:ResponsePostParamsAvailable");
+    });
   },
 
   
@@ -1017,10 +1013,17 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
 
 
   _addParams: function NVND__addParams(aName, aParams) {
+    
+    let paramsArray = aParams.replace(/^[?&]/, "").split("&").map((e) =>
+      let (param = e.split("=")) {
+        name: NetworkHelper.convertToUnicode(unescape(param[0])),
+        value: NetworkHelper.convertToUnicode(unescape(param[1]))
+      });
+
     let paramsScope = this._params.addScope(aName);
     paramsScope.expanded = true;
 
-    for (let param of aParams) {
+    for (let param of paramsArray) {
       let headerVar = paramsScope.addVar(param.name, { null: true }, true);
       headerVar.setGrip(param.value);
     }
@@ -1039,52 +1042,59 @@ create({ constructor: NetworkDetailsView, proto: MenuContainer.prototype }, {
       return;
     }
     let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
-    let { mimeType: mime, text, encoding } = aResponse.content;
+    let { mimeType, text, encoding } = aResponse.content;
 
-    if (mime.contains("/json")) {
-      $("#response-content-json-box").hidden = false;
-      let jsonScope = this._json.addScope("JSON");
-      let sanitizedText = text.replace(/^[a-zA-Z0-9_$]+\(|\)$/g, ""); 
-      jsonScope.addVar().populate(JSON.parse(sanitizedText), { expanded: true });
-      jsonScope.expanded = true;
-    }
-    else if (mime.contains("image/")) {
-      $("#response-content-image-box").setAttribute("align", "center");
-      $("#response-content-image-box").setAttribute("pack", "center");
-      $("#response-content-image-box").hidden = false;
-      $("#response-content-image").src = "data:" + mime + ";" + encoding + "," + text;
-
+    gNetwork.getString(text).then((aString) => {
       
+      if (mimeType.contains("/json")) {
+        $("#response-content-json-box").hidden = false;
+        let jsonScope = this._json.addScope("JSON");
+        let sanitizedText = aString.replace(/^[a-zA-Z0-9_$]+\(|\)$/g, ""); 
+        jsonScope.addVar().populate(JSON.parse(sanitizedText), { expanded: true });
+        jsonScope.expanded = true;
+      }
       
-      $("#response-content-image-name-value").setAttribute("value", uri.fileName);
-      $("#response-content-image-mime-value").setAttribute("value", mime);
-      $("#response-content-image-encoding-value").setAttribute("value", encoding);
-
-      
-      $("#response-content-image").onload = (e) => {
-        
-        
-        
-        let { width, height } = e.target.getBoundingClientRect();
-        let dimensions = (width - 2) + " x " + (height - 2);
-        $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
-      };
-    }
-    else {
-      $("#response-content-textarea-box").hidden = false;
-      NetMonitorView.editor("#response-content-textarea").then((aEditor) => {
-        aEditor.setMode(SourceEditor.MODES.TEXT);
-        aEditor.setText(typeof text == "string" ? text : text.initial);
+      else if (mimeType.contains("image/")) {
+        $("#response-content-image-box").setAttribute("align", "center");
+        $("#response-content-image-box").setAttribute("pack", "center");
+        $("#response-content-image-box").hidden = false;
+        $("#response-content-image").src =
+          "data:" + mimeType + ";" + encoding + "," + aString;
 
         
-        for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
-          if (mime.contains(key)) {
-            aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
-            break;
+        
+        $("#response-content-image-name-value").setAttribute("value", uri.fileName);
+        $("#response-content-image-mime-value").setAttribute("value", mimeType);
+        $("#response-content-image-encoding-value").setAttribute("value", encoding);
+
+        
+        $("#response-content-image").onload = (e) => {
+          
+          
+          
+          let { width, height } = e.target.getBoundingClientRect();
+          let dimensions = (width - 2) + " x " + (height - 2);
+          $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
+        };
+      }
+      
+      else {
+        $("#response-content-textarea-box").hidden = false;
+        NetMonitorView.editor("#response-content-textarea").then((aEditor) => {
+          aEditor.setMode(SourceEditor.MODES.TEXT);
+          aEditor.setText(aString);
+
+          
+          for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
+            if (mimeType.contains(key)) {
+              aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
+              break;
+            }
           }
-        }
-      });
-    }
+        });
+      }
+      window.emit("NetMonitor:ResponseBodyAvailable");
+    });
   },
 
   

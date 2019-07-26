@@ -466,6 +466,43 @@ NetworkEventsHandler.prototype = {
       eventTimings: aResponse
     });
     window.emit("NetMonitor:NetworkEventUpdated:EventTimings");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  getString: function NEH_getString(aStringGrip) {
+    
+    if (typeof aStringGrip != "object" || aStringGrip.type != "longString") {
+      return Promise.resolve(aStringGrip); 
+    }
+    
+    if (aStringGrip._fullText) {
+      return aStringGrip._fullText.promise;
+    }
+
+    let deferred = aStringGrip._fullText = Promise.defer();
+    let { actor, initial, length } = aStringGrip;
+    let longStringClient = this.webConsoleClient.longString(aStringGrip);
+
+    longStringClient.substring(initial.length, length, (aResponse) => {
+      if (aResponse.error) {
+        Cu.reportError(aResponse.error + ": " + aResponse.message);
+        deferred.reject(aResponse);
+        return;
+      }
+      deferred.resolve(initial + aResponse.substring);
+    });
+
+    return deferred.promise;
   }
 };
 
@@ -497,7 +534,10 @@ NetMonitorController.NetworkEventsHandler = new NetworkEventsHandler();
 
 Object.defineProperties(window, {
   "create": {
-    get: function() ViewHelpers.create,
+    get: function() ViewHelpers.create
+  },
+  "gNetwork": {
+    get: function() NetMonitorController.NetworkEventsHandler
   }
 });
 
