@@ -64,6 +64,30 @@ let tests = [
       done();
     });
   },
+
+  function test_availableTargets_exceptionFromGetTarget(done) {
+    
+    
+    CustomizableUI.removeWidgetFromArea("search-container");
+    gContentAPI.getConfiguration("availableTargets", (data) => {
+      
+      ok_targets(data, [
+        "accountStatus",
+        "addons",
+        "appMenu",
+        "backForward",
+        "bookmarks",
+        "customize",
+        "help",
+        "home",
+        "pinnedTab",
+        "quit",
+        "urlbar",
+      ]);
+      CustomizableUI.reset();
+      done();
+    });
+  },
 ];
 
 function ok_targets(actualData, expectedTargets) {
