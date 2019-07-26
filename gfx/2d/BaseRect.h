@@ -89,10 +89,10 @@ struct BaseRect {
   Sub Intersect(const Sub& aRect) const
   {
     Sub result;
-    result.x = gfx_max(x, aRect.x);
-    result.y = gfx_max(y, aRect.y);
-    result.width = gfx_min(XMost(), aRect.XMost()) - result.x;
-    result.height = gfx_min(YMost(), aRect.YMost()) - result.y;
+    result.x = std::max(x, aRect.x);
+    result.y = std::max(y, aRect.y);
+    result.width = std::min(XMost(), aRect.XMost()) - result.x;
+    result.height = std::min(YMost(), aRect.YMost()) - result.y;
     if (result.width < 0 || result.height < 0) {
       result.SizeTo(0, 0);
     }
@@ -130,10 +130,10 @@ struct BaseRect {
   Sub UnionEdges(const Sub& aRect) const
   {
     Sub result;
-    result.x = gfx_min(x, aRect.x);
-    result.y = gfx_min(y, aRect.y);
-    result.width = gfx_max(XMost(), aRect.XMost()) - result.x;
-    result.height = gfx_max(YMost(), aRect.YMost()) - result.y;
+    result.x = std::min(x, aRect.x);
+    result.y = std::min(y, aRect.y);
+    result.width = std::max(XMost(), aRect.XMost()) - result.x;
+    result.height = std::max(YMost(), aRect.YMost()) - result.y;
     return result;
   }
   
@@ -194,15 +194,15 @@ struct BaseRect {
   {
     x += aDx;
     y += aDy;
-    width = gfx_max(T(0), width - 2 * aDx);
-    height = gfx_max(T(0), height - 2 * aDy);
+    width = std::max(T(0), width - 2 * aDx);
+    height = std::max(T(0), height - 2 * aDy);
   }
   void Deflate(const Margin& aMargin)
   {
     x += aMargin.left;
     y += aMargin.top;
-    width = gfx_max(T(0), width - aMargin.LeftRight());
-    height = gfx_max(T(0), height - aMargin.TopBottom());
+    width = std::max(T(0), width - aMargin.LeftRight());
+    height = std::max(T(0), height - aMargin.TopBottom());
   }
   void Deflate(const SizeT& aSize) { Deflate(aSize.width, aSize.height); }
 
@@ -370,8 +370,8 @@ struct BaseRect {
     T bottom = static_cast<T>(floor(double(YMost()) * aYScale));
     x = static_cast<T>(ceil(double(x) * aXScale));
     y = static_cast<T>(ceil(double(y) * aYScale));
-    width = gfx_max<T>(0, right - x);
-    height = gfx_max<T>(0, bottom - y);
+    width = std::max<T>(0, right - x);
+    height = std::max<T>(0, bottom - y);
   }
   
   
@@ -402,8 +402,8 @@ struct BaseRect {
     T bottom = static_cast<T>(floor(double(YMost()) / aYScale));
     x = static_cast<T>(ceil(double(x) / aXScale));
     y = static_cast<T>(ceil(double(y) / aYScale));
-    width = gfx_max<T>(0, right - x);
-    height = gfx_max<T>(0, bottom - y);
+    width = std::max<T>(0, right - x);
+    height = std::max<T>(0, bottom - y);
   }
 
   
