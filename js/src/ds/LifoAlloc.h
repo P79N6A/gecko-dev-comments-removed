@@ -187,13 +187,26 @@ class LifoAlloc
         curSize_ = 0;
     }
 
-    void append(BumpChunk *start, BumpChunk *end) {
+    
+    void appendUnused(BumpChunk *start, BumpChunk *end) {
         JS_ASSERT(start && end);
         if (last)
             last->setNext(start);
         else
             first = latest = start;
         last = end;
+    }
+
+    
+    
+    void appendUsed(BumpChunk *start, BumpChunk *latest, BumpChunk *end) {
+        JS_ASSERT(start && latest &&  end);
+        if (last)
+            last->setNext(start);
+        else
+            first = latest = start;
+        last = end;
+        this->latest = latest;
     }
 
     void incrementCurSize(size_t size) {
