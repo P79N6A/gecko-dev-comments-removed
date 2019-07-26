@@ -34,7 +34,6 @@ if (typeof Components != "undefined") {
 
 let EXPORTED_SYMBOLS = [
   "LOG",
-  "clone",
   "Config",
   "Constants",
   "Type",
@@ -162,46 +161,6 @@ let LOG = function (...args) {
 };
 
 exports.LOG = LOG;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let clone = function (object, refs = []) {
-  let result = {};
-  
-  let refer = function refer(result, key, object) {
-    Object.defineProperty(result, key, {
-      enumerable: true,
-      get: function() {
-        return object[key];
-      },
-      set: function(value) {
-        object[key] = value;
-      }
-    });
-  };
-  for (let k in object) {
-    if (refs.indexOf(k) < 0) {
-      result[k] = object[k];
-    } else {
-      refer(result, k, object);
-    }
-  }
-  return result;
-};
-
-exports.clone = clone;
 
 
 
@@ -1015,7 +974,6 @@ exports.OS = {
   Constants: exports.Constants,
   Shared: {
     LOG: LOG,
-    clone: clone,
     Type: Type,
     HollowStructure: HollowStructure,
     Error: OSError,
@@ -1057,3 +1015,4 @@ if (typeof Components != "undefined") {
     this[symbol] = exports[symbol];
   }
 }
+

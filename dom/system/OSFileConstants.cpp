@@ -15,10 +15,6 @@
 #include "sys/stat.h"
 #endif 
 
-#if defined(XP_LINUX)
-#include <linux/fadvise.h>
-#endif 
-
 #if defined(XP_MACOSX)
 #include "copyfile.h"
 #endif 
@@ -322,10 +318,6 @@ static const dom::ConstantSpec gLibcProperties[] =
 #endif 
 #if defined(AT_SYMLINK_NOFOLLOW)
   INT_CONSTANT(AT_SYMLINK_NOFOLLOW),
-#endif 
-
-#if defined(POSIX_FADV_SEQUENTIAL)
-  INT_CONSTANT(POSIX_FADV_SEQUENTIAL),
 #endif 
 
   
