@@ -120,6 +120,7 @@ class Selection;
 namespace dom {
 class DocumentFragment;
 class Element;
+class EventTarget;
 } 
 
 namespace layers {
@@ -2258,10 +2259,10 @@ public:
   ~nsCxPusher(); 
 
   
-  bool Push(nsIDOMEventTarget *aCurrentTarget);
+  bool Push(mozilla::dom::EventTarget *aCurrentTarget);
   
   
-  bool RePush(nsIDOMEventTarget *aCurrentTarget);
+  bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
   
   
   void Push(JSContext *cx);

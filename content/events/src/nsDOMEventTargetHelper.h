@@ -45,11 +45,11 @@ public:
 
   static nsDOMEventTargetHelper* FromSupports(nsISupports* aSupports)
   {
-    nsIDOMEventTarget* target =
-      static_cast<nsIDOMEventTarget*>(aSupports);
+    mozilla::dom::EventTarget* target =
+      static_cast<mozilla::dom::EventTarget*>(aSupports);
 #ifdef DEBUG
     {
-      nsCOMPtr<nsIDOMEventTarget> target_qi =
+      nsCOMPtr<mozilla::dom::EventTarget> target_qi =
         do_QueryInterface(aSupports);
 
       

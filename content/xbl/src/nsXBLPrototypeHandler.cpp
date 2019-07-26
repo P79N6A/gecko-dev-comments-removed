@@ -187,7 +187,7 @@ nsXBLPrototypeHandler::InitAccessKeys()
 }
 
 nsresult
-nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
+nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
                                       nsIDOMEvent* aEvent)
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -418,7 +418,7 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
 }
 
 nsresult
-nsXBLPrototypeHandler::DispatchXBLCommand(nsIDOMEventTarget* aTarget, nsIDOMEvent* aEvent)
+nsXBLPrototypeHandler::DispatchXBLCommand(EventTarget* aTarget, nsIDOMEvent* aEvent)
 {
   
   
@@ -585,7 +585,7 @@ nsXBLPrototypeHandler::GetEventName()
 }
 
 already_AddRefed<nsIController>
-nsXBLPrototypeHandler::GetController(nsIDOMEventTarget* aTarget)
+nsXBLPrototypeHandler::GetController(EventTarget* aTarget)
 {
   
   

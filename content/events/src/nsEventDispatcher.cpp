@@ -286,7 +286,7 @@ nsEventTargetChainItem::HandleEventTargetChain(
 {
   uint32_t createdELMs = nsEventListenerManager::sCreatedCount;
   
-  nsCOMPtr<nsIDOMEventTarget> firstTarget = aVisitor.mEvent->target;
+  nsCOMPtr<EventTarget> firstTarget = aVisitor.mEvent->target;
 
   
   nsEventTargetChainItem* item = this;
@@ -306,7 +306,7 @@ nsEventTargetChainItem::HandleEventTargetChain(
       
       nsEventTargetChainItem* nextTarget = item->mChild;
       while (nextTarget) {
-        nsIDOMEventTarget* newTarget = nextTarget->GetNewTarget();
+        EventTarget* newTarget = nextTarget->GetNewTarget();
         if (newTarget) {
           aVisitor.mEvent->target = newTarget;
           break;
@@ -336,7 +336,7 @@ nsEventTargetChainItem::HandleEventTargetChain(
   aVisitor.mEvent->mFlags.mInCapturePhase = false;
   item = item->mParent;
   while (item) {
-    nsIDOMEventTarget* newTarget = item->GetNewTarget();
+    EventTarget* newTarget = item->GetNewTarget();
     if (newTarget) {
       
       
@@ -428,7 +428,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                             nsIDOMEvent* aDOMEvent,
                             nsEventStatus* aEventStatus,
                             nsDispatchingCallback* aCallback,
-                            nsCOMArray<nsIDOMEventTarget>* aTargets)
+                            nsCOMArray<EventTarget>* aTargets)
 {
   PROFILER_LABEL("nsEventDispatcher", "Dispatch");
   NS_ASSERTION(aEvent, "Trying to dispatch without nsEvent!");
