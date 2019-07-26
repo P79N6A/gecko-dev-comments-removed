@@ -38,6 +38,11 @@ NS_VolumeStateStr(int32_t aState)
   return "???";
 }
 
+
+
+
+
+
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsVolume, nsIVolume)
 
 nsVolume::nsVolume(const Volume* aVolume)
@@ -106,6 +111,8 @@ nsVolume::LogState() const
 
 void nsVolume::Set(const nsVolume* aVolume)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   mName = aVolume->mName;
   mMountPoint = aVolume->mMountPoint;
   mState = aVolume->mState;
@@ -139,6 +146,8 @@ void nsVolume::Set(const nsVolume* aVolume)
 void
 nsVolume::UpdateMountLock(const nsAString& aMountLockState)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   
   UpdateMountLock(!aMountLockState.EqualsLiteral("unlocked"));
@@ -147,6 +156,8 @@ nsVolume::UpdateMountLock(const nsAString& aMountLockState)
 void
 nsVolume::UpdateMountLock(bool aMountLocked)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (aMountLocked == mMountLocked) {
     return;
   }
