@@ -28,6 +28,7 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+#include "OpenFileFinder.h"
 #include "Volume.h"
 #include "VolumeManager.h"
 
@@ -71,8 +72,9 @@ using namespace mozilla::hal;
 #define USE_DEBUG 0
 
 #undef LOG
-#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "AutoMounter" , ## args)
-#define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "AutoMounter" , ## args)
+#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO,  "AutoMounter", ## args)
+#define LOGW(args...) __android_log_print(ANDROID_LOG_WARN,  "AutoMounter", ## args)
+#define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "AutoMounter", ## args)
 
 #if USE_DEBUG
 #define DBG(args...)  __android_log_print(ANDROID_LOG_DEBUG, "AutoMounter" , ## args)
@@ -402,19 +404,50 @@ AutoMounter::UpdateState()
           if (vol->IsMountLocked()) {
             
             
-            DBG("UpdateState: Mounted volume %s is locked, leaving",
-                vol->NameStr());
+            LOGW("UpdateState: Mounted volume %s is locked, not sharing",
+                 vol->NameStr());
             break;
           }
+
           
           
-          DBG("UpdateState: Unmounting %s", vol->NameStr());
+          OpenFileFinder::Info fileInfo;
+          OpenFileFinder fileFinder(vol->MountPoint());
+          if (fileFinder.First(&fileInfo)) {
+            LOGW("The following files are open under '%s'",
+                 vol->MountPoint().get());
+            do {
+              LOGW("  PID: %d file: '%s' app: '%s' comm: '%s' exe: '%s'\n",
+                   fileInfo.mPid,
+                   fileInfo.mFileName.get(),
+                   fileInfo.mAppName.get(),
+                   fileInfo.mComm.get(),
+                   fileInfo.mExe.get());
+            } while (fileFinder.Next(&fileInfo));
+            LOGW("UpdateState: Mounted volume %s has open files, not sharing",
+                 vol->NameStr());
+
+            
+            
+            
+            
+            
+            MessageLoopForIO::current()->
+              PostDelayedTask(FROM_HERE,
+                              NewRunnableMethod(this, &AutoMounter::UpdateState),
+                              5000);
+            break;
+          }
+
+          
+          
+          LOG("UpdateState: Unmounting %s", vol->NameStr());
           vol->StartUnmount(mResponseCallback);
           return; 
         }
         case nsIVolume::STATE_IDLE: {
           
-          DBG("UpdateState: Sharing %s", vol->NameStr());
+          LOG("UpdateState: Sharing %s", vol->NameStr());
           vol->StartShare(mResponseCallback);
           return; 
         }
@@ -428,14 +461,14 @@ AutoMounter::UpdateState()
       switch (volState) {
         case nsIVolume::STATE_SHARED: {
           
-          DBG("UpdateState: Unsharing %s", vol->NameStr());
+          LOG("UpdateState: Unsharing %s", vol->NameStr());
           vol->StartUnshare(mResponseCallback);
           return; 
         }
         case nsIVolume::STATE_IDLE: {
           
 
-          DBG("UpdateState: Mounting %s", vol->NameStr());
+          LOG("UpdateState: Mounting %s", vol->NameStr());
           vol->StartMount(mResponseCallback);
           return; 
         }
