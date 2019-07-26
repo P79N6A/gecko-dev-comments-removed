@@ -664,7 +664,7 @@ RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
     
     
     
-    if (!frameAdvanced && (currentFrameEndTime == oldFrameEndTime)) {
+    if (!didAdvance && (currentFrameEndTime == oldFrameEndTime)) {
       break;
     }
   }
