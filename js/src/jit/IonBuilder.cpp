@@ -9145,6 +9145,11 @@ IonBuilder::jsop_setarg(uint32_t arg)
 
     
     
+    if (info().hasArguments())
+	return abort("NYI: arguments & setarg.");
+
+    
+    
     
     
     
