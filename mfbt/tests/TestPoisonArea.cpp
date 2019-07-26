@@ -79,6 +79,8 @@
 
 
 
+#include "mozilla/NullPtr.h"
+
 
 
 #define __STDC_FORMAT_MACROS
@@ -195,8 +197,8 @@ StrW32Error(DWORD errcode)
   FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                  FORMAT_MESSAGE_FROM_SYSTEM |
                  FORMAT_MESSAGE_IGNORE_INSERTS,
-                 NULL, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                 (LPSTR) &errmsg, 0, NULL);
+                 nullptr, errcode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 (LPSTR)&errmsg, 0, nullptr);
 
   
   size_t n = strlen(errmsg)-1;
