@@ -222,6 +222,10 @@ XRE_MetroCoreApplicationRun()
   }
 #endif
 
+  
+  
+  PR_Now();
+
   sMetroApp = Make<MetroApp>();
 
   HStringReference className(RuntimeClass_Windows_ApplicationModel_Core_CoreApplication);
