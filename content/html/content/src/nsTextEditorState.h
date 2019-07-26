@@ -174,7 +174,10 @@ public:
   }
 
   
-  void SetPlaceholderClass(bool aVisible, bool aNotify);
+  void SetPlaceholderVisibility(bool aVisible, bool aNotify);
+  bool GetPlaceholderVisibility() {
+    return mPlaceholderVisibility;
+  }
   void UpdatePlaceholderText(bool aNotify); 
 
   
@@ -278,6 +281,7 @@ private:
   bool mSelectionCached; 
   mutable bool mSelectionRestoreEagerInit; 
   SelectionProperties mSelectionProperties;
+  bool mPlaceholderVisibility;
 };
 
 #endif
