@@ -87,6 +87,9 @@ FFmpegDataDecoder::Init()
   
   mCodecContext.get_format = ChoosePixelFormat;
 
+  mCodecContext.extradata = mExtraData.begin();
+  mCodecContext.extradata_size = mExtraData.length();
+
   AVDictionary* opts = nullptr;
   if (avcodec_open2(&mCodecContext, codec, &opts) < 0) {
     NS_WARNING("Couldn't initialise ffmpeg decoder");

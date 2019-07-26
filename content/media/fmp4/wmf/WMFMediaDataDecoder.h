@@ -13,6 +13,8 @@
 #include "MFTDecoder.h"
 #include "mozilla/RefPtr.h"
 
+class mp4_demuxer::MP4Sample;
+
 namespace mozilla {
 
 
@@ -25,6 +27,11 @@ public:
   
   
   virtual TemporaryRef<MFTDecoder> Init() = 0;
+
+  
+  
+  
+  virtual HRESULT Input(mp4_demuxer::MP4Sample* aSample) = 0;
 
   
   

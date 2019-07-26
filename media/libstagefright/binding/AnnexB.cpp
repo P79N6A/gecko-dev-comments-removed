@@ -2,6 +2,7 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
 #include "mp4_demuxer/AnnexB.h"
 #include "mp4_demuxer/ByteReader.h"
 #include "mp4_demuxer/DecoderData.h"
@@ -12,6 +13,21 @@ namespace mp4_demuxer
 {
 
 static const uint8_t kAnnexBDelimiter[] = { 0, 0, 0, 1 };
+
+void
+AnnexB::ConvertSample(MP4Sample* aSample,
+                      const mozilla::Vector<uint8_t>& annexB)
+{
+  MOZ_ASSERT(aSample);
+  MOZ_ASSERT(aSample->data);
+  MOZ_ASSERT(aSample->size >= ArrayLength(kAnnexBDelimiter));
+  
+  memcpy(aSample->data, kAnnexBDelimiter, ArrayLength(kAnnexBDelimiter));
+  
+  if (aSample->is_sync_point) {
+    aSample->Prepend(annexB.begin(), annexB.length());
+  }
+}
 
 Vector<uint8_t>
 AnnexB::ConvertExtraDataToAnnexB(mozilla::Vector<uint8_t>& aExtraData)
@@ -37,8 +53,8 @@ AnnexB::ConvertExtraDataToAnnexB(mozilla::Vector<uint8_t>& aExtraData)
   const uint8_t* ptr = reader.Read(5);
   if (ptr && ptr[0] == 1) {
     
-    ConvertSpsOrPsp(reader, reader.ReadU8() & 31, &annexB);
-    ConvertSpsOrPsp(reader, reader.ReadU8(), &annexB);
+    ConvertSPSOrPPS(reader, reader.ReadU8() & 31, &annexB);
+    ConvertSPSOrPPS(reader, reader.ReadU8(), &annexB);
 
     MOZ_ASSERT(!reader.Remaining());
   }
@@ -47,7 +63,7 @@ AnnexB::ConvertExtraDataToAnnexB(mozilla::Vector<uint8_t>& aExtraData)
 }
 
 void
-AnnexB::ConvertSpsOrPsp(ByteReader& aReader, uint8_t aCount,
+AnnexB::ConvertSPSOrPPS(ByteReader& aReader, uint8_t aCount,
                         Vector<uint8_t>* aAnnexB)
 {
   for (int i = 0; i < aCount; i++) {
@@ -62,4 +78,5 @@ AnnexB::ConvertSpsOrPsp(ByteReader& aReader, uint8_t aCount,
     aAnnexB->append(ptr, length);
   }
 }
-}
+
+} 

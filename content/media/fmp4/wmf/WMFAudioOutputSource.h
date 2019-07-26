@@ -22,6 +22,8 @@ public:
 
   virtual TemporaryRef<MFTDecoder> Init() MOZ_OVERRIDE;
 
+  virtual HRESULT Input(mp4_demuxer::MP4Sample* aSample) MOZ_OVERRIDE;
+
   
   
   
