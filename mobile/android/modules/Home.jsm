@@ -51,14 +51,33 @@ function BannerMessage(options) {
     this.ondismiss = options.ondismiss;
 }
 
+
+
+let HomeBannerMessageHandlers;
+
 let HomeBanner = (function () {
+  
+  let _pendingRequest = false;
+
+  
+  HomeBannerMessageHandlers = {
+    "HomeBanner:Get": function handleBannerGet(data) {
+      if (!_sendBannerData()) {
+        _pendingRequest = true;
+      }
+    }
+  };
+
   
   let _messages = {};
 
-
-  let _handleGet = function() {
-    
+  let _sendBannerData = function() {
     let keys = Object.keys(_messages);
+    if (!keys.length) {
+      return false;
+    }
+
+    
     let randomId = keys[Math.floor(Math.random() * keys.length)];
     let message = _messages[randomId];
 
@@ -68,6 +87,7 @@ let HomeBanner = (function () {
       text: message.text,
       iconURI: message.iconURI
     });
+    return true;
   };
 
   let _handleShown = function(id) {
@@ -91,10 +111,6 @@ let HomeBanner = (function () {
   return Object.freeze({
     observe: function(subject, topic, data) {
       switch(topic) {
-        case "HomeBanner:Get":
-          _handleGet();
-          break;
-
         case "HomeBanner:Shown":
           _handleShown(data);
           break;
@@ -121,14 +137,15 @@ let HomeBanner = (function () {
       
       
       if (Object.keys(_messages).length == 1) {
-        Services.obs.addObserver(this, "HomeBanner:Get", false);
         Services.obs.addObserver(this, "HomeBanner:Shown", false);
         Services.obs.addObserver(this, "HomeBanner:Click", false);
         Services.obs.addObserver(this, "HomeBanner:Dismiss", false);
 
         
-        
-        _handleGet();
+        if (_pendingRequest) {
+          _pendingRequest = false;
+          _sendBannerData();
+        }
       }
 
       return message.id;
@@ -148,7 +165,6 @@ let HomeBanner = (function () {
 
       
       if (Object.keys(_messages).length == 0) {
-        Services.obs.removeObserver(this, "HomeBanner:Get");
         Services.obs.removeObserver(this, "HomeBanner:Shown");
         Services.obs.removeObserver(this, "HomeBanner:Click");
         Services.obs.removeObserver(this, "HomeBanner:Dismiss");
@@ -412,7 +428,9 @@ this.Home = Object.freeze({
 
   
   observe: function(subject, topic, data) {
-    if (topic in HomePanelsMessageHandlers) {
+    if (topic in HomeBannerMessageHandlers) {
+      HomeBannerMessageHandlers[topic](data);
+    } else if (topic in HomePanelsMessageHandlers) {
       HomePanelsMessageHandlers[topic](data);
     } else {
       Cu.reportError("Home.observe: message handler not found for topic: " + topic);
