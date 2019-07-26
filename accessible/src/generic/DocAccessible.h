@@ -450,7 +450,12 @@ protected:
   
 
 
-  void CacheChildrenInSubtree(Accessible* aRoot);
+
+
+
+
+  void CacheChildrenInSubtree(Accessible* aRoot,
+                              Accessible** aFocusedAcc = nullptr);
 
   
 

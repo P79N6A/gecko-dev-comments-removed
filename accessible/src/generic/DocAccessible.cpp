@@ -1830,10 +1830,16 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
 {
   uint32_t updateFlags = eAccessible;
 
+  
+  
+  
+  
+  Accessible* focusedAcc = nullptr;
+
   nsINode* node = aChild->GetNode();
   if (aIsInsert) {
     
-    CacheChildrenInSubtree(aChild);
+    CacheChildrenInSubtree(aChild, &focusedAcc);
 
   } else {
     
@@ -1870,16 +1876,6 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
       updateFlags = eAlertAccessible;
       FireDelayedEvent(nsIAccessibleEvent::EVENT_ALERT, aChild);
     }
-
-    
-    
-    
-    
-    
-    
-    if (FocusMgr()->IsFocused(aChild))
-      FocusMgr()->DispatchFocusEvent(this, aChild);
-
   } else {
     
     
@@ -1893,12 +1889,24 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
     UncacheChildrenInSubtree(aChild);
   }
 
+  
+  
+  if (focusedAcc)
+    FocusMgr()->DispatchFocusEvent(this, focusedAcc);
+
   return updateFlags;
 }
 
 void
-DocAccessible::CacheChildrenInSubtree(Accessible* aRoot)
+DocAccessible::CacheChildrenInSubtree(Accessible* aRoot,
+                                      Accessible** aFocusedAcc)
 {
+  
+  
+  if (aFocusedAcc && !*aFocusedAcc &&
+      FocusMgr()->HasDOMFocus(aRoot->GetContent()))
+    *aFocusedAcc = aRoot;
+
   aRoot->EnsureChildren();
 
   
@@ -1910,7 +1918,7 @@ DocAccessible::CacheChildrenInSubtree(Accessible* aRoot)
     NS_ASSERTION(child, "Illicit tree change while tree is created!");
     
     if (child && child->IsContent())
-      CacheChildrenInSubtree(child);
+      CacheChildrenInSubtree(child, aFocusedAcc);
   }
 
   
