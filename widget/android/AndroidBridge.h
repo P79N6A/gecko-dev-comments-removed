@@ -180,9 +180,6 @@ public:
     void SetLayerClient(JNIEnv* env, jobject jobj);
     AndroidGeckoLayerClient &GetLayerClient() { return *mLayerClient; }
 
-    void SetSurfaceView(jobject jobj);
-    AndroidGeckoSurfaceView& SurfaceView() { return mSurfaceView; }
-
     bool GetHandlersForURL(const char *aURL, 
                              nsIMutableArray* handlersArray = nullptr,
                              nsIHandlerApp **aDefaultApp = nullptr,
@@ -258,9 +255,6 @@ public:
     bool GetShowPasswordSetting();
 
     
-    void *CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView& surfaceView);
-
-    
     void RegisterCompositor(JNIEnv* env = NULL, bool resetting = false);
     EGLSurface ProvideEGLSurface(bool waitUntilValid);
 
@@ -301,8 +295,6 @@ public:
 
     void *AcquireNativeWindowFromSurfaceTexture(JNIEnv* aEnv, jobject aSurface);
     void ReleaseNativeWindowForSurfaceTexture(void *window);
-
-    bool SetNativeWindowFormat(void *window, int width, int height, int format);
 
     bool LockWindow(void *window, unsigned char **bits, int *width, int *height, int *format, int *stride);
     bool UnlockWindow(void *window);
@@ -381,9 +373,6 @@ protected:
     
     JNIEnv *mJNIEnv;
     void *mThread;
-
-    
-    AndroidGeckoSurfaceView mSurfaceView;
 
     AndroidGeckoLayerClient *mLayerClient;
 
@@ -506,14 +495,6 @@ protected:
     
     jclass jSurfaceClass;
     jfieldID jSurfacePointerField;
-
-    
-    jclass jEGLSurfaceImplClass;
-    jclass jEGLContextImplClass;
-    jclass jEGLConfigImplClass;
-    jclass jEGLDisplayImplClass;
-    jclass jEGLContextClass;
-    jclass jEGL10Class;
 
     jclass jLayerView;
     jmethodID jRegisterCompositorMethod;
