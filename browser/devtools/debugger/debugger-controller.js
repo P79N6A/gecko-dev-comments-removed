@@ -1247,17 +1247,6 @@ XPCOMUtils.defineLazyGetter(L10N, "ellipsis", function() {
   return Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data;
 });
 
-const STACKFRAMES_WIDTH = "devtools.debugger.ui.stackframes-width";
-const VARIABLES_WIDTH = "devtools.debugger.ui.variables-width";
-const PANES_VISIBLE_ON_STARTUP = "devtools.debugger.ui.panes-visible-on-startup";
-const VARIABLES_NON_ENUM_VISIBLE = "devtools.debugger.ui.variables-non-enum-visible";
-const VARIABLES_SEARCHBOX_VISIBLE = "devtools.debugger.ui.variables-searchbox-visible";
-const REMOTE_HOST = "devtools.debugger.remote-host";
-const REMOTE_PORT = "devtools.debugger.remote-port";
-const REMOTE_AUTO_CONNECT = "devtools.debugger.remote-autoconnect";
-const REMOTE_CONNECTION_RETRIES = "devtools.debugger.remote-connection-retries";
-const REMOTE_TIMEOUT = "devtools.debugger.remote-timeout";
-
 
 
 
@@ -1266,60 +1255,14 @@ let Prefs = {
 
 
 
-  get stackframesWidth() {
-    if (this._stackframesWidth === undefined) {
-      this._stackframesWidth = Services.prefs.getIntPref(STACKFRAMES_WIDTH);
+
+
+
+  _get: function P__get(aType, aPrefName) {
+    if (this[aPrefName] === undefined) {
+      this[aPrefName] = Services.prefs["get" + aType + "Pref"](aPrefName);
     }
-    return this._stackframesWidth;
-  },
-
-  
-
-
-
-  set stackframesWidth(value) {
-    Services.prefs.setIntPref(STACKFRAMES_WIDTH, value);
-    this._stackframesWidth = value;
-  },
-
-  
-
-
-
-  get variablesWidth() {
-    if (this._variablesWidth === undefined) {
-      this._variablesWidth = Services.prefs.getIntPref(VARIABLES_WIDTH);
-    }
-    return this._variablesWidth;
-  },
-
-  
-
-
-
-  set variablesWidth(value) {
-    Services.prefs.setIntPref(VARIABLES_WIDTH, value);
-    this._variablesWidth = value;
-  },
-
-  
-
-
-
-  get panesVisibleOnStartup() {
-    if (this._panesVisible === undefined) {
-      this._panesVisible = Services.prefs.getBoolPref(PANES_VISIBLE_ON_STARTUP);
-    }
-    return this._panesVisible;
-  },
-
-  
-
-
-
-  set panesVisibleOnStartup(value) {
-    Services.prefs.setBoolPref(PANES_VISIBLE_ON_STARTUP, value);
-    this._panesVisible = value;
+    return this[aPrefName];
   },
 
   
@@ -1327,11 +1270,11 @@ let Prefs = {
 
 
 
-  get variablesNonEnumVisible() {
-    if (this._varNonEnum === undefined) {
-      this._varNonEnum = Services.prefs.getBoolPref(VARIABLES_NON_ENUM_VISIBLE);
-    }
-    return this._varNonEnum;
+
+
+  _set: function P__set(aType, aPrefName, aValue) {
+    Services.prefs["set" + aType + "Pref"](aPrefName, aValue);
+    this[aPrefName] = aValue;
   },
 
   
@@ -1339,109 +1282,31 @@ let Prefs = {
 
 
 
-  set variablesNonEnumVisible(value) {
-    Services.prefs.setBoolPref(VARIABLES_NON_ENUM_VISIBLE, value);
-    this._varNonEnum = value;
-  },
-
-  
 
 
-
-  get variablesSearchboxVisible() {
-    if (this._varSearchbox === undefined) {
-      this._varSearchbox = Services.prefs.getBoolPref(VARIABLES_SEARCHBOX_VISIBLE);
-    }
-    return this._varSearchbox;
-  },
-
-  
-
-
-
-  set variablesSearchboxVisible(value) {
-    Services.prefs.setBoolPref(VARIABLES_SEARCHBOX_VISIBLE, value);
-    this._varSearchbox = value;
-  },
-
-  
-
-
-
-  get remoteHost() {
-    if (this._remoteHost === undefined) {
-      this._remoteHost = Services.prefs.getCharPref(REMOTE_HOST);
-    }
-    return this._remoteHost;
-  },
-
-  
-
-
-
-  set remoteHost(value) {
-    Services.prefs.setCharPref(REMOTE_HOST, value);
-    this._remoteHost = value;
-  },
-
-  
-
-
-
-  get remotePort() {
-    if (this._remotePort === undefined) {
-      this._remotePort = Services.prefs.getIntPref(REMOTE_PORT);
-    }
-    return this._remotePort;
-  },
-
-  
-
-
-
-  set remotePort(value) {
-    Services.prefs.setIntPref(REMOTE_PORT, value);
-    this._remotePort = value;
-  },
-
-  
-
-
-
-
-  get remoteAutoConnect() {
-    if (this._autoConnect === undefined) {
-      this._autoConnect = Services.prefs.getBoolPref(REMOTE_AUTO_CONNECT);
-    }
-    return this._autoConnect;
-  },
-
-  
-
-
-
-
-  set remoteAutoConnect(value) {
-    Services.prefs.setBoolPref(REMOTE_AUTO_CONNECT, value);
-    this._autoConnect = value;
+  map: function P_map(aType, aPropertyName, aPrefName) {
+    Object.defineProperty(this, aPropertyName, {
+      get: function() this._get(aType, aPrefName),
+      set: function(aValue) this._set(aType, aPrefName, aValue)
+    });
   }
 };
 
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remoteConnectionRetries", function() {
-  return Services.prefs.getIntPref(REMOTE_CONNECTION_RETRIES);
-});
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remoteTimeout", function() {
-  return Services.prefs.getIntPref(REMOTE_TIMEOUT);
-});
+Prefs.map("Int", "height", "devtools.debugger.ui.height");
+Prefs.map("Int", "windowX", "devtools.debugger.ui.win-x");
+Prefs.map("Int", "windowY", "devtools.debugger.ui.win-y");
+Prefs.map("Int", "windowWidth", "devtools.debugger.ui.win-width");
+Prefs.map("Int", "windowHeight", "devtools.debugger.ui.win-height");
+Prefs.map("Int", "stackframesWidth", "devtools.debugger.ui.stackframes-width");
+Prefs.map("Int", "variablesWidth", "devtools.debugger.ui.variables-width");
+Prefs.map("Bool", "panesVisibleOnStartup", "devtools.debugger.ui.panes-visible-on-startup");
+Prefs.map("Bool", "variablesNonEnumVisible", "devtools.debugger.ui.variables-non-enum-visible");
+Prefs.map("Bool", "variablesSearchboxVisible", "devtools.debugger.ui.variables-searchbox-visible");
+Prefs.map("Char", "remoteHost", "devtools.debugger.remote-host");
+Prefs.map("Int", "remotePort", "devtools.debugger.remote-port");
+Prefs.map("Bool", "remoteAutoConnect", "devtools.debugger.remote-autoconnect");
+Prefs.map("Int", "remoteConnectionRetries", "devtools.debugger.remote-connection-retries");
+Prefs.map("Int", "remoteTimeout", "devtools.debugger.remote-timeout");
 
 
 
