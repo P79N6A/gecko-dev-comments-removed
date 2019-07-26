@@ -24,6 +24,9 @@ class GStreamerFormatHelper {
     bool CanHandleMediaType(const nsACString& aMIMEType,
                             const nsAString* aCodecs);
 
+    bool CanHandleContainerCaps(GstCaps* aCaps);
+    bool CanHandleCodecCaps(GstCaps* aCaps);
+
    static void Shutdown();
 
   private:
@@ -41,6 +44,10 @@ class GStreamerFormatHelper {
 
     
     static char const *const mCodecs[9][2];
+
+    
+    GstCaps* mSupportedContainerCaps;
+    GstCaps* mSupportedCodecCaps;
 
     
 

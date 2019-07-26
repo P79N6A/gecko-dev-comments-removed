@@ -56,6 +56,11 @@ private:
 
   
 
+
+  nsresult CheckSupportedFormats();
+
+  
+
   
 
 
