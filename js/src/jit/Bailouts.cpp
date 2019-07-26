@@ -15,7 +15,7 @@
 #include "jit/Snapshots.h"
 #include "vm/TraceLogging.h"
 
-#include "jit/IonFrameIterator-inl.h"
+#include "jit/JitFrameIterator-inl.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
@@ -63,7 +63,7 @@ IonBailoutIterator::dump() const
             ++frames;
         }
     } else {
-        IonFrameIterator::dump();
+        JitFrameIterator::dump();
     }
 }
 
@@ -151,8 +151,8 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
 }
 
 IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
-                                       const IonFrameIterator &frame)
-  : IonFrameIterator(activations),
+                                       const JitFrameIterator &frame)
+  : JitFrameIterator(activations),
     machine_(frame.machineState())
 {
     returnAddressToFp_ = frame.returnAddressToFp();

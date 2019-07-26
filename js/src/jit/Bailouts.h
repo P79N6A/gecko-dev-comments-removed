@@ -9,8 +9,8 @@
 
 #include "jstypes.h"
 
-#include "jit/IonFrameIterator.h"
 #include "jit/IonFrames.h"
+#include "jit/JitFrameIterator.h"
 #include "vm/Stack.h"
 
 namespace js {
@@ -112,7 +112,7 @@ class InvalidationBailoutStack;
 
 
 
-class IonBailoutIterator : public IonFrameIterator
+class IonBailoutIterator : public JitFrameIterator
 {
     MachineState machine_;
     uint32_t snapshotOffset_;
@@ -122,7 +122,7 @@ class IonBailoutIterator : public IonFrameIterator
   public:
     IonBailoutIterator(const JitActivationIterator &activations, BailoutStack *sp);
     IonBailoutIterator(const JitActivationIterator &activations, InvalidationBailoutStack *sp);
-    IonBailoutIterator(const JitActivationIterator &activations, const IonFrameIterator &frame);
+    IonBailoutIterator(const JitActivationIterator &activations, const JitFrameIterator &frame);
 
     SnapshotOffset snapshotOffset() const {
         JS_ASSERT(topIonScript_);
@@ -138,7 +138,7 @@ class IonBailoutIterator : public IonFrameIterator
     IonScript *ionScript() const {
         if (topIonScript_)
             return topIonScript_;
-        return IonFrameIterator::ionScript();
+        return JitFrameIterator::ionScript();
     }
 
     void dump() const;

@@ -4,12 +4,12 @@
 
 
 
-#ifndef jit_IonFrameIterator_inl_h
-#define jit_IonFrameIterator_inl_h
+#ifndef jit_JitFrameIterator_inl_h
+#define jit_JitFrameIterator_inl_h
 
 #ifdef JS_ION
 
-#include "jit/IonFrameIterator.h"
+#include "jit/JitFrameIterator.h"
 
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
@@ -34,7 +34,7 @@ InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
 }
 
 inline BaselineFrame *
-IonFrameIterator::baselineFrame() const
+JitFrameIterator::baselineFrame() const
 {
     JS_ASSERT(isBaselineJS());
     return (BaselineFrame *)(fp() - BaselineFrame::FramePointerOffset - BaselineFrame::Size());
