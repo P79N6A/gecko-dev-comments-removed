@@ -1396,104 +1396,6 @@ kpml_update_data (kpml_data_t *kpml_data, KPMLRequest *kpml_sub_data)
 
 
 
-static void
-kpml_terminate_subscription (ccsip_sub_not_data_t *msg)
-{
-    static const char fname[] = "kpml_terminate_subscribe";
-    kpml_data_t *kpml_data = NULL;
-    boolean     normal_terminate;
-    lsm_lcb_t *lcb;
-
-    KPML_DEBUG(DEB_F_PREFIX"entered.\n", DEB_F_PREFIX_ARGS(KPML_INFO, fname));
-
-    if (kpml_get_config_value() == KPML_NONE) {
-        return;
-    }
-
-    if (msg->sub_id == (unsigned int)-1) {
-        KPML_ERROR(KPML_L_C_F_PREFIX"Invalid sub_id=%d\n", msg->line_id,
-                   msg->gsm_id, fname, msg->sub_id);
-        return;
-    }
-
-    KPML_DEBUG(DEB_L_C_F_PREFIX"sub_id=%d, reason=%d\n",
-                DEB_L_C_F_PREFIX_ARGS(KPML_INFO, msg->line_id, msg->gsm_id, fname),
-                msg->sub_id, msg->reason_code);
-    
-
-
-
-    switch (msg->reason_code) {
-    case SM_REASON_CODE_SHUTDOWN:
-    case SM_REASON_CODE_ROLLOVER:
-    case SM_REASON_CODE_RESET_REG:
-        
-
-
-
-
-
-        normal_terminate = FALSE;
-        break;
-    default:
-        normal_terminate = TRUE;
-        break;
-    }
-
-    
-    cprGetMutex(kpml_mutex);
-
-    kpml_data = kpml_data_for_subid(msg->sub_id);
-
-    if (kpml_data) {
-
-        kpml_data->persistent = KPML_ONE_SHOT;
-
-        
-
-
-
-        if (normal_terminate) {
-            kpml_generate_notify(kpml_data, FALSE,
-                                 KPML_SUB_EXPIRE,
-                                 KPML_SUB_EXPIRE_STR);
-
-            
-            lcb = lsm_get_lcb_by_call_id(kpml_data->call_id);
-            if (lcb && lcb->state < LSM_S_RINGOUT) {
-                cc_release(CC_SRC_GSM, kpml_data->call_id, kpml_data->line,
-                           CC_CAUSE_CONGESTION, NULL, NULL);
-            }
-        }
-
-        (void) kpml_clear_data(kpml_data, KPML_ONE_SHOT);
-    }
-
-    
-    cprReleaseMutex(kpml_mutex);
-
-    
-
-
-
-    if (normal_terminate) {
-        (void) sub_int_subscribe_term(msg->sub_id, TRUE,
-                                      msg->request_id, msg->event);
-    }
-    KPML_DEBUG(DEB_F_PREFIX"exit.\n", DEB_F_PREFIX_ARGS(KPML_INFO, fname));
-
-}
-
-
-
-
-
-
-
-
-
-
-
 
 static void
 kpml_receive_subscribe (ccsip_sub_not_data_t *msg)
@@ -1921,47 +1823,6 @@ kpml_get_msg_string (uint32_t cmd)
     }
 }
 
-void
-kpml_process_msg (uint32_t cmd, void *msg)
-{
-    static const char fname[] = "kpml_process_msg";
-
-    KPML_DEBUG(DEB_F_PREFIX"cmd= %s\n", DEB_F_PREFIX_ARGS(KPML_INFO, fname), kpml_get_msg_string(cmd));
-
-    if (s_kpml_list == NULL) {
-        
-        KPML_DEBUG(DEB_F_PREFIX"KPML is down.\n", DEB_F_PREFIX_ARGS(KPML_INFO, fname));
-        return;
-    }
-
-    switch (cmd) {
-
-    case SUB_MSG_KPML_SUBSCRIBE:
-        kpml_receive_subscribe((ccsip_sub_not_data_t *) msg);
-        break;
-
-    case SUB_MSG_KPML_TERMINATE:
-        kpml_terminate_subscription((ccsip_sub_not_data_t *) msg);
-        break;
-
-    case SUB_MSG_KPML_NOTIFY_ACK:
-        kpml_receive_notify_response((ccsip_sub_not_data_t *) msg);
-        break;
-
-    case SUB_MSG_KPML_SUBSCRIBE_TIMER:
-        kpml_subscription_timer_event((void **) msg);
-        break;
-
-    case SUB_MSG_KPML_DIGIT_TIMER:
-        kpml_inter_digit_timer_event((void **) msg);
-        break;
-
-    default:
-        KPML_ERROR(KPML_F_PREFIX"Bad Cmd received: 0x%x.\n", fname, cmd);
-        break;
-    }
-}
-
 
 
 
@@ -2057,13 +1918,6 @@ kpml_init (void)
 {
     KPML_DEBUG(DEB_F_PREFIX"entered.\n", DEB_F_PREFIX_ARGS(KPML_INFO, "kpml_init"));
 
-    if (!kpml_mutex) {
-        kpml_mutex = cprCreateMutex("kpml lock");
-        if (!kpml_mutex) {
-            KPML_ERROR(DEB_F_PREFIX"unable to create kpml lock \n", "kpml_init");
-        }
-    }
-
     (void) sub_int_subnot_register(CC_SRC_GSM, CC_SRC_SIP,
                                    CC_SUBSCRIPTIONS_KPML,
                                     NULL, CC_SRC_GSM,
@@ -2074,56 +1928,4 @@ kpml_init (void)
     s_kpml_list = sll_create((sll_match_e(*)(void *, void *))
                              kpml_match_line_call_id);
 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-kpml_shutdown (void)
-{
-    kpml_data_t *kpml_data;
-    KPML_DEBUG(DEB_F_PREFIX"entered.\n", DEB_F_PREFIX_ARGS(KPML_INFO, "kpml_shutdown"));
-
-    
-    (void) cprGetMutex(kpml_mutex);
-
-
-    kpml_data = (kpml_data_t *) sll_next(s_kpml_list, NULL);
-
-    while (kpml_data != NULL) {
-
-        
-
-
-        (void) kpml_clear_data(kpml_data, KPML_ONE_SHOT);
-
-        
-
-
-
-        kpml_data = (kpml_data_t *) sll_next(s_kpml_list, NULL);
-    }
-
-    sll_destroy(s_kpml_list);
-
-    s_kpml_list = NULL;
-    (void) cprReleaseMutex(kpml_mutex);
-
-    KPML_DEBUG(DEB_F_PREFIX"exit.\n", DEB_F_PREFIX_ARGS(KPML_INFO, "kpml_shutdown"));
 }
