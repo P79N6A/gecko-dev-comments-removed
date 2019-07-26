@@ -19,7 +19,7 @@ function processCSU(csu, body)
         if (type.Kind == "CSU") {
             
             
-            if (type.Name == "JS::AutoGCRooter")
+            if (type.Name == "JS::AutoGCRooter" || type.Name == "JS::CustomAutoRooter")
                 return;
             addNestedStructure(csu, type.Name);
         }

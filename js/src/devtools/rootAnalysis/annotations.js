@@ -28,6 +28,13 @@ function indirectCallCannotGC(caller, name)
     if (/CallDestroyScriptHook/.test(caller))
         return true;
 
+    
+    if (name == "op" &&
+        /^bool js::WeakMap<Key, Value, HashPolicy>::keyNeedsMark\(JSObject\*\)/.test(caller))
+    {
+        return true;
+    }
+
     return false;
 }
 
