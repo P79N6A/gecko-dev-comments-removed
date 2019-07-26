@@ -105,7 +105,6 @@ public:
     mMaxContainerLayerGeneration(0)
   {
     MOZ_COUNT_CTOR(FrameLayerBuilder);
-    mNewDisplayItemData.Init();
     mThebesLayerItems.Init();
   }
   ~FrameLayerBuilder()
@@ -362,7 +361,7 @@ public:
 
 
 
-  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey, Layer* aImage);
+  void StoreOptimizedLayerForFrame(nsDisplayItem* aItem, Layer* aLayer);
 
   
 
@@ -474,61 +473,38 @@ protected:
 
 
 
-
-
-
-
-  
-
-
-  class DisplayItemKey {
-  public:
-    DisplayItemKey(nsIFrame* aFrame, uint32_t aKey)
-      : mFrame(aFrame)
-      , mKey(aKey)
-    { }
-
-    bool operator==(const DisplayItemKey& aOther) const {
-      return mFrame == aOther.mFrame &&
-             mKey == aOther.mKey;
-    }
-
-    nsIFrame* mFrame;
-    uint32_t mKey;
-  };
-
   
 
 
   class DisplayItemData {
   public:
 
-    DisplayItemData(LayerManagerData* aParent, nsIFrame* aFrame, uint32_t aKey, Layer* aLayer, LayerState aLayerState, uint32_t aGeneration);
+    DisplayItemData(LayerManagerData* aParent, uint32_t aKey, Layer* aLayer, LayerState aLayerState, uint32_t aGeneration);
     DisplayItemData(DisplayItemData &toCopy);
+
+    
+
+
+
     ~DisplayItemData();
 
     NS_INLINE_DECL_REFCOUNTING(DisplayItemData)
 
-    void AddFrame(nsIFrame* aFrame)
-    {
-      mFrameList.AppendElement(aFrame);
-    }
-
     
 
 
 
-
-    void RemoveFrameData(nsIFrame* aSkip = nullptr);
-
+    void AddFrame(nsIFrame* aFrame);
     bool FrameListMatches(nsDisplayItem* aOther);
-    bool FrameListMatches(DisplayItemData* aOther);
 
     
 
 
 
-    void CopyInto(DisplayItemData* aDest);
+
+
+
+    void UpdateContents(Layer* aLayer, LayerState aState, uint32_t aContainerLayerGeneration);
 
     LayerManagerData* mParent;
     nsRefPtr<Layer> mLayer;
@@ -545,51 +521,7 @@ protected:
 
 
 
-
     bool            mUsed;
-    DisplayItemData *mCopiedInto;
-  };
-
-  
-
-
-
-
-
-  class DisplayItemHashData : public PLDHashEntryHdr {
-  public:
-    typedef const DisplayItemKey& KeyType;
-    typedef const DisplayItemKey* KeyTypePointer;
-
-    DisplayItemHashData(KeyTypePointer aKey)
-      : mKey(*aKey)
-      , mContainerLayerGeneration(0)
-    { }
-    DisplayItemHashData(DisplayItemHashData &toCopy)
-      : mKey(toCopy.mKey)
-      , mData(toCopy.mData)
-      , mContainerLayerGeneration(toCopy.mContainerLayerGeneration)
-    { 
-      toCopy.mData = nullptr;
-    }
-
-    KeyType GetKey() const { 
-      return mKey; 
-    }
-    bool KeyEquals(KeyTypePointer aKey) const { 
-      return *aKey == mKey; 
-    }
-    static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
-
-    static PLDHashNumber HashKey(const KeyTypePointer aKey) {
-      return mozilla::HashGeneric(aKey->mFrame, aKey->mKey);
-    }
-                                       
-    enum { ALLOW_MEMMOVE = false };
-
-    DisplayItemKey mKey;
-    nsRefPtr<DisplayItemData> mData;
-    uint32_t mContainerLayerGeneration;
   };
 
   friend class LayerManagerData;
@@ -609,7 +541,11 @@ protected:
 
 
 
-  void StoreDataForFrame(nsDisplayItem* aItem, DisplayItemData* data);
+  DisplayItemData* StoreDataForFrame(nsDisplayItem* aItem, Layer* aLayer, LayerState aState);
+  void StoreDataForFrame(nsIFrame* aFrame,
+                         uint32_t aDisplayItemKey,
+                         Layer* aLayer,
+                         LayerState aState);
 
   
   static void FlashPaint(gfxContext *aContext);
@@ -636,14 +572,6 @@ protected:
   static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
                                                        uint32_t aDisplayItemKey, 
                                                        LayerManagerData* aData);
-
-  
-
-
-
-
-  static PLDHashOperator RemoveDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>* aEntry,
-                                                       void* aClosure);
 
   static PLDHashOperator DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                      void* aClosure);
@@ -729,9 +657,7 @@ protected:
 
   static PLDHashOperator UpdateDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                        void* aUserArg);
-  static PLDHashOperator StoreNewDisplayItemData(DisplayItemHashData* aEntry,
-                                                 void* aUserArg);
-  static PLDHashOperator RestoreDisplayItemData(DisplayItemHashData* aEntry,
+  static PLDHashOperator RestoreDisplayItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                 void *aUserArg);
 
   static PLDHashOperator RestoreThebesLayerItemEntries(ThebesLayerItemsEntry* aEntry,
@@ -758,11 +684,6 @@ protected:
 
 
   nsDisplayListBuilder*               mDisplayListBuilder;
-  
-
-
-
-  nsTHashtable<DisplayItemHashData>  mNewDisplayItemData;
   
 
 
