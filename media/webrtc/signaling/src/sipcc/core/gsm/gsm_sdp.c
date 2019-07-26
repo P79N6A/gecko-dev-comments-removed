@@ -1904,39 +1904,6 @@ gsmsdp_set_setup_attribute(uint16_t level,
 
 
 
-static void
-gsmsdp_set_connection_attribute(uint16_t level,
-  void *sdp_p, sdp_connection_type_e connection_type) {
-    uint16_t a_instance = 0;
-    sdp_result_e result;
-
-    result = sdp_add_new_attr(sdp_p, level, 0, SDP_ATTR_CONNECTION,
-      &a_instance);
-    if (result != SDP_SUCCESS) {
-        GSM_ERR_MSG("Failed to add attribute");
-        return;
-    }
-
-    result = sdp_attr_set_connection_attribute(sdp_p, level, 0,
-      a_instance, connection_type);
-    if (result != SDP_SUCCESS) {
-        GSM_ERR_MSG("Failed to set attribute");
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4702,6 +4669,22 @@ gsmsdp_negotiate_rtcp_fb (cc_sdp_t *cc_sdp_p,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cc_causes_t
 gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial_offer,
                               boolean offer, boolean notify_stream_added, boolean create_answer)
@@ -4735,7 +4718,6 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
     sdp_result_e    sdp_res;
     boolean         created_media_stream = FALSE;
     int             lsm_rc;
-    sdp_setup_type_e remote_setup_type;
 
     config_get_value(CFGID_SDPMODE, &sdpmode, sizeof(sdpmode));
 
@@ -5032,13 +5014,12 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
             if (!unsupported_line) {
 
               if (sdpmode) {
+                  sdp_setup_type_e remote_setup_type;
                   int j;
 
-                  
                   sdp_res = sdp_attr_get_setup_attribute(
                       sdp_p->dest_sdp, i, 0, 1, &remote_setup_type);
 
-
                   
 
 
@@ -5047,26 +5028,49 @@ gsmsdp_negotiate_media_lines (fsm_fcb_t *fcb_p, cc_sdp_t *sdp_p, boolean initial
 
 
 
-
-                  media->setup = SDP_SETUP_ACTIVE;
-
-                  if (sdp_res == SDP_SUCCESS) {
-                      if (remote_setup_type == SDP_SETUP_ACTIVE) {
-                          media->setup = SDP_SETUP_PASSIVE;
-                      } else if (remote_setup_type == SDP_SETUP_HOLDCONN) {
-                          media->setup = SDP_SETUP_HOLDCONN;
-                          media->direction = SDP_DIRECTION_INACTIVE;
-                      }
+                  if (sdp_res != SDP_SUCCESS) {
+                      remote_setup_type =
+                          offer ? SDP_SETUP_PASSIVE : SDP_SETUP_ACTIVE;
                   }
 
-                  gsmsdp_set_setup_attribute(media->level, dcb_p->sdp->src_sdp,
-                    media->setup);
-
                   
 
+                  switch (remote_setup_type) {
+                    case SDP_SETUP_ACTIVE:
+                        media->setup = SDP_SETUP_PASSIVE;
+                        break;
+                    case SDP_SETUP_PASSIVE:
+                        media->setup = SDP_SETUP_ACTIVE;
+                        break;
+                    case SDP_SETUP_ACTPASS:
+                        
 
-                  gsmsdp_set_connection_attribute(media->level,
-                    dcb_p->sdp->src_sdp, SDP_CONNECTION_NEW);
+
+
+
+
+
+                        media->setup = SDP_SETUP_ACTIVE;
+                        break;
+                    case SDP_SETUP_HOLDCONN:
+                        media->setup = SDP_SETUP_HOLDCONN;
+                        media->direction = SDP_DIRECTION_INACTIVE;
+                        break;
+                    default:
+                        
+
+
+
+
+                        media->setup =
+                            offer ? SDP_SETUP_ACTIVE : SDP_SETUP_PASSIVE;
+                  }
+
+                  if (create_answer) {
+                      gsmsdp_set_setup_attribute(media->level,
+                                                 dcb_p->sdp->src_sdp,
+                                                 media->setup);
+                  }
 
                   
                   for (j=0; j<media->candidate_ct; j++) {
@@ -5587,10 +5591,6 @@ gsmsdp_add_media_line (fsmdef_dcb_t *dcb_p, const cc_media_cap_t *media_cap,
 
           
           gsmsdp_set_setup_attribute(level, dcb_p->sdp->src_sdp, media->setup);
-
-          
-          gsmsdp_set_connection_attribute(level, dcb_p->sdp->src_sdp,
-            SDP_CONNECTION_NEW);
 
           
 

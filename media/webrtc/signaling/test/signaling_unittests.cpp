@@ -2874,55 +2874,6 @@ TEST_F(SignalingTest, AudioCallGarbageSetup)
 
 
 
-
-TEST_F(SignalingTest, AudioCallGarbageConnection)
-{
-  sipcc::MediaConstraints constraints;
-  size_t match;
-
-  a1_.CreateOffer(constraints, OFFER_AUDIO, SHOULD_SENDRECV_AUDIO);
-
-  
-  std::string offer(a1_.offer());
-  match = offer.find("\r\na=connection:new");
-  ASSERT_NE(match, std::string::npos);
-  
-  offer.replace(match, strlen("\r\na=connection:new"),
-    "\r\na=connection:G4rb4g3V4lu3");
-  std::cout << "Modified SDP " << std::endl
-            << indent(offer) << std::endl;
-
-  a1_.SetLocal(TestObserver::OFFER, offer.c_str(), false);
-  a2_.SetRemote(TestObserver::OFFER, offer.c_str(), false);
-  a2_.CreateAnswer(constraints, offer.c_str(), OFFER_AUDIO | ANSWER_AUDIO);
-
-  
-  std::string answer(a2_.answer());
-  match = answer.find("\r\na=connection:new");
-  ASSERT_NE(match, std::string::npos);
-
-  
-  
-  a2_.SetLocal(TestObserver::ANSWER, a2_.answer(), false);
-  a1_.SetRemote(TestObserver::ANSWER, a2_.answer(), false);
-
-  ASSERT_TRUE_WAIT(a1_.IceCompleted() == true, kDefaultTimeout);
-  ASSERT_TRUE_WAIT(a2_.IceCompleted() == true, kDefaultTimeout);
-
-  
-  ASSERT_TRUE_WAIT(a1_.GetPacketsSent(0) >= 40 &&
-                   a2_.GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
-
-  a1_.CloseSendStreams();
-  a2_.CloseReceiveStreams();
-
-  ASSERT_GE(a1_.GetPacketsSent(0), 40);
-  ASSERT_GE(a2_.GetPacketsReceived(0), 40);
-}
-
-
-
-
 TEST_F(SignalingTest, AudioCallOfferNoSetupOrConnection)
 {
   sipcc::MediaConstraints constraints;
@@ -2936,10 +2887,6 @@ TEST_F(SignalingTest, AudioCallOfferNoSetupOrConnection)
   ASSERT_NE(match, std::string::npos);
   
   offer.replace(match, strlen("\r\na=setup:actpass"), "");
-  match = offer.find("\r\na=connection:new");
-  ASSERT_NE(match, std::string::npos);
-  
-  offer.replace(match, strlen("\r\na=connection:new"), "");
   std::cout << "Modified SDP " << std::endl
             << indent(offer) << std::endl;
 
@@ -2950,8 +2897,6 @@ TEST_F(SignalingTest, AudioCallOfferNoSetupOrConnection)
   
   std::string answer(a2_.answer());
   match = answer.find("\r\na=setup:active");
-  ASSERT_NE(match, std::string::npos);
-  match = answer.find("\r\na=connection:new");
   ASSERT_NE(match, std::string::npos);
 
   
@@ -2987,8 +2932,6 @@ TEST_F(SignalingTest, AudioCallAnswerNoSetupOrConnection)
   std::string offer(a1_.offer());
   match = offer.find("\r\na=setup:actpass");
   ASSERT_NE(match, std::string::npos);
-  match = offer.find("\r\na=connection:new");
-  ASSERT_NE(match, std::string::npos);
 
   a1_.SetLocal(TestObserver::OFFER, offer.c_str(), false);
   a2_.SetRemote(TestObserver::OFFER, offer.c_str(), false);
@@ -3000,17 +2943,13 @@ TEST_F(SignalingTest, AudioCallAnswerNoSetupOrConnection)
   ASSERT_NE(match, std::string::npos);
   
   answer.replace(match, strlen("\r\na=setup:active"), "");
-  match = answer.find("\r\na=connection:new");
-  ASSERT_NE(match, std::string::npos);
-  
-  answer.replace(match, strlen("\r\na=connection:new"), "");
   std::cout << "Modified SDP " << std::endl
             << indent(answer) << std::endl;
 
   
   
-  a2_.SetLocal(TestObserver::ANSWER, a2_.answer(), false);
-  a1_.SetRemote(TestObserver::ANSWER, a2_.answer(), false);
+  a2_.SetLocal(TestObserver::ANSWER, answer, false);
+  a1_.SetRemote(TestObserver::ANSWER, answer, false);
 
   ASSERT_TRUE_WAIT(a1_.IceCompleted() == true, kDefaultTimeout);
   ASSERT_TRUE_WAIT(a2_.IceCompleted() == true, kDefaultTimeout);
