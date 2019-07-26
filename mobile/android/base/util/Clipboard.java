@@ -9,6 +9,8 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
+import org.mozilla.gecko.mozglue.GeneratableAndroidBridgeTarget;
+
 import java.util.concurrent.SynchronousQueue;
 
 public final class Clipboard {
@@ -27,6 +29,7 @@ public final class Clipboard {
         mContext = c;
     }
 
+    @GeneratableAndroidBridgeTarget(stubName = "GetClipboardTextWrapper")
     public static String getText() {
         
         
@@ -52,6 +55,7 @@ public final class Clipboard {
         }
     }
 
+    @GeneratableAndroidBridgeTarget(stubName = "SetClipboardText")
     public static void setText(final CharSequence text) {
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
