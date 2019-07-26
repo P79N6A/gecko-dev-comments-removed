@@ -527,8 +527,7 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
             if (dv._allowUnsafeInline) {
               aCSPR._allowInlineScripts = true;
             } else if (dv._allowUnsafeEval) {
-              
-              
+              aCSPR._allowEval = true;
             }
           }
 
@@ -929,6 +928,9 @@ this.CSPSourceList = function CSPSourceList() {
 
   
   this._allowUnsafeInline = false;
+
+  
+  this._allowUnsafeEval = false;
 }
 
 
@@ -985,6 +987,10 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     
     if (src._allowUnsafeInline)
       slObj._allowUnsafeInline = true;
+
+    
+    if (src._allowUnsafeEval)
+      slObj._allowUnsafeEval = true;
 
     
     if (src.permitAll) {
@@ -1176,6 +1182,9 @@ this.CSPSource = function CSPSource() {
 
   
   this._allowUnsafeInline = false;
+
+  
+  this._allowUnsafeEval = false;
 }
 
 
@@ -1410,6 +1419,10 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
+  if (aStr.toUpperCase() === "'UNSAFE-EVAL'"){
+    sObj._allowUnsafeEval = true;
+    return sObj;
+  }
 
   cspError(aCSPRep, CSPLocalizer.getFormatStr("couldntParseInvalidSource",
                                               [aStr]));
