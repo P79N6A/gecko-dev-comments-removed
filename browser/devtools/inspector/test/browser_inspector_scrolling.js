@@ -43,6 +43,8 @@ function inspectNode(aInspector)
 function performScrollingTest()
 {
   executeSoon(function() {
+    
+    
     EventUtils.synthesizeWheel(div, 10, 10,
       { deltaY: 50.0, deltaMode: WheelEvent.DOM_DELTA_PIXEL },
       iframe.contentWindow);
