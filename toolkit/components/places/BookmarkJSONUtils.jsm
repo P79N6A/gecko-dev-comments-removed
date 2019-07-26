@@ -24,9 +24,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
 
 XPCOMUtils.defineLazyGetter(this, "gTextDecoder", () => new TextDecoder());
 XPCOMUtils.defineLazyGetter(this, "gTextEncoder", () => new TextEncoder());
-XPCOMUtils.defineLazyGetter(this, "localFileCtor",
-  () => Components.Constructor("@mozilla.org/file/local;1",
-                               "nsILocalFile", "initWithPath"));
 
 this.BookmarkJSONUtils = Object.freeze({
   
@@ -41,9 +38,19 @@ this.BookmarkJSONUtils = Object.freeze({
 
 
 
-  importFromURL: function BJU_importFromURL(aURL, aReplace) {
-    let importer = new BookmarkImporter();
-    return importer.importFromURL(aURL, aReplace);
+  importFromURL: function BJU_importFromURL(aSpec, aReplace) {
+    return Task.spawn(function* () {
+      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
+      try {
+        let importer = new BookmarkImporter(aReplace);
+        yield importer.importFromURL(aSpec);
+
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
+      } catch(ex) {
+        Cu.reportError("Failed to restore bookmarks from " + aSpec + ": " + ex);
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+      }
+    });
   },
 
   
@@ -60,12 +67,31 @@ this.BookmarkJSONUtils = Object.freeze({
 
 
 
+
   importFromFile: function BJU_importFromFile(aFilePath, aReplace) {
-    let importer = new BookmarkImporter();
-    
-    let file = aFilePath instanceof Ci.nsIFile ? aFilePath
-                                               : new localFileCtor(aFilePath);
-    return importer.importFromFile(file, aReplace);
+    if (aFilePath instanceof Ci.nsIFile) {
+      Deprecated.warning("Passing an nsIFile to BookmarksJSONUtils.importFromFile " +
+                         "is deprecated. Please use an OS.File path string instead.",
+                         "https://developer.mozilla.org/docs/JavaScript_OS.File");
+      aFilePath = aFilePath.path;
+    }
+
+    return Task.spawn(function* () {
+      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
+      try {
+        if (!(yield OS.File.exists(aFilePath)))
+          throw new Error("Cannot restore from nonexisting json file");
+
+        let importer = new BookmarkImporter(aReplace);
+        yield importer.importFromURL(OS.Path.toFileURI(aFilePath));
+
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
+      } catch(ex) {
+        Cu.reportError("Failed to restore bookmarks from " + aFilePath + ": " + ex);
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+        throw ex;
+      }
+    });
   },
 
   
@@ -82,7 +108,7 @@ this.BookmarkJSONUtils = Object.freeze({
   exportToFile: function BJU_exportToFile(aFilePath) {
     if (aFilePath instanceof Ci.nsIFile) {
       Deprecated.warning("Passing an nsIFile to BookmarksJSONUtils.exportToFile " +
-                         "is deprecated. Please use an OS.File path instead.",
+                         "is deprecated. Please use an OS.File path string instead.",
                          "https://developer.mozilla.org/docs/JavaScript_OS.File");
       aFilePath = aFilePath.path;
     }
@@ -128,19 +154,19 @@ this.BookmarkJSONUtils = Object.freeze({
 
   serializeNodeAsJSONToOutputStream: function (aNode, aStream) {
     let deferred = Promise.defer();
-    Services.tm.mainThread.dispatch(function() {
-      try {
-        BookmarkNode.serializeAsJSONToOutputStream(aNode, aStream);
-        deferred.resolve();
-      } catch (ex) {
-        deferred.reject(ex);
-      }
-    }, Ci.nsIThread.DISPATCH_NORMAL);
+    try {
+      BookmarkNode.serializeAsJSONToOutputStream(aNode, aStream);
+      deferred.resolve();
+    } catch (ex) {
+      deferred.reject(ex);
+    }
     return deferred.promise;
   }
 });
 
-function BookmarkImporter() {}
+function BookmarkImporter(aReplace) {
+  this._replace = aReplace;
+}
 BookmarkImporter.prototype = {
   
 
@@ -152,36 +178,8 @@ BookmarkImporter.prototype = {
 
 
 
-
-
-  importFromFile: function(aFile, aReplace) {
-    if (aFile.exists()) {
-      return this.importFromURL(NetUtil.newURI(aFile).spec, aReplace);
-    }
-
-    notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
-
-    return Task.spawn(function() {
-      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
-      throw new Error("File does not exist.");
-    });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  importFromURL: function BI_importFromURL(aURL, aReplace) {
+  importFromURL: function BI_importFromURL(aSpec) {
     let deferred = Promise.defer();
-    notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
 
     let streamObserver = {
       onStreamComplete: function (aLoader, aContext, aStatus, aLength,
@@ -190,32 +188,26 @@ BookmarkImporter.prototype = {
                         createInstance(Ci.nsIScriptableUnicodeConverter);
         converter.charset = "UTF-8";
 
-        Task.spawn(function() {
-          try {
-            let jsonString =
-              converter.convertFromByteArray(aResult, aResult.length);
-            yield this.importFromJSON(jsonString, aReplace);
-            notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
-            deferred.resolve();
-          } catch (ex) {
-            notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
-            Cu.reportError("Failed to import from URL: " + ex);
-            deferred.reject(ex);
-          }
-        }.bind(this));
+        try {
+          let jsonString = converter.convertFromByteArray(aResult,
+                                                          aResult.length);
+          deferred.resolve(this.importFromJSON(jsonString));
+        } catch (ex) {
+          Cu.reportError("Failed to import from URL: " + ex);
+          deferred.reject(ex);
+          throw ex;
+        }
       }.bind(this)
     };
 
     try {
-      let channel = Services.io.newChannelFromURI(NetUtil.newURI(aURL));
+      let channel = Services.io.newChannelFromURI(NetUtil.newURI(aSpec));
       let streamLoader = Cc["@mozilla.org/network/stream-loader;1"].
                          createInstance(Ci.nsIStreamLoader);
 
       streamLoader.init(streamObserver);
       channel.asyncOpen(streamLoader, channel);
     } catch (ex) {
-      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
-      Cu.reportError("Failed to import from URL: " + ex);
       deferred.reject(ex);
     }
 
@@ -228,18 +220,14 @@ BookmarkImporter.prototype = {
 
 
 
-
-
-  importFromJSON: function BI_importFromJSON(aString, aReplace) {
+  importFromJSON: function BI_importFromJSON(aString) {
     let deferred = Promise.defer();
     let nodes =
       PlacesUtils.unwrapNodes(aString, PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER);
 
     if (nodes.length == 0 || !nodes[0].children ||
         nodes[0].children.length == 0) {
-      Services.tm.mainThread.dispatch(function() {
-        deferred.resolve(); 
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      deferred.resolve(); 
     } else {
       
       nodes[0].children.sort(function sortRoots(aNode, bNode) {
@@ -250,7 +238,7 @@ BookmarkImporter.prototype = {
       let batch = {
         nodes: nodes[0].children,
         runBatched: function runBatched() {
-          if (aReplace) {
+          if (this._replace) {
             
             
             let excludeItems = PlacesUtils.annotations.getItemsWithAnnotation(
