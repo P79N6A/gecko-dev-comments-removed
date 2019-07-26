@@ -187,7 +187,11 @@ AllocationToPartKind(const LAllocation &a)
     return Part_Arg;
 }
 
-static inline bool
+
+
+
+
+static MOZ_ALWAYS_INLINE bool
 CanEncodeInfoInHeader(const LAllocation &a, uint32 *out)
 {
     if (a.isGeneralReg()) {
