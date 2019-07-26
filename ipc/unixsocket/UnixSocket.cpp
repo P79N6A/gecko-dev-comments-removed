@@ -24,31 +24,16 @@
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
 
-#undef LOG
-#if defined(MOZ_WIDGET_GONK)
-#include <android/log.h>
-#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GonkDBus", args);
-#else
-#define BTDEBUG true
-#define LOG(args...) if (BTDEBUG) printf(args);
-#endif
-
-static const int SOCKET_RETRY_TIME_MS = 1000;
-
 namespace mozilla {
 namespace ipc {
 
 class UnixSocketImpl : public MessageLoopForIO::Watcher
 {
 public:
-  UnixSocketImpl(UnixSocketConsumer* aConsumer, UnixSocketConnector* aConnector,
-                 const nsACString& aAddress)
+  UnixSocketImpl(UnixSocketConsumer* aConsumer, int aFd)
     : mConsumer(aConsumer)
     , mIOLoop(nullptr)
-    , mFd(-1)
-    , mConnector(aConnector)
-    , mCurrentTaskIsCanceled(false)
-    , mAddress(aAddress)
+    , mFd(aFd)
   {
   }
 
@@ -69,42 +54,6 @@ public:
     return mFd > 0;
   }
 
-  void CancelTask()
-  {
-    if (!mTask) {
-      return;
-    }
-    mTask->Cancel();
-    mTask = nullptr;
-    mCurrentTaskIsCanceled = true;
-  }
-  
-  void UnsetTask()
-  {
-    mTask = nullptr;
-  }
-
-  void EnqueueTask(int aDelayMs, CancelableTask* aTask)
-  {
-    MessageLoopForIO* ioLoop = MessageLoopForIO::current();
-    if (!ioLoop) {
-      NS_WARNING("No IOLoop to attach to, cancelling self!");
-      return;
-    }
-    if (mTask) {
-      return;
-    }
-    if (mCurrentTaskIsCanceled) {
-      return;
-    }
-    mTask = aTask;
-    if (aDelayMs) {
-      ioLoop->PostDelayedTask(FROM_HERE, mTask, aDelayMs);
-    } else {
-      ioLoop->PostTask(FROM_HERE, mTask);
-    }
-  }
-  
   void SetUpIO()
   {
     MOZ_ASSERT(!mIOLoop);
@@ -120,33 +69,6 @@ public:
   {
     mConsumer.forget();
   }
-
-  
-
-
-  void Connect();
-
-  
-
-
-  void Listen();
-
-  
-
-
-  void Accept();
-
-  
-
-
-  void Stop();
-
-  
-
-
-
-
-  bool SetNonblockFlags();
 
   
 
@@ -186,6 +108,12 @@ private:
   
 
 
+
+  ScopedClose mFd;
+
+  
+
+
   nsAutoPtr<UnixSocketRawData> mIncoming;
 
   
@@ -197,33 +125,6 @@ private:
 
 
   MessageLoopForIO::FileDescriptorWatcher mWriteWatcher;
-
-  
-
-
-
-  ScopedClose mFd;
-
-  
-
-
-  nsAutoPtr<UnixSocketConnector> mConnector;
-
-  
-
-
-  bool mCurrentTaskIsCanceled;
-
-  
-
-
-
-  CancelableTask* mTask;
-
-  
-
-
-  nsCString mAddress;
 };
 
 static void
@@ -300,160 +201,27 @@ private:
   UnixSocketImpl* mImpl;
 };
 
-class SocketAcceptTask : public CancelableTask {
-  virtual void Run();
-
-  bool mCanceled;
-  UnixSocketImpl* mImpl;
-public:
-  virtual void Cancel() { mCanceled = true; }
-  SocketAcceptTask(UnixSocketImpl* aImpl) : mCanceled(false), mImpl(aImpl) { }
-};
-
-void SocketAcceptTask::Run() {
-  mImpl->UnsetTask();
-  if (mCanceled) {
-    return;
-  }
-  mImpl->Accept();
-}
-
-class SocketConnectTask : public CancelableTask {
-  virtual void Run();
-
-  bool mCanceled;
-  UnixSocketImpl* mImpl;
-public:
-  SocketConnectTask(UnixSocketImpl* aImpl) : mCanceled(false), mImpl(aImpl) { }
-  virtual void Cancel() { mCanceled = true; }  
-};
-
-void SocketConnectTask::Run() {
-  mImpl->UnsetTask();
-  if (mCanceled) {
-    return;
-  }
-  mImpl->Connect();
-}
-
-void
-UnixSocketImpl::Accept()
-{
-  socklen_t addr_sz;
-  struct sockaddr addr;
-
-  
-  
-  mConnector->CreateAddr(true, addr_sz, &addr, nullptr);
-
-  if(mFd.get() < 0)
-  {
-    mFd = mConnector->Create();
-    if (mFd.get() < 0) {
-      return;
-    }
-
-    if (!SetNonblockFlags()) {
-      return;
-    }
-
-    if (bind(mFd.get(), &addr, addr_sz)) {
-#ifdef DEBUG
-      LOG("...bind(%d) gave errno %d", mFd.get(), errno);
-#endif
-      return;
-    }
-
-    if (listen(mFd.get(), 1)) {
-#ifdef DEBUG
-      LOG("...listen(%d) gave errno %d", mFd.get(), errno);
-#endif
-      return;
-    }
-
-  }
-
-  int client_fd;
-  client_fd = accept(mFd.get(), &addr, &addr_sz);
-  if (client_fd < 0) {
-#if DEBUG
-    LOG("Socket accept errno=%d\n", errno);
-#endif
-    EnqueueTask(SOCKET_RETRY_TIME_MS, new SocketAcceptTask(this));
-    return;
-  }
-
-  if(client_fd < 0)
-  {
-    EnqueueTask(SOCKET_RETRY_TIME_MS, new SocketAcceptTask(this));
-    return;
-  }
-
-  if (!mConnector->Setup(client_fd)) {
-    NS_WARNING("Could not set up socket!");
-    return;
-  }
-  mFd.reset(client_fd);
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new StartImplReadingTask(this));
-}
-
-void
-UnixSocketImpl::Connect()
-{
-  if(mFd.get() < 0)
-  {
-    mFd = mConnector->Create();
-    if (mFd.get() < 0) {
-      return;
-    }
-  }
-
-  int ret;
-  socklen_t addr_sz;
-  struct sockaddr addr;
-
-  mConnector->CreateAddr(false, addr_sz, &addr, mAddress.get());
-
-  ret = connect(mFd.get(), &addr, addr_sz);
-
-  if (ret) {
-#if DEBUG
-    LOG("Socket connect errno=%d\n", errno);
-#endif
-    mFd.reset(-1);
-    return;
-  }
-
-  if (!mConnector->Setup(mFd)) {
-    NS_WARNING("Could not set up socket!");
-    return;
-  }
-
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new StartImplReadingTask(this));
-}
-
 bool
-UnixSocketImpl::SetNonblockFlags()
+UnixSocketConnector::Connect(int aFd, const char* aAddress)
 {
-  
-  int n = 1;
-  setsockopt(mFd, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(n));
+  if (!ConnectInternal(aFd, aAddress))
+  {
+    return false;
+  }
 
   
-  int flags = fcntl(mFd, F_GETFD);
+  int flags = fcntl(aFd, F_GETFD);
   if (-1 == flags) {
     return false;
   }
 
   flags |= FD_CLOEXEC;
-  if (-1 == fcntl(mFd, F_SETFD, flags)) {
+  if (-1 == fcntl(aFd, F_SETFD, flags)) {
     return false;
   }
 
   
-  if (-1 == fcntl(mFd, F_SETFL, O_NONBLOCK)) {
+  if (-1 == fcntl(aFd, F_SETFL, O_NONBLOCK)) {
     return false;
   }
 
@@ -605,47 +373,22 @@ UnixSocketImpl::OnFileCanWriteWithoutBlocking(int aFd)
 }
 
 bool
-UnixSocketConsumer::ConnectSocket(UnixSocketConnector* aConnector,
+UnixSocketConsumer::ConnectSocket(UnixSocketConnector& aConnector,
                                   const char* aAddress)
 {
   MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(aConnector);
-  if (mImpl) {
-    NS_WARNING("Socket already connecting/connected!");
+  MOZ_ASSERT(!mImpl);
+  ScopedClose fd(aConnector.Create());
+  if (fd < 0) {
     return false;
   }
-  nsCString addr;
-  addr.Assign(aAddress);
-  mImpl = new UnixSocketImpl(this, aConnector, addr);
-  XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new SocketConnectTask(mImpl));
-  return true;
-}
-
-bool
-UnixSocketConsumer::ListenSocket(UnixSocketConnector* aConnector)
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(aConnector);
-  if (mImpl) {
-    NS_WARNING("Socket already connecting/connected!");
+  if (!aConnector.Connect(fd, aAddress)) {
     return false;
   }
-  nsCString addr;
-  mImpl = new UnixSocketImpl(this, aConnector, addr);
+  mImpl = new UnixSocketImpl(this, fd.forget());
   XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
-                                   new SocketAcceptTask(mImpl));
+                                   new StartImplReadingTask(mImpl));
   return true;
-}
-
-void
-UnixSocketConsumer::CancelSocketTask()
-{
-  if(!mImpl) {
-    NS_WARNING("No socket implementation to cancel task on!");
-    return;
-  }
-  mImpl->CancelTask();
 }
 
 } 
