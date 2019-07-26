@@ -121,6 +121,9 @@ function whenLoaded(aElement, aCallback = next) {
 
 function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
   let browser = gBrowser.selectedBrowser;
+  
+  
+  dontExpireThumbnailURLs([browser.currentURI.spec]);
 
   
   PageThumbs.captureAndStore(browser, function () {
@@ -325,6 +328,9 @@ function bgCaptureIfMissing(aURL, aOptions) {
 }
 
 function bgCaptureWithMethod(aMethodName, aURL, aOptions = {}) {
+  
+  
+  dontExpireThumbnailURLs([aURL]);
   if (!aOptions.onDone)
     aOptions.onDone = next;
   BackgroundPageThumbs[aMethodName](aURL, aOptions);

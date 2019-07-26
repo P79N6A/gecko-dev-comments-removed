@@ -18,6 +18,8 @@ XPCOMUtils.defineLazyGetter(this, "Sanitizer", function () {
 
 
 function runTests() {
+  dontExpireThumbnailURLs([URL, URL_COPY]);
+
   yield clearHistory();
   yield addVisitsAndRepopulateNewTabLinks(URL, next);
   yield createThumbnail();
