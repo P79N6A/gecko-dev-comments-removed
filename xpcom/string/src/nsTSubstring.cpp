@@ -4,7 +4,9 @@
 
 
 #include "mozilla/MemoryReporting.h"
-#include "prdtoa.h"
+#include "double-conversion.h"
+
+using double_conversion::DoubleToStringConverter;
 
 #ifdef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
 nsTSubstring_CharT::nsTSubstring_CharT( char_type *data, size_type length,
@@ -793,100 +795,91 @@ void nsTSubstring_CharT::AppendPrintf( const char* format, va_list ap )
 
 #ifdef CharT_is_PRUnichar
 
-
-
-
-
-
-static void 
-Modified_cnvtf(char (& buf)[40], int prcsn, double fval)
+static int
+FormatWithoutTrailingZeros(char (& buf)[40], double aDouble,
+                           int precision)
 {
-  int decpt, sign, numdigits;
-  char num[40];
-  char *nump;
-  char *bufp = buf;
-  char *endnum;
-
-  if (PR_dtoa(fval, 2, prcsn, &decpt, &sign, &endnum, num, sizeof(num))
-      == PR_FAILURE) {
-    buf[0] = '\0';
-    return;
-  }
-  numdigits = endnum - num;
-  nump = num;
+  static const DoubleToStringConverter converter(DoubleToStringConverter::UNIQUE_ZERO |
+                                                 DoubleToStringConverter::EMIT_POSITIVE_EXPONENT_SIGN,
+                                                 "Infinity",
+                                                 "NaN",
+                                                 'e',
+                                                 -6, 21,
+                                                 6, 1);
+  double_conversion::StringBuilder builder(buf, sizeof(buf));
+  bool exponential_notation = false;
+  converter.ToPrecision(aDouble, precision, &exponential_notation, &builder);
+  int length = builder.position();
+  char* formattedDouble = builder.Finalize();
 
   
-
-
-
-
-
-  if (sign && fval < 0.0f) {
-    *bufp++ = '-';
+  
+  
+  if (length <= precision) {
+    return length;
+  }
+    
+  char* end = formattedDouble + length;
+  char* decimalPoint = strchr(buf, '.');
+  
+  if (decimalPoint == nullptr) {
+    return length;
   }
 
-  if (decpt == 9999) {
-    while ((*bufp++ = *nump++) != 0) {} 
-    return;
-  }
-
-  if (decpt > (prcsn+1) || decpt < -(prcsn-1) || decpt < -5) {
-    *bufp++ = *nump++;
-    if (numdigits != 1) {
-      *bufp++ = '.';
-    }
-
-    while (*nump != '\0') {
-      *bufp++ = *nump++;
-    }
-    *bufp++ = 'e';
-    PR_snprintf(bufp, sizeof(num) - (bufp - buf), "%+d", decpt-1);
-  }
-  else if (decpt >= 0) {
-    if (decpt == 0) {
-      *bufp++ = '0';
-    }
-    else {
-      while (decpt--) {
-        if (*nump != '\0') {
-          *bufp++ = *nump++;
-        }
-        else {
-          *bufp++ = '0';
-        }
+  if (MOZ_UNLIKELY(exponential_notation)) {
+    
+    
+    char* exponent = end - 1;
+    for ( ; ; --exponent) {
+      if (*exponent == 'e') {
+        break;
       }
     }
-    if (*nump != '\0') {
-      *bufp++ = '.';
-      while (*nump != '\0') {
-        *bufp++ = *nump++;
+    char* zerosBeforeExponent = exponent - 1;
+    for ( ; zerosBeforeExponent != decimalPoint; --zerosBeforeExponent) {
+      if (*zerosBeforeExponent != '0') {
+        break;
       }
     }
-    *bufp++ = '\0';
-  }
-  else if (decpt < 0) {
-    *bufp++ = '0';
-    *bufp++ = '.';
-    while (decpt++) {
-      *bufp++ = '0';
+    if (zerosBeforeExponent == decimalPoint) {
+      --zerosBeforeExponent;
     }
+    
+    
+    size_t exponentSize = end - exponent;
+    memmove(zerosBeforeExponent + 1, exponent, exponentSize);
+    length -= exponent - (zerosBeforeExponent + 1);
+  } else {
+    char* trailingZeros = end - 1;
+    for ( ; trailingZeros != decimalPoint; --trailingZeros) {
+      if (*trailingZeros != '0') {
+        break;
+      }
+    }
+    if (trailingZeros == decimalPoint) {
+      --trailingZeros;
+    }
+    length -= end - (trailingZeros + 1);
+  }
 
-    while (*nump != '\0') {
-      *bufp++ = *nump++;
-    }
-    *bufp++ = '\0';
-  }
+  return length;
 }
 #endif 
 
 void
-nsTSubstring_CharT::DoAppendFloat( double aFloat, int digits )
+nsTSubstring_CharT::AppendFloat( float aFloat )
 {
   char buf[40];
-  
-  
-  Modified_cnvtf(buf, digits, aFloat);
-  AppendASCII(buf);
+  int length = FormatWithoutTrailingZeros(buf, aFloat, 6);
+  AppendASCII(buf, length);
+}
+
+void
+nsTSubstring_CharT::AppendFloat( double aFloat )
+{
+  char buf[40];
+  int length = FormatWithoutTrailingZeros(buf, aFloat, 15);
+  AppendASCII(buf, length);
 }
 
 size_t
