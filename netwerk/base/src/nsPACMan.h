@@ -119,7 +119,7 @@ public:
 
 
 
-  nsresult LoadPACFromURI(nsIURI *pacURI);
+  nsresult LoadPACFromURI(const nsCString &pacSpec);
 
   
 
@@ -130,14 +130,17 @@ public:
 
 
   bool IsPACURI(nsIURI *uri) {
-    bool result;
-    return mPACURI && NS_SUCCEEDED(mPACURI->Equals(uri, &result)) && result;
+    if (mPACURISpec.IsEmpty())
+      return false;
+
+    nsAutoCString tmp;
+    uri->GetSpec(tmp);
+    return IsPACURI(tmp);
   }
 
-  bool IsPACURI(nsACString &spec)
+  bool IsPACURI(const nsACString &spec)
   {
-    nsAutoCString tmp;
-    return (mPACURI && NS_SUCCEEDED(mPACURI->GetSpec(tmp)) && tmp.Equals(spec));
+    return mPACURISpec.Equals(spec);
   }
 
   NS_HIDDEN_(nsresult) Init(nsISystemProxySettings *);
@@ -198,7 +201,6 @@ private:
 
   mozilla::LinkedList<PendingPACQuery> mPendingQ; 
 
-  nsCOMPtr<nsIURI>             mPACURI;
   nsCString                    mPACURISpec; 
   nsCOMPtr<nsIStreamLoader>    mLoader;
   bool                         mLoadPending;
