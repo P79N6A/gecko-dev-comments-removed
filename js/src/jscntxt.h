@@ -435,6 +435,16 @@ class PerThreadData : public js::PerThreadDataFriendFields
     int                 gcAssertNoGCDepth;
 #endif
 
+
+
+
+
+
+
+
+
+    int32_t             suppressGC;
+
     PerThreadData(JSRuntime *runtime);
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
@@ -1000,13 +1010,6 @@ struct JSRuntime : js::RuntimeFriendFields
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;
 #endif
-
-    
-
-
-
-
-    int32_t             inOOMReport;
 
     bool                jitHardening;
 

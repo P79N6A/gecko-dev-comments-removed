@@ -4526,7 +4526,10 @@ GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gcki
 #endif
 
     
-    if (rt->inOOMReport)
+
+
+
+    if (rt->mainThread.suppressGC)
         return;
 
     AutoGCSession gcsession(rt);
@@ -5726,6 +5729,27 @@ FinishVerifier(JSRuntime *rt)
 }
 
 #endif 
+
+#ifdef DEBUG
+
+
+void PreventGCDuringInteractiveDebug()
+{
+    TlsPerThreadData.get()->suppressGC++;
+}
+
+#endif
+
+gc::AutoSuppressGC::AutoSuppressGC(JSContext *cx)
+  : suppressGC_(cx->runtime->mainThread.suppressGC)
+{
+    suppressGC_++;
+}
+
+gc::AutoSuppressGC::~AutoSuppressGC()
+{
+    suppressGC_--;
+}
 
 void
 js::ReleaseAllJITCode(FreeOp *fop)
