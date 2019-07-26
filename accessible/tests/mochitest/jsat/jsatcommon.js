@@ -17,6 +17,18 @@ var gIterator;
 Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import("resource://gre/modules/accessibility/Utils.jsm");
 Components.utils.import("resource://gre/modules/accessibility/EventManager.jsm");
+Components.utils.import("resource://gre/modules/accessibility/Gestures.jsm");
+
+const dwellThreshold = GestureSettings.dwellThreshold;
+const swipeMaxDuration = GestureSettings.swipeMaxDuration;
+const maxConsecutiveGestureDelay = GestureSettings.maxConsecutiveGestureDelay;
+
+
+
+
+GestureSettings.dwellThreshold = dwellThreshold * 10;
+GestureSettings.swipeMaxDuration = swipeMaxDuration * 10;
+GestureSettings.maxConsecutiveGestureDelay = maxConsecutiveGestureDelay * 10;
 
 var AccessFuTest = {
 
@@ -98,6 +110,10 @@ var AccessFuTest = {
     
     Logger.test = false;
     Logger.logLevel = Logger.INFO;
+    
+    GestureSettings.dwellThreshold = dwellThreshold;
+    GestureSettings.swipeMaxDuration = swipeMaxDuration;
+    GestureSettings.maxConsecutiveGestureDelay = maxConsecutiveGestureDelay;
     
     SimpleTest.executeSoon(function () {
       AccessFu.detach();
