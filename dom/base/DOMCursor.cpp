@@ -5,7 +5,6 @@
 
 
 #include "DOMCursor.h"
-#include "nsError.h"
 #include "mozilla/dom/DOMCursorBinding.h"
 
 namespace mozilla {

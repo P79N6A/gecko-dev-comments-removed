@@ -2,12 +2,10 @@
 
 
 #include "Crypto.h"
-#include "DOMError.h"
-#include "nsString.h"
 #include "jsfriendapi.h"
-#include "nsIServiceManager.h"
 #include "nsCOMPtr.h"
 #include "nsIRandomGenerator.h"
+#include "nsPIDOMWindow.h"
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/CryptoBinding.h"

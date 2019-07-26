@@ -97,6 +97,7 @@
 #include <limits>
 
 #include "nsIColorPicker.h"
+#include "nsIStringEnumerator.h"
 
 
 #include "js/Date.h"
