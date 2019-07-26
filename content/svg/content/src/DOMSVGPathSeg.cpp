@@ -11,7 +11,7 @@
 
 
 
-using namespace mozilla;
+namespace mozilla {
 
 
 
@@ -40,8 +40,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(DOMSVGPathSeg, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(DOMSVGPathSeg, Release)
 
-namespace mozilla {
-
 
 
 
@@ -53,6 +51,7 @@ public:
     : mPathSeg(aPathSeg)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    MOZ_ASSERT(mPathSeg, "Expecting non-null pathSeg");
     MOZ_ASSERT(mPathSeg->HasOwner(),
                "Expecting list to have an owner for notification");
     mEmptyOrOldValue =
@@ -68,12 +67,10 @@ public:
   }
 
 private:
-  DOMSVGPathSeg* mPathSeg;
+  DOMSVGPathSeg* const mPathSeg;
   nsAttrValue    mEmptyOrOldValue;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
-
-}
 
 DOMSVGPathSeg::DOMSVGPathSeg(DOMSVGPathSegList *aList,
                              uint32_t aListIndex,
@@ -386,3 +383,4 @@ DOMSVGPathSeg::CreateFor(DOMSVGPathSegList *aList,
   }
 }
 
+} 
