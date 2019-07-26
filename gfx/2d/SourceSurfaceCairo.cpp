@@ -81,9 +81,7 @@ SourceSurfaceCairo::GetDataSurface()
 
   
   
-  dataSurf = new DataSourceSurfaceWrapper(dataSurf);
-
-  return dataSurf;
+  return new DataSourceSurfaceWrapper(dataSurf);
 }
 
 cairo_surface_t*
