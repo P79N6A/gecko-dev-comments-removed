@@ -15,9 +15,11 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://gre/modules/FxAccountsUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
+  "resource://gre/modules/FxAccountsClient.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "jwcrypto",
   "resource://gre/modules/identity/jwcrypto.jsm");
@@ -249,8 +251,6 @@ function FxAccountsInternal() {
   this.currentTimer = null;
   this.currentAccountState = new AccountState(this);
 
-  this.fxAccountsClient = new FxAccountsClient();
-
   
   
   this.signedInUserStorage = new JSONStorage({
@@ -268,6 +268,15 @@ FxAccountsInternal.prototype = {
 
 
   version: DATA_FORMAT_VERSION,
+
+  _fxAccountsClient: null,
+
+  get fxAccountsClient() {
+    if (!this._fxAccountsClient) {
+      this._fxAccountsClient = new FxAccountsClient();
+    }
+    return this._fxAccountsClient;
+  },
 
   
 
