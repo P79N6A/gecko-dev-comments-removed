@@ -192,7 +192,10 @@ const PanelUI = {
 
 
   ensureReady: function(aCustomizing=false) {
-    return Task.spawn(function() {
+    if (this._readyPromise) {
+      return this._readyPromise;
+    }
+    this._readyPromise = Task.spawn(function() {
       if (!this._scrollWidth) {
         
         
@@ -221,6 +224,8 @@ const PanelUI = {
         this.endBatchUpdate();
       }
     }.bind(this)).then(null, Cu.reportError);
+
+    return this._readyPromise;
   },
 
   
