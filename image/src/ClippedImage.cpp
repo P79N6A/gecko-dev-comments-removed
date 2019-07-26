@@ -9,6 +9,7 @@
 #include "mozilla/dom/SVGSVGElement.h"
 
 #include "ClippedImage.h"
+#include "Orientation.h"
 
 using mozilla::layers::LayerManager;
 using mozilla::layers::ImageContainer;
@@ -409,6 +410,14 @@ ClippedImage::RequestDiscard()
   mCachedSurface = nullptr;
 
   return InnerImage()->RequestDiscard();
+}
+
+NS_IMETHODIMP_(Orientation)
+ClippedImage::GetOrientation()
+{
+  
+  
+  return InnerImage()->GetOrientation();
 }
 
 } 

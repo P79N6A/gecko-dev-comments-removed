@@ -4,6 +4,7 @@
 
 
 #include "ImageWrapper.h"
+#include "Orientation.h"
 
 #include "mozilla/MemoryReporting.h"
 
@@ -165,6 +166,12 @@ NS_IMETHODIMP
 ImageWrapper::GetIntrinsicRatio(nsSize* aSize)
 {
   return mInnerImage->GetIntrinsicRatio(aSize);
+}
+
+NS_IMETHODIMP_(Orientation)
+ImageWrapper::GetOrientation()
+{
+  return mInnerImage->GetOrientation();
 }
 
 NS_IMETHODIMP
