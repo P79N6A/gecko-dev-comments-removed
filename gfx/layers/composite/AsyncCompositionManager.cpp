@@ -174,14 +174,14 @@ AccumulateLayerTransforms2D(Layer* aLayer,
 
 static LayerPoint
 GetLayerFixedMarginsOffset(Layer* aLayer,
-                           const gfx::Margin& aFixedLayerMargins)
+                           const LayerMargin& aFixedLayerMargins)
 {
   
   
   
   LayerPoint translation;
   const LayerPoint& anchor = aLayer->GetFixedPositionAnchor();
-  const gfx::Margin& fixedMargins = aLayer->GetFixedPositionMargins();
+  const LayerMargin& fixedMargins = aLayer->GetFixedPositionMargins();
 
   if (fixedMargins.left >= 0) {
     if (anchor.x > 0) {
@@ -206,7 +206,7 @@ void
 AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
                                                         Layer* aTransformedSubtreeRoot,
                                                         const gfx3DMatrix& aPreviousTransformForRoot,
-                                                        const gfx::Margin& aFixedLayerMargins)
+                                                        const LayerMargin& aFixedLayerMargins)
 {
   if (aLayer != aTransformedSubtreeRoot && aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
@@ -451,7 +451,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
       / LayerToLayoutDeviceScale(rootTransform.GetXScale(), rootTransform.GetYScale());
     CSSRect displayPort(metrics.mCriticalDisplayPort.IsEmpty() ?
                         metrics.mDisplayPort : metrics.mCriticalDisplayPort);
-    gfx::Margin fixedLayerMargins(0, 0, 0, 0);
+    LayerMargin fixedLayerMargins(0, 0, 0, 0);
     ScreenPoint offset(0, 0);
     SyncFrameMetrics(scrollOffset, treeTransform.mScale.scale, metrics.mScrollableRect,
                      mLayersUpdated, displayPort, paintScale,
@@ -537,7 +537,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
     ) * geckoZoom);
   displayPort += scrollOffsetLayerPixels;
 
-  gfx::Margin fixedLayerMargins(0, 0, 0, 0);
+  LayerMargin fixedLayerMargins(0, 0, 0, 0);
   ScreenPoint offset(0, 0);
 
   
@@ -699,7 +699,7 @@ AsyncCompositionManager::SyncViewportInfo(const LayerIntRect& aDisplayPort,
                                           bool aLayersUpdated,
                                           ScreenPoint& aScrollOffset,
                                           CSSToScreenScale& aScale,
-                                          gfx::Margin& aFixedLayerMargins,
+                                          LayerMargin& aFixedLayerMargins,
                                           ScreenPoint& aOffset)
 {
 #ifdef MOZ_WIDGET_ANDROID
@@ -721,7 +721,7 @@ AsyncCompositionManager::SyncFrameMetrics(const ScreenPoint& aScrollOffset,
                                           const CSSRect& aDisplayPort,
                                           const CSSToLayerScale& aDisplayResolution,
                                           bool aIsFirstPaint,
-                                          gfx::Margin& aFixedLayerMargins,
+                                          LayerMargin& aFixedLayerMargins,
                                           ScreenPoint& aOffset)
 {
 #ifdef MOZ_WIDGET_ANDROID
