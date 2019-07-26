@@ -957,6 +957,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     mX.EndTouch(aEvent.mTime);
     mY.EndTouch(aEvent.mTime);
     SetState(FLING);
+    APZC_LOG("%p starting a fling animation\n", this);
     StartAnimation(new FlingAnimation(*this,
                                       true  ,
                                       false ));
@@ -1503,6 +1504,7 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   
   
   
+  APZC_LOG("%p taking overscroll during panning\n", this);
   return OverscrollBy(cssOverscroll);
 }
 
@@ -1629,6 +1631,7 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
        shouldContinueFlingY = mApzc.mY.FlingApplyFrictionOrCancel(aDelta, friction, threshold);
   
   if (!shouldContinueFlingX && !shouldContinueFlingY) {
+    APZC_LOG("%p ending fling animation. overscrolled=%d\n", &mApzc, mApzc.IsOverscrolled());
     
     if (mApzc.IsOverscrolled()) {
       mDeferredTasks.append(NewRunnableMethod(&mApzc, &AsyncPanZoomController::StartSnapBack));
