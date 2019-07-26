@@ -15,9 +15,44 @@
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
 
+#include "IMediaResourceManagerService.h"
+#include "MediaResourceManagerClient.h"
+
 #include <speex/speex_resampler.h>
 
 namespace android {
+
+
+class OMXCodecReservation : public MediaResourceManagerClient::EventListener
+{
+public:
+  OMXCodecReservation(bool aEncoder)
+  {
+    mType = aEncoder ? IMediaResourceManagerService::HW_VIDEO_ENCODER :
+            IMediaResourceManagerService::HW_VIDEO_DECODER;
+  }
+
+  virtual ~OMXCodecReservation()
+  {
+    ReleaseOMXCodec();
+  }
+
+  
+  virtual bool ReserveOMXCodec();
+
+  
+  virtual void ReleaseOMXCodec();
+
+  
+  virtual void statusChanged(int event) {}
+
+private:
+  IMediaResourceManagerService::ResourceType mType;
+
+  sp<MediaResourceManagerClient> mClient;
+  sp<IMediaResourceManagerService> mManagerService;
+};
+
 
 class OMXAudioEncoder;
 class OMXVideoEncoder;
