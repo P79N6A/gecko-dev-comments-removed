@@ -223,6 +223,17 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates
   },
   { 
+    &nsGkAtoms::key,
+    roles::KEY,
+    kUseMapRole,
+    eNoValue,
+    ePressAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates,
+    eARIAPressed
+  },
+  { 
     &nsGkAtoms::link,
     roles::LINK,
     kUseMapRole,

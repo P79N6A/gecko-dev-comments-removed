@@ -778,7 +778,12 @@ enum Role {
   
 
 
-  DEFINITION = 128
+  DEFINITION = 128,
+
+  
+
+
+  KEY = 129
 };
 
 } 
