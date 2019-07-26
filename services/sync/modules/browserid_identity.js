@@ -58,8 +58,16 @@ function deriveKeyBundle(kB) {
 
 
 
-function AuthenticationError(message) {
-  this.message = message || "";
+
+
+function AuthenticationError(details) {
+  this.details = details;
+}
+
+AuthenticationError.prototype = {
+  toString: function() {
+    return "AuthenticationError(" + this.details + ")";
+  }
 }
 
 this.BrowserIDManager = function BrowserIDManager() {
@@ -162,11 +170,11 @@ this.BrowserIDManager.prototype = {
         this._shouldHaveSyncKeyBundle = true; 
         this.whenReadyToAuthenticate.reject(err);
         
-        this._log.error("Background fetch for key bundle failed: " + err.message);
+        this._log.error("Background fetch for key bundle failed: " + err);
       });
       
     }).then(null, err => {
-      this._log.error("Processing logged in account: " + err.message);
+      this._log.error("Processing logged in account: " + err);
     });
   },
 
@@ -425,7 +433,7 @@ this.BrowserIDManager.prototype = {
       let cb = function (err, token) {
         if (err) {
           log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err.message);
-          return deferred.reject(new AuthenticationError(err.message));
+          return deferred.reject(new AuthenticationError(err));
         } else {
           log.debug("Successfully got a sync token");
           return deferred.resolve(token);
@@ -465,7 +473,7 @@ this.BrowserIDManager.prototype = {
         
         
         if (err instanceof AuthenticationError) {
-          this._log.error("Authentication error in _fetchTokenForUser: " + err.message);
+          this._log.error("Authentication error in _fetchTokenForUser: " + err);
           
           
           
