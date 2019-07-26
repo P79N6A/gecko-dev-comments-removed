@@ -238,17 +238,21 @@ AbstractHealthReporter.prototype = Object.freeze({
     this._initialized = false;
     this._shutdownRequested = true;
 
-    if (this._collectorInProgress) {
-      this._log.warn("Collector is in progress of initializing. Waiting to finish.");
-      return;
-    }
+    if (this._initializeHadError) {
+      this._log.warn("Initialization had error. Shutting down immediately.");
+    } else {
+      if (this._collectorInProgress) {
+        this._log.warn("Collector is in progress of initializing. Waiting to finish.");
+        return;
+      }
 
-    
-    
-    
-    if (this._storageInProgress) {
-      this._log.warn("Storage is in progress of initializing. Waiting to finish.");
-      return;
+      
+      
+      
+      if (this._storageInProgress) {
+        this._log.warn("Storage is in progress of initializing. Waiting to finish.");
+        return;
+      }
     }
 
     this._log.warn("Initiating main shutdown procedure.");
