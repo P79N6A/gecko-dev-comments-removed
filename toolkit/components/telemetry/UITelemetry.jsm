@@ -101,6 +101,52 @@ this.UITelemetry =  {
     this.measurements.push(aEvent);
   },
 
+  
+
+
+
+
+  _simpleMeasureFuncs: {},
+
+  
+
+
+
+
+
+  getSimpleMeasures: function() {
+    let result = {};
+    for (let name in this._simpleMeasureFuncs) {
+      result[name] = this._simpleMeasureFuncs[name]();
+    }
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+
+  addSimpleMeasureFunction: function(aName, aFunction) {
+    if (aName in this._simpleMeasureFuncs) {
+      throw new Error("A simple measurement function is already registered for "
+                      + aName);
+    }
+    if (!aFunction || typeof aFunction !== 'function') {
+      throw new Error("A function must be passed as the second argument.");
+    }
+
+    this._simpleMeasureFuncs[aName] = aFunction;
+  },
+
+  removeSimpleMeasureFunction: function(aName) {
+    delete this._simpleMeasureFuncs[aName];
+  },
+
   getUIMeasurements: function getUIMeasurements() {
     return this.measurements.slice();
   }
