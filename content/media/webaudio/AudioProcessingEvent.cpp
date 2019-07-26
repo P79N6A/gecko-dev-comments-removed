@@ -37,23 +37,30 @@ AudioProcessingEvent::WrapObject(JSContext* aCx)
   return AudioProcessingEventBinding::Wrap(aCx, this);
 }
 
-void
-AudioProcessingEvent::LazilyCreateBuffer(nsRefPtr<AudioBuffer>& aBuffer,
-                                         uint32_t aNumberOfChannels)
+already_AddRefed<AudioBuffer>
+AudioProcessingEvent::LazilyCreateBuffer(uint32_t aNumberOfChannels,
+                                         ErrorResult& aRv)
 {
   
   JSObject* global = mNode->Context()->GetGlobalJSObject();
   if (NS_WARN_IF(!global)) {
-    return;
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return nullptr;
   }
 
   AutoJSAPI jsapi;
   JSContext* cx = jsapi.cx();
   JSAutoCompartment ac(cx, global);
 
-  aBuffer = new AudioBuffer(mNode->Context(), mNode->BufferSize(),
-                            mNode->Context()->SampleRate());
-  aBuffer->InitializeBuffers(aNumberOfChannels, cx);
+  nsRefPtr<AudioBuffer> buffer =
+    new AudioBuffer(mNode->Context(), mNode->BufferSize(),
+                    mNode->Context()->SampleRate());
+  if (!buffer->InitializeBuffers(aNumberOfChannels, cx)) {
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return nullptr;
+  }
+
+  return buffer.forget();
 }
 
 }

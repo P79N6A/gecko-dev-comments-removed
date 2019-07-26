@@ -439,9 +439,17 @@ private:
         node->DispatchTrustedEvent(event);
 
         
+        
+        
+        
         nsRefPtr<ThreadSharedFloatArrayBufferList> output;
         if (event->HasOutputBuffer()) {
-          output = event->OutputBuffer()->GetThreadSharedChannelsForRate(cx);
+          ErrorResult rv;
+          AudioBuffer* buffer = event->GetOutputBuffer(rv);
+          
+          
+          MOZ_ASSERT(!rv.Failed());
+          output = buffer->GetThreadSharedChannelsForRate(cx);
         }
 
         
