@@ -62,9 +62,8 @@ let gGestureSupport = {
 
     switch (aEvent.type) {
       case "MozSwipeGestureStart":
-        if (this._setupSwipeGesture(aEvent)) {
-          aEvent.preventDefault();
-        }
+        aEvent.preventDefault();
+        this._setupSwipeGesture(aEvent);
         break;
       case "MozSwipeGestureUpdate":
         aEvent.preventDefault();
@@ -181,42 +180,22 @@ let gGestureSupport = {
 
 
 
-
-
   _setupSwipeGesture: function GS__setupSwipeGesture(aEvent) {
-    if (!this._swipeNavigatesHistory(aEvent)) {
-      return false;
-    }
-
-    let isVerticalSwipe = false;
-    if (gHistorySwipeAnimation.active) {
-      if (aEvent.direction == aEvent.DIRECTION_UP) {
-        if (content.pageYOffset > 0) {
-          return false;
-        }
-        isVerticalSwipe = true;
-      } else if (aEvent.direction == aEvent.DIRECTION_DOWN) {
-        if (content.pageYOffset < content.scrollMaxY) {
-          return false;
-        }
-        isVerticalSwipe = true;
-      }
-    }
+    if (!this._swipeNavigatesHistory(aEvent))
+      return;
 
     let canGoBack = gHistorySwipeAnimation.canGoBack();
     let canGoForward = gHistorySwipeAnimation.canGoForward();
     let isLTR = gHistorySwipeAnimation.isLTR;
 
-    if (canGoBack) {
+    if (canGoBack)
       aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_LEFT :
                                           aEvent.DIRECTION_RIGHT;
-    }
-    if (canGoForward) {
+    if (canGoForward)
       aEvent.allowedDirections |= isLTR ? aEvent.DIRECTION_RIGHT :
                                           aEvent.DIRECTION_LEFT;
-    }
 
-    gHistorySwipeAnimation.startAnimation(isVerticalSwipe);
+    gHistorySwipeAnimation.startAnimation();
 
     this._doUpdate = function GS__doUpdate(aEvent) {
       gHistorySwipeAnimation.updateAnimation(aEvent.delta);
@@ -228,8 +207,6 @@ let gGestureSupport = {
       this._doUpdate = function (aEvent) {};
       this._doEnd = function (aEvent) {};
     }
-
-    return true;
   },
 
   
@@ -575,10 +552,8 @@ let gHistorySwipeAnimation = {
     this._startingIndex = -1;
     this._historyIndex = -1;
     this._boxWidth = -1;
-    this._boxHeight = -1;
     this._maxSnapshots = this._getMaxSnapshots();
     this._lastSwipeDir = "";
-    this._direction = "horizontal";
 
     
     
@@ -610,27 +585,13 @@ let gHistorySwipeAnimation = {
 
 
 
-
-
-
-  startAnimation: function HSA_startAnimation(aIsVerticalSwipe) {
-    this._direction = aIsVerticalSwipe ? "vertical" : "horizontal";
-
+  startAnimation: function HSA_startAnimation() {
     if (this.isAnimationRunning()) {
-      
-      
-      
-      
-      
-      
-      
-      if (this._direction == "horizontal" || this._lastSwipeDir != "") {
-        gBrowser.stop();
-        this._lastSwipeDir = "RELOAD"; 
-        this._canGoBack = this.canGoBack();
-        this._canGoForward = this.canGoForward();
-        this._handleFastSwiping();
-      }
+      gBrowser.stop();
+      this._lastSwipeDir = "RELOAD"; 
+      this._canGoBack = this.canGoBack();
+      this._canGoForward = this.canGoForward();
+      this._handleFastSwiping();
     }
     else {
       this._startingIndex = gBrowser.webNavigation.sessionHistory.index;
@@ -662,24 +623,19 @@ let gHistorySwipeAnimation = {
 
 
   updateAnimation: function HSA_updateAnimation(aVal) {
-    if (!this.isAnimationRunning()) {
+    if (!this.isAnimationRunning())
       return;
-    }
 
     
     
     
     let dampValue = 4;
-    if (this._direction == "vertical") {
-      this._prevBox.collapsed = true;
-      this._nextBox.collapsed = true;
-      this._positionBox(this._curBox, -1 * aVal / dampValue);
-    } else if ((aVal >= 0 && this.isLTR) ||
-               (aVal <= 0 && !this.isLTR)) {
+    if ((aVal >= 0 && this.isLTR) ||
+        (aVal <= 0 && !this.isLTR)) {
       let tempDampValue = 1;
-      if (this._canGoBack) {
+      if (this._canGoBack)
         this._prevBox.collapsed = false;
-      } else {
+      else {
         tempDampValue = dampValue;
         this._prevBox.collapsed = true;
       }
@@ -691,7 +647,11 @@ let gHistorySwipeAnimation = {
 
       
       this._positionBox(this._nextBox, 1);
-    } else {
+    }
+    else {
+      if (aVal < -1)
+        aVal = -1; 
+
       
       
       
@@ -703,7 +663,8 @@ let gHistorySwipeAnimation = {
         let offset = this.isLTR ? 1 : -1;
         this._positionBox(this._curBox, 0);
         this._positionBox(this._nextBox, offset + aVal);
-      } else {
+      }
+      else {
         this._prevBox.collapsed = true;
         this._positionBox(this._curBox, aVal / dampValue);
       }
@@ -874,9 +835,7 @@ let gHistorySwipeAnimation = {
                                         "box");
     this._container.appendChild(this._nextBox);
 
-    
-    this._boxWidth = this._curBox.getBoundingClientRect().width;
-    this._boxHeight = this._curBox.getBoundingClientRect().height;
+    this._boxWidth = this._curBox.getBoundingClientRect().width; 
   },
 
   
@@ -890,7 +849,6 @@ let gHistorySwipeAnimation = {
       this._container.parentNode.removeChild(this._container);
     this._container = null;
     this._boxWidth = -1;
-    this._boxHeight = -1;
   },
 
   
@@ -918,14 +876,7 @@ let gHistorySwipeAnimation = {
 
 
   _positionBox: function HSA__positionBox(aBox, aPosition) {
-    let transform = "";
-
-    if (this._direction == "vertical")
-      transform = "translateY(" + this._boxHeight * aPosition + "px)";
-    else
-      transform = "translateX(" + this._boxWidth * aPosition + "px)";
-
-    aBox.style.transform = transform;
+    aBox.style.transform = "translateX(" + this._boxWidth * aPosition + "px)";
   },
 
   

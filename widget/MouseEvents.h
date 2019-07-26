@@ -318,8 +318,7 @@ public:
     deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL),
     customizedByUserPrefs(false), isMomentum(false), isPixelOnlyDevice(false),
     lineOrPageDeltaX(0), lineOrPageDeltaY(0), scrollType(SCROLL_DEFAULT),
-    overflowDeltaX(0.0), overflowDeltaY(0.0),
-    mViewPortIsOverscrolled(false)
+    overflowDeltaX(0.0), overflowDeltaY(0.0)
   {
   }
 
@@ -400,12 +399,6 @@ public:
   double overflowDeltaX;
   double overflowDeltaY;
 
-  
-  
-  
-  
-  bool mViewPortIsOverscrolled;
-
   void AssignWheelEventData(const WidgetWheelEvent& aEvent, bool aCopyTargets)
   {
     AssignMouseEventBaseData(aEvent, aCopyTargets);
@@ -422,7 +415,6 @@ public:
     scrollType = aEvent.scrollType;
     overflowDeltaX = aEvent.overflowDeltaX;
     overflowDeltaY = aEvent.overflowDeltaY;
-    mViewPortIsOverscrolled = aEvent.mViewPortIsOverscrolled;
   }
 };
 
