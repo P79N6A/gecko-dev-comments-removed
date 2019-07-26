@@ -129,7 +129,7 @@ FormAssistant.prototype = {
     }
 
     
-    if (this._isAutocomplete(aElement) && this._open && this._isNavigationKey(aEvent)) {
+    if (this._isAutocomplete(aElement) && this._open && Util.isNavigationKey(aEvent.keyCode)) {
       return false;
     }
 
@@ -291,22 +291,6 @@ FormAssistant.prototype = {
         }
         break;
     }
-  },
-
-  _isNavigationKey: function (aEvent) {
-    
-    if (aEvent.keyCode) {
-      let navigationKeys = [
-        aEvent.DOM_VK_DOWN,
-        aEvent.DOM_VK_UP,
-        aEvent.DOM_VK_LEFT,
-        aEvent.DOM_VK_RIGHT,
-        aEvent.DOM_VK_PAGE_UP,
-        aEvent.DOM_VK_PAGE_DOWN];
-
-      return navigationKeys.indexOf(aEvent.keyCode) != -1;
-    }
-    return false;
   },
 
   _executeDelayed: function formHelperExecuteSoon(aCallback) {

@@ -50,7 +50,6 @@ var AutofillMenuUI = {
 
   show: function show(aAnchorRect, aSuggestionsList) {
     this.commands.addEventListener("select", this, true);
-    window.addEventListener("keypress", this, true);
 
     this._anchorRect = aAnchorRect;
     this._emptyCommands();
@@ -72,7 +71,6 @@ var AutofillMenuUI = {
   },
 
   hide: function hide () {
-    window.removeEventListener("keypress", this, true);
     this.commands.removeEventListener("select", this, true);
 
     this._menuPopup.hide();
@@ -80,30 +78,6 @@ var AutofillMenuUI = {
 
   handleEvent: function (aEvent) {
     switch (aEvent.type) {
-      case "keypress":
-        switch (aEvent.keyCode) {
-          case aEvent.DOM_VK_ESCAPE:
-            this.hide();
-            break;
-
-          case aEvent.DOM_VK_DOWN:
-            this.commands.moveByOffset(1, true, false);
-            break;
-
-          case aEvent.DOM_VK_UP:
-            this.commands.moveByOffset(-1, true, false);
-            break;
-
-          case aEvent.DOM_VK_PAGE_DOWN:
-            this.commands.moveByOffset(this.commands.scrollOnePage(1), true, false);
-            break;
-
-          case aEvent.DOM_VK_PAGE_UP:
-            this.commands.moveByOffset(this.commands.scrollOnePage(-1), true, false);
-            break;
-        }
-        break;
-
       case "select":
         FormHelperUI.doAutoComplete(this.commands.value);
         break;
@@ -527,12 +501,47 @@ MenuPopup.prototype = {
   handleEvent: function handleEvent(aEvent) {
     switch (aEvent.type) {
       case "keypress":
-        if (!this._wantTypeBehind) {
+        
+        
+
+        
+        if (aEvent.mine)
+          break;
+
+        let ev = document.createEvent("KeyboardEvent");
+        ev.initKeyEvent(
+          "keypress",        
+          false,             
+          true,              
+          null,              
+          aEvent.ctrlKey,    
+          aEvent.altKey,     
+          aEvent.shiftKey,   
+          aEvent.metaKey,    
+          aEvent.keyCode,    
+          aEvent.charCode);  
+
+        ev.mine = true;
+        this.commands.dispatchEvent(ev);
+
+        switch (aEvent.keyCode) {
+          case aEvent.DOM_VK_ESCAPE:
+            this.hide();
+            break;
+
+          case aEvent.DOM_VK_RETURN:
+            this.commands.currentItem.click();
+            break;
+        }
+
+        if (Util.isNavigationKey(aEvent.keyCode)) {
+          aEvent.stopPropagation();
+          aEvent.preventDefault();
+        } else if (!this._wantTypeBehind) {
           
           aEvent.stopPropagation();
           aEvent.preventDefault();
-          if (aEvent.keyCode != aEvent.DOM_VK_ESCAPE)
-            this.hide();
+          this.hide();
         }
         break;
       case "blur":
