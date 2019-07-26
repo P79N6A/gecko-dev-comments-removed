@@ -3582,7 +3582,8 @@ Tab.prototype = {
         }
 
         
-        HelperApps.updatePageAction(this.browser.currentURI);
+        if (BrowserApp.selectedTab == this)
+          HelperApps.updatePageAction(this.browser.currentURI);
 
         if (!Reader.isEnabledForParseOnLoad)
           return;
