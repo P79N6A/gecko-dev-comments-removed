@@ -1089,10 +1089,16 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     bool hasIonScript() const {
+        
+        
+        
+        
+        
         js::AutoThreadSafeAccess ts(this);
         return ion && ion != ION_DISABLED_SCRIPT && ion != ION_COMPILING_SCRIPT;
     }
     bool canIonCompile() const {
+        
         js::AutoThreadSafeAccess ts(this);
         return ion != ION_DISABLED_SCRIPT;
     }
