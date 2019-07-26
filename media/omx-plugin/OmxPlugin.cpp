@@ -242,7 +242,7 @@ static sp<IOMX> GetOMX() {
 }
 #endif
 
-static uint32_t GetVideoCreationFlags(PluginHost* pluginHost)
+static uint32_t GetVideoCreationFlags(PluginHost* aPluginHost)
 {
 #ifdef MOZ_WIDGET_GONK
   
@@ -256,7 +256,7 @@ static uint32_t GetVideoCreationFlags(PluginHost* pluginHost)
   
   
   int32_t flags = 0;
-  pluginHost->GetIntPref("media.stagefright.omxcodec.flags", &flags);
+  aPluginHost->GetIntPref("media.stagefright.omxcodec.flags", &flags);
   if (flags != 0) {
     LOG("media.stagefright.omxcodec.flags=%d", flags);
     if ((flags & OMXCodec::kHardwareCodecsOnly) != 0) {
@@ -267,6 +267,55 @@ static uint32_t GetVideoCreationFlags(PluginHost* pluginHost)
   }
   return static_cast<uint32_t>(flags);
 #endif
+}
+
+static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
+                                         const sp<IOMX>& aOmx,
+                                         const sp<MediaSource>& aVideoTrack)
+{
+  uint32_t flags = GetVideoCreationFlags(aPluginHost);
+  if (flags == 0) {
+    
+    sp<MediaSource> videoSource = OMXCodec::Create(aOmx, aVideoTrack->getFormat(),
+                                                   false, aVideoTrack, NULL, 0);
+    if (videoSource == NULL)
+      return NULL;
+
+    
+    
+    int32_t videoColorFormat;
+    if (videoSource->getFormat()->findInt32(kKeyColorFormat, &videoColorFormat)) {
+      switch (videoColorFormat) {
+        
+        case OMX_COLOR_FormatCbYCrY:
+        case OMX_COLOR_FormatYUV420Planar:
+        case OMX_COLOR_FormatYUV420SemiPlanar:
+        case OMX_QCOM_COLOR_FormatYVU420PackedSemiPlanar32m4ka:
+        case OMX_QCOM_COLOR_FormatYVU420SemiPlanar:
+        case OMX_TI_COLOR_FormatYUV420PackedSemiPlanar:
+          
+          return videoSource;
+
+        
+        default:
+          
+          
+          LOG("Unknown video color format: %#x", videoColorFormat);
+          break;
+      }
+    } else {
+      LOG("Video color format not found");
+    }
+
+    
+    LOG("Falling back to software decoder");
+    videoSource.clear();
+    flags = OMXCodec::kSoftwareCodecsOnly;
+  }
+
+  MOZ_ASSERT(flags != 0);
+  return OMXCodec::Create(aOmx, aVideoTrack->getFormat(), false, aVideoTrack,
+                          NULL, flags);
 }
 
 bool OmxDecoder::Init() {
@@ -330,13 +379,7 @@ bool OmxDecoder::Init() {
   sp<MediaSource> videoTrack;
   sp<MediaSource> videoSource;
   if (videoTrackIndex != -1 && (videoTrack = extractor->getTrack(videoTrackIndex)) != NULL) {
-    uint32_t flags = GetVideoCreationFlags(mPluginHost);
-    videoSource = OMXCodec::Create(omx,
-                                   videoTrack->getFormat(),
-                                   false, 
-                                   videoTrack,
-                                   NULL,
-                                   flags);
+    videoSource = CreateVideoSource(mPluginHost, omx, videoTrack);
     if (videoSource == NULL) {
       LOG("OMXCodec failed to initialize video decoder for \"%s\"", videoMime);
       return false;
