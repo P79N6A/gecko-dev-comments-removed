@@ -62,6 +62,7 @@ private:
   bool mInterrupted;    
   bool mIsSafeModeNecessary;       
   bool mStartupCrashTrackingEnded; 
+  bool mRestartTouchEnvironment; 
 
 #if defined(XP_WIN)
   
