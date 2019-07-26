@@ -5707,7 +5707,7 @@ PurgeJITCaches(JSCompartment *c)
 
          
         if (script->hasIonScript())
-            script->ion->purgeCaches();
+            script->ion->purgeCaches(c);
 
 #endif
     }
