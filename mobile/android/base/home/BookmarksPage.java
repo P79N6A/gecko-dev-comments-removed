@@ -8,10 +8,9 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.home.BookmarksListView.OnRefreshFolderListener;
+import org.mozilla.gecko.home.BookmarksListAdapter.OnRefreshFolderListener;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.database.Cursor;
@@ -45,6 +44,9 @@ public class BookmarksPage extends HomeFragment {
     private TopBookmarksView mTopBookmarks;
 
     
+    private BookmarksListAdapter mListAdapter;
+
+    
     private CursorLoaderCallbacks mLoaderCallbacks;
 
     @Override
@@ -71,15 +73,6 @@ public class BookmarksPage extends HomeFragment {
 
         mList = (BookmarksListView) view.findViewById(R.id.bookmarks_list);
         mList.setOnUrlOpenListener(listener);
-        mList.setOnRefreshFolderListener(new OnRefreshFolderListener() {
-            @Override
-            public void onRefreshFolder(int folderId) {
-                
-                Bundle bundle = new Bundle();
-                bundle.putInt(BOOKMARKS_FOLDER_KEY, folderId);
-                getLoaderManager().restartLoader(BOOKMARKS_LIST_LOADER_ID, bundle, mLoaderCallbacks);
-            }
-        });
 
         registerForContextMenu(mList);
 
@@ -89,6 +82,19 @@ public class BookmarksPage extends HomeFragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        
+        mListAdapter = new BookmarksListAdapter(getActivity(), null);
+        mListAdapter.setOnRefreshFolderListener(new OnRefreshFolderListener() {
+            @Override
+            public void onRefreshFolder(int folderId) {
+                
+                Bundle bundle = new Bundle();
+                bundle.putInt(BOOKMARKS_FOLDER_KEY, folderId);
+                getLoaderManager().restartLoader(BOOKMARKS_LIST_LOADER_ID, bundle, mLoaderCallbacks);
+            }
+        });
+        mList.setAdapter(mListAdapter);
 
         
         mLoaderCallbacks = new CursorLoaderCallbacks();
@@ -102,6 +108,7 @@ public class BookmarksPage extends HomeFragment {
     @Override
     public void onDestroyView() {
         mList = null;
+        mListAdapter = null;
         super.onDestroyView();
     }
 
@@ -189,7 +196,7 @@ public class BookmarksPage extends HomeFragment {
             final int loaderId = loader.getId();
             switch(loaderId) {
                 case BOOKMARKS_LIST_LOADER_ID: {
-                    mList.refreshFromCursor(c);
+                    mListAdapter.swapCursor(c);
                     break;
                 }
 
@@ -206,7 +213,7 @@ public class BookmarksPage extends HomeFragment {
             switch(loaderId) {
                 case BOOKMARKS_LIST_LOADER_ID: {
                     if (mList != null) {
-                        mList.refreshFromCursor(null);
+                        mListAdapter.swapCursor(null);
                     }
                     break;
                 }
