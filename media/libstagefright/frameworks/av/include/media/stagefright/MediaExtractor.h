@@ -42,7 +42,7 @@ public:
 
     
     
-    virtual sp<MetaData> getMetaData() = 0;
+    virtual sp<MetaData> getMetaData();
 
     enum Flags {
         CAN_SEEK_BACKWARD  = 1,  
@@ -53,7 +53,7 @@ public:
 
     
     
-    virtual uint32_t flags() const = 0;
+    virtual uint32_t flags() const;
 
     
     void setDrmFlag(bool flag) {

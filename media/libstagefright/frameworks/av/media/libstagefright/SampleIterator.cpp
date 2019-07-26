@@ -14,7 +14,6 @@
 
 
 
-#undef LOG_TAG
 #define LOG_TAG "SampleIterator"
 
 #include <utils/Log.h>
@@ -315,4 +314,3 @@ status_t SampleIterator::findSampleTime(
 
 }  
 
-#undef LOG_TAG

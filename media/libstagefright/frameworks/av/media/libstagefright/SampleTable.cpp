@@ -14,7 +14,6 @@
 
 
 
-#undef LOG_TAG
 #define LOG_TAG "SampleTable"
 
 #include <utils/Log.h>
@@ -830,4 +829,3 @@ uint32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
 
 }  
 
-#undef LOG_TAG
