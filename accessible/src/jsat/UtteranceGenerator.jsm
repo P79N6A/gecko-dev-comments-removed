@@ -347,7 +347,11 @@ this.UtteranceGenerator = {
       stateUtterances.push(gStringBundle.GetStringFromName('stateUnavailable'));
     }
 
-    if (aStates.base & Ci.nsIAccessibleStates.STATE_CHECKABLE) {
+    
+    
+    
+    
+    if (Utils.AndroidSdkVersion < 16 && aStates.base & Ci.nsIAccessibleStates.STATE_CHECKABLE) {
       let stateStr = (aStates.base & Ci.nsIAccessibleStates.STATE_CHECKED) ?
         'stateChecked' : 'stateNotChecked';
       stateUtterances.push(gStringBundle.GetStringFromName(stateStr));
