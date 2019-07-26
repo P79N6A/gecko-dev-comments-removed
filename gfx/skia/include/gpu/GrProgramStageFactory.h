@@ -10,6 +10,7 @@
 
 #include "GrTypes.h"
 #include "SkTemplates.h"
+#include "GrNoncopyable.h"
 
 
 
@@ -18,17 +19,20 @@
 
 class GrCustomStage;
 class GrGLProgramStage;
+class GrGLCaps;
 
 class GrProgramStageFactory : public GrNoncopyable {
 public:
-    typedef uint16_t StageKey;
+    typedef uint32_t StageKey;
     enum {
         kProgramStageKeyBits = 10,
+        kTexturingStageKeyBits = 6
     };
 
-    virtual StageKey glStageKey(const GrCustomStage* stage) const = 0;
+    virtual StageKey glStageKey(const GrCustomStage& stage,
+                                const GrGLCaps& caps ) const = 0;
     virtual GrGLProgramStage* createGLInstance(
-        const GrCustomStage* stage) const = 0;
+        const GrCustomStage& stage) const = 0;
 
     bool operator ==(const GrProgramStageFactory& b) const {
         return fStageClassID == b.fStageClassID;
@@ -67,7 +71,7 @@ template <typename StageClass>
 class GrTProgramStageFactory : public GrProgramStageFactory {
 
 public:
-    typedef typename StageClass::GLProgramStage GLProgramStage; 
+    typedef typename StageClass::GLProgramStage GLProgramStage;
 
     
 
@@ -79,23 +83,29 @@ public:
 
 
 
-    virtual StageKey glStageKey(const GrCustomStage* stage) const SK_OVERRIDE {
+    virtual StageKey glStageKey(const GrCustomStage& stage,
+                                const GrGLCaps& caps) const SK_OVERRIDE {
         GrAssert(kIllegalStageClassID != fStageClassID);
-        StageKey stageID = GLProgramStage::GenKey(stage);
+        StageKey stageID = GLProgramStage::GenKey(stage, caps);
+        StageKey textureKey = GLProgramStage::GenTextureKey(stage, caps);
 #if GR_DEBUG
         static const StageKey kIllegalIDMask =
-            ~((1 << kProgramStageKeyBits) - 1);
+            (uint16_t) (~((1U << kProgramStageKeyBits) - 1));
         GrAssert(!(kIllegalIDMask & stageID));
+
+        static const StageKey kIllegalTextureKeyMask =
+            (uint16_t) (~((1U << kTexturingStageKeyBits) - 1));
+        GrAssert(!(kIllegalTextureKeyMask & textureKey));
 #endif
-        return fStageClassID | stageID;
+        return fStageClassID | (textureKey << kProgramStageKeyBits) | stageID;
     }
 
     
 
 
     virtual GLProgramStage* createGLInstance(
-                        const GrCustomStage* stage) const SK_OVERRIDE {
-        return new GLProgramStage(*this, stage);
+                        const GrCustomStage& stage) const SK_OVERRIDE {
+        return SkNEW_ARGS(GLProgramStage, (*this, stage));
     }
 
     
@@ -104,14 +114,15 @@ public:
         static SkAlignedSTStorage<1, GrTProgramStageFactory> gInstanceMem;
         static const GrTProgramStageFactory* gInstance;
         if (!gInstance) {
-            gInstance = new (gInstanceMem.get()) GrTProgramStageFactory();
+            gInstance = SkNEW_PLACEMENT(gInstanceMem.get(),
+                                        GrTProgramStageFactory);
         }
         return *gInstance;
     }
 
 protected:
     GrTProgramStageFactory() {
-        fStageClassID = GenID() << kProgramStageKeyBits;
+        fStageClassID = GenID() << (kProgramStageKeyBits + kTexturingStageKeyBits) ;
     }
 };
 

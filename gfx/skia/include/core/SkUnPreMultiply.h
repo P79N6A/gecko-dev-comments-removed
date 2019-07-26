@@ -18,7 +18,7 @@
 class SK_API SkUnPreMultiply {
 public:
     typedef uint32_t Scale;
-    
+
     
     static const Scale* GetScaleTable() {
         return gTable;
@@ -28,7 +28,7 @@ public:
         SkASSERT(alpha <= 255);
         return gTable[alpha];
     }
-    
+
     
 
 
@@ -46,9 +46,9 @@ public:
         SkASSERT(component <= 255);
         return (scale * component + (1 << 23)) >> 24;
     }
-    
+
     static SkColor PMColorToColor(SkPMColor c);
-    
+
 private:
     static const uint32_t gTable[256];
 };

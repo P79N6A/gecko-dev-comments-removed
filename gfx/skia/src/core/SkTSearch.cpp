@@ -93,7 +93,7 @@ SkAutoAsciiToLC::SkAutoAsciiToLC(const char str[], size_t len)
         lc = (char*)sk_malloc_throw(len + 1);
     }
     fLC = lc;
-    
+
     
     
     for (int i = (int)(len - 1); i >= 0; --i) {

@@ -274,6 +274,118 @@ static SkString twoPointRadialCode(const SkShader::GradientInfo& info) {
     return function;
 }
 
+
+
+
+static SkString twoPointConicalCode(const SkShader::GradientInfo& info) {
+    SkScalar dx = info.fPoint[1].fX - info.fPoint[0].fX;
+    SkScalar dy = info.fPoint[1].fY - info.fPoint[0].fY;
+    SkScalar r0 = info.fRadius[0];
+    SkScalar dr = info.fRadius[1] - info.fRadius[0];
+    SkScalar a = SkScalarMul(dx, dx) + SkScalarMul(dy, dy) -
+                 SkScalarMul(dr, dr);
+
+    
+    
+
+    
+    
+    SkString function("{");
+    function.append("2 copy ");
+
+    
+    function.appendScalar(dy);
+    function.append(" mul exch ");
+    function.appendScalar(dx);
+    function.append(" mul add ");
+    function.appendScalar(SkScalarMul(r0, dr));
+    function.append(" add -2 mul dup dup mul\n");
+
+    
+    function.append("4 2 roll dup mul exch dup mul add ");
+    function.appendScalar(SkScalarMul(r0, r0));
+    function.append(" sub dup 4 1 roll\n");
+
+    
+
+    
+    if (a == 0) {
+
+        
+        function.append("pop pop div neg dup ");
+
+        
+        function.appendScalar(dr);
+        function.append(" mul ");
+        function.appendScalar(r0);
+        function.append(" add\n");
+
+        
+        function.append("0 lt {pop false} {true} ifelse\n");
+
+    } else {
+
+        
+        
+
+        
+        function.appendScalar(SkScalarMul(SkIntToScalar(4), a));
+        function.append(" mul sub dup\n");
+
+        
+        function.append("0 ge {\n");
+
+        
+        
+        function.append("sqrt exch dup 0 lt {exch -1 mul} if");
+        function.append(" add -0.5 mul dup\n");
+
+        
+        function.appendScalar(a);
+        function.append(" div\n");
+
+        
+        function.append("3 1 roll div\n");
+
+        
+        function.append("2 copy gt {exch} if\n");
+
+        
+        function.append("dup ");
+        function.appendScalar(dr);
+        function.append(" mul ");
+        function.appendScalar(r0);
+        function.append(" add\n");
+
+        
+        function.append(" 0 gt {exch pop true}\n");
+
+        
+        function.append("{pop dup\n");
+        function.appendScalar(dr);
+        function.append(" mul ");
+        function.appendScalar(r0);
+        function.append(" add\n");
+
+        
+        function.append("0 le {pop false} {true} ifelse\n");
+        function.append("} ifelse\n");
+
+        
+        function.append("} {pop pop pop false} ifelse\n");
+    }
+
+    
+    function.append("{");
+    tileModeCode(info.fTileMode, &function);
+    gradientFunctionCode(info, &function);
+
+    
+    function.append("} {0 0 0} ifelse }");
+
+    return function;
+}
+
 static SkString sweepCode(const SkShader::GradientInfo& info) {
     SkString function("{exch atan 360 div\n");
     tileModeCode(info.fTileMode, &function);
@@ -362,6 +474,14 @@ SkPDFObject* SkPDFShader::GetPDFShader(const SkShader& shader,
     SkPDFObject* result;
     SkAutoMutexAcquire lock(CanonicalShadersMutex());
     SkAutoTDelete<State> shaderState(new State(shader, matrix, surfaceBBox));
+    if (shaderState.get()->fType == SkShader::kNone_GradientType &&
+            shaderState.get()->fImage.isNull()) {
+        
+        
+        
+        
+        return NULL;
+    }
 
     ShaderCanonicalEntry entry(NULL, shaderState.get());
     int index = CanonicalShaders().find(entry);
@@ -457,6 +577,12 @@ SkPDFFunctionShader::SkPDFFunctionShader(SkPDFShader::State* state)
             SkScalar dr = info->fRadius[1] - info->fRadius[0];
             transformPoints[1].fX += dr;
             codeFunction = &twoPointRadialCode;
+            break;
+        }
+        case SkShader::kConical_GradientType: {
+            transformPoints[1] = transformPoints[0];
+            transformPoints[1].fX += SK_Scalar1;
+            codeFunction = &twoPointConicalCode;
             break;
         }
         case SkShader::kSweep_GradientType:
@@ -786,6 +912,7 @@ bool SkPDFShader::State::operator==(const SkPDFShader::State& b) const {
                 }
                 break;
             case SkShader::kRadial2_GradientType:
+            case SkShader::kConical_GradientType:
                 if (fInfo.fPoint[1] != b.fInfo.fPoint[1] ||
                         fInfo.fRadius[0] != b.fInfo.fRadius[0] ||
                         fInfo.fRadius[1] != b.fInfo.fRadius[1]) {
@@ -817,7 +944,7 @@ SkPDFShader::State::State(const SkShader& shader,
     if (fType == SkShader::kNone_GradientType) {
         SkShader::BitmapType bitmapType;
         SkMatrix matrix;
-        bitmapType = shader.asABitmap(&fImage, &matrix, fImageTileModes, NULL);
+        bitmapType = shader.asABitmap(&fImage, &matrix, fImageTileModes);
         if (bitmapType != SkShader::kDefault_BitmapType) {
             fImage.reset();
             return;

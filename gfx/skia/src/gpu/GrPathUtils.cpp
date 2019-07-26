@@ -199,12 +199,16 @@ void GrPathUtils::QuadUVMatrix::set(const GrPoint qPts[3]) {
     
     
     
-    UVpts.setAll(0,   0.5f,  1.f,
-                 0,   0,     1.f,
-                 1.f, 1.f,   1.f);
+    UVpts.setAll(0,   GR_ScalarHalf,  GR_Scalar1,
+                 0,               0,  GR_Scalar1,
+                 SkScalarToPersp(GR_Scalar1),
+                 SkScalarToPersp(GR_Scalar1),
+                 SkScalarToPersp(GR_Scalar1));
     m.setAll(qPts[0].fX, qPts[1].fX, qPts[2].fX,
              qPts[0].fY, qPts[1].fY, qPts[2].fY,
-             1.f,        1.f,        1.f);
+             SkScalarToPersp(GR_Scalar1),
+             SkScalarToPersp(GR_Scalar1),
+             SkScalarToPersp(GR_Scalar1));
     if (!m.invert(&m)) {
         
         
@@ -247,7 +251,7 @@ void GrPathUtils::QuadUVMatrix::set(const GrPoint qPts[3]) {
         m.postConcat(UVpts);
 
         
-        static const GrScalar gTOL = 1.f / 100.f;
+        static const GrScalar gTOL = GrFloatToScalar(1.f / 100.f);
         GrAssert(GrScalarAbs(m.get(SkMatrix::kMPersp0)) < gTOL);
         GrAssert(GrScalarAbs(m.get(SkMatrix::kMPersp1)) < gTOL);
 
@@ -273,60 +277,203 @@ void GrPathUtils::QuadUVMatrix::set(const GrPoint qPts[3]) {
 }
 
 namespace {
+
+
+
+
+
+
+
+bool is_point_within_cubic_tangents(const SkPoint& a,
+                                    const SkVector& ab,
+                                    const SkVector& dc,
+                                    const SkPoint& d,
+                                    SkPath::Direction dir,
+                                    const SkPoint p) {
+    SkVector ap = p - a;
+    SkScalar apXab = ap.cross(ab);
+    if (SkPath::kCW_Direction == dir) {
+        if (apXab > 0) {
+            return false;
+        }
+    } else {
+        GrAssert(SkPath::kCCW_Direction == dir);
+        if (apXab < 0) {
+            return false;
+        }
+    }
+
+    SkVector dp = p - d;
+    SkScalar dpXdc = dp.cross(dc);
+    if (SkPath::kCW_Direction == dir) {
+        if (dpXdc < 0) {
+            return false;
+        }
+    } else {
+        GrAssert(SkPath::kCCW_Direction == dir);
+        if (dpXdc > 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void convert_noninflect_cubic_to_quads(const SkPoint p[4],
-                                       SkScalar tolScale,
+                                       SkScalar toleranceSqd,
+                                       bool constrainWithinTangents,
+                                       SkPath::Direction dir,
                                        SkTArray<SkPoint, true>* quads,
                                        int sublevel = 0) {
-    SkVector ab = p[1];
-    ab -= p[0];
-    SkVector dc = p[2];
-    dc -= p[3];
 
-    static const SkScalar gLengthScale = 3 * SK_Scalar1 / 2;
     
-    const SkScalar distanceSqdTol = SkScalarMul(tolScale, 1 * SK_Scalar1);
+    
+
+    SkVector ab = p[1] - p[0];
+    SkVector dc = p[2] - p[3];
+
+    if (ab.isZero()) {
+        if (dc.isZero()) {
+            SkPoint* degQuad = quads->push_back_n(3);
+            degQuad[0] = p[0];
+            degQuad[1] = p[0];
+            degQuad[2] = p[3];
+            return;
+        }
+        ab = p[2] - p[0];
+    }
+    if (dc.isZero()) {
+        dc = p[1] - p[3];
+    }
+
+    
+    
+    
+    
+    
+    
+
+    if (constrainWithinTangents) {
+        SkVector da = p[0] - p[3];
+        SkScalar invDALengthSqd = da.lengthSqd();
+        if (invDALengthSqd > SK_ScalarNearlyZero) {
+            invDALengthSqd = SkScalarInvert(invDALengthSqd);
+            
+            
+            SkScalar detABSqd = ab.cross(da);
+            detABSqd = SkScalarSquare(detABSqd);
+            SkScalar detDCSqd = dc.cross(da);
+            detDCSqd = SkScalarSquare(detDCSqd);
+            if (SkScalarMul(detABSqd, invDALengthSqd) < toleranceSqd &&
+                SkScalarMul(detDCSqd, invDALengthSqd) < toleranceSqd) {
+                SkPoint b = p[0] + ab;
+                SkPoint c = p[3] + dc;
+                SkPoint mid = b + c;
+                mid.scale(SK_ScalarHalf);
+                
+                
+                if (SkVector::DotProduct(da, dc) < 0 || SkVector::DotProduct(ab,da) > 0) {
+                    SkPoint* qpts = quads->push_back_n(6);
+                    qpts[0] = p[0];
+                    qpts[1] = b;
+                    qpts[2] = mid;
+                    qpts[3] = mid;
+                    qpts[4] = c;
+                    qpts[5] = p[3];
+                } else {
+                    SkPoint* qpts = quads->push_back_n(3);
+                    qpts[0] = p[0];
+                    qpts[1] = mid;
+                    qpts[2] = p[3];
+                }
+                return;
+            }
+        }
+    }
+
+    static const SkScalar kLengthScale = 3 * SK_Scalar1 / 2;
     static const int kMaxSubdivs = 10;
 
-    ab.scale(gLengthScale);
-    dc.scale(gLengthScale);
+    ab.scale(kLengthScale);
+    dc.scale(kLengthScale);
 
+    
     SkVector c0 = p[0];
     c0 += ab;
     SkVector c1 = p[3];
     c1 += dc;
 
-    SkScalar dSqd = c0.distanceToSqd(c1);
-    if (sublevel > kMaxSubdivs || dSqd <= distanceSqdTol) {
+    SkScalar dSqd = sublevel > kMaxSubdivs ? 0 : c0.distanceToSqd(c1);
+    if (dSqd < toleranceSqd) {
         SkPoint cAvg = c0;
         cAvg += c1;
         cAvg.scale(SK_ScalarHalf);
 
-        SkPoint* pts = quads->push_back_n(3);
-        pts[0] = p[0];
-        pts[1] = cAvg;
-        pts[2] = p[3];
+        bool subdivide = false;
 
-        return;
-    } else {
-        SkPoint choppedPts[7];
-        SkChopCubicAtHalf(p, choppedPts);
-        convert_noninflect_cubic_to_quads(choppedPts + 0, tolScale, 
-                                          quads, sublevel + 1);
-        convert_noninflect_cubic_to_quads(choppedPts + 3, tolScale,
-                                          quads, sublevel + 1);
+        if (constrainWithinTangents &&
+            !is_point_within_cubic_tangents(p[0], ab, dc, p[3], dir, cAvg)) {
+            
+            ab.setOrthog(ab);
+            SkScalar z0 = -ab.dot(p[0]);
+            dc.setOrthog(dc);
+            SkScalar z1 = -dc.dot(p[3]);
+            cAvg.fX = SkScalarMul(ab.fY, z1) - SkScalarMul(z0, dc.fY);
+            cAvg.fY = SkScalarMul(z0, dc.fX) - SkScalarMul(ab.fX, z1);
+            SkScalar z = SkScalarMul(ab.fX, dc.fY) - SkScalarMul(ab.fY, dc.fX);
+            z = SkScalarInvert(z);
+            cAvg.fX *= z;
+            cAvg.fY *= z;
+            if (sublevel <= kMaxSubdivs) {
+                SkScalar d0Sqd = c0.distanceToSqd(cAvg);
+                SkScalar d1Sqd = c1.distanceToSqd(cAvg);
+                
+                
+                
+                
+                SkScalar d0d1 = SkScalarSqrt(SkScalarMul(d0Sqd, d1Sqd));
+                subdivide = 2 * d0d1 + d0Sqd + d1Sqd > toleranceSqd;
+            }
+        }
+        if (!subdivide) {
+            SkPoint* pts = quads->push_back_n(3);
+            pts[0] = p[0];
+            pts[1] = cAvg;
+            pts[2] = p[3];
+            return;
+        }
     }
+    SkPoint choppedPts[7];
+    SkChopCubicAtHalf(p, choppedPts);
+    convert_noninflect_cubic_to_quads(choppedPts + 0,
+                                      toleranceSqd,
+                                      constrainWithinTangents,
+                                      dir,
+                                      quads,
+                                      sublevel + 1);
+    convert_noninflect_cubic_to_quads(choppedPts + 3,
+                                      toleranceSqd,
+                                      constrainWithinTangents,
+                                      dir,
+                                      quads,
+                                      sublevel + 1);
 }
 }
 
 void GrPathUtils::convertCubicToQuads(const GrPoint p[4],
                                       SkScalar tolScale,
+                                      bool constrainWithinTangents,
+                                      SkPath::Direction dir,
                                       SkTArray<SkPoint, true>* quads) {
     SkPoint chopped[10];
     int count = SkChopCubicAtInflections(p, chopped);
 
+    
+    static const SkScalar kTolerance = SK_Scalar1;
+    const SkScalar tolSqd = SkScalarSquare(SkScalarMul(tolScale, kTolerance));
+
     for (int i = 0; i < count; ++i) {
         SkPoint* cubic = chopped + 3*i;
-        convert_noninflect_cubic_to_quads(cubic, tolScale, quads);
+        convert_noninflect_cubic_to_quads(cubic, tolSqd, constrainWithinTangents, dir, quads);
     }
 
 }

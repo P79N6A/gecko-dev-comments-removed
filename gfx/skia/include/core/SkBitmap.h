@@ -12,17 +12,15 @@
 
 #include "Sk64.h"
 #include "SkColor.h"
+#include "SkColorTable.h"
 #include "SkPoint.h"
 #include "SkRefCnt.h"
 
 struct SkIRect;
 struct SkRect;
-class SkColorTable;
 class SkPaint;
 class SkPixelRef;
 class SkRegion;
-class SkFlattenableReadBuffer;
-class SkFlattenableWriteBuffer;
 
 
 class SkGpuTexture;
@@ -97,7 +95,7 @@ public:
     
 
 
-    bool isNull() const { return NULL == fPixels && NULL == fPixelRef; }
+    bool isNull() const { return NULL == fPixelRef; }
 
     
 
@@ -414,6 +412,7 @@ public:
 
 
 
+
     bool scrollRect(const SkIRect* subset, int dx, int dy,
                     SkRegion* inval = NULL) const;
 
@@ -425,7 +424,7 @@ public:
 
 
     SkColor getColor(int x, int y) const;
-    
+
     
 
 
@@ -550,6 +549,13 @@ public:
     bool extractAlpha(SkBitmap* dst, const SkPaint* paint, Allocator* allocator,
                       SkIPoint* offset) const;
 
+    
+
+
+
+
+
+
     void flatten(SkFlattenableWriteBuffer&) const;
     void unflatten(SkFlattenableReadBuffer&);
 
@@ -557,6 +563,8 @@ public:
 
     class Allocator : public SkRefCnt {
     public:
+        SK_DECLARE_INST_COUNT(Allocator)
+
         
 
 
@@ -565,6 +573,8 @@ public:
 
 
         virtual bool allocPixelRef(SkBitmap*, SkColorTable*) = 0;
+    private:
+        typedef SkRefCnt INHERITED;
     };
 
     
@@ -608,10 +618,6 @@ private:
     
     mutable void*       fPixels;
     mutable SkColorTable* fColorTable;    
-    
-    
-    
-    mutable int         fRawPixelGenerationID;
 
     enum Flags {
         kImageIsOpaque_Flag     = 0x01,
@@ -643,95 +649,6 @@ private:
     void updatePixelsFromRef() const;
 
     static SkFixed ComputeMipLevel(SkFixed sx, SkFixed dy);
-};
-
-
-
-
-
-
-class SkColorTable : public SkRefCnt {
-public:
-    
-
-    SkColorTable(const SkColorTable& src);
-    
-
-
-    explicit SkColorTable(int count);
-    explicit SkColorTable(SkFlattenableReadBuffer&);
-    SkColorTable(const SkPMColor colors[], int count);
-    virtual ~SkColorTable();
-
-    enum Flags {
-        kColorsAreOpaque_Flag   = 0x01  
-    };
-    
-
-    unsigned getFlags() const { return fFlags; }
-    
-
-    void    setFlags(unsigned flags);
-
-    bool isOpaque() const { return (fFlags & kColorsAreOpaque_Flag) != 0; }
-    void setIsOpaque(bool isOpaque);
-
-    
-
-    int count() const { return fCount; }
-
-    
-
-
-    SkPMColor operator[](int index) const {
-        SkASSERT(fColors != NULL && (unsigned)index < fCount);
-        return fColors[index];
-    }
-
-    
-
-
-
-
-
-
-
-    
-
-
-
-    SkPMColor* lockColors() {
-        SkDEBUGCODE(fColorLockCount += 1;)
-        return fColors;
-    }
-    
-
-    void unlockColors(bool changed);
-
-    
-
-
-
-
-    const uint16_t* lock16BitCache();
-    
-
-    void unlock16BitCache() {
-        SkASSERT(f16BitCacheLockCount > 0);
-        SkDEBUGCODE(f16BitCacheLockCount -= 1);
-    }
-
-    void flatten(SkFlattenableWriteBuffer&) const;
-
-private:
-    SkPMColor*  fColors;
-    uint16_t*   f16BitCache;
-    uint16_t    fCount;
-    uint8_t     fFlags;
-    SkDEBUGCODE(int fColorLockCount;)
-    SkDEBUGCODE(int f16BitCacheLockCount;)
-
-    void inval16BitCache();
 };
 
 class SkAutoLockPixels : public SkNoncopyable {

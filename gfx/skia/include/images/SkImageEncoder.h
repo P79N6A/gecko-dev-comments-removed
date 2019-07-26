@@ -22,7 +22,7 @@ public:
     static SkImageEncoder* Create(Type);
 
     virtual ~SkImageEncoder();
-    
+
     
     enum {
         kDefaultQuality = 80

@@ -31,21 +31,21 @@ void SkIPoint::rotateCCW(SkIPoint* dst) const {
 
 void SkPoint::setIRectFan(int l, int t, int r, int b, size_t stride) {
     SkASSERT(stride >= sizeof(SkPoint));
-    
-    ((SkPoint*)((intptr_t)this + 0 * stride))->set(SkIntToScalar(l), 
+
+    ((SkPoint*)((intptr_t)this + 0 * stride))->set(SkIntToScalar(l),
                                                    SkIntToScalar(t));
-    ((SkPoint*)((intptr_t)this + 1 * stride))->set(SkIntToScalar(l), 
+    ((SkPoint*)((intptr_t)this + 1 * stride))->set(SkIntToScalar(l),
                                                    SkIntToScalar(b));
-    ((SkPoint*)((intptr_t)this + 2 * stride))->set(SkIntToScalar(r), 
+    ((SkPoint*)((intptr_t)this + 2 * stride))->set(SkIntToScalar(r),
                                                    SkIntToScalar(b));
-    ((SkPoint*)((intptr_t)this + 3 * stride))->set(SkIntToScalar(r), 
+    ((SkPoint*)((intptr_t)this + 3 * stride))->set(SkIntToScalar(r),
                                                    SkIntToScalar(t));
 }
 
 void SkPoint::setRectFan(SkScalar l, SkScalar t, SkScalar r, SkScalar b,
                          size_t stride) {
     SkASSERT(stride >= sizeof(SkPoint));
-    
+
     ((SkPoint*)((intptr_t)this + 0 * stride))->set(l, t);
     ((SkPoint*)((intptr_t)this + 1 * stride))->set(l, b);
     ((SkPoint*)((intptr_t)this + 2 * stride))->set(r, b);
@@ -110,7 +110,7 @@ SkScalar SkPoint::Normalize(SkPoint* pt) {
     float mag2;
     if (!isLengthNearlyZero(pt->fX, pt->fY, &mag2)) {
         float mag = sk_float_sqrt(mag2);
-        float scale = 1.0 / mag;
+        float scale = 1.0f / mag;
         pt->fX = pt->fX * scale;
         pt->fY = pt->fY * scale;
         return mag;
@@ -254,7 +254,7 @@ static unsigned fast_invsqrt(uint32_t x) {
     SkASSERT(top >= 8 && top <= 63);
     SkASSERT(top - 8 < SK_ARRAY_COUNT(gInvSqrt14GuessTable));
     unsigned U = gInvSqrt14GuessTable[top - 8];
-    
+
     U = invsqrt_iter(V, U);
     return invsqrt_iter(V, U);
 }
@@ -285,7 +285,7 @@ bool SkPoint::setLength(SkFixed ox, SkFixed oy, SkFixed length) {
     
     if (zeros > 17) {
         x <<= zeros - 17;
-        y <<= zeros - 17; 
+        y <<= zeros - 17;
     } else {
         x >>= 17 - zeros;
         y >>= 17 - zeros;
@@ -410,7 +410,7 @@ bool SkPoint::setLength(SkFixed ox, SkFixed oy, SkFixed length) {
         x = SkFixedMul(x, length);
         y = SkFixedMul(y, length);
     }
-    
+
     this->set(x, y);
     return true;
 }
@@ -426,7 +426,7 @@ SkScalar SkPoint::distanceToLineBetweenSqd(const SkPoint& a,
 
     SkVector u = b - a;
     SkVector v = *this - a;
-    
+
     SkScalar uLengthSqd = u.lengthSqd();
     SkScalar det = u.cross(v);
     if (NULL != side) {
@@ -455,13 +455,13 @@ SkScalar SkPoint::distanceToLineSegmentBetweenSqd(const SkPoint& a,
     
     
     
-    
+
     SkVector u = b - a;
     SkVector v = *this - a;
-    
+
     SkScalar uLengthSqd = u.lengthSqd();
     SkScalar uDotV = SkPoint::DotProduct(u, v);
-    
+
     if (uDotV <= 0) {
         return v.lengthSqd();
     } else if (uDotV > uLengthSqd) {

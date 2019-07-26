@@ -134,7 +134,7 @@ struct SK_API Sk64 {
         fHi = fHi + hi + (sum < fLo);
         fLo = sum;
     }
-    
+
     
     void add(int32_t hi, uint32_t lo) {
         uint32_t sum = fLo + lo;
@@ -142,18 +142,18 @@ struct SK_API Sk64 {
         fHi = fHi + hi + (sum < fLo);
         fLo = sum;
     }
-    
+
     
     void    add(const Sk64& other) { this->add(other.fHi, other.fLo); }
-    
+
     
 
     void    sub(const Sk64& num);
-    
+
     
 
     void    rsub(const Sk64& num);
-    
+
     
 
     void    mul(int32_t);
@@ -162,7 +162,7 @@ struct SK_API Sk64 {
         kTrunc_DivOption,   
         kRound_DivOption    
     };
-    
+
     
 
 
@@ -205,19 +205,19 @@ struct SK_API Sk64 {
     friend bool operator!=(const Sk64& a, const Sk64& b) {
         return a.fHi != b.fHi || a.fLo != b.fLo;
     }
-    
+
     friend bool operator<(const Sk64& a, const Sk64& b) {
         return a.fHi < b.fHi || (a.fHi == b.fHi && a.fLo < b.fLo);
     }
-    
+
     friend bool operator<=(const Sk64& a, const Sk64& b) {
         return a.fHi < b.fHi || (a.fHi == b.fHi && a.fLo <= b.fLo);
     }
-    
+
     friend bool operator>(const Sk64& a, const Sk64& b) {
         return a.fHi > b.fHi || (a.fHi == b.fHi && a.fLo > b.fLo);
     }
-    
+
     friend bool operator>=(const Sk64& a, const Sk64& b) {
         return a.fHi > b.fHi || (a.fHi == b.fHi && a.fLo >= b.fLo);
     }

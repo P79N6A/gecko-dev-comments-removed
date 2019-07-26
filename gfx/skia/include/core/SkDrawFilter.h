@@ -23,6 +23,8 @@ class SkPaint;
 
 class SkDrawFilter : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkDrawFilter)
+
     enum Type {
         kPaint_Type,
         kPoint_Type,
@@ -38,6 +40,9 @@ public:
 
 
     virtual void filter(SkPaint*, Type) = 0;
+
+private:
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

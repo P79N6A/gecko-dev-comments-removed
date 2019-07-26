@@ -55,8 +55,7 @@ public:
 
 
 
-    virtual void gainFocus(SkCanvas*, const SkMatrix&, const SkRegion&,
-                           const SkClipStack& clipStack) SK_OVERRIDE;
+    virtual void gainFocus(const SkMatrix&, const SkRegion&) SK_OVERRIDE;
 
     virtual SkGpuRenderTarget* accessRenderTarget() SK_OVERRIDE;
 
@@ -101,6 +100,9 @@ public:
 
     virtual void flush();
 
+    virtual void onAttachToCanvas(SkCanvas* canvas) SK_OVERRIDE;
+    virtual void onDetachFromCanvas() SK_OVERRIDE;
+
     
 
 
@@ -114,12 +116,8 @@ public:
     class SkAutoCachedTexture; 
 
 protected:
-    typedef GrContext::TextureCacheEntry TexCache;
-    TexCache lockCachedTexture(const SkBitmap& bitmap,
-                               const GrSamplerState* sampler);
     bool isBitmapInTextureCache(const SkBitmap& bitmap,
-                                const GrSamplerState& sampler) const;
-    void unlockCachedTexture(TexCache);
+                                const GrTextureParams& params) const;
 
     
     virtual bool onReadPixels(const SkBitmap& bitmap,
@@ -131,29 +129,20 @@ private:
 
     GrSkDrawProcs*  fDrawProcs;
 
+    GrClipData      fClipData;
+
     
-    TexCache            fCache;
-    GrTexture*          fTexture;
     GrRenderTarget*     fRenderTarget;
     bool                fNeedClear;
     bool                fNeedPrepareRenderTarget;
 
-    GrTextContext*      fTextContext;
+    
+    void initFromRenderTarget(GrContext*, GrRenderTarget*, bool cached);
 
     
-    void initFromRenderTarget(GrContext*, GrRenderTarget*);
+    SkGpuDevice(GrContext*, GrTexture* texture, bool needClear);
 
     
-    SkGpuDevice(GrContext*, GrTexture* texture, TexCache, bool needClear);
-
-    
-    virtual void postSave() SK_OVERRIDE {
-        fContext->postClipPush();
-    }
-    virtual void preRestore() SK_OVERRIDE {
-        fContext->preClipPop();
-    }
-
     virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config,
                                                int width, int height,
                                                bool isOpaque,
@@ -164,7 +153,7 @@ private:
 
     void prepareRenderTarget(const SkDraw&);
     bool shouldTileBitmap(const SkBitmap& bitmap,
-                          const GrSamplerState& sampler,
+                          const GrTextureParams& sampler,
                           const SkIRect* srcRectPtr,
                           int* tileSize) const;
     void internalDrawBitmap(const SkDraw&, const SkBitmap&,

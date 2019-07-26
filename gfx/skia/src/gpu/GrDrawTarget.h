@@ -11,37 +11,26 @@
 #ifndef GrDrawTarget_DEFINED
 #define GrDrawTarget_DEFINED
 
-#include "GrClip.h"
-#include "GrColor.h"
 #include "GrDrawState.h"
 #include "GrIndexBuffer.h"
 #include "GrMatrix.h"
 #include "GrRefCnt.h"
-#include "GrSamplerState.h"
-#include "GrStencil.h"
-#include "GrTexture.h"
+#include "GrTemplates.h"
 
 #include "SkXfermode.h"
 #include "SkTLazy.h"
+#include "SkTArray.h"
 
-class GrTexture;
-class GrClipIterator;
+class GrClipData;
+class GrPath;
 class GrVertexBuffer;
-class GrIndexBuffer;
 
 class GrDrawTarget : public GrRefCnt {
-public:
+protected:
     
 
-
-    struct Caps {
-        Caps() { memset(this, 0, sizeof(Caps)); }
-        Caps(const Caps& c) { *this = c; }
-        Caps& operator= (const Caps& c) {
-            memcpy(this, &c, sizeof(Caps));
-            return *this;
-        }
-        void print() const;
+    class CapsInternals {
+    public:
         bool f8BitPaletteSupport        : 1;
         bool fNPOTTextureTileSupport    : 1;
         bool fTwoSidedStencilSupport    : 1;
@@ -52,12 +41,45 @@ public:
         bool fFSAASupport               : 1;
         bool fDualSourceBlendingSupport : 1;
         bool fBufferLockSupport         : 1;
+        bool fPathStencilingSupport     : 1;
         int fMaxRenderTargetSize;
         int fMaxTextureSize;
     };
 
+public:
+    SK_DECLARE_INST_COUNT(GrDrawTarget)
+
     
-    typedef GrDrawState::StageMask StageMask;
+
+
+    class Caps {
+    public:
+        Caps() { memset(this, 0, sizeof(Caps)); }
+        Caps(const Caps& c) { *this = c; }
+        Caps& operator= (const Caps& c) {
+            memcpy(this, &c, sizeof(Caps));
+            return *this;
+        }
+        void print() const;
+
+        bool eightBitPaletteSupport() const { return fInternals.f8BitPaletteSupport; }
+        bool npotTextureTileSupport() const { return fInternals.fNPOTTextureTileSupport; }
+        bool twoSidedStencilSupport() const { return fInternals.fTwoSidedStencilSupport; }
+        bool stencilWrapOpsSupport() const { return  fInternals.fStencilWrapOpsSupport; }
+        bool hwAALineSupport() const { return fInternals.fHWAALineSupport; }
+        bool shaderDerivativeSupport() const { return fInternals.fShaderDerivativeSupport; }
+        bool geometryShaderSupport() const { return fInternals.fGeometryShaderSupport; }
+        bool fsaaSupport() const { return fInternals.fFSAASupport; }
+        bool dualSourceBlendingSupport() const { return fInternals.fDualSourceBlendingSupport; }
+        bool bufferLockSupport() const { return fInternals.fBufferLockSupport; }
+        bool pathStencilingSupport() const { return fInternals.fPathStencilingSupport; }
+
+        int maxRenderTargetSize() const { return fInternals.fMaxRenderTargetSize; }
+        int maxTextureSize() const { return fInternals.fMaxTextureSize; }
+    private:
+        CapsInternals fInternals;
+        friend class GrDrawTarget; 
+    };
 
     
 
@@ -77,14 +99,14 @@ public:
 
 
 
-    void setClip(const GrClip& clip);
+    void setClip(const GrClipData* clip);
 
     
 
 
 
 
-    const GrClip& getClip() const;
+    const GrClipData* getClip() const;
 
     
 
@@ -104,17 +126,6 @@ public:
 
 
     GrDrawState* drawState() { return fDrawState; }
-
-    
-
-
-
-
-
-    void preConcatEnabledSamplerMatrices(const GrMatrix& matrix) {
-        StageMask stageMask = this->enabledStages();
-        this->drawState()->preConcatSamplerMatrices(stageMask, matrix);
-    }
 
     
 
@@ -190,45 +201,12 @@ public:
         return 1 << (stage + (texCoordIdx * GrDrawState::kNumStages));
     }
 
-    virtual void postClipPush() {};
-    virtual void preClipPop() {};
+    static bool StageUsesTexCoords(GrVertexLayout layout, int stage);
 
 private:
-    static const int TEX_COORD_BIT_CNT = GrDrawState::kNumStages *
-                                         GrDrawState::kMaxTexCoords;
-
-public:
     
-
-
-
-
-
-
-
-
-    static int StagePosAsTexCoordVertexLayoutBit(int stage) {
-        GrAssert(stage < GrDrawState::kNumStages);
-        return (1 << (TEX_COORD_BIT_CNT + stage));
-    }
-
-    
-
-
-
-
-    void addToVertexLayout(int flag) {
-        GrAssert((1 << TEX_COORD_BIT_CNT) == flag ||
-                 (1 << (TEX_COORD_BIT_CNT + 1)) == flag ||
-                 (1 << (TEX_COORD_BIT_CNT + 2)) == flag ||
-                 (1 << (TEX_COORD_BIT_CNT + 3)) == flag);
-        fGeoSrcStateStack.back().fVertexLayout |= flag;
-    }
-
-private:
-    static const int STAGE_BIT_CNT = TEX_COORD_BIT_CNT +
-        GrDrawState::kNumStages;
-
+    static const int STAGE_BIT_CNT = GrDrawState::kNumStages *
+                                     GrDrawState::kMaxTexCoords;
 public:
 
     
@@ -400,7 +378,7 @@ public:
 
 
     void setIndexSourceToBuffer(const GrIndexBuffer* buffer);
-    
+
     
 
 
@@ -408,7 +386,7 @@ public:
 
 
     void resetVertexSource();
-    
+
     
 
 
@@ -416,7 +394,7 @@ public:
 
 
     void resetIndexSource();
-    
+
     
 
 
@@ -436,7 +414,7 @@ public:
 
 
     void popGeometrySource();
-    
+
     
 
 
@@ -474,6 +452,11 @@ public:
 
 
 
+    void stencilPath(const GrPath*, GrPathFill);
+
+    
+
+
 
 
 
@@ -494,7 +477,6 @@ public:
 
     virtual void drawRect(const GrRect& rect,
                           const GrMatrix* matrix,
-                          StageMask stageMask,
                           const GrRect* srcRects[],
                           const GrMatrix* srcMatrices[]);
 
@@ -536,9 +518,8 @@ public:
 
 
     void drawSimpleRect(const GrRect& rect,
-                        const GrMatrix* matrix,
-                        StageMask stageEnableBitfield) {
-         drawRect(rect, matrix, stageEnableBitfield, NULL, NULL);
+                        const GrMatrix* matrix) {
+         drawRect(rect, matrix, NULL, NULL);
     }
 
     
@@ -546,7 +527,9 @@ public:
 
 
 
-    virtual void clear(const GrIRect* rect, GrColor color) = 0;
+    virtual void clear(const GrIRect* rect,
+                       GrColor color,
+                       GrRenderTarget* renderTarget = NULL) = 0;
 
     
 
@@ -622,13 +605,24 @@ public:
 
     class AutoDeviceCoordDraw : ::GrNoncopyable {
     public:
-        AutoDeviceCoordDraw(GrDrawTarget* target, StageMask stageMask);
+        
+
+
+
+
+
+
+
+
+        AutoDeviceCoordDraw(GrDrawTarget* target,
+                            uint32_t explicitCoordStageMask = 0);
+        bool succeeded() const { return NULL != fDrawTarget; }
         ~AutoDeviceCoordDraw();
     private:
         GrDrawTarget*       fDrawTarget;
         GrMatrix            fViewMatrix;
         GrMatrix            fSamplerMatrices[GrDrawState::kNumStages];
-        int                 fStageMask;
+        int                 fRestoreMask;
     };
 
     
@@ -654,7 +648,7 @@ public:
 
     private:
         void reset();
-        
+
         GrDrawTarget* fTarget;
         void*         fVertices;
         void*         fIndices;
@@ -673,12 +667,12 @@ public:
             fTarget->setClip(fClip);
         }
     private:
-        GrDrawTarget* fTarget;
-        GrClip        fClip;
+        GrDrawTarget*      fTarget;
+        const GrClipData*  fClip;
     };
+
     
-    
-    
+
     class AutoGeometryPush : ::GrNoncopyable {
     public:
         AutoGeometryPush(GrDrawTarget* target) {
@@ -757,18 +751,6 @@ public:
 
     static bool VertexUsesTexCoordIdx(int coordIndex,
                                       GrVertexLayout vertexLayout);
-
-    
-
-
-
-
-
-
-
-
-
-    static bool VertexUsesStage(int stage, GrVertexLayout vertexLayout);
 
     
 
@@ -950,7 +932,7 @@ protected:
         kArray_GeometrySrcType,    
         kBuffer_GeometrySrcType    
     };
-    
+
     struct GeometrySrcState {
         GeometrySrcType         fVertexSrc;
         union {
@@ -959,7 +941,7 @@ protected:
             
             int                     fVertexCount;
         };
-        
+
         GeometrySrcType         fIndexSrc;
         union {
             
@@ -967,7 +949,7 @@ protected:
             
             int                     fIndexCount;
         };
-        
+
         GrVertexLayout          fVertexLayout;
     };
 
@@ -986,24 +968,9 @@ protected:
                 return 0;
         }
     }
-    
-    static bool StageWillBeUsed(int stage, GrVertexLayout layout, 
-                                const GrDrawState& state) {
-        return NULL != state.getTexture(stage) &&
-               VertexUsesStage(stage, layout);
-    }
 
     bool isStageEnabled(int stage) const {
-        return StageWillBeUsed(stage, this->getVertexLayout(),
-                               this->getDrawState());
-    }
-
-    StageMask enabledStages() const {
-        StageMask mask = 0;
-        for (int s = 0; s < GrDrawState::kNumStages; ++s) {
-            mask |= this->isStageEnabled(s) ? 1 : 0;
-        }
-        return mask;
+        return this->getDrawState().isStageEnabled(stage);
     }
 
     
@@ -1011,7 +978,7 @@ protected:
     virtual void willReserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
                                                 int vertexCount,
                                                 int indexCount) {}
-    
+
 
     
     virtual bool onReserveVertexSpace(GrVertexLayout vertexLayout,
@@ -1042,14 +1009,15 @@ protected:
     virtual void onDrawNonIndexed(GrPrimitiveType type,
                                   int startVertex,
                                   int vertexCount) = 0;
-    
-    
-    virtual void clipWillBeSet(const GrClip& clip) {}
+    virtual void onStencilPath(const GrPath*, GrPathFill) = 0;
 
     
     
-    static GrVertexLayout GetRectVertexLayout(StageMask stageEnableBitfield,
-                                              const GrRect* srcRects[]);
+    virtual void clipWillBeSet(const GrClipData* clipData) {}
+
+    
+    
+    static GrVertexLayout GetRectVertexLayout(const GrRect* srcRects[]);
 
     static void SetRectVertices(const GrRect& rect,
                                 const GrMatrix* matrix,
@@ -1071,7 +1039,10 @@ protected:
         return this->getGeomSrc().fVertexLayout;
     }
 
-    GrClip fClip;
+    
+    CapsInternals* capsInternals() { return &fCaps.fInternals; }
+
+    const GrClipData* fClip;
 
     GrDrawState* fDrawState;
     GrDrawState fDefaultDrawState;
@@ -1089,7 +1060,7 @@ private:
                             int vertexCount,
                             void** vertices);
     bool reserveIndexSpace(int indexCount, void** indices);
-    
+
     
     
     bool checkDraw(GrPrimitiveType type, int startVertex,
@@ -1098,13 +1069,14 @@ private:
     
     void releasePreviousVertexSource();
     void releasePreviousIndexSource();
-    
+
     enum {
         kPreallocGeoSrcStateStackCnt = 4,
     };
-    SkSTArray<kPreallocGeoSrcStateStackCnt, 
+    SkSTArray<kPreallocGeoSrcStateStackCnt,
               GeometrySrcState, true>           fGeoSrcStateStack;
-    
+
+    typedef GrRefCnt INHERITED;
 };
 
 GR_MAKE_BITFIELD_OPS(GrDrawTarget::BlendOptFlags);

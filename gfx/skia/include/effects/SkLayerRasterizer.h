@@ -20,12 +20,12 @@ class SkLayerRasterizer : public SkRasterizer {
 public:
             SkLayerRasterizer();
     virtual ~SkLayerRasterizer();
-    
+
     void addLayer(const SkPaint& paint) {
         this->addLayer(paint, 0, 0);
     }
 
-	
+    
 
 
 

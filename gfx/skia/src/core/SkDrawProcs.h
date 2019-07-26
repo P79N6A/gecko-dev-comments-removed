@@ -26,7 +26,7 @@ struct SkDraw1Glyph {
     
     
     typedef void (*Proc)(const SkDraw1Glyph&, SkFixed x, SkFixed y, const SkGlyph&);
-    
+
     Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache);
 };
 

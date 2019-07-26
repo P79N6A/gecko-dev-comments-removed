@@ -10,8 +10,10 @@
 #ifndef SkPath_DEFINED
 #define SkPath_DEFINED
 
+#include "SkInstCnt.h"
 #include "SkMatrix.h"
 #include "SkTDArray.h"
+#include "SkRefCnt.h"
 
 #ifdef SK_BUILD_FOR_ANDROID
 #define GEN_ID_INC              fGenerationID++
@@ -25,6 +27,7 @@ class SkReader32;
 class SkWriter32;
 class SkAutoPathBoundsUpdate;
 class SkString;
+class SkPathRef;
 
 
 
@@ -33,13 +36,15 @@ class SkString;
 
 class SK_API SkPath {
 public:
+    SK_DECLARE_INST_COUNT_ROOT(SkPath);
+
     SkPath();
     SkPath(const SkPath&);
     ~SkPath();
 
     SkPath& operator=(const SkPath&);
 
-    friend bool operator==(const SkPath&, const SkPath&);
+    friend  SK_API bool operator==(const SkPath&, const SkPath&);
     friend bool operator!=(const SkPath& a, const SkPath& b) {
         return !(a == b);
     }
@@ -178,7 +183,7 @@ public:
 
 
     void reset();
-    
+
     
 
 
@@ -191,6 +196,17 @@ public:
 
 
     bool isEmpty() const;
+
+    
+
+
+
+    bool isFinite() const {
+        if (fBoundsIsDirty) {
+            this->computeBounds();
+        }
+        return SkToBool(fIsFinite);
+    }
 
     
 
@@ -241,9 +257,7 @@ public:
 
     
 
-    int countPoints() const {
-        return this->getPoints(NULL, 0);
-    }
+    int countPoints() const;
 
     
 
@@ -258,6 +272,19 @@ public:
 
 
     int getPoints(SkPoint points[], int max) const;
+
+    
+
+    int countVerbs() const;
+
+    
+
+
+
+
+
+
+    int getVerbs(uint8_t verbs[], int max) const;
 
     
     void swap(SkPath& other);
@@ -564,6 +591,19 @@ public:
 
 
 
+
+
+
+
+
+
+    void addPoly(const SkPoint pts[], int count, bool close);
+
+    
+
+
+
+
     void addPath(const SkPath& src, SkScalar dx, SkScalar dy);
 
     
@@ -742,6 +782,7 @@ public:
 
 
 
+
         Verb next(SkPoint pts[4]);
 
     private:
@@ -752,11 +793,25 @@ public:
         SkPoint         fLastPt;
     };
 
+    
+
+
+
+    bool contains(SkScalar x, SkScalar y) const;
+
     void dump(bool forceClose, const char title[] = NULL) const;
     void dump() const;
 
-    void flatten(SkWriter32&) const;
-    void unflatten(SkReader32&);
+    
+
+
+
+    uint32_t writeToMemory(void* buffer) const;
+    
+
+
+
+    uint32_t readFromMemory(const void* buffer);
 
 #ifdef SK_BUILD_FOR_ANDROID
     uint32_t getGenerationID() const;
@@ -767,15 +822,22 @@ public:
     SkDEBUGCODE(void validate() const;)
 
 private:
-    SkTDArray<SkPoint>  fPts;
-    SkTDArray<uint8_t>  fVerbs;
+    enum SerializationOffsets {
+        kIsFinite_SerializationShift = 25,
+        kIsOval_SerializationShift = 24,
+        kConvexity_SerializationShift = 16,
+        kFillType_SerializationShift = 8,
+        kSegmentMask_SerializationShift = 0
+    };
+
+    SkAutoTUnref<SkPathRef>   fPathRef;
     mutable SkRect      fBounds;
     int                 fLastMoveToIndex;
     uint8_t             fFillType;
     uint8_t             fSegmentMask;
     mutable uint8_t     fBoundsIsDirty;
     mutable uint8_t     fConvexity;
-
+    mutable SkBool8     fIsFinite;    
     mutable SkBool8     fIsOval;
 #ifdef SK_BUILD_FOR_ANDROID
     uint32_t            fGenerationID;
@@ -812,6 +874,7 @@ private:
 
     friend class SkAutoPathBoundsUpdate;
     friend class SkAutoDisableOvalCheck;
+    friend class SkBench_AddPathTest; 
 };
 
 #endif

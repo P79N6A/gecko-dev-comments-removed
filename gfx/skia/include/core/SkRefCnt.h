@@ -11,6 +11,8 @@
 #define SkRefCnt_DEFINED
 
 #include "SkThread.h"
+#include "SkInstCnt.h"
+#include "SkTemplates.h"
 
 
 
@@ -24,6 +26,8 @@
 
 class SK_API SkRefCnt : SkNoncopyable {
 public:
+    SK_DECLARE_INST_COUNT_ROOT(SkRefCnt)
+
     
 
     SkRefCnt() : fRefCnt(1) {}
@@ -67,19 +71,36 @@ public:
         SkASSERT(fRefCnt > 0);
     }
 
+protected:
+    
+
+
+
+
+
+    void internal_dispose_restore_refcnt_to_1() const {
+#ifdef SK_DEBUG
+        SkASSERT(0 == fRefCnt);
+        fRefCnt = 1;
+#endif
+    }
+
 private:
     
 
+
     virtual void internal_dispose() const {
-#ifdef SK_DEBUG
-        
-        fRefCnt = 1;
-#endif
+        this->internal_dispose_restore_refcnt_to_1();
         SkDELETE(this);
     }
+
     friend class SkWeakRefCnt;
+    friend class GrTexture;     
+                                
 
     mutable int32_t fRefCnt;
+
+    typedef SkNoncopyable INHERITED;
 };
 
 
@@ -98,10 +119,19 @@ private:
 
 
 
-template <typename T> static inline void SkSafeRef(T* obj) {
+template <typename T> static inline T* SkRef(T* obj) {
+    SkASSERT(obj);
+    obj->ref();
+    return obj;
+}
+
+
+
+template <typename T> static inline T* SkSafeRef(T* obj) {
     if (obj) {
         obj->ref();
     }
+    return obj;
 }
 
 
@@ -129,6 +159,12 @@ public:
         fObj = obj;
     }
 
+    void swap(SkAutoTUnref* other) {
+        T* tmp = fObj;
+        fObj = other->fObj;
+        other->fObj = tmp;
+    }
+
     
 
 
@@ -141,7 +177,29 @@ public:
         return obj;
     }
 
-    T* operator->() { return fObj; }
+    
+
+
+
+    template<typename B> class BlockRef : public B {
+    private:
+        BlockRef();
+        void ref() const;
+        void unref() const;
+    };
+
+    
+    typedef typename SkTConstType<BlockRef<T>, SkTIsConst<T>::value>::type BlockRefType;
+
+    
+
+
+
+
+
+    BlockRefType *operator->() const {
+        return static_cast<BlockRefType*>(fObj);
+    }
     operator T*() { return fObj; }
 
 private:

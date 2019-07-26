@@ -29,9 +29,9 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
     if (!scopedCo.succeeded()) {
         return false;
     }
-    
+
     HRESULT hr = S_OK;
-    
+
     
     SkTScopedComPtr<IWICImagingFactory> piImagingFactory;
     if (SUCCEEDED(hr)) {
@@ -42,19 +42,19 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             , IID_PPV_ARGS(&piImagingFactory)
         );
     }
-    
+
     
     SkTScopedComPtr<IStream> piStream;
     if (SUCCEEDED(hr)) {
         hr = SkIStream::CreateFromSkStream(stream, false, &piStream);
     }
-    
+
     
     if (SUCCEEDED(hr)) {
         LARGE_INTEGER liBeginning = { 0 };
         hr = piStream->Seek(liBeginning, STREAM_SEEK_SET, NULL);
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapDecoder> piBitmapDecoder;
     if (SUCCEEDED(hr)) {
@@ -65,13 +65,13 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             , &piBitmapDecoder                
         );
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapFrameDecode> piBitmapFrameDecode;
     if (SUCCEEDED(hr)) {
         hr = piBitmapDecoder->GetFrame(0, &piBitmapFrameDecode);
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapSource> piBitmapSourceOriginal;
     if (SUCCEEDED(hr)) {
@@ -79,14 +79,14 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             IID_PPV_ARGS(&piBitmapSourceOriginal)
         );
     }
-    
+
     
     UINT width;
     UINT height;
     if (SUCCEEDED(hr)) {
         hr = piBitmapSourceOriginal->GetSize(&width, &height);
     }
-    
+
     
     if (SUCCEEDED(hr)) {
         bm->setConfig(SkBitmap::kARGB_8888_Config, width, height);
@@ -97,13 +97,13 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             return false;
         }
     }
-    
+
     
     SkTScopedComPtr<IWICFormatConverter> piFormatConverter;
     if (SUCCEEDED(hr)) {
         hr = piImagingFactory->CreateFormatConverter(&piFormatConverter);
     }
-    
+
     if (SUCCEEDED(hr)) {
         hr = piFormatConverter->Initialize(
             piBitmapSourceOriginal.get()      
@@ -114,7 +114,7 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             , WICBitmapPaletteTypeCustom      
         );
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapSource> piBitmapSourceConverted;
     if (SUCCEEDED(hr)) {
@@ -122,7 +122,7 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             IID_PPV_ARGS(&piBitmapSourceConverted)
         );
     }
-    
+
     
     if (SUCCEEDED(hr)) {
         SkAutoLockPixels alp(*bm);
@@ -135,7 +135,7 @@ bool SkImageDecoder_WIC::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             reinterpret_cast<BYTE *>(bm->getPixels())
         );
     }
-    
+
     return SUCCEEDED(hr);
 }
 
@@ -197,9 +197,9 @@ bool SkImageEncoder_WIC::onEncode(SkWStream* stream
     if (!scopedCo.succeeded()) {
         return false;
     }
-    
+
     HRESULT hr = S_OK;
-    
+
     
     SkTScopedComPtr<IWICImagingFactory> piImagingFactory;
     if (SUCCEEDED(hr)) {
@@ -210,41 +210,41 @@ bool SkImageEncoder_WIC::onEncode(SkWStream* stream
             , IID_PPV_ARGS(&piImagingFactory)
         );
     }
-    
+
     
     SkTScopedComPtr<IStream> piStream;
     if (SUCCEEDED(hr)) {
         hr = SkWIStream::CreateFromSkWStream(stream, &piStream);
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapEncoder> piEncoder;
     if (SUCCEEDED(hr)) {
         hr = piImagingFactory->CreateEncoder(type, NULL, &piEncoder);
     }
-    
+
     if (SUCCEEDED(hr)) {
         hr = piEncoder->Initialize(piStream.get(), WICBitmapEncoderNoCache);
     }
-    
+
     
     SkTScopedComPtr<IWICBitmapFrameEncode> piBitmapFrameEncode;
     SkTScopedComPtr<IPropertyBag2> piPropertybag;
     if (SUCCEEDED(hr)) {
         hr = piEncoder->CreateNewFrame(&piBitmapFrameEncode, &piPropertybag);
     }
-    
+
     if (SUCCEEDED(hr)) {
         PROPBAG2 name = { 0 };
         name.dwType = PROPBAG2_TYPE_DATA;
         name.vt = VT_R4;
         name.pstrName = L"ImageQuality";
-    
+
         VARIANT value;
         VariantInit(&value);
         value.vt = VT_R4;
         value.fltVal = (FLOAT)(quality / 100.0);
-        
+
         
         
         
@@ -254,14 +254,14 @@ bool SkImageEncoder_WIC::onEncode(SkWStream* stream
     if (SUCCEEDED(hr)) {
         hr = piBitmapFrameEncode->Initialize(piPropertybag.get());
     }
-    
+
     
     const UINT width = bitmap->width();
     const UINT height = bitmap->height();
     if (SUCCEEDED(hr)) {
         hr = piBitmapFrameEncode->SetSize(width, height);
     }
-    
+
     
     const WICPixelFormatGUID formatDesired = GUID_WICPixelFormat32bppBGRA;
     WICPixelFormatGUID formatGUID = formatDesired;
@@ -272,7 +272,7 @@ bool SkImageEncoder_WIC::onEncode(SkWStream* stream
         
         hr = IsEqualGUID(formatGUID, formatDesired) ? S_OK : E_FAIL;
     }
-    
+
     
     if (SUCCEEDED(hr)) {
         SkAutoLockPixels alp(*bitmap);
@@ -282,15 +282,15 @@ bool SkImageEncoder_WIC::onEncode(SkWStream* stream
             , bitmap->rowBytes()*height
             , reinterpret_cast<BYTE*>(bitmap->getPixels()));
     }
-    
+
     if (SUCCEEDED(hr)) {
         hr = piBitmapFrameEncode->Commit();
     }
-    
+
     if (SUCCEEDED(hr)) {
         hr = piEncoder->Commit();
     }
-    
+
     return SUCCEEDED(hr);
 }
 

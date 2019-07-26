@@ -338,10 +338,10 @@ SkPDFImage::SkPDFImage(SkStream* imageData, const SkBitmap& bitmap,
         SkRefPtr<SkPDFInt> zeroVal = new SkPDFInt(0);
         zeroVal->unref();  
         SkRefPtr<SkPDFScalar> scale5Val =
-                new SkPDFScalar(8.2258f);  
+                new SkPDFScalar(SkFloatToScalar(8.2258f));  
         scale5Val->unref();  
         SkRefPtr<SkPDFScalar> scale6Val =
-                new SkPDFScalar(4.0476f);  
+                new SkPDFScalar(SkFloatToScalar(4.0476f));  
         scale6Val->unref();  
         SkRefPtr<SkPDFArray> decodeValue = new SkPDFArray();
         decodeValue->unref();  

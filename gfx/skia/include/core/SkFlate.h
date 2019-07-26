@@ -30,19 +30,19 @@ public:
 
 
     static bool Deflate(SkStream* src, SkWStream* dst);
-    
+
     
 
 
 
     static bool Deflate(const void* src, size_t len, SkWStream* dst);
-    
+
     
 
 
 
     static bool Deflate(const SkData*, SkWStream* dst);
-    
+
     
 
 

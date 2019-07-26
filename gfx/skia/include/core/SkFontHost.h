@@ -10,10 +10,11 @@
 #ifndef SkFontHost_DEFINED
 #define SkFontHost_DEFINED
 
-#include "SkScalerContext.h"
 #include "SkTypeface.h"
 
 class SkDescriptor;
+class SkScalerContext;
+struct SkScalerContextRec;
 class SkStream;
 class SkWStream;
 
@@ -120,9 +121,14 @@ public:
     
 
 
+
+
+
     static void Serialize(const SkTypeface*, SkWStream*);
 
     
+
+
 
 
     static SkTypeface* Deserialize(SkStream*);
@@ -162,7 +168,7 @@ public:
 
 
 
-    static void FilterRec(SkScalerContext::Rec* rec);
+    static void FilterRec(SkScalerContextRec* rec);
 
     
 
@@ -219,15 +225,6 @@ public:
 
     static size_t GetTableData(SkFontID fontID, SkFontTableTag tag,
                                size_t offset, size_t length, void* data);
-
-    
-
-    
-
-
-
-
-    static void GetGammaTables(const uint8_t* tables[2]);
 
     
 

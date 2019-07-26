@@ -17,6 +17,8 @@ class SkStream;
 
 class SkMovie : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkMovie)
+
     
 
 
@@ -38,7 +40,7 @@ public:
     int     width();
     int     height();
     int     isOpaque();
-    
+
     
 
 
@@ -48,7 +50,7 @@ public:
 
     
     const SkBitmap& bitmap();
-    
+
 protected:
     struct Info {
         SkMSec  fDuration;
@@ -69,8 +71,10 @@ private:
     SkMSec      fCurrTime;
     SkBitmap    fBitmap;
     bool        fNeedBitmap;
-    
+
     void ensureInfo();
+
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

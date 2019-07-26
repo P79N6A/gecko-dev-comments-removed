@@ -41,7 +41,7 @@ public:
 
 
 
-    bool SK_WARN_UNUSED_RESULT getPosTan(SkScalar distance, SkPoint* position, 
+    bool SK_WARN_UNUSED_RESULT getPosTan(SkScalar distance, SkPoint* position,
                                          SkVector* tangent);
 
     enum MatrixFlags {
@@ -55,7 +55,7 @@ public:
 
 
 
-    bool SK_WARN_UNUSED_RESULT getMatrix(SkScalar distance, SkMatrix* matrix, 
+    bool SK_WARN_UNUSED_RESULT getMatrix(SkScalar distance, SkMatrix* matrix,
                                   MatrixFlags flags = kGetPosAndTan_MatrixFlag);
 
     

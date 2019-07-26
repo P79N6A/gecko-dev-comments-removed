@@ -38,11 +38,15 @@ void SkTraceHR(const char* file, unsigned long line,
 
 
 
+
 #define HR(ex) HR_GENERAL(ex, NULL, _hr)
 #define HRM(ex, msg) HR_GENERAL(ex, msg, _hr)
 
 #define HRB(ex) HR_GENERAL(ex, NULL, false)
 #define HRBM(ex, msg) HR_GENERAL(ex, msg, false)
+
+#define HRN(ex) HR_GENERAL(ex, NULL, NULL)
+#define HRNM(ex, msg) HR_GENERAL(ex, msg, NULL)
 
 #define HRV(ex) HR_GENERAL(ex, NULL, )
 #define HRVM(ex, msg) HR_GENERAL(ex, msg, )

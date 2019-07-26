@@ -16,10 +16,10 @@ class SkBitmap;
 class SkScaledBitmapSampler {
 public:
     SkScaledBitmapSampler(int origWidth, int origHeight, int cellSize);
-    
+
     int scaledWidth() const { return fScaledWidth; }
     int scaledHeight() const { return fScaledHeight; }
-    
+
     int srcY0() const { return fY0; }
     int srcDY() const { return fDY; }
 

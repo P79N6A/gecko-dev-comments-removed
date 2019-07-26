@@ -43,14 +43,15 @@ void getFontFamilies(SkTDArray<FontFamily*> &fontFamilies);
 
 
 
-void getSystemFontFamilies(SkTDArray<FontFamily*> &fontFamilies);
-
-
-
-
-
-
 void getFallbackFontFamilies(SkTDArray<FontFamily*> &fallbackFonts);
+
+
+
+
+
+void getTestFontFamilies(SkTDArray<FontFamily*> &fontFamilies,
+                         const char* testMainConfigFile,
+                         const char* testFallbackConfigFile);
 
 struct AndroidLocale {
     char language[3];

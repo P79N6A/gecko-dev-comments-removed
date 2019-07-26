@@ -33,7 +33,7 @@ public:
     enum {
         kRunTypeSentinel = 0x7FFFFFFF
     };
-    
+
     SkRegion();
     SkRegion(const SkRegion&);
     explicit SkRegion(const SkIRect&);
@@ -53,7 +53,7 @@ public:
     bool operator!=(const SkRegion& other) const {
         return !(*this == other);
     }
-    
+
     
 
 
@@ -117,7 +117,7 @@ public:
 
 
     bool setRects(const SkIRect rects[], int count);
-    
+
     
 
 
@@ -131,13 +131,13 @@ public:
 
 
     bool setPath(const SkPath&, const SkRegion& clip);
-    
+
     
 
 
 
     bool intersects(const SkIRect&) const;
-    
+
     
 
 
@@ -185,14 +185,14 @@ public:
     bool quickContains(int32_t left, int32_t top, int32_t right,
                        int32_t bottom) const {
         SkASSERT(this->isEmpty() == fBounds.isEmpty()); 
-        
+
         return left < right && top < bottom &&
                fRunHead == SkRegion_gRectRunHeadPtr &&  
                
                fBounds.fLeft <= left && fBounds.fTop <= top &&
                fBounds.fRight >= right && fBounds.fBottom >= bottom;
     }
-    
+
     
 
 
@@ -236,14 +236,14 @@ public:
         kReverseDifference_Op,
         kReplace_Op     
     };
-    
+
     
 
 
 
 
     bool op(const SkIRect& rect, Op op) { return this->op(*this, rect, op); }
-    
+
     
 
 
@@ -254,7 +254,7 @@ public:
         rect.set(left, top, right, bottom);
         return this->op(*this, rect, op);
     }
-    
+
     
 
 
@@ -351,13 +351,13 @@ public:
 
 
 
-    uint32_t flatten(void* buffer) const;
+    uint32_t writeToMemory(void* buffer) const;
 
     
 
 
 
-    uint32_t unflatten(const void* buffer);
+    uint32_t readFromMemory(const void* buffer);
 
     
 
@@ -387,7 +387,7 @@ private:
     friend class android::Region;    
 
     struct RunHead;
-    
+
     
     void allocateRuns(int count);
     void allocateRuns(int count, int ySpanCount, int intervalCount);
@@ -397,21 +397,21 @@ private:
     RunHead*    fRunHead;
 
     void freeRuns();
-    
+
     
 
 
 
 
     const RunType*  getRuns(RunType tmpStorage[], int* intervals) const;
-    
+
     
     
     
     bool setRuns(RunType runs[], int count);
 
     int count_runtype_values(int* itop, int* ibot) const;
-    
+
     static void BuildRectRuns(const SkIRect& bounds,
                               RunType runs[kRectRegionRuns]);
 

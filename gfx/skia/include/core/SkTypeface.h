@@ -31,6 +31,8 @@ typedef uint32_t SkFontTableTag;
 
 class SK_API SkTypeface : public SkWeakRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkTypeface)
+
     
 
     enum Style {
@@ -62,7 +64,7 @@ public:
 
 
     SkFontID uniqueID() const { return fUniqueID; }
-    
+
     
 
 
@@ -140,18 +142,18 @@ public:
 
     
     int countTables() const;
-    
+
     
 
 
 
 
     int getTableTags(SkFontTableTag tags[]) const;
-    
+
     
 
     size_t getTableSize(SkFontTableTag) const;
-    
+
     
 
 
@@ -174,7 +176,13 @@ public:
 
     size_t getTableData(SkFontTableTag tag, size_t offset, size_t length,
                         void* data) const;
+
     
+
+
+
+    int getUnitsPerEm() const;
+
 protected:
     
 

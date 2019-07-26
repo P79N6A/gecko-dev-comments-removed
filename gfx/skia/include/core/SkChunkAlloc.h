@@ -27,12 +27,12 @@ public:
         kReturnNil_AllocFailType,
         kThrow_AllocFailType
     };
-    
+
     void* alloc(size_t bytes, AllocFailType);
     void* allocThrow(size_t bytes) {
         return this->alloc(bytes, kThrow_AllocFailType);
     }
-    
+
     
 
 
@@ -40,7 +40,7 @@ public:
 
 
     size_t unalloc(void* ptr);
-    
+
     size_t totalCapacity() const { return fTotalCapacity; }
     int blockCount() const { return fBlockCount; }
 

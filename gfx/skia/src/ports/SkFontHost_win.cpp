@@ -8,10 +8,15 @@
 
 #include "SkAdvancedTypefaceMetrics.h"
 #include "SkBase64.h"
+#include "SkColorPriv.h"
 #include "SkData.h"
 #include "SkDescriptor.h"
+#include "SkFontDescriptor.h"
 #include "SkFontHost.h"
+#include "SkGlyph.h"
+#include "SkMaskGamma.h"
 #include "SkOTUtils.h"
+#include "SkPath.h"
 #include "SkStream.h"
 #include "SkString.h"
 #include "SkThread.h"
@@ -23,6 +28,65 @@
 #include <tchar.h>
 #include <usp10.h>
 #include <objbase.h>
+
+static bool compute_bounds_outset(const LOGFONT& lf, SkIRect* outset) {
+
+    static const struct {
+        const char* fUCName;    
+        SkIRect     fOutset;    
+    } gData[] = {
+        
+        { "DOTUM", { 0, 0, 0, 1 } },
+        { "DOTUMCHE", { 0, 0, 0, 1 } },
+        { "\xEB\x8F\x8B\xEC\x9B\x80", { 0, 0, 0, 1 } },
+        { "\xEB\x8F\x8B\xEC\x9B\x80\xEC\xB2\xB4", { 0, 0, 0, 1 } },
+        { "MS UI GOTHIC", { 1, 0, 0, 0 } },
+    };
+
+    
+
+
+
+
+
+
+    
+    char name[kMaxBytesInUTF8Sequence * LF_FACESIZE + 1];
+    int index = 0;
+    for (int i = 0; i < LF_FACESIZE; ++i) {
+        uint16_t c = lf.lfFaceName[i];
+        if (c >= 'a' && c <= 'z') {
+            c = c - 'a' + 'A';
+        }
+        size_t n = SkUTF16_ToUTF8(&c, 1, &name[index]);
+        index += n;
+        if (0 == c) {
+            break;
+        }
+    }
+
+    for (size_t j = 0; j < SK_ARRAY_COUNT(gData); ++j) {
+        if (!strcmp(gData[j].fUCName, name)) {
+            *outset = gData[j].fOutset;
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+static void apply_outset(SkGlyph* glyph, const SkIRect& outset) {
+    SkASSERT(outset.fLeft >= 0);
+    SkASSERT(outset.fTop >= 0);
+    SkASSERT(outset.fRight >= 0);
+    SkASSERT(outset.fBottom >= 0);
+
+    glyph->fLeft -= outset.fLeft;
+    glyph->fTop -= outset.fTop;
+    glyph->fWidth += outset.fLeft + outset.fRight;
+    glyph->fHeight += outset.fTop + outset.fBottom;
+}
 
 
 typedef uint32_t SkGdiRGB;
@@ -147,9 +211,10 @@ static unsigned calculateOutlineGlyphCount(HDC hdc) {
 class LogFontTypeface : public SkTypeface {
 public:
     LogFontTypeface(SkTypeface::Style style, SkFontID fontID, const LOGFONT& lf) :
-      SkTypeface(style, fontID, false), fLogFont(lf) {}
+      SkTypeface(style, fontID, false), fLogFont(lf), fSerializeAsStream(false) {}
 
     LOGFONT fLogFont;
+    bool fSerializeAsStream;
 
     static LogFontTypeface* Create(const LOGFONT& lf) {
         SkTypeface::Style style = get_style(lf);
@@ -164,7 +229,9 @@ public:
 
 
     FontMemResourceTypeface(SkTypeface::Style style, SkFontID fontID, const LOGFONT& lf, HANDLE fontMemResource) :
-      LogFontTypeface(style, fontID, lf), fFontMemResource(fontMemResource) {}
+      LogFontTypeface(style, fontID, lf), fFontMemResource(fontMemResource) {
+      fSerializeAsStream = true;
+    }
 
     HANDLE fFontMemResource;
 
@@ -333,7 +400,6 @@ public:
         fBits = NULL;
         fWidth = fHeight = 0;
         fIsBW = false;
-        fColor = kInvalid_Color;
     }
 
     ~HDCOffscreen() {
@@ -350,8 +416,7 @@ public:
         fXform = xform;
     }
 
-    const void* draw(const SkGlyph&, bool isBW, SkGdiRGB fgColor,
-                     size_t* srcRBPtr);
+    const void* draw(const SkGlyph&, bool isBW, size_t* srcRBPtr);
 
 private:
     HDC     fDC;
@@ -359,7 +424,6 @@ private:
     HFONT   fFont;
     XFORM   fXform;
     void*   fBits;  
-    COLORREF fColor;
     int     fWidth;
     int     fHeight;
     bool    fIsBW;
@@ -372,7 +436,7 @@ private:
 };
 
 const void* HDCOffscreen::draw(const SkGlyph& glyph, bool isBW,
-                               SkGdiRGB fgColor, size_t* srcRBPtr) {
+                               size_t* srcRBPtr) {
     if (0 == fDC) {
         fDC = CreateCompatibleDC(0);
         if (0 == fDC) {
@@ -382,7 +446,10 @@ const void* HDCOffscreen::draw(const SkGlyph& glyph, bool isBW,
         SetBkMode(fDC, TRANSPARENT);
         SetTextAlign(fDC, TA_LEFT | TA_BASELINE);
         SelectObject(fDC, fFont);
-        fColor = kInvalid_Color;
+
+        COLORREF color = 0x00FFFFFF;
+        COLORREF prev = SetTextColor(fDC, color);
+        SkASSERT(prev != CLR_INVALID);
     }
 
     if (fBM && (fIsBW != isBW || fWidth < glyph.fWidth || fHeight < glyph.fHeight)) {
@@ -390,16 +457,6 @@ const void* HDCOffscreen::draw(const SkGlyph& glyph, bool isBW,
         fBM = 0;
     }
     fIsBW = isBW;
-
-    COLORREF color = fgColor;
-    if (fIsBW) {
-        color = 0xFFFFFF;
-    }
-    if (fColor != color) {
-        fColor = color;
-        COLORREF prev = SetTextColor(fDC, color);
-        SkASSERT(prev != CLR_INVALID);
-    }
 
     fWidth = SkMax32(fWidth, glyph.fWidth);
     fHeight = SkMax32(fHeight, glyph.fHeight);
@@ -434,8 +491,7 @@ const void* HDCOffscreen::draw(const SkGlyph& glyph, bool isBW,
     
     size_t srcRB = isBW ? (biWidth >> 3) : (fWidth << 2);
     size_t size = fHeight * srcRB;
-    unsigned bg = (0 == color) ? 0xFF : 0;
-    memset(fBits, bg, size);
+    memset(fBits, 0, size);
 
     XFORM xform = fXform;
     xform.eDx = (float)-glyph.fLeft;
@@ -461,13 +517,13 @@ public:
     virtual ~SkScalerContext_Windows();
 
 protected:
-    virtual unsigned generateGlyphCount();
-    virtual uint16_t generateCharToGlyph(SkUnichar uni);
-    virtual void generateAdvance(SkGlyph* glyph);
-    virtual void generateMetrics(SkGlyph* glyph);
-    virtual void generateImage(const SkGlyph& glyph);
-    virtual void generatePath(const SkGlyph& glyph, SkPath* path);
-    virtual void generateFontMetrics(SkPaint::FontMetrics* mX, SkPaint::FontMetrics* mY);
+    virtual unsigned generateGlyphCount() SK_OVERRIDE;
+    virtual uint16_t generateCharToGlyph(SkUnichar uni) SK_OVERRIDE;
+    virtual void generateAdvance(SkGlyph* glyph) SK_OVERRIDE;
+    virtual void generateMetrics(SkGlyph* glyph) SK_OVERRIDE;
+    virtual void generateImage(const SkGlyph& glyph, SkMaskGamma::PreBlend* maskPreBlend) SK_OVERRIDE;
+    virtual void generatePath(const SkGlyph& glyph, SkPath* path) SK_OVERRIDE;
+    virtual void generateFontMetrics(SkPaint::FontMetrics* mX, SkPaint::FontMetrics* mY) SK_OVERRIDE;
 
 private:
     HDCOffscreen fOffscreen;
@@ -479,6 +535,14 @@ private:
     HFONT        fFont;
     SCRIPT_CACHE fSC;
     int          fGlyphCount;
+
+    
+
+
+
+
+
+    SkIRect      fOutset;
 
     HFONT        fHiResFont;
     MAT2         fMat22Identity;
@@ -541,6 +605,10 @@ SkScalerContext_Windows::SkScalerContext_Windows(const SkDescriptor* desc)
     lf.lfHeight = -gCanonicalTextSize;
     lf.lfQuality = compute_quality(fRec);
     fFont = CreateFontIndirect(&lf);
+
+    if (!compute_bounds_outset(lf, &fOutset)) {
+        fOutset.setEmpty();
+    }
 
     
     fHiResFont = 0;
@@ -707,6 +775,7 @@ void SkScalerContext_Windows::generateMetrics(SkGlyph* glyph) {
         glyph->fAdvanceY = SkFixedMul(SkFIXEDToFixed(fMat22.eM21), glyph->fAdvanceX);
         glyph->fAdvanceX = SkFixedMul(SkFIXEDToFixed(fMat22.eM11), glyph->fAdvanceX);
 
+        apply_outset(glyph, fOutset);
         return;
     }
 
@@ -751,6 +820,8 @@ void SkScalerContext_Windows::generateMetrics(SkGlyph* glyph) {
             glyph->fHeight += 4;
             glyph->fTop -= 2;
             glyph->fLeft -= 2;
+
+            apply_outset(glyph, fOutset);
         }
 
         if (fHiResFont) {
@@ -834,7 +905,7 @@ void SkScalerContext_Windows::generateFontMetrics(SkPaint::FontMetrics* mx, SkPa
 static void build_power_table(uint8_t table[], float ee) {
     for (int i = 0; i < 256; i++) {
         float x = i / 255.f;
-        x = powf(x, ee);
+        x = sk_float_pow(x, ee);
         int xx = SkScalarRound(SkFloatToScalar(x * 255));
         table[i] = SkToU8(xx);
     }
@@ -842,51 +913,76 @@ static void build_power_table(uint8_t table[], float ee) {
 
 
 
-static const uint8_t* getInverseGammaTable() {
+
+
+
+
+
+
+
+
+
+static const uint8_t* getInverseGammaTableGDI() {
     static bool gInited;
-    static uint8_t gTable[256];
+    static uint8_t gTableGdi[256];
+    if (!gInited) {
+        build_power_table(gTableGdi, 2.3f);
+        gInited = true;
+    }
+    return gTableGdi;
+}
+
+
+
+
+
+
+
+
+static const uint8_t* getInverseGammaTableClearType() {
+    static bool gInited;
+    static uint8_t gTableClearType[256];
     if (!gInited) {
         UINT level = 0;
         if (!SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &level, 0) || !level) {
             
             level = 1400;
         }
-        build_power_table(gTable, level / 1000.0f);
+        build_power_table(gTableClearType, level / 1000.0f);
         gInited = true;
     }
-    return gTable;
+    return gTableClearType;
 }
 
 #include "SkColorPriv.h"
 
 
-
-
-static int compute_luminance(int r, int g, int b) {
-
-    return (r * 27 + g * 92 + b * 9) >> 7;
+template<bool APPLY_PREBLEND>
+static inline uint8_t rgb_to_a8(SkGdiRGB rgb, const uint8_t* table8) {
+    U8CPU r = (rgb >> 16) & 0xFF;
+    U8CPU g = (rgb >>  8) & 0xFF;
+    U8CPU b = (rgb >>  0) & 0xFF;
+    return sk_apply_lut_if<APPLY_PREBLEND>(SkComputeLuminance(r, g, b), table8);
 }
 
-static inline uint8_t rgb_to_a8(SkGdiRGB rgb) {
-    int r = (rgb >> 16) & 0xFF;
-    int g = (rgb >>  8) & 0xFF;
-    int b = (rgb >>  0) & 0xFF;
-    return compute_luminance(r, g, b);
+template<bool APPLY_PREBLEND>
+static inline uint16_t rgb_to_lcd16(SkGdiRGB rgb, const uint8_t* tableR,
+                                                  const uint8_t* tableG,
+                                                  const uint8_t* tableB) {
+    U8CPU r = sk_apply_lut_if<APPLY_PREBLEND>((rgb >> 16) & 0xFF, tableR);
+    U8CPU g = sk_apply_lut_if<APPLY_PREBLEND>((rgb >>  8) & 0xFF, tableG);
+    U8CPU b = sk_apply_lut_if<APPLY_PREBLEND>((rgb >>  0) & 0xFF, tableB);
+    return SkPack888ToRGB16(r, g, b);
 }
 
-static inline uint16_t rgb_to_lcd16(SkGdiRGB rgb) {
-    int r = (rgb >> 16) & 0xFF;
-    int g = (rgb >>  8) & 0xFF;
-    int b = (rgb >>  0) & 0xFF;
-    return SkPackRGB16(SkR32ToR16(r), SkG32ToG16(g), SkB32ToB16(b));
-}
-
-static inline SkPMColor rgb_to_lcd32(SkGdiRGB rgb) {
-    int r = (rgb >> 16) & 0xFF;
-    int g = (rgb >>  8) & 0xFF;
-    int b = (rgb >>  0) & 0xFF;
-    int a = SkMax32(r, SkMax32(g, b));
-    return SkPackARGB32(a, r, g, b);
+template<bool APPLY_PREBLEND>
+static inline SkPMColor rgb_to_lcd32(SkGdiRGB rgb, const uint8_t* tableR,
+                                                   const uint8_t* tableG,
+                                                   const uint8_t* tableB) {
+    U8CPU r = sk_apply_lut_if<APPLY_PREBLEND>((rgb >> 16) & 0xFF, tableR);
+    U8CPU g = sk_apply_lut_if<APPLY_PREBLEND>((rgb >>  8) & 0xFF, tableG);
+    U8CPU b = sk_apply_lut_if<APPLY_PREBLEND>((rgb >>  0) & 0xFF, tableB);
+    return SkPackARGB32(0xFF, r, g, b);
 }
 
 
@@ -913,8 +1009,10 @@ static bool is_rgb_really_bw(const SkGdiRGB* src, int width, int height, int src
     return true;
 }
 
+
+
 static void rgb_to_bw(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
-                      const SkGlyph& glyph, int32_t xorMask) {
+                      const SkGlyph& glyph) {
     const int width = glyph.fWidth;
     const size_t dstRB = (width + 7) >> 3;
     uint8_t* SK_RESTRICT dst = (uint8_t*)((char*)glyph.fImage + (glyph.fHeight - 1) * dstRB);
@@ -930,14 +1028,14 @@ static void rgb_to_bw(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
         if (byteCount > 0) {
             for (int i = 0; i < byteCount; ++i) {
                 unsigned byte = 0;
-                byte |= (src[0] ^ xorMask) & (1 << 7);
-                byte |= (src[1] ^ xorMask) & (1 << 6);
-                byte |= (src[2] ^ xorMask) & (1 << 5);
-                byte |= (src[3] ^ xorMask) & (1 << 4);
-                byte |= (src[4] ^ xorMask) & (1 << 3);
-                byte |= (src[5] ^ xorMask) & (1 << 2);
-                byte |= (src[6] ^ xorMask) & (1 << 1);
-                byte |= (src[7] ^ xorMask) & (1 << 0);
+                byte |= src[0] & (1 << 7);
+                byte |= src[1] & (1 << 6);
+                byte |= src[2] & (1 << 5);
+                byte |= src[3] & (1 << 4);
+                byte |= src[4] & (1 << 3);
+                byte |= src[5] & (1 << 2);
+                byte |= src[6] & (1 << 1);
+                byte |= src[7] & (1 << 0);
                 dst[i] = byte;
                 src += 8;
             }
@@ -946,7 +1044,7 @@ static void rgb_to_bw(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
             unsigned byte = 0;
             unsigned mask = 0x80;
             for (int i = 0; i < bitCount; i++) {
-                byte |= (src[i] ^ xorMask) & mask;
+                byte |= src[i] & mask;
                 mask >>= 1;
             }
             dst[byteCount] = byte;
@@ -956,48 +1054,51 @@ static void rgb_to_bw(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
     }
 }
 
+template<bool APPLY_PREBLEND>
 static void rgb_to_a8(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
-                      const SkGlyph& glyph, int32_t xorMask) {
+                      const SkGlyph& glyph, const uint8_t* table8) {
     const size_t dstRB = glyph.rowBytes();
     const int width = glyph.fWidth;
     uint8_t* SK_RESTRICT dst = (uint8_t*)((char*)glyph.fImage + (glyph.fHeight - 1) * dstRB);
 
     for (int y = 0; y < glyph.fHeight; y++) {
         for (int i = 0; i < width; i++) {
-            dst[i] = rgb_to_a8(src[i] ^ xorMask);
+            dst[i] = rgb_to_a8<APPLY_PREBLEND>(src[i], table8);
         }
         src = SkTAddByteOffset(src, srcRB);
         dst -= dstRB;
     }
 }
 
-static void rgb_to_lcd16(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
-                         const SkGlyph& glyph, int32_t xorMask) {
+template<bool APPLY_PREBLEND>
+static void rgb_to_lcd16(const SkGdiRGB* SK_RESTRICT src, size_t srcRB, const SkGlyph& glyph,
+                         const uint8_t* tableR, const uint8_t* tableG, const uint8_t* tableB) {
     const size_t dstRB = glyph.rowBytes();
     const int width = glyph.fWidth;
     uint16_t* SK_RESTRICT dst = (uint16_t*)((char*)glyph.fImage + (glyph.fHeight - 1) * dstRB);
 
     for (int y = 0; y < glyph.fHeight; y++) {
         for (int i = 0; i < width; i++) {
-            dst[i] = rgb_to_lcd16(src[i] ^ xorMask);
+            dst[i] = rgb_to_lcd16<APPLY_PREBLEND>(src[i], tableR, tableG, tableB);
         }
         src = SkTAddByteOffset(src, srcRB);
         dst = (uint16_t*)((char*)dst - dstRB);
     }
 }
 
-static void rgb_to_lcd32(const SkGdiRGB* SK_RESTRICT src, size_t srcRB,
-                         const SkGlyph& glyph, int32_t xorMask) {
+template<bool APPLY_PREBLEND>
+static void rgb_to_lcd32(const SkGdiRGB* SK_RESTRICT src, size_t srcRB, const SkGlyph& glyph,
+                         const uint8_t* tableR, const uint8_t* tableG, const uint8_t* tableB) {
     const size_t dstRB = glyph.rowBytes();
     const int width = glyph.fWidth;
-    SkPMColor* SK_RESTRICT dst = (SkPMColor*)((char*)glyph.fImage + (glyph.fHeight - 1) * dstRB);
+    uint32_t* SK_RESTRICT dst = (uint32_t*)((char*)glyph.fImage + (glyph.fHeight - 1) * dstRB);
 
     for (int y = 0; y < glyph.fHeight; y++) {
         for (int i = 0; i < width; i++) {
-            dst[i] = rgb_to_lcd32(src[i] ^ xorMask);
+            dst[i] = rgb_to_lcd32<APPLY_PREBLEND>(src[i], tableR, tableG, tableB);
         }
         src = SkTAddByteOffset(src, srcRB);
-        dst = (SkPMColor*)((char*)dst - dstRB);
+        dst = (uint32_t*)((char*)dst - dstRB);
     }
 }
 
@@ -1006,46 +1107,48 @@ static inline unsigned clamp255(unsigned x) {
     return x - (x >> 8);
 }
 
-#define WHITE_LUMINANCE_LIMIT   0xA0
-#define BLACK_LUMINANCE_LIMIT   0x40
-
-void SkScalerContext_Windows::generateImage(const SkGlyph& glyph) {
-    SkAutoMutexAcquire  ac(gFTMutex);
-
+void SkScalerContext_Windows::generateImage(const SkGlyph& glyph, SkMaskGamma::PreBlend* maskPreBlend) {
+    SkAutoMutexAcquire ac(gFTMutex);
     SkASSERT(fDDC);
+
+    
+    const uint8_t* tableR = NULL;
+    const uint8_t* tableG = NULL;
+    const uint8_t* tableB = NULL;
+    if (maskPreBlend) {
+        tableR = maskPreBlend->fR;
+        tableG = maskPreBlend->fG;
+        tableB = maskPreBlend->fB;
+    }
 
     const bool isBW = SkMask::kBW_Format == fRec.fMaskFormat;
     const bool isAA = !isLCD(fRec);
-    bool isWhite = fRec.getLuminanceByte() >= WHITE_LUMINANCE_LIMIT;
-    bool isBlack = fRec.getLuminanceByte() <= BLACK_LUMINANCE_LIMIT;
-
-    SkGdiRGB fgColor;
-    uint32_t rgbXOR;
-    const uint8_t* table = NULL;
-    if (isBW || isWhite) {
-        fgColor = 0x00FFFFFF;
-        rgbXOR = 0;
-    } else if (isBlack) {
-        fgColor = 0;
-        rgbXOR = ~0;
-    } else {
-        table = getInverseGammaTable();
-        fgColor = 0x00FFFFFF;
-        rgbXOR = 0;
-    }
 
     size_t srcRB;
-    const void* bits = fOffscreen.draw(glyph, isBW, fgColor, &srcRB);
+    const void* bits = fOffscreen.draw(glyph, isBW, &srcRB);
     if (NULL == bits) {
         ensure_typeface_accessible(fRec.fFontID);
-        bits = fOffscreen.draw(glyph, isBW, fgColor, &srcRB);
+        bits = fOffscreen.draw(glyph, isBW, &srcRB);
         if (NULL == bits) {
             sk_bzero(glyph.fImage, glyph.computeImageSize());
             return;
         }
     }
 
-    if (table) {
+    if (!isBW) {
+        const uint8_t* table;
+        
+        
+        if (isAA && !(fRec.fFlags & SkScalerContext::kGenA8FromLCD_Flag)) {
+            table = getInverseGammaTableGDI();
+        } else {
+            table = getInverseGammaTableClearType();
+        }
+        
+        
+        
+        
+        
         SkGdiRGB* addr = (SkGdiRGB*)bits;
         for (int y = 0; y < glyph.fHeight; ++y) {
             for (int x = 0; x < glyph.fWidth; ++x) {
@@ -1072,18 +1175,30 @@ void SkScalerContext_Windows::generateImage(const SkGlyph& glyph) {
         
         
         const SkGdiRGB* src = (const SkGdiRGB*)bits;
-        rgb_to_a8(src, srcRB, glyph, rgbXOR);
+        if (maskPreBlend) {
+            rgb_to_a8<true>(src, srcRB, glyph, tableG);
+        } else {
+            rgb_to_a8<false>(src, srcRB, glyph, tableG);
+        }
     } else {    
         const SkGdiRGB* src = (const SkGdiRGB*)bits;
         if (is_rgb_really_bw(src, width, glyph.fHeight, srcRB)) {
-            rgb_to_bw(src, srcRB, glyph, rgbXOR);
+            rgb_to_bw(src, srcRB, glyph);
             ((SkGlyph*)&glyph)->fMaskFormat = SkMask::kBW_Format;
         } else {
             if (SkMask::kLCD16_Format == glyph.fMaskFormat) {
-                rgb_to_lcd16(src, srcRB, glyph, rgbXOR);
+                if (maskPreBlend) {
+                    rgb_to_lcd16<true>(src, srcRB, glyph, tableR, tableG, tableB);
+                } else {
+                    rgb_to_lcd16<false>(src, srcRB, glyph, tableR, tableG, tableB);
+                }
             } else {
                 SkASSERT(SkMask::kLCD32_Format == glyph.fMaskFormat);
-                rgb_to_lcd32(src, srcRB, glyph, rgbXOR);
+                if (maskPreBlend) {
+                    rgb_to_lcd32<true>(src, srcRB, glyph, tableR, tableG, tableB);
+                } else {
+                    rgb_to_lcd32<false>(src, srcRB, glyph, tableR, tableG, tableB);
+                }
             }
         }
     }
@@ -1160,13 +1275,79 @@ void SkScalerContext_Windows::generatePath(const SkGlyph& glyph, SkPath* path) {
     
 }
 
-void SkFontHost::Serialize(const SkTypeface* face, SkWStream* stream) {
-    SkDEBUGFAIL("SkFontHost::Serialize unimplemented");
+static void logfont_for_name(const char* familyName, LOGFONT& lf) {
+        memset(&lf, 0, sizeof(LOGFONT));
+#ifdef UNICODE
+        
+        size_t str_len = ::MultiByteToWideChar(CP_UTF8, 0, familyName,
+                                                -1, NULL, 0);
+        
+        
+        wchar_t *wideFamilyName = new wchar_t[str_len];
+        
+        ::MultiByteToWideChar(CP_UTF8, 0, familyName, -1,
+                                wideFamilyName, str_len);
+        ::wcsncpy(lf.lfFaceName, wideFamilyName, LF_FACESIZE - 1);
+        delete [] wideFamilyName;
+        lf.lfFaceName[LF_FACESIZE-1] = L'\0';
+#else
+        ::strncpy(lf.lfFaceName, familyName, LF_FACESIZE - 1);
+        lf.lfFaceName[LF_FACESIZE - 1] = '\0';
+#endif
+}
+
+static void logfont_to_name(const LOGFONT& lf, SkString* s) {
+#ifdef UNICODE
+    
+    size_t str_len = WideCharToMultiByte(CP_UTF8, 0, lf.lfFaceName, -1, NULL,
+                                         0, NULL, NULL);
+    
+    s->resize(str_len);
+    
+    WideCharToMultiByte(CP_UTF8, 0, lf.lfFaceName, -1,
+                        s->writable_str(), str_len,
+                        NULL, NULL);
+#else
+    s->set(lf.lfFaceName);
+#endif
+}
+
+void SkFontHost::Serialize(const SkTypeface* rawFace, SkWStream* stream) {
+    const LogFontTypeface* face = static_cast<const LogFontTypeface*>(rawFace);
+    SkFontDescriptor descriptor(face->style());
+
+    SkString familyName;
+    logfont_to_name(face->fLogFont, &familyName);
+    descriptor.setFamilyName(familyName.c_str());
+    
+
+    descriptor.serialize(stream);
+
+    if (face->fSerializeAsStream) {
+        
+        SkAutoTUnref<SkStream> fontStream(SkFontHost::OpenStream(face->uniqueID()));
+        const uint32_t length = fontStream->getLength();
+
+        stream->writePackedUInt(length);
+        stream->writeStream(fontStream, length);
+    } else {
+        stream->writePackedUInt(0);
+    }
 }
 
 SkTypeface* SkFontHost::Deserialize(SkStream* stream) {
-    SkDEBUGFAIL("SkFontHost::Deserialize unimplemented");
-    return NULL;
+    SkFontDescriptor descriptor(stream);
+
+    const uint32_t customFontDataLength = stream->readPackedUInt();
+    if (customFontDataLength > 0) {
+        
+        SkAutoTUnref<SkMemoryStream> fontStream(SkNEW_ARGS(SkMemoryStream, (customFontDataLength - 1)));
+        stream->read((void*)fontStream->getMemoryBase(), customFontDataLength - 1);
+
+        return CreateTypefaceFromStream(fontStream.get());
+    }
+
+    return SkFontHost::CreateTypeface(NULL, descriptor.getFamilyName(), descriptor.getStyle());
 }
 
 static bool getWidthAdvance(HDC hdc, int gId, int16_t* advance) {
@@ -1226,20 +1407,7 @@ SkAdvancedTypefaceMetrics* SkFontHost::GetAdvancedTypefaceMetrics(
     info->fMultiMaster = false;
     info->fLastGlyphID = SkToU16(glyphCount - 1);
     info->fStyle = 0;
-#ifdef UNICODE
-    
-    size_t str_len = WideCharToMultiByte(CP_UTF8, 0, lf.lfFaceName, -1, NULL,
-                                         0, NULL, NULL);
-    
-    char *familyName = new char[str_len];
-    
-    WideCharToMultiByte(CP_UTF8, 0, lf.lfFaceName, -1, familyName, str_len,
-                          NULL, NULL);
-    info->fFontName.set(familyName);
-    delete [] familyName;
-#else
-    info->fFontName.set(lf.lfFaceName);
-#endif
+    logfont_to_name(lf, &info->fFontName);
 
     if (perGlyphInfo & SkAdvancedTypefaceMetrics::kToUnicode_PerGlyphInfo) {
         populate_glyph_to_unicode(hdc, glyphCount, &(info->fGlyphToUnicode));
@@ -1347,7 +1515,7 @@ SK_COMPILE_ASSERT(BASE64_GUID_ID_LEN < LF_FACESIZE, GUID_longer_than_facesize);
 
 
 
-static const char postscript_safe_base64_encode[] = 
+static const char postscript_safe_base64_encode[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
     "0123456789-_=";
@@ -1401,27 +1569,6 @@ static HANDLE activate_font(SkData* fontData) {
     return fontHandle;
 }
 
-static void logfont_for_name(const char* familyName, LOGFONT& lf) {
-        memset(&lf, 0, sizeof(LOGFONT));
-#ifdef UNICODE
-        
-        size_t str_len = ::MultiByteToWideChar(CP_UTF8, 0, familyName,
-                                                -1, NULL, 0);
-        
-        
-        wchar_t *wideFamilyName = new wchar_t[str_len];
-        
-        ::MultiByteToWideChar(CP_UTF8, 0, familyName, -1,
-                                wideFamilyName, str_len);
-        ::wcsncpy(lf.lfFaceName, wideFamilyName, LF_FACESIZE);
-        delete [] wideFamilyName;
-        lf.lfFaceName[LF_FACESIZE-1] = L'\0';
-#else
-        ::strncpy(lf.lfFaceName, familyName, LF_FACESIZE);
-        lf.lfFaceName[LF_FACESIZE-1] = '\0';
-#endif
-}
-
 SkTypeface* SkFontHost::CreateTypefaceFromStream(SkStream* stream) {
     
     
@@ -1430,7 +1577,7 @@ SkTypeface* SkFontHost::CreateTypefaceFromStream(SkStream* stream) {
     if (FAILED(create_unique_font_name(familyName, familyNameSize))) {
         return NULL;
     }
-    
+
     
     SkAutoTUnref<SkData> rewrittenFontData(SkOTUtils::RenameFont(stream, familyName, familyNameSize-1));
     if (NULL == rewrittenFontData.get()) {
@@ -1552,21 +1699,6 @@ void SkFontHost::FilterRec(SkScalerContext::Rec* rec) {
     h = SkPaint::kNormal_Hinting;
 #endif
     rec->setHinting(h);
-
-    
-    
-    
-    {
-        unsigned lum = rec->getLuminanceByte();
-        if (lum <= BLACK_LUMINANCE_LIMIT) {
-            lum = 0;
-        } else if (lum >= WHITE_LUMINANCE_LIMIT) {
-            lum = SkScalerContext::kLuminance_Max;
-        } else {
-            lum = SkScalerContext::kLuminance_Max >> 1;
-        }
-        rec->setLuminanceBits(lum);
-    }
 
 
 #if 0

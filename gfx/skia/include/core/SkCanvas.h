@@ -26,6 +26,7 @@ class SkDevice;
 class SkDraw;
 class SkDrawFilter;
 class SkPicture;
+class SkSurface_Base;
 
 
 
@@ -44,6 +45,8 @@ class SkPicture;
 
 class SK_API SkCanvas : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkCanvas)
+
     SkCanvas();
 
     
@@ -390,27 +393,9 @@ public:
 
 
 
-    enum EdgeType {
-        
 
 
-        kBW_EdgeType,
-        
-
-
-        kAA_EdgeType
-    };
-
-    
-
-
-
-
-
-
-
-
-    bool quickReject(const SkRect& rect, EdgeType et) const;
+    bool quickReject(const SkRect& rect) const;
 
     
 
@@ -422,8 +407,7 @@ public:
 
 
 
-
-    bool quickReject(const SkPath& path, EdgeType et) const;
+    bool quickReject(const SkPath& path) const;
 
     
 
@@ -435,9 +419,9 @@ public:
 
 
 
-    bool quickRejectY(SkScalar top, SkScalar bottom, EdgeType et) const {
+    bool quickRejectY(SkScalar top, SkScalar bottom) const {
         SkASSERT(SkScalarToCompareType(top) <= SkScalarToCompareType(bottom));
-        const SkRectCompareType& clipR = this->getLocalClipBoundsCompareType(et);
+        const SkRectCompareType& clipR = this->getLocalClipBoundsCompareType();
         
         
         
@@ -451,7 +435,7 @@ public:
 
 
 
-    bool getClipBounds(SkRect* bounds, EdgeType et = kAA_EdgeType) const;
+    bool getClipBounds(SkRect* bounds) const;
 
     
 
@@ -886,10 +870,20 @@ public:
 
     const SkRegion& getTotalClip() const;
 
+    
+
+
+
+
+    const SkClipStack* getClipStack() const {
+        return &fClipStack;
+    }
+
     void setExternalMatrix(const SkMatrix* = NULL);
 
     class ClipVisitor {
     public:
+        virtual ~ClipVisitor();
         virtual void clipRect(const SkRect&, SkRegion::Op, bool antialias) = 0;
         virtual void clipPath(const SkPath&, SkRegion::Op, bool antialias) = 0;
     };
@@ -957,6 +951,10 @@ protected:
     bool clipRectBounds(const SkRect* bounds, SaveFlags flags,
                         SkIRect* intersection);
 
+    
+    
+    void predrawNotify();
+
 private:
     class MCRec;
 
@@ -971,8 +969,14 @@ private:
     SkDevice*   fLastDeviceToGainFocus;
     int         fSaveLayerCount;    
 
-    void prepareForDeviceDraw(SkDevice*, const SkMatrix&, const SkRegion&,
-                              const SkClipStack& clipStack);
+    SkSurface_Base*  fSurfaceBase;
+    SkSurface_Base* getSurfaceBase() const { return fSurfaceBase; }
+    void setSurfaceBase(SkSurface_Base* sb) {
+        fSurfaceBase = sb;
+    }
+    friend class SkSurface_Base;
+
+    void prepareForDeviceDraw(SkDevice*, const SkMatrix&, const SkRegion&);
 
     bool fDeviceCMDirty;            
     void updateDeviceCMCache();
@@ -1013,31 +1017,14 @@ private:
     mutable SkRectCompareType fLocalBoundsCompareType;
     mutable bool              fLocalBoundsCompareTypeDirty;
 
-    mutable SkRectCompareType fLocalBoundsCompareTypeBW;
-    mutable bool              fLocalBoundsCompareTypeDirtyBW;
-
-    
-
     const SkRectCompareType& getLocalClipBoundsCompareType() const {
-        return getLocalClipBoundsCompareType(kAA_EdgeType);
-    }
-
-    const SkRectCompareType& getLocalClipBoundsCompareType(EdgeType et) const {
-        if (et == kAA_EdgeType) {
-            if (fLocalBoundsCompareTypeDirty) {
-                this->computeLocalClipBoundsCompareType(et);
-                fLocalBoundsCompareTypeDirty = false;
-            }
-            return fLocalBoundsCompareType;
-        } else {
-            if (fLocalBoundsCompareTypeDirtyBW) {
-                this->computeLocalClipBoundsCompareType(et);
-                fLocalBoundsCompareTypeDirtyBW = false;
-            }
-            return fLocalBoundsCompareTypeBW;
+        if (fLocalBoundsCompareTypeDirty) {
+            this->computeLocalClipBoundsCompareType();
+            fLocalBoundsCompareTypeDirty = false;
         }
+        return fLocalBoundsCompareType;
     }
-    void computeLocalClipBoundsCompareType(EdgeType et) const;
+    void computeLocalClipBoundsCompareType() const;
 
     SkMatrix    fExternalMatrix, fExternalInverse;
     bool        fUseExternalMatrix;
@@ -1058,6 +1045,8 @@ private:
 #else
     void validateClip() const {}
 #endif
+
+    typedef SkRefCnt INHERITED;
 };
 
 

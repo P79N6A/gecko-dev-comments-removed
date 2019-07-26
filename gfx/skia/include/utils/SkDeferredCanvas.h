@@ -9,9 +9,9 @@
 #define SkDeferredCanvas_DEFINED
 
 #include "SkCanvas.h"
-#include "SkDevice.h"
-#include "SkPicture.h"
 #include "SkPixelRef.h"
+
+class DeferredDevice;
 
 
 
@@ -23,7 +23,7 @@
 
 class SK_API SkDeferredCanvas : public SkCanvas {
 public:
-    class DeviceContext;
+    class NotificationClient;
 
     SkDeferredCanvas();
 
@@ -33,17 +33,10 @@ public:
 
     explicit SkDeferredCanvas(SkDevice* device);
 
-    
-
-
-
-
-
-    explicit SkDeferredCanvas(SkDevice* device, DeviceContext* deviceContext);
-
     virtual ~SkDeferredCanvas();
 
     
+
 
 
 
@@ -64,7 +57,8 @@ public:
 
 
 
-    DeviceContext* setDeviceContext(DeviceContext* deviceContext);
+
+    NotificationClient* setNotificationClient(NotificationClient* notificationClient);
 
     
 
@@ -74,6 +68,46 @@ public:
 
 
     void setDeferredDrawing(bool deferred);
+
+    
+
+
+    bool isDeferredDrawing() const;
+
+    
+
+
+
+
+
+
+
+
+
+    bool isFreshFrame() const;
+
+    
+
+
+
+
+
+    void setMaxRecordingStorage(size_t maxStorage);
+
+    
+
+
+
+    size_t storageAllocatedForRecording() const;
+
+    
+
+
+
+
+
+
+    size_t freeMemoryIfPossible(size_t bytesToFree);
 
     
     virtual int save(SaveFlags flags) SK_OVERRIDE;
@@ -135,166 +169,47 @@ public:
     virtual SkBounder* setBounder(SkBounder* bounder) SK_OVERRIDE;
     virtual SkDrawFilter* setDrawFilter(SkDrawFilter* filter) SK_OVERRIDE;
 
-private:
-    void flushIfNeeded(const SkBitmap& bitmap);
-
 public:
-    class DeviceContext : public SkRefCnt {
+    class NotificationClient {
     public:
+        
+
+
+
         virtual void prepareForDraw() {}
-    };
-
-public:
-    class DeferredDevice : public SkDevice {
-    public:
-        
-
-
-
-
-
-
-        DeferredDevice(SkDevice* immediateDevice,
-            DeviceContext* deviceContext = NULL);
-        ~DeferredDevice();
 
         
 
 
 
 
-        void setDeviceContext(DeviceContext* deviceContext);
+
+        virtual void storageAllocatedForRecordingChanged(
+            size_t newAllocatedStorage) {}
 
         
 
 
-        SkCanvas* recordingCanvas() const {return fRecordingCanvas;}
+        virtual void flushedDrawCommands() {}
 
-        
-
-
-        SkCanvas* immediateCanvas() const {return fImmediateCanvas;}
-
-        
-
-
-        SkDevice* immediateDevice() const {return fImmediateDevice;}
-
-        
-
-
-
-        bool isFreshFrame();
-
-        void flushPending();
-        void contentsCleared();
-        void flushIfNeeded(const SkBitmap& bitmap);
-
-        virtual uint32_t getDeviceCapabilities() SK_OVERRIDE;
-        virtual int width() const SK_OVERRIDE;
-        virtual int height() const SK_OVERRIDE;
-        virtual SkGpuRenderTarget* accessRenderTarget() SK_OVERRIDE;
-
-        virtual SkDevice* onCreateCompatibleDevice(SkBitmap::Config config,
-                                                   int width, int height,
-                                                   bool isOpaque,
-                                                   Usage usage) SK_OVERRIDE;
-
-        virtual void writePixels(const SkBitmap& bitmap, int x, int y,
-                                 SkCanvas::Config8888 config8888) SK_OVERRIDE;
-
-    protected:
-        virtual const SkBitmap& onAccessBitmap(SkBitmap*) SK_OVERRIDE;
-        virtual bool onReadPixels(const SkBitmap& bitmap,
-                                  int x, int y,
-                                  SkCanvas::Config8888 config8888) SK_OVERRIDE;
-
-        
-        virtual bool filterTextFlags(const SkPaint& paint, TextFlags*)
-            SK_OVERRIDE
-            {return false;}
-        virtual void setMatrixClip(const SkMatrix&, const SkRegion&,
-                                   const SkClipStack&) SK_OVERRIDE
-            {}
-        virtual void gainFocus(SkCanvas*, const SkMatrix&, const SkRegion&,
-                               const SkClipStack&) SK_OVERRIDE
-            {}
-
-        
-        
-        virtual void clear(SkColor color)
-            {SkASSERT(0);}
-        virtual void drawPaint(const SkDraw&, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawPoints(const SkDraw&, SkCanvas::PointMode mode,
-                                size_t count, const SkPoint[],
-                                const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawRect(const SkDraw&, const SkRect& r,
-                              const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawPath(const SkDraw&, const SkPath& path,
-                              const SkPaint& paint,
-                              const SkMatrix* prePathMatrix = NULL,
-                              bool pathIsMutable = false)
-            {SkASSERT(0);}
-        virtual void drawBitmap(const SkDraw&, const SkBitmap& bitmap,
-                                const SkIRect* srcRectOrNull,
-                                const SkMatrix& matrix, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawSprite(const SkDraw&, const SkBitmap& bitmap,
-                                int x, int y, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawText(const SkDraw&, const void* text, size_t len,
-                              SkScalar x, SkScalar y, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawPosText(const SkDraw&, const void* text, size_t len,
-                                 const SkScalar pos[], SkScalar constY,
-                                 int scalarsPerPos, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawTextOnPath(const SkDraw&, const void* text,
-                                    size_t len, const SkPath& path,
-                                    const SkMatrix* matrix,
-                                    const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawPosTextOnPath(const SkDraw& draw, const void* text,
-                                       size_t len, const SkPoint pos[],
-                                       const SkPaint& paint,
-                                       const SkPath& path,
-                                       const SkMatrix* matrix)
-            {SkASSERT(0);}
-        virtual void drawVertices(const SkDraw&, SkCanvas::VertexMode,
-                                  int vertexCount, const SkPoint verts[],
-                                  const SkPoint texs[], const SkColor colors[],
-                                  SkXfermode* xmode, const uint16_t indices[],
-                                  int indexCount, const SkPaint& paint)
-            {SkASSERT(0);}
-        virtual void drawDevice(const SkDraw&, SkDevice*, int x, int y,
-                                const SkPaint&)
-            {SkASSERT(0);}
     private:
-        virtual void flush();
-
-        SkPicture fPicture;
-        SkDevice* fImmediateDevice;
-        SkCanvas* fImmediateCanvas;
-        SkCanvas* fRecordingCanvas;
-        DeviceContext* fDeviceContext;
-        bool fFreshFrame;
+        typedef SkRefCnt INHERITED;
     };
-
-    DeferredDevice* getDeferredDevice() const;
 
 protected:
     virtual SkCanvas* canvasForDrawIter();
+    DeferredDevice* getDeferredDevice() const;
 
 private:
+    void recordedDrawCommand();
     SkCanvas* drawingCanvas() const;
+    SkCanvas* immediateCanvas() const;
     bool isFullFrame(const SkRect*, const SkPaint*) const;
     void validate() const;
     void init();
     bool            fDeferredDrawing;
 
+    friend class SkDeferredCanvasTester; 
     typedef SkCanvas INHERITED;
 };
 

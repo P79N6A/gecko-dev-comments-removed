@@ -83,15 +83,15 @@ struct SkMemberInfo {
     }
     void setString(SkDisplayable* , SkString* ) const;
     void setValue(SkDisplayable* , const SkOperand values[], int count) const;
-    bool setValue(SkAnimateMaker& , SkTDOperandArray* storage, 
-        int storageOffset, int maxStorage, SkDisplayable* , 
+    bool setValue(SkAnimateMaker& , SkTDOperandArray* storage,
+        int storageOffset, int maxStorage, SkDisplayable* ,
         SkDisplayTypes outType, const char value[], size_t len) const;
-    bool setValue(SkAnimateMaker& , SkTDOperandArray* storage, 
-        int storageOffset, int maxStorage, SkDisplayable* , 
+    bool setValue(SkAnimateMaker& , SkTDOperandArray* storage,
+        int storageOffset, int maxStorage, SkDisplayable* ,
         SkDisplayTypes outType, SkString& str) const;
 
-    bool writeValue(SkDisplayable* displayable, SkTDOperandArray* arrayStorage, 
-        int storageOffset, int maxStorage, void* untypedStorage, SkDisplayTypes outType, 
+    bool writeValue(SkDisplayable* displayable, SkTDOperandArray* arrayStorage,
+        int storageOffset, int maxStorage, void* untypedStorage, SkDisplayTypes outType,
         SkScriptValue& scriptValue) const;
 #if SK_USE_CONDENSED_INFO == 0
     static const SkMemberInfo* Find(const SkMemberInfo [], int count, int* index);
@@ -184,7 +184,7 @@ public: \
 #define DECLARE_EMPTY_MEMBER_INFO(_type) \
 public: \
     virtual SkDisplayTypes getType() const { return SkType_##_type; }
-    
+
 #define DECLARE_EXTRAS_MEMBER_INFO(_type) \
 public: \
     static const SkMemberInfo fInfo[]; \

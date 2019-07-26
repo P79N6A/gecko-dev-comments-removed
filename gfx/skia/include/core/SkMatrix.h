@@ -49,6 +49,7 @@ public:
 
 
 
+
     TypeMask getType() const {
         if (fTypeMask & kUnknown_Mask) {
             fTypeMask = this->computeTypeMask();
@@ -95,7 +96,7 @@ public:
         kMPersp1,
         kMPersp2
     };
-    
+
     
 
 
@@ -112,12 +113,12 @@ public:
         SkASSERT((unsigned)index < 9);
         return fMat[index];
     }
-    
+
     SkScalar get(int index) const {
         SkASSERT((unsigned)index < 9);
         return fMat[index];
     }
-    
+
     SkScalar getScaleX() const { return fMat[kMScaleX]; }
     SkScalar getScaleY() const { return fMat[kMScaleY]; }
     SkScalar getSkewY() const { return fMat[kMSkewY]; }
@@ -162,7 +163,7 @@ public:
         fMat[kMPersp2] = persp2;
         this->setTypeMask(kUnknown_Mask);
     }
-        
+
     
 
     void reset();
@@ -322,7 +323,7 @@ public:
 
 
     bool setRectToRect(const SkRect& src, const SkRect& dst, ScaleToFit stf);
-    
+
     
 
 
@@ -374,7 +375,7 @@ public:
     void mapPoints(SkPoint pts[], int count) const {
         this->mapPoints(pts, pts, count);
     }
-    
+
     
 
 
@@ -460,7 +461,7 @@ public:
         SkASSERT((mask & ~kAllMasks) == 0);
         return gMapXYProcs[mask & kAllMasks];
     }
-    
+
     MapXYProc getMapXYProc() const {
         return GetMapXYProc(this->getType());
     }
@@ -472,7 +473,7 @@ public:
         SkASSERT((mask & ~kAllMasks) == 0);
         return gMapPtsProcs[mask & kAllMasks];
     }
-    
+
     MapPtsProc getMapPtsProc() const {
         return GetMapPtsProc(this->getType());
     }
@@ -511,10 +512,10 @@ public:
         kMaxFlattenSize = 9 * sizeof(SkScalar) + sizeof(uint32_t)
     };
     
-    uint32_t flatten(void* buffer) const;
+    uint32_t writeToMemory(void* buffer) const;
     
-    uint32_t unflatten(const void* buffer);
-    
+    uint32_t readFromMemory(const void* buffer);
+
     void dump() const;
     void toDumpString(SkString*) const;
 
@@ -583,8 +584,8 @@ private:
     void setTypeMask(int mask) {
         
         SkASSERT(kUnknown_Mask == mask || (mask & kAllMasks) == mask ||
-                 ((kUnknown_Mask | kOnlyPerspectiveValid_Mask | kPerspective_Mask) & mask)
-                 == mask);
+                 ((kUnknown_Mask | kOnlyPerspectiveValid_Mask) & mask)
+                 == (kUnknown_Mask | kOnlyPerspectiveValid_Mask));
         fTypeMask = SkToU8(mask);
     }
 
@@ -616,7 +617,7 @@ private:
         }
         return ((fTypeMask & 0xF) == 0);
     }
-    
+
     static bool Poly2Proc(const SkPoint[], SkMatrix*, const SkPoint& scale);
     static bool Poly3Proc(const SkPoint[], SkMatrix*, const SkPoint& scale);
     static bool Poly4Proc(const SkPoint[], SkMatrix*, const SkPoint& scale);
@@ -628,9 +629,9 @@ private:
     static void Rot_xy(const SkMatrix&, SkScalar, SkScalar, SkPoint*);
     static void RotTrans_xy(const SkMatrix&, SkScalar, SkScalar, SkPoint*);
     static void Persp_xy(const SkMatrix&, SkScalar, SkScalar, SkPoint*);
-    
+
     static const MapXYProc gMapXYProcs[];
-    
+
     static void Identity_pts(const SkMatrix&, SkPoint[], const SkPoint[], int);
     static void Trans_pts(const SkMatrix&, SkPoint dst[], const SkPoint[], int);
     static void Scale_pts(const SkMatrix&, SkPoint dst[], const SkPoint[], int);
@@ -640,7 +641,7 @@ private:
     static void RotTrans_pts(const SkMatrix&, SkPoint dst[], const SkPoint[],
                              int count);
     static void Persp_pts(const SkMatrix&, SkPoint dst[], const SkPoint[], int);
-    
+
     static const MapPtsProc gMapPtsProcs[];
 
     friend class SkPerspIter;

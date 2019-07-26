@@ -51,6 +51,8 @@
 
 class SK_API SkWeakRefCnt : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkWeakRefCnt)
+
     
 
 
@@ -150,6 +152,8 @@ private:
 
     
     mutable int32_t fWeakCnt;
+
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

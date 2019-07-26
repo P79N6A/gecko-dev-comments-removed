@@ -27,10 +27,7 @@ class SkWStream;
 
 class SkPDFObject : public SkRefCnt {
 public:
-    
-
-    SkPDFObject();
-    virtual ~SkPDFObject();
+    SK_DECLARE_INST_COUNT(SkPDFObject)
 
     
 
@@ -91,6 +88,8 @@ protected:
 
     virtual void emitObject(SkWStream* stream, SkPDFCatalog* catalog,
                             bool indirect) = 0;
+
+        typedef SkRefCnt INHERITED;
 };
 
 
@@ -99,6 +98,8 @@ protected:
 
 class SkPDFObjRef : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFObjRef)
+
     
 
 
@@ -112,6 +113,8 @@ public:
 
 private:
     SkRefPtr<SkPDFObject> fObj;
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -120,6 +123,8 @@ private:
 
 class SkPDFInt : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFInt)
+
     
 
 
@@ -132,6 +137,8 @@ public:
 
 private:
     int32_t fValue;
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -140,6 +147,8 @@ private:
 
 class SkPDFBool : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFBool)
+
     
 
 
@@ -153,6 +162,8 @@ public:
 
 private:
     bool fValue;
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -161,6 +172,8 @@ private:
 
 class SkPDFScalar : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFScalar)
+
     
 
 
@@ -175,6 +188,8 @@ public:
 
 private:
     SkScalar fValue;
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -183,6 +198,8 @@ private:
 
 class SkPDFString : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFString)
+
     
 
 
@@ -213,6 +230,8 @@ private:
 
     static SkString DoFormatString(const void* input, size_t len,
                                  bool wideInput, bool wideOutput);
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -221,6 +240,8 @@ private:
 
 class SkPDFName : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFName)
+
     
 
 
@@ -241,6 +262,8 @@ private:
     const SkString fValue;
 
     static SkString FormatName(const SkString& input);
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -249,6 +272,8 @@ private:
 
 class SkPDFArray : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFArray)
+
     
 
     SkPDFArray();
@@ -304,6 +329,8 @@ public:
 private:
     static const int kMaxLen = 8191;
     SkTDArray<SkPDFObject*> fValue;
+
+    typedef SkPDFObject INHERITED;
 };
 
 
@@ -312,6 +339,8 @@ private:
 
 class SkPDFDict : public SkPDFObject {
 public:
+    SK_DECLARE_INST_COUNT(SkPDFDict)
+
     
 
     SkPDFDict();
@@ -398,6 +427,8 @@ private:
     static const int kMaxLen = 4095;
 
     SkTDArray<struct Rec> fValue;
+
+    typedef SkPDFObject INHERITED;
 };
 
 #endif

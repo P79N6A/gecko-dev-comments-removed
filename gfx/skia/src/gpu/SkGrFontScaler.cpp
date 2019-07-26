@@ -7,7 +7,7 @@
 
 
 
-
+#include "GrTemplates.h"
 #include "SkGr.h"
 #include "SkDescriptor.h"
 #include "SkGlyphCache.h"
@@ -95,7 +95,7 @@ GrMaskFormat SkGrFontScaler::getMaskFormat() {
 
 const GrKey* SkGrFontScaler::getKey() {
     if (NULL == fKey) {
-        fKey = new SkGrDescKey(fStrike->getDescriptor());
+        fKey = SkNEW_ARGS(SkGrDescKey, (fStrike->getDescriptor()));
     }
     return fKey;
 }
@@ -110,16 +110,30 @@ bool SkGrFontScaler::getPackedGlyphBounds(GrGlyph::PackedID packed,
 
 }
 
-static void bits_to_bytes(const uint8_t bits[], uint8_t bytes[], int count) {
-    while (count > 0) {
-        unsigned mask = *bits++;
-        for (int i = 7; i >= 0; --i) {
-            *bytes++ = (mask & (1 << i)) ? 0xFF : 0;
-            if (--count == 0) {
-                return;
+namespace {
+
+
+template <typename INT_TYPE>
+void expand_bits(INT_TYPE* dst,
+                 const uint8_t* src,
+                 int width,
+                 int height,
+                 int dstRowBytes,
+                 int srcRowBytes) {
+    for (int i = 0; i < height; ++i) {
+        int rowWritesLeft = width;
+        const uint8_t* s = src;
+        INT_TYPE* d = dst;
+        while (rowWritesLeft > 0) {
+            unsigned mask = *s++;
+            for (int i = 7; i >= 0 && rowWritesLeft; --i, --rowWritesLeft) {
+                *d++ = (mask & (1 << i)) ? (INT_TYPE)(~0UL) : 0;
             }
         }
+        dst = reinterpret_cast<INT_TYPE*>(reinterpret_cast<intptr_t>(dst) + dstRowBytes);
+        src += srcRowBytes;
     }
+}
 }
 
 bool SkGrFontScaler::getPackedGlyphImage(GrGlyph::PackedID packed,
@@ -136,14 +150,30 @@ bool SkGrFontScaler::getPackedGlyphImage(GrGlyph::PackedID packed,
     }
 
     int srcRB = glyph.rowBytes();
-    if (SkMask::kBW_Format == fStrike->getMaskFormat()) {
+    
+    
+    
+    if (SkMask::kBW_Format == glyph.fMaskFormat) {
         
         const uint8_t* bits = reinterpret_cast<const uint8_t*>(src);
-        uint8_t* bytes = reinterpret_cast<uint8_t*>(dst);
-        for (int y = 0; y < height; y++) {
-            bits_to_bytes(bits, bytes, width);
-            bits += srcRB;
-            bytes += dstRB;
+        switch (this->getMaskFormat()) {
+            case kA8_GrMaskFormat:{
+                uint8_t* bytes = reinterpret_cast<uint8_t*>(dst);
+                expand_bits(bytes, bits, width, height, dstRB, srcRB);
+                break;
+            }
+            case kA565_GrMaskFormat: {
+                uint16_t* rgb565 = reinterpret_cast<uint16_t*>(dst);
+                expand_bits(rgb565, bits, width, height, dstRB, srcRB);
+                break;
+            }
+            case kA888_GrMaskFormat: {
+                uint32_t* rgba8888 = reinterpret_cast<uint32_t*>(dst);
+                expand_bits(rgba8888, bits, width, height, dstRB, srcRB);
+                break;
+            }
+           default:
+             GrCrash("Unknown GrMaskFormat");
         }
     } else if (srcRB == dstRB) {
         memcpy(dst, src, dstRB * height);

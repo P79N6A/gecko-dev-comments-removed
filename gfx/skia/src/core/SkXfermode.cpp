@@ -9,6 +9,10 @@
 
 #include "SkXfermode.h"
 #include "SkColorPriv.h"
+#include "SkFlattenableBuffers.h"
+#include "SkMathPriv.h"
+
+SK_DEFINE_INST_COUNT(SkXfermode)
 
 #define SkAlphaMulAlpha(a, b)   SkMulDiv255Round(a, b)
 
@@ -681,17 +685,15 @@ void SkProcXfermode::xferA8(SkAlpha* SK_RESTRICT dst,
 
 SkProcXfermode::SkProcXfermode(SkFlattenableReadBuffer& buffer)
         : SkXfermode(buffer) {
-    
-    fProc = (SkXfermodeProc)buffer.readFunctionPtr();
+    fProc = NULL;
+    if (!buffer.isCrossProcess()) {
+        fProc = (SkXfermodeProc)buffer.readFunctionPtr();
+    }
 }
 
 void SkProcXfermode::flatten(SkFlattenableWriteBuffer& buffer) const {
     this->INHERITED::flatten(buffer);
-    if (buffer.isCrossProcess()) {
-        
-        
-        buffer.writeFunctionPtr(NULL);
-    } else {
+    if (!buffer.isCrossProcess()) {
         buffer.writeFunctionPtr((void*)fProc);
     }
 }
@@ -734,7 +736,7 @@ public:
 
 protected:
     SkProcCoeffXfermode(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
-        fMode = (SkXfermode::Mode)buffer.readU32();
+        fMode = (SkXfermode::Mode)buffer.read32();
 
         const ProcCoeff& rec = gProcCoeffs[fMode];
         

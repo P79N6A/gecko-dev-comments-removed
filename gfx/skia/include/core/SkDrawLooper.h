@@ -14,6 +14,7 @@
 
 class SkCanvas;
 class SkPaint;
+struct SkRect;
 
 
 
@@ -25,6 +26,8 @@ class SkPaint;
 
 class SK_API SkDrawLooper : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkDrawLooper)
+
     
 
 
@@ -44,7 +47,7 @@ public:
 
 
     virtual bool next(SkCanvas*, SkPaint* paint) = 0;
-    
+
     
 
 

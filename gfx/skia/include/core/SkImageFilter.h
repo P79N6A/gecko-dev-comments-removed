@@ -13,7 +13,11 @@
 class SkBitmap;
 class SkDevice;
 class SkMatrix;
-struct SkPoint;
+struct SkIPoint;
+struct SkIRect;
+struct SkRect;
+class GrCustomStage;
+class GrTexture;
 
 
 
@@ -38,6 +42,8 @@ struct SkPoint;
 
 class SK_API SkImageFilter : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkImageFilter)
+
     class Proxy {
     public:
         virtual ~Proxy() {};
@@ -80,7 +86,10 @@ public:
 
 
 
-    virtual bool asABlur(SkSize* sigma) const;
+
+
+
+    virtual bool asNewCustomStage(GrCustomStage** stage, GrTexture*) const;
 
     
 
@@ -88,7 +97,7 @@ public:
 
 
 
-    virtual bool asAnErode(SkISize* radius) const;
+    virtual bool canFilterImageGPU() const;
 
     
 
@@ -96,7 +105,8 @@ public:
 
 
 
-    virtual bool asADilate(SkISize* radius) const;
+
+    virtual GrTexture* onFilterImageGPU(GrTexture* texture, const SkRect& rect);
 
 protected:
     SkImageFilter() {}

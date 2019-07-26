@@ -5,10 +5,8 @@
 
 
 
-
-
 #include "Sk64.h"
-#include "SkMath.h"
+#include "SkMathPriv.h"
 
 #define shift_left(hi, lo)          \
     hi = (hi << 1) | (lo >> 31);    \
@@ -360,4 +358,3 @@ SkFixed Sk64::getFixedDiv(const Sk64& denom) const
     }
     return SkApplySign(result, sign);
 }
-

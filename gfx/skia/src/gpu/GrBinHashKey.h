@@ -17,26 +17,36 @@
 
 
 
-template<typename Entry, size_t KeySize>
-class GrBinHashKey {
-public:
-    GrBinHashKey()
-        : fHash(0)
-#if GR_DEBUG
-        , fIsValid(false)
-#endif
-    {}
 
-    GrBinHashKey(const GrBinHashKey<Entry, KeySize>& other) {
+
+
+
+
+
+template<typename Entry, size_t KeySize>
+class GrTBinHashKey {
+public:
+    GrTBinHashKey() {
+        this->reset();
+    }
+
+    GrTBinHashKey(const GrTBinHashKey<Entry, KeySize>& other) {
         *this = other;
     }
-    GrBinHashKey<Entry, KeySize>& operator=(const GrBinHashKey<Entry,
-        KeySize>& other) {
+
+    GrTBinHashKey<Entry, KeySize>& operator=(const GrTBinHashKey<Entry, KeySize>& other) {
         memcpy(this, &other, sizeof(*this));
         return *this;
     }
 
-    ~GrBinHashKey() {
+    ~GrTBinHashKey() {
+    }
+
+    void reset() {
+        fHash = 0;
+#if GR_DEBUG
+        fIsValid = false;
+#endif
     }
 
     void setKeyData(const uint32_t* SK_RESTRICT data) {
@@ -60,19 +70,17 @@ public:
         fHash = hash;
     }
 
-    int compare(const GrBinHashKey<Entry, KeySize>& key) const {
+    int compare(const GrTBinHashKey<Entry, KeySize>& key) const {
         GrAssert(fIsValid && key.fIsValid);
         return memcmp(fData, key.fData, KeySize);
     }
 
-    static bool
-    EQ(const Entry& entry, const GrBinHashKey<Entry, KeySize>& key) {
+    static bool EQ(const Entry& entry, const GrTBinHashKey<Entry, KeySize>& key) {
         GrAssert(key.fIsValid);
         return 0 == entry.compare(key);
     }
 
-    static bool
-    LT(const Entry& entry, const GrBinHashKey<Entry, KeySize>& key) {
+    static bool LT(const Entry& entry, const GrTBinHashKey<Entry, KeySize>& key) {
         GrAssert(key.fIsValid);
         return entry.compare(key) < 0;
     }

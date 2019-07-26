@@ -13,14 +13,6 @@
 #include "SkTypes.h"
 
 
-int SkCLZ_portable(uint32_t);
-
-
-
-
-
-int32_t SkMulShift(int32_t a, int32_t b, unsigned shift);
-
 
 
 
@@ -31,7 +23,9 @@ int32_t SkMulDiv(int32_t numer1, int32_t numer2, int32_t denom);
 
 
 
+
 int32_t SkDivBits(int32_t numer, int32_t denom, int shift);
+
 
 
 
@@ -43,24 +37,17 @@ int32_t SkSqrtBits(int32_t value, int bitBias);
 
 
 
-int32_t SkCubeRootBits(int32_t value, int bitBias);
 
+int SkCLZ_portable(uint32_t);
 
+#if defined(__arm__)
+    #define SkCLZ(x)    __builtin_clz(x)
+#endif
 
-#define SkExtractSign(n)    ((int32_t)(n) >> 31)
+#ifndef SkCLZ
+    #define SkCLZ(x)    SkCLZ_portable(x)
+#endif
 
-
-
-
-static inline int32_t SkApplySign(int32_t n, int32_t sign) {
-    SkASSERT(sign == 0 || sign == -1);
-    return (n ^ sign) - sign;
-}
-
-
-static inline int32_t SkCopySign32(int32_t x, int32_t y) {
-    return SkApplySign(x, SkExtractSign(x ^ y));
-}
 
 
 
@@ -91,41 +78,11 @@ static inline int SkClampMax(int value, int max) {
 
 
 
-static inline unsigned SkClampUMax(unsigned value, unsigned max) {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
-    if (value > max) {
-        value = max;
-    }
-    return value;
-#else
-    int diff = max - value;
-    
-    diff &= diff >> 31;
-
-    return value + diff;
-#endif
-}
-
-
-
-#if defined(__arm__)
-    #define SkCLZ(x)    __builtin_clz(x)
-#endif
-
-#ifndef SkCLZ
-    #define SkCLZ(x)    SkCLZ_portable(x)
-#endif
-
-
-
-
-
-
-
 static inline int SkNextPow2(int value) {
     SkASSERT(value > 0);
     return 1 << (32 - SkCLZ(value - 1));
 }
+
 
 
 
@@ -143,9 +100,11 @@ static inline int SkNextLog2(uint32_t value) {
 
 
 
+
 static inline bool SkIsPow2(int value) {
     return (value & (value - 1)) == 0;
 }
+
 
 
 
@@ -179,35 +138,6 @@ static inline bool SkIsPow2(int value) {
 
 
 
-static inline U8CPU SkMulDiv255Trunc(U8CPU a, U8CPU b) {
-    SkASSERT((uint8_t)a == a);
-    SkASSERT((uint8_t)b == b);
-    unsigned prod = SkMulS16(a, b) + 1;
-    return (prod + (prod >> 8)) >> 8;
-}
-
-
-
-
-static inline U8CPU SkMulDiv255Round(U8CPU a, U8CPU b) {
-    SkASSERT((uint8_t)a == a);
-    SkASSERT((uint8_t)b == b);
-    unsigned prod = SkMulS16(a, b) + 128;
-    return (prod + (prod >> 8)) >> 8;
-}
-
-
-
-
-static inline U8CPU SkMulDiv255Ceiling(U8CPU a, U8CPU b) {
-    SkASSERT((uint8_t)a == a);
-    SkASSERT((uint8_t)b == b);
-    unsigned prod = SkMulS16(a, b) + 255;
-    return (prod + (prod >> 8)) >> 8;
-}
-
-
-
 
 static inline unsigned SkMul16ShiftRound(unsigned a, unsigned b, int shift) {
     SkASSERT(a <= 32767);
@@ -219,8 +149,12 @@ static inline unsigned SkMul16ShiftRound(unsigned a, unsigned b, int shift) {
 
 
 
-static inline unsigned SkDiv255Round(unsigned prod) {
-    prod += 128;
+
+
+static inline U8CPU SkMulDiv255Round(U8CPU a, U8CPU b) {
+    SkASSERT((uint8_t)a == a);
+    SkASSERT((uint8_t)b == b);
+    unsigned prod = SkMulS16(a, b) + 128;
     return (prod + (prod >> 8)) >> 8;
 }
 

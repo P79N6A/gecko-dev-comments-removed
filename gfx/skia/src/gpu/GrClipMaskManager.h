@@ -9,14 +9,18 @@
 #ifndef GrClipMaskManager_DEFINED
 #define GrClipMaskManager_DEFINED
 
-#include "GrRect.h"
-#include "SkPath.h"
-#include "GrNoncopyable.h"
-#include "GrClip.h"
-#include "SkRefCnt.h"
-#include "GrTexture.h"
-#include "SkDeque.h"
 #include "GrContext.h"
+#include "GrNoncopyable.h"
+#include "GrRect.h"
+#include "GrStencil.h"
+#include "GrTexture.h"
+
+#include "SkClipStack.h"
+#include "SkDeque.h"
+#include "SkPath.h"
+#include "SkRefCnt.h"
+
+#include "GrClipMaskCache.h"
 
 class GrGpu;
 class GrPathRenderer;
@@ -31,64 +35,15 @@ class GrDrawState;
 
 
 
-struct ScissoringSettings {
-    bool    fEnableScissoring;
-    GrIRect fScissorRect;
-
-    void setupScissoring(GrGpu* gpu);
-};
 
 
-
-
-
-class GrClipMaskCache : public GrNoncopyable {
+class GrClipMaskManager : public GrNoncopyable {
 public:
-    GrClipMaskCache() 
-    : fContext(NULL)
-    , fStack(sizeof(GrClipStackFrame)) {
-        
-        
-        new (fStack.push_back()) GrClipStackFrame();
-    }
+    GR_DECLARE_RESOURCE_CACHE_DOMAIN(GetAlphaMaskDomain)
 
-    ~GrClipMaskCache() {
-
-        while (!fStack.empty()) {
-            GrClipStackFrame* temp = (GrClipStackFrame*) fStack.back();
-            temp->~GrClipStackFrame();
-            fStack.pop_back();
-        }
-    }
-
-    bool canReuse(const GrClip& clip, int width, int height) {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return false;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        if (back->fLastMask.texture() &&
-            back->fLastMask.texture()->width() >= width &&
-            back->fLastMask.texture()->height() >= height &&
-            clip == back->fLastClip) {
-            return true;
-        }
-
-        return false;
-    }
-
-    void reset() {
-        if (fStack.empty()) {
-
-            return;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        back->reset();
+    GrClipMaskManager()
+        : fGpu(NULL)
+        , fCurrClipMaskType(kNone_ClipMaskType) {
     }
 
     
@@ -96,219 +51,21 @@ public:
 
 
 
-
-    void push() {
-        new (fStack.push_back()) GrClipStackFrame();
-    }
-
-    void pop() {
-        
-
-        if (!fStack.empty()) {
-            GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-            back->~GrClipStackFrame();
-            fStack.pop_back();
-        }
-    }
-
-    void getLastClip(GrClip* clip) const {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            clip->setEmpty();
-            return;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        *clip = back->fLastClip;
-    }
-
-    GrTexture* getLastMask() {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return NULL;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        return back->fLastMask.texture();
-    }
-
-    const GrTexture* getLastMask() const {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return NULL;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        return back->fLastMask.texture();
-    }
-
-    void acquireMask(const GrClip& clip,
-                     const GrTextureDesc& desc,
-                     const GrIRect& bound) {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        back->acquireMask(fContext, clip, desc, bound);
-    }
-
-    int getLastMaskWidth() const {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return -1;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        if (NULL == back->fLastMask.texture()) {
-            return -1;
-        }
-
-        return back->fLastMask.texture()->width();
-    }
-
-    int getLastMaskHeight() const {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            return -1;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        if (NULL == back->fLastMask.texture()) {
-            return -1;
-        }
-
-        return back->fLastMask.texture()->height();
-    }
-
-    void getLastBound(GrIRect* bound) const {
-
-        if (fStack.empty()) {
-            GrAssert(false);
-            bound->setEmpty();
-            return;
-        }
-
-        GrClipStackFrame* back = (GrClipStackFrame*) fStack.back();
-
-        *bound = back->fLastBound;
-    }
-
-    void setContext(GrContext* context) {
-        fContext = context;
-    }
-
-    GrContext* getContext() {
-        return fContext;
-    }
-
-    void releaseResources() {
-
-        SkDeque::F2BIter iter(fStack);
-        for (GrClipStackFrame* frame = (GrClipStackFrame*) iter.next();
-                frame != NULL;
-                frame = (GrClipStackFrame*) iter.next()) {
-            frame->reset();
-        }
-    }
-
-protected:
-private:
-    struct GrClipStackFrame {
-
-        GrClipStackFrame() {
-            reset();
-        }
-
-        void acquireMask(GrContext* context,
-                         const GrClip& clip, 
-                         const GrTextureDesc& desc,
-                         const GrIRect& bound) {
-
-            fLastClip = clip;
-
-            fLastMask.set(context, desc);
-
-            fLastBound = bound;
-        }
-
-        void reset () {
-            fLastClip.setEmpty();
-
-            const GrTextureDesc desc = { kNone_GrTextureFlags, 0, 0, 
-                                         kUnknown_GrPixelConfig, 0 };
-
-            fLastMask.set(NULL, desc);
-            fLastBound.setEmpty();
-        }
-
-        GrClip                  fLastClip;
-        
-        
-        GrAutoScratchTexture    fLastMask;
-        
-        
-        
-        GrIRect                 fLastBound;
-    };
-
-    GrContext*   fContext;
-    SkDeque      fStack;
-
-    typedef GrNoncopyable INHERITED;
-};
-
-
-
-
-
-
-
-
-
-class GrClipMaskManager : public GrNoncopyable {
-public:
-    GrClipMaskManager()
-        : fClipMaskInStencil(false)
-        , fClipMaskInAlpha(false) {
-    }
-
-    bool createClipMask(GrGpu* gpu, 
-                        const GrClip& clip, 
-                        ScissoringSettings* scissorSettings);
+    bool setupClipping(const GrClipData* clipDataIn);
 
     void releaseResources();
 
-    bool isClipInStencil() const { return fClipMaskInStencil; }
-    bool isClipInAlpha() const { return fClipMaskInAlpha; }
-
-    void resetMask() {
-        fClipMaskInStencil = false;
+    bool isClipInStencil() const {
+        return kStencil_ClipMaskType == fCurrClipMaskType;
+    }
+    bool isClipInAlpha() const {
+        return kAlpha_ClipMaskType == fCurrClipMaskType;
     }
 
-    void postClipPush() {
-        
-        
-        
-        fAACache.push();
-    }
-
-    void preClipPop() {
-        fAACache.pop();
+    void invalidateStencilMask() {
+        if (kStencil_ClipMaskType == fCurrClipMaskType) {
+            fCurrClipMaskType = kNone_ClipMaskType;
+        }
     }
 
     void setContext(GrContext* context) {
@@ -319,46 +76,82 @@ public:
         return fAACache.getContext();
     }
 
-protected:
+    void setGpu(GrGpu* gpu) {
+        fGpu = gpu;
+    }
+
 private:
-    bool fClipMaskInStencil;        
-    bool fClipMaskInAlpha;          
+    
+
+
+
+    enum StencilClipMode {
+        
+        kModifyClip_StencilClipMode,
+        
+        
+        kRespectClip_StencilClipMode,
+        
+        kIgnoreClip_StencilClipMode,
+    };
+
+    GrGpu* fGpu;
+
+    
+
+
+
+
+    enum ClipMaskType {
+        kNone_ClipMaskType,
+        kStencil_ClipMaskType,
+        kAlpha_ClipMaskType,
+    } fCurrClipMaskType;
+
     GrClipMaskCache fAACache;       
 
-    bool createStencilClipMask(GrGpu* gpu, 
-                               const GrClip& clip, 
-                               const GrRect& bounds,
-                               ScissoringSettings* scissorSettings);
-    bool createAlphaClipMask(GrGpu* gpu,
-                             const GrClip& clipIn,
+    bool createStencilClipMask(const GrClipData& clipDataIn,
+                               const GrIRect& devClipBounds);
+    bool createAlphaClipMask(const GrClipData& clipDataIn,
                              GrTexture** result,
-                             GrIRect *resultBounds);
-    bool createSoftwareClipMask(GrGpu* gpu,
-                                const GrClip& clipIn,
+                             GrIRect *devResultBounds);
+    bool createSoftwareClipMask(const GrClipData& clipDataIn,
                                 GrTexture** result,
-                                GrIRect *resultBounds);
-    bool clipMaskPreamble(GrGpu* gpu,
-                          const GrClip& clipIn,
+                                GrIRect *devResultBounds);
+    bool clipMaskPreamble(const GrClipData& clipDataIn,
                           GrTexture** result,
-                          GrIRect *resultBounds);
+                          GrIRect *devResultBounds);
 
-    bool useSWOnlyPath(GrGpu* gpu, const GrClip& clipIn);
+    bool useSWOnlyPath(const SkClipStack& clipIn);
 
-    bool drawClipShape(GrGpu* gpu,
-                       GrTexture* target,
-                       const GrClip& clipIn,
-                       int index);
+    bool drawClipShape(GrTexture* target,
+                       const SkClipStack::Iter::Clip* clip,
+                       const GrIRect& resultBounds);
 
-    void drawTexture(GrGpu* gpu,
-                     GrTexture* target,
+    void drawTexture(GrTexture* target,
                      GrTexture* texture);
 
     void getTemp(const GrIRect& bounds, GrAutoScratchTexture* temp);
 
-    void setupCache(const GrClip& clip, 
+    void setupCache(const SkClipStack& clip,
                     const GrIRect& bounds);
+
+    
+
+
+
+
+    void setGpuStencil();
+
+    
+
+
+
+    void adjustStencilParams(GrStencilSettings* settings,
+                             StencilClipMode mode,
+                             int stencilBitCnt);
 
     typedef GrNoncopyable INHERITED;
 };
 
-#endif 
+#endif

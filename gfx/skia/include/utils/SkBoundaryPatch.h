@@ -13,6 +13,8 @@
 
 class SkBoundary : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkBoundary)
+
     
     enum Edge {
         kTop    = 0,
@@ -22,6 +24,9 @@ public:
     };
     
     virtual SkPoint eval(Edge, SkScalar unitInterval) = 0;
+
+private:
+    typedef SkRefCnt INHERITED;
 };
 
 class SkBoundaryPatch {
@@ -44,7 +49,7 @@ private:
 class SkLineBoundary : public SkBoundary {
 public:
     SkPoint fPts[4];
-    
+
     
     virtual SkPoint eval(Edge, SkScalar);
 };
@@ -53,7 +58,7 @@ class SkCubicBoundary : public SkBoundary {
 public:
     
     SkPoint fPts[13];
-    
+
     
     virtual SkPoint eval(Edge, SkScalar);
 };

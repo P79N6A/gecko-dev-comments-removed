@@ -40,7 +40,7 @@ public:
     
 
     void setDitherImage(bool dither) { fDoDither = dither; }
-    
+
     
 
 
@@ -49,13 +49,13 @@ public:
 
 
     bool getInfo(SkBitmap* bm);
-    
+
     
 
 
 
     bool isOpaque(SkBitmap* bm);
-    
+
     SkImageDecoderFactory* getDecoderFactory() const { return fFactory; }
     
     SkImageDecoderFactory* setDecoderFactory(SkImageDecoderFactory*);
@@ -74,13 +74,13 @@ protected:
     virtual void* onLockPixels(SkColorTable**);
     
     virtual void onUnlockPixels();
-    
+
     SkImageRef(SkFlattenableReadBuffer&);
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 
     SkBitmap fBitmap;
 
-private:    
+private:
     SkStream* setStream(SkStream*);
     
     
@@ -92,12 +92,12 @@ private:
     int                     fSampleSize;
     bool                    fDoDither;
     bool                    fErrorInDecoding;
-    
+
     friend class SkImageRefPool;
-    
-    SkImageRef*  fPrev, *fNext;    
+
+    SkImageRef*  fPrev, *fNext;
     size_t ramUsed() const;
-    
+
     typedef SkPixelRef INHERITED;
 };
 

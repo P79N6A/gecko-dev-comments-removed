@@ -20,6 +20,8 @@ struct SkIRect;
 
 class SkRasterizer : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkRasterizer)
+
     SkRasterizer() {}
 
     

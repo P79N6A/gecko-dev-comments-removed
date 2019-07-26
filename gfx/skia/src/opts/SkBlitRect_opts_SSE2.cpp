@@ -14,7 +14,7 @@
 
 
 
-void BlitRect32_OpaqueNarrow_SSE2(SkPMColor* SK_RESTRICT destination,
+static void BlitRect32_OpaqueNarrow_SSE2(SkPMColor* SK_RESTRICT destination,
                                   int width, int height,
                                   size_t rowBytes, uint32_t color) {
     SkASSERT(255 == SkGetPackedA32(color));
@@ -48,7 +48,7 @@ void BlitRect32_OpaqueNarrow_SSE2(SkPMColor* SK_RESTRICT destination,
 
 
 
-void BlitRect32_OpaqueWide_SSE2(SkPMColor* SK_RESTRICT destination,
+static void BlitRect32_OpaqueWide_SSE2(SkPMColor* SK_RESTRICT destination,
                                 int width, int height,
                                 size_t rowBytes, uint32_t color) {
     SkASSERT(255 == SkGetPackedA32(color));
@@ -117,17 +117,17 @@ void ColorRect32_SSE2(SkPMColor* destination,
     if (0 == height || 0 == width || 0 == color) {
         return;
     }
-    
-    
-        
-            
-                                         
-        
-            
-                                       
-        
-    
+    unsigned colorA = SkGetPackedA32(color);
+    if (false && 255 == colorA) { 
+        if (width < 31) {
+            BlitRect32_OpaqueNarrow_SSE2(destination, width, height,
+                                         rowBytes, color);
+        } else {
+            BlitRect32_OpaqueWide_SSE2(destination, width, height,
+                                       rowBytes, color);
+        }
+    } else {
         SkBlitRow::ColorRect32(destination, width, height, rowBytes, color);
-    
+    }
 }
 

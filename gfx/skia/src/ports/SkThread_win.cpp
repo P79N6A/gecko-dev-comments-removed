@@ -16,12 +16,17 @@
 
 
 
-#pragma intrinsic(_InterlockedIncrement, _InterlockedDecrement)
+#pragma intrinsic(_InterlockedIncrement, _InterlockedExchangeAdd, _InterlockedDecrement)
 #pragma intrinsic(_InterlockedCompareExchange)
 
 int32_t sk_atomic_inc(int32_t* addr) {
     
     return _InterlockedIncrement(reinterpret_cast<LONG*>(addr)) - 1;
+}
+
+int32_t sk_atomic_add(int32_t* addr, int32_t inc) {
+    return _InterlockedExchangeAdd(reinterpret_cast<LONG*>(addr),
+                                   static_cast<LONG>(inc));
 }
 
 int32_t sk_atomic_dec(int32_t* addr) {

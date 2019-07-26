@@ -34,7 +34,7 @@ public:
     
     virtual bool rewind();
     virtual size_t read(void* buffer, size_t size);
-    
+
 private:
     SkString fURL;
     HINTERNET fConnection;

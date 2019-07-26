@@ -157,7 +157,7 @@ public:
 
     bool doKeyEvent(SkKey code);
     bool doKeyUpEvent(SkKey code);
-    
+
     
 
 
@@ -203,7 +203,7 @@ public:
 
 
 
-    bool findClickEvent(SkScalar x, SkScalar y); 
+    bool findClickEvent(SkScalar x, SkScalar y);
 
 
     
@@ -315,16 +315,16 @@ public:
 
     
 
-    void getInvalBounds(SkRect* inval); 
+    void getInvalBounds(SkRect* inval);
 
     
 
     const SkXMLParserError* getParserError();
-    
+
     
 
     const char* getParserErrorString();
-    
+
     
 
 
@@ -376,7 +376,7 @@ public:
     
 
     void reset();
-    
+
     
 
 
@@ -385,7 +385,7 @@ public:
 
 
     bool setArrayInt(const char* elementID, const char* fieldName, const int* array, int count);
-    
+
     
 
 
@@ -394,7 +394,7 @@ public:
 
 
     bool setArrayString(const char* elementID, const char* fieldName, const char** array, int count);
-    
+
     
 
 
@@ -450,7 +450,7 @@ public:
 
     static void Init(bool runUnitTests);
     static void Term();
-    
+
     
 
 
@@ -458,20 +458,20 @@ public:
 
     void setHostEventSinkID(SkEventSinkID hostID);
     SkEventSinkID getHostEventSinkID() const;
-    
+
     
     void setHostEventSink(SkEventSink* sink) {
         this->setHostEventSinkID(sink ? sink->getSinkID() : 0);
     }
-    
+
     virtual void setJavaOwner(Handler owner);
-    
+
 #ifdef SK_DEBUG
     virtual void eventDone(const SkEvent& evt);
     virtual bool isTrackingEvents();
     static bool NoLeaks();
-#endif  
-    
+#endif
+
 protected:
     virtual void onSetHostHandler(Handler handler);
     virtual void onEventPost(SkEvent*, SkEventSinkID);
@@ -484,7 +484,7 @@ private:
     bool setInt(SkDisplayable* element, const SkMemberInfo* field, int32_t data);
     bool setScalar(SkDisplayable* element, const SkMemberInfo* field, SkScalar data);
     bool setString(SkDisplayable* element, const SkMemberInfo* field, const char* data);
-    
+
     virtual bool onEvent(const SkEvent&);
     SkAnimateMaker* fMaker;
     friend class SkAnimateMaker;

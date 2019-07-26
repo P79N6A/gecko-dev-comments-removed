@@ -23,9 +23,9 @@ public:
         kFloat,
         kBool,
     };
-    
+
     class Array;
-    
+
     class Object {
     private:
         struct Slot;
@@ -42,7 +42,7 @@ public:
 
 
         void addObject(const char name[], Object* value);
-        
+
         
 
 
@@ -50,26 +50,26 @@ public:
 
 
         void addArray(const char name[], Array* value);
-        
+
         
 
 
 
 
         void addString(const char name[], const char value[]);
-        
+
         
 
 
 
         void addInt(const char name[], int32_t value);
-        
+
         
 
 
 
         void addFloat(const char name[], float value);
-        
+
         
 
 
@@ -108,7 +108,7 @@ public:
         class Iter {
         public:
             Iter(const Object&);
-            
+
             
 
 
@@ -126,43 +126,43 @@ public:
 
 
             Type type() const;
-            
+
             
 
 
 
             const char* name() const;
-            
+
             
 
 
 
             Object* objectValue() const;
-            
+
             
 
 
 
             Array* arrayValue() const;
-            
+
             
 
 
 
             const char* stringValue() const;
-            
+
             
 
 
 
             int32_t intValue() const;
-            
+
             
 
 
 
             float floatValue() const;
-            
+
             
 
 
@@ -176,14 +176,14 @@ public:
     private:
         Slot* fHead;
         Slot* fTail;
-        
+
         const Slot* findSlot(const char name[], Type) const;
         Slot* addSlot(Slot*);
         void dumpLevel(int level) const;
-        
+
         friend class Array;
     };
-    
+
     class Array {
     public:
         
@@ -197,22 +197,22 @@ public:
 
 
         Array(const int32_t values[], int count);
-        
+
         
 
 
 
         Array(const float values[], int count);
-        
+
         
 
 
 
         Array(const bool values[], int count);
-        
+
         Array(const Array&);
         ~Array();
-        
+
         int count() const { return fCount; }
         Type type() const { return fType; }
 
@@ -222,7 +222,7 @@ public:
 
 
         void setObject(int index, Object*);
-        
+
         
 
 
@@ -274,10 +274,10 @@ public:
             float*   fFloats;
             bool*    fBools;
         } fArray;
-        
+
         void init(Type, int count, const void* src);
         void dumpLevel(int level) const;
-        
+
         friend class Object;
     };
 };

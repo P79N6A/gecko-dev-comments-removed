@@ -15,106 +15,84 @@
 #include "GrMatrix.h"
 #include "GrTypes.h"
 
-#define MAX_KERNEL_WIDTH 25
+#include "SkShader.h"
+
+class GrTextureParams {
+public:
+    GrTextureParams() {
+        this->reset();
+    }
+
+    GrTextureParams(const GrTextureParams& params) {
+        *this = params;
+    }
+
+    GrTextureParams& operator =(const GrTextureParams& params) {
+        fTileModes[0] = params.fTileModes[0];
+        fTileModes[1] = params.fTileModes[1];
+        fBilerp = params.fBilerp;
+        return *this;
+    }
+
+    void reset() {
+        this->reset(SkShader::kClamp_TileMode, false);
+    }
+
+    void reset(SkShader::TileMode tileXAndY, bool filter) {
+        fTileModes[0] = fTileModes[1] = tileXAndY;
+        fBilerp = filter;
+    }
+    void reset(SkShader::TileMode tileModes[2], bool filter) {
+        fTileModes[0] = tileModes[0];
+        fTileModes[1] = tileModes[1];
+        fBilerp = filter;
+    }
+
+    void setClampNoFilter() {
+        fTileModes[0] = fTileModes[1] = SkShader::kClamp_TileMode;
+        fBilerp = false;
+    }
+
+    void setClamp() {
+        fTileModes[0] = fTileModes[1] = SkShader::kClamp_TileMode;
+    }
+
+    void setBilerp(bool bilerp) { fBilerp = bilerp; }
+
+    void setTileModeX(const SkShader::TileMode tm) { fTileModes[0] = tm; }
+    void setTileModeY(const SkShader::TileMode tm) { fTileModes[1] = tm; }
+    void setTileModeXAndY(const SkShader::TileMode tm) { fTileModes[0] = fTileModes[1] = tm; }
+
+    SkShader::TileMode getTileModeX() const { return fTileModes[0]; }
+
+    SkShader::TileMode getTileModeY() const { return fTileModes[1]; }
+
+    bool isTiled() const {
+        return SkShader::kClamp_TileMode != fTileModes[0] ||
+               SkShader::kClamp_TileMode != fTileModes[1];
+    }
+
+    bool isBilerp() const { return fBilerp; }
+
+private:
+
+    SkShader::TileMode fTileModes[2];
+    bool               fBilerp;
+};
 
 class GrSamplerState {
 public:
-    enum Filter {
-        
+    static const bool kBilerpDefault = false;
 
+    static const SkShader::TileMode kTileModeDefault = SkShader::kClamp_TileMode;
 
-        kNearest_Filter,
-        
-
-
-        kBilinear_Filter,
-        
-
-
-
-
-
-
-        k4x4Downsample_Filter,
-        
-
-
-        kConvolution_Filter,
-        
-
-
-        kDilate_Filter,
-        
-
-
-        kErode_Filter,
-
-        kDefault_Filter = kNearest_Filter
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    enum SampleMode {
-        kNormal_SampleMode,     
-        kRadial_SampleMode,     
-        kRadial2_SampleMode,    
-        kSweep_SampleMode,      
-
-        kDefault_SampleMode = kNormal_SampleMode
-    };
-
-    
-
-
-
-    enum WrapMode {
-        kClamp_WrapMode,
-        kRepeat_WrapMode,
-        kMirror_WrapMode,
-
-        kDefault_WrapMode = kClamp_WrapMode
-    };
-
-    
-
-
-
-
-    enum FilterDirection {
-        kX_FilterDirection,
-        kY_FilterDirection,
-
-        kDefault_FilterDirection = kX_FilterDirection,
-    };
     
 
 
 
     GrSamplerState()
-    : fRadial2CenterX1()
-    , fRadial2Radius0()
-    , fRadial2PosRoot()
-    , fCustomStage (NULL) {
+    : fCustomStage (NULL) {
+        memset(this, 0, sizeof(GrSamplerState));
         this->reset();
     }
 
@@ -135,56 +113,29 @@ public:
                 (fCustomStage && s.fCustomStage &&
                  (fCustomStage->getFactory() ==
                      s.fCustomStage->getFactory()) &&
-                 fCustomStage->isEqual(s.fCustomStage)));
+                 fCustomStage->isEqual(*s.fCustomStage)));
     }
     bool operator !=(const GrSamplerState& s) const { return !(*this == s); }
 
-    GrSamplerState& operator =(const GrSamplerState s) {
-        memcpy(this, &s, sizeof(GrSamplerState));
+    GrSamplerState& operator =(const GrSamplerState& s) {
+        
+        fTextureParams = s.fTextureParams;
+        fMatrix = s.fMatrix;
+
+        GrSafeAssign(fCustomStage, s.fCustomStage);
+
         return *this;
     }
 
-    WrapMode getWrapX() const { return fWrapX; }
-    WrapMode getWrapY() const { return fWrapY; }
-    FilterDirection getFilterDirection() const { return fFilterDirection; }
-    SampleMode getSampleMode() const { return fSampleMode; }
     const GrMatrix& getMatrix() const { return fMatrix; }
-    const GrRect& getTextureDomain() const { return fTextureDomain; }
-    bool hasTextureDomain() const {return SkIntToScalar(0) != fTextureDomain.right();}
-    Filter getFilter() const { return fFilter; }
-    int getKernelWidth() const { return fKernelWidth; }
-    const float* getKernel() const { return fKernel; }
-    bool swapsRAndB() const { return fSwapRAndB; }
 
-    bool isGradient() const {
-        return  kRadial_SampleMode == fSampleMode ||
-                kRadial2_SampleMode == fSampleMode ||
-                kSweep_SampleMode == fSampleMode;
-    }
-
-    void setWrapX(WrapMode mode) { fWrapX = mode; }
-    void setWrapY(WrapMode mode) { fWrapY = mode; }
-    void setSampleMode(SampleMode mode) { fSampleMode = mode; }
-    void setFilterDirection(FilterDirection mode) { fFilterDirection = mode; }
-    
+    GrTextureParams* textureParams() { return &fTextureParams; }
+    const GrTextureParams& getTextureParams() const { return fTextureParams; }
     
 
 
 
     GrMatrix* matrix() { return &fMatrix; }
-
-    
-
-
-
-
-    void setTextureDomain(const GrRect& textureDomain) { fTextureDomain = textureDomain; }
-
-    
-
-
-
-    void setRAndBSwap(bool swap) { fSwapRAndB = swap; }
 
     
 
@@ -198,96 +149,32 @@ public:
 
     void preConcatMatrix(const GrMatrix& matrix) { fMatrix.preConcat(matrix); }
 
-    
-
-
-
-    void setFilter(Filter filter) { fFilter = filter; }
-
-    void reset(WrapMode wrapXAndY,
-               Filter filter,
-               FilterDirection direction,
+    void reset(SkShader::TileMode tileXAndY,
+               bool filter,
                const GrMatrix& matrix) {
-        fWrapX = wrapXAndY;
-        fWrapY = wrapXAndY;
-        fSampleMode = kDefault_SampleMode;
-        fFilter = filter;
-        fFilterDirection = direction;
+        fTextureParams.reset(tileXAndY, filter);
         fMatrix = matrix;
-        fTextureDomain.setEmpty();
-        fSwapRAndB = false;
         GrSafeSetNull(fCustomStage);
     }
-    void reset(WrapMode wrapXAndY, Filter filter, const GrMatrix& matrix) {
-        this->reset(wrapXAndY, filter, kDefault_FilterDirection, matrix);
-    }
-    void reset(WrapMode wrapXAndY,
-               Filter filter) {
-        this->reset(wrapXAndY, filter, kDefault_FilterDirection, GrMatrix::I());
+    void reset(SkShader::TileMode wrapXAndY, bool filter) {
+        this->reset(wrapXAndY, filter, GrMatrix::I());
     }
     void reset(const GrMatrix& matrix) {
-        this->reset(kDefault_WrapMode, kDefault_Filter, kDefault_FilterDirection, matrix);
+        this->reset(kTileModeDefault, kBilerpDefault, matrix);
     }
     void reset() {
-        this->reset(kDefault_WrapMode, kDefault_Filter, kDefault_FilterDirection, GrMatrix::I());
+        this->reset(kTileModeDefault, kBilerpDefault, GrMatrix::I());
     }
 
-    GrScalar getRadial2CenterX1() const { return fRadial2CenterX1; }
-    GrScalar getRadial2Radius0() const { return fRadial2Radius0; }
-    bool     isRadial2PosRoot() const { return SkToBool(fRadial2PosRoot); }
-    
-    
-    bool radial2IsDegenerate() const { return GR_Scalar1 == fRadial2CenterX1; }
-
-    
-
-
-
-
-
-
-    void setRadial2Params(GrScalar centerX1, GrScalar radius0, bool posRoot) {
-        fRadial2CenterX1 = centerX1;
-        fRadial2Radius0 = radius0;
-        fRadial2PosRoot = posRoot;
-    }
-
-    void setConvolutionParams(int kernelWidth, const float* kernel) {
-        GrAssert(kernelWidth >= 0 && kernelWidth <= MAX_KERNEL_WIDTH);
-        fKernelWidth = kernelWidth;
-        if (NULL != kernel) {
-            memcpy(fKernel, kernel, kernelWidth * sizeof(float));
-        }
-    }
-
-    void setMorphologyRadius(int radius) {
-        GrAssert(radius >= 0 && radius <= MAX_KERNEL_WIDTH);
-        fKernelWidth = radius;
-    }
-
-    void setCustomStage(GrCustomStage* stage) {
+    GrCustomStage* setCustomStage(GrCustomStage* stage) {
         GrSafeAssign(fCustomStage, stage);
+        return stage;
     }
-    GrCustomStage* getCustomStage() const { return fCustomStage; }
+    const GrCustomStage* getCustomStage() const { return fCustomStage; }
 
 private:
-    WrapMode            fWrapX : 8;
-    WrapMode            fWrapY : 8;
-    FilterDirection     fFilterDirection : 8;
-    SampleMode          fSampleMode : 8;
-    Filter              fFilter : 8;
+    GrTextureParams     fTextureParams;
     GrMatrix            fMatrix;
-    bool                fSwapRAndB;
-    GrRect              fTextureDomain;
-
-    
-    GrScalar            fRadial2CenterX1;
-    GrScalar            fRadial2Radius0;
-    SkBool8             fRadial2PosRoot;
-
-    
-    uint8_t             fKernelWidth;
-    float               fKernel[MAX_KERNEL_WIDTH];
 
     GrCustomStage*      fCustomStage;
 };

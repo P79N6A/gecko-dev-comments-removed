@@ -23,6 +23,7 @@ class SkCanvas;
 
 class SkGPipeReader {
 public:
+    SkGPipeReader();
     SkGPipeReader(SkCanvas* target);
     ~SkGPipeReader();
 
@@ -33,6 +34,7 @@ public:
         kReadAtom_Status
     };
 
+    void setCanvas(SkCanvas*);
     
     
     Status playback(const void* data, size_t length, size_t* bytesRead = NULL,
@@ -44,8 +46,13 @@ private:
 
 
 
+class SkGPipeCanvas;
+
 class SkGPipeController {
 public:
+    SkGPipeController() : fCanvas(NULL) {}
+    virtual ~SkGPipeController();
+
     
 
 
@@ -66,6 +73,13 @@ public:
 
 
     virtual void notifyWritten(size_t bytes) = 0;
+    virtual int numberOfReaders() const { return 1; }
+
+private:
+    friend class SkGPipeWriter;
+    void setCanvas(SkGPipeCanvas*);
+
+    SkGPipeCanvas* fCanvas;
 };
 
 class SkGPipeWriter {
@@ -76,20 +90,67 @@ public:
     bool isRecording() const { return NULL != fCanvas; }
 
     enum Flags {
-        kCrossProcess_Flag = 1 << 0,
+        
+
+
+
+        kCrossProcess_Flag              = 1 << 0,
+
+        
+
+
+
+
+        kSharedAddressSpace_Flag        = 1 << 1,
+
+        
+
+
+
+        kSimultaneousReaders_Flag       = 1 << 2,
     };
 
-    SkCanvas* startRecording(SkGPipeController*, uint32_t flags = 0);
+    SkCanvas* startRecording(SkGPipeController*, uint32_t flags = 0,
+        uint32_t width = kDefaultRecordingCanvasSize,
+        uint32_t height = kDefaultRecordingCanvasSize);
 
     
     
     void endRecording();
 
+    
+
+
+
+
+
+    void flushRecording(bool detachCurrentBlock);
+
+    
+
+
+
+
+
+
+    size_t storageAllocatedForRecording() const;
+
+    
+
+
+
+
+
+
+    size_t freeMemoryIfPossible(size_t bytesToFree);
+
 private:
-    class SkGPipeCanvas* fCanvas;
-    SkGPipeController*   fController;
-    SkFactorySet         fFactorySet;
-    SkWriter32 fWriter;
+    enum {
+        kDefaultRecordingCanvasSize = 32767,
+    };
+
+    SkGPipeCanvas* fCanvas;
+    SkWriter32     fWriter;
 };
 
 #endif

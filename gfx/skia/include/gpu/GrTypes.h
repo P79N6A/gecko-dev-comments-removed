@@ -58,11 +58,11 @@
 #define GrIsALIGN4(n)   SkIsAlign4(n)
 
 template <typename T> const T& GrMin(const T& a, const T& b) {
-	return (a < b) ? a : b;
+    return (a < b) ? a : b;
 }
 
 template <typename T> const T& GrMax(const T& a, const T& b) {
-	return (b < a) ? a : b;
+    return (b < a) ? a : b;
 }
 
 
@@ -79,9 +79,12 @@ static inline int32_t GrIDivRoundUp(int x, int y) {
 static inline uint32_t GrUIDivRoundUp(uint32_t x, uint32_t y) {
     return (x + (y-1)) / y;
 }
-static inline size_t GrSizeDivRoundUp(size_t x, uint32_t y) {
+static inline size_t GrSizeDivRoundUp(size_t x, size_t y) {
     return (x + (y-1)) / y;
 }
+
+
+#define GR_CT_DIV_ROUND_UP(X, Y) (((X) + ((Y)-1)) / (Y))
 
 
 
@@ -89,9 +92,12 @@ static inline size_t GrSizeDivRoundUp(size_t x, uint32_t y) {
 static inline uint32_t GrUIAlignUp(uint32_t x, uint32_t alignment) {
     return GrUIDivRoundUp(x, alignment) * alignment;
 }
-static inline uint32_t GrSizeAlignUp(size_t x, uint32_t alignment) {
+static inline size_t GrSizeAlignUp(size_t x, size_t alignment) {
     return GrSizeDivRoundUp(x, alignment) * alignment;
 }
+
+
+#define GR_CT_ALIGN_UP(X, A) (GR_CT_DIV_ROUND_UP((X),(A)) * (A))
 
 
 
@@ -99,7 +105,7 @@ static inline uint32_t GrSizeAlignUp(size_t x, uint32_t alignment) {
 static inline uint32_t GrUIAlignUpPad(uint32_t x, uint32_t alignment) {
     return (alignment - x % alignment) % alignment;
 }
-static inline size_t GrSizeAlignUpPad(size_t x, uint32_t alignment) {
+static inline size_t GrSizeAlignUpPad(size_t x, size_t alignment) {
     return (alignment - x % alignment) % alignment;
 }
 
@@ -109,7 +115,7 @@ static inline size_t GrSizeAlignUpPad(size_t x, uint32_t alignment) {
 static inline uint32_t GrUIAlignDown(uint32_t x, uint32_t alignment) {
     return (x / alignment) * alignment;
 }
-static inline uint32_t GrSizeAlignDown(size_t x, uint32_t alignment) {
+static inline size_t GrSizeAlignDown(size_t x, uint32_t alignment) {
     return (x / alignment) * alignment;
 }
 
@@ -203,46 +209,46 @@ typedef int GrVertexLayout;
 
 
 enum GrPrimitiveType {
-    kTriangles_PrimitiveType,
-    kTriangleStrip_PrimitiveType,
-    kTriangleFan_PrimitiveType,
-    kPoints_PrimitiveType,
-    kLines_PrimitiveType,     
-    kLineStrip_PrimitiveType  
+    kTriangles_GrPrimitiveType,
+    kTriangleStrip_GrPrimitiveType,
+    kTriangleFan_GrPrimitiveType,
+    kPoints_GrPrimitiveType,
+    kLines_GrPrimitiveType,     
+    kLineStrip_GrPrimitiveType  
 };
 
 static inline bool GrIsPrimTypeLines(GrPrimitiveType type) {
-    return kLines_PrimitiveType == type || kLineStrip_PrimitiveType == type;
+    return kLines_GrPrimitiveType == type || kLineStrip_GrPrimitiveType == type;
 }
 
 static inline bool GrIsPrimTypeTris(GrPrimitiveType type) {
-    return kTriangles_PrimitiveType == type     ||
-           kTriangleStrip_PrimitiveType == type ||
-           kTriangleFan_PrimitiveType == type;
+    return kTriangles_GrPrimitiveType == type     ||
+           kTriangleStrip_GrPrimitiveType == type ||
+           kTriangleFan_GrPrimitiveType == type;
 }
 
 
 
 
 enum GrBlendCoeff {
-    kInvalid_BlendCoeff = -1,
+    kInvalid_GrBlendCoeff = -1,
 
-    kZero_BlendCoeff,    
-    kOne_BlendCoeff,     
-    kSC_BlendCoeff,      
-    kISC_BlendCoeff,     
-    kDC_BlendCoeff,      
-    kIDC_BlendCoeff,     
-    kSA_BlendCoeff,      
-    kISA_BlendCoeff,     
-    kDA_BlendCoeff,      
-    kIDA_BlendCoeff,     
-    kConstC_BlendCoeff,  
-    kIConstC_BlendCoeff, 
-    kConstA_BlendCoeff,  
-    kIConstA_BlendCoeff, 
+    kZero_GrBlendCoeff,    
+    kOne_GrBlendCoeff,     
+    kSC_GrBlendCoeff,      
+    kISC_GrBlendCoeff,     
+    kDC_GrBlendCoeff,      
+    kIDC_GrBlendCoeff,     
+    kSA_GrBlendCoeff,      
+    kISA_GrBlendCoeff,     
+    kDA_GrBlendCoeff,      
+    kIDA_GrBlendCoeff,     
+    kConstC_GrBlendCoeff,  
+    kIConstC_GrBlendCoeff, 
+    kConstA_GrBlendCoeff,  
+    kIConstA_GrBlendCoeff, 
 
-    kPublicBlendCoeffCount
+    kPublicGrBlendCoeffCount
 };
 
 
@@ -271,13 +277,6 @@ static inline int GrMaskFormatBytesPerPixel(GrMaskFormat format) {
 
 
 
-
-
-
-
-
-
-
 enum GrPixelConfig {
     kUnknown_GrPixelConfig,
     kAlpha_8_GrPixelConfig,
@@ -290,19 +289,11 @@ enum GrPixelConfig {
     
 
 
-    kRGBA_8888_PM_GrPixelConfig,
+    kRGBA_8888_GrPixelConfig,
     
 
 
-    kRGBA_8888_UPM_GrPixelConfig,
-    
-
-
-    kBGRA_8888_PM_GrPixelConfig,
-    
-
-
-    kBGRA_8888_UPM_GrPixelConfig,
+    kBGRA_8888_GrPixelConfig,
 
     kGrPixelConfigCount
 };
@@ -313,22 +304,22 @@ enum GrPixelConfig {
 #endif
 #if 24 == SK_A32_SHIFT && 16 == SK_R32_SHIFT && \
      8 == SK_G32_SHIFT &&  0 == SK_B32_SHIFT
-    static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kBGRA_8888_PM_GrPixelConfig;
-    static const GrPixelConfig kSkia8888_UPM_GrPixelConfig = kBGRA_8888_UPM_GrPixelConfig;
+    static const GrPixelConfig kSkia8888_GrPixelConfig = kBGRA_8888_GrPixelConfig;
 #elif 24 == SK_A32_SHIFT && 16 == SK_B32_SHIFT && \
        8 == SK_G32_SHIFT &&  0 == SK_R32_SHIFT
-    static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kRGBA_8888_PM_GrPixelConfig;
-    static const GrPixelConfig kSkia8888_UPM_GrPixelConfig = kRGBA_8888_UPM_GrPixelConfig;
+    static const GrPixelConfig kSkia8888_GrPixelConfig = kRGBA_8888_GrPixelConfig;
 #else
     #error "SK_*32_SHIFT values must correspond to GL_BGRA or GL_RGBA format."
 #endif
 
 
+static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kSkia8888_GrPixelConfig;
+
+
 
 static inline bool GrPixelConfigIsRGBA8888(GrPixelConfig config) {
     switch (config) {
-        case kRGBA_8888_PM_GrPixelConfig:
-        case kRGBA_8888_UPM_GrPixelConfig:
+        case kRGBA_8888_GrPixelConfig:
             return true;
         default:
             return false;
@@ -339,8 +330,7 @@ static inline bool GrPixelConfigIsRGBA8888(GrPixelConfig config) {
 
 static inline bool GrPixelConfigIsBGRA8888(GrPixelConfig config) {
     switch (config) {
-        case kBGRA_8888_PM_GrPixelConfig:
-        case kBGRA_8888_UPM_GrPixelConfig:
+        case kBGRA_8888_GrPixelConfig:
             return true;
         default:
             return false;
@@ -350,10 +340,8 @@ static inline bool GrPixelConfigIsBGRA8888(GrPixelConfig config) {
 
 static inline bool GrPixelConfigIs32Bit(GrPixelConfig config) {
     switch (config) {
-        case kRGBA_8888_PM_GrPixelConfig:
-        case kRGBA_8888_UPM_GrPixelConfig:
-        case kBGRA_8888_PM_GrPixelConfig:
-        case kBGRA_8888_UPM_GrPixelConfig:
+        case kRGBA_8888_GrPixelConfig:
+        case kBGRA_8888_GrPixelConfig:
             return true;
         default:
             return false;
@@ -364,14 +352,10 @@ static inline bool GrPixelConfigIs32Bit(GrPixelConfig config) {
 
 static inline GrPixelConfig GrPixelConfigSwapRAndB(GrPixelConfig config) {
     switch (config) {
-        case kBGRA_8888_PM_GrPixelConfig:
-            return kRGBA_8888_PM_GrPixelConfig;
-        case kBGRA_8888_UPM_GrPixelConfig:
-            return kRGBA_8888_UPM_GrPixelConfig;
-        case kRGBA_8888_PM_GrPixelConfig:
-            return kBGRA_8888_PM_GrPixelConfig;
-        case kRGBA_8888_UPM_GrPixelConfig:
-            return kBGRA_8888_UPM_GrPixelConfig;
+        case kBGRA_8888_GrPixelConfig:
+            return kRGBA_8888_GrPixelConfig;
+        case kRGBA_8888_GrPixelConfig:
+            return kBGRA_8888_GrPixelConfig;
         default:
             return kUnknown_GrPixelConfig;
     }
@@ -385,10 +369,8 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
         case kRGB_565_GrPixelConfig:
         case kRGBA_4444_GrPixelConfig:
             return 2;
-        case kRGBA_8888_PM_GrPixelConfig:
-        case kRGBA_8888_UPM_GrPixelConfig:
-        case kBGRA_8888_PM_GrPixelConfig:
-        case kBGRA_8888_UPM_GrPixelConfig:
+        case kRGBA_8888_GrPixelConfig:
+        case kBGRA_8888_GrPixelConfig:
             return 4;
         default:
             return 0;
@@ -398,20 +380,6 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
 static inline bool GrPixelConfigIsOpaque(GrPixelConfig config) {
     switch (config) {
         case kRGB_565_GrPixelConfig:
-            return true;
-        default:
-            return false;
-    }
-}
-
-
-
-
-
-static inline bool GrPixelConfigIsUnpremultiplied(GrPixelConfig config) {
-    switch (config) {
-        case kRGBA_8888_UPM_GrPixelConfig:
-        case kBGRA_8888_UPM_GrPixelConfig:
             return true;
         default:
             return false;
@@ -436,7 +404,7 @@ enum GrTextureFlags {
 
 
 
-    kRenderTarget_GrTextureFlagBit  = 0x1,  
+    kRenderTarget_GrTextureFlagBit  = 0x1,
     
 
 
@@ -448,6 +416,9 @@ enum GrTextureFlags {
 
 
     kDynamicUpdate_GrTextureFlagBit = 0x4,
+
+    kDummy_GrTextureFlagBit,
+    kLastPublic_GrTextureFlagBit = kDummy_GrTextureFlagBit-1,
 };
 
 GR_MAKE_BITFIELD_OPS(GrTextureFlags)
@@ -462,7 +433,16 @@ enum {
 
 
 
+
 struct GrTextureDesc {
+    GrTextureDesc()
+    : fFlags(kNone_GrTextureFlags)
+    , fWidth(0)
+    , fHeight(0)
+    , fConfig(kUnknown_GrPixelConfig)
+    , fSampleCnt(0) {
+    }
+
     GrTextureFlags         fFlags;  
     int                    fWidth;  
     int                    fHeight; 
@@ -480,7 +460,48 @@ struct GrTextureDesc {
 
 
 
-    int fSampleCnt;
+    int                    fSampleCnt;
+};
+
+
+
+
+
+
+struct GrCacheData {
+    
+
+
+    static const uint64_t kScratch_CacheID = 0xBBBBBBBB;
+
+    
+
+
+
+    static const uint8_t kScratch_ResourceDomain = 0;
+
+
+    
+    
+    
+    GrCacheData(uint64_t key)
+    : fClientCacheID(key)
+    , fResourceDomain(kScratch_ResourceDomain) {
+    }
+
+    
+
+
+
+
+
+    uint64_t               fClientCacheID;
+
+    
+
+
+
+    uint8_t                fResourceDomain;
 };
 
 
@@ -528,29 +549,29 @@ static int inline NumPathCmdPoints(GrPathCmd cmd) {
 
 
 enum GrPathFill {
-    kWinding_PathFill,
-    kEvenOdd_PathFill,
-    kInverseWinding_PathFill,
-    kInverseEvenOdd_PathFill,
-    kHairLine_PathFill,
+    kWinding_GrPathFill,
+    kEvenOdd_GrPathFill,
+    kInverseWinding_GrPathFill,
+    kInverseEvenOdd_GrPathFill,
+    kHairLine_GrPathFill,
 
-    kPathFillCount
+    kGrPathFillCount
 };
 
 static inline GrPathFill GrNonInvertedFill(GrPathFill fill) {
     static const GrPathFill gNonInvertedFills[] = {
-        kWinding_PathFill, 
-        kEvenOdd_PathFill, 
-        kWinding_PathFill, 
-        kEvenOdd_PathFill, 
-        kHairLine_PathFill,
+        kWinding_GrPathFill, 
+        kEvenOdd_GrPathFill, 
+        kWinding_GrPathFill, 
+        kEvenOdd_GrPathFill, 
+        kHairLine_GrPathFill,
     };
-    GR_STATIC_ASSERT(0 == kWinding_PathFill);
-    GR_STATIC_ASSERT(1 == kEvenOdd_PathFill);
-    GR_STATIC_ASSERT(2 == kInverseWinding_PathFill);
-    GR_STATIC_ASSERT(3 == kInverseEvenOdd_PathFill);
-    GR_STATIC_ASSERT(4 == kHairLine_PathFill);
-    GR_STATIC_ASSERT(5 == kPathFillCount);
+    GR_STATIC_ASSERT(0 == kWinding_GrPathFill);
+    GR_STATIC_ASSERT(1 == kEvenOdd_GrPathFill);
+    GR_STATIC_ASSERT(2 == kInverseWinding_GrPathFill);
+    GR_STATIC_ASSERT(3 == kInverseEvenOdd_GrPathFill);
+    GR_STATIC_ASSERT(4 == kHairLine_GrPathFill);
+    GR_STATIC_ASSERT(5 == kGrPathFillCount);
     return gNonInvertedFills[fill];
 }
 
@@ -562,12 +583,12 @@ static inline bool GrIsFillInverted(GrPathFill fill) {
         true,  
         false, 
     };
-    GR_STATIC_ASSERT(0 == kWinding_PathFill);
-    GR_STATIC_ASSERT(1 == kEvenOdd_PathFill);
-    GR_STATIC_ASSERT(2 == kInverseWinding_PathFill);
-    GR_STATIC_ASSERT(3 == kInverseEvenOdd_PathFill);
-    GR_STATIC_ASSERT(4 == kHairLine_PathFill);
-    GR_STATIC_ASSERT(5 == kPathFillCount);
+    GR_STATIC_ASSERT(0 == kWinding_GrPathFill);
+    GR_STATIC_ASSERT(1 == kEvenOdd_GrPathFill);
+    GR_STATIC_ASSERT(2 == kInverseWinding_GrPathFill);
+    GR_STATIC_ASSERT(3 == kInverseEvenOdd_GrPathFill);
+    GR_STATIC_ASSERT(4 == kHairLine_GrPathFill);
+    GR_STATIC_ASSERT(5 == kGrPathFillCount);
     return gIsFillInverted[fill];
 }
 
@@ -595,11 +616,13 @@ typedef intptr_t GrPlatform3DObject;
 
 
 
+
+
 enum GrPlatformTextureFlags {
     
 
 
-    kNone_GrPlatformTextureFlag              = 0x0,
+    kNone_GrPlatformTextureFlag              = kNone_GrTextureFlags,
     
 
 
@@ -607,7 +630,7 @@ enum GrPlatformTextureFlags {
 
 
 
-    kRenderTarget_GrPlatformTextureFlag      = 0x1,
+    kRenderTarget_GrPlatformTextureFlag      = kRenderTarget_GrTextureFlagBit,
 };
 GR_MAKE_BITFIELD_OPS(GrPlatformTextureFlags)
 

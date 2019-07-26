@@ -12,14 +12,19 @@
 
 #include "GrRefCnt.h"
 
+#include "SkTDLinkedList.h"
+
 class GrGpu;
 class GrContext;
+class GrResourceEntry;
 
 
 
 
 class GrResource : public GrRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(GrResource)
+
     
 
 
@@ -50,7 +55,7 @@ public:
 
 
 
-     virtual size_t sizeInBytes() const = 0;
+    virtual size_t sizeInBytes() const = 0;
 
      
 
@@ -58,8 +63,11 @@ public:
 
 
 
-     const GrContext* getContext() const;
-     GrContext* getContext();
+    const GrContext* getContext() const;
+    GrContext* getContext();
+
+    void setCacheEntry(GrResourceEntry* cacheEntry) { fCacheEntry = cacheEntry; }
+    GrResourceEntry* getCacheEntry() { return fCacheEntry; }
 
 protected:
     explicit GrResource(GrGpu* gpu);
@@ -67,19 +75,28 @@ protected:
 
     GrGpu* getGpu() const { return fGpu; }
 
-    virtual void onRelease() = 0;
-    virtual void onAbandon() = 0;
+    
+    
+    virtual void onRelease() {};
+    virtual void onAbandon() {};
+
+    bool isInCache() const { return NULL != fCacheEntry; }
 
 private:
 
+#if GR_DEBUG
     friend class GrGpu; 
+#endif
 
     GrGpu*      fGpu;       
                             
                             
                             
-    GrResource* fNext;      
-    GrResource* fPrevious;
+
+    
+    SK_DEFINE_DLINKEDLIST_INTERFACE(GrResource);
+
+    GrResourceEntry* fCacheEntry;  
 
     typedef GrRefCnt INHERITED;
 };

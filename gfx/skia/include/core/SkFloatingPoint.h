@@ -12,16 +12,15 @@
 
 #include "SkTypes.h"
 
-#ifdef SK_CAN_USE_FLOAT
-
 #include <math.h>
 #include <float.h>
 #include "SkFloatBits.h"
 
 
+
+
 static inline float sk_float_pow(float base, float exp) {
-    return static_cast<float>(pow(static_cast<double>(base),
-                                  static_cast<double>(exp)));
+    return powf(base, exp);
 }
 
 static inline float sk_float_copysign(float x, float y) {
@@ -88,5 +87,4 @@ static inline float sk_float_copysign(float x, float y) {
     #define sk_float_ceil2int(x)    (int)sk_float_ceil(x)
 #endif
 
-#endif
 #endif

@@ -211,14 +211,14 @@ static inline bool SkIsU16(long x) {
 
 #define SK_ARRAY_COUNT(array)       (sizeof(array) / sizeof(array[0]))
 
-
-
 #define SkAlign2(x)     (((x) + 1) >> 1 << 1)
-
+#define SkIsAlign2(x)   (0 == ((x) & 1))
 
 #define SkAlign4(x)     (((x) + 3) >> 2 << 2)
+#define SkIsAlign4(x)   (0 == ((x) & 3))
 
-#define SkIsAlign4(x) (((x) & 3) == 0)
+#define SkAlign8(x)     (((x) + 7) >> 3 << 3)
+#define SkIsAlign8(x)   (0 == ((x) & 7))
 
 typedef uint32_t SkFourByteTag;
 #define SkSetFourByteTag(a, b, c, d)    (((a) << 24) | ((b) << 16) | ((c) << 8) | (d))
@@ -432,7 +432,7 @@ public:
 
 
         kAlloc_OnShrink,
-        
+
         
 
 

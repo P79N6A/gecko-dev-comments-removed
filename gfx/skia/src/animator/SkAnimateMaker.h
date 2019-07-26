@@ -57,10 +57,10 @@ public:
     void dump(const char* match);
 #endif
     int dynamicProperty(SkString& nameStr, SkDisplayable**  );
-    bool find(const char* str, SkDisplayable** displayablePtr) const { 
+    bool find(const char* str, SkDisplayable** displayablePtr) const {
         return fIDs.find(str, displayablePtr);
     }
-    bool find(const char* str, size_t len, SkDisplayable** displayablePtr) const { 
+    bool find(const char* str, size_t len, SkDisplayable** displayablePtr) const {
         return fIDs.find(str, len, displayablePtr);
     }
     bool findKey(SkDisplayable* displayable, const char** string) const {
@@ -80,7 +80,7 @@ public:
     bool hasError() { return fError.hasError(); }
     void helperAdd(SkDisplayable* trackMe);
     void helperRemove(SkDisplayable* alreadyTracked);
-    void idsSet(const char* attrValue, size_t len, SkDisplayable* displayable) { 
+    void idsSet(const char* attrValue, size_t len, SkDisplayable* displayable) {
         fIDs.set(attrValue, len, displayable); }
 
     void notifyInval();

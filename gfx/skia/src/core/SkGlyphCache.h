@@ -13,8 +13,10 @@
 #include "SkBitmap.h"
 #include "SkChunkAlloc.h"
 #include "SkDescriptor.h"
+#include "SkGlyph.h"
 #include "SkScalerContext.h"
 #include "SkTemplates.h"
+#include "SkTDArray.h"
 
 class SkPaint;
 
@@ -119,9 +121,8 @@ public:
     bool getAuxProcData(void (*auxProc)(void*), void** dataPtr) const;
     
     void setAuxProc(void (*auxProc)(void*), void* auxData);
-    
-    
-    void removeAuxProc(void (*auxProc)(void*));
+
+    SkScalerContext* getScalerContext() const { return fScalerContext; }
 
     
 

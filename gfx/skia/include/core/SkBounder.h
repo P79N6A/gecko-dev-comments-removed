@@ -29,6 +29,8 @@ class SkRegion;
 
 class SkBounder : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkBounder)
+
     SkBounder();
 
     
@@ -84,6 +86,8 @@ private:
     friend class SkDrawIter;
     friend struct Draw1Glyph;
     friend class SkMaskFilter;
+
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

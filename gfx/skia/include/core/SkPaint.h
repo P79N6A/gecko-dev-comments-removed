@@ -15,6 +15,7 @@
 #include "SkDrawLooper.h"
 #include "SkXfermode.h"
 
+class SkAnnotation;
 class SkAutoGlyphCache;
 class SkColorFilter;
 class SkDescriptor;
@@ -28,6 +29,7 @@ class SkMaskFilter;
 class SkMatrix;
 class SkPath;
 class SkPathEffect;
+struct SkPoint;
 class SkRasterizer;
 class SkShader;
 class SkTypeface;
@@ -206,7 +208,7 @@ public:
     bool isVerticalText() const {
         return SkToBool(this->getFlags() & kVerticalText_Flag);
     }
-    
+
     
 
 
@@ -582,6 +584,17 @@ public:
     SkImageFilter* getImageFilter() const { return fImageFilter; }
     SkImageFilter* setImageFilter(SkImageFilter*);
 
+    SkAnnotation* getAnnotation() const { return fAnnotation; }
+    SkAnnotation* setAnnotation(SkAnnotation*);
+
+    
+
+
+
+    bool isNoDrawAnnotation() const {
+        return SkToBool(fPrivFlags & kNoDrawAnnotation_PrivFlag);
+    }
+
     
 
 
@@ -654,6 +667,20 @@ public:
 
 
     void setTextSkewX(SkScalar skewX);
+
+#ifdef SK_SUPPORT_HINTING_SCALE_FACTOR
+    
+
+
+
+    SkScalar getHintingScaleFactor() const { return fHintingScaleFactor; }
+
+    
+
+
+
+    void setHintingScaleFactor(SkScalar hintingScaleFactor);
+#endif
 
     
 
@@ -813,7 +840,7 @@ public:
     void getTextPath(const void* text, size_t length, SkScalar x, SkScalar y,
                      SkPath* path) const;
 
-    void getPosTextPath(const void* text, size_t length, 
+    void getPosTextPath(const void* text, size_t length,
                         const SkPoint pos[], SkPath* path) const;
 
 #ifdef SK_BUILD_FOR_ANDROID
@@ -845,7 +872,7 @@ public:
         }
         return !this->getRasterizer();
     }
-    
+
     
 
 
@@ -878,25 +905,28 @@ public:
                 return orig;
             }
         }
-        
+
         return this->doComputeFastBounds(orig, storage, style);
     }
-    
+
     const SkRect& computeFastStrokeBounds(const SkRect& orig,
                                           SkRect* storage) const {
         return this->doComputeFastBounds(orig, storage, kStroke_Style);
     }
-    
+
     
     
     const SkRect& doComputeFastBounds(const SkRect& orig, SkRect* storage,
                                       Style) const;
-    
+
 private:
     SkTypeface*     fTypeface;
     SkScalar        fTextSize;
     SkScalar        fTextScaleX;
     SkScalar        fTextSkewX;
+#ifdef SK_SUPPORT_HINTING_SCALE_FACTOR
+    SkScalar        fHintingScaleFactor;
+#endif
 
     SkPathEffect*   fPathEffect;
     SkShader*       fShader;
@@ -906,17 +936,24 @@ private:
     SkRasterizer*   fRasterizer;
     SkDrawLooper*   fLooper;
     SkImageFilter*  fImageFilter;
+    SkAnnotation*   fAnnotation;
 
     SkColor         fColor;
     SkScalar        fWidth;
     SkScalar        fMiterLimit;
-    unsigned        fFlags : 15;
+    
+    unsigned        fFlags : 16;
     unsigned        fTextAlign : 2;
     unsigned        fCapType : 2;
     unsigned        fJoinType : 2;
     unsigned        fStyle : 2;
     unsigned        fTextEncoding : 2;  
     unsigned        fHinting : 2;
+    unsigned        fPrivFlags : 4; 
+
+    enum PrivFlags {
+        kNoDrawAnnotation_PrivFlag  = 1 << 0,
+    };
 
     SkDrawCacheProc    getDrawCacheProc() const;
     SkMeasureCacheProc getMeasureCacheProc(TextBufferDirection dir,
@@ -931,12 +968,15 @@ private:
                         void (*proc)(const SkDescriptor*, void*),
                         void* context, bool ignoreGamma = false) const;
 
+    static void Term();
+
     enum {
         kCanonicalTextSizeForPaths = 64
     };
     friend class SkAutoGlyphCache;
     friend class SkCanvas;
     friend class SkDraw;
+    friend class SkGraphics; 
     friend class SkPDFDevice;
     friend class SkTextToPathIter;
 

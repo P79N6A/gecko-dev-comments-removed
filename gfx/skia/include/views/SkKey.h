@@ -15,7 +15,7 @@
 enum SkKey {
     
     kNONE_SkKey,    
-    
+
     kLeftSoftKey_SkKey,
     kRightSoftKey_SkKey,
 
@@ -23,7 +23,7 @@ enum SkKey {
     kBack_SkKey,    
     kSend_SkKey,    
     kEnd_SkKey,     
-    
+
     k0_SkKey,
     k1_SkKey,
     k2_SkKey,

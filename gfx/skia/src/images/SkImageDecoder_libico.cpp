@@ -15,7 +15,7 @@
 class SkICOImageDecoder : public SkImageDecoder {
 public:
     SkICOImageDecoder();
-    
+
     virtual Format getFormat() const {
         return kICO_Format;
     }
@@ -24,9 +24,11 @@ protected:
     virtual bool onDecode(SkStream* stream, SkBitmap* bm, Mode);
 };
 
+#if 0 
 SkImageDecoder* SkCreateICOImageDecoder() {
     return new SkICOImageDecoder;
 }
+#endif
 
 
 
@@ -44,23 +46,23 @@ SkICOImageDecoder::SkICOImageDecoder()
 }
 
 
-static void editPixelBit1(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit1(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors);
-static void editPixelBit4(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit4(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors);
-static void editPixelBit8(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit8(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors);
-static void editPixelBit24(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit24(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors);
-static void editPixelBit32(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit32(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors);
-            
-            
+
+
 static int calculateRowBytesFor8888(int w, int bitCount)
 {
     
@@ -82,7 +84,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     if (stream->read((void*)buf, length) != length) {
         return false;
     }
-    
+
     
     
     int reserved = read2Bytes(buf, 0);    
@@ -90,11 +92,11 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     if (reserved != 0 || type != 1)
         return false;
     int count = read2Bytes(buf, 4);
-    
+
     
     if (length < (size_t)(6 + count*16))
         return false;
-        
+
     int choice;
     Chooser* chooser = this->getChooser();
     
@@ -135,11 +137,11 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
         }
         choice = chooser->choose();
     }
+
     
-    
-    if (choice >= count || choice < 0)       
+    if (choice >= count || choice < 0)
         return false;
-    
+
     
     
     
@@ -158,9 +160,9 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     
     
     int bitCount = read2Bytes(buf, offset+14);
-    
-    void (*placePixel)(const int pixelNo, const unsigned char* buf, 
-        const int xorOffset, int& x, int y, const int w, 
+
+    void (*placePixel)(const int pixelNo, const unsigned char* buf,
+        const int xorOffset, int& x, int y, const int w,
         SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors) = NULL;
     switch (bitCount)
     {
@@ -188,7 +190,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
             SkDEBUGF(("Decoding %ibpp is unimplemented\n", bitCount));
             return false;
     }
-        
+
     
     
     
@@ -196,13 +198,13 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     
     
     
-        
+
     int begin = offset + 40;
     
     
     SkPMColor* colors = NULL;
     int blue, green, red;
-    if (colorCount) 
+    if (colorCount)
     {
         colors = new SkPMColor[colorCount];
         for (int j = 0; j < colorCount; j++)
@@ -219,11 +221,11 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     int mask = -(((test >> 4) | (test >> 3) | (test >> 2) | (test >> 1) | test) & 0x1);    
     int lineBitWidth = (bitWidth & 0xFFFFFFE0) + (0x20 & mask);
     int lineWidth = lineBitWidth/bitCount;
-    
+
     int xorOffset = begin + colorCount*4;   
                                             
     int andOffset = xorOffset + ((lineWidth*h*bitCount) >> 3);
-    
+
     test = w & 0x1F;   
     mask = -(((test >> 4) | (test >> 3) | (test >> 2) | (test >> 1) | test) & 0x1);    
     int andLineWidth = (w & 0xFFFFFFE0) + (0x20 & mask);
@@ -234,7 +236,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
     
 
     bm->setConfig(SkBitmap::kARGB_8888_Config, w, h, calculateRowBytesFor8888(w, bitCount));
-    
+
     if (SkImageDecoder::kDecodeBounds_Mode == mode) {
         delete[] colors;
         return true;
@@ -245,7 +247,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
         delete[] colors;
         return false;
     }
-    
+
     SkAutoLockPixels alp(*bm);
 
     for (int y = 0; y < h; y++)
@@ -253,7 +255,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
         for (int x = 0; x < w; x++)
         {
             
-            
+
             
             int andPixelNo = andLineWidth*(h-y-1)+x;
             
@@ -262,7 +264,7 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
             int alphaByte = readByte(buf, andOffset + (andPixelNo >> 3));
             int shift = 7 - (andPixelNo & 0x7);
             int m = 1 << shift;
-            
+
             int pixelNo = lineWidth*(h-y-1)+x;
             placePixel(pixelNo, buf, xorOffset, x, y, w, bm, alphaByte, m, shift, colors);
 
@@ -277,8 +279,8 @@ bool SkICOImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode)
 }   
 
 
-static void editPixelBit1(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit1(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors)
 {
     
@@ -294,7 +296,7 @@ static void editPixelBit1(const int pixelNo, const unsigned char* buf,
     
     while (x < i)
     {
-        
+
         colorBit = (byte & m) >> shift;
         alphaBit = (alphaByte & m) >> shift;
         *address = (alphaBit-1)&(colors[colorBit]);
@@ -306,8 +308,8 @@ static void editPixelBit1(const int pixelNo, const unsigned char* buf,
     }
     x--;
 }
-static void editPixelBit4(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit4(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors)
 {
     SkPMColor* address = bm->getAddr32(x, y);
@@ -326,18 +328,18 @@ static void editPixelBit4(const int pixelNo, const unsigned char* buf,
     *address = (alphaBit-1)&(colors[pixel]);
 }
 
-static void editPixelBit8(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit8(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors)
 {
     SkPMColor* address = bm->getAddr32(x, y);
     int pixel = readByte(buf, xorOffset + pixelNo);
     int alphaBit = (alphaByte & m) >> shift;
     *address = (alphaBit-1)&(colors[pixel]);
-}            
+}
 
-static void editPixelBit24(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit24(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors)
 {
     SkPMColor* address = bm->getAddr32(x, y);
@@ -347,11 +349,11 @@ static void editPixelBit24(const int pixelNo, const unsigned char* buf,
     int alphaBit = (alphaByte & m) >> shift;
     
     int alpha = (alphaBit-1) & 0xFF;
-    *address = SkPreMultiplyARGB(alpha, red, green, blue);    
+    *address = SkPreMultiplyARGB(alpha, red, green, blue);
 }
 
-static void editPixelBit32(const int pixelNo, const unsigned char* buf, 
-            const int xorOffset, int& x, int y, const int w, 
+static void editPixelBit32(const int pixelNo, const unsigned char* buf,
+            const int xorOffset, int& x, int y, const int w,
             SkBitmap* bm, int alphaByte, int m, int shift, SkPMColor* colors)
 {
     SkPMColor* address = bm->getAddr32(x, y);
@@ -372,7 +374,7 @@ DEFINE_DECODER_CREATOR(ICOImageDecoder);
 
 #include "SkTRegistry.h"
 
-SkImageDecoder* sk_libico_dfactory(SkStream* stream) {
+static SkImageDecoder* sk_libico_dfactory(SkStream* stream) {
     
     
     SkAutoMalloc autoMal(4);

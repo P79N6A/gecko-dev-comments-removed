@@ -105,7 +105,7 @@ public:
         fTargetProc = proc;
         return this;
     }
-    
+
     
 
 
@@ -195,7 +195,7 @@ public:
     void post() {
         return this->postDelay(0);
     }
-    
+
     
 
 
@@ -204,7 +204,7 @@ public:
 
 
     void postDelay(SkMSec delay);
-    
+
     
 
 

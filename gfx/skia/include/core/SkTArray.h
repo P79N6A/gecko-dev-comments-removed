@@ -66,7 +66,7 @@ public:
     explicit SkTArray(int reserveCount) {
         this->init(NULL, 0, NULL, reserveCount);
     }
-  
+
     
 
 
@@ -331,13 +331,11 @@ private:
         int newCount = fCount + delta;
         int newAllocCount = fAllocCount;
 
-        if (newCount > fAllocCount) {
-            newAllocCount = SkMax32(newCount + ((newCount + 1) >> 1),
-                                   fReserveCount);
-        } else if (newCount < fAllocCount / 3) {
-            newAllocCount = SkMax32(fAllocCount / 2, fReserveCount);
+        if (newCount > fAllocCount || newCount < (fAllocCount / 3)) {
+            
+            
+            newAllocCount = SkMax32(newCount + ((newCount + 1) >> 1), fReserveCount);
         }
-
         if (newAllocCount != fAllocCount) {
 
             fAllocCount = newAllocCount;

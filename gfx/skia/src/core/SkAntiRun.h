@@ -31,7 +31,7 @@ public:
 
     
     void    reset(int width);
-    
+
     
 
 

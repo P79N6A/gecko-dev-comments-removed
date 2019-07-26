@@ -13,44 +13,16 @@
 #include "GrDrawTarget.h"
 #include "GrRect.h"
 #include "GrRefCnt.h"
-#include "GrTexture.h"
 #include "GrClipMaskManager.h"
 
 class GrContext;
 class GrIndexBufferAllocPool;
+class GrPath;
 class GrPathRenderer;
 class GrPathRendererChain;
 class GrResource;
 class GrStencilBuffer;
 class GrVertexBufferAllocPool;
-
-
-
-
-struct GrGpuStats {
-    uint32_t fVertexCnt;  
-    uint32_t fIndexCnt;   
-    uint32_t fDrawCnt;    
-
-    uint32_t fProgChngCnt;
-
-    
-
-
-    uint32_t fTextureChngCnt;
-    
-
-
-    uint32_t fRenderTargetChngCnt;
-    
-
-
-    uint32_t fTextureCreateCnt;
-    
-
-
-    uint32_t fRenderTargetCreateCnt;
-};
 
 class GrGpu : public GrDrawTarget {
 
@@ -63,12 +35,12 @@ public:
     enum ExtendedBlendCoeffs {
         
         
-        kS2C_BlendCoeff = kPublicBlendCoeffCount,
-        kIS2C_BlendCoeff,
-        kS2A_BlendCoeff,
-        kIS2A_BlendCoeff,
+        kS2C_GrBlendCoeff = kPublicGrBlendCoeffCount,
+        kIS2C_GrBlendCoeff,
+        kS2A_GrBlendCoeff,
+        kIS2A_GrBlendCoeff,
 
-        kTotalBlendCoeffCount
+        kTotalGrBlendCoeffCount
     };
 
     
@@ -85,7 +57,7 @@ public:
 
     
     void setContext(GrContext* context) {
-        GrAssert(NULL == fContext); 
+        GrAssert(NULL == fContext);
         fContext = context;
         fClipMaskManager.setContext(context);
     }
@@ -161,6 +133,12 @@ public:
 
 
 
+    GrPath* createPath(const SkPath& path);
+
+    
+
+
+
 
 
 
@@ -186,14 +164,6 @@ public:
     void forceRenderTargetFlush();
 
     
-
-
-
-
-    virtual bool canPreserveReadWriteUnpremulPixels() = 0;
-
-    
-
 
 
 
@@ -261,9 +231,6 @@ public:
 
 
 
-
-
-
     bool readPixels(GrRenderTarget* renderTarget,
                     int left, int top, int width, int height,
                     GrPixelConfig config, void* buffer, size_t rowBytes,
@@ -285,10 +252,6 @@ public:
                             int left, int top, int width, int height,
                             GrPixelConfig config, const void* buffer,
                             size_t rowBytes);
-
-    const GrGpuStats& getStats() const;
-    void resetStats();
-    void printStats() const;
 
     
 
@@ -316,7 +279,9 @@ public:
     void removeResource(GrResource* resource);
 
     
-    virtual void clear(const GrIRect* rect, GrColor color);
+    virtual void clear(const GrIRect* rect,
+                       GrColor color,
+                       GrRenderTarget* renderTarget = NULL) SK_OVERRIDE;
 
     virtual void purgeResources() SK_OVERRIDE {
         
@@ -345,12 +310,33 @@ public:
 
 
     bool isConfigRenderable(GrPixelConfig config) const {
-        GrAssert(kGrPixelConfigCount > config); 
+        GrAssert(kGrPixelConfigCount > config);
         return fConfigRenderSupport[config];
     }
 
-    virtual void enableScissoring(const GrIRect& rect) = 0;
-    virtual void disableScissor() = 0;
+    
+
+
+
+
+
+    void enableScissor(const GrIRect& rect) {
+        fScissorState.fEnabled = true;
+        fScissorState.fRect = rect;
+    }
+    void disableScissor() { fScissorState.fEnabled = false; }
+
+    
+
+
+
+
+
+
+    void setStencilSettings(const GrStencilSettings& settings) {
+        fStencilSettings = settings;
+    }
+    void disableStencil() { fStencilSettings.setDisabled(); }
 
     
     
@@ -365,16 +351,33 @@ public:
                                                  
     };
 
-    virtual void postClipPush() SK_OVERRIDE {
-        fClipMaskManager.postClipPush();
-    }
-    virtual void preClipPop() SK_OVERRIDE {
-        fClipMaskManager.preClipPop();
+protected:
+    enum DrawType {
+        kDrawPoints_DrawType,
+        kDrawLines_DrawType,
+        kDrawTriangles_DrawType,
+        kStencilPath_DrawType,
+    };
+
+    DrawType PrimTypeToDrawType(GrPrimitiveType type) {
+        switch (type) {
+            case kTriangles_GrPrimitiveType:
+            case kTriangleStrip_GrPrimitiveType:
+            case kTriangleFan_GrPrimitiveType:
+                return kDrawTriangles_DrawType;
+            case kPoints_GrPrimitiveType:
+                return kDrawPoints_DrawType;
+            case kLines_GrPrimitiveType:
+            case kLineStrip_GrPrimitiveType:
+                return kDrawLines_DrawType;
+            default:
+                GrCrash("Unexpected primitive type");
+                return kDrawTriangles_DrawType;
+        }
     }
 
-protected:
     
-    bool setupClipAndFlushState(GrPrimitiveType type);
+    bool setupClipAndFlushState(DrawType);
 
     
     
@@ -387,24 +390,27 @@ protected:
                                           unsigned int* ref,
                                           unsigned int* mask);
 
-    
-    
-    static const GrStencilSettings* GetClipStencilSettings();
-
-    GrGpuStats fStats;
-
     GrClipMaskManager           fClipMaskManager;
 
     struct GeometryPoolState {
         const GrVertexBuffer* fPoolVertexBuffer;
         int                   fPoolStartVertex;
-        
+
         const GrIndexBuffer*  fPoolIndexBuffer;
         int                   fPoolStartIndex;
     };
-    const GeometryPoolState& getGeomPoolState() { 
-        return fGeomPoolStateStack.back(); 
+    const GeometryPoolState& getGeomPoolState() {
+        return fGeomPoolStateStack.back();
     }
+
+    
+    struct ScissorState {
+        bool    fEnabled;
+        GrIRect fRect;
+    } fScissorState;
+
+    
+    GrStencilSettings fStencilSettings;
 
     
     
@@ -413,18 +419,20 @@ protected:
     
     virtual bool onReserveVertexSpace(GrVertexLayout vertexLayout,
                                       int vertexCount,
-                                      void** vertices);
-    virtual bool onReserveIndexSpace(int indexCount, void** indices);
-    virtual void releaseReservedVertexSpace();
-    virtual void releaseReservedIndexSpace();    
+                                      void** vertices) SK_OVERRIDE;
+    virtual bool onReserveIndexSpace(int indexCount,
+                                     void** indices) SK_OVERRIDE;
+    virtual void releaseReservedVertexSpace() SK_OVERRIDE;
+    virtual void releaseReservedIndexSpace() SK_OVERRIDE;
     virtual void onSetVertexSourceToArray(const void* vertexArray,
-                                          int vertexCount);
+                                          int vertexCount) SK_OVERRIDE;
     virtual void onSetIndexSourceToArray(const void* indexArray,
-                                         int indexCount);
-    virtual void releaseVertexArray();
-    virtual void releaseIndexArray();
-    virtual void geometrySourceWillPush();
-    virtual void geometrySourceWillPop(const GeometrySrcState& restoredState);
+                                         int indexCount) SK_OVERRIDE;
+    virtual void releaseVertexArray() SK_OVERRIDE;
+    virtual void releaseIndexArray() SK_OVERRIDE;
+    virtual void geometrySourceWillPush() SK_OVERRIDE;
+    virtual void geometrySourceWillPop(
+        const GeometrySrcState& restoredState) SK_OVERRIDE;
 
     
     void finalizeReservedVertices();
@@ -434,7 +442,7 @@ protected:
     
     virtual void onResetContext() = 0;
 
-    
+
     
     virtual GrTexture* onCreateTexture(const GrTextureDesc& desc,
                                        const void* srcData,
@@ -445,6 +453,7 @@ protected:
                                                  bool dynamic) = 0;
     virtual GrIndexBuffer* onCreateIndexBuffer(uint32_t size,
                                                bool dynamic) = 0;
+    virtual GrPath* onCreatePath(const SkPath& path) = 0;
 
     
     
@@ -460,6 +469,15 @@ protected:
     virtual void onGpuDrawNonIndexed(GrPrimitiveType type,
                                      uint32_t vertexCount,
                                      uint32_t numVertices) = 0;
+    
+    
+    
+    
+    virtual void setStencilPathSettings(const GrPath&,
+                                        GrPathFill,
+                                        GrStencilSettings* settings) = 0;
+    
+    virtual void onGpuStencilPath(const GrPath*, GrPathFill) = 0;
 
     
     virtual void onForceRenderTargetFlush() = 0;
@@ -493,7 +511,7 @@ protected:
     
     
     virtual bool createStencilBufferForRenderTarget(GrRenderTarget* rt,
-                                                    int width, 
+                                                    int width,
                                                     int height) = 0;
 
     
@@ -504,30 +522,30 @@ protected:
     
     
     
-    virtual bool flushGraphicsState(GrPrimitiveType type) = 0;
+    virtual bool flushGraphicsState(DrawType) = 0;
 
     
     virtual void clearStencil() = 0;
 
 private:
     GrContext*                  fContext; 
-    
+
     ResetTimestamp              fResetTimestamp;
 
     GrVertexBufferAllocPool*    fVertexPool;
 
     GrIndexBufferAllocPool*     fIndexPool;
-    
+
     
     int                         fVertexPoolUseCnt;
     int                         fIndexPoolUseCnt;
-    
+
     enum {
         kPreallocGeomPoolStateStackCnt = 4,
     };
     SkSTArray<kPreallocGeomPoolStateStackCnt,
               GeometryPoolState, true>              fGeomPoolStateStack;
-    
+
     mutable GrIndexBuffer*      fQuadIndexBuffer; 
                                                   
 
@@ -536,7 +554,8 @@ private:
 
     bool                        fContextIsDirty;
 
-    GrResource*                 fResourceHead;
+    typedef SkTDLinkedList<GrResource> ResourceList;
+    ResourceList                fResourceList;
 
     
     bool attachStencilBufferToRenderTarget(GrRenderTarget* target);
@@ -546,16 +565,21 @@ private:
                                int startVertex,
                                int startIndex,
                                int vertexCount,
-                               int indexCount);
+                               int indexCount) SK_OVERRIDE;
     virtual void onDrawNonIndexed(GrPrimitiveType type,
                                   int startVertex,
-                                  int vertexCount);
+                                  int vertexCount) SK_OVERRIDE;
+    virtual void onStencilPath(const GrPath* path, GrPathFill fill) SK_OVERRIDE;
 
     
     void prepareVertexPool();
     void prepareIndexPool();
 
     void resetContext() {
+        
+        
+        
+        fClipMaskManager.invalidateStencilMask();
         this->onResetContext();
         ++fResetTimestamp;
     }

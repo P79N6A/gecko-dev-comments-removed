@@ -18,8 +18,10 @@ class SkFlattenableWriteBuffer;
 
 class SkPathHeap : public SkRefCnt {
 public:
-            SkPathHeap();
-            SkPathHeap(SkFlattenableReadBuffer&);
+    SK_DECLARE_INST_COUNT(SkPathHeap)
+
+    SkPathHeap();
+    SkPathHeap(SkFlattenableReadBuffer&);
     virtual ~SkPathHeap();
 
     
@@ -27,20 +29,22 @@ public:
 
 
     int append(const SkPath&);
-    
+
     
     int count() const { return fPaths.count(); }
     const SkPath& operator[](int index) const {
         return *fPaths[index];
     }
-    
+
     void flatten(SkFlattenableWriteBuffer&) const;
-        
+
 private:
     
     SkChunkAlloc        fHeap;
     
     SkTDArray<SkPath*>  fPaths;
+
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

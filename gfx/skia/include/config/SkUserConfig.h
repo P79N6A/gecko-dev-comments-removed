@@ -43,7 +43,6 @@
 
 
 
-#include "mozilla/mozalloc.h"
 
 
 
@@ -139,17 +138,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+#define SK_ALLOW_OVER_32K_BITMAPS
 
 
 
@@ -165,10 +154,6 @@
 #ifdef SK_DEBUG
 
 #endif
-
-
-
-#define SK_DISABLE_DITHER_32BIT_GRADIENT
 
 
 
@@ -193,8 +178,11 @@
 
 
 
-#ifdef SK_BUILD_FOR_WIN32 
-    #define SK_IGNORE_STDINT_DOT_H 
-#endif 
+
+
+
+
+
+
 
 #endif

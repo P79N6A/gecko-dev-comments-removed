@@ -44,8 +44,7 @@ public:
     
     virtual BitmapType asABitmap(SkBitmap* outTexture,
                                  SkMatrix* outMatrix,
-                                 TileMode xy[2],
-                                 SkScalar* twoPointRadialParams) const SK_OVERRIDE;
+                                 TileMode xy[2]) const SK_OVERRIDE;
 
     virtual GradientType asAGradient(GradientInfo* info) const SK_OVERRIDE;
 

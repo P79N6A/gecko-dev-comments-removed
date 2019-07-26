@@ -15,6 +15,8 @@ struct SkPoint;
 
 class SK_API SkLayerDrawLooper : public SkDrawLooper {
 public:
+    SK_DECLARE_INST_COUNT(SkLayerDrawLooper)
+
             SkLayerDrawLooper();
     virtual ~SkLayerDrawLooper();
 
@@ -33,7 +35,7 @@ public:
         kShader_Bit     = 1 << 4,   
         kColorFilter_Bit = 1 << 5,  
         kXfermode_Bit   = 1 << 6,   
-        
+
         
 
 
@@ -42,7 +44,7 @@ public:
 
 
         kEntirePaint_Bits = -1
-        
+
     };
     typedef int32_t BitFlags;
 
@@ -91,22 +93,22 @@ public:
 
 
     void addLayer(SkScalar dx, SkScalar dy);
-    
+
     
 
 
     void addLayer() { this->addLayer(0, 0); }
-    
+
     
     virtual void init(SkCanvas*);
     virtual bool next(SkCanvas*, SkPaint* paint);
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLayerDrawLooper)
-    
+
 protected:
     SkLayerDrawLooper(SkFlattenableReadBuffer&);
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-    
+
 private:
     struct Rec {
         Rec*    fNext;
@@ -127,7 +129,7 @@ private:
     public:
         MyRegistrar();
     };
-    
+
     typedef SkDrawLooper INHERITED;
 };
 

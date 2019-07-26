@@ -21,9 +21,9 @@ public:
 
 
 
-    SkMallocPixelRef(void* addr, size_t size, SkColorTable* ctable);
+    SkMallocPixelRef(void* addr, size_t size, SkColorTable* ctable, bool ownPixels = true);
     virtual ~SkMallocPixelRef();
-    
+
     
     size_t getSize() const { return fSize; }
     void* getAddr() const { return fStorage; }
@@ -42,6 +42,7 @@ private:
     void*           fStorage;
     size_t          fSize;
     SkColorTable*   fCTable;
+    bool            fOwnPixels;
 
     typedef SkPixelRef INHERITED;
 };

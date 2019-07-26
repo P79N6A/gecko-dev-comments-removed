@@ -18,7 +18,7 @@ int GrTBSearch(const ELEM array[], int count, KEY target) {
         
         return ~0;
     }
-    
+
     int high = count - 1;
     int low = 0;
     while (high > low) {
@@ -29,12 +29,12 @@ int GrTBSearch(const ELEM array[], int count, KEY target) {
             high = index;
         }
     }
-    
+
     
     if (EQ(array[high], target)) {
         return high;
     }
-    
+
     
     if (LT(array[high], target)) {
         high += 1;

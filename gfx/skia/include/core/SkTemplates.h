@@ -22,6 +22,27 @@
 
 
 
+template <typename T> struct SkTIsConst {
+    static T* t;
+    static uint16_t test(const volatile void*);
+    static uint32_t test(volatile void *);
+    static const bool value = (sizeof(uint16_t) == sizeof(test(t)));
+};
+
+
+
+template <typename T, bool CONST> struct SkTConstType {
+    typedef T type;
+};
+template <typename T> struct SkTConstType<T, true> {
+    typedef const T type;
+};
+
+
+
+
+
+
 
 
 
@@ -72,10 +93,10 @@ private:
 template <typename T> class SkAutoTDeleteArray : SkNoncopyable {
 public:
     SkAutoTDeleteArray(T array[]) : fArray(array) {}
-    ~SkAutoTDeleteArray() { delete[] fArray; }
+    ~SkAutoTDeleteArray() { SkDELETE_ARRAY(fArray); }
 
     T*      get() const { return fArray; }
-    void    free() { delete[] fArray; fArray = NULL; }
+    void    free() { SkDELETE_ARRAY(fArray); fArray = NULL; }
     T*      detach() { T* array = fArray; fArray = NULL; return array; }
 
 private:
@@ -86,9 +107,26 @@ private:
 
 template <typename T> class SkAutoTArray : SkNoncopyable {
 public:
+    SkAutoTArray() {
+        fArray = NULL;
+        SkDEBUGCODE(fCount = 0;)
+    }
     
 
-    SkAutoTArray(size_t count) {
+    explicit SkAutoTArray(int count) {
+        SkASSERT(count >= 0);
+        fArray = NULL;
+        if (count) {
+            fArray = new T[count];
+        }
+        SkDEBUGCODE(fCount = count;)
+    }
+
+    
+
+    void reset(int count) {
+        delete[] fArray;
+        SkASSERT(count >= 0);
         fArray = NULL;
         if (count) {
             fArray = new T[count];
@@ -103,17 +141,17 @@ public:
     
 
     T* get() const { return fArray; }
-    
+
     
 
     T&  operator[](int index) const {
-        SkASSERT((unsigned)index < fCount);
+        SkASSERT((unsigned)index < (unsigned)fCount);
         return fArray[index];
     }
 
 private:
     T*  fArray;
-    SkDEBUGCODE(size_t fCount;)
+    SkDEBUGCODE(int fCount;)
 };
 
 
@@ -132,7 +170,7 @@ public:
         }
         fCount = count;
     }
-    
+
     ~SkAutoSTArray() {
         if (fCount > N) {
             delete[] fArray;
@@ -144,22 +182,22 @@ public:
             }
         }
     }
-    
+
     
 
     size_t count() const { return fCount; }
-    
+
     
 
     T* get() const { return fArray; }
-    
+
     
 
     T&  operator[](int index) const {
         SkASSERT((unsigned)index < fCount);
         return fArray[index];
     }
-    
+
 private:
     size_t  fCount;
     T*      fArray;

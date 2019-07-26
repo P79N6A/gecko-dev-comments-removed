@@ -18,8 +18,7 @@ class SkPathMeasure;
 
 class Sk1DPathEffect : public SkPathEffect {
 public:
-    
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
 
 protected:
     
@@ -43,10 +42,10 @@ public:
         kTranslate_Style,   
         kRotate_Style,      
         kMorph_Style,       
-        
+
         kStyleCount
     };
-    
+
     
 
 
@@ -56,8 +55,7 @@ public:
 
     SkPath1DPathEffect(const SkPath& path, SkScalar advance, SkScalar phase, Style);
 
-    
-    virtual bool filterPath(SkPath*, const SkPath&, SkScalar* width) SK_OVERRIDE;
+    virtual bool filterPath(SkPath*, const SkPath&, SkStrokeRec*) SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkPath1DPathEffect)
 
@@ -68,7 +66,7 @@ protected:
     
     virtual SkScalar begin(SkScalar contourLength) SK_OVERRIDE;
     virtual SkScalar next(SkPath*, SkScalar distance, SkPathMeasure&) SK_OVERRIDE;
-    
+
 private:
     SkPath      fPath;          
     SkScalar    fAdvance;       

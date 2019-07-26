@@ -44,6 +44,8 @@ static inline CGImageRef SkCreateCGImageRef(const SkBitmap& bm) {
 
 void SkCGDrawBitmap(CGContextRef, const SkBitmap&, float x, float y);
 
+bool SkPDFDocumentToBitmap(SkStream* stream, SkBitmap* output);
+
 
 
 

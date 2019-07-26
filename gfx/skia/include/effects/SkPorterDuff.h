@@ -55,19 +55,19 @@ public:
     
 
     static SkXfermode* CreateXfermode(Mode mode);
-    
+
     
 
 
     static SkXfermodeProc GetXfermodeProc(Mode mode);
-    
+
     
 
 
 
 
     static SkXfermodeProc16 GetXfermodeProc16(Mode mode, SkColor srcColor);
-    
+
     
 
 

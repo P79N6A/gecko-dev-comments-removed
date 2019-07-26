@@ -15,6 +15,9 @@
 #include "GrTDArray.h"
 
 
+void gr_run_unittests();
+
+
 
 
 static bool LT(const int& elem, int value) {
@@ -84,10 +87,10 @@ static void test_binHashKey()
         kDataLenUsedForKey = 8
     };
 
-    GrBinHashKey<BogusEntry, kDataLenUsedForKey> keyA;
+    GrTBinHashKey<BogusEntry, kDataLenUsedForKey> keyA;
     keyA.setKeyData(testStringA);
     
-    GrBinHashKey<BogusEntry, kDataLenUsedForKey> keyA2(keyA);
+    GrTBinHashKey<BogusEntry, kDataLenUsedForKey> keyA2(keyA);
     GrAssert(keyA.compare(keyA2) == 0);
     GrAssert(keyA.getHash() == keyA2.getHash());
     
@@ -95,10 +98,10 @@ static void test_binHashKey()
     GrAssert(keyA.compare(keyA2) == 0);
     GrAssert(keyA.getHash() == keyA2.getHash());
     
-    GrBinHashKey<BogusEntry, kDataLenUsedForKey> keyB;
+    GrTBinHashKey<BogusEntry, kDataLenUsedForKey> keyB;
     keyB.setKeyData(testStringB);
     GrAssert(keyA.compare(keyB) < 0);
-    GrAssert(keyA.getHash() != keyB.getHash());    
+    GrAssert(keyA.getHash() != keyB.getHash());
 }
 
 

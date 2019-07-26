@@ -96,7 +96,7 @@ public:
     void        setLoc(const SkPoint& loc) { this->setLoc(loc.fX, loc.fY); }
     void        setLocX(SkScalar x) { this->setLoc(x, fLoc.fY); }
     void        setLocY(SkScalar y) { this->setLoc(fLoc.fX, y); }
-    
+
     
 
 
@@ -204,11 +204,17 @@ public:
 
     
 
-    void        globalToLocal(SkPoint* pt) const { if (pt) this->globalToLocal(pt->fX, pt->fY, pt); }
+
+    bool        globalToLocal(SkPoint* pt) const {
+        if (NULL != pt) {
+            return this->globalToLocal(pt->fX, pt->fY, pt);
+        }
+        return true;  
+    }
     
 
 
-    void        globalToLocal(SkScalar globalX, SkScalar globalY, SkPoint* local) const;
+    bool        globalToLocal(SkScalar globalX, SkScalar globalY, SkPoint* local) const;
 
     
 
@@ -248,11 +254,15 @@ public:
 
     class Artist : public SkRefCnt {
     public:
+        SK_DECLARE_INST_COUNT(Artist)
+
         void draw(SkView*, SkCanvas*);
         void inflate(const SkDOM&, const SkDOM::Node*);
     protected:
         virtual void onDraw(SkView*, SkCanvas*) = 0;
         virtual void onInflate(const SkDOM&, const SkDOM::Node*);
+    private:
+        typedef SkRefCnt INHERITED;
     };
     
 
@@ -272,11 +282,15 @@ public:
 
     class Layout : public SkRefCnt {
     public:
+        SK_DECLARE_INST_COUNT(Layout)
+
         void layoutChildren(SkView* parent);
         void inflate(const SkDOM&, const SkDOM::Node*);
     protected:
         virtual void onLayoutChildren(SkView* parent) = 0;
         virtual void onInflate(const SkDOM&, const SkDOM::Node*);
+    private:
+        typedef SkRefCnt INHERITED;
     };
 
     
@@ -368,7 +382,7 @@ private:
 
     friend class B2FIter;
     friend class F2BIter;
-    
+
     friend class SkLayerView;
 
     bool    setFocusView(SkView* fvOrNull);

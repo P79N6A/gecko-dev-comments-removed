@@ -19,7 +19,7 @@
 #define GrRenderTarget_DEFINED
 
 #include "GrRect.h"
-#include "GrResource.h"
+#include "GrSurface.h"
 
 class GrStencilBuffer;
 class GrTexture;
@@ -31,30 +31,41 @@ class GrTexture;
 
 
 
-class GrRenderTarget : public GrResource {
+class GrRenderTarget : public GrSurface {
 public:
+    SK_DECLARE_INST_COUNT(GrRenderTarget)
+
+    
+    virtual size_t sizeInBytes() const SK_OVERRIDE;
+
+    
+    
+
+
+    virtual GrTexture* asTexture() SK_OVERRIDE { return fTexture; }
+    virtual const GrTexture* asTexture() const SK_OVERRIDE { return fTexture; }
 
     
 
 
-    int width() const { return fWidth; }
+    virtual GrRenderTarget* asRenderTarget() SK_OVERRIDE { return this; }
+    virtual const GrRenderTarget* asRenderTarget() const  SK_OVERRIDE {
+        return this;
+    }
+
+    virtual bool readPixels(int left, int top, int width, int height,
+                            GrPixelConfig config,
+                            void* buffer,
+                            size_t rowBytes = 0,
+                            uint32_t pixelOpsFlags = 0) SK_OVERRIDE;
+
+    virtual void writePixels(int left, int top, int width, int height,
+                             GrPixelConfig config,
+                             const void* buffer,
+                             size_t rowBytes = 0,
+                             uint32_t pixelOpsFlags = 0) SK_OVERRIDE;
+
     
-
-
-    int height() const { return fHeight; }
-
-    
-
-
-
-
-    GrPixelConfig config() const { return fConfig; }
-
-    
-
-
-    GrTexture* asTexture() {return fTexture;}
-
     
 
 
@@ -72,12 +83,12 @@ public:
     
 
 
-    bool isMultisampled() const { return 0 != fSampleCnt; }
+    bool isMultisampled() const { return 0 != fDesc.fSampleCnt; }
 
     
 
 
-    int numSamples() const { return fSampleCnt; }
+    int numSamples() const { return fDesc.fSampleCnt; }
 
     
 
@@ -121,41 +132,6 @@ public:
     void resolve();
 
     
-    virtual size_t sizeInBytes() const;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool readPixels(int left, int top, int width, int height,
-                    GrPixelConfig config, void* buffer, size_t rowBytes);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    void writePixels(int left, int top, int width, int height,
-                     GrPixelConfig config, const void* buffer, size_t rowBytes);
-
-    
     
     
     enum ResolveType {
@@ -174,17 +150,10 @@ public:
 protected:
     GrRenderTarget(GrGpu* gpu,
                    GrTexture* texture,
-                   int width,
-                   int height,
-                   GrPixelConfig config,
-                   int sampleCnt)
-        : INHERITED(gpu)
+                   const GrTextureDesc& desc)
+        : INHERITED(gpu, desc)
         , fStencilBuffer(NULL)
-        , fTexture(texture)
-        , fWidth(width)
-        , fHeight(height)
-        , fConfig(config)
-        , fSampleCnt(sampleCnt) {
+        , fTexture(texture) {
         fResolveRect.setLargestInverted();
     }
 
@@ -199,16 +168,17 @@ protected:
         fTexture = NULL;
     }
 
+    
+    virtual void onAbandon() SK_OVERRIDE;
+    virtual void onRelease() SK_OVERRIDE;
+
 private:
     GrStencilBuffer*  fStencilBuffer;
     GrTexture*        fTexture; 
-    int               fWidth;
-    int               fHeight;
-    GrPixelConfig     fConfig;
-    int               fSampleCnt;
+
     GrIRect           fResolveRect;
 
-    typedef GrResource INHERITED;
+    typedef GrSurface INHERITED;
 };
 
 #endif

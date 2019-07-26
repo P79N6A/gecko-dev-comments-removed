@@ -23,6 +23,8 @@
 
 class SK_API SkXfermode : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkXfermode)
+
     SkXfermode() {}
 
     virtual void xfer32(SkPMColor dst[], const SkPMColor src[], int count,
@@ -99,11 +101,11 @@ public:
         
         
         kPlus_Mode,
-        kMultiply_Mode, 
+        kMultiply_Mode,
+
         
-        
-        kCoeffModesCnt, 
-        
+        kCoeffModesCnt,
+
         kScreen_Mode = kCoeffModesCnt,
         kOverlay_Mode,
         kDarken_Mode,

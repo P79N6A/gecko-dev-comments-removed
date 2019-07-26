@@ -17,6 +17,9 @@
 #include "SkPaint.h"
 
 class SkPath;
+class GrContext;
+class GrCustomStage;
+class GrSamplerState;
 
 
 
@@ -30,7 +33,9 @@ class SkPath;
 
 class SK_API SkShader : public SkFlattenable {
 public:
-            SkShader();
+    SK_DECLARE_INST_COUNT(SkShader)
+
+    SkShader();
     virtual ~SkShader();
 
     
@@ -210,8 +215,20 @@ public:
                             
                             
                             
+        kTwoPointConical_BitmapType,
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+        kLinear_BitmapType, 
+                            
 
-       kLast_BitmapType = kTwoPointRadial_BitmapType
+       kLast_BitmapType = kLinear_BitmapType
     };
     
 
@@ -229,7 +246,7 @@ public:
 
 
     virtual BitmapType asABitmap(SkBitmap* outTexture, SkMatrix* outMatrix,
-                         TileMode xy[2], SkScalar* twoPointRadialParams) const;
+                         TileMode xy[2]) const;
 
     
 
@@ -267,7 +284,8 @@ public:
         kRadial_GradientType,
         kRadial2_GradientType,
         kSweep_GradientType,
-        kLast_GradientType = kSweep_GradientType
+        kConical_GradientType,
+        kLast_GradientType = kConical_GradientType
     };
 
     struct GradientInfo {
@@ -283,6 +301,16 @@ public:
     };
 
     virtual GradientType asAGradient(GradientInfo* info) const;
+
+    
+
+
+
+
+
+
+    virtual GrCustomStage* asNewCustomStage(GrContext* context,
+                                            GrSamplerState* sampler) const;
 
     
     

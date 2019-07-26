@@ -76,13 +76,13 @@ public:
 
 
     bool isValid() const { return NULL != fPtr; }
-    
+
     
 
 
 
     T* get() const { SkASSERT(this->isValid()); return fPtr; }
-    
+
 private:
     T*   fPtr; 
     char fStorage[sizeof(T)];

@@ -12,18 +12,33 @@
 
 #include "SkTypes.h"
 
+
+
+
+
+
+
+
+
+
+
+
 class SK_API SkDeque : SkNoncopyable {
 public:
-    explicit SkDeque(size_t elemSize);
-    SkDeque(size_t elemSize, void* storage, size_t storageSize);
+    
+
+
+
+    explicit SkDeque(size_t elemSize, int allocCount = 1);
+    SkDeque(size_t elemSize, void* storage, size_t storageSize, int allocCount = 1);
     ~SkDeque();
 
     bool    empty() const { return 0 == fCount; }
     int     count() const { return fCount; }
     size_t  elemSize() const { return fElemSize; }
 
-    const void* front() const;
-    const void* back() const;
+    const void* front() const { return fFront; }
+    const void* back() const  { return fBack; }
 
     void* front() {
         return (void*)((const SkDeque*)this)->front();
@@ -33,6 +48,10 @@ public:
         return (void*)((const SkDeque*)this)->back();
     }
 
+    
+
+
+
     void* push_front();
     void* push_back();
 
@@ -40,35 +59,80 @@ public:
     void pop_back();
 
 private:
-    struct Head;
+    struct Block;
 
 public:
-    class F2BIter {
+    class Iter {
     public:
+        enum IterStart {
+            kFront_IterStart,
+            kBack_IterStart
+        };
+
         
 
 
-        F2BIter();
+        Iter();
 
-        F2BIter(const SkDeque& d);
+        Iter(const SkDeque& d, IterStart startLoc);
         void* next();
+        void* prev();
 
-        void reset(const SkDeque& d);
+        void reset(const SkDeque& d, IterStart startLoc);
 
     private:
-        SkDeque::Head*  fHead;
+        SkDeque::Block*  fCurBlock;
         char*           fPos;
         size_t          fElemSize;
     };
 
+    
+    class F2BIter : private Iter {
+    public:
+        F2BIter() {}
+
+        
+
+
+
+        F2BIter(const SkDeque& d) : INHERITED(d, kFront_IterStart) {}
+
+        using Iter::next;
+
+        
+
+
+
+        void reset(const SkDeque& d) {
+            this->INHERITED::reset(d, kFront_IterStart);
+        }
+
+    private:
+        typedef Iter INHERITED;
+    };
+
 private:
-    Head*   fFront;
-    Head*   fBack;
+    
+    friend class DequeUnitTestHelper;
+
+    void*   fFront;
+    void*   fBack;
+
+    Block*  fFrontBlock;
+    Block*  fBackBlock;
     size_t  fElemSize;
     void*   fInitialStorage;
-    int     fCount;
+    int     fCount;             
+    int     fAllocCount;        
 
-    friend class Iter;
+    Block*  allocateBlock(int allocCount);
+    void    freeBlock(Block* block);
+
+    
+
+
+
+    int  numBlocksAllocated() const;
 };
 
 #endif

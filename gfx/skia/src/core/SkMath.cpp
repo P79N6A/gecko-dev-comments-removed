@@ -5,9 +5,7 @@
 
 
 
-
-
-#include "SkMath.h"
+#include "SkMathPriv.h"
 #include "SkCordic.h"
 #include "SkFloatBits.h"
 #include "SkFloatingPoint.h"
@@ -22,7 +20,7 @@
 #define sub_shift(zeros, x, n)  \
     zeros -= n;                 \
     x >>= n
-    
+
 int SkCLZ_portable(uint32_t x) {
     if (x == 0) {
         return 32;
@@ -255,13 +253,13 @@ SkFixed SkFixedFastInvert(SkFixed x) {
     case n:                                             \
         if ((numer = (numer << 1) - denom) >= 0)        \
             result |= 1 << (n - 1); else numer += denom
-            
+
 int32_t SkDivBits(int32_t numer, int32_t denom, int shift_bias) {
     SkASSERT(denom != 0);
     if (numer == 0) {
         return 0;
     }
-        
+
     
     int32_t sign = SkExtractSign(numer ^ denom);
     numer = SkAbs32(numer);
@@ -280,16 +278,16 @@ int32_t SkDivBits(int32_t numer, int32_t denom, int shift_bias) {
 
     denom <<= dbits;
     numer <<= nbits;
-    
+
     SkFixed result = 0;
-    
+
     
     if ((numer -= denom) >= 0) {
         result = 1;
     } else {
         numer += denom;
     }
-    
+
     
     if (bits > 0) {
         
@@ -326,7 +324,7 @@ SkFixed SkFixedMod(SkFixed numer, SkFixed denom) {
 
     numer = SkApplySign(numer, sn);
     denom = SkApplySign(denom, sd);
-    
+
     if (numer < denom) {
         return SkApplySign(numer, sn);
     } else if (numer == denom) {
@@ -389,7 +387,7 @@ int32_t SkCubeRootBits(int32_t value, int bits) {
 
 SkFixed SkFixedMean(SkFixed a, SkFixed b) {
     Sk64 tmp;
-    
+
     tmp.setMul(a, b);
     return tmp.getSqrt();
 }

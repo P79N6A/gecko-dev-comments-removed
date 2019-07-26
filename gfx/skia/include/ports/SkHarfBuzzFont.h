@@ -29,7 +29,7 @@ public:
 
 
     virtual void setupPaint(SkPaint*) const = 0;
-    
+
     
 
 

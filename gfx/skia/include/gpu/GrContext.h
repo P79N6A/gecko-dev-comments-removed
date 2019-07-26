@@ -10,18 +10,21 @@
 #ifndef GrContext_DEFINED
 #define GrContext_DEFINED
 
-#include "GrClip.h"
+#include "GrConfig.h"
 #include "GrPaint.h"
+#include "GrAARectRenderer.h"
+#include "GrClipData.h"
 
 
-#include "GrRenderTarget.h" 
+#include "GrRenderTarget.h"
+#include "SkClipStack.h"
 
 class GrAutoScratchTexture;
+class GrCacheKey;
 class GrDrawState;
 class GrDrawTarget;
 class GrFontCache;
 class GrGpu;
-struct GrGpuStats;
 class GrIndexBuffer;
 class GrIndexBufferAllocPool;
 class GrInOrderDrawBuffer;
@@ -36,11 +39,18 @@ class GrSoftwarePathRenderer;
 
 class GR_API GrContext : public GrRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(GrContext)
+
     
 
 
     static GrContext* Create(GrEngine engine,
                              GrPlatform3DContext context3D);
+
+    
+
+
+    static int GetThreadInstanceCount();
 
     virtual ~GrContext();
 
@@ -90,53 +100,26 @@ public:
 
 
 
-    class SK_API TextureCacheEntry {
-    public:
-        TextureCacheEntry() : fEntry(NULL) {}
-        TextureCacheEntry(const TextureCacheEntry& e) : fEntry(e.fEntry) {}
-        TextureCacheEntry& operator= (const TextureCacheEntry& e) {
-            fEntry = e.fEntry;
-            return *this;
-        }
-        GrTexture* texture() const;
-        void reset() { fEntry = NULL; }
-    private:
-        explicit TextureCacheEntry(GrResourceEntry* entry) { fEntry = entry; }
-        void set(GrResourceEntry* entry) { fEntry = entry; }
-        GrResourceEntry* cacheEntry() { return fEntry; }
-        GrResourceEntry* fEntry;
-        friend class GrContext;
-    };
+
+
+
+
+
+
+
+
+
+
+    GrTexture* createTexture(const GrTextureParams* params,
+                             const GrTextureDesc& desc,
+                             const GrCacheData& cacheData,
+                             void* srcData, size_t rowBytes);
 
     
 
 
 
-
-    typedef uint64_t TextureKey;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    TextureCacheEntry createAndLockTexture(TextureKey key,
-                                           const GrSamplerState* sampler,
-                                           const GrTextureDesc& desc,
-                                           void* srcData, size_t rowBytes);
+    GrTexture* findTexture(const GrCacheKey& key);
 
     
 
@@ -149,28 +132,17 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-    TextureCacheEntry findAndLockTexture(TextureKey key,
-                                         int width,
-                                         int height,
-                                         const GrSamplerState* sampler);
+    GrTexture* findTexture(const GrTextureDesc& desc,
+                           const GrCacheData& cacheData,
+                           const GrTextureParams* params);
     
 
 
 
 
-    bool isTextureInCache(TextureKey key,
-                          int width,
-                          int height,
-                          const GrSamplerState*) const;
+    bool isTextureInCache(const GrTextureDesc& desc,
+                          const GrCacheData& cacheData,
+                          const GrTextureParams* params) const;
 
     
 
@@ -204,26 +176,39 @@ public:
 
 
 
-    TextureCacheEntry lockScratchTexture(const GrTextureDesc& desc, ScratchTexMatch match);
+    GrTexture* lockScratchTexture(const GrTextureDesc& desc,
+                                  ScratchTexMatch match);
 
     
 
 
 
-    void unlockTexture(TextureCacheEntry entry);
+    void unlockScratchTexture(GrTexture* texture);
 
     
 
 
 
-    GrTexture* createUncachedTexture(const GrTextureDesc&,
+
+
+
+    void purgeCache();
+
+    
+
+
+
+    GrTexture* createUncachedTexture(const GrTextureDesc& desc,
                                      void* srcData,
                                      size_t rowBytes);
 
     
 
 
-    bool supportsIndex8PixelConfig(const GrSamplerState*,
+
+
+
+    bool supportsIndex8PixelConfig(const GrTextureParams*,
                                    int width,
                                    int height) const;
 
@@ -274,6 +259,8 @@ public:
 
     const GrRenderTarget* getRenderTarget() const;
     GrRenderTarget* getRenderTarget();
+
+    GrAARectRenderer* getAARectRenderer() { return fAARectRenderer; }
 
     
 
@@ -337,19 +324,13 @@ public:
 
 
 
-    const GrClip& getClip() const;
+    const GrClipData* getClip() const;
 
     
 
 
 
-    void setClip(const GrClip& clip);
-
-    
-
-
-
-    void setClip(const GrIRect& rect);
+    void setClip(const GrClipData* clipData);
 
     
     
@@ -359,7 +340,10 @@ public:
 
 
 
-    void clear(const GrIRect* rect, GrColor color);
+
+
+    void clear(const GrIRect* rect, GrColor color,
+               GrRenderTarget* target = NULL);
 
     
 
@@ -486,6 +470,18 @@ public:
 
     void flush(int flagsBitfield = 0);
 
+   
+
+
+    enum PixelOpsFlags {
+        
+
+        kDontFlush_PixelOpsFlag = 0x1,
+        
+
+        kUnpremul_PixelOpsFlag  = 0x2,
+    };
+
     
 
 
@@ -505,13 +501,9 @@ public:
 
     bool readRenderTargetPixels(GrRenderTarget* target,
                                 int left, int top, int width, int height,
-                                GrPixelConfig config, void* buffer, 
-                                size_t rowBytes) {
-        return this->internalReadRenderTargetPixels(target, left, top,
-                                                    width, height,
-                                                    config, buffer,
-                                                    rowBytes, 0);
-    }
+                                GrPixelConfig config, void* buffer,
+                                size_t rowBytes = 0,
+                                uint32_t pixelOpsFlags = 0);
 
     
 
@@ -530,12 +522,11 @@ public:
     void writeRenderTargetPixels(GrRenderTarget* target,
                                  int left, int top, int width, int height,
                                  GrPixelConfig config, const void* buffer,
-                                 size_t rowBytes) {
-        this->internalWriteRenderTargetPixels(target, left, top, width, height,
-                                              config, buffer, rowBytes, 0);
-    }
+                                 size_t rowBytes = 0,
+                                 uint32_t pixelOpsFlags = 0);
 
     
+
 
 
 
@@ -553,13 +544,11 @@ public:
     bool readTexturePixels(GrTexture* texture,
                            int left, int top, int width, int height,
                            GrPixelConfig config, void* buffer,
-                           size_t rowBytes) {
-        return this->internalReadTexturePixels(texture, left, top,
-                                               width, height,
-                                               config, buffer, rowBytes, 0);
-    }
+                           size_t rowBytes = 0,
+                           uint32_t pixelOpsFlags = 0);
 
     
+
 
 
 
@@ -574,10 +563,10 @@ public:
     void writeTexturePixels(GrTexture* texture,
                             int left, int top, int width, int height,
                             GrPixelConfig config, const void* buffer,
-                            size_t rowBytes) {
-        this->internalWriteTexturePixels(texture, left, top, width, height, 
-                                         config, buffer, rowBytes, 0);
-    }
+                            size_t rowBytes,
+                            uint32_t pixelOpsFlags = 0);
+
+
     
 
 
@@ -609,10 +598,8 @@ public:
 
 
 
-
      GrTexture* gaussianBlur(GrTexture* srcTexture,
-                             GrAutoScratchTexture* temp1,
-                             GrAutoScratchTexture* temp2,
+                             bool canClobberSrc,
                              const SkRect& rect,
                              float sigmaX, float sigmaY);
 
@@ -629,24 +616,22 @@ public:
 
 
 
-    GrTexture* applyMorphology(GrTexture* srcTexture,
-                               const GrRect& rect,
-                               GrTexture* temp1, GrTexture* temp2,
-                               GrSamplerState::Filter filter,
-                               SkISize radius);
-    
+     GrTexture* zoom(GrTexture* srcTexture,
+                     const SkRect& dstRect, const SkRect& srcRect, float inset);
+
     
     
 
     class AutoRenderTarget : ::GrNoncopyable {
     public:
         AutoRenderTarget(GrContext* context, GrRenderTarget* target) {
-            fContext = NULL;
             fPrevTarget = context->getRenderTarget();
-            if (fPrevTarget != target) {
-                context->setRenderTarget(target);
-                fContext = context;
-            }
+            context->setRenderTarget(target);
+            fContext = context;
+        }
+        AutoRenderTarget(GrContext* context) {
+            fPrevTarget = context->getRenderTarget();
+            fContext = context;
         }
         ~AutoRenderTarget() {
             if (fContext) {
@@ -658,6 +643,115 @@ public:
         GrRenderTarget* fPrevTarget;
     };
 
+    
+
+
+    class AutoMatrix : GrNoncopyable {
+    public:
+        enum InitialMatrix {
+            kPreserve_InitialMatrix,
+            kIdentity_InitialMatrix,
+        };
+
+        AutoMatrix() : fContext(NULL) {}
+
+        AutoMatrix(GrContext* ctx, InitialMatrix initialState) : fContext(ctx) {
+            fMatrix = ctx->getMatrix();
+            switch (initialState) {
+                case kPreserve_InitialMatrix:
+                    break;
+                case kIdentity_InitialMatrix:
+                    ctx->setMatrix(GrMatrix::I());
+                    break;
+                default:
+                    GrCrash("Unexpected initial matrix state");
+            }
+        }
+
+        AutoMatrix(GrContext* ctx, const GrMatrix& matrix) : fContext(ctx) {
+            fMatrix = ctx->getMatrix();
+            ctx->setMatrix(matrix);
+        }
+
+        void set(GrContext* ctx) {
+            if (NULL != fContext) {
+                fContext->setMatrix(fMatrix);
+            }
+            fMatrix = ctx->getMatrix();
+            fContext = ctx;
+        }
+
+        void set(GrContext* ctx, const GrMatrix& matrix) {
+            if (NULL != fContext) {
+                fContext->setMatrix(fMatrix);
+            }
+            fMatrix = ctx->getMatrix();
+            ctx->setMatrix(matrix);
+            fContext = ctx;
+        }
+
+        ~AutoMatrix() {
+            if (NULL != fContext) {
+                fContext->setMatrix(fMatrix);
+            }
+        }
+
+    private:
+        GrContext*  fContext;
+        GrMatrix    fMatrix;
+    };
+
+    class AutoClip : GrNoncopyable {
+    public:
+        
+        
+        
+        enum InitialClip {
+            kWideOpen_InitialClip,
+        };
+
+        AutoClip(GrContext* context, InitialClip initialState) {
+            GrAssert(kWideOpen_InitialClip == initialState);
+            fOldClip = context->getClip();
+            fNewClipData.fClipStack = &fNewClipStack;
+            context->setClip(&fNewClipData);
+            fContext = context;
+        }
+
+        AutoClip(GrContext* context, const GrRect& newClipRect)
+        : fContext(context)
+        , fNewClipStack(newClipRect) {
+            fNewClipData.fClipStack = &fNewClipStack;
+
+            fOldClip = fContext->getClip();
+            fContext->setClip(&fNewClipData);
+        }
+
+        ~AutoClip() {
+            if (NULL != fContext) {
+                fContext->setClip(fOldClip);
+            }
+        }
+    private:
+        GrContext*        fContext;
+        const GrClipData* fOldClip;
+
+        SkClipStack       fNewClipStack;
+        GrClipData        fNewClipData;
+    };
+
+    class AutoWideOpenIdentityDraw {
+    public:
+        AutoWideOpenIdentityDraw(GrContext* ctx, GrRenderTarget* rt)
+            : fAutoClip(ctx, AutoClip::kWideOpen_InitialClip)
+            , fAutoRT(ctx, rt)
+            , fAutoMatrix(ctx, AutoMatrix::kIdentity_InitialMatrix) {
+        }
+    private:
+        AutoClip fAutoClip;
+        AutoRenderTarget fAutoRT;
+        AutoMatrix fAutoMatrix;
+    };
 
     
     
@@ -666,32 +760,14 @@ public:
     GrFontCache* getFontCache() { return fFontCache; }
     GrDrawTarget* getTextTarget(const GrPaint& paint);
     const GrIndexBuffer* getQuadIndexBuffer() const;
-    void resetStats();
-    const GrGpuStats& getStats() const;
-    void printStats() const;
+
     
 
 
 
 
-
-
-
-    GrResourceEntry* addAndLockStencilBuffer(GrStencilBuffer* sb);
-    void unlockStencilBuffer(GrResourceEntry* sbEntry);
+    void addStencilBuffer(GrStencilBuffer* sb);
     GrStencilBuffer* findStencilBuffer(int width, int height, int sampleCnt);
-
-    
-
-
-
-    virtual void postClipPush();
-
-    
-
-
-
-    virtual void preClipPop();
 
     GrPathRenderer* getPathRenderer(const SkPath& path,
                                     GrPathFill fill,
@@ -699,13 +775,17 @@ public:
                                     bool antiAlias,
                                     bool allowSW);
 
+#if GR_CACHE_STATS
+    void printCacheStats() const;
+#endif
+
 private:
     
-    enum DrawCategory {
-        kBuffered_DrawCategory,      
-        kUnbuffered_DrawCategory,    
+    enum BufferedDraw {
+        kYes_BufferedDraw,
+        kNo_BufferedDraw,
     };
-    DrawCategory fLastDrawCategory;
+    BufferedDraw fLastDrawWasBuffered;
 
     GrGpu*              fGpu;
     GrDrawState*        fDrawState;
@@ -720,25 +800,13 @@ private:
     GrIndexBufferAllocPool*     fDrawBufferIBAllocPool;
     GrInOrderDrawBuffer*        fDrawBuffer;
 
-    GrIndexBuffer*              fAAFillRectIndexBuffer;
-    GrIndexBuffer*              fAAStrokeRectIndexBuffer;
+    GrAARectRenderer*           fAARectRenderer;
+
+    bool                        fDidTestPMConversions;
+    int                         fPMToUPMConversion;
+    int                         fUPMToPMConversion;
 
     GrContext(GrGpu* gpu);
-
-    void fillAARect(GrDrawTarget* target,
-                    const GrRect& devRect,
-                    bool useVertexCoverage);
-
-    void strokeAARect(GrDrawTarget* target,
-                      const GrRect& devRect,
-                      const GrVec& devStrokeSize,
-                      bool useVertexCoverage);
-
-    inline int aaFillRectIndexCount() const;
-    GrIndexBuffer* aaFillRectIndexBuffer();
-
-    inline int aaStrokeRectIndexCount() const;
-    GrIndexBuffer* aaStrokeRectIndexBuffer();
 
     void setupDrawBuffer();
 
@@ -746,95 +814,31 @@ private:
 
     void setPaint(const GrPaint& paint);
 
-    GrDrawTarget* prepareToDraw(const GrPaint& paint, DrawCategory drawType);
+    
+    
+    GrDrawTarget* prepareToDraw(const GrPaint*, BufferedDraw);
 
     void internalDrawPath(const GrPaint& paint, const SkPath& path,
                           GrPathFill fill, const GrPoint* translate);
 
-    
-
-
-    enum PixelOpsFlags {
-        kDontFlush_PixelOpsFlag = 0x1,
-    };
-
-    bool internalReadRenderTargetPixels(GrRenderTarget* target,
-                                        int left, int top,
-                                        int width, int height,
-                                        GrPixelConfig config, void* buffer, 
-                                        size_t rowBytes, uint32_t flags);
-
-    void internalWriteRenderTargetPixels(GrRenderTarget* target,
-                                        int left, int top,
-                                        int width, int height,
-                                        GrPixelConfig, const void* buffer,
-                                        size_t rowBytes, uint32_t flags);
-
-    bool internalReadTexturePixels(GrTexture* texture,
-                                   int left, int top,
-                                   int width, int height,
-                                   GrPixelConfig config, void* buffer,
-                                   size_t rowBytes, uint32_t flags);
-
-    void internalWriteTexturePixels(GrTexture* texture,
-                                    int left, int top,
-                                    int width, int height,
-                                    GrPixelConfig config, const void* buffer,
-                                    size_t rowBytes, uint32_t flags);
-    
-    
-    
-    
-    friend class GrAtlas;
+    GrTexture* createResizedTexture(const GrTextureDesc& desc,
+                                    const GrCacheData& cacheData,
+                                    void* srcData,
+                                    size_t rowBytes,
+                                    bool needsFiltering);
 
     
     
+    friend class GrTexture;
+
     
     
-    
-    static int PaintStageVertexLayoutBits(
-                                    const GrPaint& paint,
-                                    const bool hasTexCoords[GrPaint::kTotalStages]);
-    
-};
+    void addExistingTextureToCache(GrTexture* texture);
 
+    GrCustomStage* createPMToUPMEffect(GrTexture* texture, bool swapRAndB);
+    GrCustomStage* createUPMToPMEffect(GrTexture* texture, bool swapRAndB);
 
-
-
-class GrAutoMatrix : GrNoncopyable {
-public:
-    GrAutoMatrix() : fContext(NULL) {}
-    GrAutoMatrix(GrContext* ctx) : fContext(ctx) {
-        fMatrix = ctx->getMatrix();
-    }
-    GrAutoMatrix(GrContext* ctx, const GrMatrix& matrix) : fContext(ctx) {
-        fMatrix = ctx->getMatrix();
-        ctx->setMatrix(matrix);
-    }
-    void set(GrContext* ctx) {
-        if (NULL != fContext) {
-            fContext->setMatrix(fMatrix);
-        }
-        fMatrix = ctx->getMatrix();
-        fContext = ctx;
-    }
-    void set(GrContext* ctx, const GrMatrix& matrix) {
-        if (NULL != fContext) {
-            fContext->setMatrix(fMatrix);
-        }
-        fMatrix = ctx->getMatrix();
-        ctx->setMatrix(matrix);
-        fContext = ctx;
-    }
-    ~GrAutoMatrix() {
-        if (NULL != fContext) {
-            fContext->setMatrix(fMatrix);
-        }
-    }
-
-private:
-    GrContext*  fContext;
-    GrMatrix    fMatrix;
+    typedef GrRefCnt INHERITED;
 };
 
 
@@ -845,48 +849,78 @@ private:
 class GrAutoScratchTexture : ::GrNoncopyable {
 public:
     GrAutoScratchTexture()
-        : fContext(NULL) {
+        : fContext(NULL)
+        , fTexture(NULL) {
     }
 
     GrAutoScratchTexture(GrContext* context,
                          const GrTextureDesc& desc,
                          GrContext::ScratchTexMatch match =
                             GrContext::kApprox_ScratchTexMatch)
-      : fContext(NULL) {
+      : fContext(NULL)
+      , fTexture(NULL) {
       this->set(context, desc, match);
     }
-    
+
     ~GrAutoScratchTexture() {
-        if (NULL != fContext) {
-            fContext->unlockTexture(fEntry);
+        this->reset();
+    }
+
+    void reset() {
+        if (NULL != fContext && NULL != fTexture) {
+            fContext->unlockScratchTexture(fTexture);
+            fTexture = NULL;
         }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    GrTexture* detach() {
+        GrTexture* temp = fTexture;
+
+        
+        
+        GrAssert(NULL != temp->getCacheEntry());
+
+        fTexture = NULL;
+
+        temp->setFlag((GrTextureFlags) GrTexture::kReturnToCache_FlagBit);
+        return temp;
     }
 
     GrTexture* set(GrContext* context,
                    const GrTextureDesc& desc,
                    GrContext::ScratchTexMatch match =
                         GrContext::kApprox_ScratchTexMatch) {
-        if (NULL != fContext) {
-            fContext->unlockTexture(fEntry);
-            fEntry.reset();
-        }
+        this->reset();
+
         fContext = context;
         if (NULL != fContext) {
-            fEntry = fContext->lockScratchTexture(desc, match);
-            GrTexture* ret = fEntry.texture();
-            if (NULL == ret) {
+            fTexture = fContext->lockScratchTexture(desc, match);
+            if (NULL == fTexture) {
                 fContext = NULL;
             }
-            return ret;
+            return fTexture;
         } else {
             return NULL;
         }
     }
 
-    GrTexture* texture() { return fEntry.texture(); }
+    GrTexture* texture() { return fTexture; }
+
 private:
     GrContext*                    fContext;
-    GrContext::TextureCacheEntry  fEntry;
+    GrTexture*                    fTexture;
 };
 
 #endif

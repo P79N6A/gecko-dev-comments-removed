@@ -14,7 +14,8 @@
 class SkLineClipper {
 public:
     enum {
-        kMaxPoints = 4
+        kMaxPoints = 4,
+        kMaxClippedLineSegments = kMaxPoints - 1
     };
 
     

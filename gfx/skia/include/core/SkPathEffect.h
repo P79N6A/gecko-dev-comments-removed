@@ -11,8 +11,86 @@
 #define SkPathEffect_DEFINED
 
 #include "SkFlattenable.h"
+#include "SkPaint.h"
 
 class SkPath;
+
+class SkStrokeRec {
+public:
+    enum InitStyle {
+        kHairline_InitStyle,
+        kFill_InitStyle
+    };
+    SkStrokeRec(InitStyle style);
+
+    SkStrokeRec(const SkStrokeRec&);
+    explicit SkStrokeRec(const SkPaint&);
+
+    enum Style {
+        kHairline_Style,
+        kFill_Style,
+        kStroke_Style,
+        kStrokeAndFill_Style
+    };
+
+    Style getStyle() const;
+    SkScalar getWidth() const { return fWidth; }
+    SkScalar getMiter() const { return fMiterLimit; }
+    SkPaint::Cap getCap() const { return fCap; }
+    SkPaint::Join getJoin() const { return fJoin; }
+
+    bool isHairlineStyle() const {
+        return kHairline_Style == this->getStyle();
+    }
+
+    bool isFillStyle() const {
+        return kFill_Style == this->getStyle();
+    }
+
+    void setFillStyle();
+    void setHairlineStyle();
+    
+
+
+
+
+
+    void setStrokeStyle(SkScalar width, bool strokeAndFill = false);
+
+    void setStrokeParams(SkPaint::Cap cap, SkPaint::Join join, SkScalar miterLimit) {
+        fCap = cap;
+        fJoin = join;
+        fMiterLimit = miterLimit;
+    }
+
+    
+
+
+
+    bool needToApply() const {
+        Style style = this->getStyle();
+        return (kStroke_Style == style) || (kStrokeAndFill_Style == style);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    bool applyToPath(SkPath* dst, const SkPath& src) const;
+
+private:
+    SkScalar        fWidth;
+    SkScalar        fMiterLimit;
+    SkPaint::Cap    fCap;
+    SkPaint::Join   fJoin;
+    bool            fStrokeAndFill;
+};
 
 
 
@@ -24,6 +102,8 @@ class SkPath;
 
 class SK_API SkPathEffect : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkPathEffect)
+
     SkPathEffect() {}
 
     
@@ -32,7 +112,16 @@ public:
 
 
 
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width) = 0;
+
+
+
+
+
+
+
+
+
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) = 0;
 
     
 
@@ -68,7 +157,7 @@ protected:
 
     
     SkPathEffect* fPE0, *fPE1;
-    
+
 private:
     typedef SkPathEffect INHERITED;
 };
@@ -88,9 +177,7 @@ public:
     SkComposePathEffect(SkPathEffect* outer, SkPathEffect* inner)
         : INHERITED(outer, inner) {}
 
-    
-    
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkComposePathEffect)
 
@@ -101,7 +188,7 @@ private:
     
     SkComposePathEffect(const SkComposePathEffect&);
     SkComposePathEffect& operator=(const SkComposePathEffect&);
-    
+
     typedef SkPairPathEffect INHERITED;
 };
 
@@ -120,8 +207,7 @@ public:
     SkSumPathEffect(SkPathEffect* first, SkPathEffect* second)
         : INHERITED(first, second) {}
 
-    
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkSumPathEffect)
 

@@ -28,6 +28,7 @@ struct GrPoint;
 
 class GR_API GrPathRenderer : public GrRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(GrPathRenderer)
 
     
 
@@ -101,20 +102,13 @@ public:
 
 
 
-
-
-
-
-
     virtual bool drawPath(const SkPath& path,
                           GrPathFill fill,
                           const GrVec* translate,
                           GrDrawTarget* target,
-                          GrDrawState::StageMask stageMask,
                           bool antiAlias) {
         GrAssert(this->canDrawPath(path, fill, target, antiAlias));
-        return this->onDrawPath(path, fill, translate,
-                                target, stageMask, antiAlias);
+        return this->onDrawPath(path, fill, translate, target, antiAlias);
     }
 
     
@@ -146,16 +140,10 @@ protected:
 
 
 
-
-
-
-
-
     virtual bool onDrawPath(const SkPath& path,
                             GrPathFill fill,
                             const GrVec* translate,
                             GrDrawTarget* target,
-                            GrDrawState::StageMask stageMask,
                             bool antiAlias) = 0;
 
 private:

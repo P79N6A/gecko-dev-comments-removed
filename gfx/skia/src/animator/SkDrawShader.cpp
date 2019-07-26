@@ -24,7 +24,7 @@ const SkMemberInfo SkDrawShader::fInfo[] = {
 
 DEFINE_GET_MEMBER(SkDrawShader);
 
-SkDrawShader::SkDrawShader() : matrix(NULL), 
+SkDrawShader::SkDrawShader() : matrix(NULL),
     tileMode(SkShader::kClamp_TileMode) {
 }
 
@@ -66,14 +66,14 @@ bool SkDrawBitmapShader::add() {
 SkShader* SkDrawBitmapShader::getShader() {
     if (image == NULL)
         return NULL;
+
     
     
     
     
     
     
-    
-    SkShader* shader  = SkShader::CreateBitmapShader(image->fBitmap, 
+    SkShader* shader  = SkShader::CreateBitmapShader(image->fBitmap,
                                                     (SkShader::TileMode) tileMode,
                                                     (SkShader::TileMode) tileMode);
     SkAutoTDelete<SkShader> autoDel(shader);

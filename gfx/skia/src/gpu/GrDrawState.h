@@ -14,15 +14,17 @@
 #include "GrRefCnt.h"
 #include "GrSamplerState.h"
 #include "GrStencil.h"
+#include "GrTexture.h"
+#include "GrRenderTarget.h"
+#include "effects/GrSingleTextureEffect.h"
 
 #include "SkXfermode.h"
 
-class GrRenderTarget;
-class GrTexture;
 
 class GrDrawState : public GrRefCnt {
-
 public:
+    SK_DECLARE_INST_COUNT(GrDrawState)
+
     
 
 
@@ -43,28 +45,37 @@ public:
 
 
     enum {
-        kNumStages = 4,
+        kNumStages = 5,
         kMaxTexCoords = kNumStages
     };
 
-    
+    GrDrawState()
+        : fRenderTarget(NULL) {
 
-
-    typedef uint32_t StageMask;
-    GR_STATIC_ASSERT(sizeof(StageMask)*8 >= GrDrawState::kNumStages);
-
-    GrDrawState() {
         this->reset();
     }
 
-    GrDrawState(const GrDrawState& state) {
+    GrDrawState(const GrDrawState& state)
+        : fRenderTarget(NULL) {
+
         *this = state;
+    }
+
+    virtual ~GrDrawState() {
+        this->disableStages();
+        GrSafeSetNull(fRenderTarget);
     }
 
     
 
- 
+
+
+
     void reset() {
+
+        this->disableStages();
+        GrSafeSetNull(fRenderTarget);
+
         
         
         
@@ -82,16 +93,15 @@ public:
         fCoverage = 0xffffffff;
         fFirstCoverageStage = kNumStages;
         fColorFilterMode = SkXfermode::kDst_Mode;
-        fSrcBlend = kOne_BlendCoeff;
-        fDstBlend = kZero_BlendCoeff;
+        fSrcBlend = kOne_GrBlendCoeff;
+        fDstBlend = kZero_GrBlendCoeff;
         fViewMatrix.reset();
-        fBehaviorBits = 0;
 
         
         
         GrAssert(this->memsetSize() +  sizeof(fColor) + sizeof(fCoverage) +
                  sizeof(fFirstCoverageStage) + sizeof(fColorFilterMode) +
-                 sizeof(fSrcBlend) + sizeof(fDstBlend) ==
+                 sizeof(fSrcBlend) + sizeof(fDstBlend) + sizeof(fRenderTarget) ==
                  this->podSize());
     }
 
@@ -166,43 +176,46 @@ public:
     
 
 
+    void createTextureEffect(int stage, GrTexture* texture) {
+        GrAssert(!this->getSampler(stage).getCustomStage());
+        this->sampler(stage)->setCustomStage(
+            SkNEW_ARGS(GrSingleTextureEffect, (texture)))->unref();
+    }
 
-
-
-
-
-    void setTexture(int stage, GrTexture* texture) {
-        GrAssert((unsigned)stage < kNumStages);
-
-        if (isBehaviorEnabled(kTexturesNeedRef_BehaviorBit)) {
-            
-            
-            
-            GrTexture* temp = fTextures[stage];
-            fTextures[stage] = NULL;
-
-            SkSafeRef(texture);
-            SkSafeUnref(temp);
+    bool stagesDisabled() {
+        for (int i = 0; i < kNumStages; ++i) {
+            if (NULL != fSamplerStates[i].getCustomStage()) {
+                return false;
+            }
         }
+        return true;
+    }
 
-        fTextures[stage] = texture;
+    void disableStage(int index) {
+        fSamplerStates[index].setCustomStage(NULL);
     }
 
     
 
 
 
-
-
-
-    const GrTexture* getTexture(int stage) const {
-        GrAssert((unsigned)stage < kNumStages);
-        return fTextures[stage];
+    void disableStages() {
+        for (int i = 0; i < kNumStages; ++i) {
+            this->disableStage(i);
+        }
     }
-    GrTexture* getTexture(int stage) {
-        GrAssert((unsigned)stage < kNumStages);
-        return fTextures[stage];
-    }
+
+    class AutoStageDisable : public ::GrNoncopyable {
+    public:
+        AutoStageDisable(GrDrawState* ds) : fDrawState(ds) {}
+        ~AutoStageDisable() {
+            if (NULL != fDrawState) {
+                fDrawState->disableStages();
+            }
+        }
+    private:
+        GrDrawState* fDrawState;
+    };
 
     
 
@@ -229,13 +242,33 @@ public:
     
 
 
-    void preConcatSamplerMatrices(StageMask stageMask, const GrMatrix& matrix) {
-        GrAssert(!(stageMask & kIllegalStageMaskBits));
+    void preConcatSamplerMatrices(const GrMatrix& matrix) {
         for (int i = 0; i < kNumStages; ++i) {
-            if ((1 << i) & stageMask) {
+            if (this->isStageEnabled(i)) {
                 fSamplerStates[i].preConcatMatrix(matrix);
             }
         }
+    }
+
+    
+
+
+
+
+    bool preConcatSamplerMatricesWithInverse(const GrMatrix& matrix) {
+        GrMatrix inv;
+        bool computed = false;
+        for (int i = 0; i < kNumStages; ++i) {
+            if (this->isStageEnabled(i)) {
+                if (!computed && !matrix.invert(&inv)) {
+                    return false;
+                } else {
+                    computed = true;
+                }
+                fSamplerStates[i].preConcatMatrix(inv);
+            }
+        }
+        return true;
     }
 
     
@@ -255,14 +288,14 @@ public:
 
     void setFirstCoverageStage(int firstCoverageStage) {
         GrAssert((unsigned)firstCoverageStage <= kNumStages);
-        fFirstCoverageStage = firstCoverageStage; 
+        fFirstCoverageStage = firstCoverageStage;
     }
 
     
 
 
     int getFirstCoverageStage() const {
-        return fFirstCoverageStage; 
+        return fFirstCoverageStage;
     }
 
     
@@ -289,10 +322,10 @@ public:
         fDstBlend = dstCoeff;
     #if GR_DEBUG
         switch (dstCoeff) {
-        case kDC_BlendCoeff:
-        case kIDC_BlendCoeff:
-        case kDA_BlendCoeff:
-        case kIDA_BlendCoeff:
+        case kDC_GrBlendCoeff:
+        case kIDC_GrBlendCoeff:
+        case kDA_GrBlendCoeff:
+        case kIDA_GrBlendCoeff:
             GrPrintf("Unexpected dst blend coeff. Won't work correctly with"
                      "coverage stages.\n");
             break;
@@ -300,10 +333,10 @@ public:
             break;
         }
         switch (srcCoeff) {
-        case kSC_BlendCoeff:
-        case kISC_BlendCoeff:
-        case kSA_BlendCoeff:
-        case kISA_BlendCoeff:
+        case kSC_GrBlendCoeff:
+        case kISC_GrBlendCoeff:
+        case kSA_GrBlendCoeff:
+        case kISA_GrBlendCoeff:
             GrPrintf("Unexpected src blend coeff. Won't work correctly with"
                      "coverage stages.\n");
             break;
@@ -445,6 +478,7 @@ public:
             }
             fDrawState = ds;
         }
+        bool isSet() const { return NULL != fDrawState; }
     private:
         GrDrawState* fDrawState;
         GrMatrix fSavedMatrix;
@@ -461,7 +495,9 @@ public:
 
 
 
-    void setRenderTarget(GrRenderTarget* target) { fRenderTarget = target; }
+    void setRenderTarget(GrRenderTarget* target) {
+        GrSafeAssign(fRenderTarget, target);
+    }
 
     
 
@@ -479,16 +515,26 @@ public:
             fSavedTarget = NULL;
             this->set(ds, newTarget);
         }
-        ~AutoRenderTargetRestore() { this->set(NULL, NULL); }
-        void set(GrDrawState* ds, GrRenderTarget* newTarget) {
+        ~AutoRenderTargetRestore() { this->restore(); }
+
+        void restore() {
             if (NULL != fDrawState) {
                 fDrawState->setRenderTarget(fSavedTarget);
+                fDrawState = NULL;
             }
+            GrSafeSetNull(fSavedTarget);
+        }
+
+        void set(GrDrawState* ds, GrRenderTarget* newTarget) {
+            this->restore();
+
             if (NULL != ds) {
+                GrAssert(NULL == fSavedTarget);
                 fSavedTarget = ds->getRenderTarget();
+                SkSafeRef(fSavedTarget);
                 ds->setRenderTarget(newTarget);
+                fDrawState = ds;
             }
-            fDrawState = ds;
         }
     private:
         GrDrawState* fDrawState;
@@ -622,13 +668,7 @@ public:
 
 
 
-
-        kEdgeAAConcave_StateBit = 0x10,
-        
-
-
-
-        kColorMatrix_StateBit   = 0x20,
+        kColorMatrix_StateBit   = 0x10,
 
         
         kDummyStateBit,
@@ -677,32 +717,6 @@ public:
         return 0 != (stateBit & fFlagBits);
     }
 
-    void copyStateFlags(const GrDrawState& ds) {
-        fFlagBits = ds.fFlagBits;
-    }
-
-    
-
-
-    enum GrBehaviorBits {
-        
-
-
-        kTexturesNeedRef_BehaviorBit = 0x01,
-    };
-
-    void enableBehavior(uint32_t behaviorBits) {
-        fBehaviorBits |= behaviorBits;
-    }
-
-    void disableBehavior(uint32_t behaviorBits) {
-        fBehaviorBits &= ~(behaviorBits);
-    }
-
-    bool isBehaviorEnabled(uint32_t behaviorBits) const {
-        return 0 != (behaviorBits & fBehaviorBits);
-    }
-
     
 
     
@@ -732,10 +746,15 @@ public:
 
 
     DrawFace getDrawFace() const { return fDrawFace; }
-    
+
     
 
     
+
+    bool isStageEnabled(int s) const {
+        GrAssert((unsigned)s < kNumStages);
+        return (NULL != fSamplerStates[s].getCustomStage());
+    }
 
     
     
@@ -748,17 +767,12 @@ public:
             return false;
         }
 
-        
-        
-        
-        if ((fBehaviorBits & ~kTexturesNeedRef_BehaviorBit) != 
-            (s.fBehaviorBits & ~kTexturesNeedRef_BehaviorBit)) {
-            return false;
-        }
-
         for (int i = 0; i < kNumStages; i++) {
-            if (fTextures[i] &&
-                this->fSamplerStates[i] != s.fSamplerStates[i]) {
+            bool enabled = this->isStageEnabled(i);
+            if (enabled != s.isStageEnabled(i)) {
+                return false;
+            }
+            if (enabled && this->fSamplerStates[i] != s.fSamplerStates[i]) {
                 return false;
             }
         }
@@ -780,13 +794,15 @@ public:
         memcpy(this->podStart(), s.podStart(), this->podSize());
 
         fViewMatrix = s.fViewMatrix;
-        fBehaviorBits = s.fBehaviorBits;
 
         for (int i = 0; i < kNumStages; i++) {
-            if (s.fTextures[i]) {
+            if (s.isStageEnabled(i)) {
                 this->fSamplerStates[i] = s.fSamplerStates[i];
             }
         }
+
+        SkSafeRef(fRenderTarget);               
+
         if (kColorMatrix_StateBit & s.fFlagBits) {
             memcpy(this->fColorMatrix, s.fColorMatrix, sizeof(fColorMatrix));
         }
@@ -814,29 +830,29 @@ private:
                sizeof(fPodEndMarker);
     }
 
-    static const StageMask kIllegalStageMaskBits = ~((1 << kNumStages)-1);
     
     union {
         GrColor             fBlendConstant;
         GrColor             fPodStartMarker;
     };
-    GrTexture*          fTextures[kNumStages];
     GrColor             fColorFilterColor;
-    uint32_t            fFlagBits;
-    DrawFace            fDrawFace; 
+    DrawFace            fDrawFace;
     VertexEdgeType      fVertexEdgeType;
     GrStencilSettings   fStencilSettings;
     union {
-        GrRenderTarget* fRenderTarget;
-        GrRenderTarget* fMemsetEndMarker;
+        uint32_t        fFlagBits;
+        uint32_t        fMemsetEndMarker;
     };
     
 
     
     
+    GrRenderTarget*     fRenderTarget;
+
+    int                 fFirstCoverageStage;
+
     GrColor             fColor;
     GrColor             fCoverage;
-    int                 fFirstCoverageStage;
     SkXfermode::Mode    fColorFilterMode;
     GrBlendCoeff        fSrcBlend;
     union {
@@ -845,7 +861,6 @@ private:
     };
     
 
-    uint32_t            fBehaviorBits;
     GrMatrix            fViewMatrix;
 
     
@@ -854,6 +869,7 @@ private:
     
     float               fColorMatrix[20];       
 
+    typedef GrRefCnt INHERITED;
 };
 
 #endif

@@ -17,7 +17,8 @@ class SkData;
 
 class SK_API SkStream : public SkRefCnt {
 public:
-    virtual ~SkStream();
+    SK_DECLARE_INST_COUNT(SkStream)
+
     
 
 
@@ -39,7 +40,7 @@ public:
     
 
     size_t getLength() { return this->read(NULL, 0); }
-    
+
     
 
 
@@ -63,10 +64,21 @@ public:
     bool     readBool() { return this->readU8() != 0; }
     SkScalar readScalar();
     size_t   readPackedUInt();
+
+    
+
+
+
+    SkData* readData();
+
+private:
+    typedef SkRefCnt INHERITED;
 };
 
 class SK_API SkWStream : SkNoncopyable {
 public:
+    SK_DECLARE_INST_COUNT_ROOT(SkWStream)
+
     virtual ~SkWStream();
 
     
@@ -79,7 +91,7 @@ public:
     virtual void flush();
 
     
-    
+
     bool    write8(U8CPU);
     bool    write16(U16CPU);
     bool    write32(uint32_t);
@@ -89,11 +101,11 @@ public:
     bool    writeBigDecAsText(int64_t, int minDigits = 0);
     bool    writeHexAsText(uint32_t, int minDigits = 0);
     bool    writeScalarAsText(SkScalar);
-    
+
     bool    writeBool(bool v) { return this->write8(v); }
     bool    writeScalar(SkScalar);
     bool    writePackedUInt(size_t);
-    
+
     bool writeStream(SkStream* input, size_t length);
 
     bool writeData(const SkData*);
@@ -110,6 +122,8 @@ struct SkFILE;
 
 class SkFILEStream : public SkStream {
 public:
+    SK_DECLARE_INST_COUNT(SkFILEStream)
+
     
 
 
@@ -131,34 +145,42 @@ public:
 private:
     SkFILE*     fFILE;
     SkString    fName;
+
+    typedef SkStream INHERITED;
 };
 
 
 
 class SkFDStream : public SkStream {
 public:
+    SK_DECLARE_INST_COUNT(SkFDStream)
+
     
 
 
 
     SkFDStream(int fileDesc, bool closeWhenDone);
     virtual ~SkFDStream();
-    
+
     
 
     bool isValid() const { return fFD >= 0; }
-    
+
     virtual bool rewind() SK_OVERRIDE;
     virtual size_t read(void* buffer, size_t size) SK_OVERRIDE;
     virtual const char* getFileName() SK_OVERRIDE { return NULL; }
-    
+
 private:
     int     fFD;
     bool    fCloseWhenDone;
+
+    typedef SkStream INHERITED;
 };
 
 class SkMemoryStream : public SkStream {
 public:
+    SK_DECLARE_INST_COUNT(SkMemoryStream)
+
     SkMemoryStream();
     
 
@@ -200,10 +222,12 @@ public:
     const void* getAtPos();
     size_t seek(size_t offset);
     size_t peek() const { return fOffset; }
-    
+
 private:
     SkData* fData;
     size_t  fOffset;
+
+    typedef SkStream INHERITED;
 };
 
 
@@ -213,6 +237,8 @@ private:
 
 class SkBufferStream : public SkStream {
 public:
+    SK_DECLARE_INST_COUNT(SkBufferStream)
+
     
 
 
@@ -249,13 +275,17 @@ private:
     bool        fWeOwnTheBuffer;
 
     void    init(void*, size_t);
+
+    typedef SkStream INHERITED;
 };
 
 
 
-class SkFILEWStream : public SkWStream {
+class SK_API SkFILEWStream : public SkWStream {
 public:
-            SkFILEWStream(const char path[]);
+    SK_DECLARE_INST_COUNT(SkFILEWStream)
+
+    SkFILEWStream(const char path[]);
     virtual ~SkFILEWStream();
 
     
@@ -264,12 +294,17 @@ public:
 
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
     virtual void flush() SK_OVERRIDE;
+
 private:
     SkFILE* fFILE;
+
+    typedef SkWStream INHERITED;
 };
 
 class SkMemoryWStream : public SkWStream {
 public:
+    SK_DECLARE_INST_COUNT(SkMemoryWStream)
+
     SkMemoryWStream(void* buffer, size_t size);
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
     size_t bytesWritten() const { return fBytesWritten; }
@@ -278,10 +313,14 @@ private:
     char*   fBuffer;
     size_t  fMaxLength;
     size_t  fBytesWritten;
+
+    typedef SkWStream INHERITED;
 };
 
 class SK_API SkDynamicMemoryWStream : public SkWStream {
 public:
+    SK_DECLARE_INST_COUNT(SkDynamicMemoryWStream)
+
     SkDynamicMemoryWStream();
     virtual ~SkDynamicMemoryWStream();
 
@@ -313,14 +352,21 @@ private:
     mutable SkData* fCopy;  
 
     void invalidateCopy();
+
+    typedef SkWStream INHERITED;
 };
 
 
 class SkDebugWStream : public SkWStream {
 public:
+    SK_DECLARE_INST_COUNT(SkDebugWStream)
+
     
     virtual bool write(const void* buffer, size_t size) SK_OVERRIDE;
     virtual void newline() SK_OVERRIDE;
+
+private:
+    typedef SkWStream INHERITED;
 };
 
 

@@ -93,6 +93,22 @@ public:
                                           const SkScalar pos[], int count,
                                           SkShader::TileMode mode,
                                           SkUnitMapper* mapper = NULL);
+
+    
+
+
+
+
+
+    static SkShader* CreateTwoPointConical(const SkPoint& start,
+                                          SkScalar startRadius,
+                                          const SkPoint& end,
+                                          SkScalar endRadius,
+                                          const SkColor colors[],
+                                          const SkScalar pos[], int count,
+                                          SkShader::TileMode mode,
+                                          SkUnitMapper* mapper = NULL);
+
     
 
 

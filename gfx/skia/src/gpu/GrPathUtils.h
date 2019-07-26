@@ -96,12 +96,23 @@ namespace GrPathUtils {
         float fM[6];
     };
 
+
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
     
     void convertCubicToQuads(const GrPoint p[4],
                              SkScalar tolScale,
+                             bool constrainWithinTangents,
+                             SkPath::Direction dir,
                              SkTArray<SkPoint, true>* quads);
 };
 #endif

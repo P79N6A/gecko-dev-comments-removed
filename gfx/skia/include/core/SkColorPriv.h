@@ -20,6 +20,30 @@
 
 
 
+#define SK_ITU_BT709_LUM_COEFF_R (0.2126f)
+#define SK_ITU_BT709_LUM_COEFF_G (0.7152f)
+#define SK_ITU_BT709_LUM_COEFF_B (0.0722f)
+
+
+
+
+#define SK_LUM_COEFF_R SK_ITU_BT709_LUM_COEFF_R
+#define SK_LUM_COEFF_G SK_ITU_BT709_LUM_COEFF_G
+#define SK_LUM_COEFF_B SK_ITU_BT709_LUM_COEFF_B
+
+
+
+
+
+static inline U8CPU SkComputeLuminance(U8CPU r, U8CPU g, U8CPU b) {
+    
+    
+    
+    return (r * 54 + g * 183 + b * 19) >> 8;
+}
+
+
+
 
 
 
@@ -53,7 +77,7 @@ static inline int SkAlphaBlend255(S16CPU src, S16CPU dst, U8CPU alpha) {
     SkASSERT((int16_t)src == src);
     SkASSERT((int16_t)dst == dst);
     SkASSERT((uint8_t)alpha == alpha);
-    
+
     int prod = SkMulS16(src - dst, alpha) + 128;
     prod = (prod + (prod >> 8)) >> 8;
     return dst + prod;
@@ -228,7 +252,7 @@ static inline SkPMColor SkFourByteInterp256(SkPMColor src, SkPMColor dst,
     unsigned r = SkAlphaBlend(SkGetPackedR32(src), SkGetPackedR32(dst), scale);
     unsigned g = SkAlphaBlend(SkGetPackedG32(src), SkGetPackedG32(dst), scale);
     unsigned b = SkAlphaBlend(SkGetPackedB32(src), SkGetPackedB32(dst), scale);
-    
+
     return SkPackARGB32(a, r, g, b);
 }
 
@@ -740,32 +764,32 @@ static inline int SkBlend32(int src, int dst, int scale) {
 }
 
 static inline SkPMColor SkBlendLCD16(int srcA, int srcR, int srcG, int srcB,
-                                     SkPMColor dst, uint16_t mask) { 
+                                     SkPMColor dst, uint16_t mask) {
     if (mask == 0) {
         return dst;
     }
-        
+
     
 
 
     int maskR = SkGetPackedR16(mask) >> (SK_R16_BITS - 5);
     int maskG = SkGetPackedG16(mask) >> (SK_G16_BITS - 5);
     int maskB = SkGetPackedB16(mask) >> (SK_B16_BITS - 5);
-        
+
     
     maskR = SkUpscale31To32(maskR);
     maskG = SkUpscale31To32(maskG);
     maskB = SkUpscale31To32(maskB);
-     
+
     
     maskR = maskR * srcA >> 8;
     maskG = maskG * srcA >> 8;
     maskB = maskB * srcA >> 8;
-        
+
     int dstR = SkGetPackedR32(dst);
     int dstG = SkGetPackedG32(dst);
     int dstB = SkGetPackedB32(dst);
-        
+
     
     
     return SkPackARGB32(0xFF,
@@ -776,7 +800,7 @@ static inline SkPMColor SkBlendLCD16(int srcA, int srcR, int srcG, int srcB,
 
 static inline SkPMColor SkBlendLCD16Opaque(int srcR, int srcG, int srcB,
                                            SkPMColor dst, uint16_t mask,
-                                           SkPMColor opaqueDst) { 
+                                           SkPMColor opaqueDst) {
     if (mask == 0) {
         return dst;
     }
@@ -784,23 +808,23 @@ static inline SkPMColor SkBlendLCD16Opaque(int srcR, int srcG, int srcB,
     if (0xFFFF == mask) {
         return opaqueDst;
     }
-        
+
     
 
 
     int maskR = SkGetPackedR16(mask) >> (SK_R16_BITS - 5);
     int maskG = SkGetPackedG16(mask) >> (SK_G16_BITS - 5);
     int maskB = SkGetPackedB16(mask) >> (SK_B16_BITS - 5);
-        
+
     
     maskR = SkUpscale31To32(maskR);
     maskG = SkUpscale31To32(maskG);
     maskB = SkUpscale31To32(maskB);
-        
+
     int dstR = SkGetPackedR32(dst);
     int dstG = SkGetPackedG32(dst);
     int dstB = SkGetPackedB32(dst);
-        
+
     
     
     return SkPackARGB32(0xFF,
@@ -815,24 +839,24 @@ static inline void SkBlitLCD16Row(SkPMColor dst[], const uint16_t src[],
     int srcR = SkColorGetR(color);
     int srcG = SkColorGetG(color);
     int srcB = SkColorGetB(color);
-    
+
     srcA = SkAlpha255To256(srcA);
-    
+
     for (int i = 0; i < width; i++) {
         dst[i] = SkBlendLCD16(srcA, srcR, srcG, srcB, dst[i], src[i]);
     }
 }
 
 static inline void SkBlitLCD16OpaqueRow(SkPMColor dst[], const uint16_t src[],
-                                        SkColor color, int width, 
+                                        SkColor color, int width,
                                         SkPMColor opaqueDst) {
     int srcR = SkColorGetR(color);
     int srcG = SkColorGetG(color);
     int srcB = SkColorGetB(color);
-    
+
     for (int i = 0; i < width; i++) {
         dst[i] = SkBlendLCD16Opaque(srcR, srcG, srcB, dst[i], src[i],
-                                    opaqueDst); 
+                                    opaqueDst);
     }
 }
 

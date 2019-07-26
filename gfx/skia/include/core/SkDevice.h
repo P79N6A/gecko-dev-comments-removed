@@ -27,6 +27,8 @@ class SkGpuRenderTarget;
 
 class SK_API SkDevice : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkDevice)
+
     
 
 
@@ -136,6 +138,34 @@ public:
 
     const SkIPoint& getOrigin() const { return fOrigin; }
 
+    
+
+
+
+
+
+    virtual void onAttachToCanvas(SkCanvas* canvas) {
+        SkASSERT(!fAttachedToCanvas);
+        this->lockPixels();
+#ifdef SK_DEBUG
+        fAttachedToCanvas = true;
+#endif
+    };
+
+    
+
+
+
+
+
+    virtual void onDetachFromCanvas() {
+        SkASSERT(fAttachedToCanvas);
+        this->unlockPixels();
+#ifdef SK_DEBUG
+        fAttachedToCanvas = false;
+#endif
+    };
+
 protected:
     enum Usage {
        kGeneral_Usage,
@@ -175,8 +205,9 @@ protected:
     
 
 
-    virtual void gainFocus(SkCanvas*, const SkMatrix&, const SkRegion&,
-                           const SkClipStack&) {}
+    virtual void gainFocus(const SkMatrix&, const SkRegion&) {
+        SkASSERT(fAttachedToCanvas);
+    }
 
     
 
@@ -351,19 +382,11 @@ private:
     friend class SkDeviceFilteredPaint;
     friend class DeviceImageFilterProxy;
 
+    friend class SkSurface_Raster;
     
-
-
-
-
-    virtual void postSave() {};
-
     
-
-
-
-
-    virtual void preRestore() {};
+    
+    void replaceBitmapBackendForRasterSurface(const SkBitmap&);
 
     
     void setOrigin(int x, int y) { fOrigin.set(x, y); }
@@ -387,6 +410,12 @@ private:
     SkBitmap    fBitmap;
     SkIPoint    fOrigin;
     SkMetaData* fMetaData;
+
+#ifdef SK_DEBUG
+    bool        fAttachedToCanvas;
+#endif
+
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

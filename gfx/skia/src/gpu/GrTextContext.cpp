@@ -7,69 +7,67 @@
 
 
 
-
 #include "GrTextContext.h"
 #include "GrAtlas.h"
 #include "GrContext.h"
+#include "GrDrawTarget.h"
+#include "GrFontScaler.h"
+#include "GrGpuVertex.h"
+#include "GrIndexBuffer.h"
 #include "GrTextStrike.h"
 #include "GrTextStrike_impl.h"
-#include "GrFontScaler.h"
-#include "GrIndexBuffer.h"
-#include "GrGpuVertex.h"
-#include "GrDrawTarget.h"
+#include "SkPath.h"
 
 enum {
     kGlyphMaskStage = GrPaint::kTotalStages,
 };
 
 void GrTextContext::flushGlyphs() {
+    if (NULL == fDrawTarget) {
+        return;
+    }
+    GrDrawState* drawState = fDrawTarget->drawState();
     if (fCurrVertex > 0) {
-        GrDrawTarget::AutoStateRestore asr(fDrawTarget);
-        GrDrawState* drawState = fDrawTarget->drawState();
         
-        GrSamplerState::Filter filter;
-        if (fExtMatrix.isIdentity()) {
-            filter = GrSamplerState::kNearest_Filter;
-        } else {
-            filter = GrSamplerState::kBilinear_Filter;
-        }
-        drawState->sampler(kGlyphMaskStage)->reset(
-            GrSamplerState::kRepeat_WrapMode,filter);
+        drawState->sampler(kGlyphMaskStage)->reset(SkShader::kRepeat_TileMode,
+                                                   !fExtMatrix.isIdentity());
 
         GrAssert(GrIsALIGN4(fCurrVertex));
-        int nIndices = fCurrVertex + (fCurrVertex >> 1);
         GrAssert(fCurrTexture);
-        drawState->setTexture(kGlyphMaskStage, fCurrTexture);
+        drawState->createTextureEffect(kGlyphMaskStage, fCurrTexture);
 
         if (!GrPixelConfigIsAlphaOnly(fCurrTexture->config())) {
-            if (kOne_BlendCoeff != fPaint.fSrcBlendCoeff ||
-                kISA_BlendCoeff != fPaint.fDstBlendCoeff ||
+            if (kOne_GrBlendCoeff != fPaint.fSrcBlendCoeff ||
+                kISA_GrBlendCoeff != fPaint.fDstBlendCoeff ||
                 fPaint.hasTexture()) {
                 GrPrintf("LCD Text will not draw correctly.\n");
             }
             
             drawState->setBlendConstant(fPaint.fColor);
-            drawState->setBlendFunc(kConstC_BlendCoeff, kISC_BlendCoeff);
+            drawState->setBlendFunc(kConstC_GrBlendCoeff, kISC_GrBlendCoeff);
             
             
             drawState->setColor(0xffffffff);
         } else {
             
-            drawState->setBlendFunc(fPaint.fSrcBlendCoeff, fPaint.fDstBlendCoeff);
+            drawState->setBlendFunc(fPaint.fSrcBlendCoeff,
+                                    fPaint.fDstBlendCoeff);
             drawState->setColor(fPaint.fColor);
         }
 
+        int nGlyphs = fCurrVertex / 4;
         fDrawTarget->setIndexSourceToBuffer(fContext->getQuadIndexBuffer());
-
-        fDrawTarget->drawIndexed(kTriangles_PrimitiveType,
-                                 0, 0, fCurrVertex, nIndices);
+        fDrawTarget->drawIndexedInstances(kTriangles_GrPrimitiveType,
+                                          nGlyphs,
+                                          4, 6);
         fDrawTarget->resetVertexSource();
         fVertices = NULL;
         fMaxVertices = 0;
         fCurrVertex = 0;
-        fCurrTexture->unref();
-        fCurrTexture = NULL;
+        GrSafeSetNull(fCurrTexture);
     }
+    drawState->disableStages();
+    fDrawTarget = NULL;
 }
 
 GrTextContext::GrTextContext(GrContext* context,
@@ -84,22 +82,27 @@ GrTextContext::GrTextContext(GrContext* context,
     if (NULL != extMatrix) {
         fExtMatrix = *extMatrix;
     } else {
-        fExtMatrix = GrMatrix::I();
+        fExtMatrix.reset();
     }
-    if (context->getClip().hasConservativeBounds()) {
-        if (!fExtMatrix.isIdentity()) {
-            GrMatrix inverse;
-            GrRect r = context->getClip().getConservativeBounds();
-            if (fExtMatrix.invert(&inverse)) {
-                inverse.mapRect(&r);
-                r.roundOut(&fClipRect);
-            }
-        } else {
-            context->getClip().getConservativeBounds().roundOut(&fClipRect);
+
+    const GrClipData* clipData = context->getClip();
+
+    GrRect devConservativeBound;
+    clipData->fClipStack->getConservativeBounds(
+                                     -clipData->fOrigin.fX,
+                                     -clipData->fOrigin.fY,
+                                     context->getRenderTarget()->width(),
+                                     context->getRenderTarget()->height(),
+                                     &devConservativeBound);
+
+    if (!fExtMatrix.isIdentity()) {
+        GrMatrix inverse;
+        if (fExtMatrix.invert(&inverse)) {
+            inverse.mapRect(&devConservativeBound);
         }
-    } else {
-        fClipRect.setLargest();
     }
+
+    devConservativeBound.roundOut(&fClipRect);
 
     
     
@@ -118,7 +121,7 @@ GrTextContext::GrTextContext(GrContext* context,
     bool invVMComputed = false;
     GrMatrix invVM;
     for (int t = 0; t < GrPaint::kMaxTextures; ++t) {
-        if (NULL != fPaint.getTexture(t)) {
+        if (fPaint.isTextureStageEnabled(t)) {
             if (invVMComputed || fOrigViewMatrix.invert(&invVM)) {
                 invVMComputed = true;
                 fPaint.textureSampler(t)->preConcatMatrix(invVM);
@@ -126,7 +129,7 @@ GrTextContext::GrTextContext(GrContext* context,
         }
     }
     for (int m = 0; m < GrPaint::kMaxMasks; ++m) {
-        if (NULL != fPaint.getMask(m)) {
+        if (fPaint.isMaskStageEnabled(m)) {
             if (invVMComputed || fOrigViewMatrix.invert(&invVM)) {
                 invVMComputed = true;
                 fPaint.maskSampler(m)->preConcatMatrix(invVM);
@@ -134,29 +137,21 @@ GrTextContext::GrTextContext(GrContext* context,
         }
     }
 
-    fDrawTarget = fContext->getTextTarget(fPaint);
+    fDrawTarget = NULL;
 
     fVertices = NULL;
     fMaxVertices = 0;
 
-    fVertexLayout = 
+    fVertexLayout =
         GrDrawTarget::kTextFormat_VertexLayoutBit |
         GrDrawTarget::StageTexCoordVertexLayoutBit(kGlyphMaskStage, 0);
-
-    int stageMask = paint.getActiveStageMask();
-    if (stageMask) {
-        for (int i = 0; i < GrPaint::kTotalStages; ++i) {
-            if ((1 << i) & stageMask) {
-                fVertexLayout |= 
-                    GrDrawTarget::StagePosAsTexCoordVertexLayoutBit(i);
-                GrAssert(i != kGlyphMaskStage);
-            }
-        }
-    }
 }
 
 GrTextContext::~GrTextContext() {
     this->flushGlyphs();
+    if (fDrawTarget) {
+        fDrawTarget->drawState()->disableStages();
+    }
     fContext->setMatrix(fOrigViewMatrix);
 }
 
@@ -208,7 +203,7 @@ void GrTextContext::drawPackedGlyph(GrGlyph::PackedID packed,
 
         
         this->flushGlyphs();
-        fContext->flushText();
+        fContext->flush();
 
         
         fContext->getFontCache()->purgeExceptFor(fStrike);
@@ -217,7 +212,7 @@ void GrTextContext::drawPackedGlyph(GrGlyph::PackedID packed,
         }
 
         if (NULL == glyph->fPath) {
-            GrPath* path = new GrPath;
+            SkPath* path = SkNEW(SkPath);
             if (!scaler->getGlyphPath(glyph->glyphID(), path)) {
                 
                 delete path;
@@ -229,7 +224,7 @@ void GrTextContext::drawPackedGlyph(GrGlyph::PackedID packed,
         GrPoint translate;
         translate.set(GrFixedToScalar(vx - GrIntToFixed(glyph->fBounds.fLeft)),
                       GrFixedToScalar(vy - GrIntToFixed(glyph->fBounds.fTop)));
-        fContext->drawPath(fPaint, *glyph->fPath, kWinding_PathFill,
+        fContext->drawPath(fPaint, *glyph->fPath, kWinding_GrPathFill,
                            &translate);
         return;
     }
@@ -254,19 +249,20 @@ HAS_ATLAS:
         
         
         fMaxVertices = kMinRequestedVerts;
-        bool flush = fDrawTarget->geometryHints(fVertexLayout,
-                                               &fMaxVertices,
-                                               NULL);
+        bool flush = (NULL != fDrawTarget) &&
+                     fDrawTarget->geometryHints(fVertexLayout,
+                                                &fMaxVertices,
+                                                NULL);
         if (flush) {
             this->flushGlyphs();
-            fContext->flushText();
-            fDrawTarget = fContext->getTextTarget(fPaint);
-            fMaxVertices = kDefaultRequestedVerts;
-            
-            fDrawTarget->geometryHints(fVertexLayout,
-                                       &fMaxVertices,
-                                       NULL);
+            fContext->flush();
         }
+        fDrawTarget = fContext->getTextTarget(fPaint);
+        fMaxVertices = kDefaultRequestedVerts;
+        
+        fDrawTarget->geometryHints(fVertexLayout,
+                                   &fMaxVertices,
+                                   NULL);
 
         int maxQuadVertices = 4 * fContext->getQuadIndexBuffer()->maxQuads();
         if (fMaxVertices < kMinRequestedVerts) {
@@ -275,16 +271,19 @@ HAS_ATLAS:
             
             fMaxVertices = maxQuadVertices;
         }
-        bool success = fDrawTarget->reserveVertexSpace(fVertexLayout, 
+        bool success = fDrawTarget->reserveVertexAndIndexSpace(
+                                                   fVertexLayout,
                                                    fMaxVertices,
-                                                   GrTCast<void**>(&fVertices));
+                                                   0,
+                                                   GrTCast<void**>(&fVertices),
+                                                   NULL);
         GrAlwaysAssert(success);
     }
 
     GrFixed tx = GrIntToFixed(glyph->fAtlasLocation.fX);
     GrFixed ty = GrIntToFixed(glyph->fAtlasLocation.fY);
 
-#if GR_GL_TEXT_TEXTURE_NORMALIZED
+#if GR_TEXT_SCALAR_IS_USHORT
     int x = vx >> 16;
     int y = vy >> 16;
     int w = width >> 16;
@@ -308,5 +307,4 @@ HAS_ATLAS:
 #endif
     fCurrVertex += 4;
 }
-
 

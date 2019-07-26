@@ -125,35 +125,6 @@ public:
 #endif
 };
 
-class SkGlyphCache;
-
-class SkTextToPathIter {
-public:
-    SkTextToPathIter(const char text[], size_t length, const SkPaint& paint,
-                     bool applyStrokeAndPathEffects, bool useCanonicalTextSize = true);
-    ~SkTextToPathIter();
-
-    const SkPaint&  getPaint() const { return fPaint; }
-    SkScalar        getPathScale() const { return fScale; }
-
-    const SkPath*   next(SkScalar* xpos);   
-    bool            nextWithWhitespace(const SkPath** path, SkScalar* xpos);   
-
-private:
-    SkGlyphCache*   fCache;
-    SkPaint         fPaint;
-    SkScalar        fScale;
-    SkFixed         fPrevAdvance;
-    const char*     fText;
-    const char*     fStop;
-    SkMeasureCacheProc fGlyphCacheProc;
-
-    const SkPath*   fPath;      
-    SkScalar        fXPos;      
-    SkAutoKern      fAutoKern;
-    int             fXYIndex;   
-};
-
 #endif
 
 

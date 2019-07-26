@@ -25,25 +25,25 @@ struct SK_API SkIRect {
         r.setEmpty();
         return r;
     }
-    
+
     static SkIRect SK_WARN_UNUSED_RESULT MakeWH(int32_t w, int32_t h) {
         SkIRect r;
         r.set(0, 0, w, h);
         return r;
     }
-    
+
     static SkIRect SK_WARN_UNUSED_RESULT MakeSize(const SkISize& size) {
         SkIRect r;
         r.set(0, 0, size.width(), size.height());
         return r;
     }
-    
+
     static SkIRect SK_WARN_UNUSED_RESULT MakeLTRB(int32_t l, int32_t t, int32_t r, int32_t b) {
         SkIRect rect;
         rect.set(l, t, r, b);
         return rect;
     }
-    
+
     static SkIRect SK_WARN_UNUSED_RESULT MakeXYWH(int32_t x, int32_t y, int32_t w, int32_t h) {
         SkIRect r;
         r.set(x, y, x + w, y + h);
@@ -54,7 +54,7 @@ struct SK_API SkIRect {
     int top() const { return fTop; }
     int right() const { return fRight; }
     int bottom() const { return fBottom; }
-    
+
     
     int x() const { return fLeft; }
     
@@ -64,18 +64,18 @@ struct SK_API SkIRect {
 
 
     int width() const { return fRight - fLeft; }
-    
+
     
 
 
 
     int height() const { return fBottom - fTop; }
-    
+
     
 
 
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
-    
+
     friend bool operator==(const SkIRect& a, const SkIRect& b) {
         return !memcmp(&a, &b, sizeof(a));
     }
@@ -118,7 +118,7 @@ struct SK_API SkIRect {
         fLeft = fTop = SK_MinS32;
         fRight = fBottom = SK_MaxS32;
     }
-    
+
     
 
 
@@ -127,7 +127,7 @@ struct SK_API SkIRect {
         fLeft = fTop = SK_MaxS32;
         fRight = fBottom = SK_MinS32;
     }
-    
+
     
 
 
@@ -163,7 +163,7 @@ struct SK_API SkIRect {
     bool quickReject(int l, int t, int r, int b) const {
         return l >= fRight || fLeft >= r || t >= fBottom || fTop >= b;
     }
-    
+
     
 
 
@@ -205,7 +205,11 @@ struct SK_API SkIRect {
         return fLeft <= left && fTop <= top &&
                fRight >= right && fBottom >= bottom;
     }
-    
+
+    bool containsNoEmptyCheck(const SkIRect& r) const {
+        return containsNoEmptyCheck(r.fLeft, r.fTop, r.fRight, r.fBottom);
+    }
+
     
 
 
@@ -221,7 +225,7 @@ struct SK_API SkIRect {
 
     bool intersect(const SkIRect& a, const SkIRect& b) {
         SkASSERT(&a && &b);
-        
+
         if (!a.isEmpty() && !b.isEmpty() &&
                 a.fLeft < b.fRight && b.fLeft < a.fRight &&
                 a.fTop < b.fBottom && b.fTop < a.fBottom) {
@@ -233,7 +237,7 @@ struct SK_API SkIRect {
         }
         return false;
     }
-    
+
     
 
 
@@ -243,7 +247,7 @@ struct SK_API SkIRect {
     bool intersectNoEmptyCheck(const SkIRect& a, const SkIRect& b) {
         SkASSERT(&a && &b);
         SkASSERT(!a.isEmpty() && !b.isEmpty());
-        
+
         if (a.fLeft < b.fRight && b.fLeft < a.fRight &&
                 a.fTop < b.fBottom && b.fTop < a.fBottom) {
             fLeft   = SkMax32(a.fLeft,   b.fLeft);
@@ -271,15 +275,25 @@ struct SK_API SkIRect {
         }
         return false;
     }
-    
+
     
 
     static bool Intersects(const SkIRect& a, const SkIRect& b) {
         return  !a.isEmpty() && !b.isEmpty() &&              
-                a.fLeft < b.fRight && b.fLeft < a.fRight &&
+        a.fLeft < b.fRight && b.fLeft < a.fRight &&
+        a.fTop < b.fBottom && b.fTop < a.fBottom;
+    }
+
+    
+
+
+    static bool IntersectsNoEmptyCheck(const SkIRect& a, const SkIRect& b) {
+        SkASSERT(!a.isEmpty());
+        SkASSERT(!b.isEmpty());
+        return  a.fLeft < b.fRight && b.fLeft < a.fRight &&
                 a.fTop < b.fBottom && b.fTop < a.fBottom;
     }
-    
+
     
 
 
@@ -346,7 +360,7 @@ struct SK_API SkRect {
 
 
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
-    
+
     
 
 
@@ -359,7 +373,7 @@ struct SK_API SkRect {
         accum *= fTop;
         accum *= fRight;
         accum *= fBottom;
-        
+
         
         SkASSERT(0 == accum || !(accum == accum));
 
@@ -434,12 +448,24 @@ struct SK_API SkRect {
 
 
 
-    void set(const SkPoint pts[], int count);
+    void set(const SkPoint pts[], int count) {
+        
+        
+        
+        (void)this->setBoundsCheck(pts, count);
+    }
 
     
     void setBounds(const SkPoint pts[], int count) {
-        this->set(pts, count);
+        (void)this->setBoundsCheck(pts, count);
     }
+
+    
+
+
+
+
+    bool setBoundsCheck(const SkPoint pts[], int count);
 
     void set(const SkPoint& p0, const SkPoint& p1) {
         fLeft =   SkMinScalar(p0.fX, p1.fX);
@@ -462,7 +488,7 @@ struct SK_API SkRect {
         fLeft = fTop = SK_ScalarMin;
         fRight = fBottom = SK_ScalarMax;
     }
-    
+
     
 
 
@@ -480,7 +506,7 @@ struct SK_API SkRect {
         fTop    += dy;
         fRight  += dx;
         fBottom += dy;
-    }   
+    }
 
     void offset(const SkPoint& delta) {
         this->offset(delta.fX, delta.fY);
@@ -536,7 +562,7 @@ struct SK_API SkRect {
 
 
     bool intersect(const SkRect& a, const SkRect& b);
-    
+
     
 
 
@@ -545,7 +571,7 @@ struct SK_API SkRect {
                 a.fLeft < b.fRight && b.fLeft < a.fRight &&
                 a.fTop < b.fBottom && b.fTop < a.fBottom;
     }
-    
+
     
 
 
@@ -578,7 +604,7 @@ struct SK_API SkRect {
         fTop    = SkMinScalar(y, fTop);
         fBottom = SkMaxScalar(y, fBottom);
     }
-    
+
     
 
 

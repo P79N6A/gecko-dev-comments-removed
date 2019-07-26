@@ -23,6 +23,12 @@
 
 
 
+static inline SkFixed SkFDot6ToFixedDiv2(SkFDot6 value) {
+    
+    
+    return value << (16 - 6 - 1);
+}
+
 
 
 int SkEdge::setLine(const SkPoint& p0, const SkPoint& p1, const SkIRect* clip,
@@ -219,21 +225,40 @@ int SkQuadraticEdge::setQuadratic(const SkPoint pts[3], int shift)
     } else if (shift > MAX_COEFF_SHIFT) {
         shift = MAX_COEFF_SHIFT;
     }
-    
+
     fWinding    = SkToS8(winding);
-    fCurveShift = SkToU8(shift);
     
     fCurveCount = SkToS8(1 << shift);
 
-    SkFixed A = SkFDot6ToFixed(x0 - x1 - x1 + x2);
-    SkFixed B = SkFDot6ToFixed(x1 - x0 + x1 - x0);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    fCurveShift = SkToU8(shift - 1);
+
+    SkFixed A = SkFDot6ToFixedDiv2(x0 - x1 - x1 + x2);  
+    SkFixed B = SkFDot6ToFixed(x1 - x0);                
 
     fQx     = SkFDot6ToFixed(x0);
     fQDx    = B + (A >> shift);     
     fQDDx   = A >> (shift - 1);     
 
-    A = SkFDot6ToFixed(y0 - y1 - y1 + y2);
-    B = SkFDot6ToFixed(y1 - y0 + y1 - y0);
+    A = SkFDot6ToFixedDiv2(y0 - y1 - y1 + y2);  
+    B = SkFDot6ToFixed(y1 - y0);                
 
     fQy     = SkFDot6ToFixed(y0);
     fQDy    = B + (A >> shift);     

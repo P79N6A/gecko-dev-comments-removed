@@ -12,104 +12,56 @@
 #define GrTextContext_DEFINED
 
 #include "GrGlyph.h"
+#include "GrPaint.h"
 #include "GrMatrix.h"
-#include "GrRefCnt.h"
 
+struct GrGpuTextVertex;
 class GrContext;
+class GrTextStrike;
 class GrFontScaler;
-class GrPaint;
+class GrDrawTarget;
 
-class SkGpuDevice;
-class SkPaint;
-
-
-
-
-
-
-class GrTextContext: public GrRefCnt {
-protected:
-    GrContext*      fContext;
-
+class GrTextContext {
 public:
-    
+    GrTextContext(GrContext*,
+                  const GrPaint& paint,
+                  const GrMatrix* extMatrix = NULL);
+    ~GrTextContext();
 
+    void drawPackedGlyph(GrGlyph::PackedID, GrFixed left, GrFixed top,
+                         GrFontScaler*);
 
-
-    class AutoFinish {
-    public:
-        AutoFinish(GrTextContext* textContext, GrContext* context,
-                   const GrPaint&, const GrMatrix* extMatrix);
-        ~AutoFinish();
-        GrTextContext* getTextContext() const;
-
-    private:
-        GrTextContext* fTextContext;
-    };
-
-    virtual void drawPackedGlyph(GrGlyph::PackedID, GrFixed left, GrFixed top,
-                                 GrFontScaler*) = 0;
-
-    virtual ~GrTextContext() {}
-
-protected:
-    GrTextContext() {
-        fContext = NULL;
-    }
-
-    bool isValid() const {
-        return (NULL != fContext);
-    }
-
-    
-
-
-
-
-
-
-
-
-    virtual void init(GrContext* context, const GrPaint&,
-                      const GrMatrix* extMatrix) {
-        fContext = context;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    virtual void finish() {
-        fContext = NULL;
-    }
+    void flush();   
 
 private:
-    typedef GrRefCnt INHERITED;
+    GrPaint         fPaint;
+    GrVertexLayout  fVertexLayout;
+    GrContext*      fContext;
+    GrDrawTarget*   fDrawTarget;
+
+    GrMatrix        fExtMatrix;
+    GrFontScaler*   fScaler;
+    GrTextStrike*   fStrike;
+
+    inline void flushGlyphs();
+    void setupDrawTarget();
+
+    enum {
+        kMinRequestedGlyphs      = 1,
+        kDefaultRequestedGlyphs  = 64,
+        kMinRequestedVerts       = kMinRequestedGlyphs * 4,
+        kDefaultRequestedVerts   = kDefaultRequestedGlyphs * 4,
+    };
+
+    GrGpuTextVertex* fVertices;
+
+    int32_t     fMaxVertices;
+    GrTexture*  fCurrTexture;
+    int         fCurrVertex;
+
+    GrIRect     fClipRect;
+    GrMatrix    fOrigViewMatrix;    
 };
 
-inline GrTextContext::AutoFinish::AutoFinish(GrTextContext* textContext,
-                                             GrContext* context,
-                                             const GrPaint& grPaint,
-                                             const GrMatrix* extMatrix) {
-    GrAssert(NULL != textContext);
-    fTextContext = textContext;
-    fTextContext->ref();
-    fTextContext->init(context, grPaint, extMatrix);
-}
-
-inline GrTextContext::AutoFinish::~AutoFinish() {
-    fTextContext->finish();
-    fTextContext->unref();
-}
-
-inline GrTextContext* GrTextContext::AutoFinish::getTextContext() const {
-    return fTextContext;
-}
-
 #endif
+

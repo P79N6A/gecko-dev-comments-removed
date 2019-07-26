@@ -56,7 +56,7 @@ struct SkJSON::Object::Slot {
         SkASSERT(name);
 
         fNext = NULL;
-        
+
         size_t len = strlen(name);
         
         char* str = alloc_string(1 + len);
@@ -64,14 +64,14 @@ struct SkJSON::Object::Slot {
         
         memcpy(&str[1], name, len + 1);
         fName = str;
-        
+
         
     }
     ~Slot();
-    
+
     Type type() const { return (Type)fName[0]; }
     const char* name() const { return &fName[1]; }
-    
+
     Slot*   fNext;
     char*   fName;    
     union {
@@ -378,7 +378,7 @@ void SkJSON::Object::toDebugf() const {
 
 void SkJSON::Object::dumpLevel(int level) const {
     for (Slot* slot = fHead; slot; slot = slot->fNext) {
-        Type t = slot->type();        
+        Type t = slot->type();
         tabForLevel(level + 1);
         SkDebugf("\"%s\" : ", slot->name());
         switch (slot->type()) {
@@ -507,11 +507,11 @@ static const uint8_t gBytesPerType[] = {
 };
 
 typedef void* (*DupProc)(const void*);
-             
+
 static void* dup_object(const void* src) {
     return SkNEW_ARGS(SkJSON::Object, (*(SkJSON::Object*)src));
 }
-                      
+
 static void* dup_array(const void* src) {
     return SkNEW_ARGS(SkJSON::Array, (*(SkJSON::Array*)src));
 }
@@ -561,7 +561,7 @@ SkJSON::Array::Array(Type type, int count) {
 SkJSON::Array::Array(const int32_t values[], int count) {
     this->init(kInt, count, values);
 }
-    
+
 SkJSON::Array::Array(const float values[], int count) {
     this->init(kFloat, count, values);
 }

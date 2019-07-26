@@ -25,7 +25,7 @@ class SkPageFlipper {
 public:
     SkPageFlipper();
     SkPageFlipper(int width, int height);
-    
+
     int width() const { return fWidth; }
     int height() const { return fHeight; }
 

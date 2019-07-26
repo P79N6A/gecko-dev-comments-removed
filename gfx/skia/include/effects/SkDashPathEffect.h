@@ -41,9 +41,7 @@ public:
     SkDashPathEffect(const SkScalar intervals[], int count, SkScalar phase, bool scaleToFit = false);
     virtual ~SkDashPathEffect();
 
-    
-    
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
 
     
     
@@ -53,7 +51,7 @@ public:
 protected:
     SkDashPathEffect(SkFlattenableReadBuffer&);
     virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-    
+
 private:
     SkScalar*   fIntervals;
     int32_t     fCount;

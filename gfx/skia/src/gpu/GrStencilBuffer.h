@@ -10,18 +10,21 @@
 #ifndef GrStencilBuffer_DEFINED
 #define GrStencilBuffer_DEFINED
 
-#include "GrClip.h"
+#include "GrClipData.h"
 #include "GrResource.h"
+#include "GrCacheID.h"
 
 class GrRenderTarget;
 class GrResourceEntry;
+class GrResourceKey;
 
 class GrStencilBuffer : public GrResource {
 public:
+    SK_DECLARE_INST_COUNT(GrStencilBuffer);
+    GR_DECLARE_RESOURCE_CACHE_TYPE()
+
     virtual ~GrStencilBuffer() {
         
-        
-        GrAssert(0 == fRTAttachmentCnt);
     }
 
     int width() const { return fWidth; }
@@ -30,8 +33,12 @@ public:
     int numSamples() const { return fSampleCnt; }
 
     
-    void setLastClip(const GrClip& clip, int width, int height) {
-        fLastClip = clip;
+    void setLastClip(const GrClipData& clipData, int width, int height) {
+        
+        
+        fLastClipStack = *clipData.fClipStack;
+        fLastClipData.fClipStack = &fLastClipStack;
+        fLastClipData.fOrigin = clipData.fOrigin;
         fLastClipWidth = width;
         fLastClipHeight = height;
         GrAssert(width <= fWidth);
@@ -39,29 +46,24 @@ public:
     }
 
     
-    bool mustRenderClip(const GrClip& clip, int width, int height) const {
+    bool mustRenderClip(const GrClipData& clipData, int width, int height) const {
         
         
         
         
         return width > fLastClipWidth ||
                height > fLastClipHeight ||
-               clip != fLastClip;
+               clipData != fLastClipData;
     }
 
-    const GrClip& getLastClip() const {
-        return fLastClip;
+    const GrClipData& getLastClip() const {
+        return fLastClipData;
     }
 
     
-    
-    void transferToCacheAndLock();
+    void transferToCache();
 
-    void wasAttachedToRenderTarget(const GrRenderTarget* rt) {
-        ++fRTAttachmentCnt;
-    }
-
-    void wasDetachedFromRenderTarget(const GrRenderTarget* rt);
+    static GrResourceKey ComputeKey(int width, int height, int sampleCnt);
 
 protected:
     GrStencilBuffer(GrGpu* gpu, int width, int height, int bits, int sampleCnt)
@@ -70,35 +72,23 @@ protected:
         , fHeight(height)
         , fBits(bits)
         , fSampleCnt(sampleCnt)
-        , fLastClip()
+        , fLastClipStack()
+        , fLastClipData()
         , fLastClipWidth(-1)
-        , fLastClipHeight(-1)
-        , fCacheEntry(NULL)
-        , fRTAttachmentCnt(0) {
+        , fLastClipHeight(-1) {
     }
 
-    
-
-    
-    virtual void onRelease();
-    
-    virtual void onAbandon();
-
 private:
-
-    void unlockInCache();
 
     int fWidth;
     int fHeight;
     int fBits;
     int fSampleCnt;
 
-    GrClip     fLastClip;
-    int        fLastClipWidth;
-    int        fLastClipHeight;
-
-    GrResourceEntry* fCacheEntry;
-    int              fRTAttachmentCnt;
+    SkClipStack fLastClipStack;
+    GrClipData  fLastClipData;
+    int         fLastClipWidth;
+    int         fLastClipHeight;
 
     typedef GrResource INHERITED;
 };

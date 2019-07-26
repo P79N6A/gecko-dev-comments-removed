@@ -65,12 +65,16 @@ enum DrawOps {
     kTranslate_DrawOp,
 
     kPaintOp_DrawOp,
+    kSetTypeface_DrawOp,
 
     kDef_Typeface_DrawOp,
     kDef_Flattenable_DrawOp,
     kDef_Bitmap_DrawOp,
+    kDef_Factory_DrawOp,
 
     
+    kReportFlags_DrawOp,
+    kShareBitmapHeap_DrawOp,
     kDone_DrawOp,
 };
 
@@ -95,19 +99,19 @@ enum DrawOps {
 #define DRAWOPS_FLAG_MASK   ((1 << DRAWOPS_FLAG_BITS) - 1)
 #define DRAWOPS_DATA_MASK   ((1 << DRAWOPS_DATA_BITS) - 1)
 
-static unsigned DrawOp_unpackOp(uint32_t op32) {
+static inline unsigned DrawOp_unpackOp(uint32_t op32) {
     return (op32 >> (DRAWOPS_FLAG_BITS + DRAWOPS_DATA_BITS));
 }
 
-static unsigned DrawOp_unpackFlags(uint32_t op32) {
+static inline unsigned DrawOp_unpackFlags(uint32_t op32) {
     return (op32 >> DRAWOPS_DATA_BITS) & DRAWOPS_FLAG_MASK;
 }
 
-static unsigned DrawOp_unpackData(uint32_t op32) {
+static inline unsigned DrawOp_unpackData(uint32_t op32) {
     return op32 & DRAWOPS_DATA_MASK;
 }
 
-static uint32_t DrawOp_packOpFlagData(DrawOps op, unsigned flags, unsigned data) {
+static inline uint32_t DrawOp_packOpFlagData(DrawOps op, unsigned flags, unsigned data) {
     SkASSERT(0 == (op & ~DRAWOPS_OP_MASK));
     SkASSERT(0 == (flags & ~DRAWOPS_FLAG_MASK));
     SkASSERT(0 == (data & ~DRAWOPS_DATA_MASK));
@@ -135,12 +139,80 @@ enum {
     kDrawVertices_HasColors_DrawOpFlag   = 1 << 1,
     kDrawVertices_HasIndices_DrawOpFlag  = 1 << 2,
 };
+enum {
+    kDrawBitmap_HasPaint_DrawOpFlag   = 1 << 0,
+    
+    
+    kDrawBitmap_HasSrcRect_DrawOpFlag = 1 << 1,
+};
+enum {
+    kClip_HasAntiAlias_DrawOpFlag = 1 << 0,
+};
+
+
+class BitmapInfo : SkNoncopyable {
+public:
+    BitmapInfo(SkBitmap* bitmap, uint32_t genID, int toBeDrawnCount)
+        : fBitmap(bitmap)
+        , fGenID(genID)
+        , fBytesAllocated(0)
+        , fMoreRecentlyUsed(NULL)
+        , fLessRecentlyUsed(NULL)
+        , fToBeDrawnCount(toBeDrawnCount)
+    {}
+
+    ~BitmapInfo() {
+        SkASSERT(0 == fToBeDrawnCount);
+        SkDELETE(fBitmap);
+    }
+
+    void addDraws(int drawsToAdd) {
+        if (0 == fToBeDrawnCount) {
+            
+            
+            
+            fToBeDrawnCount = drawsToAdd;
+        } else {
+            sk_atomic_add(&fToBeDrawnCount, drawsToAdd);
+        }
+    }
+
+    void decDraws() {
+        sk_atomic_dec(&fToBeDrawnCount);
+    }
+
+    int drawCount() const {
+        return fToBeDrawnCount;
+    }
+
+    SkBitmap* fBitmap;
+    
+    
+    
+    
+    
+    uint32_t fGenID;
+    
+    
+    
+    size_t fBytesAllocated;
+    
+    BitmapInfo* fMoreRecentlyUsed;
+    BitmapInfo* fLessRecentlyUsed;
+private:
+    int      fToBeDrawnCount;
+};
+
+static inline bool shouldFlattenBitmaps(uint32_t flags) {
+    return SkToBool(flags & SkGPipeWriter::kCrossProcess_Flag
+            && !(flags & SkGPipeWriter::kSharedAddressSpace_Flag));
+}
 
 
 
 enum PaintOps {
     kReset_PaintOp,     
-    
+
     kFlags_PaintOp,     
     kColor_PaintOp,     
     kStyle_PaintOp,     
@@ -148,7 +220,7 @@ enum PaintOps {
     kCap_PaintOp,       
     kWidth_PaintOp,     
     kMiter_PaintOp,
-    
+
     kEncoding_PaintOp,  
     kHinting_PaintOp,   
     kAlign_PaintOp,     
@@ -168,36 +240,36 @@ enum PaintOps {
 #define PAINTOPS_FLAG_MASK   ((1 << PAINTOPS_FLAG_BITS) - 1)
 #define PAINTOPS_DATA_MASK   ((1 << PAINTOPS_DATA_BITS) - 1)
 
-static unsigned PaintOp_unpackOp(uint32_t op32) {
+static inline unsigned PaintOp_unpackOp(uint32_t op32) {
     return (op32 >> (PAINTOPS_FLAG_BITS + PAINTOPS_DATA_BITS));
 }
 
-static unsigned PaintOp_unpackFlags(uint32_t op32) {
+static inline unsigned PaintOp_unpackFlags(uint32_t op32) {
     return (op32 >> PAINTOPS_DATA_BITS) & PAINTOPS_FLAG_MASK;
 }
 
-static unsigned PaintOp_unpackData(uint32_t op32) {
+static inline unsigned PaintOp_unpackData(uint32_t op32) {
     return op32 & PAINTOPS_DATA_MASK;
 }
 
-static uint32_t PaintOp_packOp(PaintOps op) {
+static inline uint32_t PaintOp_packOp(PaintOps op) {
     SkASSERT(0 == (op & ~PAINTOPS_OP_MASK));
-    
+
     return op << (PAINTOPS_FLAG_BITS + PAINTOPS_DATA_BITS);
 }
 
-static uint32_t PaintOp_packOpData(PaintOps op, unsigned data) {
+static inline uint32_t PaintOp_packOpData(PaintOps op, unsigned data) {
     SkASSERT(0 == (op & ~PAINTOPS_OP_MASK));
     SkASSERT(0 == (data & ~PAINTOPS_DATA_MASK));
-    
+
     return (op << (PAINTOPS_FLAG_BITS + PAINTOPS_DATA_BITS)) | data;
 }
 
-static uint32_t PaintOp_packOpFlagData(PaintOps op, unsigned flags, unsigned data) {
+static inline uint32_t PaintOp_packOpFlagData(PaintOps op, unsigned flags, unsigned data) {
     SkASSERT(0 == (op & ~PAINTOPS_OP_MASK));
     SkASSERT(0 == (flags & ~PAINTOPS_FLAG_MASK));
     SkASSERT(0 == (data & ~PAINTOPS_DATA_MASK));
-    
+
     return (op << (PAINTOPS_FLAG_BITS + PAINTOPS_DATA_BITS)) |
     (flags << PAINTOPS_DATA_BITS) |
     data;

@@ -12,6 +12,7 @@
 
 #include "SkRefCnt.h"
 
+class SkBitmap;
 class SkCanvas;
 class SkPicturePlayback;
 class SkPictureRecord;
@@ -25,6 +26,8 @@ class SkWStream;
 
 class SK_API SkPicture : public SkRefCnt {
 public:
+    SK_DECLARE_INST_COUNT(SkPicture)
+
     
 
 
@@ -34,14 +37,30 @@ public:
 
 
     SkPicture(const SkPicture& src);
+    
+
+
+
     explicit SkPicture(SkStream*);
     virtual ~SkPicture();
-    
+
     
 
 
     void swap(SkPicture& other);
+
     
+
+
+    SkPicture* clone() const;
+
+    
+
+
+
+
+    void clone(SkPicture* pictures, int count) const;
+
     enum RecordingFlags {
         
 
@@ -51,7 +70,25 @@ public:
 
 
 
-        kUsePathBoundsForClip_RecordingFlag = 0x01
+        kUsePathBoundsForClip_RecordingFlag = 0x01,
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        kOptimizeForClippedPlayback_RecordingFlag = 0x02
     };
 
     
@@ -74,13 +111,18 @@ public:
 
 
     void endRecording();
+
     
+
+
+    bool hasRecorded() const;
+
     
 
 
 
     void draw(SkCanvas* surface);
-    
+
     
 
 
@@ -102,7 +144,7 @@ public:
 
 
     void abortPlayback();
-    
+
 private:
     int fWidth, fHeight;
     SkPictureRecord* fRecord;
@@ -110,6 +152,8 @@ private:
 
     friend class SkFlatPicture;
     friend class SkPicturePlayback;
+
+    typedef SkRefCnt INHERITED;
 };
 
 class SkAutoPictureRecord : SkNoncopyable {
@@ -122,11 +166,11 @@ public:
     ~SkAutoPictureRecord() {
         fPicture->endRecording();
     }
-    
+
     
 
     SkCanvas* getRecordingCanvas() const { return fCanvas; }
-    
+
 private:
     SkPicture*  fPicture;
     SkCanvas*   fCanvas;

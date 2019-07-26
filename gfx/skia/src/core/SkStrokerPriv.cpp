@@ -180,7 +180,7 @@ static void MiterJoiner(SkPath* outer, SkPath* inner, const SkVector& beforeUnit
         currIsLine = false;
         goto DO_BLUNT;
     }
-    
+
     ccw = !is_clockwise(before, after);
     if (ccw)
     {
@@ -188,7 +188,7 @@ static void MiterJoiner(SkPath* outer, SkPath* inner, const SkVector& beforeUnit
         before.negate();
         after.negate();
     }
-    
+
     
 
 

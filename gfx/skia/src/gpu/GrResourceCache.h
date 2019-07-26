@@ -11,8 +11,10 @@
 #ifndef GrResourceCache_DEFINED
 #define GrResourceCache_DEFINED
 
+#include "GrConfig.h"
 #include "GrTypes.h"
 #include "GrTHashCache.h"
+#include "SkTDLinkedList.h"
 
 class GrResource;
 
@@ -117,16 +119,32 @@ private:
 };
 
 
+class GrCacheKey {
+public:
+    GrCacheKey(const GrTextureDesc& desc, const GrResourceKey& key)
+        : fDesc(desc)
+        , fKey(key) {
+    }
+
+    void set(const GrTextureDesc& desc, const GrResourceKey& key) {
+        fDesc = desc;
+        fKey = key;
+    }
+
+    const GrTextureDesc& desc() const { return fDesc; }
+    const GrResourceKey& key() const { return fKey; }
+
+protected:
+    GrTextureDesc fDesc;
+    GrResourceKey fKey;
+};
+
+
 
 class GrResourceEntry {
 public:
     GrResource* resource() const { return fResource; }
     const GrResourceKey& key() const { return fKey; }
-
-#if GR_DEBUG
-    GrResourceEntry* next() const { return fNext; }
-    GrResourceEntry* prev() const { return fPrev; }
-#endif
 
 #if GR_DEBUG
     void validate() const;
@@ -138,25 +156,14 @@ private:
     GrResourceEntry(const GrResourceKey& key, GrResource* resource);
     ~GrResourceEntry();
 
-    bool isLocked() const { return fLockCount != 0; }
-    void lock() { ++fLockCount; }
-    void unlock() {
-        GrAssert(fLockCount > 0);
-        --fLockCount;
-    }
-
     GrResourceKey    fKey;
     GrResource*      fResource;
 
     
-    
-    int fLockCount;
-
-    
-    GrResourceEntry* fPrev;
-    GrResourceEntry* fNext;
+    SK_DEFINE_DLINKEDLIST_INTERFACE(GrResourceEntry);
 
     friend class GrResourceCache;
+    friend class GrDLinkedList;
 };
 
 
@@ -216,16 +223,8 @@ public:
     
 
 
-    enum LockType {
-        kNested_LockType,
-        kSingle_LockType,
-    };
 
-    
-
-
-
-    GrResourceEntry* findAndLock(const GrResourceKey&, LockType style);
+    GrResource* find(const GrResourceKey& key);
 
     
 
@@ -234,7 +233,7 @@ public:
 
 
 
-    GrResourceEntry* createAndLock(const GrResourceKey&, GrResource*);
+    void create(const GrResourceKey&, GrResource*);
 
     
 
@@ -248,22 +247,25 @@ public:
 
 
 
-    void detach(GrResourceEntry*);
+    void makeExclusive(GrResourceEntry* entry);
+
+    
+
+
+
+    void makeNonExclusive(GrResourceEntry* entry);
+
+    
+
+
+    void purgeAllUnlocked();
 
     
 
 
 
 
-    void reattachAndUnlock(GrResourceEntry*);
-
-    
-
-
-
-    void unlock(GrResourceEntry*);
-
-    void removeAll();
+    void purgeAsNeeded();
 
 #if GR_DEBUG
     void validate() const;
@@ -271,31 +273,51 @@ public:
     void validate() const {}
 #endif
 
+#if GR_CACHE_STATS
+    void printStats();
+#endif
+
 private:
     void internalDetach(GrResourceEntry*, bool);
     void attachToHead(GrResourceEntry*, bool);
-    void purgeAsNeeded();
+
+    void removeInvalidResource(GrResourceEntry* entry);
 
     class Key;
     GrTHashTable<GrResourceEntry, Key, 8> fCache;
 
     
-    GrResourceEntry* fHead;
-    GrResourceEntry* fTail;
+    typedef SkTDLinkedList<GrResourceEntry> EntryList;
+    EntryList    fList;
+
+#if GR_DEBUG
+    
+    EntryList    fExclusiveList;
+#endif
 
     
     int fMaxCount;
     size_t fMaxBytes;
 
     
+#if GR_CACHE_STATS
+    int fHighWaterEntryCount;
+    size_t fHighWaterEntryBytes;
+    int fHighWaterClientDetachedCount;
+    size_t fHighWaterClientDetachedBytes;
+#endif
+
     int fEntryCount;
-    int fUnlockedEntryCount;
     size_t fEntryBytes;
     int fClientDetachedCount;
     size_t fClientDetachedBytes;
-    
+
     
     bool fPurging;
+
+#if GR_DEBUG
+    static size_t countBytes(const SkTDLinkedList<GrResourceEntry>& list);
+#endif
 };
 
 

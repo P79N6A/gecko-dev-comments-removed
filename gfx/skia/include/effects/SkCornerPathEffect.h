@@ -27,7 +27,7 @@ public:
 
     
     
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src, SkStrokeRec*) SK_OVERRIDE;
 
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkCornerPathEffect)
 
@@ -37,7 +37,7 @@ protected:
 
 private:
     SkScalar    fRadius;
-    
+
     typedef SkPathEffect INHERITED;
 };
 

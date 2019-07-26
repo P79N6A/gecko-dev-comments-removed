@@ -50,7 +50,7 @@ public:
     
     virtual SkMask::Format getFormat();
     virtual bool filterMask(SkMask*, const SkMask&, const SkMatrix&, SkIPoint*);
-    
+
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkTableMaskFilter)
 
 protected:
@@ -59,7 +59,7 @@ protected:
 
 private:
     uint8_t fTable[256];
-    
+
     typedef SkMaskFilter INHERITED;
 };
 

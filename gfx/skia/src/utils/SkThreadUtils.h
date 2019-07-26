@@ -13,32 +13,32 @@
 class SkThread : SkNoncopyable {
 public:
     typedef void (*entryPointProc)(void*);
-    
+
     SkThread(entryPointProc entryPoint, void* data = NULL);
-    
+
     
 
 
     ~SkThread();
-    
+
     
 
 
     bool start();
-    
+
     
 
 
 
     void join();
-    
+
     
 
 
 
 
     bool setProcessorAffinity(unsigned int processor);
-    
+
 private:
     void* fData;
 };

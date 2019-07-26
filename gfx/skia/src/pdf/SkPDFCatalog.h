@@ -42,7 +42,7 @@ public:
 
 
 
-    size_t setFileOffset(SkPDFObject* obj, size_t offset);
+    size_t setFileOffset(SkPDFObject* obj, off_t offset);
 
     
 

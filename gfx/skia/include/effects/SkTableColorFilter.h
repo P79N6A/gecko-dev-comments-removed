@@ -18,7 +18,7 @@ public:
 
 
     static SkColorFilter* Create(const uint8_t table[256]);
-    
+
     
 
 

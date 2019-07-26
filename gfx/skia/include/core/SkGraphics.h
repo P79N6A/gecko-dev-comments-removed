@@ -38,7 +38,7 @@ public:
 
 
     static size_t GetFontCacheLimit();
-    
+
     
 
 
@@ -51,10 +51,15 @@ public:
     
 
 
+    static size_t GetFontCacheUsed();
+
+    
+
+
 
 
     static void PurgeFontCache();
-    
+
     
 
 
@@ -64,7 +69,7 @@ public:
 
 
     static void SetFlags(const char* flags);
-    
+
     
 
 
@@ -77,14 +82,14 @@ public:
 
 
     static size_t GetTLSFontCacheLimit();
-    
+
     
 
 
 
 
     static void SetTLSFontCacheLimit(size_t bytes);
-    
+
 private:
     
 

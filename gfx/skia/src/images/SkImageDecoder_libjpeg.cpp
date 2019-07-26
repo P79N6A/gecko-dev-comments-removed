@@ -294,9 +294,9 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
 
     if (sampleSize == 1 &&
-        ((config == SkBitmap::kARGB_8888_Config && 
+        ((config == SkBitmap::kARGB_8888_Config &&
                 cinfo.out_color_space == JCS_RGBA_8888) ||
-        (config == SkBitmap::kRGB_565_Config && 
+        (config == SkBitmap::kRGB_565_Config &&
                 cinfo.out_color_space == JCS_RGB_565)))
     {
         bm->setConfig(config, cinfo.output_width, cinfo.output_height);
@@ -310,7 +310,7 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         SkAutoLockPixels alp(*bm);
         JSAMPLE* rowptr = (JSAMPLE*)bm->getPixels();
         INT32 const bpr =  bm->rowBytes();
-        
+
         while (cinfo.output_scanline < cinfo.output_height) {
             int row_count = jpeg_read_scanlines(&cinfo, &rowptr, 1);
             
@@ -656,7 +656,7 @@ DEFINE_ENCODER_CREATOR(JPEGImageEncoder);
 
 #include "SkTRegistry.h"
 
-SkImageDecoder* sk_libjpeg_dfactory(SkStream* stream) {
+static SkImageDecoder* sk_libjpeg_dfactory(SkStream* stream) {
     static const unsigned char gHeader[] = { 0xFF, 0xD8, 0xFF };
     static const size_t HEADER_SIZE = sizeof(gHeader);
 

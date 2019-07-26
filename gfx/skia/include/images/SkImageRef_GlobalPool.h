@@ -17,7 +17,7 @@ public:
     
     SkImageRef_GlobalPool(SkStream*, SkBitmap::Config, int sampleSize = 1);
     virtual ~SkImageRef_GlobalPool();
-    
+
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkImageRef_GlobalPool)
 
     
@@ -25,15 +25,15 @@ public:
     
 
     static size_t GetRAMBudget();
-    
+
     
 
     static void SetRAMBudget(size_t);
-    
+
     
 
     static size_t GetRAMUsed();
-    
+
     
 
 
@@ -42,16 +42,16 @@ public:
 
 
     static void SetRAMUsed(size_t usageInBytes);
-    
+
     static void DumpPool();
 
 protected:
     virtual bool onDecode(SkImageDecoder* codec, SkStream* stream,
                           SkBitmap* bitmap, SkBitmap::Config config,
                           SkImageDecoder::Mode mode);
-    
+
     virtual void onUnlockPixels();
-    
+
     SkImageRef_GlobalPool(SkFlattenableReadBuffer&);
 
 private:

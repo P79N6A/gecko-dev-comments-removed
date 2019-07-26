@@ -60,6 +60,14 @@ public:
     
 
 
+    uint32_t nextULessThan(uint32_t count) {
+        SkASSERT(count > 0);
+        return this->nextRangeU(0, count - 1);
+    }
+
+    
+
+
     SkFixed nextUFixed1() { return this->nextU() >> 16; }
 
     
@@ -75,7 +83,18 @@ public:
     
 
 
+    SkScalar nextRangeScalar(SkScalar min, SkScalar max) {
+        return SkScalarMul(this->nextSScalar1(), (max - min)) + min;
+    }
+
+    
+
+
     SkScalar nextSScalar1() { return SkFixedToScalar(this->nextSFixed1()); }
+
+    
+
+    bool nextBool() { return this->nextU() >= 0x80000000; }
 
     
 

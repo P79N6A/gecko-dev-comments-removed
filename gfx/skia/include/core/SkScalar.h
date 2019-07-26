@@ -53,12 +53,19 @@
     
 
     static inline bool SkScalarIsNaN(float x) { return x != x; }
+
     
     static inline bool SkScalarIsFinite(float x) {
-        uint32_t bits = SkFloat2Bits(x);    
-        int exponent = bits << 1 >> 24;
-        return exponent != 0xFF;
+        
+        
+        
+        
+        float prod = x * 0;
+        
+        
+        return prod == prod;
     }
+
 #ifdef SK_DEBUG
     
 
@@ -84,7 +91,7 @@
     static inline float SkIntToScalar(unsigned long param) {
         return (float)param;
     }
-    static inline float SkIntToScalar(float param) {
+    static inline float SkIntToScalar(float ) {
         
 
 
@@ -177,6 +184,9 @@
     #define SkScalarSqrt(x)         sk_float_sqrt(x)
     
 
+    #define SkScalarPow(b, e)       sk_float_pow(b, e)
+    
+
     #define SkScalarAve(a, b)       (((a) + (b)) * 0.5f)
     
 
@@ -222,13 +232,11 @@
     #define SkIntToScalar(n)        SkIntToFixed(n)
     #define SkFixedToScalar(x)      (x)
     #define SkScalarToFixed(x)      (x)
-    #ifdef SK_CAN_USE_FLOAT
-        #define SkScalarToFloat(n)  SkFixedToFloat(n)
-        #define SkFloatToScalar(n)  SkFloatToFixed(n)
+    #define SkScalarToFloat(n)  SkFixedToFloat(n)
+    #define SkFloatToScalar(n)  SkFloatToFixed(n)
 
-        #define SkScalarToDouble(n) SkFixedToDouble(n)
-        #define SkDoubleToScalar(n) SkDoubleToFixed(n)
-    #endif
+    #define SkScalarToDouble(n) SkFixedToDouble(n)
+    #define SkDoubleToScalar(n) SkDoubleToFixed(n)
     #define SkScalarFraction(x)     SkFixedFraction(x)
 
     #define SkScalarFloorToScalar(x)    SkFixedFloorToFixed(x)
@@ -326,6 +334,12 @@ static inline bool SkScalarNearlyEqual(SkScalar x, SkScalar y,
 static inline SkScalar SkScalarInterp(SkScalar A, SkScalar B, SkScalar t) {
     SkASSERT(t >= 0 && t <= SK_Scalar1);
     return A + SkScalarMul(B - A, t);
+}
+
+static inline SkScalar SkScalarLog2(SkScalar x) {
+    static const SkScalar log2_conversion_factor = SkScalarDiv(1, SkScalarLog(2));
+
+    return SkScalarMul(SkScalarLog(x), log2_conversion_factor);
 }
 
 

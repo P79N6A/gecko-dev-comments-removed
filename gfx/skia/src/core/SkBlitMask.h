@@ -29,14 +29,14 @@ public:
     typedef void (*ColorProc)(void* dst, size_t dstRB,
                               const void* mask, size_t maskRB,
                               SkColor color, int width, int height);
-    
+
     
 
 
 
 
     typedef void (*BlitLCD16RowProc)(SkPMColor dst[], const uint16_t src[],
-                                     SkColor color, int width, 
+                                     SkColor color, int width,
                                      SkPMColor opaqueDst);
 
     
@@ -46,19 +46,19 @@ public:
 
     typedef void (*RowProc)(void* dst, const void* mask,
                             const SkPMColor* src, int width);
-    
+
     
 
 
 
     static ColorProc ColorFactory(SkBitmap::Config, SkMask::Format, SkColor);
-    
+
     
 
 
 
     static ColorProc PlatformColorProcs(SkBitmap::Config, SkMask::Format, SkColor);
-    
+
     
 
 
@@ -79,7 +79,7 @@ public:
 
 
     static RowProc RowFactory(SkBitmap::Config, SkMask::Format, RowFlags);
-    
+
     
 
 
