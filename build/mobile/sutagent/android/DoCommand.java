@@ -1314,23 +1314,33 @@ private void CancelNotification()
 
     public String GetTestRoot()
         {
-        String    sRet = null;
 
-        File tmpFile = new java.io.File("/data/local/tests");
-        if (tmpFile.exists() && tmpFile.isDirectory()) 
+        
+        
+        
+        
+        File tmpFile = new java.io.File("/data/local/tmp/tests");
+        try{
+            tmpFile.createNewFile();
+        } catch (IOException e){
+            Log.i("SUTAgentAndroid", "Caught exception creating file in /data/local/tmp: " + e.getMessage());
+        }
+   
+        String state = Environment.getExternalStorageState();
+        
+        if (state.equalsIgnoreCase(Environment.MEDIA_MOUNTED) &&
+            (Environment.MEDIA_MOUNTED_READ_ONLY.compareTo(state) != 0))
             {
+            return(Environment.getExternalStorageDirectory().getAbsolutePath());
+            }
+        if (tmpFile.exists()) 
+            {
+            Log.i("CLINT", "tmpfile exists");
             return("/data/local");
             }
-        if (Environment.getExternalStorageState().equalsIgnoreCase(Environment.MEDIA_MOUNTED))
-            {
-            sRet = Environment.getExternalStorageDirectory().getAbsolutePath();
-            }
-        else
-            {
-            sRet = GetTmpDir();
-            }
+        Log.e("SUTAgentAndroid", "ERROR: Cannot access world writeable test root");
 
-        return(sRet);
+        return(null);
         }
 
     public String GetAppRoot(String AppName)
