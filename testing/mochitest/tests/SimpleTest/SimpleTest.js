@@ -14,6 +14,8 @@
 
 
 
+
+
 var SimpleTest = { };
 var parentRunner = null;
 
@@ -310,25 +312,52 @@ SimpleTest._getCurrentTestURL = function() {
            "unknown test url";
 };
 
-SimpleTest._logResult = function(test, passString, failString) {
-    var isError = !test.result == !test.todo;
-    var resultString = test.result ? passString : failString;
-    var url = SimpleTest._getCurrentTestURL();
-    var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
-    var msg = [resultString, url, diagnostic].join(" | ");
-    if (parentRunner) {
-        if (isError) {
-            parentRunner.addFailedTest(url);
-            parentRunner.error(msg);
-        } else {
-            parentRunner.log(msg);
-        }
-    } else if (typeof dump === "function") {
-        dump(msg + "\n");
-    } else {
+SimpleTest._logResult = (function () {
+    var numCoalescedMessages = 1;
+    var coalesceThreshold = 100;
+
+    function logResult(test, passString, failString) {
+        var isError = !test.result == !test.todo;
+        var outputCoalescedMessage = numCoalescedMessages == coalesceThreshold;
+
         
+        
+        
+        
+        
+        var shouldLog = (isError ||
+                         passString == "TEST-INFO" ||
+                         outputCoalescedMessage);
+
+        if (!shouldLog) {
+            ++numCoalescedMessages;
+            return;
+        }
+
+        var resultString = test.result ? passString : failString;
+        var url = SimpleTest._getCurrentTestURL();
+        var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
+        if (outputCoalescedMessage) {
+            diagnostic += " (elided " + numCoalescedMessages + " passes or known failures)";
+            numCoalescedMessages = 1;
+        }
+        var msg = [resultString, url, diagnostic].join(" | ");
+        if (parentRunner) {
+            if (isError) {
+                parentRunner.addFailedTest(url);
+                parentRunner.error(msg);
+            } else {
+                parentRunner.log(msg);
+            }
+        } else if (typeof dump === "function") {
+            dump(msg + "\n");
+        } else {
+            
+        }
     }
-};
+
+    return logResult;
+})();
 
 SimpleTest.info = function(name, message) {
     SimpleTest._logResult({result:true, name:name, diag:message}, "TEST-INFO");
