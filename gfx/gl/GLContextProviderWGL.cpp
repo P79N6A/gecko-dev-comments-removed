@@ -320,6 +320,10 @@ public:
         if (!mDC || !mContext)
             return false;
 
+        
+        if (!sWGLLib[mLibType].fMakeCurrent(mDC, mContext))
+            return false;
+
         SetupLookupFunction();
         if (!InitWithPrefix("gl", true))
             return false;
