@@ -89,18 +89,6 @@ public:
 class TextureClientData {
 public:
   virtual void DeallocateSharedData(ISurfaceAllocator* allocator) = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual void ForgetSharedData() = 0;
-
   virtual ~TextureClientData() {}
 };
 
