@@ -1159,7 +1159,13 @@ MarionetteServerConnection.prototype = {
   
 
 
-  getWindow: function MDA_getWindow() {
+
+
+
+
+
+
+  getCurrentWindowHandle: function MDA_getCurrentWindowHandle() {
     this.command_id = this.getCommandId();
     for (let i in this.browsers) {
       if (this.curBrowser == this.browsers[i]) {
@@ -2373,7 +2379,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "goBack": MarionetteServerConnection.prototype.goBack,
   "goForward": MarionetteServerConnection.prototype.goForward,
   "refresh":  MarionetteServerConnection.prototype.refresh,
-  "getWindow":  MarionetteServerConnection.prototype.getWindow,
+  "getCurrentWindowHandle":  MarionetteServerConnection.prototype.getCurrentWindowHandle,
+  "getWindow":  MarionetteServerConnection.prototype.getCurrentWindowHandle,  
   "getWindows":  MarionetteServerConnection.prototype.getWindows,
   "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
