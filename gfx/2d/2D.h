@@ -53,6 +53,7 @@ class SourceSurface;
 class DataSourceSurface;
 class DrawTarget;
 class DrawEventRecorder;
+class FilterNode;
 
 struct NativeSurface {
   NativeSurfaceType mType;
@@ -630,6 +631,19 @@ public:
 
 
 
+  virtual void DrawFilter(FilterNode *aNode,
+                          const Rect &aSourceRect,
+                          const Point &aDestPoint,
+                          const DrawOptions &aOptions = DrawOptions()) = 0;
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -865,6 +879,14 @@ public:
     CreateGradientStops(GradientStop *aStops,
                         uint32_t aNumStops,
                         ExtendMode aExtendMode = EXTEND_CLAMP) const = 0;
+
+  
+
+
+
+
+
+  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) = 0;
 
   const Matrix &GetTransform() const { return mTransform; }
 
