@@ -47,6 +47,23 @@ typedef hwc_layer_list_t HwcList;
 typedef hwc_layer_t HwcLayer;
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class HwcComposer2D : public mozilla::layers::Composer2D {
 public:
     HwcComposer2D();
