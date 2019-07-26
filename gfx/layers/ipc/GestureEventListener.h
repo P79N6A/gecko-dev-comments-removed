@@ -54,7 +54,7 @@ public:
 
 
 
-  nsEventStatus HandleInputEvent(const InputData& aEvent);
+  nsEventStatus HandleInputEvent(const MultiTouchInput& aEvent);
 
   
 
