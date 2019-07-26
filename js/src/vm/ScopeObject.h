@@ -534,22 +534,25 @@ class ScopeIter
   public:
 
     
-    explicit ScopeIter(const ScopeIter &si, JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ScopeIter(const ScopeIter &si, JSContext *cx
+              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
-    explicit ScopeIter(AbstractFramePtr frame, JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ScopeIter(AbstractFramePtr frame, jsbytecode *pc, JSContext *cx
+              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
 
 
 
-    explicit ScopeIter(JSObject &enclosingScope, JSContext *cx
-                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ScopeIter(JSObject &enclosingScope, JSContext *cx
+              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
-    ScopeIter(AbstractFramePtr frame, ScopeObject &scope, JSContext *cx
+    ScopeIter(AbstractFramePtr frame, jsbytecode *pc, ScopeObject &scope, JSContext *cx
+              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+
+    ScopeIter(const ScopeIterKey &key, JSContext *cx
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
     bool done() const { return !frame_; }
@@ -578,15 +581,20 @@ class ScopeIterKey
     JSObject *cur_;
     StaticBlockObject *block_;
     ScopeIter::Type type_;
+    bool hasScopeObject_;
 
   public:
     ScopeIterKey() : frame_(NullFramePtr()), cur_(nullptr), block_(nullptr), type_() {}
     ScopeIterKey(const ScopeIter &si)
-      : frame_(si.frame_), cur_(si.cur_), block_(si.block_), type_(si.type_)
+      : frame_(si.frame_), cur_(si.cur_), block_(si.block_), type_(si.type_),
+        hasScopeObject_(si.hasScopeObject_)
     {}
 
     AbstractFramePtr frame() const { return frame_; }
+    JSObject *cur() const { return cur_; }
+    StaticBlockObject *block() const { return block_; }
     ScopeIter::Type type() const { return type_; }
+    bool hasScopeObject() const { return hasScopeObject_; }
 
     
     typedef ScopeIterKey Lookup;
@@ -625,7 +633,7 @@ extern JSObject *
 GetDebugScopeForFunction(JSContext *cx, HandleFunction fun);
 
 extern JSObject *
-GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame);
+GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
 
 
 class DebugScopeObject : public ProxyObject
@@ -683,7 +691,7 @@ class DebugScopes
 
 
     typedef HashMap<ScopeObject *,
-                    AbstractFramePtr,
+                    ScopeIterKey,
                     DefaultHasher<ScopeObject *>,
                     RuntimeAllocPolicy> LiveScopeMap;
     LiveScopeMap liveScopes;
@@ -710,12 +718,13 @@ class DebugScopes
     static bool addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject &debugScope);
 
     static bool updateLiveScopes(JSContext *cx);
-    static AbstractFramePtr hasLiveFrame(ScopeObject &scope);
+    static ScopeIterKey *hasLiveScope(ScopeObject &scope);
 
     
     
     static void onPopCall(AbstractFramePtr frame, JSContext *cx);
-    static void onPopBlock(JSContext *cx, AbstractFramePtr frame);
+    static void onPopBlock(JSContext *cx, const ScopeIter &si);
+    static void onPopBlock(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
     static void onPopWith(AbstractFramePtr frame);
     static void onPopStrictEvalScope(AbstractFramePtr frame);
     static void onCompartmentLeaveDebugMode(JSCompartment *c);

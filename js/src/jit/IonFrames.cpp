@@ -434,7 +434,7 @@ HandleExceptionBaseline(JSContext *cx, const IonFrameIterator &frame, ResumeFrom
 
           case JSTRAP_RETURN:
             JS_ASSERT(baselineFrame->hasReturnValue());
-            if (jit::DebugEpilogue(cx, baselineFrame, true)) {
+            if (jit::DebugEpilogue(cx, baselineFrame, pc, true)) {
                 rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;
                 rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
                 rfe->stackPointer = reinterpret_cast<uint8_t *>(baselineFrame);
@@ -457,6 +457,7 @@ HandleExceptionBaseline(JSContext *cx, const IonFrameIterator &frame, ResumeFrom
     JSTryNote *tnEnd = tn + script->trynotes()->length;
 
     uint32_t pcOffset = uint32_t(pc - script->main());
+    ScopeIter si(frame.baselineFrame(), pc, cx);
     for (; tn != tnEnd; ++tn) {
         if (pcOffset < tn->start)
             continue;
@@ -472,7 +473,7 @@ HandleExceptionBaseline(JSContext *cx, const IonFrameIterator &frame, ResumeFrom
 
         
         if (cx->isExceptionPending())
-            UnwindScope(cx, frame.baselineFrame(), tn->stackDepth);
+            UnwindScope(cx, si, tn->stackDepth);
 
         
         rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
@@ -607,7 +608,10 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 BaselineFrame *frame = iter.baselineFrame();
-                if (jit::DebugEpilogue(cx, frame, false)) {
+                RootedScript script(cx);
+                jsbytecode *pc;
+                iter.baselineScriptAndPc(script.address(), &pc);
+                if (jit::DebugEpilogue(cx, frame, pc, false)) {
                     JS_ASSERT(frame->hasReturnValue());
                     rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;
                     rfe->framePointer = iter.fp() - BaselineFrame::FramePointerOffset;
