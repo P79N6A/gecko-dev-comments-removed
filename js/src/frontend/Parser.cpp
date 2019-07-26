@@ -278,7 +278,7 @@ AppendPackedBindings(const ParseContext<ParseHandler> *pc, const DeclVector &vec
 
         JS_ASSERT_IF(dn->isClosed(), pc->decls().lookupFirst(name) == dn);
         bool aliased = dn->isClosed() ||
-                       (pc->sc->allLocalsAliased() &&
+                       (pc->sc->bindingsAccessedDynamically() &&
                         pc->decls().lookupFirst(name) == dn);
 
         *dst = Binding(name, kind, aliased);
@@ -3231,6 +3231,7 @@ Parser<FullParseHandler>::pushLetScope(HandleStaticBlockObject blockObj, StmtInf
     if (!pn)
         return null();
 
+    
     pn->pn_dflags |= PND_LET;
 
     
@@ -3600,7 +3601,7 @@ Parser<FullParseHandler>::letDeclaration()
             if (!pn1)
                 return null();
 
-            pn1->setOp(JSOP_POPN);
+            pn1->setOp(JSOP_LEAVEBLOCK);
             pn1->pn_pos = pc->blockNode->pn_pos;
             pn1->pn_objbox = blockbox;
             pn1->pn_expr = pc->blockNode;
@@ -3636,8 +3637,8 @@ Parser<FullParseHandler>::letStatement()
     if (tokenStream.peekToken() == TOK_LP) {
         pn = letBlock(LetStatement);
         JS_ASSERT_IF(pn, pn->isKind(PNK_LET) || pn->isKind(PNK_SEMI));
-        JS_ASSERT_IF(pn && pn->isKind(PNK_LET) && pn->pn_expr->getOp() != JSOP_POPNV,
-                     pn->pn_expr->isOp(JSOP_POPN));
+        JS_ASSERT_IF(pn && pn->isKind(PNK_LET) && pn->pn_expr->getOp() != JSOP_LEAVEBLOCK,
+                     pn->isOp(JSOP_NOP));
     } else 
         pn = letDeclaration();
     return pn;
@@ -6692,11 +6693,6 @@ Parser<ParseHandler>::arrayInitializer()
         }
 
         
-
-
-
-
-
 
 
 

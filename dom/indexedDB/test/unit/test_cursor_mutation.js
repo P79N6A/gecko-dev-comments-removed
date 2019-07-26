@@ -35,6 +35,11 @@ function testSteps()
   let objectStore = db.createObjectStore("foo", { keyPath: "ss" });
   objectStore.createIndex("name", "name", { unique: true });
 
+  
+  
+  
+  eval('');
+
   for (let i = 0; i < objectStoreData.length - 1; i++) {
     objectStore.add(objectStoreData[i]);
   }

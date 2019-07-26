@@ -18,8 +18,6 @@
 
 namespace js {
 
-class ScopeIter;
-
 
 
 
@@ -38,7 +36,7 @@ class ScopeIter;
 
 
 extern JSTrapStatus
-ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
+ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame);
 
 
 
@@ -56,7 +54,7 @@ ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc);
 
 
 extern bool
-ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc, bool ok);
+ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, bool ok);
 
 
 
@@ -320,7 +318,7 @@ HasInstance(JSContext *cx, HandleObject obj, HandleValue v, bool *bp);
 
 
 extern void
-UnwindScope(JSContext *cx, ScopeIter &si, uint32_t stackDepth);
+UnwindScope(JSContext *cx, AbstractFramePtr frame, uint32_t stackDepth);
 
 
 

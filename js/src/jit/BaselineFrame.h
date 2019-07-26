@@ -39,6 +39,9 @@ class BaselineFrame
         HAS_RVAL         = 1 << 0,
 
         
+        HAS_BLOCKCHAIN   = 1 << 1,
+
+        
         HAS_CALL_OBJ     = 1 << 2,
 
         
@@ -69,13 +72,11 @@ class BaselineFrame
     uint32_t hiReturnValue_;
     uint32_t frameSize_;
     JSObject *scopeChain_;          
+    StaticBlockObject *blockChain_; 
     JSScript *evalScript_;          
     ArgumentsObject *argsObj_;      
     void *hookData_;                
     uint32_t flags_;
-#if JS_BITS_PER_WORD == 32
-    uint32_t padding_;              
-#endif
 
   public:
     
@@ -171,7 +172,7 @@ class BaselineFrame
 
     Value &unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) const {
 #ifdef DEBUG
-        CheckLocalUnaliased(checkAliasing, script(), i);
+        CheckLocalUnaliased(checkAliasing, script(), maybeBlockChain(), i);
 #endif
         return *valueSlot(i);
     }
@@ -209,6 +210,28 @@ class BaselineFrame
     }
     inline Value *addressOfReturnValue() {
         return reinterpret_cast<Value *>(&loReturnValue_);
+    }
+
+    bool hasBlockChain() const {
+        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+    }
+    StaticBlockObject &blockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return *blockChain_;
+    }
+    StaticBlockObject *maybeBlockChain() const {
+        return hasBlockChain() ? blockChain_ : nullptr;
+    }
+    void setBlockChain(StaticBlockObject &block) {
+        flags_ |= HAS_BLOCKCHAIN;
+        blockChain_ = &block;
+    }
+    void setBlockChainNull() {
+        JS_ASSERT(!hasBlockChain());
+        blockChain_ = nullptr;
+    }
+    StaticBlockObject **addressOfBlockChain() {
+        return &blockChain_;
     }
 
     bool hasCallObj() const {
@@ -360,6 +383,9 @@ class BaselineFrame
     static int reverseOffsetOfScopeChain() {
         return -int(Size()) + offsetof(BaselineFrame, scopeChain_);
     }
+    static int reverseOffsetOfBlockChain() {
+        return -int(Size()) + offsetof(BaselineFrame, blockChain_);
+    }
     static int reverseOffsetOfArgsObj() {
         return -int(Size()) + offsetof(BaselineFrame, argsObj_);
     }
@@ -383,6 +409,6 @@ JS_STATIC_ASSERT(((sizeof(BaselineFrame) + BaselineFrame::FramePointerOffset) % 
 } 
 } 
 
-#endif 
+#endif
 
-#endif 
+#endif

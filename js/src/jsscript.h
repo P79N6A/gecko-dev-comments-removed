@@ -43,7 +43,6 @@ class RegExpObject;
 struct SourceCompressionTask;
 class Shape;
 class WatchpointMap;
-class StaticBlockObject;
 
 namespace analyze {
     class ScriptAnalysis;
@@ -82,27 +81,9 @@ struct JSTryNote {
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 struct BlockScopeNote {
-    static const uint32_t NoBlockScopeIndex = UINT32_MAX;
-
     uint32_t        index;      
-                                
-                                
     uint32_t        start;      
-                                
     uint32_t        length;     
     uint32_t        padding;    
 };
@@ -1104,8 +1085,6 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
     }
-
-    js::StaticBlockObject *getBlockScope(jsbytecode *pc);
 
     
 

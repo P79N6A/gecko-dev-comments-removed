@@ -75,7 +75,8 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 #ifdef DEBUG
 extern void
-CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script, unsigned i);
+CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script,
+                    StaticBlockObject *maybeBlock, unsigned i);
 #endif
 
 namespace jit {
@@ -171,6 +172,8 @@ class AbstractFramePtr
 
     operator bool() const { return !!ptr_; }
 
+    inline JSGenerator *maybeSuspendedGenerator(JSRuntime *rt) const;
+
     inline JSObject *scopeChain() const;
     inline CallObject &callObj() const;
     inline bool initFunctionScopeObjects(JSContext *cx);
@@ -178,6 +181,7 @@ class AbstractFramePtr
 
     inline JSCompartment *compartment() const;
 
+    inline StaticBlockObject *maybeBlockChain() const;
     inline bool hasCallObj() const;
     inline bool isGeneratorFrame() const;
     inline bool isYielding() const;
@@ -307,6 +311,7 @@ class StackFrame
         HAS_HOOK_DATA      =      0x400,  
         HAS_RVAL           =      0x800,  
         HAS_SCOPECHAIN     =     0x1000,  
+        HAS_BLOCKCHAIN     =     0x2000,  
 
         
         PREV_UP_TO_DATE    =     0x4000,  
@@ -336,6 +341,7 @@ class StackFrame
     } u;
     mutable JSObject    *scopeChain_;   
     Value               rval_;          
+    StaticBlockObject   *blockChain_;   
     ArgumentsObject     *argsObj_;      
 
     
@@ -592,6 +598,25 @@ class StackFrame
 
 
 
+
+
+
+
+
+
+    bool hasBlockChain() const {
+        return (flags_ & HAS_BLOCKCHAIN) && blockChain_;
+    }
+
+    StaticBlockObject *maybeBlockChain() {
+        return (flags_ & HAS_BLOCKCHAIN) ? blockChain_ : nullptr;
+    }
+
+    StaticBlockObject &blockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return *blockChain_;
+    }
+
     bool pushBlock(JSContext *cx, StaticBlockObject &block);
     void popBlock(JSContext *cx);
 
@@ -839,6 +864,8 @@ class StackFrame
     void copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
                             const Value *othervp, Value *othersp);
 
+    JSGenerator *maybeSuspendedGenerator(JSRuntime *rt);
+
     
 
 
@@ -972,6 +999,9 @@ InitialFrameFlagsAreConstructing(InitialFrameFlags initial)
 {
     return !!(initial & INITIAL_CONSTRUCT);
 }
+
+inline AbstractFramePtr Valueify(JSAbstractFramePtr frame) { return AbstractFramePtr(frame); }
+static inline JSAbstractFramePtr Jsvalify(AbstractFramePtr frame)   { return JSAbstractFramePtr(frame.raw()); }
 
 
 

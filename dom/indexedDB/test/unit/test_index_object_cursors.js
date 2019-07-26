@@ -34,6 +34,9 @@ function testSteps()
 
   event.target.onsuccess = continueToNextStep;
 
+  
+  eval('');
+
   for (let objectStoreIndex in objectStoreData) {
     const objectStoreInfo = objectStoreData[objectStoreIndex];
     let objectStore = db.createObjectStore(objectStoreInfo.name,
