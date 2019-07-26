@@ -43,8 +43,8 @@ this.TabState = Object.freeze({
     return TabStateInternal.clone(tab);
   },
 
-  dropPendingCollections: function (tab) {
-    TabStateInternal.dropPendingCollections(tab);
+  dropPendingCollections: function (browser) {
+    TabStateInternal.dropPendingCollections(browser);
   }
 });
 
@@ -72,6 +72,12 @@ let TabStateInternal = {
 
 
   onSwapDocShells: function (browser, otherBrowser) {
+    
+    
+    
+    this.dropPendingCollections(browser);
+    this.dropPendingCollections(otherBrowser);
+
     
     
     if (!this._syncHandlers.has(browser)) {
@@ -119,6 +125,8 @@ let TabStateInternal = {
       return Promise.resolve(tabData);
     }
 
+    let browser = tab.linkedBrowser;
+
     let promise = Task.spawn(function task() {
       
       
@@ -156,9 +164,9 @@ let TabStateInternal = {
       
       
       
-      if (this._pendingCollections.get(tab) == promise) {
+      if (this._pendingCollections.get(browser) == promise) {
         TabStateCache.set(tab, tabData);
-        this._pendingCollections.delete(tab);
+        this._pendingCollections.delete(browser);
       }
 
       throw new Task.Result(tabData);
@@ -167,7 +175,7 @@ let TabStateInternal = {
     
     
     
-    this._pendingCollections.set(tab, promise);
+    this._pendingCollections.set(browser, promise);
 
     return promise;
   },
@@ -201,7 +209,7 @@ let TabStateInternal = {
     
     
     
-    this.dropPendingCollections(tab);
+    this.dropPendingCollections(tab.linkedBrowser);
 
     return tabData;
   },
@@ -214,8 +222,8 @@ let TabStateInternal = {
 
 
 
-  dropPendingCollections: function (tab) {
-    this._pendingCollections.delete(tab);
+  dropPendingCollections: function (browser) {
+    this._pendingCollections.delete(browser);
   },
 
   

@@ -2595,7 +2595,7 @@ let SessionStoreInternal = {
 
       
       
-      TabState.dropPendingCollections(tab);
+      TabState.dropPendingCollections(browser);
 
       if (!tabData.entries) {
         tabData.entries = [];
