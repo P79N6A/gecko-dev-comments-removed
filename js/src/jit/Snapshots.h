@@ -356,21 +356,22 @@ class SnapshotWriter
     }
 };
 
+class RecoverReader;
+
 
 
 
 
 class SnapshotReader
 {
+    friend class RecoverReader;
+
     CompactBufferReader reader_;
     CompactBufferReader allocReader_;
     const uint8_t* allocTable_;
 
-    uint32_t pcOffset_;           
-    uint32_t allocCount_;         
     uint32_t frameCount_;
     BailoutKind bailoutKind_;
-    uint32_t framesRead_;         
     uint32_t allocRead_;          
     bool resumeAfter_;
 
@@ -394,35 +395,48 @@ class SnapshotReader
     SnapshotReader(const uint8_t *snapshots, uint32_t offset,
                    uint32_t RVATableSize, uint32_t listSize);
 
-    uint32_t allocations() const {
-        return allocCount_;
-    }
     RValueAllocation readAllocation();
 
-    bool moreAllocations() const {
-        return allocRead_ < allocCount_;
+    BailoutKind bailoutKind() const {
+        return bailoutKind_;
+    }
+    bool resumeAfter() const {
+        return resumeAfter_;
+    }
+};
+
+class RecoverReader
+{
+    uint32_t frameCount_;
+    uint32_t framesRead_;         
+    uint32_t pcOffset_;           
+    uint32_t allocCount_;         
+
+  private:
+    void readFrame(SnapshotReader &snapshot);
+
+  public:
+    RecoverReader(SnapshotReader &snapshot);
+
+    bool moreFrames() const {
+        return framesRead_ < frameCount_;
+    }
+    void nextFrame(SnapshotReader &snapshot) {
+        readFrame(snapshot);
+    }
+    uint32_t frameCount() const {
+        return frameCount_;
     }
 
     uint32_t pcOffset() const {
         return pcOffset_;
     }
-    BailoutKind bailoutKind() const {
-        return bailoutKind_;
-    }
-    bool resumeAfter() const {
-        if (moreFrames())
-            return false;
-        return resumeAfter_;
-    }
 
-    bool moreFrames() const {
-        return framesRead_ < frameCount_;
+    uint32_t allocations() const {
+        return allocCount_;
     }
-    void nextFrame() {
-        readFrameHeader();
-    }
-    uint32_t frameCount() const {
-        return frameCount_;
+    bool moreAllocations(const SnapshotReader &snapshot) const {
+        return snapshot.allocRead_ < allocCount_;
     }
 };
 
