@@ -93,6 +93,15 @@ Tester.prototype = {
 
   start: function Tester_start() {
     
+    if (window.BrowserChromeTest) {
+      BrowserChromeTest.runWhenReady(this.actuallyStart.bind(this));
+      return;
+    }
+    this.actuallyStart();
+  },
+
+  actuallyStart: function Tester_actuallyStart() {
+    
     if (!gConfig)
       gConfig = readConfig();
     this.repeat = gConfig.repeat;
