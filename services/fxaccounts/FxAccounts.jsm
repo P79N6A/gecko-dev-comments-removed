@@ -372,6 +372,8 @@ FxAccountsInternal.prototype = {
 
 
 
+
+
   setSignedInUser: function setSignedInUser(credentials) {
     log.debug("setSignedInUser - aborting any existing flows");
     this.abortExistingFlow();

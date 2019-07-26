@@ -102,11 +102,13 @@ this.FxAccountsClient.prototype = {
 
 
 
+
+
   signIn: function signIn(email, password, getKeys=false, retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
-        email: creds.emailUTF8,
         authPW: CommonUtils.bytesAsHex(creds.authPW),
+        email: creds.emailUTF8,
       };
       let keys = getKeys ? "?keys=true" : "";
 
@@ -115,6 +117,8 @@ this.FxAccountsClient.prototype = {
         
         result => {
           result.email = data.email;
+          result.unwrapBKey = CommonUtils.bytesAsHex(creds.unwrapBKey);
+
           return result;
         },
         error => {
