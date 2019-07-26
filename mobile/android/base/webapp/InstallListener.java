@@ -82,15 +82,16 @@ public class InstallListener extends BroadcastReceiver {
     }
 
     public boolean isCorrectManifest(String manifestUrl) {
+        
+        
         try {
-            URL registered = new URL(mManifestUrl);
-            URL observed = new URL(manifestUrl);
-            
-            
-            return registered.sameFile(observed);
-        } catch (MalformedURLException e) {
-            return false;
+            String registeredUrl = mManifestUrl.split("\\?")[0];
+            String observedUrl = manifestUrl.split("\\?")[0];
+            return registeredUrl.equals(observedUrl);
+        } catch (NullPointerException e) {
+            Log.e(LOGTAG, "One or both of the manifest URLs is null", e);
         }
+        return false;
     }
 
     public void cleanup() {
