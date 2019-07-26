@@ -707,18 +707,26 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (haveCurrentTransition && haveValues && oldPT->mEndValue == pt.mEndValue) {
+    
+    return;
+  }
+
   nsPresContext *presContext = aNewStyleContext->PresContext();
 
   if (!shouldAnimate) {
     nsTArray<ElementPropertyTransition> &pts =
       aElementTransitions->mPropertyTransitions;
-    if (haveCurrentTransition &&
-        (!haveValues || pts[currentIndex].mEndValue != pt.mEndValue)) {
-      
-      
-      
-      
-      
+    if (haveCurrentTransition) {
       
       
       
@@ -752,16 +760,6 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   
   
   if (haveCurrentTransition) {
-    if (oldPT->mEndValue == pt.mEndValue) {
-      
-      
-      
-      
-      return;
-    }
-
-    
-    
     if (!oldPT->IsRemovedSentinel() &&
         oldPT->mStartForReversingTest == pt.mEndValue) {
       
