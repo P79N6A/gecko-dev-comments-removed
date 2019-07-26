@@ -675,7 +675,6 @@ function BuildConditionSandbox(aURL) {
     
     
     sandbox.browserIsRemote = gBrowserIsRemote;
-    sandbox.bug685516 = sandbox.browserIsRemote && sandbox.Android;
 
     
     sandbox.xulFennec    = sandbox.Android &&  sandbox.browserIsRemote;
