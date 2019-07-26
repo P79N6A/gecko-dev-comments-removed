@@ -83,47 +83,12 @@ ClientTiledThebesLayer::BeginPaint()
   mPaintData.mCompositionBounds.SetEmpty();
   mPaintData.mCriticalDisplayPort.SetEmpty();
 
-  if (!GetBaseTransform().Is2DIntegerTranslation()) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  if (!GetBaseTransform().Is2D()) {
     
     
     
     return;
   }
-
-#ifdef MOZ_WIDGET_ANDROID
-  
-  
-  
-  
-  
-  
-  bool isPrimaryScrollableThebesLayer = false;
-  if (Layer* scrollable = ClientManager()->GetPrimaryScrollableLayer()) {
-    if (GetParent() == scrollable) {
-      for (Layer* child = scrollable->GetFirstChild(); child; child = child->GetNextSibling()) {
-        if (child->GetType() == Layer::TYPE_THEBES) {
-          if (child == this) {
-            
-            isPrimaryScrollableThebesLayer = true;
-          }
-          break;
-        }
-      }
-    }
-  }
-  if (!isPrimaryScrollableThebesLayer) {
-    return;
-  }
-#endif
 
   
   
