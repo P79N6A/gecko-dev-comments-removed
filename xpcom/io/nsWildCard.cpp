@@ -60,7 +60,7 @@ template<class T>
 static int
 _valid_subexp(const T *expr, T stop1, T stop2)
 {
-    register int x;
+    int x;
     int nsc = 0;     
     int np;          
     int tld = 0;     
@@ -174,8 +174,8 @@ template<class T>
 static int
 _scan_and_copy(const T *expr, T stop1, T stop2, T *dest)
 {
-    register int sx;     
-    register T cc;
+    int sx;     
+    T cc;
 
     for (sx = 0; (cc = expr[sx]) && cc != stop1 && cc != stop2; sx++) {
         if (cc == '\\') {
@@ -212,7 +212,7 @@ static int
 _handle_union(const T *str, const T *expr, bool case_insensitive,
               unsigned int level)
 {
-    register int sx;     
+    int sx;              
     int cp;              
     int count;
     int ret   = NOMATCH;
@@ -263,8 +263,8 @@ static int
 _shexp_match(const T *str, const T *expr, bool case_insensitive,
              unsigned int level)
 {
-    register int x;   
-    register int y;   
+    int x;   
+    int y;   
     int ret,neg;
 
     if (level > 20)      
