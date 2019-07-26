@@ -118,6 +118,28 @@ class nsViewManager;
 class nsView;
 class nsMenuPopupFrame;
 
+
+class nsXULPopupShownEvent : public nsRunnable, public nsIDOMEventListener
+{
+public:
+  nsXULPopupShownEvent(nsIContent *aPopup, nsPresContext* aPresContext)
+    : mPopup(aPopup), mPresContext(aPresContext)
+  {
+  }
+
+  virtual ~nsXULPopupShownEvent() { }
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSIDOMEVENTLISTENER
+
+  void CancelListener();
+
+private:
+  nsCOMPtr<nsIContent> mPopup;
+  nsRefPtr<nsPresContext> mPresContext;
+};
+
 class nsMenuPopupFrame : public nsBoxFrame, public nsMenuParent
 {
 public:
@@ -345,6 +367,20 @@ public:
 
   
   nscoord GetAlignmentOffset() const { return mAlignmentOffset; }
+
+  
+  
+  bool ClearPopupShownDispatcher()
+  {
+    if (mPopupShownDispatcher) {
+      mPopupShownDispatcher->CancelListener();
+      mPopupShownDispatcher = nullptr;
+      return true;
+    }
+
+    return false;
+  }
+
 protected:
 
   
@@ -433,6 +469,8 @@ protected:
   nsCOMPtr<nsIContent> mTriggerContent;
 
   nsMenuFrame* mCurrentMenu; 
+
+  nsRefPtr<nsXULPopupShownEvent> mPopupShownDispatcher;
 
   
   

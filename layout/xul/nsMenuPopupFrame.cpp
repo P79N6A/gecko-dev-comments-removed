@@ -44,6 +44,7 @@
 #include "nsIScreenManager.h"
 #include "nsIServiceManager.h"
 #include "nsThemeConstants.h"
+#include "nsTransitionManager.h"
 #include "nsDisplayList.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStateManager.h"
@@ -330,26 +331,37 @@ nsMenuPopupFrame::GetShadowStyle()
   return NS_STYLE_WINDOW_SHADOW_DEFAULT;
 }
 
-
-class nsXULPopupShownEvent : public nsRunnable
+NS_IMETHODIMP nsXULPopupShownEvent::Run()
 {
-public:
-  nsXULPopupShownEvent(nsIContent *aPopup, nsPresContext* aPresContext)
-    : mPopup(aPopup), mPresContext(aPresContext)
-  {
+  WidgetMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr,
+                         WidgetMouseEvent::eReal);
+  return EventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
+}
+
+NS_IMETHODIMP nsXULPopupShownEvent::HandleEvent(nsIDOMEvent* aEvent)
+{
+  nsMenuPopupFrame* popup = do_QueryFrame(mPopup->GetPrimaryFrame());
+  if (popup) {
+    
+    
+    nsRefPtr<nsXULPopupShownEvent> event = this;
+    
+    
+    if (popup->ClearPopupShownDispatcher()) {
+      return Run();
+    }
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    WidgetMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr,
-                           WidgetMouseEvent::eReal);
-    return EventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
-  }
+  CancelListener();
+  return NS_OK;
+}
 
-private:
-  nsCOMPtr<nsIContent> mPopup;
-  nsRefPtr<nsPresContext> mPresContext;
-};
+void nsXULPopupShownEvent::CancelListener()
+{
+  mPopup->RemoveSystemEventListener(NS_LITERAL_STRING("transitionend"), this, false);
+}
+
+NS_IMPL_ISUPPORTS_INHERITED(nsXULPopupShownEvent, nsRunnable, nsIDOMEventListener);
 
 void
 nsMenuPopupFrame::SetInitialChildList(ChildListID  aListID,
@@ -482,6 +494,21 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
   
   if (mIsOpenChanged) {
     mIsOpenChanged = false;
+
+#ifndef MOZ_WIDGET_GTK
+    
+    
+    if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::animate,
+                              nsGkAtoms::open, eCaseMatters) &&
+        nsLayoutUtils::HasCurrentAnimations(mContent, nsGkAtoms::transitionsProperty, pc)) {
+      mPopupShownDispatcher = new nsXULPopupShownEvent(mContent, pc);
+      mContent->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
+                                       mPopupShownDispatcher, false, false);
+      return;
+    }
+#endif
+
+    
     nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
     NS_DispatchToCurrentThread(event);
   }
@@ -778,6 +805,8 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
 {
   NS_ASSERTION(aNewState == ePopupClosed || aNewState == ePopupInvisible,
                "popup being set to unexpected state");
+
+  ClearPopupShownDispatcher();
 
   
   if (mPopupState == ePopupClosed || mPopupState == ePopupShowing)
@@ -1886,6 +1915,8 @@ nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot)
     nsContentUtils::AddScriptRunner(
       new nsUnsetAttrRunnable(menu->GetContent(), nsGkAtoms::open));
   }
+
+  ClearPopupShownDispatcher();
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm)
