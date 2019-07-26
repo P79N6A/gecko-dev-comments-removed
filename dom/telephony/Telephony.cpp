@@ -240,8 +240,6 @@ Telephony::DialInternal(bool isEmergency,
   return NS_OK;
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(Telephony)
-
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Telephony,
                                                   nsDOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
@@ -533,7 +531,10 @@ Telephony::NotifyError(int32_t aCallIndex,
   if (!mCalls.IsEmpty()) {
     
     if (aCallIndex == -1) {
-      callToNotify = mCalls[mCalls.Length() - 1];
+      nsRefPtr<TelephonyCall>& lastCall = mCalls[mCalls.Length() - 1];
+      if (lastCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
+        callToNotify = lastCall;
+      }
     } else {
       
       for (uint32_t index = 0; index < mCalls.Length(); index++) {
