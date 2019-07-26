@@ -9,7 +9,6 @@
 %define forwardTransitionLength 150ms
 %define conditionalForwardWithUrlbar window:not([chromehidden~="toolbar"]) #urlbar-container
 %define conditionalForwardWithUrlbarWidth 30
-%define nativeTitlebarHeight 22px
 %define spaceAboveTabbar 9px
 %define toolbarButtonPressed :hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"])
 %define windowButtonMarginTop 11px
@@ -59,25 +58,18 @@
 
 @media (-moz-mac-lion-theme) {
   .titlebar-placeholder[type="fullscreen-button"],
-  #titlebar-fullscreen-button {
+  #titlebar-secondary-buttonbox {
     margin-right: 7px;
+    margin-left: 7px;
   }
 }
 
-#main-window:not(:-moz-lwtheme):not([privatebrowsingmode=temporary]) > #titlebar {
+#main-window:not(:-moz-lwtheme) > #titlebar {
   -moz-appearance: -moz-window-titlebar;
 }
 
 #main-window:not([tabsintitlebar]) > #titlebar {
-  min-height: @nativeTitlebarHeight@;
-}
-
-
-
-
-
-#main-window:not([tabsintitlebar]) > #titlebar > #titlebar-content {
-  display: none;
+  height: 22px; 
 }
 
 
@@ -92,11 +84,11 @@
 
 
 #main-window[tabsintitlebar] > #titlebar > #titlebar-content > #titlebar-buttonbox-container,
-#main-window[tabsintitlebar] > #titlebar > #titlebar-content > #titlebar-fullscreen-button {
+#main-window[tabsintitlebar] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > #titlebar-fullscreen-button {
   margin-top: @windowButtonMarginTop@;
 }
 
-#main-window[tabsintitlebar][customize-entered] > #titlebar {
+#main-window[customizing] > #titlebar {
   -moz-appearance: none;
 }
 
@@ -2803,8 +2795,8 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   visibility: hidden;
 }
 
-#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing])) #navigator-toolbox[inFullscreen]:not(:-moz-lwtheme)::before,
-#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing],[tabsintitlebar])) #navigator-toolbox:not(:-moz-lwtheme)::before {
+#main-window:not([customizing]) #navigator-toolbox[inFullscreen]:not(:-moz-lwtheme)::before,
+#main-window:not(:-moz-any([customizing],[tabsintitlebar])) #navigator-toolbox:not(:-moz-lwtheme)::before {
   visibility: visible;
 }
 
@@ -2841,7 +2833,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   visibility: hidden;
 }
 
-#main-window:-moz-any([privatebrowsingmode=temporary],[sizemode="fullscreen"],[customize-entered]) #TabsToolbar::after,
+#main-window:-moz-any([sizemode="fullscreen"],[customize-entered]) #TabsToolbar::after,
 #main-window:not([tabsintitlebar]) #TabsToolbar::after,
 #TabsToolbar:-moz-lwtheme::after {
   visibility: visible;
@@ -3969,11 +3961,6 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
     height: calc(@tabMinHeight@ + @spaceAboveTabbar@) !important;
   }
-  #main-window[inFullscreen][privatebrowsingmode=temporary] {
-    
-
-    padding-top: @spaceAboveTabbar@;
-  }
 }
 
 #full-screen-warning-message {
@@ -4303,6 +4290,7 @@ window > chatbox {
 }
 
 #main-window[tabsintitlebar][customize-entered] > #titlebar,
+#main-window[privatebrowsingmode=temporary]:not([tabsintitlebar])[customize-entered] > #titlebar,
 #main-window[customize-entered] > #tab-view-deck {
   background-image: url("chrome://browser/skin/customizableui/customizeMode-gridTexture.png"),
                     url("chrome://browser/skin/customizableui/background-noise-toolbar.png"),
@@ -4372,59 +4360,68 @@ window > chatbox {
 
 
 
-#main-window[privatebrowsingmode=temporary] {
+.private-browsing-indicator {
   background-image: url("chrome://browser/skin/privatebrowsing-mask.png");
-  background-position: top right;
   background-repeat: no-repeat;
-  background-color: -moz-mac-chrome-active;
+  background-size: 100% auto;
+  width: 38px;
+  height: 28px;
+  
+
+
+
+
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+#titlebar-secondary-buttonbox > .private-browsing-indicator {
+  position: relative;
+}
+
+#main-window[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
+  background-image: url("chrome://browser/skin/privatebrowsing-mask-short.png");
+  height: 20px;
+}
+
+#main-window:not([privatebrowsingmode=temporary]) .private-browsing-indicator,
+#main-window[privatebrowsingmode=temporary][inFullscreen] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator,
+#main-window[privatebrowsingmode=temporary]:not([inFullscreen]) > #tab-view-deck > #browser-panel > #navigator-toolbox > #TabsToolbar > .private-browsing-indicator {
+  display: none;
 }
 
 @media (min-resolution: 2dppx) {
-  #main-window[privatebrowsingmode=temporary] {
+  .private-browsing-indicator {
     background-image: url("chrome://browser/skin/privatebrowsing-mask@2x.png");
-    background-size: 38px;
   }
-}
-
-#main-window[privatebrowsingmode=temporary] {
-  background-position: top right 20px;
-}
-
-
-
-#main-window[privatebrowsingmode=temporary]:-moz-locale-dir(rtl) {
-  background-position: top left 70px;
-}
-
-#main-window[privatebrowsingmode=temporary][inFullscreen]:-moz-locale-dir(rtl) {
-  background-position: top left 10px;
-}
-
-#main-window[privatebrowsingmode=temporary][inFullscreen] .titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(ltr) {
-  
-
-  display: -moz-box;
-}
-
-#main-window[privatebrowsingmode=temporary]:-moz-window-inactive {
-  background-color: -moz-mac-chrome-inactive;
-}
-
-#main-window[privatebrowsingmode=temporary] #TabsToolbar {
-  -moz-padding-end: 46px;
+  #main-window[privatebrowsingmode=temporary]:not([tabsintitlebar]) > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > .private-browsing-indicator {
+    background-image: url("chrome://browser/skin/privatebrowsing-mask-short@2x.png");
+  }
 }
 
 @media (-moz-mac-lion-theme) {
-  #main-window[privatebrowsingmode=temporary] #TabsToolbar:-moz-locale-dir(ltr) {
-    -moz-padding-end: 36px;
+  #TabsToolbar > .private-browsing-indicator {
+    transform: translateY(-@spaceAboveTabbar@);
+    
+
+
+    margin-right: -42px;
+  }
+
+  #main-window[privatebrowsingmode=temporary] .titlebar-placeholder[type="fullscreen-button"],
+  #main-window[privatebrowsingmode=temporary] > #titlebar > #titlebar-content > #titlebar-secondary-buttonbox > #titlebar-fullscreen-button {
+    margin-left: 0px;
+  }
+
+  #main-window[privatebrowsingmode=temporary][inFullscreen] .titlebar-placeholder[type="fullscreen-button"] {
+    
+
+    display: -moz-box;
   }
 }
 
-@media not all and (-moz-mac-lion-theme) {
-  
-  #main-window[privatebrowsingmode=temporary] {
-    background-position: top right 10px;
-  }
+#TabsToolbar > .private-browsing-indicator:-moz-locale-dir(rtl) {
+  -moz-box-ordinal-group: 0;
 }
 
 %include ../shared/UITour.inc.css
