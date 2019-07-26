@@ -18,493 +18,367 @@
 
 
 
+(function () {
+    var debuggerSource = "(" + function () {
+        
+        var focusedFrame = null;
+        var topFrame = null;
+        var debuggeeValues = [null];
+        var lastExc = null;
 
-
-var focusedFrame = null;
-var topFrame = null;
-var debuggeeValues = {};
-var nextDebuggeeValueIndex = 1;
-var lastExc = null;
-
-
-var replCleanups = [];
-
-
-function dvToString(v) {
-    return (typeof v !== 'object' || v === null) ? uneval(v) : "[object " + v.class + "]";
-}
-
-function showDebuggeeValue(dv) {
-    var dvrepr = dvToString(dv);
-    var i = nextDebuggeeValueIndex++;
-    debuggeeValues["$" + i] = dv;
-    print("$" + i + " = " + dvrepr);
-}
-
-Object.defineProperty(Debugger.Frame.prototype, "num", {
-    configurable: true,
-    enumerable: false,
-    get: function () {
-            var i = 0;
-            for (var f = topFrame; f && f !== this; f = f.older)
-                i++;
-            return f === null ? undefined : i;
+        
+        function dvToString(v) {
+            return (typeof v !== 'object' || v === null) ? uneval(v) : "[object " + v.class + "]";
         }
-    });
 
-Debugger.Frame.prototype.frameDescription = function frameDescription() {
-    if (this.type == "call")
-        return ((this.callee.name || '<anonymous>') +
-                "(" + this.arguments.map(dvToString).join(", ") + ")");
-    else
-        return this.type + " code";
-}
-
-Debugger.Frame.prototype.positionDescription = function positionDescription() {
-    if (this.script) {
-        var line = this.script.getOffsetLine(this.offset);
-        if (this.script.url)
-            return this.script.url + ":" + line;
-        return "line " + line;
-    }
-    return null;
-}
-
-Debugger.Frame.prototype.fullDescription = function fullDescription() {
-    var fr = this.frameDescription();
-    var pos = this.positionDescription();
-    if (pos)
-        return fr + ", " + pos;
-    return fr;
-}
-
-Object.defineProperty(Debugger.Frame.prototype, "line", {
-        configurable: true,
-        enumerable: false,
-        get: function() {
-            if (this.script)
-                return this.script.getOffsetLine(this.offset);
-            else
-                return null;
+        function showDebuggeeValue(dv) {
+            var dvrepr = dvToString(dv);
+            var i = debuggeeValues.length;
+            debuggeeValues[i] = dv;
+            print("$" + i + " = " + dvrepr);
         }
-    });
 
-function callDescription(f) {
-    return ((f.callee.name || '<anonymous>') +
-            "(" + f.arguments.map(dvToString).join(", ") + ")");
-}
+        Object.defineProperty(Debugger.Frame.prototype, "num", {
+            configurable: true,
+            enumerable: false,
+            get: function () {
+                    var i = 0;
+                    for (var f = topFrame; f && f !== this; f = f.older)
+                        i++;
+                    return f === null ? undefined : i;
+                }
+            });
 
-function showFrame(f, n) {
-    if (f === undefined || f === null) {
-        f = focusedFrame;
-        if (f === null) {
-            print("No stack.");
-            return;
+        function framePosition(f) {
+            if (!f.script)
+                return f.type + " code";
+            return (f.script.url || f.type + " code") + ":" + f.script.getOffsetLine(f.offset);
         }
-    }
-    if (n === undefined) {
-        n = f.num;
-        if (n === undefined)
-            throw new Error("Internal error: frame not on stack");
-    }
 
-    print('#' + n + " " + f.fullDescription());
-}
+        function callDescription(f) {
+            return ((f.callee.name || '<anonymous>') + 
+                    "(" + f.arguments.map(dvToString).join(", ") + ")");
+        }
 
-function saveExcursion(fn) {
-    var tf = topFrame, ff = focusedFrame;
-    try {
-        return fn();
-    } finally {
-        topFrame = tf;
-        focusedFrame = ff;
-    }
-}
+        function showFrame(f, n) {
+            if (f === undefined || f === null) {
+                f = focusedFrame;
+                if (f === null) {
+                    print("No stack.");
+                    return;
+                }
+            }
+            if (n === undefined) {
+                n = f.num;
+                if (n === undefined)
+                    throw new Error("Internal error: frame not on stack");
+            }
 
+            var me = '#' + n;
+            if (f.type === "call")
+                me += ' ' + callDescription(f);
+            me += ' ' + framePosition(f);
+            print(me);
+        }
 
-function evalCommand(expr) {
-    eval(expr);
-}
+        function saveExcursion(fn) {
+            var tf = topFrame, ff = focusedFrame;
+            try {
+                return fn();
+            } finally {
+                topFrame = tf;
+                focusedFrame = ff;
+            }
+        }
 
-function quitCommand() {
-    dbg.enabled = false;
-    quit(0);
-}
+        function quitCommand() {
+            dbg.enabled = false;
+            quit(0);
+        }
 
-function backtraceCommand() {
-    if (topFrame === null)
-        print("No stack.");
-    for (var i = 0, f = topFrame; f; i++, f = f.older)
-        showFrame(f, i);
-}
+        function backtraceCommand() {
+            if (topFrame === null)
+                print("No stack.");
+            for (var i = 0, f = topFrame; f; i++, f = f.older)
+                showFrame(f, i);
+        }
 
-function printCommand(rest) {
-    
-    var cv = saveExcursion(
-        () => focusedFrame == null
-              ? debuggeeGlobalWrapper.evalInGlobalWithBindings(rest, debuggeeValues)
-              : focusedFrame.evalWithBindings(rest, debuggeeValues));
-    if (cv === null) {
-        if (!dbg.enabled)
-            return [cv];
-        print("Debuggee died.");
-    } else if ('return' in cv) {
-        if (!dbg.enabled)
+        function printCommand(rest) {
+            if (focusedFrame === null) {
+                
+                
+                var nonwrappedValue;
+                try {
+                    nonwrappedValue = debuggeeGlobal.eval(rest);
+                } catch (exc) {
+                    print("Exception caught.");
+                    nonwrappedValue = exc;
+                }
+                if (typeof nonwrappedValue !== "object" || nonwrappedValue === null) {
+                    
+                    print("    " + uneval(nonwrappedValue));
+                } else {
+                    
+                    print("    " + Object.prototype.toString.call(nonwrappedValue));
+                }
+            } else {
+                
+                var cv = saveExcursion(function () {
+                        return focusedFrame.eval(rest);
+                    });
+                if (cv === null) {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Debuggee died.");
+                } else if ('return' in cv) {
+                    if (!dbg.enabled)
+                        return [undefined];
+                    showDebuggeeValue(cv.return);
+                } else {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Exception caught. (To rethrow it, type 'throw'.)");
+                    lastExc = cv.throw;
+                    showDebuggeeValue(lastExc);
+                }
+            }
+        }
+
+        function detachCommand() {
+            dbg.enabled = false;
             return [undefined];
-        showDebuggeeValue(cv.return);
-    } else {
-        if (!dbg.enabled)
-            return [cv];
-        print("Exception caught. (To rethrow it, type 'throw'.)");
-        lastExc = cv.throw;
-        showDebuggeeValue(lastExc);
-    }
-}
-
-function detachCommand() {
-    dbg.enabled = false;
-    return [undefined];
-}
-
-function continueCommand() {
-    if (focusedFrame === null) {
-        print("No stack.");
-        return;
-    }
-    return [undefined];
-}
-
-function throwCommand(rest) {
-    var v;
-    if (focusedFrame !== topFrame) {
-        print("To throw, you must select the newest frame (use 'frame 0').");
-        return;
-    } else if (focusedFrame === null) {
-        print("No stack.");
-        return;
-    } else if (rest === '') {
-        return [{throw: lastExc}];
-    } else {
-        var cv = saveExcursion(function () { return focusedFrame.eval(rest); });
-        if (cv === null) {
-            if (!dbg.enabled)
-                return [cv];
-            print("Debuggee died while determining what to throw. Stopped.");
-        } else if ('return' in cv) {
-            return [{throw: cv.return}];
-        } else {
-            if (!dbg.enabled)
-                return [cv];
-            print("Exception determining what to throw. Stopped.");
-            showDebuggeeValue(cv.throw);
         }
-        return;
-    }
-}
 
-function frameCommand(rest) {
-    var n, f;
-    if (rest.match(/[0-9]+/)) {
-        n = +rest;
-        f = topFrame;
-        if (f === null) {
-            print("No stack.");
-            return;
-        }
-        for (var i = 0; i < n && f; i++) {
-            if (!f.older) {
-                print("There is no frame " + rest + ".");
+        function continueCommand() {
+            if (focusedFrame === null) {
+                print("No stack.");
                 return;
             }
-            f.older.younger = f;
-            f = f.older;
-        }
-        focusedFrame = f;
-        showFrame(f, n);
-    } else if (rest !== '') {
-        if (topFrame === null)
-            print("No stack.");
-        else
-            showFrame();
-    } else {
-        print("do what now?");
-    }
-}
-
-function upCommand() {
-    if (focusedFrame === null)
-        print("No stack.");
-    else if (focusedFrame.older === null)
-        print("Initial frame selected; you cannot go up.");
-    else {
-        focusedFrame.older.younger = focusedFrame;
-        focusedFrame = focusedFrame.older;
-        showFrame();
-    }
-}
-
-function downCommand() {
-    if (focusedFrame === null)
-        print("No stack.");
-    else if (!focusedFrame.younger)
-        print("Youngest frame selected; you cannot go down.");
-    else {
-        focusedFrame = focusedFrame.younger;
-        showFrame();
-    }
-}
-
-function forcereturnCommand(rest) {
-    var v;
-    var f = focusedFrame;
-    if (f !== topFrame) {
-        print("To forcereturn, you must select the newest frame (use 'frame 0').");
-    } else if (f === null) {
-        print("Nothing on the stack.");
-    } else if (rest === '') {
-        return [{return: undefined}];
-    } else {
-        var cv = saveExcursion(function () { return f.eval(rest); });
-        if (cv === null) {
-            if (!dbg.enabled)
-                return [cv];
-            print("Debuggee died while determining what to forcereturn. Stopped.");
-        } else if ('return' in cv) {
-            return [{return: cv.return}];
-        } else {
-            if (!dbg.enabled)
-                return [cv];
-            print("Error determining what to forcereturn. Stopped.");
-            showDebuggeeValue(cv.throw);
-        }
-    }
-}
-
-function printPop(f, c) {
-    var fdesc = f.fullDescription();
-    if (c.return) {
-        print("frame returning (still selected): " + fdesc);
-        showDebuggeeValue(c.return);
-    } else if (c.throw) {
-        print("frame threw exception: " + fdesc);
-        showDebuggeeValue(c.throw);
-        print("(To rethrow it, type 'throw'.)");
-        lastExc = c.throw;
-    } else {
-        print("frame was terminated: " + fdesc);
-    }
-}
-
-
-
-function setUntilRepl(obj, prop, value) {
-    var saved = obj[prop];
-    obj[prop] = value;
-    replCleanups.push(function () { obj[prop] = saved; });
-}
-
-function doStepOrNext(kind) {
-    var startFrame = topFrame;
-    var startLine = startFrame.line;
-    print("stepping in:   " + startFrame.fullDescription());
-    print("starting line: " + uneval(startLine));
-
-    function stepPopped(completion) {
-        
-        
-        this.reportedPop = true;
-        printPop(this, completion);
-        topFrame = focusedFrame = this;
-        return repl();
-    }
-
-    function stepEntered(newFrame) {
-        print("entered frame: " + newFrame.fullDescription());
-        topFrame = focusedFrame = newFrame;
-        return repl();
-    }
-
-    function stepStepped() {
-        print("stepStepped: " + this.fullDescription());
-        
-        if (this !== startFrame || this.line != startLine) {
-            topFrame = focusedFrame = this;
-            if (focusedFrame != startFrame)
-                print(focusedFrame.fullDescription());
-            return repl();
+            return [undefined];
         }
 
-        
-        return undefined;
-    }
-
-    if (kind.step)
-        setUntilRepl(dbg, 'onEnterFrame', stepEntered);
-
-    
-    
-    var stepFrame = startFrame.reportedPop ? startFrame.older : startFrame;
-    if (!stepFrame || !stepFrame.script)
-        stepFrame = null;
-    if (stepFrame) {
-        setUntilRepl(stepFrame, 'onStep', stepStepped);
-        setUntilRepl(stepFrame, 'onPop',  stepPopped);
-    }
-
-    
-    return [undefined];
-}
-
-function stepCommand() { return doStepOrNext({step:true}); }
-function nextCommand() { return doStepOrNext({next:true}); }
-
-
-var commands = {};
-var commandArray = [
-    backtraceCommand, "bt", "where",
-    continueCommand, "c",
-    detachCommand,
-    downCommand, "d",
-    forcereturnCommand,
-    frameCommand, "f",
-    nextCommand, "n",
-    printCommand, "p",
-    quitCommand, "q",
-    stepCommand, "s",
-    throwCommand, "t",
-    upCommand, "u",
-    helpCommand, "h",
-    evalCommand, "!",
-    ];
-var last = null;
-for (var i = 0; i < commandArray.length; i++) {
-    var cmd = commandArray[i];
-    if (typeof cmd === "string")
-        commands[cmd] = last;
-    else
-        last = commands[cmd.name.replace(/Command$/, '')] = cmd;
-}
-
-function helpCommand(rest) {
-    print("Available commands:");
-    var printcmd = function(group) {
-        print("  " + group.join(", "));
-    }
-
-    var group = [];
-    for (var cmd of commandArray) {
-        if (typeof cmd === "string") {
-            group.push(cmd);
-        } else {
-            if (group.length) printcmd(group);
-            group = [ cmd.name.replace(/Command$/, '') ];
+        function throwCommand(rest) {
+            var v;
+            if (focusedFrame !== topFrame) {
+                print("To throw, you must select the newest frame (use 'frame 0').");
+                return;
+            } else if (focusedFrame === null) {
+                print("No stack.");
+                return;
+            } else if (rest === '') {
+                return [{throw: lastExc}];
+            } else {
+                var cv = saveExcursion(function () { return focusedFrame.eval(rest); });
+                if (cv === null) {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Debuggee died while determining what to throw. Stopped.");
+                } else if ('return' in cv) {
+                    return [{throw: cv.return}];
+                } else {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Exception determining what to throw. Stopped.");
+                    showDebuggeeValue(cv.throw);
+                }
+                return;
+            }
         }
-    }
-    printcmd(group);
-}
 
+        function frameCommand(rest) {
+            var n, f;
+            if (rest.match(/[0-9]+/)) {
+                n = +rest;
+                f = topFrame;
+                if (f === null) {
+                    print("No stack.");
+                    return;
+                }
+                for (var i = 0; i < n && f; i++) {
+                    if (!f.older) {
+                        print("There is no frame " + rest + ".");
+                        return;
+                    }
+                    f.older.younger = f;
+                    f = f.older;
+                }
+                focusedFrame = f;
+                showFrame(f, n);
+            } else if (rest !== '') {
+                if (topFrame === null)
+                    print("No stack.");
+                else
+                    showFrame();
+            } else {
+                print("do what now?");
+            }
+        }
 
+        function debugmeCommand() {
+            var meta = newGlobal("new-compartment");
+            meta.debuggeeGlobal = this;
+            meta.debuggerSource = debuggerSource;
+            meta.prompt = prompt.replace('(', '(meta-');
+            meta.eval(debuggerSource);
+        }
 
-function breakcmd(cmd) {
-    cmd = cmd.trimLeft();
-    if ("!@#$%^&*_+=/?.,<>:;'\"".indexOf(cmd.substr(0, 1)) != -1)
-        return [cmd.substr(0, 1), cmd.substr(1).trimLeft()];
-    var m = /\s/.exec(cmd);
-    if (m === null)
-        return [cmd, ''];
-    return [cmd.slice(0, m.index), cmd.slice(m.index).trimLeft()];
-}
+        function upCommand() {
+            if (focusedFrame === null)
+                print("No stack.");
+            else if (focusedFrame.older === null)
+                print("Initial frame selected; you cannot go up.");
+            else {
+                focusedFrame.older.younger = focusedFrame;
+                focusedFrame = focusedFrame.older;
+                showFrame();
+            }
+        }
 
-function runcmd(cmd) {
-    var pieces = breakcmd(cmd);
-    if (pieces[0] === "")
-        return undefined;
+        function downCommand() {
+            if (focusedFrame === null)
+                print("No stack.");
+            else if (!focusedFrame.younger)
+                print("Youngest frame selected; you cannot go down.");
+            else {
+                focusedFrame = focusedFrame.younger;
+                showFrame();
+            }
+        }
 
-    var first = pieces[0], rest = pieces[1];
-    if (!commands.hasOwnProperty(first)) {
-        print("unrecognized command '" + first + "'");
-        return undefined;
-    }
+        function forcereturnCommand(rest) {
+            var v;
+            var f = focusedFrame;
+            if (f !== topFrame) {
+                print("To forcereturn, you must select the newest frame (use 'frame 0').");
+            } else if (f === null) {
+                print("Nothing on the stack.");
+            } else if (rest === '') {
+                return [{return: undefined}];
+            } else {
+                var cv = saveExcursion(function () { return f.eval(rest); });
+                if (cv === null) {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Debuggee died while determining what to forcereturn. Stopped.");
+                } else if ('return' in cv) {
+                    return [{return: cv.return}];
+                } else {
+                    if (!dbg.enabled)
+                        return [cv];
+                    print("Error determining what to forcereturn. Stopped.");
+                    showDebuggeeValue(cv.throw);
+                }
+            }
+        }
 
-    var cmd = commands[first];
-    if (cmd.length === 0 && rest !== '') {
-        print("this command cannot take an argument");
-        return undefined;
-    }
-
-    return cmd(rest);
-}
-
-function repl() {
-    while (replCleanups.length > 0)
-        replCleanups.pop()();
-
-    var cmd;
-    for (;;) {
-        putstr("\n" + prompt);
-        cmd = readline();
-        if (cmd === null)
-            return null;
-
-        try {
-            var result = runcmd(cmd);
-            if (result === undefined)
-                ; 
-            else if (Array.isArray(result))
-                return result[0];
+        
+        var commands = {};
+        var commandArray = [
+            backtraceCommand, "bt", "where",
+            continueCommand, "c",
+            detachCommand,
+            debugmeCommand,
+            downCommand, "d",
+            forcereturnCommand,
+            frameCommand, "f",
+            printCommand, "p",
+            quitCommand, "q",
+            throwCommand, "t",
+            upCommand, "u"
+            ];
+        var last = null;
+        for (var i = 0; i < commandArray.length; i++) {
+            var cmd = commandArray[i];
+            if (typeof cmd === "string")
+                commands[cmd] = last;
             else
-                throw new Error("Internal error: result of runcmd wasn't array or undefined");
-        } catch (exc) {
-            print("*** Internal error: exception in the debugger code.");
-            print("    " + exc);
-            print(exc.stack);
+                last = commands[cmd.name.replace(/Command$/, '')] = cmd;
         }
-    }
-}
 
-var dbg = new Debugger();
-dbg.onDebuggerStatement = function (frame) {
-    return saveExcursion(function () {
-            topFrame = focusedFrame = frame;
-            print("'debugger' statement hit.");
-            showFrame();
-            return repl();
-        });
-};
-dbg.onThrow = function (frame, exc) {
-    return saveExcursion(function () {
-            topFrame = focusedFrame = frame;
-            print("Unwinding due to exception. (Type 'c' to continue unwinding.)");
-            showFrame();
-            print("Exception value is:");
-            showDebuggeeValue(exc);
-            return repl();
-        });
-};
+        
+        function breakcmd(cmd) {
+            cmd = cmd.trimLeft();
+            var m = /\s/.exec(cmd);
+            if (m === null)
+                return [cmd, ''];
+            return [cmd.slice(0, m.index), cmd.slice(m.index).trimLeft()];
+        }
 
+        function runcmd(cmd) {
+            var pieces = breakcmd(cmd);
+            if (pieces[0] === "")
+                return undefined;
 
-var jorendbDepth;
-if (typeof jorendbDepth == 'undefined') jorendbDepth = 0;
+            var first = pieces[0], rest = pieces[1];
+            if (!commands.hasOwnProperty(first)) {
+                print("unrecognized command '" + first + "'");
+                return undefined;
+            }
 
-var debuggeeGlobal = newGlobal("new-compartment");
-debuggeeGlobal.jorendbDepth = jorendbDepth + 1;
-var debuggeeGlobalWrapper = dbg.addDebuggee(debuggeeGlobal);
+            var cmd = commands[first];
+            if (cmd.length === 0 && rest !== '') {
+                print("this command cannot take an argument");
+                return undefined;
+            }
 
-print("jorendb version -0.0");
-prompt = '(' + Array(jorendbDepth+1).join('meta-') + 'jorendb) ';
+            return cmd(rest);
+        }
 
-var args = arguments;
-while(args.length > 0) {
-    var arg = args.shift();
-    if (arg == '-f') {
-        arg = args.shift();
-        debuggeeGlobal.evaluate(read(arg), { fileName: arg, lineNumber: 1 });
-    } else if (arg == '-e') {
-        arg = args.shift();
-        debuggeeGlobal.eval(arg);
-    } else {
-        throw("jorendb does not implement command-line argument '" + arg + "'");
-    }
-}
+        function repl() {
+            var cmd;
+            for (;;) {
+                print("\n" + prompt);
+                cmd = readline();
+                if (cmd === null)
+                    break;
 
-repl();
+                try {
+                    var result = runcmd(cmd);
+                    if (result === undefined)
+                        ; 
+                    else if (Array.isArray(result))
+                        return result[0];
+                    else
+                        throw new Error("Internal error: result of runcmd wasn't array or undefined");
+                } catch (exc) {
+                    print("*** Internal error: exception in the debugger code.");
+                    print("    " + exc);
+                    var me = prompt.replace(/^\((.*)\)$/, function (a, b) { return b; });
+                    print("Debug " + me + "? (y/n)");
+                    if (readline().match(/^\s*y/i) !== null)
+                        debugMe();
+                    else
+                        print("ok, ignoring error");
+                }
+            }
+        }
+
+        var dbg = new Debugger(debuggeeGlobal);
+        dbg.onDebuggerStatement = function (frame) {
+            return saveExcursion(function () {
+                    topFrame = focusedFrame = frame;
+                    print("'debugger' statement hit.");
+                    showFrame();
+                    return repl();
+                });
+        };
+        dbg.onThrow = function (frame, exc) {
+            return saveExcursion(function () {
+                    topFrame = focusedFrame = frame;
+                    print("Unwinding due to exception. (Type 'c' to continue unwinding.)");
+                    showFrame();
+                    print("Exception value is:");
+                    showDebuggeeValue(exc);
+                    return repl();
+                });
+        };
+        repl();
+    } + ")();"
+
+    print("jorendb version -0.0");
+    var g = newGlobal("new-compartment");
+    g.debuggeeGlobal = this;
+    g.prompt = '(jorendb)';
+    g.debuggerSource = debuggerSource;
+    g.eval(debuggerSource);
+})();
