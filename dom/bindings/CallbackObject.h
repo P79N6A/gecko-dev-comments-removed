@@ -78,7 +78,13 @@ public:
   }
 
   enum ExceptionHandling {
+    
     eReportExceptions,
+    
+    
+    
+    eRethrowContentExceptions,
+    
     eRethrowExceptions
   };
 
@@ -118,8 +124,11 @@ protected:
 
 
   public:
+    
+    
     CallSetup(JS::Handle<JSObject*> aCallable, ErrorResult& aRv,
-              ExceptionHandling aExceptionHandling);
+              ExceptionHandling aExceptionHandling,
+              JSCompartment* aCompartment = nullptr);
     ~CallSetup();
 
     JSContext* GetContext() const
@@ -131,8 +140,14 @@ protected:
     
     CallSetup(const CallSetup&) MOZ_DELETE;
 
+    bool ShouldRethrowException(JS::Handle<JS::Value> aException);
+
     
     JSContext* mCx;
+
+    
+    
+    JSCompartment* mCompartment;
 
     
 

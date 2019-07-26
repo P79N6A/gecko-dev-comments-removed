@@ -5,6 +5,9 @@
 
 
 #include "mozilla/dom/CallbackObject.h"
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/DOMErrorBinding.h"
 #include "jsfriendapi.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
@@ -40,8 +43,10 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
                                      ErrorResult& aRv,
-                                     ExceptionHandling aExceptionHandling)
+                                     ExceptionHandling aExceptionHandling,
+                                     JSCompartment* aCompartment)
   : mCx(nullptr)
+  , mCompartment(aCompartment)
   , mErrorResult(aRv)
   , mExceptionHandling(aExceptionHandling)
 {
@@ -123,10 +128,38 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   mCx = cx;
 
   
-  if (mExceptionHandling == eRethrowExceptions) {
+  if (mExceptionHandling == eRethrowContentExceptions ||
+      mExceptionHandling == eRethrowExceptions) {
     mSavedJSContextOptions = JS_GetOptions(cx);
     JS_SetOptions(cx, mSavedJSContextOptions | JSOPTION_DONT_REPORT_UNCAUGHT);
   }
+}
+
+bool
+CallbackObject::CallSetup::ShouldRethrowException(JS::Handle<JS::Value> aException)
+{
+  if (mExceptionHandling == eRethrowExceptions) {
+    return true;
+  }
+
+  MOZ_ASSERT(mExceptionHandling == eRethrowContentExceptions);
+
+  
+  
+  
+
+  if (!aException.isObject()) {
+    return false;
+  }
+
+  JS::Rooted<JSObject*> obj(mCx, &aException.toObject());
+  obj = js::UncheckedUnwrap(obj,  false);
+  if (js::GetObjectCompartment(obj) != mCompartment) {
+    return false;
+  }
+
+  DOMError* domError;
+  return NS_SUCCEEDED(UNWRAP_OBJECT(DOMError, mCx, obj, domError));
 }
 
 CallbackObject::CallSetup::~CallSetup()
@@ -135,13 +168,15 @@ CallbackObject::CallSetup::~CallSetup()
   
   if (mCx) {
     bool dealtWithPendingException = false;
-    if (mExceptionHandling == eRethrowExceptions) {
+    if (mExceptionHandling == eRethrowContentExceptions ||
+        mExceptionHandling == eRethrowExceptions) {
       
       JS_SetOptions(mCx, mSavedJSContextOptions);
       mErrorResult.MightThrowJSException();
       if (JS_IsExceptionPending(mCx)) {
         JS::Rooted<JS::Value> exn(mCx);
-        if (JS_GetPendingException(mCx, exn.address())) {
+        if (JS_GetPendingException(mCx, exn.address()) &&
+            ShouldRethrowException(exn)) {
           mErrorResult.ThrowJSException(mCx, exn);
           JS_ClearPendingException(mCx);
           dealtWithPendingException = true;

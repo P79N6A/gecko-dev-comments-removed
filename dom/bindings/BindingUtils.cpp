@@ -26,6 +26,8 @@
 #include "nsPrintfCString.h"
 #include "prprf.h"
 
+#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/DOMErrorBinding.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/HTMLSharedObjectElement.h"
@@ -183,6 +185,41 @@ ErrorResult::ReportJSException(JSContext* cx)
   
   
   JS_RemoveValueRoot(cx, &mJSException);
+}
+
+void
+ErrorResult::ReportJSExceptionFromJSImplementation(JSContext* aCx)
+{
+  MOZ_ASSERT(!mMightHaveUnreportedJSException,
+             "Why didn't you tell us you planned to handle JS exceptions?");
+
+  dom::DOMError* domError;
+  nsresult rv = UNWRAP_OBJECT(DOMError, aCx, &mJSException.toObject(),
+                              domError);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    
+    
+    
+    NS_RUNTIMEABORT("We stored a non-DOMError exception!");
+  }
+
+  nsString message;
+  domError->GetMessage(message);
+
+  JSErrorReport errorReport;
+  memset(&errorReport, 0, sizeof(JSErrorReport));
+  errorReport.errorNumber = JSMSG_USER_DEFINED_ERROR;
+  errorReport.ucmessage = message.get();
+  errorReport.exnType = JSEXN_ERR;
+  JS_ThrowReportedError(aCx, nullptr, &errorReport);
+  JS_RemoveValueRoot(aCx, &mJSException);
+  
+  
+  
+  mResult = NS_ERROR_FAILURE;
 }
 
 void
