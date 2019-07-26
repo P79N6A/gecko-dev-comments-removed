@@ -256,7 +256,7 @@ nsNativeKeyBindings::KeyPress(const nsNativeKeyEvent& aEvent,
   if (KeyPressInternal(aEvent, aCallback, aCallbackData, keyCode))
     return true;
 
-  nsKeyEvent *nativeKeyEvent = static_cast<nsKeyEvent*>(aEvent.nativeEvent);
+  nsKeyEvent *nativeKeyEvent = aEvent.mGeckoEvent;
   if (!nativeKeyEvent ||
       (nativeKeyEvent->eventStructType != NS_KEY_EVENT &&
        nativeKeyEvent->message != NS_KEY_PRESS)) {
