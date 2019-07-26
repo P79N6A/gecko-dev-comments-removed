@@ -1955,8 +1955,7 @@ MmsService.prototype = {
       .setMessageReadStatusByEnvelopeId(envelopeId, address, readStatus,
                                         (function(aRv, aDomMessage) {
       if (!Components.isSuccessCode(aRv)) {
-        
-        Services.obs.notifyObservers(aDomMessage, kSmsReadSuccessObserverTopic, null);
+        if (DEBUG) debug("Failed to update read status: " + aRv);
         return;
       }
 
@@ -2171,7 +2170,7 @@ MmsService.prototype = {
       
       
       if (aErrorCode == Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR) {
-        aRequest.notifySendMessageFailed(aErrorCode);
+        aRequest.notifySendMessageFailed(aErrorCode, aDomMessage);
         Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
         return;
       }
@@ -2188,7 +2187,7 @@ MmsService.prototype = {
         
         if (!isSentSuccess) {
           if (DEBUG) debug("Sending MMS failed.");
-          aRequest.notifySendMessageFailed(aErrorCode);
+          aRequest.notifySendMessageFailed(aErrorCode, aDomMessage);
           Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
           return;
         }
@@ -2214,7 +2213,8 @@ MmsService.prototype = {
       if (!Components.isSuccessCode(aRv)) {
         if (DEBUG) debug("Error! Fail to save sending message! rv = " + aRv);
         aRequest.notifySendMessageFailed(
-          gMobileMessageDatabaseService.translateCrErrorToMessageCallbackError(aRv));
+          gMobileMessageDatabaseService.translateCrErrorToMessageCallbackError(aRv),
+          aDomMessage);
         Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
         return;
       }
