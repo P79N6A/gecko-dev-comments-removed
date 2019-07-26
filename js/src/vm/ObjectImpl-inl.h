@@ -391,7 +391,7 @@ js::ObjectImpl::writeBarrierPre(ObjectImpl *obj)
 
 
 
-    if (IsNullTaggedPointer(obj) || !obj->runtime()->needsBarrier())
+    if (IsNullTaggedPointer(obj))
         return;
 
     Zone *zone = obj->zone();

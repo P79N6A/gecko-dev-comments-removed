@@ -214,20 +214,6 @@ typedef JSBool                 (*JSInitCallback)(void);
 
 #ifdef __cplusplus
 
-namespace JS {
-namespace shadow {
-
-struct Runtime
-{
-    
-    bool needsBarrier_;
-
-    Runtime() : needsBarrier_(false) {}
-};
-
-} 
-} 
-
 namespace js {
 
 class Allocator;
@@ -314,6 +300,21 @@ struct ContextFriendFields {
 #endif
 };
 
+struct RuntimeFriendFields {
+    
+
+
+
+    volatile int32_t    interrupt;
+
+    RuntimeFriendFields()
+      : interrupt(0) { }
+
+    static const RuntimeFriendFields *get(const JSRuntime *rt) {
+        return reinterpret_cast<const RuntimeFriendFields *>(rt);
+    }
+};
+
 class PerThreadData;
 
 struct PerThreadDataFriendFields
@@ -322,7 +323,7 @@ struct PerThreadDataFriendFields
     
     
     
-    struct RuntimeDummy : JS::shadow::Runtime
+    struct RuntimeDummy : RuntimeFriendFields
     {
         struct PerThreadDummy {
             void *field1;
