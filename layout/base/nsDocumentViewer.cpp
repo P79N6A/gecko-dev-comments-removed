@@ -397,7 +397,7 @@ protected:
   
   nsCOMPtr<nsIDocument>    mDocument;
   nsCOMPtr<nsIWidget>      mWindow;      
-  nsCOMPtr<nsViewManager> mViewManager;
+  nsRefPtr<nsViewManager> mViewManager;
   nsRefPtr<nsPresContext>  mPresContext;
   nsCOMPtr<nsIPresShell>   mPresShell;
 

@@ -12015,7 +12015,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
 
   
-  nsCOMPtr<nsViewManager> vm = mPresShell->GetViewManager();
+  nsRefPtr<nsViewManager> vm = mPresShell->GetViewManager();
 
   
   

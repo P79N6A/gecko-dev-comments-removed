@@ -1857,7 +1857,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsCOMPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
+  nsRefPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
 
@@ -3808,7 +3808,7 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
 
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
   
-  nsCOMPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
+  nsRefPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
   if (isSafeToFlush && mViewManager) {
     
     
@@ -8270,7 +8270,7 @@ PresShell::VerifyIncrementalReflow()
   nsIWidget* parentWidget = rootView->GetWidget();
 
   
-  nsCOMPtr<nsViewManager> vm = do_CreateInstance(kViewManagerCID);
+  nsRefPtr<nsViewManager> vm = do_CreateInstance(kViewManagerCID);
   NS_ENSURE_TRUE(vm, false);
   rv = vm->Init(dc);
   NS_ENSURE_SUCCESS(rv, false);
