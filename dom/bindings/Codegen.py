@@ -7379,9 +7379,9 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             
             
             
-            set += ("if (IsArrayIndex(GetArrayIndexFromId(cx, id))) {\n" +
-                    "  return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
-                    "}\n") % self.descriptor.name
+            set += ("if (IsArrayIndex(GetArrayIndexFromId(cx, id))) {\n"
+                    "  return js::IsInNonStrictPropertySet(cx) || ThrowErrorMessage(cx, MSG_NO_INDEXED_SETTER, \"%s\");\n"
+                    "}\n" % self.descriptor.name)
 
         if UseHolderForUnforgeable(self.descriptor):
             defineOnUnforgeable = ("bool hasUnforgeable;\n"
@@ -7415,8 +7415,8 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                 
                 set += (CGProxyNamedPresenceChecker(self.descriptor).define() + "\n" +
                         "if (found) {\n"
-                        "  return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n"
-                        "}" % self.descriptor.name)
+                        "  return js::IsInNonStrictPropertySet(cx) || ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"%s\");\n"
+                        "}\n" % self.descriptor.name)
             set += ("return mozilla::dom::DOMProxyHandler::defineProperty(%s);" %
                     ", ".join(a.name for a in self.args))
         return set
