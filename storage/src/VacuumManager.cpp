@@ -364,8 +364,8 @@ VacuumManager::Observe(nsISupports *aSubject,
   if (strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY) == 0) {
     
     
-    const nsCOMArray<mozIStorageVacuumParticipant> &entries =
-      mParticipants.GetEntries();
+    nsCOMArray<mozIStorageVacuumParticipant> entries;
+    mParticipants.GetEntries(entries);
     
     
     static const char* kPrefName = PREF_VACUUM_BRANCH "index";

@@ -117,7 +117,8 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
 
 
     nsresult rv;
-    const nsCOMArray<nsIContentPolicy>& entries = mPolicies.GetEntries();
+    nsCOMArray<nsIContentPolicy> entries;
+    mPolicies.GetEntries(entries);
     int32_t count = entries.Count();
     for (int32_t i = 0; i < count; i++) {
         
