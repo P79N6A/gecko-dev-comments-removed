@@ -118,10 +118,15 @@ var testData = [
 
 
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
 
+add_task(function test_abstime_annotation_uri()
+{
   
-  populateDB(testData);
+  yield task_populateDB(testData);
 
   
   var query = PlacesUtils.history.getNewQuery();
@@ -155,14 +160,14 @@ function run_test() {
   
   var addItem = [{isInQuery: true, isVisit: true, isDetails: true, title: "moz",
                  uri: "http://foo.com/i-am-added.html", lastVisit: jan11_800}];
-  populateDB(addItem);
+  yield task_populateDB(addItem);
   LOG("Adding item foo.com/i-am-added.html");
   do_check_eq(isInResult(addItem, root), true);
 
   
   var change1 = [{isDetails: true, uri: "http://foo.com/changeme1",
                   lastVisit: jan12_1730, title: "moz moz mozzie"}];
-  populateDB(change1);
+  yield task_populateDB(change1);
   LOG("LiveUpdate by changing title");
   do_check_eq(isInResult(change1, root), true);
 
@@ -181,7 +186,7 @@ function run_test() {
   
   var change3 = [{isDetails: true, uri: "http://foo.com/changeme3.htm",
                   title: "moz", lastVisit: jan15_2045}];
-  populateDB(change3);
+  yield task_populateDB(change3);
   LOG("LiveUpdate by adding visit within timerange");
   do_check_eq(isInResult(change3, root), true);
 
@@ -195,28 +200,9 @@ function run_test() {
 
   
   var change5 = [{isDetails: true, uri: "http://foo.com/end.html", title: "deleted"}];
-  populateDB(change5);
+  yield task_populateDB(change5);
   LOG("LiveUpdate by deleting item by changing title");
   do_check_eq(isInResult(change5, root), false);
 
-  
-  
-  var updateBatch = {
-    runBatched: function (aUserData) {
-      var batchChange = [{isDetails: true, uri: "http://foo.com/changeme2",
-                          title: "moz", lastVisit: jan7_800},
-                         {isPageAnnotation: true, uri: "http://foo.com/begin.html",
-                          annoName: badAnnoName, annoVal: val}];
-      populateDB(batchChange);
-    }
-  };
-
-  PlacesUtils.history.runInBatchMode(updateBatch, null);
-  LOG("LiveUpdate by updating title in batch mode");
-  do_check_eq(isInResult({uri: "http://foo.com/changeme2"}, root), true);
-
-  LOG("LiveUpdate by deleting item by setting annotation in batch mode");
-  do_check_eq(isInResult({uri: "http:/foo.com/begin.html"}, root), false);
-
   root.containerOpen = false;
-}
+});

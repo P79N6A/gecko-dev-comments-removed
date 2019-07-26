@@ -27,46 +27,58 @@ function modHistoryTypes(val){
   return TRANSITION_TYPED;
 }
 
-
-
-
-
-function buildTestDatabase() {
-  
-  
-  let testURI = uri("http://www.foo.com");
-
-  PlacesUtils.history.runInBatchMode({
-    runBatched: function (aUserData) {
-      for (let i = 0; i < 12; ++i) {
-        PlacesUtils.history.addVisit(testURI, today, null, modHistoryTypes(i),
-                                     false, 0);
-      }
-      
-      testURI = uri("http://foo.com/youdontseeme.html");
-      let testAnnoName = "moz-test-places/testing123";
-      let testAnnoVal = "test";
-      for (let i = 0; i < 12; ++i) {
-        PlacesUtils.history.addVisit(testURI, today, null, modHistoryTypes(i),
-                                     false, 0);
-      }
-      PlacesUtils.annotations.setPageAnnotation(testURI, testAnnoName,
-                                                testAnnoVal, 0, 0);
-    }
-  }, null);
+function run_test()
+{
+  run_next_test();
 }
 
 
 
 
 
+add_task(function test_buildTestDatabase()
+{
+  
+  
+  let testURI = uri("http://www.foo.com");
+  let places = [];
+
+  for (let i = 0; i < 12; ++i) {
+    places.push({
+      uri: testURI,
+      transition: modHistoryTypes(i),
+      visitDate: today
+    });
+  }
+
+  testURI = uri("http://foo.com/youdontseeme.html");
+  let testAnnoName = "moz-test-places/testing123";
+  let testAnnoVal = "test";
+  for (let i = 0; i < 12; ++i) {
+    places.push({
+      uri: testURI,
+      transition: modHistoryTypes(i),
+      visitDate: today
+    });
+  }
+
+  yield promiseAddVisits(places);
+
+  PlacesUtils.annotations.setPageAnnotation(testURI, testAnnoName,
+                                            testAnnoVal, 0, 0);
+});
 
 
 
 
 
-function run_test() {
-  buildTestDatabase();
+
+
+
+
+
+add_task(function test_execute()
+{
   let query = PlacesUtils.history.getNewQuery();
   query.annotation = "moz-test-places/testing123";
   query.beginTime = daybefore * 1000;
@@ -93,4 +105,4 @@ function run_test() {
   }
   do_check_eq(cc,0);
   root.containerOpen = false;
-}
+});

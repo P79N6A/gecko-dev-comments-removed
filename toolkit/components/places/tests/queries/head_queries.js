@@ -37,7 +37,77 @@ const olderthansixmonths = today - (DAY_MICROSEC * 31 * 7);
 
 
 
-function populateDB(aArray) {
+
+function task_populateDB(aArray)
+{
+  
+  
+  for ([, data] in Iterator(aArray)) {
+    try {
+      
+      
+      var qdata = new queryData(data);
+      if (qdata.isVisit) {
+        
+        yield promiseAddVisits({
+          uri: uri(qdata.uri),
+          transition: qdata.transType,
+          visitDate: qdata.lastVisit,
+          referrer: qdata.referrer ? uri(qdata.referrer) : null,
+          title: qdata.title
+        });
+        if (qdata.visitCount && !qdata.isDetails) {
+          
+          
+          let stmt = DBConn().createAsyncStatement(
+            "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
+          stmt.params.vc = qdata.visitCount;
+          stmt.params.url = qdata.uri;
+          try {
+            stmt.executeAsync();
+          }
+          catch (ex) {
+            print("Error while setting visit_count.");
+          }
+          finally {
+            stmt.finalize();
+          }
+        }
+      }
+
+      if (qdata.isRedirect) {
+        
+        
+        let stmt = DBConn().createAsyncStatement(
+          "UPDATE moz_places SET hidden = 1 WHERE url = :url");
+        stmt.params.url = qdata.uri;
+        try {
+          stmt.executeAsync();
+        }
+        catch (ex) {
+          print("Error while setting hidden.");
+        }
+        finally {
+          stmt.finalize();
+        }
+      }
+
+      if (qdata.isDetails) {
+        
+        yield promiseAddVisits({
+          uri: uri(qdata.uri),
+          visitDate: qdata.lastVisit,
+          title: qdata.title
+        });
+      }
+    } catch (ex) {
+      
+      LOG("Problem with this URI: " + data.uri);
+      do_throw("Error creating database: " + ex + "\n");
+    }
+  }
+
+  
   PlacesUtils.history.runInBatchMode({
     runBatched: function (aUserData)
     {
@@ -47,74 +117,13 @@ function populateDB(aArray) {
           
           
           var qdata = new queryData(data);
-          if (qdata.isVisit) {
-            
-            var referrer = qdata.referrer ? uri(qdata.referrer) : null;
-            var visitId = PlacesUtils.history.addVisit(uri(qdata.uri), qdata.lastVisit,
-                                                       referrer, qdata.transType,
-                                                       qdata.isRedirect, qdata.sessionID);
-            if (qdata.title && !qdata.isDetails) {
-              PlacesUtils.history.setPageTitle(uri(qdata.uri), qdata.title);
-            }
-            if (qdata.visitCount && !qdata.isDetails) {
-              
-              
-              let stmt = DBConn().createStatement(
-                "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
-              stmt.params.vc = qdata.visitCount;
-              stmt.params.url = qdata.uri;
-              try {
-                stmt.execute();
-              }
-              catch (ex) {
-                print("Error while setting visit_count.");
-              }
-              finally {
-                stmt.finalize();
-              }
-            }
-          }
 
-          if (qdata.isRedirect) {
-            
-            
-            
-            
-            
-            
-            
-            let stmt = DBConn().createAsyncStatement(
-              "UPDATE moz_places SET hidden = 1 WHERE url = :url");
-            stmt.params.url = qdata.uri;
-            try {
-              stmt.executeAsync();
-            }
-            catch (ex) {
-              print("Error while setting hidden.");
-            }
-            finally {
-              stmt.finalize();
-            }
-          }
-
-          if (qdata.isDetails) {
-            
-            PlacesUtils.history.addVisit(uri(qdata.uri),
-                                         qdata.lastVisit,
-                                         null,
-                                         TRANSITION_LINK,
-                                         false,
-                                         0);
-            PlacesUtils.ghistory2.setPageTitle(uri(qdata.uri),
-                                               qdata.title);
-          }
-
-          if (qdata.markPageAsTyped){
+          if (qdata.markPageAsTyped) {
             PlacesUtils.bhistory.markPageAsTyped(uri(qdata.uri));
           }
 
           if (qdata.isPageAnnotation) {
-            if (qdata.removeAnnotation) 
+            if (qdata.removeAnnotation)
               PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
                                                            qdata.annoName);
             else {
@@ -242,7 +251,6 @@ function queryData(obj) {
   this.referrer = obj.referrer ? obj.referrer : null;
   this.transType = obj.transType ? obj.transType : Ci.nsINavHistoryService.TRANSITION_TYPED;
   this.isRedirect = obj.isRedirect ? obj.isRedirect : false;
-  this.sessionID = obj.sessionID ? obj.sessionID : 0;
   this.isDetails = obj.isDetails ? obj.isDetails : false;
   this.title = obj.title ? obj.title : "";
   this.markPageAsTyped = obj.markPageAsTyped ? obj.markPageAsTyped : false;

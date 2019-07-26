@@ -28,12 +28,18 @@ function createTestData() {
   pages.forEach(generateVisits);
 }
 
- 
 
 
- function run_test() {
+
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_results_as_visit()
+{
    createTestData();
-   populateDB(testData);
+   yield task_populateDB(testData);
    var query = PlacesUtils.history.getNewQuery();
    query.searchTerms = "moz";
    query.minVisits = 2;
@@ -65,7 +71,7 @@ function createTestData() {
                 uri: "http://foo.com/added.html",
                 title: "ab moz" });
    }
-   populateDB(tmp);
+   yield task_populateDB(tmp);
    for (var i=0; i < 2; i++)
      do_check_eq(root.getChild(i).title, "ab moz");
 
@@ -74,28 +80,23 @@ function createTestData() {
    var change2 = [{ isVisit: true,
                     title: "moz",
                     uri: "http://foo.mail.com/changeme2.html" }];
-   populateDB(change2);
+   yield task_populateDB(change2);
    do_check_true(isInResult(change2, root));
 
    
    
-   LOG("Updating Items in batch");
-   var updateBatch = {
-     runBatched: function (aUserData) {
-       var batchchange = [{ isVisit: true,
-                            lastVisit: now++,
-                            uri: "http://foo.mail.com/changeme1.html",
-                            title: "foo"},
-                          { isVisit: true,
-                            lastVisit: now++,
-                            uri: "http://foo.mail.com/changeme3.html",
-                            title: "moz",
-                            isTag: true,
-                            tagArray: ["foo", "moz"] }];
-       populateDB(batchchange);
-     }
-   };
-   PlacesUtils.history.runInBatchMode(updateBatch, null);
+   LOG("Updating More Items");
+   var change3 = [{ isVisit: true,
+                    lastVisit: now++,
+                    uri: "http://foo.mail.com/changeme1.html",
+                    title: "foo"},
+                  { isVisit: true,
+                    lastVisit: now++,
+                    uri: "http://foo.mail.com/changeme3.html",
+                    title: "moz",
+                    isTag: true,
+                    tagArray: ["foo", "moz"] }];
+   yield task_populateDB(change3);
    do_check_false(isInResult({uri: "http://foo.mail.com/changeme1.html"}, root));
    do_check_true(isInResult({uri: "http://foo.mail.com/changeme3.html"}, root));
 
@@ -105,8 +106,8 @@ function createTestData() {
                     lastVisit: now++,
                     uri: "http://moilla.com/",
                     title: "mo,z" }];
-   populateDB(change4);
+   yield task_populateDB(change4);
    do_check_false(isInResult(change4, root));
 
    root.containerOpen = false;
-}
+});

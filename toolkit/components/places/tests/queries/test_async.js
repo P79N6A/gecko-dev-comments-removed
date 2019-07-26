@@ -4,7 +4,7 @@
 
 
 
-let gTests = [
+let tests = [
   {
     desc: "nsNavHistoryFolderResultNode: Basic test, asynchronously open and " +
           "close container with a single child",
@@ -104,6 +104,8 @@ let gTests = [
 function Test() {
   
   this.stateCounts = {};
+  
+  this.deferNextTest = Promise.defer();
 }
 
 Test.prototype = {
@@ -221,6 +223,7 @@ Test.prototype = {
 
   run: function () {
     this.openContainer();
+    return this.deferNextTest.promise;
   },
 
   
@@ -235,7 +238,7 @@ Test.prototype = {
       { type: "folder" },
       { type: "bookmark", uri: "place:terms=foo" }
     ]);
-    populateDB(this.data);
+    yield task_populateDB(this.data);
 
     
     this.query = PlacesUtils.history.getNewQuery();
@@ -251,7 +254,9 @@ Test.prototype = {
 
   success: function () {
     this.result.removeObserver(this.observer);
-    doNextTest();
+
+    
+    this.deferNextTest.resolve();
   }
 };
 
@@ -339,22 +344,23 @@ let DataHelper = {
   }
 };
 
-function doNextTest() {
-  remove_all_bookmarks();
-  if (gTests.length === 0) {
-    print("All tests done, exiting");
-    do_test_finished();
-  }
-  else {
-    let test = gTests.shift();
-    test.__proto__ = new Test();
-    test.setup();
-    print("------ Running test: " + test.desc);
-    test.run();
-  }
+function run_test()
+{
+  run_next_test();
 }
 
-function run_test() {
-  do_test_pending();
-  doNextTest();
-}
+add_task(function test_async()
+{
+  for (let [, test] in Iterator(tests)) {
+    remove_all_bookmarks();
+
+    test.__proto__ = new Test();
+    yield test.setup();
+
+    print("------ Running test: " + test.desc);
+    yield test.run();
+  }
+
+  remove_all_bookmarks();
+  print("All tests done, exiting");
+});

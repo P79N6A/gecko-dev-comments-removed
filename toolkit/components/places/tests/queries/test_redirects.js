@@ -175,12 +175,18 @@ function cartProd(aSequences, aCallback)
   return numProds;
 }
 
+function run_test()
+{
+  run_next_test();
+}
 
 
 
 
 
-function add_visits_to_database() {
+
+add_task(function test_add_visits_to_database()
+{
   remove_all_bookmarks();
 
   
@@ -271,21 +277,14 @@ function add_visits_to_database() {
     isInQuery: false });
 
   
-  populateDB(visits);
-}
+  yield task_populateDB(visits);
+});
 
-
-function run_test() {
-  do_test_pending();
-
+add_task(function test_redirects()
+{
   
-  add_visits_to_database();
+  yield promiseAsyncUpdates();
 
-  
-  promiseAsyncUpdates().then(continue_test);
- }
-
- function continue_test() {
   
   
   let includeHidden_options = [true, false];
@@ -300,5 +299,6 @@ function run_test() {
            check_results_callback);
 
   remove_all_bookmarks();
-  promiseClearHistory().then(do_test_finished);
-}
+
+  yield promiseClearHistory();
+});

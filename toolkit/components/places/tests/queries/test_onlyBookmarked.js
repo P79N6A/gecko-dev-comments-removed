@@ -45,10 +45,15 @@ var testData = [
 
 
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
 
+add_task(function test_onlyBookmarked()
+{
   
-  populateDB(testData);
+  yield task_populateDB(testData);
 
   
   var query = PlacesUtils.history.getNewQuery();
@@ -93,7 +98,7 @@ function run_test() {
       isInQuery: false }
   ];
   
-  populateDB(liveUpdateTestData); 
+  yield task_populateDB(liveUpdateTestData); 
 
   
   testData.push(liveUpdateTestData[0]);
@@ -127,4 +132,4 @@ function run_test() {
 
   
   root.containerOpen = false;
-}
+});
