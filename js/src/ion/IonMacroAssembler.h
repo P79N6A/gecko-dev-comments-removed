@@ -397,6 +397,28 @@ class MacroAssembler : public MacroAssemblerSpecific
     void clampDoubleToUint8(FloatRegister input, Register output);
 
     void getNewObject(JSContext *cx, const Register &result, JSObject *templateObject, Label *fail);
+
+    
+    
+    
+    CodeOffsetLabel exitCodePatch;
+    void linkExitFrameAndCode() {
+        linkExitFrame();
+        
+        exitCodePatch = PushWithPatch(ImmWord(-1));
+    }
+    void link(IonCode *code) {
+
+        
+        
+        
+        if (exitCodePatch.offset() != 0) {
+            patchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch),
+                                    ImmWord(uintptr_t(code)),
+                                    ImmWord(uintptr_t(-1)));
+        }
+
+    }
 };
 
 } 

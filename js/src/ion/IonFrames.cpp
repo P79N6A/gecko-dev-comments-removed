@@ -466,20 +466,22 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
 }
 
 static void
-MarkIonActivation(JSTracer *trc, uint8 *top)
+MarkIonActivation(JSTracer *trc, uint8 *top, IonActivation *activation)
 {
+    IonCode **tmp;
     for (IonFrameIterator frames(top); !frames.done(); ++frames) {
         switch (frames.type()) {
           case IonFrame_Exit:
             
+            tmp = frames.exitFrame()->ionCodePointer();
+            if (*tmp != NULL)
+                MarkIonCodeRoot(trc, tmp, "Exit Code");
             break;
           case IonFrame_JS:
             MarkIonJSFrame(trc, frames);
             break;
           case IonFrame_Rectifier:
-            
-            
-            
+            MarkIonCodeRoot(trc, activation->compartment()->ionCompartment()->getArgumentsRectifierAddr(), "Arguments Rectifier");
             break;
           default:
             JS_NOT_REACHED("unexpected frame type");
@@ -492,7 +494,7 @@ void
 ion::MarkIonActivations(JSRuntime *rt, JSTracer *trc)
 {
     for (IonActivationIterator activations(rt); activations.more(); ++activations)
-        MarkIonActivation(trc, activations.top());
+        MarkIonActivation(trc, activations.top(), activations.activation());
 }
 
 void
