@@ -493,7 +493,10 @@ protected:
     eScrollInitialized = 1 << 0,
 
     
-    eCursorable = 1 << 1
+    eCursorable = 1 << 1,
+
+    
+    eTabDocument = 1 << 2
   };
 
   

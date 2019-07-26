@@ -1469,9 +1469,11 @@ DocAccessible::NotifyOfLoading(bool aIsReloading)
 void
 DocAccessible::DoInitialUpdate()
 {
+  if (nsCoreUtils::IsTabDocument(mDocumentNode))
+    mDocFlags |= eTabDocument;
+
   
-  if (!(mDocumentNode->GetParentDocument()) ||
-      nsCoreUtils::IsTabDocument(mDocumentNode))
+  if (!mDocumentNode->GetParentDocument() || (mDocFlags & eTabDocument))
     mDocFlags |= eCursorable;
 
   mLoadState |= eTreeConstructed;

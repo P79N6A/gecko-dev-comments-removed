@@ -223,7 +223,7 @@ DocAccessibleWrap::Shutdown()
   
   if (nsWinUtils::IsWindowEmulationStarted()) {
     
-    if (nsCoreUtils::IsTabDocument(mDocumentNode)) {
+    if (mDocFlags & eTabDocument) {
       sHWNDCache.Remove(mHWND);
       ::DestroyWindow(static_cast<HWND>(mHWND));
     }
@@ -253,7 +253,7 @@ DocAccessibleWrap::DoInitialUpdate()
 
   if (nsWinUtils::IsWindowEmulationStarted()) {
     
-    if (nsCoreUtils::IsTabDocument(mDocumentNode)) {
+    if (mDocFlags & eTabDocument) {
       mozilla::dom::TabChild* tabChild =
         mozilla::dom::GetTabChildFrom(mDocumentNode->GetShell());
 
