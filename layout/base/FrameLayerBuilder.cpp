@@ -23,7 +23,6 @@
 
 #include "mozilla/Preferences.h"
 #include "sampler.h"
-#include "mozilla/gfx/Tools.h"
 
 #include "nsAnimationManager.h"
 #include "nsTransitionManager.h"
@@ -34,7 +33,6 @@
 #endif
 
 using namespace mozilla::layers;
-using namespace mozilla::gfx;
 
 namespace mozilla {
 
@@ -1402,8 +1400,8 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
     
     
     
-    if (!FuzzyEqual(data->mXScale, mParameters.mXScale, 0.00001) ||
-        !FuzzyEqual(data->mYScale, mParameters.mYScale, 0.00001)) {
+    if (data->mXScale != mParameters.mXScale ||
+        data->mYScale != mParameters.mYScale) {
       InvalidateEntireThebesLayer(layer, aActiveScrolledRoot);
       didResetScrollPositionForLayerPixelAlignment = true;
     }
@@ -1461,7 +1459,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
   layer->SetBaseTransform(gfx3DMatrix::From2D(matrix));
 
   
-#ifndef MOZ_JAVA_COMPOSITOR
+#ifndef MOZ_ANDROID_OMTC
   
   
   gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation();
