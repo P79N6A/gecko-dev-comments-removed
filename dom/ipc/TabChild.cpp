@@ -72,6 +72,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsGlobalWindow.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsPrintfCString.h"
 #include "nsScriptLoader.h"
@@ -1535,22 +1536,40 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
       * ScreenToLayerScale(1);
     utils->SetResolution(resolution.scale, resolution.scale);
 
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    nsCOMPtr<nsIDOMElement> docElement;
-    mWebNav->GetDocument(getter_AddRefs(domDoc));
-    if (domDoc) {
-      domDoc->GetDocumentElement(getter_AddRefs(docElement));
-      if (docElement) {
-        utils->SetDisplayPortForElement(
-          aFrameMetrics.mDisplayPort.x, aFrameMetrics.mDisplayPort.y,
-          aFrameMetrics.mDisplayPort.width, aFrameMetrics.mDisplayPort.height,
-          docElement);
-      }
-    }
+    SetDisplayPort(aFrameMetrics);
 
     mLastMetrics = aFrameMetrics;
 
     return true;
+}
+
+void
+TabChild::SetDisplayPort(const FrameMetrics& aFrameMetrics)
+{
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  mWebNav->GetDocument(getter_AddRefs(domDoc));
+  if (!domDoc) {
+    return;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDOMElement> element;
+  if (aFrameMetrics.mScrollId == FrameMetrics::ROOT_SCROLL_ID) {
+    domDoc->GetDocumentElement(getter_AddRefs(element));
+  } else {
+    element = do_QueryInterface(nsLayoutUtils::FindContentFor(
+      aFrameMetrics.mScrollId));
+  }
+
+  if (element) {
+    nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
+    utils->SetDisplayPortForElement(
+      aFrameMetrics.mDisplayPort.x, aFrameMetrics.mDisplayPort.y,
+      aFrameMetrics.mDisplayPort.width, aFrameMetrics.mDisplayPort.height,
+      element);
+  }
 }
 
 bool

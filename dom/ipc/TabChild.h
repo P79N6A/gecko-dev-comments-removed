@@ -372,6 +372,10 @@ private:
     bool ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
     
+    
+    void SetDisplayPort(const FrameMetrics& aFrameMetrics);
+
+    
     void DoFakeShow();
 
     
