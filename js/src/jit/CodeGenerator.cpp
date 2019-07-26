@@ -4457,15 +4457,26 @@ IonCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     masm.computeEffectiveAddress(Address(output, JSShortString::offsetOfInlineStorage()), temp2);
     masm.storePtr(temp2, Address(output, JSShortString::offsetOfChars()));
 
-    
-    
-    masm.loadPtr(Address(lhs, JSString::offsetOfChars()), temp3);
-    CopyStringChars(masm, temp2, temp3, temp1, temp4);
+    {
+        
+        
+        
+        if (mode == ParallelExecution)
+            masm.push(temp4);
 
-    
-    masm.loadPtr(Address(rhs, JSString::offsetOfChars()), temp3);
-    masm.loadStringLength(rhs, temp1);
-    CopyStringChars(masm, temp2, temp3, temp1, temp4);
+        
+        
+        masm.loadPtr(Address(lhs, JSString::offsetOfChars()), temp3);
+        CopyStringChars(masm, temp2, temp3, temp1, temp4);
+
+        
+        masm.loadPtr(Address(rhs, JSString::offsetOfChars()), temp3);
+        masm.loadStringLength(rhs, temp1);
+        CopyStringChars(masm, temp2, temp3, temp1, temp4);
+
+        if (mode == ParallelExecution)
+            masm.pop(temp4);
+    }
 
     
     masm.store16(Imm32(0), Address(temp2, 0));
