@@ -2686,6 +2686,10 @@ for (uint32_t i = 0; i < length; ++i) {
         if invalidEnumValueFatal:
             handleInvalidEnumValueCode = "  MOZ_ASSERT(index >= 0);\n"
         else:
+            
+            
+            
+            
             assert exceptionCode == "return false;"
             handleInvalidEnumValueCode = (
                 "  if (index < 0) {\n"
