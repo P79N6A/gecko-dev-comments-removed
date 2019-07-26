@@ -266,6 +266,7 @@ SVGDocumentWrapper::OnStopRequest(nsIRequest* aRequest, nsISupports* ctxt,
       parser->CancelParsingEvents();
       parser->ContinueInterruptedParsing();
     }
+    
     FlushLayout();
     mListener = nullptr;
 
