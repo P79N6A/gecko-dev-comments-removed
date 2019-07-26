@@ -2063,7 +2063,7 @@ SaveSharedScriptData(ExclusiveContext *cx, Handle<JSScript *> script, SharedScri
 
     if (cx->isJSContext()) {
         JSRuntime *rt = cx->asJSContext()->runtime();
-        if (JS::IsIncrementalGCInProgress(rt) && rt->gcIsFull)
+        if (JS::IsIncrementalGCInProgress(rt) && rt->gc.isFull)
             ssd->marked = true;
     }
 #endif
@@ -2081,14 +2081,14 @@ MarkScriptData(JSRuntime *rt, const jsbytecode *bytecode)
 
 
 
-    if (rt->gcIsFull)
+    if (rt->gc.isFull)
         SharedScriptData::fromBytecode(bytecode)->marked = true;
 }
 
 void
 js::UnmarkScriptData(JSRuntime *rt)
 {
-    JS_ASSERT(rt->gcIsFull);
+    JS_ASSERT(rt->gc.isFull);
     ScriptDataTable &table = rt->scriptDataTable();
     for (ScriptDataTable::Enum e(table); !e.empty(); e.popFront()) {
         SharedScriptData *entry = e.front();
@@ -2099,7 +2099,7 @@ js::UnmarkScriptData(JSRuntime *rt)
 void
 js::SweepScriptData(JSRuntime *rt)
 {
-    JS_ASSERT(rt->gcIsFull);
+    JS_ASSERT(rt->gc.isFull);
     ScriptDataTable &table = rt->scriptDataTable();
 
     if (rt->keepAtoms())
@@ -3304,7 +3304,7 @@ JSScript::markChildren(JSTracer *trc)
     
     
 
-    JS_ASSERT_IF(trc->runtime()->gcStrictCompartmentChecking, zone()->isCollecting());
+    JS_ASSERT_IF(trc->runtime()->gc.strictCompartmentChecking, zone()->isCollecting());
 
     for (uint32_t i = 0; i < natoms(); ++i) {
         if (atoms[i])
