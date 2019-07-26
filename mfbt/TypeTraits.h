@@ -49,6 +49,27 @@ typedef IntegralConstant<bool, false> FalseType;
 
 namespace detail {
 
+template<typename T>
+struct IsVoidHelper : FalseType {};
+
+template<>
+struct IsVoidHelper<void> : TrueType {};
+
+} 
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsVoid : detail::IsVoidHelper<typename RemoveCV<T>::Type> {};
+
+namespace detail {
+
 template <typename T>
 struct IsIntegralHelper : FalseType {};
 
@@ -688,13 +709,53 @@ struct RemoveReference<T&&>
     typedef T Type;
 };
 
+template<bool Condition, typename A, typename B>
+struct Conditional;
+
+namespace detail {
+
+enum Voidness { TIsVoid, TIsNotVoid };
+
+template<typename T, Voidness V = IsVoid<T>::value ? TIsVoid : TIsNotVoid>
+struct AddLvalueReferenceHelper;
+
+template<typename T>
+struct AddLvalueReferenceHelper<T, TIsVoid>
+{
+    typedef void Type;
+};
+
+template<typename T>
+struct AddLvalueReferenceHelper<T, TIsNotVoid>
+{
+    typedef T& Type;
+};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct AddLvalueReference
+  : detail::AddLvalueReferenceHelper<T>
+{};
+
 
 
 template<bool B, typename T = void>
 struct EnableIf;
-
-template<bool Condition, typename A, typename B>
-struct Conditional;
 
 namespace detail {
 
