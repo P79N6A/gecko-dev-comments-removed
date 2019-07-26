@@ -10,6 +10,7 @@ import org.mozilla.gecko.gfx.InputConnectionHandler;
 import android.R;
 import android.content.Context;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Selection;
@@ -52,7 +53,7 @@ class GeckoInputConnection
     private final ExtractedText mUpdateExtract = new ExtractedText();
     private boolean mBatchSelectionChanged;
     private boolean mBatchTextChanged;
-    private Runnable mRestartInputRunnable;
+    private long mLastRestartInputTime;
     private final InputConnection mPluginInputConnection;
 
     public static GeckoEditableListener create(View targetView,
@@ -200,27 +201,34 @@ class GeckoInputConnection
     }
 
     private void restartInput() {
-        if (mRestartInputRunnable != null) {
+        
+        
+        long time = SystemClock.uptimeMillis();
+        if (time < mLastRestartInputTime + 200) {
             return;
         }
+        mLastRestartInputTime = time;
+
         final InputMethodManager imm = getInputMethodManager();
         if (imm == null) {
             return;
         }
-        mRestartInputRunnable = new Runnable() {
-            @Override
-            public void run() {
-                final View v = getView();
-                final Editable editable = getEditable();
-                
-                
-                notifySelectionChange(Selection.getSelectionStart(editable),
-                                      Selection.getSelectionEnd(editable));
-                imm.restartInput(v);
-                mRestartInputRunnable = null;
-            }
-        };
-        GeckoApp.mAppContext.mMainHandler.postDelayed(mRestartInputRunnable, 200);
+        final View v = getView();
+        
+        
+        
+        
+        
+        
+        
+        if (InputMethods.needsSoftResetWorkaround(mCurrentInputMethod)) {
+            
+            
+            
+            
+            notifySelectionChange(-1, -1);
+        }
+        imm.restartInput(v);
     }
 
     public void onTextChange(String text, int start, int oldEnd, int newEnd) {
