@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jsatom_h
 #define jsatom_h
@@ -17,7 +17,7 @@ class JSAtom;
 
 struct JSIdArray {
     int length;
-    js::HeapId vector[1];    /* actually, length jsid words */
+    js::HeapId vector[1];    
 };
 
 namespace js {
@@ -41,10 +41,10 @@ struct JsidHasher
     }
 };
 
-/*
- * Return a printable, lossless char[] representation of a string-type atom.
- * The lifetime of the result matches the lifetime of bytes.
- */
+
+
+
+
 extern const char *
 AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes);
 
@@ -67,10 +67,10 @@ class AtomStateEntry
         return bits & 0x1;
     }
 
-    /*
-     * Non-branching code sequence. Note that the const_cast is safe because
-     * the hash function doesn't consider the tag to be a portion of the key.
-     */
+    
+
+
+
     void setTagged(bool enabled) const {
         const_cast<AtomStateEntry *>(this)->bits |= uintptr_t(enabled);
     }
@@ -84,7 +84,7 @@ struct AtomHasher
     {
         const jschar    *chars;
         size_t          length;
-        const JSAtom    *atom; /* Optional. */
+        const JSAtom    *atom; 
 
         Lookup(const jschar *chars, size_t length) : chars(chars), length(length), atom(NULL) {}
         inline Lookup(const JSAtom *atom);
@@ -98,12 +98,12 @@ typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
 
 class PropertyName;
 
-}  /* namespace js */
+}  
 
 extern bool
 AtomIsInterned(JSContext *cx, JSAtom *atom);
 
-/* Well-known predefined C strings. */
+
 #define DECLARE_PROTO_STR(name,code,init) extern const char js_##name##_str[];
 JS_FOR_EACH_PROTOTYPE(DECLARE_PROTO_STR)
 #undef DECLARE_PROTO_STR
@@ -112,7 +112,7 @@ JS_FOR_EACH_PROTOTYPE(DECLARE_PROTO_STR)
 FOR_EACH_COMMON_PROPERTYNAME(DECLARE_CONST_CHAR_STR)
 #undef DECLARE_CONST_CHAR_STR
 
-/* Constant strings that are not atomized. */
+
 extern const char js_break_str[];
 extern const char js_case_str[];
 extern const char js_catch_str[];
@@ -153,30 +153,29 @@ extern const char js_typeof_str[];
 extern const char js_void_str[];
 extern const char js_while_str[];
 extern const char js_with_str[];
-extern const char js_yield_str[];
 
 namespace js {
 
 extern const char * const TypeStrings[];
 
-/*
- * Initialize atom state. Return true on success, false on failure to allocate
- * memory. The caller must zero rt->atomState before calling this function and
- * only call it after js_InitGC successfully returns.
- */
+
+
+
+
+
 extern bool
 InitAtoms(JSRuntime *rt);
 
-/*
- * Free and clear atom state including any interned string atoms. This
- * function must be called before js_FinishGC.
- */
+
+
+
+
 extern void
 FinishAtoms(JSRuntime *rt);
 
-/*
- * Atom tracing and garbage collection hooks.
- */
+
+
+
 extern void
 MarkAtoms(JSTracer *trc);
 
@@ -189,7 +188,7 @@ InitCommonNames(JSContext *cx);
 extern void
 FinishCommonNames(JSRuntime *rt);
 
-/* N.B. must correspond to boolean tagging behavior. */
+
 enum InternBehavior
 {
     DoNotInternAtom = false,
@@ -225,6 +224,6 @@ template<XDRMode mode>
 bool
 XDRAtom(XDRState<mode> *xdr, js::MutableHandleAtom atomp);
 
-} /* namespace js */
+} 
 
-#endif /* jsatom_h */
+#endif 

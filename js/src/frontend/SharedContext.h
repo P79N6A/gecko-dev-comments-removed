@@ -74,10 +74,6 @@ class FunctionContextFlags
 
     
     
-    bool isLegacyGenerator:1;
-
-    
-    
     bool mightAliasLocals:1;
 
     
@@ -129,8 +125,7 @@ class FunctionContextFlags
 
   public:
     FunctionContextFlags()
-     :  isLegacyGenerator(false),
-        mightAliasLocals(false),
+     :  mightAliasLocals(false),
         hasExtensibleScope(false),
         needsDeclEnvObject(false),
         argumentsHasLocalBinding(false),
@@ -264,6 +259,8 @@ class FunctionBox : public ObjectBox, public SharedContext
     uint32_t        startLine;
     uint32_t        startColumn;
     uint16_t        ndefaults;
+
+    uint8_t         generatorKindBits_;     
     bool            inWith:1;               
     bool            inGenexpLambda:1;       
     bool            hasDestructuringArgs:1; 
@@ -279,21 +276,30 @@ class FunctionBox : public ObjectBox, public SharedContext
     template <typename ParseHandler>
     FunctionBox(ExclusiveContext *cx, ObjectBox* traceListHead, JSFunction *fun,
                 ParseContext<ParseHandler> *pc, Directives directives,
-                bool extraWarnings);
+                bool extraWarnings, GeneratorKind generatorKind);
 
     ObjectBox *toObjectBox() { return this; }
     JSFunction *function() const { return &object->as<JSFunction>(); }
 
-    
-    bool isGenerator()              const { return isLegacyGenerator(); }
-    bool isLegacyGenerator()        const { return funCxFlags.isLegacyGenerator; }
+    GeneratorKind generatorKind() const { return GeneratorKindFromBits(generatorKindBits_); }
+    bool isGenerator() const { return generatorKind() != NotGenerator; }
+    bool isLegacyGenerator() const { return generatorKind() == LegacyGenerator; }
+    bool isStarGenerator() const { return generatorKind() == StarGenerator; }
+
+    void setGeneratorKind(GeneratorKind kind) {
+        
+        
+        
+        JS_ASSERT(!isGenerator());
+        generatorKindBits_ = GeneratorKindAsBits(kind);
+    }
+
     bool mightAliasLocals()         const { return funCxFlags.mightAliasLocals; }
     bool hasExtensibleScope()       const { return funCxFlags.hasExtensibleScope; }
     bool needsDeclEnvObject()       const { return funCxFlags.needsDeclEnvObject; }
     bool argumentsHasLocalBinding() const { return funCxFlags.argumentsHasLocalBinding; }
     bool definitelyNeedsArgsObj()   const { return funCxFlags.definitelyNeedsArgsObj; }
 
-    void setIsLegacyGenerator()            { funCxFlags.isLegacyGenerator        = true; }
     void setMightAliasLocals()             { funCxFlags.mightAliasLocals         = true; }
     void setHasExtensibleScope()           { funCxFlags.hasExtensibleScope       = true; }
     void setNeedsDeclEnvObject()           { funCxFlags.needsDeclEnvObject       = true; }
