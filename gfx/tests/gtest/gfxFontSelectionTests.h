@@ -68,31 +68,31 @@
 
 
 void
-SetupTests()
+SetupTests(nsTArray<TestEntry>& testList)
 {
     TestEntry *t;
 
     
-    gfxFontStyle style_western_normal_16 (FONT_STYLE_NORMAL,
-                                          NS_FONT_STRETCH_NORMAL,
+    gfxFontStyle style_western_normal_16 (mozilla::gfx::FONT_STYLE_NORMAL,
                                           400,
+                                          0,
                                           16.0,
                                           NS_NewPermanentAtom(NS_LITERAL_STRING("en")),
                                           0.0,
-                                          false, false, false,
+                                          false, false,
                                           NS_LITERAL_STRING(""));
 
-    gfxFontStyle style_western_bold_16 (FONT_STYLE_NORMAL,
-                                        NS_FONT_STRETCH_NORMAL,
+    gfxFontStyle style_western_bold_16 (mozilla::gfx::FONT_STYLE_NORMAL,
                                         700,
+                                        0,
                                         16.0,
                                         NS_NewPermanentAtom(NS_LITERAL_STRING("en")),
                                         0.0,
-                                        false, false, false,
+                                        false, false,
                                         NS_LITERAL_STRING(""));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_ASCII,
                  "ABCD");
@@ -102,7 +102,7 @@ SetupTests()
     t->Expect ("gtk2-pango", "Albany AMT", GLYPHS(36, 37, 38, 39));
 
     
-    t = AddTest ("verdana,sans-serif",
+    t = AddTest (testList, "verdana,sans-serif",
                  style_western_normal_16,
                  S_UTF8,
                  "foo\xe2\x80\x91""bar");
@@ -116,7 +116,7 @@ SetupTests()
     t->Expect ("macosx", "Verdana", GLYPHS(69, 68, 85));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_bold_16,
                  S_ASCII,
                  "ABCD");
@@ -126,28 +126,28 @@ SetupTests()
     t->Expect ("gtk2-pango", "Albany AMT Bold", GLYPHS(36, 37, 38, 39));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_UTF8,
                  " \xd8\xaa\xd9\x85 ");
     t->SetRTL();
     t->Expect ("macosx", "Helvetica", GLYPHS(3));
-    t->Expect ("macosx", "AlBayan", GLYPHS(47));
+    t->Expect ("macosx", "ArialMT", GLYPHS(919, 993));
     t->Expect ("macosx", "Helvetica", GLYPHS(3));
     t->Expect ("win32", "Arial", GLYPHS(3, 919, 994, 3));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_UTF8,
                  " \xd9\x85\xd8\xaa ");
     t->Expect ("macosx", "Helvetica", GLYPHS(3));
-    t->Expect ("macosx", "AlBayan", GLYPHS(2, 47));
+    t->Expect ("macosx", "ArialMT", GLYPHS(993, 919));
     t->Expect ("macosx", "Helvetica", GLYPHS(3));
     t->Expect ("win32", "Arial", GLYPHS(3, 994, 919, 3));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_ASCII,
                  " ab");
@@ -157,7 +157,7 @@ SetupTests()
     t->Expect ("gtk2-pango", "Albany AMT", GLYPHS(3, 68, 69));
 
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_ASCII,
                  "ab ");
@@ -168,7 +168,7 @@ SetupTests()
 
     
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_ASCII,
                  "fi");
@@ -177,7 +177,7 @@ SetupTests()
 
     
     
-    t = AddTest ("sans-serif",
+    t = AddTest (testList, "sans-serif",
                  style_western_normal_16,
                  S_UTF8,
                  "\xe0\xa4\x9a\xe0\xa4\xbe\xe0\xa4\xb9\xe0\xa4\xbf\xe0\xa4\x8f"); 
@@ -185,11 +185,14 @@ SetupTests()
     t->Expect ("win32", "Mangal", GLYPHS(133, 545, 465, 161, 102));
 
     
-    t = AddTest ("Kartika",
-                 style_western_normal_16,
-                 S_UTF8,
-                 "\xe0\xb4\xb3\xe0\xb5\x8d\xe2\x80\x8d");
-    t->Expect ("win32", "Kartika", GLYPHS(332));
+
+    
+    
+    
+    
+    
+    
+    
 
     
     
@@ -197,9 +200,11 @@ SetupTests()
 
 
 
-    t = AddTest ("sans-serif",
-                 style_western_normal_16,
-                 S_UTF8,
-                 "\xe0\xb4\xb3\xe0\xb5\x8d\xe2\x80\x8d");
-    t->Expect ("win32", "Kartika", GLYPHS(332));
+    
+    
+    
+    
+    
+    
+    
 }
