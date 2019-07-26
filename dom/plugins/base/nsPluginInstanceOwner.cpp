@@ -180,7 +180,7 @@ nsPluginInstanceOwner::GetImageContainer()
   data.mInverted = mInstance->Inverted();
 
   LayoutDeviceRect r = GetPluginRect();
-  data.mSize = gfxIntSize(r.width, r.height);
+  data.mSize = gfx::IntSize(r.width, r.height);
 
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
   pluginImage->SetData(data);
@@ -1512,7 +1512,7 @@ already_AddRefed<ImageContainer> nsPluginInstanceOwner::GetImageContainerForVide
   
   
   data.mInverted = AndroidBridge::Bridge()->IsHoneycomb() ? true : mInstance->Inverted();
-  data.mSize = gfxIntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height);
+  data.mSize = gfx::IntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height);
 
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
   pluginImage->SetData(data);

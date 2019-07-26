@@ -851,7 +851,7 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
 
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> target =
-   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size(), gfx::FORMAT_B8G8R8A8);
+   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size().ToIntSize(), gfx::FORMAT_B8G8R8A8);
 
   
   
