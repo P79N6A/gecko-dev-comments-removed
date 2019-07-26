@@ -176,8 +176,8 @@ public:
   
   uint32_t GetNumFrames() const;
 
-  virtual size_t HeapSizeOfSourceWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const;
-  virtual size_t HeapSizeOfDecodedWithComputedFallback(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t HeapSizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
+  virtual size_t HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) const;
   virtual size_t NonHeapSizeOfDecoded() const;
   virtual size_t OutOfProcessSizeOfDecoded() const;
 
@@ -497,7 +497,7 @@ private:
     
     
     
-    mozilla::Mutex            mThreadPoolMutex;
+    Mutex                     mThreadPoolMutex;
     nsCOMPtr<nsIThreadPool>   mThreadPool;
   };
 
@@ -577,7 +577,7 @@ private:
   uint32_t GetCurrentImgFrameIndex() const;
 
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
-                                                 mozilla::MallocSizeOf aMallocSizeOf) const;
+                                                 MallocSizeOf aMallocSizeOf) const;
 
   void EnsureAnimExists();
 
@@ -660,10 +660,10 @@ private:
   int                        mRequestedSampleSize;
 
   
-  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
+  nsRefPtr<layers::ImageContainer> mImageContainer;
 
   
-  WeakPtr<mozilla::layers::ImageContainer> mImageContainerCache;
+  WeakPtr<layers::ImageContainer> mImageContainerCache;
 
 #ifdef DEBUG
   uint32_t                       mFramesNotified;
@@ -673,7 +673,7 @@ private:
   
 
   
-  mozilla::ReentrantMonitor  mDecodingMonitor;
+  ReentrantMonitor           mDecodingMonitor;
 
   FallibleTArray<char>       mSourceData;
 
