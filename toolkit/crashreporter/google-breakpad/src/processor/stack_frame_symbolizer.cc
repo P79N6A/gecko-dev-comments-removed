@@ -59,27 +59,27 @@ StackFrameSymbolizer::SymbolizerResult StackFrameSymbolizer::FillSourceLineInfo(
     StackFrame* frame) {
   assert(frame);
 
-  if (!modules) return ERROR;
+  if (!modules) return kError;
   const CodeModule* module = modules->GetModuleForAddress(frame->instruction);
-  if (!module) return ERROR;
+  if (!module) return kError;
   frame->module = module;
 
-  if (!resolver_) return ERROR;  
+  if (!resolver_) return kError;  
   
   if (no_symbol_modules_.find(module->code_file()) !=
       no_symbol_modules_.end()) {
-    return ERROR;
+    return kError;
   }
 
   
   if (resolver_->HasModule(frame->module)) {
     resolver_->FillSourceLineInfo(frame);
-    return NO_ERROR;
+    return kNoError;
   }
 
   
   if (!supplier_) {
-    return ERROR;
+    return kError;
   }
 
   
@@ -98,26 +98,26 @@ StackFrameSymbolizer::SymbolizerResult StackFrameSymbolizer::FillSourceLineInfo(
 
       if (load_success) {
         resolver_->FillSourceLineInfo(frame);
-        return NO_ERROR;
+        return kNoError;
       } else {
         BPLOG(ERROR) << "Failed to load symbol file in resolver.";
         no_symbol_modules_.insert(module->code_file());
-        return ERROR;
+        return kError;
       }
     }
 
     case SymbolSupplier::NOT_FOUND:
       no_symbol_modules_.insert(module->code_file());
-      return ERROR;
+      return kError;
 
     case SymbolSupplier::INTERRUPT:
-      return INTERRUPT;
+      return kInterrupt;
 
     default:
       BPLOG(ERROR) << "Unknown SymbolResult enum: " << symbol_result;
-      return ERROR;
+      return kError;
   }
-  return ERROR;
+  return kError;
 }
 
 WindowsFrameInfo* StackFrameSymbolizer::FindWindowsFrameInfo(

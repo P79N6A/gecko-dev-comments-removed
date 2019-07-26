@@ -371,7 +371,7 @@ class Module {
   
   
   struct CompareStringPtrs {
-    bool operator()(const string *x, const string *y) { return *x < *y; }
+    bool operator()(const string *x, const string *y) const { return *x < *y; }
   };
 
   

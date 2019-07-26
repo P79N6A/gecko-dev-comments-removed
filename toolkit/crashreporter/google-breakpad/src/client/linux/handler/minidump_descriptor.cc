@@ -38,7 +38,8 @@ namespace google_breakpad {
 MinidumpDescriptor::MinidumpDescriptor(const MinidumpDescriptor& descriptor)
     : fd_(descriptor.fd_),
       directory_(descriptor.directory_),
-      c_path_(NULL) {
+      c_path_(NULL),
+      size_limit_(descriptor.size_limit_) {
   
   
   
@@ -57,6 +58,7 @@ MinidumpDescriptor& MinidumpDescriptor::operator=(
     c_path_ = NULL;
     UpdatePath();
   }
+  size_limit_ = descriptor.size_limit_;
   return *this;
 }
 

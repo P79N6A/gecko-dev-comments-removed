@@ -56,13 +56,13 @@ class StackFrameSymbolizer {
   enum SymbolizerResult {
     
     
-    NO_ERROR,
+    kNoError,
     
     
-    ERROR,
+    kError,
     
     
-    INTERRUPT
+    kInterrupt
   };
 
   StackFrameSymbolizer(SymbolSupplier* supplier,
