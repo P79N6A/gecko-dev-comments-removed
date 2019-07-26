@@ -454,6 +454,9 @@ this.netHelpers = {
 
 
   stringToIP: function stringToIP(string) {
+    if (!string) {
+      return null;
+    }
     let ip = 0;
     let start, end = -1;
     for (let i = 0; i < 4; i++) {
