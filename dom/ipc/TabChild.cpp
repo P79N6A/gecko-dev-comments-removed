@@ -421,16 +421,15 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        mLastMetrics.mZoom = ScreenToScreenScale(1.0);
         mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
         mLastMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
-        CSSToScreenScale resolution = mLastMetrics.CalculateResolution();
-        
+        mLastMetrics.mZoom = mLastMetrics.CalculateIntrinsicScale();
         
         
         mLastMetrics.mResolution =
-          resolution / mLastMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+          mLastMetrics.mZoom / mLastMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
         mLastMetrics.mScrollOffset = CSSPoint(0, 0);
+
         utils->SetResolution(mLastMetrics.mResolution.scale,
                              mLastMetrics.mResolution.scale);
 
@@ -572,8 +571,8 @@ TabChild::HandlePossibleViewportChange()
   nsViewportInfo viewportInfo =
     nsContentUtils::GetViewportInfo(document, mInnerSize.width, mInnerSize.height);
   SendUpdateZoomConstraints(viewportInfo.IsZoomAllowed(),
-                            viewportInfo.GetMinZoom(),
-                            viewportInfo.GetMaxZoom());
+                            CSSToScreenScale(viewportInfo.GetMinZoom()),
+                            CSSToScreenScale(viewportInfo.GetMaxZoom()));
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
@@ -647,19 +646,7 @@ TabChild::HandlePossibleViewportChange()
   viewport.height = std::max(viewport.height, screenH / minScale);
   SetCSSViewport(viewport);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  int32_t oldScreenWidth = mLastMetrics.mCompositionBounds.width;
+  float oldScreenWidth = mLastMetrics.mCompositionBounds.width;
   if (!oldScreenWidth) {
     oldScreenWidth = mInnerSize.width;
   }
@@ -671,24 +658,36 @@ TabChild::HandlePossibleViewportChange()
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  float oldIntrinsicScale = oldScreenWidth / oldBrowserWidth;
+  metrics.mZoom.scale *= metrics.CalculateIntrinsicScale().scale / oldIntrinsicScale;
+
+  
+  
   bool isFirstPaint;
   nsresult rv = utils->GetIsFirstPaint(&isFirstPaint);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   if (NS_FAILED(rv) || isFirstPaint) {
-    CSSToScreenScale intrinsicScale = metrics.CalculateIntrinsicScale();
     
     
     
     if (viewportInfo.GetDefaultZoom() < 0.01f) {
-      viewportInfo.SetDefaultZoom(intrinsicScale.scale);
+      viewportInfo.SetDefaultZoom(metrics.CalculateIntrinsicScale().scale);
     }
 
     double defaultZoom = viewportInfo.GetDefaultZoom();
     MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
                defaultZoom <= viewportInfo.GetMaxZoom());
-    
-    
-    metrics.mZoom = ScreenToScreenScale(defaultZoom / intrinsicScale.scale);
+    metrics.mZoom = CSSToScreenScale(defaultZoom);
   }
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
@@ -696,8 +695,7 @@ TabChild::HandlePossibleViewportChange()
     
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
-  CSSToScreenScale resolution = metrics.CalculateResolution();
-  metrics.mResolution = resolution / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+  metrics.mResolution = metrics.mZoom / metrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
   utils->SetResolution(metrics.mResolution.scale, metrics.mResolution.scale);
 
   
@@ -1617,7 +1615,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     }
 
     
-    LayoutDeviceToLayerScale resolution = aFrameMetrics.CalculateResolution()
+    LayoutDeviceToLayerScale resolution = aFrameMetrics.mZoom
       / aFrameMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
     utils->SetResolution(resolution.scale, resolution.scale);
 

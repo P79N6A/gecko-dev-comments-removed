@@ -103,20 +103,9 @@ public:
     return CSSToScreenScale(float(mCompositionBounds.width) / float(mViewport.width));
   }
 
-  
-
-
-
-
-
-  CSSToScreenScale CalculateResolution() const
-  {
-    return CalculateIntrinsicScale() * mZoom;
-  }
-
   CSSRect CalculateCompositedRectInCssPixels() const
   {
-    return CSSRect(gfx::RoundedIn(mCompositionBounds / CalculateResolution()));
+    return CSSRect(gfx::RoundedIn(mCompositionBounds / mZoom));
   }
 
   
@@ -236,15 +225,7 @@ public:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  ScreenToScreenScale mZoom;
+  CSSToScreenScale mZoom;
 
   
   

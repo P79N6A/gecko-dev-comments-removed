@@ -145,7 +145,9 @@ public:
 
 
 
-  void UpdateZoomConstraints(bool aAllowZoom, float aMinScale, float aMaxScale);
+  void UpdateZoomConstraints(bool aAllowZoom,
+                             const mozilla::CSSToScreenScale& aMinScale,
+                             const mozilla::CSSToScreenScale& aMaxScale);
 
   
 
@@ -348,7 +350,8 @@ protected:
 
 
 
-  void ScaleWithFocus(float aScale, const ScreenPoint& aFocus);
+  void ScaleWithFocus(const mozilla::CSSToScreenScale& aScale,
+                      const ScreenPoint& aFocus);
 
   
 
@@ -453,7 +456,7 @@ protected:
 
 
 
-  void SetZoomAndResolution(const ScreenToScreenScale& aZoom);
+  void SetZoomAndResolution(const mozilla::CSSToScreenScale& aZoom);
 
   
 
@@ -543,8 +546,8 @@ private:
   
   
   bool mAllowZoom;
-  float mMinZoom;
-  float mMaxZoom;
+  mozilla::CSSToScreenScale mMinZoom;
+  mozilla::CSSToScreenScale mMaxZoom;
 
   
   
