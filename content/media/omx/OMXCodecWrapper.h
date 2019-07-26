@@ -15,6 +15,8 @@
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
 
+#include <speex/speex_resampler.h>
+
 namespace android {
 
 class OMXAudioEncoder;
@@ -53,6 +55,7 @@ public:
   
   enum CodecType {
     AAC_ENC, 
+    AMR_NB_ENC, 
     AVC_ENC, 
     TYPE_COUNT
   };
@@ -84,6 +87,9 @@ public:
   static OMXAudioEncoder* CreateAACEncoder();
 
   
+  static OMXAudioEncoder* CreateAMRNBEncoder();
+
+  
   static OMXVideoEncoder* CreateAVCEncoder();
 
   virtual ~OMXCodecWrapper();
@@ -97,7 +103,10 @@ public:
   nsresult GetNextEncodedFrame(nsTArray<uint8_t>* aOutputBuf,
                                int64_t* aOutputTimestamp, int* aOutputFlags,
                                int64_t aTimeOut);
+  
 
+
+  int GetCodecType() { return mCodecType; }
 protected:
   
 
@@ -160,7 +169,9 @@ private:
   Vector<sp<ABuffer> > mInputBufs;  
   Vector<sp<ABuffer> > mOutputBufs; 
 
+  int mCodecType;
   bool mStarted; 
+  bool mAMRCSDProvided;
 };
 
 
@@ -173,7 +184,8 @@ public:
 
 
 
-  nsresult Configure(int aChannelCount, int aSampleRate);
+
+  nsresult Configure(int aChannelCount, int aInputSampleRate, int aEncodedSampleRate);
 
   
 
@@ -183,10 +195,10 @@ public:
 
   nsresult Encode(mozilla::AudioSegment& aSegment, int aInputFlags = 0);
 
+  ~OMXAudioEncoder();
 protected:
   virtual status_t AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
                                        ABuffer* aData) MOZ_OVERRIDE;
-
 private:
   
   OMXAudioEncoder() MOZ_DELETE;
@@ -199,15 +211,24 @@ private:
 
   OMXAudioEncoder(CodecType aCodecType)
     : OMXCodecWrapper(aCodecType)
+    , mResampler(nullptr)
     , mChannels(0)
     , mTimestamp(0)
-    , mSampleDuration(0) {}
+    , mSampleDuration(0)
+    , mResamplingRatio(0) {}
 
   
   friend class OMXCodecWrapper;
 
   
+
+
+
+  SpeexResamplerState* mResampler;
+  
   size_t mChannels;
+
+  float mResamplingRatio;
   
   int64_t mTimestamp;
   
