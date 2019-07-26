@@ -232,13 +232,11 @@ FrameWorker.prototype = {
       
       worker.loaded = true;
       for (let port of worker.pendingPorts) {
-        if (port._portid) { 
-          try {
-            port._createWorkerAndEntangle(worker);
-          }
-          catch(e) {
-            Cu.reportError("FrameWorker: Failed to create worker port: " + e + "\n" + e.stack);
-          }
+        try {
+          port._createWorkerAndEntangle(worker);
+        }
+        catch(e) {
+          Cu.reportError("FrameWorker: Failed to create worker port: " + e + "\n" + e.stack);
         }
       }
       worker.pendingPorts = [];
@@ -249,17 +247,15 @@ FrameWorker.prototype = {
     
     workerWindow.addEventListener("unload", function unloadListener() {
       workerWindow.removeEventListener("unload", unloadListener);
-      
       for (let [portid, port] in Iterator(worker.ports)) {
-        
-        if (!port)
-          continue;
         try {
           port.close();
         } catch (ex) {
           Cu.reportError("FrameWorker: failed to close port. " + ex);
         }
       }
+      
+      
       
       worker.ports = [];
       
@@ -440,6 +436,12 @@ ClientPort.prototype = {
       this._dopost(message);
     }
     this._pendingMessagesOutgoing = [];
+    
+    
+    if (this._closed) {
+      this._window = null;
+      delete worker.ports[this._portid];
+    }
   },
 
   _dopost: function fw_ClientPort_dopost(data) {
@@ -455,7 +457,7 @@ ClientPort.prototype = {
   },
 
   close: function fw_ClientPort_close() {
-    if (!this._portid) {
+    if (this._closed) {
       return; 
     }
     
@@ -464,6 +466,7 @@ ClientPort.prototype = {
     AbstractPort.prototype.close.call(this);
     this._window = null;
     this._clientWindow = null;
-    this._pendingMessagesOutgoing = null;
+    
+    
   }
 }

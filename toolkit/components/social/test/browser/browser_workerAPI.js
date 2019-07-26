@@ -39,16 +39,12 @@ let tests = {
       is(profile.userName, expect.userName, "userName is set");
       is(profile.displayName, expect.displayName, "displayName is set");
       is(profile.profileURL, expect.profileURL, "profileURL is set");
-
-      
-      port.close();
       next();
     }
     Services.obs.addObserver(ob, "social:profile-changed", false);
     let port = provider.getWorkerPort();
     port.postMessage({topic: "test-profile", data: expect});
-    
-    
+    port.close();
   },
 
   testAmbientNotification: function(next) {
