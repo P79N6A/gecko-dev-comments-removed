@@ -2121,6 +2121,9 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
             
             parser->tokenStream.tell(&position);
             tokenStream.seek(position, parser->tokenStream);
+
+            
+            pn->pn_pos.end = tokenStream.currentToken().pos.end;
         }
 
         if (!addFreeVariablesFromLazyFunction(fun, pc))
