@@ -121,6 +121,7 @@ abstract public class BrowserApp extends GeckoApp
     private View mHomePagerContainer;
     protected Telemetry.Timer mAboutHomeStartupTimer = null;
     private ActionModeCompat mActionMode;
+    private boolean mShowActionModeEndAnimation = false;
 
     private static final int GECKO_TOOLS_MENU = -1;
     private static final int ADDON_MENU_OFFSET = 1000;
@@ -2556,6 +2557,7 @@ abstract public class BrowserApp extends GeckoApp
             if (isDynamicToolbarEnabled() && !margins.areMarginsShown()) {
                 margins.setMaxMargins(0, mViewFlipper.getHeight(), 0, 0);
                 margins.showMargins(false);
+                mShowActionModeEndAnimation = true;
             } else {
                 
                 mActionBar.animateIn();
@@ -2582,7 +2584,16 @@ abstract public class BrowserApp extends GeckoApp
 
         mActionMode.finish();
         mActionMode = null;
-        mLayerView.getLayerMarginsAnimator().setMarginsPinned(false);
+        final LayerMarginsAnimator margins = mLayerView.getLayerMarginsAnimator();
+        margins.setMarginsPinned(false);
+
         mViewFlipper.showPrevious();
+
+        
+        
+        if (mShowActionModeEndAnimation) {
+            margins.hideMargins(true);
+            mShowActionModeEndAnimation = false;
+        }
     }
 }
