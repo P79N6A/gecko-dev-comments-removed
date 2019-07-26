@@ -29,9 +29,19 @@ var CastingApps = {
     Services.obs.addObserver(this, "Casting:Play", false);
     Services.obs.addObserver(this, "Casting:Pause", false);
     Services.obs.addObserver(this, "Casting:Stop", false);
+
+    BrowserApp.deck.addEventListener("TabSelect", this, true);
+    BrowserApp.deck.addEventListener("pageshow", this, true);
+    BrowserApp.deck.addEventListener("playing", this, true);
+    BrowserApp.deck.addEventListener("ended", this, true);
   },
 
   uninit: function ca_uninit() {
+    BrowserApp.deck.removeEventListener("TabSelect", this, true);
+    BrowserApp.deck.removeEventListener("pageshow", this, true);
+    BrowserApp.deck.removeEventListener("playing", this, true);
+    BrowserApp.deck.removeEventListener("ended", this, true);
+
     Services.obs.removeObserver(this, "Casting:Play");
     Services.obs.removeObserver(this, "Casting:Pause");
     Services.obs.removeObserver(this, "Casting:Stop");
@@ -60,6 +70,29 @@ var CastingApps = {
           this.closeExternal();
         }
         break;
+    }
+  },
+
+  handleEvent: function(aEvent) {
+    switch (aEvent.type) {
+      case "TabSelect": {
+        let tab = BrowserApp.getTabForBrowser(aEvent.target);
+        this._updatePageActionForTab(tab, aEvent);
+        break;
+      }
+      case "pageshow": {
+        let tab = BrowserApp.getTabForWindow(aEvent.originalTarget.defaultView);
+        this._updatePageActionForTab(tab, aEvent);
+        break;
+      }
+      case "playing":
+      case "ended": {
+        let video = aEvent.target;
+        if (video instanceof HTMLVideoElement) {
+          this._updatePageActionForVideo(video);
+        }
+        break;
+      }
     }
   },
 
@@ -203,6 +236,105 @@ var CastingApps = {
     }
   },
 
+  pageAction: {
+    click: function() {
+      
+      let browser = BrowserApp.selectedBrowser;
+      if (!browser) {
+        return;
+      }
+
+      
+      let videos = browser.contentDocument.querySelectorAll("video");
+      for (let video of videos) {
+        let unwrappedVideo = XPCNativeWrapper.unwrap(video);
+        if (!video.paused && unwrappedVideo.mozAllowCasting) {
+          CastingApps.openExternal(video, 0, 0);
+          return;
+        }
+      }
+    }
+  },
+
+  _findCastableVideo: function _findCastableVideo(aBrowser) {
+      
+      
+      let castableVideo = null;
+      let videos = aBrowser.contentDocument.querySelectorAll("video");
+      for (let video of videos) {
+        let unwrappedVideo = XPCNativeWrapper.unwrap(video);
+        if (unwrappedVideo.mozIsCasting) {
+          
+          return video;
+        }
+
+        if (!video.paused && unwrappedVideo.mozAllowCasting) {
+          
+          castableVideo = video;
+        }
+      }
+
+      
+      return castableVideo;
+  },
+
+  _updatePageActionForTab: function _updatePageActionForTab(aTab, aEvent) {
+    
+    if (aTab != BrowserApp.selectedTab) {
+      return;
+    }
+
+    
+    this._updatePageAction();
+  },
+
+  _updatePageActionForVideo: function _updatePageActionForVideo(aVideo) {
+    
+    this._updatePageAction(aEvent.type == "playing" ? video : null);
+  },
+
+  _updatePageAction: function _updatePageAction(aVideo) {
+    
+    
+    if (this.pageAction.id) {
+      NativeWindow.pageactions.remove(this.pageAction.id);
+      delete this.pageAction.id;
+    }
+
+    if (!aVideo) {
+      aVideo = this._findCastableVideo(BrowserApp.selectedBrowser);
+      if (!aVideo) {
+        return;
+      }
+    }
+
+    
+    if (BrowserApp.selectedTab != BrowserApp.getTabForWindow(aVideo.ownerDocument.defaultView.top)) {
+      return;
+    }
+
+    
+    
+    
+    
+    let unwrappedVideo = XPCNativeWrapper.unwrap(aVideo);
+    if (unwrappedVideo.mozIsCasting) {
+      this.pageAction.id = NativeWindow.pageactions.add({
+        title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
+        icon: "drawable://casting_active",
+        clickCallback: this.pageAction.click,
+        important: true
+      });
+    } else if (unwrappedVideo.mozAllowCasting) {
+      this.pageAction.id = NativeWindow.pageactions.add({
+        title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
+        icon: "drawable://casting",
+        clickCallback: this.pageAction.click,
+        important: true
+      });
+    }
+  },
+
   prompt: function(aCallback) {
     let items = [];
     SimpleServiceDiscovery.services.forEach(function(aService) {
@@ -288,6 +420,7 @@ var CastingApps = {
     let video = this.session.videoRef.get();
     if (video) {
       this._sendEventToVideo(video, { active: false });
+      this._updatePageAction();
     }
 
     delete this.session;
@@ -305,6 +438,7 @@ var CastingApps = {
     let video = this.session.videoRef.get();
     if (video) {
       this._sendEventToVideo(video, { active: true });
+      this._updatePageAction(video);
     }
   },
 
