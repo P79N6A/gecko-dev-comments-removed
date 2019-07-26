@@ -108,6 +108,12 @@ public:
   {
     return mLastChunks;
   }
+  virtual bool MainThreadNeedsUpdates() const MOZ_OVERRIDE
+  {
+    
+    return (mKind == MediaStreamGraph::SOURCE_STREAM && mFinished) ||
+           mKind == MediaStreamGraph::EXTERNAL_STREAM;
+  }
 
   
   AudioNodeEngine* Engine() { return mEngine; }

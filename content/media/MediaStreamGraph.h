@@ -443,6 +443,12 @@ public:
     return mWrapper;
   }
 
+  
+  virtual bool MainThreadNeedsUpdates() const
+  {
+    return true;
+  }
+
 protected:
   virtual void AdvanceTimeVaryingValuesToCurrentTime(GraphTime aCurrentTime, GraphTime aBlockedTime)
   {
@@ -937,7 +943,7 @@ public:
   
   
   
-  enum AudioNodeStreamKind { INTERNAL_STREAM, EXTERNAL_STREAM };
+  enum AudioNodeStreamKind { SOURCE_STREAM, INTERNAL_STREAM, EXTERNAL_STREAM };
   
 
 
