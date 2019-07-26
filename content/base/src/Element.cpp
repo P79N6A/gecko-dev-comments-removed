@@ -502,8 +502,8 @@ Element::GetScrollFrame(nsIFrame **aStyledFrame, bool aFlushLayout)
 
   
   
-  if (frame->GetType() != nsGkAtoms::menuFrame &&
-      frame->GetType() != nsGkAtoms::comboboxControlFrame) {
+  nsIAtom* type = frame->GetType();
+  if (type != nsGkAtoms::menuFrame && type != nsGkAtoms::comboboxControlFrame) {
     nsIScrollableFrame *scrollFrame = frame->GetScrollTargetFrame();
     if (scrollFrame)
       return scrollFrame;
