@@ -256,7 +256,7 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
         int width = (int) (mW * zoom);
         int height = (int) (mH * zoom);
 
-        int popupWidth = RelativeLayout.LayoutParams.FILL_PARENT;
+        int popupWidth = RelativeLayout.LayoutParams.MATCH_PARENT;
         int popupLeft = left < 0 ? 0 : left;
 
         FloatSize viewport = aMetrics.getSize();
