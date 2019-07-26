@@ -299,6 +299,29 @@ TabChild::TabChild(ContentChild* aManager, const TabContext& aContext, uint32_t 
     printf("creating %d!\n", NS_IsMainThread());
 }
 
+
+static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIDocument* doc)
+{
+  nsCOMPtr<nsIDOMWindowUtils> utils;
+  nsCOMPtr<nsIDOMWindow> window = doc->GetDefaultView();
+  if (window) {
+    utils = do_GetInterface(window);
+  }
+  return utils.forget();
+}
+
+
+
+static already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* content)
+{
+  nsCOMPtr<nsIDOMWindowUtils> utils;
+  nsIDocument* doc = content->GetCurrentDoc();
+  if (doc) {
+    utils = GetDOMWindowUtils(doc);
+  }
+  return utils.forget();
+}
+
 NS_IMETHODIMP
 TabChild::HandleEvent(nsIDOMEvent* aEvent)
 {
@@ -308,6 +331,63 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
     
     
     HandlePossibleViewportChange();
+  } else if (eventType.EqualsLiteral("scroll")) {
+    nsCOMPtr<nsIDOMEventTarget> target;
+    aEvent->GetTarget(getter_AddRefs(target));
+
+    ViewID viewId;
+    uint32_t presShellId;
+    nsIScrollableFrame* scrollFrame = nullptr;
+
+    nsCOMPtr<nsIDocument> doc;
+    nsCOMPtr<nsIContent> content;
+
+    if ((doc = do_QueryInterface(target))) {
+      nsCOMPtr<nsIPresShell> presShell = doc->GetShell();
+      if (!presShell)
+        return NS_OK;
+
+      presShellId = presShell->GetPresShellId();
+      if (presShell->GetPresContext()->IsRootContentDocument()) {
+        
+        viewId = FrameMetrics::ROOT_SCROLL_ID;
+        scrollFrame = presShell->GetRootScrollFrameAsScrollable();
+      } else {
+        
+        if (!nsLayoutUtils::FindIDFor(doc->GetDocumentElement(), &viewId))
+          return NS_ERROR_UNEXPECTED;
+        scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
+      }
+    } else if ((content = do_QueryInterface(target))) {
+      
+      nsCOMPtr<nsIDOMWindowUtils> utils = ::GetDOMWindowUtils(content);
+      utils->GetPresShellId(&presShellId);
+      if (!nsLayoutUtils::FindIDFor(content, &viewId))
+        return NS_ERROR_UNEXPECTED;
+      scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
+    }
+
+    if (scrollFrame) {
+      CSSIntPoint scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
+
+      
+      
+      
+      
+      
+      
+      if (viewId == FrameMetrics::ROOT_SCROLL_ID) {
+        if (RoundedToInt(mLastMetrics.mScrollOffset) == scrollOffset)
+          return NS_OK;
+        else
+          
+          
+          
+          mLastMetrics.mScrollOffset = scrollOffset;
+      }
+
+      SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
+    }
   }
 
   return NS_OK;
@@ -1039,20 +1119,6 @@ TabChild::GetDOMWindowUtils()
   return utils.forget();
 }
 
-already_AddRefed<nsIDOMWindowUtils>
-TabChild::GetDOMWindowUtils(nsIContent* content)
-{
-  nsCOMPtr<nsIDOMWindowUtils> utils;
-  nsIDocument* doc = content->GetCurrentDoc();
-  if (doc) {
-    nsCOMPtr<nsIDOMWindow> window = doc->GetDefaultView();
-    if (window) {
-      utils = do_GetInterface(window);
-    }
-  }
-  return utils.forget();
-}
-
 static nsInterfaceHashtable<nsPtrHashKey<PContentDialogChild>, nsIDialogParamBlock> gActiveDialogs;
 
 NS_IMETHODIMP
@@ -1586,6 +1652,15 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     }
 
     mLastMetrics = aFrameMetrics;
+
+    
+    
+    
+    
+    CSSIntPoint actualScrollOffset;
+    utils->GetScrollXY(false, &actualScrollOffset.x, &actualScrollOffset.y);
+    mLastMetrics.mScrollOffset = actualScrollOffset;
+
     return true;
 }
 
@@ -1599,7 +1674,7 @@ TabChild::ProcessUpdateSubframe(nsIContent* aContent,
     scrollFrame->ScrollToCSSPixelsApproximate(aMetrics.mScrollOffset);
   }
 
-  nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils(aContent));
+  nsCOMPtr<nsIDOMWindowUtils> utils(::GetDOMWindowUtils(aContent));
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
   if (utils && element) {
     
@@ -2190,6 +2265,7 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     root->SetParentTarget(scope);
 
     chromeHandler->AddEventListener(NS_LITERAL_STRING("DOMMetaAdded"), this, false);
+    chromeHandler->AddEventListener(NS_LITERAL_STRING("scroll"), this, false);
   }
 
   if (aScriptLoading != DONT_LOAD_SCRIPTS && !mTriedBrowserInit) {

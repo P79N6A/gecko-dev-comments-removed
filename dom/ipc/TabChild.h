@@ -436,9 +436,6 @@ private:
 
     
     already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
-    
-    
-    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils(nsIContent* aContent);
 
     class CachedFileDescriptorInfo;
     class CachedFileDescriptorCallbackRunnable;

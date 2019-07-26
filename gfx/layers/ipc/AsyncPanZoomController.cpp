@@ -171,8 +171,8 @@ AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
      mRefPtrMonitor("RefPtrMonitor"),
      mMonitor("AsyncPanZoomController"),
      mTouchListenerTimeoutTask(nullptr),
-     mX(MOZ_THIS_IN_INITIALIZER_LIST()),
-     mY(MOZ_THIS_IN_INITIALIZER_LIST()),
+     mX(this),
+     mY(this),
      mAllowZoom(true),
      mMinZoom(MIN_ZOOM),
      mMaxZoom(MAX_ZOOM),
@@ -1117,7 +1117,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
   
   
-#ifndef MOZ_WIDGET_ANDROID
+#ifdef MOZ_METRO
   if (!mPaintThrottler.IsOutstanding()) {
     
     
@@ -1420,7 +1420,7 @@ bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
 {
   
   
-  return aGuid.mLayersId == mLayersId;
+  return aGuid.mLayersId == mLayersId && aGuid.mScrollId == mFrameMetrics.mScrollId;
 }
 
 }

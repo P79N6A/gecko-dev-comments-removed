@@ -70,7 +70,13 @@ public:
 
 
 
-  static ViewID FindIDFor(nsIContent* aContent);
+  static bool FindIDFor(nsIContent* aContent, ViewID* aOutViewId);
+
+  
+
+
+
+  static ViewID FindOrCreateIDFor(nsIContent* aContent);
 
   
 
