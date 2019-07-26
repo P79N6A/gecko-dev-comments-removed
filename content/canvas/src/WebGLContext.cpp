@@ -392,6 +392,10 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
     if (gl) {
         MakeContextCurrent();
 
+        
+        PresentScreenBuffer();
+
+        
         gl->ResizeOffscreen(gfxIntSize(width, height)); 
         
 
@@ -400,9 +404,7 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
         mHeight = gl->OffscreenSize().height;
         mResetLayer = true;
 
-        ScopedBindFramebuffer autoFB(gl, 0);
-        gl->ClearSafely();
-        mShouldPresent = true;
+        ClearScreen();
 
         return NS_OK;
     }
