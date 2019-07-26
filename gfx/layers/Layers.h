@@ -708,6 +708,27 @@ public:
     Mutated();
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  void SetBaseTransformForNextTransaction(const gfx3DMatrix& aMatrix)
+  {
+    if (mTransform == aMatrix) {
+      return;
+    }
+    mTransform = aMatrix;
+    mHasPendingMutationForNextTransaction = true;
+  }
+
   void SetPostScale(float aXScale, float aYScale)
   {
     mPostXScale = aXScale;
@@ -979,6 +1000,12 @@ public:
 
   void ClearInvalidRect() { mInvalidRegion.SetEmpty(); }
 
+  void ApplyPendingUpdatesForThisTransaction() {
+    if (mHasPendingMutationForNextTransaction) {
+      mHasPendingMutationForNextTransaction = false;
+      Mutated();
+    }
+  }
 
 #ifdef DEBUG
   void SetDebugColorIndex(uint32_t aIndex) { mDebugColorIndex = aIndex; }
@@ -1046,6 +1073,7 @@ protected:
   bool mUseClipRect;
   bool mUseTileSourceRect;
   bool mIsFixedPosition;
+  bool mHasPendingMutationForNextTransaction;
   gfxPoint mAnchor;
   DebugOnly<uint32_t> mDebugColorIndex;
 };

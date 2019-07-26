@@ -867,6 +867,8 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
 
   RenderTraceScope trace("BasicLayerManager::PaintLayer", "707070");
 
+  aLayer->ApplyPendingUpdatesForThisTransaction();
+
   const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
   
   
