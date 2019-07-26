@@ -72,8 +72,6 @@ nsTableColGroupFrame::AddColsToTable(int32_t                   aFirstColIndex,
 {
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
 
-  tableFrame->InvalidateFrameSubtree();
-
   
   int32_t colIndex = aFirstColIndex;
   nsFrameList::Enumerator e(aCols);
@@ -462,23 +460,6 @@ nsIAtom*
 nsTableColGroupFrame::GetType() const
 {
   return nsGkAtoms::tableColGroupFrame;
-}
-  
-void 
-nsTableColGroupFrame::InvalidateFrame(uint32_t aDisplayItemKey)
-{
-  nsIFrame::InvalidateFrame(aDisplayItemKey);
-  GetParent()->InvalidateFrameWithRect(GetVisualOverflowRect() + GetPosition(), aDisplayItemKey);
-}
-
-void 
-nsTableColGroupFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
-{
-  nsIFrame::InvalidateFrameWithRect(aRect, aDisplayItemKey);
-  
-  
-  
-  GetParent()->InvalidateFrameWithRect(aRect + GetPosition(), aDisplayItemKey);
 }
 
 #ifdef DEBUG

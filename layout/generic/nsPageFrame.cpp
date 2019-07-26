@@ -369,13 +369,13 @@ nsPageFrame::DrawHeaderFooter(nsRenderingContext& aRenderingContext,
 
 
 
-
 static void
 PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
-                             nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             nscoord aY, nsDisplayList* aList)
+        nsIFrame* aExtraPage, nscoord aY, nsDisplayList* aList)
 {
   nsDisplayList newList;
+  
+  nsIFrame* mainPage = aBuilder->RootReferenceFrame();
 
   while (true) {
     nsDisplayItem* i = aList->RemoveBottom();
@@ -383,7 +383,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
       break;
     nsDisplayList* subList = i->GetList();
     if (subList) {
-      PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, aY, subList);
+      PruneDisplayListForExtraPage(aBuilder, aExtraPage, aY, subList);
       nsDisplayItem::Type type = i->GetType();
       if (type == nsDisplayItem::TYPE_CLIP ||
           type == nsDisplayItem::TYPE_CLIP_ROUNDED_RECT) {
@@ -400,12 +400,12 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
         
         nsDisplayClip* clip = static_cast<nsDisplayClip*>(i);
         clip->SetClipRect(clip->GetClipRect() + nsPoint(0, aY) -
-                aExtraPage->GetOffsetTo(aBuilder->FindReferenceFrameFor(aPage)));
+                aExtraPage->GetOffsetTo(mainPage));
       }
       newList.AppendToTop(i);
     } else {
       nsIFrame* f = i->GetUnderlyingFrame();
-      if (f && nsLayoutUtils::IsProperAncestorFrameCrossDoc(aPage, f)) {
+      if (f && nsLayoutUtils::IsProperAncestorFrameCrossDoc(mainPage, f)) {
         
         newList.AppendToTop(i);
       } else {
@@ -421,8 +421,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
 
 static nsresult
 BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
-                             nsPageFrame* aPage, nsIFrame* aExtraPage,
-                             nscoord aY, nsDisplayList* aList)
+        nsIFrame* aPage, nscoord aY, nsDisplayList* aList)
 {
   nsDisplayList list;
   
@@ -431,11 +430,10 @@ BuildDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
   
   
   
-  nsresult rv =
-    aExtraPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
+  nsresult rv = aPage->BuildDisplayListForStackingContext(aBuilder, nsRect(), &list);
   if (NS_FAILED(rv))
     return rv;
-  PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, aY, &list);
+  PruneDisplayListForExtraPage(aBuilder, aPage, aY, &list);
   aList->AppendToTop(&list);
   return NS_OK;
 }
@@ -500,7 +498,7 @@ nsPageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsIFrame* page = child;
   nscoord y = child->GetSize().height;
   while ((page = GetNextPage(page)) != nullptr) {
-    rv = BuildDisplayListForExtraPage(aBuilder, this, page, y, &content);
+    rv = BuildDisplayListForExtraPage(aBuilder, page, y, &content);
     if (NS_FAILED(rv))
       break;
     y += page->GetSize().height;

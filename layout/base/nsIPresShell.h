@@ -1239,11 +1239,6 @@ public:
 
 
   virtual void DidPaint() = 0;
-
-  
-
-
-
   virtual void ScheduleViewManagerFlush() = 0;
   virtual void ClearMouseCaptureOnView(nsIView* aView) = 0;
   virtual bool IsVisible() = 0;
@@ -1270,10 +1265,6 @@ public:
   uint32_t FontSizeInflationLineThreshold() const {
     return mFontSizeInflationLineThreshold;
   }
-
-  virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) = 0;
-
-  void InvalidatePresShellIfHidden();
 
   
 
@@ -1355,7 +1346,6 @@ protected:
   
   nsFrameManagerBase*       mFrameManager;
   nsWeakPtr                 mForwardingContainer;
-  nsRefreshDriver*          mHiddenInvalidationObserverRefreshDriver;
 #ifdef ACCESSIBILITY
   DocAccessible* mAccDocument;
 #endif

@@ -646,7 +646,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     MOZ_ASSERT(!GetRootLayer());
 
     nsRefPtr<Layer> layer =
-      (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
+      (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aManager, aItem));
     if (!layer) {
       layer = aManager->CreateRefLayer();
     }
@@ -838,7 +838,17 @@ RenderFrameParent::TriggerRepaint()
     return;
   }
 
-  docFrame->SchedulePaint();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRect rect = nsRect(nsPoint(0, 0), docFrame->GetRect().Size());
+  docFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
 }
 
 ShadowLayersParent*

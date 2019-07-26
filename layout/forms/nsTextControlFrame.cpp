@@ -542,6 +542,9 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
   }
 
   
+  CheckInvalidateSizeChange(aDesiredSize);
+
+  
   FinishAndStoreOverflow(&aDesiredSize);
 
   aStatus = NS_FRAME_COMPLETE;

@@ -4001,15 +4001,10 @@ nsLayoutUtils::IsPopup(nsIFrame* aFrame)
  nsIFrame*
 nsLayoutUtils::GetDisplayRootFrame(nsIFrame* aFrame)
 {
-  
-  
   nsIFrame* f = aFrame;
   for (;;) {
-    if (!f->HasAnyStateBits(NS_FRAME_IN_POPUP)) {
-      f = f->PresContext()->FrameManager()->GetRootFrame();
-    } else if (IsPopup(f)) {
+    if (IsPopup(f))
       return f;
-    }
     nsIFrame* parent = GetCrossDocParentFrame(f);
     if (!parent)
       return f;

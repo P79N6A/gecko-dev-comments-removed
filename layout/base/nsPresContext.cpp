@@ -88,8 +88,6 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-uint8_t gNotifySubDocInvalidationData;
-
 namespace {
 
 class CharSetChangingRunnable : public nsRunnable
@@ -129,22 +127,6 @@ nsPresContext::MakeColorPref(const nsString& aColor)
   return nsRuleNode::ComputeColor(value, this, nullptr, color)
     ? color
     : NS_RGB(0, 0, 0);
-}
-
-bool
-nsPresContext::IsDOMPaintEventPending() 
-{
-  if (!mInvalidateRequests.mRequests.IsEmpty()) {
-    return true;    
-  }
-  if (GetDisplayRootPresContext()->GetRootPresContext()->mRefreshDriver->ViewManagerFlushIsPending()) {
-    
-    
-    
-    NotifyInvalidation(nsRect(0, 0, 0, 0), 0);
-    return true;
-  }
-  return false;
 }
 
 int
@@ -194,8 +176,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mTextZoom(1.0), mFullZoom(1.0), mLastFontInflationScreenWidth(-1.0),
     mPageSize(-1, -1), mPPScale(1.0f),
     mViewportStyleOverflow(NS_STYLE_OVERFLOW_AUTO, NS_STYLE_OVERFLOW_AUTO),
-    mImageAnimationModePref(imgIContainer::kNormalAnimMode),
-    mAllInvalidated(false)
+    mImageAnimationModePref(imgIContainer::kNormalAnimMode)
 {
   
   
@@ -795,7 +776,7 @@ nsPresContext::InvalidateThebesLayers()
     
     
     
-    rootFrame->InvalidateFrameSubtree();
+    FrameLayerBuilder::InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(rootFrame);
   }
 }
 
@@ -1987,14 +1968,29 @@ nsPresContext::FireDOMPaintEvent()
 
   nsCOMPtr<nsIDOMEventTarget> dispatchTarget = do_QueryInterface(ourWindow);
   nsCOMPtr<nsIDOMEventTarget> eventTarget = dispatchTarget;
-  if (!IsChrome() && !mSendAfterPaintToContent) {
-    
-    
-    
-    
-    dispatchTarget = do_QueryInterface(ourWindow->GetParentTarget());
-    if (!dispatchTarget) {
-      return;
+  if (!IsChrome()) {
+    bool notifyContent = mSendAfterPaintToContent;
+
+    if (notifyContent) {
+      
+      
+      notifyContent = false;
+      for (uint32_t i = 0; i < mInvalidateRequests.mRequests.Length(); ++i) {
+        if (!(mInvalidateRequests.mRequests[i].mFlags &
+              nsIFrame::INVALIDATE_CROSS_DOC)) {
+          notifyContent = true;
+        }
+      }
+    }
+    if (!notifyContent) {
+      
+      
+      
+      
+      dispatchTarget = do_QueryInterface(ourWindow->GetParentTarget());
+      if (!dispatchTarget) {
+        return;
+      }
     }
   }
   
@@ -2006,7 +2002,6 @@ nsPresContext::FireDOMPaintEvent()
   NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), this, nullptr,
                             NS_AFTERPAINT,
                             &mInvalidateRequests);
-  mAllInvalidated = false;
   if (!event) {
     return;
   }
@@ -2017,24 +2012,6 @@ nsPresContext::FireDOMPaintEvent()
   event->SetTarget(eventTarget);
   event->SetTrusted(true);
   nsEventDispatcher::DispatchDOMEvent(dispatchTarget, nullptr, event, this, nullptr);
-}
-
-static bool
-MayHavePaintEventListenerSubdocumentCallback(nsIDocument* aDocument, void* aData)
-{
-  bool *result = static_cast<bool*>(aData);
-  nsIPresShell* shell = aDocument->GetShell();
-  if (shell) {
-    nsPresContext* pc = shell->GetPresContext();
-    if (pc) {
-      *result = pc->MayHavePaintEventListenerInSubDocument();
-
-      
-      
-      return !*result;
-    }
-  }
-  return true;
 }
 
 static bool
@@ -2088,36 +2065,6 @@ nsPresContext::MayHavePaintEventListener()
   return ::MayHavePaintEventListener(mDocument->GetInnerWindow());
 }
 
-bool
-nsPresContext::MayHavePaintEventListenerInSubDocument()
-{
-  if (MayHavePaintEventListener()) {
-    return true;
-  }
-
-  bool result = false;
-  mDocument->EnumerateSubDocuments(MayHavePaintEventListenerSubdocumentCallback, &result);
-  return result;
-}
-
-void
-nsPresContext::NotifyInvalidation(uint32_t aFlags)
-{
-  nsIFrame* rootFrame = PresShell()->FrameManager()->GetRootFrame();
-  NotifyInvalidation(rootFrame->GetVisualOverflowRect(), aFlags);
-  mAllInvalidated = true;
-}
-
-void
-nsPresContext::NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags)
-{
-  nsRect rect(DevPixelsToAppUnits(aRect.x),
-              DevPixelsToAppUnits(aRect.y),
-              DevPixelsToAppUnits(aRect.width),
-              DevPixelsToAppUnits(aRect.height));
-  NotifyInvalidation(rect, aFlags);
-}
-
 void
 nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
 {
@@ -2126,10 +2073,8 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   
   
   
-  
-  if (mAllInvalidated) {
+  if (aRect.IsEmpty() || !MayHavePaintEventListener())
     return;
-  }
 
   nsPresContext* pc;
   for (pc = this; pc; pc = pc->GetParentPresContext()) {
@@ -2153,30 +2098,6 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   request->mFlags = aFlags;
 }
 
- void 
-nsPresContext::NotifySubDocInvalidation(ContainerLayer* aContainer,
-                                        const nsIntRegion& aRegion)
-{
-  ContainerLayerPresContext *data = 
-    static_cast<ContainerLayerPresContext*>(
-      aContainer->GetUserData(&gNotifySubDocInvalidationData));
-  if (!data) {
-    return;
-  }
-
-  nsIntPoint topLeft = aContainer->GetVisibleRegion().GetBounds().TopLeft();
-
-  nsIntRegionRectIterator iter(aRegion);
-  while (const nsIntRect* r = iter.Next()) {
-    nsIntRect rect = *r;
-    
-    
-    
-    rect.MoveBy(-topLeft);
-    data->mPresContext->NotifyInvalidation(rect, 0);
-  }
-}
-
 static bool
 NotifyDidPaintSubdocumentCallback(nsIDocument* aDocument, void* aData)
 {
@@ -2193,18 +2114,19 @@ NotifyDidPaintSubdocumentCallback(nsIDocument* aDocument, void* aData)
 void
 nsPresContext::NotifyDidPaintForSubtree()
 {
-  if (IsRoot()) {
-    if (!mFireAfterPaintEvents)
-      return;
+  if (!mFireAfterPaintEvents)
+    return;
+  mFireAfterPaintEvents = false;
 
+  if (IsRoot()) {
     static_cast<nsRootPresContext*>(this)->CancelDidPaintTimer();
   }
 
-  mFireAfterPaintEvents = false;
-
-  nsCOMPtr<nsIRunnable> ev =
-    NS_NewRunnableMethod(this, &nsPresContext::FireDOMPaintEvent);
-  nsContentUtils::AddScriptRunner(ev);
+  if (!mInvalidateRequests.mRequests.IsEmpty()) {
+    nsCOMPtr<nsIRunnable> ev =
+      NS_NewRunnableMethod(this, &nsPresContext::FireDOMPaintEvent);
+    nsContentUtils::AddScriptRunner(ev);
+  }
 
   mDocument->EnumerateSubDocuments(NotifyDidPaintSubdocumentCallback, nullptr);
 }

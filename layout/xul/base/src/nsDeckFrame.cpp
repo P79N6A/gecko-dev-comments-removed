@@ -97,7 +97,7 @@ nsDeckFrame::IndexChanged()
     return;
 
   
-  InvalidateFrame();
+  InvalidateOverflowRect();
 
   
   nsIFrame* currentBox = GetSelectedBox();

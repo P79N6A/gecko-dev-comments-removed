@@ -11,9 +11,6 @@
 #include "nsTArray.h"
 #include "nsRegion.h"
 #include "nsIFrame.h"
-#include "nsDisplayListInvalidation.h"
-#include "LayerTreeInvalidation.h"
-#include "ImageLayers.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -29,7 +26,6 @@ class ThebesLayer;
 }
 
 class FrameLayerBuilder;
-class LayerManagerData;
 
 enum LayerState {
   LAYER_NONE,
@@ -42,11 +38,6 @@ enum LayerState {
   LAYER_ACTIVE_EMPTY,
   
   LAYER_SVG_EFFECTS
-};
-
-extern uint8_t gLayerManagerSecondary;
-
-class LayerManagerSecondary : public layers::LayerUserData {
 };
 
 class RefCountedRegion : public RefCounted<RefCountedRegion> {
@@ -94,12 +85,12 @@ public:
 
 
 
-class FrameLayerBuilder : public layers::LayerUserData {
+
+class FrameLayerBuilder {
 public:
   typedef layers::ContainerLayer ContainerLayer;
   typedef layers::Layer Layer;
   typedef layers::ThebesLayer ThebesLayer;
-  typedef layers::ImageLayer ImageLayer;
   typedef layers::LayerManager LayerManager;
 
   FrameLayerBuilder() :
@@ -131,12 +122,16 @@ public:
   
 
 
-  void WillEndTransaction();
+
+
+  void WillEndTransaction(LayerManager* aManager);
 
   
 
 
-  void DidEndTransaction();
+
+
+  void DidEndTransaction(LayerManager* aManager);
 
   struct ContainerParameters {
     ContainerParameters() :
@@ -217,14 +212,38 @@ public:
 
 
   Layer* GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
+                         LayerManager* aManager,
                          nsDisplayItem* aItem);
 
   
 
 
 
+
+
+
+  static void InvalidateThebesLayerContents(nsIFrame* aFrame,
+                                            const nsRect& aRect);
+
+  
+
+
+
+
+
+  static void InvalidateThebesLayersInSubtree(nsIFrame* aFrame);
+
+  
+
+
+
+  static void InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(nsIFrame* aFrame);
+
+  
+
+
+
   static void InvalidateAllLayers(LayerManager* aManager);
-  static void InvalidateAllLayersForFrame(nsIFrame *aFrame);
 
   
 
@@ -261,92 +280,48 @@ public:
   
 
 
+  void AddLayerDisplayItem(Layer* aLayer,
+                           nsDisplayItem* aItem,
+                           LayerState aLayerState);
+
+  
 
 
+  void AddLayerDisplayItemForFrame(Layer* aLayer,
+                                   nsIFrame* aFrame,
+                                   uint32_t aDisplayItemKey,
+                                   LayerState aLayerState);
+
+  
 
 
 
 
 
   struct Clip;
-  void AddLayerDisplayItem(Layer* aLayer,
-                           nsDisplayItem* aItem,
-                           const Clip& aClip,
-                           LayerState aLayerState,
-                           const nsPoint& aTopLeft,
-                           LayerManager* aManager = nullptr);
-
-  
-
-
-
-
-
-
   void AddThebesDisplayItem(ThebesLayer* aLayer,
                             nsDisplayItem* aItem,
                             const Clip& aClip,
                             nsIFrame* aContainerLayerFrame,
-                            LayerState aLayerState,
-                            const nsPoint& aTopLeft);
-
-  
-
-
-
-  static void SetWidgetLayerManager(LayerManager* aManager)
-  {
-    LayerManagerSecondary* secondary = 
-      static_cast<LayerManagerSecondary*>(aManager->GetUserData(&gLayerManagerSecondary));
-    sWidgetManagerSecondary = !!secondary;
-  }
-
-  
-
-
-
-  static const FramePropertyDescriptor* GetDescriptorForManager(LayerManager* aManager);
-
-  
-
-
-
-  static LayerManagerData* GetManagerData(nsIFrame* aFrame, LayerManager* aManager = nullptr);
-
-  
-
-
-
-  static void SetManagerData(nsIFrame* aFrame, LayerManagerData* aData);
-
-  
-
-
-
-  static void ClearManagerData(nsIFrame* aFrame);
-
-  
-
-
-
-  static void ClearManagerData(nsIFrame* aFrame, LayerManagerData* aData);
+                            LayerState aLayerState);
 
   
 
 
 
 
-  Layer* GetOldLayerFor(nsDisplayItem* aItem, nsDisplayItemGeometry** aOldGeometry = nullptr, Clip** aOldClip = nullptr);
+
+
+  Layer* GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+
+  
+
+
+
+
+  Layer* GetOldLayerFor(nsDisplayItem* aItem);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
-
-  
-
-
-
-
-  LayerManager* GetInactiveLayerManagerFor(nsDisplayItem* aItem);
-
   
 
 
@@ -359,7 +334,10 @@ public:
 
 
 
-  static void DestroyDisplayItemDataFor(nsIFrame* aFrame);
+  static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
+  {
+    aFrame->Properties().Delete(LayerManagerDataProperty());
+  }
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
 
@@ -379,19 +357,9 @@ public:
 
 
 
-
-
-
-  static bool HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey, LayerManager* aManager);
+  static bool HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   
-
-
-
-  static bool HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
-
-  
-
 
 
 
@@ -416,25 +384,12 @@ public:
 
 
 
-
-
-  void StoreOptimizedLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey, Layer* aImage);
-
-  
-
-
-
   struct Clip {
     struct RoundedRect {
       nsRect mRect;
       
       nscoord mRadii[8];
 
-      RoundedRect operator+(const nsPoint& aOffset) const {
-        RoundedRect r = *this;
-        r.mRect += aOffset;
-        return r;
-      }
       bool operator==(const RoundedRect& aOther) const {
         if (!mRect.IsEqualInterior(aOther.mRect)) {
           return false;
@@ -497,12 +452,6 @@ public:
     
     void RemoveRoundedCorners();
 
-    
-    
-    void AddOffsetAndComputeDifference(const nsPoint& aPoint, const nsRect& aBounds,
-                                       const Clip& aOther, const nsRect& aOtherBounds,
-                                       nsRegion* aDifference);
-
     bool operator==(const Clip& aOther) const {
       return mHaveClipRect == aOther.mHaveClipRect &&
              (!mHaveClipRect || mClipRect.IsEqualInterior(aOther.mClipRect)) &&
@@ -512,12 +461,6 @@ public:
       return !(*this == aOther);
     }
   };
-  
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
-                                               RemoveFrameFromLayerManager)
-
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerSecondaryDataProperty,
-                                               RemoveFrameFromLayerManager)
 
 protected:
   
@@ -528,52 +471,20 @@ protected:
   class DisplayItemData {
   public:
     DisplayItemData(Layer* aLayer, uint32_t aKey, LayerState aLayerState, uint32_t aGeneration);
-    DisplayItemData()
-      : mUsed(false)
-    {}
-    DisplayItemData(DisplayItemData &toCopy);
     ~DisplayItemData();
 
-    NS_INLINE_DECL_REFCOUNTING(DisplayItemData)
-
-    void AddFrame(nsIFrame* aFrame)
-    {
-      mFrameList.AppendElement(aFrame);
-    }
-
-    bool FrameListMatches(nsDisplayItem* aOther);
-
     nsRefPtr<Layer> mLayer;
-    nsRefPtr<Layer> mOptLayer;
-    nsRefPtr<LayerManager> mInactiveManager;
-    nsAutoTArray<nsIFrame*, 2> mFrameList;
-    nsAutoPtr<nsDisplayItemGeometry> mGeometry;
-    Clip            mClip;
     uint32_t        mDisplayItemKey;
     uint32_t        mContainerLayerGeneration;
     LayerState      mLayerState;
-
-    
-
-
-
-
-    bool            mUsed;
   };
 
   static void RemoveFrameFromLayerManager(nsIFrame* aFrame, void* aPropertyValue);
 
-  
-
-
-
-
-
-
-  DisplayItemData* GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey);
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
+                                               RemoveFrameFromLayerManager)
 
   
-
 
 
 
@@ -582,36 +493,31 @@ protected:
   public:
     DisplayItemDataEntry(const nsIFrame *key)
       : nsPtrHashKey<nsIFrame>(key)
-    { 
-      MOZ_COUNT_CTOR(DisplayItemDataEntry); 
-    }
+      , mIsSharingContainerLayer(false)
+      {}
     DisplayItemDataEntry(DisplayItemDataEntry &toCopy)
       : nsPtrHashKey<nsIFrame>(toCopy.mKey)
+      , mIsSharingContainerLayer(toCopy.mIsSharingContainerLayer)
     {
-      MOZ_COUNT_CTOR(DisplayItemDataEntry);
       
       
       mData.SwapElements(toCopy.mData);
+      mInvalidRegion.swap(toCopy.mInvalidRegion);
       mContainerLayerGeneration = toCopy.mContainerLayerGeneration;
     }
-    ~DisplayItemDataEntry() { MOZ_COUNT_DTOR(DisplayItemDataEntry); }
 
     bool HasNonEmptyContainerLayer();
 
-    nsAutoTArray<nsRefPtr<DisplayItemData>, 1> mData;
+    nsAutoTArray<DisplayItemData, 1> mData;
+    nsRefPtr<RefCountedRegion> mInvalidRegion;
     uint32_t mContainerLayerGeneration;
+    bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
   };
 
   
   friend class LayerManagerData;
-
-  
-
-
-
-  void StoreDataForFrame(nsIFrame* aFrame, DisplayItemData* data);
 
   
   static void FlashPaint(gfxContext *aContext);
@@ -623,29 +529,19 @@ protected:
 
 
 
-  nsTArray<nsRefPtr<DisplayItemData> >* GetDisplayItemDataArrayForFrame(nsIFrame *aFrame);
+  static nsTArray<DisplayItemData>* GetDisplayItemDataArrayForFrame(nsIFrame *aFrame);
 
   
 
-
-
-  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
-                                                       uint32_t aDisplayItemKey, 
-                                                       LayerManager* aManager);
-  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
-                                                       uint32_t aDisplayItemKey);
-  static DisplayItemData* GetDisplayItemDataForManager(nsDisplayItem* aItem, LayerManager* aManager);
-  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
-                                                       uint32_t aDisplayItemKey, 
-                                                       LayerManagerData* aData);
-
-  
 
 
 
 
   static PLDHashOperator RemoveDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
-                                                       void* aClosure);
+                                                       void* aClosure)
+  {
+    return UpdateDisplayItemDataForFrame(aEntry, nullptr);
+  }
 
   
 
@@ -663,19 +559,10 @@ protected:
     {
     }
 
-    ~ClippedDisplayItem();
-
     nsDisplayItem* mItem;
-
-    
-
-
-
-
-    nsRefPtr<LayerManager> mInactiveLayer;
-
     Clip mClip;
     uint32_t mContainerLayerGeneration;
+    bool mInactiveLayer;
   };
 
   
@@ -720,8 +607,6 @@ public:
     return mThebesLayerItems.GetEntry(aLayer);
   }
 
-  static PLDHashOperator ProcessRemovedDisplayItems(DisplayItemDataEntry* aEntry,
-                                                    void* aUserArg);
 protected:
   void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
                                                     bool aRemoveThebesItems,
@@ -754,11 +639,6 @@ protected:
 
 
   nsRootPresContext*                  mRootPresContext;
-
-  
-
-
-  nsDisplayListBuilder*               mDisplayListBuilder;
   
 
 
@@ -786,12 +666,6 @@ protected:
 
   uint32_t                            mContainerLayerGeneration;
   uint32_t                            mMaxContainerLayerGeneration;
-
-  
-
-
-
-  static bool                         sWidgetManagerSecondary;
 };
 
 }

@@ -87,6 +87,20 @@ public:
   virtual ~LayerUserData() {}
 };
 
+class LayerManagerLayerBuilder : public LayerUserData {
+public:
+  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
+    : mLayerBuilder(aBuilder)
+    , mDelete(aDelete)
+  {
+    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
+  }
+  ~LayerManagerLayerBuilder();
+
+  FrameLayerBuilder* mLayerBuilder;
+  bool mDelete;
+};
+
 
 
 
@@ -199,7 +213,8 @@ public:
   };
 
   FrameLayerBuilder* GetLayerBuilder() {
-    return reinterpret_cast<FrameLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
+    LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
+    return data ? data->mLayerBuilder : nullptr;
   }
 
   
@@ -957,29 +972,6 @@ public:
 
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
-  
-
-
-
-  const nsIntRegion& GetInvalidRegion() { return mInvalidRegion; }
-
-  
-
-
-  void SetInvalidRectToVisibleRegion() { mInvalidRegion = GetVisibleRegion(); }
-
-  
-
-
-  void AddInvalidRect(const nsIntRect& aRect) { mInvalidRegion.Or(mInvalidRegion, aRect); }
-
-  
-
-
-
-  void ClearInvalidRect() { mInvalidRegion.SetEmpty(); }
-
-
 #ifdef DEBUG
   void SetDebugColorIndex(uint32_t aIndex) { mDebugColorIndex = aIndex; }
   uint32_t GetDebugColorIndex() { return mDebugColorIndex; }
@@ -1041,7 +1033,6 @@ protected:
   float mOpacity;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
-  nsIntRegion mInvalidRegion;
   uint32_t mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
@@ -1387,7 +1378,7 @@ public:
 
 
 
-  void Updated() { mDirty = true; SetInvalidRectToVisibleRegion(); }
+  void Updated() { mDirty = true; }
 
   
 

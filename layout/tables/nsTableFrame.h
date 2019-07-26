@@ -33,13 +33,6 @@ static inline bool IS_TABLE_CELL(nsIAtom* frameType) {
     nsGkAtoms::bcTableCellFrame == frameType;
 }
 
-static inline bool FrameHasBorderOrBackground(nsIFrame* f) {
-  return (f->GetStyleVisibility()->IsVisible() &&
-          (!f->GetStyleBackground()->IsTransparent() ||
-           f->GetStyleDisplay()->mAppearance ||
-           f->GetStyleBorder()->HasBorder()));
-}
-
 class nsDisplayTableItem : public nsDisplayItem
 {
 public:
@@ -476,10 +469,10 @@ public:
 
 
 
-  static void InvalidateTableFrame(nsIFrame* aFrame,
-                                   const nsRect& aOrigRect,
-                                   const nsRect& aOrigVisualOverflow,
-                                   bool aIsFirstReflow);
+  static void InvalidateFrame(nsIFrame* aFrame,
+                              const nsRect& aOrigRect,
+                              const nsRect& aOrigVisualOverflow,
+                              bool aIsFirstReflow);
 
   virtual bool UpdateOverflow();
 

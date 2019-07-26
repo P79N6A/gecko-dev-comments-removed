@@ -483,9 +483,8 @@ void nsCaret::InvalidateOutsideCaret()
   nsIFrame *frame = GetCaretFrame();
 
   
-  if (frame && !frame->GetVisualOverflowRect().Contains(GetCaretRect())) {
-    frame->SchedulePaint();
-  }
+  if (frame && !frame->GetVisualOverflowRect().Contains(GetCaretRect()))
+    InvalidateRects(mCaretRect, GetHookRect(), frame);
 }
 
 void nsCaret::UpdateCaretPosition()
@@ -614,9 +613,31 @@ nsresult nsCaret::PrimeTimer()
   return NS_OK;
 }
 
+void nsCaret::InvalidateTextOverflowBlock()
+{
+  
+  
+  if (mLastContent) {
+    nsIFrame* caretFrame = mLastContent->GetPrimaryFrame();
+    if (caretFrame) {
+      nsIFrame* block = nsLayoutUtils::GetAsBlock(caretFrame) ? caretFrame :
+        nsLayoutUtils::FindNearestBlockAncestor(caretFrame);
+      if (block) {
+        const nsStyleTextReset* style = block->GetStyleTextReset();
+        if (style->mTextOverflow.mLeft.mType != NS_STYLE_TEXT_OVERFLOW_CLIP ||
+            style->mTextOverflow.mRight.mType != NS_STYLE_TEXT_OVERFLOW_CLIP) {
+          block->InvalidateOverflowRect();
+        }
+      }
+    }
+  }
+}
+
 
 void nsCaret::StartBlinking()
 {
+  InvalidateTextOverflowBlock();
+
   if (mReadOnly) {
     
     
@@ -640,6 +661,8 @@ void nsCaret::StartBlinking()
 
 void nsCaret::StopBlinking()
 {
+  InvalidateTextOverflowBlock();
+
   if (mDrawn)     
     DrawCaret(true);
 
@@ -698,7 +721,7 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
   }
 
   if (aInvalidate)
-    theFrame->SchedulePaint();
+    InvalidateRects(mCaretRect, mHookRect, theFrame);
 
   return true;
 }
@@ -1112,6 +1135,16 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset)
   }
 #endif 
   return true;
+}
+
+
+void nsCaret::InvalidateRects(const nsRect &aRect, const nsRect &aHook,
+                              nsIFrame *aFrame)
+{
+  NS_ASSERTION(aFrame, "Must have a frame to invalidate");
+  nsRect rect;
+  rect.UnionRect(aRect, aHook);
+  aFrame->Invalidate(rect);
 }
 
 

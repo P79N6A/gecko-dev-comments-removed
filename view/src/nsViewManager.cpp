@@ -84,6 +84,7 @@ nsViewManager::nsViewManager()
 
   
   
+  mHasPendingUpdates = false;
   mHasPendingWidgetGeometryChanges = false;
   mRecursiveRefreshPending = false;
 }
@@ -407,7 +408,8 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
 
   
   
-  if (aFlushDirtyRegion) {
+  if (aFlushDirtyRegion && aView->HasNonEmptyDirtyRegion()) {
+    FlushDirtyRegionToWidget(aView);
     if (IsRefreshDriverPaintingEnabled()) {
       nsIWidget *widget = aView->GetWidget();
       if (widget && widget->NeedsPaint()) {
@@ -441,7 +443,6 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
         SetPainting(false);
       }
     }
-    FlushDirtyRegionToWidget(aView);
   }
 }
 
@@ -484,6 +485,7 @@ void
 nsViewManager::PostPendingUpdate()
 {
   nsViewManager* rootVM = RootViewManager();
+  rootVM->mHasPendingUpdates = true;
   rootVM->mHasPendingWidgetGeometryChanges = true;
   if (rootVM->mPresShell) {
     rootVM->mPresShell->ScheduleViewManagerFlush();
@@ -624,6 +626,9 @@ NS_IMETHODIMP nsViewManager::InvalidateViewNoSuppression(nsIView *aView,
   
   
   AddDirtyRegion(displayRoot, nsRegion(damagedRect));
+
+  
+  PostPendingUpdate();
 
   return NS_OK;
 }
@@ -1201,16 +1206,20 @@ nsViewManager::ProcessPendingUpdates()
 
   if (IsRefreshDriverPaintingEnabled()) {
     mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
+    if (mHasPendingUpdates) {
+      mHasPendingUpdates = false;
       
-    
-    
-    if (mPresShell) {
-      CallWillPaintOnObservers(true);
+      
+      
+      if (mPresShell) {
+        CallWillPaintOnObservers(true);
+      }
+      ProcessPendingUpdatesForView(mRootView, true);
+      CallDidPaintOnObserver();
     }
+  } else if (mHasPendingUpdates) {
     ProcessPendingUpdatesForView(mRootView, true);
-    CallDidPaintOnObserver();
-  } else {
-    ProcessPendingUpdatesForView(mRootView, true);
+    mHasPendingUpdates = false;
   }
 }
 

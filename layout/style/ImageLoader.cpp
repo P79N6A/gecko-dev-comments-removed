@@ -324,8 +324,25 @@ ImageLoader::DoRedraw(FrameSet* aFrameSet)
   for (FrameSet::size_type i = 0; i < length; i++) {
     nsIFrame* frame = aFrameSet->ElementAt(i);
 
+    
+    
+    
+    
+    
+    
+
+    
+    
+
+    nsRect bounds(nsPoint(0, 0), frame->GetSize());
+
+    if (frame->GetType() == nsGkAtoms::canvasFrame) {
+      
+      bounds = frame->GetVisualOverflowRect();
+    }
+
     if (frame->GetStyleVisibility()->IsVisible()) {
-      frame->InvalidateFrame();
+      frame->Invalidate(bounds);
     }
   }
 }

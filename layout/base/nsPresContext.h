@@ -32,7 +32,6 @@
 #include "nsIWidget.h"
 #include "mozilla/TimeStamp.h"
 #include "prclist.h"
-#include "Layers.h"
 
 #ifdef IBMBIDI
 class nsBidiPresUtils;
@@ -112,17 +111,6 @@ public:
 
   nsTArray<Request> mRequests;
 };
-
-
-
-
-
-
-class ContainerLayerPresContext : public mozilla::layers::LayerUserData {
-public:
-  nsPresContext* mPresContext;
-};
-extern uint8_t gNotifySubDocInvalidationData;
 
 
 #define NS_AUTHOR_SPECIFIED_BACKGROUND      (1 << 0)
@@ -805,21 +793,15 @@ public:
   
   bool EnsureSafeToHandOutCSSRules();
 
-  void NotifyInvalidation(uint32_t aFlags);
   void NotifyInvalidation(const nsRect& aRect, uint32_t aFlags);
-  
-  void NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags);
   void NotifyDidPaintForSubtree();
   void FireDOMPaintEvent();
 
-  
-  
-  static void NotifySubDocInvalidation(mozilla::layers::ContainerLayer* aContainer,
-                                       const nsIntRegion& aRegion);
-  bool IsDOMPaintEventPending();
+  bool IsDOMPaintEventPending() {
+    return !mInvalidateRequests.mRequests.IsEmpty();
+  }
   void ClearMozAfterPaintEvents() {
     mInvalidateRequests.mRequests.Clear();
-    mAllInvalidated = false;
   }
 
   bool IsProcessingRestyles() const {
@@ -1021,21 +1003,11 @@ protected:
 public:
   void DoChangeCharSet(const nsCString& aCharSet);
 
-  
-
-
-  bool MayHavePaintEventListener();
-
-  
-
-
-
-
-  bool MayHavePaintEventListenerInSubDocument();
-
 protected:
   void InvalidateThebesLayers();
   void AppUnitsPerDevPixelChanged();
+
+  bool MayHavePaintEventListener();
 
   void HandleRebuildUserFontSet() {
     mPostedFlushUserFontSet = false;
@@ -1168,7 +1140,6 @@ protected:
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
   unsigned              mMayHaveFixedBackgroundFrames : 1;
-  unsigned              mAllInvalidated : 1;
 
   
   unsigned              mIsGlyph : 1;

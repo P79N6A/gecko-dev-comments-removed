@@ -487,6 +487,32 @@ nsBlockFrame::GetType() const
   return nsGkAtoms::blockFrame;
 }
 
+void
+nsBlockFrame::InvalidateInternal(const nsRect& aDamageRect,
+                                 nscoord aX, nscoord aY, nsIFrame* aForChild,
+                                 uint32_t aFlags)
+{
+  
+  
+  
+  
+  if (aForChild) {
+    const nsStyleDisplay* disp = GetStyleDisplay();
+    nsRect clipRect;
+    if (GetClipPropClipRect(disp, &clipRect, GetSize())) {
+      
+      
+      nsRect r;
+      if (r.IntersectRect(aDamageRect, clipRect - nsPoint(aX, aY))) {
+        nsBlockFrameSuper::InvalidateInternal(r, aX, aY, this, aFlags);
+      }
+      return;
+    }
+  }
+
+  nsBlockFrameSuper::InvalidateInternal(aDamageRect, aX, aY, this, aFlags);
+}
+
 nscoord
 nsBlockFrame::GetBaseline() const
 {
@@ -1187,6 +1213,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       
     }
   }
+
+  
+  CheckInvalidateSizeChange(aMetrics);
 
   FinishAndStoreOverflow(&aMetrics);
 
@@ -2447,6 +2476,18 @@ nsBlockFrame::DeleteLine(nsBlockReflowState& aState,
   }
 }
 
+static void
+InvalidateThebesLayersInLineBox(nsIFrame* aBlock, nsLineBox* aLine)
+{
+  if (aBlock->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT) {
+    int32_t childCount = aLine->GetChildCount();
+    for (nsIFrame* f = aLine->mFirstChild; childCount;
+         --childCount, f = f->GetNextSibling()) {
+      FrameLayerBuilder::InvalidateThebesLayersInSubtree(f);
+    }
+  }
+}
+
 
 
 
@@ -2469,10 +2510,78 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
 
   
   if (aLine->IsBlock()) {
+    nsRect oldBounds = aLine->mFirstChild->GetRect();
+    nsRect oldVisOverflow(aLine->GetVisualOverflowArea());
     rv = ReflowBlockFrame(aState, aLine, aKeepReflowGoing);
-  } else {
+    nsRect newBounds = aLine->mFirstChild->GetRect();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsRect visOverflow(aLine->GetVisualOverflowArea());
+    if (oldVisOverflow.TopLeft() != visOverflow.TopLeft() ||
+        oldBounds.TopLeft() != newBounds.TopLeft()) {
+      
+      
+      nsRect  dirtyRect;
+      dirtyRect.UnionRect(oldVisOverflow, visOverflow);
+#ifdef NOISY_BLOCK_INVALIDATE
+      printf("%p invalidate 6 (%d, %d, %d, %d)\n",
+             this, dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+#endif
+      Invalidate(dirtyRect);
+      FrameLayerBuilder::InvalidateThebesLayersInSubtree(aLine->mFirstChild);
+    } else {
+      nsRect combinedAreaHStrip, combinedAreaVStrip;
+      nsRect boundsHStrip, boundsVStrip;
+      nsLayoutUtils::GetRectDifferenceStrips(oldBounds, newBounds,
+                                             &boundsHStrip, &boundsVStrip);
+      nsLayoutUtils::GetRectDifferenceStrips(oldVisOverflow, visOverflow,
+                                             &combinedAreaHStrip,
+                                             &combinedAreaVStrip);
+
+#ifdef NOISY_BLOCK_INVALIDATE
+      printf("%p invalidate boundsVStrip (%d, %d, %d, %d)\n",
+             this, boundsVStrip.x, boundsVStrip.y, boundsVStrip.width, boundsVStrip.height);
+      printf("%p invalidate boundsHStrip (%d, %d, %d, %d)\n",
+             this, boundsHStrip.x, boundsHStrip.y, boundsHStrip.width, boundsHStrip.height);
+      printf("%p invalidate combinedAreaVStrip (%d, %d, %d, %d)\n",
+             this, combinedAreaVStrip.x, combinedAreaVStrip.y, combinedAreaVStrip.width, combinedAreaVStrip.height);
+      printf("%p invalidate combinedAreaHStrip (%d, %d, %d, %d)\n",
+             this, combinedAreaHStrip.x, combinedAreaHStrip.y, combinedAreaHStrip.width, combinedAreaHStrip.height);
+#endif
+      
+      
+      Invalidate(boundsVStrip);
+      Invalidate(boundsHStrip);
+      Invalidate(combinedAreaVStrip);
+      Invalidate(combinedAreaHStrip);
+    }
+  }
+  else {
+    nsRect oldVisOverflow(aLine->GetVisualOverflowArea());
     aLine->SetLineWrapped(false);
+
     rv = ReflowInlineFrames(aState, aLine, aKeepReflowGoing);
+
+    
+    
+    nsRect dirtyRect;
+    dirtyRect.UnionRect(oldVisOverflow, aLine->GetVisualOverflowArea());
+#ifdef NOISY_BLOCK_INVALIDATE
+    printf("%p invalidate (%d, %d, %d, %d)\n",
+           this, dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+    if (aLine->IsForceInvalidate())
+      printf("  dirty line is %p\n", static_cast<void*>(aLine.get()));
+#endif
+    Invalidate(dirtyRect);
+    InvalidateThebesLayersInLineBox(this, aLine);
   }
 
   return rv;
@@ -2576,6 +2685,9 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
   } else {
     
     
+    
+    
+    Invalidate(fromLine->mBounds);
     FrameLines* overflowLines =
       aFromOverflowLine ? aFromContainer->RemoveOverflowLines() : nullptr;
     nsLineList* fromLineList =
@@ -2583,6 +2695,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
     if (aFromLine.next() != fromLineList->end())
       aFromLine.next()->MarkPreviousMarginDirty();
 
+    Invalidate(fromLine->GetVisualOverflowArea());
     fromLineList->erase(aFromLine);
     
     aFromContainer->FreeLineBox(fromLine);
@@ -2622,8 +2735,11 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
 {
   NS_PRECONDITION(aDY != 0, "why slide a line nowhere?");
 
+  Invalidate(aLine->GetVisualOverflowArea());
   
   aLine->SlideBy(aDY);
+  Invalidate(aLine->GetVisualOverflowArea());
+  InvalidateThebesLayersInLineBox(this, aLine);
 
   
   nsIFrame* kid = aLine->mFirstChild;
@@ -2922,6 +3038,9 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   
   nsPoint originalPosition = frame->GetPosition();
   while (true) {
+    
+    nscoord passOriginalY = frame->GetRect().y;
+    
     clearance = 0;
     nscoord topMargin = 0;
     bool mayNeedRetry = false;
@@ -3088,6 +3207,14 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                          clearance, aState.IsAdjacentWithTop(),
                          aLine.get(), blockHtmlRS, frameReflowStatus, aState);
 
+    
+    
+    
+    if (!mayNeedRetry && clearanceFrame &&
+        frame->GetRect().y != passOriginalY) {
+      Invalidate(frame->GetVisualOverflowRect() + frame->GetPosition());
+    }
+    
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (mayNeedRetry && clearanceFrame) {
@@ -5413,6 +5540,7 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, uint32_t aFlags)
                this, visOverflow.x, visOverflow.y,
                visOverflow.width, visOverflow.height);
 #endif
+        Invalidate(visOverflow);
       } else {
         
         FrameLines* overflowLines = RemoveOverflowLines();
@@ -5872,7 +6000,23 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
 
     if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
       
+      nsRect oldRect = f->GetRect();
+      nsRect oldOverflow = f->GetVisualOverflowRect();
+
+      
       aState.FlowAndPlaceFloat(f);
+
+      
+      nsRect rect = f->GetRect();
+      if (!rect.IsEqualInterior(oldRect)) {
+        nsRect dirtyRect = oldOverflow;
+        dirtyRect.MoveBy(oldRect.x, oldRect.y);
+        Invalidate(dirtyRect);
+
+        dirtyRect = f->GetVisualOverflowRect();
+        dirtyRect.MoveBy(rect.x, rect.y);
+        Invalidate(dirtyRect);
+      }
     }
     else {
       
