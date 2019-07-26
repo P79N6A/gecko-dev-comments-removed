@@ -1304,6 +1304,9 @@ IsPropertySetterCallInlineable(JSContext *cx, HandleObject obj, HandleObject hol
     if (shape->hasDefaultSetter())
         return false;
 
+    if (!shape->writable())
+        return false;
+
     
     
     if (shape->hasSetterValue())

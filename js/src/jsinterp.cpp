@@ -1250,6 +1250,13 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 
 
+    if (interpMode == JSINTERP_RETHROW)
+        goto error;
+
+    
+
+
+
 
 
     JSOp op;
