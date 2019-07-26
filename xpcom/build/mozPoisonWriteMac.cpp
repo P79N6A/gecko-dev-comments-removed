@@ -276,7 +276,14 @@ public:
     }
 };
 
-bool PoisoningDisabled = false;
+
+
+
+
+
+
+bool PoisoningDisabled = true;
+
 void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
     if (PoisoningDisabled)
         return;
@@ -375,7 +382,15 @@ extern "C" {
 
 namespace mozilla {
 void PoisonWrite() {
-    PoisoningDisabled = false;
+    
+    static bool WritesArePoisoned = false;
+    MOZ_ASSERT(!WritesArePoisoned);
+    if (WritesArePoisoned)
+        return;
+    WritesArePoisoned = true;
+
+    if (PoisoningDisabled)
+        return;
 
     nsCOMPtr<nsIFile> mozFile;
     NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
@@ -403,5 +418,8 @@ void PoisonWrite() {
 }
 void DisableWritePoisoning() {
     PoisoningDisabled = true;
+}
+void EnableWritePoisoning() {
+    PoisoningDisabled = false;
 }
 }
