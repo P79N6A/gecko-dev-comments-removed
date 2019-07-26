@@ -90,17 +90,11 @@ jit::NewBaselineFrameInspector(TempAllocator *temp, BaselineFrame *frame)
 
     if (!inspector->varTypes.reserve(frame->script()->nfixed()))
         return nullptr;
-    for (size_t i = 0; i < frame->script()->nfixedvars(); i++) {
+    for (size_t i = 0; i < frame->script()->nfixed(); i++) {
         if (script->varIsAliased(i))
             inspector->varTypes.infallibleAppend(types::Type::UndefinedType());
         else
             inspector->varTypes.infallibleAppend(types::GetValueType(frame->unaliasedVar(i)));
-    }
-    for (size_t i = frame->script()->nfixedvars(); i < frame->script()->nfixed(); i++) {
-        
-        
-        
-        inspector->varTypes.infallibleAppend(types::Type::UndefinedType());
     }
 
     return inspector;
@@ -1159,10 +1153,11 @@ IonBuilder::maybeAddOsrTypeBarriers()
         headerPhi++;
 
     for (uint32_t i = info().startArgSlot(); i < osrBlock->stackDepth(); i++, headerPhi++) {
+
         
         
         
-        if (info().isSlotAliasedAtOsr(i))
+        if (info().isSlotAliased(i))
             continue;
 
         MInstruction *def = osrBlock->getSlot(i)->toInstruction();
@@ -1307,7 +1302,7 @@ IonBuilder::traverseBytecode()
             switch (op) {
               case JSOP_POP:
               case JSOP_POPN:
-              case JSOP_DUPAT:
+              case JSOP_POPNV:
               case JSOP_DUP:
               case JSOP_DUP2:
               case JSOP_PICK:
@@ -1557,9 +1552,14 @@ IonBuilder::inspectOpcode(JSOp op)
             current->pop();
         return true;
 
-      case JSOP_DUPAT:
-        current->pushSlot(current->stackDepth() - 1 - GET_UINT24(pc));
+      case JSOP_POPNV:
+      {
+        MDefinition *mins = current->pop();
+        for (uint32_t i = 0, n = GET_UINT16(pc); i < n; i++)
+            current->pop();
+        current->push(mins);
         return true;
+      }
 
       case JSOP_NEWINIT:
         if (GET_UINT8(pc) == JSProto_Array)
@@ -5837,11 +5837,11 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     for (uint32_t i = info().startArgSlot(); i < osrBlock->stackDepth(); i++) {
         MDefinition *existing = current->getSlot(i);
         MDefinition *def = osrBlock->getSlot(i);
-        JS_ASSERT_IF(!needsArgsObj || !info().isSlotAliasedAtOsr(i), def->type() == MIRType_Value);
+        JS_ASSERT_IF(!needsArgsObj || !info().isSlotAliased(i), def->type() == MIRType_Value);
 
         
         
-        if (info().isSlotAliasedAtOsr(i))
+        if (info().isSlotAliased(i))
             continue;
 
         def->setResultType(existing->type());
@@ -5881,7 +5881,7 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc, bool 
 
             
             
-            if (info().isSlotAliasedAtOsr(i))
+            if (info().isSlotAliased(i))
                 continue;
 
             
