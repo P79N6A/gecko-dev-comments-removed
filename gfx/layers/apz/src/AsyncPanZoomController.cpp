@@ -2261,13 +2261,16 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.mHasScrollgrab = aLayerMetrics.mHasScrollgrab;
 
     if (scrollOffsetUpdated) {
-      CancelAnimation();
-
       APZC_LOG("%p updating scroll offset from (%f, %f) to (%f, %f)\n", this,
         mFrameMetrics.GetScrollOffset().x, mFrameMetrics.GetScrollOffset().y,
         aLayerMetrics.GetScrollOffset().x, aLayerMetrics.GetScrollOffset().y);
 
       mFrameMetrics.CopyScrollInfoFrom(aLayerMetrics);
+
+      
+      
+      
+      CancelAnimation();
 
       
       
