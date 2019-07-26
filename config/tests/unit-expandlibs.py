@@ -10,6 +10,7 @@ import mozunit
 from UserString import UserString
 
 config_win = {
+    'AR': 'lib',
     'AR_EXTRACT': '',
     'DLL_PREFIX': '',
     'LIB_PREFIX': '',
@@ -21,6 +22,7 @@ config_win = {
     'EXPAND_LIBS_LIST_STYLE': 'list',
 }
 config_unix = {
+    'AR': 'ar',
     'AR_EXTRACT': 'ar -x',
     'DLL_PREFIX': 'lib',
     'LIB_PREFIX': 'lib',
@@ -250,16 +252,45 @@ class TestExpandArgsMore(TestExpandInit):
         subprocess_call = subprocess.call
         extracted = {}
         def call(args, **kargs):
+            if config.AR == 'lib':
+                self.assertEqual(args[:2], [config.AR, '-NOLOGO'])
+                self.assertTrue(args[2].startswith('-EXTRACT:'))
+                extract = [args[2][len('-EXTRACT:'):]]
+                self.assertTrue(extract)
+                args = args[3:]
+            else:
+                
+                ar_extract = config.AR_EXTRACT.split()
+                self.assertEqual(args[:len(ar_extract)], ar_extract)
+                args = args[len(ar_extract):]
             
-            ar_extract = config.AR_EXTRACT.split()
-            self.assertRelEqual(args[:len(ar_extract)], ar_extract)
+            self.assertEqual(len(args), 1)
+            arg = args[0]
+            self.assertEqual(os.path.splitext(arg)[1], config.LIB_SUFFIX)
             
-            self.assertRelEqual([os.path.splitext(arg)[1] for arg in args[len(ar_extract):]], [config.LIB_SUFFIX])
-            
-            lib = os.path.splitext(os.path.basename(args[len(ar_extract)]))[0]
-            extracted[lib] = os.path.join(kargs['cwd'], "{0}".format(Obj(lib)))
-            self.touch([extracted[lib]])
+            lib = os.path.splitext(os.path.basename(arg))[0]
+            if config.AR != 'lib':
+                extract = [lib, lib + '2']
+            extract = [os.path.join(kargs['cwd'], f) for f in extract]
+            if config.AR != 'lib':
+                extract = [Obj(f) for f in extract]
+            if not lib in extracted:
+                extracted[lib] = []
+            extracted[lib].extend(extract)
+            self.touch(extract)
         subprocess.call = call
+
+        def check_output(args, **kargs):
+            
+            ar = config.AR
+            self.assertEqual(args[0:3], [ar, '-NOLOGO', '-LIST'])
+            
+            self.assertRelEqual([os.path.splitext(arg)[1] for arg in args[3:]],
+[config.LIB_SUFFIX])
+            
+            lib = os.path.splitext(os.path.basename(args[3]))[0]
+            return '%s\n%s\n' % (Obj(lib), Obj(lib + '2'))
+        subprocess.check_output = check_output
 
         
         self.touch([self.tmpfile('liby', Lib('y'))])
@@ -271,15 +302,16 @@ class TestExpandArgsMore(TestExpandInit):
             args.extract()
 
             files = self.files + self.liby_files + self.libx_files
-            if not len(config.AR_EXTRACT):
-                
-                
-                
-                self.assertRelEqual(args, ['foo', '-bar'] + files)
-            else:
-                
-                
-                self.assertRelEqual(args, ['foo', '-bar'] + [extracted[os.path.splitext(os.path.basename(f))[0]] if f.endswith(config.LIB_SUFFIX) else f for f in files])
+            
+            
+            
+            extracted_args = []
+            for f in files:
+                if f.endswith(config.LIB_SUFFIX):
+                    extracted_args.extend(sorted(extracted[os.path.splitext(os.path.basename(f))[0]]))
+                else:
+                    extracted_args.append(f)
+            self.assertRelEqual(args, ['foo', '-bar'] + extracted_args)
 
             tmp = args.tmp
         
