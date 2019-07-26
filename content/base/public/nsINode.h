@@ -440,6 +440,10 @@ public:
 
 
   nsIContent* AsContent();
+  const nsIContent* AsContent() const
+  {
+    return const_cast<nsINode*>(this)->AsContent();
+  }
 
   virtual nsIDOMNode* AsDOMNode() = 0;
 
@@ -1004,6 +1008,8 @@ public:
     return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
 #endif
   }
+
+  bool IsInAnonymousSubtree() const;
 
   
   
