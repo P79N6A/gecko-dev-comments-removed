@@ -42,6 +42,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewStub;
+import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
@@ -53,7 +54,6 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.List;
 
 
 
@@ -109,9 +109,6 @@ public class BrowserSearch extends HomeFragment
 
     
     private SuggestionLoaderCallbacks mSuggestionLoaderCallbacks;
-
-    
-    private LayoutInflater mInflater;
 
     
     private AutocompleteHandler mAutocompleteHandler;
@@ -177,15 +174,12 @@ public class BrowserSearch extends HomeFragment
             throw new ClassCastException(activity.toString()
                     + " must implement BrowserSearch.OnEditSuggestionListener");
         }
-
-        mInflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
 
-        mInflater = null;
         mAutocompleteHandler = null;
         mUrlOpenListener = null;
         mSearchListener = null;
@@ -204,6 +198,23 @@ public class BrowserSearch extends HomeFragment
         super.onDestroy();
 
         mSearchEngines = null;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        
+        
+        
+        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     @Override
