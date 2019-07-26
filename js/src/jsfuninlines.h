@@ -257,26 +257,6 @@ CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObjec
     return CloneFunctionObject(cx, fun, parent);
 }
 
-inline JSFunction *
-CloneFunctionObject(JSContext *cx, HandleFunction fun)
-{
-    
-
-
-
-
-
-
-    JS_ASSERT(fun->getParent() && fun->getProto());
-
-    if (fun->hasSingletonType())
-        return fun;
-
-    Rooted<JSObject*> env(cx, fun->environment());
-    Rooted<JSObject*> proto(cx, fun->getProto());
-    return js_CloneFunctionObject(cx, fun, env, proto, JSFunction::ExtendedFinalizeKind);
-}
-
 } 
 
 inline void
