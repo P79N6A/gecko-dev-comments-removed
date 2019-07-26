@@ -192,6 +192,7 @@ class IonBaselineStubFrameLayout : public IonCommonFrameLayout
 class IonNativeExitFrameLayout;
 class IonOOLNativeGetterExitFrameLayout;
 class IonOOLPropertyOpExitFrameLayout;
+class IonOOLProxyGetExitFrameLayout;
 class IonDOMExitFrameLayout;
 
 
@@ -234,6 +235,9 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     inline bool isOOLPropertyOpExit() {
         return footer()->ionCode() == ION_FRAME_OOL_PROPERTY_OP;
     }
+    inline bool isOOLProxyGetExit() {
+        return footer()->ionCode() == ION_FRAME_OOL_PROXY_GET;
+    }
     inline bool isDomExit() {
         IonCode *code = footer()->ionCode();
         return
@@ -254,6 +258,10 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     inline IonOOLPropertyOpExitFrameLayout *oolPropertyOpExit() {
         JS_ASSERT(isOOLPropertyOpExit());
         return reinterpret_cast<IonOOLPropertyOpExitFrameLayout *>(footer());
+    }
+    inline IonOOLProxyGetExitFrameLayout *oolProxyGetExit() {
+        JS_ASSERT(isOOLProxyGetExit());
+        return reinterpret_cast<IonOOLProxyGetExitFrameLayout *>(footer());
     }
     inline IonDOMExitFrameLayout *DOMExit() {
         JS_ASSERT(isDomExit());
@@ -369,6 +377,57 @@ class IonOOLPropertyOpExitFrameLayout
     }
     inline JSObject **obj() {
         return &obj_;
+    }
+};
+
+
+
+class IonOOLProxyGetExitFrameLayout
+{
+  protected: 
+    IonExitFooterFrame footer_;
+    IonExitFrameLayout exit_;
+
+    
+    JSObject *proxy_;
+
+    
+    JSObject *receiver_;
+
+    
+    jsid id_;
+
+    
+    
+    uint32_t vp0_;
+    uint32_t vp1_;
+
+    
+    IonCode *stubCode_;
+
+  public:
+    static inline size_t Size() {
+        return sizeof(IonOOLProxyGetExitFrameLayout);
+    }
+
+    static size_t offsetOfResult() {
+        return offsetof(IonOOLProxyGetExitFrameLayout, vp0_);
+    }
+
+    inline IonCode **stubCode() {
+        return &stubCode_;
+    }
+    inline Value *vp() {
+        return reinterpret_cast<Value*>(&vp0_);
+    }
+    inline jsid *id() {
+        return &id_;
+    }
+    inline JSObject **receiver() {
+        return &receiver_;
+    }
+    inline JSObject **proxy() {
+        return &proxy_;
     }
 };
 

@@ -625,7 +625,8 @@ EmitLoadSlot(MacroAssembler &masm, JSObject *holder, Shape *shape, Register hold
 
 static void
 GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
-                       PropertyName *name, Register object, Label *stubFailure)
+                       PropertyName *name, Register object, Label *stubFailure,
+                       bool skipExpandoCheck=false)
 {
     MOZ_ASSERT(IsCacheableListBase(obj));
 
@@ -638,6 +639,9 @@ GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
 
     
     masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, ImmWord(GetProxyHandler(obj)), stubFailure);
+
+    if (skipExpandoCheck)
+        return;
 
     
     
@@ -1016,6 +1020,118 @@ GetPropertyIC::attachReadSlot(JSContext *cx, IonScript *ion, JSObject *obj, JSOb
 }
 
 bool
+GetPropertyIC::attachListBaseShadowed(JSContext *cx, IonScript *ion, JSObject *obj,
+                                      void *returnAddr)
+{
+    JS_ASSERT(!idempotent());
+    JS_ASSERT(IsCacheableListBase(obj));
+    JS_ASSERT(output().hasValue());
+
+    Label failures;
+    MacroAssembler masm(cx);
+    RepatchStubAppender attacher(*this);
+
+    masm.setFramePushed(ion->frameSize());
+
+    
+    attacher.branchNextStubOrLabel(masm, Assembler::NotEqual,
+                                   Address(object(), JSObject::offsetOfShape()),
+                                   ImmGCPtr(obj->lastProperty()),
+                                   &failures);
+
+    
+    GenerateListBaseChecks(cx, masm, obj, name(), object(), &failures,
+                           true);
+
+    
+    masm.PushRegsInMask(liveRegs_);
+
+    DebugOnly<uint32_t> initialStack = masm.framePushed();
+
+    
+    
+    RegisterSet regSet(RegisterSet::All());
+    regSet.take(AnyRegister(object()));
+
+    
+    
+    Register argJSContextReg = regSet.takeGeneral();
+    Register argProxyReg     = regSet.takeGeneral();
+    Register argIdReg        = regSet.takeGeneral();
+    Register argVpReg        = regSet.takeGeneral();
+
+    Register scratch         = regSet.takeGeneral();
+
+    
+    masm.Push(UndefinedValue());
+    masm.movePtr(StackPointer, argVpReg);
+
+    RootedId propId(cx, AtomToId(name()));
+    masm.Push(propId, scratch);
+    masm.movePtr(StackPointer, argIdReg);
+
+    
+    
+    masm.Push(object());
+    masm.Push(object());
+    masm.movePtr(StackPointer, argProxyReg);
+
+    masm.loadJSContext(argJSContextReg);
+
+    if (!masm.buildOOLFakeExitFrame(returnAddr))
+        return false;
+    masm.enterFakeExitFrame(ION_FRAME_OOL_PROXY_GET);
+
+    
+    masm.setupUnalignedABICall(5, scratch);
+    masm.passABIArg(argJSContextReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argProxyReg);
+    masm.passABIArg(argIdReg);
+    masm.passABIArg(argVpReg);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::get));
+
+    
+    Label exception;
+    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+
+    
+    masm.loadValue(
+        Address(StackPointer, IonOOLProxyGetExitFrameLayout::offsetOfResult()),
+        JSReturnOperand);
+
+    Label success;
+    masm.jump(&success);
+
+    
+    masm.bind(&exception);
+    masm.handleException();
+
+    
+    masm.bind(&success);
+    masm.storeCallResultValue(output());
+
+    
+    
+
+    
+    masm.adjustStack(IonOOLPropertyOpExitFrameLayout::Size());
+    JS_ASSERT(masm.framePushed() == initialStack);
+
+    
+    masm.PopRegsInMask(liveRegs_);
+
+    
+    attacher.jumpRejoin(masm);
+
+    
+    masm.bind(&failures);
+    attacher.jumpNextStub(masm);
+
+    return linkAndAttachStub(cx, masm, attacher, ion, "list base shadowed get");
+}
+
+bool
 GetPropertyIC::attachCallGetter(JSContext *cx, IonScript *ion, JSObject *obj,
                                 JSObject *holder, HandleShape shape,
                                 const SafepointIndex *safepointIndex, void *returnAddr)
@@ -1264,12 +1380,15 @@ TryAttachNativeGetPropStub(JSContext *cx, IonScript *ion,
     RootedObject checkObj(cx, obj);
     if (IsCacheableListBase(obj)) {
         RootedId id(cx, NameToId(name));
-        ListBaseShadowsResult shadows =
-            GetListBaseShadowsCheck()(cx, obj, id);
+        ListBaseShadowsResult shadows = GetListBaseShadowsCheck()(cx, obj, id);
         if (shadows == ShadowCheckFailed)
             return false;
-        if (shadows == Shadows)
-            return true;
+        if (shadows == Shadows) {
+            if (cache.idempotent() || !cache.output().hasValue())
+                return true;
+            *isCacheable = true;
+            return cache.attachListBaseShadowed(cx, ion, obj, returnAddr);
+        }
         if (shadows == DoesntShadowUnique)
             
             
