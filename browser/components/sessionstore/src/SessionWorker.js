@@ -53,6 +53,39 @@ self.onmessage = function (msg) {
   });
 };
 
+
+
+
+
+
+
+const STATE_CLEAN = "clean";
+
+
+
+
+
+
+const STATE_RECOVERY = "recovery";
+
+
+
+
+
+const STATE_RECOVERY_BACKUP = "recoveryBackup";
+
+
+
+
+
+
+const STATE_UPGRADE_BACKUP = "upgradeBackup";
+
+
+
+
+const STATE_EMPTY = "empty";
+
 let Agent = {
   
   
@@ -61,48 +94,153 @@ let Agent = {
   hasWrittenState: false,
 
   
-  path: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js"),
-
-  
-  backupPath: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.bak"),
+  Paths: null,
 
   
 
 
-  init: function () {
+
+
+
+
+
+
+  state: null,
+
+  
+
+
+
+
+
+
+  init: function (origin, paths) {
+    if (!(origin in paths || origin == STATE_EMPTY)) {
+      throw new TypeError("Invalid origin: " + origin);
+    }
+    this.state = origin;
+    this.Paths = paths;
+    this.upgradeBackupNeeded = paths.nextUpgradeBackup != paths.upgradeBackup;
     return {result: true};
   },
 
   
 
 
-  write: function (stateString) {
+
+
+
+
+
+
+
+
+
+
+  write: function (stateString, options = {}) {
     let exn;
     let telemetry = {};
 
-    if (!this.hasWrittenState) {
-      try {
-        let startMs = Date.now();
-        File.move(this.path, this.backupPath);
-        telemetry.FX_SESSION_RESTORE_BACKUP_FILE_MS = Date.now() - startMs;
-      } catch (ex if isNoSuchFileEx(ex)) {
-        
-      } catch (ex) {
+    let data = Encoder.encode(stateString);
+    let startWriteMs, stopWriteMs;
+
+    try {
+
+      if (this.state == STATE_CLEAN || this.state == STATE_EMPTY) {
         
         
-        exn = ex;
+        
+        File.makeDir(this.Paths.backups);
       }
 
-      this.hasWrittenState = true;
+      if (this.state == STATE_CLEAN) {
+        
+        
+        File.move(this.Paths.clean, this.Paths.cleanBackup);
+      }
+
+      startWriteMs = Date.now();
+
+      if (options.isFinalWrite) {
+        
+        
+        
+        
+        
+        File.writeAtomic(this.Paths.clean, data, {
+          tmpPath: this.Paths.clean + ".tmp"
+        });
+      } else if (this.state == STATE_RECOVERY) {
+        
+        
+        
+        
+        
+        
+        File.writeAtomic(this.Paths.recovery, data, {
+          tmpPath: this.Paths.recovery + ".tmp",
+          backupTo: this.Paths.recoveryBackup
+        });
+      } else {
+        
+        
+        
+        File.writeAtomic(this.Paths.recovery, data, {
+          tmpPath: this.Paths.recovery + ".tmp"
+        });
+      }
+
+      stopWriteMs = Date.now();
+
+    } catch (ex) {
+      
+      exn = exn || ex;
     }
 
-    let ret = this._write(stateString, telemetry);
+    
+    let upgradeBackupComplete = false;
+    if (this.upgradeBackupNeeded
+      && (this.state == STATE_CLEAN || this.state == STATE_UPGRADE_BACKUP)) {
+      try {
+        
+        let path = this.state == STATE_CLEAN ? this.Paths.cleanBackup : this.Paths.upgradeBackup;
+        File.copy(path, this.Paths.nextUpgradeBackup);
+        this.upgradeBackupNeeded = false;
+        upgradeBackupComplete = true;
+      } catch (ex) {
+        
+        exn = exn || ex;
+      }
+    }
+
+    if (options.performShutdownCleanup && !exn) {
+
+      
+      
+      
+      
+
+      
+      
+      File.remove(this.Paths.recoveryBackup);
+      File.remove(this.Paths.recovery);
+    }
+
+    this.state = STATE_RECOVERY;
 
     if (exn) {
       throw exn;
     }
 
-    return ret;
+    return {
+      result: {
+        upgradeBackup: upgradeBackupComplete
+      },
+      telemetry: {
+        FX_SESSION_RESTORE_WRITE_FILE_MS: stopWriteMs - startWriteMs,
+        FX_SESSION_RESTORE_FILE_SIZE_BYTES: data.byteLength,
+      }
+    };
   },
 
   
@@ -118,59 +256,72 @@ let Agent = {
   
 
 
-  _write: function (stateString, telemetry = {}) {
-    let bytes = Encoder.encode(stateString);
-    let startMs = Date.now();
-    let result = File.writeAtomic(this.path, bytes, {tmpPath: this.path + ".tmp"});
-    telemetry.FX_SESSION_RESTORE_WRITE_FILE_MS = Date.now() - startMs;
-    telemetry.FX_SESSION_RESTORE_FILE_SIZE_BYTES = bytes.byteLength;
-    return {result: result, telemetry: telemetry};
-  },
-
-  
-
-
-  createBackupCopy: function (ext) {
-    try {
-      return {result: File.copy(this.path, this.backupPath + ext)};
-    } catch (ex if isNoSuchFileEx(ex)) {
-      
-      return {result: true};
-    }
-  },
-
-  
-
-
-  removeBackupCopy: function (ext) {
-    try {
-      return {result: File.remove(this.backupPath + ext)};
-    } catch (ex if isNoSuchFileEx(ex)) {
-      
-      return {result: true};
-    }
-  },
-
-  
-
-
   wipe: function () {
-    let exn;
+
+    
+    let exn = null;
 
     
     try {
-      File.remove(this.path);
-    } catch (ex if isNoSuchFileEx(ex)) {
-      
+      File.remove(this.Paths.clean);
     } catch (ex) {
       
-      exn = ex;
+      exn = exn || ex;
     }
 
     
-    let iter = new File.DirectoryIterator(OS.Constants.Path.profileDir);
-    for (let entry in iter) {
-      if (!entry.isDir && entry.path.startsWith(this.backupPath)) {
+    try {
+      this._wipeFromDir(this.Paths.backups, null);
+    } catch (ex) {
+      exn = exn || ex;
+    }
+
+    try {
+      File.removeDir(this.Paths.backups);
+    } catch (ex) {
+      exn = exn || ex;
+    }
+
+    
+    try {
+      this._wipeFromDir(OS.Constants.Path.profileDir, "sessionstore.bak");
+    } catch (ex) {
+      exn = exn || ex;
+    }
+
+
+    this.state = STATE_EMPTY;
+    if (exn) {
+      throw exn;
+    }
+
+    return { result: true };
+  },
+
+  
+
+
+
+
+
+
+  _wipeFromDir: function(path, prefix) {
+    
+    if (typeof prefix == "undefined" || prefix == "") {
+      throw new TypeError();
+    }
+
+    let exn = null;
+
+    let iterator = new File.DirectoryIterator(path);
+    if (!iterator.exists()) {
+      return;
+    }
+    for (let entry in iterator) {
+      if (entry.isDir) {
+        continue;
+      }
+      if (!prefix || entry.name.startsWith(prefix)) {
         try {
           File.remove(entry.path);
         } catch (ex) {
@@ -183,9 +334,7 @@ let Agent = {
     if (exn) {
       throw exn;
     }
-
-    return {result: true};
-  }
+  },
 };
 
 function isNoSuchFileEx(aReason) {

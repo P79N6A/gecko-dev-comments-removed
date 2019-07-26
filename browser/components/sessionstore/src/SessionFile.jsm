@@ -45,6 +45,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
   "@mozilla.org/base/telemetry;1", "nsITelemetry");
+XPCOMUtils.defineLazyServiceGetter(this, "sessionStartup",
+  "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionWorker",
+  "resource:///modules/sessionstore/SessionWorker.jsm");
+
+const PREF_UPGRADE_BACKUP = "browser.sessionstore.upgradeBackup.latestBuildID";
 
 this.SessionFile = {
   
@@ -78,40 +84,114 @@ this.SessionFile = {
   
 
 
-
-  createBackupCopy: function (ext) {
-    return SessionFileInternal.createBackupCopy(ext);
-  },
-  
-
-
-
-  removeBackupCopy: function (ext) {
-    return SessionFileInternal.removeBackupCopy(ext);
-  },
-  
-
-
   wipe: function () {
-    SessionFileInternal.wipe();
+    return SessionFileInternal.wipe();
+  },
+
+  
+
+
+
+  get Paths() {
+    return SessionFileInternal.Paths;
   }
 };
 
 Object.freeze(SessionFile);
 
-
-
+let Path = OS.Path;
+let profileDir = OS.Constants.Path.profileDir;
 
 let SessionFileInternal = {
+  Paths: Object.freeze({
+    
+    
+    clean: Path.join(profileDir, "sessionstore.js"),
+
+    
+    
+    cleanBackup: Path.join(profileDir, "sessionstore-backups", "previous.js"),
+
+    
+    backups: Path.join(profileDir, "sessionstore-backups"),
+
+    
+    
+    
+    
+    
+    recovery: Path.join(profileDir, "sessionstore-backups", "recovery.js"),
+
+    
+    
+    
+    
+    
+    
+    
+    recoveryBackup: Path.join(profileDir, "sessionstore-backups", "recovery.bak"),
+
+    
+    
+    
+    
+    upgradeBackupPrefix: Path.join(profileDir, "sessionstore-backups", "upgrade.js-"),
+
+    
+    
+    
+    
+    
+    
+    get upgradeBackup() {
+      let latestBackupID = SessionFileInternal.latestUpgradeBackupID;
+      if (!latestBackupID) {
+        return "";
+      }
+      return this.upgradeBackupPrefix + latestBackupID;
+    },
+
+    
+    
+    
+    get nextUpgradeBackup() {
+      return this.upgradeBackupPrefix + Services.appinfo.platformBuildID;
+    },
+
+    
+
+
+    get loadOrder() {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let order = ["clean",
+                   "recovery",
+                   "recoveryBackup",
+                   "cleanBackup"];
+      if (SessionFileInternal.latestUpgradeBackupID) {
+        
+        order.push("upgradeBackup");
+      }
+      return order;
+    },
+  }),
+
   
-
-
-  path: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.js"),
-
   
-
-
-  backupPath: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.bak"),
+  get latestUpgradeBackupID() {
+    try {
+      return Services.prefs.getCharPref(PREF_UPGRADE_BACKUP);
+    } catch (ex) {
+      return undefined;
+    }
+  },
 
   
 
@@ -125,32 +205,57 @@ let SessionFileInternal = {
 
   _isClosed: false,
 
-  read: function () {
+  read: Task.async(function* () {
+    let result;
     
-    
-    
-    
-    SessionWorker.post("init");
-
-    return Task.spawn(function*() {
-      for (let filename of [this.path, this.backupPath]) {
-        try {
-          let startMs = Date.now();
-
-          let data = yield OS.File.read(filename, { encoding: "utf-8" });
-
-          Telemetry.getHistogramById("FX_SESSION_RESTORE_READ_FILE_MS")
-                   .add(Date.now() - startMs);
-
-          return data;
-        } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
-          
+    for (let key of this.Paths.loadOrder) {
+      let corrupted = false;
+      let exists = true;
+      try {
+        let path = this.Paths[key];
+        let startMs = Date.now();
+        let source = yield OS.File.read(path, { encoding: "utf-8" });
+        let parsed = JSON.parse(source);
+        result = {
+          origin: key,
+          source: source,
+          parsed: parsed
+        };
+        Telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").
+          add(false);
+        Telemetry.getHistogramById("FX_SESSION_RESTORE_READ_FILE_MS").
+          add(Date.now() - startMs);
+        break;
+      } catch (ex if ex instanceof OS.File.Error && ex.becauseNoSuchFile) {
+        exists = false;
+      } catch (ex if ex instanceof SyntaxError) {
+        
+        corrupted = true;
+      } finally {
+        if (exists) {
+          Telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").
+            add(corrupted);
         }
       }
+    }
+    if (!result) {
+      
+      result = {
+        origin: "empty",
+        source: "",
+        parsed: null
+      };
+    }
 
-      return "";
-    }.bind(this));
-  },
+    
+    
+    SessionWorker.post("init", [
+      result.origin,
+      this.Paths,
+    ]);
+
+    return result;
+  }),
 
   gatherTelemetry: function(aStateString) {
     return Task.spawn(function() {
@@ -173,20 +278,32 @@ let SessionFileInternal = {
       isFinalWrite = this._isClosed = true;
     }
 
-    return this._latestWrite = Task.spawn(function task() {
+    return this._latestWrite = Task.spawn(function* task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
-        let promise = SessionWorker.post("write", [aData]);
+        let performShutdownCleanup = isFinalWrite &&
+          !sessionStartup.isAutomaticRestoreEnabled();
+        let options = {
+          isFinalWrite: isFinalWrite,
+          performShutdownCleanup: performShutdownCleanup
+        };
+        let promise = SessionWorker.post("write", [aData, options]);
         
         TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
         
         let msg = yield promise;
         this._recordTelemetry(msg.telemetry);
+
+        if (msg.ok && msg.ok.upgradeBackup) {
+          
+          
+          Services.prefs.setCharPref(PREF_UPGRADE_BACKUP, Services.appinfo.platformBuildID);
+        }
       } catch (ex) {
         TelemetryStopwatch.cancel("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
-        console.error("Could not write session state file ", this.path, ex);
+        console.error("Could not write session state file ", ex, ex.stack);
       }
 
       if (isFinalWrite) {
@@ -195,16 +312,8 @@ let SessionFileInternal = {
     }.bind(this));
   },
 
-  createBackupCopy: function (ext) {
-    return SessionWorker.post("createBackupCopy", [ext]);
-  },
-
-  removeBackupCopy: function (ext) {
-    return SessionWorker.post("removeBackupCopy", [ext]);
-  },
-
   wipe: function () {
-    SessionWorker.post("wipe");
+    return SessionWorker.post("wipe");
   },
 
   _recordTelemetry: function(telemetry) {
@@ -223,31 +332,6 @@ let SessionFileInternal = {
     }
   }
 };
-
-
-let SessionWorker = (function () {
-  let worker = new PromiseWorker("resource:///modules/sessionstore/SessionWorker.js",
-    OS.Shared.LOG.bind("SessionWorker"));
-  return {
-    post: function post(...args) {
-      let promise = worker.post.apply(worker, args);
-      return promise.then(
-        null,
-        function onError(error) {
-          
-          if (error instanceof PromiseWorker.WorkerError) {
-            throw OS.File.Error.fromMsg(error.data);
-          }
-          
-          if (error instanceof ErrorEvent) {
-            throw new Error(error.message, error.filename, error.lineno);
-          }
-          throw error;
-        }
-      );
-    }
-  };
-})();
 
 
 

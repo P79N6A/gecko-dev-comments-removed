@@ -9,6 +9,10 @@ this.EXPORTED_SYMBOLS = ["PrivacyLevel"];
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gSessionStartup",
+  "@mozilla.org/browser/sessionstartup;1", "nsISessionStartup");
 
 const PREF_NORMAL = "browser.sessionstore.privacy_level";
 const PREF_DEFERRED = "browser.sessionstore.privacy_level_deferred";
@@ -27,14 +31,6 @@ const PRIVACY_FULL = 2;
 
 
 
-function willResumeAutomatically() {
-  return Services.prefs.getIntPref("browser.startup.page") == 3 ||
-         Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-}
-
-
-
-
 
 
 
@@ -44,7 +40,7 @@ function getCurrentLevel(isPinned) {
 
   
   
-  if (!isPinned && Services.startup.shuttingDown && !willResumeAutomatically()) {
+  if (!isPinned && Services.startup.shuttingDown && !gSessionStartup.isAutomaticRestoreEnabled()) {
     pref = PREF_DEFERRED;
   }
 

@@ -57,6 +57,11 @@ function debug(aMsg) {
   aMsg = ("SessionStartup: " + aMsg).replace(/\S{80}/g, "$&\n");
   Services.console.logStringMessage(aMsg);
 }
+function warning(aMsg, aException) {
+  let consoleMsg = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
+consoleMsg.init(aMsg, aException.fileName, null, aException.lineNumber, 0, Ci.nsIScriptError.warningFlag, "component javascript");
+  Services.console.logMessage(consoleMsg);
+}
 
 let gOnceInitializedDeferred = Promise.defer();
 
@@ -110,23 +115,35 @@ SessionStartup.prototype = {
 
 
 
-  _onSessionFileRead: function (stateString) {
+  _onSessionFileRead: function ({source, parsed}) {
     this._initialized = true;
 
     
-    let supportsStateString = this._createSupportsString(stateString);
+    let supportsStateString = this._createSupportsString(source);
     Services.obs.notifyObservers(supportsStateString, "sessionstore-state-read", "");
-    stateString = supportsStateString.data;
+    let stateString = supportsStateString.data;
 
-    
-    if (!stateString) {
+    if (stateString != source) {
+      
+      try {
+        this._initialState = JSON.parse(stateString);
+      } catch (ex) {
+        
+        
+        warning("Observer rewrote the state to something that won't parse", ex);
+      }
+    } else {
+      
+      this._initialState = parsed;
+    }
+
+    if (this._initialState == null) {
+      
       this._sessionType = Ci.nsISessionStartup.NO_SESSION;
       Services.obs.notifyObservers(null, "sessionstore-state-finalized", "");
       gOnceInitializedDeferred.resolve();
       return;
     }
-
-    this._initialState = this._parseStateString(stateString);
 
     let shouldResumeSessionOnce = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
     let shouldResumeSession = shouldResumeSessionOnce ||
@@ -192,29 +209,6 @@ SessionStartup.prototype = {
       Services.obs.notifyObservers(null, "sessionstore-state-finalized", "");
       gOnceInitializedDeferred.resolve();
     });
-  },
-
-
-  
-
-
-
-
-
-
-  _parseStateString: function (stateString) {
-    let state = null;
-    let corruptFile = false;
-
-    try {
-      state = JSON.parse(stateString);
-    } catch (ex) {
-      debug("The session file contained un-parse-able JSON: " + ex);
-      corruptFile = true;
-    }
-    Services.telemetry.getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE").add(corruptFile);
-
-    return state;
   },
 
   
