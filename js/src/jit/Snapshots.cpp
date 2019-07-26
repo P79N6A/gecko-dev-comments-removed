@@ -114,6 +114,9 @@ using namespace js::jit;
 
 
 
+
+
+
 const RValueAllocation::Layout &
 RValueAllocation::layoutFromMode(Mode mode)
 {
@@ -219,6 +222,15 @@ RValueAllocation::layoutFromMode(Mode mode)
         return layout;
       }
 #endif
+      case RECOVER_INSTRUCTION: {
+        static const RValueAllocation::Layout layout = {
+            PAYLOAD_INDEX,
+            PAYLOAD_NONE,
+            "instruction"
+        };
+        return layout;
+      }
+
       default: {
         static const RValueAllocation::Layout regLayout = {
             PAYLOAD_PACKED_TAG,

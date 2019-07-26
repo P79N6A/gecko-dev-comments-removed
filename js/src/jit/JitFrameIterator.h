@@ -258,6 +258,7 @@ class SnapshotIterator
     IonJSFrameLayout *fp_;
     MachineState machine_;
     IonScript *ionScript_;
+    AutoValueVector *instructionResults_;
 
   private:
     
@@ -280,6 +281,11 @@ class SnapshotIterator
         return true;
     }
     uintptr_t fromStack(int32_t offset) const;
+
+    bool hasInstructionResult(uint32_t index) const {
+        return instructionResults_;
+    }
+    Value fromInstructionResult(uint32_t index) const;
 
     Value allocationValue(const RValueAllocation &a);
     bool allocationReadable(const RValueAllocation &a);
@@ -337,6 +343,14 @@ class SnapshotIterator
     inline bool moreInstructions() const {
         return recover_.moreInstructions();
     }
+
+    
+    
+    
+    
+    bool initIntructionResults(AutoValueVector &results);
+
+    void storeInstructionResult(Value v);
 
   public:
     
