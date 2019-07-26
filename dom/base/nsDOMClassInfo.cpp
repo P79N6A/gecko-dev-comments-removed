@@ -2846,26 +2846,23 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       name_struct->mType == nsGlobalNameStruct::eTypeClassProto ||
       name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
     
-    mozilla::dom::DefineInterface define =
+    DefineInterface getOrCreateInterfaceObject =
       name_struct->mDefineDOMInterface;
-    if (define) {
+    if (getOrCreateInterfaceObject) {
       if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor &&
           !OldBindingConstructorEnabled(name_struct, aWin, cx)) {
         return NS_OK;
       }
 
+      ConstructorEnabled* checkEnabledForScope = name_struct->mConstructorEnabled;
+      if (checkEnabledForScope && !checkEnabledForScope(cx, obj)) {
+        return NS_OK;
+      }
+
       Maybe<JSAutoCompartment> ac;
       JS::Rooted<JSObject*> global(cx);
-      bool defineOnXray = xpc::WrapperFactory::IsXrayWrapper(obj);
-      if (defineOnXray) {
-        
-        
-        
-        if (name_struct->mConstructorEnabled &&
-            !(*name_struct->mConstructorEnabled)(cx, obj)) {
-          return NS_OK;
-        }
-
+      bool isXray = xpc::WrapperFactory::IsXrayWrapper(obj);
+      if (isXray) {
         global = js::CheckedUnwrap(obj,  false);
         if (!global) {
           return NS_ERROR_DOM_SECURITY_ERR;
@@ -2875,22 +2872,13 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
         global = obj;
       }
 
-      
-      
-      bool defineOnGlobal = !name_struct->mConstructorEnabled ||
-        (*name_struct->mConstructorEnabled)(cx, global);
-
-      if (!defineOnGlobal && !defineOnXray) {
-        return NS_OK;
-      }
-
-      JS::Rooted<JSObject*> interfaceObject(cx, define(cx, global, id,
-                                                       defineOnGlobal));
+      JS::Rooted<JSObject*> interfaceObject(cx,
+        getOrCreateInterfaceObject(cx, global, id, !isXray));
       if (!interfaceObject) {
         return NS_ERROR_FAILURE;
       }
 
-      if (defineOnXray) {
+      if (isXray) {
         
         ac.destroy();
         if (!JS_WrapObject(cx, &interfaceObject) ||
@@ -3342,6 +3330,22 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
+  if (isXray) {
+    
+    
+    
+    
+    
+    
+    
+    
+    bool ignored;
+    JS::Rooted<JSObject*> global(cx,
+      js::UncheckedUnwrap(obj,  false));
+    JSAutoCompartment ac(cx, global);
+    nsresult rv = GlobalResolve(win, cx, global, id, &ignored);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   bool did_resolve = false;
   nsresult rv = GlobalResolve(win, cx, obj, id, &did_resolve);
   NS_ENSURE_SUCCESS(rv, rv);
