@@ -20,6 +20,15 @@ loop.shared.Client = (function($) {
         !settings.baseServerUrl) {
       throw new Error("missing required baseServerUrl");
     }
+
+    
+    
+    if ("mozLoop" in settings) {
+      this.mozLoop = settings.mozLoop;
+    } else {
+      this.mozLoop = navigator.mozLoop;
+    }
+
     this.settings = settings;
   }
 
@@ -116,21 +125,81 @@ loop.shared.Client = (function($) {
 
 
 
+
+
+    _ensureCredentials: function(cb) {
+      if (this._credentials) {
+        cb(null);
+        return;
+      }
+
+      var hawkSessionToken =
+        this.mozLoop.getLoopCharPref("hawk-session-token");
+      if (!hawkSessionToken) {
+        var msg = "loop.hawk-session-token pref not found";
+        console.warn(msg);
+        cb(new Error(msg));
+        return;
+      }
+
+      
+      
+      var serverDerivedKeyLengthInBytes = 2 * 32;
+      deriveHawkCredentials(hawkSessionToken, "sessionToken",
+        serverDerivedKeyLengthInBytes, function (hawkCredentials) {
+          this._credentials = hawkCredentials;
+          cb(null);
+        }.bind(this));
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
     _requestCallUrlInternal: function(nickname, cb) {
       var endpoint = this.settings.baseServerUrl + "/call-url/",
           reqData  = {callerId: nickname};
 
-      var req = $.post(endpoint, reqData, function(callUrlData) {
-        try {
-          cb(null, this._validate(callUrlData, ["call_url", "expiresAt"]));
+      var req = $.ajax({
+        type: "POST",
+        url: endpoint,
+        data: reqData,
+        xhrFields: {
+          withCredentials: false
+        },
+        crossDomain: true,
+        beforeSend: function (xhr, settings) {
+          try {
+            this._attachAnyServerCreds(xhr, settings);
+          } catch (ex) {
+            cb(ex);
+            return false;
+          }
+          return true;
+        }.bind(this),
+        success: function(callUrlData) {
+          
+          try {
+            cb(null, this._validate(callUrlData, ["call_url", "expiresAt"]));
 
-          var expiresHours = this._hoursToSeconds(callUrlData.expiresAt);
-          navigator.mozLoop.noteCallUrlExpiry(expiresHours);
-        } catch (err) {
-          console.log("Error requesting call info", err);
-          cb(err);
-        }
-      }.bind(this), "json");
+            var expiresHours = this._hoursToSeconds(callUrlData.expiresAt);
+            navigator.mozLoop.noteCallUrlExpiry(expiresHours);
+          } catch (err) {
+            console.log("Error requesting call info", err);
+            cb(err);
+          }
+        }.bind(this),
+        dataType: "json"
+      });
 
       req.fail(this._failureHandler.bind(this, cb));
     },
@@ -156,8 +225,14 @@ loop.shared.Client = (function($) {
           cb(err);
           return;
         }
-
-        this._requestCallUrlInternal(nickname, cb);
+        this._ensureCredentials(function (err) {
+          if (err) {
+            console.log("Error setting up credentials: " + err);
+            cb(err);
+            return;
+          }
+          this._requestCallUrlInternal(nickname, cb);
+        }.bind(this));
       }.bind(this));
     },
 
@@ -170,6 +245,17 @@ loop.shared.Client = (function($) {
 
 
     requestCallsInfo: function(version, cb) {
+      this._ensureCredentials(function (err) {
+        if (err) {
+          console.log("Error setting up credentials: " + err);
+          cb(err);
+          return;
+        }
+        this._requestCallsInfoInternal(version, cb);
+      }.bind(this));
+    },
+
+    _requestCallsInfoInternal: function(version, cb) {
       if (!version) {
         throw new Error("missing required parameter version");
       }
@@ -180,14 +266,32 @@ loop.shared.Client = (function($) {
       
       
       
-      var req = $.get(endpoint + "?version=" + version, function(callsData) {
-        try {
-          cb(null, this._validate(callsData, ["calls"]));
-        } catch (err) {
-          console.log("Error requesting calls info", err);
-          cb(err);
-        }
-      }.bind(this), "json");
+      var req = $.ajax({
+        type: "GET",
+        url: endpoint + "?version=" + version,
+        xhrFields: {
+          withCredentials: false
+        },
+        crossDomain: true,
+        beforeSend: function (xhr, settings) {
+          try {
+            this._attachAnyServerCreds(xhr, settings);
+          } catch (ex) {
+            cb(ex);
+            return false;
+          }
+          return true;
+        }.bind(this),
+        success: function(callsData) {
+          try {
+            cb(null, this._validate(callsData, ["calls"]));
+          } catch (err) {
+            console.log("Error requesting calls info", err);
+            cb(err);
+          }
+        }.bind(this),
+        dataType: "json"
+      });
 
       req.fail(this._failureHandler.bind(this, cb));
     },
@@ -224,6 +328,33 @@ loop.shared.Client = (function($) {
       }.bind(this));
 
       req.fail(this._failureHandler.bind(this, cb));
+    },
+
+    
+
+
+
+
+
+
+
+    _attachAnyServerCreds: function(xhr, settings) {
+      
+      
+      
+      if (!this._credentials) {
+        return;
+      }
+
+      var header = hawk.client.header(settings.url, settings.type,
+        { credentials: this._credentials });
+      if (header.err) {
+        throw new Error(header.err);
+      }
+
+      xhr.setRequestHeader("Authorization", header.field);
+
+      return;
     }
   };
 
