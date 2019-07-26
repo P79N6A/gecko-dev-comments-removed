@@ -530,7 +530,6 @@ private:
     
     mozilla::Mutex          mThreadPoolMutex;
     nsCOMPtr<nsIThreadPool> mThreadPool;
-    bool                    mShuttingDown;
   };
 
   class DecodeDoneWorker : public nsRunnable
