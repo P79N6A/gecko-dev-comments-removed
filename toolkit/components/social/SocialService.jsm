@@ -500,7 +500,7 @@ this.SocialService = {
   },
 
   _manifestFromData: function(type, data, principal) {
-    let sameOriginRequired = ['workerURL', 'sidebarURL', 'shareURL', 'statusURL'];
+    let sameOriginRequired = ['workerURL', 'sidebarURL', 'shareURL', 'statusURL', 'markURL'];
 
     if (type == 'directory') {
       
@@ -728,6 +728,9 @@ function SocialProvider(input) {
   this.sidebarURL = input.sidebarURL;
   this.shareURL = input.shareURL;
   this.statusURL = input.statusURL;
+  this.markURL = input.markURL;
+  this.markedIcon = input.markedIcon;
+  this.unmarkedIcon = input.unmarkedIcon;
   this.origin = input.origin;
   let originUri = Services.io.newURI(input.origin, null, null);
   this.principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(originUri);

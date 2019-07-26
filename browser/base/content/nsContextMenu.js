@@ -310,6 +310,24 @@ nsContextMenu.prototype = {
                   !this.onTextInput && top.gBidiUI);
 
     
+    
+    
+    let markProviders = SocialMarks.getProviders();
+    let enablePageMarks = markProviders.length > 0 && !(this.onLink || this.onImage
+                            || this.onVideo || this.onAudio);
+    this.showItem("context-markpageMenu", enablePageMarks && markProviders.length > SocialMarks.MENU_LIMIT);
+    let enablePageMarkItems = enablePageMarks && markProviders.length <= SocialMarks.MENU_LIMIT;
+    let linkmenus = document.getElementsByClassName("context-markpage");
+    [m.hidden = !enablePageMarkItems for (m of linkmenus)];
+
+    let enableLinkMarks = markProviders.length > 0 &&
+                            ((this.onLink && !this.onMailtoLink) || this.onPlainTextLink);
+    this.showItem("context-marklinkMenu", enableLinkMarks && markProviders.length > SocialMarks.MENU_LIMIT);
+    let enableLinkMarkItems = enableLinkMarks && markProviders.length <= SocialMarks.MENU_LIMIT;
+    linkmenus = document.getElementsByClassName("context-marklink");
+    [m.hidden = !enableLinkMarkItems for (m of linkmenus)];
+
+    
     let shareButton = SocialShare.shareButton;
     let shareEnabled = shareButton && !shareButton.disabled && !this.onSocial;
     let pageShare = shareEnabled && !(this.isContentSelected ||
@@ -1570,6 +1588,10 @@ nsContextMenu.prototype = {
                                        , itemId: itemId
                                        }, window.top);
     }
+  },
+  markLink: function CM_markLink(origin) {
+    
+    SocialMarks.markLink(origin, this.linkURI ? this.linkURI.spec : null);
   },
   shareLink: function CM_shareLink() {
     SocialShare.sharePage(null, { url: this.linkURI.spec });

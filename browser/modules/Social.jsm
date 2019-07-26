@@ -4,11 +4,15 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["Social", "OpenGraphBuilder"];
+this.EXPORTED_SYMBOLS = ["Social", "OpenGraphBuilder", "DynamicResizeWatcher", "sizeSocialPanelToContent"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
+
+
+const PANEL_MIN_HEIGHT = 100;
+const PANEL_MIN_WIDTH = 330;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -303,45 +307,25 @@ this.Social = {
   },
 
   
-  _getMarkablePageUrl: function Social_getMarkablePageUrl(aURI) {
-    let uri = aURI.clone();
-    try {
-      
-      uri.userPass = "";
-    } catch (e) {}
-    return uri.spec;
-  },
-
-  isURIMarked: function(aURI, aCallback) {
+  isURIMarked: function(origin, aURI, aCallback) {
     promiseGetAnnotation(aURI).then(function(val) {
       if (val) {
         let providerList = JSON.parse(val);
-        val = providerList.indexOf(this.provider.origin) >= 0;
+        val = providerList.indexOf(origin) >= 0;
       }
       aCallback(!!val);
-    }.bind(this));
+    }).then(null, Cu.reportError);
   },
 
-  markURI: function(aURI, aCallback) {
-    
-    if (!this.provider) {
-      Cu.reportError("Can't mark a page when no provider is current");
-      return;
-    }
-    let port = this.provider.getWorkerPort();
-    if (!port) {
-      Cu.reportError("Can't mark page as no provider port is available");
-      return;
-    }
-
+  markURI: function(origin, aURI, aCallback) {
     
     promiseGetAnnotation(aURI).then(function(val) {
 
       let providerList = val ? JSON.parse(val) : [];
-      let marked = providerList.indexOf(this.provider.origin) >= 0;
+      let marked = providerList.indexOf(origin) >= 0;
       if (marked)
         return;
-      providerList.push(this.provider.origin);
+      providerList.push(origin);
       
       
       let place = {
@@ -355,52 +339,30 @@ this.Social = {
         handleError: function () Cu.reportError("couldn't update history for socialmark annotation"),
         handleResult: function () {},
         handleCompletion: function () {
-          promiseSetAnnotation(aURI, providerList).then();
-          
-          let url = this._getMarkablePageUrl(aURI);
-          port.postMessage({
-            topic: "social.page-mark",
-            data: { url: url, 'marked': true }
-          });
-          port.close();
-          if (aCallback)
-            schedule(function() { aCallback(true); } );
-        }.bind(this)
+          promiseSetAnnotation(aURI, providerList).then(function() {
+            if (aCallback)
+              schedule(function() { aCallback(true); } );
+          }).then(null, Cu.reportError);
+        }
       });
-    }.bind(this));
+    }).then(null, Cu.reportError);
   },
-  
-  unmarkURI: function(aURI, aCallback) {
-    
-    if (!this.provider) {
-      Cu.reportError("Can't mark a page when no provider is current");
-      return;
-    }
-    let port = this.provider.getWorkerPort();
-    if (!port) {
-      Cu.reportError("Can't mark page as no provider port is available");
-      return;
-    }
 
+  unmarkURI: function(origin, aURI, aCallback) {
+    
     
     promiseGetAnnotation(aURI).then(function(val) {
       let providerList = val ? JSON.parse(val) : [];
-      let marked = providerList.indexOf(this.provider.origin) >= 0;
+      let marked = providerList.indexOf(origin) >= 0;
       if (marked) {
         
-        providerList.splice(providerList.indexOf(this.provider.origin), 1);
-        promiseSetAnnotation(aURI, providerList).then();
+        providerList.splice(providerList.indexOf(origin), 1);
+        promiseSetAnnotation(aURI, providerList).then(function() {
+          if (aCallback)
+            schedule(function() { aCallback(false); } );
+        }).then(null, Cu.reportError);
       }
-      
-      let url = this._getMarkablePageUrl(aURI);
-      port.postMessage({
-        topic: "social.page-mark",
-        data: { url: url, 'marked': false }
-      });
-      port.close();
-      if (aCallback)
-        schedule(function() { aCallback(false); } );
-    }.bind(this));
+    }).then(null, Cu.reportError);
   },
 
   setErrorListener: function(iframe, errorHandler) {
@@ -481,7 +443,108 @@ SocialErrorListener.prototype = {
 };
 
 
+function sizeSocialPanelToContent(panel, iframe) {
+  let doc = iframe.contentDocument;
+  if (!doc || !doc.body) {
+    return;
+  }
+  
+  
+  let body = doc.body;
+  let bodyId = body.getAttribute("contentid");
+  if (bodyId) {
+    body = doc.getElementById(bodyId) || doc.body;
+  }
+  
+  let cs = doc.defaultView.getComputedStyle(body);
+  let width = PANEL_MIN_WIDTH;
+  let height = PANEL_MIN_HEIGHT;
+  
+  
+  if (cs) {
+    let computedHeight = parseInt(cs.marginTop) + body.offsetHeight + parseInt(cs.marginBottom);
+    height = Math.max(computedHeight, height);
+    let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
+    width = Math.max(computedWidth, width);
+  }
+  iframe.style.width = width + "px";
+  iframe.style.height = height + "px";
+  
+  if (panel.state == "open")
+    panel.adjustArrowPosition();
+}
+
+function DynamicResizeWatcher() {
+  this._mutationObserver = null;
+}
+
+DynamicResizeWatcher.prototype = {
+  start: function DynamicResizeWatcher_start(panel, iframe) {
+    this.stop(); 
+    let doc = iframe.contentDocument;
+    this._mutationObserver = new iframe.contentWindow.MutationObserver(function(mutations) {
+      sizeSocialPanelToContent(panel, iframe);
+    });
+    
+    let config = {attributes: true, characterData: true, childList: true, subtree: true};
+    this._mutationObserver.observe(doc, config);
+    
+    
+    sizeSocialPanelToContent(panel, iframe);
+  },
+  stop: function DynamicResizeWatcher_stop() {
+    if (this._mutationObserver) {
+      try {
+        this._mutationObserver.disconnect();
+      } catch (ex) {
+        
+        
+      }
+      this._mutationObserver = null;
+    }
+  }
+}
+
+
 this.OpenGraphBuilder = {
+  generateEndpointURL: function(URLTemplate, pageData) {
+    
+    
+    
+    
+    let [endpointURL, queryString] = URLTemplate.split("?");
+    let query = {};
+    if (queryString) {
+      queryString.split('&').forEach(function (val) {
+        let [name, value] = val.split('=');
+        let p = /%\{(.+)\}/.exec(value);
+        if (!p) {
+          
+          query[name] = value;
+        } else if (pageData[p[1]]) {
+          query[name] = pageData[p[1]];
+        } else if (p[1] == "body") {
+          
+          let body = "";
+          if (pageData.title)
+            body += pageData.title + "\n\n";
+          if (pageData.description)
+            body += pageData.description + "\n\n";
+          if (pageData.text)
+            body += pageData.text + "\n\n";
+          body += pageData.url;
+          query["body"] = body;
+        }
+      });
+    }
+    var str = [];
+    for (let p in query)
+       str.push(p + "=" + encodeURIComponent(query[p]));
+    if (str.length)
+      endpointURL = endpointURL + "?" + str.join("&");
+    return endpointURL;
+  },
+
   getData: function(browser) {
     let res = {
       url: this._validateURL(browser, browser.currentURI.spec),
