@@ -386,31 +386,30 @@ public final class ANRReporter extends BroadcastReceiver
             
             return 0;
         }
-        if (prevIndex == 0) {
-            
-            int index = block.indexOf(pattern);
-            if (index >= 0) {
-                
-                return index + pattern.length();
-            }
-            
-            
-            
-            
-            for (index = block.length() - 1; index > block.length() - pattern.length(); index--) {
-                
-                if (block.charAt(index) == pattern.charAt(0) &&
-                    block.endsWith(pattern.substring(0, block.length() - index))) {
-                    
-                    
-                    return index - block.length();
-                }
-            }
-        } else if (prevIndex < 0) {
+        if (prevIndex < 0) {
             
             if (block.startsWith(pattern.substring(-prevIndex, pattern.length()))) {
                 
                 return pattern.length() + prevIndex;
+            }
+            
+        }
+        
+        int index = block.indexOf(pattern);
+        if (index >= 0) {
+            
+            return index + pattern.length();
+        }
+        
+        
+        
+        for (index = block.length() - pattern.length() + 1; index < block.length(); index++) {
+            
+            if (block.charAt(index) == pattern.charAt(0) &&
+                block.endsWith(pattern.substring(0, block.length() - index))) {
+                
+                
+                return index - block.length();
             }
         }
         return 0;
