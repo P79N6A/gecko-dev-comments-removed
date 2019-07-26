@@ -1855,7 +1855,7 @@ function switchToFrame(msg) {
           }
         }
       }
-      if (foundFrame == null) {
+      if (foundFrame === null) {
         
         
         
@@ -1869,12 +1869,26 @@ function switchToFrame(msg) {
       }
     }
   }
-  if (foundFrame == null) {
+  if (foundFrame === null) {
     if (typeof(msg.json.id) === 'number') {
       try {
         foundFrame = frames[msg.json.id].frameElement;
-        curFrame = foundFrame;
-        foundFrame = elementManager.addToKnownElements(curFrame);
+        if (foundFrame !== null) {
+          curFrame = foundFrame;
+          foundFrame = elementManager.addToKnownElements(curFrame);
+        }
+        else {
+          
+          
+          sendSyncMessage("Marionette:switchedToFrame", { frameValue: null});
+          curFrame = content;
+          if(msg.json.focus == true) {
+            curFrame.focus();
+          }
+          sandbox = null;
+          checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+          return;
+        }
       } catch (e) {
         
         
@@ -1885,7 +1899,7 @@ function switchToFrame(msg) {
       }
     }
   }
-  if (foundFrame == null) {
+  if (foundFrame === null) {
     sendError("Unable to locate frame: " + (msg.json.id || msg.json.element), 8, null, command_id);
     return true;
   }
