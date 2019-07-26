@@ -134,6 +134,7 @@ public:
     if (mVertical == aVertical)
       return;
 
+    mReset = true;
     mVertical = aVertical;
     CueChanged();
   }
@@ -148,6 +149,7 @@ public:
     if (mSnapToLines == aSnapToLines)
       return;
 
+    mReset = true;
     mSnapToLines = aSnapToLines;
     CueChanged();
   }
@@ -160,6 +162,7 @@ public:
   void SetLine(double aLine)
   {
     
+    mReset = true;
     mLine = aLine;
   }
 
@@ -174,6 +177,7 @@ public:
     if (mPosition == aPosition)
       return;
 
+    mReset = true;
     mPosition = aPosition;
     CueChanged();
   }
@@ -193,6 +197,7 @@ public:
       
     }
 
+    mReset = true;
     mSize = aSize;
     CueChanged();
   }
@@ -207,6 +212,7 @@ public:
     if (mAlign == aAlign)
       return;
 
+    mReset = true;
     mAlign = aAlign;
     CueChanged();
   }
@@ -222,6 +228,7 @@ public:
     if (mText == aText)
       return;
 
+    mReset = true;
     mText = aText;
     CueChanged();
   }
@@ -335,7 +342,12 @@ private:
   TextTrackCueAlign mAlign;
 
   
-  nsCOMPtr<nsIContent> mCueDiv;
+  
+  nsCOMPtr<nsIContent> mDisplayState;
+  
+  
+  
+  bool mReset;
 };
 
 } 
