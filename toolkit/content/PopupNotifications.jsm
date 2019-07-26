@@ -255,7 +255,7 @@ PopupNotifications.prototype = {
     let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
     if (browser == this.tabbrowser.selectedBrowser && fm.activeWindow == this.window) {
       
-      this._update(notification.anchorElement);
+      this._update(notification.anchorElement, true);
     } else {
       
       
@@ -551,7 +551,13 @@ PopupNotifications.prototype = {
 
 
 
-  _update: function PopupNotifications_update(anchor) {
+
+
+
+
+
+
+  _update: function PopupNotifications_update(anchor, dismissShowing = false) {
     if (this.iconBox) {
       
       this._hideIcons();
@@ -586,7 +592,10 @@ PopupNotifications.prototype = {
 
       
       
-      this._dismiss();
+      
+      
+      if (!dismissShowing)
+        this._dismiss();
 
       
       
