@@ -392,7 +392,7 @@ uint32_t
 ThreadPool::numWorkers() const
 {
     
-    return runtime_->cpuCount() - 1;
+    return WorkerThreadState().cpuCount - 1;
 }
 
 bool
