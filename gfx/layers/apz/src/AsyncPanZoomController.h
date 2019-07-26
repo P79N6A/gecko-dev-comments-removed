@@ -619,6 +619,12 @@ private:
   bool IsTransformingState(PanZoomState aState);
   bool IsPanningState(PanZoomState mState);
 
+  
+
+
+
+  void ApplyOverscrollEffect(ViewTransform* aTransform) const;
+
   enum AxisLockMode {
     FREE,     
     STANDARD, 

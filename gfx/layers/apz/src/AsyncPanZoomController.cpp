@@ -1815,6 +1815,91 @@ bool AsyncPanZoomController::UpdateAnimation(const TimeStamp& aSampleTime,
   return false;
 }
 
+void AsyncPanZoomController::ApplyOverscrollEffect(ViewTransform* aTransform) const {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  const float CLAMPING = 0.5;
+
+  
+  
+  
+  
+  
+  float spacePropX = CLAMPING * fabsf(mX.GetOverscroll()) / mX.GetCompositionLength();
+  float spacePropY = CLAMPING * fabsf(mY.GetOverscroll()) / mY.GetCompositionLength();
+
+  
+  CSSPoint translationX;
+  if (mX.GetOverscroll() < 0) {
+    
+    
+    translationX.x = spacePropX * mX.GetCompositionLength();
+    translationX.y = (spacePropX * mY.GetCompositionLength()) / 2;
+  } else if (mX.GetOverscroll() > 0) {
+    
+    
+    translationX.y = (spacePropX * mY.GetCompositionLength()) / 2;
+  }
+
+  
+  CSSPoint translationY;
+  if (mY.GetOverscroll() < 0) {
+    
+    
+    translationY.x = (spacePropY * mX.GetCompositionLength()) / 2;
+    translationY.y = spacePropY * mY.GetCompositionLength();
+  } else if (mY.GetOverscroll() > 0) {
+    
+    
+    translationY.x = (spacePropY * mX.GetCompositionLength()) / 2;
+  }
+
+  
+  
+  
+  
+  float spaceProp = std::max(spacePropX, spacePropY);
+  CSSPoint translation(std::max(translationX.x, translationY.x),
+                       std::max(translationX.y, translationY.y));
+
+  
+  
+  float contentProp = 1 - spaceProp;
+
+  
+  
+  translation.x /= contentProp;
+  translation.y /= contentProp;
+
+  
+  aTransform->mScale.scale *= contentProp;
+  aTransform->mTranslation += translation * mFrameMetrics.LayersPixelsPerCSSPixel();
+}
+
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                                             ViewTransform* aNewTransform,
                                                             ScreenPoint& aScrollOffset) {
@@ -1833,6 +1918,10 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
 
     aScrollOffset = mFrameMetrics.GetScrollOffset() * mFrameMetrics.GetZoom();
     *aNewTransform = GetCurrentAsyncTransform();
+
+    
+    
+    ApplyOverscrollEffect(aNewTransform);
 
     LogRendertraceRect(GetGuid(), "viewport", "red",
       CSSRect(mFrameMetrics.GetScrollOffset(),
