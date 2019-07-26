@@ -782,6 +782,15 @@ class HeapSlot : public EncapsulatedValue
     }
 };
 
+
+
+
+
+
+
+inline void
+DenseRangeWriteBarrierPost(JSRuntime *rt, JSObject *obj, uint32_t start, uint32_t count);
+
 static inline const Value *
 Valueify(const EncapsulatedValue *array)
 {

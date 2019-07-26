@@ -4,7 +4,7 @@
 
 
 
-#include "vm/RegExpStatics.h"
+#include "vm/RegExpStatics-inl.h"
 
 #include "vm/RegExpStaticsObject.h"
 
@@ -64,20 +64,6 @@ RegExpStatics::create(JSContext *cx, GlobalObject *parent)
         return NULL;
     obj->setPrivate(static_cast<void *>(res));
     return obj;
-}
-
-void
-RegExpStatics::markFlagsSet(JSContext *cx)
-{
-    
-    
-    
-    
-    
-    
-    JS_ASSERT(this == cx->global()->getRegExpStatics());
-
-    types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_REGEXP_FLAGS_SET);
 }
 
 bool
