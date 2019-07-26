@@ -1,4 +1,3 @@
-
 function Person(){}
 function Ninja(){}
 Ninja.prototype = new Person();
