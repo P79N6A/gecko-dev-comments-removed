@@ -8,6 +8,7 @@
 
 #include "base/basictypes.h"
 #include <cutils/properties.h>
+#include <stagefright/foundation/AMessage.h>
 #include <stagefright/MediaExtractor.h>
 #include <stagefright/MetaData.h>
 #include <stagefright/OMXClient.h>
@@ -58,7 +59,11 @@ VideoGraphicBuffer::Unlock()
 {
   android::sp<android::OmxDecoder> omxDecoder = mOmxDecoder.promote();
   if (omxDecoder.get()) {
-    omxDecoder->ReleaseVideoBuffer(mMediaBuffer);
+    
+    
+    
+    
+    omxDecoder->PostReleaseVideoBuffer(mMediaBuffer);
   } else {
     NS_WARNING("OmxDecoder is not present");
     if (mMediaBuffer) {
@@ -145,10 +150,24 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
   mAudioMetadataRead(false),
   mPaused(false)
 {
+  mLooper = new ALooper;
+  mLooper->setName("OmxDecoder");
+
+  mReflector = new AHandlerReflector<OmxDecoder>(this);
+  
+  mLooper->registerHandler(mReflector);
+  
+  mLooper->start();
 }
 
 OmxDecoder::~OmxDecoder()
 {
+  {
+    
+    Mutex::Autolock autoLock(mSeekLock);
+    ReleaseAllPendingVideoBuffersLocked();
+  }
+
   ReleaseVideoBuffer();
   ReleaseAudioBuffer();
 
@@ -159,6 +178,11 @@ OmxDecoder::~OmxDecoder()
   if (mAudioSource.get()) {
     mAudioSource->stop();
   }
+
+  
+  mLooper->unregisterHandler(mReflector->id());
+  
+  mLooper->stop();
 }
 
 class AutoStopMediaSource {
@@ -674,32 +698,6 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
   return true;
 }
 
-bool OmxDecoder::ReleaseVideoBuffer(MediaBuffer *aBuffer)
-{
-  Mutex::Autolock autoLock(mSeekLock);
-
-  if (!aBuffer) {
-    return false;
-  }
-
-  if (mIsVideoSeeking == true) {
-    mPendingVideoBuffers.push(aBuffer);
-  } else {
-    aBuffer->release();
-  }
-  return true;
-}
-
-void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
-{
-  int size = mPendingVideoBuffers.size();
-  for (int i = 0; i < size; i++) {
-    MediaBuffer *buffer = mPendingVideoBuffers[i];
-    buffer->release();
-  }
-  mPendingVideoBuffers.clear();
-}
-
 nsresult OmxDecoder::Play() {
   if (!mPaused) {
     return NS_OK;
@@ -727,5 +725,53 @@ void OmxDecoder::Pause() {
     mAudioSource->pause();
   }
   mPaused = true;
+}
+
+
+void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
+{
+  Mutex::Autolock autoLock(mSeekLock);
+
+  
+  
+  if (mIsVideoSeeking != true) {
+    ReleaseAllPendingVideoBuffersLocked();
+  }
+}
+
+void OmxDecoder::PostReleaseVideoBuffer(MediaBuffer *aBuffer)
+{
+  {
+    Mutex::Autolock autoLock(mPendingVideoBuffersLock);
+    mPendingVideoBuffers.push(aBuffer);
+  }
+
+  sp<AMessage> notify =
+            new AMessage(kNotifyPostReleaseVideoBuffer, mReflector->id());
+  
+  notify->post();
+}
+
+void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
+{
+  Vector<MediaBuffer *> releasingVideoBuffers;
+  {
+    Mutex::Autolock autoLock(mPendingVideoBuffersLock);
+
+    int size = mPendingVideoBuffers.size();
+    for (int i = 0; i < size; i++) {
+      MediaBuffer *buffer = mPendingVideoBuffers[i];
+      releasingVideoBuffers.push(buffer);
+    }
+    mPendingVideoBuffers.clear();
+  }
+  
+  int size = releasingVideoBuffers.size();
+  for (int i = 0; i < size; i++) {
+    MediaBuffer *buffer;
+    buffer = releasingVideoBuffers[i];
+    buffer->release();
+  }
+  releasingVideoBuffers.clear();
 }
 

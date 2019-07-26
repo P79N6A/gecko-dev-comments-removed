@@ -1,3 +1,7 @@
+#include <stagefright/foundation/ABase.h>
+#include <stagefright/foundation/AHandlerReflector.h>
+#include <stagefright/foundation/ALooper.h>
+#include <stagefright/MediaSource.h>
 #include <stagefright/DataSource.h>
 #include <stagefright/MediaSource.h>
 #include <utils/RefBase.h>
@@ -79,6 +83,10 @@ class OmxDecoder : public RefBase {
     kHardwareCodecsOnly = 16,
   };
 
+  enum {
+    kNotifyPostReleaseVideoBuffer = 'noti'
+  };
+
   AbstractMediaDecoder *mDecoder;
   nsRefPtr<MediaResource> mResource;
   sp<GonkNativeWindow> mNativeWindow;
@@ -110,12 +118,25 @@ class OmxDecoder : public RefBase {
   
   Vector<MediaBuffer *> mPendingVideoBuffers;
   
+  Mutex mPendingVideoBuffersLock;
+
+  
   bool mIsVideoSeeking;
   
   
   
   
   Mutex mSeekLock;
+
+  
+  
+  
+  
+  sp<ALooper> mLooper;
+  
+  
+  
+  sp<AHandlerReflector<OmxDecoder> > mReflector;
 
   
   bool mAudioMetadataRead;
@@ -175,13 +196,18 @@ public:
     return mResource;
   }
 
-  bool ReleaseVideoBuffer(MediaBuffer *aBuffer);
-
   
   nsresult Play();
 
   
   void Pause();
+
+  
+  void PostReleaseVideoBuffer(MediaBuffer *aBuffer);
+  
+  
+  void onMessageReceived(const sp<AMessage> &msg);
+
 };
 
 }
