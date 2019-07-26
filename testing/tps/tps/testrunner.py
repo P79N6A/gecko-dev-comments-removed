@@ -171,9 +171,9 @@ class TPSTestRunner(object):
 
         
         
-        account_suffix = {"account-suffix": ''.join([str(random.randint(0,9))
-                                                     for i in range(1,6)])}
-        self.config['account'].update(account_suffix)
+        
+        
+        
 
         
         
