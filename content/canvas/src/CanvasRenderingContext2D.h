@@ -143,7 +143,8 @@ public:
 
   nsHTMLCanvasElement* GetCanvas() const
   {
-    return mCanvasElement;
+    
+    return mCanvasElement->GetOriginalCanvas();
   }
 
   void Save();
