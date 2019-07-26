@@ -31,7 +31,13 @@ class nsGlobalWindow;
 namespace mozilla {
 namespace dom {
 
-struct MainThreadDictionaryBase
+
+
+struct DictionaryBase
+{
+};
+
+struct MainThreadDictionaryBase : public DictionaryBase
 {
 protected:
   bool ParseJSON(JSContext *aCx, const nsAString& aJSON,
