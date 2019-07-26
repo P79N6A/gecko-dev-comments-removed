@@ -224,10 +224,6 @@ public:
   static jsid sURL_id;
   static jsid sOnload_id;
   static jsid sOnerror_id;
-
-protected:
-  static JSPropertyOp sXPCNativeWrapperGetPropertyOp;
-  static JSPropertyOp sXrayWrapperPropertyHolderGetPropertyOp;
 };
 
 
