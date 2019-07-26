@@ -37,6 +37,7 @@ const MAX_DATABASE_LENGTH = 4096;
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
 Cu.import('resource://gre/modules/NetUtil.jsm');
+Cu.import('resource://pdf.js/network.js');
 
 XPCOMUtils.defineLazyModuleGetter(this, 'PrivateBrowsingUtils',
   'resource://gre/modules/PrivateBrowsingUtils.jsm');
@@ -190,9 +191,8 @@ PdfDataListener.prototype = {
 };
 
 
-function ChromeActions(domWindow, dataListener, contentDispositionFilename) {
+function ChromeActions(domWindow, contentDispositionFilename) {
   this.domWindow = domWindow;
-  this.dataListener = dataListener;
   this.contentDispositionFilename = contentDispositionFilename;
 }
 
@@ -305,39 +305,6 @@ ChromeActions.prototype = {
   getLocale: function() {
     return getStringPref('general.useragent.locale', 'en-US');
   },
-  getLoadingType: function() {
-    return this.dataListener ? 'passive' : 'active';
-  },
-  initPassiveLoading: function() {
-    if (!this.dataListener)
-      return false;
-
-    var domWindow = this.domWindow;
-    this.dataListener.onprogress =
-      function ChromeActions_dataListenerProgress(loaded, total) {
-
-      domWindow.postMessage({
-        pdfjsLoadAction: 'progress',
-        loaded: loaded,
-        total: total
-      }, '*');
-    };
-
-    var self = this;
-    this.dataListener.oncomplete =
-      function ChromeActions_dataListenerComplete(data, errorCode) {
-
-      domWindow.postMessage({
-        pdfjsLoadAction: 'complete',
-        data: data,
-        errorCode: errorCode
-      }, '*');
-
-      delete self.dataListener;
-    };
-
-    return true;
-  },
   getStrings: function(data) {
     try {
       
@@ -435,6 +402,146 @@ ChromeActions.prototype = {
                                    .updateControlState(result, findPrevious);
   }
 };
+
+var RangedChromeActions = (function RangedChromeActionsClosure() {
+  
+
+
+  function RangedChromeActions(
+              domWindow, contentDispositionFilename, originalRequest) {
+
+    ChromeActions.call(this, domWindow, contentDispositionFilename);
+
+    this.pdfUrl = originalRequest.URI.resolve('');
+    this.contentLength = originalRequest.contentLength;
+
+    
+    var httpHeaderVisitor = {
+      headers: {},
+      visitHeader: function(aHeader, aValue) {
+        if (aHeader === 'Range') {
+          
+          
+          
+          
+          return;
+        }
+        this.headers[aHeader] = aValue;
+      }
+    };
+    originalRequest.visitRequestHeaders(httpHeaderVisitor);
+
+    var getXhr = function getXhr() {
+      const XMLHttpRequest = Components.Constructor(
+          '@mozilla.org/xmlextras/xmlhttprequest;1');
+      return new XMLHttpRequest();
+    };
+
+    this.networkManager = new NetworkManager(this.pdfUrl, {
+      httpHeaders: httpHeaderVisitor.headers,
+      getXhr: getXhr
+    });
+
+    var self = this;
+    
+    
+    domWindow.addEventListener('unload', function unload(e) {
+      self.networkManager.abortAllRequests();
+      domWindow.removeEventListener(e.type, unload);
+    });
+  }
+
+  RangedChromeActions.prototype = Object.create(ChromeActions.prototype);
+  var proto = RangedChromeActions.prototype;
+  proto.constructor = RangedChromeActions;
+
+  proto.initPassiveLoading = function RangedChromeActions_initPassiveLoading() {
+    this.domWindow.postMessage({
+      pdfjsLoadAction: 'supportsRangedLoading',
+      pdfUrl: this.pdfUrl,
+      length: this.contentLength
+    }, '*');
+
+    return true;
+  };
+
+  proto.requestDataRange = function RangedChromeActions_requestDataRange(args) {
+    var begin = args.begin;
+    var end = args.end;
+    var domWindow = this.domWindow;
+    
+    
+    
+    this.networkManager.requestRange(begin, end, {
+      onDone: function RangedChromeActions_onDone(args) {
+        domWindow.postMessage({
+          pdfjsLoadAction: 'range',
+          begin: args.begin,
+          chunk: args.chunk
+        }, '*');
+      },
+      onProgress: function RangedChromeActions_onProgress(evt) {
+        domWindow.postMessage({
+          pdfjsLoadAction: 'rangeProgress',
+          loaded: evt.loaded,
+        }, '*');
+      }
+    });
+  };
+
+  return RangedChromeActions;
+})();
+
+var StandardChromeActions = (function StandardChromeActionsClosure() {
+
+  
+
+
+  function StandardChromeActions(domWindow, contentDispositionFilename,
+                                 dataListener) {
+
+    ChromeActions.call(this, domWindow, contentDispositionFilename);
+    this.dataListener = dataListener;
+  }
+
+  StandardChromeActions.prototype = Object.create(ChromeActions.prototype);
+  var proto = StandardChromeActions.prototype;
+  proto.constructor = StandardChromeActions;
+
+  proto.initPassiveLoading =
+      function StandardChromeActions_initPassiveLoading() {
+
+    if (!this.dataListener) {
+      return false;
+    }
+
+    var self = this;
+
+    this.dataListener.onprogress = function ChromeActions_dataListenerProgress(
+                                      loaded, total) {
+      self.domWindow.postMessage({
+        pdfjsLoadAction: 'progress',
+        loaded: loaded,
+        total: total
+      }, '*');
+    };
+
+    this.dataListener.oncomplete = function ChromeActions_dataListenerComplete(
+                                      data, errorCode) {
+      self.domWindow.postMessage({
+        pdfjsLoadAction: 'complete',
+        data: data,
+        errorCode: errorCode
+      }, '*');
+
+      delete self.dataListener;
+    };
+
+    return true;
+  };
+
+  return StandardChromeActions;
+})();
 
 
 function RequestListener(actions) {
@@ -559,6 +666,12 @@ PdfStreamConverter.prototype = {
 
 
 
+
+
+
+
+
+
   
   convert: function(aFromStream, aFromType, aToType, aCtxt) {
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
@@ -573,34 +686,68 @@ PdfStreamConverter.prototype = {
   
   onDataAvailable: function(aRequest, aContext, aInputStream, aOffset, aCount) {
     if (!this.dataListener) {
-      
       return;
     }
 
     var binaryStream = this.binaryStream;
     binaryStream.setInputStream(aInputStream);
-    this.dataListener.append(binaryStream.readByteArray(aCount));
+    var chunk = binaryStream.readByteArray(aCount);
+    this.dataListener.append(chunk);
   },
 
   
   onStartRequest: function(aRequest, aContext) {
     
+    var isHttpRequest = false;
+    try {
+      aRequest.QueryInterface(Ci.nsIHttpChannel);
+      isHttpRequest = true;
+    } catch (e) {}
+
+    var rangeRequest = false;
+    if (isHttpRequest) {
+      var contentEncoding = 'identity';
+      try {
+        contentEncoding = aRequest.getResponseHeader('Content-Encoding');
+      } catch (e) {}
+
+      var acceptRanges;
+      try {
+        acceptRanges = aRequest.getResponseHeader('Accept-Ranges');
+      } catch (e) {}
+
+      var hash = aRequest.URI.ref;
+      rangeRequest = contentEncoding === 'identity' &&
+                     acceptRanges === 'bytes' &&
+                     aRequest.contentLength >= 0 &&
+                     hash.indexOf('disableRange=true') < 0;
+    }
+
     aRequest.QueryInterface(Ci.nsIChannel);
+
     aRequest.QueryInterface(Ci.nsIWritablePropertyBag);
-    
-    var contentLength = aRequest.contentLength;
-    var dataListener = new PdfDataListener(contentLength);
+
     var contentDispositionFilename;
     try {
       contentDispositionFilename = aRequest.contentDispositionFilename;
     } catch (e) {}
-    this.dataListener = dataListener;
-    this.binaryStream = Cc['@mozilla.org/binaryinputstream;1']
-                        .createInstance(Ci.nsIBinaryInputStream);
 
     
     aRequest.setProperty('contentType', aRequest.contentType);
     aRequest.contentType = 'text/html';
+
+    if (!rangeRequest) {
+      
+      var contentLength = aRequest.contentLength;
+      this.dataListener = new PdfDataListener(contentLength);
+      this.binaryStream = Cc['@mozilla.org/binaryinputstream;1']
+                          .createInstance(Ci.nsIBinaryInputStream);
+    } else {
+      
+      
+      
+      aRequest.suspend();
+    }
 
     
     var ioService = Services.io;
@@ -608,6 +755,7 @@ PdfStreamConverter.prototype = {
                     PDF_VIEWER_WEB_PAGE, null, null);
 
     var listener = this.listener;
+    var dataListener = this.dataListener;
     
     
     
@@ -623,23 +771,28 @@ PdfStreamConverter.prototype = {
         
         
         var domWindow = getDOMWindow(channel);
-        
-        if (domWindow.document.documentURIObject.equals(aRequest.URI)) {
-          var actions = new ChromeActions(domWindow, dataListener,
-                                          contentDispositionFilename);
-          var requestListener = new RequestListener(actions);
-          domWindow.addEventListener(PDFJS_EVENT_ID, function(event) {
-            requestListener.receive(event);
-          }, false, true);
-          if (actions.supportsIntegratedFind()) {
-            var chromeWindow = getChromeWindow(domWindow);
-            var findEventManager = new FindEventManager(chromeWindow.gFindBar,
-                                                        domWindow,
-                                                        chromeWindow);
-            findEventManager.bind();
-          }
+        var actions;
+        if (rangeRequest) {
+          
+          
+          aRequest.resume();
+          aRequest.cancel(Cr.NS_BINDING_ABORTED);
+          actions = new RangedChromeActions(domWindow,
+              contentDispositionFilename, aRequest);
         } else {
-          log('Dom window url did not match request url.');
+          actions = new StandardChromeActions(
+              domWindow, contentDispositionFilename, dataListener);
+        }
+        var requestListener = new RequestListener(actions);
+        domWindow.addEventListener(PDFJS_EVENT_ID, function(event) {
+          requestListener.receive(event);
+        }, false, true);
+        if (actions.supportsIntegratedFind()) {
+          var chromeWindow = getChromeWindow(domWindow);
+          var findEventManager = new FindEventManager(chromeWindow.gFindBar,
+                                                      domWindow,
+                                                      chromeWindow);
+          findEventManager.bind();
         }
         listener.onStopRequest(aRequest, context, statusCode);
       }
