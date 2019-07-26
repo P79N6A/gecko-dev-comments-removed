@@ -67,8 +67,9 @@ const CM_IFRAME   =
 const CM_MAPPING = [
   "focus",
   "hasFocus",
-  "getCursor",
+  "lineCount",
   "somethingSelected",
+  "getCursor",
   "setSelection",
   "getSelection",
   "replaceSelection",
@@ -77,7 +78,6 @@ const CM_MAPPING = [
   "clearHistory",
   "openDialog",
   "cursorCoords",
-  "lineCount",
   "refresh"
 ];
 
@@ -255,61 +255,10 @@ Editor.prototype = {
   
 
 
-  canUndo: function () {
+
+  getMode: function () {
     let cm = editors.get(this);
-    return cm.historySize().undo > 0;
-  },
-
-  
-
-
-  canRedo: function () {
-    let cm = editors.get(this);
-    return cm.historySize().redo > 0;
-  },
-
-  
-
-
-
-
-
-
-
-  getPosition: function (...args) {
-    let cm = editors.get(this);
-    let res = args.map((ind) => cm.posFromIndex(ind));
-    return args.length === 1 ? res[0] : res;
-  },
-
-  
-
-
-
-
-  getOffset: function (...args) {
-    let cm = editors.get(this);
-    let res = args.map((pos) => cm.indexFromPos(pos));
-    return args.length > 1 ? res : res[0];
-  },
-
-  
-
-
-
-  getText: function (line) {
-    let cm = editors.get(this);
-    return line == null ?
-      cm.getValue() : (cm.lineInfo(line) ? cm.lineInfo(line).text : "");
-  },
-
-  
-
-
-
-  setText: function (value) {
-    let cm = editors.get(this);
-    cm.setValue(value);
+    return cm.getOption("mode");
   },
 
   
@@ -325,17 +274,23 @@ Editor.prototype = {
 
 
 
-  getMode: function () {
+  getText: function (line) {
     let cm = editors.get(this);
-    return cm.getOption("mode");
+
+    if (line == null)
+      return cm.getValue();
+
+    let info = cm.lineInfo(line);
+    return info ? cm.lineInfo(line).text : "";
   },
 
   
 
 
-  isReadOnly: function () {
+
+  setText: function (value) {
     let cm = editors.get(this);
-    return cm.getOption("readOnly");
+    cm.setValue(value);
   },
 
   
@@ -381,92 +336,12 @@ Editor.prototype = {
 
 
 
-  setClean: function () {
-    let cm = editors.get(this);
-    this.version = cm.changeGeneration();
-    return this.version;
-  },
-
-  
-
-
-
-  isClean: function () {
-    let cm = editors.get(this);
-    return cm.isClean(this.version);
-  },
-
-  
-
-
-
-
-
-  showContextMenu: function (container, x, y) {
-    if (this.config.contextMenu == null)
-      return;
-
-    let popup = container.getElementById(this.config.contextMenu);
-    popup.openPopupAtScreen(x, y, true);
-  },
-
-  
-
-
-
-  jumpToLine: function () {
-    this.openDialog(CM_JUMP_DIALOG, (line) =>
-      this.setCursor({ line: line - 1, ch: 0 }));
-  },
-
-  
-
-
-
-  getPositionFromCoords: function (left, top) {
-    let cm = editors.get(this);
-    return cm.coordsChar({ left: left, top: top });
-  },
-
-  
-
-
-
   extendSelection: function (pos) {
     let cm = editors.get(this);
     let cursor = cm.indexFromPos(cm.getCursor());
     let anchor = cm.posFromIndex(cursor + pos.start);
     let head   = cm.posFromIndex(cursor + pos.start + pos.length);
     cm.setSelection(anchor, head);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  extend: function (funcs) {
-    Object.keys(funcs).forEach((name) => {
-      let cm  = editors.get(this);
-      let ctx = { ed: this, cm: cm };
-
-      if (name === "initialize")
-        return void funcs[name](ctx);
-
-      this[name] = funcs[name].bind(null, ctx);
-    });
   },
 
   
@@ -642,6 +517,135 @@ Editor.prototype = {
   removeLineClass: function (line, className) {
     let cm = editors.get(this);
     cm.removeLineClass(line, "wrap", className);
+  },
+
+  
+
+
+
+
+
+
+
+  getPosition: function (...args) {
+    let cm = editors.get(this);
+    let res = args.map((ind) => cm.posFromIndex(ind));
+    return args.length === 1 ? res[0] : res;
+  },
+
+  
+
+
+
+
+  getOffset: function (...args) {
+    let cm = editors.get(this);
+    let res = args.map((pos) => cm.indexFromPos(pos));
+    return args.length > 1 ? res : res[0];
+  },
+
+  
+
+
+
+  getPositionFromCoords: function (left, top) {
+    let cm = editors.get(this);
+    return cm.coordsChar({ left: left, top: top });
+  },
+
+  
+
+
+  canUndo: function () {
+    let cm = editors.get(this);
+    return cm.historySize().undo > 0;
+  },
+
+  
+
+
+  canRedo: function () {
+    let cm = editors.get(this);
+    return cm.historySize().redo > 0;
+  },
+
+  
+
+
+
+  setClean: function () {
+    let cm = editors.get(this);
+    this.version = cm.changeGeneration();
+    return this.version;
+  },
+
+  
+
+
+
+  isClean: function () {
+    let cm = editors.get(this);
+    return cm.isClean(this.version);
+  },
+
+  
+
+
+  isReadOnly: function () {
+    let cm = editors.get(this);
+    return cm.getOption("readOnly");
+  },
+
+  
+
+
+
+
+
+  showContextMenu: function (container, x, y) {
+    if (this.config.contextMenu == null)
+      return;
+
+    let popup = container.getElementById(this.config.contextMenu);
+    popup.openPopupAtScreen(x, y, true);
+  },
+
+  
+
+
+
+  jumpToLine: function () {
+    this.openDialog(CM_JUMP_DIALOG, (line) =>
+      this.setCursor({ line: line - 1, ch: 0 }));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  extend: function (funcs) {
+    Object.keys(funcs).forEach((name) => {
+      let cm  = editors.get(this);
+      let ctx = { ed: this, cm: cm };
+
+      if (name === "initialize")
+        return void funcs[name](ctx);
+
+      this[name] = funcs[name].bind(null, ctx);
+    });
   },
 
   destroy: function () {
