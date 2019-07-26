@@ -29,10 +29,6 @@
 #define HB_SHAPER coretext
 #include "hb-shaper-impl-private.hh"
 
-#define GlyphID GlyphID_mac
-#include <ApplicationServices/ApplicationServices.h>
-#undef GlyphID
-
 #include "hb-coretext.h"
 
 
@@ -95,6 +91,14 @@ _hb_coretext_shaper_face_data_destroy (hb_coretext_shaper_face_data_t *data)
   free (data);
 }
 
+CGFontRef
+hb_coretext_face_get_cg_font (hb_face_t *face)
+{
+  if (unlikely (!hb_coretext_shaper_face_data_ensure (face))) return NULL;
+  hb_coretext_shaper_face_data_t *face_data = HB_SHAPER_DATA_GET (face);
+  return face_data->cg_font;
+}
+
 
 
 
@@ -153,18 +157,18 @@ _hb_coretext_shaper_shape_plan_data_destroy (hb_coretext_shaper_shape_plan_data_
 {
 }
 
-
-
-
-
-
 CTFontRef
 hb_coretext_font_get_ct_font (hb_font_t *font)
 {
-  if (unlikely (!hb_coretext_shaper_font_data_ensure (font))) return 0;
+  if (unlikely (!hb_coretext_shaper_font_data_ensure (font))) return NULL;
   hb_coretext_shaper_font_data_t *font_data = HB_SHAPER_DATA_GET (font);
   return font_data->ct_font;
 }
+
+
+
+
+
 
 hb_bool_t
 _hb_coretext_shape (hb_shape_plan_t    *shape_plan,
@@ -218,20 +222,16 @@ _hb_coretext_shape (hb_shape_plan_t    *shape_plan,
 
   
 
-  
   CFAttributedStringRef attr_string = CFAttributedStringCreate (kCFAllocatorDefault, string_ref, attrs);
   CFRelease (string_ref);
   CFRelease (attrs);
 
-  
   CTLineRef line = CTLineCreateWithAttributedString (attr_string);
   CFRelease (attr_string);
 
-  
   CFArrayRef glyph_runs = CTLineGetGlyphRuns (line);
   unsigned int num_runs = CFArrayGetCount (glyph_runs);
 
-  
   bool success = true;
   buffer->len = 0;
 
@@ -248,9 +248,7 @@ _hb_coretext_shape (hb_shape_plan_t    *shape_plan,
 
     
 
-    
-    
-    
+
 
     unsigned int scratch_size;
     char *scratch = (char *) buffer->get_scratch_buffer (&scratch_size);
@@ -317,11 +315,12 @@ _hb_coretext_shape (hb_shape_plan_t    *shape_plan,
   }
 
   
-  
-  
-  
-  
-  
+
+
+
+
+
+
   if (HB_DIRECTION_IS_FORWARD (buffer->props.direction)) {
     unsigned int prev_cluster = 0;
     for (unsigned int i = 0; i < count; i++) {
@@ -337,7 +336,6 @@ _hb_coretext_shape (hb_shape_plan_t    *shape_plan,
       prev_cluster = curr_cluster;
     }
   } else {
-    
     unsigned int prev_cluster = (unsigned int)-1;
     for (unsigned int i = 0; i < count; i++) {
       unsigned int curr_cluster = buffer->info[i].cluster;

@@ -91,8 +91,9 @@ compose_default (const hb_ot_shape_normalize_context_t *c,
 {
   
 
-  
-  
+
+
+
   static const hb_codepoint_t sDageshForms[0x05EA - 0x05D0 + 1] = {
     0xFB30, 
     0xFB31, 
@@ -101,21 +102,21 @@ compose_default (const hb_ot_shape_normalize_context_t *c,
     0xFB34, 
     0xFB35, 
     0xFB36, 
-    0, 
+    0x0000, 
     0xFB38, 
     0xFB39, 
     0xFB3A, 
     0xFB3B, 
     0xFB3C, 
-    0, 
+    0x0000, 
     0xFB3E, 
-    0, 
+    0x0000, 
     0xFB40, 
     0xFB41, 
-    0, 
+    0x0000, 
     0xFB43, 
     0xFB44, 
-    0, 
+    0x0000, 
     0xFB46, 
     0xFB47, 
     0xFB48, 
@@ -127,7 +128,7 @@ compose_default (const hb_ot_shape_normalize_context_t *c,
 
   if (!found && (b & ~0x7F) == 0x0580) {
       
-      
+
       switch (b) {
       case 0x05B4: 
 	  if (a == 0x05D9) { 

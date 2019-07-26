@@ -124,7 +124,7 @@ static const indic_config_t indic_configs[] =
   {HB_SCRIPT_SINHALA,	false,0x0DCA,BASE_POS_FIRST,REPH_POS_AFTER_MAIN, REPH_MODE_EXPLICIT},
   {HB_SCRIPT_KHMER,	false,0x17D2,BASE_POS_FIRST,REPH_POS_DEFAULT,    REPH_MODE_VIS_REPHA},
   
-  {HB_SCRIPT_MYANMAR,	false, 0x1039,BASE_POS_LAST, REPH_POS_DEFAULT,    REPH_MODE_EXPLICIT},
+  {HB_SCRIPT_MYANMAR,	false,0x1039,BASE_POS_LAST, REPH_POS_DEFAULT,    REPH_MODE_EXPLICIT},
 };
 
 
@@ -482,7 +482,14 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
 	base = start;
 	has_reph = true;
       }
-    };
+    } else if (indic_plan->config->reph_mode == REPH_MODE_LOG_REPHA && info[start].indic_category() == OT_Repha)
+    {
+	limit += 1;
+	while (limit < end && is_joiner (info[limit]))
+	  limit++;
+	base = start;
+	has_reph = true;
+    }
 
     switch (indic_plan->config->base_pos)
     {
@@ -570,7 +577,7 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
 
 
 
-    if (has_reph && base == start && start + 2 == limit) {
+    if (has_reph && base == start && start - limit <= 2) {
       
       has_reph = false;
     }
@@ -852,7 +859,7 @@ initial_reordering_syllable (const hb_ot_shape_plan_t *plan,
 }
 
 static inline void
-insert_dotted_circles (const hb_ot_shape_plan_t *plan,
+insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 		       hb_font_t *font,
 		       hb_buffer_t *buffer)
 {
@@ -887,14 +894,23 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan,
     syllable_type_t syllable_type = (syllable_type_t) (syllable & 0x0F);
     if (unlikely (last_syllable != syllable && syllable_type == broken_cluster))
     {
+      last_syllable = syllable;
+
       hb_glyph_info_t info = dottedcircle;
       info.cluster = buffer->cur().cluster;
       info.mask = buffer->cur().mask;
       info.syllable() = buffer->cur().syllable();
+
+      
+      while (buffer->idx < buffer->len &&
+	     last_syllable == buffer->cur().syllable() &&
+	     buffer->cur().indic_category() == OT_Repha)
+        buffer->next_glyph ();
+
       buffer->output_info (info);
-      last_syllable = syllable;
     }
-    buffer->next_glyph ();
+    else
+      buffer->next_glyph ();
   }
 
   buffer->swap_buffers ();
@@ -1246,7 +1262,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
 static void
 final_reordering (const hb_ot_shape_plan_t *plan,
-		  hb_font_t *font,
+		  hb_font_t *font HB_UNUSED,
 		  hb_buffer_t *buffer)
 {
   unsigned int count = buffer->len;
@@ -1273,7 +1289,7 @@ final_reordering (const hb_ot_shape_plan_t *plan,
 
 
 static hb_ot_shape_normalization_mode_t
-normalization_preference_indic (const hb_segment_properties_t *props)
+normalization_preference_indic (const hb_segment_properties_t *props HB_UNUSED)
 {
   return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS_NO_SHORT_CIRCUIT;
 }
@@ -1320,6 +1336,11 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
   if ((ab == 0x0DDA || hb_in_range<hb_codepoint_t> (ab, 0x0DDC, 0x0DDE)))
   {
     
+
+
+
+
+
 
 
 

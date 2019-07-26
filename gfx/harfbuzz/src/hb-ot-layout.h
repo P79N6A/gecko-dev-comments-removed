@@ -51,24 +51,21 @@ hb_bool_t
 hb_ot_layout_has_glyph_classes (hb_face_t *face);
 
 typedef enum {
-  HB_OT_LAYOUT_GLYPH_CLASS_UNCLASSIFIED	= 0x0001,
-  HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH	= 0x0002,
-  HB_OT_LAYOUT_GLYPH_CLASS_LIGATURE	= 0x0004,
-  HB_OT_LAYOUT_GLYPH_CLASS_MARK		= 0x0008,
-  HB_OT_LAYOUT_GLYPH_CLASS_COMPONENT	= 0x0010
+  HB_OT_LAYOUT_GLYPH_CLASS_UNCLASSIFIED	= 0,
+  HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH	= 1,
+  HB_OT_LAYOUT_GLYPH_CLASS_LIGATURE	= 2,
+  HB_OT_LAYOUT_GLYPH_CLASS_MARK		= 3,
+  HB_OT_LAYOUT_GLYPH_CLASS_COMPONENT	= 4
 } hb_ot_layout_glyph_class_t;
 
-#ifdef HB_NOT_IMPLEMENTED
 hb_ot_layout_glyph_class_t
-Xhb_ot_layout_get_glyph_class (hb_face_t      *face,
+hb_ot_layout_get_glyph_class (hb_face_t      *face,
 			      hb_codepoint_t  glyph);
-#endif
 
-#ifdef HB_NOT_IMPLEMENTED
-Xhb_ot_layout_get_glyphs_in_class (hb_face_t                  *face,
+void
+hb_ot_layout_get_glyphs_in_class (hb_face_t                  *face,
 				  hb_ot_layout_glyph_class_t  klass,
 				  hb_set_t                   *glyphs );
-#endif
 
 
 
@@ -182,31 +179,27 @@ hb_ot_layout_feature_get_lookups (hb_face_t    *face,
 				  unsigned int *lookup_count ,
 				  unsigned int *lookup_indexes );
 
-#ifdef HB_NOT_IMPLEMENTED
 void
-Xhb_ot_layout_collect_lookups (hb_face_t      *face,
+hb_ot_layout_collect_lookups (hb_face_t      *face,
 			      hb_tag_t        table_tag,
 			      const hb_tag_t *scripts,
 			      const hb_tag_t *languages,
 			      const hb_tag_t *features,
 			      hb_set_t       *lookup_indexes );
-#endif
 
 void
 hb_ot_shape_plan_collect_lookups (hb_shape_plan_t *shape_plan,
 				  hb_tag_t         table_tag,
 				  hb_set_t        *lookup_indexes );
 
-#ifdef HB_NOT_IMPLEMENTED
 void
-Xhb_ot_layout_lookup_collect_glyphs (hb_face_t    *face,
+hb_ot_layout_lookup_collect_glyphs (hb_face_t    *face,
 				    hb_tag_t      table_tag,
 				    unsigned int  lookup_index,
 				    hb_set_t     *glyphs_before, 
 				    hb_set_t     *glyphs_input,  
 				    hb_set_t     *glyphs_after,  
 				    hb_set_t     *glyphs_output  );
-#endif
 
 #ifdef HB_NOT_IMPLEMENTED
 typedef struct
@@ -283,6 +276,16 @@ Xhb_ot_layout_lookup_position (hb_font_t            *font,
 			      const hb_ot_layout_glyph_sequence_t *sequence,
 			      hb_glyph_position_t  *positions );
 #endif
+
+
+
+hb_bool_t
+hb_ot_layout_get_size_params (hb_face_t    *face,
+			      unsigned int *design_size,       
+			      unsigned int *subfamily_id,      
+			      unsigned int *subfamily_name_id, 
+			      unsigned int *range_start,       
+			      unsigned int *range_end          );
 
 
 HB_END_DECLS
