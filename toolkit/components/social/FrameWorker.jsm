@@ -141,7 +141,7 @@ FrameWorker.prototype = {
                      'clearInterval', 'clearTimeout', 'dump',
                      'setInterval', 'setTimeout', 'XMLHttpRequest',
                      'FileReader', 'Blob', 'EventSource', 'indexedDB',
-                     'location'];
+                     'location', 'Worker'];
 
     
     if (this.exposeLocalStorage) {
@@ -150,7 +150,7 @@ FrameWorker.prototype = {
 
     
     
-    let needsWaive = ['XMLHttpRequest', 'WebSocket'];
+    let needsWaive = ['XMLHttpRequest', 'WebSocket', 'Worker'];
     
     let needsBind = ['atob', 'btoa', 'dump', 'setInterval', 'clearInterval',
                      'setTimeout', 'clearTimeout'];
