@@ -28,6 +28,20 @@ function injectLoopAPI(targetWindow) {
     
 
 
+    doNotDisturb: {
+      enumerable: true,
+      configurable: true,
+      get: function() {
+        return MozLoopService.doNotDisturb;
+      },
+      set: function(aFlag) {
+        MozLoopService.doNotDisturb = aFlag;
+      }
+    },
+
+    
+
+
 
 
     serverUrl: {

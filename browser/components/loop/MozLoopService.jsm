@@ -205,6 +205,24 @@ let MozLoopServiceInternal = {
 
 
 
+  get doNotDisturb() {
+    return Services.prefs.getBoolPref("loop.do_not_disturb");
+  },
+
+  
+
+
+
+
+  set doNotDisturb(aFlag) {
+    Services.prefs.setBoolPref("loop.do_not_disturb", Boolean(aFlag));
+  },
+
+  
+
+
+
+
 
 
 
@@ -327,6 +345,10 @@ let MozLoopServiceInternal = {
 
 
   onHandleNotification: function(version) {
+    if (this.doNotDisturb) {
+      return;
+    }
+
     this.openChatWindow(null, "LooP", "about:loopconversation#start/" + version);
   },
 
@@ -501,6 +523,24 @@ this.MozLoopService = {
       }
 
       return JSON.stringify(stringData[key]);
+  },
+
+  
+
+
+
+
+  get doNotDisturb() {
+    return MozLoopServiceInternal.doNotDisturb;
+  },
+
+  
+
+
+
+
+  set doNotDisturb(aFlag) {
+    MozLoopServiceInternal.doNotDisturb = aFlag;
   },
 
   
