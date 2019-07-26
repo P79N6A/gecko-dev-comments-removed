@@ -15,7 +15,6 @@
 #include "nsIXPCScriptable.h"
 
 #include <algorithm>
-#include "jsdbgapi.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/IDBFactoryBinding.h"
@@ -225,7 +224,7 @@ IDBFactory::Create(ContentParent* aContentParent,
 
   
   
-  global = JS_UnwrapObject(global);
+  global = js::UncheckedUnwrap(global);
 
   JSAutoCompartment ac(cx, global);
 
