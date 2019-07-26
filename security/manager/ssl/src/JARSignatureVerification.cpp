@@ -201,6 +201,8 @@ ReadLine( const char* & nextLineStart,  nsCString & line,
          bool allowContinuations = true)
 {
   line.Truncate();
+  size_t previousLength = 0;
+  size_t currentLength = 0;
   for (;;) {
     const char* eol = PL_strpbrk(nextLineStart, "\r\n");
 
@@ -208,7 +210,22 @@ ReadLine( const char* & nextLineStart,  nsCString & line,
       eol = nextLineStart + strlen(nextLineStart);
     }
 
+    previousLength = currentLength;
     line.Append(nextLineStart, eol - nextLineStart);
+    currentLength = line.Length();
+
+    
+    
+    static const size_t lineLimit = 72;
+    if (currentLength - previousLength > lineLimit) {
+      return NS_ERROR_SIGNED_JAR_MANIFEST_INVALID;
+    }
+
+    
+    
+    if (currentLength > 65535) {
+      return NS_ERROR_SIGNED_JAR_MANIFEST_INVALID;
+    }
 
     if (*eol == '\r') {
       ++eol;
@@ -245,14 +262,6 @@ ParseAttribute(const nsAutoCString & curLine,
                 nsAutoCString & attrName,
                 nsAutoCString & attrValue)
 {
-  nsAutoCString::size_type len = curLine.Length();
-  if (len > 72) {
-    
-    
-    
-    return NS_ERROR_SIGNED_JAR_MANIFEST_INVALID;
-  }
-
   
   int32_t colonPos = curLine.FindChar(':');
   if (colonPos == kNotFound) {
