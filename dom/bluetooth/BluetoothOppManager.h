@@ -29,6 +29,8 @@ class BluetoothOppManager : public BluetoothSocketObserver
                           , public BluetoothProfileManagerBase
 {
 public:
+  NS_DECL_ISUPPORTS
+
   
 
 
@@ -76,7 +78,6 @@ public:
   
   
   bool IsTransferring();
-  void GetAddress(nsAString& aDeviceAddress);
 
   
   void ReceiveSocketData(
@@ -90,6 +91,7 @@ public:
                                    const nsAString& aServiceUuid,
                                    int aChannel) MOZ_OVERRIDE;
   virtual void OnUpdateSdpRecords(const nsAString& aDeviceAddress) MOZ_OVERRIDE;
+  virtual void GetAddress(nsAString& aDeviceAddress) MOZ_OVERRIDE;
 
 private:
   BluetoothOppManager();
