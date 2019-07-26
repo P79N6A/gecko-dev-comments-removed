@@ -221,7 +221,6 @@ class DwarfCUToModule: public dwarf2reader::RootDIEHandler {
 
   
   
-  struct FilePrivate;
   struct Specification;
   struct CUContext;
   struct DIEContext;
