@@ -24,9 +24,12 @@ public:
     METADATA_AMR,
     METADATA_UNKNOWN  
   };
-  virtual ~TrackMetadataBase() {}
   
   virtual MetadataKind GetKind() const = 0;
+
+protected:
+  
+  virtual ~TrackMetadataBase() {}
 };
 
 

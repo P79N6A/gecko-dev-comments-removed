@@ -38,7 +38,7 @@ private:
 };
 
 
-class EncodedFrame
+class EncodedFrame MOZ_FINAL
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodedFrame)
 public:
@@ -90,6 +90,11 @@ public:
   FrameType GetFrameType() const { return mFrameType; }
   void SetFrameType(FrameType aFrameType) { mFrameType = aFrameType; }
 private:
+  
+  ~EncodedFrame()
+  {
+  }
+
   
   nsTArray<uint8_t> mFrameData;
   uint64_t mTimeStamp;

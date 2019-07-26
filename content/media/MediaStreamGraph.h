@@ -89,9 +89,11 @@ class MediaStreamGraph;
 
 
 class MediaStreamListener {
-public:
+protected:
+  
   virtual ~MediaStreamListener() {}
 
+public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStreamListener)
 
   enum Consumption {
@@ -291,6 +293,9 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
   MediaStream(DOMMediaStream* aWrapper);
+
+protected:
+  
   virtual ~MediaStream()
   {
     MOZ_COUNT_DTOR(MediaStream);
@@ -299,6 +304,7 @@ public:
                  "All main thread listeners should have been removed");
   }
 
+public:
   
 
 
@@ -810,7 +816,8 @@ protected:
 
 
 
-class MediaInputPort {
+class MediaInputPort MOZ_FINAL {
+private:
   
   MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
                  uint32_t aFlags, uint16_t aInputNumber,
@@ -823,6 +830,12 @@ class MediaInputPort {
     , mGraph(nullptr)
   {
     MOZ_COUNT_CTOR(MediaInputPort);
+  }
+
+  
+  ~MediaInputPort()
+  {
+    MOZ_COUNT_DTOR(MediaInputPort);
   }
 
 public:
@@ -841,10 +854,6 @@ public:
     
     FLAG_BLOCK_OUTPUT = 0x02
   };
-  ~MediaInputPort()
-  {
-    MOZ_COUNT_DTOR(MediaInputPort);
-  }
 
   
   
@@ -886,7 +895,7 @@ public:
 
   void SetGraphImpl(MediaStreamGraphImpl* aGraph);
 
-protected:
+private:
   friend class MediaStreamGraphImpl;
   friend class MediaStream;
   friend class ProcessedMediaStream;

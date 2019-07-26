@@ -85,7 +85,7 @@ public:
   
   
   
-  struct BlockChange {
+  struct BlockChange MOZ_FINAL {
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BlockChange)
 
@@ -112,6 +112,12 @@ public:
     bool IsWrite() const {
       return mSourceBlockIndex == -1 &&
              mData.get() != nullptr;
+    }
+
+  private:
+    
+    ~BlockChange()
+    {
     }
   };
 
