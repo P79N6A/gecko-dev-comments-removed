@@ -2325,18 +2325,26 @@ void nsDisplayBackgroundImage::ComputeInvalidationRegion(nsDisplayListBuilder* a
     
     
     aInvalidRegion->Or(bounds, geometry->mBounds);
+
+    if (positioningArea.Size() != geometry->mPositioningArea.Size()) {
+      NotifyRenderingChanged();
+    }
     return;
   }
   if (aBuilder->ShouldSyncDecodeImages()) {
     if (mBackgroundStyle &&
         !nsCSSRendering::IsBackgroundImageDecodedForStyleContextAndLayer(mBackgroundStyle, mLayer)) {
       aInvalidRegion->Or(*aInvalidRegion, bounds);
+
+      NotifyRenderingChanged();
     }
   }
   if (!bounds.IsEqualInterior(geometry->mBounds)) {
     
     
     aInvalidRegion->Xor(bounds, geometry->mBounds);
+
+    NotifyRenderingChanged();
   }
 }
 

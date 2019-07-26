@@ -2686,6 +2686,7 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
   nsRect invalid;
   nsRegion combined;
   nsPoint shift = aTopLeft - data->mLastAnimatedGeometryRootOrigin;
+  bool notifyRenderingChanged = true;
   if (!oldLayer) {
     
     
@@ -2708,6 +2709,21 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
   } else {
     
     
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (oldGeometry->ComputeInvalidationRegion() == aGeometry->ComputeInvalidationRegion() &&
+        *oldClip == aClip && invalid.IsEmpty() && changedFrames.Length() == 0) {
+      notifyRenderingChanged = false;
+    }
+
     oldGeometry->MoveBy(shift);
     aItem->ComputeInvalidationRegion(mBuilder, oldGeometry, &combined);
     oldClip->AddOffsetAndComputeDifference(shift, oldGeometry->ComputeInvalidationRegion(),
@@ -2735,7 +2751,9 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
 #endif
   }
   if (!combined.IsEmpty()) {
-    aItem->NotifyRenderingChanged();
+    if (notifyRenderingChanged) {
+      aItem->NotifyRenderingChanged();
+    }
     InvalidatePostTransformRegion(newThebesLayer,
         combined.ScaleToOutsidePixels(data->mXScale, data->mYScale, mAppUnitsPerDevPixel),
         GetTranslationForThebesLayer(newThebesLayer));
