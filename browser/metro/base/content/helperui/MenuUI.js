@@ -161,6 +161,10 @@ var ContextMenuUI = {
         continue;
 
       for (let i = 0; i < types.length; i++) {
+        
+        if (types[i].charAt(0) == '!' && contentTypes.indexOf(types[i].substring(1)) != -1) {
+          break;
+        }
         if (contentTypes.indexOf(types[i]) != -1) {
           
           if (searchTextItem && !ContextCommands.searchTextSetup(command, this._popupState.string)) {
