@@ -190,6 +190,17 @@ int cubeb_get_max_channel_count(cubeb * context, uint32_t * max_channels);
 
 
 
+
+
+
+
+
+
+
+int cubeb_get_min_latency(cubeb * context, cubeb_stream_params params, uint32_t * latency_ms);
+
+
+
 void cubeb_destroy(cubeb * context);
 
 

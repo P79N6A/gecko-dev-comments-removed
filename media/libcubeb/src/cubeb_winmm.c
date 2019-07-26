@@ -237,7 +237,7 @@ calculate_minimum_latency(void)
     return 200;
   }
 
-  return 0;
+  return 100;
 }
 
 static void winmm_destroy(cubeb * ctx);
@@ -508,7 +508,7 @@ winmm_stream_destroy(cubeb_stream * stm)
   free(stm);
 }
 
-int
+static int
 winmm_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 {
   MMRESULT rv;
@@ -517,6 +517,15 @@ winmm_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 
   
   *max_channels = 2;
+
+  return CUBEB_OK;
+}
+
+static int
+winmm_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * latency)
+{
+  
+  *latency = ctx->minimum_latency;
 
   return CUBEB_OK;
 }
@@ -577,7 +586,7 @@ winmm_stream_get_position(cubeb_stream * stm, uint64_t * position)
   return CUBEB_OK;
 }
 
-int
+static int
 winmm_stream_get_latency(cubeb_stream * stm, uint32_t * latency)
 {
   MMRESULT r;
@@ -599,6 +608,7 @@ static struct cubeb_ops const winmm_ops = {
    winmm_init,
    winmm_get_backend_id,
    winmm_get_max_channel_count,
+   winmm_get_min_latency,
    winmm_destroy,
    winmm_stream_init,
    winmm_stream_destroy,
