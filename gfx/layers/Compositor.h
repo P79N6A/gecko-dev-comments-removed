@@ -291,7 +291,7 @@ public:
 
 
 
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() = 0;
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const = 0;
 
   
 
