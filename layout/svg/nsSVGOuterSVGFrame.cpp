@@ -231,7 +231,7 @@ nsSVGOuterSVGFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
   return result;
 }
 
- nsIFrame::IntrinsicSize
+ IntrinsicSize
 nsSVGOuterSVGFrame::GetIntrinsicSize()
 {
   

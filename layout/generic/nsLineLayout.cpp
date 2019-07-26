@@ -685,7 +685,7 @@ IsPercentageAware(const nsIFrame* aFrame)
     if (f->GetIntrinsicRatio() != nsSize(0, 0) &&
         
         pos->mHeight.GetUnit() != eStyleUnit_Coord) {
-      const nsIFrame::IntrinsicSize &intrinsicSize = f->GetIntrinsicSize();
+      const IntrinsicSize &intrinsicSize = f->GetIntrinsicSize();
       if (intrinsicSize.width.GetUnit() == eStyleUnit_None &&
           intrinsicSize.height.GetUnit() == eStyleUnit_None) {
         return true;
@@ -1066,7 +1066,7 @@ nsLineLayout::ApplyStartMargin(PerFrameData* pfd,
   
   
   if (pfd->mFrame->GetPrevContinuation() ||
-      nsLayoutUtils::FrameIsNonFirstInIBSplit(pfd->mFrame)) {
+      pfd->mFrame->FrameIsNonFirstInIBSplit()) {
     
     
     if (ltr)
@@ -1146,7 +1146,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
     if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
          pfd->mFrame->LastInFlow()->GetNextContinuation() ||
-         nsLayoutUtils::FrameIsNonLastInIBSplit(pfd->mFrame))
+         pfd->mFrame->FrameIsNonLastInIBSplit())
         && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
       if (ltr)
         pfd->mMargin.right = 0;

@@ -1310,7 +1310,7 @@ nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
     
     
     nsIFrame* firstContinuation = aFrame->FirstContinuation();
-    if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
+    if (firstContinuation->FrameIsNonLastInIBSplit()) {
       
       if (isLTR) {
         aIsRightMost = false;
@@ -1318,7 +1318,7 @@ nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
         aIsLeftMost = false;
       }
     }
-    if (nsLayoutUtils::FrameIsNonFirstInIBSplit(firstContinuation)) {
+    if (firstContinuation->FrameIsNonFirstInIBSplit()) {
       
       if (isLTR) {
         aIsLeftMost = false;
@@ -1452,7 +1452,7 @@ nsBidiPresUtils::RepositionInlineFrames(BidiLineData *aBld,
   
   nsMargin margin = aFirstChild->GetUsedMargin();
   if (!aFirstChild->GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsNonFirstInIBSplit(aFirstChild))
+      !aFirstChild->FrameIsNonFirstInIBSplit())
     leftSpace = isLTR ? margin.left : margin.right;
 
   nscoord left = aFirstChild->GetPosition().x - leftSpace;

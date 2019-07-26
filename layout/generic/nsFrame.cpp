@@ -3878,7 +3878,7 @@ nsFrame::IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext)
   return result;
 }
 
- nsIFrame::IntrinsicSize
+ IntrinsicSize
 nsFrame::GetIntrinsicSize()
 {
   return IntrinsicSize(); 

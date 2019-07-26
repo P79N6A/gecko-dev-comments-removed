@@ -132,8 +132,8 @@ nsInlineFrame::IsSelfEmpty()
       
       nsIFrame* firstCont = FirstContinuation();
       return
-        (!haveStart || nsLayoutUtils::FrameIsNonFirstInIBSplit(firstCont)) &&
-        (!haveEnd || nsLayoutUtils::FrameIsNonLastInIBSplit(firstCont));
+        (!haveStart || firstCont->FrameIsNonFirstInIBSplit()) &&
+        (!haveEnd || firstCont->FrameIsNonLastInIBSplit());
     }
     return false;
   }
@@ -463,8 +463,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   nscoord leftEdge = 0;
   
   
-  if (!GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsNonFirstInIBSplit(this)) {
+  if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
     leftEdge = ltr ? aReflowState.mComputedBorderPadding.left
                    : aReflowState.mComputedBorderPadding.right;
   }
@@ -626,8 +625,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  if (!GetPrevContinuation() &&
-      !nsLayoutUtils::FrameIsNonFirstInIBSplit(this)) {
+  if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
                           : aReflowState.mComputedBorderPadding.right;
   }
@@ -641,7 +639,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
       !LastInFlow()->GetNextContinuation() &&
-      !nsLayoutUtils::FrameIsNonLastInIBSplit(this)) {
+      !FrameIsNonLastInIBSplit()) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
                           : aReflowState.mComputedBorderPadding.left;
   }
@@ -887,10 +885,10 @@ nsInlineFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
       
       
       nsIFrame* firstContinuation = FirstContinuation();
-      if (nsLayoutUtils::FrameIsNonLastInIBSplit(firstContinuation)) {
+      if (firstContinuation->FrameIsNonLastInIBSplit()) {
         skip |= endBit;
       }
-      if (nsLayoutUtils::FrameIsNonFirstInIBSplit(firstContinuation)) {
+      if (firstContinuation->FrameIsNonFirstInIBSplit()) {
         skip |= startBit;
       }
     }
