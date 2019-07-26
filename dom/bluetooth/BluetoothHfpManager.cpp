@@ -854,6 +854,15 @@ BluetoothHfpManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
     
     SendLine("ERROR");
     return;
+  } else if ((msg.Find("AT+XAPL=") != -1) ||
+             (msg.Find("AT+XEVENT=") != -1)) {
+    
+    
+    
+    
+    
+    SendLine("ERROR");
+    return;
   } else if (msg.Find("AT+CLCC") != -1) {
     SendCommand("+CLCC: ");
   } else if (msg.Find("ATD") != -1) {
