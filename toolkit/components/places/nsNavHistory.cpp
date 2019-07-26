@@ -100,8 +100,7 @@ using namespace mozilla::places;
 
 #define RENEW_CACHED_NOW_TIMEOUT ((int32_t)3 * PR_MSEC_PER_SEC)
 
-
-static const int64_t USECS_PER_DAY = LL_INIT(20, 500654080);
+static const int64_t USECS_PER_DAY = PR_USEC_PER_SEC * 60 * 60 * 24;
 
 
 #define CHARSET_ANNO NS_LITERAL_CSTRING("URIProperties/characterSet")
