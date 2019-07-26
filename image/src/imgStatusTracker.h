@@ -159,10 +159,8 @@ public:
   void SendDataAvailable(imgRequestProxy* aProxy, bool aCurrentFrame, const nsIntRect* aRect);
   void RecordStopFrame(uint32_t aFrame);
   void SendStopFrame(imgRequestProxy* aProxy, uint32_t aFrame);
-  void RecordStopContainer(imgIContainer* aContainer);
-  void SendStopContainer(imgRequestProxy* aProxy, imgIContainer* aContainer);
-  void RecordStopDecode(nsresult status, const PRUnichar* statusArg);
-  void SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus, const PRUnichar* statusArg);
+  void RecordStopDecode(nsresult statusg);
+  void SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus);
   void RecordDiscard();
   void SendDiscard(imgRequestProxy* aProxy);
   void RecordImageIsAnimated();

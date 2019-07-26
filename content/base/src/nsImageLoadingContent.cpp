@@ -134,7 +134,7 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
     return OnImageIsAnimated(aRequest);
   }
 
-  if (aType == imgINotificationObserver::STOP_DECODE) {
+  if (aType == imgINotificationObserver::STOP_REQUEST) {
     
     NS_ABORT_IF_FALSE(aRequest, "no request?");
 
@@ -154,27 +154,21 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
     UpdateImageState(true);
   }
 
-  if (aType == imgINotificationObserver::STOP_DECODE) {
+  if (aType == imgINotificationObserver::STOP_REQUEST) {
     uint32_t reqStatus;
     aRequest->GetImageStatus(&reqStatus);
     nsresult status =
         reqStatus & imgIRequest::STATUS_ERROR ? NS_ERROR_FAILURE : NS_OK;
-    return OnStopDecode(aRequest, status);
+    return OnStopRequest(aRequest, status);
   }
 
   return NS_OK;
 }
 
-
-
-
 nsresult
-nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
-                                    nsresult aStatus)
+nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
+                                     nsresult aStatus)
 {
-  
-  
-
   
   AutoStateChanger changer(this, true);
 
