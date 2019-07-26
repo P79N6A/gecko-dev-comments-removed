@@ -12,6 +12,9 @@
 
 #include <windows.h>
 
+struct IDirect3DSurface9;
+
+
 #undef LoadImage
 
 class gfxContext;
@@ -26,6 +29,9 @@ public:
 
     gfxWindowsSurface(HWND wnd, uint32_t flags = 0);
     gfxWindowsSurface(HDC dc, uint32_t flags = 0);
+
+    
+    gfxWindowsSurface(IDirect3DSurface9 *surface, uint32_t flags = 0);
 
     
     gfxWindowsSurface(const gfxIntSize& size,
@@ -45,7 +51,7 @@ public:
 
     virtual ~gfxWindowsSurface();
 
-    HDC GetDC() { return mDC; }
+    HDC GetDC();
 
     HDC GetDCWithClip(gfxContext *);
 

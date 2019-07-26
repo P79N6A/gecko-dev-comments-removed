@@ -343,7 +343,7 @@ ThebesLayerD3D9::VerifyContentType(SurfaceMode aMode)
 class OpaqueRenderer {
 public:
   OpaqueRenderer(const nsIntRegion& aUpdateRegion) :
-    mUpdateRegion(aUpdateRegion), mDC(nullptr) {}
+    mUpdateRegion(aUpdateRegion) {}
   ~OpaqueRenderer() { End(); }
   already_AddRefed<gfxWindowsSurface> Begin(LayerD3D9* aLayer);
   void End();
@@ -353,7 +353,7 @@ private:
   const nsIntRegion& mUpdateRegion;
   nsRefPtr<IDirect3DTexture9> mTmpTexture;
   nsRefPtr<IDirect3DSurface9> mSurface;
-  HDC mDC;
+  nsRefPtr<gfxWindowsSurface> mD3D9ThebesSurface;
 };
 
 already_AddRefed<gfxWindowsSurface>
@@ -378,24 +378,32 @@ OpaqueRenderer::Begin(LayerD3D9* aLayer)
     return nullptr;
   }
 
-  hr = mSurface->GetDC(&mDC);
-  if (FAILED(hr)) {
-    NS_WARNING("Failed to get device context for texture surface.");
+  nsRefPtr<gfxWindowsSurface> result = new gfxWindowsSurface(mSurface);
+  if (!result) {
+    NS_WARNING("Failed to d3d9 cairo surface.");
     return nullptr;
   }
+  mD3D9ThebesSurface = result;
 
-  nsRefPtr<gfxWindowsSurface> result = new gfxWindowsSurface(mDC);
   return result.forget();
 }
 
 void
 OpaqueRenderer::End()
 {
-  if (mSurface && mDC) {
-    mSurface->ReleaseDC(mDC);
-    mSurface = nullptr;
-    mDC = nullptr;
+  mSurface = nullptr;
+  
+  
+#if 1
+  if (mD3D9ThebesSurface) {
+    mD3D9ThebesSurface->AddRef();
+    nsrefcnt c = mD3D9ThebesSurface->Release();
+    if (c != 1)
+      NS_RUNTIMEABORT("Reference mD3D9ThebesSurface must be released by caller of Begin() before calling End()");
   }
+#endif
+  mD3D9ThebesSurface = nullptr;
+
 }
 
 static void
@@ -503,11 +511,16 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
     }
   }
 
+  
+  context = nullptr;
+
   nsAutoTArray<IDirect3DTexture9*,2> srcTextures;
   nsAutoTArray<IDirect3DTexture9*,2> destTextures;
   switch (aMode)
   {
     case SURFACE_OPAQUE:
+      
+      destinationSurface = nullptr;
       opaqueRenderer.End();
       srcTextures.AppendElement(opaqueRenderer.GetTexture());
       destTextures.AppendElement(mTexture);
@@ -535,6 +548,8 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
         context->Paint();
       }
 
+      
+      destinationSurface = nullptr;
       imgSurface = nullptr;
 
       srcTextures.AppendElement(tmpTexture);
@@ -543,6 +558,8 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
     }
 
     case SURFACE_COMPONENT_ALPHA: {
+      
+      destinationSurface = nullptr;
       opaqueRenderer.End();
       opaqueRendererOnWhite.End();
       srcTextures.AppendElement(opaqueRenderer.GetTexture());
@@ -553,6 +570,7 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
     }
   }
   NS_ASSERTION(srcTextures.Length() == destTextures.Length(), "Mismatched lengths");
+  
 
   
   for (uint32_t i = 0; i < srcTextures.Length(); ++i) {
