@@ -1739,6 +1739,14 @@ public:
   
 
 
+  static bool CSSVariablesEnabled()
+  {
+    return sCSSVariablesEnabled;
+  }
+
+  
+
+
 
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
@@ -1963,6 +1971,7 @@ private:
   static bool sFontSizeInflationForceEnabled;
   static bool sFontSizeInflationDisabledInMasterProcess;
   static bool sInvalidationDebuggingIsEnabled;
+  static bool sCSSVariablesEnabled;
 };
 
 template<typename PointType, typename RectType, typename CoordType>

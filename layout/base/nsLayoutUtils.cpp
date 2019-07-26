@@ -114,6 +114,7 @@ typedef FrameMetrics::ViewID ViewID;
  bool nsLayoutUtils::sFontSizeInflationForceEnabled;
  bool nsLayoutUtils::sFontSizeInflationDisabledInMasterProcess;
  bool nsLayoutUtils::sInvalidationDebuggingIsEnabled;
+ bool nsLayoutUtils::sCSSVariablesEnabled;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
@@ -5226,6 +5227,8 @@ nsLayoutUtils::Initialize()
                                "font.size.inflation.disabledInMasterProcess");
   Preferences::AddBoolVarCache(&sInvalidationDebuggingIsEnabled,
                                "nglayout.debug.invalidation");
+  Preferences::AddBoolVarCache(&sCSSVariablesEnabled,
+                               "layout.css.variables.enabled");
 
   Preferences::RegisterCallback(StickyEnabledPrefChangeCallback,
                                 STICKY_ENABLED_PREF_NAME);

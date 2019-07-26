@@ -1985,6 +1985,13 @@ pref("layout.css.unset-value.enabled", true);
 pref("layout.css.all-shorthand.enabled", true);
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.variables.enabled", false);
+#else
+pref("layout.css.variables.enabled", true);
+#endif
+
+
 
 
 
