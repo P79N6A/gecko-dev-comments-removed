@@ -18,35 +18,6 @@ namespace layers {
 
 
 
-class MOZ_STACK_CLASS AutoMaskData {
-public:
-  AutoMaskData() { }
-  ~AutoMaskData() { }
-
-  
-
-
-
-
-
-
-  void Construct(const gfx::Matrix& aTransform,
-                 gfxASurface* aSurface);
-
-  
-  gfxASurface* GetSurface();
-  const gfx::Matrix& GetTransform();
-
-private:
-  bool IsConstructed();
-
-  gfx::Matrix mTransform;
-  nsRefPtr<gfxASurface> mSurface;
-
-  AutoMaskData(const AutoMaskData&) MOZ_DELETE;
-  AutoMaskData& operator=(const AutoMaskData&) MOZ_DELETE;
-};
-
 class MOZ_STACK_CLASS AutoMoz2DMaskData {
 public:
   AutoMoz2DMaskData() { }

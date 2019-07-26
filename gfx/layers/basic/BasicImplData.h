@@ -117,8 +117,6 @@ public:
 
 
 
-  virtual bool GetAsSurface(gfxASurface** aSurface)
-  { return false; }
   virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
 
   bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }

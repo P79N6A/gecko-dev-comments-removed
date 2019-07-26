@@ -25,7 +25,6 @@ class DrawTarget;
 
 namespace layers {
 
-class AutoMaskData;
 class AutoMoz2DMaskData;
 class BasicContainerLayer;
 class Layer;
@@ -83,8 +82,6 @@ protected:
 
 
 
-bool
-GetMaskData(Layer* aMaskLayer, AutoMaskData* aMaskData);
 bool
 GetMaskData(Layer* aMaskLayer, AutoMoz2DMaskData* aMaskData);
 
