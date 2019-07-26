@@ -239,21 +239,14 @@ var SelectionHandler = {
     
     this._contentWindow.getSelection().removeAllRanges();
 
-    if (aOptions.mode == this.SELECT_ALL) {
-      this._getSelectionController().selectAll();
-    } else if (aOptions.mode == this.SELECT_AT_POINT) {
-      if (!this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
-        this._deactivate();
-        return false;
-      }
-    } else {
-      Services.console.logStringMessage("Invalid selection mode " + aOptions.mode);
+    
+    if (!this._performSelection(aOptions)) {
       this._deactivate();
       return false;
     }
 
-    let selection = this._getSelection();
     
+    let selection = this._getSelection();
     if (!selection || selection.rangeCount == 0 || selection.getRangeAt(0).collapsed) {
       this._deactivate();
       return false;
@@ -281,6 +274,29 @@ var SelectionHandler = {
     this._positionHandles(positions);
     this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END], aOptions.x, aOptions.y);
     return true;
+  },
+
+  
+
+
+  _performSelection: function sh_performSelection(aOptions) {
+    if (aOptions.mode == this.SELECT_ALL) {
+      if (this._targetElement instanceof HTMLPreElement)  {
+        
+        return this._domWinUtils.selectAtPoint(1, 1, Ci.nsIDOMWindowUtils.SELECT_PARAGRAPH);
+      } else {
+        
+        this._getSelectionController().selectAll();
+        return true;
+      }
+    }
+
+    if (aOptions.mode == this.SELECT_AT_POINT) {
+      return this._domWinUtils.selectAtPoint(aOptions.x, aOptions.y, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE);
+    }
+
+    Services.console.logStringMessage("Invalid selection mode " + aOptions.mode);
+    return false;
   },
 
   
@@ -517,14 +533,7 @@ var SelectionHandler = {
   },
 
   selectAll: function sh_selectAll(aElement) {
-    if (this._activeType != this.TYPE_SELECTION) {
-      this.startSelection(aElement, { mode : this.SELECT_ALL });
-    } else {
-      let selectionController = this._getSelectionController();
-      selectionController.selectAll();
-      this._updateCacheForSelection();
-      this._positionHandles();
-    }
+    this.startSelection(aElement, { mode : this.SELECT_ALL });
   },
 
   
