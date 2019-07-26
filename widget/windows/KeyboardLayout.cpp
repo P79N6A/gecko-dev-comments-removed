@@ -732,6 +732,126 @@ NativeKey::DispatchKeyDownEvent(bool* aEventDispatched) const
 }
 
 bool
+NativeKey::HandleCharMessage(const MSG& aCharMsg,
+                             bool* aEventDispatched,
+                             const EventFlags* aExtraFlags) const
+{
+  MOZ_ASSERT(mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN ||
+             mMsg.message == WM_CHAR || mMsg.message == WM_SYSCHAR);
+  MOZ_ASSERT(aCharMsg.message == WM_CHAR || aCharMsg.message == WM_SYSCHAR);
+
+  if (aEventDispatched) {
+    *aEventDispatched = false;
+  }
+
+  
+  if (mModKeyState.IsAlt() && !mModKeyState.IsControl() &&
+      mVirtualKeyCode == VK_SPACE) {
+    return false;
+  }
+
+  
+  if (!mModKeyState.IsAlt() && mModKeyState.IsControl() &&
+      mVirtualKeyCode == VK_RETURN) {
+    return false;
+  }
+
+  
+  
+  
+
+  static const PRUnichar U_SPACE = 0x20;
+  static const PRUnichar U_EQUAL = 0x3D;
+
+  
+  if ((!mModKeyState.IsAlt() && !mModKeyState.IsControl()) ||
+      mModKeyState.IsAltGr() ||
+      (mOriginalVirtualKeyCode &&
+       !KeyboardLayout::IsPrintableCharKey(mOriginalVirtualKeyCode))) {
+    nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
+    if (aExtraFlags) {
+      keypressEvent.mFlags.Union(*aExtraFlags);
+    }
+    if (aCharMsg.wParam >= U_SPACE) {
+      keypressEvent.charCode = static_cast<uint32_t>(aCharMsg.wParam);
+    } else {
+      keypressEvent.keyCode = mDOMKeyCode;
+    }
+    
+    
+    
+    
+    ModifierKeyState modKeyState(mModKeyState);
+    modKeyState.Unset(MODIFIER_ALT | MODIFIER_CONTROL);
+    InitKeyEvent(keypressEvent, modKeyState);
+    if (aEventDispatched) {
+      *aEventDispatched = true;
+    }
+    return DispatchKeyEvent(keypressEvent, &aCharMsg);
+  }
+
+  
+  
+  
+  
+  
+
+  PRUnichar uniChar;
+  
+  if (mModKeyState.IsControl() && aCharMsg.wParam <= 0x1A) {
+    
+    uniChar = aCharMsg.wParam - 1 + (mModKeyState.IsShift() ? 'A' : 'a');
+  } else if (mModKeyState.IsControl() && aCharMsg.wParam <= 0x1F) {
+    
+    
+    
+    
+    uniChar = aCharMsg.wParam - 1 + 'A';
+  } else if (aCharMsg.wParam < U_SPACE ||
+             (aCharMsg.wParam == U_EQUAL && mModKeyState.IsControl())) {
+    uniChar = 0;
+  } else {
+    uniChar = aCharMsg.wParam;
+  }
+
+  
+  
+  if (uniChar && (mModKeyState.IsControl() || mModKeyState.IsAlt())) {
+    KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
+    PRUnichar unshiftedCharCode =
+      (mVirtualKeyCode >= '0' && mVirtualKeyCode <= '9') ?
+        mVirtualKeyCode :  mModKeyState.IsShift() ?
+                             ComputeUnicharFromScanCode() : 0;
+    
+    if (static_cast<int32_t>(unshiftedCharCode) > 0) {
+      uniChar = unshiftedCharCode;
+    }
+  }
+
+  
+  
+  
+  if (!mModKeyState.IsShift() &&
+      (mModKeyState.IsAlt() || mModKeyState.IsControl())) {
+    uniChar = towlower(uniChar);
+  }
+
+  nsKeyEvent keypressEvent(true, NS_KEY_PRESS, mWidget);
+  if (aExtraFlags) {
+    keypressEvent.mFlags.Union(*aExtraFlags);
+  }
+  keypressEvent.charCode = uniChar;
+  if (!keypressEvent.charCode) {
+    keypressEvent.keyCode = mDOMKeyCode;
+  }
+  InitKeyEvent(keypressEvent, mModKeyState);
+  if (aEventDispatched) {
+    *aEventDispatched = true;
+  }
+  return DispatchKeyEvent(keypressEvent, &aCharMsg);
+}
+
+bool
 NativeKey::HandleKeyUpMessage(bool* aEventDispatched) const
 {
   MOZ_ASSERT(mMsg.message == WM_KEYUP || mMsg.message == WM_SYSKEYUP);

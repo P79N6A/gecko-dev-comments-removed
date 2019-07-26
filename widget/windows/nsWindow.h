@@ -362,17 +362,6 @@ protected:
   virtual void            OnDestroy();
   virtual bool            OnMove(int32_t aX, int32_t aY);
   virtual bool            OnResize(nsIntRect &aWindowRect);
-  
-
-
-
-
-
-  LRESULT                 OnChar(const MSG &aMsg,
-                                 const NativeKey& aNativeKey,
-                                 const mozilla::widget::ModifierKeyState &aModKeyState,
-                                 bool *aEventDispatched,
-                                 const mozilla::widget::EventFlags* aExtraFlags = nullptr);
   LRESULT                 OnKeyDown(const MSG &aMsg,
                                     const mozilla::widget::ModifierKeyState &aModKeyState,
                                     bool *aEventDispatched,

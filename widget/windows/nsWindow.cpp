@@ -5618,18 +5618,16 @@ void nsWindow::RemoveNextCharMessage(HWND aWnd)
 
 LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
 {
-  NS_PRECONDITION(aMsg.message == WM_CHAR || aMsg.message == WM_SYSCHAR,
-                  "message is not keydown event");
-  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
-         ("%s charCode=%d scanCode=%d\n",
-          aMsg.message == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
-          aMsg.wParam, HIWORD(aMsg.lParam) & 0xFF));
-
+  if (IMEHandler::IsComposingOn(this)) {
+    IMEHandler::NotifyIME(this, REQUEST_TO_COMMIT_COMPOSITION);
+  }
+  
   
   
   ModifierKeyState modKeyState;
   NativeKey nativeKey(this, aMsg, modKeyState);
-  return OnChar(aMsg, nativeKey, modKeyState, aEventDispatched);
+  return static_cast<LRESULT>(nativeKey.HandleCharMessage(aMsg,
+                                                          aEventDispatched));
 }
 
 LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
@@ -5833,7 +5831,7 @@ nsWindow::SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
           nsFakeCharMessage fakeMsg = { chars.CharAt(j), scanCode, false };
           MSG msg = fakeMsg.GetCharMessage(mWnd);
           NativeKey nativeKey(this, msg, modKeyState);
-          OnChar(msg, nativeKey, modKeyState, nullptr);
+          nativeKey.HandleCharMessage(msg);
         }
       }
     } else {
@@ -6558,7 +6556,8 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
         }
       }
 #endif 
-      return OnChar(msg, nativeKey, aModKeyState, nullptr, &extraFlags);
+      return static_cast<LRESULT>(
+        nativeKey.HandleCharMessage(msg, nullptr, &extraFlags));
     }
 
     
@@ -6578,12 +6577,12 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
             msg.message == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
             msg.wParam, HIWORD(msg.lParam) & 0xFF));
 
-    BOOL result = OnChar(msg, nativeKey, aModKeyState, nullptr, &extraFlags);
+    bool result = nativeKey.HandleCharMessage(msg, nullptr, &extraFlags);
     
     
     if (!result && msg.message == WM_SYSCHAR)
       ::DefWindowProcW(mWnd, msg.message, msg.wParam, msg.lParam);
-    return result;
+    return static_cast<LRESULT>(result);
   }
   else if (!aModKeyState.IsControl() && !aModKeyState.IsAlt() &&
             !aModKeyState.IsWin() &&
@@ -6747,94 +6746,6 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   }
 
   return noDefault;
-}
-
-
-LRESULT nsWindow::OnChar(const MSG &aMsg,
-                         const NativeKey& aNativeKey,
-                         const ModifierKeyState &aModKeyState,
-                         bool *aEventDispatched,
-                         const EventFlags *aExtraFlags)
-{
-  
-  if (aModKeyState.IsAlt() && !aModKeyState.IsControl() &&
-      IS_VK_DOWN(NS_VK_SPACE)) {
-    return FALSE;
-  }
-
-  uint32_t charCode = aMsg.wParam;
-  
-  if (aModKeyState.IsControl() && charCode == 0xA) {
-    return FALSE;
-  }
-
-  
-  ModifierKeyState modKeyState(aModKeyState);
-  if (modKeyState.IsAlt() && modKeyState.IsControl()) {
-    modKeyState.Unset(MODIFIER_ALT | MODIFIER_CONTROL);
-  }
-
-  if (IMEHandler::IsComposingOn(this)) {
-    IMEHandler::NotifyIME(this, REQUEST_TO_COMMIT_COMPOSITION);
-  }
-
-  wchar_t uniChar;
-  
-  if (modKeyState.IsControl() && charCode <= 0x1A) {
-    
-    if (modKeyState.IsShift()) {
-      uniChar = charCode - 1 + 'A';
-    } else {
-      uniChar = charCode - 1 + 'a';
-    }
-  } else if (modKeyState.IsControl() && charCode <= 0x1F) {
-    
-    
-    
-    
-    uniChar = charCode - 1 + 'A';
-  } else { 
-    if (charCode < 0x20 || (charCode == 0x3D && modKeyState.IsControl())) {
-      uniChar = 0;
-    } else {
-      uniChar = charCode;
-    }
-  }
-
-  
-  
-  if (uniChar && (modKeyState.IsControl() || modKeyState.IsAlt())) {
-    KeyboardLayout* keyboardLayout = KeyboardLayout::GetInstance();
-    UINT virtualKeyCode = aNativeKey.ComputeVirtualKeyCodeFromScanCode();
-    UINT unshiftedCharCode =
-      virtualKeyCode >= '0' && virtualKeyCode <= '9' ? virtualKeyCode :
-        modKeyState.IsShift() ? aNativeKey.ComputeUnicharFromScanCode() : 0;
-    
-    if ((INT)unshiftedCharCode > 0)
-      uniChar = unshiftedCharCode;
-  }
-
-  
-  
-  
-  if (!modKeyState.IsShift() &&
-      (aModKeyState.IsAlt() || aModKeyState.IsControl())) {
-    uniChar = towlower(uniChar);
-  }
-
-  nsKeyEvent keypressEvent(true, NS_KEY_PRESS, this);
-  if (aExtraFlags) {
-    keypressEvent.mFlags.Union(*aExtraFlags);
-  }
-  keypressEvent.charCode = uniChar;
-  if (!keypressEvent.charCode) {
-    keypressEvent.keyCode = aNativeKey.GetDOMKeyCode();
-  }
-  aNativeKey.InitKeyEvent(keypressEvent, modKeyState);
-  bool result = aNativeKey.DispatchKeyEvent(keypressEvent, &aMsg);
-  if (aEventDispatched)
-    *aEventDispatched = true;
-  return result;
 }
 
 void

@@ -341,6 +341,15 @@ public:
 
 
 
+
+  bool HandleCharMessage(const MSG& aCharMsg,
+                         bool* aEventDispatched = nullptr,
+                         const EventFlags* aExtraFlags = nullptr) const;
+
+  
+
+
+
   bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
 
 private:
