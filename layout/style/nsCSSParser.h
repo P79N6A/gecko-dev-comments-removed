@@ -58,9 +58,6 @@ public:
   nsresult SetQuirkMode(bool aQuirkMode);
 
   
-  nsresult SetSVGMode(bool aSVGMode);
-
-  
   nsresult SetChildLoader(mozilla::css::Loader* aChildLoader);
 
   
@@ -113,14 +110,23 @@ public:
                      nsIPrincipal*           aSheetPrincipal,
                      nsCOMArray<mozilla::css::Rule>& aResult);
 
+  
+  
+  
+  
+  
+  
+  
+  
   nsresult ParseProperty(const nsCSSProperty aPropID,
                          const nsAString&    aPropValue,
                          nsIURI*             aSheetURL,
                          nsIURI*             aBaseURL,
                          nsIPrincipal*       aSheetPrincipal,
                          mozilla::css::Declaration* aDeclaration,
-                         bool*             aChanged,
-                         bool                aIsImportant);
+                         bool*               aChanged,
+                         bool                aIsImportant,
+                         bool                aIsSVGMode = false);
 
   
 

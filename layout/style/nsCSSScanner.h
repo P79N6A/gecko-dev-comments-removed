@@ -9,17 +9,12 @@
 #define nsCSSScanner_h___
 
 #include "nsString.h"
-#include "nsCOMPtr.h"
-#include "mozilla/css/Loader.h"
-#include "nsCSSStyleSheet.h"
 
-
-#define CSS_REPORT_PARSE_ERRORS
-
-
-#include "nsXPIDLString.h"
-#include "nsThreadUtils.h"
-class nsIURI;
+namespace mozilla {
+namespace css {
+class ErrorReporter;
+}
+}
 
 
 enum nsCSSTokenType {
@@ -89,10 +84,8 @@ struct nsCSSToken {
     return bool((eCSSToken_Symbol == mType) && (mSymbol == aSymbol));
   }
 
-  void AppendToString(nsString& aBuffer);
+  void AppendToString(nsString& aBuffer) const;
 };
-
-class DeferredCleanupRunnable; 
 
 
 
@@ -100,20 +93,14 @@ class DeferredCleanupRunnable;
 
 class nsCSSScanner {
   public:
-  nsCSSScanner();
+  
+  
+  nsCSSScanner(const nsAString& aBuffer, uint32_t aLineNumber);
   ~nsCSSScanner();
 
-  
-  
-  
-  void Init(const nsAString& aBuffer,
-            nsIURI* aURI, uint32_t aLineNumber,
-            nsCSSStyleSheet* aSheet, mozilla::css::Loader* aLoader);
-  void Close();
-
-  static bool InitGlobals();
-  static void ReleaseGlobals();
-
+  void SetErrorReporter(mozilla::css::ErrorReporter* aReporter) {
+    mReporter = aReporter;
+  }
   
   void SetSVGMode(bool aSVGMode) {
     mSVGMode = aSVGMode;
@@ -122,46 +109,8 @@ class nsCSSScanner {
     return mSVGMode;
   }
 
-#ifdef CSS_REPORT_PARSE_ERRORS
-  
-  void PerformDeferredCleanup();
-
-  void AddToError(const nsSubstring& aErrorText);
-  void OutputError();
-  void ClearError();
-
-  
-  void ReportUnexpected(const char* aMessage);
-  
-private:
-  void Reset();
-
-  void ReportUnexpectedParams(const char* aMessage,
-                              const PRUnichar** aParams,
-                              uint32_t aParamsLength);
-
-public:
-  template<uint32_t N>                           
-  void ReportUnexpectedParams(const char* aMessage,
-                              const PRUnichar* (&aParams)[N])
-    {
-      return ReportUnexpectedParams(aMessage, aParams, N);
-    }
-  
-  void ReportUnexpectedEOF(const char* aLookingFor);
-  
-  void ReportUnexpectedEOF(PRUnichar aLookingFor);
-  
-  
-  void ReportUnexpectedToken(nsCSSToken& tok, const char *aMessage);
-  
-  void ReportUnexpectedTokenParams(nsCSSToken& tok,
-                                   const char* aMessage,
-                                   const PRUnichar **aParams,
-                                   uint32_t aParamsLength);
-#endif
-
-  uint32_t GetLineNumber() { return mLineNumber; }
+  uint32_t GetLineNumber() const { return mLineNumber; }
+  uint32_t GetColumnNumber() const { return mOffset - mLineOffset + 1; }
 
   
   
@@ -207,29 +156,20 @@ protected:
   const PRUnichar *mReadPointer;
   uint32_t mOffset;
   uint32_t mCount;
+
   PRUnichar* mPushback;
   int32_t mPushbackCount;
   int32_t mPushbackSize;
   PRUnichar mLocalPushback[4];
 
   uint32_t mLineNumber;
+  uint32_t mLineOffset;
+  uint32_t mRecordStartOffset;
+
+  mozilla::css::ErrorReporter *mReporter;
   
   bool mSVGMode;
   bool mRecording;
-  uint32_t mRecordStartOffset;
-
-#ifdef CSS_REPORT_PARSE_ERRORS
-  nsRevocableEventPtr<DeferredCleanupRunnable> mDeferredCleaner;
-  nsCOMPtr<nsIURI> mCachedURI;  
-  nsString mCachedFileName;
-  uint32_t mErrorLineNumber, mColNumber, mErrorColNumber;
-  nsFixedString mError;
-  PRUnichar mErrorBuf[200];
-  uint64_t mInnerWindowID;
-  bool mWindowIDCached;
-  nsCSSStyleSheet* mSheet;
-  mozilla::css::Loader* mLoader;
-#endif
 };
 
 #endif 
