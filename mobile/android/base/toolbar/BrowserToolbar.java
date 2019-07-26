@@ -1387,6 +1387,14 @@ public class BrowserToolbar extends GeckoRelativeLayout
             return;
 
         
+        
+        MarginLayoutParams fwdParams = (MarginLayoutParams) mForward.getLayoutParams();
+        if ((fwdParams.leftMargin > mDefaultForwardMargin && enabled) ||
+            (fwdParams.leftMargin == mDefaultForwardMargin && !enabled)) {
+            return;
+        }
+
+        
         mForwardAnim = new PropertyAnimator(mSwitchingTabs ? 10 : FORWARD_ANIMATION_DURATION);
         final int width = mForward.getWidth() / 2;
 
