@@ -1288,6 +1288,20 @@ function ArrayFilterPar(func, mode) {
 
 
 
+function ArrayStaticBuild(length, func) {
+  if (!IS_UINT32(length))
+    ThrowError(JSMSG_BAD_ARRAY_LENGTH);
+  if (!IsCallable(func))
+    ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, func));
+
+  var buffer = NewDenseArray(length);
+
+  for (var i = 0; i < length; i++)
+    UnsafePutElements(buffer, i, func(i));
+
+  return buffer;
+}
+
 function ArrayStaticBuildPar(length, func, mode) {
   if (!IS_UINT32(length))
     ThrowError(JSMSG_BAD_ARRAY_LENGTH);
