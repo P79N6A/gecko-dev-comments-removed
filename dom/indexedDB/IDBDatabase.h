@@ -106,6 +106,13 @@ public:
   
   bool IsInvalidated();
 
+  void DisconnectFromActor();
+
+  
+  
+  
+  bool IsDisconnectedFromActor();
+
   void CloseInternal(bool aIsDead);
 
   
@@ -183,7 +190,8 @@ private:
 
   mozilla::dom::ContentParent* mContentParent;
 
-  int32_t mInvalidated;
+  bool mInvalidated;
+  bool mDisconnected;
   bool mRegistered;
   bool mClosed;
   bool mRunningVersionChange;

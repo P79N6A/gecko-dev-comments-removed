@@ -462,14 +462,20 @@ ContentParent::SetManifestFromPreallocated(const nsAString& aAppManifestURL)
 void
 ContentParent::ShutDownProcess()
 {
-    if (mIsAlive) {
-        
-        
-        Close();
+  if (mIsAlive) {
+    const InfallibleTArray<PIndexedDBParent*>& idbParents =
+      ManagedPIndexedDBParent();
+    for (uint32_t i = 0; i < idbParents.Length(); ++i) {
+      static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
+
     
     
-    MarkAsDead();
+    Close();
+  }
+  
+  
+  MarkAsDead();
 }
 
 void

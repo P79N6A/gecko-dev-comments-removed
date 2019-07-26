@@ -513,6 +513,37 @@ AsyncConnectionHelper::ReleaseMainThreadObjects()
   HelperBase::ReleaseMainThreadObjects();
 }
 
+AsyncConnectionHelper::ChildProcessSendResult
+AsyncConnectionHelper::MaybeSendResponseToChildProcess(nsresult aResultCode)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
+
+  
+  
+  if (!mRequest) {
+    return Success_NotSent;
+  }
+
+  IDBTransaction* trans = GetCurrentTransaction();
+  
+  if (!trans) {
+    return Success_NotSent;
+  }
+
+  
+  if (trans->Database()->IsDisconnectedFromActor()) {
+    return Success_ActorDisconnected;
+  }
+
+  IndexedDBRequestParentBase* actor = mRequest->GetActorParent();
+  if (!actor) {
+    return Success_NotSent;
+  }
+
+  return SendResponseToChildProcess(aResultCode);
+}
+
 nsresult
 AsyncConnectionHelper::OnParentProcessRequestComplete(
                                             const ResponseValue& aResponseValue)

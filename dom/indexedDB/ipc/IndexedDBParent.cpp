@@ -6,12 +6,15 @@
 
 #include "IndexedDBParent.h"
 
+#include "nsIDOMFile.h"
 #include "nsIDOMEvent.h"
 #include "nsIIDBVersionChangeEvent.h"
 #include "nsIJSContextStack.h"
 #include "nsIXPConnect.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/ipc/Blob.h"
 #include "nsContentUtils.h"
 
 #include "AsyncConnectionHelper.h"
@@ -25,6 +28,8 @@
 #include "IDBTransaction.h"
 
 USING_INDEXEDDB_NAMESPACE
+
+using namespace mozilla::dom;
 
 
 
@@ -47,6 +52,7 @@ AutoSetCurrentTransaction::~AutoSetCurrentTransaction()
 
 
 IndexedDBParent::IndexedDBParent()
+  : mDisconnected(false)
 {
   MOZ_COUNT_CTOR(IndexedDBParent);
 }
@@ -54,6 +60,19 @@ IndexedDBParent::IndexedDBParent()
 IndexedDBParent::~IndexedDBParent()
 {
   MOZ_COUNT_DTOR(IndexedDBParent);
+}
+
+void
+IndexedDBParent::Disconnect()
+{
+  mDisconnected = true;
+
+  const InfallibleTArray<PIndexedDBDatabaseParent*>& dbs =
+    ManagedPIndexedDBDatabaseParent();
+
+  for (uint32_t i = 0; i < dbs.Length(); ++i) {
+    static_cast<IndexedDBDatabaseParent*>(dbs[i])->Disconnect();
+  }
 }
 
 void
@@ -70,7 +89,8 @@ IndexedDBParent::RecvPIndexedDBDatabaseConstructor(
 {
   nsRefPtr<IDBOpenDBRequest> request;
   nsresult rv =
-    mFactory->OpenCommon(aName, aVersion, false, getter_AddRefs(request));
+    mFactory->OpenCommon(aName, aVersion, false, nullptr,
+                         getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, false);
 
   IndexedDBDatabaseParent* actor =
@@ -93,7 +113,7 @@ IndexedDBParent::RecvPIndexedDBDeleteDatabaseRequestConstructor(
   nsRefPtr<IDBOpenDBRequest> request;
 
   nsresult rv =
-    mFactory->OpenCommon(aName, 0, true, getter_AddRefs(request));
+    mFactory->OpenCommon(aName, 0, true, nullptr, getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, false);
 
   rv = actor->SetOpenRequest(request);
@@ -178,6 +198,11 @@ IndexedDBDatabaseParent::HandleEvent(nsIDOMEvent* aEvent)
 {
   MOZ_ASSERT(aEvent);
 
+  if (Manager() &&
+      static_cast<IndexedDBParent*>(Manager())->IsDisconnected()) {
+    return NS_OK;
+  }
+
   nsString type;
   nsresult rv = aEvent->GetType(type);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -206,6 +231,14 @@ IndexedDBDatabaseParent::HandleEvent(nsIDOMEvent* aEvent)
 
   MOZ_NOT_REACHED("Unexpected message!");
   return NS_ERROR_UNEXPECTED;
+}
+
+void
+IndexedDBDatabaseParent::Disconnect()
+{
+  if (mDatabase) {
+    mDatabase->DisconnectFromActor();
+  }
 }
 
 nsresult
@@ -239,7 +272,7 @@ IndexedDBDatabaseParent::HandleRequestEvent(nsIDOMEvent* aEvent,
     nsCOMPtr<nsIIDBVersionChangeEvent> changeEvent = do_QueryInterface(aEvent);
     NS_ENSURE_TRUE(changeEvent, NS_ERROR_FAILURE);
 
-    PRUint64 oldVersion;
+    uint64_t oldVersion;
     rv = changeEvent->GetOldVersion(&oldVersion);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -333,7 +366,7 @@ IndexedDBDatabaseParent::HandleRequestEvent(nsIDOMEvent* aEvent,
     nsCOMPtr<nsIIDBVersionChangeEvent> changeEvent = do_QueryInterface(aEvent);
     NS_ENSURE_TRUE(changeEvent, NS_ERROR_FAILURE);
 
-    PRUint64 oldVersion;
+    uint64_t oldVersion;
     rv = changeEvent->GetOldVersion(&oldVersion);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -377,13 +410,13 @@ IndexedDBDatabaseParent::HandleDatabaseEvent(nsIDOMEvent* aEvent,
   nsresult rv;
 
   if (aType.EqualsLiteral(VERSIONCHANGE_EVT_STR)) {
-    JSContext* cx = nsContentUtils::GetCurrentJSContext();
+    JSContext* cx = nsContentUtils::GetSafeJSContext();
     NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIIDBVersionChangeEvent> changeEvent = do_QueryInterface(aEvent);
     NS_ENSURE_TRUE(changeEvent, NS_ERROR_FAILURE);
 
-    PRUint64 oldVersion;
+    uint64_t oldVersion;
     rv = changeEvent->GetOldVersion(&oldVersion);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -577,7 +610,7 @@ bool
 IndexedDBTransactionParent::RecvAbort(const nsresult& aAbortCode)
 {
   MOZ_ASSERT(mTransaction);
-  mTransaction->AbortWithCode(aAbortCode);
+  mTransaction->Abort(aAbortCode);
   return true;
 }
 
@@ -1182,6 +1215,27 @@ IndexedDBObjectStoreRequestParent::~IndexedDBObjectStoreRequestParent()
   MOZ_COUNT_DTOR(IndexedDBObjectStoreRequestParent);
 }
 
+void
+IndexedDBObjectStoreRequestParent::ConvertBlobActors(
+                                  const InfallibleTArray<PBlobParent*>& aActors,
+                                  nsTArray<nsCOMPtr<nsIDOMBlob> >& aBlobs)
+{
+  MOZ_ASSERT(aBlobs.IsEmpty());
+
+  if (!aActors.IsEmpty()) {
+    
+    MOZ_ASSERT(mObjectStore->Transaction()->Database()->GetContentParent());
+
+    uint32_t length = aActors.Length();
+    aBlobs.SetCapacity(length);
+
+    for (uint32_t index = 0; index < length; index++) {
+      BlobParent* actor = static_cast<BlobParent*>(aActors[index]);
+      aBlobs.AppendElement(actor->GetBlob());
+    }
+  }
+}
+
 bool
 IndexedDBObjectStoreRequestParent::Get(const GetParams& aParams)
 {
@@ -1196,7 +1250,8 @@ IndexedDBObjectStoreRequestParent::Get(const GetParams& aParams)
   {
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
-    nsresult rv = mObjectStore->GetInternal(keyRange, getter_AddRefs(request));
+    nsresult rv = mObjectStore->GetInternal(keyRange, nullptr,
+                                            getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1235,6 +1290,7 @@ IndexedDBObjectStoreRequestParent::GetAll(const GetAllParams& aParams)
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
     nsresult rv = mObjectStore->GetAllInternal(keyRange, aParams.limit(),
+                                               nullptr,
                                                getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1251,6 +1307,9 @@ IndexedDBObjectStoreRequestParent::Add(const AddParams& aParams)
 
   ipc::AddPutParams params = aParams.commonParams();
 
+  nsTArray<nsCOMPtr<nsIDOMBlob> > blobs;
+  ConvertBlobActors(params.blobsParent(), blobs);
+
   nsRefPtr<IDBRequest> request;
 
   {
@@ -1258,7 +1317,7 @@ IndexedDBObjectStoreRequestParent::Add(const AddParams& aParams)
 
     nsresult rv =
       mObjectStore->AddOrPutInternal(params.cloneInfo(), params.key(),
-                                     params.indexUpdateInfos(), false,
+                                     params.indexUpdateInfos(), blobs, false,
                                      getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1275,6 +1334,9 @@ IndexedDBObjectStoreRequestParent::Put(const PutParams& aParams)
 
   ipc::AddPutParams params = aParams.commonParams();
 
+  nsTArray<nsCOMPtr<nsIDOMBlob> > blobs;
+  ConvertBlobActors(params.blobsParent(), blobs);
+
   nsRefPtr<IDBRequest> request;
 
   {
@@ -1282,7 +1344,7 @@ IndexedDBObjectStoreRequestParent::Put(const PutParams& aParams)
 
     nsresult rv =
       mObjectStore->AddOrPutInternal(params.cloneInfo(), params.key(),
-                                     params.indexUpdateInfos(), true,
+                                     params.indexUpdateInfos(), blobs, true,
                                      getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1307,7 +1369,7 @@ IndexedDBObjectStoreRequestParent::Delete(const DeleteParams& aParams)
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
     nsresult rv =
-      mObjectStore->DeleteInternal(keyRange, getter_AddRefs(request));
+      mObjectStore->DeleteInternal(keyRange, nullptr, getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1326,7 +1388,7 @@ IndexedDBObjectStoreRequestParent::Clear(const ClearParams& aParams)
   {
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
-    nsresult rv = mObjectStore->ClearInternal(getter_AddRefs(request));
+    nsresult rv = mObjectStore->ClearInternal(nullptr, getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1365,7 +1427,7 @@ IndexedDBObjectStoreRequestParent::Count(const CountParams& aParams)
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
     nsresult rv =
-      mObjectStore->CountInternal(keyRange, getter_AddRefs(request));
+      mObjectStore->CountInternal(keyRange, nullptr, getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1406,7 +1468,7 @@ IndexedDBObjectStoreRequestParent::OpenCursor(const OpenCursorParams& aParams)
     AutoSetCurrentTransaction asct(mObjectStore->Transaction());
 
     nsresult rv =
-      mObjectStore->OpenCursorInternal(keyRange, direction,
+      mObjectStore->OpenCursorInternal(keyRange, direction, nullptr,
                                        getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1450,7 +1512,8 @@ IndexedDBIndexRequestParent::Get(const GetParams& aParams)
   {
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
-    nsresult rv = mIndex->GetInternal(keyRange, getter_AddRefs(request));
+    nsresult rv = mIndex->GetInternal(keyRange, nullptr,
+                                      getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1473,7 +1536,8 @@ IndexedDBIndexRequestParent::GetKey(const GetKeyParams& aParams)
   {
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
-    nsresult rv = mIndex->GetKeyInternal(keyRange, getter_AddRefs(request));
+    nsresult rv = mIndex->GetKeyInternal(keyRange, nullptr,
+                                         getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1511,7 +1575,7 @@ IndexedDBIndexRequestParent::GetAll(const GetAllParams& aParams)
   {
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
-    nsresult rv = mIndex->GetAllInternal(keyRange, aParams.limit(),
+    nsresult rv = mIndex->GetAllInternal(keyRange, aParams.limit(), nullptr,
                                          getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1550,7 +1614,7 @@ IndexedDBIndexRequestParent::GetAllKeys(const GetAllKeysParams& aParams)
   {
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
-    nsresult rv = mIndex->GetAllKeysInternal(keyRange, aParams.limit(),
+    nsresult rv = mIndex->GetAllKeysInternal(keyRange, aParams.limit(), nullptr,
                                              getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1589,7 +1653,8 @@ IndexedDBIndexRequestParent::Count(const CountParams& aParams)
   {
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
-    nsresult rv = mIndex->CountInternal(keyRange, getter_AddRefs(request));
+    nsresult rv = mIndex->CountInternal(keyRange, nullptr,
+                                        getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1630,7 +1695,8 @@ IndexedDBIndexRequestParent::OpenCursor(const OpenCursorParams& aParams)
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
     nsresult rv =
-      mIndex->OpenCursorInternal(keyRange, direction, getter_AddRefs(request));
+      mIndex->OpenCursorInternal(keyRange, direction, nullptr,
+                                 getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
 
@@ -1671,7 +1737,7 @@ IndexedDBIndexRequestParent::OpenKeyCursor(const OpenKeyCursorParams& aParams)
     AutoSetCurrentTransaction asct(mIndex->ObjectStore()->Transaction());
 
     nsresult rv =
-      mIndex->OpenKeyCursorInternal(keyRange, direction,
+      mIndex->OpenKeyCursorInternal(keyRange, direction, nullptr,
                                     getter_AddRefs(request));
     NS_ENSURE_SUCCESS(rv, false);
   }
@@ -1740,6 +1806,11 @@ IndexedDBDeleteDatabaseRequestParent::~IndexedDBDeleteDatabaseRequestParent()
 nsresult
 IndexedDBDeleteDatabaseRequestParent::HandleEvent(nsIDOMEvent* aEvent)
 {
+  if (Manager() &&
+      static_cast<IndexedDBParent*>(Manager())->IsDisconnected()) {
+    return NS_OK;
+  }
+
   MOZ_ASSERT(aEvent);
 
   nsString type;
@@ -1750,7 +1821,7 @@ IndexedDBDeleteDatabaseRequestParent::HandleEvent(nsIDOMEvent* aEvent)
     nsCOMPtr<nsIIDBVersionChangeEvent> event = do_QueryInterface(aEvent);
     MOZ_ASSERT(event);
 
-    PRUint64 currentVersion;
+    uint64_t currentVersion;
     rv = event->GetOldVersion(&currentVersion);
     NS_ENSURE_SUCCESS(rv, rv);
 

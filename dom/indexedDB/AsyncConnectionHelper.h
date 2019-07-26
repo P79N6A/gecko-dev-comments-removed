@@ -37,15 +37,6 @@ class HelperBase : public nsIRunnable
   friend class IDBRequest;
 
 public:
-  enum ChildProcessSendResult
-  {
-    Success_Sent = 0,
-    Success_NotSent,
-    Error
-  };
-
-  virtual ChildProcessSendResult
-  MaybeSendResponseToChildProcess(nsresult aResultCode) = 0;
 
   virtual nsresult GetResultCode() = 0;
 
@@ -131,6 +122,25 @@ public:
     return mResultCode;
   }
 
+  enum ChildProcessSendResult
+  {
+    
+    Success_Sent = 0,
+
+    
+    Success_NotSent,
+
+    
+    
+    Success_ActorDisconnected,
+
+    
+    Error
+  };
+
+  ChildProcessSendResult
+  MaybeSendResponseToChildProcess(nsresult aResultCode);
+
   virtual nsresult OnParentProcessRequestComplete(
                                            const ResponseValue& aResponseValue);
 
@@ -206,6 +216,14 @@ protected:
 
 
   static void SetCurrentTransaction(IDBTransaction* aTransaction);
+
+  
+
+
+
+
+  virtual ChildProcessSendResult
+  SendResponseToChildProcess(nsresult aResultCode) = 0;
 
 protected:
   nsRefPtr<IDBDatabase> mDatabase;
