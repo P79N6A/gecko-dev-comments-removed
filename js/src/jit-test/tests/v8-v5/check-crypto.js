@@ -40,6 +40,10 @@
 
 
 
+
+
+
+
 var dbits;
 var BI_DB;
 var BI_DM;
@@ -1706,11 +1710,6 @@ function check_correctness(text, hash) {
   assertEq( encrypted, hash );
   assertEq( decrypted, text );
 }
-
-
-
-if (relaxRootChecks)
-    relaxRootChecks();
 
 
 check_correctness("Hello! I am some text.", "142b19b40fee712ab9468be296447d38c7dfe81a7850f11ae6aa21e49396a4e90bd6ba4aa385105e15960a59f95447dfad89671da6e08ed42229939583753be84d07558abb4feee4d46a92fd31d962679a1a5f4bf0fb7af414b9a756e18df7e6d1e96971cc66769f3b27d61ad932f2211373e0de388dc040557d4c3c3fe74320");

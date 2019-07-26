@@ -221,10 +221,5 @@ for (var i = 0; i <4; i++) {
     plainText += plainText;
 }
 
-
-
-if (relaxRootChecks)
-  relaxRootChecks();
-
 var sha1Output = hex_sha1(plainText);
 assertEq(sha1Output, "2524d264def74cce2498bf112bedf00e6c0b796d")
