@@ -157,7 +157,7 @@ public:
 
   static void HandleEventTargetChain(nsTArray<nsEventTargetChainItem>& aChain,
                                      EventChainPostVisitor& aVisitor,
-                                     nsDispatchingCallback* aCallback,
+                                     EventDispatchingCallback* aCallback,
                                      ELMCreationDetector& aCd);
 
   
@@ -242,7 +242,7 @@ void
 nsEventTargetChainItem::HandleEventTargetChain(
                           nsTArray<nsEventTargetChainItem>& aChain,
                           EventChainPostVisitor& aVisitor,
-                          nsDispatchingCallback* aCallback,
+                          EventDispatchingCallback* aCallback,
                           ELMCreationDetector& aCd)
 {
   
@@ -379,7 +379,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                             WidgetEvent* aEvent,
                             nsIDOMEvent* aDOMEvent,
                             nsEventStatus* aEventStatus,
-                            nsDispatchingCallback* aCallback,
+                            EventDispatchingCallback* aCallback,
                             nsCOMArray<EventTarget>* aTargets)
 {
   PROFILER_LABEL("nsEventDispatcher", "Dispatch");

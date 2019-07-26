@@ -206,18 +206,19 @@ public:
   }
 };
 
-} 
 
 
 
 
 
 
-
-class MOZ_STACK_CLASS nsDispatchingCallback {
+class MOZ_STACK_CLASS EventDispatchingCallback
+{
 public:
-  virtual void HandleEvent(mozilla::EventChainPostVisitor& aVisitor) = 0;
+  virtual void HandleEvent(EventChainPostVisitor& aVisitor) = 0;
 };
+
+} 
 
 
 
@@ -247,7 +248,7 @@ public:
                            mozilla::WidgetEvent* aEvent,
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
-                           nsDispatchingCallback* aCallback = nullptr,
+                           mozilla::EventDispatchingCallback* aCallback = nullptr,
                            nsCOMArray<mozilla::dom::EventTarget>* aTargets = nullptr);
 
   
