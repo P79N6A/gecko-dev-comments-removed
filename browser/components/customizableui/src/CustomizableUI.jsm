@@ -911,6 +911,11 @@ let CustomizableUIInternal = {
     }
 
     placements.splice(oldPlacement.position, 1);
+    
+    
+    if (oldPlacement.position < aPosition) {
+      aPosition--;
+    }
     placements.splice(aPosition, 0, aWidgetId);
 
     let widget = gPalette.get(aWidgetId);
