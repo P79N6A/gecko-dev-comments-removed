@@ -1812,6 +1812,23 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
   if (child) {
     updateFlags |= UpdateTreeInternal(child, aIsInsert, reorderEvent);
 
+    
+    
+    if (!aIsInsert && aChildNode->IsHTML(nsGkAtoms::optgroup) &&
+        aContainer->GetContent()->IsHTML(nsGkAtoms::select)) {
+      for (nsIContent* optContent = aChildNode->GetFirstChild(); optContent;
+           optContent = optContent->GetNextSibling()) {
+        if (optContent->IsHTML(nsGkAtoms::option)) {
+          Accessible* option = GetAccessible(optContent);
+          if (option) {
+            NS_ASSERTION(option->Parent() == aContainer,
+                         "Not expected hierarchy on HTML select!");
+            if (option->Parent() == aContainer)
+              updateFlags |= UpdateTreeInternal(option, aIsInsert, reorderEvent);
+          }
+        }
+      }
+    }
   } else {
     TreeWalker walker(aContainer, aChildNode, true);
 
