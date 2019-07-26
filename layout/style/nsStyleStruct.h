@@ -1526,7 +1526,7 @@ struct nsStyleText {
   uint8_t mHyphens;                     
   uint8_t mTextSizeAdjust;              
   uint8_t mTextOrientation;             
-  uint8_t mTextCombineHorizontal;       
+  uint8_t mTextCombineUpright;          
   uint8_t mControlCharacterVisibility;  
   int32_t mTabSize;                     
 
