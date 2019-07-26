@@ -21,656 +21,656 @@ const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 
 
-let mIncomingBufferLength = 1024;
-let mOutgoingBufferLength = 1024;
-let mIncomingBuffer, mOutgoingBuffer, mIncomingBytes, mOutgoingBytes,
-    mIncomingWriteIndex, mIncomingReadIndex, mOutgoingIndex, mReadIncoming,
-    mReadAvailable, mCurrentParcelSize, mToken, mTokenRequestMap,
-    mLasSolicitedToken, mOutgoingBufferCalSizeQueue, mOutputStream;
+let Buf = {
+  mIncomingBufferLength: 1024,
+  mIncomingBuffer: null,
+  mIncomingBytes: null,
+  mIncomingWriteIndex: 0,
+  mIncomingReadIndex: 0,
+  mReadIncoming: 0,
+  mReadAvailable: 0,
+  mCurrentParcelSize: 0,
 
-function init() {
-  mIncomingBuffer = new ArrayBuffer(mIncomingBufferLength);
-  mOutgoingBuffer = new ArrayBuffer(mOutgoingBufferLength);
+  mOutgoingBufferLength: 1024,
+  mOutgoingBuffer: null,
+  mOutgoingBytes: null,
+  mOutgoingIndex: 0,
+  mOutgoingBufferCalSizeQueue: null,
 
-  mIncomingBytes = new Uint8Array(mIncomingBuffer);
-  mOutgoingBytes = new Uint8Array(mOutgoingBuffer);
+  mToken: 0,
+  mTokenRequestMap: null,
 
-  
-  mIncomingWriteIndex = 0;
-  mIncomingReadIndex = 0;
+  init: function init() {
+    this.mIncomingBuffer = new ArrayBuffer(this.mIncomingBufferLength);
+    this.mOutgoingBuffer = new ArrayBuffer(this.mOutgoingBufferLength);
 
-  
-  mOutgoingIndex = PARCEL_SIZE_SIZE;
+    this.mIncomingBytes = new Uint8Array(this.mIncomingBuffer);
+    this.mOutgoingBytes = new Uint8Array(this.mOutgoingBuffer);
 
-  
-  mReadIncoming = 0;
+    
+    this.mIncomingWriteIndex = 0;
+    this.mIncomingReadIndex = 0;
 
-  
-  mReadAvailable = 0;
+    
+    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
 
-  
-  
-  mCurrentParcelSize = 0;
+    
+    this.mReadIncoming = 0;
 
-  
-  mToken = 1;
+    
+    this.mReadAvailable = 0;
 
-  
-  
-  mTokenRequestMap = {};
-
-  
-  mLasSolicitedToken = 0;
-
-  
-  mOutgoingBufferCalSizeQueue = [];
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function startCalOutgoingSize(writeFunction) {
-  let sizeInfo = {index: mOutgoingIndex,
-                  write: writeFunction};
-
-  
-  writeFunction.call(0);
-
-  
-  sizeInfo.size = mOutgoingIndex - sizeInfo.index;
-
-  
-  mOutgoingBufferCalSizeQueue.push(sizeInfo);
-}
-
-
-
-
-function stopCalOutgoingSize() {
-  let sizeInfo = mOutgoingBufferCalSizeQueue.pop();
-
-  
-  let currentOutgoingIndex = mOutgoingIndex;
-  
-  let writeSize = mOutgoingIndex - sizeInfo.index - sizeInfo.size;
-
-  
-  
-  mOutgoingIndex = sizeInfo.index;
-  sizeInfo.write(writeSize);
-
-  
-  mOutgoingIndex = currentOutgoingIndex;
-}
-
-
-
-
-
-
-
-
-function growIncomingBuffer(min_size) {
-  if (DEBUG) {
-    debug("Current buffer of " + mIncomingBufferLength +
-          " can't handle incoming " + min_size + " bytes.");
-  }
-  let oldBytes = mIncomingBytes;
-  mIncomingBufferLength =
-    2 << Math.floor(Math.log(min_size)/Math.log(2));
-  if (DEBUG) debug("New incoming buffer size: " + mIncomingBufferLength);
-  mIncomingBuffer = new ArrayBuffer(mIncomingBufferLength);
-  mIncomingBytes = new Uint8Array(mIncomingBuffer);
-  if (mIncomingReadIndex <= mIncomingWriteIndex) {
     
     
+    this.mCurrentParcelSize = 0;
+
     
-    mIncomingBytes.set(oldBytes, 0);
-  } else {
+    this.mToken = 1;
+
     
     
+    this.mTokenRequestMap = {};
+
+    
+    this.mOutgoingBufferCalSizeQueue = [];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  startCalOutgoingSize: function startCalOutgoingSize(writeFunction) {
+    let sizeInfo = {index: this.mOutgoingIndex,
+                    write: writeFunction};
+
+    
+    writeFunction.call(0);
+
+    
+    sizeInfo.size = this.mOutgoingIndex - sizeInfo.index;
+
+    
+    this.mOutgoingBufferCalSizeQueue.push(sizeInfo);
+  },
+
+  
+
+
+  stopCalOutgoingSize: function stopCalOutgoingSize() {
+    let sizeInfo = this.mOutgoingBufferCalSizeQueue.pop();
+
+    
+    let currentOutgoingIndex = this.mOutgoingIndex;
+    
+    let writeSize = this.mOutgoingIndex - sizeInfo.index - sizeInfo.size;
+
     
     
-    let head = oldBytes.subarray(mIncomingReadIndex);
-    let tail = oldBytes.subarray(0, mIncomingReadIndex);
-    mIncomingBytes.set(head, 0);
-    mIncomingBytes.set(tail, head.length);
-    mIncomingReadIndex = 0;
-    mIncomingWriteIndex += head.length;
-  }
-  if (DEBUG) {
-    debug("New incoming buffer size is " + mIncomingBufferLength);
-  }
-}
+    this.mOutgoingIndex = sizeInfo.index;
+    sizeInfo.write(writeSize);
 
-
-
-
-
-
-
-
-function growOutgoingBuffer(min_size) {
-  if (DEBUG) {
-    debug("Current buffer of " + mOutgoingBufferLength +
-          " is too small.");
-  }
-  let oldBytes = mOutgoingBytes;
-  mOutgoingBufferLength =
-    2 << Math.floor(Math.log(min_size)/Math.log(2));
-  mOutgoingBuffer = new ArrayBuffer(mOutgoingBufferLength);
-  mOutgoingBytes = new Uint8Array(mOutgoingBuffer);
-  mOutgoingBytes.set(oldBytes, 0);
-  if (DEBUG) {
-    debug("New outgoing buffer size is " + mOutgoingBufferLength);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ensureIncomingAvailable(index) {
-  if (index >= mCurrentParcelSize) {
-    throw new Error("Trying to read data beyond the parcel end!");
-  } else if (index < 0) {
-    throw new Error("Trying to read data before the parcel begin!");
-  }
-}
-
-
-
-
-
-
-
-function seekIncoming(offset) {
-  
-  let cur = mCurrentParcelSize - mReadAvailable;
-
-  let newIndex = cur + offset;
-  ensureIncomingAvailable(newIndex);
-
-  
-  
-  
-  
-  
-  mReadAvailable = mCurrentParcelSize - newIndex;
-
-  
-  if (mIncomingReadIndex < cur) {
     
-    newIndex += mIncomingBufferLength;
-  }
-  newIndex += (mIncomingReadIndex - cur);
-  newIndex %= mIncomingBufferLength;
-  mIncomingReadIndex = newIndex;
-}
+    this.mOutgoingIndex = currentOutgoingIndex;
+  },
 
-function readUint8Unchecked() {
-  let value = mIncomingBytes[mIncomingReadIndex];
-  mIncomingReadIndex = (mIncomingReadIndex + 1) %
-                           mIncomingBufferLength;
-  return value;
-}
-
-function readUint8() {
   
-  let cur = mCurrentParcelSize - mReadAvailable;
-  ensureIncomingAvailable(cur);
 
-  mReadAvailable--;
-  return readUint8Unchecked();
-}
 
-function readUint8Array(length) {
-  
-  let last = mCurrentParcelSize - mReadAvailable;
-  last += (length - 1);
-  ensureIncomingAvailable(last);
 
-  let array = new Uint8Array(length);
-  for (let i = 0; i < length; i++) {
-    array[i] = readUint8Unchecked();
-  }
 
-  mReadAvailable -= length;
-  return array;
-}
 
-function readUint16() {
-  return readUint8() | readUint8() << 8;
-}
 
-function readUint32() {
-  return readUint8()       | readUint8() <<  8 |
-         readUint8() << 16 | readUint8() << 24;
-}
-
-function readUint32List() {
-  let length = readUint32();
-  let ints = [];
-  for (let i = 0; i < length; i++) {
-    ints.push(readUint32());
-  }
-  return ints;
-}
-
-function readString() {
-  let string_len = readUint32();
-  if (string_len < 0 || string_len >= INT32_MAX) {
-    return null;
-  }
-  let s = "";
-  for (let i = 0; i < string_len; i++) {
-    s += String.fromCharCode(readUint16());
-  }
-  
-  
-  
-  readStringDelimiter(string_len);
-  return s;
-}
-
-function readStringList() {
-  let num_strings = readUint32();
-  let strings = [];
-  for (let i = 0; i < num_strings; i++) {
-    strings.push(readString());
-  }
-  return strings;
-}
-
-function readStringDelimiter(length) {
-  let delimiter = readUint16();
-  if (!(length & 1)) {
-    delimiter |= readUint16();
-  }
-  if (DEBUG) {
-    if (delimiter !== 0) {
-      debug("Something's wrong, found string delimiter: " + delimiter);
+  growIncomingBuffer: function growIncomingBuffer(min_size) {
+    if (DEBUG) {
+      debug("Current buffer of " + this.mIncomingBufferLength +
+            " can't handle incoming " + min_size + " bytes.");
     }
-  }
-}
-
-function readParcelSize() {
-  return readUint8Unchecked() << 24 |
-         readUint8Unchecked() << 16 |
-         readUint8Unchecked() <<  8 |
-         readUint8Unchecked();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function ensureOutgoingAvailable(index) {
-  if (index >= mOutgoingBufferLength) {
-    growOutgoingBuffer(index + 1);
-  }
-}
-
-function writeUint8(value) {
-  ensureOutgoingAvailable(mOutgoingIndex);
-
-  mOutgoingBytes[mOutgoingIndex] = value;
-  mOutgoingIndex++;
-}
-
-function writeUint16(value) {
-  writeUint8(value & 0xff);
-  writeUint8((value >> 8) & 0xff);
-}
-
-function writeUint32(value) {
-  writeUint8(value & 0xff);
-  writeUint8((value >> 8) & 0xff);
-  writeUint8((value >> 16) & 0xff);
-  writeUint8((value >> 24) & 0xff);
-}
-
-function writeString(value) {
-  if (value == null) {
-    writeUint32(-1);
-    return;
-  }
-  writeUint32(value.length);
-  for (let i = 0; i < value.length; i++) {
-    writeUint16(value.charCodeAt(i));
-  }
-  
-  
-  
-  writeStringDelimiter(value.length);
-}
-
-function writeStringList(strings) {
-  writeUint32(strings.length);
-  for (let i = 0; i < strings.length; i++) {
-    writeString(strings[i]);
-  }
-}
-
-function writeStringDelimiter(length) {
-  writeUint16(0);
-  if (!(length & 1)) {
-    writeUint16(0);
-  }
-}
-
-function writeParcelSize(value) {
-  
-
-
-
-
-  let currentIndex = mOutgoingIndex;
-  mOutgoingIndex = 0;
-  writeUint8((value >> 24) & 0xff);
-  writeUint8((value >> 16) & 0xff);
-  writeUint8((value >> 8) & 0xff);
-  writeUint8(value & 0xff);
-  mOutgoingIndex = currentIndex;
-}
-
-function copyIncomingToOutgoing(length) {
-  if (!length || (length < 0)) {
-    return;
-  }
-
-  let translatedReadIndexEnd = mCurrentParcelSize - mReadAvailable + length - 1;
-  ensureIncomingAvailable(translatedReadIndexEnd);
-
-  let translatedWriteIndexEnd = mOutgoingIndex + length - 1;
-  ensureOutgoingAvailable(translatedWriteIndexEnd);
-
-  let newIncomingReadIndex = mIncomingReadIndex + length;
-  if (newIncomingReadIndex < mIncomingBufferLength) {
-    
-    mOutgoingBytes.set(mIncomingBytes.subarray(mIncomingReadIndex, newIncomingReadIndex),
-                           mOutgoingIndex);
-  } else {
-    
-    newIncomingReadIndex %= mIncomingBufferLength;
-    mOutgoingBytes.set(mIncomingBytes.subarray(mIncomingReadIndex, mIncomingBufferLength),
-                           mOutgoingIndex);
-    if (newIncomingReadIndex) {
-      let firstPartLength = mIncomingBufferLength - mIncomingReadIndex;
-      mOutgoingBytes.set(mIncomingBytes.subarray(0, newIncomingReadIndex),
-                             mOutgoingIndex + firstPartLength);
-    }
-  }
-
-  mIncomingReadIndex = newIncomingReadIndex;
-  mReadAvailable -= length;
-  mOutgoingIndex += length;
-}
-
-
-
-
-
-
-
-
-
-
-
-function writeToIncoming(incoming) {
-  
-  
-  
-  
-  let minMustAvailableSize = incoming.length + mReadIncoming;
-  if (minMustAvailableSize > mIncomingBufferLength) {
-    growIncomingBuffer(minMustAvailableSize);
-  }
-
-  
-  
-  let remaining = mIncomingBufferLength - mIncomingWriteIndex;
-  if (remaining >= incoming.length) {
-    mIncomingBytes.set(incoming, mIncomingWriteIndex);
-  } else {
-    
-    let head = incoming.subarray(0, remaining);
-    let tail = incoming.subarray(remaining);
-    mIncomingBytes.set(head, mIncomingWriteIndex);
-    mIncomingBytes.set(tail, 0);
-  }
-  mIncomingWriteIndex = (mIncomingWriteIndex + incoming.length) %
-                            mIncomingBufferLength;
-}
-
-
-
-
-
-
-
-function processIncoming(incoming) {
-  if (DEBUG) {
-    debug("Received " + incoming.length + " bytes.");
-    debug("Already read " + mReadIncoming);
-  }
-
-  writeToIncoming(incoming);
-  mReadIncoming += incoming.length;
-  while (true) {
-    if (!mCurrentParcelSize) {
+    let oldBytes = this.mIncomingBytes;
+    this.mIncomingBufferLength =
+      2 << Math.floor(Math.log(min_size)/Math.log(2));
+    if (DEBUG) debug("New incoming buffer size: " + this.mIncomingBufferLength);
+    this.mIncomingBuffer = new ArrayBuffer(this.mIncomingBufferLength);
+    this.mIncomingBytes = new Uint8Array(this.mIncomingBuffer);
+    if (this.mIncomingReadIndex <= this.mIncomingWriteIndex) {
       
-      if (mReadIncoming < PARCEL_SIZE_SIZE) {
+      
+      
+      this.mIncomingBytes.set(oldBytes, 0);
+    } else {
+      
+      
+      
+      
+      let head = oldBytes.subarray(this.mIncomingReadIndex);
+      let tail = oldBytes.subarray(0, this.mIncomingReadIndex);
+      this.mIncomingBytes.set(head, 0);
+      this.mIncomingBytes.set(tail, head.length);
+      this.mIncomingReadIndex = 0;
+      this.mIncomingWriteIndex += head.length;
+    }
+    if (DEBUG) {
+      debug("New incoming buffer size is " + this.mIncomingBufferLength);
+    }
+  },
+
+  
+
+
+
+
+
+
+  growOutgoingBuffer: function growOutgoingBuffer(min_size) {
+    if (DEBUG) {
+      debug("Current buffer of " + this.mOutgoingBufferLength +
+            " is too small.");
+    }
+    let oldBytes = this.mOutgoingBytes;
+    this.mOutgoingBufferLength =
+      2 << Math.floor(Math.log(min_size)/Math.log(2));
+    this.mOutgoingBuffer = new ArrayBuffer(this.mOutgoingBufferLength);
+    this.mOutgoingBytes = new Uint8Array(this.mOutgoingBuffer);
+    this.mOutgoingBytes.set(oldBytes, 0);
+    if (DEBUG) {
+      debug("New outgoing buffer size is " + this.mOutgoingBufferLength);
+    }
+  },
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+  ensureIncomingAvailable: function ensureIncomingAvailable(index) {
+    if (index >= this.mCurrentParcelSize) {
+      throw new Error("Trying to read data beyond the parcel end!");
+    } else if (index < 0) {
+      throw new Error("Trying to read data before the parcel begin!");
+    }
+  },
+
+  
+
+
+
+
+
+  seekIncoming: function seekIncoming(offset) {
+    
+    let cur = this.mCurrentParcelSize - this.mReadAvailable;
+
+    let newIndex = cur + offset;
+    this.ensureIncomingAvailable(newIndex);
+
+    
+    
+    
+    
+    
+    this.mReadAvailable = this.mCurrentParcelSize - newIndex;
+
+    
+    if (this.mIncomingReadIndex < cur) {
+      
+      newIndex += this.mIncomingBufferLength;
+    }
+    newIndex += (this.mIncomingReadIndex - cur);
+    newIndex %= this.mIncomingBufferLength;
+    this.mIncomingReadIndex = newIndex;
+  },
+
+  readUint8Unchecked: function readUint8Unchecked() {
+    let value = this.mIncomingBytes[this.mIncomingReadIndex];
+    this.mIncomingReadIndex = (this.mIncomingReadIndex + 1) %
+                             this.mIncomingBufferLength;
+    return value;
+  },
+
+  readUint8: function readUint8() {
+    
+    let cur = this.mCurrentParcelSize - this.mReadAvailable;
+    this.ensureIncomingAvailable(cur);
+
+    this.mReadAvailable--;
+    return this.readUint8Unchecked();
+  },
+
+  readUint8Array: function readUint8Array(length) {
+    
+    let last = this.mCurrentParcelSize - this.mReadAvailable;
+    last += (length - 1);
+    this.ensureIncomingAvailable(last);
+
+    let array = new Uint8Array(length);
+    for (let i = 0; i < length; i++) {
+      array[i] = this.readUint8Unchecked();
+    }
+
+    this.mReadAvailable -= length;
+    return array;
+  },
+
+  readUint16: function readUint16() {
+    return this.readUint8() | this.readUint8() << 8;
+  },
+
+  readUint32: function readUint32() {
+    return this.readUint8()       | this.readUint8() <<  8 |
+           this.readUint8() << 16 | this.readUint8() << 24;
+  },
+
+  readUint32List: function readUint32List() {
+    let length = this.readUint32();
+    let ints = [];
+    for (let i = 0; i < length; i++) {
+      ints.push(this.readUint32());
+    }
+    return ints;
+  },
+
+  readString: function readString() {
+    let string_len = this.readUint32();
+    if (string_len < 0 || string_len >= INT32_MAX) {
+      return null;
+    }
+    let s = "";
+    for (let i = 0; i < string_len; i++) {
+      s += String.fromCharCode(this.readUint16());
+    }
+    
+    
+    
+    this.readStringDelimiter(string_len);
+    return s;
+  },
+
+  readStringList: function readStringList() {
+    let num_strings = this.readUint32();
+    let strings = [];
+    for (let i = 0; i < num_strings; i++) {
+      strings.push(this.readString());
+    }
+    return strings;
+  },
+
+  readStringDelimiter: function readStringDelimiter(length) {
+    let delimiter = this.readUint16();
+    if (!(length & 1)) {
+      delimiter |= this.readUint16();
+    }
+    if (DEBUG) {
+      if (delimiter !== 0) {
+        debug("Something's wrong, found string delimiter: " + delimiter);
+      }
+    }
+  },
+
+  readParcelSize: function readParcelSize() {
+    return this.readUint8Unchecked() << 24 |
+           this.readUint8Unchecked() << 16 |
+           this.readUint8Unchecked() <<  8 |
+           this.readUint8Unchecked();
+  },
+
+  
+
+
+
+  
+
+
+
+
+
+
+  ensureOutgoingAvailable: function ensureOutgoingAvailable(index) {
+    if (index >= this.mOutgoingBufferLength) {
+      this.growOutgoingBuffer(index + 1);
+    }
+  },
+
+  writeUint8: function writeUint8(value) {
+    this.ensureOutgoingAvailable(this.mOutgoingIndex);
+
+    this.mOutgoingBytes[this.mOutgoingIndex] = value;
+    this.mOutgoingIndex++;
+  },
+
+  writeUint16: function writeUint16(value) {
+    this.writeUint8(value & 0xff);
+    this.writeUint8((value >> 8) & 0xff);
+  },
+
+  writeUint32: function writeUint32(value) {
+    this.writeUint8(value & 0xff);
+    this.writeUint8((value >> 8) & 0xff);
+    this.writeUint8((value >> 16) & 0xff);
+    this.writeUint8((value >> 24) & 0xff);
+  },
+
+  writeString: function writeString(value) {
+    if (value == null) {
+      this.writeUint32(-1);
+      return;
+    }
+    this.writeUint32(value.length);
+    for (let i = 0; i < value.length; i++) {
+      this.writeUint16(value.charCodeAt(i));
+    }
+    
+    
+    
+    this.writeStringDelimiter(value.length);
+  },
+
+  writeStringList: function writeStringList(strings) {
+    this.writeUint32(strings.length);
+    for (let i = 0; i < strings.length; i++) {
+      this.writeString(strings[i]);
+    }
+  },
+
+  writeStringDelimiter: function writeStringDelimiter(length) {
+    this.writeUint16(0);
+    if (!(length & 1)) {
+      this.writeUint16(0);
+    }
+  },
+
+  writeParcelSize: function writeParcelSize(value) {
+    
+
+
+
+
+    let currentIndex = this.mOutgoingIndex;
+    this.mOutgoingIndex = 0;
+    this.writeUint8((value >> 24) & 0xff);
+    this.writeUint8((value >> 16) & 0xff);
+    this.writeUint8((value >> 8) & 0xff);
+    this.writeUint8(value & 0xff);
+    this.mOutgoingIndex = currentIndex;
+  },
+
+  copyIncomingToOutgoing: function copyIncomingToOutgoing(length) {
+    if (!length || (length < 0)) {
+      return;
+    }
+
+    let translatedReadIndexEnd =
+      this.mCurrentParcelSize - this.mReadAvailable + length - 1;
+    this.ensureIncomingAvailable(translatedReadIndexEnd);
+
+    let translatedWriteIndexEnd = this.mOutgoingIndex + length - 1;
+    this.ensureOutgoingAvailable(translatedWriteIndexEnd);
+
+    let newIncomingReadIndex = this.mIncomingReadIndex + length;
+    if (newIncomingReadIndex < this.mIncomingBufferLength) {
+      
+      this.mOutgoingBytes
+          .set(this.mIncomingBytes.subarray(this.mIncomingReadIndex,
+                                            newIncomingReadIndex),
+               this.mOutgoingIndex);
+    } else {
+      
+      newIncomingReadIndex %= this.mIncomingBufferLength;
+      this.mOutgoingBytes
+          .set(this.mIncomingBytes.subarray(this.mIncomingReadIndex,
+                                            this.mIncomingBufferLength),
+               this.mOutgoingIndex);
+      if (newIncomingReadIndex) {
+        let firstPartLength = this.mIncomingBufferLength - this.mIncomingReadIndex;
+        this.mOutgoingBytes.set(this.mIncomingBytes.subarray(0, newIncomingReadIndex),
+                               this.mOutgoingIndex + firstPartLength);
+      }
+    }
+
+    this.mIncomingReadIndex = newIncomingReadIndex;
+    this.mReadAvailable -= length;
+    this.mOutgoingIndex += length;
+  },
+
+  
+
+
+
+  
+
+
+
+
+
+  writeToIncoming: function writeToIncoming(incoming) {
+    
+    
+    
+    
+    let minMustAvailableSize = incoming.length + this.mReadIncoming;
+    if (minMustAvailableSize > this.mIncomingBufferLength) {
+      this.growIncomingBuffer(minMustAvailableSize);
+    }
+
+    
+    
+    let remaining = this.mIncomingBufferLength - this.mIncomingWriteIndex;
+    if (remaining >= incoming.length) {
+      this.mIncomingBytes.set(incoming, this.mIncomingWriteIndex);
+    } else {
+      
+      let head = incoming.subarray(0, remaining);
+      let tail = incoming.subarray(remaining);
+      this.mIncomingBytes.set(head, this.mIncomingWriteIndex);
+      this.mIncomingBytes.set(tail, 0);
+    }
+    this.mIncomingWriteIndex = (this.mIncomingWriteIndex + incoming.length) %
+                               this.mIncomingBufferLength;
+  },
+
+  
+
+
+
+
+
+  processIncoming: function processIncoming(incoming) {
+    if (DEBUG) {
+      debug("Received " + incoming.length + " bytes.");
+      debug("Already read " + this.mReadIncoming);
+    }
+
+    this.writeToIncoming(incoming);
+    this.mReadIncoming += incoming.length;
+    while (true) {
+      if (!this.mCurrentParcelSize) {
         
+        if (this.mReadIncoming < PARCEL_SIZE_SIZE) {
+          
+          
+          if (DEBUG) debug("Next parcel size unknown, going to sleep.");
+          return;
+        }
+        this.mCurrentParcelSize = this.readParcelSize();
+        if (DEBUG) {
+          debug("New incoming parcel of size " + this.mCurrentParcelSize);
+        }
         
-        if (DEBUG) debug("Next parcel size unknown, going to sleep.");
+        this.mReadIncoming -= PARCEL_SIZE_SIZE;
+      }
+
+      if (this.mReadIncoming < this.mCurrentParcelSize) {
+        
+        if (DEBUG) debug("Read " + this.mReadIncoming + ", but parcel size is "
+                         + this.mCurrentParcelSize + ". Going to sleep.");
         return;
       }
-      mCurrentParcelSize = readParcelSize();
-      if (DEBUG) debug("New incoming parcel of size " +
-                       mCurrentParcelSize);
-      
-      mReadIncoming -= PARCEL_SIZE_SIZE;
-    }
 
-    if (mReadIncoming < mCurrentParcelSize) {
       
-      if (DEBUG) debug("Read " + mReadIncoming + ", but parcel size is "
-                       + mCurrentParcelSize + ". Going to sleep.");
+      
+      let expectedAfterIndex = (this.mIncomingReadIndex + this.mCurrentParcelSize)
+                               % this.mIncomingBufferLength;
+
+      if (DEBUG) {
+        let parcel;
+        if (expectedAfterIndex < this.mIncomingReadIndex) {
+          let head = this.mIncomingBytes.subarray(this.mIncomingReadIndex);
+          let tail = this.mIncomingBytes.subarray(0, expectedAfterIndex);
+          parcel = Array.slice(head).concat(Array.slice(tail));
+        } else {
+          parcel = Array.slice(this.mIncomingBytes.subarray(
+            this.mIncomingReadIndex, expectedAfterIndex));
+        }
+        debug("Parcel (size " + this.mCurrentParcelSize + "): " + parcel);
+      }
+
+      if (DEBUG) debug("We have at least one complete parcel.");
+      try {
+        this.mReadAvailable = this.mCurrentParcelSize;
+        this.processParcel();
+      } catch (ex) {
+        if (DEBUG) debug("Parcel handling threw " + ex + "\n" + ex.stack);
+      }
+
+      
+      if (this.mIncomingReadIndex != expectedAfterIndex) {
+        if (DEBUG) {
+          debug("Parcel handler didn't consume whole parcel, " +
+                Math.abs(expectedAfterIndex - this.mIncomingReadIndex) +
+                " bytes left over");
+        }
+        this.mIncomingReadIndex = expectedAfterIndex;
+      }
+      this.mReadIncoming -= this.mCurrentParcelSize;
+      this.mReadAvailable = 0;
+      this.mCurrentParcelSize = 0;
+    }
+  },
+
+  
+
+
+  processParcel: function processParcel() {
+    let response_type = this.readUint32();
+
+    let request_type, options;
+    if (response_type == RESPONSE_TYPE_SOLICITED) {
+      let token = this.readUint32();
+      let error = this.readUint32();
+
+      options = this.mTokenRequestMap[token];
+      if (!options) {
+        if (DEBUG) {
+          debug("Suspicious uninvited request found: " + token + ". Ignored!");
+        }
+        return;
+      }
+
+      delete this.mTokenRequestMap[token];
+      request_type = options.rilRequestType;
+
+      options.rilRequestError = error;
+      if (DEBUG) {
+        debug("Solicited response for request type " + request_type +
+              ", token " + token + ", error " + error);
+      }
+    } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
+      request_type = this.readUint32();
+      if (DEBUG) debug("Unsolicited response for request type " + request_type);
+    } else {
+      if (DEBUG) debug("Unknown response type: " + response_type);
       return;
     }
 
-    
-    
-    let expectedAfterIndex = (mIncomingReadIndex + mCurrentParcelSize)
-                             % mIncomingBufferLength;
+    RIL.handleParcel(request_type, this.mReadAvailable, options);
+  },
 
-    if (DEBUG) {
-      let parcel;
-      if (expectedAfterIndex < mIncomingReadIndex) {
-        let head = mIncomingBytes.subarray(mIncomingReadIndex);
-        let tail = mIncomingBytes.subarray(0, expectedAfterIndex);
-        parcel = Array.slice(head).concat(Array.slice(tail));
-      } else {
-        parcel = Array.slice(mIncomingBytes.subarray(
-          mIncomingReadIndex, expectedAfterIndex));
-      }
-      debug("Parcel (size " + mCurrentParcelSize + "): " + parcel);
-    }
+  
 
-    if (DEBUG) debug("We have at least one complete parcel.");
-    try {
-      mReadAvailable = mCurrentParcelSize;
-      processParcel();
-    } catch (ex) {
-      if (DEBUG) debug("Parcel handling threw " + ex + "\n" + ex.stack);
-    }
+
+
+
+
+
+
+
+  newParcel: function newParcel(type, options) {
+    if (DEBUG) debug("New outgoing parcel of type " + type);
 
     
-    if (mIncomingReadIndex != expectedAfterIndex) {
-      if (DEBUG) {
-        debug("Parcel handler didn't consume whole parcel, " +
-              Math.abs(expectedAfterIndex - mIncomingReadIndex) +
-              " bytes left over");
-      }
-      mIncomingReadIndex = expectedAfterIndex;
-    }
-    mReadIncoming -= mCurrentParcelSize;
-    mReadAvailable = 0;
-    mCurrentParcelSize = 0;
-  }
-}
+    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
+    this.writeUint32(type);
+    this.writeUint32(this.mToken);
 
-
-
-
-function processParcel() {
-  let response_type = readUint32();
-
-  let request_type, options;
-  if (response_type == RESPONSE_TYPE_SOLICITED) {
-    let token = readUint32();
-    let error = readUint32();
-
-    options = mTokenRequestMap[token];
     if (!options) {
-      if (DEBUG) {
-        debug("Suspicious uninvited request found: " + token + ". Ignored!");
-      }
-      return;
+      options = {};
     }
+    options.rilRequestType = type;
+    options.rilRequestError = null;
+    this.mTokenRequestMap[this.mToken] = options;
+    this.mToken++;
+    return this.mToken;
+  },
 
-    delete mTokenRequestMap[token];
-    request_type = options.rilRequestType;
+  
 
-    options.rilRequestError = error;
-    if (DEBUG) {
-      debug("Solicited response for request type " + request_type +
-            ", token " + token + ", error " + error);
-    }
-  } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
-    request_type = readUint32();
-    if (DEBUG) debug("Unsolicited response for request type " + request_type);
-  } else {
-    if (DEBUG) debug("Unknown response type: " + response_type);
-    return;
+
+  sendParcel: function sendParcel() {
+    
+    
+    
+    let parcelSize = this.mOutgoingIndex - PARCEL_SIZE_SIZE;
+    this.writeParcelSize(parcelSize);
+
+    
+    
+    let parcel = this.mOutgoingBytes.subarray(0, this.mOutgoingIndex);
+    if (DEBUG) debug("Outgoing parcel: " + Array.slice(parcel));
+    this.onSendParcel(parcel);
+    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
+  },
+
+  simpleRequest: function simpleRequest(type, options) {
+    this.newParcel(type, options);
+    this.sendParcel();
+  },
+
+  getCurrentParcelSize: function getCurrentParcelSize() {
+    return this.mCurrentParcelSize;
+  },
+
+  getReadAvailable: function getReadAvailable() {
+    return this.mReadAvailable;
   }
 
-  RIL.handleParcel(request_type, mReadAvailable, options);
-}
-
-
-
-
-
-
-
-
-
-
-function newParcel(type, options) {
-  if (DEBUG) debug("New outgoing parcel of type " + type);
-
   
-  mOutgoingIndex = PARCEL_SIZE_SIZE;
-  writeUint32(type);
-  writeUint32(mToken);
-
-  if (!options) {
-    options = {};
-  }
-  options.rilRequestType = type;
-  options.rilRequestError = null;
-  mTokenRequestMap[mToken] = options;
-  mToken++;
-  return mToken;
-}
 
 
 
 
-function sendParcel() {
+
+
+
+
+
+
   
   
   
-  let parcelSize = mOutgoingIndex - PARCEL_SIZE_SIZE;
-  writeParcelSize(parcelSize);
-
-  
-  
-  let parcel = mOutgoingBytes.subarray(0, mOutgoingIndex);
-  if (DEBUG) debug("Outgoing parcel: " + Array.slice(parcel));
-  mOutputStream(parcel);
-  mOutgoingIndex = PARCEL_SIZE_SIZE;
-}
-
-function setOutputStream(func) {
-  mOutputStream = func;
-}
-
-function simpleRequest(type, options) {
-  newParcel(type, options);
-  sendParcel();
-}
-
-function getCurrentParcelSize() {
-  return mCurrentParcelSize;
-}
-
-function getReadAvailable() {
-  return mReadAvailable;
-}
-
-module.exports = {
-  init: init,
-  startCalOutgoingSize: startCalOutgoingSize,
-  stopCalOutgoingSize: stopCalOutgoingSize,
-  seekIncoming: seekIncoming,
-  readUint8: readUint8,
-  readUint8Array: readUint8Array,
-  readUint16: readUint16,
-  readUint32: readUint32,
-  readUint32List: readUint32List,
-  readString: readString,
-  readStringList: readStringList,
-  readStringDelimiter: readStringDelimiter,
-  writeUint8: writeUint8,
-  writeUint16: writeUint16,
-  writeUint32: writeUint32,
-  writeString: writeString,
-  writeStringList: writeStringList,
-  writeStringDelimiter: writeStringDelimiter,
-  copyIncomingToOutgoing: copyIncomingToOutgoing,
-  processIncoming: processIncoming,
-  newParcel: newParcel,
-  sendParcel: sendParcel,
-  simpleRequest: simpleRequest,
-  setOutputStream: setOutputStream,
-  getCurrentParcelSize: getCurrentParcelSize,
-  getReadAvailable: getReadAvailable,
 };
+
+module.exports = { Buf: Buf };
