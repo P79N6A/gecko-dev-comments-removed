@@ -212,6 +212,7 @@ class TypeAnalyzer
         return phi;
     }
 
+    bool respecialize(MPhi *phi, MIRType type);
     bool propagateSpecialization(MPhi *phi);
     bool specializePhis();
     void replaceRedundantPhi(MPhi *phi);
@@ -252,6 +253,15 @@ GuessPhiType(MPhi *phi)
 }
 
 bool
+TypeAnalyzer::respecialize(MPhi *phi, MIRType type)
+{
+    if (phi->type() == type)
+        return true;
+    phi->specialize(type);
+    return addPhiToWorklist(phi);
+}
+
+bool
 TypeAnalyzer::propagateSpecialization(MPhi *phi)
 {
     
@@ -265,21 +275,20 @@ TypeAnalyzer::propagateSpecialization(MPhi *phi)
             
             
             
-            use->specialize(phi->type());
-            if (!addPhiToWorklist(use))
+            if (!respecialize(use, phi->type()))
                 return false;
             continue;
         }
         if (use->type() != phi->type()) {
             
             if (IsNumberType(use->type()) && IsNumberType(phi->type())) {
-                use->specialize(MIRType_Double);
+                if (!respecialize(use, MIRType_Double))
+                    return false;
                 continue;
             }
 
             
-            use->specialize(MIRType_Value);
-            if (!addPhiToWorklist(use))
+            if (!respecialize(use, MIRType_Value))
                 return false;
         }
     }
