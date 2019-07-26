@@ -78,14 +78,12 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
   Services.prefs.setCharPref('general.useragent.locale', value);
 
   let prefName = 'intl.accept_languages';
-  if (Services.prefs.prefHasUserValue(prefName)) {
-    Services.prefs.clearUserPref(prefName);
-  }
+  let defaultBranch = Services.prefs.getDefaultBranch(null);
 
   let intl = '';
   try {
-    intl = Services.prefs.getComplexValue(prefName,
-                                          Ci.nsIPrefLocalizedString).data;
+    intl = defaultBranch.getComplexValue(prefName,
+                                         Ci.nsIPrefLocalizedString).data;
   } catch(e) {}
 
   
@@ -645,7 +643,6 @@ let settingsToObserve = {
     prefName: 'dom.browser_frames.useAsyncPanZoom',
     defaultValue: false
   },
-  'apz.overscroll.enabled': false,
   'debug.fps.enabled': {
     prefName: 'layers.acceleration.draw-fps',
     defaultValue: false
