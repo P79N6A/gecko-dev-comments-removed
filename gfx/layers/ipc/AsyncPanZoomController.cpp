@@ -1421,7 +1421,7 @@ void AsyncPanZoomController::ContentReceivedTouch(bool aPreventDefault) {
 
     while (!mTouchQueue.IsEmpty()) {
       
-      if (mTouchQueue[0].mType == MultiTouchInput::MULTITOUCH_MOVE) {
+      if (!aPreventDefault && mTouchQueue[0].mType == MultiTouchInput::MULTITOUCH_MOVE) {
         mDelayPanning = false;
       }
       if (!aPreventDefault) {

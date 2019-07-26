@@ -233,10 +233,19 @@ const ContentPanning = {
     }
 
     let isPan = KineticPanning.isPan();
+    if (!isPan) {
+      
+      
+      evt.preventDefault();
+      return;
+    }
+
+    let isScroll = this.scrollCallback(delta.scale(-1));
+
     if (this.detectingScrolling) {
       this.detectingScrolling = false;
       
-      if (isPan) {
+      if (isScroll) {
         
         Services.obs.notifyObservers(docShell, 'cancel-default-pan-zoom', null);
       } else {
@@ -245,8 +254,6 @@ const ContentPanning = {
         return;
       }
     }
-
-    this.scrollCallback(delta.scale(-1));
 
     
     
