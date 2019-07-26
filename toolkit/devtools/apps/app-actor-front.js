@@ -15,6 +15,8 @@ const PR_TRUNCATE = 0x20;
 
 const CHUNK_SIZE = 10000;
 
+const appTargets = new Map();
+
 function addDirToZip(writer, dir, basePath) {
   let files = dir.directoryEntries;
 
@@ -212,6 +214,13 @@ function installHosted(client, webappsActor, appId, metadata, manifest) {
 exports.installHosted = installHosted;
 
 function getTargetForApp(client, webappsActor, manifestURL) {
+  
+  
+  
+  let existingTarget = appTargets.get(manifestURL);
+  if (existingTarget)
+    return promise.resolve(existingTarget);
+
   let deferred = promise.defer();
   let request = {
     to: webappsActor,
@@ -230,6 +239,10 @@ function getTargetForApp(client, webappsActor, manifestURL) {
 
       devtools.TargetFactory.forRemoteTab(options).then((target) => {
         target.isApp = true;
+        appTargets.set(manifestURL, target);
+        target.on("close", () => {
+          appTargets.delete(manifestURL);
+        });
         deferred.resolve(target)
       }, (error) => {
         deferred.reject(error);
