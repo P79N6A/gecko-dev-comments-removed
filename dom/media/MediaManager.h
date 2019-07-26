@@ -212,7 +212,7 @@ class GetUserMediaNotificationEvent: public nsRunnable
     }
 
     NS_IMETHOD
-    Run()
+    Run() MOZ_OVERRIDE
     {
       NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
       
@@ -291,7 +291,7 @@ public:
   }
 
   NS_IMETHOD
-  Run()
+  Run() MOZ_OVERRIDE
   {
     SourceMediaStream *source = mListener->GetSourceStream();
     
