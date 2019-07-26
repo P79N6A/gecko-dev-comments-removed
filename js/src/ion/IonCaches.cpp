@@ -634,7 +634,7 @@ GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
     
     
     Address handlerAddr(object, JSObject::getFixedSlotOffset(JSSLOT_PROXY_HANDLER));
-    Address expandoAddr(object, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
+    Address expandoSlotAddr(object, JSObject::getFixedSlotOffset(GetListBaseExpandoSlot()));
 
     
     masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr, ImmWord(GetProxyHandler(obj)), stubFailure);
@@ -649,13 +649,27 @@ GenerateListBaseChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
     Label failListBaseCheck;
     Label listBaseOk;
 
-    masm.loadValue(expandoAddr, tempVal);
+    Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
+    masm.loadValue(expandoSlotAddr, tempVal);
+
+    if (!expandoVal.isObject() && !expandoVal.isUndefined()) {
+        masm.branchTestValue(Assembler::NotEqual, tempVal, expandoVal, &failListBaseCheck);
+
+        ExpandoAndGeneration *expandoAndGeneration = (ExpandoAndGeneration*)expandoVal.toPrivate();
+        masm.movePtr(ImmWord(expandoAndGeneration), tempVal.scratchReg());
+
+        masm.branch32(Assembler::NotEqual, Address(tempVal.scratchReg(), sizeof(Value)),
+                                                   Imm32(expandoAndGeneration->generation),
+                                                   &failListBaseCheck);
+
+        expandoVal = expandoAndGeneration->expando;
+        masm.loadValue(Address(tempVal.scratchReg(), 0), tempVal);
+    }
 
     
     
     masm.branchTestUndefined(Assembler::Equal, tempVal, &listBaseOk);
 
-    Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
     if (expandoVal.isObject()) {
         JS_ASSERT(!expandoVal.toObject().nativeContains(cx, name));
 
@@ -1244,16 +1258,20 @@ TryAttachNativeGetPropStub(JSContext *cx, IonScript *ion,
 
     RootedObject checkObj(cx, obj);
     if (IsCacheableListBase(obj)) {
-        Value expandoVal = obj->getFixedSlot(GetListBaseExpandoSlot());
-
-        
-        
-        JS_ASSERT_IF(expandoVal.isObject(),
-                     expandoVal.toObject().isNative() && !expandoVal.toObject().getProto());
-
-        if (expandoVal.isObject() && expandoVal.toObject().nativeContains(cx, name))
+        RootedId id(cx, NameToId(name));
+        ListBaseShadowsResult shadows =
+            GetListBaseShadowsCheck()(cx, obj, id);
+        if (shadows == ShadowCheckFailed)
+            return false;
+        if (shadows == Shadows)
             return true;
-
+        if (shadows == DoesntShadowUnique)
+            
+            
+            
+            
+            
+            cache.reset();
         checkObj = obj->getTaggedProto().toObjectOrNull();
     }
 

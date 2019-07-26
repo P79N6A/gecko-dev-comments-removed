@@ -855,11 +855,46 @@ NukeCrossCompartmentWrappers(JSContext* cx,
                              NukeReferencesToWindow nukeReferencesToWindow);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct ExpandoAndGeneration {
+  ExpandoAndGeneration()
+    : expando(UndefinedValue()),
+      generation(0)
+  {}
+
+  Value expando;
+  uint32_t generation;
+};
+
+typedef enum ListBaseShadowsResult {
+  ShadowCheckFailed,
+  Shadows,
+  DoesntShadow,
+  DoesntShadowUnique
+} ListBaseShadowsResult;
+typedef ListBaseShadowsResult
+(* ListBaseShadowsCheck)(JSContext* cx, JSHandleObject object, JSHandleId id);
 JS_FRIEND_API(void)
-SetListBaseInformation(void *listBaseHandlerFamily, uint32_t listBaseExpandoSlot);
+SetListBaseInformation(void *listBaseHandlerFamily, uint32_t listBaseExpandoSlot,
+                       ListBaseShadowsCheck listBaseShadowsCheck);
 
 void *GetListBaseHandlerFamily();
 uint32_t GetListBaseExpandoSlot();
+ListBaseShadowsCheck GetListBaseShadowsCheck();
 
 } 
 
