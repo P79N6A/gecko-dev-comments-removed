@@ -153,7 +153,7 @@ SharedTextureHandle CreateSharedHandle(GLContext* gl,
                                        SharedTextureBufferType bufferType)
 {
     
-    if (gl->GetContextType() != ContextTypeEGL)
+    if (gl->GetContextType() != GLContextType::EGL)
         return 0;
 
     
@@ -196,7 +196,7 @@ void ReleaseSharedHandle(GLContext* gl,
                          SharedTextureHandle sharedHandle)
 {
     
-    if (gl->GetContextType() != ContextTypeEGL)
+    if (gl->GetContextType() != GLContextType::EGL)
         return;
 
     if (shareType != SharedTextureShareType::SameProcess) {
@@ -233,7 +233,7 @@ bool GetSharedHandleDetails(GLContext* gl,
                             SharedHandleDetails& details)
 {
     
-    if (gl->GetContextType() != ContextTypeEGL)
+    if (gl->GetContextType() != GLContextType::EGL)
         return false;
 
     if (shareType != SharedTextureShareType::SameProcess)
@@ -271,7 +271,7 @@ bool AttachSharedHandle(GLContext* gl,
                         SharedTextureHandle sharedHandle)
 {
     
-    if (gl->GetContextType() != ContextTypeEGL)
+    if (gl->GetContextType() != GLContextType::EGL)
         return false;
 
     if (shareType != SharedTextureShareType::SameProcess)
