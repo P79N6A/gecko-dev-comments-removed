@@ -474,6 +474,13 @@ ThreadState.prototype = {
 
 
   _update: function(aEvent) {
+    
+    
+    
+    if (aEvent == "interrupted") {
+      return;
+    }
+
     DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
 
     if (gTarget && (aEvent == "paused" || aEvent == "resumed")) {
@@ -580,6 +587,11 @@ StackFrames.prototype = {
           this._currentReturnedValue = aPacket.why.frameFinished.return;
         }
         break;
+      
+      
+      
+      case "interrupted":
+        return;
     }
 
     this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);

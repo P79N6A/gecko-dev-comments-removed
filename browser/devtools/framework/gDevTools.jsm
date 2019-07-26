@@ -580,6 +580,79 @@ let gDevToolsBrowser = {
     mainKeyset.parentNode.insertBefore(devtoolsKeyset, mainKeyset);
   },
 
+  
+
+
+
+  setSlowScriptDebugHandler: function DT_setSlowScriptDebugHandler() {
+    let debugService = Cc["@mozilla.org/dom/slow-script-debug;1"]
+                         .getService(Ci.nsISlowScriptDebug);
+    let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+
+    debugService.activationHandler = function(aWindow) {
+      let chromeWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocShellTreeItem)
+                                .rootTreeItem
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindow)
+                                .QueryInterface(Ci.nsIDOMChromeWindow);
+      let target = devtools.TargetFactory.forTab(chromeWindow.gBrowser.selectedTab);
+
+      let setupFinished = false;
+      gDevTools.showToolbox(target, "jsdebugger").then(toolbox => {
+        let threadClient = toolbox.getCurrentPanel().panelWin.gThreadClient;
+
+        
+        
+        switch (threadClient.state) {
+          case "paused":
+            
+            threadClient.breakOnNext();
+            setupFinished = true;
+            break;
+          case "attached":
+            
+            threadClient.interrupt(() => {
+              threadClient.breakOnNext();
+              setupFinished = true;
+            });
+            break;
+          case "resuming":
+            
+            threadClient.addOneTimeListener("resumed", () => {
+              threadClient.interrupt(() => {
+                threadClient.breakOnNext();
+                setupFinished = true;
+              });
+            });
+            break;
+          default:
+            throw Error("invalid thread client state in slow script debug handler: " +
+                        threadClient.state);
+          }
+      });
+
+      
+      
+      let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDOMWindowUtils);
+      utils.enterModalState();
+      while (!setupFinished) {
+        tm.currentThread.processNextEvent(true);
+      }
+      utils.leaveModalState();
+    };
+  },
+
+  
+
+
+  unsetSlowScriptDebugHandler: function DT_unsetSlowScriptDebugHandler() {
+    let debugService = Cc["@mozilla.org/dom/slow-script-debug;1"]
+                         .getService(Ci.nsISlowScriptDebug);
+    debugService.activationHandler = undefined;
+  },
 
   
 
@@ -668,6 +741,10 @@ let gDevToolsBrowser = {
           mp.insertBefore(elements.menuitem, ref);
         }
       }
+    }
+
+    if (toolDefinition.id === "jsdebugger") {
+      gDevToolsBrowser.setSlowScriptDebugHandler();
     }
   },
 
@@ -843,6 +920,10 @@ let gDevToolsBrowser = {
   _removeToolFromWindows: function DT_removeToolFromWindows(toolId) {
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       gDevToolsBrowser._removeToolFromMenu(toolId, win.document);
+    }
+
+    if (toolId === "jsdebugger") {
+      gDevToolsBrowser.unsetSlowScriptDebugHandler();
     }
   },
 
