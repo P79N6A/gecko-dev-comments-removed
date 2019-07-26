@@ -183,6 +183,8 @@
 
 
 
+
+
 #include <ctype.h>   
 #include <stddef.h>  
 #include <stdlib.h>
@@ -244,6 +246,19 @@
 # define GTEST_OS_NACL 1
 #endif  
 
+#ifndef GTEST_LANG_CXX11
+
+
+
+
+# if __GXX_EXPERIMENTAL_CXX0X__ || __cplusplus >= 201103L
+
+#  define GTEST_LANG_CXX11 1
+# else
+#  define GTEST_LANG_CXX11 0
+# endif
+#endif
+
 
 
 
@@ -252,12 +267,7 @@
 
 
 # include <unistd.h>
-# if !GTEST_OS_NACL
-
-
-
-#  include <strings.h>  
-# endif
+# include <strings.h>
 #elif !GTEST_OS_WINDOWS_MOBILE
 # include <direct.h>
 # include <io.h>
@@ -449,8 +459,21 @@
 
 
 
-# if (defined(__GNUC__) && !defined(__CUDACC__) && (GTEST_GCC_VER_ >= 40000)) \
-    || _MSC_VER >= 1600
+
+
+# if (defined(__GNUC__) && !defined(__CUDACC__) && (GTEST_GCC_VER_ >= 40000) \
+    && !defined(_LIBCPP_VERSION)) || _MSC_VER >= 1600
+#  define GTEST_ENV_HAS_TR1_TUPLE_ 1
+# endif
+
+
+
+
+# if GTEST_LANG_CXX11 && (!defined(__GLIBCXX__) || __GLIBCXX__ > 20110325)
+#  define GTEST_ENV_HAS_STD_TUPLE_ 1
+# endif
+
+# if GTEST_ENV_HAS_TR1_TUPLE_ || GTEST_ENV_HAS_STD_TUPLE_
 #  define GTEST_USE_OWN_TR1_TUPLE 0
 # else
 #  define GTEST_USE_OWN_TR1_TUPLE 1
@@ -465,6 +488,22 @@
 
 # if GTEST_USE_OWN_TR1_TUPLE
 #  include "gtest/internal/gtest-tuple.h"
+# elif GTEST_ENV_HAS_STD_TUPLE_
+#  include <tuple>
+
+
+
+
+namespace std {
+namespace tr1 {
+using ::std::get;
+using ::std::make_tuple;
+using ::std::tuple;
+using ::std::tuple_element;
+using ::std::tuple_size;
+}
+}
+
 # elif GTEST_OS_SYMBIAN
 
 
