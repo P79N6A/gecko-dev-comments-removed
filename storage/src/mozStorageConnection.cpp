@@ -826,18 +826,23 @@ Connection::internalClose()
 
   
   
+  sqlite3 *dbConn = mDBConn;
+  mDBConn = nullptr;
+
+  
+  
   
   
   
   
 
-  int srv = sqlite3_close(mDBConn);
+  int srv = sqlite3_close(dbConn);
 
   if (srv == SQLITE_BUSY) {
     
 
     sqlite3_stmt *stmt = nullptr;
-    while ((stmt = ::sqlite3_next_stmt(mDBConn, stmt))) {
+    while ((stmt = ::sqlite3_next_stmt(dbConn, stmt))) {
       PR_LOG(gStorageLog, PR_LOG_NOTICE,
              ("Auto-finalizing SQL statement '%s' (%x)",
               ::sqlite3_sql(stmt),
@@ -872,7 +877,7 @@ Connection::internalClose()
 
     
     
-    srv = ::sqlite3_close(mDBConn);
+    srv = ::sqlite3_close(dbConn);
 
   }
 
@@ -881,7 +886,6 @@ Connection::internalClose()
                "sqlite3_close failed. There are probably outstanding statements that are listed above!");
   }
 
-  mDBConn = nullptr;
   return convertResultCode(srv);
 }
 
