@@ -262,14 +262,12 @@ nsEventListenerManager::AddEventListenerInternal(
     if (window) {
       window->SetHasPaintEventListeners();
     }
-#ifdef MOZ_MEDIA
   } else if (aType == NS_MOZAUDIOAVAILABLE) {
     mMayHaveAudioAvailableEventListener = true;
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
       window->SetHasAudioAvailableEventListeners();
     }
-#endif
   } else if (aType >= NS_MUTATION_START && aType <= NS_MUTATION_END) {
     
     
