@@ -208,13 +208,9 @@ abstract public class BrowserApp extends GeckoApp
 
         Log.d(LOGTAG, "BrowserApp.onTabChanged: " + tab.getId() + ": " + msg);
         switch(msg) {
-            
-            
-            
-            
             case LOCATION_CHANGE:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
-                    loadFavicon(tab);
+                    maybeCancelFaviconLoad(tab);
                 }
                 
             case SELECTED:
@@ -254,6 +250,9 @@ abstract public class BrowserApp extends GeckoApp
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     invalidateOptionsMenu();
                 }
+                break;
+            case PAGE_SHOW:
+                loadFavicon(tab);
                 break;
             case LINK_FAVICON:
                 
