@@ -92,9 +92,6 @@ struct CalibrationData {
     double offset;       
     double timer_offset; 
 
-    
-    int64_t last;
-
     bool calibrated;
 
 #ifdef JS_THREADSAFE
@@ -134,7 +131,6 @@ NowCalibrate()
 
         calibration.offset = FileTimeToUnixMicroseconds(ft);
         calibration.timer_offset = double(now.QuadPart);
-        calibration.last = 0;
 
         calibration.calibrated = true;
     }
@@ -204,7 +200,6 @@ PRMJ_Now()
 {
     bool calibrated = false;
     bool needsCalibration = false;
-    int64_t returnedTime;
     double cachedOffset = 0.0;
 
     
@@ -247,26 +242,19 @@ PRMJ_Now()
         double highresTime = calibration.offset + PRMJ_USEC_PER_SEC *
             (highresTimerValue-calibration.timer_offset)/calibration.freq;
         cachedOffset = calibration.offset;
-
-        
-        
-        calibration.last = js::Max(calibration.last, int64_t(highresTime));
-        returnedTime = calibration.last;
         MUTEX_UNLOCK(&calibration.data_lock);
 
         
         double skewThreshold;
         DWORD timeAdjustment, timeIncrement;
         BOOL timeAdjustmentDisabled;
-        if (GetSystemTimeAdjustment(&timeAdjustment,
-                                    &timeIncrement,
-                                    &timeAdjustmentDisabled)) {
+        if (GetSystemTimeAdjustment(&timeAdjustment, &timeIncrement, &timeAdjustmentDisabled)) {
             if (timeAdjustmentDisabled) {
                 
-                skewThreshold = timeAdjustment/10.0;
+                skewThreshold = timeAdjustment / 10.0;
             } else {
                 
-                skewThreshold = timeIncrement/10.0;
+                skewThreshold = timeIncrement / 10.0;
             }
         } else {
             
