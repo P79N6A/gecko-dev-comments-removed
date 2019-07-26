@@ -449,10 +449,13 @@ def environment(xrePath, env=None, crashreporter=True, debugger=False, dmdPath=N
     env['MOZ_CRASHREPORTER_DISABLE'] = '1'
 
   
+  
+  
+  
   env.setdefault('NSPR_LOG_MODULES', 'signaling:5,mtransport:3')
-  env.setdefault('R_LOG_LEVEL', '5')
-  env.setdefault('R_LOG_DESTINATION', 'stderr')
-  env.setdefault('R_LOG_VERBOSE', '1')
+  env['R_LOG_LEVEL'] = '5'
+  env['R_LOG_DESTINATION'] = 'stderr'
+  env['R_LOG_VERBOSE'] = '1'
 
   
   asan = bool(mozinfo.info.get("asan"))
