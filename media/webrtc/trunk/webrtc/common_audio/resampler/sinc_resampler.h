@@ -18,8 +18,11 @@
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/gtest_prod_util.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
+
+
 
 
 class SincResamplerCallback {
@@ -31,6 +34,27 @@ class SincResamplerCallback {
 
 class SincResampler {
  public:
+  enum {
+    
+    
+    
+    kKernelSize = 32,
+
+    
+    
+    
+    kDefaultBlockSize = 512,
+
+    
+    
+    
+    kKernelOffsetCount = 32,
+    kKernelStorageSize = kKernelSize * (kKernelOffsetCount + 1),
+
+    
+    kDefaultBufferSize = kDefaultBlockSize + kKernelSize,
+  };
+
   
   
   
@@ -55,7 +79,18 @@ class SincResampler {
   int BlockSize();
 
   
+  
   void Flush();
+
+  
+  
+  
+  
+  
+  
+  void SetRatio(double io_sample_rate_ratio);
+
+  float* get_kernel_for_testing() { return kernel_storage_.get(); }
 
  private:
   FRIEND_TEST_ALL_PREFIXES(SincResamplerTest, Convolve);
@@ -68,16 +103,17 @@ class SincResampler {
   
   
   
-  static float Convolve(const float* input_ptr, const float* k1,
-                        const float* k2, double kernel_interpolation_factor);
   static float Convolve_C(const float* input_ptr, const float* k1,
                           const float* k2, double kernel_interpolation_factor);
+#if defined(WEBRTC_ARCH_X86_FAMILY)
   static float Convolve_SSE(const float* input_ptr, const float* k1,
                             const float* k2,
                             double kernel_interpolation_factor);
+#elif defined(WEBRTC_ARCH_ARM_V7)
   static float Convolve_NEON(const float* input_ptr, const float* k1,
                              const float* k2,
                              double kernel_interpolation_factor);
+#endif
 
   
   double io_sample_rate_ratio_;
@@ -102,9 +138,19 @@ class SincResampler {
   
   
   scoped_ptr_malloc<float, AlignedFree> kernel_storage_;
+  scoped_ptr_malloc<float, AlignedFree> kernel_pre_sinc_storage_;
+  scoped_ptr_malloc<float, AlignedFree> kernel_window_storage_;
 
   
   scoped_ptr_malloc<float, AlignedFree> input_buffer_;
+
+  
+#if (defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)) ||  \
+    (defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON))
+  typedef float (*ConvolveProc)(const float*, const float*, const float*,
+                                double);
+  const ConvolveProc convolve_proc_;
+#endif
 
   
   
@@ -120,4 +166,4 @@ class SincResampler {
 
 }  
 
-#endif  
+#endif

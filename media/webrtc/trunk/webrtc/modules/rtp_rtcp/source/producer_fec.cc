@@ -8,10 +8,10 @@
 
 
 
-#include "modules/rtp_rtcp/source/producer_fec.h"
+#include "webrtc/modules/rtp_rtcp/source/producer_fec.h"
 
-#include "modules/rtp_rtcp/source/forward_error_correction.h"
-#include "modules/rtp_rtcp/source/rtp_utility.h"
+#include "webrtc/modules/rtp_rtcp/source/forward_error_correction.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 
 namespace webrtc {
 

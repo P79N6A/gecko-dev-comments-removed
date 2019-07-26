@@ -8,12 +8,12 @@
 
 
 
-#include "aecm_core.h"
+#include "webrtc/modules/audio_processing/aecm/aecm_core.h"
 
 #include <arm_neon.h>
 #include <assert.h>
 
-#include "common_audio/signal_processing/include/real_fft.h"
+#include "webrtc/common_audio/signal_processing/include/real_fft.h"
 
 
 

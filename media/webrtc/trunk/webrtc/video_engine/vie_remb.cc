@@ -8,16 +8,16 @@
 
 
 
-#include "video_engine/vie_remb.h"
+#include "webrtc/video_engine/vie_remb.h"
 
 #include <algorithm>
 #include <cassert>
 
-#include "modules/rtp_rtcp/interface/rtp_rtcp.h"
-#include "modules/utility/interface/process_thread.h"
-#include "system_wrappers/interface/critical_section_wrapper.h"
-#include "system_wrappers/interface/tick_util.h"
-#include "system_wrappers/interface/trace.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
+#include "webrtc/modules/utility/interface/process_thread.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 
@@ -104,11 +104,10 @@ bool VieRemb::InUse() const {
     return true;
 }
 
-void VieRemb::OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
+void VieRemb::OnReceiveBitrateChanged(const std::vector<unsigned int>& ssrcs,
                                       unsigned int bitrate) {
   WEBRTC_TRACE(kTraceStream, kTraceVideo, -1,
                "VieRemb::UpdateBitrateEstimate(bitrate: %u)", bitrate);
-  assert(ssrcs);
   list_crit_->Enter();
   
   
@@ -122,10 +121,6 @@ void VieRemb::OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
     }
   }
   bitrate_ = bitrate;
-  
-  
-  ssrcs_.resize(ssrcs->size());
-  std::copy(ssrcs->begin(), ssrcs->end(), ssrcs_.begin());
 
   
   int64_t now = TickTime::MillisecondTimestamp();
@@ -136,7 +131,7 @@ void VieRemb::OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
   }
   last_remb_time_ = now;
 
-  if (ssrcs_.empty() || receive_modules_.empty()) {
+  if (ssrcs.empty() || receive_modules_.empty()) {
     list_crit_->Leave();
     return;
   }
@@ -154,19 +149,13 @@ void VieRemb::OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
   if (last_send_bitrate_ < kRembMinimumBitrateKbps) {
     last_send_bitrate_ = kRembMinimumBitrateKbps;
   }
-  
-  int ssrcs_length = ssrcs_.size();
-  unsigned int* ssrcs_copy = new unsigned int[ssrcs_length];
-  for (int i = 0; i < ssrcs_length; ++i) {
-    ssrcs_copy[i] = ssrcs_[i];
-  }
+
   list_crit_->Leave();
 
   if (sender) {
     
-    sender->SetREMBData(bitrate_, ssrcs_length, ssrcs_copy);
+    sender->SetREMBData(bitrate_, ssrcs.size(), &ssrcs[0]);
   }
-  delete [] ssrcs_copy;
 }
 
 }  

@@ -12,7 +12,7 @@
 
 
 
-#include "digital_agc.h"
+#include "webrtc/modules/audio_processing/agc/digital_agc.h"
 
 #include <assert.h>
 #include <string.h>
@@ -20,7 +20,7 @@
 #include <stdio.h>
 #endif
 
-#include "gain_control.h"
+#include "webrtc/modules/audio_processing/agc/include/gain_control.h"
 
 
 

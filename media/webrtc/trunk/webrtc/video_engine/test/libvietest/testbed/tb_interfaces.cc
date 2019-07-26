@@ -8,10 +8,10 @@
 
 
 
-#include "video_engine/test/libvietest/include/tb_interfaces.h"
+#include "webrtc/video_engine/test/libvietest/include/tb_interfaces.h"
 
-#include "gtest/gtest.h"
-#include "testsupport/fileutils.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/test/testsupport/fileutils.h"
 
 TbInterfaces::TbInterfaces(const std::string& test_name) :
     video_engine(NULL),

@@ -8,12 +8,13 @@
 
 
 
-#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 
 #include <assert.h>
 #include <string.h>
 
-#include "libyuv.h"
+
+#include "libyuv.h"  
 
 namespace webrtc {
 

@@ -8,9 +8,10 @@
 
 
 
-#include "common_video/libyuv/include/scaler.h"
+#include "webrtc/common_video/libyuv/include/scaler.h"
 
-#include "libyuv.h"
+
+#include "libyuv.h"  
 
 namespace webrtc {
 

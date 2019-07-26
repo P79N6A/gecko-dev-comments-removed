@@ -89,6 +89,12 @@ typedef struct
 
     int16_t extraDelayMs; 
 
+    int minimum_delay_ms; 
+
+    int required_delay_q8; 
+
+
+
     
     
     uint32_t peakPeriodSamp[NUM_PEAKS];

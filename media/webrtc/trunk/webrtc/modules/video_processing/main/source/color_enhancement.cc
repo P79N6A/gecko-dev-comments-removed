@@ -8,10 +8,10 @@
 
 
 
-#include "color_enhancement.h"
-#include "color_enhancement_private.h"
-#include "trace.h"
 #include <cstdlib>  
+#include "webrtc/modules/video_processing/main/source/color_enhancement.h"
+#include "webrtc/modules/video_processing/main/source/color_enhancement_private.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 

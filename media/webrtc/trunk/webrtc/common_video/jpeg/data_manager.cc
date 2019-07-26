@@ -8,7 +8,7 @@
 
 
 
-#include "common_video/jpeg/data_manager.h"
+#include "webrtc/common_video/jpeg/data_manager.h"
 
 namespace webrtc
 {

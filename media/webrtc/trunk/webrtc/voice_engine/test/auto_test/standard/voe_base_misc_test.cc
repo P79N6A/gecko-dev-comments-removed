@@ -8,7 +8,7 @@
 
 
 
-#include "voice_engine/test/auto_test/fixtures/before_initialization_fixture.h"
+#include "webrtc/voice_engine/test/auto_test/fixtures/before_initialization_fixture.h"
 
 #include <cstdlib>
 

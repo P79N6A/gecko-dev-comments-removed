@@ -104,7 +104,7 @@ VCMFrameBuffer::InsertPacket(const VCMPacket& packet, int64_t timeInMs,
     
     if (_state == kStateFree)
     {
-        return kStateError;
+        return kGeneralError;
     }
 
     
@@ -162,6 +162,11 @@ VCMFrameBuffer::InsertPacket(const VCMPacket& packet, int64_t timeInMs,
             return kSizeError;
         }
         _sessionInfo.UpdateDataPointers(prevBuffer, _buffer);
+    }
+
+    if (packet.width > 0 && packet.height > 0) {
+      _encodedWidth = packet.width;
+      _encodedHeight = packet.height;
     }
 
     CopyCodecSpecific(&packet.codecSpecificHeader);

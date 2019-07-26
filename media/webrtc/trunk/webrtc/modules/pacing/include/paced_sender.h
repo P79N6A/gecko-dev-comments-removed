@@ -21,6 +21,11 @@
 
 namespace webrtc {
 class CriticalSectionWrapper;
+namespace paced_sender {
+class IntervalBudget;
+struct Packet;
+class PacketList;
+}  
 
 class PacedSender : public Module {
  public:
@@ -37,10 +42,11 @@ class PacedSender : public Module {
     
     
     
-    virtual void TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
+    
+    virtual bool TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
                                   int64_t capture_time_ms) = 0;
     
-    virtual void TimeToSendPadding(int bytes) = 0;
+    virtual int TimeToSendPadding(int bytes) = 0;
    protected:
     virtual ~Callback() {}
   };
@@ -52,6 +58,8 @@ class PacedSender : public Module {
   
   void SetStatus(bool enable);
 
+  bool Enabled() const;
+
   
   void Pause();
 
@@ -59,7 +67,10 @@ class PacedSender : public Module {
   void Resume();
 
   
-  void UpdateBitrate(int target_bitrate_kbps);
+  
+  
+  
+  void UpdateBitrate(int target_bitrate_kbps, int pad_up_to_bitrate_kbps);
 
   
   
@@ -80,67 +91,44 @@ class PacedSender : public Module {
   virtual int32_t Process();
 
  private:
-  struct Packet {
-    Packet(uint32_t ssrc, uint16_t seq_number, int64_t capture_time_ms,
-           int length_in_bytes)
-        : ssrc_(ssrc),
-          sequence_number_(seq_number),
-          capture_time_ms_(capture_time_ms),
-          bytes_(length_in_bytes) {
-    }
-    uint32_t ssrc_;
-    uint16_t sequence_number_;
-    int64_t capture_time_ms_;
-    int bytes_;
-  };
+  
+  
+  bool ShouldSendNextPacket(paced_sender::PacketList** packet_list);
 
   
-  class PacketList {
-   public:
-    PacketList() {};
-
-    bool empty() const;
-    Packet front() const;
-    void pop_front();
-    void push_back(const Packet& packet);
-
-   private:
-    std::list<Packet> packet_list_;
-    std::set<uint16_t> sequence_number_set_;
-  };
-
-  
-  bool GetNextPacket(uint32_t* ssrc, uint16_t* sequence_number,
-                     int64_t* capture_time_ms, Priority* priority,
-                     bool* last_packet);
-
-  
-  void GetNextPacketFromList(PacketList* list,
-      uint32_t* ssrc, uint16_t* sequence_number, int64_t* capture_time_ms,
-      bool* last_packet);
+  void GetNextPacketFromList(paced_sender::PacketList* packets,
+      uint32_t* ssrc, uint16_t* sequence_number, int64_t* capture_time_ms);
 
   
   void UpdateBytesPerInterval(uint32_t delta_time_in_ms);
 
   
-  void UpdateState(int num_bytes);
+  void UpdateMediaBytesSent(int num_bytes);
 
   Callback* callback_;
   const float pace_multiplier_;
-  bool enable_;
+  bool enabled_;
   bool paused_;
   scoped_ptr<CriticalSectionWrapper> critsect_;
-  int target_bitrate_kbytes_per_s_;
-  int bytes_remaining_interval_;
-  int padding_bytes_remaining_interval_;
+  
+  
+  scoped_ptr<paced_sender::IntervalBudget> media_budget_;
+  
+  
+  scoped_ptr<paced_sender::IntervalBudget> padding_budget_;
+  
+  
+  
+  scoped_ptr<paced_sender::IntervalBudget> pad_up_to_bitrate_budget_;
+
   TickTime time_last_update_;
   TickTime time_last_send_;
   int64_t capture_time_ms_last_queued_;
   int64_t capture_time_ms_last_sent_;
 
-  PacketList high_priority_packets_;
-  PacketList normal_priority_packets_;
-  PacketList low_priority_packets_;
+  scoped_ptr<paced_sender::PacketList> high_priority_packets_;
+  scoped_ptr<paced_sender::PacketList> normal_priority_packets_;
+  scoped_ptr<paced_sender::PacketList> low_priority_packets_;
 };
 }  
 #endif

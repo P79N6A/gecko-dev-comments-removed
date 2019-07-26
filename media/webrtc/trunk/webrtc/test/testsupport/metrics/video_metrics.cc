@@ -8,14 +8,14 @@
 
 
 
-#include "testsupport/metrics/video_metrics.h"
+#include "webrtc/test/testsupport/metrics/video_metrics.h"
 
 #include <algorithm>  
 #include <cassert>
 #include <cstdio>
 
-#include "common_video/interface/i420_video_frame.h"
-#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/common_video/interface/i420_video_frame.h"
+#include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 
 namespace webrtc {
 namespace test {

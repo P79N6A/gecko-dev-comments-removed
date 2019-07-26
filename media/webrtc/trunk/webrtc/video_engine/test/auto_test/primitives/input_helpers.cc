@@ -8,7 +8,7 @@
 
 
 
-#include "video_engine/test/auto_test/primitives/input_helpers.h"
+#include "webrtc/video_engine/test/auto_test/primitives/input_helpers.h"
 
 #include <cassert>
 #include <cstdio>

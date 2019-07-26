@@ -8,8 +8,8 @@
 
 
 
-#include "after_streaming_fixture.h"
-#include "testsupport/fileutils.h"
+#include "webrtc/test/testsupport/fileutils.h"
+#include "webrtc/voice_engine/test/auto_test/fixtures/after_streaming_fixture.h"
 
 class CallReportTest : public AfterStreamingFixture {
 };
@@ -42,7 +42,8 @@ TEST_F(CallReportTest, GetRoundTripTimeSummaryReturnsAllMinusOnesIfRtcpIsOff) {
   EXPECT_EQ(-1, delays.max);
 }
 
-TEST_F(CallReportTest, GetRoundTripTimesReturnsValuesIfRtcpIsOn) {
+
+TEST_F(CallReportTest, DISABLED_GetRoundTripTimesReturnsValuesIfRtcpIsOn) {
   voe_rtp_rtcp_->SetRTCPStatus(channel_, true);
   Sleep(1000);
 

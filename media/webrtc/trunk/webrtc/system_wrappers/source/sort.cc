@@ -25,7 +25,8 @@
 #include <algorithm>    
 #include <vector>
 
-#include "spreadsort.hpp"  
+
+#include "webrtc/system_wrappers/source/spreadsortlib/spreadsort.hpp"
 #endif
 
 #ifdef NO_STL

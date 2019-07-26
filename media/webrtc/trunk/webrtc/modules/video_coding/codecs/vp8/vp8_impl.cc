@@ -211,9 +211,7 @@ int VP8EncoderImpl::InitEncode(const VideoCodec* inst,
   }
   config_->g_lag_in_frames = 0;  
 
-  if (codec_.width * codec_.height > 640 * 480 && number_of_cores >= 4) {
-    config_->g_threads = 4;  
-  } else if (codec_.width * codec_.height > 320 * 240 && number_of_cores >= 2) {
+  if (codec_.width * codec_.height > 640 * 480 && number_of_cores >= 2) {
     config_->g_threads = 2;  
   } else {
     config_->g_threads = 1;  
@@ -467,6 +465,7 @@ int VP8EncoderImpl::GetEncodedPartitions(const I420VideoFrame& input_image) {
     }
   }
   if (encoded_image_._length > 0) {
+    TRACE_COUNTER1("webrtc", "EncodedFrameSize", encoded_image_._length);
     encoded_image_._timeStamp = input_image.timestamp();
     encoded_image_.capture_time_ms_ = input_image.render_time_ms();
     encoded_image_._encodedHeight = raw_->h;

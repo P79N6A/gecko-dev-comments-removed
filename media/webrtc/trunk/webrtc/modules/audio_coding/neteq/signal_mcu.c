@@ -664,6 +664,17 @@ int WebRtcNetEQ_SignalMcu(MCUInst_t *inst)
         oldPT = inst->PacketBuffer_inst.payloadType[i_bufferpos];
 
         
+
+
+
+
+
+
+
+        inst->decoded_packet_sequence_number = prevSeqNo;
+        inst->decoded_packet_timestamp = prevTS;
+
+        
         inst->pw16_writeAddress[0] = inst->pw16_writeAddress[0] & 0xFF3F;
         do
         {

@@ -8,12 +8,12 @@
 
 
 
-#include "video_engine/test/auto_test/primitives/choice_helpers.h"
+#include "webrtc/video_engine/test/auto_test/primitives/choice_helpers.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <algorithm>
 #include <sstream>
 
 namespace webrtc {

@@ -8,7 +8,7 @@
 
 
 
-#include "system_wrappers/interface/aligned_malloc.h"
+#include "webrtc/system_wrappers/interface/aligned_malloc.h"
 
 #if _WIN32
 #include <windows.h>
@@ -16,9 +16,9 @@
 #include <stdint.h>
 #endif
 
-#include "typedefs.h"  
+#include "webrtc/typedefs.h"
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 
 bool CorrectUsage(size_t size, size_t alignment) {

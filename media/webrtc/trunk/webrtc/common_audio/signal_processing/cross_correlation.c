@@ -8,7 +8,7 @@
 
 
 
-#include "signal_processing_library.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 
 
 void WebRtcSpl_CrossCorrelationC(int32_t* cross_correlation,

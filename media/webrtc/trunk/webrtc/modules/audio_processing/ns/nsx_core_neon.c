@@ -8,7 +8,7 @@
 
 
 
-#include "nsx_core.h"
+#include "webrtc/modules/audio_processing/ns/nsx_core.h"
 
 #include <arm_neon.h>
 #include <assert.h>

@@ -8,7 +8,7 @@
 
 
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/tools/simple_command_line_parser.h"
 
 namespace webrtc {
@@ -84,4 +84,3 @@ TEST_F(CommandLineParserTest, GetCommandLineFlagValue) {
 
 }  
 }  
-

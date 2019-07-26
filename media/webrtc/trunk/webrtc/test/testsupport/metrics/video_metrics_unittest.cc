@@ -8,10 +8,10 @@
 
 
 
-#include "testsupport/metrics/video_metrics.h"
+#include "webrtc/test/testsupport/metrics/video_metrics.h"
 
-#include "gtest/gtest.h"
-#include "testsupport/fileutils.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/test/testsupport/fileutils.h"
 
 namespace webrtc {
 

@@ -8,7 +8,7 @@
 
 
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 extern "C" {
 #include "webrtc/modules/audio_processing/utility/delay_estimator.h"

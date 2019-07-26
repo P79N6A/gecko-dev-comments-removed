@@ -34,7 +34,7 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOE_NETWORK_H
 #define WEBRTC_VOICE_ENGINE_VOE_NETWORK_H
 
-#include "common_types.h"
+#include "webrtc/common_types.h"
 
 namespace webrtc {
 
@@ -47,7 +47,7 @@ public:
     
     
     
-    virtual void OnPeriodicDeadOrAlive(const int channel, const bool alive) = 0;
+    virtual void OnPeriodicDeadOrAlive(int channel, bool alive) = 0;
 
 protected:
     virtual ~VoEConnectionObserver() {}

@@ -14,13 +14,21 @@
 #include "webrtc/modules/audio_coding/main/source/acm_codec_database.h"
 #include "webrtc/modules/audio_coding/main/source/acm_dtmf_detection.h"
 #include "webrtc/modules/audio_coding/main/source/audio_coding_module_impl.h"
+#include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 
 
 AudioCodingModule* AudioCodingModule::Create(const int32_t id) {
-  return new AudioCodingModuleImpl(id);
+  return new AudioCodingModuleImpl(id, Clock::GetRealTimeClock());
+}
+
+
+
+AudioCodingModule* AudioCodingModule::Create(const int32_t id,
+                                             Clock* clock) {
+  return new AudioCodingModuleImpl(id, clock);
 }
 
 

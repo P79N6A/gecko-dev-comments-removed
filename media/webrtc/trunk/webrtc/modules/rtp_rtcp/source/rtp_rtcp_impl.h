@@ -71,14 +71,6 @@ class ModuleRtpRtcpImpl : public RtpRtcp {
       const int8_t payload_type);
 
   
-  virtual int32_t RegisterReceiveRtpHeaderExtension(
-      const RTPExtensionType type,
-      const uint8_t id);
-
-  virtual int32_t DeregisterReceiveRtpHeaderExtension(
-      const RTPExtensionType type);
-
-  
   virtual int32_t SSRCFilter(uint32_t& allowed_ssrc) const;
 
   
@@ -109,8 +101,13 @@ class ModuleRtpRtcpImpl : public RtpRtcp {
   virtual void SetRtxReceivePayloadType(int payload_type);
 
   
-  virtual int32_t IncomingPacket(const uint8_t* incoming_packet,
-                                 const uint16_t packet_length);
+  virtual int32_t IncomingRtpPacket(const uint8_t* incoming_packet,
+                                    const uint16_t packet_length,
+                                    const RTPHeader& parsed_rtp_header);
+
+  
+  virtual int32_t IncomingRtcpPacket(const uint8_t* incoming_packet,
+                                     uint16_t incoming_packet_length);
 
   
 
@@ -191,8 +188,11 @@ class ModuleRtpRtcpImpl : public RtpRtcp {
       const RTPFragmentationHeader* fragmentation = NULL,
       const RTPVideoHeader* rtp_video_hdr = NULL);
 
-  virtual void TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
+  virtual bool TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
                                 int64_t capture_time_ms);
+  
+  
+  virtual int TimeToSendPadding(int bytes);
   
 
   

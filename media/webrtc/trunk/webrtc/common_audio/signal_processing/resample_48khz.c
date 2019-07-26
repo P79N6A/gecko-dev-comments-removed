@@ -16,8 +16,8 @@
 
 
 #include <string.h>
-#include "signal_processing_library.h"
-#include "resample_by_2_internal.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/common_audio/signal_processing/resample_by_2_internal.h"
 
 
 

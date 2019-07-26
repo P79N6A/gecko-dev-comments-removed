@@ -11,6 +11,7 @@
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_DESKTOP_REGION_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_DESKTOP_REGION_H_
 
+#include <map>
 #include <vector>
 
 #include "webrtc/modules/desktop_capture/desktop_geometry.h"
@@ -24,6 +25,41 @@ namespace webrtc {
 
 
 class DesktopRegion {
+ private:
+  
+  
+
+  
+  struct RowSpan {
+    RowSpan(int32_t left, int32_t right);
+
+    
+    bool operator==(const RowSpan& that) const {
+      return left == that.left && right == that.right;
+    }
+
+    int32_t left;
+    int32_t right;
+  };
+
+  typedef std::vector<RowSpan> RowSpanSet;
+
+  
+  
+  struct Row {
+    Row(int32_t top, int32_t bottom);
+
+    int32_t top;
+    int32_t bottom;
+
+    RowSpanSet spans;
+  };
+
+  
+  
+  
+  typedef std::map<int, Row*> Rows;
+
  public:
   
   
@@ -34,23 +70,50 @@ class DesktopRegion {
     bool IsAtEnd() const;
     void Advance();
 
-    const DesktopRect& rect() const { return *it_; }
+    const DesktopRect& rect() const { return rect_; }
 
    private:
     const DesktopRegion& region_;
-    std::vector<DesktopRect>::const_iterator it_;
+
+    
+    
+    
+    void UpdateCurrentRect();
+
+    Rows::const_iterator row_;
+    Rows::const_iterator previous_row_;
+    RowSpanSet::const_iterator row_span_;
+    DesktopRect rect_;
   };
 
   DesktopRegion();
+  explicit DesktopRegion(const DesktopRect& rect);
+  DesktopRegion(const DesktopRect* rects, int count);
   DesktopRegion(const DesktopRegion& other);
   ~DesktopRegion();
 
-  bool is_empty() const { return rects_.empty(); }
+  DesktopRegion& operator=(const DesktopRegion& other);
 
+  bool is_empty() const { return rows_.empty(); }
+
+  bool Equals(const DesktopRegion& region) const;
+
+  
   void Clear();
+
+  
   void SetRect(const DesktopRect& rect);
+
+  
   void AddRect(const DesktopRect& rect);
+  void AddRects(const DesktopRect* rects, int count);
   void AddRegion(const DesktopRegion& region);
+
+  
+  void Intersect(const DesktopRegion& region1, const DesktopRegion& region2);
+
+  
+  void IntersectWith(const DesktopRegion& region);
 
   
   void IntersectWith(const DesktopRect& rect);
@@ -61,8 +124,29 @@ class DesktopRegion {
   void Swap(DesktopRegion* region);
 
  private:
-  typedef std::vector<DesktopRect> RectsList;
-  RectsList rects_;
+  
+  
+  static bool CompareSpanLeft(const RowSpan& r, int32_t value);
+  static bool CompareSpanRight(const RowSpan& r, int32_t value);
+
+  
+  static void AddSpanToRow(Row* row, int32_t left, int32_t right);
+
+  
+  static bool IsSpanInRow(const Row& row, const RowSpan& rect);
+
+  
+  static void IntersectRows(const RowSpanSet& set1,
+                            const RowSpanSet& set2,
+                            RowSpanSet* output);
+
+  
+  
+  
+  
+  void MergeWithPrecedingRow(Rows::iterator row);
+
+  Rows rows_;
 };
 
 }  

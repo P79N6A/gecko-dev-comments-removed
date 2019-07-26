@@ -8,8 +8,8 @@
 
 
 
-#include "voice_engine/include/voe_encryption.h"
-#include "voice_engine/test/auto_test/fixtures/after_streaming_fixture.h"
+#include "webrtc/voice_engine/include/voe_encryption.h"
+#include "webrtc/voice_engine/test/auto_test/fixtures/after_streaming_fixture.h"
 
 class BasicBitInverseEncryption : public webrtc::Encryption {
   void encrypt(int channel_no, unsigned char* in_data,

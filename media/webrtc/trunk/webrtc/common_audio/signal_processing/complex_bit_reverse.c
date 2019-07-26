@@ -8,7 +8,7 @@
 
 
 
-#include "signal_processing_library.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 
 
 
@@ -106,4 +106,3 @@ void WebRtcSpl_ComplexBitReverse(int16_t* __restrict complex_data, int stages) {
     }
   }
 }
-

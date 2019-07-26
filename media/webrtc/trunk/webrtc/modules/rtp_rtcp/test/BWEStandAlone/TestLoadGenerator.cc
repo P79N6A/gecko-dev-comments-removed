@@ -8,15 +8,17 @@
 
 
 
-#include <algorithm> 
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/TestLoadGenerator.h"
+
 #include <stdio.h>
 
-#include "TestLoadGenerator.h"
-#include "TestSenderReceiver.h"
-#include "event_wrapper.h"
-#include "thread_wrapper.h"
-#include "critical_section_wrapper.h"
-#include "tick_util.h"
+#include <algorithm>
+
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/TestSenderReceiver.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/event_wrapper.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 
 
 bool SenderThreadFunction(void *obj)

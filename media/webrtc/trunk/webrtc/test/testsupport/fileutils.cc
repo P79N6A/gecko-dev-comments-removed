@@ -8,7 +8,7 @@
 
 
 
-#include "test/testsupport/fileutils.h"
+#include "webrtc/test/testsupport/fileutils.h"
 
 #ifdef WIN32
 #include <direct.h>
@@ -26,7 +26,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "typedefs.h"  
+#include "webrtc/typedefs.h"  
 
 namespace webrtc {
 namespace test {

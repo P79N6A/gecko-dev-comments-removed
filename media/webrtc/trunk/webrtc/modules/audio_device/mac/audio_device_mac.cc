@@ -13,15 +13,17 @@
 #include "audio_device_config.h"
 
 #include "event_wrapper.h"
+#include "portaudio/pa_ringbuffer.h"
 #include "trace.h"
 #include "thread_wrapper.h"
 
+#include <ApplicationServices/ApplicationServices.h>
 #include <cassert>
-
-#include <sys/sysctl.h>         
-#include <mach/mach.h>          
 #include <libkern/OSAtomic.h>   
-#include "portaudio/pa_ringbuffer.h"
+#include <mach/mach.h>          
+#include <sys/sysctl.h>         
+
+
 
 namespace webrtc
 {
@@ -1385,8 +1387,8 @@ int32_t AudioDeviceMac::InitPlayout()
     if (_outStreamFormat.mChannelsPerFrame > N_DEVICE_CHANNELS)
     {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-                     "Too many channels on device -> mChannelsPerFrame = %d",
-                     _outStreamFormat.mChannelsPerFrame);
+            "Too many channels on output device (mChannelsPerFrame = %d)",
+            _outStreamFormat.mChannelsPerFrame);
         return -1;
     }
 
@@ -1413,9 +1415,8 @@ int32_t AudioDeviceMac::InitPlayout()
                  _outStreamFormat.mBytesPerFrame,
                  _outStreamFormat.mBitsPerChannel);
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                 "mFormatFlags = %u, mChannelsPerFrame = %u",
-                 _outStreamFormat.mFormatFlags,
-                 _outStreamFormat.mChannelsPerFrame);
+                 "mFormatFlags = %u",
+                 _outStreamFormat.mFormatFlags);
     logCAMsg(kTraceInfo, kTraceAudioDevice, _id, "mFormatID",
              (const char *) &_outStreamFormat.mFormatID);
 
@@ -1613,8 +1614,18 @@ int32_t AudioDeviceMac::InitRecording()
     if (_inStreamFormat.mChannelsPerFrame > N_DEVICE_CHANNELS)
     {
         WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
-                     ", Too many channels on device (mChannelsPerFrame = %d)",
-                     _inStreamFormat.mChannelsPerFrame);
+            "Too many channels on input device (mChannelsPerFrame = %d)",
+            _inStreamFormat.mChannelsPerFrame);
+        return -1;
+    }
+
+    const int io_block_size_samples = _inStreamFormat.mChannelsPerFrame *
+        _inStreamFormat.mSampleRate / 100 * N_BLOCKS_IO;
+    if (io_block_size_samples > _captureBufSizeSamples)
+    {
+        WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
+            "Input IO block size (%d) is larger than ring buffer (%u)",
+            io_block_size_samples, _captureBufSizeSamples);
         return -1;
     }
 
@@ -1632,9 +1643,8 @@ int32_t AudioDeviceMac::InitRecording()
                  _inStreamFormat.mBytesPerFrame,
                  _inStreamFormat.mBitsPerChannel);
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                 " mFormatFlags = %u, mChannelsPerFrame = %u",
-                 _inStreamFormat.mFormatFlags,
-                 _inStreamFormat.mChannelsPerFrame);
+                 " mFormatFlags = %u",
+                 _inStreamFormat.mFormatFlags);
     logCAMsg(kTraceInfo, kTraceAudioDevice, _id, "mFormatID",
              (const char *) &_inStreamFormat.mFormatID);
 
@@ -1929,7 +1939,7 @@ bool AudioDeviceMac::PlayoutIsInitialized() const
 
 int32_t AudioDeviceMac::StartPlayout()
 {
-    
+
     CriticalSectionScoped lock(&_critSect);
 
     if (!_playIsInitialized)
@@ -2486,7 +2496,7 @@ OSStatus AudioDeviceMac::implObjectListenerProc(
 {
     WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
                  "AudioDeviceMac::implObjectListenerProc()");
-    
+
     for (UInt32 i = 0; i < numberAddresses; i++)
     {
         if (addresses[i].mSelector == kAudioHardwarePropertyDevices)
@@ -2543,7 +2553,7 @@ int32_t AudioDeviceMac::HandleDeviceChange()
             logCAMsg(kTraceError, kTraceAudioDevice, _id,
                      "Error in AudioDeviceGetProperty()", (const char*) &err);
             return -1;
-        }      
+        }
     }
 
     if (SpeakerIsInitialized())
@@ -2627,13 +2637,24 @@ int32_t AudioDeviceMac::HandleStreamFormatChange(
                  "mBytesPerFrame = %u, mBitsPerChannel = %u",
                  streamFormat.mBytesPerFrame, streamFormat.mBitsPerChannel);
     WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                 "mFormatFlags = %u, mChannelsPerFrame = %u",
-                 streamFormat.mFormatFlags, streamFormat.mChannelsPerFrame);
+                 "mFormatFlags = %u",
+                 streamFormat.mFormatFlags);
     logCAMsg(kTraceInfo, kTraceAudioDevice, _id, "mFormatID",
              (const char *) &streamFormat.mFormatID);
 
     if (propertyAddress.mScope == kAudioDevicePropertyScopeInput)
     {
+        const int io_block_size_samples = streamFormat.mChannelsPerFrame *
+            streamFormat.mSampleRate / 100 * N_BLOCKS_IO;
+        if (io_block_size_samples > _captureBufSizeSamples)
+        {
+            WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
+                "Input IO block size (%d) is larger than ring buffer (%u)",
+                io_block_size_samples, _captureBufSizeSamples);
+            return -1;
+
+        }
+
         memcpy(&_inStreamFormat, &streamFormat, sizeof(streamFormat));
 
         if (_inStreamFormat.mChannelsPerFrame >= 2 && (_recChannels == 2))
@@ -3207,6 +3228,8 @@ bool AudioDeviceMac::CaptureWorkerThread()
 
         _ptrAudioBuffer->SetVQEData(msecOnPlaySide, msecOnRecordSide, 0);
 
+        _ptrAudioBuffer->SetTypingStatus(KeyPressed());
+
         
         
         _ptrAudioBuffer->DeliverRecordedData();
@@ -3236,4 +3259,14 @@ bool AudioDeviceMac::CaptureWorkerThread()
     return true;
 }
 
+bool AudioDeviceMac::KeyPressed() const{
+
+  bool key_down = false;
+  
+  for (int key_index = 0; key_index <= 0x5C; key_index++) {
+    key_down |= CGEventSourceKeyState(kCGEventSourceStateHIDSystemState,
+                                      key_index);
+  }
+  return(key_down);
+}
 } 

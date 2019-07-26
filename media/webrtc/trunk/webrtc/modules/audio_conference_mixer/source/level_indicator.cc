@@ -8,7 +8,7 @@
 
 
 
-#include "level_indicator.h"
+#include "webrtc/modules/audio_conference_mixer/source/level_indicator.h"
 
 namespace webrtc {
 

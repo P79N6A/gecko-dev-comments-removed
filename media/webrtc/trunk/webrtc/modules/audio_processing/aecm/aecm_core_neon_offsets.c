@@ -9,7 +9,7 @@
 
 
 
-#include "aecm_core.h"
+#include "webrtc/modules/audio_processing/aecm/aecm_core.h"
 
 #include <stddef.h>
 

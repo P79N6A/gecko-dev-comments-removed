@@ -8,7 +8,7 @@
 
 
 
-#include "aligned_malloc.h"
+#include "webrtc/system_wrappers/interface/aligned_malloc.h"
 
 #include <memory.h>
 #include <stdlib.h>
@@ -19,7 +19,7 @@
 #include <stdint.h>
 #endif
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 
 

@@ -28,7 +28,9 @@ enum VCMJitterBufferEnum {
 };
 
 enum VCMFrameBufferEnum {
-  kStateError           = -4,
+  kNotInitialized       = -6,
+  kOldPacket            = -5,
+  kGeneralError         = -4,
   kFlushIndicator       = -3,   
   kTimeStampError       = -2,
   kSizeError            = -1,

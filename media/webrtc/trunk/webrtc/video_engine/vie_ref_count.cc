@@ -8,9 +8,9 @@
 
 
 
-#include "video_engine/vie_ref_count.h"
+#include "webrtc/video_engine/vie_ref_count.h"
 
-#include "system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 
 namespace webrtc {
 

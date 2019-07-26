@@ -8,13 +8,15 @@
 
 
 
-#include <fstream>
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/BWEStabilityTest.h"
+
 #include <math.h>
 
-#include "BWEStabilityTest.h"
-#include "TestLoadGenerator.h"
-#include "tick_util.h"
-#include "critical_section_wrapper.h"
+#include <fstream>
+
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/TestLoadGenerator.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 
 
 BWEStabilityTest::BWEStabilityTest(std::string testName, int rateKbps, int testDurationSeconds)

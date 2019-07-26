@@ -8,9 +8,9 @@
 
 
 
-#include "audio_frame_manipulator.h"
-#include "module_common_types.h"
-#include "typedefs.h"
+#include "webrtc/modules/audio_conference_mixer/source/audio_frame_manipulator.h"
+#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/typedefs.h"
 
 namespace {
 

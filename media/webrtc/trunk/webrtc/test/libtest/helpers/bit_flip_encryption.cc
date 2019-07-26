@@ -8,7 +8,7 @@
 
 
 
-#include "test/libtest/include/bit_flip_encryption.h"
+#include "webrtc/test/libtest/include/bit_flip_encryption.h"
 
 #include <cstdlib>
 

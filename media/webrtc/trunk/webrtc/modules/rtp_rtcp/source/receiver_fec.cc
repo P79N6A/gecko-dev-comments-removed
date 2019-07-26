@@ -8,42 +8,41 @@
 
 
 
-#include "modules/rtp_rtcp/source/receiver_fec.h"
+#include "webrtc/modules/rtp_rtcp/source/receiver_fec.h"
 
 #include <cassert>
 
-#include "modules/rtp_rtcp/source/rtp_receiver_video.h"
-#include "modules/rtp_rtcp/source/rtp_utility.h"
-#include "system_wrappers/interface/scoped_ptr.h"
-#include "system_wrappers/interface/trace.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_receiver_video.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 
 namespace webrtc {
 ReceiverFEC::ReceiverFEC(const int32_t id, RTPReceiverVideo* owner)
-    : _id(id),
-      _owner(owner),
-      _fec(new ForwardErrorCorrection(id)),
-      _payloadTypeFEC(-1) {
-}
+    : id_(id),
+      owner_(owner),
+      fec_(new ForwardErrorCorrection(id)),
+      payload_type_fec_(-1) {}
 
 ReceiverFEC::~ReceiverFEC() {
   
-  while (!_receivedPacketList.empty()){
-    ForwardErrorCorrection::ReceivedPacket* receivedPacket =
-        _receivedPacketList.front();
-    delete receivedPacket;
-    _receivedPacketList.pop_front();
+  while (!received_packet_list_.empty()) {
+    ForwardErrorCorrection::ReceivedPacket* received_packet =
+        received_packet_list_.front();
+    delete received_packet;
+    received_packet_list_.pop_front();
   }
-  assert(_receivedPacketList.empty());
+  assert(received_packet_list_.empty());
 
-  if (_fec != NULL) {
-    _fec->ResetState(&_recoveredPacketList);
-    delete _fec;
+  if (fec_ != NULL) {
+    fec_->ResetState(&recovered_packet_list_);
+    delete fec_;
   }
 }
 
-void ReceiverFEC::SetPayloadTypeFEC(const int8_t payloadType) {
-  _payloadTypeFEC = payloadType;
+void ReceiverFEC::SetPayloadTypeFEC(const int8_t payload_type) {
+  payload_type_fec_ = payload_type;
 }
 
 
@@ -73,15 +72,11 @@ void ReceiverFEC::SetPayloadTypeFEC(const int8_t payloadType) {
 
 
 
-
-
-
-int32_t ReceiverFEC::AddReceivedFECPacket(
-    const WebRtcRTPHeader* rtpHeader,
-    const uint8_t* incomingRtpPacket,
-    const uint16_t payloadDataLength,
-    bool& FECpacket) {
-  if (_payloadTypeFEC == -1) {
+int32_t ReceiverFEC::AddReceivedFECPacket(const WebRtcRTPHeader* rtp_header,
+                                          const uint8_t* incoming_rtp_packet,
+                                          const uint16_t payload_data_length,
+                                          bool& FECpacket) {
+  if (payload_type_fec_ == -1) {
     return -1;
   }
 
@@ -90,154 +85,158 @@ int32_t ReceiverFEC::AddReceivedFECPacket(
   
   
 
-  ForwardErrorCorrection::ReceivedPacket* receivedPacket =
+  ForwardErrorCorrection::ReceivedPacket* received_packet =
       new ForwardErrorCorrection::ReceivedPacket;
-  receivedPacket->pkt = new ForwardErrorCorrection::Packet;
+  received_packet->pkt = new ForwardErrorCorrection::Packet;
 
   
-  uint8_t payloadType =
-      incomingRtpPacket[rtpHeader->header.headerLength] & 0x7f;
+  uint8_t payload_type =
+      incoming_rtp_packet[rtp_header->header.headerLength] & 0x7f;
 
   
-  if (_payloadTypeFEC == payloadType) {
-    receivedPacket->isFec = true;
+  if (payload_type_fec_ == payload_type) {
+    received_packet->is_fec = true;
     FECpacket = true;
   } else {
-    receivedPacket->isFec = false;
+    received_packet->is_fec = false;
     FECpacket = false;
   }
-  receivedPacket->seqNum = rtpHeader->header.sequenceNumber;
+  received_packet->seq_num = rtp_header->header.sequenceNumber;
 
   uint16_t blockLength = 0;
-  if(incomingRtpPacket[rtpHeader->header.headerLength] & 0x80) {
+  if (incoming_rtp_packet[rtp_header->header.headerLength] & 0x80) {
     
     REDHeaderLength = 4;
-    uint16_t timestampOffset =
-        (incomingRtpPacket[rtpHeader->header.headerLength + 1]) << 8;
-    timestampOffset += incomingRtpPacket[rtpHeader->header.headerLength+2];
-    timestampOffset = timestampOffset >> 2;
-    if(timestampOffset != 0) {
+    uint16_t timestamp_offset =
+        (incoming_rtp_packet[rtp_header->header.headerLength + 1]) << 8;
+    timestamp_offset +=
+        incoming_rtp_packet[rtp_header->header.headerLength + 2];
+    timestamp_offset = timestamp_offset >> 2;
+    if (timestamp_offset != 0) {
       
       
-      WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, _id,
+      WEBRTC_TRACE(kTraceWarning, kTraceRtpRtcp, id_,
                    "Corrupt payload found in %s", __FUNCTION__);
-      delete receivedPacket;
+      delete received_packet;
       return -1;
     }
 
     blockLength =
-        (0x03 & incomingRtpPacket[rtpHeader->header.headerLength + 2]) << 8;
-    blockLength += (incomingRtpPacket[rtpHeader->header.headerLength + 3]);
+        (0x03 & incoming_rtp_packet[rtp_header->header.headerLength + 2]) << 8;
+    blockLength += (incoming_rtp_packet[rtp_header->header.headerLength + 3]);
 
     
-    if(incomingRtpPacket[rtpHeader->header.headerLength+4] & 0x80) {
+    if (incoming_rtp_packet[rtp_header->header.headerLength + 4] & 0x80) {
       
-      delete receivedPacket;
+      delete received_packet;
       assert(false);
       return -1;
     }
-    if(blockLength > payloadDataLength - REDHeaderLength) {
+    if (blockLength > payload_data_length - REDHeaderLength) {
       
-      delete receivedPacket;
+      delete received_packet;
       assert(false);
       return -1;
     }
   }
 
-  ForwardErrorCorrection::ReceivedPacket* secondReceivedPacket = NULL;
+  ForwardErrorCorrection::ReceivedPacket* second_received_packet = NULL;
   if (blockLength > 0) {
     
     REDHeaderLength = 5;
 
     
-    memcpy(receivedPacket->pkt->data,
-           incomingRtpPacket,
-           rtpHeader->header.headerLength);
+    memcpy(received_packet->pkt->data, incoming_rtp_packet,
+           rtp_header->header.headerLength);
 
     
-    receivedPacket->pkt->data[1] &= 0x80;         
-    receivedPacket->pkt->data[1] += payloadType;  
+    received_packet->pkt->data[1] &= 0x80;  
+    received_packet->pkt->data[1] +=
+        payload_type;                       
 
     
-    memcpy(receivedPacket->pkt->data + rtpHeader->header.headerLength,
-           incomingRtpPacket + rtpHeader->header.headerLength + REDHeaderLength,
-           blockLength);
+    memcpy(
+        received_packet->pkt->data + rtp_header->header.headerLength,
+        incoming_rtp_packet + rtp_header->header.headerLength + REDHeaderLength,
+        blockLength);
 
-    receivedPacket->pkt->length = blockLength;
+    received_packet->pkt->length = blockLength;
 
-    secondReceivedPacket = new ForwardErrorCorrection::ReceivedPacket;
-    secondReceivedPacket->pkt = new ForwardErrorCorrection::Packet;
+    second_received_packet = new ForwardErrorCorrection::ReceivedPacket;
+    second_received_packet->pkt = new ForwardErrorCorrection::Packet;
 
-    secondReceivedPacket->isFec = true;
-    secondReceivedPacket->seqNum = rtpHeader->header.sequenceNumber;
+    second_received_packet->is_fec = true;
+    second_received_packet->seq_num = rtp_header->header.sequenceNumber;
 
     
-    memcpy(secondReceivedPacket->pkt->data,
-           incomingRtpPacket + rtpHeader->header.headerLength +
+    memcpy(second_received_packet->pkt->data,
+           incoming_rtp_packet + rtp_header->header.headerLength +
                REDHeaderLength + blockLength,
-           payloadDataLength - REDHeaderLength - blockLength);
+           payload_data_length - REDHeaderLength - blockLength);
 
-    secondReceivedPacket->pkt->length = payloadDataLength - REDHeaderLength -
-        blockLength;
+    second_received_packet->pkt->length =
+        payload_data_length - REDHeaderLength - blockLength;
 
-  } else if(receivedPacket->isFec) {
+  } else if (received_packet->is_fec) {
     
-    memcpy(receivedPacket->pkt->data,
-           incomingRtpPacket + rtpHeader->header.headerLength + REDHeaderLength,
-           payloadDataLength - REDHeaderLength);
-    receivedPacket->pkt->length = payloadDataLength - REDHeaderLength;
-    receivedPacket->ssrc =
-        ModuleRTPUtility::BufferToUWord32(&incomingRtpPacket[8]);
+    memcpy(
+        received_packet->pkt->data,
+        incoming_rtp_packet + rtp_header->header.headerLength + REDHeaderLength,
+        payload_data_length - REDHeaderLength);
+    received_packet->pkt->length = payload_data_length - REDHeaderLength;
+    received_packet->ssrc =
+        ModuleRTPUtility::BufferToUWord32(&incoming_rtp_packet[8]);
 
   } else {
     
-    memcpy(receivedPacket->pkt->data,
-           incomingRtpPacket,
-           rtpHeader->header.headerLength);
+    memcpy(received_packet->pkt->data, incoming_rtp_packet,
+           rtp_header->header.headerLength);
 
     
-    receivedPacket->pkt->data[1] &= 0x80;         
-    receivedPacket->pkt->data[1] += payloadType;  
+    received_packet->pkt->data[1] &= 0x80;  
+    received_packet->pkt->data[1] +=
+        payload_type;                       
 
     
-    memcpy(receivedPacket->pkt->data + rtpHeader->header.headerLength,
-           incomingRtpPacket + rtpHeader->header.headerLength + REDHeaderLength,
-           payloadDataLength - REDHeaderLength);
+    memcpy(
+        received_packet->pkt->data + rtp_header->header.headerLength,
+        incoming_rtp_packet + rtp_header->header.headerLength + REDHeaderLength,
+        payload_data_length - REDHeaderLength);
 
-    receivedPacket->pkt->length = rtpHeader->header.headerLength +
-        payloadDataLength - REDHeaderLength;
+    received_packet->pkt->length =
+        rtp_header->header.headerLength + payload_data_length - REDHeaderLength;
   }
 
-  if(receivedPacket->pkt->length == 0) {
-    delete secondReceivedPacket;
-    delete receivedPacket;
+  if (received_packet->pkt->length == 0) {
+    delete second_received_packet;
+    delete received_packet;
     return 0;
   }
 
-  _receivedPacketList.push_back(receivedPacket);
-  if (secondReceivedPacket) {
-    _receivedPacketList.push_back(secondReceivedPacket);
+  received_packet_list_.push_back(received_packet);
+  if (second_received_packet) {
+    received_packet_list_.push_back(second_received_packet);
   }
   return 0;
 }
 
 int32_t ReceiverFEC::ProcessReceivedFEC() {
-  if (!_receivedPacketList.empty()) {
+  if (!received_packet_list_.empty()) {
     
-    if (!_receivedPacketList.front()->isFec) {
-      if (ParseAndReceivePacket(_receivedPacketList.front()->pkt) != 0) {
+    if (!received_packet_list_.front()->is_fec) {
+      if (ParseAndReceivePacket(received_packet_list_.front()->pkt) != 0) {
         return -1;
       }
     }
-    if (_fec->DecodeFEC(&_receivedPacketList, &_recoveredPacketList) != 0) {
+    if (fec_->DecodeFEC(&received_packet_list_, &recovered_packet_list_) != 0) {
       return -1;
     }
-    assert(_receivedPacketList.empty());
+    assert(received_packet_list_.empty());
   }
   
   ForwardErrorCorrection::RecoveredPacketList::iterator it =
-      _recoveredPacketList.begin();
-  for (; it != _recoveredPacketList.end(); ++it) {
+      recovered_packet_list_.begin();
+  for (; it != recovered_packet_list_.end(); ++it) {
     if ((*it)->returned)  
       continue;
     if (ParseAndReceivePacket((*it)->pkt) != 0) {
@@ -252,18 +251,16 @@ int ReceiverFEC::ParseAndReceivePacket(
     const ForwardErrorCorrection::Packet* packet) {
   WebRtcRTPHeader header;
   memset(&header, 0, sizeof(header));
-  ModuleRTPUtility::RTPHeaderParser parser(packet->data,
-                                           packet->length);
-  if (!parser.Parse(header)) {
+  ModuleRTPUtility::RTPHeaderParser parser(packet->data, packet->length);
+  if (!parser.Parse(header.header)) {
     return -1;
   }
-  if (_owner->ReceiveRecoveredPacketCallback(
-      &header,
-      &packet->data[header.header.headerLength],
-      packet->length - header.header.headerLength) != 0) {
+  if (owner_->ReceiveRecoveredPacketCallback(
+          &header, &packet->data[header.header.headerLength],
+          packet->length - header.header.headerLength) != 0) {
     return -1;
   }
   return 0;
 }
 
-} 
+}  

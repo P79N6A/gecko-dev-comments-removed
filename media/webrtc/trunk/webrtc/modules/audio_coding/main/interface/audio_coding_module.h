@@ -8,8 +8,10 @@
 
 
 
-#ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_INTERFACE_AUDIO_CODING_MODULE_H
-#define WEBRTC_MODULES_AUDIO_CODING_MAIN_INTERFACE_AUDIO_CODING_MODULE_H
+#ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_INTERFACE_AUDIO_CODING_MODULE_H_
+#define WEBRTC_MODULES_AUDIO_CODING_MAIN_INTERFACE_AUDIO_CODING_MODULE_H_
+
+#include <vector>
 
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/main/interface/audio_coding_module_typedefs.h"
@@ -23,8 +25,9 @@ struct CodecInst;
 struct WebRtcRTPHeader;
 class AudioFrame;
 class RTPFragmentationHeader;
+class Clock;
 
-#define WEBRTC_10MS_PCM_AUDIO 960 // 16 bits super wideband 48 kHz
+#define WEBRTC_10MS_PCM_AUDIO 960  // 16 bits super wideband 48 kHz
 
 
 class AudioPacketizationCallback {
@@ -63,11 +66,11 @@ class ACMVQMonCallback {
   virtual ~ACMVQMonCallback() {}
 
   virtual int32_t NetEqStatistics(
-      const int32_t id, 
-      const uint16_t MIUsValid, 
-      const uint16_t MIUsReplaced, 
-      const uint8_t eventFlags, 
-      const uint16_t delayMS) = 0; 
+      const int32_t id,  
+      const uint16_t MIUsValid,  
+      const uint16_t MIUsReplaced,  
+      const uint8_t eventFlags,  
+      const uint16_t delayMS) = 0;  
 };
 
 class AudioCodingModule: public Module {
@@ -79,7 +82,12 @@ class AudioCodingModule: public Module {
   
   
   
+  
+  
+  
+  
   static AudioCodingModule* Create(const int32_t id);
+  static AudioCodingModule* Create(const int32_t id, Clock* clock);
 
   static void Destroy(AudioCodingModule* module);
 
@@ -649,7 +657,16 @@ class AudioCodingModule: public Module {
   
   
   
-  virtual int32_t SetMinimumPlayoutDelay(const int32_t time_ms) = 0;
+  
+  virtual int SetMinimumPlayoutDelay(int time_ms) = 0;
+
+  
+  
+  
+  
+  
+  
+  virtual int LeastRequiredDelayMs() const = 0;
 
   
   
@@ -955,7 +972,35 @@ class AudioCodingModule: public Module {
   
   
   
+  
   virtual int SetInitialPlayoutDelay(int delay_ms) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int EnableNack(size_t max_nack_list_size) = 0;
+
+  
+  virtual void DisableNack() = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual std::vector<uint16_t> GetNackList(int round_trip_time_ms) const = 0;
 };
 
 }  

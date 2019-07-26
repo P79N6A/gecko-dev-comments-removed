@@ -14,7 +14,7 @@
 namespace webrtc {
 
 class AudioFrame;
-class Resampler;
+class PushResampler;
 
 namespace voe {
 
@@ -24,7 +24,7 @@ namespace voe {
 
 
 int RemixAndResample(const AudioFrame& src_frame,
-                     Resampler* resampler,
+                     PushResampler* resampler,
                      AudioFrame* dst_frame);
 
 }  

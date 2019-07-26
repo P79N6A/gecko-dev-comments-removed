@@ -8,7 +8,7 @@
 
 
 
-#include "spatial_resampler.h"
+#include "webrtc/modules/video_processing/main/source/spatial_resampler.h"
 
 
 namespace webrtc {

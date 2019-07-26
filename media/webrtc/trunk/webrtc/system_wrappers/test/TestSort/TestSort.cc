@@ -8,12 +8,12 @@
 
 
 
-#include <cstdio>
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 
-#include "sort.h"
-#include "tick_util.h"
+#include "webrtc/system_wrappers/interface/sort.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 
 
 #undef max

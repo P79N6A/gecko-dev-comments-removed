@@ -21,9 +21,29 @@ namespace test {
 class TraceToStderr : public TraceCallback {
  public:
   TraceToStderr();
+  
+  
+  
+  
+  
+  
+  explicit TraceToStderr(bool override_time);
   virtual ~TraceToStderr();
 
+  
+  
+  
+  
+  
+  
+  virtual void SetTimeSeconds(float time) { time_seconds_ = time; }
+
+  
   virtual void Print(TraceLevel level, const char* msg_array, int length);
+
+ private:
+  bool override_time_;
+  float time_seconds_;
 };
 
 }  

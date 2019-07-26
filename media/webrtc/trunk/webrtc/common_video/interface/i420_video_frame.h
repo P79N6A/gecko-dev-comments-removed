@@ -93,7 +93,7 @@ class I420VideoFrame {
   int height() const {return height_;}
 
   
-  void set_timestamp(const uint32_t timestamp) {timestamp_ = timestamp;}
+  void set_timestamp(uint32_t timestamp) {timestamp_ = timestamp;}
 
   
   uint32_t timestamp() const {return timestamp_;}
@@ -134,4 +134,3 @@ class I420VideoFrame {
 }  
 
 #endif  
-

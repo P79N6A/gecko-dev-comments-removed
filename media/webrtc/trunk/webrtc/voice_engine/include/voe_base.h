@@ -34,7 +34,7 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOE_BASE_H
 #define WEBRTC_VOICE_ENGINE_VOE_BASE_H
 
-#include "common_types.h"
+#include "webrtc/common_types.h"
 
 namespace webrtc {
 
@@ -50,7 +50,7 @@ public:
     
     
     
-    virtual void CallbackOnError(const int channel, const int errCode) = 0;
+    virtual void CallbackOnError(int channel, int errCode) = 0;
 
 protected:
     virtual ~VoiceEngineObserver() {}
@@ -72,17 +72,17 @@ public:
 
     
     
-    static int SetTraceFilter(const unsigned int filter);
+    static int SetTraceFilter(unsigned int filter);
 
     
     static int SetTraceFile(const char* fileNameUTF8,
-                            const bool addFileCounter = false);
+                            bool addFileCounter = false);
 
     
     
     static int SetTraceCallback(TraceCallback* callback);
 
-    static int SetAndroidObjects(void* javaVM, void* context);
+    static int SetAndroidObjects(void* javaVM, void* env, void* context);
 
 protected:
     VoiceEngine() {}

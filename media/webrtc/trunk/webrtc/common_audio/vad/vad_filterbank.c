@@ -8,12 +8,12 @@
 
 
 
-#include "vad_filterbank.h"
+#include "webrtc/common_audio/vad/vad_filterbank.h"
 
 #include <assert.h>
 
-#include "signal_processing_library.h"
-#include "typedefs.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/typedefs.h"
 
 
 static const int16_t kLogConst = 24660;  

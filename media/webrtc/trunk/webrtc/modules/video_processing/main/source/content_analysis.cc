@@ -7,12 +7,13 @@
 
 
 
-#include "content_analysis.h"
-#include "tick_util.h"
-#include "system_wrappers/interface/cpu_features_wrapper.h"
+#include "webrtc/modules/video_processing/main/source/content_analysis.h"
 
 #include <math.h>
 #include <stdlib.h>
+
+#include "webrtc/system_wrappers/interface/cpu_features_wrapper.h"
+#include "webrtc/system_wrappers/interface/tick_util.h"
 
 namespace webrtc {
 

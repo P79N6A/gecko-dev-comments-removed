@@ -10,7 +10,7 @@
 
 #include "webrtc/system_wrappers/source/thread_posix.h"
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 TEST(ThreadTestPosix, PrioritySettings) {
   

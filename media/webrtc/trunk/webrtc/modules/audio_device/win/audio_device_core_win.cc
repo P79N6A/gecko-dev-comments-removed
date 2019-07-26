@@ -3541,11 +3541,9 @@ DWORD AudioDeviceWindowsCore::DoRenderThread()
         case WAIT_OBJECT_0 + 1:     
             break;
         case WAIT_TIMEOUT:          
-            _ptrClientOut->Stop();
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id, "render event timed out after 0.5 seconds");
             goto Exit;
         default:                    
-            _ptrClientOut->Stop();
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id, "unknown wait termination on render side");
             goto Exit;
         }
@@ -3999,11 +3997,9 @@ DWORD AudioDeviceWindowsCore::DoCaptureThread()
         case WAIT_OBJECT_0 + 1:        
             break;
         case WAIT_TIMEOUT:            
-            _ptrClientIn->Stop();
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id, "capture event timed out after 0.5 seconds");
             goto Exit;
         default:                    
-            _ptrClientIn->Stop();
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id, "unknown wait termination on capture side");
             goto Exit;
         }
@@ -4091,6 +4087,8 @@ DWORD AudioDeviceWindowsCore::DoCaptureThread()
                         _ptrAudioBuffer->SetVQEData(sndCardPlayDelay,
                                                     sndCardRecDelay,
                                                     0);
+
+                        _ptrAudioBuffer->SetTypingStatus(KeyPressed());
 
                         QueryPerformanceCounter(&t1);    
 
@@ -5145,6 +5143,16 @@ char* AudioDeviceWindowsCore::WideToUTF8(const TCHAR* src) const {
 #endif
 }
 
+
+bool AudioDeviceWindowsCore::KeyPressed() const{
+
+  int key_down = 0;
+  for (int key = VK_SPACE; key < VK_NUMLOCK; key++) {
+    short res = GetAsyncKeyState(key);
+    key_down |= res & 0x1; 
+  }
+  return (key_down > 0);
+}
 }  
 
 #endif  

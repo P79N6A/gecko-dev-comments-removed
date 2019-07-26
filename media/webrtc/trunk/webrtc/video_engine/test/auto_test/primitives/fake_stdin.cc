@@ -8,7 +8,7 @@
 
 
 
-#include "video_engine/test/auto_test/primitives/fake_stdin.h"
+#include "webrtc/video_engine/test/auto_test/primitives/fake_stdin.h"
 
 namespace webrtc {
 

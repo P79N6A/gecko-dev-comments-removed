@@ -14,17 +14,18 @@
 #include <list>
 #include <map>
 
-#include "engine_configurations.h"  
-#include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"  
-#include "video_engine/include/vie_rtp_rtcp.h"
-#include "video_engine/vie_channel_group.h"
-#include "video_engine/vie_defines.h"
-#include "video_engine/vie_manager_base.h"
-#include "video_engine/vie_remb.h"
+#include "webrtc/engine_configurations.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/typedefs.h"
+#include "webrtc/video_engine/include/vie_rtp_rtcp.h"
+#include "webrtc/video_engine/vie_channel_group.h"
+#include "webrtc/video_engine/vie_defines.h"
+#include "webrtc/video_engine/vie_manager_base.h"
+#include "webrtc/video_engine/vie_remb.h"
 
 namespace webrtc {
 
+class Config;
 class CriticalSectionWrapper;
 class MapWrapper;
 class ProcessThread;
@@ -44,7 +45,7 @@ class ViEChannelManager: private ViEManagerBase {
  public:
   ViEChannelManager(int engine_id,
                     int number_of_cores,
-                    const OverUseDetectorOptions& options);
+                    const Config& config);
   ~ViEChannelManager();
 
   void SetModuleProcessThread(ProcessThread* module_process_thread);
@@ -76,7 +77,7 @@ class ViEChannelManager: private ViEManagerBase {
 
   
   
-  bool SetBandwidthEstimationMode(BandwidthEstimationMode mode);
+  bool SetReceiveAbsoluteSendTimeStatus(int channel_id, bool enable, int id);
 
   
   
@@ -135,8 +136,7 @@ class ViEChannelManager: private ViEManagerBase {
 
   VoiceEngine* voice_engine_;
   ProcessThread* module_process_thread_;
-  const OverUseDetectorOptions& over_use_detector_options_;
-  RemoteBitrateEstimator::EstimationMode bwe_mode_;
+  const Config& config_;
 };
 
 class ViEChannelManagerScoped: private ViEManagerScopedBase {

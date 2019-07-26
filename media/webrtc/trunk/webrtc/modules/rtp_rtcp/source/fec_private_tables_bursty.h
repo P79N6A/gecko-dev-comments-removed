@@ -25,7 +25,7 @@
 
 
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 namespace {
 
@@ -758,4 +758,3 @@ const uint8_t** kPacketMaskBurstyTbl[12] = {
 
 }  
 #endif  
-

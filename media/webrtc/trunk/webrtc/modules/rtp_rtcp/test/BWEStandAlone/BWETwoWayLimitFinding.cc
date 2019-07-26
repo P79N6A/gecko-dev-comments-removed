@@ -8,8 +8,8 @@
 
 
 
-#include "BWETwoWayLimitFinding.h"
-#include "TestLoadGenerator.h"
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/BWETwoWayLimitFinding.h"
+#include "webrtc/modules/rtp_rtcp/test/BWEStandAlone/TestLoadGenerator.h"
 
 
 BWETwoWayLimitFinding::BWETwoWayLimitFinding(
@@ -72,4 +72,3 @@ bool BWETwoWayLimitFinding::StoppingCriterionMaster()
 
     return (_forwLimitReached && _revLimitReached);
 }
-

@@ -66,8 +66,7 @@ public:
 
     
     
-    
-    void SetMaxJitterEstimate(uint32_t initial_delay_ms);
+    void SetMaxJitterEstimate(bool enable);
 
     
     

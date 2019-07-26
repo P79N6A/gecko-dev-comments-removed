@@ -13,7 +13,7 @@
 #ifndef WEBRTC_COMMON_AUDIO_VAD_VAD_GMM_H_
 #define WEBRTC_COMMON_AUDIO_VAD_VAD_GMM_H_
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 
 

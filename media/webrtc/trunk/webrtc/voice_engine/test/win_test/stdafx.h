@@ -8,11 +8,12 @@
 
 
 
+#ifndef WEBRTC_VOICE_ENGINE_TEST_WIN_TEST_STDAFX_H_
+#define WEBRTC_VOICE_ENGINE_TEST_WIN_TEST_STDAFX_H_
 
 
 
 
-#pragma once
 
 #ifndef _SECURE_ATL
 #define _SECURE_ATL 1
@@ -48,24 +49,12 @@
 #include <afxwin.h>         
 #include <afxext.h>         
 
-
-
-
-
 #ifndef _AFX_NO_OLE_SUPPORT
 #include <afxdtctl.h>		
 #endif
 #ifndef _AFX_NO_AFXCMN_SUPPORT
 #include <afxcmn.h>			
 #endif 
-
-
-
-
-
-
-
-
 
 #ifdef _UNICODE
 #if defined _M_IX86
@@ -79,4 +68,4 @@
 #endif
 #endif
 
-
+#endif  

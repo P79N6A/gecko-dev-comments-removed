@@ -34,16 +34,16 @@ class AudioVectorTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     
-    for (size_t i = 0; i < kLength; ++i) {
+    for (size_t i = 0; i < array_length(); ++i) {
       array_[i] = static_cast<T>(i);
     }
   }
 
-  enum {
-    kLength = 10
-  };
+  size_t array_length() const {
+    return sizeof(array_) / sizeof(array_[0]);
+  }
 
-  T array_[kLength];
+  T array_[10];
 };
 
 
@@ -65,8 +65,8 @@ TYPED_TEST(AudioVectorTest, CreateAndDestroy) {
 
 
 TYPED_TEST(AudioVectorTest, SubscriptOperator) {
-  AudioVector<TypeParam> vec(TestFixture::kLength);
-  for (size_t i = 0; i < TestFixture::kLength; ++i) {
+  AudioVector<TypeParam> vec(this->array_length());
+  for (size_t i = 0; i < this->array_length(); ++i) {
     vec[i] = static_cast<TypeParam>(i);
     const TypeParam& value = vec[i];  
     EXPECT_EQ(static_cast<TypeParam>(i), value);
@@ -78,11 +78,11 @@ TYPED_TEST(AudioVectorTest, SubscriptOperator) {
 TYPED_TEST(AudioVectorTest, PushBackAndCopy) {
   AudioVector<TypeParam> vec;
   AudioVector<TypeParam> vec_copy;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   vec.CopyFrom(&vec_copy);  
-  ASSERT_EQ(TestFixture::kLength, vec.Size());
-  ASSERT_EQ(TestFixture::kLength, vec_copy.Size());
-  for (size_t i = 0; i < TestFixture::kLength; ++i) {
+  ASSERT_EQ(this->array_length(), vec.Size());
+  ASSERT_EQ(this->array_length(), vec_copy.Size());
+  for (size_t i = 0; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[i]);
     EXPECT_EQ(this->array_[i], vec_copy[i]);
   }
@@ -100,7 +100,7 @@ TYPED_TEST(AudioVectorTest, PushBackAndCopy) {
 TYPED_TEST(AudioVectorTest, CopyToNull) {
   AudioVector<TypeParam> vec;
   AudioVector<TypeParam>* vec_copy = NULL;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   vec.CopyFrom(vec_copy);
 }
 
@@ -126,9 +126,9 @@ TYPED_TEST(AudioVectorTest, PushBackVector) {
 
 TYPED_TEST(AudioVectorTest, PushFront) {
   AudioVector<TypeParam> vec;
-  vec.PushFront(this->array_, TestFixture::kLength);
-  ASSERT_EQ(TestFixture::kLength, vec.Size());
-  for (size_t i = 0; i < TestFixture::kLength; ++i) {
+  vec.PushFront(this->array_, this->array_length());
+  ASSERT_EQ(this->array_length(), vec.Size());
+  for (size_t i = 0; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[i]);
   }
 }
@@ -155,37 +155,37 @@ TYPED_TEST(AudioVectorTest, PushFrontVector) {
 
 TYPED_TEST(AudioVectorTest, PopFront) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   vec.PopFront(1);  
-  EXPECT_EQ(TestFixture::kLength - 1u, vec.Size());
-  for (size_t i = 0; i < TestFixture::kLength - 1; ++i) {
+  EXPECT_EQ(this->array_length() - 1u, vec.Size());
+  for (size_t i = 0; i < this->array_length() - 1; ++i) {
     EXPECT_EQ(static_cast<TypeParam>(i + 1), vec[i]);
   }
-  vec.PopFront(TestFixture::kLength);  
+  vec.PopFront(this->array_length());  
   EXPECT_EQ(0u, vec.Size());
 }
 
 
 TYPED_TEST(AudioVectorTest, PopBack) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   vec.PopBack(1);  
-  EXPECT_EQ(TestFixture::kLength - 1u, vec.Size());
-  for (size_t i = 0; i < TestFixture::kLength - 1; ++i) {
+  EXPECT_EQ(this->array_length() - 1u, vec.Size());
+  for (size_t i = 0; i < this->array_length() - 1; ++i) {
     EXPECT_EQ(static_cast<TypeParam>(i), vec[i]);
   }
-  vec.PopBack(TestFixture::kLength);  
+  vec.PopBack(this->array_length());  
   EXPECT_EQ(0u, vec.Size());
 }
 
 
 TYPED_TEST(AudioVectorTest, Extend) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   vec.Extend(5);  
-  ASSERT_EQ(TestFixture::kLength + 5u, vec.Size());
+  ASSERT_EQ(this->array_length() + 5u, vec.Size());
   
-  for (int i = TestFixture::kLength; i < TestFixture::kLength + 5; ++i) {
+  for (size_t i = this->array_length(); i < this->array_length() + 5; ++i) {
     EXPECT_EQ(0, vec[i]);
   }
 }
@@ -193,7 +193,7 @@ TYPED_TEST(AudioVectorTest, Extend) {
 
 TYPED_TEST(AudioVectorTest, InsertAt) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
@@ -205,7 +205,7 @@ TYPED_TEST(AudioVectorTest, InsertAt) {
   
   
   
-  int pos = 0;
+  size_t pos = 0;
   for (int i = 0; i < insert_position; ++i) {
     EXPECT_EQ(this->array_[i], vec[pos]);
     ++pos;
@@ -214,7 +214,7 @@ TYPED_TEST(AudioVectorTest, InsertAt) {
     EXPECT_EQ(new_array[i], vec[pos]);
     ++pos;
   }
-  for (int i = insert_position; i < TestFixture::kLength; ++i) {
+  for (size_t i = insert_position; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[pos]);
     ++pos;
   }
@@ -225,8 +225,8 @@ TYPED_TEST(AudioVectorTest, InsertAt) {
 TYPED_TEST(AudioVectorTest, InsertZerosAt) {
   AudioVector<TypeParam> vec;
   AudioVector<TypeParam> vec_ref;
-  vec.PushBack(this->array_, TestFixture::kLength);
-  vec_ref.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
+  vec_ref.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   int insert_position = 5;
   vec.InsertZerosAt(kNewLength, insert_position);
@@ -242,7 +242,7 @@ TYPED_TEST(AudioVectorTest, InsertZerosAt) {
 
 TYPED_TEST(AudioVectorTest, InsertAtBeginning) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
@@ -254,12 +254,12 @@ TYPED_TEST(AudioVectorTest, InsertAtBeginning) {
   
   
   
-  int pos = 0;
+  size_t pos = 0;
   for (int i = 0; i < kNewLength; ++i) {
     EXPECT_EQ(new_array[i], vec[pos]);
     ++pos;
   }
-  for (int i = insert_position; i < TestFixture::kLength; ++i) {
+  for (size_t i = insert_position; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[pos]);
     ++pos;
   }
@@ -268,19 +268,19 @@ TYPED_TEST(AudioVectorTest, InsertAtBeginning) {
 
 TYPED_TEST(AudioVectorTest, InsertAtEnd) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
   for (int i = 0; i < kNewLength; ++i) {
     new_array[i] = 100 + i;
   }
-  int insert_position = TestFixture::kLength;
+  int insert_position = this->array_length();
   vec.InsertAt(new_array, kNewLength, insert_position);
   
   
-  int pos = 0;
-  for (int i = 0; i < TestFixture::kLength; ++i) {
+  size_t pos = 0;
+  for (size_t i = 0; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[pos]);
     ++pos;
   }
@@ -297,19 +297,19 @@ TYPED_TEST(AudioVectorTest, InsertAtEnd) {
 
 TYPED_TEST(AudioVectorTest, InsertBeyondEnd) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
   for (int i = 0; i < kNewLength; ++i) {
     new_array[i] = 100 + i;
   }
-  int insert_position = TestFixture::kLength + 10;  
+  int insert_position = this->array_length() + 10;  
   vec.InsertAt(new_array, kNewLength, insert_position);
   
   
-  int pos = 0;
-  for (int i = 0; i < TestFixture::kLength; ++i) {
+  size_t pos = 0;
+  for (size_t i = 0; i < this->array_length(); ++i) {
     EXPECT_EQ(this->array_[i], vec[pos]);
     ++pos;
   }
@@ -323,19 +323,19 @@ TYPED_TEST(AudioVectorTest, InsertBeyondEnd) {
 
 TYPED_TEST(AudioVectorTest, OverwriteAt) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
   for (int i = 0; i < kNewLength; ++i) {
     new_array[i] = 100 + i;
   }
-  int insert_position = 2;
+  size_t insert_position = 2;
   vec.OverwriteAt(new_array, kNewLength, insert_position);
   
   
   
-  int pos = 0;
+  size_t pos = 0;
   for (pos = 0; pos < insert_position; ++pos) {
     EXPECT_EQ(this->array_[pos], vec[pos]);
   }
@@ -343,7 +343,7 @@ TYPED_TEST(AudioVectorTest, OverwriteAt) {
     EXPECT_EQ(new_array[i], vec[pos]);
     ++pos;
   }
-  for (; pos < TestFixture::kLength; ++pos) {
+  for (; pos < this->array_length(); ++pos) {
     EXPECT_EQ(this->array_[pos], vec[pos]);
   }
 }
@@ -353,16 +353,16 @@ TYPED_TEST(AudioVectorTest, OverwriteAt) {
 
 TYPED_TEST(AudioVectorTest, OverwriteBeyondEnd) {
   AudioVector<TypeParam> vec;
-  vec.PushBack(this->array_, TestFixture::kLength);
+  vec.PushBack(this->array_, this->array_length());
   static const int kNewLength = 5;
   TypeParam new_array[kNewLength];
   
   for (int i = 0; i < kNewLength; ++i) {
     new_array[i] = 100 + i;
   }
-  int insert_position = TestFixture::kLength - 2;
+  int insert_position = this->array_length() - 2;
   vec.OverwriteAt(new_array, kNewLength, insert_position);
-  ASSERT_EQ(TestFixture::kLength - 2u + kNewLength, vec.Size());
+  ASSERT_EQ(this->array_length() - 2u + kNewLength, vec.Size());
   
   
   

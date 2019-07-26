@@ -92,8 +92,8 @@ public:
 
 
     int32_t InitEncode(const VideoCodec* settings,
-                             int32_t numberOfCores,
-                             uint32_t maxPayloadSize);
+                       int32_t numberOfCores,
+                       uint32_t maxPayloadSize);
     
 
 
@@ -102,14 +102,13 @@ public:
 
 
     int32_t Encode(const I420VideoFrame& inputFrame,
-                         const CodecSpecificInfo* codecSpecificInfo,
-                         const std::vector<FrameType>& frameTypes);
+                   const CodecSpecificInfo* codecSpecificInfo,
+                   const std::vector<FrameType>& frameTypes);
     
 
 
 
-    int32_t SetRates(uint32_t target_bitrate,
-                           uint32_t frameRate);
+    int32_t SetRates(uint32_t target_bitrate, uint32_t frameRate);
     
 
 
@@ -118,7 +117,9 @@ public:
     
 
 
-    int32_t RegisterEncodeCallback(VCMEncodedFrameCallback* VCMencodedFrameCallback);
+
+    int32_t RegisterEncodeCallback(
+        VCMEncodedFrameCallback* VCMencodedFrameCallback);
     
 
 
@@ -138,8 +139,8 @@ private:
     VideoEncoder&               _encoder;
     VideoCodecType              _codecType;
     VCMEncodedFrameCallback*    _VCMencodedFrameCallback;
-    uint32_t              _bitRate;
-    uint32_t              _frameRate;
+    uint32_t                    _bitRate;
+    uint32_t                    _frameRate;
     bool                        _internalSource;
 }; 
 

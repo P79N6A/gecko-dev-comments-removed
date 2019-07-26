@@ -31,7 +31,7 @@ class RemoteBitrateObserver {
  public:
   
   
-  virtual void OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
+  virtual void OnReceiveBitrateChanged(const std::vector<unsigned int>& ssrcs,
                                        unsigned int bitrate) = 0;
 
   virtual ~RemoteBitrateObserver() {}
@@ -39,17 +39,7 @@ class RemoteBitrateObserver {
 
 class RemoteBitrateEstimator : public CallStatsObserver, public Module {
  public:
-  enum EstimationMode {
-    kMultiStreamEstimation,
-    kSingleStreamEstimation
-  };
-
   virtual ~RemoteBitrateEstimator() {}
-
-  static RemoteBitrateEstimator* Create(const OverUseDetectorOptions& options,
-                                        EstimationMode mode,
-                                        RemoteBitrateObserver* observer,
-                                        Clock* clock);
 
   
   
@@ -61,10 +51,11 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   
   
   
-  virtual void IncomingPacket(unsigned int ssrc,
+  
+  
+  virtual void IncomingPacket(int64_t arrival_time_ms,
                               int payload_size,
-                              int64_t arrival_time,
-                              uint32_t rtp_timestamp) = 0;
+                              const RTPHeader& header) = 0;
 
   
   virtual void RemoveStream(unsigned int ssrc) = 0;
@@ -80,6 +71,33 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   static const int kStreamTimeOutMs = 2000;
 };
 
+struct RemoteBitrateEstimatorFactory {
+  RemoteBitrateEstimatorFactory() {}
+  virtual ~RemoteBitrateEstimatorFactory() {}
+
+  virtual RemoteBitrateEstimator* Create(
+      RemoteBitrateObserver* observer,
+      Clock* clock) const;
+};
+
+struct AbsoluteSendTimeRemoteBitrateEstimatorFactory {
+  AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
+  virtual ~AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
+
+  virtual RemoteBitrateEstimator* Create(
+      RemoteBitrateObserver* observer,
+      Clock* clock) const;
+};
+
+struct MultiStreamRemoteBitrateEstimatorFactory
+    : RemoteBitrateEstimatorFactory {
+  MultiStreamRemoteBitrateEstimatorFactory() {}
+  virtual ~MultiStreamRemoteBitrateEstimatorFactory() {}
+
+  virtual RemoteBitrateEstimator* Create(
+      RemoteBitrateObserver* observer,
+      Clock* clock) const;
+};
 }  
 
-#endif
+#endif  

@@ -16,6 +16,7 @@
 #include "critical_section_wrapper.h"
 
 #include <pulse/pulseaudio.h>
+#include <X11/Xlib.h>
 
 
 
@@ -238,6 +239,9 @@ private:
     void WaitForSuccess(pa_operation* paOperation) const;
 
 private:
+    bool KeyPressed() const;
+
+private:
     static void PaContextStateCallback(pa_context *c, void *pThis);
     static void PaSinkInfoCallback(pa_context *c, const pa_sink_info *i,
                                    int eol, void *pThis);
@@ -374,6 +378,9 @@ private:
     uint32_t _playStreamFlags;
     pa_buffer_attr _playBufferAttr;
     pa_buffer_attr _recBufferAttr;
+
+    char _oldKeyState[32];
+    Display* _XDisplay;
 };
 
 }

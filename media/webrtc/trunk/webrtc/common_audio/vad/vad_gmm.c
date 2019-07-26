@@ -8,10 +8,10 @@
 
 
 
-#include "vad_gmm.h"
+#include "webrtc/common_audio/vad/vad_gmm.h"
 
-#include "signal_processing_library.h"
-#include "typedefs.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/typedefs.h"
 
 static const int32_t kCompVar = 22005;
 static const int16_t kLog2Exp = 5909;  

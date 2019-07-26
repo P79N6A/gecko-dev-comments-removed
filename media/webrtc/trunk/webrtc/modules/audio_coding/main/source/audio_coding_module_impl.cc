@@ -13,13 +13,18 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <algorithm>  
+
 #include "webrtc/engine_configurations.h"
 #include "webrtc/modules/audio_coding/main/source/acm_codec_database.h"
 #include "webrtc/modules/audio_coding/main/source/acm_common_defs.h"
 #include "webrtc/modules/audio_coding/main/source/acm_dtmf_detection.h"
 #include "webrtc/modules/audio_coding/main/source/acm_generic_codec.h"
 #include "webrtc/modules/audio_coding/main/source/acm_resampler.h"
+#include "webrtc/modules/audio_coding/main/source/nack.h"
+#include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 #include "webrtc/system_wrappers/interface/rw_lock_wrapper.h"
 #include "webrtc/system_wrappers/interface/tick_util.h"
 #include "webrtc/system_wrappers/interface/trace.h"
@@ -46,6 +51,10 @@ enum {
 
 static const uint32_t kMaskTimestamp = 0x03ffffff;
 static const int kDefaultTimestampDiff = 960;  
+
+
+
+static const int kNackThresholdPackets = 2;
 
 namespace {
 
@@ -104,24 +113,9 @@ int TimestampLessThan(uint32_t t1, uint32_t t2) {
   }
 }
 
-
-
-
-
-uint32_t NowTimestamp(int codec_id) {
-  
-  
-  
-  
-  int sample_rate_khz = ACMCodecDB::database_[codec_id].plfreq / 1000;
-  const uint32_t now_in_ms = static_cast<uint32_t>(
-      TickTime::MillisecondTimestamp() & kMaskTimestamp);
-  return static_cast<uint32_t>(sample_rate_khz * now_in_ms);
-}
-
 }  
 
-AudioCodingModuleImpl::AudioCodingModuleImpl(const int32_t id)
+AudioCodingModuleImpl::AudioCodingModuleImpl(const int32_t id, Clock* clock)
     : packetization_callback_(NULL),
       id_(id),
       last_timestamp_(0xD87F3F9F),
@@ -171,7 +165,10 @@ AudioCodingModuleImpl::AudioCodingModuleImpl(const int32_t id)
       last_timestamp_diff_(kDefaultTimestampDiff),
       last_sequence_number_(0),
       last_ssrc_(0),
-      last_packet_was_sync_(false) {
+      last_packet_was_sync_(false),
+      clock_(clock),
+      nack_(),
+      nack_enabled_(false) {
 
   
   
@@ -726,13 +723,14 @@ int AudioCodingModuleImpl::ProcessSingleStream() {
       if (fec_active) {
         
         packetization_callback_->SendData(frame_type, current_payload_type,
-                                          rtp_timestamp, stream, length_bytes,
+                                          rtp_timestamp, stream,
+                                          length_bytes,
                                           &my_fragmentation);
       } else {
         
         packetization_callback_->SendData(frame_type, current_payload_type,
-                                          rtp_timestamp, stream, length_bytes,
-                                          NULL);
+                                          rtp_timestamp, stream,
+                                          length_bytes, NULL);
       }
     }
 
@@ -1654,7 +1652,7 @@ int32_t AudioCodingModuleImpl::InitializeReceiverSafe() {
   num_packets_accumulated_ = 0;
   num_bytes_accumulated_ = 0;
   accumulated_audio_ms_ = 0;
-  first_payload_received_ = 0;;
+  first_payload_received_ = 0;
   last_incoming_send_timestamp_ = 0;
   track_neteq_buffer_ = false;
   playout_ts_ = 0;
@@ -2060,12 +2058,26 @@ int32_t AudioCodingModuleImpl::IncomingPacket(
         if (track_neteq_buffer_ || av_sync_) {
           last_incoming_send_timestamp_ = rtp_info.header.timestamp;
         }
+
+        if (nack_enabled_) {
+          assert(nack_.get());
+          
+          nack_->Reset();
+          nack_->UpdateSampleRate(
+              ACMCodecDB::database_[current_receive_codec_idx_].plfreq);
+        }
       }
       last_recv_audio_codec_pltype_ = my_payload_type;
     }
 
     
     last_receive_timestamp_ = NowTimestamp(current_receive_codec_idx_);
+
+    if (nack_enabled_) {
+      assert(nack_.get());
+      nack_->UpdateLastReceivedPacket(rtp_header.header.sequenceNumber,
+                                      rtp_header.header.timestamp);
+    }
   }
 
   int per_neteq_payload_length = payload_length;
@@ -2105,7 +2117,7 @@ int32_t AudioCodingModuleImpl::IncomingPacket(
       UpdateBufferingSafe(rtp_header, per_neteq_payload_length);
 
     if (av_sync_) {
-      if(rtp_info.header.sequenceNumber == last_sequence_number_ + 1) {
+      if (rtp_info.header.sequenceNumber == last_sequence_number_ + 1) {
         last_timestamp_diff_ = rtp_info.header.timestamp -
             last_incoming_send_timestamp_;
       }
@@ -2116,8 +2128,12 @@ int32_t AudioCodingModuleImpl::IncomingPacket(
 
     if (av_sync_ || track_neteq_buffer_) {
       last_incoming_send_timestamp_ = rtp_info.header.timestamp;
-      first_payload_received_ = true;
     }
+
+    
+    
+    if (!rtp_info.type.Audio.isCNG)
+      first_payload_received_ = true;
   }
   return 0;
 }
@@ -2192,8 +2208,7 @@ int AudioCodingModuleImpl::InitStereoSlave() {
 }
 
 
-int32_t AudioCodingModuleImpl::SetMinimumPlayoutDelay(
-    const int32_t time_ms) {
+int AudioCodingModuleImpl::SetMinimumPlayoutDelay(int time_ms) {
   if ((time_ms < 0) || (time_ms > 10000)) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, id_,
                  "Delay must be in the range of 0-10000 milliseconds.");
@@ -2205,7 +2220,7 @@ int32_t AudioCodingModuleImpl::SetMinimumPlayoutDelay(
     if (track_neteq_buffer_ && first_payload_received_)
       return 0;
   }
-  return neteq_.SetExtraDelay(time_ms);
+  return neteq_.SetMinimumDelay(time_ms);
 }
 
 
@@ -2306,6 +2321,10 @@ int32_t AudioCodingModuleImpl::PlayoutData10Ms(
                  "PlayoutData failed, RecOut Failed");
     return -1;
   }
+  int seq_num;
+  uint32_t timestamp;
+  bool update_nack = nack_enabled_ &&  
+      neteq_.DecodedRtpInfo(&seq_num, &timestamp);
 
   audio_frame->num_channels_ = audio_frame_.num_channels_;
   audio_frame->vad_activity_ = audio_frame_.vad_activity_;
@@ -2325,10 +2344,16 @@ int32_t AudioCodingModuleImpl::PlayoutData10Ms(
   {
     CriticalSectionScoped lock(acm_crit_sect_);
 
+    if (update_nack) {
+      assert(nack_.get());
+      nack_->UpdateLastDecodedPacket(seq_num, timestamp);
+    }
+
     
     
-    if (av_sync_ && NowTimestamp(current_receive_codec_idx_) > 5 *
-        last_timestamp_diff_ + last_receive_timestamp_) {
+    if (av_sync_ && first_payload_received_ &&
+        NowTimestamp(current_receive_codec_idx_) > 5 * last_timestamp_diff_ +
+        last_receive_timestamp_) {
       if (!last_packet_was_sync_) {
         
         
@@ -2932,12 +2957,14 @@ int AudioCodingModuleImpl::SetInitialPlayoutDelay(int delay_ms) {
     return -1;
   }
   initial_delay_ms_ = delay_ms;
-  if (delay_ms > 0) {
-    track_neteq_buffer_ = true;
-  }
-  av_sync_ = true;
+
+  
+  
+  track_neteq_buffer_ = delay_ms > 0;
+  av_sync_ = delay_ms > 0;
+
   neteq_.EnableAVSync(av_sync_);
-  return neteq_.SetExtraDelay(delay_ms);
+  return neteq_.SetMinimumDelay(delay_ms);
 }
 
 bool AudioCodingModuleImpl::GetSilence(int desired_sample_rate_hz,
@@ -3039,6 +3066,63 @@ void AudioCodingModuleImpl::UpdateBufferingSafe(const WebRtcRTPHeader& rtp_info,
   playout_ts_ = static_cast<uint32_t>(
       rtp_info.header.timestamp - static_cast<uint32_t>(
           initial_delay_ms_ * in_sample_rate_khz));
+}
+
+uint32_t AudioCodingModuleImpl::NowTimestamp(int codec_id) {
+  
+  
+  
+  
+  int sample_rate_khz = ACMCodecDB::database_[codec_id].plfreq / 1000;
+  const uint32_t now_in_ms = static_cast<uint32_t>(
+      clock_->TimeInMilliseconds() & kMaskTimestamp);
+  return static_cast<uint32_t>(sample_rate_khz * now_in_ms);
+}
+
+std::vector<uint16_t> AudioCodingModuleImpl::GetNackList(
+    int round_trip_time_ms) const {
+  CriticalSectionScoped lock(acm_crit_sect_);
+  if (round_trip_time_ms < 0) {
+    WEBRTC_TRACE(webrtc::kTraceWarning, webrtc::kTraceAudioCoding, id_,
+                 "GetNackList: round trip time cannot be negative."
+                 " round_trip_time_ms=%d", round_trip_time_ms);
+  }
+  if (nack_enabled_ && round_trip_time_ms >= 0) {
+    assert(nack_.get());
+    return nack_->GetNackList(round_trip_time_ms);
+  }
+  std::vector<uint16_t> empty_list;
+  return empty_list;
+}
+
+int AudioCodingModuleImpl::LeastRequiredDelayMs() const {
+  return std::max(neteq_.LeastRequiredDelayMs(), initial_delay_ms_);
+}
+
+int AudioCodingModuleImpl::EnableNack(size_t max_nack_list_size) {
+  
+  if (max_nack_list_size == 0 || max_nack_list_size > Nack::kNackListSizeLimit)
+    return -1;
+
+  CriticalSectionScoped lock(acm_crit_sect_);
+  if (!nack_enabled_) {
+    nack_.reset(Nack::Create(kNackThresholdPackets));
+    nack_enabled_ = true;
+
+    
+    
+    if (current_receive_codec_idx_ >= 0) {
+      nack_->UpdateSampleRate(
+          ACMCodecDB::database_[current_receive_codec_idx_].plfreq);
+    }
+  }
+  return nack_->SetMaxNackListSize(max_nack_list_size);
+}
+
+void AudioCodingModuleImpl::DisableNack() {
+  CriticalSectionScoped lock(acm_crit_sect_);
+  nack_.reset();  
+  nack_enabled_ = false;
 }
 
 }  

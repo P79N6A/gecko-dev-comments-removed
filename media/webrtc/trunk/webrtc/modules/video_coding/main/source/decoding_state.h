@@ -32,9 +32,7 @@ class VCMDecodingState {
   bool ContinuousFrame(const VCMFrameBuffer* frame) const;
   void SetState(const VCMFrameBuffer* frame);
   void CopyFrom(const VCMDecodingState& state);
-  
-  void SetStateOneBack(const VCMFrameBuffer* frame);
-  void UpdateEmptyFrame(const VCMFrameBuffer* frame);
+  bool UpdateEmptyFrame(const VCMFrameBuffer* frame);
   
   
   

@@ -13,9 +13,9 @@
 
 #include <vector>
 
-#include "common_types.h"  
-#include "system_wrappers/interface/scoped_ptr.h"
-#include "typedefs.h"  
+#include "webrtc/common_types.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 

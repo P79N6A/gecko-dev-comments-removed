@@ -234,10 +234,6 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
 
   
   
-  virtual int SetBandwidthEstimationMode(BandwidthEstimationMode mode) = 0;
-
-  
-  
   virtual int SetSendTimestampOffsetStatus(int video_channel,
                                            bool enable,
                                            int id) = 0;
@@ -245,6 +241,18 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   virtual int SetReceiveTimestampOffsetStatus(int video_channel,
                                               bool enable,
                                               int id) = 0;
+
+  
+  
+  virtual int SetSendAbsoluteSendTimeStatus(int video_channel,
+                                            bool enable,
+                                            int id) = 0;
+
+  
+  
+  virtual int SetReceiveAbsoluteSendTimeStatus(int video_channel,
+                                               bool enable,
+                                               int id) = 0;
 
   
   
@@ -298,16 +306,6 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   virtual int GetEstimatedReceiveBandwidth(
       const int video_channel,
       unsigned int* estimated_bandwidth) const = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  virtual int SetOverUseDetectorOptions(
-      const OverUseDetectorOptions& options) const = 0;
 
   
   

@@ -19,9 +19,9 @@ struct WebRtcOpusDecInst;
 namespace webrtc {
 
 
-enum { kOpusNumberOfSamples = 480 * 6 * 2 };
+const int kOpusNumberOfSamples = 480 * 6 * 2;
 
-enum { kMaxBytes = 1000 };
+const size_t kMaxBytes = 1000;
 
 class OpusTest : public ::testing::Test {
  protected:

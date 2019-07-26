@@ -8,7 +8,7 @@
 
 
 
-#include "tools/frame_analyzer/video_quality_analysis.h"
+#include "webrtc/tools/frame_analyzer/video_quality_analysis.h"
 
 #include <cassert>
 #include <cstdio>

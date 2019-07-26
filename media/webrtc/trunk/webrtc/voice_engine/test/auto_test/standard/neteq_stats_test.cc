@@ -8,7 +8,7 @@
 
 
 
-#include "voice_engine/test/auto_test/fixtures/after_streaming_fixture.h"
+#include "webrtc/voice_engine/test/auto_test/fixtures/after_streaming_fixture.h"
 
 class NetEQStatsTest : public AfterStreamingFixture {
 };

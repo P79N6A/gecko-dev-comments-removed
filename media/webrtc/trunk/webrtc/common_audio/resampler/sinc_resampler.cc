@@ -50,42 +50,25 @@
 
 #include <cmath>
 #include <cstring>
-
-#if defined(WEBRTC_USE_SSE2)
-#include <xmmintrin.h>
-#endif
-
-
-
-
-
+#include <limits>
 
 namespace webrtc {
 
-namespace {
-
-enum {
+static double SincScaleFactor(double io_ratio) {
   
   
-  
-  kKernelSize = 32,
+  double sinc_scale_factor = io_ratio > 1.0 ? 1.0 / io_ratio : 1.0;
 
   
   
   
-  kDefaultBlockSize = 512,
+  
+  
+  
+  sinc_scale_factor *= 0.9;
 
-  
-  
-  
-  kKernelOffsetCount = 32,
-  kKernelStorageSize = kKernelSize * (kKernelOffsetCount + 1),
-
-  
-  kDefaultBufferSize = kDefaultBlockSize + kKernelSize
-};
-
-}  
+  return sinc_scale_factor;
+}
 
 SincResampler::SincResampler(double io_sample_rate_ratio,
                              SincResamplerCallback* read_cb,
@@ -99,8 +82,18 @@ SincResampler::SincResampler(double io_sample_rate_ratio,
       
       kernel_storage_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+      kernel_pre_sinc_storage_(static_cast<float*>(
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+      kernel_window_storage_(static_cast<float*>(
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
       input_buffer_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * buffer_size_, 16))),
+#if defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)
+      convolve_proc_(WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C),
+#elif defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON)
+      convolve_proc_(WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
+                     Convolve_NEON : Convolve_C),
+#endif
       
       r0_(input_buffer_.get() + kKernelSize / 2),
       r1_(input_buffer_.get()),
@@ -123,8 +116,18 @@ SincResampler::SincResampler(double io_sample_rate_ratio,
       
       kernel_storage_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+      kernel_pre_sinc_storage_(static_cast<float*>(
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+      kernel_window_storage_(static_cast<float*>(
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
       input_buffer_(static_cast<float*>(
           AlignedMalloc(sizeof(float) * buffer_size_, 16))),
+#if defined(WEBRTC_ARCH_X86_FAMILY) && !defined(__SSE__)
+      convolve_proc_(WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C),
+#elif defined(WEBRTC_ARCH_ARM_V7) && !defined(WEBRTC_ARCH_ARM_NEON)
+      convolve_proc_(WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
+                     Convolve_NEON : Convolve_C),
+#endif
       
       r0_(input_buffer_.get() + kKernelSize / 2),
       r1_(input_buffer_.get()),
@@ -160,6 +163,10 @@ void SincResampler::Initialize() {
 
   memset(kernel_storage_.get(), 0,
          sizeof(*kernel_storage_.get()) * kKernelStorageSize);
+  memset(kernel_pre_sinc_storage_.get(), 0,
+         sizeof(*kernel_pre_sinc_storage_.get()) * kKernelStorageSize);
+  memset(kernel_window_storage_.get(), 0,
+         sizeof(*kernel_window_storage_.get()) * kKernelStorageSize);
   memset(input_buffer_.get(), 0, sizeof(*input_buffer_.get()) * buffer_size_);
 }
 
@@ -172,39 +179,81 @@ void SincResampler::InitializeKernel() {
 
   
   
-  double sinc_scale_factor =
-      io_sample_rate_ratio_ > 1.0 ? 1.0 / io_sample_rate_ratio_ : 1.0;
-
-  
-  
-  
-  
-  
-  
-  sinc_scale_factor *= 0.9;
-
-  
-  
+  const double sinc_scale_factor = SincScaleFactor(io_sample_rate_ratio_);
   for (int offset_idx = 0; offset_idx <= kKernelOffsetCount; ++offset_idx) {
-    double subsample_offset =
-        static_cast<double>(offset_idx) / kKernelOffsetCount;
+    const float subsample_offset =
+        static_cast<float>(offset_idx) / kKernelOffsetCount;
 
     for (int i = 0; i < kKernelSize; ++i) {
-      
-      double s =
-          sinc_scale_factor * M_PI * (i - kKernelSize / 2 - subsample_offset);
-      double sinc = (!s ? 1.0 : sin(s) / s) * sinc_scale_factor;
+      const int idx = i + offset_idx * kKernelSize;
+      const float pre_sinc = M_PI * (i - kKernelSize / 2 - subsample_offset);
+      kernel_pre_sinc_storage_.get()[idx] = pre_sinc;
 
       
-      double x = (i - subsample_offset) / kKernelSize;
-      double window = kA0 - kA1 * cos(2.0 * M_PI * x) + kA2
+      const float x = (i - subsample_offset) / kKernelSize;
+      const float window = kA0 - kA1 * cos(2.0 * M_PI * x) + kA2
           * cos(4.0 * M_PI * x);
+      kernel_window_storage_.get()[idx] = window;
 
       
-      kernel_storage_.get()[i + offset_idx * kKernelSize] = sinc * window;
+      
+      if (pre_sinc == 0) {
+        kernel_storage_.get()[idx] = sinc_scale_factor * window;
+      } else {
+        kernel_storage_.get()[idx] =
+            window * sin(sinc_scale_factor * pre_sinc) / pre_sinc;
+      }
     }
   }
 }
+
+void SincResampler::SetRatio(double io_sample_rate_ratio) {
+  if (fabs(io_sample_rate_ratio_ - io_sample_rate_ratio) <
+      std::numeric_limits<double>::epsilon()) {
+    return;
+  }
+
+  io_sample_rate_ratio_ = io_sample_rate_ratio;
+
+  
+  
+  const double sinc_scale_factor = SincScaleFactor(io_sample_rate_ratio_);
+  for (int offset_idx = 0; offset_idx <= kKernelOffsetCount; ++offset_idx) {
+    for (int i = 0; i < kKernelSize; ++i) {
+      const int idx = i + offset_idx * kKernelSize;
+      const float window = kernel_window_storage_.get()[idx];
+      const float pre_sinc = kernel_pre_sinc_storage_.get()[idx];
+
+      if (pre_sinc == 0) {
+        kernel_storage_.get()[idx] = sinc_scale_factor * window;
+      } else {
+        kernel_storage_.get()[idx] =
+            window * sin(sinc_scale_factor * pre_sinc) / pre_sinc;
+      }
+    }
+  }
+}
+
+
+#if defined(WEBRTC_ARCH_X86_FAMILY)
+#if defined(__SSE__)
+#define CONVOLVE_FUNC Convolve_SSE
+#else
+
+
+#define CONVOLVE_FUNC convolve_proc_
+#endif
+#elif defined(WEBRTC_ARCH_ARM_V7)
+#if defined(WEBRTC_ARCH_ARM_NEON)
+#define CONVOLVE_FUNC Convolve_NEON
+#else
+
+#define CONVOLVE_FUNC convolve_proc_
+#endif
+#else
+
+#define CONVOLVE_FUNC Convolve_C
+#endif
 
 void SincResampler::Resample(float* destination, int frames) {
   int remaining_frames = frames;
@@ -232,11 +281,16 @@ void SincResampler::Resample(float* destination, int frames) {
       float* k2 = k1 + kKernelSize;
 
       
+      
+      assert((reinterpret_cast<uintptr_t>(k1) & 0x0F) == 0u);
+      assert((reinterpret_cast<uintptr_t>(k2) & 0x0F) == 0u);
+
+      
       float* input_ptr = r1_ + source_idx;
 
       
       double kernel_interpolation_factor = virtual_offset_idx - offset_idx;
-      *destination++ = Convolve(
+      *destination++ = CONVOLVE_FUNC(
           input_ptr, k1, k2, kernel_interpolation_factor);
 
       
@@ -260,6 +314,8 @@ void SincResampler::Resample(float* destination, int frames) {
   }
 }
 
+#undef CONVOLVE_FUNC
+
 int SincResampler::ChunkSize() {
   return block_size_ / io_sample_rate_ratio_;
 }
@@ -272,30 +328,6 @@ void SincResampler::Flush() {
   virtual_source_idx_ = 0;
   buffer_primed_ = false;
   memset(input_buffer_.get(), 0, sizeof(*input_buffer_.get()) * buffer_size_);
-}
-
-float SincResampler::Convolve(const float* input_ptr, const float* k1,
-                              const float* k2,
-                              double kernel_interpolation_factor) {
-  
-  
-  typedef float (*ConvolveProc)(const float* src, const float* k1,
-                                const float* k2,
-                                double kernel_interpolation_factor);
-#if defined(WEBRTC_USE_SSE2)
-  static const ConvolveProc kConvolveProc =
-      WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C;
-#elif defined(WEBRTC_ARCH_ARM_NEON)
-  static const ConvolveProc kConvolveProc = Convolve_NEON;
-#elif defined(WEBRTC_DETECT_ARM_NEON)
-  static const ConvolveProc kConvolveProc =
-      WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ? Convolve_NEON :
-                                                     Convolve_C;
-#else
-  static const ConvolveProc kConvolveProc = Convolve_C;
-#endif
-
-  return kConvolveProc(input_ptr, k1, k2, kernel_interpolation_factor);
 }
 
 float SincResampler::Convolve_C(const float* input_ptr, const float* k1,
@@ -316,81 +348,5 @@ float SincResampler::Convolve_C(const float* input_ptr, const float* k1,
   return (1.0 - kernel_interpolation_factor) * sum1
       + kernel_interpolation_factor * sum2;
 }
-
-#if defined(WEBRTC_USE_SSE2)
-float SincResampler::Convolve_SSE(const float* input_ptr, const float* k1,
-                                  const float* k2,
-                                  double kernel_interpolation_factor) {
-  
-  
-  assert(0u == (reinterpret_cast<uintptr_t>(k1) & 0x0F));
-  assert(0u == (reinterpret_cast<uintptr_t>(k2) & 0x0F));
-
-  __m128 m_input;
-  __m128 m_sums1 = _mm_setzero_ps();
-  __m128 m_sums2 = _mm_setzero_ps();
-
-  
-  
-  if (reinterpret_cast<uintptr_t>(input_ptr) & 0x0F) {
-    for (int i = 0; i < kKernelSize; i += 4) {
-      m_input = _mm_loadu_ps(input_ptr + i);
-      m_sums1 = _mm_add_ps(m_sums1, _mm_mul_ps(m_input, _mm_load_ps(k1 + i)));
-      m_sums2 = _mm_add_ps(m_sums2, _mm_mul_ps(m_input, _mm_load_ps(k2 + i)));
-    }
-  } else {
-    for (int i = 0; i < kKernelSize; i += 4) {
-      m_input = _mm_load_ps(input_ptr + i);
-      m_sums1 = _mm_add_ps(m_sums1, _mm_mul_ps(m_input, _mm_load_ps(k1 + i)));
-      m_sums2 = _mm_add_ps(m_sums2, _mm_mul_ps(m_input, _mm_load_ps(k2 + i)));
-    }
-  }
-
-  
-  m_sums1 = _mm_mul_ps(m_sums1, _mm_set_ps1(1.0 - kernel_interpolation_factor));
-  m_sums2 = _mm_mul_ps(m_sums2, _mm_set_ps1(kernel_interpolation_factor));
-  m_sums1 = _mm_add_ps(m_sums1, m_sums2);
-
-  
-  float result;
-  m_sums2 = _mm_add_ps(_mm_movehl_ps(m_sums1, m_sums1), m_sums1);
-  _mm_store_ss(&result, _mm_add_ss(m_sums2, _mm_shuffle_ps(
-      m_sums2, m_sums2, 1)));
-
-  return result;
-}
-#endif
-
-#if defined(WEBRTC_ARCH_ARM_NEON) || defined(WEBRTC_DETECT_ARM_NEON)
-float SincResampler::Convolve_NEON(const float* input_ptr, const float* k1,
-                                   const float* k2,
-                                   double kernel_interpolation_factor) {
-  
-  
-  return Convolve_C(input_ptr, k1, k2, kernel_interpolation_factor);
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  
-  
-  
-}
-#endif
 
 }  

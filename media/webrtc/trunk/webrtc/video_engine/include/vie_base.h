@@ -19,16 +19,18 @@
 #ifndef WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_BASE_H_
 #define WEBRTC_VIDEO_ENGINE_INCLUDE_VIE_BASE_H_
 
-#include "common_types.h"
+#include "webrtc/common_types.h"
 
 namespace webrtc {
 
+class Config;
 class VoiceEngine;
 
 class WEBRTC_DLLEXPORT VideoEngine {
  public:
   
   static VideoEngine* Create();
+  static VideoEngine* Create(const Config& config);
 
   
   static bool Delete(VideoEngine*& video_engine);

@@ -8,14 +8,13 @@
 
 
 
-#ifndef WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_CORE_WIN_H
-#define WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_CORE_WIN_H
+#ifndef WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_CORE_WIN_H_
+#define WEBRTC_AUDIO_DEVICE_AUDIO_DEVICE_CORE_WIN_H_
 
 #if (_MSC_VER >= 1400)  
 
 #include "audio_device_generic.h"
 
-#pragma once
 #include <wmcodecdsp.h>      
                              
 #include <Audioclient.h>     
@@ -210,6 +209,9 @@ public:
 public:
     virtual void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer);
 
+private:
+    bool KeyPressed() const;
+
 private:    
     PAvRevertMmThreadCharacteristics    _PAvRevertMmThreadCharacteristics;
     PAvSetMmThreadCharacteristicsA      _PAvSetMmThreadCharacteristicsA;
@@ -378,4 +380,3 @@ private:
 }  
 
 #endif
-

@@ -7,13 +7,13 @@
 
 
 
-#include "video_engine/test/libvietest/include/vie_fake_camera.h"
+#include "webrtc/video_engine/test/libvietest/include/vie_fake_camera.h"
 
 #include <assert.h>
 
-#include "system_wrappers/interface/thread_wrapper.h"
-#include "video_engine/include/vie_capture.h"
-#include "video_engine/test/libvietest/include/vie_file_capture_device.h"
+#include "webrtc/system_wrappers/interface/thread_wrapper.h"
+#include "webrtc/video_engine/include/vie_capture.h"
+#include "webrtc/video_engine/test/libvietest/include/vie_file_capture_device.h"
 
 
 bool StreamVideoFileRepeatedlyIntoCaptureDevice(void* data) {

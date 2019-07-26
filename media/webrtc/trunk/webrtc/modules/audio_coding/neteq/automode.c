@@ -216,6 +216,14 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
             streamingMode);
         if (tempvar > 0)
         {
+            int high_lim_delay;
+            
+
+
+
+
+            int32_t minimum_delay_q8 = ((inst->minimum_delay_ms *
+                (fsHz / 1000)) << 8) / packetLenSamp;
             inst->optBufLevel = tempvar;
 
             if (streamingMode != 0)
@@ -223,6 +231,13 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
                 inst->optBufLevel = WEBRTC_SPL_MAX(inst->optBufLevel,
                     inst->maxCSumIatQ8);
             }
+
+            
+            inst->required_delay_q8 = inst->optBufLevel;
+
+            
+            inst->optBufLevel = WEBRTC_SPL_MAX(inst->optBufLevel,
+                                               minimum_delay_q8);
 
             
             
@@ -238,8 +253,12 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
             maxBufLen = WEBRTC_SPL_LSHIFT_W32(maxBufLen, 8); 
 
             
-            inst->optBufLevel = WEBRTC_SPL_MIN( inst->optBufLevel,
-                (maxBufLen >> 1) + (maxBufLen >> 2) ); 
+            
+            high_lim_delay = (maxBufLen >> 1) + (maxBufLen >> 2);
+            inst->optBufLevel = WEBRTC_SPL_MIN(inst->optBufLevel,
+                                               high_lim_delay);
+            inst->required_delay_q8 = WEBRTC_SPL_MIN(inst->required_delay_q8,
+                                                     high_lim_delay);
         }
         else
         {
@@ -700,6 +719,7 @@ int WebRtcNetEQ_ResetAutomode(AutomodeInst_t *inst, int maxBufLenPackets)
 
     inst->optBufLevel = WEBRTC_SPL_MIN(4,
         (maxBufLenPackets >> 1) + (maxBufLenPackets >> 1)); 
+    inst->required_delay_q8 = inst->optBufLevel;
     inst->levelFiltFact = 253;
 
     

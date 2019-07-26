@@ -8,7 +8,7 @@
 
 
 
-#include "content_analysis.h"
+#include "webrtc/modules/video_processing/main/source/content_analysis.h"
 
 #include <emmintrin.h>
 #include <math.h>

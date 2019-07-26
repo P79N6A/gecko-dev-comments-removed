@@ -11,29 +11,26 @@
 #ifndef WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_BITRATE_ESTIMATOR_UNITTEST_HELPER_H_
 #define WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_BITRATE_ESTIMATOR_UNITTEST_HELPER_H_
 
-#include <gtest/gtest.h>
-
 #include <list>
 #include <map>
 #include <utility>
 
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "webrtc/system_wrappers/interface/clock.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 namespace webrtc {
-
-enum { kMtu = 1200 };
-
 namespace testing {
 
 class TestBitrateObserver : public RemoteBitrateObserver {
  public:
   TestBitrateObserver() : updated_(false), latest_bitrate_(0) {}
+  virtual ~TestBitrateObserver() {}
 
-  void OnReceiveBitrateChanged(std::vector<unsigned int>* ssrcs,
-                               unsigned int bitrate) {
+  virtual void OnReceiveBitrateChanged(const std::vector<unsigned int>& ssrcs,
+                                       unsigned int bitrate) {
     latest_bitrate_ = bitrate;
     updated_ = true;
   }
@@ -54,7 +51,6 @@ class TestBitrateObserver : public RemoteBitrateObserver {
   bool updated_;
   unsigned int latest_bitrate_;
 };
-
 
 class RtpStream {
  public:
@@ -132,7 +128,7 @@ class StreamGenerator {
 
   
   
-  void set_bitrate_bps(int bitrate_bps);
+  void SetBitrateBps(int bitrate_bps);
 
   
   void set_rtp_timestamp_offset(unsigned int ssrc, uint32_t offset);
@@ -160,12 +156,29 @@ class StreamGenerator {
 class RemoteBitrateEstimatorTest : public ::testing::Test {
  public:
   RemoteBitrateEstimatorTest();
-  explicit RemoteBitrateEstimatorTest(bool align_streams);
 
  protected:
-  virtual void SetUp();
+  virtual void SetUp() = 0;
 
   void AddDefaultStream();
+
+  
+  
+  
+  
+  static uint32_t AbsSendTime(int64_t t, int64_t denom);
+
+  
+  static uint32_t AddAbsSendTime(uint32_t t1, uint32_t t2);
+
+  
+  
+  
+  void IncomingPacket(uint32_t ssrc,
+                      uint32_t payload_size,
+                      int64_t arrival_time,
+                      uint32_t rtp_timestamp,
+                      uint32_t absolute_send_time);
 
   
   
@@ -186,24 +199,23 @@ class RemoteBitrateEstimatorTest : public ::testing::Test {
                               unsigned int max_bitrate,
                               unsigned int target_bitrate);
 
-  enum { kDefaultSsrc = 1 };
+  void InitialBehaviorTestHelper(unsigned int expected_converge_bitrate);
+  void RateIncreaseReorderingTestHelper();
+  void RateIncreaseRtpTimestampsTestHelper();
+  void CapacityDropTestHelper(int number_of_streams,
+                              bool wrap_time_stamp,
+                              unsigned int expected_converge_bitrate,
+                              unsigned int expected_bitrate_drop_delta);
+
+  static const unsigned int kDefaultSsrc;
 
   SimulatedClock clock_;  
-  OverUseDetectorOptions overuse_detector_options_;
-  scoped_ptr<RemoteBitrateEstimator> bitrate_estimator_;
+  bool align_streams_;
   scoped_ptr<testing::TestBitrateObserver> bitrate_observer_;
+  scoped_ptr<RemoteBitrateEstimator> bitrate_estimator_;
   scoped_ptr<testing::StreamGenerator> stream_generator_;
-  const bool align_streams_;
 
   DISALLOW_COPY_AND_ASSIGN(RemoteBitrateEstimatorTest);
-};
-
-class RemoteBitrateEstimatorTestAlign : public RemoteBitrateEstimatorTest {
- public:
-  RemoteBitrateEstimatorTestAlign() : RemoteBitrateEstimatorTest(true) {}
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(RemoteBitrateEstimatorTestAlign);
 };
 }  
 

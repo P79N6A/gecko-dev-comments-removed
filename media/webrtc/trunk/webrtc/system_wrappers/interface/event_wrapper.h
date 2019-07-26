@@ -54,12 +54,6 @@ class EventWrapper {
 
   virtual bool StopTimer() = 0;
 
-  
-  
-  
-  
-  
-  static int KeyPressed();
 };
 } 
 

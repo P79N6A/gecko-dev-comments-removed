@@ -17,31 +17,30 @@ using webrtc::ReferencePictureSelection;
 
 
 
-enum { kMinUpdateInterval = 10 };
+static const uint32_t kMinUpdateInterval = 10;
 
 
-enum { kRtt = 10 };
+static const int kRtt = 10;
 
-enum {
-  kNoPropagationGolden    = VP8_EFLAG_NO_REF_ARF |
-                            VP8_EFLAG_NO_UPD_GF |
-                            VP8_EFLAG_NO_UPD_ARF,
-  kNoPropagationAltRef    = VP8_EFLAG_NO_REF_GF |
-                            VP8_EFLAG_NO_UPD_GF |
-                            VP8_EFLAG_NO_UPD_ARF,
-  kPropagateGolden        = VP8_EFLAG_FORCE_GF |
-                            VP8_EFLAG_NO_UPD_ARF |
-                            VP8_EFLAG_NO_REF_GF |
-                            VP8_EFLAG_NO_REF_LAST,
-  kPropagateAltRef        = VP8_EFLAG_FORCE_ARF |
-                            VP8_EFLAG_NO_UPD_GF |
-                            VP8_EFLAG_NO_REF_ARF |
-                            VP8_EFLAG_NO_REF_LAST,
-  kRefreshFromGolden      = VP8_EFLAG_NO_REF_LAST |
-                            VP8_EFLAG_NO_REF_ARF,
-  kRefreshFromAltRef      = VP8_EFLAG_NO_REF_LAST |
-                            VP8_EFLAG_NO_REF_GF
-};
+static const int kNoPropagationGolden    = VP8_EFLAG_NO_REF_ARF |
+                                           VP8_EFLAG_NO_UPD_GF |
+                                           VP8_EFLAG_NO_UPD_ARF;
+static const int kNoPropagationAltRef    = VP8_EFLAG_NO_REF_GF |
+                                           VP8_EFLAG_NO_UPD_GF |
+                                           VP8_EFLAG_NO_UPD_ARF;
+static const int kPropagateGolden        = VP8_EFLAG_FORCE_GF |
+                                           VP8_EFLAG_NO_UPD_ARF |
+                                           VP8_EFLAG_NO_REF_GF |
+                                           VP8_EFLAG_NO_REF_LAST;
+static const int kPropagateAltRef        = VP8_EFLAG_FORCE_ARF |
+                                           VP8_EFLAG_NO_UPD_GF |
+                                           VP8_EFLAG_NO_REF_ARF |
+                                           VP8_EFLAG_NO_REF_LAST;
+static const int kRefreshFromGolden      = VP8_EFLAG_NO_REF_LAST |
+                                           VP8_EFLAG_NO_REF_ARF;
+static const int kRefreshFromAltRef      = VP8_EFLAG_NO_REF_LAST |
+                                           VP8_EFLAG_NO_REF_GF;
+
 
 class TestRPS : public ::testing::Test {
  protected:

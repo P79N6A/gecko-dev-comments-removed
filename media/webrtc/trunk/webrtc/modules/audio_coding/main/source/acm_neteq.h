@@ -139,18 +139,6 @@ class ACMNetEQ {
   
   
   
-  int32_t SetExtraDelay(const int32_t delay_in_ms);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   int32_t SetAVTPlayout(const bool enable);
 
   
@@ -301,6 +289,25 @@ class ACMNetEQ {
   
   void EnableAVSync(bool enable);
 
+  
+  
+  
+  bool DecodedRtpInfo(int* sequence_number, uint32_t* timestamp) const;
+
+  
+  
+  
+  
+  int SetMinimumDelay(int minimum_delay_ms);
+
+  
+  
+  
+  
+  
+  
+  int LeastRequiredDelayMs() const ;
+
  private:
   
   
@@ -365,7 +372,6 @@ class ACMNetEQ {
   bool received_stereo_;
   void* master_slave_info_;
   AudioFrame::VADActivity previous_audio_activity_;
-  int32_t extra_delay_;
 
   CriticalSectionWrapper* callback_crit_sect_;
   
@@ -376,6 +382,8 @@ class ACMNetEQ {
 
   
   bool av_sync_;
+
+  int minimum_delay_ms_;
 };
 
 }  

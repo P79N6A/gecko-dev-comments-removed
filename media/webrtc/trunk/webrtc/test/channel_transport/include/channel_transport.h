@@ -86,4 +86,3 @@ class VideoChannelTransport : public UdpTransportData {
 }  
 
 #endif  
-

@@ -10,13 +10,13 @@
 
 
 
-#include "system_wrappers/interface/cpu_features_wrapper.h"
+#include "webrtc/system_wrappers/interface/cpu_features_wrapper.h"
 
 #if defined(WEBRTC_ARCH_X86_FAMILY) && defined(_MSC_VER)
 #include <intrin.h>
 #endif
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 
 int GetCPUInfoNoASM(CPUFeature feature) {

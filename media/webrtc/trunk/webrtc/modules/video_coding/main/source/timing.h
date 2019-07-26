@@ -8,108 +8,102 @@
 
 
 
-#ifndef WEBRTC_MODULES_VIDEO_CODING_TIMING_H_
-#define WEBRTC_MODULES_VIDEO_CODING_TIMING_H_
+#ifndef WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_TIMING_H_
+#define WEBRTC_MODULES_VIDEO_CODING_MAIN_SOURCE_TIMING_H_
 
-#include "typedefs.h"
-#include "critical_section_wrapper.h"
-#include "codec_timer.h"
+#include "webrtc/modules/video_coding/main/source/codec_timer.h"
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/typedefs.h"
 
-namespace webrtc
-{
+namespace webrtc {
 
 class Clock;
 class VCMTimestampExtrapolator;
 
-class VCMTiming
-{
-public:
-    
-    
-    VCMTiming(Clock* clock,
-              int32_t vcmId = 0,
-              int32_t timingId = 0,
-              VCMTiming* masterTiming = NULL);
-    ~VCMTiming();
+class VCMTiming {
+ public:
+  
+  
+  VCMTiming(Clock* clock,
+            int32_t vcm_id = 0,
+            int32_t timing_id = 0,
+            VCMTiming* master_timing = NULL);
+  ~VCMTiming();
 
-    
-    void Reset(int64_t nowMs = -1);
-    void ResetDecodeTime();
+  
+  void Reset();
+  void ResetDecodeTime();
 
-    
-    void SetRenderDelay(uint32_t renderDelayMs);
+  
+  void set_render_delay(uint32_t render_delay_ms);
 
-    
-    
-    void SetRequiredDelay(uint32_t requiredDelayMs);
+  
+  
+  void SetJitterDelay(uint32_t required_delay_ms);
 
-    
-    void SetMinimumTotalDelay(uint32_t minTotalDelayMs);
+  
+  void set_min_playout_delay(uint32_t min_playout_delay);
 
-    
-    
-    
-    void UpdateCurrentDelay(uint32_t frameTimestamp);
+  
+  
+  
+  void UpdateCurrentDelay(uint32_t frame_timestamp);
 
-    
-    
-    
-    void UpdateCurrentDelay(int64_t renderTimeMs, int64_t actualDecodeTimeMs);
+  
+  
+  
+  
+  void UpdateCurrentDelay(int64_t render_time_ms,
+                          int64_t actual_decode_time_ms);
 
-    
-    
-    int32_t StopDecodeTimer(uint32_t timeStamp,
-                                  int64_t startTimeMs,
-                                  int64_t nowMs);
+  
+  
+  int32_t StopDecodeTimer(uint32_t time_stamp,
+                          int64_t start_time_ms,
+                          int64_t now_ms);
 
-    
-    
-    void IncomingTimestamp(uint32_t timeStamp, int64_t lastPacketTimeMs);
+  
+  
+  void IncomingTimestamp(uint32_t time_stamp, int64_t last_packet_time_ms);
+  
+  
+  
+  int64_t RenderTimeMs(uint32_t frame_timestamp, int64_t now_ms) const;
 
-    
-    
-    int64_t RenderTimeMs(uint32_t frameTimestamp, int64_t nowMs) const;
+  
+  
+  uint32_t MaxWaitingTime(int64_t render_time_ms, int64_t now_ms) const;
 
-    
-    
-    uint32_t MaxWaitingTime(int64_t renderTimeMs, int64_t nowMs) const;
+  
+  
+  uint32_t TargetVideoDelay() const;
 
-    
-    
-    uint32_t TargetVideoDelay() const;
+  
+  
+  bool EnoughTimeToDecode(uint32_t available_processing_time_ms) const;
 
-    
-    
-    bool EnoughTimeToDecode(uint32_t availableProcessingTimeMs) const;
+  enum { kDefaultRenderDelayMs = 10 };
+  enum { kDelayMaxChangeMsPerS = 100 };
 
-    
-    void SetMaxVideoDelay(int maxVideoDelayMs);
+ protected:
+  int32_t MaxDecodeTimeMs(FrameType frame_type = kVideoFrameDelta) const;
+  int64_t RenderTimeMsInternal(uint32_t frame_timestamp, int64_t now_ms) const;
+  uint32_t TargetDelayInternal() const;
 
-    enum { kDefaultRenderDelayMs = 10 };
-    enum { kDelayMaxChangeMsPerS = 100 };
-
-protected:
-    int32_t MaxDecodeTimeMs(FrameType frameType = kVideoFrameDelta) const;
-    int64_t RenderTimeMsInternal(uint32_t frameTimestamp,
-                                       int64_t nowMs) const;
-    uint32_t TargetDelayInternal() const;
-
-private:
-    CriticalSectionWrapper* _critSect;
-    int32_t _vcmId;
-    Clock* _clock;
-    int32_t _timingId;
-    bool _master;
-    VCMTimestampExtrapolator* _tsExtrapolator;
-    VCMCodecTimer _codecTimer;
-    uint32_t _renderDelayMs;
-    uint32_t _minTotalDelayMs;
-    uint32_t _requiredDelayMs;
-    uint32_t _currentDelayMs;
-    uint32_t _prevFrameTimestamp;
-    int _maxVideoDelayMs;
+ private:
+  CriticalSectionWrapper* crit_sect_;
+  int32_t vcm_id_;
+  Clock* clock_;
+  int32_t timing_id_;
+  bool master_;
+  VCMTimestampExtrapolator* ts_extrapolator_;
+  VCMCodecTimer codec_timer_;
+  uint32_t render_delay_ms_;
+  uint32_t min_playout_delay_ms_;
+  uint32_t jitter_delay_ms_;
+  uint32_t current_delay_ms_;
+  uint32_t prev_frame_timestamp_;
 };
+}  
 
-} 
-
-#endif 
+#endif  

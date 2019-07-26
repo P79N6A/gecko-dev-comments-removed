@@ -8,10 +8,10 @@
 
 
 
-#include "testsupport/frame_writer.h"
+#include "webrtc/test/testsupport/frame_writer.h"
 
-#include "gtest/gtest.h"
-#include "testsupport/fileutils.h"
+#include "testing/gtest/include/gtest/gtest.h"
+#include "webrtc/test/testsupport/fileutils.h"
 
 namespace webrtc {
 namespace test {

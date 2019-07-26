@@ -48,12 +48,12 @@ public:
     int32_t Pop(uint32_t timestamp);
 
 private:
+    
     CriticalSectionWrapper* _critSect;
     Clock* _clock;
-    I420VideoFrame _frame;
-    VCMReceiveCallback* _receiveCallback;
+    VCMReceiveCallback* _receiveCallback;  
     VCMTiming& _timing;
-    VCMTimestampMap _timestampMap;
+    VCMTimestampMap _timestampMap;  
     uint64_t _lastReceivedPictureID;
 };
 
@@ -97,6 +97,9 @@ public:
 
     int32_t SetCodecConfigParameters(const uint8_t* ,
                                            int32_t );
+
+    
+
 
     int32_t RegisterDecodeCompleteCallback(VCMDecodedFrameCallback* callback);
 

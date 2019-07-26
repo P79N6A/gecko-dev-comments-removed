@@ -309,6 +309,19 @@ int WebRtcNetEQ_RecInSyncRTP(void* inst,
                              WebRtcNetEQ_RTPInfo* rtp_info,
                              uint32_t receive_timestamp);
 
+
+
+
+
+
+int WebRtcNetEQ_SetMinimumDelay(void *inst, int minimum_delay_ms);
+
+
+
+
+
+int WebRtcNetEQ_GetRequiredDelayMs(const void* inst);
+
 #ifdef __cplusplus
 }
 #endif

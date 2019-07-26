@@ -225,41 +225,6 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(I420VideoFrame& captureFrame,
   return 0;
 }
 
-int32_t VideoCaptureImpl::DeliverEncodedCapturedFrame(
-    VideoFrame& captureFrame, int64_t capture_time,
-    VideoCodecType codecType) {
-  UpdateFrameCount();  
-
-  const bool callOnCaptureDelayChanged = _setCaptureDelay != _captureDelay;
-  
-  if (_setCaptureDelay != _captureDelay) {
-      _setCaptureDelay = _captureDelay;
-  }
-
-  
-  if (capture_time != 0) {
-     captureFrame.SetRenderTime(capture_time);
-  }
-  else {
-      captureFrame.SetRenderTime(TickTime::MillisecondTimestamp());
-  }
-
-  if (captureFrame.RenderTimeMs() == last_capture_time_) {
-    
-    return -1;
-  }
-  last_capture_time_ = captureFrame.RenderTimeMs();
-
-  if (_dataCallBack) {
-    if (callOnCaptureDelayChanged) {
-      _dataCallBack->OnCaptureDelayChanged(_id, _captureDelay);
-    }
-    _dataCallBack->OnIncomingCapturedEncodedFrame(_id, captureFrame, codecType);
-  }
-
-  return 0;
-}
-
 int32_t VideoCaptureImpl::IncomingFrame(
     uint8_t* videoFrame,
     int32_t videoFrameLength,
@@ -336,14 +301,8 @@ int32_t VideoCaptureImpl::IncomingFrame(
     }
     else 
     {
-        if (_capture_encoded_frame.CopyFrame(videoFrameLength, videoFrame) != 0)
-        {
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
-                       "Failed to copy captured frame of length %d",
-                       static_cast<int>(videoFrameLength));
-        }
-        DeliverEncodedCapturedFrame(_capture_encoded_frame, captureTime,
-                                    frameInfo.codecType);
+        assert(false);
+        return -1;
     }
 
     const uint32_t processTime =

@@ -16,8 +16,8 @@
 #ifndef WEBRTC_COMMON_AUDIO_VAD_VAD_CORE_H_
 #define WEBRTC_COMMON_AUDIO_VAD_VAD_CORE_H_
 
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "typedefs.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/typedefs.h"
 
 enum { kNumChannels = 6 };  
 enum { kNumGaussians = 2 };  

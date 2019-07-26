@@ -8,11 +8,11 @@
 
 
 
-#include "utility.h"
+#include "webrtc/voice_engine/utility.h"
 
-#include "module.h"
-#include "trace.h"
-#include "signal_processing_library.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/interface/module.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc
 {

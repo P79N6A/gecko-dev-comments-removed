@@ -14,17 +14,15 @@
 #include <list>
 #include <vector>
 
-#include "modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
-#include "system_wrappers/interface/ref_count.h"
-#include "system_wrappers/interface/scoped_refptr.h"
-#include "typedefs.h"
+#include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
+#include "webrtc/system_wrappers/interface/ref_count.h"
+#include "webrtc/system_wrappers/interface/scoped_refptr.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
 
 class FecPacket;
-
-
 
 
 
@@ -45,21 +43,18 @@ class ForwardErrorCorrection {
     virtual ~Packet() {}
 
     
-    virtual int32_t AddRef() {
-      return ++ref_count_;
-    }
+    virtual int32_t AddRef() { return ++ref_count_; }
 
     
     
     virtual int32_t Release() {
       int32_t ref_count;
       ref_count = --ref_count_;
-      if (ref_count == 0)
-        delete this;
+      if (ref_count == 0) delete this;
       return ref_count;
     }
 
-    uint16_t length;  
+    uint16_t length;               
     uint8_t data[IP_PACKET_SIZE];  
 
    private:
@@ -73,52 +68,48 @@ class ForwardErrorCorrection {
     static bool LessThan(const SortablePacket* first,
                          const SortablePacket* second);
 
-    uint16_t seqNum;
+    uint16_t seq_num;
   };
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   class ReceivedPacket : public SortablePacket {
    public:
     uint32_t ssrc;  
                     
-    bool isFec;  
-                 
+    bool is_fec;    
+                    
     scoped_refptr<Packet> pkt;  
   };
 
   
-
-
-
+  
   
   class RecoveredPacket : public SortablePacket {
    public:
-    bool wasRecovered;  
-                        
-                        
+    bool was_recovered;  
+                         
+                         
     bool returned;  
                     
     uint8_t length_recovery[2];  
                                  
-    scoped_refptr<Packet> pkt;  
+    scoped_refptr<Packet> pkt;   
   };
 
   typedef std::list<Packet*> PacketList;
@@ -126,8 +117,6 @@ class ForwardErrorCorrection {
   typedef std::list<RecoveredPacket*> RecoveredPacketList;
 
   
-
-
   ForwardErrorCorrection(int32_t id);
 
   virtual ~ForwardErrorCorrection();
@@ -168,12 +157,10 @@ class ForwardErrorCorrection {
 
 
 
-  int32_t GenerateFEC(const PacketList& mediaPacketList,
-                      uint8_t protectionFactor,
-                      int numImportantPackets,
-                      bool useUnequalProtection,
-                      FecMaskType fec_mask_type,
-                      PacketList* fecPacketList);
+  int32_t GenerateFEC(const PacketList& media_packet_list,
+                      uint8_t protection_factor, int num_important_packets,
+                      bool use_unequal_protection, FecMaskType fec_mask_type,
+                      PacketList* fec_packet_list);
 
   
 
@@ -203,32 +190,28 @@ class ForwardErrorCorrection {
 
 
 
-  int32_t DecodeFEC(ReceivedPacketList* receivedPacketList,
-                    RecoveredPacketList* recoveredPacketList);
+  int32_t DecodeFEC(ReceivedPacketList* received_packet_list,
+                    RecoveredPacketList* recovered_packet_list);
 
   
   
-  int GetNumberOfFecPackets(int numMediaPackets,
-                            int protectionFactor);
+  int GetNumberOfFecPackets(int num_media_packets, int protection_factor);
 
   
-
-
-
-
+  
+  
   static uint16_t PacketOverhead();
 
   
   
-  void ResetState(RecoveredPacketList* recoveredPacketList);
+  void ResetState(RecoveredPacketList* recovered_packet_list);
 
  private:
   typedef std::list<FecPacket*> FecPacketList;
 
-  void GenerateFecUlpHeaders(const PacketList& mediaPacketList,
-                             uint8_t* packetMask,
-                             bool lBit,
-                             int numFecPackets);
+  void GenerateFecUlpHeaders(const PacketList& media_packet_list,
+                             uint8_t* packet_mask, bool l_bit,
+                             int num_fec_packets);
 
   
   
@@ -237,18 +220,15 @@ class ForwardErrorCorrection {
   
   
   int InsertZerosInBitMasks(const PacketList& media_packets,
-                            uint8_t* packet_mask,
-                            int num_mask_bytes,
+                            uint8_t* packet_mask, int num_mask_bytes,
                             int num_fec_packets);
 
   
   
   
   
-  static void InsertZeroColumns(int num_zeros,
-                                uint8_t* new_mask,
-                                int new_mask_bytes,
-                                int num_fec_packets,
+  static void InsertZeroColumns(int num_zeros, uint8_t* new_mask,
+                                int new_mask_bytes, int num_fec_packets,
                                 int new_bit_index);
 
   
@@ -259,26 +239,22 @@ class ForwardErrorCorrection {
   
   
   
-  static void CopyColumn(uint8_t* new_mask,
-                         int new_mask_bytes,
-                         uint8_t* old_mask,
-                         int old_mask_bytes,
-                         int num_fec_packets,
-                         int new_bit_index,
+  static void CopyColumn(uint8_t* new_mask, int new_mask_bytes,
+                         uint8_t* old_mask, int old_mask_bytes,
+                         int num_fec_packets, int new_bit_index,
                          int old_bit_index);
 
-  void GenerateFecBitStrings(const PacketList& mediaPacketList,
-                             uint8_t* packetMask,
-                             int numFecPackets,
-                             bool lBit);
+  void GenerateFecBitStrings(const PacketList& media_packet_list,
+                             uint8_t* packet_mask, int num_fec_packets,
+                             bool l_bit);
 
   
-  void InsertPackets(ReceivedPacketList* receivedPacketList,
-                     RecoveredPacketList* recoveredPacketList);
+  void InsertPackets(ReceivedPacketList* received_packet_list,
+                     RecoveredPacketList* recovered_packet_list);
 
   
-  void InsertMediaPacket(ReceivedPacket* rxPacket,
-                         RecoveredPacketList* recoveredPacketList);
+  void InsertMediaPacket(ReceivedPacket* rx_packet,
+                         RecoveredPacketList* recovered_packet_list);
 
   
   
@@ -288,37 +264,34 @@ class ForwardErrorCorrection {
   void UpdateCoveringFECPackets(RecoveredPacket* packet);
 
   
-  void InsertFECPacket(ReceivedPacket* rxPacket,
-                       const RecoveredPacketList* recoveredPacketList);
+  void InsertFECPacket(ReceivedPacket* rx_packet,
+                       const RecoveredPacketList* recovered_packet_list);
 
   
   static void AssignRecoveredPackets(
-      FecPacket* fec_packet,
-      const RecoveredPacketList* recovered_packets);
+      FecPacket* fec_packet, const RecoveredPacketList* recovered_packets);
 
   
-  void InsertRecoveredPacket(
-      RecoveredPacket* recPacketToInsert,
-      RecoveredPacketList* recoveredPacketList);
+  void InsertRecoveredPacket(RecoveredPacket* rec_packet_to_insert,
+                             RecoveredPacketList* recovered_packet_list);
 
   
-  void AttemptRecover(RecoveredPacketList* recoveredPacketList);
+  void AttemptRecover(RecoveredPacketList* recovered_packet_list);
 
   
-  static  void InitRecovery(const FecPacket* fec_packet,
-                            RecoveredPacket* recovered);
+  static void InitRecovery(const FecPacket* fec_packet,
+                           RecoveredPacket* recovered);
 
   
   
-  static void XorPackets(const Packet* src_packet,
-                         RecoveredPacket* dst_packet);
+  static void XorPackets(const Packet* src_packet, RecoveredPacket* dst_packet);
 
   
-  static  void FinishRecovery(RecoveredPacket* recovered);
+  static void FinishRecovery(RecoveredPacket* recovered);
 
   
-  void RecoverPacket(const FecPacket* fecPacket,
-                     RecoveredPacket* recPacketToInsert);
+  void RecoverPacket(const FecPacket* fec_packet,
+                     RecoveredPacket* rec_packet_to_insert);
 
   
   
@@ -327,13 +300,13 @@ class ForwardErrorCorrection {
   static int NumCoveredPacketsMissing(const FecPacket* fec_packet);
 
   static void DiscardFECPacket(FecPacket* fec_packet);
-  static void DiscardOldPackets(RecoveredPacketList* recoveredPacketList);
+  static void DiscardOldPackets(RecoveredPacketList* recovered_packet_list);
   static uint16_t ParseSequenceNumber(uint8_t* packet);
 
-  int32_t _id;
-  std::vector<Packet> _generatedFecPackets;
-  FecPacketList _fecPacketList;
-  bool _fecPacketReceived;
+  int32_t id_;
+  std::vector<Packet> generated_fec_packets_;
+  FecPacketList fec_packet_list_;
+  bool fec_packet_received_;
 };
-} 
-#endif 
+}       
+#endif  

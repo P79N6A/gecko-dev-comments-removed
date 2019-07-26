@@ -8,9 +8,9 @@
 
 
 
-#include "audio_buffer.h"
+#include "webrtc/modules/audio_processing/audio_buffer.h"
 
-#include "signal_processing_library.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
 
 namespace webrtc {
 namespace {

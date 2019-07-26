@@ -15,7 +15,7 @@
 
 
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 namespace {
 
@@ -24520,4 +24520,3 @@ const uint8_t** kPacketMaskRandomTbl[48] = {
 
 }  
 #endif  
-

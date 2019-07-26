@@ -8,12 +8,12 @@
 
 
 
-#include "common_video/plane.h"
+#include "webrtc/common_video/plane.h"
 
 #include <math.h>
 #include <string.h>
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 namespace webrtc {
 

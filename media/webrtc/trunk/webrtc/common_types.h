@@ -35,6 +35,8 @@
 
 namespace webrtc {
 
+class Config;
+
 class InStream
 {
 public:
@@ -266,23 +268,23 @@ enum VadModes
 struct NetworkStatistics           
 {
     
-    WebRtc_UWord16 currentBufferSize;
+    uint16_t currentBufferSize;
     
-    WebRtc_UWord16 preferredBufferSize;
+    uint16_t preferredBufferSize;
     
     bool jitterPeaksFound;
     
-    WebRtc_UWord16 currentPacketLossRate;
+    uint16_t currentPacketLossRate;
     
-    WebRtc_UWord16 currentDiscardRate;
-    
-    
-    WebRtc_UWord16 currentExpandRate;
+    uint16_t currentDiscardRate;
     
     
-    WebRtc_UWord16 currentPreemptiveRate;
+    uint16_t currentExpandRate;
     
-    WebRtc_UWord16 currentAccelerateRate;
+    
+    uint16_t currentPreemptiveRate;
+    
+    uint16_t currentAccelerateRate;
     
     int32_t clockDriftPPM;
     
@@ -329,7 +331,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression     
+    kNsVeryHighSuppression,     
 };
 
 enum AgcModes                  
@@ -354,7 +356,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm                    
+    kEcAecm,                   
 };
 
 
@@ -406,7 +408,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3
+    kNetEqOff = 3,
 };
 
 enum OnHoldModes            
@@ -420,7 +422,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2
+    kRfc3267FileStorage = 2,
 };
 
 
@@ -535,11 +537,6 @@ enum VideoCodecMode {
 };
 
 
-
-
-struct ExtraCodecOptions;
-
-
 struct VideoCodec
 {
     VideoCodecType      codecType;
@@ -561,7 +558,10 @@ struct VideoCodec
     SimulcastStream     simulcastStream[kMaxSimulcastStreams];
 
     VideoCodecMode      mode;
-    ExtraCodecOptions*  extra_options;
+
+    
+    
+    Config*  extra_options;
 };
 
 

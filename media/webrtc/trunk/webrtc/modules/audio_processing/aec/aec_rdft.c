@@ -19,12 +19,12 @@
 
 
 
-#include "aec_rdft.h"
+#include "webrtc/modules/audio_processing/aec/aec_rdft.h"
 
 #include <math.h>
 
-#include "system_wrappers/interface/cpu_features_wrapper.h"
-#include "typedefs.h"
+#include "webrtc/system_wrappers/interface/cpu_features_wrapper.h"
+#include "webrtc/typedefs.h"
 
 
 float rdft_w[64];
