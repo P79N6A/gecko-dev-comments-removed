@@ -619,7 +619,7 @@ IsCacheableGetPropCallNative(JSObject *obj, JSObject *holder, Shape *shape)
         return false;
 
     
-    if (getter.jitInfo())
+    if (getter.jitInfo() && getter.jitInfo()->isDOMJitInfo())
         return true;
 
     
