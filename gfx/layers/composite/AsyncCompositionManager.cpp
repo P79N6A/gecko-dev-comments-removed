@@ -117,10 +117,96 @@ GetBaseTransform2D(Layer* aLayer, gfxMatrix* aTransform)
           aLayer->GetLocalTransform() : aLayer->GetTransform()).Is2D(aTransform);
 }
 
+static void
+TranslateShadowLayer2D(Layer* aLayer,
+                       const gfxPoint& aTranslation)
+{
+  gfxMatrix layerTransform;
+  if (!GetBaseTransform2D(aLayer, &layerTransform)) {
+    return;
+  }
+
+  
+  layerTransform.x0 += aTranslation.x;
+  layerTransform.y0 += aTranslation.y;
+
+  
+  
+  
+  gfx3DMatrix layerTransform3D = gfx3DMatrix::From2D(layerTransform);
+  if (ContainerLayer* c = aLayer->AsContainerLayer()) {
+    layerTransform3D.Scale(1.0f/c->GetPreXScale(),
+                           1.0f/c->GetPreYScale(),
+                           1);
+  }
+  layerTransform3D.ScalePost(1.0f/aLayer->GetPostXScale(),
+                             1.0f/aLayer->GetPostYScale(),
+                             1);
+
+  LayerComposite* layerComposite = aLayer->AsLayerComposite();
+  layerComposite->SetShadowTransform(layerTransform3D);
+  layerComposite->SetShadowTransformSetByAnimation(false);
+
+  const nsIntRect* clipRect = aLayer->GetClipRect();
+  if (clipRect) {
+    nsIntRect transformedClipRect(*clipRect);
+    transformedClipRect.MoveBy(aTranslation.x, aTranslation.y);
+    layerComposite->SetShadowClipRect(&transformedClipRect);
+  }
+}
+
+static bool
+AccumulateLayerTransforms2D(Layer* aLayer,
+                            Layer* aAncestor,
+                            gfxMatrix& aMatrix)
+{
+  
+  for (Layer* l = aLayer; l && l != aAncestor; l = l->GetParent()) {
+    gfxMatrix l2D;
+    if (!GetBaseTransform2D(l, &l2D)) {
+      return false;
+    }
+    aMatrix.Multiply(l2D);
+  }
+
+  return true;
+}
+
+static gfxPoint
+GetLayerFixedMarginsOffset(Layer* aLayer,
+                           const gfx::Margin& aFixedLayerMargins)
+{
+  
+  
+  
+  gfxPoint translation;
+  const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
+  const gfx::Margin& fixedMargins = aLayer->GetFixedPositionMargins();
+
+  if (fixedMargins.left >= 0) {
+    if (anchor.x > 0) {
+      translation.x -= aFixedLayerMargins.right - fixedMargins.right;
+    } else {
+      translation.x += aFixedLayerMargins.left - fixedMargins.left;
+    }
+  }
+
+  if (fixedMargins.top >= 0) {
+    if (anchor.y > 0) {
+      translation.y -= aFixedLayerMargins.bottom - fixedMargins.bottom;
+    } else {
+      translation.y += aFixedLayerMargins.top - fixedMargins.top;
+    }
+  }
+
+  return translation;
+}
+
 void
 AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
                                                         Layer* aTransformedSubtreeRoot,
-                                                        const gfx3DMatrix& aPreviousTransformForRoot)
+                                                        const gfx3DMatrix& aPreviousTransformForRoot,
+                                                        const gfx::Margin& aFixedLayerMargins)
 {
   if (aLayer != aTransformedSubtreeRoot && aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
@@ -130,13 +216,9 @@ AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
 
     
     gfxMatrix ancestorTransform;
-    for (Layer* l = aLayer->GetParent(); l != aTransformedSubtreeRoot;
-         l = l->GetParent()) {
-      gfxMatrix l2D;
-      if (!GetBaseTransform2D(l, &l2D)) {
-        return;
-      }
-      ancestorTransform.Multiply(l2D);
+    if (!AccumulateLayerTransforms2D(aLayer->GetParent(), aTransformedSubtreeRoot,
+                                     ancestorTransform)) {
+      return;
     }
 
     gfxMatrix oldRootTransform;
@@ -159,6 +241,11 @@ AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
     
     
     
+    gfxPoint offsetInOldSpace = GetLayerFixedMarginsOffset(aLayer, aFixedLayerMargins);
+
+    
+    
+    
     
     
     
@@ -169,40 +256,18 @@ AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
     if (!GetBaseTransform2D(aLayer, &layerTransform)) {
       return;
     }
-    gfxPoint locallyTransformedAnchor =
-      layerTransform.Transform(aLayer->GetFixedPositionAnchor());
+
+    const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
+    gfxPoint locallyTransformedAnchor = layerTransform.Transform(anchor);
+    gfxPoint locallyTransformedOffsetAnchor = layerTransform.Transform(anchor + offsetInOldSpace);
+
     gfxPoint oldAnchorPositionInNewSpace =
       newCumulativeTransformInverse.Transform(
-        oldCumulativeTransform.Transform(locallyTransformedAnchor));
+        oldCumulativeTransform.Transform(locallyTransformedOffsetAnchor));
     gfxPoint translation = oldAnchorPositionInNewSpace - locallyTransformedAnchor;
 
     
-    layerTransform.x0 += translation.x;
-    layerTransform.y0 += translation.y;
-
-    
-    
-    
-    gfx3DMatrix layerTransform3D = gfx3DMatrix::From2D(layerTransform);
-    if (ContainerLayer* c = aLayer->AsContainerLayer()) {
-      layerTransform3D.Scale(1.0f/c->GetPreXScale(),
-                             1.0f/c->GetPreYScale(),
-                             1);
-    }
-    layerTransform3D.ScalePost(1.0f/aLayer->GetPostXScale(),
-                               1.0f/aLayer->GetPostYScale(),
-                               1);
-
-    LayerComposite* layerComposite = aLayer->AsLayerComposite();
-    layerComposite->SetShadowTransform(layerTransform3D);
-    layerComposite->SetShadowTransformSetByAnimation(false);
-
-    const nsIntRect* clipRect = aLayer->GetClipRect();
-    if (clipRect) {
-      nsIntRect transformedClipRect(*clipRect);
-      transformedClipRect.MoveBy(translation.x, translation.y);
-      layerComposite->SetShadowClipRect(&transformedClipRect);
-    }
+    TranslateShadowLayer2D(aLayer, translation);
 
     
     
@@ -211,7 +276,8 @@ AsyncCompositionManager::AlignFixedLayersForAnchorPoint(Layer* aLayer,
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
-    AlignFixedLayersForAnchorPoint(child, aTransformedSubtreeRoot, aPreviousTransformForRoot);
+    AlignFixedLayersForAnchorPoint(child, aTransformedSubtreeRoot,
+                                   aPreviousTransformForRoot, aFixedLayerMargins);
   }
 }
 
@@ -416,7 +482,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
 #endif
     oldTransform.Scale(resolution.scale, resolution.scale, 1);
 
-    AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform);
+    AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform, fixedLayerMargins);
 
     appliedTransform = true;
   }
@@ -517,7 +583,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
 
   
   
-  AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform);
+  AlignFixedLayersForAnchorPoint(aLayer, aLayer, oldTransform, fixedLayerMargins);
 }
 
 bool
