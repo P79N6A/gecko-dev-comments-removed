@@ -53,6 +53,7 @@ public class Tab {
     private boolean mBookmark;
     private boolean mReadingListItem;
     private long mFaviconLoadId;
+    private String mDocumentURI;
     private String mContentType;
     private boolean mHasTouchListeners;
     private ZoomConstraints mZoomConstraints;
@@ -64,8 +65,7 @@ public class Tab {
     private Bitmap mThumbnailBitmap;
     private boolean mDesktopMode;
     private boolean mEnteringReaderMode;
-    private Context mAppContext;
-    private ErrorType mErrorType = ErrorType.NONE;
+    private Context mContext;
     private static final int MAX_HISTORY_LIST_SIZE = 50;
 
     public static final int STATE_DELAYED = 0;
@@ -73,15 +73,10 @@ public class Tab {
     public static final int STATE_SUCCESS = 2;
     public static final int STATE_ERROR = 3;
 
-    public enum ErrorType {
-        CERT_ERROR,  
-        BLOCKED,     
-        NET_ERROR,       
-        NONE         
-    }
+    private static final int DEFAULT_BACKGROUND_COLOR = Color.WHITE;
 
     public Tab(Context context, int id, String url, boolean external, int parentId, String title) {
-        mAppContext = context.getApplicationContext();
+        mContext = context;
         mId = id;
         mLastUsed = 0;
         mUrl = url;
@@ -103,6 +98,7 @@ public class Tab {
         mBookmark = false;
         mReadingListItem = false;
         mFaviconLoadId = 0;
+        mDocumentURI = "";
         mContentType = "";
         mZoomConstraints = new ZoomConstraints(false);
         mPluginViews = new ArrayList<View>();
@@ -112,11 +108,11 @@ public class Tab {
         
         
         
-        mBackgroundColor = getBackgroundColorForUrl(url);
+        mBackgroundColor = DEFAULT_BACKGROUND_COLOR;
     }
 
     private ContentResolver getContentResolver() {
-        return mAppContext.getContentResolver();
+        return Tabs.getInstance().getContentResolver();
     }
 
     public void onDestroy() {
@@ -188,9 +184,7 @@ public class Tab {
         }
 
         if (mThumbnailBitmap == null) {
-            Bitmap.Config config = (GeckoAppShell.getScreenDepth() == 24) ?
-                Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
-            mThumbnailBitmap = Bitmap.createBitmap(width, height, config);
+            mThumbnailBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         }
 
         return mThumbnailBitmap;
@@ -266,23 +260,12 @@ public class Tab {
         mUserSearch = userSearch;
     }
 
-    public void setErrorType(String type) {
-        if ("blocked".equals(type))
-            setErrorType(ErrorType.BLOCKED);
-        else if ("certerror".equals(type))
-            setErrorType(ErrorType.CERT_ERROR);
-        else if ("neterror".equals(type))
-            setErrorType(ErrorType.NET_ERROR);
-        else
-            setErrorType(ErrorType.NONE);
+    public void setDocumentURI(String documentURI) {
+        mDocumentURI = documentURI;
     }
 
-    public void setErrorType(ErrorType type) {
-        mErrorType = type;
-    }
-
-    public ErrorType getErrorType() {
-        return mErrorType;
+    public String getDocumentURI() {
+        return mDocumentURI;
     }
 
     public void setContentType(String contentType) {
@@ -447,7 +430,7 @@ public class Tab {
 
     public void toggleReaderMode() {
         if (ReaderModeUtils.isAboutReader(mUrl)) {
-            Tabs.getInstance().loadUrl(ReaderModeUtils.getUrlFromAboutReader(mUrl));
+            Tabs.getInstance().loadUrl(ReaderModeUtils.getUrlForAboutReader(mUrl));
         } else if (mReaderEnabled) {
             mEnteringReaderMode = true;
             Tabs.getInstance().loadUrl(ReaderModeUtils.getAboutReaderForUrl(mUrl, mId, mReadingListItem));
@@ -591,6 +574,7 @@ public class Tab {
         updateURL(uri);
         updateUserSearch(message.getString("userSearch"));
 
+        setDocumentURI(message.getString("documentURI"));
         mBaseDomain = message.optString("baseDomain");
         if (message.getBoolean("sameDocument")) {
             
@@ -607,21 +591,13 @@ public class Tab {
         setReaderEnabled(false);
         setZoomConstraints(new ZoomConstraints(true));
         setHasTouchListeners(false);
-        setBackgroundColor(getBackgroundColorForUrl(uri));
-        setErrorType(ErrorType.NONE);
+        setBackgroundColor(DEFAULT_BACKGROUND_COLOR);
 
         Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.LOCATION_CHANGE, uri);
     }
 
     private boolean shouldShowProgress(String url) {
         return "about:home".equals(url) || ReaderModeUtils.isAboutReader(url);
-    }
-
-    private int getBackgroundColorForUrl(String url) {
-        if ("about:home".equals(url)) {
-            return mAppContext.getResources().getColor(R.color.background_normal);
-        }
-        return Color.WHITE;
     }
 
     void handleDocumentStart(boolean showProgress, String url) {

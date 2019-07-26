@@ -7,8 +7,6 @@ package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAccessibility;
 import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoEvent;
-import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.TouchEventInterceptor;
 import org.mozilla.gecko.ZoomConstraints;
@@ -119,54 +117,6 @@ public class LayerView extends FrameLayout {
         GeckoAccessibility.setDelegate(this);
     }
 
-    public void geckoConnected() {
-        
-        PrefsHelper.getPref("gfx.android.rgb16.force", new PrefsHelper.PrefHandlerBase() {
-            @Override public void prefValue(String pref, boolean force16bit) {
-                if (force16bit) {
-                    GeckoAppShell.setScreenDepthOverride(16);
-                }
-            }
-        });
-
-        mLayerClient.notifyGeckoReady();
-        addTouchInterceptor(new TouchEventInterceptor() {
-            private PointF mInitialTouchPoint = null;
-
-            @Override
-            public boolean onInterceptTouchEvent(View view, MotionEvent event) {
-                return false;
-            }
-
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                if (event == null) {
-                    return true;
-                }
-
-                int action = event.getActionMasked();
-                PointF point = new PointF(event.getX(), event.getY());
-                if (action == MotionEvent.ACTION_DOWN) {
-                    mInitialTouchPoint = point;
-                }
-
-                if (mInitialTouchPoint != null && action == MotionEvent.ACTION_MOVE) {
-                    if (PointUtils.subtract(point, mInitialTouchPoint).length() <
-                        PanZoomController.PAN_THRESHOLD) {
-                        
-                        
-                        return true;
-                    } else {
-                        mInitialTouchPoint = null;
-                    }
-                }
-
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createMotionEvent(event, false));
-                return true;
-            }
-        });
-    }
-
     public void show() {
         
         mSurfaceView.setVisibility(View.VISIBLE);
@@ -265,7 +215,7 @@ public class LayerView extends FrameLayout {
             
             
             
-            mTextureView.setBackgroundResource(R.color.background_normal);
+            mTextureView.setBackgroundColor(Color.WHITE);
             addView(mTextureView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         } else {
             
@@ -273,7 +223,7 @@ public class LayerView extends FrameLayout {
             setWillNotCacheDrawing(false);
 
             mSurfaceView = new LayerSurfaceView(getContext(), this);
-            mSurfaceView.setBackgroundResource(R.color.background_normal);
+            mSurfaceView.setBackgroundColor(Color.WHITE);
             addView(mSurfaceView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
             SurfaceHolder holder = mSurfaceView.getHolder();
