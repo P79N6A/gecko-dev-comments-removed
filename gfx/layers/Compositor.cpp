@@ -29,7 +29,13 @@ Compositor::GetBackend()
 Compositor::SetBackend(LayersBackend backend)
 {
   if (sBackend != LayersBackend::LAYERS_NONE && sBackend != backend) {
-    MOZ_CRASH("Trying to use more than one OMTC compositor.");
+    
+    
+
+#ifdef XP_MACOSX
+    printf("ERROR: Changing compositor from %u to %u.\n",
+           unsigned(sBackend), unsigned(backend));
+#endif
   }
   sBackend = backend;
 }
