@@ -231,8 +231,10 @@ protected:
                                ITfRange* aRange,
                                TF_DISPLAYATTRIBUTE* aResult);
   HRESULT  UpdateCompositionExtent(ITfRange* pRangeNew);
-  HRESULT  SendTextEventForCompositionString();
-  HRESULT  SaveTextEvent(const nsTextEvent* aEvent);
+
+  HRESULT  RecordCompositionUpdateAction();
+  void     FlushPendingActions();
+
   nsresult OnLayoutChange();
   HRESULT  ProcessScopeRequest(DWORD dwFlags,
                                ULONG cFilterAttrs,
@@ -317,9 +319,15 @@ protected:
       return mStart + mLength;
     }
 
-    void Start(nsTextStore* aTextStore);
+    
+    
+    
+    void Start(ITfCompositionView* aCompositionView,
+               LONG aCompositionStartOffset,
+               const nsAString& aCompositionString);
     void End();
 
+    void StartLayoutChangeTimer(nsTextStore* aTextStore);
     void EnsureLayoutChangeTimerStopped();
 
   private:
@@ -327,21 +335,104 @@ protected:
     
     nsCOMPtr<nsITimer> mLayoutChangeTimer;
 
-    void StartLayoutChangeTimer(nsTextStore* aTextStore);
-
     static void TimerCallback(nsITimer* aTimer, void *aClosure);
     static uint32_t GetLayoutChangeIntervalTime();
   };
   
+  
+  
+  
+  
+  
   Composition mComposition;
+
+  struct PendingAction MOZ_FINAL
+  {
+    enum ActionType MOZ_ENUM_TYPE(uint8_t)
+    {
+      COMPOSITION_START,
+      COMPOSITION_UPDATE,
+      COMPOSITION_END,
+      SELECTION_SET
+    };
+    ActionType mType;
+    
+    LONG mSelectionStart;
+    LONG mSelectionLength;
+    
+    nsString mData;
+    
+    nsTArray<nsTextRange> mRanges;
+    
+    bool mSelectionReversed;
+  };
+  
+  
+  
+  
+  nsTArray<PendingAction> mPendingActions;
+
+  PendingAction* GetPendingCompositionUpdate()
+  {
+    if (!mPendingActions.IsEmpty()) {
+      PendingAction& lastAction = mPendingActions.LastElement();
+      if (lastAction.mType == PendingAction::COMPOSITION_UPDATE) {
+        return &lastAction;
+      }
+    }
+    PendingAction* newAction = mPendingActions.AppendElement();
+    newAction->mType = PendingAction::COMPOSITION_UPDATE;
+    
+    
+    newAction->mRanges.SetCapacity(4);
+    return newAction;
+  }
 
   
   
-  nsTextEvent*                 mLastDispatchedTextEvent;
+  
+  class NS_STACK_CLASS AutoPendingActionFlusher MOZ_FINAL
+  {
+  public:
+    AutoPendingActionFlusher(nsTextStore* aTextStore)
+      : mTextStore(aTextStore)
+    {
+      MOZ_ASSERT(!mTextStore->mIsRecordingActionsWithoutLock);
+      if (!mTextStore->IsReadWriteLocked()) {
+        mTextStore->mIsRecordingActionsWithoutLock = true;
+      }
+    }
+
+    ~AutoPendingActionFlusher()
+    {
+      if (!mTextStore->mIsRecordingActionsWithoutLock) {
+        return;
+      }
+      mTextStore->FlushPendingActions();
+      mTextStore->mIsRecordingActionsWithoutLock = false;
+    }
+
+  private:
+    AutoPendingActionFlusher() {}
+
+    nsRefPtr<nsTextStore> mTextStore;
+  };
+
   
   nsTArray<InputScope>         mInputScopes;
   bool                         mInputScopeDetected;
   bool                         mInputScopeRequested;
+  
+  
+  bool                         mIsRecordingActionsWithoutLock;
+  
+  
+  
+  
+  
+  
+  
+  bool                         mNotifySelectionChange;
 
   
   static ITfThreadMgr*  sTsfThreadMgr;
@@ -365,4 +456,4 @@ private:
   ULONG                       mRefCnt;
 };
 
-#endif 
+#endif
