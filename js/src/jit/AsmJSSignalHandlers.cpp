@@ -313,6 +313,7 @@ LookupHeapAccess(const AsmJSModule &module, uint8_t *pc)
 # endif
 #endif
 
+#if defined(ANDROID)
 
 
 
@@ -320,13 +321,14 @@ LookupHeapAccess(const AsmJSModule &module, uint8_t *pc)
 
 
 
-#if defined(ANDROID) && !defined(__BIONIC_HAVE_UCONTEXT_T)
-# if defined(__arm__)
+# if !defined(__BIONIC_HAVE_UCONTEXT_T)
+#  if defined(__arm__)
 
 
-#  if !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
-#   include <asm/sigcontext.h>
-#  endif
+
+#   if !defined(__BIONIC_HAVE_STRUCT_SIGCONTEXT)
+#    include <asm/sigcontext.h>
+#   endif
 
 typedef struct sigcontext mcontext_t;
 
@@ -338,7 +340,7 @@ typedef struct ucontext {
     
 } ucontext_t;
 
-# elif defined(__i386__)
+#  elif defined(__i386__)
 
 typedef struct {
     uint32_t gregs[19];
@@ -356,8 +358,20 @@ typedef struct ucontext {
     
 } ucontext_t;
 enum { REG_EIP = 14 };
-# endif
-#endif  
+#  endif  
+# endif  
+#endif 
+
+#if defined(ANDROID) && defined(MOZ_LINKER)
+
+
+
+
+
+extern "C" MFBT_API bool IsSignalHandlingBroken();
+#else
+static bool IsSignalHandlingBroken() { return false; }
+#endif 
 
 #if !defined(XP_WIN)
 # define CONTEXT ucontext_t
@@ -970,6 +984,9 @@ AsmJSFaultHandler(int signum, siginfo_t *info, void *context)
 bool
 js::EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt)
 {
+    if (IsSignalHandlingBroken())
+        return false;
+
 #if defined(XP_MACOSX)
     
     return rt->asmJSMachExceptionHandler.installed() || rt->asmJSMachExceptionHandler.install(rt);
