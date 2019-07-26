@@ -75,13 +75,11 @@ FilePicker.prototype = {
   },
 
   appendFilters: function(filterMask) {
-    this.mFilterTypes = null;
-
     
     
 
     if (filterMask & Ci.nsIFilePicker.filterImages) {
-      this.mFilterTypes = IMAGE_FILTERS;
+      this.mFilterTypes = this.mFilterTypes.concat(IMAGE_FILTERS);
     }
 
     
@@ -90,11 +88,11 @@ FilePicker.prototype = {
     
 
     if (filterMask & Ci.nsIFilePicker.filterVideo) {
-      this.mFilterTypes = VIDEO_FILTERS;
+      this.mFilterTypes = this.mFilterTypes.concat(VIDEO_FILTERS);
     }
 
     if (filterMask & Ci.nsIFilePicker.filterAudio) {
-      this.mFilterTypes = AUDIO_FILTERS;
+      this.mFilterTypes = this.mFilterTypes.concat(AUDIO_FILTERS);
     }
 
     
