@@ -326,9 +326,6 @@ BaselineScript::copyICEntries(const ICEntry *entries, MacroAssembler &masm)
 
         
         
-        
-        
-        
         if (realEntry.firstStub()->isFallback())
             realEntry.firstStub()->toFallbackStub()->fixupICEntry(&realEntry);
     }

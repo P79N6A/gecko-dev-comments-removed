@@ -198,13 +198,13 @@ class ICEntry
   private:
     
     
-    uint32_t            returnOffset_;
+    uint32_t returnOffset_;
 
     
-    uint32_t            pcOffset_;
+    uint32_t pcOffset_;
 
     
-    ICStub *            firstStub_;
+    ICStub *firstStub_;
 
   public:
     ICEntry(uint32_t pcOffset)
@@ -352,8 +352,8 @@ class ICStub
     
     
     
-    Trait   trait_ : 3;
-    Kind    kind_  : 13;
+    Trait trait_ : 3;
+    Kind kind_ : 13;
 
     
     uint8_t *stubCode_;
@@ -491,17 +491,17 @@ class ICFallbackStub : public ICStub
     
 
     
-    ICEntry *           icEntry_;
+    ICEntry *icEntry_;
 
     
-    uint32_t            numOptimizedStubs_;
+    uint32_t numOptimizedStubs_;
 
     
     
     
     
     
-    ICStub **           lastStubPtrAddr_;
+    ICStub **lastStubPtrAddr_;
 
     ICFallbackStub(Kind kind, IonCode *stubCode)
       : ICStub(kind, ICStub::Fallback, stubCode),
@@ -568,7 +568,7 @@ class ICMonitoredStub : public ICStub
 {
   protected:
     
-    ICStub *            firstMonitorStub_;
+    ICStub *firstMonitorStub_;
 
     ICMonitoredStub(Kind kind, IonCode *stubCode, ICStub *firstMonitorStub);
 
@@ -594,7 +594,7 @@ class ICMonitoredFallbackStub : public ICFallbackStub
 {
   protected:
     
-    ICTypeMonitor_Fallback *    fallbackMonitorStub_;
+    ICTypeMonitor_Fallback *fallbackMonitorStub_;
 
     ICMonitoredFallbackStub(Kind kind, IonCode *stubCode)
       : ICFallbackStub(kind, ICStub::MonitoredFallback, stubCode),
@@ -614,9 +614,9 @@ class ICUpdatedStub : public ICStub
 {
   protected:
     
-    ICStub *            firstUpdateStub_;
+    ICStub *firstUpdateStub_;
 
-    uint32_t            numOptimizedStubs_;
+    uint32_t numOptimizedStubs_;
 
     ICUpdatedStub(Kind kind, IonCode *stubCode)
       : ICStub(kind, ICStub::Updated, stubCode),
@@ -661,8 +661,8 @@ class ICUpdatedStub : public ICStub
 class ICStubCompiler
 {
   protected:
-    JSContext *     cx;
-    ICStub::Kind    kind;
+    JSContext *cx;
+    ICStub::Kind kind;
 
     
     virtual int32_t getKey() const {
@@ -724,7 +724,7 @@ class ICStubCompiler
 class ICMultiStubCompiler : public ICStubCompiler
 {
   protected:
-    JSOp            op;
+    JSOp op;
 
     
     
@@ -781,18 +781,18 @@ class ICTypeMonitor_Fallback : public ICStub
     static const uint32_t MAX_OPTIMIZED_STUBS = 8;
 
     
-    ICMonitoredFallbackStub *   mainFallbackStub_;
+    ICMonitoredFallbackStub *mainFallbackStub_;
 
     
-    ICStub *                    firstMonitorStub_;
+    ICStub *firstMonitorStub_;
 
     
     
     
-    ICStub **                   lastMonitorStubPtrAddr_;
+    ICStub **lastMonitorStubPtrAddr_;
 
     
-    uint32_t                    numOptimizedMonitorStubs_;
+    uint32_t numOptimizedMonitorStubs_;
 
     ICTypeMonitor_Fallback(IonCode *stubCode, ICMonitoredFallbackStub *mainFallbackStub)
       : ICStub(ICStub::TypeMonitor_Fallback, stubCode),

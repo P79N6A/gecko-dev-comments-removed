@@ -167,24 +167,31 @@ BaselineCompiler::emitEpilogue()
 }
 
 bool
-BaselineCompiler::emitStackCheck()
+BaselineCompiler::emitIC(ICStub *stub)
 {
-    
-    ICStackCheck_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
+    ICEntry *entry = allocateICEntry(stub);
     if (!entry)
         return false;
 
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    return true;
+}
+
+bool
+BaselineCompiler::emitStackCheck()
+{
     Label skipIC;
     uintptr_t *limitAddr = &cx->runtime->ionStackLimit;
     masm.loadPtr(AbsoluteAddress(limitAddr), R0.scratchReg());
     masm.branchPtr(Assembler::AboveOrEqual, BaselineStackReg, R0.scratchReg(), &skipIC);
 
-    
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICStackCheck_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     masm.bind(&skipIC);
@@ -321,19 +328,12 @@ bool
 BaselineCompiler::emitToBoolean()
 {
     
-    ICToBool_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
     Label skipIC;
     masm.branchTestBoolean(Assembler::Equal, R0, &skipIC);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICToBool_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     masm.bind(&skipIC);
@@ -411,12 +411,6 @@ bool
 BaselineCompiler::emit_JSOP_POS()
 {
     
-    ICToNumber_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     frame.popRegsAndSync(1);
 
     
@@ -424,10 +418,8 @@ BaselineCompiler::emit_JSOP_POS()
     masm.branchTestNumber(Assembler::Equal, R0, &done);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICToNumber_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     masm.bind(&done);
@@ -486,12 +478,6 @@ BaselineCompiler::emit_JSOP_THIS()
     if (!function() || function()->inStrictMode() || function()->isSelfHostedBuiltin())
         return true;
 
-    
-    ICThis_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
     Label skipIC;
     
     frame.popRegsAndSync(1);
@@ -499,10 +485,8 @@ BaselineCompiler::emit_JSOP_THIS()
     masm.branchTestObject(Assembler::Equal, R0, &skipIC);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICThis_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     masm.storeValue(R0, frame.addressOfThis());
@@ -686,19 +670,11 @@ bool
 BaselineCompiler::emitBinaryArith()
 {
     
-    ICBinaryArith_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     frame.popRegsAndSync(2);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICBinaryArith_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -710,19 +686,11 @@ bool
 BaselineCompiler::emitUnaryArith()
 {
     
-    ICUnaryArith_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     frame.popRegsAndSync(1);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICUnaryArith_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -782,21 +750,13 @@ bool
 BaselineCompiler::emitCompare()
 {
     
-    ICCompare_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
 
     
     frame.popRegsAndSync(2);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICCompare_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -808,19 +768,11 @@ bool
 BaselineCompiler::emit_JSOP_GETELEM()
 {
     
-    ICGetElem_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     frame.popRegsAndSync(2);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICGetElem_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -832,12 +784,6 @@ bool
 BaselineCompiler::emit_JSOP_SETELEM()
 {
     
-    ICSetElem_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     storeValue(frame.peek(-1), frame.addressOfScratchValue(), R2);
     frame.pop();
 
@@ -848,10 +794,8 @@ BaselineCompiler::emit_JSOP_SETELEM()
     frame.pushScratchValue();
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICSetElem_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     return true;
@@ -877,19 +821,11 @@ BaselineCompiler::emit_JSOP_GETGNAME()
 
     frame.syncStack(0);
 
-    
-    ICGetName_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
     masm.movePtr(ImmGCPtr(&script->global()), R0.scratchReg());
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICGetName_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -907,19 +843,11 @@ bool
 BaselineCompiler::emit_JSOP_GETPROP()
 {
     
-    ICGetProp_Fallback::Compiler compiler(cx);
-    ICEntry *entry = allocateICEntry(compiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
-    
     frame.popRegsAndSync(1);
 
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICGetProp_Fallback::Compiler compiler(cx);
+    if (!emitIC(compiler.getStub(&stubSpace_)))
         return false;
 
     
@@ -1016,16 +944,9 @@ BaselineCompiler::emitCall()
     masm.mov(Imm32(argc), R0.scratchReg());
 
     
-    ICCall_Fallback::Compiler stubCompiler(cx);
-    ICEntry *entry = allocateICEntry(stubCompiler.getStub(&stubSpace_));
-    if (!entry)
-        return false;
-
     
-    CodeOffsetLabel patchOffset;
-    EmitCallIC(&patchOffset, masm);
-    entry->setReturnOffset(masm.currentOffset());
-    if (!addICLoadLabel(patchOffset))
+    ICCall_Fallback::Compiler stubCompiler(cx);
+    if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
     
