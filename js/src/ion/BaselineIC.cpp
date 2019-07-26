@@ -345,6 +345,12 @@ ICTypeMonitor_Fallback::addMonitorStubForValue(JSContext *cx, ICStubSpace *space
             
             
             
+
+            
+            
+            if (!mainStub->isMonitored())
+                continue;
+
             JS_ASSERT(mainStub->toMonitoredStub()->firstMonitorStub() == this);
             mainStub->toMonitoredStub()->updateFirstMonitorStub(firstMonitorStub_);
         }
@@ -1362,6 +1368,18 @@ TryAttachLengthStub(JSContext *cx, HandleScript script, ICGetProp_Fallback *stub
 {
     JS_ASSERT(!*attached);
 
+    if (val.isString()) {
+        JS_ASSERT(res.isInt32());
+        ICGetProp_StringLength::Compiler compiler(cx);
+        ICStub *newStub = compiler.getStub(ICStubSpace::StubSpaceFor(script));
+        if (!newStub)
+            return false;
+
+        *attached = true;
+        stub->addNewStub(newStub);
+        return true;
+    }
+
     if (!val.isObject())
         return true;
 
@@ -1550,6 +1568,25 @@ ICGetProp_DenseLength::Compiler::generateStubCode(MacroAssembler &masm)
     masm.branchTest32(Assembler::Signed, scratch, scratch, &failure);
 
     masm.tagValue(JSVAL_TYPE_INT32, scratch, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICGetProp_StringLength::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    masm.branchTestString(Assembler::NotEqual, R0, &failure);
+
+    
+    Register string = masm.extractString(R0, ExtractTemp0);
+    masm.loadStringLength(string, string);
+
+    masm.tagValue(JSVAL_TYPE_INT32, string, R0);
     EmitReturnFromIC(masm);
 
     
