@@ -767,8 +767,6 @@ public:
         ACTIVITY_PAUSING = 10,
         ACTIVITY_SHUTDOWN = 11,
         LOAD_URI = 12,
-        SURFACE_CREATED = 13,   
-        SURFACE_DESTROYED = 14, 
         NOOP = 15,
         FORCED_RESIZE = 16, 
         ACTIVITY_START = 17,
