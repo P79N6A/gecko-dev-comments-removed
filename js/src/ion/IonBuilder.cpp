@@ -2770,6 +2770,10 @@ IonBuilder::jsop_call_inline(HandleFunction callee, uint32 argc, bool constructi
 {
     
     
+    current->rewriteAtDepth(-((int) argc + 2), constFun);
+
+    
+    
     MResumePoint *inlineResumePoint =
         MResumePoint::New(current, pc, callerResumePoint_, MResumePoint::Outer);
     if (!inlineResumePoint)
@@ -2786,15 +2790,6 @@ IonBuilder::jsop_call_inline(HandleFunction callee, uint32 argc, bool constructi
         return false;
     for (int32 i = argc; i >= 0; i--)
         argv[i] = current->pop();
-
-    
-    
-    inlineResumePoint->replaceOperand(
-        inlineResumePoint->numOperands() - (argc + 2), constFun);
-
-    
-    (void) current->pop();
-    current->push(constFun);
 
     
     
@@ -2913,14 +2908,243 @@ IonBuilder::makeInliningDecision(AutoObjectVector &targets)
     return true;
 }
 
+static bool
+ValidateInlineableGetPropertyCache(MGetPropertyCache *getPropCache, MDefinition *thisDefn,
+                                   size_t maxUseCount)
+{
+    JS_ASSERT(getPropCache->object()->type() == MIRType_Object);
+
+    if (getPropCache->useCount() > maxUseCount)
+        return false;
+
+    
+    if (getPropCache->object() != thisDefn)
+        return false;
+
+    InlinePropertyTable *propTable = getPropCache->inlinePropertyTable();
+    if (!propTable || propTable->numEntries() == 0)
+        return false;
+
+    return true;
+}
+
+MGetPropertyCache *
+IonBuilder::checkInlineableGetPropertyCache(uint32_t argc)
+{
+    
+    
+    
+
+    JS_ASSERT(current->stackDepth() >= argc + 2);
+
+    
+    int thisDefnDepth = -((int) argc + 1);
+    MDefinition *thisDefn = current->peek(thisDefnDepth);
+    if (thisDefn->type() != MIRType_Object)
+        return NULL;
+
+    
+    
+    int funcDefnDepth = -((int) argc + 2);
+    MDefinition *funcDefn = current->peek(funcDefnDepth);
+    if (funcDefn->type() != MIRType_Object)
+        return NULL;
+
+    
+    
+    if (funcDefn->isConstant())
+        return NULL;
+
+    
+    
+    
+
+    
+    
+    if (funcDefn->isGetPropertyCache()) {
+        MGetPropertyCache *getPropCache = funcDefn->toGetPropertyCache();
+        if (!ValidateInlineableGetPropertyCache(getPropCache, thisDefn, 0))
+            return NULL;
+
+        return getPropCache;
+    }
+
+    
+    if (!funcDefn->isUnbox() || funcDefn->toUnbox()->useCount() > 0)
+        return NULL;
+
+    MUnbox *unbox = current->peek(funcDefnDepth)->toUnbox();
+    if (unbox->mode() != MUnbox::Infallible || !unbox->input()->isTypeBarrier())
+        return NULL;
+
+    MTypeBarrier *typeBarrier = unbox->input()->toTypeBarrier();
+    if (typeBarrier->useCount() != 1 || !typeBarrier->input()->isGetPropertyCache())
+        return NULL;
+
+    MGetPropertyCache *getPropCache = typeBarrier->input()->toGetPropertyCache();
+    JS_ASSERT(getPropCache->object()->type() == MIRType_Object);
+
+    if (!ValidateInlineableGetPropertyCache(getPropCache, thisDefn, 1))
+        return NULL;
+
+    return getPropCache;
+}
+
+MPolyInlineDispatch *
+IonBuilder::makePolyInlineDispatch(JSContext *cx, AutoObjectVector &targets, int argc,
+                                   MGetPropertyCache *getPropCache,
+                                   types::TypeSet *types, types::TypeSet *barrier,
+                                   MBasicBlock *bottom,
+                                   Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns)
+{
+    int funcDefnDepth = -((int) argc + 2);
+    MDefinition *funcDefn = current->peek(funcDefnDepth);
+
+    
+    if (!getPropCache)
+        return MPolyInlineDispatch::New(funcDefn);
+
+    InlinePropertyTable *inlinePropTable = getPropCache->inlinePropertyTable();
+
+    
+    
+    MResumePoint *preCallResumePoint = MResumePoint::New(current, pc, callerResumePoint_,
+                                                         MResumePoint::ResumeAt);
+    if (!preCallResumePoint)
+        return NULL;
+    size_t preCallFuncDefnIdx = preCallResumePoint->numOperands() - (((size_t) argc) + 2);
+    JS_ASSERT(preCallResumePoint->getOperand(preCallFuncDefnIdx) == funcDefn);
+
+    MDefinition *targetObject = getPropCache->object();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    MConstant *undef = MConstant::New(UndefinedValue());
+    current->add(undef);
+    current->rewriteAtDepth(funcDefnDepth, undef);
+
+    
+    
+    MBasicBlock *fallbackPrepBlock = newBlock(current, pc);
+    if (!fallbackPrepBlock)
+        return NULL;
+
+    for (int i = argc + 1; i >= 0; i--)
+        (void) fallbackPrepBlock->pop();
+
+    
+    
+    JS_ASSERT(inlinePropTable->pc() != NULL);
+    JS_ASSERT(inlinePropTable->priorResumePoint() != NULL);
+    MBasicBlock *fallbackBlock = newBlock(fallbackPrepBlock, inlinePropTable->pc(),
+                                          inlinePropTable->priorResumePoint());
+    if (!fallbackBlock)
+        return NULL;
+
+    fallbackPrepBlock->end(MGoto::New(fallbackBlock));
+
+    
+    
+    DebugOnly<MDefinition *> checkTargetObject = fallbackBlock->pop();
+    JS_ASSERT(checkTargetObject == targetObject);
+
+    
+    
+    if (funcDefn->isGetPropertyCache()) {
+        JS_ASSERT(funcDefn->toGetPropertyCache() == getPropCache);
+        fallbackBlock->addFromElsewhere(getPropCache);
+        fallbackBlock->push(getPropCache);
+    } else {
+        JS_ASSERT(funcDefn->isUnbox());
+        MUnbox *unbox = funcDefn->toUnbox();
+        JS_ASSERT(unbox->input()->isTypeBarrier());
+        JS_ASSERT(unbox->type() == MIRType_Object);
+        JS_ASSERT(unbox->mode() == MUnbox::Infallible);
+
+        MTypeBarrier *typeBarrier = unbox->input()->toTypeBarrier();
+        JS_ASSERT(typeBarrier->input()->isGetPropertyCache());
+        JS_ASSERT(typeBarrier->input()->toGetPropertyCache() == getPropCache);
+
+        fallbackBlock->addFromElsewhere(getPropCache);
+        fallbackBlock->addFromElsewhere(typeBarrier);
+        fallbackBlock->addFromElsewhere(unbox);
+        fallbackBlock->push(unbox);
+    }
+
+    
+    
+    
+    for (int i = argc; i >= 0; i--)
+        fallbackBlock->push(current->peek(-((int) i + 1)));
+
+    
+    
+    MBasicBlock *fallbackEndBlock = newBlock(fallbackBlock, pc, preCallResumePoint);
+    if (!fallbackEndBlock)
+        return NULL;
+    fallbackBlock->end(MGoto::New(fallbackEndBlock));
+
+    
+    MCall *call = MCall::New(NULL, argc + 1, argc, false);
+    if (!call)
+        return NULL;
+
+    
+    MPrepareCall *prepCall = new MPrepareCall;
+    fallbackEndBlock->add(prepCall);
+
+    
+    for (int32 i = 0; i <= argc; i++) {
+        int32 argno = argc - i;
+        MDefinition *argDefn = fallbackEndBlock->pop();
+        JS_ASSERT(!argDefn->isPassArg());
+        MPassArg *passArg = MPassArg::New(argDefn);
+        fallbackEndBlock->add(passArg);
+        call->addArg(argno, passArg);
+    }
+
+    
+    call->initPrepareCall(prepCall);
+
+    
+    call->initFunction(fallbackEndBlock->pop());
+
+    fallbackEndBlock->add(call);
+    fallbackEndBlock->push(call);
+    if (!resumeAfter(call))
+        return NULL;
+
+    MBasicBlock *top = current;
+    current = fallbackEndBlock;
+    if (!pushTypeBarrier(call, types, barrier))
+        return NULL;
+    current = top;
+
+    
+    return MPolyInlineDispatch::New(targetObject, inlinePropTable,
+                                    fallbackPrepBlock, fallbackBlock,
+                                    fallbackEndBlock);
+}
+
 bool
-IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool constructing)
+IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool constructing,
+                               types::TypeSet *types, types::TypeSet *barrier)
 {
 #ifdef DEBUG
     uint32 origStackDepth = current->stackDepth();
 #endif
 
-    IonSpew(IonSpew_Inlining, "Inlinig %d targets", (int) targets.length());
+    IonSpew(IonSpew_Inlining, "Inlining %d targets", (int) targets.length());
     JS_ASSERT(targets.length() > 0);
 
     
@@ -2940,6 +3164,31 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     }
 
     
+    
+    MGetPropertyCache *getPropCache = NULL;
+    if (!constructing) {
+        getPropCache = checkInlineableGetPropertyCache(argc);
+        if(getPropCache) {
+            InlinePropertyTable *inlinePropTable = getPropCache->inlinePropertyTable();
+            
+            JS_ASSERT(inlinePropTable != NULL);
+
+            int numCases = inlinePropTable->numEntries();
+            IonSpew(IonSpew_Inlining, "Got inlineable property cache with %d cases", numCases);
+
+            inlinePropTable->trimToTargets(targets);
+
+            
+            IonSpew(IonSpew_Inlining, "%d inlineable cases left after trimming to %d targets",
+                                        (int) inlinePropTable->numEntries(),
+                                        (int) targets.length());
+
+            if (inlinePropTable->numEntries() == 0)
+                getPropCache = NULL;
+        }
+    }
+
+    
     JS_ASSERT(types::IsInlinableCall(pc));
     jsbytecode *postCall = GetNextPc(pc);
     MBasicBlock *bottom = newBlock(NULL, postCall);
@@ -2948,7 +3197,15 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     Vector<MDefinition *, 8, IonAllocPolicy> retvalDefns;
 
     
-    if (targets.length() == 1) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (getPropCache == NULL && targets.length() == 1) {
         JSFunction *func = targets[0]->toFunction();
         MConstant *constFun = MConstant::New(ObjectValue(*func));
         current->add(constFun);
@@ -2961,16 +3218,18 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
         
 
         
-        MDefinition *funcDefn = top->peek(-((int) argc + 2));
-        MPolyInlineDispatch *disp = MPolyInlineDispatch::New(funcDefn);
+        MPolyInlineDispatch *disp = makePolyInlineDispatch(cx, targets, argc, getPropCache,
+                                                           types, barrier, bottom, retvalDefns);
+        if (!disp)
+            return false;
         for (size_t i = 0; i < targets.length(); i++) {
-            
             
             JSFunction *func = targets[i]->toFunction();
             RootedFunction target(cx, func);
             MConstant *constFun = MConstant::New(ObjectValue(*func));
 
-            MBasicBlock *entryBlock = newBlock(top, pc);
+            
+            MBasicBlock *entryBlock = newBlock(current, pc);
             if (!entryBlock)
                 return false;
 
@@ -2991,6 +3250,24 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
             if (!jsop_call_inline(target, argc, constructing, constFun, bottom, retvalDefns))
                 return false;
         }
+
+        
+        
+        
+        if (disp->inlinePropertyTable()) {
+            graph_.moveBlockToEnd(disp->fallbackPrepBlock());
+            graph_.moveBlockToEnd(disp->fallbackMidBlock());
+            graph_.moveBlockToEnd(disp->fallbackEndBlock());
+
+            
+            MBasicBlock *fallbackEndBlock = disp->fallbackEndBlock();
+            MDefinition *fallbackResult = fallbackEndBlock->pop();
+            if(!retvalDefns.append(fallbackResult))
+                return false;
+            fallbackEndBlock->end(MGoto::New(bottom));
+            if (!bottom->addPredecessorWithoutPhis(fallbackEndBlock))
+                return false;
+        }
     }
 
     graph_.moveBlockToEnd(bottom);
@@ -3000,7 +3277,7 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     
     
     
-    if (targets.length() > 1) {
+    if (getPropCache || targets.length() > 1) {
         for (uint32_t i = 0; i < argc + 1; i++)
             bottom->pop();
     }
@@ -3024,6 +3301,8 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     }
 
     bottom->push(retvalDefn);
+
+    
     if (!bottom->initEntrySlots())
         return false;
 
@@ -3031,9 +3310,25 @@ IonBuilder::inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool cons
     
     
     
-    JS_ASSERT(bottom->stackDepth() == origStackDepth - argc - 1);
+    
 
-    current = bottom;
+    if (getPropCache || targets.length() > 1) {
+        MBasicBlock *bottom2 = newBlock(bottom, postCall);
+        if (!bottom2)
+            return false;
+
+        bottom->end(MGoto::New(bottom2));
+        current = bottom2;
+    } else {
+        current = bottom;
+    }
+
+    
+    
+    
+    
+    JS_ASSERT(current->stackDepth() == origStackDepth - argc - 1);
+
     return true;
 }
 
@@ -3338,7 +3633,7 @@ IonBuilder::jsop_call_fun_barrier(AutoObjectVector &targets, uint32_t numTargets
         }
 
         if (numTargets > 0 && makeInliningDecision(targets))
-            return inlineScriptedCall(targets, argc, constructing);
+            return inlineScriptedCall(targets, argc, constructing, types, barrier);
     }
 
     RootedFunction target(cx, numTargets == 1 ? targets[0]->toFunction() : NULL);
@@ -3655,6 +3950,14 @@ MBasicBlock *
 IonBuilder::newBlock(MBasicBlock *predecessor, jsbytecode *pc)
 {
     MBasicBlock *block = MBasicBlock::New(graph(), info(), predecessor, pc, MBasicBlock::NORMAL);
+    return addBlock(block, loopDepth_);
+}
+
+MBasicBlock *
+IonBuilder::newBlock(MBasicBlock *predecessor, jsbytecode *pc, MResumePoint *priorResumePoint)
+{
+    MBasicBlock *block = MBasicBlock::NewWithResumePoint(graph(), info(), predecessor, pc,
+                                                         priorResumePoint);
     return addBlock(block, loopDepth_);
 }
 
@@ -5010,6 +5313,102 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     return true;
 }
 
+bool
+IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetPropertyCache *getPropCache,
+                                    types::TypeSet *objTypes, types::TypeSet *pushedTypes)
+{
+    RootedId id(cx, NameToId(getPropCache->name()));
+
+    
+    if (pushedTypes->unknownObject() || pushedTypes->baseFlags() != 0)
+        return true;
+
+    for (unsigned i = 0; i < pushedTypes->getObjectCount(); i++) {
+        if (pushedTypes->getTypeObject(i) != NULL)
+            return true;
+    }
+
+    
+    if (objTypes->baseFlags() || objTypes->unknownObject())
+        return true;
+
+    unsigned int objCount = objTypes->getObjectCount();
+    if (objCount == 0)
+        return true;
+
+    InlinePropertyTable *inlinePropTable = getPropCache->initInlinePropertyTable(pc);
+    if (!inlinePropTable)
+        return false;
+
+    
+    
+    for (unsigned int i = 0; i < objCount; i++) {
+        types::TypeObject *typeObj = objTypes->getTypeObject(i);
+        if (!typeObj || typeObj->unknownProperties() || !typeObj->proto)
+            continue;
+
+        types::TypeSet *ownTypes = typeObj->getProperty(cx, id, false);
+        if (!ownTypes)
+            continue;
+
+        if (ownTypes->isOwnProperty(cx, typeObj, false))
+            continue;
+
+        bool knownConstant = false;
+        Rooted<JSObject*> proto(cx, typeObj->proto);
+        if (!TestSingletonProperty(cx, proto, id, &knownConstant))
+            return false;
+
+        if (!knownConstant || proto->type()->unknownProperties())
+            continue;
+
+        types::TypeSet *protoTypes = proto->type()->getProperty(cx, id, false);
+        if (!protoTypes)
+            continue;
+
+        JSObject *obj = protoTypes->getSingleton(cx, false);
+        if (!obj || !obj->isFunction())
+            continue;
+
+        
+        if (!pushedTypes->hasType(types::Type::ObjectType(obj)))
+            continue;
+
+        if (!inlinePropTable->addEntry(typeObj, obj->toFunction()))
+            return false;
+    }
+
+    if (inlinePropTable->numEntries() == 0) {
+        getPropCache->clearInlinePropertyTable();
+        return true;
+    }
+
+    pushedTypes->addFreeze(cx);
+    objTypes->addFreeze(cx);
+
+#ifdef DEBUG
+    if (inlinePropTable->numEntries() > 0)
+        IonSpew(IonSpew_Inlining, "Annotated GetPropertyCache with %d/%d inline cases",
+                                    (int) inlinePropTable->numEntries(), (int) objCount);
+#endif
+
+    
+    
+    
+    
+    if (inlinePropTable->numEntries() > 0) {
+        
+        current->push(obj);
+        MResumePoint *resumePoint = MResumePoint::New(current, pc, callerResumePoint_,
+                                                      MResumePoint::ResumeAt);
+        if (!resumePoint)
+            return false;
+        inlinePropTable->setPriorResumePoint(resumePoint);
+        current->pop();
+    }
+    return true;
+}
+
 
 
 bool
@@ -5084,7 +5483,6 @@ IonBuilder::storeSlot(MDefinition *obj, Shape *shape, MDefinition *value, bool n
 bool
 IonBuilder::jsop_getprop(HandlePropertyName name)
 {
-
     LazyArgumentsType isArguments = oracle->propertyReadMagicArguments(script, pc);
     if (isArguments == MaybeArguments)
         return abort("Type is not definitely lazy arguments.");
@@ -5193,6 +5591,10 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
         }
 
         ins = load;
+        if (JSOp(*pc) == JSOP_CALLPROP) {
+            if (!annotateGetPropertyCache(cx, obj, load, unaryTypes.inTypes, types))
+                return false;
+        }
     } else {
         ins = MCallGetProperty::New(obj, name);
     }
