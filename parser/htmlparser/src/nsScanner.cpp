@@ -45,6 +45,12 @@ nsReadEndCondition::nsReadEndCondition(const PRUnichar* aTerminateChars) :
   }
 }
 
+#ifdef __INCREMENTAL
+const int   kBufsize=1;
+#else
+const int   kBufsize=64;
+#endif
+
 
 
 

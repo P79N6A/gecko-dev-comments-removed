@@ -39,16 +39,16 @@
 static char _progname[1024] = "huh?";
 static unsigned int _gdb_sleep_duration = 300;
 
+
+
+static const int kClientChannelFd = 3;
+
 #if defined(LINUX) && defined(DEBUG) && \
       (defined(__i386) || defined(__x86_64) || defined(PPC))
 #define CRAWL_STACK_ON_SIGSEGV
 #endif
 
 #if defined(CRAWL_STACK_ON_SIGSEGV)
-
-
-
-static const int kClientChannelFd = 3;
 
 #include <unistd.h>
 #include "nsISupportsUtils.h"

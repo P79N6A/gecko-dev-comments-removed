@@ -20,6 +20,8 @@
 
 #define MOZ_PERSONAL_DICT_NAME "persdict.dat"
 
+const int kMaxWordLen=256;
+
 
 
 

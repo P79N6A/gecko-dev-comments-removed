@@ -17,6 +17,10 @@ using namespace mozilla::a11y;
 
 
 
+const unsigned int kSelChangeCountToPack = 5;
+
+
+
 
 
 NotificationController::NotificationController(DocAccessible* aDocument,

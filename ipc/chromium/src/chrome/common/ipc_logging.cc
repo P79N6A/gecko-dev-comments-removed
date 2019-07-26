@@ -43,9 +43,7 @@ struct RunnableMethodTraits<IPC::Logging> {
 namespace IPC {
 
 const wchar_t kLoggingEventName[] = L"ChromeIPCLog.%d";
-#if defined(OS_WIN)
 const int kLogSendDelayMs = 100;
-#endif
 
 
 
