@@ -267,6 +267,15 @@ public:
   nsresult SetSourceSizeHint(uint32_t sizeHint);
 
   
+  void SetRequestedResolution(const nsIntSize requestedResolution) {
+    mRequestedResolution = requestedResolution;
+  }
+
+  nsIntSize GetRequestedResolution() {
+    return mRequestedResolution;
+  }
+
+  
   
   enum FrameBlendMethod {
     
@@ -712,7 +721,6 @@ private:
   NS_IMETHOD RequestDecodeCore(RequestDecodeType aDecodeType);
 
 private: 
-
   nsIntSize                  mSize;
 
   
@@ -759,6 +767,9 @@ private:
   
   
   int32_t                        mDecodeCount;
+
+  
+  nsIntSize                  mRequestedResolution;
 
   
   nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;

@@ -328,6 +328,22 @@ bool nsMediaFragmentURIParser::ParseXYWH(nsDependentSubstring aString)
   return false;
 }
 
+bool nsMediaFragmentURIParser::ParseMozResolution(nsDependentSubstring aString)
+{
+  int32_t w, h;
+
+  
+  if (ParseInteger(aString, w) && w >= 0 &&
+      ParseCommaSeparator(aString)       &&
+      ParseInteger(aString, h) && h >= 0 &&
+      aString.Length() == 0) {
+    mResolution.construct(w,h);
+    return true;
+  }
+
+  return false;
+}
+
 void nsMediaFragmentURIParser::Parse(nsACString& aRef)
 {
   
@@ -348,7 +364,7 @@ void nsMediaFragmentURIParser::Parse(nsACString& aRef)
   }
 
   
-  bool gotTemporal = false, gotSpatial = false;
+  bool gotTemporal = false, gotSpatial = false, gotResolution = false;
   for (int i = fragments.Length() - 1 ; i >= 0 ; --i) {
     if (gotTemporal && gotSpatial) {
       
@@ -359,6 +375,9 @@ void nsMediaFragmentURIParser::Parse(nsACString& aRef)
     } else if (!gotSpatial && fragments[i].first.EqualsLiteral("xywh")) {
       nsAutoString value = NS_ConvertUTF8toUTF16(fragments[i].second);
       gotSpatial = ParseXYWH(nsDependentSubstring(value, 0));
+    } else if (!gotResolution && fragments[i].first.EqualsLiteral("-moz-resolution")) {
+      nsAutoString value = NS_ConvertUTF8toUTF16(fragments[i].second);
+      gotResolution = ParseMozResolution(nsDependentSubstring(value, 0));
     }
   }
 }

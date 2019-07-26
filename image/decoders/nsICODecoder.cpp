@@ -247,6 +247,12 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
     return; 
 
   uint16_t colorDepth = 0;
+  nsIntSize prefSize = mImage.GetRequestedResolution();
+  if (prefSize.width == 0 && prefSize.height == 0) {
+    prefSize.SizeTo(PREFICONSIZE,PREFICONSIZE);
+  }
+
+  int32_t diff = INT_MAX;
   
   while (mCurrIcon < mNumIcons) { 
     if (mPos >= DIRENTRYOFFSET + (mCurrIcon * sizeof(mDirEntryArray)) && 
@@ -271,10 +277,11 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
       ProcessDirEntry(e);
       
       
-      if (((e.mWidth == 0 ? 256 : e.mWidth) == PREFICONSIZE && 
-           (e.mHeight == 0 ? 256 : e.mHeight) == PREFICONSIZE && 
-           (e.mBitCount >= colorDepth)) ||
+      int32_t delta = abs( (e.mWidth == 0 ? 256 : e.mWidth) - prefSize.width +
+                           (e.mHeight == 0 ? 256 : e.mHeight) - prefSize.height );
+      if ((e.mBitCount >= colorDepth && delta <= diff) ||
           (mCurrIcon == mNumIcons && mImageOffset == 0)) {
+        diff = delta;
         mImageOffset = e.mImageOffset;
 
         

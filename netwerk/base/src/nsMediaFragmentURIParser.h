@@ -51,6 +51,12 @@ public:
   bool HasClip() const { return !mClip.empty(); }
 
   
+  bool HasResolution() const { return !mResolution.empty(); }
+
+  
+  nsIntSize GetResolution() const { return mResolution.ref(); }
+
+  
   
   
   nsIntRect GetClip() const { return mClip.ref(); }
@@ -80,12 +86,14 @@ private:
   bool ParseNPTMM(nsDependentSubstring& aString, uint32_t& aMinute);
   bool ParseNPTSS(nsDependentSubstring& aString, uint32_t& aSecond);
   bool ParseXYWH(nsDependentSubstring aString);
+  bool ParseMozResolution(nsDependentSubstring aString);
 
   
   Maybe<double>    mStart;
   Maybe<double>    mEnd;
   Maybe<nsIntRect> mClip;
   ClipUnit         mClipUnit;
+  Maybe<nsIntSize> mResolution;
 };
 
 }} 
