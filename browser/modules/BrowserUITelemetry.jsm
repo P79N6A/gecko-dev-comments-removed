@@ -100,11 +100,26 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_ITEMS", function() {
   return result;
 });
 
-const ALL_BUILTIN_ITEMS = [
-  "fullscreen-button",
-  "switch-to-metro-button",
-  "bookmarks-menu-button",
-];
+XPCOMUtils.defineLazyGetter(this, "ALL_BUILTIN_ITEMS", function() {
+  
+  
+  const SPECIAL_CASES = [
+    "back-button",
+    "forward-button",
+    "urlbar-stop-button",
+    "urlbar-go-button",
+    "urlbar-reload-button",
+    "searchbar",
+    "cut-button",
+    "copy-button",
+    "paste-button",
+    "zoom-out-button",
+    "zoom-reset-button",
+    "zoom-in-button",
+  ]
+  return DEFAULT_ITEMS.concat(PALETTE_ITEMS)
+                      .concat(SPECIAL_CASES);
+});
 
 const OTHER_MOUSEUP_MONITORED_ITEMS = [
   "PlacesChevron",
@@ -318,6 +333,14 @@ this.BrowserUITelemetry = {
       
       
       this._countMouseUpEvent("click-builtin-item", item.id, aEvent.button);
+      return;
+    }
+
+    
+    
+    let candidate = getIDBasedOnFirstIDedAncestor(item);
+    if (ALL_BUILTIN_ITEMS.indexOf(candidate) != -1) {
+      this._countMouseUpEvent("click-builtin-item", candidate, aEvent.button);
     }
   },
 
