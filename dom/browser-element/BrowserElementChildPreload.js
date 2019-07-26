@@ -265,12 +265,18 @@ BrowserElementChild.prototype = {
     Services.obs.addObserver(this,
                              'xpcom-shutdown',
                               true);
+
+    Services.obs.addObserver(this,
+                             'activity-done',
+                              true);
   },
 
   observe: function(subject, topic, data) {
     
     
-    if (!content || subject != content.document)
+    if (topic !== 'activity-done' && (!content || subject != content.document))
+      return;
+    if (topic == 'activity-done' && docShell !== subject)
       return;
     switch (topic) {
       case 'fullscreen-origin-change':
@@ -281,6 +287,9 @@ BrowserElementChild.prototype = {
         break;
       case 'ask-parent-to-rollback-fullscreen':
         sendAsyncMsg('rollback-fullscreen');
+        break;
+      case 'activity-done':
+        sendAsyncMsg('activitydone', { success: (data == 'activity-success') });
         break;
       case 'xpcom-shutdown':
         this._shuttingDown = true;
