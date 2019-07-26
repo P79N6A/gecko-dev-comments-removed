@@ -1302,6 +1302,15 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
 
   
   
+  if (aFrameMetrics.GetDisableScrollingX()) {
+    velocity.x = 0;
+  }
+  if (aFrameMetrics.GetDisableScrollingY()) {
+    velocity.y = 0;
+  }
+
+  
+  
   
   EnlargeDisplayPortAlongAxis(&(displayPort.x), &(displayPort.width),
     estimatedPaintDurationMillis, velocity.x,
