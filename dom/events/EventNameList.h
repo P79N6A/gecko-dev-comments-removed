@@ -464,6 +464,10 @@ WINDOW_EVENT(hashchange,
              NS_HASHCHANGE,
              EventNameType_XUL | EventNameType_HTMLBodyOrFramesetOnly,
              NS_EVENT)
+WINDOW_EVENT(languagechange,
+             NS_LANGUAGECHANGE,
+             EventNameType_HTMLBodyOrFramesetOnly,
+             NS_EVENT)
 
 
 
