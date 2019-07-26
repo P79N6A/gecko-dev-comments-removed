@@ -4006,6 +4006,9 @@ if (global.Failed()) {
             assert(isResultAlreadyAddRefed(self.descriptor,
                                            self.extendedAttributes) or
                    
+                   (self.returnType.isGeckoInterface() and
+                    self.descriptor.getDescriptor(self.returnType.unroll().inner.identifier.name).nativeOwnership == 'owned') or
+                   
                    
                    self.descriptor.workers)
 
