@@ -750,3 +750,8 @@ pref("dom.promise.enabled", false);
 
 
 pref("b2g.adb.timeout-hours", 12);
+
+
+
+pref("gfx.canvas.azure.backends", "skia");
+pref("gfx.canvas.azure.accelerated", true);
