@@ -71,7 +71,7 @@ UploadImageDataToTexture(GLContext* gl,
 
 
 gfx::SurfaceFormat
-UploadSurfaceToTexture(GLContext* gl,
+DeprecatedUploadSurfaceToTexture(GLContext* gl,
                        gfxASurface *aSurface,
                        const nsIntRegion& aDstRegion,
                        GLuint& aTexture,
