@@ -305,22 +305,7 @@ public:
   
 
 
-  nsIAtom* Medium() {
-    if (!mIsEmulatingMedia)
-      return mMedium;
-    return mMediaEmulated;
-  }
-
-  
-
-
-
-  void EmulateMedium(const nsAString& aMediaType);
-
-  
-
-
-  void StopEmulatingMedium();
+  nsIAtom* Medium() { return mMedium; }
 
   void* AllocateFromShell(size_t aSize)
   {
@@ -1021,6 +1006,8 @@ public:
     mExistThrottledUpdates = aExistThrottledUpdates;
   }
 
+  bool IsDeviceSizePageSize();
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -1166,7 +1153,6 @@ protected:
   nsRefPtr<nsAnimationManager> mAnimationManager;
   nsIAtom*              mMedium;        
                                         
-  nsCOMPtr<nsIAtom> mMediaEmulated;
 
   nsILinkHandler*       mLinkHandler;   
 
@@ -1276,7 +1262,6 @@ protected:
   unsigned              mPendingUIResolutionChanged : 1;
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
-  unsigned              mIsEmulatingMedia : 1;
   
   
   unsigned              mAllInvalidated : 1;

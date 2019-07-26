@@ -233,7 +233,6 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
     mMedium = nsGkAtoms::print;
     mPaginated = true;
   }
-  mMediaEmulated = mMedium;
 
   if (!IsDynamic()) {
     mImageAnimationMode = imgIContainer::kDontAnimMode;
@@ -1693,30 +1692,6 @@ nsPresContext::UIResolutionChangedInternal()
 }
 
 void
-nsPresContext::EmulateMedium(const nsAString& aMediaType)
-{
-  nsIAtom* previousMedium = Medium();
-  mIsEmulatingMedia = true;
-
-  nsAutoString mediaType;
-  nsContentUtils::ASCIIToLower(aMediaType, mediaType);
-
-  mMediaEmulated = do_GetAtom(mediaType);
-  if (mMediaEmulated != previousMedium && mShell) {
-    MediaFeatureValuesChanged(eRebuildStyleIfNeeded, nsChangeHint(0));
-  }
-}
-
-void nsPresContext::StopEmulatingMedium()
-{
-  nsIAtom* previousMedium = Medium();
-  mIsEmulatingMedia = false;
-  if (Medium() != previousMedium) {
-    MediaFeatureValuesChanged(eRebuildStyleIfNeeded, nsChangeHint(0));
-  }
-}
-
-void
 nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
 {
   if (!mShell) {
@@ -2609,6 +2584,17 @@ nsPresContext::IsCrossProcessRootContentDocument()
 
   TabChild* tabChild = GetTabChildFrom(mShell);
   return (tabChild && tabChild->IsRootContentDocument());
+}
+
+bool
+nsPresContext::IsDeviceSizePageSize()
+{
+  bool isDeviceSizePageSize = false;
+  nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
+  if (docShell) {
+    isDeviceSizePageSize = docShell->GetDeviceSizeIsPageSize();
+  }
+  return isDeviceSizePageSize;
 }
 
 nsRootPresContext::nsRootPresContext(nsIDocument* aDocument,
