@@ -11,8 +11,8 @@ function test() {
 
   let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
                      getService(Ci.mozIJSSubScriptLoader);
-  let chromeUtils = {};
-  scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromeUtils.js", chromeUtils);
+  let ChromeUtils = {};
+  scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromeUtils.js", ChromeUtils);
 
   let tabContainer = gBrowser.tabContainer;
   var receivedDropCount = 0;
@@ -55,7 +55,7 @@ function test() {
       
       
       
-      chromeUtils.synthesizeDrop(newTab, newTab, [[{type: "text/plain", data: text}]], "link", window, EventUtils);
+      ChromeUtils.synthesizeDrop(newTab, newTab, [[{type: "text/plain", data: text}]], "link", window);
     });
   }
 
