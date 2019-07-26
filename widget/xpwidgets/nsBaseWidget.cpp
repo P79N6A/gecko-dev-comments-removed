@@ -476,7 +476,16 @@ void nsBaseWidget::AddChild(nsIWidget* aChild)
 
 void nsBaseWidget::RemoveChild(nsIWidget* aChild)
 {
+#ifdef DEBUG
+#ifdef XP_MACOSX
+  
+  
+  nsIWidget* parent = aChild->GetParent();
+  NS_ASSERTION(!parent || parent == this, "Not one of our kids!");
+#else
   NS_ASSERTION(aChild->GetParent() == this, "Not one of our kids!");
+#endif
+#endif
 
   if (mLastChild == aChild) {
     mLastChild = mLastChild->GetPrevSibling();
