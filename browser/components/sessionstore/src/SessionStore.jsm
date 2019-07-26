@@ -351,6 +351,10 @@ let SessionStoreInternal = {
   _disabledForMultiProcess: false,
 
   
+  
+  _promiseReadyForInitialization: null,
+
+  
 
 
   get promiseInitialized() {
@@ -873,10 +877,30 @@ let SessionStoreInternal = {
       
       
       
+      if (!this._promiseReadyForInitialization) {
+        let deferred = Promise.defer();
+
+        
+        Services.obs.addObserver(function obs(subject, topic) {
+          if (aWindow == subject) {
+            Services.obs.removeObserver(obs, topic);
+            deferred.resolve();
+          }
+        }, "browser-delayed-startup-finished", false);
+
+        
+        
+        this._promiseReadyForInitialization =
+          Promise.all([deferred.promise, gSessionStartup.onceInitialized]);
+      }
+
       
       
       
-      gSessionStartup.onceInitialized.then(() => {
+      
+      
+      
+      this._promiseReadyForInitialization.then(() => {
         if (aWindow.closed) {
           return;
         }
