@@ -56,6 +56,7 @@ typedef struct {
 
 	jemalloc_bool	opt_abort;	
 	jemalloc_bool	opt_junk;	
+	jemalloc_bool	opt_poison;	
 	jemalloc_bool	opt_utrace;	
 	jemalloc_bool	opt_sysv;	
 	jemalloc_bool	opt_xmalloc;	
