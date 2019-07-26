@@ -2037,6 +2037,8 @@ static nsresult
 SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative,
               bool* aStartOffline, nsACString* aProfileName)
 {
+  StartupTimeline::Record(StartupTimeline::SELECT_PROFILE);
+
   nsresult rv;
   ArgResult ar;
   const char* arg;
@@ -2311,17 +2313,31 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
         else
           gDoProfileReset = false;
       }
+
+      
+      
+      
+      
+
+      static const int kLockRetrySeconds = 5;
+      static const int kLockRetrySleepMS = 100;
+
       nsCOMPtr<nsIProfileUnlocker> unlocker;
-      rv = profile->Lock(getter_AddRefs(unlocker), aResult);
-      if (NS_SUCCEEDED(rv)) {
-        
-        if (aProfileName) {
-          rv = profile->GetName(*aProfileName);
-          if (NS_FAILED(rv))
-            aProfileName->Truncate(0);
+      const TimeStamp start = TimeStamp::Now();
+      do {
+        rv = profile->Lock(getter_AddRefs(unlocker), aResult);
+        if (NS_SUCCEEDED(rv)) {
+          StartupTimeline::Record(StartupTimeline::AFTER_PROFILE_LOCKED);
+          
+          if (aProfileName) {
+            rv = profile->GetName(*aProfileName);
+            if (NS_FAILED(rv))
+              aProfileName->Truncate(0);
+          }
+          return NS_OK;
         }
-        return NS_OK;
-      }
+        PR_Sleep(kLockRetrySleepMS);
+      } while (TimeStamp::Now() - start < TimeDuration::FromSeconds(kLockRetrySeconds));
 
       return ProfileLockedDialog(profile, unlocker, aNative, aResult);
     }
