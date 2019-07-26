@@ -61,9 +61,11 @@ private:
 
 
 
-class RDFBindingSet
+class RDFBindingSet MOZ_FINAL
 {
-protected:
+private:
+    
+    ~RDFBindingSet();
 
     
     int32_t mCount;
@@ -79,8 +81,6 @@ public:
     {
         MOZ_COUNT_CTOR(RDFBindingSet);
     }
-
-    ~RDFBindingSet();
 
     NS_INLINE_DECL_REFCOUNTING(RDFBindingSet)
 
