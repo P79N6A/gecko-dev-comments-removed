@@ -32,6 +32,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 const {Cc, Ci, Cu} = require("chrome");
 
 const protocol = require("devtools/server/protocol");
@@ -177,16 +186,49 @@ var NodeActor = protocol.ActorClass({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 let NodeFront = protocol.FrontClass(NodeActor, {
-  initialize: function(conn, form) {
-    protocol.Front.prototype.initialize.call(this, conn, form);
+  initialize: function(conn, form, detail, ctx) {
+    this._parent = null; 
+    this._child = null;  
+    this._next = null;   
+    this._prev = null;   
+    protocol.Front.prototype.initialize.call(this, conn, form, detail, ctx);
+  },
+
+  destroy: function() {
+    
+    
+    this.reparent(null);
+    for (let child of this.treeChildren()) {
+      child.destroy();
+    }
+    protocol.Front.prototype.destroy.call(this);
   },
 
   
-  form: function(form) {
+  form: function(form, detail, ctx) {
     
     
     this._form = object.merge(form);
+
+    if (form.parent) {
+      
+      
+      
+      let parentNodeFront = ctx.marshallPool().ensureParentFront(form.parent);
+      this.reparent(parentNodeFront);
+    }
   },
 
   
@@ -247,6 +289,50 @@ let NodeFront = protocol.FrontClass(NodeActor, {
   _getAttribute: function(name) {
     this._cacheAttributes();
     return this._attrMap[name] || undefined;
+  },
+
+  
+
+
+
+
+  reparent: function(parent) {
+    if (this._parent === parent) {
+      return;
+    }
+
+    if (this._parent && this._parent._child === this) {
+      this._parent._child = this._next;
+    }
+    if (this._prev) {
+      this._prev._next = this._next;
+    }
+    if (this._next) {
+      this._next._prev = this._prev;
+    }
+    this._next = null;
+    this._prev = null;
+    this._parent = parent;
+    if (!parent) {
+      
+      return;
+    }
+    this._next = parent._child;
+    if (this._next) {
+      this._next._prev = this;
+    }
+    parent._child = this;
+  },
+
+  
+
+
+  treeChildren: function() {
+    let ret = [];
+    for (let child = this._child; child != null; child = child._next) {
+      ret.push(child);
+    }
+    return ret;
   },
 
   
@@ -439,7 +525,7 @@ var WalkerActor = protocol.ActorClass({
 
   initialize: function(conn, document, options) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this._doc = document;
+    this.rootDoc = document;
     this._refMap = new Map();
 
     
@@ -462,10 +548,17 @@ var WalkerActor = protocol.ActorClass({
 
   destroy: function() {
     protocol.Actor.prototype.destroy.call(this);
-    this._doc = null;
+    this.rootDoc = null;
   },
 
   release: method(function() {}, { release: true }),
+
+  unmanage: function(actor) {
+    if (actor instanceof NodeActor) {
+      this._refMap.delete(actor.rawNode);
+    }
+    protocol.Actor.prototype.unmanage.call(this, actor);
+  },
 
   _ref: function(node) {
     let actor = this._refMap.get(node);
@@ -488,7 +581,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   document: method(function(node) {
-    let doc = node ? nodeDocument(node.rawNode) : this._doc;
+    let doc = node ? nodeDocument(node.rawNode) : this.rootDoc;
     return this._ref(doc);
   }, {
     request: { node: Arg(0, "domnode", {optional: true}) },
@@ -503,7 +596,7 @@ var WalkerActor = protocol.ActorClass({
 
 
   documentElement: method(function(node) {
-    let elt = node ? nodeDocument(node.rawNode).documentElement : this._doc.documentElement;
+    let elt = node ? nodeDocument(node.rawNode).documentElement : this.rootDoc.documentElement;
     return this._ref(elt);
   }, {
     request: { node: Arg(0, "domnode", {optional: true}) },
@@ -549,6 +642,26 @@ var WalkerActor = protocol.ActorClass({
     }
     return null;
   },
+
+  
+
+
+  releaseNode: method(function(node) {
+    let walker = documentWalker(node.rawNode);
+
+    let child = walker.firstChild();
+    while (child) {
+      let childActor = this._refMap.get(child);
+      if (childActor) {
+        this.releaseNode(childActor);
+      }
+      child = walker.nextSibling();
+    }
+
+    node.destroy();
+  }, {
+    request: { node: Arg(0, "domnode") }
+  }),
 
   
 
@@ -834,6 +947,33 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     this.rootNode = types.getType("domnode").read(json.root, this);
   },
 
+  
+
+
+
+
+
+
+
+  ensureParentFront: function(id) {
+    let front = this.get(id);
+    if (front) {
+      return front;
+    }
+
+    return types.getType("domnode").read({ actor: id }, this, "standin");
+  },
+
+  releaseNode: protocol.custom(function(node) {
+    
+    
+    let actorID = node.actorID;
+    node.destroy();
+    return this._releaseNode({ actorID: actorID });
+  }, {
+    impl: "_releaseNode"
+  }),
+
   querySelector: protocol.custom(function(queryNode, selector) {
     return this._querySelector(queryNode, selector).then(response => {
       return response.node;
@@ -905,6 +1045,9 @@ var InspectorFront = exports.InspectorFront = protocol.FrontClass(InspectorActor
 function documentWalker(node, whatToShow=Ci.nsIDOMNodeFilter.SHOW_ALL) {
   return new DocumentWalker(node, whatToShow, whitespaceTextFilter, false);
 }
+
+
+exports._documentWalker = documentWalker;
 
 function nodeDocument(node) {
   return node.ownerDocument || (node.nodeType == Ci.nsIDOMNode.DOCUMENT_NODE ? node : null);
