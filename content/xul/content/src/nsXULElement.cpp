@@ -1126,7 +1126,6 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
             
             
             aVisitor.mCanHandle = false;
-            aVisitor.mAutomaticChromeDispatch = false;
 
             
             nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(GetCurrentDoc()));
@@ -1824,6 +1823,12 @@ nsXULElement::RecompileScriptEventListeners()
         GetAttr(kNameSpaceID_None, attr, value);
         SetEventHandler(attr, value, true);
     }
+}
+
+bool
+nsXULElement::IsEventAttributeName(nsIAtom *aName)
+{
+  return nsContentUtils::IsEventAttributeName(aName, EventNameType_XUL);
 }
 
 NS_IMPL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsXULPrototypeNode)

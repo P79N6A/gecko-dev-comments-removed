@@ -349,6 +349,15 @@ HTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   return NS_OK;
 }
 
+bool
+HTMLFrameSetElement::IsEventAttributeName(nsIAtom *aName)
+{
+  return nsContentUtils::IsEventAttributeName(aName,
+                                              EventNameType_HTML |
+                                              EventNameType_HTMLBodyOrFramesetOnly);
+}
+
+
 #define EVENT(name_, id_, type_, struct_)
 
 

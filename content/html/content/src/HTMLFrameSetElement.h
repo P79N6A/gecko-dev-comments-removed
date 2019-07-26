@@ -89,6 +89,8 @@ public:
     SetHTMLAttr(nsGkAtoms::rows, aRows, aError);
   }
 
+  virtual bool IsEventAttributeName(nsIAtom *aName) MOZ_OVERRIDE;
+
   
   
 #define EVENT(name_, id_, type_, struct_)

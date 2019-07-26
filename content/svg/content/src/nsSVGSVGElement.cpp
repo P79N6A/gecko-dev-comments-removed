@@ -842,11 +842,8 @@ nsSVGSVGElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   return nsSVGSVGElementBase::PreHandleEvent(aVisitor);
 }
 
-
-
-
 bool
-nsSVGSVGElement::IsEventName(nsIAtom* aName)
+nsSVGSVGElement::IsEventAttributeName(nsIAtom* aName)
 {
   
 
@@ -857,6 +854,9 @@ nsSVGSVGElement::IsEventName(nsIAtom* aName)
   return nsContentUtils::IsEventAttributeName(aName,
          (EventNameType_SVGGraphic | EventNameType_SVGSVG));
 }
+
+
+
 
 
 

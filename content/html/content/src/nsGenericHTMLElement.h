@@ -239,6 +239,9 @@ public:
     }
     return style;
   }
+
+  virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
+
 #define EVENT(name_, id_, type_, struct_)
 
 
@@ -1178,7 +1181,7 @@ protected:
                               void* aData);
 
   
-  bool IsElementDisabledForEvents(uint32_t aMessage, nsIFrame* aFrame);
+  virtual bool IsElementDisabledForEvents(uint32_t aMessage, nsIFrame* aFrame);
 
   
   

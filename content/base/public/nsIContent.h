@@ -495,6 +495,18 @@ public:
 
   virtual uint32_t TextLength() const = 0;
 
+   
+
+
+
+
+
+
+  virtual bool IsEventAttributeName(nsIAtom* aName)
+  {
+    return false;
+  }
+
   
 
 

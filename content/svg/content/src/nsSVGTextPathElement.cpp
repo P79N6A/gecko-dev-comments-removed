@@ -128,14 +128,14 @@ nsSVGTextPathElement::IsAttributeMapped(const nsIAtom* name) const
     nsSVGTextPathElementBase::IsAttributeMapped(name);
 }
 
-
-
-
 bool
-nsSVGTextPathElement::IsEventName(nsIAtom* aName)
+nsSVGTextPathElement::IsEventAttributeName(nsIAtom* aName)
 {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_SVGGraphic);
 }
+
+
+
 
 nsSVGElement::LengthAttributesInfo
 nsSVGTextPathElement::GetLengthInfo()

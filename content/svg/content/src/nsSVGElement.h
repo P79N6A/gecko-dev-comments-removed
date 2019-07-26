@@ -325,9 +325,6 @@ protected:
                                               nsIAtom* aAttribute,
                                               const nsAString& aValue);
 
-  
-  virtual bool IsEventName(nsIAtom* aName);
-
   void UpdateContentStyleRule();
   void UpdateAnimatedContentStyleRule();
   mozilla::css::StyleRule* GetAnimatedContentStyleRule();

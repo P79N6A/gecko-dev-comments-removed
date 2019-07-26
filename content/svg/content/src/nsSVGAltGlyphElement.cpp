@@ -48,12 +48,14 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+
+  virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
+
 protected:
 
   
   virtual StringAttributesInfo GetStringInfo();
 
-  virtual bool IsEventName(nsIAtom* aName);
 
   enum { HREF };
   nsSVGString mStringAttributes[1];
@@ -156,13 +158,14 @@ nsSVGAltGlyphElement::IsAttributeMapped(const nsIAtom* name) const
 }
 
 
-
-
 bool
-nsSVGAltGlyphElement::IsEventName(nsIAtom* aName)
+nsSVGAltGlyphElement::IsEventAttributeName(nsIAtom* aName)
 {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_SVGGraphic);
 }
+
+
+
 
 nsSVGElement::StringAttributesInfo
 nsSVGAltGlyphElement::GetStringInfo()
