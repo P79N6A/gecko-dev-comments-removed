@@ -6,7 +6,7 @@
 #include "nsWindowBase.h"
 
 #include "mozilla/MiscEvents.h"
-
+#include "nsGkAtoms.h"
 #include "WinUtils.h"
 #include "npapi.h"
 
@@ -194,4 +194,136 @@ nsWindowBase::ClearNativeTouchSequence()
   return NS_OK;
 }
 
+bool
+nsWindowBase::DispatchCommandEvent(uint32_t aEventCommand)
+{
+  nsCOMPtr<nsIAtom> command;
+  switch (aEventCommand) {
+    case APPCOMMAND_BROWSER_BACKWARD:
+      command = nsGkAtoms::Back;
+      break;
+    case APPCOMMAND_BROWSER_FORWARD:
+      command = nsGkAtoms::Forward;
+      break;
+    case APPCOMMAND_BROWSER_REFRESH:
+      command = nsGkAtoms::Reload;
+      break;
+    case APPCOMMAND_BROWSER_STOP:
+      command = nsGkAtoms::Stop;
+      break;
+    case APPCOMMAND_BROWSER_SEARCH:
+      command = nsGkAtoms::Search;
+      break;
+    case APPCOMMAND_BROWSER_FAVORITES:
+      command = nsGkAtoms::Bookmarks;
+      break;
+    case APPCOMMAND_BROWSER_HOME:
+      command = nsGkAtoms::Home;
+      break;
+    case APPCOMMAND_CLOSE:
+      command = nsGkAtoms::Close;
+      break;
+    case APPCOMMAND_FIND:
+      command = nsGkAtoms::Find;
+      break;
+    case APPCOMMAND_HELP:
+      command = nsGkAtoms::Help;
+      break;
+    case APPCOMMAND_NEW:
+      command = nsGkAtoms::New;
+      break;
+    case APPCOMMAND_OPEN:
+      command = nsGkAtoms::Open;
+      break;
+    case APPCOMMAND_PRINT:
+      command = nsGkAtoms::Print;
+      break;
+    case APPCOMMAND_SAVE:
+      command = nsGkAtoms::Save;
+      break;
+    case APPCOMMAND_FORWARD_MAIL:
+      command = nsGkAtoms::ForwardMail;
+      break;
+    case APPCOMMAND_REPLY_TO_MAIL:
+      command = nsGkAtoms::ReplyToMail;
+      break;
+    case APPCOMMAND_SEND_MAIL:
+      command = nsGkAtoms::SendMail;
+      break;
+    default:
+      return false;
+  }
+  WidgetCommandEvent event(true, nsGkAtoms::onAppCommand, command, this);
 
+  InitEvent(event);
+  return DispatchWindowEvent(&event);
+}
+
+bool
+nsWindowBase::HandleAppCommandMsg(WPARAM aWParam,
+                                  LPARAM aLParam,
+                                  LRESULT *aRetValue)
+{
+  uint32_t appCommand = GET_APPCOMMAND_LPARAM(aLParam);
+  uint32_t contentCommandMessage = NS_EVENT_NULL;
+  
+  
+  switch (appCommand)
+  {
+    case APPCOMMAND_BROWSER_BACKWARD:
+    case APPCOMMAND_BROWSER_FORWARD:
+    case APPCOMMAND_BROWSER_REFRESH:
+    case APPCOMMAND_BROWSER_STOP:
+    case APPCOMMAND_BROWSER_SEARCH:
+    case APPCOMMAND_BROWSER_FAVORITES:
+    case APPCOMMAND_BROWSER_HOME:
+    case APPCOMMAND_CLOSE:
+    case APPCOMMAND_FIND:
+    case APPCOMMAND_HELP:
+    case APPCOMMAND_NEW:
+    case APPCOMMAND_OPEN:
+    case APPCOMMAND_PRINT:
+    case APPCOMMAND_SAVE:
+    case APPCOMMAND_FORWARD_MAIL:
+    case APPCOMMAND_REPLY_TO_MAIL:
+    case APPCOMMAND_SEND_MAIL:
+      
+      
+      
+      if (DispatchCommandEvent(appCommand)) {
+        
+        *aRetValue = 1;
+        return true;
+      }
+      break;
+
+    
+    case APPCOMMAND_COPY:
+      contentCommandMessage = NS_CONTENT_COMMAND_COPY;
+      break;
+    case APPCOMMAND_CUT:
+      contentCommandMessage = NS_CONTENT_COMMAND_CUT;
+      break;
+    case APPCOMMAND_PASTE:
+      contentCommandMessage = NS_CONTENT_COMMAND_PASTE;
+      break;
+    case APPCOMMAND_REDO:
+      contentCommandMessage = NS_CONTENT_COMMAND_REDO;
+      break;
+    case APPCOMMAND_UNDO:
+      contentCommandMessage = NS_CONTENT_COMMAND_UNDO;
+      break;
+  }
+
+  if (contentCommandMessage) {
+    WidgetContentCommandEvent contentCommand(true, contentCommandMessage,
+                                              this);
+    DispatchWindowEvent(&contentCommand);
+    
+    *aRetValue = 1;
+    return true;
+  }
+
+  
+  return false;
+}
