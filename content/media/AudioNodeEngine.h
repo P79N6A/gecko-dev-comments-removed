@@ -114,35 +114,6 @@ void AudioBlockCopyChannelWithScale(const float aInput[WEBAUDIO_BLOCK_SIZE],
 
 
 
-void AudioBlockInPlaceScale(float aBlock[WEBAUDIO_BLOCK_SIZE],
-                            uint32_t aChannelCount,
-                            float aScale);
-
-
-
-
-
-
-void
-AudioBlockPanMonoToStereo(const float aInput[WEBAUDIO_BLOCK_SIZE],
-                          float aGainL, float aGainR,
-                          float aOutputL[WEBAUDIO_BLOCK_SIZE],
-                          float aOutputR[WEBAUDIO_BLOCK_SIZE]);
-
-
-
-
-
-void
-AudioBlockPanStereoToStereo(const float aInputL[WEBAUDIO_BLOCK_SIZE],
-                            const float aInputR[WEBAUDIO_BLOCK_SIZE],
-                            float aGainL, float aGainR, bool aIsOnTheLeft,
-                            float aOutputL[WEBAUDIO_BLOCK_SIZE],
-                            float aOutputR[WEBAUDIO_BLOCK_SIZE]);
-
-
-
-
 
 class AudioNodeEngine {
 public:
