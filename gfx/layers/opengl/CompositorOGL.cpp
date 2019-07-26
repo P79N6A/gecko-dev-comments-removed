@@ -546,10 +546,10 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
   
   
   
-  IntRect texCoordRect = IntRect(aTexCoordRect.x * aTexture->GetSize().width,
-                                 aTexCoordRect.y * aTexture->GetSize().height,
-                                 aTexCoordRect.width * aTexture->GetSize().width,
-                                 aTexCoordRect.height * aTexture->GetSize().height);
+  IntRect texCoordRect = IntRect(roundf(aTexCoordRect.x * aTexture->GetSize().width),
+                                 roundf(aTexCoordRect.y * aTexture->GetSize().height),
+                                 roundf(aTexCoordRect.width * aTexture->GetSize().width),
+                                 roundf(aTexCoordRect.height * aTexture->GetSize().height));
 
   
   
