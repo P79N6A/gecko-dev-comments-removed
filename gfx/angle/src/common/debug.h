@@ -100,7 +100,9 @@ namespace gl
 #endif
 
 
-#if !defined(NDEBUG) && (!defined(_MSC_VER) || defined(_CPPRTTI))
+
+
+#if !defined(NDEBUG) && (!defined(_MSC_VER) || defined(_CPPRTTI)) && (!defined(__GNUC__) || __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 3) || defined(__GXX_RTTI))
 #define HAS_DYNAMIC_TYPE(type, obj) (dynamic_cast<type >(obj) != NULL)
 #else
 #define HAS_DYNAMIC_TYPE(type, obj) true
