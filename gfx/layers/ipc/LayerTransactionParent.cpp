@@ -204,9 +204,6 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
     return true;
   }
 
-  
-  ClearPrevFenceHandles();
-
   EditReplyVector replyv;
 
   {
@@ -708,6 +705,11 @@ bool
 LayerTransactionParent::DeallocPTextureParent(PTextureParent* actor)
 {
   return TextureHost::DestroyIPDLActor(actor);
+}
+
+bool LayerTransactionParent::IsSameProcess() const
+{
+  return OtherProcess() == ipc::kInvalidProcessHandle;
 }
 
 } 

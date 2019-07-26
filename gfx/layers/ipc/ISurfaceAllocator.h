@@ -126,6 +126,7 @@ public:
   }
 
   virtual bool IPCOpen() const { return true; }
+  virtual bool IsSameProcess() const = 0;
 
   
   static bool IsShmem(SurfaceDescriptor* aSurface);
