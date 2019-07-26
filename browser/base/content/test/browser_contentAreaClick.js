@@ -167,7 +167,7 @@ let gReplacedMethods = [
   "gatherTextUnder",
   "saveURL",
   "openLinkIn",
-  "getShortcutOrURI",
+  "getShortcutOrURIAndPostData",
 ];
 
 
@@ -233,7 +233,7 @@ function wrapperMethod(aInvokedMethods, aMethodName) {
   return function () {
     aInvokedMethods.push(aMethodName);
     
-    return arguments[0];
+    return (aMethodName == "getShortcutOrURIAndPostData") ? arguments.url : arguments[0];
   }
 }
 

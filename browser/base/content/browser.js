@@ -9,6 +9,9 @@ let Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/RecentWindow.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
+
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
 var gCharsetMenu = null;
@@ -1925,88 +1928,89 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup) {
   } catch (e) {}
 }
 
-function getShortcutOrURI(aURL, aPostDataRef, aMayInheritPrincipal) {
-  
-  if (aMayInheritPrincipal)
-    aMayInheritPrincipal.value = false;
+function getShortcutOrURIAndPostData(aURL) {
+  return Task.spawn(function() {
+    let mayInheritPrincipal = false;
+    let postData = null;
+    let shortcutURL = null;
+    let keyword = aURL;
+    let param = "";
 
-  var shortcutURL = null;
-  var keyword = aURL;
-  var param = "";
+    let offset = aURL.indexOf(" ");
+    if (offset > 0) {
+      keyword = aURL.substr(0, offset);
+      param = aURL.substr(offset + 1);
+    }
 
-  var offset = aURL.indexOf(" ");
-  if (offset > 0) {
-    keyword = aURL.substr(0, offset);
-    param = aURL.substr(offset + 1);
-  }
+    let engine = Services.search.getEngineByAlias(keyword);
+    if (engine) {
+      let submission = engine.getSubmission(param);
+      postData = submission.postData;
+      throw new Task.Result({ postData: submission.postData,
+                              url: submission.uri.spec,
+                              mayInheritPrincipal: mayInheritPrincipal });
+    }
 
-  if (!aPostDataRef)
-    aPostDataRef = {};
+    [shortcutURL, postData] =
+      PlacesUtils.getURLAndPostDataForKeyword(keyword);
 
-  var engine = Services.search.getEngineByAlias(keyword);
-  if (engine) {
-    var submission = engine.getSubmission(param);
-    aPostDataRef.value = submission.postData;
-    return submission.uri.spec;
-  }
+    if (!shortcutURL)
+      throw new Task.Result({ postData: postData, url: aURL,
+                              mayInheritPrincipal: mayInheritPrincipal });
 
-  [shortcutURL, aPostDataRef.value] =
-    PlacesUtils.getURLAndPostDataForKeyword(keyword);
+    let escapedPostData = "";
+    if (postData)
+      escapedPostData = unescape(postData);
 
-  if (!shortcutURL)
-    return aURL;
+    if (/%s/i.test(shortcutURL) || /%s/i.test(escapedPostData)) {
+      let charset = "";
+      const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
+      let matches = shortcutURL.match(re);
+      if (matches)
+        [, shortcutURL, charset] = matches;
+      else {
+        
+        try {
+          
+          
+          charset = yield PlacesUtils.getCharsetForURI(makeURI(shortcutURL));
+        } catch (e) {}
+      }
 
-  var postData = "";
-  if (aPostDataRef.value)
-    postData = unescape(aPostDataRef.value);
-
-  if (/%s/i.test(shortcutURL) || /%s/i.test(postData)) {
-    var charset = "";
-    const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
-    var matches = shortcutURL.match(re);
-    if (matches)
-      [, shortcutURL, charset] = matches;
-    else {
       
-      try {
-        
-        
-        charset = PlacesUtils.history.getCharsetForURI(makeURI(shortcutURL));
-      } catch (e) {}
+      
+      
+      
+      
+      let encodedParam = "";
+      if (charset && charset != "UTF-8")
+        encodedParam = escape(convertFromUnicode(charset, param)).
+                       replace(/[+@\/]+/g, encodeURIComponent);
+      else 
+        encodedParam = encodeURIComponent(param);
+
+      shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
+
+      if (/%s/i.test(escapedPostData)) 
+        postData = getPostDataStream(escapedPostData, param, encodedParam,
+                                               "application/x-www-form-urlencoded");
+    }
+    else if (param) {
+      
+      
+      postData = null;
+
+      throw new Task.Result({ postData: postData, url: aURL,
+                              mayInheritPrincipal: mayInheritPrincipal });
     }
 
     
     
-    
-    
-    
-    var encodedParam = "";
-    if (charset && charset != "UTF-8")
-      encodedParam = escape(convertFromUnicode(charset, param)).
-                     replace(/[+@\/]+/g, encodeURIComponent);
-    else 
-      encodedParam = encodeURIComponent(param);
+    mayInheritPrincipal = true;
 
-    shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
-
-    if (/%s/i.test(postData)) 
-      aPostDataRef.value = getPostDataStream(postData, param, encodedParam,
-                                             "application/x-www-form-urlencoded");
-  }
-  else if (param) {
-    
-    
-    aPostDataRef.value = null;
-
-    return aURL;
-  }
-
-  
-  
-  if (aMayInheritPrincipal)
-    aMayInheritPrincipal.value = true;
-
-  return shortcutURL;
+    throw new Task.Result({ postData: postData, url: shortcutURL,
+                            mayInheritPrincipal: mayInheritPrincipal });
+  });
 }
 
 function getPostDataStream(aStringData, aKeyword, aEncKeyword, aType) {
@@ -2843,12 +2847,13 @@ var newTabButtonObserver = {
   onDrop: function (aEvent)
   {
     let url = browserDragAndDrop.drop(aEvent, { });
-    var postData = {};
-    url = getShortcutOrURI(url, postData);
-    if (url) {
-      
-      openNewTabWith(url, null, postData.value, aEvent, true);
-    }
+    Task.spawn(function() {
+      let data = yield getShortcutOrURIAndPostData(url);
+      if (data.url) {
+        
+        openNewTabWith(data.url, null, data.postData, aEvent, true);
+      }
+    });
   }
 }
 
@@ -2863,12 +2868,13 @@ var newWindowButtonObserver = {
   onDrop: function (aEvent)
   {
     let url = browserDragAndDrop.drop(aEvent, { });
-    var postData = {};
-    url = getShortcutOrURI(url, postData);
-    if (url) {
-      
-      openNewWindowWith(url, null, postData.value, true);
-    }
+    Task.spawn(function() {
+      let data = yield getShortcutOrURIAndPostData(url);
+      if (data.url) {
+        
+        openNewWindowWith(data.url, null, data.postData, true);
+      }
+    });
   }
 }
 
@@ -5239,36 +5245,52 @@ function middleMousePaste(event) {
   
   clipboard = clipboard.replace(/\s*\n\s*/g, "");
 
-  let mayInheritPrincipal = { value: false };
-  let url = getShortcutOrURI(clipboard, mayInheritPrincipal);
-  try {
-    makeURI(url);
-  } catch (ex) {
-    
-    return;
+  
+  
+  let where = whereToOpenLink(event, true, false);
+  let lastLocationChange;
+  if (where == "current") {
+    lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
   }
 
-  try {
-    addToUrlbarHistory(url);
-  } catch (ex) {
-    
-    
-    Cu.reportError(ex);
-  }
+  Task.spawn(function() {
+    let data = yield getShortcutOrURIAndPostData(clipboard);
+    try {
+      makeURI(data.url);
+    } catch (ex) {
+      
+      return;
+    }
 
-  openUILink(url, event,
-             { ignoreButton: true,
-               disallowInheritPrincipal: !mayInheritPrincipal.value });
+    try {
+      addToUrlbarHistory(data.url);
+    } catch (ex) {
+      
+      
+      Cu.reportError(ex);
+    }
+
+    if (where != "current" ||
+        lastLocationChange == gBrowser.selectedBrowser.lastLocationChange) {
+      openUILink(data.url, event,
+                 { ignoreButton: true,
+                   disallowInheritPrincipal: !data.mayInheritPrincipal });
+    }
+  });
 
   event.stopPropagation();
 }
 
 function handleDroppedLink(event, url, name)
 {
-  let postData = { };
-  let uri = getShortcutOrURI(url, postData);
-  if (uri)
-    loadURI(uri, null, postData.value, false);
+  let lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
+
+  Task.spawn(function() {
+    let data = yield getShortcutOrURIAndPostData(url);
+    if (data.url &&
+        lastLocationChange == gBrowser.selectedBrowser.lastLocationChange)
+      loadURI(data.url, null, data.postData, false);
+  });
 
   
   
@@ -5390,7 +5412,6 @@ function charsetLoadListener() {
     gLastBrowserCharset = charset;
   }
 }
-
 
 var gPageStyleMenu = {
 
