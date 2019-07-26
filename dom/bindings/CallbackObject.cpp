@@ -19,7 +19,6 @@
 #include "xpcprivate.h"
 #include "WorkerPrivate.h"
 #include "nsGlobalWindow.h"
-#include "WorkerScope.h"
 
 namespace mozilla {
 namespace dom {
@@ -36,17 +35,15 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(CallbackObject)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CallbackObject)
   tmp->DropCallback();
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mIncumbentGlobal)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mIncumbentGlobal)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
+CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
                                      ErrorResult& aRv,
                                      ExceptionHandling aExceptionHandling,
                                      JSCompartment* aCompartment)
@@ -66,9 +63,8 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
 
   
-  JSObject* realCallback = js::UncheckedUnwrap(aCallback->CallbackPreserveColor());
+  JSObject* realCallback = js::UncheckedUnwrap(aCallback);
   JSContext* cx = nullptr;
-  nsIGlobalObject* globalObject = nullptr;
 
   if (mIsMainThread) {
     
@@ -89,22 +85,15 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
                              
                              
                              : nsContentUtils::GetSafeJSContext();
-      globalObject = win;
     } else {
       
-      JSObject* glob = js::GetGlobalForObjectCrossCompartment(realCallback);
-      globalObject = xpc::GetNativeForGlobal(glob);
-      MOZ_ASSERT(globalObject);
       cx = nsContentUtils::GetSafeJSContext();
     }
+
+    
+    mCxPusher.Push(cx);
   } else {
     cx = workers::GetCurrentThreadJSContext();
-    globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
-  }
-
-  mAutoEntryScript.construct(globalObject, mIsMainThread, cx);
-  if (aCallback->IncumbentGlobalOrNull()) {
-    mAutoIncumbentScript.construct(aCallback->IncumbentGlobalOrNull());
   }
 
   
@@ -115,15 +104,15 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   
   
   
-  
-  mRootedCallable.construct(cx, aCallback->Callback());
+  JS::ExposeObjectToActiveJS(aCallback);
+  mRootedCallable.construct(cx, aCallback);
 
   if (mIsMainThread) {
     
     
     
     bool allowed = nsContentUtils::GetSecurityManager()->
-      ScriptAllowed(js::GetGlobalForObjectCrossCompartment(realCallback));
+      ScriptAllowed(js::GetGlobalForObjectCrossCompartment(js::UncheckedUnwrap(aCallback)));
 
     if (!allowed) {
       return;
@@ -131,11 +120,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   }
 
   
-  
-  
-  
-  
-  mAc.construct(cx, mRootedCallable.ref());
+  mAc.construct(cx, aCallback);
 
   
   mCx = cx;
@@ -209,8 +194,14 @@ CallbackObject::CallSetup::~CallSetup()
   
   mAc.destroyIfConstructed();
 
-  mAutoIncumbentScript.destroyIfConstructed();
-  mAutoEntryScript.destroyIfConstructed();
+  
+  
+  
+  
+  
+
+  
+  mCxPusher.Pop();
 
   
   

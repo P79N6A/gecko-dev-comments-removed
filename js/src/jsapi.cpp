@@ -6098,43 +6098,11 @@ JS_DescribeScriptedCaller(JSContext *cx, MutableHandleScript script, unsigned *l
     if (i.done())
         return false;
 
-    
-    
-    if (i.activation()->scriptedCallerIsHidden())
-        return false;
-
     script.set(i.script());
     if (lineno)
         *lineno = js::PCToLineNumber(i.script(), i.pc());
     return true;
 }
-
-namespace JS {
-
-JS_PUBLIC_API(void)
-HideScriptedCaller(JSContext *cx)
-{
-    MOZ_ASSERT(cx);
-
-    
-    
-    
-    Activation *act = cx->runtime()->mainThread.activation();
-    if (!act)
-        return;
-    act->hideScriptedCaller();
-}
-
-JS_PUBLIC_API(void)
-UnhideScriptedCaller(JSContext *cx)
-{
-    Activation *act = cx->runtime()->mainThread.activation();
-    if (!act)
-        return;
-    act->unhideScriptedCaller();
-}
-
-} 
 
 #ifdef JS_THREADSAFE
 static PRStatus

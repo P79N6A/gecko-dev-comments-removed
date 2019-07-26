@@ -35,6 +35,7 @@
 #include "nsRenderingContext.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsCSSRendering.h"
+#include "nsCxPusher.h"
 #include "nsThemeConstants.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShell.h"
@@ -4773,6 +4774,12 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
     forceCopy = true;
     wantImageSurface = true;
   }
+
+  
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   nsCOMPtr<imgIRequest> imgRequest;
   rv = aElement->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,

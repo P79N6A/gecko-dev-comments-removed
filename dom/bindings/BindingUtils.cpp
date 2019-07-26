@@ -27,7 +27,6 @@
 #include "nsPrintfCString.h"
 #include "prprf.h"
 
-#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/DOMErrorBinding.h"
 #include "mozilla/dom/HTMLObjectElement.h"
@@ -2019,9 +2018,9 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
   
   
   
-  {
-    AutoSystemCaller asc;
-
+  {  
+    nsCxPusher pusher;
+    pusher.PushNull();
     
     nsCOMPtr<nsISupports> implISupports = do_CreateInstance(aContractId);
     if (!implISupports) {

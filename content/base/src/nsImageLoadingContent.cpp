@@ -39,6 +39,7 @@
 #include "nsIDOMNode.h"
 
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 #include "nsLayoutUtils.h"
 #include "nsIContentPolicy.h"
 #include "nsEventDispatcher.h"
@@ -46,7 +47,6 @@
 
 #include "mozAutoDocUpdate.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/ScriptSettings.h"
 
 #if defined(XP_WIN)
 
@@ -1196,6 +1196,12 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason,
 
   
   
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
+  
+  
   nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mPendingRequest,
                                         &mPendingRequestRegistered);
 
@@ -1253,6 +1259,11 @@ nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   if (!aDocument)
     return;
 
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
   TrackImage(mCurrentRequest);
   TrackImage(mPendingRequest);
 
@@ -1267,6 +1278,11 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
   nsCOMPtr<nsIDocument> doc = GetOurCurrentDoc();
   if (!doc)
     return;
+
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   UntrackImage(mCurrentRequest);
   UntrackImage(mPendingRequest);

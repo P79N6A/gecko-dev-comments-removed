@@ -23,6 +23,7 @@
 #include "nsImageFrame.h"
 #include "nsIImageLoadingContent.h"
 #include "nsContentUtils.h"
+#include "nsCxPusher.h"
 #include "ImageContainer.h"
 #include "ImageLayers.h"
 #include "nsContentList.h"
@@ -73,6 +74,12 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     element = NS_NewHTMLImageElement(nodeInfo.forget());
     mPosterImage = element;
     NS_ENSURE_TRUE(mPosterImage, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    
+    
+    nsCxPusher pusher;
+    pusher.PushNull();
 
     
     

@@ -66,9 +66,6 @@ typedef sig_atomic_t sig_safe_t;
 
 
 
-
-
-
 template<typename T>
 class ThreadLocal
 {
