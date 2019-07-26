@@ -8,6 +8,7 @@ const Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/Timer.jsm");
 Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "LoginManagerContent",
@@ -408,7 +409,6 @@ LoginManager.prototype = {
         return this._storage.setLoginSavingEnabled(hostname, enabled);
     },
 
-
     
 
 
@@ -419,21 +419,24 @@ LoginManager.prototype = {
 
 
 
-    autoCompleteSearch : function (aSearchString, aPreviousResult, aElement) {
+    autoCompleteSearchAsync : function (aSearchString, aPreviousResult,
+                                        aElement, aCallback) {
         
         
 
-        if (!this._remember)
-            return null;
+        if (!this._remember) {
+            setTimeout(function() {
+                aCallback.onSearchCompletion(new UserAutoCompleteResult(aSearchString, []));
+            }, 0);
+            return;
+        }
 
         log("AutoCompleteSearch invoked. Search is:", aSearchString);
-
-        var result = null;
 
         if (aPreviousResult &&
                 aSearchString.substr(0, aPreviousResult.searchString.length) == aPreviousResult.searchString) {
             log("Using previous autocomplete result");
-            result = aPreviousResult;
+            let result = aPreviousResult;
             result.wrappedJSObject.searchString = aSearchString;
 
             
@@ -452,45 +455,45 @@ LoginManager.prototype = {
                     result.removeValueAt(i, false);
                 }
             }
+
+            setTimeout(function() { aCallback.onSearchCompletion(result); }, 0);
         } else {
             log("Creating new autocomplete search result.");
 
-            var doc = aElement.ownerDocument;
-            var origin = this._getPasswordOrigin(doc.documentURI);
-            var actionOrigin = this._getActionOrigin(aElement.form);
+            setTimeout(function() {
+                var doc = aElement.ownerDocument;
+                var origin = this._getPasswordOrigin(doc.documentURI);
+                var actionOrigin = this._getActionOrigin(aElement.form);
 
-            
-            
-            
-            var logins = this.findLogins({}, origin, actionOrigin, null);
-            var matchingLogins = [];
+                
+                
+                
+                var logins = this.findLogins({}, origin, actionOrigin, null);
+                var matchingLogins = [];
 
-            
-            
-            
-            for (i = 0; i < logins.length; i++) {
-                var username = logins[i].username.toLowerCase();
-                if (username &&
-                    aSearchString.length <= username.length &&
-                    aSearchString.toLowerCase() ==
-                        username.substr(0, aSearchString.length))
-                {
-                    matchingLogins.push(logins[i]);
+                
+                
+                
+                for (let i = 0; i < logins.length; i++) {
+                    var username = logins[i].username.toLowerCase();
+                    log(username);
+                    if (username &&
+                        aSearchString.length <= username.length &&
+                        aSearchString.toLowerCase() ==
+                            username.substr(0, aSearchString.length))
+                    {
+                        matchingLogins.push(logins[i]);
+                    }
                 }
-            }
-            log(matchingLogins.length, "autocomplete logins avail.");
-            result = new UserAutoCompleteResult(aSearchString, matchingLogins);
+                log(matchingLogins.length, "autocomplete logins avail.");
+                aCallback.onSearchCompletion(new UserAutoCompleteResult(aSearchString,
+                                                                        matchingLogins));
+            }.bind(this), 0);
         }
-
-        return result;
     },
 
 
-
-
     
-
-
 
 
     
