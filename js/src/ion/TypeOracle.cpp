@@ -702,6 +702,12 @@ TypeInferenceOracle::canEnterInlinedFunction(RawFunction target)
 {
     RootedScript targetScript(cx, target->nonLazyScript());
 
+    
+    if (targetScript->length == 1) {
+        if (!targetScript->ensureRanInference(cx))
+            return false;
+    }
+
     if (!targetScript->hasAnalysis() ||
         !targetScript->analysis()->ranInference() ||
         !targetScript->analysis()->ranSSA())

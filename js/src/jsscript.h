@@ -426,6 +426,9 @@ class JSScript : public js::gc::Cell
 
     
 
+  private:
+    uint16_t        PADDING16;
+
     uint16_t        version;    
 
   public:
@@ -441,11 +444,6 @@ class JSScript : public js::gc::Cell
     uint16_t        staticLevel;
 
     
-  private:
-    uint8_t        maxInlineDepth_; 
-
-
-    uint8_t        PADDING8;
 
   public:
     
@@ -807,26 +805,6 @@ class JSScript : public js::gc::Cell
         if (loopCount > maxLoopCount)
             maxLoopCount = loopCount;
         return maxLoopCount;
-    }
-
-    void setMaxInlineDepth(uint32_t maxInlineDepth) {
-        if (maxInlineDepth >= uint8_t(-2)) {
-            disableInlineDepthCheck();
-            return;
-        }
-        maxInlineDepth_ = maxInlineDepth;
-    }
-
-    uint8_t maxInlineDepth() const {
-        return maxInlineDepth_;
-    }
-
-    void disableInlineDepthCheck() {
-        maxInlineDepth_ = uint8_t(-2);
-    }
-
-    bool isInlineDepthCheckDisabled() {
-        return maxInlineDepth_ == uint8_t(-2);
     }
 
     
