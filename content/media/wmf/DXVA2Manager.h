@@ -25,8 +25,8 @@ public:
 
   
   
-  static DXVA2Manager* CreateD3D9DXVA();
-  static DXVA2Manager* CreateD3D11DXVA();
+  
+  static DXVA2Manager* Create();
 
   
   

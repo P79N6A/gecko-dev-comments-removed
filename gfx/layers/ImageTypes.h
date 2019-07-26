@@ -64,12 +64,7 @@ enum ImageFormat {
 
 
 
-  D3D9_RGB32_TEXTURE,
-
-  
-
-
-  D3D11_SHARE_HANDLE_TEXTURE
+  D3D9_RGB32_TEXTURE
 
 };
 

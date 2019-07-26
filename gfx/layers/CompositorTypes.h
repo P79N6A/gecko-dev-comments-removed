@@ -148,7 +148,6 @@ enum DeprecatedTextureClientType
                               
                               
   TEXTURE_STREAM_GL,          
-  TEXTURE_D3D11_HANDLE,       
   TEXTURE_FALLBACK            
 };
 
