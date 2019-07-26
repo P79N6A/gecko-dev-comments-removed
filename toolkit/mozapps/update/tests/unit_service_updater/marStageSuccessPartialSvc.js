@@ -235,25 +235,45 @@ function run_test() {
     return;
   }
 
-  setupTestCommon(false);
-  do_register_cleanup(cleanupUpdaterTest);
-
-  gBackgroundUpdate = true;
+  gStageUpdate = true;
+  setupTestCommon();
   setupUpdaterTest(FILE_PARTIAL_MAR);
 
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-
   
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED, checkUpdateApplied);
+  
+  
+  if (IS_MACOSX) {
+    let now = Date.now();
+    let yesterday = now - (1000 * 60 * 60 * 24);
+    let applyToDir = getApplyDirFile();
+    applyToDir.lastModifiedTime = yesterday;
+  }
+
+  setupAppFilesAsync();
 }
 
-function checkUpdateApplied() {
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
+function setupAppFilesFinished() {
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+}
+
+function checkUpdateFinished() {
   logTestInfo("testing update.status should be " + STATE_APPLIED);
-  do_check_eq(readStatusFile(updatesDir), STATE_APPLIED);
+  do_check_eq(readStatusState(), STATE_APPLIED);
+
+  if (IS_MACOSX) {
+    logTestInfo("testing last modified time on the apply to directory has " +
+                "changed after a successful update (bug 600098)");
+    let now = Date.now();
+    let applyToDir = getApplyDirFile();
+    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
+    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+  }
 
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
+  
+  if (!IS_UNIX) {
+    checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
+  }
 
   
   logTestInfo("testing tobedeleted directory doesn't exist");
@@ -263,18 +283,29 @@ function checkUpdateApplied() {
   do_check_false(toBeDeletedDir.exists());
 
   
-  gBackgroundUpdate = false;
+  gStageUpdate = false;
   gSwitchApp = true;
-  exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for success when " +
-              "switching to the updated application");
-  do_check_eq(exitValue, 0);
+  runUpdate(0);
+}
 
+function checkUpdateApplied() {
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
-  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
+  do_check_eq(readStatusState(), STATE_SUCCEEDED);
+
+  let applyToDir = getApplyDirFile();
+  if (IS_MACOSX) {
+    logTestInfo("testing last modified time on the apply to directory has " +
+                "changed after a successful update (bug 600098)");
+    let now = Date.now();
+    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
+    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+  }
 
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_PARTIAL_SWITCH_SUCCESS);
+  
+  if (!IS_UNIX) {
+    checkUpdateLogContents(LOG_PARTIAL_SWITCH_SUCCESS);
+  }
 
   
   logTestInfo("testing tobedeleted directory doesn't exist");
@@ -282,9 +313,8 @@ function checkUpdateApplied() {
   do_check_false(toBeDeletedDir.exists());
 
   
-  let applyToDir = getApplyDirFile();
   let updatedDir = applyToDir.clone();
-  updatedDir.append(UPDATED_DIR_SUFFIX.replace("/", ""));
+  updatedDir.append(DIR_UPDATED);
   do_check_false(updatedDir.exists());
 
   checkCallbackAppLog();

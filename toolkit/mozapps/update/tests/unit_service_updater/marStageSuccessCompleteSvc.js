@@ -8,7 +8,7 @@
 
 
 
-const TEST_FILES = [
+var TEST_FILES = [
 {
   description      : "Should never change",
   fileName         : "channel-prefs.js",
@@ -228,28 +228,100 @@ ADDITIONAL_TEST_DIRS = [
   dirRemoved   : true
 }];
 
+function runHelperProcess(args) {
+  let helperBin = getTestDirFile(FILE_HELPER_BIN);
+  let process = AUS_Cc["@mozilla.org/process/util;1"].
+                createInstance(AUS_Ci.nsIProcess);
+  process.init(helperBin);
+  logTestInfo("Running " + helperBin.path + " " + args.join(" "));
+  process.run(true, args, args.length);
+  do_check_eq(process.exitValue, 0);
+}
+
+function createSymlink() {
+  let args = ["setup-symlink", "moz-foo", "moz-bar", "target",
+              getApplyDirFile().path + "/a/b/link"];
+  runHelperProcess(args);
+  args = ["setup-symlink", "moz-foo2", "moz-bar2", "target2",
+          getApplyDirFile().path + "/a/b/link2", "change-perm"];
+  runHelperProcess(args);
+}
+
+function removeSymlink() {
+  let args = ["remove-symlink", "moz-foo", "moz-bar", "target",
+              getApplyDirFile().path + "/a/b/link"];
+  runHelperProcess(args);
+  args = ["remove-symlink", "moz-foo2", "moz-bar2", "target2",
+          getApplyDirFile().path + "/a/b/link2"];
+  runHelperProcess(args);
+}
+
+function checkSymlink() {
+  let args = ["check-symlink", getApplyDirFile().path + "/a/b/link"];
+  runHelperProcess(args);
+}
+
 function run_test() {
   if (!shouldRunServiceTest()) {
     return;
   }
 
-  setupTestCommon(false);
-  do_register_cleanup(cleanupUpdaterTest);
-
-  gBackgroundUpdate = true;
+  gStageUpdate = true;
+  setupTestCommon();
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
   
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED, checkUpdateApplied);
+  
+  
+  if (IS_MACOSX) {
+    let now = Date.now();
+    let yesterday = now - (1000 * 60 * 60 * 24);
+    let applyToDir = getApplyDirFile();
+    applyToDir.lastModifiedTime = yesterday;
+  }
+
+  if (IS_UNIX) {
+    removeSymlink();
+    createSymlink();
+    do_register_cleanup(removeSymlink);
+    TEST_FILES.push({
+      description      : "Readable symlink",
+      fileName         : "link",
+      relPathDir       : "a/b/",
+      originalContents : "test",
+      compareContents  : "test",
+      originalFile     : null,
+      compareFile      : null,
+      originalPerms    : 0o664,
+      comparePerms     : 0o664
+    });
+  }
+
+  setupAppFilesAsync();
 }
 
-function checkUpdateApplied() {
+function setupAppFilesFinished() {
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+}
+
+function checkUpdateFinished() {
   logTestInfo("testing update.status should be " + STATE_APPLIED);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  do_check_eq(readStatusFile(updatesDir), STATE_APPLIED);
+  do_check_eq(readStatusState(), STATE_APPLIED);
+
+  if (IS_MACOSX) {
+    logTestInfo("testing last modified time on the apply to directory has " +
+                "changed after a successful update (bug 600098)");
+    let now = Date.now();
+    let applyToDir = getApplyDirFile();
+    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
+    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+  }
 
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
+  
+  if (!IS_UNIX) {
+    checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
+  }
 
   
   logTestInfo("testing tobedeleted directory doesn't exist");
@@ -259,18 +331,31 @@ function checkUpdateApplied() {
   do_check_false(toBeDeletedDir.exists());
 
   
-  gBackgroundUpdate = false;
+  gStageUpdate = false;
   gSwitchApp = true;
-  exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for success when " +
-              "switching to the updated application");
-  do_check_eq(exitValue, 0);
+  runUpdate(0);
+}
 
+function checkUpdateApplied() {
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
-  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
+  do_check_eq(readStatusState(), STATE_SUCCEEDED);
+
+  let applyToDir = getApplyDirFile();
+  if (IS_MACOSX) {
+    logTestInfo("testing last modified time on the apply to directory has " +
+                "changed after a successful update (bug 600098)");
+    let now = Date.now();
+    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
+    do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
+  }
 
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_COMPLETE_SWITCH_SUCCESS);
+  if (IS_UNIX) {
+    checkSymlink();
+  } else {
+    
+    checkUpdateLogContents(LOG_COMPLETE_SWITCH_SUCCESS);
+  }
 
   
   logTestInfo("testing tobedeleted directory doesn't exist");
@@ -278,9 +363,8 @@ function checkUpdateApplied() {
   do_check_false(toBeDeletedDir.exists());
 
   
-  let applyToDir = getApplyDirFile();
   let updatedDir = applyToDir.clone();
-  updatedDir.append(UPDATED_DIR_SUFFIX.replace("/", ""));
+  updatedDir.append(DIR_UPDATED);
   do_check_false(updatedDir.exists());
 
   checkCallbackAppLog();

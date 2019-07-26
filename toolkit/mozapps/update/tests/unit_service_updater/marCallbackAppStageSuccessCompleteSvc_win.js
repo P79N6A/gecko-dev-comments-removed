@@ -192,33 +192,32 @@ function run_test() {
     return;
   }
 
-  setupTestCommon(false);
-  do_register_cleanup(cleanupUpdaterTest);
-
-  gBackgroundUpdate = true;
+  gStageUpdate = true;
+  setupTestCommon();
   setupUpdaterTest(FILE_COMPLETE_WIN_MAR);
 
   gCallbackBinFile = "exe0.exe";
 
+  setupAppFilesAsync();
+}
+
+function setupAppFilesFinished() {
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+}
+
+function checkUpdateFinished() {
+  logTestInfo("testing update.status should be " + STATE_APPLIED);
+  do_check_eq(readStatusState(), STATE_APPLIED);
+
   
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED, checkUpdateApplied);
+  gStageUpdate = false;
+  gSwitchApp = true;
+  runUpdate(0);
 }
 
 function checkUpdateApplied() {
-  logTestInfo("testing update.status should be " + STATE_APPLIED);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  do_check_eq(readStatusFile(updatesDir), STATE_APPLIED);
-
-  
-  gBackgroundUpdate = false;
-  gSwitchApp = true;
-  exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for success when " +
-              "switching to the updated application");
-  do_check_eq(exitValue, 0);
-
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
-  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
+  do_check_eq(readStatusState(), STATE_SUCCEEDED);
 
   checkFilesAfterUpdateSuccess();
 

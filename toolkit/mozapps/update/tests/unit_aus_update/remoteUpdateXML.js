@@ -7,7 +7,7 @@ var gNextRunFunc;
 var gExpectedCount;
 
 function run_test() {
-  setupTestCommon(true);
+  setupTestCommon();
 
   logTestInfo("testing remote update xml attributes");
 
@@ -17,10 +17,6 @@ function run_test() {
   overrideXHR(callHandleEvent);
   standardInit();
   do_execute_soon(run_test_pt01);
-}
-
-function end_test() {
-  cleanupTestCommon();
 }
 
 
@@ -48,8 +44,7 @@ function callHandleEvent() {
     var parser = AUS_Cc["@mozilla.org/xmlextras/domparser;1"].
                  createInstance(AUS_Ci.nsIDOMParser);
     gXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
-  }
-  catch(e) {
+  } catch (e) {
     gXHR.responseXML = null;
   }
   var e = { target: gXHR };
@@ -96,7 +91,6 @@ function check_test_pt02() {
 
     
     
-
 
 
 

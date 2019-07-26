@@ -224,13 +224,9 @@ ADDITIONAL_TEST_DIRS = [
 }];
 
 function run_test() {
-  setupTestCommon(true);
-
-  gBackgroundUpdate = true;
+  gStageUpdate = true;
+  setupTestCommon();
   setupUpdaterTest(FILE_PARTIAL_MAR);
-
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  let applyToDir = getApplyDirFile();
 
   
   
@@ -238,33 +234,31 @@ function run_test() {
   if (IS_MACOSX) {
     let now = Date.now();
     let yesterday = now - (1000 * 60 * 60 * 24);
+    let applyToDir = getApplyDirFile();
     applyToDir.lastModifiedTime = yesterday;
   }
 
-  
-  let exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for failure when " +
-              "applying a partial mar");
-  do_check_eq(exitValue, 1);
+  runUpdate(1);
+}
 
+function checkUpdateApplied() {
   logTestInfo("testing update.status should be " + STATE_FAILED);
-  
-  
-  do_check_eq(readStatusFile(updatesDir).split(": ")[0], STATE_FAILED);
+  do_check_eq(readStatusState(), STATE_FAILED);
 
-  
-  
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");
     let now = Date.now();
+    let applyToDir = getApplyDirFile();
     let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
     do_check_true(timeDiff < MAC_MAX_TIME_DIFFERENCE);
   }
 
+  gStageUpdate = false;
   checkFilesAfterUpdateFailure();
   
   if (!IS_UNIX) {
+    gStageUpdate = true;
     checkUpdateLogContents(LOG_PARTIAL_FAILURE);
   }
 
@@ -275,9 +269,5 @@ function run_test() {
   toBeDeletedDir = getTargetDirFile("tobedeleted", true);
   do_check_false(toBeDeletedDir.exists());
 
-  do_test_finished();
-}
-
-function end_test() {
-  cleanupUpdaterTest();
+  waitForFilesInUse();
 }

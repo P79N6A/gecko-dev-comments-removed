@@ -8,7 +8,6 @@
 
 
 const TEST_FILES = [];
-
 const MAR_CHANNEL_MISMATCH_ERROR = "22";
 
 function run_test() {
@@ -16,28 +15,18 @@ function run_test() {
     return;
   }
 
-  setupTestCommon(true);
-
-  
+  setupTestCommon();
   setupUpdaterTest(FILE_WRONG_CHANNEL_MAR);
 
   
-  let exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for failure when " +
-              "applying a wrong product and channel MAR file");
   
   
   
-  
-  do_check_eq(exitValue, USE_EXECV ? 0 : 1);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-
-  
-  let updateStatus = readStatusFile(updatesDir);
-  do_check_eq(updateStatus.split(": ")[1], MAR_CHANNEL_MISMATCH_ERROR);
-  do_test_finished();
+  runUpdate((USE_EXECV ? 0 : 1));
 }
 
-function end_test() {
-  cleanupUpdaterTest();
+function checkUpdateApplied() {
+  
+  do_check_eq(readStatusFailedCode(), MAR_CHANNEL_MISMATCH_ERROR);
+  do_test_finished();
 }

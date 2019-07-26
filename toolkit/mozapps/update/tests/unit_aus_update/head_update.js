@@ -3,8 +3,22 @@
 
 
 const INSTALL_LOCALE = "@AB_CD@";
-const APP_BIN_NAME = "@MOZ_APP_NAME@";
+const MOZ_APP_NAME = "@MOZ_APP_NAME@";
 const BIN_SUFFIX = "@BIN_SUFFIX@";
+
+#ifdef XP_WIN
+
+
+
+#ifdef MOZ_APP_VENDOR
+const MOZ_APP_VENDOR = "@MOZ_APP_VENDOR@";
+#else
+const MOZ_APP_VENDOR = "";
+#endif
+
+
+const MOZ_APP_BASENAME = "@MOZ_APP_BASENAME@";
+#endif 
 
 const APP_INFO_NAME = "XPCShell";
 const APP_INFO_VENDOR = "Mozilla";
@@ -66,14 +80,7 @@ const IS_MAR_CHECKS_ENABLED = false;
 
 const URL_HOST = "http://localhost";
 
-const APPLY_TO_DIR_SUFFIX = "_applyToDir/";
-const UPDATES_DIR_SUFFIX = "_mar";
-#ifdef XP_MACOSX
-const UPDATED_DIR_SUFFIX = "Updated.app/";
-#else
-const UPDATED_DIR_SUFFIX = "updated/";
-#endif
-
+const FILE_APP_BIN = MOZ_APP_NAME + APP_BIN_SUFFIX;
 const FILE_COMPLETE_MAR = "complete.mar";
 const FILE_COMPLETE_WIN_MAR = "complete_win.mar";
 const FILE_HELPER_BIN = "TestAUSHelper" + BIN_SUFFIX;
@@ -94,9 +101,6 @@ const LOG_COMPLETE_CC_SWITCH_SUCCESS = "complete_cc_log_switch_success";
 const LOG_PARTIAL_SUCCESS = "partial_log_success";
 const LOG_PARTIAL_SWITCH_SUCCESS = "partial_log_switch_success";
 const LOG_PARTIAL_FAILURE = "partial_log_failure";
-
-const ERR_CALLBACK_FILE_IN_USE = "NS_main: file in use - failed to " +
-                                 "exclusively open executable file:"
 
 const ERR_RENAME_FILE = "rename_file: failed to rename file";
 const ERR_UNABLE_OPEN_DEST = "unable to open destination file";
@@ -122,9 +126,11 @@ const MAX_TIMEOUT_RUNS = 1000;
 
 const APP_TIMER_TIMEOUT = 120000;
 
-
-
-const FILE_WIN_TEST_EXE = "_aus_test_app.exe";
+#ifdef XP_WIN
+const PIPE_TO_NULL = "1> nul 2>&1";
+#else
+const PIPE_TO_NULL = "> /dev/null 2>&1";
+#endif
 
 
 var gURLData = URL_HOST + "/";
@@ -149,14 +155,34 @@ var gStatusCode;
 var gStatusText;
 var gStatusResult;
 
+var gProcess;
+var gAppTimer;
+var gHandle;
+
+var gGREDirOrig;
+var gAppDirOrig;
+
+var gServiceLaunchedCallbackLog = null;
+var gServiceLaunchedCallbackArgs = null;
+
+
 
 var gCallbackBinFile = "callback_app" + BIN_SUFFIX;
 var gCallbackArgs = ["./", "callback.log", "Test Arg 2", "Test Arg 3"];
-var gBackgroundUpdate = false;
+var gStageUpdate = false;
 var gSwitchApp = false;
 var gDisableReplaceFallback = false;
+var gUseTestAppDir = true;
 
 var gTimeoutRuns = 0;
+
+
+var gShouldResetEnv = undefined;
+var gAddedEnvXRENoWindowsCrashDialog = false;
+var gEnvXPCOMDebugBreak;
+var gEnvXPCOMMemLeakLog;
+var gEnvDyldLibraryPath;
+var gEnvLdLibraryPath;
 
 
 
@@ -331,16 +357,18 @@ const STATE_APPLIED_PLATFORM = STATE_APPLIED;
 
 
 
-if (APP_BIN_NAME == "xulrunner") {
+if (MOZ_APP_NAME == "xulrunner") {
   try {
     gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
-  }
-  catch (e) {
+  } catch (e) {
     setUpdateChannel("test_channel");
   }
 }
 
-function setupTestCommon(aAdjustGeneralPaths) {
+
+
+
+function setupTestCommon() {
   do_test_pending();
 
   if (gTestID) {
@@ -350,20 +378,57 @@ function setupTestCommon(aAdjustGeneralPaths) {
   let caller = Components.stack.caller;
   gTestID = caller.filename.toString().split("/").pop().split(".")[0];
 
-  if (aAdjustGeneralPaths) {
-     
-     adjustGeneralPaths();
+  
+  Services.prefs.setBoolPref(PREF_APP_UPDATE_SILENT, true);
+
+  gGREDirOrig = getGREDir();
+  gAppDirOrig = getAppBaseDir();
+
+  let applyDir = getApplyDirFile(null, true).parent;
+  if (IS_MACOSX) {
+    applyDir = applyDir.parent;
   }
 
+  
+  
+  
+  if (applyDir.exists()) {
+    logTestInfo("attempting to remove directory. Path: " + applyDir.path);
+    try {
+      removeDirRecursive(applyDir);
+    } catch (e) {
+      logTestInfo("non-fatal error removing directory. Path: " +
+                  applyDir.path + ", Exception: " + e);
+    }
+  }
+
+  
+  
+  adjustGeneralPaths();
+
   removeUpdateDirsAndFiles();
+
+  
+  
+  
+  let updatesDir = getMockUpdRootD();
+  if (updatesDir.exists())  {
+    logTestInfo("attempting to remove directory. Path: " + updatesDir.path);
+    try {
+      removeDirRecursive(updatesDir);
+    } catch (e) {
+      logTestInfo("non-fatal error removing directory. Path: " +
+                  updatesDir.path + ", Exception: " + e);
+    }
+  }
 }
+
 
 
 
 
 function cleanupTestCommon() {
   logTestInfo("start - general test cleanup");
-  removeUpdateDirsAndFiles();
 
   
   
@@ -393,6 +458,75 @@ function cleanupTestCommon() {
   }
 
   gTestserver = null;
+
+  if (IS_UNIX) {
+    
+    getLaunchScript();
+  }
+
+  if (IS_WIN && MOZ_APP_BASENAME) {
+    let appDir = getApplyDirFile(null, true);
+    let vendor = MOZ_APP_VENDOR ? MOZ_APP_VENDOR : "Mozilla";
+    const REG_PATH = "SOFTWARE\\" + vendor + "\\" + MOZ_APP_BASENAME +
+                     "\\TaskBarIDs";
+    let key = AUS_Cc["@mozilla.org/windows-registry-key;1"].
+              createInstance(AUS_Ci.nsIWindowsRegKey);
+    try {
+      key.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE, REG_PATH,
+               AUS_Ci.nsIWindowsRegKey.ACCESS_ALL);
+      if (key.hasValue(appDir.path)) {
+        key.removeValue(appDir.path);
+      }
+    } catch (e) {
+    }
+    try {
+      key.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER, REG_PATH,
+               AUS_Ci.nsIWindowsRegKey.ACCESS_ALL);
+      if (key.hasValue(appDir.path)) {
+        key.removeValue(appDir.path);
+      }
+    } catch (e) {
+    }
+  }
+
+  removeUpdateDirsAndFiles();
+
+  
+  
+  if (IS_WIN) {
+    let updatesDir = getMockUpdRootD();
+    
+    
+    if (updatesDir.exists()) {
+      logTestInfo("attempting to remove directory. Path: " + updatesDir.path);
+      try {
+        removeDirRecursive(updatesDir);
+      } catch (e) {
+        logTestInfo("non-fatal error removing directory. Path: " +
+                    updatesDir.path + ", Exception: " + e);
+      }
+    }
+  }
+
+  let applyDir = getApplyDirFile(null, true).parent;
+  if (IS_MACOSX) {
+    applyDir = applyDir.parent;
+  }
+
+  
+  
+  if (applyDir.exists()) {
+    logTestInfo("attempting to remove directory. Path: " + applyDir.path);
+    try {
+      removeDirRecursive(applyDir);
+    } catch (e) {
+      logTestInfo("non-fatal error removing directory. Path: " +
+                  applyDir.path + ", Exception: " + e);
+    }
+  }
+
+  resetEnvironment();
+
   logTestInfo("finish - general test cleanup");
 }
 
@@ -421,11 +555,48 @@ function standardInit() {
 }
 
 
-function pathHandler(metadata, response) {
-  response.setHeader("Content-Type", "text/xml", false);
-  response.setStatusLine(metadata.httpVersion, gResponseStatusCode, "OK");
-  response.bodyOutputStream.write(gResponseBody, gResponseBody.length);
+
+
+
+
+
+
+
+function pathHandler(aMetadata, aResponse) {
+  aResponse.setHeader("Content-Type", "text/xml", false);
+  aResponse.setStatusLine(aMetadata.httpVersion, gResponseStatusCode, "OK");
+  aResponse.bodyOutputStream.write(gResponseBody, gResponseBody.length);
 }
+
+
+
+
+
+
+
+
+
+function getAppVersion() {
+  
+  let iniFile = gGREDirOrig.clone();
+  iniFile.append("application.ini");
+  if (!iniFile.exists()) {
+    iniFile = gAppDirOrig.clone();
+    iniFile.append("application.ini");
+  }
+  if (!iniFile.exists()) {
+    do_throw("Unable to find application.ini!");
+  }
+  let iniParser = AUS_Cc["@mozilla.org/xpcom/ini-parser-factory;1"].
+                  getService(AUS_Ci.nsIINIParserFactory).
+                  createINIParser(iniFile);
+  return iniParser.getString("App", "Version");
+}
+
+
+
+
+
 
 
 
@@ -439,7 +610,10 @@ function pathHandler(metadata, response) {
 
 
 function getApplyDirPath() {
-  return gTestID + APPLY_TO_DIR_SUFFIX + "appdir/";
+  if (IS_MACOSX) {
+    return gTestID + DIR_APP_SUFFIX + DIR_APP_REL_PATH;
+  }
+  return gTestID + DIR_APP_REL_PATH;
 }
 
 
@@ -454,9 +628,16 @@ function getApplyDirPath() {
 
 
 
-function getApplyDirFile(aRelPath, allowNonexistent) {
+
+
+
+
+
+
+
+function getApplyDirFile(aRelPath, aAllowNonexistent) {
   let relpath = getApplyDirPath() + (aRelPath ? aRelPath : "");
-  return do_get_file(relpath, allowNonexistent);
+  return do_get_file(relpath, aAllowNonexistent);
 }
 
 
@@ -476,6 +657,11 @@ function getTestDirPath() {
 
 
 
+
+
+
+
+
 function getTestDirFile(aRelPath) {
   let relpath = getTestDirPath() + (aRelPath ? aRelPath : "");
   return do_get_file(relpath, false);
@@ -484,12 +670,24 @@ function getTestDirFile(aRelPath) {
 
 
 
+
+
 function getUpdatedDirPath() {
-  let suffix = "";
-  if (gBackgroundUpdate) {
-    suffix = UPDATED_DIR_SUFFIX;
+  let updatedDirPath = gTestID;
+  if (IS_MACOSX) {
+    updatedDirPath += DIR_APP_SUFFIX;
+  } else {
+    
+    
+    
+    updatedDirPath += DIR_APP_REL_PATH;
   }
-  return getApplyDirPath() + suffix;
+  if (gStageUpdate) {
+    updatedDirPath += DIR_UPDATED + "/";
+  } else if (IS_MACOSX) {
+    updatedDirPath += DIR_APP_REL_PATH;
+  }
+  return updatedDirPath;
 }
 
 
@@ -499,19 +697,190 @@ function getUpdatedDirPath() {
 
 
 
+function getUpdateTestDir() {
+  let updateTestDir = getApplyDirFile(null, true);
+
+  if (IS_MACOSX) {
+    updateTestDir = updateTestDir.parent.parent;
+  }
+  updateTestDir.append("update_test");
+  return updateTestDir;
+}
+
+
+#ifdef XP_WIN
+XPCOMUtils.defineLazyGetter(this, "gInstallDirPathHash",
+                            function test_gInstallDirPathHash() {
+  
+  if (!MOZ_APP_BASENAME)
+    return null;
+
+  let vendor = MOZ_APP_VENDOR ? MOZ_APP_VENDOR : "Mozilla";
+  let appDir = getApplyDirFile(null, true);
+
+  const REG_PATH = "SOFTWARE\\" + vendor + "\\" + MOZ_APP_BASENAME +
+                   "\\TaskBarIDs";
+  let regKey = AUS_Cc["@mozilla.org/windows-registry-key;1"].
+               createInstance(AUS_Ci.nsIWindowsRegKey);
+  try {
+    regKey.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE, REG_PATH,
+                AUS_Ci.nsIWindowsRegKey.ACCESS_ALL);
+    regKey.writeStringValue(appDir.path, gTestID);
+    return gTestID;
+  } catch (e) {
+  }
+
+  try {
+    regKey.create(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER, REG_PATH,
+                  AUS_Ci.nsIWindowsRegKey.ACCESS_ALL);
+    regKey.writeStringValue(appDir.path, gTestID);
+    return gTestID;
+  } catch (e) {
+    logTestInfo("failed to create registry key. Registry Path: " + REG_PATH +
+                ", Key Name: " + appDir.path + ", Key Value: " + gTestID +
+                ", Exception " + e);
+  }
+  return null;
+});
+
+XPCOMUtils.defineLazyGetter(this, "gLocalAppDataDir",
+                            function test_gLocalAppDataDir() {
+  const CSIDL_LOCAL_APPDATA = 0x1c;
+
+  AUS_Cu.import("resource://gre/modules/ctypes.jsm");
+  let lib = ctypes.open("shell32");
+  let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
+                                           ctypes.winapi_abi,
+                                           ctypes.bool, 
+                                           ctypes.int32_t, 
+                                           ctypes.jschar.ptr, 
+                                           ctypes.int32_t, 
+                                           ctypes.bool );
+
+  let aryPathLocalAppData = ctypes.jschar.array()(260);
+  let rv = SHGetSpecialFolderPath(0, aryPathLocalAppData, CSIDL_LOCAL_APPDATA, false);
+  lib.close();
+
+  let pathLocalAppData = aryPathLocalAppData.readString(); 
+  let updatesDir = AUS_Cc["@mozilla.org/file/local;1"].
+                   createInstance(AUS_Ci.nsILocalFile);
+  updatesDir.initWithPath(pathLocalAppData);
+  return updatesDir;
+});
+
+XPCOMUtils.defineLazyGetter(this, "gProgFilesDir",
+                            function test_gProgFilesDir() {
+  const CSIDL_PROGRAM_FILES = 0x26;
+
+  AUS_Cu.import("resource://gre/modules/ctypes.jsm");
+  let lib = ctypes.open("shell32");
+  let SHGetSpecialFolderPath = lib.declare("SHGetSpecialFolderPathW",
+                                           ctypes.winapi_abi,
+                                           ctypes.bool, 
+                                           ctypes.int32_t, 
+                                           ctypes.jschar.ptr, 
+                                           ctypes.int32_t, 
+                                           ctypes.bool );
+
+  let aryPathProgFiles = ctypes.jschar.array()(260);
+  let rv = SHGetSpecialFolderPath(0, aryPathProgFiles, CSIDL_PROGRAM_FILES, false);
+  lib.close();
+
+  let pathProgFiles = aryPathProgFiles.readString(); 
+  let progFilesDir = AUS_Cc["@mozilla.org/file/local;1"].
+                     createInstance(AUS_Ci.nsILocalFile);
+  progFilesDir.initWithPath(pathProgFiles);
+  return progFilesDir;
+});
 
 
 
 
 
-function getTargetDirFile(aRelPath, allowNonexistent) {
+
+
+function getMockUpdRootD() {
+  let localAppDataDir = gLocalAppDataDir.clone();
+  let progFilesDir = gProgFilesDir.clone();
+  let appDir = Services.dirsvc.get(XRE_EXECUTABLE_FILE, AUS_Ci.nsIFile).parent;
+
+  let appDirPath = appDir.path;
+  var relPathUpdates = "";
+  if (gInstallDirPathHash && (MOZ_APP_VENDOR || MOZ_APP_BASENAME)) {
+    relPathUpdates += (MOZ_APP_VENDOR ? MOZ_APP_VENDOR : MOZ_APP_BASENAME) +
+                      "\\" + DIR_UPDATES + "\\" + gInstallDirPathHash;
+  }
+
+  if (!relPathUpdates) {
+    if (appDirPath.length > progFilesDir.path.length) {
+      if (appDirPath.substr(0, progFilesDir.path.length) == progFilesDir.path) {
+        if (MOZ_APP_VENDOR && MOZ_APP_BASENAME) {
+          relPathUpdates += MOZ_APP_VENDOR + "\\" + MOZ_APP_BASENAME;
+        } else {
+          relPathUpdates += MOZ_APP_BASENAME;
+        }
+        relPathUpdates += appDirPath.substr(progFilesDir.path.length);
+      }
+    }
+  }
+
+  if (!relPathUpdates) {
+    if (MOZ_APP_VENDOR && MOZ_APP_BASENAME) {
+      relPathUpdates += MOZ_APP_VENDOR + "\\" + MOZ_APP_BASENAME;
+    } else {
+      relPathUpdates += MOZ_APP_BASENAME;
+    }
+    relPathUpdates += "\\" + MOZ_APP_NAME;
+  }
+
+  var updatesDir = AUS_Cc["@mozilla.org/file/local;1"].
+                   createInstance(AUS_Ci.nsILocalFile);
+  updatesDir.initWithPath(localAppDataDir.path + "\\" + relPathUpdates);
+  logTestInfo("returning UpdRootD Path: " + updatesDir.path);
+  return updatesDir;
+}
+#else
+
+
+
+
+
+
+function getMockUpdRootD() {
+  return getApplyDirFile(null, true);
+}
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getTargetDirFile(aRelPath, aAllowNonexistent) {
   let relpath = getUpdatedDirPath() + (aRelPath ? aRelPath : "");
-  return do_get_file(relpath, allowNonexistent);
+  return do_get_file(relpath, aAllowNonexistent);
 }
 
 if (IS_WIN) {
   const kLockFileName = "updated.update_in_progress.lock";
   
+
+
+
 
 
   function lockDirectory(aDir) {
@@ -526,6 +895,9 @@ if (IS_WIN) {
     do_check_false(file.isWritable());
   }
   
+
+
+
 
 
   function unlockDirectory(aDir) {
@@ -551,67 +923,10 @@ if (IS_WIN) {
 
 
 
-function copyMinimumAppFiles(aSrcDir, aDestDir, aDestLeafName) {
-  let destDir = aDestDir.clone();
-  destDir.append(aDestLeafName);
-  if (!destDir.exists()) {
-    try {
-      destDir.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
-    }
-    catch (e) {
-      logTestInfo("unable to create directory, path: " + destDir.path +
-                  ", exception: " + e);
-      do_throw(e);
-    }
-  }
 
+function runUpdate(aExpectedExitValue, aCallback) {
   
-  
-  let fileLeafNames = [APP_BIN_NAME + APP_BIN_SUFFIX, FILE_UPDATER_BIN,
-                       FILE_UPDATE_SETTINGS_INI, "application.ini",
-                       "dependentlibs.list"];
-
-  
-  
-  let deplibsFile = aSrcDir.clone();
-  deplibsFile.append("dependentlibs.list");
-  let istream = AUS_Cc["@mozilla.org/network/file-input-stream;1"].
-                createInstance(AUS_Ci.nsIFileInputStream);
-  istream.init(deplibsFile, 0x01, 0o444, 0);
-  istream.QueryInterface(AUS_Ci.nsILineInputStream);
-
-  let hasMore;
-  let line = {};
-  do {
-    hasMore = istream.readLine(line);
-    fileLeafNames.push(line.value);
-  } while(hasMore);
-
-  istream.close();
-
-  fileLeafNames.forEach(function CMAF_FLN_FE(aLeafName) {
-    let srcFile = aSrcDir.clone();
-    srcFile.append(aLeafName);
-    try {
-      srcFile.copyTo(destDir, aLeafName);
-    }
-    catch (e) {
-      logTestInfo("unable to copy file, src path: " + srcFile.path +
-                  ", dest path: " + destFile.path + ", exception: " + e);
-      do_throw(e);
-    }
-  });
-}
-
-
-
-
-
-
-
-function runUpdate() {
-  
-  let binDir = getGREDir();
+  let binDir = gGREDirOrig.clone();
   let updater = binDir.clone();
   updater.append("updater.app");
   if (!updater.exists()) {
@@ -622,44 +937,31 @@ function runUpdate() {
     }
   }
 
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
-  updater.copyTo(updatesDir, updater.leafName);
+  let updatesDir = getUpdatesPatchDir();
+  updater.copyToFollowingLinks(updatesDir, updater.leafName);
   let updateBin = updatesDir.clone();
   updateBin.append(updater.leafName);
   if (updateBin.leafName == "updater.app") {
     updateBin.append("Contents");
     updateBin.append("MacOS");
     updateBin.append("updater");
-    if (!updateBin.exists())
+    if (!updateBin.exists()) {
       do_throw("Unable to find the updater executable!");
+    }
   }
 
-  let updatesDirPath = updatesDir.path;
-  if (/ /.test(updatesDirPath))
-    updatesDirPath = '"' + updatesDirPath + '"';
-
-  let applyToDir = getApplyDirFile();
+  let applyToDir = getApplyDirFile(null, true);
   let applyToDirPath = applyToDir.path;
-  if (gBackgroundUpdate || gSwitchApp) {
-    applyToDirPath += "/" + UPDATED_DIR_SUFFIX;
+  if (gStageUpdate || gSwitchApp) {
+    applyToDirPath += "/" + DIR_UPDATED + "/";
   }
   if (IS_WIN) {
     
     applyToDirPath = applyToDirPath.replace(/\//g, "\\");
   }
-  if (/ /.test(applyToDirPath))
-    applyToDirPath = '"' + applyToDirPath + '"';
 
   let callbackApp = getApplyDirFile("a/b/" + gCallbackBinFile);
   callbackApp.permissions = PERMS_DIRECTORY;
-
-  let cwdPath = callbackApp.parent.path;
-  if (/ /.test(cwdPath))
-    cwdPath = '"' + cwdPath + '"';
-
-  let callbackAppPath = callbackApp.path;
-  if (/ /.test(callbackAppPath))
-    callbackAppPath = '"' + callbackAppPath + '"';
 
   
   let updateSettingsIni = getApplyDirFile(null, true);
@@ -671,17 +973,17 @@ function runUpdate() {
   updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
 
-  let args = [updatesDirPath, applyToDirPath, 0];
-  if (gBackgroundUpdate) {
+  let args = [updatesDir.path, applyToDirPath, 0];
+  if (gStageUpdate) {
     args[2] = -1;
   } else {
     if (gSwitchApp) {
       args[2] = "0/replace";
     }
-    args = args.concat([cwdPath, callbackAppPath]);
+    args = args.concat([callbackApp.parent.path, callbackApp.path]);
     args = args.concat(gCallbackArgs);
   }
-  logTestInfo("Running the updater: " + updateBin.path + " " + args.join(" "));
+  logTestInfo("running the updater: " + updateBin.path + " " + args.join(" "));
 
   let env = AUS_Cc["@mozilla.org/process/environment;1"].
             getService(AUS_Ci.nsIEnvironment);
@@ -705,11 +1007,36 @@ function runUpdate() {
     updateSettingsIni.moveTo(updateSettingsIni.parent, FILE_UPDATE_SETTINGS_INI);
   }
 
-  return process.exitValue;
+  logTestInfo("testing updater binary process exitValue against expected " +
+              "exit value");
+  do_check_eq(process.exitValue, aExpectedExitValue);
+
+  if (aCallback !== null) {
+    if (typeof(aCallback) == typeof(Function)) {
+      aCallback();
+    } else {
+      checkUpdateApplied();
+    }
+  }
 }
 
-let gServiceLaunchedCallbackLog = null;
-let gServiceLaunchedCallbackArgs = null;
+
+
+function stageUpdate() {
+  logTestInfo("start - staging update");
+  Services.obs.addObserver(gUpdateStagedObserver, "update-staged", false);
+
+  setEnvironment();
+  
+  AUS_Cc["@mozilla.org/updates/update-processor;1"].
+    createInstance(AUS_Ci.nsIUpdateProcessor).
+    processUpdate(gUpdateManager.activeUpdate);
+  resetEnvironment();
+
+  logTestInfo("finish - staging update");
+}
+
+
 
 
 
@@ -743,8 +1070,7 @@ function shouldRunServiceTest(aFirstTest) {
   try {
     key.open(AUS_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE, REG_PATH,
              AUS_Ci.nsIWindowsRegKey.ACCESS_READ | key.WOW64_64);
-  }
-  catch (e) {
+  } catch (e) {
 #ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
     
     
@@ -764,13 +1090,13 @@ function shouldRunServiceTest(aFirstTest) {
   let process = AUS_Cc["@mozilla.org/process/util;1"].
                 createInstance(AUS_Ci.nsIProcess);
   process.init(helperBin);
-  logTestInfo("Checking if the service exists on this machine.");
+  logTestInfo("checking if the service exists on this machine.");
   process.run(true, args, args.length);
   if (process.exitValue == 0xEE) {
     do_throw("test registry key exists but this test can only run on systems " +
              "with the maintenance service installed.");
   } else {
-    logTestInfo("Service exists, return value: " + process.exitValue);
+    logTestInfo("service exists, return value: " + process.exitValue);
   }
 
   
@@ -819,17 +1145,155 @@ function isBinarySigned(aBinPath) {
 
 
 
-function copyBinToApplyToDir(filename) {
-  let binDir = getGREDir();
-  let fileToCopy = binDir.clone();
-  fileToCopy.append(filename);
-  if (!fileToCopy.exists()) {
-    do_throw("Unable to copy binary: " + filename);
+
+function setupAppFilesAsync() {
+  gTimeoutRuns++;
+  try {
+    setupAppFiles();
+  } catch (e) {
+    if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
+      do_throw("Exceeded MAX_TIMEOUT_RUNS while trying to setup application " +
+               "files. Exception: " + e);
+    }
+    do_timeout(TEST_CHECK_TIMEOUT, setupAppFilesAsync);
+    return;
   }
-  let applyToUpdater = getApplyDirFile(null, true);
-  if (applyToUpdater.path != binDir.path) {
-    do_print("copying " + fileToCopy.path + " to: " + applyToUpdater.path);
-    fileToCopy.copyTo(applyToUpdater, filename);
+
+  setupAppFilesFinished();
+}
+
+
+
+
+
+
+function setupAppFiles() {
+  logTestInfo("start - copying or creating symlinks for application files " +
+              "for the test");
+
+  let srcDir = getCurrentProcessDir();
+  let destDir = getApplyDirFile(null, true);
+  if (!destDir.exists()) {
+    try {
+      destDir.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+    } catch (e) {
+      logTestInfo("unable to create directory, Path: " + destDir.path +
+                  ", Exception: " + e);
+      do_throw(e);
+    }
+  }
+
+  
+  
+  let fileRelPaths = [FILE_APP_BIN, FILE_UPDATER_BIN, FILE_UPDATE_SETTINGS_INI,
+                       "application.ini", "dependentlibs.list"];
+
+  
+  if (IS_UNIX && !IS_MACOSX) {
+    fileRelPaths.push("icons/updater.png");
+  }
+
+  
+  
+  let deplibsFile = srcDir.clone();
+  deplibsFile.append("dependentlibs.list");
+  let istream = AUS_Cc["@mozilla.org/network/file-input-stream;1"].
+                createInstance(AUS_Ci.nsIFileInputStream);
+  istream.init(deplibsFile, 0x01, 0o444, 0);
+  istream.QueryInterface(AUS_Ci.nsILineInputStream);
+
+  let hasMore;
+  let line = {};
+  do {
+    hasMore = istream.readLine(line);
+    fileRelPaths.push(line.value);
+  } while(hasMore);
+
+  istream.close();
+
+  fileRelPaths.forEach(function CMAF_FLN_FE(aFileRelPath) {
+    copyFileToTestAppDir(aFileRelPath);
+  });
+
+  logTestInfo("finish - copying or creating symlinks for application files " +
+              "for the test");
+}
+
+
+
+
+
+
+
+
+function copyFileToTestAppDir(aFileRelPath) {
+  let fileRelPath = aFileRelPath;
+  let srcFile = gGREDirOrig.clone();
+  let pathParts = fileRelPath.split("/");
+  for (let i = 0; i < pathParts.length; i++) {
+    if (pathParts[i]) {
+      srcFile.append(pathParts[i]);
+    }
+  }
+
+  if (IS_MACOSX && !srcFile.exists()) {
+    logTestInfo("unable to copy file since it doesn't exist! Checking if " +
+                 fileRelPath + DIR_APP_SUFFIX + " exists. Path: " +
+                 srcFile.path);
+    srcFile = gGREDirOrig.clone();
+    for (let i = 0; i < pathParts.length; i++) {
+      if (pathParts[i]) {
+        srcFile.append(pathParts[i] + (pathParts.length - 1 == i ? DIR_APP_SUFFIX : ""));
+      }
+    }
+    fileRelPath = fileRelPath + DIR_APP_SUFFIX;
+  }
+  if (!srcFile.exists()) {
+    do_throw("Unable to copy file since it doesn't exist! Path: " +
+             srcFile.path);
+  }
+
+  
+  
+  let shouldSymlink = (pathParts[pathParts.length - 1] == "XUL" ||
+                       fileRelPath.substr(fileRelPath.length - 3) == ".so" ||
+                       fileRelPath.substr(fileRelPath.length - 6) == ".dylib");
+  let destFile = getApplyDirFile(fileRelPath, true);
+  if (!shouldSymlink) {
+    if (!destFile.exists()) {
+      try {
+        srcFile.copyToFollowingLinks(destFile.parent, destFile.leafName);
+      } catch (e) {
+        
+        if (destFile.exists()) {
+          try {
+            destFile.remove(true);
+          } catch (e) {
+            logTestInfo("unable to remove file that failed to copy! Path: " +
+                        destFile.path);
+          }
+        }
+        do_throw("Unable to copy file! Path: " + srcFile.path +
+                 ", Exception: " + e);
+      }
+    }
+  } else {
+    try {
+      if (destFile.exists()) {
+        destFile.remove(false);
+      }
+      let ln = AUS_Cc["@mozilla.org/file/local;1"].createInstance(AUS_Ci.nsILocalFile);
+      ln.initWithPath("/bin/ln");
+      let process = AUS_Cc["@mozilla.org/process/util;1"].createInstance(AUS_Ci.nsIProcess);
+      process.init(ln);
+      let args = ["-s", srcFile.path, destFile.path];
+      process.run(true, args, args.length);
+      logTestInfo("verifying symlink. Path: " + destFile.path);
+      do_check_true(destFile.isSymlink());
+    } catch (e) {
+      do_throw("Unable to create symlink for file! Path: " + srcFile.path +
+               ", Exception: " + e);
+    }
   }
 }
 
@@ -857,7 +1321,7 @@ function attemptServiceInstall() {
   let installerProcess = AUS_Cc["@mozilla.org/process/util;1"].
                          createInstance(AUS_Ci.nsIProcess);
   installerProcess.init(installerFile);
-  logTestInfo("Starting installer process...");
+  logTestInfo("starting installer process...");
   installerProcess.run(true, [], 0);
 }
 
@@ -870,13 +1334,11 @@ function attemptServiceInstall() {
 
 
 
-
-function runUpdateUsingService(aInitialStatus, aExpectedStatus,
-                               aCallback, aUpdatesDir, aCheckSvcLog) {
+function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
   
   function checkServiceLogs(aOriginalContents) {
     let contents = readServiceLogFile();
-    logTestInfo("The contents of maintenanceservice.log:\n" + contents + "\n");
+    logTestInfo("the contents of maintenanceservice.log:\n" + contents + "\n");
     do_check_neq(contents, aOriginalContents);
     do_check_neq(contents.indexOf(LOG_SVC_SUCCESSFUL_LAUNCH), -1);
   }
@@ -899,7 +1361,7 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
   }
   function waitForServiceStop(aFailTest) {
     waitServiceApps();
-    logTestInfo("Waiting for service to stop if necessary...");
+    logTestInfo("waiting for service to stop if necessary...");
     
     
     let helperBin = getTestDirFile(FILE_HELPER_BIN);
@@ -909,7 +1371,7 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
     let helperBinProcess = AUS_Cc["@mozilla.org/process/util;1"].
                            createInstance(AUS_Ci.nsIProcess);
     helperBinProcess.init(helperBin);
-    logTestInfo("Stopping service...");
+    logTestInfo("stopping service...");
     helperBinProcess.run(true, helperBinArgs, helperBinArgs.length);
     if (helperBinProcess.exitValue == 0xEE) {
       do_throw("The service does not exist on this machine.  Return value: " +
@@ -923,25 +1385,25 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
                     helperBinProcess.exitValue + ".  May cause failures.");
       }
     } else {
-      logTestInfo("Service stopped.");
+      logTestInfo("service stopped.");
     }
     waitServiceApps();
   }
-  function waitForApplicationStop(application) {
-    logTestInfo("Waiting for " + application + " to stop if " +
+  function waitForApplicationStop(aApplication) {
+    logTestInfo("waiting for " + aApplication + " to stop if " +
                 "necessary...");
     
     
     let helperBin = getTestDirFile(FILE_HELPER_BIN);
     let helperBinArgs = ["wait-for-application-exit",
-                         application,
+                         aApplication,
                          "120"];
     let helperBinProcess = AUS_Cc["@mozilla.org/process/util;1"].
                            createInstance(AUS_Ci.nsIProcess);
     helperBinProcess.init(helperBin);
     helperBinProcess.run(true, helperBinArgs, helperBinArgs.length);
     if (helperBinProcess.exitValue != 0) {
-      do_throw(application + " did not stop, last state: " +
+      do_throw(aApplication + " did not stop, last state: " +
                helperBinProcess.exitValue + ". Forcing test failure.");
     }
   }
@@ -953,70 +1415,43 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
   if (typeof(gRegisteredServiceCleanup) === "undefined") {
     gRegisteredServiceCleanup = true;
 
-    do_register_cleanup(function serviceCleanup() {
+    do_register_cleanup(function RUUS_cleanup() {
       resetEnvironment();
 
       
       try {
-        getAppConsoleLogPath();
-      }
-      catch (e) {
-        logTestInfo("unable to remove file during cleanup. Exception: " + e);
-      }
-
-      
-      try {
         getAppArgsLogPath();
-      }
-      catch (e) {
+      } catch (e) {
         logTestInfo("unable to remove file during cleanup. Exception: " + e);
       }
     });
   }
 
-  if (aCheckSvcLog === undefined) {
-    aCheckSvcLog = true; 
-  }
-
   let svcOriginalLog;
-  if (aCheckSvcLog) {
+  
+  if (aCheckSvcLog === undefined || aCheckSvcLog) {
     svcOriginalLog = readServiceLogFile();
   }
 
   let appArgsLogPath = getAppArgsLogPath();
   gServiceLaunchedCallbackLog = appArgsLogPath.replace(/^"|"$/g, "");
 
-  let updatesDir = aUpdatesDir || do_get_file(gTestID + UPDATES_DIR_SUFFIX);
+  let updatesDir = getUpdatesPatchDir();
   let file = updatesDir.clone();
-  file.append(FILE_UPDATE_STATUS);
-  writeFile(file, aInitialStatus + "\n");
+  writeStatusFile(aInitialStatus);
 
   
-  do_check_eq(readStatusFile(updatesDir), aInitialStatus);
+  do_check_eq(readStatusState(), aInitialStatus);
 
-  file = updatesDir.clone();
-  file.append(FILE_UPDATE_VERSION);
-  writeFile(file, DEFAULT_UPDATE_VERSION + "\n");
+  writeVersionFile(DEFAULT_UPDATE_VERSION);
 
   gServiceLaunchedCallbackArgs = [
     "-no-remote",
     "-process-updates",
     "-dump-args",
-    appArgsLogPath
+    appArgsLogPath,
+    PIPE_TO_NULL
   ];
-
-  let launchBin = getLaunchBin();
-  let args = getProcessArgs(["-dump-args", appArgsLogPath]);
-  logTestInfo("launching " + launchBin.path + " " + args.join(" "));
-
-  let process = AUS_Cc["@mozilla.org/process/util;1"].
-                   createInstance(AUS_Ci.nsIProcess);
-  process.init(launchBin);
-
-  
-  gEnvUpdateRootOverride = updatesDir.path;
-  gEnvAppDirOverride = getApplyDirFile(null).path;
-  gEnvSKipUpdateDirHashing = true;
 
   if (gSwitchApp) {
     
@@ -1028,25 +1463,26 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
   
   
   
-  copyBinToApplyToDir(FILE_UPDATER_BIN);
+  copyFileToTestAppDir(FILE_UPDATER_BIN);
 
   
   
   
   
-  copyBinToApplyToDir(FILE_MAINTENANCE_SERVICE_BIN);
-  copyBinToApplyToDir(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN);
+  copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_BIN);
+  copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN);
 
-  
   let updateSettingsIni = getApplyDirFile(null, true);
-  updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
-  if (updateSettingsIni.exists()) {
-    updateSettingsIni.moveTo(updateSettingsIni.parent, FILE_UPDATE_SETTINGS_INI_BAK);
-  }
-  updateSettingsIni = getApplyDirFile(null, true);
   updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
 
+  let launchBin = getLaunchBin();
+  let args = getProcessArgs(["-dump-args", appArgsLogPath]);
+
+  let process = AUS_Cc["@mozilla.org/process/util;1"].
+                   createInstance(AUS_Ci.nsIProcess);
+  process.init(launchBin);
+  logTestInfo("launching " + launchBin.path + " " + args.join(" "));
   
   
   
@@ -1056,19 +1492,15 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
 
   resetEnvironment();
 
-  function timerCallback(timer) {
+  function timerCallback(aTimer) {
     
-    let status = readStatusFile(updatesDir);
-    
-    if (aExpectedStatus == STATE_FAILED) {
-      status = status.split(": ")[0];
-    }
+    let status = readStatusState();
     
     
     
     if (status == STATE_APPLYING ||
         status == STATE_PENDING_SVC) {
-      logTestInfo("Still waiting to see the " + aExpectedStatus +
+      logTestInfo("still waiting to see the " + aExpectedStatus +
                   " status, got " + status + " for now...");
       return;
     }
@@ -1085,18 +1517,21 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus,
 
     do_check_eq(status, aExpectedStatus);
 
-    timer.cancel();
-    timer = null;
+    aTimer.cancel();
+    aTimer = null;
 
     if (aCheckSvcLog) {
       checkServiceLogs(svcOriginalLog);
     }
-    aCallback();
+
+    checkUpdateFinished();
   }
 
   let timer = AUS_Cc["@mozilla.org/timer;1"].createInstance(AUS_Ci.nsITimer);
   timer.initWithCallback(timerCallback, 1000, timer.TYPE_REPEATING_SLACK);
 }
+
+
 
 
 
@@ -1111,8 +1546,7 @@ function getLaunchBin() {
     launchBin = Services.dirsvc.get("WinD", AUS_Ci.nsIFile);
     launchBin.append("System32");
     launchBin.append("cmd.exe");
-  }
-  else {
+  } else {
     launchBin = AUS_Cc["@mozilla.org/file/local;1"].
                 createInstance(AUS_Ci.nsILocalFile);
     launchBin.initWithPath("/bin/sh");
@@ -1123,6 +1557,10 @@ function getLaunchBin() {
 
   return launchBin;
 }
+
+
+
+
 
 function waitForHelperSleep() {
   
@@ -1135,6 +1573,11 @@ function waitForHelperSleep() {
   output.remove(false);
   doUpdate();
 }
+
+
+
+
+
 
 function waitForHelperFinished() {
   
@@ -1149,6 +1592,10 @@ function waitForHelperFinished() {
   waitForHelperFinishFileUnlock();
 }
 
+
+
+
+
 function waitForHelperFinishFileUnlock() {
   try {
     let output = getApplyDirFile("a/b/output", true);
@@ -1159,8 +1606,7 @@ function waitForHelperFinishFileUnlock() {
     if (input.exists()) {
       input.remove(false);
     }
-  }
-  catch (e) {
+  } catch (e) {
     
     
     do_timeout(TEST_HELPER_TIMEOUT, waitForHelperFinishFileUnlock);
@@ -1168,6 +1614,9 @@ function waitForHelperFinishFileUnlock() {
   }
   checkUpdate();
 }
+
+
+
 
 function setupHelperFinish() {
   let input = getApplyDirFile("a/b/input", true);
@@ -1183,36 +1632,15 @@ function setupHelperFinish() {
 
 
 function setupUpdaterTest(aMarFile) {
+  let updatesPatchDir = getUpdatesPatchDir();
+  if (!updatesPatchDir.exists()) {
+    updatesPatchDir.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+  }
   
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
-  try {
-    removeDirRecursive(updatesDir);
-  }
-  catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + updatesDir.path + "\n" +
-         "Exception: " + e + "\n");
-  }
-  if (!updatesDir.exists()) {
-    updatesDir.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
-  }
+  let mar = getTestDirFile(aMarFile);
+  mar.copyToFollowingLinks(updatesPatchDir, FILE_UPDATE_ARCHIVE);
 
-  
   let applyToDir = getApplyDirFile(null, true);
-  try {
-    removeDirRecursive(applyToDir);
-  }
-  catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + applyToDir.path + "\n" +
-         "Exception: " + e + "\n");
-  }
-  logTestInfo("testing successful removal of the directory used to apply the " +
-              "mar file");
-  do_check_false(applyToDir.exists());
-
-  
-  
   TEST_FILES.forEach(function SUT_TF_FE(aTestFile) {
     if (aTestFile.originalFile || aTestFile.originalContents) {
       let testDir = getApplyDirFile(aTestFile.relPathDir, true);
@@ -1222,11 +1650,11 @@ function setupUpdaterTest(aMarFile) {
       let testFile;
       if (aTestFile.originalFile) {
         testFile = getTestDirFile(aTestFile.originalFile);
-        testFile.copyTo(testDir, aTestFile.fileName);
+        testFile.copyToFollowingLinks(testDir, aTestFile.fileName);
         testFile = getApplyDirFile(aTestFile.relPathDir + aTestFile.fileName);
-      }
-      else {
-        testFile = getApplyDirFile(aTestFile.relPathDir + aTestFile.fileName, true);
+      } else {
+        testFile = getApplyDirFile(aTestFile.relPathDir + aTestFile.fileName,
+                                   true);
         writeFile(testFile, aTestFile.originalContents);
       }
 
@@ -1236,19 +1664,16 @@ function setupUpdaterTest(aMarFile) {
         testFile.permissions = aTestFile.originalPerms;
         
         
-        if (!aTestFile.comparePerms)
+        if (!aTestFile.comparePerms) {
           aTestFile.comparePerms = testFile.permissions;
+        }
       }
     }
   });
 
   let helperBin = getTestDirFile(FILE_HELPER_BIN);
   let afterApplyBinDir = getApplyDirFile("a/b/", true);
-  helperBin.copyTo(afterApplyBinDir, gCallbackBinFile);
-
-  
-  let mar = getTestDirFile(aMarFile);
-  mar.copyTo(updatesDir, FILE_UPDATE_ARCHIVE);
+  helperBin.copyToFollowingLinks(afterApplyBinDir, gCallbackBinFile);
 
   
   
@@ -1292,54 +1717,27 @@ function setupUpdaterTest(aMarFile) {
 
 
 
-function cleanupUpdaterTest() {
-  logTestInfo("start - updater test cleanup");
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
-  try {
-    removeDirRecursive(updatesDir);
-  }
-  catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + updatesDir.path + "\n" +
-         "Exception: " + e + "\n");
-  }
-
-  
-  let applyToDir = getApplyDirFile(null, true).parent;
-  try {
-    removeDirRecursive(applyToDir);
-  }
-  catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + applyToDir.path + "\n" +
-         "Exception: " + e + "\n");
-  }
-
-  cleanupTestCommon();
-  logTestInfo("finish - updater test cleanup");
-}
-
-
 
 
 
 function checkUpdateLogContents(aCompareLogFile) {
-  let updateLog = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
+  let updateLog = getUpdatesPatchDir();
   updateLog.append(FILE_UPDATE_LOG);
   let updateLogContents = readFileBytes(updateLog);
-  if (gBackgroundUpdate) {
+
+  if (gStageUpdate) {
     
-    updateLogContents = updateLogContents.replace(/Performing a background update/, "");
+    updateLogContents = updateLogContents.replace(/Performing a staged update/, "");
   } else if (gSwitchApp) {
     
-    updateLogContents = updateLogContents.replace(/Performing a background update/, "");
+    updateLogContents = updateLogContents.replace(/Performing a staged update/, "");
     updateLogContents = updateLogContents.replace(/Performing a replace request/, "");
   }
   
   updateLogContents = updateLogContents.replace(/SOURCE DIRECTORY.*/g, "");
   updateLogContents = updateLogContents.replace(/DESTINATION DIRECTORY.*/g, "");
   
-  updateLogContents = updateLogContents.replace(/NS_main: callback app open attempt .*/g, "");
+  updateLogContents = updateLogContents.replace(/NS_main: callback app file .*/g, "");
   if (gSwitchApp) {
     
     updateLogContents = updateLogContents.replace(/^Begin moving.*$/mg, "");
@@ -1374,22 +1772,26 @@ function checkUpdateLogContents(aCompareLogFile) {
   if (compareLogContents == updateLogContents) {
     logTestInfo("log contents are correct");
     do_check_true(true);
-  }
-  else {
+  } else {
     logTestInfo("log contents are not correct");
     do_check_eq(compareLogContents, updateLogContents);
   }
 }
 
+
+
+
+
+
+
 function checkUpdateLogContains(aCheckString) {
-  let updateLog = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
+  let updateLog = getUpdatesPatchDir();
   updateLog.append(FILE_UPDATE_LOG);
   let updateLogContents = readFileBytes(updateLog);
   if (updateLogContents.indexOf(aCheckString) != -1) {
     logTestInfo("log file does contain: " + aCheckString);
     do_check_true(true);
-  }
-  else {
+  } else {
     logTestInfo("log file does not contain: " + aCheckString);
     logTestInfo("log file contents:\n" + updateLogContents);
     do_check_true(false);
@@ -1403,7 +1805,8 @@ function checkUpdateLogContains(aCheckString) {
 function checkFilesAfterUpdateSuccess() {
   logTestInfo("testing contents of files after a successful update");
   TEST_FILES.forEach(function CFAUS_TF_FE(aTestFile) {
-    let testFile = getTargetDirFile(aTestFile.relPathDir + aTestFile.fileName, true);
+    let testFile = getTargetDirFile(aTestFile.relPathDir + aTestFile.fileName,
+                                    true);
     logTestInfo("testing file: " + testFile.path);
     if (aTestFile.compareFile || aTestFile.compareContents) {
       do_check_true(testFile.exists());
@@ -1414,9 +1817,11 @@ function checkFilesAfterUpdateSuccess() {
         
         let logPerms = "testing file permissions - ";
         if (aTestFile.originalPerms) {
-          logPerms += "original permissions: " + aTestFile.originalPerms.toString(8) + ", ";
+          logPerms += "original permissions: " +
+                      aTestFile.originalPerms.toString(8) + ", ";
         }
-        logPerms += "compare permissions : " + aTestFile.comparePerms.toString(8) + ", ";
+        logPerms += "compare permissions : " +
+                    aTestFile.comparePerms.toString(8) + ", ";
         logPerms += "updated permissions : " + testFile.permissions.toString(8);
         logTestInfo(logPerms);
         do_check_eq(testFile.permissions & 0xfff, aTestFile.comparePerms & 0xfff);
@@ -1431,13 +1836,11 @@ function checkFilesAfterUpdateSuccess() {
       if (fileContents1 == fileContents2) {
         logTestInfo("file contents are correct");
         do_check_true(true);
-      }
-      else {
+      } else {
         logTestInfo("file contents are not correct");
         do_check_eq(fileContents1, fileContents2);
       }
-    }
-    else {
+    } else {
       do_check_false(testFile.exists());
     }
   });
@@ -1450,8 +1853,7 @@ function checkFilesAfterUpdateSuccess() {
     logTestInfo("testing directory: " + testDir.path);
     if (aTestDir.dirRemoved) {
       do_check_false(testDir.exists());
-    }
-    else {
+    } else {
       do_check_true(testDir.exists());
 
       if (aTestDir.files) {
@@ -1460,8 +1862,7 @@ function checkFilesAfterUpdateSuccess() {
           logTestInfo("testing directory file: " + testFile.path);
           if (aTestDir.filesRemoved) {
             do_check_false(testFile.exists());
-          }
-          else {
+          } else {
             do_check_true(testFile.exists());
           }
         });
@@ -1509,9 +1910,11 @@ function checkFilesAfterUpdateFailure(aGetDirectory) {
         
         let logPerms = "testing file permissions - ";
         if (aTestFile.originalPerms) {
-          logPerms += "original permissions: " + aTestFile.originalPerms.toString(8) + ", ";
+          logPerms += "original permissions: " +
+                      aTestFile.originalPerms.toString(8) + ", ";
         }
-        logPerms += "compare permissions : " + aTestFile.comparePerms.toString(8) + ", ";
+        logPerms += "compare permissions : " +
+                    aTestFile.comparePerms.toString(8) + ", ";
         logPerms += "updated permissions : " + testFile.permissions.toString(8);
         logTestInfo(logPerms);
         do_check_eq(testFile.permissions & 0xfff, aTestFile.comparePerms & 0xfff);
@@ -1526,13 +1929,11 @@ function checkFilesAfterUpdateFailure(aGetDirectory) {
       if (fileContents1 == fileContents2) {
         logTestInfo("file contents are correct");
         do_check_true(true);
-      }
-      else {
+      } else {
         logTestInfo("file contents are not correct");
         do_check_eq(fileContents1, fileContents2);
       }
-    }
-    else {
+    } else {
       do_check_false(testFile.exists());
     }
   });
@@ -1559,7 +1960,8 @@ function checkFilesAfterUpdateFailure(aGetDirectory) {
         do_check_true(testSubDir.exists());
         if (aTestDir.subDirFiles) {
           aTestDir.subDirFiles.forEach(function CFAUS_TD_SDF_FE(aTestFile) {
-            let testFile = getdir(aTestDir.relPathDir + aSubDir + aTestFile, true);
+            let testFile = getdir(aTestDir.relPathDir + aSubDir + aTestFile,
+                                  true);
             logTestInfo("testing sub-directory file: " + testFile.path);
             do_check_true(testFile.exists());
           });
@@ -1577,7 +1979,7 @@ function checkFilesAfterUpdateFailure(aGetDirectory) {
 
 function checkFilesAfterUpdateCommon() {
   logTestInfo("testing patch files should not be left behind");
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX, true);
+  let updatesDir = getUpdatesPatchDir();
   let entries = updatesDir.QueryInterface(AUS_Ci.nsIFile).directoryEntries;
   while (entries.hasMoreElements()) {
     let entry = entries.getNext().QueryInterface(AUS_Ci.nsIFile);
@@ -1615,13 +2017,12 @@ function checkCallbackAppLog() {
   if (logContents == expectedLogContents) {
     logTestInfo("callback log file contents are correct");
     do_check_true(true);
-  }
-  else {
+  } else {
     logTestInfo("callback log file contents are not correct");
     do_check_eq(logContents, expectedLogContents);
   }
 
-  removeCallbackCopy();
+  waitForFilesInUse();
 }
 
 
@@ -1636,7 +2037,6 @@ function checkCallbackServiceLog() {
   let logFile = AUS_Cc["@mozilla.org/file/local;1"].createInstance(AUS_Ci.nsILocalFile);
   logFile.initWithPath(gServiceLaunchedCallbackLog);
   let logContents = readFile(logFile);
-
   
   
   
@@ -1648,108 +2048,57 @@ function checkCallbackServiceLog() {
   }
 
   logTestInfo("testing that the callback application successfully launched " +
-              "and the expected command line arguments passed to it");
+              "and the expected command line arguments were passed to it");
   do_check_eq(logContents, expectedLogContents);
 
-  removeCallbackCopy();
-}
-
-function removeCallbackCopy() {
-  
-  
-  let appBinCopy = getAppDir();
-  appBinCopy.append(gTestID + FILE_WIN_TEST_EXE);
-  if (appBinCopy.exists()) {
-    try {
-      logTestInfo("attempting removal of file: " + appBinCopy.path);
-      appBinCopy.remove(false);
-    }
-    catch (e) {
-      logTestInfo("non-fatal error removing file after test finished (will " +
-                  "try again). File: " + appBinCopy.path + " Exception: " + e);
-      do_timeout(TEST_HELPER_TIMEOUT, removeCallbackCopy);
-      return;
-    }
-  }
-  logTestInfo("attempting removal of the updater binary");
-  removeUpdater();
-}
-
-
-
-
-
-
-function removeUpdater() {
-  if (IS_WIN) {
-    
-    
-    let updater = getUpdatesDir();
-    updater.append("0");
-    updater.append(FILE_UPDATER_BIN);
-    if (updater.exists()) {
-      try {
-        updater.remove(false);
-      }
-      catch (e) {
-        logTestInfo("non-fatal error removing file after test finished (will " +
-                    "try again). File: " + updater.path + " Exception: " + e);
-        do_timeout(TEST_HELPER_TIMEOUT, removeUpdater);
-        return;
-      }
-    }
-    else {
-      logTestInfo("updater doesn't exist, path: " + updater.path);
-    }
-  }
-  logTestInfo("calling do_test_finished");
-  do_test_finished();
+  waitForFilesInUse();
 }
 
 
 
 function waitForFilesInUse() {
-  let maintSvcInstaller = getAppDir();
-  maintSvcInstaller.append("FILE_MAINTENANCE_SERVICE_INSTALLER_BIN");
+  if (IS_WIN) {
+    let appBin = getApplyDirFile(FILE_APP_BIN, true);
+    let maintSvcInstaller = getApplyDirFile(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN, true);
+    let helper = getApplyDirFile("uninstall/helper.exe", true);
+    let updater = getUpdatesPatchDir();
+    updater.append(FILE_UPDATER_BIN);
 
-  let helper = getAppDir();
-  helper.append("uninstall");
-  helper.append("helper.exe");
+    let files = [appBin, updater, maintSvcInstaller, helper];
 
-  let files = [maintSvcInstaller, helper];
-  for (let i = 0; i < files.length; ++i) {
-    let file = files[i];
-    let fileBak = file.parent.clone();
-    if (file.exists()) {
-      fileBak.append(file.leafName + ".bak");
-      try {
-        if (fileBak.exists()) {
-          fileBak.remove(false);
-        }
-        file.copyTo(fileBak.parent, fileBak.leafName);
-        file.remove(false);
-        fileBak.moveTo(file.parent, file.leafName);
-        logTestInfo("file is not in use. path: " + file.path);
-      }
-      catch (e) {
-        logTestInfo("file in use, will try again after " + TEST_CHECK_TIMEOUT +
-                    " ms, path: " + file.path + ", exception: " + e);
+    for (var i = 0; i < files.length; ++i) {
+      let file = files[i];
+      let fileBak = file.parent.clone();
+      if (file.exists()) {
+        fileBak.append(file.leafName + ".bak");
         try {
           if (fileBak.exists()) {
             fileBak.remove(false);
           }
+          file.copyTo(fileBak.parent, fileBak.leafName);
+          file.remove(false);
+          fileBak.moveTo(file.parent, file.leafName);
+          logTestInfo("file is not in use. Path: " + file.path);
+        } catch (e) {
+          logTestInfo("file in use, will try again after " + TEST_CHECK_TIMEOUT +
+                      " ms, Path: " + file.path + ", Exception: " + e);
+          try {
+            if (fileBak.exists()) {
+              fileBak.remove(false);
+            }
+          } catch (e) {
+            logTestInfo("unable to remove file, this should never happen! " +
+                        "Path: " + fileBak.path + ", Exception: " + e);
+          }
+          do_timeout(TEST_CHECK_TIMEOUT, waitForFilesInUse);
+          return;
         }
-        catch (e) {
-          logTestInfo("unable to remove file, this should never happen! " +
-                      "path: " + fileBak.path + ", exception: " + e);
-        }
-        do_timeout(TEST_CHECK_TIMEOUT, waitForFilesInUse);
-        return;
       }
     }
   }
 
-  removeCallbackCopy();
+  logTestInfo("calling do_test_finished");
+  do_test_finished();
 }
 
 
@@ -1784,8 +2133,7 @@ function checkFilesInDirRecursive(aDir, aCallback) {
 
     if (entry.isDirectory()) {
       checkFilesInDirRecursive(entry, aCallback);
-    }
-    else {
+    } else {
       aCallback(entry);
     }
   }
@@ -1806,8 +2154,8 @@ function checkFilesInDirRecursive(aDir, aCallback) {
 
 
 
-function overrideXHR(callback) {
-  gXHRCallback = callback;
+function overrideXHR(aCallback) {
+  gXHRCallback = aCallback;
   gXHR = new xhr();
   var registrar = Components.manager.QueryInterface(AUS_Ci.nsIComponentRegistrar);
   registrar.registerFactory(gXHR.classID, gXHR.classDescription,
@@ -1819,54 +2167,54 @@ function overrideXHR(callback) {
 
 
 
-function makeHandler(val) {
-  if (typeof val == "function")
-    return ({ handleEvent: val });
-  return val;
+function makeHandler(aVal) {
+  if (typeof aVal == "function")
+    return { handleEvent: aVal };
+  return aVal;
 }
 function xhr() {
 }
 xhr.prototype = {
-  overrideMimeType: function(mimetype) { },
-  setRequestHeader: function(header, value) { },
+  overrideMimeType: function(aMimetype) { },
+  setRequestHeader: function(aHeader, aValue) { },
   status: null,
-  channel: { set notificationCallbacks(val) { } },
+  channel: { set notificationCallbacks(aVal) { } },
   _url: null,
   _method: null,
-  open: function (method, url) {
-    gXHR.channel.originalURI = Services.io.newURI(url, null, null);
-    gXHR._method = method; gXHR._url = url;
+  open: function(aMethod, aUrl) {
+    gXHR.channel.originalURI = Services.io.newURI(aUrl, null, null);
+    gXHR._method = aMethod; gXHR._url = aUrl;
   },
   responseXML: null,
   responseText: null,
-  send: function(body) {
+  send: function(aBody) {
     do_execute_soon(gXHRCallback); 
   },
   _onprogress: null,
-  set onprogress(val) { gXHR._onprogress = makeHandler(val); },
+  set onprogress(aValue) { gXHR._onprogress = makeHandler(aValue); },
   get onprogress() { return gXHR._onprogress; },
   _onerror: null,
-  set onerror(val) { gXHR._onerror = makeHandler(val); },
+  set onerror(aValue) { gXHR._onerror = makeHandler(aValue); },
   get onerror() { return gXHR._onerror; },
   _onload: null,
-  set onload(val) { gXHR._onload = makeHandler(val); },
+  set onload(aValue) { gXHR._onload = makeHandler(aValue); },
   get onload() { return gXHR._onload; },
-  addEventListener: function(event, val, capturing) {
-    eval("gXHR._on" + event + " = val");
+  addEventListener: function(aEvent, aValue, aCapturing) {
+    eval("gXHR._on" + aEvent + " = aValue");
   },
   flags: AUS_Ci.nsIClassInfo.SINGLETON,
   implementationLanguage: AUS_Ci.nsIProgrammingLanguage.JAVASCRIPT,
-  getHelperForLanguage: function(language) null,
-  getInterfaces: function(count) {
+  getHelperForLanguage: function(aLanguage) null,
+  getInterfaces: function(aCount) {
     var interfaces = [AUS_Ci.nsISupports];
-    count.value = interfaces.length;
+    aCount.value = interfaces.length;
     return interfaces;
   },
   classDescription: "XMLHttpRequest",
   contractID: "@mozilla.org/xmlextras/xmlhttprequest;1",
   classID: Components.ID("{c9b37f43-4278-4304-a5e0-600991ab08cb}"),
-  createInstance: function (outer, aIID) {
-    if (outer == null)
+  createInstance: function(aOuter, aIID) {
+    if (aOuter == null)
       return gXHR.QueryInterface(aIID);
     throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
   },
@@ -1879,10 +2227,17 @@ xhr.prototype = {
   get wrappedJSObject() { return this; }
 };
 
-function overrideUpdatePrompt(callback) {
+
+
+
+
+
+
+
+function overrideUpdatePrompt(aCallback) {
   var registrar = Components.manager.QueryInterface(AUS_Ci.nsIComponentRegistrar);
   gUpdatePrompt = new UpdatePrompt();
-  gUpdatePromptCallback = callback;
+  gUpdatePromptCallback = aCallback;
   registrar.registerFactory(gUpdatePrompt.classID, gUpdatePrompt.classDescription,
                             gUpdatePrompt.contractID, gUpdatePrompt);
 }
@@ -1891,13 +2246,13 @@ function UpdatePrompt() {
   var fns = ["checkForUpdates", "showUpdateAvailable", "showUpdateDownloaded",
              "showUpdateError", "showUpdateHistory", "showUpdateInstalled"];
 
-  fns.forEach(function(promptFn) {
-    UpdatePrompt.prototype[promptFn] = function() {
+  fns.forEach(function(aPromptFn) {
+    UpdatePrompt.prototype[aPromptFn] = function() {
       if (!gUpdatePromptCallback) {
         return;
       }
 
-      var callback = gUpdatePromptCallback[promptFn];
+      var callback = gUpdatePromptCallback[aPromptFn];
       if (!callback) {
         return;
       }
@@ -1911,17 +2266,17 @@ function UpdatePrompt() {
 UpdatePrompt.prototype = {
   flags: AUS_Ci.nsIClassInfo.SINGLETON,
   implementationLanguage: AUS_Ci.nsIProgrammingLanguage.JAVASCRIPT,
-  getHelperForLanguage: function(language) null,
-  getInterfaces: function(count) {
+  getHelperForLanguage: function(aLanguage) null,
+  getInterfaces: function(aCount) {
     var interfaces = [AUS_Ci.nsISupports, AUS_Ci.nsIUpdatePrompt];
-    count.value = interfaces.length;
+    aCount.value = interfaces.length;
     return interfaces;
   },
   classDescription: "UpdatePrompt",
   contractID: "@mozilla.org/updates/update-prompt;1",
   classID: Components.ID("{8c350a15-9b90-4622-93a1-4d320308664b}"),
-  createInstance: function (outer, aIID) {
-    if (outer == null)
+  createInstance: function(aOuter, aIID) {
+    if (aOuter == null)
       return gUpdatePrompt.QueryInterface(aIID);
     throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
   },
@@ -1935,34 +2290,32 @@ UpdatePrompt.prototype = {
 };
 
 
-
-
 const updateCheckListener = {
-  onProgress: function UCL_onProgress(request, position, totalSize) {
+  onProgress: function UCL_onProgress(aRequest, aPosition, aTotalSize) {
   },
 
-  onCheckComplete: function UCL_onCheckComplete(request, updates, updateCount) {
-    gRequestURL = request.channel.originalURI.spec;
-    gUpdateCount = updateCount;
-    gUpdates = updates;
+  onCheckComplete: function UCL_onCheckComplete(aRequest, aUpdates, aUpdateCount) {
+    gRequestURL = aRequest.channel.originalURI.spec;
+    gUpdateCount = aUpdateCount;
+    gUpdates = aUpdates;
     logTestInfo("url = " + gRequestURL + ", " +
-                "request.status = " + request.status + ", " +
-                "update.statusText = " + request.statusText + ", " +
-                "updateCount = " + updateCount);
+                "request.status = " + aRequest.status + ", " +
+                "update.statusText = " + aRequest.statusText + ", " +
+                "updateCount = " + aUpdateCount);
     
     do_execute_soon(gCheckFunc);
   },
 
-  onError: function UCL_onError(request, update) {
-    gRequestURL = request.channel.originalURI.spec;
-    gStatusCode = request.status;
+  onError: function UCL_onError(aRequest, aUpdate) {
+    gRequestURL = aRequest.channel.originalURI.spec;
+    gStatusCode = aRequest.status;
 
-    gStatusText = update.statusText;
+    gStatusText = aUpdate.statusText;
     logTestInfo("url = " + gRequestURL + ", " +
                 "request.status = " + gStatusCode + ", " +
                 "update.statusText = " + gStatusText);
     
-    do_execute_soon(gCheckFunc.bind(null, request, update));
+    do_execute_soon(gCheckFunc.bind(null, aRequest, aUpdate));
   },
 
   QueryInterface: function(aIID) {
@@ -1975,17 +2328,17 @@ const updateCheckListener = {
 
 
 const downloadListener = {
-  onStartRequest: function DL_onStartRequest(request, context) {
+  onStartRequest: function DL_onStartRequest(aRequest, aContext) {
   },
 
-  onProgress: function DL_onProgress(request, context, progress, maxProgress) {
+  onProgress: function DL_onProgress(aRequest, aContext, aProgress, aMaxProgress) {
   },
 
-  onStatus: function DL_onStatus(request, context, status, statusText) {
+  onStatus: function DL_onStatus(aRequest, aContext, aStatus, aStatusText) {
   },
 
-  onStopRequest: function DL_onStopRequest(request, context, status) {
-    gStatusResult = status;
+  onStopRequest: function DL_onStopRequest(aRequest, aContext, aStatus) {
+    gStatusResult = aStatus;
     
     do_execute_soon(gCheckFunc);
   },
@@ -2004,14 +2357,14 @@ const downloadListener = {
 
 function start_httpserver() {
   let dir = getTestDirFile();
-  logTestInfo("http server file path: " + dir.path);
+  logTestInfo("http server directory path: " + dir.path);
 
   if (!dir.isDirectory()) {
     do_throw("A file instead of a directory was specified for HttpServer " +
-             "registerDirectory! path: " + dir.path + "\n");
+             "registerDirectory! Path: " + dir.path + "\n");
   }
 
-  Components.utils.import("resource://testing-common/httpd.js");
+  AUS_Cu.import("resource://testing-common/httpd.js");
   gTestserver = new HttpServer();
   gTestserver.registerDirectory("/", dir);
   gTestserver.start(-1);
@@ -2021,9 +2374,14 @@ function start_httpserver() {
 }
 
 
-function stop_httpserver(callback) {
-  do_check_true(!!callback);
-  gTestserver.stop(callback);
+
+
+
+
+
+function stop_httpserver(aCallback) {
+  do_check_true(!!aCallback);
+  gTestserver.stop(aCallback);
 }
 
 
@@ -2038,38 +2396,38 @@ function stop_httpserver(callback) {
 
 
 
-function createAppInfo(id, name, version, platformVersion) {
+function createAppInfo(aID, aName, aVersion, aPlatformVersion) {
   const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
   const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
   var XULAppInfo = {
     vendor: APP_INFO_VENDOR,
-    name: name,
-    ID: id,
-    version: version,
+    name: aName,
+    ID: aID,
+    version: aVersion,
     appBuildID: "2007010101",
-    platformVersion: platformVersion,
+    platformVersion: aPlatformVersion,
     platformBuildID: "2007010101",
     inSafeMode: false,
     logConsoleErrors: true,
     OS: "XPCShell",
     XPCOMABI: "noarch-spidermonkey",
 
-    QueryInterface: function QueryInterface(iid) {
-      if (iid.equals(AUS_Ci.nsIXULAppInfo) ||
-          iid.equals(AUS_Ci.nsIXULRuntime) ||
+    QueryInterface: function QueryInterface(aIID) {
+      if (aIID.equals(AUS_Ci.nsIXULAppInfo) ||
+          aIID.equals(AUS_Ci.nsIXULRuntime) ||
 #ifdef XP_WIN
-          iid.equals(AUS_Ci.nsIWinAppHelper) ||
+          aIID.equals(AUS_Ci.nsIWinAppHelper) ||
 #endif
-          iid.equals(AUS_Ci.nsISupports))
+          aIID.equals(AUS_Ci.nsISupports))
         return this;
       throw AUS_Cr.NS_ERROR_NO_INTERFACE;
     }
   };
 
   var XULAppInfoFactory = {
-    createInstance: function (outer, iid) {
-      if (outer == null)
-        return XULAppInfo.QueryInterface(iid);
+    createInstance: function (aOuter, aIID) {
+      if (aOuter == null)
+        return XULAppInfo.QueryInterface(aIID);
       throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
     }
   };
@@ -2099,17 +2457,15 @@ function createAppInfo(id, name, version, platformVersion) {
 
 
 
-
-
-
 function getProcessArgs(aExtraArgs) {
   if (!aExtraArgs) {
     aExtraArgs = [];
   }
 
-  
-  
-  let appConsoleLogPath = getAppConsoleLogPath();
+  let appBinPath = getApplyDirFile(FILE_APP_BIN, false).path;
+  if (/ /.test(appBinPath)) {
+    appBinPath = '"' + appBinPath + '"';
+  }
 
   let args;
   if (IS_UNIX) {
@@ -2118,39 +2474,17 @@ function getProcessArgs(aExtraArgs) {
     launchScript.create(AUS_Ci.nsILocalFile.NORMAL_FILE_TYPE, PERMS_DIRECTORY);
 
     let scriptContents = "#! /bin/sh\n";
-    scriptContents += gAppBinPath + " -no-remote -process-updates " +
-                      aExtraArgs.join(" ") + " 1> " +
-                      appConsoleLogPath + " 2>&1";
+    scriptContents += appBinPath + " -no-remote -process-updates " +
+                      aExtraArgs.join(" ") + " " + PIPE_TO_NULL;
     writeFile(launchScript, scriptContents);
     logTestInfo("created " + launchScript.path + " containing:\n" +
                 scriptContents);
     args = [launchScript.path];
-  }
-  else {
-    args = ["/D", "/Q", "/C", gAppBinPath, "-no-remote", "-process-updates"].
-           concat(aExtraArgs).
-           concat(["1>", appConsoleLogPath, "2>&1"]);
+  } else {
+    args = ["/D", "/Q", "/C", appBinPath, "-no-remote", "-process-updates"].
+           concat(aExtraArgs).concat(["1> nul 2>&1"]);
   }
   return args;
-}
-
-
-
-
-
-
-
-function getAppConsoleLogPath() {
-  let appConsoleLog = do_get_file("/", true);
-  appConsoleLog.append(gTestID + "_app_console_log");
-  if (appConsoleLog.exists()) {
-    appConsoleLog.remove(false);
-  }
-  let appConsoleLogPath = appConsoleLog.path;
-  if (/ /.test(appConsoleLogPath)) {
-    appConsoleLogPath = '"' + appConsoleLogPath + '"';
-  }
-  return appConsoleLogPath;
 }
 
 
@@ -2191,248 +2525,134 @@ function getLaunchScript() {
 
 
 
-
-
-
-
-XPCOMUtils.defineLazyGetter(this, "gAppBinPath", function test_gAppBinPath() {
-  let processDir = getAppDir();
-  let appBin = processDir.clone();
-  appBin.append(APP_BIN_NAME + APP_BIN_SUFFIX);
-  if (appBin.exists()) {
-    if (IS_WIN) {
-      let appBinCopy = processDir.clone();
-      appBinCopy.append(gTestID + FILE_WIN_TEST_EXE);
-      if (appBinCopy.exists()) {
-        appBinCopy.remove(false);
-      }
-      appBin.copyTo(processDir, gTestID + FILE_WIN_TEST_EXE);
-      appBin = processDir.clone();
-      appBin.append(gTestID + FILE_WIN_TEST_EXE);
-    }
-    let appBinPath = appBin.path;
-    if (/ /.test(appBinPath)) {
-      appBinPath = '"' + appBinPath + '"';
-    }
-    return appBinPath;
-  }
-  return null;
-});
-
-
-
-
-
-function shouldAdjustPathsOnMac() {
-  return false;
-}
-
-
-
-function symlinkUpdateFilesIntoBundleDirectory() {
-  if (!shouldAdjustPathsOnMac()) {
-    return;
-  }
-  
-  
-  
-  
-  
-  
-
-  Components.utils.import("resource://gre/modules/ctypes.jsm");
-  let libc = ctypes.open("/usr/lib/libc.dylib");
-  
-  
-  let symlink = libc.declare("symlink", ctypes.default_abi, ctypes.int,
-                             ctypes.char.ptr, ctypes.char.ptr);
-  let unlink = libc.declare("unlink", ctypes.default_abi, ctypes.int,
-                            ctypes.char.ptr);
-
-  
-  let dest = getAppDir();
-  dest.append("active-update.xml");
-  if (!dest.exists()) {
-    dest.create(dest.NORMAL_FILE_TYPE, 0o644);
-  }
-  do_check_true(dest.exists());
-  let source = getUpdatesRootDir();
-  source.append("active-update.xml");
-  unlink(source.path);
-  let ret = symlink(dest.path, source.path);
-  do_check_eq(ret, 0);
-  do_check_true(source.exists());
-
-  
-  let dest2 = getAppDir();
-  dest2.append("updates");
-  if (dest2.exists()) {
-    dest2.remove(true);
-  }
-  dest2.create(dest.DIRECTORY_TYPE, 0o755);
-  do_check_true(dest2.exists());
-  let source2 = getUpdatesRootDir();
-  source2.append("updates");
-  if (source2.exists()) {
-    source2.remove(true);
-  }
-  ret = symlink(dest2.path, source2.path);
-  do_check_eq(ret, 0);
-  do_check_true(source2.exists());
-
-  
-  do_register_cleanup(function AUFIBD_cleanup() {
-    logTestInfo("start - unlinking symlinks");
-    let ret = unlink(source.path);
-    do_check_false(source.exists());
-    let ret = unlink(source2.path);
-    do_check_false(source2.exists());
-    logTestInfo("finish - unlinking symlinks");
-  });
-
-  
-  
-  
-  getUpdatesRootDir = getAppDir;
-}
-
-
-
-
-
-
-function adjustPathsOnWindows() {
-  logTestInfo("start - setup new process directory");
-  
-  
-  let tmpDir = do_get_profile();
-  tmpDir.append("ExecutableDir.tmp");
-  tmpDir.createUnique(tmpDir.DIRECTORY_TYPE, 0o755);
-  let procDir = getCurrentProcessDir();
-  logTestInfo("start - copy the process directory");
-  copyMinimumAppFiles(procDir, tmpDir, "bin");
-  logTestInfo("finish - copy the process directory");
-  let newDir = tmpDir.clone();
-  newDir.append("bin");
-  gWindowsBinDir = newDir;
-  logTestInfo("Using this new bin directory: " + gWindowsBinDir.path);
-  
-  
-
-  
-  
-  
+function adjustGeneralPaths() {
   let dirProvider = {
-    getFile: function DP_getFile(prop, persistent) {
-      persistent.value = true;
-      if (prop == NS_GRE_DIR)
-        return getAppDir();
+    getFile: function AGP_DP_getFile(aProp, aPersistent) {
+      aPersistent.value = true;
+      switch (aProp) {
+        case NS_GRE_DIR:
+          if (gUseTestAppDir) {
+            return getApplyDirFile(null, true);
+          }
+          break;
+        case XRE_EXECUTABLE_FILE:
+          if (gUseTestAppDir) {
+            return getApplyDirFile(FILE_APP_BIN, true);
+          }
+          break;
+        case XRE_UPDATE_ROOT_DIR:
+          return getMockUpdRootD();
+      }
       return null;
     },
-    QueryInterface: function(iid) {
-      if (iid.equals(AUS_Ci.nsIDirectoryServiceProvider) ||
-          iid.equals(AUS_Ci.nsISupports))
+    QueryInterface: function(aIID) {
+      if (aIID.equals(AUS_Ci.nsIDirectoryServiceProvider) ||
+          aIID.equals(AUS_Ci.nsISupports))
         return this;
       throw AUS_Cr.NS_ERROR_NO_INTERFACE;
     }
   };
   let ds = Services.dirsvc.QueryInterface(AUS_Ci.nsIDirectoryService);
   ds.QueryInterface(AUS_Ci.nsIProperties).undefine(NS_GRE_DIR);
+  ds.QueryInterface(AUS_Ci.nsIProperties).undefine(XRE_EXECUTABLE_FILE);
   ds.registerProvider(dirProvider);
-  do_register_cleanup(function APOW_cleanup() {
+  do_register_cleanup(function AGP_cleanup() {
     logTestInfo("start - unregistering directory provider");
+
+    if (gAppTimer) {
+      logTestInfo("start - cancel app timer");
+      gAppTimer.cancel();
+      gAppTimer = null;
+      logTestInfo("finish - cancel app timer");
+    }
+
+    if (gProcess && gProcess.isRunning) {
+      logTestInfo("start - kill process");
+      try {
+        gProcess.kill();
+      } catch (e) {
+        logTestInfo("kill process failed. Exception: " + e);
+      }
+      gProcess = null;
+      logTestInfo("finish - kill process");
+    }
+
+    if (gHandle) {
+      try {
+        logTestInfo("start - closing handle");
+        let kernel32 = ctypes.open("kernel32");
+        let CloseHandle = kernel32.declare("CloseHandle", ctypes.default_abi,
+                                           ctypes.bool, 
+                                           ctypes.voidptr_t );
+        if (!CloseHandle(gHandle)) {
+          logTestInfo("call to CloseHandle failed");
+        }
+        kernel32.close();
+        gHandle = null;
+        logTestInfo("finish - closing handle");
+      } catch (e) {
+        logTestInfo("call to CloseHandle failed. Exception: " + e);
+      }
+    }
+
+    
+    if (typeof(end_test) == typeof(Function)) {
+      logTestInfo("calling end_test");
+      end_test();
+    }
+
     ds.unregisterProvider(dirProvider);
+    cleanupTestCommon();
+
     logTestInfo("finish - unregistering directory provider");
   });
-  logTestInfo("finish - setup new process directory");
-}
-
-let gWindowsBinDir = null;
-
-
-
-
-
-function adjustGeneralPaths() {
-  let dirProvider = {
-    getFile: function DP_getFile(prop, persistent) {
-      persistent.value = true;
-      if (prop == XRE_EXECUTABLE_FILE)
-        return do_get_file(getApplyDirPath() + "test" + APP_BIN_SUFFIX, true);
-      if (prop == XRE_UPDATE_ROOT_DIR)
-        return do_get_file(getApplyDirPath(), true);
-      return null;
-    },
-    QueryInterface: function(iid) {
-      if (iid.equals(AUS_Ci.nsIDirectoryServiceProvider) ||
-          iid.equals(AUS_Ci.nsISupports))
-        return this;
-      throw AUS_Cr.NS_ERROR_NO_INTERFACE;
-    }
-  };
-  let ds = Services.dirsvc.QueryInterface(AUS_Ci.nsIDirectoryService);
-  ds.registerProvider(dirProvider);
-  do_register_cleanup(function() {
-    
-    end_test();
-    ds.unregisterProvider(dirProvider);
-    let testBin = do_get_file(getApplyDirPath() + "test" + APP_BIN_SUFFIX, true);
-    
-    if (testBin.exists()) {
-      try {
-        testBin.remove(false);
-      }
-      catch (e) {
-        dump("Unable to remove file\n" +
-             "path: " + testBin.path + "\n" +
-             "Exception: " + e + "\n");
-      }
-    }
-    let testDir = do_get_file(getApplyDirPath(), true).parent;
-    
-    
-    if (testDir.exists()) {
-      try {
-        removeDirRecursive(testDir);
-      }
-      catch (e) {
-        dump("Unable to remove directory\n" +
-             "path: " + testDir.path + "\n" +
-             "Exception: " + e + "\n");
-      }
-    }
-  });
 }
 
 
 
 
 
-function getAppDir() {
-  let dir = getCurrentProcessDir();
-  if (shouldAdjustPathsOnMac()) {
-    
-    dir = dir.parent;
-    dir.append(BUNDLE_NAME);
-    dir.append("Contents");
-    dir.append("MacOS");
-  } else if (IS_WIN && gWindowsBinDir) {
-    dir = gWindowsBinDir.clone();
+function launchAppToApplyUpdate() {
+  logTestInfo("start - launching application to apply update");
+
+  let appBin = getApplyDirFile(FILE_APP_BIN, false);
+
+  if (typeof(customLaunchAppToApplyUpdate) == typeof(Function)) {
+    customLaunchAppToApplyUpdate();
   }
-  return dir;
+
+  let launchBin = getLaunchBin();
+  let args = getProcessArgs();
+  logTestInfo("launching " + launchBin.path + " " + args.join(" "));
+
+  gProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                createInstance(AUS_Ci.nsIProcess);
+  gProcess.init(launchBin);
+
+  gAppTimer = AUS_Cc["@mozilla.org/timer;1"].createInstance(AUS_Ci.nsITimer);
+  gAppTimer.initWithCallback(gTimerCallback, APP_TIMER_TIMEOUT,
+                             AUS_Ci.nsITimer.TYPE_ONE_SHOT);
+
+  setEnvironment();
+  logTestInfo("launching application");
+  gProcess.runAsync(args, args.length, gProcessObserver);
+  resetEnvironment();
+
+  logTestInfo("finish - launching application to apply update");
 }
 
 
 
 
 let gProcessObserver = {
-  observe: function PO_observe(subject, topic, data) {
-    logTestInfo("topic " + topic + ", process exitValue " + gProcess.exitValue);
+  observe: function PO_observe(aSubject, aTopic, aData) {
+    logTestInfo("topic: " + aTopic + ", process exitValue: " +
+                gProcess.exitValue);
     if (gAppTimer) {
       gAppTimer.cancel();
       gAppTimer = null;
     }
-    if (topic != "process-finished" || gProcess.exitValue != 0) {
+    if (aTopic != "process-finished" || gProcess.exitValue != 0) {
       do_throw("Failed to launch application");
     }
     do_timeout(TEST_CHECK_TIMEOUT, checkUpdateFinished);
@@ -2447,6 +2667,7 @@ let gTimerCallback = {
   notify: function TC_notify(aTimer) {
     gAppTimer = null;
     if (gProcess.isRunning) {
+      logTestInfo("attempt to kill process");
       gProcess.kill();
     }
     do_throw("launch application timer expired");
@@ -2466,17 +2687,6 @@ let gUpdateStagedObserver = {
   },
   QueryInterface: XPCOMUtils.generateQI([AUS_Ci.nsIObserver])
 };
-
-
-let gShouldResetEnv = undefined;
-let gAddedEnvXRENoWindowsCrashDialog = false;
-let gEnvXPCOMDebugBreak;
-let gEnvXPCOMMemLeakLog;
-let gEnvDyldLibraryPath;
-let gEnvLdLibraryPath;
-let gEnvUpdateRootOverride = null;
-let gEnvAppDirOverride = null;
-let gEnvSKipUpdateDirHashing = false;
 
 
 
@@ -2499,7 +2709,7 @@ function setEnvironment() {
   }
 
   if (IS_UNIX) {
-    let appGreDir = Services.dirsvc.get("GreD", AUS_Ci.nsIFile);
+    let appGreDir = gGREDirOrig.clone();
     let envGreDir = AUS_Cc["@mozilla.org/file/local;1"].
                     createInstance(AUS_Ci.nsILocalFile);
     let shouldSetEnv = true;
@@ -2518,8 +2728,7 @@ function setEnvironment() {
                     appGreDir.path);
         env.set("DYLD_LIBRARY_PATH", appGreDir.path);
       }
-    }
-    else {
+    } else {
       if (env.exists("LD_LIBRARY_PATH")) {
         gEnvLdLibraryPath = env.get("LD_LIBRARY_PATH");
         envGreDir.initWithPath(gEnvLdLibraryPath);
@@ -2548,33 +2757,16 @@ function setEnvironment() {
     gEnvXPCOMDebugBreak = env.get("XPCOM_DEBUG_BREAK");
     logTestInfo("setting the XPCOM_DEBUG_BREAK environment variable to " +
                 "warn... previous value " + gEnvXPCOMDebugBreak);
-  }
-  else {
+  } else {
     logTestInfo("setting the XPCOM_DEBUG_BREAK environment variable to " +
                 "warn... previously it didn't exist");
   }
 
   env.set("XPCOM_DEBUG_BREAK", "warn");
 
-  if (IS_WIN && gEnvSKipUpdateDirHashing) {
-    env.set("MOZ_UPDATE_NO_HASH_DIR", "1");
-  }
-
-  if (gEnvUpdateRootOverride) {
-    logTestInfo("setting the MOZ_UPDATE_ROOT_OVERRIDE environment variable to " +
-                gEnvUpdateRootOverride + "\n");
-    env.set("MOZ_UPDATE_ROOT_OVERRIDE", gEnvUpdateRootOverride);
-  }
-
-  if (gEnvAppDirOverride) {
-    logTestInfo("setting the MOZ_UPDATE_APPDIR_OVERRIDE environment variable to " +
-                gEnvAppDirOverride + "\n");
-    env.set("MOZ_UPDATE_APPDIR_OVERRIDE", gEnvAppDirOverride);
-  }
-
-  if (gBackgroundUpdate) {
-    logTestInfo("setting the MOZ_UPDATE_BACKGROUND environment variable to 1\n");
-    env.set("MOZ_UPDATE_BACKGROUND", "1");
+  if (gStageUpdate) {
+    logTestInfo("setting the MOZ_UPDATE_STAGING environment variable to 1\n");
+    env.set("MOZ_UPDATE_STAGING", "1");
   }
 
   logTestInfo("setting MOZ_NO_SERVICE_FALLBACK environment variable to 1");
@@ -2605,8 +2797,7 @@ function resetEnvironment() {
     logTestInfo("setting the XPCOM_DEBUG_BREAK environment variable back to " +
                 gEnvXPCOMDebugBreak);
     env.set("XPCOM_DEBUG_BREAK", gEnvXPCOMDebugBreak);
-  }
-  else {
+  } else {
     logTestInfo("clearing the XPCOM_DEBUG_BREAK environment variable");
     env.set("XPCOM_DEBUG_BREAK", "");
   }
@@ -2617,19 +2808,16 @@ function resetEnvironment() {
         logTestInfo("setting DYLD_LIBRARY_PATH environment variable value " +
                     "back to " + gEnvDyldLibraryPath);
         env.set("DYLD_LIBRARY_PATH", gEnvDyldLibraryPath);
-      }
-      else {
+      } else {
         logTestInfo("removing DYLD_LIBRARY_PATH environment variable");
         env.set("DYLD_LIBRARY_PATH", "");
       }
-    }
-    else {
+    } else {
       if (gEnvLdLibraryPath) {
         logTestInfo("setting LD_LIBRARY_PATH environment variable value back " +
                     "to " + gEnvLdLibraryPath);
         env.set("LD_LIBRARY_PATH", gEnvLdLibraryPath);
-      }
-      else {
+      } else {
         logTestInfo("removing LD_LIBRARY_PATH environment variable");
         env.set("LD_LIBRARY_PATH", "");
       }
@@ -2642,21 +2830,9 @@ function resetEnvironment() {
     env.set("XRE_NO_WINDOWS_CRASH_DIALOG", "");
   }
 
-  if (gEnvUpdateRootOverride) {
-    logTestInfo("removing the MOZ_UPDATE_ROOT_OVERRIDE environment variable\n");
-    env.set("MOZ_UPDATE_ROOT_OVERRIDE", "");
-    gEnvUpdateRootOverride = null;
-  }
-
-  if (gEnvAppDirOverride) {
-    logTestInfo("removing the MOZ_UPDATE_APPDIR_OVERRIDE environment variable\n");
-    env.set("MOZ_UPDATE_APPDIR_OVERRIDE", "");
-    gEnvAppDirOverride = null;
-  }
-
-  if (gBackgroundUpdate) {
-    logTestInfo("removing the MOZ_UPDATE_BACKGROUND environment variable\n");
-    env.set("MOZ_UPDATE_BACKGROUND", "");
+  if (gStageUpdate) {
+    logTestInfo("removing the MOZ_UPDATE_STAGING environment variable\n");
+    env.set("MOZ_UPDATE_STAGING", "");
   }
 
   logTestInfo("removing MOZ_NO_SERVICE_FALLBACK environment variable");

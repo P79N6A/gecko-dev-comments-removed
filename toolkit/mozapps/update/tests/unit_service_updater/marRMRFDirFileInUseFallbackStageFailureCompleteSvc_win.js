@@ -192,10 +192,8 @@ function run_test() {
     return;
   }
 
-  setupTestCommon(false);
-  do_register_cleanup(cleanupUpdaterTest);
-
-  gBackgroundUpdate = true;
+  gStageUpdate = true;
+  setupTestCommon();
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
   let fileInUseBin = getApplyDirFile(TEST_DIRS[4].relPathDir +
@@ -217,33 +215,34 @@ function run_test() {
   fileInUseProcess.init(fileInUseBin);
   fileInUseProcess.run(false, args, args.length);
 
+  setupAppFilesAsync();
+}
+
+function setupAppFilesFinished() {
   do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
 }
 
 function doUpdate() {
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED, checkUpdateApplied);
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_APPLIED);
+}
+
+function checkUpdateFinished() {
+  logTestInfo("testing update.status should be " + STATE_APPLIED);
+  do_check_eq(readStatusState(), STATE_APPLIED);
+
+  
+  gStageUpdate = false;
+  gSwitchApp = true;
+  runUpdate(1);
 }
 
 function checkUpdateApplied() {
-  logTestInfo("testing update.status should be " + STATE_APPLIED);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  do_check_eq(readStatusFile(updatesDir), STATE_APPLIED);
-
-  
-  gBackgroundUpdate = false;
-  gSwitchApp = true;
-  exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for failure when " +
-              "switching to the updated application");
-  do_check_eq(exitValue, 1);
-
   setupHelperFinish();
 }
 
 function checkUpdate() {
   logTestInfo("testing update.status should be " + STATE_PENDING);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  do_check_eq(readStatusFile(updatesDir), STATE_PENDING);
+  do_check_eq(readStatusState(), STATE_PENDING);
 
   checkFilesAfterUpdateFailure(getApplyDirFile);
   checkUpdateLogContains(ERR_RENAME_FILE);

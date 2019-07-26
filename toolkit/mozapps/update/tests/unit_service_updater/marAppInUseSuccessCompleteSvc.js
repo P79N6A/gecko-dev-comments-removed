@@ -232,9 +232,7 @@ function run_test() {
     return;
   }
 
-  setupTestCommon(false);
-  do_register_cleanup(cleanupUpdaterTest);
-
+  setupTestCommon();
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
   
@@ -246,6 +244,10 @@ function run_test() {
   callbackAppProcess.init(callbackApp);
   callbackAppProcess.run(false, args, args.length);
 
+  setupAppFilesAsync();
+}
+
+function setupAppFilesFinished() {
   do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
 }
 
@@ -261,21 +263,17 @@ function doUpdate() {
     applyToDir.lastModifiedTime = yesterday;
   }
 
-  
-  runUpdateUsingService(STATE_PENDING_SVC, STATE_SUCCEEDED, checkUpdateApplied);
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_SUCCEEDED);
 }
 
-function checkUpdateApplied() {
+function checkUpdateFinished() {
   setupHelperFinish();
 }
 
 function checkUpdate() {
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
+  do_check_eq(readStatusState(), STATE_SUCCEEDED);
 
-  
-  
   if (IS_MACOSX) {
     logTestInfo("testing last modified time on the apply to directory has " +
                 "changed after a successful update (bug 600098)");
@@ -286,7 +284,10 @@ function checkUpdate() {
   }
 
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
+  
+  if (!IS_UNIX) {
+    checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
+  }
 
   if (IS_WIN) {
     logTestInfo("testing tobedeleted directory doesn't exist");
@@ -296,4 +297,3 @@ function checkUpdate() {
 
   checkCallbackServiceLog();
 }
-

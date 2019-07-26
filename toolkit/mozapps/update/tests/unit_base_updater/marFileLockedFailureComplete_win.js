@@ -182,8 +182,7 @@ ADDITIONAL_TEST_DIRS = [
 }];
 
 function run_test() {
-  setupTestCommon(true);
-
+  setupTestCommon();
   setupUpdaterTest(FILE_COMPLETE_MAR);
 
   
@@ -206,21 +205,16 @@ function run_test() {
 }
 
 function doUpdate() {
-  
-  let exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for failure when " +
-              "applying a complete mar");
-  do_check_eq(exitValue, 1);
+  runUpdate(1);
+}
 
+function checkUpdateApplied() {
   setupHelperFinish();
 }
 
 function checkUpdate() {
   logTestInfo("testing update.status should be " + STATE_FAILED);
-  let updatesDir = do_get_file(gTestID + UPDATES_DIR_SUFFIX);
-  
-  
-  do_check_eq(readStatusFile(updatesDir).split(": ")[0], STATE_FAILED);
+  do_check_eq(readStatusState(), STATE_FAILED);
 
   checkFilesAfterUpdateFailure();
   checkUpdateLogContains(ERR_RENAME_FILE);
@@ -230,8 +224,4 @@ function checkUpdate() {
   do_check_false(toBeDeletedDir.exists());
 
   checkCallbackAppLog();
-}
-
-function end_test() {
-  cleanupUpdaterTest();
 }

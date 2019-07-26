@@ -7,7 +7,10 @@ var gNextRunFunc;
 var gExpectedStatusResult;
 
 function run_test() {
-  setupTestCommon(true);
+  
+  
+  gUseTestAppDir = false;
+  setupTestCommon();
 
   logTestInfo("testing mar download and mar hash verification");
 
@@ -26,10 +29,6 @@ function finish_test() {
   stop_httpserver(do_test_finished);
 }
 
-function end_test() {
-  cleanupTestCommon();
-}
-
 
 
 function callHandleEvent() {
@@ -39,8 +38,7 @@ function callHandleEvent() {
     var parser = AUS_Cc["@mozilla.org/xmlextras/domparser;1"].
                  createInstance(AUS_Ci.nsIDOMParser);
     gXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
-  }
-  catch(e) {
+  } catch(e) {
   }
   var e = { target: gXHR };
   gXHR.onload(e);
