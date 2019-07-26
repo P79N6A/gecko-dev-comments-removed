@@ -363,17 +363,6 @@ const PanelUI = {
     }
   },
 
-  
-
-
-  onCharsetCustomizeCommand: function() {
-    this.hide();
-    window.openDialog("chrome://global/content/customizeCharset.xul",
-                      "PrefWindow",
-                      "chrome,modal=yes,resizable=yes",
-                      "browser");
-  },
-
   onWidgetAfterDOMChange: function(aNode, aNextNode, aContainer, aWasRemoval) {
     if (aContainer != this.contents) {
       return;
