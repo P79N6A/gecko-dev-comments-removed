@@ -82,6 +82,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
 XPCOMUtils.defineLazyServiceGetter(this, "idleService",
                                    "@mozilla.org/widget/idleservice;1",
                                    "nsIIdleService");
+XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
+                                  "resource://gre/modules/UpdateChannel.jsm");
 
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
@@ -141,42 +143,6 @@ function getSimpleMeasurements() {
     ret.shutdownDuration = shutdownDuration;
 
   return ret;
-}
-
-
-
-
-
-
-function getUpdateChannel() {
-  var channel = "default";
-  var prefName;
-  var prefValue;
-
-  var defaults = Services.prefs.getDefaultBranch(null);
-  try {
-    channel = defaults.getCharPref("app.update.channel");
-  } catch (e) {
-    
-  }
-
-  try {
-    var partners = Services.prefs.getChildList("app.partner.");
-    if (partners.length) {
-      channel += "-cck";
-      partners.sort();
-
-      for each (prefName in partners) {
-        prefValue = Services.prefs.getCharPref(prefName);
-        channel += "-" + prefValue;
-      }
-    }
-  }
-  catch (e) {
-    Cu.reportError(e);
-  }
-
-  return channel;
 }
 
 
@@ -359,7 +325,7 @@ TelemetryPing.prototype = {
       appVersion: ai.version,
       appName: ai.name,
       appBuildID: ai.appBuildID,
-      appUpdateChannel: getUpdateChannel(),
+      appUpdateChannel: UpdateChannel.get(),
       platformBuildID: ai.platformBuildID,
       locale: getLocale()
     };
@@ -868,11 +834,18 @@ TelemetryPing.prototype = {
     let profileDirectory = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
     let directory = profileDirectory.clone();
     directory.append("saved-telemetry-pings");
-    try {
-      directory.create(Ci.nsIFile.DIRECTORY_TYPE, RWX_OWNER);
-    } catch (e) {
-      
+    if (directory.exists()) {
+      if (directory.isDirectory()) {
+        
+        
+        directory.permissions = RWX_OWNER;
+        return directory;
+      } else {
+        directory.remove(true);
+      }
     }
+
+    directory.create(Ci.nsIFile.DIRECTORY_TYPE, RWX_OWNER);
     return directory;
   },
 

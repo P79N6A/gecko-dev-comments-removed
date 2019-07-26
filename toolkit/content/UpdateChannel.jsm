@@ -1,0 +1,40 @@
+
+
+
+
+const EXPORTED_SYMBOLS = ["UpdateChannel"];
+
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
+let UpdateChannel = {
+  
+
+
+
+
+  get: function UpdateChannel_get() {
+    let channel = "default";
+    let defaults = Services.prefs.getDefaultBranch(null);
+    try {
+      channel = defaults.getCharPref("app.update.channel");
+    } catch (e) {
+      
+    }
+
+    try {
+      let partners = Services.prefs.getChildList("app.partner.").sort();
+      if (partners.length) {
+        channel += "-cck";
+        partners.forEach(function (prefName) {
+          channel += "-" + Services.prefs.getCharPref(prefName);
+        });
+      }
+    } catch (e) {
+      Cu.reportError(e);
+    }
+
+    return channel;
+  }
+};
