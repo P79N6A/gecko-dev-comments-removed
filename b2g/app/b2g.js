@@ -83,6 +83,10 @@ pref("network.http.max-persistent-connections-per-server", 6);
 pref("network.http.max-persistent-connections-per-proxy", 20);
 
 
+
+pref("network.cookie.cookieBehavior", 0);
+
+
 pref("network.http.spdy.push-allowance", 32768);
 
 
