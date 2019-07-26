@@ -956,6 +956,9 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
 
+
+
+
     Property **propertySet;
 
     
