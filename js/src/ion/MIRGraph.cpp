@@ -654,9 +654,9 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
 
     
-    for (uint32_t i = 0; i < pred->stackDepth(); i++) {
-        MPhi *entryDef = entryResumePoint()->getOperand(i)->toPhi();
-        MDefinition *exitDef = pred->slots_[i];
+    for (MPhiIterator phi = phisBegin(); phi != phisEnd(); phi++) {
+        MPhi *entryDef = *phi;
+        MDefinition *exitDef = pred->slots_[entryDef->slot()];
 
         
         JS_ASSERT(entryDef->block() == this);
@@ -675,7 +675,8 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
         if (!entryDef->addInput(exitDef))
             return false;
 
-        setSlot(i, entryDef);
+        JS_ASSERT(entryDef->slot() < pred->stackDepth());
+        setSlot(entryDef->slot(), entryDef);
     }
 
     
