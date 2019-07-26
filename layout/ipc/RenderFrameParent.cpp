@@ -780,7 +780,8 @@ RenderFrameParent::ContentViewScaleChanged(nsContentView* aView)
 void
 RenderFrameParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
                                        const TargetConfig& aTargetConfig,
-                                       bool isFirstPaint)
+                                       bool aIsFirstPaint,
+                                       bool aScheduleComposite)
 {
   
   

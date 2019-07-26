@@ -88,6 +88,7 @@ public:
   virtual bool RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
                                 SurfaceDescriptor* aOutSnapshot);
   virtual bool RecvFlushRendering() MOZ_OVERRIDE;
+  virtual bool RecvForceComposite() MOZ_OVERRIDE;
 
   virtual bool RecvNotifyRegionInvalidated(const nsIntRegion& aRegion) MOZ_OVERRIDE;
   virtual bool RecvStartFrameTimeRecording(const int32_t& aBufferSize, uint32_t* aOutStartIndex) MOZ_OVERRIDE;
@@ -97,7 +98,8 @@ public:
 
   virtual void ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
                                    const TargetConfig& aTargetConfig,
-                                   bool isFirstPaint) MOZ_OVERRIDE;
+                                   bool aIsFirstPaint,
+                                   bool aScheduleComposite) MOZ_OVERRIDE;
   
 
 
@@ -122,7 +124,7 @@ public:
   bool ScheduleResumeOnCompositorThread(int width, int height);
 
   virtual void ScheduleComposition();
-  void NotifyShadowTreeTransaction(uint64_t aId, bool aIsFirstPaint);
+  void NotifyShadowTreeTransaction(uint64_t aId, bool aIsFirstPaint, bool aScheduleComposite);
 
   
 

@@ -1205,8 +1205,21 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   layerManager->SetRoot(root);
   layerBuilder->WillEndTransaction();
   bool temp = aBuilder->SetIsCompositingCheap(layerManager->IsCompositingCheap());
+  LayerManager::EndTransactionFlags flags = LayerManager::END_DEFAULT;
+  if (layerManager->NeedsWidgetInvalidation()) {
+    
+    
+    if (aBuilder->WillComputePluginGeometry()) {
+      flags = LayerManager::END_NO_REMOTE_COMPOSITE;
+    }
+  } else {
+    if (aFlags & PAINT_NO_COMPOSITE) {
+      flags = LayerManager::END_NO_COMPOSITE;
+    }
+  }
+
   layerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer,
-                               aBuilder, (aFlags & PAINT_NO_COMPOSITE) ? LayerManager::END_NO_COMPOSITE : LayerManager::END_DEFAULT);
+                               aBuilder, flags);
   aBuilder->SetIsCompositingCheap(temp);
   layerBuilder->DidEndTransaction();
 

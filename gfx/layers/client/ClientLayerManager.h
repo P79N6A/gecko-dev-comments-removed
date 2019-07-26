@@ -152,6 +152,8 @@ public:
   }
   bool NeedsComposite() const { return mNeedsComposite; }
 
+  virtual void Composite() MOZ_OVERRIDE;
+
 protected:
   enum TransactionPhase {
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
@@ -162,7 +164,7 @@ private:
   
 
 
-  void ForwardTransaction();
+  void ForwardTransaction(bool aScheduleComposite);
 
   
 

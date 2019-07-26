@@ -219,7 +219,8 @@ public:
   enum EndTransactionFlags {
     END_DEFAULT = 0,
     END_NO_IMMEDIATE_REDRAW = 1 << 0,  
-    END_NO_COMPOSITE = 1 << 1 
+    END_NO_COMPOSITE = 1 << 1, 
+    END_NO_REMOTE_COMPOSITE = 1 << 2 
   };
 
   FrameLayerBuilder* GetLayerBuilder() {
@@ -279,6 +280,13 @@ public:
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData,
                               EndTransactionFlags aFlags = END_DEFAULT) = 0;
+
+  
+
+
+
+
+  virtual void Composite() {}
 
   virtual bool HasShadowManagerInternal() const { return false; }
   bool HasShadowManager() const { return HasShadowManagerInternal(); }

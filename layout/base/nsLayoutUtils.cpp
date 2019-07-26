@@ -2376,8 +2376,29 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   }
 
   if (builder.WillComputePluginGeometry()) {
+    nsRefPtr<LayerManager> layerManager;
+    nsIWidget* widget = aFrame->GetNearestWidget();
+    if (widget) {
+      layerManager = widget->GetLayerManager();
+    }
+
     rootPresContext->ComputePluginGeometryUpdates(aFrame, &builder, &list);
+
+    
+    
+    
+    
+    if (layerManager && !layerManager->NeedsWidgetInvalidation()) {
+      rootPresContext->ApplyPluginGeometryUpdates();
+    }
+
+    
+    
+    if (layerManager) {
+      layerManager->Composite();
+    }
   }
+
 
   
   list.DeleteAll();
