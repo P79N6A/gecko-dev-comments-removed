@@ -78,6 +78,16 @@ nsIStringBundle *nsScriptSecurityManager::sStrBundle = nullptr;
 JSRuntime       *nsScriptSecurityManager::sRuntime   = 0;
 bool nsScriptSecurityManager::sStrictFileOriginPolicy = true;
 
+bool
+nsScriptSecurityManager::SubjectIsPrivileged()
+{
+    JSContext *cx = GetCurrentJSContext();
+    if (cx && xpc::IsUniversalXPConnectEnabled(cx))
+        return true;
+    bool isSystem = false;
+    return NS_SUCCEEDED(SubjectPrincipalIsSystem(&isSystem)) && isSystem;
+}
+
 
 
 
@@ -737,12 +747,7 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
 #ifdef DEBUG_CAPS_CheckPropertyAccessImpl
         printf("Cap:%s ", securityLevel.capability);
 #endif
-        bool capabilityEnabled = false;
-        rv = IsCapabilityEnabled(securityLevel.capability, &capabilityEnabled);
-        if (NS_FAILED(rv) || !capabilityEnabled)
-            rv = NS_ERROR_DOM_SECURITY_ERR;
-        else
-            rv = NS_OK;
+        rv = SubjectIsPrivileged() ? NS_OK : NS_ERROR_DOM_SECURITY_ERR;
     }
 
     if (NS_SUCCEEDED(rv))
@@ -1243,10 +1248,7 @@ nsScriptSecurityManager::CheckLoadURIFromScript(JSContext *cx, nsIURI *aURI)
         return NS_ERROR_FAILURE;
     if (isFile || isRes)
     {
-        bool enabled;
-        if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &enabled)))
-            return NS_ERROR_FAILURE;
-        if (enabled)
+        if (SubjectIsPrivileged())
             return NS_OK;
     }
 
@@ -2453,166 +2455,6 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
 #endif 
 
 
-NS_IMETHODIMP
-nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
-                                             bool *result)
-{
-    JSContext *cx = GetCurrentJSContext();
-    if (cx && (*result = xpc::IsUniversalXPConnectEnabled(cx)))
-        return NS_OK;
-    return SubjectPrincipalIsSystem(result);
-}
-
-void
-nsScriptSecurityManager::FormatCapabilityString(nsAString& aCapability)
-{
-    nsAutoString newcaps;
-    nsAutoString rawcap;
-    NS_NAMED_LITERAL_STRING(capdesc, "capdesc.");
-    int32_t pos;
-    int32_t index = kNotFound;
-    nsresult rv;
-
-    NS_ASSERTION(kNotFound == -1, "Basic constant changed, algorithm broken!");
-
-    do {
-        pos = index+1;
-        index = aCapability.FindChar(' ', pos);
-        rawcap = Substring(aCapability, pos,
-                           (index == kNotFound) ? index : index - pos);
-
-        nsXPIDLString capstr;
-        rv = sStrBundle->GetStringFromName(
-                            nsPromiseFlatString(capdesc+rawcap).get(),
-                            getter_Copies(capstr));
-        if (NS_SUCCEEDED(rv))
-            newcaps += capstr;
-        else
-        {
-            nsXPIDLString extensionCap;
-            const PRUnichar* formatArgs[] = { rawcap.get() };
-            rv = sStrBundle->FormatStringFromName(
-                                NS_LITERAL_STRING("ExtensionCapability").get(),
-                                formatArgs,
-                                ArrayLength(formatArgs),
-                                getter_Copies(extensionCap));
-            if (NS_SUCCEEDED(rv))
-                newcaps += extensionCap;
-            else
-                newcaps += rawcap;
-        }
-
-        newcaps += NS_LITERAL_STRING("\n");
-    } while (index != kNotFound);
-
-    aCapability = newcaps;
-}
-
-NS_IMETHODIMP
-nsScriptSecurityManager::RequestCapability(nsIPrincipal* aPrincipal,
-                                           const char *capability, int16_t* canEnable)
-{
-    if (NS_FAILED(aPrincipal->CanEnableCapability(capability, canEnable)))
-        return NS_ERROR_FAILURE;
-    
-    
-    if (*canEnable == nsIPrincipal::ENABLE_WITH_USER_PERMISSION)
-        *canEnable = nsIPrincipal::ENABLE_DENIED;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsScriptSecurityManager::EnableCapability(const char *capability)
-{
-    JSContext *cx = GetCurrentJSContext();
-    JSStackFrame *fp;
-
-    
-    if(PL_strlen(capability)>200)
-    {
-        static const char msg[] = "Capability name too long";
-        SetPendingException(cx, msg);
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    for (const char *ch = capability; *ch; ++ch)
-    {
-        if (!NS_IS_ALPHA(*ch) && *ch != ' ' && !NS_IS_DIGIT(*ch)
-            && *ch != '_' && *ch != '-' && *ch != '.')
-        {
-            static const char msg[] = "Invalid character in capability name";
-            SetPendingException(cx, msg);
-            return NS_ERROR_FAILURE;
-        }
-    }
-
-    nsresult rv;
-    nsIPrincipal* principal = GetPrincipalAndFrame(cx, &fp, &rv);
-    if (NS_FAILED(rv))
-        return rv;
-    if (!principal)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    void *annotation = JS_GetFrameAnnotation(cx, fp);
-    bool enabled;
-    if (NS_FAILED(principal->IsCapabilityEnabled(capability, annotation,
-                                                 &enabled)))
-        return NS_ERROR_FAILURE;
-    if (enabled)
-        return NS_OK;
-
-    int16_t canEnable;
-    if (NS_FAILED(RequestCapability(principal, capability, &canEnable)))
-        return NS_ERROR_FAILURE;
-
-    if (canEnable != nsIPrincipal::ENABLE_GRANTED)
-    {
-        nsAutoCString val;
-        bool hasCert;
-        nsresult rv;
-        principal->GetHasCertificate(&hasCert);
-        if (hasCert)
-            rv = principal->GetPrettyName(val);
-        else
-            rv = GetPrincipalDomainOrigin(principal, val);
-
-        if (NS_FAILED(rv))
-            return rv;
-
-        NS_ConvertUTF8toUTF16 location(val);
-        NS_ConvertUTF8toUTF16 cap(capability);
-        const PRUnichar *formatStrings[] = { location.get(), cap.get() };
-
-        nsXPIDLString message;
-        rv = sStrBundle->FormatStringFromName(NS_LITERAL_STRING("EnableCapabilityDenied").get(),
-                                              formatStrings,
-                                              ArrayLength(formatStrings),
-                                              getter_Copies(message));
-        if (NS_FAILED(rv))
-            return rv;
-
-        SetPendingException(cx, message.get());
-
-        return NS_ERROR_FAILURE; 
-    }
-    if (NS_FAILED(principal->EnableCapability(capability, &annotation)))
-        return NS_ERROR_FAILURE;
-    JS_SetTopFrameAnnotation(cx, annotation);
-    return NS_OK;
-}
-
-
 
 
 
@@ -2780,8 +2622,7 @@ nsScriptSecurityManager::CheckXPCPermissions(JSContext* cx,
                                              const char* aObjectSecurityLevel)
 {
     
-    bool ok = false;
-    if (NS_SUCCEEDED(IsCapabilityEnabled("UniversalXPConnect", &ok)) && ok)
+    if (SubjectIsPrivileged())
         return NS_OK;
 
     
@@ -2827,9 +2668,7 @@ nsScriptSecurityManager::CheckXPCPermissions(JSContext* cx,
         }
         else if (PL_strcasecmp(aObjectSecurityLevel, "noAccess") != 0)
         {
-            bool canAccess = false;
-            if (NS_SUCCEEDED(IsCapabilityEnabled(aObjectSecurityLevel, &canAccess)) &&
-                canAccess)
+            if (SubjectIsPrivileged())
                 return NS_OK;
         }
     }
