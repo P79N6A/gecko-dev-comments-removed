@@ -1305,7 +1305,8 @@ js::CallOrConstructBoundFunction(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-        return ReportIsNotFunction(cx, ObjectValue(*fun), -1, CONSTRUCT);
+        RootedValue v(cx, ObjectValue(*fun));
+        return ReportIsNotFunction(cx, v, -1, CONSTRUCT);
     }
 
     
