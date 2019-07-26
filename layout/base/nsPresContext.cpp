@@ -806,10 +806,9 @@ nsPresContext::AppUnitsPerDevPixelChanged()
 
   mDeviceContext->FlushFontCache();
 
-  
   if (HasCachedStyleData()) {
-    MediaFeatureValuesChanged(true);
-    RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
+    
+    MediaFeatureValuesChanged(eAlwaysRebuildStyle, NS_STYLE_HINT_REFLOW);
   }
 }
 
@@ -1572,13 +1571,11 @@ nsPresContext::ThemeChangedInternal()
   nsCSSRuleProcessor::FreeSystemMetrics();
 
   
-  MediaFeatureValuesChanged(true);
-
   
   
   
   
-  RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
+  MediaFeatureValuesChanged(eAlwaysRebuildStyle, NS_STYLE_HINT_REFLOW);
 }
 
 void
@@ -1680,17 +1677,22 @@ nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
 }
 
 void
-nsPresContext::MediaFeatureValuesChanged(bool aCallerWillRebuildStyleData)
+nsPresContext::MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
+                                         nsChangeHint aChangeHint)
 {
+  NS_ASSERTION(aShouldRebuild == eAlwaysRebuildStyle || aChangeHint == 0,
+               "If you don't know if we need a rebuild, how can you provide a hint?");
+
   mPendingMediaFeatureValuesChanged = false;
 
   
   bool mediaFeaturesDidChange = mShell ? mShell->StyleSet()->MediumFeaturesChanged(this)
                                        : false;
 
-  if (!aCallerWillRebuildStyleData &&
-      (mediaFeaturesDidChange || (mUsesViewportUnits && mPendingViewportChange))) {
-    RebuildAllStyleData(nsChangeHint(0));
+  if (aShouldRebuild == eAlwaysRebuildStyle ||
+      mediaFeaturesDidChange ||
+      (mUsesViewportUnits && mPendingViewportChange)) {
+    RebuildAllStyleData(aChangeHint);
   }
 
   mPendingViewportChange = false;
@@ -1769,7 +1771,7 @@ nsPresContext::HandleMediaFeatureValuesChangedEvent()
   
   
   if (mPendingMediaFeatureValuesChanged && mShell) {
-    MediaFeatureValuesChanged(false);
+    MediaFeatureValuesChanged(eRebuildStyleIfNeeded);
   }
 }
 
