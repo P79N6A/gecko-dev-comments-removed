@@ -360,6 +360,9 @@ pref("media.video_stats.enabled", true);
 pref("media.audio_data.enabled", false);
 
 
+pref("layers.async-pan-zoom.enabled", false);
+
+
 
 
 
@@ -368,8 +371,16 @@ pref("apz.axis_lock_mode", 0);
 
 pref("apz.printtree", false);
 
+#ifdef XP_MACOSX
 
+pref("apz.subframe.enabled", true);
+pref("apz.fling_repaint_interval", 16);
+pref("apz.pan_repaint_interval", 16);
+pref("apz.apz.x_skate_size_multiplier", "2.5");
+pref("apz.apz.y_skate_size_multiplier", "3.5");
+#else
 pref("apz.subframe.enabled", false);
+#endif
 
 
 pref("apz.test.logging_enabled", false);
