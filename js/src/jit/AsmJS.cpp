@@ -1214,9 +1214,6 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
     bool init() {
-        if (!cx_->compartment()->ensureIonCompartmentExists(cx_))
-            return false;
-
         if (!globals_.init() || !exits_.init())
             return false;
 
@@ -1567,25 +1564,9 @@ class MOZ_STACK_CLASS ModuleCompiler
             return false;
 
         
-        
-        
-        size_t codeBytes = AlignBytes(masm_.bytesNeeded(), sizeof(double));
-        size_t totalBytes = codeBytes + module_->globalDataBytes();
-
-        
-        
-        size_t allocedBytes = totalBytes + AsmJSPageSize;
-
-        
-        JSC::ExecutableAllocator *execAlloc = cx_->compartment()->ionCompartment()->execAlloc();
-        JSC::ExecutablePool *pool;
-        uint8_t *unalignedBytes = (uint8_t*)execAlloc->alloc(allocedBytes, &pool, JSC::ASMJS_CODE);
-        if (!unalignedBytes)
+        uint8_t *code = module_->allocateCodeAndGlobalSegment(cx_, masm_.bytesNeeded());
+        if (!code)
             return false;
-        uint8_t *code = (uint8_t*)AlignBytes((uintptr_t)unalignedBytes, AsmJSPageSize);
-
-        
-        module_->takeOwnership(pool, code, codeBytes, totalBytes);
 
         
         masm_.executableCopy(code);
@@ -1622,14 +1603,14 @@ class MOZ_STACK_CLASS ModuleCompiler
         
         
         for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
-            AsmJSHeapAccess &access = module_->heapAccess(i);
-            access.setOffset(masm_.actualOffset(access.offset()));
+            AsmJSHeapAccess &a = module_->heapAccess(i);
+            a.setOffset(masm_.actualOffset(a.offset()));
         }
         JS_ASSERT(globalAccesses_.length() == 0);
 #else
         for (unsigned i = 0; i < globalAccesses_.length(); i++) {
-            AsmJSGlobalAccess access = globalAccesses_[i];
-            masm_.patchAsmJSGlobalAccess(access.offset, code, codeBytes, access.globalDataOffset);
+            AsmJSGlobalAccess a = globalAccesses_[i];
+            masm_.patchAsmJSGlobalAccess(a.offset, code, module_->globalData(), a.globalDataOffset);
         }
 #endif
 
@@ -1780,7 +1761,7 @@ class FunctionCompiler
         JS_ASSERT(locals_.count() == argTypes.length() + varInitializers_.length());
 
         alloc_  = lifo_.new_<TempAllocator>(&lifo_);
-        ionContext_.construct(m_.cx()->runtime(), m_.cx()->compartment(), alloc_);
+        ionContext_.construct(m_.cx(), alloc_);
 
         graph_  = lifo_.new_<MIRGraph>(alloc_);
         info_   = lifo_.new_<CompileInfo>(locals_.count(), SequentialExecution);
@@ -4862,7 +4843,7 @@ GenerateCodeForFinishedJob(ModuleCompiler &m, ParallelGroupState &group, AsmJSPa
 
     {
         
-        IonContext ionContext(m.cx()->runtime(), m.cx()->compartment(), &task->mir->temp());
+        IonContext ionContext(m.cx(), &task->mir->temp());
         if (!GenerateCode(m, func, *task->mir, *task->lir))
             return false;
     }
@@ -6223,7 +6204,7 @@ FinishModule(ModuleCompiler &m,
              ScopedJSFreePtr<char> *compilationTimeReport)
 {
     TempAllocator alloc(&m.cx()->tempLifoAlloc());
-    IonContext ionContext(m.cx()->runtime(), m.cx()->compartment(), &alloc);
+    IonContext ionContext(m.cx(), &alloc);
 
     if (!GenerateStubs(m))
         return false;
