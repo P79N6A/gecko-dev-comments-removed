@@ -1786,20 +1786,16 @@ nsGlobalWindow::EnsureScriptEnvironment()
                "mJSObject is null, but we have an inner window?");
 
   
-  nsresult rv = nsJSRuntime::Init();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   
-  
-  nsCOMPtr<nsIScriptContext> context = new nsJSContext(nsJSRuntime::sRuntime, !IsFrame(), this);
+  nsCOMPtr<nsIScriptContext> context = new nsJSContext(!IsFrame(), this);
 
   NS_ASSERTION(!mContext, "Will overwrite mContext!");
 
   
   context->WillInitializeContext();
 
-  rv = context->InitContext();
+  nsresult rv = context->InitContext();
   NS_ENSURE_SUCCESS(rv, rv);
 
   mContext = context;
