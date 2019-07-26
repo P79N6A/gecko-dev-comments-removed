@@ -306,6 +306,9 @@ public:
 
 
   bool HasWidget() const { return mWindow != nullptr; }
+  
+  void SetForcedRepaint(bool aForceRepaint) { mForcedRepaint = aForceRepaint; }
+  bool ForcedRepaint() { return mForcedRepaint; }
 
   
 
@@ -363,6 +366,7 @@ protected:
   float             mOpacity;
   uint32_t          mVFlags;
   bool              mWidgetIsTopLevel;
+  bool              mForcedRepaint;
 
   virtual ~nsIView() {}
 

@@ -175,16 +175,12 @@ public:
   nsPoint GetOffsetTo(const nsView* aOther, const int32_t aAPD) const;
   nsIWidget* GetNearestWidget(nsPoint* aOffset, const int32_t aAPD) const;
 
-  void SetForcedRepaint(bool aForceRepaint) { mForcedRepaint = aForceRepaint; }
-  bool ForcedRepaint() { return mForcedRepaint; }
-
 protected:
   
   
   void DoResetWidgetBounds(bool aMoveOnly, bool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
-  bool mForcedRepaint;
 
 private:
   void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);
