@@ -62,10 +62,7 @@ public:
   void UpdateTransportReadEvents(uint32_t count);
 
   
-  
   static const unsigned char kDictionary[1423];
-  static void *zlib_allocator(void *, uInt, uInt);
-  static void zlib_destructor(void *, void *);
 
   nsresult Uncompress(z_stream *, char *, uint32_t);
   nsresult ConvertHeaders(nsACString &);

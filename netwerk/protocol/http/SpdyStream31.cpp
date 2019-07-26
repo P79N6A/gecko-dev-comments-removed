@@ -1004,20 +1004,6 @@ const unsigned char SpdyStream31::kDictionary[] = {
 };
 
 
-void *
-SpdyStream31::zlib_allocator(void *opaque, uInt items, uInt size)
-{
-  return moz_xmalloc(items * size);
-}
-
-
-void
-SpdyStream31::zlib_destructor(void *opaque, void *addr)
-{
-  moz_free(addr);
-}
-
-
 nsresult
 SpdyStream31::Uncompress(z_stream *context,
                          char *blockStart,
