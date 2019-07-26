@@ -156,6 +156,8 @@ private:
   PRTime                                   mLastProgressUpdate;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel>                     mNewRedirectChannel;
+  nsCString                                mPartialValidator;
+  bool                                     mCacheBust;
 };
 
 nsIncrementalDownload::nsIncrementalDownload()
@@ -172,6 +174,7 @@ nsIncrementalDownload::nsIncrementalDownload()
   , mLastProgressUpdate(0)
   , mRedirectCallback(nullptr)
   , mNewRedirectChannel(nullptr)
+  , mCacheBust(false)  
 {
 }
 
@@ -282,6 +285,17 @@ nsIncrementalDownload::ProcessTimeout()
     rv = http->SetRequestHeader(NS_LITERAL_CSTRING("Range"), range, false);
     if (NS_FAILED(rv))
       return rv;
+
+    if (!mPartialValidator.IsEmpty())
+      http->SetRequestHeader(NS_LITERAL_CSTRING("If-Range"),
+                             mPartialValidator, false);
+
+    if (mCacheBust) {
+      http->SetRequestHeader(NS_LITERAL_CSTRING("Cache-Control"),
+                             NS_LITERAL_CSTRING("no-cache"), false);
+      http->SetRequestHeader(NS_LITERAL_CSTRING("Pragma"),
+                             NS_LITERAL_CSTRING("no-cache"), false);
+    }
   }
 
   rv = channel->AsyncOpen(this, nullptr);
@@ -565,6 +579,65 @@ nsIncrementalDownload::OnStartRequest(nsIRequest *request,
     
     
     mNonPartialCount = 0;
+
+    
+    
+    
+    if (!mCacheBust) {
+      nsAutoCString buf;
+      int64_t startByte = 0;
+      bool confirmedOK = false;
+
+      rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Content-Range"), buf);
+      if (NS_FAILED(rv))
+        return rv; 
+
+      
+      int32_t p = buf.Find("bytes ");
+
+      
+      
+      if (p != -1) {
+        char *endptr = nullptr;
+        const char *s = buf.get() + p + 6;
+        while (*s && *s == ' ')
+          s++;
+        startByte = strtol(s, &endptr, 10);
+
+        if (*s && endptr && (endptr != s) &&
+            (mCurrentSize == startByte)) {
+
+          
+          
+          
+          if (mTotalSize == int64_t(-1)) {
+            
+            confirmedOK = true;
+          } else {
+            int32_t slash = buf.FindChar('/');
+            int64_t rangeSize = 0;
+            if (slash != kNotFound &&
+                (PR_sscanf(buf.get() + slash + 1, "%lld", (int64_t *) &rangeSize) == 1) &&
+                rangeSize == mTotalSize) {
+              confirmedOK = true;
+            }
+          }
+        }
+      }
+
+      if (!confirmedOK) {
+        NS_WARNING("unexpected content-range");
+        mCacheBust = true;
+        mChannel = nullptr;
+        if (++mNonPartialCount > MAX_RETRY_COUNT) {
+          NS_WARNING("unable to fetch a byte range; giving up");
+          return NS_ERROR_FAILURE;
+        }
+        
+        StartTimer(mInterval * mNonPartialCount);
+        return NS_ERROR_DOWNLOAD_NOT_PARTIAL;
+      }
+    }
   }
 
   
@@ -573,6 +646,11 @@ nsIncrementalDownload::OnStartRequest(nsIRequest *request,
     rv = http->GetURI(getter_AddRefs(mFinalURI));
     if (NS_FAILED(rv))
       return rv;
+    http->GetResponseHeader(NS_LITERAL_CSTRING("Etag"), mPartialValidator);
+    if (StringBeginsWith(mPartialValidator, NS_LITERAL_CSTRING("W/")))
+      mPartialValidator.Truncate(); 
+    if (mPartialValidator.IsEmpty())
+      http->GetResponseHeader(NS_LITERAL_CSTRING("Last-Modified"), mPartialValidator);
 
     if (code == 206) {
       
@@ -776,6 +854,16 @@ nsIncrementalDownload::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   if (!rangeVal.IsEmpty()) {
     rv = newHttpChannel->SetRequestHeader(rangeHdr, rangeVal, false);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  mPartialValidator.Truncate();
+
+  if (mCacheBust) {
+    newHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Cache-Control"),
+                                     NS_LITERAL_CSTRING("no-cache"), false);
+    newHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Pragma"),
+                                     NS_LITERAL_CSTRING("no-cache"), false);
   }
 
   
