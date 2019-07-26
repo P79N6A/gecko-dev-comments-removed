@@ -508,8 +508,9 @@ class Build(MachCommandBase):
     def build_backend(self):
         
         
+        python = self.virtualenv_manager.python_path
         config_status = os.path.join(self.topobjdir, 'config.status')
-        return self._run_command_in_objdir(args=[config_status],
+        return self._run_command_in_objdir(args=[python, config_status],
             pass_thru=True, ensure_exit_code=False)
 
 
