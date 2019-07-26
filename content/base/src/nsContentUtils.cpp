@@ -2366,6 +2366,62 @@ nsContentUtils::NewURIWithDocumentCharset(nsIURI** aResult,
 }
 
 
+bool
+nsContentUtils::BelongsInForm(nsIContent *aForm,
+                              nsIContent *aContent)
+{
+  NS_PRECONDITION(aForm, "Must have a form");
+  NS_PRECONDITION(aContent, "Must have a content node");
+
+  if (aForm == aContent) {
+    
+
+    return false;
+  }
+
+  nsIContent* content = aContent->GetParent();
+
+  while (content) {
+    if (content == aForm) {
+      
+
+      return true;
+    }
+
+    if (content->Tag() == nsGkAtoms::form &&
+        content->IsHTML()) {
+      
+      
+
+      return false;
+    }
+
+    content = content->GetParent();
+  }
+
+  if (aForm->GetChildCount() > 0) {
+    
+    
+
+    return false;
+  }
+
+  
+  
+  
+  
+  if (PositionIsBefore(aForm, aContent)) {
+    
+    
+    
+    
+    return true;
+  }
+
+  return false;
+}
+
+
 nsresult
 nsContentUtils::CheckQName(const nsAString& aQualifiedName,
                            bool aNamespaceAware,
