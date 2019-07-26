@@ -38,7 +38,7 @@ public:
 
     cairo_pattern_t *CairoPattern();
     void AddColorStop(gfxFloat offset, const gfxRGBA& c);
-    void SetColorStops(mozilla::RefPtr<mozilla::gfx::GradientStops> aStops);
+    void SetColorStops(mozilla::gfx::GradientStops* aStops);
 
     
     

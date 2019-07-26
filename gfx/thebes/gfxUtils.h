@@ -240,19 +240,19 @@ public:
 
 
 
-    static void WriteAsPNG(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface, const char* aFile);
+    static void WriteAsPNG(mozilla::gfx::SourceSurface* aSourceSurface, const char* aFile);
 
     
 
 
 
-    static void DumpAsDataURL(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface);
+    static void DumpAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
 
     
 
 
 
-    static void CopyAsDataURL(mozilla::RefPtr<mozilla::gfx::SourceSurface> aSourceSurface);
+    static void CopyAsDataURL(mozilla::gfx::SourceSurface* aSourceSurface);
 #endif
 };
 
