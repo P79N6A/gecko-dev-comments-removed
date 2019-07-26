@@ -160,8 +160,7 @@ public:
   int GetChannels() { return mChannels; }
 
   
-  
-  bool EnsureTimeStretcherInitialized();
+  void EnsureTimeStretcherInitialized();
   
   
   virtual nsresult SetPlaybackRate(double aPlaybackRate);
