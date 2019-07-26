@@ -663,6 +663,10 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
       transformedClipRect.MoveBy(translation.x, translation.y);
       shadow->SetShadowClipRect(&transformedClipRect);
     }
+
+    
+    
+    return;
   }
 
   for (Layer* child = aLayer->GetFirstChild();
