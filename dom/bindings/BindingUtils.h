@@ -103,14 +103,6 @@ UnwrapDOMObject(JSObject* obj)
              "Don't pass non-DOM objects to this function");
 
   JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
-  
-  
-  
-  
-  if (val.isUndefined()) {
-    return NULL;
-  }
-  
   return static_cast<T*>(val.toPrivate());
 }
 
