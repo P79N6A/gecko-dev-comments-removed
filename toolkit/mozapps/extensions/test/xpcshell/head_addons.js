@@ -27,6 +27,9 @@ var gInternalManager = null;
 var gAppInfo = null;
 var gAddonsList;
 
+var gPort = null;
+var gUrlToFileMap = {};
+
 var TEST_UNPACKED = false;
 
 function isNightlyChannel() {
@@ -277,7 +280,7 @@ function do_check_addon(aActualAddon, aExpectedAddon, aProperties) {
         break;
 
       default:
-        if (actualValue !== expectedValue)
+        if (remove_port(actualValue) !== remove_port(expectedValue))
           do_throw("Failed for " + aProperty + " for add-on " + aExpectedAddon.id +
                    " (" + actualValue + " === " + expectedValue + ")");
     }
@@ -337,7 +340,7 @@ function do_check_compatibilityoverride(aActual, aExpected) {
 
 function do_check_icons(aActual, aExpected) {
   for (var size in aExpected) {
-    do_check_eq(aActual[size], aExpected[size]);
+    do_check_eq(remove_port(aActual[size]), remove_port(aExpected[size]));
   }
 }
 
@@ -1315,6 +1318,70 @@ do_register_cleanup(function addon_cleanup() {
   } catch (e) {}
 });
 
+
+
+
+
+
+
+function interpolateAndServeFile(request, response) {
+  try {
+    let file = gUrlToFileMap[request.path];
+    var data = "";
+    var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].
+    createInstance(Components.interfaces.nsIFileInputStream);
+    var cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"].
+    createInstance(Components.interfaces.nsIConverterInputStream);
+    fstream.init(file, -1, 0, 0);
+    cstream.init(fstream, "UTF-8", 0, 0);
+
+    let (str = {}) {
+      let read = 0;
+      do {
+        
+        read = cstream.readString(0xffffffff, str);
+        data += str.value;
+      } while (read != 0);
+    }
+    data = data.replace(/%PORT%/g, gPort);
+
+    response.write(data);
+  } catch (e) {
+    do_throw("Exception while serving interpolated file.");
+  } finally {
+    cstream.close(); 
+  }
+}
+
+
+
+
+
+
+
+
+
+
+function mapUrlToFile(url, file, server) {
+  server.registerPathHandler(url, interpolateAndServeFile);
+  gUrlToFileMap[url] = file;
+}
+
+function mapFile(path, server) {
+  mapUrlToFile(path, do_get_file(path), server);
+}
+
+
+
+
+
+
+
+function remove_port(url) {
+  if (typeof url === "string")
+    return url.replace(/:\d+/, "");
+  return url;
+}
 
 function do_exception_wrap(func) {
   return function() {

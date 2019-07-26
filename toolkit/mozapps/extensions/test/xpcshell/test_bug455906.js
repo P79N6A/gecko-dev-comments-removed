@@ -2,18 +2,28 @@
 
 
 
-const URI_EXTENSION_BLOCKLIST_DIALOG = "chrome://mozapps/content/extensions/blocklist.xul";
-
-
-const PREF_BLOCKLIST_ITEM_URL = "extensions.blocklist.itemURL";
-Services.prefs.setCharPref(PREF_BLOCKLIST_ITEM_URL, "http://localhost:4444/blocklist/%blockID%");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
 
+const URI_EXTENSION_BLOCKLIST_DIALOG = "chrome://mozapps/content/extensions/blocklist.xul";
+
 Cu.import("resource://testing-common/httpd.js");
+var gTestserver = new HttpServer();
+gTestserver.start(-1);
+gPort = gTestserver.identity.primaryPort;
+
+
+mapFile("/data/bug455906_warn.xml", gTestserver);
+mapFile("/data/bug455906_start.xml", gTestserver);
+mapFile("/data/bug455906_block.xml", gTestserver);
+mapFile("/data/bug455906_empty.xml", gTestserver);
+
+
+const PREF_BLOCKLIST_ITEM_URL = "extensions.blocklist.itemURL";
+Services.prefs.setCharPref(PREF_BLOCKLIST_ITEM_URL, "http://localhost:" + gPort + "/blocklist/%blockID%");
 
 var ADDONS = [{
   
@@ -105,7 +115,6 @@ var PLUGINS = [
 
 var gNotificationCheck = null;
 var gTestCheck = null;
-var gTestserver = null;
 
 
 var PluginHost = {
@@ -205,7 +214,7 @@ function create_addon(addon) {
 }
 
 function load_blocklist(file) {
-  Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/" + file);
+  Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:" + gPort + "/data/" + file);
   var blocklist = Cc["@mozilla.org/extensions/blocklist;1"].
                   getService(Ci.nsITimerCallback);
   blocklist.notify(null);
@@ -245,10 +254,6 @@ function run_test() {
 
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   startupManager();
-
-  gTestserver = new HttpServer();
-  gTestserver.registerDirectory("/data/", do_get_file("data"));
-  gTestserver.start(4444);
 
   do_test_pending();
   check_test_pt1();
