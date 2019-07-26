@@ -602,19 +602,15 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         if (jump) {
             
             unsigned newStackDepth = stackDepth;
-
-            switch (op) {
-              case JSOP_CASE:
-                
+            if (op == JSOP_CASE)
                 newStackDepth--;
-                break;
-
-              default:;
-            }
 
             unsigned targetOffset = offset + GET_JUMP_OFFSET(pc);
             if (!addJump(cx, targetOffset, &nextOffset, &forwardJump, &forwardLoop, newStackDepth))
                 return;
+
+            if (op == JSOP_CASE || op == JSOP_DEFAULT)
+                getCode(targetOffset).safePoint = true;
         }
 
         
