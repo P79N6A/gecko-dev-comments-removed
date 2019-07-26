@@ -1447,6 +1447,10 @@ nsHttpConnection::SetupProxyConnect()
     request.SetRequestURI(buf);
     request.SetHeader(nsHttp::User_Agent, gHttpHandler->UserAgent());
 
+    
+    request.SetHeader(nsHttp::Proxy_Connection, NS_LITERAL_CSTRING("keep-alive"));
+    request.SetHeader(nsHttp::Connection, NS_LITERAL_CSTRING("keep-alive"));
+
     val = mTransaction->RequestHead()->PeekHeader(nsHttp::Host);
     if (val) {
         
