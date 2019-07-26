@@ -4,7 +4,7 @@
 
 
 #include <iostream>
-#include "sps_sampler.h"
+#include "GeckoProfilerImpl.h"
 #include "platform.h"
 #include "nsThreadUtils.h"
 
