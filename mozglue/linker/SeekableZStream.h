@@ -22,7 +22,8 @@ struct SeekableZStreamHeader: public Zip::SignedEntity<SeekableZStreamHeader>
 {
   SeekableZStreamHeader()
   : Zip::SignedEntity<SeekableZStreamHeader>(magic)
-  , totalSize(0), chunkSize(0), nChunks(0), lastChunkSize(0), windowBits(0) { }
+  , totalSize(0), chunkSize(0), nChunks(0), lastChunkSize(0), windowBits(0)
+  , filter(0) { }
 
   
 
@@ -44,7 +45,7 @@ struct SeekableZStreamHeader: public Zip::SignedEntity<SeekableZStreamHeader>
   signed char windowBits;
 
   
-  unsigned char unused;
+  unsigned char filter;
 
   
   
@@ -94,6 +95,28 @@ public:
     return offsetTable.numElements();
   }
 
+  
+
+
+  enum FilterDirection {
+    FILTER,
+    UNFILTER
+  };
+  typedef void (*ZStreamFilter)(off_t, FilterDirection,
+                                  unsigned char *, size_t);
+
+  enum FilterId {
+    NONE,
+    BCJ_THUMB,
+    BCJ_ARM,
+    FILTER_MAX
+  };
+  static ZStreamFilter GetFilter(FilterId id);
+
+  static ZStreamFilter GetFilter(uint16_t id) {
+    return GetFilter(static_cast<FilterId>(id));
+  }
+
 private:
   
   const unsigned char *buffer;
@@ -112,6 +135,9 @@ private:
 
   
   Array<le_uint32> offsetTable;
+
+  
+  ZStreamFilter filter;
 };
 
 #endif 
