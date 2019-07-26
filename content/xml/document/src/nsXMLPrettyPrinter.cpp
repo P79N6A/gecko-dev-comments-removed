@@ -18,6 +18,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsBindingManager.h"
+#include "nsXBLService.h"
 #include "nsIScriptSecurityManager.h"
 #include "mozilla/Preferences.h"
 
@@ -116,26 +117,38 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsIDOMDocumentXBL> xblDoc = do_QueryInterface(aDocument);
-    NS_ASSERTION(xblDoc, "xml document doesn't implement nsIDOMDocumentXBL");
-    NS_ENSURE_TRUE(xblDoc, NS_ERROR_FAILURE);
+    
+    
+    
+    
+    
+    
+    
 
+    
+    nsXBLService* xblService = nsXBLService::GetInstance();
+    NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
+
+    
     nsCOMPtr<nsIURI> bindingUri;
     rv = NS_NewURI(getter_AddRefs(bindingUri),
         NS_LITERAL_STRING("chrome://global/content/xml/XMLPrettyPrint.xml#prettyprint"));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsCOMPtr<nsIContent> rootCont = aDocument->GetRootElement();
+    NS_ENSURE_TRUE(rootCont, NS_ERROR_UNEXPECTED);
+
     
     nsCOMPtr<nsIPrincipal> sysPrincipal;
     nsContentUtils::GetSecurityManager()->
         GetSystemPrincipal(getter_AddRefs(sysPrincipal));
-    aDocument->BindingManager()->LoadBindingDocument(aDocument, bindingUri,
-                                                     sysPrincipal);
 
-    nsCOMPtr<nsIContent> rootCont = aDocument->GetRootElement();
-    NS_ENSURE_TRUE(rootCont, NS_ERROR_UNEXPECTED);
-
-    rv = aDocument->BindingManager()->AddLayeredBinding(rootCont, bindingUri,
-                                                        sysPrincipal);
+    
+    nsRefPtr<nsXBLBinding> unused;
+    bool ignored;
+    rv = xblService->LoadBindings(rootCont, bindingUri, sysPrincipal, false,
+                                  getter_AddRefs(unused), &ignored);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -178,14 +191,10 @@ void
 nsXMLPrettyPrinter::Unhook()
 {
     mDocument->RemoveObserver(this);
-    nsCOMPtr<nsIDOMDocument> document = do_QueryInterface(mDocument);
-    nsCOMPtr<nsIDOMElement> rootElem;
-    document->GetDocumentElement(getter_AddRefs(rootElem));
+    nsCOMPtr<Element> element = mDocument->GetDocumentElement();
 
-    if (rootElem) {
-        nsCOMPtr<nsIDOMDocumentXBL> xblDoc = do_QueryInterface(mDocument);
-        xblDoc->RemoveBinding(rootElem,
-                              NS_LITERAL_STRING("chrome://global/content/xml/XMLPrettyPrint.xml#prettyprint"));
+    if (element) {
+        mDocument->BindingManager()->ClearBinding(element);
     }
 
     mDocument = nullptr;

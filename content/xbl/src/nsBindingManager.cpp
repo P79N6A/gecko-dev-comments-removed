@@ -859,6 +859,12 @@ nsBindingManager::AddLayeredBinding(nsIContent* aContent, nsIURI* aURL,
 nsresult
 nsBindingManager::RemoveLayeredBinding(nsIContent* aContent, nsIURI* aURL)
 {
+  return ClearBinding(aContent);
+}
+
+nsresult
+nsBindingManager::ClearBinding(nsIContent* aContent)
+{
   
   nsRefPtr<nsXBLBinding> binding = GetBinding(aContent);
   
@@ -868,11 +874,6 @@ nsBindingManager::RemoveLayeredBinding(nsIContent* aContent, nsIURI* aURL)
 
   
   NS_ENSURE_FALSE(binding->GetBaseBinding(), NS_ERROR_FAILURE);
-
-  
-  if (!binding->PrototypeBinding()->CompareBindingURI(aURL)) {
-    return NS_OK;
-  }
 
   
   if (binding->IsStyleBinding()) {
