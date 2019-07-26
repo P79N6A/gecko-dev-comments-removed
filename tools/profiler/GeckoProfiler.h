@@ -79,7 +79,7 @@
 
 
 
-static inline void profiler_init() {};
+static inline void profiler_init(void* stackTop) {};
 
 
 
@@ -135,7 +135,7 @@ static inline void profiler_lock() {}
 
 static inline void profiler_unlock() {}
 
-static inline void profiler_register_thread(const char* name) {}
+static inline void profiler_register_thread(const char* name, void* stackTop) {}
 static inline void profiler_unregister_thread() {}
 
 
@@ -152,8 +152,8 @@ static inline double profiler_time() { return 0; }
 
 class GeckoProfilerInitRAII {
 public:
-  GeckoProfilerInitRAII() {
-    profiler_init();
+  GeckoProfilerInitRAII(void* stackTop) {
+    profiler_init(stackTop);
   }
   ~GeckoProfilerInitRAII() {
     profiler_shutdown();

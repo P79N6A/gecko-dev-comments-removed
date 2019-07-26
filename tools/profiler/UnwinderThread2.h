@@ -40,7 +40,15 @@ void uwt__deinit();
 
 
 
+
 void uwt__register_thread_for_profiling(void* stackTop);
+
+
+void uwt__unregister_thread_for_profiling();
+
+
+
+
 
 
 

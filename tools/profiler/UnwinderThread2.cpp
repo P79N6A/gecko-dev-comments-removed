@@ -83,6 +83,10 @@ void uwt__register_thread_for_profiling ( void* stackTop )
 {
 }
 
+void uwt__unregister_thread_for_profiling()
+{
+}
+
 
 UnwinderThreadBuffer* uwt__acquire_empty_buffer()
 {
@@ -121,6 +125,9 @@ static int       unwind_thr_exit_now = 0;
 
 
 static void thread_register_for_profiling ( void* stackTop );
+
+
+static void thread_unregister_for_profiling();
 
 
 static void do_breakpad_unwind_Buffer_free_singletons();
@@ -174,6 +181,11 @@ void uwt__deinit()
 void uwt__register_thread_for_profiling(void* stackTop)
 {
   thread_register_for_profiling(stackTop);
+}
+
+void uwt__unregister_thread_for_profiling()
+{
+  thread_unregister_for_profiling();
 }
 
 
@@ -349,13 +361,21 @@ typedef
  static SpinLock               g_spinLock    = { 0 };
 
 
-#define N_SAMPLING_THREADS 10
- static StackLimit g_stackLimits[N_SAMPLING_THREADS];
- static int        g_stackLimitsUsed = 0;
+
+
+
+
+
+
+ static StackLimit* g_stackLimits     = NULL;
+ static size_t      g_stackLimitsUsed = 0;
+ static size_t      g_stackLimitsSize = 0;
 
 
 static uintptr_t g_stats_totalSamples = 0; 
 static uintptr_t g_stats_noBuffAvail  = 0; 
+static uintptr_t g_stats_thrUnregd    = 0; 
+
 
 
 
@@ -478,42 +498,173 @@ static void atomic_INC(uintptr_t* loc)
 
 
 
-
 static void thread_register_for_profiling(void* stackTop)
 {
-  int i;
-  
-  MOZ_ASSERT( (void*)&i < stackTop );
+  pthread_t me = pthread_self();
 
   spinLock_acquire(&g_spinLock);
 
-  pthread_t me = pthread_self();
-  for (i = 0; i < g_stackLimitsUsed; i++) {
-    
-    MOZ_ASSERT(g_stackLimits[i].thrId != me);
+  
+  int n_used;
+
+  
+  if (stackTop == NULL) {
+    n_used = g_stackLimitsUsed;
+    spinLock_release(&g_spinLock);
+    LOGF("BPUnw: [%d total] thread_register_for_profiling"
+         "(me=%p, stacktop=NULL) (IGNORED)", n_used, (void*)me);
+    return;
   }
-  if (!(g_stackLimitsUsed < N_SAMPLING_THREADS))
-    MOZ_CRASH();  
+
+  
+  MOZ_ASSERT((void*)&n_used < stackTop);
+
+  bool is_dup = false;
+  for (size_t i = 0; i < g_stackLimitsUsed; i++) {
+    if (g_stackLimits[i].thrId == me) {
+      is_dup = true;
+      break;
+    }
+  }
+
+  if (is_dup) {
+    
+
+    n_used = g_stackLimitsUsed;
+    spinLock_release(&g_spinLock);
+
+    LOGF("BPUnw: [%d total] thread_register_for_profiling"
+         "(me=%p, stacktop=%p) (DUPLICATE)", n_used, (void*)me, stackTop);
+    return;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  MOZ_ASSERT(g_stackLimitsUsed <= g_stackLimitsSize);
+
+  if (g_stackLimitsUsed == g_stackLimitsSize) {
+    
+
+    size_t old_size = g_stackLimitsSize;
+    size_t new_size = old_size == 0 ? 4 : (2 * old_size);
+
+    spinLock_release(&g_spinLock);
+    StackLimit* new_arr  = (StackLimit*)malloc(new_size * sizeof(StackLimit));
+    if (!new_arr)
+      return;
+
+    spinLock_acquire(&g_spinLock);
+
+    if (old_size != g_stackLimitsSize) {
+      
+
+
+      spinLock_release(&g_spinLock);
+      free(new_arr);
+      thread_register_for_profiling(stackTop);
+      return;
+    }
+
+    memcpy(new_arr, g_stackLimits, old_size * sizeof(StackLimit));
+    if (g_stackLimits)
+      free(g_stackLimits);
+
+    g_stackLimits = new_arr;
+
+    MOZ_ASSERT(g_stackLimitsSize < new_size);
+    g_stackLimitsSize = new_size;
+  }
+
+  MOZ_ASSERT(g_stackLimitsUsed < g_stackLimitsSize);
+
+  
+
+  
+  
+  
+  
+  uintptr_t stackTopR = (uintptr_t)stackTop;
+  stackTopR = (stackTopR & ~(uintptr_t)4095) + (uintptr_t)4095;
+
   g_stackLimits[g_stackLimitsUsed].thrId    = me;
-  g_stackLimits[g_stackLimitsUsed].stackTop = stackTop;
+  g_stackLimits[g_stackLimitsUsed].stackTop = (void*)stackTopR;
   g_stackLimits[g_stackLimitsUsed].nSamples = 0;
   g_stackLimitsUsed++;
 
+  n_used = g_stackLimitsUsed;
   spinLock_release(&g_spinLock);
-  LOGF("BPUnw: thread_register_for_profiling(stacktop %p, me %p)", 
-       stackTop, (void*)me);
+
+  LOGF("BPUnw: [%d total] thread_register_for_profiling"
+       "(me=%p, stacktop=%p)", n_used, (void*)me, stackTop);
+}
+
+
+
+static void thread_unregister_for_profiling()
+{
+  spinLock_acquire(&g_spinLock);
+
+  
+  size_t n_used;
+
+  size_t i;
+  bool found = false;
+  pthread_t me = pthread_self();
+  for (i = 0; i < g_stackLimitsUsed; i++) {
+    if (g_stackLimits[i].thrId == me)
+      break;
+  }
+  if (i < g_stackLimitsUsed) {
+    
+    for (; i+1 < g_stackLimitsUsed; i++) {
+      g_stackLimits[i] = g_stackLimits[i+1];
+    }
+    g_stackLimitsUsed--;
+    found = true;
+  }
+
+  n_used = g_stackLimitsUsed;
+
+  spinLock_release(&g_spinLock);
+  LOGF("BPUnw: [%d total] thread_unregister_for_profiling(me=%p) %s", 
+       (int)n_used, (void*)me, found ? "" : " (NOT REGISTERED) ");
 }
 
 
 __attribute__((unused))
 static void show_registered_threads()
 {
-  int i;
+  size_t i;
   spinLock_acquire(&g_spinLock);
   for (i = 0; i < g_stackLimitsUsed; i++) {
     LOGF("[%d]  pthread_t=%p  nSamples=%lld",
-         i, (void*)g_stackLimits[i].thrId, 
-            (unsigned long long int)g_stackLimits[i].nSamples);
+         (int)i, (void*)g_stackLimits[i].thrId, 
+                 (unsigned long long int)g_stackLimits[i].nSamples);
   }
   spinLock_release(&g_spinLock);
 }
@@ -529,7 +680,7 @@ static UnwinderThreadBuffer* acquire_empty_buffer()
 
 
 
-  int i;
+  size_t i;
 
   atomic_INC( &g_stats_totalSamples );
 
@@ -549,11 +700,20 @@ static UnwinderThreadBuffer* acquire_empty_buffer()
 
 
   pthread_t me = pthread_self();
-  MOZ_ASSERT(g_stackLimitsUsed >= 0 && g_stackLimitsUsed <= N_SAMPLING_THREADS);
+  MOZ_ASSERT(g_stackLimitsUsed <= g_stackLimitsSize);
   for (i = 0; i < g_stackLimitsUsed; i++) {
     if (g_stackLimits[i].thrId == me)
       break;
   }
+
+  
+
+  if (i == g_stackLimitsUsed) {
+    spinLock_release(&g_spinLock);
+    atomic_INC( &g_stats_thrUnregd );
+    return NULL;
+  }
+
   
   MOZ_ASSERT(i < g_stackLimitsUsed);
 
@@ -574,7 +734,7 @@ static UnwinderThreadBuffer* acquire_empty_buffer()
     if (g_buffers[i]->state == S_EMPTY)
       break;
   }
-  MOZ_ASSERT(i >= 0 && i <= N_UNW_THR_BUFFERS);
+  MOZ_ASSERT(i <= N_UNW_THR_BUFFERS);
 
   if (i == N_UNW_THR_BUFFERS) {
     
@@ -1784,9 +1944,11 @@ void do_breakpad_unwind_Buffer(PCandSP** pairs,
 
   if (LOGLEVEL >= 2) {
     if (0 == (g_stats_totalSamples % 1000))
-      LOGF("BPUnw: %llu total samples, %llu failed due to buffer unavail",
+      LOGF("BPUnw: %llu total samples, %llu failed (buffer unavail), "
+                   "%llu failed (thread unreg'd), ",
            (unsigned long long int)g_stats_totalSamples,
-           (unsigned long long int)g_stats_noBuffAvail);
+           (unsigned long long int)g_stats_noBuffAvail,
+           (unsigned long long int)g_stats_thrUnregd);
   }
 
   delete stack;
