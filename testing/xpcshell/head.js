@@ -352,6 +352,24 @@ function _execute_test() {
   
   _load_files(_TEST_FILE);
 
+  
+  let Assert = Components.utils.import("resource://testing-common/Assert.jsm", null).Assert;
+  
+  let assertImpl = new Assert(function(err, message, stack) {
+    if (err) {
+      do_report_result(false, err.message, err.stack);
+    } else {
+      do_report_result(true, message, stack);
+    }
+  });
+  
+  this.export_assertions = function() {
+    for (let func in assertImpl) {
+      this[func] = assertImpl[func].bind(assertImpl);
+    }
+  };
+  this.Assert = assertImpl;
+
   try {
     do_test_pending("MAIN run_test");
     run_test();
