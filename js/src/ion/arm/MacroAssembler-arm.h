@@ -277,6 +277,8 @@ class MacroAssemblerARM : public Assembler
     
     void ma_bl(Label *dest, Condition c = Always);
 
+    void ma_blx(Register dest, Condition c = Always);
+
     
     void ma_vadd(FloatRegister src1, FloatRegister src2, FloatRegister dst);
     void ma_vsub(FloatRegister src1, FloatRegister src2, FloatRegister dst);
@@ -499,6 +501,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
 
     CodeOffsetLabel toggledJump(Label *label);
+
+    
+    
+    CodeOffsetLabel toggledCall(IonCode *target, bool enabled);
 
     CodeOffsetLabel pushWithPatch(ImmWord imm) {
         CodeOffsetLabel label = currentOffset();
