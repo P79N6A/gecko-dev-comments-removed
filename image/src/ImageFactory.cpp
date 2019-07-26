@@ -21,6 +21,7 @@
 #include "imgStatusTracker.h"
 #include "RasterImage.h"
 #include "VectorImage.h"
+#include "FrozenImage.h"
 #include "Image.h"
 #include "nsMediaFragmentURIParser.h"
 
@@ -172,6 +173,13 @@ GetContentSize(nsIRequest* aRequest)
 
   
   return 0;
+}
+
+ already_AddRefed<Image>
+ImageFactory::Freeze(Image* aImage)
+{
+  nsRefPtr<Image> frozenImage = new FrozenImage(aImage);
+  return frozenImage.forget();
 }
 
  already_AddRefed<Image>

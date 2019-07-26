@@ -18,7 +18,7 @@
 #include "nsCRT.h"
 
 #include "Image.h"
-#include "ImageOps.h"
+#include "ImageFactory.h"
 #include "nsError.h"
 #include "ImageLogging.h"
 
@@ -915,7 +915,7 @@ imgRequestProxy::GetStaticRequest(imgRequestProxy** aReturn)
   }
 
   
-  nsRefPtr<Image> frozenImage = ImageOps::Freeze(image);
+  nsRefPtr<Image> frozenImage = ImageFactory::Freeze(image);
 
   
   nsCOMPtr<nsIPrincipal> currentPrincipal;
