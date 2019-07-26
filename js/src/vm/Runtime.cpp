@@ -407,7 +407,9 @@ JSRuntime::~JSRuntime()
         PR_DestroyLock(exclusiveAccessLock);
 
     JS_ASSERT(!numExclusiveThreads);
-    exclusiveThreadsPaused = true; 
+
+    
+    exclusiveThreadsPaused = true;
 #endif
 
     

@@ -433,10 +433,6 @@ namespace js {
 inline bool
 ExclusiveContext::typeInferenceEnabled() const
 {
-    
-    
-    
-    JS_ASSERT_IF(!isJSContext(), !compartment_->zone()->types.inferenceEnabled);
     return compartment_->zone()->types.inferenceEnabled;
 }
 

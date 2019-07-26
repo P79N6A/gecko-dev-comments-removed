@@ -263,6 +263,7 @@ struct ThreadSafeContext : ContextFriendFields,
     JSAtomState &names() { return runtime_->atomState; }
     StaticStrings &staticStrings() { return runtime_->staticStrings; }
     PropertyName *emptyString() { return runtime_->emptyString; }
+    FreeOp *defaultFreeOp() { return runtime_->defaultFreeOp(); }
 
     
     uint64_t gcNumber() { return runtime_->gcNumber; }
@@ -351,6 +352,7 @@ class ExclusiveContext : public ThreadSafeContext
     
     inline bool typeInferenceEnabled() const;
     types::TypeObject *getNewType(Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
+    inline js::LifoAlloc &typeLifoAlloc();
 
     
     
@@ -483,7 +485,6 @@ struct JSContext : public js::ExclusiveContext,
 
     js::LifoAlloc &tempLifoAlloc() { return runtime()->tempLifoAlloc; }
     inline js::LifoAlloc &analysisLifoAlloc();
-    inline js::LifoAlloc &typeLifoAlloc();
 
 #ifdef JS_THREADSAFE
     unsigned            outstandingRequests;
