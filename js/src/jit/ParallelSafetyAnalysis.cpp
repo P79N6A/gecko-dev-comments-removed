@@ -610,6 +610,19 @@ ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
     block->insertBefore(oldInstruction, replacementInstruction);
     oldInstruction->replaceAllUsesWith(replacementInstruction);
     block->discard(oldInstruction);
+
+    
+    
+    
+    
+    
+    if (replacementInstruction->isFloat32Commutative() &&
+        replacementInstruction->type() != MIRType_Float32)
+    {
+        replacementInstruction->trySpecializeFloat32(alloc());
+    }
+    JS_ASSERT(oldInstruction->type() == replacementInstruction->type());
+
     return true;
 }
 
