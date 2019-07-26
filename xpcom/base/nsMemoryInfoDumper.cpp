@@ -6,7 +6,6 @@
 
 #include "mozilla/nsMemoryInfoDumper.h"
 
-#include "mozilla/Atomics.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/Preferences.h"
@@ -143,7 +142,7 @@ static int sGCAndCCDumpSignum;
 
 
 
-static Atomic<int> sDumpAboutMemoryPipeWriteFd(-1);
+static int sDumpAboutMemoryPipeWriteFd = -1;
 
 void
 DumpAboutMemorySignalHandler(int aSignum)
@@ -330,7 +329,8 @@ public:
     
     
     
-    int pipeWriteFd = sDumpAboutMemoryPipeWriteFd.exchange(-1);
+    int pipeWriteFd = sDumpAboutMemoryPipeWriteFd;
+    PR_ATOMIC_SET(&sDumpAboutMemoryPipeWriteFd, -1);
     close(pipeWriteFd);
 
     FdWatcher::StopWatching();
