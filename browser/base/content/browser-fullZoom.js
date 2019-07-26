@@ -313,7 +313,7 @@ var FullZoom = {
         this._executeSoon(function () {
           
           
-          Services.obs.notifyObservers(null, "browser-fullZoom:reset", "");
+          Services.obs.notifyObservers(null, "browser-fullZoom:zoomReset", "");
         });
       }
     });
