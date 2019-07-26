@@ -11,8 +11,16 @@
 #include "nsThreadUtils.h"
 #include "WinUtils.h"
 #include "nsWindowsHelpers.h"
+#include "mozilla/CheckedInt.h"
+#include "VideoUtils.h"
 
 using namespace mozilla::widget;
+
+#ifdef WMF_MUST_DEFINE_AAC_MFT_CLSID
+
+
+DEFINE_GUID(CLSID_CMSAACDecMFT, 0x32D186A7, 0x218F, 0x4C75, 0x88, 0x76, 0xDD, 0x77, 0x27, 0x3A, 0x89, 0x99);
+#endif
 
 namespace mozilla {
 
@@ -213,13 +221,138 @@ DoGetInterface(IUnknown* aUnknown, void** aInterface)
   return S_OK;
 }
 
+HRESULT
+HNsToFrames(int64_t aHNs, uint32_t aRate, int64_t* aOutFrames)
+{
+  MOZ_ASSERT(aOutFrames);
+  const int64_t HNS_PER_S = USECS_PER_S * 10;
+  CheckedInt<int64_t> i = aHNs;
+  i *= aRate;
+  i /= HNS_PER_S;
+  NS_ENSURE_TRUE(i.isValid(), E_FAIL);
+  *aOutFrames = i.value();
+  return S_OK;
+}
+
+HRESULT
+FramesToUsecs(int64_t aSamples, uint32_t aRate, int64_t* aOutUsecs)
+{
+  MOZ_ASSERT(aOutUsecs);
+  CheckedInt<int64_t> i = aSamples;
+  i *= USECS_PER_S;
+  i /= aRate;
+  NS_ENSURE_TRUE(i.isValid(), E_FAIL);
+  *aOutUsecs = i.value();
+  return S_OK;
+}
+
+HRESULT
+GetDefaultStride(IMFMediaType *aType, uint32_t* aOutStride)
+{
+  
+  HRESULT hr = aType->GetUINT32(MF_MT_DEFAULT_STRIDE, aOutStride);
+  if (SUCCEEDED(hr)) {
+    return S_OK;
+  }
+
+  
+  GUID subtype = GUID_NULL;
+  uint32_t width = 0;
+  uint32_t height = 0;
+
+  hr = aType->GetGUID(MF_MT_SUBTYPE, &subtype);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
+  hr = MFGetAttributeSize(aType, MF_MT_FRAME_SIZE, &width, &height);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
+  hr = wmf::MFGetStrideForBitmapInfoHeader(subtype.Data1, width, (LONG*)(aOutStride));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+
+  return hr;
+}
+
+int32_t
+MFOffsetToInt32(const MFOffset& aOffset)
+{
+  return int32_t(aOffset.value + (aOffset.fract / 65536.0f));
+}
+
+int64_t
+GetSampleDuration(IMFSample* aSample)
+{
+  NS_ENSURE_TRUE(aSample, -1);
+  int64_t duration = 0;
+  aSample->GetSampleDuration(&duration);
+  return HNsToUsecs(duration);
+}
+
+int64_t
+GetSampleTime(IMFSample* aSample)
+{
+  NS_ENSURE_TRUE(aSample, -1);
+  LONGLONG timestampHns = 0;
+  HRESULT hr = aSample->GetSampleTime(&timestampHns);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), -1);
+  return HNsToUsecs(timestampHns);
+}
+
+
+
+HRESULT
+GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion)
+{
+  
+  
+  BOOL panScan = MFGetAttributeUINT32(aMediaType, MF_MT_PAN_SCAN_ENABLED, FALSE);
+
+  
+  HRESULT hr = E_FAIL;
+  MFVideoArea videoArea;
+  memset(&videoArea, 0, sizeof(MFVideoArea));
+  if (panScan) {
+    hr = aMediaType->GetBlob(MF_MT_PAN_SCAN_APERTURE,
+                             (UINT8*)&videoArea,
+                             sizeof(MFVideoArea),
+                             nullptr);
+  }
+
+  
+  
+  if (!panScan || hr == MF_E_ATTRIBUTENOTFOUND) {
+    hr = aMediaType->GetBlob(MF_MT_MINIMUM_DISPLAY_APERTURE,
+                             (UINT8*)&videoArea,
+                             sizeof(MFVideoArea),
+                             nullptr);
+  }
+
+  if (hr == MF_E_ATTRIBUTENOTFOUND) {
+    
+    
+    hr = aMediaType->GetBlob(MF_MT_GEOMETRIC_APERTURE,
+                             (UINT8*)&videoArea,
+                             sizeof(MFVideoArea),
+                             nullptr);
+  }
+
+  if (SUCCEEDED(hr)) {
+    
+    aOutPictureRegion = nsIntRect(MFOffsetToInt32(videoArea.OffsetX),
+                                  MFOffsetToInt32(videoArea.OffsetY),
+                                  videoArea.Area.cx,
+                                  videoArea.Area.cy);
+    return S_OK;
+  }
+
+  
+  UINT32 width = 0, height = 0;
+  hr = MFGetAttributeSize(aMediaType, MF_MT_FRAME_SIZE, &width, &height);
+  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  aOutPictureRegion = nsIntRect(0, 0, width, height);
+  return S_OK;
+}
+
 namespace wmf {
-
-
-#ifndef CLSID_CMSAACDecMFT
-
-DEFINE_GUID(CLSID_CMSAACDecMFT, 0x32D186A7, 0x218F, 0x4C75, 0x88, 0x76, 0xDD, 0x77, 0x27, 0x3A, 0x89, 0x99);
-#endif
 
 static bool
 IsSupportedDecoder(const GUID& aDecoderGUID)
@@ -531,6 +664,24 @@ DXVA2CreateDirect3DDeviceManager9(UINT *pResetToken,
   DECL_FUNCTION_PTR(DXVA2CreateDirect3DDeviceManager9, UINT*, IDirect3DDeviceManager9 **);
   ENSURE_FUNCTION_PTR(DXVA2CreateDirect3DDeviceManager9, dxva2.dll)
   return (DXVA2CreateDirect3DDeviceManager9Ptr)(pResetToken, ppDXVAManager);
+}
+
+HRESULT
+MFCreateSample(IMFSample **ppIMFSample)
+{
+  DECL_FUNCTION_PTR(MFCreateSample, IMFSample **);
+  ENSURE_FUNCTION_PTR(MFCreateSample, mfplat.dll)
+  return (MFCreateSamplePtr)(ppIMFSample);
+}
+
+HRESULT
+MFCreateAlignedMemoryBuffer(DWORD cbMaxLength,
+                            DWORD fAlignmentFlags,
+                            IMFMediaBuffer **ppBuffer)
+{
+  DECL_FUNCTION_PTR(MFCreateAlignedMemoryBuffer, DWORD, DWORD, IMFMediaBuffer**);
+  ENSURE_FUNCTION_PTR(MFCreateAlignedMemoryBuffer, mfplat.dll)
+  return (MFCreateAlignedMemoryBufferPtr)(cbMaxLength, fAlignmentFlags, ppBuffer);
 }
 
 } 

@@ -6,6 +6,8 @@
 
 #include "WMF.h"
 #include "nsString.h"
+#include "nsRect.h"
+#include "VideoUtils.h"
 
 
 
@@ -63,5 +65,32 @@ HNsToUsecs(int64_t hNanoSecs) {
 
 HRESULT
 DoGetInterface(IUnknown* aUnknown, void** aInterface);
+
+HRESULT
+HNsToFrames(int64_t aHNs, uint32_t aRate, int64_t* aOutFrames);
+
+HRESULT
+FramesToUsecs(int64_t aSamples, uint32_t aRate, int64_t* aOutUsecs);
+
+HRESULT
+GetDefaultStride(IMFMediaType *aType, uint32_t* aOutStride);
+
+int32_t
+MFOffsetToInt32(const MFOffset& aOffset);
+
+
+
+HRESULT
+GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion);
+
+
+
+int64_t
+GetSampleDuration(IMFSample* aSample);
+
+
+
+int64_t
+GetSampleTime(IMFSample* aSample);
 
 } 
