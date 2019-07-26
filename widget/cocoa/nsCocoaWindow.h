@@ -294,6 +294,16 @@ public:
     }
     NS_IMETHOD_(InputContext) GetInputContext()
     {
+      NSView* view = mWindow ? [mWindow contentView] : nil;
+      if (view) {
+        mInputContext.mNativeIMEContext = [view inputContext];
+      }
+      
+      
+      
+      if (!mInputContext.mNativeIMEContext) {
+        mInputContext.mNativeIMEContext = this;
+      }
       return mInputContext;
     }
     NS_IMETHOD BeginSecureKeyboardInput();
