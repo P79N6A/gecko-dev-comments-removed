@@ -114,6 +114,8 @@ public:
 
     nsNodeInfoManager *GetNodeInfoManager();
 
+    JSObject* GetCompilationGlobal();
+
     
     virtual nsIScriptGlobalObject* GetScriptGlobalObject() MOZ_OVERRIDE;
 
