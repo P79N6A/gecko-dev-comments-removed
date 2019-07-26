@@ -3,7 +3,7 @@
 
 
 
-const PANEL_MIN_HEIGHT = 300;
+const PANEL_MIN_HEIGHT = 100;
 const PANEL_MIN_WIDTH = 330;
 
 let SocialUI = {
@@ -203,7 +203,7 @@ let SocialChatBar = {
   }
 }
 
-function sizeSocialPanelToContent(iframe) {
+function sizeSocialPanelToContent(panel, iframe) {
   
   let doc = iframe.contentDocument;
   if (!doc || !doc.body) {
@@ -214,9 +214,17 @@ function sizeSocialPanelToContent(iframe) {
   let cs = doc.defaultView.getComputedStyle(body);
   let computedHeight = parseInt(cs.marginTop) + body.offsetHeight + parseInt(cs.marginBottom);
   let height = Math.max(computedHeight, PANEL_MIN_HEIGHT);
-  iframe.style.height = height + "px";
   let computedWidth = parseInt(cs.marginLeft) + body.offsetWidth + parseInt(cs.marginRight);
   let width = Math.max(computedWidth, PANEL_MIN_WIDTH);
+  let wDiff = width - iframe.getBoundingClientRect().width;
+  
+  
+  
+  if (wDiff !== 0 && panel.getAttribute("side") == "right") {
+    let box = panel.boxObject;
+    panel.moveTo(box.screenX - wDiff, box.screenY);
+  }
+  iframe.style.height = height + "px";
   iframe.style.width = width + "px";
 }
 
@@ -225,18 +233,18 @@ function DynamicResizeWatcher() {
 }
 
 DynamicResizeWatcher.prototype = {
-  start: function DynamicResizeWatcher_start(iframe) {
+  start: function DynamicResizeWatcher_start(panel, iframe) {
     this.stop(); 
     let doc = iframe.contentDocument;
     this._mutationObserver = new iframe.contentWindow.MutationObserver(function(mutations) {
-      sizeSocialPanelToContent(iframe);
+      sizeSocialPanelToContent(panel, iframe);
     });
     
     let config = {attributes: true, characterData: true, childList: true, subtree: true};
     this._mutationObserver.observe(doc, config);
     
     
-    sizeSocialPanelToContent(iframe);
+    sizeSocialPanelToContent(panel, iframe);
   },
   stop: function DynamicResizeWatcher_stop() {
     if (this._mutationObserver) {
@@ -309,19 +317,20 @@ let SocialFlyout = {
   },
 
   onShown: function(aEvent) {
-    let iframe = this.panel.firstChild;
+    let panel = this.panel;
+    let iframe = panel.firstChild;
     this._dynamicResizer = new DynamicResizeWatcher();
     iframe.docShell.isActive = true;
     iframe.docShell.isAppTab = true;
     if (iframe.contentDocument.readyState == "complete") {
-      this._dynamicResizer.start(iframe);
+      this._dynamicResizer.start(panel, iframe);
       this.dispatchPanelEvent("socialFrameShow");
     } else {
       
       iframe.addEventListener("load", function panelBrowserOnload(e) {
         iframe.removeEventListener("load", panelBrowserOnload, true);
         setTimeout(function() {
-          SocialFlyout._dynamicResizer.start(iframe);
+          SocialFlyout._dynamicResizer.start(panel, iframe);
           SocialFlyout.dispatchPanelEvent("socialFrameShow");
         }, 0);
       }, true);
@@ -366,7 +375,7 @@ let SocialFlyout = {
       }
     }
 
-    sizeSocialPanelToContent(iframe);
+    sizeSocialPanelToContent(panel, iframe);
     let anchor = document.getElementById("social-sidebar-browser");
     if (panel.state == "open") {
       
@@ -792,13 +801,13 @@ var SocialToolbar = {
       notificationFrame.docShell.isActive = true;
       notificationFrame.docShell.isAppTab = true;
       if (notificationFrame.contentDocument.readyState == "complete") {
-        dynamicResizer.start(notificationFrame);
+        dynamicResizer.start(panel, notificationFrame);
         dispatchPanelEvent("socialFrameShow");
       } else {
         
         notificationFrame.addEventListener("load", function panelBrowserOnload(e) {
           notificationFrame.removeEventListener("load", panelBrowserOnload, true);
-          dynamicResizer.start(notificationFrame);
+          dynamicResizer.start(panel, notificationFrame);
           setTimeout(function() {
             dispatchPanelEvent("socialFrameShow");
           }, 0);
