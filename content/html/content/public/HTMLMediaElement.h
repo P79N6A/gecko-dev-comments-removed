@@ -83,6 +83,21 @@ public:
   nsresult LoadWithChannel(nsIChannel *aChannel, nsIStreamListener **aListener);
 
   
+  enum {
+    NETWORK_EMPTY = 0,
+    NETWORK_IDLE = 1,
+    NETWORK_LOADING = 2,
+    NETWORK_NO_SOURCE = 3
+  };
+  enum {
+    HAVE_NOTHING = 0,
+    HAVE_METADATA = 1,
+    HAVE_CURRENT_DATA = 2,
+    HAVE_FUTURE_DATA = 3,
+    HAVE_ENOUGH_DATA = 4
+  };
+
+  
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
 
   NS_DECL_NSIOBSERVER
@@ -225,7 +240,7 @@ public:
   
   
   
-  virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void UpdateReadyStateForData(NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
