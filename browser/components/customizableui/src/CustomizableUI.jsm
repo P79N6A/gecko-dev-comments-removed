@@ -2779,10 +2779,12 @@ this.CustomizableUI = {
 
 
 
+
   isSpecialWidget: function(aWidgetId) {
     return CustomizableUIInternal.isSpecialWidget(aWidgetId);
   },
   
+
 
 
 
