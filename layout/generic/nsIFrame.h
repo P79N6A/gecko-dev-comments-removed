@@ -167,6 +167,8 @@ typedef uint64_t nsFrameState;
 
 
 
+#define NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN           NS_FRAME_STATE_BIT(9)
+
 
 
 
