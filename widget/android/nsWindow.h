@@ -186,6 +186,7 @@ protected:
     int32_t mIMEMaskEventsCount; 
     nsString mIMEComposingText;
     nsAutoTArray<nsTextRange, 4> mIMERanges;
+    bool mIMEUpdatingContext;
 
     struct IMEChange {
         int32_t mStart, mOldEnd, mNewEnd;
