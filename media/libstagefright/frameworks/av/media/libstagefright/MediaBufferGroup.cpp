@@ -14,6 +14,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "MediaBufferGroup"
 #include <utils/Log.h>
 
@@ -84,3 +85,5 @@ void MediaBufferGroup::signalBufferReturned(MediaBuffer *) {
 }
 
 }  
+
+#undef LOG_TAG

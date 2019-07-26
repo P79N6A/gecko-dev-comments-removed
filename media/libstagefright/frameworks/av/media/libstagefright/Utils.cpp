@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "Utils"
 #include <utils/Log.h>
 
@@ -68,6 +69,7 @@ uint64_t hton64(uint64_t x) {
     return ((uint64_t)htonl(x & 0xffffffff) << 32) | htonl(x >> 32);
 }
 
+#if 0
 status_t convertMetaDataToMessage(
         const sp<MetaData> &meta, sp<AMessage> *format) {
     format->clear();
@@ -603,5 +605,8 @@ bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo, bool isStreaming)
     return AudioSystem::isOffloadSupported(info);
 }
 
+#endif
+
 }  
 
+#undef LOG_TAG

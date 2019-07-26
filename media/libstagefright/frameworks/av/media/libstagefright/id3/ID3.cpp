@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "ID3"
 #include <utils/Log.h>
 
@@ -898,3 +899,5 @@ bool ID3::parseV1(const sp<DataSource> &source) {
 }
 
 }  
+
+#undef LOG_TAG

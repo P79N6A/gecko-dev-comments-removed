@@ -15,6 +15,7 @@
 
 
 
+#undef LOG_TAG
 #define LOG_TAG "hexdump"
 #include <utils/Log.h>
 
@@ -92,3 +93,4 @@ void hexdump(const void *_data, size_t size, size_t indent, AString *appendTo) {
 
 }  
 
+#undef LOG_TAG

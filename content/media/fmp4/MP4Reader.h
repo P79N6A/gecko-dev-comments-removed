@@ -11,7 +11,6 @@
 #include "nsAutoPtr.h"
 #include "PlatformDecoderModule.h"
 #include "mp4_demuxer/mp4_demuxer.h"
-#include "mp4_demuxer/box_definitions.h"
 #include "MediaTaskQueue.h"
 
 #include <deque>
@@ -71,7 +70,6 @@ private:
   void Flush(mp4_demuxer::TrackType aTrack);
 
   nsAutoPtr<mp4_demuxer::MP4Demuxer> mDemuxer;
-  nsAutoPtr<MP4Stream> mMP4Stream;
   nsAutoPtr<PlatformDecoderModule> mPlatform;
 
   class DecoderCallback : public MediaDataDecoderCallback {
@@ -114,9 +112,6 @@ private:
     RefPtr<MediaDataDecoder> mDecoder;
     
     
-    MP4SampleQueue mDemuxedSamples;
-    
-    
     RefPtr<MediaTaskQueue> mTaskQueue;
     
     nsAutoPtr<DecoderCallback> mCallback;
@@ -134,6 +129,9 @@ private:
   };
   DecoderData mAudio;
   DecoderData mVideo;
+  
+  
+  nsAutoPtr<mp4_demuxer::MP4Sample> mQueuedVideoSample;
 
   
   

@@ -48,6 +48,7 @@ enum {
     kKeyChannelCount      = '#chn',  
     kKeyChannelMask       = 'chnm',  
     kKeySampleRate        = 'srte',  
+    kKeySampleSize        = 'ssiz',  
     kKeyFrameRate         = 'frmR',  
     kKeyBitRate           = 'brte',  
     kKeyESDS              = 'esds',  
