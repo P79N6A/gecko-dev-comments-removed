@@ -1176,10 +1176,23 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
     
     
     
-    if (mMessageManager) {
-      mMessageManager->Disconnect();
-      mMessageManager = nullptr;
-    }
+    ShutDownMessageManager();
+}
+
+void
+ContentParent::ShutDownMessageManager()
+{
+  if (!mMessageManager) {
+    return;
+  }
+
+  mMessageManager->ReceiveMessage(
+            static_cast<nsIContentFrameMessageManager*>(mMessageManager.get()),
+            CHILD_PROCESS_SHUTDOWN_MESSAGE, false,
+            nullptr, nullptr, nullptr, nullptr);
+
+  mMessageManager->Disconnect();
+  mMessageManager = nullptr;
 }
 
 void
@@ -1305,12 +1318,8 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         mForceKillTask = nullptr;
     }
 
-    nsRefPtr<nsFrameMessageManager> ppm = mMessageManager;
-    if (ppm) {
-      ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()),
-                          CHILD_PROCESS_SHUTDOWN_MESSAGE, false,
-                          nullptr, nullptr, nullptr, nullptr);
-    }
+    ShutDownMessageManager();
+
     nsRefPtr<ContentParent> kungFuDeathGrip(this);
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
@@ -1319,10 +1328,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
             obs->RemoveObserver(static_cast<nsIObserver*>(this),
                                 sObserverTopics[i]);
         }
-    }
-
-    if (ppm) {
-      ppm->Disconnect();
     }
 
     
