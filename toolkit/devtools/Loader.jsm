@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "console", "resource://gre/modules/devto
 let loader = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {}).Loader;
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {}).Promise;
 
-this.EXPORTED_SYMBOLS = ["devtools"];
+this.EXPORTED_SYMBOLS = ["DevToolsLoader", "devtools"];
 
 
 
@@ -36,11 +36,11 @@ let loaderGlobals = {
     lazyImporter: XPCOMUtils.defineLazyModuleGetter.bind(XPCOMUtils),
     lazyServiceGetter: XPCOMUtils.defineLazyServiceGetter.bind(XPCOMUtils)
   }
-}
+};
 
 
 var BuiltinProvider = {
-  load: function(done) {
+  load: function() {
     this.loader = new loader.Loader({
       modules: {
         "toolkit/loader": loader
@@ -78,7 +78,7 @@ var SrcdirProvider = {
     return Services.io.newFileURI(file).spec;
   },
 
-  load: function(done) {
+  load: function() {
     let srcdir = Services.prefs.getComplexValue("devtools.loader.srcdir",
                                                 Ci.nsISupportsString);
     srcdir = OS.Path.normalize(srcdir.data.trim());
@@ -184,7 +184,13 @@ var SrcdirProvider = {
 
 
 
-this.devtools = {
+
+
+this.DevToolsLoader = function DevToolsLoader() {
+  this._chooseProvider();
+};
+
+DevToolsLoader.prototype = {
   _provider: null,
 
   
@@ -268,4 +274,4 @@ this.devtools = {
 };
 
 
-devtools._chooseProvider();
+this.devtools = new DevToolsLoader();
