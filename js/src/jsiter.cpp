@@ -120,7 +120,8 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
 
     
     
-    if (JSID_IS_SYMBOL(id) && !(flags & JSITER_SYMBOLS))
+    
+    if (JSID_IS_SYMBOL(id) ? !(flags & JSITER_SYMBOLS) : (flags & JSITER_SYMBOLSONLY))
         return true;
     if (!enumerable && !(flags & JSITER_HIDDEN))
         return true;
@@ -132,50 +133,57 @@ static bool
 EnumerateNativeProperties(JSContext *cx, HandleObject pobj, unsigned flags, IdSet &ht,
                           AutoIdVector *props)
 {
-    
-    size_t initlen = pobj->getDenseInitializedLength();
-    const Value *vp = pobj->getDenseElements();
-    for (size_t i = 0; i < initlen; ++i, ++vp) {
-        if (!vp->isMagic(JS_ELEMENTS_HOLE)) {
-            
-            if (!Enumerate(cx, pobj, INT_TO_JSID(i),  true, flags, ht, props))
+    bool enumerateSymbols;
+    if (flags & JSITER_SYMBOLSONLY) {
+        enumerateSymbols = true;
+    } else {
+        
+        size_t initlen = pobj->getDenseInitializedLength();
+        const Value *vp = pobj->getDenseElements();
+        for (size_t i = 0; i < initlen; ++i, ++vp) {
+            if (!vp->isMagic(JS_ELEMENTS_HOLE)) {
+                
+                if (!Enumerate(cx, pobj, INT_TO_JSID(i),  true, flags, ht, props))
+                    return false;
+            }
+        }
+
+        
+        if (pobj->is<TypedArrayObject>()) {
+            size_t len = pobj->as<TypedArrayObject>().length();
+            for (size_t i = 0; i < len; i++) {
+                if (!Enumerate(cx, pobj, INT_TO_JSID(i),  true, flags, ht, props))
+                    return false;
+            }
+        }
+
+        size_t initialLength = props->length();
+
+        
+        bool symbolsFound = false;
+        Shape::Range<NoGC> r(pobj->lastProperty());
+        for (; !r.empty(); r.popFront()) {
+            Shape &shape = r.front();
+            jsid id = shape.propid();
+
+            if (JSID_IS_SYMBOL(id)) {
+                symbolsFound = true;
+                continue;
+            }
+
+            if (!Enumerate(cx, pobj, id, shape.enumerable(), flags, ht, props))
                 return false;
         }
+        ::Reverse(props->begin() + initialLength, props->end());
+
+        enumerateSymbols = symbolsFound && (flags & JSITER_SYMBOLS);
     }
 
-    
-    if (pobj->is<TypedArrayObject>()) {
-        size_t len = pobj->as<TypedArrayObject>().length();
-        for (size_t i = 0; i < len; i++) {
-            if (!Enumerate(cx, pobj, INT_TO_JSID(i),  true, flags, ht, props))
-                return false;
-        }
-    }
-
-    size_t initialLength = props->length();
-
-    
-    Shape::Range<NoGC> r(pobj->lastProperty());
-    bool symbolsFound = false;
-    for (; !r.empty(); r.popFront()) {
-        Shape &shape = r.front();
-        jsid id = shape.propid();
-
-        if (JSID_IS_SYMBOL(id)) {
-            symbolsFound = true;
-            continue;
-        }
-
-        if (!Enumerate(cx, pobj, id, shape.enumerable(), flags, ht, props))
-            return false;
-    }
-    ::Reverse(props->begin() + initialLength, props->end());
-
-    if (symbolsFound && (flags & JSITER_SYMBOLS)) {
+    if (enumerateSymbols) {
         
         
         
-        initialLength = props->length();
+        size_t initialLength = props->length();
         for (Shape::Range<NoGC> r(pobj->lastProperty()); !r.empty(); r.popFront()) {
             Shape &shape = r.front();
             jsid id = shape.propid();
@@ -388,7 +396,9 @@ js::VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap)
 JS_FRIEND_API(bool)
 js::GetPropertyNames(JSContext *cx, JSObject *obj, unsigned flags, AutoIdVector *props)
 {
-    return Snapshot(cx, obj, flags & (JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS), props);
+    return Snapshot(cx, obj,
+                    flags & (JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS | JSITER_SYMBOLSONLY),
+                    props);
 }
 
 size_t sCustomIteratorCount = 0;

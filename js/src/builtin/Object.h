@@ -21,6 +21,14 @@ extern const JSFunctionSpec object_static_methods[];
 bool
 obj_construct(JSContext *cx, unsigned argc, JS::Value *vp);
 
+
+
+
+
+
+bool
+IdToStringOrSymbol(JSContext *cx, JS::HandleId id, JS::MutableHandleValue result);
+
 #if JS_HAS_TOSOURCE
 
 JSString *
