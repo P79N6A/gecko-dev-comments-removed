@@ -8197,6 +8197,111 @@ ICRest_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     return tailCallVM(DoCreateRestParameterInfo, masm);
 }
 
+static bool
+DoRetSubFallback(JSContext *cx, BaselineFrame *frame, ICRetSub_Fallback *stub,
+                 HandleValue val, uint8_t **resumeAddr)
+{
+    FallbackICSpew(cx, stub, "RetSub");
+
+    
+
+    JS_ASSERT(val.isInt32());
+    JS_ASSERT(val.toInt32() >= 0);
+
+    JSScript *script = frame->script();
+    uint32_t offset = uint32_t(val.toInt32());
+    JS_ASSERT(offset < script->length);
+
+    *resumeAddr = script->baselineScript()->nativeCodeForPC(script, script->code + offset);
+
+    if (stub->numOptimizedStubs() >= ICRetSub_Fallback::MAX_OPTIMIZED_STUBS)
+        return true;
+
+    
+    IonSpew(IonSpew_BaselineIC, "  Generating RetSub stub for pc offset %u", offset);
+    ICRetSub_Resume::Compiler compiler(cx, offset, *resumeAddr);
+    ICStub *optStub = compiler.getStub(compiler.getStubSpace(script));
+    if (!optStub)
+        return false;
+
+    stub->addNewStub(optStub);
+    return true;
+}
+
+typedef bool(*DoRetSubFallbackFn)(JSContext *cx, BaselineFrame *, ICRetSub_Fallback *,
+                                  HandleValue, uint8_t **);
+static const VMFunction DoRetSubFallbackInfo = FunctionInfo<DoRetSubFallbackFn>(DoRetSubFallback);
+
+typedef bool (*ThrowFn)(JSContext *, HandleValue);
+static const VMFunction ThrowInfo = FunctionInfo<ThrowFn>(js::Throw);
+
+bool
+ICRetSub_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    
+    Label rethrow;
+    masm.branchTestBooleanTruthy(true, R0, &rethrow);
+    {
+        
+        GeneralRegisterSet regs(availableGeneralRegs(0));
+        regs.take(R1);
+        regs.takeUnchecked(BaselineTailCallReg);
+
+        Register frame = regs.takeAny();
+        masm.movePtr(BaselineFrameReg, frame);
+
+        enterStubFrame(masm, regs.getAny());
+
+        masm.pushValue(R1);
+        masm.push(BaselineStubReg);
+        masm.pushBaselineFramePtr(frame, frame);
+
+        if (!callVM(DoRetSubFallbackInfo, masm))
+            return false;
+
+        leaveStubFrame(masm);
+
+        EmitChangeICReturnAddress(masm, ReturnReg);
+        EmitReturnFromIC(masm);
+    }
+
+    masm.bind(&rethrow);
+    EmitRestoreTailCallReg(masm);
+    masm.pushValue(R1);
+    return tailCallVM(ThrowInfo, masm);
+}
+
+bool
+ICRetSub_Resume::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    
+    Label fail, rethrow;
+    masm.branchTestBooleanTruthy(true, R0, &rethrow);
+
+    
+    Register offset = masm.extractInt32(R1, ExtractTemp0);
+    masm.branch32(Assembler::NotEqual,
+                  Address(BaselineStubReg, ICRetSub_Resume::offsetOfPCOffset()),
+                  offset,
+                  &fail);
+
+    
+    masm.loadPtr(Address(BaselineStubReg, ICRetSub_Resume::offsetOfAddr()), R0.scratchReg());
+    EmitChangeICReturnAddress(masm, R0.scratchReg());
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&rethrow);
+    EmitRestoreTailCallReg(masm);
+    masm.pushValue(R1);
+    if (!tailCallVM(ThrowInfo, masm))
+        return false;
+
+    masm.bind(&fail);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
 ICProfiler_PushFunction::ICProfiler_PushFunction(IonCode *stubCode, const char *str,
                                                  HandleScript script)
   : ICStub(ICStub::Profiler_PushFunction, stubCode),
