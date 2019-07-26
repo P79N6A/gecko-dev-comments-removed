@@ -33,6 +33,9 @@ class nsLayoutStylesheetCache MOZ_FINAL
 
   static nsCSSStyleSheet* ScrollbarsSheet();
   static nsCSSStyleSheet* FormsSheet();
+  
+  
+  static nsCSSStyleSheet* NumberControlSheet();
   static nsCSSStyleSheet* UserContentSheet();
   static nsCSSStyleSheet* UserChromeSheet();
   static nsCSSStyleSheet* UASheet();
@@ -58,6 +61,7 @@ private:
   static mozilla::css::Loader* gCSSLoader;
   nsRefPtr<nsCSSStyleSheet> mScrollbarsSheet;
   nsRefPtr<nsCSSStyleSheet> mFormsSheet;
+  nsRefPtr<nsCSSStyleSheet> mNumberControlSheet;
   nsRefPtr<nsCSSStyleSheet> mUserContentSheet;
   nsRefPtr<nsCSSStyleSheet> mUserChromeSheet;
   nsRefPtr<nsCSSStyleSheet> mUASheet;

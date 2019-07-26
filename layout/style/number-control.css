@@ -1,0 +1,17 @@
+
+
+
+
+
+
+
+
+
+input[type="number"] {
+  -moz-appearance: number-input;
+  
+  -moz-binding: none;
+  width: 149px; 
+  overflow-clip-box: content-box;
+}
+
