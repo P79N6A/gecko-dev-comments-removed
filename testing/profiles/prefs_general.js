@@ -70,7 +70,6 @@ user_pref("camino.warn_when_closing", false);
 user_pref("urlclassifier.updateinterval", 172800);
 
 user_pref("browser.safebrowsing.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
-user_pref("browser.safebrowsing.keyURL", "http://%(server)s/safebrowsing-dummy/newkey");
 user_pref("browser.safebrowsing.updateURL", "http://%(server)s/safebrowsing-dummy/update");
 
 user_pref("extensions.update.url", "http://%(server)s/extensions-dummy/updateURL");
