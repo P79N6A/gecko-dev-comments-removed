@@ -66,25 +66,4 @@ struct IdValuePair
 
 } 
 
-
-
-
-
-
-
-typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JS::Handle<JSObject*> obj);
-
-
-typedef JSObject *
-(* JSClassInitializerOp)(JSContext *cx, JS::HandleObject obj);
-
-
-
-
-
-typedef JSObject *
-(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, bool keysonly);
-
-
 #endif 

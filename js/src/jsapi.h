@@ -948,6 +948,20 @@ typedef void
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
 
+
+
+
+
+typedef JSObject *
+(* JSObjectOp)(JSContext *cx, JS::Handle<JSObject*> obj);
+
+
+
+
+
+typedef JSObject *
+(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, bool keysonly);
+
 typedef JSObject *
 (* JSWeakmapKeyDelegateOp)(JSObject *obj);
 
