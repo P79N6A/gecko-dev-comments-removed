@@ -86,7 +86,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
-            if (ins->isUnbox() || ins->isParameter())
+            if (ins->isUnbox() || ins->isParameter() || ins->isTypeBarrier())
                 continue;
 
             
@@ -1286,7 +1286,13 @@ TryEliminateTypeBarrierFromTest(MTypeBarrier *barrier, bool filtersNull, bool fi
     
 
     
-    if (test->getOperand(0) == barrier->input() && direction == TRUE_BRANCH) {
+
+    
+    MDefinition *input = barrier->input();
+    if (input->isUnbox() && input->toUnbox()->mode() == MUnbox::TypeBarrier)
+        input = input->toUnbox()->input();
+
+    if (test->getOperand(0) == input && direction == TRUE_BRANCH) {
         *eliminated = true;
         barrier->replaceAllUsesWith(barrier->input());
         return;
@@ -1300,7 +1306,7 @@ TryEliminateTypeBarrierFromTest(MTypeBarrier *barrier, bool filtersNull, bool fi
 
     if (compareType != MCompare::Compare_Undefined && compareType != MCompare::Compare_Null)
         return;
-    if (compare->getOperand(0) != barrier->input())
+    if (compare->getOperand(0) != input)
         return;
 
     JSOp op = compare->jsop();
@@ -1331,6 +1337,13 @@ TryEliminateTypeBarrier(MTypeBarrier *barrier, bool *eliminated)
 
     const types::StackTypeSet *barrierTypes = barrier->resultTypeSet();
     const types::StackTypeSet *inputTypes = barrier->input()->resultTypeSet();
+
+    
+    if (barrier->input()->isUnbox() &&
+        barrier->input()->toUnbox()->mode() == MUnbox::TypeBarrier)
+    {
+        inputTypes = barrier->input()->toUnbox()->input()->resultTypeSet();
+    }
 
     if (!barrierTypes || !inputTypes)
         return true;
