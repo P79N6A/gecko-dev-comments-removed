@@ -245,7 +245,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
 
   
   
-  return JS_IsArrayObject(cx, obj) || JS_IsTypedArrayObject(obj);
+  return JS_IsArrayObject(cx, obj) || JS_IsTypedArrayObject(obj, cx);
 }
 
 inline bool
@@ -272,7 +272,7 @@ IsPlatformObject(JSContext* cx, JSObject* obj)
     clasp = js::GetObjectJSClass(obj);
   }
   return IS_WRAPPER_CLASS(js::Valueify(clasp)) || IsDOMClass(clasp) ||
-    JS_IsArrayBufferObject(obj);
+    JS_IsArrayBufferObject(obj, cx);
 }
 
 
@@ -1312,11 +1312,6 @@ public:
 
   void Construct() {
     mImpl.construct();
-  }
-
-  template <class T1>
-  void Construct(const T1 &t1) {
-    mImpl.construct(t1);
   }
 
   template <class T1, class T2>

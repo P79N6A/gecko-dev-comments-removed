@@ -1819,11 +1819,9 @@ Debugger::unwrapDebuggeeArgument(JSContext *cx, const Value &v)
     }
 
     
-    obj = UnwrapObjectChecked(obj);
-    if (!obj) {
-        JS_ReportError(cx, "Permission denied to access object");
+    obj = UnwrapObjectChecked(cx, obj);
+    if (!obj)
         return NULL;
-    }
 
     
     obj = GetInnerObject(cx, obj);
@@ -4467,8 +4465,18 @@ static JSBool
 DebuggerObject_unwrap(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_DEBUGOBJECT_OWNER_REFERENT(cx, argc, vp, "unwrap", args, dbg, referent);
-    JSObject *unwrapped = UnwrapOneChecked(referent);
+    JSObject *unwrapped = UnwrapOneChecked(cx, referent);
     if (!unwrapped) {
+        
+        if (!cx->isExceptionPending())
+            return false;
+
+        
+        
+        
+        
+        
+        cx->clearPendingException();
         vp->setNull();
         return true;
     }

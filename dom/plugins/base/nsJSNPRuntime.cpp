@@ -463,9 +463,17 @@ JSValToNPVariant(NPP npp, JSContext *cx, jsval val, NPVariant *variant)
   
   
   
+  
+  
+  
+  
+  
   JSObject *obj = JSVAL_TO_OBJECT(val);
-  obj = js::UnwrapObjectChecked(obj);
+  JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
+  obj = js::UnwrapObjectChecked(cx, obj);
+  JS_SetErrorReporter(cx, reporter);
   if (!obj) {
+    JS_ClearPendingException(cx);
     obj = JSVAL_TO_OBJECT(val);
   }
 
@@ -1126,7 +1134,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 static JSObject *
 GetNPObjectWrapper(JSContext *cx, JSObject *obj, bool wrapResult = true)
 {
-  while (obj && (obj = js::UnwrapObjectChecked(obj))) {
+  while (obj && (obj = js::UnwrapObjectChecked(cx, obj))) {
     if (JS_GetClass(obj) == &sNPObjectJSWrapperClass) {
       if (wrapResult && !JS_WrapObject(cx, &obj)) {
         return NULL;

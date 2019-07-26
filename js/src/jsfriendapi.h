@@ -1183,7 +1183,7 @@ JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes);
 
 
 extern JS_FRIEND_API(JSBool)
-JS_IsTypedArrayObject(JSObject *obj);
+JS_IsTypedArrayObject(JSObject *obj, JSContext *cx);
 
 
 
@@ -1193,58 +1193,60 @@ JS_IsTypedArrayObject(JSObject *obj);
 
 
 extern JS_FRIEND_API(JSBool)
-JS_IsArrayBufferViewObject(JSObject *obj);
+JS_IsArrayBufferViewObject(JSObject *obj, JSContext *cx);
 
 
 
 
 
 extern JS_FRIEND_API(JSBool)
-JS_IsInt8Array(JSObject *obj);
+JS_IsInt8Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsUint8Array(JSObject *obj);
+JS_IsUint8Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsUint8ClampedArray(JSObject *obj);
+JS_IsUint8ClampedArray(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsInt16Array(JSObject *obj);
+JS_IsInt16Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsUint16Array(JSObject *obj);
+JS_IsUint16Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsInt32Array(JSObject *obj);
+JS_IsInt32Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsUint32Array(JSObject *obj);
+JS_IsUint32Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsFloat32Array(JSObject *obj);
+JS_IsFloat32Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
-JS_IsFloat64Array(JSObject *obj);
+JS_IsFloat64Array(JSObject *obj, JSContext *cx);
 
 
 
 
 
 
+
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt8Array(JSObject *obj, uint32_t *length, int8_t **data);
+JS_GetObjectAsInt8Array(JSContext *cx, JSObject *obj, uint32_t *length, int8_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint8Array(JSObject *obj, uint32_t *length, uint8_t **data);
+JS_GetObjectAsUint8Array(JSContext *cx, JSObject *obj, uint32_t *length, uint8_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint8ClampedArray(JSObject *obj, uint32_t *length, uint8_t **data);
+JS_GetObjectAsUint8ClampedArray(JSContext *cx, JSObject *obj, uint32_t *length, uint8_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt16Array(JSObject *obj, uint32_t *length, int16_t **data);
+JS_GetObjectAsInt16Array(JSContext *cx, JSObject *obj, uint32_t *length, int16_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint16Array(JSObject *obj, uint32_t *length, uint16_t **data);
+JS_GetObjectAsUint16Array(JSContext *cx, JSObject *obj, uint32_t *length, uint16_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsInt32Array(JSObject *obj, uint32_t *length, int32_t **data);
+JS_GetObjectAsInt32Array(JSContext *cx, JSObject *obj, uint32_t *length, int32_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsUint32Array(JSObject *obj, uint32_t *length, uint32_t **data);
+JS_GetObjectAsUint32Array(JSContext *cx, JSObject *obj, uint32_t *length, uint32_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsFloat32Array(JSObject *obj, uint32_t *length, float **data);
+JS_GetObjectAsFloat32Array(JSContext *cx, JSObject *obj, uint32_t *length, float **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsFloat64Array(JSObject *obj, uint32_t *length, double **data);
+JS_GetObjectAsFloat64Array(JSContext *cx, JSObject *obj, uint32_t *length, double **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsArrayBufferView(JSObject *obj, uint32_t *length, uint8_t **data);
+JS_GetObjectAsArrayBufferView(JSContext *cx, JSObject *obj, uint32_t *length, uint8_t **data);
 extern JS_FRIEND_API(JSObject *)
-JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
+JS_GetObjectAsArrayBuffer(JSContext *cx, JSObject *obj, uint32_t *length, uint8_t **data);
+
 
 
 
@@ -1254,7 +1256,7 @@ JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
 
 
 extern JS_FRIEND_API(JSArrayBufferViewType)
-JS_GetTypedArrayType(JSObject *obj);
+JS_GetTypedArrayType(JSObject *obj, JSContext *maybecx);
 
 
 
@@ -1263,7 +1265,8 @@ JS_GetTypedArrayType(JSObject *obj);
 
 
 extern JS_FRIEND_API(JSBool)
-JS_IsArrayBufferObject(JSObject *obj);
+JS_IsArrayBufferObject(JSObject *obj, JSContext *maybecx);
+
 
 
 
@@ -1273,7 +1276,8 @@ JS_IsArrayBufferObject(JSObject *obj);
 
 
 extern JS_FRIEND_API(uint32_t)
-JS_GetArrayBufferByteLength(JSObject *obj);
+JS_GetArrayBufferByteLength(JSObject *obj, JSContext *maybecx);
+
 
 
 
@@ -1285,17 +1289,7 @@ JS_GetArrayBufferByteLength(JSObject *obj);
 
 
 extern JS_FRIEND_API(uint8_t *)
-JS_GetArrayBufferData(JSObject *obj);
-
-
-
-
-
-
-
-
-extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayLength(JSObject *obj);
+JS_GetArrayBufferData(JSObject *obj, JSContext *maybecx);
 
 
 
@@ -1306,7 +1300,9 @@ JS_GetTypedArrayLength(JSObject *obj);
 
 
 extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteOffset(JSObject *obj);
+JS_GetTypedArrayLength(JSObject *obj, JSContext *cx);
+
+
 
 
 
@@ -1316,7 +1312,18 @@ JS_GetTypedArrayByteOffset(JSObject *obj);
 
 
 extern JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteLength(JSObject *obj);
+JS_GetTypedArrayByteOffset(JSObject *obj, JSContext *cx);
+
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(uint32_t)
+JS_GetTypedArrayByteLength(JSObject *obj, JSContext *cx);
 
 
 
@@ -1324,13 +1331,14 @@ JS_GetTypedArrayByteLength(JSObject *obj);
 
 
 extern JS_FRIEND_API(JSBool)
-JS_IsArrayBufferViewObject(JSObject *obj);
+JS_IsArrayBufferViewObject(JSObject *obj, JSContext *cx);
 
 
 
 
 extern JS_FRIEND_API(uint32_t)
-JS_GetArrayBufferViewByteLength(JSObject *obj);
+JS_GetArrayBufferViewByteLength(JSObject *obj, JSContext *cx);
+
 
 
 
@@ -1343,30 +1351,30 @@ JS_GetArrayBufferViewByteLength(JSObject *obj);
 
 
 extern JS_FRIEND_API(int8_t *)
-JS_GetInt8ArrayData(JSObject *obj);
+JS_GetInt8ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(uint8_t *)
-JS_GetUint8ArrayData(JSObject *obj);
+JS_GetUint8ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(uint8_t *)
-JS_GetUint8ClampedArrayData(JSObject *obj);
+JS_GetUint8ClampedArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(int16_t *)
-JS_GetInt16ArrayData(JSObject *obj);
+JS_GetInt16ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(uint16_t *)
-JS_GetUint16ArrayData(JSObject *obj);
+JS_GetUint16ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(int32_t *)
-JS_GetInt32ArrayData(JSObject *obj);
+JS_GetInt32ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(uint32_t *)
-JS_GetUint32ArrayData(JSObject *obj);
+JS_GetUint32ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(float *)
-JS_GetFloat32ArrayData(JSObject *obj);
+JS_GetFloat32ArrayData(JSObject *obj, JSContext *maybecx);
 extern JS_FRIEND_API(double *)
-JS_GetFloat64ArrayData(JSObject *obj);
+JS_GetFloat64ArrayData(JSObject *obj, JSContext *maybecx);
 
 
 
 
 
 extern JS_FRIEND_API(void *)
-JS_GetArrayBufferViewData(JSObject *obj);
+JS_GetArrayBufferViewData(JSObject *obj, JSContext *maybecx);
 
 
 
@@ -1374,24 +1382,16 @@ JS_GetArrayBufferViewData(JSObject *obj);
 
 
 extern JS_FRIEND_API(JSObject *)
-JS_GetArrayBufferViewBuffer(JSObject *obj);
+JS_GetArrayBufferViewBuffer(JSObject *obj, JSContext *maybecx);
+
+
 
 
 
 
 JS_FRIEND_API(JSBool)
-JS_IsDataViewObject(JSObject *obj);
+JS_IsDataViewObject(JSContext *cx, JSObject *obj, JSBool *isDataView);
 
-
-
-
-
-
-
-
-
-JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteOffset(JSObject *obj);
 
 
 
@@ -1402,7 +1402,18 @@ JS_GetDataViewByteOffset(JSObject *obj);
 
 
 JS_FRIEND_API(uint32_t)
-JS_GetDataViewByteLength(JSObject *obj);
+JS_GetDataViewByteOffset(JSObject *obj, JSContext *maybecx);
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(uint32_t)
+JS_GetDataViewByteLength(JSObject *obj, JSContext *maybecx);
 
 
 
@@ -1413,7 +1424,7 @@ JS_GetDataViewByteLength(JSObject *obj);
 
 
 JS_FRIEND_API(void *)
-JS_GetDataViewData(JSObject *obj);
+JS_GetDataViewData(JSObject *obj, JSContext *maybecx);
 
 
 

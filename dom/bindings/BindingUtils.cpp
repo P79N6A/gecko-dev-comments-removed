@@ -522,11 +522,9 @@ QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp)
   
   
   JSObject* origObj = JSVAL_TO_OBJECT(thisv);
-  JSObject* obj = js::UnwrapObjectChecked(origObj);
-  if (!obj) {
-      JS_ReportError(cx, "Permission denied to access object");
+  JSObject* obj = js::UnwrapObjectChecked(cx, origObj);
+  if (!obj)
       return false;
-  }
 
   nsISupports* native;
   if (!UnwrapDOMObjectToISupports(obj, native)) {

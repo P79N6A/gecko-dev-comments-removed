@@ -29,28 +29,19 @@ class DummyFrameGuard;
 class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
 {
     unsigned mFlags;
-    bool mSafeToUnwrap;
 
   public:
     enum Action {
         GET,
         SET,
-        CALL
+        CALL,
+        PUNCTURE
     };
 
     enum Flags {
         CROSS_COMPARTMENT = 1 << 0,
         LAST_USED_FLAG = CROSS_COMPARTMENT
     };
-
-    
-
-
-
-
-
-    void setSafeToUnwrap(bool safe) { mSafeToUnwrap = safe; };
-    bool isSafeToUnwrap() { return mSafeToUnwrap; };
 
     static JSObject *New(JSContext *cx, JSObject *obj, JSObject *proto,
                          JSObject *parent, Wrapper *handler);
@@ -66,6 +57,23 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
     }
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -255,12 +263,12 @@ UnwrapObject(JSObject *obj, bool stopAtOuter = true, unsigned *flagsp = NULL);
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapObjectChecked(RawObject obj);
+UnwrapObjectChecked(JSContext *cx, RawObject obj);
 
 
 
 JS_FRIEND_API(JSObject *)
-UnwrapOneChecked(RawObject obj);
+UnwrapOneChecked(JSContext *cx, HandleObject obj);
 
 JS_FRIEND_API(bool)
 IsCrossCompartmentWrapper(RawObject obj);

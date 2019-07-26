@@ -96,7 +96,9 @@ struct LocationPolicy : public Policy {
         
         MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
 
-        if ((AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
+        
+        if (act != js::Wrapper::PUNCTURE &&
+            (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
              AccessCheck::isLocationObjectSameOrigin(cx, wrapper))) {
             return true;
         }

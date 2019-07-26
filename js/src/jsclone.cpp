@@ -569,11 +569,11 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
 
     
     
-    if (obj->isWrapper())
-        obj = UnwrapObjectChecked(obj);
-    if (!obj) {
-        JS_ReportError(w->context(), "Permission denied to access object");
-        return false;
+    if (obj->isWrapper()) {
+        JSObject *unwrapped = UnwrapObjectChecked(w->context(), obj);
+        if (!unwrapped)
+            return false;
+        obj = unwrapped;
     }
     return w->writeTypedArray(obj);
 }
@@ -674,11 +674,9 @@ JSStructuredCloneWriter::startWrite(const Value &v)
 
         
         
-        obj = UnwrapObjectChecked(obj);
-        if (!obj) {
-            JS_ReportError(context(), "Permission denied to access object");
+        obj = UnwrapObjectChecked(context(), obj);
+        if (!obj)
             return false;
-        }
 
         AutoCompartment ac(context(), obj);
 
@@ -899,23 +897,23 @@ JSStructuredCloneReader::readTypedArray(uint32_t tag, uint32_t nelems, Value *vp
     JS_ASSERT(TypedArray::length(obj) == nelems);
     switch (tag) {
       case SCTAG_TYPED_ARRAY_INT8:
-        return in.readArray((uint8_t*) JS_GetInt8ArrayData(obj), nelems);
+        return in.readArray((uint8_t*) JS_GetInt8ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_UINT8:
-        return in.readArray(JS_GetUint8ArrayData(obj), nelems);
+        return in.readArray(JS_GetUint8ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_INT16:
-        return in.readArray((uint16_t*) JS_GetInt16ArrayData(obj), nelems);
+        return in.readArray((uint16_t*) JS_GetInt16ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_UINT16:
-        return in.readArray(JS_GetUint16ArrayData(obj), nelems);
+        return in.readArray(JS_GetUint16ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_INT32:
-        return in.readArray((uint32_t*) JS_GetInt32ArrayData(obj), nelems);
+        return in.readArray((uint32_t*) JS_GetInt32ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_UINT32:
-        return in.readArray(JS_GetUint32ArrayData(obj), nelems);
+        return in.readArray(JS_GetUint32ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_FLOAT32:
-        return in.readArray((uint32_t*) JS_GetFloat32ArrayData(obj), nelems);
+        return in.readArray((uint32_t*) JS_GetFloat32ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_FLOAT64:
-        return in.readArray((uint64_t*) JS_GetFloat64ArrayData(obj), nelems);
+        return in.readArray((uint64_t*) JS_GetFloat64ArrayData(obj, context()), nelems);
       case SCTAG_TYPED_ARRAY_UINT8_CLAMPED:
-        return in.readArray(JS_GetUint8ClampedArrayData(obj), nelems);
+        return in.readArray(JS_GetUint8ClampedArrayData(obj, context()), nelems);
       default:
         JS_NOT_REACHED("unknown TypedArray type");
         return false;
