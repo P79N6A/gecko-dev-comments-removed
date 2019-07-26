@@ -615,6 +615,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
     }
 
+    Label afterCall;
+
     
     if (!call->hasSingleTarget()) {
         
@@ -629,7 +631,10 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
         JS_ASSERT(ArgumentsRectifierReg != objreg);
         masm.move32(Imm32(call->nargs()), ArgumentsRectifierReg);
-        masm.movePtr(ImmGCPtr(argumentsRectifier), objreg);
+        masm.call(argumentsRectifier);
+        if (!markSafepoint(call))
+            return false;
+        masm.jump(&afterCall);
     }
 
     masm.bind(&rejoin);
@@ -640,6 +645,8 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.callIon(objreg);
     if (!markSafepoint(call))
         return false;
+
+    masm.bind(&afterCall);
 
     
     
