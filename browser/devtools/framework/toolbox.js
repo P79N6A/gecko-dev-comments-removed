@@ -1217,7 +1217,7 @@ Toolbox.prototype = {
         outstanding.push(panel.destroy());
       } catch (e) {
         
-        console.error(e);
+        console.error("Panel " + id + ":", e);
       }
     }
 

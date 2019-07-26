@@ -284,6 +284,7 @@ TabTarget.prototype = {
           this._remote.reject("Unable to attach to the tab");
           return;
         }
+        this.activeTab = aTabClient;
         this.threadActor = aResponse.threadActor;
         this._remote.resolve(null);
       });
@@ -444,11 +445,14 @@ TabTarget.prototype = {
       this._teardownListeners();
     }
 
+    let cleanupAndResolve = () => {
+      this._cleanup();
+      this._destroyer.resolve(null);
+    };
     
     
     if (this._tab && !this._client) {
-      this._cleanup();
-      this._destroyer.resolve(null);
+      cleanupAndResolve();
     } else if (this._client) {
       
       
@@ -457,15 +461,15 @@ TabTarget.prototype = {
       if (this.isLocalTab) {
         
         
-        this._client.close(() => {
-          this._cleanup();
-          this._destroyer.resolve(null);
-        });
+        this._client.close(cleanupAndResolve);
       } else {
         
         
-        this._cleanup();
-        this._destroyer.resolve(null);
+        if (this.activeTab) {
+          this.activeTab.detach(cleanupAndResolve);
+        } else {
+          cleanupAndResolve();
+        }
       }
     }
 
@@ -481,6 +485,7 @@ TabTarget.prototype = {
     } else {
       promiseTargets.delete(this._form);
     }
+    this.activeTab = null;
     this._client = null;
     this._tab = null;
     this._form = null;

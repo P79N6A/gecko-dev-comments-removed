@@ -68,7 +68,7 @@ function testBreakOnAll() {
 
   
   gThreadClient.pauseOnDOMEvents("*", (aPacket) => {
-    is(aPacket, undefined,
+    is(aPacket.error, undefined,
       "The pause-on-any-event request completed successfully.");
 
     gClient.addOneTimeListener("paused", (aEvent, aPacket) => {
