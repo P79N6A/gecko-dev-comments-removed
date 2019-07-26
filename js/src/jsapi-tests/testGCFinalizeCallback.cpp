@@ -2,9 +2,6 @@
 
 
 
-#include "jscntxt.h"
-#include "jsfriendapi.h"
-
 #include "jsapi-tests/tests.h"
 
 const unsigned BufferSize = 20;

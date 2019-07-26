@@ -4,11 +4,8 @@
 
 
 
-#include "jit/BaselineCompiler.h"
 #include "jit/BaselineHelpers.h"
 #include "jit/BaselineIC.h"
-#include "jit/BaselineJIT.h"
-#include "jit/IonLinker.h"
 
 using namespace js;
 using namespace js::jit;

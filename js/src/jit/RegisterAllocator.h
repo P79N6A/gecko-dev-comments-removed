@@ -9,17 +9,16 @@
 
 #include "mozilla/Attributes.h"
 
-#include "jit/InlineList.h"
-#include "jit/Ion.h"
 #include "jit/LIR.h"
-#include "jit/Lowering.h"
-#include "jit/MIR.h"
+#include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 
 
 
 namespace js {
 namespace jit {
+
+class LIRGenerator;
 
 
 

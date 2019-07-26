@@ -10,11 +10,13 @@
 # include <unistd.h>
 #endif
 
-#include "jit/IonSpewer.h"
-#include "jit/LinearScan.h"
-#include "jit/LIR.h"
-#include "jit/MIR.h"
-#include "jit/MIRGraph.h"
+#ifdef JS_ION_PERF
+# include "jit/IonSpewer.h"
+# include "jit/LinearScan.h"
+# include "jit/LIR.h"
+# include "jit/MIR.h"
+# include "jit/MIRGraph.h"
+#endif
 
 
 

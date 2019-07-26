@@ -5,8 +5,6 @@
 
 
 
-#include "jsfriendapi.h"
-
 #include "jsapi-tests/tests.h"
 
 const size_t N = 1000;

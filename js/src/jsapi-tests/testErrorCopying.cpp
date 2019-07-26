@@ -8,8 +8,6 @@
 
 
 
-#include "jscntxt.h"
-
 #include "jsapi-tests/tests.h"
 
 static uint32_t column = 0;

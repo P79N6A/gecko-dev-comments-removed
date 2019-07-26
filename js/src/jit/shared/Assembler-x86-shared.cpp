@@ -5,7 +5,14 @@
 
 
 #include "gc/Marking.h"
-#include "jit/IonMacroAssembler.h"
+#include "jit/IonCompartment.h"
+#if defined(JS_CPU_X86)
+# include "jit/x86/MacroAssembler-x86.h"
+#elif defined(JS_CPU_X64)
+# include "jit/x64/MacroAssembler-x64.h"
+#elif defined(JS_CPU_ARM)
+# include "jit/arm/MacroAssembler-arm.h"
+#endif
 
 using namespace js;
 using namespace js::jit;

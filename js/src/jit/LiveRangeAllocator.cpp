@@ -5,10 +5,9 @@
 
 
 #include "jit/LiveRangeAllocator.h"
-
 #include "mozilla/DebugOnly.h"
-
 #include "jit/BacktrackingAllocator.h"
+#include "jit/BitSet.h"
 #include "jit/LinearScan.h"
 
 using namespace js;

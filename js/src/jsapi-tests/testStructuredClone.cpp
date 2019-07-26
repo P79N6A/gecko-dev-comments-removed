@@ -2,7 +2,6 @@
 
 
 
-#include "jsfriendapi.h"
 #include "js/StructuredClone.h"
 
 #include "jsapi-tests/tests.h"

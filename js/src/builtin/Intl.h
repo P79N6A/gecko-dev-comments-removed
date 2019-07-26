@@ -9,8 +9,6 @@
 
 #include "NamespaceImports.h"
 
-#include "js/RootingAPI.h"
-
 
 
 

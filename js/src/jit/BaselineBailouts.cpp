@@ -4,14 +4,12 @@
 
 
 
-#include "jit/BaselineCompiler.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CompileInfo.h"
 #include "jit/IonSpewer.h"
 #include "vm/ArgumentsObject.h"
 
-#include "jsfuninlines.h"
 #include "jsscriptinlines.h"
 
 #include "jit/IonFrames-inl.h"

@@ -2,9 +2,6 @@
 
 
 
-#include "jscntxt.h"
-#include "jsfun.h"
-
 #include "jsapi-tests/tests.h"
 
 #ifdef MOZ_TRACE_JSCALLS
