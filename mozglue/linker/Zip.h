@@ -26,7 +26,7 @@ class ZipCollection;
 
 
 
-class Zip: public mozilla::AtomicRefCounted<Zip>
+class Zip: public mozilla::external::AtomicRefCounted<Zip>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(Zip)

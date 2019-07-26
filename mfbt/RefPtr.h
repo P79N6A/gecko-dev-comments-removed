@@ -179,12 +179,17 @@ class RefCounted : public detail::RefCounted<T, detail::NonAtomicRefCount>
     }
 };
 
+namespace external {
+
+
+
+
 
 
 
 
 template<typename T>
-class AtomicRefCounted : public detail::RefCounted<T, detail::AtomicRefCount>
+class AtomicRefCounted : public mozilla::detail::RefCounted<T, mozilla::detail::AtomicRefCount>
 {
   public:
     ~AtomicRefCounted() {
@@ -192,6 +197,8 @@ class AtomicRefCounted : public detail::RefCounted<T, detail::AtomicRefCount>
                     "T must derive from AtomicRefCounted<T>");
     }
 };
+
+}
 
 
 

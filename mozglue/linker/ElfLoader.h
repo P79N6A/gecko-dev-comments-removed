@@ -88,7 +88,7 @@ template <> inline RefCounted<LibHandle, AtomicRefCount>::~RefCounted()
 
 
 
-class LibHandle: public mozilla::AtomicRefCounted<LibHandle>
+class LibHandle: public mozilla::external::AtomicRefCounted<LibHandle>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(LibHandle)
@@ -140,7 +140,7 @@ public:
   void AddDirectRef()
   {
     ++directRefCnt;
-    mozilla::AtomicRefCounted<LibHandle>::AddRef();
+    mozilla::external::AtomicRefCounted<LibHandle>::AddRef();
   }
 
   
@@ -152,10 +152,10 @@ public:
     bool ret = false;
     if (directRefCnt) {
       MOZ_ASSERT(directRefCnt <=
-                 mozilla::AtomicRefCounted<LibHandle>::refCount());
+                 mozilla::external::AtomicRefCounted<LibHandle>::refCount());
       if (--directRefCnt)
         ret = true;
-      mozilla::AtomicRefCounted<LibHandle>::Release();
+      mozilla::external::AtomicRefCounted<LibHandle>::Release();
     }
     return ret;
   }
