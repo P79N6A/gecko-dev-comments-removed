@@ -242,9 +242,6 @@ nsSubDocumentFrame::GetSubdocumentSize()
 bool
 nsSubDocumentFrame::PassPointerEventsToChildren()
 {
-  if (StyleVisibility()->mPointerEvents != NS_STYLE_POINTER_EVENTS_NONE) {
-    return true;
-  }
   
   
   
@@ -278,18 +275,28 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     return;
 
   
-  
-  if (aBuilder->IsForEventDelivery() && !PassPointerEventsToChildren())
-    return;
-
-  
-  if (!aBuilder->IsForEventDelivery() ||
-      StyleVisibility()->mPointerEvents != NS_STYLE_POINTER_EVENTS_NONE) {
+  bool pointerEventsNone = StyleVisibility()->mPointerEvents == NS_STYLE_POINTER_EVENTS_NONE;
+  if (!aBuilder->IsForEventDelivery() || !pointerEventsNone) {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
   }
 
-  if (!mInnerView)
+  bool passPointerEventsToChildren = false;
+  if (aBuilder->IsForEventDelivery()) {
+    passPointerEventsToChildren = PassPointerEventsToChildren();
+    
+    
+    if (pointerEventsNone && !passPointerEventsToChildren) {
+      return;
+    }
+  }
+
+  
+  
+  
+  if (!mInnerView ||
+      (!aBuilder->GetDescendIntoSubdocuments() && !passPointerEventsToChildren)) {
     return;
+  }
 
   nsFrameLoader* frameLoader = FrameLoader();
   if (frameLoader) {

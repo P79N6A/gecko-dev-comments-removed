@@ -607,7 +607,11 @@ public:
 
 
 
-    IGNORE_ROOT_SCROLL_FRAME = 0x02
+    IGNORE_ROOT_SCROLL_FRAME = 0x02,
+    
+
+
+    IGNORE_CROSS_DOC = 0x04
   };
 
   
