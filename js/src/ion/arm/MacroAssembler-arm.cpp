@@ -1168,9 +1168,19 @@ MacroAssemblerARM::ma_vcvt_F64_I32(FloatRegister src, FloatRegister dest)
     as_vcvt(VFPRegister(dest).sintOverlay(), VFPRegister(src));
 }
 void
+MacroAssemblerARM::ma_vcvt_F64_U32(FloatRegister src, FloatRegister dest)
+{
+    as_vcvt(VFPRegister(dest).uintOverlay(), VFPRegister(src));
+}
+void
 MacroAssemblerARM::ma_vcvt_I32_F64(FloatRegister dest, FloatRegister src)
 {
     as_vcvt(VFPRegister(dest), VFPRegister(src).sintOverlay());
+}
+void
+MacroAssemblerARM::ma_vcvt_U32_F64(FloatRegister dest, FloatRegister src)
+{
+    as_vcvt(VFPRegister(dest), VFPRegister(src).uintOverlay());
 }
 
 void
@@ -1797,7 +1807,7 @@ MacroAssemblerARMCompat::addPtr(Imm32 imm, const Address &dest)
 }
 
 void
-MacroAssemblerARMCompat::compareDouble(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs)
+MacroAssemblerARMCompat::compareDouble(FloatRegister lhs, FloatRegister rhs)
 {
     if (rhs == InvalidFloatReg)
         ma_vcmpz(lhs);
@@ -1810,7 +1820,7 @@ void
 MacroAssemblerARMCompat::branchDouble(DoubleCondition cond, const FloatRegister &lhs,
                                       const FloatRegister &rhs, Label *label)
 {
-    compareDouble(cond, lhs, rhs);
+    compareDouble(lhs, rhs);
 
     if (cond == DoubleNotEqual) {
         
@@ -2657,4 +2667,54 @@ MacroAssemblerARMCompat::testStringTruthy(bool truthy, const ValueOperand &value
     
     ma_bic(Imm32(~mask), ScratchRegister, SetCond);
     return truthy ? Assembler::NonZero : Assembler::Zero;
+}
+
+void
+MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail)
+{
+    Label handleZero;
+    Label handleNeg;
+    Label fin;
+    compareDouble(input, InvalidFloatReg);
+    ma_b(&handleZero, Assembler::Equal);
+    ma_b(&handleNeg, Assembler::Signed);
+    
+    ma_b(bail, Assembler::Overflow);
+
+    
+    
+    
+    
+    ma_vcvt_F64_U32(input, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_mov(output, output, SetCond);
+    ma_b(bail, Signed);
+    ma_b(&fin);
+
+    bind(&handleZero);
+    
+    
+    as_vxfer(output, InvalidReg, input, FloatToCore, Always, 1);
+    ma_cmp(output, Imm32(0));
+    ma_b(bail, NonZero);
+    ma_b(&fin);
+
+    bind(&handleNeg);
+    
+    ma_vneg(input, input);
+    ma_vcvt_F64_U32(input, ScratchFloatReg);
+    ma_vxfer(VFPRegister(ScratchFloatReg).uintOverlay(), output);
+    ma_vcvt_U32_F64(ScratchFloatReg, ScratchFloatReg);
+    compareDouble(ScratchFloatReg, input);
+    ma_add(output, Imm32(1), output, NoSetCond, NotEqual);
+    
+    
+    ma_rsb(output, Imm32(0), output, SetCond);
+    
+    ma_vneg(input, input);
+    
+    
+    ma_b(bail, Unsigned);
+
+    bind(&fin);
 }
