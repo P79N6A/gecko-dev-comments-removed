@@ -1563,13 +1563,18 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   FallbackType fallbackType = eFallbackAlternate;
 
-  if (mType == eType_Null) {
+  
+  
+  
+  if (mType == eType_Null && GetTypeOfContent(mContentType) == eType_Null) {
+    
     nsresult pluginsupport = IsPluginEnabledForType(mContentType);
     if (pluginsupport == NS_ERROR_PLUGIN_DISABLED) {
       fallbackType = eFallbackDisabled;
     } else if (pluginsupport == NS_ERROR_PLUGIN_BLOCKLISTED) {
       fallbackType = eFallbackBlocklisted;
     } else {
+      
       fallbackType = eFallbackUnsupported;
     }
   }
