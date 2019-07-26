@@ -772,10 +772,6 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
         
         audioOutputStream->mStream->Init(2, tracks->GetRate(), AUDIO_CHANNEL_NORMAL, AudioStream::LowLatency);
         audioOutputStream->mTrackID = tracks->GetID();
-
-        LogLatency(AsyncLatencyLogger::AudioStreamCreate,
-                   reinterpret_cast<uint64_t>(aStream),
-                   reinterpret_cast<int64_t>(audioOutputStream->mStream.get()));
       }
     }
   }
@@ -859,8 +855,7 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
                              startTicks, endTicks));
       }
       
-      output.WriteTo(LATENCY_STREAM_ID(aStream, track->GetID()),
-                     audioOutput.mStream);
+      output.WriteTo((((uint64_t)i) << 32) | track->GetID(), audioOutput.mStream);
       t = end;
     }
   }

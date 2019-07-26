@@ -135,8 +135,7 @@ public:
   
   
   
-  
-  virtual nsresult Write(const mozilla::AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTime = nullptr) = 0;
+  virtual nsresult Write(const mozilla::AudioDataValue* aBuf, uint32_t aFrames) = 0;
 
   
   virtual uint32_t Available() = 0;
@@ -204,19 +203,6 @@ protected:
   AudioClock mAudioClock;
   nsAutoPtr<soundtouch::SoundTouch> mTimeStretcher;
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
-
-  
-  TimeStamp mStartTime;
-  
-  int64_t mReadPoint;
-  
-  
-  
-  struct Inserts {
-    int64_t mTimeMs;
-    int64_t mFrames;
-  };
-  nsAutoTArray<Inserts,8> mInserts;
 };
 
 } 

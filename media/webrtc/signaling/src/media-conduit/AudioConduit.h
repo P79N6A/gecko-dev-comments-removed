@@ -7,8 +7,6 @@
 #define AUDIO_SESSION_H_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/TimeStamp.h"
-#include "nsTArray.h"
 
 #include "MediaConduitInterface.h"
 
@@ -21,7 +19,6 @@
 #include "webrtc/voice_engine/include/voe_network.h"
 #include "webrtc/voice_engine/include/voe_external_media.h"
 #include "webrtc/voice_engine/include/voe_audio_processing.h"
-#include "webrtc/voice_engine/include/voe_video_sync.h"
 
 
  using webrtc::VoEBase;
@@ -29,7 +26,6 @@
  using webrtc::VoECodec;
  using webrtc::VoEExternalMedia;
  using webrtc::VoEAudioProcessing;
- using webrtc::VoEVideoSync;
 
 
 
@@ -151,7 +147,6 @@ public:
                       mTransport(nullptr),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
-                      mLastTimestamp(0),
                       mChannel(-1),
                       mCurSendCodecConfig(nullptr),
                       mCaptureDelay(150),
@@ -214,22 +209,11 @@ private:
   webrtc::VoECodec*    mPtrVoECodec;
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
   webrtc::VoEAudioProcessing* mPtrVoEProcessing;
-  webrtc::VoEVideoSync* mPtrVoEVideoSync;
 
   
   bool mEngineTransmitting; 
   bool mEngineReceiving;    
                             
-
-  
-  
-  
-  struct Processing {
-    TimeStamp mTimeStamp;
-    uint32_t mRTPTimeStamp; 
-  };
-  nsAutoTArray<Processing,8> mProcessing;
-  uint32_t mLastTimestamp;
 
   int mChannel;
   RecvCodecList    mRecvCodecList;
