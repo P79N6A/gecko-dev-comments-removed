@@ -105,6 +105,8 @@ RefTestCmdLineHandler.prototype =
     
     
     branch.setBoolPref("security.fileuri.strict_origin_policy", false);
+    
+    branch.setBoolPref("browser.pageThumbs.enabled", false);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
