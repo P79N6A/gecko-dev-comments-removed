@@ -549,7 +549,6 @@ NativeKey::GetScanCodeWithExtendedFlag() const
   
   if (!mIsExtended ||
       WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
-    NS_WARNING("GetScanCodeWithExtendedFlat() returns without extended flag");
     return mScanCode;
   }
   return (0xE000 | mScanCode);
