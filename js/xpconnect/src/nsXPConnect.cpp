@@ -1092,11 +1092,6 @@ CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
     
     
     (void) new XPCWrappedNativeScope(cx, global);
-    JSCompartment *compartment = js::GetObjectCompartment(global);
-
-    XPCCompartmentSet& set = nsXPConnect::GetRuntimeInstance()->GetCompartmentSet();
-    if (!set.put(compartment))
-        return nullptr;
 
 #ifdef DEBUG
     

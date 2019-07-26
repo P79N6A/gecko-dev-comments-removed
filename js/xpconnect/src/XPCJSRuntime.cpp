@@ -240,16 +240,11 @@ CompartmentDestroyedCallback(JSFreeOp *fop, JSCompartment *compartment)
     XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
     if (!self)
         return;
-    XPCCompartmentSet &set = self->GetCompartmentSet();
 
     
     
     nsAutoPtr<CompartmentPrivate> priv(GetCompartmentPrivate(compartment));
     JS_SetCompartmentPrivate(compartment, nullptr);
-
-    if (set.has(compartment))
-        set.remove(compartment);
-    return;
 }
 
 nsresult
@@ -2421,8 +2416,6 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 
     mJSHolders.Init(512);
 
-    mCompartmentSet.init();
-
     
 #ifdef DEBUG
     if (!JS_GetGlobalDebugHooks(mJSRuntime)->debuggerHandler)
@@ -2466,7 +2459,6 @@ XPCJSRuntime::newXPCJSRuntime(nsXPConnect* aXPConnect)
         self->GetNativeScriptableSharedMap()    &&
         self->GetDyingWrappedNativeProtoMap()   &&
         self->GetMapLock()                      &&
-        self->GetCompartmentSet().initialized() &&
         self->mWatchdogThread) {
         return self;
     }
