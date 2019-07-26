@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import sys
+import warnings
 
 
 
@@ -272,6 +273,33 @@ class VirtualenvManager(object):
 
                 old_env_variables[k] = os.environ[k]
                 del os.environ[k]
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if sys.platform in ('win32', 'cygwin') and \
+                'VS90COMNTOOLS' not in os.environ:
+
+                warnings.warn('Hacking environment to allow binary Python '
+                    'extensions to build. You can make this warning go away '
+                    'by installing Visual Studio 2008. You can download the '
+                    'Express Edition installer from '
+                    'http://go.microsoft.com/?linkid=7729279')
+
+                
+                
+                for ver in ('100', '110', '120'):
+                    var = 'VS%sCOMNTOOLS' % ver
+                    if var in os.environ:
+                        os.environ['VS90COMNTOOLS'] = os.environ[var]
+                        break
 
             for package in packages:
                 handle_package(package)
