@@ -144,15 +144,19 @@ struct gfxFontStyle {
     bool useGrayscaleAntialiasing : 1;
 
     
-    
-    bool smallCaps : 1;
+    uint8_t style : 2;
 
     
     bool allowSyntheticWeight : 1;
     bool allowSyntheticStyle : 1;
 
     
-    uint8_t style : 2;
+    
+    bool smallCaps : 1;
+
+    
+    
+    uint8_t variantCaps;
 
     
     
@@ -176,6 +180,7 @@ struct gfxFontStyle {
              *reinterpret_cast<const uint64_t*>(&other.size)) &&
             (style == other.style) &&
             (smallCaps == other.smallCaps) &&
+            (variantCaps == other.variantCaps) &&
             (allowSyntheticWeight == other.allowSyntheticWeight) &&
             (allowSyntheticStyle == other.allowSyntheticStyle) &&
             (systemFont == other.systemFont) &&
@@ -281,8 +286,10 @@ public:
     bool IgnoreGDEF() const { return mIgnoreGDEF; }
     bool IgnoreGSUB() const { return mIgnoreGSUB; }
 
-    bool SupportsOpenTypeSmallCaps(int32_t aScript);
-    bool SupportsGraphiteSmallCaps();
+    
+    
+    bool SupportsOpenTypeFeature(int32_t aScript, uint32_t aFeatureTag);
+    bool SupportsGraphiteFeature(uint32_t aFeatureTag);
 
     virtual bool IsSymbolFont();
 
@@ -552,8 +559,6 @@ public:
     bool             mSkipDefaultFeatureSpaceCheck : 1;
     bool             mHasGraphiteTables : 1;
     bool             mCheckedForGraphiteTables : 1;
-    bool             mHasGraphiteSmallCaps : 1;
-    bool             mCheckedForGraphiteSmallCaps : 1;
     bool             mHasCmapTable : 1;
     bool             mGrFaceInitialized : 1;
     bool             mCheckedForColorGlyph : 1;
@@ -575,7 +580,7 @@ public:
     nsTArray<gfxFont*> mFontsUsingSVGGlyphs;
     nsAutoPtr<gfxMathTable> mMathTable;
     nsTArray<gfxFontFeature> mFeatureSettings;
-    nsAutoPtr<nsDataHashtable<nsUint32HashKey,bool>> mSmallCapsSupport;
+    nsAutoPtr<nsDataHashtable<nsUint32HashKey,bool>> mSupportedFeatures;
     uint32_t         mLanguageOverride;
 
     
@@ -1493,6 +1498,7 @@ public:
                       const nsTArray<gfxFontFeature>& aFontFeatures,
                       bool aDisableLigatures,
                       const nsAString& aFamilyName,
+                      bool aAddSmallCaps,
                       nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures);
 
 protected:
@@ -1623,7 +1629,15 @@ public:
     }
 
     
-    bool SupportsSmallCaps(int32_t aScript);
+    
+    bool SupportsFeature(int32_t aScript, uint32_t aFeatureTag);
+
+    
+    
+    bool SupportsVariantCaps(int32_t aScript, uint32_t aVariantCaps,
+                             bool& aFallbackToSmallCaps,
+                             bool& aSyntheticLowerToSmallCaps,
+                             bool& aSyntheticUpperToSmallCaps);
 
     
     
@@ -1831,7 +1845,9 @@ public:
                               uint32_t        aOffset,
                               uint32_t        aLength,
                               uint8_t         aMatchType,
-                              int32_t         aScript);
+                              int32_t         aScript,
+                              bool            aSyntheticLower,
+                              bool            aSyntheticUpper);
 
     bool InitFakeSmallCapsRun(gfxContext     *aContext,
                               gfxTextRun     *aTextRun,
@@ -1839,7 +1855,9 @@ public:
                               uint32_t        aOffset,
                               uint32_t        aLength,
                               uint8_t         aMatchType,
-                              int32_t         aScript);
+                              int32_t         aScript,
+                              bool            aSyntheticLower,
+                              bool            aSyntheticUpper);
 
     
     
