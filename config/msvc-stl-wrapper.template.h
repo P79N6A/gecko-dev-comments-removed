@@ -36,7 +36,7 @@
 #  error "STL code can only be used with infallible ::operator new()"
 #endif
 
-#ifdef DEBUG
+#ifdef _DEBUG
 
 
 
