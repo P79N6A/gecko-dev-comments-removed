@@ -2834,8 +2834,8 @@ let SessionStoreInternal = {
     
     
     if (!didStartLoad) {
-      this._sendTabRestoredNotification(aTab);
       this._resetTabRestoringState(aTab);
+      this._sendTabRestoredNotification(aTab);
     }
 
     return didStartLoad;
@@ -2919,12 +2919,20 @@ let SessionStoreInternal = {
     PageStyle.restore(aBrowser.docShell, frameList, aBrowser.__SS_restore_pageStyle);
     TextAndScrollData.restore(frameList);
 
-    
-    this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
+    let tab = aBrowser.__SS_restore_tab;
 
+    
+    
+    delete aBrowser.__SS_data;
+    delete aBrowser.__SS_tabStillLoading;
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
     delete aBrowser.__SS_restore_tab;
+
+    
+    
+    
+    this._sendTabRestoredNotification(tab);
   },
 
   
