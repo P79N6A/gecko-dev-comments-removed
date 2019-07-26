@@ -467,6 +467,13 @@ ThreadActor.prototype = {
     return this._sources;
   },
 
+  get youngestFrame() {
+    if (!this.state == "paused") {
+      return null;
+    }
+    return this.dbg.getNewestFrame();
+  },
+
   _prettyPrintWorker: null,
   get prettyPrintWorker() {
     if (!this._prettyPrintWorker) {
@@ -1179,10 +1186,6 @@ ThreadActor.prototype = {
                message: "cannot access the environment of this frame." };
     }
 
-    
-    
-    
-    
     let youngest = this.youngestFrame;
 
     
@@ -1740,10 +1743,6 @@ ThreadActor.prototype = {
 
     
     
-    this.youngestFrame = aFrame;
-
-    
-    
     dbg_assert(!this._pausePool, "No pause pool should exist yet");
     this._pausePool = new ActorPool(this.conn);
     this.conn.addActorPool(this._pausePool);
@@ -1783,7 +1782,6 @@ ThreadActor.prototype = {
 
     this._pausePool = null;
     this._pauseActor = null;
-    this.youngestFrame = null;
 
     return { from: this.actorID, type: "resumed" };
   },
@@ -4024,7 +4022,7 @@ function getOffsetColumn(aOffset, aScript) {
 
 
 function getFrameLocation(aFrame) {
-  if (!aFrame.script) {
+  if (!aFrame || !aFrame.script) {
     return { url: null, line: null, column: null };
   }
   return {
