@@ -14,7 +14,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsContentPermissionHelper.h"
 #include "nsIDocument.h"
 #include "nsIObserverService.h"
@@ -295,10 +294,6 @@ PositionError::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 void
 PositionError::NotifyCallback(const GeoPositionErrorCallback& aCallback)
 {
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
-
   nsAutoMicroTask mt;
   if (aCallback.HasWebIDLCallback()) {
     PositionErrorCallback* callback = aCallback.GetWebIDLCallback();
@@ -524,9 +519,6 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
     Shutdown();
   }
 
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
   nsAutoMicroTask mt;
   if (mCallback.HasWebIDLCallback()) {
     ErrorResult err;
