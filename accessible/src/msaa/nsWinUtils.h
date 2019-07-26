@@ -33,13 +33,6 @@ public:
   
 
 
-
-  static HRESULT ConvertToIA2Array(nsIArray *aCollection,
-                                   IUnknown ***aAccessibles, long *aCount);
-
-  
-
-
   static bool MaybeStartWindowEmulation();
 
   
