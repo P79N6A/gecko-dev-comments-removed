@@ -225,6 +225,37 @@ MediaDevice::GetSource()
 
 
 
+class nsDOMUserMediaStream : public nsDOMLocalMediaStream
+{
+public:
+  static already_AddRefed<nsDOMUserMediaStream>
+  CreateTrackUnionStream(uint32_t aHintContents)
+  {
+    nsRefPtr<nsDOMUserMediaStream> stream = new nsDOMUserMediaStream();
+    stream->InitTrackUnionStream(aHintContents);
+    return stream.forget();
+  }
+
+  virtual ~nsDOMUserMediaStream()
+  {
+    if (mPort) {
+      mPort->Destroy();
+    }
+    if (mSourceStream) {
+      mSourceStream->Destroy();
+    }
+  }
+
+  
+  
+  nsRefPtr<SourceMediaStream> mSourceStream;
+  nsRefPtr<MediaInputPort> mPort;
+};
+
+
+
+
+
 
 
 
@@ -267,29 +298,31 @@ public:
     }
 
     
-    nsRefPtr<nsDOMLocalMediaStream> stream;
-    nsRefPtr<nsDOMLocalMediaStream> trackunion;
     uint32_t hints = (mAudioSource ? nsDOMMediaStream::HINT_CONTENTS_AUDIO : 0);
     hints |= (mVideoSource ? nsDOMMediaStream::HINT_CONTENTS_VIDEO : 0);
 
-    stream     = nsDOMLocalMediaStream::CreateSourceStream(hints);
-    trackunion = nsDOMLocalMediaStream::CreateTrackUnionStream(hints);
-    if (!stream || !trackunion) {
+    nsRefPtr<nsDOMUserMediaStream> trackunion =
+      nsDOMUserMediaStream::CreateTrackUnionStream(hints);
+    if (!trackunion) {
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
       LOG(("Returning error for getUserMedia() - no stream"));
       error->OnError(NS_LITERAL_STRING("NO_STREAM"));
       return NS_OK;
     }
+
+    MediaStreamGraph* gm = MediaStreamGraph::GetInstance();
+    nsRefPtr<SourceMediaStream> stream = gm->CreateSourceStream(nullptr);
+
     
     trackunion->GetStream()->AsProcessedStream()->SetAutofinish(true);
     nsRefPtr<MediaInputPort> port = trackunion->GetStream()->AsProcessedStream()->
-      AllocateInputPort(stream->GetStream()->AsSourceStream(),
-                        MediaInputPort::FLAG_BLOCK_OUTPUT);
+      AllocateInputPort(stream, MediaInputPort::FLAG_BLOCK_OUTPUT);
+    trackunion->mSourceStream = stream;
+    trackunion->mPort = port;
 
     nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
       (nsGlobalWindow::GetInnerWindowWithId(mWindowID));
     if (window && window->GetExtantDoc()) {
-      stream->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
       trackunion->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
     }
 
@@ -300,11 +333,11 @@ public:
     
     
     GetUserMediaCallbackMediaStreamListener* listener =
-      new GetUserMediaCallbackMediaStreamListener(mediaThread, stream,
+      new GetUserMediaCallbackMediaStreamListener(mediaThread, stream.forget(),
                                                   port.forget(),
                                                   mAudioSource,
                                                   mVideoSource);
-    stream->GetStream()->AddListener(listener);
+    listener->Stream()->AddListener(listener);
 
     
     listeners->AppendElement(listener);
@@ -312,7 +345,7 @@ public:
     
     
     nsRefPtr<MediaOperationRunnable> runnable(
-      new MediaOperationRunnable(MEDIA_START, stream,
+      new MediaOperationRunnable(MEDIA_START, listener,
                                  mAudioSource, mVideoSource));
     mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 

@@ -70,7 +70,7 @@ class GetUserMediaCallbackMediaStreamListener : public MediaStreamListener
 {
 public:
   GetUserMediaCallbackMediaStreamListener(nsIThread *aThread,
-    nsDOMMediaStream* aStream,
+    already_AddRefed<SourceMediaStream> aStream,
     already_AddRefed<MediaInputPort> aPort,
     MediaEngineSource* aAudioSource,
     MediaEngineSource* aVideoSource)
@@ -79,25 +79,22 @@ public:
     , mVideoSource(aVideoSource)
     , mStream(aStream)
     , mPort(aPort)
-    , mSourceStream(aStream->GetStream()->AsSourceStream())
     , mLastEndTimeAudio(0)
-    , mLastEndTimeVideo(0) { MOZ_ASSERT(mSourceStream); }
+    , mLastEndTimeVideo(0) {}
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
     
-    if (mStream) {
-      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-      nsDOMMediaStream *stream;
-      mStream.forget(&stream);
-      
-      NS_ProxyRelease(mainThread, stream, false);
-    }
+    
   }
 
+  MediaStream *Stream()
+  {
+    return mStream;
+  }
   SourceMediaStream *GetSourceStream()
   {
-    return mStream->GetStream()->AsSourceStream();
+    return mStream->AsSourceStream();
   }
 
   void
@@ -108,7 +105,7 @@ public:
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
     
-    mStream->GetStream()->RemoveListener(this);
+    mStream->RemoveListener(this);
   }
 
   
@@ -118,10 +115,10 @@ public:
     
     
     if (mAudioSource) {
-      mAudioSource->NotifyPull(aGraph, mSourceStream, kAudioTrack, aDesiredTime, mLastEndTimeAudio);
+      mAudioSource->NotifyPull(aGraph, mStream, kAudioTrack, aDesiredTime, mLastEndTimeAudio);
     }
     if (mVideoSource) {
-      mVideoSource->NotifyPull(aGraph, mSourceStream, kVideoTrack, aDesiredTime, mLastEndTimeVideo);
+      mVideoSource->NotifyPull(aGraph, mStream, kVideoTrack, aDesiredTime, mLastEndTimeVideo);
     }
   }
 
@@ -136,9 +133,8 @@ private:
   nsCOMPtr<nsIThread> mMediaThread;
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
-  nsRefPtr<nsDOMMediaStream> mStream;
+  nsRefPtr<SourceMediaStream> mStream;
   nsRefPtr<MediaInputPort> mPort;
-  SourceMediaStream *mSourceStream; 
   TrackTicks mLastEndTimeAudio;
   TrackTicks mLastEndTimeVideo;
 };
@@ -154,16 +150,6 @@ typedef enum {
 class MediaOperationRunnable : public nsRunnable
 {
 public:
-  MediaOperationRunnable(MediaOperation aType,
-    nsDOMMediaStream* aStream,
-    MediaEngineSource* aAudioSource,
-    MediaEngineSource* aVideoSource)
-    : mType(aType)
-    , mAudioSource(aAudioSource)
-    , mVideoSource(aVideoSource)
-    , mStream(aStream)
-    {}
-
   
   MediaOperationRunnable(MediaOperation aType,
     GetUserMediaCallbackMediaStreamListener* aListener,
@@ -172,33 +158,20 @@ public:
     : mType(aType)
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
-    , mStream(nullptr)
     , mListener(aListener)
     {}
 
   ~MediaOperationRunnable()
   {
     
-    
-    if (mStream) {
-      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-      nsDOMMediaStream *stream;
-      mStream.forget(&stream);
-      NS_ProxyRelease(mainThread, stream, true);
-    }
   }
 
   NS_IMETHOD
   Run()
   {
-    SourceMediaStream *source;
+    SourceMediaStream *source = mListener->GetSourceStream();
     
     
-    if (mStream) {
-      source = mStream->GetStream()->AsSourceStream();
-    } else {
-      source = mListener->GetSourceStream();
-    }
     MOZ_ASSERT(source);
     if (!source)  
       return NS_ERROR_FAILURE;
@@ -266,7 +239,6 @@ private:
   MediaOperation mType;
   nsRefPtr<MediaEngineSource> mAudioSource; 
   nsRefPtr<MediaEngineSource> mVideoSource; 
-  nsRefPtr<nsDOMMediaStream> mStream;       
   nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener; 
 };
 
