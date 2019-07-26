@@ -6442,8 +6442,6 @@ class CGDescriptor(CGThing):
 
         assert not descriptor.concrete or descriptor.interface.hasInterfacePrototypeObject()
 
-        self._deps = descriptor.interface.getDeps()
-
         cgThings = []
         
         
