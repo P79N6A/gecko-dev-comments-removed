@@ -171,43 +171,29 @@ IonCompartment::initialize(JSContext *cx)
     return true;
 }
 
-static void
-MaybeMarkIonCodeRoot(JSTracer *trc, IonCode **code, const char *desc)
-{
-    if (*code)
-        MarkIonCodeRoot(trc, code, desc);
-}
-
 void
 IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 {
     
-    if (compartment->isPreservingCode()) {
+    
+    
+    
+    
 
-        MaybeMarkIonCodeRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
-        MaybeMarkIonCodeRoot(trc, bailoutHandler_.unsafeGet(), "bailoutHandler");
-        MaybeMarkIonCodeRoot(trc, argumentsRectifier_.unsafeGet(), "argumentsRectifier");
-        MaybeMarkIonCodeRoot(trc, invalidator_.unsafeGet(), "invalidator");
-        MaybeMarkIonCodeRoot(trc, preBarrier_.unsafeGet(), "preBarrier");
-
-        
-        
-        return;
-    }
-
-    
-    
-    
-    
-    
-    
-    
+    bool mustMarkEnterJIT = false;
     for (IonActivationIterator iter(trc->runtime); iter.more(); ++iter) {
-        if (iter.activation()->compartment() == compartment) {
-            MarkIonCodeRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
-            return;
-        }
+        if (iter.activation()->compartment() != compartment)
+            continue;
+
+        
+        
+        mustMarkEnterJIT = true;
     }
+
+    
+    
+    if (mustMarkEnterJIT)
+        MarkIonCodeRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
 
     
     
