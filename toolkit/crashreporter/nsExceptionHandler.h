@@ -33,6 +33,20 @@ class nsCStringHashKey;
 namespace CrashReporter {
 nsresult SetExceptionHandler(nsIFile* aXREDirectory, bool force=false);
 nsresult UnsetExceptionHandler();
+
+
+
+
+
+
+
+void UpdateCrashEventsDir();
+
+
+
+
+bool     GetCrashEventsDir(nsAString& aPath);
+
 bool     GetEnabled();
 bool     GetServerURL(nsACString& aServerURL);
 nsresult SetServerURL(const nsACString& aServerURL);

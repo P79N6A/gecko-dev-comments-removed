@@ -1,3 +1,9 @@
+Components.utils.import("resource://gre/modules/osfile.jsm");
+
+function getEventDir() {
+  return OS.Path.join(do_get_tempdir().path, "crash-events");
+}
+
 
 
 
@@ -55,10 +61,25 @@ function do_crash(setup, callback, canReturnZero)
     args.push('-e', setup);
   }
   args.push('-f', tailfile.path);
+
+  let env = Components.classes["@mozilla.org/process/environment;1"]
+                              .getService(Components.interfaces.nsIEnvironment);
+
+  let crashD = do_get_tempdir();
+  crashD.append("crash-events");
+  if (!crashD.exists()) {
+    crashD.create(crashD.DIRECTORY_TYPE, 0700);
+  }
+
+  env.set("CRASHES_EVENTS_DIR", crashD.path);
+
   try {
       process.run(true, args, args.length);
   }
   catch(ex) {} 
+  finally {
+    env.set("CRASHES_EVENTS_DIR", "");
+  }
 
   if (!canReturnZero) {
     
