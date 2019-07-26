@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "vm/StringBuffer.h"
 
@@ -22,7 +22,7 @@ StringBuffer::extractWellSized()
     if (!buf)
         return NULL;
 
-    /* For medium/big buffers, avoid wasting more than 1/4 of the memory. */
+    
     JS_ASSERT(capacity >= length);
     if (length > CharBuffer::sMaxInlineStorage && capacity - length > length / 4) {
         size_t bytes = sizeof(jschar) * (length + 1);
@@ -43,7 +43,7 @@ StringBuffer::finishString()
 {
     JSContext *cx = context();
     if (cb.empty())
-        return cx->runtime->atomState.emptyAtom;
+        return cx->names().empty;
 
     size_t length = cb.length();
     if (!JSString::validateLength(cx, length))
@@ -73,7 +73,7 @@ StringBuffer::finishAtom()
 
     size_t length = cb.length();
     if (length == 0)
-        return cx->runtime->atomState.emptyAtom;
+        return cx->names().empty;
 
     JSAtom *atom = AtomizeChars(cx, cb.begin(), length);
     cb.clear();
@@ -94,7 +94,7 @@ js::ValueToStringBufferSlow(JSContext *cx, const Value &arg, StringBuffer &sb)
     if (v.isBoolean())
         return BooleanToStringBuffer(cx, v.toBoolean(), sb);
     if (v.isNull())
-        return sb.append(cx->runtime->atomState.nullAtom);
+        return sb.append(cx->names().null);
     JS_ASSERT(v.isUndefined());
-    return sb.append(cx->runtime->atomState.undefinedAtom);
+    return sb.append(cx->names().undefined);
 }
