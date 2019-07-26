@@ -22,10 +22,10 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS_INHERITED1(
+NS_IMPL_ISUPPORTS2(
   XPTInterfaceInfoManager,
-  MemoryUniReporter,
-  nsIInterfaceInfoManager)
+  nsIInterfaceInfoManager,
+  nsIMemoryReporter)
 
 static StaticRefPtr<XPTInterfaceInfoManager> gInterfaceInfoManager;
 
@@ -41,17 +41,22 @@ XPTInterfaceInfoManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf
     return n;
 }
 
-int64_t
-XPTInterfaceInfoManager::Amount()
+MOZ_DEFINE_MALLOC_SIZE_OF(XPTIMallocSizeOf)
+
+NS_IMETHODIMP
+XPTInterfaceInfoManager::CollectReports(nsIHandleReportCallback* aHandleReport,
+                                        nsISupports* aData)
 {
-    size_t n = SizeOfIncludingThis(MallocSizeOf);
+    size_t amount = SizeOfIncludingThis(XPTIMallocSizeOf);
 
     
     
     
-    n += XPT_SizeOfArena(gXPTIStructArena, MallocSizeOf);
+    amount += XPT_SizeOfArena(gXPTIStructArena, XPTIMallocSizeOf);
 
-    return n;
+    return MOZ_COLLECT_REPORT(
+        "explicit/xpti-working-set", KIND_HEAP, UNITS_BYTES, amount,
+        "Memory used by the XPCOM typelib system.");
 }
 
 
@@ -72,9 +77,7 @@ XPTInterfaceInfoManager::FreeInterfaceInfoManager()
 }
 
 XPTInterfaceInfoManager::XPTInterfaceInfoManager()
-    :   MemoryUniReporter("explicit/xpti-working-set", KIND_HEAP, UNITS_BYTES,
-                          "Memory used by the XPCOM typelib system."),
-        mWorkingSet(),
+    :   mWorkingSet(),
         mResolveLock("XPTInterfaceInfoManager.mResolveLock")
 {
 }

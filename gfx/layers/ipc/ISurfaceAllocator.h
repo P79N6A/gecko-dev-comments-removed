@@ -145,12 +145,12 @@ protected:
   friend class detail::RefCounted<ISurfaceAllocator, detail::AtomicRefCount>;
 };
 
-class GfxMemoryImageReporter MOZ_FINAL : public mozilla::MemoryUniReporter
+class GfxMemoryImageReporter MOZ_FINAL : public nsIMemoryReporter
 {
 public:
+  NS_DECL_ISUPPORTS
+
   GfxMemoryImageReporter()
-    : MemoryUniReporter("explicit/gfx/heap-textures", KIND_HEAP, UNITS_BYTES,
-                        "Heap memory shared between threads by texture clients and hosts.")
   {
 #ifdef DEBUG
     
@@ -160,6 +160,9 @@ public:
     hasRun = true;
 #endif
   }
+
+  MOZ_DEFINE_MALLOC_SIZE_OF_ON_ALLOC(MallocSizeOfOnAlloc)
+  MOZ_DEFINE_MALLOC_SIZE_OF_ON_FREE(MallocSizeOfOnFree)
 
   static void DidAlloc(void* aPointer)
   {
@@ -171,9 +174,15 @@ public:
     sAmount -= MallocSizeOfOnFree(aPointer);
   }
 
-private:
-  int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
+                            nsISupports* aData)
+  {
+    return MOZ_COLLECT_REPORT(
+      "explicit/gfx/heap-textures", KIND_HEAP, UNITS_BYTES, sAmount,
+      "Heap memory shared between threads by texture clients and hosts.");
+  }
 
+private:
   static mozilla::Atomic<int32_t> sAmount;
 };
 

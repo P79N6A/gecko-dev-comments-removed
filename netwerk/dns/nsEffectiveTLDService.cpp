@@ -18,8 +18,8 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsEffectiveTLDService, MemoryUniReporter,
-                             nsIEffectiveTLDService)
+NS_IMPL_ISUPPORTS2(nsEffectiveTLDService, nsIEffectiveTLDService,
+                   nsIMemoryReporter)
 
 
 
@@ -66,10 +66,7 @@ nsEffectiveTLDService::nsEffectiveTLDService()
   
   
   
-  : MemoryUniReporter("explicit/xpcom/effective-TLD-service",
-                       KIND_HEAP, UNITS_BYTES,
-                       "Memory used by the effective TLD service.")
-  , mHash(ArrayLength(nsDomainEntry::entries))
+  : mHash(ArrayLength(nsDomainEntry::entries))
 {
 }
 
@@ -110,10 +107,16 @@ nsEffectiveTLDService::~nsEffectiveTLDService()
   gService = nullptr;
 }
 
-int64_t
-nsEffectiveTLDService::Amount()
+MOZ_DEFINE_MALLOC_SIZE_OF(EffectiveTLDServiceMallocSizeOf)
+
+NS_IMETHODIMP
+nsEffectiveTLDService::CollectReports(nsIHandleReportCallback* aHandleReport,
+                                      nsISupports* aData)
 {
-  return SizeOfIncludingThis(MallocSizeOf);
+  return MOZ_COLLECT_REPORT(
+    "explicit/xpcom/effective-TLD-service", KIND_HEAP, UNITS_BYTES,
+    SizeOfIncludingThis(EffectiveTLDServiceMallocSizeOf),
+    "Memory used by the effective TLD service.");
 }
 
 size_t
