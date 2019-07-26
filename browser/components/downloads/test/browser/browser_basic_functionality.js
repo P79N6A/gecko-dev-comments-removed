@@ -33,13 +33,13 @@ function gen_test()
 
   try {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState()) yield;
 
     
     for (let yy in gen_addDownloadRows(DownloadData)) yield;
 
     
-    for (let yy in gen_openPanel(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_openPanel()) yield;
 
     
     let richlistbox = document.getElementById("downloadsListBox");
@@ -57,6 +57,6 @@ function gen_test()
     }
   } finally {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield;
+    for (let yy in gen_resetState()) yield;
   }
 }

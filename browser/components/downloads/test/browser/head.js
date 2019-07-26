@@ -130,7 +130,7 @@ var testRunner = {
 
 
 
-function gen_resetState(aData)
+function gen_resetState()
 {
   let statement = Services.downloads.DBConnection.createAsyncStatement(
                   "DELETE FROM moz_downloads");
@@ -155,8 +155,8 @@ function gen_resetState(aData)
   Services.prefs.clearUserPref("browser.download.panel.shown");
 
   
-  aData.clear();
-  aData._loadState = aData.kLoadNone;
+  DownloadsCommon.data.clear();
+  DownloadsCommon.data._loadState = DownloadsCommon.data.kLoadNone;
   DownloadsPanel.hidePanel();
 
   
@@ -224,7 +224,7 @@ function gen_openPanel(aData)
   };
 
   
-  aData.ensurePersistentDataLoaded(false);
+  DownloadsCommon.data.ensurePersistentDataLoaded(false);
 
   
   waitForFocus(testRunner.continueTest);
