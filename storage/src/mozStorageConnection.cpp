@@ -39,7 +39,6 @@
 
 #include "prlog.h"
 #include "prprf.h"
-#include "nsProxyRelease.h"
 #include <algorithm>
 
 #define MIN_AVAILABLE_BYTES_PER_CHUNKED_GROWTH 524288000 // 500 MiB
@@ -365,7 +364,6 @@ public:
     (void)mConnection->internalClose();
     if (mCallbackEvent)
       (void)mCallingThread->Dispatch(mCallbackEvent, NS_DISPATCH_NORMAL);
-
     (void)mAsyncExecutionThread->Shutdown();
 
     
@@ -389,91 +387,13 @@ private:
   nsCOMPtr<nsIThread> mAsyncExecutionThread;
 };
 
-
-
-
-
-
-class AsyncInitializeClone MOZ_FINAL: public nsRunnable
-{
-public:
-  
-
-
-
-
-
-
-
-  AsyncInitializeClone(Connection* aConnection,
-                       Connection* aClone,
-                       const bool aReadOnly,
-                       mozIStorageCompletionCallback* aCallback)
-    : mConnection(aConnection)
-    , mClone(aClone)
-    , mReadOnly(aReadOnly)
-    , mCallback(aCallback)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  NS_IMETHOD Run() {
-    MOZ_ASSERT (NS_GetCurrentThread() == mClone->getAsyncExecutionTarget());
-
-    nsresult rv = mConnection->initializeClone(mClone, mReadOnly);
-    if (NS_FAILED(rv)) {
-      return Dispatch(rv, nullptr);
-    }
-    return Dispatch(NS_OK,
-                    NS_ISUPPORTS_CAST(mozIStorageAsyncConnection*, mClone));
-  }
-
-private:
-  nsresult Dispatch(nsresult aResult, nsISupports* aValue) {
-    nsRefPtr<CallbackComplete> event = new CallbackComplete(aResult,
-                                                            aValue,
-                                                            mCallback.forget());
-    return mClone->threadOpenedOn->Dispatch(event, NS_DISPATCH_NORMAL);
-  }
-
-  ~AsyncInitializeClone() {
-    nsCOMPtr<nsIThread> thread;
-    DebugOnly<nsresult> rv = NS_GetMainThread(getter_AddRefs(thread));
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    
-    Connection *rawConnection = nullptr;
-    mConnection.swap(rawConnection);
-    (void)NS_ProxyRelease(thread, NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                                    rawConnection));
-
-    Connection *rawClone = nullptr;
-    mClone.swap(rawClone);
-    (void)NS_ProxyRelease(thread, NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                                    rawClone));
-
-    
-    
-    
-    mozIStorageCompletionCallback *rawCallback = nullptr;
-    mCallback.swap(rawCallback);
-    (void)NS_ProxyRelease(thread, rawCallback);
-  }
-
-  nsRefPtr<Connection> mConnection;
-  nsRefPtr<Connection> mClone;
-  const bool mReadOnly;
-  nsCOMPtr<mozIStorageCompletionCallback> mCallback;
-};
-
 } 
 
 
 
 
 Connection::Connection(Service *aService,
-                       int aFlags,
-                       bool aAsyncOnly)
+                       int aFlags)
 : sharedAsyncExecutionMutex("Connection::sharedAsyncExecutionMutex")
 , sharedDBMutex("Connection::sharedDBMutex")
 , threadOpenedOn(do_GetCurrentThread())
@@ -483,7 +403,6 @@ Connection::Connection(Service *aService,
 , mProgressHandler(nullptr)
 , mFlags(aFlags)
 , mStorageService(aService)
-, mAsyncOnly(aAsyncOnly)
 {
   mFunctions.Init();
   mStorageService->registerConnection(this);
@@ -493,18 +412,15 @@ Connection::~Connection()
 {
   (void)Close();
 
-  MOZ_ASSERT(!mAsyncExecutionThread,
-             "AsyncClose has not been invoked on this connection!");
+  MOZ_ASSERT(!mAsyncExecutionThread);
 }
 
 NS_IMPL_THREADSAFE_ADDREF(Connection)
-
-NS_INTERFACE_MAP_BEGIN(Connection)
-  NS_INTERFACE_MAP_ENTRY(mozIStorageAsyncConnection)
-  NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(mozIStorageConnection, !mAsyncOnly)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, mozIStorageConnection)
-NS_INTERFACE_MAP_END
+NS_IMPL_THREADSAFE_QUERY_INTERFACE2(
+  Connection,
+  mozIStorageConnection,
+  nsIInterfaceRequestor
+)
 
 
 
@@ -520,9 +436,8 @@ NS_IMETHODIMP_(nsrefcnt) Connection::Release(void)
     mStorageService->unregisterConnection(this);
   } else if (0 == count) {
     mRefCnt = 1; 
-#if 0 
-    NS_ASSERT_OWNINGTHREAD(Connection);
-#endif
+    
+    
     delete (this);
     return 0;
   }
@@ -1037,9 +952,6 @@ Connection::Close()
 NS_IMETHODIMP
 Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
 {
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
 
@@ -1072,13 +984,10 @@ Connection::AsyncClose(mozIStorageCompletionCallback *aCallback)
 }
 
 NS_IMETHODIMP
-Connection::AsyncClone(bool aReadOnly,
-                       mozIStorageCompletionCallback *aCallback)
+Connection::Clone(bool aReadOnly,
+                  mozIStorageConnection **_connection)
 {
   PROFILER_LABEL("storage", "Connection::Clone");
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;
   if (!mDatabaseFile)
@@ -1091,27 +1000,12 @@ Connection::AsyncClone(bool aReadOnly,
     
     flags = (~SQLITE_OPEN_CREATE & flags);
   }
+  nsRefPtr<Connection> clone = new Connection(mStorageService, flags);
+  NS_ENSURE_TRUE(clone, NS_ERROR_OUT_OF_MEMORY);
 
-  nsRefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
-
-  nsRefPtr<AsyncInitializeClone> initEvent =
-    new AsyncInitializeClone(this, clone, aReadOnly, aCallback);
-  nsCOMPtr<nsIEventTarget> target = clone->getAsyncExecutionTarget();
-  if (!target) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  return target->Dispatch(initEvent, NS_DISPATCH_NORMAL);
-}
-
-nsresult
-Connection::initializeClone(Connection* aClone, bool aReadOnly)
-{
-  nsresult rv = mFileURL ? aClone->initialize(mFileURL)
-                         : aClone->initialize(mDatabaseFile);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  nsresult rv = mFileURL ? clone->initialize(mFileURL)
+                         : clone->initialize(mDatabaseFile);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   static const char * pragmas[] = {
@@ -1138,47 +1032,16 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     if (stmt && NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
       pragmaQuery.AppendLiteral(" = ");
       pragmaQuery.AppendInt(stmt->AsInt32(0));
-      rv = aClone->ExecuteSimpleSQL(pragmaQuery);
+      rv = clone->ExecuteSimpleSQL(pragmaQuery);
       MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
   }
 
   
   SQLiteMutexAutoLock lockedScope(sharedDBMutex);
-  (void)mFunctions.EnumerateRead(copyFunctionEnumerator, aClone);
+  (void)mFunctions.EnumerateRead(copyFunctionEnumerator, clone);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-Connection::Clone(bool aReadOnly,
-                  mozIStorageConnection **_connection)
-{
-  MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
-
-  PROFILER_LABEL("storage", "Connection::Clone");
-  if (!mDBConn)
-    return NS_ERROR_NOT_INITIALIZED;
-  if (!mDatabaseFile)
-    return NS_ERROR_UNEXPECTED;
-
-  int flags = mFlags;
-  if (aReadOnly) {
-    
-    flags = (~SQLITE_OPEN_READWRITE & flags) | SQLITE_OPEN_READONLY;
-    
-    flags = (~SQLITE_OPEN_CREATE & flags);
-  }
-
-  nsRefPtr<Connection> clone = new Connection(mStorageService, flags,
-                                              mAsyncOnly);
-
-  nsresult rv = initializeClone(clone, aReadOnly);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  NS_IF_ADDREF(*_connection = clone);
+  NS_ADDREF(*_connection = clone);
   return NS_OK;
 }
 

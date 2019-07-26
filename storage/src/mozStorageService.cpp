@@ -20,11 +20,9 @@
 #include "nsILocaleService.h"
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
-#include "nsIPropertyBag2.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/mozPoisonWrite.h"
-#include "mozIStorageCompletionCallback.h"
 
 #include "sqlite3.h"
 
@@ -646,7 +644,7 @@ Service::OpenSpecialDatabase(const char *aStorageKey,
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsRefPtr<Connection> msc = new Connection(this, SQLITE_OPEN_READWRITE, false);
+  nsRefPtr<Connection> msc = new Connection(this, SQLITE_OPEN_READWRITE);
 
   rv = storageFile ? msc->initialize(storageFile) : msc->initialize();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -654,151 +652,6 @@ Service::OpenSpecialDatabase(const char *aStorageKey,
   msc.forget(_connection);
   return NS_OK;
 
-}
-
-namespace {
-
-class AsyncInitDatabase MOZ_FINAL : public nsRunnable
-{
-public:
-  AsyncInitDatabase(Connection* aConnection,
-                    nsIFile* aStorageFile,
-                    int32_t aGrowthIncrement,
-                    mozIStorageCompletionCallback* aCallback)
-    : mConnection(aConnection)
-    , mStorageFile(aStorageFile)
-    , mGrowthIncrement(aGrowthIncrement)
-    , mCallback(aCallback)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  NS_IMETHOD Run()
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-    nsresult rv = mStorageFile ? mConnection->initialize(mStorageFile)
-                               : mConnection->initialize();
-    if (NS_FAILED(rv)) {
-      return DispatchResult(rv, nullptr);
-    }
-
-    if (mGrowthIncrement >= 0) {
-      
-      (void)mConnection->SetGrowthIncrement(mGrowthIncrement, EmptyCString());
-    }
-
-    return DispatchResult(NS_OK, NS_ISUPPORTS_CAST(mozIStorageAsyncConnection*,
-                          mConnection));
-  }
-
-private:
-  nsresult DispatchResult(nsresult aStatus, nsISupports* aValue) {
-    nsRefPtr<CallbackComplete> event =
-      new CallbackComplete(aStatus,
-                           aValue,
-                           mCallback.forget());
-    return NS_DispatchToMainThread(event);
-  }
-
-  ~AsyncInitDatabase()
-  {
-    nsCOMPtr<nsIThread> thread;
-    DebugOnly<nsresult> rv = NS_GetMainThread(getter_AddRefs(thread));
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    (void)NS_ProxyRelease(thread, mStorageFile);
-
-    
-    Connection *rawConnection = nullptr;
-    mConnection.swap(rawConnection);
-    (void)NS_ProxyRelease(thread, NS_ISUPPORTS_CAST(mozIStorageConnection *,
-                                                    rawConnection));
-
-    
-    
-    
-    mozIStorageCompletionCallback *rawCallback = nullptr;
-    mCallback.swap(rawCallback);
-    (void)NS_ProxyRelease(thread, rawCallback);
-  }
-
-  nsRefPtr<Connection> mConnection;
-  nsCOMPtr<nsIFile> mStorageFile;
-  int32_t mGrowthIncrement;
-  nsRefPtr<mozIStorageCompletionCallback> mCallback;
-};
-
-} 
-
-NS_IMETHODIMP
-Service::OpenAsyncDatabase(nsIVariant *aDatabaseStore,
-                           nsIPropertyBag2 *aOptions,
-                           mozIStorageCompletionCallback *aCallback)
-{
-  if (!NS_IsMainThread()) {
-    return NS_ERROR_NOT_SAME_THREAD;
-  }
-  NS_ENSURE_ARG(aDatabaseStore);
-  NS_ENSURE_ARG(aCallback);
-
-  nsCOMPtr<nsIFile> storageFile;
-  int flags = SQLITE_OPEN_READWRITE;
-
-  nsCOMPtr<nsISupports> dbStore;
-  nsresult rv = aDatabaseStore->GetAsISupports(getter_AddRefs(dbStore));
-  if (NS_SUCCEEDED(rv)) {
-    
-    storageFile = do_QueryInterface(dbStore, &rv);
-    if (NS_FAILED(rv)) {
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    rv = storageFile->Clone(getter_AddRefs(storageFile));
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    
-    flags |= SQLITE_OPEN_CREATE;
-
-    
-    bool shared = false;
-    if (aOptions) {
-      rv = aOptions->GetPropertyAsBool(NS_LITERAL_STRING("shared"), &shared);
-      if (NS_FAILED(rv) && rv != NS_ERROR_NOT_AVAILABLE) {
-        return NS_ERROR_INVALID_ARG;
-      }
-    }
-    flags |= shared ? SQLITE_OPEN_SHAREDCACHE : SQLITE_OPEN_PRIVATECACHE;
-  } else {
-    
-    nsAutoCString keyString;
-    rv = aDatabaseStore->GetAsACString(keyString);
-    if (NS_FAILED(rv) || !keyString.EqualsLiteral("memory")) {
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    
-    
-  }
-
-  int32_t growthIncrement = -1;
-  if (aOptions && storageFile) {
-    rv = aOptions->GetPropertyAsInt32(NS_LITERAL_STRING("growthIncrement"),
-                                      &growthIncrement);
-    if (NS_FAILED(rv) && rv != NS_ERROR_NOT_AVAILABLE) {
-      return NS_ERROR_INVALID_ARG;
-    }
-  }
-
-  
-  nsRefPtr<Connection> msc = new Connection(this, flags, true);
-  nsCOMPtr<nsIEventTarget> target = msc->getAsyncExecutionTarget();
-  MOZ_ASSERT(target, "Cannot initialize a connection that has been closed already");
-
-  nsRefPtr<AsyncInitDatabase> asyncInit =
-    new AsyncInitDatabase(msc,
-                          storageFile,
-                          growthIncrement,
-                          aCallback);
-  return target->Dispatch(asyncInit, nsIEventTarget::DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
@@ -811,7 +664,7 @@ Service::OpenDatabase(nsIFile *aDatabaseFile,
   
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_SHAREDCACHE |
               SQLITE_OPEN_CREATE;
-  nsRefPtr<Connection> msc = new Connection(this, flags, false);
+  nsRefPtr<Connection> msc = new Connection(this, flags);
 
   nsresult rv = msc->initialize(aDatabaseFile);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -830,7 +683,7 @@ Service::OpenUnsharedDatabase(nsIFile *aDatabaseFile,
   
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_PRIVATECACHE |
               SQLITE_OPEN_CREATE;
-  nsRefPtr<Connection> msc = new Connection(this, flags, false);
+  nsRefPtr<Connection> msc = new Connection(this, flags);
 
   nsresult rv = msc->initialize(aDatabaseFile);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -849,7 +702,7 @@ Service::OpenDatabaseWithFileURL(nsIFileURL *aFileURL,
   
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_SHAREDCACHE |
               SQLITE_OPEN_CREATE | SQLITE_OPEN_URI;
-  nsRefPtr<Connection> msc = new Connection(this, flags, false);
+  nsRefPtr<Connection> msc = new Connection(this, flags);
 
   nsresult rv = msc->initialize(aFileURL);
   NS_ENSURE_SUCCESS(rv, rv);
