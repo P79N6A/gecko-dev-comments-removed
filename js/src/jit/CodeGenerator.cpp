@@ -1794,7 +1794,9 @@ CodeGenerator::visitCallNative(LCallNative *call)
     masm.branchIfFalseBool(ReturnReg, masm.failureLabel(executionMode));
 
     
-    masm.loadValue(Address(StackPointer, IonNativeExitFrameLayout::offsetOfResult()), JSReturnOperand);
+    Address ResultAddress(StackPointer, IonNativeExitFrameLayout::offsetOfResult());
+    if (call->mir()->hasUses())
+        masm.loadValue(ResultAddress, JSReturnOperand);
 
     
     
@@ -1892,17 +1894,13 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     masm.passABIArg(argArgs);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->jitInfo()->method));
 
-    if (target->jitInfo()->isInfallible) {
-        masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()),
-                       JSReturnOperand);
-    } else {
-        
+    if (!target->jitInfo()->isInfallible)
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
-        
-        masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()),
-                       JSReturnOperand);
-    }
+    
+    Address ResultAddress(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult());
+    if (call->mir()->hasUses())
+        masm.loadValue(ResultAddress, JSReturnOperand);
 
     
     
