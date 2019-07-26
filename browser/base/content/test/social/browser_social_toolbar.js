@@ -124,11 +124,14 @@ var tests = {
     let numIcons = Object.keys(Social.provider.ambientNotificationIcons).length;
     ok(numIcons == 3, "prevent adding more than 3 ambient notification icons");
 
-    let statusIcon = document.getElementById("social-provider-button").nextSibling;
+    let mButton = document.getElementById("social-mark-button");
+    let pButton = document.getElementById("social-provider-button");
     waitForCondition(function() {
-      statusIcon = document.getElementById("social-provider-button").nextSibling;
-      return !!statusIcon;
+      
+      
+      return pButton.nextSibling != mButton;
     }, function () {
+      let statusIcon = pButton.nextSibling;
       let badge = statusIcon.getAttribute("badge");
       is(badge, "42", "status value is correct");
       
@@ -136,6 +139,7 @@ var tests = {
 
       ambience.counter = 0;
       Social.provider.setAmbientNotification(ambience);
+      statusIcon = pButton.nextSibling;
       badge = statusIcon.getAttribute("badge");
       is(badge, "", "status value is correct");
       
