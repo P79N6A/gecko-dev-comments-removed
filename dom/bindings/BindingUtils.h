@@ -1002,26 +1002,6 @@ WrapObject(JSContext* cx, JSObject* scope, JSObject& p, JS::Value* vp)
   return true;
 }
 
-bool
-WrapCallbackInterface(JSContext *cx, JSObject *scope, nsISupports* callback,
-                      JS::Value* vp);
-
-static inline bool
-WrapCallbackInterface(JSContext *cx, JSObject *scope, nsISupports& callback,
-                      JS::Value* vp)
-{
-  return WrapCallbackInterface(cx, scope, &callback, vp);
-}
-
-
-template <template <typename> class SmartPtr, class T>
-inline bool
-WrapCallbackInterface(JSContext* cx, JSObject* scope, const SmartPtr<T>& value,
-                      JS::Value* vp)
-{
-  return WrapCallbackInterface(cx, scope, value.get(), vp);
-}
-
 
 
 
