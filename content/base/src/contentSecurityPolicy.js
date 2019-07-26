@@ -88,6 +88,7 @@ function ContentSecurityPolicy() {
   csp._MAPPINGS[cp.TYPE_SUBDOCUMENT]       = cspr_sd_new.FRAME_SRC;
   csp._MAPPINGS[cp.TYPE_MEDIA]             = cspr_sd_new.MEDIA_SRC;
   csp._MAPPINGS[cp.TYPE_FONT]              = cspr_sd_new.FONT_SRC;
+  csp._MAPPINGS[cp.TYPE_XSLT]              = cspr_sd_new.SCRIPT_SRC;
 
   
 
@@ -620,8 +621,6 @@ ContentSecurityPolicy.prototype = {
     CSPdebug("shouldLoad location = " + aContentLocation.asciiSpec);
     CSPdebug("shouldLoad content type = " + aContentType);
 #endif
-    
-    var cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
 
     
     
