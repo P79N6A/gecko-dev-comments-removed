@@ -633,33 +633,6 @@ SettingsListener.observe('apz.displayport.heuristics', 'default', function(value
 });
 
 
-(function setupTelemetrySettings() {
-  let gaiaSettingName = 'debug.performance_data.shared';
-  let geckoPrefName = 'toolkit.telemetry.enabled';
-  SettingsListener.observe(gaiaSettingName, null, function(value) {
-    if (value !== null) {
-      
-      Services.prefs.setBoolPref(geckoPrefName, value);
-      return;
-    }
-    
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-    let prefValue = true;
-#else
-    let prefValue = false;
-#endif
-    try {
-      prefValue = Services.prefs.getBoolPref(geckoPrefName);
-    } catch (e) {
-      
-    }
-    let setting = {};
-    setting[gaiaSettingName] = prefValue;
-    window.navigator.mozSettings.createLock().set(setting);
-  });
-})();
-
-
 let settingsToObserve = {
   'ril.mms.retrieval_mode': {
     prefName: 'dom.mms.retrieval_mode',
