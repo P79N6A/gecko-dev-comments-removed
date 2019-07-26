@@ -282,3 +282,11 @@ label:active,
 textarea:active {
   background-color: rgba(141, 184, 216, 0.5);
 }
+
+#ifdef MOZ_WIDGET_GONK
+
+input,
+textarea {
+-moz-binding: none !important;
+}
+#endif
