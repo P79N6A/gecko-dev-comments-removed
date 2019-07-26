@@ -435,6 +435,7 @@ private:
 
   nsresult EnsureKeywordsHash();
   nsDataHashtable<nsTrimInt64HashKey, nsString> mBookmarkToKeywordHash;
+  bool mBookmarkToKeywordHashInitialized;
 
   
 
