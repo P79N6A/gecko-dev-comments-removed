@@ -18,6 +18,11 @@ namespace system {
 #define AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED  2
 
 
+#define AUTOMOUNTER_STATUS_DISABLED         0
+#define AUTOMOUNTER_STATUS_ENABLED          1
+#define AUTOMOUNTER_STATUS_FILES_OPEN       2
+
+
 
 
 
@@ -37,6 +42,12 @@ InitAutoMounter();
 
 void
 SetAutoMounterMode(int32_t aMode);
+
+
+
+
+int32_t
+GetAutoMounterStatus();
 
 
 
