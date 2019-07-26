@@ -420,6 +420,9 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
     return CUBEB_ERROR;
   }
 
+  
+  
+#if 0
   if (buffer_size < default_buffer_size) {
     
 
@@ -430,6 +433,7 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
       return CUBEB_ERROR;
     }
   }
+#endif
 
   r = AudioUnitSetProperty(stm->unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
                            0, &ss, sizeof(ss));
