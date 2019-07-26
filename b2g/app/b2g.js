@@ -464,7 +464,9 @@ pref("app.update.staging.enabled", true);
 pref("app.update.service.enabled", true);
 
 
-pref("app.update.url", "http://update.boot2gecko.org/nightly/update.xml");
+pref("app.update.url", "http://update.boot2gecko.org/%CHANNEL%/update.xml");
+pref("app.update.channel", "@MOZ_UPDATE_CHANNEL@");
+
 
 pref("app.update.interval", 86400); 
 
