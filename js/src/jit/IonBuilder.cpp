@@ -3435,8 +3435,7 @@ IonBuilder::jsop_try()
         return abort("Has try-finally");
 
     
-    if (isInlineBuilder())
-        return abort("try-catch within inline frame");
+    JS_ASSERT(script()->uninlineable && !isInlineBuilder());
 
     graph().setHasTryBlock();
 
@@ -9151,8 +9150,7 @@ IonBuilder::jsop_setarg(uint32_t arg)
     
     if (info().argumentsAliasesFormals()) {
         
-        if (isInlineBuilder())
-            return abort("JSOP_SETARG with magic arguments in inlined function.");
+        JS_ASSERT(script()->uninlineable && !isInlineBuilder());
 
         MSetFrameArgument *store = MSetFrameArgument::New(alloc(), arg, val);
         current->add(store);
