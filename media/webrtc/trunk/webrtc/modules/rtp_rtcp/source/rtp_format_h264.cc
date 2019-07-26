@@ -28,11 +28,8 @@ RtpFormatH264::RtpFormatH264(const uint8_t* payload_data,
     fragments_ = 0;
   } else {
     fragment_size_ = max_payload_len_ - kH264FUAHeaderLengthInBytes;
-    fragments_ = (payload_size_ - kH264NALHeaderLengthInBytes) / fragment_size_;
-    if (fragments_ * fragment_size_ !=
-        (payload_size_ - kH264NALHeaderLengthInBytes)) {
-      ++fragments_;
-    }
+    fragments_ = ((payload_size_ - kH264NALHeaderLengthInBytes) + (fragment_size_-1)) /
+                 fragment_size_;
     next_fragment_ = 0;
   }
 }
@@ -49,26 +46,42 @@ int RtpFormatH264::NextPacket(uint8_t* buffer,
     return -1;
   }
 
+  
+
+  
+  
+  
+  
+  uint8_t header = payload_data_[0];
+  uint8_t type   = header & kH264NAL_TypeMask;
   if (payload_size_ <= max_payload_len_) {
     
     *bytes_to_send = payload_size_;
-    *last_packet   = false;
+    
+    
+    
+    
+    if (type == kH264NALU_SPS || type == kH264NALU_PPS ||
+        type == kH264NALU_SEI) {
+      *last_packet   = false;
+    } else {
+      *last_packet   = true;
+    }
     memcpy(buffer, payload_data_, payload_size_);
     WEBRTC_TRACE(kTraceStream, kTraceRtpRtcp, -1,
                  "RtpFormatH264(single NALU with type:%d, payload_size:%d",
-                 payload_data_[0] & 0x1F, payload_size_);
+                 type, payload_size_);
     return 0;
   } else {
-    unsigned char header = payload_data_[0];
-    unsigned char type   = header & 0x1F;
-    unsigned char fu_indicator = (header & 0xE0) | kH264FUANALUType;
-    unsigned char fu_header = 0;
+    uint8_t fu_indicator = (header & (kH264NAL_FBit | kH264NAL_NRIMask)) |
+                           kH264NALU_FUA;
+    uint8_t fu_header = 0;
     bool first_fragment = (next_fragment_ == 0);
     bool last_fragment = (next_fragment_ == (fragments_ -1));
 
     
-    fu_header |= (first_fragment ? 128 : 0);  
-    fu_header |= (last_fragment ? 64 :0);  
+    fu_header |= (first_fragment ? kH264FU_SBit : 0);
+    fu_header |= (last_fragment ? kH264FU_EBit :0);
     fu_header |= type;
     buffer[0] = fu_indicator;
     buffer[1] = fu_header;

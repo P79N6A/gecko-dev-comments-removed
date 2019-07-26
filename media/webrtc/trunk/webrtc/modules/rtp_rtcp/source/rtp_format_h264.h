@@ -35,12 +35,30 @@ namespace webrtc {
 class RtpFormatH264 {
  public:
   enum {
-    kH264NALHeaderLengthInBytes = 1,
-    kH264FUAHeaderLengthInBytes = 2,
-    kH264FUANALUType            = 28,
+    kH264NALU_SLICE             = 1,
+    kH264NALU_IDR               = 5,
+    kH264NALU_SEI               = 6,
     kH264NALU_SPS               = 7,
     kH264NALU_PPS               = 8,
-    kH264NALU_IDR               = 5
+    kH264NALU_STAPA             = 24,
+    kH264NALU_FUA               = 28
+  };
+
+  static const int kH264NALHeaderLengthInBytes = 1;
+  static const int kH264FUAHeaderLengthInBytes = 2;
+
+
+  enum H264NalDefs {
+    kH264NAL_FBit = 0x80,
+    kH264NAL_NRIMask = 0x60,
+    kH264NAL_TypeMask = 0x1F
+  };
+
+  enum H264FUDefs {
+    
+    kH264FU_SBit = 0x80,
+    kH264FU_EBit = 0x40,
+    kH264FU_RBit = 0x20
   };
 
   
@@ -78,4 +96,4 @@ class RtpFormatH264 {
 
 }  
 
-#endif
+#endif  
