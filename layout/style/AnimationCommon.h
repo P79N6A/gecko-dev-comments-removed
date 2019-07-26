@@ -295,10 +295,6 @@ struct ElementAnimation
     return nullptr;
   }
 
-  nsString mName; 
-  AnimationTiming mTiming;
-  uint8_t mPlayState;
-
   bool IsPaused() const {
     return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
   }
@@ -323,12 +319,15 @@ struct ElementAnimation
   static ComputedTiming GetComputedTimingAt(TimeDuration aElapsedDuration,
                                             const AnimationTiming& aTiming);
 
+  nsString mName; 
+  AnimationTiming mTiming;
   
   
   
   mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mDelay;
+  uint8_t mPlayState;
   bool mIsRunningOnCompositor;
 
   enum {
