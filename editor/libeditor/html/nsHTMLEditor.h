@@ -20,7 +20,6 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMEventListener.h"
 #include "nsICSSLoaderObserver.h"
-#include "nsITableLayout.h"
 
 #include "nsEditRules.h"
 
@@ -52,6 +51,7 @@ class TypeInState;
 class nsIContentFilter;
 class nsIURL;
 class nsILinkHandler;
+class nsTableOuterFrame;
 struct PropItem;
 
 namespace mozilla {
@@ -442,7 +442,7 @@ protected:
   NS_IMETHOD SetRowSpan(nsIDOMElement *aCell, int32_t aRowSpan);
 
   
-  NS_IMETHOD GetTableLayoutObject(nsIDOMElement* aTable, nsITableLayout **tableLayoutObject);
+  nsTableOuterFrame* GetTableFrame(nsIDOMElement* aTable);
   
   
   int32_t  GetNumberOfCellsInRow(nsIDOMElement* aTable, int32_t rowIndex);

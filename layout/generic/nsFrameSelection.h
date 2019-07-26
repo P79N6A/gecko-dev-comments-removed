@@ -10,11 +10,12 @@
 #include "nsIFrame.h"
 #include "nsIContent.h"
 #include "nsISelectionController.h"
-#include "nsITableLayout.h"
 #include "nsITableCellLayout.h"
 #include "nsIDOMElement.h"
 #include "nsGUIEvent.h"
 #include "nsRange.h"
+
+class nsTableOuterFrame;
 
 
 
@@ -650,8 +651,6 @@ private:
   nsRefPtr<mozilla::Selection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
 
   
-  
-  nsITableLayout* GetTableLayout(nsIContent *aTableContent) const;
   nsITableCellLayout* GetCellLayout(nsIContent *aCellContent) const;
 
   nsresult SelectBlockOfCells(nsIContent *aStartNode, nsIContent *aEndNode);

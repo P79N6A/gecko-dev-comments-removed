@@ -5,11 +5,11 @@
 #ifndef nsTableFrame_h__
 #define nsTableFrame_h__
 
+#include "celldata.h"
 #include "nscore.h"
 #include "nsContainerFrame.h"
 #include "nsStyleCoord.h"
 #include "nsStyleConsts.h"
-#include "nsITableLayout.h"
 #include "nsTableColFrame.h"
 #include "nsTableColGroupFrame.h"
 #include "nsCellMap.h"
@@ -17,7 +17,9 @@
 #include "nsDisplayList.h"
 
 class nsTableCellFrame;
+class nsTableCellMap;
 class nsTableColFrame;
+class nsColGroupFrame;
 class nsTableRowGroupFrame;
 class nsTableRowFrame;
 class nsTableColGroupFrame;
@@ -103,7 +105,7 @@ private:
 
 
 
-class nsTableFrame : public nsContainerFrame, public nsITableLayout
+class nsTableFrame : public nsContainerFrame
 {
 public:
   NS_DECL_QUERYFRAME
@@ -461,9 +463,6 @@ public:
                          bool                  aRemoveFromCache,
                          bool                  aRemoveFromCellMap);
 
-  NS_IMETHOD GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn, int32_t *aIndex);
-  NS_IMETHOD GetRowAndColumnByIndex(int32_t aIndex, int32_t *aRow, int32_t *aColumn);
-
   bool ColumnHasCellSpacingBefore(int32_t aColIndex) const;
 
   bool HasPctCol() const;
@@ -721,24 +720,6 @@ public:
 
   
   virtual bool IsAutoLayout();
-
-  
-  
-  
-  NS_IMETHOD GetCellDataAt(int32_t aRowIndex, int32_t aColIndex, 
-                           nsIDOMElement* &aCell,   
-                           int32_t& aStartRowIndex, int32_t& aStartColIndex, 
-                           int32_t& aRowSpan, int32_t& aColSpan,
-                           int32_t& aActualRowSpan, int32_t& aActualColSpan,
-                           bool& aIsSelected);
-
-  
-
-
-
-  NS_IMETHOD GetTableSize(int32_t& aRowCount, int32_t& aColCount);
-
-  
 
 public:
  

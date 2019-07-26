@@ -32,11 +32,12 @@
 #include "nsISupportsUtils.h"
 #include "nsITableCellLayout.h" 
 #include "nsITableEditor.h"
-#include "nsITableLayout.h"     
 #include "nsLiteralString.h"
 #include "nsQueryFrame.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsTableCellFrame.h"
+#include "nsTableOuterFrame.h"
 #include "nscore.h"
 
 using namespace mozilla;
@@ -2607,23 +2608,14 @@ nsHTMLEditor::GetCellIndexes(nsIDOMElement *aCell,
   return cellLayoutObject->GetCellIndexes(*aRowIndex, *aColIndex);
 }
 
-NS_IMETHODIMP
-nsHTMLEditor::GetTableLayoutObject(nsIDOMElement* aTable, nsITableLayout **tableLayoutObject)
+nsTableOuterFrame*
+nsHTMLEditor::GetTableFrame(nsIDOMElement* aTable)
 {
-  *tableLayoutObject = nullptr;
-  NS_ENSURE_TRUE(aTable, NS_ERROR_NOT_INITIALIZED);
-  NS_ENSURE_TRUE(mDocWeak, NS_ERROR_NOT_INITIALIZED);
-  nsCOMPtr<nsIPresShell> ps = GetPresShell();
-  NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
+  NS_ENSURE_TRUE(aTable, nullptr);
 
   nsCOMPtr<nsIContent> nodeAsContent( do_QueryInterface(aTable) );
-  NS_ENSURE_TRUE(nodeAsContent, NS_ERROR_FAILURE);
-  
-  nsIFrame *layoutObject = nodeAsContent->GetPrimaryFrame();
-  NS_ENSURE_TRUE(layoutObject, NS_ERROR_FAILURE);
-
-  *tableLayoutObject = do_QueryFrame(layoutObject);
-  return *tableLayoutObject ? NS_OK : NS_NOINTERFACE;
+  NS_ENSURE_TRUE(nodeAsContent, nullptr);
+  return do_QueryFrame(nodeAsContent->GetPrimaryFrame());
 }
 
 
@@ -2675,13 +2667,13 @@ nsHTMLEditor::GetTableSize(nsIDOMElement *aTable,
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(table, NS_ERROR_FAILURE);
   
-  
-  nsITableLayout *tableLayoutObject;
-  res = GetTableLayoutObject(table.get(), &tableLayoutObject);
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(tableLayoutObject, NS_ERROR_FAILURE);
+  nsTableOuterFrame* tableFrame = GetTableFrame(table.get());
+  NS_ENSURE_TRUE(tableFrame, NS_ERROR_FAILURE);
 
-  return tableLayoutObject->GetTableSize(*aRowCount, *aColCount); 
+  *aRowCount = tableFrame->GetRowCount();
+  *aColCount = tableFrame->GetColCount();
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -2724,40 +2716,43 @@ nsHTMLEditor::GetCellDataAt(nsIDOMElement* aTable, int32_t aRowIndex,
       return NS_ERROR_FAILURE;
   }
   
-  
-  nsITableLayout *tableLayoutObject;
-  res = GetTableLayoutObject(aTable, &tableLayoutObject);
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(tableLayoutObject, NS_ERROR_FAILURE);
+  nsTableOuterFrame* tableFrame = GetTableFrame(aTable);
+  NS_ENSURE_TRUE(tableFrame, NS_ERROR_FAILURE);
 
-  
-  
-  nsCOMPtr<nsIDOMElement> cell;
-  res = tableLayoutObject->GetCellDataAt(aRowIndex, aColIndex,
-                                         *getter_AddRefs(cell), 
-                                         *aStartRowIndex, *aStartColIndex,
-                                         *aRowSpan, *aColSpan, 
-                                         *aActualRowSpan, *aActualColSpan, 
-                                         *aIsSelected);
-  if (cell)
-  {
-    *aCell = cell.get();
-    NS_ADDREF(*aCell);
-  }
-  
-  if (res == NS_TABLELAYOUT_CELL_NOT_FOUND) res = NS_EDITOR_ELEMENT_NOT_FOUND;
-  return res;
+  nsTableCellFrame* cellFrame =
+    tableFrame->GetCellFrameAt(aRowIndex, aColIndex);
+  if (!cellFrame)
+    return NS_ERROR_FAILURE;
+
+  *aIsSelected = cellFrame->IsSelected();
+  cellFrame->GetRowIndex(*aStartRowIndex);
+  cellFrame->GetColIndex(*aStartColIndex);
+  *aRowSpan = cellFrame->GetRowSpan();
+  *aColSpan = cellFrame->GetColSpan();
+  *aActualRowSpan = tableFrame->GetEffectiveRowSpanAt(aRowIndex, aColIndex);
+  *aActualColSpan = tableFrame->GetEffectiveColSpanAt(aRowIndex, aColIndex);
+  nsCOMPtr<nsIDOMElement> domCell = do_QueryInterface(cellFrame->GetContent());
+  domCell.forget(aCell);
+
+  return NS_OK;
 }
 
 
 NS_IMETHODIMP 
 nsHTMLEditor::GetCellAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex, nsIDOMElement **aCell)
 {
-  int32_t startRowIndex, startColIndex, rowSpan, colSpan, actualRowSpan, actualColSpan;
-  bool    isSelected;
-  return GetCellDataAt(aTable, aRowIndex, aColIndex, aCell, 
-                       &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
-                       &actualRowSpan, &actualColSpan, &isSelected);
+  NS_ENSURE_ARG_POINTER(aCell);
+  *aCell = nullptr;
+
+  nsTableOuterFrame* tableFrame = GetTableFrame(aTable);
+  if (!tableFrame)
+    return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIDOMElement> domCell =
+    do_QueryInterface(tableFrame->GetCellAt(aRowIndex, aColIndex));
+  domCell.forget(aCell);
+
+  return NS_OK;
 }
 
 
@@ -2765,12 +2760,14 @@ NS_IMETHODIMP
 nsHTMLEditor::GetCellSpansAt(nsIDOMElement* aTable, int32_t aRowIndex, int32_t aColIndex, 
                              int32_t& aActualRowSpan, int32_t& aActualColSpan)
 {
-  nsCOMPtr<nsIDOMElement> cell;    
-  int32_t startRowIndex, startColIndex, rowSpan, colSpan;
-  bool    isSelected;
-  return GetCellDataAt(aTable, aRowIndex, aColIndex, getter_AddRefs(cell), 
-                       &startRowIndex, &startColIndex, &rowSpan, &colSpan, 
-                       &aActualRowSpan, &aActualColSpan, &isSelected);
+  nsTableOuterFrame* tableFrame = GetTableFrame(aTable);
+  if (!tableFrame)
+    return NS_ERROR_FAILURE;
+
+  aActualRowSpan = tableFrame->GetEffectiveRowSpanAt(aRowIndex, aColIndex);
+  aActualColSpan = tableFrame->GetEffectiveColSpanAt(aRowIndex, aColIndex);
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

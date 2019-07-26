@@ -160,7 +160,6 @@ nsTableFrame::nsTableFrame(nsStyleContext* aContext)
 }
 
 NS_QUERYFRAME_HEAD(nsTableFrame)
-  NS_QUERYFRAME_ENTRY(nsITableLayout)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 NS_IMETHODIMP
@@ -3690,108 +3689,6 @@ int32_t nsTableIterator::Count()
   }
   return mCount;
 }
-
-
-NS_IMETHODIMP
-nsTableFrame::GetCellDataAt(int32_t        aRowIndex,
-                            int32_t        aColIndex,
-                            nsIDOMElement* &aCell,   
-                            int32_t&       aStartRowIndex,
-                            int32_t&       aStartColIndex,
-                            int32_t&       aRowSpan,
-                            int32_t&       aColSpan,
-                            int32_t&       aActualRowSpan,
-                            int32_t&       aActualColSpan,
-                            bool&          aIsSelected)
-{
-  
-  aCell = nullptr;
-  aStartRowIndex = 0;
-  aStartColIndex = 0;
-  aRowSpan = 0;
-  aColSpan = 0;
-  aIsSelected = false;
-
-  nsTableCellMap* cellMap = GetCellMap();
-  if (!cellMap) { return NS_ERROR_NOT_INITIALIZED;}
-
-  bool originates;
-  int32_t colSpan; 
-
-  nsTableCellFrame *cellFrame = cellMap->GetCellInfoAt(aRowIndex, aColIndex, &originates, &colSpan);
-  if (!cellFrame) return NS_TABLELAYOUT_CELL_NOT_FOUND;
-
-  nsresult result= cellFrame->GetRowIndex(aStartRowIndex);
-  if (NS_FAILED(result)) return result;
-  result = cellFrame->GetColIndex(aStartColIndex);
-  if (NS_FAILED(result)) return result;
-  
-  aRowSpan = cellFrame->GetRowSpan();
-  aColSpan = cellFrame->GetColSpan();
-  aActualRowSpan = GetEffectiveRowSpan(*cellFrame);
-  aActualColSpan = GetEffectiveColSpan(*cellFrame);
-
-  
-  if (aActualRowSpan == 0 || aActualColSpan == 0)
-    return NS_ERROR_FAILURE;
-
-  aIsSelected = cellFrame->IsSelected();
-
-  
-  
-  nsIContent* content = cellFrame->GetContent();
-  if (!content) return NS_ERROR_FAILURE;
-
-  return CallQueryInterface(content, &aCell);
-}
-
-NS_IMETHODIMP nsTableFrame::GetTableSize(int32_t& aRowCount, int32_t& aColCount)
-{
-  nsTableCellMap* cellMap = GetCellMap();
-  
-  aRowCount = 0;
-  aColCount = 0;
-  if (!cellMap) { return NS_ERROR_NOT_INITIALIZED;}
-
-  aRowCount = cellMap->GetRowCount();
-  aColCount = cellMap->GetColCount();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsTableFrame::GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn,
-                                     int32_t *aIndex)
-{
-  NS_ENSURE_ARG_POINTER(aIndex);
-  *aIndex = -1;
-
-  nsTableCellMap* cellMap = GetCellMap();
-  if (!cellMap)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  *aIndex = cellMap->GetIndexByRowAndColumn(aRow, aColumn);
-  return (*aIndex == -1) ? NS_TABLELAYOUT_CELL_NOT_FOUND : NS_OK;
-}
-
-NS_IMETHODIMP
-nsTableFrame::GetRowAndColumnByIndex(int32_t aIndex,
-                                    int32_t *aRow, int32_t *aColumn)
-{
-  NS_ENSURE_ARG_POINTER(aRow);
-  *aRow = -1;
-
-  NS_ENSURE_ARG_POINTER(aColumn);
-  *aColumn = -1;
-
-  nsTableCellMap* cellMap = GetCellMap();
-  if (!cellMap)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  cellMap->GetRowAndColumnByIndex(aIndex, aRow, aColumn);
-  return NS_OK;
-}
-
-
 
 bool
 nsTableFrame::ColumnHasCellSpacingBefore(int32_t aColIndex) const

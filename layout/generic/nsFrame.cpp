@@ -20,6 +20,7 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsStyleContext.h"
+#include "nsTableOuterFrame.h"
 #include "nsIView.h"
 #include "nsIViewManager.h"
 #include "nsIScrollableFrame.h"
@@ -53,7 +54,6 @@
 #include "nsStyleChangeList.h"
 #include "nsIDOMRange.h"
 #include "nsRange.h"
-#include "nsITableLayout.h"    
 #include "nsITableCellLayout.h"
 #include "nsITextControlFrame.h"
 #include "nsINameSpaceManager.h"
@@ -2502,8 +2502,8 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
       
       
       
-      nsITableLayout *tableElement = do_QueryFrame(frame);
-      if (tableElement)
+      nsTableOuterFrame *tableFrame = do_QueryFrame(frame);
+      if (tableFrame)
       {
         foundTable = true;
         
