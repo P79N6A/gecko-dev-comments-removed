@@ -1302,6 +1302,20 @@ js::CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script,
 }
 #endif
 
+void
+Activation::setActive(bool active)
+{
+    
+    
+    JS_ASSERT(cx()->mainThread().activation_ == this);
+    JS_ASSERT(active != active_);
+    active_ = active;
+
+    
+    if (!active && isJit())
+        cx()->mainThread().ionTop = asJit()->prevIonTop();
+}
+
 ion::JitActivation::JitActivation(JSContext *cx, bool firstFrameIsConstructing, bool active)
   : Activation(cx, Jit, active),
     prevIonTop_(cx->mainThread().ionTop),
