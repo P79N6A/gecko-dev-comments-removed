@@ -21,7 +21,8 @@ public:
   SmsService();
 
 protected:
-  nsCOMPtr<nsIRadioInterfaceLayer> mRIL;
+  
+  nsCOMPtr<nsIRadioInterface> mRadioInterface;
 };
 
 } 

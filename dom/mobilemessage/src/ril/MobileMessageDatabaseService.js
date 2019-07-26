@@ -1103,18 +1103,6 @@ MobileMessageDatabaseService.prototype = {
     return aMessageRecord.id;
   },
 
-  getRilIccInfoMsisdn: function getRilIccInfoMsisdn() {
-    let iccInfo = this.mRIL.rilContext.iccInfo;
-    let number = iccInfo ? iccInfo.msisdn : null;
-
-    
-    
-    if (number === undefined || number === "undefined") {
-      return null;
-    }
-    return number;
-  },
-
   
 
 
@@ -1133,13 +1121,8 @@ MobileMessageDatabaseService.prototype = {
       }
       return;
     }
-    let self = this.getRilIccInfoMsisdn();
     let threadParticipants = [aMessage.sender];
-    if (aMessage.type == "sms") {
-      
-      
-      aMessage.receiver = self;
-    } else if (aMessage.type == "mms" && !DISABLE_MMS_GROUPING_FOR_RECEIVING) {
+    if (aMessage.type == "mms" && !DISABLE_MMS_GROUPING_FOR_RECEIVING) {
       let receivers = aMessage.receivers;
       
       
@@ -1157,8 +1140,8 @@ MobileMessageDatabaseService.prototype = {
       if (receivers.length >= 2) {
         let isSuccess = false;
         let slicedReceivers = receivers.slice();
-        if (self) {
-          let found = slicedReceivers.indexOf(self);
+        if (aMessage.msisdn) {
+          let found = slicedReceivers.indexOf(aMessage.msisdn);
           if (found !== -1) {
             isSuccess = true;
             slicedReceivers.splice(found, 1);
@@ -1232,9 +1215,6 @@ MobileMessageDatabaseService.prototype = {
       }
     }
 
-    
-    
-    aMessage.sender = this.getRilIccInfoMsisdn();
     let timestamp = aMessage.timestamp;
 
     
@@ -2341,10 +2321,6 @@ GetThreadsCursor.prototype = {
     this.collector.squeeze(this.notify.bind(this));
   }
 }
-
-XPCOMUtils.defineLazyServiceGetter(MobileMessageDatabaseService.prototype, "mRIL",
-                                   "@mozilla.org/ril;1",
-                                   "nsIRadioInterfaceLayer");
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MobileMessageDatabaseService]);
 
