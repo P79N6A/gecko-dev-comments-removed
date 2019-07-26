@@ -226,6 +226,9 @@ JSObject::finalize(js::FreeOp *fop)
 
     if (!IsBackgroundFinalized(getAllocKind())) {
         
+        fop->runtime()->assertValidThread();
+
+        
 
 
 
