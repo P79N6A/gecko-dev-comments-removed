@@ -70,7 +70,7 @@ public:
     }
     
 
-    JSObject* WrapObject(JSContext *cx, JSObject *scope);
+    JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope);
 
 private:
     struct NodePointer {

@@ -89,7 +89,7 @@ DOMCursor::Continue(ErrorResult& aRv)
 }
 
  JSObject*
-DOMCursor::WrapObject(JSContext* aCx, JSObject* aScope)
+DOMCursor::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
 {
   return DOMCursorBinding::Wrap(aCx, aScope, this);
 }
