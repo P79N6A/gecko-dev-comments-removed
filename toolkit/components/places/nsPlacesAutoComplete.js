@@ -1405,6 +1405,13 @@ urlInlineComplete.prototype = {
         
         
         
+        if (untrimmedDomain &&
+            !untrimmedDomain.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
+          untrimmedDomain = null;
+        }
+
+        
+        
         result.appendMatch(this._strippedPrefix + domain, untrimmedDomain);
 
         this._finishSearch();
@@ -1515,7 +1522,15 @@ urlInlineComplete.prototype = {
     
     
     
-    this._result.appendMatch(this._strippedPrefix + url, prefix + url);
+    let untrimmedURL = prefix + url;
+    if (untrimmedURL &&
+        !untrimmedURL.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
+      untrimmedURL = null;
+     }
+
+    
+    
+    this._result.appendMatch(this._strippedPrefix + url, untrimmedURL);
 
     
     
