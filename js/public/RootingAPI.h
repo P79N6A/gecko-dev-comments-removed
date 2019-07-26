@@ -150,7 +150,7 @@ template <typename T> class PersistentRooted;
 
 JS_FRIEND_API(bool) isGCEnabled();
 
-#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
+#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
 extern void
 CheckStackRoots(JSContext *cx);
 #endif
@@ -265,7 +265,7 @@ class Heap : public js::HeapBase<T>
     T ptr;
 };
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
 
 
 
@@ -648,7 +648,7 @@ struct GCMethods<T *>
 #endif
 };
 
-#if defined(DEBUG)
+#if defined(JS_DEBUG)
 
 extern JS_PUBLIC_API(bool)
 IsInRequest(JSContext *cx);
@@ -798,7 +798,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     Rooted<void*> **stack, *prev;
 #endif
 
-#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
+#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
     
     friend void JS::CheckStackRoots(JSContext*);
 #endif
@@ -836,7 +836,7 @@ namespace js {
 
 class SkipRoot
 {
-#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
+#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
 
     SkipRoot **stack, *prev;
     const uint8_t *start;
@@ -1204,7 +1204,7 @@ namespace js {
 
 inline void MaybeCheckStackRoots(JSContext *cx)
 {
-#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
+#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
     JS::CheckStackRoots(cx);
 #endif
 }

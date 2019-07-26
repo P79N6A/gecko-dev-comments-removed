@@ -1740,7 +1740,7 @@ inline Anchor<Value>::~Anchor()
 }
 #endif
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
 namespace detail {
 
 struct ValueAlignmentTester { char c; JS::Value v; };

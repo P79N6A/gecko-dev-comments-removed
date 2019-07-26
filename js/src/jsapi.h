@@ -52,7 +52,7 @@ class StableCharPtr : public CharPtr {
     {}
 };
 
-#if defined JS_THREADSAFE && defined DEBUG
+#if defined JS_THREADSAFE && defined JS_DEBUG
 
 class JS_PUBLIC_API(AutoCheckRequestDepth)
 {
@@ -73,7 +73,7 @@ class JS_PUBLIC_API(AutoCheckRequestDepth)
 
 #endif 
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
 
 
 
@@ -1370,7 +1370,7 @@ class JSAutoCheckRequest
     JSAutoCheckRequest(JSContext *cx
                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     {
-#if defined JS_THREADSAFE && defined DEBUG
+#if defined JS_THREADSAFE && defined JS_DEBUG
         mContext = cx;
         JS_ASSERT(JS_IsInRequest(JS_GetRuntime(cx)));
 #endif
@@ -1378,14 +1378,14 @@ class JSAutoCheckRequest
     }
 
     ~JSAutoCheckRequest() {
-#if defined JS_THREADSAFE && defined DEBUG
+#if defined JS_THREADSAFE && defined JS_DEBUG
         JS_ASSERT(JS_IsInRequest(JS_GetRuntime(mContext)));
 #endif
     }
 
 
   private:
-#if defined JS_THREADSAFE && defined DEBUG
+#if defined JS_THREADSAFE && defined JS_DEBUG
     JSContext *mContext;
 #endif
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
@@ -2033,7 +2033,7 @@ JSVAL_TRACE_KIND(jsval v)
     return (JSGCTraceKind) JSVAL_TRACE_KIND_IMPL(JSVAL_TO_IMPL(v));
 }
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
 
 
 
@@ -2075,7 +2075,7 @@ extern JS_PUBLIC_API(bool)
 JS_IsGCMarkingTracer(JSTracer *trc);
 
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
 extern JS_PUBLIC_API(bool)
 JS_IsMarkingGray(JSTracer *trc);
 #endif
@@ -3155,13 +3155,13 @@ struct JSPrincipals {
     int32_t refcount;
 #endif
 
-#ifdef DEBUG
+#ifdef JS_DEBUG
     
     uint32_t    debugToken;
 #endif
 
     void setDebugToken(uint32_t token) {
-# ifdef DEBUG
+# ifdef JS_DEBUG
         debugToken = token;
 # endif
     }
