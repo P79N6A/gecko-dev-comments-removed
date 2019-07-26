@@ -10,7 +10,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#include "gfxFont.h"
+#include "DrawMode.h"
 #include "gfxMatrix.h"
 #include "gfxPoint.h"
 #include "gfxRect.h"
@@ -677,7 +677,7 @@ public:
 
 
   static bool PaintSVGGlyph(Element* aElement, gfxContext* aContext,
-                            gfxFont::DrawMode aDrawMode,
+                            DrawMode aDrawMode,
                             gfxTextContextPaint* aContextPaint);
   
 

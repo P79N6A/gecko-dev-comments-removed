@@ -221,7 +221,7 @@ bool
 gfxSVGGlyphs::RenderGlyph(gfxContext *aContext, uint32_t aGlyphId,
                           DrawMode aDrawMode, gfxTextContextPaint *aContextPaint)
 {
-    if (aDrawMode == gfxFont::GLYPH_PATH) {
+    if (aDrawMode == DrawMode::GLYPH_PATH) {
         return false;
     }
 

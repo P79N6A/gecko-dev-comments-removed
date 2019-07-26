@@ -32,6 +32,7 @@
 #include <algorithm>
 #include "nsUnicodeProperties.h"
 #include "harfbuzz/hb.h"
+#include "DrawMode.h"
 
 typedef struct _cairo_scaled_font cairo_scaled_font_t;
 typedef struct gr_face            gr_face;
@@ -1323,21 +1324,6 @@ public:
         kAntialiasGrayscale,
         kAntialiasSubpixel
     } AntialiasOption;
-
-    
-    typedef enum {
-        
-        
-        GLYPH_FILL = 1,
-        
-        GLYPH_STROKE = 2,
-        
-        
-        GLYPH_PATH = 4,
-        
-        
-        GLYPH_STROKE_UNDERNEATH = 8
-    } DrawMode;
 
 protected:
     nsAutoRefCnt mRefCnt;
@@ -2842,7 +2828,7 @@ public:
 
 
     void Draw(gfxContext *aContext, gfxPoint aPt,
-              gfxFont::DrawMode aDrawMode,
+              DrawMode aDrawMode,
               uint32_t aStart, uint32_t aLength,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth, gfxTextContextPaint *aContextPaint,
@@ -3271,7 +3257,7 @@ private:
 
     
     void DrawGlyphs(gfxFont *aFont, gfxContext *aContext,
-                    gfxFont::DrawMode aDrawMode, gfxPoint *aPt,
+                    DrawMode aDrawMode, gfxPoint *aPt,
                     gfxTextContextPaint *aContextPaint, uint32_t aStart,
                     uint32_t aEnd, PropertyProvider *aProvider,
                     uint32_t aSpacingStart, uint32_t aSpacingEnd,

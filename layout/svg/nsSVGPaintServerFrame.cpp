@@ -7,6 +7,7 @@
 #include "nsSVGPaintServerFrame.h"
 
 
+#include "gfxContext.h"
 #include "nsSVGElement.h"
 #include "nsSVGGeometryFrame.h"
 

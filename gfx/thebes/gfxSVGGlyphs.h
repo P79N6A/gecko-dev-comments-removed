@@ -33,7 +33,6 @@ class gfxSVGGlyphs;
 class gfxSVGGlyphsDocument MOZ_FINAL : public nsAPostRefreshObserver
 {
     typedef mozilla::dom::Element Element;
-    typedef gfxFont::DrawMode DrawMode;
 
 public:
     gfxSVGGlyphsDocument(const uint8_t *aBuffer, uint32_t aBufLen,
@@ -75,7 +74,6 @@ class gfxSVGGlyphs
 {
 private:
     typedef mozilla::dom::Element Element;
-    typedef gfxFont::DrawMode DrawMode;
 
 public:
     
