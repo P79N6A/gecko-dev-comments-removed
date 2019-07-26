@@ -7,12 +7,13 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var loop = loop || {};
-loop.conversation = (function(TB, mozl10n) {
+loop.conversation = (function(TB, mozL10n) {
   "use strict";
 
-  var baseServerUrl = Services.prefs.getCharPref("loop.server"),
+  var sharedViews = loop.shared.views,
+      baseServerUrl = Services.prefs.getCharPref("loop.server"),
       
-      __ = mozl10n.get;
+      __ = mozL10n.get;
 
   
 
@@ -34,26 +35,22 @@ loop.conversation = (function(TB, mozl10n) {
 
 
   var ConversationRouter = loop.shared.router.BaseRouter.extend({
-    _conversation: undefined,
-    _notifier:     undefined,
-    activeView:    undefined,
+    
 
-    routes: {
-      "start/:version": "start",
-      "call/ongoing": "conversation",
-      "call/ended": "ended"
-    },
+
+
+    _conversation: undefined,
 
     
 
 
 
+    _notifier: undefined,
 
-    loadView : function(view) {
-      if (this.activeView) {
-        this.activeView.hide();
-      }
-      this.activeView = view.render().show();
+    routes: {
+      "start/:version": "start",
+      "call/ongoing": "conversation",
+      "call/ended": "ended"
     },
 
     initialize: function(options) {
@@ -70,6 +67,9 @@ loop.conversation = (function(TB, mozl10n) {
 
       this.listenTo(this._conversation, "session:ready", this._onSessionReady);
       this.listenTo(this._conversation, "session:ended", this._onSessionEnded);
+      this.listenTo(this._conversation, "session:peer-hung", this._onPeerHung);
+      this.listenTo(this._conversation, "session:network-disconnected",
+                                        this._onNetworkDisconnected);
     },
 
     
@@ -83,6 +83,29 @@ loop.conversation = (function(TB, mozl10n) {
 
 
     _onSessionEnded: function() {
+      this.navigate("call/ended", {trigger: true});
+    },
+
+    
+
+
+
+
+
+
+
+
+    _onPeerHung: function(event) {
+      this._notifier.warn(__("peer_ended_conversation"));
+      this.navigate("call/ended", {trigger: true});
+    },
+
+    
+
+
+
+    _onNetworkDisconnected: function() {
+      this._notifier.warn(__("network_disconnected"));
       this.navigate("call/ended", {trigger: true});
     },
 
@@ -109,10 +132,9 @@ loop.conversation = (function(TB, mozl10n) {
 
     conversation: function() {
       if (!this._conversation.isSessionReady()) {
-        
         console.error("Error: navigated to conversation route without " +
           "the start route to initialise the call first");
-        this._notifier.notify(__("cannot_start_call_session_not_ready"));
+        this._notifier.error(__("cannot_start_call_session_not_ready"));
         return;
       }
 
@@ -139,9 +161,7 @@ loop.conversation = (function(TB, mozl10n) {
     conversation = new loop.shared.models.ConversationModel();
     router = new ConversationRouter({
       conversation: conversation,
-      notifier: new loop.shared.views.NotificationListView({
-        el: "#messages"
-      })
+      notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
   }

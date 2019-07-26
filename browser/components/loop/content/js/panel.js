@@ -7,13 +7,13 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var loop = loop || {};
-loop.panel = (function(TB, mozl10n) {
+loop.panel = (function(mozL10n) {
   "use strict";
 
   var baseServerUrl = Services.prefs.getCharPref("loop.server"),
       panelView,
       
-      __ = mozl10n.get;
+      __ = mozL10n.get;
 
   
 
@@ -91,4 +91,4 @@ loop.panel = (function(TB, mozl10n) {
     init: init,
     PanelView: PanelView
   };
-})(_, document.mozL10n);
+})(document.mozL10n);
