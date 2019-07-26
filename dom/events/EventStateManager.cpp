@@ -5563,7 +5563,12 @@ AutoHandlingUserInputStatePusher::AutoHandlingUserInputStatePusher(
   if (mResetFMMouseButtonHandlingState) {
     nsFocusManager* fm = nsFocusManager::GetFocusManager();
     NS_ENSURE_TRUE_VOID(fm);
-    fm->SetMouseButtonHandlingDocument(aDocument);
+    
+    
+    
+    
+    mMouseButtonEventHandlingDocument =
+      fm->SetMouseButtonHandlingDocument(aDocument);
   }
 }
 
@@ -5579,7 +5584,8 @@ AutoHandlingUserInputStatePusher::~AutoHandlingUserInputStatePusher()
   if (mResetFMMouseButtonHandlingState) {
     nsFocusManager* fm = nsFocusManager::GetFocusManager();
     NS_ENSURE_TRUE_VOID(fm);
-    fm->SetMouseButtonHandlingDocument(nullptr);
+    nsCOMPtr<nsIDocument> handlingDocument =
+      fm->SetMouseButtonHandlingDocument(mMouseButtonEventHandlingDocument);
   }
 }
 

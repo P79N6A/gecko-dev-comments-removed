@@ -914,6 +914,8 @@ protected:
   bool mIsMouseDown;
   bool mResetFMMouseButtonHandlingState;
 
+  nsCOMPtr<nsIDocument> mMouseButtonEventHandlingDocument;
+
 private:
   
   static void* operator new(size_t ) CPP_THROW_NEW { return nullptr; }
