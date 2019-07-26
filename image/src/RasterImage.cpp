@@ -3908,11 +3908,6 @@ RasterImage::DecodeDoneWorker::Run()
 
   mImage->FinishedSomeDecoding(eShutdownIntent_Done, mRequest);
 
-  
-  if (mImage->mDecoder) {
-    DecodePool::Singleton()->RequestDecode(mImage);
-  }
-
   return NS_OK;
 }
 
