@@ -20,6 +20,10 @@ class nsRenderingContext;
 
 namespace mozilla {
 
+namespace layers {
+class ImageContainer;
+}
+
 
 
 
