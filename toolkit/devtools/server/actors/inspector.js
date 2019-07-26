@@ -405,11 +405,14 @@ let NodeFront = protocol.FrontClass(NodeActor, {
 
   rawNode: function(rawNode) {
     if (!this.conn._transport._serverConnection) {
-      throw new Error("Tried to use rawNode on a remote connection.");
+      console.warn("Tried to use rawNode on a remote connection.");
+      return null;
     }
     let actor = this.conn._transport._serverConnection.getActor(this.actorID);
     if (!actor) {
-      throw new Error("Could not find client side for actor " + this.actorID);
+      
+      
+      return null;
     }
     return actor.rawNode;
   }
@@ -1591,7 +1594,8 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   
   frontForRawNode: function(rawNode){
     if (!this.isLocal()) {
-      throw Error("Tried to use frontForRawNode on a remote connection.");
+      console.warn("Tried to use frontForRawNode on a remote connection.");
+      return null;
     }
     let walkerActor = this.conn._transport._serverConnection.getActor(this.actorID);
     if (!walkerActor) {
