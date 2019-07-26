@@ -119,25 +119,28 @@ nsHTMLButtonControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayListCollection set;
 
-  DisplayListClipState::AutoSaveRestore clipState(aBuilder);
-
-  if (IsInput() || StyleDisplay()->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE) {
-    nsMargin border = StyleBorder()->GetComputedBorder();
-    nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
-    rect.Deflate(border);
-    nscoord radii[8];
-    bool hasRadii = GetPaddingBoxBorderRadii(radii);
-    clipState.ClipContainingBlockDescendants(rect, hasRadii ? radii : nullptr);
-  }
-
   
-  BuildDisplayListForChild(aBuilder, mFrames.FirstChild(), aDirtyRect, set,
-                           DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT);
+  if (!aBuilder->IsForEventDelivery()) {
+    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
+    if (IsInput() || StyleDisplay()->mOverflowX != NS_STYLE_OVERFLOW_VISIBLE) {
+      nsMargin border = StyleBorder()->GetComputedBorder();
+      nsRect rect(aBuilder->ToReferenceFrame(this), GetSize());
+      rect.Deflate(border);
+      nscoord radii[8];
+      bool hasRadii = GetPaddingBoxBorderRadii(radii);
+      clipState.ClipContainingBlockDescendants(rect, hasRadii ? radii : nullptr);
+    }
+
+    BuildDisplayListForChild(aBuilder, mFrames.FirstChild(), aDirtyRect, set,
+                             DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT);
+    
+  }
+  
   
   set.Content()->AppendToTop(&onTop);
   set.MoveTo(aLists);
-
+  
   DisplayOutline(aBuilder, aLists);
 
   
