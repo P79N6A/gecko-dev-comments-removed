@@ -142,18 +142,15 @@ let Util = {
 
 #ifdef ANDROID
     let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let shellVersion = sysInfo.get("shellVersion") || "";
-    let matches = shellVersion.match(/\((\d+)\)$/);
-    if (matches) {
-      let sdkVersion = parseInt(matches[1]);
-      
-      if (sdkVersion < 11)
-        return this._isTablet = false;
+    let sdkVersion = sysInfo.getPropertyAsInt32("version");
+    
+    if (sdkVersion < 11)
+      return this._isTablet = false;
 
-      
-      if (sdkVersion < 14)
-        return this._isTablet = true;
-    }
+    
+    if (sdkVersion < 14)
+      return this._isTablet = true;
+
     
     return this._isTablet = sysInfo.get("tablet");
 #endif

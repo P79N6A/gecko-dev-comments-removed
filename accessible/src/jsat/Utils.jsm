@@ -54,12 +54,12 @@ var Utils = {
 
   get AndroidSdkVersion() {
     if (!this._AndroidSdkVersion) {
-      let shellVersion = Services.sysinfo.get('shellVersion') || '';
-      let matches = shellVersion.match(/\((\d+)\)$/);
-      if (matches)
-        this._AndroidSdkVersion = parseInt(matches[1]);
-      else
-        this._AndroidSdkVersion = 15; 
+      if (Services.appinfo.OS == 'Android') {
+        this._AndroidSdkVersion = Services.sysinfo.getPropertyAsInt32('version');
+      } else {
+        
+        this._AndroidSdkVersion = 15;
+      }
     }
     return this._AndroidSdkVersion;
   },
