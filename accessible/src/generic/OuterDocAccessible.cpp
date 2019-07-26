@@ -7,7 +7,7 @@
 
 #include "Accessible-inl.h"
 #include "nsAccUtils.h"
-#include "DocAccessible.h"
+#include "DocAccessible-inl.h"
 #include "Role.h"
 #include "States.h"
 
@@ -111,20 +111,23 @@ OuterDocAccessible::Shutdown()
   
   
   
+  
+
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocDestroy))
     logging::OuterDocDestroy(this);
 #endif
 
-  Accessible* childAcc = mChildren.SafeElementAt(0, nullptr);
-  if (childAcc) {
+  Accessible* child = mChildren.SafeElementAt(0, nullptr);
+  if (child) {
 #ifdef A11Y_LOG
     if (logging::IsEnabled(logging::eDocDestroy)) {
-      logging::DocDestroy("outerdoc's child document shutdown",
-                          childAcc->AsDoc()->DocumentNode());
+      logging::DocDestroy("outerdoc's child document rebind is scheduled",
+                          child->AsDoc()->DocumentNode());
     }
 #endif
-    childAcc->Shutdown();
+    RemoveChild(child);
+    mDoc->BindChildDocument(child->AsDoc());
   }
 
   AccessibleWrap::Shutdown();

@@ -1917,7 +1917,10 @@ DocAccessible::ShutdownChildrenInSubtree(Accessible* aAccessible)
       jdx++;
     }
 
-    ShutdownChildrenInSubtree(child);
+    
+    
+    if (!child->IsDoc())
+      ShutdownChildrenInSubtree(child);
   }
 
   UnbindFromDocument(aAccessible);
