@@ -488,8 +488,8 @@ nsTableRowFrame::CalcHeight(const nsHTMLReflowState& aReflowState)
   ResetHeight(computedHeight);
 
   const nsStylePosition* position = GetStylePosition();
-  if (eStyleUnit_Coord == position->mHeight.GetUnit()) {
-    SetFixedHeight(position->mHeight.GetCoordValue());
+  if (position->mHeight.ConvertsToLength()) {
+    SetFixedHeight(nsRuleNode::ComputeCoordPercentCalc(position->mHeight, 0));
   }
   else if (eStyleUnit_Percent == position->mHeight.GetUnit()) {
     SetPctHeight(position->mHeight.GetPercentValue());
@@ -606,6 +606,13 @@ nsTableRowFrame::CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
   int32_t rowSpan = tableFrame->GetEffectiveRowSpan(*aCellFrame);
   
   switch (position->mHeight.GetUnit()) {
+    case eStyleUnit_Calc: {
+      if (position->mHeight.CalcHasPercent()) {
+        
+        break;
+      }
+      
+    }
     case eStyleUnit_Coord: {
       nscoord outsideBoxSizing = 0;
       
@@ -627,7 +634,9 @@ nsTableRowFrame::CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
         }
       }
 
-      specifiedHeight = position->mHeight.GetCoordValue() + outsideBoxSizing;
+      specifiedHeight =
+        nsRuleNode::ComputeCoordPercentCalc(position->mHeight, 0) +
+          outsideBoxSizing;
 
       if (1 == rowSpan) 
         SetFixedHeight(specifiedHeight);
@@ -640,7 +649,7 @@ nsTableRowFrame::CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
       break;
     }
     case eStyleUnit_Auto:
-    default: 
+    default:
       break;
   }
 
@@ -1370,7 +1379,8 @@ void nsTableRowFrame::InitHasCellWithStyleHeight(nsTableFrame* aTableFrame)
     const nsStyleCoord &cellHeight = cellFrame->GetStylePosition()->mHeight;
     if (aTableFrame->GetEffectiveRowSpan(*cellFrame) == 1 &&
         cellHeight.GetUnit() != eStyleUnit_Auto &&
-        !cellHeight.IsCalcUnit() ) {
+         
+        (!cellHeight.IsCalcUnit() || !cellHeight.HasPercent())) {
       AddStateBits(NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT);
       return;
     }
