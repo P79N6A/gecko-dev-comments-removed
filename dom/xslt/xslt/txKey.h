@@ -120,7 +120,7 @@ public:
 
 
 
-    bool addKey(nsAutoPtr<txPattern> aMatch, nsAutoPtr<Expr> aUse);
+    bool addKey(nsAutoPtr<txPattern>&& aMatch, nsAutoPtr<Expr>&& aUse);
 
     
 

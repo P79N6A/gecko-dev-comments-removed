@@ -6,6 +6,7 @@
 #ifndef NS_SMILTIMEDELEMENT_H_
 #define NS_SMILTIMEDELEMENT_H_
 
+#include "mozilla/Move.h"
 #include "nsSMILInterval.h"
 #include "nsSMILInstanceTime.h"
 #include "nsSMILMilestone.h"
@@ -524,7 +525,7 @@ protected:
   {
     if (mCurrentInterval) {
       
-      nsAutoPtr<nsSMILInterval> interval(mCurrentInterval);
+      nsAutoPtr<nsSMILInterval> interval(mozilla::Move(mCurrentInterval));
       interval->Unlink();
     }
   }

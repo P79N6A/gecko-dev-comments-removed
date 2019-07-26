@@ -8,6 +8,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/Move.h"
 
 #include "nsCSSParser.h"
 #include "nsCSSProps.h"
@@ -3575,7 +3576,7 @@ CSSParserImpl::ParsePageRule(RuleAppendFunc aAppendFunc, void* aData)
   }
 
   
-  nsRefPtr<nsCSSPageRule> rule = new nsCSSPageRule(declaration);
+  nsRefPtr<nsCSSPageRule> rule = new nsCSSPageRule(Move(declaration));
 
   (*aAppendFunc)(rule, aData);
   return true;
@@ -3599,7 +3600,7 @@ CSSParserImpl::ParseKeyframeRule()
 
   
   nsRefPtr<nsCSSKeyframeRule> rule =
-    new nsCSSKeyframeRule(selectorList, declaration);
+    new nsCSSKeyframeRule(selectorList, Move(declaration));
 
   return rule.forget();
 }
