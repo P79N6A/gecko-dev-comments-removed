@@ -760,6 +760,21 @@ function getMainChromeWindow(aWindow)
 
 
 
+function setTestPluginEnabledState(aNewEnabledState, aPluginName)
+{
+  var plugin = getTestPluginTag(aPluginName);
+  var oldEnabledState = plugin.enabledState;
+  plugin.enabledState = aNewEnabledState;
+  SimpleTest.registerCleanupFunction(function() {
+    getTestPluginTag(aPluginName).enabledState = oldEnabledState;
+  });
+}
+
+
+
+
+
+
 
 
 function getNodePrettyName(aNode)
@@ -788,4 +803,20 @@ function getObjAddress(aObj)
     return match[1];
 
   return aObj.toString();
+}
+
+function getTestPluginTag(aPluginName)
+{
+  var ph = SpecialPowers.Cc["@mozilla.org/plugin/host;1"]
+                        .getService(SpecialPowers.Ci.nsIPluginHost);
+  var tags = ph.getPluginTags();
+  var name = aPluginName || "Test Plug-in";
+  for (var tag of tags) {
+    if (tag.name == name) {
+      return tag;
+    }
+  }
+
+  ok(false, "Could not find plugin tag with plugin name '" + name + "'");
+  return null;
 }
