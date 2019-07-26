@@ -63,11 +63,11 @@ class TextureImageDeprecatedTextureHostOGL;
 
 
 
-class CompositableQuirksGonkOGL : public CompositableQuirks
+class CompositableDataGonkOGL : public CompositableBackendSpecificData
 {
 public:
-  CompositableQuirksGonkOGL();
-  virtual ~CompositableQuirksGonkOGL();
+  CompositableDataGonkOGL();
+  virtual ~CompositableDataGonkOGL();
 
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
   GLuint GetTexture();

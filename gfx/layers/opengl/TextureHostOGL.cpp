@@ -41,11 +41,11 @@ namespace layers {
 
 class Compositor; 
 
-TemporaryRef<CompositableQuirks>
-CreateCompositableQuirksOGL()
+TemporaryRef<CompositableBackendSpecificData>
+CreateCompositableBackendSpecificDataOGL()
 {
 #ifdef MOZ_WIDGET_GONK
-  return new CompositableQuirksGonkOGL();
+  return new CompositableDataGonkOGL();
 #else
   return nullptr;
 #endif
@@ -166,27 +166,27 @@ WrapMode(gl::GLContext *aGl, bool aAllowRepeat)
   return LOCAL_GL_CLAMP_TO_EDGE;
 }
 
-CompositableQuirksGonkOGL::CompositableQuirksGonkOGL()
+CompositableDataGonkOGL::CompositableDataGonkOGL()
  : mTexture(0)
 {
 }
-CompositableQuirksGonkOGL::~CompositableQuirksGonkOGL()
+CompositableDataGonkOGL::~CompositableDataGonkOGL()
 {
   DeleteTextureIfPresent();
 }
 
 gl::GLContext*
-CompositableQuirksGonkOGL::gl() const
+CompositableDataGonkOGL::gl() const
 {
   return mCompositor ? mCompositor->gl() : nullptr;
 }
 
-void CompositableQuirksGonkOGL::SetCompositor(Compositor* aCompositor)
+void CompositableDataGonkOGL::SetCompositor(Compositor* aCompositor)
 {
   mCompositor = static_cast<CompositorOGL*>(aCompositor);
 }
 
-GLuint CompositableQuirksGonkOGL::GetTexture()
+GLuint CompositableDataGonkOGL::GetTexture()
 {
   if (!mTexture) {
     gl()->MakeCurrent();
@@ -196,7 +196,7 @@ GLuint CompositableQuirksGonkOGL::GetTexture()
 }
 
 void
-CompositableQuirksGonkOGL::DeleteTextureIfPresent()
+CompositableDataGonkOGL::DeleteTextureIfPresent()
 {
   if (mTexture) {
     gl()->MakeCurrent();
@@ -507,7 +507,7 @@ TextureImageDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage
   }
 
 #ifdef MOZ_WIDGET_GONK
-  if (mQuirks) {
+  if (mCompositableBackendData) {
     
     
     
@@ -515,7 +515,7 @@ TextureImageDeprecatedTextureHostOGL::UpdateImpl(const SurfaceDescriptor& aImage
     
     
     
-    static_cast<CompositableQuirksGonkOGL*>(mQuirks.get())->DeleteTextureIfPresent();
+    static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->DeleteTextureIfPresent();
   }
 #endif
 
@@ -1268,8 +1268,8 @@ GrallocDeprecatedTextureHostOGL::GetRenderState()
 GLuint
 GrallocDeprecatedTextureHostOGL::GetGLTexture()
 {
-  mQuirks->SetCompositor(mCompositor);
-  return static_cast<CompositableQuirksGonkOGL*>(mQuirks.get())->GetTexture();
+  mCompositableBackendData->SetCompositor(mCompositor);
+  return static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->GetTexture();
 }
 
 #endif 
