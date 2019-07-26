@@ -311,6 +311,16 @@ public class BaseResource implements Resource {
     this.go(new HttpGet(this.uri));
   }
 
+  
+
+
+
+  public void getBlocking() {
+    
+    
+    this.get();
+  }
+
   @Override
   public void delete() {
     Logger.debug(LOG_TAG, "HTTP DELETE " + this.uri.toASCIIString());
