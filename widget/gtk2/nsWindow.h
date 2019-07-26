@@ -443,6 +443,14 @@ private:
     void DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent);
 
     
+    virtual LayerManager* GetLayerManager(PLayersChild* aShadowManager = nullptr,
+                                          LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
+                                          LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
+                                          bool* aAllowRetaining = nullptr) MOZ_OVERRIDE;
+
+    void CleanLayerManagerRecursive();
+
+    
 
 
 
