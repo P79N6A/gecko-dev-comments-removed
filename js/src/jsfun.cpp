@@ -953,7 +953,7 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
 
     
     if (args.length() < 2 || args[1].isNullOrUndefined())
-        return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
+        return js_fun_call(cx, (args.length() > 0) ? 1 : 0, vp);
 
     InvokeArgs args2(cx);
 
@@ -1253,7 +1253,7 @@ js::CallOrConstructBoundFunction(JSContext *cx, unsigned argc, Value *vp)
     
     unsigned argslen = fun->getBoundFunctionArgumentCount();
 
-    if (argc + argslen > ARGS_LENGTH_MAX) {
+    if (args.length() + argslen > ARGS_LENGTH_MAX) {
         js_ReportAllocationOverflow(cx);
         return false;
     }
@@ -1265,13 +1265,13 @@ js::CallOrConstructBoundFunction(JSContext *cx, unsigned argc, Value *vp)
     const Value &boundThis = fun->getBoundFunctionThis();
 
     InvokeArgs invokeArgs(cx);
-    if (!invokeArgs.init(argc + argslen))
+    if (!invokeArgs.init(args.length() + argslen))
         return false;
 
     
     for (unsigned i = 0; i < argslen; i++)
         invokeArgs[i].set(fun->getBoundFunctionArgument(i));
-    PodCopy(invokeArgs.array() + argslen, vp + 2, argc);
+    PodCopy(invokeArgs.array() + argslen, vp + 2, args.length());
 
     
     invokeArgs.setCallee(ObjectValue(*target));
