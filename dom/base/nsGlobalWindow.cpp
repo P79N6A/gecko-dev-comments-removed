@@ -7485,14 +7485,14 @@ class PostMessageEvent : public nsRunnable
     PostMessageEvent(nsGlobalWindow* aSource,
                      const nsAString& aCallerOrigin,
                      nsGlobalWindow* aTargetWindow,
-                     nsIPrincipal* aProvidedPrincipal,
+                     nsIURI* aProvidedOrigin,
                      bool aTrustedCaller)
     : mSource(aSource),
       mCallerOrigin(aCallerOrigin),
       mMessage(nullptr),
       mMessageLen(0),
       mTargetWindow(aTargetWindow),
-      mProvidedPrincipal(aProvidedPrincipal),
+      mProvidedOrigin(aProvidedOrigin),
       mTrustedCaller(aTrustedCaller)
     {
       MOZ_COUNT_CTOR(PostMessageEvent);
@@ -7522,7 +7522,7 @@ class PostMessageEvent : public nsRunnable
     uint64_t* mMessage;
     size_t mMessageLen;
     nsRefPtr<nsGlobalWindow> mTargetWindow;
-    nsCOMPtr<nsIPrincipal> mProvidedPrincipal;
+    nsCOMPtr<nsIURI> mProvidedOrigin;
     bool mTrustedCaller;
     nsTArray<nsCOMPtr<nsISupports> > mSupportsArray;
 };
@@ -7691,22 +7691,32 @@ PostMessageEvent::Run()
   
   
   
-  if (mProvidedPrincipal) {
+  if (mProvidedOrigin) {
     
     
     
     nsIPrincipal* targetPrin = targetWindow->GetPrincipal();
-    if (NS_WARN_IF(!targetPrin))
+    if (!targetPrin)
       return NS_OK;
+    nsCOMPtr<nsIURI> targetURI;
+    if (NS_FAILED(targetPrin->GetURI(getter_AddRefs(targetURI))))
+      return NS_OK;
+    if (!targetURI) {
+      targetURI = targetWindow->mDoc->GetDocumentURI();
+      if (!targetURI)
+        return NS_OK;
+    }
 
     
     
     
     
     
-    if (!targetPrin->EqualsIgnoringDomain(mProvidedPrincipal)) {
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    nsresult rv =
+      ssm->CheckSameOriginURI(mProvidedOrigin, targetURI, true);
+    if (NS_FAILED(rv))
       return NS_OK;
-    }
   }
 
   
@@ -7839,47 +7849,15 @@ nsGlobalWindow::PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   }
 
   
-  nsCOMPtr<nsIPrincipal> providedPrincipal;
-
-  if (aTargetOrigin.EqualsASCII("/")) {
-    providedPrincipal = BrokenGetEntryGlobal()->PrincipalOrNull();
-    if (NS_WARN_IF(!providedPrincipal))
-      return;
-  }
-
   
-  else if (!aTargetOrigin.EqualsASCII("*")) {
-    nsCOMPtr<nsIURI> originURI;
-    if (NS_FAILED(NS_NewURI(getter_AddRefs(originURI), aTargetOrigin))) {
+  nsCOMPtr<nsIURI> providedOrigin;
+  if (!aTargetOrigin.EqualsASCII("*")) {
+    if (NS_FAILED(NS_NewURI(getter_AddRefs(providedOrigin), aTargetOrigin))) {
       aError.Throw(NS_ERROR_DOM_SYNTAX_ERR);
       return;
     }
-
-    if (NS_FAILED(originURI->SetUserPass(EmptyCString())) ||
-        NS_FAILED(originURI->SetPath(EmptyCString()))) {
-      return;
-    }
-
-    nsCOMPtr<nsIScriptSecurityManager> ssm =
-      nsContentUtils::GetSecurityManager();
-    MOZ_ASSERT(ssm);
-
-    nsCOMPtr<nsIPrincipal> principal = nsContentUtils::GetSubjectPrincipal();
-    MOZ_ASSERT(principal);
-
-    uint32_t appId;
-    if (NS_WARN_IF(NS_FAILED(principal->GetAppId(&appId))))
-      return;
-
-    bool isInBrowser;
-    if (NS_WARN_IF(NS_FAILED(principal->GetIsInBrowserElement(&isInBrowser))))
-      return;
-
-    
-    
-    nsresult rv = ssm->GetAppCodebasePrincipal(originURI, appId, isInBrowser,
-                                             getter_AddRefs(providedPrincipal));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_FAILED(providedOrigin->SetUserPass(EmptyCString())) ||
+        NS_FAILED(providedOrigin->SetPath(EmptyCString()))) {
       return;
     }
   }
@@ -7892,7 +7870,7 @@ nsGlobalWindow::PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
                          : callerInnerWin->GetOuterWindowInternal(),
                          origin,
                          this,
-                         providedPrincipal,
+                         providedOrigin,
                          nsContentUtils::IsCallerChrome());
 
   

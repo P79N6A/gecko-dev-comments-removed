@@ -15,7 +15,6 @@
 #include "nsIScriptContext.h"
 #include "nsContentUtils.h"
 #include "nsTArray.h"
-#include "nsJSUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -91,25 +90,6 @@ void DestroyScriptSettings()
   MOZ_ASSERT(ptr);
   sScriptSettingsTLS.set(nullptr);
   delete ptr;
-}
-
-
-
-
-nsIGlobalObject*
-BrokenGetEntryGlobal()
-{
-  
-  
-  
-  
-  JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
-  if (!cx) {
-    MOZ_ASSERT(ScriptSettingsStack::Ref().EntryPoint() == nullptr);
-    return nullptr;
-  }
-
-  return nsJSUtils::GetDynamicScriptGlobal(cx);
 }
 
 
