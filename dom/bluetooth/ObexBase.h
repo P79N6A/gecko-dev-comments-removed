@@ -148,8 +148,14 @@ public:
 
     for (int i = 0; i < length; ++i) {
       if (mHeaders[i]->mId == ObexHeaderId::Name) {
+        
+
+
+
+
+
+        int nameLength = mHeaders[i]->mDataLength / 2 - 1;
         uint8_t* ptr = mHeaders[i]->mData.get();
-        int nameLength = mHeaders[i]->mDataLength / 2;
 
         for (int j = 0; j < nameLength; ++j) {
           PRUnichar c = ((((uint32_t)ptr[j * 2]) << 8) | ptr[j * 2 + 1]);
