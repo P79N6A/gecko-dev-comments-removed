@@ -14,10 +14,8 @@
 #include "nsError.h"
 #include "nsHTMLEditor.h"
 #include "nsIContent.h"
-#include "nsIDOMCharacterData.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMNode.h"
-#include "nsIDOMRange.h"
 #include "nsISupportsImpl.h"
 #include "nsRange.h"
 #include "nsSelectionState.h"
@@ -1405,7 +1403,7 @@ nsWSRunObject::GetCharAfter(nsINode* aNode, int32_t aOffset)
   int32_t idx = mNodeArray.IndexOf(aNode);
   if (idx == -1) {
     
-    return GetWSPointAfter(GetAsDOMNode(aNode), aOffset);
+    return GetWSPointAfter(aNode, aOffset);
   } else {
     
     return GetCharAfter(WSPoint(static_cast<Text*>(aNode), aOffset, 0));
@@ -1420,7 +1418,7 @@ nsWSRunObject::GetCharBefore(nsINode* aNode, int32_t aOffset)
   int32_t idx = mNodeArray.IndexOf(aNode);
   if (idx == -1) {
     
-    return GetWSPointBefore(GetAsDOMNode(aNode), aOffset);
+    return GetWSPointBefore(aNode, aOffset);
   } else {
     
     return GetCharBefore(WSPoint(static_cast<Text*>(aNode), aOffset, 0));
@@ -1647,39 +1645,35 @@ nsWSRunObject::GetCharAt(nsIContent *aTextNode, int32_t aOffset)
 }
 
 nsWSRunObject::WSPoint
-nsWSRunObject::GetWSPointAfter(nsIDOMNode *aNode, int32_t aOffset)
+nsWSRunObject::GetWSPointAfter(nsINode* aNode, int32_t aOffset)
 {
   
+
   
-  
-  uint32_t numNodes, firstNum, curNum, lastNum;
-  numNodes = mNodeArray.Length();
-  
+  uint32_t numNodes = mNodeArray.Length();
+
   if (!numNodes) {
     
     WSPoint outPoint;
     return outPoint;
   }
 
-  firstNum = 0;
-  curNum = numNodes/2;
-  lastNum = numNodes;
-  int16_t cmp=0;
-  nsCOMPtr<nsIDOMNode>  curNode;
+  uint32_t firstNum = 0, curNum = numNodes/2, lastNum = numNodes;
+  int16_t cmp = 0;
+  nsRefPtr<Text> curNode;
+
   
   
-  
-  
-  while (curNum != lastNum)
-  {
-    curNode = GetAsDOMNode(mNodeArray[curNum]);
+  while (curNum != lastNum) {
+    curNode = mNodeArray[curNum];
     cmp = nsContentUtils::ComparePoints(aNode, aOffset, curNode, 0);
-    if (cmp < 0)
+    if (cmp < 0) {
       lastNum = curNum;
-    else
+    } else {
       firstNum = curNum + 1;
-    curNum = (lastNum - firstNum) / 2 + firstNum;
-    NS_ASSERTION(firstNum <= curNum && curNum <= lastNum, "Bad binary search");
+    }
+    curNum = (lastNum - firstNum)/2 + firstNum;
+    MOZ_ASSERT(firstNum <= curNum && curNum <= lastNum, "Bad binary search");
   }
 
   
@@ -1700,39 +1694,35 @@ nsWSRunObject::GetWSPointAfter(nsIDOMNode *aNode, int32_t aOffset)
 }
 
 nsWSRunObject::WSPoint
-nsWSRunObject::GetWSPointBefore(nsIDOMNode *aNode, int32_t aOffset)
+nsWSRunObject::GetWSPointBefore(nsINode* aNode, int32_t aOffset)
 {
   
+
   
-  
-  uint32_t numNodes, firstNum, curNum, lastNum;
-  numNodes = mNodeArray.Length();
-  
+  uint32_t numNodes = mNodeArray.Length();
+
   if (!numNodes) {
     
     WSPoint outPoint;
     return outPoint;
   }
-  
-  firstNum = 0;
-  curNum = numNodes/2;
-  lastNum = numNodes;
-  int16_t cmp=0;
-  nsCOMPtr<nsIDOMNode>  curNode;
-  
+
+  uint32_t firstNum = 0, curNum = numNodes/2, lastNum = numNodes;
+  int16_t cmp = 0;
+  nsRefPtr<Text>  curNode;
+
   
   
-  
-  while (curNum != lastNum)
-  {
-    curNode = GetAsDOMNode(mNodeArray[curNum]);
+  while (curNum != lastNum) {
+    curNode = mNodeArray[curNum];
     cmp = nsContentUtils::ComparePoints(aNode, aOffset, curNode, 0);
-    if (cmp < 0)
+    if (cmp < 0) {
       lastNum = curNum;
-    else
+    } else {
       firstNum = curNum + 1;
-    curNum = (lastNum - firstNum) / 2 + firstNum;
-    NS_ASSERTION(firstNum <= curNum && curNum <= lastNum, "Bad binary search");
+    }
+    curNum = (lastNum - firstNum)/2 + firstNum;
+    MOZ_ASSERT(firstNum <= curNum && curNum <= lastNum, "Bad binary search");
   }
 
   
