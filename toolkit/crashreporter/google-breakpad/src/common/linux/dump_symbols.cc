@@ -697,8 +697,10 @@ bool LoadSymbols(const string& obj_file,
                                      elf_header->e_shnum);
   
   
-  if (!found_debug_info_section
-      && arm_exidx_section && arm_extab_section && symbol_data != NO_CFI) {
+  
+  
+  
+  if (arm_exidx_section && arm_extab_section && symbol_data != NO_CFI) {
     info->LoadedSection(".ARM.exidx");
     info->LoadedSection(".ARM.extab");
     bool result = LoadARMexidx<ElfClass>(elf_header,
