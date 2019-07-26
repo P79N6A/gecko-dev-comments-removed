@@ -2641,9 +2641,17 @@ class IDLEmptySequenceValue(IDLObject):
         self.value = None
 
     def coerceToType(self, type, location):
-        if (not type.isSequence() and
-            not (type.isUnion() and
-                 any(t.isSequence() for t in type.unroll().flatMemberTypes))):
+        if type.isUnion():
+            
+            
+            
+            for subtype in type.unroll().flatMemberTypes:
+                try:
+                    return self.coerceToType(subtype, location)
+                except:
+                    pass
+
+        if not type.isSequence():
             raise WebIDLError("Cannot coerce empty sequence value to type %s." % type,
                               [location])
 
