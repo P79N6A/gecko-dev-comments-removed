@@ -2007,29 +2007,11 @@ TraceXPCGlobal(JSTracer *trc, JSObject *obj);
 class XPCWrappedNative : public nsIXPConnectWrappedNative
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_NSIXPCONNECTJSOBJECTHOLDER
     NS_DECL_NSIXPCONNECTWRAPPEDNATIVE
-    
-    
-    
-    
-    
-    
-    
-    
-    class NS_CYCLE_COLLECTION_INNERCLASS
-     : public nsXPCOMCycleCollectionParticipant
-    {
-      NS_DECL_CYCLE_COLLECTION_CLASS_BODY(XPCWrappedNative, XPCWrappedNative)
-      NS_IMETHOD_(void) Root(void *p) { }
-      NS_IMETHOD_(void) Unroot(void *p) { }
-      NS_IMPL_GET_XPCOM_CYCLE_COLLECTION_PARTICIPANT(XPCWrappedNative)
-    };
-    NS_CHECK_FOR_RIGHT_PARTICIPANT_IMPL(XPCWrappedNative);
-    static NS_CYCLE_COLLECTION_INNERCLASS NS_CYCLE_COLLECTION_INNERNAME;
 
-    void DeleteCycleCollectable() {}
+    NS_DECL_CYCLE_COLLECTION_CLASS(XPCWrappedNative)
 
     nsIPrincipal* GetObjectPrincipal() const;
 
