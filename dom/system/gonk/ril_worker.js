@@ -759,6 +759,17 @@ let RIL = {
     
 
 
+    this._isCdma = false;
+
+    
+
+
+
+    this._waitingRadioTech = false;
+
+    
+
+
 
     this.iccStatus = null;
 
@@ -1454,6 +1465,10 @@ let RIL = {
 
   getVoiceRegistrationState: function getVoiceRegistrationState() {
     Buf.simpleRequest(REQUEST_VOICE_REGISTRATION_STATE);
+  },
+
+  getVoiceRadioTechnology: function getVoiceRadioTechnology() {
+    Buf.simpleRequest(REQUEST_VOICE_RADIO_TECH);
   },
 
   getDataRegistrationState: function getDataRegistrationState() {
@@ -3299,6 +3314,47 @@ let RIL = {
   
 
 
+  _processRadioTech: function _processRadioTech(radioTech) {
+    let isCdma = true;
+    this.radioTech = radioTech;
+
+    switch(radioTech) {
+    case NETWORK_CREG_TECH_GPRS:
+    case NETWORK_CREG_TECH_EDGE:
+    case NETWORK_CREG_TECH_UMTS:
+    case NETWORK_CREG_TECH_HSDPA:
+    case NETWORK_CREG_TECH_HSUPA:
+    case NETWORK_CREG_TECH_HSPA:
+    case NETWORK_CREG_TECH_LTE:
+    case NETWORK_CREG_TECH_HSPAP:
+    case NETWORK_CREG_TECH_GSM:
+      isCdma = false;
+    };
+
+    if (DEBUG) {
+      debug("Radio tech is set to: " + GECKO_RADIO_TECH[radioTech] +
+            ", it is a " + (isCdma?"cdma":"gsm") + " technology");
+    }
+
+    
+    
+    
+    if (this._waitingRadioTech || isCdma != this._isCdma) {
+      this._isCdma = isCdma;
+      this._waitingRadioTech = false;
+      if (this._isCdma) {
+        this.getDeviceIdentity();
+      } else {
+        this.getIMEI();
+        this.getIMEISV();
+      }
+       this.getICCStatus();
+    }
+  },
+
+  
+
+
   _toaFromString: function _toaFromString(number) {
     let toa = TOA_UNKNOWN;
     if (number && number.length > 0 && number[0] == '+') {
@@ -4955,6 +5011,16 @@ RIL[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_
 
   this.acknowledgeIncomingGsmSmsWithPDU(success, responsePduLen, options);
 };
+RIL[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, options) {
+  if (options.rilRequestError) {
+    if (DEBUG) {
+      debug("Error when getting voice radio tech: " + options.rilRequestError);
+    }
+    return;
+  }
+  let radioTech = Buf.readUint32List();
+  this._processRadioTech(radioTech[0]);
+};
 RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = Buf.readUint32();
 
@@ -4984,18 +5050,41 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
     return;
   }
 
-  
-  let cdma = false;
+  switch (radioState) {
+  case RADIO_STATE_SIM_READY:
+  case RADIO_STATE_SIM_NOT_READY:
+  case RADIO_STATE_SIM_LOCKED_OR_ABSENT:
+    this._isCdma = false;
+    this._waitingRadioTech = false;
+    break;
+  case RADIO_STATE_RUIM_READY:
+  case RADIO_STATE_RUIM_NOT_READY:
+  case RADIO_STATE_RUIM_LOCKED_OR_ABSENT:
+  case RADIO_STATE_NV_READY:
+  case RADIO_STATE_NV_NOT_READY:
+    this._isCdma = true;
+    this._waitingRadioTech = false;
+    break;
+  case RADIO_STATE_ON: 
+    
+    
+    
+    this._waitingRadioTech = true;
+    this.getVoiceRadioTechnology();
+    break;
+  }
 
   if ((this.radioState == GECKO_RADIOSTATE_UNAVAILABLE ||
        this.radioState == GECKO_RADIOSTATE_OFF) &&
        newState == GECKO_RADIOSTATE_READY) {
     
-    if (cdma) {
-      this.getDeviceIdentity();
-    } else {
-      this.getIMEI();
-      this.getIMEISV();
+    if (!this._waitingRadioTech) {
+      if (this._isCdma) {
+        this.getDeviceIdentity();
+      } else {
+        this.getIMEI();
+        this.getIMEISV();
+      }
     }
     this.getBasebandVersion();
     this.updateCellBroadcastConfig();
@@ -5009,8 +5098,10 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
 
   
   
+  
   if (radioState == RADIO_STATE_UNAVAILABLE ||
-      radioState == RADIO_STATE_OFF) {
+      radioState == RADIO_STATE_OFF ||
+      this._waitingRadioTech) {
     return;
   }
   this.getICCStatus();
