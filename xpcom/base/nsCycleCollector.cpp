@@ -893,6 +893,10 @@ enum ccType {
     ShutdownCC   
 };
 
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
+
 
 
 

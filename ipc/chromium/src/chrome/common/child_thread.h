@@ -61,6 +61,10 @@ class ChildThread : public IPC::Channel::Listener,
   virtual void OnMessageReceived(const IPC::Message& msg);
   virtual void OnChannelError();
 
+#ifdef MOZ_NUWA_PROCESS
+  static void MarkThread();
+#endif
+
   
   MessageLoop* owner_loop_;
 
