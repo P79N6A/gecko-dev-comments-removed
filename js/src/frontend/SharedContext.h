@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef SharedContext_h__
 #define SharedContext_h__
 

@@ -3,7 +3,6 @@
 
 
 
-
 #ifndef jshash_h___
 #define jshash_h___
 

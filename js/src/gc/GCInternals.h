@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsgc_internal_h___
 #define jsgc_internal_h___
 

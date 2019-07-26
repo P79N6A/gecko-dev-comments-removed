@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_ion_compartment_h__
 #define jsion_ion_compartment_h__
 

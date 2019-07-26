@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_assembler_h__ && defined JS_METHODJIT && defined JS_NUNBOX32
 #define jsjaeger_assembler_h__
 

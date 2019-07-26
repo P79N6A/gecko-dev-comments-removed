@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsiter_h___
 #define jsiter_h___
 

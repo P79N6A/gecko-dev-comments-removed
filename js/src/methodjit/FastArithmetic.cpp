@@ -4,7 +4,6 @@
 
 
 
-
 #include "mozilla/MathAlgorithms.h"
 
 #include "jsbool.h"

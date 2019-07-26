@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined(jsion_asmjsmodule_h__)
 #define jsion_asmjsmodule_h__
 

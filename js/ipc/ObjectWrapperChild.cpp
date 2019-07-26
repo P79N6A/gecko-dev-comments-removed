@@ -4,7 +4,6 @@
 
 
 
-
 #include "mozilla/GuardObjects.h"
 
 #include "base/basictypes.h"

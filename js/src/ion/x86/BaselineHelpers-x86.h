@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined(jsion_baseline_helpers_x86_h__) && defined(JS_ION)
 #define jsion_baseline_helpers_x86_h__
 

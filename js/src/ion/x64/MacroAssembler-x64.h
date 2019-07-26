@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_macro_assembler_x64_h__
 #define jsion_macro_assembler_x64_h__
 

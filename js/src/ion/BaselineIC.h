@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined(jsion_baseline_ic_h__) && defined(JS_ION)
 #define jsion_baseline_ic_h__
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_vm_functions_h__
 #define jsion_vm_functions_h__
 

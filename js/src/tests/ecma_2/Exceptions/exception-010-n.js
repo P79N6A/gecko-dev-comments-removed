@@ -4,7 +4,6 @@
 
 
 
-
 var SECTION = "exception-010";
 var VERSION = "ECMA_2";
 startTest();

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef RegExpObject_inl_h___
 #define RegExpObject_inl_h___
 

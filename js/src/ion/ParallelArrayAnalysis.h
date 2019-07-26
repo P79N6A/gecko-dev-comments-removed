@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_parallel_array_analysis_h__
 #define jsion_parallel_array_analysis_h__
 

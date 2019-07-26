@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_icchecker_h__ && defined JS_METHODJIT
 #define jsjaeger_icchecker_h__
 

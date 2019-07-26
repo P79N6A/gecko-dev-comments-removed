@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_lir_inl_h__
 #define jsion_lir_inl_h__
 

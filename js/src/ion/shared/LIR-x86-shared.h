@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_lir_x86_shared_h__
 #define jsion_lir_x86_shared_h__
 

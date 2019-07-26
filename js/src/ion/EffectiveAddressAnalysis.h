@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_effective_address_analysis_h__
 #define jsion_effective_address_analysis_h__
 

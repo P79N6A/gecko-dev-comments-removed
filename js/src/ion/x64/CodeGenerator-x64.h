@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_codegen_x64_h__
 #define jsion_codegen_x64_h__
 

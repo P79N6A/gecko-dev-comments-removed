@@ -4,7 +4,6 @@
 
 
 
-
 function f()
 {
   return "outer";

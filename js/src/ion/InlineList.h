@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef js_inline_list_h__
 #define js_inline_list_h__
 

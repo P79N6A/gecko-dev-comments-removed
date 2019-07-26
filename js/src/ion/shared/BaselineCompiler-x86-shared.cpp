@@ -4,7 +4,6 @@
 
 
 
-
 #include "BaselineCompiler-x86-shared.h"
 
 using namespace js;
