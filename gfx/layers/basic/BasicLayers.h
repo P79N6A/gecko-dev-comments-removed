@@ -165,8 +165,7 @@ protected:
   void PaintLayer(gfxContext* aTarget,
                   Layer* aLayer,
                   DrawThebesLayerCallback aCallback,
-                  void* aCallbackData,
-                  ReadbackProcessor* aReadback);
+                  void* aCallbackData);
 
   
   void ClearLayer(Layer* aLayer);
