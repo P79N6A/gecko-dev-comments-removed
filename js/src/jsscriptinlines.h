@@ -60,8 +60,13 @@ JSScript::functionDelazifying() const
 {
     js::AutoThreadSafeAccess ts(this);
     JS_ASSERT(js::CurrentThreadCanWriteCompilationData());
-    if (function_ && function_->isInterpretedLazy())
+    if (function_ && function_->isInterpretedLazy()) {
         function_->setUnlazifiedScript(const_cast<JSScript *>(this));
+        
+        
+        if (lazyScript && !lazyScript->maybeScript())
+            lazyScript->initScript(const_cast<JSScript *>(this));
+    }
     return function_;
 }
 
