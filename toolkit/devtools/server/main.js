@@ -697,7 +697,7 @@ var DebuggerServer = {
   _onConnection: function DS_onConnection(aTransport, aForwardingPrefix, aNoRootActor = false) {
     let connID;
     if (aForwardingPrefix) {
-      connID = aForwardingPrefix + ":";
+      connID = aForwardingPrefix + "/";
     } else {
       connID = "conn" + this._nextConnID++ + '.';
     }
@@ -708,7 +708,7 @@ var DebuggerServer = {
     if (!aNoRootActor) {
       conn.rootActor = this.createRootActor(conn);
       if (aForwardingPrefix)
-        conn.rootActor.actorID = aForwardingPrefix + ":root";
+        conn.rootActor.actorID = aForwardingPrefix + "/root";
       else
         conn.rootActor.actorID = "root";
       conn.addActor(conn.rootActor);
@@ -1057,9 +1057,9 @@ DebuggerServerConnection.prototype = {
     
     
     if (this._forwardingPrefixes.size > 0) {
-      let colon = aPacket.to.indexOf(':');
-      if (colon >= 0) {
-        let forwardTo = this._forwardingPrefixes.get(aPacket.to.substring(0, colon));
+      let separator = aPacket.to.indexOf('/');
+      if (separator >= 0) {
+        let forwardTo = this._forwardingPrefixes.get(aPacket.to.substring(0, separator));
         if (forwardTo) {
           forwardTo.send(aPacket);
           return;

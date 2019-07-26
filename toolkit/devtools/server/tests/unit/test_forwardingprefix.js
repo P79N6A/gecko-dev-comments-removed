@@ -72,8 +72,8 @@ function tryActors(aReachables, aCompleted) {
 
   let outerActor;
   for (outerActor of [ 'root',
-                       'prefix1:root', 'prefix1:actor',
-                       'prefix2:root', 'prefix2:actor' ]) {
+                       'prefix1/root', 'prefix1/actor',
+                       'prefix2/root', 'prefix2/actor' ]) {
     
 
 
@@ -130,13 +130,13 @@ function createSubconnection1()
   let { conn, transport } = newSubconnection('prefix1');
   gSubconnection1 = conn;
   transport.ready();
-  gClient.expectReply('prefix1:root', (aReply) => run_next_test());
+  gClient.expectReply('prefix1/root', (aReply) => run_next_test());
 }
 
 
 function TestForwardPrefix1OnlyRoot()
 {
-  tryActors(Set(['root', 'prefix1:root']), run_next_test);
+  tryActors(Set(['root', 'prefix1/root']), run_next_test);
 }
 
 
@@ -145,12 +145,12 @@ function createSubconnection2()
   let { conn, transport } = newSubconnection('prefix2');
   gSubconnection2 = conn;
   transport.ready();
-  gClient.expectReply('prefix2:root', (aReply) => run_next_test());
+  gClient.expectReply('prefix2/root', (aReply) => run_next_test());
 }
 
 function TestForwardPrefix12OnlyRoot()
 {
-  tryActors(Set(['root', 'prefix1:root', 'prefix2:root']), run_next_test);
+  tryActors(Set(['root', 'prefix1/root', 'prefix2/root']), run_next_test);
 }
 
 
@@ -178,17 +178,17 @@ EchoActor.prototype.requestTypes = {
 function TestForwardPrefix12WithActor1()
 {
   let actor = new EchoActor(gSubconnection1)
-  actor.actorID = 'prefix1:actor';
+  actor.actorID = 'prefix1/actor';
   gSubconnection1.addActor(actor);
 
-  tryActors(Set(['root', 'prefix1:root', 'prefix1:actor', 'prefix2:root']), run_next_test);
+  tryActors(Set(['root', 'prefix1/root', 'prefix1/actor', 'prefix2/root']), run_next_test);
 }
 
 function TestForwardPrefix12WithActor12()
 {
   let actor = new EchoActor(gSubconnection2)
-  actor.actorID = 'prefix2:actor';
+  actor.actorID = 'prefix2/actor';
   gSubconnection2.addActor(actor);
 
-  tryActors(Set(['root', 'prefix1:root', 'prefix1:actor', 'prefix2:root', 'prefix2:actor']), run_next_test);
+  tryActors(Set(['root', 'prefix1/root', 'prefix1/actor', 'prefix2/root', 'prefix2/actor']), run_next_test);
 }
