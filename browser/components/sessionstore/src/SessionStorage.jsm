@@ -85,7 +85,12 @@ let DomStorage = {
     for (let [host, data] in Iterator(aStorageData)) {
       let uri = Services.io.newURI(host, null, null);
       let principal = Services.scriptSecurityManager.getDocShellCodebasePrincipal(uri, aDocShell);
-      let storage = aDocShell.getSessionStorageForPrincipal(principal, "", true);
+      let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+
+      
+			
+			
+      let storage = storageManager.createStorage(principal, "", aDocShell.usePrivateBrowsing);
 
       for (let [key, value] in Iterator(data)) {
         try {
@@ -110,12 +115,8 @@ let DomStorage = {
     let storage;
 
     try {
-      
-      
-      
-      
-      
-      storage = aDocShell.getSessionStorageForPrincipal(aPrincipal, "", false);
+      let storageManager = aDocShell.QueryInterface(Components.interfaces.nsIDOMStorageManager);
+      storage = storageManager.getStorage(aPrincipal);
     } catch (e) {
       
     }
