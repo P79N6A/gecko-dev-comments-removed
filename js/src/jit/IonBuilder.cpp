@@ -1388,49 +1388,7 @@ IonBuilder::inspectOpcode(JSOp op)
         return true;
 
       case JSOP_SETARG:
-        
-        
-        
-        
-        
-        if (info().argsObjAliasesFormals()) {
-            current->add(MSetArgumentsObjectArg::New(current->argumentsObject(), GET_SLOTNO(pc),
-                                                     current->peek(-1)));
-        } else {
-            
-            
-            if (info().hasArguments())
-                return abort("NYI: arguments & setarg.");
-
-            int32_t arg = GET_SLOTNO(pc);
-
-            
-            
-            
-            
-            MDefinition *value = current->peek(-1);
-            if (graph().numBlocks() == 1 &&
-                (value->isBitOr() || value->isBitAnd() || value->isMul() ))
-             {
-                 for (size_t i = 0; i < value->numOperands(); i++) {
-                    MDefinition *op = value->getOperand(i);
-                    if (op->isParameter() &&
-                        op->toParameter()->index() == arg &&
-                        op->resultTypeSet() &&
-                        op->resultTypeSet()->empty())
-                    {
-                        types::TypeSet *argTypes = types::TypeScript::ArgTypes(script(), arg);
-
-                        
-                        argTypes->addType(cx, types::Type::UnknownType());
-                        op->resultTypeSet()->addType(cx, types::Type::UnknownType());
-                    }
-                }
-            }
-
-            current->setArg(arg);
-        }
-        return true;
+        return jsop_setarg(GET_SLOTNO(pc));
 
       case JSOP_GETLOCAL:
       case JSOP_CALLLOCAL:
@@ -3379,7 +3337,7 @@ IonBuilder::jsop_try()
         return abort("Has try-finally");
 
     
-    if (callerBuilder_)
+    if (isInlineBuilder())
         return abort("try-catch within inline frame");
 
     graph().setHasTryBlock();
@@ -3486,7 +3444,7 @@ IonBuilder::ControlStatus
 IonBuilder::processThrow()
 {
     
-    if (callerBuilder_)
+    if (isInlineBuilder())
         return ControlStatus_Abort;
 
     MDefinition *def = current->pop();
@@ -6761,7 +6719,7 @@ IonBuilder::getElemTryArguments(bool *emitted, MDefinition *obj, MDefinition *in
     index = addBoundsCheck(index, length);
 
     
-    MGetArgument *load = MGetArgument::New(index);
+    MGetFrameArgument *load = MGetFrameArgument::New(index, analysis_.hasSetArg());
     current->add(load);
     current->push(load);
 
@@ -9080,6 +9038,67 @@ IonBuilder::jsop_lambda(JSFunction *fun)
     current->push(ins);
 
     return resumeAfter(ins);
+}
+
+bool
+IonBuilder::jsop_setarg(uint32_t arg)
+{
+    
+    
+    
+    
+    
+    JS_ASSERT(analysis_.hasSetArg());
+    MDefinition *val = current->peek(-1);
+
+    
+    
+    if (info().argsObjAliasesFormals()) {
+        current->add(MSetArgumentsObjectArg::New(current->argumentsObject(), GET_SLOTNO(pc), val));
+        return true;
+    }
+
+    
+    
+    
+    
+    
+    if (info().argumentsAliasesFormals()) {
+        
+        if (isInlineBuilder())
+            return abort("JSOP_SETARG with magic arguments in inlined function.");
+
+        MSetFrameArgument *store = MSetFrameArgument::New(arg, val);
+        current->add(store);
+        current->setArg(arg);
+        return true;
+    }
+
+    
+    
+    
+    
+    if (graph().numBlocks() == 1 &&
+        (val->isBitOr() || val->isBitAnd() || val->isMul() ))
+     {
+         for (size_t i = 0; i < val->numOperands(); i++) {
+            MDefinition *op = val->getOperand(i);
+            if (op->isParameter() &&
+                op->toParameter()->index() == (int32_t)arg &&
+                op->resultTypeSet() &&
+                op->resultTypeSet()->empty())
+            {
+                types::TypeSet *argTypes = types::TypeScript::ArgTypes(script(), arg);
+
+                
+                argTypes->addType(cx, types::Type::UnknownType());
+                op->resultTypeSet()->addType(cx, types::Type::UnknownType());
+            }
+        }
+    }
+
+    current->setArg(arg);
+    return true;
 }
 
 bool
