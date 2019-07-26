@@ -24,6 +24,8 @@
 #include "nsTArray.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "nsMathUtils.h"
+#include "nsStringBuffer.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 class nsIPrincipal;
 class nsIXPConnectWrappedJS;
@@ -206,6 +208,54 @@ xpc_ActivateDebugMode();
 
 class nsIMemoryMultiReporterCallback;
 
+
+class XPCStringConvert
+{
+public:
+
+    
+    
+    
+    static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable,
+                                 nsStringBuffer** sharedBuffer);
+
+    
+    static MOZ_ALWAYS_INLINE bool
+    StringBufferToJSVal(JSContext* cx, nsStringBuffer* buf, uint32_t length,
+                        JS::Value* rval, bool* sharedBuffer)
+    {
+        if (buf == sCachedBuffer &&
+            js::GetGCThingCompartment(sCachedString) == js::GetContextCompartment(cx)) {
+            *rval = JS::StringValue(sCachedString);
+            *sharedBuffer = false;
+            return true;
+        }
+
+        JSString *str = JS_NewExternalString(cx,
+                                             static_cast<jschar*>(buf->Data()),
+                                             length, &sDOMStringFinalizer);
+        if (!str) {
+            return false;
+        }
+        *rval = JS::StringValue(str);
+        sCachedString = str;
+        sCachedBuffer = buf;
+        *sharedBuffer = true;
+        return true;
+    }
+
+    static void ClearCache();
+
+private:
+    static nsStringBuffer* sCachedBuffer;
+    static JSString* sCachedString;
+    static const JSStringFinalizer sDOMStringFinalizer;
+
+    static void FinalizeDOMString(const JSStringFinalizer *fin, jschar *chars);
+
+    XPCStringConvert();         
+};
+
 namespace xpc {
 
 bool DeferredRelease(nsISupports *obj);
@@ -225,6 +275,48 @@ inline bool StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval)
     
     if (str.IsVoid()) {
         *rval = JSVAL_NULL;
+        return true;
+    }
+    return NonVoidStringToJsval(cx, str, rval);
+}
+
+
+
+
+MOZ_ALWAYS_INLINE
+bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
+                          JS::Value *rval)
+{
+    if (!str.HasStringBuffer()) {
+        
+        return NonVoidStringToJsval(cx, str.AsAString(), rval);
+    }
+
+    uint32_t length = str.StringBufferLength();
+    if (length == 0) {
+        *rval = JS_GetEmptyStringValue(cx);
+        return true;
+    }
+
+    nsStringBuffer* buf = str.StringBuffer();
+    bool shared;
+    if (!XPCStringConvert::StringBufferToJSVal(cx, buf, length, rval,
+                                               &shared)) {
+        return false;
+    }
+    if (shared) {
+        
+        buf->AddRef();
+    }
+    return true;
+}
+
+MOZ_ALWAYS_INLINE
+bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
+                   JS::Value *rval)
+{
+    if (str.IsNull()) {
+        *rval = JS::NullValue();
         return true;
     }
     return NonVoidStringToJsval(cx, str, rval);
