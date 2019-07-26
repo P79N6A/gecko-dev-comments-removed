@@ -1698,19 +1698,19 @@ ion::CanEnter(JSContext *cx, RunState &state)
 
     
     
-    if (js_IonOptions.eagerCompilation && !script->hasBaselineScript()) {
+    RootedScript rscript(cx, script);
+    if (js_IonOptions.eagerCompilation && !rscript->hasBaselineScript()) {
         MethodStatus status = CanEnterBaselineMethod(cx, state);
         if (status != Method_Compiled)
             return status;
     }
 
     
-    RootedScript rscript(cx, script);
     bool constructing = state.isInvoke() && state.asInvoke()->constructing();
     MethodStatus status = Compile(cx, rscript, NULL, NULL, constructing, SequentialExecution);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
-            ForbidCompilation(cx, script);
+            ForbidCompilation(cx, rscript);
         return status;
     }
 
