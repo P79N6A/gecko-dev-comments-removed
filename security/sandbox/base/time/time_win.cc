@@ -1,0 +1,532 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "base/time/time.h"
+
+#pragma comment(lib, "winmm.lib")
+#include <windows.h>
+#include <mmsystem.h>
+
+#include "base/basictypes.h"
+#include "base/cpu.h"
+#include "base/logging.h"
+#include "base/memory/singleton.h"
+#include "base/synchronization/lock.h"
+
+using base::Time;
+using base::TimeDelta;
+using base::TimeTicks;
+
+namespace {
+
+
+
+int64 FileTimeToMicroseconds(const FILETIME& ft) {
+  
+  
+  
+  return bit_cast<int64, FILETIME>(ft) / 10;
+}
+
+void MicrosecondsToFileTime(int64 us, FILETIME* ft) {
+  DCHECK_GE(us, 0LL) << "Time is less than 0, negative values are not "
+      "representable in FILETIME";
+
+  
+  
+  *ft = bit_cast<FILETIME, int64>(us * 10);
+}
+
+int64 CurrentWallclockMicroseconds() {
+  FILETIME ft;
+  ::GetSystemTimeAsFileTime(&ft);
+  return FileTimeToMicroseconds(ft);
+}
+
+
+const int kMaxMillisecondsToAvoidDrift = 60 * Time::kMillisecondsPerSecond;
+
+int64 initial_time = 0;
+TimeTicks initial_ticks;
+
+void InitializeClock() {
+  initial_ticks = TimeTicks::Now();
+  initial_time = CurrentWallclockMicroseconds();
+}
+
+}  
+
+
+
+
+
+
+
+
+const int64 Time::kTimeTToMicrosecondsOffset = GG_INT64_C(11644473600000000);
+
+bool Time::high_resolution_timer_enabled_ = false;
+int Time::high_resolution_timer_activated_ = 0;
+
+
+Time Time::Now() {
+  if (initial_time == 0)
+    InitializeClock();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  while (true) {
+    TimeTicks ticks = TimeTicks::Now();
+
+    
+    TimeDelta elapsed = ticks - initial_ticks;
+
+    
+    if (elapsed.InMilliseconds() > kMaxMillisecondsToAvoidDrift) {
+      InitializeClock();
+      continue;
+    }
+
+    return Time(elapsed + Time(initial_time));
+  }
+}
+
+
+Time Time::NowFromSystemTime() {
+  
+  InitializeClock();
+  return Time(initial_time);
+}
+
+
+Time Time::FromFileTime(FILETIME ft) {
+  if (bit_cast<int64, FILETIME>(ft) == 0)
+    return Time();
+  if (ft.dwHighDateTime == std::numeric_limits<DWORD>::max() &&
+      ft.dwLowDateTime == std::numeric_limits<DWORD>::max())
+    return Max();
+  return Time(FileTimeToMicroseconds(ft));
+}
+
+FILETIME Time::ToFileTime() const {
+  if (is_null())
+    return bit_cast<FILETIME, int64>(0);
+  if (is_max()) {
+    FILETIME result;
+    result.dwHighDateTime = std::numeric_limits<DWORD>::max();
+    result.dwLowDateTime = std::numeric_limits<DWORD>::max();
+    return result;
+  }
+  FILETIME utc_ft;
+  MicrosecondsToFileTime(us_, &utc_ft);
+  return utc_ft;
+}
+
+
+void Time::EnableHighResolutionTimer(bool enable) {
+  
+  static PlatformThreadId my_thread = PlatformThread::CurrentId();
+  DCHECK(PlatformThread::CurrentId() == my_thread);
+
+  if (high_resolution_timer_enabled_ == enable)
+    return;
+
+  high_resolution_timer_enabled_ = enable;
+}
+
+
+bool Time::ActivateHighResolutionTimer(bool activating) {
+  if (!high_resolution_timer_enabled_ && activating)
+    return false;
+
+  
+  
+  const int kMinTimerIntervalMs = 1;
+  MMRESULT result;
+  if (activating) {
+    result = timeBeginPeriod(kMinTimerIntervalMs);
+    high_resolution_timer_activated_++;
+  } else {
+    result = timeEndPeriod(kMinTimerIntervalMs);
+    high_resolution_timer_activated_--;
+  }
+  return result == TIMERR_NOERROR;
+}
+
+
+bool Time::IsHighResolutionTimerInUse() {
+  
+  
+  
+  
+  
+  return high_resolution_timer_enabled_ &&
+      high_resolution_timer_activated_ > 0;
+}
+
+
+Time Time::FromExploded(bool is_local, const Exploded& exploded) {
+  
+  
+  SYSTEMTIME st;
+  st.wYear = exploded.year;
+  st.wMonth = exploded.month;
+  st.wDayOfWeek = exploded.day_of_week;
+  st.wDay = exploded.day_of_month;
+  st.wHour = exploded.hour;
+  st.wMinute = exploded.minute;
+  st.wSecond = exploded.second;
+  st.wMilliseconds = exploded.millisecond;
+
+  FILETIME ft;
+  bool success = true;
+  
+  if (is_local) {
+    SYSTEMTIME utc_st;
+    success = TzSpecificLocalTimeToSystemTime(NULL, &st, &utc_st) &&
+              SystemTimeToFileTime(&utc_st, &ft);
+  } else {
+    success = !!SystemTimeToFileTime(&st, &ft);
+  }
+
+  if (!success) {
+    NOTREACHED() << "Unable to convert time";
+    return Time(0);
+  }
+  return Time(FileTimeToMicroseconds(ft));
+}
+
+void Time::Explode(bool is_local, Exploded* exploded) const {
+  if (us_ < 0LL) {
+    
+    ZeroMemory(exploded, sizeof(*exploded));
+    return;
+  }
+
+  
+  FILETIME utc_ft;
+  MicrosecondsToFileTime(us_, &utc_ft);
+
+  
+  bool success = true;
+  
+  SYSTEMTIME st;
+  if (is_local) {
+    SYSTEMTIME utc_st;
+    
+    
+    
+    
+    success = FileTimeToSystemTime(&utc_ft, &utc_st) &&
+              SystemTimeToTzSpecificLocalTime(NULL, &utc_st, &st);
+  } else {
+    success = !!FileTimeToSystemTime(&utc_ft, &st);
+  }
+
+  if (!success) {
+    NOTREACHED() << "Unable to convert time, don't know why";
+    ZeroMemory(exploded, sizeof(*exploded));
+    return;
+  }
+
+  exploded->year = st.wYear;
+  exploded->month = st.wMonth;
+  exploded->day_of_week = st.wDayOfWeek;
+  exploded->day_of_month = st.wDay;
+  exploded->hour = st.wHour;
+  exploded->minute = st.wMinute;
+  exploded->second = st.wSecond;
+  exploded->millisecond = st.wMilliseconds;
+}
+
+
+namespace {
+
+
+
+
+DWORD timeGetTimeWrapper() {
+  return timeGetTime();
+}
+
+DWORD (*tick_function)(void) = &timeGetTimeWrapper;
+
+
+int64 rollover_ms = 0;
+
+
+DWORD last_seen_now = 0;
+
+
+
+
+
+
+
+base::Lock rollover_lock;
+
+
+
+
+
+
+TimeDelta RolloverProtectedNow() {
+  base::AutoLock locked(rollover_lock);
+  
+  
+  DWORD now = tick_function();
+  if (now < last_seen_now)
+    rollover_ms += 0x100000000I64;  
+  last_seen_now = now;
+  return TimeDelta::FromMilliseconds(now + rollover_ms);
+}
+
+bool IsBuggyAthlon(const base::CPU& cpu) {
+  
+  
+  return cpu.vendor_name() == "AuthenticAMD" && cpu.family() == 15;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class HighResNowSingleton {
+ public:
+  static HighResNowSingleton* GetInstance() {
+    return Singleton<HighResNowSingleton>::get();
+  }
+
+  bool IsUsingHighResClock() {
+    return ticks_per_second_ != 0.0;
+  }
+
+  void DisableHighResClock() {
+    ticks_per_second_ = 0.0;
+  }
+
+  TimeDelta Now() {
+    if (IsUsingHighResClock())
+      return TimeDelta::FromMicroseconds(UnreliableNow());
+
+    
+    return RolloverProtectedNow();
+  }
+
+  int64 GetQPCDriftMicroseconds() {
+    if (!IsUsingHighResClock())
+      return 0;
+    return abs((UnreliableNow() - ReliableNow()) - skew_);
+  }
+
+  int64 QPCValueToMicroseconds(LONGLONG qpc_value) {
+    if (!ticks_per_second_)
+      return 0;
+
+    
+    
+    int64 whole_seconds = qpc_value / ticks_per_second_;
+    int64 leftover_ticks = qpc_value % ticks_per_second_;
+    int64 microseconds = (whole_seconds * Time::kMicrosecondsPerSecond) +
+                         ((leftover_ticks * Time::kMicrosecondsPerSecond) /
+                          ticks_per_second_);
+    return microseconds;
+  }
+
+ private:
+  HighResNowSingleton()
+    : ticks_per_second_(0),
+      skew_(0) {
+    InitializeClock();
+
+    base::CPU cpu;
+    if (IsBuggyAthlon(cpu))
+      DisableHighResClock();
+  }
+
+  
+  void InitializeClock() {
+    LARGE_INTEGER ticks_per_sec = {0};
+    if (!QueryPerformanceFrequency(&ticks_per_sec))
+      return;  
+    ticks_per_second_ = ticks_per_sec.QuadPart;
+
+    skew_ = UnreliableNow() - ReliableNow();
+  }
+
+  
+  int64 UnreliableNow() {
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    return QPCValueToMicroseconds(now.QuadPart);
+  }
+
+  
+  int64 ReliableNow() {
+    return RolloverProtectedNow().InMicroseconds();
+  }
+
+  int64 ticks_per_second_;  
+  int64 skew_;  
+
+  friend struct DefaultSingletonTraits<HighResNowSingleton>;
+};
+
+TimeDelta HighResNowWrapper() {
+  return HighResNowSingleton::GetInstance()->Now();
+}
+
+typedef TimeDelta (*NowFunction)(void);
+NowFunction now_function = RolloverProtectedNow;
+
+bool CPUReliablySupportsHighResTime() {
+  base::CPU cpu;
+  if (!cpu.has_non_stop_time_stamp_counter())
+    return false;
+
+  if (IsBuggyAthlon(cpu))
+    return false;
+
+  return true;
+}
+
+}  
+
+
+TimeTicks::TickFunctionType TimeTicks::SetMockTickFunction(
+    TickFunctionType ticker) {
+  base::AutoLock locked(rollover_lock);
+  TickFunctionType old = tick_function;
+  tick_function = ticker;
+  rollover_ms = 0;
+  last_seen_now = 0;
+  return old;
+}
+
+
+bool TimeTicks::SetNowIsHighResNowIfSupported() {
+  if (!CPUReliablySupportsHighResTime()) {
+    return false;
+  }
+
+  now_function = HighResNowWrapper;
+  return true;
+}
+
+
+TimeTicks TimeTicks::Now() {
+  return TimeTicks() + now_function();
+}
+
+
+TimeTicks TimeTicks::HighResNow() {
+  return TimeTicks() + HighResNowSingleton::GetInstance()->Now();
+}
+
+
+TimeTicks TimeTicks::ThreadNow() {
+  NOTREACHED();
+  return TimeTicks();
+}
+
+
+TimeTicks TimeTicks::NowFromSystemTraceTime() {
+  return HighResNow();
+}
+
+
+int64 TimeTicks::GetQPCDriftMicroseconds() {
+  return HighResNowSingleton::GetInstance()->GetQPCDriftMicroseconds();
+}
+
+
+TimeTicks TimeTicks::FromQPCValue(LONGLONG qpc_value) {
+  return TimeTicks(
+      HighResNowSingleton::GetInstance()->QPCValueToMicroseconds(qpc_value));
+}
+
+
+bool TimeTicks::IsHighResClockWorking() {
+  return HighResNowSingleton::GetInstance()->IsUsingHighResClock();
+}
+
+TimeTicks TimeTicks::UnprotectedNow() {
+  if (now_function == HighResNowWrapper) {
+    return Now();
+  } else {
+    return TimeTicks() + TimeDelta::FromMilliseconds(timeGetTime());
+  }
+}
+
+
+
+
+TimeDelta TimeDelta::FromQPCValue(LONGLONG qpc_value) {
+  return TimeDelta(
+      HighResNowSingleton::GetInstance()->QPCValueToMicroseconds(qpc_value));
+}
