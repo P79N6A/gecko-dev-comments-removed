@@ -219,6 +219,20 @@ public interface HealthReportStorage {
   public void deleteEverything();
   public void deleteEnvironments();
   public void deleteMeasurements();
+  
+
+
+
+
+
+
+  public int deleteDataBefore(final long time, final int curEnv);
+
+  public int getEventCount();
+  public int getEnvironmentCount();
+
+  public void pruneEvents(final int num);
+  public void pruneEnvironments(final int num);
 
   public void enqueueOperation(Runnable runnable);
 }

@@ -99,6 +99,9 @@ public class HealthReportProvider extends ContentProvider {
 
   @Override
   public void onLowMemory() {
+    
+    
+    
     super.onLowMemory();
     databases.closeDatabaseHelpers();
   }
