@@ -7,6 +7,10 @@
   overflow: auto;
 }
 
+#timings-summary-blocked {
+  display: none; 
+}
+
 
 @media (max-width: 700px) {
   #details-pane-toggle,
