@@ -27,10 +27,6 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.useragent.site_specific_overrides", true);
 
-
-
-pref("general.useragent.enable_overrides", false);
-
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
@@ -1917,6 +1913,13 @@ pref("layout.css.prefixes.animations", true);
 pref("layout.css.scope-pseudo.enabled", false);
 #else
 pref("layout.css.scope-pseudo.enabled", true);
+#endif
+
+
+#ifdef RELEASE_BUILD
+pref("layout.css.background-blend-mode.enabled", false);
+#else
+pref("layout.css.background-blend-mode.enabled", true);
 #endif
 
 
