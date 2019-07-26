@@ -388,30 +388,15 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
 
           
           
-          
           uri.host;
 
           
           
           
-          if (self) {
-            if (gETLDService.getBaseDomain(uri) !==
-                gETLDService.getBaseDomain(selfUri)) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotETLDPlus1",
-                                                [gETLDService.getBaseDomain(uri)]));
-              continue;
-            }
-            if (!uri.schemeIs(selfUri.scheme)) {
-              cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotSameSchemeAsSelf",
-                                                       [uri.asciiSpec]));
-              continue;
-            }
-            if (uri.port && uri.port !== selfUri.port) {
-              cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotSamePortAsSelf",
-                                                       [uri.asciiSpec]));
-              continue;
-            }
+          
+          if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp",
+                                                     [uri.asciiSpec]));
           }
         } catch(e) {
           switch (e.result) {
@@ -651,32 +636,15 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
 
           
           
-          
           uri.host;
 
           
           
           
-          if (self) {
-            if (gETLDService.getBaseDomain(uri) !==
-                gETLDService.getBaseDomain(selfUri)) {
-              cspWarn(aCSPR, 
-                      CSPLocalizer.getFormatStr("reportURInotETLDPlus1",
-                                                [gETLDService.getBaseDomain(uri)]));
-              continue;
-            }
-            if (!uri.schemeIs(selfUri.scheme)) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotSameSchemeAsSelf",
-                                                [uri.asciiSpec]));
-              continue;
-            }
-            if (uri.port && uri.port !== selfUri.port) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotSamePortAsSelf",
-                                                [uri.asciiSpec]));
-              continue;
-            }
+          
+          if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp",
+                                                     [uri.asciiSpec]));
           }
         } catch(e) {
           switch (e.result) {
