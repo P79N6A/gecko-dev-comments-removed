@@ -1665,10 +1665,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     uint32_t descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_OptimizedJS);
     masm.Push(Imm32(call->numActualArgs()));
-    masm.tagCallee(calleereg, executionMode);
-    masm.Push(calleereg);
-    
-    masm.clearCalleeTag(calleereg, executionMode);
+    masm.PushCalleeToken(calleereg, executionMode);
     masm.Push(Imm32(descriptor));
 
     
@@ -1806,11 +1803,8 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
 
     
     uint32_t descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_OptimizedJS);
-    masm.tagCallee(calleereg, executionMode);
     masm.Push(Imm32(call->numActualArgs()));
-    masm.Push(calleereg);
-    
-    masm.clearCalleeTag(calleereg, executionMode);
+    masm.PushCalleeToken(calleereg, executionMode);
     masm.Push(Imm32(descriptor));
 
     

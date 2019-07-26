@@ -1081,6 +1081,25 @@ MacroAssembler::handleFailure(ExecutionMode executionMode)
 }
 
 void
+MacroAssembler::pushCalleeToken(Register callee, ExecutionMode mode)
+{
+    
+    
+    
+    tagCallee(callee, mode);
+    push(callee);
+    clearCalleeTag(callee, mode);
+}
+
+void
+MacroAssembler::PushCalleeToken(Register callee, ExecutionMode mode)
+{
+    tagCallee(callee, mode);
+    Push(callee);
+    clearCalleeTag(callee, mode);
+}
+
+void
 MacroAssembler::tagCallee(Register callee, ExecutionMode mode)
 {
     switch (mode) {
