@@ -874,6 +874,8 @@ this.UintVar = {
 
 
 
+
+
 this.ConstrainedEncoding = {
   
 
@@ -882,7 +884,7 @@ this.ConstrainedEncoding = {
 
 
   decode: function decode(data) {
-    return decodeAlternatives(data, null, NullTerminatedTexts, ShortInteger);
+    return decodeAlternatives(data, null, TextString, ShortInteger);
   },
 
   
@@ -895,7 +897,7 @@ this.ConstrainedEncoding = {
     if (typeof value == "number") {
       ShortInteger.encode(data, value);
     } else {
-      NullTerminatedTexts.encode(data, value);
+      TextString.encode(data, value);
     }
   },
 };
@@ -1277,9 +1279,9 @@ this.TypeValue = {
   encode: function encode(data, type) {
     let entry = WSP_WELL_KNOWN_CONTENT_TYPES[type.toLowerCase()];
     if (entry) {
-      ShortInteger.encode(data, entry.number);
+      ConstrainedEncoding.encode(data, entry.number);
     } else {
-      NullTerminatedTexts.encode(data, type);
+      ConstrainedEncoding.encode(data, type);
     }
   },
 };
