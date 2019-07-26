@@ -6866,11 +6866,10 @@ class CGPrototypeTraitsClass(CGClass):
         templateSpecialization = ['prototypes::id::' + descriptor.name]
         enums = [ClassEnum('', ['Depth'],
                            [descriptor.interface.inheritanceDepth()])]
-        typedefs = [ClassTypedef('NativeType', descriptor.nativeType)]
         CGClass.__init__(self, 'PrototypeTraits', indent=indent,
                          templateArgs=templateArgs,
                          templateSpecialization=templateSpecialization,
-                         enums=enums, typedefs=typedefs, isStruct=True)
+                         enums=enums, isStruct=True)
     def deps(self):
         return set()
 
@@ -8632,20 +8631,6 @@ class CGBindingRoot(CGThing):
         callForEachType(descriptors + callbackDescriptors, dictionaries,
                         mainCallbacks, checkForXPConnectImpls)
 
-        descriptorsWithPrototype = filter(lambda d: d.interface.hasInterfacePrototypeObject(),
-                                          descriptors)
-        traitsClasses = [CGPrototypeTraitsClass(d) for d in descriptorsWithPrototype]
-
-        
-        if len(traitsClasses) > 0:
-            traitsClasses = CGNamespace.build(['mozilla', 'dom'],
-                                     CGWrapper(CGList(traitsClasses),
-                                               declarePre='\n'),
-                                               declareOnly=True)
-            traitsClasses = CGWrapper(traitsClasses, declarePost='\n')
-        else:
-            traitsClasses = None
-
         
         cgthings = [ CGEnum(e) for e in config.getEnums(webIDLFile) ]
 
@@ -8696,7 +8681,7 @@ class CGBindingRoot(CGThing):
                                              callbackDescriptors + jsImplemented),
                        CGWrapper(CGGeneric("using namespace mozilla::dom;"),
                                  defineOnly=True),
-                       traitsClasses, curr],
+                       curr],
                       "\n")
 
         
@@ -10215,7 +10200,8 @@ class GlobalGenRoots():
     def PrototypeList(config):
 
         
-        protos = [d.name for d in config.getDescriptors(hasInterfacePrototypeObject=True)]
+        descriptorsWithPrototype = config.getDescriptors(hasInterfacePrototypeObject=True)
+        protos = [d.name for d in descriptorsWithPrototype]
         idEnum = CGNamespacedEnum('id', 'ID', ['_ID_Start'] + protos,
                                   [0, '_ID_Start'])
         idEnum = CGList([idEnum])
@@ -10258,13 +10244,14 @@ class GlobalGenRoots():
 
         curr.append(idEnum)
 
-        traitsDecl = CGGeneric(declare="""
+        traitsDecls = [CGGeneric(declare="""
 template <prototypes::ID PrototypeID>
 struct PrototypeTraits;
-""")
+""")]
+        traitsDecls.extend(CGPrototypeTraitsClass(d) for d in descriptorsWithPrototype)
 
         traitsDecl = CGNamespace.build(['mozilla', 'dom'],
-                                        CGWrapper(traitsDecl, post='\n'))
+                                        CGList(traitsDecls, "\n"))
 
         curr.append(traitsDecl)
 
