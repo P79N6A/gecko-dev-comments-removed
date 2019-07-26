@@ -231,8 +231,6 @@ const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
 uint32_t        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
 
-MSG             nsWindow::sRedirectedKeyDown;
-
 
 
 
@@ -361,7 +359,7 @@ nsWindow::nsWindow() : nsWindowBase()
     nsUXThemeData::InitTitlebarInfo();
     
     nsUXThemeData::UpdateNativeThemeInfo();
-    ForgetRedirectedKeyDownMessage();
+    RedirectedKeyDownMessageManager::Forget();
   } 
 
   mIdleService = nullptr;
@@ -5104,7 +5102,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       
       if (!WinUtils::IsOurProcessWindow(HWND(wParam))) {
-        ForgetRedirectedKeyDownMessage();
+        RedirectedKeyDownMessageManager::Forget();
       }
       if (sJustGotActivate) {
         DispatchFocusToTopLevelWindow(true);
@@ -5562,25 +5560,6 @@ void nsWindow::PostSleepWakeNotification(const bool aIsSleepMode)
                      NS_WIDGET_WAKE_OBSERVER_TOPIC, nullptr);
 }
 
-
-
-
-
-
-
-
-
-
-void nsWindow::RemoveNextCharMessage(HWND aWnd)
-{
-  MSG msg;
-  if (WinUtils::PeekMessage(&msg, aWnd, WM_KEYFIRST, WM_KEYLAST,
-                            PM_NOREMOVE | PM_NOYIELD) &&
-      (msg.message == WM_CHAR || msg.message == WM_SYSCHAR)) {
-    WinUtils::GetMessage(&msg, aWnd, msg.message, msg.message);
-  }
-}
-
 LRESULT nsWindow::ProcessCharMessage(const MSG &aMsg, bool *aEventDispatched)
 {
   if (IMEHandler::IsComposingOn(this)) {
@@ -5613,7 +5592,7 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
   
   
   
-  AutoForgetRedirectedKeyDownMessage forgetRedirectedMessage(this, aMsg);
+  RedirectedKeyDownMessageManager::AutoFlusher redirectedMsgFlusher(this, aMsg);
 
   ModifierKeyState modKeyState;
 
@@ -5631,7 +5610,7 @@ LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
     result = OnKeyDown(aMsg, modKeyState, aEventDispatched, nullptr);
     
     
-    forgetRedirectedMessage.mCancel = true;
+    redirectedMsgFlusher.Cancel();
   }
 
   if (aMsg.wParam == VK_MENU ||
@@ -6336,15 +6315,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
 }
 
 
-bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
-{
-  return (aMsg.message == WM_KEYDOWN || aMsg.message == WM_SYSKEYDOWN) &&
-         (sRedirectedKeyDown.message == aMsg.message &&
-          WinUtils::GetScanCode(sRedirectedKeyDown.lParam) ==
-            WinUtils::GetScanCode(aMsg.lParam));
-}
-
-
 
 
 
@@ -6361,9 +6331,9 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   NativeKey nativeKey(this, aMsg, aModKeyState, aFakeCharMessage);
   uint32_t DOMKeyCode = nativeKey.GetDOMKeyCode();
 
-  static bool sRedirectedKeyDownEventPreventedDefault = false;
   bool noDefault;
-  if (aFakeCharMessage || !IsRedirectedKeyDownMessage(aMsg)) {
+  if (aFakeCharMessage ||
+      !RedirectedKeyDownMessageManager::IsRedirectedMessage(aMsg)) {
     bool isIMEEnabled = IMEHandler::IsIMEEnabled(mInputContext);
     bool eventDispatched;
     noDefault = nativeKey.DispatchKeyDownEvent(&eventDispatched);
@@ -6373,7 +6343,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     if (!eventDispatched) {
       
       
-      ForgetRedirectedKeyDownMessage();
+      RedirectedKeyDownMessageManager::Forget();
       return 0;
     }
 
@@ -6388,7 +6358,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     HWND focusedWnd = ::GetFocus();
     if (!noDefault && !aFakeCharMessage && focusedWnd && !PluginHasFocus() &&
         !isIMEEnabled && IMEHandler::IsIMEEnabled(mInputContext)) {
-      RemoveNextCharMessage(focusedWnd);
+      RedirectedKeyDownMessageManager::RemoveNextCharMessage(focusedWnd);
 
       INPUT keyinput;
       keyinput.type = INPUT_KEYBOARD;
@@ -6401,8 +6371,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
       keyinput.ki.time = 0;
       keyinput.ki.dwExtraInfo = 0;
 
-      sRedirectedKeyDownEventPreventedDefault = noDefault;
-      sRedirectedKeyDown = aMsg;
+      RedirectedKeyDownMessageManager::WillRedirect(aMsg, noDefault);
 
       ::SendInput(1, &keyinput, sizeof(keyinput));
 
@@ -6418,7 +6387,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
       return true;
     }
   } else {
-    noDefault = sRedirectedKeyDownEventPreventedDefault;
+    noDefault = RedirectedKeyDownMessageManager::DefaultPrevented();
     
     
     if (aEventDispatched) {
@@ -6426,7 +6395,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     }
   }
 
-  ForgetRedirectedKeyDownMessage();
+  RedirectedKeyDownMessageManager::Forget();
 
   
   if (aMsg.wParam == VK_PROCESSKEY) {

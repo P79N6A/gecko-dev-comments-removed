@@ -584,6 +584,84 @@ public:
   WORD ComputeScanCodeForVirtualKeyCode(uint8_t aVirtualKeyCode) const;
 };
 
+class RedirectedKeyDownMessageManager
+{
+public:
+  
+
+
+
+
+
+
+
+
+
+  class MOZ_STACK_CLASS AutoFlusher MOZ_FINAL
+  {
+  public:
+    AutoFlusher(nsWindowBase* aWidget, const MSG &aMsg) :
+      mCancel(!RedirectedKeyDownMessageManager::IsRedirectedMessage(aMsg)),
+      mWidget(aWidget), mMsg(aMsg)
+    {
+    }
+
+    ~AutoFlusher()
+    {
+      if (mCancel) {
+        return;
+      }
+      
+      if (!mWidget->Destroyed()) {
+        RedirectedKeyDownMessageManager::RemoveNextCharMessage(mMsg.hwnd);
+      }
+      
+      RedirectedKeyDownMessageManager::Forget();
+    }
+
+    void Cancel() { mCancel = true; }
+
+  private:
+    bool mCancel;
+    nsRefPtr<nsWindowBase> mWidget;
+    const MSG &mMsg;
+  };
+
+  static void WillRedirect(const MSG& aMsg, bool aDefualtPrevented)
+  {
+    sRedirectedKeyDownMsg = aMsg;
+    sDefaultPreventedOfRedirectedMsg = aDefualtPrevented;
+  }
+
+  static void Forget()
+  {
+    sRedirectedKeyDownMsg.message = WM_NULL;
+  }
+
+  static void PreventDefault() { sDefaultPreventedOfRedirectedMsg = true; }
+  static bool DefaultPrevented() { return sDefaultPreventedOfRedirectedMsg; }
+
+  static bool IsRedirectedMessage(const MSG& aMsg);
+
+  
+
+
+
+
+
+
+
+
+  static void RemoveNextCharMessage(HWND aWnd);
+
+private:
+  
+  
+  
+  static MSG sRedirectedKeyDownMsg;
+  static bool sDefaultPreventedOfRedirectedMsg;
+};
+
 } 
 } 
 

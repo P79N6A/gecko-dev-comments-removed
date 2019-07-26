@@ -325,7 +325,6 @@ protected:
   bool                    DispatchStandardEvent(uint32_t aMsg);
   bool                    DispatchCommandEvent(uint32_t aEventCommand);
   void                    RelayMouseEvent(UINT aMsg, WPARAM wParam, LPARAM lParam);
-  static void             RemoveNextCharMessage(HWND aWnd);
   virtual bool            ProcessMessage(UINT msg, WPARAM &wParam,
                                          LPARAM &lParam, LRESULT *aRetValue);
   bool                    ProcessMessageForPlugin(const MSG &aMsg,
@@ -341,11 +340,6 @@ protected:
   static bool             ConvertStatus(nsEventStatus aStatus);
   static void             PostSleepWakeNotification(const bool aIsSleepMode);
   int32_t                 ClientMarginHitTestPoint(int32_t mx, int32_t my);
-  static bool             IsRedirectedKeyDownMessage(const MSG &aMsg);
-  static void             ForgetRedirectedKeyDownMessage()
-  {
-    sRedirectedKeyDown.message = WM_NULL;
-  }
 
   
 
@@ -543,46 +537,8 @@ protected:
   
   TimeStamp mLastPaintEndTime;
 
-  
-  
-  static MSG            sRedirectedKeyDown;
-
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  struct AutoForgetRedirectedKeyDownMessage
-  {
-    AutoForgetRedirectedKeyDownMessage(nsWindow* aWindow, const MSG &aMsg) :
-      mCancel(!nsWindow::IsRedirectedKeyDownMessage(aMsg)),
-      mWindow(aWindow), mMsg(aMsg)
-    {
-    }
-
-    ~AutoForgetRedirectedKeyDownMessage()
-    {
-      if (mCancel) {
-        return;
-      }
-      
-      if (!mWindow->mOnDestroyCalled) {
-        nsWindow::RemoveNextCharMessage(mWindow->mWnd);
-      }
-      
-      nsWindow::ForgetRedirectedKeyDownMessage();
-    }
-
-    bool mCancel;
-    nsRefPtr<nsWindow> mWindow;
-    const MSG &mMsg;
-  };
 };
 
 
