@@ -297,7 +297,7 @@ protected:
   nsRefPtr<nsContentList> mForms;
   nsRefPtr<nsContentList> mFormControls;
 
-  JSObject* mAll;
+  JS::Heap<JSObject*> mAll;
 
   
   int32_t mNumForms;

@@ -116,7 +116,7 @@ protected:
 
   nsRefPtr<AudioContext> mContext;
   
-  AutoFallibleTArray<JSObject*,2> mJSChannels;
+  AutoFallibleTArray<JS::Heap<JSObject*>, 2> mJSChannels;
 
   
   

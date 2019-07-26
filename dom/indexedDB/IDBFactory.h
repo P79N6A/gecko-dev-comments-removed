@@ -183,7 +183,7 @@ private:
   
   
   nsCOMPtr<nsPIDOMWindow> mWindow;
-  JSObject* mOwningObject;
+  JS::Heap<JSObject*> mOwningObject;
 
   IndexedDBChild* mActorChild;
   IndexedDBParent* mActorParent;

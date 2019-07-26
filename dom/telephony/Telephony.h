@@ -41,7 +41,7 @@ class Telephony : public nsDOMEventTargetHelper,
 
   
   
-  JSObject* mCallsArray;
+  JS::Heap<JSObject*> mCallsArray;
 
   bool mRooted;
   bool mEnumerated;
