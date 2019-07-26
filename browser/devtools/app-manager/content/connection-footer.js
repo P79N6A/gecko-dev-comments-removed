@@ -120,6 +120,7 @@ let UI = {
   },
 
   startSimulator: function(version) {
+    this._portBeforeSimulatorStarted = this.connection.port;
     let port = ConnectionManager.getFreeTCPPort();
     let simulator = Simulator.getByVersion(version);
     if (!simulator) {
@@ -152,6 +153,12 @@ let UI = {
   _onSimulatorConnected: function() {
     this.connection.log("Connected to simulator.");
     this.connection.keepConnecting = false;
+
+    
+    
+    
+    
+    this.connection.port = this._portBeforeSimulatorStarted;
   },
 
   _onSimulatorDisconnected: function() {
