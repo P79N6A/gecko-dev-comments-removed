@@ -958,13 +958,12 @@ moz_gtk_toggle_paint(cairo_t *cr, GdkRectangle* rect,
         w = gCheckboxWidget;
     }
 
-    NS_ASSERTION(rect->width == indicator_size,
+    NS_ASSERTION(rect->width >= indicator_size &&
+                 rect->height >= indicator_size,
                  "GetMinimumWidgetSize was ignored");
+
     
-
-
-
-    x = rect->x;
+    x = rect->x + (rect->width - indicator_size) / 2;
     y = rect->y + (rect->height - indicator_size) / 2;
     width = indicator_size;
     height = indicator_size;
