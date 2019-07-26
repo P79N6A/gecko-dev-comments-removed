@@ -8,6 +8,7 @@
 #include "nsCSSProperty.h"
 
 class nsIFrame;
+class nsIContent;
 
 namespace mozilla {
 
@@ -64,6 +65,18 @@ public:
 
 
   static bool IsOffsetOrMarginStyleAnimated(nsIFrame* aFrame);
+  
+
+
+
+
+
+  static void TransferActivityToContent(nsIFrame* aFrame, nsIContent* aContent);
+  
+
+
+
+  static void TransferActivityToFrame(nsIContent* aContent, nsIFrame* aFrame);
 
   
 

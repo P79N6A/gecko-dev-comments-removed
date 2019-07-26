@@ -84,6 +84,7 @@
 #include "mozilla/css/ImageLoader.h"
 #include "mozilla/gfx/Tools.h"
 #include "nsPrintfCString.h"
+#include "ActiveLayerTracker.h"
 
 using namespace mozilla;
 using namespace mozilla::css;
@@ -648,6 +649,13 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
     }
   }
 
+  
+  
+  bool isPrimaryFrame = (mContent && mContent->GetPrimaryFrame() == this);
+  if (isPrimaryFrame) {
+    ActiveLayerTracker::TransferActivityToContent(this, mContent);
+  }
+
   shell->NotifyDestroyingFrame(this);
 
   if (mState & NS_FRAME_EXTERNAL_REFERENCE) {
@@ -663,7 +671,7 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
   }
 
   
-  if (mContent && mContent->GetPrimaryFrame() == this) {
+  if (isPrimaryFrame) {
     mContent->SetPrimaryFrame(nullptr);
   }
 
