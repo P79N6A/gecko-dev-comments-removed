@@ -616,8 +616,6 @@ pref("print.use_global_printsettings", true);
 
 pref("print.save_print_settings", true);
 
-pref("print.whileInPrintPreview", true);
-
 
 pref("print.always_cache_old_pres", false);
 
