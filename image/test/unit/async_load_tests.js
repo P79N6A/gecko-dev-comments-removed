@@ -53,13 +53,10 @@ function checkClone(other_listener, aRequest)
 
 function checkAllCallbacks(listener, aRequest)
 {
-  do_check_neq(listener.state & START_REQUEST, 0);
-  do_check_neq(listener.state & START_DECODE, 0);
-  do_check_neq(listener.state & START_CONTAINER, 0);
-  do_check_neq(listener.state & START_FRAME, 0);
-  do_check_neq(listener.state & STOP_FRAME, 0);
-  do_check_neq(listener.state & STOP_DECODE, 0);
-  do_check_neq(listener.state & STOP_REQUEST, 0);
+  do_check_neq(listener.state & SIZE_AVAILABLE, 0);
+  do_check_neq(listener.state & FRAME_COMPLETE, 0);
+  do_check_neq(listener.state & DECODE_COMPLETE, 0);
+  do_check_neq(listener.state & LOAD_COMPLETE, 0);
   do_check_eq(listener.state, ALL_BITS);
 
   do_test_finished();
@@ -118,7 +115,7 @@ function getChannelLoadImageStartCallback(streamlistener)
     
     
     
-    do_check_eq(streamlistener.requestStatus, 0);
+    do_check_eq(streamlistener.requestStatus & STOP_REQUEST, 0);
 
     checkClone(imglistener, aRequest);
   }
