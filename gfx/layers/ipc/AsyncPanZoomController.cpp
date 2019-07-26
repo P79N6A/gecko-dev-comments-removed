@@ -75,7 +75,7 @@
            fm.mScrollOffset.x, fm.mScrollOffset.y, \
            fm.mScrollableRect.x, fm.mScrollableRect.y, fm.mScrollableRect.width, fm.mScrollableRect.height, \
            fm.mDevPixelsPerCSSPixel.scale, fm.mResolution.scale, fm.mCumulativeResolution.scale, fm.mZoom.scale, \
-           fm.mUpdateScrollOffset); \
+           fm.GetScrollOffsetUpdated()); \
 
 
 namespace {
@@ -1669,7 +1669,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
     
     
-    if (aLayerMetrics.mUpdateScrollOffset) {
+    if (aLayerMetrics.GetScrollOffsetUpdated()) {
       APZC_LOG("%p updating scroll offset from (%f, %f) to (%f, %f)\n", this,
         mFrameMetrics.mScrollOffset.x, mFrameMetrics.mScrollOffset.y,
         aLayerMetrics.mScrollOffset.x, aLayerMetrics.mScrollOffset.y);
@@ -1680,12 +1680,11 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       
-      
-      
-      
-      
-      
-      needContentRepaint = true;
+      nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
+      if (controller) {
+        controller->AcknowledgeScrollUpdate(aLayerMetrics.mScrollId,
+                                            aLayerMetrics.GetScrollGeneration());
+      }
     }
   }
 
