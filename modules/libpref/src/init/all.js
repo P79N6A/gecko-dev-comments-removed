@@ -1683,7 +1683,11 @@ pref("layout.css.supports-rule.enabled", true);
 #endif
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.flexbox.enabled", false);
+#else
 pref("layout.css.flexbox.enabled", true);
+#endif
 
 
 pref("layout.css.prefixes.border-image", true);
