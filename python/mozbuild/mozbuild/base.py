@@ -506,8 +506,14 @@ class MachCommandBase(MozbuildObject):
     """
 
     def __init__(self, context):
-        MozbuildObject.__init__(self, context.topdir, context.settings,
-            context.log_manager)
+        
+        
+        dummy = MozbuildObject.from_environment(cwd=context.cwd)
+
+        topsrcdir = dummy.topsrcdir or context.topdir
+
+        MozbuildObject.__init__(self, topsrcdir, context.settings,
+            context.log_manager, topobjdir=dummy._topobjdir)
 
         self._mach_context = context
 
