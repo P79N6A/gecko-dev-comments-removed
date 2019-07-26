@@ -2807,7 +2807,19 @@ CodeGenerator::generateArgumentsChecks(bool bailout)
     
     
     
-    masm.reserveStack(frameSize());
+
+    
+    
+    
+    
+    
+    uint32_t frameSizeLeft = frameSize();
+    while (frameSizeLeft > 4096) {
+        masm.reserveStack(4096);
+        masm.store32(Imm32(0), Address(StackPointer, 0));
+        frameSizeLeft -= 4096;
+    }
+    masm.reserveStack(frameSizeLeft);
 
     
     Register temp = GeneralRegisterSet(EntryTempMask).getAny();
