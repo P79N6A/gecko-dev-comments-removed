@@ -544,23 +544,32 @@ function setSearchTimeout(msg) {
 
 function goUrl(msg) {
   let command_id = msg.json.command_id;
-  addEventListener("DOMContentLoaded", function onDOMContentLoaded(event) {
-    
-    
-    
-    if (!event.originalTarget.defaultView.frameElement || 
-        event.originalTarget.defaultView.frameElement == curWindow.frameElement) {
+  
+  
+  
+  let onDOMContentLoaded = function onDOMContentLoaded(event){
+    if (msg.json.pageTimeout != null){
+      checkTimer.cancel();
+    }
+    if (!event.originalTarget.defaultView.frameElement ||
+      event.originalTarget.defaultView.frameElement == curWindow.frameElement) {
       removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
-
       let errorRegex = /about:.+(error)|(blocked)\?/;
       if (curWindow.document.readyState == "interactive" && errorRegex.exec(curWindow.document.baseURI)) {
         sendError("Error loading page", 13, null, command_id);
         return;
       }
-
       sendOk(command_id);
     }
-  }, false);
+  };
+  function timerFunc(){
+    sendError("Error loading page", 13, null, command_id);
+    removeEventListener("DOMContentLoaded", onDOMContentLoaded, false);
+  }
+  if (msg.json.pageTimeout != null){
+    checkTimer.initWithCallback(timerFunc, msg.json.pageTimeout, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
+  addEventListener("DOMContentLoaded", onDOMContentLoaded, false);
   curWindow.location = msg.json.value;
 }
 
