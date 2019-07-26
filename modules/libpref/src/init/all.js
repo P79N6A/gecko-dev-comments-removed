@@ -1764,6 +1764,9 @@ pref("layout.css.sticky.enabled", true);
 #endif
 
 
+pref("layout.css.will-change.enabled", false);
+
+
 pref("layout.css.text-align-true-value.enabled", false);
 
 

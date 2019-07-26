@@ -1794,6 +1794,12 @@ struct nsStyleDisplay {
   uint8_t mClipFlags;           
   uint8_t mOrient;              
   uint8_t mMixBlendMode;        
+  uint8_t mWillChangeBitField;  
+                                
+                                
+                                
+  nsAutoTArray<nsString, 1> mWillChange;
+
   uint8_t mTouchAction;         
 
   
