@@ -3361,6 +3361,7 @@ js::gc::MarkingValidator::nonIncrementalMark()
 
 
 
+
     WeakMapVector weakmaps;
     ArrayBufferVector arrayBuffers;
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
@@ -3376,10 +3377,6 @@ js::gc::MarkingValidator::nonIncrementalMark()
 
 
     initialized = true;
-
-    
-
-
 
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         WeakMapBase::resetCompartmentWeakMapList(c);
@@ -3437,7 +3434,6 @@ js::gc::MarkingValidator::nonIncrementalMark()
         Swap(*entry, *bitmap);
     }
 
-    
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         WeakMapBase::resetCompartmentWeakMapList(c);
         ArrayBufferObject::resetArrayBufferList(c);

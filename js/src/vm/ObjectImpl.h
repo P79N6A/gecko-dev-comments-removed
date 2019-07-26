@@ -194,14 +194,7 @@ class ObjectElements
 
 
 
-
-
     uint32_t initializedLength;
-
-    
-
-
-
 
     
     uint32_t capacity;
@@ -278,9 +271,6 @@ ObjectValue(ObjectImpl &obj);
 static inline bool
 IsObjectValueInCompartment(js::Value v, JSCompartment *comp);
 #endif
-
-
-
 
 
 
