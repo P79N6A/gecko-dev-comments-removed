@@ -478,6 +478,7 @@ class MethodDecl(Node):
         self.never_inline = never_inline 
         self.typeop = typeop            
         self.T = T                      
+        self.only_for_definition = False
 
     def __deepcopy__(self, memo):
         return MethodDecl(
