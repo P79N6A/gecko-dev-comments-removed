@@ -26,7 +26,7 @@ class nsNodeInfo : public nsINodeInfo
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeInfo)
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_CLASS(nsNodeInfo)
 
   
   virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const;
@@ -56,6 +56,8 @@ public:
 
 
   static void ClearCache();
+
+  bool CanSkip();
 
 private:
   static nsFixedSizeAllocator* sNodeInfoPool;
