@@ -25,12 +25,6 @@
 #define js_copysign copysign
 #endif
 
-#if defined(_M_X64) && defined(_MSC_VER) && _MSC_VER <= 1500
-
-extern "C" double js_myfmod(double x, double y);
-#define fmod js_myfmod
-#endif
-
 
 static inline double
 js_fmod(double d, double d2)
