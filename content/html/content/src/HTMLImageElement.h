@@ -3,22 +3,25 @@
 
 
 
-#ifndef nsHTMLImageElement_h
-#define nsHTMLImageElement_h
+#ifndef mozilla_dom_HTMLImageElement_h
+#define mozilla_dom_HTMLImageElement_h
 
 #include "nsGenericHTMLElement.h"
 #include "nsImageLoadingContent.h"
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIJSNativeInitializer.h"
 
-class nsHTMLImageElement : public nsGenericHTMLElement,
-                           public nsImageLoadingContent,
-                           public nsIDOMHTMLImageElement,
-                           public nsIJSNativeInitializer
+namespace mozilla {
+namespace dom {
+
+class HTMLImageElement MOZ_FINAL : public nsGenericHTMLElement,
+                                   public nsImageLoadingContent,
+                                   public nsIDOMHTMLImageElement,
+                                   public nsIJSNativeInitializer
 {
 public:
-  nsHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLImageElement();
+  explicit HTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~HTMLImageElement();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -38,7 +41,7 @@ public:
   NS_DECL_NSIDOMHTMLIMAGEELEMENT
 
   
-  mozilla::CORSMode GetCORSMode();
+  CORSMode GetCORSMode();
 
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* aContext,
@@ -79,7 +82,7 @@ public:
   virtual nsEventStates IntrinsicState() const;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+  nsresult CopyInnerTo(Element* aDest);
 
   void MaybeLoadImage();
   virtual nsXPCClassInfo* GetClassInfo();
@@ -89,5 +92,8 @@ protected:
   virtual void GetItemValueText(nsAString& text);
   virtual void SetItemValueText(const nsAString& text);
 };
+
+} 
+} 
 
 #endif 

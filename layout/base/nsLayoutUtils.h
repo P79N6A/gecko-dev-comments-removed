@@ -21,7 +21,6 @@ class nsFontFaceList;
 class nsHTMLCanvasElement;
 class nsHTMLVideoElement;
 class nsIImageLoadingContent;
-class nsHTMLImageElement;
 
 #include "nsChangeHint.h"
 #include "nsStyleContext.h"
@@ -47,6 +46,7 @@ class gfxDrawable;
 namespace mozilla {
 namespace dom {
 class Element;
+class HTMLImageElement;
 } 
 } 
 
@@ -1474,7 +1474,7 @@ public:
   
   
   
-  static SurfaceFromElementResult SurfaceFromElement(nsHTMLImageElement *aElement,
+  static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::HTMLImageElement *aElement,
                                                      uint32_t aSurfaceFlags = 0);
   static SurfaceFromElementResult SurfaceFromElement(nsHTMLCanvasElement *aElement,
                                                      uint32_t aSurfaceFlags = 0);
