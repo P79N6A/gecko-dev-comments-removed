@@ -943,10 +943,7 @@ public:
 
   
   
-  
-  Animation* AddAnimation(mozilla::TimeStamp aStart, mozilla::TimeDuration aDuration,
-                          float aIterations, int aDirection,
-                          nsCSSProperty aProperty, const AnimationData& aData);
+  Animation* AddAnimation();
   
   void ClearAnimations();
   
