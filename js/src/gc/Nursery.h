@@ -104,12 +104,6 @@ class Nursery
     
     void notifyInitialSlots(gc::Cell *cell, HeapSlot *slots);
 
-    
-    void notifyNewElements(gc::Cell *cell, ObjectElements *elements);
-
-    
-    void notifyRemovedElements(gc::Cell *cell, ObjectElements *oldElements);
-
     typedef Vector<types::TypeObject *, 0, SystemAllocPolicy> TypeObjectList;
 
     
