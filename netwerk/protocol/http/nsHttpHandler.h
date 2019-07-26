@@ -58,8 +58,9 @@ public:
     virtual ~nsHttpHandler();
 
     nsresult Init();
-    nsresult AddStandardRequestHeaders(nsHttpHeaderArray *,
-                                       uint8_t capabilities);
+    nsresult AddStandardRequestHeaders(nsHttpHeaderArray *);
+    nsresult AddConnectionHeader(nsHttpHeaderArray *,
+                                 uint8_t capabilities);
     bool     IsAcceptableEncoding(const char *encoding);
 
     const nsAFlatCString &UserAgent();
@@ -78,6 +79,7 @@ public:
     uint8_t        GetQoSBits()              { return mQoSBits; }
     uint16_t       GetIdleSynTimeout()       { return mIdleSynTimeout; }
     bool           FastFallbackToIPv4()      { return mFastFallbackToIPv4; }
+    bool           ProxyPipelining()         { return mProxyPipelining; }
     uint32_t       MaxSocketCount();
     bool           EnforceAssocReq()         { return mEnforceAssocReq; }
 
@@ -233,6 +235,9 @@ public:
 
     mozilla::net::SpdyInformation *SpdyInfo() { return &mSpdyInfo; }
 
+    
+    bool Active() { return mHandlerActive; }
+
 private:
 
     
@@ -273,11 +278,10 @@ private:
     uint8_t  mHttpVersion;
     uint8_t  mProxyHttpVersion;
     uint8_t  mCapabilities;
-    uint8_t  mProxyCapabilities;
     uint8_t  mReferrerLevel;
 
     bool mFastFallbackToIPv4;
-
+    bool mProxyPipelining;
     PRIntervalTime mIdleTimeout;
     PRIntervalTime mSpdyTimeout;
 
@@ -355,6 +359,9 @@ private:
 
     
     bool           mAllowExperiments;
+
+    
+    bool           mHandlerActive;
 
     
     mozilla::net::SpdyInformation mSpdyInfo;

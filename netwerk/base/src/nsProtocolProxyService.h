@@ -13,7 +13,6 @@
 #include "nsIPrefBranch.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsIProtocolProxyFilter.h"
-#include "nsIProxyAutoConfig.h"
 #include "nsISystemProxySettings.h"
 #include "nsIProxyInfo.h"
 #include "nsIObserver.h"
@@ -271,6 +270,10 @@ protected:
 
 
     NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, int32_t defaultPort);
+
+private:
+    nsresult SetupPACThread();
+    nsresult ResetPACThread();
 
 public:
     
