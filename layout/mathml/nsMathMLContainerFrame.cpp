@@ -694,13 +694,6 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame)
         content->Tag() == nsGkAtoms::math)
       break;
 
-    
-    
-    
-    
-    
-    frame->AddStateBits(NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN);
-
     frame = parent;
   }
 
@@ -737,13 +730,6 @@ nsMathMLContainerFrame::ChildListChanged(int32_t aModType)
       GetEmbellishDataFrom(parent, embellishData);
       if (embellishData.coreFrame != mEmbellishData.coreFrame)
         break;
-
-      
-      
-      
-      
-      
-      frame->AddStateBits(NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN);
     }
   }
   return ReLayoutChildren(frame);
