@@ -21,6 +21,7 @@
 #include "nsIWindowMediator.h"
 #include "nsILocalFileWin.h"
 #include "nsILoadContext.h"
+#include "nsIXULAppInfo.h"
 
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsArrayEnumerator.h"
@@ -940,23 +941,35 @@ nsDownloadManager::Init()
                                    getter_AddRefs(mBundle));
   NS_ENSURE_SUCCESS(rv, rv);
 
-#if defined(MOZ_JSDOWNLOADS) && !defined(XP_WIN)
-
-  
-  
-  mUseJSTransfer = true;
-
-#else
-
-#if defined(MOZ_JSDOWNLOADS) && defined(XP_WIN)
-  
-  
-  
-  mUseJSTransfer = !IsRunningInWindowsMetro();
-#else
+#if !defined(MOZ_JSDOWNLOADS)
   
   
   mUseJSTransfer = Preferences::GetBool(PREF_BD_USEJSTRANSFER, false);
+#else
+
+  nsAutoCString appID;
+  nsCOMPtr<nsIXULAppInfo> info = do_GetService("@mozilla.org/xre/app-info;1");
+  if (info) {
+    rv = info->GetID(appID);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  
+  
+  if (appID.EqualsLiteral("webapprt@mozilla.org")) {
+    mUseJSTransfer = false;
+  } else {
+#if !defined(XP_WIN)
+    mUseJSTransfer = true;
+#else
+    
+    
+    
+    mUseJSTransfer = !IsRunningInWindowsMetro();
+#endif
+  }
+
 #endif
 
   if (mUseJSTransfer)
@@ -1028,8 +1041,6 @@ nsDownloadManager::Init()
 
   if (history)
     (void)history->AddObserver(this, true);
-
-#endif 
 
   return NS_OK;
 }
