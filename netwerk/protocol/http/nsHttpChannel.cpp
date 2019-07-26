@@ -4652,9 +4652,16 @@ nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIURI *uri,
 
     if (NS_FAILED(rv)) {
         Cancel(rv);
-        DoNotifyListener();
+        
+        
+        nsRefPtr<nsRunnableMethod<HttpBaseChannel> > event =
+            NS_NewRunnableMethod(this, &nsHttpChannel::DoNotifyListener);
+        rv = NS_DispatchToCurrentThread(event);
+        if (NS_FAILED(rv)) {
+            NS_WARNING("Failed To Dispatch DoNotifyListener");
+        }
     }
-    return NS_OK;
+    return rv;
 }
 
 
