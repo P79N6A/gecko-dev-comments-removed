@@ -7441,6 +7441,890 @@ let BitBufferHelper = {
   }
 };
 
+
+
+
+
+
+
+
+let CdmaPDUHelper = {
+  
+  
+  dtmfChars: ".1234567890*#...",
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  writeMessage: function cdma_writeMessage(options) {
+    if (DEBUG) {
+      debug("cdma_writeMessage: " + JSON.stringify(options));
+    }
+
+    
+    options.encoding = this.gsmDcsToCdmaEncoding(options.dcs);
+
+    
+    if (options.segmentMaxSeq > 1) {
+      this.writeInt(PDU_CDMA_MSG_TELESERIVCIE_ID_WEMT);
+    } else {
+      this.writeInt(PDU_CDMA_MSG_TELESERIVCIE_ID_SMS);
+    }
+
+    this.writeInt(0);
+    this.writeInt(PDU_CDMA_MSG_CATEGORY_UNSPEC);
+
+    
+    let addrInfo = this.encodeAddr(options.number);
+    this.writeByte(addrInfo.digitMode);
+    this.writeByte(addrInfo.numberMode);
+    this.writeByte(addrInfo.numberType);
+    this.writeByte(addrInfo.numberPlan);
+    this.writeByte(addrInfo.address.length);
+    for (let i = 0; i < addrInfo.address.length; i++) {
+      this.writeByte(addrInfo.address[i]);
+    }
+
+    
+    this.writeByte(0);  
+    this.writeByte(0);  
+    this.writeByte(0);  
+
+    
+    let encodeResult = this.encodeUserData(options);
+    this.writeByte(encodeResult.length);
+    for (let i = 0; i < encodeResult.length; i++) {
+      this.writeByte(encodeResult[i]);
+    }
+
+    encodeResult = null;
+  },
+
+  
+
+
+  writeInt: function writeInt(value) {
+    Buf.writeUint32(value);
+  },
+
+  writeByte: function writeByte(value) {
+    Buf.writeUint32(value & 0xFF);
+  },
+
+  
+
+
+  gsmDcsToCdmaEncoding: function gsmDcsToCdmaEncoding(encoding) {
+    switch (encoding) {
+      case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
+        return PDU_CDMA_MSG_CODING_7BITS_ASCII;
+      case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
+        return PDU_CDMA_MSG_CODING_OCTET;
+      case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
+        return PDU_CDMA_MSG_CODING_UNICODE;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  encodeAddr: function cdma_encodeAddr(address) {
+    let result = {};
+
+    result.numberType = PDU_CDMA_MSG_ADDR_NUMBER_TYPE_UNKNOWN;
+    result.numberPlan = PDU_CDMA_MSG_ADDR_NUMBER_TYPE_UNKNOWN;
+
+    if (address[0] === '+') {
+      address = address.substring(1);
+    }
+
+    
+    result.digitMode = PDU_CDMA_MSG_ADDR_DIGIT_MODE_DTMF;
+    result.numberMode = PDU_CDMA_MSG_ADDR_NUMBER_MODE_ANSI;
+
+    result.address = [];
+    for (let i = 0; i < address.length; i++) {
+      let addrDigit = this.dtmfChars.indexOf(address.charAt(i));
+      if (addrDigit < 0) {
+        result.digitMode = PDU_CDMA_MSG_ADDR_DIGIT_MODE_ASCII;
+        result.numberMode = PDU_CDMA_MSG_ADDR_NUMBER_MODE_ASCII;
+        result.address = [];
+        break;
+      }
+      result.address.push(addrDigit)
+    }
+
+    
+    if (result.digitMode !== PDU_CDMA_MSG_ADDR_DIGIT_MODE_DTMF) {
+      if (address.indexOf("@") !== -1) {
+        result.numberType = PDU_CDMA_MSG_ADDR_NUMBER_TYPE_NATIONAL;
+      }
+
+      for (let i = 0; i < address.length; i++) {
+        result.address.push(address.charCodeAt(i) & 0x7F);
+      }
+    }
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  encodeUserData: function cdma_encodeUserData(options) {
+    let userDataBuffer = [];
+    BitBufferHelper.startWrite(userDataBuffer);
+
+    
+    this.encodeUserDataMsgId(options);
+
+    
+    this.encodeUserDataMsg(options);
+
+    return userDataBuffer;
+  },
+
+  
+
+
+
+
+  encodeUserDataMsgId: function cdma_encodeUserDataMsgId(options) {
+    BitBufferHelper.writeBits(PDU_CDMA_MSG_USERDATA_MSG_ID, 8);
+    BitBufferHelper.writeBits(3, 8);
+    BitBufferHelper.writeBits(PDU_CDMA_MSG_TYPE_SUBMIT, 4);
+    BitBufferHelper.writeBits(1, 16); 
+    if (options.segmentMaxSeq > 1) {
+      BitBufferHelper.writeBits(1, 1);
+    } else {
+      BitBufferHelper.writeBits(0, 1);
+    }
+
+    BitBufferHelper.flushWithPadding();
+  },
+
+  
+
+
+
+
+  encodeUserDataMsg: function cdma_encodeUserDataMsg(options) {
+    BitBufferHelper.writeBits(PDU_CDMA_MSG_USERDATA_BODY, 8);
+    
+    BitBufferHelper.writeBits(0, 8);
+    let lengthPosition = BitBufferHelper.getWriteBufferSize();
+
+    BitBufferHelper.writeBits(options.encoding, 5);
+
+    
+    let msgBody = options.body,
+        msgBodySize = (options.encoding === PDU_CDMA_MSG_CODING_7BITS_ASCII ?
+                       options.encodedBodyLength :
+                       msgBody.length);
+    if (options.segmentMaxSeq > 1) {
+      if (options.encoding === PDU_CDMA_MSG_CODING_7BITS_ASCII) {
+          BitBufferHelper.writeBits(msgBodySize + 7, 8); 
+
+          BitBufferHelper.writeBits(5, 8);  
+          BitBufferHelper.writeBits(PDU_IEI_CONCATENATED_SHORT_MESSAGES_8BIT, 8);  
+          BitBufferHelper.writeBits(3, 8);  
+          BitBufferHelper.writeBits(options.segmentRef & 0xFF, 8);      
+          BitBufferHelper.writeBits(options.segmentMaxSeq & 0xFF, 8);   
+          BitBufferHelper.writeBits(options.segmentSeq & 0xFF, 8);      
+          BitBufferHelper.writeBits(0, 1);  
+        } else {
+          if (options.encoding === PDU_CDMA_MSG_CODING_UNICODE) {
+            BitBufferHelper.writeBits(msgBodySize + 3, 8); 
+          } else {
+            BitBufferHelper.writeBits(msgBodySize + 6, 8); 
+          }
+
+          BitBufferHelper.writeBits(5, 8);  
+          BitBufferHelper.writeBits(PDU_IEI_CONCATENATED_SHORT_MESSAGES_8BIT, 8);  
+          BitBufferHelper.writeBits(3, 8);  
+          BitBufferHelper.writeBits(options.segmentRef & 0xFF, 8);      
+          BitBufferHelper.writeBits(options.segmentMaxSeq & 0xFF, 8);   
+          BitBufferHelper.writeBits(options.segmentSeq & 0xFF, 8);      
+        }
+    } else {
+      BitBufferHelper.writeBits(msgBodySize, 8);
+    }
+
+    
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    for (let i = 0; i < msgBody.length; i++) {
+      switch (options.encoding) {
+        case PDU_CDMA_MSG_CODING_OCTET: {
+          let msgDigit = msgBody.charCodeAt(i);
+          BitBufferHelper.writeBits(msgDigit, 8);
+          break;
+        }
+        case PDU_CDMA_MSG_CODING_7BITS_ASCII: {
+          let msgDigit = msgBody.charCodeAt(i),
+              msgDigitChar = msgBody.charAt(i);
+
+          if (msgDigit >= 32) {
+            BitBufferHelper.writeBits(msgDigit, 7);
+          } else {
+            msgDigit = langTable.indexOf(msgDigitChar);
+
+            if (msgDigit === PDU_NL_EXTENDED_ESCAPE) {
+              break;
+            }
+            if (msgDigit >= 0) {
+              BitBufferHelper.writeBits(msgDigit, 7);
+            } else {
+              msgDigit = langShiftTable.indexOf(msgDigitChar);
+              if (msgDigit == -1) {
+                throw new Error("'" + msgDigitChar + "' is not in 7 bit alphabet "
+                                + langIndex + ":" + langShiftIndex + "!");
+                break;
+              }
+
+              if (msgDigit === PDU_NL_RESERVED_CONTROL) {
+                break;
+              }
+
+              BitBufferHelper.writeBits(PDU_NL_EXTENDED_ESCAPE, 7);
+              BitBufferHelper.writeBits(msgDigit, 7);
+            }
+          }
+          break;
+        }
+        case PDU_CDMA_MSG_CODING_UNICODE: {
+          let msgDigit = msgBody.charCodeAt(i);
+          BitBufferHelper.writeBits(msgDigit, 16);
+          break;
+        }
+      }
+    }
+    BitBufferHelper.flushWithPadding();
+
+    
+    let currentPosition = BitBufferHelper.getWriteBufferSize();
+    BitBufferHelper.overwriteWriteBuffer(lengthPosition - 1, [currentPosition - lengthPosition]);
+  },
+
+  
+
+
+
+  readMessage: function cdma_readMessage() {
+    let message = {};
+
+    
+    message.teleservice = this.readInt();
+
+    
+    let isServicePresent = this.readByte();
+    if (isServicePresent) {
+      message.messageType = PDU_CDMA_MSG_TYPE_BROADCAST;
+    } else {
+      if (message.teleservice) {
+        message.messageType = PDU_CDMA_MSG_TYPE_P2P;
+      } else {
+        message.messageType = PDU_CDMA_MSG_TYPE_ACK;
+      }
+    }
+
+    
+    message.service = this.readInt();
+
+    
+    let addrInfo = {};
+    addrInfo.digitMode = (this.readInt() & 0x01);
+    addrInfo.numberMode = (this.readInt() & 0x01);
+    addrInfo.numberType = (this.readInt() & 0x01);
+    addrInfo.numberPlan = (this.readInt() & 0x01);
+    addrInfo.addrLength = this.readByte();
+    addrInfo.address = [];
+    for (let i = 0; i < addrInfo.addrLength; i++) {
+      addrInfo.address.push(this.readByte());
+    }
+    message.sender = this.decodeAddr(addrInfo);
+
+    
+    addrInfo.Type = (this.readInt() & 0x07);
+    addrInfo.Odd = (this.readByte() & 0x01);
+    addrInfo.addrLength = this.readByte();
+    for (let i = 0; i < addrInfo.addrLength; i++) {
+      let addrDigit = this.readByte();
+      message.sender += String.fromCharCode(addrDigit);
+    }
+
+    
+    this.decodeUserData(message);
+
+    
+    let msg = {
+      SMSC:           "",
+      mti:            0,
+      udhi:           0,
+      sender:         message.sender,
+      recipient:      null,
+      pid:            PDU_PID_DEFAULT,
+      epid:           PDU_PID_DEFAULT,
+      dcs:            0,
+      mwi:            null, 
+      replace:        false,
+      header:         message[PDU_CDMA_MSG_USERDATA_BODY].header,
+      body:           message[PDU_CDMA_MSG_USERDATA_BODY].body,
+      data:           null,
+      timestamp:      message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
+      status:         null,
+      scts:           null,
+      dt:             null,
+      encoding:       message[PDU_CDMA_MSG_USERDATA_BODY].encoding,
+      messageClass:   GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL]
+    };
+
+    return msg;
+  },
+
+
+  
+
+
+
+
+
+
+
+  processReceivedSms: function cdma_processReceivedSms(length) {
+    if (!length) {
+      if (DEBUG) debug("Received empty SMS!");
+      return [null, PDU_FCS_UNSPECIFIED];
+    }
+
+    let message = this.readMessage();
+    if (DEBUG) debug("Got new SMS: " + JSON.stringify(message));
+
+    
+    if (!message) {
+      return [null, PDU_FCS_UNSPECIFIED];
+    }
+
+    return [message, PDU_FCS_OK];
+  },
+
+  
+
+
+  readInt: function readInt() {
+    return Buf.readUint32();
+  },
+
+  readByte: function readByte() {
+    return (Buf.readUint32() & 0xFF);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  decodeAddr: function cdma_decodeAddr(addrInfo) {
+    let result = "";
+    for (let i = 0; i < addrInfo.addrLength; i++) {
+      if (addrInfo.digitMode === PDU_CDMA_MSG_ADDR_DIGIT_MODE_DTMF) {
+        result += this.dtmfChars.charAt(addrInfo.address[i]);
+      } else {
+        result += String.fromCharCode(addrInfo.address[i]);
+      }
+    }
+    return result;
+  },
+
+  
+
+
+
+
+
+
+  decodeUserData: function cdma_decodeUserData(message) {
+    let userDataLength = this.readInt();
+
+    while (userDataLength > 0) {
+      let id = this.readByte(),
+          length = this.readByte(),
+          userDataBuffer = [];
+
+      for (let i = 0; i < length; i++) {
+          userDataBuffer.push(this.readByte());
+      }
+
+      BitBufferHelper.startRead(userDataBuffer);
+
+      switch (id) {
+        case PDU_CDMA_MSG_USERDATA_MSG_ID:
+          message[id] = this.decodeUserDataMsgId();
+          break;
+        case PDU_CDMA_MSG_USERDATA_BODY:
+          message[id] = this.decodeUserDataMsg(message[PDU_CDMA_MSG_USERDATA_MSG_ID].userHeader);
+          break;
+        case PDU_CDMA_MSG_USERDATA_TIMESTAMP:
+          message[id] = this.decodeUserDataTimestamp();
+          break;
+        case PDU_CDMA_REPLY_OPTION:
+          message[id] = this.decodeUserDataReplyAction();
+          break;
+        case PDU_CDMA_MSG_USERDATA_CALLBACK_NUMBER:
+          message[id] = this.decodeUserDataCallbackNumber();
+          break;
+      }
+
+      userDataLength -= (length + 2);
+      userDataBuffer = [];
+    }
+  },
+
+  
+
+
+
+
+  decodeUserDataMsgId: function cdma_decodeUserDataMsgId() {
+    let result = {};
+    result.msgType = BitBufferHelper.readBits(4);
+    result.msgId = BitBufferHelper.readBits(16);
+    result.userHeader = BitBufferHelper.readBits(1);
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+  decodeUserDataHeader: function cdma_decodeUserDataHeader(encoding) {
+    let header = {},
+        headerSize = BitBufferHelper.readBits(8),
+        userDataHeaderSize = headerSize + 1,
+        headerPaddingBits = 0;
+
+    
+    if (encoding === PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      
+      header.length = Math.ceil(userDataHeaderSize * 8 / 7);
+      
+      headerPaddingBits = (header.length * 7) - (userDataHeaderSize * 8);
+    } else if (encoding === PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+      header.length = userDataHeaderSize;
+    } else {
+      header.length = userDataHeaderSize / 2;
+    }
+
+    while (headerSize) {
+      let identifier = BitBufferHelper.readBits(8),
+          length = BitBufferHelper.readBits(8);
+
+      headerSize -= (2 + length);
+
+      switch (identifier) {
+        case PDU_IEI_CONCATENATED_SHORT_MESSAGES_8BIT: {
+            let ref = BitBufferHelper.readBits(8),
+                max = BitBufferHelper.readBits(8),
+                seq = BitBufferHelper.readBits(8);
+            if (max && seq && (seq <= max)) {
+              header.segmentRef = ref;
+              header.segmentMaxSeq = max;
+              header.segmentSeq = seq;
+            }
+          break;
+        }
+        case PDU_IEI_APPLICATION_PORT_ADDRESSING_SCHEME_8BIT: {
+          let dstp = BitBufferHelper.readBits(8),
+              orip = BitBufferHelper.readBits(8);
+          if ((dstp < PDU_APA_RESERVED_8BIT_PORTS)
+              || (orip < PDU_APA_RESERVED_8BIT_PORTS)) {
+            
+            
+            
+            break;
+          }
+          header.destinationPort = dstp;
+          header.originatorPort = orip;
+          break;
+        }
+        case PDU_IEI_APPLICATION_PORT_ADDRESSING_SCHEME_16BIT: {
+          let dstp = (BitBufferHelper.readBits(8) << 8) | BitBufferHelper.readBits(8),
+              orip = (BitBufferHelper.readBits(8) << 8) | BitBufferHelper.readBits(8);
+          
+          
+          
+          if ((dstp < PDU_APA_VALID_16BIT_PORTS)
+              && (orip < PDU_APA_VALID_16BIT_PORTS)) {
+            header.destinationPort = dstp;
+            header.originatorPort = orip;
+          }
+          break;
+        }
+        case PDU_IEI_CONCATENATED_SHORT_MESSAGES_16BIT: {
+          let ref = (BitBufferHelper.readBits(8) << 8) | BitBufferHelper.readBits(8),
+              max = BitBufferHelper.readBits(8),
+              seq = BitBufferHelper.readBits(8);
+          if (max && seq && (seq <= max)) {
+            header.segmentRef = ref;
+            header.segmentMaxSeq = max;
+            header.segmentSeq = seq;
+          }
+          break;
+        }
+        case PDU_IEI_NATIONAL_LANGUAGE_SINGLE_SHIFT: {
+          let langShiftIndex = BitBufferHelper.readBits(8);
+          if (langShiftIndex < PDU_NL_SINGLE_SHIFT_TABLES.length) {
+            header.langShiftIndex = langShiftIndex;
+          }
+          break;
+        }
+        case PDU_IEI_NATIONAL_LANGUAGE_LOCKING_SHIFT: {
+          let langIndex = BitBufferHelper.readBits(8);
+          if (langIndex < PDU_NL_LOCKING_SHIFT_TABLES.length) {
+            header.langIndex = langIndex;
+          }
+          break;
+        }
+        case PDU_IEI_SPECIAL_SMS_MESSAGE_INDICATION: {
+          let msgInd = BitBufferHelper.readBits(8) & 0xFF,
+              msgCount = BitBufferHelper.readBits(8);
+          
+
+
+
+
+
+
+          let storeType = msgInd & PDU_MWI_STORE_TYPE_BIT;
+          header.mwi = {};
+          mwi = header.mwi;
+
+          if (storeType == PDU_MWI_STORE_TYPE_STORE) {
+            
+            
+            mwi.discard = false;
+          } else if (mwi.discard === undefined) {
+            
+            
+            mwi.discard = true;
+          }
+
+          mwi.msgCount = msgCount & 0xFF;
+          mwi.active = mwi.msgCount > 0;
+
+          if (DEBUG) debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+
+          break;
+        }
+        default: {
+          
+          for (let i = 0; i < length; i++) {
+            BitBufferHelper.readBits(8);
+          }
+          break;
+        }
+      }
+    }
+
+    
+    if (headerPaddingBits) {
+      BitBufferHelper.readBits(headerPaddingBits);
+    }
+
+    return header;
+  },
+
+  
+
+
+
+
+  decodeUserDataMsg: function cdma_decodeUserDataMsg(hasUserHeader) {
+    let result = {},
+        encoding = BitBufferHelper.readBits(5);
+
+    if(encoding === PDU_CDMA_MSG_CODING_IS_91) {
+      let msgType = BitBufferHelper.readBits(8);
+    }
+
+    let msgBodySize = BitBufferHelper.readBits(8);
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    
+    switch (encoding) {
+      case PDU_CDMA_MSG_CODING_7BITS_ASCII:
+      case PDU_CDMA_MSG_CODING_IA5:
+      case PDU_CDMA_MSG_CODING_7BITS_GSM:
+        result.encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
+        break;
+      case PDU_CDMA_MSG_CODING_OCTET:
+      case PDU_CDMA_MSG_CODING_IS_91:
+      case PDU_CDMA_MSG_CODING_LATIN_HEBREW:
+      case PDU_CDMA_MSG_CODING_LATIN:
+        result.encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
+        break;
+      case PDU_CDMA_MSG_CODING_UNICODE:
+      case PDU_CDMA_MSG_CODING_SHIFT_JIS:
+      case PDU_CDMA_MSG_CODING_KOREAN:
+        result.encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
+        break;
+    }
+
+    
+    if (hasUserHeader) {
+      result.header = this.decodeUserDataHeader(result.encoding);
+      
+      msgBodySize -= result.header.length;
+    }
+
+    
+    result.body = "";
+    let msgDigit;
+    switch (encoding) {
+      case PDU_CDMA_MSG_CODING_OCTET:         
+        while(msgBodySize > 0) {
+          msgDigit = String.fromCharCode(BitBufferHelper.readBits(8));
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_IS_91:         
+        
+        switch (msgType) {
+          case PDU_CDMA_MSG_CODING_IS_91_TYPE_SMS:
+          case PDU_CDMA_MSG_CODING_IS_91_TYPE_SMS_FULL:
+          case PDU_CDMA_MSG_CODING_IS_91_TYPE_VOICEMAIL_STATUS:
+            while(msgBodySize > 0) {
+              msgDigit = String.fromCharCode(BitBufferHelper.readBits(6) + 0x20);
+              result.body += msgDigit;
+              msgBodySize--;
+            }
+            break;
+          case PDU_CDMA_MSG_CODING_IS_91_TYPE_CLI:
+            let addrInfo = {};
+            addrInfo.digitMode = PDU_CDMA_MSG_ADDR_DIGIT_MODE_DTMF;
+            addrInfo.numberMode = PDU_CDMA_MSG_ADDR_NUMBER_MODE_ANSI;
+            addrInfo.numberType = PDU_CDMA_MSG_ADDR_NUMBER_TYPE_UNKNOWN;
+            addrInfo.numberPlan = PDU_CDMA_MSG_ADDR_NUMBER_PLAN_UNKNOWN;
+            addrInfo.addrLength = msgBodySize;
+            addrInfo.address = [];
+            for (let i = 0; i < addrInfo.addrLength; i++) {
+              addrInfo.address.push(BitBufferHelper.readBits(4));
+            }
+            result.body = this.decodeAddr(addrInfo);
+            break;
+        }
+      case PDU_CDMA_MSG_CODING_7BITS_ASCII:
+      case PDU_CDMA_MSG_CODING_IA5:           
+        while(msgBodySize > 0) {
+          msgDigit = BitBufferHelper.readBits(7);
+          if (msgDigit >= 32) {
+            msgDigit = String.fromCharCode(msgDigit);
+          } else {
+            if (msgDigit !== PDU_NL_EXTENDED_ESCAPE) {
+              msgDigit = langTable[msgDigit];
+            } else {
+              msgDigit = BitBufferHelper.readBits(7);
+              msgBodySize--;
+              msgDigit = langShiftTable[msgDigit];
+            }
+          }
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_UNICODE:
+        while(msgBodySize > 0) {
+          msgDigit = String.fromCharCode(BitBufferHelper.readBits(16));
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_7BITS_GSM:     
+        while(msgBodySize > 0) {
+          msgDigit = BitBufferHelper.readBits(7);
+          if (msgDigit !== PDU_NL_EXTENDED_ESCAPE) {
+            msgDigit = langTable[msgDigit];
+          } else {
+            msgDigit = BitBufferHelper.readBits(7);
+            msgBodySize--;
+            msgDigit = langShiftTable[msgDigit];
+          }
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_LATIN:         
+        
+        while(msgBodySize > 0) {
+          msgDigit = String.fromCharCode(BitBufferHelper.readBits(8));
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_LATIN_HEBREW:  
+        
+        while(msgBodySize > 0) {
+          msgDigit = BitBufferHelper.readBits(8);
+          if (msgDigit === 0xDF) {
+            msgDigit = String.fromCharCode(0x2017);
+          } else if (msgDigit === 0xFD) {
+            msgDigit = String.fromCharCode(0x200E);
+          } else if (msgDigit === 0xFE) {
+            msgDigit = String.fromCharCode(0x200F);
+          } else if (msgDigit >= 0xE0 && msgDigit <= 0xFA) {
+            msgDigit = String.fromCharCode(0x4F0 + msgDigit);
+          } else {
+            msgDigit = String.fromCharCode(msgDigit);
+          }
+          result.body += msgDigit;
+          msgBodySize--;
+        }
+        break;
+      case PDU_CDMA_MSG_CODING_SHIFT_JIS:
+        
+        
+      case PDU_CDMA_MSG_CODING_KOREAN:
+      case PDU_CDMA_MSG_CODING_GSM_DCS:
+      default:
+        break;
+    }
+
+    return result;
+  },
+
+  decodeBcd: function cdma_decodeBcd(value) {
+    return ((value >> 4) & 0xF) * 10 + (value & 0x0F);
+  },
+
+  
+
+
+
+
+  decodeUserDataTimestamp: function cdma_decodeUserDataTimestamp() {
+    let year = this.decodeBcd(BitBufferHelper.readBits(8)),
+        month = this.decodeBcd(BitBufferHelper.readBits(8)) - 1,
+        date = this.decodeBcd(BitBufferHelper.readBits(8)),
+        hour = this.decodeBcd(BitBufferHelper.readBits(8)),
+        min = this.decodeBcd(BitBufferHelper.readBits(8)),
+        sec = this.decodeBcd(BitBufferHelper.readBits(8));
+
+    if (year >= 96 && year <= 99) {
+      year += 1900;
+    } else {
+      year += 2000;
+    }
+
+    let result = (new Date(year, month, date, hour, min, sec, 0)).valueOf();
+
+    return result;
+  },
+
+  
+
+
+
+
+  decodeUserDataReplyAction: function cdma_decodeUserDataReplyAction() {
+    let replyAction = BitBufferHelper.readBits(4),
+        result = { userAck: (replyAction & 0x8) ? true : false,
+                   deliverAck: (replyAction & 0x4) ? true : false,
+                   readAck: (replyAction & 0x2) ? true : false,
+                   report: (replyAction & 0x1) ? true : false
+                 };
+
+    return result;
+  },
+
+  
+
+
+
+
+  decodeUserDataCallbackNumber: function cdma_decodeUserDataCallbackNumber() {
+    let digitMode = BitBufferHelper.readBits(1);
+    if (digitMode) {
+      let numberType = BitBufferHelper.readBits(3),
+          numberPlan = BitBufferHelper.readBits(4);
+    }
+    let numberFields = BitBufferHelper.readBits(8),
+        result = "";
+    for (let i = 0; i < numberFields; i++) {
+      if (digitMode === PDU_CDMA_MSG_ADDR_DIGIT_MODE_DTMF) {
+        let addrDigit = BitBufferHelper.readBits(4);
+        result += this.dtmfChars.charAt(addrDigit);
+      } else {
+        let addrDigit = BitBufferHelper.readBits(8);
+        result += String.fromCharCode(addrDigit);
+      }
+    }
+
+    return result;
+  }
+};
+
 let StkCommandParamsFactory = {
   createParam: function createParam(cmdDetails, ctlvs) {
     let param;
