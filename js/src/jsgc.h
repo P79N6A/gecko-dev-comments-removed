@@ -375,20 +375,155 @@ GetGCKindSlots(AllocKind thingKind, const Class *clasp)
 
 
 
-struct ArenaList {
-    ArenaHeader     *head;
-    ArenaHeader     **cursor;
 
+
+
+
+
+class ArenaList {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ArenaHeader     *head_;
+    ArenaHeader     **cursorp_;
+
+  public:
     ArenaList() {
         clear();
     }
 
-    void clear() {
-        head = nullptr;
-        cursor = &head;
+    
+    void check() const {
+#ifdef DEBUG
+        
+        JS_ASSERT_IF(!head_, cursorp_ == &head_);
+
+        
+        ArenaHeader *cursor = *cursorp_;
+        JS_ASSERT_IF(cursor, cursor->hasFreeThings());
+#endif
     }
 
-    void insert(ArenaHeader *arena);
+    
+    void deepCheck() const {
+#ifdef DEBUG
+        check();
+        
+        
+        
+        
+        
+        
+        
+
+
+
+
+
+
+
+
+#endif
+    }
+
+    void clear() {
+        head_ = nullptr;
+        cursorp_ = &head_;
+        check();
+    }
+
+    bool isEmpty() const {
+        check();
+        return !head_;
+    }
+
+    
+    ArenaHeader *head() const {
+        check();
+        return head_;
+    }
+
+    bool isCursorAtEnd() const {
+        check();
+        return !*cursorp_;
+    }
+
+    
+    ArenaHeader *arenaAfterCursor() const {
+        check();
+        return *cursorp_;
+    }
+
+    
+    
+    void moveCursorPast(ArenaHeader *aheader) {
+        cursorp_ = &aheader->next;
+        check();
+    }
+
+    
+    
+    
+    
+    
+    void insertAtCursor(ArenaHeader *a) {
+        check();
+        a->next = *cursorp_;
+        *cursorp_ = a;
+        
+        
+        if (!a->hasFreeThings())
+            cursorp_ = &a->next;
+        check();
+    }
+
+    
+    
+    void insertAtStart(ArenaHeader *a) {
+        check();
+        a->next = head_;
+        if (isEmpty())
+            cursorp_ = &a->next;        
+        head_ = a;
+        check();
+    }
+
+    
+    void appendToListWithCursorAtEnd(ArenaList &other) {
+        JS_ASSERT(isCursorAtEnd());
+        deepCheck();
+        other.deepCheck();
+        if (!other.isEmpty()) {
+            
+            
+            *cursorp_ = other.head_;
+
+            
+            
+            if (other.cursorp_ != &other.head_)
+                cursorp_ = other.cursorp_;
+        }
+        deepCheck();
+    }
 };
 
 class ArenaLists
@@ -455,9 +590,10 @@ class ArenaLists
 
 
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE);
-            ArenaHeader **headp = &arenaLists[i].head;
-            while (ArenaHeader *aheader = *headp) {
-                *headp = aheader->next;
+            ArenaHeader *next;
+            for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = next) {
+                
+                next = aheader->next;
                 aheader->chunk()->releaseArena(aheader);
             }
         }
@@ -473,7 +609,7 @@ class ArenaLists
     }
 
     ArenaHeader *getFirstArena(AllocKind thingKind) const {
-        return arenaLists[thingKind].head;
+        return arenaLists[thingKind].head();
     }
 
     ArenaHeader *getFirstArenaToSweep(AllocKind thingKind) const {
@@ -488,14 +624,10 @@ class ArenaLists
 
             if (backgroundFinalizeState[i] != BFS_DONE)
                 return false;
-            if (arenaLists[i].head)
+            if (!arenaLists[i].isEmpty())
                 return false;
         }
         return true;
-    }
-
-    bool arenasAreFull(AllocKind thingKind) const {
-        return !*arenaLists[thingKind].cursor;
     }
 
     void unmarkAll() {
@@ -503,7 +635,7 @@ class ArenaLists
             
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE ||
                       backgroundFinalizeState[i] == BFS_JUST_FINISHED);
-            for (ArenaHeader *aheader = arenaLists[i].head; aheader; aheader = aheader->next) {
+            for (ArenaHeader *aheader = arenaLists[i].head(); aheader; aheader = aheader->next) {
                 uintptr_t *word = aheader->chunk()->bitmap.arenaBits(aheader);
                 memset(word, 0, ArenaBitmapWords * sizeof(uintptr_t));
             }
