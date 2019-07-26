@@ -241,11 +241,7 @@ CompositorParent::Destroy()
 
   
   mLayerManager = nullptr;
-  if (mCompositor) {
-    mCompositor->Destroy();
-  }
   mCompositor = nullptr;
-
   mCompositionManager = nullptr;
   mApzcTreeManager->ClearTree();
   mApzcTreeManager = nullptr;
@@ -277,6 +273,7 @@ CompositorParent::RecvWillStop()
     }
     mLayerManager->Destroy();
     mLayerManager = nullptr;
+    mCompositor = nullptr;
     mCompositionManager = nullptr;
   }
 
