@@ -1066,17 +1066,10 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
                      aAccessible);
 
   nsIContent* elm = aAccessible->GetContent();
-  if (!elm->HasAttr(kNameSpaceID_None, nsGkAtoms::role)) {
-    
-    
-    
-    
-    return;
-  }
 
-  
   if (aAttribute == nsGkAtoms::aria_checked ||
-      aAttribute == nsGkAtoms::aria_pressed) {
+      (aAccessible->IsButton() &&
+       aAttribute == nsGkAtoms::aria_pressed)) {
     const uint64_t kState = (aAttribute == nsGkAtoms::aria_checked) ?
                             states::CHECKED : states::PRESSED;
     nsRefPtr<AccEvent> event = new AccStateChangeEvent(aAccessible, kState);

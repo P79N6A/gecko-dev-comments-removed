@@ -86,9 +86,9 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     ePressAction,
     eNoLiveAttr,
-    kGenericAccType,
-    kNoReqStates,
-    eARIAPressed
+    eButton,
+    kNoReqStates
+    
   },
   { 
     &nsGkAtoms::checkbox,

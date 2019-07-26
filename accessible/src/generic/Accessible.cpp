@@ -1573,6 +1573,10 @@ Accessible::ApplyARIAState(uint64_t* aState) const
     }    
   }
 
+  
+  if (IsButton())
+    aria::MapToState(aria::eARIAPressed, element, aState);
+
   if (!mRoleMapEntry)
     return;
 
