@@ -20,6 +20,10 @@ namespace mozilla {
 
 
 
+template<typename> struct RemoveCV;
+
+
+
 
 
 
@@ -39,6 +43,43 @@ typedef IntegralConstant<bool, false> FalseType;
 
 
 
+
+namespace detail {
+
+template <typename T>
+struct IsIntegralHelper : FalseType {};
+
+template<> struct IsIntegralHelper<char>               : TrueType {};
+template<> struct IsIntegralHelper<signed char>        : TrueType {};
+template<> struct IsIntegralHelper<unsigned char>      : TrueType {};
+template<> struct IsIntegralHelper<short>              : TrueType {};
+template<> struct IsIntegralHelper<unsigned short>     : TrueType {};
+template<> struct IsIntegralHelper<int>                : TrueType {};
+template<> struct IsIntegralHelper<unsigned int>       : TrueType {};
+template<> struct IsIntegralHelper<long>               : TrueType {};
+template<> struct IsIntegralHelper<unsigned long>      : TrueType {};
+template<> struct IsIntegralHelper<long long>          : TrueType {};
+template<> struct IsIntegralHelper<unsigned long long> : TrueType {};
+template<> struct IsIntegralHelper<bool>               : TrueType {};
+template<> struct IsIntegralHelper<wchar_t>            : TrueType {};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsIntegral : detail::IsIntegralHelper<typename RemoveCV<T>::Type>
+{};
 
 
 
