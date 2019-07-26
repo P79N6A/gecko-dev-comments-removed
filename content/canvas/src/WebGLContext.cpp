@@ -282,6 +282,17 @@ WebGLContext::DestroyResourcesAndContext()
 
     
     
+    for (size_t i = 0; i < size_t(WebGLExtensionID_max); ++i) {
+        WebGLExtensionID extension = WebGLExtensionID(i);
+
+        if (!IsExtensionEnabled(extension) || (extension == WEBGL_lose_context))
+            continue;
+
+        mExtensions[extension] = nullptr;
+    }
+
+    
+    
 #ifdef DEBUG
     if (gl->DebugMode()) {
         printf_stderr("--- WebGL context destroyed: %p\n", gl.get());
