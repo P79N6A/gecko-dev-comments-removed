@@ -625,6 +625,8 @@ var BrowserApp = {
     aTab.setResolution(aTab._zoom, true);
     this.displayedDocumentChanged();
     this.deck.selectedPanel = aTab.browser;
+    
+    aTab.browser.focus();
   },
 
   get selectedBrowser() {
