@@ -370,7 +370,8 @@ public:
 
 
 
-  virtual already_AddRefed<ImageContainer> GetContainer(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
+  virtual already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager,
+                                                        nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
 
   gfxRect GetDestRect();
 
