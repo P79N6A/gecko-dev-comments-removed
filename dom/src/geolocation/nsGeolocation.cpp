@@ -455,14 +455,10 @@ nsGeolocationRequest::Allow()
 
   
   
-  
-  
-  
-  
 
-  uint32_t maximumAge = 30 * PR_MSEC_PER_SEC;
+  uint32_t maximumAge = 0;
   if (mOptions) {
-    if (mOptions->mMaximumAge >= 0) {
+    if (mOptions->mMaximumAge > 0) {
       maximumAge = mOptions->mMaximumAge;
     }
   }
