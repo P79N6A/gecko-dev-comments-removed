@@ -57,6 +57,7 @@ SVGAnimationElement::SVGAnimationElement(already_AddRefed<nsINodeInfo> aNodeInfo
 #pragma warning(pop)
 #endif
 {
+  SetIsDOMBinding();
 }
 
 nsresult
@@ -173,61 +174,91 @@ SVGAnimationElement::TimedElement()
 NS_IMETHODIMP
 SVGAnimationElement::GetTargetElement(nsIDOMSVGElement** aTarget)
 {
+  
+  nsSVGElement* target = GetTargetElement();
+
+  nsCOMPtr<nsIDOMSVGElement> targetSVG = do_QueryInterface(target);
+  targetSVG.forget(aTarget);
+
+  return NS_OK;
+}
+
+nsSVGElement*
+SVGAnimationElement::GetTargetElement()
+{
   FlushAnimations();
 
   
-  nsIContent* targetContent = GetTargetElementContent();
+  nsIContent* target = GetTargetElementContent();
 
-  nsCOMPtr<nsIDOMSVGElement> targetSVG = do_QueryInterface(targetContent);
-  NS_IF_ADDREF(*aTarget = targetSVG);
-
-  return NS_OK;
+  return (target && target->IsSVG()) ? static_cast<nsSVGElement*>(target) : nullptr;
 }
 
 
 NS_IMETHODIMP
 SVGAnimationElement::GetStartTime(float* retval)
 {
+  ErrorResult rv;
+  *retval = GetStartTime(rv);
+  return rv.ErrorCode();
+}
+
+float
+SVGAnimationElement::GetStartTime(ErrorResult& rv)
+{
   FlushAnimations();
 
   nsSMILTimeValue startTime = mTimedElement.GetStartTime();
-  if (!startTime.IsDefinite())
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  if (!startTime.IsDefinite()) {
+    rv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return 0.f;
+  }
 
-  *retval = float(double(startTime.GetMillis()) / PR_MSEC_PER_SEC);
-
-  return NS_OK;
+  return float(double(startTime.GetMillis()) / PR_MSEC_PER_SEC);
 }
 
 
 NS_IMETHODIMP
 SVGAnimationElement::GetCurrentTime(float* retval)
 {
+  *retval = GetCurrentTime();
+  return NS_OK;
+}
+
+float
+SVGAnimationElement::GetCurrentTime()
+{
   
 
   nsSMILTimeContainer* root = GetTimeContainer();
   if (root) {
-    *retval = float(double(root->GetCurrentTime()) / PR_MSEC_PER_SEC);
-  } else {
-    *retval = 0.f;
+    return float(double(root->GetCurrentTime()) / PR_MSEC_PER_SEC);
   }
-  return NS_OK;
+
+  return 0.0f;
 }
 
 
 NS_IMETHODIMP
 SVGAnimationElement::GetSimpleDuration(float* retval)
 {
+  ErrorResult rv;
+  *retval = GetSimpleDuration(rv);
+  return rv.ErrorCode();
+}
+
+float
+SVGAnimationElement::GetSimpleDuration(ErrorResult& rv)
+{
   
 
   nsSMILTimeValue simpleDur = mTimedElement.GetSimpleDuration();
   if (!simpleDur.IsDefinite()) {
-    *retval = 0.f;
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return 0.f;
   }
 
-  *retval = float(double(simpleDur.GetMillis()) / PR_MSEC_PER_SEC);
-  return NS_OK;
+  return float(double(simpleDur.GetMillis()) / PR_MSEC_PER_SEC);
 }
 
 
@@ -445,21 +476,27 @@ SVGAnimationElement::BeginElementAt(float offset)
 {
   NS_ENSURE_FINITE(offset, NS_ERROR_ILLEGAL_VALUE);
 
+  ErrorResult rv;
+  BeginElementAt(offset, rv);
+  return rv.ErrorCode();
+}
+
+void
+SVGAnimationElement::BeginElementAt(float offset, ErrorResult& rv)
+{
   
   FlushAnimations();
 
   
   
-  nsresult rv = mTimedElement.BeginElementAt(offset);
-  if (NS_FAILED(rv))
-    return rv;
+  rv = mTimedElement.BeginElementAt(offset);
+  if (rv.Failed())
+    return;
 
   AnimationNeedsResample();
   
   
   FlushAnimations();
-
-  return NS_OK;
 }
 
 
@@ -475,18 +512,24 @@ SVGAnimationElement::EndElementAt(float offset)
 {
   NS_ENSURE_FINITE(offset, NS_ERROR_ILLEGAL_VALUE);
 
+  ErrorResult rv;
+  EndElementAt(offset, rv);
+  return rv.ErrorCode();
+}
+
+void
+SVGAnimationElement::EndElementAt(float offset, ErrorResult& rv)
+{
   
   FlushAnimations();
 
-  nsresult rv = mTimedElement.EndElementAt(offset);
-  if (NS_FAILED(rv))
-    return rv;
+  rv = mTimedElement.EndElementAt(offset);
+  if (rv.Failed())
+    return;
 
   AnimationNeedsResample();
   
   FlushAnimations();
-
-  return NS_OK;
 }
 
 bool

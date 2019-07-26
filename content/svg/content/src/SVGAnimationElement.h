@@ -75,7 +75,17 @@ public:
   
   void ActivateByHyperlink();
 
-protected:
+  
+  nsSVGElement* GetTargetElement();
+  float GetStartTime(ErrorResult& rv);
+  float GetCurrentTime();
+  float GetSimpleDuration(ErrorResult& rv);
+  void BeginElement(ErrorResult& rv) { BeginElementAt(0.f, rv); }
+  void BeginElementAt(float offset, ErrorResult& rv);
+  void EndElement(ErrorResult& rv) { EndElementAt(0.f, rv); }
+  void EndElementAt(float offset, ErrorResult& rv);
+
+ protected:
   
 
   void UpdateHrefTarget(nsIContent* aNodeForContext,
