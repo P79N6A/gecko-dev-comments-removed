@@ -3464,7 +3464,7 @@ IonBuilder::jsop_incslot(JSOp op, uint32 slot)
 {
     int32 amt = (js_CodeSpec[op].format & JOF_INC) ? 1 : -1;
     bool post = !!(js_CodeSpec[op].format & JOF_POST);
-    TypeOracle::Binary b = oracle->binaryOp(script, pc);
+    TypeOracle::Binary b = oracle->incslot(script, pc);
 
     
     
