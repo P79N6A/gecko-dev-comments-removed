@@ -722,21 +722,18 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     
     
     
+    
+    
+    
     for (gc::CellIter i(cx->zone(), gc::FINALIZE_LAZY_SCRIPT); !i.done(); i.next()) {
         LazyScript *lazy = i.get<LazyScript>();
         JSFunction *fun = lazy->functionNonDelazifying();
         if (fun->compartment() == cx->compartment() &&
-            lazy->sourceObject() && !lazy->maybeScript())
+            lazy->sourceObject() && !lazy->maybeScript() &&
+            !lazy->hasUncompiledEnclosingScript())
         {
             MOZ_ASSERT(fun->isInterpretedLazy());
             MOZ_ASSERT(lazy == fun->lazyScriptOrNull());
-
-            
-            
-            
-            if (lazy->hasUncompiledEnclosingScript())
-                continue;
-
             if (!lazyFunctions.append(fun))
                 return false;
         }
