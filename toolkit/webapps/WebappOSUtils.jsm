@@ -21,13 +21,18 @@ this.WebappOSUtils = {
     
     
     
+    
+    
     if (aApp.name) {
       name = aApp.name;
     } else {
-      name = aApp.manifest.name;
+      let manifest =
+        new ManifestHelper(aApp.updateManifest || aApp.manifest, aApp.origin);
+      name = manifest.name;
     }
 
-    return this.sanitizeStringForFilename(name).toLowerCase() + "-" + AppsUtils.computeHash(aApp.manifestURL);
+    return this.sanitizeStringForFilename(name).toLowerCase() + "-" +
+           AppsUtils.computeHash(aApp.manifestURL);
   },
 
   
