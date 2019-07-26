@@ -174,9 +174,12 @@
 
 
 
+
+
+
+
 namespace js {
 
-struct ForkJoinShared;
 struct ForkJoinSlice;
 
 bool ForkJoin(JSContext *cx, CallArgs &args);
@@ -203,6 +206,68 @@ struct IonLIRTraceData {
 
 
 enum ParallelResult { TP_SUCCESS, TP_RETRY_SEQUENTIALLY, TP_RETRY_AFTER_GC, TP_FATAL };
+
+
+
+
+enum ParallelBailoutCause {
+    ParallelBailoutNone,
+
+    
+    ParallelBailoutCompilationSkipped,
+
+    
+    ParallelBailoutCompilationFailure,
+
+    
+    
+    ParallelBailoutInterrupt,
+
+    
+    ParallelBailoutFailedIC,
+
+    
+    ParallelBailoutHeapBusy,
+
+    ParallelBailoutMainScriptNotPresent,
+    ParallelBailoutCalledToUncompiledScript,
+    ParallelBailoutIllegalWrite,
+    ParallelBailoutAccessToIntrinsic,
+    ParallelBailoutOverRecursed,
+    ParallelBailoutOutOfMemory,
+    ParallelBailoutUnsupported,
+    ParallelBailoutUnsupportedStringComparison,
+    ParallelBailoutUnsupportedSparseArray,
+};
+
+struct ParallelBailoutTrace {
+    JSScript *script;
+    jsbytecode *bytecode;
+};
+
+
+struct ParallelBailoutRecord {
+    JSScript *topScript;
+    ParallelBailoutCause cause;
+
+    
+    
+    static const uint32_t MaxDepth = 1;
+    uint32_t depth;
+    ParallelBailoutTrace trace[MaxDepth];
+
+    void init(JSContext *cx);
+    void reset(JSContext *cx);
+    void setCause(ParallelBailoutCause cause,
+                  JSScript *outermostScript,   
+                  JSScript *currentScript,     
+                  jsbytecode *currentPc);
+    void addTrace(JSScript *script,
+                  jsbytecode *pc);
+};
+
+struct ForkJoinShared;
+
 struct ForkJoinSlice
 {
   public:
@@ -221,7 +286,7 @@ struct ForkJoinSlice
     Allocator *const allocator;
 
     
-    JSScript *abortedScript;
+    ParallelBailoutRecord *const bailoutRecord;
 
 #ifdef DEBUG
     
@@ -229,7 +294,8 @@ struct ForkJoinSlice
 #endif
 
     ForkJoinSlice(PerThreadData *perThreadData, uint32_t sliceId, uint32_t numSlices,
-                  Allocator *arenaLists, ForkJoinShared *shared);
+                  Allocator *arenaLists, ForkJoinShared *shared,
+                  ParallelBailoutRecord *bailoutRecord);
 
     
     bool isMainThread();
@@ -285,6 +351,14 @@ struct ForkJoinSlice
 
     ForkJoinShared *const shared;
 };
+
+
+
+
+
+
+
+
 
 
 class LockedJSContext
@@ -353,7 +427,8 @@ enum SpewChannel {
 bool SpewEnabled(SpewChannel channel);
 void Spew(SpewChannel channel, const char *fmt, ...);
 void SpewBeginOp(JSContext *cx, const char *name);
-void SpewBailout(uint32_t count);
+void SpewBailout(uint32_t count, HandleScript script, jsbytecode *pc,
+                 ParallelBailoutCause cause);
 ExecutionStatus SpewEndOp(ExecutionStatus status);
 void SpewBeginCompile(HandleScript script);
 ion::MethodStatus SpewEndCompile(ion::MethodStatus status);
@@ -366,7 +441,8 @@ void SpewBailoutIR(uint32_t bblockId, uint32_t lirId,
 static inline bool SpewEnabled(SpewChannel channel) { return false; }
 static inline void Spew(SpewChannel channel, const char *fmt, ...) { }
 static inline void SpewBeginOp(JSContext *cx, const char *name) { }
-static inline void SpewBailout(uint32_t count) {}
+static inline void SpewBailout(uint32_t count, HandleScript script,
+                               jsbytecode *pc, ParallelBailoutCause cause) {}
 static inline ExecutionStatus SpewEndOp(ExecutionStatus status) { return status; }
 static inline void SpewBeginCompile(HandleScript script) { }
 #ifdef JS_ION

@@ -206,10 +206,10 @@ CodeGeneratorARM::bailoutFrom(Label *label, LSnapshot *snapshot)
     switch (info.executionMode()) {
       case ParallelExecution: {
         
-        Label *ool;
-        if (!ensureOutOfLineParallelAbort(&ool))
-            return false;
-        masm.retarget(label, ool);
+        OutOfLineParallelAbort *ool = oolParallelAbort(ParallelBailoutUnsupported,
+                                                       snapshot->mir()->block(),
+                                                       snapshot->mir()->pc());
+        masm.retarget(label, ool->entry());
         return true;
       }
       case SequentialExecution:

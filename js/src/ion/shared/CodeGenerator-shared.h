@@ -26,6 +26,7 @@ class CodeGenerator;
 class MacroAssembler;
 class IonCache;
 class OutOfLineParallelAbort;
+class OutOfLinePropagateParallelAbort;
 
 template <class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
@@ -36,7 +37,6 @@ class CodeGeneratorShared : public LInstructionVisitor
 {
     js::Vector<OutOfLineCode *, 0, SystemAllocPolicy> outOfLineCode_;
     OutOfLineCode *oolIns;
-    OutOfLineParallelAbort *oolParallelAbort_;
 
     MacroAssembler &ensureMasm(MacroAssembler *masm);
     mozilla::Maybe<MacroAssembler> maybeMasm_;
@@ -344,13 +344,28 @@ class CodeGeneratorShared : public LInstructionVisitor
     bool visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool);
 
   public:
-    
-    
-    virtual bool visitOutOfLineParallelAbort(OutOfLineParallelAbort *ool) = 0;
     bool callTraceLIR(uint32_t blockIndex, LInstruction *lir, const char *bailoutName = NULL);
 
-  protected:
-    bool ensureOutOfLineParallelAbort(Label **result);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    OutOfLineParallelAbort *oolParallelAbort(ParallelBailoutCause cause,
+                                             MBasicBlock *basicBlock,
+                                             jsbytecode *bytecode);
+    OutOfLineParallelAbort *oolParallelAbort(ParallelBailoutCause cause,
+                                             LInstruction *lir);
+    OutOfLinePropagateParallelAbort *oolPropagateParallelAbort(LInstruction *lir);
+    virtual bool visitOutOfLineParallelAbort(OutOfLineParallelAbort *ool) = 0;
+    virtual bool visitOutOfLinePropagateParallelAbort(OutOfLinePropagateParallelAbort *ool) = 0;
 };
 
 
@@ -596,9 +611,47 @@ CodeGeneratorShared::visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo>
 
 class OutOfLineParallelAbort : public OutOfLineCode
 {
+  private:
+    ParallelBailoutCause cause_;
+    MBasicBlock *basicBlock_;
+    jsbytecode *bytecode_;
+
   public:
-    OutOfLineParallelAbort()
+    OutOfLineParallelAbort(ParallelBailoutCause cause,
+                           MBasicBlock *basicBlock,
+                           jsbytecode *bytecode)
+      : cause_(cause),
+        basicBlock_(basicBlock),
+        bytecode_(bytecode)
     { }
+
+    ParallelBailoutCause cause() {
+        return cause_;
+    }
+
+    MBasicBlock *basicBlock() {
+        return basicBlock_;
+    }
+
+    jsbytecode *bytecode() {
+        return bytecode_;
+    }
+
+    bool generate(CodeGeneratorShared *codegen);
+};
+
+
+class OutOfLinePropagateParallelAbort : public OutOfLineCode
+{
+  private:
+    LInstruction *lir_;
+
+  public:
+    OutOfLinePropagateParallelAbort(LInstruction *lir)
+      : lir_(lir)
+    { }
+
+    LInstruction *lir() { return lir_; }
 
     bool generate(CodeGeneratorShared *codegen);
 };
