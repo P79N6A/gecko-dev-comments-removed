@@ -67,6 +67,11 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32 argc, Value *argv, Value *
                 ForbidCompilation(cx, script);
             }
         }
+
+        
+        
+        
+        fun->nonLazyScript()->incUseCount(js_IonOptions.slowCallIncUseCount);
     }
 
     
