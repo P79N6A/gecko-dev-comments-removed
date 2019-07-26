@@ -24,7 +24,8 @@ namespace dom {
 Link::Link(Element *aElement)
   : mElement(aElement)
   , mHistory(services::GetHistoryService())
-  , mLinkState(defaultState)
+  , mLinkState(eLinkState_NotLink)
+  , mNeedsRegistration(false)
   , mRegistered(false)
 {
   NS_ABORT_IF_FALSE(mElement, "Must have an element");
@@ -35,13 +36,18 @@ Link::~Link()
   UnregisterFromHistory();
 }
 
+bool
+Link::ElementHasHref() const
+{
+  return ((!mElement->IsSVG() && mElement->HasAttr(kNameSpaceID_None, nsGkAtoms::href))
+        || (!mElement->IsHTML() && mElement->HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)));
+}
+
 nsLinkState
 Link::GetLinkState() const
 {
   NS_ASSERTION(mRegistered,
                "Getting the link state of an unregistered Link!");
-  NS_ASSERTION(mLinkState != eLinkState_Unknown,
-               "Getting the link state with an unknown value!");
   return nsLinkState(mLinkState);
 }
 
@@ -74,36 +80,28 @@ Link::LinkState() const
   
   Link *self = const_cast<Link *>(this);
 
-  
   Element *element = self->mElement;
-  if (!element->IsInDoc()) {
-    self->mLinkState = eLinkState_Unvisited;
-  }
 
   
   
-  if (!mRegistered && mLinkState == eLinkState_Unknown) {
+  if (!mRegistered && mNeedsRegistration && element->IsInDoc()) {
     
+    self->mNeedsRegistration = false;
+
     nsCOMPtr<nsIURI> hrefURI(GetURI());
-    if (!hrefURI) {
-      self->mLinkState = eLinkState_NotLink;
-      return nsEventStates();
-    }
 
     
     self->mLinkState = eLinkState_Unvisited;
 
     
-    if (mHistory) {
+    
+    if (mHistory && hrefURI) {
       nsresult rv = mHistory->RegisterVisitedCallback(hrefURI, self);
       if (NS_SUCCEEDED(rv)) {
         self->mRegistered = true;
 
         
-        nsIDocument *doc = element->GetCurrentDoc();
-        if (doc) {
-          doc->AddStyleRelevantLink(self);
-        }
+        doc->GetCurrentDoc()->AddStyleRelevantLink(self);
       }
     }
   }
@@ -136,7 +134,7 @@ Link::GetURI() const
   uri = element->GetHrefURI();
 
   
-  if (uri && element->IsInDoc()) {
+  if (uri) {
     mCachedURI = uri;
   }
 
@@ -424,29 +422,42 @@ Link::GetHash(nsAString &_hash)
 }
 
 void
-Link::ResetLinkState(bool aNotify)
+Link::ResetLinkState(bool aNotify, bool aHasHref)
 {
-  
-  if (mLinkState == defaultState) {
-    return;
-  }
-
-  Element *element = mElement;
+  nsLinkState defaultState;
 
   
-  nsIDocument *doc = element->GetCurrentDoc();
-  if (doc && mLinkState != eLinkState_NotLink) {
-    doc->ForgetLink(this);
+  if (aHasHref) {
+    defaultState = eLinkState_Unvisited;
+  } else {
+    defaultState = eLinkState_NotLink;
   }
 
-  UnregisterFromHistory();
+  
+  
+  
+  if (!mNeedsRegistration && mLinkState != eLinkState_NotLink) {
+    nsIDocument *doc = mElement->GetCurrentDoc();
+    if (doc && (mRegistered || mLinkState == eLinkState_Visited)) {
+      
+      
+      doc->ForgetLink(this);
+    }
+
+    UnregisterFromHistory();
+  }
+
+  
+  mNeedsRegistration = aHasHref;
+
+  
+  mCachedURI = nullptr;
 
   
   mLinkState = defaultState;
 
   
-  mCachedURI = nullptr;
-
+  
   
   
   
@@ -456,7 +467,11 @@ Link::ResetLinkState(bool aNotify)
   if (aNotify) {
     mElement->UpdateState(aNotify);
   } else {
-    mElement->UpdateLinkState(nsEventStates());
+    if (mLinkState == eLinkState_Unvisited) {
+      mElement->UpdateLinkState(NS_EVENT_STATE_UNVISITED);
+    } else {
+      mElement->UpdateLinkState(nsEventStates());
+    }
   }
 }
 

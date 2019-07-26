@@ -212,7 +212,7 @@ nsHTMLLinkElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers)
 {
-  Link::ResetLinkState(false);
+  Link::ResetLinkState(false, Link::ElementHasHref());
 
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument, aParent,
                                                  aBindingParent,
@@ -250,7 +250,7 @@ nsHTMLLinkElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   
   
-  Link::ResetLinkState(false);
+  Link::ResetLinkState(false, Link::ElementHasHref());
 
   
   
@@ -322,7 +322,7 @@ nsHTMLLinkElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   
   
   if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    Link::ResetLinkState(!!aNotify);
+    Link::ResetLinkState(!!aNotify, true);
   }
 
   if (NS_SUCCEEDED(rv) && aNameSpaceID == kNameSpaceID_None &&
@@ -370,7 +370,7 @@ nsHTMLLinkElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
   
   
   if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    Link::ResetLinkState(!!aNotify);
+    Link::ResetLinkState(!!aNotify, false);
   }
 
   return rv;

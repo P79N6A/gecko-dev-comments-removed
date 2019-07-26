@@ -28,8 +28,6 @@ class Link : public nsISupports
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
 
-  static const nsLinkState defaultState = eLinkState_Unknown;
-
   
 
 
@@ -77,7 +75,7 @@ public:
 
 
 
-  void ResetLinkState(bool aNotify);
+  void ResetLinkState(bool aNotify, bool aHasHref);
   
   
   Element* GetElement() const { return mElement; }
@@ -102,6 +100,8 @@ public:
 
   virtual size_t
     SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
+  bool ElementHasHref() const;
 
 protected:
   virtual ~Link();
@@ -140,6 +140,8 @@ private:
   nsCOMPtr<IHistory> mHistory;
 
   uint16_t mLinkState;
+
+  bool mNeedsRegistration;
 
   bool mRegistered;
 };

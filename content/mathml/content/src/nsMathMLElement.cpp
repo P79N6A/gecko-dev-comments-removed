@@ -48,7 +48,7 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 {
   static const char kMathMLStyleSheetURI[] = "resource://gre-resources/mathml.css";
 
-  Link::ResetLinkState(false);
+  Link::ResetLinkState(false, Link::ElementHasHref());
 
   nsresult rv = nsMathMLElementBase::BindToTree(aDocument, aParent,
                                                 aBindingParent,
@@ -83,7 +83,7 @@ nsMathMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   
   
-  Link::ResetLinkState(false);
+  Link::ResetLinkState(false, Link::ElementHasHref());
   
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
@@ -793,7 +793,7 @@ nsMathMLElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   if (aName == nsGkAtoms::href &&
       (aNameSpaceID == kNameSpaceID_None ||
        aNameSpaceID == kNameSpaceID_XLink)) {
-    Link::ResetLinkState(!!aNotify);
+    Link::ResetLinkState(!!aNotify, true);
   }
 
   return rv;
@@ -813,7 +813,9 @@ nsMathMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
   if (aAttr == nsGkAtoms::href &&
       (aNameSpaceID == kNameSpaceID_None ||
        aNameSpaceID == kNameSpaceID_XLink)) {
-    Link::ResetLinkState(!!aNotify);
+    
+    
+    Link::ResetLinkState(!!aNotify, Link::ElementHasHref());
   }
 
   return rv;
