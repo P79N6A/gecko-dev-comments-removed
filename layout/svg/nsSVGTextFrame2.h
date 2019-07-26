@@ -294,7 +294,7 @@ public:
 
 
 
-  void UpdateFontSizeScaleFactor(bool aForceGlobalTransform);
+  void UpdateFontSizeScaleFactor();
 
   double GetFontSizeScaleFactor() const;
 
@@ -389,7 +389,7 @@ private:
   
 
 
-  void DoReflow(bool aForceGlobalTransform);
+  void DoReflow();
 
   
 
@@ -399,11 +399,7 @@ private:
   
 
 
-
-
-
-
-  void UpdateGlyphPositioning(bool aForceGlobalTransform);
+  void UpdateGlyphPositioning();
 
   
 
@@ -623,6 +619,13 @@ private:
   float mFontSizeScaleFactor;
 
   
+
+
+
+
+
+
+
 
 
 
