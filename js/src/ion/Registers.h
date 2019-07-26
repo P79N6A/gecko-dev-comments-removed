@@ -19,7 +19,7 @@
 #include "ion/FixedArityList.h"
 
 
-#if !defined(JS_CPU_ARM) && defined(JS_METHODJIT)
+#if !defined(JS_CPU_ARM)
 #include "assembler/assembler/MacroAssembler.h"
 #endif
 
