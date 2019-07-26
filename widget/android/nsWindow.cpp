@@ -2198,6 +2198,12 @@ nsWindow::SetInputContext(const InputContext& aContext,
 
     mInputContext.mIMEState.mEnabled = enabled;
 
+    if (enabled == IMEState::ENABLED && aAction.UserMightRequestOpenVKB()) {
+        
+        AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_OPEN_VKB);
+        return;
+    }
+
     if (mIMEUpdatingContext) {
         return;
     }

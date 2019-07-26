@@ -48,6 +48,7 @@ interface GeckoEditableClient {
 
 interface GeckoEditableListener {
     
+    final int NOTIFY_IME_OPEN_VKB = -2;
     final int NOTIFY_IME_REPLY_EVENT = -1;
     final int NOTIFY_IME_OF_FOCUS = 1;
     final int NOTIFY_IME_OF_BLUR = 2;
