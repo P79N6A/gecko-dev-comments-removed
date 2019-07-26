@@ -100,6 +100,112 @@ public:
   }
 };
 
+class ProfilerMarkerPayload;
+class ProfilerMarkerLinkedList;
+class JSAObjectBuilder;
+class JSCustomArray;
+class ThreadProfile;
+class ProfilerMarker {
+  friend class ProfilerMarkerLinkedList;
+public:
+  ProfilerMarker(const char* aMarkerName,
+         ProfilerMarkerPayload* aPayload = nullptr);
+
+  ~ProfilerMarker();
+
+  const char* GetMarkerName() const {
+    return mMarkerName;
+  }
+
+  template<typename Builder> void
+  BuildJSObject(Builder& b, typename Builder::ArrayHandle markers) const;
+
+  void SetGeneration(int aGenID);
+
+  bool HasExpired(int aGenID) const {
+    return mGenID + 2 <= aGenID;
+  }
+
+private:
+  char* mMarkerName;
+  ProfilerMarkerPayload* mPayload;
+  ProfilerMarker* mNext;
+  int mGenID;
+};
+
+class ProfilerMarkerLinkedList {
+public:
+  ProfilerMarkerLinkedList()
+    : mHead(nullptr)
+    , mTail(nullptr)
+  {}
+
+  void insert(ProfilerMarker* elem);
+  ProfilerMarker* popHead();
+
+  const ProfilerMarker* peek() {
+    return mHead;
+  }
+
+private:
+  ProfilerMarker* mHead;
+  ProfilerMarker* mTail;
+};
+
+class PendingMarkers {
+public:
+  PendingMarkers()
+    : mSignalLock(false)
+  {}
+
+  ~PendingMarkers();
+
+  void addMarker(ProfilerMarker *aMarker);
+
+  void updateGeneration(int aGenID);
+
+  
+
+
+
+
+  void addStoredMarker(ProfilerMarker *aStoredMarker);
+
+  
+  ProfilerMarkerLinkedList* getPendingMarkers()
+  {
+    
+    
+    
+    
+    
+    if (mSignalLock) {
+      return nullptr;
+    }
+    return &mPendingMarkers;
+  }
+
+  void clearMarkers()
+  {
+    while (mPendingMarkers.peek()) {
+      delete mPendingMarkers.popHead();
+    }
+    while (mStoredMarkers.peek()) {
+      delete mStoredMarkers.popHead();
+    }
+  }
+
+private:
+  
+  ProfilerMarkerLinkedList mPendingMarkers;
+  ProfilerMarkerLinkedList mStoredMarkers;
+  
+  volatile bool mSignalLock;
+  
+  
+  volatile mozilla::sig_safe_t mGenID;
+};
+
 
 
 struct PseudoStack
@@ -107,18 +213,13 @@ struct PseudoStack
 public:
   PseudoStack()
     : mStackPointer(0)
-    , mSignalLock(false)
-    , mMarkerPointer(0)
-    , mQueueClearMarker(false)
     , mRuntime(nullptr)
     , mStartJSSampling(false)
     , mPrivacyMode(false)
   { }
 
   ~PseudoStack() {
-    clearMarkers();
-    if (mStackPointer != 0 || mSignalLock != false ||
-        mMarkerPointer != 0) {
+    if (mStackPointer != 0) {
       
       
       
@@ -127,53 +228,24 @@ public:
     }
   }
 
-  void addMarker(const char *aMarker)
+  void addMarker(const char *aMarkerStr, ProfilerMarkerPayload *aPayload)
   {
-    char* markerCopy = strdup(aMarker);
-    mSignalLock = true;
-    STORE_SEQUENCER();
+    ProfilerMarker* marker = new ProfilerMarker(aMarkerStr, aPayload);
+    mPendingMarkers.addMarker(marker);
+  }
 
-    if (mQueueClearMarker) {
-      clearMarkers();
-    }
-    if (!aMarker) {
-      return; 
-    }
-    if (size_t(mMarkerPointer) == mozilla::ArrayLength(mMarkers)) {
-      return; 
-    }
-    mMarkers[mMarkerPointer] = markerCopy;
-    mMarkerPointer++;
+  void addStoredMarker(ProfilerMarker *aStoredMarker) {
+    mPendingMarkers.addStoredMarker(aStoredMarker);
+  }
 
-    mSignalLock = false;
-    STORE_SEQUENCER();
+  void updateGeneration(int aGenID) {
+    mPendingMarkers.updateGeneration(aGenID);
   }
 
   
-  const char* getMarker(int aMarkerId)
+  ProfilerMarkerLinkedList* getPendingMarkers()
   {
-    
-    
-    
-    
-    
-    
-    
-    if (mSignalLock || mQueueClearMarker || aMarkerId < 0 ||
-      static_cast<mozilla::sig_safe_t>(aMarkerId) >= mMarkerPointer) {
-      return nullptr;
-    }
-    return mMarkers[aMarkerId];
-  }
-
-  
-  void clearMarkers()
-  {
-    for (mozilla::sig_safe_t i = 0; i < mMarkerPointer; i++) {
-      free(mMarkers[i]);
-    }
-    mMarkerPointer = 0;
-    mQueueClearMarker = false;
+    return mPendingMarkers.getPendingMarkers();
   }
 
   void push(const char *aName, uint32_t line)
@@ -246,19 +318,14 @@ public:
 
   
   StackEntry volatile mStack[1024];
-  
-  char* mMarkers[1024];
  private:
   
   
+  PendingMarkers mPendingMarkers;
+  
+  
   mozilla::sig_safe_t mStackPointer;
-  
-  volatile bool mSignalLock;
  public:
-  volatile mozilla::sig_safe_t mMarkerPointer;
-  
-  
-  volatile mozilla::sig_safe_t mQueueClearMarker;
   
   JSRuntime *mRuntime;
   

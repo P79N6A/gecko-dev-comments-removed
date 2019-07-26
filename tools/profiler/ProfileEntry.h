@@ -21,6 +21,7 @@ public:
   
   ProfileEntry(char aTagName, const char *aTagData);
   ProfileEntry(char aTagName, void *aTagPtr);
+  ProfileEntry(char aTagName, ProfilerMarker *aTagMarker);
   ProfileEntry(char aTagName, double aTagFloat);
   ProfileEntry(char aTagName, uintptr_t aTagOffset);
   ProfileEntry(char aTagName, Address aTagAddress);
@@ -32,6 +33,10 @@ public:
   bool is_ent(char tagName);
   void* get_tagPtr();
   void log();
+  const ProfilerMarker* getMarker() {
+    MOZ_ASSERT(mTagName == 'm');
+    return mTagMarker;
+  }
 
   char getTagName() const { return mTagName; }
 
@@ -41,6 +46,7 @@ private:
     const char* mTagData;
     char        mTagChars[sizeof(void*)];
     void*       mTagPtr;
+    ProfilerMarker* mTagMarker;
     double      mTagFloat;
     Address     mTagAddress;
     uintptr_t   mTagOffset;
@@ -77,6 +83,10 @@ public:
   int ThreadId() const { return mThreadId; }
 
   PlatformData* GetPlatformData() { return mPlatformData; }
+  int GetGenerationID() const { return mGeneration; }
+  bool HasGenerationExpired(int aGenID) {
+    return aGenID + 2 <= mGeneration;
+  }
   void* GetStackTop() const { return mStackTop; }
 private:
   
@@ -92,6 +102,8 @@ private:
   int            mThreadId;
   bool           mIsMainThread;
   PlatformData*  mPlatformData;  
+  int            mGeneration;
+  int            mPendingGenerationFlush;
   void* const    mStackTop;
 };
 

@@ -23,6 +23,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "mozilla/Services.h"
 #include "nsThreadUtils.h"
+#include "ProfilerMarkers.h"
 
 #if defined(SPS_OS_android) && !defined(MOZ_WIDGET_GONK)
   #include "AndroidBridge.h"
@@ -90,6 +91,113 @@ ThreadInfo::~ThreadInfo() {
     delete mProfile;
 
   Sampler::FreePlatformData(mPlatformData);
+}
+
+ProfilerMarker::ProfilerMarker(const char* aMarkerName,
+    ProfilerMarkerPayload* aPayload)
+  : mMarkerName(strdup(aMarkerName))
+  , mPayload(aPayload)
+{
+}
+
+ProfilerMarker::~ProfilerMarker() {
+  free(mMarkerName);
+  delete mPayload;
+}
+
+void
+ProfilerMarker::SetGeneration(int aGenID) {
+  mGenID = aGenID;
+}
+
+template<typename Builder> void
+ProfilerMarker::BuildJSObject(Builder& b, typename Builder::ArrayHandle markers) const {
+  typename Builder::RootedObject marker(b.context(), b.CreateObject());
+  b.DefineProperty(marker, "name", GetMarkerName());
+  
+  
+  
+  if (mPayload) {
+    typename Builder::RootedObject markerData(b.context(),
+                                              mPayload->PreparePayload(b));
+    b.DefineProperty(marker, "data", markerData);
+  }
+  b.ArrayPush(markers, marker);
+}
+
+template void
+ProfilerMarker::BuildJSObject<JSCustomObjectBuilder>(JSCustomObjectBuilder& b,
+                              JSCustomObjectBuilder::ArrayHandle markers) const;
+template void
+ProfilerMarker::BuildJSObject<JSObjectBuilder>(JSObjectBuilder& b,
+                                    JSObjectBuilder::ArrayHandle markers) const;
+
+void
+ProfilerMarkerLinkedList::insert(ProfilerMarker* elem) {
+  if (!mTail) {
+    mHead = elem;
+    mTail = elem;
+  } else {
+    mTail->mNext = elem;
+    mTail = elem;
+  }
+  elem->mNext = nullptr;
+}
+
+ProfilerMarker*
+ProfilerMarkerLinkedList::popHead() {
+  if (!mHead) {
+    MOZ_ASSERT(false);
+    return nullptr;
+  }
+
+  ProfilerMarker* head = mHead;
+
+  mHead = head->mNext;
+  if (!mHead) {
+    mTail = nullptr;
+  }
+
+  return head;
+}
+
+PendingMarkers::~PendingMarkers() {
+  clearMarkers();
+  if (mSignalLock != false) {
+    
+    
+    
+    
+    abort();
+  }
+}
+
+void
+PendingMarkers::addMarker(ProfilerMarker *aMarker) {
+  mSignalLock = true;
+  STORE_SEQUENCER();
+
+  MOZ_ASSERT(aMarker);
+  mPendingMarkers.insert(aMarker);
+
+  
+  while (mStoredMarkers.peek() &&
+         mStoredMarkers.peek()->HasExpired(mGenID)) {
+    delete mStoredMarkers.popHead();
+  } 
+  STORE_SEQUENCER();
+  mSignalLock = false;
+}
+
+void
+PendingMarkers::updateGeneration(int aGenID) {
+  mGenID = aGenID;
+}
+
+void
+PendingMarkers::addStoredMarker(ProfilerMarker *aStoredMarker) {
+  aStoredMarker->SetGeneration(mGenID);
+  mStoredMarkers.insert(aStoredMarker);
 }
 
 bool sps_version2()

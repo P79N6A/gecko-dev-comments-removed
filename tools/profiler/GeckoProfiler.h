@@ -76,6 +76,7 @@ class TimeStamp;
 
 
 #define PROFILER_MARKER(info) do {} while (0)
+#define PROFILER_MARKER_PAYLOAD(info, payload) do {} while (0)
 
 
 #define PROFILER_MAIN_THREAD_LABEL(name_space, info) do {} while (0)
