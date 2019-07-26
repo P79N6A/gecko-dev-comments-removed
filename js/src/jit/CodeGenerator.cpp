@@ -4305,7 +4305,8 @@ CodeGenerator::visitConcat(LConcat *lir)
     JS_ASSERT(ToRegister(lir->temp1()) == CallTempReg2);
     JS_ASSERT(ToRegister(lir->temp2()) == CallTempReg3);
     JS_ASSERT(ToRegister(lir->temp3()) == CallTempReg4);
-    JS_ASSERT(output == CallTempReg5);
+    JS_ASSERT(ToRegister(lir->temp4()) == CallTempReg5);
+    JS_ASSERT(output == CallTempReg6);
 
     return emitConcat(lir, lhs, rhs, output);
 }
@@ -4320,10 +4321,11 @@ CodeGenerator::visitConcatPar(LConcatPar *lir)
 
     JS_ASSERT(lhs == CallTempReg0);
     JS_ASSERT(rhs == CallTempReg1);
-    JS_ASSERT((Register)slice == CallTempReg4);
+    JS_ASSERT((Register)slice == CallTempReg5);
     JS_ASSERT(ToRegister(lir->temp1()) == CallTempReg2);
     JS_ASSERT(ToRegister(lir->temp2()) == CallTempReg3);
-    JS_ASSERT(output == CallTempReg5);
+    JS_ASSERT(ToRegister(lir->temp3()) == CallTempReg4);
+    JS_ASSERT(output == CallTempReg6);
 
     return emitConcat(lir, lhs, rhs, output);
 }
@@ -4363,12 +4365,13 @@ IonCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
     Register temp1 = CallTempReg2;
     Register temp2 = CallTempReg3;
     Register temp3 = CallTempReg4;
-    Register output = CallTempReg5;
+    Register temp4 = CallTempReg5;
+    Register output = CallTempReg6;
 
     
     
     
-    Register forkJoinSlice = CallTempReg4;
+    Register forkJoinSlice = CallTempReg5;
 
     Label failure, failurePopTemps;
 
@@ -4464,14 +4467,13 @@ IonCompartment::generateStringConcatStub(JSContext *cx, ExecutionMode mode)
 
     
     
-    
-    masm.loadPtr(Address(lhs, JSString::offsetOfChars()), lhs);
-    CopyStringChars(masm, temp2, lhs, temp1, temp3);
+    masm.loadPtr(Address(lhs, JSString::offsetOfChars()), temp3);
+    CopyStringChars(masm, temp2, temp3, temp1, temp4);
 
     
+    masm.loadPtr(Address(rhs, JSString::offsetOfChars()), temp3);
     masm.loadStringLength(rhs, temp1);
-    masm.loadPtr(Address(rhs, JSString::offsetOfChars()), rhs);
-    CopyStringChars(masm, temp2, rhs, temp1, temp3);
+    CopyStringChars(masm, temp2, temp3, temp1, temp4);
 
     
     masm.store16(Imm32(0), Address(temp2, 0));
