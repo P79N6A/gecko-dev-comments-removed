@@ -482,12 +482,24 @@ bool
 MediaBufferDecoder::EnsureThreadPoolInitialized()
 {
   if (!mThreadPool) {
-    mThreadPool = SharedThreadPool::Get(NS_LITERAL_CSTRING("MediaBufferDecoder"));
+    mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
     if (!mThreadPool) {
       return false;
     }
+    mThreadPool->SetName(NS_LITERAL_CSTRING("MediaBufferDecoder"));
   }
   return true;
+}
+
+void
+MediaBufferDecoder::Shutdown() {
+  if (mThreadPool) {
+    
+    
+    
+    mThreadPool->SetThreadLimit(0);
+    mThreadPool = nullptr;
+  }
 }
 
 WebAudioDecodeJob::WebAudioDecodeJob(const nsACString& aContentType,
