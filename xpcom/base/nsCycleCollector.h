@@ -81,6 +81,11 @@ struct nsCycleCollectionJSRuntime
 
 
     virtual nsCycleCollectionParticipant *GetParticipant() = 0;
+
+#ifdef DEBUG
+    virtual void SetObjectToUnlink(void* aObject) = 0;
+    virtual void AssertNoObjectsToTrace(void* aPossibleJSHolder) = 0;
+#endif
 };
 
 
