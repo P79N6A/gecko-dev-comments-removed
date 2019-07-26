@@ -2356,6 +2356,8 @@ var gCSSProperties = {
 		prerequisites: { "float": "none", "position": "static" },
 		other_values: [
 			"block",
+			"flex",
+			"inline-flex",
 			"list-item",
 			"inline-block",
 			"table",
@@ -3694,6 +3696,170 @@ var gCSSProperties = {
 		other_values: [ "non-scaling-stroke" ],
 		invalid_values: []
 	},
+	"align-items": {
+		domProp: "alignItems",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "stretch" ],
+		other_values: [ "flex-start", "flex-end", "center", "baseline" ],
+		invalid_values: [ "space-between", "abc", "30px" ]
+	},
+	"align-self": {
+		domProp: "alignSelf",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		
+		initial_values: [ "auto", "stretch" ],
+		other_values: [ "flex-start", "flex-end", "center", "baseline" ],
+		invalid_values: [ "space-between", "abc", "30px" ]
+	},
+	"flex": {
+		domProp: "flex",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"flex-grow",
+			"flex-shrink",
+			"flex-basis"
+		],
+		initial_values: [ "0 1 auto", "auto 0 1", "0 auto", "auto 0" ],
+		other_values: [
+			"none",
+			"1",
+			"0",
+			"0 1",
+			"0.5",
+			"1.2 3.4",
+			"0 0 0",
+			"0 0 0px",
+			"0px 0 0",
+			"5px 0 0",
+			"2 auto",
+			"auto 4",
+			"auto 5.6 7.8",
+			"-moz-max-content",
+			"1 -moz-max-content",
+			"1 2 -moz-max-content",
+			"-moz-max-content 1",
+			"-moz-max-content 1 2",
+			"-0"
+		],
+		invalid_values: [
+			"1 2px 3",
+			"1 auto 3",
+			"1px 2 3px",
+			"1px 2 3 4px",
+			"-1",
+			"1 -1"
+		]
+	},
+	"flex-basis": {
+		domProp: "flexBasis",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ " auto" ],
+        
+        
+        
+        
+        
+		other_values: [ "15px", "3em", "15%", "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
+			
+			"calc(-2px)",
+			"calc(2px)",
+			"calc(50%)",
+			"calc(50% + 2px)",
+			"calc( 50% + 2px)",
+			"calc(50% + 2px )",
+			"calc( 50% + 2px )",
+			"calc(50% - -2px)",
+			"calc(2px - -50%)",
+			"calc(3*25px)",
+			"calc(3 *25px)",
+			"calc(3 * 25px)",
+			"calc(3* 25px)",
+			"calc(25px*3)",
+			"calc(25px *3)",
+			"calc(25px* 3)",
+			"calc(25px * 3)",
+			"calc(3*25px + 50%)",
+			"calc(50% - 3em + 2px)",
+			"calc(50% - (3em + 2px))",
+			"calc((50% - 3em) + 2px)",
+			"calc(2em)",
+			"calc(50%)",
+			"calc(50px/2)",
+			"calc(50px/(2 - 1))"
+		],
+		invalid_values: [ "none", "-2px",
+			
+			"calc(50%+ 2px)",
+			"calc(50% +2px)",
+			"calc(50%+2px)",
+			"-moz-min()",
+			"calc(min())",
+			"-moz-max()",
+			"calc(max())",
+			"-moz-min(5px)",
+			"calc(min(5px))",
+			"-moz-max(5px)",
+			"calc(max(5px))",
+			"-moz-min(5px,2em)",
+			"calc(min(5px,2em))",
+			"-moz-max(5px,2em)",
+			"calc(max(5px,2em))",
+			"calc(50px/(2 - 2))",
+			
+			
+			
+			
+			
+			"calc((3em / 100%) * 3em)",
+			"calc(3em / 100% * 3em)",
+			"calc(3em * (3em / 100%))",
+			"calc(3em * 3em / 100%)"
+		]
+	},
+	"flex-direction": {
+		domProp: "flexDirection",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "row" ],
+		other_values: [ "row-reverse", "column", "column-reverse" ],
+		invalid_values: [ "10px", "30%", "justify", "column wrap" ]
+	},
+	"flex-grow": {
+		domProp: "flexGrow",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "0" ],
+		other_values: [ "3", "1", "1.0", "2.5", "123" ],
+		invalid_values: [ "0px", "-5", "1%", "3em", "stretch", "auto" ]
+	},
+	"flex-shrink": {
+		domProp: "flexShrink",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "1" ],
+		other_values: [ "3", "0", "0.0", "2.5", "123" ],
+		invalid_values: [ "0px", "-5", "1%", "3em", "stretch", "auto" ]
+	},
+	"order": {
+		domProp: "order",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "0" ],
+		other_values: [ "1", "99999", "-1", "-50" ],
+		invalid_values: [ "0px", "1.0", "1.", "1%", "0.2", "3em", "stretch" ]
+	},
+	"justify-content": {
+		domProp: "justifyContent",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "flex-start" ],
+		other_values: [ "flex-end", "center", "space-between", "space-around" ],
+		invalid_values: [ "baseline", "stretch", "30px", "5%" ]
+	},
 
 	
 	"-moz-transform": {
@@ -4066,182 +4232,6 @@ function get_computed_value(cs, property)
 	if (info.get_computed)
 		return info.get_computed(cs, property);
 	return cs.getPropertyValue(property);
-}
-
-
-
-if (SpecialPowers.getBoolPref("layout.css.flexbox.enabled")) {
-	var flexProperties = {
-	"align-items": {
-		domProp: "alignItems",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "stretch" ],
-		other_values: [ "flex-start", "flex-end", "center", "baseline" ],
-		invalid_values: [ "space-between", "abc", "30px" ]
-	},
-	"align-self": {
-		domProp: "alignSelf",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		
-		initial_values: [ "auto", "stretch" ],
-		other_values: [ "flex-start", "flex-end", "center", "baseline" ],
-		invalid_values: [ "space-between", "abc", "30px" ]
-	},
-	"flex": {
-		domProp: "flex",
-		inherited: false,
-		type: CSS_TYPE_TRUE_SHORTHAND,
-		subproperties: [
-			"flex-grow",
-			"flex-shrink",
-			"flex-basis"
-		],
-		initial_values: [ "0 1 auto", "auto 0 1", "0 auto", "auto 0" ],
-		other_values: [
-			"none",
-			"1",
-			"0",
-			"0 1",
-			"0.5",
-			"1.2 3.4",
-			"0 0 0",
-			"0 0 0px",
-			"0px 0 0",
-			"5px 0 0",
-			"2 auto",
-			"auto 4",
-			"auto 5.6 7.8",
-			"-moz-max-content",
-			"1 -moz-max-content",
-			"1 2 -moz-max-content",
-			"-moz-max-content 1",
-			"-moz-max-content 1 2",
-			"-0"
-		],
-		invalid_values: [
-			"1 2px 3",
-			"1 auto 3",
-			"1px 2 3px",
-			"1px 2 3 4px",
-			"-1",
-			"1 -1"
-		]
-	},
-	"flex-basis": {
-		domProp: "flexBasis",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ " auto" ],
-        
-        
-        
-        
-        
-		other_values: [ "15px", "3em", "15%", "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available",
-			
-			"calc(-2px)",
-			"calc(2px)",
-			"calc(50%)",
-			"calc(50% + 2px)",
-			"calc( 50% + 2px)",
-			"calc(50% + 2px )",
-			"calc( 50% + 2px )",
-			"calc(50% - -2px)",
-			"calc(2px - -50%)",
-			"calc(3*25px)",
-			"calc(3 *25px)",
-			"calc(3 * 25px)",
-			"calc(3* 25px)",
-			"calc(25px*3)",
-			"calc(25px *3)",
-			"calc(25px* 3)",
-			"calc(25px * 3)",
-			"calc(3*25px + 50%)",
-			"calc(50% - 3em + 2px)",
-			"calc(50% - (3em + 2px))",
-			"calc((50% - 3em) + 2px)",
-			"calc(2em)",
-			"calc(50%)",
-			"calc(50px/2)",
-			"calc(50px/(2 - 1))"
-		],
-		invalid_values: [ "none", "-2px",
-			
-			"calc(50%+ 2px)",
-			"calc(50% +2px)",
-			"calc(50%+2px)",
-			"-moz-min()",
-			"calc(min())",
-			"-moz-max()",
-			"calc(max())",
-			"-moz-min(5px)",
-			"calc(min(5px))",
-			"-moz-max(5px)",
-			"calc(max(5px))",
-			"-moz-min(5px,2em)",
-			"calc(min(5px,2em))",
-			"-moz-max(5px,2em)",
-			"calc(max(5px,2em))",
-			"calc(50px/(2 - 2))",
-			
-			
-			
-			
-			
-			"calc((3em / 100%) * 3em)",
-			"calc(3em / 100% * 3em)",
-			"calc(3em * (3em / 100%))",
-			"calc(3em * 3em / 100%)"
-		]
-	},
-	"flex-direction": {
-		domProp: "flexDirection",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "row" ],
-		other_values: [ "row-reverse", "column", "column-reverse" ],
-		invalid_values: [ "10px", "30%", "justify", "column wrap" ]
-	},
-	"flex-grow": {
-		domProp: "flexGrow",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "0" ],
-		other_values: [ "3", "1", "1.0", "2.5", "123" ],
-		invalid_values: [ "0px", "-5", "1%", "3em", "stretch", "auto" ]
-	},
-	"flex-shrink": {
-		domProp: "flexShrink",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "1" ],
-		other_values: [ "3", "0", "0.0", "2.5", "123" ],
-		invalid_values: [ "0px", "-5", "1%", "3em", "stretch", "auto" ]
-	},
-	"order": {
-		domProp: "order",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "0" ],
-		other_values: [ "1", "99999", "-1", "-50" ],
-		invalid_values: [ "0px", "1.0", "1.", "1%", "0.2", "3em", "stretch" ]
-	},
-	"justify-content": {
-		domProp: "justifyContent",
-		inherited: false,
-		type: CSS_TYPE_LONGHAND,
-		initial_values: [ "flex-start" ],
-		other_values: [ "flex-end", "center", "space-between", "space-around" ],
-		invalid_values: [ "baseline", "stretch", "30px", "5%" ]
-	}
-	};
-	for (var prop in flexProperties) {
-		gCSSProperties[prop] = flexProperties[prop];
-	}
-	gCSSProperties["display"].other_values.push("flex");
-	gCSSProperties["display"].other_values.push("inline-flex");
 }
 
 if (SpecialPowers.getBoolPref("layout.css.vertical-text.enabled")) {
