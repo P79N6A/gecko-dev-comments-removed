@@ -75,6 +75,12 @@ private:
   
 
 
+  mozilla::a11y::HyperTextAccessible* SearchForText(Accessible* aAccessible,
+                                                    bool aBackward);
+
+  
+
+
   Accessible* GetActiveRoot() const
   {
     if (mModalRoot) {
