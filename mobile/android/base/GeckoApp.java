@@ -1387,24 +1387,26 @@ abstract public class GeckoApp
         initializeChrome();
 
         
-        String restoreMessage = null;
-        if (mRestoreMode != RESTORE_NONE && !mIsRestoringActivity) {
-            try {
-                
-                
-                
-                
-                
-                
-                restoreMessage = restoreSessionTabs(isExternalURL);
-            } catch (SessionRestoreException e) {
-                
-                Log.e(LOGTAG, "An error occurred during restore", e);
-                mRestoreMode = RESTORE_NONE;
+        if (!mIsRestoringActivity) {
+            String restoreMessage = null;
+            if (mRestoreMode != RESTORE_NONE) {
+                try {
+                    
+                    
+                    
+                    
+                    
+                    
+                    restoreMessage = restoreSessionTabs(isExternalURL);
+                } catch (SessionRestoreException e) {
+                    
+                    Log.e(LOGTAG, "An error occurred during restore", e);
+                    mRestoreMode = RESTORE_NONE;
+                }
             }
-        }
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Restore", restoreMessage));
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Restore", restoreMessage));
+        }
 
         
         
