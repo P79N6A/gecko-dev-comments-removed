@@ -171,14 +171,15 @@ TiledThebesLayerOGL::ProcessLowPrecisionUploadQueue()
 
   mLowPrecisionRegionToUpload.And(mLowPrecisionRegionToUpload,
                                   mLowPrecisionMainMemoryTiledBuffer.GetValidRegion());
-  
-  
-  
   mLowPrecisionVideoMemoryTiledBuffer.SetResolution(
     mLowPrecisionMainMemoryTiledBuffer.GetResolution());
+  
+  
+  
   mLowPrecisionVideoMemoryTiledBuffer.Upload(&mLowPrecisionMainMemoryTiledBuffer,
                                  mLowPrecisionMainMemoryTiledBuffer.GetValidRegion(),
-                                 mLowPrecisionRegionToUpload, gfxSize(1, 1));
+                                 mLowPrecisionRegionToUpload,
+                                 mVideoMemoryTiledBuffer.GetFrameResolution());
   nsIntRegion validRegion = mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion();
 
   mLowPrecisionMainMemoryTiledBuffer.ReadUnlock();
@@ -206,19 +207,19 @@ TiledThebesLayerOGL::ProcessUploadQueue()
     mReusableTileStore = new ReusableTileStoreOGL(gl(), 1);
   }
 
+  
+  
+  
+  
+  
   gfxSize resolution(1, 1);
-  if (mReusableTileStore) {
-    
-    
-    
-    
-    
-    for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-      const FrameMetrics& metrics = parent->GetFrameMetrics();
-      resolution.width *= metrics.mResolution.width;
-      resolution.height *= metrics.mResolution.height;
-    }
+  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
+    const FrameMetrics& metrics = parent->GetFrameMetrics();
+    resolution.width *= metrics.mResolution.width;
+    resolution.height *= metrics.mResolution.height;
+  }
 
+  if (mReusableTileStore) {
     mReusableTileStore->HarvestTiles(this,
                                      &mVideoMemoryTiledBuffer,
                                      mVideoMemoryTiledBuffer.GetValidRegion(),
@@ -290,10 +291,22 @@ TiledThebesLayerOGL::RenderLayerBuffer(TiledLayerBufferOGL& aLayerBuffer,
 {
   Layer* maskLayer = GetMaskLayer();
   const nsIntRegion& visibleRegion = GetEffectiveVisibleRegion();
-  const nsIntRect visibleRect = visibleRegion.GetBounds();
-  float resolution = aLayerBuffer.GetResolution();
+  nsIntRect visibleRect = visibleRegion.GetBounds();
   gfx3DMatrix transform = GetEffectiveTransform();
-  transform.Scale(1/resolution, 1/resolution, 1);
+
+  float resolution = aLayerBuffer.GetResolution();
+  gfxSize layerScale(1, 1);
+  
+  
+  if (aLayerBuffer.GetFrameResolution() != mVideoMemoryTiledBuffer.GetFrameResolution()) {
+    const gfxSize& layerResolution = aLayerBuffer.GetFrameResolution();
+    const gfxSize& localResolution = mVideoMemoryTiledBuffer.GetFrameResolution();
+    layerScale.width = layerResolution.width / localResolution.width;
+    layerScale.height = layerResolution.height / localResolution.height;
+    visibleRect.ScaleRoundOut(layerScale.width, layerScale.height);
+  }
+  transform.Scale(1/(resolution * layerScale.width),
+                  1/(resolution * layerScale.height), 1);
 
   uint32_t rowCount = 0;
   uint32_t tileX = 0;
@@ -314,12 +327,17 @@ TiledThebesLayerOGL::RenderLayerBuffer(TiledLayerBufferOGL& aLayerBuffer,
         GetTile(nsIntPoint(aLayerBuffer.RoundDownToTileEdge(x),
                            aLayerBuffer.RoundDownToTileEdge(y)));
       if (tileTexture != aLayerBuffer.GetPlaceholderTile()) {
-        nsIntRegion tileDrawRegion = nsIntRegion(nsIntRect(x, y, w, h));
-        tileDrawRegion.And(tileDrawRegion, aValidRegion);
+        nsIntRegion tileDrawRegion;
+        tileDrawRegion.And(aValidRegion,
+                           nsIntRect(x * layerScale.width,
+                                     y * layerScale.height,
+                                     w * layerScale.width,
+                                     h * layerScale.height));
         tileDrawRegion.Sub(tileDrawRegion, aMaskRegion);
 
         if (!tileDrawRegion.IsEmpty()) {
-          tileDrawRegion.ScaleRoundOut(resolution, resolution);
+          tileDrawRegion.ScaleRoundOut(resolution / layerScale.width,
+                                       resolution / layerScale.height);
 
           nsIntPoint tileOffset((x - tileStartX) * resolution,
                                 (y - tileStartY) * resolution);
