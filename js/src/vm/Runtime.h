@@ -1233,7 +1233,16 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-    volatile ptrdiff_t  gcMallocBytes;
+    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> gcMallocBytes;
+
+    
+
+
+
+
+
+
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
 
   public:
     void setNeedsBarrier(bool needs) {
@@ -1548,7 +1557,10 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     void setGCMaxMallocBytes(size_t value);
 
-    void resetGCMallocBytes() { gcMallocBytes = ptrdiff_t(gcMaxMallocBytes); }
+    void resetGCMallocBytes() {
+        gcMallocBytes = ptrdiff_t(gcMaxMallocBytes);
+        gcMallocGCTriggered = false;
+    }
 
     
 
