@@ -70,16 +70,13 @@ class WidgetTextEvent;
 class WidgetCompositionEvent;
 class WidgetQueryContentEvent;
 class WidgetSelectionEvent;
-} 
 
 
-class nsMouseEvent_base;
-class nsMouseEvent;
-class nsDragEvent;
-class nsMouseScrollEvent;
-
-namespace mozilla {
-class WheelEvent;
+class WidgetMouseEventBase;
+class WidgetMouseEvent;
+class WidgetDragEvent;
+class WidgetMouseScrollEvent;
+class WidgetWheelEvent;
 } 
 
 
@@ -119,5 +116,13 @@ typedef mozilla::WidgetTextEvent          nsTextEvent;
 typedef mozilla::WidgetCompositionEvent   nsCompositionEvent;
 typedef mozilla::WidgetQueryContentEvent  nsQueryContentEvent;
 typedef mozilla::WidgetSelectionEvent     nsSelectionEvent;
+typedef mozilla::WidgetMouseEventBase     nsMouseEvent_base;
+typedef mozilla::WidgetMouseEvent         nsMouseEvent;
+typedef mozilla::WidgetDragEvent          nsDragEvent;
+typedef mozilla::WidgetMouseScrollEvent   nsMouseScrollEvent;
+
+namespace mozilla {
+typedef WidgetWheelEvent                  WheelEvent;
+}
 
 #endif 
