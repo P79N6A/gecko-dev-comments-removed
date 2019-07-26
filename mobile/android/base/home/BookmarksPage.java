@@ -20,7 +20,10 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewStub;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 
 
@@ -39,6 +42,9 @@ public class BookmarksPage extends HomeFragment {
 
     
     private BookmarksListAdapter mListAdapter;
+
+    
+    private View mEmptyView;
 
     
     private CursorLoaderCallbacks mLoaderCallbacks;
@@ -102,6 +108,7 @@ public class BookmarksPage extends HomeFragment {
     public void onDestroyView() {
         mList = null;
         mListAdapter = null;
+        mEmptyView = null;
         super.onDestroyView();
     }
 
@@ -128,6 +135,22 @@ public class BookmarksPage extends HomeFragment {
     @Override
     protected void load() {
         getLoaderManager().initLoader(LOADER_ID_BOOKMARKS_LIST, null, mLoaderCallbacks);
+    }
+
+    private void updateUiFromCursor(Cursor c) {
+        if ((c == null || c.getCount() == 0) && mEmptyView == null) {
+            
+            final ViewStub emptyViewStub = (ViewStub) getView().findViewById(R.id.home_empty_view_stub);
+            mEmptyView = emptyViewStub.inflate();
+
+            final ImageView emptyIcon = (ImageView) mEmptyView.findViewById(R.id.home_empty_image);
+            emptyIcon.setImageResource(R.drawable.icon_bookmarks_empty);
+
+            final TextView emptyText = (TextView) mEmptyView.findViewById(R.id.home_empty_text);
+            emptyText.setText(R.string.home_bookmarks_empty);
+
+            mList.setEmptyView(mEmptyView);
+        }
     }
 
     
@@ -167,6 +190,7 @@ public class BookmarksPage extends HomeFragment {
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
             mListAdapter.swapCursor(c);
+            updateUiFromCursor(c);
         }
 
         @Override
