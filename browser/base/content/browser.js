@@ -5127,9 +5127,25 @@ function getBrowserSelection(aCharLen) {
   
   const kMaxSelectionLen = 150;
   const charLen = Math.min(aCharLen || kMaxSelectionLen, kMaxSelectionLen);
+  let commandDispatcher = document.commandDispatcher;
 
-  var focusedWindow = document.commandDispatcher.focusedWindow;
+  var focusedWindow = commandDispatcher.focusedWindow;
   var selection = focusedWindow.getSelection().toString();
+  
+  if (!selection) {
+    let element = commandDispatcher.focusedElement;
+    function isOnTextInput(elem) {
+      
+      
+      return elem instanceof HTMLTextAreaElement ||
+             (elem instanceof HTMLInputElement && elem.mozIsTextField(true));
+    };
+
+    if (isOnTextInput(element)) {
+      selection = element.QueryInterface(Ci.nsIDOMNSEditableElement)
+                         .editor.selection.toString();
+    }
+  }
 
   if (selection) {
     if (selection.length > charLen) {
