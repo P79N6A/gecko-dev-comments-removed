@@ -868,7 +868,6 @@ FilterView.prototype = {
     if (!aToken) {
       return;
     }
-
     DebuggerView.editor.find(aToken);
   },
 
@@ -1000,6 +999,9 @@ FilterView.prototype = {
       } else if (targetView.hidden) {
         targetView.scheduleSearch(args[0], 0);
       } else {
+        if (!targetView.selectedItem) {
+          targetView.selectedIndex = 0;
+        }
         this.clearSearch();
       }
       return;
@@ -1023,6 +1025,9 @@ FilterView.prototype = {
       } else if (targetView.hidden) {
         targetView.scheduleSearch(args[0], 0);
       } else {
+        if (!targetView.selectedItem) {
+          targetView.selectedIndex = 0;
+        }
         this.clearSearch();
       }
       return;
@@ -1259,7 +1264,10 @@ FilteredSourcesView.prototype = Heritage.extend(ResultsPanelContainer.prototype,
     }
 
     
-    this.selectedIndex = 0;
+    
+    if (this._autoSelectFirstItem || DebuggerView.Filtering.searchOperator) {
+      this.selectedIndex = 0;
+    }
     this.hidden = false;
 
     
@@ -1460,7 +1468,10 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
     }
 
     
-    this.selectedIndex = 0;
+    
+    if (this._autoSelectFirstItem) {
+      this.selectedIndex = 0;
+    }
     this.hidden = false;
 
     
