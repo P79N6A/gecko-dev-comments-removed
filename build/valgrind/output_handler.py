@@ -58,7 +58,7 @@ class OutputHandler(object):
             r')'
         
         
-        self.re_stack_entry = r'^==\d+==.*0x[A-Z0-9]+: ([A-Za-z0_9_:\?]+)'
+        self.re_stack_entry = r'^==\d+==.*0x[A-Z0-9]+: ([A-Za-z0-9_:\?]+)'
         self.re_suppression = r' *<insert_a_suppression_name_here>'
         self.error_count = 0
         self.suppression_count = 0
