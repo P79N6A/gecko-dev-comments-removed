@@ -15,6 +15,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 
 const kNSXUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 const kPrefCustomizationDebug = "browser.uiCustomization.debug";
+const kWidePanelItemClass = "panel-combined-item";
 
 let gModuleName = "[CustomizableWidgets]";
 #include logging.js
@@ -29,6 +30,39 @@ function setAttributes(aNode, aAttrs) {
         value = CustomizableUI.getLocalizedProperty(aAttrs, name);
       aNode.setAttribute(name, value);
     }
+  }
+}
+
+
+
+
+function adjustPosition(aNode) {
+  
+  
+  const kColumnsInMenuPanel = 3;
+
+  
+  let prevSibling = aNode.previousElementSibling;
+  let previousSiblingCount = 0;
+  while (prevSibling) {
+    if (!prevSibling.classList.contains(kWidePanelItemClass)) {
+      previousSiblingCount++;
+    }
+    prevSibling = prevSibling.previousElementSibling;
+  }
+  if (previousSiblingCount % kColumnsInMenuPanel) {
+    let previousElement = aNode.previousElementSibling;
+    if (!previousElement ||
+        previousElement.classList.contains(kWidePanelItemClass)) {
+      return;
+    }
+
+    let position = Array.prototype.indexOf.call(aNode.parentNode.children, aNode);
+    
+    
+    
+    
+    CustomizableUI.moveWidgetWithinArea(aNode.id, position - 1);
   }
 }
 
@@ -232,6 +266,7 @@ const CustomizableWidgets = [{
       if (inPanel)
         node.setAttribute("flex", "1");
       node.classList.add("chromeclass-toolbar-additional");
+      node.classList.add(kWidePanelItemClass);
 
       buttons.forEach(function(aButton) {
         let btnNode = aDocument.createElementNS(kNSXUL, "toolbarbutton");
@@ -275,6 +310,10 @@ const CustomizableWidgets = [{
 
       let listener = {
         onWidgetAdded: function(aWidgetId, aArea, aPosition) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
 
@@ -282,6 +321,10 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetRemoved: function(aWidgetId, aPrevArea) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
 
@@ -298,6 +341,10 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetMoved: function(aWidgetId, aArea) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea == CustomizableUI.AREA_PANEL);
@@ -357,6 +404,7 @@ const CustomizableWidgets = [{
       if (inPanel)
         node.setAttribute("flex", "1");
       node.classList.add("chromeclass-toolbar-additional");
+      node.classList.add(kWidePanelItemClass);
 
       buttons.forEach(function(aButton) {
         let btnNode = aDocument.createElementNS(kNSXUL, "toolbarbutton");
@@ -380,12 +428,20 @@ const CustomizableWidgets = [{
 
       let listener = {
         onWidgetAdded: function(aWidgetId, aArea, aPosition) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea == CustomizableUI.AREA_PANEL);
         }.bind(this),
 
         onWidgetRemoved: function(aWidgetId, aPrevArea) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
           
@@ -400,6 +456,10 @@ const CustomizableWidgets = [{
         }.bind(this),
 
         onWidgetMoved: function(aWidgetId, aArea) {
+          if (this.currentArea == CustomizableUI.AREA_PANEL) {
+            adjustPosition(node);
+          }
+
           if (aWidgetId != this.id)
             return;
           updateWidgetStyle(aArea == CustomizableUI.AREA_PANEL);
