@@ -110,6 +110,14 @@ class MediaRecorder::Session: public nsIObserver
       MOZ_ASSERT(NS_GetCurrentThread() == mSession->mReadThread);
 
       mSession->Extract();
+      if (!mSession->mEncoder->IsShutdown()) {
+        NS_DispatchToCurrentThread(new ExtractRunnable(mSession));
+      } else {
+        
+        NS_DispatchToMainThread(new PushBlobRunnable(mSession));
+        
+        NS_DispatchToMainThread(new DestroyRunnable(already_AddRefed<Session>(mSession)));
+      }
       return NS_OK;
     }
 
@@ -198,6 +206,7 @@ public:
 
     AddRef();
     mEncodedBufferCache = new EncodedBufferCache(MAX_ALLOW_MEMORY_BUFFER);
+    mLastBlobTimeStamp = TimeStamp::Now();
   }
 
   
@@ -258,36 +267,27 @@ private:
   {
     MOZ_ASSERT(NS_GetCurrentThread() == mReadThread);
 
-    TimeStamp lastBlobTimeStamp = TimeStamp::Now();
     
     const bool pushBlob = (mTimeSlice > 0) ? true : false;
 
-    do {
-      
-      nsTArray<nsTArray<uint8_t> > encodedBuf;
-      nsString mimeType;
-      mEncoder->GetEncodedData(&encodedBuf, mimeType);
+    
+    nsTArray<nsTArray<uint8_t> > encodedBuf;
+    nsString mimeType;
+    mEncoder->GetEncodedData(&encodedBuf, mimeType);
 
-      mRecorder->SetMimeType(mimeType);
-
-      
-      for (uint32_t i = 0; i < encodedBuf.Length(); i++) {
-        mEncodedBufferCache->AppendBuffer(encodedBuf[i]);
-      }
-
-      if (pushBlob) {
-        if ((TimeStamp::Now() - lastBlobTimeStamp).ToMilliseconds() > mTimeSlice) {
-          NS_DispatchToMainThread(new PushBlobRunnable(this));
-          lastBlobTimeStamp = TimeStamp::Now();
-        }
-      }
-    } while (!mEncoder->IsShutdown());
+    mRecorder->SetMimeType(mimeType);
 
     
-    NS_DispatchToMainThread(new PushBlobRunnable(this));
+    for (uint32_t i = 0; i < encodedBuf.Length(); i++) {
+      mEncodedBufferCache->AppendBuffer(encodedBuf[i]);
+    }
 
-    
-    NS_DispatchToMainThread(new DestroyRunnable(already_AddRefed<Session>(this)));
+    if (pushBlob) {
+      if ((TimeStamp::Now() - mLastBlobTimeStamp).ToMilliseconds() > mTimeSlice) {
+        NS_DispatchToMainThread(new PushBlobRunnable(this));
+        mLastBlobTimeStamp = TimeStamp::Now();
+      }
+    }
   }
 
   
@@ -398,6 +398,8 @@ private:
   nsRefPtr<MediaEncoder> mEncoder;
   
   nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
+  
+  TimeStamp mLastBlobTimeStamp;
   
   
   
