@@ -16,8 +16,6 @@
 
 #include "mozilla/dom/ContentParent.h"
 
-#include "base/basictypes.h"
-
 #include "nsThreadUtils.h"
 
 #ifdef MOZ_WIDGET_GONK
@@ -130,6 +128,7 @@ AudioChannelService::UnregisterType(AudioChannelType aType,
   
   
   AudioChannelInternalType type = GetInternalType(aType, aElementHidden);
+  MOZ_ASSERT(!mChannelCounters[type].IsEmpty());
   mChannelCounters[type].RemoveElement(aChildID);
 
   
@@ -145,6 +144,22 @@ AudioChannelService::UnregisterType(AudioChannelType aType,
     }
     SendAudioChannelChangedNotification();
     Notify();
+  }
+}
+
+void
+AudioChannelService::UpdateChannelType(AudioChannelType aType,
+                                       uint64_t aChildID,
+                                       bool aElementHidden,
+                                       bool aElementWasHidden)
+{
+  
+  AudioChannelInternalType newType = GetInternalType(aType, aElementHidden);
+  AudioChannelInternalType oldType = GetInternalType(aType, aElementWasHidden);
+
+  if (newType != oldType) {
+    mChannelCounters[newType].AppendElement(aChildID);
+    mChannelCounters[oldType].RemoveElement(aChildID);
   }
 }
 
@@ -172,14 +187,11 @@ bool
 AudioChannelService::GetMutedInternal(AudioChannelType aType, uint64_t aChildID,
                                       bool aElementHidden, bool aElementWasHidden)
 {
+  UpdateChannelType(aType, aChildID, aElementHidden, aElementWasHidden);
+
   
   AudioChannelInternalType newType = GetInternalType(aType, aElementHidden);
   AudioChannelInternalType oldType = GetInternalType(aType, aElementWasHidden);
-
-  if (newType != oldType) {
-    mChannelCounters[newType].AppendElement(aChildID);
-    mChannelCounters[oldType].RemoveElement(aChildID);
-  }
 
   
   if (newType == AUDIO_CHANNEL_INT_CONTENT &&
