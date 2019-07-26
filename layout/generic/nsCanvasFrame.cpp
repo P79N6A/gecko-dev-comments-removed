@@ -492,7 +492,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsHTMLReflowMetrics kidDesiredSize(aReflowState);
+  nsHTMLReflowMetrics kidDesiredSize(aReflowState.GetWritingMode());
   if (mFrames.IsEmpty()) {
     
     aDesiredSize.Width() = aDesiredSize.Height() = 0;

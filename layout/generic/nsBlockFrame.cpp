@@ -1126,7 +1126,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
         mLines.front() != mLines.back() &&
         mLines.begin().next()->IsBlock()))) {
     
-    nsHTMLReflowMetrics metrics(aReflowState);
+    nsHTMLReflowMetrics metrics(aReflowState.GetWritingMode());
     
     nsLayoutUtils::LinePosition position;
     bool havePosition = nsLayoutUtils::GetFirstLinePosition(this, &position);
@@ -2359,7 +2359,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
   
   if (HasOutsideBullet() && mLines.empty()) {
-    nsHTMLReflowMetrics metrics(aState.mReflowState);
+    nsHTMLReflowMetrics metrics(aState.mReflowState.GetWritingMode());
     nsIFrame* bullet = GetOutsideBullet();
     ReflowBullet(bullet, aState, metrics,
                  aState.mReflowState.ComputedPhysicalBorderPadding().top);
@@ -4052,7 +4052,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
        (mLines.front() != mLines.back() &&
         0 == mLines.front()->mBounds.height &&
         aLine == mLines.begin().next()))) {
-    nsHTMLReflowMetrics metrics(aState.mReflowState);
+    nsHTMLReflowMetrics metrics(aState.mReflowState.GetWritingMode());
     nsIFrame* bullet = GetOutsideBullet();
     ReflowBullet(bullet, aState, metrics, aState.mY);
     NS_ASSERTION(!BulletIsEmpty() || metrics.Height() == 0,

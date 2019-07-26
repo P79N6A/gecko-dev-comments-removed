@@ -371,7 +371,7 @@ NS_METHOD nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
   for (nsIFrame *kidFrame = mFrames.FirstChild(); kidFrame;
        kidFrame = kidFrame->GetNextSibling()) {
     
-    nsHTMLReflowMetrics kidSize(aReflowState);
+    nsHTMLReflowMetrics kidSize(aReflowState.GetWritingMode());
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
                                      nsSize(0,0));
 

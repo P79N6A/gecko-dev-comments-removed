@@ -8060,7 +8060,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   mIsReflowing = true;
 
   nsReflowStatus status;
-  nsHTMLReflowMetrics desiredSize(reflowState);
+  nsHTMLReflowMetrics desiredSize(reflowState.GetWritingMode());
   target->Reflow(mPresContext, desiredSize, reflowState, status);
 
   

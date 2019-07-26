@@ -913,7 +913,7 @@ nsBoxFrame::DoLayout(nsBoxLayoutState& aState)
                                   nsSize(mRect.width, NS_UNCONSTRAINEDSIZE));
 
     
-    nsHTMLReflowMetrics desiredSize(reflowState);
+    nsHTMLReflowMetrics desiredSize(reflowState.GetWritingMode());
     desiredSize.Width() = mRect.width;
     desiredSize.Height() = mRect.height;
 

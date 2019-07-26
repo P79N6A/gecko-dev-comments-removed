@@ -362,7 +362,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
 
       
       
-      nsHTMLReflowMetrics desiredSize(aReflowState.reflowState,
+      nsHTMLReflowMetrics desiredSize(aReflowState.reflowState.GetWritingMode(),
                                       aDesiredSize.mFlags);
       desiredSize.Width() = desiredSize.Height() = 0;
   
@@ -1076,7 +1076,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
                                          
         InitChildReflowState(*aPresContext, borderCollapse, rowReflowState);
         rowReflowState.mFlags.mIsTopOfPage = isTopOfPage; 
-        nsHTMLReflowMetrics rowMetrics(aReflowState);
+        nsHTMLReflowMetrics rowMetrics(aReflowState.GetWritingMode());
 
         
         nsRect oldRowRect = rowFrame->GetRect();
