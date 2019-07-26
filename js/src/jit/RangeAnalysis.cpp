@@ -1283,17 +1283,16 @@ MLoadTypedArrayElementStatic::computeRange()
 void
 MArrayLength::computeRange()
 {
-    Range *r = Range::NewUInt32Range(0, UINT32_MAX);
-    r->extendUInt32ToInt32Min();
-    setRange(r);
+    
+    
+    
+    setRange(Range::NewUInt32Range(0, INT32_MAX));
 }
 
 void
 MInitializedLength::computeRange()
 {
-    Range *r = Range::NewUInt32Range(0, UINT32_MAX);
-    r->extendUInt32ToInt32Min();
-    setRange(r);
+    setRange(Range::NewUInt32Range(0, JSObject::NELEMENTS_LIMIT));
 }
 
 void
