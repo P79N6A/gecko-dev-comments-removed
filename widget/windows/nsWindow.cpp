@@ -4342,10 +4342,18 @@ LRESULT CALLBACK nsWindow::WindowProcInternal(HWND hWnd, UINT msg, WPARAM wParam
   }
 
   
-  nsWindow *someWindow = WinUtils::GetNSWindowPtr(hWnd);
+  nsWindow *targetWindow = WinUtils::GetNSWindowPtr(hWnd);
+  NS_ASSERTION(targetWindow, "nsWindow* is null!");
+  if (!targetWindow)
+    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 
-  if (someWindow)
-    someWindow->IPCWindowProcHandler(msg, wParam, lParam);
+  
+  
+  nsCOMPtr<nsISupports> kungFuDeathGrip;
+  if (!targetWindow->mInDtor)
+    kungFuDeathGrip = do_QueryInterface((nsBaseWidget*)targetWindow);
+
+  targetWindow->IPCWindowProcHandler(msg, wParam, lParam);
 
   
   
@@ -4356,26 +4364,12 @@ LRESULT CALLBACK nsWindow::WindowProcInternal(HWND hWnd, UINT msg, WPARAM wParam
     return popupHandlingResult;
 
   
-  
-  if (nullptr == someWindow) {
-    NS_ASSERTION(someWindow, "someWindow is null, cannot call any CallWindowProc");
-    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-  }
-
-  
-  
-  
-  nsCOMPtr<nsISupports> kungFuDeathGrip;
-  if (!someWindow->mInDtor) 
-    kungFuDeathGrip = do_QueryInterface((nsBaseWidget*)someWindow);
-
-  
   LRESULT retValue;
-  if (true == someWindow->ProcessMessage(msg, wParam, lParam, &retValue)) {
+  if (targetWindow->ProcessMessage(msg, wParam, lParam, &retValue)) {
     return retValue;
   }
 
-  LRESULT res = ::CallWindowProcW(someWindow->GetPrevWindowProc(),
+  LRESULT res = ::CallWindowProcW(targetWindow->GetPrevWindowProc(),
                                   hWnd, msg, wParam, lParam);
 
   return res;
