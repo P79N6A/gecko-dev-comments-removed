@@ -356,7 +356,7 @@ public:
     nsRefPtr<MediaInputPort> port = trackunion->GetStream()->AsProcessedStream()->
       AllocateInputPort(stream, MediaInputPort::FLAG_BLOCK_OUTPUT);
     trackunion->mSourceStream = stream;
-    trackunion->mPort = port;
+    trackunion->mPort = port.forget();
 
     nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
       (nsGlobalWindow::GetInnerWindowWithId(mWindowID));
@@ -368,8 +368,7 @@ public:
     
     
     
-    mListener->Activate(stream.forget(), port.forget(),
-                        mAudioSource, mVideoSource);
+    mListener->Activate(stream.forget(), mAudioSource, mVideoSource);
 
     
     
@@ -1069,7 +1068,7 @@ MediaManager::OnNavigation(uint64_t aWindowID)
   for (uint32_t i = 0; i < length; i++) {
     nsRefPtr<GetUserMediaCallbackMediaStreamListener> listener =
       listeners->ElementAt(i);
-    listener->Invalidate(true);
+    listener->Invalidate();
     listener->Remove();
   }
   listeners->Clear();
@@ -1232,9 +1231,11 @@ MediaManager::GetActiveMediaCaptureWindows(nsISupportsArray **aArray)
   return NS_OK;
 }
 
+
 void
-GetUserMediaCallbackMediaStreamListener::Invalidate(bool aNeedsFinish)
+GetUserMediaCallbackMediaStreamListener::Invalidate()
 {
+
   nsRefPtr<MediaOperationRunnable> runnable;
   
   
@@ -1242,15 +1243,33 @@ GetUserMediaCallbackMediaStreamListener::Invalidate(bool aNeedsFinish)
   
   runnable = new MediaOperationRunnable(MEDIA_STOP,
                                         this, mAudioSource, mVideoSource,
-                                        aNeedsFinish);
+                                        mFinished);
   mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
+
 
 void
 GetUserMediaCallbackMediaStreamListener::NotifyFinished(MediaStreamGraph* aGraph)
 {
-  Invalidate(false);
+  mFinished = true;
+  Invalidate();
   NS_DispatchToMainThread(new GetUserMediaListenerRemove(mWindowID, this));
+}
+
+
+
+
+void
+GetUserMediaCallbackMediaStreamListener::NotifyRemoved(MediaStreamGraph* aGraph)
+{
+  {
+    MutexAutoLock lock(mLock); 
+    MM_LOG(("Listener removed by DOM Destroy(), mFinished = %d", (int) mFinished));
+    mRemoved = true;
+  }
+  if (!mFinished) {
+    NotifyFinished(aGraph);
+  }
 }
 
 } 

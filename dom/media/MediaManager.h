@@ -73,7 +73,10 @@ public:
   GetUserMediaCallbackMediaStreamListener(nsIThread *aThread,
     uint64_t aWindowID)
     : mMediaThread(aThread)
-    , mWindowID(aWindowID) {}
+    , mWindowID(aWindowID)
+    , mFinished(false)
+    , mLock("mozilla::GUMCMSL")
+    , mRemoved(false) {}
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
@@ -82,12 +85,11 @@ public:
   }
 
   void Activate(already_AddRefed<SourceMediaStream> aStream,
-    already_AddRefed<MediaInputPort> aPort,
     MediaEngineSource* aAudioSource,
     MediaEngineSource* aVideoSource)
   {
+    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
     mStream = aStream; 
-    mPort = aPort;
     mAudioSource = aAudioSource;
     mVideoSource = aVideoSource;
     mLastEndTimeAudio = 0;
@@ -107,20 +109,26 @@ public:
   }
 
   
-  void Invalidate(bool aNeedsFinish);
+  
+  void Invalidate();
 
   void
   Remove()
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
     
-    if (mStream) 
+    
+    MutexAutoLock lock(mLock); 
+    if (mStream && !mRemoved) {
+      MM_LOG(("Listener removed on purpose, mFinished = %d", (int) mFinished));
+      mRemoved = true; 
       mStream->RemoveListener(this);
+    }
   }
 
   
-  void
-  NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime)
+  virtual void
+  NotifyPull(MediaStreamGraph* aGraph, StreamTime aDesiredTime) MOZ_OVERRIDE
   {
     
     
@@ -132,18 +140,31 @@ public:
     }
   }
 
-  void
-  NotifyFinished(MediaStreamGraph* aGraph);
+  virtual void
+  NotifyFinished(MediaStreamGraph* aGraph) MOZ_OVERRIDE;
+
+  virtual void
+  NotifyRemoved(MediaStreamGraph* aGraph) MOZ_OVERRIDE;
 
 private:
+  
   nsCOMPtr<nsIThread> mMediaThread;
   uint64_t mWindowID;
-  nsRefPtr<MediaEngineSource> mAudioSource;
-  nsRefPtr<MediaEngineSource> mVideoSource;
-  nsRefPtr<SourceMediaStream> mStream;
-  nsRefPtr<MediaInputPort> mPort;
+
+  
+
+  
+  
+  nsRefPtr<MediaEngineSource> mAudioSource; 
+  nsRefPtr<MediaEngineSource> mVideoSource; 
+  nsRefPtr<SourceMediaStream> mStream; 
   TrackTicks mLastEndTimeAudio;
   TrackTicks mLastEndTimeVideo;
+  bool mFinished;
+
+  
+  Mutex mLock; 
+  bool mRemoved;
 };
 
 typedef enum {
