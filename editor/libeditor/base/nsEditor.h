@@ -73,6 +73,7 @@ class Selection;
 
 namespace dom {
 class Element;
+class EventTarget;
 }  
 }  
 
@@ -663,7 +664,7 @@ public:
                                     nsIDOMNode *aEndNode,
                                     int32_t aEndOffset);
 
-  virtual already_AddRefed<nsIDOMEventTarget> GetDOMEventTarget() = 0;
+  virtual already_AddRefed<mozilla::dom::EventTarget> GetDOMEventTarget() = 0;
 
   
   mozilla::dom::Element *GetRoot();
@@ -819,7 +820,7 @@ protected:
   nsCOMPtr<mozilla::dom::Element> mRootElement; 
   nsCOMPtr<nsIPrivateTextRangeList> mIMETextRangeList; 
   nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      
-  nsCOMPtr<nsIDOMEventTarget> mEventTarget; 
+  nsCOMPtr<mozilla::dom::EventTarget> mEventTarget; 
   nsCOMPtr<nsIDOMEventListener> mEventListener;
   nsWeakPtr        mSelConWeak;          
   nsWeakPtr        mPlaceHolderTxn;      
