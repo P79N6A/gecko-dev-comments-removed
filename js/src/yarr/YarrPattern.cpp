@@ -44,6 +44,10 @@ namespace JSC { namespace Yarr {
 # define BASE_FRAME_SIZE 0
 #endif
 
+
+#undef min
+#undef max
+
 class CharacterClassConstructor {
 public:
     CharacterClassConstructor(bool isCaseInsensitive = false)

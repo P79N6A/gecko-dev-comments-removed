@@ -567,7 +567,7 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
     if (fn->pn_funbox->function()->isInterpreted()) {
         JS_ASSERT(fun == fn->pn_funbox->function());
 
-        Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), false, options,
+        Rooted<JSScript*> script(cx, JSScript::Create(cx, js::NullPtr(), false, options,
                                                        0, sourceObject,
                                                        0, length));
         if (!script)
@@ -583,7 +583,7 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
 
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
-                                false,  NullPtr(),
+                                false,  js::NullPtr(),
                                fun->environment() && fun->environment()->is<GlobalObject>(),
                                options.lineno);
         if (!funbce.init())
