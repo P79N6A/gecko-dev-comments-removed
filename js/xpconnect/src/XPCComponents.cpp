@@ -37,6 +37,8 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/XPTInterfaceInfoManager.h"
 #include "nsDOMClassInfoID.h"
+#include "nsGlobalWindow.h"
+
 
 using namespace mozilla;
 using namespace js;
@@ -2935,6 +2937,353 @@ CreateXMLHttpRequest(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
+bool
+NewFunctionForwarder(JSContext *cx, HandleId id, HandleObject callable,
+                     bool doclone, MutableHandleValue vp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+ExportFunction(JSContext *cx, unsigned argc, jsval *vp)
+{
+    MOZ_ASSERT(cx);
+    if (argc < 3) {
+        JS_ReportError(cx, "Function requires at least 3 arguments");
+        return false;
+    }
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args[0].isObject() || !args[1].isObject() || !args[2].isString()) {
+        JS_ReportError(cx, "Invalid argument");
+        return false;
+    }
+
+    RootedObject funObj(cx, &args[0].toObject());
+    RootedObject targetScope(cx, &args[1].toObject());
+    RootedString funName(cx, args[2].toString());
+
+    
+    
+    targetScope = CheckedUnwrap(targetScope);
+    if (!targetScope) {
+        JS_ReportError(cx, "Permission denied to export function into scope");
+        return false;
+    }
+
+    if (JS_GetStringLength(funName) == 0) {
+        JS_ReportError(cx, "3rd argument should be a non-empty string");
+        return false;
+    }
+
+    {
+        
+        
+        JSAutoCompartment ac(cx, targetScope);
+
+        
+        funObj = UncheckedUnwrap(funObj);
+        if (!JS_ObjectIsCallable(cx, funObj)) {
+            JS_ReportError(cx, "First argument must be a function");
+            return false;
+        }
+
+        
+        
+        
+        if (!JS_WrapObject(cx, funObj.address()))
+            return false;
+
+        RootedId id(cx);
+        if (!JS_ValueToId(cx, args[2], id.address()))
+            return false;
+
+        
+        
+        if (!NewFunctionForwarder(cx, id, funObj,  true, args.rval())) {
+            JS_ReportError(cx, "Exporting function failed");
+            return false;
+        }
+
+        
+        
+        if (!JS_DefinePropertyById(cx, targetScope, id, args.rval(),
+                                   JS_PropertyStub, JS_StrictPropertyStub,
+                                   JSPROP_ENUMERATE))
+            return false;
+    }
+
+    
+    if (!JS_WrapValue(cx, args.rval().address()))
+        return false;
+
+    return true;
+}
+
+static bool
+GetFilenameAndLineNumber(JSContext *cx, nsACString &filename, unsigned &lineno)
+{
+    JSScript *script;
+    if (JS_DescribeScriptedCaller(cx, &script, &lineno)) {
+        if (const char *cfilename = JS_GetScriptFilename(cx, script)) {
+            filename.Assign(nsDependentCString(cfilename));
+            return true;
+        }
+    }
+    return false;
+}
+
+namespace xpc {
+bool
+IsReflector(JSObject *obj)
+{
+    return IS_WN_REFLECTOR(obj) || dom::IsDOMObject(obj);
+}
+} 
+
+enum ForwarderCloneTags {
+    SCTAG_BASE = JS_SCTAG_USER_MIN,
+    SCTAG_REFLECTOR
+};
+
+static JSObject *
+CloneNonReflectorsRead(JSContext *cx, JSStructuredCloneReader *reader, uint32_t tag,
+                       uint32_t data, void *closure)
+{
+    MOZ_ASSERT(closure, "Null pointer!");
+    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
+    if (tag == SCTAG_REFLECTOR) {
+        MOZ_ASSERT(!data);
+
+        size_t idx;
+        if (JS_ReadBytes(reader, &idx, sizeof(size_t))) {
+            RootedObject reflector(cx, reflectors->handleAt(idx));
+            MOZ_ASSERT(reflector, "No object pointer?");
+            MOZ_ASSERT(IsReflector(reflector), "Object pointer must be a reflector!");
+
+            JS_WrapObject(cx, reflector.address());
+            JS_ASSERT(WrapperFactory::IsXrayWrapper(reflector) ||
+                      IsReflector(reflector));
+
+            return reflector;
+        }
+    }
+
+    JS_ReportError(cx, "CloneNonReflectorsRead error");
+    return nullptr;
+}
+
+static bool
+CloneNonReflectorsWrite(JSContext *cx, JSStructuredCloneWriter *writer,
+                        Handle<JSObject *> obj, void *closure)
+{
+    MOZ_ASSERT(closure, "Null pointer!");
+
+    
+    
+    AutoObjectVector *reflectors = static_cast<AutoObjectVector *>(closure);
+    if (IsReflector(obj)) {
+        if (!reflectors->append(obj))
+            return false;
+
+        size_t idx = reflectors->length()-1;
+        if (JS_WriteUint32Pair(writer, SCTAG_REFLECTOR, 0) &&
+            JS_WriteBytes(writer, &idx, sizeof(size_t))) {
+            return true;
+        }
+    }
+
+    JS_ReportError(cx, "CloneNonReflectorsWrite error");
+    return false;
+}
+
+JSStructuredCloneCallbacks gForwarderStructuredCloneCallbacks = {
+    CloneNonReflectorsRead,
+    CloneNonReflectorsWrite,
+    nullptr
+};
+
+
+
+
+
+
+
+bool
+CloneNonReflectors(JSContext *cx, MutableHandleValue val)
+{
+    JSAutoStructuredCloneBuffer buffer;
+    AutoObjectVector rootedReflectors(cx);
+    {
+        
+        
+        Maybe<JSAutoCompartment> ac;
+        if (val.isObject()) {
+            ac.construct(cx, &val.toObject());
+        }
+
+        if (!buffer.write(cx, val,
+            &gForwarderStructuredCloneCallbacks,
+            &rootedReflectors))
+        {
+            return false;
+        }
+    }
+
+    
+    RootedValue rval(cx);
+    if (!buffer.read(cx, val.address(),
+        &gForwarderStructuredCloneCallbacks,
+        &rootedReflectors))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+EvalInWindow(JSContext *cx, unsigned argc, jsval *vp)
+{
+    MOZ_ASSERT(cx);
+    if (argc < 2) {
+        JS_ReportError(cx, "Function requires two arguments");
+        return false;
+    }
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args[0].isString() || !args[1].isObject()) {
+        JS_ReportError(cx, "Invalid arguments");
+        return false;
+    }
+
+    RootedString srcString(cx, args[0].toString());
+    RootedObject targetScope(cx, &args[1].toObject());
+
+    
+    targetScope = CheckedUnwrap(targetScope);
+    if (!targetScope) {
+        JS_ReportError(cx, "Permission denied to eval in target scope");
+        return false;
+    }
+
+    
+    RootedObject inner(cx, CheckedUnwrap(targetScope,  false));
+    nsCOMPtr<nsIGlobalObject> global;
+    nsCOMPtr<nsPIDOMWindow> window;
+    if (!JS_IsGlobalObject(inner) ||
+        !(global = GetNativeForGlobal(inner)) ||
+        !(window = do_QueryInterface(global)))
+    {
+        JS_ReportError(cx, "Second argument must be a window");
+        return false;
+    }
+
+    nsCOMPtr<nsIScriptContext> context =
+        (static_cast<nsGlobalWindow*>(window.get()))->GetScriptContext();
+    if (!context) {
+        JS_ReportError(cx, "Script context needed");
+        return false;
+    }
+
+    if (!context->GetScriptsEnabled()) {
+        JS_ReportError(cx, "Scripts are disabled in this window");
+        return false;
+    }
+
+    nsCString filename;
+    unsigned lineNo;
+    if (!GetFilenameAndLineNumber(cx, filename, lineNo)) {
+        
+        filename.Assign("Unknown");
+        lineNo = 0;
+    }
+
+    nsDependentJSString srcDepString;
+    srcDepString.init(cx, srcString);
+
+    {
+        
+        
+        JSContext *wndCx = context->GetNativeContext();
+        AutoCxPusher pusher(wndCx);
+        JS::CompileOptions compileOptions(wndCx);
+        compileOptions.setFileAndLine(filename.get(), lineNo);
+
+        
+        
+        nsJSUtils::EvaluateOptions evaluateOptions;
+        evaluateOptions.setReportUncaught(false);
+
+        nsresult rv = nsJSUtils::EvaluateString(wndCx,
+                                                srcDepString,
+                                                targetScope,
+                                                compileOptions,
+                                                evaluateOptions,
+                                                args.rval().address());
+
+        if (NS_FAILED(rv)) {
+            
+            
+            
+            MOZ_ASSERT(!JS_IsExceptionPending(wndCx),
+                       "Exception should be delivered as return value.");
+            if (args.rval().isUndefined()) {
+                MOZ_ASSERT(rv == NS_ERROR_OUT_OF_MEMORY);
+                return false;
+            }
+
+            
+            
+            RootedValue exn(wndCx, args.rval());
+            
+            args.rval().set(UndefinedValue());
+
+            
+            if (CloneNonReflectors(cx, &exn))
+                JS_SetPendingException(cx, exn);
+
+            return false;
+        }
+    }
+
+    
+    if (!CloneNonReflectors(cx, args.rval())) {
+        args.rval().set(UndefinedValue());
+        return false;
+    }
+
+    return true;
+}
+
 static bool
 sandbox_enumerate(JSContext *cx, HandleObject obj)
 {
@@ -3350,6 +3699,12 @@ xpc_CreateSandboxObject(JSContext *cx, jsval *vp, nsISupports *prinOrSop, Sandbo
         if (options.wantXHRConstructor &&
             !JS_DefineFunction(cx, sandbox, "XMLHttpRequest", CreateXMLHttpRequest, 0, JSFUN_CONSTRUCTOR))
             return NS_ERROR_XPC_UNEXPECTED;
+
+        if (options.wantExportHelpers &&
+            (!JS_DefineFunction(cx, sandbox, "exportFunction", ExportFunction, 3, 0) ||
+             !JS_DefineFunction(cx, sandbox, "evalInWindow", EvalInWindow, 2, 0)))
+            return NS_ERROR_XPC_UNEXPECTED;
+
     }
 
     if (vp) {
@@ -3618,6 +3973,10 @@ ParseOptionsObject(JSContext *cx, jsval from, SandboxOptions &options)
 
     rv = GetBoolPropFromOptions(cx, optionsObject,
                                 "wantXHRConstructor", &options.wantXHRConstructor);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = GetBoolPropFromOptions(cx, optionsObject,
+                                "wantExportHelpers", &options.wantExportHelpers);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = GetStringPropFromOptions(cx, optionsObject,
@@ -4205,7 +4564,7 @@ nsXPCComponents_Utils::CreateDateIn(const Value &vobj, int64_t msec, JSContext *
 }
 
 bool
-FunctionWrapper(JSContext *cx, unsigned argc, Value *vp)
+NonCloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -4219,17 +4578,54 @@ FunctionWrapper(JSContext *cx, unsigned argc, Value *vp)
     return JS_CallFunctionValue(cx, obj, v, args.length(), args.array(), vp);
 }
 
+
+
+
+
 bool
-WrapCallable(JSContext *cx, HandleObject obj, HandleId id, HandleObject propobj,
-             MutableHandleValue vp)
+CloningFunctionForwarder(JSContext *cx, unsigned argc, Value *vp)
 {
-    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, FunctionWrapper, 0, 0,
-                                                      JS_GetGlobalForObject(cx, obj), id);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    RootedValue v(cx, js::GetFunctionNativeReserved(&args.callee(), 0));
+    NS_ASSERTION(v.isObject(), "weird function");
+    RootedObject origFunObj(cx, UncheckedUnwrap(&v.toObject()));
+    {
+        JSAutoCompartment ac(cx, origFunObj);
+        
+        
+        for (unsigned i = 0; i < args.length(); i++) {
+            if (!CloneNonReflectors(cx, args[i])) {
+                return false;
+            }
+        }
+
+        
+        
+        RootedValue functionVal(cx);
+        functionVal.setObject(*origFunObj);
+
+        if (!JS_CallFunctionValue(cx, nullptr, functionVal, args.length(), args.array(), vp))
+            return false;
+    }
+
+    
+    return JS_WrapValue(cx, vp);
+}
+
+bool
+NewFunctionForwarder(JSContext *cx, HandleId id, HandleObject callable, bool doclone,
+                     MutableHandleValue vp)
+{
+    JSFunction *fun = js::NewFunctionByIdWithReserved(cx, doclone ? CloningFunctionForwarder :
+                                                                    NonCloningFunctionForwarder,
+                                                                    0,0, JS::CurrentGlobalOrNull(cx), id);
+
     if (!fun)
         return false;
 
     JSObject *funobj = JS_GetFunctionObject(fun);
-    js::SetFunctionNativeReserved(funobj, 0, ObjectValue(*propobj));
+    js::SetFunctionNativeReserved(funobj, 0, ObjectValue(*callable));
     vp.setObject(*funobj);
     return true;
 }
@@ -4267,7 +4663,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(const Value &vobj, JSContext *cx)
         if (!js::IsWrapper(propobj) || !JS_ObjectIsCallable(cx, propobj))
             continue;
 
-        if (!WrapCallable(cx, obj, id, propobj, &v) ||
+        if (!NewFunctionForwarder(cx, id, propobj,  false, &v) ||
             !JS_SetPropertyById(cx, obj, id, v))
             return NS_ERROR_FAILURE;
     }
