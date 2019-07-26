@@ -6,8 +6,8 @@
 #include "nsIDOMHTMLElement.idl"
 
 /**
- * The nsIDOMHTMLTableCellElement interface is the interface to a
- * [X]HTML td element.
+ * The nsIDOMHTMLTableColElement interface is the interface to a
+ * [X]HTML col element.
  *
  * This interface is trying to follow the DOM Level 2 HTML specification:
  * http://www.w3.org/TR/DOM-Level-2-HTML/
@@ -16,22 +16,13 @@
  * http://www.whatwg.org/specs/web-apps/current-work/
  */
 
-[scriptable, uuid(1fb22137-c231-4eae-9ca4-557bb0852d89)]
-interface nsIDOMHTMLTableCellElement : nsIDOMHTMLElement
+[scriptable, uuid(cd5a5a33-7101-4d32-987c-337c004fce1a)]
+interface nsIDOMHTMLTableColElement : nsIDOMHTMLElement
 {
-  readonly attribute long             cellIndex;
-           attribute DOMString        abbr;
            attribute DOMString        align;
-           attribute DOMString        axis;
-           attribute DOMString        bgColor;
            attribute DOMString        ch;
            attribute DOMString        chOff;
-           attribute long             colSpan;
-           attribute DOMString        headers;
-           attribute DOMString        height;
-           attribute boolean          noWrap;
-           attribute long             rowSpan;
-           attribute DOMString        scope;
+           attribute long             span;
            attribute DOMString        vAlign;
            attribute DOMString        width;
 };
