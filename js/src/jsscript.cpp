@@ -1320,11 +1320,13 @@ ScriptSource::destroy()
 size_t
 ScriptSource::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf)
 {
-    JS_ASSERT(ready());
-
     
     
-    return mallocSizeOf(this) + ((data.compressed != emptySource) ? mallocSizeOf(data.compressed) : 0);
+    size_t n = mallocSizeOf(this);
+    n += (ready() && data.compressed != emptySource)
+       ? mallocSizeOf(data.compressed)
+       : 0;
+    return n;
 }
 
 template<XDRMode mode>
