@@ -58,7 +58,7 @@ bool SignatureVerifier::VerifyInit(const uint8_t* signature_algorithm,
                               &sig_alg_der);
   if (rv != SECSuccess) {
     SECKEY_DestroyPublicKey(public_key);
-    PORT_FreeArena(arena, true);
+    PORT_FreeArena(arena, PR_TRUE);
     return false;
   }
 
@@ -71,7 +71,7 @@ bool SignatureVerifier::VerifyInit(const uint8_t* signature_algorithm,
                                                   &sig_alg_id, &hash_alg_tag,
                                                   NULL);
   SECKEY_DestroyPublicKey(public_key);  
-  PORT_FreeArena(arena, true);  
+  PORT_FreeArena(arena, PR_TRUE);  
   if (!vfy_context_) {
     
     
@@ -104,7 +104,7 @@ bool SignatureVerifier::VerifyFinal() {
 
 void SignatureVerifier::Reset() {
   if (vfy_context_) {
-    VFY_DestroyContext(vfy_context_, true);
+    VFY_DestroyContext(vfy_context_, PR_TRUE);
     vfy_context_ = NULL;
   }
   signature_.clear();
