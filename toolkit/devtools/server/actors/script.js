@@ -327,45 +327,60 @@ ThreadActor.prototype = {
     if (aRequest && aRequest.resumeLimit) {
       
       
-      let pauseAndRespond = this._pauseAndRespond.bind(this);
+      let pauseAndRespond = aFrame => {
+        this._pauseAndRespond(aFrame, { type: "resumeLimit" });
+      };
       let createValueGrip = this.createValueGrip.bind(this);
 
-      let startFrame = this._youngestFrame;
+      let startFrame = this.youngestFrame;
       let startLine;
-      if (this._youngestFrame.script) {
-        let offset = this._youngestFrame.offset;
-        startLine = this._youngestFrame.script.getOffsetLine(offset);
+      if (this.youngestFrame.script) {
+        let offset = this.youngestFrame.offset;
+        startLine = this.youngestFrame.script.getOffsetLine(offset);
       }
 
       
 
-      let onEnterFrame = function TA_onEnterFrame(aFrame) {
-        return pauseAndRespond(aFrame, { type: "resumeLimit" });
+      let onEnterFrame = aFrame => {
+        if (this.sources.isBlackBoxed(aFrame.script.url)) {
+          return undefined;
+        }
+        return pauseAndRespond(aFrame);
       };
+
+      let thread = this;
 
       let onPop = function TA_onPop(aCompletion) {
         
+
+        if (thread.sources.isBlackBoxed(this.script.url)) {
+          return undefined;
+        }
 
         
         
         this.reportedPop = true;
 
-        return pauseAndRespond(this, { type: "resumeLimit" });
-      }
+        return pauseAndRespond(this);
+      };
 
       let onStep = function TA_onStep() {
         
+
+        if (thread.sources.isBlackBoxed(this.script.url)) {
+          return undefined;
+        }
 
         
         if (this !== startFrame ||
             (this.script &&
              this.script.getOffsetLine(this.offset) != startLine)) {
-          return pauseAndRespond(this, { type: "resumeLimit" });
+          return pauseAndRespond(this);
         }
 
         
         return undefined;
-      }
+      };
 
       let steppingType = aRequest.resumeLimit.type;
       if (["step", "next", "finish"].indexOf(steppingType) == -1) {
@@ -430,7 +445,7 @@ ThreadActor.prototype = {
     
     
     
-    let youngest = this._youngestFrame;
+    let youngest = this.youngestFrame;
 
     
     let resumedPacket = this._resumed();
@@ -459,7 +474,7 @@ ThreadActor.prototype = {
     let count = aRequest.count;
 
     
-    let frame = this._youngestFrame;
+    let frame = this.youngestFrame;
     let i = 0;
     while (frame && (i < start)) {
       frame = frame.older;
@@ -811,7 +826,7 @@ ThreadActor.prototype = {
 
   _requestFrame: function TA_requestFrame(aFrameID) {
     if (!aFrameID) {
-      return this._youngestFrame;
+      return this.youngestFrame;
     }
 
     if (this._framePool.has(aFrameID)) {
@@ -845,7 +860,7 @@ ThreadActor.prototype = {
 
     
     
-    this._youngestFrame = aFrame;
+    this.youngestFrame = aFrame;
 
     
     
@@ -908,7 +923,7 @@ ThreadActor.prototype = {
 
     this._pausePool = null;
     this._pauseActor = null;
-    this._youngestFrame = null;
+    this.youngestFrame = null;
 
     return { from: this.actorID, type: "resumed" };
   },
@@ -1185,7 +1200,7 @@ ThreadActor.prototype = {
 
 
   uncaughtExceptionHook: function TA_uncaughtExceptionHook(aException) {
-    dumpn("Got an exception:" + aException);
+    dumpn("Got an exception: " + aException.message + "\n" + aException.stack);
   },
 
   
@@ -1196,6 +1211,9 @@ ThreadActor.prototype = {
 
 
   onDebuggerStatement: function TA_onDebuggerStatement(aFrame) {
+    if (this.sources.isBlackBoxed(aFrame.script.url)) {
+      return undefined;
+    }
     return this._pauseAndRespond(aFrame, { type: "debuggerStatement" });
   },
 
@@ -1209,6 +1227,9 @@ ThreadActor.prototype = {
 
 
   onExceptionUnwind: function TA_onExceptionUnwind(aFrame, aValue) {
+    if (this.sources.isBlackBoxed(aFrame.script.url)) {
+      return undefined;
+    }
     try {
       let packet = this._paused(aFrame);
       if (!packet) {
@@ -1456,7 +1477,8 @@ SourceActor.prototype = {
   form: function SA_form() {
     return {
       actor: this.actorID,
-      url: this._url
+      url: this._url,
+      isBlackBoxed: this.threadActor.sources.isBlackBoxed(this.url)
       
     };
   },
@@ -1508,11 +1530,39 @@ SourceActor.prototype = {
           "message": "Could not load the source for " + this._url + "."
         };
       });
+  },
+
+  
+
+
+  onBlackBox: function SA_onBlackBox(aRequest) {
+    this.threadActor.sources.blackBox(this.url);
+    let packet = {
+      from: this.actorID
+    };
+    if (this.threadActor.state == "paused"
+        && this.threadActor.youngestFrame
+        && this.threadActor.youngestFrame.script.url == this.url) {
+      packet.pausedInSource = true;
+    }
+    return packet;
+  },
+
+  
+
+
+  onUnblackBox: function SA_onUnblackBox(aRequest) {
+    this.threadActor.sources.unblackBox(this.url);
+    return {
+      from: this.actorID
+    };
   }
 };
 
 SourceActor.prototype.requestTypes = {
-  "source": SourceActor.prototype.onSource
+  "source": SourceActor.prototype.onSource,
+  "blackbox": SourceActor.prototype.onBlackBox,
+  "unblackbox": SourceActor.prototype.onUnblackBox
 };
 
 
@@ -2059,6 +2109,7 @@ FrameActor.prototype = {
     if (this.frame.script) {
       form.where = { url: this.frame.script.url,
                      line: this.frame.script.getOffsetLine(this.frame.offset) };
+      form.isBlackBoxed = this.threadActor.sources.isBlackBoxed(this.frame.script.url)
     }
 
     if (!this.frame.older) {
@@ -2157,6 +2208,10 @@ BreakpointActor.prototype = {
 
 
   hit: function BA_hit(aFrame) {
+    if (this.threadActor.sources.isBlackBoxed(this.location.url)) {
+      return undefined;
+    }
+
     
     let reason = { type: "breakpoint", actors: [ this.actorID ] };
     return this.threadActor._pauseAndRespond(aFrame, reason, (aPacket) => {
@@ -2494,8 +2549,8 @@ update(ChromeDebuggerActor.prototype, {
 
 
 
-function ThreadSources(aThreadActor, aUseSourceMaps,
-                       aAllowPredicate, aOnNewSource) {
+function ThreadSources(aThreadActor, aUseSourceMaps, aAllowPredicate,
+                       aOnNewSource) {
   this._thread = aThreadActor;
   this._useSourceMaps = aUseSourceMaps;
   this._allow = aAllowPredicate;
@@ -2512,6 +2567,12 @@ function ThreadSources(aThreadActor, aUseSourceMaps,
   
   this._generatedUrlsByOriginalUrl = Object.create(null);
 }
+
+
+
+
+
+ThreadSources._blackBoxedSources = new Set();
 
 ThreadSources.prototype = {
   
@@ -2685,6 +2746,39 @@ ThreadSources.prototype = {
       url: aSourceUrl,
       line: aLine
     });
+  },
+
+  
+
+
+
+
+
+
+  isBlackBoxed: function TS_isBlackBoxed(aURL) {
+    return ThreadSources._blackBoxedSources.has(aURL);
+  },
+
+  
+
+
+
+
+
+
+
+  blackBox: function TS_blackBox(aURL) {
+    ThreadSources._blackBoxedSources.add(aURL);
+  },
+
+  
+
+
+
+
+
+  unblackBox: function TS_unblackBox(aURL) {
+    ThreadSources._blackBoxedSources.delete(aURL);
   },
 
   

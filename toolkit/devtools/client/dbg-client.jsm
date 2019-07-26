@@ -1565,11 +1565,51 @@ LongStringClient.prototype = {
 
 function SourceClient(aClient, aForm) {
   this._form = aForm;
+  this._isBlackBoxed = aForm.isBlackBoxed;
   this._client = aClient;
 }
 
 SourceClient.prototype = {
-  get _transport() { return this._client._transport; },
+  get _transport() this._client._transport,
+  get isBlackBoxed() this._isBlackBoxed,
+  get actor() this._form.actor,
+  get request() this._client.request,
+
+  
+
+
+
+
+
+  blackBox: DebuggerClient.requester({
+    type: "blackbox"
+  }, {
+    telemetry: "BLACKBOX",
+    after: function (aResponse) {
+      if (!aResponse.error) {
+        this._isBlackBoxed = true;
+      }
+      return aResponse;
+    }
+  }),
+
+  
+
+
+
+
+
+  unblackBox: DebuggerClient.requester({
+    type: "unblackbox"
+  }, {
+    telemetry: "UNBLACKBOX",
+    after: function (aResponse) {
+      if (!aResponse.error) {
+        this._isBlackBoxed = false;
+      }
+      return aResponse;
+    }
+  }),
 
   
 
