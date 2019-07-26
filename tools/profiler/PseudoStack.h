@@ -10,6 +10,7 @@
 #include "mozilla/StandardInteger.h"
 #include "jsfriendapi.h"
 #include <stdlib.h>
+#include <algorithm>
 
 
 
