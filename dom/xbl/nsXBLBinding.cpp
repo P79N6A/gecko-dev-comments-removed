@@ -94,8 +94,7 @@ uint64_t nsXBLJSClass::sIdCount = 0;
 
 nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName,
                            const nsCString& aKey)
-  : LinkedListElement<nsXBLJSClass>()
-  , mRefCnt(0)
+  : mRefCnt(0)
   , mKey(aKey)
 {
   memset(static_cast<JSClass*>(this), 0, sizeof(JSClass));
@@ -120,27 +119,13 @@ nsXBLJSClass::IsXBLJSClass(const JSClass* aClass)
   return aClass->finalize == XBLFinalize;
 }
 
-nsrefcnt
-nsXBLJSClass::Destroy()
+nsXBLJSClass::~nsXBLJSClass()
 {
-  NS_ASSERTION(!isInList(),
-               "referenced nsXBLJSClass is on LRU list already!?");
-
   if (nsXBLService::gClassTable) {
     nsXBLService::gClassTable->Remove(mKey);
     mKey.Truncate();
   }
-
-  if (nsXBLService::gClassLRUListLength >= nsXBLService::gClassLRUListQuota) {
-    
-    delete this;
-  } else {
-    
-    nsXBLService::gClassLRUList->insertBack(this);
-    nsXBLService::gClassLRUListLength++;
-  }
-
-  return 0;
+  nsMemory::Free((void*) name);
 }
 
 nsXBLJSClass*
@@ -1005,29 +990,9 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
     if (!c) {
       c = nsXBLService::getClass(xblKey);
     }
-    if (c) {
+    if (!c) {
       
-      if (c->isInList()) {
-        c->remove();
-        nsXBLService::gClassLRUListLength--;
-      }
-    } else {
-      if (nsXBLService::gClassLRUList->isEmpty()) {
-        
-        c = new nsXBLJSClass(className, xblKey);
-      } else {
-        
-        c = nsXBLService::gClassLRUList->popFirst();
-        nsXBLService::gClassLRUListLength--;
-
-        
-        nsXBLService::gClassTable->Remove(c->Key());
-
-        
-        nsMemory::Free((void*) c->name);
-        c->name = ToNewCString(className);
-        c->SetKey(xblKey);
-      }
+      c = new nsXBLJSClass(className, xblKey);
 
       
       nsXBLService::gClassTable->Put(xblKey, c);

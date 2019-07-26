@@ -370,47 +370,26 @@ bool nsXBLService::gAllowDataURIs = false;
 
 nsXBLService::ClassTable* nsXBLService::gClassTable = nullptr;
 
-LinkedList<nsXBLJSClass>* nsXBLService::gClassLRUList = nullptr;
-uint32_t nsXBLService::gClassLRUListLength = 0;
-uint32_t nsXBLService::gClassLRUListQuota = 64;
 
-
-NS_IMPL_ISUPPORTS2(nsXBLService, nsIObserver, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS1(nsXBLService, nsISupportsWeakReference)
 
 void
 nsXBLService::Init()
 {
   gInstance = new nsXBLService();
   NS_ADDREF(gInstance);
-
-  
-  
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os)
-    os->AddObserver(gInstance, "memory-pressure", true);
 }
 
 
 nsXBLService::nsXBLService(void)
 {
   gClassTable = new ClassTable();
-  gClassLRUList = new LinkedList<nsXBLJSClass>();
 
   Preferences::AddBoolVarCache(&gAllowDataURIs, "layout.debug.enable_data_xbl");
 }
 
 nsXBLService::~nsXBLService(void)
 {
-  
-  FlushMemory();
-
-  
-  
-  
-  gClassLRUListLength = gClassLRUListQuota = 0;
-  delete gClassLRUList;
-  gClassLRUList = nullptr;
-
   
   
   delete gClassTable;
@@ -648,26 +627,6 @@ nsXBLService::DetachGlobalKeyHandler(EventTarget* aTarget)
 
   contentNode->DeleteProperty(nsGkAtoms::listener);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXBLService::Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aSomeData)
-{
-  if (nsCRT::strcmp(aTopic, "memory-pressure") == 0)
-    FlushMemory();
-
-  return NS_OK;
-}
-
-nsresult
-nsXBLService::FlushMemory()
-{
-  while (!gClassLRUList->isEmpty()) {
-    nsXBLJSClass* c = gClassLRUList->popFirst();
-    delete c;
-    gClassLRUListLength--;
-  }
   return NS_OK;
 }
 
