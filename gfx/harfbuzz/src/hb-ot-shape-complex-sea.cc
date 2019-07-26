@@ -38,7 +38,7 @@
 
 
 static const hb_tag_t
-sea_features[] =
+basic_features[] =
 {
   
 
@@ -48,6 +48,10 @@ sea_features[] =
   HB_TAG('a','b','v','f'),
   HB_TAG('b','l','w','f'),
   HB_TAG('p','s','t','f'),
+};
+static const hb_tag_t
+other_features[] =
+{
   
 
 
@@ -58,25 +62,6 @@ sea_features[] =
   HB_TAG('p','s','t','s'),
   
   HB_TAG('d','i','s','t'),
-};
-
-
-
-
-enum {
-  _PREF,
-  _ABVF,
-  _BLWF,
-  _PSTF,
-
-  _PRES,
-  _ABVS,
-  _BLWS,
-  _PSTS,
-  _DIST,
-
-  SEA_NUM_FEATURES,
-  SEA_BASIC_FEATURES = _PRES 
 };
 
 static void
@@ -100,28 +85,26 @@ collect_features_sea (hb_ot_shape_planner_t *plan)
   
   map->add_gsub_pause (setup_syllables);
 
-  map->add_bool_feature (HB_TAG('l','o','c','l'));
+  map->add_global_bool_feature (HB_TAG('l','o','c','l'));
   
 
-  map->add_bool_feature (HB_TAG('c','c','m','p'));
+  map->add_global_bool_feature (HB_TAG('c','c','m','p'));
 
-
-  unsigned int i = 0;
   map->add_gsub_pause (initial_reordering);
-  for (; i < SEA_BASIC_FEATURES; i++) {
-    map->add_bool_feature (sea_features[i]);
+  for (unsigned int i = 0; i < ARRAY_LENGTH (basic_features); i++)
+  {
+    map->add_feature (basic_features[i], 1, F_GLOBAL | F_MANUAL_ZWJ);
     map->add_gsub_pause (NULL);
   }
   map->add_gsub_pause (final_reordering);
-  for (; i < SEA_NUM_FEATURES; i++) {
-    map->add_bool_feature (sea_features[i]);
-  }
+  for (unsigned int i = 0; i < ARRAY_LENGTH (other_features); i++)
+    map->add_feature (other_features[i], 1, F_GLOBAL | F_MANUAL_ZWJ);
 }
 
 static void
 override_features_sea (hb_ot_shape_planner_t *plan)
 {
-  plan->map.add_feature (HB_TAG('l','i','g','a'), 0, true);
+  plan->map.add_feature (HB_TAG('l','i','g','a'), 0, F_GLOBAL);
 }
 
 
