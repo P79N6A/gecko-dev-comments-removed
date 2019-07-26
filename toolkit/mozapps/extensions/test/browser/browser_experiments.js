@@ -39,6 +39,7 @@ add_task(function* initializeState() {
     
     
     gExperiments = tmp.Experiments.instance();
+    yield gExperiments._mainTask;
     yield gExperiments.uninit();
   }
 });
