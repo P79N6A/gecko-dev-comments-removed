@@ -2262,20 +2262,10 @@ var XPIProvider = {
 
 
 
-
-
-
-
-
-
-
-
   processFileChanges: function XPI_processFileChanges(aState, aManifests,
                                                       aUpdateCompatibility,
                                                       aOldAppVersion,
-                                                      aOldPlatformVersion,
-                                                      aMigrateData,
-                                                      aActiveBundles) {
+                                                      aOldPlatformVersion) {
     let visibleAddons = {};
     let oldBootstrappedAddons = this.bootstrappedAddons;
     this.bootstrappedAddons = {};
@@ -2603,8 +2593,9 @@ var XPIProvider = {
 
       
       
-      let isNewInstall = !aActiveBundles && !aMigrateData;
- 
+      
+      let isNewInstall = (!!newAddon) || (!XPIDatabase.activeBundles && !aMigrateData);
+
       
       
       let isDetectedInstall = isNewInstall && !newAddon;
@@ -2684,14 +2675,14 @@ var XPIProvider = {
           newAddon.userDisabled = true;
       }
 
-      if (aActiveBundles) {
-        
-        
+      
+      
+      if (!isNewInstall && XPIDatabase.activeBundles) {
         
         if (newAddon.type == "theme")
           newAddon.active = newAddon.internalName == XPIProvider.currentSkin;
         else
-          newAddon.active = aActiveBundles.indexOf(aAddonState.descriptor) != -1;
+          newAddon.active = XPIDatabase.activeBundles.indexOf(aAddonState.descriptor) != -1;
 
         
         
@@ -2858,8 +2849,8 @@ var XPIProvider = {
 
       
       let locMigrateData = {};
-      if (aMigrateData && installLocation.name in aMigrateData)
-        locMigrateData = aMigrateData[installLocation.name];
+      if (XPIDatabase.migrateData && installLocation.name in XPIDatabase.migrateData)
+        locMigrateData = XPIDatabase.migrateData[installLocation.name];
       for (let id in addonStates) {
         changed = addMetadata(installLocation, id, addonStates[id],
                               locMigrateData[id]) || changed;
@@ -2880,6 +2871,9 @@ var XPIProvider = {
     
     let cache = JSON.stringify(this.getInstallLocationStates());
     Services.prefs.setCharPref(PREF_INSTALL_CACHE, cache);
+
+    
+    XPIDatabase.migrateData = null;
 
     return changed;
   },
@@ -2950,7 +2944,7 @@ var XPIProvider = {
     
     
     let manifests = {};
-    updateDatabase = this.processPendingFileChanges(manifests) | updateDatabase;
+    updateDatabase = this.processPendingFileChanges(manifests) || updateDatabase;
 
     
     
@@ -2958,19 +2952,19 @@ var XPIProvider = {
     let hasPendingChanges = Prefs.getBoolPref(PREF_PENDING_OPERATIONS);
 
     
-    updateDatabase |= DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0);
+    updateDatabase = updateDatabase || DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0);
 
     
     if (aAppChanged !== false &&
         Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
-      updateDatabase = this.installDistributionAddons(manifests) | updateDatabase;
+      updateDatabase = this.installDistributionAddons(manifests) || updateDatabase;
 
     let state = this.getInstallLocationStates();
 
     if (!updateDatabase) {
       
       let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
-      updateDatabase |= cache != JSON.stringify(state);
+      updateDatabase = cache != JSON.stringify(state);
     }
 
     
@@ -3009,14 +3003,13 @@ var XPIProvider = {
       if (updateDatabase || hasPendingChanges) {
         XPIDatabase.beginTransaction();
         transationBegun = true;
-        let migrateData = XPIDatabase.openConnection(false, true);
+        XPIDatabase.openConnection(false, true);
 
         try {
           extensionListChanged = this.processFileChanges(state, manifests,
                                                          aAppChanged,
                                                          aOldAppVersion,
-                                                         aOldPlatformVersion,
-                                                         migrateData, null);
+                                                         aOldPlatformVersion);
         }
         catch (e) {
           ERROR("Error processing file changes", e);

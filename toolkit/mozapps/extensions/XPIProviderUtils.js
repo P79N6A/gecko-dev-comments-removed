@@ -309,6 +309,10 @@ var XPIDatabase = {
   transactionCount: 0,
   
   dbfile: FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true),
+  
+  migrateData: null,
+  
+  activeBundles: null,
 
   
   statements: {
@@ -480,21 +484,28 @@ var XPIDatabase = {
     }
     catch (e) {
       ERROR("Failed to open database (1st attempt)", e);
-      try {
-        aDBFile.remove(true);
+      
+      
+      if (e.result != Cr.NS_ERROR_STORAGE_BUSY) {
+        try {
+          aDBFile.remove(true);
+        }
+        catch (e) {
+          ERROR("Failed to remove database that could not be opened", e);
+        }
+        try {
+          connection = Services.storage.openUnsharedDatabase(aDBFile);
+        }
+        catch (e) {
+          ERROR("Failed to open database (2nd attempt)", e);
+  
+          
+          
+          
+          return Services.storage.openSpecialDatabase("memory");
+        }
       }
-      catch (e) {
-        ERROR("Failed to remove database that could not be opened", e);
-      }
-      try {
-        connection = Services.storage.openUnsharedDatabase(aDBFile);
-      }
-      catch (e) {
-        ERROR("Failed to open database (2nd attempt)", e);
-
-        
-        
-        
+      else {
         return Services.storage.openSpecialDatabase("memory");
       }
     }
@@ -526,7 +537,7 @@ var XPIDatabase = {
 
     this.connection = this.openDatabaseFile(this.dbfile);
 
-    let migrateData = null;
+    this.migrateData = null;
     
     
     let schemaVersion = this.connection.schemaVersion;
@@ -536,7 +547,7 @@ var XPIDatabase = {
       
       if (schemaVersion != 0) {
         LOG("Migrating data from schema " + schemaVersion);
-        migrateData = this.getMigrateDataFromDatabase();
+        this.migrateData = this.getMigrateDataFromDatabase();
 
         
         this.connection.close();
@@ -562,21 +573,24 @@ var XPIDatabase = {
 
         if (dbSchema == 0) {
           
-          migrateData = this.getMigrateDataFromRDF();
+          this.migrateData = this.getMigrateDataFromRDF();
         }
       }
 
       
       this.createSchema();
 
+      
+      
+      if (!this.migrateData)
+        this.activeBundles = this.getActiveBundles();
+
       if (aRebuildOnError) {
-        let activeBundles = this.getActiveBundles();
         WARN("Rebuilding add-ons database from installed extensions.");
         this.beginTransaction();
         try {
           let state = XPIProvider.getInstallLocationStates();
-          XPIProvider.processFileChanges(state, {}, false, undefined, undefined,
-                                         migrateData, activeBundles)
+          XPIProvider.processFileChanges(state, {}, false);
           
           Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
           this.commitTransaction();
@@ -590,26 +604,14 @@ var XPIDatabase = {
 
     
     
-    
-    
-    
     if (this.connection.databaseFile) {
       Services.prefs.setIntPref(PREF_DB_SCHEMA, DB_SCHEMA);
+      Services.prefs.savePrefFile(null);
     }
-    else {
-      try {
-        Services.prefs.clearUserPref(PREF_DB_SCHEMA);
-      }
-      catch (e) {
-        
-      }
-    }
-    Services.prefs.savePrefFile(null);
 
     
     for (let i = 0; i < this.transactionCount; i++)
       this.connection.executeSimpleSQL("SAVEPOINT 'default'");
-    return migrateData;
   },
 
   
@@ -636,7 +638,14 @@ var XPIDatabase = {
 
     let iniFactory = Cc["@mozilla.org/xpcom/ini-parser-factory;1"].
                      getService(Ci.nsIINIParserFactory);
-    let parser = iniFactory.createINIParser(addonsList);
+
+    try {
+      var parser = iniFactory.createINIParser(addonsList);
+    }
+    catch (e) {
+      WARN("Failed to parse extensions.ini", e);
+      return null;
+    }
 
     let keys = parser.getKeys("ExtensionDirs");
 
@@ -661,51 +670,52 @@ var XPIDatabase = {
 
     
     let rdffile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_OLD_DATABASE], true);
-    if (rdffile.exists()) {
-      LOG("Migrating data from extensions.rdf");
-      let ds = gRDF.GetDataSourceBlocking(Services.io.newFileURI(rdffile).spec);
-      let root = Cc["@mozilla.org/rdf/container;1"].
-                 createInstance(Ci.nsIRDFContainer);
-      root.Init(ds, gRDF.GetResource(RDFURI_ITEM_ROOT));
-      let elements = root.GetElements();
-      while (elements.hasMoreElements()) {
-        let source = elements.getNext().QueryInterface(Ci.nsIRDFResource);
+    if (!rdffile.exists())
+      return null;
 
-        let location = getRDFProperty(ds, source, "installLocation");
-        if (location) {
-          if (!(location in migrateData))
-            migrateData[location] = {};
-          let id = source.ValueUTF8.substring(PREFIX_ITEM_URI.length);
-          migrateData[location][id] = {
-            version: getRDFProperty(ds, source, "version"),
-            userDisabled: false,
-            targetApplications: []
+    LOG("Migrating data from extensions.rdf");
+    let ds = gRDF.GetDataSourceBlocking(Services.io.newFileURI(rdffile).spec);
+    let root = Cc["@mozilla.org/rdf/container;1"].
+               createInstance(Ci.nsIRDFContainer);
+    root.Init(ds, gRDF.GetResource(RDFURI_ITEM_ROOT));
+    let elements = root.GetElements();
+    while (elements.hasMoreElements()) {
+      let source = elements.getNext().QueryInterface(Ci.nsIRDFResource);
+
+      let location = getRDFProperty(ds, source, "installLocation");
+      if (location) {
+        if (!(location in migrateData))
+          migrateData[location] = {};
+        let id = source.ValueUTF8.substring(PREFIX_ITEM_URI.length);
+        migrateData[location][id] = {
+          version: getRDFProperty(ds, source, "version"),
+          userDisabled: false,
+          targetApplications: []
+        }
+
+        let disabled = getRDFProperty(ds, source, "userDisabled");
+        if (disabled == "true" || disabled == "needs-disable")
+          migrateData[location][id].userDisabled = true;
+
+        let targetApps = ds.GetTargets(source, EM_R("targetApplication"),
+                                       true);
+        while (targetApps.hasMoreElements()) {
+          let targetApp = targetApps.getNext()
+                                    .QueryInterface(Ci.nsIRDFResource);
+          let appInfo = {
+            id: getRDFProperty(ds, targetApp, "id")
+          };
+
+          let minVersion = getRDFProperty(ds, targetApp, "updatedMinVersion");
+          if (minVersion) {
+            appInfo.minVersion = minVersion;
+            appInfo.maxVersion = getRDFProperty(ds, targetApp, "updatedMaxVersion");
           }
-
-          let disabled = getRDFProperty(ds, source, "userDisabled");
-          if (disabled == "true" || disabled == "needs-disable")
-            migrateData[location][id].userDisabled = true;
-
-          let targetApps = ds.GetTargets(source, EM_R("targetApplication"),
-                                         true);
-          while (targetApps.hasMoreElements()) {
-            let targetApp = targetApps.getNext()
-                                      .QueryInterface(Ci.nsIRDFResource);
-            let appInfo = {
-              id: getRDFProperty(ds, targetApp, "id")
-            };
-
-            let minVersion = getRDFProperty(ds, targetApp, "updatedMinVersion");
-            if (minVersion) {
-              appInfo.minVersion = minVersion;
-              appInfo.maxVersion = getRDFProperty(ds, targetApp, "updatedMaxVersion");
-            }
-            else {
-              appInfo.minVersion = getRDFProperty(ds, targetApp, "minVersion");
-              appInfo.maxVersion = getRDFProperty(ds, targetApp, "maxVersion");
-            }
-            migrateData[location][id].targetApplications.push(appInfo);
+          else {
+            appInfo.minVersion = getRDFProperty(ds, targetApp, "minVersion");
+            appInfo.maxVersion = getRDFProperty(ds, targetApp, "maxVersion");
           }
+          migrateData[location][id].targetApplications.push(appInfo);
         }
       }
     }
@@ -747,7 +757,7 @@ var XPIDatabase = {
 
       if (reqCount < REQUIRED.length) {
         ERROR("Unable to read anything useful from the database");
-        return migrateData;
+        return null;
       }
       stmt.finalize();
 
@@ -790,6 +800,7 @@ var XPIDatabase = {
     catch (e) {
       
       ERROR("Error migrating data", e);
+      return null;
     }
     finally {
       if (taStmt)
@@ -817,6 +828,11 @@ var XPIDatabase = {
         while (this.transactionCount > 0)
           this.rollbackTransaction();
       }
+
+      
+      
+      if (!this.connection.databaseFile)
+        Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
 
       this.initialized = false;
       let connection = this.connection;
