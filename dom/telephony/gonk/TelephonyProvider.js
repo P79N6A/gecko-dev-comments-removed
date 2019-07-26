@@ -400,15 +400,8 @@ TelephonyProvider.prototype = {
     });
   },
 
-  isDialing: false,
-  dial: function(aClientId, aNumber, aIsEmergency, aTelephonyCallback) {
+  dial: function(aClientId, aNumber, aIsEmergency) {
     if (DEBUG) debug("Dialing " + (aIsEmergency ? "emergency " : "") + aNumber);
-
-    if (this.isDialing) {
-      if (DEBUG) debug("Already has a dialing call. Drop.");
-      aTelephonyCallback.notifyDialError("InvalidStateError");
-      return;
-    }
 
     
     
@@ -416,28 +409,25 @@ TelephonyProvider.prototype = {
       aNumber = gPhoneNumberUtils.normalize(aNumber);
     }
 
-    
     if (!gPhoneNumberUtils.isPlainPhoneNumber(aNumber)) {
       
       if (DEBUG) debug("Number '" + aNumber + "' is not viable. Drop.");
       let errorMsg = RIL.RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[RIL.CALL_FAIL_UNOBTAINABLE_NUMBER];
-      aTelephonyCallback.notifyDialError(errorMsg);
+      Services.tm.currentThread.dispatch(
+        this.notifyCallError.bind(this, aClientId, -1, errorMsg),
+        Ci.nsIThread.DISPATCH_NORMAL);
       return;
     }
 
-    this.isDialing = true;
     this._getClient(aClientId).sendWorkerMessage("dial", {
       number: aNumber,
       isDialEmergency: aIsEmergency
-    }, (function(response) {
-      this.isDialing = false;
-      if (response.success) {
-        aTelephonyCallback.notifyDialSuccess();
-      } else {
-        aTelephonyCallback.notifyDialError(response.errorMsg);
+    }, (function(clientId, response) {
+      if (!response.success) {
+        this.notifyCallError(clientId, -1, response.errorMsg);
       }
       return false;
-    }).bind(this));
+    }).bind(this, aClientId));
   },
 
   hangUp: function(aClientId, aCallIndex) {
