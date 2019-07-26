@@ -73,9 +73,12 @@ private:
 class AudioNode : public nsDOMEventTargetHelper,
                   public EnableWebAudioCheck
 {
+protected:
+  
+  virtual ~AudioNode();
+
 public:
   explicit AudioNode(AudioContext* aContext);
-  virtual ~AudioNode();
 
   
   virtual void DestroyMediaStream();
@@ -87,7 +90,7 @@ public:
     return false;
   }
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioNode,
                                            nsDOMEventTargetHelper)
 
