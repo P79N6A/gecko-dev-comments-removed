@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko.sync.log.writers;
+package org.mozilla.gecko.background.common.log.writers;
 
 
 

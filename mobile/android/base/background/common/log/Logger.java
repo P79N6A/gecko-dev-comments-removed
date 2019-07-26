@@ -2,17 +2,18 @@
 
 
 
-package org.mozilla.gecko.sync;
+package org.mozilla.gecko.background.common.log;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.mozilla.gecko.sync.log.writers.AndroidLevelCachingLogWriter;
-import org.mozilla.gecko.sync.log.writers.AndroidLogWriter;
-import org.mozilla.gecko.sync.log.writers.LogWriter;
-import org.mozilla.gecko.sync.log.writers.SimpleTagLogWriter;
-import org.mozilla.gecko.sync.log.writers.ThreadLocalTagLogWriter;
+import org.mozilla.gecko.background.common.GlobalConstants;
+import org.mozilla.gecko.background.common.log.writers.AndroidLevelCachingLogWriter;
+import org.mozilla.gecko.background.common.log.writers.AndroidLogWriter;
+import org.mozilla.gecko.background.common.log.writers.LogWriter;
+import org.mozilla.gecko.background.common.log.writers.SimpleTagLogWriter;
+import org.mozilla.gecko.background.common.log.writers.ThreadLocalTagLogWriter;
 
 import android.util.Log;
 

@@ -4,6 +4,8 @@
 
 package org.mozilla.gecko.sync;
 
+import org.mozilla.gecko.background.common.log.Logger;
+
 
 
 
