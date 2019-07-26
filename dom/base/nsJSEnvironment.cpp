@@ -1296,10 +1296,10 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   if (!ok) {
+    *aRetValue = JS::UndefinedValue();
     
     
     
-
     ReportPendingException();
   }
 
