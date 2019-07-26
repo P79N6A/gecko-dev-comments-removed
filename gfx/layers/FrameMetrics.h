@@ -244,7 +244,6 @@ public:
   
   
   
-  
   ScreenToScreenScale mZoom;
 
   
