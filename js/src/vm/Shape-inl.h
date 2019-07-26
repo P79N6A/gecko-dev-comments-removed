@@ -9,6 +9,8 @@
 
 #include "vm/Shape.h"
 
+#include "mozilla/TypeTraits.h"
+
 #include "jsobj.h"
 
 #include "vm/Interpreter.h"
@@ -176,6 +178,39 @@ Shape::search(ExclusiveContext *cx, Shape *start, jsid id, Shape ***pspp, bool a
     }
 
     return nullptr;
+}
+
+template<class ObjectSubclass>
+ inline bool
+EmptyShape::ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass*> obj)
+{
+    static_assert(mozilla::IsBaseOf<JSObject, ObjectSubclass>::value,
+                  "ObjectSubclass must be a subclass of JSObject");
+
+    
+    
+    if (!obj->nativeEmpty())
+        return true;
+
+    
+    RootedShape shape(cx, ObjectSubclass::assignInitialShape(cx, obj));
+    if (!shape)
+        return false;
+    MOZ_ASSERT(!obj->nativeEmpty());
+
+    
+    
+    
+    
+    
+    if (obj->isDelegate())
+        return true;
+
+    
+    
+    RootedObject proto(cx, obj->getProto());
+    EmptyShape::insertInitialShape(cx, shape, proto);
+    return true;
 }
 
 inline

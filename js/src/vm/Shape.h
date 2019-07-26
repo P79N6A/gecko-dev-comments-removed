@@ -1382,6 +1382,19 @@ struct EmptyShape : public js::Shape
 
 
     static void insertInitialShape(ExclusiveContext *cx, HandleShape shape, HandleObject proto);
+
+    
+
+
+
+
+
+
+
+
+    template<class ObjectSubclass>
+    static inline bool
+    ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass*> obj);
 };
 
 

@@ -11,10 +11,12 @@
 
 #include "jsobjinlines.h"
 
+#include "vm/Shape-inl.h"
+
 using namespace js;
 
  Shape *
-js::ErrorObject::assignInitialShapeNoMessage(JSContext *cx, Handle<ErrorObject*> obj)
+js::ErrorObject::assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj)
 {
     MOZ_ASSERT(obj->nativeEmpty());
 
@@ -36,18 +38,8 @@ js::ErrorObject::init(JSContext *cx, Handle<ErrorObject*> obj, JSExnType type,
     
     obj->initReservedSlot(ERROR_REPORT_SLOT, PrivateValue(nullptr));
 
-    if (obj->nativeEmpty()) {
-        
-        
-        RootedShape shape(cx, ErrorObject::assignInitialShapeNoMessage(cx, obj));
-        if (!shape)
-            return false;
-        if (!obj->isDelegate()) {
-            RootedObject proto(cx, obj->getProto());
-            EmptyShape::insertInitialShape(cx, shape, proto);
-        }
-        MOZ_ASSERT(!obj->nativeEmpty());
-    }
+    if (!EmptyShape::ensureInitialCustomShape<ErrorObject>(cx, obj))
+        return false;
 
     
     

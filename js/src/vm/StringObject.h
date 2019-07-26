@@ -10,6 +10,8 @@
 #include "jsobj.h"
 #include "jsstr.h"
 
+#include "vm/Shape.h"
+
 namespace js {
 
 class StringObject : public JSObject
@@ -58,11 +60,17 @@ class StringObject : public JSObject
     ::js_InitStringClass(JSContext *cx, js::HandleObject global);
 
     
+    friend bool
+    EmptyShape::ensureInitialCustomShape<StringObject>(ExclusiveContext *cx,
+                                                       Handle<StringObject*> obj);
+
+    
 
 
 
 
-    Shape *assignInitialShape(JSContext *cx);
+    static Shape *
+    assignInitialShape(ExclusiveContext *cx, Handle<StringObject*> obj);
 };
 
 } 

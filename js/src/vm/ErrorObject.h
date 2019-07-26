@@ -9,6 +9,8 @@
 
 #include "jsobj.h"
 
+#include "vm/Shape.h"
+
 struct JSExnPrivate;
 
 
@@ -29,8 +31,18 @@ class ErrorObject : public JSObject
     friend JSObject *
     ::js_InitExceptionClasses(JSContext *cx, JS::HandleObject global);
 
+    
+    friend bool
+    EmptyShape::ensureInitialCustomShape<ErrorObject>(ExclusiveContext *cx,
+                                                      Handle<ErrorObject*> obj);
+
+    
+
+
+
+
     static Shape *
-    assignInitialShapeNoMessage(JSContext *cx, Handle<ErrorObject*> obj);
+    assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj);
 
     static bool
     init(JSContext *cx, Handle<ErrorObject*> obj, JSExnType type,
