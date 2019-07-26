@@ -5129,6 +5129,9 @@ js::NewCompartment(JSContext *cx, Zone *zone, JSPrincipals *principals,
 void
 gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
 {
+    
+    JS_ASSERT(source->options_.invisibleToDebugger());
+
     JSRuntime *rt = source->runtimeFromMainThread();
 
     AutoPrepareForTracing prepare(rt, SkipAtoms);
