@@ -154,7 +154,7 @@ nsresult PREF_ClearAllUserPrefs();
 
 
 #ifndef have_PrefChangedFunc_typedef
-typedef void (*PrefChangedFunc) (const char *, void *);
+typedef nsresult (*PrefChangedFunc) (const char *, void *); 
 #define have_PrefChangedFunc_typedef
 #endif
 
