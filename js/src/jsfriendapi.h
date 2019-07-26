@@ -8,7 +8,6 @@
 #define jsfriendapi_h
 
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/TypedEnum.h"
 
 #include "jsbytecode.h"
 #include "jspubtd.h"
@@ -1448,11 +1447,11 @@ typedef bool
                   void *specializedThis, const JSJitMethodCallArgs& args);
 
 struct JSJitInfo {
-    enum OpType MOZ_ENUM_TYPE(uint8_t) {
+    enum OpType {
         Getter,
         Setter,
         Method,
-        ParallelNative
+        OpType_None
     };
 
     enum ArgType {
@@ -1476,7 +1475,7 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
-    enum AliasSet MOZ_ENUM_TYPE(uint8_t) {
+    enum AliasSet {
         
         
         
@@ -1494,27 +1493,15 @@ struct JSJitInfo {
         AliasEverything
     };
 
-    bool hasParallelNative() const
-    {
-        return type == ParallelNative;
-    }
-
     bool isDOMJitInfo() const
     {
-        return type != ParallelNative;
-    }
-
-    bool isTypedMethodJitInfo() const
-    {
-        return isTypedMethod;
+        return type != OpType_None;
     }
 
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
         JSJitMethodOp method;
-        
-        JSParallelNative parallelNative;
     };
 
     uint32_t protoID;
@@ -1523,18 +1510,8 @@ struct JSJitInfo {
     
     
     OpType type;
-    JSValueType returnType; 
-    uint16_t isInfallible : 1; 
-    uint16_t isMovable : 1;    
-
-
-
-    
-    uint16_t isInSlot : 1;     
-
-    uint16_t isTypedMethod : 1; 
-
-    uint16_t slotIndex : 12;   
+    bool isInfallible;      
+    bool isMovable;         
 
 
     AliasSet aliasSet;      
@@ -1542,6 +1519,23 @@ struct JSJitInfo {
 
 
 
+    
+    
+    bool isInSlot;          
+
+    size_t slotIndex;       
+
+    JSValueType returnType; 
+
+    const ArgType* const argTypes; 
+
+
+
+
+
+
+    
+    JSParallelNative parallelNative;
 
 private:
     static void staticAsserts()
@@ -1555,47 +1549,8 @@ private:
     }
 };
 
-struct JSTypedMethodJitInfo
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    JSJitInfo base;
-
-    const JSJitInfo::ArgType* const argTypes; 
-
-
-
-
-
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_JITINFO_NATIVE_PARALLEL(infoName, wrapperName, serialOp)     \
-    bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, JS::Value *vp) \
-    {                                                                   \
-        return JSParallelNativeThreadSafeWrapper<serialOp>(slice, argc, vp); \
-    }                                                                   \
-    const JSJitInfo infoName =                                          \
-        {{reinterpret_cast<JSJitGetterOp>(wrapperName##_ParallelNativeThreadSafeWrapper)},0,0,JSJitInfo::ParallelNative,JSVAL_TYPE_MISSING,false,false,false,false,0,JSJitInfo::AliasEverything}
+#define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,JSJitInfo::AliasEverything,false,0,JSVAL_TYPE_MISSING,nullptr,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)

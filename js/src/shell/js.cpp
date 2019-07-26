@@ -4834,13 +4834,14 @@ static const JSJitInfo dom_x_getterinfo = {
     0,        
     0,        
     JSJitInfo::Getter,
-    JSVAL_TYPE_UNKNOWN, 
     true,     
     true,     
-    false,    
+    JSJitInfo::AliasNone, 
     false,    
     0,        
-    JSJitInfo::AliasNone 
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
+    nullptr   
 };
 
 static const JSJitInfo dom_x_setterinfo = {
@@ -4848,13 +4849,14 @@ static const JSJitInfo dom_x_setterinfo = {
     0,        
     0,        
     JSJitInfo::Setter,
-    JSVAL_TYPE_UNKNOWN, 
     false,    
     false,    
-    false,    
+    JSJitInfo::AliasEverything, 
     false,    
     0,        
-    JSJitInfo::AliasEverything 
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
+    nullptr   
 };
 
 static const JSJitInfo doFoo_methodinfo = {
@@ -4862,13 +4864,14 @@ static const JSJitInfo doFoo_methodinfo = {
     0,        
     0,        
     JSJitInfo::Method,
-    JSVAL_TYPE_UNKNOWN, 
     false,    
     false,    
-    false,    
+    JSJitInfo::AliasEverything, 
     false,    
     0,        
-    JSJitInfo::AliasEverything 
+    JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
+    nullptr   
 };
 
 static const JSPropertySpec dom_props[] = {
