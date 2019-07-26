@@ -46,6 +46,7 @@
 #include "base/message_loop.h"
 #include "nsTArray.h"
 #include "nsDataHashtable.h"
+#include "mozilla/NullPtr.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Util.h"
 #include "mozilla/FileUtils.h"
@@ -69,12 +70,12 @@
 
 
 
-enum {
+enum DBusEventTypes {
   DBUS_EVENT_LOOP_EXIT = 1,
   DBUS_EVENT_LOOP_ADD = 2,
   DBUS_EVENT_LOOP_REMOVE = 3,
-  DBUS_EVENT_LOOP_WAKEUP = 4,
-} DBusEventTypes;
+  DBUS_EVENT_LOOP_WAKEUP = 4
+};
 
 static unsigned int UnixEventsToDBusFlags(short events)
 {
@@ -298,14 +299,39 @@ DBusThread::~DBusThread()
 bool
 DBusThread::SetUpEventLoop()
 {
+  MOZ_ASSERT(!NS_IsMainThread());
+
   
   if (mConnection) {
     return false;
   }
 
-  dbus_threads_init_default();
-  DBusError err;
-  dbus_error_init(&err);
+  
+  
+  
+  
+  
+  
+
+  int sockets[2];
+  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sockets) < 0) {
+    return false;
+  }
+
+  mControlFdR.rwget() = sockets[0];
+  mControlFdW.rwget() = sockets[1];
+
+  pollfd *p = mPollData.AppendElement();
+
+  p->fd = mControlFdR.get();
+  p->events = POLLIN;
+  p->revents = 0;
+
+  
+  
+  
+
+  mWatchData.AppendElement(static_cast<DBusWatch*>(nullptr));
 
   
   nsresult rv = EstablishDBusConnection();
@@ -314,12 +340,30 @@ DBusThread::SetUpEventLoop()
     return false;
   }
 
+  dbus_bool_t success =
+    dbus_connection_set_watch_functions(mConnection, AddWatch, RemoveWatch,
+                                        ToggleWatch, this, nullptr);
+  NS_ENSURE_TRUE(success == TRUE, false);
+
+  dbus_connection_set_wakeup_main_function(mConnection, DBusWakeup, this, nullptr);
+
   return true;
 }
 
 bool
 DBusThread::TearDownData()
 {
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  dbus_connection_set_wakeup_main_function(mConnection, nullptr, nullptr, nullptr);
+
+  dbus_bool_t success = dbus_connection_set_watch_functions(mConnection, nullptr,
+                                                            nullptr, nullptr,
+                                                            nullptr, nullptr);
+  if (success != TRUE) {
+    NS_WARNING("dbus_connection_set_watch_functions failed");
+  }
+
 #ifdef DEBUG
   LOG("Removing DBus Sockets\n");
 #endif
@@ -340,9 +384,6 @@ DBusThread::TearDownData()
 void
 DBusThread::EventLoop()
 {
-  dbus_connection_set_watch_functions(mConnection, AddWatch,
-                                      RemoveWatch, ToggleWatch, this, NULL);
-  dbus_connection_set_wakeup_main_function(mConnection, DBusWakeup, this, NULL);
 #ifdef DEBUG
   LOG("DBus Event Loop Starting\n");
 #endif
@@ -363,10 +404,6 @@ DBusThread::EventLoop()
 #ifdef DEBUG
             LOG("DBus Event Loop Exiting\n");
 #endif
-            dbus_connection_set_watch_functions(mConnection,
-                                                NULL, NULL, NULL, NULL, NULL);
-            dbus_connection_set_wakeup_main_function(mConnection, NULL, NULL,
-                                                     NULL);
             return;
           case DBUS_EVENT_LOOP_ADD:
             HandleWatchAdd(this);
@@ -398,30 +435,6 @@ DBusThread::EventLoop()
 bool
 DBusThread::StartEventLoop()
 {
-  
-  
-  
-  
-  
-  
-
-  int sockets[2];
-  if (socketpair(AF_LOCAL, SOCK_STREAM, 0, (int*)(&sockets)) < 0) {
-    TearDownData();
-    return false;
-  }
-  mControlFdR.rwget() = sockets[0];
-  mControlFdW.rwget() = sockets[1];
-  pollfd p;
-  p.fd = mControlFdR.get();
-  p.events = POLLIN;
-  mPollData.AppendElement(p);
-
-  
-  
-  
-
-  mWatchData.AppendElement((DBusWatch*)NULL);
   if (!SetUpEventLoop()) {
     TearDownData();
     return false;
