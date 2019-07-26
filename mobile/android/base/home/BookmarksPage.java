@@ -24,9 +24,17 @@ public class BookmarksPage extends HomeFragment {
     
     private BookmarksListView mList;
 
+    
+    private TopBookmarksView mTopBookmarks;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.home_bookmarks_page, null);
+        BookmarksListView list = (BookmarksListView) inflater.inflate(R.layout.home_bookmarks_page, container, false);
+
+        mTopBookmarks = new TopBookmarksView(getActivity());
+        list.addHeaderView(mTopBookmarks);
+
+        return list;
     }
 
     @Override
@@ -45,6 +53,8 @@ public class BookmarksPage extends HomeFragment {
         mList.setOnUrlOpenListener(listener);
 
         registerForContextMenu(mList);
+
+        mTopBookmarks.setOnUrlOpenListener(listener);
     }
 
     @Override
