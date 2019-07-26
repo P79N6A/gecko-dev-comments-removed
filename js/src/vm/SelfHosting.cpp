@@ -320,6 +320,46 @@ intrinsic_ForkJoinNumWorkers(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+
+
+
+
+
+
+bool
+js::intrinsic_ForkJoinGetSlice(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 1);
+    MOZ_ASSERT(args[0].isInt32());
+    args.rval().set(args[0]);
+    return true;
+}
+
+static bool
+intrinsic_ForkJoinGetSlicePar(ForkJoinContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 1);
+    MOZ_ASSERT(args[0].isInt32());
+
+    uint16_t sliceId;
+    if (cx->getSlice(&sliceId))
+        args.rval().setInt32(sliceId);
+    else
+        args.rval().setInt32(-1);
+
+    return true;
+}
+
+JS_JITINFO_NATIVE_PARALLEL(intrinsic_ForkJoinGetSlice_jitInfo,
+                           intrinsic_ForkJoinGetSlicePar);
+
+
+
+
+
 bool
 js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -573,6 +613,25 @@ js::intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+bool
+js::intrinsic_InParallelSection(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().setBoolean(false);
+    return true;
+}
+
+static bool
+intrinsic_InParallelSectionPar(ForkJoinContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().setBoolean(true);
+    return true;
+}
+
+JS_JITINFO_NATIVE_PARALLEL(intrinsic_InParallelSection_jitInfo,
+                           intrinsic_InParallelSectionPar);
+
 
 
 
@@ -630,6 +689,12 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FNINFO("SetForkJoinTargetRegion",
               intrinsic_SetForkJoinTargetRegion,
               &intrinsic_SetForkJoinTargetRegionInfo, 2, 0),
+    JS_FNINFO("ForkJoinGetSlice",
+              intrinsic_ForkJoinGetSlice,
+              &intrinsic_ForkJoinGetSlice_jitInfo, 1, 0),
+    JS_FNINFO("InParallelSection",
+              intrinsic_InParallelSection,
+              &intrinsic_InParallelSection_jitInfo, 0, 0),
 
     
     JS_FN("NewTypedHandle",

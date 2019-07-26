@@ -68,7 +68,6 @@ class js::ThreadPoolBaseWorker
 
     void submitSlices(uint16_t sliceFrom, uint16_t sliceTo) {
         MOZ_ASSERT(!hasWork());
-        MOZ_ASSERT(sliceFrom < sliceTo);
         sliceBounds_ = ComposeSliceBounds(sliceFrom, sliceTo);
     }
 
@@ -98,15 +97,15 @@ class js::ThreadPoolWorker : public ThreadPoolBaseWorker
     static void ThreadMain(void *arg);
     void run();
 
-    
-    
-    bool getSlice(uint16_t *sliceId);
-
   public:
     ThreadPoolWorker(uint32_t workerId, ThreadPool *pool)
       : ThreadPoolBaseWorker(workerId, pool),
         state_(CREATED)
     { }
+
+    
+    
+    bool getSlice(uint16_t *sliceId);
 
     
     bool start();
@@ -124,9 +123,6 @@ class js::ThreadPoolMainWorker : public ThreadPoolBaseWorker
 {
     friend class ThreadPoolWorker;
 
-    
-    bool getSlice(uint16_t *sliceId);
-
   public:
     bool isActive;
 
@@ -134,6 +130,9 @@ class js::ThreadPoolMainWorker : public ThreadPoolBaseWorker
       : ThreadPoolBaseWorker(0, pool),
         isActive(false)
     { }
+
+    
+    bool getSlice(uint16_t *sliceId);
 
     
     void executeJob();
@@ -287,14 +286,8 @@ ThreadPoolWorker::run()
             pool_->activeWorkers_++;
         }
 
-        ParallelJob *job = pool_->job();
-        uint16_t sliceId;
-        while (getSlice(&sliceId)) {
-            if (!job->executeFromWorker(sliceId, workerId_, stackLimit)) {
-                pool_->abortJob();
-                break;
-            }
-        }
+        if (!pool_->job()->executeFromWorker(workerId_, stackLimit))
+            pool_->abortJob();
 
         
         {
@@ -315,14 +308,8 @@ ThreadPoolWorker::terminate(AutoLockMonitor &lock)
 void
 ThreadPoolMainWorker::executeJob()
 {
-    ParallelJob *job = pool_->job();
-    uint16_t sliceId;
-    while (getSlice(&sliceId)) {
-        if (!job->executeFromMainThread(sliceId)) {
-            pool_->abortJob();
-            return;
-        }
-    }
+    if (!pool_->job()->executeFromMainThread())
+        pool_->abortJob();
 }
 
 bool
@@ -514,8 +501,9 @@ ThreadPool::waitForWorkers(AutoLockMonitor &lock)
 }
 
 ParallelResult
-ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices)
+ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t sliceFrom, uint16_t sliceMax)
 {
+    MOZ_ASSERT(sliceFrom < sliceMax);
     MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
     MOZ_ASSERT(activeWorkers_ == 0);
     MOZ_ASSERT(!hasWork());
@@ -533,10 +521,10 @@ ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices)
         return TP_FATAL;
 
     
+    uint16_t numSlices = sliceMax - sliceFrom;
     uint16_t slicesPerWorker = numSlices / (numWorkers() + 1);
-    uint16_t leftover = numSlices % slicesPerWorker;
-    uint16_t sliceFrom = 0;
-    uint16_t sliceTo = 0;
+    uint16_t leftover = numSlices % (numWorkers() + 1);
+    uint16_t sliceTo = sliceFrom;
     for (uint32_t workerId = 0; workerId < numWorkers(); workerId++) {
         if (leftover > 0) {
             sliceTo += slicesPerWorker + 1;
@@ -574,7 +562,25 @@ ThreadPool::executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices)
     }
 
     
+    
+    MOZ_ASSERT(!hasWork(), "User function did not process all the slices!");
+
+    
     return TP_SUCCESS;
+}
+
+bool
+ThreadPool::getSliceForWorker(uint32_t workerId, uint16_t *sliceId)
+{
+    MOZ_ASSERT(workers_[workerId]);
+    return workers_[workerId]->getSlice(sliceId);
+}
+
+bool
+ThreadPool::getSliceForMainThread(uint16_t *sliceId)
+{
+    MOZ_ASSERT(mainWorker_);
+    return mainWorker_->getSlice(sliceId);
 }
 
 void

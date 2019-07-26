@@ -200,6 +200,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 class ForkJoinActivation : public Activation
@@ -302,9 +313,6 @@ class ForkJoinContext : public ThreadSafeContext
 {
   public:
     
-    const uint16_t sliceId;
-
-    
     const uint32_t workerId;
 
     
@@ -315,7 +323,6 @@ class ForkJoinContext : public ThreadSafeContext
     IonLIRTraceData traceData;
 
     
-    uint16_t maxSliceId;
     uint32_t maxWorkerId;
 #endif
 
@@ -336,9 +343,17 @@ class ForkJoinContext : public ThreadSafeContext
     uint8_t *targetRegionStart;
     uint8_t *targetRegionEnd;
 
-    ForkJoinContext(PerThreadData *perThreadData, uint16_t sliceId, uint32_t workerId,
+    ForkJoinContext(PerThreadData *perThreadData, uint32_t workerId,
                     Allocator *allocator, ForkJoinShared *shared,
                     ParallelBailoutRecord *bailoutRecord);
+
+    
+    bool getSlice(uint16_t *sliceId) {
+        ThreadPool &pool = runtime()->threadPool;
+        return (isMainThread()
+                ? pool.getSliceForMainThread(sliceId)
+                : pool.getSliceForWorker(workerId, sliceId));
+    }
 
     
     bool isMainThread() const;

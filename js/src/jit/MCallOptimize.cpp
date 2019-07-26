@@ -143,7 +143,8 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
         return inlineUnsafeGetReservedSlot(callInfo);
 
     
-    if (native == intrinsic_ShouldForceSequential)
+    if (native == intrinsic_ShouldForceSequential ||
+        native == intrinsic_InParallelSection)
         return inlineForceSequentialOrInParallelSection(callInfo);
 
     

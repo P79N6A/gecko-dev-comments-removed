@@ -29,11 +29,12 @@ class ThreadPoolMainWorker;
 
 
 
+
 class ParallelJob
 {
   public:
-    virtual bool executeFromWorker(uint16_t sliceId, uint32_t workerId, uintptr_t stackLimit) = 0;
-    virtual bool executeFromMainThread(uint16_t sliceId) = 0;
+    virtual bool executeFromWorker(uint32_t workerId, uintptr_t stackLimit) = 0;
+    virtual bool executeFromMainThread() = 0;
 };
 
 
@@ -147,7 +148,13 @@ class ThreadPool : public Monitor
 
     
     
-    ParallelResult executeJob(JSContext *cx, ParallelJob *job, uint16_t numSlices);
+    ParallelResult executeJob(JSContext *cx, ParallelJob *job, uint16_t sliceStart,
+                              uint16_t numSlices);
+
+    
+    
+    bool getSliceForWorker(uint32_t workerId, uint16_t *sliceId);
+    bool getSliceForMainThread(uint16_t *sliceId);
 
     
     void abortJob();

@@ -17,5 +17,6 @@ function test() {
   }
 }
 
-if (getBuildConfiguration().parallelJS)
-  test();
+
+
+
