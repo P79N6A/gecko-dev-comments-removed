@@ -193,6 +193,29 @@ private:
 };
 
 
+class GetUserMediaListenerRemove: public nsRunnable
+{
+public:
+  GetUserMediaListenerRemove(uint64_t aWindowID,
+    GetUserMediaCallbackMediaStreamListener *aListener)
+    : mWindowID(aWindowID)
+    , mListener(aListener) {}
+
+  NS_IMETHOD
+  Run()
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+    nsRefPtr<MediaManager> manager(MediaManager::GetInstance());
+    manager->RemoveFromWindowList(mWindowID, mListener);
+    return NS_OK;
+  }
+
+protected:
+  uint64_t mWindowID;
+  nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener;
+};
+
+
 
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(MediaDevice, nsIMediaDevice)
@@ -286,6 +309,7 @@ public:
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
     uint64_t aWindowID,
+    GetUserMediaCallbackMediaStreamListener* aListener,
     MediaEngineSource* aAudioSource,
     MediaEngineSource* aVideoSource)
     : mSuccess(aSuccess)
@@ -293,6 +317,7 @@ public:
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
     , mWindowID(aWindowID)
+    , mListener(aListener)
     , mManager(MediaManager::GetInstance()) {}
 
   ~GetUserMediaStreamRunnable() {}
@@ -340,26 +365,18 @@ public:
     }
 
     
+    
+    
+    
+    mListener->Activate(stream.forget(), port.forget(),
+                        mAudioSource, mVideoSource);
+
+    
+    
     nsIThread *mediaThread = MediaManager::GetThread();
-
-    
-    
-    
-    GetUserMediaCallbackMediaStreamListener* listener =
-      new GetUserMediaCallbackMediaStreamListener(mediaThread, stream.forget(),
-                                                  port.forget(),
-                                                  mAudioSource,
-                                                  mVideoSource);
-    listener->Stream()->AddListener(listener);
-
-    
-    listeners->AppendElement(listener);
-
-    
-    
     nsRefPtr<MediaOperationRunnable> runnable(
-      new MediaOperationRunnable(MEDIA_START, listener,
-                                 mAudioSource, mVideoSource));
+      new MediaOperationRunnable(MEDIA_START, mListener,
+                                 mAudioSource, mVideoSource, false));
     mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 
     
@@ -383,6 +400,7 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   uint64_t mWindowID;
+  nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener;
   nsRefPtr<MediaManager> mManager; 
 };
 
@@ -405,13 +423,15 @@ public:
   GetUserMediaRunnable(bool aAudio, bool aVideo, bool aPicture,
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    uint64_t aWindowID, MediaDevice* aAudioDevice, MediaDevice* aVideoDevice)
+    uint64_t aWindowID, GetUserMediaCallbackMediaStreamListener *aListener,
+    MediaDevice* aAudioDevice, MediaDevice* aVideoDevice)
     : mAudio(aAudio)
     , mVideo(aVideo)
     , mPicture(aPicture)
     , mSuccess(aSuccess)
     , mError(aError)
     , mWindowID(aWindowID)
+    , mListener(aListener)
     , mDeviceChosen(true)
     , mBackendChosen(false)
     , mManager(MediaManager::GetInstance())
@@ -427,13 +447,14 @@ public:
   GetUserMediaRunnable(bool aAudio, bool aVideo, bool aPicture,
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    uint64_t aWindowID)
+    uint64_t aWindowID, GetUserMediaCallbackMediaStreamListener *aListener)
     : mAudio(aAudio)
     , mVideo(aVideo)
     , mPicture(aPicture)
     , mSuccess(aSuccess)
     , mError(aError)
     , mWindowID(aWindowID)
+    , mListener(aListener)
     , mDeviceChosen(false)
     , mBackendChosen(false)
     , mManager(MediaManager::GetInstance()) {}
@@ -445,13 +466,15 @@ public:
   GetUserMediaRunnable(bool aAudio, bool aVideo,
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    uint64_t aWindowID, MediaEngine* aBackend)
+    uint64_t aWindowID, GetUserMediaCallbackMediaStreamListener *aListener,
+    MediaEngine* aBackend)
     : mAudio(aAudio)
     , mVideo(aVideo)
     , mPicture(false)
     , mSuccess(aSuccess)
     , mError(aError)
     , mWindowID(aWindowID)
+    , mListener(aListener)
     , mDeviceChosen(false)
     , mBackendChosen(true)
     , mBackend(aBackend)
@@ -503,16 +526,26 @@ public:
   nsresult
   Denied()
   {
+      
+      
     if (NS_IsMainThread()) {
       
       
       nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
       error->OnError(NS_LITERAL_STRING("PERMISSION_DENIED"));
+
+      
+      nsRefPtr<MediaManager> manager(MediaManager::GetInstance());
+      manager->RemoveFromWindowList(mWindowID, mListener);
     } else {
+      
       
       NS_DispatchToMainThread(new ErrorCallbackRunnable(
         mSuccess, mError, NS_LITERAL_STRING("PERMISSION_DENIED"), mWindowID
       ));
+
+      
+      NS_DispatchToMainThread(new GetUserMediaListenerRemove(mWindowID, mListener));
     }
 
     return NS_OK;
@@ -637,7 +670,7 @@ public:
     }
 
     NS_DispatchToMainThread(new GetUserMediaStreamRunnable(
-      mSuccess, mError, mWindowID, aAudioSource, aVideoSource
+      mSuccess, mError, mWindowID, mListener, aAudioSource, aVideoSource
     ));
     return;
   }
@@ -678,6 +711,7 @@ private:
   already_AddRefed<nsIDOMGetUserMediaSuccessCallback> mSuccess;
   already_AddRefed<nsIDOMGetUserMediaErrorCallback> mError;
   uint64_t mWindowID;
+  nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener;
   nsRefPtr<MediaDevice> mAudioDevice;
   nsRefPtr<MediaDevice> mVideoDevice;
 
@@ -876,6 +910,15 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     listeners = new StreamListeners;
     GetActiveWindows()->Put(windowID, listeners);
   }
+  
+  nsIThread *mediaThread = MediaManager::GetThread();
+
+  
+  GetUserMediaCallbackMediaStreamListener* listener =
+    new GetUserMediaCallbackMediaStreamListener(mediaThread, windowID);
+
+  
+  listeners->AppendElement(listener);
 
   
   if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
@@ -894,20 +937,20 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   if (fake) {
     
     gUMRunnable = new GetUserMediaRunnable(
-      audio, video, onSuccess.forget(), onError.forget(), windowID,
+      audio, video, onSuccess.forget(), onError.forget(), windowID, listener,
       new MediaEngineDefault()
                                            );
   } else if (audiodevice || videodevice) {
     
     gUMRunnable = new GetUserMediaRunnable(
-      audio, video, picture, onSuccess.forget(), onError.forget(), windowID,
+      audio, video, picture, onSuccess.forget(), onError.forget(), windowID, listener,
       static_cast<MediaDevice*>(audiodevice.get()),
       static_cast<MediaDevice*>(videodevice.get())
                                            );
   } else {
     
     gUMRunnable = new GetUserMediaRunnable(
-      audio, video, picture, onSuccess.forget(), onError.forget(), windowID
+      audio, video, picture, onSuccess.forget(), onError.forget(), windowID, listener
                                            );
   }
 
@@ -1026,12 +1069,33 @@ MediaManager::OnNavigation(uint64_t aWindowID)
   for (uint32_t i = 0; i < length; i++) {
     nsRefPtr<GetUserMediaCallbackMediaStreamListener> listener =
       listeners->ElementAt(i);
-    listener->Invalidate();
+    listener->Invalidate(true);
     listener->Remove();
   }
   listeners->Clear();
 
-  GetActiveWindows()->Remove(aWindowID);
+  RemoveWindowID(aWindowID);
+  
+}
+
+void
+MediaManager::RemoveFromWindowList(uint64_t aWindowID,
+  GetUserMediaCallbackMediaStreamListener *aListener)
+{
+  NS_ASSERTION(NS_IsMainThread(), "RemoveFromWindowList called off main thread");
+
+  
+  aListener->Remove(); 
+
+  StreamListeners* listeners = GetWindowListeners(aWindowID);
+  if (!listeners) {
+    return;
+  }
+  listeners->RemoveElement(aListener);
+  if (listeners->Length() == 0) {
+    RemoveWindowID(aWindowID);
+    
+  }
 }
 
 nsresult
@@ -1169,7 +1233,7 @@ MediaManager::GetActiveMediaCaptureWindows(nsISupportsArray **aArray)
 }
 
 void
-GetUserMediaCallbackMediaStreamListener::Invalidate()
+GetUserMediaCallbackMediaStreamListener::Invalidate(bool aNeedsFinish)
 {
   nsRefPtr<MediaOperationRunnable> runnable;
   
@@ -1177,8 +1241,16 @@ GetUserMediaCallbackMediaStreamListener::Invalidate()
   
   
   runnable = new MediaOperationRunnable(MEDIA_STOP,
-                                        this, mAudioSource, mVideoSource);
+                                        this, mAudioSource, mVideoSource,
+                                        aNeedsFinish);
   mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+}
+
+void
+GetUserMediaCallbackMediaStreamListener::NotifyFinished(MediaStreamGraph* aGraph)
+{
+  Invalidate(false);
+  NS_DispatchToMainThread(new GetUserMediaListenerRemove(mWindowID, this));
 }
 
 } 

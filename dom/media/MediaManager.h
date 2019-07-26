@@ -69,23 +69,31 @@ class GetUserMediaNotificationEvent: public nsRunnable
 class GetUserMediaCallbackMediaStreamListener : public MediaStreamListener
 {
 public:
+  
   GetUserMediaCallbackMediaStreamListener(nsIThread *aThread,
-    already_AddRefed<SourceMediaStream> aStream,
-    already_AddRefed<MediaInputPort> aPort,
-    MediaEngineSource* aAudioSource,
-    MediaEngineSource* aVideoSource)
+    uint64_t aWindowID)
     : mMediaThread(aThread)
-    , mAudioSource(aAudioSource)
-    , mVideoSource(aVideoSource)
-    , mStream(aStream)
-    , mPort(aPort)
-    , mLastEndTimeAudio(0)
-    , mLastEndTimeVideo(0) {}
+    , mWindowID(aWindowID) {}
 
   ~GetUserMediaCallbackMediaStreamListener()
   {
     
     
+  }
+
+  void Activate(already_AddRefed<SourceMediaStream> aStream,
+    already_AddRefed<MediaInputPort> aPort,
+    MediaEngineSource* aAudioSource,
+    MediaEngineSource* aVideoSource)
+  {
+    mStream = aStream; 
+    mPort = aPort;
+    mAudioSource = aAudioSource;
+    mVideoSource = aVideoSource;
+    mLastEndTimeAudio = 0;
+    mLastEndTimeVideo = 0;
+
+    mStream->AddListener(this);
   }
 
   MediaStream *Stream()
@@ -94,18 +102,20 @@ public:
   }
   SourceMediaStream *GetSourceStream()
   {
+    MOZ_ASSERT(mStream);
     return mStream->AsSourceStream();
   }
 
-  void
-  Invalidate(); 
+  
+  void Invalidate(bool aNeedsFinish);
 
   void
   Remove()
   {
     NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
     
-    mStream->RemoveListener(this);
+    if (mStream) 
+      mStream->RemoveListener(this);
   }
 
   
@@ -123,14 +133,11 @@ public:
   }
 
   void
-  NotifyFinished(MediaStreamGraph* aGraph)
-  {
-    Invalidate();
-    
-  }
+  NotifyFinished(MediaStreamGraph* aGraph);
 
 private:
   nsCOMPtr<nsIThread> mMediaThread;
+  uint64_t mWindowID;
   nsRefPtr<MediaEngineSource> mAudioSource;
   nsRefPtr<MediaEngineSource> mVideoSource;
   nsRefPtr<SourceMediaStream> mStream;
@@ -154,11 +161,13 @@ public:
   MediaOperationRunnable(MediaOperation aType,
     GetUserMediaCallbackMediaStreamListener* aListener,
     MediaEngineSource* aAudioSource,
-    MediaEngineSource* aVideoSource)
+    MediaEngineSource* aVideoSource,
+    bool aNeedsFinish)
     : mType(aType)
     , mAudioSource(aAudioSource)
     , mVideoSource(aVideoSource)
     , mListener(aListener)
+    , mFinish(aNeedsFinish)
     {}
 
   ~MediaOperationRunnable()
@@ -218,7 +227,9 @@ public:
             mVideoSource->Deallocate();
           }
           
-          source->Finish();
+          if (mFinish) {
+            source->Finish();
+          }
           
 
           nsRefPtr<GetUserMediaNotificationEvent> event =
@@ -240,6 +251,7 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource; 
   nsRefPtr<MediaEngineSource> mVideoSource; 
   nsRefPtr<GetUserMediaCallbackMediaStreamListener> mListener; 
+  bool mFinish;
 };
 
 typedef nsTArray<nsRefPtr<GetUserMediaCallbackMediaStreamListener> > StreamListeners;
@@ -309,9 +321,15 @@ public:
 
     return mActiveWindows.Get(aWindowId);
   }
+  void RemoveWindowID(uint64_t aWindowId) {
+    mActiveWindows.Remove(aWindowId);
+  }
   bool IsWindowStillActive(uint64_t aWindowId) {
     return !!GetWindowListeners(aWindowId);
   }
+  
+  void RemoveFromWindowList(uint64_t aWindowID,
+    GetUserMediaCallbackMediaStreamListener *aListener);
 
   nsresult GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     nsIMediaStreamOptions* aParams,
