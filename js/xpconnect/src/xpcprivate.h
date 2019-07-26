@@ -3813,7 +3813,7 @@ public:
 
 
 
-    bool StartEvaluating(JSObject *scope, JSErrorReporter errorReporter = nullptr);
+    bool StartEvaluating(JS::HandleObject scope, JSErrorReporter errorReporter = nullptr);
 
     
 
