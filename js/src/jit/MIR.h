@@ -1978,12 +1978,12 @@ class MGetDynamicName
 };
 
 
-class MFilterArguments
+class MFilterArgumentsOrEval
   : public MAryInstruction<1>,
     public StringPolicy<0>
 {
   protected:
-    MFilterArguments(MDefinition *string)
+    MFilterArgumentsOrEval(MDefinition *string)
     {
         setOperand(0, string);
         setGuard();
@@ -1991,11 +1991,10 @@ class MFilterArguments
     }
 
   public:
-    INSTRUCTION_HEADER(FilterArguments)
+    INSTRUCTION_HEADER(FilterArgumentsOrEval)
 
-    static MFilterArguments *
-    New(MDefinition *string) {
-        return new MFilterArguments(string);
+    static MFilterArgumentsOrEval *New(MDefinition *string) {
+        return new MFilterArgumentsOrEval(string);
     }
 
     MDefinition *getString() const {
