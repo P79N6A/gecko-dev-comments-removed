@@ -39,6 +39,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <sched.h>
 #ifdef ANDROID
 #include <android/log.h>
 #else
@@ -60,9 +61,13 @@
 #include <stdarg.h>
 #include "platform.h"
 #include "GeckoProfilerImpl.h"
+#include "mozilla/Mutex.h"
+#include "ProfileEntry.h"
+#include "nsThreadUtils.h"
 
 #include <string.h>
 #include <stdio.h>
+#include <list>
 
 #define SIGNAL_SAVE_PROFILE SIGUSR2
 
@@ -75,15 +80,14 @@ pid_t gettid()
 }
 #endif
 
-static Sampler* sActiveSampler = NULL;
-
-
 #ifdef ANDROID
 #include "android-signal-defs.h"
 #endif
 
+static ThreadProfile* sCurrentThreadProfile = NULL;
+
 static void ProfilerSaveSignalHandler(int signal, siginfo_t* info, void* context) {
-  sActiveSampler->RequestSave();
+  Sampler::GetActiveSampler()->RequestSave();
 }
 
 #ifdef ANDROID
@@ -94,7 +98,7 @@ static void ProfilerSaveSignalHandler(int signal, siginfo_t* info, void* context
 #define V8_HOST_ARCH_X64 1
 #endif
 static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
-  if (!sActiveSampler)
+  if (!Sampler::GetActiveSampler())
     return;
 
   TickSample sample_obj;
@@ -103,7 +107,7 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
 
 #ifdef ENABLE_SPS_LEAF_DATA
   
-  if (sActiveSampler->IsProfiling()) {
+  if (Sampler::GetActiveSampler()->IsProfiling()) {
     
     ucontext_t* ucontext = reinterpret_cast<ucontext_t*>(context);
     mcontext_t& mcontext = ucontext->uc_mcontext;
@@ -138,14 +142,17 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
 #endif
   }
 #endif
+  sample->threadProfile = sCurrentThreadProfile;
   sample->timestamp = mozilla::TimeStamp::Now();
 
-  sActiveSampler->Tick(sample);
+  Sampler::GetActiveSampler()->Tick(sample);
+
+  sCurrentThreadProfile = NULL;
 }
 
 #ifndef XP_MACOSX
-void tgkill(pid_t tgid, pid_t tid, int signalno) {
-  syscall(SYS_tgkill, tgid, tid, signalno);
+int tgkill(pid_t tgid, pid_t tid, int signalno) {
+  return syscall(SYS_tgkill, tgid, tid, signalno);
 }
 #endif
 
@@ -173,8 +180,33 @@ class Sampler::PlatformData : public Malloced {
 #ifdef XP_MACOSX
         pthread_kill(signal_receiver_, SIGPROF);
 #else
-        
-        tgkill(vm_tgid_, vm_tid_, SIGPROF);
+
+        std::vector<ThreadInfo*> threads = GetRegisteredThreads();
+
+        for (uint32_t i = 0; i < threads.size(); i++) {
+          ThreadInfo* info = threads[i];
+
+          
+          
+          sCurrentThreadProfile = info->Profile();
+
+          int threadId = info->ThreadId();
+          if (threadId == 0) {
+            threadId = vm_tid_;
+          }
+
+          if (tgkill(vm_tgid_, threadId, SIGPROF) != 0) {
+            printf_stderr("profiler failed to signal tid=%d\n", threadId);
+#ifdef DEBUG
+            abort();
+#endif
+            continue;
+          }
+
+          
+          while (sCurrentThreadProfile)
+            sched_yield();
+        }
 #endif
       }
 
@@ -209,11 +241,12 @@ static void* SenderEntry(void* arg) {
 }
 
 
-Sampler::Sampler(int interval, bool profiling)
+Sampler::Sampler(int interval, bool profiling, int entrySize)
     : interval_(interval),
       profiling_(profiling),
       paused_(false),
-      active_(false) {
+      active_(false),
+      entrySize_(entrySize) {
   data_ = new PlatformData(this);
 }
 
@@ -225,7 +258,6 @@ Sampler::~Sampler() {
 
 void Sampler::Start() {
   LOG("Sampler started");
-  if (sActiveSampler != NULL) return;
 
   
   LOG("Request signal");
@@ -259,9 +291,6 @@ void Sampler::Start() {
     data_->signal_sender_launched_ = true;
   }
   LOG("Profiler thread started");
-
-  
-  sActiveSampler = this;
 }
 
 
@@ -281,9 +310,41 @@ void Sampler::Stop() {
     sigaction(SIGPROF, &data_->old_sigprof_signal_handler_, 0);
     data_->signal_handler_installed_ = false;
   }
+}
 
-  
-  sActiveSampler = NULL;
+bool Sampler::RegisterCurrentThread(const char* aName, PseudoStack* aPseudoStack, bool aIsMainThread)
+{
+  mozilla::MutexAutoLock lock(*sRegisteredThreadsMutex);
+
+  ThreadInfo* info = new ThreadInfo(aName, gettid(), aIsMainThread, aPseudoStack);
+
+  if (sActiveSampler) {
+    
+    info->SetProfile(new ThreadProfile(info->Name(),
+                                       sActiveSampler->EntrySize(),
+                                       info->Stack(),
+                                       info->ThreadId(),
+                                       aIsMainThread));
+  }
+
+  sRegisteredThreads->push_back(info);
+  return true;
+}
+
+void Sampler::UnregisterCurrentThread()
+{
+  mozilla::MutexAutoLock lock(*sRegisteredThreadsMutex);
+
+  int id = gettid();
+
+  for (uint32_t i = 0; i < sRegisteredThreads->size(); i++) {
+    ThreadInfo* info = sRegisteredThreads->at(i);
+    if (info->ThreadId() == id) {
+      delete info;
+      sRegisteredThreads->erase(sRegisteredThreads->begin() + i);
+      break;
+    }
+  }
 }
 
 #ifdef ANDROID
@@ -307,3 +368,4 @@ void OS::RegisterStartHandler()
   }
 }
 #endif
+
