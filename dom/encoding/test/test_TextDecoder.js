@@ -72,19 +72,19 @@ function testConstructorEncodingOption(aData, aExpectedString)
     msg: "decoder testing constructor valid encoding."});
 
   
-  testCharset({encoding: "asdfasdf", input: aData, error: "EncodingError",
+  testCharset({encoding: "asdfasdf", input: aData, error: "TypeError",
     msg: "constructor encoding, invalid encoding test."});
 
   
-  testCharset({encoding: "   ", input: aData, error: "EncodingError",
+  testCharset({encoding: "   ", input: aData, error: "TypeError",
     msg: "constructor encoding, spaces encoding test."});
 
   
-  testCharset({encoding: null, input: aData, error: "EncodingError",
+  testCharset({encoding: null, input: aData, error: "TypeError",
     msg: "constructor encoding, \"null\" encoding test."});
 
   
-  testCharset({encoding: "", input: aData, error: "EncodingError",
+  testCharset({encoding: "", input: aData, error: "TypeError",
     msg: "constuctor encoding, empty encoding test."});
 
   
@@ -337,7 +337,7 @@ function testDecoderGetEncoding()
     {encoding: "utf-16", labels: ["utf-16", "utf-16le"]},
     {encoding: "utf-16be", labels: ["utf-16be"]},
     {encoding: "x-user-defined", labels: ["x-user-defined"]},
-    {error: "EncodingError", labels: ["x-windows-949", "\u0130SO-8859-1"]},
+    {error: "TypeError", labels: ["x-windows-949", "\u0130SO-8859-1"]},
   ];
 
   for (var le of labelEncodings) {

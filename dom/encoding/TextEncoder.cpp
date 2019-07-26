@@ -19,20 +19,17 @@ TextEncoder::Init(const nsAString& aEncoding,
   EncodingUtils::TrimSpaceCharacters(label);
 
   
+  
+  
   if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
-    
-    
-    aRv.Throw(NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR);
+    aRv.ThrowTypeError(MSG_ENCODING_NOT_SUPPORTED, &label);
     return;
   }
 
-  
-  
-  
   if (PL_strcasecmp(mEncoding, "utf-8") &&
       PL_strcasecmp(mEncoding, "utf-16le") &&
       PL_strcasecmp(mEncoding, "utf-16be")) {
-    aRv.Throw(NS_ERROR_DOM_ENCODING_NOT_UTF_ERR);
+    aRv.ThrowTypeError(MSG_DOM_ENCODING_NOT_UTF);
     return;
   }
 

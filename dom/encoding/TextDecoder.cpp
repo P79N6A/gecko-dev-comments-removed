@@ -32,10 +32,9 @@ TextDecoder::Init(const nsAString& aEncoding,
   }
 
   
+  
   if (!EncodingUtils::FindEncodingForLabel(label, mEncoding)) {
-    
-    
-    aRv.Throw(NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR);
+    aRv.ThrowTypeError(MSG_ENCODING_NOT_SUPPORTED, &label);
     return;
   }
 
