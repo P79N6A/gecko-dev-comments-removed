@@ -180,8 +180,6 @@ class nsMainThreadPtrHandle
     return *this;
   }
 
-  operator nsMainThreadPtrHolder<T>*() { return mPtr.get(); }
-
   
   
   
@@ -202,8 +200,6 @@ class nsMainThreadPtrHandle
 
   operator T*() { return get(); }
   T* operator->() { return get(); }
-
-  operator bool() { return get(); }
 
   
   bool operator==(const nsMainThreadPtrHandle<T>& aOther) const {
