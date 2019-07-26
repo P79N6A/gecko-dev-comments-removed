@@ -40,16 +40,20 @@ function setup() {
 }
 
 function onSaveState() {
+  try {
+    ss.getWindowValue(newWin, "foobar");
+  } catch (e) {
+    
+    
+    
+    waitForSaveState(onSaveState);
+    return;
+  }
+
   
   is(ss.getClosedWindowCount(), 0, "no closed windows on first save");
 
   Services.obs.addObserver(observe1, "sessionstore-state-write", false);
-
-  try {
-    ss.getWindowValue(newWin, "foobar");
-  } catch (e) {
-    ok(false, "window is untracked!");
-  }
 
   
   newWin.close();
