@@ -23,6 +23,10 @@ var StartUI = {
     this.startUI.addEventListener("click", this, false);
     this.startUI.addEventListener("MozMousePixelScroll", this, false);
 
+    
+    document.getElementById("bcast_preciseInput").setAttribute("input",
+      this.chromeWin.InputSourceHelper.isPrecise ? "precise" : "imprecise");
+
     TopSitesStartView.init();
     BookmarksStartView.init();
     HistoryStartView.init();
