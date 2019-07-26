@@ -366,17 +366,17 @@ js::math_clz32(JSContext *cx, unsigned argc, Value *vp)
 static double polevl_sin(double z, double zz)
 {
     
-    double ans = 1.58969099521155010221e-10;
+    double ans = 1.59046813973877163292e-10; 
     ans *= zz;
-    ans += -2.50507602534068634195e-08;
+    ans += -2.50509001624159785668e-08; 
     ans *= zz;
-    ans +=  2.75573137070700676789e-06;
+    ans +=  2.75573146431678644161e-06; 
     ans *= zz;
-    ans += -1.98412698298579493134e-04;
+    ans += -1.98412698327005105692e-04; 
     ans *= zz;
-    ans +=  8.33333333332248946124e-03;
+    ans +=  8.33333333332626768897e-03; 
     ans *= zz;
-    ans += -1.66666666666666324348e-01;
+    ans += -1.66666666666666490881e-01; 
     ans *= zz * z;
     ans += z;
     return ans;
