@@ -1356,6 +1356,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       if (computedHeightLeftOver > 0 &&
           NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
           aMetrics.height > aReflowState.availableHeight) {
+        if (ShouldAvoidBreakInside(aReflowState)) {
+          aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+          return;
+        }
         
         
         
