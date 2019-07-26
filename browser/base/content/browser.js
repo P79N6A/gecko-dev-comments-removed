@@ -1444,14 +1444,6 @@ var gBrowserInit = {
       cmd.removeAttribute("hidden");
     }
 
-    
-    let devtoolsRemoteEnabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
-    if (devtoolsRemoteEnabled) {
-      let cmd = document.getElementById("Tools:DevToolsConnect");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
 #ifdef MENUBAR_CAN_AUTOHIDE
     
     
@@ -1762,7 +1754,8 @@ function HandleAppCommandEvent(evt) {
     BrowserReloadSkipCache();
     break;
   case "Stop":
-    BrowserStop();
+    if (XULBrowserWindow.stopCommand.getAttribute("disabled") != "true")
+      BrowserStop();
     break;
   case "Search":
     BrowserSearch.webSearch();
