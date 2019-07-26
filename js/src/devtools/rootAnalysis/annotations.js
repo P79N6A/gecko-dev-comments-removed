@@ -2,6 +2,7 @@
 
 "use strict";
 
+
 var ignoreIndirectCalls = {
     "mallocSizeOf" : true,
     "aMallocSizeOf" : true,
@@ -10,9 +11,7 @@ var ignoreIndirectCalls = {
     "__convf" : true,
     "prerrortable.c:callback_newtable" : true,
     "mozalloc_oom.cpp:void (* gAbortHandler)(size_t)" : true,
-    "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, 
 };
-
 
 function indirectCallCannotGC(caller, name)
 {
@@ -43,6 +42,8 @@ var ignoreClasses = {
     "XPCOMFunctions" : true, 
     "_MD_IOVector" : true,
 };
+
+
 
 var ignoreCallees = {
     "js::Class.trace" : true,
@@ -96,11 +97,13 @@ function ignoreEdgeUse(edge, variable)
     return false;
 }
 
+
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
     "PR_ExplodeTime" : true,
     "PR_ErrorInstallTable" : true,
-    "PR_SetThreadPrivate" : true
+    "PR_SetThreadPrivate" : true,
+    "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, 
 };
 
 function ignoreGCFunction(fun)
