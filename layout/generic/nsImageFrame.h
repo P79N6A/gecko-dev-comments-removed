@@ -399,7 +399,7 @@ public:
 
 
 
-  void ConfigureLayer(ImageLayer* aLayer);
+  void ConfigureLayer(ImageLayer* aLayer, const nsIntPoint& aOffset);
 
   NS_DISPLAY_DECL_NAME("Image", TYPE_IMAGE)
 private:
