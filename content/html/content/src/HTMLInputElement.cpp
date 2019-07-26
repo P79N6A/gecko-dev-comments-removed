@@ -2785,7 +2785,7 @@ IsLTR(Element* aElement)
 }
 
 bool
-HTMLInputElement::ShouldPreventDOMActivateDispatch(nsIDOMEventTarget* aOriginalTarget)
+HTMLInputElement::ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget)
 {
   
 
