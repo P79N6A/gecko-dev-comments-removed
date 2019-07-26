@@ -671,10 +671,6 @@ public:
   virtual mozilla::dom::Element* GetEditorRoot();
 
   
-  
-  mozilla::dom::Element* GetExposedRoot();
-
-  
   bool IsPlaintextEditor() const
   {
     return (mFlags & nsIPlaintextEditor::eEditorPlaintextMask) != 0;

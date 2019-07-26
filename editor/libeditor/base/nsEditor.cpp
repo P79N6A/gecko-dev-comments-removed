@@ -392,9 +392,15 @@ nsEditor::GetDesiredSpellCheckState()
   }
 
   
-  nsCOMPtr<nsIContent> content = GetExposedRoot();
+  nsCOMPtr<nsIContent> content = GetRoot();
   if (!content) {
     return false;
+  }
+
+  
+  
+  if (content->IsRootOfNativeAnonymousSubtree()) {
+    content = content->GetParent();
   }
 
   nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(content);
@@ -5001,24 +5007,11 @@ nsEditor::GetEditorRoot()
   return GetRoot();
 }
 
-Element*
-nsEditor::GetExposedRoot()
-{
-  Element* rootElement = GetRoot();
-
-  
-  if (rootElement->IsRootOfNativeAnonymousSubtree()) {
-    rootElement = rootElement->GetParent()->AsElement();
-  }
-
-  return rootElement;
-}
-
 nsresult
 nsEditor::DetermineCurrentDirection()
 {
   
-  nsIContent* rootElement = GetExposedRoot();
+  dom::Element *rootElement = GetRoot();
 
   
   
@@ -5044,8 +5037,7 @@ NS_IMETHODIMP
 nsEditor::SwitchTextDirection()
 {
   
-  nsIContent* rootElement = GetExposedRoot();
-
+  dom::Element *rootElement = GetRoot();
   nsresult rv = DetermineCurrentDirection();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -5071,8 +5063,7 @@ void
 nsEditor::SwitchTextDirectionTo(uint32_t aDirection)
 {
   
-  nsIContent* rootElement = GetExposedRoot();
-
+  dom::Element *rootElement = GetRoot();
   nsresult rv = DetermineCurrentDirection();
   NS_ENSURE_SUCCESS_VOID(rv);
 
