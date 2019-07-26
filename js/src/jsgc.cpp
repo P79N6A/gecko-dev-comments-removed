@@ -2770,6 +2770,11 @@ BeginMarkPhase(JSRuntime *rt)
             c->zone()->setPreservingCode(true);
     }
 
+    if (!rt->gcShouldCleanUpEverything) {
+        if (JSCompartment *comp = jit::TopmostJitActivationCompartment(rt))
+            comp->zone()->setPreservingCode(true);
+    }
+
     
 
 
