@@ -345,14 +345,76 @@ public final class ANRReporter extends BroadcastReceiver
         
     }
 
-    private static int fillPingBlock(OutputStream ping, MessageDigest checksum, Reader reader)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    private static int getEndPatternIndex(String block, String pattern, int prevIndex) {
+        if (pattern == null || block.length() < pattern.length()) {
+            
+            return 0;
+        }
+        if (prevIndex == 0) {
+            
+            int index = block.indexOf(pattern);
+            if (index >= 0) {
+                
+                return index + pattern.length();
+            }
+            
+            
+            
+            
+            for (index = block.length() - 1; index > block.length() - pattern.length(); index--) {
+                
+                if (block.charAt(index) == pattern.charAt(0) &&
+                    block.endsWith(pattern.substring(0, block.length() - index))) {
+                    
+                    
+                    return index - block.length();
+                }
+            }
+        } else if (prevIndex < 0) {
+            
+            if (block.startsWith(pattern.substring(-prevIndex, pattern.length()))) {
+                
+                return pattern.length() + prevIndex;
+            }
+        }
+        return 0;
+    }
+
+    
+    
+    private static int fillPingBlock(OutputStream ping, MessageDigest checksum,
+                                     Reader reader, String endPattern)
             throws IOException {
 
         int total = 0;
+        int endIndex = 0;
         char [] block = new char[TRACES_BLOCK_SIZE];
         for (int size = reader.read(block); size >= 0; size = reader.read(block)) {
-            String quoted = JSONObject.quote(new String(block, 0, size));
+            String stringBlock = new String(block, 0, size);
+            endIndex = getEndPatternIndex(stringBlock, endPattern, endIndex);
+            if (endIndex > 0) {
+                
+                stringBlock = stringBlock.substring(0, endIndex);
+            }
+            String quoted = JSONObject.quote(stringBlock);
             total += writePingPayload(ping, checksum, quoted.substring(1, quoted.length() - 1));
+            if (endIndex > 0) {
+                
+                break;
+            }
         }
         return total;
     }
@@ -373,7 +435,7 @@ public final class ANRReporter extends BroadcastReceiver
                 .start();
             try {
                 Reader procOut = new InputStreamReader(proc.getInputStream(), TRACES_CHARSET);
-                int size = fillPingBlock(ping, checksum, procOut);
+                int size = fillPingBlock(ping, checksum, procOut, null);
                 if (DEBUG) {
                     Log.d(LOGTAG, "wrote logcat, size = " + String.valueOf(size));
                 }
@@ -408,7 +470,18 @@ public final class ANRReporter extends BroadcastReceiver
             try {
                 MessageDigest checksum = MessageDigest.getInstance("SHA-256");
                 fillPingHeader(ping, checksum, pingFile.getName());
-                int size = fillPingBlock(ping, checksum, traces);
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                int size = fillPingBlock(ping, checksum, traces, "\n----- end");
                 if (DEBUG) {
                     Log.d(LOGTAG, "wrote traces, size = " + String.valueOf(size));
                 }
