@@ -238,6 +238,7 @@ static uint32_t gValidateOrigin = 0xffffffff;
 
 
 
+
 #define NS_EVENT_STARVATION_DELAY_HINT 2000
 
 #ifdef PR_LOGGING
@@ -251,11 +252,14 @@ const char kBrandBundleURL[]      = "chrome://branding/locale/brand.properties";
 const char kAppstringsBundleURL[] = "chrome://global/locale/appstrings.properties";
 
 static void
-FavorPerformanceHint(bool perfOverStarvation, uint32_t starvationDelay)
+FavorPerformanceHint(bool perfOverStarvation)
 {
     nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
-    if (appShell)
-        appShell->FavorPerformanceHint(perfOverStarvation, starvationDelay);
+    if (appShell) {
+        appShell->FavorPerformanceHint(perfOverStarvation,
+                                       Preferences::GetUint("docshell.event_starvation_delay_hint",
+                                                            NS_EVENT_STARVATION_DELAY_HINT));
+    }
 }
 
 
@@ -6672,7 +6676,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
         
         if (--gNumberOfDocumentsLoading == 0) {
           
-          FavorPerformanceHint(false, NS_EVENT_STARVATION_DELAY_HINT);
+          FavorPerformanceHint(false);
         }
     }
     
@@ -7679,7 +7683,7 @@ nsDocShell::RestoreFromHistory()
     
     
     if (++gNumberOfDocumentsLoading == 1)
-        FavorPerformanceHint(true, NS_EVENT_STARVATION_DELAY_HINT);
+        FavorPerformanceHint(true);
 
 
     if (oldMUDV && newMUDV) {
@@ -8077,7 +8081,7 @@ nsDocShell::CreateContentViewer(const char *aContentType,
       
       
       
-      FavorPerformanceHint(true, NS_EVENT_STARVATION_DELAY_HINT);
+      FavorPerformanceHint(true);
     }
 
     if (onLocationChangeNeeded) {
