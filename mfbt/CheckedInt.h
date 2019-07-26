@@ -628,6 +628,17 @@ class CheckedInt
                         "This type is not supported by CheckedInt");
     }
 
+    template<typename U>
+    friend class CheckedInt;
+
+    template<typename U>
+    CheckedInt<U> toChecked() const
+    {
+      CheckedInt<U> ret(mValue);
+      ret.mIsValid = ret.mIsValid && mIsValid;
+      return ret;
+    }
+
     
     CheckedInt() : mValue(0), mIsValid(true)
     {
