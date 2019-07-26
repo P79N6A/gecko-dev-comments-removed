@@ -65,6 +65,10 @@
 #include "AudioChannelManager.h"
 #endif
 
+#ifdef MOZ_B2G_FM
+#include "mozilla/dom/FMRadio.h"
+#endif
+
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsJSUtils.h"
 
@@ -194,6 +198,13 @@ Navigator::Invalidate()
     mBatteryManager->Shutdown();
     mBatteryManager = nullptr;
   }
+
+#ifdef MOZ_B2G_FM
+  if (mFMRadio) {
+    mFMRadio->Shutdown();
+    mFMRadio = nullptr;
+  }
+#endif
 
   if (mPowerManager) {
     mPowerManager->Shutdown();
@@ -452,8 +463,7 @@ Navigator::GetMimeTypes(ErrorResult& aRv)
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
-    nsWeakPtr win = do_GetWeakReference(mWindow);
-    mMimeTypes = new nsMimeTypeArray(win);
+    mMimeTypes = new nsMimeTypeArray(mWindow);
   }
 
   return mMimeTypes;
@@ -467,8 +477,7 @@ Navigator::GetPlugins(ErrorResult& aRv)
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
-    nsWeakPtr win = do_GetWeakReference(mWindow);
-    mPlugins = new nsPluginArray(win);
+    mPlugins = new nsPluginArray(mWindow);
     mPlugins->Init();
   }
 
@@ -582,8 +591,7 @@ Navigator::JavaEnabled(ErrorResult& aRv)
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return false;
     }
-    nsWeakPtr win = do_GetWeakReference(mWindow);
-    mMimeTypes = new nsMimeTypeArray(win);
+    mMimeTypes = new nsMimeTypeArray(mWindow);
   }
 
   RefreshMIMEArray();
@@ -1046,6 +1054,34 @@ Navigator::GetMozNotification(ErrorResult& aRv)
   mNotification = new DesktopNotificationCenter(mWindow);
   return mNotification;
 }
+
+#ifdef MOZ_B2G_FM
+
+using mozilla::dom::FMRadio;
+
+FMRadio*
+Navigator::GetMozFMRadio(ErrorResult& aRv)
+{
+  if (!mFMRadio) {
+    if (!mWindow) {
+      aRv.Throw(NS_ERROR_UNEXPECTED);
+      return nullptr;
+    }
+
+    NS_ENSURE_TRUE(mWindow->GetDocShell(), nullptr);
+
+    mFMRadio = new FMRadio();
+    mFMRadio->Init(mWindow);
+  }
+
+  return mFMRadio;
+}
+
+#endif  
+
+
+
+
 
 battery::BatteryManager*
 Navigator::GetBattery(ErrorResult& aRv)
@@ -1710,6 +1746,16 @@ Navigator::HasBluetoothSupport(JSContext* , JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
   return win && bluetooth::BluetoothManager::CheckPermission(win);
+}
+#endif 
+
+#ifdef MOZ_B2G_FM
+
+bool
+Navigator::HasFMRadioSupport(JSContext* , JSObject* aGlobal)
+{
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  return win && CheckPermission(win, "fmradio");
 }
 #endif 
 
