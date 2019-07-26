@@ -248,18 +248,22 @@ class AliasSet {
         FrameArgument     = 1 << 6, 
         AsmJSGlobalVar    = 1 << 7, 
         AsmJSHeap         = 1 << 8, 
-        Last              = AsmJSHeap,
+        TypedArrayLength  = 1 << 9,
+        Last              = TypedArrayLength,
         Any               = Last | (Last - 1),
 
-        NumCategories     = 9,
+        NumCategories     = 10,
 
         
         Store_            = 1 << 31
     };
+
+    static_assert((1 << NumCategories) - 1 == Any,
+                  "NumCategories must include all flags present in Any");
+
     explicit AliasSet(uint32_t flags)
       : flags_(flags)
     {
-        JS_STATIC_ASSERT((1 << NumCategories) - 1 == Any);
     }
 
   public:
@@ -5890,9 +5894,7 @@ class MTypedArrayLength
         return congruentIfOperandsEqual(ins);
     }
     AliasSet getAliasSet() const {
-        
-        
-        return AliasSet::None();
+        return AliasSet::Load(AliasSet::TypedArrayLength);
     }
 
     void computeRange(TempAllocator &alloc);
