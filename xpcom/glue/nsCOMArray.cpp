@@ -3,8 +3,10 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "nsCOMArray.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "nsCOMPtr.h"
 
 

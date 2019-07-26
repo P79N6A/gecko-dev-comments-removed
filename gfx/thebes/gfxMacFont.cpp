@@ -3,8 +3,10 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "gfxMacFont.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "gfxCoreTextShaper.h"
 #include "gfxHarfBuzzShaper.h"
 #include <algorithm>

@@ -4,8 +4,9 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAreaElement.h"
+
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAreaElementBinding.h"
 #include "base/compiler_specific.h"
 

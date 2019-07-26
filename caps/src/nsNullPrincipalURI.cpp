@@ -4,8 +4,10 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "nsNullPrincipalURI.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "nsNetUtil.h"
 #include "nsEscape.h"
 #include "nsCRT.h"

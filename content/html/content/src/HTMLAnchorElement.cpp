@@ -4,8 +4,9 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
+
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/HTMLAnchorElementBinding.h"
 
 #include "nsCOMPtr.h"

@@ -3,8 +3,10 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "nsAnimationManager.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "nsPresContext.h"
 #include "nsRuleProcessorData.h"
 #include "nsStyleSet.h"

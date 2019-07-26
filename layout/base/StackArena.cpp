@@ -2,8 +2,9 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "StackArena.h"
+
+#include "mozilla/MemoryReporting.h"
 
 namespace mozilla {
 

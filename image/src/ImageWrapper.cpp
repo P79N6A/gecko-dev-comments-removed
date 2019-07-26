@@ -3,8 +3,9 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "ImageWrapper.h"
+
+#include "mozilla/MemoryReporting.h"
 
 using mozilla::layers::LayerManager;
 using mozilla::layers::ImageContainer;

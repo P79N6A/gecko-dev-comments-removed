@@ -3,8 +3,10 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "FramePropertyTable.h"
+
+#include "mozilla/MemoryReporting.h"
+
 #include "prlog.h"
 
 namespace mozilla {

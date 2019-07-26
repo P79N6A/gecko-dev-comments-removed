@@ -3,8 +3,9 @@
 
 
 
-#include "mozilla/MemoryReporting.h"
 #include "nsTextRunTransformations.h"
+
+#include "mozilla/MemoryReporting.h"
 
 #include "nsTextFrameUtils.h"
 #include "gfxSkipChars.h"
