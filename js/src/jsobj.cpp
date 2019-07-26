@@ -4161,6 +4161,12 @@ js::LookupPropertyPure(JSObject *obj, jsid id, JSObject **objp, Shape **propp)
     return LookupPropertyPureInline(obj, id, objp, propp);
 }
 
+static inline bool
+IdIsLength(ThreadSafeContext *tcx, jsid id)
+{
+    return JSID_IS_ATOM(id) && tcx->names().length == JSID_TO_ATOM(id);
+}
+
 
 
 
@@ -4174,6 +4180,29 @@ js::LookupPropertyPure(JSObject *obj, jsid id, JSObject **objp, Shape **propp)
 bool
 js::GetPropertyPure(ThreadSafeContext *tcx, JSObject *obj, jsid id, Value *vp)
 {
+    
+    if (obj->is<TypedArrayObject>()) {
+        TypedArrayObject *tarr = &obj->as<TypedArrayObject>();
+
+        if (JSID_IS_INT(id)) {
+            uint32_t index = JSID_TO_INT(id);
+            if (index < tarr->length()) {
+                MutableHandleValue vpHandle = MutableHandleValue::fromMarkedLocation(vp);
+                tarr->copyTypedArrayElement(index, vpHandle);
+                return true;
+            }
+            return false;
+        }
+
+        if (IdIsLength(tcx, id)) {
+            vp->setNumber(tarr->length());
+            return true;
+        }
+
+        return false;
+    }
+
+    
     JSObject *obj2;
     Shape *shape;
     if (!LookupPropertyPureInline(obj, id, &obj2, &shape))
@@ -4182,6 +4211,9 @@ js::GetPropertyPure(ThreadSafeContext *tcx, JSObject *obj, jsid id, Value *vp)
     if (!shape) {
         
         if (obj->getClass()->getProperty && obj->getClass()->getProperty != JS_PropertyStub)
+            return false;
+
+        if (obj->getOps()->getElement)
             return false;
 
         
@@ -4195,14 +4227,47 @@ js::GetPropertyPure(ThreadSafeContext *tcx, JSObject *obj, jsid id, Value *vp)
     }
 
     
-    if (obj->is<ArrayObject>() &&
-        (JSID_IS_ATOM(id) && tcx->names().length == JSID_TO_ATOM(id)))
-    {
+    if (obj->is<ArrayObject>() && IdIsLength(tcx, id)) {
         vp->setNumber(obj->as<ArrayObject>().length());
         return true;
     }
 
     return NativeGetPureInline(obj2, shape, vp);
+}
+
+static bool
+JS_ALWAYS_INLINE
+GetElementPure(ThreadSafeContext *tcx, JSObject *obj, uint32_t index, Value *vp)
+{
+    jsid id;
+    if (!IndexToIdPure(index, &id))
+        return false;
+
+    return GetPropertyPure(tcx, obj, id, vp);
+}
+
+
+
+
+
+
+bool
+js::GetObjectElementOperationPure(ThreadSafeContext *tcx, JSObject *obj, const Value &prop,
+                                  Value *vp)
+{
+    uint32_t index;
+    if (IsDefinitelyIndex(prop, &index))
+        return GetElementPure(tcx, obj, index, vp);
+
+    
+    if (!prop.isString() || !prop.toString()->isAtom())
+        return false;
+
+    JSAtom *name = &prop.toString()->asAtom();
+    if (name->isIndex(&index))
+        return GetElementPure(tcx, obj, index, vp);
+
+    return GetPropertyPure(tcx, obj, NameToId(name->asPropertyName()), vp);
 }
 
 JSBool
