@@ -160,10 +160,35 @@ initTavaruaRadio(hal::FMRadioSettings &aInfo)
     return;
   }
 
-  rc = setControl(V4L2_CID_PRIVATE_TAVARUA_SET_AUDIO_PATH, FM_DIGITAL_PATH);
+  
+  
+  char propval[PROPERTY_VALUE_MAX];
+  property_get("ro.moz.fm.noAnalog", propval, "");
+  bool noAnalog = !strcmp(propval, "true");
+
+  rc = setControl(V4L2_CID_PRIVATE_TAVARUA_SET_AUDIO_PATH,
+                  noAnalog ? FM_DIGITAL_PATH : FM_ANALOG_PATH);
   if (rc < 0) {
     HAL_LOG(("Unable to set audio path"));
     return;
+  }
+
+  if (!noAnalog) {
+    
+    property_set("hw.fm.mode", "config_dac");
+    
+    property_set("hw.fm.isAnalog", "true");
+    
+    property_set("ctl.start", "fm_dl");
+
+    for (int i = 0; i < 4; ++i) {
+      sleep(1);
+      char value[PROPERTY_VALUE_MAX];
+      property_get("hw.fm.init", value, "0");
+      if (!strcmp(value, "1")) {
+        break;
+      }
+    }
   }
 
   fd.forget();
