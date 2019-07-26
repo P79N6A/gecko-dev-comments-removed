@@ -44,7 +44,9 @@ extern PRLogModuleInfo* gWindowsLog;
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsNativeThemeWin, nsNativeTheme, nsITheme)
 
-nsNativeThemeWin::nsNativeThemeWin()
+nsNativeThemeWin::nsNativeThemeWin() :
+  mProgressDeterminateTimeStamp(TimeStamp::Now()),
+  mProgressIndeterminateTimeStamp(TimeStamp::Now())
 {
   
   
@@ -377,6 +379,36 @@ OffsetBackgroundRect(RECT& rect, CaptionButton button) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const double kProgressDeterminateTimeSpan = 3.0;
+static const double kProgressIndeterminateTimeSpan = 5.0;
+
 static const int32_t kProgressHorizontalVistaOverlaySize = 120;
 
 static const int32_t kProgressHorizontalXPOverlaySize = 55;
@@ -387,15 +419,129 @@ static const int32_t kProgressVerticalIndeterminateOverlaySize = 60;
 
 static const int32_t kProgressClassicOverlaySize = 40;
 
-static const double kProgressDeterminedVistaSpeed = 0.225;
 
-static const double kProgressIndeterminateSpeed = 0.175;
 
-static const double kProgressClassicIndeterminateSpeed = 0.0875;
 
-static const int32_t kProgressIndeterminateDelay = 500;
 
-static const int32_t kProgressDeterminedVistaDelay = 1000;
+static int32_t
+GetProgressOverlayStyle(bool aIsVertical)
+{ 
+  if (aIsVertical) {
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      return PP_MOVEOVERLAYVERT;
+    }
+    return PP_CHUNKVERT;
+  } else {
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      return PP_MOVEOVERLAY;
+    }
+    return PP_CHUNK;
+  }
+}
+
+
+
+
+
+
+static int32_t
+GetProgressOverlaySize(bool aIsVertical, bool aIsIndeterminate)
+{
+  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (aIsVertical) {
+      return aIsIndeterminate ? kProgressVerticalIndeterminateOverlaySize
+                              : kProgressVerticalOverlaySize;
+    }
+    return kProgressHorizontalVistaOverlaySize;
+  }
+  return kProgressHorizontalXPOverlaySize;
+}
+
+
+
+
+
+static bool
+IsProgressMeterFilled(nsIFrame* aFrame)
+{
+  NS_ENSURE_TRUE(aFrame, false);
+  nsIFrame* parentFrame = aFrame->GetParent();
+  NS_ENSURE_TRUE(parentFrame, false);
+  return nsNativeTheme::GetProgressValue(parentFrame) ==
+         nsNativeTheme::GetProgressMaxValue(parentFrame);
+}
+
+
+
+
+
+
+
+RECT
+nsNativeThemeWin::CalculateProgressOverlayRect(nsIFrame* aFrame,
+                                               RECT* aWidgetRect,
+                                               bool aIsVertical,
+                                               bool aIsIndeterminate,
+                                               bool aIsClassic)
+{
+  NS_ASSERTION(aFrame, "bad frame pointer");
+  NS_ASSERTION(aWidgetRect, "bad rect pointer");
+
+  int32_t frameSize = aIsVertical ? aWidgetRect->bottom - aWidgetRect->top
+                                  : aWidgetRect->right - aWidgetRect->left;
+
+  
+  
+  double span = aIsIndeterminate ? kProgressIndeterminateTimeSpan
+                                 : kProgressDeterminateTimeSpan;
+  TimeDuration period;
+  if (!aIsIndeterminate) {
+    if (TimeStamp::Now() > (mProgressDeterminateTimeStamp +
+                            TimeDuration::FromSeconds(span))) {
+      mProgressDeterminateTimeStamp = TimeStamp::Now();
+    }
+    period = TimeStamp::Now() - mProgressDeterminateTimeStamp;
+  } else {
+    if (TimeStamp::Now() > (mProgressIndeterminateTimeStamp +
+                            TimeDuration::FromSeconds(span))) {
+      mProgressIndeterminateTimeStamp = TimeStamp::Now();
+    }
+    period = TimeStamp::Now() - mProgressIndeterminateTimeStamp;
+  }
+
+  double percent = period / TimeDuration::FromSeconds(span);
+
+  if (!aIsVertical && IsFrameRTL(aFrame))
+    percent = 1 - percent;
+
+  RECT overlayRect = *aWidgetRect;
+  int32_t overlaySize;
+  if (!aIsClassic) {
+    overlaySize = GetProgressOverlaySize(aIsVertical, aIsIndeterminate);
+  } else {
+    overlaySize = kProgressClassicOverlaySize;
+  } 
+
+  
+  
+  
+  
+  
+  
+  int trackWidth = frameSize > overlaySize ? frameSize : overlaySize;
+  if (!aIsVertical) {
+    int xPos = aWidgetRect->left - trackWidth;
+    xPos += (int)ceil(((double)(trackWidth*2) * percent));
+    overlayRect.left = xPos;
+    overlayRect.right = xPos + overlaySize;
+  } else {
+    int yPos = aWidgetRect->bottom + trackWidth;
+    yPos -= (int)ceil(((double)(trackWidth*2) * percent));
+    overlayRect.bottom = yPos;
+    overlayRect.top = yPos - overlaySize;
+  }
+  return overlayRect;
+}
 
 HANDLE
 nsNativeThemeWin::GetTheme(uint8_t aWidgetType)
