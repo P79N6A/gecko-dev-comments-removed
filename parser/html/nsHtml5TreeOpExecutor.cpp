@@ -235,13 +235,11 @@ nsHtml5TreeOpExecutor::SetDocumentCharsetAndSource(nsACString& aCharset, int32_t
       
       
       
-      nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
-        do_QueryInterface(mDocShell);
-      if (!docShellAsItem) {
+      if (!mDocShell) {
     	  return;
       }
       nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-      docShellAsItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
+      mDocShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
       nsCOMPtr<nsIDocShell> parent(do_QueryInterface(parentAsItem));
       if (parent) {
         nsCOMPtr<nsIContentViewer> parentContentViewer;
@@ -880,9 +878,8 @@ nsHtml5TreeOpExecutor::MaybeComplainAboutCharset(const char* aMsgId,
   
   
   if (!strcmp(aMsgId, "EncNoDeclaration") && mDocShell) {
-    nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
     nsCOMPtr<nsIDocShellTreeItem> parent;
-    treeItem->GetSameTypeParent(getter_AddRefs(parent));
+    mDocShell->GetSameTypeParent(getter_AddRefs(parent));
     if (parent) {
       return;
     }

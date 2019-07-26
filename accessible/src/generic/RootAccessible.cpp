@@ -108,11 +108,10 @@ RootAccessible::GetChromeFlags()
   
   
   
-  nsCOMPtr<nsIDocShellTreeItem> treeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(mDocumentNode);
-  NS_ENSURE_TRUE(treeItem, 0);
+  nsCOMPtr<nsIDocShell> docShell = nsCoreUtils::GetDocShellFor(mDocumentNode);
+  NS_ENSURE_TRUE(docShell, 0);
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  treeItem->GetTreeOwner(getter_AddRefs(treeOwner));
+  docShell->GetTreeOwner(getter_AddRefs(treeOwner));
   NS_ENSURE_TRUE(treeOwner, 0);
   nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(treeOwner));
   if (!xulWin) {
