@@ -788,7 +788,7 @@ public class AwesomeBar extends GeckoActivity
         }
 
         
-        if (mAutoCompleteResult == null || !mAutoCompleteResult.equals(text)) {
+        if (TextUtils.isEmpty(mAutoCompleteResult) || !mAutoCompleteResult.equals(text)) {
             mAwesomeTabs.filter(text, useHandler ? this : null);
             mAutoCompletePrefix = text;
 
