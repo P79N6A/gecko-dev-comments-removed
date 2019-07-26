@@ -11,9 +11,6 @@
 #include "LayersTypes.h"                
 #include "nsXULAppAPI.h"                
 
-#include "mozilla/TypedEnum.h"
-#include "mozilla/TypedEnumBits.h"
-
 namespace mozilla {
 namespace layers {
 
@@ -28,69 +25,65 @@ const SurfaceDescriptorType SURFACEDESCRIPTOR_UNKNOWN = 0;
 
 
 
-MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
-  NO_FLAGS           = 0,
-  
-  USE_NEAREST_FILTER = 1 << 0,
-  
-  NEEDS_Y_FLIP       = 1 << 1,
-  
-  
-  DISALLOW_BIGIMAGE  = 1 << 2,
-  
-  ALLOW_REPEAT       = 1 << 3,
-  
-  NEW_TILE           = 1 << 4,
-  
-  COMPONENT_ALPHA    = 1 << 5,
-  
-  
-  
-  
-  
-  
-  
-  RB_SWAPPED         = 1 << 6,
+typedef uint32_t TextureFlags;
 
-  FRONT              = 1 << 7,
-  
-  ON_WHITE           = 1 << 8,
-  
-  ON_BLACK           = 1 << 9,
-  
-  TILE               = 1 << 10,
-  
-  RECYCLE            = 1 << 11,
-  
-  
-  COPY_PREVIOUS      = 1 << 12,
-  
-  
-  
-  
-  
-  DEALLOCATE_CLIENT  = 1 << 13,
-  
-  
-  
-  IMMUTABLE          = 1 << 14,
-  
-  
-  
-  IMMEDIATE_UPLOAD   = 1 << 15,
-  
-  
-  
-  DOUBLE_BUFFERED    = 1 << 16,
-  
-  
-  ALLOC_FALLBACK     = 1 << 17,
-  
-  ALL_BITS           = (1 << 18) - 1,
-  
-  DEFAULT = FRONT
-MOZ_END_ENUM_CLASS(TextureFlags)
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TextureFlags)
+const TextureFlags TEXTURE_USE_NEAREST_FILTER = 1 << 0;
+
+const TextureFlags TEXTURE_NEEDS_Y_FLIP       = 1 << 1;
+
+
+const TextureFlags TEXTURE_DISALLOW_BIGIMAGE  = 1 << 2;
+
+const TextureFlags TEXTURE_ALLOW_REPEAT       = 1 << 3;
+
+const TextureFlags TEXTURE_NEW_TILE           = 1 << 4;
+
+const TextureFlags TEXTURE_COMPONENT_ALPHA    = 1 << 5;
+
+
+
+
+
+
+
+const TextureFlags TEXTURE_RB_SWAPPED         = 1 << 6;
+
+const TextureFlags TEXTURE_FRONT              = 1 << 12;
+
+const TextureFlags TEXTURE_ON_WHITE           = 1 << 13;
+ 
+const TextureFlags TEXTURE_ON_BLACK           = 1 << 14;
+
+const TextureFlags TEXTURE_TILE               = 1 << 15;
+
+const TextureFlags TEXTURE_RECYCLE            = 1 << 16;
+
+
+const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
+
+
+
+
+
+const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
+
+
+
+const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
+
+
+
+const TextureFlags TEXTURE_IMMEDIATE_UPLOAD   = 1 << 28;
+
+
+
+const TextureFlags TEXTURE_DOUBLE_BUFFERED    = 1 << 29;
+
+
+const TextureFlags TEXTURE_ALLOC_FALLBACK     = 1 << 31;
+
+
+const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_FRONT;
 
 static inline bool
 TextureRequiresLocking(TextureFlags aFlags)
@@ -98,61 +91,57 @@ TextureRequiresLocking(TextureFlags aFlags)
   
   
   
-  return !(aFlags & (TextureFlags::IMMEDIATE_UPLOAD |
-                     TextureFlags::DOUBLE_BUFFERED |
-                     TextureFlags::IMMUTABLE));
+  return !(aFlags & (TEXTURE_IMMEDIATE_UPLOAD |
+                     TEXTURE_DOUBLE_BUFFERED |
+                     TEXTURE_IMMUTABLE));
 }
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DiagnosticTypes, uint8_t)
-  NO_DIAGNOSTIC    = 0,
-  TILE_BORDERS     = 1 << 0,
-  LAYER_BORDERS    = 1 << 1,
-  BIGIMAGE_BORDERS = 1 << 2,
-  FLASH_BORDERS    = 1 << 3,
-  ALL_BITS         = (1 << 4) - 1
-MOZ_END_ENUM_CLASS(DiagnosticTypes)
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticTypes)
+typedef uint32_t DiagnosticTypes;
+const DiagnosticTypes DIAGNOSTIC_NONE             = 0;
+const DiagnosticTypes DIAGNOSTIC_TILE_BORDERS     = 1 << 0;
+const DiagnosticTypes DIAGNOSTIC_LAYER_BORDERS    = 1 << 1;
+const DiagnosticTypes DIAGNOSTIC_BIGIMAGE_BORDERS = 1 << 2;
+const DiagnosticTypes DIAGNOSTIC_FLASH_BORDERS    = 1 << 3;
 
 #define DIAGNOSTIC_FLASH_COUNTER_MAX 100
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DiagnosticFlags, uint16_t)
-  NO_DIAGNOSTIC   = 0,
-  IMAGE           = 1 << 0,
-  CONTENT         = 1 << 1,
-  CANVAS          = 1 << 2,
-  COLOR           = 1 << 3,
-  CONTAINER       = 1 << 4,
-  TILE            = 1 << 5,
-  BIGIMAGE        = 1 << 6,
-  COMPONENT_ALPHA = 1 << 7,
-  REGION_RECT     = 1 << 8
-MOZ_END_ENUM_CLASS(DiagnosticFlags)
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticFlags)
+typedef uint32_t DiagnosticFlags;
+const DiagnosticFlags DIAGNOSTIC_IMAGE      = 1 << 0;
+const DiagnosticFlags DIAGNOSTIC_CONTENT    = 1 << 1;
+const DiagnosticFlags DIAGNOSTIC_CANVAS     = 1 << 2;
+const DiagnosticFlags DIAGNOSTIC_COLOR      = 1 << 3;
+const DiagnosticFlags DIAGNOSTIC_CONTAINER  = 1 << 4;
+const DiagnosticFlags DIAGNOSTIC_TILE       = 1 << 5;
+const DiagnosticFlags DIAGNOSTIC_BIGIMAGE   = 1 << 6;
+const DiagnosticFlags DIAGNOSTIC_COMPONENT_ALPHA = 1 << 7;
+const DiagnosticFlags DIAGNOSTIC_REGION_RECT = 1 << 8;
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(EffectTypes, uint8_t)
-  MASK,
-  MAX_SECONDARY, 
-  RGB,
-  YCBCR,
-  COMPONENT_ALPHA,
-  SOLID_COLOR,
-  RENDER_TARGET,
-  MAX  
-MOZ_END_ENUM_CLASS(EffectTypes)
+enum EffectTypes
+{
+  EFFECT_MASK,
+  EFFECT_MAX_SECONDARY, 
+  EFFECT_RGB,
+  EFFECT_YCBCR,
+  EFFECT_COMPONENT_ALPHA,
+  EFFECT_SOLID_COLOR,
+  EFFECT_RENDER_TARGET,
+  EFFECT_MAX  
+};
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
+enum CompositableType
+{
   BUFFER_UNKNOWN,
   
   BUFFER_IMAGE_SINGLE,    
@@ -164,23 +153,23 @@ MOZ_BEGIN_ENUM_CLASS(CompositableType, uint8_t)
   BUFFER_TILED,           
   BUFFER_SIMPLE_TILED,
   
-  IMAGE,     
-  CONTENT_SINGLE,  
-  CONTENT_DOUBLE,  
+  COMPOSITABLE_IMAGE,     
+  COMPOSITABLE_CONTENT_SINGLE,  
+  COMPOSITABLE_CONTENT_DOUBLE,  
   BUFFER_COUNT
-MOZ_END_ENUM_CLASS(CompositableType)
+};
 
 
 
 
-MOZ_BEGIN_ENUM_CLASS(DeprecatedTextureHostFlags, uint8_t)
-  DEFAULT = 0,       
-  TILED = 1 << 0,    
-  COPY_PREVIOUS = 1 << 1, 
+enum DeprecatedTextureHostFlags
+{
+  TEXTURE_HOST_DEFAULT = 0,       
+                                  
+  TEXTURE_HOST_TILED = 1 << 0,    
+  TEXTURE_HOST_COPY_PREVIOUS = 1 << 1 
                                       
-  ALL_BITS = (1 << 2) - 1
-MOZ_END_ENUM_CLASS(DeprecatedTextureHostFlags)
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DeprecatedTextureHostFlags)
+};
 
 
 
@@ -214,13 +203,11 @@ struct TextureFactoryIdentifier
 
 
 
-MOZ_BEGIN_ENUM_CLASS(TextureIdentifier, uint8_t)
-  Front = 1,
-  Back = 2,
-  OnWhiteFront = 3,
-  OnWhiteBack = 4,
-  HighBound
-MOZ_END_ENUM_CLASS(TextureIdentifier)
+typedef uint32_t TextureIdentifier;
+const TextureIdentifier TextureFront = 1;
+const TextureIdentifier TextureBack = 2;
+const TextureIdentifier TextureOnWhiteFront = 3;
+const TextureIdentifier TextureOnWhiteBack = 4;
 
 
 
@@ -232,19 +219,19 @@ MOZ_END_ENUM_CLASS(TextureIdentifier)
 struct TextureInfo
 {
   CompositableType mCompositableType;
-  DeprecatedTextureHostFlags mDeprecatedTextureHostFlags;
-  TextureFlags mTextureFlags;
+  uint32_t mDeprecatedTextureHostFlags;
+  uint32_t mTextureFlags;
 
   TextureInfo()
-    : mCompositableType(CompositableType::BUFFER_UNKNOWN)
-    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
-    , mTextureFlags(TextureFlags::NO_FLAGS)
+    : mCompositableType(BUFFER_UNKNOWN)
+    , mDeprecatedTextureHostFlags(0)
+    , mTextureFlags(0)
   {}
 
   TextureInfo(CompositableType aType)
     : mCompositableType(aType)
-    , mDeprecatedTextureHostFlags(DeprecatedTextureHostFlags::DEFAULT)
-    , mTextureFlags(TextureFlags::NO_FLAGS)
+    , mDeprecatedTextureHostFlags(0)
+    , mTextureFlags(0)
   {}
 
   bool operator==(const TextureInfo& aOther) const
@@ -260,24 +247,21 @@ struct TextureInfo
 
 
 
-MOZ_BEGIN_ENUM_CLASS(OpenMode, uint8_t)
-  OPEN_NONE        = 0,
-  OPEN_READ        = 0x1,
-  OPEN_WRITE       = 0x2,
-  OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE,
-  OPEN_READ_ONLY   = OPEN_READ,
-  OPEN_WRITE_ONLY  = OPEN_WRITE
-MOZ_END_ENUM_CLASS(OpenMode)
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OpenMode)
+typedef uint32_t OpenMode;
+const OpenMode OPEN_READ        = 0x1;
+const OpenMode OPEN_WRITE       = 0x2;
+const OpenMode OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE;
+const OpenMode OPEN_READ_ONLY   = OPEN_READ;
+const OpenMode OPEN_WRITE_ONLY  = OPEN_WRITE;
 
 
 
-MOZ_BEGIN_ENUM_CLASS(MaskType, uint8_t)
+enum MaskType {
   MaskNone = 0,   
   Mask2d,         
   Mask3d,         
   NumMaskTypes
-MOZ_END_ENUM_CLASS(MaskType)
+};
 
 } 
 } 

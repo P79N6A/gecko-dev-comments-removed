@@ -145,7 +145,7 @@ TiledLayerBufferComposite::ValidateTile(TileHost aTile,
   long start = PR_IntervalNow();
 #endif
 
-  MOZ_ASSERT(aTile.mTextureHost->GetFlags() & TextureFlags::IMMEDIATE_UPLOAD);
+  MOZ_ASSERT(aTile.mTextureHost->GetFlags() & TEXTURE_IMMEDIATE_UPLOAD);
   
   
   
@@ -380,7 +380,7 @@ TiledContentHost::RenderTile(const TileHost& aTile,
                                   textureRect.height / aTextureBounds.height);
     mCompositor->DrawQuad(graphicsRect, aClipRect, aEffectChain, aOpacity, aTransform);
   }
-  mCompositor->DrawDiagnostics(DiagnosticFlags::CONTENT | DiagnosticFlags::TILE,
+  mCompositor->DrawDiagnostics(DIAGNOSTIC_CONTENT|DIAGNOSTIC_TILE,
                                aScreenRegion, aClipRect, aTransform, mFlashCounter);
 }
 
@@ -471,7 +471,7 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
   }
   gfx::Rect rect(visibleRect.x, visibleRect.y,
                  visibleRect.width, visibleRect.height);
-  GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTENT,
+  GetCompositor()->DrawDiagnostics(DIAGNOSTIC_CONTENT,
                                    rect, aClipRect, aTransform, mFlashCounter);
 }
 

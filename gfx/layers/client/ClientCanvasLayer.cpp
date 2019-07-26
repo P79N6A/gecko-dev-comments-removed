@@ -133,18 +133,18 @@ ClientCanvasLayer::RenderLayer()
   }
   
   if (!mCanvasClient) {
-    TextureFlags flags = TextureFlags::IMMEDIATE_UPLOAD;
+    TextureFlags flags = TEXTURE_IMMEDIATE_UPLOAD;
     if (mNeedsYFlip) {
-      flags |= TextureFlags::NEEDS_Y_FLIP;
+      flags |= TEXTURE_NEEDS_Y_FLIP;
     }
 
     if (!mGLContext) {
       
-      flags |= TextureFlags::IMMEDIATE_UPLOAD;
+      flags |= TEXTURE_IMMEDIATE_UPLOAD;
     } else {
       
       
-      flags |= TextureFlags::DEALLOCATE_CLIENT;
+      flags |= TEXTURE_DEALLOCATE_CLIENT;
     }
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
                                                      ClientManager()->AsShadowForwarder(), flags);
