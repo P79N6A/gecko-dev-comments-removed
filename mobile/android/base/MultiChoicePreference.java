@@ -169,6 +169,12 @@ class MultiChoicePreference extends DialogPreference {
 
     @Override
     protected void onDialogClosed(boolean positiveResult) {
+        if (mPrevValues == null || mInitialValues == null) {
+            
+            
+            return;
+        }
+
         if (!positiveResult) {
             
             mValues = mPrevValues.clone();
