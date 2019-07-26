@@ -1173,30 +1173,6 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 void
 PurgeJITCaches(JSCompartment *c);
 
-
-
-
-
-
-
-
-
-
-
-
-
-struct AutoTransplantGC
-{
-    AutoTransplantGC(JSContext *cx);
-    ~AutoTransplantGC();
-
-  private:
-    JSRuntime *runtime;
-    unsigned markCount;
-    bool inIncremental;
-    bool inTransplant;
-};
-
 } 
 
 #endif 

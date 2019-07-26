@@ -721,7 +721,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
-    bool                gcInTransplant;
+
+    bool                gcManipulatingDeadCompartments;
 
     
 
