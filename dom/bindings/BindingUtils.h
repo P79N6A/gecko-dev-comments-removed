@@ -703,12 +703,35 @@ HandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope, T* value,
 }
 
 
-template <template <typename> class SmartPtr, class T>
-MOZ_ALWAYS_INLINE bool
-HandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope,
-                                const SmartPtr<T>& value, JS::Value* vp)
+
+HAS_MEMBER(get)
+
+template <class T, bool isSmartPtr=HasgetMember<T>::Value>
+struct HandleNewBindingWrappingFailureHelper
 {
-  return HandleNewBindingWrappingFailure(cx, scope, value.get(), vp);
+  static inline bool Wrap(JSContext* cx, JSObject* scope, const T& value,
+                          JS::Value* vp)
+  {
+    return HandleNewBindingWrappingFailure(cx, scope, value.get(), vp);
+  }
+};
+
+template <class T>
+struct HandleNewBindingWrappingFailureHelper<T, false>
+{
+  static inline bool Wrap(JSContext* cx, JSObject* scope, T& value,
+                          JS::Value* vp)
+  {
+    return HandleNewBindingWrappingFailure(cx, scope, &value, vp);
+  }
+};
+
+template<class T>
+inline bool
+HandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope, T& value,
+                                JS::Value* vp)
+{
+  return HandleNewBindingWrappingFailureHelper<T>::Wrap(cx, scope, value, vp);
 }
 
 template<bool Fatal>
@@ -1117,8 +1140,6 @@ WrapCallThisObject(JSContext* cx, JSObject* scope, const T& p)
 }
 
 
-
-HAS_MEMBER(get)
 
 template <class T, bool isSmartPtr=HasgetMember<T>::Value>
 struct WrapNewBindingObjectHelper
