@@ -2989,8 +2989,13 @@ nsDocShell::RecomputeCanExecuteScripts()
     
     
     
+    
+    
+    
+    
+    
     if (!mTreeOwner) {
-        mCanExecuteScripts = false;
+        mCanExecuteScripts = mCanExecuteScripts && mAllowJavascript;
     
     } else if (!mAllowJavascript) {
         mCanExecuteScripts = false;
