@@ -120,6 +120,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionCookies",
+  "resource:///modules/sessionstore/SessionCookies.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "_SessionFile",
   "resource:///modules/sessionstore/_SessionFile.jsm");
 
@@ -2402,21 +2404,6 @@ let SessionStoreInternal = {
 
 
   _updateCookies: function ssi_updateCookies(aWindows) {
-    function addCookieToHash(aHash, aHost, aPath, aName, aCookie) {
-      
-      
-      if (!aHash[aHost])
-        aHash[aHost] = {};
-      if (!aHash[aHost][aPath])
-        aHash[aHost][aPath] = {};
-      aHash[aHost][aPath][aName] = aCookie;
-    }
-
-    var jscookies = {};
-    var _this = this;
-    
-    var MAX_EXPIRY = Math.pow(2, 62);
-
     for (let window of aWindows) {
       window.cookies = [];
 
@@ -2429,35 +2416,12 @@ let SessionStoreInternal = {
       }, this);
 
       for (var [host, isPinned] in Iterator(hosts)) {
-        let list;
-        try {
-          list = Services.cookies.getCookiesFromHost(host);
-        }
-        catch (ex) {
-          debug("getCookiesFromHost failed. Host: " + host);
-        }
-        while (list && list.hasMoreElements()) {
-          var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
+        for (let cookie of SessionCookies.getCookiesForHost(host)) {
           
           
           
-          if (cookie.isSession && _this.checkPrivacyLevel(cookie.isSecure, isPinned)) {
-            
-            
-            if (!(cookie.host in jscookies &&
-                  cookie.path in jscookies[cookie.host] &&
-                  cookie.name in jscookies[cookie.host][cookie.path])) {
-              var jscookie = { "host": cookie.host, "value": cookie.value };
-              
-              if (cookie.path) jscookie.path = cookie.path;
-              if (cookie.name) jscookie.name = cookie.name;
-              if (cookie.isSecure) jscookie.secure = true;
-              if (cookie.isHttpOnly) jscookie.httponly = true;
-              if (cookie.expiry < MAX_EXPIRY) jscookie.expiry = cookie.expiry;
-
-              addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
-            }
-            window.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
+          if (this.checkPrivacyLevel(cookie.secure, isPinned)) {
+            window.cookies.push(cookie);
           }
         }
       }
