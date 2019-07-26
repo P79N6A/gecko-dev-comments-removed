@@ -849,7 +849,7 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
         
         
         audioOutputStream->mStream->Init(2, mSampleRate,
-                                         AudioChannel::Normal,
+                                         aStream->mAudioChannelType,
                                          AudioStream::LowLatency);
         audioOutputStream->mTrackID = tracks->GetID();
 
@@ -1784,6 +1784,7 @@ MediaStream::MediaStream(DOMMediaStream* aWrapper)
   , mMainThreadFinished(false)
   , mMainThreadDestroyed(false)
   , mGraph(nullptr)
+  , mAudioChannelType(dom::AudioChannel::Normal)
 {
   MOZ_COUNT_CTOR(MediaStream);
   
