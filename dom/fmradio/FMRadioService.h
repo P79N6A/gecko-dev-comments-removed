@@ -118,6 +118,9 @@ public:
   virtual void RemoveObserver(FMRadioEventObserver* aObserver) = 0;
 
   
+  virtual void EnableAudio(bool aAudioEnabled) = 0;
+
+  
 
 
 
@@ -163,6 +166,8 @@ public:
 
   virtual void AddObserver(FMRadioEventObserver* aObserver) MOZ_OVERRIDE;
   virtual void RemoveObserver(FMRadioEventObserver* aObserver) MOZ_OVERRIDE;
+
+  virtual void EnableAudio(bool aAudioEnabled) MOZ_OVERRIDE;
 
   
   void Notify(const hal::FMRadioOperationInformation& aInfo) MOZ_OVERRIDE;
