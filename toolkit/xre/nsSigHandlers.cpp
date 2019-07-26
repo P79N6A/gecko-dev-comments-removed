@@ -246,6 +246,15 @@ void InstallSignalHandlers(const char *ProgramName)
   sigaction(SIGFPE, &sa, &osa);
 #endif
 
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+
+
+
+
+    signal(SIGINT, SIG_IGN);
+  }
+
 #if defined(DEBUG) && defined(LINUX)
   const char *memLimit = PR_GetEnv("MOZ_MEM_LIMIT");
   if (memLimit && *memLimit)
