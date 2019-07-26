@@ -15,12 +15,14 @@ extern const JSFunctionSpec object_methods[];
 extern const JSFunctionSpec object_static_methods[];
 
 
-extern bool
+bool
 obj_construct(JSContext *cx, unsigned argc, js::Value *vp);
 
+#if JS_HAS_TOSOURCE
 
-extern bool
-obj_toSource(JSContext *cx, unsigned argc, js::Value *vp);
+JSString *
+ObjectToSource(JSContext *cx, HandleObject obj);
+#endif 
 
 } 
 
