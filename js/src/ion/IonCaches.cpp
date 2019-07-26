@@ -392,7 +392,7 @@ struct GetNativePropertyStub
             JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
 
             masm.loadValue(expandoAddr, tempVal);
-            if (expando && expando->nativeLookupNoAllocation(propName)) {
+            if (expando && expando->nativeLookup(cx, propName)) {
                 
                 
 

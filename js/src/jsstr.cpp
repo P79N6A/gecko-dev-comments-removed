@@ -1990,8 +1990,7 @@ InterpretDollar(RegExpStatics *res, const jschar *dp, const jschar *ep,
 static bool
 FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t *sizep)
 {
-    RootedObject base(cx, rdata.elembase);
-    if (base) {
+    if (rdata.elembase) {
         
 
 
@@ -1999,8 +1998,8 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
 
         JS_ASSERT(rdata.lambda);
-        JS_ASSERT(!base->getOps()->lookupProperty);
-        JS_ASSERT(!base->getOps()->getProperty);
+        JS_ASSERT(!rdata.elembase->getOps()->lookupProperty);
+        JS_ASSERT(!rdata.elembase->getOps()->getProperty);
 
         Value match;
         if (!res->createLastMatch(cx, &match))
@@ -2017,8 +2016,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         }
 
         Value v;
-        RootedId id(cx, AtomToId(atom));
-        if (HasDataProperty(cx, base, id, &v) && v.isString()) {
+        if (HasDataProperty(cx, rdata.elembase, AtomToId(atom), &v) && v.isString()) {
             rdata.repstr = v.toString()->ensureLinear(cx);
             if (!rdata.repstr)
                 return false;

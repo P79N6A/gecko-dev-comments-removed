@@ -802,6 +802,90 @@ class SkipRoot
 };
 
 
+template <typename T>
+class FakeRooted : public RootedBase<T>
+{
+  public:
+    FakeRooted(JSContext *cx
+                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : ptr(RootMethods<T>::initial())
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    FakeRooted(JSContext *cx, T initial
+                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : ptr(initial)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    template <typename S>
+    FakeRooted(JSContext *cx, const Unrooted<S> &initial
+                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : ptr(static_cast<S>(initial))
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    operator T() const { return ptr; }
+    T operator->() const { return ptr; }
+    T *address() { return &ptr; }
+    const T *address() const { return &ptr; }
+    T &get() { return ptr; }
+    const T &get() const { return ptr; }
+
+    T &operator=(T value) {
+        JS_ASSERT(!RootMethods<T>::poisoned(value));
+        ptr = value;
+        return ptr;
+    }
+
+    bool operator!=(const T &other) { return ptr != other; }
+    bool operator==(const T &other) { return ptr == other; }
+
+  private:
+    T ptr;
+
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+    FakeRooted(const FakeRooted &) MOZ_DELETE;
+};
+
+
+template <typename T>
+class FakeMutableHandle : public js::MutableHandleBase<T>
+{
+  public:
+    FakeMutableHandle(T *t) {
+        ptr = t;
+    }
+
+    void set(T v) {
+        JS_ASSERT(!js::RootMethods<T>::poisoned(v));
+        *ptr = v;
+    }
+
+    T *address() const { return ptr; }
+    T get() const { return *ptr; }
+
+    operator T() const { return get(); }
+    T operator->() const { return get(); }
+
+  private:
+    FakeMutableHandle() {}
+
+    T *ptr;
+
+    template <typename S>
+    void operator=(S v) MOZ_DELETE;
+};
+
+
+
+
+
+
 
 
 
@@ -818,15 +902,35 @@ class MaybeRooted
 template <typename T> class MaybeRooted<T, ALLOW_GC>
 {
   public:
-    typedef Rooted<T> RootType;
     typedef Handle<T> HandleType;
+    typedef Rooted<T> RootType;
+    typedef MutableHandle<T> MutableHandleType;
+
+    static inline Handle<T> toHandle(HandleType v) {
+        return v;
+    }
+
+    static inline MutableHandle<T> toMutableHandle(MutableHandleType v) {
+        return v;
+    }
 };
 
 template <typename T> class MaybeRooted<T, DONT_ALLOW_GC>
 {
   public:
-    typedef T RootType;
     typedef T HandleType;
+    typedef FakeRooted<T> RootType;
+    typedef FakeMutableHandle<T> MutableHandleType;
+
+    static inline Handle<T> toHandle(HandleType v) {
+        JS_NOT_REACHED("Bad conversion");
+        return Handle<T>::fromMarkedLocation(NULL);
+    }
+
+    static inline MutableHandle<T> toMutableHandle(MutableHandleType v) {
+        JS_NOT_REACHED("Bad conversion");
+        return MutableHandle<T>::fromMarkedLocation(NULL);
+    }
 };
 
 } 

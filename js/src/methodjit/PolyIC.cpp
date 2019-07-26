@@ -1305,7 +1305,7 @@ class GetPropCompiler : public PICStubCompiler
             
             JS_ASSERT_IF(expando, expando->isNative() && expando->getProto() == NULL);
 
-            if (expando && expando->nativeLookupNoAllocation(name) == NULL) {
+            if (expando && expando->nativeLookup(cx, name) == NULL) {
                 Jump expandoGuard = masm.testObject(Assembler::NotEqual, expandoAddress);
                 if (!shapeMismatches.append(expandoGuard))
                     return error();
