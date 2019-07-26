@@ -63,6 +63,15 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 
 #define VAR_PREFIX_LENGTH 4
 
+MOZ_BEGIN_ENUM_CLASS(nsParsingStatus, int32_t)
+  
+  Ok,
+  
+  NotFound,
+  
+  Error
+MOZ_END_ENUM_CLASS(nsParsingStatus)
+
 namespace {
 
 
@@ -633,11 +642,33 @@ protected:
 
   
   bool ParseGridAutoFlow();
+
+  
+  
+  
+  
+  
+  
+  
   bool ParseGridLineNames(nsCSSValue& aValue);
   bool ParseGridTrackBreadth(nsCSSValue& aValue);
-  bool ParseGridTrackSize(nsCSSValue& aValue);
+  nsParsingStatus ParseGridTrackSize(nsCSSValue& aValue);
   bool ParseGridAutoColumnsRows(nsCSSProperty aPropID);
-  bool ParseGridTrackList(nsCSSProperty aPropID);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool ParseGridTrackListWithFirstLineNames(nsCSSValue& aValue,
+                                            const nsCSSValue& aFirstLineNames);
+  bool ParseGridTemplateColumnsRows(nsCSSProperty aPropID);
 
   
   
@@ -6896,13 +6927,13 @@ CSSParserImpl::ParseGridAutoFlow()
   bool gotDense = false;
   bool gotColumn = false;
   bool gotRow = false;
-  do {
+  for (;;) {
     if (!GetToken(true)) {
-      return false;
+      break;
     }
     if (mToken.mType != eCSSToken_Ident) {
       UngetToken();
-      return false;
+      break;
     }
     nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
     if (keyword == eCSSKeyword_dense && !gotDense) {
@@ -6912,9 +6943,10 @@ CSSParserImpl::ParseGridAutoFlow()
     } else if (keyword == eCSSKeyword_row && !gotColumn && !gotRow) {
       gotRow = true;
     } else {
-      return false;
+      UngetToken();
+      break;
     }
-  } while (!CheckEndProperty());
+  }
 
   if (!(gotColumn || gotRow)) {
     return false;
@@ -6941,22 +6973,10 @@ CSSParserImpl::ParseGridAutoFlow()
   return true;
 }
 
-
-
-
-
-
-
 bool
 CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
 {
-  MOZ_ASSERT(aValue.GetUnit() == eCSSUnit_Null,
-             "Unexpected unit, aValue should not be initialized yet");
-  if (!GetToken(true)) {
-    return true;
-  }
-  if (!mToken.IsSymbol('(')) {
-    UngetToken();
+  if (!ExpectSymbol('(', true)) {
     return true;
   }
   if (!GetToken(true) || mToken.IsSymbol(')')) {
@@ -6964,7 +6984,24 @@ CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
   }
   
 
-  nsCSSValueList* item = aValue.SetListValue();
+  nsCSSValueList* item;
+  if (aValue.GetUnit() == eCSSUnit_List) {
+    
+    
+
+    
+    
+    
+    item = aValue.GetListValue();
+    while (item->mNext) {
+      item = item->mNext;
+    }
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+  } else {
+    MOZ_ASSERT(aValue.GetUnit() == eCSSUnit_Null, "Unexpected unit");
+    item = aValue.SetListValue();
+  }
   for (;;) {
     if (!(eCSSToken_Ident == mToken.mType &&
           ParseCustomIdent(item->mValue, mToken.mIdent))) {
@@ -7005,33 +7042,33 @@ CSSParserImpl::ParseGridTrackBreadth(nsCSSValue& aValue)
 }
 
 
-bool
+nsParsingStatus
 CSSParserImpl::ParseGridTrackSize(nsCSSValue& aValue)
 {
   
   if (ParseGridTrackBreadth(aValue) ||
       ParseVariant(aValue, VARIANT_AUTO, nullptr)) {
-    return true;
+    return nsParsingStatus::Ok;
   }
 
   
   if (!GetToken(true)) {
-    return false;
+    return nsParsingStatus::NotFound;
   }
   if (!(eCSSToken_Function == mToken.mType &&
         mToken.mIdent.LowerCaseEqualsLiteral("minmax"))) {
     UngetToken();
-    return false;
+    return nsParsingStatus::NotFound;
   }
   nsCSSValue::Array* func = aValue.InitFunction(eCSSKeyword_minmax, 2);
   if (ParseGridTrackBreadth(func->Item(1)) &&
       ExpectSymbol(',', true) &&
       ParseGridTrackBreadth(func->Item(2)) &&
       ExpectSymbol(')', true)) {
-    return true;
+    return nsParsingStatus::Ok;
   }
   SkipUntil(')');
-  return false;
+  return nsParsingStatus::Error;
 }
 
 bool
@@ -7039,7 +7076,7 @@ CSSParserImpl::ParseGridAutoColumnsRows(nsCSSProperty aPropID)
 {
   nsCSSValue value;
   if (ParseVariant(value, VARIANT_INHERIT, nullptr) ||
-      ParseGridTrackSize(value)) {
+      ParseGridTrackSize(value) == nsParsingStatus::Ok) {
     AppendValue(aPropID, value);
     return true;
   }
@@ -7047,7 +7084,54 @@ CSSParserImpl::ParseGridAutoColumnsRows(nsCSSProperty aPropID)
 }
 
 bool
-CSSParserImpl::ParseGridTrackList(nsCSSProperty aPropID)
+CSSParserImpl::ParseGridTrackListWithFirstLineNames(nsCSSValue& aValue,
+                                                    const nsCSSValue& aFirstLineNames)
+{
+  nsAutoPtr<nsCSSValueList> firstTrackSizeItem(new nsCSSValueList);
+
+  
+  if (ParseGridTrackSize(firstTrackSizeItem->mValue) != nsParsingStatus::Ok) {
+    
+    
+    return false;
+  }
+
+  nsCSSValueList* item = firstTrackSizeItem;
+  for (;;) {
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+    if (!ParseGridLineNames(item->mValue)) {
+      return false;
+    }
+
+    
+    nsCSSValue trackSize;
+    nsParsingStatus result = ParseGridTrackSize(trackSize);
+    if (result == nsParsingStatus::Error) {
+      return false;
+    }
+    if (result == nsParsingStatus::NotFound) {
+      
+      break;
+    }
+    item->mNext = new nsCSSValueList;
+    item = item->mNext;
+    item->mValue = trackSize;
+  }
+
+  
+  
+  item = aValue.SetListValue();
+  item->mValue = aFirstLineNames;
+  item->mNext = firstTrackSizeItem.forget();
+  MOZ_ASSERT(aValue.GetListValue() && aValue.GetListValue()->mNext &&
+             aValue.GetListValue()->mNext->mNext,
+             "<track-list> should have a minimum length of 3");
+  return true;
+}
+
+bool
+CSSParserImpl::ParseGridTemplateColumnsRows(nsCSSProperty aPropID)
 {
   nsCSSValue value;
   if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
@@ -7056,29 +7140,11 @@ CSSParserImpl::ParseGridTrackList(nsCSSProperty aPropID)
   }
   
 
-  
-  
-  
-  nsCSSValueList* item = value.SetListValue();
-  if (!ParseGridLineNames(item->mValue)) {
+  nsCSSValue firstLineNames;
+  if (!(ParseGridLineNames(firstLineNames) &&
+        ParseGridTrackListWithFirstLineNames(value, firstLineNames))) {
     return false;
   }
-  do {
-    item->mNext = new nsCSSValueList;
-    item = item->mNext;
-    
-    if (!ParseGridTrackSize(item->mValue)) {
-      return false;
-    }
-    item->mNext = new nsCSSValueList;
-    item = item->mNext;
-    if (!ParseGridLineNames(item->mValue)) {
-      return false;
-    }
-  } while (!CheckEndProperty());
-  MOZ_ASSERT(value.GetListValue() && value.GetListValue()->mNext &&
-             value.GetListValue()->mNext->mNext,
-             "<track-list> should have a minimum length of 3");
   AppendValue(aPropID, value);
   return true;
 }
@@ -8454,7 +8520,7 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseGridTemplateAreas();
   case eCSSProperty_grid_template_columns:
   case eCSSProperty_grid_template_rows:
-    return ParseGridTrackList(aPropID);
+    return ParseGridTemplateColumnsRows(aPropID);
   case eCSSProperty_grid_auto_position:
     return ParseGridAutoPosition();
   case eCSSProperty_grid_column_start:
