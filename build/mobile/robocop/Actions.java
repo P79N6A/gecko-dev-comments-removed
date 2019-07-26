@@ -3,9 +3,6 @@
 
 
 package org.mozilla.gecko;
-import java.util.List;
-import java.util.ArrayList;
-
 import android.database.Cursor;
 
 public interface Actions {
