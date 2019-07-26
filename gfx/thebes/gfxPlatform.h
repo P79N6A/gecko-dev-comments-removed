@@ -93,13 +93,6 @@ enum eFontPrefLang {
     eFontPrefLang_AllCount    = 33
 };
 
-enum eCMSMode {
-    eCMSMode_Off          = 0,     
-    eCMSMode_All          = 1,     
-    eCMSMode_TaggedOnly   = 2,     
-    eCMSMode_AllCount     = 3
-};
-
 enum eGfxLog {
     
     eGfxLog_fontlist         = 0,
@@ -501,55 +494,6 @@ public:
 
     static bool ComponentAlphaEnabled();
 
-    
-
-
-    static eCMSMode GetCMSMode();
-
-    
-
-
-
-
-
-
-
-
-
-    static int GetRenderingIntent();
-
-    
-
-
-
-
-    static void TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *transform);
-
-    
-
-
-    static qcms_profile* GetCMSOutputProfile();
-
-    
-
-
-    static qcms_profile* GetCMSsRGBProfile();
-
-    
-
-
-    static qcms_transform* GetCMSRGBTransform();
-
-    
-
-
-    static qcms_transform* GetCMSInverseRGBTransform();
-
-    
-
-
-    static qcms_transform* GetCMSRGBATransform();
-
     virtual void FontsPrefsChanged(const char *aPref);
 
     void OrientationSyncPrefsObserverChanged();
@@ -678,8 +622,6 @@ private:
 
     static void Init();
 
-    static void CreateCMSOutputProfile();
-
     friend int RecordingPrefChanged(const char *aPrefName, void *aClosure);
 
     virtual qcms_profile* GetPlatformCMSOutputProfile();
@@ -688,7 +630,6 @@ private:
 
     nsRefPtr<gfxASurface> mScreenReferenceSurface;
     nsTArray<uint32_t> mCJKPrefLangs;
-    nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
     nsCOMPtr<nsIObserver> mOrientationSyncPrefsObserver;
 
