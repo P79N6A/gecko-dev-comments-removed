@@ -104,6 +104,9 @@ pref("dom.workers.enabled", true);
 pref("dom.workers.maxPerDomain", 20);
 
 
+pref("dom.workers.sharedWorkers.enabled", false);
+
+
 pref("dom.enable_performance", true);
 
 
@@ -272,6 +275,12 @@ pref("media.video_stats.enabled", true);
 
 
 pref("media.audio_data.enabled", true);
+
+
+
+
+
+pref("apzc.axis_lock_mode", 0);
 
 #ifdef XP_MACOSX
 
@@ -4142,20 +4151,24 @@ pref("layers.frame-counter", false);
 pref("layers.max-active", -1);
 
 
+pref("layers.offmainthreadcomposition.enabled", false);
+
+pref("layers.use-deprecated-textures", true);
+
+
+pref("layers.async-video.enabled",false);
+
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.use-deprecated-textures", false);
-
-
 pref("layers.async-video.enabled",true);
-#else
-pref("layers.async-video.enabled",false);
-#ifdef MOZ_WIDGET_GONK
-pref("layers.use-deprecated-textures", false);
-#else
-pref("layers.offmainthreadcomposition.enabled", false);
-pref("layers.use-deprecated-textures", true);
 #endif
+
+
+#ifdef ANDROID
+pref("layers.offmainthreadcomposition.enabled", true);
+pref("layers.use-deprecated-textures", false);
+pref("layers.async-video.enabled",true);
 #endif
 
 
@@ -4435,6 +4448,9 @@ pref("dom.forms.inputmode", true);
 
 
 pref("dom.mozInputMethod.enabled", false);
+
+
+pref("dom.datastore.enabled", false);
 
 
 pref("dom.telephony.enabled", false);
