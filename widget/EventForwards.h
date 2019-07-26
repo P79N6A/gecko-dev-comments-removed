@@ -77,12 +77,12 @@ class WidgetMouseEvent;
 class WidgetDragEvent;
 class WidgetMouseScrollEvent;
 class WidgetWheelEvent;
+
+
+class WidgetGestureNotifyEvent;
+class WidgetSimpleGestureEvent;
+class WidgetTouchEvent;
 } 
-
-
-class nsGestureNotifyEvent;
-class nsTouchEvent;
-class nsSimpleGestureEvent;
 
 
 class nsScriptErrorEvent;
@@ -124,5 +124,9 @@ typedef mozilla::WidgetMouseScrollEvent   nsMouseScrollEvent;
 namespace mozilla {
 typedef WidgetWheelEvent                  WheelEvent;
 }
+
+typedef mozilla::WidgetGestureNotifyEvent nsGestureNotifyEvent;
+typedef mozilla::WidgetSimpleGestureEvent nsSimpleGestureEvent;
+typedef mozilla::WidgetTouchEvent         nsTouchEvent;
 
 #endif 
