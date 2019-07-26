@@ -453,6 +453,31 @@ this.DOMApplicationRegistry = {
 
   
   
+  removeIfHttpsDuplicate: function(aId) {
+#ifdef MOZ_WIDGET_GONK
+    let app = this.webapps[aId];
+    if (!app || !app.origin.startsWith("http://")) {
+      return;
+    }
+
+    let httpsManifestURL =
+      "https://" + app.manifestURL.substring("http://".length);
+
+    
+    
+    for (let id in this.webapps) {
+       if (this.webapps[id].manifestURL === httpsManifestURL) {
+         debug("Found a http/https match: " + app.manifestURL + " / " +
+               this.webapps[id].manifestURL);
+         this.uninstall(app.manifestURL, function() {}, function() {});
+         return;
+       }
+    }
+#endif
+  },
+
+  
+  
   
   
   
@@ -555,6 +580,7 @@ this.DOMApplicationRegistry = {
         
         for (let id in this.webapps) {
           this.installPreinstalledApp(id);
+          this.removeIfHttpsDuplicate(id);
           if (!this.webapps[id]) {
             continue;
           }
