@@ -981,7 +981,7 @@ void AsyncPanZoomController::RequestContentRepaint() {
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
                                                             ContainerLayer* aLayer,
-                                                            gfx3DMatrix* aNewTransform) {
+                                                            ViewTransform* aNewTransform) {
   
   
   
@@ -1064,18 +1064,7 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
     NS_lround((scrollOffset.x / rootScaleX - metricsScrollOffset.x) * localScaleX),
     NS_lround((scrollOffset.y / rootScaleY - metricsScrollOffset.y) * localScaleY));
 
-  ViewTransform treeTransform(-scrollCompensation, localScaleX, localScaleY);
-  *aNewTransform = gfx3DMatrix(treeTransform) * currentTransform;
-
-  
-  
-  
-  aNewTransform->Scale(1.0f/aLayer->GetPreXScale(),
-                       1.0f/aLayer->GetPreYScale(),
-                       1);
-  aNewTransform->ScalePost(1.0f/aLayer->GetPostXScale(),
-                           1.0f/aLayer->GetPostYScale(),
-                           1);
+  *aNewTransform = ViewTransform(-scrollCompensation, localScaleX, localScaleY);
 
   mLastSampleTime = aSampleTime;
 
