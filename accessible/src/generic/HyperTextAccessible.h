@@ -473,25 +473,6 @@ protected:
                                     Accessible* aAccessible,
                                     mozilla::a11y::DOMPoint* aPoint);
 
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  nsresult RangeBoundToHypertextOffset(nsRange *aRange,
-                                       bool aIsStartBound,
-                                       bool aIsStartOffset,
-                                       int32_t *aHTOffset);
-
   
 
 
