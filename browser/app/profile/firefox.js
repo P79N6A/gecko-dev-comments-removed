@@ -223,20 +223,6 @@ pref("general.autoScroll", false);
 pref("general.autoScroll", true);
 #endif
 
-pref("general.useragent.complexOverride.moodle", true); 
-pref("general.useragent.override.bank.barclays.co.uk",   "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.bankmillennium.pl",     "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.becu.org",              "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.becuonlinebanking.org", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.bfsfcu.org",            "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.cenfedcu.org",          "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.coastal24.com",         "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.mtb.com",               "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.mandtbank.com",         "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.natweststockbrokers.co.uk", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.natweststockbrokers.com", "Gecko/[^ ]*#Gecko/20100101"); 
-pref("general.useragent.override.raiffeisen.hu",         "Gecko/[^ ]*#Gecko/20100101"); 
-
 
 pref("browser.shell.checkDefaultBrowser", true);
 
