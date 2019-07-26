@@ -649,12 +649,36 @@ class GeckoInputConnection
         return this;
     }
 
+    private boolean replaceComposingSpanWithSelection() {
+        final Editable content = getEditable();
+        if (content == null) {
+            return false;
+        }
+        int a = getComposingSpanStart(content),
+            b = getComposingSpanEnd(content);
+        if (a != -1 && b != -1) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "removing composition at " + a + "-" + b);
+            }
+            removeComposingSpans(content);
+            Selection.setSelection(content, a, b);
+        }
+        return true;
+    }
+
     @Override
     public boolean commitText(CharSequence text, int newCursorPosition) {
         if (InputMethods.shouldCommitCharAsKey(mCurrentInputMethod) &&
             text.length() == 1 && newCursorPosition > 0) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "committing \"" + text + "\" as key");
+            }
             
-            return mKeyInputConnection.commitText(text, newCursorPosition);
+            
+            
+            
+            return replaceComposingSpanWithSelection() &&
+                mKeyInputConnection.commitText(text, newCursorPosition);
         }
         return super.commitText(text, newCursorPosition);
     }
