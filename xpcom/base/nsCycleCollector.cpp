@@ -173,7 +173,7 @@
 #include "nsICycleCollectorListener.h"
 #include "nsIMemoryReporter.h"
 #include "nsIFile.h"
-#include "nsMemoryInfoDumper.h"
+#include "nsDumpUtils.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
 #include "js/SliceBudget.h"
@@ -1727,7 +1727,14 @@ private:
             NS_NewNativeLocalFile(nsCString(env),  true,
                                   &logFile);
         }
-        nsresult rv = nsMemoryInfoDumper::OpenTempFile(filename, &logFile);
+
+        
+        
+        
+        nsresult rv = nsDumpUtils::OpenTempFile(
+                                     filename,
+                                     &logFile,
+                                     NS_LITERAL_CSTRING("memory-reports"));
         if (NS_FAILED(rv)) {
           NS_IF_RELEASE(logFile);
           return nullptr;
