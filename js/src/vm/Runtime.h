@@ -1119,6 +1119,11 @@ struct JSRuntime : public JS::shadow::Runtime,
     
 
 
+    unsigned            gcGenerationalDisabled;
+
+    
+
+
 
 
     bool                gcManipulatingDeadZones;

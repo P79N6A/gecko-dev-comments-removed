@@ -54,9 +54,6 @@ class Nursery
     static const size_t Alignment = gc::ChunkSize;
     static const size_t NurserySize = gc::ChunkSize * NumNurseryChunks;
 
-    
-    static const size_t MaxNurserySlots = 128;
-
     explicit Nursery(JSRuntime *rt)
       : runtime_(rt),
         position_(0),
@@ -103,6 +100,9 @@ class Nursery
 
     
     void freeSlots(JSContext *cx, HeapSlot *slots);
+
+    
+    void notifyInitialSlots(gc::Cell *cell, HeapSlot *slots);
 
     
     void notifyNewElements(gc::Cell *cell, ObjectElements *elements);
@@ -181,6 +181,9 @@ class Nursery
 
     typedef HashSet<HeapSlot *, PointerHasher<HeapSlot *, 3>, SystemAllocPolicy> HugeSlotsSet;
     HugeSlotsSet hugeSlots;
+
+    
+    static const size_t MaxNurserySlots = 128;
 
     
     static const size_t NurseryChunkUsableSize = gc::ChunkSize - sizeof(gc::ChunkTrailer);
