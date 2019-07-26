@@ -359,6 +359,9 @@
 
 
 
+
+
+
      File.move = null;
 
      if (UnixFile.copyfile) {
@@ -560,8 +563,10 @@
 
        
        
-       if (ctypes.errno != Const.EXDEV) {
-         throw new File.Error();
+       
+       
+       if (ctypes.errno != Const.EXDEV || options.noCopy) {
+         throw new File.Error("move");
        }
 
        
@@ -821,6 +826,9 @@
        }
        return new File.Info(gStatData);
      };
+
+     File.read = exports.OS.Shared.AbstractFile.read;
+     File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
 
      
 

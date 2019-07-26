@@ -420,13 +420,17 @@
 
 
 
+
+
+
      File.move = function move(sourcePath, destPath, options) {
        options = options || noOptions;
-       let flags;
-       if (options.noOverwrite) {
+       let flags = 0;
+       if (!options.noCopy) {
          flags = Const.MOVEFILE_COPY_ALLOWED;
-       } else {
-         flags = Const.MOVEFILE_COPY_ALLOWED | Const.MOVEFILE_REPLACE_EXISTING;
+       }
+       if (!options.noOverwrite) {
+         flags = flags | Const.MOVEFILE_REPLACE_EXISTING;
        }
        throw_on_zero("move",
          WinFile.MoveFileEx(sourcePath, destPath, flags)
@@ -816,6 +820,9 @@
        winFlags: OS.Constants.Win.FILE_FLAG_BACKUP_SEMANTICS,
        winDisposition: OS.Constants.Win.OPEN_EXISTING
      };
+
+     File.read = exports.OS.Shared.AbstractFile.read;
+     File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
 
      
 
