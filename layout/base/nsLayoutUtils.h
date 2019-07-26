@@ -79,6 +79,11 @@ public:
   
 
 
+  static nsIScrollableFrame* FindScrollableFrameFor(ViewID aId);
+
+  
+
+
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult);
 
   
