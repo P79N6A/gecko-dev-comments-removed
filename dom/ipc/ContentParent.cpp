@@ -1157,10 +1157,6 @@ ContentParent::OnChannelConnected(int32_t pid)
         }
 #endif
     }
-
-    
-    
-    SetReplyTimeoutMs(Preferences::GetInt("dom.ipc.cpow.timeout", 3000));
 }
 
 void

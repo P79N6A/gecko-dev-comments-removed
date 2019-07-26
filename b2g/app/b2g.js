@@ -392,6 +392,9 @@ pref("content.ime.strict_policy", true);
 pref("browser.dom.window.dump.enabled", false);
 
 
+pref("security.csp.speccompliant", true);
+
+
 pref("security.apps.privileged.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
 
 pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self'");
@@ -714,6 +717,19 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 
 
 
+
+
+
+pref("hal.gonk.COMPOSITOR.rt_priority", 0);
+pref("hal.gonk.COMPOSITOR.nice", 0);
+
+
+
+
+
+
+
+
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderKB", 14336);
 
 
@@ -776,7 +792,11 @@ pref("network.activity.blipIntervalMilliseconds", 250);
 
 pref("network.gonk.manage-offline-status", true);
 
+
+
+#ifndef MOZ_MULET
 pref("jsloader.reuseGlobal", true);
+#endif
 
 
 pref("font.size.inflation.minTwips", 120);
