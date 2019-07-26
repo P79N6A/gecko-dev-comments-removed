@@ -101,7 +101,7 @@ nsDOMIdentity.prototype = {
 
 
 
-  watch: function nsDOMIdentity_watch(aOptions = {}) {
+  watch: function nsDOMIdentity_watch(aOptions) {
     if (this._rpWatcher) {
       
       
@@ -111,7 +111,33 @@ nsDOMIdentity.prototype = {
       throw new Error("navigator.id.watch was already called");
     }
 
-    assertCorrectCallbacks(aOptions);
+    if (!aOptions || typeof(aOptions) !== "object") {
+      throw new Error("options argument to watch is required");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (typeof(aOptions["onlogin"]) != "function") {
+      throw new Error("onlogin() callback is required.");
+    }
+
+    
+    for (let cb of ["onready", "onerror", "onlogout"]) {
+      if (aOptions[cb] && typeof(aOptions[cb]) != "function") {
+        throw new Error(cb + " must be a function");
+      }
+    }
 
     let message = this.DOMIdentityMessage(aOptions);
 
@@ -771,38 +797,7 @@ nsDOMIdentityInternal.prototype = {
     interfaces: [],
     classDescription: "Identity DOM Implementation"
   })
+
 };
-
-function assertCorrectCallbacks(aOptions) {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  let requiredCallbacks = ["onlogin"];
-  let optionalCallbacks = ["onlogout", "onready", "onerror"];
-
-  if (aOptions.wantIssuer == "firefox-accounts") {
-    requiredCallbacks = ["onlogin", "onlogout", "onready"];
-    optionalCallbacks = ["onerror"];
-  }
-
-  for (let cbName of requiredCallbacks) {
-    if (typeof(aOptions[cbName]) != "function") {
-      throw new Error(cbName + " callback is required.");
-    }
-  }
-
-  for (let cbName of optionalCallbacks) {
-    if (aOptions[cbName] && typeof(aOptions[cbName]) != "function") {
-      throw new Error(cbName + " must be a function");
-    }
-  }
-}
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentityInternal]);
