@@ -2,8 +2,11 @@
 
 
 const PREF_NEWTAB_ENABLED = "browser.newtabpage.enabled";
+const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directorySource";
 
 Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
+
+Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
 
 let tmp = {};
 Cu.import("resource://gre/modules/Promise.jsm", tmp);
@@ -26,6 +29,7 @@ registerCleanupFunction(function () {
     gWindow.gBrowser.removeTab(gWindow.gBrowser.tabs[1]);
 
   Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
+  Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
 });
 
 
