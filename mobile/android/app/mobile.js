@@ -572,6 +572,11 @@ pref("media.preload.auto", 2);
 pref("image.mem.decodeondraw", true);
 pref("image.mem.min_discard_timeout_ms", 10000);
 
+#ifdef NIGHTLY_BUILD
+
+pref("shumway.disabled", true);
+#endif
+
 
 pref("dom.w3c_touch_events.enabled", 1);
 
