@@ -595,10 +595,8 @@ var LoginManagerContent = {
             return [false, foundLogins];
 
         
-        if (passwordField.disabled || passwordField.readOnly ||
-            usernameField && (usernameField.disabled ||
-                              usernameField.readOnly)) {
-            log("not filling form, login fields disabled");
+        if (passwordField.disabled || passwordField.readOnly) {
+            log("not filling form, password field disabled or read-only");
             return [false, foundLogins];
         }
 
@@ -678,7 +676,7 @@ var LoginManagerContent = {
         
         var selectedLogin = null;
 
-        if (usernameField && usernameField.value) {
+        if (usernameField && (usernameField.value || usernameField.disabled || usernameField.readOnly)) {
             
             
             var username = usernameField.value.toLowerCase();
@@ -714,7 +712,8 @@ var LoginManagerContent = {
         var didFillForm = false;
         if (selectedLogin && autofillForm && !isFormDisabled) {
             
-            if (usernameField)
+            
+            if (usernameField && !(usernameField.disabled || usernameField.readOnly))
                 usernameField.value = selectedLogin.username;
             passwordField.value = selectedLogin.password;
             didFillForm = true;
