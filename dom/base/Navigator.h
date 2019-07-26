@@ -86,6 +86,11 @@ class MozIdleObserver;
 #ifdef MOZ_GAMEPAD
 class Gamepad;
 #endif 
+#ifdef MOZ_MEDIA_NAVIGATOR
+class MozDOMGetUserMediaSuccessCallback;
+class MozDOMGetUserMediaErrorCallback;
+class MozGetUserMediaDevicesSuccessCallback;
+#endif 
 
 namespace icc {
 #ifdef MOZ_B2G_RIL
@@ -328,7 +333,22 @@ public:
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
   system::AudioChannelManager* GetMozAudioChannelManager(ErrorResult& aRv);
 #endif 
-
+#ifdef MOZ_MEDIA_NAVIGATOR
+  void MozGetUserMedia(nsIMediaStreamOptions* aParams,
+                       MozDOMGetUserMediaSuccessCallback* aOnSuccess,
+                       MozDOMGetUserMediaErrorCallback* aOnError,
+                       ErrorResult& aRv);
+  void MozGetUserMedia(nsIMediaStreamOptions* aParams,
+                       nsIDOMGetUserMediaSuccessCallback* aOnSuccess,
+                       nsIDOMGetUserMediaErrorCallback* aOnError,
+                       ErrorResult& aRv);
+  void MozGetUserMediaDevices(MozGetUserMediaDevicesSuccessCallback* aOnSuccess,
+                              MozDOMGetUserMediaErrorCallback* aOnError,
+                              ErrorResult& aRv);
+  void MozGetUserMediaDevices(nsIGetUserMediaDevicesSuccessCallback* aOnSuccess,
+                              nsIDOMGetUserMediaErrorCallback* aOnError,
+                              ErrorResult& aRv);
+#endif 
 
   
   static bool HasBatterySupport(JSContext* , JSObject* );
@@ -362,6 +382,10 @@ public:
 #endif 
 #ifdef MOZ_TIME_MANAGER
   static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
+#endif 
+#ifdef MOZ_MEDIA_NAVIGATOR
+  static bool HasUserMediaSupport(JSContext* ,
+                                  JSObject* );
 #endif 
 
   nsPIDOMWindow* GetParentObject() const
