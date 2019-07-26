@@ -23,24 +23,12 @@ var gAdvancedPane = {
 #ifdef HAVE_SHELL_SERVICE
     this.updateSetDefaultBrowser();
 #ifdef XP_WIN
-    let shellSvc = getShellService();
     
     
     
     
-    if (!shellSvc.isDefaultBrowser(false, true)) {
-      var isWin8OrHigher = false;
-      try {
-        let version = Components.classes["@mozilla.org/system-info;1"].
-                      getService(Components.interfaces.nsIPropertyBag2).
-                      getProperty("version");
-        isWin8OrHigher = parseFloat(version) >= 6.2;
-      } catch (ex) { }
-
-      if (isWin8OrHigher) {
-        window.setInterval(this.updateSetDefaultBrowser, 1000);
-      }
-    }
+    
+    window.setInterval(this.updateSetDefaultBrowser, 1000);
 #endif
 #endif
 #ifdef MOZ_UPDATER
