@@ -1,16 +1,15 @@
 
-function h() {
+function gamma() {
     stack = Error().stack;
 }
-function g() {
-    evaluate("h()", {saveFrameChain: true});
+function beta() {
+    evaluate("gamma()", {saveFrameChain: true});
 }
-function f() {
-    g();
+function alpha() {
+    beta();
 }
-f();
-var lines = stack.split("\n");
-assertEq(lines.length, 3);
-assertEq(lines[0].startsWith("h@"), true);
-assertEq(lines[1].startsWith("@@evaluate"), true);
-assertEq(lines[2], "");
+alpha();
+
+assertEq(/alpha/.test(stack), true);
+assertEq(/beta/.test(stack), true);
+assertEq(/gamma/.test(stack), true);
