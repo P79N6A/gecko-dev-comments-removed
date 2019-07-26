@@ -3390,8 +3390,16 @@ Tab.prototype = {
           this.browser.addEventListener("pagehide", listener, true);
         }
 
-        if (docURI.startsWith("about:reader"))
-          new AboutReader(this.browser.contentDocument, this.browser.contentWindow);
+        if (docURI.startsWith("about:reader")) {
+          
+          
+          
+          
+          let contentDocument = this.browser.contentDocument;
+          if (contentDocument.body) {
+            new AboutReader(contentDocument, this.browser.contentWindow);
+          }
+        }
 
         break;
       }
