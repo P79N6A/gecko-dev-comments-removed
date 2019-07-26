@@ -497,6 +497,10 @@ StyleSheetEditor.prototype = {
   markLinkedFileBroken: function(error) {
     this.linkedCSSFileError = error || true;
     this.emit("linked-css-file-error");
+
+    error += " querying " + this.linkedCSSFile +
+             " original source location: " + this.savedFile.path
+    Cu.reportError(error);
   },
 
   
@@ -617,9 +621,19 @@ function prettifyCSS(text)
 
 
 
+
+
+
+
+
+
+
+
+
+
 function findLinkedFilePath(uri, origUri, file) {
-  let project = findProjectPath(origUri, file);
-  let branch = findUnsharedBranch(origUri, uri);
+  let { origBranch, branch } = findUnsharedBranches(origUri, uri);
+  let project = findProjectPath(file, origBranch);
 
   let parts = project.concat(branch);
   let path = OS.Path.join.apply(this, parts);
@@ -640,23 +654,18 @@ function findLinkedFilePath(uri, origUri, file) {
 
 
 
-function findProjectPath(uri, file) {
-  let uri = OS.Path.split(uri.path).components;
+function findProjectPath(file, branch) {
   let path = OS.Path.split(file.path).components;
 
-  
-  uri.pop();
-  path.pop();
-
-  let dir = path.pop();
-  while(dir) {
-    let serverDir = uri.pop();
-    if (serverDir != dir) {
-      return path.concat([dir]);
+  for (let i = 2; i <= branch.length; i++) {
+    
+    if (path[path.length - i] != branch[branch.length - i]) {
+      return path.slice(0, path.length - i + 1);
     }
-    dir = path.pop();
   }
-  return [];
+
+  
+  return path.slice(0, path.length - branch.length);
 }
 
 
@@ -671,14 +680,20 @@ function findProjectPath(uri, file) {
 
 
 
-function findUnsharedBranch(origUri, uri) {
+function findUnsharedBranches(origUri, uri) {
   origUri = OS.Path.split(origUri.path).components;
   uri = OS.Path.split(uri.path).components;
 
-  for (var i = 0; i < uri.length - 1; i++) {
+  for (let i = 0; i < uri.length - 1; i++) {
     if (uri[i] != origUri[i]) {
-      return uri.slice(i);
+      return {
+        branch: uri.slice(i),
+        origBranch: origUri.slice(i)
+      };
     }
   }
-  return uri;
+  return {
+    branch: uri,
+    origBranch: origUri
+  };
 }
