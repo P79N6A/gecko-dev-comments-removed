@@ -400,6 +400,7 @@ class ManifestParser(object):
     def __init__(self, manifests=(), defaults=None, strict=True):
         self._defaults = defaults or {}
         self.tests = []
+        self.manifest_defaults = {}
         self.strict = strict
         self.rootdir = None
         self.relativeRoot = None
@@ -433,6 +434,7 @@ class ManifestParser(object):
 
         
         sections = read_ini(fp=fp, variables=defaults, strict=self.strict)
+        self.manifest_defaults[filename] = defaults
 
         
         for section, data in sections:
@@ -514,7 +516,6 @@ class ManifestParser(object):
 
         
         for filename in filenames:
-
             
             defaults = _defaults.copy()
             here = None
