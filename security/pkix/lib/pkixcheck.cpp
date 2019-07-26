@@ -234,18 +234,10 @@ CheckBasicConstraints(const BackCert& cert,
     
     if (endEntityOrCA == MustBeCA && isTrustAnchor) {
       const CERTCertificate* nssCert = cert.GetNSSCert();
-
-      der::Input versionDer;
-      if (versionDer.Init(nssCert->version.data, nssCert->version.len)
-            != der::Success) {
-        return RecoverableError;
-      }
-      uint8_t version;
-      if (der::OptionalVersion(versionDer, version) || der::End(versionDer)
-            != der::Success) {
-        return RecoverableError;
-      }
-      if (version == 1) {
+      
+      
+      
+      if (!nssCert->version.data && !nssCert->version.len) {
         basicConstraints.isCA = true;
         basicConstraints.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
       }
