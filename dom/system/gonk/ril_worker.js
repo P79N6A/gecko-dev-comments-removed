@@ -5169,18 +5169,19 @@ RIL[UNSOLICITED_STK_CALL_SETUP] = null;
 RIL[UNSOLICITED_SIM_SMS_STORAGE_FULL] = null;
 RIL[UNSOLICITED_SIM_REFRESH] = null;
 RIL[UNSOLICITED_CALL_RING] = function UNSOLICITED_CALL_RING() {
-  let info;
+  let info = {rilMessageType: "callRing"};
   let isCDMA = false; 
   if (isCDMA) {
-    info = {
-      isPresent:  Buf.readUint32(),
-      signalType: Buf.readUint32(),
-      alertPitch: Buf.readUint32(),
-      signal:     Buf.readUint32()
-    };
+    info.isPresent = Buf.readUint32();
+    info.signalType = Buf.readUint32();
+    info.alertPitch = Buf.readUint32();
+    info.signal = Buf.readUint32();
   }
   
   
+  
+  
+  this.sendDOMMessage(info);
 };
 RIL[UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED] = function UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED() {
   this.getICCStatus();

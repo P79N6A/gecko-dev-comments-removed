@@ -473,6 +473,9 @@ RadioInterfaceLayer.prototype = {
     let message = event.data;
     debug("Received message from worker: " + JSON.stringify(message));
     switch (message.rilMessageType) {
+      case "callRing":
+        this.handleCallRing();
+        break;
       case "callStateChange":
         
         this.handleCallStateChange(message.call);
@@ -1141,14 +1144,22 @@ RadioInterfaceLayer.prototype = {
 
 
 
+
+
+  handleCallRing: function handleCallRing() {
+    gSystemMessenger.broadcastMessage("telephony-new-call");
+  },
+
+  
+
+
+
   handleCallStateChange: function handleCallStateChange(call) {
     debug("handleCallStateChange: " + JSON.stringify(call));
     call.state = convertRILCallState(call.state);
 
-    if (call.state == nsIRadioInterfaceLayer.CALL_STATE_INCOMING ||
-        call.state == nsIRadioInterfaceLayer.CALL_STATE_DIALING) {
-      gSystemMessenger.broadcastMessage("telephony-new-call", {number: call.number,
-                                                               state: call.state});
+    if (call.state == nsIRadioInterfaceLayer.CALL_STATE_DIALING) {
+      gSystemMessenger.broadcastMessage("telephony-new-call");
     }
 
     if (call.isActive) {
