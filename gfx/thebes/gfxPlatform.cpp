@@ -273,7 +273,7 @@ gfxPlatform::gfxPlatform()
 #ifdef XP_WIN
     
     mLayersUseDeprecated =
-        Preferences::GetBool("layers.use-deprecated-textures", true)
+        Preferences::GetBool("layers.use-deprecated-textures", false)
         && !gfxPrefs::LayersPreferOpenGL();
 #else
     mLayersUseDeprecated = false;

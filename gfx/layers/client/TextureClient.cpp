@@ -282,6 +282,8 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
     aMoz2DBackend = gfxPlatform::GetPlatform()->GetContentBackend();
   }
 
+  int32_t maxTextureSize = aAllocator->GetMaxTextureSize();
+
   RefPtr<TextureClient> result;
 
 #ifdef XP_WIN
@@ -290,9 +292,10 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
       (aMoz2DBackend == gfx::BackendType::DIRECT2D ||
         aMoz2DBackend == gfx::BackendType::DIRECT2D1_1) &&
       gfxWindowsPlatform::GetPlatform()->GetD2DDevice() &&
-
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
-    result = new TextureClientD3D11(aFormat, aTextureFlags);
+    if (aSizeHint.width <= maxTextureSize && aSizeHint.height <= maxTextureSize) {
+      result = new TextureClientD3D11(aFormat, aTextureFlags);
+    }
   }
   if (parentBackend == LayersBackend::LAYERS_D3D9 &&
       aMoz2DBackend == gfx::BackendType::CAIRO &&
@@ -337,7 +340,6 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
   if (!DisableGralloc(aFormat, aSizeHint)) {
     
     
-    int32_t maxTextureSize = aAllocator->GetMaxTextureSize();
     if (aSizeHint.width <= maxTextureSize && aSizeHint.height <= maxTextureSize) {
       result = new GrallocTextureClientOGL(aAllocator, aFormat, aMoz2DBackend,
                                            aTextureFlags);
