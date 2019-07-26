@@ -18,6 +18,10 @@
 #include "prlog.h"
 #include "prmem.h"
 
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
+
 
 
 
@@ -312,8 +316,7 @@ static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
     char fout[300];
     int amount = fmt1 - fmt0;
 
-    PR_ASSERT((amount > 0) && (amount < sizeof(fin)));
-    if (amount >= sizeof(fin)) {
+    if (amount <= 0 || amount >= sizeof(fin)) {
 	
 	return 0;
     }
@@ -330,14 +333,11 @@ static int cvt_f(SprintfState *ss, double d, const char *fmt0, const char *fmt1)
         }
     }
 #endif
-    sprintf(fout, fin, d);
-
+    memset(fout, 0, sizeof(fout));
+    snprintf(fout, sizeof(fout), fin, d);
     
 
-
-
-
-    PR_ASSERT(strlen(fout) < sizeof(fout));
+    fout[sizeof(fout) - 1] = '\0';
 
     return (*ss->stuff)(ss, fout, strlen(fout));
 }
