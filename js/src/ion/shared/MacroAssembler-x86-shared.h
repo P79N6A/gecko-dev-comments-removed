@@ -384,42 +384,26 @@ class MacroAssemblerX86Shared : public Assembler
     bool maybeInlineDouble(uint64_t u, const FloatRegister &dest) {
         
         
-        switch (u) {
-          case 0x0000000000000000ULL: 
+        
+        
+
+        if (u == 0) {
             xorpd(dest, dest);
-            break;
-          case 0x8000000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(63), dest);
-            break;
-          case 0x3fe0000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(55), dest);
-            psrlq(Imm32(2), dest);
-            break;
-          case 0x3ff0000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(54), dest);
-            psrlq(Imm32(2), dest);
-            break;
-          case 0x3ff8000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(53), dest);
-            psrlq(Imm32(2), dest);
-            break;
-          case 0x4000000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(63), dest);
-            psrlq(Imm32(1), dest);
-            break;
-          case 0xc000000000000000ULL: 
-            pcmpeqw(dest, dest);
-            psllq(Imm32(62), dest);
-            break;
-          default:
-            return false;
+            return true;
         }
-        return true;
+
+        int tz = js_bitscan_ctz64(u);
+        int lz = js_bitscan_clz64(u);
+        if (u == (~uint64_t(0) << (lz + tz) >> lz)) {
+            pcmpeqw(dest, dest);
+            if (tz != 0)
+                psllq(Imm32(lz + tz), dest);
+            if (lz != 0)
+                psrlq(Imm32(lz), dest);
+            return true;
+        }
+
+        return false;
     }
 
     void emitSet(Assembler::Condition cond, const Register &dest,
