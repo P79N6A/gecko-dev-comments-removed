@@ -2055,6 +2055,16 @@ ElementRestyler::ElementRestyler(const ElementRestyler& aParentRestyler,
 #endif
 {
   if (aConstructorFlags & FOR_OUT_OF_FLOW_CHILD) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     mHintsHandled = NS_SubtractHint(mHintsHandled, nsChangeHint_AllReflowHints);
   }
 }
@@ -2685,17 +2695,6 @@ ElementRestyler::RestyleContentChildren(nsIFrame* aParent,
           NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
           NS_ASSERTION(outOfFlowFrame != mResolvedChild,
                        "out-of-flow frame not a true descendant");
-
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
 
           
           
