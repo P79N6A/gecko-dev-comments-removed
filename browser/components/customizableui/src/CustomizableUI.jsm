@@ -599,10 +599,12 @@ let CustomizableUIInternal = {
 
       this.notifyListeners("onWidgetBeforeDOMChange", widgetNode, null, container, true);
 
+      
+      
+      this.removeLocationAttributes(widgetNode);
       if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
         container.removeChild(widgetNode);
       } else {
-        this.removeLocationAttributes(widgetNode);
         widgetNode.removeAttribute("tabindex");
         if (widgetNode.getAttribute("type") == "wrap") {
           widgetNode.removeAttribute("type");
