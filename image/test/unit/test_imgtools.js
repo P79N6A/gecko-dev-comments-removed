@@ -723,6 +723,27 @@ checkExpectedError(/NS_ERROR_FAILURE/, err);
 
 
 
+testnum = 815359;
+testdesc = "test correct ico hotspots (bug 815359)";
+
+imgName = "bug815359.ico";
+inMimeType = "image/x-icon";
+imgFile = do_get_file(imgName);
+
+istream = getFileInputStream(imgFile);
+do_check_eq(istream.available(), 4286);
+
+outParam = { value: null };
+imgTools.decodeImageData(istream, inMimeType, outParam);
+container = outParam.value;
+
+var props = container.QueryInterface(Ci.nsIProperties);
+
+do_check_eq(props.get("hotspotX", Ci.nsISupportsPRUint32).data, 10);
+do_check_eq(props.get("hotspotY", Ci.nsISupportsPRUint32).data, 9);
+
+
+
 
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
