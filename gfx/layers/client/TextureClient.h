@@ -33,6 +33,7 @@ class gfxImageSurface;
 namespace mozilla {
 namespace layers {
 
+class AsyncTransactionTracker;
 class ContentClient;
 class CompositableForwarder;
 class ISurfaceAllocator;
@@ -300,9 +301,12 @@ public:
   
 
 
+  virtual void SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker) {}
+
+  
 
 
-  virtual void WaitReleaseFence() {}
+  virtual void WaitForBufferOwnership() {}
 
 private:
   

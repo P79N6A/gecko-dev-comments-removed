@@ -455,11 +455,6 @@ GrallocTextureHostOGL::SetCompositableBackendSpecificData(CompositableBackendSpe
   if (mTextureSource) {
     mTextureSource->SetCompositableBackendSpecificData(aBackendData);
   }
-  
-  
-  if (aBackendData) {
-    aBackendData->SetCurrentReleaseFenceTexture(this);
-  }
 }
 
 } 

@@ -70,45 +70,8 @@ public:
   }
 
   virtual void SetCompositor(Compositor* aCompositor) {}
-  virtual void ClearData()
-  {
-    mCurrentReleaseFenceTexture = nullptr;
-    ClearPendingReleaseFenceTextureList();
-  }
+  virtual void ClearData() {}
 
-  
-
-
-
-
-  void SetCurrentReleaseFenceTexture(TextureHost* aTexture)
-  {
-    if (mCurrentReleaseFenceTexture) {
-      mPendingReleaseFenceTextures.push_back(mCurrentReleaseFenceTexture);
-    }
-    mCurrentReleaseFenceTexture = aTexture;
-  }
-
-  virtual std::vector< RefPtr<TextureHost> >& GetPendingReleaseFenceTextureList()
-  {
-    return mPendingReleaseFenceTextures;
-  }
-
-  virtual void ClearPendingReleaseFenceTextureList()
-  {
-    return mPendingReleaseFenceTextures.clear();
-  }
-protected:
-  
-
-
-
-  RefPtr<TextureHost> mCurrentReleaseFenceTexture;
-  
-
-
-
-  std::vector< RefPtr<TextureHost> > mPendingReleaseFenceTextures;
 };
 
 

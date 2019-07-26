@@ -16,6 +16,7 @@
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/FenceUtils.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsCOMPtr.h"                   
@@ -417,6 +418,8 @@ public:
   PTextureParent* GetIPDLActor();
 
   static void SendFenceHandleIfPresent(PTextureParent* actor);
+
+  FenceHandle GetAndResetReleaseFenceHandle();
 
   
 

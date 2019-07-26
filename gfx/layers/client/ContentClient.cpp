@@ -5,6 +5,7 @@
 
 #include "mozilla/layers/ContentClient.h"
 #include "BasicLayers.h"                
+#include "CompositorChild.h"            
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
@@ -354,6 +355,36 @@ ContentClientDoubleBuffered::DestroyFrontBuffer()
     mOldTextures.AppendElement(mFrontClientOnWhite);
     mFrontClientOnWhite = nullptr;
   }
+}
+
+void
+ContentClientDoubleBuffered::Updated(const nsIntRegion& aRegionToDraw,
+                                     const nsIntRegion& aVisibleRegion,
+                                     bool aDidSelfCopy)
+{
+  ContentClientRemoteBuffer::Updated(aRegionToDraw, aVisibleRegion, aDidSelfCopy);
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+  if (mFrontClient && CompositorChild::ChildProcessHasCompositor()) {
+    
+    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker(this);
+    
+    tracker->SetTextureClient(mFrontClient);
+    mFrontClient->SetRemoveFromCompositableTracker(tracker);
+    
+    GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontClient);
+  }
+
+  if (mFrontClientOnWhite && CompositorChild::ChildProcessHasCompositor()) {
+    
+    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker(this);
+    
+    tracker->SetTextureClient(mFrontClientOnWhite);
+    mFrontClientOnWhite->SetRemoveFromCompositableTracker(tracker);
+    
+    GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mFrontClientOnWhite);
+  }
+#endif
 }
 
 void
