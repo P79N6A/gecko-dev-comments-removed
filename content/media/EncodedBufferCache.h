@@ -32,7 +32,6 @@ public:
     mTempFileEnabled(false) { }
   ~EncodedBufferCache()
   {
-    NS_ASSERTION(mDataSize == 0, "still has data in EncodedBuffers!");
   }
   
   
