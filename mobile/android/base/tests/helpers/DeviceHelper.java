@@ -44,7 +44,7 @@ public final class DeviceHelper {
     private DeviceHelper() {  }
 
     public static void assertIsTablet() {
-        assertTrue("The device is a tablet", isTablet());
+        fAssertTrue("The device is a tablet", isTablet());
     }
 
     protected static void init(final UITestContext context) {

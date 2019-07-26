@@ -35,7 +35,7 @@ final public class NavigationHelper {
     }
 
     public static void enterAndLoadUrl(String url) {
-        assertNotNull("url is not null", url);
+        fAssertNotNull("url is not null", url);
 
         url = adjustUrl(url);
         sToolbar.enterEditingMode()
@@ -47,7 +47,7 @@ final public class NavigationHelper {
 
 
     private static String adjustUrl(final String url) {
-        assertNotNull("url is not null", url);
+        fAssertNotNull("url is not null", url);
 
         if (url.startsWith("about:") || url.startsWith("chrome:")) {
             return url;

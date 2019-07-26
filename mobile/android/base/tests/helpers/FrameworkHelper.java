@@ -53,10 +53,10 @@ public final class FrameworkHelper {
         } catch (final NoSuchFieldException e) {
             
             
-            fail("Argument field should be a valid field name: " + e.toString());
+            fFail("Argument field should be a valid field name: " + e.toString());
         } catch (final IllegalAccessException e) {
             
-            fail("Field should be accessible: " + e.toString());
+            fFail("Field should be accessible: " + e.toString());
         }
         throw new IllegalStateException("Should not continue from previous failures");
     }
@@ -72,10 +72,10 @@ public final class FrameworkHelper {
         } catch (final NoSuchFieldException e) {
             
             
-            fail("Argument field should be a valid field name: " + e.toString());
+            fFail("Argument field should be a valid field name: " + e.toString());
         } catch (final IllegalAccessException e) {
             
-            fail("Field should be accessible: " + e.toString());
+            fFail("Field should be accessible: " + e.toString());
         }
         throw new IllegalStateException("Cannot continue from previous failures");
     }
