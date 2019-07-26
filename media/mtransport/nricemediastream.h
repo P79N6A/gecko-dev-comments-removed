@@ -125,7 +125,7 @@ class NrIceMediaStream {
 
   
   
-  nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* outPairs) const;
+  nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
 
   
   nsresult GetDefaultCandidate(int component, std::string *host, int *port);
