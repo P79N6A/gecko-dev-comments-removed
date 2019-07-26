@@ -72,9 +72,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    MacroAssembler(IonInstrumentation *sps = NULL)
+    MacroAssembler()
       : enoughMemory_(true),
-        sps_(sps)
+        sps_(NULL)
     {
         JSContext *cx = GetIonContext()->cx;
         if (cx)
@@ -92,15 +92,24 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     MacroAssembler(JSContext *cx)
       : enoughMemory_(true),
-        sps_(NULL) 
+        sps_(NULL)
     {
         constructRoot(cx);
-        ionContext_.construct(cx, cx->compartment, (js::ion::TempAllocator *)NULL);
+        ionContext_.construct(cx, (js::ion::TempAllocator *)NULL);
         alloc_.construct(cx);
 #ifdef JS_CPU_ARM
         initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
+    }
+
+    void setInstrumentation(IonInstrumentation *sps) {
+        sps_ = sps;
+    }
+
+    void resetForNewCodeGenerator() {
+        setFramePushed(0);
+        moveResolver_.clearTempObjectPool();
     }
 
     void constructRoot(JSContext *cx) {
@@ -176,11 +185,11 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     void loadJSContext(const Register &dest) {
-        movePtr(ImmWord(GetIonContext()->compartment->rt), dest);
+        movePtr(ImmWord(GetIonContext()->runtime), dest);
         loadPtr(Address(dest, offsetof(JSRuntime, mainThread.ionJSContext)), dest);
     }
     void loadIonActivation(const Register &dest) {
-        movePtr(ImmWord(GetIonContext()->compartment->rt), dest);
+        movePtr(ImmWord(GetIonContext()->runtime), dest);
         loadPtr(Address(dest, offsetof(JSRuntime, mainThread.ionActivation)), dest);
     }
 
@@ -462,6 +471,13 @@ class MacroAssembler : public MacroAssemblerSpecific
         bind(&done);
     }
 
+    void canonicalizeDouble(FloatRegister reg) {
+        Label notNaN;
+        branchDouble(DoubleOrdered, reg, reg, &notNaN);
+        loadStaticDouble(&js_NaN, reg);
+        bind(&notNaN);
+    }
+
     template<typename T>
     void loadFromTypedArray(int arrayType, const T &src, AnyRegister dest, Register temp, Label *fail);
 
@@ -578,12 +594,16 @@ class MacroAssembler : public MacroAssemblerSpecific
         freeStack(IonExitFooterFrame::Size());
     }
 
+    bool hasEnteredExitFrame() const {
+        return exitCodePatch_.offset() != 0;
+    }
+
     void link(IonCode *code) {
         JS_ASSERT(!oom());
         
         
         
-        if (exitCodePatch_.offset() != 0) {
+        if (hasEnteredExitFrame()) {
             patchDataWithValueCheck(CodeLocationLabel(code, exitCodePatch_),
                                     ImmWord(uintptr_t(code)),
                                     ImmWord(uintptr_t(-1)));
@@ -767,30 +787,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     void convertInt32ValueToDouble(const Address &address, Register scratch, Label *done);
 };
 
-static inline Assembler::Condition
-JSOpToCondition(JSOp op)
-{
-    switch (op) {
-      case JSOP_EQ:
-      case JSOP_STRICTEQ:
-        return Assembler::Equal;
-      case JSOP_NE:
-      case JSOP_STRICTNE:
-        return Assembler::NotEqual;
-      case JSOP_LT:
-        return Assembler::LessThan;
-      case JSOP_LE:
-        return Assembler::LessThanOrEqual;
-      case JSOP_GT:
-        return Assembler::GreaterThan;
-      case JSOP_GE:
-        return Assembler::GreaterThanOrEqual;
-      default:
-        JS_NOT_REACHED("Unrecognized comparison operation");
-        return Assembler::Equal;
-    }
-}
-
 static inline Assembler::DoubleCondition
 JSOpToDoubleCondition(JSOp op)
 {
@@ -814,6 +810,79 @@ JSOpToDoubleCondition(JSOp op)
         return Assembler::DoubleEqual;
     }
 }
+
+
+
+
+static inline Assembler::Condition
+JSOpToCondition(JSOp op, bool isSigned)
+{
+    if (isSigned) {
+        switch (op) {
+          case JSOP_EQ:
+          case JSOP_STRICTEQ:
+            return Assembler::Equal;
+          case JSOP_NE:
+          case JSOP_STRICTNE:
+            return Assembler::NotEqual;
+          case JSOP_LT:
+            return Assembler::LessThan;
+          case JSOP_LE:
+            return Assembler::LessThanOrEqual;
+          case JSOP_GT:
+            return Assembler::GreaterThan;
+          case JSOP_GE:
+            return Assembler::GreaterThanOrEqual;
+          default:
+            JS_NOT_REACHED("Unrecognized comparison operation");
+            return Assembler::Equal;
+        }
+    } else {
+        switch (op) {
+          case JSOP_EQ:
+          case JSOP_STRICTEQ:
+            return Assembler::Equal;
+          case JSOP_NE:
+          case JSOP_STRICTNE:
+            return Assembler::NotEqual;
+          case JSOP_LT:
+            return Assembler::Below;
+          case JSOP_LE:
+            return Assembler::BelowOrEqual;
+          case JSOP_GT:
+            return Assembler::Above;
+          case JSOP_GE:
+            return Assembler::AboveOrEqual;
+          default:
+            JS_NOT_REACHED("Unrecognized comparison operation");
+            return Assembler::Equal;
+        }
+    }
+}
+
+typedef Vector<MIRType, 8> MIRTypeVector;
+
+#ifdef JS_ASMJS
+class ABIArgIter
+{
+    ABIArgGenerator gen_;
+    const MIRTypeVector &types_;
+    unsigned i_;
+
+  public:
+    ABIArgIter(const MIRTypeVector &argTypes);
+
+    void operator++(int);
+    bool done() const { return i_ == types_.length(); }
+
+    ABIArg *operator->() { JS_ASSERT(!done()); return &gen_.current(); }
+    ABIArg &operator*() { JS_ASSERT(!done()); return gen_.current(); }
+
+    unsigned index() const { JS_ASSERT(!done()); return i_; }
+    MIRType mirType() const { JS_ASSERT(!done()); return types_[i_]; }
+    uint32_t stackBytesConsumedSoFar() const { return gen_.stackBytesConsumedSoFar(); }
+};
+#endif
 
 } 
 } 

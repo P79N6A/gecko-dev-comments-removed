@@ -33,6 +33,7 @@
 #include "gc/StoreBuffer.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
+#include "ion/AsmJS.h"
 #include "vm/DateTime.h"
 #include "vm/SPSProfiler.h"
 #include "vm/Stack.h"
@@ -488,9 +489,58 @@ class PerThreadData : public js::PerThreadDataFriendFields
 
 
 
+  private:
+    friend class js::AsmJSActivation;
+
+    
+    js::AsmJSActivation *asmJSActivationStack_;
+
+# ifdef JS_THREADSAFE
+    
+    PRLock *asmJSActivationStackLock_;
+# endif
+
+  public:
+    static unsigned offsetOfAsmJSActivationStackReadOnly() {
+        return offsetof(PerThreadData, asmJSActivationStack_);
+    }
+
+    class AsmJSActivationStackLock {
+# ifdef JS_THREADSAFE
+        PerThreadData &data_;
+      public:
+        AsmJSActivationStackLock(PerThreadData &data) : data_(data) {
+            PR_Lock(data_.asmJSActivationStackLock_);
+        }
+        ~AsmJSActivationStackLock() {
+            PR_Unlock(data_.asmJSActivationStackLock_);
+        }
+# else
+      public:
+        AsmJSActivationStackLock(PerThreadData &) {}
+# endif
+    };
+
+    js::AsmJSActivation *asmJSActivationStackFromAnyThread() const {
+        return asmJSActivationStack_;
+    }
+    js::AsmJSActivation *asmJSActivationStackFromOwnerThread() const {
+        return asmJSActivationStack_;
+    }
+
+    
+
+
+
+
+
+
+
     int32_t             suppressGC;
 
     PerThreadData(JSRuntime *runtime);
+    ~PerThreadData();
+    bool init();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
 };
@@ -568,7 +618,11 @@ struct MallocProvider
 namespace gc {
 class MarkingValidator;
 } 
+
 class JS_FRIEND_API(AutoEnterPolicy);
+
+typedef Vector<JS::Zone *, 1, SystemAllocPolicy> ZoneVector;
+
 } 
 
 struct JSRuntime : js::RuntimeFriendFields,
@@ -590,7 +644,13 @@ struct JSRuntime : js::RuntimeFriendFields,
     JSCompartment       *atomsCompartment;
 
     
-    js::CompartmentVector compartments;
+    JS::Zone            *systemZone;
+
+    
+    js::ZoneVector      zones;
+
+    
+    size_t              numCompartments;
 
     
     JSLocaleCallbacks *localeCallbacks;
@@ -679,6 +739,12 @@ struct JSRuntime : js::RuntimeFriendFields,
 #endif
     js::ion::IonRuntime *getIonRuntime(JSContext *cx) {
         return ionRuntime_ ? ionRuntime_ : createIonRuntime(cx);
+    }
+    js::ion::IonRuntime *ionRuntime() {
+        return ionRuntime_;
+    }
+    bool hasIonRuntime() const {
+        return !!ionRuntime_;
     }
 
     
@@ -1302,11 +1368,12 @@ struct JSRuntime : js::RuntimeFriendFields,
         return 0;
 #endif
     }
+
 #ifdef DEBUG
   public:
     js::AutoEnterPolicy *enteredPolicy;
-
 #endif
+
   private:
     
 
@@ -1388,7 +1455,7 @@ struct JSContext : js::ContextFriendFields,
     JSContext *thisDuringConstruction() { return this; }
     ~JSContext();
 
-    inline JS::Zone *zone();
+    inline JS::Zone *zone() const;
     js::PerThreadData &mainThread() { return runtime->mainThread; }
 
   private:
@@ -1412,7 +1479,7 @@ struct JSContext : js::ContextFriendFields,
     
     bool                generatingError;
 
-    inline void setCompartment(JSCompartment *c) { compartment = c; }
+    inline void setCompartment(JSCompartment *comp);
 
     
 
@@ -2009,7 +2076,7 @@ namespace js {
 
 #ifdef JS_METHODJIT
 namespace mjit {
-    void ExpandInlineFrames(JSCompartment *compartment);
+void ExpandInlineFrames(JS::Zone *zone);
 }
 #endif
 

@@ -14,6 +14,7 @@
 #include "gc/GCInternals.h"
 
 #ifdef JS_ION
+#include "ion/BaselineJIT.h"
 #include "ion/IonCompartment.h"
 #include "ion/Ion.h"
 #endif
@@ -30,7 +31,7 @@ JS::Zone::Zone(JSRuntime *rt)
     hold(false),
 #ifdef JSGC_GENERATIONAL
     gcNursery(),
-    gcStoreBuffer(rt),
+    gcStoreBuffer(&gcNursery),
 #endif
     ionUsingBarriers_(false),
     active(false),
@@ -175,6 +176,15 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
         PurgeJITCaches(this);
     } else {
 # ifdef JS_ION
+
+#  ifdef DEBUG
+        
+        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+            JSScript *script = i.get<JSScript>();
+            JS_ASSERT_IF(script->hasBaselineScript(), !script->baseline->active());
+        }
+#  endif
+
         
         ion::InvalidateAll(fop, this);
 # endif
@@ -184,6 +194,12 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
             mjit::ReleaseScriptCode(fop, script);
 # ifdef JS_ION
             ion::FinishInvalidation(fop, script);
+
+            
+
+
+
+            ion::FinishDiscardBaselineScript(fop, script);
 # endif
 
             
@@ -194,8 +210,15 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
             script->resetUseCount();
         }
 
-        for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next())
+        for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+#ifdef JS_ION
+            
+            if (comp->ionCompartment())
+                comp->ionCompartment()->optimizedStubSpace()->free();
+#endif
+
             comp->types.sweepCompilerOutputs(fop, discardConstraints);
+        }
     }
 #endif 
 }

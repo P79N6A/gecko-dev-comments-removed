@@ -371,7 +371,7 @@ class JSScript : public js::gc::Cell
 
     js::HeapPtrAtom *atoms;     
 
-    void            *principalsPad;
+    JSCompartment   *compartment_;
     JSPrincipals    *originPrincipals; 
 
     
@@ -389,6 +389,14 @@ class JSScript : public js::gc::Cell
     
     
     js::HeapPtrObject   enclosingScopeOrOriginalFunction_;
+
+  public:
+    
+    js::HeapPtr<JSObject> asmJS;
+
+#if JS_BYTES_PER_WORD == 4
+    uint32_t        PADDING32;
+#endif
 
     
 
@@ -545,6 +553,8 @@ class JSScript : public js::gc::Cell
                                      js::frontend::BytecodeEmitter *bce);
 
     inline JSPrincipals *principals();
+
+    JSCompartment *compartment() const { return compartment_; }
 
     void setVersion(JSVersion v) { version = v; }
 

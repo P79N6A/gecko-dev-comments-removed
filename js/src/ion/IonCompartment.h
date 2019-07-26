@@ -136,6 +136,9 @@ class IonRuntime
     
     uint8_t *osrTempData_;
 
+    
+    AutoFlushCache *flusher_;
+
   private:
     IonCode *generateEnterJIT(JSContext *cx, EnterJitType type);
     IonCode *generateArgumentsRectifier(JSContext *cx, void **returnAddrOut);
@@ -146,15 +149,7 @@ class IonRuntime
     IonCode *generateDebugTrapHandler(JSContext *cx);
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
-    IonCode *debugTrapHandler(JSContext *cx) {
-        if (!debugTrapHandler_) {
-            
-            
-            AutoEnterAtomsCompartment ac(cx);
-            debugTrapHandler_ = generateDebugTrapHandler(cx);
-        }
-        return debugTrapHandler_;
-    }
+    IonCode *debugTrapHandler(JSContext *cx);
 
   public:
     IonRuntime();
@@ -165,6 +160,14 @@ class IonRuntime
     void freeOsrTempData();
 
     static void Mark(JSTracer *trc);
+
+    AutoFlushCache *flusher() {
+        return flusher_;
+    }
+    void setFlusher(AutoFlushCache *fl) {
+        if (!flusher_ || !fl)
+            flusher_ = fl;
+    }
 };
 
 class IonCompartment
@@ -179,9 +182,6 @@ class IonCompartment
     
     
     OffThreadCompilationVector finishedOffThreadCompilations_;
-
-    
-    AutoFlushCache *flusher_;
 
     
     typedef WeakValueCache<uint32_t, ReadBarriered<IonCode> > ICStubCodeMap;
@@ -278,11 +278,10 @@ class IonCompartment
     }
 
     AutoFlushCache *flusher() {
-        return flusher_;
+        return rt->flusher();
     }
     void setFlusher(AutoFlushCache *fl) {
-        if (!flusher_ || !fl)
-            flusher_ = fl;
+        rt->setFlusher(fl);
     }
     OptimizedICStubSpace *optimizedStubSpace() {
         return &optimizedStubSpace_;
@@ -367,7 +366,7 @@ class IonActivation
 };
 
 
-void InvalidateAll(FreeOp *fop, JSCompartment *comp);
+void InvalidateAll(FreeOp *fop, JS::Zone *zone);
 void FinishInvalidation(FreeOp *fop, RawScript script);
 
 } 
