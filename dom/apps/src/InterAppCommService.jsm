@@ -342,12 +342,17 @@ this.InterAppCommService = {
     let pubApp = appsService.getAppByManifestURL(aPubAppManifestURL);
     let subApp = appsService.getAppByManifestURL(aSubAppManifestURL);
 
+    let isPubAppCertified =
+      (pubApp.appStatus == Ci.nsIPrincipal.APP_STATUS_CERTIFIED);
+
+    let isSubAppCertified =
+      (subApp.appStatus == Ci.nsIPrincipal.APP_STATUS_CERTIFIED);
+
     
     
     
     
-    if (pubApp.appStatus != Ci.nsIPrincipal.APP_STATUS_CERTIFIED ||
-        subApp.appStatus != Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+    if (!isPubAppCertified || !isSubAppCertified) {
       if (DEBUG) {
         debug("Only certified apps are allowed to do connections.");
       }
@@ -374,13 +379,13 @@ this.InterAppCommService = {
     }
 
     
-    if (!this._matchInstallOrigins(aPubRules, subApp.installOrigin) ||
-        !this._matchInstallOrigins(aSubRules, pubApp.installOrigin)) {
+    
+    if ((!isSubAppCertified &&
+         !this._matchInstallOrigins(aPubRules, subApp.installOrigin)) ||
+        (!isPubAppCertified &&
+         !this._matchInstallOrigins(aSubRules, pubApp.installOrigin))) {
       return false;
     }
-
-    
-    
 
     if (DEBUG) debug("All rules are matched.");
     return true;
