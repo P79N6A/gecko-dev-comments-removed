@@ -312,7 +312,7 @@ ensure_combo_box_widgets()
     if (gComboBoxButtonWidget) {
         
         buttonChild = gtk_bin_get_child(GTK_BIN(gComboBoxButtonWidget));
-        if (GTK_IS_HBOX(buttonChild)) {
+        if (GTK_IS_BOX(buttonChild)) {
             
 
 
@@ -401,7 +401,7 @@ ensure_combo_box_entry_widgets()
 
     
     if (!gComboBoxEntryWidget) {
-        gComboBoxEntryWidget = NULL; 
+        gComboBoxEntryWidget = gtk_combo_box_new_with_entry();
         setup_widget_prototype(gComboBoxEntryWidget);
     }
 
@@ -418,11 +418,8 @@ ensure_combo_box_entry_widgets()
     if (gComboBoxEntryButtonWidget) {
         
         buttonChild = gtk_bin_get_child(GTK_BIN(gComboBoxEntryButtonWidget));
-        if (GTK_IS_HBOX(buttonChild)) {
-            
-
-
-
+        if (GTK_IS_BOX(buttonChild)) {
+           
 
 
 
