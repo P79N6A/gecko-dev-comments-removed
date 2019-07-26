@@ -54,6 +54,9 @@
 
 #ifndef MOZ_ENABLE_PROFILER_SPS
 
+struct JSContext;
+class JSObject;
+
 
 
 
