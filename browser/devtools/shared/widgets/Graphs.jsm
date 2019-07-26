@@ -380,6 +380,38 @@ AbstractCanvasGraph.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+  getMappedSelection: function(unpack = e => e.delta) {
+    if (!this.hasData() || !this.hasSelection()) {
+      return { start: null, end: null };
+    }
+    let selection = this.getSelection();
+    let totalTicks = this._data.length;
+    let firstTick = unpack(this._data[0]);
+    let lastTick = unpack(this._data[totalTicks - 1]);
+
+    
+    
+    let min = Math.min(selection.start, selection.end);
+    let max = Math.max(selection.start, selection.end);
+    min = map(min, 0, this._width, firstTick, lastTick);
+    max = map(max, 0, this._width, firstTick, lastTick);
+
+    return { min: min, max: max };
+  },
+
+  
+
+
   dropSelection: function() {
     if (!this.hasSelection() && !this.hasSelectionInProgress()) {
       return;
@@ -1153,13 +1185,6 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
     
 
 
-    function map(value, istart, istop, ostart, ostop) {
-      return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
-    }
-
-    
-
-
     function clamp(value, min, max) {
       if (value < min) return min;
       if (value > max) return max;
@@ -1603,3 +1628,10 @@ this.CanvasGraphUtils = {
     });
   }
 };
+
+
+
+
+function map(value, istart, istop, ostart, ostop) {
+  return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+}
