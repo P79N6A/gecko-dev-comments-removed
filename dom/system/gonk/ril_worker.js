@@ -949,10 +949,10 @@ let RIL = {
 
 
 
-  setRadioPower: function setRadioPower(options) {
+  setRadioEnabled: function setRadioEnabled(options) {
     Buf.newParcel(REQUEST_RADIO_POWER, options);
     Buf.writeInt32(1);
-    Buf.writeInt32(options.on ? 1 : 0);
+    Buf.writeInt32(options.enabled ? 1 : 0);
     Buf.sendParcel();
   },
 
@@ -1413,9 +1413,7 @@ let RIL = {
       }
       this.cachedDialRequest.onerror = onerror;
       this.cachedDialRequest.callback = this.sendDialRequest.bind(this, options);
-
-      
-      this.sendChromeMessage({rilMessageType: "setRadioEnabled", on: true});
+      this.setRadioEnabled({enabled: true});
       return;
     }
 
@@ -5184,18 +5182,25 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
   this._processOperator(operatorData);
 };
 RIL[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
-  if (options.rilRequestError) {
-    if (this.cachedDialRequest && options.on) {
-      
-      this.cachedDialRequest.onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
-      this.cachedDialRequest = null;
+  if (options.rilMessageType == null) {
+    
+    if (options.rilRequestError) {
+      if (this.cachedDialRequest && options.enabled) {
+        
+        this.cachedDialRequest.onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
+        this.cachedDialRequest = null;
+      }
+      return;
     }
+
+    if (this._isInitialRadioState) {
+      this._isInitialRadioState = false;
+    }
+
     return;
   }
 
-  if (this._isInitialRadioState) {
-    this._isInitialRadioState = false;
-  }
+  this.sendChromeMessage(options);
 };
 RIL[REQUEST_DTMF] = null;
 RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
@@ -6020,7 +6025,7 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
   if (this._isInitialRadioState) {
     
     
-    this.setRadioPower({on: false});
+    this.setRadioEnabled({enabled: false});
   }
 
   let newState;

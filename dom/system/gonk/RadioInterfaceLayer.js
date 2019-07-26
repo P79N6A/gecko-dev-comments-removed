@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Sntp.jsm");
 Cu.import("resource://gre/modules/systemlibs.js");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
@@ -106,6 +107,7 @@ const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:SetRoamingPreference",
   "RIL:GetRoamingPreference",
   "RIL:ExitEmergencyCbMode",
+  "RIL:SetRadioEnabled",
   "RIL:SetVoicePrivacyMode",
   "RIL:GetVoicePrivacyMode"
 ];
@@ -417,6 +419,11 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         return null;
       }
 
+      if (msg.name === "RIL:SetRadioEnabled") {
+        
+        return gRadioEnabledController.receiveMessage(msg);
+      }
+
       return radioInterface.receiveMessage(msg);
     },
 
@@ -462,6 +469,130 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         clientId: clientId,
         data: data
       });
+    }
+  };
+});
+
+XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function () {
+  return {
+    ril: null,
+    pendingMessages: [],  
+    timer: null,
+    request: null,
+    deactivatingDeferred: {},
+
+    init: function init(ril) {
+      this.ril = ril;
+    },
+
+    receiveMessage: function(msg) {
+      if (DEBUG) debug("setRadioEnabled: receiveMessage: " + JSON.stringify(msg));
+      this.pendingMessages.push(msg);
+      if (this.pendingMessages.length === 1) {
+        this._processNextMessage();
+      }
+    },
+
+    isDeactivatingDataCalls: function() {
+      return this.request !== null;
+    },
+
+    finishDeactivatingDataCalls: function(clientId) {
+      if (DEBUG) debug("setRadioEnabled: finishDeactivatingDataCalls: " + clientId);
+      let deferred = this.deactivatingDeferred[clientId];
+      if (deferred) {
+        deferred.resolve();
+      }
+    },
+
+    _processNextMessage: function() {
+      if (this.pendingMessages.length === 0) {
+        return;
+      }
+
+      let msg = this.pendingMessages.shift();
+      this._handleMessage(msg);
+    },
+
+    _handleMessage: function(msg) {
+      if (DEBUG) debug("setRadioEnabled: handleMessage: " + JSON.stringify(msg));
+      let radioInterface = this.ril.getRadioInterface(msg.json.clientId || 0);
+
+      if (!radioInterface.isValidStateForSetRadioEnabled()) {
+        radioInterface.setRadioEnabledResponse(msg.target, msg.json.data,
+                                               "InvalidStateError");
+        this._processNextMessage();
+        return;
+      }
+
+      if (radioInterface.isDummyForSetRadioEnabled(msg.json.data)) {
+        radioInterface.setRadioEnabledResponse(msg.target, msg.json.data);
+        this._processNextMessage();
+        return;
+      }
+
+      if (msg.json.data.enabled) {
+        radioInterface.receiveMessage(msg);
+        this._processNextMessage();
+      } else {
+        this.request = (function() {
+          radioInterface.receiveMessage(msg);
+          this._processNextMessage();
+        }).bind(this);
+
+        
+        
+        
+        this._deactivateDataCalls().then(() => {
+          if (DEBUG) debug("setRadioEnabled: deactivation done");
+          this._executeRequest();
+        });
+
+        this._createTimer();
+      }
+    },
+
+    _deactivateDataCalls: function() {
+      if (DEBUG) debug("setRadioEnabled: deactivating data calls...");
+      this.deactivatingDeferred = {};
+
+      let promise = Promise.resolve();
+      for (let i = 0, N = this.ril.numRadioInterfaces; i < N; ++i) {
+        promise = promise.then(this._deactivateDataCallsForClient(i));
+      }
+
+      return promise;
+    },
+
+    _deactivateDataCallsForClient: function(clientId) {
+      return (function() {
+        let deferred = this.deactivatingDeferred[clientId] = Promise.defer();
+        this.ril.getRadioInterface(clientId).deactivateDataCalls();
+        return deferred.promise;
+      }).bind(this);
+    },
+
+    _createTimer: function() {
+      if (!this.timer) {
+        this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      }
+      this.timer.initWithCallback(this._executeRequest, RADIO_POWER_OFF_TIMEOUT,
+                                  Ci.nsITimer.TYPE_ONE_SHOT);
+    },
+
+    _cancelTimer: function() {
+      if (this.timer) {
+        this.timer.cancel();
+      }
+    },
+
+    _executeRequest: function() {
+      if (typeof this.request === "function") {
+        if (DEBUG) debug("setRadioEnabled: executeRequest");
+        this._cancelTimer();
+        this.request();
+        this.request = null;
+      }
     }
   };
 });
@@ -532,6 +663,7 @@ CdmaIccInfo.prototype = {
 
 function RadioInterfaceLayer() {
   gMessageManager.init(this);
+  gRadioEnabledController.init(this);
 
   let options = {
     debug: debugPref,
@@ -758,6 +890,7 @@ function RadioInterface(options) {
 
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
+    detailedRadioState: null,
     cardState:      RIL.GECKO_CARDSTATE_UNKNOWN,
     networkSelectionMode: RIL.GECKO_NETWORK_SELECTION_UNKNOWN,
     iccInfo:        null,
@@ -792,10 +925,7 @@ function RadioInterface(options) {
 
   this.operatorInfo = {};
 
-  
-  
   let lock = gSettingsService.createLock();
-  lock.get("ril.radio.disabled", this);
 
   
   lock.get("ril.radio.preferredNetworkType", this);
@@ -836,11 +966,11 @@ function RadioInterface(options) {
   this.portAddressedSmsApps[WAP.WDP_PORT_PUSH] = this.handleSmsWdpPortPush.bind(this);
 
   this._sntp = new Sntp(this.setClockBySntp.bind(this),
-                        Services.prefs.getIntPref('network.sntp.maxRetryCount'),
-                        Services.prefs.getIntPref('network.sntp.refreshPeriod'),
-                        Services.prefs.getIntPref('network.sntp.timeout'),
-                        Services.prefs.getCharPref('network.sntp.pools').split(';'),
-                        Services.prefs.getIntPref('network.sntp.port'));
+                        Services.prefs.getIntPref("network.sntp.maxRetryCount"),
+                        Services.prefs.getIntPref("network.sntp.refreshPeriod"),
+                        Services.prefs.getIntPref("network.sntp.timeout"),
+                        Services.prefs.getCharPref("network.sntp.pools").split(";"),
+                        Services.prefs.getIntPref("network.sntp.port"));
 }
 
 RadioInterface.prototype = {
@@ -867,7 +997,7 @@ RadioInterface.prototype = {
 
   updateInfo: function updateInfo(srcInfo, destInfo) {
     for (let key in srcInfo) {
-      if (key === 'rilMessageType') {
+      if (key === "rilMessageType") {
         continue;
       }
       destInfo[key] = srcInfo[key];
@@ -884,7 +1014,7 @@ RadioInterface.prototype = {
     }
 
     for (let key in srcInfo) {
-      if (key === 'rilMessageType') {
+      if (key === "rilMessageType") {
         continue;
       }
       if (srcInfo[key] !== destInfo[key]) {
@@ -990,6 +1120,9 @@ RadioInterface.prototype = {
         break;
       case "RIL:ExitEmergencyCbMode":
         this.workerMessenger.sendWithIPCMessage(msg, "exitEmergencyCbMode");
+        break;
+      case "RIL:SetRadioEnabled":
+        this.setRadioEnabled(msg.target, msg.json.data);
         break;
       case "RIL:GetVoicemailInfo":
         
@@ -1114,10 +1247,6 @@ RadioInterface.prototype = {
         break;
       case "stksessionend":
         gMessageManager.sendIccMessage("RIL:StkSessionEnd", this.clientId, null);
-        break;
-      case "setRadioEnabled":
-        let lock = gSettingsService.createLock();
-        lock.set("ril.radio.disabled", !message.on, null, null);
         break;
       case "exitEmergencyCbMode":
         this.handleExitEmergencyCbMode(message);
@@ -1481,71 +1610,44 @@ RadioInterface.prototype = {
                                                 this.clientId, status);
   },
 
-  handleRadioStateChange: function handleRadioStateChange(message) {
-    this._changingRadioPower = false;
+  _isRadioChanging: function _isRadioChanging() {
+    let state = this.rilContext.detailedRadioState;
+    return state == RIL.GECKO_DETAILED_RADIOSTATE_ENABLING ||
+      state == RIL.GECKO_DETAILED_RADIOSTATE_DISABLING;
+  },
 
+  _convertRadioState: function _converRadioState(state) {
+    switch (state) {
+      case RIL.GECKO_RADIOSTATE_OFF:
+        return RIL.GECKO_DETAILED_RADIOSTATE_DISABLED;
+      case RIL.GECKO_RADIOSTATE_READY:
+        return RIL.GECKO_DETAILED_RADIOSTATE_ENABLED;
+      default:
+        return RIL.GECKO_DETAILED_RADIOSTATE_UNKNOWN;
+    }
+  },
+
+  handleRadioStateChange: function handleRadioStateChange(message) {
     let newState = message.radioState;
     if (this.rilContext.radioState == newState) {
       return;
     }
     this.rilContext.radioState = newState;
+    this.handleDetailedRadioStateChanged(this._convertRadioState(newState));
+
     
-
-    this._ensureRadioState();
   },
 
-  _ensureRadioState: function _ensureRadioState() {
-    if (DEBUG) {
-      this.debug("Reported radio state is " + this.rilContext.radioState +
-                 ", desired radio enabled state is " + this._radioEnabled);
-    }
-    if (this._radioEnabled == null) {
-      
-      
+  handleDetailedRadioStateChanged: function handleDetailedRadioStateChanged(state) {
+    if (this.rilContext.detailedRadioState == state) {
       return;
     }
-    if (!this._sysMsgListenerReady) {
-      
-      
-      return;
-    }
-    if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_UNKNOWN) {
-      
-      
-      return;
-    }
-    if (this._changingRadioPower) {
-      
-      return;
-    }
-
-    if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_OFF &&
-        this._radioEnabled) {
-      this._changingRadioPower = true;
-      this.setRadioEnabled(true);
-    }
-    if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_READY &&
-        !this._radioEnabled) {
-      this._changingRadioPower = true;
-      this.powerOffRadioSafely();
-    }
+    this.rilContext.detailedRadioState = state;
+    gMessageManager.sendMobileConnectionMessage("RIL:RadioStateChanged",
+                                                this.clientId, state);
   },
 
-  _radioOffTimer: null,
-  _cancelRadioOffTimer: function _cancelRadioOffTimer() {
-    if (this._radioOffTimer) {
-      this._radioOffTimer.cancel();
-    }
-  },
-  _fireRadioOffTimer: function _fireRadioOffTimer() {
-    if (DEBUG) this.debug("Radio off timer expired, set radio power off right away.");
-    this.setRadioEnabled(false);
-  },
-
-  
-
-
-  powerOffRadioSafely: function powerOffRadioSafely() {
+  deactivateDataCalls: function deactivateDataCalls() {
     let dataDisconnecting = false;
     for each (let apnSetting in this.apnSettings.byApn) {
       for each (let type in apnSetting.types) {
@@ -1556,16 +1658,12 @@ RadioInterface.prototype = {
         }
       }
     }
-    if (dataDisconnecting) {
-      if (this._radioOffTimer == null) {
-        this._radioOffTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      }
-      this._radioOffTimer.initWithCallback(this._fireRadioOffTimer.bind(this),
-                                           RADIO_POWER_OFF_TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
-      this._radioOffAfterDataDisconnected = true;
-      return;
+
+    
+    
+    if (gRadioEnabledController.isDeactivatingDataCalls() && !dataDisconnecting) {
+      gRadioEnabledController.finishDeactivatingDataCalls(this.clientId);
     }
-    this.setRadioEnabled(false);
   },
 
   
@@ -1611,8 +1709,8 @@ RadioInterface.prototype = {
       
       
       let apnKey = inputApnSetting.apn +
-                   (inputApnSetting.user || '') +
-                   (inputApnSetting.password || '');
+                   (inputApnSetting.user || "") +
+                   (inputApnSetting.password || "");
 
       if (!this.apnSettings.byApn[apnKey]) {
         this.apnSettings.byApn[apnKey] = inputApnSetting;
@@ -1729,7 +1827,7 @@ RadioInterface.prototype = {
       if (DEBUG) this.debug("Don't connect data call when Wifi is connected.");
       return;
     }
-    if (this._changingRadioPower) {
+    if (this._isRadioChanging()) {
       
       return;
     }
@@ -1936,7 +2034,7 @@ RadioInterface.prototype = {
         
         
         if (DEBUG) {
-          this.debug("Could not store SMS, error code " + rv);
+          this.debug("Could not store SMS " + message.id + ", error code " + rv);
         }
         return;
       }
@@ -1946,8 +2044,8 @@ RadioInterface.prototype = {
     }.bind(this);
 
     if (message.messageClass != RIL.GECKO_SMS_MESSAGE_CLASSES[RIL.PDU_DCS_MSG_CLASS_0]) {
-      gMobileMessageDatabaseService.saveReceivedMessage(message,
-                                                        notifyReceived);
+      message.id = gMobileMessageDatabaseService.saveReceivedMessage(message,
+                                                                     notifyReceived);
     } else {
       message.id = -1;
       message.threadId = 0;
@@ -2005,7 +2103,7 @@ RadioInterface.prototype = {
     
     
     if (datacall.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
-        this._radioOffAfterDataDisconnected) {
+        gRadioEnabledController.isDeactivatingDataCalls()) {
       let anyDataConnected = false;
       for each (let apnSetting in this.apnSettings.byApn) {
         for each (let type in apnSetting.types) {
@@ -2019,10 +2117,8 @@ RadioInterface.prototype = {
         }
       }
       if (!anyDataConnected) {
-        if (DEBUG) this.debug("All data connections are disconnected, set radio off.");
-        this._radioOffAfterDataDisconnected = false;
-        this._cancelRadioOffTimer();
-        this.setRadioEnabled(false);
+        if (DEBUG) this.debug("All data connections are disconnected.");
+        gRadioEnabledController.finishDeactivatingDataCalls(this.clientId);
       }
     }
   },
@@ -2215,9 +2311,7 @@ RadioInterface.prototype = {
   observe: function observe(subject, topic, data) {
     switch (topic) {
       case kSysMsgListenerReadyObserverTopic:
-        Services.obs.removeObserver(this, kSysMsgListenerReadyObserverTopic);
-        this._sysMsgListenerReady = true;
-        this._ensureRadioState();
+        this.setRadioEnabledInternal({enabled: true}, null);
         break;
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
@@ -2271,22 +2365,6 @@ RadioInterface.prototype = {
         break;
     }
   },
-
-  
-  
-  _sysMsgListenerReady: false,
-
-  
-  
-  _radioEnabled: null,
-
-  
-  
-  _changingRadioPower: false,
-
-  
-  
-  _radioOffAfterDataDisconnected: false,
 
   
   dataCallSettings: null,
@@ -2346,11 +2424,6 @@ RadioInterface.prototype = {
   
   handle: function handle(aName, aResult) {
     switch(aName) {
-      case "ril.radio.disabled":
-        if (DEBUG) this.debug("'ril.radio.disabled' is now " + aResult);
-        this._radioEnabled = !aResult;
-        this._ensureRadioState();
-        break;
       case "ril.radio.preferredNetworkType":
         if (DEBUG) this.debug("'ril.radio.preferredNetworkType' is now " + aResult);
         this.setPreferredNetworkType(aResult);
@@ -2423,10 +2496,6 @@ RadioInterface.prototype = {
     if (DEBUG) this.debug("There was an error while reading RIL settings.");
 
     
-    this._radioEnabled = true;
-    this._ensureRadioState();
-
-    
     this.dataCallSettings.oldEnabled = false;
     this.dataCallSettings.enabled = false;
     this.dataCallSettings.roamingEnabled = false;
@@ -2437,11 +2506,6 @@ RadioInterface.prototype = {
   },
 
   
-
-  setRadioEnabled: function setRadioEnabled(value) {
-    if (DEBUG) this.debug("Setting radio power to " + value);
-    this.workerMessenger.send("setRadioPower", { on: value });
-  },
 
   rilContext: null,
 
@@ -2508,6 +2572,62 @@ RadioInterface.prototype = {
       });
       return false;
     }).bind(this));
+  },
+
+  isValidStateForSetRadioEnabled: function() {
+    let state = this.rilContext.radioState;
+
+    return !this._isRadioChanging() &&
+        (state == RIL.GECKO_RADIOSTATE_READY ||
+         state == RIL.GECKO_RADIOSTATE_OFF);
+  },
+
+  isDummyForSetRadioEnabled: function(message) {
+    let state = this.rilContext.radioState;
+
+    return (state == RIL.GECKO_RADIOSTATE_READY && message.enabled) ||
+        (state == RIL.GECKO_RADIOSTATE_OFF && !message.enabled);
+  },
+
+  setRadioEnabledResponse: function(target, message, errorMsg) {
+    if (errorMsg) {
+      message.errorMsg = errorMsg;
+    }
+
+    target.sendAsyncMessage("RIL:SetRadioEnabled", {
+      clientId: this.clientId,
+      data: message
+    });
+  },
+
+  setRadioEnabled: function setRadioEnabled(target, message) {
+    if (DEBUG) {
+      this.debug("setRadioEnabled: " + JSON.stringify(message));
+    }
+
+    if (!this.isValidStateForSetRadioEnabled()) {
+      this.setRadioEnabledResponse(target, message, "InvalidStateError");
+      return;
+    }
+
+    if (this.isDummyForSetRadioEnabled(message)) {
+      this.setRadioEnabledResponse(target, message);
+      return;
+    }
+
+    let callback = (function(response) {
+      this.setRadioEnabledResponse(target, response);
+      return false;
+    }).bind(this);
+
+    this.setRadioEnabledInternal(message, callback);
+  },
+
+  setRadioEnabledInternal: function setRadioEnabledInternal(message, callback) {
+    let state = message.enabled ? RIL.GECKO_DETAILED_RADIOSTATE_ENABLING
+                                : RIL.GECKO_DETAILED_RADIOSTATE_DISABLING;
+    this.handleDetailedRadioStateChanged(state);
+    this.workerMessenger.send("setRadioEnabled", message, callback);
   },
 
   
@@ -2586,7 +2706,7 @@ RadioInterface.prototype = {
 
         
         
-        c = '*';
+        c = "*";
         if (langTable.indexOf(c) >= 0) {
           length++;
         } else if (langShiftTable.indexOf(c) >= 0) {
@@ -2808,7 +2928,7 @@ RadioInterface.prototype = {
 
           
           
-          c = '*';
+          c = "*";
           if (langTable.indexOf(c) >= 0) {
             inc = 1;
           }
@@ -2978,7 +3098,8 @@ RadioInterface.prototype = {
         if (DEBUG) this.debug("Error! Address is invalid when sending SMS: " +
                               options.number);
         errorCode = Ci.nsIMobileMessageCallback.INVALID_ADDRESS_ERROR;
-      } else if (!this._radioEnabled) {
+      } else if (this.rilContext.detailedRadioState ==
+                 RIL.GECKO_DETAILED_RADIOSTATE_DISABLED) {
         if (DEBUG) this.debug("Error! Radio is disabled when sending SMS.");
         errorCode = Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR;
       } else if (this.rilContext.cardState != "ready") {
@@ -3152,8 +3273,8 @@ RadioInterface.prototype = {
       return;
     }
 
-    gMobileMessageDatabaseService.saveSendingMessage(sendingMessage,
-                                                     notifyResult);
+    let id = gMobileMessageDatabaseService.saveSendingMessage(
+      sendingMessage, notifyResult);
   },
 
   registerDataCallCallback: function registerDataCallCallback(callback) {
@@ -3393,11 +3514,11 @@ RILNetworkInterface.prototype = {
   dns2: null,
 
   get httpProxyHost() {
-    return this.apnSetting.proxy || '';
+    return this.apnSetting.proxy || "";
   },
 
   get httpProxyPort() {
-    return this.apnSetting.port || '';
+    return this.apnSetting.port || "";
   },
 
   
@@ -3525,7 +3646,7 @@ RILNetworkInterface.prototype = {
     }
 
     if (this.state == datacall.state) {
-      if (datacall.state != GECKO_NETWORK_STATE_CONNECTED) {
+      if (datacall.state != RIL.GECKO_NETWORK_STATE_CONNECTED) {
         return;
       }
       
