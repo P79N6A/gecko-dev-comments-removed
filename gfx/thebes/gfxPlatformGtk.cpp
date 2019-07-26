@@ -278,12 +278,9 @@ gfxPlatformGtk::SupportsOffMainThreadCompositing()
 #endif
 }
 
-void
-gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
+qcms_profile *
+gfxPlatformGtk::GetPlatformCMSOutputProfile()
 {
-    mem = nullptr;
-    size = 0;
-
 #ifdef MOZ_X11
     const char EDID1_ATOM_NAME[] = "XFree86_DDC_EDID1_RAWDATA";
     const char ICC_PROFILE_ATOM_NAME[] = "_ICC_PROFILE";
@@ -293,9 +290,10 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
     
     
     
-    if (!dpy)
-        return;
- 
+    if (!dpy) {
+        return nullptr;
+    }
+
     Window root = gdk_x11_get_default_root_xwindow();
 
     Atom retAtom;
@@ -311,24 +309,20 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
                                           False, AnyPropertyType,
                                           &retAtom, &retFormat, &retLength,
                                           &retAfter, &retProperty)) {
+            qcms_profile* profile = nullptr;
 
-            if (retLength > 0) {
-                void *buffer = malloc(retLength);
-                if (buffer) {
-                    memcpy(buffer, retProperty, retLength);
-                    mem = buffer;
-                    size = retLength;
-                }
-            }
+            if (retLength > 0)
+                profile = qcms_profile_from_memory(retProperty, retLength);
 
             XFree(retProperty);
-            if (size > 0) {
+
+            if (profile) {
 #ifdef DEBUG_tor
                 fprintf(stderr,
                         "ICM profile read from %s successfully\n",
                         ICC_PROFILE_ATOM_NAME);
 #endif
-                return;
+                return profile;
             }
         }
     }
@@ -347,7 +341,7 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
 #ifdef DEBUG_tor
                 fprintf(stderr, "Short EDID data\n");
 #endif
-                return;
+                return nullptr;
             }
 
             
@@ -389,18 +383,23 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile(void *&mem, size_t &size)
                     primaries.Blue.x, primaries.Blue.y, primaries.Blue.Y);
 #endif
 
-            qcms_data_create_rgb_with_gamma(whitePoint, primaries, gamma, &mem, &size);
+            qcms_profile* profile =
+                qcms_profile_create_rgb_with_gamma(whitePoint, primaries, gamma);
 
 #ifdef DEBUG_tor
-            if (size > 0) {
+            if (profile) {
                 fprintf(stderr,
                         "ICM profile read from %s successfully\n",
                         EDID1_ATOM_NAME);
             }
 #endif
+
+            return profile;
         }
     }
 #endif
+
+    return nullptr;
 }
 
 

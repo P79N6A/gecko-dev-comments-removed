@@ -294,7 +294,7 @@ private:
     mozilla::RefPtr<ID3D11Device> mD3D11Device;
     bool mD3D11DeviceInitialized;
 
-    virtual void GetPlatformCMSOutputProfile(void* &mem, size_t &size);
+    virtual qcms_profile* GetPlatformCMSOutputProfile();
 
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
