@@ -2651,7 +2651,15 @@ RILNetworkInterface.prototype = {
   },
 
   dataCallStateChanged: function dataCallStateChanged(datacall) {
-    if (datacall.apn != this.dataCallSettings["apn"]) {
+    if (this.cid && this.cid != datacall.cid) {
+    
+    
+      return;
+    }
+    
+    
+    
+    if (!this.cid && datacall.apn != this.dataCallSettings["apn"]) {
       return;
     }
     debug("Data call ID: " + datacall.cid + ", interface name: " +
@@ -2675,7 +2683,10 @@ RILNetworkInterface.prototype = {
         this.registeredAsNetworkInterface = true;
       }
     }
-    if (this.cid != datacall.cid) {
+    
+    
+    
+    if (this.cid == null) {
       return;
     }
     if (this.state == datacall.state) {
@@ -2695,6 +2706,7 @@ RILNetworkInterface.prototype = {
        this.registeredAsNetworkInterface) {
       gNetworkManager.unregisterNetworkInterface(this);
       this.registeredAsNetworkInterface = false;
+      this.cid = null;
       return;
     }
 
