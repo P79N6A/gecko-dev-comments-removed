@@ -92,13 +92,23 @@ public class GeckoPreferences
         
         Bundle intentExtras = getIntent().getExtras();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            int res = 0;
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
+                
                 String resourceName = intentExtras.getString(INTENT_EXTRA_RESOURCES);
-                int resource = getResources().getIdentifier(resourceName, "xml", getPackageName());
-                addPreferencesFromResource(resource);
-            } else {
-                addPreferencesFromResource(R.xml.preferences);
+                if (resourceName != null) {
+                    res = getResources().getIdentifier(resourceName, "xml", getPackageName());
+                    if (res == 0) {
+                        Log.e(LOGTAG, "No resource found named " + resourceName);
+                    }
+                }
             }
+            if (res == 0) {
+                
+                Log.e(LOGTAG, "Displaying default settings.");
+                res = R.xml.preferences;
+            }
+            addPreferencesFromResource(res);
         }
 
         registerEventListener("Sanitize:Finished");
@@ -123,8 +133,8 @@ public class GeckoPreferences
         Bundle fragmentArgs = new Bundle();
         
         if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
-            String resource = intentExtras.getString(INTENT_EXTRA_RESOURCES);
-            fragmentArgs.putString(INTENT_EXTRA_RESOURCES, resource);
+            String resourceName = intentExtras.getString(INTENT_EXTRA_RESOURCES);
+            fragmentArgs.putString(INTENT_EXTRA_RESOURCES, resourceName);
         } else {
             
             if (!onIsMultiPane()) {
