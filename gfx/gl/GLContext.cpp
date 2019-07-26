@@ -638,9 +638,17 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
                 if (err1 != noErr || err2 != noErr ||
                     major < 10 || (major == 10 && minor < 8)) {
+                    
                     mMaxTextureSize = std::min(mMaxTextureSize, 4096);
-                    mMaxRenderbufferSize   = std::min(mMaxRenderbufferSize, 4096);
+                    mMaxRenderbufferSize = std::min(mMaxRenderbufferSize, 4096);
                 }
+                else {
+                    
+                    mMaxTextureSize = std::min(mMaxTextureSize, 8191);
+                    mMaxRenderbufferSize = std::min(mMaxRenderbufferSize, 8191);
+                }
+                
+                mNeedsTextureSizeChecks = true;
             }
         }
 #endif
