@@ -47,7 +47,7 @@ public:
 
 
 
-  nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIFile* aFile);
+  nsresult StoreLastUsedDirectory(nsIDocument* aDoc, nsIDOMFile* aDomFile);
 };
 
 class nsHTMLInputElement : public nsGenericHTMLFormElement,

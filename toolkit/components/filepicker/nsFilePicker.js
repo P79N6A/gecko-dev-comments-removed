@@ -88,15 +88,53 @@ nsFilePicker.prototype = {
   },
 
   
-  set file(a) { throw "readonly property"; },
   get file()  { return this.mFilesEnumerator.mFiles[0]; },
 
   
-  set files(a) { throw "readonly property"; },
   get files()  { return this.mFilesEnumerator; },
 
   
-  set fileURL(a) { throw "readonly property"; },
+  get domfile()  {
+    let enumerator = this.domfiles;
+    return enumerator ? enumerator.mFiles[0] : null;
+  },
+
+  
+  get domfiles()  {
+    if (!this.mFilesEnumerator) {
+      return null;
+    }
+
+    if (!this.mDOMFilesEnumerator) {
+      this.mDOMFilesEnumerator {
+        QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISimpleEnumerator]),
+
+        mFiles: [],
+        mIndex: 0,
+
+        hasMoreElements: function() {
+          return (this.mIndex < this.mFiles.length);
+        },
+
+        getNext: function() {
+          if (this.mIndex >= this.mFiles.length) {
+            throw Components.results.NS_ERROR_FAILURE;
+          }
+          return this.mFiles[this.mIndex++];
+        }
+      };
+
+      for (var i = 0, i < this.mFilesEnumerator.mFiles.length; ++i) {
+        var file = this.mParentWindow.wrapDOMFile(
+                     this.mFilesEnumerator.mFiles[i]);
+        this.mDOMFilesEnumerator.mFiles.push(file);
+      }
+    }
+
+    return this.mDOMFilesEnumerator;
+  },
+
+  
   get fileURL()  {
     if (this.mFileURL)
       return this.mFileURL;
@@ -128,6 +166,7 @@ nsFilePicker.prototype = {
 
   
   mFilesEnumerator: undefined,
+  mDOMFilesEnumerator: undefined,
   mParentWindow: null,
 
   
