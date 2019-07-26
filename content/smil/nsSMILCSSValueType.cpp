@@ -21,13 +21,11 @@ using namespace mozilla::dom;
  nsSMILCSSValueType nsSMILCSSValueType::sSingleton;
 
 struct ValueWrapper {
-  ValueWrapper(nsCSSProperty aPropID, const nsStyleAnimation::Value& aValue,
-               nsPresContext* aPresContext) :
-    mPropID(aPropID), mCSSValue(aValue), mPresContext(aPresContext) {}
+  ValueWrapper(nsCSSProperty aPropID, const nsStyleAnimation::Value& aValue) :
+    mPropID(aPropID), mCSSValue(aValue) {}
 
   nsCSSProperty mPropID;
   nsStyleAnimation::Value mCSSValue;
-  nsPresContext* mPresContext;
 };
 
 
@@ -194,7 +192,6 @@ nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
       
       NS_WARN_IF_FALSE(leftWrapper != rightWrapper,
                        "Two nsSMILValues with matching ValueWrapper ptr");
-      
       return (leftWrapper->mPropID == rightWrapper->mPropID &&
               leftWrapper->mCSSValue == rightWrapper->mCSSValue);
     }
@@ -247,7 +244,7 @@ nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   
   if (!destWrapper) {
     aDest.mU.mPtr = destWrapper =
-      new ValueWrapper(property, *destValue, valueToAddWrapper->mPresContext);
+      new ValueWrapper(property, *destValue);
   }
 
   return nsStyleAnimation::Add(property,
@@ -311,8 +308,7 @@ nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
   if (nsStyleAnimation::Interpolate(endWrapper->mPropID,
                                     *startCSSValue, *endCSSValue,
                                     aUnitDistance, resultValue)) {
-    aResult.mU.mPtr = new ValueWrapper(endWrapper->mPropID, resultValue,
-                                       endWrapper->mPresContext);
+    aResult.mU.mPtr = new ValueWrapper(endWrapper->mPropID, resultValue);
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -399,7 +395,7 @@ nsSMILCSSValueType::ValueFromString(nsCSSProperty aPropID,
   if (ValueFromStringHelper(aPropID, aTargetElement, presContext,
                             aString, parsedValue, aIsContextSensitive)) {
     sSingleton.Init(aValue);
-    aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue, presContext);
+    aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue);
   }
 }
 
