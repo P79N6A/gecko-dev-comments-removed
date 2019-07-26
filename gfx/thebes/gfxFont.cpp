@@ -2967,7 +2967,7 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
             
             SET_SIGNED(xHeight, os2->sxHeight);
             
-            aMetrics.xHeight = DeprecatedAbs(aMetrics.xHeight);
+            aMetrics.xHeight = Abs(aMetrics.xHeight);
         }
         
         if (os2data.Length() >= offsetof(OS2Table, yStrikeoutPosition) +

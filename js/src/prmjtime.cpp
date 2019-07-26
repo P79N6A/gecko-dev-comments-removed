@@ -358,7 +358,7 @@ PRMJ_Now(void)
 
 
 
-            if (mozilla::DeprecatedAbs(diff) > 2 * skewThreshold) {
+            if (mozilla::Abs(diff) > 2 * skewThreshold) {
                 
 
                 if (calibrated) {
