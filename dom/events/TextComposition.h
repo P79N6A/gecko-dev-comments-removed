@@ -231,8 +231,8 @@ private:
 
 
 
-  void DispatchCompsotionEventRunnable(uint32_t aEventMessage,
-                                       const nsAString& aData);
+  void DispatchCompositionEventRunnable(uint32_t aEventMessage,
+                                        const nsAString& aData);
 };
 
 
