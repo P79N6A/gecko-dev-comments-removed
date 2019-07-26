@@ -5846,6 +5846,12 @@ class MLoadElement
         needsHoleCheck_(needsHoleCheck),
         loadDoubles_(loadDoubles)
     {
+        if (needsHoleCheck) {
+            
+            
+            
+            setGuard();
+        }
         setResultType(MIRType_Value);
         setMovable();
         JS_ASSERT(elements->type() == MIRType_Elements);
