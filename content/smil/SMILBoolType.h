@@ -15,11 +15,7 @@ class SMILBoolType : public nsISMILType
 {
 public:
   
-  static SMILBoolType* Singleton()
-  {
-    static SMILBoolType sSingleton;
-    return &sSingleton;
-  }
+  static SMILBoolType sSingleton;
 
 protected:
   

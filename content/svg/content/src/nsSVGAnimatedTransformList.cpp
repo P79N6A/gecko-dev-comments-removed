@@ -225,7 +225,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::ParseValue(
     return;
   }
 
-  nsSMILValue val(SVGTransformListSMILType::Singleton());
+  nsSMILValue val(&SVGTransformListSMILType::sSingleton);
   SVGTransformSMILData transform(transformType, params);
   if (NS_FAILED(SVGTransformListSMILType::AppendTransform(transform, val))) {
     return; 
@@ -292,7 +292,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::GetBaseValue() const
   
   
   
-  nsSMILValue val(SVGTransformListSMILType::Singleton());
+  nsSMILValue val(&SVGTransformListSMILType::sSingleton);
   if (!SVGTransformListSMILType::AppendTransforms(mVal->mBaseVal, val)) {
     val = nsSMILValue();
   }
@@ -305,7 +305,7 @@ nsSVGAnimatedTransformList::SMILAnimatedTransformList::SetAnimValue(
   const nsSMILValue& aNewAnimValue)
 {
   NS_ABORT_IF_FALSE(
-    aNewAnimValue.mType == SVGTransformListSMILType::Singleton(),
+    aNewAnimValue.mType == &SVGTransformListSMILType::sSingleton,
     "Unexpected type to assign animated value");
   SVGTransformList animVal;
   if (!SVGTransformListSMILType::GetTransforms(aNewAnimValue,

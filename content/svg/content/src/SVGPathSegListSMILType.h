@@ -22,11 +22,7 @@ class SVGPathSegListSMILType : public nsISMILType
 {
 public:
   
-  static SVGPathSegListSMILType* Singleton()
-  {
-    static SVGPathSegListSMILType sSingleton;
-    return &sSingleton;
-  }
+  static SVGPathSegListSMILType sSingleton;
 
 protected:
   

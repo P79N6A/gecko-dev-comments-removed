@@ -15,12 +15,7 @@ class SMILStringType : public nsISMILType
 {
 public:
   
-  static SMILStringType*
-  Singleton()
-  {
-    static SMILStringType sSingleton;
-    return &sSingleton;
-  }
+  static SMILStringType sSingleton;
 
 protected:
   

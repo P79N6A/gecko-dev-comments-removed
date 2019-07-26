@@ -11,7 +11,7 @@
 
 
 nsSMILValue::nsSMILValue(const nsISMILType* aType)
-  : mType(nsSMILNullType::Singleton())
+  : mType(&nsSMILNullType::sSingleton)
 {
   if (!aType) {
     NS_ERROR("Trying to construct nsSMILValue with null mType pointer");
@@ -22,7 +22,7 @@ nsSMILValue::nsSMILValue(const nsISMILType* aType)
 }
 
 nsSMILValue::nsSMILValue(const nsSMILValue& aVal)
-  : mType(nsSMILNullType::Singleton())
+  : mType(&nsSMILNullType::sSingleton)
 {
   InitAndCheckPostcondition(aVal.mType);
   mType->Assign(*this, aVal);
@@ -62,7 +62,7 @@ nsSMILValue::Swap(nsSMILValue& aOther)
 
   
   
-  tmp.mType = nsSMILNullType::Singleton();
+  tmp.mType = &nsSMILNullType::sSingleton;
 }
 
 nsresult
