@@ -3517,8 +3517,12 @@ Tab.prototype = {
 
   onLocationChange: function(aWebProgress, aRequest, aLocationURI, aFlags) {
     let contentWin = aWebProgress.DOMWindow;
-    if (contentWin != contentWin.top)
-        return;
+
+    
+    
+    
+    if (BrowserApp.getBrowserForWindow(contentWin) == null)
+      return;
 
     this._hostChanged = true;
 
