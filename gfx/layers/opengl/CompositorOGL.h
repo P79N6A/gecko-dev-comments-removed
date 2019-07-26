@@ -6,6 +6,7 @@
 #ifndef MOZILLA_GFX_COMPOSITOROGL_H
 #define MOZILLA_GFX_COMPOSITOROGL_H
 
+#include "gfx2DGlue.h"
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
 #include "OGLShaderProgram.h"           
