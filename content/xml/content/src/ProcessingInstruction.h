@@ -3,21 +3,23 @@
 
 
 
-#ifndef nsIXMLProcessingInstruction_h___
-#define nsIXMLProcessingInstruction_h___
+#ifndef mozilla_dom_ProcessingInstruction_h
+#define mozilla_dom_ProcessingInstruction_h
 
 #include "nsIDOMProcessingInstruction.h"
 #include "nsGenericDOMDataNode.h"
 #include "nsAString.h"
 
+namespace mozilla {
+namespace dom {
 
-class nsXMLProcessingInstruction : public nsGenericDOMDataNode,
-                                   public nsIDOMProcessingInstruction
+class ProcessingInstruction : public nsGenericDOMDataNode,
+                              public nsIDOMProcessingInstruction
 {
 public:
-  nsXMLProcessingInstruction(already_AddRefed<nsINodeInfo> aNodeInfo,
-                             const nsAString& aData);
-  virtual ~nsXMLProcessingInstruction();
+  ProcessingInstruction(already_AddRefed<nsINodeInfo> aNodeInfo,
+                        const nsAString& aData);
+  virtual ~ProcessingInstruction();
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -58,5 +60,8 @@ protected:
 
   bool GetAttrValue(nsIAtom *aName, nsAString& aValue);
 };
+
+} 
+} 
 
 #endif 
