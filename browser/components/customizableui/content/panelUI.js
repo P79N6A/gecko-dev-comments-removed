@@ -36,13 +36,23 @@ const PanelUI = {
         return this[getKey] = document.getElementById(id);
       });
     }
+  },
 
+  _eventListenersAdded: false,
+  _ensureEventListenersAdded: function() {
+    if (this._eventListenersAdded)
+      return;
+    this._addEventListeners();
+  },
+
+  _addEventListeners: function() {
     for (let event of this.kEvents) {
       this.panel.addEventListener(event, this);
     }
 
     this.helpView.addEventListener("ViewShowing", this._onHelpViewShow, false);
     this.helpView.addEventListener("ViewHiding", this._onHelpViewHide, false);
+    this._eventListenersAdded = true;
   },
 
   uninit: function() {
@@ -62,6 +72,7 @@ const PanelUI = {
 
 
   setMainView: function(aMainView) {
+    this._ensureEventListenersAdded();
     this.multiView.setMainView(aMainView);
   },
 
@@ -74,6 +85,7 @@ const PanelUI = {
 
 
   toggle: function(aEvent) {
+    this._ensureEventListenersAdded();
     if (this.panel.state == "open") {
       this.hide();
     } else if (this.panel.state == "closed") {
@@ -150,6 +162,7 @@ const PanelUI = {
 
 
   showMainView: function() {
+    this._ensureEventListenersAdded();
     this.multiView.showMainView();
   },
 
@@ -158,6 +171,7 @@ const PanelUI = {
 
 
   showHelpView: function(aAnchor) {
+    this._ensureEventListenersAdded();
     this.multiView.showSubView("PanelUI-help", aAnchor);
   },
 
@@ -169,6 +183,7 @@ const PanelUI = {
 
 
   showSubView: function(aViewId, aAnchor, aPlacementArea) {
+    this._ensureEventListenersAdded();
     let viewNode = document.getElementById(aViewId);
     if (!viewNode) {
       Cu.reportError("Could not show panel subview with id: " + aViewId);
@@ -239,6 +254,7 @@ const PanelUI = {
 
 
   beginBatchUpdate: function() {
+    this._ensureEventListenersAdded();
     this.multiView.ignoreMutations = true;
   },
 
@@ -248,6 +264,7 @@ const PanelUI = {
 
 
   endBatchUpdate: function(aReason) {
+    this._ensureEventListenersAdded();
     this.multiView.ignoreMutations = false;
   },
 
