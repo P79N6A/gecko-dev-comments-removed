@@ -531,7 +531,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
 
   
   
-  pid.AppendASCII("/replace");
+  pid.AppendLiteral("/replace");
 
   int argc = appArgc + 5;
   char **argv = new char*[argc + 1];

@@ -3362,7 +3362,7 @@ nsContentUtils::GetWrapperSafeScriptFilename(nsIDocument *aDocument,
       
       nsAutoCString spec;
       docURI->GetSpec(spec);
-      spec.AppendASCII(" -> ");
+      spec.AppendLiteral(" -> ");
       spec.Append(aScriptURI);
 
       aScriptURI = spec;

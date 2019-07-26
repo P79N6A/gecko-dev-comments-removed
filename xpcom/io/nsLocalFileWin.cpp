@@ -736,9 +736,9 @@ OpenDir(const nsAFlatString &name, nsDir * *dir)
      
      
     if (filename.Last() == L'/' || filename.Last() == L'\\')
-        filename.AppendASCII("*");
+        filename.Append('*');
     else 
-        filename.AppendASCII("\\*");
+        filename.AppendLiteral("\\*");
 
     filename.ReplaceChar(L'/', L'\\');
 
@@ -1041,7 +1041,7 @@ nsLocalFile::ResolveAndStat()
     
     nsAutoString nsprPath(mWorkingPath.get());
     if (mWorkingPath.Length() == 2 && mWorkingPath.CharAt(1) == L':') 
-        nsprPath.AppendASCII("\\");
+        nsprPath.Append('\\');
 
     
     
@@ -1787,7 +1787,7 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
     nsAutoString destPath;
     destParent->GetTarget(destPath);
 
-    destPath.AppendASCII("\\");
+    destPath.Append('\\');
 
     if (newName.IsEmpty())
     {
