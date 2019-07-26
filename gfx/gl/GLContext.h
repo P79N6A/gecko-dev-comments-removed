@@ -2443,21 +2443,6 @@ public:
     bool IsOwningThreadCurrent();
     void DispatchToOwningThread(nsIRunnable *event);
 
-    
-
-
-
-
-
-
-
-
-
-
-    virtual void SetEGLSurfaceOverride(EGLSurface surf) {
-        MOZ_CRASH("Must be called against a GLContextEGL.");
-    }
-
     static void PlatformStartup();
 
 public:

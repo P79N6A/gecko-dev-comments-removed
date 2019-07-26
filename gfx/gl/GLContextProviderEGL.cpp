@@ -409,7 +409,7 @@ public:
         return true;
     }
 
-    virtual void SetEGLSurfaceOverride(EGLSurface surf) MOZ_OVERRIDE {
+    void SetEGLSurfaceOverride(EGLSurface surf) {
         if (Screen()) {
             
 
@@ -892,6 +892,16 @@ GLContextProviderEGL::GetGlobalContext(const ContextFlags)
 void
 GLContextProviderEGL::Shutdown()
 {
+}
+
+GLContextEGL* DowncastGLContextEGL(GLContext* context)
+{
+    return static_cast<GLContextEGL*>(context);
+}
+
+void SetEGLSurfaceOverride(GLContextEGL* context, EGLSurface surf)
+{
+    context->SetEGLSurfaceOverride(surf);
 }
 
 } 
