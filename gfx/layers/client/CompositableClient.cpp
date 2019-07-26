@@ -6,6 +6,7 @@
 #include "mozilla/layers/CompositableClient.h"
 #include <stdint.h>                     
 #include "gfxPlatform.h"                
+#include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/TextureClientOGL.h"
@@ -29,6 +30,7 @@ namespace layers {
 
 
 class CompositableChild : public PCompositableChild
+                        , public AsyncTransactionTrackersHolder
 {
 public:
   CompositableChild()
@@ -37,12 +39,13 @@ public:
     MOZ_COUNT_CTOR(CompositableChild);
   }
 
-  ~CompositableChild()
+  virtual ~CompositableChild()
   {
     MOZ_COUNT_DTOR(CompositableChild);
   }
 
   virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
+    DestroyAsyncTransactionTrackersHolder();
     if (mCompositableClient) {
       mCompositableClient->mCompositableChild = nullptr;
     }
@@ -53,13 +56,27 @@ public:
   uint64_t mAsyncID;
 };
 
-PCompositableChild*
+ void
+CompositableClient::TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  child->TransactionCompleteted(aTransactionId);
+}
+
+ void
+CompositableClient::HoldUntilComplete(PCompositableChild* aActor, AsyncTransactionTracker* aTracker)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  child->HoldUntilComplete(aTracker);
+}
+
+ PCompositableChild*
 CompositableClient::CreateIPDLActor()
 {
   return new CompositableChild();
 }
 
-bool
+ bool
 CompositableClient::DestroyIPDLActor(PCompositableChild* actor)
 {
   delete actor;
@@ -76,7 +93,7 @@ CompositableClient::InitIPDLActor(PCompositableChild* aActor, uint64_t aAsyncID)
   child->mAsyncID = aAsyncID;
 }
 
-CompositableClient*
+ CompositableClient*
 CompositableClient::FromIPDLActor(PCompositableChild* aActor)
 {
   MOZ_ASSERT(aActor);

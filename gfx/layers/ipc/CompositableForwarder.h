@@ -23,6 +23,7 @@ namespace mozilla {
 namespace layers {
 
 class CompositableClient;
+class AsyncTransactionTracker;
 class TextureFactoryIdentifier;
 class SurfaceDescriptor;
 class SurfaceDescriptorTiles;
@@ -110,8 +111,24 @@ public:
 
 
 
+
+
+
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual void RemoveTextureFromCompositableAsync(AsyncTransactionTracker* aAsyncTransactionTracker,
+                                                  CompositableClient* aCompositable,
+                                                  TextureClient* aTexture) {}
 
   
 
@@ -175,6 +192,8 @@ public:
   }
 
   bool IsOnCompositorSide() const MOZ_OVERRIDE { return false; }
+
+  virtual bool IsImageBridgeChild() const { return false; }
 
   
 

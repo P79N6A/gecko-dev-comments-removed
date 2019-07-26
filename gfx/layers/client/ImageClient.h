@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
@@ -23,6 +24,7 @@ namespace mozilla {
 namespace layers {
 
 class CompositableForwarder;
+class AsyncTransactionTracker;
 class Image;
 class ImageContainer;
 class ShadowableLayer;
@@ -64,7 +66,17 @@ public:
   
 
 
-  virtual void FlushAllImages(bool aExceptFront) {}
+  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() { return nullptr; }
+
+  
+
+
+
+  virtual void FlushAllImages(bool aExceptFront,
+                              AsyncTransactionTracker* aAsyncTransactionTracker) {}
+
+  virtual void RemoveTextureFromCompositable(TextureClient* aTexture,
+                                             AsyncTransactionTracker* aAsyncTransactionTracker = nullptr);
 
 protected:
   ImageClient(CompositableForwarder* aFwd, TextureFlags aFlags,
@@ -95,7 +107,10 @@ public:
 
   virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) MOZ_OVERRIDE;
 
-  virtual void FlushAllImages(bool aExceptFront) MOZ_OVERRIDE;
+  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() MOZ_OVERRIDE;
+
+  virtual void FlushAllImages(bool aExceptFront,
+                              AsyncTransactionTracker* aAsyncTransactionTracker) MOZ_OVERRIDE;
 
 protected:
   virtual bool UpdateImageInternal(ImageContainer* aContainer, uint32_t aContentFlags, bool* aIsSwapped);
@@ -118,7 +133,8 @@ public:
 
   virtual void OnDetach() MOZ_OVERRIDE;
 
-  virtual void FlushAllImages(bool aExceptFront) MOZ_OVERRIDE;
+  virtual void FlushAllImages(bool aExceptFront,
+                              AsyncTransactionTracker* aAsyncTransactionTracker) MOZ_OVERRIDE;
 
 protected:
   RefPtr<TextureClient> mBackBuffer;
