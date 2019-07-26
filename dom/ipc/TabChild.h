@@ -309,8 +309,7 @@ public:
 
 
     bool DispatchMouseEvent(const nsString& aType,
-                            const float&    aX,
-                            const float&    aY,
+                            const CSSPoint& aPoint,
                             const int32_t&  aButton,
                             const int32_t&  aClickCount,
                             const int32_t&  aModifiers,
@@ -407,7 +406,7 @@ private:
                                        const nsACString& aJSONData);
 
     void DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
-                                       const nsIntPoint& aRefPoint);
+                                       const LayoutDevicePoint& aRefPoint);
 
     
     
@@ -445,7 +444,7 @@ private:
     ScreenIntSize mInnerSize;
     
     
-    nsIntPoint mGestureDownPoint;
+    LayoutDevicePoint mGestureDownPoint;
     
     int32_t mActivePointerId;
     
