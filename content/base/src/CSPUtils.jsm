@@ -45,7 +45,16 @@ const R_GETSCHEME  = new RegExp ("^" + R_SCHEME.source + "(?=\\:)", 'i');
 const R_SCHEMESRC  = new RegExp ("^" + R_SCHEME.source + "\\:$", 'i');
 
 
-const R_HOSTCHAR   = new RegExp ("[a-zA-Z0-9\\-]", 'i');
+
+const HOSTCHAR     = "{}a-zA-Z0-9\\-";
+const R_HOSTCHAR   = new RegExp ("[" + HOSTCHAR + "]", 'i');
+
+
+const R_COMP_HCHAR = new RegExp ("[^" + HOSTCHAR + "]", "i");
+
+
+const R_INV_HCHAR  = new RegExp ("[^" + HOSTCHAR + "\\.\\*]", 'i');
+
 
 
 const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
@@ -287,7 +296,11 @@ CSPRep.ALLOW_DIRECTIVE   = "allow";
 
 
 
-CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
+
+
+
+CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp,
+                             enforceSelfChecks) {
   var SD = CSPRep.SRC_DIRECTIVES_OLD;
   var UD = CSPRep.URI_DIRECTIVES;
   var aCSPR = new CSPRep();
@@ -361,7 +374,8 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
         CSPdebug("Skipping duplicate directive: \"" + dir + "\"");
         continue directive;
       }
-      var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri, true);
+      var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri,
+                                        enforceSelfChecks);
       if (dv) {
         aCSPR._directives[SD.DEFAULT_SRC] = dv;
         continue directive;
@@ -372,7 +386,8 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
     for each(var sdi in SD) {
       if (dirname === sdi) {
         
-        var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri, true);
+        var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri,
+                                          enforceSelfChecks);
         if (dv) {
           aCSPR._directives[sdi] = dv;
           continue directive;
@@ -531,7 +546,11 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
 
 
 
-CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, csp) {
+
+
+
+CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, csp,
+                                          enforceSelfChecks) {
   var SD = CSPRep.SRC_DIRECTIVES_NEW;
   var UD = CSPRep.URI_DIRECTIVES;
   var aCSPR = new CSPRep(true);
@@ -607,7 +626,8 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
     for each(var sdi in SD) {
       if (dirname === sdi) {
         
-        var dv = CSPSourceList.fromString(dirvalue, aCSPR, self, true);
+        var dv = CSPSourceList.fromString(dirvalue, aCSPR, self,
+                                          enforceSelfChecks);
         if (dv) {
           
           if (sdi === "style-src" && dv._allowUnsafeInline) {
@@ -1322,6 +1342,18 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
+  if (aStr.toLowerCase() === "'unsafe-inline'"){
+    sObj._allowUnsafeInline = true;
+    return sObj;
+  }
+
+  
+  if (aStr.toLowerCase() === "'unsafe-eval'"){
+    sObj._allowUnsafeEval = true;
+    return sObj;
+  }
+
+  
   
   if (R_SCHEMESRC.test(aStr)) {
     var schemeSrcMatch = R_GETSCHEME.exec(aStr);
@@ -1409,18 +1441,6 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     return sObj;
   }
 
-  
-  if (aStr.toLowerCase() === "'unsafe-inline'"){
-    sObj._allowUnsafeInline = true;
-    return sObj;
-  }
-
-  
-  if (aStr.toLowerCase() === "'unsafe-eval'"){
-    sObj._allowUnsafeEval = true;
-    return sObj;
-  }
-
   cspError(aCSPRep, CSPLocalizer.getFormatStr("couldntParseInvalidSource",
                                               [aStr]));
   return null;
@@ -1490,10 +1510,10 @@ CSPSource.prototype = {
       return this._self.toString();
 
     if (this._allowUnsafeInline)
-      return "unsafe-inline";
+      return "'unsafe-inline'";
 
     if (this._allowUnsafeEval)
-      return "unsafe-eval";
+      return "'unsafe-eval'";
 
     var s = "";
     if (this.scheme)
@@ -1607,7 +1627,7 @@ CSPHost.fromString = function(aStr) {
   if (!aStr) return null;
 
   
-  var invalidChar = aStr.match(/[^a-zA-Z0-9\-\.\*]/);
+  var invalidChar = aStr.match(R_INV_HCHAR);
   if (invalidChar) {
     CSPdebug("Invalid character '" + invalidChar + "' in host " + aStr);
     return null;
@@ -1628,7 +1648,7 @@ CSPHost.fromString = function(aStr) {
         return null;
       }
     }
-    else if (seg.match(/[^a-zA-Z0-9\-]/)) {
+    else if (seg.match(R_COMP_HCHAR)) {
       
       CSPdebug("Invalid segment '" + seg + "' in host value");
       return null;

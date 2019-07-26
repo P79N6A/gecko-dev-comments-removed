@@ -114,8 +114,12 @@ test(
     h = CSPHost.fromString("foo-bar.com");
     do_check_neq(null, h); 
 
+
     h = CSPHost.fromString("foo!bar.com");
     do_check_eq(null, h); 
+
+    h = CSPHost.fromString("{app-url-is-uid}");
+    do_check_neq(null, h); 
   });
 
 test(
@@ -177,6 +181,9 @@ test(
       
       do_check_neq(null, CSPSource.create("data:"));
       do_check_neq(null, CSPSource.create("javascript:"));
+
+      
+      do_check_neq(null, CSPSource.fromString("{app-host-is-uid}", undefined, "app://{app-host-is-uid}"));
     });
 
 test(
@@ -217,6 +224,12 @@ test(
       do_check_false(src.permits("https://a.com"));
       
       do_check_false(src.permits("https://foobar.com"));
+
+      src = CSPSource.create("{app-host-is-uid}", undefined, "app://{app-host-is-uid}");
+      
+      do_check_false(src.permits("https://{app-host-is-uid}"));
+      
+      do_check_true(src.permits("app://{app-host-is-uid}"));
 
     });
 

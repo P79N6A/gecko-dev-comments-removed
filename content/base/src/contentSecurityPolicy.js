@@ -411,6 +411,18 @@ ContentSecurityPolicy.prototype = {
 
   appendPolicy:
   function csp_appendPolicy(aPolicy, selfURI, aReportOnly, aSpecCompliant) {
+    return this._appendPolicyInternal(aPolicy, selfURI, aReportOnly,
+                                      aSpecCompliant, true);
+  },
+
+  
+
+
+
+
+  _appendPolicyInternal:
+  function csp_appendPolicy(aPolicy, selfURI, aReportOnly, aSpecCompliant,
+                            aEnforceSelfChecks) {
 #ifndef MOZ_B2G
     CSPdebug("APPENDING POLICY: " + aPolicy);
     CSPdebug("            SELF: " + (selfURI ? selfURI.asciiSpec : " null"));
@@ -443,13 +455,15 @@ ContentSecurityPolicy.prototype = {
                                                  selfURI,
                                                  aReportOnly,
                                                  this._weakDocRequest.get(),
-                                                 this);
+                                                 this,
+                                                 aEnforceSelfChecks);
     } else {
       newpolicy = CSPRep.fromString(aPolicy,
                                     selfURI,
                                     aReportOnly,
                                     this._weakDocRequest.get(),
-                                    this);
+                                    this,
+                                    aEnforceSelfChecks);
     }
 
     newpolicy._specCompliant = !!aSpecCompliant;
@@ -950,7 +964,8 @@ ContentSecurityPolicy.prototype = {
       let specCompliant = aStream.readBoolean();
       
       
-      this.appendPolicy(polStr, null, reportOnly, specCompliant);
+      this._appendPolicyInternal(polStr, null, reportOnly, specCompliant,
+                                 false);
     }
 
     
