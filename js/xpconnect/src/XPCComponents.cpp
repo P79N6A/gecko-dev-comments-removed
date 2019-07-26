@@ -3865,6 +3865,8 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                   JSVersion jsVersion, bool returnStringOnly, jsval *rval)
 {
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
+    JSAutoRequest ar(cx);
+    *rval = JS::UndefinedValue();
 
     bool waiveXray = xpc::WrapperFactory::HasWaiveXrayFlag(sandbox);
     sandbox = js::UnwrapObjectChecked(sandbox);
@@ -3876,10 +3878,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
         (nsIScriptObjectPrincipal*)xpc_GetJSPrivate(sandbox);
     NS_ASSERTION(sop, "Invalid sandbox passed");
     nsCOMPtr<nsIPrincipal> prin = sop->GetPrincipal();
-
-    if (!prin) {
-        return NS_ERROR_FAILURE;
-    }
+    NS_ENSURE_TRUE(prin, NS_ERROR_FAILURE);
 
     nsAutoCString filenameBuf;
     if (!filename) {
@@ -3889,114 +3888,81 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
         lineNo = 1;
     }
 
-    JSObject *callingScope;
+    
+    JS::Value v = JS::UndefinedValue();
+    JS::Value exn = JS::UndefinedValue();
+    bool ok = true;
     {
-        JSAutoRequest req(cx);
-
-        callingScope = JS_GetGlobalForScopeChain(cx);
-        if (!callingScope) {
-            return NS_ERROR_FAILURE;
+        
+        
+        
+        nsRefPtr<ContextHolder> sandcxHolder = new ContextHolder(cx, sandbox, prin);
+        JSContext *sandcx = sandcxHolder->GetJSContext();
+        if (!sandcx) {
+            JS_ReportError(cx, "Can't prepare context for evalInSandbox");
+            return NS_ERROR_OUT_OF_MEMORY;
         }
-    }
+        nsCxPusher pusher;
+        pusher.Push(sandcx);
 
-    nsRefPtr<ContextHolder> sandcx = new ContextHolder(cx, sandbox, prin);
-    if (!sandcx || !sandcx->GetJSContext()) {
-        JS_ReportError(cx, "Can't prepare context for evalInSandbox");
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
+        JSAutoRequest req(sandcx);
+        JSAutoCompartment ac(sandcx, sandbox);
 
-    if (jsVersion != JSVERSION_DEFAULT)
-        JS_SetVersion(sandcx->GetJSContext(), jsVersion);
+        if (jsVersion != JSVERSION_DEFAULT)
+            JS_SetVersion(sandcx, jsVersion);
 
-    XPCJSContextStack *stack = XPCJSRuntime::Get()->GetJSContextStack();
-    MOZ_ASSERT(stack);
-    if (!stack->Push(sandcx->GetJSContext())) {
-        JS_ReportError(cx, "Unable to initialize XPConnect with the sandbox context");
-        return NS_ERROR_FAILURE;
-    }
-
-    nsresult rv = NS_OK;
-
-    {
-        JSAutoRequest req(sandcx->GetJSContext());
-        JSAutoCompartment ac(sandcx->GetJSContext(), sandbox);
-
-        jsval v;
-        JSString *str = nullptr;
-        JS::CompileOptions options(sandcx->GetJSContext());
+        JS::CompileOptions options(sandcx);
         options.setPrincipals(nsJSPrincipals::get(prin))
                .setFileAndLine(filename, lineNo);
-        js::RootedObject rootedSandbox(sandcx->GetJSContext(), sandbox);
-        bool ok = JS::Evaluate(sandcx->GetJSContext(), rootedSandbox, options,
-                               PromiseFlatString(source).get(), source.Length(), &v);
+        js::RootedObject rootedSandbox(sandcx, sandbox);
+        ok = JS::Evaluate(sandcx, rootedSandbox, options,
+                          PromiseFlatString(source).get(), source.Length(), &v);
         if (ok && returnStringOnly && !(JSVAL_IS_VOID(v))) {
-            ok = !!(str = JS_ValueToString(sandcx->GetJSContext(), v));
+            JSString *str = JS_ValueToString(sandcx, v);
+            ok = !!str;
+            v = ok ? JS::StringValue(str) : JS::UndefinedValue();
         }
 
-        if (!ok) {
-            
-            
-
-            jsval exn;
-            if (JS_GetPendingException(sandcx->GetJSContext(), &exn)) {
-                JS_ClearPendingException(sandcx->GetJSContext());
-
-                if (returnStringOnly) {
-                    
-                    
-                    str = JS_ValueToString(sandcx->GetJSContext(), exn);
-
-                    if (str) {
-                        
-                        
-                        exn = STRING_TO_JSVAL(str);
-                        if (JS_WrapValue(cx, &exn)) {
-                            JS_SetPendingException(cx, exn);
-                        } else {
-                            JS_ClearPendingException(cx);
-                            rv = NS_ERROR_FAILURE;
-                        }
-                    } else {
-                        JS_ClearPendingException(cx);
-                        rv = NS_ERROR_FAILURE;
-                    }
-                } else {
-                    if (JS_WrapValue(cx, &exn)) {
-                        JS_SetPendingException(cx, exn);
-                    }
-                }
-
-
+        
+        if (JS_GetPendingException(sandcx, &exn)) {
+            MOZ_ASSERT(!ok);
+            JS_ClearPendingException(sandcx);
+            if (returnStringOnly) {
                 
-                str = nullptr;
-            } else {
-                rv = NS_ERROR_OUT_OF_MEMORY;
-            }
-        } else {
-            
-            JSAutoRequest req(cx);
-            JSAutoCompartment ac(cx, callingScope);
-
-            if (str) {
-                v = STRING_TO_JSVAL(str);
-            }
-
-            
-            if (waiveXray && !xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v))
-                rv = NS_ERROR_FAILURE;
-            if (!waiveXray && !JS_WrapValue(cx, &v))
-                rv = NS_ERROR_FAILURE;
-
-            if (NS_SUCCEEDED(rv)) {
-                *rval = v;
+                
+                JSString *str = JS_ValueToString(sandcx, exn);
+                exn = str ? JS::StringValue(str) : JS::UndefinedValue();
             }
         }
     }
 
-    if (stack)
-        unused << stack->Pop();
+    
+    
+    
+    
 
-    return rv;
+    if (!ok) {
+        
+        
+        if (exn.isUndefined() || !JS_WrapValue(cx, &exn))
+            return NS_ERROR_OUT_OF_MEMORY;
+
+        
+        JS_SetPendingException(cx, exn);
+        return NS_OK;
+    }
+
+    
+    if (waiveXray) {
+        ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
+    } else {
+        ok = JS_WrapValue(cx, &v);
+    }
+    NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
+
+    
+    *rval = v;
+    return NS_OK;
 }
 
 
