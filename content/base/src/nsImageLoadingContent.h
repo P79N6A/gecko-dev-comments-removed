@@ -238,21 +238,6 @@ private:
 
 
 
-
-
-
-
-
-
-
-  void CancelImageRequests(nsresult aReason, bool aEvenIfSizeAvailable,
-                           int16_t aNewImageStatus);
-
-  
-
-
-
-
   nsresult FireEvent(const nsAString& aEventType);
 
 protected:
