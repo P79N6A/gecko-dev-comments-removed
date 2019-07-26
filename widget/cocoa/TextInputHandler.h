@@ -373,6 +373,13 @@ public:
 
 
 
+  NSInteger GetWindowLevel();
+
+  
+
+
+
+
 
 
 
