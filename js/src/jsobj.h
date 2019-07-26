@@ -1378,7 +1378,7 @@ CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject 
 
 
 extern JSObject *
-CreateThisForFunction(JSContext *cx, js::HandleObject callee, bool newType);
+CreateThisForFunction(JSContext *cx, js::HandleObject callee, NewObjectKind newKind);
 
 
 extern JSObject *
