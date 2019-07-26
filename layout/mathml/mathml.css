@@ -157,6 +157,7 @@ mlabeledtr > mtd:first-child {
 
 
 
+
 mtd {
   padding-right: 0.4em;  
   padding-left: 0.4em;   
@@ -192,13 +193,6 @@ mtable[frame="dashed"] > mtr > mtd:first-child {
 mtable[frame="solid"] > mtr > mtd:last-child,
 mtable[frame="dashed"] > mtr > mtd:last-child {
   -moz-padding-end: 0.4em; 
-}
-
-mtable[rowspacing] > mtr > mtd,
-mtable[columnspacing] > mtr > mtd,
-mtable[framespacing] > mtr > mtd {
-  
-  padding: 0px;
 }
 
 
