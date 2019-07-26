@@ -434,8 +434,10 @@ protected:
   };
   
   
+  
   Selection mSelection;
 
+  
   
   
   
@@ -487,10 +489,10 @@ protected:
   
   
   
-  class NS_STACK_CLASS AutoPendingActionFlusher MOZ_FINAL
+  class NS_STACK_CLASS AutoPendingActionAndContentFlusher MOZ_FINAL
   {
   public:
-    AutoPendingActionFlusher(nsTextStore* aTextStore)
+    AutoPendingActionAndContentFlusher(nsTextStore* aTextStore)
       : mTextStore(aTextStore)
     {
       MOZ_ASSERT(!mTextStore->mIsRecordingActionsWithoutLock);
@@ -499,7 +501,7 @@ protected:
       }
     }
 
-    ~AutoPendingActionFlusher()
+    ~AutoPendingActionAndContentFlusher()
     {
       if (!mTextStore->mIsRecordingActionsWithoutLock) {
         return;
@@ -509,10 +511,104 @@ protected:
     }
 
   private:
-    AutoPendingActionFlusher() {}
+    AutoPendingActionAndContentFlusher() {}
 
     nsRefPtr<nsTextStore> mTextStore;
   };
+
+  class Content MOZ_FINAL
+  {
+  public:
+    Content(nsTextStore::Composition& aComposition,
+            nsTextStore::Selection& aSelection) :
+      mComposition(aComposition), mSelection(aSelection)
+    {
+      Clear();
+    }
+
+    void Clear()
+    {
+      mText.Truncate();
+      mInitialized = false;
+    }
+
+    bool IsInitialized() const { return mInitialized; }
+
+    void Init(const nsAString& aText)
+    {
+      mText = aText;
+      mMinTextModifiedOffset = NOT_MODIFIED;
+      mInitialized = true;
+      mNotifyTSFOfLayoutChange = false;
+    }
+
+    const nsDependentSubstring GetSelectedText() const;
+    const nsDependentSubstring GetSubstring(uint32_t aStart,
+                                            uint32_t aLength) const;
+    void ReplaceSelectedTextWith(const nsAString& aString);
+    void ReplaceTextWith(LONG aStart, LONG aLength, const nsAString& aString);
+
+    void StartComposition(ITfCompositionView* aCompositionView,
+                          const PendingAction& aCompStart,
+                          bool aPreserveSelection);
+    void EndComposition(const PendingAction& aCompEnd);
+
+    const nsString& Text() const
+    {
+      MOZ_ASSERT(mInitialized);
+      return mText;
+    }
+
+    
+    
+    bool IsLayoutChangedAfter(uint32_t aOffset) const
+    {
+      return mInitialized && (mMinTextModifiedOffset < aOffset);
+    }
+    
+    
+    bool IsLayoutChanged() const
+    {
+      return mInitialized && (mMinTextModifiedOffset != NOT_MODIFIED);
+    }
+
+    void NeedsToNotifyTSFOfLayoutChange()
+    {
+      mNotifyTSFOfLayoutChange = true;
+    }
+
+    bool NeedToNotifyTSFOfLayoutChange() const
+    {
+      return mInitialized && mNotifyTSFOfLayoutChange;
+    }
+
+    nsTextStore::Composition& Composition() { return mComposition; }
+    nsTextStore::Selection& Selection() { return mSelection; }
+
+  private:
+    nsString mText;
+    nsTextStore::Composition& mComposition;
+    nsTextStore::Selection& mSelection;
+
+    
+    enum MOZ_ENUM_TYPE(uint32_t)
+    {
+      NOT_MODIFIED = UINT32_MAX
+    };
+    uint32_t mMinTextModifiedOffset;
+
+    bool mInitialized;
+    bool mNotifyTSFOfLayoutChange;
+  };
+  
+  
+  
+  
+  
+  
+  Content mContent;
+
+  Content& CurrentContent();
 
   
   nsTArray<InputScope>         mInputScopes;
