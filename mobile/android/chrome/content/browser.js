@@ -3564,7 +3564,7 @@ Tab.prototype = {
   },
 
   
-  updateViewportMetadata: function updateViewportMetadata(aMetadata) {
+  updateViewportMetadata: function updateViewportMetadata(aMetadata, aInitialLoad) {
     if (Services.prefs.getBoolPref("browser.ui.zoom.force-user-scalable")) {
       aMetadata.allowZoom = true;
       aMetadata.minZoom = aMetadata.maxZoom = NaN;
@@ -3580,12 +3580,12 @@ Tab.prototype = {
       aMetadata.maxZoom *= scaleRatio;
 
     ViewportHandler.setMetadataForDocument(this.browser.contentDocument, aMetadata);
-    this.updateViewportSize(gScreenWidth);
+    this.updateViewportSize(gScreenWidth, aInitialLoad);
     this.sendViewportMetadata();
   },
 
   
-  updateViewportSize: function updateViewportSize(aOldScreenWidth) {
+  updateViewportSize: function updateViewportSize(aOldScreenWidth, aInitialLoad) {
     
     
     
@@ -3677,7 +3677,7 @@ Tab.prototype = {
     
     
     let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
-    let zoom = this.clampZoom(this._zoom * zoomScale);
+    let zoom = (aInitialLoad && metadata.defaultZoom) ? metadata.defaultZoom : this.clampZoom(this._zoom * zoomScale);
     this.setResolution(zoom, false);
     this.setScrollClampingSize(zoom);
     this.sendViewportUpdate();
@@ -3734,7 +3734,7 @@ Tab.prototype = {
           
           this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
           this.setResolution(gScreenWidth / this.browserWidth, false);
-          ViewportHandler.updateMetadata(this);
+          ViewportHandler.updateMetadata(this, true);
 
           
           
@@ -3757,7 +3757,7 @@ Tab.prototype = {
         break;
       case "nsPref:changed":
         if (aData == "browser.ui.zoom.force-user-scalable")
-          ViewportHandler.updateMetadata(this);
+          ViewportHandler.updateMetadata(this, false);
         break;
     }
   },
@@ -5171,7 +5171,7 @@ var ViewportHandler = {
         let browser = BrowserApp.getBrowserForDocument(document);
         let tab = BrowserApp.getTabForBrowser(browser);
         if (tab)
-          this.updateMetadata(tab);
+          this.updateMetadata(tab, false);
         break;
     }
   },
@@ -5194,9 +5194,9 @@ var ViewportHandler = {
     }
   },
 
-  updateMetadata: function updateMetadata(tab) {
+  updateMetadata: function updateMetadata(tab, aInitialLoad) {
     let metadata = this.getViewportMetadata(tab.browser.contentWindow);
-    tab.updateViewportMetadata(metadata);
+    tab.updateViewportMetadata(metadata, aInitialLoad);
   },
 
   
