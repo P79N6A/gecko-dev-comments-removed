@@ -9,6 +9,13 @@
 
 #include "MediaDecoderReader.h"
 #include "mozilla/layers/LayersTypes.h"
+#include "nsTArray.h"
+
+namespace mp4_demuxer {
+class VideoDecoderConfig;
+class AudioDecoderConfig;
+struct MP4Sample;
+}
 
 namespace mozilla {
 
@@ -35,6 +42,9 @@ typedef int64_t Microseconds;
 
 class PlatformDecoderModule {
 public:
+  
+  
+  static void Init();
 
   
   
@@ -56,7 +66,8 @@ public:
   
   
   
-  virtual MediaDataDecoder* CreateH264Decoder(layers::LayersBackend aLayersBackend,
+  virtual MediaDataDecoder* CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+                                              layers::LayersBackend aLayersBackend,
                                               layers::ImageContainer* aImageContainer) = 0;
 
   
@@ -65,11 +76,7 @@ public:
   
   
   
-  virtual MediaDataDecoder* CreateAACDecoder(uint32_t aChannelCount,
-                                             uint32_t aSampleRate,
-                                             uint16_t aBitsPerSample,
-                                             const uint8_t* aAACConfig,
-                                             uint32_t aAACConfigLength) = 0;
+  virtual MediaDataDecoder* CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig) = 0;
 
   
   virtual void OnDecodeThreadStart() {}
@@ -80,6 +87,8 @@ public:
   virtual ~PlatformDecoderModule() {}
 protected:
   PlatformDecoderModule() {}
+  
+  static bool sUseBlankDecoder;
 };
 
 
@@ -108,6 +117,8 @@ public:
   
   
   
+  virtual nsresult Init() = 0;
+
   
   
   
@@ -118,11 +129,26 @@ public:
   
   
   
-  virtual DecoderStatus Input(const uint8_t* aData,
-                              uint32_t aLength,
-                              Microseconds aDTS,
-                              Microseconds aPTS,
-                              int64_t aOffsetInStream) = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual DecoderStatus Input(nsAutoPtr<mp4_demuxer::MP4Sample>& aSample) = 0;
 
   
   
