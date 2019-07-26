@@ -1,10 +1,9 @@
-/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#filter substitution
-package @ANDROID_PACKAGE_NAME@;
+
+
+
+
+package org.mozilla.gecko;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -23,17 +22,9 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.Animation;
 import android.widget.ImageView;
 import android.view.Display;
+
 import java.net.URL;
 import java.io.File;
-
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoThread;
-import org.mozilla.gecko.WebAppAllocator;
-import org.mozilla.gecko.Tab;
-import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.util.HardwareUtils;
 
 public class WebApp extends GeckoApp {
     private static final String LOGTAG = "WebApp";
@@ -72,12 +63,12 @@ public class WebApp extends GeckoApp {
             return;
         }
 
-        // Try to use the origin stored in the WebAppAllocator first
+        
         String origin = WebAppAllocator.getInstance(this).getAppForIndex(getIndex());
         try {
             mOrigin = new URL(origin);
         } catch (java.net.MalformedURLException ex) {
-            // If that failed fall back to the origin stored in the shortcut
+            
             Log.i(LOGTAG, "Webapp is not registered with allocator");
             try {
                 mOrigin = new URL(getIntent().getData().toString());
@@ -91,9 +82,9 @@ public class WebApp extends GeckoApp {
     protected void initializeChrome(String uri, boolean isExternalURL) {
         String action = getIntent().getAction();
         if (GeckoApp.ACTION_WEBAPP_PREFIX.equals(action)) {
-            // This action assumes the uri is not an installed WebApp. We will
-            // use the WebAppAllocator to register the uri with an Android
-            // process so it can run chromeless.
+            
+            
+            
             int index = WebAppAllocator.getInstance(this).findAndAllocateIndex(uri, "App", (Bitmap) null);
             Intent appIntent = GeckoAppShell.getWebAppIntent(index, uri);
             startActivity(appIntent);
@@ -108,21 +99,21 @@ public class WebApp extends GeckoApp {
 
         SharedPreferences prefs = getSharedPreferences("webapps", Context.MODE_PRIVATE | Context.MODE_MULTI_PROCESS);
 
-        // get the favicon dominant color, stored when the app was installed
+        
         int[] colors = new int[2];
         int dominantColor = prefs.getInt(WebAppAllocator.iconKey(getIndex()), -1);
 
-        // now lighten it, to ensure that the icon stands out in the center
+        
         float[] f = new float[3];
         Color.colorToHSV(dominantColor, f);
         f[2] = Math.min(f[2]*2, 1.0f);
         colors[0] = Color.HSVToColor(255, f);
 
-        // now generate a second, slightly darker version of the same color
+        
         f[2] *= 0.75;
         colors[1] = Color.HSVToColor(255, f);
 
-        // Draw the background gradient
+        
         GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
         gd.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         Display display = getWindowManager().getDefaultDisplay();
@@ -130,7 +121,7 @@ public class WebApp extends GeckoApp {
         gd.setGradientRadius(Math.max(display.getWidth()/2, display.getHeight()/2));
         mSplashscreen.setBackgroundDrawable((Drawable)gd);
 
-        // look for a logo.png in the profile dir and show it. If we can't find a logo show nothing
+        
         File profile = getProfile().getDir();
         File logoFile = new File(profile, "logo.png");
         if (logoFile.exists()) {
@@ -155,25 +146,6 @@ public class WebApp extends GeckoApp {
 
         return "webapp" + action.substring(ACTION_WEBAPP_PREFIX.length());
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-#ifdef MOZ_PROFILING
-        if (item.getItemId() == org.mozilla.gecko.R.id.toggle_profiling) {
-            org.mozilla.gecko.GeckoAppShell.sendEventToGecko(
-                org.mozilla.gecko.GeckoEvent.createBroadcastEvent("ToggleProfiling", null));
-            return true;
-        }
-#endif
-        return super.onOptionsItemSelected(item);
-    }
-
-#ifdef MOZ_LINKER_EXTRACT
-    @Override
-    public boolean linkerExtract() {
-        return true;
-    }
-#endif
 
     @Override
     protected boolean shouldRestoreSession() {
