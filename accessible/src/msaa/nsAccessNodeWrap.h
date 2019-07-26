@@ -47,8 +47,6 @@
 namespace mozilla {
 namespace a11y {
 
-class AccTextChangeEvent;
-
 #ifdef __GNUC__
 
 
@@ -83,15 +81,6 @@ public:
                                      WPARAM WParam, LPARAM lParam);
 
   static nsRefPtrHashtable<nsPtrHashKey<void>, DocAccessible> sHWNDCache;
-
-protected:
-
-  
-
-
-
-  static AccTextChangeEvent* gTextEvent;
-  friend void PlatformShutdown();
 };
 
 } 
