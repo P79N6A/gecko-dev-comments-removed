@@ -17,6 +17,13 @@ var gSmallTests = [
 ];
 
 
+var gVideoTests = [
+  { name:"320x240.ogv", type:"video/ogg", width:320, height:240, duration:0.266 },
+  { name:"seek.webm", type:"video/webm", width:320, height:240, duration:3.966 },
+  { name:"bogus.duh", type:"bogus/duh" }
+];
+
+
 
 var gProgressTests = [
   { name:"r11025_u8_c1.wav", type:"audio/x-wav", duration:1.0, size:11069 },
