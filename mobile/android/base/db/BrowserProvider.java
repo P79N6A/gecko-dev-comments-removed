@@ -44,12 +44,6 @@ public class BrowserProvider extends TransactionalProvider<BrowserDatabaseHelper
     private static final String LOGTAG = "GeckoBrowserProvider";
 
     
-    static final long MAX_AGE_OF_DELETED_RECORDS = 86400000 * 20;
-
-    
-    static final long DELETED_RECORDS_PURGE_LIMIT = 5;
-
-    
     
     
     
@@ -275,88 +269,6 @@ public class BrowserProvider extends TransactionalProvider<BrowserDatabaseHelper
     
 
 
-    private static String computeSQLInClause(int items, String field) {
-        final StringBuilder builder = new StringBuilder(field);
-        builder.append(" IN (");
-        int i = 0;
-        for (; i < items - 1; ++i) {
-            builder.append("?, ");
-        }
-        if (i < items) {
-            builder.append("?");
-        }
-        builder.append(")");
-        return builder.toString();
-    }
-
-    
-
-
-
-
-    private static String computeSQLInClauseFromLongs(final Cursor cursor, String field) {
-        final StringBuilder builder = new StringBuilder(field);
-        builder.append(" IN (");
-        final int commaLimit = cursor.getCount() - 1;
-        int i = 0;
-        while (cursor.moveToNext()) {
-            builder.append(cursor.getLong(0));
-            if (i++ < commaLimit) {
-                builder.append(", ");
-            }
-        }
-        builder.append(")");
-        return builder.toString();
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-    private void cleanupSomeDeletedRecords(Uri fromUri, Uri targetUri, String tableName) {
-        Log.d(LOGTAG, "Cleaning up deleted records from " + tableName);
-
-        
-        
-        
-
-        
-        
-        final long now = System.currentTimeMillis();
-        final String selection = SyncColumns.IS_DELETED + " = 1 AND " +
-                                 SyncColumns.DATE_MODIFIED + " <= " +
-                                 (now - MAX_AGE_OF_DELETED_RECORDS);
-
-        final String profile = fromUri.getQueryParameter(BrowserContract.PARAM_PROFILE);
-        final SQLiteDatabase db = getWritableDatabaseForProfile(profile, isTest(fromUri));
-        final String[] ids;
-        final String limit = Long.toString(DELETED_RECORDS_PURGE_LIMIT, 10);
-        final Cursor cursor = db.query(tableName, new String[] { CommonColumns._ID }, selection, null, null, null, null, limit);
-        try {
-            ids = new String[cursor.getCount()];
-            int i = 0;
-            while (cursor.moveToNext()) {
-                ids[i++] = Long.toString(cursor.getLong(0), 10);
-            }
-        } finally {
-            cursor.close();
-        }
-
-        final String inClause = computeSQLInClause(ids.length,
-                                                   CommonColumns._ID);
-        db.delete(tableName, inClause, ids);
-    }
-
-    
-
-
 
 
 
@@ -416,21 +328,6 @@ public class BrowserProvider extends TransactionalProvider<BrowserDatabaseHelper
                            ")";
         trace("Clear thumbs using query: " + sql);
         db.execSQL(sql);
-    }
-
-    private boolean isCallerSync(Uri uri) {
-        String isSync = uri.getQueryParameter(BrowserContract.PARAM_IS_SYNC);
-        return !TextUtils.isEmpty(isSync);
-    }
-
-    private boolean shouldShowDeleted(Uri uri) {
-        String showDeleted = uri.getQueryParameter(BrowserContract.PARAM_SHOW_DELETED);
-        return !TextUtils.isEmpty(showDeleted);
-    }
-
-    private boolean shouldUpdateOrInsert(Uri uri) {
-        String insertIfNeeded = uri.getQueryParameter(BrowserContract.PARAM_INSERT_IF_NEEDED);
-        return Boolean.parseBoolean(insertIfNeeded);
     }
 
     private boolean shouldIncrementVisits(Uri uri) {
