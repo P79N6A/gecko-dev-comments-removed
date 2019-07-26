@@ -1068,13 +1068,13 @@ nsDataObj :: GetFileDescriptorInternetShortcutW ( FORMATETC& aFE, STGMEDIUM& aST
 
   
   
-  if (!CreateFilenameFromTextW(title, MOZ_UTF16(".URL"), 
+  if (!CreateFilenameFromTextW(title, L".URL",
                                fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
     nsXPIDLString untitled;
     if (!GetLocalizedString(MOZ_UTF16("noPageTitle"), untitled) ||
-        !CreateFilenameFromTextW(untitled, MOZ_UTF16(".URL"), 
+        !CreateFilenameFromTextW(untitled, L".URL",
                                  fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
-      wcscpy(fileGroupDescW->fgd[0].cFileName, MOZ_UTF16("Untitled.URL"));
+      wcscpy(fileGroupDescW->fgd[0].cFileName, L"Untitled.URL");
     }
   }
 
