@@ -2026,9 +2026,7 @@ nsStyleSet::EnsureUniqueInnerOnCSSSheets()
     }
 
     
-    if (!sheet->AppendAllChildSheets(queue)) {
-      return nsCSSStyleSheet::eUniqueInner_CloneFailed;
-    }
+    sheet->AppendAllChildSheets(queue);
   }
   return res;
 }

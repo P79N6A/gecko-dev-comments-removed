@@ -226,8 +226,7 @@ public:
   EnsureUniqueInnerResult EnsureUniqueInner();
 
   
-  
-  bool AppendAllChildSheets(nsTArray<nsCSSStyleSheet*>& aArray);
+  void AppendAllChildSheets(nsTArray<nsCSSStyleSheet*>& aArray);
 
   bool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
