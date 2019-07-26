@@ -300,71 +300,6 @@ function limitURILength(str, len) {
 
 
 
-const TaskUtils = {
-  
-
-
-
-
-
-
-  captureErrors: function captureErrors(promise) {
-    return promise.then(
-      null,
-      function onError(reason) {
-        LOG("Uncaught asynchronous error: " + reason + " at\n" + reason.stack);
-        throw reason;
-      }
-    );
-  },
-  
-
-
-
-
-
-
-
-
-
-
-  spawn: function spawn(gen) {
-    return this.captureErrors(Task.spawn(gen));
-  },
-  
-
-
-
-
-
-
-
-
-
-
-  executeStatement: function executeStatement(statement, onResult) {
-    let deferred = Promise.defer();
-    onResult = onResult || function() {};
-    statement.executeAsync({
-      handleResult: onResult,
-      handleError: function handleError(aError) {
-        deferred.reject(aError);
-      },
-      handleCompletion: function handleCompletion(aReason) {
-        statement.finalize();
-        
-        
-        
-        deferred.resolve(aReason);
-      }
-    });
-    return deferred.promise;
-  }
-};
-
-
-
-
 
 
 
@@ -1253,7 +1188,7 @@ Engine.prototype = {
 
 
   _asyncInitFromFile: function SRCH_ENG__asyncInitFromFile() {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       if (!this._file || !(yield OS.File.exists(this._file.path)))
         FAIL("File must exist before calling initFromFile!", Cr.NS_ERROR_UNEXPECTED);
 
@@ -1302,7 +1237,7 @@ Engine.prototype = {
 
 
   _asyncInitFromURI: function SRCH_ENG__asyncInitFromURI() {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       LOG("_asyncInitFromURI: Loading engine from: \"" + this._uri.spec + "\".");
       yield this._retrieveSearchXMLData(this._uri.spec);
       
@@ -2951,7 +2886,7 @@ SearchService.prototype = {
 
 
   _asyncInit: function SRCH_SVC__asyncInit() {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       LOG("_asyncInit start");
       try {
         yield checkForSyncCompletion(this._asyncLoadEngines());
@@ -3148,7 +3083,7 @@ SearchService.prototype = {
 
 
   _asyncLoadEngines: function SRCH_SVC__asyncLoadEngines() {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       LOG("_asyncLoadEngines: start");
       
       let cache = {};
@@ -3188,7 +3123,7 @@ SearchService.prototype = {
 
       let toLoad = chromeFiles.concat(loadDirs);
       function hasModifiedDir(aList) {
-        return TaskUtils.spawn(function() {
+        return Task.spawn(function*() {
           let modifiedDir = false;
 
           for (let dir of aList) {
@@ -3275,7 +3210,7 @@ SearchService.prototype = {
 
 
   _asyncReadCacheFile: function SRCH_SVC__asyncReadCacheFile(aPath) {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       let json;
       try {
         let bytes = yield OS.File.read(aPath);
@@ -3439,7 +3374,7 @@ SearchService.prototype = {
     
     let isInProfile = aDir.equals(getDir(NS_APP_USER_SEARCH_DIR));
     let iterator = new OS.File.DirectoryIterator(aDir.path);
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       let osfiles = yield iterator.nextBatch();
       iterator.close();
 
@@ -3499,7 +3434,7 @@ SearchService.prototype = {
 
 
   _asyncLoadFromChromeURLs: function SRCH_SVC__asyncLoadFromChromeURLs(aURLs) {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       let engines = [];
       for (let url of aURLs) {
         try {
@@ -3583,7 +3518,7 @@ SearchService.prototype = {
 
 
   _asyncFindJAREngines: function SRCH_SVC__asyncFindJAREngines() {
-    return TaskUtils.spawn(function() {
+    return Task.spawn(function*() {
       LOG("_asyncFindJAREngines: looking for engines in JARs")
 
       let rootURIPref = "";
@@ -3788,7 +3723,7 @@ SearchService.prototype = {
     if (!this._initStarted) {
       TelemetryStopwatch.start("SEARCH_SERVICE_INIT_MS");
       this._initStarted = true;
-      TaskUtils.spawn(function task() {
+      Task.spawn(function task() {
         try {
           yield checkForSyncCompletion(engineMetadataService.init());
           
@@ -3805,7 +3740,7 @@ SearchService.prototype = {
       });
     }
     if (observer) {
-      TaskUtils.captureErrors(this._initObservers.promise.then(
+      this._initObservers.promise.then(
         function onSuccess() {
           observer.onInitComplete(self._initRV);
         },
@@ -3813,7 +3748,7 @@ SearchService.prototype = {
           Components.utils.reportError("Internal error while initializing SearchService: " + aReason);
           observer.onInitComplete(Components.results.NS_ERROR_UNEXPECTED);
         }
-      ));
+      );
     }
   },
 
@@ -4333,7 +4268,7 @@ var engineMetadataService = {
     if (!this._initializer) {
       
       let initializer = this._initializer = Promise.defer();
-      TaskUtils.spawn((function task_init() {
+      Task.spawn((function task_init() {
         LOG("metadata init: starting");
         switch (this._initState) {
           case engineMetadataService._InitStates.NOT_STARTED:
@@ -4374,7 +4309,7 @@ var engineMetadataService = {
         }
       );
     }
-    return TaskUtils.captureErrors(this._initializer.promise);
+    return this._initializer.promise;
   },
 
   
@@ -4532,8 +4467,7 @@ var engineMetadataService = {
             LOG("metadata writeCommit: done");
           }
         );
-        
-        return TaskUtils.captureErrors(promise).then(null, () => {});
+        return promise;
       }
       this._lazyWriter = new DeferredTask(writeCommit, LAZY_SERIALIZE_DELAY);
     }
