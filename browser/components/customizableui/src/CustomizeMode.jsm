@@ -513,47 +513,37 @@ CustomizeMode.prototype = {
     }.bind(this)).then(null, ERROR);
   },
 
-  
-  _wrapToolbarItemsSync: function() {
-    let window = this.window;
-    
-    this.areas = [];
-    for (let area of CustomizableUI.areas) {
-      let target = CustomizableUI.getCustomizeTargetForArea(area, window);
-      target.addEventListener("dragstart", this, true);
-      target.addEventListener("dragover", this, true);
-      target.addEventListener("dragexit", this, true);
-      target.addEventListener("drop", this, true);
-      target.addEventListener("dragend", this, true);
-      for (let child of target.children) {
-        if (this.isCustomizableItem(child)) {
-          this.wrapToolbarItem(child, getPlaceForItem(child));
-        }
+  _wrapItemsInArea: function(target) {
+    for (let child of target.children) {
+      if (this.isCustomizableItem(child)) {
+        this.wrapToolbarItem(child, getPlaceForItem(child));
       }
-      this.areas.push(target);
+    }
+  },
+
+  _unwrapItemsInArea: function(target) {
+    for (let toolbarItem of target.children) {
+      if (this.isWrappedToolbarItem(toolbarItem)) {
+        this.unwrapToolbarItem(toolbarItem);
+      }
     }
   },
 
   _unwrapToolbarItems: function() {
     return Task.spawn(function() {
-      this._unwrapToolbarItemsSync();
-    }.bind(this)).then(null, ERROR);
-  },
-
-  
-  _unwrapToolbarItemsSync: function() {
-    for (let target of this.areas) {
-      for (let toolbarItem of target.children) {
-        if (this.isWrappedToolbarItem(toolbarItem)) {
-          this.unwrapToolbarItem(toolbarItem);
+      for (let target of this.areas) {
+        for (let toolbarItem of target.children) {
+          if (this.isWrappedToolbarItem(toolbarItem)) {
+            yield this.deferredUnwrapToolbarItem(toolbarItem);
+          }
         }
+        target.removeEventListener("dragstart", this, true);
+        target.removeEventListener("dragover", this, true);
+        target.removeEventListener("dragexit", this, true);
+        target.removeEventListener("drop", this, true);
+        target.removeEventListener("dragend", this, true);
       }
-      target.removeEventListener("dragstart", this, true);
-      target.removeEventListener("dragover", this, true);
-      target.removeEventListener("dragexit", this, true);
-      target.removeEventListener("drop", this, true);
-      target.removeEventListener("dragend", this, true);
-    }
+    }.bind(this)).then(null, ERROR);
   },
 
   persistCurrentSets: function()  {
@@ -612,10 +602,46 @@ CustomizeMode.prototype = {
     this._onUIChange();
   },
 
-  onWidgetCreated: function(aWidgetId) {
+  onWidgetBeforeDOMChange: function(aNodeToChange, aSecondaryNode, aContainer) {
+    if (aContainer.ownerDocument.defaultView != this.window) {
+      return;
+    }
+    if (aContainer.id == CustomizableUI.AREA_PANEL) {
+      this._removePanelCustomizationPlaceholders();
+    }
+    this.unwrapToolbarItem(aNodeToChange.parentNode);
+    if (aSecondaryNode) {
+      this.unwrapToolbarItem(aSecondaryNode.parentNode);
+    }
   },
 
-  onWidgetDestroyed: function(aWidgetId) {
+  onWidgetAfterDOMChange: function(aNodeToChange, aSecondaryNode, aContainer) {
+    if (aContainer.ownerDocument.defaultView != this.window) {
+      return;
+    }
+    
+    if (aNodeToChange.parentNode) {
+      this.wrapToolbarItem(aNodeToChange);
+      if (aSecondaryNode) {
+        this.wrapToolbarItem(aSecondaryNode);
+      }
+    } else {
+      
+
+      
+      
+      
+      
+      let widgetId = aNodeToChange.id;
+      let widget = CustomizableUI.getWidget(widgetId);
+      if (widget.provider == CustomizableUI.PROVIDER_API) {
+        let paletteItem = this.makePaletteItem(widget, "palette");
+        this.visiblePalette.appendChild(paletteItem);
+      }
+    }
+    if (aContainer.id == CustomizableUI.AREA_PANEL) {
+      this._showPanelCustomizationPlaceholders();
+    }
   },
 
   _onUIChange: function() {
@@ -819,32 +845,12 @@ CustomizeMode.prototype = {
     this._setDragActive(this._dragOverItem, false);
     this._removePanelCustomizationPlaceholders();
 
-    
-    this._unwrapToolbarItemsSync();
-    let paletteChild = this.visiblePalette.firstChild;
-    let nextChild;
-    while (paletteChild) {
-      nextChild = paletteChild.nextElementSibling;
-      this.unwrapToolbarItem(paletteChild);
-      paletteChild = nextChild;
-    }
-
     try {
       this._applyDrop(aEvent, targetArea, originArea, draggedItemId, targetNode);
     } catch (ex) {
       ERROR(ex, ex.stack);
     }
 
-    
-    this._wrapToolbarItemsSync();
-    
-    let paletteChild = this.visiblePalette.firstChild;
-    let nextChild;
-    while (paletteChild) {
-      nextChild = paletteChild.nextElementSibling;
-      this.wrapToolbarItem(paletteChild, "palette");
-      paletteChild = nextChild;
-    }
     this._showPanelCustomizationPlaceholders();
   },
 
@@ -861,8 +867,8 @@ CustomizeMode.prototype = {
     }
 
     
-    
     if (aTargetArea.id == kPaletteId) {
+      
       if (aOriginArea.id !== kPaletteId) {
         if (!CustomizableUI.isWidgetRemovable(aDraggedItemId)) {
           return;
@@ -870,12 +876,14 @@ CustomizeMode.prototype = {
 
         CustomizableUI.removeWidgetFromArea(aDraggedItemId);
       }
+      draggedItem = draggedItem.parentNode;
 
       
       if (aTargetNode == this.visiblePalette) {
         this.visiblePalette.appendChild(draggedItem);
       } else {
-        this.visiblePalette.insertBefore(draggedItem, aTargetNode);
+        
+        this.visiblePalette.insertBefore(draggedItem, aTargetNode.parentNode);
       }
       return;
     }

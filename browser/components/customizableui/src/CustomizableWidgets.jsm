@@ -44,28 +44,38 @@ function adjustPosition(aNode) {
   
   const kColumnsInMenuPanel = 3;
 
+  let nodeId = aNode.id;
+  
+  if (aNode.parentNode.localName == "toolbarpaletteitem") {
+    aNode = aNode.parentNode;
+  }
+
   
   let prevSibling = aNode.previousElementSibling;
   let previousSiblingCount = 0;
   while (prevSibling) {
-    if (!prevSibling.classList.contains(kWidePanelItemClass)) {
+    let nodeToCheck = prevSibling.localName == "toolbarpaletteitem" ? prevSibling.firstChild : prevSibling;
+    if (!nodeToCheck.classList.contains(kWidePanelItemClass)) {
       previousSiblingCount++;
     }
     prevSibling = prevSibling.previousElementSibling;
   }
   if (previousSiblingCount % kColumnsInMenuPanel) {
     let previousElement = aNode.previousElementSibling;
-    if (!previousElement ||
-        previousElement.classList.contains(kWidePanelItemClass)) {
+    if (!previousElement) {
+      return;
+    }
+    let nodeToCheck = previousElement.localName == "toolbarpaletteitem" ? previousElement.firstChild : previousElement;
+    if (nodeToCheck.classList.contains(kWidePanelItemClass)) {
       return;
     }
 
-    let position = Array.prototype.indexOf.call(aNode.parentNode.children, aNode);
+    let position = CustomizableUI.getPlacementOfWidget(nodeId).position;
     
     
     
     
-    CustomizableUI.moveWidgetWithinArea(aNode.id, position - 1);
+    CustomizableUI.moveWidgetWithinArea(nodeId, position - 1);
   }
 }
 
