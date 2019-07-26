@@ -43,6 +43,33 @@ char* DefaultServerNicknameForCert(CERTCertificate* cert);
 
 void SaveIntermediateCerts(const insanity::pkix::ScopedCERTCertList& certList);
 
+class NSSCertDBTrustDomain : public insanity::pkix::TrustDomain
+{
+
+public:
+  NSSCertDBTrustDomain(SECTrustType certDBTrustType,
+                       bool ocspDownloadEnabled, bool ocspStrict,
+                       void* pinArg);
+
+  virtual SECStatus FindPotentialIssuers(
+                        const SECItem* encodedIssuerName,
+                        PRTime time,
+                 insanity::pkix::ScopedCERTCertList& results);
+
+  virtual SECStatus GetCertTrust(insanity::pkix::EndEntityOrCA endEntityOrCA,
+                                 const CERTCertificate* candidateCert,
+                          TrustLevel* trustLevel);
+
+  virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
+                                     const CERTCertificate* cert);
+
+private:
+  const SECTrustType mCertDBTrustType;
+
+
+  void* mPinArg; 
+};
+
 } } 
 
 #endif 

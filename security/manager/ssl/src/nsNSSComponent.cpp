@@ -940,9 +940,6 @@ CipherSuiteChangeObserver::Observe(nsISupports* aSubject,
 void nsNSSComponent::setValidationOptions(bool isInitialSetting,
                                           const MutexAutoLock& lock)
 {
-  bool crlDownloading = Preferences::GetBool("security.CRL_download.enabled",
-                                             false);
-
   
   
   
@@ -959,9 +956,13 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
     Telemetry::Accumulate(Telemetry::CERT_OCSP_REQUIRED, ocspRequired);
   }
 
-  bool aiaDownloadEnabled = Preferences::GetBool("security.missing_cert_download.enabled",
-                                                 false);
+#ifndef NSS_NO_LIBPKIX
+  bool crlDownloading = Preferences::GetBool("security.CRL_download.enabled",
+                                             false);
+  bool aiaDownloadEnabled =
+    Preferences::GetBool("security.missing_cert_download.enabled", false);
 
+#endif
   bool ocspStaplingEnabled = Preferences::GetBool("security.ssl.enable_ocsp_stapling",
                                                   true);
   PublicSSLState()->SetOCSPStaplingEnabled(ocspStaplingEnabled);
@@ -970,11 +971,16 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
   CertVerifier::implementation_config certVerifierImplementation
     = CertVerifier::classic;
 
+  
+  if (Preferences::GetBool("security.use_insanity_verification", false)) {
+    certVerifierImplementation = CertVerifier::insanity;
+  } else {
 #ifndef NSS_NO_LIBPKIX
   if (Preferences::GetBool("security.use_libpkix_verification", false)) {
     certVerifierImplementation = CertVerifier::libpkix;
   }
 #endif
+  }
 
   CertVerifier::ocsp_download_config odc;
   CertVerifier::ocsp_strict_config osc;
@@ -983,10 +989,12 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
   SetClassicOCSPBehaviorFromPrefs(&odc, &osc, &ogc, lock);
   mDefaultCertVerifier = new SharedCertVerifier(
       certVerifierImplementation,
+#ifndef NSS_NO_LIBPKIX
       aiaDownloadEnabled ?
         CertVerifier::missing_cert_download_on : CertVerifier::missing_cert_download_off,
       crlDownloading ?
         CertVerifier::crl_download_allowed : CertVerifier::crl_local_only,
+#endif
       odc, osc, ogc);
 }
 

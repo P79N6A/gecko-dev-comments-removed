@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "insanity/ScopedPtr.h"
+#include "insanity/pkix.h"
 #include "certdb.h"
 #include "nss.h"
 #include "ocsp.h"
@@ -21,6 +21,10 @@
 
 using namespace insanity::pkix;
 
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gCertVerifierLog;
+#endif
+
 namespace mozilla { namespace psm {
 
 const char BUILTIN_ROOTS_MODULE_DEFAULT_NAME[] = "Builtin Roots Module";
@@ -30,6 +34,92 @@ namespace {
 inline void PORT_Free_string(char* str) { PORT_Free(str); }
 
 typedef ScopedPtr<SECMODModule, SECMOD_DestroyModule> ScopedSECMODModule;
+
+} 
+
+NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
+                                           bool ,
+                                           bool ,
+                                           void* pinArg)
+  : mCertDBTrustType(certDBTrustType)
+
+
+  , mPinArg(pinArg)
+{
+}
+
+SECStatus
+NSSCertDBTrustDomain::FindPotentialIssuers(
+  const SECItem* encodedIssuerName, PRTime time,
+   insanity::pkix::ScopedCERTCertList& results)
+{
+  
+  
+  
+  results = CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
+                                       encodedIssuerName, time, true);
+  if (!results) {
+    return SECFailure;
+  }
+
+  return SECSuccess;
+}
+
+SECStatus
+NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
+                                   const CERTCertificate* candidateCert,
+                                    TrustLevel* trustLevel)
+{
+  PORT_Assert(candidateCert);
+  PORT_Assert(trustLevel);
+  if (!candidateCert || !trustLevel) {
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+    return SECFailure;
+  }
+
+  
+  
+  
+  
+  
+  CERTCertTrust trust;
+  if (CERT_GetCertTrust(candidateCert, &trust) == SECSuccess) {
+    PRUint32 flags = SEC_GET_TRUST_FLAGS(&trust, mCertDBTrustType);
+
+    
+    
+    
+    
+    
+    PRUint32 relevantTrustBit = endEntityOrCA == MustBeCA ? CERTDB_TRUSTED_CA
+                                                          : CERTDB_TRUSTED;
+    if (((flags & (relevantTrustBit|CERTDB_TERMINAL_RECORD)))
+            == CERTDB_TERMINAL_RECORD) {
+      *trustLevel = ActivelyDistrusted;
+      return SECSuccess;
+    }
+
+    
+    
+    
+    if (flags & CERTDB_TRUSTED_CA) {
+      *trustLevel = TrustAnchor;
+      return SECSuccess;
+    }
+  }
+
+  *trustLevel = InheritsTrust;
+  return SECSuccess;
+}
+
+SECStatus
+NSSCertDBTrustDomain::VerifySignedData(const CERTSignedData* signedData,
+                                       const CERTCertificate* cert)
+{
+  return ::insanity::pkix::VerifySignedData(signedData, cert, mPinArg);
+}
+
+namespace {
 
 static char*
 nss_addEscape(const char* string, char quote)
