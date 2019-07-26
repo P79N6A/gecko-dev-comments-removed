@@ -1069,6 +1069,48 @@ add_task(function test_error_source()
 
 
 
+
+add_task(function test_error_source_partial()
+{
+  let sourceUrl = httpUrl("shorter-than-content-length-http-1-1.txt");
+
+  let download;
+  try {
+    if (!gUseLegacySaver) {
+      
+      
+      download = yield promiseNewDownload(sourceUrl);
+
+      do_check_true(download.error === null);
+
+      yield download.start();
+    } else {
+      
+      
+      
+      
+      download = yield promiseStartLegacyDownload(sourceUrl);
+      yield promiseDownloadStopped(download);
+    }
+    do_throw("The download should have failed.");
+  } catch (ex if ex instanceof Downloads.Error && ex.becauseSourceFailed) {
+    
+  }
+
+  
+  do_check_true(download.stopped);
+  do_check_false(download.canceled);
+  do_check_true(download.error !== null);
+  do_check_true(download.error.becauseSourceFailed);
+  do_check_false(download.error.becauseTargetFailed);
+  do_check_eq(download.error.result, Cr.NS_ERROR_NET_PARTIAL_TRANSFER);
+
+  do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
 add_task(function test_error_target()
 {
   
