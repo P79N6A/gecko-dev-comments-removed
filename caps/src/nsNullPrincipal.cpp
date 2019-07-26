@@ -150,7 +150,6 @@ NS_IMETHODIMP
 nsNullPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
 {
   
-  
   *aSecurityPolicy = nullptr;
   return NS_OK;
 }
@@ -158,7 +157,6 @@ nsNullPrincipal::GetSecurityPolicy(void** aSecurityPolicy)
 NS_IMETHODIMP
 nsNullPrincipal::SetSecurityPolicy(void* aSecurityPolicy)
 {
-  
   
   return NS_OK;
 }
@@ -172,8 +170,7 @@ nsNullPrincipal::GetURI(nsIURI** aURI)
 NS_IMETHODIMP
 nsNullPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 {
-  
-  *aCsp = nullptr;
+  NS_IF_ADDREF(*aCsp = mCSP);
   return NS_OK;
 }
 
@@ -181,7 +178,12 @@ NS_IMETHODIMP
 nsNullPrincipal::SetCsp(nsIContentSecurityPolicy* aCsp)
 {
   
-  return NS_ERROR_NOT_AVAILABLE;
+  
+  if (mCSP)
+    return NS_ERROR_ALREADY_INITIALIZED;
+
+  mCSP = aCsp;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
