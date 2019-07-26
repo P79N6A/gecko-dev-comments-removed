@@ -67,6 +67,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
+  "resource://gre/modules/AsyncShutdown.jsm");
 
 
 
@@ -573,9 +575,44 @@ this.PageThumbsStorage = {
 
 
 
-  wipe: function Storage_wipe() {
-    return PageThumbsWorker.post("wipe", [this.path]);
-  },
+  wipe: Task.async(function* Storage_wipe() {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let blocker = () => promise;
+
+    
+    
+    
+    AsyncShutdown.profileBeforeChange.addBlocker(
+      "PageThumbs: removing all thumbnails",
+      blocker);
+
+    
+    
+
+    let promise = PageThumbsWorker.post("wipe", [this.path]);
+    try {
+      yield promise;
+    }  finally {
+       
+       
+       if ("removeBlocker" in AsyncShutdown.profileBeforeChange) {
+         
+         
+         
+         AsyncShutdown.profileBeforeChange.removeBlocker(blocker);
+       }
+    }
+  }),
 
   fileExistsForURL: function Storage_fileExistsForURL(aURL) {
     return PageThumbsWorker.post("exists", [this.getFilePathForURL(aURL)]);
