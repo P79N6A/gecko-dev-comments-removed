@@ -52,8 +52,8 @@ const unsigned HRTFElevation::NumberOfTotalAzimuths = NumberOfRawAzimuths * Inte
 
 const size_t ResponseFrameSize = 256;
 
-bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
-                                                        RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR)
+bool HRTFElevation::calculateKernelForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
+                                                       RefPtr<HRTFKernel>& kernelL)
 {
     
     
@@ -92,7 +92,6 @@ bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevati
         return false;
     
     AudioChannel* leftEarImpulseResponse = impulseResponse->channelByType(AudioBus::ChannelLeft);
-    AudioChannel* rightEarImpulseResponse = impulseResponse->channelByType(AudioBus::ChannelRight);
 
     
     const size_t fftSize = HRTFPanner::fftSizeForSampleRate(sampleRate);
@@ -101,7 +100,6 @@ bool HRTFElevation::calculateKernelsForAzimuthElevation(int azimuth, int elevati
         return false;
 
     kernelL = HRTFKernel::create(leftEarImpulseResponse, fftSize / 2, sampleRate);
-    kernelR = HRTFKernel::create(rightEarImpulseResponse, fftSize / 2, sampleRate);
     
     return true;
 }
@@ -146,7 +144,6 @@ PassOwnPtr<HRTFElevation> HRTFElevation::createForSubject(const String& subjectN
         return nullptr;
         
     OwnPtr<HRTFKernelList> kernelListL = adoptPtr(new HRTFKernelList(NumberOfTotalAzimuths));
-    OwnPtr<HRTFKernelList> kernelListR = adoptPtr(new HRTFKernelList(NumberOfTotalAzimuths));
 
     
     int interpolatedIndex = 0;
@@ -155,7 +152,7 @@ PassOwnPtr<HRTFElevation> HRTFElevation::createForSubject(const String& subjectN
         int maxElevation = maxElevations[rawIndex];
         int actualElevation = min(elevation, maxElevation);
 
-        bool success = calculateKernelsForAzimuthElevation(rawIndex * AzimuthSpacing, actualElevation, sampleRate, subjectName, kernelListL->at(interpolatedIndex), kernelListR->at(interpolatedIndex));
+        bool success = calculateKernelForAzimuthElevation(rawIndex * AzimuthSpacing, actualElevation, sampleRate, subjectName, kernelListL->at(interpolatedIndex));
         if (!success)
             return nullptr;
             
@@ -171,11 +168,10 @@ PassOwnPtr<HRTFElevation> HRTFElevation::createForSubject(const String& subjectN
             float x = float(jj) / float(InterpolationFactor); 
 
             (*kernelListL)[i + jj] = HRTFKernel::createInterpolatedKernel(kernelListL->at(i).get(), kernelListL->at(j).get(), x);
-            (*kernelListR)[i + jj] = HRTFKernel::createInterpolatedKernel(kernelListR->at(i).get(), kernelListR->at(j).get(), x);
         }
     }
     
-    OwnPtr<HRTFElevation> hrtfElevation = adoptPtr(new HRTFElevation(kernelListL.release(), kernelListR.release(), elevation, sampleRate));
+    OwnPtr<HRTFElevation> hrtfElevation = adoptPtr(new HRTFElevation(kernelListL.release(), elevation, sampleRate));
     return hrtfElevation.release();
 }
 
@@ -188,23 +184,19 @@ PassOwnPtr<HRTFElevation> HRTFElevation::createByInterpolatingSlices(HRTFElevati
     ASSERT(x >= 0.0 && x < 1.0);
     
     OwnPtr<HRTFKernelList> kernelListL = adoptPtr(new HRTFKernelList(NumberOfTotalAzimuths));
-    OwnPtr<HRTFKernelList> kernelListR = adoptPtr(new HRTFKernelList(NumberOfTotalAzimuths));
 
     HRTFKernelList* kernelListL1 = hrtfElevation1->kernelListL();
-    HRTFKernelList* kernelListR1 = hrtfElevation1->kernelListR();
     HRTFKernelList* kernelListL2 = hrtfElevation2->kernelListL();
-    HRTFKernelList* kernelListR2 = hrtfElevation2->kernelListR();
     
     
     for (unsigned i = 0; i < NumberOfTotalAzimuths; ++i) {
         (*kernelListL)[i] = HRTFKernel::createInterpolatedKernel(kernelListL1->at(i).get(), kernelListL2->at(i).get(), x);
-        (*kernelListR)[i] = HRTFKernel::createInterpolatedKernel(kernelListR1->at(i).get(), kernelListR2->at(i).get(), x);
     }
 
     
     double angle = (1.0 - x) * hrtfElevation1->elevationAngle() + x * hrtfElevation2->elevationAngle();
     
-    OwnPtr<HRTFElevation> hrtfElevation = adoptPtr(new HRTFElevation(kernelListL.release(), kernelListR.release(), static_cast<int>(angle), sampleRate));
+    OwnPtr<HRTFElevation> hrtfElevation = adoptPtr(new HRTFElevation(kernelListL.release(), static_cast<int>(angle), sampleRate));
     return hrtfElevation.release();  
 }
 
@@ -226,15 +218,18 @@ void HRTFElevation::getKernelsFromAzimuth(double azimuthBlend, unsigned azimuthI
     }
     
     
+    
     kernelL = m_kernelListL->at(azimuthIndex).get();
-    kernelR = m_kernelListR->at(azimuthIndex).get();
+    int azimuthIndexR = (numKernels - azimuthIndex) % numKernels;
+    kernelR = m_kernelListL->at(azimuthIndexR).get();
 
-    frameDelayL = m_kernelListL->at(azimuthIndex)->frameDelay();
-    frameDelayR = m_kernelListR->at(azimuthIndex)->frameDelay();
+    frameDelayL = kernelL->frameDelay();
+    frameDelayR = kernelR->frameDelay();
 
-    int azimuthIndex2 = (azimuthIndex + 1) % numKernels;
-    double frameDelay2L = m_kernelListL->at(azimuthIndex2)->frameDelay();
-    double frameDelay2R = m_kernelListR->at(azimuthIndex2)->frameDelay();
+    int azimuthIndex2L = (azimuthIndex + 1) % numKernels;
+    double frameDelay2L = m_kernelListL->at(azimuthIndex2L)->frameDelay();
+    int azimuthIndex2R = (numKernels - azimuthIndex2L) % numKernels;
+    double frameDelay2R = m_kernelListL->at(azimuthIndex2R)->frameDelay();
 
     
     frameDelayL = (1.0 - azimuthBlend) * frameDelayL + azimuthBlend * frameDelay2L;
@@ -245,7 +240,6 @@ void HRTFElevation::reportMemoryUsage(MemoryObjectInfo* memoryObjectInfo) const
 {
     MemoryClassInfo info(memoryObjectInfo, this, PlatformMemoryTypes::AudioSharedData);
     info.addMember(m_kernelListL, "kernelListL");
-    info.addMember(m_kernelListR, "kernelListR");
 }
 
 } 

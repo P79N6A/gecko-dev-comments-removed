@@ -55,10 +55,6 @@ public:
     
     static PassOwnPtr<HRTFElevation> createByInterpolatingSlices(HRTFElevation* hrtfElevation1, HRTFElevation* hrtfElevation2, float x, float sampleRate);
 
-    
-    HRTFKernelList* kernelListL() { return m_kernelListL.get(); }
-    HRTFKernelList* kernelListR() { return m_kernelListR.get(); }
-
     double elevationAngle() const { return m_elevationAngle; }
     unsigned numberOfAzimuths() const { return NumberOfTotalAzimuths; }
     float sampleRate() const { return m_sampleRate; }
@@ -79,26 +75,27 @@ public:
     
     static const unsigned NumberOfTotalAzimuths;
 
-    
-    
-    
-    
-    static bool calculateKernelsForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
-                                                    RefPtr<HRTFKernel>& kernelL, RefPtr<HRTFKernel>& kernelR);
-
     void reportMemoryUsage(MemoryObjectInfo*) const;
 
 private:
-    HRTFElevation(PassOwnPtr<HRTFKernelList> kernelListL, PassOwnPtr<HRTFKernelList> kernelListR, int elevation, float sampleRate)
+    HRTFElevation(PassOwnPtr<HRTFKernelList> kernelListL, int elevation, float sampleRate)
         : m_kernelListL(kernelListL)
-        , m_kernelListR(kernelListR)
         , m_elevationAngle(elevation)
         , m_sampleRate(sampleRate)
     {
     }
 
+    
+    HRTFKernelList* kernelListL() { return m_kernelListL.get(); }
+
+    
+    
+    
+    
+    static bool calculateKernelForAzimuthElevation(int azimuth, int elevation, float sampleRate, const String& subjectName,
+                                                   RefPtr<HRTFKernel>& kernelL);
+
     OwnPtr<HRTFKernelList> m_kernelListL;
-    OwnPtr<HRTFKernelList> m_kernelListR;
     double m_elevationAngle;
     float m_sampleRate;
 };
