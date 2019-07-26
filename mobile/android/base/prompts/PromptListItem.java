@@ -47,7 +47,8 @@ public class PromptListItem {
         } else {
             mIntent = null;
             showAsActions = false;
-            isParent = aObject.optBoolean("isParent");
+            
+            isParent = aObject.optBoolean("isParent") || aObject.optBoolean("menu");
         }
 
         BitmapUtils.getDrawable(GeckoAppShell.getContext(), aObject.optString("icon"), new BitmapUtils.BitmapLoader() {

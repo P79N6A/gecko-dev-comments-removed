@@ -508,7 +508,7 @@ var BrowserApp = {
       NativeWindow.contextmenus.emailLinkContext,
       function(aTarget) {
         let url = NativeWindow.contextmenus._getLinkURL(aTarget);
-        let [,emailAddr] = NativeWindow.contextmenus._stripScheme(url);
+        let emailAddr = NativeWindow.contextmenus._stripScheme(url);
         NativeWindow.contextmenus._copyStringToDefaultClipboard(emailAddr);
       });
 
@@ -516,19 +516,19 @@ var BrowserApp = {
       NativeWindow.contextmenus.phoneNumberLinkContext,
       function(aTarget) {
         let url = NativeWindow.contextmenus._getLinkURL(aTarget);
-        let [,phoneNumber] = NativeWindow.contextmenus._stripScheme(url);
+        let phoneNumber = NativeWindow.contextmenus._stripScheme(url);
         NativeWindow.contextmenus._copyStringToDefaultClipboard(phoneNumber);
       });
 
     NativeWindow.contextmenus.add({
       label: Strings.browser.GetStringFromName("contextmenu.shareLink"),
-      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER-1, 
+      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER - 1, 
       selector: NativeWindow.contextmenus._disableInGuest(NativeWindow.contextmenus.linkShareableContext),
       showAsActions: function(aElement) {
         return {
           title: aElement.textContent.trim() || aElement.title.trim(),
           uri: NativeWindow.contextmenus._getLinkURL(aElement),
-        }
+        };
       },
       icon: "drawable://ic_menu_share",
       callback: function(aTarget) { }
@@ -540,13 +540,13 @@ var BrowserApp = {
       selector: NativeWindow.contextmenus._disableInGuest(NativeWindow.contextmenus.emailLinkContext),
       showAsActions: function(aElement) {
         let url = NativeWindow.contextmenus._getLinkURL(aElement);
-        let [, emailAddr] = NativeWindow.contextmenus._stripScheme(url);
+        let emailAddr = NativeWindow.contextmenus._stripScheme(url);
         let title = aElement.textContent || aElement.title;
         return {
           title: title,
           uri: emailAddr,
           type: "text/mailto",
-        }
+        };
       },
       icon: "drawable://ic_menu_share",
       callback: function(aTarget) { }
@@ -558,13 +558,13 @@ var BrowserApp = {
       selector: NativeWindow.contextmenus._disableInGuest(NativeWindow.contextmenus.phoneNumberLinkContext),
       showAsActions: function(aElement) {
         let url = NativeWindow.contextmenus._getLinkURL(aElement);
-        let [, phoneNumber] = NativeWindow.contextmenus._stripScheme(url);
+        let phoneNumber = NativeWindow.contextmenus._stripScheme(url);
         let title = aElement.textContent || aElement.title;
         return {
           title: title,
           uri: phoneNumber,
           type: "text/tel",
-        }
+        };
       },
       icon: "drawable://ic_menu_share",
       callback: function(aTarget) { }
@@ -622,7 +622,7 @@ var BrowserApp = {
 
     NativeWindow.contextmenus.add({
       label: Strings.browser.GetStringFromName("contextmenu.shareMedia"),
-      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER-1,
+      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER - 1,
       selector: NativeWindow.contextmenus._disableInGuest(NativeWindow.contextmenus.SelectorContext("video")),
       showAsActions: function(aElement) {
         let url = (aElement.currentSrc || aElement.src);
@@ -631,7 +631,7 @@ var BrowserApp = {
           title: title,
           uri: url,
           type: "video/*",
-        }
+        };
       },
       icon: "drawable://ic_menu_share",
       callback: function(aTarget) {
@@ -666,7 +666,7 @@ var BrowserApp = {
     NativeWindow.contextmenus.add({
       label: Strings.browser.GetStringFromName("contextmenu.shareImage"),
       selector: NativeWindow.contextmenus._disableInGuest(NativeWindow.contextmenus.imageSaveableContext),
-      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER-1, 
+      order: NativeWindow.contextmenus.DEFAULT_HTML5_ORDER - 1, 
       showAsActions: function(aTarget) {
         let doc = aTarget.ownerDocument;
         let imageCache = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools)
@@ -677,7 +677,7 @@ var BrowserApp = {
           title: src,
           uri: src,
           type: "image/*",
-        }
+        };
       },
       icon: "drawable://ic_menu_share",
       menu: true,
@@ -1991,7 +1991,7 @@ var NativeWindow = {
             return aElt.mozMatchesSelector(aSelector);
           return false;
         }
-      }
+      };
     },
 
     linkOpenableNonPrivateContext: {
@@ -2127,72 +2127,128 @@ var NativeWindow = {
           }
           return false;
         }
-      }
+      };
     },
+
+    
+
+
 
     get _target() {
       if (this._targetRef)
         return this._targetRef.get();
       return null;
     },
-  
+
     set _target(aTarget) {
       if (aTarget)
         this._targetRef = Cu.getWeakReference(aTarget);
       else this._targetRef = null;
     },
 
-    _addHTMLContextMenuItemsForElement: function(element) {
+    
+
+
+
+
+    _getHTMLContextMenuItemsForElement: function(element) {
       let htmlMenu = element.contextMenu;
-      if (!htmlMenu)
-        return;
+      if (!htmlMenu) {
+        return [];
+      }
 
       htmlMenu.QueryInterface(Components.interfaces.nsIHTMLMenu);
       htmlMenu.sendShowEvent();
 
-      this._addHTMLContextMenuItemsForMenu(htmlMenu, element);
+      return this._getHTMLContextMenuItemsForMenu(htmlMenu, element);
     },
 
-    _addHTMLContextMenuItemsForMenu: function(menu, target) {
+    
+
+
+
+
+    _getHTMLContextMenuItemsForMenu: function(menu, target) {
+      let items = [];
       for (let i = 0; i < menu.childNodes.length; i++) {
         let elt = menu.childNodes[i];
         if (!elt.label)
           continue;
 
-        this.menuitems.push(new HTMLContextMenuItem(elt, target));
+        items.push(new HTMLContextMenuItem(elt, target));
       }
+
+      return items;
     },
 
-    _containsItem: function(aId) {
-      if (!this.menuitems)
+    
+    _findMenuItem: function(aId) {
+      if (!this.menus) {
         return null;
-
-      let menu = this.menuitems;
-      for (let i = 0; i < menu.length; i++) {
-        if (menu[i].id == aId)
-          return menu[i];
       }
 
+      for (let context in this.menus) {
+        let menu = this.menus[context];
+        for (let i = 0; i < menu.length; i++) {
+          if (menu[i].id === aId) {
+            return menu[i];
+          }
+        }
+      }
       return null;
     },
 
+    
     shouldShow: function() {
-      return this.menuitems.length > 0;
+      for (let context in this.menus) {
+        let menu = this.menus[context];
+        if (menu.length > 0) {
+          return true;
+        }
+      }
+      return false;
     },
 
-    _addNativeContextMenuItems: function(element, x, y) {
+    
+
+
+    _getContextType: function(element) {
+      
+      if (element instanceof Ci.nsIDOMHTMLAnchorElement) {
+        let uri = this.makeURI(this._getLinkURL(element));
+        try {
+          return Strings.browser.GetStringFromName("browser.menu.context." + uri.scheme);
+        } catch(ex) { }
+      }
+
+      
+      try {
+        return Strings.browser.GetStringFromName("browser.menu.context." + element.nodeName.toLowerCase());
+      } catch(ex) { }
+
+      
+      return Strings.browser.GetStringFromName("browser.menu.context.default");
+    },
+
+    
+    _getNativeContextMenuItems: function(element, x, y) {
+      let res = [];
       for (let itemId of Object.keys(this.items)) {
         let item = this.items[itemId];
 
-        if (!this._containsItem(item.id) && item.matches(element, x, y)) {
-          this.menuitems.push(item);
+        if (!this._findMenuItem(item.id) && item.matches(element, x, y)) {
+          res.push(item);
         }
       }
+
+      return res;
     },
 
     
-    
-    
+
+
+
+
     _sendToContent: function(x, y) {
       let target = BrowserEventHandler._highlightElement || ElementTouchHelper.elementFromPoint(x, y);
       if (!target)
@@ -2215,7 +2271,7 @@ var NativeWindow = {
         target.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
         target.dispatchEvent(event);
       } else {
-        this.menuitems = null;
+        this.menus = null;
         Services.obs.notifyObservers({target: target, x: x, y: y}, "context-menu-not-shown", "");
 
         if (SelectionHandler.canSelect(target)) {
@@ -2230,6 +2286,7 @@ var NativeWindow = {
       }
     },
 
+    
     _getTitle: function(node) {
       if (node.hasAttribute && node.hasAttribute("title")) {
         return node.getAttribute("title");
@@ -2237,8 +2294,10 @@ var NativeWindow = {
       return this._getUrl(node);
     },
 
+    
     _getUrl: function(node) {
       if ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
+          (node instanceof Ci.nsIDOMHTMLAreaElement && node.href)) {
         return this._getLinkURL(node);
       } else if (node instanceof Ci.nsIImageLoadingContent && node.currentURI) {
         return node.currentURI.spec;
@@ -2249,16 +2308,43 @@ var NativeWindow = {
       return "";
     },
 
+    
+    _addMenuItems: function(items, context) {
+        if (!this.menus[context]) {
+          this.menus[context] = [];
+        }
+        this.menus[context] = this.menus[context].concat(items);
+    },
+
+    
+
+
     _buildMenu: function(x, y) {
       
       let element = this._target;
-      this.menuitems = [];
+
+      
+      
+      
+      
+      
+      
+      this.menus = {};
 
       while (element) {
+        let context = this._getContextType(element);
+
         
-        this._addHTMLContextMenuItemsForElement(element);
+        var items = this._getHTMLContextMenuItemsForElement(element);
+        if (items.length > 0) {
+          this._addMenuItems(items, context);
+        }
+
         
-        this._addNativeContextMenuItems(element, x, y);
+        items = this._getNativeContextMenuItems(element, x, y);
+        if (items.length > 0) {
+          this._addMenuItems(items, context);
+        }
 
         
         element = element.parentNode;
@@ -2276,6 +2362,7 @@ var NativeWindow = {
       this._innerShow(popupNode, aEvent.clientX, aEvent.clientY);
     },
 
+    
     _findTitle: function(node) {
       let title = "";
       while(node && !title) {
@@ -2285,17 +2372,57 @@ var NativeWindow = {
       return title;
     },
 
-    _getItems: function(target) {
-      return this._getItemsInList(target, this.menuitems);
+    
+
+
+
+
+
+
+
+    _reformatList: function(target) {
+      let contexts = Object.keys(this.menus);
+      if (contexts.length == 1) {
+        
+        return this._reformatMenuItems(target, this.menus[contexts[0]]);
+      }
+
+      
+      return this._reformatListAsTabs(target, this.menus);
     },
 
-    _getItemsInList: function(target, list) {
+    
+
+
+
+
+
+
+
+    _reformatListAsTabs: function(target, menus) {
       let itemArray = [];
-      for (let i = 0; i < list.length; i++) {
+      for (let context in menus) {
+        itemArray.push({
+          label: context,
+          items: this._reformatMenuItems(target, menus[context])
+        });
+      }
+
+      return itemArray;
+    },
+
+    
+
+
+
+    _reformatMenuItems: function(target, menuitems) {
+      let itemArray = [];
+
+      for (let i = 0; i < menuitems.length; i++) {
         let t = target;
         while(t) {
-          if (list[i].matches(t)) {
-            let val = list[i].getValue(t);
+          if (menuitems[i].matches(t)) {
+            let val = menuitems[i].getValue(t);
 
             
             if (val) {
@@ -2307,42 +2434,63 @@ var NativeWindow = {
           t = t.parentNode;
         }
       }
+
       return itemArray;
     },
 
+    
     _innerShow: function(target, x, y) {
       Haptic.performSimpleAction(Haptic.LongPress);
 
       
       let title = this._findTitle(target);
 
-      this.menuitems.sort((a,b) => {
-        if (a.order == b.order) {
-          return 0;
-        }
+      for (let context in this.menus) {
+        let menu = this.menus[context];
+        menu.sort((a,b) => {
+          if (a.order === b.order) {
+            return 0;
+          }
+          return (a.order > b.order) ? 1 : -1;
+        });
+      }
 
-        return (a.order > b.order) ? 1 : -1;
-      });
-
+      let useTabs = Object.keys(this.menus).length > 1;
       let prompt = new Prompt({
         window: target.ownerDocument.defaultView,
-        title: title
+        title: useTabs ? undefined : title
       });
 
-      let items = this._getItems(target);
-      prompt.setSingleChoiceItems(items);
+      let items = this._reformatList(target);
+      if (useTabs) {
+        prompt.addTabs({
+          id: "tabs",
+          items: items
+        });
+      } else {
+        prompt.setSingleChoiceItems(items);
+      }
+
       prompt.show(this._promptDone.bind(this, target, x, y, items));
     },
 
+    
     _promptDone: function(target, x, y, items, data) {
       if (data.button == -1) {
         
         return;
       }
 
-      let selectedItemId = items[data.list[0]].id;
-      let selectedItem = this._containsItem(selectedItemId);
-      this.menuitems = null;
+      let selectedItemId;
+      if (data.tabs) {
+        let menu = items[data.tabs.tab];
+        selectedItemId = menu.items[data.tabs.item].id;
+      } else {
+        selectedItemId = items[data.list[0]].id
+      }
+
+      let selectedItem = this._findMenuItem(selectedItemId);
+      this.menus = null;
 
       if (!selectedItem || !selectedItem.matches || !selectedItem.callback) {
         return;
@@ -2358,12 +2506,14 @@ var NativeWindow = {
       }
     },
 
+    
     handleEvent: function(aEvent) {
       BrowserEventHandler._cancelTapHighlight();
       aEvent.target.ownerDocument.defaultView.removeEventListener("contextmenu", this, false);
       this._show(aEvent);
     },
 
+    
     observe: function(aSubject, aTopic, aData) {
       let data = JSON.parse(aData);
       
@@ -2401,7 +2551,7 @@ var NativeWindow = {
             return false;
           return selector.matches(aElement, aX, aY);
         }
-      }
+      };
     },
 
     _getLinkURL: function ch_getLinkURL(aLink) {
@@ -2431,7 +2581,7 @@ var NativeWindow = {
 
     _stripScheme: function(aString) {
       let index = aString.indexOf(":");
-      return [aString.slice(0, index), aString.slice(index + 1)];
+      return aString.slice(index + 1);
     }
   }
 };
@@ -6375,7 +6525,7 @@ var ClipboardHelper = {
         }
         return false;
       }
-    }
+    };
   },
 
   selectAllContext: {
@@ -8417,11 +8567,13 @@ HTMLContextMenuItem.prototype = Object.create(ContextMenuItem.prototype, {
   getValue: {
     value: function(target) {
       let elt = this.menuElementRef.get();
-      if (!elt)
+      if (!elt) {
         return null;
+      }
 
-      if (elt.hasAttribute("hidden"))
+      if (elt.hasAttribute("hidden")) {
         return null;
+      }
 
       return {
         id: this.id,
