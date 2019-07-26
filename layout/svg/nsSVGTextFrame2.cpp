@@ -5505,14 +5505,14 @@ nsSVGTextFrame2::SetupContextPaint(gfxContext* aContext,
   const nsStyleSVG *style = aFrame->StyleSVG();
   const nsStyleSVGPaint &paint = style->*aFillOrStroke;
 
-  if (paint.mType != eStyleSVGPaintType_ObjectFill &&
-      paint.mType != eStyleSVGPaintType_ObjectStroke) {
+  if (paint.mType != eStyleSVGPaintType_ContextFill &&
+      paint.mType != eStyleSVGPaintType_ContextStroke) {
     return false;
   }
 
   gfxMatrix current = aContext->CurrentMatrix();
   nsRefPtr<gfxPattern> pattern =
-    paint.mType == eStyleSVGPaintType_ObjectFill ?
+    paint.mType == eStyleSVGPaintType_ContextFill ?
       aOuterContextPaint->GetFillPattern(aOpacity, current) :
       aOuterContextPaint->GetStrokePattern(aOpacity, current);
   if (!pattern) {
