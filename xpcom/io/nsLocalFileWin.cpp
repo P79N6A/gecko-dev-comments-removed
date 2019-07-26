@@ -1021,7 +1021,7 @@ nsLocalFile::ResolveShortcut()
     if (mResolvedPath.Length() != MAX_PATH)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    char16_t *resolvedPath = mResolvedPath.BeginWriting();
+    wchar_t *resolvedPath = wwc(mResolvedPath.BeginWriting());
 
     
     nsresult rv = gResolver->Resolve(mWorkingPath.get(), resolvedPath);
@@ -1256,7 +1256,7 @@ nsLocalFile::Create(uint32_t type, uint32_t attributes)
     
     
 
-    char16_t* path = mResolvedPath.BeginWriting();
+    wchar_t* path = wwc(mResolvedPath.BeginWriting());
 
     if (path[0] == L'\\' && path[1] == L'\\')
     {
@@ -1635,8 +1635,6 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
 
     rv = NS_ERROR_FAILURE;
 
-    
-    
     const WCHAR *path = mFollowSymlinks ? mResolvedPath.get() : mWorkingPath.get();
 
     DWORD dummy;
@@ -2343,11 +2341,11 @@ nsLocalFile::SetLastModifiedTimeOfLink(PRTime aLastModifiedTime)
 }
 
 nsresult
-nsLocalFile::SetModDate(PRTime aLastModifiedTime, const char16_t *filePath)
+nsLocalFile::SetModDate(PRTime aLastModifiedTime, const wchar_t *filePath)
 {
     
     
-    HANDLE file = ::CreateFileW(char16ptr_t(filePath), 
+    HANDLE file = ::CreateFileW(filePath,          
                                 GENERIC_WRITE,     
                                 0,                 
                                 nullptr,           
@@ -3446,7 +3444,7 @@ nsresult nsDriveEnumerator::Init()
     
     if (!mDrives.SetLength(length+1, fallible_t()))
         return NS_ERROR_OUT_OF_MEMORY;
-    if (!GetLogicalDriveStringsW(length, mDrives.BeginWriting()))
+    if (!GetLogicalDriveStringsW(length, wwc(mDrives.BeginWriting())))
         return NS_ERROR_FAILURE;
     mDrives.BeginReading(mStartOfCurrentDrive);
     mDrives.EndReading(mEndOfDrivesString);
