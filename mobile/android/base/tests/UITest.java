@@ -11,6 +11,8 @@ import org.mozilla.gecko.Assert;
 import org.mozilla.gecko.Driver;
 import org.mozilla.gecko.FennecNativeActions;
 import org.mozilla.gecko.FennecNativeDriver;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.tests.components.AboutHomeComponent;
 import org.mozilla.gecko.tests.components.AppMenuComponent;
 import org.mozilla.gecko.tests.components.BaseComponent;
@@ -78,6 +80,10 @@ abstract class UITest extends BaseRobocopTest
     public void tearDown() throws Exception {
         try {
             mAsserter.endTest();
+            
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Robocop:Quit", null));
+            mSolo.sleep(7000);
+            
             mSolo.finishOpenedActivities();
         } catch (Throwable e) {
             e.printStackTrace();
