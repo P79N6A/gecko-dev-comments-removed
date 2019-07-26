@@ -36,7 +36,6 @@ class LICM
 class Loop
 {
     MIRGenerator *mir;
-    MIRGraph &graph;
 
   public:
     
@@ -48,7 +47,7 @@ class Loop
 
   public:
     
-    Loop(MIRGenerator *mir, MBasicBlock *header, MBasicBlock *footer, MIRGraph &graph);
+    Loop(MIRGenerator *mir, MBasicBlock *header, MBasicBlock *footer);
 
     
     LoopReturn init();
