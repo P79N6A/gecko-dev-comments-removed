@@ -46,12 +46,11 @@
 #include "../CityHash.h" 
 
 #include <stdlib.h>  
-#include "stdint.h"
 #include <utility>
 
-typedef uint8_t uint8;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
+typedef unsigned __int8 uint8;
+typedef unsigned __int32 uint32;
+typedef unsigned __int64 uint64;
 typedef std::pair<uint64, uint64> uint128;
 
 inline uint64 Uint128Low64(const uint128& x) { return x.first; }
@@ -80,7 +79,7 @@ uint128 CityHash128WithSeed(const char *s, size_t len, uint128 seed);
 
 inline uint64 Hash128to64(const uint128& x) {
   
-  const uint64 kMul = 0x9ddfea08eb382d69ULL;
+  const uint64 kMul = 0x9ddfea08eb382d69;
   uint64 a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
   a ^= (a >> 47);
   uint64 b = (Uint128High64(x) ^ a) * kMul;
