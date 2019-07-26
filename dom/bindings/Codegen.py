@@ -5111,32 +5111,6 @@ class CGMethodCall(CGThing):
                         getPerSignatureCall(signature, distinguishingIndex + 1),
                         indent))
 
-            def hasConditionalConversion(type):
-                """
-                Return whether the argument conversion for this type will be
-                conditional on the type of incoming JS value.  For example, for
-                interface types the conversion is conditional on the incoming
-                value being isObject().
-
-                For the types for which this returns false, we do not have to
-                output extra isUndefined() or isNullOrUndefined() cases, because
-                null/undefined values will just fall through into our
-                unconditional conversion.
-                """
-                if type.isString() or type.isEnum():
-                    return False
-                if type.isBoolean():
-                    distinguishingTypes = (distinguishingType(s) for s in
-                                           possibleSignatures)
-                    return any(t.isString() or t.isEnum() or t.isNumeric()
-                               for t in distinguishingTypes)
-                if type.isNumeric():
-                    distinguishingTypes = (distinguishingType(s) for s in
-                                           possibleSignatures)
-                    return any(t.isString() or t.isEnum()
-                               for t in distinguishingTypes)
-                return True
-
             
             
             
@@ -5147,11 +5121,14 @@ class CGMethodCall(CGThing):
             
             
             
-            nullOrUndefSigs = [
-                s for s in possibleSignatures
-                if ((distinguishingType(s).nullable() and
-                     hasConditionalConversion(distinguishingType(s))) or
-                    distinguishingType(s).isDictionary())]
+            
+            
+            nullOrUndefSigs = [s for s in possibleSignatures
+                               if ((distinguishingType(s).nullable() and not
+                                    distinguishingType(s).isString() and not
+                                    distinguishingType(s).isEnum() and not
+                                   distinguishingType(s).isPrimitive()) or
+                                   distinguishingType(s).isDictionary())]
             
             assert len(nullOrUndefSigs) < 2
             if len(nullOrUndefSigs) > 0:
