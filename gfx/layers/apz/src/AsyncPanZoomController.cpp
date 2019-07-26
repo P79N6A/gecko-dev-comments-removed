@@ -264,6 +264,10 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -1328,6 +1332,10 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
 }
 
 bool AsyncPanZoomController::OverscrollBy(const CSSPoint& aOverscroll) {
+  if (!gfxPrefs::APZOverscrollEnabled()) {
+    return false;
+  }
+
   ReentrantMonitorAutoEnter lock(mMonitor);
   
   
