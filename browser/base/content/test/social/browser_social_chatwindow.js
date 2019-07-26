@@ -44,13 +44,6 @@ function openChat(provider, callback) {
   gURLsNotRemembered.push(url);
 }
 
-function waitPrefChange(cb) {
-  Services.prefs.addObserver("social.enabled", function prefObserver(subject, topic, data) {
-    Services.prefs.removeObserver("social.enabled", prefObserver);
-    executeSoon(cb);
-  }, false);
-}
-
 function test() {
   requestLongerTimeout(2); 
   waitForExplicitFinish();
@@ -68,6 +61,7 @@ function test() {
     ok(Social.providers[0].getWorkerPort(), "provider 0 has port");
     ok(Social.providers[1].getWorkerPort(), "provider 1 has port");
     ok(Social.providers[2].getWorkerPort(), "provider 2 has port");
+    SocialSidebar.show();
     runSocialTests(tests, undefined, postSubTest, function() {
       window.moveTo(oldleft, window.screenY)
       window.resizeTo(oldwidth, window.outerHeight);
@@ -79,7 +73,7 @@ function test() {
 var tests = {
   testOpenCloseChat: function(next) {
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.onmessage = function (e) {
       let topic = e.data.topic;
@@ -119,7 +113,7 @@ var tests = {
     
     
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     let seen_opened = false;
     port.onmessage = function (e) {
       let topic = e.data.topic;
@@ -154,7 +148,7 @@ var tests = {
   testManyChats: function(next) {
     
     
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     let chats = document.getElementById("pinnedchats");
     ok(port, "provider has a port");
     ok(chats.menupopup.parentNode.collapsed, "popup nub collapsed at start");
@@ -193,9 +187,9 @@ var tests = {
     maybeOpenAnother();
   },
   testWorkerChatWindow: function(next) {
-    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
+    const chatUrl = SocialSidebar.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.postMessage({topic: "test-init"});
     port.onmessage = function (e) {
@@ -219,7 +213,7 @@ var tests = {
   },
   testCloseSelf: function(next) {
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.onmessage = function (e) {
       let topic = e.data.topic;
@@ -247,7 +241,7 @@ var tests = {
   },
   testSameChatCallbacks: function(next) {
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     let seen_opened = false;
     port.onmessage = function (e) {
       let topic = e.data.topic;
@@ -278,7 +272,7 @@ var tests = {
 
   
   testRemoveAll: function(next, mode) {
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     port.postMessage({topic: "test-init"});
     get3ChatsForCollapsing(mode || "normal", function() {
       let chatbar = window.SocialChatBar.chatbar;
@@ -334,7 +328,7 @@ var tests = {
   },
 
   testShowWhenCollapsed: function(next) {
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     port.postMessage({topic: "test-init"});
     get3ChatsForCollapsing("normal", function(first, second, third) {
       let chatbar = window.SocialChatBar.chatbar;
@@ -348,7 +342,7 @@ var tests = {
   },
 
   testActivity: function(next) {
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     port.postMessage({topic: "test-init"});
     get3ChatsForCollapsing("normal", function(first, second, third) {
       let chatbar = window.SocialChatBar.chatbar;
@@ -374,7 +368,7 @@ var tests = {
       ok(first.hasAttribute("activity"), "first chat should now have activity");
       ok(chatbar.nub.hasAttribute("activity"), "nub should also have activity");
       
-      chatbar.openChat(Social.provider, first.getAttribute("src"));
+      chatbar.openChat(SocialSidebar.provider, first.getAttribute("src"));
       ok(!first.hasAttribute("activity"), "first chat should no longer have activity");
       
       todo(!chatbar.nub.hasAttribute("activity"), "Bug 806266 - nub should no longer have activity");
@@ -404,7 +398,7 @@ var tests = {
 
   testOnlyOneCallback: function(next) {
     let chats = document.getElementById("pinnedchats");
-    let port = Social.provider.getWorkerPort();
+    let port = SocialSidebar.provider.getWorkerPort();
     let numOpened = 0;
     port.onmessage = function (e) {
       let topic = e.data.topic;
@@ -430,8 +424,8 @@ var tests = {
 
   testSecondTopLevelWindow: function(next) {
     
-    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
-    let port = Social.provider.getWorkerPort();
+    const chatUrl = SocialSidebar.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
+    let port = SocialSidebar.provider.getWorkerPort();
     let secondWindow;
     port.onmessage = function(e) {
       if (e.data.topic == "test-init-done") {
@@ -455,7 +449,7 @@ var tests = {
     
     
     ok(!window.SocialChatBar.hasChats, "first window should start with no chats");
-    openChat(Social.provider, function() {
+    openChat(SocialSidebar.provider, function() {
       ok(window.SocialChatBar.hasChats, "first window has the chat");
       
       
@@ -463,19 +457,19 @@ var tests = {
       secondWindow.addEventListener("load", function loadListener() {
         secondWindow.removeEventListener("load", loadListener);
         ok(!secondWindow.SocialChatBar.hasChats, "second window has no chats");
-        openChat(Social.provider, function() {
+        openChat(SocialSidebar.provider, function() {
           ok(secondWindow.SocialChatBar.hasChats, "second window now has chats");
           is(window.SocialChatBar.chatbar.childElementCount, 1, "first window still has 1 chat");
           window.SocialChatBar.chatbar.removeAll();
           
-          openChat(Social.provider, function() {
+          openChat(SocialSidebar.provider, function() {
             ok(!window.SocialChatBar.hasChats, "first window has no chats");
             ok(secondWindow.SocialChatBar.hasChats, "second window has a chat");
 
             
             
             waitForFocus(function() {
-              openChat(Social.provider, function() {
+              openChat(SocialSidebar.provider, function() {
                 ok(window.SocialChatBar.hasChats, "first window has chats");
                 window.SocialChatBar.chatbar.removeAll();
                 ok(!window.SocialChatBar.hasChats, "first window has no chats");
@@ -488,7 +482,7 @@ var tests = {
                   
                   
                   
-                  openChat(Social.provider, function() {
+                  openChat(SocialSidebar.provider, function() {
                     let os = Services.appinfo.OS;
                     const BROKEN_WM_Z_ORDER = os != "WINNT" && os != "Darwin";
                     let fn = BROKEN_WM_Z_ORDER ? todo : ok;
@@ -542,8 +536,8 @@ var tests = {
   
   
   testCloseOnLogout: function(next) {
-    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
-    let port = Social.provider.getWorkerPort();
+    const chatUrl = SocialSidebar.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
+    let port = SocialSidebar.provider.getWorkerPort();
     ok(port, "provider has a port");
     let opened = false;
     port.onmessage = function (e) {

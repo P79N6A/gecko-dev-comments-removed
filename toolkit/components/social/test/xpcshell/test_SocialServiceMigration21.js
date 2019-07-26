@@ -22,8 +22,6 @@ function run_test() {
   DEFAULT_PREFS.setCharPref(manifest.origin, JSON.stringify(manifest));
   Services.prefs.setBoolPref("social.active", true);
 
-  
-  Services.prefs.setBoolPref("social.enabled", true);
   Cu.import("resource://gre/modules/SocialService.jsm");
 
   let runner = new AsyncRunner();

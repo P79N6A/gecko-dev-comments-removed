@@ -40,7 +40,7 @@ function openChatViaWorkerMessage(port, data, callback) {
                       
                       
                       
-                      SocialChatBar.openChat(Social.provider,
+                      SocialChatBar.openChat(SocialSidebar.provider,
                                              data,
                                              function() {
                                                 callback();
@@ -55,7 +55,7 @@ let isSidebarLoaded = false;
 
 function startTestAndWaitForSidebar(callback) {
   let doneCallback;
-  let port = Social.provider.getWorkerPort();
+  let port = SocialSidebar.provider.getWorkerPort();
   function maybeCallback() {
     if (!doneCallback)
       callback(port);
@@ -114,6 +114,7 @@ function test() {
     }
     
     runSocialTestWithProvider(manifest, function (finishcb) {
+      SocialSidebar.show();
       runSocialTests(tests, preSubTest, postSubTest, function () {
         finishcb();
       });

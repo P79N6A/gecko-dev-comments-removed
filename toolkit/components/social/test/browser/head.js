@@ -4,14 +4,6 @@
 
 let SocialService = Components.utils.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
 
-function ensureSocialEnabled() {
-  let initiallyEnabled = SocialService.enabled;
-  SocialService.enabled = true;
-  registerCleanupFunction(function () {
-    SocialService.enabled = initiallyEnabled;
-  });
-}
-
 
 
 

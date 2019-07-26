@@ -34,12 +34,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "etld",
 
 
 let SocialServiceInternal = {
-  _enabled: Services.prefs.getBoolPref("social.enabled"),
-  get enabled() this._enabled,
-  set enabled(val) {
-    this._enabled = !!val;
-    Services.prefs.setBoolPref("social.enabled", !!val);
-  },
+  get enabled() this.providerArray.length > 0,
 
   get providerArray() {
     return [p for ([, p] of Iterator(this.providers))];
@@ -142,6 +137,8 @@ XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
   for (let manifest of this.manifests) {
     try {
       if (ActiveProviders.has(manifest.origin)) {
+        
+        MozSocialAPI.enabled = true;
         let provider = new SocialProvider(manifest);
         providers[provider.origin] = provider;
       }
@@ -215,11 +212,14 @@ let ActiveProviders = {
 };
 
 function migrateSettings() {
-  let activeProviders;
+  let activeProviders, enabled;
   try {
     activeProviders = Services.prefs.getCharPref("social.activeProviders");
   } catch(e) {
     
+  }
+  if (Services.prefs.prefHasUserValue("social.enabled")) {
+    enabled = Services.prefs.getBoolPref("social.enabled");
   }
   if (activeProviders) {
     
@@ -273,7 +273,14 @@ function migrateSettings() {
         string.data = JSON.stringify(manifest);
         Services.prefs.setComplexValue(prefname, Ci.nsISupportsString, string);
       }
+      
+      
+      if (enabled === false) {
+        ActiveProviders.delete(origin);
+      }
     }
+    ActiveProviders.flush();
+    Services.prefs.clearUserPref("social.enabled");
     return;
   }
 
@@ -338,9 +345,6 @@ function initService() {
     
     Cu.reportError("Error migrating social settings: " + e);
   }
-  
-  if (SocialServiceInternal.enabled)
-    MozSocialAPI.enabled = true;
 }
 
 function schedule(callback) {
@@ -363,21 +367,7 @@ this.SocialService = {
     return SocialServiceInternal.enabled;
   },
   set enabled(val) {
-    let enable = !!val;
-
-    
-    
-    if (enable == SocialServiceInternal.enabled &&
-        !Services.appinfo.inSafeMode)
-      return;
-
-    
-    if (!enable)
-      SocialServiceInternal.providerArray.forEach(function (p) p.enabled = false);
-
-    SocialServiceInternal.enabled = enable;
-    MozSocialAPI.enabled = enable;
-    Services.telemetry.getHistogramById("SOCIAL_TOGGLED").add(enable);
+    throw new Error("not allowed to set SocialService.enabled");
   },
 
   
@@ -410,6 +400,8 @@ this.SocialService = {
     if (SocialServiceInternal.providers[manifest.origin])
       throw new Error("SocialService.addProvider: provider with this origin already exists");
 
+    
+    MozSocialAPI.enabled = true;
     let provider = new SocialProvider(manifest);
     SocialServiceInternal.providers[provider.origin] = provider;
     ActiveProviders.add(provider.origin);
@@ -439,6 +431,8 @@ this.SocialService = {
     ActiveProviders.delete(provider.origin);
 
     delete SocialServiceInternal.providers[origin];
+    
+    MozSocialAPI.enabled = SocialServiceInternal.enabled;
 
     if (addon) {
       

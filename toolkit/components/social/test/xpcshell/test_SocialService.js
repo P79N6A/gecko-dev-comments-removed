@@ -23,34 +23,37 @@ function run_test() {
     }
   ];
 
-  manifests.forEach(function (manifest) {
-    MANIFEST_PREFS.setCharPref(manifest.origin, JSON.stringify(manifest));
-  });
-  
-  let activeVal = Cc["@mozilla.org/supports-string;1"].
-             createInstance(Ci.nsISupportsString);
-  let active = {};
-  for (let m of manifests)
-    active[m.origin] = 1;
-  activeVal.data = JSON.stringify(active);
-  Services.prefs.setComplexValue("social.activeProviders",
-                                 Ci.nsISupportsString, activeVal);
-  Services.prefs.setCharPref("social.provider.current", manifests[0].origin);
-
-  
-  Services.prefs.setBoolPref("social.enabled", true);
   Cu.import("resource://gre/modules/SocialService.jsm");
+  Cu.import("resource://gre/modules/MozSocialAPI.jsm");
 
   let runner = new AsyncRunner();
   let next = runner.next.bind(runner);
+  runner.appendIterator(testAddProviders(manifests, next));
   runner.appendIterator(testGetProvider(manifests, next));
   runner.appendIterator(testGetProviderList(manifests, next));
-  runner.appendIterator(testEnabled(manifests, next));
   runner.appendIterator(testAddRemoveProvider(manifests, next));
   runner.appendIterator(testIsSameOrigin(manifests, next));
   runner.appendIterator(testResolveUri  (manifests, next));
   runner.appendIterator(testOrderedProviders(manifests, next));
+  runner.appendIterator(testRemoveProviders(manifests, next));
   runner.next();
+}
+
+function testAddProviders(manifests, next) {
+  do_check_false(SocialService.enabled);
+  let provider = yield SocialService.addProvider(manifests[0], next);
+  do_check_true(SocialService.enabled);
+  do_check_true(MozSocialAPI._enabled);
+  do_check_false(provider.enabled);
+  provider = yield SocialService.addProvider(manifests[1], next);
+  do_check_false(provider.enabled);
+}
+
+function testRemoveProviders(manifests, next) {
+  do_check_true(SocialService.enabled);
+  yield SocialService.removeProvider(manifests[0].origin, next);
+  yield SocialService.removeProvider(manifests[1].origin, next);
+  do_check_false(SocialService.enabled);
 }
 
 function testGetProvider(manifests, next) {
@@ -76,46 +79,6 @@ function testGetProviderList(manifests, next) {
     do_check_eq(provider.workerURL, manifests[i].workerURL);
     do_check_eq(provider.name, manifests[i].name);
   }
-}
-
-
-function testEnabled(manifests, next) {
-  
-  let providers = yield SocialService.getProviderList(next);
-  do_check_true(providers.length >= manifests.length);
-  do_check_true(SocialService.enabled, "social enabled at test start");
-  providers.forEach(function (provider) {
-    do_check_false(provider.enabled);
-  });
-
-  do_test_pending();
-  function waitForEnableObserver(cb) {
-    Services.prefs.addObserver("social.enabled", function prefObserver(subj, topic, data) {
-      Services.prefs.removeObserver("social.enabled", prefObserver);
-      cb();
-    }, false);
-  }
-
-  
-  providers[providers.length-1].enabled = true;
-
-  
-  waitForEnableObserver(function() {
-    do_check_true(!SocialService.enabled);
-    providers.forEach(function (provider) {
-      do_check_false(provider.enabled);
-    });
-    waitForEnableObserver(function() {
-      do_check_true(SocialService.enabled);
-      
-      providers.forEach(function (provider) {
-        do_check_false(provider.enabled);
-      });
-      do_test_finished();
-    });
-    SocialService.enabled = true;
-  });
-  SocialService.enabled = false;
 }
 
 function testAddRemoveProvider(manifests, next) {

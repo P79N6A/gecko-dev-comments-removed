@@ -42,7 +42,7 @@ function openPanel(url, panelCallback, loadCallback) {
 
 function openChat(url, panelCallback, loadCallback) {
   
-  SocialChatBar.openChat(Social.provider, url, panelCallback);
+  SocialChatBar.openChat(SocialSidebar.provider, url, panelCallback);
   SocialChatBar.chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
     SocialChatBar.chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
     loadCallback();
@@ -79,11 +79,6 @@ let manifest = {
 
 function test() {
   waitForExplicitFinish();
-  
-  Services.prefs.setBoolPref("social.sidebar.open", false);
-  registerCleanupFunction(function() {
-    Services.prefs.clearUserPref("social.sidebar.open");
-  });
 
   runSocialTestWithProvider(manifest, function (finishcb) {
     runSocialTests(tests, undefined, goOnline, finishcb);
@@ -113,10 +108,10 @@ var tests = {
     });
     
     
-    ensureWorkerLoaded(Social.provider, function() {
+    ensureWorkerLoaded(SocialSidebar.provider, function() {
       
       goOffline();
-      Services.prefs.setBoolPref("social.sidebar.open", true);
+      SocialSidebar.show();
   });
   },
 
