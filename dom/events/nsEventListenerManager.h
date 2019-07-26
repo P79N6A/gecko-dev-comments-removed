@@ -23,7 +23,6 @@ class nsPIDOMWindow;
 class nsIEventListenerInfo;
 class nsIScriptContext;
 
-struct nsListenerStruct;
 class nsEventListenerManager;
 
 template<class T> class nsCOMArray;
@@ -39,8 +38,7 @@ typedef CallbackObjectHolder<EventListener, nsIDOMEventListener>
 
 struct EventListenerFlags
 {
-  friend struct ::nsListenerStruct;
-  friend class  ::nsEventListenerManager;
+  friend class ::nsEventListenerManager;
 private:
   
   
@@ -156,58 +154,60 @@ typedef enum
     eListenerTypeCount
 } nsListenerType;
 
-struct nsListenerStruct
-{
-  mozilla::dom::EventListenerHolder mListener;
-  nsCOMPtr<nsIAtom>             mTypeAtom;   
-  nsString                      mTypeString; 
-  uint16_t                      mEventType;
-  uint8_t                       mListenerType;
-  bool                          mListenerIsHandler : 1;
-  bool                          mHandlerIsString : 1;
-  bool                          mAllEvents : 1;
-
-  mozilla::dom::EventListenerFlags mFlags;
-
-  nsIJSEventListener* GetJSListener() const {
-    return (mListenerType == eJSEventListener) ?
-      static_cast<nsIJSEventListener *>(mListener.GetXPCOMCallback()) : nullptr;
-  }
-
-  nsListenerStruct()
-  {
-    MOZ_ASSERT(sizeof(mListenerType) == 1);
-    MOZ_ASSERT(eListenerTypeCount < 255);
-  }
-
-  ~nsListenerStruct()
-  {
-    if ((mListenerType == eJSEventListener) && mListener) {
-      static_cast<nsIJSEventListener*>(mListener.GetXPCOMCallback())->Disconnect();
-    }
-  }
-
-  MOZ_ALWAYS_INLINE bool IsListening(const mozilla::WidgetEvent* aEvent) const
-  {
-    if (mFlags.mInSystemGroup != aEvent->mFlags.mInSystemGroup) {
-      return false;
-    }
-    
-    
-    
-    return ((mFlags.mCapture && aEvent->mFlags.mInCapturePhase) ||
-            (!mFlags.mCapture && aEvent->mFlags.mInBubblingPhase));
-  }
-};
-
 
 
 
 
 class nsEventListenerManager
 {
-
 public:
+  struct Listener
+  {
+    mozilla::dom::EventListenerHolder mListener;
+    nsCOMPtr<nsIAtom> mTypeAtom; 
+    nsString mTypeString; 
+    uint16_t mEventType;
+    uint8_t mListenerType;
+    bool mListenerIsHandler : 1;
+    bool mHandlerIsString : 1;
+    bool mAllEvents : 1;
+
+    mozilla::dom::EventListenerFlags mFlags;
+
+    nsIJSEventListener* GetJSListener() const
+    {
+      return (mListenerType == eJSEventListener) ?
+        static_cast<nsIJSEventListener *>(mListener.GetXPCOMCallback()) :
+        nullptr;
+    }
+
+    Listener()
+    {
+      MOZ_ASSERT(sizeof(mListenerType) == 1);
+      MOZ_ASSERT(eListenerTypeCount < 255);
+    }
+
+    ~Listener()
+    {
+      if ((mListenerType == eJSEventListener) && mListener) {
+        static_cast<nsIJSEventListener*>(
+          mListener.GetXPCOMCallback())->Disconnect();
+      }
+    }
+
+    MOZ_ALWAYS_INLINE bool IsListening(const mozilla::WidgetEvent* aEvent) const
+    {
+      if (mFlags.mInSystemGroup != aEvent->mFlags.mInSystemGroup) {
+        return false;
+      }
+      
+      
+      
+      return ((mFlags.mCapture && aEvent->mFlags.mInCapturePhase) ||
+              (!mFlags.mCapture && aEvent->mFlags.mInBubblingPhase));
+    }
+  };
+
   nsEventListenerManager(mozilla::dom::EventTarget* aTarget);
   virtual ~nsEventListenerManager();
 
@@ -418,7 +418,7 @@ protected:
                            mozilla::dom::EventTarget* aCurrentTarget,
                            nsEventStatus* aEventStatus);
 
-  nsresult HandleEventSubType(nsListenerStruct* aListenerStruct,
+  nsresult HandleEventSubType(Listener* aListener,
                               nsIDOMEvent* aDOMEvent,
                               mozilla::dom::EventTarget* aCurrentTarget);
 
@@ -428,15 +428,16 @@ protected:
 
 
 
-  nsresult CompileEventHandlerInternal(nsListenerStruct *aListenerStruct,
+  nsresult CompileEventHandlerInternal(Listener* aListener,
                                        const nsAString* aBody,
                                        mozilla::dom::Element* aElement);
 
   
 
 
-  nsListenerStruct* FindEventHandler(uint32_t aEventType, nsIAtom* aTypeAtom,
-                                     const nsAString& aTypeString);
+  Listener* FindEventHandler(uint32_t aEventType,
+                             nsIAtom* aTypeAtom,
+                             const nsAString& aTypeString);
 
   
 
@@ -445,12 +446,11 @@ protected:
 
 
 
-
-  nsListenerStruct* SetEventHandlerInternal(JS::Handle<JSObject*> aScopeGlobal,
-                                            nsIAtom* aName,
-                                            const nsAString& aTypeString,
-                                            const nsEventHandler& aHandler,
-                                            bool aPermitUntrustedEvents);
+  Listener* SetEventHandlerInternal(JS::Handle<JSObject*> aScopeGlobal,
+                                    nsIAtom* aName,
+                                    const nsAString& aTypeString,
+                                    const nsEventHandler& aHandler,
+                                    bool aPermitUntrustedEvents);
 
   bool IsDeviceType(uint32_t aType);
   void EnableDevice(uint32_t aType);
@@ -537,7 +537,7 @@ protected:
   nsPIDOMWindow* GetInnerWindowForTarget();
   already_AddRefed<nsPIDOMWindow> GetTargetAsInnerWindow() const;
 
-  bool ListenerCanHandle(nsListenerStruct* aLs, mozilla::WidgetEvent* aEvent);
+  bool ListenerCanHandle(Listener* aListener, mozilla::WidgetEvent* aEvent);
 
   already_AddRefed<nsIScriptGlobalObject>
   GetScriptGlobalAndDocument(nsIDocument** aDoc);
@@ -554,7 +554,7 @@ protected:
   uint32_t mIsMainThreadELM : 1;
   uint32_t mNoListenerForEvent : 22;
 
-  nsAutoTObserverArray<nsListenerStruct, 2> mListeners;
+  nsAutoTObserverArray<Listener, 2> mListeners;
   mozilla::dom::EventTarget*                mTarget;  
   nsCOMPtr<nsIAtom>                         mNoListenerForEventAtom;
 
