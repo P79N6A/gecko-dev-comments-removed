@@ -4,7 +4,7 @@
 
 
 
-import re, sys, os, os.path, logging, shutil, signal, math, time
+import re, sys, os, os.path, logging, shutil, signal, math, time, traceback
 import xml.dom.minidom
 from glob import glob
 from optparse import OptionParser
@@ -891,7 +891,21 @@ class XPCShellTests(object):
         
         
         if self.profileDir and not self.interactive and not self.singleFile:
-          self.removeDir(self.profileDir)
+          try:
+            self.removeDir(self.profileDir)
+          except Exception:
+            message = "TEST-UNEXPECTED-FAIL | %s | Failed to clean up the test profile directory: %s" % (name, sys.exc_info()[0])
+            self.log.error(message)
+            print_stdout(stdout)
+            print_stdout(traceback.format_exc())
+            self.failCount += 1
+            xunitResult["passed"] = False
+            xunitResult["failure"] = {
+              "type": "TEST-UNEXPECTED-FAIL",
+              "message": message,
+              "text": "%s\n%s" % (stdout, traceback.format_exc())
+            }
+
       if gotSIGINT:
         xunitResult["passed"] = False
         xunitResult["time"] = "0.0"
