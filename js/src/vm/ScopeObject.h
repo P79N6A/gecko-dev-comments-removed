@@ -118,10 +118,11 @@ class CallObject : public ScopeObject
 {
     static const uint32_t CALLEE_SLOT = 1;
 
+  public:
+    
     static CallObject *
     create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleFunction callee);
 
-  public:
     static const uint32_t RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
 
     static CallObject *createForFunction(JSContext *cx, StackFrame *fp);
@@ -159,6 +160,9 @@ class CallObject : public ScopeObject
 
     
     void copyUnaliasedValues(StackFrame *fp);
+
+    
+    static inline size_t offsetOfCallee();
 };
 
 class DeclEnvObject : public ScopeObject

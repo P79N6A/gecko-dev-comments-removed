@@ -1027,6 +1027,48 @@ CodeGenerator::visitOutOfLineNewObject(OutOfLineNewObject *ool)
 }
 
 bool
+CodeGenerator::visitNewCallObject(LNewCallObject *lir)
+{
+    Register obj = ToRegister(lir->output());
+    Register scopeObj = ToRegister(lir->scopeObj());
+    Register callee = ToRegister(lir->callee());
+
+    typedef JSObject *(*pf)(JSContext *, HandleObject, HandleFunction);
+    static const VMFunction NewCallObjectInfo = FunctionInfo<pf>(NewCallObject);
+
+    if (lir->mir()->templateObj()) {
+        
+        OutOfLineCode *ool = oolCallVM(NewCallObjectInfo, lir, (ArgList(), scopeObj, callee),
+                                       StoreRegisterTo(obj));
+        if (!ool)
+            return false;
+
+        RootedObject templateObj(gen->cx, lir->mir()->templateObj());
+        masm.getNewObject(gen->cx, obj, templateObj, ool->entry());
+
+        
+        
+        
+        Address scopeSlot(obj, ScopeObject::offsetOfEnclosingScope());
+        masm.storeValue(JSVAL_TYPE_OBJECT, scopeObj, scopeSlot);
+
+        Address calleeSlot(obj, CallObject::offsetOfCallee());
+        masm.storeValue(JSVAL_TYPE_OBJECT, callee, calleeSlot);
+
+        masm.bind(ool->rejoin());
+    } else {
+        
+        pushArg(callee);
+        pushArg(scopeObj);
+
+        if (!callVM(NewCallObjectInfo, lir))
+            return false;
+    }
+
+    return true;
+}
+
+bool
 CodeGenerator::visitInitProp(LInitProp *lir)
 {
     Register objReg = ToRegister(lir->getObject());

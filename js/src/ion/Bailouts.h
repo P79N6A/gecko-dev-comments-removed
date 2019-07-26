@@ -232,6 +232,8 @@ class IonBailoutIterator : public IonFrameIterator
     }
 };
 
+bool EnsureHasCallObject(JSContext *cx, StackFrame *fp);
+
 
 uint32 Bailout(BailoutStack *sp);
 

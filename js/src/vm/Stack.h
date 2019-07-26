@@ -60,6 +60,7 @@ typedef size_t FrameRejoinState;
 
 namespace ion {
     class IonBailoutIterator;
+    class SnapshotIterator;
 }
 
 namespace detail {
@@ -479,6 +480,10 @@ class StackFrame
     inline bool jitHeavyweightFunctionPrologue(JSContext *cx);
     inline void jitTypeNestingPrologue(JSContext *cx);
     bool jitStrictEvalPrologue(JSContext *cx);
+
+    
+    void initFromBailout(JSContext *cx, ion::SnapshotIterator &iter);
+    bool initCallObject(JSContext *cx);
 
     
     void initVarsToUndefined();

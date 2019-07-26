@@ -132,6 +132,12 @@ CallObject::varArray()
     return HeapSlotArray(getSlotAddress(RESERVED_SLOTS + fun->nargs));
 }
 
+ inline size_t
+CallObject::offsetOfCallee()
+{
+    return getFixedSlotOffset(CALLEE_SLOT);
+}
+
 inline uint32_t
 NestedScopeObject::stackDepth() const
 {
