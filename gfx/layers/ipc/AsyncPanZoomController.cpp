@@ -1165,25 +1165,8 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
     aEstimatedPaintDuration > EPSILON ? aEstimatedPaintDuration : 1.0;
 
   CSSIntRect compositionBounds = gfx::RoundedIn(aFrameMetrics.mCompositionBounds / aFrameMetrics.mZoom);
-  CSSRect scrollableRect = aFrameMetrics.mScrollableRect;
 
-  
-  
-  
-  
-  
-  
-  if (scrollableRect.width < compositionBounds.width) {
-      scrollableRect.x = std::max(0.f,
-                                  scrollableRect.x - (compositionBounds.width - scrollableRect.width));
-      scrollableRect.width = compositionBounds.width;
-  }
-  if (scrollableRect.height < compositionBounds.height) {
-      scrollableRect.y = std::max(0.f,
-                                  scrollableRect.y - (compositionBounds.height - scrollableRect.height));
-      scrollableRect.height = compositionBounds.height;
-  }
-
+  CSSRect scrollableRect = aFrameMetrics.GetExpandedScrollableRect();
   CSSPoint scrollOffset = aFrameMetrics.mScrollOffset;
 
   CSSRect displayPort = CSSRect(compositionBounds);
