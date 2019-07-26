@@ -3444,39 +3444,21 @@ class MDefFun : public MUnaryInstruction
 
 class MRegExp : public MNullaryInstruction
 {
-  public:
-    
-    
-    
-    
-    enum CloneBehavior {
-        UseSource,
-        MustClone
-    };
-
-  private:
     CompilerRoot<RegExpObject *> source_;
     CompilerRootObject prototype_;
-    CloneBehavior shouldClone_;
 
-    MRegExp(RegExpObject *source, JSObject *prototype, CloneBehavior shouldClone)
+    MRegExp(RegExpObject *source, JSObject *prototype)
       : source_(source),
-        prototype_(prototype),
-        shouldClone_(shouldClone)
+        prototype_(prototype)
     {
         setResultType(MIRType_Object);
-
-        
-        
-        if (shouldClone == UseSource)
-            setMovable();
     }
 
   public:
     INSTRUCTION_HEADER(RegExp)
 
-    static MRegExp *New(RegExpObject *source, JSObject *prototype, CloneBehavior shouldClone) {
-        return new MRegExp(source, prototype, shouldClone);
+    static MRegExp *New(RegExpObject *source, JSObject *prototype) {
+        return new MRegExp(source, prototype);
     }
 
     RegExpObject *source() const {
@@ -3484,9 +3466,6 @@ class MRegExp : public MNullaryInstruction
     }
     JSObject *getRegExpPrototype() const {
         return prototype_;
-    }
-    CloneBehavior shouldClone() const {
-        return shouldClone_;
     }
     AliasSet getAliasSet() const {
         return AliasSet::None();
