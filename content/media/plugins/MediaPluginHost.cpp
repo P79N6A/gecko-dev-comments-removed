@@ -15,6 +15,7 @@
 #include "MediaPluginReader.h"
 #include "nsIGfxInfo.h"
 #include "gfxCrashReporterUtils.h"
+#include "prmem.h"
 
 #include "MPAPI.h"
 
@@ -170,30 +171,30 @@ static const char* GetOmxLibraryName()
        device.Find("IS12", false) == 0 ||
        device.Find("MT27", false) == 0)) {
     
-    return "lib/libomxpluginsony.so";
+    return "libomxpluginsony.so";
   }
   else if (version == 13 || version == 12 || version == 11) {
-    return "lib/libomxpluginhc.so";
+    return "libomxpluginhc.so";
   }
   else if (version == 10 && release_version >= NS_LITERAL_STRING("2.3.6")) {
     
     
-    return "lib/libomxplugingb.so";
+    return "libomxplugingb.so";
   }
   else if (version == 10 && release_version >= NS_LITERAL_STRING("2.3.4") &&
            device.Find("HTC") == 0) {
     
     
-    return "lib/libomxplugingb.so";
+    return "libomxplugingb.so";
   }
   else if (version == 9 || (version == 10 && release_version <= NS_LITERAL_STRING("2.3.5"))) {
     
     
-    return "lib/libomxplugingb235.so";
+    return "libomxplugingb235.so";
   }
   else if (version == 8) {
     
-    return "lib/libomxpluginfroyo.so";
+    return "libomxpluginfroyo.so";
   }
   else if (version < 8) {
     
@@ -201,7 +202,7 @@ static const char* GetOmxLibraryName()
   }
 
   
-  return "lib/libomxplugin.so";
+  return "libomxplugin.so";
 
 #elif defined(ANDROID) && defined(MOZ_WIDGET_GONK)
   return "libomxplugin.so";
@@ -216,7 +217,21 @@ MediaPluginHost::MediaPluginHost() {
   const char* name = GetOmxLibraryName();
   ALOG("Loading OMX Plugin: %s", name ? name : "nullptr");
   if (name) {
-    PRLibrary *lib = PR_LoadLibrary(name);
+    char *path = PR_GetLibraryFilePathname("libxul.so", (PRFuncPtr) GetOmxLibraryName);
+    PRLibrary *lib = NULL;
+    if (path) {
+      nsAutoCString libpath(path);
+      PR_Free(path);
+      int32_t slash = libpath.RFindChar('/');
+      if (slash != kNotFound) {
+        libpath.Truncate(slash + 1);
+        libpath.Append(name);
+        lib = PR_LoadLibrary(libpath.get());
+      }
+    }
+    if (!lib)
+      lib = PR_LoadLibrary(name);
+
     if (lib) {
       Manifest *manifest = static_cast<Manifest *>(PR_FindSymbol(lib, "MPAPI_MANIFEST"));
       if (manifest) {
