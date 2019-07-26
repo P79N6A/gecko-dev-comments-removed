@@ -1472,8 +1472,14 @@ public:
     bool IsSyntheticBold() { return mApplySyntheticBold; }
 
     
+    
+    
+    
     gfxFloat GetSyntheticBoldOffset() {
-        return GetAdjustedSize() * (1.0 / 16.0);
+        gfxFloat size = GetAdjustedSize();
+        const gfxFloat threshold = 48.0;
+        return size < threshold ? (0.25 + 0.75 * size / threshold) :
+                                  (size / threshold);
     }
 
     gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
