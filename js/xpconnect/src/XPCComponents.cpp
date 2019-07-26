@@ -13,6 +13,7 @@
 #include "nsJSUtils.h"
 #include "mozJSComponentLoader.h"
 #include "nsContentUtils.h"
+#include "JavaScriptParent.h"
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
 #include "mozilla/Attributes.h"
@@ -3107,6 +3108,17 @@ nsXPCComponents_Utils::IsDeadWrapper(HandleValue obj, bool *out)
     
     
     *out = JS_IsDeadWrapper(js::CheckedUnwrap(&obj.toObject()));
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::IsCrossProcessWrapper(HandleValue obj, bool *out)
+{
+    *out = false;
+    if (obj.isPrimitive())
+        return NS_ERROR_INVALID_ARG;
+
+    *out = jsipc::IsCPOW(js::CheckedUnwrap(&obj.toObject()));
     return NS_OK;
 }
 
