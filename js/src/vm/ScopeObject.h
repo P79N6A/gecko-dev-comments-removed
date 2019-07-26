@@ -59,7 +59,7 @@ class StaticScopeIter
     bool onNamedLambda;
 
   public:
-    explicit StaticScopeIter(JSContext *cx, HandleObject obj);
+    explicit StaticScopeIter(JSContext *cx, JSObject *obj);
 
     bool done() const;
     void operator++(int);
@@ -105,6 +105,10 @@ ScopeCoordinateToStaticScopeShape(JSContext *cx, JSScript *script, jsbytecode *p
 
 extern PropertyName *
 ScopeCoordinateName(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+
+extern JSScript *
+ScopeCoordinateFunctionScript(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 
@@ -167,7 +171,7 @@ class ScopeObject : public JSObject
 
 
     inline const Value &aliasedVar(ScopeCoordinate sc);
-    inline void setAliasedVar(ScopeCoordinate sc, const Value &v);
+    inline void setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name, const Value &v);
 
     
     static inline size_t offsetOfEnclosingScope();
@@ -187,7 +191,7 @@ class CallObject : public ScopeObject
   public:
     
     static CallObject *
-    create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots);
+    create(JSContext *cx, HandleScript script, HandleShape shape, HandleTypeObject type, HeapSlot *slots);
 
     static CallObject *
     createTemplateObject(JSContext *cx, HandleScript script, gc::InitialHeap heap);
@@ -210,7 +214,7 @@ class CallObject : public ScopeObject
 
     
     inline const Value &aliasedVar(AliasedFormalIter fi);
-    inline void setAliasedVar(AliasedFormalIter fi, const Value &v);
+    inline void setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name, const Value &v);
 
     
     static inline size_t offsetOfCallee();
