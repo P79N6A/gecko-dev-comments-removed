@@ -807,11 +807,19 @@ nsSimplePageSequenceFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
   nsDisplayList content;
-  nsIFrame* child = GetFirstPrincipalChild();
-  while (child) {
-    child->BuildDisplayListForStackingContext(aBuilder,
-        child->GetVisualOverflowRectRelativeToSelf(), &content);
-    child = child->GetNextSibling();
+
+  {
+    
+    
+    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+    clipState.Clear();
+
+    nsIFrame* child = GetFirstPrincipalChild();
+    while (child) {
+      child->BuildDisplayListForStackingContext(aBuilder,
+          child->GetVisualOverflowRectRelativeToSelf(), &content);
+      child = child->GetNextSibling();
+    }
   }
 
   content.AppendNewToTop(new (aBuilder)
