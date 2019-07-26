@@ -3716,6 +3716,9 @@ pref("network.tcp.keepalive.probe_count", 4);
 pref("layers.acceleration.disabled", false);
 
 
+pref("layers.bench.enabled", false);
+
+
 #ifdef ANDROID
 
 

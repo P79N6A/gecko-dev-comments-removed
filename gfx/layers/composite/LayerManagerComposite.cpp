@@ -38,6 +38,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/LayersTypes.h"  
+#include "ipc/CompositorBench.h"        
 #include "ipc/ShadowLayerUtils.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
@@ -407,6 +408,9 @@ LayerManagerComposite::Render()
   nsIntRect clipRect;
   Rect bounds(mRenderBounds.x, mRenderBounds.y, mRenderBounds.width, mRenderBounds.height);
   Rect actualBounds;
+
+  CompositorBench(mCompositor, bounds);
+
   if (mRoot->GetClipRect()) {
     clipRect = *mRoot->GetClipRect();
     WorldTransformRect(clipRect);
