@@ -1337,10 +1337,9 @@ nsDOMImplementation::HasFeature(const nsAString& aFeature,
                                 const nsAString& aVersion,
                                 bool* aReturn)
 {
-  *aReturn = nsContentUtils::InternalIsSupported(
+  return nsGenericElement::InternalIsSupported(
            static_cast<nsIDOMDOMImplementation*>(this),
-           aFeature, aVersion);
-  return NS_OK;
+           aFeature, aVersion, aReturn);
 }
 
 NS_IMETHODIMP
@@ -5970,9 +5969,8 @@ NS_IMETHODIMP
 nsDocument::IsSupported(const nsAString& aFeature, const nsAString& aVersion,
                         bool* aReturn)
 {
-  *aReturn = nsContentUtils::InternalIsSupported(static_cast<nsIDOMDocument*>(this),
-                                                 aFeature, aVersion);
-  return NS_OK;
+  return nsGenericElement::InternalIsSupported(static_cast<nsIDOMDocument*>(this),
+                                               aFeature, aVersion, aReturn);
 }
 
 NS_IMETHODIMP
@@ -6075,7 +6073,35 @@ nsDocument::GetDocumentURI(nsAString& aDocumentURI)
     mDocumentURI->GetSpec(uri);
     CopyUTF8toUTF16(uri, aDocumentURI);
   } else {
-    SetDOMStringToNull(aDocumentURI);
+    aDocumentURI.Truncate();
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsDocument::GetURL(nsAString& aURL)
+{
+  return GetDocumentURI(aURL);
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsDocument::GetCompatMode(nsAString& aCompatMode)
+{
+  NS_ASSERTION(mCompatMode == eCompatibility_NavQuirks ||
+               mCompatMode == eCompatibility_AlmostStandards ||
+               mCompatMode == eCompatibility_FullStandards,
+               "mCompatMode is neither quirks nor strict for this document");
+
+  if (mCompatMode == eCompatibility_NavQuirks) {
+    aCompatMode.AssignLiteral("BackCompat");
+  } else {
+    aCompatMode.AssignLiteral("CSS1Compat");
   }
 
   return NS_OK;

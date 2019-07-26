@@ -1002,20 +1002,6 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
   return NodePrincipal()->SetDomain(newURI);
 }
 
-NS_IMETHODIMP
-nsHTMLDocument::GetURL(nsAString& aURL)
-{
-  nsAutoCString str;
-
-  if (mDocumentURI) {
-    mDocumentURI->GetSpec(str);
-  }
-
-  CopyUTF8toUTF16(str, aURL);
-
-  return NS_OK;
-}
-
 nsIContent*
 nsHTMLDocument::GetBody()
 {
@@ -2043,27 +2029,6 @@ NS_IMETHODIMP
 nsHTMLDocument::RouteEvent(nsIDOMEvent* aEvt)
 {
   ReportUseOfDeprecatedMethod(this, "UseOfRouteEventWarning");
-  return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP
-nsHTMLDocument::GetCompatMode(nsAString& aCompatMode)
-{
-  NS_ASSERTION(mCompatMode == eCompatibility_NavQuirks ||
-               mCompatMode == eCompatibility_AlmostStandards ||
-               mCompatMode == eCompatibility_FullStandards,
-               "mCompatMode is neither quirks nor strict for this document");
-
-  if (mCompatMode == eCompatibility_NavQuirks) {
-    aCompatMode.AssignLiteral("BackCompat");
-  } else {
-    aCompatMode.AssignLiteral("CSS1Compat");
-  }
-
   return NS_OK;
 }
 
