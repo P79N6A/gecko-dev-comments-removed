@@ -439,11 +439,23 @@ public class GeckoPreferences
                 
                 
                 
-                if (key != null && !key.startsWith(NON_PREF_PREFIX)) {
+                if (isGeckoPref(key)) {
                     prefs.add(key);
                 }
             }
         }
+    }
+
+    private boolean isGeckoPref(String key) {
+        if (TextUtils.isEmpty(key)) {
+            return false;
+        }
+
+        if (key.startsWith(NON_PREF_PREFIX)) {
+            return false;
+        }
+
+        return true;
     }
 
     
@@ -612,7 +624,7 @@ public class GeckoPreferences
         }
 
         
-        if (!TextUtils.isEmpty(prefName) && !prefName.startsWith(NON_PREF_PREFIX)) {
+        if (isGeckoPref(prefName)) {
             PrefsHelper.setPref(prefName, newValue);
         }
 
