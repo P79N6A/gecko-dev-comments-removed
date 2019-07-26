@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/JNI.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
@@ -32,9 +33,17 @@ function paymentFailed(aRequestId) {
 }
 
 let paymentTabs = {};
-
+let cancelTabCallbacks = {};
+function paymentCanceled(aRequestId) {
+  return function() {
+    paymentFailed(aRequestId)();
+  }
+}
 function closePaymentTab(aId, aCallback) {
   if (paymentTabs[aId]) {
+    paymentTabs[aId].browser.removeEventListener("TabClose", cancelTabCallbacks[aId]);
+    delete cancelTabCallbacks[aId];
+
     
     let content = Services.wm.getMostRecentWindow("navigator:browser");
     if (content) {
@@ -127,8 +136,39 @@ PaymentUI.prototype = {
     tab.browser.addEventListener("DOMContentLoaded", function loadPaymentShim() {
       let frame = tab.browser.contentDocument.defaultView;
       try {
-        frame.wrappedJSObject.paymentSuccess = paymentSuccess(aRequestId);
-        frame.wrappedJSObject.paymentFailed = paymentFailed(aRequestId);
+        frame.wrappedJSObject.mozPaymentProvider = {
+          __exposedProps__: {
+            paymentSuccess: 'r',
+            paymentFailed: 'r',
+            mnc: 'r',
+            mcc: 'r',
+          },
+
+          _getNetworkInfo: function(type) {
+            let jni = new JNI();
+            let cls = jni.findClass("org/mozilla/gecko/GeckoNetworkManager");
+            let method = jni.getStaticMethodID(cls, "get" + type.toUpperCase(), "()I");
+            let val = jni.callStaticIntMethod(cls, method);
+            jni.close();
+
+            if (val < 0)
+              return null;
+            return val;
+          },
+
+          get mnc() {
+            delete this.mnc;
+            return this.mnc = this._getNetworkInfo("mnc");
+          },
+
+          get mcc() {
+            delete this.mcc;
+            return this.mcc = this._getNetworkInfo("mcc");
+          },
+
+          paymentSuccess: paymentSuccess(aRequestId),
+          paymentFailed: paymentFailed(aRequestId)
+        };
       } catch (e) {
         _error(aRequestId, "ERROR_ADDING_METHODS");
       } finally {
@@ -137,12 +177,11 @@ PaymentUI.prototype = {
     }, true);
 
     
-    tab.browser.addEventListener("TabClose", function paymentCanceled() {
-      paymentFailed(aRequestId)();
-    });
+    paymentTabs[aRequestId] = tab;
+    cancelTabCallbacks[aRequestId] = paymentCanceled(aRequestId);
 
     
-    paymentTabs[aRequestId] = tab;
+    tab.browser.addEventListener("TabClose", cancelTabCallbacks[aRequestId]);
   },
 
   cleanup: function cleanup() {
