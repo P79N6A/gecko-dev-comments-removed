@@ -324,7 +324,7 @@ public:
     
     virtual nsresult ReadCMAP();
 
-    bool TryGetSVGData();
+    bool TryGetSVGData(gfxFont* aFont);
     bool HasSVGGlyph(uint32_t aGlyphId);
     bool GetSVGGlyphExtents(gfxContext *aContext, uint32_t aGlyphId,
                             gfxRect *aResult);
@@ -414,6 +414,10 @@ public:
     
     gr_face* GetGrFace();
     virtual void ReleaseGrFace(gr_face* aFace);
+
+    
+    
+    void NotifyFontDestroyed(gfxFont* aFont);
     
     
     virtual void SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
@@ -457,7 +461,8 @@ public:
     nsAutoArrayPtr<uint8_t> mUVSData;
     gfxUserFontData* mUserFontData;
     gfxSVGGlyphs    *mSVGGlyphs;
-
+    
+    nsTArray<gfxFont*> mFontsUsingSVGGlyphs;
     nsTArray<gfxFontFeature> mFeatureSettings;
     uint32_t         mLanguageOverride;
 
