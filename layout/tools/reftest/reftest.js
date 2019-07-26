@@ -574,6 +574,14 @@ function BuildConditionSandbox(aURL) {
     sandbox.qtWidget = xr.widgetToolkit == "qt";
     sandbox.winWidget = xr.widgetToolkit == "windows";
 
+    if (sandbox.Android) {
+        var sysInfo = CC["@mozilla.org/system-info;1"].getService(CI.nsIPropertyBag2);
+
+        
+        
+        sandbox.AndroidVersion = sysInfo.getPropertyAsInt32("version");
+    }
+
 #if MOZ_ASAN
     sandbox.AddressSanitizer = true;
 #else
