@@ -10,6 +10,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include "gfxFont.h"
 #include "gfxMatrix.h"
 #include "gfxPoint.h"
 #include "gfxRect.h"
@@ -203,6 +204,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsISVGFilterProperty, NS_ISVGFILTERPROPERTY_IID)
 class nsSVGUtils
 {
 public:
+  typedef mozilla::dom::Element Element;
 
   static void Init();
 
@@ -631,6 +633,28 @@ public:
 
 
   static uint16_t GetGeometryHitTestFlags(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+  static bool PaintSVGGlyph(Element* aElement, gfxContext* aContext,
+                            gfxFont::DrawMode aDrawMode,
+                            gfxTextObjectPaint* aObjectPaint);
+  
+
+
+
+
+
+
+
+  static bool GetSVGGlyphExtents(Element* aElement,
+                                 const gfxMatrix& aSVGToAppSpace,
+                                 gfxRect* aResult);
 };
 
 #endif
