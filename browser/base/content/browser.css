@@ -735,6 +735,21 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 }
 
 
+#ContentSelectDropdown {
+  max-height: 400px;
+}
+
+.contentSelectDropdown-optgroup {
+  font-weight: bold;
+  
+  color: menutext;
+}
+
+.contentSelectDropdown-ingroup {
+  -moz-margin-start: 2em;
+}
+
+
 #BMB_bookmarksPopup {
   -moz-appearance: none;
   -moz-binding: url("chrome://browser/content/places/menu.xml#places-popup-arrow");
