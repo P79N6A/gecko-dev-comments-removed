@@ -911,15 +911,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
 
     
     
-    if (aFeature == FEATURE_WEBGL_ANGLE &&
-        gfxWindowsPlatform::IsOptimus())
-    {
-      *aStatus = FEATURE_BLOCKED_DEVICE;
-      return NS_OK;
-    }
-
-    
-    
     if (os == DRIVER_OS_WINDOWS_SERVER_2003)
       os = DRIVER_OS_WINDOWS_XP;
 
