@@ -716,6 +716,12 @@ private:
   };
   NS_IMETHOD RequestDecodeCore(RequestDecodeType aDecodeType);
 
+  
+  
+  
+  
+  bool IsUnlocked() { return (mLockCount == 0 || (mAnim && mAnimationConsumers == 0)); }
+
 private: 
   nsIntSize                  mSize;
 

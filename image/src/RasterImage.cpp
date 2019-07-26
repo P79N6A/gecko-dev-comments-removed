@@ -1105,6 +1105,10 @@ RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
     return NS_OK;
   }
 
+  if (IsUnlocked() && mStatusTracker) {
+    mStatusTracker->OnUnlockedDraw();
+  }
+
   if (mImageContainer) {
     *_retval = mImageContainer;
     NS_ADDREF(*_retval);
@@ -3136,13 +3140,9 @@ RasterImage::Draw(gfxContext *aContext,
     DiscardTracker::Reset(&mDiscardTrackerNode);
   }
 
-  
-  
-  
-  
-  if (mLockCount == 0 || (mAnim && mAnimationConsumers == 0)) {
-    if (mStatusTracker)
-      mStatusTracker->OnUnlockedDraw();
+
+  if (IsUnlocked() && mStatusTracker) {
+    mStatusTracker->OnUnlockedDraw();
   }
 
   
