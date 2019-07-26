@@ -2575,7 +2575,9 @@ public:
 
 
   enum {
-    GENERATE_SUBDOC_INVALIDATIONS = 0x01
+    GENERATE_SUBDOC_INVALIDATIONS = 0x01,
+    VERTICAL_SCROLLBAR = 0x02,
+    HORIZONTAL_SCROLLBAR = 0x04
   };
 
   
@@ -2583,8 +2585,12 @@ public:
 
 
 
+
+
+
   nsDisplayOwnLayer(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                    nsDisplayList* aList, uint32_t aFlags = 0);
+                    nsDisplayList* aList, uint32_t aFlags = 0,
+                    ViewID aScrollTarget = mozilla::layers::FrameMetrics::NULL_SCROLL_ID);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayOwnLayer();
 #endif
@@ -2606,6 +2612,7 @@ public:
   NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
 private:
   uint32_t mFlags;
+  ViewID mScrollTarget;
 };
 
 

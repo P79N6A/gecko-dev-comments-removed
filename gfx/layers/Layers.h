@@ -441,6 +441,12 @@ public:
 
 
 
+  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier();
+
+  
+
+
+
   virtual int32_t GetMaxTextureSize() const = 0;
 
   
@@ -966,6 +972,29 @@ public:
     }
   }
 
+  enum ScrollDirection {
+    VERTICAL,
+    HORIZONTAL
+  };
+
+  
+
+
+
+
+  void SetScrollbarData(FrameMetrics::ViewID aScrollId, ScrollDirection aDir)
+  {
+    if (mIsScrollbar ||
+        mScrollbarTargetId != aScrollId ||
+        mScrollbarDirection != aDir) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ScrollbarData", this));
+      mIsScrollbar = true;
+      mScrollbarTargetId = aScrollId;
+      mScrollbarDirection = aDir;
+      Mutated();
+    }
+  }
+
   
   float GetOpacity() { return mOpacity; }
   gfxContext::GraphicsOperator GetMixBlendMode() const { return mMixBlendMode; }
@@ -990,6 +1019,9 @@ public:
   FrameMetrics::ViewID GetStickyScrollContainerId() { return mStickyPositionData->mScrollId; }
   const LayerRect& GetStickyScrollRangeOuter() { return mStickyPositionData->mOuter; }
   const LayerRect& GetStickyScrollRangeInner() { return mStickyPositionData->mInner; }
+  bool GetIsScrollbar() { return mIsScrollbar; }
+  FrameMetrics::ViewID GetScrollbarTargetContainerId() { return mScrollbarTargetId; }
+  ScrollDirection GetScrollbarDirection() { return mScrollbarDirection; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
 
   
@@ -1361,6 +1393,9 @@ protected:
     LayerRect mInner;
   };
   nsAutoPtr<StickyPositionData> mStickyPositionData;
+  bool mIsScrollbar;
+  FrameMetrics::ViewID mScrollbarTargetId;
+  ScrollDirection mScrollbarDirection;
   DebugOnly<uint32_t> mDebugColorIndex;
   
   
