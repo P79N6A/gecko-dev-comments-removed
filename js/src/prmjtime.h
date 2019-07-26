@@ -35,11 +35,21 @@ extern int64_t
 PRMJ_Now();
 
 
+#if defined(XP_WIN)
+extern void
+PRMJ_NowInit();
+#else
+inline void
+PRMJ_NowInit() {}
+#endif
+
+
 #if defined(JS_THREADSAFE) && defined(XP_WIN)
 extern void
-PRMJ_NowShutdown(void);
+PRMJ_NowShutdown();
 #else
-#define PRMJ_NowShutdown()
+inline void
+PRMJ_NowShutdown() {}
 #endif
 
 
