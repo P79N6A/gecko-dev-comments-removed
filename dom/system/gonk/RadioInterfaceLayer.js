@@ -1552,6 +1552,7 @@ RadioInterfaceLayer.prototype = {
     message.sender = message.sender || null;
     message.receiver = message.receiver || null;
     message.body = message.fullBody = message.fullBody || null;
+    message.timestamp = Date.now();
 
     
     
