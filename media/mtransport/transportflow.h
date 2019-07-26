@@ -18,7 +18,6 @@
 #include "mozilla/Scoped.h"
 #include "transportlayer.h"
 #include "m_cpp_utils.h"
-#include "nsAutoPtr.h"
 
 
 

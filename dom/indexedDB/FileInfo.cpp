@@ -5,7 +5,7 @@
 
 
 #include "FileInfo.h"
-#include "nsThreadUtils.h"
+
 #include "mozilla/dom/quota/QuotaManager.h"
 
 USING_INDEXEDDB_NAMESPACE
