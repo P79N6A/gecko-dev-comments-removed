@@ -4933,7 +4933,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
     }
 
     
-    if (!found)
+    if (!found || !found->isFunction())
         return true;
 
     JS_ASSERT(foundProto);
@@ -4970,9 +4970,6 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
             JS_ASSERT(propSet);
         }
     }
-
-    if (found->isFunction())
-        *funcp = found->toFunction();
 
     return true;
 }
