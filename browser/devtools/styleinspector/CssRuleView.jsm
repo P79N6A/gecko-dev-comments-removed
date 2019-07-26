@@ -423,7 +423,6 @@ Rule.prototype = {
 
 
 
-
   matches: function Rule_matches(aOptions)
   {
     return (this.style === (aOptions.style || aOptions.domRule.style));
@@ -1122,6 +1121,7 @@ CssRuleView.prototype = {
 
 
 
+
   _onMenuUpdate: function CssRuleView_onMenuUpdate(aEvent)
   {
     let node = this.doc.popupNode;
@@ -1161,6 +1161,7 @@ CssRuleView.prototype = {
 
 
 
+
   _onCopy: function CssRuleView_onCopy(aEvent)
   {
     let target = this.doc.popupNode || aEvent.target;
@@ -1192,6 +1193,7 @@ CssRuleView.prototype = {
   },
 
   
+
 
 
 
@@ -1249,6 +1251,7 @@ CssRuleView.prototype = {
 
 
 
+
   _onCopyDeclaration: function CssRuleView_onCopyDeclaration(aEvent)
   {
     let node = this.doc.popupNode;
@@ -1288,6 +1291,7 @@ CssRuleView.prototype = {
 
 
 
+
   _onCopyProperty: function CssRuleView_onCopyProperty(aEvent)
   {
     let node = this.doc.popupNode;
@@ -1306,6 +1310,7 @@ CssRuleView.prototype = {
   },
 
  
+
 
 
 
@@ -1451,7 +1456,8 @@ RuleEditor.prototype = {
             textContent: ", "
           });
         }
-        let cls = element.mozMatchesSelector(selector) ? "ruleview-selector-matched" : "ruleview-selector-unmatched";
+        let cls = element.mozMatchesSelector(selector) ? "ruleview-selector-matched" :
+                                                         "ruleview-selector-unmatched";
         createChild(this.selectorText, "span", {
           class: cls,
           textContent: selector
@@ -1877,7 +1883,6 @@ TextPropertyEditor.prototype = {
 
 
 
-
   _validate: function TextPropertyEditor_validate(aValue)
   {
     let name = this.prop.name;
@@ -2159,6 +2164,355 @@ InplaceEditor.prototype = {
     this.input.style.width = width + "px";
   },
 
+   
+
+
+
+
+
+
+  _incrementValue: function InplaceEditor_incrementValue(increment)
+  {
+    let value = this.input.value;
+    let selectionStart = this.input.selectionStart;
+    let selectionEnd = this.input.selectionEnd;
+
+    let newValue = this._incrementCSSValue(value, increment, selectionStart, selectionEnd);
+
+    if (!newValue) {
+      return false;
+    }
+
+    this.input.value = newValue.value;
+    this.input.setSelectionRange(newValue.start, newValue.end);
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _incrementCSSValue: function InplaceEditor_incrementCSSValue(value, increment, selStart, 
+                                                               selEnd)
+  {
+    let range = this._parseCSSValue(value, selStart);
+    let type = (range && range.type) || "";
+    let rawValue = (range ? value.substring(range.start, range.end) : "");
+    let incrementedValue = null, selection;
+
+    if (type === "num") {
+      let newValue = this._incrementRawValue(rawValue, increment);
+      if (newValue !== null) {
+        incrementedValue = newValue;
+        selection = [0, incrementedValue.length];
+      }
+    } else if (type === "hex") {
+      let exprOffset = selStart - range.start;
+      let exprOffsetEnd = selEnd - range.start;
+      let newValue = this._incHexColor(rawValue, increment, exprOffset, exprOffsetEnd);
+      if (newValue) {
+        incrementedValue = newValue.value;
+        selection = newValue.selection;
+      }
+    } else {
+      let info;
+      if (type === "rgb" || type === "hsl") {
+        info = {};
+        let part = value.substring(range.start, selStart).split(",").length - 1;
+        if (part === 3) { 
+          info.minValue = 0;
+          info.maxValue = 1;
+        } else if (type === "rgb") {
+          info.minValue = 0;
+          info.maxValue = 255;
+        } else if (part !== 0) { 
+          info.minValue = 0;
+          info.maxValue = 100;
+
+          
+          if (value.charAt(selStart - 1) === "%") {
+            --selStart;
+          }
+        }
+      }
+      return this._incrementGenericValue(value, increment, selStart, selEnd, info);
+    }
+
+    if (incrementedValue === null) {
+      return;
+    }
+
+    let preRawValue = value.substr(0, range.start);
+    let postRawValue = value.substr(range.end);
+
+    return {
+      value: preRawValue + incrementedValue + postRawValue,
+      start: range.start + selection[0],
+      end: range.start + selection[1]
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+   _parseCSSValue: function InplaceEditor_parseCSSValue(value, offset)
+  {
+    const reSplitCSS = /(url\("?[^"\)]+"?\)?)|(rgba?\([^)]*\)?)|(hsla?\([^)]*\)?)|(#[\dA-Fa-f]+)|(-?\d+(\.\d+)?(%|[a-z]{1,4})?)|"([^"]*)"?|'([^']*)'?|([^,\s\/!\(\)]+)|(!(.*)?)/;
+    let start = 0;
+    let m;
+
+    
+    while ((m = reSplitCSS.exec(value)) &&
+          (m.index + m[0].length < offset)) {
+      value = value.substr(m.index + m[0].length);
+      start += m.index + m[0].length;
+      offset -= m.index + m[0].length;
+    }
+
+    if (!m) {
+      return;
+    }
+
+    let type;
+    if (m[1]) {
+      type = "url";
+    } else if (m[2]) {
+      type = "rgb";
+    } else if (m[3]) {
+      type = "hsl";
+    } else if (m[4]) {
+      type = "hex";
+    } else if (m[5]) {
+      type = "num";
+    }
+
+    return {
+      value: m[0],
+      start: start + m.index,
+      end: start + m.index + m[0].length,
+      type: type
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _incrementGenericValue: function InplaceEditor_incrementGenericValue(value, increment, offset,
+                                                                       offsetEnd, info)
+  {
+    
+    let start, end;
+    
+    if (/^-?[0-9.]/.test(value.substring(offset, offsetEnd)) &&
+      !(/\d/.test(value.charAt(offset - 1) + value.charAt(offsetEnd)))) {
+      
+      
+      
+      start = offset;
+      end = offsetEnd;
+    } else {
+      
+      
+      let pattern = "[" + (info ? "0-9." : "0-9") + "]*";
+      let before = new RegExp(pattern + "$").exec(value.substr(0, offset))[0].length;
+      let after = new RegExp("^" + pattern).exec(value.substr(offset))[0].length;
+
+      start = offset - before;
+      end = offset + after;
+
+      
+      
+      if (value.charAt(start - 1) === "-" &&
+         (start - 1 === 0 || /[ (:,='"]/.test(value.charAt(start - 2)))) {
+        --start;
+      }
+    }
+
+    if (start !== end)
+    {
+      
+      
+      if (value.charAt(end) === "%") {
+        ++end;
+      }
+
+      let first = value.substr(0, start);
+      let mid = value.substring(start, end);
+      let last = value.substr(end);
+
+      mid = this._incrementRawValue(mid, increment, info);
+
+      if (mid !== null) {
+        return {
+          value: first + mid + last,
+          start: start,
+          end: start + mid.length
+        };
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _incrementRawValue: function InplaceEditor_incrementRawValue(rawValue, increment, info)
+  {
+    let num = parseFloat(rawValue);
+
+    if (isNaN(num)) {
+      return null;
+    }
+
+    let number = /\d+(\.\d+)?/.exec(rawValue);
+    let units = rawValue.substr(number.index + number[0].length);
+
+    
+    let newValue = Math.round((num + increment) * 1000) / 1000;
+
+    if (info && "minValue" in info) {
+      newValue = Math.max(newValue, info.minValue);
+    }
+    if (info && "maxValue" in info) {
+      newValue = Math.min(newValue, info.maxValue);
+    }
+
+    newValue = newValue.toString();
+
+    return newValue + units;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _incHexColor: function InplaceEditor_incHexColor(rawValue, increment, offset, offsetEnd)
+  {
+    
+    if (offsetEnd > rawValue.length && offset >= rawValue.length) {
+      return;
+    }
+    if (offset < 1 && offsetEnd <= 1) {
+      return;
+    }
+    
+    rawValue = rawValue.substr(1);
+    --offset;
+    --offsetEnd;
+
+    
+    offset = Math.max(offset, 0);
+    offsetEnd = Math.min(offsetEnd, rawValue.length);
+    offsetEnd = Math.max(offsetEnd, offset);
+
+    
+    if (rawValue.length === 3) {
+      rawValue = rawValue.charAt(0) + rawValue.charAt(0) +
+                 rawValue.charAt(1) + rawValue.charAt(1) +
+                 rawValue.charAt(2) + rawValue.charAt(2);
+      offset *= 2;
+      offsetEnd *= 2;
+    }
+
+    if (rawValue.length !== 6) {
+      return;
+    }
+
+    
+    if (offset === offsetEnd) {
+      if (offset === 0) {
+        offsetEnd = 1;
+      } else {
+        offset = offsetEnd - 1;
+      }
+    }
+
+    
+    offset -= offset % 2;
+    offsetEnd += offsetEnd % 2;
+
+    
+    if (-1 < increment && increment < 1) {
+      increment = (increment < 0 ? -1 : 1);
+    }
+    if (Math.abs(increment) === 10) {
+      increment = (increment < 0 ? -16 : 16);
+    }
+
+    let isUpper = (rawValue.toUpperCase() === rawValue);
+
+    for (let pos = offset; pos < offsetEnd; pos += 2) {
+      
+      let mid = rawValue.substr(pos, 2);
+      let value = parseInt(mid, 16);
+
+      if (isNaN(value)) {
+        return;
+      }
+
+      mid = Math.min(Math.max(value + increment, 0), 255).toString(16);
+
+      while (mid.length < 2) {
+        mid = "0" + mid;
+      }
+      if (isUpper) {
+        mid = mid.toUpperCase();
+      }
+
+      rawValue = rawValue.substr(0, pos) + mid + rawValue.substr(pos + 2);
+    }
+
+    return {
+      value: "#" + rawValue,
+      selection: [offset + 1, offsetEnd + 1]
+    };
+  },
+
   
 
 
@@ -2174,6 +2528,7 @@ InplaceEditor.prototype = {
       let val = this.input.value.trim();
       return this.done(this.cancelled ? this.initial : val, !this.cancelled);
     }
+
     return null;
   },
 
@@ -2188,9 +2543,43 @@ InplaceEditor.prototype = {
     }
   },
 
+  
+
+
   _onKeyPress: function InplaceEditor_onKeyPress(aEvent)
   {
     let prevent = false;
+
+    const largeIncrement = 100;
+    const mediumIncrement = 10;
+    const smallIncrement = 0.1;
+
+    let increment = 0;
+
+    if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_UP
+       || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP) {
+      increment = 1;
+    } else if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_DOWN
+       || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN) {
+      increment = -1;
+    }
+
+    if (aEvent.shiftKey && !aEvent.altKey) {
+      if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP
+           ||  aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN) {
+        increment *= largeIncrement;
+      } else {
+        increment *= mediumIncrement;
+      }
+    } else if (aEvent.altKey && !aEvent.shiftKey) {
+      increment *= smallIncrement;
+    }
+
+    if (increment && this._incrementValue(increment) ) {
+      this._updateSize();
+      prevent = true;
+    }
+
     if (this.multiline &&
         aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN &&
         aEvent.shiftKey) {
@@ -2285,7 +2674,10 @@ InplaceEditor.prototype = {
 
 
 
-this._getInplaceEditorForSpan = function _getInplaceEditorForSpan(aSpan) { return aSpan.inplaceEditor; };
+this._getInplaceEditorForSpan = function _getInplaceEditorForSpan(aSpan)
+{
+  return aSpan.inplaceEditor;
+};
 
 
 
