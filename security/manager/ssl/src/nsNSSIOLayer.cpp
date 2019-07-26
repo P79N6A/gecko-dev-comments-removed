@@ -2362,6 +2362,11 @@ nsSSLIOLayerImportFD(PRFileDesc *fd,
     NS_NOTREACHED("SSL_SetURL failed");
     goto loser;
   }
+
+  
+  
+  EnsureServerVerificationInitialized();
+
   return sslSock;
 loser:
   if (sslSock) {
