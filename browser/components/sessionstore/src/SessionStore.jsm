@@ -125,12 +125,6 @@ function debug(aMsg) {
   Services.console.logStringMessage(aMsg);
 }
 
-function notifyAsync(aTopic) {
-  Services.tm.mainThread.dispatch(() => {
-    Services.obs.notifyObservers(null, aTopic, "");
-  }, Ci.nsIThread.DISPATCH_NORMAL);
-}
-
 this.SessionStore = {
   get promiseInitialized() {
     return SessionStoreInternal.promiseInitialized.promise;
@@ -770,7 +764,7 @@ let SessionStoreInternal = {
           this._initialState = null;
 
           
-          notifyAsync(NOTIFY_WINDOWS_RESTORED);
+          Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
         } else {
           TelemetryTimestamps.add("sessionRestoreRestoring");
           
@@ -788,7 +782,7 @@ let SessionStoreInternal = {
       }
       else {
         
-        notifyAsync(NOTIFY_WINDOWS_RESTORED);
+        Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
 
         
         this._lastSaveTime -= this._interval;
@@ -4323,8 +4317,9 @@ let SessionStoreInternal = {
       return;
 
     
-    notifyAsync(this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED :
-                                        NOTIFY_WINDOWS_RESTORED);
+    Services.obs.notifyObservers(null,
+      this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
+      "");
 
     this._browserSetState = false;
     this._restoreCount = -1;
