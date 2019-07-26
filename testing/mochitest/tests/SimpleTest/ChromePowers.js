@@ -61,8 +61,8 @@ ChromePowers.prototype._receiveMessage = function(aMessage) {
     default:
       
       return this.spObserver._receiveMessageAPI(aMessage);
-      break;
   }
+  return undefined;		
 };
 
 ChromePowers.prototype.quit = function() {
