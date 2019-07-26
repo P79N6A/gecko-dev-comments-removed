@@ -22,11 +22,6 @@ static const uint32_t MAX_MAIN_THREAD_SCRIPT_SIZE = 2 * 1000;
 static const uint32_t MAX_MAIN_THREAD_LOCALS_AND_ARGS = 256;
 
 
-
-static const uint32_t MAX_DOM_WORKER_SCRIPT_SIZE = 16 * 1000;
-static const uint32_t MAX_DOM_WORKER_LOCALS_AND_ARGS = 2048;
-
-
 enum IonRegisterAllocator {
     RegisterAllocator_LSRA,
     RegisterAllocator_Backtracking,

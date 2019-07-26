@@ -1977,21 +1977,6 @@ CheckScriptSize(JSContext *cx, JSScript* script)
 
     uint32_t numLocalsAndArgs = NumLocalsAndArgs(script);
 
-    if (cx->runtime()->isWorkerRuntime()) {
-        
-        
-        
-        JS_ASSERT(!cx->runtime()->canUseParallelIonCompilation());
-
-        if (script->length() > MAX_DOM_WORKER_SCRIPT_SIZE ||
-            numLocalsAndArgs > MAX_DOM_WORKER_LOCALS_AND_ARGS)
-        {
-            return Method_CantCompile;
-        }
-
-        return Method_Compiled;
-    }
-
     if (script->length() > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
