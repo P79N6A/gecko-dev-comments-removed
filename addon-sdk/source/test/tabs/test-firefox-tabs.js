@@ -1150,3 +1150,7 @@ function closeBrowserWindow(window, callback) {
   }, false);
   window.close();
 }
+
+
+if (require("sdk/system/runtime").OS == "Linux")
+  module.exports = {};
