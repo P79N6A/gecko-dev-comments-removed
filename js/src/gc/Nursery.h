@@ -212,9 +212,13 @@ class Nursery
     void updateDecommittedRegion() {
 #ifndef JS_GC_ZEAL
         if (numActiveChunks_ < NumNurseryChunks) {
+            
+            
+# ifndef XP_MACOSX
             uintptr_t decommitStart = chunk(numActiveChunks_).start();
             JS_ASSERT(decommitStart == AlignBytes(decommitStart, 1 << 20));
             gc::MarkPagesUnused(runtime(), (void *)decommitStart, heapEnd() - decommitStart);
+# endif
         }
 #endif
     }
