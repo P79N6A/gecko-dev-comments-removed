@@ -282,6 +282,7 @@ nsRect
 
 nsIntRect
 nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
+                                                      const nsPoint& aToReferenceFrame,
                                                       const nsIntRect& aInvalidRect)
 {
   
@@ -305,18 +306,24 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
     
     
     
-    nsRect overflow = aFrame->GetVisualOverflowRect();
+    
+    nsRect overflow = aFrame->GetVisualOverflowRect() + aToReferenceFrame;
     return overflow.ToOutsidePixels(appUnitsPerDevPixel);
   }
 
   
   nsPoint toUserSpace =
     aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
+  
+  
+  toUserSpace -= aToReferenceFrame;
   nsRect preEffectsRect = aInvalidRect.ToAppUnits(appUnitsPerDevPixel) + toUserSpace;
 
   
+  
   nsRect result = filterFrame->GetPostFilterDirtyArea(firstFrame, preEffectsRect) -
            toUserSpace;
+  
   return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
 

@@ -116,8 +116,17 @@ public:
 
 
 
+
+
+
+
+
+
+
+
   static nsIntRect
-  AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame, const nsIntRect& aInvalidRect);
+  AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame, const nsPoint& aToReferenceFrame,
+                                 const nsIntRect& aInvalidRect);
 
   
 
