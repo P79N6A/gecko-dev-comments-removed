@@ -75,6 +75,7 @@ static MOZ_CONSTEXPR_VAR Register HeapReg = r15;
 static MOZ_CONSTEXPR_VAR FloatRegister ReturnFloatReg = xmm0;
 static MOZ_CONSTEXPR_VAR FloatRegister ScratchFloatReg = xmm15;
 
+
 static MOZ_CONSTEXPR_VAR Register ArgumentsRectifierReg = r8;
 static MOZ_CONSTEXPR_VAR Register CallTempReg0 = rax;
 static MOZ_CONSTEXPR_VAR Register CallTempReg1 = rdi;
@@ -82,7 +83,6 @@ static MOZ_CONSTEXPR_VAR Register CallTempReg2 = rbx;
 static MOZ_CONSTEXPR_VAR Register CallTempReg3 = rcx;
 static MOZ_CONSTEXPR_VAR Register CallTempReg4 = rsi;
 static MOZ_CONSTEXPR_VAR Register CallTempReg5 = rdx;
-static MOZ_CONSTEXPR_VAR Register CallTempReg6 = rbp;
 
 
 #if defined(_WIN64)
