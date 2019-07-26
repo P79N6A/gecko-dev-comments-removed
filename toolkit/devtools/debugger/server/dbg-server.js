@@ -24,7 +24,8 @@ let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
 
-Cu.import("resource://gre/modules/devtools/_Promise.jsm");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
+const { defer, resolve, reject } = Promise;
 
 function dumpn(str) {
   if (wantLogging) {
@@ -185,7 +186,7 @@ var DebuggerServer = {
 
   addBrowserActors: function DS_addBrowserActors() {
     this.addActors("chrome://global/content/devtools/dbg-browser-actors.js");
-#ifndef MOZ_WIDGET_GONK
+#ifndef MOZ_B2G
     this.addActors("chrome://global/content/devtools/dbg-webconsole-actors.js");
     this.addTabActor(this.WebConsoleActor, "consoleActor");
     this.addGlobalActor(this.WebConsoleActor, "consoleActor");
@@ -669,11 +670,12 @@ DebuggerServerConnection.prototype = {
       return;
     }
 
-    if (!ret.from) {
-      ret.from = aPacket.to;
-    }
-
-    this.transport.send(ret);
+    resolve(ret).then(function(returnPacket) {
+      if (!returnPacket.from) {
+        returnPacket.from = aPacket.to;
+      }
+      this.transport.send(returnPacket);
+    }.bind(this));
   },
 
   
