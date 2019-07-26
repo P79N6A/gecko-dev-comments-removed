@@ -82,6 +82,17 @@ ArrayEnd(const Array<T, N>& arr)
   return &arr[0] + ArrayLength(arr);
 }
 
+namespace detail {
+
+
+
+
+
+template <typename T, size_t N>
+char (&ArrayLengthHelper(T (&array)[N]))[N];
+
+} 
+
 } 
 
 #endif 
@@ -91,8 +102,8 @@ ArrayEnd(const Array<T, N>& arr)
 
 
 
-#ifdef MOZ_HAVE_CXX11_CONSTEXPR
-#  define MOZ_ARRAY_LENGTH(array)   mozilla::ArrayLength(array)
+#ifdef __cplusplus
+#  define MOZ_ARRAY_LENGTH(array)   sizeof(mozilla::detail::ArrayLengthHelper(array))
 #else
 #  define MOZ_ARRAY_LENGTH(array)   (sizeof(array)/sizeof((array)[0]))
 #endif
