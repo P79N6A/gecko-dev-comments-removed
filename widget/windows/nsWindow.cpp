@@ -5497,6 +5497,7 @@ nsWindow::ClientMarginHitTestPoint(int32_t mx, int32_t my)
 
   bool allowContentOverride = false;
   
+  
   if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
     allowContentOverride = mSizeMode == nsSizeMode_Maximized ||
                            (mx >= winRect.left + nonClientSize.left &&
