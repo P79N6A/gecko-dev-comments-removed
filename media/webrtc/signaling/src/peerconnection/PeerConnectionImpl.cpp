@@ -335,8 +335,13 @@ PeerConnectionImpl::ConvertRTCConfiguration(const JS::Value& aSrc,
   if (!aSrc.isObject()) {
     return NS_ERROR_FAILURE;
   }
-  JSObject& servers = aSrc.toObject();
-  JSAutoCompartment ac(aCx, &servers);
+  JSObject& config = aSrc.toObject();
+  JSAutoCompartment ac(aCx, &config);
+  JS::Value jsServers;
+  if (!(JS_GetProperty(aCx, &config, "iceServers", &jsServers) && jsServers.isObject())) {
+    return NS_ERROR_FAILURE;
+  }
+  JSObject& servers = jsServers.toObject();
   uint32_t len;
   if (!(IsArrayLike(aCx, &servers) && JS_GetArrayLength(aCx, &servers, &len))) {
     return NS_ERROR_FAILURE;
