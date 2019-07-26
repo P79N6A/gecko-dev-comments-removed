@@ -22,6 +22,7 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
@@ -274,6 +275,7 @@ class TextureHost
   void Finalize();
 
   friend class AtomicRefCountedWithFinalize<TextureHost>;
+
 public:
   TextureHost(TextureFlags aFlags);
 
@@ -429,6 +431,13 @@ public:
   
 
 
+
+
+  virtual bool HasInternalBuffer() const { return false; }
+
+  
+
+
   virtual TextureHostOGL* AsHostOGL() { return nullptr; }
 
 protected:
@@ -461,6 +470,7 @@ public:
   ~BufferTextureHost();
 
   virtual uint8_t* GetBuffer() = 0;
+
   virtual size_t GetBufferSize() = 0;
 
   virtual void Updated(const nsIntRegion* aRegion = nullptr) MOZ_OVERRIDE;
@@ -487,6 +497,8 @@ public:
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
 
   virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() MOZ_OVERRIDE;
+
+  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return true; }
 
 protected:
   bool Upload(nsIntRegion *aRegion = nullptr);

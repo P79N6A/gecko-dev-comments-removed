@@ -38,6 +38,14 @@ ClientTiledThebesLayer::~ClientTiledThebesLayer()
 }
 
 void
+ClientTiledThebesLayer::ClearCachedResources()
+{
+  if (mContentClient) {
+    mContentClient->ClearCachedResources();
+  }
+}
+
+void
 ClientTiledThebesLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
 {
   aAttrs = ThebesLayerAttributes(GetValidRegion());
@@ -189,7 +197,7 @@ ClientTiledThebesLayer::RenderLayer()
                                              callback, data);
 
     ClientManager()->Hold(this);
-    mContentClient->LockCopyAndWrite(TiledContentClient::TILED_BUFFER);
+    mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
 
     return;
   }
@@ -262,7 +270,7 @@ ClientTiledThebesLayer::RenderLayer()
 
     if (updatedBuffer) {
       ClientManager()->Hold(this);
-      mContentClient->LockCopyAndWrite(TiledContentClient::TILED_BUFFER);
+      mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
 
       
       
@@ -331,7 +339,7 @@ ClientTiledThebesLayer::RenderLayer()
   
   if (updatedLowPrecision) {
     ClientManager()->Hold(this);
-    mContentClient->LockCopyAndWrite(TiledContentClient::LOW_PRECISION_TILED_BUFFER);
+    mContentClient->UseTiledLayerBuffer(TiledContentClient::LOW_PRECISION_TILED_BUFFER);
   }
 
   EndPaint(false);

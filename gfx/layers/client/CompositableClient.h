@@ -73,7 +73,7 @@ class CompositableClient : public AtomicRefCounted<CompositableClient>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(CompositableClient)
-  CompositableClient(CompositableForwarder* aForwarder);
+  CompositableClient(CompositableForwarder* aForwarder, TextureFlags aFlags = 0);
 
   virtual ~CompositableClient();
 
@@ -85,7 +85,7 @@ public:
   CreateDeprecatedTextureClient(DeprecatedTextureClientType aDeprecatedTextureClientType,
                                 gfxContentType aContentType = gfxContentType::SENTINEL);
 
-  virtual TemporaryRef<BufferTextureClient>
+  TemporaryRef<BufferTextureClient>
   CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
                             TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
 
@@ -143,9 +143,18 @@ public:
 
   virtual void OnDetach() {}
 
+  
+
+
+
+  virtual void ClearCachedResources() {}
+
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
+  
+  
+  TextureFlags mTextureFlags;
 
   friend class CompositableChild;
 };

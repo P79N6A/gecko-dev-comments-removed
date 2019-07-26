@@ -182,7 +182,7 @@ private:
   bool IsPlaceholder(Tile aTile) const { return aTile == AsDerived().GetPlaceholderTile(); }
 };
 
-class BasicTiledLayerBuffer;
+class ClientTiledLayerBuffer;
 class SurfaceDescriptorTiles;
 class ISurfaceAllocator;
 
@@ -198,8 +198,8 @@ public:
 
 
 
-  virtual void PaintedTiledLayerBuffer(ISurfaceAllocator* aAllocator,
-                                       const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
+  virtual void UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
+                                   const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   
 
@@ -292,6 +292,7 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   
   int tileX = 0;
   int tileY = 0;
+  int tilesMissing = 0;
   
   for (int32_t x = newBound.x; x < newBound.XMost(); tileX++) {
     
@@ -336,6 +337,10 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         
         
         newRetainedTiles.AppendElement(AsDerived().GetPlaceholderTile());
+
+        if (aPaintRegion.Intersects(tileRect)) {
+          tilesMissing++;
+        }
       }
 
       y += height;
@@ -348,6 +353,26 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   
   mRetainedWidth = tileX;
   mRetainedHeight = tileY;
+
+  
+  
+  
+  
+  
+  int oldTileCount = 0;
+  for (size_t i = 0; i < oldRetainedTiles.Length(); i++) {
+    Tile oldTile = oldRetainedTiles[i];
+    if (IsPlaceholder(oldTile)) {
+      continue;
+    }
+
+    if (oldTileCount >= tilesMissing) {
+      oldRetainedTiles[i] = AsDerived().GetPlaceholderTile();
+      AsDerived().ReleaseTile(oldTile);
+    } else {
+      oldTileCount ++;
+    }
+  }
 
   NS_ABORT_IF_FALSE(aNewValidRegion.Contains(aPaintRegion), "Painting a region outside the visible region");
 #ifdef DEBUG
@@ -415,9 +440,15 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
                         "index out of range");
 
       Tile newTile = newRetainedTiles[index];
+
+      
+      
       while (IsPlaceholder(newTile) && oldRetainedTiles.Length() > 0) {
         AsDerived().SwapTiles(newTile, oldRetainedTiles[oldRetainedTiles.Length()-1]);
         oldRetainedTiles.RemoveElementAt(oldRetainedTiles.Length()-1);
+        if (!IsPlaceholder(newTile)) {
+          oldTileCount--;
+        }
       }
 
       
@@ -439,12 +470,7 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   }
 
   
-  
-  while (oldRetainedTiles.Length() > 0) {
-    Tile oldTile = oldRetainedTiles[oldRetainedTiles.Length()-1];
-    oldRetainedTiles.RemoveElementAt(oldRetainedTiles.Length()-1);
-    AsDerived().ReleaseTile(oldTile);
-  }
+  NS_ABORT_IF_FALSE(oldTileCount == 0, "Failed to release old tiles");
 
   mRetainedTiles = newRetainedTiles;
   mValidRegion = aNewValidRegion;

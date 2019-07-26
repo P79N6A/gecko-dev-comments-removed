@@ -104,7 +104,8 @@ GrallocTextureSourceOGL::~GrallocTextureSourceOGL()
   mCompositor = nullptr;
 }
 
-void GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit)
+void
+GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit)
 {
   
 
@@ -125,17 +126,46 @@ void GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit)
 
   gl()->fActiveTexture(aTextureUnit);
   gl()->fBindTexture(textureTarget, tex);
+
+  if (mCompositableBackendData) {
+    
+    
+    
+    
+    if (!mEGLImage) {
+      mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
+    }
+    gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
+  }
+
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+}
+
+void GrallocTextureSourceOGL::Lock()
+{
+  if (mCompositableBackendData) return;
+
+  MOZ_ASSERT(IsValid());
+
+  CompositorOGLGonkBackendSpecificData* backendData =
+    static_cast<CompositorOGLGonkBackendSpecificData*>(mCompositor->GetCompositorBackendSpecificData());
+  mTexture = backendData->GetTexture();
+
+  GLuint textureTarget = GetTextureTarget();
+
+  gl()->MakeCurrent();
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->fBindTexture(textureTarget, mTexture);
   if (!mEGLImage) {
     mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
   }
   gl()->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
-  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 }
 
 bool
 GrallocTextureSourceOGL::IsValid() const
 {
-  return !!gl() && !!mGraphicBuffer.get();
+  return !!gl() && !!mGraphicBuffer.get() && (!!mCompositor || !!mCompositableBackendData);
 }
 
 gl::GLContext*
@@ -178,7 +208,7 @@ GrallocTextureSourceOGL::GetFormat() const {
 void
 GrallocTextureSourceOGL::SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
-  if (!aBackendData || !mGraphicBuffer.get()) {
+  if (!aBackendData) {
     mCompositableBackendData = nullptr;
     DeallocateDeviceData();
     return;
@@ -285,7 +315,11 @@ GrallocTextureHostOGL::SetCompositor(Compositor* aCompositor)
 bool
 GrallocTextureHostOGL::Lock()
 {
-  return IsValid();
+  if (IsValid()) {
+    mTextureSource->Lock();
+    return true;
+  }
+  return false;
 }
 
 void
@@ -384,8 +418,12 @@ GrallocTextureSourceOGL::GetAsSurface() {
 GLuint
 GrallocTextureSourceOGL::GetGLTexture()
 {
-  mCompositableBackendData->SetCompositor(mCompositor);
-  return static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->GetTexture();
+  if (mCompositableBackendData) {
+    mCompositableBackendData->SetCompositor(mCompositor);
+    return static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get())->GetTexture();
+  }
+
+  return mTexture;
 }
 
 void

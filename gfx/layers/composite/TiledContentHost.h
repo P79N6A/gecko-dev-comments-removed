@@ -45,97 +45,112 @@ class Layer;
 class ThebesBufferData;
 class TiledThebesLayerComposite;
 struct EffectChain;
- 
 
-class TiledTexture {
+
+class TileHost {
 public:
   
   
   
   
-  TiledTexture()
-    : mDeprecatedTextureHost(nullptr)
+  TileHost()
+    : mSharedLock(nullptr)
+    , mTextureHost(nullptr)
   {}
 
   
-  TiledTexture(DeprecatedTextureHost* aDeprecatedTextureHost)
-    : mDeprecatedTextureHost(aDeprecatedTextureHost)
+  TileHost(gfxSharedReadLock* aSharedLock,
+               TextureHost* aTextureHost)
+    : mSharedLock(aSharedLock)
+    , mTextureHost(aTextureHost)
   {}
 
-  TiledTexture(const TiledTexture& o) {
-    mDeprecatedTextureHost = o.mDeprecatedTextureHost;
+  TileHost(const TileHost& o) {
+    mTextureHost = o.mTextureHost;
+    mSharedLock = o.mSharedLock;
   }
-  TiledTexture& operator=(const TiledTexture& o) {
+  TileHost& operator=(const TileHost& o) {
     if (this == &o) {
       return *this;
     }
-    mDeprecatedTextureHost = o.mDeprecatedTextureHost;
+    mTextureHost = o.mTextureHost;
+    mSharedLock = o.mSharedLock;
     return *this;
   }
 
-  void Validate(gfxReusableSurfaceWrapper* aReusableSurface, Compositor* aCompositor, uint16_t aSize);
-
-  bool operator== (const TiledTexture& o) const {
-    if (!mDeprecatedTextureHost || !o.mDeprecatedTextureHost) {
-      return mDeprecatedTextureHost == o.mDeprecatedTextureHost;
-    }
-    return *mDeprecatedTextureHost == *o.mDeprecatedTextureHost;
+  bool operator== (const TileHost& o) const {
+    return mTextureHost == o.mTextureHost;
   }
-  bool operator!= (const TiledTexture& o) const {
-    if (!mDeprecatedTextureHost || !o.mDeprecatedTextureHost) {
-      return mDeprecatedTextureHost != o.mDeprecatedTextureHost;
-    }
-    return *mDeprecatedTextureHost != *o.mDeprecatedTextureHost;
+  bool operator!= (const TileHost& o) const {
+    return mTextureHost != o.mTextureHost;
   }
 
-  RefPtr<DeprecatedTextureHost> mDeprecatedTextureHost;
+  bool IsPlaceholderTile() const { return mTextureHost == nullptr; }
+
+  void ReadUnlock() {
+    
+    NS_WARN_IF_FALSE(mTextureHost == nullptr || mSharedLock != nullptr,
+                     "ReadUnlock with no gfxSharedReadLock");
+    if (mSharedLock) {
+      mSharedLock->ReadUnlock();
+    }
+  }
+
+  RefPtr<gfxSharedReadLock> mSharedLock;
+  RefPtr<TextureHost> mTextureHost;
 };
 
 class TiledLayerBufferComposite
-  : public TiledLayerBuffer<TiledLayerBufferComposite, TiledTexture>
+  : public TiledLayerBuffer<TiledLayerBufferComposite, TileHost>
 {
-  friend class TiledLayerBuffer<TiledLayerBufferComposite, TiledTexture>;
+  friend class TiledLayerBuffer<TiledLayerBufferComposite, TileHost>;
 
 public:
-  typedef TiledLayerBuffer<TiledLayerBufferComposite, TiledTexture>::Iterator Iterator;
-  TiledLayerBufferComposite()
-    : mCompositor(nullptr)
-  {}
+  typedef TiledLayerBuffer<TiledLayerBufferComposite, TileHost>::Iterator Iterator;
 
-  void Upload(const BasicTiledLayerBuffer* aMainMemoryTiledBuffer,
-              const nsIntRegion& aNewValidRegion,
-              const nsIntRegion& aInvalidateRegion,
-              const CSSToScreenScale& aResolution);
+  TiledLayerBufferComposite();
+  TiledLayerBufferComposite(ISurfaceAllocator* aAllocator,
+                            const SurfaceDescriptorTiles& aDescriptor,
+                            const nsIntRegion& aOldPaintedRegion);
 
-  TiledTexture GetPlaceholderTile() const { return TiledTexture(); }
+  TileHost GetPlaceholderTile() const { return TileHost(); }
 
   
   
   const CSSToScreenScale& GetFrameResolution() { return mFrameResolution; }
 
-  void SetCompositor(Compositor* aCompositor)
-  {
-    mCompositor = aCompositor;
-  }
+  void ReadUnlock();
 
-protected:
-  TiledTexture ValidateTile(TiledTexture aTile,
-                            const nsIntPoint& aTileRect,
-                            const nsIntRegion& dirtyRect);
+  void ReleaseTextureHosts();
 
   
-  void ReleaseTile(TiledTexture aTile) {}
 
-  void SwapTiles(TiledTexture& aTileA, TiledTexture& aTileB) {
-    std::swap(aTileA, aTileB);
-  }
+
+
+
+  void Upload();
+
+  void SetCompositor(Compositor* aCompositor);
+
+  bool HasDoubleBufferedTiles() { return mHasDoubleBufferedTiles; }
+
+  bool IsValid() const { return !mUninitialized; }
+
+protected:
+  TileHost ValidateTile(TileHost aTile,
+                        const nsIntPoint& aTileRect,
+                        const nsIntRegion& dirtyRect);
+
+  
+  void ReleaseTile(TileHost aTile) {}
+
+  void SwapTiles(TileHost& aTileA, TileHost& aTileB) { std::swap(aTileA, aTileB); }
 
 private:
-  Compositor* mCompositor;
-  const BasicTiledLayerBuffer* mMainMemoryTiledBuffer;
   CSSToScreenScale mFrameResolution;
+  bool mHasDoubleBufferedTiles;
+  bool mUninitialized;
 };
-
 
 
 
@@ -161,18 +176,9 @@ class TiledContentHost : public ContentHost,
                          public TiledLayerComposer
 {
 public:
-  TiledContentHost(const TextureInfo& aTextureInfo)
-    : ContentHost(aTextureInfo)
-    , mPendingUpload(false)
-    , mPendingLowPrecisionUpload(false)
-  {
-    MOZ_COUNT_CTOR(TiledContentHost);
-  }
+  TiledContentHost(const TextureInfo& aTextureInfo);
 
-  ~TiledContentHost()
-  {
-    MOZ_COUNT_DTOR(TiledContentHost);
-  }
+  ~TiledContentHost();
 
   virtual LayerRenderState GetRenderState() MOZ_OVERRIDE
   {
@@ -191,14 +197,14 @@ public:
 
   const nsIntRegion& GetValidLowPrecisionRegion() const
   {
-    return mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion();
+    return mLowPrecisionTiledBuffer.GetValidRegion();
   }
 
-  void PaintedTiledLayerBuffer(ISurfaceAllocator* aAllocator,
-                               const SurfaceDescriptorTiles& aTiledDescriptor);
+  void UseTiledLayerBuffer(ISurfaceAllocator* aAllocator,
+                           const SurfaceDescriptorTiles& aTiledDescriptor);
 
   
-  void RenderTile(const TiledTexture& aTile,
+  void RenderTile(const TileHost& aTile,
                   EffectChain& aEffectChain,
                   float aOpacity,
                   const gfx::Matrix4x4& aTransform,
@@ -228,13 +234,6 @@ public:
     MOZ_CRASH("Does nothing");
   }
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE
-  {
-    CompositableHost::SetCompositor(aCompositor);
-    mVideoMemoryTiledBuffer.SetCompositor(aCompositor);
-    mLowPrecisionVideoMemoryTiledBuffer.SetCompositor(aCompositor);
-  }
-
   virtual void Attach(Layer* aLayer,
                       Compositor* aCompositor,
                       AttachFlags aFlags = NO_FLAGS) MOZ_OVERRIDE;
@@ -248,10 +247,6 @@ public:
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
 private:
-  void ProcessUploadQueue(nsIntRegion* aNewValidRegion,
-                          TiledLayerProperties* aLayerProperties);
-  void ProcessLowPrecisionUploadQueue();
-
   void RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
                          const nsIntRegion& aValidRegion,
                          EffectChain& aEffectChain,
@@ -264,12 +259,10 @@ private:
 
   void EnsureTileStore() {}
 
-  nsIntRegion                  mRegionToUpload;
-  nsIntRegion                  mLowPrecisionRegionToUpload;
-  BasicTiledLayerBuffer        mMainMemoryTiledBuffer;
-  BasicTiledLayerBuffer        mLowPrecisionMainMemoryTiledBuffer;
-  TiledLayerBufferComposite    mVideoMemoryTiledBuffer;
-  TiledLayerBufferComposite    mLowPrecisionVideoMemoryTiledBuffer;
+  TiledLayerBufferComposite    mTiledBuffer;
+  TiledLayerBufferComposite    mLowPrecisionTiledBuffer;
+  TiledLayerBufferComposite    mOldTiledBuffer;
+  TiledLayerBufferComposite    mOldLowPrecisionTiledBuffer;
   bool                         mPendingUpload : 1;
   bool                         mPendingLowPrecisionUpload : 1;
 };

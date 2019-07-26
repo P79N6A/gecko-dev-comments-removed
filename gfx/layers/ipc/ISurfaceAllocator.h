@@ -14,6 +14,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsIMemoryReporter.h"          
 #include "mozilla/Atomics.h"            
+#include "LayersTypes.h"
 
 
 
@@ -78,6 +79,16 @@ class ISurfaceAllocator : public AtomicRefCounted<ISurfaceAllocator>
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(ISurfaceAllocator)
   ISurfaceAllocator() {}
+
+  
+
+
+
+
+
+
+
+  virtual LayersBackend GetCompositorBackendType() const = 0;
 
   
 
