@@ -27,7 +27,6 @@ class TextureFactoryIdentifier;
 class SurfaceDescriptor;
 class SurfaceDescriptorTiles;
 class ThebesBufferData;
-class DeprecatedTextureClient;
 class ClientTiledLayerBuffer;
 class PTextureChild;
 
@@ -44,7 +43,6 @@ class PTextureChild;
 class CompositableForwarder : public ISurfaceAllocator
 {
   friend class AutoOpenSurface;
-  friend class DeprecatedTextureClientShmem;
 public:
 
   CompositableForwarder()
@@ -56,26 +54,6 @@ public:
 
 
   virtual void Connect(CompositableClient* aCompositable) = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
-                                   const SurfaceDescriptor& aDescriptor,
-                                   const TextureInfo& aTextureInfo,
-                                   const SurfaceDescriptor* aDescriptorOnWhite = nullptr) = 0;
-  virtual void CreatedDoubleBuffer(CompositableClient* aCompositable,
-                                   const SurfaceDescriptor& aFrontDescriptor,
-                                   const SurfaceDescriptor& aBackDescriptor,
-                                   const TextureInfo& aTextureInfo,
-                                   const SurfaceDescriptor* aFrontDescriptorOnWhite = nullptr,
-                                   const SurfaceDescriptor* aBackDescriptorOnWhite = nullptr) = 0;
 
   
 
@@ -96,21 +74,6 @@ public:
 
 
   virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData, TextureFlags aFlags) = 0;
-
-  
-
-
-
-  virtual void UpdateTexture(CompositableClient* aCompositable,
-                             TextureIdentifier aTextureId,
-                             SurfaceDescriptor* aDescriptor) = 0;
-
-  
-
-
-  virtual void UpdateTextureNoSwap(CompositableClient* aCompositable,
-                                   TextureIdentifier aTextureId,
-                                   SurfaceDescriptor* aDescriptor) = 0;
 
   
 

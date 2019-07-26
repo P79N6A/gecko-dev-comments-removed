@@ -140,24 +140,6 @@ enum EffectTypes
 
 
 
-
-
-enum DeprecatedTextureClientType
-{
-  TEXTURE_CONTENT,            
-  TEXTURE_SHMEM,              
-  TEXTURE_YCBCR,              
-  TEXTURE_SHARED_GL,          
-  TEXTURE_SHARED_GL_EXTERNAL, 
-                              
-                              
-  TEXTURE_STREAM_GL,          
-  TEXTURE_FALLBACK            
-};
-
-
-
-
 enum CompositableType
 {
   BUFFER_UNKNOWN,

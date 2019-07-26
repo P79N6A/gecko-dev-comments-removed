@@ -26,7 +26,6 @@ namespace layers {
 class MaybeMagicGrallocBufferHandle;
 class SurfaceDescriptorGralloc;
 class TextureHost;
-class DeprecatedTextureHost;
 
 
 
@@ -100,10 +99,6 @@ private:
   
   
   size_t mAllocBytes;
-
-  
-  
-  nsAutoTArray<DeprecatedTextureHost*, 2> mDeprecatedTextureHosts;
 
   
   TextureHost* mTextureHost;

@@ -30,7 +30,6 @@ class Matrix;
 
 namespace layers {
 
-class DeprecatedTextureClient;
 class TextureClient;
 class ThebesLayer;
 
@@ -174,9 +173,7 @@ public:
   };
 
   RotatedContentBuffer(BufferSizePolicy aBufferSizePolicy)
-    : mDeprecatedBufferProvider(nullptr)
-    , mDeprecatedBufferProviderOnWhite(nullptr)
-    , mBufferProvider(nullptr)
+    : mBufferProvider(nullptr)
     , mBufferProviderOnWhite(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
@@ -195,8 +192,6 @@ public:
   {
     mDTBuffer = nullptr;
     mDTBufferOnWhite = nullptr;
-    mDeprecatedBufferProvider = nullptr;
-    mDeprecatedBufferProviderOnWhite = nullptr;
     mBufferProvider = nullptr;
     mBufferProviderOnWhite = nullptr;
     mBufferRect.SetEmpty();
@@ -317,46 +312,11 @@ protected:
   }
 
   
-
-
-
-
-
-
-
-
-
-
-  void SetDeprecatedBufferProvider(DeprecatedTextureClient* aClient)
-  {
-    
-    
-    MOZ_ASSERT((!aClient || !mDTBuffer) && !mBufferProvider);
-
-    mDeprecatedBufferProvider = aClient;
-    if (!mDeprecatedBufferProvider) {
-      mDTBuffer = nullptr;
-    } 
-  }
-  
-  void SetDeprecatedBufferProviderOnWhite(DeprecatedTextureClient* aClient)
-  {
-    
-    
-    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mBufferProviderOnWhite);
-
-    mDeprecatedBufferProviderOnWhite = aClient;
-    if (!mDeprecatedBufferProviderOnWhite) {
-      mDTBufferOnWhite = nullptr;
-    }
-  }
-
-  
   void SetBufferProvider(TextureClient* aClient)
   {
     
     
-    MOZ_ASSERT((!aClient || !mDTBuffer) && !mDeprecatedBufferProvider);
+    MOZ_ASSERT(!aClient || !mDTBuffer);
 
     mBufferProvider = aClient;
     if (!mBufferProvider) {
@@ -368,12 +328,12 @@ protected:
   {
     
     
-    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mDeprecatedBufferProviderOnWhite);
+    MOZ_ASSERT(!aClient || !mDTBufferOnWhite);
 
     mBufferProviderOnWhite = aClient;
     if (!mBufferProviderOnWhite) {
       mDTBufferOnWhite = nullptr;
-    } 
+    }
   }
 
   
@@ -432,8 +392,6 @@ protected:
 
 
 
-  DeprecatedTextureClient* mDeprecatedBufferProvider;
-  DeprecatedTextureClient* mDeprecatedBufferProviderOnWhite;
   TextureClient* mBufferProvider;
   TextureClient* mBufferProviderOnWhite;
 

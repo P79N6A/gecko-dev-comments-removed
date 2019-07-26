@@ -210,29 +210,6 @@ public:
 
 
 
-
-
-
-
-
-
-  virtual void EnsureDeprecatedTextureHost(TextureIdentifier aTextureId,
-                                 const SurfaceDescriptor& aSurface,
-                                 ISurfaceAllocator* aAllocator,
-                                 const TextureInfo& aTextureInfo)
-  {
-    MOZ_ASSERT(false, "should be implemented or not used");
-  }
-
-  
-
-
-
-
-
-
-
-
   virtual void EnsureDeprecatedTextureHostIncremental(ISurfaceAllocator* aAllocator,
                                             const TextureInfo& aTextureInfo,
                                             const nsIntRect& aBufferRect)
