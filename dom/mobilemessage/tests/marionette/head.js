@@ -196,7 +196,7 @@ function getThreadById(aThreadId) {
   return getAllThreads()
     .then(function(aThreads) {
       for (let thread of aThreads) {
-        if (thread.id == aThreadId) {
+        if (thread.id === aThreadId) {
           return thread;
         }
       }
@@ -267,6 +267,70 @@ function deleteAllMessages() {
   return getAllMessages().then(deleteMessages);
 }
 
+let pendingEmulatorCmdCount = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function runEmulatorCmdSafe(aCommand) {
+  let deferred = Promise.defer();
+
+  ++pendingEmulatorCmdCount;
+  runEmulatorCmd(aCommand, function(aResult) {
+    --pendingEmulatorCmdCount;
+
+    ok(true, "Emulator response: " + JSON.stringify(aResult));
+    if (Array.isArray(aResult) && aResult[0] === "OK") {
+      deferred.resolve(aResult);
+    } else {
+      deferred.reject(aResult);
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function sendTextSmsToEmulator(aFrom, aText) {
+  let command = "sms send " + aFrom + " " + aText;
+  return runEmulatorCmdSafe(command);
+}
+
+
+
+
+
+
+
+
+
+
+
+function sendRawSmsToEmulator(aPdu) {
+  let command = "sms pdu " + aPdu;
+  return runEmulatorCmdSafe(command);
+}
+
 
 
 
@@ -284,11 +348,15 @@ function messagesToIds(aMessages) {
 
 
 function cleanUp() {
-  SpecialPowers.flushPermissions(function() {
-    
-    ok(true, "permissions flushed");
+  waitFor(function() {
+    SpecialPowers.flushPermissions(function() {
+      
+      ok(true, "permissions flushed");
 
-    finish();
+      finish();
+    });
+  }, function() {
+    return pendingEmulatorCmdCount === 0;
   });
 }
 
@@ -297,5 +365,8 @@ function startTestCommon(aTestCaseMain) {
     .then(deleteAllMessages)
     .then(aTestCaseMain)
     .then(deleteAllMessages)
-    .then(cleanUp, cleanUp);
+    .then(cleanUp, function() {
+      ok(false, 'promise rejects during test.');
+      cleanUp();
+    });
 }
