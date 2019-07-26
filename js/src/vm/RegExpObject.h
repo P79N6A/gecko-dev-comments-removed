@@ -389,7 +389,7 @@ ParseRegExpFlags(JSContext *cx, JSString *flagStr, RegExpFlag *flagsOut);
 
 
 inline bool
-RegExpToShared(JSContext *cx, JSObject &obj, RegExpGuard *g);
+RegExpToShared(JSContext *cx, HandleObject obj, RegExpGuard *g);
 
 template<XDRMode mode>
 bool
