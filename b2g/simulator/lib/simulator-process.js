@@ -171,7 +171,7 @@ exports.SimulatorProcess = Class({
     Cu.reportError(profile);
 
     
-    args.push("-dbgport", "" + this.remoteDebuggerPort);
+    args.push("-start-debugger-server", "" + this.remoteDebuggerPort);
 
     
     args.push("-no-remote");
