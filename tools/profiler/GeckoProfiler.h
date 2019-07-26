@@ -152,6 +152,9 @@ static inline char* profiler_get_profile() { return nullptr; }
 static inline JSObject* profiler_get_profile_jsobject(JSContext* aCx) { return nullptr; }
 
 
+static inline void profiler_save_profile_to_file(char* aFilename) { }
+
+
 
 static inline char** profiler_get_features() { return nullptr; }
 

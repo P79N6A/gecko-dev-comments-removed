@@ -4,10 +4,10 @@
 
 
 
-#include "JSCustomObjectBuilder.h"
-#include "JSObjectBuilder.h"
+#include "JSStreamWriter.h"
 #include "ProfilerBacktrace.h"
 #include "SyncProfile.h"
+
 
 ProfilerBacktrace::ProfilerBacktrace(SyncProfile* aProfile)
   : mProfile(aProfile)
@@ -22,18 +22,9 @@ ProfilerBacktrace::~ProfilerBacktrace()
   }
 }
 
-template<typename Builder> void
-ProfilerBacktrace::BuildJSObject(Builder& aObjBuilder,
-                                 typename Builder::ObjectHandle aScope)
+void
+ProfilerBacktrace::StreamJSObject(JSStreamWriter& b)
 {
   mozilla::MutexAutoLock lock(*mProfile->GetMutex());
-  mProfile->BuildJSObject(aObjBuilder, aScope);
+  mProfile->StreamJSObject(b);
 }
-
-template void
-ProfilerBacktrace::BuildJSObject<JSCustomObjectBuilder>(
-                                    JSCustomObjectBuilder& aObjBuilder,
-                                    JSCustomObjectBuilder::ObjectHandle aScope);
-template void
-ProfilerBacktrace::BuildJSObject<JSObjectBuilder>(JSObjectBuilder& aObjBuilder,
-                                          JSObjectBuilder::ObjectHandle aScope);

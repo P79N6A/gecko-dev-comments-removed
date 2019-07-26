@@ -4,13 +4,14 @@
 
 
 #include <ostream>
+#include <sstream>
 #include "platform.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+#include "jsapi.h"
 
 
-#include "JSObjectBuilder.h"
-#include "JSCustomObjectBuilder.h"
+#include "JSStreamWriter.h"
 
 
 #include "ProfileEntry.h"
@@ -308,137 +309,158 @@ void ThreadProfile::IterateTags(IterateTagsCallback aCallback)
 
 void ThreadProfile::ToStreamAsJSON(std::ostream& stream)
 {
-  JSCustomObjectBuilder b;
-  JSCustomObject *profile = b.CreateObject();
-  BuildJSObject(b, profile);
-  b.Serialize(profile, stream);
-  b.DeleteObject(profile);
+  JSStreamWriter b(stream);
+  StreamJSObject(b);
+}
+
+void ThreadProfile::StreamJSObject(JSStreamWriter& b)
+{
+  b.BeginObject();
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Plugin) {
+      
+      b.NameValue("name", "Plugin");
+    } else {
+      b.NameValue("name", mName);
+    }
+    b.NameValue("tid", static_cast<int>(mThreadId));
+
+    b.Name("samples");
+    b.BeginArray();
+
+      bool sample = false;
+      int readPos = mReadPos;
+      while (readPos != mLastFlushPos) {
+        
+        ProfileEntry entry = mEntries[readPos];
+
+        switch (entry.mTagName) {
+          case 'r':
+            {
+              if (sample) {
+                b.NameValue("responsiveness", entry.mTagFloat);
+              }
+            }
+            break;
+          case 'p':
+            {
+              if (sample) {
+                b.NameValue("power", entry.mTagFloat);
+              }
+            }
+            break;
+          case 'f':
+            {
+              if (sample) {
+                b.NameValue("frameNumber", entry.mTagLine);
+              }
+            }
+            break;
+          case 't':
+            {
+              if (sample) {
+                b.NameValue("time", entry.mTagFloat);
+              }
+            }
+            break;
+          case 's':
+            {
+              
+              if (sample) {
+                b.EndObject();
+              }
+              
+              b.BeginObject();
+
+              sample = true;
+
+              
+              
+              
+              b.Name("frames");
+              b.BeginArray();
+
+                b.BeginObject();
+                  b.NameValue("location", "(root)");
+                b.EndObject();
+
+                int framePos = (readPos + 1) % mEntrySize;
+                ProfileEntry frame = mEntries[framePos];
+                while (framePos != mLastFlushPos && frame.mTagName != 's') {
+                  int incBy = 1;
+                  frame = mEntries[framePos];
+                  
+                  const char* tagStringData = frame.mTagData;
+                  int readAheadPos = (framePos + 1) % mEntrySize;
+                  char tagBuff[DYNAMIC_MAX_STRING];
+                  
+                  
+                  tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
+
+                  if (readAheadPos != mLastFlushPos && mEntries[readAheadPos].mTagName == 'd') {
+                    tagStringData = processDynamicTag(framePos, &incBy, tagBuff);
+                  }
+
+                  
+                  
+                  
+                  if (frame.mTagName == 'l') {
+                    b.BeginObject();
+                      
+                      
+                      
+                      unsigned long long pc = (unsigned long long)(uintptr_t)frame.mTagPtr;
+                      snprintf(tagBuff, DYNAMIC_MAX_STRING, "%#llx", pc);
+                      b.NameValue("location", tagBuff);
+                    b.EndObject();
+                  } else if (frame.mTagName == 'c') {
+                    b.BeginObject();
+                      b.NameValue("location", tagStringData);
+                      readAheadPos = (framePos + incBy) % mEntrySize;
+                      if (readAheadPos != mLastFlushPos &&
+                          mEntries[readAheadPos].mTagName == 'n') {
+                        b.NameValue("line", mEntries[readAheadPos].mTagLine);
+                        incBy++;
+                      }
+                    b.EndObject();
+                  }
+                  framePos = (framePos + incBy) % mEntrySize;
+                }
+              b.EndArray();
+            }
+            break;
+        }
+        readPos = (readPos + 1) % mEntrySize;
+      }
+      if (sample) {
+        b.EndObject();
+      }
+    b.EndArray();
+
+    b.Name("markers");
+    b.BeginArray();
+      readPos = mReadPos;
+      while (readPos != mLastFlushPos) {
+        ProfileEntry entry = mEntries[readPos];
+        if (entry.mTagName == 'm') {
+           entry.getMarker()->StreamJSObject(b);
+        }
+        readPos = (readPos + 1) % mEntrySize;
+      }
+    b.EndArray();
+  b.EndObject();
 }
 
 JSObject* ThreadProfile::ToJSObject(JSContext *aCx)
 {
-  JSObjectBuilder b(aCx);
-  JS::RootedObject profile(aCx, b.CreateObject());
-  BuildJSObject(b, profile);
-  return profile;
+  JS::RootedValue val(aCx);
+  std::stringstream ss;
+  JSStreamWriter b(ss);
+  StreamJSObject(b);
+  NS_ConvertUTF8toUTF16 js_string(nsDependentCString(ss.str().c_str()));
+  JS_ParseJSON(aCx, static_cast<const jschar*>(js_string.get()), js_string.Length(), &val);
+  return &val.toObject();
 }
-
-template <typename Builder>
-void ThreadProfile::BuildJSObject(Builder& b,
-                                  typename Builder::ObjectHandle profile)
-{
-  
-  if (XRE_GetProcessType() == GeckoProcessType_Plugin) {
-    
-    b.DefineProperty(profile, "name", "Plugin");
-  } else {
-    b.DefineProperty(profile, "name", mName);
-  }
-
-  b.DefineProperty(profile, "tid", static_cast<int>(mThreadId));
-
-  typename Builder::RootedArray samples(b.context(), b.CreateArray());
-  b.DefineProperty(profile, "samples", samples);
-
-  typename Builder::RootedArray markers(b.context(), b.CreateArray());
-  b.DefineProperty(profile, "markers", markers);
-
-  typename Builder::RootedObject sample(b.context());
-  typename Builder::RootedArray frames(b.context());
-
-  int readPos = mReadPos;
-  while (readPos != mLastFlushPos) {
-    
-    int incBy = 1;
-    ProfileEntry entry = mEntries[readPos];
-
-    
-    const char* tagStringData = entry.mTagData;
-    int readAheadPos = (readPos + 1) % mEntrySize;
-    char tagBuff[DYNAMIC_MAX_STRING];
-    
-    
-    tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
-
-    if (readAheadPos != mLastFlushPos && mEntries[readAheadPos].mTagName == 'd') {
-      tagStringData = processDynamicTag(readPos, &incBy, tagBuff);
-    }
-
-    switch (entry.mTagName) {
-      case 'm':
-        {
-          entry.getMarker()->BuildJSObject(b, markers);
-        }
-        break;
-      case 'r':
-        {
-          if (sample) {
-            b.DefineProperty(sample, "responsiveness", entry.mTagFloat);
-          }
-        }
-        break;
-      case 'p':
-        {
-          if (sample) {
-            b.DefineProperty(sample, "power", entry.mTagFloat);
-          }
-        }
-        break;
-      case 'f':
-        {
-          if (sample) {
-            b.DefineProperty(sample, "frameNumber", entry.mTagLine);
-          }
-        }
-        break;
-      case 't':
-        {
-          if (sample) {
-            b.DefineProperty(sample, "time", entry.mTagFloat);
-          }
-        }
-        break;
-      case 's':
-        sample = b.CreateObject();
-        b.DefineProperty(sample, "name", tagStringData);
-        frames = b.CreateArray();
-        b.DefineProperty(sample, "frames", frames);
-        b.ArrayPush(samples, sample);
-        
-      case 'c':
-      case 'l':
-        {
-          if (sample) {
-            typename Builder::RootedObject frame(b.context(), b.CreateObject());
-            if (entry.mTagName == 'l') {
-              
-              
-              
-              unsigned long long pc = (unsigned long long)(uintptr_t)entry.mTagPtr;
-              snprintf(tagBuff, DYNAMIC_MAX_STRING, "%#llx", pc);
-              b.DefineProperty(frame, "location", tagBuff);
-            } else {
-              b.DefineProperty(frame, "location", tagStringData);
-              readAheadPos = (readPos + incBy) % mEntrySize;
-              if (readAheadPos != mLastFlushPos &&
-                  mEntries[readAheadPos].mTagName == 'n') {
-                b.DefineProperty(frame, "line",
-                                 mEntries[readAheadPos].mTagLine);
-                incBy++;
-              }
-            }
-            b.ArrayPush(frames, frame);
-          }
-        }
-    }
-    readPos = (readPos + incBy) % mEntrySize;
-  }
-}
-
-template void ThreadProfile::BuildJSObject<JSObjectBuilder>(JSObjectBuilder& b,
-                                                            JS::HandleObject profile);
-template void ThreadProfile::BuildJSObject<JSCustomObjectBuilder>(JSCustomObjectBuilder& b,
-                                                                  JSCustomObject *profile);
 
 PseudoStack* ThreadProfile::GetPseudoStack()
 {

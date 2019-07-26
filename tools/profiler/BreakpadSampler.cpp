@@ -27,10 +27,6 @@
 #include "TableTicker.h"
 
 
-#include "JSObjectBuilder.h"
-#include "nsIJSRuntimeService.h"
-
-
 #include "nsXPCOM.h"
 #include "nsXPCOMCID.h"
 #include "nsIHttpProtocolHandler.h"
