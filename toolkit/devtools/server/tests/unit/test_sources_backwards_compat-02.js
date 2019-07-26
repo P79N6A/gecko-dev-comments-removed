@@ -25,9 +25,6 @@ function run_test()
       return request.call(this, aRequest, aOnResponse);
     };
   }(gClient.request));
-  
-  
-  gc();
   gClient.connect(function() {
     attachTestTabAndResume(gClient, "test-sources-compat", function (aResponse,
                                                                      aTabClient,
