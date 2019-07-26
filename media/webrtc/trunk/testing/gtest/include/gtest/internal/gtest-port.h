@@ -493,7 +493,7 @@
 
 
 
-# if GTEST_LANG_CXX11
+# if GTEST_LANG_CXX11 && (!defined(__GLIBCXX__) || __GLIBCXX__ > 20110325)
 #  define GTEST_ENV_HAS_STD_TUPLE_ 1
 # endif
 
