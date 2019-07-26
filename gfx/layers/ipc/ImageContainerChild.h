@@ -161,33 +161,48 @@ protected:
 
 
 
+
+
+
+
+
+
+
+  void SendImageNow(Image* aImage);
+
+
+  
+
+
+
+  SharedImage* AsSharedImage(Image* aImage);
+
+  
+
+
+
+
+
   SharedImage* GetSharedImageFor(Image* aImage);
+
   
 
 
 
-  void ClearSharedImagePool();
-  
 
 
-
-
-
-
-
-
-  SharedImage* ImageToSharedImage(Image* toCopy);
+  SharedImage* AllocateSharedImageFor(Image* aImage);
 
   
 
 
   bool CopyDataIntoSharedImage(Image* src, SharedImage* dest);
 
+
   
 
 
-
-  SharedImage * CreateSharedImageFromData(Image* aImage);
+  void ClearSharedImagePool();
 
 private:
   uint64_t mImageContainerID;
