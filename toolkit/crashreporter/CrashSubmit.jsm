@@ -447,6 +447,18 @@ this.CrashSubmit = {
 
 
 
+  delete: function CrashSubmit_delete(id) {
+    let [dump, extra] = getPendingMinidump(id);
+    dump.QueryInterface(Ci.nsIFile).remove(false);
+    extra.QueryInterface(Ci.nsIFile).remove(false);
+  },
+
+  
+
+
+
+
+
   pendingIDs: function CrashSubmit_pendingIDs() {
     return getAllPendingMinidumpsIDs();
   },
