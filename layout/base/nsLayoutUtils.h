@@ -85,7 +85,7 @@ public:
 
 
 
-  static bool FindIDFor(nsIContent* aContent, ViewID* aOutViewId);
+  static bool FindIDFor(const nsIContent* aContent, ViewID* aOutViewId);
 
   
 
