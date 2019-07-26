@@ -41,10 +41,10 @@ class WrapperFactory {
     static bool IsCOW(JSObject *wrapper);
 
     static JSObject *GetXrayWaiver(JSObject *obj);
-    static JSObject *CreateXrayWaiver(JSContext *cx, JSObject *obj);
+    static JSObject *CreateXrayWaiver(JSContext *cx, JS::HandleObject obj);
     static JSObject *WaiveXray(JSContext *cx, JSObject *obj);
 
-    static JSObject *DoubleWrap(JSContext *cx, JSObject *obj, unsigned flags);
+    static JSObject *DoubleWrap(JSContext *cx, JS::HandleObject obj, unsigned flags);
 
     
     static JSObject *PrepareForWrapping(JSContext *cx,
@@ -74,7 +74,7 @@ class WrapperFactory {
     static bool IsComponentsObject(JSObject *obj);
 
     
-    static JSObject *WrapComponentsObject(JSContext *cx, JSObject *obj);
+    static JSObject *WrapComponentsObject(JSContext *cx, JS::HandleObject obj);
 
     
     static JSObject *WrapForSameCompartmentXray(JSContext *cx, JSObject *obj);
