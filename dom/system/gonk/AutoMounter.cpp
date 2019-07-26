@@ -263,6 +263,21 @@ public:
     UpdateState();
   }
 
+  void FormatVolume(const nsACString& aVolumeName)
+  {
+    RefPtr<Volume> vol = VolumeManager::FindVolumeByName(aVolumeName);
+    if (!vol) {
+      return;
+    }
+    if (vol->IsFormatRequested()) {
+      return;
+    }
+    vol->SetFormatRequested(true);
+    DBG("Calling UpdateState due to volume %s formatting set to %d",
+        vol->NameStr(), (int)vol->IsFormatRequested());
+    UpdateState();
+  }
+
 private:
 
   AutoVolumeEventObserver         mVolumeEventObserver;
@@ -428,14 +443,14 @@ AutoMounter::UpdateState()
       continue;
     }
 
-    if (tryToShare && vol->IsSharingEnabled()) {
+    if ((tryToShare && vol->IsSharingEnabled()) || vol->IsFormatRequested()) {
       
       switch (volState) {
         case nsIVolume::STATE_MOUNTED: {
           if (vol->IsMountLocked()) {
             
             
-            LOGW("UpdateState: Mounted volume %s is locked, not sharing",
+            LOGW("UpdateState: Mounted volume %s is locked, not sharing or formatting",
                  vol->NameStr());
             break;
           }
@@ -444,7 +459,11 @@ AutoMounter::UpdateState()
           
           
           
-          vol->SetIsSharing(true);
+          if (tryToShare && vol->IsSharingEnabled()) {
+            vol->SetIsSharing(true);
+          } else if (vol->IsFormatRequested()){
+            vol->SetIsFormatting(true);
+          }
 
           
           
@@ -461,7 +480,7 @@ AutoMounter::UpdateState()
                    fileInfo.mComm.get(),
                    fileInfo.mExe.get());
             } while (fileFinder.Next(&fileInfo));
-            LOGW("UpdateState: Mounted volume %s has open files, not sharing",
+            LOGW("UpdateState: Mounted volume %s has open files, not sharing or formatting",
                  vol->NameStr());
 
             
@@ -495,9 +514,22 @@ AutoMounter::UpdateState()
           return; 
         }
         case nsIVolume::STATE_IDLE: {
-          
-          LOG("UpdateState: Sharing %s", vol->NameStr());
-          vol->StartShare(mResponseCallback);
+          LOG("UpdateState: Volume %s is nsIVolume::STATE_IDLE", vol->NameStr());
+          if (vol->IsFormatting() && !vol->IsFormatRequested()) {
+            vol->SetFormatRequested(false);
+            LOG("UpdateState: Mounting %s", vol->NameStr());
+            vol->StartMount(mResponseCallback);
+            break;
+          }
+          if (tryToShare && vol->IsSharingEnabled()) {
+            
+            LOG("UpdateState: Sharing %s", vol->NameStr());
+            vol->StartShare(mResponseCallback);
+          } else if (vol->IsFormatRequested()){
+            
+            LOG("UpdateState: Formatting %s", vol->NameStr());
+            vol->StartFormat(mResponseCallback);
+          }
           return; 
         }
         default: {
@@ -576,6 +608,15 @@ SetAutoMounterSharingModeIOThread(const nsCString& aVolumeName, const bool& aAll
   MOZ_ASSERT(sAutoMounter);
 
   sAutoMounter->SetSharingMode(aVolumeName, aAllowSharing);
+}
+
+static void
+AutoMounterFormatVolumeIOThread(const nsCString& aVolumeName)
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+  MOZ_ASSERT(sAutoMounter);
+
+  sAutoMounter->FormatVolume(aVolumeName);
 }
 
 static void
@@ -732,8 +773,17 @@ SetAutoMounterSharingMode(const nsCString& aVolumeName, bool aAllowSharing)
 {
   XRE_GetIOMessageLoop()->PostTask(
       FROM_HERE,
-      NewRunnableFunction(SetAutoMounterSharingModeIOThread, 
+      NewRunnableFunction(SetAutoMounterSharingModeIOThread,
                           aVolumeName, aAllowSharing));
+}
+
+void
+AutoMounterFormatVolume(const nsCString& aVolumeName)
+{
+  XRE_GetIOMessageLoop()->PostTask(
+      FROM_HERE,
+      NewRunnableFunction(AutoMounterFormatVolumeIOThread,
+                          aVolumeName));
 }
 
 void

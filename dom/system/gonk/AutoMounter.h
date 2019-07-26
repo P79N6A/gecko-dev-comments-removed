@@ -64,6 +64,15 @@ SetAutoMounterSharingMode(const nsCString& aVolumeName, bool aAllowSharing);
 
 
 
+
+void
+AutoMounterFormatVolume(const nsCString& aVolumeName);
+
+
+
+
+
+
 void
 ShutdownAutoMounter();
 
