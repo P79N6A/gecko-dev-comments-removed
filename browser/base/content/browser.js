@@ -1137,6 +1137,9 @@ var gBrowserInit = {
     gBrowser.addEventListener("PluginOutdated",        gPluginHandler, true);
 
     gBrowser.addEventListener("NewPluginInstalled", gPluginHandler.newPluginInstalled, true);
+#ifdef XP_MACOSX
+    gBrowser.addEventListener("npapi-carbon-event-model-failure", gPluginHandler, true);
+#endif
 
     Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
 
@@ -1335,6 +1338,14 @@ var gBrowserInit = {
 
     var isLoadingBlank = isBlankPageURL(uriToLoad);
 
+    
+    
+    gBrowser.addEventListener("pageshow", function(event) {
+      
+      if (content && event.target == content.document)
+        setTimeout(pageShowEventHandlers, 0, event);
+    }, true);
+
     if (uriToLoad && uriToLoad != "about:blank") {
       if (uriToLoad instanceof Ci.nsISupportsArray) {
         let count = uriToLoad.Count();
@@ -1392,12 +1403,6 @@ var gBrowserInit = {
     SocialUI.init();
     AddonManager.addAddonListener(AddonsMgrListener);
     WebrtcIndicator.init();
-
-    gBrowser.addEventListener("pageshow", function(event) {
-      
-      if (content && event.target == content.document)
-        setTimeout(pageShowEventHandlers, 0, event.persisted);
-    }, true);
 
     
     Services.logins;
@@ -7195,6 +7200,7 @@ let gPrivateBrowsingUI = {
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
+    
     if (window.location.href == getBrowserURL()) {
 #ifdef XP_MACOSX
       if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
@@ -7202,7 +7208,6 @@ let gPrivateBrowsingUI = {
       }
 #endif
 
-      
       let docElement = document.documentElement;
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
@@ -7211,23 +7216,6 @@ let gPrivateBrowsingUI = {
       docElement.setAttribute("privatebrowsingmode",
         PrivateBrowsingUtils.permanentPrivateBrowsing ? "permanent" : "temporary");
       gBrowser.updateTitlebar();
-
-      if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
-        
-        [
-          { normal: "menu_newNavigator", private: "menu_newPrivateWindow" },
-          { normal: "appmenu_newNavigator", private: "appmenu_newPrivateWindow" },
-        ].forEach(function(menu) {
-          let newWindow = document.getElementById(menu.normal);
-          let newPrivateWindow = document.getElementById(menu.private);
-          if (newWindow && newPrivateWindow) {
-            newPrivateWindow.hidden = true;
-            newWindow.label = newPrivateWindow.label;
-            newWindow.accessKey = newPrivateWindow.accessKey;
-            newWindow.command = newPrivateWindow.command;
-          }
-        });
-      }
     }
 
     if (gURLBar) {
