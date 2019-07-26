@@ -242,7 +242,7 @@ void CleanupOSFileConstants()
 
 
 
-#define PROP_END { NULL, JSVAL_VOID }
+#define PROP_END { NULL, JS::UndefinedValue() }
 
 
 
@@ -269,7 +269,7 @@ void CleanupOSFileConstants()
 
 
 
-static dom::ConstantSpec gLibcProperties[] =
+static const dom::ConstantSpec gLibcProperties[] =
 {
   
   INT_CONSTANT(O_APPEND),
@@ -522,7 +522,7 @@ static dom::ConstantSpec gLibcProperties[] =
 
 
 
-static dom::ConstantSpec gWinProperties[] =
+static const dom::ConstantSpec gWinProperties[] =
 {
   
   INT_CONSTANT(FORMAT_MESSAGE_FROM_SYSTEM),
