@@ -1108,23 +1108,14 @@ NS_IMETHODIMP nsSVGElement::SetId(const nsAString & aId)
 NS_IMETHODIMP
 nsSVGElement::GetOwnerSVGElement(nsIDOMSVGElement * *aOwnerSVGElement)
 {
-  ErrorResult rv;
-  NS_IF_ADDREF(*aOwnerSVGElement = GetOwnerSVGElement(rv));
-  return rv.ErrorCode();
+  NS_IF_ADDREF(*aOwnerSVGElement = GetOwnerSVGElement());
+  return NS_OK;
 }
 
 SVGSVGElement*
-nsSVGElement::GetOwnerSVGElement(ErrorResult& rv)
+nsSVGElement::GetOwnerSVGElement()
 {
-  SVGSVGElement* ownerSVGElement = GetCtx();
-
-  
-  
-  if (!ownerSVGElement && Tag() != nsGkAtoms::svg) {
-    rv.Throw(NS_ERROR_FAILURE);
-  }
-
-  return ownerSVGElement;
+  return GetCtx(); 
 }
 
 
