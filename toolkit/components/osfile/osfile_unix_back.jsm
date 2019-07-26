@@ -108,19 +108,6 @@
        Types.time_t =
          Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_TIME_T).withName("time_t");
 
-       Types.DIR =
-         new Type("DIR",
-                  ctypes.StructType("DIR"));
-
-       Types.null_or_DIR_ptr =
-         Types.DIR.out_ptr.withName("null_or_DIR*");
-       Types.null_or_DIR_ptr.importFromC = function importFromC(dir) {
-         if (dir == null || dir.isNull()) {
-           return null;
-         }
-         return ctypes.CDataFinalizer(dir, _close_dir);
-       };
-
        
        
        
@@ -174,6 +161,37 @@
                         "st_size", Types.size_t.implementation);
          Types.stat = stat.getType();
        }
+
+       
+       if ("OSFILE_SIZEOF_DIR" in OS.Constants.libc) {
+         
+         
+         
+         let DIR = new OS.Shared.HollowStructure(
+           "DIR",
+           OS.Constants.libc.OSFILE_SIZEOF_DIR);
+
+         DIR.add_field_at(
+           OS.Constants.libc.OSFILE_OFFSETOF_DIR_DD_FD,
+           "dd_fd",
+           Types.fd.implementation);
+
+         Types.DIR = DIR.getType();
+       } else {
+         
+         Types.DIR =
+           new Type("DIR",
+             ctypes.StructType("DIR"));
+       }
+
+       Types.null_or_DIR_ptr =
+         Types.DIR.out_ptr.withName("null_or_DIR*");
+       Types.null_or_DIR_ptr.importFromC = function importFromC(dir) {
+         if (dir == null || dir.isNull()) {
+           return null;
+         }
+         return ctypes.CDataFinalizer(dir, _close_dir);
+       };
 
        
 
@@ -241,10 +259,19 @@
                      Types.negativeone_or_fd,
                          Types.fd);
 
-       UnixFile.dirfd =
-         declareFFI("dirfd", ctypes.default_abi,
-                     Types.negativeone_or_fd,
-                        Types.null_or_DIR_ptr);
+       if ("OSFILE_SIZEOF_DIR" in OS.Constants.libc) {
+         
+         UnixFile.dirfd =
+           function dirfd(DIRp) {
+             return Types.DIR.in_ptr.implementation(DIRp).contents.dd_fd;
+           };
+       } else {
+         
+         UnixFile.dirfd =
+           declareFFI("dirfd", ctypes.default_abi,
+                       Types.negativeone_or_fd,
+                          Types.DIR.in_ptr);
+       }
 
        UnixFile.chdir =
          declareFFI("chdir", ctypes.default_abi,
