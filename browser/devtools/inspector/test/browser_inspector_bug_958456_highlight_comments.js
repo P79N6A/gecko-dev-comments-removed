@@ -36,21 +36,31 @@ function startTests() {
   Task.spawn(function() {
     yield prepareHighlighter();
 
+    
     yield hoverElement("#id1");
     assertHighlighterShownOn("#id1");
 
+    
     yield hoverComment();
     assertHighlighterHidden();
 
+    
+    yield hoverElement("#id1");
+    assertHighlighterShownOn("#id1");
+
+    
     yield hoverElement("#id2");
     assertHighlighterShownOn("#id2");
 
+    
     yield hoverElement("script");
     assertHighlighterHidden();
 
+    
     yield hoverElement("#id3");
     assertHighlighterShownOn("#id3");
 
+    
     yield hoverElement("#id4");
     assertHighlighterHidden();
   }).then(null, Cu.reportError).then(finishTest);
