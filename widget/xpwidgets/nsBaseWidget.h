@@ -118,6 +118,16 @@ public:
   virtual gfxASurface*    GetThebesSurface();
   NS_IMETHOD              SetModal(bool aModal); 
   NS_IMETHOD              SetWindowClass(const nsAString& xulWinType);
+  
+  
+  
+  
+  
+  
+  
+  bool                    BoundsUseDisplayPixels() const {
+    return mWindowType <= eWindowType_popup;
+  }
   NS_IMETHOD              MoveClient(double aX, double aY);
   NS_IMETHOD              ResizeClient(double aWidth, double aHeight, bool aRepaint);
   NS_IMETHOD              ResizeClient(double aX, double aY, double aWidth, double aHeight, bool aRepaint);
