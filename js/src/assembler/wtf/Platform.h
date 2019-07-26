@@ -165,15 +165,21 @@
     || defined(__POWERPC__) \
     || defined(_M_PPC)      \
     || defined(__PPC)
+#if !defined(__ppc64__) && !defined(__PPC64__)
 #define WTF_CPU_PPC 1
+#endif
+#if !defined(__LITTLE_ENDIAN__)
 #define WTF_CPU_BIG_ENDIAN 1
+#endif
 #endif
 
 
 #if   defined(__ppc64__) \
     || defined(__PPC64__)
 #define WTF_CPU_PPC64 1
+#if !defined(__LITTLE_ENDIAN__)
 #define WTF_CPU_BIG_ENDIAN 1
+#endif
 #endif
 
 
