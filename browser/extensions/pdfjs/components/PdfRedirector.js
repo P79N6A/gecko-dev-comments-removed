@@ -43,50 +43,30 @@ function getDOMWindow(aChannel) {
 }
 
 function getObjectUrl(window) {
-  var url;
-  var element = window.frameElement;
-  var isOverlay = false;
-  var params = {};
-  if (element) {
-    var tagName = element.nodeName;
-    while (tagName != 'EMBED' && tagName != 'OBJECT') {
-      
-      isOverlay = true;
-      element = element.parentNode;
-      if (!element)
-        throw 'Plugin element is not found';
-      tagName = element.nodeName;
-    }
-    if (tagName == 'EMBED') {
-      for (var i = 0; i < element.attributes.length; ++i) {
-        params[element.attributes[i].localName] = element.attributes[i].value;
-      }
-      url = params.src;
-    } else {
-      for (var i = 0; i < element.childNodes.length; ++i) {
-        var paramElement = element.childNodes[i];
-        if (paramElement.nodeType != Ci.nsIDOMNode.ELEMENT_NODE ||
-            paramElement.nodeName != 'PARAM') {
-          continue;
-        }
-
-        params[paramElement.getAttribute('name')] =
-          paramElement.getAttribute('value');
-      }
-      var dataAttribute = element.getAttribute('data');
-      url = dataAttribute || params.movie || params.src;
-    }
-  }
-  if (!url) {
-    return url; 
-  }
-
-  var element = window.frameElement;
   
-  var baseUri = !element ? null :
-    Services.io.newURI(element.ownerDocument.location.href, null, null);
+  
+  var element = window.frameElement, containerElement;
+  if (!element) {
+    return null; 
+  }
+  var tagName = element.nodeName;
+  while (tagName !== 'EMBED' && tagName !== 'OBJECT') {
+    containerElement = element;
+    element = element.parentNode;
+    if (!element) {
+      return null; 
+    }
+    tagName = element.nodeName;
+  }
 
-  return Services.io.newURI(url, null, baseUri).spec;
+  
+  for (var i = 0; i < element.children.length; i++) {
+    if (element.children[i] === containerElement) {
+      return null; 
+    }
+  }
+
+  return element.srcURI.spec;
 }
 
 function PdfRedirector() {
