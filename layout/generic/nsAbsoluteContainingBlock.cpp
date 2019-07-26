@@ -366,17 +366,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   nsresult  rv;
   
-  nsMargin border = aReflowState.mStyleBorder->GetComputedBorder();
-
-  
-  if (aDelegatingFrame->GetAbsoluteListID() == nsIFrame::kFixedList) {
-    const nsMargin& fixedMargins = aPresContext->PresShell()->
-      GetContentDocumentFixedPositionMargins();
-
-    border += fixedMargins;
-    aContainingBlockWidth -= fixedMargins.left + fixedMargins.right;
-    aContainingBlockHeight -= fixedMargins.top + fixedMargins.bottom;
-  }
+  const nsMargin& border = aReflowState.mStyleBorder->GetComputedBorder();
 
   nscoord availWidth = aContainingBlockWidth;
   if (availWidth == -1) {

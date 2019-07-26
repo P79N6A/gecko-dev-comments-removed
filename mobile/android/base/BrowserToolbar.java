@@ -41,9 +41,6 @@ import android.widget.ViewSwitcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.TimerTask;
-
-import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 
 public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                                        Tabs.OnTabsChangedListener,
@@ -108,22 +105,10 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     private int mCount;
     private int mFaviconSize;
 
-    private PropertyAnimator mVisibilityAnimator;
-    private TimerTask mDelayedVisibilityTask;
-
-    private enum ToolbarVisibility {
-        VISIBLE,
-        HIDDEN,
-        INCONSISTENT
-    };
-    private ToolbarVisibility mVisibility;
-
     private static final int TABS_CONTRACTED = 1;
     private static final int TABS_EXPANDED = 2;
 
     private static final int FORWARD_ANIMATION_DURATION = 450;
-
-    private static final int VISIBILITY_ANIMATION_DURATION = 250;
 
     public BrowserToolbar(BrowserApp activity) {
         
@@ -133,8 +118,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         sActionItems = new ArrayList<View>();
         Tabs.registerOnTabsChangedListener(this);
         mAnimateSiteSecurity = true;
-
-        mVisibility = ToolbarVisibility.INCONSISTENT;
     }
 
     public void from(LinearLayout layout) {
@@ -485,67 +468,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 }
                 break;
         }
-    }
-
-    private boolean canToolbarHide() {
-        
-        
-        ImmutableViewportMetrics metrics = GeckoApp.mAppContext.getLayerView().
-            getLayerClient().getViewportMetrics();
-        return (metrics.getPageHeight() >= metrics.getHeight());
-    }
-
-    private void startVisibilityAnimation() {
-        
-        
-        if (mVisibility == ToolbarVisibility.VISIBLE ||
-            canToolbarHide()) {
-            mVisibilityAnimator.start();
-        }
-    }
-
-    public void animateVisibility(boolean show, long delay) {
-        
-        
-        if (mVisibility != ToolbarVisibility.INCONSISTENT &&
-            ((delay > 0) == (mDelayedVisibilityTask != null)) &&
-            (show == isVisible())) {
-            return;
-        }
-
-        cancelVisibilityAnimation();
-        mVisibility = show ? ToolbarVisibility.VISIBLE : ToolbarVisibility.HIDDEN;
-
-        mVisibilityAnimator = new PropertyAnimator(VISIBILITY_ANIMATION_DURATION);
-        mVisibilityAnimator.attach(mLayout, PropertyAnimator.Property.SCROLL_Y,
-                                   show ? 0 : mLayout.getHeight());
-        if (delay > 0) {
-            mDelayedVisibilityTask = new TimerTask() {
-                public void run() {
-                    startVisibilityAnimation();
-                    mDelayedVisibilityTask = null;
-                }
-            };
-            mLayout.postDelayed(mDelayedVisibilityTask, delay);
-        } else {
-            startVisibilityAnimation();
-        }
-    }
-
-    public void cancelVisibilityAnimation() {
-        mVisibility = ToolbarVisibility.INCONSISTENT;
-        if (mDelayedVisibilityTask != null) {
-            mLayout.removeCallbacks(mDelayedVisibilityTask);
-            mDelayedVisibilityTask = null;
-        }
-        if (mVisibilityAnimator != null) {
-            mVisibilityAnimator.stop(false);
-            mVisibilityAnimator = null;
-        }
-    }
-
-    public boolean isVisible() {
-        return mVisibility == ToolbarVisibility.VISIBLE;
     }
 
     @Override
