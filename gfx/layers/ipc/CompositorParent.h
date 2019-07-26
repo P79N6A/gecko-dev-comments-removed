@@ -164,6 +164,12 @@ public:
 
 
   static uint64_t AllocateLayerTreeId();
+  
+
+
+
+
+  static void DeallocateLayerTreeId(uint64_t aId);
 
   
 
