@@ -101,6 +101,8 @@ public:
     NS_IMETHOD_(void) Unlink(void *p) = 0;
     NS_IMETHOD_(void) Unroot(void *p) = 0;
 
+    NS_IMETHOD_(void) Trace(void *p, const TraceCallbacks &cb, void *closure) {};
+
     
     
     
