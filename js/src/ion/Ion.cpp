@@ -1417,7 +1417,7 @@ Compile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, boo
         return Method_Compiled;
     }
 
-    if (cx->methodJitEnabled) {
+    if (cx->methodJitEnabled || IsBaselineEnabled(cx)) {
         
         
         if (script->getUseCount() < js_IonOptions.usesBeforeCompile)
