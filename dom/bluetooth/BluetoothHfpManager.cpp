@@ -354,7 +354,6 @@ BluetoothHfpManager::BluetoothHfpManager()
 void
 BluetoothHfpManager::ResetCallArray()
 {
-  mCurrentCallIndex = 0;
   mCurrentCallArray.Clear();
   
   
@@ -1181,7 +1180,11 @@ BluetoothHfpManager::SendCommand(const char* aCommand, uint8_t aValue)
           message.AppendInt(3);
           break;
         case nsITelephonyProvider::CALL_STATE_INCOMING:
-          message.AppendInt((i == mCurrentCallIndex) ? 4 : 5);
+          if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
+            message.AppendInt(4);
+          } else {
+            message.AppendInt(5);
+          }
           break;
         default:
           NS_WARNING("Not handling call status for CLCC");
@@ -1214,6 +1217,35 @@ BluetoothHfpManager::UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend)
   }
 }
 
+uint32_t
+BluetoothHfpManager::FindFirstCall(uint16_t aState)
+{
+  uint32_t callLength = mCurrentCallArray.Length();
+
+  for (uint32_t i = 1; i < callLength; ++i) {
+    if (mCurrentCallArray[i].mState == aState) {
+      return i;
+    }
+  }
+
+  return 0;
+}
+
+uint32_t
+BluetoothHfpManager::GetNumberOfCalls(uint16_t aState)
+{
+  uint32_t num = 0;
+  uint32_t callLength = mCurrentCallArray.Length();
+
+  for (uint32_t i = 1; i < callLength; ++i) {
+    if (mCurrentCallArray[i].mState == aState) {
+      ++num;
+    }
+  }
+
+  return num;
+}
+
 void
 BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             uint16_t aCallState,
@@ -1243,8 +1275,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
 
   nsRefPtr<nsRunnable> sendRingTask;
   nsString address;
-  uint32_t callArrayLength = mCurrentCallArray.Length();
-  uint32_t index = 1;
 
   switch (aCallState) {
     case nsITelephonyProvider::CALL_STATE_HELD:
@@ -1252,8 +1282,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       SendCommand("+CIEV: ", CINDType::CALLHELD);
       break;
     case nsITelephonyProvider::CALL_STATE_INCOMING:
-
-      if (mCurrentCallIndex) {
+      if (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) {
         if (mCCWA) {
           nsAutoCString ccwaMsg("+CCWA: \"");
           ccwaMsg.Append(NS_ConvertUTF16toUTF8(aNumber));
@@ -1296,7 +1325,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       ConnectSco();
       break;
     case nsITelephonyProvider::CALL_STATE_CONNECTED:
-      mCurrentCallIndex = aCallIndex;
       switch (prevCallState) {
         case nsITelephonyProvider::CALL_STATE_INCOMING:
         case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
@@ -1310,22 +1338,17 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           break;
         case nsITelephonyProvider::CALL_STATE_HELD:
           
-          while (index < callArrayLength) {
-            if (index == mCurrentCallIndex) {
-              index++;
-              continue;
-            }
-
-            uint16_t state = mCurrentCallArray[index].mState;
-            
-            
-            if (state != nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
-              break;
-            }
-            index++;
-          }
-
-          if (index == callArrayLength) {
+          
+          
+          
+          
+          
+          
+          
+          
+          if (!FindFirstCall(nsITelephonyProvider::CALL_STATE_HELD) &&
+              GetNumberOfCalls(
+                nsITelephonyProvider::CALL_STATE_CONNECTED) == 1) {
             UpdateCIND(CINDType::CALLHELD, CallHeldState::NO_CALLHELD, aSend);
           }
           break;
@@ -1358,23 +1381,12 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           NS_WARNING("Not handling state changed");
       }
 
-      if (aCallIndex == mCurrentCallIndex) {
+      
+      if (mCurrentCallArray.Length() - 1 ==
+          GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
         
-        
-        while (index < callArrayLength) {
-          if (mCurrentCallArray[index].mState !=
-              nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
-            mCurrentCallIndex = index;
-            break;
-          }
-          index++;
-        }
-
-        
-        if (index == callArrayLength) {
-          DisconnectSco();
-          ResetCallArray();
-        }
+        DisconnectSco();
+        ResetCallArray();
       }
       break;
     default:
