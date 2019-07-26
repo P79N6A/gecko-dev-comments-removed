@@ -7293,6 +7293,13 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
             return false;
           }
         }
+      } else if (LOWORD(aWParam) == WA_CLICKACTIVE) {
+        
+        
+        if (EventIsInsideWindow(popupWindow) ||
+            !GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+          return false;
+        }
       }
       break;
 
