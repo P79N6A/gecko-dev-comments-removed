@@ -171,7 +171,7 @@ JSRuntime::triggerOperationCallback()
 
 
 
-    ionStackLimit = 0;
+    ionStackLimit = -1;
 
     
 
