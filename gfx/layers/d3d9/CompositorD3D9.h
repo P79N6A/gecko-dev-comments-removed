@@ -117,8 +117,8 @@ public:
     
   }
 
-   virtual TemporaryRef<DataTextureSource>
-     CreateDataTextureSource(TextureFlags aFlags = 0) MOZ_OVERRIDE { return nullptr; } 
+  virtual TemporaryRef<DataTextureSource>
+    CreateDataTextureSource(TextureFlags aFlags = 0) MOZ_OVERRIDE;
 private:
   
   void EnsureSize();
