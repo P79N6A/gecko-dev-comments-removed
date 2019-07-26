@@ -1465,9 +1465,14 @@ struct ObjectBox {
     ObjectBox           *traceLink;
     ObjectBox           *emitLink;
     JSObject            *object;
-    bool                isFunctionBox;
+
+    
+    
+    
+    FunctionBox         *const funbox;
 
     ObjectBox(ObjectBox *traceLink, JSObject *obj);
+    ObjectBox(ObjectBox *traceLink, JSFunction *fun, FunctionBox *funbox);
 };
 
 } 

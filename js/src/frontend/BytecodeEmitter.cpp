@@ -4880,7 +4880,7 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
-    unsigned index = bce->objectList.add(pn->pn_funbox);
+    unsigned index = bce->objectList.add(&pn->pn_funbox->objbox);
 
     
     if (!pn->functionIsHoisted()) {
