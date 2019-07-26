@@ -2851,27 +2851,26 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, size_t
 
 
 
+class XPCJSSourceHook: public js::SourceHook {
+    bool load(JSContext *cx, const char *filename, jschar **src, size_t *length) {
+        *src = NULL;
+        *length = 0;
 
-static bool
-SourceHook(JSContext *cx, const char *filename, jschar **src, size_t *length)
-{
-  *src = NULL;
-  *length = 0;
+        if (!nsContentUtils::IsCallerChrome())
+            return true;
 
-  if (!nsContentUtils::IsCallerChrome())
-    return true;
+        if (!filename)
+            return true;
 
-  if (!filename)
-    return true;
+        nsresult rv = ReadSourceFromFilename(cx, filename, src, length);
+        if (NS_FAILED(rv)) {
+            xpc::Throw(cx, rv);
+            return false;
+        }
 
-  nsresult rv = ReadSourceFromFilename(cx, filename, src, length);
-  if (NS_FAILED(rv)) {
-    xpc::Throw(cx, rv);
-    return false;
-  }
-
-  return true;
-}
+        return true;
+    }
+};
 
 XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    : CycleCollectedJSRuntime(32L * 1024L * 1024L, JS_USE_HELPER_THREADS),
@@ -3040,7 +3039,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     
     
-    JS_SetSourceHook(runtime, SourceHook);
+    js::SetSourceHook(runtime, new XPCJSSourceHook);
 
     
     

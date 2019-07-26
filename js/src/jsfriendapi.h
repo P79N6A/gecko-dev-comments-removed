@@ -203,13 +203,33 @@ struct JSFunctionSpecWithHelp {
 extern JS_FRIEND_API(bool)
 JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *obj, const JSFunctionSpecWithHelp *fs);
 
-typedef bool (* JS_SourceHook)(JSContext *cx, const char *filename,
-                               jschar **src, size_t *length);
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+class SourceHook {
+  public:
+    virtual ~SourceHook() { }
+
+    
+    virtual bool load(JSContext *cx, const char *filename, jschar **src, size_t *length) = 0;
+};
+
+
+
+
 
 extern JS_FRIEND_API(void)
-JS_SetSourceHook(JSRuntime *rt, JS_SourceHook hook);
-
-namespace js {
+SetSourceHook(JSRuntime *rt, SourceHook *hook);
 
 inline JSRuntime *
 GetRuntime(const JSContext *cx)
