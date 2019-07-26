@@ -10,8 +10,6 @@
 
 
 
-const _XPCSHELL_TIMEOUT_MS = 5 * 60 * 1000;
-
 var _quit = false;
 var _passed = true;
 var _tests_pending = 0;
@@ -316,15 +314,6 @@ function _execute_test() {
   
   
   _fakeIdleService.activate();
-
-  
-  do_timeout(_XPCSHELL_TIMEOUT_MS, function _do_main_timeout() {
-    try {
-      do_throw("test timed out");
-    } catch (e if e == Components.results.NS_ERROR_ABORT) {
-      
-    }
-  });
 
   
   _load_files(_HEAD_FILES);
