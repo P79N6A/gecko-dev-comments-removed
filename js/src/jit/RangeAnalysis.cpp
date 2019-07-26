@@ -1990,12 +1990,21 @@ MDiv::truncate()
     
     setTruncated(true);
 
-    
-    
-    if (specialization() == MIRType_Int32 && tryUseUnsignedOperands()) {
-        unsigned_ = true;
+    if (type() == MIRType_Double || type() == MIRType_Int32) {
+        specialization_ = MIRType_Int32;
+        setResultType(MIRType_Int32);
+        if (range())
+            range()->wrapAroundToInt32();
+
+        
+        
+        if (tryUseUnsignedOperands())
+            unsigned_ = true;
+
         return true;
     }
+
+    JS_ASSERT(specialization() != MIRType_Int32); 
 
     
     return false;
