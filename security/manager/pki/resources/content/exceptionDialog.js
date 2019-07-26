@@ -88,11 +88,8 @@ function initExceptionDialog() {
 
 function findRecentBadCert(uri) {
   try {
-    var certDB = Components.classes["@mozilla.org/security/x509certdb;1"]
-                           .getService(Components.interfaces.nsIX509CertDB);
-    if (!certDB)
-      return false;
-    var recentCertsSvc = certDB.getRecentBadCertsService(inPrivateBrowsingMode());
+    var recentCertsSvc = Components.classes["@mozilla.org/security/recentbadcerts;1"]
+                         .getService(Components.interfaces.nsIRecentBadCertsService);
     if (!recentCertsSvc)
       return false;
 
