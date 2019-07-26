@@ -102,7 +102,7 @@ public:
   CompositableChild* GetIPDLActor() const;
 
   
-  void SetIPDLActor(CompositableChild* aChild);
+  virtual void SetIPDLActor(CompositableChild* aChild);
 
   CompositableForwarder* GetForwarder() const
   {
