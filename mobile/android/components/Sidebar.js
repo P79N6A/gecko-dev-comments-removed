@@ -70,15 +70,6 @@ Sidebar.prototype = {
   },
 
   
-  addPanel: function addPanel(aTitle, aContentURL, aCustomizeURL) {
-    
-  },
-
-  addPersistentPanel: function addPersistentPanel(aTitle, aContentURL, aCustomizeURL) {
-    
-  },
-
-  
   
   addSearchEngine: function addSearchEngine(engineURL, iconURL, suggestedTitle,
                                             suggestedCategory) {
