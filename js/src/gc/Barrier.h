@@ -922,6 +922,11 @@ class ReadBarrieredValue
     inline JSObject &toObject() const;
 };
 
+#ifdef DEBUG
+bool
+RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone);
+#endif
+
 } 
 
 #endif 
