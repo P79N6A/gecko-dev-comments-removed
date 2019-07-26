@@ -8033,9 +8033,12 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   
   
   nsSize reflowSize(size.width, NS_UNCONSTRAINEDSIZE);
-  nsHTMLReflowState reflowState(mPresContext, target, rcx, reflowSize);
+  nsHTMLReflowState reflowState(mPresContext, target, rcx, reflowSize,
+                                nsHTMLReflowState::CALLER_WILL_INIT);
 
   if (rootFrame == target) {
+    reflowState.Init(mPresContext);
+
     
     
     
@@ -8050,6 +8053,13 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     }
 
     mLastRootReflowHadUnconstrainedHeight = hasUnconstrainedHeight;
+  } else {
+    
+    
+    
+    nsMargin currentBorder = target->GetUsedBorder();
+    nsMargin currentPadding = target->GetUsedPadding();
+    reflowState.Init(mPresContext, -1, -1, &currentBorder, &currentPadding);
   }
 
   
