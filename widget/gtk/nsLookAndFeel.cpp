@@ -287,7 +287,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor& aColor)
     case eColorID_threedface:
     case eColorID_buttonface:
         
-        aColor = sButtonBackground;
+        aColor = sFrameBackground;
         break;
 
     case eColorID_buttontext:
@@ -299,19 +299,19 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor& aColor)
         
     case eColorID_threedhighlight:
         
-        aColor = sButtonOuterLightBorder;
+        aColor = sFrameOuterLightBorder;
         break;
 
     case eColorID_threedlightshadow:
         
-        aColor = sButtonBackground; 
+        aColor = sFrameBackground; 
         break;
 
     case eColorID_buttonshadow:
         
     case eColorID_threedshadow:
         
-        aColor = sButtonInnerDarkBorder;
+        aColor = sFrameInnerDarkBorder;
         break;
 
 #if (MOZ_WIDGET_GTK == 2)
@@ -1121,10 +1121,10 @@ nsLookAndFeel::Init()
 
     style = gtk_widget_get_style(button);
     if (style) {
-        sButtonBackground = GDK_COLOR_TO_NS_RGB(style->bg[GTK_STATE_NORMAL]);
-        sButtonOuterLightBorder =
+        sFrameBackground = GDK_COLOR_TO_NS_RGB(style->bg[GTK_STATE_NORMAL]);
+        sFrameOuterLightBorder =
             GDK_COLOR_TO_NS_RGB(style->light[GTK_STATE_NORMAL]);
-        sButtonInnerDarkBorder =
+        sFrameInnerDarkBorder =
             GDK_COLOR_TO_NS_RGB(style->dark[GTK_STATE_NORMAL]);
     }
 #else
@@ -1166,14 +1166,17 @@ nsLookAndFeel::Init()
     sOddCellBackground = GDK_RGBA_TO_NS_RGBA(color);
     gtk_style_context_restore(style);
 
-    style = gtk_widget_get_style_context(button);
-    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
-    sButtonBackground = GDK_RGBA_TO_NS_RGBA(color);
+    GtkWidget *frame = gtk_frame_new(nullptr);
+    gtk_container_add(GTK_CONTAINER(parent), frame);
 
-    gtk_style_context_get_border_color(style, GTK_STATE_FLAG_PRELIGHT, &color);
-    sButtonInnerDarkBorder = GDK_RGBA_TO_NS_RGBA(color);
+    style = gtk_widget_get_style_context(frame);
+    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
+    sFrameBackground = GDK_RGBA_TO_NS_RGBA(color);
+
+    
+    
     gtk_style_context_get_border_color(style, GTK_STATE_FLAG_NORMAL, &color);
-    sButtonOuterLightBorder = GDK_RGBA_TO_NS_RGBA(color);
+    sFrameInnerDarkBorder = sFrameOuterLightBorder = GDK_RGBA_TO_NS_RGBA(color);
 #endif
     
     gboolean supports_menubar_drag = FALSE;
