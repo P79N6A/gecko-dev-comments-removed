@@ -1723,7 +1723,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
         event.charCode = domCharCode;
         event.keyCode = 0;
-        nsAlternativeCharCode altCharCode(0, 0);
+        AlternativeCharCode altCharCode(0, 0);
         
         if ((unshiftedChar.isUpper() || unshiftedChar.isLower()) &&
             unshiftedChar.toLower() == shiftedChar.toLower()) {

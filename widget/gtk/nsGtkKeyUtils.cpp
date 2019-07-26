@@ -1211,7 +1211,7 @@ KeymapWrapper::InitKeypressEvent(nsKeyEvent& aKeyEvent,
     
     
     
-    nsAlternativeCharCode altCharCodes(0, 0);
+    AlternativeCharCode altCharCodes(0, 0);
     
     altCharCodes.mUnshiftedCharCode =
         GetCharCodeFor(aGdkKeyEvent, baseState, aGdkKeyEvent->group);
@@ -1259,7 +1259,7 @@ KeymapWrapper::InitKeypressEvent(nsKeyEvent& aKeyEvent,
         return;
     }
 
-    nsAlternativeCharCode altLatinCharCodes(0, 0);
+    AlternativeCharCode altLatinCharCodes(0, 0);
     uint32_t unmodifiedCh =
         aKeyEvent.IsShift() ? altCharCodes.mShiftedCharCode :
                               altCharCodes.mUnshiftedCharCode;
