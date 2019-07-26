@@ -221,10 +221,13 @@ static bool Launch()
 
   
   
-  hr = CoAllowSetForegroundWindow(activateMgr, NULL);
-  if (FAILED(hr)) {
-    Fail(L"CoAllowSetForegroundWindow result %X", hr);
-    return false;
+  
+  if (GetForegroundWindow() == GetConsoleWindow()) {
+    hr = CoAllowSetForegroundWindow(activateMgr, NULL);
+    if (FAILED(hr)) {
+      Fail(L"CoAllowSetForegroundWindow result %X", hr);
+      return false;
+    }
   }
 
   Log(L"Harness process id: %d", GetCurrentProcessId());
