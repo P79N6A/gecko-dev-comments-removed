@@ -293,7 +293,7 @@ waitFor(
             
             
             pass
-        except InvalidResponseException:
+        except (InvalidResponseException, IOError):
             self.check_for_minidumps()
             raise
         print '...done'
