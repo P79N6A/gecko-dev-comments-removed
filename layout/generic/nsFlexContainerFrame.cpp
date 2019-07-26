@@ -529,6 +529,24 @@ IsOrderLEQWithDOMFallback(nsIFrame* aFrame1,
   }
 
   
+  
+  
+  
+  
+  nsIAtom* pseudo1 = aFrame1->StyleContext()->GetPseudo();
+  nsIAtom* pseudo2 = aFrame2->StyleContext()->GetPseudo();
+  if (pseudo1 == nsCSSPseudoElements::before ||
+      pseudo2 == nsCSSPseudoElements::after) {
+    
+    return true;
+  }
+  if (pseudo1 == nsCSSPseudoElements::after ||
+      pseudo2 == nsCSSPseudoElements::before) {
+    
+    return false;
+  }
+
+  
   nsIContent* content1 = GetContentForComparison(aFrame1);
   nsIContent* content2 = GetContentForComparison(aFrame2);
   MOZ_ASSERT(content1 != content2,

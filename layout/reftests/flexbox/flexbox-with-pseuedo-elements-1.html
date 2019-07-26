@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 50px;
+      width: 300px;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    div.withBefore::before {
+      align-self: center;
+      content: 'b';
+      background: yellow;
+    }
+    div.withAfter::after {
+      align-self: center;
+      content: 'a';
+      background: lightblue;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer withBefore">
+    x
+    <div>y</div>
+    z
+  </div>
+  <div class="flexContainer withAfter">
+    x
+    <div>y</div>
+    z
+  </div>
+  <div class="flexContainer withBefore withAfter">
+    x
+    <div>y</div>
+    z
+  </div>
+</body>
+</html>

@@ -1321,13 +1321,15 @@ nsStyleSet::ResolvePseudoElementStyle(Element* aParentElement,
 
   
   
-  
-  
-  
-  uint32_t flags = eSkipFlexItemStyleFixup;
+  uint32_t flags = eNoFlags;
   if (aType == nsCSSPseudoElements::ePseudo_before ||
       aType == nsCSSPseudoElements::ePseudo_after) {
     flags |= eDoAnimation;
+  } else {
+    
+    
+    
+    flags |= eSkipFlexItemStyleFixup;
   }
 
   return GetContext(aParentContext, ruleNode, visitedRuleNode,
@@ -1387,13 +1389,15 @@ nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
 
   
   
-  
-  
-  
-  uint32_t flags = eSkipFlexItemStyleFixup;
+  uint32_t flags = eNoFlags;
   if (aType == nsCSSPseudoElements::ePseudo_before ||
       aType == nsCSSPseudoElements::ePseudo_after) {
     flags |= eDoAnimation;
+  } else {
+    
+    
+    
+    flags |= eSkipFlexItemStyleFixup;
   }
 
   nsRefPtr<nsStyleContext> result =

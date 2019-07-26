@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    .fakeBefore {
+      background: yellow;
+      /* This 'order' value should place us after the other elements, visually,
+         even though we're ::before. */
+      order: 1;
+    }
+    .fakeAfter {
+      background: lightblue;
+      order: -1;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div>I</div>
+  </div>
+
+  
+
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: 1">I</div>
+  </div>
+
+  
+  <div class="flexContainer">
+    <div>I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  
+
+  <div class="flexContainer">
+    <div style="order: -1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  
+
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div>I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  
+
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: 1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+
+  
+
+  <div class="flexContainer">
+    <div class="fakeBefore">b</div>
+    <div style="order: -1">I</div>
+    <div class="fakeAfter">a</div>
+  </div>
+</body>
+</html>
