@@ -100,17 +100,26 @@ public:
 
 
 
-  virtual bool Setup(int aFd) = 0;  
+  virtual bool SetUp(int aFd) = 0;
+};
+
+enum SocketConnectionStatus {
+  SOCKET_DISCONNECTED = 0,
+  SOCKET_CONNECTING = 1,
+  SOCKET_CONNECTED = 2
 };
 
 class UnixSocketConsumer : public RefCounted<UnixSocketConsumer>
 {
 public:
-  UnixSocketConsumer()
-    : mImpl(nullptr)
-  {}
+  UnixSocketConsumer();
 
   virtual ~UnixSocketConsumer();
+
+  SocketConnectionStatus GetConnectionStatus()
+  {
+    return mConnectionStatus;
+  }
 
   
 
@@ -172,8 +181,32 @@ public:
 
 
   void CancelSocketTask();
+
+  
+
+
+
+  virtual void OnConnectSuccess() = 0;
+
+  
+
+
+  virtual void OnConnectError() = 0;
+
+
+  
+
+
+  void NotifySuccess();
+
+  
+
+
+  void NotifyError();
+
 private:
   UnixSocketImpl* mImpl;
+  SocketConnectionStatus mConnectionStatus;
 };
 
 } 
