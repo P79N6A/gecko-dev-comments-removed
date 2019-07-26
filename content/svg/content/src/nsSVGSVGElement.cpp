@@ -233,34 +233,6 @@ nsSVGSVGElement::GetHeight(nsIDOMSVGAnimatedLength * *aHeight)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::GetContentScriptType(nsAString & aContentScriptType)
-{
-  NS_NOTYETIMPLEMENTED("nsSVGSVGElement::GetContentScriptType");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-NS_IMETHODIMP
-nsSVGSVGElement::SetContentScriptType(const nsAString & aContentScriptType)
-{
-  NS_NOTYETIMPLEMENTED("nsSVGSVGElement::SetContentScriptType");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP
-nsSVGSVGElement::GetContentStyleType(nsAString & aContentStyleType)
-{
-  NS_NOTYETIMPLEMENTED("nsSVGSVGElement::GetContentStyleType");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-NS_IMETHODIMP
-nsSVGSVGElement::SetContentStyleType(const nsAString & aContentStyleType)
-{
-  NS_NOTYETIMPLEMENTED("nsSVGSVGElement::SetContentStyleType");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP
 nsSVGSVGElement::GetViewport(nsIDOMSVGRect * *aViewport)
 {
   
