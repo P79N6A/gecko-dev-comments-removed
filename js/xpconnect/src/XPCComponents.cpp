@@ -2788,6 +2788,22 @@ nsXPCComponents_Utils::ForceCC()
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::FinishCC()
+{
+    nsCycleCollector_finishAnyCurrentCollection();
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::CcSlice(int64_t budget)
+{
+    nsCycleCollector_collectSliceWork(budget);
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::ForceShrinkingGC()
 {
     JSRuntime* rt = nsXPConnect::GetRuntimeInstance()->Runtime();

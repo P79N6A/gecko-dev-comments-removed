@@ -1317,6 +1317,14 @@ SpecialPowersAPI.prototype = {
     Cu.forceCC();
   },
 
+  finishCC: function() {
+    Cu.finishCC();
+  },
+
+  ccSlice: function(budget) {
+    Cu.ccSlice(budget);
+  },
+
   
   
   
