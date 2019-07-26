@@ -983,7 +983,9 @@ Navigator::MozGetUserMedia(nsIMediaStreamOptions* aParams,
                            nsIDOMGetUserMediaSuccessCallback* aOnSuccess,
                            nsIDOMGetUserMediaErrorCallback* aOnError)
 {
-  if (!Preferences::GetBool("media.navigator.enabled", false)) {
+  
+  if (!(Preferences::GetBool("media.navigator.enabled", false) ||
+        Preferences::GetBool("media.peerconnection.enabled", false))) {
     return NS_OK;
   }
 
