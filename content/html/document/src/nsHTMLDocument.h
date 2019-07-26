@@ -99,11 +99,6 @@ public:
   
   NS_DECL_NSIDOMHTMLDOCUMENT
 
-  void RouteEvent(nsDOMEvent& aEvent)
-  {
-    RouteEvent(&aEvent);
-  }
-
   
 
 
@@ -248,9 +243,6 @@ public:
     
   }
   already_AddRefed<nsISelection> GetSelection(mozilla::ErrorResult& rv);
-  
-  
-  
   
   already_AddRefed<nsIDOMLocation> GetLocation() const {
     return nsIDocument::GetLocation();
