@@ -530,6 +530,18 @@ let DOMApplicationRegistry = {
     
     Services.prefs.setBoolPref("dom.mozApps.used", true);
 
+    
+    
+    if (["Webapps:GetAll",
+         "Webapps:GetNotInstalled",
+         "Webapps::ApplyDownload"].indexOf(aMessage.name) != -1) {
+      if (!aMessage.target.assertPermission("webapps-manage")) {
+        debug("mozApps message " + aMessage.name +
+        " from a content process with no 'webapps-manage' privileges.");
+        return null;
+      }
+    }
+
     let msg = aMessage.json;
     let mm = aMessage.target;
     msg.mm = mm;
