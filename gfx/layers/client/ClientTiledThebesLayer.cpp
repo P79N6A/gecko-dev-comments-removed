@@ -407,9 +407,16 @@ ClientTiledThebesLayer::RenderLayer()
     ClientManager()->Hold(this);
     mContentClient->UseTiledLayerBuffer(TiledContentClient::TILED_BUFFER);
 
+    if (!mPaintData.mPaintFinished) {
+      
+      
+      ClientManager()->SetRepeatTransaction();
+      return;
+    }
+
     
     
-    if (!lowPrecisionInvalidRegion.IsEmpty() && mPaintData.mPaintFinished) {
+    if (!lowPrecisionInvalidRegion.IsEmpty()) {
       ClientManager()->SetRepeatTransaction();
       mPaintData.mLowPrecisionPaintCount = 1;
       mPaintData.mPaintFinished = false;
@@ -428,6 +435,12 @@ ClientTiledThebesLayer::RenderLayer()
   if (updatedLowPrecision) {
     ClientManager()->Hold(this);
     mContentClient->UseTiledLayerBuffer(TiledContentClient::LOW_PRECISION_TILED_BUFFER);
+
+    if (!mPaintData.mPaintFinished) {
+      
+      
+      ClientManager()->SetRepeatTransaction();
+    }
   }
 
   EndPaint(false);
