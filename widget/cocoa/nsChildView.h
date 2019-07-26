@@ -184,10 +184,6 @@ typedef NSInteger NSEventGestureAxis;
 - (NSEventPhase)momentumPhase;
 @end
 
-@protocol EventRedirection
-  - (NSView*)targetView;
-@end
-
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
                               mozAccessible,
@@ -272,8 +268,6 @@ typedef NSInteger NSEventGestureAxis;
 
 + (void)initialize;
 
-+ (void)registerViewForDraggedTypes:(NSView*)aView;
-
 
 - (void)viewsWindowDidBecomeKey;
 - (void)viewsWindowDidResignKey;
@@ -284,8 +278,6 @@ typedef NSInteger NSEventGestureAxis;
 - (void)sendFocusEvent:(uint32_t)eventType;
 
 - (void)handleMouseMoved:(NSEvent*)aEvent;
-
-- (void)updateWindowDraggableStateOnMouseMove:(NSEvent*)theEvent;
 
 - (void)drawRect:(NSRect)aRect inTitlebarContext:(CGContextRef)aContext;
 
