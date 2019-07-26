@@ -268,10 +268,25 @@ var ProjectEditor = Class({
 
 
 
+
+
+
+
+
   setProjectToAppPath: function(path, opts = {}) {
     this.project.appManagerOpts = opts;
-    this.project.removeAllStores();
-    this.project.addPath(path);
+
+    let existingPaths = this.project.allPaths();
+    if (existingPaths.length !== 1 || existingPaths[0] !== path) {
+      
+      this.project.removeAllStores();
+      this.project.addPath(path);
+    } else {
+      
+      let rootResource = this.project.localStores.get(path).root;
+      emit(rootResource, "label-change", rootResource);
+    }
+
     return this.project.refresh();
   },
 

@@ -139,10 +139,8 @@ var Project = Class({
 
 
 
-  allPaths: function*() {
-    for (let [path, store] of this.localStores) {
-      yield path;
-    }
+  allPaths: function() {
+    return [path for (path of this.localStores.keys())];
   },
 
   
