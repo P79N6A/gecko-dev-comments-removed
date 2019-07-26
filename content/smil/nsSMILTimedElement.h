@@ -617,6 +617,9 @@ protected:
                           
 
   
+  class AutoIntervalUpdater;
+
+  
   uint8_t              mDeleteCount;
   uint8_t              mUpdateIntervalRecursionDepth;
   static const uint8_t sMaxUpdateIntervalRecursionDepth;
