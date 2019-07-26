@@ -159,6 +159,8 @@ public:
            _31 == 0.0f && _32 == 0.0f;
   }
 
+  GFX2D_API void NudgeToIntegers();
+
 private:
   static bool FuzzyEqual(Float aV1, Float aV2) {
     

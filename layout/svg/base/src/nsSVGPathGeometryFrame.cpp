@@ -601,7 +601,7 @@ nsSVGPathGeometryFrame::GeneratePath(gfxContext* aContext,
     return;
   }
 
-  aContext->Multiply(aTransform);
+  aContext->MultiplyAndNudgeToIntegers(aTransform);
 
   
   const nsStyleSVG* style = GetStyleSVG();

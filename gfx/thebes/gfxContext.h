@@ -260,6 +260,12 @@ public:
 
 
     void Multiply(const gfxMatrix& other);
+    
+
+
+
+
+    void MultiplyAndNudgeToIntegers(const gfxMatrix& other);
 
     
 
