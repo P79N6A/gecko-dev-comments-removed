@@ -1,7 +1,7 @@
 
 
 
-let promise = devtools.require("sdk/core/promise");
+let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let Toolbox = devtools.Toolbox;
 let TargetFactory = devtools.TargetFactory;
 

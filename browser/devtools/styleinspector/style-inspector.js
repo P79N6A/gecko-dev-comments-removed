@@ -5,7 +5,7 @@
 
 
 const {Cc, Cu, Ci} = require("chrome");
-const promise = require("sdk/core/promise");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 let ToolDefinitions = require("main").Tools;
 
