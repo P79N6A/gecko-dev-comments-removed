@@ -1082,7 +1082,28 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
 bool
 nsXBLBinding::AllowScripts()
 {
-  return mPrototypeBinding->GetAllowScripts();
+  if (!mPrototypeBinding->GetAllowScripts())
+    return false;
+
+  
+  
+  
+  nsIScriptSecurityManager* mgr = nsContentUtils::GetSecurityManager();
+  if (!mgr) {
+    return false;
+  }
+
+  nsIDocument* doc = mBoundElement ? mBoundElement->OwnerDoc() : nullptr;
+  if (!doc) {
+    return false;
+  }
+
+  nsCOMPtr<nsIScriptGlobalObject> global = do_QueryInterface(doc->GetInnerWindow());
+  if (!global || !global->GetGlobalJSObject()) {
+    return false;
+  }
+
+  return mgr->ScriptAllowed(global->GetGlobalJSObject());
 }
 
 nsXBLBinding*

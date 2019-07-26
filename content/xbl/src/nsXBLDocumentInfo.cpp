@@ -403,24 +403,6 @@ nsXBLDocumentInfo::nsXBLDocumentInfo(nsIDocument* aDocument)
       mScriptAccess = allow;
     }
     mIsChrome = true;
-  } else {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool allow;
-    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-    nsresult rv = ssm->PolicyAllowsScript(uri, &allow);
-    mScriptAccess = NS_SUCCEEDED(rv) && allow;
   }
 }
 
