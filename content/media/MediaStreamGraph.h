@@ -743,7 +743,8 @@ public:
 
 
 
-  MediaInputPort* AllocateInputPort(MediaStream* aStream, uint32_t aFlags = 0);
+  already_AddRefed<MediaInputPort> AllocateInputPort(MediaStream* aStream,
+                                                     uint32_t aFlags = 0);
   
 
 
