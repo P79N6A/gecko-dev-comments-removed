@@ -161,7 +161,7 @@ argumentUnboxingTemplates = {
 
 
 
-def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
+def writeArgumentUnboxing(f, i, name, type, optional, rvdeclared,
                           nullBehavior, undefinedBehavior):
     
     
@@ -232,8 +232,6 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
             if isSetter:
                 f.write("        xpc_qsThrowBadSetterValue("
                         "cx, rv, JSVAL_TO_OBJECT(*tvr.jsval_addr()), id);\n")
-            elif haveCcx:
-                f.write("        xpc_qsThrowBadArgWithCcx(ccx, rv, %d);\n" % i)
             else:
                 f.write("        xpc_qsThrowBadArgWithDetails(cx, rv, %d, %s, %s);\n" % (i, "\"\"", "\"\""))
             f.write("        return JS_FALSE;\n"
@@ -390,12 +388,6 @@ def writeResultConv(f, type, interfaceResultTemplate, jsvalPtr, jsvalRef):
             % jsvalRef)
     f.write("    return xpc_qsThrow(cx, NS_ERROR_UNEXPECTED); // FIXME\n")
 
-def anyParamRequiresCcx(member):
-    return False
-
-def memberNeedsCcx(member):
-    return member.kind == 'method' and anyParamRequiresCcx(member)
-
 def validateParam(member, param):
     def pfail(msg):
         raise UserError(
@@ -522,15 +514,7 @@ def writeStub(f, customMethodCalls, member, stubName, writeThisUnwrapping, write
                 "    if (!obj)\n"
                 "        return JS_FALSE;\n")
 
-    
-    haveCcx = memberNeedsCcx(member)
-    if haveCcx:
-        f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, "
-                "JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));\n")
-        if isInterfaceType(member.realtype):
-            f.write("    XPCLazyCallContext lccx(ccx);\n")
-
-    selfname = writeThisUnwrapping(f, member, isMethod, isGetter, customMethodCall, haveCcx)
+    selfname = writeThisUnwrapping(f, member, isMethod, isGetter, customMethodCall)
 
     rvdeclared = False
     if isMethod:
@@ -560,7 +544,6 @@ def writeStub(f, customMethodCalls, member, stubName, writeThisUnwrapping, write
             
             rvdeclared = writeArgumentUnboxing(
                 f, i, argName, realtype,
-                haveCcx=haveCcx,
                 optional=param.optional,
                 rvdeclared=rvdeclared,
                 nullBehavior=param.null,
@@ -569,7 +552,7 @@ def writeStub(f, customMethodCalls, member, stubName, writeThisUnwrapping, write
             f.write("    nsWrapperCache *cache;\n")
     elif isSetter:
         rvdeclared = writeArgumentUnboxing(f, None, 'arg0', member.realtype,
-                                           haveCcx=False, optional=False,
+                                           optional=False,
                                            rvdeclared=rvdeclared,
                                            nullBehavior=member.null,
                                            undefinedBehavior=member.undefined)
@@ -643,7 +626,7 @@ def writeStub(f, customMethodCalls, member, stubName, writeThisUnwrapping, write
 
     if canFail:
         
-        writeCheckForFailure(f, isMethod, isGetter, haveCcx)
+        writeCheckForFailure(f, isMethod, isGetter)
 
     
     if isMethod or isGetter:
