@@ -11,6 +11,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Home", "resource://gre/modules/Home.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UITelemetry", "resource://gre/modules/UITelemetry.jsm");
+
 
 XPCOMUtils.defineLazyGetter(this, "gEncoder", function() { return new gChromeWin.TextEncoder(); });
 XPCOMUtils.defineLazyGetter(this, "gDecoder", function() { return new gChromeWin.TextDecoder(); });
@@ -202,11 +204,13 @@ function updateBanner(messages) {
       onclick: function() {
         let parentId = gChromeWin.BrowserApp.selectedTab.id;
         gChromeWin.BrowserApp.addTab(message.url, { parentId: parentId });
+        UITelemetry.addEvent("action.1", "banner", null, id);
       },
       ondismiss: function() {
         
         Home.banner.remove(id);
         removeSnippet(message.id);
+        UITelemetry.addEvent("cancel.1", "banner", null, id);
       },
       onshown: function() {
         
@@ -355,11 +359,15 @@ function loadSyncPromoBanner() {
           
           Home.banner.remove(id);
           Accounts.launchSetup();
+
+          UITelemetry.addEvent("action.1", "banner", null, id);
         },
         ondismiss: function() {
           
           Home.banner.remove(id);
           Services.prefs.setBoolPref("browser.snippets.syncPromo.enabled", false);
+
+          UITelemetry.addEvent("cancel.1", "banner", null, id);
         }
       });
     },
