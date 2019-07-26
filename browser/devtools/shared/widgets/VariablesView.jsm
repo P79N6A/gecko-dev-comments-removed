@@ -735,39 +735,26 @@ VariablesView.prototype = {
 
       case e.DOM_VK_DOWN:
         
-        if (!(item instanceof Variable) &&
-            !(item instanceof Property) &&
-            !item._isExpanded && item._isArrowVisible) {
-          item.expand();
-        } else {
-          this.focusNextItem(true);
-        }
+        this.focusNextItem(true);
         return;
 
       case e.DOM_VK_LEFT:
         
-        
-        if (!item._isExpanded || !item._isArrowVisible) {
-          let ownerView = item.ownerView;
-          if ((ownerView instanceof Variable ||
-               ownerView instanceof Property) &&
-               ownerView._isExpanded && ownerView._isArrowVisible) {
-            if (this._focusItem(ownerView, true)) {
-              return;
-            }
-          }
-        }
-        
         if (item._isExpanded && item._isArrowVisible) {
           item.collapse();
         } else {
-          this.focusPrevItem(true);
+          this._focusItem(item.ownerView);
         }
         return;
 
       case e.DOM_VK_RIGHT:
         
-        if (!item._isExpanded && item._isArrowVisible) {
+        if (!item._isArrowVisible) {
+          return;
+        }
+
+        
+        if (!item._isExpanded) {
           item.expand();
         } else {
           this.focusNextItem(true);
