@@ -791,9 +791,9 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   }
 
   imgIRequest *oldBorderImage = aOldStyleContext
-    ? aOldStyleContext->StyleBorder()->GetBorderImage()
+    ? aOldStyleContext->StyleBorder()->GetBorderImageRequest()
     : nullptr;
-  imgIRequest *newBorderImage = StyleBorder()->GetBorderImage();
+  imgIRequest *newBorderImage = StyleBorder()->GetBorderImageRequest();
   
   
   

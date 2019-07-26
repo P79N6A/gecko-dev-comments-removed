@@ -184,6 +184,28 @@ public:
                       const nsPoint&       aAnchor,
                       const nsRect&        aDirty);
 
+  
+
+
+
+
+
+
+
+
+
+
+  void
+  DrawBorderImageComponent(nsPresContext*       aPresContext,
+                           nsRenderingContext&  aRenderingContext,
+                           const nsRect&        aDirtyRect,
+                           const nsRect&        aFill,
+                           const nsIntRect&     aSrc,
+                           uint8_t              aHFill,
+                           uint8_t              aVFill,
+                           const nsSize&        aUnitSize,
+                           uint8_t              aIndex);
+
   bool IsRasterImage();
   bool IsAnimatedImage();
   already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);

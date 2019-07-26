@@ -185,10 +185,6 @@ enum nsStyleImageType {
 
 
 
-
-
-
-
 struct nsStyleImage {
   nsStyleImage();
   ~nsStyleImage();
@@ -286,8 +282,16 @@ struct nsStyleImage {
            GetImageData() == aOther.GetImageData();
   }
 
+  
+  
+  inline void SetSubImage(uint8_t aIndex, imgIContainer* aSubImage) const;
+  inline imgIContainer* GetSubImage(uint8_t aIndex) const;
+
 private:
   void DoCopy(const nsStyleImage& aOther);
+
+  
+  nsCOMArray<imgIContainer> mSubImages;
 
   nsStyleImageType mType;
   union {
@@ -854,7 +858,7 @@ struct nsStyleBorder {
 
   bool HasBorder() const
   {
-    return mComputedBorder != nsMargin(0,0,0,0) || mBorderImageSource;
+    return mComputedBorder != nsMargin(0,0,0,0) || !mBorderImageSource.IsEmpty();
   }
 
   
@@ -881,8 +885,12 @@ struct nsStyleBorder {
       (HasVisibleStyle(aSide) ? mBorder.Side(aSide) : 0);
   }
 
+  inline bool IsBorderImageLoaded() const
+  {
+    return mBorderImageSource.IsLoaded();
+  }
+
   
-  inline bool IsBorderImageLoaded() const;
   inline nsresult RequestDecode();
 
   void GetBorderColor(mozilla::css::Side aSide, nscolor& aColor,
@@ -905,21 +913,20 @@ struct nsStyleBorder {
     mBorderStyle[aSide] &= ~BORDER_COLOR_SPECIAL;
   }
 
-  
-  inline void SetBorderImage(imgRequestProxy* aImage);
-  inline imgRequestProxy* GetBorderImage() const;
-
-  bool HasBorderImage() {return !!mBorderImageSource;}
-
-  void TrackImage(nsPresContext* aContext);
-  void UntrackImage(nsPresContext* aContext);
+  void TrackImage(nsPresContext* aContext)
+  {
+    if (mBorderImageSource.GetType() == eStyleImageType_Image) {
+      mBorderImageSource.TrackImage(aContext);
+    }
+  }
+  void UntrackImage(nsPresContext* aContext)
+  {
+    if (mBorderImageSource.GetType() == eStyleImageType_Image) {
+      mBorderImageSource.UntrackImage(aContext);
+    }
+  }
 
   nsMargin GetImageOutset() const;
-
-  
-  
-  inline void SetSubImage(uint8_t aIndex, imgIContainer* aSubImage) const;
-  inline imgIContainer* GetSubImage(uint8_t aIndex) const;
 
   void GetCompositeColors(int32_t aIndex, nsBorderColors** aColors) const
   {
@@ -951,19 +958,21 @@ struct nsStyleBorder {
     mBorderStyle[aSide] |= BORDER_COLOR_FOREGROUND;
   }
 
+  imgIRequest* GetBorderImageRequest() const
+  {
+    if (mBorderImageSource.GetType() == eStyleImageType_Image) {
+      return mBorderImageSource.GetImageData();
+    }
+    return nullptr;
+  }
+
 public:
   nsBorderColors** mBorderColors;        
   nsRefPtr<nsCSSShadowArray> mBoxShadow; 
 
-#ifdef DEBUG
-  bool mImageTracked;
-#endif
-
-protected:
-  nsRefPtr<imgRequestProxy> mBorderImageSource; 
-
 public:
   nsStyleCorners mBorderRadius;       
+  nsStyleImage   mBorderImageSource;  
   nsStyleSides   mBorderImageSlice;   
   nsStyleSides   mBorderImageWidth;   
   nsStyleSides   mBorderImageOutset;  
@@ -999,9 +1008,6 @@ protected:
   nscolor       mBorderColor[4];  
                                   
 private:
-  
-  nsCOMArray<imgIContainer> mSubImages;
-
   nscoord       mTwipsPerPixel;
 
   nsStyleBorder& operator=(const nsStyleBorder& aOther) MOZ_DELETE;
