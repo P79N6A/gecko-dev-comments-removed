@@ -318,7 +318,6 @@ namespace js {
 
 
 typedef JSObject *                  RawObject;
-typedef JSString *                  RawString;
 typedef jsid                        RawId;
 typedef JS::Value                   RawValue;
 
