@@ -281,8 +281,7 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
   
   JS_SetErrorReporter(cx, XBL_ProtoErrorReporter);
 
-  mJSObject = xpc::CreateGlobalObject(cx, &gSharedGlobalClass,
-                                      GetPrincipal(), false);
+  mJSObject = xpc::CreateGlobalObject(cx, &gSharedGlobalClass, GetPrincipal());
   if (!mJSObject)
       return NS_OK;
 

@@ -1076,8 +1076,7 @@ CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
 namespace xpc {
 
 JSObject*
-CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
-                   bool wantXrays)
+CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
 {
     
     
@@ -1089,7 +1088,7 @@ CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
     if (!global)
         return nullptr;
     JSCompartment *compartment = js::GetObjectCompartment(global);
-    JS_SetCompartmentPrivate(compartment, new xpc::CompartmentPrivate(wantXrays));
+    JS_SetCompartmentPrivate(compartment, new xpc::CompartmentPrivate());
 
     XPCCompartmentSet& set = nsXPConnect::GetRuntimeInstance()->GetCompartmentSet();
     if (!set.put(compartment))
