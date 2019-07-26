@@ -203,10 +203,9 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
   }
 
   if (aMask) {
-    Matrix oldTransform = aTarget->GetTransform();
-    aTarget->SetTransform(*aMaskTransform);
-    aTarget->MaskSurface(source, aMask, Point(0, 0), DrawOptions(aOpacity, aOperator));
-    aTarget->SetTransform(oldTransform);
+    SurfacePattern mask(aMask, EXTEND_CLAMP, *aMaskTransform);
+
+    aTarget->Mask(source, mask, DrawOptions(aOpacity, aOperator));
   } else {
     aTarget->FillRect(gfx::Rect(fillRect.x, fillRect.y,
                                 fillRect.width, fillRect.height),
@@ -507,6 +506,20 @@ ComputeBufferRect(const nsIntRect& aRequestedRect)
   
   
   rect.width = std::max(aRequestedRect.width, 64);
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (rect.height > 0) {
+    rect.height = std::max(aRequestedRect.height, 32);
+  }
+#endif
   return rect;
 }
 
