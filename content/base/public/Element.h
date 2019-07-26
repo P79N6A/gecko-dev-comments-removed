@@ -104,6 +104,9 @@ enum {
 
 #undef ELEMENT_FLAG_BIT
 
+
+ASSERT_NODE_FLAGS_SPACE(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET);
+
 namespace mozilla {
 namespace dom {
 

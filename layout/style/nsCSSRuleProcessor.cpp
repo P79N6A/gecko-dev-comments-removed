@@ -2101,7 +2101,7 @@ static bool SelectorMatches(Element* aElement,
         if (aTreeMatchContext.mForStyling &&
             statesToCheck.HasAtLeastOneOfStates(NS_EVENT_STATE_HOVER)) {
           
-          aElement->SetFlags(NODE_HAS_RELEVANT_HOVER_RULES);
+          aElement->SetHasRelevantHoverRules();
         }
         if (aNodeMatchContext.mStateMask.HasAtLeastOneOfStates(statesToCheck)) {
           if (aDependence)
@@ -2499,7 +2499,7 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
           
           
           (states != NS_EVENT_STATE_HOVER ||
-           aData->mElement->HasFlag(NODE_HAS_RELEVANT_HOVER_RULES) ||
+           aData->mElement->HasRelevantHoverRules() ||
            selector->mIDList || selector->mClassList ||
            
            

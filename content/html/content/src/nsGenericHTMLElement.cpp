@@ -2808,7 +2808,7 @@ nsGenericHTMLElement::Focus(ErrorResult& aError)
 void
 nsGenericHTMLElement::Click()
 {
-  if (HasFlag(NODE_HANDLING_CLICK))
+  if (HandlingClick())
     return;
 
   
@@ -2823,7 +2823,7 @@ nsGenericHTMLElement::Click()
     }
   }
 
-  SetFlags(NODE_HANDLING_CLICK);
+  SetHandlingClick();
 
   
   
@@ -2834,7 +2834,7 @@ nsGenericHTMLElement::Click()
 
   nsEventDispatcher::Dispatch(this, context, &event);
 
-  UnsetFlags(NODE_HANDLING_CLICK);
+  ClearHandlingClick();
 }
 
 bool
