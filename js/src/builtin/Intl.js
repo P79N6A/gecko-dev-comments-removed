@@ -1617,51 +1617,21 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
     }
 
     
-    var dataLocaleData = localeData(dataLocale);
-
-    
-    var formats = dataLocaleData.formats;
 
     
     matcher = GetOption(options, "formatMatcher", "string", ["basic", "best fit"], "best fit");
-    var bestFormat = (matcher === "basic")
-                     ? BasicFormatMatcher(opt, formats)
-                     : BestFitFormatMatcher(opt, formats);
 
     
-    for (i = 0; i < dateTimeComponents.length; i++) {
-        prop = dateTimeComponents[i];
-        if (callFunction(std_Object_hasOwnProperty, bestFormat, prop)) {
-            var p = bestFormat[prop];
-            internals[prop] = p;
-        }
-    }
 
     
     var hr12  = GetOption(options, "hour12", "boolean", undefined, undefined);
 
     
-    var pattern;
-    if (callFunction(std_Object_hasOwnProperty, internals, "hour")) {
-        
-        if (hr12 === undefined)
-            hr12 = dataLocaleData.hour12;
-        assert(typeof hr12 === "boolean");
-        internals.hour12 = hr12;
+    if (hr12 !== undefined)
+        opt.hour12 = hr12;
 
-        if (hr12) {
-            
-            var hourNo0 = dataLocaleData.hourNo0;
-            internals.hourNo0 = hourNo0;
-            pattern = bestFormat.pattern12;
-        } else {
-            
-            pattern = bestFormat.pattern;
-        }
-    } else {
-        
-        pattern = bestFormat.pattern;
-    }
+    
+    var pattern = toBestICUPattern(dataLocale, opt);
 
     
     internals.pattern = pattern;
@@ -1671,6 +1641,182 @@ function InitializeDateTimeFormat(dateTimeFormat, locales, options) {
 
     
     internals.initializedDateTimeFormat = true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function toBestICUPattern(locale, options) {
+    
+    
+    var skeleton = "";
+    switch (options.weekday) {
+    case "narrow":
+        skeleton += "EEEEE";
+        break;
+    case "short":
+        skeleton += "E";
+        break;
+    case "long":
+        skeleton += "EEEE";
+    }
+    switch (options.era) {
+    case "narrow":
+        skeleton += "GGGGG";
+        break;
+    case "short":
+        skeleton += "G";
+        break;
+    case "long":
+        skeleton += "GGGG";
+        break;
+    }
+    switch (options.year) {
+    case "2-digit":
+        skeleton += "yy";
+        break;
+    case "numeric":
+        skeleton += "y";
+        break;
+    }
+    switch (options.month) {
+    case "2-digit":
+        skeleton += "MM";
+        break;
+    case "numeric":
+        skeleton += "M";
+        break;
+    case "narrow":
+        skeleton += "MMMMM";
+        break;
+    case "short":
+        skeleton += "MMM";
+        break;
+    case "long":
+        skeleton += "MMMM";
+        break;
+    }
+    switch (options.day) {
+    case "2-digit":
+        skeleton += "dd";
+        break;
+    case "numeric":
+        skeleton += "d";
+        break;
+    }
+    var hourSkeletonChar = "j";
+    if (options.hour12 !== undefined) {
+        if (options.hour12)
+            hourSkeletonChar = "h";
+        else
+            hourSkeletonChar = "H";
+    }
+    switch (options.hour) {
+    case "2-digit":
+        skeleton += hourSkeletonChar + hourSkeletonChar;
+        break;
+    case "numeric":
+        skeleton += hourSkeletonChar;
+        break;
+    }
+    switch (options.minute) {
+    case "2-digit":
+        skeleton += "mm";
+        break;
+    case "numeric":
+        skeleton += "m";
+        break;
+    }
+    switch (options.second) {
+    case "2-digit":
+        skeleton += "ss";
+        break;
+    case "numeric":
+        skeleton += "s";
+        break;
+    }
+    switch (options.timeZoneName) {
+    case "short":
+        skeleton += "z";
+        break;
+    case "long":
+        skeleton += "zzzz";
+        break;
+    }
+
+    
+    return intl_patternForSkeleton(locale, skeleton);
 }
 
 
@@ -1859,43 +2005,16 @@ function Intl_DateTimeFormat_supportedLocalesOf(locales ) {
 
 var dateTimeFormatInternalProperties = {
     localeData: dateTimeFormatLocaleData,
-    availableLocales: runtimeAvailableLocales, 
+    availableLocales: addOldStyleLanguageTags(intl_DateTimeFormat_availableLocales()),
     relevantExtensionKeys: ["ca", "nu"]
 };
 
 
 function dateTimeFormatLocaleData(locale) {
-    
-    var localeData = {
-        ca: ["gregory"],
-        nu: ["latn"],
-        hour12: false,
-        hourNo0: false
+    return {
+        ca: intl_availableCalendars(locale),
+        nu: getNumberingSystems(locale)
     };
-
-    var formatDate = {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-    };
-    var formatTime = {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric"
-    };
-    var formatFull = {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric"
-    };
-    localeData.formats = [formatDate, formatTime, formatFull];
-
-    return localeData;
 }
 
 
@@ -1910,7 +2029,7 @@ function dateTimeFormatFormatToBind() {
     var x = (date === undefined) ? std_Date_now() : ToNumber(date);
 
     
-    return FormatDateTime(this, x);
+    return intl_FormatDateTime(this, x);
 }
 
 
@@ -1945,35 +2064,6 @@ function Intl_DateTimeFormat_format_get() {
 
 
 
-
-
-function FormatDateTime(dateTimeFormat, x) {
-    
-    if (!std_isFinite(x))
-        ThrowError(JSMSG_DATE_NOT_FINITE);
-    var X = new Std_Date(x);
-    var internals = getInternals(dateTimeFormat);
-    var wantDate = callFunction(std_Object_hasOwnProperty, internals, "weekday") ||
-        callFunction(std_Object_hasOwnProperty, internals, "year") ||
-        callFunction(std_Object_hasOwnProperty, internals, "month") ||
-        callFunction(std_Object_hasOwnProperty, internals, "day");
-    var wantTime = callFunction(std_Object_hasOwnProperty, internals, "hour") ||
-        callFunction(std_Object_hasOwnProperty, internals, "minute") ||
-        callFunction(std_Object_hasOwnProperty, internals, "second");
-    if (wantDate) {
-        if (wantTime)
-            return X.toLocaleString();
-        return X.toLocaleDateString();
-    }
-    return X.toLocaleTimeString();
-}
-
-
-
-
-
-
-
 function Intl_DateTimeFormat_resolvedOptions() {
     
     var internals = checkIntlAPIObject(this, "DateTimeFormat", "resolvedOptions");
@@ -1984,12 +2074,107 @@ function Intl_DateTimeFormat_resolvedOptions() {
         numberingSystem: internals.numberingSystem,
         timeZone: internals.timeZone
     };
-    for (var i = 0; i < dateTimeComponents.length; i++) {
-        var p = dateTimeComponents[i];
-        if (callFunction(std_Object_hasOwnProperty, internals, p))
-            defineProperty(result, p, internals[p]);
-    }
-    if (callFunction(std_Object_hasOwnProperty, internals, "hour12"))
-        defineProperty(result, "hour12", internals.hour12);
+    resolveICUPattern(internals.pattern, result);
     return result;
+}
+
+
+
+
+
+var icuPatternCharToComponent = {
+    E: "weekday",
+    G: "era",
+    y: "year",
+    M: "month",
+    L: "month",
+    d: "day",
+    h: "hour",
+    H: "hour",
+    k: "hour",
+    K: "hour",
+    m: "minute",
+    s: "second",
+    z: "timeZoneName",
+    v: "timeZoneName",
+    V: "timeZoneName"
+};
+
+
+
+
+
+
+
+
+
+function resolveICUPattern(pattern, result) {
+    assert(IsObject(result), "resolveICUPattern");
+    var i = 0;
+    while (i < pattern.length) {
+        var c = pattern[i++];
+        if (c === "'") {
+            while (i < pattern.length && pattern[i] !== "'")
+                i++;
+            i++;
+        } else {
+            var count = 1;
+            while (i < pattern.length && pattern[i] === c) {
+                i++;
+                count++;
+            }
+            var value;
+            switch (c) {
+            
+            case "G":
+            case "E":
+            case "z":
+            case "v":
+            case "V":
+                if (count <= 3)
+                    value = "short";
+                else if (count === 4)
+                    value = "long";
+                else
+                    value = "narrow";
+                break;
+            
+            case "y":
+            case "d":
+            case "h":
+            case "H":
+            case "m":
+            case "s":
+            case "k":
+            case "K":
+                if (count === 2)
+                    value = "2-digit";
+                else
+                    value = "numeric";
+                break;
+            
+            case "M":
+            case "L":
+                if (count === 1)
+                    value = "numeric";
+                else if (count === 2)
+                    value = "2-digit";
+                else if (count === 3)
+                    value = "short";
+                else if (count === 4)
+                    value = "long";
+                else
+                    value = "narrow";
+                break;
+            default:
+                
+            }
+            if (callFunction(std_Object_hasOwnProperty, icuPatternCharToComponent, c))
+                defineProperty(result, icuPatternCharToComponent[c], value);
+            if (c === "h" || c === "K")
+                defineProperty(result, "hour12", true);
+            else if (c === "H" || c === "k")
+                defineProperty(result, "hour12", false);
+        }
+    }
 }
