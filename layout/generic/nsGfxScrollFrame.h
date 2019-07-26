@@ -322,6 +322,9 @@ public:
   bool mIsRoot:1;
   
   
+  bool mClipAllDescendants:1;
+  
+  
   
   bool mSupppressScrollbarUpdate:1;
   
@@ -630,7 +633,8 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  friend nsIFrame* NS_NewXULScrollFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, bool aIsRoot);
+  friend nsIFrame* NS_NewXULScrollFrame(nsIPresShell* aPresShell, nsStyleContext* aContext,
+                                        bool aIsRoot, bool aClipAllDescendants);
 
   
   
@@ -853,7 +857,8 @@ public:
 #endif
 
 protected:
-  nsXULScrollFrame(nsIPresShell* aShell, nsStyleContext* aContext, bool aIsRoot);
+  nsXULScrollFrame(nsIPresShell* aShell, nsStyleContext* aContext, bool aIsRoot,
+                   bool aClipAllDescendants);
 
   void ClampAndSetBounds(nsBoxLayoutState& aState, 
                          nsRect& aRect,
