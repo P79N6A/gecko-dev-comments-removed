@@ -140,11 +140,9 @@ class B2GRemoteAutomation(Automation):
             output.
         """
         timeout = timeout or 120
-        responseDueBy = time.time() + timeout
         while True:
-            currentlog = proc.stdout
+            currentlog = proc.getStdoutLines(timeout)
             if currentlog:
-                responseDueBy = time.time() + timeout
                 print currentlog
                 
                 
@@ -155,11 +153,10 @@ class B2GRemoteAutomation(Automation):
                 if hasattr(self, 'logFinish') and self.logFinish in currentlog:
                     return 0
             else:
-                if time.time() > responseDueBy:
-                    self.log.info("TEST-UNEXPECTED-FAIL | %s | application timed "
-                                  "out after %d seconds with no output",
-                                  self.lastTestSeen, int(timeout))
-                    return 1
+                self.log.info("TEST-UNEXPECTED-FAIL | %s | application timed "
+                              "out after %d seconds with no output",
+                              self.lastTestSeen, int(timeout))
+                return 1
 
     def getDeviceStatus(self, serial=None):
         
@@ -329,16 +326,22 @@ class B2GRemoteAutomation(Automation):
             
             return 0
 
-        @property
-        def stdout(self):
+        def getStdoutLines(self, timeout):
             
             
             lines = []
+            
             while True:
                 try:
                     lines.append(self.queue.get_nowait())
                 except Queue.Empty:
                     break
+
+            
+            try:
+                lines.append(self.queue.get(True, timeout))
+            except Queue.Empty:
+                pass
             return '\n'.join(lines)
 
         def wait(self, timeout=None):
