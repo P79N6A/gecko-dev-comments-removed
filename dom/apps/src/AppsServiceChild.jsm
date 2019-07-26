@@ -33,14 +33,6 @@ this.DOMApplicationRegistry = {
     
     
     this.webapps = this.cpmm.sendSyncMessage("Webapps:GetList", { })[0];
-
-    
-    this.localIdIndex = { };
-    for (let id in this.webapps) {
-      let app = this.webapps[id];
-      this.localIdIndex[app.localId] = app;
-    }
-
     Services.obs.addObserver(this, "xpcom-shutdown", false);
   },
 
@@ -59,10 +51,8 @@ this.DOMApplicationRegistry = {
     switch (aMessage.name) {
       case "Webapps:AddApp":
         this.webapps[msg.id] = msg.app;
-        this.localIdIndex[msg.app.localId] = msg.app;
         break;
       case "Webapps:RemoveApp":
-        delete this.localIdIndex[this.webapps[msg.id].localId];
         delete this.webapps[msg.id];
         break;
     }
@@ -85,13 +75,7 @@ this.DOMApplicationRegistry = {
 
   getAppByLocalId: function getAppByLocalId(aLocalId) {
     debug("getAppByLocalId " + aLocalId);
-    let app = this.localIdIndex[aLocalId];
-    if (!app) {
-      debug("Ouch, No app!");
-      return null;
-    }
-
-    return AppsUtils.cloneAsMozIApplication(app);
+    return AppsUtils.getAppByLocalId(this.webapps, aLocalId);
   },
 
   getManifestURLByLocalId: function getManifestURLByLocalId(aLocalId) {
