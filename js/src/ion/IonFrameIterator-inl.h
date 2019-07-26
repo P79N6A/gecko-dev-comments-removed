@@ -60,15 +60,30 @@ InlineFrameIterator::forEachCanonicalActualArg(Op op, unsigned start, unsigned c
 
     JS_ASSERT(start <= end && end <= nactual);
 
-    
-    
-    
-    
-    JS_ASSERT_IF(more(), end <= nformal);
+    if (more()) {
+        
+        
+        
+        
 
-    SnapshotIterator s(si_);
-    Value *argv = frame_->actualArgs();
-    s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end);
+        InlineFrameIterator it(this);
+        ++it;
+        SnapshotIterator s(it.snapshotIterator());
+
+        
+        
+        JS_ASSERT(s.slots() >= nactual + 2);
+        unsigned skip = s.slots() - nactual - 2;
+        for (unsigned j = 0; j < skip; j++)
+            s.skip();
+
+        s.readFrameArgs(op, NULL, NULL, NULL, start, nactual, end);
+    } else {
+        SnapshotIterator s(si_);
+        Value *argv = frame_->actualArgs();
+        s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end);
+    }
+
 }
 
 template <class Op>
