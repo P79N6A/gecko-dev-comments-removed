@@ -273,6 +273,8 @@ public:
     bool IgnoreGDEF() const { return mIgnoreGDEF; }
     bool IgnoreGSUB() const { return mIgnoreGSUB; }
 
+    bool SupportsOpenTypeSmallCaps(int32_t aScript);
+
     virtual bool IsSymbolFont();
 
     virtual bool HasFontTable(uint32_t aTableTag);
@@ -562,6 +564,7 @@ public:
     nsTArray<gfxFont*> mFontsUsingSVGGlyphs;
     nsAutoPtr<gfxMathTable> mMathTable;
     nsTArray<gfxFontFeature> mFeatureSettings;
+    nsAutoPtr<nsDataHashtable<nsUint32HashKey,bool>> mSmallCapsSupport;
     uint32_t         mLanguageOverride;
 
     
@@ -1609,6 +1612,9 @@ public:
     }
 
     
+    bool SupportsSmallCaps(int32_t aScript);
+
+    
     
     
     virtual bool ProvidesGetGlyph() const {
@@ -1808,21 +1814,21 @@ public:
         return mFontEntry->GetUVSGlyph(aCh, aVS); 
     }
 
-    bool InitSmallCapsRun(gfxContext     *aContext,
-                          gfxTextRun     *aTextRun,
-                          const uint8_t  *aText,
-                          uint32_t        aOffset,
-                          uint32_t        aLength,
-                          uint8_t         aMatchType,
-                          int32_t         aScript);
+    bool InitFakeSmallCapsRun(gfxContext     *aContext,
+                              gfxTextRun     *aTextRun,
+                              const uint8_t  *aText,
+                              uint32_t        aOffset,
+                              uint32_t        aLength,
+                              uint8_t         aMatchType,
+                              int32_t         aScript);
 
-    bool InitSmallCapsRun(gfxContext     *aContext,
-                          gfxTextRun     *aTextRun,
-                          const char16_t *aText,
-                          uint32_t        aOffset,
-                          uint32_t        aLength,
-                          uint8_t         aMatchType,
-                          int32_t         aScript);
+    bool InitFakeSmallCapsRun(gfxContext     *aContext,
+                              gfxTextRun     *aTextRun,
+                              const char16_t *aText,
+                              uint32_t        aOffset,
+                              uint32_t        aLength,
+                              uint8_t         aMatchType,
+                              int32_t         aScript);
 
     
     
