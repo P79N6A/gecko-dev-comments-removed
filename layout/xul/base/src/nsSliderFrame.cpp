@@ -231,10 +231,7 @@ nsSliderFrame::AttributeChanged(int32_t aNameSpaceID,
                                              aModType);
   
   if (aAttribute == nsGkAtoms::curpos) {
-     rv = CurrentPositionChanged();
-     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to change position");
-     if (NS_FAILED(rv))
-        return rv;
+     CurrentPositionChanged();
   } else if (aAttribute == nsGkAtoms::minpos ||
              aAttribute == nsGkAtoms::maxpos) {
       
@@ -649,7 +646,7 @@ nsSliderFrame::PageUpDown(nscoord change)
 }
 
 
-nsresult
+void
 nsSliderFrame::CurrentPositionChanged()
 {
   nsIFrame* scrollbarBox = GetScrollbar();
@@ -661,7 +658,7 @@ nsSliderFrame::CurrentPositionChanged()
 
   
   if (mCurPos == curPos)
-      return NS_OK;
+    return;
 
   
   int32_t minPos = GetMinPosition(scrollbar);
@@ -673,7 +670,7 @@ nsSliderFrame::CurrentPositionChanged()
   
   nsIFrame* thumbFrame = mFrames.FirstChild();
   if (!thumbFrame)
-    return NS_OK; 
+    return; 
 
   nsRect thumbRect = thumbFrame->GetRect();
 
@@ -709,8 +706,6 @@ nsSliderFrame::CurrentPositionChanged()
         new nsValueChangedRunnable(sliderListener, nsGkAtoms::curpos, mCurPos, mUserChanged));
     }
   }
-
-  return NS_OK;
 }
 
 static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, bool aNotify, bool aIsSmooth) {
