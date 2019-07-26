@@ -1939,6 +1939,10 @@ public:
   void ReleaseCapture() const;
   virtual void MozSetImageElement(const nsAString& aImageElementId,
                                   Element* aElement) = 0;
+  nsIURI* GetDocumentURIObject()
+  {
+    return GetDocumentURI();
+  }
   
   virtual bool MozFullScreenEnabled() = 0;
   virtual Element* GetMozFullScreenElement(mozilla::ErrorResult& rv) = 0;
