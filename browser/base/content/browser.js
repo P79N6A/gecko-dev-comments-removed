@@ -7198,7 +7198,6 @@ let gPrivateBrowsingUI = {
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
-    
     if (window.location.href == getBrowserURL()) {
 #ifdef XP_MACOSX
       if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
@@ -7206,6 +7205,7 @@ let gPrivateBrowsingUI = {
       }
 #endif
 
+      
       let docElement = document.documentElement;
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
@@ -7214,6 +7214,23 @@ let gPrivateBrowsingUI = {
       docElement.setAttribute("privatebrowsingmode",
         PrivateBrowsingUtils.permanentPrivateBrowsing ? "permanent" : "temporary");
       gBrowser.updateTitlebar();
+
+      if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
+        
+        [
+          { normal: "menu_newNavigator", private: "menu_newPrivateWindow" },
+          { normal: "appmenu_newNavigator", private: "appmenu_newPrivateWindow" },
+        ].forEach(function(menu) {
+          let newWindow = document.getElementById(menu.normal);
+          let newPrivateWindow = document.getElementById(menu.private);
+          if (newWindow && newPrivateWindow) {
+            newPrivateWindow.hidden = true;
+            newWindow.label = newPrivateWindow.label;
+            newWindow.accessKey = newPrivateWindow.accessKey;
+            newWindow.command = newPrivateWindow.command;
+          }
+        });
+      }
     }
 
     if (gURLBar) {
