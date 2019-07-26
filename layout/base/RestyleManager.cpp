@@ -1929,6 +1929,7 @@ ElementRestyler::ElementRestyler(nsPresContext* aPresContext,
   , mHintsNotHandledForDescendants(nsChangeHint(0))
   , mRestyleTracker(aRestyleTracker)
   , mTreeMatchContext(aTreeMatchContext)
+  , mResolvedChild(nullptr)
   , mDesiredA11yNotifications(eSendAllNotifications)
   , mKidsDesiredA11yNotifications(mDesiredA11yNotifications)
   , mOurA11yNotification(eDontNotify)
@@ -1953,6 +1954,7 @@ ElementRestyler::ElementRestyler(const ElementRestyler& aParentRestyler,
   , mHintsNotHandledForDescendants(nsChangeHint(0))
   , mRestyleTracker(aParentRestyler.mRestyleTracker)
   , mTreeMatchContext(aParentRestyler.mTreeMatchContext)
+  , mResolvedChild(nullptr)
   , mDesiredA11yNotifications(aParentRestyler.mKidsDesiredA11yNotifications)
   , mKidsDesiredA11yNotifications(mDesiredA11yNotifications)
   , mOurA11yNotification(eDontNotify)
@@ -1981,6 +1983,7 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
   , mHintsNotHandledForDescendants(nsChangeHint(0))
   , mRestyleTracker(aParentRestyler.mRestyleTracker)
   , mTreeMatchContext(aParentRestyler.mTreeMatchContext)
+  , mResolvedChild(nullptr)
   , mDesiredA11yNotifications(aParentRestyler.mDesiredA11yNotifications)
   , mKidsDesiredA11yNotifications(mDesiredA11yNotifications)
   , mOurA11yNotification(eDontNotify)
@@ -2077,7 +2080,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     }
 
     nsStyleContext* parentContext;
-    nsIFrame* resolvedChild = nullptr;
     
     
     nsIFrame* providerFrame = mFrame->GetParentStyleContextFrame();
@@ -2113,7 +2115,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       parentContext = providerFrame->StyleContext();
       
       
-      resolvedChild = providerFrame;
+      mResolvedChild = providerFrame;
     }
 
     if (providerFrame != mFrame->GetParent()) {
@@ -2556,7 +2558,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
               nsIFrame* outOfFlowFrame =
                 nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
               NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
-              NS_ASSERTION(outOfFlowFrame != resolvedChild,
+              NS_ASSERTION(outOfFlowFrame != mResolvedChild,
                            "out-of-flow frame not a true descendant");
 
               
@@ -2584,7 +2586,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
               phRestyler.Restyle(childRestyleHint);
             }
             else {  
-              if (child != resolvedChild) {
+              if (child != mResolvedChild) {
                 ElementRestyler childRestyler(*this, child, 0);
                 childRestyler.Restyle(childRestyleHint);
               }
