@@ -207,11 +207,11 @@ CompositableClient::CreateTextureClientForDrawing(SurfaceFormat aFormat,
 
 #ifdef XP_WIN
   LayersBackend parentBackend = GetForwarder()->GetCompositorBackendType();
-  
   if (parentBackend == LAYERS_D3D11 && gfxWindowsPlatform::GetPlatform()->GetD2DDevice() &&
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
-    
+    result = new TextureClientD3D11(aFormat, aTextureFlags);
   }
+  
   if (parentBackend == LAYERS_D3D9 &&
       !GetForwarder()->ForwardsToDifferentProcess() &&
       !(aTextureFlags & TEXTURE_ALLOC_FALLBACK)) {
