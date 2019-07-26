@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["DeferredTask"];
+const EXPORTED_SYMBOLS = ["DeferredTask"];
 
 const Cu = Components.utils;
 const Cc = Components.classes;
@@ -23,7 +23,7 @@ const Ci = Components.interfaces;
 
 
 
-this.DeferredTask = function DeferredTask(aCallback, aDelay) {
+function DeferredTask(aCallback, aDelay) {
   this._callback = function onCallback() {
     this._timer = null;
     try {

@@ -3820,10 +3820,4 @@ pref("network.activity.blipIntervalMilliseconds", 0);
 
 
 
-
-
-pref("jsloader.reuseGlobal", false);
-
-
-
 pref("dom.browserElement.maxScreenshotDelayMS", 2000);

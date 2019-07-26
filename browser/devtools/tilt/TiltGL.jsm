@@ -15,12 +15,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/devtools/TiltMath.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["TiltGL"];
+let EXPORTED_SYMBOLS = ["TiltGL"];
 
 
 
 
-this.TiltGL = {};
+let TiltGL = {};
 
 
 

@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["CommonDialog"];
+var EXPORTED_SYMBOLS = ["CommonDialog"];
 
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -12,7 +12,7 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 
 
-this.CommonDialog = function CommonDialog(args, ui) {
+function CommonDialog(args, ui) {
     this.args = args;
     this.ui   = ui;
 }

@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["PopupNotifications"];
+var EXPORTED_SYMBOLS = ["PopupNotifications"];
 
 var Cc = Components.classes, Ci = Components.interfaces;
 
@@ -87,7 +87,7 @@ Notification.prototype = {
 
 
 
-this.PopupNotifications = function PopupNotifications(tabbrowser, panel, iconBox) {
+function PopupNotifications(tabbrowser, panel, iconBox) {
   if (!(tabbrowser instanceof Ci.nsIDOMXULElement))
     throw "Invalid tabbrowser";
   if (iconBox && !(iconBox instanceof Ci.nsIDOMXULElement))

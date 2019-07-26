@@ -55,6 +55,6 @@ mySample.prototype = {
 
 
 if (XPCOMUtils.generateNSGetFactory)
-    this.NSGetFactory = XPCOMUtils.generateNSGetFactory([mySample]);
+    var NSGetFactory = XPCOMUtils.generateNSGetFactory([mySample]);
 else
     var NSGetModule = XPCOMUtils.generateNSGetModule([mySample]);

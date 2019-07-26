@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Service"];
+const EXPORTED_SYMBOLS = ["Service"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -1475,5 +1475,5 @@ Sync11Service.prototype = {
   },
 };
 
-this.Service = new Sync11Service();
+let Service = new Sync11Service();
 Service.onStartup();

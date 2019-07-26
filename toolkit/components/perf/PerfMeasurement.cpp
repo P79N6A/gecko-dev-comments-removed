@@ -7,7 +7,6 @@
 #include "jsperf.h"
 #include "mozilla/ModuleUtils.h"
 #include "nsMemory.h"
-#include "mozilla/Preferences.h"
 
 #define JSPERF_CONTRACTID \
   "@mozilla.org/jsperf;1"
@@ -58,10 +57,6 @@ InitAndSealPerfMeasurementClass(JSContext* cx, JSObject* global)
   
   if (!JS::RegisterPerfMeasurement(cx, global))
     return false;
-
-  
-  if (Preferences::GetBool("jsloader.reuseGlobal"))
-    return true;
 
   
   

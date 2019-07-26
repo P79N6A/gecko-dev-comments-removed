@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -20,12 +20,12 @@ XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
 
-
+// Limit the number of pending messages for a given page.
 let kMaxPendingMessages;
 try {
   kMaxPendingMessages = Services.prefs.getIntPref("dom.messages.maxPendingMessages");
 } catch(e) {
-  
+  // getIntPref throws when the pref is not set.
   kMaxPendingMessages = 5;
 }
 
@@ -37,14 +37,14 @@ const kMessages =["SystemMessageManager:GetPendingMessages",
                   "child-process-shutdown"]
 
 function debug(aMsg) {
-  
+  //dump("-- SystemMessageInternal " + Date.now() + " : " + aMsg + "\n");
 }
 
-
+// Implementation of the component used by internal users.
 
 function SystemMessageInternal() {
-  
-  
+  // The set of pages registered by installed apps. We keep the
+  // list of pending messages for each page here also.
   this._pages = [];
   this._listeners = {};
 
@@ -63,8 +63,8 @@ function SystemMessageInternal() {
 
 SystemMessageInternal.prototype = {
   sendMessage: function sendMessage(aType, aMessage, aPageURI, aManifestURI) {
-    
-    
+    // Buffer system messages until the webapps' registration is ready,
+    // so that we can know the correct pages registered to be sent.
     if (!this._webappsRegistryReady) {
       this._bufferedSysMsgs.push({ how: "send",
                                    type: aType,
@@ -74,8 +74,8 @@ SystemMessageInternal.prototype = {
       return;
     }
 
-    
-    
+    // Give this message an ID so that we can identify the message and
+    // clean it up from the pending message queue when apps receive it.
     let messageID = gUUIDGenerator.generateUUID().toString();
 
     debug("Sending " + aType + " " + JSON.stringify(aMessage) +
@@ -97,11 +97,11 @@ SystemMessageInternal.prototype = {
         return;
       }
 
-      
+      // Queue this message in the corresponding pages.
       this._queueMessage(aPage, aMessage, messageID);
 
-      
-      
+      // Open app pages to handle their pending messages.
+      // Note that we only need to open each app page once.
       let key = this._createKeyForPage(aPage);
       if (!pagesToOpen.hasOwnProperty(key)) {
         this._openAppPage(aPage, aMessage);
@@ -111,8 +111,8 @@ SystemMessageInternal.prototype = {
   },
 
   broadcastMessage: function broadcastMessage(aType, aMessage) {
-    
-    
+    // Buffer system messages until the webapps' registration is ready,
+    // so that we can know the correct pages registered to be broadcasted.
     if (!this._webappsRegistryReady) {
       this._bufferedSysMsgs.push({ how: "broadcast",
                                    type: aType,
@@ -120,12 +120,12 @@ SystemMessageInternal.prototype = {
       return;
     }
 
-    
-    
+    // Give this message an ID so that we can identify the message and
+    // clean it up from the pending message queue when apps receive it.
     let messageID = gUUIDGenerator.generateUUID().toString();
 
     debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
-    
+    // Find pages that registered an handler for this type.
     let pagesToOpen = {};
     this._pages.forEach(function(aPage) {
       if (aPage.type == aType) {
@@ -139,11 +139,11 @@ SystemMessageInternal.prototype = {
                                          msgID: messageID })
           });
         }
-        
+        // Queue this message in the corresponding pages.
         this._queueMessage(aPage, aMessage, messageID);
 
-        
-        
+        // Open app pages to handle their pending messages.
+        // Note that we only need to open each app page once.
         let key = this._createKeyForPage(aPage);
         if (!pagesToOpen.hasOwnProperty(key)) {
           this._openAppPage(aPage, aMessage);
@@ -200,8 +200,8 @@ SystemMessageInternal.prototype = {
         debug("received SystemMessageManager:GetPendingMessages " + msg.type +
           " for " + msg.uri + " @ " + msg.manifest);
 
-        
-        
+        // This is a sync call used to return the pending messages for a page.
+        // Find the right page to get its corresponding pending messages.
         let page = null;
         this._pages.some(function(aPage) {
           if (this._isPageMatched(aPage, msg.type, msg.uri, msg.manifest)) {
@@ -213,17 +213,17 @@ SystemMessageInternal.prototype = {
           return;
         }
 
-        
+        // Return the |msg| of each pending message (drop the |msgID|).
         let pendingMessages = [];
         page.pendingMessages.forEach(function(aMessage) {
           pendingMessages.push(aMessage.msg);
         });
 
-        
-        
+        // Clear the pending queue for this page. This is OK since we'll store
+        // pending messages in the content process (|SystemMessageManager|).
         page.pendingMessages.length = 0;
 
-        
+        // Send the array of pending messages.
         aMessage.target.sendAsyncMessage("SystemMessageManager:GetPendingMessages:Return",
                                          { type: msg.type,
                                            manifest: msg.manifest,
@@ -236,8 +236,8 @@ SystemMessageInternal.prototype = {
         debug("received SystemMessageManager:HasPendingMessages " + msg.type +
           " for " + msg.uri + " @ " + msg.manifest);
 
-        
-        
+        // This is a sync call used to return if a page has pending messages.
+        // Find the right page to get its corresponding pending messages.
         let page = null;
         this._pages.some(function(aPage) {
           if (this._isPageMatched(aPage, msg.type, msg.uri, msg.manifest)) {
@@ -257,8 +257,8 @@ SystemMessageInternal.prototype = {
         debug("received SystemMessageManager:Message:Return:OK " + msg.type +
           " for " + msg.uri + " @ " + msg.manifest);
 
-        
-        
+        // We need to clean up the pending message since the app has already
+        // received it, thus avoiding the re-lanunched app handling it again.
         this._pages.forEach(function(aPage) {
           if (!this._isPageMatched(aPage, msg.type, msg.uri, msg.manifest)) {
             return;
@@ -294,8 +294,8 @@ SystemMessageInternal.prototype = {
         this._webappsRegistryReady = false;
         break;
       case "webapps-registry-ready":
-        
-        
+        // After the webapps' registration has been done for sure,
+        // re-fire the buffered system messages if there is any.
         this._webappsRegistryReady = true;
         this._bufferedSysMsgs.forEach(function(aSysMsg) {
           switch (aSysMsg.how) {
@@ -314,8 +314,8 @@ SystemMessageInternal.prototype = {
   },
 
   _queueMessage: function _queueMessage(aPage, aMessage, aMessageID) {
-    
-    
+    // Queue the message for this page because we've never known if an app is
+    // opened or not. We'll clean it up when the app has already received it.
     aPage.pendingMessages.push({ msg: aMessage, msgID: aMessageID });
     if (aPage.pendingMessages.length > kMaxPendingMessages) {
       aPage.pendingMessages.splice(0, 1);
@@ -323,7 +323,7 @@ SystemMessageInternal.prototype = {
   },
 
   _openAppPage: function _openAppPage(aPage, aMessage) {
-    
+    // We don't need to send the full object to observers.
     let page = { uri: aPage.uri,
                  manifest: aPage.manifest,
                  type: aPage.type,
@@ -347,7 +347,7 @@ SystemMessageInternal.prototype = {
                    .createInstance(Ci.nsICryptoHash);
     hasher.init(hasher.SHA1);
 
-    
+    // add uri and action to the hash
     ["type", "manifest", "uri"].forEach(function(aProp) {
       let data = converter.convertToByteArray(aPage[aProp], {});
       hasher.update(data, data.length);
@@ -361,4 +361,4 @@ SystemMessageInternal.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISystemMessagesInternal, Ci.nsIObserver])
 }
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([SystemMessageInternal]);
+const NSGetFactory = XPCOMUtils.generateNSGetFactory([SystemMessageInternal]);

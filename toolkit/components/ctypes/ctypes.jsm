@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "ctypes" ];
+let EXPORTED_SYMBOLS = [ "ctypes" ];
 
 
 

@@ -24,7 +24,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "gcli" ];
+var EXPORTED_SYMBOLS = [ "gcli" ];
 
 Components.utils.import("resource://gre/modules/devtools/Require.jsm");
 Components.utils.import("resource://gre/modules/devtools/Console.jsm");
@@ -10479,4 +10479,4 @@ define("text!gcli/ui/tooltip.html", [], "\n" +
 
 
 
-this.gcli = require('gcli/index');
+const gcli = require('gcli/index');

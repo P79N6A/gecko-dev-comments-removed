@@ -9,14 +9,14 @@ Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/constants.js");
 
-this.EXPORTED_SYMBOLS = ["SyncStorageRequest"];
+const EXPORTED_SYMBOLS = ["SyncStorageRequest"];
 
 const STORAGE_REQUEST_TIMEOUT = 5 * 60; 
 
 
 
 
-this.SyncStorageRequest = function SyncStorageRequest(uri) {
+function SyncStorageRequest(uri) {
   RESTRequest.call(this, uri);
 
   this.authenticator = null;

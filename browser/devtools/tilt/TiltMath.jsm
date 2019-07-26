@@ -9,7 +9,7 @@ const Cu = Components.utils;
 
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 
-this.EXPORTED_SYMBOLS =
+let EXPORTED_SYMBOLS =
   ["EPSILON", "TiltMath", "vec3", "mat3", "mat4", "quat4"];
 
 
@@ -17,7 +17,7 @@ this.EXPORTED_SYMBOLS =
 
 
 
-this.EPSILON = 0.01;
+const EPSILON = 0.01;
 const PI_OVER_180 = Math.PI / 180;
 const INV_PI_OVER_180 = 180 / Math.PI;
 const FIFTEEN_OVER_225 = 15 / 225;
@@ -26,7 +26,7 @@ const ONE_OVER_255 = 1 / 255;
 
 
 
-this.vec3 = {
+let vec3 = {
 
   
 
@@ -496,7 +496,7 @@ this.vec3 = {
 
 
 
-this.mat3 = {
+let mat3 = {
 
   
 
@@ -659,7 +659,7 @@ this.mat3 = {
 
 
 
-this.mat4 = {
+let mat4 = {
 
   
 
@@ -1627,7 +1627,7 @@ this.mat4 = {
 
 
 
-this.quat4 = {
+let quat4 = {
 
   
 
@@ -2116,7 +2116,7 @@ this.quat4 = {
 
 
 
-this.TiltMath = {
+let TiltMath = {
 
   
 

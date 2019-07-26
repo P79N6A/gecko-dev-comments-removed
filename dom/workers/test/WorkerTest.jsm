@@ -2,11 +2,11 @@
 
 
 
-this.EXPORTED_SYMBOLS = [
+let EXPORTED_SYMBOLS = [
   "WorkerTest"
 ];
 
-this.WorkerTest = {
+const WorkerTest = {
   go: function(message, messageCallback, errorCallback) {
     let worker = new ChromeWorker("WorkerTest_worker.js");
     worker.onmessage = messageCallback;

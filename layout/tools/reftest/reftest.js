@@ -5,7 +5,7 @@
 
 
 #if BOOTSTRAP
-this.EXPORTED_SYMBOLS = ["OnRefTestLoad"];
+var EXPORTED_SYMBOLS = ["OnRefTestLoad"];
 #endif
 
 
@@ -202,7 +202,7 @@ function IDForEventTarget(event)
     }
 }
 
-this.OnRefTestLoad = function OnRefTestLoad(win)
+function OnRefTestLoad(win)
 {
     gCrashDumpDir = CC[NS_DIRECTORY_SERVICE_CONTRACTID]
                     .getService(CI.nsIProperties)

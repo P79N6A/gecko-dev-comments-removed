@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ['TabEngine', 'TabSetRecord'];
+const EXPORTED_SYMBOLS = ['TabEngine', 'TabSetRecord'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -26,7 +26,7 @@ Cu.import("resource://services-common/preferences.js");
 const PBPrefs = new Preferences("browser.privatebrowsing.");
 
 
-this.TabSetRecord = function TabSetRecord(collection, id) {
+function TabSetRecord(collection, id) {
   CryptoWrapper.call(this, collection, id);
 }
 TabSetRecord.prototype = {
@@ -38,7 +38,7 @@ TabSetRecord.prototype = {
 Utils.deferGetSet(TabSetRecord, "cleartext", ["clientName", "tabs"]);
 
 
-this.TabEngine = function TabEngine(service) {
+function TabEngine(service) {
   SyncEngine.call(this, "Tabs", service);
 
   

@@ -15,7 +15,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "define", "require" ];
+const EXPORTED_SYMBOLS = [ "define", "require" ];
 
 const console = (function() {
   const tempScope = {};
@@ -29,7 +29,7 @@ const console = (function() {
 
 
 
-this.define = function define(moduleName, deps, payload) {
+function define(moduleName, deps, payload) {
   if (typeof moduleName != "string") {
     throw new Error("Error: Module name is not a string");
   }
@@ -192,4 +192,4 @@ define.globalDomain = new Domain();
 
 
 
-this.require = define.globalDomain.require.bind(define.globalDomain);
+const require = define.globalDomain.require.bind(define.globalDomain);

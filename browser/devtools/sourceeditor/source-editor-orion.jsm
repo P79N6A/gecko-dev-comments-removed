@@ -140,7 +140,7 @@ if (Services.appinfo.OS == "WINNT" ||
   });
 }
 
-this.EXPORTED_SYMBOLS = ["SourceEditor"];
+var EXPORTED_SYMBOLS = ["SourceEditor"];
 
 
 
@@ -151,7 +151,7 @@ this.EXPORTED_SYMBOLS = ["SourceEditor"];
 
 
 
-this.SourceEditor = function SourceEditor() {
+function SourceEditor() {
   
 
   SourceEditor.DEFAULTS.tabSize =

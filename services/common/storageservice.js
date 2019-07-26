@@ -25,7 +25,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "BasicStorageObject",
   "StorageServiceClient",
   "StorageServiceRequestError",
@@ -70,8 +70,7 @@ const Prefs = new Preferences("services.common.storageservice.");
 
 
 
-this.BasicStorageObject =
- function BasicStorageObject(id=null, collection=null) {
+function BasicStorageObject(id=null, collection=null) {
   this.data       = {};
   this.id         = id;
   this.collection = collection;
@@ -267,7 +266,7 @@ BasicStorageObject.prototype = {
 
 
 
-this.StorageServiceRequestError = function StorageServiceRequestError() {
+function StorageServiceRequestError() {
   this.serverModified  = false;
   this.notFound        = false;
   this.conflict        = false;
@@ -1520,7 +1519,7 @@ Object.freeze(StorageCollectionBatchedDelete.prototype);
 
 
 
-this.StorageServiceClient = function StorageServiceClient(baseURI) {
+function StorageServiceClient(baseURI) {
   this._log = Log4Moz.repository.getLogger("Services.Common.StorageServiceClient");
   this._log.level = Log4Moz.Level[Prefs.get("log.level")];
 

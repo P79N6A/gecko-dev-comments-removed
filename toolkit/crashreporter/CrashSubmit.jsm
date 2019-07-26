@@ -5,7 +5,7 @@
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/KeyValueParser.jsm");
 
-this.EXPORTED_SYMBOLS = [
+let EXPORTED_SYMBOLS = [
   "CrashSubmit"
 ];
 
@@ -301,7 +301,7 @@ Submitter.prototype = {
 
 
 
-this.CrashSubmit = {
+let CrashSubmit = {
   
 
 

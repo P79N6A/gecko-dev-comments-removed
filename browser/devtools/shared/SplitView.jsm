@@ -5,7 +5,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["SplitView"];
+const EXPORTED_SYMBOLS = ["SplitView"];
 
 
 const LANDSCAPE_MEDIA_QUERY = "(min-width: 551px)";
@@ -26,7 +26,7 @@ const BINDING_USERDATA = "splitview-binding";
 
 
 
-this.SplitView = function SplitView(aRoot)
+function SplitView(aRoot)
 {
   this._root = aRoot;
   this._controller = aRoot.querySelector(".splitview-controller");

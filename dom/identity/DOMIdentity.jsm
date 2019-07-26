@@ -1,13 +1,13 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-
-this.EXPORTED_SYMBOLS = ["DOMIdentity"];
+// This is the parent process corresponding to nsDOMIdentity.
+let EXPORTED_SYMBOLS = ["DOMIdentity"];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -123,17 +123,17 @@ RPWatchContext.prototype = {
   }
 };
 
-this.DOMIdentity = {
-  
+let DOMIdentity = {
+  // nsIMessageListener
   receiveMessage: function DOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
 
-    
-    
+    // Target is the frame message manager that called us and is
+    // used to send replies back to the proper window.
     let targetMM = aMessage.target;
 
     switch (aMessage.name) {
-      
+      // RP
       case "Identity:RP:Watch":
         this._watch(msg, targetMM);
         break;
@@ -143,7 +143,7 @@ this.DOMIdentity = {
       case "Identity:RP:Logout":
         this._logout(msg);
         break;
-      
+      // IDP
       case "Identity:IDP:BeginProvisioning":
         this._beginProvisioning(msg, targetMM);
         break;
@@ -168,7 +168,7 @@ this.DOMIdentity = {
     }
   },
 
-  
+  // nsIObserver
   observe: function DOMIdentity_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "xpcom-shutdown":
@@ -186,7 +186,7 @@ this.DOMIdentity = {
              "Identity:IDP:CompleteAuthentication",
              "Identity:IDP:AuthenticationFailure"],
 
-  
+  // Private.
   _init: function DOMIdentity__init() {
     Services.ww.registerNotification(this);
     Services.obs.addObserver(this, "xpcom-shutdown", false);
@@ -218,8 +218,8 @@ this.DOMIdentity = {
 
   _watch: function DOMIdentity__watch(message, targetMM) {
     log("DOMIdentity__watch: " + message.id);
-    
-    
+    // Pass an object with the watch members to Identity.jsm so it can call the
+    // callbacks.
     let context = new RPWatchContext(message.id, message.origin,
                                      message.loggedInEmail, targetMM);
     IdentityService.RP.watch(context);
@@ -266,4 +266,4 @@ this.DOMIdentity = {
   },
 };
 
-
+// Object is initialized by nsIDService.js

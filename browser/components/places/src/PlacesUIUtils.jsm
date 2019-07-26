@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["PlacesUIUtils"];
+var EXPORTED_SYMBOLS = ["PlacesUIUtils"];
 
 var Ci = Components.interfaces;
 var Cc = Components.classes;
@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
   return PlacesUtils;
 });
 
-this.PlacesUIUtils = {
+var PlacesUIUtils = {
   ORGANIZER_LEFTPANE_VERSION: 7,
   ORGANIZER_FOLDER_ANNO: "PlacesOrganizer/OrganizerFolder",
   ORGANIZER_QUERY_ANNO: "PlacesOrganizer/OrganizerQuery",

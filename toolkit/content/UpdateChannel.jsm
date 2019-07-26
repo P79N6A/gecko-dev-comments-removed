@@ -2,13 +2,13 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["UpdateChannel"];
+const EXPORTED_SYMBOLS = ["UpdateChannel"];
 
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
-this.UpdateChannel = {
+let UpdateChannel = {
   
 
 

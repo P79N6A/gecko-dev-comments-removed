@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
@@ -9,9 +9,9 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 const PREF_DEBUG = "toolkit.identity.debug";
 const PREF_ENABLED = "dom.identity.enabled";
 
-
+// Maximum length of a string that will go through IPC
 const MAX_STRING_LENGTH = 2048;
-
+// Maximum number of times navigator.id.request can be called for a document
 const MAX_RP_CALLS = 100;
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
-
+// This is the child process corresponding to nsIDOMIdentity.
 
 
 function nsDOMIdentity(aIdentityInternal) {
@@ -29,27 +29,27 @@ function nsDOMIdentity(aIdentityInternal) {
 }
 nsDOMIdentity.prototype = {
   __exposedProps__: {
-    
+    // Relying Party (RP)
     watch: 'r',
     request: 'r',
     logout: 'r',
 
-    
+    // Provisioning
     beginProvisioning: 'r',
     genKeyPair: 'r',
     registerCertificate: 'r',
     raiseProvisioningFailure: 'r',
 
-    
+    // Authentication
     beginAuthentication: 'r',
     completeAuthentication: 'r',
     raiseAuthenticationFailure: 'r',
   },
 
-  
-  
-
-
+  // nsIDOMIdentity
+  /**
+   * Relying Party (RP) APIs
+   */
 
   watch: function nsDOMIdentity_watch(aOptions) {
     this._log("watch");
@@ -61,7 +61,7 @@ nsDOMIdentity.prototype = {
       throw new Error("options argument to watch is required");
     }
 
-    
+    // Check for required callbacks
     let requiredCallbacks = ["onlogin", "onlogout"];
     for (let cbName of requiredCallbacks) {
       if ((!(cbName in aOptions))
@@ -70,7 +70,7 @@ nsDOMIdentity.prototype = {
          }
     }
 
-    
+    // Optional callback "onready"
     if (aOptions["onready"]
         && typeof(aOptions['onready']) !== "function") {
       throw new Error("onready must be a function");
@@ -78,7 +78,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
 
-    
+    // loggedInEmail
     message.loggedInEmail = null;
     let emailType = typeof(aOptions["loggedInEmail"]);
     if (aOptions["loggedInEmail"] && aOptions["loggedInEmail"] !== "undefined") {
@@ -86,13 +86,13 @@ nsDOMIdentity.prototype = {
         throw new Error("loggedInEmail must be a String or null");
       }
 
-      
-      
+      // TODO: Bug 767610 - check email format.
+      // See nsHTMLInputElement::IsValidEmailAddress
       if (aOptions["loggedInEmail"].indexOf("@") == -1
           || aOptions["loggedInEmail"].length > MAX_STRING_LENGTH) {
         throw new Error("loggedInEmail is not valid");
       }
-      
+      // Set loggedInEmail in this block that "undefined" doesn't get through.
       message.loggedInEmail = aOptions.loggedInEmail;
     }
     this._log("loggedInEmail: " + message.loggedInEmail);
@@ -105,12 +105,12 @@ nsDOMIdentity.prototype = {
     let util = this._window.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindowUtils);
 
-    
+    // Do not allow call of request() outside of a user input handler.
     if (!util.isHandlingUserInput) {
       return;
     }
 
-    
+    // Has the caller called watch() before this?
     if (!this._rpWatcher) {
       throw new Error("navigator.id.request called before navigator.id.watch");
     }
@@ -121,7 +121,7 @@ nsDOMIdentity.prototype = {
     let message = this.DOMIdentityMessage();
 
     if (aOptions) {
-      
+      // Optional string properties
       let optionalStringProps = ["privacyPolicy", "termsOfService"];
       for (let propName of optionalStringProps) {
         if (!aOptions[propName] || aOptions[propName] === "undefined")
@@ -139,7 +139,7 @@ nsDOMIdentity.prototype = {
             && typeof(aOptions["oncancel"]) !== "function") {
         throw new Error("oncancel is not a function");
       } else {
-        
+        // Store optional cancel callback for later.
         this._onCancelRequestCallback = aOptions.oncancel;
       }
     }
@@ -161,9 +161,9 @@ nsDOMIdentity.prototype = {
     this._identityInternal._mm.sendAsyncMessage("Identity:RP:Logout", message);
   },
 
-  
-
-
+  /**
+   *  Identity Provider (IDP) Provisioning APIs
+   */
 
   beginProvisioning: function nsDOMIdentity_beginProvisioning(aCallback) {
     this._log("beginProvisioning");
@@ -226,9 +226,9 @@ nsDOMIdentity.prototype = {
     this._identityInternal._mm.sendAsyncMessage("Identity:IDP:ProvisioningFailure", message);
   },
 
-  
-
-
+  /**
+   *  Identity Provider (IDP) Authentication APIs
+   */
 
   beginAuthentication: function nsDOMIdentity_beginAuthentication(aCallback) {
     this._log("beginAuthentication");
@@ -273,27 +273,27 @@ nsDOMIdentity.prototype = {
     this._identityInternal._mm.sendAsyncMessage("Identity:IDP:AuthenticationFailure", message);
   },
 
-  
+  // Private.
   _init: function nsDOMIdentity__init(aWindow) {
 
     this._initializeState();
 
-    
+    // Store window and origin URI.
     this._window = aWindow;
     this._origin = aWindow.document.nodePrincipal.origin;
 
-    
+    // Setup identifiers for current window.
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
     this._id = util.outerWindowID;
   },
 
-  
-
-
+  /**
+   * Called during init and shutdown.
+   */
   _initializeState: function nsDOMIdentity__initializeState() {
-    
-    
+    // Some state to prevent abuse
+    // Limit the number of calls to .request
     this._rpCalls = 0;
     this._provisioningEnded = false;
     this._authenticationEnded = false;
@@ -318,7 +318,7 @@ nsDOMIdentity.prototype = {
         Services.obs.notifyObservers(null, "identity-DOM-state-reset", this._id);
         break;
       case "Identity:RP:Watch:OnLogin":
-        
+        // Do we have a watcher?
         if (!this._rpWatcher) {
           return;
         }
@@ -328,7 +328,7 @@ nsDOMIdentity.prototype = {
         }
         break;
       case "Identity:RP:Watch:OnLogout":
-        
+        // Do we have a watcher?
         if (!this._rpWatcher) {
           return;
         }
@@ -338,7 +338,7 @@ nsDOMIdentity.prototype = {
         }
         break;
       case "Identity:RP:Watch:OnReady":
-        
+        // Do we have a watcher?
         if (!this._rpWatcher) {
           return;
         }
@@ -348,7 +348,7 @@ nsDOMIdentity.prototype = {
         }
         break;
       case "Identity:RP:Request:OnCancel":
-        
+        // Do we have a watcher?
         if (!this._rpWatcher) {
           return;
         }
@@ -374,10 +374,10 @@ nsDOMIdentity.prototype = {
   },
 
   _callGenKeyPairCallback: function nsDOMIdentity__callGenKeyPairCallback(message) {
-    
+    // create a pubkey object that works
     let chrome_pubkey = JSON.parse(message.publicKey);
 
-    
+    // bunch of stuff to create a proper object in window context
     function genPropDesc(value) {
       return {
         enumerable: true, configurable: true, writable: true, value: value
@@ -393,7 +393,7 @@ nsDOMIdentity.prototype = {
     Object.defineProperties(pubkey, propList);
     Cu.makeObjectPropsNormal(pubkey);
 
-    
+    // do the callback
     this._genKeyPairCallback(pubkey);
   },
 
@@ -411,9 +411,9 @@ nsDOMIdentity.prototype = {
     this._beginAuthenticationCallback(identity);
   },
 
-  
-
-
+  /**
+   * Helper to create messages to send using a message manager
+   */
   DOMIdentityMessage: function DOMIdentityMessage() {
     return {
       id: this._id,
@@ -423,24 +423,24 @@ nsDOMIdentity.prototype = {
 
 };
 
-
-
-
+/**
+ * Internal functions that shouldn't be exposed to content.
+ */
 function nsDOMIdentityInternal() {
 }
 nsDOMIdentityInternal.prototype = {
 
-  
+  // nsIMessageListener
   receiveMessage: function nsDOMIdentityInternal_receiveMessage(aMessage) {
     let msg = aMessage.json;
-    
+    // Is this message intended for this window?
     if (msg.id != this._id) {
       return;
     }
     this._identity._receiveMessage(aMessage);
   },
 
-  
+  // nsIObserver
   observe: function nsDOMIdentityInternal_observe(aSubject, aTopic, aData) {
     let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
     if (wId != this._innerWindowID) {
@@ -451,21 +451,21 @@ nsDOMIdentityInternal.prototype = {
     this._identity._initializeState();
     this._identity = null;
 
-    
-    
+    // TODO: Also send message to DOMIdentity notifiying window is no longer valid
+    // ie. in the case that the user closes the auth. window and we need to know.
 
     try {
       for (let msgName of this._messages) {
         this._mm.removeMessageListener(msgName, this);
       }
     } catch (ex) {
-      
+      // Avoid errors when removing more than once.
     }
 
     this._mm = null;
   },
 
-  
+  // nsIDOMGlobalPropertyInitializer
   init: function nsDOMIdentityInternal_init(aWindow) {
     if (Services.prefs.getPrefType(PREF_ENABLED) != Ci.nsIPrefBranch.PREF_BOOL
         || !Services.prefs.getBoolPref(PREF_ENABLED)) {
@@ -489,7 +489,7 @@ nsDOMIdentityInternal.prototype = {
 
     this._mm = cpmm;
 
-    
+    // Setup listeners for messages from parent process.
     this._messages = [
       "Identity:ResetState",
       "Identity:RP:Watch:OnLogin",
@@ -504,13 +504,13 @@ nsDOMIdentityInternal.prototype = {
       this._mm.addMessageListener(msgName, this);
     }).bind(this));
 
-    
+    // Setup observers so we can remove message listeners.
     Services.obs.addObserver(this, "inner-window-destroyed", false);
 
     return this._identity;
   },
 
-  
+  // Private.
   _log: function nsDOMIdentityInternal__log(msg) {
     if (!this._debug) {
       return;
@@ -518,7 +518,7 @@ nsDOMIdentityInternal.prototype = {
     dump("nsDOMIdentity (" + this._id + "): " + msg + "\n");
   },
 
-  
+  // Component setup.
   classID: Components.ID("{8bcac6a3-56a4-43a4-a44c-cdf42763002f}"),
 
   QueryInterface: XPCOMUtils.generateQI(
@@ -534,4 +534,4 @@ nsDOMIdentityInternal.prototype = {
 
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentityInternal]);
+const NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentityInternal]);

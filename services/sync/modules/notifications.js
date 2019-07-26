@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Notifications", "Notification", "NotificationButton"];
+const EXPORTED_SYMBOLS = ["Notifications", "Notification", "NotificationButton"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -13,7 +13,7 @@ Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-sync/util.js");
 
-this.Notifications = {
+let Notifications = {
   
   get PRIORITY_INFO()     1, 
   get PRIORITY_WARNING()  4, 
@@ -83,8 +83,7 @@ this.Notifications = {
 
 
 
-this.Notification =
- function Notification(title, description, iconURL, priority, buttons) {
+function Notification(title, description, iconURL, priority, buttons) {
   this.title = title;
   this.description = description;
 
@@ -109,8 +108,7 @@ Notification.prototype.buttons = [];
 
 
 
-this.NotificationButton =
- function NotificationButton(label, accessKey, callback) {
+function NotificationButton(label, accessKey, callback) {
   function callbackWrapper() {
     try {
       callback.apply(this, arguments);

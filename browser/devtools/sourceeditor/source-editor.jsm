@@ -34,8 +34,8 @@ try {
 }
 
 
-this.SourceEditor = obj.SourceEditor;
-this.EXPORTED_SYMBOLS = ["SourceEditor"];
+var SourceEditor = obj.SourceEditor;
+var EXPORTED_SYMBOLS = ["SourceEditor"];
 
 
 

@@ -117,5 +117,5 @@ nsDownloadManagerUI.prototype = {
 
 
 let components = [nsDownloadManagerUI];
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
 

@@ -2,9 +2,9 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["PageMenu"];
+let EXPORTED_SYMBOLS = ["PageMenu"];
 
-this.PageMenu = function PageMenu() {
+function PageMenu() {
 }
 
 PageMenu.prototype = {

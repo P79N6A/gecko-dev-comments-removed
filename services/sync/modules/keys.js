@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "BulkKeyBundle",
   "SyncKeyBundle"
 ];
@@ -119,7 +119,7 @@ KeyBundle.prototype = {
 
 
 
-this.BulkKeyBundle = function BulkKeyBundle(collection) {
+function BulkKeyBundle(collection) {
   let log = Log4Moz.repository.getLogger("Sync.BulkKeyBundle");
   log.info("BulkKeyBundle being created for " + collection);
   KeyBundle.call(this);
@@ -176,7 +176,7 @@ BulkKeyBundle.prototype = {
 
 
 
-this.SyncKeyBundle = function SyncKeyBundle(username, syncKey) {
+function SyncKeyBundle(username, syncKey) {
   let log = Log4Moz.repository.getLogger("Sync.SyncKeyBundle");
   log.info("SyncKeyBundle being created.");
   KeyBundle.call(this);

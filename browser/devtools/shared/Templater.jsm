@@ -15,7 +15,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "Templater", "template" ];
+var EXPORTED_SYMBOLS = [ "Templater", "template" ];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 const Node = Components.interfaces.nsIDOMNode;
@@ -44,7 +44,7 @@ const Node = Components.interfaces.nsIDOMNode;
 
 
 
-this.template = function template(node, data, options) {
+function template(node, data, options) {
   var template = new Templater(options || {});
   template.processNode(node, data);
   return template;
@@ -54,7 +54,7 @@ this.template = function template(node, data, options) {
 
 
 
-this.Templater = function Templater(options) {
+function Templater(options) {
   if (options == null) {
     options = { allowEval: true };
   }

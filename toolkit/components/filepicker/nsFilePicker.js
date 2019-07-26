@@ -259,7 +259,7 @@ if (DEBUG)
 else
   debug = function (s) {};
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsFilePicker]);
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsFilePicker]);
 
 
 

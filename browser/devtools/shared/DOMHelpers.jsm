@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["DOMHelpers"];
+const EXPORTED_SYMBOLS = ["DOMHelpers"];
 
 
 
@@ -12,7 +12,7 @@ this.EXPORTED_SYMBOLS = ["DOMHelpers"];
 
 
 
-this.DOMHelpers = function DOMHelpers(aWindow) {
+function DOMHelpers(aWindow) {
   this.window = aWindow;
 };
 

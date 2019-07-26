@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "Reflect" ];
+let EXPORTED_SYMBOLS = [ "Reflect" ];
 
 
 

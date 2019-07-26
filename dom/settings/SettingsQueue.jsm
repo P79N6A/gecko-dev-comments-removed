@@ -2,9 +2,9 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Queue"];
+let EXPORTED_SYMBOLS = ["Queue"];
 
-this.Queue = function Queue() {
+function Queue() {
   this._queue = [];
   this._index = 0;
 }
