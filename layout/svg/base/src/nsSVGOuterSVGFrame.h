@@ -140,13 +140,13 @@ public:
 
   bool VerticalScrollbarNotNeeded() const;
 
-  bool IsCallingUpdateBounds() const {
-    return mCallingUpdateBounds;
+  bool IsCallingReflowSVG() const {
+    return mCallingReflowSVG;
   }
 
 protected:
 
-  bool mCallingUpdateBounds;
+  bool mCallingReflowSVG;
 
   
 

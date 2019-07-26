@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsCOMArray.h"
 #include "nsIAuthPrompt.h"
@@ -78,7 +78,7 @@ public:
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSIINTERFACEREQUESTOR
 
-    // nsIContentSink
+    
     NS_IMETHOD WillParse(void) { return NS_OK; }
     NS_IMETHOD DidBuildModel(bool aTerminated);
     NS_IMETHOD WillInterrupt(void) { return NS_OK; }
@@ -94,7 +94,7 @@ private:
     bool mCheckedForXML;
 
 protected:
-    // This exists solely to suppress a warning from nsDerivedSafe
+    
     txStylesheetSink();
 };
 
@@ -206,7 +206,7 @@ txStylesheetSink::ReportError(const PRUnichar *aErrorText,
 {
     NS_PRECONDITION(aError && aSourceText && aErrorText, "Check arguments!!!");
 
-    // The expat driver should report the error.
+    
     *_retval = true;
 
     mCompiler->cancel(NS_ERROR_FAILURE, aErrorText, aSourceText);
@@ -254,7 +254,7 @@ txStylesheetSink::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
 
-    // check channel's charset...
+    
     nsCAutoString charsetVal;
     nsCAutoString charset;
     if (NS_SUCCEEDED(channel->GetContentCharset(charsetVal))) {
@@ -273,8 +273,8 @@ txStylesheetSink::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
     nsCAutoString contentType;
     channel->GetContentType(contentType);
 
-    // Time to sniff! Note: this should go away once file channels do
-    // sniffing themselves.
+    
+    
     nsCOMPtr<nsIURI> uri;
     channel->GetURI(getter_AddRefs(uri));
     bool sniff;
@@ -312,9 +312,9 @@ txStylesheetSink::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
     nsresult result = aStatusCode;
     if (!success) {
-        // XXX We sometimes want to use aStatusCode here, but the parser resets
-        //     it to NS_ERROR_NOINTERFACE because we don't implement
-        //     nsIHTMLContentSink.
+        
+        
+        
         result = NS_ERROR_XSLT_NETWORK_ERROR;
     }
     else if (!mCheckedForXML) {
@@ -382,7 +382,7 @@ private:
     nsCOMPtr<nsIPrincipal> mCallerPrincipal;
 
 protected:
-    // This exists solely to suppress a warning from nsDerivedSafe
+    
     txCompileObserver();
 };
 
@@ -412,10 +412,11 @@ txCompileObserver::loadURI(const nsAString& aUri,
 
     nsCOMPtr<nsIPrincipal> referrerPrincipal;
     rv = nsContentUtils::GetSecurityManager()->
-      GetCodebasePrincipal(referrerUri, getter_AddRefs(referrerPrincipal));
+      GetSimpleCodebasePrincipal(referrerUri,
+                                 getter_AddRefs(referrerPrincipal));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // Content Policy
+    
     PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_STYLESHEET,
                                    uri,
@@ -483,7 +484,7 @@ txCompileObserver::startLoad(nsIURI* aUri, txStylesheetCompiler* aCompiler,
     parser->SetContentSink(sink);
     parser->Parse(aUri);
 
-    // Always install in case of redirects
+    
     nsCOMPtr<nsIStreamListener> listener =
         new nsCORSListenerProxy(sink, aReferrerPrincipal, channel,
                                 false, &rv);
@@ -501,7 +502,7 @@ TX_LoadSheet(nsIURI* aUri, txMozillaXSLTProcessor* aProcessor,
     aUri->GetSpec(spec);
     PR_LOG(txLog::xslt, PR_LOG_ALWAYS, ("TX_LoadSheet: %s\n", spec.get()));
 
-    // Content Policy
+    
     PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
     nsresult rv =
         NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_STYLESHEET,
@@ -527,10 +528,10 @@ TX_LoadSheet(nsIURI* aUri, txMozillaXSLTProcessor* aProcessor,
     return observer->startLoad(aUri, compiler, aCallerPrincipal);
 }
 
-/**
- * handling DOM->txStylesheet
- * Observer needs to do synchronous loads.
- */
+
+
+
+
 static nsresult
 handleNode(nsINode* aNode, txStylesheetCompiler* aCompiler)
 {
@@ -564,7 +565,7 @@ handleNode(nsINode* aNode, txStylesheetCompiler* aCompiler)
                                      attsCount);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        // explicitly destroy the attrs here since we no longer need it
+        
         atts = nsnull;
 
         for (nsIContent* child = element->GetFirstChild();
@@ -633,10 +634,11 @@ txSyncCompileObserver::loadURI(const nsAString& aUri,
 
     nsCOMPtr<nsIPrincipal> referrerPrincipal;
     rv = nsContentUtils::GetSecurityManager()->
-      GetCodebasePrincipal(referrerUri, getter_AddRefs(referrerPrincipal));
+      GetSimpleCodebasePrincipal(referrerUri,
+                                 getter_AddRefs(referrerPrincipal));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // Content Policy
+    
     PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_STYLESHEET,
                                    uri,
@@ -650,8 +652,8 @@ txSyncCompileObserver::loadURI(const nsAString& aUri,
         return NS_ERROR_DOM_BAD_URI;
     }
 
-    // This is probably called by js, a loadGroup for the channel doesn't
-    // make sense.
+    
+    
     nsCOMPtr<nsINode> source;
     if (mProcessor) {
       source =
@@ -688,7 +690,7 @@ TX_CompileStylesheet(nsINode* aNode, txMozillaXSLTProcessor* aProcessor,
                      nsIPrincipal* aCallerPrincipal,
                      txStylesheet** aStylesheet)
 {
-    // If we move GetBaseURI to nsINode this can be simplified.
+    
     nsCOMPtr<nsIDocument> doc = aNode->OwnerDoc();
 
     nsCOMPtr<nsIURI> uri;
@@ -708,8 +710,8 @@ TX_CompileStylesheet(nsINode* aNode, txMozillaXSLTProcessor* aProcessor,
     nsIURI* docUri = doc->GetDocumentURI();
     NS_ENSURE_TRUE(docUri, NS_ERROR_FAILURE);
 
-    // We need to remove the ref, a URI with a ref would mean that we have an
-    // embedded stylesheet.
+    
+    
     docUri->CloneIgnoringRef(getter_AddRefs(uri));
     NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 

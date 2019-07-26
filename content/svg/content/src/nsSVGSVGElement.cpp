@@ -942,19 +942,21 @@ nsSVGSVGElement::ChildrenOnlyTransformChanged()
                       NS_STATE_SVG_NONDISPLAY_CHILD),
                     "Non-display SVG frames don't maintain overflow rects");
 
+  nsChangeHint changeHint;
+
   bool hasChildrenOnlyTransform = HasViewBoxOrSyntheticViewBox() ||
     (IsRoot() && (mCurrentTranslate != nsSVGTranslatePoint(0.0f, 0.0f) ||
                   mCurrentScale != 1.0f));
 
-  
-  
-  
-  
-
-  nsChangeHint changeHint =
-    nsChangeHint(nsChangeHint_RepaintFrame |
-                 nsChangeHint_UpdateOverflow |
-                 nsChangeHint_ChildrenOnlyTransform);
+  if (hasChildrenOnlyTransform != mHasChildrenOnlyTransform) {
+    
+    changeHint = nsChangeHint_ReconstructFrame;
+  } else {
+    
+    changeHint = nsChangeHint(nsChangeHint_RepaintFrame |
+                   nsChangeHint_UpdateOverflow |
+                   nsChangeHint_ChildrenOnlyTransform);
+  }
 
   nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
 

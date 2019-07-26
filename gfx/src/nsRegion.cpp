@@ -1379,6 +1379,20 @@ nsIntRegion nsRegion::ToNearestPixels (nscoord aAppUnitsPerPixel) const
   return ToPixels(aAppUnitsPerPixel, false);
 }
 
+nsIntRegion nsRegion::ScaleToNearestPixels (float aScaleX, float aScaleY,
+                                            nscoord aAppUnitsPerPixel) const
+{
+  nsIntRegion result;
+  nsRegionRectIterator rgnIter(*this);
+  const nsRect* currentRect;
+  while ((currentRect = rgnIter.Next())) {
+    nsIntRect deviceRect =
+      currentRect->ScaleToNearestPixels(aScaleX, aScaleY, aAppUnitsPerPixel);
+    result.Or(result, deviceRect);
+  }
+  return result;
+}
+
 nsIntRegion nsRegion::ScaleToOutsidePixels (float aScaleX, float aScaleY,
                                             nscoord aAppUnitsPerPixel) const
 {
@@ -1390,6 +1404,67 @@ nsIntRegion nsRegion::ScaleToOutsidePixels (float aScaleX, float aScaleY,
       currentRect->ScaleToOutsidePixels(aScaleX, aScaleY, aAppUnitsPerPixel);
     result.Or(result, deviceRect);
   }
+  return result;
+}
+
+nsIntRegion nsRegion::ScaleToInsidePixels (float aScaleX, float aScaleY,
+                                           nscoord aAppUnitsPerPixel) const
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  nsIntRegion result;
+  RgnRect* pRect = mRectListHead.next;
+  RgnRect* first = pRect;
+
+  nsIntRect firstDeviceRect;
+  if (pRect != &mRectListHead) {
+    firstDeviceRect =
+      pRect->ScaleToInsidePixels(aScaleX, aScaleY, aAppUnitsPerPixel);
+    pRect = pRect->next;
+  }
+
+  while (pRect != &mRectListHead)
+  {
+    nsIntRect deviceRect =
+      pRect->ScaleToInsidePixels(aScaleX, aScaleY, aAppUnitsPerPixel);
+
+    if (pRect->y <= first->YMost()) {
+      if (pRect->XMost() == first->x && pRect->YMost() <= first->YMost()) {
+        
+        
+        deviceRect.SetRightEdge(firstDeviceRect.x);
+      } else if (pRect->x == first->XMost() && pRect->YMost() <= first->YMost()) {
+        
+        
+        deviceRect.SetLeftEdge(firstDeviceRect.XMost());
+      } else if (pRect->y == first->YMost()) {
+        
+        
+        if (pRect->x <= first->x && pRect->XMost() >= first->XMost()) {
+          
+          firstDeviceRect.SetBottomEdge(deviceRect.y);
+        } else if (pRect->x >= first->x && pRect->XMost() <= first->XMost()) {
+          
+          deviceRect.SetTopEdge(firstDeviceRect.YMost());
+        }
+      }
+    }
+    pRect = pRect->next;
+    result.Or(result, deviceRect);
+  }
+
+  result.Or(result, firstDeviceRect);
   return result;
 }
 

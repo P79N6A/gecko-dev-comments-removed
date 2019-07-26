@@ -150,7 +150,8 @@ public:
 
 
 
-    TabChild(PRUint32 aChromeFlags, bool aIsBrowserFrame);
+
+    TabChild(PRUint32 aChromeFlags, bool aIsBrowserElement, PRUint32 aAppId);
     virtual ~TabChild();
     nsresult Init();
 
@@ -304,7 +305,8 @@ private:
     nscolor mLastBackgroundColor;
     ScrollingBehavior mScrolling;
     bool mDidFakeShow;
-    bool mIsBrowserFrame;
+    bool mIsBrowserElement;
+    PRUint32 mAppId;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };

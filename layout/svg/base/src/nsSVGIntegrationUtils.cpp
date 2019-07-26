@@ -13,6 +13,7 @@
 #include "nsRenderingContext.h"
 #include "nsSVGClipPathFrame.h"
 #include "nsSVGEffects.h"
+#include "nsSVGElement.h"
 #include "nsSVGFilterFrame.h"
 #include "nsSVGFilterPaintCallback.h"
 #include "nsSVGMaskFrame.h"
@@ -143,9 +144,10 @@ GetPreEffectsVisualOverflowUnion(nsIFrame* aFirstContinuation,
 bool
 nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
 {
-  if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
-    return false;
-  }
+  
+  
+  
+  
   const nsStyleSVGReset *style = aFrame->GetStyleSVGReset();
   return (style->mFilter || style->mClipPath || style->mMask);
 }
@@ -153,6 +155,13 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
  nsPoint
 nsSVGIntegrationUtils::GetOffsetToUserSpace(nsIFrame* aFrame)
 {
+  if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
+    
+    
+    
+    
+    return nsPoint();
+  }
   
   
   
@@ -375,7 +384,10 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
 {
 #ifdef DEBUG
   nsISVGChildFrame *svgChildFrame = do_QueryFrame(aFrame);
-  NS_ASSERTION(!svgChildFrame, "Should never be called on an SVG frame");
+  NS_ASSERTION(!svgChildFrame ||
+               (NS_SVGDisplayListPaintingEnabled() &&
+                !(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)),
+               "Should not use nsSVGIntegrationUtils on this SVG frame");
 #endif
 
   
@@ -392,9 +404,26 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
 
 
 
+  const nsIContent* content = aFrame->GetContent();
+  bool hasSVGLayout = (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT);
+  if (hasSVGLayout) {
+    nsISVGChildFrame *svgChildFrame = do_QueryFrame(aFrame);
+    if (!svgChildFrame || !aFrame->GetContent()->IsSVG()) {
+      NS_ASSERTION(false, "why?");
+      return;
+    }
+    if (!static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
+      return; 
+    }
+  }
+
   float opacity = aFrame->GetStyleDisplay()->mOpacity;
   if (opacity == 0.0f) {
     return;
+  }
+  if (opacity != 1.0f &&
+      hasSVGLayout && nsSVGUtils::CanOptimizeOpacity(aFrame)) {
+    opacity = 1.0f;
   }
 
   
@@ -417,13 +446,18 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   gfxContext* gfx = aCtx->ThebesContext();
   gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);
 
-  PRInt32 appUnitsPerDevPixel = 
-    aFrame->PresContext()->AppUnitsPerDevPixel();
   nsPoint firstFrameOffset = GetOffsetToUserSpace(firstFrame);
-  nsPoint offset = (aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset).
-                     ToNearestPixels(appUnitsPerDevPixel).
-                     ToAppUnits(appUnitsPerDevPixel);
-  aCtx->Translate(offset);
+  nsPoint offset = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
+  nsPoint offsetWithoutSVGGeomFramePos = offset;
+  nsPoint svgGeomFramePos;
+  if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+    
+    
+    svgGeomFramePos = aFrame->GetPosition();
+    offsetWithoutSVGGeomFramePos -= svgGeomFramePos;
+  }
+
+  aCtx->Translate(offsetWithoutSVGGeomFramePos);
 
   gfxMatrix cssPxToDevPxMatrix = GetCSSPxToDevPxMatrix(aFrame);
 
@@ -433,7 +467,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   if (opacity != 1.0f || maskFrame || (clipPathFrame && !isTrivialClip)) {
     complexEffects = true;
     gfx->Save();
-    aCtx->IntersectClip(aFrame->GetVisualOverflowRect());
+    aCtx->IntersectClip(aFrame->GetVisualOverflowRect() + svgGeomFramePos);
     gfx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
   }
 
@@ -448,13 +482,13 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   
   if (filterFrame) {
     RegularFramePaintCallback callback(aBuilder, aLayerManager,
-                                       offset);
+                                       offsetWithoutSVGGeomFramePos);
     nsRect dirtyRect = aDirtyRect - offset;
     filterFrame->PaintFilteredFrame(aCtx, aFrame, &callback, &dirtyRect);
   } else {
     gfx->SetMatrix(matrixAutoSaveRestore.Matrix());
     aLayerManager->EndTransaction(FrameLayerBuilder::DrawThebesLayer, aBuilder);
-    aCtx->Translate(offset);
+    aCtx->Translate(offsetWithoutSVGGeomFramePos);
   }
 
   if (clipPathFrame && isTrivialClip) {

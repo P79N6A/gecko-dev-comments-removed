@@ -62,6 +62,7 @@
 #include "nsGUIEvent.h"
 #include "nsRange.h"
 #include "nsContentUtils.h"
+#include "nsEditor.h"
 
 
 
@@ -119,7 +120,7 @@ mozInlineSpellStatus::InitForEditorChange(
                                 getter_AddRefs(mAnchorRange));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aAction == mozInlineSpellChecker::kOpDeleteSelection) {
+  if (aAction == nsEditor::kOpDeleteSelection) {
     
     
     
@@ -152,7 +153,7 @@ mozInlineSpellStatus::InitForEditorChange(
 
   
   
-  if (aAction == mozInlineSpellChecker::kOpInsertText)
+  if (aAction == nsEditor::kOpInsertText)
     mCreatedRange = mRange;
 
   

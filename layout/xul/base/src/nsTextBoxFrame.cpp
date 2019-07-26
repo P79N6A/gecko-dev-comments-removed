@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsTextBoxFrame.h"
 
@@ -34,7 +34,7 @@
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
 #include "nsBidiPresUtils.h"
-#endif 
+#endif // IBMBIDI
 
 using namespace mozilla;
 
@@ -79,8 +79,8 @@ nsTextBoxFrame::AttributeChanged(PRInt32         aNameSpaceID,
         Redraw(state);
     }
 
-    
-    
+    // If the accesskey changed, register for the new value
+    // The old value has been unregistered in nsXULElement::SetAttr
     if (aAttribute == nsGkAtoms::accesskey || aAttribute == nsGkAtoms::control)
         RegUnregAccessKey(true);
 
@@ -109,9 +109,9 @@ nsTextBoxFrame::Init(nsIContent*      aContent,
 
     bool aResize;
     bool aRedraw;
-    UpdateAttributes(nsnull, aResize, aRedraw); 
+    UpdateAttributes(nsnull, aResize, aRedraw); /* update all */
 
-    
+    // register access key
     RegUnregAccessKey(true);
 
     return NS_OK;
@@ -120,7 +120,7 @@ nsTextBoxFrame::Init(nsIContent*      aContent,
 void
 nsTextBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-    
+    // unregister access key
     RegUnregAccessKey(false);
     nsTextBoxFrameSuper::DestroyFrom(aDestructRoot);
 }
@@ -187,11 +187,11 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
     nsCOMPtr<nsIDOMXULLabelElement> labelElement = do_QueryInterface(mContent);
     NS_ENSURE_TRUE(aWeakThis.IsAlive(), false);
     if (labelElement) {
-        
-        
-        
-        
-        
+        // Accesskey may be stored on control.
+        // Because this method is called by the reflow callback, current context
+        // may not be the right one. Pushing the context of mContent so that
+        // if nsIDOMXULLabelElement is implemented in XBL, we don't get a
+        // security exception.
         nsCxPusher cx;
         if (cx.Push(mContent)) {
           labelElement->GetAccessKey(accesskey);
@@ -203,7 +203,7 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
     }
 
     if (!accesskey.Equals(mAccessKey)) {
-        
+        // Need to get clean mTitle.
         mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, mTitle);
         mAccessKey = accesskey;
         UpdateAccessTitle();
@@ -260,7 +260,7 @@ nsTextBoxFrame::UpdateAttributes(nsIAtom*         aAttribute,
 
     if (aAttribute == nsnull || aAttribute == nsGkAtoms::accesskey) {
         mNeedsReflowCallback = true;
-        
+        // Ensure that layout is refreshed and reflow callback called.
         aResize = true;
     }
 
@@ -319,7 +319,7 @@ nsDisplayXULTextBox::Paint(nsDisplayListBuilder* aBuilder,
   gfxContextAutoDisableSubpixelAntialiasing disable(aCtx->ThebesContext(),
                                                     mDisableSubpixelAA);
 
-  
+  // Paint the text shadow before doing any foreground stuff
   nsRect drawRect = static_cast<nsTextBoxFrame*>(mFrame)->mTextDrawRect +
                     ToReferenceFrame();
   nsLayoutUtils::PaintTextShadow(mFrame, aCtx,
@@ -388,7 +388,7 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
 {
     nsPresContext* presContext = PresContext();
 
-    
+    // paint the title
     nscolor overColor;
     nscolor underColor;
     nscolor strikeColor;
@@ -396,20 +396,20 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
     PRUint8 underStyle;
     PRUint8 strikeStyle;
 
-    
+    // Begin with no decorations
     PRUint8 decorations = NS_STYLE_TEXT_DECORATION_LINE_NONE;
-    
+    // A mask of all possible decorations.
     PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK;
 
     nsIFrame* f = this;
-    do {  
+    do {  // find decoration colors
       nsStyleContext* context = f->GetStyleContext();
       if (!context->HasTextDecorationLines()) {
         break;
       }
       const nsStyleTextReset* styleText = context->GetStyleTextReset();
       
-      if (decorMask & styleText->mTextDecorationLine) {  
+      if (decorMask & styleText->mTextDecorationLine) {  // a decoration defined here
         nscolor color;
         if (aOverrideColor) {
           color = *aOverrideColor;
@@ -464,11 +464,11 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
     gfxFloat xInFrame = PresContext()->AppUnitsToGfxUnits(mTextDrawRect.x);
     gfxRect dirtyRect(presContext->AppUnitsToGfxUnits(aDirtyRect));
 
-    
-    
-    
-    
-    
+    // Underlines are drawn before overlines, and both before the text
+    // itself, per http://www.w3.org/TR/CSS21/zindex.html point 7.2.1.4.1.1.
+    // (We don't apply this rule to the access-key underline because we only
+    // find out where that is as a side effect of drawing the text, in the
+    // general case -- see below.)
     if (decorations & (NS_FONT_DECORATION_OVERLINE |
                        NS_FONT_DECORATION_UNDERLINE)) {
       fontMet->GetUnderline(offset, size);
@@ -508,8 +508,8 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
       const nsStyleVisibility* vis = GetStyleVisibility();
       nsBidiDirection direction = (NS_STYLE_DIRECTION_RTL == vis->mDirection) ? NSBIDI_RTL : NSBIDI_LTR;
       if (mAccessKeyInfo && mAccessKeyInfo->mAccesskeyIndex != kNotFound) {
-          
-          
+          // We let the RenderText function calculate the mnemonic's
+          // underline position for us.
           nsBidiPositionResolve posResolve;
           posResolve.logicalIndex = mAccessKeyInfo->mAccesskeyIndex;
           rv = nsBidiPresUtils::RenderText(mCroppedTitle.get(), mCroppedTitle.Length(), direction,
@@ -530,14 +530,14 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
       }
     }
     if (NS_FAILED(rv) )
-#endif 
+#endif // IBMBIDI
     {
        aRenderingContext.SetTextRunRTL(false);
 
        if (mAccessKeyInfo && mAccessKeyInfo->mAccesskeyIndex != kNotFound) {
-           
-           
-           
+           // In the simple (non-BiDi) case, we calculate the mnemonic's
+           // underline position by getting the text metric.
+           // XXX are attribute values always two byte?
            if (mAccessKeyInfo->mAccesskeyIndex > 0)
                mAccessKeyInfo->mBeforeWidth =
                    refContext->GetWidth(mCroppedTitle.get(),
@@ -558,8 +558,8 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
                                    mAccessKeyInfo->mAccessUnderlineSize);
     }
 
-    
-    
+    // Strikeout is drawn on top of the text, per
+    // http://www.w3.org/TR/CSS21/zindex.html point 7.2.1.4.1.1.
     if ((decorations & NS_FONT_DECORATION_LINE_THROUGH) &&
         strikeStyle != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
       fontMet->GetStrikeout(offset, size);
@@ -576,8 +576,8 @@ void
 nsTextBoxFrame::CalculateUnderline(nsRenderingContext& aRenderingContext)
 {
     if (mAccessKeyInfo && mAccessKeyInfo->mAccesskeyIndex != kNotFound) {
-         
-         
+         // Calculate all fields of mAccessKeyInfo which
+         // are the same for both BiDi and non-BiDi frames.
          const PRUnichar *titleString = mCroppedTitle.get();
          aRenderingContext.SetTextRunRTL(false);
          mAccessKeyInfo->mAccessWidth =
@@ -604,7 +604,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
     nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
     aRenderingContext.SetFont(fm);
 
-    
+    // see if the text will completely fit in the width given
     nscoord titleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
                                                        mTitle.get(), mTitle.Length());
 
@@ -614,16 +614,16 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
         if (HasRTLChars(mTitle)) {
             mState |= NS_FRAME_IS_BIDI;
         }
-#endif 
-        return titleWidth;  
+#endif // IBMBIDI
+        return titleWidth;  // fits, done.
     }
 
     const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
-    
+    // start with an ellipsis
     mCroppedTitle.Assign(kEllipsis);
 
-    
-    
+    // see if the width is even smaller than the ellipsis
+    // if so, clear the text (XXX set as many '.' as we can?).
     aRenderingContext.SetTextRunRTL(false);
     titleWidth = aRenderingContext.GetWidth(kEllipsis);
 
@@ -632,15 +632,15 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
         return 0;
     }
 
-    
+    // if the ellipsis fits perfectly, no use in trying to insert
     if (titleWidth == aWidth)
         return titleWidth;
 
     aWidth -= titleWidth;
 
-    
-    
-    
+    // XXX: This whole block should probably take surrogates into account
+    // XXX and clusters!
+    // ok crop things
     switch (mCropType)
     {
         case CropNone:
@@ -652,7 +652,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
             int i;
             for (i = 0; i < length; ++i) {
                 PRUnichar ch = mTitle.CharAt(i);
-                
+                // still in LTR mode
                 cwidth = aRenderingContext.GetWidth(ch);
                 if (twidth + cwidth > aWidth)
                     break;
@@ -662,13 +662,13 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                 if (UCS2_CHAR_IS_BIDI(ch) ) {
                   mState |= NS_FRAME_IS_BIDI;
                 }
-#endif 
+#endif // IBMBIDI
             }
 
             if (i == 0)
                 return titleWidth;
 
-            
+            // insert what character we can in.
             nsAutoString title( mTitle );
             title.Truncate(i);
             mCroppedTitle.Insert(title, 0);
@@ -692,7 +692,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                 if (UCS2_CHAR_IS_BIDI(ch) ) {
                   mState |= NS_FRAME_IS_BIDI;
                 }
-#endif 
+#endif // IBMBIDI
             }
 
             if (i == length-1)
@@ -710,12 +710,12 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                 nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
                                               mTitle.get(), mTitle.Length());
             if (stringWidth <= aWidth) {
-                
+                // the entire string will fit in the maximum width
                 mCroppedTitle.Insert(mTitle, 0);
                 break;
             }
 
-            
+            // determine how much of the string will fit in the max width
             nscoord charWidth = 0;
             nscoord totalWidth = 0;
             PRUnichar ch;
@@ -725,12 +725,12 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
             rightPos = mTitle.Length() - 1;
             aRenderingContext.SetTextRunRTL(false);
             for (leftPos = 0; leftPos <= rightPos;) {
-                
+                // look at the next character on the left end
                 ch = mTitle.CharAt(leftPos);
                 charWidth = aRenderingContext.GetWidth(ch);
                 totalWidth += charWidth;
                 if (totalWidth > aWidth)
-                    
+                    // greater than the allowable width
                     break;
                 leftString.Insert(ch, leftString.Length());
 
@@ -739,14 +739,14 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                     mState |= NS_FRAME_IS_BIDI;
 #endif
 
-                
+                // look at the next character on the right end
                 if (rightPos > leftPos) {
-                    
+                    // haven't looked at this character yet
                     ch = mTitle.CharAt(rightPos);
                     charWidth = aRenderingContext.GetWidth(ch);
                     totalWidth += charWidth;
                     if (totalWidth > aWidth)
-                        
+                        // greater than the allowable width
                         break;
                     rightString.Insert(ch, 0);
 
@@ -756,7 +756,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
 #endif
                 }
 
-                
+                // look at the next two characters
                 leftPos++;
                 rightPos--;
             }
@@ -772,17 +772,17 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
 
 #define OLD_ELLIPSIS NS_LITERAL_STRING("...")
 
-
-
+// the following block is to append the accesskey to mTitle if there is an accesskey
+// but the mTitle doesn't have the character
 void
 nsTextBoxFrame::UpdateAccessTitle()
 {
-    
-
-
-
-
-
+    /*
+     * Note that if you change appending access key label spec,
+     * you need to maintain same logic in following methods. See bug 324159.
+     * toolkit/content/commonDialog.js (setLabelForNode)
+     * toolkit/content/widgets/text.xml (formatAccessKey)
+     */
     PRInt32 menuAccessKey;
     nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
     if (!menuAccessKey || mAccessKey.IsEmpty())
@@ -808,11 +808,11 @@ nsTextBoxFrame::UpdateAccessTitle()
     if (StringEndsWith(mTitle, kEllipsis)) {
         offset -= kEllipsis.Length();
     } else if (StringEndsWith(mTitle, OLD_ELLIPSIS)) {
-        
+        // Try to check with our old ellipsis (for old addons)
         offset -= OLD_ELLIPSIS.Length();
     } else {
-        
-        
+        // Try to check with
+        // our default ellipsis (for non-localized addons) or ':'
         const PRUnichar kLastChar = mTitle.Last();
         if (kLastChar == PRUnichar(0x2026) || kLastChar == PRUnichar(':'))
             offset--;
@@ -850,16 +850,16 @@ nsTextBoxFrame::UpdateAccessIndex()
             mCroppedTitle.BeginReading(start);
             mCroppedTitle.EndReading(end);
             
-            
+            // remember the beginning of the string
             nsAString::const_iterator originalStart = start;
 
             bool found;
             if (!AlwaysAppendAccessKey()) {
-                
-                
+                // not appending access key - do case-sensitive search
+                // first
                 found = FindInReadable(mAccessKey, start, end);
                 if (!found) {
-                    
+                    // didn't find it - perform a case-insensitive search
                     start = originalStart;
                     found = FindInReadable(mAccessKey, start, end,
                                            nsCaseInsensitiveStringComparator());
@@ -906,18 +906,18 @@ nsTextBoxFrame::DoLayout(nsBoxLayoutState& aBoxLayoutState)
 
     textRect.x -= metrics.leftBearing;
     textRect.width = metrics.width;
-    
+    // In DrawText() we always draw with the baseline at MaxAscent() (relative to mTextDrawRect), 
     textRect.y += fontMet->MaxAscent() - metrics.ascent;
     textRect.height = metrics.ascent + metrics.descent;
 
-    
-    
+    // Our scrollable overflow is our bounds; our visual overflow may
+    // extend beyond that.
     nsRect visualBounds;
     visualBounds.UnionRect(scrollBounds, textRect);
     nsOverflowAreas overflow(visualBounds, scrollBounds);
 
     if (textStyle->mTextShadow) {
-      
+      // text-shadow extends our visual but not scrollable bounds
       nsRect &vis = overflow.VisualOverflow();
       vis.UnionRect(vis, nsLayoutUtils::GetTextShadowRectsUnion(mTextDrawRect, this));
     }
@@ -929,7 +929,10 @@ nsTextBoxFrame::DoLayout(nsBoxLayoutState& aBoxLayoutState)
 nsRect
 nsTextBoxFrame::GetComponentAlphaBounds()
 {
-  return GetVisualOverflowRectRelativeToSelf();
+  if (GetStyleText()->mTextShadow) {
+    return GetVisualOverflowRectRelativeToSelf();
+  }
+  return mTextDrawRect;
 }
 
 bool
@@ -938,7 +941,7 @@ nsTextBoxFrame::ComputesOwnOverflowArea()
     return true;
 }
 
- void
+/* virtual */ void
 nsTextBoxFrame::MarkIntrinsicWidthsDirty()
 {
     mNeedsRecalc = true;
@@ -986,19 +989,19 @@ nsTextBoxFrame::CalcDrawRect(nsRenderingContext &aRenderingContext)
     GetBorderAndPadding(borderPadding);
     textRect.Deflate(borderPadding);
 
-    
+    // determine (cropped) title and underline position
     nsPresContext* presContext = PresContext();
-    
+    // determine (cropped) title which fits in aRect.width and its width
     nscoord titleWidth =
         CalculateTitleForWidth(presContext, aRenderingContext, textRect.width);
-    
+    // determine if and at which position to put the underline
     UpdateAccessIndex();
 
-    
+    // make the rect as small as our (cropped) text.
     nscoord outerWidth = textRect.width;
     textRect.width = titleWidth;
 
-    
+    // Align our text within the overall rect by checking our text-align property.
     const nsStyleVisibility* vis = GetStyleVisibility();
     const nsStyleText* textStyle = GetStyleText();
 
@@ -1015,9 +1018,9 @@ nsTextBoxFrame::CalcDrawRect(nsRenderingContext &aRenderingContext)
     mTextDrawRect = textRect;
 }
 
-
-
-
+/**
+ * Ok return our dimensions
+ */
 nsSize
 nsTextBoxFrame::GetPrefSize(nsBoxLayoutState& aBoxLayoutState)
 {
@@ -1033,9 +1036,9 @@ nsTextBoxFrame::GetPrefSize(nsBoxLayoutState& aBoxLayoutState)
     return size;
 }
 
-
-
-
+/**
+ * Ok return our dimensions
+ */
 nsSize
 nsTextBoxFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
 {
@@ -1044,7 +1047,7 @@ nsTextBoxFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
     nsSize size = mTextSize;
     DISPLAY_MIN_SIZE(this, size);
 
-    
+    // if there is cropping our min width becomes our border and padding
     if (mCropType != CropNone)
         size.width = 0;
 
@@ -1079,35 +1082,35 @@ nsTextBoxFrame::GetFrameName(nsAString& aResult) const
 }
 #endif
 
-
-
+// If you make changes to this function, check its counterparts 
+// in nsBoxFrame and nsXULLabelFrame
 nsresult
 nsTextBoxFrame::RegUnregAccessKey(bool aDoReg)
 {
-    
+    // if we have no content, we can't do anything
     if (!mContent)
         return NS_ERROR_FAILURE;
 
-    
-    
-    
+    // check if we have a |control| attribute
+    // do this check first because few elements have control attributes, and we
+    // can weed out most of the elements quickly.
 
-    
-    
-    
-    
+    // XXXjag a side-effect is that we filter out anonymous <label>s
+    // in e.g. <menu>, <menuitem>, <button>. These <label>s inherit
+    // |accesskey| and would otherwise register themselves, overwriting
+    // the content we really meant to be registered.
     if (!mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::control))
         return NS_OK;
 
-    
+    // see if we even have an access key
     nsAutoString accessKey;
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, accessKey);
 
     if (accessKey.IsEmpty())
         return NS_OK;
 
-    
-    
+    // With a valid PresContext we can get the ESM 
+    // and (un)register the access key
     nsEventStateManager *esm = PresContext()->EventStateManager();
 
     PRUint32 key = accessKey.First();

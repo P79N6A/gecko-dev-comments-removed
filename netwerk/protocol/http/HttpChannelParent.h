@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
 
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_net_HttpChannelParent_h
 #define mozilla_net_HttpChannelParent_h
@@ -31,6 +31,7 @@ class HttpChannelParent : public PHttpChannelParent
                         , public nsIParentRedirectingChannel
                         , public nsIProgressEventSink
                         , public nsIInterfaceRequestor
+                        , public nsILoadContext
 {
 public:
   NS_DECL_ISUPPORTS
@@ -40,6 +41,7 @@ public:
   NS_DECL_NSIPARENTREDIRECTINGCHANNEL
   NS_DECL_NSIPROGRESSEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSILOADCONTEXT
 
   HttpChannelParent(PBrowserParent* iframeEmbedding);
   virtual ~HttpChannelParent();
@@ -64,7 +66,11 @@ protected:
                              const bool&                chooseApplicationCache,
                              const nsCString&           appCacheClientID,
                              const bool&                allowSpdy,
-                             const bool&                usingPrivateBrowsing);
+                             const bool &               haveLoadContext,
+                             const bool &               isContent,
+                             const bool&                usingPrivateBrowsing,
+                             const bool&                isInBrowserElement,
+                             const PRUint32&            appId);
 
   virtual bool RecvConnectChannel(const PRUint32& channelId);
   virtual bool RecvSetPriority(const PRUint16& priority);
@@ -91,25 +97,33 @@ private:
   nsCOMPtr<nsIChannel>                    mChannel;
   nsCOMPtr<nsICacheEntryDescriptor>       mCacheDescriptor;
   nsCOMPtr<nsIAssociatedContentSecurity>  mAssociatedContentSecurity;
-  bool mIPCClosed;                
+  bool mIPCClosed;                // PHttpChannel actor has been Closed()
 
   nsCOMPtr<nsIChannel> mRedirectChannel;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
 
   nsAutoPtr<class nsHttpChannel::OfflineCacheEntryAsForeignMarker> mOfflineForeignMarker;
 
-  
-  
+  // state for combining OnStatus/OnProgress with OnDataAvailable
+  // into one IPDL call to child.
   nsresult mStoredStatus;
   PRUint64 mStoredProgress;
   PRUint64 mStoredProgressMax;
 
-  bool mSentRedirect1Begin : 1;
-  bool mSentRedirect1BeginFailed : 1;
-  bool mReceivedRedirect2Verify : 1;
+  bool mSentRedirect1Begin          : 1;
+  bool mSentRedirect1BeginFailed    : 1;
+  bool mReceivedRedirect2Verify     : 1;
+
+  // fields for impersonating nsILoadContext
+  bool mHaveLoadContext             : 1;
+  bool mIsContent                   : 1;
+  bool mUsePrivateBrowsing          : 1;
+  bool mIsInBrowserElement          : 1;
+
+  PRUint32 mAppId;
 };
 
-} 
-} 
+} // namespace net
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_net_HttpChannelParent_h

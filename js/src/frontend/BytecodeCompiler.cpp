@@ -21,6 +21,33 @@
 using namespace js;
 using namespace js::frontend;
 
+class AutoAttachToRuntime {
+    JSRuntime *rt;
+  public:
+    ScriptSource *ss;
+    AutoAttachToRuntime(JSRuntime *rt)
+      : rt(rt), ss(NULL) {}
+    ~AutoAttachToRuntime() {
+        
+        
+        if (ss)
+            ss->attachToRuntime(rt);
+    }
+};
+
+static bool
+CheckLength(JSContext *cx, size_t length)
+{
+    
+    
+    
+    if (length > UINT32_MAX) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_SOURCE_TOO_LONG);
+        return false;
+    }
+    return true;
+}
+
 JSScript *
 frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
                         JSPrincipals *principals, JSPrincipals *originPrincipals,
@@ -52,6 +79,18 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     JS_ASSERT_IF(callerFrame, compileAndGo);
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
+    if (!CheckLength(cx, length))
+        return NULL;
+    AutoAttachToRuntime attacher(cx->runtime);
+    SourceCompressionToken sct(cx->runtime);
+    ScriptSource *ss = NULL;
+    if (!cx->hasRunOption(JSOPTION_ONLY_CNG_SOURCE) || compileAndGo) {
+        ss = ScriptSource::createFromSource(cx, chars, length, false, &sct);
+        if (!ss)
+            return NULL;
+        attacher.ss = ss;
+    }
+
     Parser parser(cx, principals, originPrincipals, chars, length, filename, lineno, version,
                    true, compileAndGo);
     if (!parser.init())
@@ -72,7 +111,10 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
                                                   compileAndGo,
                                                   noScriptRval,
                                                   version,
-                                                  staticLevel));
+                                                  staticLevel,
+                                                  ss,
+                                                  0,
+                                                  length));
     if (!script)
         return NULL;
 
@@ -215,6 +257,15 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun,
                               Bindings *bindings, const jschar *chars, size_t length,
                               const char *filename, unsigned lineno, JSVersion version)
 {
+    if (!CheckLength(cx, length))
+        return false;
+    AutoAttachToRuntime attacher(cx->runtime);
+    SourceCompressionToken sct(cx->runtime);
+    ScriptSource *ss = ScriptSource::createFromSource(cx, chars, length, true, &sct);
+    if (!ss)
+        return NULL;
+    attacher.ss = ss;
+
     Parser parser(cx, principals, originPrincipals, chars, length, filename, lineno, version,
                    true,  false);
     if (!parser.init())
@@ -239,7 +290,10 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun,
                                                    false,
                                                    false,
                                                   version,
-                                                  staticLevel));
+                                                  staticLevel,
+                                                  ss,
+                                                  0,
+                                                  length));
     if (!script)
         return false;
 

@@ -117,6 +117,37 @@ MapAllocToTraceKind(AllocKind thingKind)
     return map[thingKind];
 }
 
+static inline bool
+IsNurseryAllocable(AllocKind kind)
+{
+    JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
+    static const bool map[FINALIZE_LIMIT] = {
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        false,     
+        false,     
+        false,     
+#if JS_HAS_XML_SUPPORT
+        false,     
+#endif
+        true,      
+        true,      
+        false      
+    };
+    return map[kind];
+}
+
 inline JSGCTraceKind
 GetGCThingTraceKind(const void *thing);
 
@@ -1086,19 +1117,26 @@ SetDeterministicGC(JSContext *cx, bool enabled);
 const int ZealPokeValue = 1;
 const int ZealAllocValue = 2;
 const int ZealFrameGCValue = 3;
-const int ZealVerifierValue = 4;
-const int ZealFrameVerifierValue = 5;
+const int ZealVerifierPreValue = 4;
+const int ZealFrameVerifierPreValue = 5;
 const int ZealStackRootingSafeValue = 6;
 const int ZealStackRootingValue = 7;
 const int ZealIncrementalRootsThenFinish = 8;
 const int ZealIncrementalMarkAllThenFinish = 9;
 const int ZealIncrementalMultipleSlices = 10;
+const int ZealVerifierPostValue = 11;
+const int ZealFrameVerifierPostValue = 12;
+
+enum VerifierType {
+    PreBarrierVerifier,
+    PostBarrierVerifier
+};
 
 #ifdef JS_GC_ZEAL
 
 
 void
-VerifyBarriers(JSRuntime *rt);
+VerifyBarriers(JSRuntime *rt, VerifierType type);
 
 void
 MaybeVerifyBarriers(JSContext *cx, bool always = false);
@@ -1106,7 +1144,7 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false);
 #else
 
 static inline void
-VerifyBarriers(JSRuntime *rt)
+VerifyBarriers(JSRuntime *rt, VerifierType type)
 {
 }
 

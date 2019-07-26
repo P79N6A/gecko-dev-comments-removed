@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:set ts=4 sw=4 sts=4 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsFTPChannel_h___
 #define nsFTPChannel_h___
@@ -28,14 +28,13 @@
 #include "nsIResumableChannel.h"
 #include "nsHashPropertyBag.h"
 #include "nsFtpProtocolHandler.h"
-#include "PrivateBrowsingConsumer.h"
+#include "nsNetUtil.h"
 
 class nsFtpChannel : public nsBaseChannel,
                      public nsIFTPChannel,
                      public nsIUploadChannel,
                      public nsIResumableChannel,
-                     public nsIProxiedChannel,
-                     public mozilla::net::PrivateBrowsingConsumer
+                     public nsIProxiedChannel
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -44,8 +43,7 @@ public:
     NS_DECL_NSIPROXIEDCHANNEL
     
     nsFtpChannel(nsIURI *uri, nsIProxyInfo *pi)
-        : mozilla::net::PrivateBrowsingConsumer(this)
-        , mProxyInfo(pi)
+        : mProxyInfo(pi)
         , mStartPos(0)
         , mResumeRequested(false)
         , mLastModifiedTime(0)
@@ -57,13 +55,13 @@ public:
         return mProxyInfo;
     }
 
-    
+    // Were we asked to resume a download?
     bool ResumeRequested() { return mResumeRequested; }
 
-    
+    // Download from this byte offset
     PRUint64 StartPos() { return mStartPos; }
 
-    
+    // ID of the entity to resume downloading
     const nsCString &EntityID() {
         return mEntityID;
     }
@@ -81,12 +79,12 @@ public:
         return NS_OK;
     }
 
-    
+    // Data stream to upload
     nsIInputStream *UploadStream() {
         return mUploadStream;
     }
 
-    
+    // Helper function for getting the nsIFTPEventSink.
     void GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult);
 
 protected:
@@ -106,4 +104,4 @@ private:
     PRTime                    mLastModifiedTime;
 };
 
-#endif 
+#endif /* nsFTPChannel_h___ */

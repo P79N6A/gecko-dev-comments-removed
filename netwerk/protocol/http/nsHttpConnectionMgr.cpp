@@ -56,8 +56,6 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
     : mRef(0)
     , mReentrantMonitor("nsHttpConnectionMgr.mReentrantMonitor")
     , mMaxConns(0)
-    , mMaxConnsPerHost(0)
-    , mMaxConnsPerProxy(0)
     , mMaxPersistConnsPerHost(0)
     , mMaxPersistConnsPerProxy(0)
     , mIsShuttingDown(false)
@@ -107,8 +105,6 @@ nsHttpConnectionMgr::EnsureSocketThreadTargetIfOnline()
 
 nsresult
 nsHttpConnectionMgr::Init(PRUint16 maxConns,
-                          PRUint16 maxConnsPerHost,
-                          PRUint16 maxConnsPerProxy,
                           PRUint16 maxPersistConnsPerHost,
                           PRUint16 maxPersistConnsPerProxy,
                           PRUint16 maxRequestDelay,
@@ -121,8 +117,6 @@ nsHttpConnectionMgr::Init(PRUint16 maxConns,
         ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
         mMaxConns = maxConns;
-        mMaxConnsPerHost = maxConnsPerHost;
-        mMaxConnsPerProxy = maxConnsPerProxy;
         mMaxPersistConnsPerHost = maxPersistConnsPerHost;
         mMaxPersistConnsPerProxy = maxPersistConnsPerProxy;
         mMaxRequestDelay = maxRequestDelay;
@@ -1109,53 +1103,25 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
         return true;
     }
 
-    nsHttpConnection *conn;
-    PRInt32 i, totalCount, persistCount = 0;
-    
-    totalCount = ent->mActiveConns.Length();
-
-    
-    for (i=0; i<totalCount; ++i) {
-        conn = ent->mActiveConns[i];
-        if (conn->IsKeepAlive()) 
-            persistCount++;
-    }
-
     
     
-    PRUint32 pendingHalfOpens = 0;
-    for (i = 0; i < ent->mHalfOpens.Length(); ++i) {
-        nsHalfOpenSocket *halfOpen = ent->mHalfOpens[i];
-
-        
-        
-        
-        if (halfOpen->HasConnected())
-            continue;
-
-        ++pendingHalfOpens;
-    }
     
-    totalCount += pendingHalfOpens;
-    persistCount += pendingHalfOpens;
+    
+    
+    PRUint32 totalCount =
+        ent->mActiveConns.Length() + ent->UnconnectedHalfOpens();
 
-    LOG(("   total=%d, persist=%d\n", totalCount, persistCount));
-
-    PRUint16 maxConns;
     PRUint16 maxPersistConns;
 
-    if (ci->UsingHttpProxy() && !ci->UsingConnect()) {
-        maxConns = mMaxConnsPerProxy;
+    if (ci->UsingHttpProxy() && !ci->UsingConnect())
         maxPersistConns = mMaxPersistConnsPerProxy;
-    }
-    else {
-        maxConns = mMaxConnsPerHost;
+    else
         maxPersistConns = mMaxPersistConnsPerHost;
-    }
+
+    LOG(("   connection count = %d, limit %d\n", totalCount, maxPersistConns));
 
     
-    bool result = (totalCount >= maxConns) || ( (caps & NS_HTTP_ALLOW_KEEPALIVE) &&
-                                              (persistCount >= maxPersistConns) );
+    bool result = (totalCount >= maxPersistConns);
     LOG(("  result: %s", result ? "true" : "false"));
     return result;
 }
@@ -1208,7 +1174,7 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     
     
-    if (ent->mHalfOpens.Length())
+    if (ent->UnconnectedHalfOpens())
         return true;
 
     
@@ -2104,12 +2070,6 @@ nsHttpConnectionMgr::OnMsgUpdateParam(PRInt32, void *param)
     case MAX_CONNECTIONS:
         mMaxConns = value;
         break;
-    case MAX_CONNECTIONS_PER_HOST:
-        mMaxConnsPerHost = value;
-        break;
-    case MAX_CONNECTIONS_PER_PROXY:
-        mMaxConnsPerProxy = value;
-        break;
     case MAX_PERSISTENT_CONNECTIONS_PER_HOST:
         mMaxPersistConnsPerHost = value;
         break;
@@ -2345,19 +2305,12 @@ nsHttpConnectionMgr::nsHalfOpenSocket::~nsHalfOpenSocket()
         
         
         
-        bool restrictedBeforeRelease =
-            gHttpHandler->ConnMgr()->RestrictConnections(mEnt);
-
-        
-        
-        
         mEnt->mHalfOpens.RemoveElement(this);
-
-        if (restrictedBeforeRelease &&
-            !gHttpHandler->ConnMgr()->RestrictConnections(mEnt)) {
-            LOG(("nsHalfOpenSocket %p lifted RestrictConnections() limit.\n"));
+        
+        
+        
+        if (!mEnt->UnconnectedHalfOpens())
             gHttpHandler->ConnMgr()->ProcessPendingQForEntry(mEnt);
-        }
     }
 }
 
@@ -3058,4 +3011,15 @@ nsConnectionEntry::MaxPipelineDepth(nsAHttpTransaction::Classifier aClass)
         return kPipelineRestricted;
 
     return mGreenDepth;
+}
+
+PRUint32
+nsHttpConnectionMgr::nsConnectionEntry::UnconnectedHalfOpens()
+{
+    PRUint32 unconnectedHalfOpens = 0;
+    for (PRUint32 i = 0; i < mHalfOpens.Length(); ++i) {
+        if (!mHalfOpens[i]->HasConnected())
+            ++unconnectedHalfOpens;
+    }
+    return unconnectedHalfOpens;
 }

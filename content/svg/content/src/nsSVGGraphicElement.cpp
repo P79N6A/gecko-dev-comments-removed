@@ -158,27 +158,19 @@ nsSVGGraphicElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
     
     nsIFrame* frame =
       const_cast<nsSVGGraphicElement*>(this)->GetPrimaryFrame();
-    if (frame && frame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    if (!frame || (frame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      return retval; 
+    }
+    if (aModType == nsIDOMMutationEvent::ADDITION ||
+        aModType == nsIDOMMutationEvent::REMOVAL) {
       
-    } else if (aModType == nsIDOMMutationEvent::ADDITION ||
-               aModType == nsIDOMMutationEvent::REMOVAL) {
-      
-      
-      
-      
-      
-      
-      
-      NS_UpdateHint(retval, nsChangeHint_UpdateOverflow);
+      NS_UpdateHint(retval, nsChangeHint_ReconstructFrame);
     } else {
       NS_ABORT_IF_FALSE(aModType == nsIDOMMutationEvent::MODIFICATION,
                         "Unknown modification type.");
       
-      
-      
-      
-      
-      NS_UpdateHint(retval, nsChangeHint_UpdateOverflow);
+      NS_UpdateHint(retval, NS_CombineHint(nsChangeHint_UpdateOverflow,
+                                           nsChangeHint_UpdateTransformLayer));
     }
   }
   return retval;

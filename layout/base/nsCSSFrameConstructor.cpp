@@ -7709,7 +7709,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
           !(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG)) {
         if (aChange & nsChangeHint_UpdateEffects) {
           
-          nsSVGUtils::InvalidateAndScheduleBoundsUpdate(aFrame);
+          nsSVGUtils::InvalidateAndScheduleReflowSVG(aFrame);
         } else {
           
           nsSVGUtils::InvalidateBounds(aFrame);
@@ -7729,6 +7729,21 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       
       
       aFrame->InvalidateTransformLayer();
+    }
+    if (aChange & nsChangeHint_ChildrenOnlyTransform) {
+      
+      
+      nsIFrame *f = aFrame->GetContent()->GetPrimaryFrame();
+      NS_ABORT_IF_FALSE(f->IsFrameOfType(nsIFrame::eSVG |
+                                         nsIFrame::eSVGContainer),
+                        "Children-only transforms only expected on SVG frames");
+      nsIFrame* childFrame = f->GetFirstPrincipalChild();
+      for ( ; childFrame; childFrame = childFrame->GetNextSibling()) {
+        childFrame->MarkLayersActive(nsChangeHint_UpdateTransformLayer);
+        
+        
+        childFrame->InvalidateTransformLayer();
+      }
     }
   }
 }
@@ -8016,7 +8031,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         didReflowThisFrame = true;
       }
       if (hint & (nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView |
-                  nsChangeHint_UpdateOpacityLayer | nsChangeHint_UpdateTransformLayer)) {
+                  nsChangeHint_UpdateOpacityLayer | nsChangeHint_UpdateTransformLayer |
+                  nsChangeHint_ChildrenOnlyTransform)) {
         ApplyRenderingChangeToTree(presContext, frame, hint);
         didInvalidate = true;
       }

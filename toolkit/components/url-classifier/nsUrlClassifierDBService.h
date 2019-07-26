@@ -31,6 +31,7 @@
 
 class nsUrlClassifierDBServiceWorker;
 class nsIThread;
+class nsIURI;
 
 
 
@@ -66,7 +67,7 @@ private:
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
-  nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c,
+  nsresult LookupURI(nsIPrincipal* aPrincipal, nsIUrlClassifierCallback* c,
                      bool forceCheck, bool *didCheck);
 
   

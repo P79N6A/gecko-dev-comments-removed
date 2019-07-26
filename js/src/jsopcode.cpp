@@ -5107,7 +5107,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                 sn = js_GetSrcNote(jp->script, pc);
 
                 
-                for (xval = rval; *xval != '[' && *xval != '{'; xval++)
+                for (xval = rval; *xval != '[' && *xval != '{' && *xval; xval++)
                     continue;
                 inArray = (*xval == '[');
                 if (inArray)

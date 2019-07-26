@@ -396,14 +396,23 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_ASSERTION(!GetPrevInFlow(), "SVG can't currently be broken across pages.");
 
+  nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
+
+  nsSVGOuterSVGAnonChildFrame *anonKid =
+    static_cast<nsSVGOuterSVGAnonChildFrame*>(GetFirstPrincipalChild());
+
+  if (mState & NS_FRAME_FIRST_REFLOW) {
+    
+    svgElem->mHasChildrenOnlyTransform =
+      anonKid->HasChildrenOnlyTransform(nsnull);
+  }
+
   
   
 
   svgFloatSize newViewportSize(
     nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedWidth()),
     nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedHeight()));
-
-  nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
 
   PRUint32 changeBits = 0;
   if (newViewportSize != svgElem->GetViewportSize()) {
@@ -419,22 +428,19 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     NotifyViewportOrTransformChanged(changeBits);
   }
 
-  nsSVGOuterSVGAnonChildFrame *anonKid =
-    static_cast<nsSVGOuterSVGAnonChildFrame*>(GetFirstPrincipalChild());
-
   if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     
     
 
-    mCallingUpdateBounds = true;
+    mCallingReflowSVG = true;
 
     
     
-    anonKid->UpdateBounds();
+    anonKid->ReflowSVG();
     NS_ABORT_IF_FALSE(!anonKid->GetNextSibling(),
       "We should have one anonymous child frame wrapping our real children");
 
-    mCallingUpdateBounds = false;
+    mCallingReflowSVG = false;
   }
 
   
@@ -465,6 +471,9 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
 
   return rv;
 }
+
+
+
 
 
 
@@ -630,9 +639,20 @@ nsSVGOuterSVGFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayList childItems;
 
-  rv = childItems.AppendNewToTop(
-         new (aBuilder) nsDisplayOuterSVG(aBuilder, this));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if ((aBuilder->IsForEventDelivery() &&
+       NS_SVGDisplayListHitTestingEnabled()) ||
+      NS_SVGDisplayListPaintingEnabled()) {
+    nsDisplayList *nonContentList = &childItems;
+    nsDisplayListSet set(nonContentList, nonContentList, nonContentList,
+                         &childItems, nonContentList, nonContentList);
+    nsresult rv =
+      BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, set);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    rv = childItems.AppendNewToTop(
+           new (aBuilder) nsDisplayOuterSVG(aBuilder, this));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   nsRect clipRect =

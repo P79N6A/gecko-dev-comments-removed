@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
@@ -35,8 +35,13 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
   , mSentRedirect1Begin(false)
   , mSentRedirect1BeginFailed(false)
   , mReceivedRedirect2Verify(false)
+  , mHaveLoadContext(false)
+  , mIsContent(false)
+  , mUsePrivateBrowsing(false)
+  , mIsInBrowserElement(false)
+  , mAppId(0)
 {
-  
+  // Ensure gHttpHandler is initialized: we need the atom table up and running.
   nsIHttpProtocolHandler* handler;
   CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &handler);
   NS_ASSERTION(handler, "no http handler");
@@ -52,17 +57,18 @@ HttpChannelParent::~HttpChannelParent()
 void
 HttpChannelParent::ActorDestroy(ActorDestroyReason why)
 {
-  
-  
-  
+  // We may still have refcount>0 if nsHttpChannel hasn't called OnStopRequest
+  // yet, but child process has crashed.  We must not try to send any more msgs
+  // to child, or IPDL will kill chrome process, too.
   mIPCClosed = true;
 }
 
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsISupports
+//-----------------------------------------------------------------------------
 
-
-
-
-NS_IMPL_ISUPPORTS6(HttpChannelParent,
+NS_IMPL_ISUPPORTS7(HttpChannelParent,
+                   nsILoadContext,
                    nsIInterfaceRequestor,
                    nsIProgressEventSink,
                    nsIRequestObserver,
@@ -70,9 +76,9 @@ NS_IMPL_ISUPPORTS6(HttpChannelParent,
                    nsIParentChannel,
                    nsIParentRedirectingChannel)
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIInterfaceRequestor
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
@@ -85,12 +91,17 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
     return mTabParent->QueryInterface(aIID, result);
   }
 
+  // Only support nsILoadContext if child channel's callbacks did too
+  if (aIID.Equals(NS_GET_IID(nsILoadContext)) && !mHaveLoadContext) {
+    return NS_NOINTERFACE;
+  }
+
   return QueryInterface(aIID, result);
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::PHttpChannelParent
+//-----------------------------------------------------------------------------
 
 bool 
 HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
@@ -112,7 +123,11 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                  const bool&                chooseApplicationCache,
                                  const nsCString&           appCacheClientID,
                                  const bool&                allowSpdy,
-                                 const bool&                usingPrivateBrowsing)
+                                 const bool&                haveLoadContext,
+                                 const bool&                isContent,
+                                 const bool&                usePrivateBrowsing,
+                                 const bool&                isInBrowserElement,
+                                 const PRUint32&            appId)
 {
   nsCOMPtr<nsIURI> uri(aURI);
   nsCOMPtr<nsIURI> originalUri(aOriginalURI);
@@ -133,6 +148,13 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
   rv = NS_NewChannel(getter_AddRefs(mChannel), uri, ios, nsnull, nsnull, loadFlags);
   if (NS_FAILED(rv))
     return SendFailedAsyncOpen(rv);
+
+  // fields needed to impersonate nsILoadContext
+  mHaveLoadContext = haveLoadContext;
+  mIsContent = isContent;
+  mUsePrivateBrowsing = usePrivateBrowsing;
+  mIsInBrowserElement = isInBrowserElement;
+  mAppId = appId;
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
 
@@ -181,9 +203,9 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
 
   bool setChooseApplicationCache = chooseApplicationCache;
   if (appCacheChan && appCacheService) {
-    
-    
-    
+    // We might potentially want to drop this flag (that is TRUE by default)
+    // after we succefully associate the channel with an application cache
+    // reported by the channel child.  Dropping it here may be too early.
     appCacheChan->SetInheritApplicationCache(false);
     if (!appCacheClientID.IsEmpty()) {
       nsCOMPtr<nsIApplicationCache> appCache;
@@ -208,8 +230,6 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
       }
     }
   }
-
-  httpChan->OverridePrivateBrowsing(usingPrivateBrowsing);
 
   rv = httpChan->AsyncOpen(channelListener, nsnull);
   if (NS_FAILED(rv))
@@ -267,7 +287,7 @@ HttpChannelParent::RecvResume()
 bool
 HttpChannelParent::RecvCancel(const nsresult& status)
 {
-  
+  // May receive cancel before channel has been constructed!
   if (mChannel) {
     nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
     httpChan->Cancel(status);
@@ -317,7 +337,7 @@ HttpChannelParent::RecvRedirect2Verify(const nsresult& result,
   }
 
   if (!mRedirectCallback) {
-    
+    // This should according the logic never happen, log the situation.
     if (mReceivedRedirect2Verify)
       LOG(("RecvRedirect2Verify[%p]: Duplicate fire", this));
     if (mSentRedirect1BeginFailed)
@@ -346,9 +366,9 @@ HttpChannelParent::RecvRedirect2Verify(const nsresult& result,
 bool
 HttpChannelParent::RecvDocumentChannelCleanup()
 {
-  
-  mChannel = 0;          
-  mCacheDescriptor = 0;  
+  // From now on only using mAssociatedContentSecurity.  Free everything else.
+  mChannel = 0;          // Reclaim some memory sooner.
+  mCacheDescriptor = 0;  // Else we'll block other channels reading same URI
   return true;
 }
 
@@ -363,9 +383,9 @@ HttpChannelParent::RecvMarkOfflineCacheEntryAsForeign()
   return true;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIRequestObserver
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
@@ -403,8 +423,8 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   if (encodedChannel)
     encodedChannel->SetApplyConversion(false);
 
-  
-  
+  // Keep the cache entry for future use in RecvSetCacheTokenCachedCharset().
+  // It could be already released by nsHttpChannel at that time.
   chan->GetCacheToken(getter_AddRefs(mCacheDescriptor));
 
   nsCString secInfoSerialization;
@@ -445,9 +465,9 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIStreamListener
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::OnDataAvailable(nsIRequest *aRequest, 
@@ -463,10 +483,10 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  
-  
-  
+  // OnDataAvailable is always preceded by OnStatus/OnProgress calls that set
+  // mStoredStatus/mStoredProgress(Max) to appropriate values, unless
+  // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
+  // child doesn't use them.
   if (mIPCClosed || !SendOnTransportAndData(mStoredStatus, mStoredProgress,
                                             mStoredProgressMax, data, aOffset,
                                             aCount)) {
@@ -475,9 +495,9 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIProgressEventSink
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::OnProgress(nsIRequest *aRequest, 
@@ -485,17 +505,17 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
                               PRUint64 aProgress, 
                               PRUint64 aProgressMax)
 {
-  
-  
+  // OnStatus has always just set mStoredStatus. If it indicates this precedes
+  // OnDataAvailable, store and ODA will send to child.
   if (mStoredStatus == nsISocketTransport::STATUS_RECEIVING_FROM ||
       mStoredStatus == nsITransport::STATUS_READING)
   {
     mStoredProgress = aProgress;
     mStoredProgressMax = aProgressMax;
   } else {
-    
-    
-    
+    // Send to child now.  The only case I've observed that this handles (i.e.
+    // non-ODA status with progress > 0) is data upload progress notification
+    // (status == nsISocketTransport::STATUS_SENDING_TO)
     if (mIPCClosed || !SendOnProgress(aProgress, aProgressMax))
       return NS_ERROR_UNEXPECTED;
   }
@@ -509,22 +529,22 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
                             nsresult aStatus, 
                             const PRUnichar *aStatusArg)
 {
-  
+  // If this precedes OnDataAvailable, store and ODA will send to child.
   if (aStatus == nsISocketTransport::STATUS_RECEIVING_FROM ||
       aStatus == nsITransport::STATUS_READING)
   {
     mStoredStatus = aStatus;
     return NS_OK;
   }
-  
+  // Otherwise, send to child now
   if (mIPCClosed || !SendOnStatus(aStatus))
     return NS_ERROR_UNEXPECTED;
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIParentChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::Delete()
@@ -535,9 +555,9 @@ HttpChannelParent::Delete()
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsIParentRedirectingChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpChannelParent::StartRedirect(PRUint32 newChannelId,
@@ -559,15 +579,15 @@ HttpChannelParent::StartRedirect(PRUint32 newChannelId,
                                    responseHead ? *responseHead
                                                 : nsHttpResponseHead());
   if (!result) {
-    
+    // Bug 621446 investigation
     mSentRedirect1BeginFailed = true;
     return NS_BINDING_ABORTED;
   }
 
-  
+  // Bug 621446 investigation
   mSentRedirect1Begin = true;
 
-  
+  // Result is handled in RecvRedirect2Verify above
 
   mRedirectChannel = newChannel;
   mRedirectCallback = callback;
@@ -578,7 +598,7 @@ NS_IMETHODIMP
 HttpChannelParent::CompleteRedirect(bool succeeded)
 {
   if (succeeded && !mIPCClosed) {
-    
+    // TODO: check return value: assume child dead if failed
     unused << SendRedirect3Complete();
   }
 
@@ -586,4 +606,72 @@ HttpChannelParent::CompleteRedirect(bool succeeded)
   return NS_OK;
 }
 
-}} 
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsILoadContext
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+HttpChannelParent::GetAssociatedWindow(nsIDOMWindow**)
+{
+  // can't support this in the parent process
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::GetTopWindow(nsIDOMWindow**)
+{
+  // can't support this in the parent process
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::IsAppOfType(PRUint32, bool*)
+{
+  // don't expect we need this in parent (Thunderbird/SeaMonkey specific?)
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::GetIsContent(bool *aIsContent)
+{
+  NS_ENSURE_ARG_POINTER(aIsContent);
+
+  *aIsContent = mIsContent;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing)
+{
+  NS_ENSURE_ARG_POINTER(aUsePrivateBrowsing);
+
+  *aUsePrivateBrowsing = mUsePrivateBrowsing;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
+{
+  // We shouldn't need this on parent...
+  return NS_ERROR_UNEXPECTED;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::GetIsInBrowserElement(bool* aIsInBrowserElement)
+{
+  NS_ENSURE_ARG_POINTER(aIsInBrowserElement);
+
+  *aIsInBrowserElement = mIsInBrowserElement;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpChannelParent::GetAppId(PRUint32* aAppId)
+{
+  NS_ENSURE_ARG_POINTER(aAppId);
+
+  *aAppId = mAppId;
+  return NS_OK;
+}
+
+}} // mozilla::net

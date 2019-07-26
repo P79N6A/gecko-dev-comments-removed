@@ -680,9 +680,19 @@ Accessible::NativeState()
     state |= states::FLOATING;
 
   
-  if (mContent->IsXUL())
+  if (mContent->IsXUL()) {
     if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popup))
       state |= states::HASPOPUP;
+
+    const nsStyleXUL *xulStyle = frame->GetStyleXUL();
+    if (xulStyle && frame->IsBoxFrame()) {
+      
+      if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL)
+        state |= states::VERTICAL;
+      else
+        state |= states::HORIZONTAL;
+    }
+  }
 
   
   if (!mRoleMapEntry || mRoleMapEntry->roleRule == kUseNativeRole ||
@@ -1508,17 +1518,6 @@ Accessible::State()
   if (display && display->mOpacity == 1.0f &&
       !(state & states::INVISIBLE)) {
     state |= states::OPAQUE1;
-  }
-
-  const nsStyleXUL *xulStyle = frame->GetStyleXUL();
-  if (xulStyle) {
-    
-    if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL) {
-      state |= states::VERTICAL;
-    }
-    else {
-      state |= states::HORIZONTAL;
-    }
   }
 
   return state;

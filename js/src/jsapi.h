@@ -859,6 +859,7 @@ class ValueOperations
     bool isMagic(JSWhyMagic why) const { return value()->isMagic(why); }
     bool isMarkable() const { return value()->isMarkable(); }
     bool isPrimitive() const { return value()->isPrimitive(); }
+    bool isGCThing() const { return value()->isGCThing(); }
 
     bool toBoolean() const { return value()->toBoolean(); }
     double toNumber() const { return value()->toNumber(); }
@@ -3068,12 +3069,13 @@ JS_StringToVersion(const char *string);
                                                    without requiring
                                                    "use strict" annotations. */
 
-#define JSOPTION_ION            JS_BIT(20)      /* IonMonkey */
+
+#define JSOPTION_ION            JS_BIT(21)      /* IonMonkey */
 
 
 #define JSCOMPILEOPTION_MASK    (JSOPTION_ALLOW_XML | JSOPTION_MOAR_XML)
 
-#define JSRUNOPTION_MASK        (JS_BITMASK(21) & ~JSCOMPILEOPTION_MASK)
+#define JSRUNOPTION_MASK        (JS_BITMASK(22) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32_t)
@@ -3670,7 +3672,7 @@ struct JSTracer {
     const void          *debugPrintArg;
     size_t              debugPrintIndex;
     JSBool              eagerlyTraceWeakMaps;
-#ifdef DEBUG
+#ifdef JS_GC_ZEAL
     void                *realLocation;
 #endif
 };
@@ -3711,10 +3713,15 @@ JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 
 
-#ifdef DEBUG
+
+
+
+
+#ifdef JS_GC_ZEAL
 # define JS_SET_TRACING_LOCATION(trc, location)                               \
     JS_BEGIN_MACRO                                                            \
-        (trc)->realLocation = (location);                                     \
+        if ((trc)->realLocation == NULL || (location) == NULL)                \
+            (trc)->realLocation = (location);                                 \
     JS_END_MACRO
 #else
 # define JS_SET_TRACING_LOCATION(trc, location)                               \

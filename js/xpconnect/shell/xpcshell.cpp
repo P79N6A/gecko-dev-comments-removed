@@ -1388,7 +1388,7 @@ FullTrustSecMan::GetCertificatePrincipal(const nsACString & aCertFingerprint,
 
 
 NS_IMETHODIMP
-FullTrustSecMan::GetCodebasePrincipal(nsIURI *aURI, nsIPrincipal **_retval)
+FullTrustSecMan::GetSimpleCodebasePrincipal(nsIURI *aURI, nsIPrincipal **_retval)
 {
     NS_IF_ADDREF(*_retval = mSystemPrincipal);
     return *_retval ? NS_OK : NS_ERROR_FAILURE;
@@ -1398,21 +1398,21 @@ FullTrustSecMan::GetCodebasePrincipal(nsIURI *aURI, nsIPrincipal **_retval)
 NS_IMETHODIMP
 FullTrustSecMan::GetNoAppCodebasePrincipal(nsIURI *aURI, nsIPrincipal **_retval)
 {
-    return GetCodebasePrincipal(aURI, _retval);
+    return GetSimpleCodebasePrincipal(aURI, _retval);
 }
 
 
 NS_IMETHODIMP
 FullTrustSecMan::GetAppCodebasePrincipal(nsIURI *aURI, PRUint32 aAppId, bool aInMozBrowser, nsIPrincipal **_retval)
 {
-    return GetCodebasePrincipal(aURI, _retval);
+    return GetSimpleCodebasePrincipal(aURI, _retval);
 }
 
 
 NS_IMETHODIMP
 FullTrustSecMan::GetDocShellCodebasePrincipal(nsIURI *aURI, nsIDocShell* aDocShell, nsIPrincipal **_retval)
 {
-    return GetCodebasePrincipal(aURI, _retval);
+    return GetSimpleCodebasePrincipal(aURI, _retval);
 }
 
 

@@ -31,6 +31,13 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists) {
+    return NS_OK;
+  }
+
+  
   nsresult ClipPaint(nsRenderingContext* aContext,
                      nsIFrame* aParent,
                      const gfxMatrix &aMatrix);

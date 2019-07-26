@@ -10,7 +10,6 @@
 
 
 
-#include "jsatom.h"
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
 #include "jsclist.h"
@@ -342,6 +341,8 @@ typedef HashMap<JSScript *,
                 DefaultHasher<JSScript *>,
                 SystemAllocPolicy> DebugScriptMap;
 
+struct ScriptSource;
+
 } 
 
 struct JSScript : public js::gc::Cell
@@ -442,6 +443,8 @@ struct JSScript : public js::gc::Cell
     
     js::types::TypeScript *types;
 
+    js::ScriptSource *source; 
+
   private:
 #ifdef JS_METHODJIT
     JITScriptSet *jitInfo;
@@ -461,6 +464,10 @@ struct JSScript : public js::gc::Cell
 
     uint32_t        natoms;     
 
+    uint32_t        sourceStart;
+    uint32_t        sourceEnd;
+
+
   private:
     uint32_t        useCount;   
 
@@ -473,6 +480,8 @@ struct JSScript : public js::gc::Cell
   private:
     uint32_t        idpad;
 #endif
+
+    uint32_t        PADDING;
 
     
 
@@ -517,6 +526,7 @@ struct JSScript : public js::gc::Cell
 
     bool            savedCallerFun:1; 
     bool            strictModeCode:1; 
+    bool            explicitUseStrict:1; 
     bool            compileAndGo:1;   
     bool            bindingsAccessedDynamically:1; 
     bool            funHasExtensibleScope:1;       
@@ -558,7 +568,8 @@ struct JSScript : public js::gc::Cell
     static JSScript *Create(JSContext *cx, js::HandleObject enclosingScope, bool savedCallerFun,
                             JSPrincipals *principals, JSPrincipals *originPrincipals,
                             bool compileAndGo, bool noScriptRval,
-                            JSVersion version, unsigned staticLevel);
+                            JSVersion version, unsigned staticLevel,
+                            js::ScriptSource *ss, uint32_t sourceStart, uint32_t sourceEnd);
 
     
     
@@ -631,6 +642,10 @@ struct JSScript : public js::gc::Cell
     JSFunction *function() const { return function_; }
     void setFunction(JSFunction *fun);
 
+    JSFixedString *sourceData(JSContext *cx);
+
+    bool loadSource(JSContext *cx, bool *worked);
+
     
     bool isForEval() { return isCachedEval || isActiveEval; }
 
@@ -662,7 +677,22 @@ struct JSScript : public js::gc::Cell
     inline js::GlobalObject &global() const;
 
     
-    JSObject *enclosingStaticScope() const { return enclosingScope_; }
+    JSObject *enclosingStaticScope() const {
+        JS_ASSERT(enclosingScriptsCompiledSuccessfully());
+        return enclosingScope_;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    bool enclosingScriptsCompiledSuccessfully() const;
 
   private:
     bool makeTypes(JSContext *cx);
@@ -960,6 +990,134 @@ extern JS_FRIEND_API(void)
 js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
 namespace js {
+
+struct SourceCompressionToken;
+
+struct ScriptSource
+{
+    friend class SourceCompressorThread;
+    ScriptSource *next;
+  private:
+    union {
+        
+        
+        
+        jschar *source;
+        unsigned char *compressed;
+    } data;
+    uint32_t length_;
+    uint32_t compressedLength;
+    bool marked:1;
+    bool onRuntime_:1;
+    bool argumentsNotIncluded_:1;
+#ifdef DEBUG
+    bool ready_:1;
+#endif
+
+  public:
+    static ScriptSource *createFromSource(JSContext *cx,
+                                          const jschar *src,
+                                          uint32_t length,
+                                          bool argumentsNotIncluded = false,
+                                          SourceCompressionToken *tok = NULL,
+                                          bool ownSource = false);
+    void attachToRuntime(JSRuntime *rt);
+    void mark() { JS_ASSERT(ready_); JS_ASSERT(onRuntime_); marked = true; }
+    void destroy(JSRuntime *rt);
+    uint32_t length() const { return length_; }
+    bool onRuntime() const { return onRuntime_; }
+    bool argumentsNotIncluded() const { return argumentsNotIncluded_; }
+#ifdef DEBUG
+    bool ready() const { return ready_; }
+#endif
+    JSFixedString *substring(JSContext *cx, uint32_t start, uint32_t stop);
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf);
+
+    
+    static void sweep(JSRuntime *rt);
+
+    
+    template <XDRMode mode>
+    static bool performXDR(XDRState<mode> *xdr, ScriptSource **ss);
+
+  private:
+    bool compressed() { return !!compressedLength; }
+    void considerCompressing(JSRuntime *rt, const jschar *src, bool ownSource = false);
+};
+
+#ifdef JS_THREADSAFE
+
+
+
+
+
+
+
+
+
+
+class SourceCompressorThread
+{
+  private:
+    enum {
+        
+        COMPRESSING,
+        
+        
+        IDLE,
+        
+        SHUTDOWN
+    } state;
+    JSRuntime *rt;
+    SourceCompressionToken *tok;
+    PRThread *thread;
+    
+    PRLock *lock;
+    
+    
+    
+    PRCondVar *wakeup;
+    
+    PRCondVar *done;
+
+    void threadLoop();
+    static void compressorThread(void *arg);
+
+  public:
+    explicit SourceCompressorThread(JSRuntime *rt)
+    : state(IDLE),
+      rt(rt),
+      tok(NULL),
+      thread(NULL),
+      lock(NULL),
+      wakeup(NULL),
+      done(NULL) {}
+    void finish();
+    bool init();
+    void compress(SourceCompressionToken *tok);
+    void waitOnCompression(SourceCompressionToken *userTok);
+};
+#endif
+
+struct SourceCompressionToken
+{
+    friend struct ScriptSource;
+    friend class SourceCompressorThread;
+  private:
+    JSRuntime *rt;
+    ScriptSource *ss;
+    const jschar *chars;
+  public:
+    SourceCompressionToken(JSRuntime *rt)
+      : rt(rt), ss(NULL), chars(NULL) {}
+    ~SourceCompressionToken()
+    {
+        JS_ASSERT_IF(!ss, !chars);
+        if (ss)
+            ensureReady();
+    }
+    void ensureReady();
+};
 
 extern void
 CallDestroyScriptHook(FreeOp *fop, JSScript *script);

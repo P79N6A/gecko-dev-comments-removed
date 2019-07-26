@@ -137,6 +137,8 @@ nsICODecoder::FixBitmapHeight(PRInt8 *bih)
   PRInt32 height;
   memcpy(&height, bih + 8, sizeof(height));
   height = LITTLE_TO_NATIVE32(height);
+  
+  height = abs(height);
 
   
   

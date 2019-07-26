@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
 
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/net/HttpBaseChannel.h"
 
@@ -27,8 +27,7 @@ namespace mozilla {
 namespace net {
 
 HttpBaseChannel::HttpBaseChannel()
-  : PrivateBrowsingConsumer(this)
-  , mStartPos(LL_MAXUINT)
+  : mStartPos(LL_MAXUINT)
   , mStatus(NS_OK)
   , mLoadFlags(LOAD_NORMAL)
   , mPriority(PRIORITY_NORMAL)
@@ -49,14 +48,15 @@ HttpBaseChannel::HttpBaseChannel()
   , mTracingEnabled(true)
   , mTimingEnabled(false)
   , mAllowSpdy(true)
+  , mPrivateBrowsing(false)
   , mSuspendCount(0)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
-  
+  // grab a reference to the handler to ensure that it doesn't go away.
   NS_ADDREF(gHttpHandler);
 
-  
+  // Subfields of unions cannot be targeted in an initializer list
   mSelfAddr.raw.family = PR_AF_UNSPEC;
   mPeerAddr.raw.family = PR_AF_UNSPEC;
 }
@@ -65,7 +65,7 @@ HttpBaseChannel::~HttpBaseChannel()
 {
   LOG(("Destroying HttpBaseChannel @%x\n", this));
 
-  
+  // Make sure we don't leak
   CleanRedirectCacheChainIfNecessary();
 
   gHttpHandler->Release();
@@ -88,7 +88,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   mDocumentURI = nsnull;
   mCaps = aCaps;
 
-  
+  // Construct connection info object
   nsCAutoString host;
   PRInt32 port = -1;
   bool usingSSL = false;
@@ -99,7 +99,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   rv = mURI->GetAsciiHost(host);
   if (NS_FAILED(rv)) return rv;
 
-  
+  // Reject the URL if it doesn't specify a host
   if (host.IsEmpty())
     return NS_ERROR_MALFORMED_URI;
 
@@ -117,10 +117,10 @@ HttpBaseChannel::Init(nsIURI *aURI,
   if (!mConnectionInfo)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  
+  // Set default request method
   mRequestHead.SetMethod(nsHttp::Get);
 
-  
+  // Set request headers
   nsCAutoString hostLine;
   rv = nsHttpHandler::GenerateHostPort(host, port, hostLine);
   if (NS_FAILED(rv)) return rv;
@@ -136,12 +136,12 @@ HttpBaseChannel::Init(nsIURI *aURI,
   return rv;
 }
 
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsISupports
+//-----------------------------------------------------------------------------
 
-
-
-
-NS_IMPL_ISUPPORTS_INHERITED10(HttpBaseChannel,
-                              nsHashPropertyBag, 
+NS_IMPL_ISUPPORTS_INHERITED9( HttpBaseChannel,
+                              nsHashPropertyBag,
                               nsIRequest,
                               nsIChannel,
                               nsIEncodedChannel,
@@ -150,12 +150,11 @@ NS_IMPL_ISUPPORTS_INHERITED10(HttpBaseChannel,
                               nsIUploadChannel,
                               nsIUploadChannel2,
                               nsISupportsPriority,
-                              nsITraceableChannel,
-                              nsIPrivateBrowsingConsumer)
+                              nsITraceableChannel)
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIRequest
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetName(nsACString& aName)
@@ -212,9 +211,9 @@ HttpBaseChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetOriginalURI(nsIURI **aOriginalURI)
@@ -273,6 +272,9 @@ HttpBaseChannel::SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks)
 {
   mCallbacks = aCallbacks;
   mProgressSink = nsnull;
+
+  // Will never change unless SetNotificationCallbacks called again, so cache
+  mPrivateBrowsing = NS_UsePrivateBrowsing(this);
   return NS_OK;
 }
 
@@ -306,12 +308,12 @@ HttpBaseChannel::SetContentType(const nsACString& aContentType)
 
     mResponseHead->SetContentType(contentTypeBuf);
 
-    
+    // take care not to stomp on an existing charset
     if (hadCharset)
       mResponseHead->SetContentCharset(charsetBuf);
 
   } else {
-    
+    // We are being given a content-type hint.
     bool dummy;
     net_ParseContentType(aContentType, mContentTypeHint, mContentCharsetHint,
                          &dummy);
@@ -339,7 +341,7 @@ HttpBaseChannel::SetContentCharset(const nsACString& aContentCharset)
 
     mResponseHead->SetContentCharset(aContentCharset);
   } else {
-    
+    // Charset hint
     mContentCharsetHint = aContentCharset;
   }
   return NS_OK;
@@ -398,7 +400,7 @@ HttpBaseChannel::GetContentLength(PRInt32 *aContentLength)
   if (!mResponseHead)
     return NS_ERROR_NOT_AVAILABLE;
 
-  
+  // XXX truncates to 32 bit
   *aContentLength = mResponseHead->ContentLength();
   return NS_OK;
 }
@@ -417,9 +419,9 @@ HttpBaseChannel::Open(nsIInputStream **aResult)
   return NS_ImplementChannelOpen(this, aResult);
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIUploadChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetUploadStream(nsIInputStream **stream)
@@ -435,28 +437,28 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
                                const nsACString &contentType,
                                PRInt32 contentLength)
 {
-  
-  
-  
-  
-  
-  
+  // NOTE: for backwards compatibility and for compatibility with old style
+  // plugins, |stream| may include headers, specifically Content-Type and
+  // Content-Length headers.  in this case, |contentType| and |contentLength|
+  // would be unspecified.  this is traditionally the case of a POST request,
+  // and so we select POST as the request method if contentType and
+  // contentLength are unspecified.
 
   if (stream) {
     if (contentType.IsEmpty()) {
       mUploadStreamHasHeaders = true;
-      mRequestHead.SetMethod(nsHttp::Post); 
+      mRequestHead.SetMethod(nsHttp::Post); // POST request
     } else {
       if (contentLength < 0) {
-        
-        
+        // Not really kosher to assume Available == total length of
+        // stream, but apparently works for the streams we see here.
         stream->Available((PRUint32 *) &contentLength);
         if (contentLength < 0) {
           NS_ERROR("unable to determine content length");
           return NS_ERROR_FAILURE;
         }
       }
-      
+      // SetRequestHeader propagates headers to chrome if HttpChannelChild 
       nsCAutoString contentLengthStr;
       contentLengthStr.AppendInt(PRInt64(contentLength));
       SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr, 
@@ -464,19 +466,19 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
       SetRequestHeader(NS_LITERAL_CSTRING("Content-Type"), contentType, 
                        false);
       mUploadStreamHasHeaders = false;
-      mRequestHead.SetMethod(nsHttp::Put); 
+      mRequestHead.SetMethod(nsHttp::Put); // PUT request
     }
   } else {
     mUploadStreamHasHeaders = false;
-    mRequestHead.SetMethod(nsHttp::Get); 
+    mRequestHead.SetMethod(nsHttp::Get); // revert to GET request
   }
   mUploadStream = stream;
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIUploadChannel2
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
@@ -485,7 +487,7 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
                                        const nsACString &aMethod,
                                        bool aStreamHasHeaders)
 {
-  
+  // Ensure stream is set and method is valid 
   NS_ENSURE_TRUE(aStream, NS_ERROR_FAILURE);
 
   if (aContentLength < 0 && !aStreamHasHeaders) {
@@ -502,7 +504,7 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aStreamHasHeaders) {
-    
+    // SetRequestHeader propagates headers to chrome if HttpChannelChild 
     nsCAutoString contentLengthStr;
     contentLengthStr.AppendInt(aContentLength);
     SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr, 
@@ -525,9 +527,9 @@ HttpBaseChannel::GetUploadStreamHasHeaders(bool *hasHeaders)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIEncodedChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetApplyConversion(bool *value)
@@ -565,19 +567,19 @@ HttpBaseChannel::ApplyContentConversions()
   if (NS_FAILED(rv) || contentEncoding.IsEmpty())
     return NS_OK;
 
-  
-  
-  
-  
-  
+  // The encodings are listed in the order they were applied
+  // (see rfc 2616 section 14.11), so they need to removed in reverse
+  // order. This is accomplished because the converter chain ends up
+  // being a stack with the last converter created being the first one
+  // to accept the raw network data.
 
   cePtr = contentEncoding.BeginWriting();
   PRUint32 count = 0;
   while ((val = nsCRT::strtok(cePtr, HTTP_LWS ",", &cePtr))) {
     if (++count > 16) {
-      
-      
-      
+      // That's ridiculous. We only understand 2 different ones :)
+      // but for compatibility with old code, we will just carry on without
+      // removing the encodings
       LOG(("Too many Content-Encodings. Ignoring remainder.\n"));
       break;
     }
@@ -586,8 +588,8 @@ HttpBaseChannel::ApplyContentConversions()
       nsCOMPtr<nsIStreamConverterService> serv;
       rv = gHttpHandler->GetStreamConverterService(getter_AddRefs(serv));
 
-      
-      
+      // we won't fail to load the page just because we couldn't load the
+      // stream converter service.. carry on..
       if (NS_FAILED(rv)) {
         if (val)
           LOG(("Unknown content encoding '%s', ignoring\n", val));
@@ -637,9 +639,9 @@ HttpBaseChannel::GetContentEncodings(nsIUTF8StringEnumerator** aEncodings)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsContentEncodings <public>
+//-----------------------------------------------------------------------------
 
 HttpBaseChannel::nsContentEncodings::nsContentEncodings(nsIHttpChannel* aChannel,
                                                         const char* aEncodingHeader)
@@ -655,9 +657,9 @@ HttpBaseChannel::nsContentEncodings::~nsContentEncodings()
 {
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsContentEncodings::nsISimpleEnumerator
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::nsContentEncodings::HasMore(bool* aMoreEncodings)
@@ -711,7 +713,7 @@ HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
     }
   }
 
-  
+  // Prepare to fetch the next encoding
   mCurEnd = mCurStart;
   mReady = false;
   
@@ -722,23 +724,23 @@ HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
   return NS_ERROR_FAILURE;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsContentEncodings::nsISupports
+//-----------------------------------------------------------------------------
 
 NS_IMPL_ISUPPORTS1(HttpBaseChannel::nsContentEncodings, nsIUTF8StringEnumerator)
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsContentEncodings <private>
+//-----------------------------------------------------------------------------
 
 nsresult
 HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 {
   NS_ASSERTION(mCurStart == mCurEnd, "Indeterminate state");
     
-  
-  
+  // At this point both mCurStart and mCurEnd point to somewhere
+  // past the end of the next thing we want to return
     
   while (mCurEnd != mEncodingHeader) {
     --mCurEnd;
@@ -746,21 +748,21 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
       break;
   }
   if (mCurEnd == mEncodingHeader)
-    return NS_ERROR_NOT_AVAILABLE; 
+    return NS_ERROR_NOT_AVAILABLE; // no more encodings
   ++mCurEnd;
         
-  
-  
+  // At this point mCurEnd points to the first char _after_ the
+  // header we want.  Furthermore, mCurEnd - 1 != mEncodingHeader
     
   mCurStart = mCurEnd - 1;
   while (mCurStart != mEncodingHeader &&
          *mCurStart != ',' && !nsCRT::IsAsciiSpace(*mCurStart))
     --mCurStart;
   if (*mCurStart == ',' || nsCRT::IsAsciiSpace(*mCurStart))
-    ++mCurStart; 
+    ++mCurStart; // we stopped because of a weird char, so move up one
         
-  
-  
+  // At this point mCurStart and mCurEnd bracket the encoding string
+  // we want.  Check that it's not "identity"
   if (Substring(mCurStart, mCurEnd).Equals("identity",
                                            nsCaseInsensitiveCStringComparator())) {
     mCurEnd = mCurStart;
@@ -772,9 +774,9 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 }
 
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIHttpChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetRequestMethod(nsACString& aMethod)
@@ -790,7 +792,7 @@ HttpBaseChannel::SetRequestMethod(const nsACString& aMethod)
 
   const nsCString& flatMethod = PromiseFlatCString(aMethod);
 
-  
+  // Method names are restricted to valid HTTP tokens.
   if (!nsHttp::IsValidToken(flatMethod))
     return NS_ERROR_INVALID_ARG;
 
@@ -816,19 +818,19 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
 {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
-  
+  // clear existing referrer, if any
   mReferrer = nsnull;
   mRequestHead.ClearHeader(nsHttp::Referer);
 
   if (!referrer)
       return NS_OK;
 
-  
+  // check referrer blocking pref
   PRUint32 referrerLevel;
   if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
-    referrerLevel = 1; 
+    referrerLevel = 1; // user action
   else
-    referrerLevel = 2; 
+    referrerLevel = 2; // inline content
   if (gHttpHandler->ReferrerLevel() < referrerLevel)
     return NS_OK;
 
@@ -836,14 +838,14 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   nsresult rv;
   bool match;
 
-  
-  
-  
-  
-  
-  
-  
-  
+  //
+  // Strip off "wyciwyg://123/" from wyciwyg referrers.
+  //
+  // XXX this really belongs elsewhere since wyciwyg URLs aren't part of necko.
+  //     perhaps some sort of generic nsINestedURI could be used.  then, if an URI
+  //     fails the whitelist test, then we could check for an inner URI and try
+  //     that instead.  though, that might be too automatic.
+  // 
   rv = referrer->SchemeIs("wyciwyg", &match);
   if (NS_FAILED(rv)) return rv;
   if (match) {
@@ -854,17 +856,17 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     PRUint32 pathLength = path.Length();
     if (pathLength <= 2) return NS_ERROR_FAILURE;
 
-    
-    
-    
+    // Path is of the form "//123/http://foo/bar", with a variable number of digits.
+    // To figure out where the "real" URL starts, search path for a '/', starting at 
+    // the third character.
     PRInt32 slashIndex = path.FindChar('/', 2);
     if (slashIndex == kNotFound) return NS_ERROR_FAILURE;
 
-    
+    // Get the charset of the original URI so we can pass it to our fixed up URI.
     nsCAutoString charset;
     referrer->GetOriginCharset(charset);
 
-    
+    // Replace |referrer| with a URI without wyciwyg://123/.
     rv = NS_NewURI(getter_AddRefs(referrerGrip),
                    Substring(path, slashIndex + 1, pathLength - slashIndex - 1),
                    charset.get());
@@ -873,9 +875,9 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     referrer = referrerGrip.get();
   }
 
-  
-  
-  
+  //
+  // block referrer if not on our white list...
+  //
   static const char *const referrerWhiteList[] = {
     "http",
     "https",
@@ -890,14 +892,14 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     if (NS_FAILED(rv)) return rv;
   }
   if (!match)
-    return NS_OK; 
+    return NS_OK; // kick out....
 
-  
-  
-  
-  
-  
-  
+  //
+  // Handle secure referrals.
+  //
+  // Support referrals from a secure server if this is a secure site
+  // and (optionally) if the host names are the same.
+  //
   rv = referrer->SchemeIs("https", &match);
   if (NS_FAILED(rv)) return rv;
   if (match) {
@@ -916,23 +918,23 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
       rv = mURI->GetAsciiHost(host);
       if (NS_FAILED(rv)) return rv;
 
-      
+      // GetAsciiHost returns lowercase hostname.
       if (!referrerHost.Equals(host))
         return NS_OK;
     }
   }
 
   nsCOMPtr<nsIURI> clone;
-  
-  
-  
-  
-  
-  
+  //
+  // we need to clone the referrer, so we can:
+  //  (1) modify it
+  //  (2) keep a reference to it after returning from this function
+  //
+  // Use CloneIgnoringRef to strip away any fragment per RFC 2616 section 14.36
   rv = referrer->CloneIgnoringRef(getter_AddRefs(clone));
   if (NS_FAILED(rv)) return rv;
 
-  
+  // strip away any userpass; we don't want to be giving out passwords ;-)
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
@@ -940,7 +942,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   rv = clone->GetAsciiSpec(spec);
   if (NS_FAILED(rv)) return rv;
 
-  
+  // finally, remember the referrer URI and set the Referer header.
   mReferrer = clone;
   mRequestHead.SetHeader(nsHttp::Referer, spec);
   return NS_OK;
@@ -950,8 +952,8 @@ NS_IMETHODIMP
 HttpBaseChannel::GetRequestHeader(const nsACString& aHeader,
                                   nsACString& aValue)
 {
-  
-  
+  // XXX might be better to search the header list directly instead of
+  // hitting the http atom hash table.
   nsHttpAtom atom = nsHttp::ResolveAtom(aHeader);
   if (!atom)
     return NS_ERROR_NOT_AVAILABLE;
@@ -970,15 +972,15 @@ HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
   LOG(("HttpBaseChannel::SetRequestHeader [this=%p header=\"%s\" value=\"%s\" merge=%u]\n",
       this, flatHeader.get(), flatValue.get(), aMerge));
 
-  
+  // Header names are restricted to valid HTTP tokens.
   if (!nsHttp::IsValidToken(flatHeader))
     return NS_ERROR_INVALID_ARG;
   
-  
-  
-  
-  
-  
+  // Header values MUST NOT contain line-breaks.  RFC 2616 technically
+  // permits CTL characters, including CR and LF, in header values provided
+  // they are quoted.  However, this can lead to problems if servers do not
+  // interpret quoted strings properly.  Disallowing CR and LF here seems
+  // reasonable and keeps things simple.  We also disallow a null byte.
   if (flatValue.FindCharInSet("\r\n") != kNotFound ||
       flatValue.Length() != strlen(flatValue.get()))
     return NS_ERROR_INVALID_ARG;
@@ -1026,7 +1028,7 @@ HttpBaseChannel::SetResponseHeader(const nsACString& header,
   if (!atom)
     return NS_ERROR_NOT_AVAILABLE;
 
-  
+  // these response headers must not be changed 
   if (atom == nsHttp::Content_Type ||
       atom == nsHttp::Content_Length ||
       atom == nsHttp::Content_Encoding ||
@@ -1129,9 +1131,9 @@ HttpBaseChannel::GetRequestSucceeded(bool *aValue)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIHttpChannelInternal
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetDocumentURI(nsIURI **aDocumentURI)
@@ -1167,7 +1169,7 @@ HttpBaseChannel::GetResponseVersion(PRUint32 *major, PRUint32 *minor)
 {
   if (!mResponseHead)
   {
-    *major = *minor = 0; 
+    *major = *minor = 0; // we should at least be kind about it
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -1185,7 +1187,7 @@ HttpBaseChannel::SetCookie(const char *aCookieHeader)
   if (mLoadFlags & LOAD_ANONYMOUS)
     return NS_OK;
 
-  
+  // empty header isn't an error
   if (!(aCookieHeader && *aCookieHeader))
     return NS_OK;
 
@@ -1329,9 +1331,9 @@ HttpBaseChannel::SetAllowSpdy(bool aAllowSpdy)
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsISupportsPriority
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetPriority(PRInt32 *value)
@@ -1346,15 +1348,15 @@ HttpBaseChannel::AdjustPriority(PRInt32 delta)
   return SetPriority(mPriority + delta);
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIResumableChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::GetEntityID(nsACString& aEntityID)
 {
-  
-  
+  // Don't return an entity ID for Non-GET requests which require
+  // additional data
   if (mRequestHead.Method() != nsHttp::Get) {
     return NS_ERROR_NOT_RESUMABLE;
   }
@@ -1362,10 +1364,10 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
   PRUint64 size = LL_MAXUINT;
   nsCAutoString etag, lastmod;
   if (mResponseHead) {
-    
-    
-    
-    
+    // Don't return an entity if the server sent the following header:
+    // Accept-Ranges: none
+    // Not sending the Accept-Ranges header means we can still try
+    // sending range requests.
     const char* acceptRanges =
         mResponseHead->PeekHeader(nsHttp::Accept_Ranges);
     if (acceptRanges &&
@@ -1388,16 +1390,16 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
   entityID.AppendInt(PRInt64(size));
   entityID.Append('/');
   entityID.Append(lastmod);
-  
+  // NOTE: Appending lastmod as the last part avoids having to escape it
 
   aEntityID = entityID;
 
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// nsHttpChannel::nsITraceableChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 HttpBaseChannel::SetNewListener(nsIStreamListener *aListener, nsIStreamListener **_retval)
@@ -1414,16 +1416,16 @@ HttpBaseChannel::SetNewListener(nsIStreamListener *aListener, nsIStreamListener 
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// HttpBaseChannel helpers
+//-----------------------------------------------------------------------------
 
 void
 HttpBaseChannel::DoNotifyListener()
 {
-  
-  
-  
+  // Make sure mIsPending is set to false. At this moment we are done from
+  // the point of view of our consumer and we have to report our self
+  // as not-pending.
   if (mListener) {
     mListener->OnStartRequest(this, mListenerContext);
     mIsPending = false;
@@ -1433,7 +1435,7 @@ HttpBaseChannel::DoNotifyListener()
   } else {
     mIsPending = false;
   }
-  
+  // We have to make sure to drop the reference to the callbacks too
   mCallbacks = nsnull;
   mProgressSink = nsnull;
 
@@ -1469,8 +1471,8 @@ HttpBaseChannel::AddCookiesToRequest()
     cookie = mUserSetCookieHeader;
   }
 
-  
-  
+  // If we are in the child process, we want the parent seeing any
+  // cookie headers that might have been set by SetRequestHeader()
   SetRequestHeader(nsDependentCString(nsHttp::Cookie), cookie, false);
 }
 
@@ -1483,31 +1485,31 @@ CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
   return PL_DHASH_NEXT;
 }
 
-
-
-
+// Return whether upon a redirect code of httpStatus for method, the
+// request method should be rewritten to GET.
+//
 bool
 HttpBaseChannel::ShouldRewriteRedirectToGET(PRUint32 httpStatus,
                                             nsHttpAtom method)
 {
-  
+  // for 301 and 302, only rewrite POST
   if (httpStatus == 301 || httpStatus == 302)
     return method == nsHttp::Post;
 
-  
+  // rewrite for 303 unless it was HEAD
   if (httpStatus == 303)
     return method != nsHttp::Head;
 
-  
+  // otherwise, such as for 307, do not rewrite
   return false;
 }   
 
-
+// Return whether the specified method is safe as per RFC 2616, Section 9.1.1.
 bool
 HttpBaseChannel::IsSafeMethod(nsHttpAtom method)
 {
-  
-  
+  // This code will need to be extended for new safe methods, otherwise
+  // they'll default to "not safe".
   return method == nsHttp::Get ||
          method == nsHttp::Head ||
          method == nsHttp::Options ||
@@ -1527,16 +1529,16 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
      "[this=%p newChannel=%p preserveMethod=%d forProxy=%d]",
      this, newChannel, preserveMethod, forProxy));
   PRUint32 newLoadFlags = mLoadFlags | LOAD_REPLACE;
-  
-  
-  
-  
-  
-  
+  // if the original channel was using SSL and this channel is not using
+  // SSL, then no need to inhibit persistent caching.  however, if the
+  // original channel was not using SSL and has INHIBIT_PERSISTENT_CACHING
+  // set, then allow the flag to apply to the redirected channel as well.
+  // since we force set INHIBIT_PERSISTENT_CACHING on all HTTPS channels,
+  // we only need to check if the original channel was using SSL.
   if (mConnectionInfo->UsingSSL())
     newLoadFlags &= ~INHIBIT_PERSISTENT_CACHING;
 
-  
+  // Do not pass along LOAD_CHECK_OFFLINE_CACHE
   newLoadFlags &= ~nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
 
   newChannel->SetLoadGroup(mLoadGroup); 
@@ -1545,7 +1547,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (!httpChannel)
-    return NS_OK; 
+    return NS_OK; // no other options to set
 
   if (preserveMethod) {
     nsCOMPtr<nsIUploadChannel> uploadChannel =
@@ -1553,12 +1555,12 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     nsCOMPtr<nsIUploadChannel2> uploadChannel2 =
       do_QueryInterface(httpChannel);
     if (mUploadStream && (uploadChannel2 || uploadChannel)) {
-      
+      // rewind upload stream
       nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
       if (seekable)
         seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 
-      
+      // replicate original call to SetUploadStream...
       if (uploadChannel2) {
         const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
         if (!ctype)
@@ -1589,39 +1591,39 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
         }
       }
     }
-    
-    
-    
-    
+    // since preserveMethod is true, we need to ensure that the appropriate 
+    // request method gets set on the channel, regardless of whether or not 
+    // we set the upload stream above. This means SetRequestMethod() will
+    // be called twice if ExplicitSetUploadStream() gets called above.
 
     httpChannel->SetRequestMethod(nsDependentCString(mRequestHead.Method()));
   }
-  
+  // convey the referrer if one was used for this channel to the next one
   if (mReferrer)
     httpChannel->SetReferrer(mReferrer);
-  
+  // convey the mAllowPipelining flag
   httpChannel->SetAllowPipelining(mAllowPipelining);
-  
+  // convey the new redirection limit
   httpChannel->SetRedirectionLimit(mRedirectionLimit - 1);
 
   nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
   if (httpInternal) {
-    
+    // convey the mForceAllowThirdPartyCookie flag
     httpInternal->SetForceAllowThirdPartyCookie(mForceAllowThirdPartyCookie);
-    
+    // convey the spdy flag
     httpInternal->SetAllowSpdy(mAllowSpdy);
 
-    
-    
-    
-    
+    // update the DocumentURI indicator since we are being redirected.
+    // if this was a top-level document channel, then the new channel
+    // should have its mDocumentURI point to newURI; otherwise, we
+    // just need to pass along our mDocumentURI to the new channel.
     if (newURI && (mURI == mDocumentURI))
       httpInternal->SetDocumentURI(newURI);
     else
       httpInternal->SetDocumentURI(mDocumentURI);
 
-    
-    
+    // if there is a chain of keys for redirect-responses we transfer it to
+    // the new channel (see bug #561276)
     if (mRedirectedCachekeys) {
         LOG(("HttpBaseChannel::SetupReplacementChannel "
              "[this=%p] transferring chain of redirect cache-keys", this));
@@ -1629,30 +1631,30 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
   }
   
-  
+  // transfer application cache information
   nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
     do_QueryInterface(newChannel);
   if (appCacheChannel) {
     appCacheChannel->SetApplicationCache(mApplicationCache);
     appCacheChannel->SetInheritApplicationCache(mInheritApplicationCache);
-    
+    // We purposely avoid transfering mChooseApplicationCache.
   }
 
-  
+  // transfer any properties
   nsCOMPtr<nsIWritablePropertyBag> bag(do_QueryInterface(newChannel));
   if (bag)
     mPropertyHash.EnumerateRead(CopyProperties, bag.get());
 
-  
+  // transfer timed channel enabled status
   nsCOMPtr<nsITimedChannel> timed(do_QueryInterface(newChannel));
   if (timed)
     timed->SetTimingEnabled(mTimingEnabled);
 
   if (forProxy) {
-    
-    
-    
-    
+    // Transfer all the headers from the previous channel
+    //  this is needed for any headers that are not covered by the code above
+    //  or have been set separately. e.g. manually setting Referer without
+    //  setting up mReferrer
     PRUint32 count = mRequestHead.Headers().Count();
     for (PRUint32 i = 0; i < count; ++i) {
       nsHttpAtom header;
@@ -1666,8 +1668,8 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   return NS_OK;
 }
 
+//------------------------------------------------------------------------------
 
-
-}  
-}  
+}  // namespace net
+}  // namespace mozilla
 

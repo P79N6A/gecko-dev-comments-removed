@@ -423,10 +423,10 @@ void nsCSSValue::SetPairValue(const nsCSSValue& xValue,
 void nsCSSValue::SetTripletValue(const nsCSSValueTriplet* aValue)
 {
     
-    
     NS_ABORT_IF_FALSE(aValue &&
                       aValue->mXValue.GetUnit() != eCSSUnit_Null &&
                       aValue->mYValue.GetUnit() != eCSSUnit_Null &&
+                      aValue->mZValue.GetUnit() != eCSSUnit_Null &&
                       aValue->mXValue.GetUnit() != eCSSUnit_Inherit &&
                       aValue->mYValue.GetUnit() != eCSSUnit_Inherit &&
                       aValue->mZValue.GetUnit() != eCSSUnit_Inherit &&

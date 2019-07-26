@@ -41,11 +41,11 @@ mNode(aNode)
 ,mPRE(false)
 ,mStartNode()
 ,mStartOffset(0)
-,mStartReason(0)
+,mStartReason()
 ,mStartReasonNode()
 ,mEndNode()
 ,mEndOffset(0)
-,mEndReason(0)
+,mEndReason()
 ,mEndReasonNode()
 ,mFirstNBSPNode()
 ,mFirstNBSPOffset(0)
@@ -175,25 +175,18 @@ nsWSRunObject::InsertBreak(nsCOMPtr<nsIDOMNode> *aInOutParent,
     nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent, aInOutOffset);
 
     
-    if (!afterRun)
-    {
+    if (!afterRun) {
       
-    }
-    else if (afterRun->mType & eTrailingWS)
-    {
+    } else if (afterRun->mType & WSType::trailingWS) {
       
-    }
-    else if (afterRun->mType & eLeadingWS)
-    {
+    } else if (afterRun->mType & WSType::leadingWS) {
       
       
       
       res = DeleteChars(*aInOutParent, *aInOutOffset, afterRun->mEndNode, afterRun->mEndOffset,
                         eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (afterRun->mType == eNormalWS)
-    {
+    } else if (afterRun->mType == WSType::normalWS) {
       
       
       WSPoint thePoint = GetCharAfter(*aInOutParent, *aInOutOffset);
@@ -208,24 +201,17 @@ nsWSRunObject::InsertBreak(nsCOMPtr<nsIDOMNode> *aInOutParent,
     }
     
     
-    if (!beforeRun)
-    {
+    if (!beforeRun) {
       
-    }
-    else if (beforeRun->mType & eLeadingWS)
-    {
+    } else if (beforeRun->mType & WSType::leadingWS) {
       
-    }
-    else if (beforeRun->mType & eTrailingWS)
-    {
+    } else if (beforeRun->mType & WSType::trailingWS) {
       
       
       res = DeleteChars(beforeRun->mStartNode, beforeRun->mStartOffset, *aInOutParent, *aInOutOffset,
                         eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (beforeRun->mType == eNormalWS)
-    {
+    } else if (beforeRun->mType == WSType::normalWS) {
       
       res = CheckTrailingNBSP(beforeRun, *aInOutParent, *aInOutOffset);
       NS_ENSURE_SUCCESS(res, res);
@@ -267,48 +253,34 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
     nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent, aInOutOffset);
 
     
-    if (!afterRun)
-    {
+    if (!afterRun) {
       
-    }
-    else if (afterRun->mType & eTrailingWS)
-    {
+    } else if (afterRun->mType & WSType::trailingWS) {
       
-    }
-    else if (afterRun->mType & eLeadingWS)
-    {
+    } else if (afterRun->mType & WSType::leadingWS) {
       
       
       res = DeleteChars(*aInOutParent, *aInOutOffset, afterRun->mEndNode, afterRun->mEndOffset,
                          eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (afterRun->mType == eNormalWS)
-    {
+    } else if (afterRun->mType == WSType::normalWS) {
       
       res = CheckLeadingNBSP(afterRun, *aInOutParent, *aInOutOffset);
       NS_ENSURE_SUCCESS(res, res);
     }
     
     
-    if (!beforeRun)
-    {
+    if (!beforeRun) {
       
-    }
-    else if (beforeRun->mType & eLeadingWS)
-    {
+    } else if (beforeRun->mType & WSType::leadingWS) {
       
-    }
-    else if (beforeRun->mType & eTrailingWS)
-    {
+    } else if (beforeRun->mType & WSType::trailingWS) {
       
       
       res = DeleteChars(beforeRun->mStartNode, beforeRun->mStartOffset, *aInOutParent, *aInOutOffset,
                         eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
-    }
-    else if (beforeRun->mType == eNormalWS)
-    {
+    } else if (beforeRun->mType == WSType::normalWS) {
       
       res = CheckTrailingNBSP(beforeRun, *aInOutParent, *aInOutOffset);
       NS_ENSURE_SUCCESS(res, res);
@@ -323,24 +295,17 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
   if (nsCRT::IsAsciiSpace(theString[0]))
   {
     
-    if (beforeRun)
-    {
-      if (beforeRun->mType & eLeadingWS) 
-      {
+    if (beforeRun) {
+      if (beforeRun->mType & WSType::leadingWS) {
         theString.SetCharAt(nbsp, 0);
-      }
-      else if (beforeRun->mType & eNormalWS) 
-      {
+      } else if (beforeRun->mType & WSType::normalWS) {
         WSPoint wspoint = GetCharBefore(*aInOutParent, *aInOutOffset);
         if (wspoint.mTextNode && nsCRT::IsAsciiSpace(wspoint.mChar)) {
           theString.SetCharAt(nbsp, 0);
         }
       }
-    }
-    else
-    {
-      if ((mStartReason & eBlock) || (mStartReason == eBreak))
-      {
+    } else {
+      if (mStartReason & WSType::block || mStartReason == WSType::br) {
         theString.SetCharAt(nbsp, 0);
       }
     }
@@ -354,12 +319,9 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
     
     if (afterRun)
     {
-      if (afterRun->mType & eTrailingWS)
-      {
+      if (afterRun->mType & WSType::trailingWS) {
         theString.SetCharAt(nbsp, lastCharIndex);
-      }
-      else if (afterRun->mType & eNormalWS) 
-      {
+      } else if (afterRun->mType & WSType::normalWS) {
         WSPoint wspoint = GetCharAfter(*aInOutParent, *aInOutOffset);
         if (wspoint.mTextNode && nsCRT::IsAsciiSpace(wspoint.mChar)) {
           theString.SetCharAt(nbsp, lastCharIndex);
@@ -368,8 +330,7 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
     }
     else
     {
-      if ((mEndReason & eBlock))
-      {
+      if (mEndReason & WSType::block) {
         theString.SetCharAt(nbsp, lastCharIndex);
       }
     }
@@ -514,21 +475,20 @@ nsWSRunObject::PriorVisibleNode(nsIDOMNode *aNode,
                                 PRInt32 aOffset, 
                                 nsCOMPtr<nsIDOMNode> *outVisNode, 
                                 PRInt32 *outVisOffset,
-                                PRInt16 *outType)
+                                WSType *outType)
 {
   
   
   MOZ_ASSERT(aNode && outVisNode && outVisOffset && outType);
     
-  *outType = eNone;
+  *outType = WSType::none;
   WSFragment *run;
   FindRun(aNode, aOffset, &run, false);
   
   
   while (run)
   {
-    if (run->mType == eNormalWS)
-    {
+    if (run->mType == WSType::normalWS) {
       WSPoint point = GetCharBefore(aNode, aOffset);
       if (point.mTextNode)
       {
@@ -536,16 +496,16 @@ nsWSRunObject::PriorVisibleNode(nsIDOMNode *aNode,
         *outVisOffset = point.mOffset+1;
         if (nsCRT::IsAsciiSpace(point.mChar) || (point.mChar==nbsp))
         {
-          *outType = eNormalWS;
+          *outType = WSType::normalWS;
         }
         else if (!point.mChar)
         {
           
-          *outType = eNone;
+          *outType = WSType::none;
         }
         else
         {
-          *outType = eText;
+          *outType = WSType::text;
         }
         return;
       }
@@ -567,7 +527,7 @@ nsWSRunObject::NextVisibleNode (nsIDOMNode *aNode,
                                 PRInt32 aOffset, 
                                 nsCOMPtr<nsIDOMNode> *outVisNode, 
                                 PRInt32 *outVisOffset,
-                                PRInt16 *outType)
+                                WSType *outType)
 {
   
   
@@ -579,8 +539,7 @@ nsWSRunObject::NextVisibleNode (nsIDOMNode *aNode,
   
   while (run)
   {
-    if (run->mType == eNormalWS)
-    {
+    if (run->mType == WSType::normalWS) {
       WSPoint point = GetCharAfter(aNode, aOffset);
       if (point.mTextNode)
       {
@@ -588,16 +547,16 @@ nsWSRunObject::NextVisibleNode (nsIDOMNode *aNode,
         *outVisOffset = point.mOffset;
         if (nsCRT::IsAsciiSpace(point.mChar) || (point.mChar==nbsp))
         {
-          *outType = eNormalWS;
+          *outType = WSType::normalWS;
         }
         else if (!point.mChar)
         {
           
-          *outType = eNone;
+          *outType = WSType::none;
         }
         else
         {
-          *outType = eText;
+          *outType = WSType::text;
         }
         return;
       }
@@ -628,8 +587,7 @@ nsWSRunObject::AdjustWhitespace()
   while (curRun)
   {
     
-    if (curRun->mType == eNormalWS)
-    {
+    if (curRun->mType == WSType::normalWS) {
       res = CheckTrailingNBSPOfRun(curRun);
       break;
     }
@@ -696,7 +654,7 @@ nsWSRunObject::GetWSNodes()
           {
             mStartNode = mNode;
             mStartOffset = pos+1;
-            mStartReason = eText;
+            mStartReason = WSType::text;
             mStartReasonNode = mNode;
             break;
           }
@@ -726,7 +684,7 @@ nsWSRunObject::GetWSNodes()
       if (IsBlockNode(priorNode))
       {
         start.GetPoint(mStartNode, mStartOffset);
-        mStartReason = eOtherBlock;
+        mStartReason = WSType::otherBlock;
         mStartReasonNode = priorNode;
       }
       else if (mHTMLEditor->IsTextNode(priorNode))
@@ -764,7 +722,7 @@ nsWSRunObject::GetWSNodes()
               {
                 mStartNode = priorNode;
                 mStartOffset = pos+1;
-                mStartReason = eText;
+                mStartReason = WSType::text;
                 mStartReasonNode = priorNode;
                 break;
               }
@@ -788,9 +746,9 @@ nsWSRunObject::GetWSNodes()
         
         start.GetPoint(mStartNode, mStartOffset);
         if (nsTextEditUtils::IsBreak(priorNode))
-          mStartReason = eBreak;
+          mStartReason = WSType::br;
         else
-          mStartReason = eSpecial;
+          mStartReason = WSType::special;
         mStartReasonNode = priorNode;
       }
     }
@@ -798,7 +756,7 @@ nsWSRunObject::GetWSNodes()
     {
       
       start.GetPoint(mStartNode, mStartOffset);
-      mStartReason = eThisBlock;
+      mStartReason = WSType::thisBlock;
       mStartReasonNode = wsBoundingParent;
     } 
   }
@@ -829,7 +787,7 @@ nsWSRunObject::GetWSNodes()
           {
             mEndNode = mNode;
             mEndOffset = pos;
-            mEndReason = eText;
+            mEndReason = WSType::text;
             mEndReasonNode = mNode;
             break;
           }
@@ -860,7 +818,7 @@ nsWSRunObject::GetWSNodes()
       {
         
         end.GetPoint(mEndNode, mEndOffset);
-        mEndReason = eOtherBlock;
+        mEndReason = WSType::otherBlock;
         mEndReasonNode = nextNode;
       }
       else if (mHTMLEditor->IsTextNode(nextNode))
@@ -898,7 +856,7 @@ nsWSRunObject::GetWSNodes()
               {
                 mEndNode = nextNode;
                 mEndOffset = pos;
-                mEndReason = eText;
+                mEndReason = WSType::text;
                 mEndReasonNode = nextNode;
                 break;
               }
@@ -923,9 +881,9 @@ nsWSRunObject::GetWSNodes()
         
         end.GetPoint(mEndNode, mEndOffset);
         if (nsTextEditUtils::IsBreak(nextNode))
-          mEndReason = eBreak;
+          mEndReason = WSType::br;
         else
-          mEndReason = eSpecial;
+          mEndReason = WSType::special;
         mEndReasonNode = nextNode;
       }
     }
@@ -933,7 +891,7 @@ nsWSRunObject::GetWSNodes()
     {
       
       end.GetPoint(mEndNode, mEndOffset);
-      mEndReason = eThisBlock;
+      mEndReason = WSType::thisBlock;
       mEndReasonNode = wsBoundingParent;
     } 
   }
@@ -950,23 +908,26 @@ nsWSRunObject::GetRuns()
   mHTMLEditor->IsPreformatted(mNode, &mPRE);
   
   
-  if ( mPRE || (((mStartReason == eText) || (mStartReason == eSpecial)) &&
-       ((mEndReason == eText) || (mEndReason == eSpecial) || (mEndReason == eBreak))) )
-  {
-    MakeSingleWSRun(eNormalWS);
+  if (mPRE ||
+      ((mStartReason == WSType::text || mStartReason == WSType::special) &&
+       (mEndReason == WSType::text || mEndReason == WSType::special ||
+        mEndReason == WSType::br))) {
+    MakeSingleWSRun(WSType::normalWS);
     return;
   }
 
   
   
-  if ( !(mFirstNBSPNode || mLastNBSPNode) &&
-      ( (mStartReason & eBlock) || (mStartReason == eBreak) || (mEndReason & eBlock) ) )
-  {
-    PRInt16 wstype = eNone;
-    if ((mStartReason & eBlock) || (mStartReason == eBreak))
-      wstype = eLeadingWS;
-    if (mEndReason & eBlock) 
-      wstype |= eTrailingWS;
+  if (!mFirstNBSPNode && !mLastNBSPNode &&
+      ((mStartReason & WSType::block) || mStartReason == WSType::br ||
+       (mEndReason & WSType::block))) {
+    WSType wstype;
+    if ((mStartReason & WSType::block) || mStartReason == WSType::br) {
+      wstype = WSType::leadingWS;
+    }
+    if (mEndReason & WSType::block) {
+      wstype |= WSType::trailingWS;
+    }
     MakeSingleWSRun(wstype);
     return;
   }
@@ -976,25 +937,23 @@ nsWSRunObject::GetRuns()
   mStartRun->mStartNode = mStartNode;
   mStartRun->mStartOffset = mStartOffset;
   
-  if ( (mStartReason & eBlock) || (mStartReason == eBreak) )
-  {
+  if (mStartReason & WSType::block || mStartReason == WSType::br) {
     
-    mStartRun->mType = eLeadingWS;
+    mStartRun->mType = WSType::leadingWS;
     mStartRun->mEndNode = mFirstNBSPNode;
     mStartRun->mEndOffset = mFirstNBSPOffset;
     mStartRun->mLeftType = mStartReason;
-    mStartRun->mRightType = eNormalWS;
+    mStartRun->mRightType = WSType::normalWS;
     
     
     WSFragment *normalRun = new WSFragment();
     mStartRun->mRight = normalRun;
-    normalRun->mType = eNormalWS;
+    normalRun->mType = WSType::normalWS;
     normalRun->mStartNode = mFirstNBSPNode;
     normalRun->mStartOffset = mFirstNBSPOffset;
-    normalRun->mLeftType = eLeadingWS;
+    normalRun->mLeftType = WSType::leadingWS;
     normalRun->mLeft = mStartRun;
-    if (mEndReason != eBlock)
-    {
+    if (mEndReason != WSType::block) {
       
       normalRun->mRightType = mEndReason;
       normalRun->mEndNode   = mEndNode;
@@ -1019,27 +978,25 @@ nsWSRunObject::GetRuns()
       {
         normalRun->mEndNode = mLastNBSPNode;
         normalRun->mEndOffset = mLastNBSPOffset+1;
-        normalRun->mRightType = eTrailingWS;
+        normalRun->mRightType = WSType::trailingWS;
         
         
         WSFragment *lastRun = new WSFragment();
-        lastRun->mType = eTrailingWS;
+        lastRun->mType = WSType::trailingWS;
         lastRun->mStartNode = mLastNBSPNode;
         lastRun->mStartOffset = mLastNBSPOffset+1;
         lastRun->mEndNode = mEndNode;
         lastRun->mEndOffset = mEndOffset;
-        lastRun->mLeftType = eNormalWS;
+        lastRun->mLeftType = WSType::normalWS;
         lastRun->mLeft = normalRun;
         lastRun->mRightType = mEndReason;
         mEndRun = lastRun;
         normalRun->mRight = lastRun;
       }
     }
-  }
-  else 
-  {
+  } else {
     
-    mStartRun->mType = eNormalWS;
+    mStartRun->mType = WSType::normalWS;
     mStartRun->mEndNode = mLastNBSPNode;
     mStartRun->mEndOffset = mLastNBSPOffset+1;
     mStartRun->mLeftType = mStartReason;
@@ -1059,15 +1016,15 @@ nsWSRunObject::GetRuns()
     {
       
       WSFragment *lastRun = new WSFragment();
-      lastRun->mType = eTrailingWS;
+      lastRun->mType = WSType::trailingWS;
       lastRun->mStartNode = mLastNBSPNode;
       lastRun->mStartOffset = mLastNBSPOffset+1;
-      lastRun->mLeftType = eNormalWS;
+      lastRun->mLeftType = WSType::normalWS;
       lastRun->mLeft = mStartRun;
       lastRun->mRightType = mEndReason;
       mEndRun = lastRun;
       mStartRun->mRight = lastRun;
-      mStartRun->mRightType = eTrailingWS;
+      mStartRun->mRightType = WSType::trailingWS;
     }
   }
 }
@@ -1088,7 +1045,7 @@ nsWSRunObject::ClearRuns()
 }
 
 void
-nsWSRunObject::MakeSingleWSRun(PRInt16 aType)
+nsWSRunObject::MakeSingleWSRun(WSType aType)
 {
   mStartRun = new WSFragment();
 
@@ -1352,18 +1309,16 @@ nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
   aEndObject->FindRun(aEndObject->mNode, aEndObject->mOffset, &afterRun, true);
   
   
-  if (afterRun && (afterRun->mType & eLeadingWS))
-  {
+  if (afterRun && (afterRun->mType & WSType::leadingWS)) {
     res = aEndObject->DeleteChars(aEndObject->mNode, aEndObject->mOffset, afterRun->mEndNode, afterRun->mEndOffset,
                                   eOutsideUserSelectAll);
     NS_ENSURE_SUCCESS(res, res);
   }
   
-  if (afterRun && (afterRun->mType == eNormalWS) && !aEndObject->mPRE)
-  {
-    if ( (beforeRun && (beforeRun->mType & eLeadingWS)) ||
-         (!beforeRun && ((mStartReason & eBlock) || (mStartReason == eBreak))) )
-    {
+  if (afterRun && afterRun->mType == WSType::normalWS && !aEndObject->mPRE) {
+    if ((beforeRun && (beforeRun->mType & WSType::leadingWS)) ||
+        (!beforeRun && ((mStartReason & WSType::block) ||
+                        mStartReason == WSType::br))) {
       
       WSPoint point = aEndObject->GetCharAfter(aEndObject->mNode,
                                                aEndObject->mOffset);
@@ -1375,18 +1330,14 @@ nsWSRunObject::PrepareToDeleteRangePriv(nsWSRunObject* aEndObject)
     }
   }
   
-  if (beforeRun && (beforeRun->mType & eTrailingWS))
-  {
+  if (beforeRun && (beforeRun->mType & WSType::trailingWS)) {
     res = DeleteChars(beforeRun->mStartNode, beforeRun->mStartOffset, mNode, mOffset,
                       eOutsideUserSelectAll);
     NS_ENSURE_SUCCESS(res, res);
-  }
-  else if (beforeRun && (beforeRun->mType == eNormalWS) && !mPRE)
-  {
-    if ( (afterRun && (afterRun->mType & eTrailingWS)) ||
-         (afterRun && (afterRun->mType == eNormalWS))   ||
-         (!afterRun && ((aEndObject->mEndReason & eBlock))) )
-    {
+  } else if (beforeRun && beforeRun->mType == WSType::normalWS && !mPRE) {
+    if ((afterRun && (afterRun->mType & WSType::trailingWS)) ||
+        (afterRun && afterRun->mType == WSType::normalWS) ||
+        (!afterRun && (aEndObject->mEndReason & WSType::block))) {
       
       WSPoint point = GetCharBefore(mNode, mOffset);
       if (point.mTextNode && nsCRT::IsAsciiSpace(point.mChar))
@@ -1424,8 +1375,7 @@ nsWSRunObject::PrepareToSplitAcrossBlocksPriv()
   FindRun(mNode, mOffset, &afterRun, true);
   
   
-  if (afterRun && (afterRun->mType == eNormalWS))
-  {
+  if (afterRun && afterRun->mType == WSType::normalWS) {
     
     WSPoint point = GetCharAfter(mNode, mOffset);
     if (point.mTextNode && nsCRT::IsAsciiSpace(point.mChar))
@@ -1436,8 +1386,7 @@ nsWSRunObject::PrepareToSplitAcrossBlocksPriv()
   }
 
   
-  if (beforeRun && (beforeRun->mType == eNormalWS))
-  {
+  if (beforeRun && beforeRun->mType == WSType::normalWS) {
     
     WSPoint point = GetCharBefore(mNode, mOffset);
     if (point.mTextNode && nsCRT::IsAsciiSpace(point.mChar))
@@ -1982,7 +1931,9 @@ nsWSRunObject::CheckTrailingNBSPOfRun(WSFragment *aRun)
   bool rightCheck = false;
   
   
-  if (aRun->mType != eNormalWS) return NS_ERROR_FAILURE;
+  if (aRun->mType != WSType::normalWS) {
+    return NS_ERROR_FAILURE;
+  }
   
   
   WSPoint thePoint = GetCharBefore(aRun->mEndNode, aRun->mEndOffset);
@@ -1992,18 +1943,25 @@ nsWSRunObject::CheckTrailingNBSPOfRun(WSFragment *aRun)
     if (prevPoint.mTextNode) {
       if (!nsCRT::IsAsciiSpace(prevPoint.mChar)) leftCheck = true;
       else spaceNBSP = true;
+    } else if (aRun->mLeftType == WSType::text) {
+      leftCheck = true;
+    } else if (aRun->mLeftType == WSType::special) {
+      leftCheck = true;
     }
-    else if (aRun->mLeftType == eText)    leftCheck = true;
-    else if (aRun->mLeftType == eSpecial) leftCheck = true;
     if (leftCheck || spaceNBSP)
     {
       
-      if (aRun->mRightType == eText)    rightCheck = true;
-      if (aRun->mRightType == eSpecial) rightCheck = true;
-      if (aRun->mRightType == eBreak)   rightCheck = true;
-      if ((aRun->mRightType & eBlock) &&
-          IsBlockNode(nsCOMPtr<nsIDOMNode>(GetWSBoundingParent())))
-      {
+      if (aRun->mRightType == WSType::text) {
+        rightCheck = true;
+      }
+      if (aRun->mRightType == WSType::special) {
+        rightCheck = true;
+      }
+      if (aRun->mRightType == WSType::br) {
+        rightCheck = true;
+      }
+      if ((aRun->mRightType & WSType::block) &&
+          IsBlockNode(nsCOMPtr<nsIDOMNode>(GetWSBoundingParent()))) {
         
         
         
@@ -2091,9 +2049,11 @@ nsWSRunObject::CheckTrailingNBSP(WSFragment *aRun, nsIDOMNode *aNode, PRInt32 aO
     WSPoint prevPoint = GetCharBefore(thePoint);
     if (prevPoint.mTextNode) {
       if (!nsCRT::IsAsciiSpace(prevPoint.mChar)) canConvert = true;
+    } else if (aRun->mLeftType == WSType::text) {
+      canConvert = true;
+    } else if (aRun->mLeftType == WSType::special) {
+      canConvert = true;
     }
-    else if (aRun->mLeftType == eText)    canConvert = true;
-    else if (aRun->mLeftType == eSpecial) canConvert = true;
   }
   if (canConvert)
   {
@@ -2130,10 +2090,13 @@ nsWSRunObject::CheckLeadingNBSP(WSFragment *aRun, nsIDOMNode *aNode, PRInt32 aOf
     WSPoint nextPoint = GetCharAfter(tmp);
     if (nextPoint.mTextNode) {
       if (!nsCRT::IsAsciiSpace(nextPoint.mChar)) canConvert = true;
+    } else if (aRun->mRightType == WSType::text) {
+      canConvert = true;
+    } else if (aRun->mRightType == WSType::special) {
+      canConvert = true;
+    } else if (aRun->mRightType == WSType::br) {
+      canConvert = true;
     }
-    else if (aRun->mRightType == eText)    canConvert = true;
-    else if (aRun->mRightType == eSpecial) canConvert = true;
-    else if (aRun->mRightType == eBreak)   canConvert = true;
   }
   if (canConvert)
   {
@@ -2180,8 +2143,7 @@ nsWSRunObject::Scrub()
   WSFragment *run = mStartRun;
   while (run)
   {
-    if (run->mType & (eLeadingWS|eTrailingWS) )
-    {
+    if (run->mType & (WSType::leadingWS | WSType::trailingWS)) {
       nsresult res = DeleteChars(run->mStartNode, run->mStartOffset, run->mEndNode, run->mEndOffset);
       NS_ENSURE_SUCCESS(res, res);
     }

@@ -986,12 +986,16 @@ nsDiskCacheDevice::OpenDiskCache()
 
     if (exists) {
         
-        rv = mCacheMap.Open(mCacheDirectory);        
+        nsDiskCache::CorruptCacheInfo corruptInfo;
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
+
         
         if (NS_SUCCEEDED(rv)) {
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT, 0);
+            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
+                                  corruptInfo);
         } else if (rv == NS_ERROR_FILE_CORRUPTED) {
-            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT, 1);
+            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
+                                  corruptInfo);
             
             rv = nsDeleteDir::DeleteDir(mCacheDirectory, true, 60000);
             if (NS_FAILED(rv))
@@ -1013,7 +1017,8 @@ nsDiskCacheDevice::OpenDiskCache()
             return rv;
     
         
-        rv = mCacheMap.Open(mCacheDirectory);
+        nsDiskCache::CorruptCacheInfo corruptInfo;
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
         if (NS_FAILED(rv))
             return rv;
     }

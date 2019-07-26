@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
 
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_net_FTPChannelChild_h
 #define mozilla_net_FTPChannelChild_h
@@ -16,17 +16,16 @@
 #include "nsIProxiedChannel.h"
 #include "nsIResumableChannel.h"
 #include "nsIChildChannel.h"
-#include "PrivateBrowsingConsumer.h"
 
 #include "nsIStreamListener.h"
 
 namespace mozilla {
 namespace net {
 
-
-
-
-
+// This class inherits logic from nsBaseChannel that is not needed for an
+// e10s child channel, but it works.  At some point we could slice up
+// nsBaseChannel and have a new class that has only the common logic for
+// nsFTPChannel/FTPChannelChild.
 
 class FTPChannelChild : public PFTPChannelChild
                       , public nsBaseChannel
@@ -35,7 +34,6 @@ class FTPChannelChild : public PFTPChannelChild
                       , public nsIResumableChannel
                       , public nsIProxiedChannel
                       , public nsIChildChannel
-                      , public PrivateBrowsingConsumer
 {
 public:
   typedef ::nsIStreamListener nsIStreamListener;
@@ -59,8 +57,8 @@ public:
 
   NS_IMETHOD AsyncOpen(nsIStreamListener* listener, nsISupports* aContext);
 
-  
-  
+  // Note that we handle this ourselves, overriding the nsBaseChannel
+  // default behavior, in order to be e10s-friendly.
   NS_IMETHOD IsPending(bool* result);
 
   NS_OVERRIDE nsresult OpenContentStream(bool async,
@@ -101,7 +99,7 @@ protected:
   friend class FTPDeleteSelfEvent;
 
 private:
-  
+  // Called asynchronously from Resume: continues any pending calls into client.
   void CompleteResume();
   nsresult AsyncCall(void (FTPChannelChild::*funcPtr)(),
                      nsRunnableMethod<FTPChannelChild> **retval = nsnull);
@@ -126,7 +124,7 @@ FTPChannelChild::IsSuspended()
   return mSuspendCount != 0;
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_net_FTPChannelChild_h

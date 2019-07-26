@@ -145,13 +145,6 @@ private:
   nsIntRegion mRegionPendingUpload;
 
   
-  
-  
-  
-  
-  CancelableTask* mUploadTask;
-
-  
   ShadowThebesLayerBufferOGL mFrontBuffer;
   
   SurfaceDescriptor mFrontBufferDescriptor;

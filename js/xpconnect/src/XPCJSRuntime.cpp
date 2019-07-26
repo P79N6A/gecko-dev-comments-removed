@@ -14,6 +14,7 @@
 #include "WrapperFactory.h"
 #include "dom_quickstubs.h"
 
+#include "Element.h"
 #include "nsIMemoryReporter.h"
 #include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
@@ -1543,6 +1544,10 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                   nsIMemoryReporter::KIND_HEAP, rtStats.runtime.scriptFilenames,
                   "Memory used for the table holding script filenames.");
 
+    RREPORT_BYTES(rtPath + NS_LITERAL_CSTRING("runtime/script-sources"),
+                  nsIMemoryReporter::KIND_HEAP, rtStats.runtime.scriptSources,
+                  "Memory use for storing JavaScript source code.");
+
     RREPORT_BYTES(rtPath + NS_LITERAL_CSTRING("runtime/compartment-objects"),
                   nsIMemoryReporter::KIND_HEAP, rtStats.runtime.compartmentObjects,
                   "Memory used for JSCompartment objects.  These are fairly "
@@ -1677,7 +1682,12 @@ public:
     {
         size_t n = 0;
         nsCOMPtr<nsINode> node = do_QueryInterface(static_cast<nsISupports*>(aSupports));
-        if (node && !node->IsInDoc()) {
+        
+        
+        
+        if (node && !node->IsInDoc() &&
+            !(node->IsElement() && node->AsElement()->IsInNamespace(kNameSpaceID_XBL)))
+        {
             
             
             

@@ -357,6 +357,21 @@ ClearAllBitArrayElements(size_t *array, size_t length)
         array[i] = 0;
 }
 
+
+
+
+
+
+bool TryCompressString(const unsigned char *inp, size_t inplen,
+                       unsigned char *out, size_t *outlen);
+
+
+
+
+
+bool DecompressString(const unsigned char *inp, size_t inplen,
+                      unsigned char *out, size_t outlen);
+
 }  
 #endif  
 

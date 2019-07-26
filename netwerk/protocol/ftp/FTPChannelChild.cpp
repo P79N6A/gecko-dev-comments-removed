@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
 
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/FTPChannelChild.h"
@@ -13,6 +13,7 @@
 #include "nsMimeTypes.h"
 #include "nsNetUtil.h"
 #include "nsIURIFixup.h"
+#include "nsILoadContext.h"
 #include "nsCDefaultURIFixup.h"
 #include "base/compiler_specific.h"
 
@@ -23,8 +24,7 @@ namespace mozilla {
 namespace net {
 
 FTPChannelChild::FTPChannelChild(nsIURI* uri)
-: PrivateBrowsingConsumer(this)
-, mIPCOpen(false)
+: mIPCOpen(false)
 , ALLOW_THIS_IN_INITIALIZER_LIST(mEventQ(static_cast<nsIFTPChannel*>(this)))
 , mCanceled(false)
 , mSuspendCount(0)
@@ -34,7 +34,7 @@ FTPChannelChild::FTPChannelChild(nsIURI* uri)
 , mStartPos(0)
 {
   LOG(("Creating FTPChannelChild @%x\n", this));
-  
+  // grab a reference to the handler to ensure that it doesn't go away.
   NS_ADDREF(gFtpHandler);
   SetURI(uri);
 }
@@ -61,9 +61,9 @@ FTPChannelChild::ReleaseIPDLReference()
   Release();
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// FTPChannelChild::nsISupports
+//-----------------------------------------------------------------------------
 
 NS_IMPL_ISUPPORTS_INHERITED5(FTPChannelChild,
                              nsBaseChannel,
@@ -73,7 +73,7 @@ NS_IMPL_ISUPPORTS_INHERITED5(FTPChannelChild,
                              nsIProxiedChannel,
                              nsIChildChannel)
 
-
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 FTPChannelChild::GetLastModifiedTime(PRTime* lastModifiedTime)
@@ -117,7 +117,7 @@ FTPChannelChild::SetUploadStream(nsIInputStream* stream,
 {
   NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
   mUploadStream = stream;
-  
+  // NOTE: contentLength is intentionally ignored here.
   return NS_OK;
 }
 
@@ -130,7 +130,7 @@ FTPChannelChild::GetUploadStream(nsIInputStream** stream)
   return NS_OK;
 }
 
-
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
@@ -142,29 +142,48 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
   NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
-  
-  
+  // Port checked in parent, but duplicate here so we can return with error
+  // immediately, as we've done since before e10s.
   nsresult rv;
-  rv = NS_CheckPortSafety(nsBaseChannel::URI()); 
-                                                 
-                                                 
+  rv = NS_CheckPortSafety(nsBaseChannel::URI()); // Need to disambiguate,
+                                                 // because in the child ipdl,
+                                                 // a typedef URI is defined...
   if (NS_FAILED(rv))
     return rv;
 
-  
+  // FIXME: like bug 558623, merge constructor+SendAsyncOpen into 1 IPC msg
   gNeckoChild->SendPFTPChannelConstructor(this);
   mListener = listener;
   mListenerContext = aContext;
 
-  
+  // add ourselves to the load group. 
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nsnull);
 
-  SendAsyncOpen(nsBaseChannel::URI(), mStartPos, mEntityID,
-                IPC::InputStream(mUploadStream), UsePrivateBrowsing());
+  // Get info from nsILoadContext, if any
+  bool haveLoadContext = false;
+  bool isContent = false;
+  bool usePrivateBrowsing = false;
+  bool isInBrowserElement = false;
+  PRUint32 appId = 0;
+  nsCOMPtr<nsILoadContext> loadContext;
+  NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
+                                NS_GET_IID(nsILoadContext),
+                                getter_AddRefs(loadContext));
+  if (loadContext) {
+    haveLoadContext = true;
+    loadContext->GetIsContent(&isContent);
+    loadContext->GetUsePrivateBrowsing(&usePrivateBrowsing);
+    loadContext->GetIsInBrowserElement(&isInBrowserElement);
+    loadContext->GetAppId(&appId);
+  }
 
-  
-  
+  SendAsyncOpen(nsBaseChannel::URI(), mStartPos, mEntityID,
+                IPC::InputStream(mUploadStream), haveLoadContext, isContent,
+                usePrivateBrowsing, isInBrowserElement, appId);
+
+  // The socket transport layer in the chrome process now has a logical ref to
+  // us until OnStopRequest is called.
   AddIPDLReference();
 
   mIsPending = true;
@@ -189,9 +208,9 @@ FTPChannelChild::OpenContentStream(bool async,
   return NS_OK;
 }
   
-
-
-
+//-----------------------------------------------------------------------------
+// FTPChannelChild::PFTPChannelChild
+//-----------------------------------------------------------------------------
 
 class FTPStartRequestEvent : public ChannelEvent
 {
@@ -290,11 +309,11 @@ FTPChannelChild::DoOnDataAvailable(const nsCString& data,
   if (mCanceled)
     return;
 
-  
-  
-  
-  
-  
+  // NOTE: the OnDataAvailable contract requires the client to read all the data
+  // in the inputstream.  This code relies on that ('data' will go away after
+  // this function).  Apparently the previous, non-e10s behavior was to actually
+  // support only reading part of the data, allowing later calls to read the
+  // rest.
   nsCOMPtr<nsIInputStream> stringStream;
   nsresult rv = NS_NewByteInputStream(getter_AddRefs(stringStream),
                                       data.get(),
@@ -344,8 +363,8 @@ FTPChannelChild::DoOnStopRequest(const nsresult& statusCode)
   if (!mCanceled)
     mStatus = statusCode;
 
-  { 
-    
+  { // Ensure that all queued ipdl events are dispatched before
+    // we initiate protocol deletion below.
     mIsPending = false;
     AutoEventEnqueuer ensureSerialDispatch(mEventQ);
     (void)mListener->OnStopRequest(this, mListenerContext, statusCode);
@@ -356,8 +375,8 @@ FTPChannelChild::DoOnStopRequest(const nsresult& statusCode)
       mLoadGroup->RemoveRequest(this, nsnull, statusCode);
   }
 
-  
-  
+  // This calls NeckoChild::DeallocPFTPChannel(), which deletes |this| if IPDL
+  // holds the last reference.  Don't rely on |this| existing after here!
   Send__delete__(this);
 }
 
@@ -491,15 +510,15 @@ FTPChannelChild::Resume()
   return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// FTPChannelChild::nsIChildChannel
+//-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
 FTPChannelChild::ConnectParent(PRUint32 id)
 {
-  
-  
+  // The socket transport in the chrome process now holds a logical ref to us
+  // until OnStopRequest, or we do a redirect, or we hit an IPDL error.
   AddIPDLReference();
 
   if (!gNeckoChild->SendPFTPChannelConstructor(this))
@@ -525,16 +544,16 @@ FTPChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
   mListener = listener;
   mListenerContext = aContext;
 
-  
+  // add ourselves to the load group.
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nsnull);
 
-  
-  
-  
+  // We already have an open IPDL connection to the parent. If on-modify-request
+  // listeners or load group observers canceled us, let the parent handle it
+  // and send it back to us naturally.
   return NS_OK;
 }
 
-} 
-} 
+} // namespace net
+} // namespace mozilla
 

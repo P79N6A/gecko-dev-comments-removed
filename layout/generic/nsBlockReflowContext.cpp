@@ -75,115 +75,121 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
   nsPresContext* prescontext = frame->PresContext();
-  if (0 == aRS.mComputedBorderPadding.top &&
-      nsLayoutUtils::GetAsBlock(frame) &&
-      !nsBlockFrame::BlockIsMarginRoot(frame)) {
-    
-    
-    
-    
-    
-    
-    for (nsBlockFrame* block = static_cast<nsBlockFrame*>(frame);
-         block; block = static_cast<nsBlockFrame*>(block->GetNextInFlow())) {
-      for (PRIntn overflowLines = false; overflowLines <= true; ++overflowLines) {
-        nsBlockFrame::line_iterator line;
-        nsBlockFrame::line_iterator line_end;
-        bool anyLines = true;
-        if (overflowLines) {
-          nsBlockFrame::FrameLines* frames = block->GetOverflowLines();
-          nsLineList* lines = frames ? &frames->mLines : nsnull;
-          if (!lines) {
-            anyLines = false;
-          } else {
-            line = lines->begin();
-            line_end = lines->end();
-          }
-        } else {
-          line = block->begin_lines();
-          line_end = block->end_lines();
-        }
-        for (; anyLines && line != line_end; ++line) {
-          if (!aClearanceFrame && line->HasClearance()) {
-            
-            
-            
-            line->ClearHasClearance();
-            line->MarkDirty();
-            dirtiedLine = true;
-          }
-          
-          bool isEmpty;
-          if (line->IsInline()) {
-            isEmpty = line->IsEmpty();
-          } else {
-            nsIFrame* kid = line->mFirstChild;
-            if (kid == aClearanceFrame) {
-              line->SetHasClearance();
-              line->MarkDirty();
-              dirtiedLine = true;
-              goto done;
-            }
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            const nsHTMLReflowState* outerReflowState = &aRS;
-            if (frame != aRS.frame) {
-              NS_ASSERTION(frame->GetParent() == aRS.frame,
-                           "Can only drill through one level of block wrapper");
-              nsSize availSpace(aRS.ComputedWidth(), aRS.ComputedHeight());
-              outerReflowState = new nsHTMLReflowState(prescontext,
-                                                       aRS, frame, availSpace);
-            }
-            {
-              nsSize availSpace(outerReflowState->ComputedWidth(),
-                                outerReflowState->ComputedHeight());
-              nsHTMLReflowState innerReflowState(prescontext,
-                                                 *outerReflowState, kid,
-                                                 availSpace);
-              
-              
-              if (kid->GetStyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
-                *aMayNeedRetry = true;
-              }
-              if (ComputeCollapsedTopMargin(innerReflowState, aMargin, aClearanceFrame, aMayNeedRetry, &isEmpty)) {
-                line->MarkDirty();
-                dirtiedLine = true;
-              }
-              if (isEmpty)
-                aMargin->Include(innerReflowState.mComputedMargin.bottom);
-            }
-            if (outerReflowState != &aRS) {
-              delete const_cast<nsHTMLReflowState*>(outerReflowState);
-            }
-          }
-          if (!isEmpty) {
-            if (!setBlockIsEmpty && aBlockIsEmpty) {
-              setBlockIsEmpty = true;
-              *aBlockIsEmpty = false;
-            }
-            goto done;
-          }
-        }
-        if (!setBlockIsEmpty && aBlockIsEmpty) {
-          
-          
-          setBlockIsEmpty = true;
-          
-          *aBlockIsEmpty = aRS.frame->IsSelfEmpty();
-        }
+  nsBlockFrame* block = nsnull;
+  if (0 == aRS.mComputedBorderPadding.top) {
+    block = nsLayoutUtils::GetAsBlock(frame);
+    if (block) {
+      bool topMarginRoot, unused;
+      block->IsMarginRoot(&topMarginRoot, &unused);
+      if (topMarginRoot) {
+        block = nsnull;
       }
     }
-  done:
-    ;
   }
+
+  
+  
+  
+  
+  
+  
+  for ( ;block; block = static_cast<nsBlockFrame*>(block->GetNextInFlow())) {
+    for (PRIntn overflowLines = false; overflowLines <= true; ++overflowLines) {
+      nsBlockFrame::line_iterator line;
+      nsBlockFrame::line_iterator line_end;
+      bool anyLines = true;
+      if (overflowLines) {
+        nsBlockFrame::FrameLines* frames = block->GetOverflowLines();
+        nsLineList* lines = frames ? &frames->mLines : nsnull;
+        if (!lines) {
+          anyLines = false;
+        } else {
+          line = lines->begin();
+          line_end = lines->end();
+        }
+      } else {
+        line = block->begin_lines();
+        line_end = block->end_lines();
+      }
+      for (; anyLines && line != line_end; ++line) {
+        if (!aClearanceFrame && line->HasClearance()) {
+          
+          
+          
+          line->ClearHasClearance();
+          line->MarkDirty();
+          dirtiedLine = true;
+        }
+        
+        bool isEmpty;
+        if (line->IsInline()) {
+          isEmpty = line->IsEmpty();
+        } else {
+          nsIFrame* kid = line->mFirstChild;
+          if (kid == aClearanceFrame) {
+            line->SetHasClearance();
+            line->MarkDirty();
+            dirtiedLine = true;
+            goto done;
+          }
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          const nsHTMLReflowState* outerReflowState = &aRS;
+          if (frame != aRS.frame) {
+            NS_ASSERTION(frame->GetParent() == aRS.frame,
+                         "Can only drill through one level of block wrapper");
+            nsSize availSpace(aRS.ComputedWidth(), aRS.ComputedHeight());
+            outerReflowState = new nsHTMLReflowState(prescontext,
+                                                     aRS, frame, availSpace);
+          }
+          {
+            nsSize availSpace(outerReflowState->ComputedWidth(),
+                              outerReflowState->ComputedHeight());
+            nsHTMLReflowState innerReflowState(prescontext,
+                                               *outerReflowState, kid,
+                                               availSpace);
+            
+            
+            if (kid->GetStyleDisplay()->mBreakType != NS_STYLE_CLEAR_NONE) {
+              *aMayNeedRetry = true;
+            }
+            if (ComputeCollapsedTopMargin(innerReflowState, aMargin, aClearanceFrame, aMayNeedRetry, &isEmpty)) {
+              line->MarkDirty();
+              dirtiedLine = true;
+            }
+            if (isEmpty)
+              aMargin->Include(innerReflowState.mComputedMargin.bottom);
+          }
+          if (outerReflowState != &aRS) {
+            delete const_cast<nsHTMLReflowState*>(outerReflowState);
+          }
+        }
+        if (!isEmpty) {
+          if (!setBlockIsEmpty && aBlockIsEmpty) {
+            setBlockIsEmpty = true;
+            *aBlockIsEmpty = false;
+          }
+          goto done;
+        }
+      }
+      if (!setBlockIsEmpty && aBlockIsEmpty) {
+        
+        
+        setBlockIsEmpty = true;
+        
+        *aBlockIsEmpty = aRS.frame->IsSelfEmpty();
+      }
+    }
+  }
+  done:
 
   if (!setBlockIsEmpty && aBlockIsEmpty) {
     *aBlockIsEmpty = aRS.frame->IsEmpty();

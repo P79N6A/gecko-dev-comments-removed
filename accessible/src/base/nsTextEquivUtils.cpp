@@ -34,9 +34,7 @@ nsTextEquivUtils::GetNameFromSubtree(Accessible* aAccessible,
     return NS_OK;
 
   gInitiatorAcc = aAccessible;
-
-  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
-  if (nameRule == eFromSubtree) {
+  if (GetRoleRule(aAccessible->Role()) == eFromSubtree) {
     
     if (aAccessible->IsContent()) {
       nsAutoString name;
@@ -216,7 +214,7 @@ nsTextEquivUtils::AppendFromAccessible(Accessible* aAccessible,
   
   
   if (isEmptyTextEquiv) {
-    PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
+    PRUint32 nameRule = GetRoleRule(aAccessible->Role());
     if (nameRule & eFromSubtreeIfRec) {
       rv = AppendFromAccessibleChildren(aAccessible, aString);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -239,8 +237,7 @@ nsresult
 nsTextEquivUtils::AppendFromValue(Accessible* aAccessible,
                                   nsAString *aString)
 {
-  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
-  if (nameRule != eFromValue)
+  if (GetRoleRule(aAccessible->Role()) != eFromValue)
     return NS_OK_NO_NAME_CLAUSE_HANDLED;
 
   
@@ -366,138 +363,20 @@ nsTextEquivUtils::IsWhitespace(PRUnichar aChar)
     aChar == '\r' || aChar == '\t' || aChar == 0xa0;
 }
 
-
-
-
-PRUint32 nsTextEquivUtils::gRoleToNameRulesMap[] =
+PRUint32 
+nsTextEquivUtils::GetRoleRule(role aRole)
 {
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtreeIfRec, 
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromValue,        
-  eNoRule,           
-  eFromValue,        
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromValue,        
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eFromSubtreeIfRec, 
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtree,      
-  eNoRule,           
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtree,      
-  eNoRule,           
-  eFromSubtree,      
-  eFromSubtreeIfRec, 
-  eFromSubtree,      
-  eFromSubtree       
-};
+#define ROLE(geckoRole, stringRole, atkRole, \
+             macRole, msaaRole, ia2Role, nameRule) \
+  case roles::geckoRole: \
+    return nameRule;
+
+  switch (aRole) {
+#include "RoleMap.h"
+    default:
+      MOZ_NOT_REACHED("Unknown role.");
+  }
+
+#undef ROLE
+}
+

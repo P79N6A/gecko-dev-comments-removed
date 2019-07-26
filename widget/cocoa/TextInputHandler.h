@@ -201,7 +201,8 @@ public:
 
 
 
-  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+                    const nsAString *aInsertString = nsnull);
 
   
 
@@ -262,10 +263,9 @@ protected:
 
 
 
-
-
-
-  void InitKeyPressEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+  void InitKeyPressEvent(NSEvent *aNativeKeyEvent,
+                         PRUnichar aInsertChar,
+                         nsKeyEvent& aKeyEvent,
                          UInt32 aKbType);
 
   bool GetBoolProperty(const CFStringRef aKey);
@@ -326,7 +326,14 @@ public:
 
 
 
-  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
+
+
+
+
+
+
+  void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent,
+                    const nsAString *aInsertString = nsnull);
 
   
 
