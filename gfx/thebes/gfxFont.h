@@ -60,6 +60,8 @@ class nsILanguageAtomService;
 
 #define NO_FONT_LANGUAGE_OVERRIDE      0
 
+#define SMALL_CAPS_SCALE_FACTOR        0.8
+
 struct FontListSizes;
 struct gfxTextRunDrawCallbacks;
 
@@ -1806,6 +1808,22 @@ public:
         return mFontEntry->GetUVSGlyph(aCh, aVS); 
     }
 
+    bool InitSmallCapsRun(gfxContext     *aContext,
+                          gfxTextRun     *aTextRun,
+                          const uint8_t  *aText,
+                          uint32_t        aOffset,
+                          uint32_t        aLength,
+                          uint8_t         aMatchType,
+                          int32_t         aScript);
+
+    bool InitSmallCapsRun(gfxContext     *aContext,
+                          gfxTextRun     *aTextRun,
+                          const char16_t *aText,
+                          uint32_t        aOffset,
+                          uint32_t        aLength,
+                          uint8_t         aMatchType,
+                          int32_t         aScript);
+
     
     
     
@@ -1914,6 +1932,13 @@ public:
     }
 
 protected:
+    
+    
+    
+    
+    
+    virtual already_AddRefed<gfxFont> GetSmallCapsFont();
+
     
     
     
