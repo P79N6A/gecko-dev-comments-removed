@@ -30,6 +30,7 @@ namespace {
 class Worker
 {
   static DOMJSClass sClass;
+  static DOMIfaceAndProtoJSClass sProtoClass;
   static JSPropertySpec sProperties[];
   static JSFunctionSpec sFunctions[];
 
@@ -57,16 +58,32 @@ public:
     return sClass.ToJSClass();
   }
 
+  static JSClass*
+  ProtoClass()
+  {
+    return sProtoClass.ToJSClass();
+  }
+
+  static DOMClass*
+  DOMClassStruct()
+  {
+    return &sClass.mClass;
+  }
+
   static JSObject*
   InitClass(JSContext* aCx, JSObject* aObj, JSObject* aParentProto,
             bool aMainRuntime)
   {
     JSObject* proto =
-      js::InitClassWithReserved(aCx, aObj, aParentProto, Class(), Construct, 0,
-                                sProperties, sFunctions, NULL, NULL);
+      js::InitClassWithReserved(aCx, aObj, aParentProto, ProtoClass(),
+                                Construct, 0, sProperties, sFunctions,
+                                NULL, NULL);
     if (!proto) {
       return NULL;
     }
+
+    js::SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                        JS::PrivateValue(DOMClassStruct()));
 
     if (!aMainRuntime) {
       WorkerPrivate* parent = GetWorkerPrivateFromContext(aCx);
@@ -128,6 +145,10 @@ protected:
     nsRefPtr<WorkerPrivate> worker =
       WorkerPrivate::Create(aCx, obj, parent, scriptURL, aIsChromeWorker);
     if (!worker) {
+      
+      
+      
+      js::SetReservedSlot(obj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
       return false;
     }
 
@@ -291,6 +312,36 @@ DOMJSClass Worker::sClass = {
   }
 };
 
+DOMIfaceAndProtoJSClass Worker::sProtoClass = {
+  {
+    
+    
+    
+    
+    "Worker",
+    JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
+    JS_PropertyStub,       
+    JS_PropertyStub,       
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    JSCLASS_NO_INTERNAL_MEMBERS
+  },
+  eInterfacePrototype,
+  &sWorkerNativePropertyHooks,
+  "[object Worker]",
+  prototypes::id::_ID_Count,
+  0
+};
+
 JSPropertySpec Worker::sProperties[] = {
   { sEventStrings[STRING_onerror], STRING_onerror, PROPERTY_FLAGS,
     JSOP_WRAPPER(GetEventListener), JSOP_WRAPPER(SetEventListener) },
@@ -313,6 +364,7 @@ const char* const Worker::sEventStrings[STRING_COUNT] = {
 class ChromeWorker : public Worker
 {
   static DOMJSClass sClass;
+  static DOMIfaceAndProtoJSClass sProtoClass;
 
 public:
   static JSClass*
@@ -321,16 +373,31 @@ public:
     return sClass.ToJSClass();
   }
 
+  static JSClass*
+  ProtoClass()
+  {
+    return sProtoClass.ToJSClass();
+  }
+
+  static DOMClass*
+  DOMClassStruct()
+  {
+    return &sClass.mClass;
+  }
+
   static JSObject*
   InitClass(JSContext* aCx, JSObject* aObj, JSObject* aParentProto,
             bool aMainRuntime)
   {
     JSObject* proto =
-      js::InitClassWithReserved(aCx, aObj, aParentProto, Class(), Construct, 0,
-                                NULL, NULL, NULL, NULL);
+      js::InitClassWithReserved(aCx, aObj, aParentProto, ProtoClass(),
+                                Construct, 0, NULL, NULL, NULL, NULL);
     if (!proto) {
       return NULL;
     }
+
+    js::SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
+                        JS::PrivateValue(DOMClassStruct()));
 
     if (!aMainRuntime) {
       WorkerPrivate* parent = GetWorkerPrivateFromContext(aCx);
@@ -406,6 +473,36 @@ DOMJSClass ChromeWorker::sClass = {
     false,
     &sWorkerNativePropertyHooks
   }
+};
+
+DOMIfaceAndProtoJSClass ChromeWorker::sProtoClass = {
+  {
+    
+    
+    
+    
+    "ChromeWorker",
+    JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
+    JS_PropertyStub,       
+    JS_PropertyStub,       
+    JS_PropertyStub,       
+    JS_StrictPropertyStub, 
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    nullptr,               
+    JSCLASS_NO_INTERNAL_MEMBERS
+  },
+  eInterfacePrototype,
+  &sWorkerNativePropertyHooks,
+  "[object ChromeWorker]",
+  prototypes::id::_ID_Count,
+  0
 };
 
 WorkerPrivate*
